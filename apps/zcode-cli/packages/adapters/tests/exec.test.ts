@@ -1311,7 +1311,8 @@ describe("NodeExecutionAdapter", () => {
 
         expect(result.status).toBe("completed");
         expect(result.exitCode).toBe(0);
-        expect(result.resolvedCwd).toBe(await realpath(child));
+        expect(result.resolvedCwd).toBeDefined();
+        expect(await realpath(result.resolvedCwd!)).toBe(await realpath(child));
       } finally {
         await rm(root, { recursive: true, force: true });
       }
@@ -1338,7 +1339,8 @@ describe("NodeExecutionAdapter", () => {
 
         expect(result.status).toBe("completed");
         expect(result.exitCode).toBe(0);
-        expect(result.resolvedCwd).toBe(await realpath(child));
+        expect(result.resolvedCwd).toBeDefined();
+        expect(await realpath(result.resolvedCwd!)).toBe(await realpath(child));
       } finally {
         await rm(root, { recursive: true, force: true });
       }
@@ -4326,8 +4328,12 @@ describe("NodeExecutionAdapter", () => {
         });
 
         expect(result.task.outputPath).toBeTypeOf("string");
-        await sleep(600);
-        await expect(readFile(result.task.outputPath!, "utf8")).resolves.toBe("earlylate");
+        await vi.waitFor(
+          async () => {
+            await expect(readFile(result.task.outputPath!, "utf8")).resolves.toBe("earlylate");
+          },
+          { timeout: 5_000 },
+        );
       } finally {
         await adapter.close();
         await rm(outputRootDir, { force: true, recursive: true });

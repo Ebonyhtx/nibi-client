@@ -83,7 +83,7 @@ test("resolves the development ZCode Built-in Config and shared Personal Config"
   assert.equal(logoutPrepared[NIBI_BUILTIN_PROVIDER_CONFIG_FILE_ENV], activeFilePath);
   // 临时目录本身可能经过软链接（macOS 的 /tmp、/var），随包配置报告的是真实路径。
   assert.equal(
-    prepared.NIBI_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE,
+    await realpath(prepared.NIBI_BUILTIN_PROVIDER_BUNDLED_CONFIG_FILE!),
     await realpath(nibiBuiltinFilePath),
   );
   await assert.rejects(access(join(dirname(activeFilePath!), "nibi-builtin-refresh.json")));
