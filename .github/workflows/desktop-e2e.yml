@@ -1,0 +1,50 @@
+name: desktop-e2e-container
+
+# Manual desktop interaction E2E. The image runs an Electron build inside a
+# Linux container with replay-isolated network access, so no provider key or
+# repository secret is required.
+#
+# This workflow is intentionally manual-only: the image is large and the suite
+# takes several minutes, so it should not run on every push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Comma-separated specs, relative to packages/desktop"
+        required: false
+        default: "./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
+      skip_image_build:
+        description: "Reuse an existing local image (only useful on a persistent machine)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-e2e-container
+  cancel-in-progress: false
+
+jobs:
+  desktop-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - name: Run container E2E
+        shell: bash
+        env:
+          E2E_SPEC: ${{ inputs.spec }}
+          SKIP_IMAGE_BUILD: ${{ inputs.skip_image_build && '1' || '0' }}
+        run: bash scripts/test-desktop-e2e-container.sh
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-e2e-artifacts
+          path: packages/desktop/.e2e-artifacts/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn

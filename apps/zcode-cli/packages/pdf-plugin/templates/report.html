@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>2026 年上半年经营情况说明</title>
+<style>
+  /* 打印设置：A4 + 页边距。改这里就是改交付件的版心（LibreOffice 会按 @page 排版）。 */
+  @page { size: A4; margin: 2.2cm 2.4cm; }
+  html { font-size: 10.5pt; }
+  body { font-family: "宋体", "SimSun", serif; color: #22252B; line-height: 1.65; margin: 0; }
+  h1 { font-family: "黑体", "SimHei", sans-serif; font-size: 18pt; text-align: center;
+       margin: 0 0 6pt; color: #1E3A5F; }
+  .meta { text-align: center; color: #5A6072; font-size: 9.5pt; margin-bottom: 18pt; }
+  h2 { font-family: "黑体", "SimHei", sans-serif; font-size: 12.5pt; color: #1E3A5F;
+       margin: 16pt 0 8pt; }
+  p { margin: 0 0 8pt; text-indent: 2em; text-align: justify; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0 12pt;
+          font-family: "宋体", "SimSun", serif; font-size: 10pt; page-break-inside: avoid; }
+  /* 用 px 而不是 pt：LibreOffice 的 HTML 导入对 pt 细边框会整条丢掉（实测：表格成了无框表） */
+  th, td { border: 1px solid #9aa0a6; padding: 4pt 6pt; }
+  th { background: #F4F1EA; font-family: "黑体", "SimHei", sans-serif; text-align: center; }
+  td.num { text-align: right; }
+  .caption { text-align: center; color: #5A6072; font-size: 9pt; margin: 0 0 12pt; }
+  .note { color: #5A6072; font-size: 9pt; text-indent: 0; margin-top: 14pt; }
+</style>
+</head>
+<body>
+  <h1>2026 年上半年经营情况说明</h1>
+  <p class="meta">NIBI 数据组 · 2026 年 7 月</p>
+
+  <h2>一、总体情况</h2>
+  <p>2026 年上半年实现营业收入 4,320.5 万元，同比增长 12.4%；毛利率 28.6%，同比提升
+     1.2 个百分点；经营活动现金流 1,860.0 万元，同比增长 8.1%。收入增长快于成本增长，
+     毛利率改善主要来自产品结构优化与采购成本下降。</p>
+  <p>本说明数据口径为含税收入，截至 2026 年 6 月 30 日；6 月数据为快报数，正式数据以财务
+     结账数为准。</p>
+
+  <h2>二、主要指标</h2>
+  <!-- LO 的 HTML 导入会丢 CSS 的 td 边框（实测），但认这个传统的 border 属性 -->
+  <table border="1" cellspacing="0" cellpadding="5">
+    <tr><th>指标</th><th>2026 上半年</th><th>2025 上半年</th><th>同比</th></tr>
+    <tr><td>营业收入（万元）</td><td class="num">4,320.5</td><td class="num">3,843.6</td><td class="num">+12.4%</td></tr>
+    <tr><td>营业成本（万元）</td><td class="num">3,060.6</td><td class="num">2,780.1</td><td class="num">+10.1%</td></tr>
+    <tr><td>毛利率</td><td class="num">28.6%</td><td class="num">27.4%</td><td class="num">+1.2pp</td></tr>
+    <tr><td>经营活动现金流（万元）</td><td class="num">1,860.0</td><td class="num">1,720.6</td><td class="num">+8.1%</td></tr>
+  </table>
+  <p class="caption">表 1 上半年主要经营指标（数据来源：财务系统）</p>
+
+  <h2>三、结论与建议</h2>
+  <p>上半年经营质量较去年同期改善：收入增速高于成本增速，现金流健康，毛利率稳定在 29%
+     以上。建议下半年保持现有产品结构，重点关注应收账款账期（由 45 天升至 58 天）与
+     原材料单一供应商依赖度（62%）。</p>
+  <p class="note">注：本文件由 NIBI pdf 插件按模板生成，数据为示例数据；实际使用时请替换为真实数据。</p>
+</body>
+</html>

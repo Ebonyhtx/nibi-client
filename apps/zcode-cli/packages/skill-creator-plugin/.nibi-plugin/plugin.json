@@ -1,0 +1,11 @@
+{
+  "name": "skill-creator",
+  "version": "0.1.0",
+  "description": "Create, edit, and iterate local NIBI skills.",
+  "author": {
+    "name": "NIBI",
+    "url": "https://nibistudio.top"
+  },
+  "license": "MIT",
+  "skills": "skills"
+}

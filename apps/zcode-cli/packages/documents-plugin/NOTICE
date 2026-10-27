@@ -1,0 +1,22 @@
+# 第三方组件与来源说明（NOTICE）
+
+本插件（NIBI documents）为 **NIBI 自研**，**未使用**上游 ZCode 文档类插件（documents / pdf /
+presentations / spreadsheets）的代码或技能文本；只参考其公开能力清单，实现路线自研
+（规格驱动构建 + 判据分层报告 + 真引擎验收）。
+
+## 运行时依赖（自举安装，不随包分发）
+
+* python-docx (MIT) —— .docx 读写
+* Pillow (HPND) —— 图片与字体度量
+* pypdfium2 (BSD-3/Apache-2.0) —— 渲染件逐页读图与文本抽取
+
+## 可选外部引擎（不随包分发，用户自备）
+
+| 组件 | 许可 | 用途 |
+| --- | --- | --- |
+| [LibreOffice](https://www.libreoffice.org/) | MPL-2.0 | 真渲染（文档 → PDF）、逐页出图 |
+
+## 明确不使用
+
+* **PyMuPDF**（AGPL-3.0）：商业产品内不使用，仅在用户环境恰好独立安装时作为兜底渲染路径；
+* 上游文档类插件的**专有实现**（许可"仅限非商用"）：不复制、不改写、不随包分发。

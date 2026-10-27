@@ -1,0 +1,9 @@
+# 由 tools/doc-plugin-locks.py 生成，请勿手改。
+# 解析时间：2026-10-09 18:26（源：https://pypi.tuna.tsinghua.edu.cn/simple；解释器：3.11.9）
+# 安装方式：pip install -r tools/requirements.lock（版本锁定；不含哈希，原因见生成脚本说明）
+# 顶层依赖写在 tools/requirements.in，改完要重跑：python tools/doc-plugin-locks.py
+
+et_xmlfile==2.0.0
+openpyxl==3.1.5
+pillow==12.3.0
+pypdfium2==5.14.0

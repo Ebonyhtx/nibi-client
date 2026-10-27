@@ -1,0 +1,22 @@
+{
+  "name": "documents",
+  "version": "1.0.1",
+  "description": "Create, edit and audit .docx documents: spec-driven generation (headings, tables, images, headers/footers, TOC), targeted edits, text extraction, two-layer validation and page-by-page visual acceptance.",
+  "description_i18n": {
+    "en": "Create, edit and audit .docx documents: spec-driven generation (headings, tables, images, headers/footers, TOC), targeted edits, text extraction, two-layer validation and page-by-page visual acceptance.",
+    "zh-CN": "创建、编辑与审查 .docx 文档：按规格生成（标题/正文/表格/图片/页眉页脚/目录）、定向改稿、抽取文本，以及交付前的两层校验与逐页出图验收。"
+  },
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "MIT",
+  "homepage": "",
+  "keywords": [
+    "docx",
+    "word",
+    "文档",
+    "报告"
+  ],
+  "skills": "skills",
+  "agents": "agents"
+}

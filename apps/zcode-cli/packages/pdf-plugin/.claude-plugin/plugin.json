@@ -1,0 +1,22 @@
+{
+  "name": "pdf",
+  "version": "1.0.1",
+  "description": "Four PDF workflows: reports and formal documents, academic LaTeX, existing-PDF processing (merge/split/extract/watermark) and prepress QA (page renders, font embedding, overflow and missing-glyph checks).",
+  "description_i18n": {
+    "en": "Four PDF workflows: reports and formal documents, academic LaTeX, existing-PDF processing (merge/split/extract/watermark) and prepress QA (page renders, font embedding, overflow and missing-glyph checks).",
+    "zh-CN": "PDF 四条产线：报告与正式文件排版、学术 LaTeX、既有 PDF 处理（合并/拆分/抽取/加水印）与印前 QA（逐页出图、字体嵌入、越界与缺字形检查）。"
+  },
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "MIT",
+  "homepage": "",
+  "keywords": [
+    "pdf",
+    "latex",
+    "prepress",
+    "印前"
+  ],
+  "skills": "skills",
+  "agents": "agents"
+}

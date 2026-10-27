@@ -1,0 +1,162 @@
+name: client-gates
+
+# Public repository gates. Runs on GitHub-hosted runners only.
+#
+# The public repository must never use self-hosted runners, repository secrets,
+# or pull_request_target. The `policy` job enforces those rules together with
+# the public-tree scanner.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: public-repo-policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.14.0"
+      - name: Public tree policy
+        run: node scripts/check-public-repo.mjs
+
+  linux-gates:
+    name: linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      TURBO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.14.0"
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.1.0
+        with:
+          version: 10.33.2
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build contracts and CLI packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Lint
+        run: pnpm run lint
+      - name: Accessibility gate
+        run: node scripts/check-ui-a11y.mjs
+      - name: Architecture gate
+        run: pnpm run architecture:check
+      - name: Architecture governance self-test
+        run: pnpm run test:architecture
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Unit tests (3 shards)
+        shell: bash
+        run: |
+          failed=0
+          for shard in 1 2 3; do
+            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated || failed=1
+          done
+          exit $failed
+      - name: CLI unit tests
+        working-directory: apps/zcode-cli
+        run: ../../node_modules/.bin/turbo run test --filter=./packages/* --continue --concurrency=2
+
+  windows-gates:
+    name: windows
+    runs-on: windows-latest
+    timeout-minutes: 180
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.14.0"
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.1.0
+        with:
+          version: 10.33.2
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build contracts and CLI packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Lint
+        run: pnpm run lint
+      - name: Accessibility gate
+        run: node scripts/check-ui-a11y.mjs
+      - name: Architecture gate
+        run: pnpm run architecture:check
+      - name: Architecture governance self-test
+        run: pnpm run test:architecture
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Windows-only tests
+        run: pnpm exec vitest run --project windows-only --maxWorkers=1
+      - name: Unit tests (3 shards)
+        shell: bash
+        run: |
+          failed=0
+          for shard in 1 2 3; do
+            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated || failed=1
+          done
+          exit $failed
+      - name: CLI unit tests
+        working-directory: apps/zcode-cli
+        run: ../../node_modules/.bin/turbo run test --filter=./packages/* --continue --concurrency=2
+
+  macos-gates:
+    name: macos
+    runs-on: macos-latest
+    timeout-minutes: 180
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.14.0"
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.1.0
+        with:
+          version: 10.33.2
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build contracts and CLI packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Lint
+        run: pnpm run lint
+      - name: Accessibility gate
+        run: node scripts/check-ui-a11y.mjs
+      - name: Architecture gate
+        run: pnpm run architecture:check
+      - name: Architecture governance self-test
+        run: pnpm run test:architecture
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Unit tests (3 shards)
+        shell: bash
+        run: |
+          failed=0
+          for shard in 1 2 3; do
+            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated || failed=1
+          done
+          exit $failed
+      - name: CLI unit tests
+        working-directory: apps/zcode-cli
+        run: ../../node_modules/.bin/turbo run test --filter=./packages/* --continue --concurrency=2

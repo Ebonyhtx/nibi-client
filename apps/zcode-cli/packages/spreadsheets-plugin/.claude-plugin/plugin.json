@@ -1,0 +1,23 @@
+{
+  "name": "spreadsheets",
+  "version": "1.0.1",
+  "description": "Create, edit and audit .xlsx workbooks: live formulas, Chinese typography rules, and a quality gate that renders the sheets through a real office engine for page-by-page review.",
+  "description_i18n": {
+    "en": "Create, edit and audit .xlsx workbooks: live formulas, Chinese typography rules, and a quality gate that renders the sheets through a real office engine for page-by-page review.",
+    "zh-CN": "创建、编辑与审查 .xlsx 工作簿：活公式、中文排版规则，以及用真渲染引擎逐页出图的质量门禁（含截断、错误值、字号、打印与交付卫生判据）。"
+  },
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "MIT",
+  "homepage": "",
+  "keywords": [
+    "spreadsheet",
+    "xlsx",
+    "excel",
+    "table",
+    "报告表"
+  ],
+  "skills": "skills",
+  "agents": "agents"
+}

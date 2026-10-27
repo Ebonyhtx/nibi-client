@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible defect in the public NIBI client
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Do **not** include credentials, private keys, personal data, or internal hostnames.
+        For security issues, use the private reporting channel in SECURITY.md instead of this form.
+  - type: input
+    id: version
+    attributes:
+      label: NIBI version or commit
+      placeholder: "4.0.0 or commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Web
+        - CLI/TUI
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Minimal steps that reliably reproduce the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exact error message if there is one.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove credentials, private paths, and personal data first.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I reproduced this on the latest public version or commit.
+          required: true
+        - label: I removed credentials, private paths, and personal data from this report.
+          required: true

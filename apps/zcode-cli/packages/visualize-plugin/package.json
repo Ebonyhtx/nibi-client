@@ -1,0 +1,8 @@
+{
+  "name": "@nibi/visualize-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NIBI Gen UI authoring skill and examples",
+  "license": "SEE LICENSE IN skills/visualize/LICENSE.md",
+  "type": "module"
+}

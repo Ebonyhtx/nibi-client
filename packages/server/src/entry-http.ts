@@ -1,0 +1,46 @@
+import {
+  createServerHostServices,
+  createTopicResourcePeers,
+  getAppConfigDir,
+} from "@nibi/services/node";
+import {
+  materializeBundledZCodeBuiltinProviderConfig,
+  readBundledZCodeBuiltinProviderConfig,
+} from "./bundledZCodeBuiltinProviderConfig.js";
+import { createHttpServer, resolveHttpServerId } from "./http.js";
+
+async function main(): Promise<void> {
+  const nibiBuiltinProviderConfigFilePath = await materializeBundledZCodeBuiltinProviderConfig({
+    environmentConfigRoot: getAppConfigDir(),
+    content: readBundledZCodeBuiltinProviderConfig(),
+  });
+  const port = Number(process.env["PORT"]) || 3030;
+  const host = process.env["NIBI_SERVER_HOST"]?.trim() || process.env["HOST"]?.trim() || undefined;
+  const staticRoot = process.env["NIBI_WEB_STATIC_ROOT"]?.trim() || undefined;
+  const authToken = process.env["NIBI_SERVER_AUTH_TOKEN"]?.trim() || undefined;
+  const topicResourcePeers = createTopicResourcePeers();
+  const serverId = resolveHttpServerId();
+  const { services, workspaceIdentityMapper, migrationFailedPathCount } =
+    await createServerHostServices({
+      topicResourceRelayChannel: (request) => topicResourcePeers.getChannel(request),
+      sourceServerId: serverId,
+      nibiBuiltinProviderConfigFilePath,
+      providerProvisioningTargetEnabled: Boolean(authToken),
+    });
+
+  createHttpServer(services, port, {
+    serverId,
+    workspaceIdentityMapper,
+    migrationFailedPathCount,
+    virtualProjects: true,
+    topicResourcePeers,
+    ...(host ? { host } : {}),
+    ...(staticRoot ? { staticRoot, spaFallback: true } : {}),
+    ...(authToken ? { authToken, authRequired: true } : {}),
+  });
+}
+
+void main().catch((error: unknown) => {
+  console.error("[zcode-server:http] startup failed", error);
+  process.exitCode = 1;
+});

@@ -1,0 +1,136 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "nibi: tsup watch (debug)",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.vscode/tsup-watch.mjs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "zcode-debug"
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "\\[HOST\\] CLI Watching for changes in"
+        }
+      }
+    },
+    {
+      "label": "nibi: vite dev",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.vscode/vite-dev.mjs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "zcode-debug"
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "VITE v.*ready in .*"
+        }
+      }
+    },
+    {
+      "label": "nibi: prepare desktop debug",
+      "dependsOn": [
+        "nibi: tsup watch (debug)",
+        "nibi: vite dev"
+      ],
+      "dependsOrder": "parallel"
+    },
+    {
+      "label": "nibi: start electron (debug)",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.vscode/start-electron.mjs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "dependsOn": [
+        "nibi: prepare desktop debug"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "zcode-debug"
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Debugger listening on ws://127\\.0\\.0\\.1:9231/"
+        }
+      }
+    },
+    {
+      "label": "nibi: start electron (debug with host inspect)",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/.vscode/start-electron.mjs",
+        "--host-inspect"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "dependsOn": [
+        "nibi: prepare desktop debug"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "zcode-debug"
+      },
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Debugger listening on ws://127\\.0\\.0\\.1:9231/"
+        }
+      }
+    }
+  ]
+}

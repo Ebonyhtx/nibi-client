@@ -1,0 +1,32 @@
+dist/
+node_modules/
+.DS_Store
+*.log
+coverage/
+.env.turbo/
+.turbo
+.tmp/
+
+# Compiled TypeScript output in src directories
+src/**/*.js
+src/**/*.d.ts
+src/**/*.js.map
+src/**/*.d.ts.map
+
+# Compiled TypeScript output in test directories
+packages/**/tests/**/*.js
+packages/**/tests/**/*.d.ts
+packages/**/tests/**/*.js.map
+packages/**/tests/**/*.d.ts.map
+
+# 例外：lowering 的"期望产物"快照是**测试输入**（vitest toMatchFileSnapshot 的基线），
+# 不是 tsc 产物。上面那条通配会把它们一起忽略，于是它们只存在于开发机、不进版本控制 ——
+# 干净检出（CI）里文件缺失，13 条快照用例全红（实测 2026-10-15 首跑 apps/zcode-cli 门禁）。
+# 注意：vitest 在文件缺失时**不会**自动创建（CI=true 下实测报 mismatched 而不是写入）。
+!packages/dynamic-workflow/tests/lowering/expected/*.js
+.VSCodeCounter
+vendor
+!packages/visualize-plugin/skills/visualize/assets/vendor/
+
+# Lowering 的人工可审查契约快照不是 tsc 产物，干净 checkout 也必须可运行测试。
+!packages/dynamic-workflow/tests/lowering/expected/*.js

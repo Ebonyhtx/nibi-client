@@ -1,0 +1,74 @@
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
+import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
+
+// 市场 id 的**唯一真源**在 @nibi/shared/plugin-marketplaces。
+// 这里曾经复写一份 "nibi-official"，与共享常量 "nibi-official" 分叉：
+// 结果是内置插件的 id 与图标/启用表对不上（图标回退成中性 Blocks），
+// 而症状只是"图标不对"，没有任何报错——所以必须由常量收口，不许再写字面量。
+export const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID;
+
+/**
+ * 与 apps/zcode-cli/packages/bootstrap/src/app/official-plugin-definitions.ts 的 defaultEnabled 保持一致。
+ * services 侧（skills / commands / subagents）共用这一份，避免再出现 zcode-guide 那样某一处漏掉的分叉。
+ */
+export const DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS: ReadonlySet<string> = new Set([
+  `browser-use@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
+  `document-skills@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
+  // 宿主不贡献 skill/command/subagent，列在这里只为与 definitions 的 defaultEnabled 逐一对应
+  // （见 @nibi/shared 的同名集合注释）；这份没有机械对照单测兜着，漏掉只会静默分叉。
+  `node-repl-host@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
+  `skill-creator@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
+  `zcode-guide@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
+]);
+
+export interface OfficialPluginCacheRoot {
+  /** 缓存目录名，即官方插件 name。 */
+  name: string;
+  /** 数字感知降序后的可用版本目录，首项为最新版本。 */
+  versionRoots: string[];
+}
+
+/**
+ * 扫描 `<plugins storage>/cache/nibi-official/<name>/<version>/`。
+ * 内置官方插件由 CLI seed 到这里、没有 installed_plugins.json 记录，services 只读安装记录时会漏掉它们。
+ * 版本目录跳过 CLI 的备份 / seed 锁 / 临时目录，并按数字感知降序排序，与 CLI 回退选取一致。
+ */
+export async function scanOfficialPluginCacheRoots(
+  pluginStorageRoot: string,
+): Promise<OfficialPluginCacheRoot[]> {
+  const cacheRoot = join(pluginStorageRoot, "cache", NIBI_OFFICIAL_PLUGIN_MARKETPLACE);
+  let pluginEntries;
+  try {
+    pluginEntries = await readdir(cacheRoot, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const roots: OfficialPluginCacheRoot[] = [];
+  for (const pluginEntry of pluginEntries) {
+    if (!pluginEntry.isDirectory()) continue;
+    const pluginDir = join(cacheRoot, pluginEntry.name);
+    let versionEntries;
+    try {
+      versionEntries = await readdir(pluginDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    const versionRoots = versionEntries
+      .filter((entry) => entry.isDirectory() && !isTransientCacheEntryName(entry.name))
+      .map((entry) => entry.name)
+      .sort((left, right) =>
+        right.localeCompare(left, undefined, { numeric: true, sensitivity: "base" }),
+      )
+      .map((version) => join(pluginDir, version));
+    if (versionRoots.length > 0) {
+      roots.push({ name: pluginEntry.name, versionRoots });
+    }
+  }
+  return roots.sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function isTransientCacheEntryName(name: string): boolean {
+  return name.includes(".backup") || name.includes(".seed-lock") || name.includes(".tmp-");
+}

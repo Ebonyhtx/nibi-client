@@ -1,0 +1,135 @@
+import { generateKeyPairSync, sign as edSign } from "node:crypto";
+import { describe, expect, it, vi } from "vitest";
+import type { ApiClient } from "@nibi/shared";
+import { createNibiLicenseSync, NIBI_DEVICE_ID_KEY } from "../src/license/nibiLicenseSync.js";
+import {
+  NIBI_LICENSE_STATE_KEY,
+  NIBI_LICENSE_TOKEN_KEY,
+  type NibiLicenseSnapshot,
+} from "../src/license/nibiLicense.js";
+
+const NOW = Date.parse("2026-10-26T08:00:00.000Z");
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+function makeSigner() {
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const kid = "startup-kid";
+  const publicKeys = { [kid]: publicKey.export({ type: "spki", format: "pem" }).toString() };
+  const signToken = (overrides: Record<string, unknown> = {}): string => {
+    const header = Buffer.from(JSON.stringify({ alg: "Ed25519", kid })).toString("base64url");
+    const payload = Buffer.from(
+      JSON.stringify({
+        iss: "nibi-license",
+        sub: "user-1",
+        uid: "user-1",
+        plan: "pro",
+        plugins: ["*"],
+        iat: Math.floor(NOW / 1000),
+        exp: Math.floor((NOW + 30 * DAY) / 1000),
+        jti: "jti-1",
+        ...overrides,
+      }),
+    ).toString("base64url");
+    const signature = edSign(null, Buffer.from(`${header}.${payload}`, "utf8"), privateKey);
+    return `${header}.${payload}.${signature.toString("base64url")}`;
+  };
+  return { publicKeys, signToken };
+}
+
+function snapshot(checkedAgoMs: number, refusal: string | null = null): NibiLicenseSnapshot {
+  return {
+    deviceId: "device-1234",
+    lastCheckAt: new Date(NOW - checkedAgoMs).toISOString(),
+    lastRefusal: refusal,
+    plan: "pro",
+  };
+}
+
+function createHarness(input: {
+  publicKeys: Record<string, string>;
+  token: string;
+  state: NibiLicenseSnapshot;
+  response?: { status: number; body: unknown };
+}) {
+  const store = new Map<string, string>([
+    [NIBI_DEVICE_ID_KEY, "device-1234"],
+    [NIBI_LICENSE_TOKEN_KEY, input.token],
+    [NIBI_LICENSE_STATE_KEY, JSON.stringify(input.state)],
+  ]);
+  const request = vi.fn(async () =>
+    new Response(JSON.stringify(input.response?.body ?? {}), {
+      status: input.response?.status ?? 200,
+      headers: { "content-type": "application/json" },
+    }),
+  );
+  const sync = createNibiLicenseSync({
+    apiClient: { request } as unknown as ApiClient,
+    credentialService: {
+      load: async (key) => store.get(key) ?? null,
+      save: async (key, value) => {
+        store.set(key, value);
+      },
+      delete: async (key) => {
+        store.delete(key);
+      },
+    },
+    now: () => NOW,
+    publicKeys: input.publicKeys,
+    resolveEndpointOrigin: () => "https://api.nibistudio.top",
+  });
+  return { request, store, sync };
+}
+
+describe("startup license sync (revocation freshness)", () => {
+  it("reads the cache without a request when the last check is fresh", async () => {
+    const { publicKeys, signToken } = makeSigner();
+    const { request, sync } = createHarness({
+      publicKeys,
+      state: snapshot(2 * MINUTE),
+      token: signToken(),
+    });
+
+    const decision = await sync.syncOnStartup();
+    expect(request).not.toHaveBeenCalled();
+    expect(decision.status).toBe("active");
+    expect(decision.allowed).toBe(true);
+  });
+
+  it("forces /licenses/check when the last check is older than the startup interval", async () => {
+    const { publicKeys, signToken } = makeSigner();
+    const token = signToken();
+    const { request, store, sync } = createHarness({
+      publicKeys,
+      state: snapshot(30 * MINUTE),
+      token,
+      response: { status: 200, body: { authorized: true, license: { token, plan: "pro" } } },
+    });
+
+    const decision = await sync.syncOnStartup();
+    expect(request).toHaveBeenCalledTimes(1);
+    const [url, init] = request.mock.calls[0] as unknown as [string, { method: string }];
+    expect(url).toBe("https://api.nibistudio.top/api/v1/licenses/check");
+    expect(init.method).toBe("POST");
+    expect(decision.status).toBe("active");
+    expect(decision.allowed).toBe(true);
+    const saved = JSON.parse(store.get(NIBI_LICENSE_STATE_KEY) ?? "{}") as NibiLicenseSnapshot;
+    expect(Date.parse(saved.lastCheckAt ?? "")).toBe(NOW);
+  });
+
+  it("re-checks even when fresh if the last check was an explicit refusal", async () => {
+    const { publicKeys, signToken } = makeSigner();
+    const { request, sync } = createHarness({
+      publicKeys,
+      state: snapshot(5 * MINUTE, "revoked"),
+      token: signToken(),
+      response: { status: 403, body: { authorized: false, reason: "revoked" } },
+    });
+
+    const decision = await sync.syncOnStartup();
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(decision.status).toBe("denied");
+    expect(decision.allowed).toBe(false);
+  });
+});

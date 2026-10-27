@@ -1,0 +1,5 @@
+# spreadsheets 插件的 Python 依赖（全部宽松许可，可商用）
+# 安装走国内镜像：由 nibi_kit.env 自举（清华 PyPI），可用 NIBI_DOCS_PYTHON_MIRROR 覆盖。
+openpyxl>=3.1.2
+pillow>=10.0.0
+pypdfium2>=4.30.0

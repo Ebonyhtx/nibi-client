@@ -1,0 +1,12 @@
+{
+  "name": "restore-legacy-sessions",
+  "version": "0.1.0",
+  "description": "Select and restore legacy ACP-era NIBI sessions into the new NIBI task and session store.",
+  "author": {
+    "name": "NIBI",
+    "url": "https://nibistudio.top"
+  },
+  "license": "MIT",
+  "skills": "skills",
+  "commands": "commands"
+}

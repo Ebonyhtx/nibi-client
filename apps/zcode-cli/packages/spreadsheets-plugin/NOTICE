@@ -1,0 +1,28 @@
+# 第三方组件与来源说明（NOTICE）
+
+本插件（NIBI spreadsheets）为 **NIBI 自研**：技能正文（`skills/xlsx/SKILL.md`）、构建器、质量门、
+渲染与自渲染、体检工具全部由 NIBI Studio 编写。**未使用**上游 ZCode 文档类插件
+（documents / pdf / presentations / spreadsheets）的代码或技能文本；只参考了其公开的能力清单
+（功能面不构成版权），实现路线完全不同（规格驱动构建 + 判据分层报告 + 真引擎验收）。
+
+## 运行时依赖（由插件自举安装，不随包分发）
+
+| 组件 | 许可 | 用途 |
+| --- | --- | --- |
+| [openpyxl](https://openpyxl.readthedocs.io/) | MIT | .xlsx 读写 |
+| [Pillow](https://python-pillow.org/) | HPND（MIT-CMU 系） | 图像与字体度量 |
+| [pypdfium2](https://github.com/pypdfium2-team/pypdfium2) | BSD-3-Clause / Apache-2.0 | PDF 逐页渲染与文本抽取 |
+
+## 可选外部引擎（不随包分发，用户自备）
+
+| 组件 | 许可 | 用途 |
+| --- | --- | --- |
+| [LibreOffice](https://www.libreoffice.org/) | MPL-2.0 | 真渲染（xlsx → PDF）、公式强制重算、打印视角逐页出图 |
+
+引擎缺失时插件仍可用：静态判据照跑，出图走自渲染降级（产物会标注"非真渲染"）。
+
+## 明确不使用的组件
+
+* **PyMuPDF**：AGPL-3.0，商业产品内的分发与网络服务都受其约束，本插件全链路不使用
+  （只在用户环境恰好独立安装了它时作为兜底渲染路径）。
+* 上游文档类插件的**专有实现**（许可"仅限非商用"）：不复制、不改写、不随包分发。

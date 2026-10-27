@@ -1,0 +1,8 @@
+{
+  "hash": "4e00759049b4ea8ec2a3fbbef955b3f0579355ea8689d3d6571687a00a293c9d",
+  "marketplace": "nibi-official",
+  "plugin": "restore-legacy-sessions",
+  "pluginVersion": "0.1.0",
+  "source": "filesystem",
+  "version": 1
+}

@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out/renderer",
+    // rootDir 放到 src：renderer 直接 import 了 src/shared（armsBrowserInit），
+    // 只用 src/renderer 会在 composite 下报 TS6059（文件不在 rootDir 内）。
+    "rootDir": "src",
+    // 只做类型检查（真正打包走 Vite），不必是 composite；关掉后可以 include
+    // 客户端包的 globals.d.ts —— 那是 window.nibi 唯一声明处，不引进来 renderer
+    // 里所有 window.nibi.* 都是 TS2339（实测 142 条，等于没有类型检查）。
+    "composite": false,
+    "lib": ["es2025", "dom", "dom.iterable"],
+    "jsx": "react-jsx",
+    "noEmit": true
+  },
+  "files": ["../client/src/globals.d.ts"],
+  "include": ["src/renderer", "src/shared"],
+  "references": [{ "path": "../shared" }, { "path": "../ui" }, { "path": "../client" }]
+}

@@ -1,0 +1,5 @@
+# pdf 插件的 Python 依赖（自举安装走国内镜像：nibi_kit.env）
+pypdfium2>=4.30.0
+pypdf>=4.2.0
+pillow>=10.0.0
+reportlab>=4.2.0   # 海报/定幅画布（BSD 系，可商用；毫米级定位 + 嵌入中文字体）

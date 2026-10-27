@@ -1,0 +1,22 @@
+{
+  "name": "presentations",
+  "version": "1.0.1",
+  "description": "Create and restyle .pptx decks: outline-driven generation, palette and layout rules, Chinese typography and projection-legibility checks, asset/layer review and page-by-page visual acceptance.",
+  "description_i18n": {
+    "en": "Create and restyle .pptx decks: outline-driven generation, palette and layout rules, Chinese typography and projection-legibility checks, asset/layer review and page-by-page visual acceptance.",
+    "zh-CN": "创建与改版 .pptx 演示：从大纲或文档生成、配色与版式规则、中文排版与投影可读性检查、图文图层核对，以及逐页出图验收。"
+  },
+  "author": {
+    "name": "NIBI"
+  },
+  "license": "MIT",
+  "homepage": "",
+  "keywords": [
+    "pptx",
+    "slides",
+    "演示",
+    "答辩"
+  ],
+  "skills": "skills",
+  "agents": "agents"
+}

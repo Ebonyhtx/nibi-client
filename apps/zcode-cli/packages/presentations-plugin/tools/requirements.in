@@ -1,0 +1,4 @@
+# presentations 插件的 Python 依赖（自举安装走国内镜像：nibi_kit.env）
+python-pptx>=1.0.0
+pillow>=10.0.0
+pypdfium2>=4.30.0
