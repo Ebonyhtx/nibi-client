@@ -35,7 +35,7 @@ describe("provider stop 过界", () => {
 
     const { settlement, journal, driver } = await runScript(script, {
       asks: {
-        "ask#1": () => ({ type: "stop-run", error: PROVIDER_STOP }),
+        "ask#1": () => ({ type: "stop-run", error: PROVIDER_STOP, delayMs: 50 }),
         // 兄弟 ask 永不应答：只有 run 级 abort 能把它收掉。
         "ask#2": () => [],
       },

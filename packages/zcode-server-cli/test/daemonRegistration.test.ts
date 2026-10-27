@@ -29,7 +29,7 @@ vi.mock("../src/platform/serviceManager.js", async (importOriginal) => ({
 import { runServerCli } from "../src/cli.js";
 import { createControlServer } from "../src/ipc/controlServer.js";
 import { createServiceDescriptor } from "../src/platform/serviceManager.js";
-import { resolveCanonicalServerLayout, resolveServerLayout } from "../src/runtime/paths.js";
+import { resolveCanonicalServerLayout } from "../src/runtime/paths.js";
 import { DataRootLock } from "../src/runtime/lock.js";
 import { Supervisor } from "../src/supervisor/supervisor.js";
 
@@ -68,7 +68,7 @@ describe("daemon service registration", () => {
 
   it("starts a detached daemon when the OS user service manager is unavailable", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-r2-daemon-fallback-"));
-    const layout = resolveServerLayout(join(root, "server"));
+    const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const output: string[] = [];
     await mkdir(layout.runDir, { recursive: true });
     const readyStatus = {
@@ -127,7 +127,7 @@ describe("daemon service registration", () => {
 
   it("stops and unregisters a same-root legacy service before registering the root-scoped identity", async () => {
     const root = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "zdr-"));
-    const layout = resolveServerLayout(join(root, "server"));
+    const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const platform =
       process.platform === "darwin" || process.platform === "linux" ? process.platform : "win32";
     const kind =
@@ -216,7 +216,7 @@ describe("daemon service registration", () => {
     // Bug 原因：stop-failed 的 Supervisor 在迟到 exit 后仍持有锁与 control socket，旧实现直接拉起
     // 新 Supervisor，只能锁冲突失败；设备在有人手工 stop 前一直无法重新连接。
     const root = await mkdtemp(join(process.platform === "win32" ? tmpdir() : "/tmp", "zsf-"));
-    const layout = resolveServerLayout(join(root, "server"));
+    const layout = await resolveCanonicalServerLayout(join(root, "server"));
     const core = Object.assign(new EventEmitter(), {
       pid: 42,
       send: () => true,

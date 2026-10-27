@@ -81,6 +81,8 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/zcode-cua` | Computer Use 公开契约与占位实现 |
 | `scripts`、`config`、`third-party` | 构建维护脚本、内置配置与第三方声明 |
 
+> `apps/zcode-cli`、`packages/zcode-server-cli`、`packages/zcode-cua` 是上游沿用的**源码目录名**；包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`）。目录改名会打散上游快照与 300+ 处引用，暂不做机械改名。
+
 ## 开发与验证
 
 ```bash
@@ -105,7 +107,7 @@ pnpm bundle:desktop -- --os win --arch x64
 CLI 发行包：
 
 ```bash
-pnpm build:zcode --base-url https://downloads.example.com/nibi/
+pnpm build:nibi --base-url https://downloads.example.com/nibi/
 ```
 
 `--base-url` 只影响安装脚本的下载地址；本地验证可以直接解压 `dist/nibi/` 下的产物运行。

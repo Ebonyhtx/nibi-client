@@ -3,6 +3,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -492,11 +493,12 @@ body`,
       "shared-review",
       "zcode-global",
     ]);
-    expect(result.skills.find((skill) => skill.name === "copied-global")?.path).toContain(
-      join(home, ".nibi", "skills", "copied-global"),
+    const canonicalHome = realpathSync(home);
+    expect(realpathSync(result.skills.find((skill) => skill.name === "copied-global")!.path)).toContain(
+      join(canonicalHome, ".nibi", "skills", "copied-global"),
     );
-    expect(result.skills.find((skill) => skill.name === "shared-review")?.path).toContain(
-      join(home, ".nibi", "skills", "current-review"),
+    expect(realpathSync(result.skills.find((skill) => skill.name === "shared-review")!.path)).toContain(
+      join(canonicalHome, ".nibi", "skills", "current-review"),
     );
     expect(result.skills.every((skill) => skill.scope === "user")).toBe(true);
   });

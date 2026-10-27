@@ -586,13 +586,13 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       const { buildHostProcessEnv } = await import("../src/main/desktopRuntimeEnv.js");
 
       const env = buildHostProcessEnv({
-        NIBI_HOME: "/tmp/zcode-cua-dev-home",
+        NIBI_HOME: "/tmp/nibi-cua-dev-home",
         NIBI_CUA_PRODUCT_HELPER: "1",
         NIBI_CUA_HELPER_ALLOW_UNSIGNED_LOCAL: "1",
       });
 
       expect(env.NIBI_CUA_BUNDLED_HELPER_APP_PATH).toBe(
-        join("/tmp/zcode-cua-dev-home", "computer-use", "dev", "ZCode Computer Use Dev.app"),
+        join("/tmp/nibi-cua-dev-home", "computer-use", "dev", "NIBI Computer Use Dev.app"),
       );
     },
   );
@@ -603,14 +603,14 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       const { buildHostProcessEnv } = await import("../src/main/desktopRuntimeEnv.js");
 
       const env = buildHostProcessEnv({
-        NIBI_HOME: "/tmp/zcode-cua-dev-home",
+        NIBI_HOME: "/tmp/nibi-cua-dev-home",
         NIBI_CUA_PRODUCT_HELPER: "1",
         NIBI_CUA_HELPER_ALLOW_UNSIGNED_LOCAL: "1",
-        NIBI_CUA_BUNDLED_HELPER_APP_PATH: "/tmp/new-helper/ZCode Computer Use Dev.app",
+        NIBI_CUA_BUNDLED_HELPER_APP_PATH: "/tmp/new-helper/NIBI Computer Use Dev.app",
       });
 
       expect(env.NIBI_CUA_BUNDLED_HELPER_APP_PATH).toBe(
-        "/tmp/new-helper/ZCode Computer Use Dev.app",
+        "/tmp/new-helper/NIBI Computer Use Dev.app",
       );
     },
   );
@@ -621,14 +621,14 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       const { buildHostProcessEnv } = await import("../src/main/desktopRuntimeEnv.js");
 
       const env = buildHostProcessEnv({
-        NIBI_HOME: "/tmp/zcode-cua-dev-home",
+        NIBI_HOME: "/tmp/nibi-cua-dev-home",
         NIBI_CUA_PRODUCT_HELPER: "1",
         NIBI_CUA_HELPER_ALLOW_UNSIGNED_LOCAL: "1",
         NIBI_CUA_BUNDLED_HELPER_APP_PATH: "   ",
       });
 
       expect(env.NIBI_CUA_BUNDLED_HELPER_APP_PATH).toBe(
-        join("/tmp/zcode-cua-dev-home", "computer-use", "dev", "ZCode Computer Use Dev.app"),
+        join("/tmp/nibi-cua-dev-home", "computer-use", "dev", "NIBI Computer Use Dev.app"),
       );
     },
   );
@@ -697,7 +697,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
       });
 
       expect(env.NIBI_CUA_BUNDLED_HELPER_APP_PATH).toBe(
-        join("/mock/resources", "cua-helper", "ZCode Computer Use.app"),
+        join("/mock/resources", "cua-helper", "NIBI Computer Use.app"),
       );
     },
   );

@@ -44,6 +44,7 @@
     "build:docs": "pnpm --filter @nibi/dev-docs build",
     "build:web-remote-control:test": "pnpm --filter @nibi/web exec vite build --base=/remote/__test__/",
     "build:web-share": "pnpm --filter @nibi/web-share build",
+    "build:nibi": "node scripts/build-zcode.mjs",
     "build:zcode": "node scripts/build-zcode.mjs",
     "build:bootstrap": "pnpm -r --filter \"./packages/*\" --filter \"!@nibi/desktop\" build && pnpm --filter @nibi/desktop build:no-runtime-assets",
     "build:sea": "pnpm --dir apps/zcode-cli build:sea",

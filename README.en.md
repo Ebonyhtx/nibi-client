@@ -81,6 +81,8 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/zcode-cua` | Public Computer Use contract and placeholder |
 | `scripts`, `config`, `third-party` | Build tooling, built-in config, third-party notices |
 
+> `apps/zcode-cli`, `packages/zcode-server-cli`, and `packages/zcode-cua` are upstream source-directory names. Package names, CLI commands, and build outputs are NIBI (`nibi-cli`, `@nibi/server-cli`, `@nibi/cua`, `dist/nibi/`). Renaming the directories would break the upstream snapshot and 300+ references, so it is intentionally not done as a mechanical rename.
+
 ## Development and verification
 
 ```bash
@@ -105,7 +107,7 @@ Public-source builds are **unsigned**. Signing and notarization for official rel
 CLI distribution:
 
 ```bash
-pnpm build:zcode --base-url https://downloads.example.com/nibi/
+pnpm build:nibi --base-url https://downloads.example.com/nibi/
 ```
 
 `--base-url` only changes the download root used by the install script. For local verification, unpack the artifact under `dist/nibi/` and run it directly.

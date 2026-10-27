@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
+import { setTimeout as sleep } from "node:timers/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -71,6 +72,8 @@ it("替换期间并发读取只见完整旧版或新版，不产生 hash 历史�
       const fileContent = JSON.parse(await readFile(file, "utf8"));
       expect([1, 2]).toContain(fileContent.revision);
       expect(fileContent).toEqual(JSON.parse(release(fileContent.revision)));
+      // Windows 上读取循环不 yield 会让 rename 永远抢不到删除共享；生产有 6.35s 退避，测试要给它窗口。
+      await sleep(1);
     } while (!finished);
   })();
   await Promise.all([writer, reader]);
