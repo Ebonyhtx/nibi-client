@@ -66,7 +66,7 @@ jobs:
         run: |
           failed=0
           for shard in 1 2 3; do
-            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated || failed=1
+            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated --maxWorkers=2 || failed=1
           done
           exit $failed
       - name: CLI unit tests
@@ -78,7 +78,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 180
     env:
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=6144
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
       PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS: "1"
       TURBO_TELEMETRY_DISABLED: "1"
@@ -111,7 +111,7 @@ jobs:
         run: |
           failed=0
           for shard in 1 2 3; do
-            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated || failed=1
+            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated --maxWorkers=1 || failed=1
           done
           exit $failed
       - name: CLI unit tests
@@ -154,7 +154,7 @@ jobs:
         run: |
           failed=0
           for shard in 1 2 3; do
-            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated || failed=1
+            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated --maxWorkers=2 || failed=1
           done
           exit $failed
       - name: CLI unit tests
