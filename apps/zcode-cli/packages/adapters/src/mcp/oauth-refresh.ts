@@ -51,6 +51,8 @@ export interface RefreshMcpOAuthTokensInput {
   serverUrl: string;
   /** 静态配置的 clientId。存在时 `invalid_client` 不能靠交互授权自愈。 */
   staticClientId?: string;
+  /** 调用方在决定刷新前观察到的 generation；必须原样带进锁内，不能在锁前重读。 */
+  observedGeneration?: string;
 }
 
 export interface ResolvedAsMetadata {
@@ -69,8 +71,11 @@ export interface ResolvedAsMetadata {
 export async function refreshMcpOAuthTokensUnderLock(
   input: RefreshMcpOAuthTokensInput,
 ): Promise<string> {
-  const observedGeneration = (await loadCredentialPair(input.credentialStore, input.keyPrefix))
-    ?.generation;
+  // 基线必须来自调用方决定刷新的那一刻。若在这里重读，另一个进程刚完成刷新时会把新
+  // generation 当成自己的基线，锁内的“已换代”合并失效，导致重复 refresh 和 rotation 撤销。
+  const observedGeneration =
+    input.observedGeneration ??
+    (await loadCredentialPair(input.credentialStore, input.keyPrefix))?.generation;
   const lockPath = resolveRefreshLockPath(input.credentialStore.filePath, input.keyPrefix);
 
   try {

@@ -52,7 +52,11 @@ export function createMcpOAuthTokenProvider(
       if (!isCanonicalTokenNearExpiry(pair)) return pair.tokens.access_token;
       // 临期主动刷新。没有 refresh token 就直接用现值撑到 401，不虚构刷新。
       if (!pair.tokens.refresh_token) return pair.tokens.access_token;
-      return await refreshMcpOAuthTokensUnderLock({ ...refreshInput, reactive: false });
+      return await refreshMcpOAuthTokensUnderLock({
+        ...refreshInput,
+        observedGeneration: pair.generation,
+        reactive: false,
+      });
     },
 
     async onUnauthorized(): Promise<void> {
@@ -65,7 +69,11 @@ export function createMcpOAuthTokenProvider(
       }
       // 契约是「让下一次 token() 返回可用 token」，返回值本身被 SDK 忽略；刷新结果已发布到
       // canonical，下一次 token() 会重新读取。
-      await refreshMcpOAuthTokensUnderLock({ ...refreshInput, reactive: true });
+      await refreshMcpOAuthTokensUnderLock({
+        ...refreshInput,
+        observedGeneration: pair.generation,
+        reactive: true,
+      });
     },
   };
 }
