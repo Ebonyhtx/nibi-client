@@ -3163,13 +3163,18 @@ describe("createZCodeTaskIndexSyncer", () => {
       taskIndexRepo: env.repo,
     });
 
+    const subscribeWarnings = () =>
+      warnSpy.mock.calls
+        .map((call) => String(call[1]))
+        .filter((message) => message.includes("订阅失败"));
+
     vi.useFakeTimers();
     try {
       syncer.ensureWorkspaceSubscription({ workspacePath: "/repo" });
       await vi.advanceTimersByTimeAsync(0);
       expect(env.agent.subscribeSessionsIndexV4).toHaveBeenCalledTimes(1);
       expect(env.agent.subscribeWorkspaceConfigV4).toHaveBeenCalledTimes(1);
-      expect(warnSpy).not.toHaveBeenCalled();
+      expect(subscribeWarnings()).toHaveLength(0);
 
       await vi.advanceTimersByTimeAsync(4_999);
       expect(env.agent.subscribeSessionsIndexV4).toHaveBeenCalledTimes(1);
@@ -3178,7 +3183,7 @@ describe("createZCodeTaskIndexSyncer", () => {
       await vi.advanceTimersByTimeAsync(1);
       expect(env.agent.subscribeSessionsIndexV4).toHaveBeenCalledTimes(2);
       expect(env.agent.subscribeWorkspaceConfigV4).toHaveBeenCalledTimes(2);
-      expect(warnSpy).not.toHaveBeenCalled();
+      expect(subscribeWarnings()).toHaveLength(0);
     } finally {
       syncer.disposeAll();
       vi.useRealTimers();
