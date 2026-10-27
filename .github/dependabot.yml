@@ -1,17 +1,9 @@
+# Dependabot version updates are limited to the pinned GitHub Actions above.
+# npm dependency maintenance is intentionally not automated as version-update
+# PRs; alert-driven Dependabot security updates remain active via repository
+# settings and are triaged individually.
 version: 2
 updates:
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-      time: "04:00"
-      timezone: Asia/Shanghai
-    open-pull-requests-limit: 5
-    groups:
-      npm-minor-patch:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
