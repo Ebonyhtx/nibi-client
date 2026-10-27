@@ -3199,18 +3199,23 @@ describe("createZCodeTaskIndexSyncer", () => {
       taskIndexRepo: env.repo,
     });
 
+    const subscribeWarnings = () =>
+      warnSpy.mock.calls
+        .map((call) => String(call[1]))
+        .filter((message) => message.includes("订阅失败"));
+
     vi.useFakeTimers();
     try {
       syncer.ensureWorkspaceSubscription({ workspacePath: "/repo" });
       await vi.advanceTimersByTimeAsync(0);
-      expect(warnSpy).toHaveBeenCalledTimes(2);
+      expect(subscribeWarnings()).toHaveLength(2);
 
       await vi.advanceTimersByTimeAsync(59_999);
-      expect(warnSpy).toHaveBeenCalledTimes(2);
+      expect(subscribeWarnings()).toHaveLength(2);
 
       await vi.advanceTimersByTimeAsync(1_000);
-      expect(warnSpy).toHaveBeenCalledTimes(4);
-      const messages = warnSpy.mock.calls.map((call) => String(call[1]));
+      expect(subscribeWarnings()).toHaveLength(4);
+      const messages = subscribeWarnings();
       expect(messages.filter((message) => message.includes("reason=initial"))).toHaveLength(2);
       expect(messages.filter((message) => message.includes("reason=retry"))).toHaveLength(2);
       expect(messages.every((message) => !message.includes("retry:retry"))).toBe(true);

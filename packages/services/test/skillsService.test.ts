@@ -493,12 +493,11 @@ body`,
       "shared-review",
       "zcode-global",
     ]);
-    const canonicalHome = realpathSync(home);
-    expect(realpathSync(result.skills.find((skill) => skill.name === "copied-global")!.path)).toContain(
-      join(canonicalHome, ".nibi", "skills", "copied-global"),
+    expect(realpathSync.native(result.skills.find((skill) => skill.name === "copied-global")!.path)).toContain(
+      realpathSync.native(join(home, ".nibi", "skills", "copied-global")),
     );
-    expect(realpathSync(result.skills.find((skill) => skill.name === "shared-review")!.path)).toContain(
-      join(canonicalHome, ".nibi", "skills", "current-review"),
+    expect(realpathSync.native(result.skills.find((skill) => skill.name === "shared-review")!.path)).toContain(
+      realpathSync.native(join(home, ".nibi", "skills", "current-review")),
     );
     expect(result.skills.every((skill) => skill.scope === "user")).toBe(true);
   });

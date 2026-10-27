@@ -328,6 +328,7 @@ test("events arriving during hydration are applied once above the snapshot water
   const tui = await fixture({ readSubagentTranscript: async () => pending });
   try {
     await tui.click(`subagent-${child}`);
+    await tui.expectText(/Esc to return/);
     await tui.action(() => {
       tui.emit(stream("Child answer", 2));
       tui.emit(stream(" buffered", 3));

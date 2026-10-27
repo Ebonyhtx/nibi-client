@@ -35,8 +35,8 @@ export type AskAction =
    * 就晚结算」的微任务计数论证不再成立，只有真时间差能钉住次序（resume.test.ts）。
    */
   | { type: "submit"; payload: unknown; stats?: AskStats; delayMs?: number }
-  | { type: "text"; finalText: string; stats?: AskStats }
-  | { type: "fail"; error: WorkflowError }
+  | { type: "text"; finalText: string; stats?: AskStats; delayMs?: number }
+  | { type: "fail"; error: WorkflowError; delayMs?: number }
   /** 确定性模型侧错误：driver 不结算节点，经 `stopRun` 让整个 run 停下（ProviderStop）。 */
   | { type: "stop-run"; error: WorkflowError; delayMs?: number };
 

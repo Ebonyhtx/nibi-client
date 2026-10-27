@@ -413,6 +413,7 @@ describe("e2e — Promise.race with a losing in-flight ask", () => {
         "ask#1": () => ({
           type: "text",
           finalText: "won",
+          delayMs: 50,
           stats: { tokens: 5, toolCalls: 0, turns: 1 },
         }),
         // 败者：无任何动作——ask 永远悬着，模拟一个仍在跑的慢 turn。
