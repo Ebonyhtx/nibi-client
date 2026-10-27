@@ -289,6 +289,8 @@ async function handleMcp(
 
 interface ChildResult {
   authorizationUrls?: string[];
+  /** 子进程 stderr 末段：connect 以非 connected 状态收场时，断言消息里要有可诊断的现场。 */
+  childStderr?: string;
   error?: string;
   status?: { authorization?: { authorizationUrl?: string }; status?: string; toolCount?: number };
   token?: string;
@@ -332,7 +334,8 @@ function runChild(config: Record<string, unknown>): ChildHandle {
         reject(new Error(`child exited with ${code}; stderr: ${stderr}; stdout: ${stdout}`));
         return;
       }
-      resolve(JSON.parse(jsonLine) as ChildResult);
+      // 正常退出的子进程也可能以 status:"failed" 收场；把 stderr 带回去给断言消息用。
+      resolve({ ...JSON.parse(jsonLine), childStderr: stderr.slice(-2_000) } as ChildResult);
     });
   });
   return { kill: () => child.kill("SIGKILL"), result };
@@ -413,8 +416,9 @@ describe("MCP OAuth cross-process end-to-end", () => {
     // 根因 2 的现场形态:过去两个连接各开一个 listener、各注册一个 client、各生成一个
     // 授权 URL,且 client 的 redirect_uris 锁死各自的随机端口。修复后跨进程授权 lease
     // 单飞:恰好一次 DCR、一个授权 URL;follower 观察 canonical 换代后用新凭据重连。
-    expect(first.status?.status).toBe("connected");
-    expect(second.status?.status).toBe("connected");
+    // 慢 runner 上曾出现单侧 status:"failed"；断言消息必须带子进程完整结果才可诊断。
+    expect(first.status?.status, `first child: ${JSON.stringify(first)}`).toBe("connected");
+    expect(second.status?.status, `second child: ${JSON.stringify(second)}`).toBe("connected");
     expect(first.status?.toolCount).toBe(1);
     expect(second.status?.toolCount).toBe(1);
     const drivenUrls = [...(first.authorizationUrls ?? []), ...(second.authorizationUrls ?? [])];
