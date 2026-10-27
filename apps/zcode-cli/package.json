@@ -36,19 +36,19 @@
   },
   "dependencies": {
     "dotenv": "^17.4.2",
-    "proxy-agent": "^8.0.1"
+    "proxy-agent": "^8.0.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^4.1.5",
     "@withfig/autocomplete": "2.692.3",
     "c8": "^11.0.0",
-    "esbuild": "^0.25.0",
-    "oxfmt": "^0.47.0",
-    "oxlint": "^1.62.0",
+    "esbuild": "^0.28.2",
+    "oxfmt": "^0.74.0",
+    "oxlint": "^1.89.0",
     "postject": "^1.0.0-alpha.6",
-    "tsx": "^4.20.0",
-    "turbo": "^2.4.0",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.10",
     "typescript": "^5.9.0",
     "vitest": "^4.1.5"
   },
