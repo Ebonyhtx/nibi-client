@@ -7002,6 +7002,8 @@ const zhCN: Record<string, string> = {
   "scheduledPreview.toast.view": "查看",
   "scheduledPreview.addSchedule": "添加计划",
   ...requestSecurityMessagesZhCN,
+  "settings.plugins.error.membershipRequired":
+    "该插件为会员专享，请开通会员后重试。",
   "settings.plugins.membership.title": "NIBI 会员",
   "settings.plugins.membership.badge": "会员专享",
   "settings.plugins.membership.description": "会员可安装收费插件，并解锁手机远控。",

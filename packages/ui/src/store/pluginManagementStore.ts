@@ -48,6 +48,8 @@ export interface PluginManagementState {
   diagnostics: ZCodePluginDiagnostic[];
   loading: boolean;
   error: string | null;
+  /** 最近一次失败诊断的机器码（如 plugin_membership_required）；用于 UI 本地化映射。 */
+  errorCode: string | null;
   /**
    * 最近一次失败操作的归属插件：带 pluginId 的操作（如 setEnabled）失败写该
    * id；无插件目标的操作（marketplace add/update/validate、列表加载、refresh）写 null。
@@ -146,7 +148,10 @@ function toMessage(error: unknown): string {
 function throwForErrorDiagnostic(diagnostics: ZCodePluginDiagnostic[]): void {
   const blockingDiagnostic = diagnostics.find((diagnostic) => diagnostic.severity === "error");
   if (blockingDiagnostic) {
-    throw new Error(blockingDiagnostic.message);
+    // 消息文本面向 zh 用户；机器码留给渲染层做本地化映射（en 界面不显示中文门禁文案）。
+    throw Object.assign(new Error(blockingDiagnostic.message), {
+      diagnosticCode: blockingDiagnostic.code,
+    });
   }
 }
 
@@ -166,6 +171,7 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
     diagnostics: [],
     loading: false,
     error: null,
+    errorCode: null,
     lastFailedPluginId: null,
     togglingPluginId: null,
     activeOperations: [],
@@ -237,7 +243,7 @@ export const createPluginManagementStore = (initialService?: IPluginManagementSe
       const { workspacePath, workspaceIdentity, authorityKey, configScope } = get();
       if (!workspacePath || !pluginService) return;
       lastService = pluginService;
-      if (!options.background) set({ error: null, lastFailedPluginId: null });
+      if (!options.background) set({ error: null, errorCode: null, lastFailedPluginId: null });
       await loadInto(set, get, {
         workspacePath,
         workspaceIdentity,

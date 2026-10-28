@@ -56,6 +56,7 @@ import {
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
+import { resolvePluginErrorMessage } from "@/settings/pluginErrorMessage.js";
 import {
   nibiMembershipAllowsPaidPlugins,
   resolveNibiMembershipPhase,
@@ -372,12 +373,13 @@ function PluginList({
         : pluginId;
       const succeeded = await setEnabled(pluginId, enabled, pluginManagementService, configScope);
       if (!succeeded) {
-        const error = usePluginManagementStore.getState().error;
+        const state = usePluginManagementStore.getState();
+        const error = state.error;
         if (enabled && error && /会员|membership/i.test(error)) {
           setMembershipOpen(true);
         }
         toast(
-          error ??
+          resolvePluginErrorMessage(intl, error, state.errorCode) ??
             intl.formatMessage({ id: "settings.plugins.toggle.failed" }, { plugin: pluginLabel }),
           { variant: "warning" },
         );

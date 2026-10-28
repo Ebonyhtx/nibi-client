@@ -96,6 +96,7 @@ export function beginPluginOperation(
     activeOperations: [...get().activeOperations, entry],
     operationVersion: get().operationVersion + 1,
     error: null,
+    errorCode: null,
     lastFailedPluginId: null,
   });
   return () => {
@@ -163,7 +164,14 @@ export async function runWorkspaceOperation(
     logger.error("[plugins] operation failed", { operationId, error: toMessage(error) });
     // 旧操作不能覆盖同一配置层中新操作的错误态；只有最近发起的操作才回写。
     if (ownsVisibleOperation()) {
-      set({ error: toMessage(error), lastFailedPluginId: null });
+      set({
+        error: toMessage(error),
+        errorCode:
+          typeof (error as { diagnosticCode?: unknown }).diagnosticCode === "string"
+            ? (error as { diagnosticCode: string }).diagnosticCode
+            : null,
+        lastFailedPluginId: null,
+      });
     }
     return false;
   } finally {

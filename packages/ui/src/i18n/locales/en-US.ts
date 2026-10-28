@@ -7344,6 +7344,8 @@ const enUS: Record<string, string> = {
   "scheduledPreview.toast.view": "View",
   "scheduledPreview.addSchedule": "Add schedule",
   ...requestSecurityMessagesEnUS,
+  "settings.plugins.error.membershipRequired":
+    "This is a members-only plugin. Get membership and try again.",
   "settings.plugins.membership.title": "NIBI Membership",
   "settings.plugins.membership.badge": "Members only",
   "settings.plugins.membership.description":

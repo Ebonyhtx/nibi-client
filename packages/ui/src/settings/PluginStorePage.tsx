@@ -49,6 +49,7 @@ import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
 import { PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmDialog.js";
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
+import { resolvePluginErrorMessage } from "@/settings/pluginErrorMessage.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
 import {
   nibiMembershipAllowsPaidPlugins,
@@ -116,6 +117,7 @@ export function PluginStorePage({
   const loadedWorkspacePath = usePluginManagementStore((state) => state.workspacePath);
   const loadedWorkspaceIdentity = usePluginManagementStore((state) => state.workspaceIdentity);
   const error = usePluginManagementStore((state) => state.error);
+  const errorCode = usePluginManagementStore((state) => state.errorCode);
   const activeOperations = usePluginManagementStore((state) => state.activeOperations);
   const describeCache = usePluginManagementStore((state) => state.describeCache);
   const initialize = usePluginManagementStore((state) => state.initialize);
@@ -463,7 +465,8 @@ export function PluginStorePage({
   const handleCheckForUpdates = useCallback(async () => {
     const succeeded = await updateMarketplace(null, operationService);
     if (!succeeded) {
-      const message = usePluginManagementStore.getState().error;
+      const state = usePluginManagementStore.getState();
+      const message = resolvePluginErrorMessage(intl, state.error, state.errorCode);
       if (message) {
         toast(message);
       }
@@ -699,7 +702,7 @@ export function PluginStorePage({
           className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-ui-base text-destructive"
           data-testid="plugin-store-error"
         >
-          {error}
+          {resolvePluginErrorMessage(intl, error, errorCode)}
         </div>
       ) : null}
 
