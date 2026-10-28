@@ -8,6 +8,7 @@ import {
   NIBI_MIRROR_CA_PEM,
   nibiContentUrlCandidates,
 } from "@nibi/shared/node";
+import { isNibiPrimaryContentUrl } from "@nibi/shared";
 import { createNodeWebFetchHttpClientAdapter } from "../http/index.js";
 import {
   appendPluginSourceCleanupError,
@@ -28,6 +29,9 @@ const ZIP_DENIED_HEADERS = new Set([
   "cookie",
   "proxy-authorization",
   "set-cookie",
+  // 会员凭证由 zip 层按候选 URL 白名单自行注入；manifest 声明的同名 header 一律拒绝，
+  // 防止第三方市场把可重放的签名凭证带到任意源。
+  "x-nibi-license",
 ]);
 const ZIP_REQUIRED_SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -41,6 +45,8 @@ export interface ResolveZipPluginSourceInput {
   allowMirror?: boolean;
   headers?: Record<string, string>;
   path?: string;
+  /** 会员凭证。只在候选 URL 命中 NIBI 自有内容源时作为 X-Nibi-License 注入。 */
+  paidLicenseToken?: string;
   sha256: string;
   signal?: AbortSignal;
   stripRoot?: boolean;
@@ -51,6 +57,8 @@ export interface ResolveHttpZipSourceInput {
   allowMirror?: boolean;
   headers?: Record<string, string>;
   path?: string;
+  /** 会员凭证。只在候选 URL 命中 NIBI 自有内容源时作为 X-Nibi-License 注入。 */
+  paidLicenseToken?: string;
   requireSingleRoot?: boolean;
   sha256?: string;
   signal?: AbortSignal;
@@ -84,6 +92,7 @@ export async function resolveZipPluginSource(
     allowMirror: input.allowMirror,
     headers: input.headers,
     path: input.path,
+    ...(input.paidLicenseToken ? { paidLicenseToken: input.paidLicenseToken } : {}),
     sha256: input.sha256,
     signal: input.signal,
     stripRoot: input.stripRoot,
@@ -120,7 +129,11 @@ export async function resolveHttpZipSource(
       throwIfAborted(input.signal);
       try {
         const downloaded = await downloadZipArchive({
-          headers: input.headers,
+          headers: withPaidLicenseHeaderForNibiHosts({
+            headers: input.headers,
+            licenseToken: input.paidLicenseToken,
+            url: candidate,
+          }),
           signal: input.signal,
           url: candidate,
           ...(isNibiMirrorUrl(candidate) ? { caCertPem: NIBI_MIRROR_CA_PEM } : {}),
@@ -163,8 +176,24 @@ export async function resolveHttpZipSource(
   }
 }
 
-export function readZipPluginSourceSha256(source: unknown): string | undefined {
-  if (!isZipPluginUrlSource(source)) return undefined;
+/**
+ * 会员凭证只发给 NIBI 自有内容源：镜像与第三方源一律不带 X-Nibi-License。
+ * 白名单与内容镜像的 primary hosts 同一份配置（api/dl.nibistudio.top）。
+ */
+export function withPaidLicenseHeaderForNibiHosts(input: {
+  headers?: Record<string, string>;
+  licenseToken?: string;
+  url: string;
+}): Record<string, string> | undefined {
+  if (!input.licenseToken) return input.headers;
+  if (!isNibiPrimaryContentUrl(input.url)) return input.headers;
+  return {
+    ...input.headers,
+    "X-Nibi-License": input.licenseToken,
+  };
+}
+
+export function readZipPluginSourceSha256(source: unknown): string | undefined {  if (!isZipPluginUrlSource(source)) return undefined;
   return source.sha256;
 }
 

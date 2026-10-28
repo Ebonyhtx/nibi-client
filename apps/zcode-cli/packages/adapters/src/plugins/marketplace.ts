@@ -11,6 +11,7 @@ import {
   CODEX_PLUGIN_MANIFEST_DIR,
   DEFAULT_PLUGIN_MARKETPLACES,
   hiddenDefaultPluginMarketplaces,
+  isNibiPrimaryContentUrl,
   NIBI_PLUGIN_MANIFEST_DIR,
   ZCODE_PLUGIN_MANIFEST_DIR,
   sanitizeZCodeRuntimeEnv,
@@ -1579,12 +1580,22 @@ async function resolvePluginSourceRoot(input: {
             `「${input.entry.name}」是会员专享插件：请先登录并开通会员`,
           );
         }
+        // 收费件的 zip 只能来自 NIBI 自有内容源：会员凭证是可重放的签名凭证，
+        // 任何第三方源的 paid 条目都直接拒绝，从根上排除"借安装把凭证发给攻击者"。
+        if (input.entry.paid && !isNibiPrimaryContentUrl(url)) {
+          throw new UnsupportedPluginSourceError(
+            `「${input.entry.name}」是会员专享插件：安装包只能来自 NIBI 官方源，` +
+              "该市场的分发地址不受支持",
+          );
+        }
         return resolveZipPluginSource({
-          headers: {
-            ...readPluginSourceHeaders(source),
-            ...(input.paidLicenseToken ? { "X-Nibi-License": input.paidLicenseToken } : {}),
-          },
+          headers: readPluginSourceHeaders(source),
           path: readOptionalZipPluginSourcePath(source),
+          // X-Nibi-License 由 zip 层按候选 URL 白名单注入（见 withPaidLicenseHeaderForNibiHosts），
+          // 这里不把它混进 manifest headers。
+          ...(input.paidLicenseToken && input.entry.paid
+            ? { paidLicenseToken: input.paidLicenseToken }
+            : {}),
           sha256: readRequiredZipPluginSourceSha256(source),
           signal: input.signal,
           stripRoot: readOptionalZipPluginSourceStripRoot(source),
