@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
+import { NibiEmptyStateArt } from "@/components/NibiEmptyStateArt.js";
 import {
   Select,
   SelectContent,
@@ -157,9 +158,12 @@ function ArchiveManagementContent() {
           {msg("loading")}
         </p>
       ) : !groups.length && !state.error ? (
-        <p className="py-12 text-center text-ui-base text-foreground-subtle">
-          {msg(allGroups.length ? "noResults" : "empty")}
-        </p>
+        <div className="flex flex-col items-center gap-4 py-8 text-center">
+          <NibiEmptyStateArt variant="archive" className="size-32" />
+          <p className="text-ui-base text-foreground-subtle">
+            {msg(allGroups.length ? "noResults" : "empty")}
+          </p>
+        </div>
       ) : (
         groups.map((group) => (
           <ArchiveGroupCard

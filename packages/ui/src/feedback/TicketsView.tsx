@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, CopyIcon, Inbox, Loader2, PlusCircle, RefreshCcw } from "lucide-react";
+import { Check, CopyIcon, Loader2, PlusCircle, RefreshCcw } from "lucide-react";
 import type { FeedbackTicketSummary } from "@nibi/shared";
 import type { IFeedbackService } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
+import { NibiEmptyStateArt } from "@/components/NibiEmptyStateArt.js";
 import { cn } from "@/components/lib/utils.js";
 import { FeedbackErrorTip, StatusIndicator } from "@/feedback/feedbackBadges.js";
 import { ScrollFadeViewport } from "@/components/ui/scroll-fade-viewport.js";
@@ -234,10 +235,8 @@ function EmptyState({ onCreateNew }: { onCreateNew: () => void }) {
   const { intl } = useZCodeIntl();
   const formatMessage = intl.formatMessage;
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-4 pt-12 text-center">
-      <div className="flex size-9 items-center justify-center rounded-lg border border-border bg-card">
-        <Inbox className="size-4 text-foreground-subtle" />
-      </div>
+    <div className="flex flex-col items-center justify-center gap-3 px-4 pt-8 text-center">
+      <NibiEmptyStateArt variant="feedback" />
       <div className="text-ui-base font-medium text-foreground">
         {formatMessage({ id: "feedback.tickets.empty.title" })}
       </div>

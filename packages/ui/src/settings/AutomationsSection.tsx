@@ -32,6 +32,7 @@ import {
 import { Spinner } from "@/components/ui/spinner.js";
 import { toast as showToast, type ToastOptions } from "@/components/ui/toast.js";
 import { cn } from "@/components/lib/utils.js";
+import { NibiEmptyStateArt } from "@/components/NibiEmptyStateArt.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { AutomationScheduledTemplateIcon } from "@/settings/AutomationScheduledTemplateIcon.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -1168,20 +1169,23 @@ export function AutomationsSection({
                   )}
                 </section>
               ) : (
-                /* 空状态卡先于 Keep-awake，按钮组整体较卡片中心下移 8px。 */
+                /* 空状态沿用预览里的横向空卡：栖息鸟 + 时钟，文案与创建入口保持原位。 */
                 <div
                   data-automations-empty-state
-                  className="flex h-[226px] w-full items-center justify-center rounded-2xl border border-card-border bg-background px-4"
+                  className="flex h-[226px] w-full items-center justify-center rounded-2xl border border-card-border bg-background px-6"
                 >
-                  <div className="flex translate-y-2 flex-col items-center gap-5">
-                    <p className="text-ui-base font-medium leading-5 text-foreground-subtlest">
-                      {intl.formatMessage({ id: "automations.empty.title" })}
-                    </p>
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                      <AutomationCreateDropdown
-                        onViaChat={handleCreateViaChat}
-                        onManually={handleCreateManually}
-                      />
+                  <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-8">
+                    <NibiEmptyStateArt variant="automation" className="size-32" />
+                    <div className="flex flex-col items-center gap-4 sm:items-start">
+                      <p className="text-ui-base font-medium leading-5 text-foreground-subtle">
+                        {intl.formatMessage({ id: "automations.empty.title" })}
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+                        <AutomationCreateDropdown
+                          onViaChat={handleCreateViaChat}
+                          onManually={handleCreateManually}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
