@@ -118,11 +118,10 @@ async function registerHarness(overrides?: Partial<RemoteIpcOptions>) {
 }
 
 describe("remote workspace connect telemetry IPC", () => {
-  it("只允许 Web URL 和 file URL 交给系统浏览器", () => {
+  it("只允许 Web URL 交给系统浏览器；file: 走专用通道", () => {
     expect(isAllowedExternalOpenUrl("https://example.com")).toBe(true);
-    expect(isAllowedExternalOpenUrl("file:///tmp/report.html")).toBe(true);
-    expect(isAllowedExternalOpenUrl("file:///tmp/report.txt")).toBe(true);
-    expect(isAllowedExternalOpenUrl("file:///etc/passwd")).toBe(true);
+    expect(isAllowedExternalOpenUrl("file:///tmp/report.html")).toBe(false);
+    expect(isAllowedExternalOpenUrl("file:///etc/passwd")).toBe(false);
     expect(isAllowedExternalOpenUrl("data:text/html,hello")).toBe(false);
   });
 
@@ -165,7 +164,7 @@ describe("remote workspace connect telemetry IPC", () => {
     });
   });
 
-  it("只允许 main 进程打开 http/https/file URL", async () => {
+  it("只允许 main 进程打开 http/https URL；file: 走专用通道并拒绝", async () => {
     const { registerRemoteIpcHandlers } = await import("../src/main/desktopMainIpcRemote.js");
     const options = createOptions();
     registerRemoteIpcHandlers(options);
@@ -182,10 +181,9 @@ describe("remote workspace connect telemetry IPC", () => {
     expect(h.shellOpenExternal).toHaveBeenCalledTimes(2);
     expect(h.shellOpenExternal).toHaveBeenCalledWith("https://example.com/docs");
     expect(h.shellOpenExternal).toHaveBeenCalledWith("http://localhost:3000/index.html");
-    await vi.waitFor(() =>
-      expect(h.shellOpenPath).toHaveBeenCalledWith(fileURLToPath(fileUrl)),
-    );
-    expect(options.logger.warn).toHaveBeenCalledTimes(2);
+    // file: 不再经通用通道交给系统默认应用（本地文件走 OpenExternalFile 专用 IPC）。
+    await vi.waitFor(() => expect(h.shellOpenPath).not.toHaveBeenCalled());
+    expect(options.logger.warn).toHaveBeenCalledTimes(3);
   });
 
 

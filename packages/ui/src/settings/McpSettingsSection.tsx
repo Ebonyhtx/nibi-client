@@ -1352,9 +1352,24 @@ export function McpSettingsSection({
     setShowForm(true);
   }
 
+  // MCP 提供的授权 URL 直接进系统浏览器：只允许 https（本地回环 http 供开发用），
+  // 恶意/被劫持的 MCP 服务器不能借授权按钮打开 file:/自定义协议 可执行内容。
+  function canOpenMcpAuthorizationUrl(authorizationUrl: string): boolean {
+    try {
+      const url = new URL(authorizationUrl);
+      if (url.protocol === "https:") return true;
+      return (
+        url.protocol === "http:" &&
+        (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1")
+      );
+    } catch {
+      return false;
+    }
+  }
+
   function handleOpenAuthorization(server: ZCodeMcpServer) {
     const authorizationUrl = server.authorization?.authorizationUrl;
-    if (!authorizationUrl) {
+    if (!authorizationUrl || !canOpenMcpAuthorizationUrl(authorizationUrl)) {
       return;
     }
     platform.openExternal(authorizationUrl);
@@ -1362,7 +1377,7 @@ export function McpSettingsSection({
 
   function handleOpenPluginAuthorization(item: PluginMcpServerItem) {
     const authorizationUrl = item.authorization?.authorizationUrl;
-    if (!authorizationUrl) {
+    if (!authorizationUrl || !canOpenMcpAuthorizationUrl(authorizationUrl)) {
       return;
     }
     platform.openExternal(authorizationUrl);

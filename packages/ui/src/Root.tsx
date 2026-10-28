@@ -641,8 +641,16 @@ function RootInner({
   const handleOpenDirectoryBrowser = useCallback(() => {
     setDirectoryBrowserOpen(true);
   }, []);
+  // 定义顺序：openLoginEntry 在组件更下方声明，这里用 ref 在事件触发时取最新实现。
+  const openLoginEntryRef = useRef<() => void>(() => {});
   const handleReauthenticationRequired = useCallback(() => {
-    if (NIBI_ACCOUNT_GATE_ENABLED) setWelcomeScreenOpenReason("session-expired");
+    if (NIBI_ACCOUNT_GATE_ENABLED) {
+      setWelcomeScreenOpenReason("session-expired");
+      return;
+    }
+    // 无欢迎页门禁时"重新登录"也不能是空操作：用户刚在过期弹窗点了确认，
+    // 直接发起 NIBI OAuth（与左下角登录入口同一条流程）。
+    openLoginEntryRef.current();
   }, []);
   const {
     setWorkspaceActionError,
@@ -1216,6 +1224,7 @@ function RootInner({
     }
     void nibiLogin.startLogin(NIBI_PROVIDER_ID);
   }, [intl, isDesktop, nibiLogin.startLogin]);
+  openLoginEntryRef.current = handleOpenLoginEntry;
   const handleWelcomeScreenComplete = useCallback(
     async (reason: LoginCompleteReason) => {
       await refreshAppSettings();

@@ -38,6 +38,7 @@ import {
 } from "./desktopWindowSize.js";
 import { getPluginSandboxHost, isPluginSandboxSrc } from "./pluginSandbox/index.js";
 import { installEmbeddedBrowserBluetoothDeviceGuard } from "./embeddedBrowserBluetoothGuard.js";
+import { attachMembershipGuestNavigationGuard } from "./membershipWebviewPolicy.js";
 import { getEmbeddedBrowserDevicePicker } from "./embeddedBrowserPermissionUiBridge.js";
 // CDP-on-guest pivot：内置浏览器改回 `<webview>` 渲染，宿主 BrowserWindow 需重新开 webviewTag，
 // 并在 will/did-attach-webview 里做 guest 硬化 + URL 白名单 + popup 路由回内部 tab。
@@ -454,7 +455,7 @@ export function createBrowserWindow(options: {
   attachWindowsWindowRepaint(win);
   // will-attach 与 did-attach 按顺序配对；队列元素记录 guest 种类，did-attach 据此分派策略。
   const pendingWebviewGuestKinds: Array<
-    { kind: "browser" } | { kind: "pluginSandbox"; sandboxId: string }
+    { kind: "browser" } | { kind: "membership" } | { kind: "pluginSandbox"; sandboxId: string }
   > = [];
 
   win.webContents.once("did-finish-load", () => {
@@ -535,7 +536,10 @@ export function createBrowserWindow(options: {
       return;
     }
 
-    pendingWebviewGuestKinds.push({ kind: "browser" });
+    // 会员购买 guest 单独标记：did-attach 据此挂导航 allowlist（只允许官网 /membership）。
+    pendingWebviewGuestKinds.push(
+      isNibiMembershipEmbeddedWebviewSrc(targetUrl) ? { kind: "membership" } : { kind: "browser" },
+    );
   });
 
   win.webContents.on("did-attach-webview", (_event, guestWebContents) => {
@@ -547,6 +551,11 @@ export function createBrowserWindow(options: {
         sandboxId: guestKind.sandboxId,
       });
       return;
+    }
+    if (guestKind.kind === "membership") {
+      attachMembershipGuestNavigationGuard(guestWebContents, {
+        warn: (...details: unknown[]) => options.logger.warn(...details),
+      });
     }
     attachEmbeddedBrowserWindowOpenHandler({
       guestWebContents,

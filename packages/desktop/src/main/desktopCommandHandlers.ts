@@ -682,6 +682,9 @@ export async function executeDesktopCommand(options: {
         logger: options.logger,
       });
       return;
+    case DesktopCommandIds.ClearMembershipWebviewStorage:
+      await clearMembershipWebviewStorage({ logger: options.logger });
+      return;
     case DesktopCommandIds.ClearAllData:
       await clearMembershipWebviewStorage({ logger: options.logger });
       await clearAllDataAndRelaunch({

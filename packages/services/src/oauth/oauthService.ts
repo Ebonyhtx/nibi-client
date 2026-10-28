@@ -27,6 +27,7 @@ import { createServiceLogger } from "../logger/serviceLogger.js";
 import { readApiJson } from "../providers/api/apiJson.js";
 import type { IOAuthService, NibiMembershipStatus } from "./oauth.js";
 import { NIBI_API_BASE_URL, NIBI_MEMBERSHIP_SITE_URL } from "./providers/nibiProviderConfig.js";
+import { isTrustedNibiMembershipWebviewUrl } from "@nibi/shared";
 import { isCurrentOAuthCredentialRequest } from "#src/oauth/oauthUnauthorizedRequest.js";
 import { hasOAuthAuthorizationCode, parseOAuthLoginAttribution } from "./callbackAttribution.js";
 import {
@@ -47,7 +48,8 @@ const COMPLETED_POLLING_STATE_GRACE_MS = 30 * 1000;
 const NIBI_JWT_TOKEN_KEY = "zcodejwttoken";
 // access token ~12h。提前 5 分钟续期，避免远控重连/会员接口在边界上拿到刚过期的令牌。
 const NIBI_TOKEN_REFRESH_MARGIN_MS = 5 * 60_000;
-const NIBI_TOKEN_REFRESH_RETRY_MS = 5 * 60_000;
+/** 网络类刷新失败的指数退避序列；走完后停止定时重试（下次启动/用户操作再触发）。 */
+const NIBI_TOKEN_REFRESH_BACKOFF_MS = [30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000] as const;
 const log = (...args: unknown[]) =>
   console.log(formatLogPrefix("oauthService", process.pid), ...args);
 const serviceLog = createServiceLogger("oauthService");
@@ -146,6 +148,7 @@ export class OAuthService implements IOAuthService {
   private oauthSessionGeneration = 0;
   private nibiRefreshTimer?: ReturnType<typeof setTimeout>;
   private nibiRefreshRetryScheduled = false;
+  private nibiRefreshRetryAttempts = 0;
   private sessionMutationQueue: Promise<unknown> = Promise.resolve();
   private recentlyCompletedPollingState: {
     generation: number;
@@ -1160,15 +1163,29 @@ export class OAuthService implements IOAuthService {
   private async runScheduledNibiRefresh(provider: OAuthProviderId): Promise<void> {
     try {
       await this.refreshToken(provider);
+      this.nibiRefreshRetryAttempts = 0;
     } catch (error) {
       serviceLog.warn("scheduled NIBI token refresh failed", { provider, error });
-      if (this.nibiRefreshRetryScheduled) return;
       if ((await this.repo.getActiveProvider()) !== provider) return;
+      // refresh token 已失效（撤销/过期）时退避没有意义：按失效会话登出并广播，
+      // 让 UI 立刻回到未登录态，而不是带着过期 token 假装已登录。
+      const status = error instanceof ApiError ? error.status : undefined;
+      if (status === 400 || status === 401 || status === 403) {
+        await this.logoutActiveSession(async () => (await this.repo.getActiveProvider()) === provider);
+        return;
+      }
+      // 网络/服务端错误：指数退避重试；重试不叠层，走完序列后停止等外部触发。
+      if (this.nibiRefreshRetryScheduled) return;
+      const backoff =
+        NIBI_TOKEN_REFRESH_BACKOFF_MS[
+          Math.min(this.nibiRefreshRetryAttempts, NIBI_TOKEN_REFRESH_BACKOFF_MS.length - 1)
+        ];
+      this.nibiRefreshRetryAttempts += 1;
       this.nibiRefreshRetryScheduled = true;
       this.nibiRefreshTimer = setTimeout(() => {
         this.nibiRefreshTimer = undefined;
         void this.runScheduledNibiRefresh(provider);
-      }, NIBI_TOKEN_REFRESH_RETRY_MS);
+      }, backoff);
       this.nibiRefreshTimer.unref?.();
     }
   }
@@ -1179,6 +1196,7 @@ export class OAuthService implements IOAuthService {
       this.nibiRefreshTimer = undefined;
     }
     this.nibiRefreshRetryScheduled = false;
+    this.nibiRefreshRetryAttempts = 0;
   }
 
   /** Host 本地 401 提交入口，不扩展 IOAuthService 的跨端契约。 */
@@ -1332,6 +1350,15 @@ export class OAuthService implements IOAuthService {
     }
     const apiBase = (this.env.NIBI_API_BASE_URL?.trim() || NIBI_API_BASE_URL).replace(/\/+$/, "");
     const siteUrl = this.env.NIBI_MEMBERSHIP_SITE_URL?.trim() || NIBI_MEMBERSHIP_SITE_URL;
+    // handoff 是一次性兑换码（可换站点会话），只允许发往可信的 NIBI 会员页 origin。
+    // 可信 origin 本身就排除明文 http（e2e 回环需显式开关），配置错误宁可报错，
+    // 也不能把码发到错误 host 或明文 HTTP。
+    const trustedMembershipSite = isTrustedNibiMembershipWebviewUrl(siteUrl, {
+      e2eStoreBridgeEnabled: this.env.VITE_NIBI_E2E_STORE_BRIDGE === "1",
+    });
+    if (!trustedMembershipSite) {
+      throw new Error("会员页地址配置不可信，已阻止发送登录态；请检查 NIBI_MEMBERSHIP_SITE_URL");
+    }
 
     const requestHandoff = (token: string) =>
       apiClient.request(`${apiBase}/api/v1/auth/handoff`, {

@@ -22,6 +22,28 @@ import { useServices } from "./useServices.js";
 
 type OAuthStatus = "idle" | "waiting" | "error";
 
+/**
+ * 登录失败的进程内广播：回调/轮询失败在 Root 常驻层判定，而每个 useOAuth 实例
+ * （登录页、会员弹窗等）只看得到自己 startLogin 的本地状态。Root 判定失败后调用
+ * notifyOAuthLoginFailed，所有还在 waiting 的实例立即退出等待并显示错误——
+ * 否则会员弹窗会在用户拒绝授权/深链丢失时永远转圈。
+ */
+type OAuthLoginFailureListener = (message: string | null) => void;
+const oauthLoginFailureListeners = new Set<OAuthLoginFailureListener>();
+
+export function notifyOAuthLoginFailed(message: string | null = null): void {
+  for (const listener of [...oauthLoginFailureListeners]) listener(message);
+}
+
+function useOAuthLoginFailure(onFailure: (message: string | null) => void): void {
+  useEffect(() => {
+    oauthLoginFailureListeners.add(onFailure);
+    return () => {
+      oauthLoginFailureListeners.delete(onFailure);
+    };
+  }, [onFailure]);
+}
+
 export function useOAuth() {
   const { oauthService } = useServices();
   const platform = usePlatform();
@@ -33,6 +55,8 @@ export function useOAuth() {
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [pendingProvider, setPendingProvider] = useState<OAuthProviderId | null>(null);
   const loginAttemptRef = useRef(0);
+  // 广播处理器需要读取"当前是否在等待"，state 在回调闭包里会过期；用 ref 镜像。
+  const waitingRef = useRef(false);
   const setOAuthPollingActive = useZCodeStore((state) => state.setOAuthPollingActive);
 
   const refreshProviders = useCallback(async () => {
@@ -72,6 +96,7 @@ export function useOAuth() {
     async (provider: OAuthProviderId, options: { purpose?: LoginEntryPurpose } = {}) => {
       const loginAttempt = ++loginAttemptRef.current;
       try {
+        waitingRef.current = true;
         setStatus("waiting");
         setError(null);
         setPendingProvider(provider);
@@ -115,6 +140,7 @@ export function useOAuth() {
           return;
         }
         logger.error("[useOAuth] 启动 OAuth 失败:", err);
+        waitingRef.current = false;
         setOAuthPollingActive(false);
         setStatus("error");
         // OAuth 启动失败也属于登录失败，不把服务端或平台错误原文展示给用户。
@@ -129,6 +155,7 @@ export function useOAuth() {
   const cancel = useCallback(
     async (provider?: OAuthProviderId) => {
       loginAttemptRef.current += 1;
+      waitingRef.current = false;
       await oauthService.cancelPending(provider);
       setOAuthPollingActive(false);
       setStatus("idle");
@@ -139,6 +166,7 @@ export function useOAuth() {
   );
 
   const reset = useCallback(() => {
+    waitingRef.current = false;
     setStatus("idle");
     setError(null);
     setPendingProvider(null);
@@ -146,10 +174,27 @@ export function useOAuth() {
 
   /** 由 Root/App 层的回调监听器调用，更新 UI 状态 */
   const setOAuthError = useCallback((message: string) => {
+    waitingRef.current = false;
     setStatus("error");
     setError(message);
     setPendingProvider(null);
   }, []);
+
+  // 其他入口判定的登录失败（深链/state 不匹配/用户拒绝/轮询失败）广播到本实例：
+  // 只有仍在 waiting 时才接管 UI，避免覆盖用户已经手动重置的状态。
+  useOAuthLoginFailure(
+    useCallback(
+      (message: string | null) => {
+        // 只接管仍在等待回调的实例；idle/error 状态不被广播覆盖。
+        if (!waitingRef.current) return;
+        waitingRef.current = false;
+        setStatus("error");
+        setError(message ?? intl.formatMessage({ id: "login.oauth.loginFailure" }));
+        setPendingProvider(null);
+      },
+      [intl],
+    ),
+  );
 
   const setOAuthSuccess = useCallback(async () => {
     setStatus("idle");

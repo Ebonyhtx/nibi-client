@@ -651,6 +651,7 @@ export const DesktopCommandIds = {
   SetZCodeEndpointCustom: "setZCodeEndpointCustom",
   ResetZCodeEndpoint: "resetZCodeEndpoint",
   ClearAllData: "clearAllData",
+  ClearMembershipWebviewStorage: "clearMembershipWebviewStorage",
   GetCuaOsSupport: "getCuaOsSupport",
 } as const;
 

@@ -264,6 +264,7 @@ import {
 } from "./desktopNetworkTelemetry.js";
 import { applyDesktopChromiumNetworkPolicies } from "./desktopNetworkPolicy.js";
 import { applyEmbeddedBrowserPermissionPolicy } from "./embeddedBrowserPermissionPolicy.js";
+import { applyMembershipWebviewSessionPolicy } from "./membershipWebviewPolicy.js";
 import { createEmbeddedBrowserSitePermissionStore } from "./embeddedBrowserSitePermissionStore.js";
 import {
   createEmbeddedBrowserPermissionUiBridge,
@@ -2190,6 +2191,8 @@ app.whenReady().then(async () => {
   const embeddedBrowserPermissionUiBridge = createEmbeddedBrowserPermissionUiBridge({ logger });
   embeddedBrowserPermissionUiBridge.registerResolveListener();
   setActiveEmbeddedBrowserPermissionUiBridge(embeddedBrowserPermissionUiBridge);
+  // 会员购买页分区：敏感权限默认拒绝（站点是我们自己的，无需用户级授权弹窗）。
+  applyMembershipWebviewSessionPolicy();
   try {
     await applyEmbeddedBrowserPermissionPolicy(session.fromPartition(EMBEDDED_BROWSER_PARTITION), {
       logger,

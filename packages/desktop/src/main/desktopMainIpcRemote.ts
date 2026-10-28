@@ -41,7 +41,7 @@ import {
   registerWebRemoteControlIpcHandlers,
   type WebRemoteControlIpcManager,
 } from "./desktopWebRemoteControlIpc.js";
-import { openFileUrlInDefaultApp, openPathInDefaultApp } from "./desktopMainIpcHelpers.js";
+import { openPathInDefaultApp } from "./desktopMainIpcHelpers.js";
 
 function isPublicRemoteReasonCode(code: string | undefined): code is string {
   // Bug 原因：前缀 OR 形成第二份公开码真源，任何内部 source-server-* 字符串都会穿透
@@ -69,7 +69,9 @@ function toBindIpcFailure(error: unknown): BindRemoteWorkspaceSessionContextIpcR
 export function isAllowedExternalOpenUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:" || url.protocol === "file:";
+    // 只放行 Web URL。file: 一律拒绝——本地文件走专用的 OpenExternalFile 通道；
+    // 通用 openExternal 接受 file: 等于把任意本地路径执行权交给网页/插件/生成的 HTML。
+    return url.protocol === "http:" || url.protocol === "https:";
   } catch {
     return false;
   }
@@ -258,10 +260,6 @@ export function registerRemoteIpcHandlers(options: {
     const { url } = request;
     if (!isAllowedExternalOpenUrl(url)) {
       options.logger.warn("[open-external] blocked unsupported url", url);
-      return;
-    }
-    if (new URL(url).protocol === "file:") {
-      void openFileUrlInDefaultApp(url, options.logger);
       return;
     }
     void Promise.resolve(shell.openExternal(url)).catch((error: unknown) => {

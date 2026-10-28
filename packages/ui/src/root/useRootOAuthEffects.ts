@@ -9,6 +9,7 @@ import type {
 import { NIBI_JWT_INVALID_BROADCAST_CHANNEL } from "@nibi/shared";
 import type { IServiceAccessor } from "@nibi/services";
 import { useAlertDialog } from "@/hooks/useAlertDialog.js";
+import { notifyOAuthLoginFailed } from "@/hooks/useOAuth.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { reportAppTelemetryEvent, resolveProviderTelemetryLabel } from "@/lib/appTelemetry.js";
 import { logger } from "@/logger.js";
@@ -226,6 +227,7 @@ export function useRootOAuthEffects({
           });
           if (shouldApplyFailure) {
             setOAuthError(intl.formatMessage({ id: "login.oauth.loginFailure" }));
+            notifyOAuthLoginFailed(intl.formatMessage({ id: "login.oauth.loginFailure" }));
           }
           logger.error("[Root] OAuth 轮询处理失败:", error);
         })
@@ -304,6 +306,7 @@ export function useRootOAuthEffects({
         });
         if (shouldApplyFailure) {
           setOAuthError(intl.formatMessage({ id: "login.oauth.loginFailure" }));
+          notifyOAuthLoginFailed(intl.formatMessage({ id: "login.oauth.loginFailure" }));
         }
         logger.error("[Root] OAuth 回调处理失败:", err);
       }

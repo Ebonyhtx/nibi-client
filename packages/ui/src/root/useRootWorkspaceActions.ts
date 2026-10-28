@@ -463,6 +463,14 @@ export function useRootWorkspaceActions({
       },
       "Root",
     );
+    // 会员购买页是持久分区，旧账号的站点会话 Cookie 必须在退出时清掉，
+    // 否则下一个账号打开收银台会直接带上前一个账号的登录态。
+    try {
+      await platform.executeDesktopCommand(DesktopCommandIds.ClearMembershipWebviewStorage);
+    } catch (error) {
+      // 清理失败不阻断登出主链路；Clear All Data 仍会兜底清除。
+      logger.warn("[Root] clear membership webview storage on logout failed:", error);
+    }
     await services.oauthService.logout();
     // ZAI/BigModel provider 已恢复为 App 登录镜像。
     // 派生 Coding/Start key 由 OAuth logout 的 host hook 统一清理，Root 只负责刷新展示态。
