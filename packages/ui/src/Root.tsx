@@ -126,8 +126,29 @@ import type {
 
 const DEFAULT_LUCIDE_STROKE_WIDTH = 1.5;
 
-/** NIBI 不做首启登录门/引导页（见 docs：首启不要登录门）。保留开关便于回溯上游行为。 */
-const NIBI_ACCOUNT_GATE_ENABLED = false;
+/**
+ * 首启账号门：无模型提供方且未登录时显示应用内登录 Hero（2026-10-29 起开启）。
+ * 用户点「稍后再说」后写持久化标记，之后启动不再打扰——避免"跳过"用户每次开机被拦。
+ * Web 远控根不启用（provider guard 内部已排除），不会覆盖手机端首页。
+ */
+const NIBI_ACCOUNT_GATE_ENABLED = true;
+const ACCOUNT_GATE_DISMISSED_STORAGE_KEY = "nibi:account-gate:dismissed";
+
+function isAccountGateDismissed(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(ACCOUNT_GATE_DISMISSED_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function persistAccountGateDismissed(): void {
+  try {
+    globalThis.localStorage?.setItem(ACCOUNT_GATE_DISMISSED_STORAGE_KEY, "1");
+  } catch {
+    // 存储不可用时退化为每次启动提示（不影响功能）。
+  }
+}
 
 type WelcomeScreenOpenReason =
   | "startup-provider-required"
@@ -564,7 +585,9 @@ function RootInner({
           if (open) {
             // NIBI 没有账号体系：启动时的 provider 门禁不再弹登录卡片，缺 provider 走空状态提示
             // 与「设置 → 模型服务」。这条是首启那张"使用 API key"卡片的真实来源。
-            return NIBI_ACCOUNT_GATE_ENABLED ? "startup-provider-required" : null;
+            return NIBI_ACCOUNT_GATE_ENABLED && !isAccountGateDismissed()
+              ? "startup-provider-required"
+              : null;
           }
           // JWT 过期提示确认后会先写入 session-expired，随后 provider
           // 启动门禁以 open=false 收尾。这里若无条件清空，会覆盖重新登录页并回到工作区。
@@ -1220,9 +1243,13 @@ function RootInner({
   }, [intl, isDesktop]);
   openLoginEntryRef.current = handleOpenLoginEntry;
   const handleWelcomeScreenDismiss = useCallback(() => {
+    // 首启门禁的「稍后再说」要持久化：跳过用户不该每次启动都被再拦一次。
+    if (welcomeScreenOpenReason === "startup-provider-required") {
+      persistAccountGateDismissed();
+    }
     void nibiLogin.cancel("nibi");
     setWelcomeScreenOpenReason(null);
-  }, [nibiLogin]);
+  }, [nibiLogin, welcomeScreenOpenReason]);
   const handleWelcomeScreenComplete = useCallback(
     async (reason: LoginCompleteReason) => {
       if (reason === "oauth") {
@@ -1494,7 +1521,10 @@ function RootInner({
         <WelcomeScreen
           onComplete={handleWelcomeScreenComplete}
           onDismiss={
-            welcomeScreenOpenReason === "manual-login" ? handleWelcomeScreenDismiss : undefined
+            welcomeScreenOpenReason === "manual-login" ||
+            welcomeScreenOpenReason === "startup-provider-required"
+              ? handleWelcomeScreenDismiss
+              : undefined
           }
         />
       </RootShell>
