@@ -32,7 +32,8 @@ type OAuthLoginFailureListener = (message: string | null) => void;
 const oauthLoginFailureListeners = new Set<OAuthLoginFailureListener>();
 
 export function notifyOAuthLoginFailed(message: string | null = null): void {
-  for (const listener of [...oauthLoginFailureListeners]) listener(message);
+  // 复制一份再遍历：监听器可能在遍历期间退订（React effect 清理）。
+  for (const listener of Array.from(oauthLoginFailureListeners)) listener(message);
 }
 
 function useOAuthLoginFailure(onFailure: (message: string | null) => void): void {
