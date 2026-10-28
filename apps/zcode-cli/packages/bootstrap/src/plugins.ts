@@ -280,7 +280,10 @@ export function collectStoreInstalledIds(
 export function resolveZCodePlugins(options: ResolveZCodePluginsOptions = {}): PluginLoadOutcome {
   const { configResult, pluginStorageRoot, workingDirectory } = resolvePluginContext(options);
 
-  const discovered = discoverNodePluginsSync({
+  // 付费插件门禁在发现层内置（adapters createBuiltinPaidPluginGate）：启动路径与
+  // CLI 路径共用同一实现，被拒插件按未启用处理，能力根（mcp/hooks/skill/command）
+  // 全部裁剪——这里不再需要"只翻 enabled 标志"的后处理。
+  return discoverNodePluginsSync({
     config: configResult.config.plugins,
     env: options.env ?? process.env,
     officialPluginRoots: resolveOfficialPluginRoots({
@@ -293,10 +296,6 @@ export function resolveZCodePlugins(options: ResolveZCodePluginsOptions = {}): P
     officialPluginsEnabledByDefault: DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS,
     storageRoot: pluginStorageRoot,
     workingDirectory,
-  });
-  return enforcePaidPluginLicenses(discovered, {
-    env: options.env,
-    pluginStorageRoot,
   });
 }
 
@@ -398,7 +397,11 @@ export function getZCodePluginsOverview(
     marketplaces: catalogs.map((catalog) => catalog.summary),
     availablePlugins,
     installedPlugins: installed.map((record) => {
-      const enabled = configResult.config.plugins.enabledPlugins[record.id] ?? false;
+      // 商店投影必须与运行时一致：付费插件被门禁拒绝时发现结果里 enabled=false，
+      // 即使用户配置仍写着 true（例如会员过期后残留的配置）也不能显示为已启用。
+      const enabled =
+        loadedById.get(record.id)?.enabled ??
+        (configResult.config.plugins.enabledPlugins[record.id] ?? false);
       const data = toInstalledPluginData(record, enabled, loadedById.get(record.id));
       const pin = latestPinByPluginId.get(record.id);
       const installedSha = readPluginSourceIdentityPin(record.source);
@@ -483,59 +486,9 @@ function loadPluginListingsById(storageRoot: string): Record<string, PluginStore
 }
 
 /**
- * 加载门禁：收费插件没有有效会员凭证时强制 enabled=false。
- *
- * 为什么在加载而不是只在安装：插件缓存与配置可以被复制到别的机器；只拦安装等于没拦。
- * 同步路径（resolveZCodePlugins 是同步函数），因此用同步读凭据 + 纯验签。
+ * 启用/停用单个插件。启用与安装同样要过会员门禁：插件缓存/配置可以被复制，
+ * 只在安装时拦等于没拦；门禁不通过时抛 `PaidPluginMembershipError`。
  */
-function enforcePaidPluginLicenses(
-  outcome: PluginLoadOutcome,
-  options: { env?: NodeJS.ProcessEnv; pluginStorageRoot: string },
-): PluginLoadOutcome {
-  if (!outcome.plugins.some((plugin) => plugin.enabled)) return outcome;
-  const installedPaid = new Map<string, boolean>();
-  for (const record of listInstalledPluginRecords(options.pluginStorageRoot)) {
-    if (record.paid) installedPaid.set(record.id, true);
-  }
-  let token: string | null | undefined;
-  let refusal: string | null | undefined;
-  const diagnostics = [...outcome.diagnostics];
-  // 清单按市场缓存一次：resolveZCodePlugins 调用频繁，逐插件重读 JSON 会拖慢启动。
-  const manifests = new Map<string, ReturnType<typeof loadMarketplaceManifestSync>>();
-  const manifestFor = (marketplace: string) => {
-    if (!manifests.has(marketplace)) {
-      manifests.set(marketplace, loadMarketplaceManifestSync(options.pluginStorageRoot, marketplace));
-    }
-    return manifests.get(marketplace);
-  };
-  const plugins = outcome.plugins.map((plugin) => {
-    if (!plugin.enabled) return plugin;
-    const entry = manifestFor(plugin.marketplace)?.plugins.find(
-      (item) => item.name === plugin.name,
-    );
-    if (!entry?.paid && !installedPaid.has(plugin.id)) return plugin;
-    if (token === undefined) token = readNibiLicenseTokenSync(options.env);
-    if (refusal === undefined) refusal = readNibiLicenseRefusalSync(options.env);
-    try {
-      resolvePaidPluginAccessFromToken({
-        token: token ?? "",
-        pluginName: plugin.name,
-        refusal,
-      });
-      return plugin;
-    } catch (error) {
-      diagnostics.push({
-        code: "plugin_membership_required",
-        message: error instanceof Error ? error.message : String(error),
-        pluginId: plugin.id,
-        severity: "error",
-      });
-      return { ...plugin, enabled: false };
-    }
-  });
-  return { ...outcome, plugins, diagnostics };
-}
-
 export async function setZCodePluginEnabled(
   options: SetZCodePluginEnabledOptions,
 ): Promise<SetZCodePluginEnabledResult> {

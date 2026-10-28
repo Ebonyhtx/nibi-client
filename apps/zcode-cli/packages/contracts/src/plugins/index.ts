@@ -315,6 +315,17 @@ export interface PluginLoadOutcome {
   skillRoots: SkillRoot[];
 }
 
+/** 付费插件门禁的入参：插件身份三元组，不含本机路径。 */
+export interface PaidPluginGateInput {
+  id: string;
+  marketplace: string;
+  name: string;
+}
+
+export type PaidPluginGateResult =
+  | { allowed: true }
+  | { allowed: false; code?: string; message?: string };
+
 export interface PluginDiscoverRequest {
   config: PluginConfig;
   env?: Record<string, string | undefined>;
@@ -323,6 +334,12 @@ export interface PluginDiscoverRequest {
   // 默认空集合, 现有 plugin (含 ios-simulator/android-emulator 这种重负载) 行为不变。
   officialPluginsEnabledByDefault?: ReadonlySet<string>;
   officialPluginRoots?: string[];
+  /**
+   * 付费插件运行时门禁：返回 allowed=false 的插件按未启用处理，其 mcp/hooks/
+   * skill/command 能力根全部不进入发现结果。未提供时 adapter 使用内置 license
+   * 门禁（fail-closed）；只有确知无需裁剪的调用方才显式传放行函数。
+   */
+  paidPluginGate?: (plugin: PaidPluginGateInput) => PaidPluginGateResult;
   storageRoot: string;
   trace?: TraceContext;
   workingDirectory: string;

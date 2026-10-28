@@ -55,6 +55,7 @@ import {
   normalizeAuthorValue,
   resolveInstalledPluginRoot,
 } from "./marketplace.js";
+import { createBuiltinPaidPluginGate } from "./paid-plugin-discovery-gate.js";
 import { loadBundledOfficialPluginRootsSync } from "./official-marketplace.js";
 import type {
   LoadedPlugin,
@@ -167,6 +168,14 @@ export class NodePluginAdapter implements PluginPort {
     const diagnostics: PluginDiagnostic[] = [];
     const dataRoot = join(request.storageRoot || this.options.storageRoot, "data");
     const candidates = this.resolveCandidates(request, diagnostics, options);
+    // 未显式提供门禁时使用内置 license 门禁（fail-closed）：任何调用方都无法
+    // 通过"忘记传门禁"让付费插件绕过会员校验。
+    const paidGate =
+      request.paidPluginGate ??
+      createBuiltinPaidPluginGate({
+        env: request.env,
+        storageRoot: request.storageRoot,
+      });
     const commandRoots: CustomCommandRoot[] = [];
     const hooks: PluginLoadOutcome["hooks"] = {};
     const mcpServers: PluginLoadOutcome["mcpServers"] = {};
@@ -212,7 +221,32 @@ export class NodePluginAdapter implements PluginPort {
       const candidateDefaultEnabled =
         candidate.defaultEnabled ||
         (request.officialPluginsEnabledByDefault?.has(loaded.id) ?? false);
-      const enabled = resolveEnabled(request.config, loaded.id, candidateDefaultEnabled);
+      // 付费门禁在发现层执行（默认内置 license 门禁）：被拒插件按未启用处理，
+      // 其 mcp/hooks/skill/command 能力根全部不进入发现结果——这是运行时门禁，
+      // 商店里的"已停用"必须与它一致。
+      const configuredEnabled = resolveEnabled(
+        request.config,
+        loaded.id,
+        candidateDefaultEnabled,
+      );
+      let enabled = configuredEnabled;
+      if (configuredEnabled) {
+        const gate = paidGate({
+          id: loaded.id,
+          marketplace: candidate.marketplace,
+          name: loaded.manifest.name,
+        });
+        if (!gate.allowed) {
+          enabled = false;
+          diagnostics.push({
+            code: gate.code ?? "plugin_membership_required",
+            message: gate.message ?? "Plugin requires an active NIBI membership",
+            path: loaded.manifestPath,
+            pluginId: loaded.id,
+            severity: "error",
+          });
+        }
+      }
       const dataPath = join(dataRoot, sanitizePluginId(loaded.id));
       // 只从启用后解析出的 component.mcpServers 生成 mcpServerNames，
       // 未启用插件的内置 MCP 就会在管理页完全不可见。这里先读取声明名给 UI 只读展示，
@@ -260,14 +294,14 @@ export class NodePluginAdapter implements PluginPort {
       );
     }
 
-    return {
+    return pruneCapabilityLeakForDisabledPlugins({
       commandRoots,
       diagnostics,
       hooks,
       mcpServers,
       plugins,
       skillRoots,
-    };
+    });
   }
 
   private resolveCandidates(
@@ -324,6 +358,93 @@ export function discoverNodePluginsSync(
     request,
     options,
   );
+}
+
+/**
+ * 防御性自检：未启用插件（含付费被拒）不得在任何能力根中留有贡献。
+ *
+ * 门禁在发现层按"未启用"裁剪，这条不变量由构造保证；这里再兜底一次——若未来
+ * 有人改回"只翻 enabled 标志"的后处理实现，此处会把泄漏的能力根剪掉并报错诊断，
+ * 而不是把付费插件的 MCP/hooks/skills/commands 悄悄交给运行时。
+ */
+function pruneCapabilityLeakForDisabledPlugins(outcome: PluginLoadOutcome): PluginLoadOutcome {
+  const disabledByName = new Set(
+    outcome.plugins.filter((plugin) => !plugin.enabled).map((plugin) => plugin.name),
+  );
+  const disabledById = new Set(
+    outcome.plugins.filter((plugin) => !plugin.enabled).map((plugin) => plugin.id),
+  );
+  if (disabledByName.size === 0) return outcome;
+
+  const leakedMcp = Object.keys(outcome.mcpServers).filter((serverName) => {
+    const match = /^plugin:([^:]+):/.exec(serverName);
+    return match?.[1] ? disabledByName.has(match[1]) : false;
+  });
+  const leakedSkillRoots = outcome.skillRoots.filter(
+    (root) => root.pluginId !== undefined && disabledById.has(root.pluginId),
+  );
+  const leakedCommandRoots = outcome.commandRoots.filter(
+    (root) => root.plugin?.id !== undefined && disabledById.has(root.plugin.id),
+  );
+  const leakedHookMatchers = Object.entries(outcome.hooks).filter(([, matchers]) =>
+    (matchers ?? []).some((matcher) =>
+      matcher.hooks.some(
+        (hook) => hook.plugin?.id !== undefined && disabledById.has(hook.plugin.id),
+      ),
+    ),
+  );
+
+  if (
+    leakedMcp.length === 0 &&
+    leakedSkillRoots.length === 0 &&
+    leakedCommandRoots.length === 0 &&
+    leakedHookMatchers.length === 0
+  ) {
+    return outcome;
+  }
+
+  const diagnostics = [...outcome.diagnostics];
+  const report = (pluginId: string, kind: string) => {
+    diagnostics.push({
+      code: "plugin_capability_leak_pruned",
+      message: `Disabled plugin "${pluginId}" contributed ${kind}; the contribution was pruned.`,
+      pluginId,
+      severity: "error",
+    });
+  };
+  const mcpServers = { ...outcome.mcpServers };
+  for (const serverName of leakedMcp) {
+    const name = /^plugin:([^:]+):/.exec(serverName)?.[1] ?? serverName;
+    delete mcpServers[serverName];
+    const pluginId =
+      outcome.plugins.find((plugin) => plugin.name === name && !plugin.enabled)?.id ?? name;
+    report(pluginId, `MCP server "${serverName}"`);
+  }
+  const skillRoots = outcome.skillRoots.filter(
+    (root) => !(root.pluginId !== undefined && disabledById.has(root.pluginId)),
+  );
+  for (const root of leakedSkillRoots) report(root.pluginId!, "skill root");
+  const commandRoots = outcome.commandRoots.filter(
+    (root) => !(root.plugin?.id !== undefined && disabledById.has(root.plugin.id)),
+  );
+  for (const root of leakedCommandRoots) report(root.plugin!.id, "command root");
+  const hooks: PluginLoadOutcome["hooks"] = {};
+  for (const [eventName, matchers] of Object.entries(outcome.hooks)) {
+    const keptMatchers = (matchers ?? []).flatMap((matcher) => {
+      const keptHooks = matcher.hooks.filter(
+        (hook) => !(hook.plugin?.id !== undefined && disabledById.has(hook.plugin.id)),
+      );
+      if (keptHooks.length === matcher.hooks.length) return [matcher];
+      for (const leaked of matcher.hooks.filter(
+        (hook) => hook.plugin?.id !== undefined && disabledById.has(hook.plugin.id),
+      )) {
+        report(leaked.plugin!.id, `hook for event "${eventName}"`);
+      }
+      return keptHooks.length > 0 ? [{ ...matcher, hooks: keptHooks }] : [];
+    });
+    if (keptMatchers.length > 0) hooks[eventName as HookEventName] = keptMatchers;
+  }
+  return { ...outcome, commandRoots, diagnostics, hooks, mcpServers, skillRoots };
 }
 
 function createPluginMetadata(
