@@ -109,10 +109,12 @@ export {
 export { getPluginSourceDiagnosticCode } from "./source-errors.js";
 
 export {
+  NIBI_LICENSE_DEVICE_ID_KEY,
   NIBI_LICENSE_STATE_KEY,
   NIBI_LICENSE_TOKEN_KEY,
   PaidPluginMembershipError,
   licenseCoversPlugin,
+  readNibiDeviceIdSync,
   readNibiLicenseRefusalSync,
   readNibiLicenseTokenSync,
   resolvePaidPluginAccess,

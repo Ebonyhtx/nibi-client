@@ -45,6 +45,8 @@ export interface NibiLicenseClientOptions {
   accessToken?: () => Promise<string | null>;
   /** 验签公钥表（默认用内置的那把；测试与轮换时传入覆盖） */
   publicKeys?: Record<string, string>;
+  /** 当前登录账号 ID；提供后 license 缓存只在 uid/sub 匹配时可用（账号绑定）。 */
+  accountIdentity?: string | null;
 }
 
 export interface CachedLicense {
@@ -58,7 +60,15 @@ function decide(
   snapshot: NibiLicenseSnapshot | null,
   now: number,
 ): NibiLicenseDecision {
-  return evaluateNibiLicense({ token, snapshot, now, publicKeys: opts.publicKeys });
+  // 设备 + 账号绑定在判定层强制：复制凭据或换账号后，本地缓存 license 一律不放行。
+  return evaluateNibiLicense({
+    token,
+    snapshot,
+    now,
+    deviceId: opts.deviceId,
+    ...(opts.accountIdentity !== undefined ? { accountIdentity: opts.accountIdentity } : {}),
+    publicKeys: opts.publicKeys,
+  });
 }
 
 async function loadCached(opts: NibiLicenseClientOptions): Promise<CachedLicense> {
@@ -112,9 +122,18 @@ export async function refreshLicense(
 
   // 两条身份的分工：
   // - license 头是设备绑定的离线凭证，日常检查走它（登录令牌过期也不影响）；
-  // - 但 license 已过期/验不过时，用登录令牌换一份新的（续费后正是这条路）。
+  // - 但 license 已过期/验不过、或绑定的是别的账号/设备时，用登录令牌换一份新的
+  //   （续费后、换号后正是这条路）。
   const licenseUsable = Boolean(
-    cached.token && before.claims && before.claims.exp * 1000 > now,
+    cached.token &&
+      before.claims &&
+      before.claims.exp * 1000 > now &&
+      before.claims.dev === opts.deviceId &&
+      (opts.accountIdentity === undefined ||
+        opts.accountIdentity === null ||
+        opts.accountIdentity === "" ||
+        before.claims.uid === opts.accountIdentity ||
+        before.claims.sub === opts.accountIdentity),
   );
   let headers: Record<string, string> | null = null;
   if (licenseUsable) {

@@ -17,12 +17,15 @@ import {
 /** 与 services 侧同一个凭据键（OAuth/会员链写入，agent 读取）。 */
 export const NIBI_LICENSE_TOKEN_KEY = "nibi:license:token";
 export const NIBI_LICENSE_STATE_KEY = "nibi:license:state";
+/** 本机设备标识（宿主 license 同步创建；离线门禁用它做设备绑定）。 */
+export const NIBI_LICENSE_DEVICE_ID_KEY = "nibi:device:id";
 
 export type PaidPluginDenyReason =
   | "no_license"
   | "bad_license"
   | "expired"
   | "not_covered"
+  | "device_mismatch"
   | "denied";
 
 export class PaidPluginMembershipError extends Error {
@@ -102,7 +105,7 @@ export function readNibiLicenseTokenSync(
   }
 }
 
-/** 读上次在线检查的“服务端明确拒绝”状态（封禁/撤销/到期）；加载门禁是同步路径。 */
+/** 读上次在线检查的"服务端明确拒绝"状态（封禁/撤销/到期）；加载门禁是同步路径。 */
 export function readNibiLicenseRefusalSync(
   env: Record<string, string | undefined> = process.env,
 ): string | null {
@@ -111,6 +114,17 @@ export function readNibiLicenseRefusalSync(
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { lastRefusal?: unknown };
     return typeof parsed?.lastRefusal === "string" && parsed.lastRefusal ? parsed.lastRefusal : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 同步读本机设备标识（宿主首次 license 同步时创建；缺失 = 凭据链不完整，门禁拒绝）。 */
+export function readNibiDeviceIdSync(
+  env: Record<string, string | undefined> = process.env,
+): string | null {
+  try {
+    return createSharedZCodeCredentialStore({ env }).loadSync(NIBI_LICENSE_DEVICE_ID_KEY)?.trim() || null;
   } catch {
     return null;
   }
@@ -135,6 +149,11 @@ export function resolvePaidPluginAccessFromToken(input: {
   publicKeys?: Record<string, string>;
   /** 上次在线检查的 refusal；有值 = 服务端已明确拒绝（含封禁），不能再放行。 */
   refusal?: string | null;
+  /**
+   * 本机设备标识（nibi:device:id）。设备绑定 fail-closed：license 缺 dev、
+   * 或与本机不一致一律拒绝——复制 credentials.json 到别的机器无法通过。
+   */
+  deviceId?: string | null;
 }): PaidPluginAccess {
   if (input.refusal) {
     throw new PaidPluginMembershipError(
@@ -156,6 +175,11 @@ export function resolvePaidPluginAccessFromToken(input: {
       "bad_license",
       "会员凭证无法验证，请重新登录 NIBI 账号后重试",
     );
+  }
+  // 设备绑定：缺 dev 或与本机不一致都拒绝（设备号与 license 同库存放，
+  // 但 license 签名保证 dev 不可篡改，本机读不到设备号说明凭据链不完整）。
+  if (!claims.dev || !input.deviceId || claims.dev !== input.deviceId) {
+    throw new PaidPluginMembershipError("device_mismatch", PAID_PLUGIN_REFUSAL_MESSAGES.device_mismatch);
   }
   const now = input.now ?? Date.now();
   if (claims.exp * 1000 <= now) {
@@ -189,9 +213,10 @@ export async function resolvePaidPluginAccess(input: {
   /** 验签公钥覆盖（测试与轮换用；默认内置表）。 */
   publicKeys?: Record<string, string>;
 }): Promise<PaidPluginAccess> {
-  const [raw, stateRaw] = await Promise.all([
+  const [raw, stateRaw, deviceId] = await Promise.all([
     input.credentialStore.load(NIBI_LICENSE_TOKEN_KEY),
     input.credentialStore.load(NIBI_LICENSE_STATE_KEY),
+    input.credentialStore.load(NIBI_LICENSE_DEVICE_ID_KEY),
   ]);
   let refusal: string | null = null;
   try {
@@ -204,6 +229,7 @@ export async function resolvePaidPluginAccess(input: {
     token: raw ?? "",
     pluginName: input.pluginName,
     refusal,
+    deviceId: deviceId?.trim() || null,
     ...(input.now !== undefined ? { now: input.now } : {}),
     ...(input.publicKeys ? { publicKeys: input.publicKeys } : {}),
   });

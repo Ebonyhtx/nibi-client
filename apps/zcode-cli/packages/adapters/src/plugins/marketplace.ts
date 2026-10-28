@@ -924,7 +924,9 @@ export async function installMarketplacePlugin(input: {
         scope: input.scope ?? "user",
         state,
         storageRoot: input.storageRoot,
-        ...(paidAccess ? { paidLicenseToken: paidAccess.token } : {}),
+        ...(paidAccess
+          ? { paidLicenseToken: paidAccess.token, paidDeviceId: paidAccess.claims.dev ?? null }
+          : {}),
       });
       installed.push(cached.record);
       if (cached.activation) activations.push(cached.activation);
@@ -1421,6 +1423,8 @@ async function cacheMarketplacePlugin(input: {
   storageRoot: string;
   /** 收费件的 license（安装前已验过；这里只用于下载鉴权）。 */
   paidLicenseToken?: string;
+  /** 收费件 license 的设备标识；服务端下载端点用它复核设备绑定。 */
+  paidDeviceId?: string | null;
 }): Promise<CachedMarketplacePluginResult> {
   throwIfPluginOperationAborted(input.signal);
   const sourceRoot = await resolvePluginSourceRoot({
@@ -1429,6 +1433,7 @@ async function cacheMarketplacePlugin(input: {
     signal: input.signal,
     storageRoot: input.storageRoot,
     ...(input.paidLicenseToken ? { paidLicenseToken: input.paidLicenseToken } : {}),
+    ...(input.paidDeviceId ? { paidDeviceId: input.paidDeviceId } : {}),
   });
   let version: string;
   let target: string;
@@ -1505,6 +1510,8 @@ async function resolvePluginSourceRoot(input: {
   marketplace: string;
   /** 收费件的 license；缺省时（详情/校验路径）付费条目直接报“需要会员”。 */
   paidLicenseToken?: string;
+  /** 收费件 license 的设备标识（X-Nibi-Device，仅发 NIBI 自有源）。 */
+  paidDeviceId?: string | null;
   signal?: AbortSignal;
   sourceRoot?: string;
   storageRoot: string;
@@ -1594,7 +1601,10 @@ async function resolvePluginSourceRoot(input: {
           // X-Nibi-License 由 zip 层按候选 URL 白名单注入（见 withPaidLicenseHeaderForNibiHosts），
           // 这里不把它混进 manifest headers。
           ...(input.paidLicenseToken && input.entry.paid
-            ? { paidLicenseToken: input.paidLicenseToken }
+            ? {
+                paidLicenseToken: input.paidLicenseToken,
+                ...(input.paidDeviceId ? { paidDeviceId: input.paidDeviceId } : {}),
+              }
             : {}),
           sha256: readRequiredZipPluginSourceSha256(source),
           signal: input.signal,

@@ -26,6 +26,7 @@ function makeSigner() {
         uid: "user-1",
         plan: "pro",
         plugins: ["*"],
+        dev: "device-1234",
         iat: Math.floor(NOW / 1000),
         exp: Math.floor((NOW + 30 * DAY) / 1000),
         jti: "jti-1",

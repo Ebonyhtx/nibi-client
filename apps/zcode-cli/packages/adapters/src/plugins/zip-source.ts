@@ -32,6 +32,8 @@ const ZIP_DENIED_HEADERS = new Set([
   // 会员凭证由 zip 层按候选 URL 白名单自行注入；manifest 声明的同名 header 一律拒绝，
   // 防止第三方市场把可重放的签名凭证带到任意源。
   "x-nibi-license",
+  // 设备标识同理：只能由 zip 层与 license 一同注入。
+  "x-nibi-device",
 ]);
 const ZIP_REQUIRED_SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -47,6 +49,8 @@ export interface ResolveZipPluginSourceInput {
   path?: string;
   /** 会员凭证。只在候选 URL 命中 NIBI 自有内容源时作为 X-Nibi-License 注入。 */
   paidLicenseToken?: string;
+  /** 设备标识，与 license 同发（X-Nibi-Device），服务端复核设备绑定。 */
+  paidDeviceId?: string | null;
   sha256: string;
   signal?: AbortSignal;
   stripRoot?: boolean;
@@ -59,6 +63,8 @@ export interface ResolveHttpZipSourceInput {
   path?: string;
   /** 会员凭证。只在候选 URL 命中 NIBI 自有内容源时作为 X-Nibi-License 注入。 */
   paidLicenseToken?: string;
+  /** 设备标识，与 license 同发（X-Nibi-Device），服务端复核设备绑定。 */
+  paidDeviceId?: string | null;
   requireSingleRoot?: boolean;
   sha256?: string;
   signal?: AbortSignal;
@@ -93,6 +99,7 @@ export async function resolveZipPluginSource(
     headers: input.headers,
     path: input.path,
     ...(input.paidLicenseToken ? { paidLicenseToken: input.paidLicenseToken } : {}),
+    ...(input.paidDeviceId ? { paidDeviceId: input.paidDeviceId } : {}),
     sha256: input.sha256,
     signal: input.signal,
     stripRoot: input.stripRoot,
@@ -132,6 +139,7 @@ export async function resolveHttpZipSource(
           headers: withPaidLicenseHeaderForNibiHosts({
             headers: input.headers,
             licenseToken: input.paidLicenseToken,
+            deviceId: input.paidDeviceId,
             url: candidate,
           }),
           signal: input.signal,
@@ -183,6 +191,7 @@ export async function resolveHttpZipSource(
 export function withPaidLicenseHeaderForNibiHosts(input: {
   headers?: Record<string, string>;
   licenseToken?: string;
+  deviceId?: string | null;
   url: string;
 }): Record<string, string> | undefined {
   if (!input.licenseToken) return input.headers;
@@ -190,6 +199,7 @@ export function withPaidLicenseHeaderForNibiHosts(input: {
   return {
     ...input.headers,
     "X-Nibi-License": input.licenseToken,
+    ...(input.deviceId ? { "X-Nibi-Device": input.deviceId } : {}),
   };
 }
 

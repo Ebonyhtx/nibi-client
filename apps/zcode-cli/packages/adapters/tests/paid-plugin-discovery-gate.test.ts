@@ -55,10 +55,17 @@ function licenseClaims(overrides: Record<string, unknown> = {}): Record<string, 
   return {
     iss: NIBI_LICENSE_ISSUER,
     sub: "user-1",
+    uid: "user-1",
+    dev: "device-1234",
     plugins: ["*"],
     exp: Math.floor(Date.now() / 1000) + 3600,
     ...overrides,
   };
+}
+
+async function writeDeviceIdToCredentialStore(credentialRoot: string): Promise<void> {
+  const store = createSharedZCodeCredentialStore({ env: { NIBI_DATA_BASE_DIR: credentialRoot } });
+  await store.saveMany({ "nibi:device:id": "device-1234" });
 }
 
 async function writeTokenToCredentialStore(input: {
@@ -220,6 +227,7 @@ describe("paid plugin discovery gate", () => {
   it("keeps every capability root for a plugin covered by a valid license token", async () => {
     const key = makeTestLicenseKey();
     const credentialRoot = await makeTempDir("creds");
+    await writeDeviceIdToCredentialStore(credentialRoot);
     await writeTokenToCredentialStore({
       credentialRoot,
       token: key.signToken(licenseClaims()),
@@ -251,6 +259,7 @@ describe("paid plugin discovery gate", () => {
   it("denies an expired license token", async () => {
     const key = makeTestLicenseKey();
     const credentialRoot = await makeTempDir("creds");
+    await writeDeviceIdToCredentialStore(credentialRoot);
     await writeTokenToCredentialStore({
       credentialRoot,
       token: key.signToken(licenseClaims({ exp: Math.floor(Date.now() / 1000) - 60 })),
@@ -274,6 +283,7 @@ describe("paid plugin discovery gate", () => {
   it("denies a token that does not cover the requested plugin", async () => {
     const key = makeTestLicenseKey();
     const credentialRoot = await makeTempDir("creds");
+    await writeDeviceIdToCredentialStore(credentialRoot);
     await writeTokenToCredentialStore({
       credentialRoot,
       token: key.signToken(licenseClaims({ plugins: ["other-plugin"] })),
@@ -294,6 +304,7 @@ describe("paid plugin discovery gate", () => {
   it("rejects a token signed by an unknown key (fail-closed on kid)", async () => {
     const key = makeTestLicenseKey();
     const credentialRoot = await makeTempDir("creds");
+    await writeDeviceIdToCredentialStore(credentialRoot);
     await writeTokenToCredentialStore({
       credentialRoot,
       token: key.signToken(licenseClaims()),

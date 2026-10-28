@@ -1274,6 +1274,14 @@ export function createLocalServices(options: {
           // 网络/服务端失败按"暂不同步"处理；下次启动会再试。
         });
       }
+      // 登录/换账号都会重写 user_info：先清掉旧 license 再强同步，
+      // 避免新账号复用上一个账号的会员凭证（缓存 license 与账号绑定）。
+      if (key === "oauth:nibi:user_info" && operation !== "delete") {
+        void (async () => {
+          await nibiLicenseSyncRef.current?.clear();
+          await nibiLicenseSyncRef.current?.sync(true);
+        })().catch(() => {});
+      }
       if (key === "oauth:active_provider" && operation === "delete") {
         void nibiLicenseSyncRef.current?.clear().catch(() => {});
       }

@@ -65,6 +65,8 @@ function makeTestLicense(): {
       JSON.stringify({
         iss: NIBI_LICENSE_ISSUER,
         sub: "user-1",
+        uid: "user-1",
+        dev: "device-1234",
         plugins: ["*"],
         exp: Math.floor(Date.now() / 1000) + 3600,
       }),
@@ -122,7 +124,10 @@ describe("paid plugin license header exfiltration guard", () => {
     const credentialStore = createSharedZCodeCredentialStore({
       env: { NIBI_DATA_BASE_DIR: credentialRoot },
     });
-    await credentialStore.saveMany({ "nibi:license:token": license.token });
+    await credentialStore.saveMany({
+      "nibi:license:token": license.token,
+      "nibi:device:id": "device-1234",
+    });
 
     await addMarketplace({
       source: { source: "directory", path: marketplaceRoot },

@@ -22,7 +22,7 @@ import {
 } from "@nibi/shared";
 import type { ICredentialService } from "../credential/credential.js";
 import { readLicenseDecision } from "../license/nibiLicenseClient.js";
-import type { NibiLicenseSync } from "../license/nibiLicenseSync.js";
+import { loadNibiAccountIdentity, type NibiLicenseSync } from "../license/nibiLicenseSync.js";
 import { createServiceLogger } from "../logger/serviceLogger.js";
 import { readApiJson } from "../providers/api/apiJson.js";
 import type { IOAuthService, NibiMembershipStatus } from "./oauth.js";
@@ -227,10 +227,15 @@ export class OAuthService implements IOAuthService {
 
     // 业务 JWT 过期而共享 JWT 仍有效时，旧实现会恢复伪登录态；直接读两个凭据做本地检查，
     // 不调用 loadActiveTokenSet，避免把后台 profile 迁移或网络请求带回首屏恢复链路。
+    // NIBI 不消费 legacy zcodejwttoken：那是 ZAI 时代的共享 JWT，残留过期会把 NIBI 会话误清。
+    const credentialKeys =
+      activeProvider === NIBI_PROVIDER_ID
+        ? [`oauth:${activeProvider}:access_token`]
+        : [NIBI_JWT_TOKEN_KEY, `oauth:${activeProvider}:access_token`];
     let tokens: { key: string; value: string }[];
     try {
       tokens = await Promise.all(
-        [NIBI_JWT_TOKEN_KEY, `oauth:${activeProvider}:access_token`].map(async (key) => ({
+        credentialKeys.map(async (key) => ({
           key,
           value: (await this.credentialService.load(key))?.trim() ?? "",
         })),
@@ -250,8 +255,27 @@ export class OAuthService implements IOAuthService {
     const expired = tokens.find(
       ({ value }) => value && resolveJwtExpiration(value, this.now()).kind === "expired",
     );
-    const zcodeJwtToken = tokens[0]?.value ?? "";
+    const zcodeJwtToken = tokens.find(({ key }) => key === NIBI_JWT_TOKEN_KEY)?.value ?? "";
     if (expired) {
+      // NIBI 的 access token 过期时先走 refresh：refresh token 通常还有效，
+      // 旧实现直接清会话会逼用户重新走浏览器登录（关机超过 token 生命期必现）。
+      if (
+        activeProvider === NIBI_PROVIDER_ID &&
+        expired.key === `oauth:${NIBI_PROVIDER_ID}:access_token`
+      ) {
+        const refreshOutcome = await this.refreshExpiredNibiSessionOnRestore();
+        if (refreshOutcome === "refreshed") {
+          log("restoreCachedSession: NIBI session refreshed from refresh token");
+          return this.restoreCachedSessionState();
+        }
+        if (refreshOutcome === "network-error") {
+          // 网络失败不能误清凭据：refresh token 仍有效，按已登录恢复，后台定时刷新继续重试。
+          log("restoreCachedSession: NIBI refresh failed on network; keeping session");
+          void this.scheduleNibiTokenRefreshFromCredentials(activeProvider);
+          return { status: "authenticated", userInfo: toUserInfo(profile) };
+        }
+        // "invalid-grant"：refresh token 已失效，落到旧清理路径。
+      }
       serviceLog.info("cached session invalidated because login JWT expired", {
         provider: activeProvider,
         credentialKey: expired.key,
@@ -311,6 +335,30 @@ export class OAuthService implements IOAuthService {
     log("restoreCachedSession restored:", activeProvider, profile.id);
     void this.scheduleNibiTokenRefreshFromCredentials(activeProvider);
     return { status: "authenticated", userInfo: toUserInfo(profile) };
+  }
+
+  /**
+   * 启动恢复时 NIBI access token 已过期的自救：先试 refresh。
+   * 返回 "refreshed"（成功续期）/ "invalid-grant"（refresh token 失效，该清会话）/
+   * "network-error"（网络问题，凭据必须保留）。
+   */
+  private async refreshExpiredNibiSessionOnRestore(): Promise<
+    "refreshed" | "invalid-grant" | "network-error"
+  > {
+    const tokenSet = await this.repo.loadActiveTokenSet();
+    if (!tokenSet?.refreshToken) return "invalid-grant";
+    try {
+      await this.refreshToken(NIBI_PROVIDER_ID);
+      return "refreshed";
+    } catch (error) {
+      const status = error instanceof ApiError ? error.status : undefined;
+      // Zitadel 对失效 refresh token 返回 400 invalid_grant；401/403 同属认证类失败。
+      if (status === 400 || status === 401 || status === 403) return "invalid-grant";
+      serviceLog.warn("NIBI session refresh on restore failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return "network-error";
+    }
   }
 
   private async invalidateExpiredCachedSession(
@@ -479,6 +527,11 @@ export class OAuthService implements IOAuthService {
       // provider 清理，否则同 provider 的新 flow 可能被旧 flow 误删。
       await rollback();
       throw new Error("OAuth flow 已取消");
+    }
+    if (provider === NIBI_PROVIDER_ID) {
+      // NIBI 登录成功即清掉 ZAI 时代的 legacy 共享 JWT：残留的过期 token 曾在
+      // 启动恢复时把 NIBI 会话误判为过期（恢复链路现在也不再看它）。
+      await this.credentialService.delete(NIBI_JWT_TOKEN_KEY);
     }
     this.scheduleNibiTokenRefresh(provider, tokenSet);
     // 凭据是认证事实源；同账号重登也必须通知，不能等 renderer 的设置更新或成功计数。
@@ -1224,13 +1277,31 @@ export class OAuthService implements IOAuthService {
       // 失败不吞——调用方（会员弹窗）要能显示可重试的错误。
       await this.nibiLicenseSync?.sync(true);
     }
+    // 设备 + 账号绑定在本地判定层强制：复制来的凭据或上一个账号的 license 不能放行。
+    const [deviceId, accountIdentity] = await Promise.all([
+      this.credentialService.load("nibi:device:id"),
+      loadNibiAccountIdentity(this.credentialService),
+    ]);
     const decision = await readLicenseDecision({
       credentials: this.credentialService,
-      deviceId: "",
+      deviceId: deviceId?.trim() ?? "",
       apiBaseUrl: "",
       request: async () => ({ status: 0, body: {} }),
       now: this.now,
+      ...(accountIdentity ? { accountIdentity } : {}),
     });
+    if (
+      decision.status === "denied" &&
+      (decision.reason.includes("设备") || decision.reason.includes("账号"))
+    ) {
+      // 绑定不匹配：立刻清掉旧 license 并强制重同步，让下一次读取拿到正确的凭证。
+      try {
+        await this.nibiLicenseSync?.clear();
+        await this.nibiLicenseSync?.sync(true);
+      } catch {
+        // 重同步失败不影响本次"拒绝"的判定；UI 会展示原因并可重试。
+      }
+    }
     return {
       loggedIn: true,
       membership: {

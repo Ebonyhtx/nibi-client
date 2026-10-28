@@ -119,6 +119,8 @@ export function licenseCoversPlugin(claims: NibiLicenseClaims | null, pluginName
  * | 没有 token | not_activated（引导：输入激活码 / 开通会员） |
  * | 验签失败 | denied（token 坏了或被改过；清缓存重来） |
  * | 服务端明确拒绝过 | denied（不等宽限） |
+ * | dev 缺失 / 与本机 deviceId 不一致 | denied（设备绑定，fail-closed） |
+ * | 账号不一致（uid/sub 都对不上当前账号） | denied（账号绑定，fail-closed） |
  * | exp > now 且检查新鲜 | active |
  * | exp > now 但检查过期 | grace（宽限 ≤7 天）/ 否则 expired（该联网续期） |
  * | exp <= now | expired（会员到期，硬边界） |
@@ -128,6 +130,10 @@ export function evaluateNibiLicense(params: {
   snapshot: NibiLicenseSnapshot | null;
   now?: number;
   publicKeys?: Record<string, string>;
+  /** 本机设备 ID（nibi:device:id）。提供后与 claims.dev 强制比对；不一致/缺失一律拒绝。 */
+  deviceId?: string | null;
+  /** 当前登录账号 ID（oauth:nibi:user_info 的 id）。提供后与 claims.uid/sub 比对。 */
+  accountIdentity?: string | null;
 }): NibiLicenseDecision {
   const now = params.now ?? Date.now();
   const snapshot = params.snapshot;
@@ -145,6 +151,42 @@ export function evaluateNibiLicense(params: {
     return { ...base, status: "denied", allowed: false, reason: "会员凭证无法验证（请重新激活）" };
   }
   const { claims } = verified;
+  // 设备绑定：license 必须带 dev（服务端签发即含）；提供本机 deviceId 时强制比对——
+  // 复制凭据到另一台机器在此处失效。生产调用方（同步层/会员状态/agent 门禁）都会传入。
+  if (!claims.dev) {
+    return {
+      ...base,
+      claims,
+      status: "denied",
+      allowed: false,
+      reason: "会员凭证与这台设备不匹配，请在客户端账户菜单刷新会员状态后重试",
+    };
+  }
+  if (params.deviceId && claims.dev !== params.deviceId) {
+    return {
+      ...base,
+      claims,
+      status: "denied",
+      allowed: false,
+      reason: "会员凭证与这台设备不匹配，请在客户端账户菜单刷新会员状态后重试",
+    };
+  }
+  // 账号绑定：换了账号就不能沿用上一个账号的 license（本地离线判定的最后防线）。
+  if (
+    params.accountIdentity !== undefined &&
+    params.accountIdentity !== null &&
+    params.accountIdentity !== "" &&
+    claims.uid !== params.accountIdentity &&
+    claims.sub !== params.accountIdentity
+  ) {
+    return {
+      ...base,
+      claims,
+      status: "denied",
+      allowed: false,
+      reason: "会员凭证与当前登录账号不一致，请重新登录后重试",
+    };
+  }
   const withClaims = { ...base, claims };
   const expMs = claims.exp * 1000;
   // 到期是硬边界，优先于任何服务端拒绝：会员过期后 /check 会返回 401/403 并写 refusal，

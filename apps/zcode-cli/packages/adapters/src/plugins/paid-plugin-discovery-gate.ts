@@ -15,6 +15,7 @@ import {
   loadMarketplaceManifestSync,
 } from "./marketplace.js";
 import {
+  readNibiDeviceIdSync,
   readNibiLicenseRefusalSync,
   readNibiLicenseTokenSync,
   resolvePaidPluginAccessFromToken,
@@ -28,6 +29,7 @@ export function createBuiltinPaidPluginGate(input: {
 }): (plugin: PaidPluginGateInput) => PaidPluginGateResult {
   let token: string | null | undefined;
   let refusal: string | null | undefined;
+  let deviceId: string | null | undefined;
   let installedLoaded = false;
   const installedPaid = new Set<string>();
   const manifests = new Map<string, ReturnType<typeof loadMarketplaceManifestSync>>();
@@ -64,10 +66,12 @@ export function createBuiltinPaidPluginGate(input: {
     if (!isPaid(plugin)) return { allowed: true };
     if (token === undefined) token = readNibiLicenseTokenSync(input.env);
     if (refusal === undefined) refusal = readNibiLicenseRefusalSync(input.env);
+    if (deviceId === undefined) deviceId = readNibiDeviceIdSync(input.env);
     try {
       resolvePaidPluginAccessFromToken({
         token: token ?? "",
         pluginName: plugin.name,
+        deviceId,
         ...(input.publicKeys ? { publicKeys: input.publicKeys } : {}),
         refusal,
       });

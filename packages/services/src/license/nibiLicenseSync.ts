@@ -24,6 +24,23 @@ import {
 /** 设备标识：一次生成、长期复用；服务端 /licenses/check 要求 8–128 字符。 */
 export const NIBI_DEVICE_ID_KEY = "nibi:device:id";
 
+/** 当前登录账号的凭据键（OAuth 服务写；license 缓存与它绑定，换号即失效）。 */
+export const NIBI_USER_INFO_KEY = "oauth:nibi:user_info";
+
+/** user_info 是 JSON：`{ id, name?, email?, avatarUrl? }`；解析失败按"未知账号"处理。 */
+export async function loadNibiAccountIdentity(
+  credentialService: Pick<ICredentialService, "load">,
+): Promise<string | null> {
+  try {
+    const raw = await credentialService.load(NIBI_USER_INFO_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { id?: unknown };
+    return typeof parsed?.id === "string" && parsed.id ? parsed.id : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface NibiLicenseSyncOptions {
   credentialService: Pick<ICredentialService, "load" | "save" | "delete">;
   apiClient: ApiClient;
@@ -83,6 +100,7 @@ export function createNibiLicenseSync(options: NibiLicenseSyncOptions): NibiLice
     force: boolean,
   ): Promise<NibiLicenseClientOptions & { force: boolean }> {
     const origin = (await options.resolveEndpointOrigin()).replace(/\/+$/, "");
+    const accountIdentity = await loadNibiAccountIdentity(options.credentialService);
     return {
       apiBaseUrl: `${origin}/api/v1`,
       credentials,
@@ -91,6 +109,7 @@ export function createNibiLicenseSync(options: NibiLicenseSyncOptions): NibiLice
       platform: process.platform,
       now: options.now ?? Date.now,
       ...(options.publicKeys ? { publicKeys: options.publicKeys } : {}),
+      ...(accountIdentity ? { accountIdentity } : {}),
       force,
       request: async ({ method, url, headers, body }) => {
         const response = await options.apiClient.request(url, {

@@ -32,6 +32,7 @@ import {
   resolvePaidPluginAccessFromToken,
   PaidPluginMembershipError,
   readNibiLicenseRefusalSync,
+  readNibiDeviceIdSync,
   readNibiLicenseTokenSync,
   readPluginSourceIdentityPin,
   removeMarketplace,
@@ -522,6 +523,7 @@ export async function setZCodePluginEnabled(
         token: readNibiLicenseTokenSync(options.env) ?? "",
         pluginName: plugin.name,
         refusal: readNibiLicenseRefusalSync(options.env),
+        deviceId: readNibiDeviceIdSync(options.env),
       });
     }
   }

@@ -35,6 +35,7 @@ function baseClaims(overrides: Record<string, unknown> = {}) {
     uid: "user-1",
     plan: "pro",
     plugins: ["*"],
+    dev: "dev-1",
     iat: Math.floor(NOW / 1000),
     exp: Math.floor((NOW + 30 * DAY) / 1000),
     jti: "jti-1",
@@ -196,6 +197,59 @@ describe("evaluateNibiLicense 判定表", () => {
       publicKeys,
     });
     expect(d.status).toBe("grace");
+  });
+
+  it("license 缺 dev claim → denied（设备绑定 fail-closed）", () => {
+    const token = signToken(baseClaims({ dev: undefined }));
+    const d = evaluateNibiLicense({
+      token,
+      snapshot: snapshotCheckedAgo(1000),
+      now: NOW,
+      publicKeys,
+      deviceId: "dev-1",
+    });
+    expect(d.status).toBe("denied");
+    expect(d.allowed).toBe(false);
+  });
+
+  it("dev 与本机 deviceId 不一致 → denied（复制凭据到别的机器失效）", () => {
+    const token = signToken(baseClaims({ dev: "other-machine" }));
+    const d = evaluateNibiLicense({
+      token,
+      snapshot: snapshotCheckedAgo(1000),
+      now: NOW,
+      publicKeys,
+      deviceId: "dev-1",
+    });
+    expect(d.status).toBe("denied");
+    expect(d.allowed).toBe(false);
+  });
+
+  it("uid/sub 与当前账号不一致 → denied（换账号后旧 license 不能沿用）", () => {
+    const token = signToken(baseClaims());
+    const d = evaluateNibiLicense({
+      token,
+      snapshot: snapshotCheckedAgo(1000),
+      now: NOW,
+      publicKeys,
+      deviceId: "dev-1",
+      accountIdentity: "user-2",
+    });
+    expect(d.status).toBe("denied");
+    expect(d.allowed).toBe(false);
+  });
+
+  it("uid 或 sub 命中当前账号即可（与签发口径一致）", () => {
+    const token = signToken(baseClaims({ sub: "zitadel-sub-9", uid: "user-1" }));
+    const d = evaluateNibiLicense({
+      token,
+      snapshot: snapshotCheckedAgo(1000),
+      now: NOW,
+      publicKeys,
+      deviceId: "dev-1",
+      accountIdentity: "user-1",
+    });
+    expect(d.status).toBe("active");
   });
 
   it("nextCheckAt 反映真实的下次应查时刻（快照时间 + 72h）", () => {
