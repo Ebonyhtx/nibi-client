@@ -213,16 +213,9 @@ export function ConfirmDialogHost() {
               )}
             >
               <span>{confirmLabel}</span>
-              {displayedRequest?.showKeyboardHints !== false ? (
-                <span
-                  className={
-                    destructive
-                      ? "text-ui-base text-destructive-foreground/80"
-                      : "text-ui-base text-primary-foreground/60"
-                  }
-                >
-                  ⏎
-                </span>
+              {/* 破坏性确认的 Enter 被全局守卫拦下（回车不能确认），不能再显示 ⏎ 提示误导键盘用户。 */}
+              {displayedRequest?.showKeyboardHints !== false && !destructive ? (
+                <span className="text-ui-base text-primary-foreground/60">⏎</span>
               ) : null}
             </Button>
           </div>
