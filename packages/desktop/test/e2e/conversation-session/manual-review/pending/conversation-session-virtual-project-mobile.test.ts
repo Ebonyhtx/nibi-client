@@ -314,7 +314,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
           )
         ).groups.some((entry) => entry.id === group.id && entry.title === "E2E_MOBILE_RENAMED"),
       );
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await page.evaluate(
           (theme) => (window as VirtualProjectTestWindow).__testActions!.setTheme(theme),
           theme,
@@ -478,7 +478,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
       const mobileTheme = await page.evaluate(() =>
         (window as VirtualProjectTestWindow).__testActions!.getTheme(),
       );
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await page.evaluate(
           (value) => (window as VirtualProjectTestWindow).__testActions!.setTheme(value),
           theme,
@@ -552,7 +552,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
       await browser.waitUntil(async () => (await readDraft()).projectId === projectId);
       expect(await readDraft()).toEqual({ path: cwd, projectId, activeTaskId: null });
       enterStage("persist task");
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         // 主题测试入口随首页卸载；从首页设置主题，再通过项目入口进入真实聊天页。
         await page.getByRole("button", { name: /返回任务首页|Back to task home/ }).tap();
         await mobileProject.waitFor();
@@ -569,7 +569,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
         await browser.waitUntil(async () => (await readDraft()).projectId === projectId);
         const trigger = page.getByTestId(TID_COMPOSER_WORKSPACE_TRIGGER);
         expect(await trigger.locator(".lucide-folders").count()).toBe(1);
-        if (theme === "zai-light") {
+        if (theme === "nibi-light") {
           await page.getByTestId(TID_V4_COMPOSER_INPUT).fill("E2E_COMPOSER_CREATE_DRAFT");
           await page
             .locator('input[type="file"]')
@@ -612,7 +612,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
         await page.getByRole("button", { name: /^(取消|Cancel)$/ }).tap();
         await name.waitFor({ state: "hidden" });
         expect(await trigger.textContent()).toContain("E2E_VP13_PROJECT");
-        if (theme === "zai-light") {
+        if (theme === "nibi-light") {
           await edit.tap();
           await name.fill("E2E_VP13_EDITED");
           await page.getByTestId("virtual-project-save").tap();
@@ -640,7 +640,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
           path: join(process.env.NIBI_E2E_ARTIFACT_DIR!, `VP13-folders-composer-${theme}.png`),
           animations: "disabled",
         });
-        if (theme === "zai-light") {
+        if (theme === "nibi-light") {
           enterStage("PCD03 composer create retains draft");
           const beforeCreate = await readDraft();
           await menu.getByTestId("composer-create-project").tap();
@@ -689,7 +689,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
         }
         await menu.locator('[data-project-name="E2E_VP13_PROJECT"]').tap();
         await menu.waitFor({ state: "hidden" });
-        if (theme === "zai-light") {
+        if (theme === "nibi-light") {
           await browser.waitUntil(async () => (await readDraft()).projectId === projectId);
           // 普通手动切换仍恢复各工作区自身草稿。
         }
@@ -805,7 +805,7 @@ describe("虚拟项目手机 shared-host 导航", () => {
       enterStage("file-only cross-workspace bridge");
       // 手机远控原本关闭 session 原生拖拽；共享目标装饰不能意外开放该手势或改变容器尺寸。
       expect(await taskRow.getAttribute("draggable")).toBe("false");
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await page.evaluate(
           (theme) => (window as VirtualProjectTestWindow).__testActions!.setTheme(theme),
           theme,

@@ -25,7 +25,7 @@ test("未登录缺少静态套餐时隐藏购买横幅并保留外层卡片", as
       });
       for (const theme of ["light", "dark"]) {
         await page.locator("html").evaluate((element, value) => {
-          element.className = `${value} theme-zai-${value}`;
+          element.className = `${value} theme-nibi-${value}`;
         }, theme);
         const body = await page.locator("body").innerText();
         assert.match(body, /连接 BigModel|Connect BigModel/);

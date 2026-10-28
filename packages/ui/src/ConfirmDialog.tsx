@@ -213,11 +213,11 @@ export function ConfirmDialogHost() {
               )}
             >
               <span>{confirmLabel}</span>
-              {!destructive && displayedRequest?.showKeyboardHints !== false ? (
+              {displayedRequest?.showKeyboardHints !== false ? (
                 <span
                   className={
-                    displayedRequest?.confirmVariant === "destructive"
-                      ? "text-ui-base text-destructive-foreground/60"
+                    destructive
+                      ? "text-ui-base text-destructive-foreground/80"
                       : "text-ui-base text-primary-foreground/60"
                   }
                 >

@@ -15,10 +15,10 @@ function readWorkspaceFileDataUrl(path: string, mimeType: string): string {
   return `data:${mimeType};base64,${readWorkspaceFile(path).toString("base64")}`;
 }
 
-function createBootstrapDocument(theme: "zai-dark" | "zai-light"): JSDOM {
+function createBootstrapDocument(theme: "nibi-dark" | "nibi-light"): JSDOM {
   return new JSDOM(readWebIndexHtml(), {
     beforeParse(window) {
-      window.localStorage.setItem("zcode-theme", theme);
+      window.localStorage.setItem("nibi-theme", theme);
       Object.defineProperty(window, "matchMedia", {
         configurable: true,
         value: () => ({ matches: false }),
@@ -46,15 +46,15 @@ describe("web remote control bootstrap shell", () => {
   });
 
   it.each([
-    ["zai-dark", "dark", "#161616"],
-    ["zai-light", "light", "#f8f8f8"],
+    ["nibi-dark", "dark", "#161616"],
+    ["nibi-light", "light", "#f8f8f8"],
   ] as const)(
     "在业务 bundle 执行前把 %s 同步到浏览器主题表面",
     (storedTheme, resolvedTheme, expectedColor) => {
       const dom = createBootstrapDocument(storedTheme);
       const { document } = dom.window;
 
-      expect(document.documentElement.getAttribute("data-zcode-browser-theme-surface")).toBe(
+      expect(document.documentElement.getAttribute("data-nibi-browser-theme-surface")).toBe(
         resolvedTheme,
       );
       expect(document.querySelector('meta[name="theme-color"]')?.getAttribute("content")).toBe(

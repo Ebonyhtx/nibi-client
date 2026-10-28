@@ -27,7 +27,6 @@ import type {
   CommandAck,
   ConversationRowTarget,
 } from "@nibi/shared/nibi-protocol-v4";
-import { ChatLoading } from "@/components/ai-elements/chat-loading.js";
 import { ChatApiRetryStatus } from "@/chat-input-toolbar/display.js";
 import { cn } from "@/components/lib/utils.js";
 import { MessageActions } from "@/components/ai-elements/message.js";
@@ -153,9 +152,14 @@ function TurnChatLoadingSlot({
       {visibleRetryStatus ? (
         <ChatApiRetryStatus apiRetry={visibleRetryStatus} intl={intl} locale={locale} />
       ) : (
-        // running 是 ChatLoading 的权威事实；额外静默计时会让 projection
-        // 更新反复重启可见性，并使 UI 晚于真实状态。
-        <ChatLoading loading data-testid={TID_CHAT_LOADING} size="sm" />
+        <span
+          role="status"
+          aria-label={intl.formatMessage({ id: "common.loading" })}
+          data-testid={TID_CHAT_LOADING}
+          className="inline-flex items-center"
+        >
+          <RunningStatusDot />
+        </span>
       )}
     </div>
   );
@@ -503,6 +507,10 @@ function CronAutomationTurnCards({
 }
 
 
+function RunningStatusDot() {
+  return <span className="running-status-dot" aria-hidden="true" />;
+}
+
 function AssistantHistoryStatus({
   segment,
   open,
@@ -531,28 +539,28 @@ function AssistantHistoryStatus({
           : intl.formatMessage({ id: "chat.history.worked" });
 
   return (
-    <div
-      className="flex w-full flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)]/50 pb-2"
-    >
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          data-testid={testId(TID_CHAT_ASSISTANT_HISTORY_TRIGGER, segment.key)}
-          data-history-open={String(open)}
-          className="group/history-message inline-flex max-w-full items-center gap-2 text-left text-ui-base text-foreground-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
-        >
-          <span className="truncate">{label}</span>
-          {!segment.assistantHistoryDefaultOpen ? (
-            <ChevronRightIcon
-              aria-hidden
-              className={cn(
-                "size-4 shrink-0 text-[var(--color-foreground-subtlest)] opacity-70 transition-transform",
-                open ? "rotate-90" : "rotate-0",
-              )}
-            />
-          ) : null}
-        </button>
-      </CollapsibleTrigger>
+    <div className="relative flex w-full flex-wrap items-center justify-between gap-2 border-b border-[var(--color-border)]/50 pb-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            data-testid={testId(TID_CHAT_ASSISTANT_HISTORY_TRIGGER, segment.key)}
+            data-history-open={String(open)}
+            className="group/history-message inline-flex max-w-full items-center gap-2 text-left text-ui-base text-foreground-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-input-border-focused)]"
+          >
+            <span className="truncate">{label}</span>
+            {!segment.assistantHistoryDefaultOpen ? (
+              <ChevronRightIcon
+                aria-hidden
+                className={cn(
+                  "size-4 shrink-0 text-[var(--color-foreground-subtlest)] opacity-70 transition-transform",
+                  open ? "rotate-90" : "rotate-0",
+                )}
+              />
+            ) : null}
+          </button>
+        </CollapsibleTrigger>
+      </div>
     </div>
   );
 }

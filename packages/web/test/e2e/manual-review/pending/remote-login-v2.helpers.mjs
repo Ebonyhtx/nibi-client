@@ -24,7 +24,7 @@ export async function setup(
   {
     width = 390,
     height = 844,
-    theme = "zai-light",
+    theme = "nibi-light",
     locale = "zh-CN",
     signedIn = false,
     tokenStatus = 200,
@@ -45,7 +45,7 @@ export async function setup(
   await context.addInitScript(
     ({ theme, signedIn, lastSid, provider }) => {
       if (lastSid) localStorage.setItem("zcode-web-remote-last-device-sid", lastSid);
-      localStorage.setItem("zcode-theme", theme);
+      localStorage.setItem("nibi-theme", theme);
       if (signedIn && !sessionStorage.getItem("e2e-seeded")) {
         sessionStorage.setItem("e2e-seeded", "1");
         localStorage.setItem("zcodejwttoken", "e2e-jwt");

@@ -202,8 +202,8 @@ const rootScope = parseDeclarations(extractBlock(stylesCss, ":root"));
 const themeSelectors = {
   defaultLight: "@theme",
   defaultDark: ".dark",
-  zaiLight: ".theme-zai-light",
-  zaiDark: ".theme-zai-dark",
+  zaiLight: ".theme-nibi-light",
+  zaiDark: ".theme-nibi-dark",
 } as const;
 const parentBackgrounds = [
   "background",

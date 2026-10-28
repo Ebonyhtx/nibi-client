@@ -56,7 +56,7 @@ describe("组合输入框焦点", () => {
   });
   it("CC-FOCUS-01：深浅主题和窄屏只保留外层胶囊边框", async () => {
     await waitForWorkspaceApp(DEFAULT_WORKSPACE, 45_000);
-    for (const theme of ["zai-light", "zai-dark"]) {
+    for (const theme of ["nibi-light", "nibi-dark"]) {
       await setTheme(theme);
       const search = $('[data-testid="sidebar-search-open"]');
       await search.waitForDisplayed();
@@ -271,7 +271,7 @@ describe("组合输入框焦点", () => {
       const input = $('[data-testid="virtual-project-name"]');
       await input.waitForDisplayed();
       await browser.waitUntil(() => input.isFocused());
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await setTheme(theme);
         for (const width of [1200, 390]) {
           for (const forcedColors of [false, true]) {

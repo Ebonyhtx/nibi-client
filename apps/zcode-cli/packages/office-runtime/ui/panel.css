@@ -1,6 +1,6 @@
 /*
  * Document viewer panel. Colours come from the host's style variables (ZCode passes its theme
- * tokens); the fallbacks are ZCode's own zai-light / zai-dark values. Popover, menu and input
+ * tokens); the fallbacks are ZCode's own nibi-light / nibi-dark values. Popover, menu and input
  * fills have no host variable, so they are set per theme here.
  */
 :root {
@@ -50,7 +50,7 @@
   --fg-subtlest: var(--color-text-tertiary, rgba(212, 212, 212, 0.3));
   --primary: var(--color-background-inverse, #ffffff);
   --primary-fg: var(--color-text-inverse, #000000);
-  --accent: var(--color-background-info, #001d3d);
+  --accent: var(--color-background-info, #26272a);
   --success: var(--color-text-success, #46bf72);
   --danger: var(--color-text-danger, #ff5c5c);
   --popover: #2b2b2b;

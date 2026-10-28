@@ -44,7 +44,7 @@ export function AlertDialogHost() {
             <span>
               {pendingRequest?.actionLabel ?? intl.formatMessage({ id: "common.confirm" })}
             </span>
-            <span className="text-ui-base text-primary-foreground/60">⏎</span>
+            <span className="text-ui-base text-primary-foreground/80">⏎</span>
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

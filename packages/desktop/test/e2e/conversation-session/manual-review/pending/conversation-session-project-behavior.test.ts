@@ -1115,7 +1115,7 @@ async function captureLayouts(
           async () => (await $("aside").getAttribute("aria-hidden")) === "false",
         );
       }
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await setTheme(theme);
         await beforeCapture?.();
         const bounds = await browser.execute(() => {

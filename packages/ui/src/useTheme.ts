@@ -1,35 +1,41 @@
 import { useEffect, useState, useCallback } from "react";
-import { readSafeLocalStorage } from "@/lib/browserEnvironment.js";
+import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnvironment.js";
 
-export type Theme = "light" | "dark" | "zai-light" | "zai-dark" | "system";
+export type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
 export type ResolvedTheme = "light" | "dark";
+// legacy-migration: 旧版本写入的主题值，只用于读取旧偏好，不参与新写入。
+type LegacyTheme = "zai-light" | "zai-dark"; // legacy-migration
+type StoredTheme = Theme | LegacyTheme;
 
-const STORAGE_KEY = "zcode-theme";
-const BROWSER_THEME_SURFACE_ATTRIBUTE = "data-zcode-browser-theme-surface";
+const STORAGE_KEY = "nibi-theme";
+// legacy-migration: 旧版本存储键，读到后迁移到 nibi-theme。
+const LEGACY_STORAGE_KEY = "zcode-theme";
+const BROWSER_THEME_SURFACE_ATTRIBUTE = "data-nibi-browser-theme-surface";
 
 /**
  * 首次启动（localStorage 里没有记录）时的默认外观。
  *
  * 保持单一来源：Zustand store、useTheme hook、桌面端 index 启动脚本都从这里取，
- * 各自写死兜底值会让"默认主题"在不同入口分叉（历史上就是三处都写 zai-dark）。
+ * 各自写死兜底值会让"默认主题"在不同入口分叉。
  */
-export const DEFAULT_THEME: Theme = "zai-light";
+export const DEFAULT_THEME: Theme = "nibi-light";
 
 function getSystemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-export function resolveTheme(theme: Theme): ResolvedTheme {
-  if (theme === "system") {
+export function resolveTheme(theme: StoredTheme): ResolvedTheme {
+  const normalized = normalizeThemePreference(theme);
+  if (normalized === "system") {
     return getSystemTheme();
   }
 
-  return theme === "dark" || theme === "zai-dark" ? "dark" : "light";
+  return normalized === "dark" || normalized === "nibi-dark" ? "dark" : "light";
 }
 
-export function normalizeThemePreference(theme: Theme): Theme {
-  if (theme === "dark") return "zai-dark";
-  if (theme === "light") return "zai-light";
+export function normalizeThemePreference(theme: StoredTheme): Theme {
+  if (theme === "dark" || theme === "zai-dark") return "nibi-dark"; // legacy-migration
+  if (theme === "light" || theme === "zai-light") return "nibi-light"; // legacy-migration
   return theme;
 }
 
@@ -64,34 +70,64 @@ function syncBrowserThemeSurface(resolved: ResolvedTheme) {
   }
 }
 
-export function applyTheme(theme: Theme) {
-  const resolved = resolveTheme(theme);
+export function applyTheme(theme: StoredTheme) {
+  const normalized = normalizeThemePreference(theme);
+  const resolved = resolveTheme(normalized);
   const appliedTheme =
-    theme === "system"
+    normalized === "system"
       ? resolved === "dark"
-        ? "zai-dark"
-        : "zai-light"
-      : normalizeThemePreference(theme);
+        ? "nibi-dark"
+        : "nibi-light"
+      : normalized;
   document.documentElement.classList.toggle("dark", resolved === "dark");
-  document.documentElement.classList.toggle("theme-zai-light", appliedTheme === "zai-light");
-  document.documentElement.classList.toggle("theme-zai-dark", appliedTheme === "zai-dark");
+  document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
+  document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
   syncBrowserThemeSurface(resolved);
 }
 
-function isTheme(value: string | null): value is Theme {
+function isStoredTheme(value: string | null): value is StoredTheme {
   return (
     value === "light" ||
     value === "dark" ||
-    value === "zai-light" ||
-    value === "zai-dark" ||
-    value === "system"
+    value === "nibi-light" ||
+    value === "nibi-dark" ||
+    value === "system" ||
+    value === "zai-light" || // legacy-migration
+    value === "zai-dark" // legacy-migration
   );
+}
+
+function removeLegacyThemeStorage(): void {
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+  } catch {
+    // 隐私模式/受限环境移除失败不影响已完成的迁移。
+  }
 }
 
 /** 读取已保存的主题偏好；没有记录或值非法时回落到 DEFAULT_THEME。 */
 export function loadThemePreference(): Theme {
   const saved = readSafeLocalStorage(STORAGE_KEY);
-  return isTheme(saved) ? normalizeThemePreference(saved) : DEFAULT_THEME;
+  if (isStoredTheme(saved)) {
+    const normalized = normalizeThemePreference(saved);
+    if (saved !== normalized) {
+      writeSafeLocalStorage(STORAGE_KEY, normalized);
+    }
+    removeLegacyThemeStorage();
+    return normalized;
+  }
+
+  const legacy = readSafeLocalStorage(LEGACY_STORAGE_KEY);
+  if (isStoredTheme(legacy)) {
+    const normalized = normalizeThemePreference(legacy);
+    writeSafeLocalStorage(STORAGE_KEY, normalized);
+    removeLegacyThemeStorage();
+    return normalized;
+  }
+
+  return DEFAULT_THEME;
 }
 
 export function useTheme() {

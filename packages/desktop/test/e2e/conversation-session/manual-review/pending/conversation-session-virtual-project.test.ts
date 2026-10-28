@@ -1254,7 +1254,7 @@ async function captureProjectDialogLayouts(stage: string) {
       await emulate(width);
       await browser.waitUntil(() => browser.execute((expected) => innerWidth === expected, width));
       for (const dark of [false, true]) {
-        await setTheme(dark ? "zai-dark" : "zai-light");
+        await setTheme(dark ? "nibi-dark" : "nibi-light");
         const fit = await browser.execute(() => {
           const dialog = document.querySelector('[role="dialog"]')!;
           const bounds = dialog.getBoundingClientRect();

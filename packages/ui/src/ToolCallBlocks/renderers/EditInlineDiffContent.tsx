@@ -30,7 +30,7 @@ function resolveInlineDiffHighlightTheme(
     return codePreviewSettings.lightTheme;
   }
 
-  return theme === "dark" || theme === "zai-dark"
+  return theme === "dark" || theme === "nibi-dark"
     ? codePreviewSettings.darkTheme
     : codePreviewSettings.lightTheme;
 }

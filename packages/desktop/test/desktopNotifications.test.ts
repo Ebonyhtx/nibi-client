@@ -104,7 +104,7 @@ describe("desktop task notifications", () => {
 
     expect(shown).toBe(false);
     expect(electronMocks.notificationInstances).toHaveLength(0);
-    expect(eventSender.send).not.toHaveBeenCalledWith(PlatformChannels.TaskNotificationSound);
+    expect(eventSender.send).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
       "[show-task-notification] missing localized notification copy",
       {
@@ -114,6 +114,27 @@ describe("desktop task notifications", () => {
         hasBody: false,
       },
     );
+  });
+
+  it("sends completion sound even when an app window is focused", () => {
+    electronMocks.browserWindowGetAllWindows.mockReturnValue([
+      { isDestroyed: () => false, isFocused: () => true },
+    ]);
+    const eventSender = { send: vi.fn() };
+    const logger = { info: vi.fn(), warn: vi.fn() };
+
+    const shown = dispatchTaskNotification({
+      event: { sender: eventSender } as never,
+      payload: createTaskNotificationPayload("task-focused"),
+      logger,
+    });
+
+    expect(shown).toBe(false);
+    expect(eventSender.send).toHaveBeenCalledWith(
+      PlatformChannels.TaskNotificationSound,
+      "completed",
+    );
+    expect(electronMocks.notificationInstances).toHaveLength(0);
   });
 
   it("keeps native notifications alive until the click handler can focus the task window", () => {
@@ -146,7 +167,10 @@ describe("desktop task notifications", () => {
 
     expect(shown).toBe(true);
     expect(getActiveTaskNotificationCountForTest()).toBe(1);
-    expect(eventSender.send).toHaveBeenCalledWith(PlatformChannels.TaskNotificationSound);
+    expect(eventSender.send).toHaveBeenCalledWith(
+      PlatformChannels.TaskNotificationSound,
+      "completed",
+    );
 
     electronMocks.notificationInstances[0]?.emit("click");
 
@@ -247,6 +271,15 @@ describe("desktop task notifications", () => {
     expect(nextRequestShown).toBe(true);
     expect(electronMocks.notificationInstances).toHaveLength(2);
     expect(eventSender.send).toHaveBeenCalledTimes(2);
-    expect(eventSender.send).toHaveBeenCalledWith(PlatformChannels.TaskNotificationSound);
+    expect(eventSender.send).toHaveBeenNthCalledWith(
+      1,
+      PlatformChannels.TaskNotificationSound,
+      "elicitation_request",
+    );
+    expect(eventSender.send).toHaveBeenNthCalledWith(
+      2,
+      PlatformChannels.TaskNotificationSound,
+      "elicitation_request",
+    );
   });
 });

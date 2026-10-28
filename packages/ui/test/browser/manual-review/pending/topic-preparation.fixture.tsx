@@ -11,7 +11,7 @@ import "@/styles.css";
 const params = new URLSearchParams(location.search);
 const chinese = params.get("locale") === "zh-CN";
 document.documentElement.className =
-  params.get("theme") === "light" ? "light theme-zai-light" : "dark theme-zai-dark";
+  params.get("theme") === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
 const text = chinese ? "北京今天天气如何？" : "What is the weather in Beijing today?";
 const initial: BotTopicPreparation[] = [
   { messageId: "first", senderName: "莫汝舰", text, status: "preparing" },

@@ -20,7 +20,7 @@ import "@/styles.css";
 
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "dark" ? "dark" : "light";
-document.documentElement.className = `${theme} theme-zai-${theme}`;
+document.documentElement.className = `${theme} theme-nibi-${theme}`;
 const noop = () => {};
 Object.assign(window, {
   __renderFixture: { services: {}, tabStore: { getState: () => ({ tabs: [] }) } },

@@ -1226,10 +1226,10 @@ describe("Marketing Touch delivery", () => {
       const dialog = document.querySelector<HTMLElement>('[data-testid="cloud-content-dialog"]')!;
       const width = dialog.style.width;
       try {
-        return ["theme-zai-light", "theme-zai-dark"].flatMap((theme) => {
-          root.classList.remove("theme-zai-light", "theme-zai-dark");
+        return ["theme-nibi-light", "theme-nibi-dark"].flatMap((theme) => {
+          root.classList.remove("theme-nibi-light", "theme-nibi-dark");
           root.classList.add(theme);
-          root.classList.toggle("dark", theme === "theme-zai-dark");
+          root.classList.toggle("dark", theme === "theme-nibi-dark");
           return [358, 480].map((size) => {
             dialog.style.width = `${size}px`;
             const button = dialog.querySelector('[data-testid="cloud-dialog-action"]')!;
@@ -1378,9 +1378,9 @@ describe("Marketing Touch delivery", () => {
     await byId("cloud-content-dialog").waitForDisplayed({ timeout: 15000 });
     const originalClass = await browser.execute(() => document.documentElement.className);
     try {
-      for (const theme of ["theme-zai-light", "theme-zai-dark"]) {
+      for (const theme of ["theme-nibi-light", "theme-nibi-dark"]) {
         const result = await browser.execute((theme) => {
-          document.documentElement.classList.remove("theme-zai-light", "theme-zai-dark");
+          document.documentElement.classList.remove("theme-nibi-light", "theme-nibi-dark");
           document.documentElement.classList.add(theme);
           const description = document.querySelector('[data-testid="cloud-dialog-description"]')!;
           const p = description.querySelector("p")!;

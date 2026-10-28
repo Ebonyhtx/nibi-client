@@ -7,9 +7,9 @@ const browser = await chromium.launch({ channel: "chrome", headless: true });
 try {
   for (const locale of ["cn/share", "share"]) {
     for (const width of [320, 1280]) {
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         const context = await browser.newContext({ viewport: { width, height: 800 } });
-        await context.addInitScript((value) => localStorage.setItem("zcode-theme", value), theme);
+        await context.addInitScript((value) => localStorage.setItem("nibi-theme", value), theme);
         const page = await context.newPage();
         const chinese = locale === "cn/share";
         const home = page.getByRole("link", {

@@ -17,13 +17,13 @@ body {
 @theme {
   --color-background: var(--color-neutral-50);
   --color-background-alt: var(--color-neutral-100);
-  --color-brand: var(--color-sky-500);
-  --color-accent: var(--color-sky-50);
-  --color-border: color-mix(in oklab, var(--color-neutral-950) 10%, transparent);
-  --color-border-hover: color-mix(in oklab, var(--color-neutral-950) 20%, transparent);
-  --color-header: var(--color-neutral-100);
-  --color-surface: color-mix(in oklab, var(--color-neutral-950) 3%, transparent);
-  --color-surface-hover: color-mix(in oklab, var(--color-neutral-950) 5%, transparent);
+  --color-brand: #e08a3e;
+  --color-accent: #f3ead8;
+  --color-border: rgba(20, 45, 82, 0.12);
+  --color-border-hover: rgba(20, 45, 82, 0.22);
+  --color-header: #fffdf9;
+  --color-surface: rgba(20, 45, 82, 0.035);
+  --color-surface-hover: rgba(20, 45, 82, 0.06);
   --color-card: var(--color-white);
   --color-card-selected: var(--color-neutral-100);
   --color-card-border: var(--color-border);
@@ -60,8 +60,8 @@ body {
 .dark {
   --color-background: var(--color-neutral-950);
   --color-background-alt: var(--color-neutral-900);
-  --color-brand: var(--color-sky-400);
-  --color-accent: color-mix(in oklab, var(--color-sky-950) 48%, transparent);
+  --color-brand: #e8c491;
+  --color-accent: #26272a;
   --color-border: color-mix(in oklab, var(--color-neutral-50) 12%, transparent);
   --color-border-hover: color-mix(in oklab, var(--color-neutral-50) 28%, transparent);
   --color-header: var(--color-neutral-950);

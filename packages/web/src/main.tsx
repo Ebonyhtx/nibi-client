@@ -187,37 +187,38 @@ async function markOpenedWebRemoteControlBridgeTaskRead({
 }
 
 function resolveWebThemePreference(defaultTheme: Theme = WEB_REMOTE_CONTROL_DEFAULT_THEME): Theme {
-  const saved = localStorage.getItem("zcode-theme");
+  const saved =
+    localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme"); // legacy-migration
   return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme });
 }
 
-// 初始化主题：默认 Zai dark，后续由 useTheme hook 接管
+// 初始化主题：默认浅色（NIBI 暖纸），后续由 useTheme hook 接管
 // system 模式下需要查询系统偏好；非 system 模式直接用存储值
 {
   // NIBI 差异（相对上游）：所有 Web 页面首次访问默认浅色，与 @nibi/ui 的 DEFAULT_THEME 单一来源一致；
   // 已有本地偏好时一律沿用（下面的 resolveWebThemePreference 优先取 storedTheme）。
-  const saved = resolveWebThemePreference("zai-light");
+  const saved = resolveWebThemePreference("nibi-light");
   const resolved =
     saved === "system"
       ? window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light"
-      : saved === "dark" || saved === "zai-dark"
+      : saved === "dark" || saved === "nibi-dark"
         ? "dark"
         : "light";
   const appliedTheme =
     saved === "system"
       ? resolved === "dark"
-        ? "zai-dark"
-        : "zai-light"
+        ? "nibi-dark"
+        : "nibi-light"
       : saved === "dark"
-        ? "zai-dark"
+        ? "nibi-dark"
         : saved === "light"
-          ? "zai-light"
+          ? "nibi-light"
           : saved;
   document.documentElement.classList.toggle("dark", resolved === "dark");
-  document.documentElement.classList.toggle("theme-zai-light", appliedTheme === "zai-light");
-  document.documentElement.classList.toggle("theme-zai-dark", appliedTheme === "zai-dark");
+  document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
+  document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
 }
 
 async function resolveFeedbackUrl(): Promise<string | undefined> {
@@ -389,7 +390,7 @@ async function renderConversationSharePage(): Promise<void> {
       }}
       onLogout={onLogout}
       locale={routeLocale}
-      theme={resolveWebThemePreference("zai-light")}
+      theme={resolveWebThemePreference("nibi-light")}
     />,
   );
 }
@@ -602,7 +603,7 @@ function createWebPlatform(options?: {
           body: payload.body,
           silent: true,
         });
-        void playTaskNotificationSound();
+        void playTaskNotificationSound(payload.status);
       } catch {
         // 浏览器通知不可用时静默忽略，避免打断主流程
       }

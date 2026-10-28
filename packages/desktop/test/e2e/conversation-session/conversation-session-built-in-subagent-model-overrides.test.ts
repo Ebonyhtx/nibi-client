@@ -641,7 +641,7 @@ async function assertSettingsLayoutAcrossThemes() {
   await assertSubagentControlRowsFit();
   try {
     await setRendererViewport(390, 844);
-    for (const theme of ["zai-light", "zai-dark"] as const) {
+    for (const theme of ["nibi-light", "nibi-dark"] as const) {
       await setSettingsTheme(theme);
       await assertSubagentControlRowsFit();
     }
@@ -698,7 +698,7 @@ async function assertSubagentControlRowsFit() {
   ]);
 }
 
-async function setSettingsTheme(theme: "zai-light" | "zai-dark") {
+async function setSettingsTheme(theme: "nibi-light" | "nibi-dark") {
   const changed = await browser.execute((nextTheme) => {
     const actions = (window as typeof window & { __testActions?: Record<string, unknown> })
       .__testActions;

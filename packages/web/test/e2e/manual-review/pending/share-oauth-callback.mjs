@@ -16,7 +16,7 @@ const results = [];
 try {
   for (const prefix of ["/share", "/cn/share"])
     for (const width of [390, 1024])
-      for (const theme of ["zai-light", "zai-dark"])
+      for (const theme of ["nibi-light", "nibi-dark"])
         for (const provider of ["bigmodel", "zai"]) {
           const locale = prefix === "/cn/share" ? "zh-CN" : "en-US";
           const h = await setup(browser, { width, theme, locale, provider });

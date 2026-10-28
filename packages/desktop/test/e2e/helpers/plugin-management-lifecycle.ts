@@ -720,7 +720,7 @@ export async function getPluginControlText(
 
 export async function setPluginPresentation(input: {
   locale: "zh-CN" | "en-US";
-  theme: "zai-light" | "zai-dark";
+  theme: "nibi-light" | "nibi-dark";
   width: number;
   height: number;
 }): Promise<void> {

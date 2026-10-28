@@ -1,13 +1,12 @@
 "use client";
 
 import type { ComponentPropsWithoutRef } from "react";
-import { LoaderIcon } from "lucide-react";
 import { cn } from "@/components/lib/utils.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 
 export interface ChatLoadingProps extends ComponentPropsWithoutRef<"div"> {
   loading: boolean;
-  size?: "default" | "sm";
+  size?: "default" | "sm" | "xs" | "avatar";
   className?: string;
 }
 
@@ -18,20 +17,19 @@ export function ChatLoading({ loading, size = "default", className, ...props }: 
     return null;
   }
 
-  const sizeClasses = size === "sm" ? "size-4 text-ui-base" : "size-6";
-
   return (
     <div
       aria-label={intl.formatMessage({ id: "common.loading" })}
       {...props}
       data-zcode-chat-loading-animate="true"
+      data-size={size}
       role="status"
       className={cn("flex items-center", className)}
     >
-      {/* SVG 旋转会持续触发主线程样式更新；旋转现有 HTML 容器，让动画走合成。 */}
-      <div className="flex size-4 animate-spin items-center justify-center">
-        <LoaderIcon aria-hidden="true" className={cn("text-foreground-subtle", sizeClasses)} />
-      </div>
+      {/* 与新建会话页同源的 nibi-loop 108 帧循环；缩放到 40px，不再额外做飞行 sprite。 */}
+      <span className="nibi-chat-loading-loop" data-size={size} aria-hidden="true">
+        <span className="nibi-new-conversation-loop" />
+      </span>
     </div>
   );
 }

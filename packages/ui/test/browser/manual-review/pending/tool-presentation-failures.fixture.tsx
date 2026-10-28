@@ -12,7 +12,7 @@ import "@/styles.css";
 const params = new URLSearchParams(location.search);
 const icon =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9K0AAAAASUVORK5CYII=";
-document.documentElement.className = `${params.get("theme")} theme-zai-${params.get("theme")}`;
+document.documentElement.className = `${params.get("theme")} theme-nibi-${params.get("theme")}`;
 let releaseOld: ((value: FileMediaPreview) => void) | undefined;
 const readMediaPreview = async (path: string): Promise<FileMediaPreview> => {
   if (path === "failure") throw new Error("fixture image read failure");

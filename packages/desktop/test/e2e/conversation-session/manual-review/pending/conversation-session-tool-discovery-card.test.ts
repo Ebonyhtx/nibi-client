@@ -116,7 +116,7 @@ describe("ToolSearch 不可展开卡片", () => {
     }
 
     for (const locale of ["zh-CN", "en-US"] as const) {
-      for (const theme of ["zai-light", "zai-dark"] as const) {
+      for (const theme of ["nibi-light", "nibi-dark"] as const) {
         await setPresentation(locale, theme);
         const label = locale === "zh-CN" ? "搜索工具：" : "Search tools: ";
         await expectCard(
@@ -161,7 +161,7 @@ async function expectCard(callId: string, label: RegExp, status: string) {
   );
 }
 
-async function setPresentation(locale: "zh-CN" | "en-US", theme: "zai-light" | "zai-dark") {
+async function setPresentation(locale: "zh-CN" | "en-US", theme: "nibi-light" | "nibi-dark") {
   const changed = await browser.execute(
     (nextLocale, nextTheme) => {
       const actions = (window as typeof window & { __testActions?: Record<string, unknown> })

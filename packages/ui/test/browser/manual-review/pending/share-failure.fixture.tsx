@@ -34,7 +34,7 @@ const status =
             : 422;
 const kind = scenario === "network" ? scenario : classifyConversationShareError(status, code);
 document.documentElement.className =
-  params.get("theme") === "light" ? "light theme-zai-light" : "dark theme-zai-dark";
+  params.get("theme") === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
 function Fixture() {
   const [attempts, setAttempts] = useState(0);
   if (params.get("surface") === "preflight")

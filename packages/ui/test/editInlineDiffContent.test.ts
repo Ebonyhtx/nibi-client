@@ -72,7 +72,7 @@ describe("EditInlineDiffContent", () => {
     const html = renderToStaticMarkup(
       createElement(EditInlineDiffContent, {
         preview,
-        theme: "zai-dark",
+        theme: "nibi-dark",
         codePreviewSettings: TEST_CODE_PREVIEW_SETTINGS,
       }),
     );

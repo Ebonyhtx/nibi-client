@@ -20,7 +20,7 @@ const store = createZCodeStore({
 } as IBroadcastService);
 const params = new URLSearchParams(location.search);
 document.documentElement.className =
-  params.get("theme") === "light" ? "light theme-zai-light" : "dark theme-zai-dark";
+  params.get("theme") === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
 const items: StorePluginItem[] = Array.from({ length: 12 }, (_, index) => {
   const name = `plugin-${String(index).padStart(2, "0")}`;
   return {

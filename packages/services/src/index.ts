@@ -1,16 +1,15 @@
 // Descriptors & collection (browser-safe)
 export { type ServiceDescriptor, createServiceDescriptor } from "./descriptors.js";
-export {
+// Project sync 的运行时实现依赖 node:crypto / node:fs，只能从 @nibi/services/node 引入。
+// 根入口会被 renderer 以 value import 拉进浏览器包；这里只保留类型，避免 Vite
+// 把 node:crypto 外部化后整个 renderer 白屏。
+export type {
   IProjectSyncService,
-  ProjectSyncClient,
-  readProjectManifest,
-  writeProjectManifest,
-  type ProjectManifest,
-  type ProjectSummary,
-  type PullResult,
-  type UploadResult,
+  ProjectManifest,
+  ProjectSummary,
+  PullResult,
+  UploadResult,
 } from "./project-sync/projectSyncClient.js";
-export { createHostProjectSyncClient } from "./project-sync/projectSyncTransport.js";
 export { ServiceCollection, type ServiceExposurePolicy } from "./collection.js";
 export {
   IModelSelectionService,

@@ -542,30 +542,29 @@ describe("v4 M5 门禁：composer 工具条与 slash 候选面板", () => {
     expect(await $('[data-testid="composer-thought-track"]').isDisplayed()).toBe(true);
     const trackGeometry = await browser.execute(() => {
       const track = document.querySelector<HTMLElement>('[data-testid="composer-thought-track"]')!;
-      const fill = track.querySelector<HTMLElement>(".composer-thought-slider-fill")!;
+      const fill = track.querySelector<HTMLElement>(".composer-thinking-fill")!;
+      const sheen = track.querySelector<HTMLElement>(".composer-thinking-sheen")!;
+      const trackRect = track.getBoundingClientRect();
+      const fillRect = fill.getBoundingClientRect();
       return {
-        trackHeight: track.getBoundingClientRect().height,
-        fillHeight: fill.getBoundingClientRect().height,
-        topOffset: fill.getBoundingClientRect().top - track.getBoundingClientRect().top,
+        trackHeight: trackRect.height,
+        fillHeight: fillRect.height,
+        topOffset: fillRect.top - trackRect.top,
         border: getComputedStyle(track).borderTopWidth,
-      };
-    });
-    expect(trackGeometry.border).toBe("0px");
-    expect(trackGeometry.topOffset).toBe(0);
-    expect(trackGeometry.fillHeight).toBe(trackGeometry.trackHeight);
-    const motion = await browser.execute(() => {
-      const thumb = document.querySelector(".composer-thought-slider-thumb")!;
-      const fill = document.querySelector(".composer-thought-slider-fill")!;
-      return {
+        fillTransition: getComputedStyle(fill).transitionDuration.split(",")[0]!.trim(),
+        sheenAnimation: getComputedStyle(sheen).animationName,
         reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
-        thumb: getComputedStyle(thumb).transitionDuration,
-        fill: getComputedStyle(fill).transitionDuration,
-        gradient: getComputedStyle(fill, "::before").transitionDuration,
-        gradientProperty: getComputedStyle(fill, "::before").transitionProperty,
       };
     });
-    expect(motion.thumb).toBe(motion.reduced ? "0s" : "0.12s");
-    expect(motion.fill).toBe(motion.thumb);
+    expect(Math.round(trackGeometry.trackHeight)).toBe(28);
+    expect(trackGeometry.border).toBe("1px");
+    // 初始档位为最高档：填充应满轨（轨道有 1px 边框，填充为内容盒高度）。
+    expect(trackGeometry.fillHeight).toBeGreaterThan(trackGeometry.trackHeight - 3);
+    expect(Math.round(trackGeometry.topOffset)).toBe(0);
+    expect(trackGeometry.fillTransition).toBe(trackGeometry.reduced ? "0s" : "0.42s");
+    expect(trackGeometry.sheenAnimation).toBe(
+      trackGeometry.reduced ? "none" : "composer-thinking-sheen",
+    );
     const menuLayout = await browser.execute(() => {
       const list = document.querySelector<HTMLElement>("[data-composer-model-list]")!;
       const menu = list.closest('[role="menu"]')!;
@@ -647,8 +646,6 @@ describe("v4 M5 门禁：composer 工具条与 slash 候选面板", () => {
     expect(shortcutStyle.radius).toBe("6px");
     expect(shortcutStyle.height).toBe("16px");
 
-    expect(motion.gradient).toBe(motion.reduced ? "0s" : "0.2s");
-    if (!motion.reduced) expect(motion.gradientProperty).toBe("opacity");
     await closeComposerPicker();
     await openComposerPicker("model");
     await openComposerPicker("mode");
@@ -675,14 +672,16 @@ describe("v4 M5 门禁：composer 工具条与 slash 候选面板", () => {
           document.querySelector('[data-composer-thought-stop][data-filled="true"]')!,
         ).opacity,
     );
-    expect(filledOpacity).toBe("0.3");
+    expect(filledOpacity).toBe("0");
     const sliderSize = await slider.getSize();
     await slider.moveTo({ xOffset: Math.round(16 - sliderSize.width / 2), yOffset: 0 });
     await browser.waitUntil(
       async () =>
         browser.execute(() => {
-          const dot = document.querySelector<HTMLElement>("[data-composer-thought-stop]")!;
-          return Number.parseFloat(getComputedStyle(dot).scale) > 1.7;
+          const dot = document.querySelector<HTMLElement>(
+            '[data-composer-thought-stop][data-near="true"]',
+          );
+          return dot ? Number.parseFloat(getComputedStyle(dot).scale) > 1.5 : false;
         }),
       { timeout: 3000 },
     );
@@ -720,61 +719,59 @@ describe("v4 M5 门禁：composer 工具条与 slash 候选面板", () => {
     ]);
     const dragMotion = await browser.execute(() => ({
       reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
-      thumb: getComputedStyle(document.querySelector(".composer-thought-slider-thumb")!)
-        .transitionDuration,
-      fill: getComputedStyle(document.querySelector(".composer-thought-slider-fill")!)
-        .transitionDuration,
+      fill: getComputedStyle(document.querySelector<HTMLElement>(".composer-thinking-fill")!)
+        .transitionDuration.split(",")[0]!
+        .trim(),
     }));
     await browser.releaseActions();
-    expect(dragMotion.thumb).toBe(dragMotion.reduced ? "0s" : "0.12s");
-    expect(dragMotion.fill).toBe(dragMotion.thumb);
+    expect(dragMotion.fill).toBe(dragMotion.reduced ? "0s" : "0.42s");
     await slider.click();
     await browser.keys("End");
     await browser.waitUntil(
       async () =>
-        browser.execute(
-          () =>
-            getComputedStyle(document.querySelector(".composer-thought-slider-fill")!, "::before")
-              .opacity === "1",
-        ),
+        browser.execute(() => {
+          const track = document.querySelector<HTMLElement>(
+            '[data-testid="composer-thought-track"]',
+          )!;
+          const fill = track.querySelector<HTMLElement>(".composer-thinking-fill")!;
+          return (
+            track.classList.contains("is-peak") &&
+            fill.getBoundingClientRect().height > track.getBoundingClientRect().height - 3
+          );
+        }),
       { timeout: 3000 },
     );
-    const gradientColors = await browser.execute(() => {
-      const fill = document.querySelector<HTMLElement>(".composer-thought-slider-fill")!;
-      const marker = document.createElement("span");
-      marker.style.color = "var(--composer-thought-max-accent)";
-      fill.append(marker);
-      const accent = getComputedStyle(marker).color;
-      marker.style.color = "var(--color-purple-500)";
-      const purple = getComputedStyle(marker).color;
-      marker.remove();
-      return { gradient: getComputedStyle(fill, "::before").backgroundImage, accent, purple };
-    });
-    expect(gradientColors.gradient).toContain(gradientColors.accent);
-    expect(gradientColors.gradient).toContain("in oklch");
-    const bubbles = await browser.execute(() => {
-      const layer = document.querySelector<HTMLElement>(
-        '[data-testid="composer-thought-bubbles"]',
-      )!;
+    const peak = await browser.execute(() => {
+      const track = document.querySelector<HTMLElement>('[data-testid="composer-thought-track"]')!;
+      const fill = track.querySelector<HTMLElement>(".composer-thinking-fill")!;
+      const trackRect = track.getBoundingClientRect();
+      const fillRect = fill.getBoundingClientRect();
       return {
-        count: layer.children.length,
-        reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
-        display: getComputedStyle(layer).display,
-        animation: getComputedStyle(layer.firstElementChild!).animationName,
-        duration: parseFloat(getComputedStyle(layer.firstElementChild!).animationDuration),
+        trackHeight: trackRect.height,
+        trackWidth: trackRect.width,
+        fillHeight: fillRect.height,
+        fillWidth: fillRect.width,
+        opacity: getComputedStyle(fill).opacity,
+        bubbles: document.querySelector('[data-testid="composer-thought-bubbles"]') !== null,
       };
     });
-    expect(bubbles.count).toBe(12);
-    expect(bubbles.animation).toBe(bubbles.reduced ? "none" : "composer-thought-bubble-flow");
-    if (bubbles.reduced) expect(bubbles.display).toBe("none");
+    expect(peak.fillHeight).toBeGreaterThan(peak.trackHeight - 3);
+    expect(peak.fillWidth).toBeGreaterThan(peak.trackWidth - 3);
+    expect(peak.opacity).toBe("0.56");
+    expect(peak.bubbles).toBe(false);
     await browser.keys("ArrowLeft");
     await browser.waitUntil(
       async () =>
-        browser.execute(
-          () =>
-            getComputedStyle(document.querySelector(".composer-thought-slider-fill")!, "::before")
-              .opacity === "0",
-        ),
+        browser.execute(() => {
+          const track = document.querySelector<HTMLElement>(
+            '[data-testid="composer-thought-track"]',
+          )!;
+          const fill = track.querySelector<HTMLElement>(".composer-thinking-fill")!;
+          return (
+            !track.classList.contains("is-peak") &&
+            Math.round(fill.getBoundingClientRect().height) <= 7
+          );
+        }),
       { timeout: 3000 },
     );
     expect(await $('[data-testid="composer-thought-bubbles"]').isExisting()).toBe(false);

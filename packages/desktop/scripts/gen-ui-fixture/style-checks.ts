@@ -45,7 +45,7 @@ export async function checkUnifiedStyles(win: BrowserWindow, read: (code: string
         for (const size of [14, 18]) {
           await win.webContents.executeJavaScript(`(() => {
             const root=document.documentElement;root.classList.toggle('dark',${dark});
-            root.classList.toggle('theme-zai-dark',${dark});root.classList.toggle('theme-zai-light',${!dark});
+            root.classList.toggle('theme-nibi-dark',${dark});root.classList.toggle('theme-nibi-light',${!dark});
             root.style.setProperty('--ui-font-size','${size}px');document.querySelector('#root').style.width='${width}px';
           })()`);
           await read(`new Promise((resolve,reject)=>{
@@ -119,7 +119,7 @@ export async function checkUnifiedStyles(win: BrowserWindow, read: (code: string
     guest.debugger.detach();
     await read("document.querySelector('#style-probe').remove()");
     await win.webContents.executeJavaScript(
-      "document.documentElement.style.removeProperty('--ui-font-size');document.documentElement.classList.remove('theme-zai-dark','theme-zai-light');document.querySelector('#root').style.width=''",
+      "document.documentElement.style.removeProperty('--ui-font-size');document.documentElement.classList.remove('theme-nibi-dark','theme-nibi-light');document.querySelector('#root').style.width=''",
     );
   }
 }

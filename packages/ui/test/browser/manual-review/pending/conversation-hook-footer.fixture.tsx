@@ -11,7 +11,7 @@ const query = new URLSearchParams(location.search);
 const mobile = query.get("mobile") === "true";
 const highspeed = query.get("highspeed") === "true";
 const theme = query.get("theme") === "light" ? "light" : "dark";
-document.documentElement.className = `${theme} theme-zai-${theme}`;
+document.documentElement.className = `${theme} theme-nibi-${theme}`;
 const base = { turnId: "hook-footer", createdAt: 1_700_000_000_000, createdAtSeq: 1 };
 const rows: ConversationRow[] = [
   {

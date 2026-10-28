@@ -10,23 +10,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu.js";
-import "@/chat-input-toolbar/composer-thought-slider.css";
-
-// 固定种子避免重渲染重新随机，让最高档气泡错峰流动而不影响模型选择状态。
-const EFFORT_BUBBLES = [
-  { top: 4, size: 2, duration: 2.6, delay: -0.4 },
-  { top: 14, size: 3, duration: 3.2, delay: -2.1 },
-  { top: 8, size: 4, duration: 2.8, delay: -1.1 },
-  { top: 18, size: 2, duration: 3.6, delay: -0.8 },
-  { top: 3, size: 3, duration: 3, delay: -2.5 },
-  { top: 12, size: 2, duration: 3.4, delay: -1.7 },
-  { top: 6, size: 3, duration: 3.1, delay: -0.9 },
-  { top: 17, size: 4, duration: 2.9, delay: -2.3 },
-  { top: 10, size: 2, duration: 3.5, delay: -0.2 },
-  { top: 2, size: 2, duration: 2.7, delay: -1.8 },
-  { top: 15, size: 3, duration: 3.3, delay: -1.2 },
-  { top: 7, size: 4, duration: 3.6, delay: -3.1 },
-];
+import "@/chat-input-toolbar/thinking-feather-rail.css";
+import { ThinkingFeatherRail } from "@/chat-input-toolbar/ThinkingFeatherRail.js";
 
 export interface ComposerModelOptions {
   providerMenu?: {
@@ -118,7 +103,8 @@ export function ComposerModelMenu({
   const sliderRef = useRef<HTMLInputElement>(null);
   const catalogPending = groups.length === 0 && Boolean(normalizedValue);
   const showEffort = options.levels.length > 0 || catalogPending;
-  const [hoveredStop, setHoveredStop] = useState<string | null>(null);
+  const [nearIndex, setNearIndex] = useState<number | null>(null);
+  const [railHovering, setRailHovering] = useState(false);
   const sliderDisabled =
     Boolean(options.providerMenu?.pending) || !currentGroupSelected || options.levels.length < 2;
   const sliderProgress =
@@ -203,82 +189,28 @@ export function ComposerModelMenu({
                   shortcut={options.effortShortcutLabel}
                 />
                 <div
-                  className="composer-thought-slider relative h-8 w-full rounded-full"
+                  className="composer-thinking-feather relative h-9 w-full rounded-full"
+                  data-hovering={railHovering}
                   data-disabled={sliderDisabled}
                 >
-                  <div
+                  <ThinkingFeatherRail
                     // 模型或档位目录变化时只重置视觉层，避免跨模型补间，同时保留 input 焦点。
                     key={JSON.stringify([
                       normalizedValue,
                       group?.key,
                       options.levels.map((level) => level.value),
                     ])}
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0"
-                  >
-                    <div
-                      data-testid="composer-thought-track"
-                      data-progress={sliderFilled ? sliderProgress : 0}
-                      className="absolute inset-x-0 top-1 h-6 overflow-hidden rounded-full bg-foreground/10"
-                    >
-                      {/* 外层 border 会包住绿色填充；描边放到底层，让选中区域完全覆盖它。 */}
-                      <div className="absolute inset-0 rounded-full border border-foreground/10" />
-                      <div
-                        className="composer-thought-slider-fill absolute inset-y-0 left-0 overflow-hidden rounded-full"
-                        data-max={sliderFilled && currentIndex === options.levels.length - 1}
-                        style={{
-                          width: sliderFilled
-                            ? `calc(14px + (100% - 28px) * ${sliderProgress / 100})`
-                            : 0,
-                        }}
-                      >
-                        {sliderFilled &&
-                        currentIndex === options.levels.length - 1 &&
-                        !sliderDisabled ? (
-                          <div
-                            data-testid="composer-thought-bubbles"
-                            className="composer-thought-bubbles absolute inset-0"
-                          >
-                            {EFFORT_BUBBLES.map(
-                              (bubble, index) => (
-                                <span
-                                  key={index}
-                                  className="composer-thought-bubble absolute inset-x-0"
-                                  style={{
-                                    top: bubble.top,
-                                    animationDuration: `${bubble.duration}s`,
-                                    animationDelay: `${bubble.delay}s`,
-                                  }}
-                                >
-                                  <span
-                                    className="block rounded-full bg-white"
-                                    style={{ width: bubble.size, height: bubble.size }}
-                                  />
-                                </span>
-                              ),
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="absolute inset-x-3.5 inset-y-0 flex items-center justify-between">
-                      {options.levels.map((level, index) => (
-                        <span
-                          key={level.value}
-                          data-composer-thought-stop
-                          data-filled={sliderFilled && index <= currentIndex}
-                          data-hovered={
-                            !sliderDisabled && hoveredStop === `${normalizedValue}:${level.value}`
-                          }
-                          className="composer-thought-slider-stop size-1 shrink-0 rounded-full"
-                        />
-                      ))}
-                    </div>
-                    <div
-                      className="composer-thought-slider-thumb absolute top-0.5 size-7 rounded-full shadow-sm"
-                      style={{ left: `calc((100% - 28px) * ${sliderProgress / 100})` }}
-                    />
-                  </div>
+                    value={
+                      sliderFilled && currentGroupSelected && currentIndex >= 0
+                        ? sliderProgress
+                        : 0
+                    }
+                    stopCount={options.levels.length}
+                    currentIndex={Math.max(0, currentIndex)}
+                    filled={sliderFilled}
+                    disabled={sliderDisabled}
+                    nearIndex={nearIndex}
+                  />
                   <input
                     ref={sliderRef}
                     type="range"
@@ -293,33 +225,34 @@ export function ComposerModelMenu({
                     aria-valuetext={currentGroupSelected ? label : "—"}
                     data-testid="composer-thought-slider"
                     data-levels={JSON.stringify(options.levels.map((level) => level.value))}
-                    className="composer-thought-range absolute inset-0 m-0 h-8 w-full cursor-pointer appearance-none bg-transparent outline-none aria-disabled:cursor-default"
+                    className="composer-thinking-range absolute inset-0 m-0 h-9 w-full cursor-pointer appearance-none bg-transparent outline-none aria-disabled:cursor-default"
                     onPointerDown={(event) => {
                       // 拦截冒泡会让 Radix 的内部点击标记残留，导致第一次外部点击无法关闭菜单。
                       if (sliderDisabled) event.preventDefault();
                     }}
-                    onPointerLeave={() => setHoveredStop(null)}
+                    onPointerEnter={() => setRailHovering(true)}
+                    onPointerLeave={() => {
+                      setRailHovering(false);
+                      setNearIndex(null);
+                    }}
                     onPointerMove={(event) => {
                       // 原生 range 覆盖圆点，用坐标反馈悬停，避免圆点截获拖拽事件。
+                      if (sliderDisabled || event.pointerType === "touch") {
+                        setNearIndex(null);
+                        return;
+                      }
                       const rect = event.currentTarget.getBoundingClientRect();
-                      const trackWidth = rect.width - 28;
+                      const trackWidth = Math.max(1, rect.width - 28);
                       const index = Math.round(
                         ((event.clientX - rect.left - 14) / trackWidth) *
                           (options.levels.length - 1),
                       );
-                      const level = options.levels[index];
-                      const center =
-                        rect.left + 14 + (trackWidth * index) / (options.levels.length - 1);
-                      setHoveredStop(
-                        !sliderDisabled &&
-                          event.pointerType !== "touch" &&
-                          level &&
-                          Math.abs(event.clientX - center) <= 10
-                          ? `${normalizedValue}:${level.value}`
-                          : null,
+                      setNearIndex(
+                        Math.min(options.levels.length - 1, Math.max(0, index)),
                       );
                     }}
                     onClick={(event) => event.stopPropagation()}
+                    onBlur={() => setNearIndex(null)}
                     onKeyDown={(event) => {
                       if (event.key !== "Escape") {
                         event.stopPropagation();

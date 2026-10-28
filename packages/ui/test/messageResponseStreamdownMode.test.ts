@@ -21,7 +21,7 @@ vi.mock("@/store/StoreProvider.js", () => ({
         lightTheme: "github-light",
         wrapLongLines: true,
       },
-      theme: "zai-light",
+      theme: "nibi-light",
     }),
 }));
 

@@ -114,7 +114,7 @@ describe("Todo151 独立 Plan 草稿", () => {
           mobile: false,
         });
       }, width);
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await browser.execute((value) => {
           (
             window as unknown as { __testActions: { setTheme(theme: string): void } }

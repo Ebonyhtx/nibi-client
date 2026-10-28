@@ -9,7 +9,7 @@ import "@/styles.css";
 
 const query = new URLSearchParams(location.search);
 const theme = query.get("theme") === "light" ? "light" : "dark";
-document.documentElement.className = `${theme} theme-zai-${theme}`;
+document.documentElement.className = `${theme} theme-nibi-${theme}`;
 const userRows: UserInputRow[] = Array.from({ length: 35 }, (_, index) => ({
   rowId: query.get("heavy") === "true" ? index * 200 + 1 : index + 1,
   turnId: `turn-${index + 1}`,

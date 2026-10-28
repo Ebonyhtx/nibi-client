@@ -13,8 +13,8 @@ import type { Theme } from "@/useTheme.js";
 
 const MOBILE_THEME_OPTIONS: Theme[] = [
   "system",
-  "zai-dark",
-  "zai-light",
+  "nibi-dark",
+  "nibi-light",
 ];
 
 export function WebRemoteControlThemeMenu() {

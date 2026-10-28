@@ -16,7 +16,7 @@ import {
 } from "@nibi/shared/test-ids";
 import { Alert, AlertDescription } from "./components/ui/alert.js";
 import { Button } from "./components/ui/button.js";
-import { ZCodeAboutLogo } from "@/components/ui/ZCodeAboutLogo.js";
+import { NibiAboutLogo } from "@/components/ui/NibiAboutLogo.js";
 import { useOAuth } from "./hooks/useOAuth.js";
 import { useZCodeIntl } from "./i18n/IntlProvider.js";
 import { LoginApiKeyForm } from "./login/LoginApiKeyForm.js";
@@ -34,11 +34,11 @@ export type LoginCompleteReason = "oauth" | "apiKey" | "skip";
 export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
   return (
     <main className="relative flex h-full min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6">
-      <ThemeHeroVisual className="absolute inset-0" />
+      <ThemeHeroVisual className="absolute inset-0" showBird />
       {/* 原生拖拽命中不受 pointer-events/z-index 约束；拖拽层必须避开窗控，且先于 no-drag 区声明。 */}
       <div className="pointer-events-none absolute left-0 top-0 right-0 z-10 flex h-12 items-center [app-region:drag] platform-windows-desktop:right-[134px] platform-linux-desktop:right-[134px]" />
       <DesktopOverlayWindowControls />
-      <section className="relative z-10 w-full flex flex-col gap-10 max-w-sm rounded-2xl border border-popover-border bg-background p-8 text-ui-base/relaxed shadow-md sm:p-10">
+      <section className="relative z-10 w-full flex flex-col gap-10 max-w-sm rounded-2xl border border-popover-border bg-card p-8 text-ui-base/relaxed shadow-md sm:p-10">
         <LoginPanel active onComplete={onComplete} />
       </section>
     </main>
@@ -481,7 +481,7 @@ function LoginPanelLogo() {
       aria-label="NIBI"
       role="img"
     >
-      <ZCodeAboutLogo className="size-16" />
+      <NibiAboutLogo className="size-16" />
     </div>
   );
 }

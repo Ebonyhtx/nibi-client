@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip.js";
 import "@/styles.css";
 const theme = new URLSearchParams(location.search).get("theme");
 document.documentElement.className =
-  theme === "light" ? "light theme-zai-light" : "dark theme-zai-dark";
+  theme === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
 const parts: ChannelContentPart[] = [
   { type: "text", text: "帮我 " },
   {

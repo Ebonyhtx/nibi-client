@@ -26,7 +26,7 @@ test(
       assert.ok((await page.locator("[data-project-id]").count()) >= 2, "需要多个项目的回归场景");
       for (const theme of ["light", "dark"]) {
         await page.locator("html").evaluate((element, value) => {
-          element.className = `${value} theme-zai-${value}`;
+          element.className = `${value} theme-nibi-${value}`;
         }, theme);
         await page.waitForTimeout(500);
         for (let index = 0; index < 4; index++) {

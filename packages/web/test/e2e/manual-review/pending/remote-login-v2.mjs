@@ -22,7 +22,7 @@ const qrPath = "/remote/v4?app_version=3.13.0&sid=e2e-device&mid=e2e-mid&name=E2
 
 try {
   for (const width of [390, 1024])
-    for (const theme of ["zai-light", "zai-dark"])
+    for (const theme of ["nibi-light", "nibi-dark"])
       for (const locale of ["zh-CN", "en-US"])
         for (const screen of ["login", "devices", "empty", "device-not-owned"]) {
           const h = await setup(browser, {

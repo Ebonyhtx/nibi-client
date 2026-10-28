@@ -490,7 +490,7 @@ describe("createWebRemoteControlManager external relay", () => {
 
     await manager.start(1, {
       workspacePath: "/workspace/demo",
-      theme: "zai-dark",
+      theme: "nibi-dark",
     });
 
     const status = manager.getStatus(1);
@@ -505,7 +505,7 @@ describe("createWebRemoteControlManager external relay", () => {
       workspaceIdentity: "remote:ssh:host:/workspace/demo",
       remoteSessionId: "ephemeral-session",
       initialTaskId: "task-1",
-      theme: "zai-dark",
+      theme: "nibi-dark",
     });
 
     expect(getStartupRestoreContext()).toEqual({

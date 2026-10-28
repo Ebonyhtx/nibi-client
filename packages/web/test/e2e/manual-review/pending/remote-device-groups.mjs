@@ -42,7 +42,7 @@ const history = Array.from({ length: 11 }, (_, i) => ({
 
 try {
   for (const width of [390, 1024])
-    for (const theme of ["zai-light", "zai-dark"])
+    for (const theme of ["nibi-light", "nibi-dark"])
       for (const locale of ["zh-CN", "en-US"])
         for (const screen of ["single", "multiple", "offline"]) {
           const selected = screen === "multiple" ? alternate : current;

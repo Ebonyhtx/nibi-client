@@ -10,6 +10,7 @@ export function OnboardingWelcomeAsciiVisual() {
     <ThemeHeroVisual
       className="h-full min-h-0 rounded-xl"
       contentClassName="flex h-full items-center justify-center"
+      showBird
     >
       <div className="space-y-4 text-center">
         <div className="space-y-2">

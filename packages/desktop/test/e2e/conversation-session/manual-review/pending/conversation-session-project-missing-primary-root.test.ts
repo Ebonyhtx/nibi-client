@@ -82,7 +82,7 @@ describe("项目主目录失效", () => {
       expect(await empty.$('[data-testid="virtual-project-toggle"]').isEnabled()).toBe(true);
       expect(await empty.$('[data-testid="virtual-project-create-task"]').isEnabled()).toBe(true);
       expect(await empty.$('[data-testid="virtual-project-files"]').isEnabled()).toBe(false);
-      for (const theme of ["zai-dark", "zai-light"]) {
+      for (const theme of ["nibi-dark", "nibi-light"]) {
         await browser.execute(
           (value) => (window as TestWindow).__testActions!.setTheme(value),
           theme,
@@ -235,7 +235,7 @@ describe("项目主目录失效", () => {
           );
         }),
       );
-      for (const theme of ["zai-dark", "zai-light"]) {
+      for (const theme of ["nibi-dark", "nibi-light"]) {
         await browser.execute(
           (value) => (window as TestWindow).__testActions!.setTheme(value),
           theme,

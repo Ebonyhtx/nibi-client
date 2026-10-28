@@ -13,7 +13,7 @@ const params = new URLSearchParams(location.search);
 const locale = params.get("locale") === "en-US" ? "en-US" : "zh-CN";
 localStorage.setItem("zcode-locale-preference", locale);
 document.documentElement.className =
-  params.get("theme") === "light" ? "theme-zai-light" : "theme-zai-dark dark";
+  params.get("theme") === "light" ? "theme-nibi-light" : "theme-nibi-dark dark";
 const svg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><rect width="480" height="300" fill="white"/><circle cx="140" cy="150" r="70" fill="#d1fae5" stroke="#059669" stroke-width="3"/><path d="M300 80l70 40v80l-70 40-70-40v-80z" fill="#e0e7ff" stroke="#6366f1" stroke-width="3"/></svg>';
 const canvas = document.createElement("canvas");

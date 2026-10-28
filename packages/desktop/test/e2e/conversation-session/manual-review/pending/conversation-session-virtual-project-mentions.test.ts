@@ -62,7 +62,7 @@ describe("虚拟项目 Composer 候选", () => {
     const input = $(`[data-testid="${TID_V4_COMPOSER_INPUT}"]`);
     await input.waitForDisplayed();
     const workspaceTrigger = $(`[data-testid="${TID_COMPOSER_WORKSPACE_TRIGGER}"]`);
-    for (const theme of ["zai-light", "zai-dark"]) {
+    for (const theme of ["nibi-light", "nibi-dark"]) {
       await browser.execute(
         (theme) =>
           (
@@ -119,7 +119,7 @@ describe("虚拟项目 Composer 候选", () => {
       await $('//button[normalize-space(.)="Cancel" or normalize-space(.)="取消"]').click();
       await name.waitForDisplayed({ reverse: true });
       expect(await workspaceTrigger.getText()).toContain("E2E_VP14_PROJECT");
-      if (theme === "zai-light") {
+      if (theme === "nibi-light") {
         const originalId = await project.getAttribute("data-project-id");
         await edit.click();
         await name.setValue("E2E_VP14_EDITED");
@@ -267,7 +267,7 @@ describe("虚拟项目 Composer 候选", () => {
     const targetSelector = '[data-project-name="E2E_VP15_TARGET"]';
     const sourceSelector = '[data-project-name="E2E_VP14_PROJECT"]';
     try {
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await browser.execute(
           (theme) =>
             (

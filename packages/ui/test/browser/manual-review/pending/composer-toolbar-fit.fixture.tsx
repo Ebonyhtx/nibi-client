@@ -13,7 +13,7 @@ import "@/styles.css";
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "light" ? "light" : "dark";
 const chinese = params.get("locale") === "zh-CN";
-document.documentElement.className = `${theme} theme-zai-${theme}`;
+document.documentElement.className = `${theme} theme-nibi-${theme}`;
 
 function Fixture() {
   const ref = useComposerToolbarFit();

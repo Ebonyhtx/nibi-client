@@ -81,7 +81,7 @@ async function closeMenu() {
   await browser.keys("Escape");
   await $('[role="menu"]').waitForDisplayed({ reverse: true });
 }
-async function setTheme(theme: "zai-light" | "zai-dark") {
+async function setTheme(theme: "nibi-light" | "nibi-dark") {
   await browser.execute((value) => {
     const actions = (
       window as typeof window & { __testActions?: { setTheme?: (theme: string) => void } }
@@ -181,7 +181,7 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
 
   it("HM-01 英文草稿菜单顺序、导出日志和关于窗口", async function () {
     this.timeout(60_000);
-    await setTheme("zai-light");
+    await setTheme("nibi-light");
     await openMenu();
     const labels = await menuLabels();
     expect(labels).toEqual([
@@ -289,7 +289,7 @@ describe(`问号菜单应用入口（${expectedFlavor}）`, () => {
     await seedSettings({ locale: "zh-CN", localePreference: "zh-CN" });
     await browser.refresh();
     await enterWorkspace();
-    await setTheme("zai-dark");
+    await setTheme("nibi-dark");
     await clickTestIdByWebDriver(TID_TASK_SETTINGS_BUTTON);
     await $(`[data-testid="${TID_SETTINGS_PAGE}"]`).waitForDisplayed();
     await openMenu();

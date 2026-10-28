@@ -19,7 +19,7 @@ import type { PanelImperativeHandle } from "react-resizable-panels";
 import "@/styles.css";
 
 const params = new URLSearchParams(location.search);
-document.documentElement.classList.add(`theme-zai-${params.get("theme") ?? "light"}`);
+document.documentElement.classList.add(`theme-nibi-${params.get("theme") ?? "light"}`);
 const workspacePath = "/workspace/example";
 const workspaceIdentity = "fixture-workspace";
 const remoteSessionId = undefined;

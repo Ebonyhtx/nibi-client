@@ -8,7 +8,7 @@ function sync() {
   const bridge = window.nibiBridge;
   if (!bridge) return;
   const root = document.querySelector('main');
-  const theme = bridge.getTheme() === 'zai-dark' ? 'dark' : 'light';
+  const theme = bridge.getTheme() === 'nibi-dark' ? 'dark' : 'light';
   root.dataset.theme = theme;
   document.documentElement.dataset.theme = theme;
   root.dataset.appAuth = bridge.getAuthState()?.status || 'pending';

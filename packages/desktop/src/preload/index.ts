@@ -1007,9 +1007,12 @@ window.addEventListener("message", (event) => {
   });
 });
 
-ipcRenderer.on(PlatformChannels.TaskNotificationSound, () => {
-  window.postMessage(InternalChannels.TaskNotificationSound, "*");
-});
+ipcRenderer.on(
+  PlatformChannels.TaskNotificationSound,
+  (_event, status: TaskNotificationPayload["status"]) => {
+    window.postMessage({ type: InternalChannels.TaskNotificationSound, status }, "*");
+  },
+);
 
 ipcRenderer.on(PlatformChannels.UpdateReady, (_event, version: string) => {
   notifyUpdateReadyCallbacks(version);

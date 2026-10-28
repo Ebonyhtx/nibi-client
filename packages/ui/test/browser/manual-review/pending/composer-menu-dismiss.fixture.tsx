@@ -12,7 +12,7 @@ import type { PluginSandboxHandle } from "@nibi/shared/mcp-apps";
 import "@/styles.css";
 
 const params = new URLSearchParams(location.search);
-document.documentElement.className = `theme-zai-${params.get("theme") ?? "light"}`;
+document.documentElement.className = `theme-nibi-${params.get("theme") ?? "light"}`;
 const groups = [
   {
     key: "a",

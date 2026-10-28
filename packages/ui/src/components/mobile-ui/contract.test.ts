@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { DevicePlatformIcon, getDevicePlatformLabel } from "@nibi/ui/device-platform-icon";
-import { ZCodeAppLogo } from "@nibi/ui/app-logo";
+import { NibiAppLogo } from "@nibi/ui/app-logo";
 import { BottomSheet, BottomSheetTrigger } from "@nibi/ui/bottom-sheet";
 
 describe("mobile presentation package boundary", () => {
@@ -18,7 +18,7 @@ describe("mobile presentation package boundary", () => {
     },
   );
   it("retains logo and accessible dialog trigger exports", () => {
-    expect(renderToStaticMarkup(createElement(ZCodeAppLogo))).toContain('data-app-logo="zcode"');
+    expect(renderToStaticMarkup(createElement(NibiAppLogo))).toContain('data-app-logo="zcode"');
     expect(
       renderToStaticMarkup(
         createElement(BottomSheet, {}, createElement(BottomSheetTrigger, {}, "Choose")),

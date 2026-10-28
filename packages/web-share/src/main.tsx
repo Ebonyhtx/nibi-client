@@ -27,12 +27,13 @@ const root = createRoot(document.getElementById("root")!);
 const webAuthService = createWebAuthService();
 
 function resolveThemePreference(): Theme {
-  const saved = localStorage.getItem("zcode-theme");
-  return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme: "zai-light" });
+  const saved =
+    localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme"); // legacy-migration
+  return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme: "nibi-light" });
 }
 
 // Share 是独立入口，不会经过完整 Web 的 bootstrap；必须在渲染前同步根主题 class，
-// 否则页面外壳使用默认浅色 token，而 MessageResponse 会按 zai-dark 选择 github-dark，
+// 否则页面外壳使用默认浅色 token，而 MessageResponse 会按 nibi-dark 选择 github-dark，
 // 最终产生浅色页面套深色 Markdown 代码块的混合样式。
 const INITIAL_THEME = resolveThemePreference();
 applyTheme(INITIAL_THEME);

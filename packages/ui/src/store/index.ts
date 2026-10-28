@@ -255,7 +255,7 @@ export function createZCodeStore(
     theme: loadThemePreference(),
     setTheme: (theme: Theme) => {
       const normalizedTheme = normalizeThemePreference(theme);
-      writeSafeLocalStorage("zcode-theme", normalizedTheme);
+      writeSafeLocalStorage("nibi-theme", normalizedTheme);
       syncSystemThemeListener(normalizedTheme);
       applyTheme(normalizedTheme);
 

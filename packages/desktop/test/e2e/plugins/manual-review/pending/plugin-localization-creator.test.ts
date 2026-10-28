@@ -32,7 +32,7 @@ describe("PLM-LC-018/019/020 本地化与插件创建入口", () => {
     requirePluginManualReview();
     const fixture = await createPluginLifecycleFixture();
     await openPluginSettings();
-    await setPluginPresentation({ locale: "zh-CN", theme: "zai-light", width: 1440, height: 1000 });
+    await setPluginPresentation({ locale: "zh-CN", theme: "nibi-light", width: 1440, height: 1000 });
     await addLifecycleMarketplaceThroughUi(fixture);
     const countMarketCards = () =>
       browser.execute(
@@ -97,7 +97,7 @@ describe("PLM-LC-018/019/020 本地化与插件创建入口", () => {
     ).toBe(invalidSource);
     await browser.keys("Escape");
     // Electron 窗口最小宽度为 480；该宽度仍进入共享 UI 的手机断点。
-    await setPluginPresentation({ locale: "en-US", theme: "zai-dark", width: 480, height: 844 });
+    await setPluginPresentation({ locale: "en-US", theme: "nibi-dark", width: 480, height: 844 });
     await setInputValueByTestIdDom("plugin-store-search", "smzq");
     await waitForPluginControl("plugin-store-card", { pluginId: PLUGIN_LIFECYCLE_ID });
     await openAddMenu("plugin-store-create");

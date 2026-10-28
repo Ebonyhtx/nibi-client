@@ -18,7 +18,7 @@ async function scenario({ width, theme, locale, missingVersion = false, oldDeskt
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await context.addInitScript((value) => {
-    localStorage.setItem("zcode-theme", value);
+    localStorage.setItem("nibi-theme", value);
     localStorage.setItem("zcodejwttoken", "e2e-jwt");
     localStorage.setItem("oauth:active_provider", "zai");
     localStorage.setItem("oauth:zai:access_token", "e2e-access");
@@ -197,12 +197,12 @@ async function assertEventually(predicate) {
 
 try {
   for (const options of [
-    { width: 390, theme: "zai-light", locale: "zh-CN" },
-    { width: 390, theme: "zai-dark", locale: "en-US" },
-    { width: 1280, theme: "zai-light", locale: "en-US" },
-    { width: 1280, theme: "zai-dark", locale: "zh-CN" },
-    { width: 390, theme: "zai-dark", locale: "zh-CN", missingVersion: true },
-    { width: 390, theme: "zai-dark", locale: "zh-CN", oldDesktop: true },
+    { width: 390, theme: "nibi-light", locale: "zh-CN" },
+    { width: 390, theme: "nibi-dark", locale: "en-US" },
+    { width: 1280, theme: "nibi-light", locale: "en-US" },
+    { width: 1280, theme: "nibi-dark", locale: "zh-CN" },
+    { width: 390, theme: "nibi-dark", locale: "zh-CN", missingVersion: true },
+    { width: 390, theme: "nibi-dark", locale: "zh-CN", oldDesktop: true },
   ]) {
     await scenario(options);
     console.log("PASS RV01–RV03", options);

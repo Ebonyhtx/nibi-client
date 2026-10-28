@@ -1,13 +1,25 @@
-import { isWebRemoteControlThemeSeed, type WebRemoteControlThemeSeed } from "@nibi/shared";
+import {
+  isLegacyWebRemoteControlThemeSeed,
+  isWebRemoteControlThemeSeed,
+  type LegacyWebRemoteControlThemeSeed,
+  type WebRemoteControlThemeSeed,
+} from "@nibi/shared";
 
-export const WEB_REMOTE_CONTROL_DEFAULT_THEME: WebRemoteControlThemeSeed = "zai-dark";
+export const WEB_REMOTE_CONTROL_DEFAULT_THEME: WebRemoteControlThemeSeed = "nibi-dark";
 
 function normalizeWebRemoteControlThemeSeed(
-  theme: WebRemoteControlThemeSeed,
+  theme: WebRemoteControlThemeSeed | LegacyWebRemoteControlThemeSeed,
 ): WebRemoteControlThemeSeed {
-  if (theme === "dark") return "zai-dark";
-  if (theme === "light") return "zai-light";
+  if (theme === "dark" || theme === "zai-dark") return "nibi-dark"; // legacy-migration
+  if (theme === "light" || theme === "zai-light") return "nibi-light"; // legacy-migration
   return theme;
+}
+
+function resolveSeed(value: string | null | undefined): WebRemoteControlThemeSeed | null {
+  if (isWebRemoteControlThemeSeed(value) || isLegacyWebRemoteControlThemeSeed(value)) {
+    return normalizeWebRemoteControlThemeSeed(value);
+  }
+  return null;
 }
 
 export function resolveWebRemoteControlInitialTheme({
@@ -19,15 +31,11 @@ export function resolveWebRemoteControlInitialTheme({
   qrTheme?: string | null;
   defaultTheme?: WebRemoteControlThemeSeed;
 }): WebRemoteControlThemeSeed {
-  if (isWebRemoteControlThemeSeed(storedTheme)) {
-    return normalizeWebRemoteControlThemeSeed(storedTheme);
-  }
-
-  if (isWebRemoteControlThemeSeed(qrTheme)) {
-    return normalizeWebRemoteControlThemeSeed(qrTheme);
-  }
-
-  return normalizeWebRemoteControlThemeSeed(defaultTheme);
+  return (
+    resolveSeed(storedTheme) ??
+    resolveSeed(qrTheme) ??
+    normalizeWebRemoteControlThemeSeed(defaultTheme)
+  );
 }
 
 export function seedWebRemoteControlThemePreference(qrTheme?: string | null): void {
@@ -35,11 +43,18 @@ export function seedWebRemoteControlThemePreference(qrTheme?: string | null): vo
     return;
   }
 
-  const storedTheme = localStorage.getItem("zcode-theme");
+  const storedTheme =
+    localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme"); // legacy-migration
   const resolvedTheme = resolveWebRemoteControlInitialTheme({ storedTheme, qrTheme });
-  if (!storedTheme && isWebRemoteControlThemeSeed(qrTheme)) {
+  if (!storedTheme && resolveSeed(qrTheme)) {
     // Bugfix: 手机远控首次打开原来只用 Web 默认主题，无法继承扫码时桌面端主题。
     // 这里只在手机本地还没有主题偏好时写入一次，后续手机改主题不会反向影响桌面端。
-    localStorage.setItem("zcode-theme", resolvedTheme);
+    localStorage.setItem("nibi-theme", resolvedTheme);
+    return;
+  }
+
+  if (storedTheme && !localStorage.getItem("nibi-theme")) {
+    // legacy-migration: 旧键只在读到后迁移一次，之后统一写 nibi-theme。
+    localStorage.setItem("nibi-theme", resolvedTheme);
   }
 }

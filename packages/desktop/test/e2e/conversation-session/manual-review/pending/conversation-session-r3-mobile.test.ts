@@ -535,7 +535,7 @@ PY`,
       await mobile.getByRole("button", { name: "选择主题", exact: true }).click();
       await mobile.getByRole("menuitemradio", { name: label, exact: true }).click();
       await mobile.waitForFunction(
-        (value: string) => document.documentElement.classList.contains(`theme-zai-${value}`),
+        (value: string) => document.documentElement.classList.contains(`theme-nibi-${value}`),
         theme,
       );
       await mobile.getByRole("menu").waitFor({ state: "hidden" });
@@ -675,7 +675,7 @@ PY`,
         await mobile.getByRole("button", { name: "选择主题", exact: true }).click();
         await mobile.getByRole("menuitemradio", { name: label, exact: true }).click();
         await mobile.waitForFunction(
-          (value: string) => document.documentElement.classList.contains(`theme-zai-${value}`),
+          (value: string) => document.documentElement.classList.contains(`theme-nibi-${value}`),
           theme,
         );
         await mobile.getByRole("menu").waitFor({ state: "hidden" });

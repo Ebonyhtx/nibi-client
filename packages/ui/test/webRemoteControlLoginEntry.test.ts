@@ -9,7 +9,7 @@ import { LoginPanel } from "@/WelcomeScreen.js";
 
 const state = vi.hoisted(() => ({
   user: { id: "cached-user", username: "User" } as { id: string; username: string } | null,
-  theme: "zai-dark",
+  theme: "nibi-dark",
   oauthError: null,
   oauthSuccessSeq: 0,
   lastOAuthSuccessProvider: null,
@@ -61,7 +61,7 @@ vi.mock("@/components/ui/dialog.js", () => {
 vi.mock("@/components/ui/toast.js", () => ({ toast }));
 vi.mock("@/BotsDialog.js", () => ({ BotsDialog: () => null }));
 vi.mock("@/BotsDialog/shared.js", () => ({ ProviderIcon: () => null }));
-vi.mock("@/components/ui/ZCodeAboutLogo.js", () => ({ ZCodeAboutLogo: () => null }));
+vi.mock("@/components/ui/NibiAboutLogo.js", () => ({ NibiAboutLogo: () => null }));
 vi.mock("@/login/LoginApiKeyForm.js", () => ({ LoginApiKeyForm: () => null }));
 vi.mock("@/openWorkspacePageThemeHero.js", () => ({ ThemeHeroVisual: () => null }));
 vi.mock("@/lib/oauthProviderIcon.js", () => ({ renderOAuthProviderIcon: () => null }));

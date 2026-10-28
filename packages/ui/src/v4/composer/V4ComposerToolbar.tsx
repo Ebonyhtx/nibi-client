@@ -3,7 +3,7 @@
  * V4 composer 工具条。
  *
  * 展示件全部复用旧 chat-input-toolbar 的纯 props 组件（ModelConfigSelect /
- * ChatModeSwitchControl / ThoughtLevelCycleControl / ChatContextUsage），外观与旧
+ * ChatModeSwitchControl / ChatContextUsage），外观与旧
  * ChatInputToolbar 对齐；但状态编排是全新 v4 wiring，不复活旧 ChatInputToolbar 的
  * effect 链 / 旧协议写路径：
  * - 当前模型/档位来自 Composer；已运行会话的用量来自 snapshot.usage.contextWindow
@@ -28,7 +28,6 @@ import { ModelConfigSelect, type ModelSelectGroup } from "@/ModelConfigSelect.js
 import type { ComposerModelOptions } from "@/chat-input-toolbar/ComposerModelMenu.js";
 import { Button } from "@/components/ui/button.js";
 import { ChatContextUsage } from "@/chat-input-toolbar/display.js";
-import { ThoughtLevelCycleControl } from "@/chat-input-toolbar/ThoughtLevelCycleControl.js";
 import {
   getNextThoughtLevelValue,
   getThoughtLevelLabel,
@@ -152,7 +151,6 @@ function V4ComposerModelControlsImpl({
   );
   const openSettingsTab = useTabStore((state) => state.openSettingsTab);
   const modelTriggerRef = useRef<HTMLSpanElement | null>(null);
-  const thoughtTriggerRef = useRef<HTMLSpanElement | null>(null);
   // Ctrl+M 热键：递增 openRequestKey 请求 ModelConfigSelect 打开菜单（旧 handleOpenModelMenuShortcut 语义）。
   const [modelMenuOpenRequestKey, setModelMenuOpenRequestKey] = useState(0);
   const [recoveryPending, setRecoveryPending] = useState(false);
@@ -162,12 +160,6 @@ function V4ComposerModelControlsImpl({
   const handleModelPickerOpenChange = useCallback(
     (open: boolean) => {
       onConfigPickerOpenChange("model", open);
-    },
-    [onConfigPickerOpenChange],
-  );
-  const handleThoughtPickerOpenChange = useCallback(
-    (open: boolean) => {
-      onConfigPickerOpenChange("thought", open);
     },
     [onConfigPickerOpenChange],
   );
@@ -628,23 +620,6 @@ function V4ComposerModelControlsImpl({
           triggerIconClassName="hidden group-data-[composer-model-icon=true]/toolbar:inline-flex"
           focusSelectorOnClose={V4_COMPOSER_INPUT_SELECTOR}
           providerSubmenuClassName={providerSubmenuClassName}
-        />
-      ) : null}
-      {thoughtOption ? (
-        <ThoughtLevelCycleControl
-          composerCollapsePriority={3}
-          labelVisibilityClassName="inline-flex"
-          indicatorClassName="block"
-          option={thoughtOption}
-          onValueChange={handleThoughtValueChange}
-          disabled={disabled || recoveryPending}
-          intl={intl}
-          provider={displayProvider}
-          shortcutLabel={thoughtShortcutLabel}
-          triggerRef={thoughtTriggerRef}
-          open={activeConfigPicker === "thought"}
-          onOpenChange={handleThoughtPickerOpenChange}
-          restoreFocusSelector={V4_COMPOSER_INPUT_SELECTOR}
         />
       ) : null}
     </>

@@ -93,7 +93,7 @@ describe("CWP02 分区标题拖拽", () => {
           );
           await $('button[aria-label="Toggle sidebar"], button[aria-label="切换侧边栏"]').click();
         }
-        for (const theme of ["zai-light", "zai-dark"]) {
+        for (const theme of ["nibi-light", "nibi-dark"]) {
           await browser.execute(
             (value) =>
               (

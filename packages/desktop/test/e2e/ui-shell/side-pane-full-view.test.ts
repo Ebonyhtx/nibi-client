@@ -450,7 +450,7 @@ describe("Side Pane 完整视图（SPFV）", () => {
 async function saveThemeScreenshots(name: string) {
   const artifactDir = process.env.NIBI_E2E_ARTIFACT_DIR;
   if (!artifactDir) return;
-  for (const theme of ["zai-light", "zai-dark"]) {
+  for (const theme of ["nibi-light", "nibi-dark"]) {
     await browser.execute((value) => {
       const actions = (
         window as typeof window & { __testActions?: { setTheme(theme: string): void } }

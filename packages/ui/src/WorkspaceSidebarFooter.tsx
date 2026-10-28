@@ -52,6 +52,9 @@ import { normalizeInterfaceMode } from "@/lib/interfaceMode.js";
 import type { Theme } from "@/useTheme.js";
 import { WorkspaceWebRemoteControlTrigger } from "@/WorkspaceWebRemoteControlTrigger.js";
 import { WorkspaceSidebarFooterUsageSummaryContent } from "@/WorkspaceSidebarFooterUsageSummary.js";
+import { NibiCompanion } from "@/companion/NibiCompanion.js";
+import nibiBirdUrl from "@/assets/nibi/nibi-bird.png";
+import nibiBirdDarkUrl from "@/assets/nibi/nibi-bird-dark.svg";
 
 const DESKTOP_ZOOM_MIN_LEVEL = -3;
 const DESKTOP_ZOOM_MAX_LEVEL = 5;
@@ -103,6 +106,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
   activeTaskId,
   isDesktop = false,
   banner,
+  showCompanion = false,
   className,
 }: {
   theme: Theme;
@@ -121,6 +125,7 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
   activeTaskId?: string | null;
   isDesktop?: boolean;
   banner?: ReactNode;
+  showCompanion?: boolean;
   className?: string;
 }) {
   const { intl } = useZCodeIntl();
@@ -146,24 +151,20 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
   };
   const profileContent = (
     <>
-      <Avatar key={avatarKey} size="default">
-        {user?.avatarUrl ? <AvatarImage src={user.avatarUrl} alt={profileBadge} /> : null}
-        <AvatarFallback className="bg-background text-foreground">
-          {user ? (
-            avatarFallbackText
-          ) : showAuthRestoreLoading ? (
-            <>
-              {/* Bugfix: OAuth 启动恢复未落定前，footer 之前会直接显示未登录头像，
-                  用户很容易把“还在校验”误判成“已经退出”。
-                  这里用 loading 图标明确表达“状态确认中”，等恢复成功或失败后再展示最终状态。 */}
-              <Loader2 className="size-4 animate-spin" />
-              <span className="sr-only">{intl.formatMessage({ id: "common.loading" })}</span>
-            </>
-          ) : (
-            <User className="size-4" />
-          )}
-        </AvatarFallback>
-      </Avatar>
+      {showAuthRestoreLoading ? (
+        <Avatar size="default">
+          <AvatarFallback className="bg-background text-foreground">
+            {/* Bugfix: OAuth 启动恢复未落定前明确表达“状态确认中”，不要显示成未登录。 */}
+            <Loader2 className="size-4 animate-spin" />
+            <span className="sr-only">{intl.formatMessage({ id: "common.loading" })}</span>
+          </AvatarFallback>
+        </Avatar>
+      ) : (
+        <span className="nibi-footer-avatar" aria-hidden="true">
+          <img className="nibi-footer-avatar-light" src={nibiBirdUrl} alt="" />
+          <img className="nibi-footer-avatar-dark" src={nibiBirdDarkUrl} alt="" />
+        </span>
+      )}
       <div className="min-w-0 flex-1 overflow-hidden text-left">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate text-ui-base font-semibold text-foreground">
@@ -225,6 +226,12 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
     // footer 被 Settings 复用，页面专属边距由调用方传入，避免修改共享默认样式。
     <footer className={cn("flex shrink-0 flex-col gap-2.5 px-4 pt-2 pb-4", className)}>
       {banner}
+      {showCompanion ? (
+        <NibiCompanion
+          workspacePath={workspacePath}
+          workspaceIdentity={workspaceIdentity}
+        />
+      ) : null}
       <div className="flex min-w-0 gap-2">
         <DropdownMenu open={profileMenuOpen} onOpenChange={setProfileMenuOpen}>
           <DropdownMenuTrigger asChild>
@@ -343,14 +350,14 @@ export const WorkspaceSidebarFooter = memo(function WorkspaceSidebarFooterCompon
                       id: "sidebar.settings.systemDefault",
                     })}
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="zai-dark">
+                  <DropdownMenuRadioItem value="nibi-dark">
                     {intl.formatMessage({
-                      id: "sidebar.settings.theme.zai-dark",
+                      id: "sidebar.settings.theme.nibi-dark",
                     })}
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="zai-light">
+                  <DropdownMenuRadioItem value="nibi-light">
                     {intl.formatMessage({
-                      id: "sidebar.settings.theme.zai-light",
+                      id: "sidebar.settings.theme.nibi-light",
                     })}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>

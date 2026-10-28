@@ -28,31 +28,40 @@ declare global {
   }
 }
 
-type Theme = "light" | "dark" | "zai-light" | "zai-dark" | "system";
+type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
+// legacy-migration: 旧版本存储值，只在启动读取时兼容。
+type LegacyTheme = "zai-light" | "zai-dark"; // legacy-migration
 
-function resolveTheme(theme: Theme): "light" | "dark" {
-  if (theme === "system") {
+function normalizeTheme(theme: Theme | LegacyTheme): Theme {
+  if (theme === "dark" || theme === "zai-dark") return "nibi-dark"; // legacy-migration
+  if (theme === "light" || theme === "zai-light") return "nibi-light"; // legacy-migration
+  return theme;
+}
+
+function resolveTheme(theme: Theme | LegacyTheme): "light" | "dark" {
+  const normalized = normalizeTheme(theme);
+  if (normalized === "system") {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
-  return theme === "dark" || theme === "zai-dark" ? "dark" : "light";
+  return normalized === "dark" || normalized === "nibi-dark" ? "dark" : "light";
 }
 
 function applyResourceManagerTheme(): void {
-  const savedTheme = (localStorage.getItem("zcode-theme") as Theme | null) ?? DEFAULT_THEME;
-  const resolvedTheme = resolveTheme(savedTheme);
+  const savedTheme =
+    (localStorage.getItem("nibi-theme") as Theme | LegacyTheme | null) ??
+    (localStorage.getItem("zcode-theme") as LegacyTheme | null) ?? // legacy-migration
+    DEFAULT_THEME;
+  const normalizedTheme = normalizeTheme(savedTheme);
+  const resolvedTheme = resolveTheme(normalizedTheme);
   const appliedTheme =
-    savedTheme === "system"
+    normalizedTheme === "system"
       ? resolvedTheme === "dark"
-        ? "zai-dark"
-        : "zai-light"
-      : savedTheme === "dark"
-        ? "zai-dark"
-        : savedTheme === "light"
-          ? "zai-light"
-          : savedTheme;
+        ? "nibi-dark"
+        : "nibi-light"
+      : normalizedTheme;
   document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
-  document.documentElement.classList.toggle("theme-zai-light", appliedTheme === "zai-light");
-  document.documentElement.classList.toggle("theme-zai-dark", appliedTheme === "zai-dark");
+  document.documentElement.classList.toggle("theme-nibi-light", appliedTheme === "nibi-light");
+  document.documentElement.classList.toggle("theme-nibi-dark", appliedTheme === "nibi-dark");
 }
 
 applyResourceManagerTheme();

@@ -69,7 +69,7 @@ vi.mock("@/store/StoreProvider.js", () => ({
       theme: string;
       requestLoginEntry: typeof feedbackMocks.requestLoginEntry;
     }) => unknown,
-  ) => selector({ theme: "zai-dark", requestLoginEntry: feedbackMocks.requestLoginEntry }),
+  ) => selector({ theme: "nibi-dark", requestLoginEntry: feedbackMocks.requestLoginEntry }),
 }));
 
 const intlMock = vi.hoisted(() => ({

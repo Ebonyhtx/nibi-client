@@ -365,7 +365,7 @@ describe("Side Pane Tab responsive interactions", () => {
         ) > 10,
       { timeout: 5000, timeoutMsg: "Terminal resize handle 没有改变会话高度" },
     );
-    for (const theme of ["zai-light", "zai-dark"]) {
+    for (const theme of ["nibi-light", "nibi-dark"]) {
       await browser.execute((value) => {
         const actions = (
           window as typeof window & { __testActions?: { setTheme?: (theme: string) => void } }

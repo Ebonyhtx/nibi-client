@@ -263,8 +263,8 @@ function handleServicePortMessage(event: MessageEvent): void {
     return;
   }
 
-  if (event.data === InternalChannels.TaskNotificationSound) {
-    void playTaskNotificationSound();
+  if (event.data?.type === InternalChannels.TaskNotificationSound) {
+    void playTaskNotificationSound(event.data.status);
     return;
   }
 

@@ -1112,7 +1112,7 @@ export interface PlatformChannelMap {
     response: void;
   };
   [PlatformChannels.TaskNotificationSound]: {
-    request: void;
+    request: TaskNotificationPayload["status"];
     response: void;
   };
   [PlatformChannels.TaskNotificationClick]: {

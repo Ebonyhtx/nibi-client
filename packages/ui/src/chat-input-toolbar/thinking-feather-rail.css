@@ -1,0 +1,515 @@
+/* 思考强度「羽迹气流」v5：Feather Current 逐字移植（无鸟、无轨下圆点）。 */
+.composer-thinking-feather {
+  --composer-thinking-violet: #756df3;
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.composer-thinking-feather[data-disabled="true"] {
+  opacity: 0.5;
+}
+
+.composer-thinking-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 28px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #756df3 22%, #dce3ed);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(117, 109, 243, 0.045),
+    rgba(236, 130, 56, 0.04) 46%,
+    rgba(104, 160, 113, 0.035)
+  );
+}
+
+.composer-thinking-fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(88, 123, 168, 0.68),
+    rgba(117, 109, 243, 0.54) 45%,
+    rgba(236, 130, 56, 0.56) 100%
+  );
+  opacity: 0.56;
+  transform: translateY(-50%);
+  transition:
+    width 420ms ease-out,
+    top 420ms ease-out,
+    height 420ms ease-out,
+    transform 420ms ease-out,
+    opacity 420ms ease-out;
+}
+
+.composer-thinking-track.is-peak .composer-thinking-fill {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 0.56;
+  transform: none;
+}
+
+.composer-thinking-sheen {
+  position: absolute;
+  top: calc(50% - 2px);
+  left: 0;
+  width: 44px;
+  height: 4px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.36), transparent);
+  opacity: 0.42;
+  pointer-events: none;
+  animation: composer-thinking-sheen calc(var(--wind-duration) * 1.8) linear infinite;
+}
+
+.composer-thinking-feathers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.composer-thinking-feathers::before,
+.composer-thinking-feathers::after {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, #756df3 22%, transparent),
+    transparent
+  );
+  content: "";
+  opacity: 0.72;
+}
+
+.composer-thinking-feathers::after {
+  top: calc(50% + 24px);
+  opacity: 0.22;
+}
+
+.composer-thinking-wisp {
+  position: absolute;
+  left: -12%;
+  display: block;
+  width: 62%;
+  height: 22px;
+  border-top: 1px solid color-mix(in srgb, #756df3 24%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  transform: rotate(-5deg);
+  transform-origin: left center;
+}
+
+.composer-thinking-wisp--a {
+  top: 28%;
+  animation: composer-thinking-wisp calc(var(--wind-duration) * 1.7) ease-in-out -0.8s infinite;
+}
+
+.composer-thinking-wisp--b {
+  top: 54%;
+  width: 72%;
+  border-top-color: color-mix(in srgb, #ec8238 20%, transparent);
+  transform: rotate(3deg);
+  animation: composer-thinking-wisp calc(var(--wind-duration) * 1.35) ease-in-out -1.1s infinite
+    reverse;
+}
+
+.composer-thinking-wisp--c {
+  top: 73%;
+  width: 46%;
+  border-top-color: color-mix(in srgb, #68a071 18%, transparent);
+  transform: rotate(-8deg);
+  animation: composer-thinking-wisp calc(var(--wind-duration) * 1.9) ease-in-out -0.4s infinite;
+}
+
+.composer-thinking-leaf {
+  position: absolute;
+  top: calc(50% + var(--leaf-y));
+  left: var(--leaf-x);
+  display: block;
+  width: 24px;
+  height: 11px;
+  border-radius: 72% 14% 72% 14%;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--leaf-color) 82%, white),
+    var(--leaf-color) 62%,
+    color-mix(in srgb, var(--leaf-color) 70%, #253247)
+  );
+  clip-path: polygon(0 56%, 18% 24%, 74% 0, 100% 16%, 78% 52%, 100% 72%, 62% 88%, 18% 74%);
+  opacity: 0;
+  transform: translate3d(-26px, 0, 0) rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
+  transform-origin: 8% 52%;
+  filter: saturate(0.74);
+  backface-visibility: hidden;
+  contain: paint;
+  will-change: transform, opacity;
+  transition: opacity 520ms ease;
+}
+
+.composer-thinking-leaf::before {
+  position: absolute;
+  top: 51%;
+  left: 7%;
+  width: 84%;
+  height: 1px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--leaf-color) 30%, white);
+  content: "";
+  opacity: 0.62;
+  transform: rotate(-11deg);
+}
+
+.composer-thinking-leaf::after {
+  position: absolute;
+  inset: 20% 12% 15% 27%;
+  background: repeating-linear-gradient(
+    155deg,
+    transparent 0 3px,
+    color-mix(in srgb, var(--leaf-color) 28%, white) 3px 4px
+  );
+  clip-path: inherit;
+  content: "";
+  opacity: 0.45;
+}
+
+.composer-thinking-leaf.is-active {
+  animation-duration: var(--leaf-duration);
+  animation-timing-function: linear;
+  animation-delay: var(--leaf-delay);
+  animation-iteration-count: infinite;
+}
+
+.composer-thinking-leaf.path-0.is-active {
+  animation-name: composer-thinking-feather-wind;
+}
+
+.composer-thinking-leaf.path-1.is-active {
+  animation-name: composer-thinking-feather-rise;
+}
+
+.composer-thinking-leaf.path-2.is-active {
+  animation-name: composer-thinking-feather-dip;
+}
+
+.composer-thinking-leaf.path-3.is-active {
+  animation-name: composer-thinking-feather-arc;
+}
+
+.composer-thinking-leaf.path-4.is-active {
+  animation-name: composer-thinking-feather-tumble;
+}
+
+.composer-thinking-stops {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.composer-thinking-stop {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0;
+  transition:
+    opacity 320ms ease,
+    scale 220ms ease-out,
+    background-color 320ms ease;
+}
+
+.composer-thinking-feather[data-hovering="true"] .composer-thinking-stop,
+.composer-thinking-feather:has(input:focus-visible) .composer-thinking-stop {
+  opacity: 0.45;
+}
+
+.composer-thinking-feather[data-hovering="true"] .composer-thinking-stop[data-filled="true"],
+.composer-thinking-feather:has(input:focus-visible) .composer-thinking-stop[data-filled="true"] {
+  opacity: 0.75;
+}
+
+.composer-thinking-feather[data-hovering="true"] .composer-thinking-stop[data-near="true"],
+.composer-thinking-feather[data-hovering="true"] .composer-thinking-stop[data-current="true"],
+.composer-thinking-feather:has(input:focus-visible)
+  .composer-thinking-stop[data-current="true"] {
+  opacity: 1;
+  scale: 1.55;
+}
+
+:is(.dark, .theme-nibi-dark) .composer-thinking-track {
+  border-color: color-mix(in srgb, #948cff 34%, #30435e);
+  background: linear-gradient(
+    180deg,
+    rgba(117, 109, 243, 0.12),
+    rgba(236, 130, 56, 0.07) 48%,
+    rgba(104, 160, 113, 0.07)
+  );
+}
+
+:is(.dark, .theme-nibi-dark) .composer-thinking-stop {
+  background: color-mix(in srgb, #dbe5f6 50%, #30435e);
+}
+
+@keyframes composer-thinking-sheen {
+  from {
+    left: 0;
+  }
+  to {
+    left: var(--progress);
+  }
+}
+
+@keyframes composer-thinking-feather-wind {
+  0% {
+    opacity: 0;
+    transform: translate3d(-26px, 8px, 0) rotate(calc(var(--leaf-rotate) - 18deg))
+      scale(calc(var(--leaf-scale) * 0.68));
+  }
+  12% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 0.88;
+    transform: translate3d(calc(var(--leaf-drift) * 0.16 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.12), 0)
+      rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
+  }
+  53% {
+    opacity: 1;
+    transform: translate3d(
+        calc(var(--leaf-drift) * 0.46 * var(--wind-intensity)),
+        calc(var(--leaf-rise) * 0.58 + var(--leaf-sway) * 0.2),
+        0
+      )
+      rotate(calc(var(--leaf-rotate) + 26deg)) scale(calc(var(--leaf-scale) * 1.05));
+  }
+  74% {
+    opacity: 0.72;
+    transform: translate3d(
+        calc(var(--leaf-drift) * 0.77 * var(--wind-intensity)),
+        calc(var(--leaf-rise) + var(--leaf-sway)),
+        0
+      )
+      rotate(var(--leaf-rotate-end)) scale(calc(var(--leaf-scale) * 0.96));
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(
+        calc(var(--leaf-drift) * var(--wind-intensity) + 36px),
+        calc(var(--leaf-rise) + var(--leaf-fade) * 1.3),
+        0
+      )
+      rotate(calc(var(--leaf-rotate-end) + 32deg)) scale(calc(var(--leaf-scale) * 0.72));
+  }
+}
+
+@keyframes composer-thinking-feather-rise {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(-24px, 16px, 0) rotate(calc(var(--leaf-rotate) - 22deg))
+      scale(calc(var(--leaf-scale) * 0.7));
+  }
+  20% {
+    opacity: 0.84;
+    transform: translate3d(calc(var(--leaf-drift) * 0.22 * var(--wind-intensity)), calc(var(--leaf-rise) * -0.18), 0)
+      rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
+  }
+  48% {
+    opacity: 1;
+    transform: translate3d(calc(var(--leaf-drift) * 0.54 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.68), 0)
+      rotate(calc(var(--leaf-rotate) + 38deg)) scale(calc(var(--leaf-scale) * 1.08));
+  }
+  72% {
+    opacity: 0.55;
+    transform: translate3d(calc(var(--leaf-drift) * 0.86 * var(--wind-intensity)), calc(var(--leaf-rise) * 1.22), 0)
+      rotate(var(--leaf-rotate-end)) scale(calc(var(--leaf-scale) * 0.9));
+  }
+}
+
+@keyframes composer-thinking-feather-dip {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(-24px, -10px, 0) rotate(calc(var(--leaf-rotate) + 20deg))
+      scale(calc(var(--leaf-scale) * 0.7));
+  }
+  22% {
+    opacity: 0.82;
+    transform: translate3d(calc(var(--leaf-drift) * 0.2 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.2), 0)
+      rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
+  }
+  56% {
+    opacity: 1;
+    transform: translate3d(calc(var(--leaf-drift) * 0.58 * var(--wind-intensity)), calc(var(--leaf-rise) * -0.75), 0)
+      rotate(calc(var(--leaf-rotate) - 34deg)) scale(calc(var(--leaf-scale) * 1.03));
+  }
+  78% {
+    opacity: 0.58;
+    transform: translate3d(
+        calc(var(--leaf-drift) * 0.9 * var(--wind-intensity)),
+        calc(var(--leaf-rise) * -0.28 + var(--leaf-fade)),
+        0
+      )
+      rotate(var(--leaf-rotate-end)) scale(calc(var(--leaf-scale) * 0.88));
+  }
+}
+
+@keyframes composer-thinking-feather-arc {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(-28px, 4px, 0) rotate(calc(var(--leaf-rotate) - 28deg))
+      scale(calc(var(--leaf-scale) * 0.66));
+  }
+  18% {
+    opacity: 0.8;
+    transform: translate3d(calc(var(--leaf-drift) * 0.2 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.4), 0)
+      rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
+  }
+  44% {
+    opacity: 1;
+    transform: translate3d(calc(var(--leaf-drift) * 0.44 * var(--wind-intensity)), calc(var(--leaf-rise) * -1.1), 0)
+      rotate(calc(var(--leaf-rotate) + 54deg)) scale(calc(var(--leaf-scale) * 1.1));
+  }
+  68% {
+    opacity: 0.8;
+    transform: translate3d(calc(var(--leaf-drift) * 0.72 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.25), 0)
+      rotate(calc(var(--leaf-rotate-end) - 28deg)) scale(var(--leaf-scale));
+  }
+  86% {
+    opacity: 0.34;
+    transform: translate3d(calc(var(--leaf-drift) * 0.92 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.88), 0)
+      rotate(var(--leaf-rotate-end)) scale(calc(var(--leaf-scale) * 0.84));
+  }
+}
+
+@keyframes composer-thinking-feather-tumble {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(-24px, -4px, 0) rotate(calc(var(--leaf-rotate) - 40deg))
+      scale(calc(var(--leaf-scale) * 0.68));
+  }
+  16% {
+    opacity: 0.7;
+    transform: translate3d(calc(var(--leaf-drift) * 0.18 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.1), 0)
+      rotate(calc(var(--leaf-rotate) + 25deg)) scale(var(--leaf-scale));
+  }
+  42% {
+    opacity: 1;
+    transform: translate3d(calc(var(--leaf-drift) * 0.48 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.8), 0)
+      rotate(calc(var(--leaf-rotate) + 126deg)) scale(calc(var(--leaf-scale) * 1.08));
+  }
+  66% {
+    opacity: 0.68;
+    transform: translate3d(
+        calc(var(--leaf-drift) * 0.72 * var(--wind-intensity)),
+        calc(var(--leaf-rise) * -0.4 + var(--leaf-sway)),
+        0
+      )
+      rotate(calc(var(--leaf-rotate-end) + 180deg)) scale(calc(var(--leaf-scale) * 0.92));
+  }
+  88% {
+    opacity: 0.26;
+    transform: translate3d(calc(var(--leaf-drift) * 0.94 * var(--wind-intensity)), calc(var(--leaf-rise) * 0.5), 0)
+      rotate(calc(var(--leaf-rotate-end) + 240deg)) scale(calc(var(--leaf-scale) * 0.78));
+  }
+}
+
+@keyframes composer-thinking-wisp {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(-8%, 0, 0) rotate(-5deg) scaleX(0.72);
+  }
+  28% {
+    opacity: calc(0.18 + var(--wind-intensity) * 0.08);
+  }
+  58% {
+    opacity: calc(0.26 + var(--wind-intensity) * 0.1);
+    transform: translate3d(45%, -4px, 0) rotate(2deg) scaleX(1);
+  }
+  86% {
+    opacity: 0;
+    transform: translate3d(108%, 5px, 0) rotate(8deg) scaleX(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-thinking-sheen,
+  .composer-thinking-wisp,
+  .composer-thinking-leaf {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .composer-thinking-leaf.is-active {
+    opacity: 0.7;
+    transform: translate3d(0, 0, 0) rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
+  }
+
+  .composer-thinking-fill,
+  .composer-thinking-stop {
+    transition: none !important;
+  }
+}
+
+/* 原生 range 覆盖整条 36px 命中区；视觉圆钮已退役，只保留透明拖拽层。 */
+.composer-thinking-range::-webkit-slider-runnable-track {
+  height: 36px;
+  background: transparent;
+}
+
+.composer-thinking-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.composer-thinking-range::-moz-range-track {
+  height: 36px;
+  background: transparent;
+}
+
+.composer-thinking-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.composer-thinking-range::-moz-range-progress {
+  background: transparent;
+}

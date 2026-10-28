@@ -49,7 +49,7 @@ test("PCD: newly created projects select only the active draft", { timeout: 120_
     await page.locator('[data-session-id="draft"]').first().waitFor();
     for (const theme of ["light", "dark"]) {
       await page.locator("html").evaluate((element, value) => {
-        element.className = `${value} theme-zai-${value}`;
+        element.className = `${value} theme-nibi-${value}`;
       }, theme);
       for (const entry of ["sidebar", "composer"]) {
         const name = `E2E_PCD_${theme}_${entry}_${Date.now()}`;

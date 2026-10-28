@@ -1066,8 +1066,8 @@ export function SettingsPage({
       if (
         value === "light" ||
         value === "dark" ||
-        value === "zai-light" ||
-        value === "zai-dark" ||
+        value === "nibi-light" ||
+        value === "nibi-dark" ||
         value === "system"
       ) {
         runUserAction({

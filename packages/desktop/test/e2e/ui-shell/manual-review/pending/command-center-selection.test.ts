@@ -81,7 +81,7 @@ describe("Command Center 重名任务选中", () => {
 
   it("CC-SELECT-01：三个重名最近任务仅高亮鼠标/键盘指向的一行", async () => {
     const evidence = [];
-    for (const theme of ["zai-light", "zai-dark"]) {
+    for (const theme of ["nibi-light", "nibi-dark"]) {
       await browser.execute((value) => {
         const actions = (
           window as typeof window & {

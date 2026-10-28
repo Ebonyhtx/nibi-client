@@ -304,7 +304,7 @@ async function assertComposerRemoveVisibility() {
 }
 
 async function assertThemeSurfaces() {
-  for (const theme of ["zai-light", "zai-dark"] as const) {
+  for (const theme of ["nibi-light", "nibi-dark"] as const) {
     const changed = await browser.execute((nextTheme) => {
       const setTheme = (window as typeof window & { __testActions?: Record<string, unknown> })
         .__testActions?.setTheme;

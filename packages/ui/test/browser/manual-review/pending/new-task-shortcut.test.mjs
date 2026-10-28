@@ -46,7 +46,7 @@ test(
       );
       for (const theme of ["light", "dark"]) {
         await page.locator("html").evaluate((element, value) => {
-          element.className = `${value} theme-zai-${value}`;
+          element.className = `${value} theme-nibi-${value}`;
         }, theme);
         for (let index = 0; index < 2; index++) {
           const task = page.locator("[data-task-item-key]").filter({ visible: true });

@@ -8,7 +8,7 @@ import "@/styles.css";
 
 const params = new URLSearchParams(location.search);
 document.documentElement.className =
-  params.get("theme") === "light" ? "light theme-zai-light" : "dark theme-zai-dark";
+  params.get("theme") === "light" ? "light theme-nibi-light" : "dark theme-nibi-dark";
 const releases = new Map<string, () => void>();
 const service = {
   listPlugins: async () => ({ plugins: [], diagnostics: [] }),

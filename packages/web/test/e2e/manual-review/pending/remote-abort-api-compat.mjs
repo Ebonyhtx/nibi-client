@@ -17,8 +17,8 @@ try {
   for (const missing of [["any"], ["timeout"], ["any", "timeout"]])
     for (const entry of ["qr", "list"])
       for (const width of [390, 1024])
-        for (const theme of ["zai-light", "zai-dark"]) {
-          const locale = theme === "zai-light" ? "zh-CN" : "en-US";
+        for (const theme of ["nibi-light", "nibi-dark"]) {
+          const locale = theme === "nibi-light" ? "zh-CN" : "en-US";
           const h = await setup(browser, {
             width,
             theme,

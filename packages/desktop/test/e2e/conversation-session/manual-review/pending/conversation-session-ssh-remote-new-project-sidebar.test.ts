@@ -412,7 +412,7 @@ async function captureRemoteProjectThemes() {
           }),
         { timeout: 10_000, timeoutMsg: "窄屏侧栏未显示，不能保存无目标视觉证据" },
       );
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await setTheme(theme);
         await browser.waitUntil(() =>
           browser.execute(
@@ -425,6 +425,6 @@ async function captureRemoteProjectThemes() {
     }
   } finally {
     await emulate();
-    await setTheme("zai-light");
+    await setTheme("nibi-light");
   }
 }

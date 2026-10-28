@@ -10,7 +10,7 @@ import "@/styles.css";
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") ?? "light";
 const locale = params.get("locale") === "zh-CN" ? "zh-CN" : "en-US";
-document.documentElement.className = `${theme} theme-zai-${theme}`;
+document.documentElement.className = `${theme} theme-nibi-${theme}`;
 document.documentElement.style.setProperty("--ui-font-size", `${params.get("font") ?? 14}px`);
 const noop = () => {};
 const project: ProjectNodeProps["project"] = {

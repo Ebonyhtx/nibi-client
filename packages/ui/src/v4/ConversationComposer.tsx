@@ -664,6 +664,14 @@ function ConversationComposerImpl({
     requestedDelivery?: "startNow" | "queue" | "guide";
   } | null>(null);
   const [sendTooltipOpen, setSendTooltipOpen] = useState(false);
+  const [modelSweepKey, setModelSweepKey] = useState(0);
+  const currentModelKey = snapshot
+    ? `${snapshot.config.provider}::${snapshot.config.model}`
+    : null;
+  const lastSelectedModelRef = useRef<string | null>(currentModelKey);
+  useEffect(() => {
+    if (currentModelKey) lastSelectedModelRef.current = currentModelKey;
+  }, [currentModelKey]);
   // submit 经 ref 读取最新文本/pending，避免回调随每次输入变更引用。
   const textRef = useRef("");
   const contentRevisionRef = useRef(0);
@@ -2283,15 +2291,31 @@ function ConversationComposerImpl({
           action: "change_model",
           trigger: "select",
         },
-        operation: () =>
-          reasoningLevel === undefined
+        operation: () => {
+          // 切模型掠光：只加一层 1.1s 的视觉扫过，不参与模型选择/提交链路。
+          // 同一模型重复选择（或回答提问后重新同步模型）不重播。
+          const modelKey = `${nextProvider}::${nextModel}`;
+          if (lastSelectedModelRef.current !== modelKey) {
+            lastSelectedModelRef.current = modelKey;
+            setModelSweepKey((key) => key + 1);
+          }
+          return reasoningLevel === undefined
             ? onSelectModel(nextProvider, nextModel, sourceModel)
-            : onSelectModel(nextProvider, nextModel, sourceModel, reasoningLevel),
+            : onSelectModel(nextProvider, nextModel, sourceModel, reasoningLevel);
+        },
         completed: { resultSource: "optimistic_projection" },
         failureStage: "model_change",
       }),
     [onSelectModel],
   );
+  useEffect(() => {
+    if (modelSweepKey === 0) return undefined;
+    // 即使 reduced-motion/界面动效关闭导致 animationend 不触发，也要清掉元素；
+    // 否则切会话/切任务重新显示时，CSS 动画会重播。
+    const timer = window.setTimeout(() => setModelSweepKey(0), 1300);
+    return () => window.clearTimeout(timer);
+  }, [modelSweepKey]);
+
   const submitControlNode = useMemo(
     () => (
       <div className="flex min-w-0 items-center gap-1">
@@ -2549,6 +2573,21 @@ function ConversationComposerImpl({
         </div>
       ) : null}
       <div className={cn("chat-composer-input-surface relative w-full", contextHeader && "rounded-2xl bg-surface shadow-xl/5")}>
+        {modelSweepKey > 0 ? (
+          <span
+            className="pointer-events-none absolute inset-0 z-[6] overflow-hidden rounded-2xl"
+            aria-hidden="true"
+          >
+            <span
+              key={modelSweepKey}
+              className="composer-model-sweep"
+              aria-hidden="true"
+              onAnimationEnd={() =>
+                setModelSweepKey((current) => (current === modelSweepKey ? 0 : current))
+              }
+            />
+          </span>
+        ) : null}
         {contextHeader ? (
           // 旧 ChatViewComposer contextHeaderContent 同款包装（workspace 菜单 + Git 分支）。
           <div className="relative z-10 p-1.5 flex min-w-0 flex-wrap items-center gap-0">

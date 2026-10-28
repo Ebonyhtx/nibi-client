@@ -100,15 +100,6 @@ export function dispatchTaskNotification(options: {
     return false;
   }
 
-  if (!Notification.isSupported()) {
-    options.logger.warn("[show-task-notification] notification is not supported on this platform");
-    return false;
-  }
-
-  if (isAnyAppWindowFocused()) {
-    return false;
-  }
-
   const { taskId, status, requestId, title, body } = result.data;
   const notificationTitle = title.trim();
   const notificationBody = body.trim();
@@ -125,6 +116,19 @@ export function dispatchTaskNotification(options: {
   }
 
   if (shouldSuppressDuplicateTaskNotification(taskId, status, requestId)) {
+    return false;
+  }
+
+  // 通知音与「系统通知是否展示」解耦：窗口聚焦时系统通知会被抑制，
+  // 但任务完成/需要确认/出错的声音仍然要能听到。打开发送前必须先过校验与去重。
+  options.event.sender.send(PlatformChannels.TaskNotificationSound, status);
+
+  if (!Notification.isSupported()) {
+    options.logger.warn("[show-task-notification] notification is not supported on this platform");
+    return false;
+  }
+
+  if (isAnyAppWindowFocused()) {
     return false;
   }
 
@@ -162,6 +166,5 @@ export function dispatchTaskNotification(options: {
   });
 
   notification.show();
-  options.event.sender.send(PlatformChannels.TaskNotificationSound);
   return true;
 }

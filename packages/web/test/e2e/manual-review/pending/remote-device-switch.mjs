@@ -19,7 +19,7 @@ try {
     ? [Number(process.env.REMOTE_DEVICE_E2E_WIDTH)]
     : [390, 1024])
     for (const mode of ["home-only", "bridge"])
-      for (const theme of ["zai-light", "zai-dark"])
+      for (const theme of ["nibi-light", "nibi-dark"])
         for (const locale of ["zh-CN", "en-US"]) {
           const h = await setup(browser, { width, theme, locale, signedIn: true });
           const { page } = h;

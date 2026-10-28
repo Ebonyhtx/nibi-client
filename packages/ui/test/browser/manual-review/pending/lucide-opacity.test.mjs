@@ -66,7 +66,7 @@ for (const width of [390, 1200]) {
           </section>`,
           )
           .join("");
-        await page.setContent(`<html class="theme-zai-${theme}"><head><style>${css}</style>
+        await page.setContent(`<html class="theme-nibi-${theme}"><head><style>${css}</style>
           <style>body{overflow:auto;background:var(--color-background)!important;color:var(--color-foreground)}section{display:flex;margin:8px}section>div{width:110px}button{display:inline-block}svg{flex-shrink:0}</style></head><body>
           ${rows}
           <button id="hover" class="text-foreground-subtle hover:text-foreground">${icon()}</button>

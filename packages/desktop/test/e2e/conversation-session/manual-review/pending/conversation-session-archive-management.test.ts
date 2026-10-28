@@ -370,10 +370,10 @@ async function captureArchiveLayouts() {
         });
       }, width);
       for (const [locale, theme] of [
-        ["zh-CN", "zai-light"],
-        ["zh-CN", "zai-dark"],
-        ["en-US", "zai-light"],
-        ["en-US", "zai-dark"],
+        ["zh-CN", "nibi-light"],
+        ["zh-CN", "nibi-dark"],
+        ["en-US", "nibi-light"],
+        ["en-US", "nibi-dark"],
       ] as const) {
         await browser.execute(
           ({ locale, theme }) => {

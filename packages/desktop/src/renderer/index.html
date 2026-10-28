@@ -122,10 +122,13 @@
       // 代码在 JS bundle 之前执行，不能 import，也不该为一个常量引入一次额外请求。
       (() => {
         try {
-          const saved = localStorage.getItem("zcode-theme");
+          // legacy-migration: 旧版本存 zcode-theme / zai-*；启动壳先于 bundle，必须自己兼容。
+          const saved =
+            localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme");
           const resolvedDark =
             saved === "dark" ||
-            saved === "zai-dark" ||
+            saved === "nibi-dark" ||
+            saved === "zai-dark" || // legacy-migration
             (saved === "system" &&
               window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", resolvedDark);

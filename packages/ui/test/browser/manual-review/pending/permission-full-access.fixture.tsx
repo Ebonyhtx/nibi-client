@@ -6,7 +6,7 @@ import type { ZCodePermissionRequest } from "@nibi/shared";
 import "@/styles.css";
 const params = new URLSearchParams(location.search);
 document.documentElement.classList.add(
-  params.get("theme") === "light" ? "theme-zai-light" : "theme-zai-dark",
+  params.get("theme") === "light" ? "theme-nibi-light" : "theme-nibi-dark",
 );
 const request: ZCodePermissionRequest = {
   type: "permission_request",

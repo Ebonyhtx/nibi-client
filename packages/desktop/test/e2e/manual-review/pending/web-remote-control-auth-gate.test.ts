@@ -48,9 +48,9 @@ describe("桌面远控登录门禁", () => {
     expect(endpoint.relay).toBe(`${baseUrl.replace("http:", "ws:")}/api/v1/remote/ws2`);
     await enterWorkspace();
     for (const locale of ["zh-CN", "en-US"] as const) {
-      for (const theme of ["zai-light", "zai-dark"] as const) {
+      for (const theme of ["nibi-light", "nibi-dark"] as const) {
         await seedSettings({ locale, localePreference: locale });
-        await browser.execute((value) => localStorage.setItem("zcode-theme", value), theme);
+        await browser.execute((value) => localStorage.setItem("nibi-theme", value), theme);
         await browser.refresh();
         await enterWorkspace();
         expect(

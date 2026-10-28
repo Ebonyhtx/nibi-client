@@ -95,7 +95,7 @@ describe("项目侧栏长标题宽度", () => {
     // 停在会话区，排除标题 hover 动画；连续观察真实 ResizeObserver 循环。
     await $('[data-workspace-conversation-frame="true"]').moveTo();
     const evidence = [];
-    for (const theme of ["zai-light", "zai-dark"]) {
+    for (const theme of ["nibi-light", "nibi-dark"]) {
       await browser.execute((value) => {
         const actions = (
           window as typeof window & { __testActions?: { setTheme(theme: string): void } }

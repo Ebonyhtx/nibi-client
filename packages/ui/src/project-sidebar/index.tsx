@@ -333,6 +333,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
                 workspaceRemoteSessionId={props.workspaceRemoteSessionId}
                 isDesktop={props.isDesktop}
                 banner={banner}
+                showCompanion
               />
             </div>
           </div>

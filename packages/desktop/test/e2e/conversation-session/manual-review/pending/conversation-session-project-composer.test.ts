@@ -104,7 +104,7 @@ async function captureMenuLayouts() {
     for (const width of [1200, 390]) {
       await emulate(width);
       await browser.waitUntil(() => browser.execute((expected) => innerWidth === expected, width));
-      for (const value of ["zai-light", "zai-dark"]) {
+      for (const value of ["nibi-light", "nibi-dark"]) {
         await theme(value);
         await browser.waitUntil(() =>
           browser.execute(

@@ -87,7 +87,7 @@ const directory = {
   ],
 };
 try {
-  for (const theme of ["zai-light", "zai-dark"])
+  for (const theme of ["nibi-light", "nibi-dark"])
     for (const locale of ["zh-CN", "en-US"]) {
       const h = await setup(browser, { width: 390, theme, locale, signedIn: true });
       const { page } = h;

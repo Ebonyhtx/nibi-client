@@ -24,7 +24,7 @@ const remote = (name, extra = {}) => ({
 });
 try {
   for (const width of [390, 1024])
-    for (const theme of ["zai-light", "zai-dark"])
+    for (const theme of ["nibi-light", "nibi-dark"])
       for (const locale of ["zh-CN", "en-US"]) {
         const h = await setup(browser, { width, theme, locale, signedIn: true });
         const { page } = h;

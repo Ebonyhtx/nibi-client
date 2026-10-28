@@ -14,7 +14,7 @@ import "@/styles.css";
 
 const query = new URLSearchParams(location.search);
 const theme = query.get("theme") === "light" ? "light" : "dark";
-document.documentElement.className = `${theme} theme-zai-${theme}`;
+document.documentElement.className = `${theme} theme-nibi-${theme}`;
 
 function Fixture() {
   const [mounted, setMounted] = useState(false);

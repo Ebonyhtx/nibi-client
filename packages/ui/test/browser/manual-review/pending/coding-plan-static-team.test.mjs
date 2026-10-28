@@ -25,7 +25,7 @@ test("未登录使用静态目录展示个人和团队横幅", async () => {
       });
       for (const theme of ["light", "dark"]) {
         await page.locator("html").evaluate((element, value) => {
-          element.className = `${value} theme-zai-${value}`;
+          element.className = `${value} theme-nibi-${value}`;
         }, theme);
         const body = await page.locator("body").innerText();
         assert.match(body, /连接 BigModel|Connect BigModel/);

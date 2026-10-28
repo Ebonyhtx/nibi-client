@@ -7,7 +7,7 @@ import "@/styles.css";
 const params = new URLSearchParams(location.search);
 const theme = params.get("theme") === "dark" ? "dark" : "light";
 const locale = params.get("locale") === "en-US" ? "en-US" : "zh-CN";
-document.documentElement.className = `theme-zai-${theme}`;
+document.documentElement.className = `theme-nibi-${theme}`;
 createRoot(document.getElementById("root")!).render(
   <ZCodeIntlProvider initialLocale={locale}>
     <TooltipProvider>

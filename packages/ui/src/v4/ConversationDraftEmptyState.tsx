@@ -15,6 +15,19 @@ import { cn } from "@/components/lib/utils.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import { logger } from "@/logger.js";
+import nibiLoopLightUrl from "@/assets/nibi/nibi-loop-light.png";
+import nibiLoopDarkUrl from "@/assets/nibi/nibi-loop-dark.png";
+
+// 3072x2304 的精灵图偶尔会在路由切换的第一帧只绘出一半；提前 decode，
+// 让新建会话页首次挂载时直接命中已解码缓存。
+if (typeof Image !== "undefined") {
+  for (const url of [nibiLoopLightUrl, nibiLoopDarkUrl]) {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = url;
+    void image.decode?.().catch(() => {});
+  }
+}
 
 const GREETING_BOUNDARY_HOURS = [5, 9, 12, 14, 18, 23] as const;
 const GREETING_MIN_FONT_SIZE_PX = 20;

@@ -1,4 +1,4 @@
-import type { ZCodeAppLogoProps } from "@/components/mobile-ui/contract.js";
+import type { NibiAppLogoProps } from "@/components/mobile-ui/contract.js";
 import { cn } from "@/components/lib/utils.js";
 import appLogoUrl from "@/assets/nibi/nibi-app-icon.png";
 
@@ -7,7 +7,7 @@ import appLogoUrl from "@/assets/nibi/nibi-app-icon.png";
  * 装饰性图片：调用方负责在旁边给出可读的品牌文字，避免屏幕阅读器重复朗读。
  * data-app-logo 的取值是既有的测试钩子，不代表品牌。
  */
-export function ZCodeAppLogo({ className }: ZCodeAppLogoProps) {
+export function NibiAppLogo({ className }: NibiAppLogoProps) {
   return (
     <img
       src={appLogoUrl}

@@ -241,11 +241,11 @@ describe("composer combined model and thinking picker", () => {
     render(createElement(Harness));
     const slider = screen.getByRole("slider");
     const shell = slider.parentElement!;
-    const thumb = shell.querySelector(".composer-thought-slider-thumb");
+    const thumb = shell.querySelector(".composer-thinking-track");
     fireEvent.click(screen.getByRole("menuitemradio", { name: "GLM-5.3", exact: true }));
     expect(screen.getByRole("slider")).toBe(slider);
     expect(
-      screen.getByRole("slider").parentElement!.querySelector(".composer-thought-slider-thumb"),
+      screen.getByRole("slider").parentElement!.querySelector(".composer-thinking-track"),
     ).not.toBe(thumb);
   });
   it("shows a model selection label while open and restores selection text after closing", () => {
@@ -309,7 +309,7 @@ describe("composer combined model and thinking picker", () => {
     expect(slider.getAttribute("aria-valuetext")).toBe("High");
     expect(
       slider
-        .parentElement!.querySelector(".composer-thought-slider-fill")
+        .parentElement!.querySelector(".composer-thinking-fill")
         ?.getAttribute("data-max"),
     ).toBe("true");
 
@@ -317,7 +317,7 @@ describe("composer combined model and thinking picker", () => {
     expect(slider.getAttribute("aria-valuetext")).toBe("Medium");
     expect(
       slider
-        .parentElement!.querySelector(".composer-thought-slider-fill")
+        .parentElement!.querySelector(".composer-thinking-fill")
         ?.getAttribute("data-max"),
     ).toBe("false");
     expect(screen.queryByTestId("composer-thought-bubbles")).toBeNull();

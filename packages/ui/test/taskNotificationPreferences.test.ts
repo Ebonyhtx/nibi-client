@@ -89,11 +89,66 @@ describe("task notification preferences", () => {
       "../src/lib/taskNotificationSound.js"
     );
 
-    await playTaskNotificationSound();
+    await playTaskNotificationSound("completed");
 
     expect(audioConstructor).toHaveBeenCalledTimes(1);
     expect(pause).toHaveBeenCalledTimes(1);
     expect(audio.currentTime).toBe(0);
     expect(play).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["completed", "task-complete-chirp"],
+    ["permission_request", "task-confirm-chime"],
+    ["elicitation_request", "task-confirm-chime"],
+    ["failed", "task-error-feather"],
+  ] as const)("maps %s to the approved sound", async (status, assetName) => {
+    const audio = {
+      pause: vi.fn(),
+      currentTime: 5,
+      play: vi.fn(() => Promise.resolve()),
+      preload: "",
+    };
+    const audioConstructor = vi.fn(function AudioMock() {
+      return audio;
+    });
+    Object.defineProperty(globalThis, "Audio", {
+      configurable: true,
+      value: audioConstructor,
+    });
+    localStorageState.set("zcode-notification-enabled", "true");
+    localStorageState.set("zcode-notification-sound-enabled", "true");
+
+    const { playTaskNotificationSound } = await import(
+      "../src/lib/taskNotificationSound.js"
+    );
+    await playTaskNotificationSound(status);
+
+    expect(audioConstructor).toHaveBeenCalledTimes(1);
+    expect(String(audioConstructor.mock.calls[0]?.[0])).toContain(assetName);
+  });
+
+  it("keeps feedback_update silent because no sound was assigned", async () => {
+    const audioConstructor = vi.fn(function AudioMock() {
+      return {
+        pause: vi.fn(),
+        currentTime: 0,
+        play: vi.fn(() => Promise.resolve()),
+        preload: "",
+      };
+    });
+    Object.defineProperty(globalThis, "Audio", {
+      configurable: true,
+      value: audioConstructor,
+    });
+    localStorageState.set("zcode-notification-enabled", "true");
+    localStorageState.set("zcode-notification-sound-enabled", "true");
+
+    const { playTaskNotificationSound } = await import(
+      "../src/lib/taskNotificationSound.js"
+    );
+    await playTaskNotificationSound("feedback_update");
+
+    expect(audioConstructor).not.toHaveBeenCalled();
   });
 });

@@ -128,7 +128,7 @@ describe("本地项目原生多目录选择", () => {
         await browser.waitUntil(() =>
           browser.execute((nextWidth) => innerWidth === nextWidth, width),
         );
-        for (const theme of ["zai-light", "zai-dark"]) {
+        for (const theme of ["nibi-light", "nibi-dark"]) {
           await browser.execute(
             (value) => (window as ThemeWindow).__testActions!.setTheme(value),
             theme,
@@ -207,7 +207,7 @@ describe("本地项目原生多目录选择", () => {
       (window as ThemeWindow).__testActions!.getTheme(),
     );
     try {
-      for (const theme of ["zai-light", "zai-dark"]) {
+      for (const theme of ["nibi-light", "nibi-dark"]) {
         await browser.execute(
           (value) => (window as ThemeWindow).__testActions!.setTheme(value),
           theme,

@@ -19,7 +19,7 @@ await mkdir(artifacts, { recursive: true });
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 const results = [];
 const configurations = [1024, 390].flatMap((width) =>
-  ["zai-light", "zai-dark"].flatMap((theme) =>
+  ["nibi-light", "nibi-dark"].flatMap((theme) =>
     ["zh-CN", "en-US"].map((locale) => ({ width, theme, locale })),
   ),
 );

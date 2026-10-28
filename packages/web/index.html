@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#161616" />
+    <meta name="theme-color" content="#171716" />
     <meta name="color-scheme" content="dark" />
     <!-- Bugfix: Chrome dev 下可能不发 favicon 网络请求；内嵌小尺寸 App 图标，避免标签页回退到默认图标。 -->
     <link
@@ -18,24 +18,24 @@
         // Bugfix: Web 远控跨 workspace 跳转时，JS bundle 还没执行前就会先渲染启动壳。
         // 这里提前按本地主题偏好决定首屏底色，避免 dark 用户在这一帧看到白底闪烁。
         // 默认浅色，与 @nibi/ui 的 DEFAULT_THEME 对齐（这段在 bundle 之前跑，只能写字面量）。
-        const STORAGE_KEY = "zcode-theme";
-        const DEFAULT_THEME = "zai-light";
+        const STORAGE_KEY = "nibi-theme";
+        // legacy-migration: 旧版本存储键/主题值，启动壳先于 bundle，必须自己兼容。
+        const LEGACY_STORAGE_KEY = "zcode-theme";
+        const DEFAULT_THEME = "nibi-light";
         const BROWSER_THEME_COLORS = {
-          dark: "#161616",
-          light: "#f8f8f8",
+          dark: "#171716",
+          light: "#f9f2e4",
         };
         const BOOTSTRAP_SNAPSHOT_KEY = "nibi:web-remote-control:bootstrap-shell";
 
         const normalizeResolvedTheme = (theme) => {
-          if (theme === "dark") return "dark";
-          if (theme === "light") return "light";
-          if (theme === "zai-dark") return "dark";
-          if (theme === "zai-light") return "light";
+          if (theme === "dark" || theme === "nibi-dark" || theme === "zai-dark") return "dark"; // legacy-migration
+          if (theme === "light" || theme === "nibi-light" || theme === "zai-light") return "light"; // legacy-migration
           return theme;
         };
 
         const syncBrowserThemeSurface = (theme) => {
-          document.documentElement.setAttribute("data-zcode-browser-theme-surface", theme);
+          document.documentElement.setAttribute("data-nibi-browser-theme-surface", theme);
           document.documentElement.style.colorScheme = theme;
           document
             .querySelector('meta[name="theme-color"]')
@@ -58,8 +58,8 @@
                   typeof snapshot.background === "string"
                     ? snapshot.background
                     : normalizedTheme === "dark"
-                      ? "#0f172a"
-                      : "#f8fafc",
+                      ? "#171716"
+                      : "#f9f2e4",
                 );
                 document.documentElement.style.setProperty(
                   "--zcode-bootstrap-fg",
@@ -87,7 +87,10 @@
             }
           }
 
-          const saved = localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+          const saved =
+            localStorage.getItem(STORAGE_KEY) ||
+            localStorage.getItem(LEGACY_STORAGE_KEY) ||
+            DEFAULT_THEME;
           const resolved =
             saved === "system"
               ? window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -118,7 +121,7 @@
       }
 
       body {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #0f172a));
+        background: var(--zcode-bootstrap-bg, var(--color-background, #171716));
         color: var(--zcode-bootstrap-fg, var(--color-foreground, #e2e8f0));
         font-family:
           Inter,
@@ -129,22 +132,22 @@
       }
 
       html[data-zcode-bootstrap-theme="light"] body {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #f8fafc));
+        background: var(--zcode-bootstrap-bg, var(--color-background, #f9f2e4));
         color: var(--zcode-bootstrap-fg, var(--color-foreground, #334155));
       }
 
-      html[data-zcode-browser-theme-surface],
-      html[data-zcode-browser-theme-surface] body,
-      html[data-zcode-browser-theme-surface] #root {
+      html[data-nibi-browser-theme-surface],
+      html[data-nibi-browser-theme-surface] body,
+      html[data-nibi-browser-theme-surface] #root {
         /* 修复原因：共享 UI 样式为 Electron vibrancy 强制透明根背景；浏览器入口必须用语义背景
            覆盖该桌面专属行为，否则浏览器工具栏、overscroll 和页面画布会回退为系统白色。 */
-        background: var(--color-background, var(--zcode-bootstrap-bg, #161616)) !important;
+        background: var(--color-background, var(--zcode-bootstrap-bg, #171716)) !important;
       }
 
-      html[data-zcode-browser-theme-surface="light"],
-      html[data-zcode-browser-theme-surface="light"] body,
-      html[data-zcode-browser-theme-surface="light"] #root {
-        background: var(--color-background, var(--zcode-bootstrap-bg, #f8f8f8)) !important;
+      html[data-nibi-browser-theme-surface="light"],
+      html[data-nibi-browser-theme-surface="light"] body,
+      html[data-nibi-browser-theme-surface="light"] #root {
+        background: var(--color-background, var(--zcode-bootstrap-bg, #f9f2e4)) !important;
       }
 
       .zcode-boot-loading {
@@ -154,12 +157,12 @@
         width: 100%;
         height: 100%;
         /* Bugfix: UI 全局样式会把 body/#root 置为透明，预渲染壳必须自己承接主题背景，否则深色主题会露出浏览器白底。 */
-        background: var(--zcode-bootstrap-bg, var(--color-background, #0f172a));
+        background: var(--zcode-bootstrap-bg, var(--color-background, #171716));
         color: var(--zcode-bootstrap-fg, var(--color-foreground, #e2e8f0));
       }
 
       html[data-zcode-bootstrap-theme="light"] .zcode-boot-loading {
-        background: var(--zcode-bootstrap-bg, var(--color-background, #f8fafc));
+        background: var(--zcode-bootstrap-bg, var(--color-background, #f9f2e4));
         color: var(--zcode-bootstrap-fg, var(--color-foreground, #334155));
       }
 
