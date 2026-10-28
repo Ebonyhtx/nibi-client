@@ -34,7 +34,7 @@ export type LoginCompleteReason = "oauth" | "apiKey" | "skip";
 export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
   return (
     <main className="relative flex h-full min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6">
-      <ThemeHeroVisual className="absolute inset-0" showBird />
+      <ThemeHeroVisual className="absolute inset-0" showFeathers />
       {/* 原生拖拽命中不受 pointer-events/z-index 约束；拖拽层必须避开窗控，且先于 no-drag 区声明。 */}
       <div className="pointer-events-none absolute left-0 top-0 right-0 z-10 flex h-12 items-center [app-region:drag] platform-windows-desktop:right-[134px] platform-linux-desktop:right-[134px]" />
       <DesktopOverlayWindowControls />

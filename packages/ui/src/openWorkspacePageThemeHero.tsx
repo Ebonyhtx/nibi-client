@@ -60,36 +60,50 @@ export function useResolvedThemeHeroPalette(): ThemeHeroPalette {
   return getThemeHeroPalette(resolvedTheme);
 }
 
-function HeroCreature({ isDark }: { isDark: boolean }) {
+function HeroCreature({
+  isDark,
+  showBird,
+  showFeathers,
+}: {
+  isDark: boolean;
+  showBird: boolean;
+  showFeathers: boolean;
+}) {
   return (
     <div
       aria-hidden="true"
       className={cn("nibi-hero-creature", isDark && "nibi-hero-creature--dark")}
     >
-      <img
-        src={nibiPerchedUrl}
-        alt=""
-        draggable={false}
-        className="nibi-hero-perched"
-      />
-      <img
-        src={featherOrangeUrl}
-        alt=""
-        draggable={false}
-        className="nibi-hero-feather nibi-hero-feather--orange"
-      />
-      <img
-        src={featherPurpleUrl}
-        alt=""
-        draggable={false}
-        className="nibi-hero-feather nibi-hero-feather--purple"
-      />
-      <img
-        src={featherSageUrl}
-        alt=""
-        draggable={false}
-        className="nibi-hero-feather nibi-hero-feather--sage"
-      />
+      {showBird ? (
+        <img
+          src={nibiPerchedUrl}
+          alt=""
+          draggable={false}
+          className="nibi-hero-perched"
+        />
+      ) : null}
+      {showFeathers ? (
+        <>
+          <img
+            src={featherOrangeUrl}
+            alt=""
+            draggable={false}
+            className="nibi-hero-feather nibi-hero-feather--orange"
+          />
+          <img
+            src={featherPurpleUrl}
+            alt=""
+            draggable={false}
+            className="nibi-hero-feather nibi-hero-feather--purple"
+          />
+          <img
+            src={featherSageUrl}
+            alt=""
+            draggable={false}
+            className="nibi-hero-feather nibi-hero-feather--sage"
+          />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -99,8 +113,11 @@ export function ThemeHeroVisual(props: {
   contentClassName?: string;
   children?: ReactNode;
   showBird?: boolean;
+  showFeathers?: boolean;
 }) {
   const palette = useResolvedThemeHeroPalette();
+  const showBird = Boolean(props.showBird);
+  const showFeathers = props.showFeathers ?? showBird;
 
   return (
     <div className={cn("relative overflow-hidden", palette.panel, props.className)}>
@@ -116,7 +133,9 @@ export function ThemeHeroVisual(props: {
           palette.glowSecondary,
         )}
       />
-      {props.showBird ? <HeroCreature isDark={palette.isDark} /> : null}
+      {showBird || showFeathers ? (
+        <HeroCreature isDark={palette.isDark} showBird={showBird} showFeathers={showFeathers} />
+      ) : null}
       {props.children ? (
         <div className={cn("relative z-10", props.contentClassName)}>{props.children}</div>
       ) : null}
