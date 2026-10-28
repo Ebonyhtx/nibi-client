@@ -3,6 +3,7 @@ import type { ProjectTask } from "@/project-sidebar/contract.js";
 import { useProjectDirectory } from "@/project-sidebar/ProjectDirectoryProvider.js";
 import { mutateProjectTask } from "@/project-sidebar/task-mutation.js";
 import { archiveTaskKey } from "@/project-sidebar/archive-view.js";
+import { findArchiveTaskRowRect, playNibiFeatherFallFromRect } from "@/lib/nibiFeatherFall.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { resolveRemoteWorkspaceSessionIdForTarget } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
@@ -28,7 +29,11 @@ export function useArchiveManagement() {
   const locked = useRef(false);
   const latest = useRef(directory);
   latest.current = directory;
-  const run = async (tasks: ProjectTask[], operation: ArchiveOperation) => {
+  const run = async (
+    tasks: ProjectTask[],
+    operation: ArchiveOperation,
+    originRect?: DOMRect,
+  ) => {
     if (locked.current || !tasks.length) return;
     // 固定确认时的身份集合；搜索变化、新归档和重复点击不能扩充已经确认的批次。
     const candidates = [
@@ -51,6 +56,15 @@ export function useArchiveManagement() {
         }))
       )
         return;
+      // 确认后再取行位置，避免确认期间列表滚动/过滤导致飘羽起点过期；折叠组没有行，用触发按钮兜底。
+      const featherRects = new Map<string, DOMRect>();
+      if (operation === "delete") {
+        for (const task of candidates) {
+          const rect = findArchiveTaskRowRect(task.taskId);
+          if (rect) featherRects.set(archiveTaskKey(task), rect);
+        }
+      }
+      let fallbackFeatherPlayed = false;
       for (const task of candidates) {
         if (
           !latest.current.tree.tasks.some(
@@ -71,8 +85,13 @@ export function useArchiveManagement() {
             operation === "delete" ? { kind: "delete" } : { kind: "archive", archived: false },
             remoteSessionId,
           );
-          if (operation === "delete")
+          if (operation === "delete") {
             removeTaskState(task.workspacePath, task.taskId, task.workspaceIdentity);
+            const key = archiveTaskKey(task);
+            const rect = featherRects.get(key) ?? (!fallbackFeatherPlayed ? originRect : undefined);
+            if (rect && !featherRects.has(key)) fallbackFeatherPlayed = true;
+            playNibiFeatherFallFromRect(rect);
+          }
           counts.succeeded++;
         } catch (error) {
           counts.failed++;

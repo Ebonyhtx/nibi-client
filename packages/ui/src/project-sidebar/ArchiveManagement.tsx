@@ -59,7 +59,9 @@ function ArchiveManagementContent() {
           variant="ghost"
           disabled={state.busy || state.loading || Boolean(state.error) || !rows.length}
           className="bg-destructive-surface text-destructive-surface-foreground hover:bg-destructive-surface"
-          onClick={() => void state.run(rows, "delete")}
+          onClick={(event) =>
+            void state.run(rows, "delete", event.currentTarget.getBoundingClientRect())
+          }
         >
           <Trash2 className="size-4" />
           {msg("deleteAll")}

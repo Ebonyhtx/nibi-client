@@ -15,6 +15,7 @@ import { TaskListLoadingHint } from "@/TaskListLoadingHint.js";
 import { TaskRenameDialog } from "@/TaskRenameDialog.js";
 import { buildTaskWorkspaceKey } from "@/lib/taskQueryCache.js";
 import { compareZCodeTaskListItems } from "@/lib/taskListOrdering.js";
+import { findTaskRowRect, playNibiFeatherFallFromRect } from "@/lib/nibiFeatherFall.js";
 import { logger } from "@/logger.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 
@@ -155,10 +156,14 @@ export const TaskList = memo(function TaskList({
         return;
       }
 
+      const originRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setPendingArchiveTaskId(null);
-      await onArchiveTaskRef.current(taskId);
+      const archived = await onArchiveTaskRef.current(taskId);
+      if (archived && !isArchived) {
+        playNibiFeatherFallFromRect(originRect);
+      }
     },
-    [handleCancelRenameTask, readOnlyReason],
+    [handleCancelRenameTask, isArchived, readOnlyReason],
   );
 
   const handleStartRenameTask = useCallback(
@@ -197,11 +202,15 @@ export const TaskList = memo(function TaskList({
       if (readOnlyReason) {
         return;
       }
+      const originRect = findTaskRowRect(taskId);
       setPendingArchiveTaskId(null);
       handleCancelRenameTask();
-      await onArchiveTaskRef.current(taskId);
+      const archived = await onArchiveTaskRef.current(taskId);
+      if (archived && !isArchived) {
+        playNibiFeatherFallFromRect(originRect);
+      }
     },
-    [handleCancelRenameTask, readOnlyReason],
+    [handleCancelRenameTask, isArchived, readOnlyReason],
   );
 
   const handleSubmitRenameTask = useCallback(

@@ -52,6 +52,7 @@ import {
   moveTaskToTopByMenu,
 } from "@/project-sidebar/grouped/view.js";
 import { mutateProjectTask, type ProjectTaskMutation } from "@/project-sidebar/task-mutation.js";
+import { findTaskRowRect, playNibiFeatherFallFromRect } from "@/lib/nibiFeatherFall.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { resolveRemoteWorkspaceSessionIdForTarget } from "@/hooks/useResolvedRemoteWorkspaceSessionId.js";
 import { useRemoteWorkspaceSessionStore } from "@/store/remoteWorkspaceSessionStore.js";
@@ -210,16 +211,20 @@ export function TaskGroupedView({
     return () => cancelAnimationFrame(frame);
   }, [draftFocusVersion, draftGroupId, drag.root]);
   const mutate = async (task: ProjectTask, mutation: ProjectTaskMutation) => {
+    const originRect =
+      mutation.kind === "archive" && mutation.archived ? findTaskRowRect(task.taskId) : null;
     const result = await mutateProjectTask(
       { service, controller },
       task,
       mutation,
       getTaskRemoteSessionId(task),
     );
-    if (mutation.kind === "archive" && mutation.archived)
+    if (mutation.kind === "archive" && mutation.archived) {
       useZCodeSessionStore
         .getState()
         .removeTaskState(task.workspacePath, task.taskId, task.workspaceIdentity);
+      playNibiFeatherFallFromRect(originRect);
+    }
     await refresh();
     return result;
   };

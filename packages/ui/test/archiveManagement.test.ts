@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   mutateTask: vi.fn(),
   confirm: vi.fn(),
   removeTaskState: vi.fn(),
+  findArchiveRow: vi.fn(),
+  playFeather: vi.fn(),
 }));
 vi.mock("@/project-sidebar/ProjectDirectoryProvider.js", () => ({
   useProjectDirectory: () => mocks.directory,
@@ -19,6 +21,10 @@ vi.mock("@/hooks/useWorkspaceServices.js", () => ({
   useBaseWorkspaceServices: () => ({ windowControllerService: mocks, zcodeTaskService: {} }),
 }));
 vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => mocks.confirm }));
+vi.mock("@/lib/nibiFeatherFall.js", () => ({
+  findArchiveTaskRowRect: mocks.findArchiveRow,
+  playNibiFeatherFallFromRect: mocks.playFeather,
+}));
 vi.mock("@/store/zcodeSessionStore.js", () => ({
   useZCodeSessionStore: (select: any) => select(mocks),
 }));
@@ -179,6 +185,15 @@ it("cancelled deletion does not mutate; one in-flight batch rejects duplicate cl
   expect(result.current.result).toEqual({ succeeded: 1, failed: 1, skipped: 0 });
   expect(mocks.directory.refresh).toHaveBeenCalledOnce();
   expect(result.current.busy).toBe(false);
+});
+it("plays the feather from the visible archived row after a successful delete", async () => {
+  const { result } = setup();
+  const rowRect = { right: 100, top: 40, height: 32 } as DOMRect;
+  mocks.findArchiveRow.mockReturnValue(rowRect);
+  await act(async () => {
+    await result.current.run([tree().tasks[0]!], "delete");
+  });
+  expect(mocks.playFeather).toHaveBeenCalledWith(rowRect);
 });
 it("does not expand the confirmed batch and skips rows unarchived while the dialog is open", async () => {
   const { result, rerender } = setup();

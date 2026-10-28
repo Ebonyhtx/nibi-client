@@ -32,7 +32,11 @@ export function ArchiveGroupCard({
   name: string;
   sort: ArchiveSort;
   disabled: boolean;
-  onAction: (rows: ProjectTask[], operation: ArchiveOperation) => Promise<void>;
+  onAction: (
+    rows: ProjectTask[],
+    operation: ArchiveOperation,
+    originRect?: DOMRect,
+  ) => Promise<void>;
 }) {
   const { intl, locale } = useZCodeIntl();
   const dateFormat = new Intl.DateTimeFormat(locale, {
@@ -97,7 +101,10 @@ export function ArchiveGroupCard({
               <DropdownMenuItem
                 data-testid="archive-group-delete"
                 variant="destructive"
-                onSelect={() => void onAction(group.tasks, "delete")}
+                onSelect={(event) => {
+                  const target = event.currentTarget as HTMLElement | null;
+                  void onAction(group.tasks, "delete", target?.getBoundingClientRect());
+                }}
               >
                 {msg("deleteAll")}
               </DropdownMenuItem>
@@ -138,7 +145,9 @@ export function ArchiveGroupCard({
                         { id: "archives.deleteTask" },
                         { title: task.title },
                       )}
-                      onClick={() => void onAction([task], "delete")}
+                      onClick={(event) =>
+                        void onAction([task], "delete", event.currentTarget.getBoundingClientRect())
+                      }
                     >
                       <Trash2 className="size-4 text-foreground-subtle" />
                     </Button>
