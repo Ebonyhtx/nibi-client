@@ -1225,6 +1225,10 @@ function RootInner({
   }, [nibiLogin]);
   const handleWelcomeScreenComplete = useCallback(
     async (reason: LoginCompleteReason) => {
+      if (reason === "oauth") {
+        // 登录成功需要可见确认：Hero 会立刻关闭，光靠左下角头像变化太隐蔽。
+        toast(intl.formatMessage({ id: "login.success" }));
+      }
       await refreshAppSettings();
       if (
         welcomeScreenOpenReason !== "startup-provider-required" ||
@@ -1249,6 +1253,7 @@ function RootInner({
     [
       allowOpenWorkspace,
       handleEnsureConversationWorkspace,
+      intl,
       refreshAppSettings,
       welcomeScreenOpenReason,
       workspaceShellPath,

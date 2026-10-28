@@ -7035,6 +7035,9 @@ const zhCN: Record<string, string> = {
   "nibi.membership.dialog.retry": "重试",
   "nibi.membership.dialog.purchaseComplete": "支付成功，会员已生效。",
   "nibi.membership.dialog.purchaseSyncing": "正在同步会员状态…",
+  "nibi.membership.dialog.sessionExpired": "登录状态已失效，请重新登录后重试。",
+  "nibi.membership.dialog.openFailed": "会员页暂时无法打开，请检查网络后重试。",
+  "login.success": "已登录 NIBI 账号",
   "nibi.membership.dialog.purchaseSyncFailed":
     "会员状态同步失败，付费插件暂时不可用。请重试；多次失败请重启客户端。",
   "nibi.membership.dialog.bannedTitle": "账号已被暂停使用",

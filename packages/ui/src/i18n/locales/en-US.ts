@@ -7383,6 +7383,9 @@ const enUS: Record<string, string> = {
   "nibi.membership.dialog.retry": "Retry",
   "nibi.membership.dialog.purchaseComplete": "Payment complete — membership is active.",
   "nibi.membership.dialog.purchaseSyncing": "Syncing membership status…",
+  "nibi.membership.dialog.sessionExpired": "Your session has expired. Sign in again and retry.",
+  "nibi.membership.dialog.openFailed": "Couldn't open the membership page. Check your network and retry.",
+  "login.success": "Signed in to NIBI",
   "nibi.membership.dialog.purchaseSyncFailed":
     "Failed to sync membership status; paid plugins stay locked until it succeeds. Retry, or restart the app if it keeps failing.",
   "nibi.membership.dialog.bannedTitle": "Account suspended",

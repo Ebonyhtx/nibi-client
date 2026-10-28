@@ -7,6 +7,7 @@ import nibiIcon from "@/assets/nibi/nibi-app-icon.png";
 import { useOAuth } from "@/hooks/useOAuth.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useServices } from "@/hooks/useServices.js";
+import { logger } from "@/logger.js";
 import {
   nibiMembershipAllowsPaidPlugins,
   resolveNibiMembershipPhase,
@@ -20,6 +21,22 @@ import {
 
 /** 会员页站点（未带 handoff 时的兜底地址；实际由 host 换码后给出）。 */
 export const NIBI_MEMBERSHIP_URL = "https://nibistudio.top/membership/?embedded=app";
+
+/**
+ * 收银台失败文案收敛：原始错误（含 HTTP 状态码、服务端术语）只进日志；
+ * 界面只给用户能照着做的两类：会话失效 / 暂时打不开。
+ */
+function resolveCheckoutErrorCopy(
+  intl: ReturnType<typeof useZCodeIntl>["intl"],
+  error: unknown,
+): string {
+  const message = error instanceof Error ? error.message : String(error);
+  logger.warn("[membership] checkout failed", { message });
+  if (/登录凭证缺失|请先在客户端登录|请重新登录/i.test(message)) {
+    return intl.formatMessage({ id: "nibi.membership.dialog.sessionExpired" });
+  }
+  return intl.formatMessage({ id: "nibi.membership.dialog.openFailed" });
+}
 
 /** 与封禁提示文案中的邮箱保持一致，用于高亮和单击选中。 */
 const NIBI_SUPPORT_EMAIL = "contact@nibistudio.top";
@@ -143,10 +160,10 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
         setPhase("banned");
         return;
       }
-      setError(err instanceof Error ? err.message : String(err));
+      setError(resolveCheckoutErrorCopy(intl, err));
       setPhase("error");
     }
-  }, [oauthService]);
+  }, [intl, oauthService]);
 
   const checkSession = useCallback(async () => {
     setPhase("checking");
@@ -159,10 +176,10 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
       }
       await openCheckout();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(resolveCheckoutErrorCopy(intl, err));
       setPhase("error");
     }
-  }, [oauthService, openCheckout]);
+  }, [intl, oauthService, openCheckout]);
 
   useEffect(() => {
     void checkSession();
