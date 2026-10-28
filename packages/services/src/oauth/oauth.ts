@@ -77,10 +77,11 @@ export interface IOAuthService {
   cancelPending(provider?: OAuthProviderId): Promise<void>;
 
   /**
-   * NIBI 会员状态：客户端是否已登录 NIBI 账号 + 本地 license 判定（读缓存，不联网）。
+   * NIBI 会员状态：客户端是否已登录 NIBI 账号 + 本地 license 判定（默认读缓存，不联网）。
+   * `force: true` 时先真实请求一次 /licenses/check（购买/续费完成后必须用它恢复门禁）。
    * 收费插件安装前的同步在 host 的安装钩子里做，这里只服务 UI。
    */
-  getNibiMembershipStatus(): Promise<NibiMembershipStatus>;
+  getNibiMembershipStatus(options?: { force?: boolean }): Promise<NibiMembershipStatus>;
 
   /**
    * 客户端已登录时，取一个带一次性 handoff 码的会员页 URL 给内嵌 webview。

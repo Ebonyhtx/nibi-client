@@ -50,6 +50,10 @@ import { PluginUninstallConfirmDialog } from "@/settings/PluginUninstallConfirmD
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
+import {
+  nibiMembershipAllowsPaidPlugins,
+  resolveNibiMembershipPhase,
+} from "@/settings/nibiMembershipState.js";
 import { claimMarketplaceAutoRefresh } from "@/settings/officialMarketplaceAutoRefresh.js";
 import { consumePluginStoreOpenTarget } from "@/lib/pluginStoreNavigation.js";
 import { SettingsBreadcrumbReporter } from "@/settings/SettingsHeaderBreadcrumb.js";
@@ -211,16 +215,17 @@ export function PluginStorePage({
   const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
   const detailItem = detailPluginId ? (itemById.get(detailPluginId) ?? null) : null;
   // 会员专享插件的 UX 门禁（宿主机仍是最终门禁）：未开通/已到期时直接弹开通页，
-  // 不再让用户先去市场顶部找入口。
+  // 不再让用户先去市场顶部找入口。缓存非可用时先强制在线检查一次——
+  // 刚购买/续费完的缓存还没更新，直接弹窗会把唯一能恢复状态的路径挡在门外。
   const membership = useNibiMembership();
   const [membershipOpen, setMembershipOpen] = useState(false);
   const requireMembership = useCallback(
-    (item: StorePluginItem | null | undefined): boolean => {
+    async (item: StorePluginItem | null | undefined): Promise<boolean> => {
       if (item?.paid !== true || membership.canUsePaidPlugins) return false;
       setMembershipOpen(true);
       return true;
     },
-    [membership.canUsePaidPlugins],
+    [membership],
   );
   const marketingRequest = useStore(marketingNavigation, (state) => state.request);
   const isMarketingDestinationVisible = useOptionalTabStore((state) => {
@@ -423,7 +428,8 @@ export function PluginStorePage({
   const handleInstall = useCallback(
     async (item: StorePluginItem) => {
       // 会员专享：先弹开通页。宿主机在安装前仍会二次校验，客户端判断只负责体验。
-      if (requireMembership(item)) return;
+      console.log("DBG pageStore version", usePluginManagementStore.getState().operationVersion, "wp", usePluginManagementStore.getState().workspacePath);
+      if (await requireMembership(item)) return;
       const succeeded = item.restorable
         ? await restoreBuiltin(item.id, operationService)
         : await installPlugin(item.name, item.marketplace, operationService, "user");
@@ -442,7 +448,7 @@ export function PluginStorePage({
 
   const handleUpdatePlugin = useCallback(
     async (pluginId: string) => {
-      if (requireMembership(itemById.get(pluginId))) return;
+      if (await requireMembership(itemById.get(pluginId))) return;
       await updatePlugin(pluginId, operationService);
       if (usePluginManagementStore.getState().error) {
         return;
@@ -519,27 +525,31 @@ export function PluginStorePage({
       // 打开 UI 只在会话右侧市场（embedded）提供；主导航市场整行进入详情。
       onOpenUi: embedded
         ? (item) => {
-            if (requireMembership(item)) return;
-            void pluginUi.open(
-              item.id,
-              item.info?.enabled
-                ? undefined
-                : async () => {
-                    if (requireMembership(item)) return false;
-                    const enabled = await setEnabled(item.id, true, operationService, "workspace");
-                    const error = usePluginManagementStore.getState().error;
-                    if (!enabled && error && /会员|membership/i.test(error)) {
-                      setMembershipOpen(true);
-                    }
-                    return enabled;
-                  },
-            );
+            void (async () => {
+              if (await requireMembership(item)) return;
+              await pluginUi.open(
+                item.id,
+                item.info?.enabled
+                  ? undefined
+                  : async () => {
+                      if (await requireMembership(item)) return false;
+                      const enabled = await setEnabled(item.id, true, operationService, "workspace");
+                      const error = usePluginManagementStore.getState().error;
+                      if (!enabled && error && /会员|membership/i.test(error)) {
+                        setMembershipOpen(true);
+                      }
+                      return enabled;
+                    },
+              );
+            })();
           }
         : undefined,
       onSetEnabled: (pluginId, enabled) => {
         // 已安装的会员插件在到期后“启用/使用”同样先弹开通页。
-        if (enabled && requireMembership(itemById.get(pluginId))) return;
-        void setEnabled(pluginId, enabled, operationService, "workspace");
+        void (async () => {
+          if (enabled && (await requireMembership(itemById.get(pluginId)))) return;
+          await setEnabled(pluginId, enabled, operationService, "workspace");
+        })();
       },
       onInstall: (item) => void handleInstall(item),
       onUninstall: uninstall.requestUninstall,

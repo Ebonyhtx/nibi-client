@@ -2426,6 +2426,7 @@ export function createLocalServices(options: {
     : undefined;
   const oauthService = createOAuthService(credentialService, {
     apiClient,
+    nibiLicenseSync,
     onProviderLogout: handleOAuthProviderLogout,
   });
   const zcodeJwtLogoutLogger = createServiceLogger("zcode-jwt-logout");

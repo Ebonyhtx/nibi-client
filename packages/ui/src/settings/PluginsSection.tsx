@@ -57,6 +57,10 @@ import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
 import {
+  nibiMembershipAllowsPaidPlugins,
+  resolveNibiMembershipPhase,
+} from "@/settings/nibiMembershipState.js";
+import {
   buildStoreItems,
   type StorePluginItem,
   resolveManagedPluginDisplay,
@@ -264,12 +268,20 @@ function PluginList({
     [storeItemById],
   );
   const requireMembership = useCallback(
-    (pluginId: string): boolean => {
+    async (pluginId: string): Promise<boolean> => {
       if (!isPaidPlugin(pluginId) || membership.canUsePaidPlugins) return false;
+      // 缓存非可用时先强制在线检查一次（刚购买/续费的场景），仍不可用才弹开通页。
+      const refreshed = await membership.refresh({ force: true });
+      const allowed =
+        refreshed !== null &&
+        refreshed.loggedIn &&
+        refreshed.membership !== null &&
+        nibiMembershipAllowsPaidPlugins(resolveNibiMembershipPhase(refreshed));
+      if (allowed) return false;
       setMembershipOpen(true);
       return true;
     },
-    [isPaidPlugin, membership.canUsePaidPlugins],
+    [isPaidPlugin, membership],
   );
   const visiblePlugins = useMemo(() => {
     if (!storeMatchesTarget) return [];
@@ -353,7 +365,7 @@ function PluginList({
   ]);
   const handleSetEnabled = useCallback(
     async (pluginId: string, enabled: boolean) => {
-      if (enabled && requireMembership(pluginId)) return false;
+      if (enabled && (await requireMembership(pluginId))) return false;
       const plugin = plugins.find((candidate) => candidate.id === pluginId);
       const pluginLabel = plugin
         ? resolveManagedPluginDisplay(plugin, storeItemById.get(plugin.id), locale).name
@@ -422,7 +434,7 @@ function PluginList({
   });
   const handleUpdatePlugin = useCallback(
     async (pluginId: string) => {
-      if (requireMembership(pluginId)) return;
+      if (await requireMembership(pluginId)) return;
       await updatePlugin(pluginId, pluginManagementService);
       if (usePluginManagementStore.getState().error) return;
       await refreshAfterPluginChange();
@@ -502,12 +514,14 @@ function PluginList({
       },
       onOpenUi: onOpenUi
         ? (item) => {
-            if (requireMembership(item.id)) return;
-            onOpenUi(
-              item,
-              target,
-              item.info?.enabled ? undefined : () => handleSetEnabled(item.id, true),
-            );
+            void (async () => {
+              if (await requireMembership(item.id)) return;
+              onOpenUi(
+                item,
+                target,
+                item.info?.enabled ? undefined : () => handleSetEnabled(item.id, true),
+              );
+            })();
           }
         : undefined,
       onInstall: () => onOpenPluginStore(),

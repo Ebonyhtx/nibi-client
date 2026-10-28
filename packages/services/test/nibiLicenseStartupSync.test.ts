@@ -133,3 +133,99 @@ describe("startup license sync (revocation freshness)", () => {
     expect(decision.allowed).toBe(false);
   });
 });
+
+/** 响应队列 + 可控挂起：第一个请求等待测试放行，用来编排 in-flight 时序。 */
+function createGatedHarness(input: {
+  publicKeys: Record<string, string>;
+  token: string;
+  state: NibiLicenseSnapshot;
+  responses: Array<{ status: number; body: unknown }>;
+}) {
+  const store = new Map<string, string>([
+    [NIBI_DEVICE_ID_KEY, "device-1234"],
+    [NIBI_LICENSE_TOKEN_KEY, input.token],
+    [NIBI_LICENSE_STATE_KEY, JSON.stringify(input.state)],
+  ]);
+  let releaseFirst: (() => void) | null = null;
+  const firstGate = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const request = vi.fn(async () => {
+    const index = request.mock.calls.length;
+    if (index === 1) await firstGate;
+    const next = input.responses[index - 1];
+    if (!next) throw new Error("unexpected extra license request");
+    return new Response(JSON.stringify(next.body), {
+      status: next.status,
+      headers: { "content-type": "application/json" },
+    });
+  });
+  const sync = createNibiLicenseSync({
+    apiClient: { request } as unknown as ApiClient,
+    credentialService: {
+      load: async (key) => store.get(key) ?? null,
+      save: async (key, value) => {
+        store.set(key, value);
+      },
+      delete: async (key) => {
+        store.delete(key);
+      },
+    },
+    now: () => NOW,
+    publicKeys: input.publicKeys,
+    resolveEndpointOrigin: () => "https://api.nibistudio.top",
+  });
+  return { request, store, sync, releaseFirst: () => releaseFirst?.() };
+}
+
+describe("license sync force semantics", () => {
+  it("a force sync runs its own online check instead of being swallowed by an in-flight sync", async () => {
+    const { publicKeys, signToken } = makeSigner();
+    const token = signToken();
+    const { request, sync, releaseFirst } = createGatedHarness({
+      publicKeys,
+      token,
+      // 检查已过 72h 间隔、还在 7 天宽限内：非 force 的 sync 也会发起在线检查，
+      // 且首个请求被测试挂起，才有 in-flight 可言。
+      state: snapshot(3 * DAY),
+      responses: [
+        { status: 200, body: { authorized: true, license: { token, plan: "pro" } } },
+        { status: 403, body: { authorized: false, reason: "revoked" } },
+      ],
+    });
+
+    const background = sync.sync(false);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    const forced = sync.sync(true);
+    // 放行第一个请求，让链式 force 排在其后执行。
+    releaseFirst();
+    const [backgroundDecision, forcedDecision] = await Promise.all([background, forced]);
+    // 两个请求各拿各的响应：background 恢复 active，force 拿到的是撤销结果，
+    // 而不是复用第一个请求的 authorized。
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(backgroundDecision.status).toBe("active");
+    expect(forcedDecision.status).toBe("denied");
+  });
+
+  it("a clear during an in-flight sync invalidates the response and does not resurrect the license", async () => {
+    const { publicKeys, signToken } = makeSigner();
+    const token = signToken();
+    const { request, store, sync, releaseFirst } = createGatedHarness({
+      publicKeys,
+      token,
+      state: snapshot(2 * MINUTE),
+      responses: [
+        { status: 200, body: { authorized: true, license: { token, plan: "pro" } } },
+      ],
+    });
+
+    const background = sync.sync(true);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    // 请求在飞时退出登录：响应作废、可能写回的凭证再删一次。
+    await sync.clear();
+    releaseFirst();
+    await background;
+    expect(store.has(NIBI_LICENSE_TOKEN_KEY)).toBe(false);
+    expect(store.has(NIBI_LICENSE_STATE_KEY)).toBe(false);
+  });
+});

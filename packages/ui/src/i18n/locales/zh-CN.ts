@@ -7034,6 +7034,9 @@ const zhCN: Record<string, string> = {
   "nibi.membership.dialog.loadError": "会员页加载失败，请检查网络后重试",
   "nibi.membership.dialog.retry": "重试",
   "nibi.membership.dialog.purchaseComplete": "支付成功，会员已生效。",
+  "nibi.membership.dialog.purchaseSyncing": "正在同步会员状态…",
+  "nibi.membership.dialog.purchaseSyncFailed":
+    "会员状态同步失败，付费插件暂时不可用。请重试；多次失败请重启客户端。",
   "nibi.membership.dialog.bannedTitle": "账号已被暂停使用",
   "nibi.membership.dialog.bannedHint":
     "该账号暂时无法登录或使用会员权益。如认为处理有误，请使用注册邮箱发送邮件至 contact@nibistudio.top，主题写「账号申诉 - 用户名」，并提供账号与相关说明。我们会在收到完整材料后 7 个工作日内答复。",

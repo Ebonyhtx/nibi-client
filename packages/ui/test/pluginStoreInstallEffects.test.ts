@@ -111,8 +111,8 @@ it.each([false, true])(
       marketplace: "example",
       restorable,
     } as never);
-    await vi.waitFor(() => expect(store.getState().activeOperations).toEqual([]));
-    expect(store.getState().error).toBe("installation failed");
+    await vi.waitFor(() => expect(store.getState().error).toBe("installation failed"));
+    expect(store.getState().activeOperations).toEqual([]);
     expect(effects.invalidate).not.toHaveBeenCalled();
     expect(effects.skills).not.toHaveBeenCalled();
   },
@@ -134,8 +134,8 @@ it.each([false, true])(
       marketplace: "example",
       restorable,
     } as never);
-    await vi.waitFor(() => expect(store.getState().activeOperations).toEqual([]));
-    expect(effects.invalidate).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(effects.invalidate).toHaveBeenCalledTimes(1));
     expect(effects.skills).toHaveBeenCalledTimes(1);
+    expect(store.getState().activeOperations).toEqual([]);
   },
 );

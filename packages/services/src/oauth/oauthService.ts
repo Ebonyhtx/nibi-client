@@ -22,6 +22,7 @@ import {
 } from "@nibi/shared";
 import type { ICredentialService } from "../credential/credential.js";
 import { readLicenseDecision } from "../license/nibiLicenseClient.js";
+import type { NibiLicenseSync } from "../license/nibiLicenseSync.js";
 import { createServiceLogger } from "../logger/serviceLogger.js";
 import { readApiJson } from "../providers/api/apiJson.js";
 import type { IOAuthService, NibiMembershipStatus } from "./oauth.js";
@@ -79,6 +80,8 @@ interface OAuthServiceDependencies {
   now?: () => number;
   env?: NodeJS.ProcessEnv;
   onProviderLogout?: (provider: OAuthProviderId, accountIdentity?: string | null) => Promise<void>;
+  /** 购买/续费后 force 一次真实 /licenses/check 用；缺省时 force 退化为读缓存。 */
+  nibiLicenseSync?: NibiLicenseSync;
 }
 
 function readTrimmedString(value: unknown): string | null {
@@ -136,6 +139,7 @@ export class OAuthService implements IOAuthService {
   ) => Promise<void>;
   private readonly apiClient?: ApiClient;
   private readonly env: NodeJS.ProcessEnv;
+  private readonly nibiLicenseSync?: NibiLicenseSync;
   private pendingState: PendingState | null = null;
   private oauthFlowStartGeneration = 0;
   private oauthFlowStartProvider: OAuthProviderId | null = null;
@@ -156,6 +160,7 @@ export class OAuthService implements IOAuthService {
     this.onProviderLogout = dependencies.onProviderLogout;
     this.apiClient = dependencies.apiClient;
     this.env = dependencies.env ?? process.env;
+    this.nibiLicenseSync = dependencies.nibiLicenseSync;
 
     const adapters =
       dependencies.adapters ??
@@ -1208,11 +1213,16 @@ export class OAuthService implements IOAuthService {
     await this.notifyProvidersLogout(providers, accountIdentities);
   }
 
-  /** NIBI 会员状态（读本地缓存，不联网）。 */
-  async getNibiMembershipStatus(): Promise<NibiMembershipStatus> {
+  /** NIBI 会员状态（默认读本地缓存，不联网）。`force` 时先真实跑一次 /licenses/check。 */
+  async getNibiMembershipStatus(options?: { force?: boolean }): Promise<NibiMembershipStatus> {
     const activeProvider = await this.repo.getActiveProvider();
     if (activeProvider !== NIBI_PROVIDER_ID) {
       return { loggedIn: false, membership: null };
+    }
+    if (options?.force === true) {
+      // 购买/续费完成后的唯一可靠恢复路径：真实在线检查并写回设备 license；
+      // 失败不吞——调用方（会员弹窗）要能显示可重试的错误。
+      await this.nibiLicenseSync?.sync(true);
     }
     const decision = await readLicenseDecision({
       credentials: this.credentialService,

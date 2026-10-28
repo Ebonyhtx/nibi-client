@@ -8,6 +8,11 @@ import { useOAuth } from "@/hooks/useOAuth.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useServices } from "@/hooks/useServices.js";
 import {
+  nibiMembershipAllowsPaidPlugins,
+  resolveNibiMembershipPhase,
+} from "@/settings/nibiMembershipState.js";
+import { notifyNibiMembershipInvalidated } from "@/settings/useNibiMembership.js";
+import {
   NIBI_MEMBERSHIP_WEBVIEW_PARTITION,
   NibiMembershipWebviewChannels,
   type NibiMembershipPurchaseCompletePayload,
@@ -54,6 +59,31 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [purchaseComplete, setPurchaseComplete] = useState(false);
+  // 购买完成后的会员状态强制同步：只有确认拿到可用会员才自动关闭；
+  // 失败必须停在可重试状态，不能"看着像成功了"其实付费插件还被门禁挡着。
+  const [purchaseSync, setPurchaseSync] = useState<"idle" | "syncing" | "failed">("idle");
+
+  const syncMembershipAfterPurchase = useCallback(async () => {
+    setPurchaseSync("syncing");
+    try {
+      const status = await oauthServiceRef.current.getNibiMembershipStatus({ force: true });
+      notifyNibiMembershipInvalidated();
+      const allowed =
+        status.loggedIn &&
+        status.membership !== null &&
+        nibiMembershipAllowsPaidPlugins(resolveNibiMembershipPhase(status));
+      if (allowed) {
+        setPurchaseSync("idle");
+        if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = setTimeout(() => onCloseRef.current(), 1500);
+      } else {
+        setPurchaseSync("failed");
+      }
+    } catch {
+      // 网络失败/服务端 5xx：保留弹窗与错误态，用户点重试再走 force check。
+      setPurchaseSync("failed");
+    }
+  }, []);
 
   const attachWebview = useCallback((node: ElectronWebviewTag | null) => {
     cleanupRef.current?.();
@@ -72,15 +102,14 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
       setLoadError(detail.errorDescription ?? "load_failed");
     };
     // 会员页 preload 通过 ipc-message 回传购买完成；payload 必须是我们自己的会员商品，
-    // 伪造/脏数据一律忽略。收到后先刷新会员态，再短暂展示成功提示并关闭弹窗。
+    // 伪造/脏数据一律忽略。收到后强制在线刷新会员状态（/licenses/check），
+    // 广播给所有消费点；确认生效才自动关闭，失败停在可重试状态。
     const handleIpcMessage = (event: ElectronWebviewIpcMessageEvent) => {
       if (event.channel !== NibiMembershipWebviewChannels.PurchaseComplete) return;
       const payload = event.args[0] as NibiMembershipPurchaseCompletePayload | undefined;
       if (payload?.provider !== "nibi") return;
       setPurchaseComplete(true);
-      void oauthServiceRef.current.getNibiMembershipStatus().catch(() => undefined);
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = setTimeout(() => onCloseRef.current(), 1800);
+      void syncMembershipAfterPurchase();
     };
     node.addEventListener("dom-ready", handleReady);
     node.addEventListener("did-start-loading", handleStart);
@@ -92,7 +121,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
       node.removeEventListener("did-fail-load", handleFail);
       node.removeEventListener("ipc-message", handleIpcMessage);
     };
-  }, []);
+  }, [syncMembershipAfterPurchase]);
 
   useEffect(
     () => () => {
@@ -147,6 +176,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
         const status = await oauthService.getNibiMembershipStatus();
         if (status.loggedIn) {
           clearInterval(timer);
+          notifyNibiMembershipInvalidated();
           await openCheckout();
         }
       })().catch(() => {
@@ -348,6 +378,28 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
                   <p className="text-ui-base font-semibold text-foreground">
                     {intl.formatMessage({ id: "nibi.membership.dialog.purchaseComplete" })}
                   </p>
+                  {purchaseSync === "syncing" ? (
+                    <p className="flex items-center gap-2 text-ui-sm text-foreground-subtle">
+                      <Loader2Icon className="size-3.5 animate-spin" aria-hidden="true" />
+                      {intl.formatMessage({ id: "nibi.membership.dialog.purchaseSyncing" })}
+                    </p>
+                  ) : null}
+                  {purchaseSync === "failed" ? (
+                    <>
+                      <p className="max-w-md text-ui-sm text-destructive">
+                        {intl.formatMessage({ id: "nibi.membership.dialog.purchaseSyncFailed" })}
+                      </p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void syncMembershipAfterPurchase()}
+                      >
+                        <RefreshCwIcon className="size-3.5" aria-hidden="true" />
+                        {intl.formatMessage({ id: "nibi.membership.dialog.retry" })}
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
               {loading && !loadError ? (
