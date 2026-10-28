@@ -24,6 +24,8 @@ const SCAN_EXTENSIONS = new Set([
 const SKIP_PATHS = new Set([
   // 上游快照记录上游路径/哈希，保留上游原貌，不参与本地品牌门禁。
   "scripts/architecture/upstream-snapshot.json",
+  // 规则定义与自测样本必须包含被禁字符串，门禁不扫描自身。
+  "scripts/check-visual-brand.mjs",
 ]);
 
 const SKIP_PREFIXES = ["docs/", "third-party/"];
