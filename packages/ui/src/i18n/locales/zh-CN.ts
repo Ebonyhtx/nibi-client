@@ -1202,6 +1202,7 @@ const zhCN: Record<string, string> = {
   "login.oauth.loadingProviders": "正在加载登录提供方...",
   "login.oauth.noProviders": "当前没有可用的登录提供方，请稍后重试。",
   "login.oauth.button": "继续使用 {provider}",
+  "login.oauth.button.nibi": "连接 NIBI 账号",
   "login.oauth.button.zai": "连接 Z.ai 继续使用",
   "login.oauth.button.bigmodel": "连接 BigModel 继续使用",
   "login.oauth.regionTag.zai": "全球",

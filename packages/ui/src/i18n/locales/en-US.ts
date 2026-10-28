@@ -1324,6 +1324,7 @@ const enUS: Record<string, string> = {
   "login.oauth.noProviders":
     "No account providers are available right now. Please try again later.",
   "login.oauth.button": "Continue with {provider}",
+  "login.oauth.button.nibi": "Connect NIBI account",
   "login.oauth.button.zai": "Connect to Z.ai",
   "login.oauth.button.bigmodel": "Connect to BigModel",
   "login.oauth.regionTag.zai": "Global",
