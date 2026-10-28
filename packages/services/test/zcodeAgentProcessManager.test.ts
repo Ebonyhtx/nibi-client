@@ -45,6 +45,24 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+/**
+ * Windows 上 taskkill 之后进程被 OS 回收存在延迟；`disposeAllAndWait` 一旦在预算内
+ * 发现残留就抛错并把清理快照留给 app quit 的最终重试（zcodeStdioTransport.ts:232-236
+ * 的既定契约）。慢 runner 上曾出现「测试全过、仅在 dispose 边界残留一个刚开始退出的
+ * pid」。这里按同一契约做有界 settle：真实泄漏（进程永不死）用尽预算后仍然失败。
+ */
+async function disposeAllAndWaitSettling(manager: ZCodeAgentProcessManager): Promise<void> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await manager.disposeAllAndWait();
+      return;
+    } catch (error) {
+      if (attempt >= 3 || !/cleanup incomplete/.test(String(error))) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+}
+
 describe("E2E agent coverage", () => {
   it("在 CLI bundle 解析前安装 coverage signal preload", () => {
     const artifactDir = mkdtempSync(join(tmpdir(), "zcode-agent-coverage-"));
@@ -387,7 +405,7 @@ describe("resolveDefaultZCodeAgentCommand", () => {
     expect(firstClient).toBe(secondClient);
     expect(commandResolver).toHaveBeenCalledTimes(1);
 
-    await manager.disposeAllAndWait();
+    await disposeAllAndWaitSettling(manager);
   });
 
   it("workspace dispose 不会遗失 pending start，旧代际不能在恢复后 spawn", async () => {
@@ -418,7 +436,7 @@ describe("resolveDefaultZCodeAgentCommand", () => {
     await expect(duplicate).rejects.toThrow("NIBI agent process start was cancelled.");
     await expect(manager.getClient({ workspacePath })).resolves.toBeDefined();
 
-    await manager.disposeAllAndWait();
+    await disposeAllAndWaitSettling(manager);
   });
 
   it("把宿主声明的 presentation surface 传给 command resolver", async () => {
@@ -518,7 +536,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         personal: personalFilePath,
       });
     } finally {
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -568,7 +586,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       expect(commandResolver).toHaveBeenCalledTimes(2);
     } finally {
       disposeAndWaitSpy.mockRestore();
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -670,7 +688,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
 
     const starting = manager.getClient({ workspacePath });
     await Promise.resolve();
-    await manager.disposeAllAndWait();
+    await disposeAllAndWaitSettling(manager);
 
     command.resolve({
       command: process.execPath,
@@ -732,7 +750,7 @@ setInterval(() => {}, 1000);
 
       // 修复原因：protocol close 只表示该 client 不再可复用，不表示
       // OS 进程已退出。Host dispose 必须同时等待两代已启动进程完成回收。
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
 
       // 修复原因：进程树回收按 OS 存活状态完成，Node exit 事件及 stderr
       // 收尾后的生命周期上报可能稍晚投递；断言应等待上报，不能假定同步发生。
@@ -839,7 +857,7 @@ setInterval(() => {}, 1000);
     try {
       // 修复原因：旧实现永久缓存失败的 cleanup Promise，app quit 再次等待时
       // 只会取得同一个 rejection，既不会 force 重试，也会提前释放退出边界。
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
       expect(cleanupAttemptCount).toBe(2);
     } finally {
       manager.disposeAll();
@@ -894,7 +912,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         runtimeEnv: expectedRuntimeEnv,
       });
     } finally {
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -1004,7 +1022,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       ).toBe(false);
     } finally {
       errorSpy.mockRestore();
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -1052,7 +1070,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       await vi.waitFor(() => expect(client.isDisposed).toBe(true), { timeout: 2_000 });
     } finally {
       if (timer) clearInterval(timer);
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -1090,7 +1108,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       expect(client.storageStartup.snapshot?.phase).toBe("ready");
       await vi.waitFor(() => expect(client.isDisposed).toBe(true));
     } finally {
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -1162,7 +1180,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         runtimeInstanceId: reporter.onSpawn.mock.calls[1]![0].runtimeInstanceId,
       });
     } finally {
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
     }
   });
 
@@ -1217,7 +1235,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         stderrTail: ["Error: simulated EPIPE token=<redacted> key=sk-<redacted>"],
       });
     } finally {
-      await manager.disposeAllAndWait();
+      await disposeAllAndWaitSettling(manager);
       errorSpy.mockRestore();
     }
   });
@@ -1285,7 +1303,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
           }).success,
         ).toBe(true);
       } finally {
-        await manager.disposeAllAndWait();
+        await disposeAllAndWaitSettling(manager);
         vi.unstubAllEnvs();
       }
     },

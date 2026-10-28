@@ -106,12 +106,15 @@ jobs:
         run: pnpm run typecheck
       - name: Windows-only tests
         run: pnpm exec vitest run --project windows-only --maxWorkers=1
-      - name: Unit tests (3 shards)
+      # 4 个分片：Windows runner 内存更紧，3 分片时出现过某个 worker 在 634 个文件
+      # 跑完后堆超限（ERR_WORKER_OUT_OF_MEMORY，测试本身全过）；分片更小可压低单 worker
+      # 的累计堆峰值，代价是每个分片各自的启动开销。
+      - name: Unit tests (4 shards)
         shell: bash
         run: |
           failed=0
-          for shard in 1 2 3; do
-            pnpm run test:unit --shard=$shard/3 --project unit --project fork-isolated --maxWorkers=1 || failed=1
+          for shard in 1 2 3 4; do
+            pnpm run test:unit --shard=$shard/4 --project unit --project fork-isolated --maxWorkers=1 || failed=1
           done
           exit $failed
       - name: CLI unit tests
