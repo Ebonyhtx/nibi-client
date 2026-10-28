@@ -7389,6 +7389,7 @@ const enUS: Record<string, string> = {
   "nibi.membership.dialog.bannedHint":
     "This account cannot sign in or use membership benefits right now. If you believe this is a mistake, email contact@nibistudio.top with the subject “Account appeal - username”, and include your account details and a short explanation. We will reply within 7 business days after receiving the complete request.",
   "nibi.login.desktopOnly": "Signing in to NIBI requires the desktop app; the web build does not support it yet.",
+  "login.dismiss.later": "Later",
   "browser.permission.denyThisTime": "Don't allow",
   "workspaceSidebar.addProject": "Add project",
   "taskList.noArchivedTasks": "No archived tasks",

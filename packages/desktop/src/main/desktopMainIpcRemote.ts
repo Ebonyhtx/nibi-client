@@ -262,6 +262,11 @@ export function registerRemoteIpcHandlers(options: {
       options.logger.warn("[open-external] blocked unsupported url", url);
       return;
     }
+    // 开发态记录完整 URL：E2E 需要拿 OAuth authorize URL 驱动无头登录。
+    // 生产包不落盘——外部 URL 的 query 可能带非公开参数。
+    if (!app.isPackaged) {
+      options.logger.info("[open-external] opening (dev)", url);
+    }
     void Promise.resolve(shell.openExternal(url)).catch((error: unknown) => {
       options.logger.warn("[open-external] 外部 URL 打开失败", {
         url,

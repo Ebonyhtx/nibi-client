@@ -27,11 +27,14 @@ import { DesktopOverlayWindowControls } from "@/DesktopOverlayWindowControls.js"
 
 interface WelcomeScreenProps {
   onComplete: (reason: LoginCompleteReason) => void | Promise<void>;
+  /** 提供时显示「稍后再说」：用于手动打开的登录页（manual-login），随时可返回工作区。 */
+  onDismiss?: () => void;
 }
 
 export type LoginCompleteReason = "oauth" | "apiKey" | "skip";
 
-export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
+export function WelcomeScreen({ onComplete, onDismiss }: WelcomeScreenProps) {
+  const { intl } = useZCodeIntl();
   return (
     <main className="relative flex h-full min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6">
       <ThemeHeroVisual className="absolute inset-0" showFeathers />
@@ -41,6 +44,15 @@ export function WelcomeScreen({ onComplete }: WelcomeScreenProps) {
       <section className="relative z-10 w-full flex flex-col gap-10 max-w-sm rounded-2xl border border-popover-border bg-card p-8 text-ui-base/relaxed shadow-md sm:p-10">
         <LoginPanel active onComplete={onComplete} />
       </section>
+      {onDismiss ? (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full px-4 py-2 text-ui-sm text-foreground-subtle transition-colors hover:bg-surface hover:text-foreground"
+        >
+          {intl.formatMessage({ id: "login.dismiss.later" })}
+        </button>
+      ) : null}
     </main>
   );
 }

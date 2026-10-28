@@ -1206,25 +1206,23 @@ function RootInner({
     void loginEntryRequest;
   }, [loginEntryRequest]);
 
-  // 左下角账号入口（页脚头像菜单里的「登录 NIBI」）是 NIBI 账号的直接登录动作。
-  // 以前这里只在上游的欢迎页门禁打开时才做事，而 NIBI_ACCOUNT_GATE_ENABLED=false，
-  // 于是菜单项点了完全没反应（用户 2026-10-20 实测反馈"左下角只能看不能用"）。
-  // 现在走与会员弹窗同一个 useOAuth 流程：发起 NIBI OAuth → 浏览器授权 → nibi:// 深链回调。
+  // 左下角账号入口（页脚头像菜单里的「登录 NIBI」）：打开应用内登录 Hero（manual-login）。
+  // Hero 是可关闭的登录页：登录/取消/失败都有可见状态，「稍后」随时回到工作区。
+  // 实际的 startLogin 由 Hero 的 LoginPanel 发起；关闭时取消 pending，避免迟到回调换号。
   const nibiLogin = useOAuth();
-  useEffect(() => {
-    if (nibiLogin.status === "error" && nibiLogin.error) {
-      toast(nibiLogin.error);
-    }
-  }, [nibiLogin.status, nibiLogin.error]);
   const handleOpenLoginEntry = useCallback(() => {
     if (!isDesktop) {
       // nibi:// 回调只在桌面端注册；网页端发起登录会停在浏览器里，不如直接说清。
       toast(intl.formatMessage({ id: "nibi.login.desktopOnly" }));
       return;
     }
-    void nibiLogin.startLogin(NIBI_PROVIDER_ID);
-  }, [intl, isDesktop, nibiLogin.startLogin]);
+    setWelcomeScreenOpenReason("manual-login");
+  }, [intl, isDesktop]);
   openLoginEntryRef.current = handleOpenLoginEntry;
+  const handleWelcomeScreenDismiss = useCallback(() => {
+    void nibiLogin.cancel("nibi");
+    setWelcomeScreenOpenReason(null);
+  }, [nibiLogin]);
   const handleWelcomeScreenComplete = useCallback(
     async (reason: LoginCompleteReason) => {
       await refreshAppSettings();
@@ -1488,7 +1486,12 @@ function RootInner({
         {requestSecurityBridgeNode}
         {remoteConnectionDialog}
         {directoryBrowserDialog}
-        <WelcomeScreen onComplete={handleWelcomeScreenComplete} />
+        <WelcomeScreen
+          onComplete={handleWelcomeScreenComplete}
+          onDismiss={
+            welcomeScreenOpenReason === "manual-login" ? handleWelcomeScreenDismiss : undefined
+          }
+        />
       </RootShell>
     );
   }
