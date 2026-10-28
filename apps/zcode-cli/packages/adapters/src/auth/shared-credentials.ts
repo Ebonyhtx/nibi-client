@@ -3,7 +3,12 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { atomicWritePrivateTextFile, backupCorruptFile, withFileLock } from "@nibi/shared/node";
-import { createZCodeCredentialCipher, type ZCodeCredentialCipher } from "./credential-cipher.js";
+import {
+  createZCodeCredentialCipher,
+  isLegacyEncryptedZCodeCredentialValue,
+  type ZCodeCredentialCipher,
+} from "./credential-cipher.js";
+import { resolveInstallKeyPathForCredentialsFile } from "@nibi/shared/node";
 
 const NIBI_DATA_BASE_DIR_ENV_KEY = "NIBI_DATA_BASE_DIR";
 const ZAI_PROVIDER_ID = "zai";
@@ -11,6 +16,8 @@ const credentialChangeListeners = new Map<
   string,
   Set<() => void | Promise<void>>
 >();
+/** 每个 credentials 文件最近创建的 cipher；写盘时用它把 v1 旧值惰性迁移到 v2。 */
+const credentialCiphersByFile = new Map<string, ZCodeCredentialCipher>();
 
 export const SHARED_NIBI_CREDENTIAL_KEYS = {
   activeProvider: "oauth:active_provider",
@@ -72,7 +79,14 @@ export function createSharedZCodeCredentialStore(
 ): SharedZCodeCredentialStore {
   const env = options.env ?? process.env;
   const filePath = resolveSharedZCodeCredentialsPath(options);
-  const cipher = options.cipher ?? createZCodeCredentialCipher({ env });
+  const cipher =
+    options.cipher ??
+    createZCodeCredentialCipher({
+      env,
+      // per-install 随机密钥：写入走 v2 前缀；单拷 credentials.json 到新机器无法解密。
+      installKeyPath: resolveInstallKeyPathForCredentialsFile(filePath),
+    });
+  credentialCiphersByFile.set(filePath, cipher);
 
   return {
     filePath,
@@ -290,7 +304,12 @@ export function loadSharedZCodeCredentialSync(
     if (rawValue === undefined) {
       return undefined;
     }
-    const cipher = options.cipher ?? createZCodeCredentialCipher({ env: options.env });
+    const cipher =
+      options.cipher ??
+      createZCodeCredentialCipher({
+        env: options.env,
+        installKeyPath: resolveInstallKeyPathForCredentialsFile(filePath),
+      });
     const decrypted = cipher.decrypt(rawValue);
     return decrypted.trim().length > 0 ? decrypted : undefined;
   } catch {
@@ -343,6 +362,20 @@ async function mutateRawCredentialRecord(
   await withFileLock(filePath, async () => {
     const value = await readRawCredentialRecord(filePath);
     await mutation(value);
+    // 惰性迁移：任意一次写盘把记录里残留的 v1（可推导密钥）旧值重加密为 v2
+    //（per-install 密钥）。host 启动后的首次凭据写入即完成升级；
+    // 解密失败的坏值保持原样，留给损坏恢复路径，不阻断本次写入。
+    const cipher = credentialCiphersByFile.get(filePath);
+    if (cipher) {
+      for (const [key, encrypted] of Object.entries(value)) {
+        if (!isLegacyEncryptedZCodeCredentialValue(encrypted)) continue;
+        try {
+          value[key] = cipher.encrypt(cipher.decrypt(encrypted));
+        } catch {
+          // 坏值不重加密。
+        }
+      }
+    }
     await atomicWritePrivateTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
   });
   const listeners = [...(credentialChangeListeners.get(filePath) ?? [])];

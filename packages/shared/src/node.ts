@@ -5,6 +5,11 @@
  */
 export { acquireFileLock } from "./node/atomicFileLock.js";
 export {
+  loadOrCreateInstallKeySync,
+  readInstallKeySync,
+  resolveInstallKeyPathForCredentialsFile,
+} from "./node/credentialInstallKey.js";
+export {
   chooseEgressProxyUrl,
   isImplicitDirectUrl,
   matchesNoProxyRule,

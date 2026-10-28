@@ -42,7 +42,10 @@ describe("shared NIBI credentials", () => {
 
       const raw = JSON.parse(await readFile(store.filePath, "utf-8")) as Record<string, string>;
       expect(store.filePath).toBe(join(dir, ".nibi", "v2", "credentials.json"));
-      expect(raw[SHARED_NIBI_CREDENTIAL_KEYS.zaiAccessToken]?.startsWith("enc:v1:")).toBe(true);
+      // v2 起 per-install 密钥加密（enc:v2:）；断言"已加密且非可读明文"而非绑死版本。
+      expect(
+        raw[SHARED_NIBI_CREDENTIAL_KEYS.zaiAccessToken]?.startsWith("enc:"),
+      ).toBe(true);
       expect(await store.load(SHARED_NIBI_CREDENTIAL_KEYS.activeProvider)).toBe("zai");
       expect(await store.load(SHARED_NIBI_CREDENTIAL_KEYS.zaiAccessToken)).toBe(
         "zai-access-token",

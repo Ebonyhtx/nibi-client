@@ -15,6 +15,7 @@ import {
   createCredentialCipherProvider,
   type CredentialCipherProvider,
 } from "../credential/providers/credentialCipherProvider.js";
+import { resolveInstallKeyPathForCredentialsFile } from "@nibi/shared/node";
 import type { ISettingService } from "../setting/setting.js";
 
 const CREDENTIAL_FILE_NAME = "credentials.json";
@@ -122,7 +123,12 @@ async function readProvisioningCredentials(
   if (!isRecord(parsed)) {
     throw new Error("Credential Store 必须是 JSON 对象");
   }
-  const cipher = cipherProvider ?? createCredentialCipherProvider();
+  const cipher =
+    cipherProvider ??
+    createCredentialCipherProvider({
+      // 与 credentialService 同一份凭据文件：迁移到 per-install v2 密钥后这里必须能解。
+      installKeyPath: resolveInstallKeyPathForCredentialsFile(credentialFilePath),
+    });
   const allowedKeys = new Set<string>(PROVIDER_PROVISIONING_OAUTH_CREDENTIAL_KEYS);
   const entries: ProviderProvisioningCredentialEntry[] = [];
   // Credential Store 还可能包含不属于 Provisioning allowlist 的历史记录；

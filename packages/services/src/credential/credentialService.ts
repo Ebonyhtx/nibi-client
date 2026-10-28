@@ -11,10 +11,12 @@ import {
 import type { ICredentialService } from "./credential.js";
 import {
   createCredentialCipherProvider,
+  isLegacyEncryptedCredentialValue,
   type CredentialCipherProvider,
 } from "./providers/credentialCipherProvider.js";
 import { createServiceLogger } from "../logger/serviceLogger.js";
 import { getAppConfigDir } from "../paths.js";
+import { resolveInstallKeyPathForCredentialsFile } from "@nibi/shared/node";
 
 /**
  * 凭据存储路径
@@ -85,6 +87,24 @@ interface CredentialServiceDependencies {
   onDidMutate?: (event: { operation: "save" | "delete"; key: string }) => void;
 }
 
+/**
+ * 惰性迁移：把记录里残留的 v1（可推导 fallback 密钥）旧值重加密为 v2（per-install 密钥）。
+ * 首次写盘即完成升级；解密失败的坏值保持原样，不阻断本次写入。
+ */
+function reencryptLegacyCredentialValues(
+  creds: Record<string, string>,
+  cipherProvider: CredentialCipherProvider,
+): void {
+  for (const [key, encrypted] of Object.entries(creds)) {
+    if (!isLegacyEncryptedCredentialValue(encrypted)) continue;
+    try {
+      creds[key] = cipherProvider.encrypt(cipherProvider.decrypt(encrypted));
+    } catch {
+      // 坏值不重加密；recoverUnreadable / 损坏恢复路径负责。
+    }
+  }
+}
+
 /** Host 私有缓存恢复能力，不进入 Renderer 的 ICredentialService 契约。 */
 export interface LocalCredentialService extends ICredentialService {
   recoverUnreadable(key: string, assertCurrent: () => void): Promise<string | null>;
@@ -95,7 +115,13 @@ export interface LocalCredentialService extends ICredentialService {
 export function createCredentialService(
   dependencies: CredentialServiceDependencies = {},
 ): LocalCredentialService {
-  const cipherProvider = dependencies.cipherProvider ?? createCredentialCipherProvider();
+  const credentialsFile = getCredentialsFile();
+  const cipherProvider =
+    dependencies.cipherProvider ??
+    createCredentialCipherProvider({
+      // per-install 随机密钥：写入走 v2 前缀；单拷 credentials.json 到新机器无法解密。
+      installKeyPath: resolveInstallKeyPathForCredentialsFile(credentialsFile),
+    });
 
   return {
     async recoverUnreadable(key, assertCurrent) {
@@ -148,6 +174,8 @@ export function createCredentialService(
         // 请求可能在等待文件锁时失效，不能只依赖调用方进入 IO 前的代次检查。
         assertCurrent?.();
         creds[validatedKey] = encryptedValue;
+        // 惰性迁移：首次写入把整个记录残留的 v1（可推导密钥）旧值升级为 v2。
+        reencryptLegacyCredentialValues(creds, cipherProvider);
         await writeAll(credentialsFile, creds);
       });
       dependencies.onDidMutate?.({ operation: "save", key: validatedKey });
@@ -160,6 +188,7 @@ export function createCredentialService(
         const creds = await readAll(credentialsFile);
         assertCurrent?.();
         delete creds[validatedKey];
+        reencryptLegacyCredentialValues(creds, cipherProvider);
         await writeAll(credentialsFile, creds);
       });
       dependencies.onDidMutate?.({ operation: "delete", key: validatedKey });

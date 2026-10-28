@@ -76,6 +76,7 @@ export type PluginDiagnosticCode =
   | "plugin_not_found"
   | "plugin_ambiguous_name"
   | "plugin_membership_required"
+  | "plugin_capability_leak_pruned"
   | "plugin_acceptance_invalid"
   | "plugin_acceptance_weak";
 
@@ -324,7 +325,7 @@ export interface PaidPluginGateInput {
 
 export type PaidPluginGateResult =
   | { allowed: true }
-  | { allowed: false; code?: string; message?: string };
+  | { allowed: false; code?: PluginDiagnosticCode; message?: string };
 
 export interface PluginDiscoverRequest {
   config: PluginConfig;
