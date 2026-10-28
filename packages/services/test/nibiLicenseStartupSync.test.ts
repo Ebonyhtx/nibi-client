@@ -141,11 +141,14 @@ function createGatedHarness(input: {
   token: string;
   state: NibiLicenseSnapshot;
   responses: Array<{ status: number; body: unknown }>;
+  /** 已登录用户场景带 access token（换证走 Bearer 路）。 */
+  accessToken?: string;
 }) {
   const store = new Map<string, string>([
     [NIBI_DEVICE_ID_KEY, "device-1234"],
     [NIBI_LICENSE_TOKEN_KEY, input.token],
     [NIBI_LICENSE_STATE_KEY, JSON.stringify(input.state)],
+    ...(input.accessToken ? [["oauth:nibi:access_token", input.accessToken] as const] : []),
   ]);
   let releaseFirst: (() => void) | null = null;
   const firstGate = new Promise<void>((resolve) => {
@@ -206,6 +209,33 @@ describe("license sync force semantics", () => {
     expect(request).toHaveBeenCalledTimes(2);
     expect(backgroundDecision.status).toBe("active");
     expect(forcedDecision.status).toBe("denied");
+  });
+
+  it("a force sync arriving after a clear runs its own check (login write order: token, then user_info)", async () => {
+    const { publicKeys, signToken } = makeSigner();
+    const token = signToken();
+    const { request, store, sync, releaseFirst } = createGatedHarness({
+      publicKeys,
+      token,
+      state: snapshot(2 * MINUTE),
+      accessToken: "access-token-1",
+      responses: [
+        // 第一个请求属于旧代际（会被 clear 丢弃）；第二个是真跑的换证检查。
+        { status: 200, body: { authorized: true, license: { token, plan: "pro" } } },
+        { status: 200, body: { authorized: true, license: { token, plan: "pro" } } },
+      ],
+    });
+
+    // 登录写序：access_token 写入触发 force sync #1；user_info 写入触发 clear + force sync #2。
+    const background = sync.sync(true);
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    await sync.clear();
+    const forced = sync.sync(true);
+    releaseFirst();
+    await Promise.all([background, forced]);
+    // 旧实现：#2 复用 #1 的 promise，而 #1 被代际丢弃 → license 永不落盘。
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(store.has(NIBI_LICENSE_TOKEN_KEY)).toBe(true);
   });
 
   it("a clear during an in-flight sync invalidates the response and does not resurrect the license", async () => {

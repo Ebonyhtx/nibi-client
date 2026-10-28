@@ -78,6 +78,7 @@ function emptyDecision(options: NibiLicenseSyncOptions): NibiLicenseDecision {
 export function createNibiLicenseSync(options: NibiLicenseSyncOptions): NibiLicenseSync {
   let inFlight: Promise<NibiLicenseDecision> | null = null;
   let inFlightForce = false;
+  let inFlightGeneration = 0;
   // clear() 的代际：代际变化后返回的旧 sync 结果必须作废，
   // 否则退出登录瞬间返回的旧响应会把 license 写回来（复活 bug）。
   let generation = 0;
@@ -146,9 +147,27 @@ export function createNibiLicenseSync(options: NibiLicenseSyncOptions): NibiLice
 
   return {
     sync(force = false) {
-      // force 调用不能被"去重"吞掉：正在跑的是非 force 检查时，等它结束后必须真跑一次。
-      if (inFlight) {
+      // 去重只在"同代际"内生效：clear()（退出/换号）会升代际，把在途检查的请求
+      // 变成将被丢弃的旧代际结果。此时到达的 force 调用（登录后的换证）绝不能
+      // 复用旧 promise —— 否则登录后 license 永远不落盘（E2E 2026-10-29 实测）。
+      if (inFlight && inFlightGeneration === generation) {
         if (!force || inFlightForce) return inFlight;
+        const previous = inFlight;
+        const requestedGeneration = generation;
+        const run = (async () => {
+          await previous.catch(() => undefined);
+          const decision = await refreshLicense(await buildOptions(true));
+          return await discardDecisionIfCleared(requestedGeneration, decision);
+        })().finally(() => {
+          if (inFlight === run) inFlight = null;
+        });
+        inFlight = run;
+        inFlightForce = true;
+        return run;
+      }
+      if (inFlight) {
+        // 在途检查属于已被 clear() 的旧代际：等它结束后按调用方语义重跑一次
+        // （force 或换代际都值得真查一次——新代际意味着账号/凭证状态刚变过）。
         const previous = inFlight;
         const requestedGeneration = generation;
         const run = (async () => {
@@ -185,10 +204,39 @@ export function createNibiLicenseSync(options: NibiLicenseSyncOptions): NibiLice
       });
       inFlight = run;
       inFlightForce = force;
+      inFlightGeneration = requestedGeneration;
       return run;
     },
     syncOnStartup() {
-      if (inFlight) return inFlight;
+      if (inFlight && inFlightGeneration === generation) return inFlight;
+      if (inFlight) {
+        // 旧代际的在途检查将被丢弃；启动检查换代际重跑（与 sync 同口径）。
+        const previousStartup = inFlight;
+        const startupGeneration = generation;
+        const startupRun = (async () => {
+          await previousStartup.catch(() => undefined);
+          const [accessToken, licenseToken] = await Promise.all([
+            credentials.load(NIBI_ACCESS_TOKEN_KEY),
+            credentials.load(NIBI_LICENSE_TOKEN_KEY),
+          ]);
+          if (!accessToken?.trim() && !licenseToken?.trim()) {
+            return evaluateNibiLicense({
+              token: null,
+              snapshot: parseLicenseSnapshot(await credentials.load(NIBI_LICENSE_STATE_KEY)),
+              now: options.now?.() ?? Date.now(),
+              ...(options.publicKeys ? { publicKeys: options.publicKeys } : {}),
+            });
+          }
+          const decision = await refreshLicense(await buildOptions(true));
+          return await discardDecisionIfCleared(startupGeneration, decision);
+        })().finally(() => {
+          if (inFlight === startupRun) inFlight = null;
+        });
+        inFlight = startupRun;
+        inFlightForce = true;
+        inFlightGeneration = startupGeneration;
+        return startupRun;
+      }
       const requestedGeneration = generation;
       const run = (async () => {
         const [accessToken, licenseToken, rawState] = await Promise.all([
@@ -218,6 +266,7 @@ export function createNibiLicenseSync(options: NibiLicenseSyncOptions): NibiLice
         if (inFlight === run) inFlight = null;
       });
       inFlight = run;
+      inFlightGeneration = requestedGeneration;
       return run;
     },
     async clear() {
