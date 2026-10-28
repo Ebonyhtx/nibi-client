@@ -818,6 +818,23 @@ exceptions:
     rule: disable-count
     paths: [packages/desktop/src/renderer/src/plugin-sandbox/genUiTweakRuntime.js]
     reason: Allow the control-character validation regex and the single-file parameter-control runtime.
+  - id: nibi-rebrand-and-paid-gate-implementation
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/settings/CompanionSettingsRows.tsx
+      - packages/ui/src/settings/pluginErrorMessage.ts
+      - packages/ui/src/chat-input-toolbar/ThinkingFeatherRail.tsx
+      - packages/ui/src/chat-input-toolbar/featherRailCatalog.ts
+      - packages/ui/src/companion/NibiCompanion.tsx
+      - packages/ui/src/companion/companionPreferences.ts
+      - packages/ui/src/companion/companionState.ts
+      - packages/ui/src/companion/motionPlayback.ts
+      - packages/ui/src/components/NibiEmptyStateArt.tsx
+      - packages/ui/src/lib/nibiFeatherFall.ts
+      - apps/zcode-cli/packages/adapters/src/plugins/paid-plugin-discovery-gate.ts
+      - packages/desktop/src/main/membershipWebviewPolicy.ts
+      - packages/shared/src/node/credentialInstallKey.ts
+    reason: 均为 NIBI 换肤的展示层实现（思考羽迹/伴侣/空状态/飘羽）与付费门禁/凭据加密的实现细节文件；不引入新的跨模块依赖，也不改变现有模块边界。接管 ui/adapters/desktop/shared 的整目录模块化需要单独的边界重构，不在本次范围内。
   - id: settings-machine-unmanaged-edit
     rule: unmanaged-new-file
     paths: [packages/ui/src/settings/SettingsMachine.tsx]
