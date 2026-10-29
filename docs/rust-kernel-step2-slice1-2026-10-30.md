@@ -111,6 +111,42 @@ workflow run、queue 编辑、deleteSession 的 store 软删）保持 unsupporte
   暂无对应 ACK 形状——kernel Rewind 被拒时统一 `fault.command.editFailed` 带原文。
 - 测试 30→31（edit_target_guard：最新命中/历史拒绝/无 real query）。
 
+## 6.5 第七步：无头 Rust app-server 全链路驱动（第一次 Node/Rust 行为对照）
+
+新工具 `scripts/kernel-baseline/drive-rust-app-server.mjs`：隔离 HOME + 本地假 provider，
+起 `kernel/target/debug/zcode-rs.exe app-server --stdio`，按 LF-JSON 协议驱动真实二进制。
+
+**实测通了的链路**（全部对真二进制，非单测）：
+
+```
+startup/storageState ready (~210ms)
+→ v4/command createSession（firstInput 直接开跑）
+→ v4/conversation/subscribe（topic=conversation/<id>，clientMode 必填）
+→ v4/command sendText → ACK accepted（delivery=queue，idle 落成 startNow）
+→ v4/conversation/frame 流（snapshot + deltas；assistant 回复可见；假 provider 收到
+  主回合 + 标题生成两次请求）
+→ forkAssistant → ACK accepted，child session id
+→ retryTurn → ACK accepted
+→ compact → ACK accepted
+```
+
+**协议事实（对拍中的发现，Host/UI 零改动约束下的行为确认）**：
+
+1. 主题前缀是 `conversation/<sessionId>`（无 `v4/` 前缀）；
+2. subscribe 必带 `clientMode`（desktop-continuous / web-remote-replayable）；
+3. 帧 payload 在 wire 帧的 `.frame.payload` 里，snapshot 的 `rows.window` 是窗口行、
+   行经 `row.appended/row.upserted/row.delta` 增量流出；
+4. **幂等表语义实证**：同 commandId 重试拿回记忆的 stale ACK（duplicate），UI 重试必须
+   每次发新 commandId——这正是协议设计，driver 已按此实现；
+5. `guard.latestAssistantRetryOnly` 实证：compact 之后的 CompactBoundary 使
+   assistant 不再是最后一条消息，此时 retry 历史轮被正确拒绝——与 Node 同判。
+   真实使用里 compact 在 idle 时跑、用户 retry 的目标是最新轮，两者不冲突；
+6. kernel Fork 的 ACK result 是**字符串**（新会话 id），与 forkAssistant 处理器的
+   兼容取值已验证。
+
+**编译产物**：`cargo build -p rust-cli --locked --offline` 1m33s，`zcode-rs.exe`
+77MB（dev profile），`--version` = `zcode 0.1.0 (rust-cli)`。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——

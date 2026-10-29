@@ -85,6 +85,11 @@
 - 第六小批：`editUserQuery`（real user 行解析 + `guard.latestQueryEditOnly` +
   workspaceMode preserve/rewind → `Rewind{Conversation|Both}` + 重发 newText；附件
   回放未实现，payload 带附件 fail-closed 拒绝；quotes 暂 warn）。测试 30→31。
+- 第七步：无头驱动真二进制全链路通（startup→createSession→subscribe→sendText→帧流→
+  fork→retry→compact；`scripts/kernel-baseline/drive-rust-app-server.mjs`）。实证：
+  幂等表同 commandId 重试回 stale 的 duplicate（UI 重试必须新 id）、
+  `guard.latestAssistantRetryOnly` 与 Node 同判、主题前缀 `conversation/`、subscribe
+  必带 clientMode、帧 payload 在 wire 帧的 `.frame.payload`。
 
 ## 7. 未完成项
 
