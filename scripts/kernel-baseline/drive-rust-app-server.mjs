@@ -13,9 +13,9 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
-const repo = "D:/NIBI/NIBI-Client";
+const repo = resolve(import.meta.dirname, "../..");
 const bin = join(repo, "kernel/target/debug/zcode-rs.exe");
 const args = process.argv.slice(2);
 const keep = args.includes("--keep");
