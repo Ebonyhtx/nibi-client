@@ -150,6 +150,17 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
 
 async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     let payload = &envelope.payload;
+    // R12/R23：照上游实现会静默丢 NIBI 的 createSession 字段。契约层先点名上报，
+    // 处理器逐项实现后从这里移出；不允许“ACK 成功但字段丢了”装作没事。
+    let unsupported =
+        crate::nibi_commands::NibiCommands::unsupported_create_session_fields(payload);
+    if !unsupported.is_empty() {
+        tracing::warn!(
+            event = "protocol.create_session.fields_unsupported",
+            fields = ?unsupported,
+            "createSession carries fields the kernel does not consume yet"
+        );
+    }
     let config = &payload["config"];
     let chosen = selection(&config["modelSelection"])
         .or_else(|| selection(&payload["firstInput"]["modelSelection"]))

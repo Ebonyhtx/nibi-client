@@ -1,6 +1,6 @@
-//! 入站参数的校验（docs/specs/rust-cli/app-protocol.md §7）：schema 由 `scripts/rust-cli/app-protocol/schema.mjs` 从 App 的
-//! zod 生成（`schema/inbound.json`），这里按方法、命令类型编译一次，校验失败回 `-32602`（命令回 rejected）。
-//! zod 的 superRefine 跨字段规则（schema 表达不了的）在这里手写镜像。
+//! 入站参数的校验（docs/specs/rust-cli/app-protocol.md §7）：schema 由上游脚本从 App 的 zod 生成
+//! （`schema/inbound.json`，NIBI 分家时删掉了 offPeak 方法段与整段 commands——命令契约改由
+//! [`crate::nibi_commands`] 从 NIBI 的 zod 生成物校验），这里按方法编译一次，校验失败回 `-32602`。
 
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -14,10 +14,7 @@ const INBOUND: &str = include_str!("../schema/inbound.json");
 /// 编译好的入站 schema。
 pub struct Inbound {
     methods: HashMap<String, Node>,
-    commands: HashMap<String, Node>,
     replies: HashMap<String, Node>,
-    requires_base_revision: Vec<String>,
-    requires_base_epoch: Vec<String>,
 }
 
 fn compile(section: &Value) -> Result<HashMap<String, Node>, String> {
@@ -33,27 +30,12 @@ fn compile(section: &Value) -> Result<HashMap<String, Node>, String> {
         .collect()
 }
 
-fn names(value: &Value) -> Vec<String> {
-    value
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|item| item.as_str().map(str::to_owned))
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 impl Inbound {
     pub fn parse(text: &str) -> Result<Self, String> {
         let data: Value = serde_json::from_str(text).map_err(|error| error.to_string())?;
         Ok(Self {
             methods: compile(&data["methods"])?,
-            commands: compile(&data["commands"])?,
             replies: compile(&data["replies"])?,
-            requires_base_revision: names(&data["requiresBaseRevision"]),
-            requires_base_epoch: names(&data["requiresBaseLogEpoch"]),
         })
     }
 
@@ -65,10 +47,7 @@ impl Inbound {
                 tracing::error!(event = "protocol.schema.invalid", error = %error, "the inbound schema does not compile");
                 Self {
                     methods: HashMap::new(),
-                    commands: HashMap::new(),
                     replies: HashMap::new(),
-                    requires_base_revision: Vec::new(),
-                    requires_base_epoch: Vec::new(),
                 }
             })
         })
@@ -88,41 +67,12 @@ impl Inbound {
     }
 
     /// 命令的 payload 与跨字段规则。错误是给 ACK 的说明文字。
+    ///
+    /// NIBI 分家后命令契约以 [`crate::nibi_commands`] 为准（34 个命令、CAS 集合、
+    /// 已删字段 fail-closed）；上游 `inbound.json` 的 `commands` 段只留作 schema
+    /// 来源对照，不再用于命令校验。
     pub fn command(&self, envelope: &Value) -> Result<(), String> {
-        let kind = envelope["type"].as_str().unwrap_or_default();
-        let node = self
-            .commands
-            .get(kind)
-            .ok_or_else(|| format!("unknown command type {kind}"))?;
-        let payload = &envelope["payload"];
-        node.validate(payload, "/payload")?;
-        if self.requires_base_revision.iter().any(|name| name == kind)
-            && envelope.get("baseRevision").is_none_or(Value::is_null)
-        {
-            return Err("CAS commands require baseRevision and baseLogEpoch".to_owned());
-        }
-        if self.requires_base_epoch.iter().any(|name| name == kind)
-            && envelope.get("baseLogEpoch").is_none_or(Value::is_null)
-        {
-            return Err("CAS commands require baseRevision and baseLogEpoch".to_owned());
-        }
-        // sendText 的 superRefine 镜像（command.ts）。
-        if kind == "sendText" {
-            if payload.get("automationId").is_some() && payload.get("offPeakTaskId").is_some() {
-                return Err("automationId and offPeakTaskId are mutually exclusive".to_owned());
-            }
-            if payload.get("offPeakRunType").is_some() && payload.get("offPeakTaskId").is_none() {
-                return Err(
-                    "/payload/offPeakRunType: offPeakRunType requires offPeakTaskId".to_owned(),
-                );
-            }
-            if payload.get("modelExecution").is_some() && payload.get("modelSelection").is_none() {
-                return Err(
-                    "/payload/modelExecution: modelExecution requires modelSelection".to_owned(),
-                );
-            }
-        }
-        Ok(())
+        crate::nibi_commands::validate(envelope)
     }
 
     /// 本端发出的请求得到的回复。

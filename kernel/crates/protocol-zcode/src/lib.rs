@@ -13,6 +13,7 @@ mod inbox;
 mod index;
 mod legacy;
 mod live;
+mod nibi_commands;
 mod projection;
 mod server;
 mod subscribe;

@@ -14,39 +14,25 @@ fn the_shipped_schema_compiles() {
     ] {
         assert!(inbound.methods.contains_key(method), "{method}");
     }
-    for command in [
-        "createSession",
-        "sendText",
-        "stop",
-        "resolveInteraction",
-        "setFollowupMode",
-    ] {
-        assert!(inbound.commands.contains_key(command), "{command}");
-    }
+    // NIBI 分家：命令契约搬去 nibi_commands（34 个），这里只保证方法/回复段还在，
+    // 且已删除的 offPeak 方法不再出现。
     assert!(
-        inbound
-            .requires_base_revision
-            .contains(&"setFollowupMode".to_owned())
+        !inbound
+            .methods
+            .contains_key("workspace/updateOffPeakToolPolicy")
     );
 }
 
 #[test]
 fn method_params_follow_the_app_schema() {
     let inbound = Inbound::get();
-    let workspace = json!({"workspacePath": "/w", "workspaceKey": "/w"});
     assert!(
         inbound
-            .method(
-                "workspace/updateOffPeakToolPolicy",
-                &json!({"workspace": workspace, "enabled": true})
-            )
+            .method("session/read", &json!({"sessionId": "sess_x"}))
             .is_ok()
     );
     let error = inbound
-        .method(
-            "workspace/updateOffPeakToolPolicy",
-            &json!({"workspace": workspace, "enabled": true, "extra": 1}),
-        )
+        .method("session/read", &json!({"sessionId": "sess_x", "extra": 1}))
         .unwrap_err();
     assert_eq!(error.code, -32602);
     // 省略 params 按 {} 校验。

@@ -184,9 +184,6 @@ impl Server {
                     "updatedSessionCount": 0}),
                 )
             }
-            "workspace/updateOffPeakToolPolicy" => {
-                reply(json!({"workspace": params["workspace"], "enabled": params["enabled"]}))
-            }
             // 动态工作流不移植（P4 决定）：回 disabled 生效。
             "workspace/updateDynamicWorkflowPolicy" => {
                 reply(json!({"workspace": params["workspace"], "enabled": false}))
