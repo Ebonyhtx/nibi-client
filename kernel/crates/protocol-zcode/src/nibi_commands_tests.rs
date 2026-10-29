@@ -126,7 +126,7 @@ fn create_session_accepts_every_nibi_field() {
     // 仍未消费的继续点名。
     assert!(unsupported.contains(&"mcpServers"));
     assert!(unsupported.contains(&"additionalDirectories"));
-    assert!(unsupported.contains(&"permissionScope"));
+    assert!(!unsupported.contains(&"permissionScope"));
     assert!(unsupported.contains(&"dynamicWorkflowEnabled"));
     assert!(unsupported.contains(&"dynamicWorkflowMode"));
     assert!(unsupported.contains(&"firstInput.attachments"));

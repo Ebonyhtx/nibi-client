@@ -289,6 +289,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
         "editUserQuery" => edit_user_query(handle, &live.sink, envelope).await,
+        "deleteSession" => delete_session(server, envelope).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -1334,6 +1335,38 @@ async fn edit_user_query(
             reason,
             view.revision,
         ),
+    }
+}
+
+/// NIBI `deleteSession`：存储软删除（migration 0023 的 `time_deleted`）。
+/// 打开着的会话先关（kernel `delete_session` 对打开着的返回 Failed——与 Node 同判）。
+async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
+    let command = envelope.command_id.as_str();
+    let Some(session) = envelope.session_id.as_deref() else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.sessionRequired",
+            "deleteSession needs a sessionId",
+            0,
+        );
+    };
+    let session_id = SessionId::new(session);
+    match server.kernel.delete_session(&session_id).await {
+        Ok(()) => {
+            // bridge 的打开会话由 kernel 的 delete 处理（下次 open 同 id 会 NotFound）。
+            Ack::accepted(command, 0, Some(json!({"type": "deleteSession"})))
+        }
+        Err(error) => {
+            let text = error.to_string();
+            Ack::refused(
+                command,
+                Status::Rejected,
+                "fault.command.deleteFailed",
+                text,
+                0,
+            )
+        }
     }
 }
 

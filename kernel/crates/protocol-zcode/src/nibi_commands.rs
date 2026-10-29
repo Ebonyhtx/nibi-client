@@ -28,12 +28,12 @@ const REMOVED_SEND_TEXT_FIELDS: &[&str] = &["offPeakTaskId", "offPeakRunType", "
 
 /// createSession 里内核当前还不消费的 NIBI 字段（R12/R23：照搬上游会静默丢这些）。
 /// 处理器实现一项就从中删一项；列表非空时 `create_session` 至少要 warn。
-/// 已消费：config.modelSelection/mode/planEnabled/followupMode、config.provider/model/thought
+/// 已消费：config.modelSelection/mode/planEnabled/followupMode、config.provider/model/thought、
+/// permissionScope（literal 校验后忽略——kernel 默认 session-scoped）
 /// （2026-10-30 起作选择回落）、firstInput.text/mode/planEnabled（input_meta 捕获）。
 pub const CREATE_SESSION_FIELDS_NOT_YET_CONSUMED: &[&str] = &[
     "mcpServers",
     "additionalDirectories",
-    "permissionScope",
     "dynamicWorkflowEnabled",
     "dynamicWorkflowMode",
     "firstInput.attachments",
