@@ -57,6 +57,8 @@ jobs:
         run: node scripts/check-ui-a11y.mjs
       - name: Architecture gate
         run: pnpm run architecture:check
+      - name: NIBI command schema drift gate
+        run: pnpm exec tsx scripts/kernel-baseline/generate-nibi-command-schema.ts --check
       - name: Architecture governance self-test
         run: pnpm run test:architecture
       - name: Typecheck
