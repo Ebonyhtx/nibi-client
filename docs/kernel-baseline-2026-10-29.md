@@ -11,7 +11,7 @@
 | NIBI-Client HEAD | `4725ab6`（工作树在采集时干净） |
 | NIBI-Site HEAD | `62976f6` |
 | ZCode-rs pin | `6d349ed4`（0.1.67，build 67） |
-| 本机系统 Node | **v24.19.0**（FIX-3 系统级未执行；本轮用 `D:/NIBI/.tools/node-v24.22.1` 便携版跑构建/测试） |
+| 本机系统 Node | **v24.19.0**（FIX-3 系统级未执行；本轮用便携版 Node 24.22.1 跑构建/测试） |
 | 仓库钉定 Node | **24.22.1**（FIX-4 已执行，`24da6653`）；Server CLI 运行时 **22.23.4** |
 | Electron | **41.0.3**（FIX-5 目标 44.9.3 未执行） |
 | Rust 工具链 | cargo/rustc **1.97.1**（上游 rust-version 1.95） |

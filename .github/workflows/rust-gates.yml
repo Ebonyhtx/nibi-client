@@ -1,0 +1,76 @@
+name: rust-gates
+
+# FIX-10a/10b：Rust 内核的供应链门禁。
+# 只在 kernel/ 或本文件变化时运行；没有 kernel/ 的树不会触发（等价于空跑）。
+#
+# 门禁内容：
+# - cargo deny check（advisories / bans / licenses / sources）
+# - cargo audit（RustSec 公告库）
+# - webpki-root-certs 版本断言（>= 1.0.11，FIX-10b 下限）
+# - cargo check --locked --workspace（vendored 树至少能编译）
+#
+# 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
+
+on:
+  push:
+    paths:
+      - "kernel/**"
+      - ".github/workflows/rust-gates.yml"
+  pull_request:
+    paths:
+      - "kernel/**"
+      - ".github/workflows/rust-gates.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-gates:
+    name: rust-supply-chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: "1.95.0"
+          components: clippy,rustfmt
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2
+        with:
+          tool: cargo-deny
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2
+        with:
+          tool: cargo-audit
+      - name: cargo deny check
+        working-directory: kernel
+        run: cargo deny check
+      - name: cargo audit
+        working-directory: kernel
+        run: cargo audit
+      - name: trust roots >= 1.0.11
+        working-directory: kernel
+        shell: bash
+        run: |
+          version="$(cargo tree -i webpki-root-certs --locked --prefix none \
+            | sed -n 's/^webpki-root-certs v\([0-9][0-9.]*\).*/\1/p' \
+            | head -1)"
+          if [ -z "$version" ]; then
+            echo "webpki-root-certs not found in the dependency graph" >&2
+            exit 1
+          fi
+          echo "webpki-root-certs=$version"
+          if [ "$(printf '%s\n' 1.0.11 "$version" | sort -V | head -1)" != "1.0.11" ]; then
+            echo "webpki-root-certs must be >= 1.0.11 (got $version)" >&2
+            exit 1
+          fi
+      - name: cargo check
+        working-directory: kernel
+        run: cargo check --locked --workspace
+      - name: nibi-platform tests
+        working-directory: kernel
+        run: cargo test -p nibi-platform --locked
