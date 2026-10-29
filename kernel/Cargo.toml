@@ -11,6 +11,7 @@ members = [
   "crates/kernel-api",
   "crates/prompts",
   "crates/node-store",
+  "crates/nibi-platform",
   "crates/model",
   "crates/env-local",
   "crates/exec-wire",
