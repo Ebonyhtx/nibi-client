@@ -189,7 +189,7 @@ export function ConfirmDialogHost() {
                 size={"lg"}
                 onClick={() => settleConfirmation(false)}
                 className={cn(
-                  "h-9 gap-3 px-4",
+                  "h-11 gap-3 px-4 sm:h-9",
                   displayedRequest?.showKeyboardHints !== false && "justify-between sm:min-w-28",
                 )}
               >
@@ -208,8 +208,12 @@ export function ConfirmDialogHost() {
               data-testid={TID_CONFIRM_DIALOG_CONFIRM}
               onClick={handleConfirm}
               className={cn(
-                "h-9 gap-3 px-4",
-                displayedRequest?.showKeyboardHints !== false && "justify-between sm:min-w-32",
+                "h-11 gap-3 px-4 sm:h-9",
+                // 破坏性确认不显示 Enter 提示（回车被守卫拦下），按钮也不能继续保留
+                // justify-between 的右侧空槽，否则看起来像有一个看不清的快捷键符号。
+                destructive
+                  ? "justify-center sm:min-w-28"
+                  : displayedRequest?.showKeyboardHints !== false && "justify-between sm:min-w-32",
               )}
             >
               <span>{confirmLabel}</span>

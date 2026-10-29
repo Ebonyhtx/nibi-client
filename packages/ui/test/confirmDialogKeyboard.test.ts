@@ -74,4 +74,35 @@ describe("破坏性确认键盘防护", () => {
     fireEvent.keyDown(window, { key: "Enter" });
     await expect(result).resolves.toBe(true);
   });
+
+  it("破坏性确认不显示回车提示且按钮居中，不留右侧空槽", () => {
+    render(createElement(ConfirmDialogHost));
+    act(() => {
+      void useConfirmDialogStore.getState().requestConfirmation({
+        title: "删除",
+        description: "删除操作不可恢复",
+        confirmVariant: "destructive",
+        confirmLabel: "删除",
+        cancelLabel: "取消",
+      });
+    });
+    const destructiveButton = screen.getByRole("button", { name: "删除" });
+    expect(destructiveButton.textContent).not.toContain("⏎");
+    expect(destructiveButton.className).toContain("justify-center");
+    expect(destructiveButton.className).not.toContain("justify-between");
+    act(() => useConfirmDialogStore.getState().settleChoice("dismiss"));
+    cleanup();
+
+    render(createElement(ConfirmDialogHost));
+    act(() => {
+      void useConfirmDialogStore.getState().requestConfirmation({
+        title: "连接",
+        confirmLabel: "连接",
+        cancelLabel: "取消",
+      });
+    });
+    const normalButton = screen.getByRole("button", { name: /连接/ });
+    expect(normalButton.textContent).toContain("⏎");
+    expect(normalButton.className).toContain("justify-between");
+  });
 });
