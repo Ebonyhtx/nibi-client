@@ -79,3 +79,65 @@ fn collaboration_mode_reuses_the_send_text_mapping() {
     );
     assert_eq!(mode(&json!("stealth"), None), None);
 }
+
+#[test]
+fn retry_target_resolves_the_latest_turn_and_rejects_history() {
+    use rust_cli_kernel_api::ids::MessageId;
+    use rust_cli_kernel_api::message::{
+        AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin,
+    };
+
+    fn user(id: &str, text: &str) -> Message {
+        Message::User(UserMessage {
+            id: MessageId::new(id),
+            content: vec![ContentBlock::Text {
+                text: text.to_owned(),
+            }],
+            origin: UserOrigin::Human,
+        })
+    }
+    fn assistant(id: &str) -> Message {
+        Message::Assistant(AssistantMessage {
+            id: MessageId::new(id),
+            content: vec![],
+            model: String::new(),
+            stop_reason: None,
+            usage: None,
+        })
+    }
+
+    // 最后一轮：user → assistant。命中并取到原文。
+    let messages = vec![
+        user("u1", "first"),
+        assistant("a1"),
+        user("u2", "second"),
+        assistant("a2"),
+    ];
+    let target = retry_target(&messages, "a2").unwrap();
+    assert_eq!(target.user_message, "u2");
+    assert_eq!(target.text, "second");
+
+    // 历史 assistant：latestAssistantRetryOnly。
+    let error = retry_target(&messages, "a1").unwrap_err();
+    assert!(
+        error.starts_with("guard.latestAssistantRetryOnly"),
+        "{error}"
+    );
+
+    // 视图里不存在的 assistant 行。
+    assert!(retry_target(&messages, "a_missing").is_err());
+
+    // assistant 前没有 user 输入。
+    let messages = vec![assistant("a1")];
+    assert!(retry_target(&messages, "a1").is_err());
+
+    // user 消息没有文本：不能重发空输入。
+    let empty = Message::User(UserMessage {
+        id: MessageId::new("u1"),
+        content: vec![],
+        origin: UserOrigin::Human,
+    });
+    let messages = vec![empty, assistant("a1")];
+    let error = retry_target(&messages, "a1").unwrap_err();
+    assert!(error.contains("no text"), "{error}");
+}

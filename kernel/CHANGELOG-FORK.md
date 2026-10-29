@@ -80,6 +80,8 @@
   `applyFileRewind`（→`Command::Rewind{scope: Code}`）两个 row-targeting 处理器，
   target 经 projection 行解析（entityId 匹配 + assistantResponseId 结算检查）。
   `Envelope` 补 `baseLogEpoch`；测试 28→29。
+- 第五小批：`retryTurn`（rewind 截断该轮 + 重发原文；`guard.latestAssistantRetryOnly`
+  只许最后一轮；原文 rewind 前解析）。测试 29→30。
 
 ## 7. 未完成项
 

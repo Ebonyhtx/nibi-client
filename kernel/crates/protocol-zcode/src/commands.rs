@@ -255,6 +255,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "cancelBackgroundWork" => cancel_background_work(handle, envelope, revision).await,
         "forkAssistant" => fork_assistant(handle, &live.sink, envelope).await,
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
+        "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -787,6 +788,59 @@ async fn cancel_background_work(
     }
 }
 
+/// retryTurn 的行解析结果：该轮的 user 消息（rewind 锚点）与原文（rewind 前解析）。
+#[derive(Debug, PartialEq)]
+struct RetryTarget {
+    user_message: String,
+    text: String,
+}
+
+/// assistant 行 → 该轮 user 消息：视图里定位 assistant 消息，向前找最近的 user 消息。
+/// Node 的守护（`guard.latestAssistantRetryOnly`）：只许重试最后一轮 assistant 回复——
+/// 历史回复 retry 会回退 active branch，直接拒绝；合成消息（Attachment/System）跳过。
+fn retry_target(
+    messages: &[rust_cli_kernel_api::message::Message],
+    assistant: &str,
+) -> Result<RetryTarget, String> {
+    let position = messages
+        .iter()
+        .rposition(|message| message.id().as_str() == assistant)
+        .ok_or_else(|| format!("row assistant response {assistant} is not in the conversation"))?;
+    if position != messages.len() - 1 {
+        return Err(
+            "guard.latestAssistantRetryOnly: retryTurn only retries the latest assistant reply"
+                .to_owned(),
+        );
+    }
+    let user = messages[..position]
+        .iter()
+        .rev()
+        .find(|message| matches!(message, rust_cli_kernel_api::message::Message::User(_)))
+        .ok_or("no user input before the assistant reply")?;
+    let rust_cli_kernel_api::message::Message::User(user_message) = user else {
+        return Err("no user input before the assistant reply".to_owned());
+    };
+    let text = user_message
+        .content
+        .iter()
+        .filter_map(|block| match block {
+            rust_cli_kernel_api::message::ContentBlock::Text { text } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join(
+            "
+",
+        );
+    if text.is_empty() {
+        return Err("the original user input has no text to resend".to_owned());
+    }
+    Ok(RetryTarget {
+        user_message: user_message.id.as_str().to_owned(),
+        text,
+    })
+}
+
 /// NIBI `forkAssistant`：row-targeting CAS（revision+epoch）；稳定 assistant 行 → `Command::Fork`。
 async fn fork_assistant(
     handle: &dyn SessionHandle,
@@ -870,6 +924,132 @@ async fn fork_assistant(
             "fault.command.forkFailed",
             reason,
             revision,
+        ),
+    }
+}
+
+/// NIBI `retryTurn`：row-targeting CAS；rewind 截断该轮（user+assistant 一起切）后
+/// 重发原 user 文本。原文在 rewind 之前解析（截断后拿不到）；running 中同样先 CAS——
+/// 最后一轮 retry 允许打断在跑的回合（与 Node 的 preempt 等价的原子性由 kernel 的
+/// actor 串行保证：Rewind 与 Submit 顺序进队列，中途失败也不丢原文）。
+async fn retry_turn(
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let view = match handle.view().await {
+        Ok(view) => view,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        view.revision,
+        &live.epoch(),
+        true,
+    ) {
+        return stale;
+    }
+    let Some(target) = target_row(&envelope.payload) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "retryTurn needs a row target",
+            view.revision,
+        );
+    };
+    let Some(row) = live.row(target.row_id) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            format!("row {} does not exist", target.row_id),
+            view.revision,
+        );
+    };
+    let assistant = match row_message_id(&row, &target.entity) {
+        Ok(message) => message,
+        Err(reason) => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "proto.invalidPayload",
+                reason,
+                view.revision,
+            );
+        }
+    };
+    let retry = match retry_target(&view.messages, &assistant) {
+        Ok(retry) => retry,
+        Err(reason) => {
+            let code = reason.split(':').next().unwrap_or_default().to_owned();
+            let reason_code = if code.starts_with("guard.") {
+                code
+            } else {
+                "proto.invalidPayload".to_owned()
+            };
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                &reason_code,
+                reason,
+                view.revision,
+            );
+        }
+    };
+    // 1) 截断：target 是该轮的 user 消息（kernel 语义：历史截到 target 之前）。
+    match send(
+        handle,
+        &format!("{command}:rewind"),
+        Command::Rewind {
+            target: rust_cli_kernel_api::ids::MessageId::new(retry.user_message),
+            scope: RewindScope::Conversation,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } | KernelAck::Duplicate => {}
+        KernelAck::Rejected { reason } => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "fault.command.retryFailed",
+                reason,
+                view.revision,
+            );
+        }
+    }
+    // 2) 重发原文；idle 下 Queue 落成 startNow（与 sendText 的准入同判）。
+    match send(
+        handle,
+        command,
+        Command::Submit {
+            text: retry.text,
+            attachments: Vec::new(),
+            delivery: Delivery::Queue,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(command, view.revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, view.revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "guard.inputRejected",
+            reason,
+            view.revision,
         ),
     }
 }

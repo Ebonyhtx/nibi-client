@@ -81,9 +81,25 @@ workflow run、queue 编辑、deleteSession 的 store 软删）保持 unsupporte
   与 Node 的 log epoch 语义一致；跨进程冷打开的 epoch 由冷打开方重新生成——与 Node
   的 app-server 行为相同。
 
+## 6.3 第五小批：retryTurn
+
+- Node 语义对读（`fork-edit-retry.ts`）：assistant 行 → **rewind 前先解析**该轮原始
+  user 消息与文本 → `guard.latestAssistantRetryOnly` 只许重试最后一轮 assistant 回复
+  （历史 retry 会回退 active branch，必须拒绝）→ rewind 截断 → 重发原文。
+- kernel 对齐：`Rewind{target}` 的语义就是"历史截到 target 之前"（target 本身被切），
+  所以 target 用该轮 user 消息 id（user+assistant 一起切）→ `Command::Submit{原文,
+  Queue}`（idle 下 Queue 落成 startNow，与 sendText 准入同判）。两步用
+  `{commandId}:rewind` 与 `{commandId}` 两个命令 id；kernel actor 串行保证原子性。
+- `retry_target` 收 `&[Message]` 纯函数：定位 assistant、latest 守卫、向前找最近
+  User 消息、空文本拒绝；测试 29→30（5 组断言：最后一轮命中/历史拒绝/不存在/无
+  user 前驱/空文本）。
+- 与 Node 的差异（有意，记录在案）：Node 有 active-turn preempt barrier 与
+  attachment 回放；kernel actor 的命令队列天然串行，不需要 preempt；retryTurn 的
+  payload 本就无附件。editUserQuery（newText + workspaceMode 组合文件回退）仍未实现。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 22 个命令的处理器（retry/rewind 对话面/editUserQuery/queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——
+1. 其余 21 个命令的处理器（editUserQuery/queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
