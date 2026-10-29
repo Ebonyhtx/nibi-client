@@ -24,7 +24,7 @@
 - FIX-4 **已执行**（`24da6653`）：mise/.nvmrc/CLI engines/CI 四处、Server CLI `22.23.4`、Dockerfile、测试夹具、third-party 许可证登记全部同步。
 - FIX-5 未执行：Electron 41.0.3。
 - FIX-6 未执行，且本轮禁止改生产/动服务器，无法在本机完成。
-- FIX-10a 未执行：`.github/workflows/` 只有 `client-gates.yml`、`desktop-e2e.yml`，没有 `rust-gates.yml`。
+- FIX-10a **已执行**（`80471414`）：新增 `.github/workflows/rust-gates.yml`（`kernel/**` 触发，cargo deny/audit + webpki 版本断言 + check/test）。
 
 因此本报告是**临时基线**：按 Rust 规划 §6.1 第 1 条，FIX-5 合入后必须重跑；届时 Node/Electron 版本会改变内存与启动特征。
 

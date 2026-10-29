@@ -77,7 +77,7 @@ R2（迁移 SQL 正文未逐字节比对）**已关闭**。
 
 1. **FIX-4 已执行**（2026-10-30，`24da6653`）：mise/`.nvmrc`/CLI engines/CI 四处统一 24.22.1，Server CLI 22.23.4，Dockerfile、测试夹具、third-party 许可证登记同步；FIX-4 在 vendoring 之后落地，只改根配置/夹具，不触碰 `kernel/`。
 2. **FIX-3/FIX-5/FIX-6 未完成**：本机系统 Node 仍 24.19.0（仓库测试用便携版 24.22.1）、Electron 41.0.3；FIX-6 需要改生产 Zitadel，本轮明确禁止。
-3. **FIX-10a 未执行**：`.github/workflows/rust-gates.yml` 尚未新增；本轮只落了 `deny.toml` 和本地门禁实跑。
+3. **FIX-10a 已执行**（`80471414`）：`.github/workflows/rust-gates.yml` 已新增，`kernel/**` 变化时跑 cargo deny/audit、webpki >=1.0.11 断言、cargo check 与 nibi-platform 测试。
 4. **品牌化未开始**：`kernel/` 仍是上游 ZCode 品牌；按计划等所有功能 track 完成后再做 §4.11/§7.7 收口。
 5. **`cargo check` 而非 `cargo test --workspace`**：上游全量测试 3,600 属性，本轮只跑了新 crate 与 node-store 互认；全量测试留到阶段 2 前。
 
