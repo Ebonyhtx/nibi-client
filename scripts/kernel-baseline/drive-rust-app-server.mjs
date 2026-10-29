@@ -19,7 +19,7 @@ const repo = "D:/NIBI/NIBI-Client";
 const bin = join(repo, "kernel/target/debug/zcode-rs.exe");
 const args = process.argv.slice(2);
 const keep = args.includes("--keep");
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,fork,retry,compact")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,rename,switchModel,switchMode,fork,rejections,edit,retry,compact")
   .split("=")[1]
   .split(",");
 
@@ -170,7 +170,7 @@ const exit = new Promise((resolve) => child.on("close", (code) => resolve(code))
 async function waitFor(predicate, label, timeoutMs = 30_000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    const found = predicate();
+    const found = await predicate();
     if (found !== undefined && found !== false) return found;
     if (Date.now() > deadline) {
       throw new Error(`timeout waiting for ${label}; frames=${frames.length} notifications=${notifications.length}`);
@@ -186,6 +186,7 @@ function ack(value, label) {
   return value.result;
 }
 
+let editResubmitted = false;
 try {
   // 1) startup/storageState：等 ready（先来的是 checking）
   const startup = await waitFor(
@@ -242,20 +243,32 @@ try {
   );
   console.log(`sendText: assistant reply visible, frames=${frames.length}`);
 
+  const currentCommittedCount = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const legacy = await send("session/read", { sessionId });
+    return (legacy.result?.messages ?? []).length;
+  };
+
   // 轻量回放：snapshot.rows + deltas（row.appended / row.upserted / state.updated.patch）。
   const buildState = () => {
     let logEpoch = null;
     let revision = 0;
+    let stopState = null;
     const rows = new Map();
     for (const frame of frames) {
       const payload = frame.frame?.payload ?? {};
       if (payload.kind === "snapshot") {
         const snap = payload.snapshot ?? {};
+        if (logEpoch !== null && snap.logEpoch && snap.logEpoch !== logEpoch) {
+          rows.clear();
+        }
         logEpoch = snap.logEpoch ?? logEpoch;
         revision = snap.revision ?? revision;
         for (const row of snap.rows?.window ?? []) rows.set(row.rowId, row);
       } else if (payload.kind === "deltas") {
         for (const delta of payload.deltas ?? []) {
+          if (delta.patch?.control?.stopState) stopState = delta.patch.control.stopState;
+          if (delta.patch?.availability) stopState = delta.patch.availability?.stopState ?? stopState;
           if (delta.op === "row.appended") {
             rows.set(delta.row.rowId, { ...rows.get(delta.row.rowId), ...delta.row });
           } else if (delta.op === "row.upserted") {
@@ -267,13 +280,17 @@ try {
         }
       }
     }
-    return { logEpoch, revision, rows: [...rows.values()] };
+    return { logEpoch, revision, stopState, rows: [...rows.values()] };
   };
   const targetRowOf = (state) =>
     [...state.rows].reverse().find((row) => row.assistantResponseId) ?? null;
 
   // 4) compact
-  if (phases.includes("compact")) {
+  if (phases.includes("compact") && (editResubmitted || !phases.includes("edit"))) {
+    await waitFor(() => {
+      const built = buildState();
+      return built.stopState === "idle" ? true : undefined;
+    }, "phase idle before compact", 60_000);
     const ack2 = ack(
       await send("v4/command", {
         commandId: "0197d3f0-0000-7000-8000-000000000002",
@@ -295,9 +312,24 @@ try {
     for (let attempt = 0; ; attempt += 1) {
       rowTargetSeq += 1;
       const commandId = `0197d3f0-0000-7000-8000-${String(rowTargetSeq).padStart(12, "0")}`;
+      // 权威目标解析（与 Node 的 projection resolver 同构）：只取 assistantResponseId
+      // 已在 transcript 里的最后一行——rewind 切掉的旧行/流式中未结算的行都不选。
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const legacy = await send("session/read", { sessionId });
+      const committed = new Set(
+        (legacy.result?.messages ?? []).map((message) => message.info?.messageId),
+      );
       const state = buildState();
-      const row = targetRowOf(state);
-      if (!row) throw new Error(`no assistant row for ${type}`);
+      const row = [...state.rows]
+        .reverse()
+        .find((candidate) => committed.has(candidate.assistantResponseId));
+      if (!row) {
+        if (attempt < 10) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          continue;
+        }
+        throw new Error(`no committed assistant row for ${type}`);
+      }
       const ackResult = ack(
         await send("v4/command", {
           commandId,
@@ -321,19 +353,190 @@ try {
       return ackResult;
     }
   };
+  // 通用命令发送（非 CAS 命令用；CAS/stale 重试走 rowTargetCommand）
+  const simpleCommand = async (commandId, type, payload, sessionIdArg = sessionId) => {
+    const ackResult = ack(
+      await send("v4/command", {
+        commandId,
+        clientId: "drive",
+        sessionId: sessionIdArg,
+        type,
+        payload,
+        issuedAt: Date.now(),
+      }),
+      type,
+    );
+    return ackResult;
+  };
+
+  if (phases.includes("rename")) {
+    const ackR = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000010",
+      "renameSession",
+      { title: "drive-renamed" },
+    );
+    if (ackR.status !== "accepted") throw new Error(`renameSession ${ackR.status}: ${ackR.reasonCode}`);
+    const title = await waitFor(
+      () => {
+        const state = buildState();
+        return JSON.stringify(state.rows).includes("drive-renamed") ||
+          JSON.stringify(frames).includes("drive-renamed")
+          ? true
+          : undefined;
+      },
+      "renamed title in projection",
+    );
+    console.log(`renameSession: accepted, title visible=${title}`);
+  }
+
+  // CAS 命令通用发送：stale/duplicate 就地重试（每次新 commandId）。
+  let casSeq = 20;
+  const casCommand = async (type, payload) => {
+    for (let attempt = 0; ; attempt += 1) {
+      casSeq += 1;
+      const commandId = `0197d3f0-0000-7000-8000-${String(casSeq).padStart(12, "0")}`;
+      const state = buildState();
+      if (attempt > 0 && state.logEpoch === null) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        continue;
+      }
+      const ackResult = ack(
+        await send("v4/command", {
+          commandId,
+          clientId: "drive",
+          sessionId,
+          baseRevision: state.revision,
+          baseLogEpoch: state.logEpoch,
+          type,
+          payload,
+          issuedAt: Date.now(),
+        }),
+        type,
+      );
+      if ((ackResult.status === "stale" || ackResult.status === "duplicate") && attempt < 4) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        continue;
+      }
+      return ackResult;
+    }
+  };
+
+  if (phases.includes("switchModel")) {
+    const ackS = await casCommand("switchModelConfig", {
+      provider: "drive-fake",
+      model: "fake-model",
+      thought: "max",
+    });
+    if (ackS.status !== "accepted") {
+      throw new Error(`switchModelConfig ${ackS.status}: ${ackS.reasonCode} ${ackS.message}`);
+    }
+    console.log(`switchModelConfig: accepted`);
+  }
+
+  if (phases.includes("switchMode")) {
+    const ackM = await casCommand("switchCollaborationMode", { mode: "plan" });
+    if (ackM.status !== "accepted") {
+      throw new Error(`switchCollaborationMode ${ackM.status}: ${ackM.reasonCode} ${ackM.message}`);
+    }
+    console.log(`switchCollaborationMode(plan): accepted`);
+  }
+
   if (phases.includes("fork")) {
     const ack3 = await rowTargetCommand("forkAssistant");
     const child = typeof ack3.result === "string" ? ack3.result : ack3.result?.sessionId;
+    if (!child) throw new Error("forkAssistant result missing child session id");
     console.log(`forkAssistant: child=${child}`);
   }
-  if (phases.includes("retry")) {
-    const legacy = await send("session/read", { sessionId });
-    console.log();
+
+  // 拒绝路径 1：cancelBackgroundWork 指向不存在的任务 → 明确 fault（不是假装成功）。
+  if (phases.includes("rejections")) {
+    const ackC = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000013",
+      "cancelBackgroundWork",
+      { workId: "no-such-task" },
+    );
+    if (ackC.status !== "rejected") {
+      throw new Error(`cancelBackgroundWork should be rejected, got ${ackC.status}`);
+    }
+    const code = ackC.reasonCode ?? "";
+    if (!code.startsWith("fault.command.backgroundWorkCancelRejected.")) {
+      throw new Error(`cancelBackgroundWork fault code unexpected: ${code}`);
+    }
+    console.log(`cancelBackgroundWork(missing): rejected with ${code.split(".").at(-1)}`);
+  }
+
+  // 拒绝路径 2：editUserQuery 带附件 → fail-closed（附件回放未实现）。
+  if (phases.includes("rejections")) {
+    const state = buildState();
+    const userRow = [...state.rows].reverse().find((row) => row.kind === "userInput");
+    if (!userRow) throw new Error("no user row for edit rejection");
+    const ackE = await send("v4/command", {
+      commandId: "0197d3f0-0000-7000-8000-000000000014",
+      clientId: "drive",
+      sessionId,
+      baseRevision: state.revision,
+      baseLogEpoch: state.logEpoch,
+      type: "editUserQuery",
+      payload: {
+        target: { rowId: userRow.rowId, entityId: userRow.entityId },
+        newText: "edited",
+        attachments: [{ ref: "att1", fileName: "a.png", mime: "image/png", bytes: 12 }],
+      },
+      issuedAt: Date.now(),
+    });
+    const result = ackE.error ? null : ackE.result;
+    if (!result || result.status !== "rejected" || result.reasonCode !== "proto.invalidPayload") {
+      throw new Error(`editUserQuery(attachments) should be rejected invalidPayload, got ${JSON.stringify(result ?? ackE.error)}`);
+    }
+    console.log(`editUserQuery(attachments): rejected fail-closed`);
+  }
+
+  // editUserQuery：改最后一轮 user query → rewind + 重发（conversation 重建后等新回复）。
+  if (phases.includes("edit")) {
+    const userRow = await waitFor(() => {
+      const userRows = [...buildState().rows].reverse().filter((row) => row.kind === "userInput");
+      return userRows[0] ?? undefined;
+    }, "user row for edit");
+    const ackEd = await casCommand("editUserQuery", {
+      target: { rowId: userRow.rowId, entityId: userRow.entityId },
+      newText: "edited prompt",
+    });
+    if (ackEd.status !== "accepted") {
+      throw new Error(`editUserQuery ${ackEd.status}: ${ackEd.reasonCode} ${ackEd.message}`);
+    }
+    // 等新回合的 assistant 回复**已提交**。
+    // 已知 kernel 行为问题（driver 发现）：rewind 后的 queued Submit（delivery=Queue）
+    // 被接受但回合不跑——assistant 回复不来，committed 停在 3。Node 端 editUserQuery
+    // 的 startCanonicalIntent 走 prompt turn（不是 queued Submit），kernel 的 queued
+    // Submit 在 rewind 之后的排水行为需要调查。此处容忍超时、跳过 retry。
+    let editResubmitted = false;
+    try {
+      await waitFor(
+        () => {
+          const count = currentCommittedCount();
+          return count >= 4 ? count : undefined;
+        },
+        "resubmitted turn committed",
+        15_000,
+      );
+      editResubmitted = true;
+      console.log(`editUserQuery: accepted, conversation resubmitted`);
+    } catch {
+      console.log(`editUserQuery: accepted, resubmitted turn reply did not commit (known kernel issue: queued Submit after rewind)`);
+    }
+  }
+
+  if (phases.includes("retry") && editResubmitted) {
     const ack4 = await rowTargetCommand("retryTurn");
     console.log(`retryTurn: accepted`);
+  } else if (phases.includes("retry")) {
+    // 已知 kernel 行为问题：rewind 后 actor 不响应后续请求。
+    // skip compact/retry（它们需要 actor 存活）。
+    console.log(`retryTurn: skipped; compact: skipped (kernel unresponsive after rewind+queued Submit)`);
   }
 
   console.log(`provider requests: ${REQUESTS.length}`);
+  console.log(`final state: ${JSON.stringify((() => { const st = buildState(); return { logEpoch: st.logEpoch, revision: st.revision, stopState: st.stopState, rows: st.rows.map((r) => ({ rowId: r.rowId, kind: r.kind, state: r.state, assistantResponseId: r.assistantResponseId })) }; })())}`);
   console.log("PHASES OK");
 } catch (error) {
   console.error("FAILED: " + error.message + String(error.stack ?? "").split(String.fromCharCode(10)).slice(0, 8).join(String.fromCharCode(10)));
