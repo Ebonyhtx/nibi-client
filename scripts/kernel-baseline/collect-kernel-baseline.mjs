@@ -42,9 +42,6 @@ function option(name, fallback) {
   const value = args[index + 1];
   return value === undefined || value.startsWith("--") ? fallback : value;
 }
-function flag(name) {
-  return args.includes(`--${name}`);
-}
 function stamp() {
   return new Date().toISOString().replace(/[:.]/g, "-");
 }
@@ -52,17 +49,11 @@ function ensureDir(path) {
   mkdirSync(path, { recursive: true });
   return path;
 }
-function round(value) {
-  return value === null || value === undefined ? null : Math.round(value);
-}
 function percentile(values, p) {
   const sorted = values.filter((v) => typeof v === "number" && Number.isFinite(v)).sort((a, b) => a - b);
   if (sorted.length === 0) return null;
   const rank = Math.ceil((p / 100) * sorted.length);
   return sorted[Math.max(0, Math.min(sorted.length - 1, rank - 1))];
-}
-function sleep(ms) {
-  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
 /**
