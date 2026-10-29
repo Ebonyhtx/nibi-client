@@ -84,6 +84,38 @@ fn cas_check_with_epoch(
     None
 }
 
+/// Human 用户消息的可见文本；合成消息与 INTERRUPT_TEXTS 撤回补条返回空。
+fn user_text(message: &rust_cli_kernel_api::message::Message) -> String {
+    let rust_cli_kernel_api::message::Message::User(user) = message else {
+        return String::new();
+    };
+    if user.origin != rust_cli_kernel_api::message::UserOrigin::Human {
+        return String::new();
+    }
+    let text = crate::projection::text_of(&user.content);
+    if rust_cli_kernel_api::user_input::INTERRUPT_TEXTS.contains(&text.as_str()) {
+        return String::new();
+    }
+    text
+}
+
+/// `guard.latestQueryEditOnly`：editUserQuery 只许改最后一条 real user query——
+/// 历史编辑会回退 active branch。
+fn edit_target_guard(
+    messages: &[rust_cli_kernel_api::message::Message],
+    entity: &str,
+) -> Result<(), String> {
+    let latest = messages
+        .iter()
+        .rev()
+        .find(|message| !user_text(message).is_empty())
+        .ok_or("no real user query in the conversation")?;
+    if latest.id().as_str() == entity {
+        return Ok(());
+    }
+    Err("guard.latestQueryEditOnly: editUserQuery only edits the latest real user query".to_owned())
+}
+
 /// row-targeting 的 target 解析：行存在、entityId 对得上、已结算出 assistant 消息。
 fn row_message_id(row: &Map<String, Value>, entity: &str) -> Result<String, String> {
     if row.get("entityId").and_then(Value::as_str) != Some(entity) {
@@ -256,6 +288,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "forkAssistant" => fork_assistant(handle, &live.sink, envelope).await,
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
+        "editUserQuery" => edit_user_query(handle, &live.sink, envelope).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -1131,6 +1164,202 @@ async fn apply_file_rewind(
             "fault.command.fileRewindFailed",
             reason,
             revision,
+        ),
+    }
+}
+
+/// NIBI `editUserQuery`：换文本的 retryTurn。target 是 real user 行（entityId 即该
+/// user 消息 id）→ `guard.latestQueryEditOnly` → rewind 截断该轮 → 重发 newText。
+/// 与 Node 的差异（记录在案）：
+/// - 附件回放（AttachmentRef → TurnAttachment）未实现：payload 带附件时 fail-closed
+///   拒绝（Node 允许 attachment-only edit）；
+/// - workspaceMode=rewind 直接用 kernel `Rewind{scope: Both}`（文件+对话一次提交），
+///   Node 的 preview/blocked UI 流（guard.workspaceRewind*）暂无对应 ACK 形状；
+/// - conversationQuotes 暂不消费：出现时 warn（不静默）。
+async fn edit_user_query(
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let view = match handle.view().await {
+        Ok(view) => view,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        view.revision,
+        &live.epoch(),
+        true,
+    ) {
+        return stale;
+    }
+    let Some(target) = target_row(&envelope.payload) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "editUserQuery needs a row target",
+            view.revision,
+        );
+    };
+    let Some(row) = live.row(target.row_id) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            format!("row {} does not exist", target.row_id),
+            view.revision,
+        );
+    };
+    // user 行：kind=userInput、origin=realUser、entityId 即 user 消息 id。
+    if row.get("kind").and_then(Value::as_str) != Some("userInput")
+        || row.get("origin").and_then(Value::as_str) != Some("realUser")
+        || row.get("entityId").and_then(Value::as_str) != Some(target.entity.as_str())
+    {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "editUserQuery targets a real user query row",
+            view.revision,
+        );
+    }
+    let attachments = envelope.payload["attachments"].as_array();
+    if attachments.is_some_and(|items| !items.is_empty()) {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "attachment replay is not supported yet; resend without attachments",
+            view.revision,
+        );
+    }
+    if envelope
+        .payload
+        .get("conversationQuotes")
+        .is_some_and(|quotes| quotes.as_array().is_some_and(|items| !items.is_empty()))
+    {
+        tracing::warn!(
+            event = "protocol.edit_user_query.quotes_unsupported",
+            "editUserQuery carries conversation quotes; they are not replayed yet"
+        );
+    }
+    let Some(new_text) = envelope.payload["newText"].as_str().map(str::to_owned) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "editUserQuery needs newText",
+            view.revision,
+        );
+    };
+    if new_text.trim().is_empty() {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "input must not be empty",
+            view.revision,
+        );
+    }
+    if let Err(reason) = edit_target_guard(&view.messages, &target.entity) {
+        let code = reason.split(':').next().unwrap_or_default().to_owned();
+        let reason_code = if code.starts_with("guard.") {
+            code
+        } else {
+            "proto.invalidPayload".to_owned()
+        };
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            &reason_code,
+            reason,
+            view.revision,
+        );
+    }
+    // 本次执行带的标准 Selection 先作用到会话（与 sendText 同判）。
+    if let Some(chosen) = selection(&envelope.payload["modelSelection"])
+        && view.selection != chosen
+    {
+        match send(
+            handle,
+            &format!("{command}:model"),
+            Command::SetModel { selection: chosen },
+        )
+        .await
+        {
+            KernelAck::Accepted { .. } | KernelAck::Duplicate => {}
+            KernelAck::Rejected { reason } => {
+                return Ack::refused(
+                    command,
+                    Status::Rejected,
+                    "guard.modelRejected",
+                    reason,
+                    view.revision,
+                );
+            }
+        }
+    }
+    let scope = if envelope.payload["workspaceMode"].as_str() == Some("rewind") {
+        RewindScope::Both
+    } else {
+        RewindScope::Conversation
+    };
+    match send(
+        handle,
+        &format!("{command}:rewind"),
+        Command::Rewind {
+            target: rust_cli_kernel_api::ids::MessageId::new(target.entity.clone()),
+            scope,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } | KernelAck::Duplicate => {}
+        KernelAck::Rejected { reason } => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "fault.command.editFailed",
+                reason,
+                view.revision,
+            );
+        }
+    }
+    match send(
+        handle,
+        command,
+        Command::Submit {
+            text: new_text,
+            attachments: Vec::new(),
+            delivery: Delivery::Queue,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(
+            command,
+            view.revision,
+            Some(json!({"type": "editUserQuery", "disposition": "rewind"})),
+        ),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, view.revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "guard.inputRejected",
+            reason,
+            view.revision,
         ),
     }
 }

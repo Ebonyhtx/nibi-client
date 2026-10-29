@@ -77,7 +77,7 @@ pub struct Projection {
     created_at: u64,
 }
 
-fn text_of(content: &[ContentBlock]) -> String {
+pub(crate) fn text_of(content: &[ContentBlock]) -> String {
     content
         .iter()
         .filter_map(|block| match block {

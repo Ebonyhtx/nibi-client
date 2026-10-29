@@ -141,3 +141,41 @@ fn retry_target_resolves_the_latest_turn_and_rejects_history() {
     let error = retry_target(&messages, "a1").unwrap_err();
     assert!(error.contains("no text"), "{error}");
 }
+
+#[test]
+fn edit_target_guard_only_accepts_the_latest_real_query() {
+    use rust_cli_kernel_api::ids::MessageId;
+    use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+
+    fn human(id: &str, text: &str) -> Message {
+        Message::User(UserMessage {
+            id: MessageId::new(id),
+            content: vec![ContentBlock::Text {
+                text: text.to_owned(),
+            }],
+            origin: UserOrigin::Human,
+        })
+    }
+    fn assistant(id: &str) -> Message {
+        Message::Assistant(rust_cli_kernel_api::message::AssistantMessage {
+            id: MessageId::new(id),
+            content: vec![],
+            model: String::new(),
+            stop_reason: None,
+            usage: None,
+        })
+    }
+
+    let messages = vec![
+        human("u1", "first"),
+        assistant("a1"),
+        human("u2", "second"),
+        assistant("a2"),
+    ];
+    assert!(edit_target_guard(&messages, "u2").is_ok());
+    let error = edit_target_guard(&messages, "u1").unwrap_err();
+    assert!(error.starts_with("guard.latestQueryEditOnly"), "{error}");
+    // 没有 real user query。
+    let messages = vec![assistant("a1")];
+    assert!(edit_target_guard(&messages, "a1").is_err());
+}

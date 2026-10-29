@@ -82,6 +82,9 @@
   `Envelope` 补 `baseLogEpoch`；测试 28→29。
 - 第五小批：`retryTurn`（rewind 截断该轮 + 重发原文；`guard.latestAssistantRetryOnly`
   只许最后一轮；原文 rewind 前解析）。测试 29→30。
+- 第六小批：`editUserQuery`（real user 行解析 + `guard.latestQueryEditOnly` +
+  workspaceMode preserve/rewind → `Rewind{Conversation|Both}` + 重发 newText；附件
+  回放未实现，payload 带附件 fail-closed 拒绝；quotes 暂 warn）。测试 30→31。
 
 ## 7. 未完成项
 

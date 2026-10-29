@@ -97,9 +97,23 @@ workflow run、queue 编辑、deleteSession 的 store 软删）保持 unsupporte
   attachment 回放；kernel actor 的命令队列天然串行，不需要 preempt；retryTurn 的
   payload 本就无附件。editUserQuery（newText + workspaceMode 组合文件回退）仍未实现。
 
+## 6.4 第六小批：editUserQuery
+
+- Node 语义对读（同 fork-edit-retry.ts）：target 是 **real user 行**（entityId 即该
+  user 消息 id）→ `guard.latestQueryEditOnly` 只许改最后一条 real user query →
+  rewind 截断 → 重发 newText。
+- Rust：行校验（kind=userInput + origin=realUser + entityId 匹配）→ 附件 fail-closed
+  拒绝（回放未实现；Node 允许 attachment-only edit）→ quotes 出现时 warn（不静默）→
+  `edit_target_guard`（纯函数，pub(crate) text_of 复用）→ modelSelection 先 SetModel →
+  rewind（workspaceMode=rewind → `Rewind{scope: Both}`，一次提交文件+对话；preserve →
+  Conversation）→ `Submit{newText}`，ACK result `{type, disposition: "rewind"}`。
+- 与 Node 的差异（记录在案）：Node 的 preview/blocked UI 流（guard.workspaceRewind*）
+  暂无对应 ACK 形状——kernel Rewind 被拒时统一 `fault.command.editFailed` 带原文。
+- 测试 30→31（edit_target_guard：最新命中/历史拒绝/无 real query）。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 21 个命令的处理器（editUserQuery/queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——
+1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
