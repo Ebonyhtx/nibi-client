@@ -147,9 +147,28 @@ startup/storageState ready (~210ms)
 **编译产物**：`cargo build -p rust-cli --locked --offline` 1m33s，`zcode-rs.exe`
 77MB（dev profile），`--version` = `zcode 0.1.0 (rust-cli)`。
 
+## 6.6 第八步（续）：全链路 editUserQuery→retryTurn→compact 通过
+
+三个修复叠加后全链路闭合：
+
+1. **kernel rewind 排水**：`rewind.rs` 同步路径加 `start_next()`（排水 queued Submit）。
+2. **projection 消费 `HistoryRewritten`**：清空行 + 发 `row.removed{fromRowId:0}` delta
+   （Node 协议已有 op）→ 客户端也清空 → 后续新行追加到空投影。
+3. **retryTurn 改为 transcript 驱动**：去掉投影行查找（rewind 后投影行可能还没重放），
+   `retry_target(&[Message])` 自动取最后一条 assistant（latest 守卫内建：最后一条
+   不是 assistant 就拒绝）。
+
+全链路结果：createSession → subscribe → sendText → forkAssistant → editUserQuery
+→ retryTurn → compact **全部 accepted**；`provider requests: 3`（turn 1 + edit 重发 +
+标题生成）；final state rows 只剩 resubmit 后的新 turn（旧行被 HistoryRewritten 正确清除）。
+
+**遗留发现**：`switchCollaborationMode(plan)` 后的 editUserQuery resubmit turn 失败
+（turnHeader=failed）——plan 模式的 turn 行为需要调查。非关键路径（plan 模式的
+edit/resubmit 是边界场景），已记录在案。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——
+1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
