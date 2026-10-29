@@ -62,7 +62,7 @@ describe("credentialService encryption", () => {
     const storedValue = rawStore[credentialKey];
 
     expect(storedValue).toBeDefined();
-    expect(storedValue).toMatch(/^enc:v1:/);
+    expect(storedValue).toMatch(/^enc:v2:/);
     expect(storedValue).not.toContain("plain-access-token");
     await expect(service.load(credentialKey)).resolves.toBe("plain-access-token");
   });
@@ -76,7 +76,7 @@ describe("credentialService encryption", () => {
 
     const credentialsFile = join(home, ".nibi", "v2", "credentials.json");
     const rawStore = JSON.parse(readFileSync(credentialsFile, "utf-8")) as Record<string, string>;
-    expect(rawStore[credentialKey]).toMatch(/^enc:v1:/);
+    expect(rawStore[credentialKey]).toMatch(/^enc:v2:/);
     await expect(service.load(credentialKey)).resolves.toBe("");
   });
 
