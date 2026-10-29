@@ -68,6 +68,9 @@
   对内核未消费字段点名 `warn`（R12/R23 防静默丢失）。详见 `docs/rust-kernel-step2-slice1-2026-10-30.md`。
 - 验证：protocol-zcode 25 测试（7 个契约测试）、clippy -D warnings、rust 1.95.0 MSRV、
   workspace check / nibi-platform / 互认 / deny / audit 全绿。
+- 同日追加 4 个处理器：`switchModelConfig`（CAS→SetModel）、`switchCollaborationMode`
+  （CAS→SetMode/SetPlan）、`compact`（→Compact）、`renameSession`（→Rename）；CAS 抽成
+  `cas_check`（stale→`proto.staleRevision`），set_followup 同步改用。测试 25→28。
 
 ## 7. 未完成项
 

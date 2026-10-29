@@ -42,9 +42,20 @@
 | nibi-platform 46 测试 / node-store 互认 / deny / audit / 0020–0024 SQL 比对 | 全部不变绿 |
 | `generate-nibi-command-schema.ts --check` | up to date |
 
+## 6. 同日追加：4 个处理器落进 `decide()`
+
+`switchModelConfig`（CAS→`SetModel`，扁平 provider/model/thought，重复选择 Noop）、
+`switchCollaborationMode`（CAS→`SetMode`/`SetPlan`，plan 是旧写法开 plan，重复 Noop）、
+`compact`（非 CAS→`Command::Compact`，busy 由会话 actor 排队）、`renameSession`
+（非 CAS→`Command::Rename`，标题来源记 custom）。CAS 判定抽成 `cas_check`（stale→
+`proto.staleRevision`），`set_followup` 同步改用。新增 3 个纯映射测试
+（cas_check / model_config_selection / collaboration mode 复用 sendText 映射）；
+protocol-zcode 测试 25→28。kernel 尚无的命令面（goal 暂停/恢复、hook review、
+workflow run、queue 编辑、deleteSession 的 store 软删）保持 unsupported。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 29 个命令的处理器（compact/fork/retry/queue/goal/hook-review/workflow* 等）——
+1. 其余 25 个命令的处理器（fork/retry/rewind/queue/goal/hook-review/workflow*/deleteSession 等）——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。

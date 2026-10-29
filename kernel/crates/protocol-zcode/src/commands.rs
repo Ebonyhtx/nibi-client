@@ -38,6 +38,29 @@ fn mode(value: &Value, plan: Option<bool>) -> Option<(PermissionMode, bool)> {
     Some((PermissionMode::from_node_name(name)?, plan.unwrap_or(false)))
 }
 
+/// CAS 命令共用的 revision 比较（Node command-inbox 的 stale 判定）。
+fn cas_check(command: &str, base: Option<u64>, current: u64) -> Option<Ack> {
+    (base != Some(current)).then(|| {
+        Ack::refused(
+            command,
+            Status::Stale,
+            "proto.staleRevision",
+            "the session changed",
+            current,
+        )
+    })
+}
+
+/// NIBI `switchModelConfig` 的扁平 payload → 内核选择（provider/model/thought）。
+fn model_config_selection(payload: &Value) -> Option<ModelSelection> {
+    Some(ModelSelection {
+        provider: payload["provider"].as_str()?.to_owned(),
+        model: payload["model"].as_str()?.to_owned(),
+        reasoning: payload["thought"].as_str().map(str::to_owned),
+        connection: None,
+    })
+}
+
 async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> KernelAck {
     handle
         .send(CommandEnvelope {
@@ -144,6 +167,10 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         },
         "resolveInteraction" => resolve(handle, &live.sink, envelope, revision).await,
         "setFollowupMode" => set_followup(server, handle, &live, envelope).await,
+        "switchModelConfig" => switch_model_config(handle, envelope).await,
+        "switchCollaborationMode" => switch_collaboration_mode(handle, envelope).await,
+        "compact" => compact_session(handle, envelope, revision).await,
+        "renameSession" => rename_session(handle, envelope, revision).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -438,14 +465,8 @@ async fn set_followup(
             revision,
         );
     }
-    if envelope.base_revision != Some(revision) {
-        return Ack::refused(
-            command,
-            Status::Stale,
-            "proto.staleRevision",
-            "the session changed",
-            revision,
-        );
+    if let Some(stale) = cas_check(command, envelope.base_revision, revision) {
+        return stale;
     }
     if let Some(session) = &envelope.session_id {
         server
@@ -458,6 +479,165 @@ async fn set_followup(
     let sink = live.sink.clone();
     live.run(Box::pin(async move { sink.set_followup(wanted).await }));
     Ack::accepted(command, revision, None)
+}
+
+/// NIBI `switchModelConfig`：CAS 命令，扁平 provider/model/thought → `Command::SetModel`。
+async fn switch_model_config(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let command = envelope.command_id.as_str();
+    let view = match handle.view().await {
+        Ok(view) => view,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    let Some(chosen) = model_config_selection(&envelope.payload) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "switchModelConfig needs provider, model and thought",
+            view.revision,
+        );
+    };
+    if view.selection == chosen {
+        return Ack::refused(
+            command,
+            Status::Noop,
+            "proto.unchanged",
+            "the model is already set",
+            view.revision,
+        );
+    }
+    if let Some(stale) = cas_check(command, envelope.base_revision, view.revision) {
+        return stale;
+    }
+    match send(handle, command, Command::SetModel { selection: chosen }).await {
+        KernelAck::Accepted { .. } => Ack::accepted(command, view.revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, view.revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "guard.modelRejected",
+            reason,
+            view.revision,
+        ),
+    }
+}
+
+/// NIBI `switchCollaborationMode`：CAS 命令，mode → `Command::SetMode`（plan 是旧写法，开 plan）。
+async fn switch_collaboration_mode(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let command = envelope.command_id.as_str();
+    let view = match handle.view().await {
+        Ok(view) => view,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    let Some((permission, plan)) = mode(&envelope.payload["mode"], None) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "unknown collaboration mode",
+            view.revision,
+        );
+    };
+    if view.mode == permission && view.plan == plan {
+        return Ack::refused(
+            command,
+            Status::Noop,
+            "proto.unchanged",
+            "the collaboration mode is already set",
+            view.revision,
+        );
+    }
+    if let Some(stale) = cas_check(command, envelope.base_revision, view.revision) {
+        return stale;
+    }
+    if view.mode != permission {
+        let mode_id = format!("{command}:mode");
+        match send(handle, &mode_id, Command::SetMode { mode: permission }).await {
+            KernelAck::Accepted { .. } | KernelAck::Duplicate => {}
+            KernelAck::Rejected { reason } => {
+                return Ack::refused(
+                    command,
+                    Status::Rejected,
+                    "guard.modeRejected",
+                    reason,
+                    view.revision,
+                );
+            }
+        }
+    }
+    if view.plan != plan {
+        let plan_id = format!("{command}:plan");
+        match send(handle, &plan_id, Command::SetPlan { enabled: plan }).await {
+            KernelAck::Accepted { .. } | KernelAck::Duplicate => {}
+            KernelAck::Rejected { reason } => {
+                return Ack::refused(
+                    command,
+                    Status::Rejected,
+                    "guard.planRejected",
+                    reason,
+                    view.revision,
+                );
+            }
+        }
+    }
+    Ack::accepted(command, view.revision, None)
+}
+
+/// NIBI `compact`：非 CAS；idle 立即 / busy 由会话 actor 排队（kernel compaction 编排）。
+async fn compact_session(handle: &dyn SessionHandle, envelope: &Envelope, revision: u64) -> Ack {
+    let command = envelope.command_id.as_str();
+    match send(handle, command, Command::Compact { instructions: None }).await {
+        KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "fault.command.compactFailed",
+            reason,
+            revision,
+        ),
+    }
+}
+
+/// NIBI `renameSession`：非 CAS；标题来源由会话 actor 记为 custom。
+async fn rename_session(handle: &dyn SessionHandle, envelope: &Envelope, revision: u64) -> Ack {
+    let command = envelope.command_id.as_str();
+    let Some(title) = envelope.payload["title"].as_str().map(str::to_owned) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "renameSession needs a title",
+            revision,
+        );
+    };
+    match send(handle, command, Command::Rename { title }).await {
+        KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "fault.command.renameFailed",
+            reason,
+            revision,
+        ),
+    }
 }
 
 /// `v4/commands/query`：内存表，然后命令事实（G2）；都没有时 unknown。时钟探测带 `clock`。
@@ -498,3 +678,7 @@ pub async fn query(server: &Server, params: &Value) -> Result<Value, RpcError> {
     }
     Ok(reply)
 }
+
+#[cfg(test)]
+#[path = "commands_tests.rs"]
+mod tests;
