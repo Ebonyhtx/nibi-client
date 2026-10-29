@@ -196,7 +196,7 @@ flowchart LR
 
 本文的开发与调试步骤对应两个仓库各自的 `feat/ui-plugin` 分支。**ZCode 公开仓库的该分支目前尚未建好**，待分支准备就绪后再从上述仓库检出并联调。
 
-以下 shell 示例适用于 macOS / Linux，先把两个路径改为自己的检出目录。Node.js 使用 `24.14.0`，pnpm 使用 `10.33.2`。Windows 可在 PowerShell 中设置相同环境变量，再执行各仓库的 `pnpm` / `node` 命令。
+以下 shell 示例适用于 macOS / Linux，先把两个路径改为自己的检出目录。Node.js 使用 `24.22.1`，pnpm 使用 `10.33.2`。Windows 可在 PowerShell 中设置相同环境变量，再执行各仓库的 `pnpm` / `node` 命令。
 
 ### 首次联调：只安装要测的插件
 

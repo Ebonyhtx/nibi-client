@@ -62,7 +62,7 @@ async function downloadFile(url: string, destinationPath: string): Promise<void>
 }
 
 /**
- * 准备目标平台的 Node 二进制（固定 v22.16.0）。查找顺序：
+ * 准备目标平台的 Node 二进制（固定 v22.23.4）。查找顺序：
  * 1. 现有远端资产链的 mock-cdn 缓存（避免重复下载）；
  * 2. 本包自有缓存；
  * 3. 从 Node dist 镜像（见 resolveNodeDistBase）下载 tar.xz 并解出 bin/node 后写入自有缓存。

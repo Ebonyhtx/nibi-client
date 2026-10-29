@@ -660,7 +660,7 @@ describe("native search build", () => {
   it("Linux producer 按实际 Node、glibc、CC 与 CXX 能力放行", () => {
     expect(() =>
       assertLinuxNativeSearchBuildEnvironment({
-        nodeVersion: "24.14.0",
+        nodeVersion: "24.22.1",
         glibcVersion: "2.28",
         gccVersion: "12.2.1",
         cxxVersion: "12.2.1",
@@ -668,7 +668,7 @@ describe("native search build", () => {
     ).not.toThrow();
     expect(() =>
       assertLinuxNativeSearchBuildEnvironment({
-        nodeVersion: "22.16.0",
+        nodeVersion: "22.23.4",
         glibcVersion: "2.28",
         gccVersion: "12.2.1",
         cxxVersion: "12.2.1",
@@ -676,7 +676,7 @@ describe("native search build", () => {
     ).toThrow("Node 24");
     expect(() =>
       assertLinuxNativeSearchBuildEnvironment({
-        nodeVersion: "24.14.0",
+        nodeVersion: "24.22.1",
         glibcVersion: "2.36",
         gccVersion: "12.2.1",
         cxxVersion: "12.2.1",
@@ -684,7 +684,7 @@ describe("native search build", () => {
     ).toThrow("glibc 2.28");
     expect(() =>
       assertLinuxNativeSearchBuildEnvironment({
-        nodeVersion: "24.14.0",
+        nodeVersion: "24.22.1",
         glibcVersion: "2.28",
         gccVersion: "8.5.0",
         cxxVersion: "12.2.1",
@@ -692,7 +692,7 @@ describe("native search build", () => {
     ).toThrow("GCC 12");
     expect(() =>
       assertLinuxNativeSearchBuildEnvironment({
-        nodeVersion: "24.14.0",
+        nodeVersion: "24.22.1",
         glibcVersion: "2.28",
         gccVersion: "12.2.1",
         cxxVersion: "13.2.1",

@@ -75,7 +75,7 @@ export async function runServerCore(generation: number): Promise<void> {
     });
   };
   // ready.version 的语义是 Core 版本；不能误发 Node runtime 版本常量
-  // （22.16.0），否则消费方读取会拿到错误值。
+  // （22.23.4），否则消费方读取会拿到错误值。
   await send({
     type: "ready",
     host: http.host,

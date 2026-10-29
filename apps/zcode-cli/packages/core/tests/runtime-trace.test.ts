@@ -367,7 +367,7 @@ describe("AgentRuntime trace propagation", () => {
       workingDirectory: ".",
       envInfo: {
         cwd: ".",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         osVersion: "test",
         platform: "test",
         shell: "test",
@@ -442,7 +442,7 @@ describe("AgentRuntime trace propagation", () => {
       platform: "linux",
       shell: "bash",
       osVersion: "Linux 6.6.0",
-      nodeVersion: "v24.14.0",
+      nodeVersion: "v24.22.1",
     };
     const runtime = createTestAgentRuntime(
       sessionId,
@@ -529,7 +529,7 @@ describe("AgentRuntime trace propagation", () => {
               diagnostics: [],
               envInfo: {
                 cwd: "/resolved",
-                nodeVersion: "v24.14.0",
+                nodeVersion: "v24.22.1",
                 osVersion: "Linux 6.6.0",
                 platform: "linux",
                 shell: request.effectiveShellDisplayName ?? "fish",
@@ -595,7 +595,7 @@ describe("AgentRuntime trace propagation", () => {
               diagnostics: [],
               envInfo: {
                 cwd: "/workspace",
-                nodeVersion: "v24.14.0",
+                nodeVersion: "v24.22.1",
                 osVersion: "Linux 6.6.0",
                 platform: "linux",
                 shell: request.effectiveShellDisplayName ?? "fish",
@@ -666,7 +666,7 @@ describe("AgentRuntime trace propagation", () => {
               diagnostics: [],
               envInfo: {
                 cwd: "/workspace",
-                nodeVersion: "v24.14.0",
+                nodeVersion: "v24.22.1",
                 osVersion: "Linux 6.6.0",
                 platform: "linux",
                 shell: request.effectiveShellDisplayName ?? "fish",
@@ -720,7 +720,7 @@ describe("AgentRuntime trace propagation", () => {
       platform: "linux",
       shell: "bash",
       osVersion: "Linux 6.6.0",
-      nodeVersion: "v24.14.0",
+      nodeVersion: "v24.22.1",
       isGitRepository: true,
       gitBranch: "feat/trajectory-167",
       gitStatus: "dirty" as const,
@@ -812,7 +812,7 @@ describe("AgentRuntime trace propagation", () => {
           platform: "linux",
           shell: "bash",
           osVersion: "Linux 6.6.0",
-          nodeVersion: "v24.14.0",
+          nodeVersion: "v24.22.1",
           isGitRepository: true,
           gitBranch: "main",
           gitStatus: "dirty",
@@ -885,7 +885,7 @@ describe("AgentRuntime trace propagation", () => {
           platform: "linux",
           shell: "bash",
           osVersion: "Linux 6.6.0",
-          nodeVersion: "v24.14.0",
+          nodeVersion: "v24.22.1",
         },
       },
       {
@@ -970,7 +970,7 @@ describe("AgentRuntime trace propagation", () => {
           platform: "linux",
           shell: "bash",
           osVersion: "Linux 6.6.0",
-          nodeVersion: "v24.14.0",
+          nodeVersion: "v24.22.1",
         },
         language: "Spanish",
         mcp: {
@@ -1285,7 +1285,7 @@ describe("AgentRuntime trace propagation", () => {
       currentDate: "2026-05-04",
       envInfo: {
         cwd: "/workspace",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         osVersion: "test",
         platform: "test",
         shell: "test",

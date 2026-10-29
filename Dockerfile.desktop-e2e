@@ -5,7 +5,7 @@
 # Build and run with:
 #   bash scripts/test-desktop-e2e-container.sh
 
-FROM node:24.14.0-bookworm
+FROM node:24.22.1-bookworm
 
 ARG PNPM_VERSION=10.33.2
 

@@ -24,7 +24,7 @@ describe("release installer", () => {
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "package.json"), JSON.stringify({ type: "module" }), "utf8");
-    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "linux-x64", appVersion: "1.2.3", nodeVersion: "22.16.0", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
+    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "linux-x64", appVersion: "1.2.3", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
     await mkdir(layout.serverRoot, { recursive: true });
     await writeFile(layout.uninstalledFile, JSON.stringify({ uninstalled: true }), "utf8");
     await writeFile(join(layout.serverRoot, "KEEP_UNKNOWN.txt"), "preserve", "utf8");
@@ -54,7 +54,7 @@ describe("release installer", () => {
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
-    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "win32-x64", appVersion: "1.2.4", nodeVersion: "22.16.0", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
+    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "win32-x64", appVersion: "1.2.4", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
     const archivePath = join(root, "release.zip");
     const { execFile } = await import("node:child_process");
     // Bugfix: Windows 本机没有 Info-ZIP 的 `zip` 命令；System32 自带 bsdtar，`tar -a`
@@ -109,7 +109,7 @@ describe("release installer", () => {
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
-    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "linux-x64", appVersion: "1.2.5", nodeVersion: "22.16.0", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
+    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "linux-x64", appVersion: "1.2.5", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
     const archivePath = join(root, "release.tar.gz");
     const { execFile } = await import("node:child_process");
     await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "zcode-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
@@ -143,7 +143,7 @@ describe("release installer", () => {
       product: "zcode-server",
       target: "linux-x64",
       appVersion: "2.0.0",
-      nodeVersion: "22.16.0",
+      nodeVersion: "22.23.4",
       entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" },
       native: ["node-pty"],
     }), "utf8");
@@ -178,7 +178,7 @@ describe("release installer", () => {
       product: "zcode-server",
       target: "linux-x64",
       appVersion: "2.1.0",
-      nodeVersion: "22.16.0",
+      nodeVersion: "22.23.4",
       entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" },
       native: ["node-pty"],
     }), "utf8");

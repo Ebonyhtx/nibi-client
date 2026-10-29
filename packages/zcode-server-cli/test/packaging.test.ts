@@ -202,7 +202,7 @@ describe("stageRelease", () => {
     const notices = {
       thirdParty: "Copyright npm\nComplete terms\n",
       node: "Copyright Node\nComplete runtime terms\n",
-      nodeSource: '{"version":"22.16.0"}\n',
+      nodeSource: '{"version":"22.23.4"}\n',
     };
     return {
       distDir,
@@ -301,7 +301,7 @@ describe("stageRelease", () => {
     expect(manifest.product).toBe("zcode-server");
     expect(manifest.target).toBe("linux-x64");
     expect(manifest.appVersion).toBe("9.9.9-test");
-    expect(manifest.nodeVersion).toBe("22.16.0");
+    expect(manifest.nodeVersion).toBe("22.23.4");
     expect(manifest.entrypoints).toEqual({
       cli: "runtime/server-cli.js",
       core: "runtime/server-core.js",

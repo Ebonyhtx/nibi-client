@@ -2739,7 +2739,7 @@ describe("session persistence", () => {
       platform: "darwin",
       shell: "zsh",
       osVersion: "Darwin 25.4.0",
-      nodeVersion: "v24.14.0",
+      nodeVersion: "v24.22.1",
       currentModel: "legacy/persisted-model",
       isGitRepository: true,
       gitBranch: "feature/original",

@@ -441,7 +441,7 @@ describe("Explore subagent", () => {
           platform: "darwin",
           shell: "zsh",
           osVersion: "Darwin 24.3.0",
-          nodeVersion: "24.14.0",
+          nodeVersion: "24.22.1",
           isGitRepository: true,
         },
       },

@@ -32,7 +32,7 @@ When a private component is absent, the public build fails closed and never pret
 
 ## Requirements
 
-- Node.js **24.14.0**
+- Node.js **24.22.1**
 - pnpm **10.33.2**
 - Git
 

@@ -1205,7 +1205,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     const backend = new FakeRemoteBackend({
       "~/.nibi/server/node": "node",
       "~/.nibi/server/.asset-components/node-runtime.json":
-        '{"id":"node-runtime","version":"v22.16.0+aaaaaaaaaaaa","platformArch":"linux-arm64"}\n',
+        '{"id":"node-runtime","version":"v22.23.4+aaaaaaaaaaaa","platformArch":"linux-arm64"}\n',
     });
     const installed: string[] = [];
     const installer: RemoteAssetInstaller = {
@@ -1223,7 +1223,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       {
         platformArch: "linux-arm64",
         installer,
-        expectedVersion: "v22.16.0+bbbbbbbbbbbb",
+        expectedVersion: "v22.23.4+bbbbbbbbbbbb",
       },
       { log: () => undefined, logWarn: () => undefined },
     );

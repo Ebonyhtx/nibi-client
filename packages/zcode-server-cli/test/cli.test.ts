@@ -48,7 +48,7 @@ async function createTestReleaseArchive(
       product: "zcode-server",
       target: currentServerTarget(),
       appVersion: version,
-      nodeVersion: "22.16.0",
+      nodeVersion: "22.23.4",
       entrypoints: {
         cli: "runtime/server-cli.js",
         core: "runtime/server-core.js",

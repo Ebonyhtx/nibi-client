@@ -85,7 +85,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       guidanceToolNames: ["Read", "Edit", "Bash", "Agent", "TodoWrite", "AskUserQuestion"],
     }).build();
@@ -154,7 +154,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
     }).build();
 
@@ -180,7 +180,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
     }).build();
 
@@ -240,7 +240,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
     }).build();
 
@@ -258,7 +258,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       cliPrefixPrompt: "legacy override",
     } as any).build();
@@ -274,7 +274,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       guidanceToolNames: ["AskUserQuestion", "Agent", "TodoWrite", "Read", "Edit", "Bash"],
     }).build();
@@ -339,7 +339,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         isGitRepository: true,
         gitBranch: "main",
         gitStatus: "dirty",
@@ -424,7 +424,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       language: "Chinese",
       outputStyle: {
@@ -487,7 +487,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       memoryRoot: rootDir,
     }).build();
@@ -527,7 +527,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       memoryIndexContent:
         "- [Database test policy](database-test-policy.md) — integration tests use isolated databases",
@@ -559,7 +559,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       memoryIndexContent: [
         "---",
@@ -598,7 +598,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         isGitRepository: true,
         gitBranch: "feature/alignment",
         gitMainBranch: "main",
@@ -661,7 +661,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       outputStyle: {
         name: "Learning",
@@ -695,7 +695,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       outputStyle: {
         name: "Custom",
@@ -726,7 +726,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       language: "日本語",
     }).build();
@@ -747,7 +747,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       compact: { enabled: false },
     }).build();
@@ -765,7 +765,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       compact: { enabled: true, microcompact: { enabled: false } },
     }).build();
@@ -784,7 +784,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       userInstructions: {
         filePath: "/workspace/AGENTS.md",
@@ -885,7 +885,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       userInstructions: {
         filePath: "/workspace/AGENTS.md",
@@ -941,7 +941,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
     }).build();
 
@@ -977,7 +977,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       projectContext: {
         type: "node",
@@ -1010,7 +1010,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       userInstructions: {
         filePath: "/workspace/CLAUDE.md",
@@ -1042,7 +1042,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
     }).build();
 
@@ -1088,7 +1088,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
     })
       .setToolRegistry(registry)
@@ -1114,7 +1114,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       guidanceToolNames: ["Skill"],
       skills: {
@@ -1172,7 +1172,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "linux",
         shell: "bash",
         osVersion: "Linux 6.6.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
       },
       agentProfiles: [
         {
@@ -1248,7 +1248,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         isGitRepository: true,
         gitBranch: "main",
         gitMainBranch: "main",
@@ -1277,7 +1277,7 @@ describe("ContextBuilder meta user context", () => {
       platform: "darwin",
       shell: "zsh",
       osVersion: "Darwin 25.4.0",
-      nodeVersion: "v24.14.0",
+      nodeVersion: "v24.22.1",
       isGitRepository: false,
     });
     expect(nonGitSection.content).toContain("- Is a git repository: no");
@@ -1291,7 +1291,7 @@ describe("ContextBuilder meta user context", () => {
       platform: "darwin",
       shell: "zsh",
       osVersion: "Darwin 25.4.0",
-      nodeVersion: "v24.14.0",
+      nodeVersion: "v24.22.1",
       isGitRepository: true,
       gitBranch: "feat/trajectory",
       gitMainBranch: "staging",
@@ -1330,7 +1330,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         isGitRepository: true,
       })?.content,
     ).toContain("Status:\n(unknown)");
@@ -1340,7 +1340,7 @@ describe("ContextBuilder meta user context", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 25.4.0",
-        nodeVersion: "v24.14.0",
+        nodeVersion: "v24.22.1",
         isGitRepository: false,
         gitStatus: "not_repo",
       }),
@@ -1353,7 +1353,7 @@ describe("ContextBuilder meta user context", () => {
       platform: "darwin",
       shell: "zsh",
       osVersion: "Darwin 25.4.0",
-      nodeVersion: "v24.14.0",
+      nodeVersion: "v24.22.1",
       isGitRepository: true,
       gitBranch: "feat/trajectory",
       gitMainBranch: "main",
@@ -1470,7 +1470,7 @@ describe("context builder — workflow actor identity", () => {
     platform: "linux",
     shell: "bash",
     osVersion: "Linux 6.6.0",
-    nodeVersion: "v24.14.0",
+    nodeVersion: "v24.22.1",
   } as const;
 
   function systemText(config: Parameters<typeof createContextBuilder>[0]): string {

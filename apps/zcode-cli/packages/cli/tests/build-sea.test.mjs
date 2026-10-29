@@ -1031,17 +1031,17 @@ test("requires the Browser Use client alongside the SEA MCP runtime", async () =
 });
 
 test("maps SEA targets to Node.js release artifacts and URLs", () => {
-  assert.equal(nodeReleaseArtifact("darwin-arm64", "24.14.0"), "node-v24.14.0-darwin-arm64.tar.gz");
-  assert.equal(nodeReleaseArtifact("linux-x64", "24.14.0"), "node-v24.14.0-linux-x64.tar.xz");
-  assert.equal(nodeReleaseArtifact("win-arm64", "24.14.0"), "win-arm64/node.exe");
-  assert.equal(nodeReleaseArtifact("win-x64", "24.14.0"), "win-x64/node.exe");
+  assert.equal(nodeReleaseArtifact("darwin-arm64", "24.22.1"), "node-v24.22.1-darwin-arm64.tar.gz");
+  assert.equal(nodeReleaseArtifact("linux-x64", "24.22.1"), "node-v24.22.1-linux-x64.tar.xz");
+  assert.equal(nodeReleaseArtifact("win-arm64", "24.22.1"), "win-arm64/node.exe");
+  assert.equal(nodeReleaseArtifact("win-x64", "24.22.1"), "win-x64/node.exe");
   assert.equal(
-    nodeReleaseUrl("win-arm64", "24.14.0"),
-    "https://nodejs.org/dist/v24.14.0/win-arm64/node.exe",
+    nodeReleaseUrl("win-arm64", "24.22.1"),
+    "https://nodejs.org/dist/v24.22.1/win-arm64/node.exe",
   );
   assert.equal(
-    nodeReleaseUrl("win-x64", "24.14.0"),
-    "https://nodejs.org/dist/v24.14.0/win-x64/node.exe",
+    nodeReleaseUrl("win-x64", "24.22.1"),
+    "https://nodejs.org/dist/v24.22.1/win-x64/node.exe",
   );
 });
 

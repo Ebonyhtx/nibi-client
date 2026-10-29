@@ -49,7 +49,7 @@ function createParentContextSourcePort() {
           platform: "darwin",
           shell: "zsh",
           osVersion: "Darwin 24.3.0",
-          nodeVersion: "24.14.0",
+          nodeVersion: "24.22.1",
         },
         userInstructions: {
           filePath: "/repo/AGENTS.md",
@@ -188,7 +188,7 @@ describe("subagent provider-visible prompt assembly", () => {
           platform: "darwin",
           shell: "zsh",
           osVersion: "Darwin 24.3.0",
-          nodeVersion: "24.14.0",
+          nodeVersion: "24.22.1",
           isGitRepository: true,
         },
       },
@@ -288,7 +288,7 @@ describe("subagent provider-visible prompt assembly", () => {
           platform: "darwin",
           shell: "zsh",
           osVersion: "Darwin 24.3.0",
-          nodeVersion: "24.14.0",
+          nodeVersion: "24.22.1",
           isGitRepository: true,
         },
       },
@@ -376,7 +376,7 @@ describe("subagent provider-visible prompt assembly", () => {
             platform: "darwin",
             shell: "zsh",
             osVersion: "Darwin 24.3.0",
-            nodeVersion: "24.14.0",
+            nodeVersion: "24.22.1",
             isGitRepository: false,
           },
           subagents: {
@@ -464,7 +464,7 @@ describe("subagent provider-visible prompt assembly", () => {
         platform: "darwin",
         shell: "zsh",
         osVersion: "Darwin 24.3.0",
-        nodeVersion: "24.14.0",
+        nodeVersion: "24.22.1",
         isGitRepository: false,
       },
     }).build();
@@ -516,7 +516,7 @@ describe("subagent provider-visible prompt assembly", () => {
             platform: "darwin",
             shell: "zsh",
             osVersion: "Darwin 24.3.0",
-            nodeVersion: "24.14.0",
+            nodeVersion: "24.22.1",
             isGitRepository: false,
           },
           subagents: {
@@ -638,7 +638,7 @@ describe("subagent provider-visible prompt assembly", () => {
           platform: "darwin",
           shell: "zsh",
           osVersion: "Darwin 24.3.0",
-          nodeVersion: "24.14.0",
+          nodeVersion: "24.22.1",
           isGitRepository: true,
         },
         subagentContext: {

@@ -6,7 +6,7 @@
 
 - Desktop：安装目录的 `resources/THIRD-PARTY-NOTICES.md`；macOS 为 `ZCode.app/Contents/Resources/THIRD-PARTY-NOTICES.md`。`Resources/licenses/electron/` 另外保存目标平台 Electron 原文、Chromium 汇总及校验清单。
 - Web：部署根目录的 `THIRD-PARTY-NOTICES.md`；构建后的 HTML 带 `rel="license"` 链接。
-- 发行 CLI：`dist/THIRD-PARTY-NOTICES.md` 作为伴随文件随构建产出，`pnpm build:nibi` 的统一分发包复制到 `agent/THIRD-PARTY-NOTICES.md`。`nibi --licenses` 入口与 SEA 内嵌 Node 精确版本许可尚未接入：SEA 基底取构建机 Node 版本，而 `runtime/sources.json` 只登记 22.16.0 与 24.14.0，CI 浮动 Node 24 时会因缺少对应原文而无法构建。开发态 `tsx src/main.ts` 不经过发行入口。
+- 发行 CLI：`dist/THIRD-PARTY-NOTICES.md` 作为伴随文件随构建产出，`pnpm build:nibi` 的统一分发包复制到 `agent/THIRD-PARTY-NOTICES.md`。`nibi --licenses` 入口与 SEA 内嵌 Node 精确版本许可尚未接入：SEA 基底取构建机 Node 版本，而 `runtime/sources.json` 登记 22.23.4（远端）与 24.22.1（当前 SEA），并保留历史 22.16.0/24.14.0 原文；CI 使用 24.22.1 时可直接取到对应原文。开发态 `tsx src/main.ts` 不经过发行入口。
 - 搜索工具：准备后的每个工具目录包含 `THIRD-PARTY-NOTICES.txt` 和 `SOURCES.json`（内网镜像下载与仓库归档两条准备路径都写入，缓存命中也刷新）。SEA 同时嵌入这些材料。producer 打出的 tar/zip 仍只含二进制，保持与已固定 SHA-256 的归档逐字节一致。
 - 远端 Node 和独立 Server 的 node-runtime 组件：`LICENSE.node.txt` 与 `NODE-SOURCES.json`。缓存命中也刷新材料。Server、Agent、插件与搜索工具的独立组件分别附带适用声明，在计算组件哈希前完成复制。
 
@@ -57,7 +57,7 @@ ugrep 的 BSD-3-Clause 版权、条件和免责声明完整保留。ripgrep 保�
 
 最终安装包仍应通过发行流程实际生成并核对；本目录不把类型检查通过、动态加载或“未修改”当成 LGPL/MPL 等许可义务的通用豁免。
 
-`runtime/sources.json` 保存 Node 22.16.0（远端）和 24.14.0（当前 SEA）的固定版本原文来源与 SHA-256。升级 Node 时必须先更新对应材料。Electron 原文来自构建中实际下载并解包的目标平台归档，不用宿主 `node_modules/electron/dist` 替代。桌面配置的 `afterExtract` 在 macOS 清理前复制材料；`afterPack` 不执行许可校验。验证时应覆盖该配置 hook。
+`runtime/sources.json` 保存 Node 22.23.4（远端）与 24.22.1（当前 SEA）的固定版本原文来源与 SHA-256；22.16.0/24.14.0 的历史条目保留用于旧构建复核。升级 Node 时必须先更新对应材料。Electron 原文来自构建中实际下载并解包的目标平台归档，不用宿主 `node_modules/electron/dist` 替代。桌面配置的 `afterExtract` 在 macOS 清理前复制材料；`afterPack` 不执行许可校验。验证时应覆盖该配置 hook。
 
 ## 复制源码、技能与文档的补充归属
 

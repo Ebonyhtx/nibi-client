@@ -345,7 +345,7 @@ describe("remote asset installer command builders", () => {
         tool: "curl",
         urls: [pathToFileURL(badArchive).href, pathToFileURL(goodArchive).href],
         outputPath: shellOutputPath,
-        progressLabel: "node-runtime@v22.16.0",
+        progressLabel: "node-runtime@v22.23.4",
         expectedSha256,
         sha256Tool: await detectLocalShellSha256Tool(shellCommand),
         supportsProgress: false,

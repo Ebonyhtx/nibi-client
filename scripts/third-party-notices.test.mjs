@@ -84,7 +84,7 @@ test("strict release verification still rejects unresolved materials", async (t)
 test("Node staging copies existing text without enforcing its recorded hash", async (t) => {
   const root = await fixture(t);
   await mkdir(join(root, "third-party/runtime"), { recursive: true });
-  const source = { version: "24.14.0", file: "LICENSE.node.txt", sha256: hash("old text") };
+  const source = { version: "24.22.1", file: "LICENSE.node.txt", sha256: hash("old text") };
   await writeJson(root, "third-party/runtime/sources.json", { node: [source] });
   await writeFile(join(root, source.file), noticeText);
   const destination = join(root, "node");

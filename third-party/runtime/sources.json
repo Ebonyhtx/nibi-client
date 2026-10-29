@@ -7,10 +7,22 @@
       "sha256": "1ae62e2015784ba438db7b04ebd33f3c4ff3efdb824c111c4ececd99945fd52d"
     },
     {
+      "version": "22.23.4",
+      "source": "https://raw.githubusercontent.com/nodejs/node/v22.23.4/LICENSE",
+      "file": "third-party/runtime/node-22.23.4-LICENSE.txt",
+      "sha256": "c738ae413cf561f174e34f6961f8ca458aae2369a73640dda6234c629b98bcc4"
+    },
+    {
       "version": "24.14.0",
       "source": "https://raw.githubusercontent.com/nodejs/node/v24.14.0/LICENSE",
       "file": "third-party/runtime/node-24.14.0-LICENSE.txt",
       "sha256": "4573185d56580da2b890ba34a85a409257640f1c5632eade4300137266194d18"
+    },
+    {
+      "version": "24.22.1",
+      "source": "https://raw.githubusercontent.com/nodejs/node/v24.22.1/LICENSE",
+      "file": "third-party/runtime/node-24.22.1-LICENSE.txt",
+      "sha256": "5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace"
     }
   ]
 }
