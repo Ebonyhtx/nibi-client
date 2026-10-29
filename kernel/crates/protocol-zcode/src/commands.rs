@@ -61,6 +61,42 @@ fn model_config_selection(payload: &Value) -> Option<ModelSelection> {
     })
 }
 
+/// NIBI `createSession.config` 的扁平 provider/model/thought（Host 的旧写法）→ 内核选择；
+/// `config.modelSelection` 缺席时的回落。provider 与 model 必须同时给出。
+fn flat_selection(config: &Value) -> Option<ModelSelection> {
+    let provider = config["provider"].as_str()?;
+    let model = config["model"].as_str()?;
+    Some(ModelSelection {
+        provider: provider.to_owned(),
+        model: model.to_owned(),
+        reasoning: config["thought"].as_str().map(str::to_owned),
+        connection: None,
+    })
+}
+
+/// NIBI `cancelBackgroundWork` 的拒绝 fault 前缀（Node `BACKGROUND_WORK_CANCEL_REJECTED_FAULT_PREFIX`）：
+/// core 明确回"没有取消任何东西"时上行 rejected 而不是假装成功。reason 是
+/// `not_found` / `not_running` / `cancel_not_supported`。
+pub const BACKGROUND_WORK_CANCEL_REJECTED_FAULT_PREFIX: &str =
+    "fault.command.backgroundWorkCancelRejected.";
+
+/// 内核 `StopTask` 的拒绝文案是给人看的；这里按关键词归到 NIBI 的 fault 码。
+/// 归不进三类的用 `unknown`——宁可暴露"码未知"，也不把拒绝伪装成 accepted。
+/// TODO(kernel)：等 kernel 的 StopTask 回执带机器可读 reason 后删掉这个近似映射。
+fn background_work_cancel_code(reason: &str) -> &'static str {
+    let lower = reason.to_ascii_lowercase();
+    if lower.contains("not running") {
+        "not_running"
+    } else if lower.contains("not found") || lower.contains("unknown") || lower.contains("no such")
+    {
+        "not_found"
+    } else if lower.contains("cancel") && lower.contains("support") {
+        "cancel_not_supported"
+    } else {
+        "unknown"
+    }
+}
+
 async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> KernelAck {
     handle
         .send(CommandEnvelope {
@@ -171,6 +207,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "switchCollaborationMode" => switch_collaboration_mode(handle, envelope).await,
         "compact" => compact_session(handle, envelope, revision).await,
         "renameSession" => rename_session(handle, envelope, revision).await,
+        "cancelBackgroundWork" => cancel_background_work(handle, envelope, revision).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -190,6 +227,7 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     }
     let config = &payload["config"];
     let chosen = selection(&config["modelSelection"])
+        .or_else(|| flat_selection(config))
         .or_else(|| selection(&payload["firstInput"]["modelSelection"]))
         .unwrap_or_else(|| server.defaults.selection.clone());
     let (permission, plan) = mode(&config["mode"], config["planEnabled"].as_bool())
@@ -637,6 +675,39 @@ async fn rename_session(handle: &dyn SessionHandle, envelope: &Envelope, revisio
             reason,
             revision,
         ),
+    }
+}
+
+/// NIBI `cancelBackgroundWork`：workId（=runId/后台任务 id）→ `Command::StopTask`。
+/// kernel 明确回"没取消任何东西"时按 NIBI 词表上行 rejected（§5.2.1 行 28）。
+async fn cancel_background_work(
+    handle: &dyn SessionHandle,
+    envelope: &Envelope,
+    revision: u64,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let Some(work) = envelope.payload["workId"].as_str().map(str::to_owned) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "cancelBackgroundWork needs a workId",
+            revision,
+        );
+    };
+    match send(handle, command, Command::StopTask { task: work }).await {
+        KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
+        KernelAck::Rejected { reason } => {
+            let code = background_work_cancel_code(&reason);
+            Ack::refused(
+                command,
+                Status::Rejected,
+                &format!("{BACKGROUND_WORK_CANCEL_REJECTED_FAULT_PREFIX}{code}"),
+                reason,
+                revision,
+            )
+        }
     }
 }
 

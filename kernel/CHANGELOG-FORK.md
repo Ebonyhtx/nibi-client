@@ -71,6 +71,10 @@
 - 同日追加 4 个处理器：`switchModelConfig`（CAS→SetModel）、`switchCollaborationMode`
   （CAS→SetMode/SetPlan）、`compact`（→Compact）、`renameSession`（→Rename）；CAS 抽成
   `cas_check`（stale→`proto.staleRevision`），set_followup 同步改用。测试 25→28。
+- 第三小批：`cancelBackgroundWork`（→StopTask；kernel 拒绝文案按关键词归到
+  `fault.command.backgroundWorkCancelRejected.<code>`，`unknown` 兜底，TODO 等 kernel
+  回执带机器可读 reason）；`createSession.config` 的扁平 provider/model/thought 作
+  选择回落，未消费清单 11→6 项。测试仍 28。
 
 ## 7. 未完成项
 

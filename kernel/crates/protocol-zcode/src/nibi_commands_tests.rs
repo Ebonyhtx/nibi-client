@@ -116,8 +116,19 @@ fn create_session_accepts_every_nibi_field() {
         unsupported.len(),
         CREATE_SESSION_FIELDS_NOT_YET_CONSUMED.len()
     );
-    assert!(unsupported.contains(&"config.provider"));
+    // 已消费的不再上报（config.provider/model/thought 2026-10-30 起作选择回落；
+    // firstInput.mode/planEnabled 由 input_meta 捕获）。
+    assert!(!unsupported.contains(&"config.provider"));
+    assert!(!unsupported.contains(&"config.model"));
+    assert!(!unsupported.contains(&"config.thought"));
+    assert!(!unsupported.contains(&"firstInput.mode"));
+    assert!(!unsupported.contains(&"firstInput.planEnabled"));
+    // 仍未消费的继续点名。
     assert!(unsupported.contains(&"mcpServers"));
+    assert!(unsupported.contains(&"additionalDirectories"));
+    assert!(unsupported.contains(&"permissionScope"));
+    assert!(unsupported.contains(&"dynamicWorkflowEnabled"));
+    assert!(unsupported.contains(&"dynamicWorkflowMode"));
     assert!(unsupported.contains(&"firstInput.attachments"));
 }
 

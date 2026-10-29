@@ -53,9 +53,21 @@
 protocol-zcode 测试 25→28。kernel 尚无的命令面（goal 暂停/恢复、hook review、
 workflow run、queue 编辑、deleteSession 的 store 软删）保持 unsupported。
 
+## 6.1 第三小批：`cancelBackgroundWork` + createSession 选择回落
+
+- `cancelBackgroundWork`（workId → `Command::StopTask`）：kernel 明确回"没取消任何东西"
+  时按 NIBI 词表上行 `fault.command.backgroundWorkCancelRejected.<code>`。kernel 的拒绝
+  文案是给人看的，码按关键词归到 `not_running` / `not_found` / `cancel_not_supported`，
+  归不进的用 `unknown`——已 TODO(kernel)：等回执带机器可读 reason 后删掉近似映射。
+- `createSession.config` 的扁平 `provider/model/thought`（Host 旧写法）作为
+  `config.modelSelection` 缺席时的选择回落（`flat_selection`）；连同
+  `firstInput.mode/planEnabled`（`input_meta` 本就捕获），未消费清单从 11 项收到 6 项：
+  `mcpServers`、`additionalDirectories`、`permissionScope`、`dynamicWorkflowEnabled/Mode`、
+  `firstInput.attachments`。契约测试同步断言"已消费不再上报、未消费继续点名"。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 25 个命令的处理器（fork/retry/rewind/queue/goal/hook-review/workflow*/deleteSession 等）——
+1. 其余 24 个命令的处理器（fork/retry/rewind/queue/goal/hook-review/workflow*/deleteSession 等）——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
