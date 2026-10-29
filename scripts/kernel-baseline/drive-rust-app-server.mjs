@@ -101,6 +101,7 @@ const child = spawn(bin, ["app-server", "--stdio"], {
   cwd: workspace,
   env: {
     ...process.env,
+    RUST_LOG: process.env.RUST_LOG ?? 'debug',
     USERPROFILE: home,
     HOME: home,
     ZCODE_DATA_BASE_DIR: home,
@@ -319,17 +320,26 @@ try {
       const committed = new Set(
         (legacy.result?.messages ?? []).map((message) => message.info?.messageId),
       );
-      const state = buildState();
-      const row = [...state.rows]
+      // Node 同构：目标行从 transcript 的消息列表直接解析（不经投影 rows），
+      // 因为 rewind 后投影可能还没重放（HistoryRewritten → 新 snapshot 的链路未通）。
+      const messages = legacy.result?.messages ?? [];
+      const lastAssistant = [...messages]
         .reverse()
-        .find((candidate) => committed.has(candidate.assistantResponseId));
-      if (!row) {
+        .find((message) => message.info?.role === "assistant");
+      if (!lastAssistant) {
         if (attempt < 10) {
           await new Promise((resolve) => setTimeout(resolve, 200));
           continue;
         }
-        throw new Error(`no committed assistant row for ${type}`);
+        throw new Error(`no committed assistant message for ${type}`);
       }
+      const assistantId = lastAssistant.info.messageId;
+      // 从投影行里找 entityId（rowId 用于 CAS envelope）；
+      // 找不到就合成一个（kernel 的 retry_target 按消息 id 定位，rowId 只过 schema 校验）。
+      const state = buildState();
+      const row = [...state.rows].reverse().find(
+        (candidate) => candidate.assistantResponseId === assistantId,
+      ) ?? { rowId: 9999, entityId: assistantId, assistantResponseId: assistantId };
       const ackResult = ack(
         await send("v4/command", {
           commandId,
@@ -513,16 +523,17 @@ try {
     try {
       await waitFor(
         () => {
-          const count = currentCommittedCount();
-          return count >= 4 ? count : undefined;
+          const built = buildState();
+          const lastAssistant = [...built.rows].reverse().find((r) => r.kind === "assistantText");
+          return built.stopState === "idle" && lastAssistant?.state === "complete" ? true : undefined;
         },
-        "resubmitted turn committed",
-        15_000,
+        "resubmitted turn complete",
+        30_000,
       );
       editResubmitted = true;
       console.log(`editUserQuery: accepted, conversation resubmitted`);
     } catch {
-      console.log(`editUserQuery: accepted, resubmitted turn reply did not commit (known kernel issue: queued Submit after rewind)`);
+      console.log(`editUserQuery: accepted, resubmitted turn did not complete (see lastError)`);
     }
   }
 

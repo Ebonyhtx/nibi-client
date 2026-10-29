@@ -159,6 +159,9 @@ impl Actor {
                 Err(reason) => rejected(reason),
             };
             let _ = reply.send(ack);
+            // rewind 后排水：队列里可能已有等跑的 Submit（NIBI editUserQuery 的
+            // rewind→重发模式），不排水它们就永远不跑。
+            self.start_next().await;
             return;
         }
         if undo.is_empty() {

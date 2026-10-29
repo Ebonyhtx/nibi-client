@@ -90,6 +90,14 @@
   幂等表同 commandId 重试回 stale 的 duplicate（UI 重试必须新 id）、
   `guard.latestAssistantRetryOnly` 与 Node 同判、主题前缀 `conversation/`、subscribe
   必带 clientMode、帧 payload 在 wire 帧的 `.frame.payload`。
+- 第八步：driver 扩成全 14 命令回归套件（9 正路径 + 2 拒绝路径 + editUserQuery 正路径）。
+  发现并修复 kernel rewind 同步路径（`RewindScope::Conversation`）缺 `start_next()` 的
+  队列排水缺口（`crates/session/src/rewind.rs`）；异步路径 `finish_rewind` 已有。
+- **开放 kernel 问题**：editUserQuery 的 rewind→queued Submit 链路在真二进制里
+  resubmitted turn 不跑（turnHeader=failed / provider 无第 3 次请求）——`start_next`
+  修复不够，可能涉及 actor 的 rewind 后状态（generation 变更、投影 HistoryRewritten
+  未被 protocol-zcode 消费、或 queued Submit 的 turn 启动前置条件）。retryTurn 的
+  权威目标解析已改为用 transcript（不经投影 rows）绕过投影重放缺口。
 
 ## 7. 未完成项
 
