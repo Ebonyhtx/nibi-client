@@ -20,6 +20,7 @@ const h = vi.hoisted(() => ({
 vi.mock("electron", () => ({
   app: {
     on: vi.fn(),
+    isPackaged: true,
   },
   BrowserWindow: {
     fromWebContents: h.fromWebContents,
@@ -113,7 +114,7 @@ async function registerOpenExternalListener() {
   return { listener: listener!, options };
 }
 
-describe("OpenExternal 对 file URL 的分流", () => {
+describe("OpenExternal 协议分流", () => {
   beforeEach(() => {
     h.handlers.clear();
     h.listeners.clear();
@@ -122,37 +123,7 @@ describe("OpenExternal 对 file URL 的分流", () => {
     h.shellOpenPath.mockReset().mockResolvedValue("");
   });
 
-  it("中文与空格的 file URL 走 shell.openPath 且收到解码后的本地路径", async () => {
-    const { listener } = await registerOpenExternalListener();
-    const sender = { getURL: vi.fn(() => "about:blank") };
-
-    listener({ sender }, "file:///E:/04%20%E7%B4%A0%E6%9D%90/page.html");
-
-    await vi.waitFor(() => expect(h.shellOpenPath).toHaveBeenCalledTimes(1));
-    expect(h.shellOpenPath).toHaveBeenCalledWith(expect.stringContaining("04 素材"));
-    expect(h.shellOpenPath).toHaveBeenCalledWith(expect.stringContaining("page.html"));
-    expect(h.shellOpenPath).not.toHaveBeenCalledWith(expect.stringContaining("%"));
-    expect(h.shellOpenExternal).not.toHaveBeenCalled();
-  });
-
-  it("带锚点的 file URL 剥掉 hash 后仍走 shell.openPath", async () => {
-    const { listener } = await registerOpenExternalListener();
-    const sender = { getURL: vi.fn(() => "about:blank") };
-
-    // Windows 的 fileURLToPath 要求盘符；POSIX 才接受 /tmp 形式。
-    listener(
-      { sender },
-      process.platform === "win32"
-        ? "file:///C:/tmp/report.html#section"
-        : "file:///tmp/report.html#section",
-    );
-
-    await vi.waitFor(() => expect(h.shellOpenPath).toHaveBeenCalledTimes(1));
-    expect(h.shellOpenPath).not.toHaveBeenCalledWith(expect.stringContaining("#"));
-    expect(h.shellOpenExternal).not.toHaveBeenCalled();
-  });
-
-  it("http URL 仍走 shell.openExternal", async () => {
+  it("http/https 仍走 shell.openExternal", async () => {
     const { listener } = await registerOpenExternalListener();
     const sender = { getURL: vi.fn(() => "about:blank") };
 
@@ -163,20 +134,32 @@ describe("OpenExternal 对 file URL 的分流", () => {
     expect(h.shellOpenPath).not.toHaveBeenCalled();
   });
 
-  it("file URL 无法转换为本地路径时记录 warn 且不回退到 shell.openExternal", async () => {
+  it("file URL 被通用通道拒绝，本地文件只走 OpenExternalFile 专用通道", async () => {
     const { listener, options } = await registerOpenExternalListener();
     const sender = { getURL: vi.fn(() => "about:blank") };
 
-    // Windows 把 file://server/... 当 UNC（可转换），要用无盘符路径才走失败分支。
-    listener(
-      { sender },
-      process.platform === "win32"
-        ? "file:///tmp/no-drive.html"
-        : "file://server/share/page.html",
-    );
+    listener({ sender }, "file:///tmp/page%20one.html#section");
 
     await vi.waitFor(() => expect(options.logger.warn).toHaveBeenCalledTimes(1));
-    expect(h.shellOpenPath).not.toHaveBeenCalled();
     expect(h.shellOpenExternal).not.toHaveBeenCalled();
+    expect(h.shellOpenPath).not.toHaveBeenCalled();
+
+    const openFile = h.handlers.get(PlatformChannels.OpenExternalFile);
+    expect(openFile).toBeDefined();
+    await expect(openFile!({}, "C:\\tmp\\report page.html")).resolves.toEqual({ success: true });
+    expect(h.shellOpenPath).toHaveBeenCalledWith(expect.stringContaining("report page.html"));
+  });
+
+  it("javascript/data/无法解析的字符串都不会交给系统", async () => {
+    const { listener, options } = await registerOpenExternalListener();
+    const sender = { getURL: vi.fn(() => "about:blank") };
+
+    listener({ sender }, "javascript:alert(1)");
+    listener({ sender }, "data:text/html,hello");
+    listener({ sender }, "not a url");
+
+    await vi.waitFor(() => expect(options.logger.warn).toHaveBeenCalledTimes(3));
+    expect(h.shellOpenExternal).not.toHaveBeenCalled();
+    expect(h.shellOpenPath).not.toHaveBeenCalled();
   });
 });
