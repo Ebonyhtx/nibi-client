@@ -38,28 +38,33 @@ export function WebCallbackPage({ authService, onRetry, onSuccess }: WebCallback
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8 text-foreground">
-      <section className="w-full max-w-sm rounded-lg border border-card-border bg-card p-5 shadow-sm">
+      <section className="w-full max-w-sm rounded-lg border border-card-border bg-card p-6 shadow-sm">
         {error ? (
           <>
             <div className="mb-4 flex size-10 items-center justify-center rounded-lg bg-destructive text-ui-xs font-medium text-destructive-foreground">
               !
             </div>
-            <h1 className="text-ui-lg font-medium text-foreground">{copy.callbackErrorTitle}</h1>
-            <p className="mt-2 text-ui-xs leading-6 text-foreground-subtle">
+            <h1 className="text-ui-xl font-medium text-foreground">{copy.callbackErrorTitle}</h1>
+            <p className="mt-2 text-ui-sm leading-5 text-foreground-subtle">
               {copy.callbackErrorDescription}
             </p>
-            <p className="mt-3 rounded-lg border border-border bg-surface px-3 py-2 text-ui-xs leading-5 text-foreground-subtle">
+            <p className="mt-3 rounded-lg border border-border bg-surface px-3 py-2 text-ui-sm leading-5 text-foreground-subtle">
               {error}
             </p>
-            <Button type="button" size="lg" className="mt-5 w-full" onClick={onRetry}>
+            <Button
+              type="button"
+              size="lg"
+              className="mt-5 h-12 w-full text-ui-lg"
+              onClick={onRetry}
+            >
               {copy.retryAction}
             </Button>
           </>
         ) : (
           <>
             <div className="mb-4 size-9 rounded-full border-2 border-border border-t-primary" />
-            <h1 className="text-ui-lg font-medium text-foreground">{copy.callbackTitle}</h1>
-            <p className="mt-2 text-ui-xs leading-6 text-foreground-subtle">
+            <h1 className="text-ui-xl font-medium text-foreground">{copy.callbackTitle}</h1>
+            <p className="mt-2 text-ui-sm leading-5 text-foreground-subtle">
               {copy.callbackDescription}
             </p>
           </>

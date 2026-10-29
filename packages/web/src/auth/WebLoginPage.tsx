@@ -20,22 +20,22 @@ export function WebLoginPage({ onLogin }: WebLoginPageProps) {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-8 text-foreground">
-      <section className="w-full max-w-sm rounded-lg border border-card-border bg-card p-5 shadow-sm">
+      <section className="w-full max-w-sm rounded-lg border border-card-border bg-card p-6 shadow-sm">
         <div className="mb-5 flex items-center gap-3">
           <NibiAppLogo className="size-10" />
           <div className="min-w-0">
             <div className="text-ui-xs font-medium text-foreground">{copy.brand}</div>
-            <h1 className="text-ui-lg font-medium text-foreground">{copy.loginTitle}</h1>
+            <h1 className="text-ui-xl font-medium text-foreground">{copy.loginTitle}</h1>
           </div>
         </div>
-        <p className="mb-5 text-ui-xs leading-6 text-foreground-subtle">{copy.loginDescription}</p>
+        <p className="mb-5 text-ui-sm leading-5 text-foreground-subtle">{copy.loginDescription}</p>
         <div className="space-y-2">
           {LOGIN_PROVIDERS.map((provider) => (
             <Button
               key={provider}
               type="button"
               size="lg"
-              className="w-full"
+              className="h-12 w-full text-ui-lg"
               disabled={isSubmitting}
               onClick={() => {
                 setIsSubmitting(true);

@@ -192,7 +192,7 @@ function AccountRow({
       <Button
         type="button"
         variant="ghost"
-        className="-my-2 h-9 shrink-0 rounded-lg px-2 font-medium focus-visible:bg-hover"
+        className="-my-1 h-11 shrink-0 rounded-lg px-2 font-medium focus-visible:bg-hover"
       >
         {label}
       </Button>
@@ -265,7 +265,7 @@ export function WebRemoteControlDeviceListPage({
             title={copy.refresh}
             disabled={view.loading}
             onClick={onRefresh}
-            className="-mr-2 size-10 rounded-lg text-foreground-subtle focus-visible:bg-hover"
+            className="-mr-2 size-11 rounded-lg text-foreground-subtle focus-visible:bg-hover"
           >
             <RefreshCwIcon
               className={["size-[18px]", view.loading ? "animate-spin" : ""].join(" ")}
@@ -322,7 +322,7 @@ export function WebRemoteControlDeviceListPage({
                 type="button"
                 variant="outline"
                 size="lg"
-                className="mt-5 h-10 px-4"
+                className="mt-5 h-11 px-4"
                 onClick={onRefresh}
               >
                 <RefreshCwIcon />

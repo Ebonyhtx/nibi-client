@@ -84,17 +84,19 @@ afterEach(() => {
   oauth.loadingProviders = false;
 });
 
-it.each(["zai", "bigmodel"] as const)(
-  "远控401保留用户时，登录按钮重新发起 %s OAuth，不把缓存用户判为登录成功",
+it.each(["zai", "bigmodel", null] as const)(
+  "远控401时始终重新发起 NIBI 账号登录（activeProvider=%s），不把缓存用户判为登录成功",
   async (providerId) => {
     oauth.activeProvider = providerId;
     const view = openDialog();
     fireEvent.click(await view.findByTestId("web-remote-control-login"));
-    expect(state.requestLoginEntry).toHaveBeenCalledWith(providerId, "app-login");
+    // 中继只认 NIBI token：即使用户缓存里还有其它渠道，也必须显式指定 NIBI，
+    // 否则统一入口会把缓存用户当成已登录直接关页，远控仍然进不去。
+    expect(state.requestLoginEntry).toHaveBeenCalledWith("nibi", "app-login");
     view.unmount();
     const onComplete = vi.fn();
     render(createElement(LoginPanel, { active: true, onComplete }));
-    expect(oauth.startLogin).toHaveBeenCalledWith(providerId, { purpose: "app-login" });
+    expect(oauth.startLogin).toHaveBeenCalledWith("nibi", { purpose: "app-login" });
     expect(onComplete).not.toHaveBeenCalled();
   },
 );
@@ -110,38 +112,28 @@ it("provider仍在加载时不关闭弹窗或提交不完整登录请求", async
   expect(state.requestLoginEntry).not.toHaveBeenCalled();
 });
 
-it("已有用户但provider不可读时保留弹窗并重新读取，避免进入立即完成的泛化入口", async () => {
+it("provider指针不可读时也直接发起 NIBI 登录，不再停在刷新失败的死路", async () => {
   oauth.activeProvider = null;
   const onOpenChange = vi.fn();
   const view = openDialog(onOpenChange);
   fireEvent.click(await view.findByTestId("web-remote-control-login"));
-  expect(onOpenChange).not.toHaveBeenCalled();
-  expect(state.requestLoginEntry).not.toHaveBeenCalled();
-  expect(oauth.refreshProviders).toHaveBeenCalledOnce();
-  expect(toast).toHaveBeenCalledWith("login.oauth.loginFailure");
-  oauth.activeProvider = "zai";
-  view.rerender(
-    createElement(WebRemoteControlDialog, {
-      open: true,
-      onOpenChange: (open: boolean) => onOpenChange(open),
-      workspacePath: "/project",
-    }),
-  );
-  fireEvent.click(await view.findByTestId("web-remote-control-login"));
-  expect(state.requestLoginEntry).toHaveBeenCalledWith("zai", "app-login");
+  expect(onOpenChange).toHaveBeenCalledWith(false);
+  expect(state.requestLoginEntry).toHaveBeenCalledWith("nibi", "app-login");
+  expect(oauth.refreshProviders).not.toHaveBeenCalled();
+  expect(toast).not.toHaveBeenCalled();
 });
 
-it("尚未登录且无active provider时继续打开原有渠道选择入口", async () => {
+it("尚未登录且无active provider时同样进入 NIBI 登录，而不是空渠道选择页", async () => {
   state.user = null;
   oauth.activeProvider = null;
   const onOpenChange = vi.fn();
   const view = openDialog(onOpenChange);
   fireEvent.click(await view.findByTestId("web-remote-control-login"));
   expect(onOpenChange).toHaveBeenCalledWith(false);
-  expect(state.requestLoginEntry).toHaveBeenCalledWith(undefined, "app-login");
+  expect(state.requestLoginEntry).toHaveBeenCalledWith("nibi", "app-login");
   view.unmount();
   const onComplete = vi.fn();
   render(createElement(LoginPanel, { active: true, onComplete }));
-  expect(oauth.startLogin).not.toHaveBeenCalled();
+  expect(oauth.startLogin).toHaveBeenCalledWith("nibi", { purpose: "app-login" });
   expect(onComplete).not.toHaveBeenCalled();
 });

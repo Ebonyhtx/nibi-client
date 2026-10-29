@@ -11,6 +11,7 @@ import {
 import { memo, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import type { BotProvider, WebRemoteControlStatus } from "@nibi/shared";
+import { NIBI_PROVIDER_ID } from "@nibi/shared";
 import {
   Bot as BotIcon,
   CopyIcon,
@@ -51,9 +52,8 @@ const REMOTE_CONTROL_BOT_ENTRIES: Array<{
 
 function WebRemoteControlLoginButton({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
   const { intl } = useZCodeIntl();
-  const hasUser = useZCodeStore((state) => Boolean(state.user));
   const requestLoginEntry = useZCodeStore((state) => state.requestLoginEntry);
-  const { activeProvider, loadingProviders, refreshProviders } = useOAuth();
+  const { loadingProviders } = useOAuth();
 
   return (
     <Button
@@ -62,14 +62,10 @@ function WebRemoteControlLoginButton({ onOpenChange }: { onOpenChange: (open: bo
       className="enabled:cursor-pointer"
       disabled={loadingProviders}
       onClick={() => {
-        // 远控401不清全局用户；必须指定当前渠道建立新登录尝试，避免统一入口把缓存用户当作成功。
-        if (hasUser && !activeProvider) {
-          toast(intl.formatMessage({ id: "login.oauth.loginFailure" }));
-          void refreshProviders();
-          return;
-        }
+        // 远控中继只认 NIBI 账号（relay 的 401 就是 NIBI token 失效）：显式指定 provider。
+        // 不传 provider 时缓存用户会被统一入口当成"已登录"直接关页，远控仍然进不去。
         onOpenChange(false);
-        requestLoginEntry(activeProvider ?? undefined, "app-login");
+        requestLoginEntry(NIBI_PROVIDER_ID, "app-login");
       }}
     >
       {intl.formatMessage({ id: "webRemoteControl.authRequired.login" })}

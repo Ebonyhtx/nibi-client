@@ -185,23 +185,23 @@ export function Root(props: RootProps) {
               initialIsRestoringOAuthSession
             >
               <TabStoreProvider>
-              <ProjectDirectoryProvider isDesktop={props.isDesktop}>
-                <DiffsWorkerPoolProvider>
-                  <WebRemoteControlFeatureProvider enabled={props.webRemoteControlFeatureEnabled}>
-                    <AssistantCodeCommentFeatureProvider
-                      enabled={props.assistantCodeCommentCardsEnabled}
-                    >
-                          <RequestSecurityHost />
-                          <MarketingTouchProvider desktop={props.isDesktop === true}>
-                            <RemoteConnectionProgressProvider>
-                              <RootInner {...props} />
-                            </RemoteConnectionProgressProvider>
-                          </MarketingTouchProvider>
-                      {/* NIBI：上游 RewardsProvider 会打开别家站点，已随「邀请好友」一起移除。 */}
-                    </AssistantCodeCommentFeatureProvider>
-                  </WebRemoteControlFeatureProvider>
-                </DiffsWorkerPoolProvider>
-              </ProjectDirectoryProvider>
+                <ProjectDirectoryProvider isDesktop={props.isDesktop}>
+                  <DiffsWorkerPoolProvider>
+                    <WebRemoteControlFeatureProvider enabled={props.webRemoteControlFeatureEnabled}>
+                      <AssistantCodeCommentFeatureProvider
+                        enabled={props.assistantCodeCommentCardsEnabled}
+                      >
+                        <RequestSecurityHost />
+                        <MarketingTouchProvider desktop={props.isDesktop === true}>
+                          <RemoteConnectionProgressProvider>
+                            <RootInner {...props} />
+                          </RemoteConnectionProgressProvider>
+                        </MarketingTouchProvider>
+                        {/* NIBI：上游 RewardsProvider 会打开别家站点，已随「邀请好友」一起移除。 */}
+                      </AssistantCodeCommentFeatureProvider>
+                    </WebRemoteControlFeatureProvider>
+                  </DiffsWorkerPoolProvider>
+                </ProjectDirectoryProvider>
               </TabStoreProvider>
             </StoreProvider>
           </PlatformProvider>
@@ -1218,16 +1218,6 @@ function RootInner({
     );
   }, [isSettingsTabActive, workspaceShellPath]);
 
-  useEffect(() => {
-    if (!loginEntryRequest) {
-      return;
-    }
-    // 不再因为"缺少 provider"把登录门弹到首屏（上游欢迎页已按我们自己的账号体系替换）；
-    // 模型 provider 仍在「设置 → 模型服务」里配置。上游原行为是
-    // setWelcomeScreenOpenReason("provider-request")，保留注释以便回溯。
-    void loginEntryRequest;
-  }, [loginEntryRequest]);
-
   // 左下角账号入口（页脚头像菜单里的「登录 NIBI」）：打开应用内登录 Hero（manual-login）。
   // Hero 是可关闭的登录页：登录/取消/失败都有可见状态，「稍后」随时回到工作区。
   // 实际的 startLogin 由 Hero 的 LoginPanel 发起；关闭时取消 pending，避免迟到回调换号。
@@ -1238,9 +1228,20 @@ function RootInner({
       toast(intl.formatMessage({ id: "nibi.login.desktopOnly" }));
       return;
     }
-    setWelcomeScreenOpenReason("manual-login");
+    // 已打开的登录/过期页保持原 reason：各 reason 的关闭语义不同（session-expired 不允许「稍后」），
+    // 不能被后到的统一登录请求降级成可关闭的 manual-login。
+    setWelcomeScreenOpenReason((current) => current ?? "manual-login");
   }, [intl, isDesktop]);
   openLoginEntryRef.current = handleOpenLoginEntry;
+  useEffect(() => {
+    if (!loginEntryRequest) {
+      return;
+    }
+    // 远控弹层的「登录」、市场活动的登录 CTA 都只往 store 里写请求，真正的入口在 Root。
+    // 这里曾经只做了 `void loginEntryRequest`，没有任何组件消费，导致点击后完全没反应。
+    // 统一走左下角同一入口：Hero 打开后由 LoginPanel 按请求里的 providerId 自动发起登录。
+    handleOpenLoginEntry();
+  }, [handleOpenLoginEntry, loginEntryRequest]);
   // Hero 的「使用 API key」：关闭登录页并跳到 设置 → 模型配置，不再在登录页里
   // 引导用户去上游（Z.ai/BigModel）选套餐——分家后那些不是 NIBI 的服务。
   const handleOpenApiKeySettings = useCallback(() => {
