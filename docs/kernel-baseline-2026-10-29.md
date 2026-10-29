@@ -11,8 +11,8 @@
 | NIBI-Client HEAD | `4725ab6`（工作树在采集时干净） |
 | NIBI-Site HEAD | `62976f6` |
 | ZCode-rs pin | `6d349ed4`（0.1.67，build 67） |
-| 本机 Node | **v24.19.0**（FIX-3 目标 24.22.1 未执行） |
-| 仓库钉定 Node | mise/.nvmrc/CI/CLI engines 仍为 **24.14.0**（FIX-4 未执行） |
+| 本机系统 Node | **v24.19.0**（FIX-3 系统级未执行；本轮用 `D:/NIBI/.tools/node-v24.22.1` 便携版跑构建/测试） |
+| 仓库钉定 Node | **24.22.1**（FIX-4 已执行，`24da6653`）；Server CLI 运行时 **22.23.4** |
 | Electron | **41.0.3**（FIX-5 目标 44.9.3 未执行） |
 | Rust 工具链 | cargo/rustc **1.97.1**（上游 rust-version 1.95） |
 | 平台 | win32/x64；内存 32 GiB 量级（`os.totalmem()` 实测） |
@@ -20,8 +20,8 @@
 
 **FIX 前置状态（如实记录，影响基线可比性）**：
 
-- FIX-3 未执行：本机 Node 24.19.0。
-- FIX-4 未执行：`mise.toml:2`、根 `.nvmrc`、`apps/zcode-cli/package.json:56`、CLI `.nvmrc/.node-version`、CI 四处 `node-version`、Server CLI `22.16.0` 均未上调。
+- FIX-3 **系统级未执行**：本机 MSI Node 仍 24.19.0；仓库构建/测试改用便携版 24.22.1。
+- FIX-4 **已执行**（`24da6653`）：mise/.nvmrc/CLI engines/CI 四处、Server CLI `22.23.4`、Dockerfile、测试夹具、third-party 许可证登记全部同步。
 - FIX-5 未执行：Electron 41.0.3。
 - FIX-6 未执行，且本轮禁止改生产/动服务器，无法在本机完成。
 - FIX-10a 未执行：`.github/workflows/` 只有 `client-gates.yml`、`desktop-e2e.yml`，没有 `rust-gates.yml`。
@@ -57,6 +57,21 @@
 - 5/5 退出码 0，假 provider 标记 5/5 命中，事件数 14。
 - V8 `heap_size_limit` 实测 **4288 MiB**（64 位默认值，未注入上限）。
 - 首段文本时间包含进程启动、会话创建、标题生成与一次模型请求；假 provider 本身为 0 延迟，所以 **3.5s 主要是内核开销，不是真实首字延迟**。
+
+## 3.1 FIX-4 后复跑（Node 24.22.1，2026-10-30 00:17 +08）
+
+同一脚本、同一隔离方式，5 次（重复一轮共 10 次）：
+
+| 指标 | 第一轮 p50 | 第二轮 p50 | 两轮范围 |
+|---|---:|---:|---:|
+| spawn → 首条事件 | 3399 ms | 3378 ms | 3.3–3.5 s |
+| spawn → 首段助手文本 | 4665 ms | 4424 ms | 4.4–4.8 s |
+| spawn → `turn.completed` | 4728 ms | 4490 ms | 4.5–4.9 s |
+| spawn → 进程退出 | 5035 ms | 4780 ms | 4.8–5.1 s |
+| 峰值 RSS | 404.4 MiB | 405.7 MiB | 403–407 MiB |
+| 首段文本时 RSS | 115.9 MiB | 116.1 MiB | 115.8–116.1 MiB |
+
+观察：FIX-4 后首段文本 p50 从 ~3.5s 升到 ~4.5s，峰值 RSS 从 ~409 MiB 降到 ~405 MiB；两轮一致，暂按版本/运行时差异记录，最终以 20 次冷启的安静机器测量为准。Electron 仍是 41.0.3，FIX-5 合入后必须再重跑。
 
 ## 4. 当前运行时参数现状（只记录，不改）
 
