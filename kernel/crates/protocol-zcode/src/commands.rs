@@ -6,10 +6,10 @@ use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{
-    Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, SessionHandle,
+    Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, RewindScope, SessionHandle,
 };
 use rust_cli_protocol_core::rpc::RpcError;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::inbound::Inbound;
 use crate::inbox::{self, Ack, Envelope, Status};
@@ -38,17 +38,62 @@ fn mode(value: &Value, plan: Option<bool>) -> Option<(PermissionMode, bool)> {
     Some((PermissionMode::from_node_name(name)?, plan.unwrap_or(false)))
 }
 
-/// CAS 命令共用的 revision 比较（Node command-inbox 的 stale 判定）。
-fn cas_check(command: &str, base: Option<u64>, current: u64) -> Option<Ack> {
-    (base != Some(current)).then(|| {
-        Ack::refused(
+/// row-targeting 的 `target`（`conversationRowTargetSchema`：rowId + entityId）。
+struct TargetRow {
+    row_id: u64,
+    entity: String,
+}
+
+fn target_row(payload: &Value) -> Option<TargetRow> {
+    let target = &payload["target"];
+    Some(TargetRow {
+        row_id: target["rowId"].as_u64()?,
+        entity: target["entityId"].as_str()?.to_owned(),
+    })
+}
+
+/// CAS 命令共用的 revision + logEpoch 比较（Node command-inbox.ts:344-351）：
+/// revision 不符 → `proto.staleRevision`；logEpoch 不符 → `proto.staleLogEpoch`。
+/// row-targeting 命令两者都比；其余 CAS 命令只比 revision（`compare_epoch=false`）。
+fn cas_check_with_epoch(
+    command: &str,
+    base_revision: Option<u64>,
+    base_epoch: Option<&str>,
+    current_revision: u64,
+    current_epoch: &str,
+    compare_epoch: bool,
+) -> Option<Ack> {
+    if base_revision != Some(current_revision) {
+        return Some(Ack::refused(
             command,
             Status::Stale,
             "proto.staleRevision",
             "the session changed",
-            current,
-        )
-    })
+            current_revision,
+        ));
+    }
+    if compare_epoch && base_epoch != Some(current_epoch) {
+        return Some(Ack::refused(
+            command,
+            Status::Stale,
+            "proto.staleLogEpoch",
+            "the conversation log moved on",
+            current_revision,
+        ));
+    }
+    None
+}
+
+/// row-targeting 的 target 解析：行存在、entityId 对得上、已结算出 assistant 消息。
+fn row_message_id(row: &Map<String, Value>, entity: &str) -> Result<String, String> {
+    if row.get("entityId").and_then(Value::as_str) != Some(entity) {
+        return Err("the row moved on; refresh the conversation and retry".to_owned());
+    }
+    row.get("assistantResponseId")
+        .and_then(Value::as_str)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .ok_or_else(|| "the row has no settled assistant response yet".to_owned())
 }
 
 /// NIBI `switchModelConfig` 的扁平 payload → 内核选择（provider/model/thought）。
@@ -203,11 +248,13 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         },
         "resolveInteraction" => resolve(handle, &live.sink, envelope, revision).await,
         "setFollowupMode" => set_followup(server, handle, &live, envelope).await,
-        "switchModelConfig" => switch_model_config(handle, envelope).await,
-        "switchCollaborationMode" => switch_collaboration_mode(handle, envelope).await,
+        "switchModelConfig" => switch_model_config(handle, &live.sink, envelope).await,
+        "switchCollaborationMode" => switch_collaboration_mode(handle, &live.sink, envelope).await,
         "compact" => compact_session(handle, envelope, revision).await,
         "renameSession" => rename_session(handle, envelope, revision).await,
         "cancelBackgroundWork" => cancel_background_work(handle, envelope, revision).await,
+        "forkAssistant" => fork_assistant(handle, &live.sink, envelope).await,
+        "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -503,7 +550,14 @@ async fn set_followup(
             revision,
         );
     }
-    if let Some(stale) = cas_check(command, envelope.base_revision, revision) {
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        revision,
+        &live.sink.epoch(),
+        false,
+    ) {
         return stale;
     }
     if let Some(session) = &envelope.session_id {
@@ -520,7 +574,11 @@ async fn set_followup(
 }
 
 /// NIBI `switchModelConfig`：CAS 命令，扁平 provider/model/thought → `Command::SetModel`。
-async fn switch_model_config(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+async fn switch_model_config(
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
     let command = envelope.command_id.as_str();
     let view = match handle.view().await {
         Ok(view) => view,
@@ -552,7 +610,14 @@ async fn switch_model_config(handle: &dyn SessionHandle, envelope: &Envelope) ->
             view.revision,
         );
     }
-    if let Some(stale) = cas_check(command, envelope.base_revision, view.revision) {
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        view.revision,
+        &live.epoch(),
+        false,
+    ) {
         return stale;
     }
     match send(handle, command, Command::SetModel { selection: chosen }).await {
@@ -569,7 +634,11 @@ async fn switch_model_config(handle: &dyn SessionHandle, envelope: &Envelope) ->
 }
 
 /// NIBI `switchCollaborationMode`：CAS 命令，mode → `Command::SetMode`（plan 是旧写法，开 plan）。
-async fn switch_collaboration_mode(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+async fn switch_collaboration_mode(
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
     let command = envelope.command_id.as_str();
     let view = match handle.view().await {
         Ok(view) => view,
@@ -601,7 +670,14 @@ async fn switch_collaboration_mode(handle: &dyn SessionHandle, envelope: &Envelo
             view.revision,
         );
     }
-    if let Some(stale) = cas_check(command, envelope.base_revision, view.revision) {
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        view.revision,
+        &live.epoch(),
+        false,
+    ) {
         return stale;
     }
     if view.mode != permission {
@@ -708,6 +784,174 @@ async fn cancel_background_work(
                 revision,
             )
         }
+    }
+}
+
+/// NIBI `forkAssistant`：row-targeting CAS（revision+epoch）；稳定 assistant 行 → `Command::Fork`。
+async fn fork_assistant(
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let revision = match handle.view().await {
+        Ok(view) => view.revision,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        revision,
+        &live.epoch(),
+        true,
+    ) {
+        return stale;
+    }
+    let Some(target) = target_row(&envelope.payload) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "forkAssistant needs a row target",
+            revision,
+        );
+    };
+    let Some(row) = live.row(target.row_id) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            format!("row {} does not exist", target.row_id),
+            revision,
+        );
+    };
+    let message = match row_message_id(&row, &target.entity) {
+        Ok(message) => message,
+        Err(reason) => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "proto.invalidPayload",
+                reason,
+                revision,
+            );
+        }
+    };
+    match send(
+        handle,
+        command,
+        Command::Fork {
+            at: Some(rust_cli_kernel_api::ids::MessageId::new(message)),
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { result } => {
+            let session = result.as_str().unwrap_or_default().to_owned();
+            Ack::accepted(
+                command,
+                revision,
+                Some(json!({"type": "forkAssistant", "sessionId": session})),
+            )
+        }
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "fault.command.forkFailed",
+            reason,
+            revision,
+        ),
+    }
+}
+
+/// NIBI `applyFileRewind`：row-targeting CAS；只回退文件（`RewindScope::Code`），不动聊天。
+async fn apply_file_rewind(
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let revision = match handle.view().await {
+        Ok(view) => view.revision,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    if let Some(stale) = cas_check_with_epoch(
+        command,
+        envelope.base_revision,
+        envelope.base_log_epoch.as_deref(),
+        revision,
+        &live.epoch(),
+        true,
+    ) {
+        return stale;
+    }
+    let Some(target) = target_row(&envelope.payload) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "applyFileRewind needs a row target",
+            revision,
+        );
+    };
+    let Some(row) = live.row(target.row_id) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            format!("row {} does not exist", target.row_id),
+            revision,
+        );
+    };
+    let message = match row_message_id(&row, &target.entity) {
+        Ok(message) => message,
+        Err(reason) => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "proto.invalidPayload",
+                reason,
+                revision,
+            );
+        }
+    };
+    match send(
+        handle,
+        command,
+        Command::Rewind {
+            target: rust_cli_kernel_api::ids::MessageId::new(message),
+            scope: RewindScope::Code,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "fault.command.fileRewindFailed",
+            reason,
+            revision,
+        ),
     }
 }
 

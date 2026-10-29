@@ -75,6 +75,11 @@
   `fault.command.backgroundWorkCancelRejected.<code>`，`unknown` 兜底，TODO 等 kernel
   回执带机器可读 reason）；`createSession.config` 的扁平 provider/model/thought 作
   选择回落，未消费清单 11→6 项。测试仍 28。
+- 第四小批：epoch CAS（`cas_check_with_epoch`，`proto.staleLogEpoch` 与 Node 同词）；
+  `forkAssistant`（→`Command::Fork`，ACK result 带 `{type, sessionId}`）与
+  `applyFileRewind`（→`Command::Rewind{scope: Code}`）两个 row-targeting 处理器，
+  target 经 projection 行解析（entityId 匹配 + assistantResponseId 结算检查）。
+  `Envelope` 补 `baseLogEpoch`；测试 28→29。
 
 ## 7. 未完成项
 

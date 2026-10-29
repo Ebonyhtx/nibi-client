@@ -65,9 +65,25 @@ workflow run、queue 编辑、deleteSession 的 store 软删）保持 unsupporte
   `mcpServers`、`additionalDirectories`、`permissionScope`、`dynamicWorkflowEnabled/Mode`、
   `firstInput.attachments`。契约测试同步断言"已消费不再上报、未消费继续点名"。
 
+## 6.2 第四小批：epoch CAS + forkAssistant / applyFileRewind
+
+- **epoch CAS 落地**：kernel 的 snapshot `logEpoch` 就是 Host 回传的 `baseLogEpoch`
+  （`TopicLog` 代际串）。`cas_check` 升级为 `cas_check_with_epoch`：revision 不符 →
+  `proto.staleRevision`；row-targeting 命令再比 epoch → `proto.staleLogEpoch`
+  （与 Node command-inbox.ts:344-351 同词）。非 row-targeting 的 CAS 命令不比 epoch。
+- `forkAssistant`：target {rowId, entityId} → projection 行解析（entityId 必须匹配、
+  行必须已结算出 `assistantResponseId`）→ `Command::Fork{at}`；kernel result 是新会话
+  ID 字符串，ACK result 带 `{type, sessionId}`。
+- `applyFileRewind`：同解析 → `Command::Rewind{scope: Code}`（只回退文件不动聊天）。
+- `Envelope` 补 `baseLogEpoch` 字段；`Live` 暴露 `epoch()`/`row()`；projection 补
+  `row(rowId)`。测试 28→29（新增 epoch CAS 判定测试）。
+- 语义说明：NIBI 的 logEpoch 与 kernel TopicLog 代际同源（会话进程重启即换代），
+  与 Node 的 log epoch 语义一致；跨进程冷打开的 epoch 由冷打开方重新生成——与 Node
+  的 app-server 行为相同。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 24 个命令的处理器（fork/retry/rewind/queue/goal/hook-review/workflow*/deleteSession 等）——
+1. 其余 22 个命令的处理器（retry/rewind 对话面/editUserQuery/queue 编辑组/goal/hook-review/workflow*/deleteSession 等）——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。

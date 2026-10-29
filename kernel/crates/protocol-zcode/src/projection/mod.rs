@@ -154,6 +154,13 @@ impl Projection {
         self.revision
     }
 
+    /// 按 rowId 找行（row-targeting 命令解析 target 用）；没有时 None。
+    pub fn row(&self, row_id: u64) -> Option<&Map<String, Value>> {
+        self.rows
+            .iter()
+            .find(|row| row.get("rowId").and_then(Value::as_u64) == Some(row_id))
+    }
+
     pub fn phase(&self) -> Phase {
         self.phase
     }

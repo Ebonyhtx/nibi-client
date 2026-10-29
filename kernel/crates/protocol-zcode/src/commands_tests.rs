@@ -15,15 +15,32 @@ fn selection(provider: &str, model: &str, reasoning: Option<&str>) -> ModelSelec
 
 #[test]
 fn cas_check_only_fires_on_revision_mismatch() {
-    let current = cas_check("c1", Some(7), 7);
+    let current = cas_check_with_epoch("c1", Some(7), None, 7, "epoch-1", false);
     assert!(current.is_none());
-    let stale = cas_check("c1", Some(6), 7).unwrap();
+    let stale = cas_check_with_epoch("c1", Some(6), None, 7, "epoch-1", false).unwrap();
     assert_eq!(stale.status, Status::Stale);
     assert_eq!(stale.reason_code.as_deref(), Some("proto.staleRevision"));
     assert_eq!(stale.revision_at_decision, 7);
     // 缺 baseRevision 的命令在 schema 层就被拒；这里双保险同样按 stale 处理。
-    let missing = cas_check("c1", None, 7).unwrap();
+    let missing = cas_check_with_epoch("c1", None, None, 7, "epoch-1", false).unwrap();
     assert_eq!(missing.status, Status::Stale);
+}
+
+#[test]
+fn cas_check_rejects_epoch_mismatch_only_for_row_targeting() {
+    // revision 对、epoch 错：compare_epoch=true 才拒。
+    let ok = cas_check_with_epoch("c1", Some(7), Some("epoch-1"), 7, "epoch-1", true);
+    assert!(ok.is_none());
+    let stale_epoch =
+        cas_check_with_epoch("c1", Some(7), Some("epoch-0"), 7, "epoch-1", true).unwrap();
+    assert_eq!(stale_epoch.status, Status::Stale);
+    assert_eq!(
+        stale_epoch.reason_code.as_deref(),
+        Some("proto.staleLogEpoch")
+    );
+    // 同样的 epoch 错，在非 row-targeting 命令上不比。
+    let ignored = cas_check_with_epoch("c1", Some(7), Some("epoch-0"), 7, "epoch-1", false);
+    assert!(ignored.is_none());
 }
 
 #[test]

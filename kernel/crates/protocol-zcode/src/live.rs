@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use rust_cli_kernel_api::session_api::{SequencedEvent, SessionView};
 use rust_cli_protocol_core::delivery::TopicLog;
 use rust_cli_protocol_core::sessions::SessionSink;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::context::Context;
 use crate::index::{Summary, Topics};
@@ -136,6 +136,16 @@ impl Live {
     }
 
     /// 投影的阶段与 revision（命令裁决的读数；revision 来自会话 actor）。
+    /// 当前主题代际（snapshot 的 `logEpoch`；Host 在 row-targeting 命令里作为 baseLogEpoch 回传）。
+    pub fn epoch(&self) -> String {
+        self.state().log.epoch().to_owned()
+    }
+
+    /// 按 rowId 找投影行（row-targeting 命令的 target 解析）。
+    pub fn row(&self, row_id: u64) -> Option<Map<String, Value>> {
+        self.state().projection.row(row_id).cloned()
+    }
+
     pub fn status(&self) -> (Phase, u64) {
         let state = self.state();
         (state.projection.phase(), state.projection.revision())

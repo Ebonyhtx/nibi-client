@@ -27,6 +27,8 @@ pub struct Envelope {
     pub session_id: Option<String>,
     #[serde(default)]
     pub base_revision: Option<u64>,
+    #[serde(default)]
+    pub base_log_epoch: Option<String>,
     #[serde(rename = "type")]
     pub kind: String,
     #[serde(default)]
