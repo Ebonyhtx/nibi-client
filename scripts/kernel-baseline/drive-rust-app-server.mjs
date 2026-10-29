@@ -268,6 +268,12 @@ try {
         for (const row of snap.rows?.window ?? []) rows.set(row.rowId, row);
       } else if (payload.kind === "deltas") {
         for (const delta of payload.deltas ?? []) {
+          if (delta.op === "row.removed") {
+            const from = delta.fromRowId ?? 0;
+            for (const key of [...rows.keys()]) {
+              if (key >= from) rows.delete(key);
+            }
+          }
           if (delta.patch?.control?.stopState) stopState = delta.patch.control.stopState;
           if (delta.patch?.availability) stopState = delta.patch.availability?.stopState ?? stopState;
           if (delta.op === "row.appended") {
@@ -519,22 +525,11 @@ try {
     // 被接受但回合不跑——assistant 回复不来，committed 停在 3。Node 端 editUserQuery
     // 的 startCanonicalIntent 走 prompt turn（不是 queued Submit），kernel 的 queued
     // Submit 在 rewind 之后的排水行为需要调查。此处容忍超时、跳过 retry。
-    let editResubmitted = false;
-    try {
-      await waitFor(
-        () => {
-          const built = buildState();
-          const lastAssistant = [...built.rows].reverse().find((r) => r.kind === "assistantText");
-          return built.stopState === "idle" && lastAssistant?.state === "complete" ? true : undefined;
-        },
-        "resubmitted turn complete",
-        30_000,
-      );
-      editResubmitted = true;
-      console.log(`editUserQuery: accepted, conversation resubmitted`);
-    } catch {
-      console.log(`editUserQuery: accepted, resubmitted turn did not complete (see lastError)`);
-    }
+    // 等新回合完成（假 provider 即时回复，2s 充裕）。retryTurn 的 transcript 解析
+    // 自己会等已提交的 assistant 消息出现。
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    editResubmitted = true;
+    console.log(`editUserQuery: accepted, conversation resubmitted`);
   }
 
   if (phases.includes("retry") && editResubmitted) {

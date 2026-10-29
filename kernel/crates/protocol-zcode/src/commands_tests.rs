@@ -113,23 +113,31 @@ fn retry_target_resolves_the_latest_turn_and_rejects_history() {
         user("u2", "second"),
         assistant("a2"),
     ];
-    let target = retry_target(&messages, "a2").unwrap();
+    let target = retry_target(&messages).unwrap();
     assert_eq!(target.user_message, "u2");
     assert_eq!(target.text, "second");
 
-    // 历史 assistant：latestAssistantRetryOnly。
-    let error = retry_target(&messages, "a1").unwrap_err();
+    // 最后一条不是 assistant：latest 守卫（历史回复 retry 会回退 active branch）。
+    let with_tail = vec![
+        user("u1", "first"),
+        assistant("a1"),
+        user("u2", "second"),
+        assistant("a2"),
+        user("u3", "follow-up"),
+    ];
+    let error = retry_target(&with_tail).unwrap_err();
     assert!(
         error.starts_with("guard.latestAssistantRetryOnly"),
         "{error}"
     );
 
-    // 视图里不存在的 assistant 行。
-    assert!(retry_target(&messages, "a_missing").is_err());
+    // 空会话。
+    let empty: Vec<rust_cli_kernel_api::message::Message> = vec![];
+    assert!(retry_target(&empty).is_err());
 
     // assistant 前没有 user 输入。
     let messages = vec![assistant("a1")];
-    assert!(retry_target(&messages, "a1").is_err());
+    assert!(retry_target(&messages).is_err());
 
     // user 消息没有文本：不能重发空输入。
     let empty = Message::User(UserMessage {
@@ -138,7 +146,7 @@ fn retry_target_resolves_the_latest_turn_and_rejects_history() {
         origin: UserOrigin::Human,
     });
     let messages = vec![empty, assistant("a1")];
-    let error = retry_target(&messages, "a1").unwrap_err();
+    let error = retry_target(&messages).unwrap_err();
     assert!(error.contains("no text"), "{error}");
 }
 

@@ -299,6 +299,21 @@ impl Projection {
                 self.phase_patch(&mut patch);
             }
             KernelEvent::MessageDone { message } => self.message(message, now, seq, &mut out),
+            KernelEvent::HistoryRewritten { .. } => {
+                // rewind 后投影重建（与 TUI 的 runner 同语义）：清空行、重置状态。
+                // 发 `row.removed{fromRowId:0}` 让客户端也清空（协议已有的 op，
+                // delta.ts:112）；后续事件的行追加到空投影上。
+                if !self.rows.is_empty() {
+                    out.push(json!({"op": "row.removed", "fromRowId": 0}));
+                }
+                self.rows.clear();
+                self.index.clear();
+                self.turn = None;
+                self.active = None;
+                self.error = None;
+                self.phase = Phase::Draft;
+                self.phase_patch(&mut patch);
+            }
             KernelEvent::StreamDelta {
                 turn,
                 response,

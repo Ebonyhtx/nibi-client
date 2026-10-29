@@ -831,15 +831,16 @@ struct RetryTarget {
 /// assistant 行 → 该轮 user 消息：视图里定位 assistant 消息，向前找最近的 user 消息。
 /// Node 的守护（`guard.latestAssistantRetryOnly`）：只许重试最后一轮 assistant 回复——
 /// 历史回复 retry 会回退 active branch，直接拒绝；合成消息（Attachment/System）跳过。
-fn retry_target(
-    messages: &[rust_cli_kernel_api::message::Message],
-    assistant: &str,
-) -> Result<RetryTarget, String> {
+fn retry_target(messages: &[rust_cli_kernel_api::message::Message]) -> Result<RetryTarget, String> {
+    // latest 守卫：最后一条消息必须是 assistant（有回复才能重试）。
     let position = messages
-        .iter()
-        .rposition(|message| message.id().as_str() == assistant)
-        .ok_or_else(|| format!("row assistant response {assistant} is not in the conversation"))?;
-    if position != messages.len() - 1 {
+        .len()
+        .checked_sub(1)
+        .ok_or("the conversation is empty")?;
+    if !matches!(
+        messages[position],
+        rust_cli_kernel_api::message::Message::Assistant(_)
+    ) {
         return Err(
             "guard.latestAssistantRetryOnly: retryTurn only retries the latest assistant reply"
                 .to_owned(),
@@ -993,37 +994,9 @@ async fn retry_turn(
     ) {
         return stale;
     }
-    let Some(target) = target_row(&envelope.payload) else {
-        return Ack::refused(
-            command,
-            Status::Rejected,
-            "proto.invalidPayload",
-            "retryTurn needs a row target",
-            view.revision,
-        );
-    };
-    let Some(row) = live.row(target.row_id) else {
-        return Ack::refused(
-            command,
-            Status::Rejected,
-            "proto.invalidPayload",
-            format!("row {} does not exist", target.row_id),
-            view.revision,
-        );
-    };
-    let assistant = match row_message_id(&row, &target.entity) {
-        Ok(message) => message,
-        Err(reason) => {
-            return Ack::refused(
-                command,
-                Status::Rejected,
-                "proto.invalidPayload",
-                reason,
-                view.revision,
-            );
-        }
-    };
-    let retry = match retry_target(&view.messages, &assistant) {
+    // target {rowId, entityId} 只是客户端的 UI 提示；latest 守卫保证只重试最后一轮。
+    // 直接从 transcript 解析（不经投影行——rewind 后投影行可能还没重放）。
+    let retry = match retry_target(&view.messages) {
         Ok(retry) => retry,
         Err(reason) => {
             let code = reason.split(':').next().unwrap_or_default().to_owned();
