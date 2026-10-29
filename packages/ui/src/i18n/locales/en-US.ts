@@ -356,9 +356,9 @@ const enUS: Record<string, string> = {
   "occupationOnboarding.error": "Failed to save. Please try again.",
   "occupationOnboarding.stepRole": "Your work",
   "occupationOnboarding.stepPreferences": "Preferences",
-  "occupationOnboarding.heroTitle": "Simple, Fast, Vibe‑Ready!",
+  "occupationOnboarding.heroTitle": "Light to start, solid to ship.",
   "occupationOnboarding.heroDescription":
-    "Tackle complex goals with multiple agents.\nStay in control, wherever you are.",
+    "Multiple agents break a complex goal into concrete, deliverable pieces.",
   "occupationOnboarding.title": "What do you do?",
   "occupationOnboarding.description": "Choose the closest match to your everyday work.",
   "occupationOnboarding.office": "Office professional",

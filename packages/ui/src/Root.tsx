@@ -20,7 +20,6 @@ import { LucideProvider, RefreshCw } from "lucide-react";
 import {
   APP_RUNTIME_PREFERENCES_CHANGED_BROADCAST_CHANNEL,
   DesktopCommandIds,
-  NIBI_PROVIDER_ID,
   appRuntimePreferencesChangedBroadcastPayloadSchema,
 } from "@nibi/shared";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
@@ -1242,6 +1241,14 @@ function RootInner({
     setWelcomeScreenOpenReason("manual-login");
   }, [intl, isDesktop]);
   openLoginEntryRef.current = handleOpenLoginEntry;
+  // Hero 的「使用 API key」：关闭登录页并跳到 设置 → 模型配置，不再在登录页里
+  // 引导用户去上游（Z.ai/BigModel）选套餐——分家后那些不是 NIBI 的服务。
+  const handleOpenApiKeySettings = useCallback(() => {
+    void nibiLogin.cancel("nibi");
+    setWelcomeScreenOpenReason(null);
+    setPendingSettingsSectionIntent("modelProvider");
+    tabStoreApi.getState().openSettingsTab();
+  }, [nibiLogin, tabStoreApi]);
   const handleWelcomeScreenDismiss = useCallback(() => {
     // 首启门禁的「稍后再说」要持久化：跳过用户不该每次启动都被再拦一次。
     if (welcomeScreenOpenReason === "startup-provider-required") {
@@ -1520,6 +1527,7 @@ function RootInner({
         {directoryBrowserDialog}
         <WelcomeScreen
           onComplete={handleWelcomeScreenComplete}
+          onOpenModelSettings={handleOpenApiKeySettings}
           onDismiss={
             welcomeScreenOpenReason === "manual-login" ||
             welcomeScreenOpenReason === "startup-provider-required"

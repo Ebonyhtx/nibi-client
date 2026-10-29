@@ -27,13 +27,18 @@ import { DesktopOverlayWindowControls } from "@/DesktopOverlayWindowControls.js"
 
 interface WelcomeScreenProps {
   onComplete: (reason: LoginCompleteReason) => void | Promise<void>;
+  /**
+   * 「使用 API key」的落点：跳到 设置 → 模型配置 由用户自己添加供应商。
+   * 不再在登录页内嵌上游（Z.ai/BigModel）二选一表单——分家后那里没有 NIBI 的服务。
+   */
+  onOpenModelSettings?: () => void;
   /** 提供时显示「稍后再说」：用于手动打开的登录页（manual-login），随时可返回工作区。 */
   onDismiss?: () => void;
 }
 
 export type LoginCompleteReason = "oauth" | "apiKey" | "skip";
 
-export function WelcomeScreen({ onComplete, onDismiss }: WelcomeScreenProps) {
+export function WelcomeScreen({ onComplete, onOpenModelSettings, onDismiss }: WelcomeScreenProps) {
   const { intl } = useZCodeIntl();
   return (
     <main className="relative flex h-full min-h-dvh items-center justify-center overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6">
@@ -42,7 +47,11 @@ export function WelcomeScreen({ onComplete, onDismiss }: WelcomeScreenProps) {
       <div className="pointer-events-none absolute left-0 top-0 right-0 z-10 flex h-12 items-center [app-region:drag] platform-windows-desktop:right-[134px] platform-linux-desktop:right-[134px]" />
       <DesktopOverlayWindowControls />
       <section className="relative z-10 w-full flex flex-col gap-10 max-w-sm rounded-2xl border border-popover-border bg-card p-8 text-ui-base/relaxed shadow-md sm:p-10">
-        <LoginPanel active onComplete={onComplete} />
+        <LoginPanel
+          active
+          onComplete={onComplete}
+          {...(onOpenModelSettings ? { onOpenModelSettings } : {})}
+        />
       </section>
       {onDismiss ? (
         <button
@@ -60,6 +69,8 @@ export function WelcomeScreen({ onComplete, onDismiss }: WelcomeScreenProps) {
 interface LoginPanelProps {
   active: boolean;
   onComplete: (reason: LoginCompleteReason) => void | Promise<void>;
+  /** 有它就跳设置页模型配置；没有则保留旧的登录页内 API key 表单（测试/其它入口）。 */
+  onOpenModelSettings?: () => void;
 }
 
 interface ActiveLoginEntryAttempt {
@@ -81,7 +92,7 @@ export function shouldCompleteLoginFromExistingUser(params: {
   return params.hasUser && !params.attempt;
 }
 
-export function LoginPanel({ active, onComplete }: LoginPanelProps) {
+export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPanelProps) {
   const { intl } = useZCodeIntl();
   const {
     startLogin,
@@ -357,6 +368,11 @@ export function LoginPanel({ active, onComplete }: LoginPanelProps) {
                   size="lg"
                   data-testid={TID_LOGIN_USE_API_KEY_BUTTON}
                   onClick={() => {
+                    // 分家后不在登录页里选上游套餐：直接去 设置 → 模型配置 自己加供应商。
+                    if (onOpenModelSettings) {
+                      onOpenModelSettings();
+                      return;
+                    }
                     setLoginMode("apiKey");
                   }}
                 >

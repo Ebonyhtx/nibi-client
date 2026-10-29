@@ -18,6 +18,31 @@ import { useProviderDetailFeedback } from "./ProviderDetailFeedback.js";
 type ProviderTemplateCreate = (templateId: string) => Promise<void>;
 type CustomProviderCreate = (label: string) => Promise<void>;
 
+type ProviderTemplate = ProviderSettingsView["providerTemplates"][number];
+
+/**
+ * 上游订阅套餐模板（Z.ai Coding Plan / BigModel Coding Plan）不进入 NIBI 的模型配置清单。
+ * 分家后它们是别家的套餐；用户要接这两家的按量 API，用同厂商的 *-standard-api 模板。
+ * 清单由服务端 builtin 快照下发（/api/v1/client/configs），这里按访问类型与已知 id 双重过滤，
+ * 服务端清单回退旧版本时也不会把它们放出来。
+ */
+const HIDDEN_PROVIDER_TEMPLATE_IDS = new Set(["zai-api", "bigmodel-api"]);
+const HIDDEN_PROVIDER_TEMPLATE_ACCESS_TYPES = new Set(["zhipu-coding-plan-api-key"]);
+
+export function isProviderTemplateVisible(template: ProviderTemplate): boolean {
+  if (HIDDEN_PROVIDER_TEMPLATE_IDS.has(template.templateId)) return false;
+  const accessType = (template.config as { access?: { type?: unknown } } | undefined)?.access?.type;
+  return !(
+    typeof accessType === "string" && HIDDEN_PROVIDER_TEMPLATE_ACCESS_TYPES.has(accessType)
+  );
+}
+
+export function filterVisibleProviderTemplates(
+  templates: ProviderSettingsView["providerTemplates"],
+): ProviderSettingsView["providerTemplates"] {
+  return templates.filter(isProviderTemplateVisible);
+}
+
 export function ProviderTemplatePicker({
   templates,
   onBack,
@@ -40,7 +65,7 @@ export function ProviderTemplatePicker({
   const groups = [
     {
       id: "other",
-      templates,
+      templates: filterVisibleProviderTemplates(templates),
     },
   ] as const;
   const createWithFeedback = async (create: () => Promise<void>) => {
