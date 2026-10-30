@@ -171,7 +171,7 @@ impl Actor {
     /// 阻塞时成批的后续输入会跟着丢掉。
     ///
     /// SessionStart 给的首条输入单独一个回合（同对照实现的启动命令）。
-    fn take_batch(&mut self, command: &CommandId, head: &str) -> Vec<crate::turn::MorePrompt> {
+    pub(crate) fn take_batch(&mut self, command: &CommandId, head: &str) -> Vec<crate::turn::MorePrompt> {
         let screening = self
             .deps
             .hooks
@@ -228,7 +228,7 @@ impl Actor {
 
     /// 回合结束后的下一项（query.md §5）：通道头是输入就是它；是通知就取走头部连续的通知，合成一个
     /// 回合（通知合并）；通道空时是 `Queue` 输入（优先级 `later`）。定时任务由调用方最后看。
-    pub(crate) fn next_turn_input(&mut self) -> Option<TurnInput> {
+    pub(crate) fn next_turn_input(&mut self, inputs: bool) -> Option<TurnInput> {
         loop {
             // 只在工具边界并入的项（`-p` 的回执）不开回合：留在通道里，看后面的项。
             let front = self
@@ -239,7 +239,7 @@ impl Actor {
                 && at > 0
             {
                 let skipped: Vec<Lane> = self.lane.drain(..at).collect();
-                let next = self.next_turn_input();
+                let next = self.next_turn_input(inputs);
                 for item in skipped.into_iter().rev() {
                     self.lane.push_front(item);
                 }
@@ -248,11 +248,18 @@ impl Actor {
             if front.is_none() && !self.lane.is_empty() {
                 // 通道里只剩不开回合的项：照常看 `Queue` 输入。
                 let kept: Vec<Lane> = self.lane.drain(..).collect();
-                let next = self.next_turn_input();
+                let next = self.next_turn_input(inputs);
                 for item in kept.into_iter().rev() {
                     self.lane.push_front(item);
                 }
                 return next;
+            }
+            // 自动排空关掉（NIBI setAutoDrain）：队列与通道里的输入不开回合，通知照常。
+            if !inputs && matches!(self.lane.front(), Some(Lane::Input(_)) | None) {
+                match self.lane.front() {
+                    Some(Lane::Notice(_)) => {}
+                    _ => return None,
+                }
             }
             match self.lane.front() {
                 Some(Lane::Input(command)) => {

@@ -210,6 +210,29 @@ Host 把用户在工作区之外添加的目录随建会话送进来。此前 Ru
 子代理继承、远端不带、释放后回到询问）；双内核驱动在隔离 home 里建 `extra-workspace`，两边首轮
 请求的环境段都含该路径；对拍门禁 20 → **21** 个必需字段全一致。
 
+## 6.4 队列命令组（NIBI queue 五件，2026-10-30）
+
+Node 的 queue 组（`editQueueItem` / `deleteQueueItem` / `reorderQueueItem` / `setAutoDrain` /
+`sendQueuedNow`）此前落到 `unsupported`。内核只有"入队 + 回合结束排水"，没有改/删/重排/立即发送。
+
+实现（kernel-api `Command` 新增五个变体，session actor 在 `queue.rs` 里处理）：
+
+- `EditQueued`：同 id 原地更新正文（bash 项改命令原文，内容块输入改文字块、纯图片输入补一条）；
+- `DeleteQueued`：从队列、通道与种类表移除；
+- `ReorderQueued`：移到 `before` 之前（None = 队尾）；通道里 `Lane::Input` 的相对顺序跟着队列走；
+- `SetAutoDrain`：关掉后回合结束不再自动开队首（通知与定时任务照常）；打开且空闲时立刻开队首；
+  命令处理完之后 actor 看一眼"空闲 + 有排队项"（`settle_queue`），补住"开关与回合收尾擦肩而过"的竞态；
+- `SendQueuedNow`：从队列取出该项；忙时记为 `promote` 并中止当前回合，收尾的 `start_next` 先开它
+  （保留 bash/内容块/普通文字三种形态与 UPS 筛查结果）；空闲时直接开。
+
+协议层：`queueItemId` 是投影里的 `queue_<commandId>`，处理器剥前缀交给内核。**未命中语义对齐 Node**：
+`deleteQueueItem` → noop `queue.itemMissing`；`editQueueItem` / `reorderQueueItem` → 记 warn 按成功
+收口（并发 drain 的竞态）；`sendQueuedNow` → failed `fault.command.executionFailed`。
+
+**验证**：session 3 个新测试（编辑/重排/删除 + 未命中拒绝、autoDrain 关掉后不计开回合且打开后立刻
+排空、`sendQueuedNow` 抢占后开提升项且原文进模型请求）；双内核驱动加队列阶段（真实挂起一轮 → 排两条
+→ 编辑/重排/删除/关自动排空 → 放行 → 提升）；对拍门禁 21 → **30** 个必需字段全一致。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

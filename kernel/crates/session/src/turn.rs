@@ -489,7 +489,10 @@ impl Actor {
         }
         // 这次工作期间到达的本地命令记录先进对话，再开下一个回合（修复线 L-A，tui-manage.md §11.3）。
         self.flush_held_records().await;
-        let input = if let Some(input) = self.next_turn_input() {
+        // 被提升的输入（NIBI sendQueuedNow）先开：抢占的回合刚收尾，队列顺序让位给这次显式提升。
+        let input = if let Some((input, kind)) = self.promote.take() {
+            self.promoted_input(input, kind)
+        } else if let Some(input) = self.next_turn_input(self.auto_drain) {
             input
         } else if let Some(fire) = self.next_cron().await {
             TurnInput::Cron(fire)

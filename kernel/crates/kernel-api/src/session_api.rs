@@ -101,6 +101,20 @@ pub enum Command {
         content: Vec<crate::message::ContentBlock>,
         delivery: Delivery,
     },
+    /// 改一条排队输入的正文（NIBI `editQueueItem`）：同 id 原地更新，位置与种类不变。
+    EditQueued { item: CommandId, text: String },
+    /// 删一条排队输入（NIBI `deleteQueueItem`）：不在队列里时 `Rejected`（调用方按 noop 处理）。
+    DeleteQueued { item: CommandId },
+    /// 移动一条排队输入（NIBI `reorderQueueItem`）：`before` 为 None 时移到队尾。
+    ReorderQueued {
+        item: CommandId,
+        before: Option<CommandId>,
+    },
+    /// 自动排空（NIBI `setAutoDrain`）：关掉时回合结束后不自动开队首（通知与定时任务照常）；
+    /// 打开且空闲时立刻按队列开回合。
+    SetAutoDrain { enabled: bool },
+    /// 立刻发送一条排队输入（NIBI `sendQueuedNow`）：忙时先中止当前回合再开它，空闲时直接开。
+    SendQueuedNow { item: CommandId },
     /// bash 模式的输入（`!命令`，tui-input.md §2）：会话经 [`crate::user_input::UserInputs::bash`] 执行，
     /// 记下 `<bash-input>` 与输出两条 user 消息，再调模型。
     Bash {

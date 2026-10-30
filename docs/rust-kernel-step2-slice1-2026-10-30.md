@@ -283,9 +283,23 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 （按会话放行、跨会话隔离、继承、远端不带、释放后询问）；双内核驱动两边环境段都含
 `extra-workspace`；对拍门禁 20 → **21** 字段全一致。
 
+## 6.11 第十三步：队列命令组五件（2026-10-30）
+
+`editQueueItem` / `deleteQueueItem` / `reorderQueueItem` / `setAutoDrain` / `sendQueuedNow` 此前落到
+`unsupported`；内核只有"入队 + 回合结束排水"。
+
+- kernel-api `Command` 五个变体；session actor 在 `queue.rs` 处理（编辑含 bash/内容块形态、删除清
+  种类表、重排带通道顺序、autoDrain 开关 + `settle_queue` 兜底、sendQueuedNow 的 `promote` 槽 +
+  抢占后由 `start_next` 先开）。
+- 协议层剥 `queue_` 前缀；未命中语义对齐 Node（delete → noop `queue.itemMissing`；edit/reorder →
+  warn 后 accepted；sendQueuedNow → failed `executionFailed`）。
+- 双内核驱动新增队列阶段（真实挂起一轮制造"忙"），两边 edit/reorder/delete/autoDrain/promote 全部
+  一致，被编辑的项在提升后进入模型请求；对拍门禁 21 → **30** 字段全一致。
+- 内核未实现 Node 的 promotion lease/reservation 机制（单进程串行 actor 不需要），语义等价。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 14 个命令的处理器（goal 3/hook-review 4/workflow 3/`createSelectionSideSession`/`setAssistantFeedback`/`sendGoalCommand`/`snoozeInteractionAutoResolution`/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，

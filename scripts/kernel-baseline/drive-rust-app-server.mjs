@@ -67,6 +67,12 @@ const REQUESTS = [];
 // 会话级 MCP 的回执：模型先要一次 mcp__fake__echo，拿到工具结果后再回正文。两边内核走同一条路径。
 const MCP_TOOL = "mcp__fake__echo";
 const TOOL_RESULTS = [];
+// 队列命令组要一个"跑着的回合"：最后一条 user 文本是 HOLD_TEXT 时先不回，等驱动放行。
+const HOLD_TEXT = "hold this turn";
+let releaseHold = () => {};
+const holdGate = new Promise((resolve) => {
+  releaseHold = resolve;
+});
 const textOf = (content) => {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -79,7 +85,7 @@ const textOf = (content) => {
 const server = createServer((req, res) => {
   let raw = "";
   req.on("data", (chunk) => (raw += chunk));
-  req.on("end", () => {
+  req.on("end", async () => {
     let parsed = null;
     try {
       parsed = JSON.parse(raw);
@@ -119,6 +125,11 @@ const server = createServer((req, res) => {
       tools,
       hasImage,
       mentionsExtraDir,
+      lastUserText: messages
+        .filter((message) => message.role === "user")
+        .map((message) => textOf(message.content))
+        .join(" ")
+        .slice(-400),
     });
     if (process.env.NIBI_DRIVE_DEBUG === "1") {
       const system = messages.find((m) => m.role === "system")?.content;
@@ -130,6 +141,15 @@ const server = createServer((req, res) => {
       console.error(
         `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} mcp=${tools.includes(MCP_TOOL)} roles=${messages.map((m) => m.role).join(",")} image=${hasImage} lastUser=${JSON.stringify(lastShape)} system=${JSON.stringify(systemText.slice(0, 40))}`,
       );
+    }
+    const lastUserText = (() => {
+      const lastUser = [...messages].reverse().find((message) => message.role === "user");
+      return textOf(lastUser?.content).trim();
+    })();
+    // 用户内容后面会拼 `<system-reminder>`，用包含判断。
+    if (lastUserText.includes(HOLD_TEXT)) {
+      // 挂住这一轮：驱动在队列命令做完后再放行（抢占会中止这一轮）。
+      await holdGate;
     }
     res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8" });
     // 新回合（还没有 assistant 消息）、工具表里有会话级 MCP 工具：要求调用它一次。工具结果回来后的
@@ -396,7 +416,8 @@ try {
     if (!checks.resumeAdditionalDir) {
       throw new Error("the subscribe additionalDirectories hint never reached the prompt");
     }
-    console.log(`RESULT:${JSON.stringify({ kernel, checks, metrics: { providerRequests: REQUESTS.length } })}`);
+
+  console.log(`RESULT:${JSON.stringify({ kernel, checks, metrics: { providerRequests: REQUESTS.length } })}`);
     console.log("PHASES OK");
     throw { done: true };
   }
@@ -822,6 +843,132 @@ try {
   );
   if (!checks.mcpToolCalled || !String(checks.mcpToolResult).startsWith("echo:")) {
     throw new Error(`session MCP tool did not run: ${JSON.stringify(checks.mcpToolResult)}`);
+  }
+
+    // 队列命令组：挂住一轮 → 排两条 → 编辑/重排/删除/立刻发送 → 放行。两边内核按同一组断言。
+  if (phases.includes("rejections")) {
+    // 队列命令都要 baseRevision（CAS）：每次现读投影，stale 就重试一次（命令 id 固定，
+    // queueItemId 才能对上）。
+    const queueCommand = async (commandId, type, payload) => {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const state = buildState();
+        const result = ack(
+          await send("v4/command", {
+            commandId,
+            clientId: "drive",
+            sessionId,
+            baseRevision: state.revision,
+            baseLogEpoch: state.logEpoch,
+            type,
+            payload,
+            issuedAt: Date.now(),
+          }),
+          type,
+        );
+        if (result.status !== "stale" || attempt === 4) return result;
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+      return { status: "error" };
+    };
+
+    const beforeHold = REQUESTS.length;
+    const holdAck = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000051",
+      "sendText",
+      { text: HOLD_TEXT, requestedDelivery: "startNow" },
+    );
+    if (holdAck.status !== "accepted") throw new Error(`hold turn was not accepted: ${JSON.stringify(holdAck)}`);
+    // 等这一轮真的进到 provider（才开始"忙"）：要比发送前多一次请求，不能只看总数。
+    await waitFor(
+      () => (REQUESTS.length > beforeHold ? true : undefined),
+      "held turn request",
+      30_000,
+    );
+    const first = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000052",
+      "sendText",
+      { text: "queued one" },
+    );
+    const second = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000053",
+      "sendText",
+      { text: "queued two" },
+    );
+    checks.queueEnqueued = first.status === "accepted" && second.status === "accepted";
+    const editAck = await queueCommand(
+      "0197d3f0-0000-7000-8000-000000000054",
+      "editQueueItem",
+      { queueItemId: "queue_0197d3f0-0000-7000-8000-000000000052", newText: "queued one edited" },
+    );
+    checks.queueEditStatus = editAck.status;
+    const reorderAck = await queueCommand(
+      "0197d3f0-0000-7000-8000-000000000055",
+      "reorderQueueItem",
+      {
+        queueItemId: "queue_0197d3f0-0000-7000-8000-000000000053",
+        beforeQueueItemId: "queue_0197d3f0-0000-7000-8000-000000000052",
+      },
+    );
+    checks.queueReorderStatus = reorderAck.status;
+    const deleteAck = await queueCommand(
+      "0197d3f0-0000-7000-8000-000000000056",
+      "deleteQueueItem",
+      { queueItemId: "queue_0197d3f0-0000-7000-8000-000000000053" },
+    );
+    checks.queueDeleteStatus = deleteAck.status;
+    const missingDelete = await queueCommand(
+      "0197d3f0-0000-7000-8000-000000000057",
+      "deleteQueueItem",
+      { queueItemId: "queue_no_such_item" },
+    );
+    checks.queueDeleteMissingStatus = missingDelete.status;
+    checks.queueDeleteMissingCode = missingDelete.reasonCode ?? null;
+    const autoDrain = await queueCommand(
+      "0197d3f0-0000-7000-8000-000000000058",
+      "setAutoDrain",
+      { autoDrain: false },
+    );
+    checks.queueAutoDrainStatus = autoDrain.status;
+    // 先放行被挂住的回合（自动排空已关，排队的项留着），等会话空闲后再提升被编辑过的那一条：
+    // 两端都走"空闲时立刻开"，不依赖各自的抢占实现。
+    releaseHold();
+    await waitFor(
+      () => (buildState().stopState === "idle" ? true : undefined),
+      "idle before promotion",
+      60_000,
+    );
+    const promote = await queueCommand(
+      "0197d3f0-0000-7000-8000-000000000059",
+      "sendQueuedNow",
+      { queueItemId: "queue_0197d3f0-0000-7000-8000-000000000052" },
+    );
+    checks.queuePromoteStatus = promote.status;
+    await waitFor(
+      () =>
+        REQUESTS.some((request) => request.lastUserText?.includes("queued one edited"))
+          ? true
+          : undefined,
+      "promoted queued input reaches the provider",
+      60_000,
+    ).catch(() => undefined);
+    checks.queuePromotedInRequest = REQUESTS.some((request) =>
+      request.lastUserText?.includes("queued one edited"),
+    );
+    console.log(
+      `queue commands: enqueued=${checks.queueEnqueued} edit=${checks.queueEditStatus} reorder=${checks.queueReorderStatus} delete=${checks.queueDeleteStatus}/${checks.queueDeleteMissingCode} autoDrain=${checks.queueAutoDrainStatus} promote=${checks.queuePromoteStatus} promoted-ran=${checks.queuePromotedInRequest}`,
+    );
+    if (!checks.queueEnqueued) throw new Error("queued inputs were not accepted");
+    if (checks.queueDeleteMissingStatus !== "noop" || checks.queueDeleteMissingCode !== "queue.itemMissing") {
+      throw new Error(`deleteQueueItem(missing) expected noop queue.itemMissing, got ${checks.queueDeleteMissingStatus}/${checks.queueDeleteMissingCode}`);
+    }
+    if (!checks.queuePromotedInRequest) {
+      console.log(
+        `queued request texts: ${JSON.stringify(
+          REQUESTS.map((request) => request.lastUserText ?? "").filter((text) => text.includes("queued")),
+        )}`,
+      );
+      throw new Error("the promoted queued input never reached the provider");
+    }
   }
 
   console.log(`RESULT:${JSON.stringify({

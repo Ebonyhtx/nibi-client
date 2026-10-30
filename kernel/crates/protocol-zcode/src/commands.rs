@@ -457,6 +457,11 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
         "editUserQuery" => edit_user_query(server, handle, &live.sink, envelope).await,
+        "editQueueItem" => edit_queue_item(handle, envelope).await,
+        "deleteQueueItem" => delete_queue_item(handle, envelope).await,
+        "reorderQueueItem" => reorder_queue_item(handle, envelope).await,
+        "setAutoDrain" => set_auto_drain(handle, envelope).await,
+        "sendQueuedNow" => send_queued_now(handle, envelope, revision).await,
         "deleteSession" => delete_session(server, envelope).await,
         _ => unsupported(envelope, revision),
     }
@@ -1336,6 +1341,202 @@ async fn retry_turn(
             "guard.inputRejected",
             reason,
             view.revision,
+        ),
+    }
+}
+
+/// NIBI 投影里的 `queueItemId` 是 `queue_<commandId>`（`projection::queue_state`）；内核的队列项
+/// 按命令 ID 认。剥掉前缀再交给内核。
+fn queue_command(queue_item_id: &str) -> CommandId {
+    CommandId::new(
+        queue_item_id
+            .strip_prefix("queue_")
+            .unwrap_or(queue_item_id),
+    )
+}
+
+/// 队列项缺失时的拒绝码（与 Node 的 `V4CommandNoopError("queue.itemMissing")` 同义）。
+fn queue_missing(envelope: &Envelope, revision: u64) -> Ack {
+    Ack::refused(
+        &envelope.command_id,
+        Status::Noop,
+        "queue.itemMissing",
+        "the queue item is no longer queued",
+        revision,
+    )
+}
+
+/// NIBI `editQueueItem`：同 id 原地更新正文。
+async fn edit_queue_item(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let Some(item) = envelope.payload["queueItemId"].as_str() else {
+        return Ack::refused(
+            &envelope.command_id,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "editQueueItem needs a queueItemId",
+            revision,
+        );
+    };
+    let text = envelope.payload["newText"].as_str().unwrap_or_default().to_owned();
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::EditQueued {
+            item: queue_command(item),
+            text,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
+        // Node 的 editQueueItem 未命中只记 warn、按成功收口（并发 drain 的竞态）。
+        KernelAck::Rejected { reason } => {
+            tracing::warn!(event = "protocol.edit_queue_item.missed", reason = %reason);
+            Ack::accepted(&envelope.command_id, revision, None)
+        }
+    }
+}
+
+/// NIBI `deleteQueueItem`：移除排队项；未命中是 noop（并发 drain 的竞态）。
+async fn delete_queue_item(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let Some(item) = envelope.payload["queueItemId"].as_str() else {
+        return Ack::refused(
+            &envelope.command_id,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "deleteQueueItem needs a queueItemId",
+            revision,
+        );
+    };
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::DeleteQueued {
+            item: queue_command(item),
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
+        KernelAck::Rejected { .. } => queue_missing(envelope, revision),
+    }
+}
+
+/// NIBI `reorderQueueItem`：`beforeQueueItemId = null` 移到队尾。
+async fn reorder_queue_item(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let Some(item) = envelope.payload["queueItemId"].as_str() else {
+        return Ack::refused(
+            &envelope.command_id,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "reorderQueueItem needs a queueItemId",
+            revision,
+        );
+    };
+    let before = envelope.payload["beforeQueueItemId"]
+        .as_str()
+        .map(queue_command);
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::ReorderQueued {
+            item: queue_command(item),
+            before,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(&envelope.command_id, revision, None)),
+        // Node 的 reorderQueueItem 未命中同样只 warn、按成功收口。
+        KernelAck::Rejected { reason } => {
+            tracing::warn!(event = "protocol.reorder_queue_item.missed", reason = %reason);
+            Ack::accepted(&envelope.command_id, revision, None)
+        }
+    }
+}
+
+/// NIBI `setAutoDrain`：开关自动排空；打开时内核自己会把空闲的队首开起来。
+async fn set_auto_drain(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let enabled = envelope.payload["autoDrain"].as_bool().unwrap_or(false);
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::SetAutoDrain { enabled },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(
+            &envelope.command_id,
+            revision,
+            Some(json!({"type": "setAutoDrain", "autoDrain": enabled})),
+        ),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(
+            &envelope.command_id,
+            revision,
+            Some(json!({"type": "setAutoDrain", "autoDrain": enabled})),
+        )),
+        KernelAck::Rejected { reason } => Ack::refused(
+            &envelope.command_id,
+            Status::Rejected,
+            "fault.command.autoDrainFailed",
+            reason,
+            revision,
+        ),
+    }
+}
+
+/// NIBI `sendQueuedNow`：把一项立刻发出（忙时先中止当前回合）。带 `modelSelection` 时先作用到会话。
+async fn send_queued_now(handle: &dyn SessionHandle, envelope: &Envelope, revision: u64) -> Ack {
+    let Some(item) = envelope.payload["queueItemId"].as_str() else {
+        return Ack::refused(
+            &envelope.command_id,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "sendQueuedNow needs a queueItemId",
+            revision,
+        );
+    };
+    if let Some(chosen) = selection(&envelope.payload["modelSelection"]) {
+        let _ = send(
+            handle,
+            &format!("{}:model", envelope.command_id),
+            Command::SetModel { selection: chosen },
+        )
+        .await;
+    }
+    match send(
+        handle,
+        &envelope.command_id,
+        Command::SendQueuedNow {
+            item: queue_command(item),
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(
+            &envelope.command_id,
+            revision,
+            Some(json!({"type": "sendQueuedNow", "inputId": queue_command(item)})),
+        ),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(
+            &envelope.command_id,
+            revision,
+            Some(json!({"type": "sendQueuedNow", "inputId": queue_command(item)})),
+        )),
+        // Node 的 sendQueuedNow 未命中抛无 reasonCode 的领域错误 → failed + executionFailed。
+        KernelAck::Rejected { reason } => Ack::refused(
+            &envelope.command_id,
+            Status::Failed,
+            "fault.command.executionFailed",
+            reason,
+            revision,
         ),
     }
 }

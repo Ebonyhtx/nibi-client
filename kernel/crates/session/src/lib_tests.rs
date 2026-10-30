@@ -57,7 +57,7 @@ fn submit(id: &str, text: &str) -> CommandEnvelope {
 }
 
 /// 读事件直到第 `count` 个 TurnFinished。
-async fn until_finished(
+pub(crate) async fn until_finished(
     events: &mut BoxStream<'static, SequencedEvent>,
     count: usize,
 ) -> Vec<KernelEvent> {
@@ -225,7 +225,7 @@ impl rust_cli_kernel_api::tool::Tool for AskingTool {
 }
 
 /// 第一次响应调用 [`AskingTool`]、第二次回复文本的会话。
-async fn asking_session(scope: &TaskScope) -> (Arc<MemoryStore>, Arc<ScriptedModel>, Session) {
+pub(crate) async fn asking_session(scope: &TaskScope) -> (Arc<MemoryStore>, Arc<ScriptedModel>, Session) {
     asking_session_with(scope, Arc::new(NoHooks)).await
 }
 
@@ -310,7 +310,7 @@ async fn asking_session_with(
 }
 
 /// 等到工具向用户提问。
-pub(super) async fn asked(events: &mut BoxStream<'static, SequencedEvent>) -> InteractionId {
+pub(crate) async fn asked(events: &mut BoxStream<'static, SequencedEvent>) -> InteractionId {
     loop {
         let event = tokio::time::timeout(Duration::from_secs(5), events.next())
             .await
@@ -322,7 +322,7 @@ pub(super) async fn asked(events: &mut BoxStream<'static, SequencedEvent>) -> In
     }
 }
 
-pub(super) fn answer(id: &str, interaction: InteractionId) -> CommandEnvelope {
+pub(crate) fn answer(id: &str, interaction: InteractionId) -> CommandEnvelope {
     CommandEnvelope {
         id: CommandId::new(id),
         command: Command::ResolveInteraction {

@@ -180,6 +180,10 @@ pub(crate) struct Actor {
     pub(crate) screened: HashMap<CommandId, Option<Box<HookOutcome>>>,
     /// 排队输入里的 bash 模式命令与带内容块的输入（bash.rs，tui-input.md §2.2、§3.2）。
     pub(crate) queued_kinds: HashMap<CommandId, crate::bash::QueuedKind>,
+    /// 自动排空（NIBI `setAutoDrain`）：关掉时回合结束后不自动开队首；通知与定时任务照常。
+    pub(crate) auto_drain: bool,
+    /// 被 `sendQueuedNow` 提升的输入：抢占当前回合后由 [`Actor::start_next`] 先开它。
+    pub(crate) promote: Option<(QueuedInput, Option<crate::bash::QueuedKind>)>,
     /// 历史被改写的次数（`HistoryRewritten.generation`）。
     pub(crate) generation: u64,
     /// 会话标题的生成（title.rs）与不带参数的 `/rename` 的起名任务（rename.rs）。
@@ -269,6 +273,8 @@ impl Actor {
             links: HashMap::new(),
             screened: HashMap::new(),
             queued_kinds: HashMap::new(),
+            auto_drain: true,
+            promote: None,
             generation: 0,
             titles: TitleState::default(),
             loop_ticks: Default::default(),
@@ -426,7 +432,28 @@ impl Actor {
                 }
                 let ack = self.command(envelope).await;
                 let _ = reply.send(ack);
+                // 队列命令可能让会话停在"空闲 + 有排队项"：自动排空开着就把它开起来
+                // （`setAutoDrain(true)` 与回合收尾擦肩而过时的兜底）。
+                if self.auto_drain {
+                    self.settle_queue().await;
+                }
             }
+        }
+    }
+
+    /// 空闲、自动排空开着、队列或通道里有输入：开队首。只在这条命令处理完之后看一眼，
+    /// 不在回合进行中抢跑。
+    async fn settle_queue(&mut self) {
+        if self.busy() {
+            return;
+        }
+        let pending = !self.queue.is_empty()
+            || self
+                .lane
+                .iter()
+                .any(|lane| matches!(lane, crate::lane::Lane::Input(_)));
+        if pending {
+            self.start_next().await;
         }
     }
 
@@ -528,6 +555,11 @@ impl Actor {
                 Ok(()) => accepted(),
                 Err(reason) => rejected(reason),
             },
+            Command::EditQueued { item, text } => self.edit_queued(item, text),
+            Command::DeleteQueued { item } => self.delete_queued(item),
+            Command::ReorderQueued { item, before } => self.reorder_queued(item, before),
+            Command::SetAutoDrain { enabled } => self.set_auto_drain(enabled).await,
+            Command::SendQueuedNow { item } => self.send_queued_now(item).await,
         }
     }
 

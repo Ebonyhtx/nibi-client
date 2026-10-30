@@ -38,6 +38,7 @@ mod rename;
 mod rename_text;
 mod resume;
 mod resume_sentinel;
+mod queue;
 mod rewind;
 mod rewind_machines;
 mod rewind_plan;
@@ -369,6 +370,10 @@ impl SessionHandle for Session {
 #[cfg(test)]
 #[path = "lib_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "queue_tests.rs"]
+mod queue_tests;
 
 #[cfg(test)]
 #[path = "machines_tests.rs"]
