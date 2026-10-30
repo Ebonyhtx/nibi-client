@@ -63,6 +63,10 @@ impl NodeIds {
 }
 
 impl Ids for NodeIds {
+    fn uuid(&self) -> String {
+        NodeIds::uuid(self)
+    }
+
     fn session(&self) -> SessionId {
         SessionId::new(format!("sess_{}", self.uuid()))
     }

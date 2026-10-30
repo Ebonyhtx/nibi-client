@@ -11,6 +11,7 @@ mod build_number;
 mod clipboard;
 mod commander;
 mod config;
+mod dwf_engine_client;
 mod editor;
 mod effort;
 mod embedded;

@@ -290,6 +290,10 @@ const child = spawn(bin, binArgs, {
       : {
           ZCODE_DATA_BASE_DIR: home,
           ZCODE_STORAGE_DIR: join(home, dotDir),
+          // DWF sidecar（路线 C）：设置后 Rust 内核才会注入引擎；没设时三条命令回 capabilityUnsupported。
+          ...(process.env.NIBI_DWF_ENGINE_CMD
+            ? { NIBI_DWF_ENGINE_CMD: process.env.NIBI_DWF_ENGINE_CMD }
+            : {}),
         }),
   },
   stdio: ["pipe", "pipe", "pipe"],
@@ -900,6 +904,68 @@ try {
       `workflow hook review: admission=${checks.hookAdmissionPending} generation=${checks.hookReviewGeneration} ` +
         `item=${checks.hookReviewItemTrust} granted-then-revoked`,
     );
+  }
+
+  // DWF 引擎（路线 C）：起 sidecar、跑一个已保存工作流，断言 ACK 与 journal 行。
+  if (phases.includes("dwfEngine")) {
+    mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "workflows", "probe.dwf.ts"),
+      [
+        "/* zcode-workflow",
+        "description: drive probe",
+        "*/",
+        'const worker = agent("worker", "You answer questions.");',
+        'return await worker.ask("Say hi.");',
+      ].join(String.fromCharCode(10)) + String.fromCharCode(10),
+    );
+    const started = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000a0",
+      "startSavedWorkflow",
+      { name: "probe" },
+    );
+    checks.dwfStartStatus = started.status;
+    checks.dwfStartRunPrefix =
+      typeof started.result?.runId === "string" ? started.result.runId.slice(0, 7) : null;
+    checks.dwfStartToolCall =
+      typeof started.result?.toolCallId === "string" && started.result.toolCallId.length > 0;
+    if (started.status !== "accepted" || !started.result?.runId) {
+      throw new Error(
+        `startSavedWorkflow ${started.status}/${started.reasonCode}: ${started.message}`,
+      );
+    }
+    const missing = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000a1",
+      "startSavedWorkflow",
+      { name: "no_such_workflow" },
+    );
+    checks.dwfMissingStatus = missing.status;
+    checks.dwfMissingCode = missing.reasonCode;
+
+    const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
+    const waitRow = async () => {
+      for (let attempt = 0; attempt < 1200; attempt += 1) {
+        if (!existsSync(dbPath)) {
+          await new Promise((r) => setTimeout(r, 100));
+          continue;
+        }
+        const db = new DatabaseSync(dbPath);
+        const row = db
+          .prepare("select status, parent_session_id from dwf_run where id = ?")
+          .get(started.result.runId);
+        db.close();
+        if (row && row.status !== "pending" && row.status !== "running") return row;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return null;
+    };
+    const row = await waitRow();
+    checks.dwfRunStatus = row?.status ?? null;
+    checks.dwfRunParent = row?.parent_session_id === sessionId;
+    if (checks.dwfRunStatus !== "completed") {
+      throw new Error(`dwf run settled as ${checks.dwfRunStatus}`);
+    }
+    console.log(`dwf engine: run=${started.result.runId} completed; missing=${checks.dwfMissingCode}`);
   }
 
   if (phases.includes("rename")) {

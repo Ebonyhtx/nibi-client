@@ -272,6 +272,7 @@ async fn open(
     first: bool,
 ) -> Result<(Vec<rust_cli_kernel_api::message::Message>, Option<TurnAnchor>), ActorError> {
     let user = crate::spawn::user(core, message, UserOrigin::Human);
+    tracing::info!(event = "dwf.actor.open", child = profile.child.as_str(), first);
     if first {
         core.ports
             .store
@@ -302,6 +303,7 @@ async fn open(
             None,
         )
         .await?;
+        tracing::info!(event = "dwf.actor.open.created", child = profile.child.as_str());
         return Ok((vec![user], turn));
     }
     let loaded = core
@@ -364,6 +366,7 @@ impl Agents {
             system: crate::report::system(&definition.prompt),
         });
         let runner = core.ports.queries.runner(tools, context);
+        tracing::info!(event = "dwf.actor.loop", child = profile.child.as_str());
         let prompt = messages
             .last()
             .map_or_else(|| core.ports.ids.message(), |message| message.id().clone());
@@ -392,6 +395,7 @@ impl Agents {
             max_turns: definition.max_turns,
             prompt_hook_messages: Vec::new(),
         };
+        tracing::info!(event = "dwf.actor.run", child = profile.child.as_str());
         let run = runner.run(request, sink.clone(), abort.clone());
         tokio::pin!(run);
         let result = match cancel {

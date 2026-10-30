@@ -196,10 +196,12 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     let scriptText = params.scriptText;
     let args = params.args;
     if (params.savedName !== undefined) {
+      // JSON 里缺席是 undefined、显式缺省是 null；scope 的 null 与 undefined 同义。
+      const scope = params.scope ?? undefined;
       const resolved = resolveSavedWorkflow({
         cwd: params.cwd,
         name: params.savedName,
-        ...(params.scope === undefined ? {} : { scope: params.scope }),
+        ...(scope === undefined ? {} : { scope }),
         ...(params.homeDir === undefined ? {} : { homeDir: params.homeDir }),
       });
       if (!resolved.ok) {
@@ -215,7 +217,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           message:
             "detail" in resolved && resolved.detail
               ? String(resolved.detail)
-              : `workflow ${params.savedName} is not available`,
+              : `workflow ${params.savedName} is not available under ${params.cwd}`,
         };
       }
       const validated = validateWorkflowArgs(resolved.meta.args, args);

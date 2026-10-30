@@ -57,6 +57,12 @@ pub trait Ids: Send + Sync {
     fn operation(&self) -> OperationId;
     fn interaction(&self) -> InteractionId;
 
+    /// 一个不带前缀的 uuid（DWF 的 run / 工具调用 / actor 会话 id 用它拼前缀）。缺省用一个新操作 ID
+    /// 的文字（测试替身足够唯一）。
+    fn uuid(&self) -> String {
+        self.operation().as_str().to_owned()
+    }
+
     /// 前端发出的一条命令（落库为 user 消息的 `anchor.sourceCommandId`；本机实现是不带前缀的 uuid，与以前
     /// TUI 自己生成的相同）。缺省用一个新的操作 ID 的文字（测试替身）。F7 新增：前端不再直接调用 uuid。
     fn command(&self) -> CommandId {

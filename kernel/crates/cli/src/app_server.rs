@@ -293,6 +293,34 @@ async fn serve(
         store,
         extensions,
     );
+    // DWF 引擎 sidecar（路线 C）：Host/开发经 `NIBI_DWF_ENGINE_CMD` 指过来；缺席时三条 DWF 命令保持
+    // `fault.command.capabilityUnsupported`。
+    let workflow_engine = startup
+        .env
+        .get("NIBI_DWF_ENGINE_CMD")
+        .and_then(|text| match crate::dwf_engine_client::SidecarCommand::parse(text) {
+            Ok(command) => Some(Arc::new(crate::dwf_engine_client::SidecarEngine::new(
+                command,
+                spawner.clone(),
+                ids.clone(),
+                local_machine.clone(),
+                paths.database().as_path().to_path_buf(),
+            ))),
+            Err(error) => {
+                tracing::warn!(
+                    event = "app.dwf.engine.invalid",
+                    error = %error,
+                    "NIBI_DWF_ENGINE_CMD is invalid; workflow commands stay unsupported"
+                );
+                None
+            }
+        });
+    let kernel = match &workflow_engine {
+        Some(engine) => kernel.with_workflow_engine(
+            engine.clone() as Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>
+        ),
+        None => kernel,
+    };
     kernel.replace_hooks(config.hooks.clone());
     // 工作区钩子的评审（NIBI `requestWorkspaceHookReview` 等四条命令）：用户层 hooks 参与 digest 的
     // 默认超时与输出上限，信任记录落 `~/.nibi` 的共享信任库（与 Node CLI、App 同一份文件）。
@@ -308,6 +336,9 @@ async fn serve(
     );
     let kernel = Arc::new(kernel);
     kernel.start_extensions().await;
+    if let Some(engine) = workflow_engine {
+        engine.attach_kernel(kernel.clone() as Arc<dyn rust_cli_kernel_api::session_api::Kernel>);
+    }
     state.ready().await;
     let defaults = Defaults {
         selection,
