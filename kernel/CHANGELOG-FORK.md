@@ -300,6 +300,23 @@ Node 从当前对话派生一个"侧聊"子会话（复制整段对话、选择�
 
 这 8 项在功能 track 完成、或明确决定"首期走 Node"之前，**阻塞切默认**（合并计划 §8.1.1 的判据）。
 
+## 6.9 项目级配置目录改为 `.nibi`（2026-10-30，品牌化轨）
+
+**问题**：内核的 `dot_dir!()` 是 `.zcode`，项目级配置因此读 `<工作区>/.zcode/config.json`；而 NIBI 的
+Node CLI / App / 协议前端读 `<工作区>/.nibi/config.json`。同一份项目配置两边看见的不是同一个文件
+（钩子、权限规则、MCP、插件配置都走这套发现）。实测：`zcode.json` 的 5 组 fixture 变体两边
+bundleDigest 全一致，只有加 `.zcode/config.json` 或 `.nibi/config.json` 时才分叉。
+
+**改动**（独立提交、可整体 revert；不动 `DOT_DIR` 与存储/用户根）：
+- `rust_cli_base::names::PROJECT_DOT_DIR = ".nibi"`；
+- `crates/cli/src/config/files.rs`：项目文件发现、`editable` 判定、digest 的 `configFileKind`
+  都用 `.nibi/config.json`（与 Node `WorkspaceHookConfigFileKind` 同字面）；
+- 重算 `crates/cli/tests/fixtures/workspace-hooks-golden.json`（4 个用例）并同步 fixture 路径。
+
+**验证**：两个 CLI 对同一 fixture —— `zcode.json` only MATCH、`+ .nibi/config.json` **MATCH**（改前 DIFF）、
+`+ 旧 .zcode/config.json` MATCH（两边都忽略，改前 Rust 会读）；`cargo test -p rust-cli` 失败集合与改动前
+完全一致（9 个环境相关既有失败，无新增）；clippy `-D warnings`、`cargo check --workspace` 全绿。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

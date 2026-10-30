@@ -35,8 +35,8 @@ async fn files_are_found_from_the_git_root_down_to_the_workspace() {
         ("/Users/dev/zcode.json", "{}"),
         ("/Users/dev/repo/.git/HEAD", "ref"),
         ("/Users/dev/repo/zcode.json", r#"{"a":1}"#),
-        ("/Users/dev/repo/.zcode/config.json", "{"),
-        ("/Users/dev/repo/app/.zcode/config.json", r#"{"b":2}"#),
+        ("/Users/dev/repo/.nibi/config.json", "{"),
+        ("/Users/dev/repo/app/.nibi/config.json", r#"{"b":2}"#),
     ]);
     let files = discover(&env, &workspace("/Users/dev/repo/app")).await;
     let found: Vec<_> = files
@@ -53,14 +53,14 @@ async fn files_are_found_from_the_git_root_down_to_the_workspace() {
                 false
             ),
             (
-                "/Users/dev/repo/.zcode/config.json",
-                ProjectKind::DotZcodeConfig,
+                "/Users/dev/repo/.nibi/config.json",
+                ProjectKind::DotProjectConfig,
                 1,
                 false
             ),
             (
-                "/Users/dev/repo/app/.zcode/config.json",
-                ProjectKind::DotZcodeConfig,
+                "/Users/dev/repo/app/.nibi/config.json",
+                ProjectKind::DotProjectConfig,
                 2,
                 true
             ),
@@ -91,8 +91,8 @@ async fn without_a_git_marker_only_the_workspace_is_read() {
 fn relative_paths_follow_node() {
     assert_eq!(relative("/w/app", "/w/app/zcode.json"), "zcode.json");
     assert_eq!(
-        relative("/w/app", "/w/.zcode/config.json"),
-        "../.zcode/config.json"
+        relative("/w/app", "/w/.nibi/config.json"),
+        "../.nibi/config.json"
     );
     assert_eq!(relative(r"C:\w\app", r"C:\w\zcode.json"), "../zcode.json");
     assert_eq!(relative("/w/app", "/w/app"), "app");
@@ -102,8 +102,8 @@ fn relative_paths_follow_node() {
 fn the_kind_names_keep_their_values() {
     // F55：名字取共用的定义，值不变（进 hooks 的 digest，与 Node 逐字节一致）。
     assert_eq!(ProjectKind::ZcodeJson.as_str(), "zcode.json");
-    assert_eq!(ProjectKind::DotZcodeConfig.as_str(), ".zcode/config.json");
-    assert_eq!(DOT_ZCODE_CONFIG, format!("{DOT_DIR}/{CONFIG_JSON}"));
+    assert_eq!(ProjectKind::DotProjectConfig.as_str(), ".nibi/config.json");
+    assert_eq!(DOT_PROJECT_CONFIG, format!("{PROJECT_DOT_DIR}/{CONFIG_JSON}"));
 }
 
 #[tokio::test]

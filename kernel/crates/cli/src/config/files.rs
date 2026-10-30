@@ -1,10 +1,10 @@
 //! 项目级配置文件的发现与读取（docs/specs/rust-cli/config.md §1；Node `discoverWorkspaceHookConfigPaths`）。
 //!
 //! 工作区里的文件经执行环境端口读（README §4）：从工作区根向上找第一个含 `.git`（目录或文件）的目录，
-//! 从那一层到工作区根，每层依次 `zcode.json`、`.zcode/config.json`；一路都没有 `.git` 时只看工作区根。
+//! 从那一层到工作区根，每层依次 `zcode.json`、`.nibi/config.json`；一路都没有 `.git` 时只看工作区根。
 //! 存在的文件按顺序编号（读坏的文件也占序号，Node 的 `discoveryOrder`）。
 
-use rust_cli_base::names::{DOT_DIR, PROJECT_CONFIG_FILE};
+use rust_cli_base::names::{PROJECT_CONFIG_FILE, PROJECT_DOT_DIR};
 use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
 use rust_cli_kernel_api::env_files::{PathStyle, StatFile};
 use rust_cli_kernel_api::env_git::has_git_marker;
@@ -13,24 +13,23 @@ use rust_cli_platform::ConfigFile;
 
 /// 每一层的 `zcode.json`（F55：以前写了 3 次；F58 起名字在 base，policy 的敏感文件表也用它）。
 const ZCODE_JSON: &str = PROJECT_CONFIG_FILE;
-/// 每一层 `.zcode/` 下的配置文件名。
+/// 每一层 `.nibi/` 下的配置文件名。
 const CONFIG_JSON: &str = "config.json";
-/// 种类的名字 `.zcode/config.json`（进 digest，config.md §4.1）；`const` 里只能用 `dot_dir!()`，测试核对它等于
-/// `DOT_DIR` + `CONFIG_JSON`。
-const DOT_ZCODE_CONFIG: &str = concat!(rust_cli_base::dot_dir!(), "/config.json");
+/// 种类的名字 `.nibi/config.json`（进 digest）：与 Node `WorkspaceHookConfigFileKind` 同字面。
+const DOT_PROJECT_CONFIG: &str = concat!(".nibi", "/config.json");
 
 /// 项目文件的种类（Node `WorkspaceHookConfigFileKind`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ProjectKind {
     ZcodeJson,
-    DotZcodeConfig,
+    DotProjectConfig,
 }
 
 impl ProjectKind {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::ZcodeJson => ZCODE_JSON,
-            Self::DotZcodeConfig => DOT_ZCODE_CONFIG,
+            Self::DotProjectConfig => DOT_PROJECT_CONFIG,
         }
     }
 }
@@ -42,7 +41,7 @@ pub(crate) struct ProjectFile {
     pub(crate) kind: ProjectKind,
     /// 在发现列表里的序号。
     pub(crate) order: usize,
-    /// 是否是 `<工作区根>/.zcode/config.json`（Node `editable`）。
+    /// 是否是 `<工作区根>/.nibi/config.json`（Node `editable`）。
     pub(crate) editable: bool,
     pub(crate) file: ConfigFile,
 }
@@ -102,7 +101,7 @@ impl Reader<'_> {
     }
 }
 
-/// 工作区根下发现的一个文件：种类按文件名，`editable` 按是否是 `<根>/.zcode/config.json`（Node
+/// 工作区根下发现的一个文件：种类按文件名，`editable` 按是否是 `<根>/.nibi/config.json`（Node
 /// `createWorkspaceHookSourceInput`）。
 pub(crate) fn project_file(
     root: &str,
@@ -114,10 +113,10 @@ pub(crate) fn project_file(
     let kind = if name == ZCODE_JSON {
         ProjectKind::ZcodeJson
     } else {
-        ProjectKind::DotZcodeConfig
+        ProjectKind::DotProjectConfig
     };
     ProjectFile {
-        editable: path == join(&join(root, DOT_DIR), CONFIG_JSON),
+        editable: path == join(&join(root, PROJECT_DOT_DIR), CONFIG_JSON),
         path,
         kind,
         order,
@@ -133,7 +132,7 @@ pub(crate) async fn discover(files: &dyn Files, workspace: &WorkspaceRef) -> Vec
     for level in reader.levels().await {
         for path in [
             join(&level, ZCODE_JSON),
-            join(&join(&level, DOT_DIR), CONFIG_JSON),
+            join(&join(&level, PROJECT_DOT_DIR), CONFIG_JSON),
         ] {
             if !reader.exists(&path).await {
                 continue;

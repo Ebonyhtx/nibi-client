@@ -1,50 +1,50 @@
 [
   {
     "name": "one project file with command and process hooks",
-    "bundleDigest": "e906940aaf844b5ccd6394da452354a4173f6ac305115126ec9dc7945c9edc0d",
+    "bundleDigest": "843e107c0d561d2ac062ab2636d3102bb868760452922070c282680c2c91e4a7",
     "hooks": [
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-0",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 2500,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 2500.0,
         "configuredEnabled": true,
         "editable": true,
-        "hookDeclarationDigest": "c3c4404948a1fbc0a2d5f135656de7f2b63e38907db3f6758cd68f8e3a15c042"
+        "hookDeclarationDigest": "6b3d9ca096d8ad4b82dfb6e58d4f6919c41738de8b9761e524334b8106a109a3"
       },
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-1",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 60000,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 60000.0,
         "configuredEnabled": true,
         "editable": true,
-        "hookDeclarationDigest": "fa62d0ce7b4ac477f410db0b1c3c076fbdd19a1eeeb0c109c31e96938fb9f73b"
+        "hookDeclarationDigest": "ec0cd0620f4af4b126452fc52f0ac1621681e4da4c326ea1a29c0f28d0ae6dbe"
       },
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-2",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 60000,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 60000.0,
         "configuredEnabled": false,
         "editable": true,
-        "hookDeclarationDigest": "858fa21300fd201e3b8529443226822b9c1c131b4cc03dd48e3c51ddb57c6d1a"
+        "hookDeclarationDigest": "d1a330168577ea3988c2867e76de916379ae6b070951a272ccad8479067d64bb"
       },
       {
         "reviewItemId": "workspace-hook-0-Stop-0-0",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 60000,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 60000.0,
         "configuredEnabled": true,
         "editable": true,
-        "hookDeclarationDigest": "f646294ec62340cf5b9ec27bfac28d46882634d0fffcfaba14257b5bba3a6a6c"
+        "hookDeclarationDigest": "feeb780fa502a5b4da1012a0229cf9c4d0f5761f8f583458cc2dc13ca85132de"
       }
     ]
   },
   {
     "name": "ancestor files, user root and source switches",
-    "bundleDigest": "40d93f3db28965e0645a849788dc9ceba63a3044613a0c10d801359a497c7c7e",
+    "bundleDigest": "7f49a2537b7fd10d0a41d2df74249909af8556c59c89ff03d7de0f6c8123c025",
     "hooks": [
       {
         "reviewItemId": "workspace-hook-0-UserPromptSubmit-0-0",
         "sourceRelativePath": "../zcode.json",
-        "resolvedTimeoutMs": 1501,
+        "resolvedTimeoutMs": 1501.0,
         "configuredEnabled": true,
         "editable": false,
         "hookDeclarationDigest": "c8fe484b526910ec47dfbd74943e46c865f7c3be831b96960eb29f6aaf1a7eca"
@@ -52,7 +52,7 @@
       {
         "reviewItemId": "workspace-hook-2-SessionStart-0-0",
         "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 1000,
+        "resolvedTimeoutMs": 1000.0,
         "configuredEnabled": false,
         "editable": false,
         "hookDeclarationDigest": "546d48ac182955194f7fca2cf96995182cbea0d800d8b7669b2a9dffea00763a"
@@ -60,7 +60,7 @@
       {
         "reviewItemId": "workspace-hook-2-PostToolUseFailure-0-0",
         "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 1501,
+        "resolvedTimeoutMs": 1501.0,
         "configuredEnabled": false,
         "editable": false,
         "hookDeclarationDigest": "d9cb8f049fef12c8c2cc2051fa2df3fcf65fc9f74e9aa5d477027ccb59df2640"
@@ -74,7 +74,7 @@
       {
         "reviewItemId": "workspace-hook-0-PermissionRequest-0-0",
         "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 45000,
+        "resolvedTimeoutMs": 45000.0,
         "configuredEnabled": false,
         "editable": false,
         "hookDeclarationDigest": "03e9d175f0a51368aee939a725eee692ed9bca1e3eceb552971f41af0cdc6d2e"
@@ -82,7 +82,7 @@
       {
         "reviewItemId": "workspace-hook-0-PostToolUse-0-0",
         "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 45000,
+        "resolvedTimeoutMs": 45000.0,
         "configuredEnabled": false,
         "editable": false,
         "hookDeclarationDigest": "df5fd4531e9c3f4b3326cf2c644b4d5c03bcd33fb1e1ba011aaee73455f868bd"
@@ -91,31 +91,31 @@
   },
   {
     "name": "onError deny is part of the declaration digest",
-    "bundleDigest": "7e0b44e2669fa90d56df9d0d77dd03f1bb3f9293b47a6cd72c27c8c5bfd89944",
+    "bundleDigest": "6a6ae49d0015ce9a56636f14049c9978c3e5a6bf0d2aff9beb1e0430b6399137",
     "hooks": [
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-0",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 60000,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 60000.0,
         "configuredEnabled": true,
         "editable": true,
-        "hookDeclarationDigest": "a413ad963fa339806fd9b7b6470e933d2354c074cb9a9bc25962cac2d155f498"
+        "hookDeclarationDigest": "15216755f4fd5207c1c599cb57d3ac4e95a3d7dc582eb5d24e62dc90d9eb60a3"
       },
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-1",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 60000,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 60000.0,
         "configuredEnabled": true,
         "editable": true,
-        "hookDeclarationDigest": "4381d57cd531735857f17cca03e65bd52fa0333d4a227c6d066dfd3abe761a8e"
+        "hookDeclarationDigest": "8186a65bf19fe6f892e1a8a0e1cd429c3c10eb81b6956482fc9a072ad3fb97e7"
       },
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-2",
-        "sourceRelativePath": ".zcode/config.json",
-        "resolvedTimeoutMs": 60000,
+        "sourceRelativePath": ".nibi/config.json",
+        "resolvedTimeoutMs": 60000.0,
         "configuredEnabled": true,
         "editable": true,
-        "hookDeclarationDigest": "8e137da0c0075889db2e360e4ec4228e7db70aa2cfe7efa4a99ff0016f135d98"
+        "hookDeclarationDigest": "21530e3838df0d105c14104b4d4ea2403ed69d5585b4afb59122aece6569c395"
       }
     ]
   }

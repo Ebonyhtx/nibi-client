@@ -16,6 +16,14 @@ macro_rules! dot_dir {
     };
 }
 
+/// 项目级配置目录名：NIBI 的 Node CLI / App / 协议前端都读 `<工作区>/.nibi/config.json`。
+///
+/// 与 [`DOT_DIR`] 分开：`DOT_DIR` 是本内核自己的存储与用户根目录（由 `ZCODE_DATA_BASE_DIR` 等注入），
+/// 项目级配置必须与 NIBI 的其它实现共读同一个文件。实测（2026-10-30）：`zcode.json` 的 5 组变体两边
+/// bundleDigest 全一致，只有带 `.zcode/config.json` 或 `.nibi/config.json` 时才分叉——Rust 读前者、
+/// NIBI 读后者，等于同一份项目配置两边看见的不是同一个文件。品牌化收口时再把 `DOT_DIR` 一并统一。
+pub const PROJECT_DOT_DIR: &str = ".nibi";
+
 /// 产品目录名：用户根 `~/.zcode`、项目的 `<目录>/.zcode`、managed 目录下的 `.zcode`。
 pub const DOT_DIR: &str = dot_dir!();
 

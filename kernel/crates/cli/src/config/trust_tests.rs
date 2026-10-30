@@ -163,3 +163,4 @@ async fn the_user_storage_dir_moves_the_trust_store() {
     assert!(hooks.bundle.is_none());
     assert!(hooks.pending().is_none());
 }
+

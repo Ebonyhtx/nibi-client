@@ -187,7 +187,19 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 文本断言、插件配置发现的两处测试。按既定纪律"品牌化单独 PR、可整体 revert、不混进功能 PR"，这属于
 **品牌化轨**，必须先拍板再动。
 
-**两个选项（需要用户拍板，二选一）**：
+**已拍板（2026-10-30）**：按最终 NIBI 方向做——Rust 灰度期间没有真实用户，先用 `.zcode` 接线等于以后
+再改一遍，属于多此一举。已按选项 A 落地：
+
+- 新增 `rust_cli_base::names::PROJECT_DOT_DIR = ".nibi"`（**不动** `DOT_DIR`：内核自己的存储/用户根仍由
+  `ZCODE_DATA_BASE_DIR` 等注入，品牌化收口时再统一）；
+- 项目配置发现与 digest 的 kind 改用 `.nibi/config.json`；`.zcode/config.json` 不再被 Rust 读取（与 Node 一致）；
+- 重算 `crates/cli/tests/fixtures/workspace-hooks-golden.json`（4 个用例）并同步 fixtures 路径；
+- 实测（同一 fixture、两个 CLI）：`zcode.json` only → MATCH；`+ .nibi/config.json` → **MATCH**（改前 DIFF）；
+  `+ 旧 .zcode/config.json` → MATCH（两边都忽略，改前 Rust 会读）。
+- 回归面：`cargo test -p rust-cli` 的失败集合与改动前**完全一致**（9 个环境相关既有失败：plugins 2 /
+  network 3 / workspace_trust 4），没有新增失败；clippy `-D warnings` 与 `cargo check --workspace` 全绿。
+
+**原始选项（留档）**：
 - **A（推荐）先做品牌化的项目目录收口**：新增 `PROJECT_DOT_DIR = ".nibi"`（不动全局 `dot_dir!()`，存储/用户根
   不变），只改项目配置发现 + digest kind，重算 golden 并用真实 fixture 与 Node CLI 对拍验证；独立 PR，
   可整体 revert。完成后再继续钩子评审的四条命令。

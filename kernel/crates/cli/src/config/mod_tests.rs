@@ -86,7 +86,7 @@ async fn the_three_sections_come_from_the_node_files() {
     let snapshot = assemble_with(
         Some(user),
         &[(
-            "/Users/dev/repo/.zcode/config.json",
+            "/Users/dev/repo/.nibi/config.json",
             json!({
                 "permission": {"allowedTools": ["Bash(git status:*)"]},
                 "hooks": {"enabled": true, "events": {"Stop": [{"hooks": [{"type": "command", "command": "project.sh"}]}]}},
@@ -246,7 +246,7 @@ async fn the_effective_project_allow_list_feeds_the_trust_dialog() {
             json!({"permission": {"allowedTools": ["Bash(ls:*)"]}}),
         ),
         (
-            "/Users/dev/repo/.zcode/config.json",
+            "/Users/dev/repo/.nibi/config.json",
             json!({"permission": {"allowedTools": ["Edit", 3]}}),
         ),
     ];

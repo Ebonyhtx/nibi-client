@@ -22,7 +22,7 @@ fn env(hooks: &str) -> MemoryEnvironment {
         home: Some(EnvPath::new("/Users/dev")),
     };
     MemoryEnvironment::new(facts).with_file(
-        "/Users/dev/repo/.zcode/config.json",
+        "/Users/dev/repo/.nibi/config.json",
         &format!(r#"{{"hooks": {hooks}}}"#),
     )
 }
@@ -99,7 +99,7 @@ async fn status_grant_and_revoke_print_node_text() {
     assert_eq!(lines[4], "state: workspace_hooks_pending_trust");
     assert_eq!(lines[5], "1. [pending_trust] [enabled] PreToolUse / Bash");
     assert_eq!(lines[6], "   node guard.js");
-    assert_eq!(lines[7], "   source: .zcode/config.json");
+    assert_eq!(lines[7], "   source: .nibi/config.json");
     assert_eq!(lines[9], "2. [pending_trust] [disabled] PreToolUse / Bash");
     assert_eq!(lines[13], "Pretrust exact declarations with:");
     let bundle = lines[3].trim_start_matches("bundle: ").to_owned();
