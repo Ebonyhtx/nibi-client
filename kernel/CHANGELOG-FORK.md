@@ -410,6 +410,13 @@ DWF 调研（8,524 行规格 + 26k 行 TS 引擎/编译器 + 20 多个工具；�
 **验证**：`cargo test -p rust-cli-node-store dwf` 绿；`cargo check` 全绿。3 条 DWF 命令仍在
 `BLOCKED_COMMANDS`（引擎未接），覆盖表保持 31 接住 / 3 块。
 
+**C1 可行性探针（同日通过）**：`scripts/kernel-baseline/probe-dwf-engine.mjs` 用两个 app-free 包
+（`@nibi/dynamic-workflow` + `dynamic-workflow-runtime`）直接装配引擎——无 ask 与
+`agent/ask` 两段脚本都 `completed`，事件序列完整；再用内核自己的迁移 SQL 建库、经真实
+`createDwfJournalStore(db)` 跑同一段脚本，`dwf_run` 行
+（`id/status/parent_session_id/spent_tokens`）与 Rust 只读端口选的列一致。结论：引擎可脱离 CLI
+runtime 独立跑，唯一 app 耦合是 driver；C1 的 sidecar 控制面草稿见设计文档 §3.2。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
