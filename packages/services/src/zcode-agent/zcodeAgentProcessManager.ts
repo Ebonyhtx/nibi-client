@@ -440,6 +440,78 @@ function resolveElectronRuntimeZCodeAgentCommand(
   };
 }
 
+/**
+ * 灰度开关 `NIBI_KERNEL`（计划阶段 3 的入口）：只有显式 `rust` 才走 Rust 内核，未设、`node`
+ * 或拼错都按 node。默认 node 是硬前置——命令门禁全绿之前不允许切默认。
+ */
+export function resolveKernelSelection(value: string | undefined): "node" | "rust" {
+  return value?.trim().toLowerCase() === "rust" ? "rust" : "node";
+}
+
+/**
+ * Rust app-server 的位次：显式 env（开发/灰度）→ 打包 `resources/rust-kernel`（尚未随包附带）→
+ * 仓库 `kernel/target`（debug 优先，其次 release）。找不到就回落到 node 链路。
+ */
+function findRustAgentBinary(): string | null {
+  const explicit = process.env.NIBI_RUST_AGENT_SERVER_COMMAND?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  const executable = process.platform === "win32" ? "zcode-rs.exe" : "zcode-rs";
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (resourcesPath) {
+    const packaged = join(resourcesPath, "rust-kernel", executable);
+    if (existsSync(packaged)) {
+      return packaged;
+    }
+  }
+  for (const profile of ["debug", "release"]) {
+    const found = findUpward(join("kernel", "target", profile, executable));
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
+/**
+ * Rust 内核的 DWF 侧车（路线 C）：桌面与开发都用 Electron 自带 Node 跑同一个 `nibi.cjs` 的隐藏
+ * 子命令（分发拍板 B：不额外打包 Node 二进制）。找不到 Electron runtime 或 bundle 时整个 env
+ * 缺席，Rust 的三条 DWF 命令保持 `fault.command.capabilityUnsupported`。
+ */
+function resolveRustDwfSidecarCommand(): Record<string, unknown> | null {
+  if (!process.versions.electron) {
+    return null;
+  }
+  const bundlePath = findZCodeAgentRuntimeNodeBundle();
+  if (!bundlePath) {
+    return null;
+  }
+  return {
+    command: process.execPath,
+    args: [bundlePath, "__nibi-dwf-engine"],
+    env: { ELECTRON_RUN_AS_NODE: "1" },
+  };
+}
+
+function resolveRustZCodeAgentCommand(
+  context: ZCodeAgentCommandResolverContext,
+): ZCodeAgentCommand | null {
+  const binary = findRustAgentBinary();
+  if (!binary) {
+    return null;
+  }
+  const sidecar = resolveRustDwfSidecarCommand();
+  return {
+    command: binary,
+    args: ["app-server", "--stdio"],
+    cwd: context.workspacePath,
+    // 刻意不置 `supportsStorageStartup`：Rust app-server 还没有 `--prepare-storage`（Host 会退回
+    // 旧的启动握手），等它实现后再与 Node 链路一起打开。
+    ...(sidecar === null ? {} : { env: { NIBI_DWF_ENGINE_CMD: JSON.stringify(sidecar) } }),
+  };
+}
+
 export function resolveDefaultZCodeAgentCommand(
   context: ZCodeAgentCommandResolverContext,
 ): ZCodeAgentCommand | null {
@@ -453,6 +525,16 @@ export function resolveDefaultZCodeAgentCommand(
       },
       context.presentationSurface,
     );
+  }
+
+  // 灰度开关（`NIBI_KERNEL=rust`）：显式 env 覆盖之后、node 的各条位次之前。默认 node——
+  // 未设或拼错都落到下面的原链路，桌面行为与切流前逐字节相同。
+  if (resolveKernelSelection(process.env.NIBI_KERNEL) === "rust") {
+    const rust = resolveRustZCodeAgentCommand(context);
+    if (rust) {
+      return applyPresentationSurfaceToCommand(rust, context.presentationSurface);
+    }
+    debugLog("NIBI_KERNEL=rust but no Rust agent binary is available; falling back to the node kernel");
   }
 
   // 顺序：env 显式覆盖 → monorepo dev 源码/dist（dev 改源码立刻生效，不会被远端历史装的 native binary

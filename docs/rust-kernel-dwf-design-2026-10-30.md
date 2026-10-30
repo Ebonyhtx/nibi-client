@@ -134,6 +134,17 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
 （`NIBI_DWF_ENGINE_CMD`，JSON 数组；开发态是 `node src/main.ts`，桌面态是 Helper + `nibi.cjs`）。
 若变量缺席，引擎保持未接（命令回 `fault.command.capabilityUnsupported`）。
 
+**Host 接线（灰度第一片，2026-10-30）**：`packages/services` 的
+`zcodeAgentProcessManager` 新增 `NIBI_KERNEL` 开关（`resolveKernelSelection`）：
+
+- 只有显式 `rust` 才走 Rust；未设、`node`、拼错都落到原来的 node 位次，默认行为逐字节不变；
+- Rust app-server 的位次：`NIBI_RUST_AGENT_SERVER_COMMAND`（开发/手工）→ 打包
+  `resources/rust-kernel/zcode-rs`（**尚未随包附带**）→ 仓库 `kernel/target/{debug,release}`；
+- 走 Rust 时若 Electron runtime 与 `nibi.cjs` 都在，命令的 `env` 带 `NIBI_DWF_ENGINE_CMD`
+  （Helper + `__nibi-dwf-engine` + `ELECTRON_RUN_AS_NODE=1`）；不在则不带，三条 DWF 命令按能力不支持回。
+- 桌面侧仍默认 node；要给真实用户用，还需：把 Rust 二进制放进打包资源、FIX-5（Electron 升级）
+  后复核 `ELECTRON_RUN_AS_NODE`、以及阶段 3 的进程管理与三消费者回归。
+
 ## 3.3 C1 细化：driver 走 RPC，模型与工具留在 Rust（2026-10-30 拍板后的调整）
 
 探针证明的唯一 app 耦合点是 driver（actor 会话与模型调用）。与其把整个 CLI App 搬进 sidecar，

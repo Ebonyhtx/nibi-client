@@ -22,6 +22,7 @@ import {
 import {
   buildE2EAgentCoverageEnv,
   resolveDefaultZCodeAgentCommand,
+  resolveKernelSelection,
   wrapZCodeAgentCommandWithStdioTapDevProxy,
   ZCodeAgentProcessManager,
   type ZCodeAgentCommand,
@@ -1580,4 +1581,124 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       ]);
     },
   );
+});
+
+describe("NIBI_KERNEL 灰度开关", () => {
+  const originalCwd = process.cwd();
+  const originalKernel = process.env.NIBI_KERNEL;
+  const originalRustCommand = process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
+  const originalElectronVersion = Object.getOwnPropertyDescriptor(process.versions, "electron");
+  const createdDirs: string[] = [];
+
+  function restoreEnv(name: string, value: string | undefined): void {
+    if (value === undefined) {
+      delete process.env[name];
+      return;
+    }
+    process.env[name] = value;
+  }
+
+  function sandboxWithBundle(): string {
+    const root = mkdtempSync(join(tmpdir(), "zcode-kernel-switch-"));
+    createdDirs.push(root);
+    // 打包位的候选根之一：cwd/bundled-resources/<bundledResourceDir>/nibi.cjs
+    const bundle = join(root, "bundled-resources", "glm", "nibi.cjs");
+    mkdirSync(dirname(bundle), { recursive: true });
+    writeFileSync(bundle, "");
+    process.chdir(root);
+    return bundle;
+  }
+
+  beforeEach(() => {
+    delete process.env.NIBI_AGENT_SERVER_COMMAND;
+    delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
+    delete process.env.NIBI_AGENT_SERVER_CWD;
+    delete process.env.NIBI_RUST_AGENT_SERVER_COMMAND;
+    delete process.env.NIBI_KERNEL;
+    Object.defineProperty(process.versions, "electron", { configurable: true, value: "41.0.3" });
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    restoreEnv("NIBI_KERNEL", originalKernel);
+    restoreEnv("NIBI_RUST_AGENT_SERVER_COMMAND", originalRustCommand);
+    if (originalElectronVersion) {
+      Object.defineProperty(process.versions, "electron", originalElectronVersion);
+    } else {
+      delete process.versions.electron;
+    }
+    for (const dir of createdDirs.splice(0).reverse()) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    [undefined, "node"],
+    ["node", "node"],
+    ["rust", "rust"],
+    ["RUST", "rust"],
+    [" rust ", "rust"],
+    ["ruust", "node"],
+  ])("resolveKernelSelection(%s) → %s", (value, expected) => {
+    expect(resolveKernelSelection(value)).toBe(expected);
+  });
+
+  it("NIBI_KERNEL=rust 拉起 Rust app-server，并带上 DWF 侧车 env", () => {
+    const bundle = sandboxWithBundle();
+    process.env.NIBI_KERNEL = "rust";
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/zcode-rs";
+
+    const command = resolveDefaultZCodeAgentCommand({
+      presentationSurface: "desktop",
+      workspacePath: "/repo/workspace",
+      workspaceKey: "/repo/workspace",
+    });
+
+    expect(command?.command).toBe("/opt/nibi/zcode-rs");
+    expect(command?.args).toEqual(["app-server", "--stdio", "--surface", "desktop"]);
+    expect(JSON.parse(command?.env?.NIBI_DWF_ENGINE_CMD ?? "null")).toEqual({
+      command: process.execPath,
+      args: [realpathSync(bundle), "__nibi-dwf-engine"],
+      env: { ELECTRON_RUN_AS_NODE: "1" },
+    });
+  });
+
+  it("没有 Electron runtime 时 Rust 内核不带侧车 env（DWF 回能力不支持）", () => {
+    sandboxWithBundle();
+    delete process.versions.electron;
+    process.env.NIBI_KERNEL = "rust";
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/zcode-rs";
+
+    const command = resolveDefaultZCodeAgentCommand({
+      workspacePath: "/repo/workspace",
+      workspaceKey: "/repo/workspace",
+    });
+
+    expect(command?.command).toBe("/opt/nibi/zcode-rs");
+    expect(command?.env).toBeUndefined();
+  });
+
+  it("NIBI_KERNEL 未设时即便有 Rust 命令也保持 node 链路", () => {
+    sandboxWithBundle();
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/zcode-rs";
+
+    const command = resolveDefaultZCodeAgentCommand({
+      workspacePath: "/repo/workspace",
+      workspaceKey: "/repo/workspace",
+    });
+
+    expect(command?.command).toBe(process.execPath);
+  });
+
+  it("NIBI_KERNEL=rust 但找不到 Rust 二进制时回落到 node 链路", () => {
+    const root = mkdtempSync(join(tmpdir(), "zcode-kernel-nobinary-"));
+    createdDirs.push(root);
+    process.chdir(root);
+    process.env.NIBI_KERNEL = "rust";
+
+    // 临时目录里既没有 kernel/target 也没有 nibi.cjs：Rust 与 node 两条位次都为空。
+    expect(
+      resolveDefaultZCodeAgentCommand({ workspacePath: root, workspaceKey: root }),
+    ).toBeNull();
+  });
 });
