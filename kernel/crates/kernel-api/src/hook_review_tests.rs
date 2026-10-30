@@ -8,15 +8,19 @@ fn item(state: HookTrustState) -> WorkspaceHookItem {
         event: "PreToolUse".into(),
         matcher: Some("Bash".into()),
         kind: "command".into(),
-        display_name: "guard".into(),
+        display_name: "PreToolUse · Bash".into(),
         display_command: "node guard.js".into(),
         source_path: ".nibi/config.json".into(),
         resolved_timeout_ms: 60_000,
         resolved_max_output_bytes: 32_768,
+        execution_mode: "foreground".into(),
         configured_enabled: true,
         editable: true,
         trust_state: state,
         declaration_digest: "607f038e".into(),
+        source_discovery_order: 0,
+        matcher_index: 0,
+        hook_index: 0,
     }
 }
 
@@ -33,6 +37,10 @@ fn the_snapshot_serializes_with_the_nibi_field_names() {
     assert_eq!(value["reasonCode"], "pending_trust");
     assert_eq!(value["items"][0]["reviewItemId"], "workspace-hook-0-PreToolUse-0-0");
     assert_eq!(value["items"][0]["displayCommand"], "node guard.js");
+    assert_eq!(value["items"][0]["type"], "command");
+    assert_eq!(value["items"][0]["executionMode"], "foreground");
+    // 写信任记录用的序号不上线（Host 的 payload schema 是 strict）。
+    assert!(value["items"][0].get("matcherIndex").is_none());
     assert_eq!(value["items"][0]["resolvedTimeoutMs"], 60_000);
     assert_eq!(value["items"][0]["trustState"], "pending_trust");
     assert_eq!(value["items"][1]["trustState"], "trusted_persistent");

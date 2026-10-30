@@ -178,6 +178,16 @@ pub(crate) async fn read_files(inputs: &ConfigInputs<'_>) -> Files {
     }
 }
 
+/// 用户层 hooks 的原始 `NodeHooks`（工作区钩子评审的 digest 要它算默认超时与输出上限，
+/// config.md §4.1）：与启动组装读同一份文件。协议前端（app-server）在组装之后单独取一次。
+pub(crate) async fn user_hooks(paths: &rust_cli_paths::StoragePaths) -> NodeHooks {
+    let user = read_cli_config(paths).await;
+    user.object()
+        .and_then(|object| object.get("hooks"))
+        .map(|value| NodeHooks::from_json(value).0)
+        .unwrap_or_default()
+}
+
 /// 读配置文件并组装快照。只在启动时调用一次（没有文件监听，config.md §6 D6）。
 pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
     let mut warnings = Vec::new();

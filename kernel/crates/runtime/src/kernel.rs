@@ -244,6 +244,32 @@ impl Kernel for LocalKernel {
         self.attachment_content(session, workspace, source).await
     }
 
+    /// NIBI `requestWorkspaceHookReview` 的数据来源：工作区钩子当前的信任快照（只读）。
+    async fn workspace_hook_review(
+        &self,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+    ) -> Result<rust_cli_kernel_api::hook_review::WorkspaceHookReview, KernelError> {
+        self.hook_review_snapshot(workspace).await
+    }
+
+    /// NIBI `respondWorkspaceHookReview`：按评审项授权持久信任，返回写入条数。
+    async fn grant_workspace_hooks(
+        &self,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        review_item_ids: &[String],
+    ) -> Result<usize, KernelError> {
+        self.grant_hooks(workspace, review_item_ids).await
+    }
+
+    /// NIBI `revokeWorkspaceHookTrust`：按声明摘要撤销持久信任，返回撤掉的条数。
+    async fn revoke_workspace_hooks(
+        &self,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        declaration_digests: &[String],
+    ) -> Result<usize, KernelError> {
+        self.revoke_hooks(workspace, declaration_digests).await
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

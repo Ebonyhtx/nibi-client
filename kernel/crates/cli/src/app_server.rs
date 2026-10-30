@@ -294,6 +294,14 @@ async fn serve(
         extensions,
     );
     kernel.replace_hooks(config.hooks.clone());
+    // 工作区钩子的评审（NIBI `requestWorkspaceHookReview` 等四条命令）：用户层 hooks 参与 digest 的
+    // 默认超时与输出上限，信任记录落 `~/.nibi` 的共享信任库（与 Node CLI、App 同一份文件）。
+    let kernel = kernel.with_hook_review(
+        config::user_hooks(&paths).await,
+        Arc::new(rust_cli_platform::HookTrustStore::new(
+            paths.hook_trust_store(config.storage.dir.as_deref()),
+        )),
+    );
     let local = config::local_rules(kernel.ports().store.as_ref(), &workspace).await;
     kernel.replace_permission_rules(
         config.permission_rules(local, crate::args::cli_rules(&[], &[], Vec::new())),

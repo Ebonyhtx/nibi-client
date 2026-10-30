@@ -13,6 +13,7 @@ mod config;
 mod directory;
 mod export;
 mod ext;
+mod hook_review;
 mod kernel;
 mod late;
 mod listings;
@@ -149,6 +150,10 @@ pub struct LocalKernel {
     detached: Arc<rust_cli_session::DetachedAsks>,
     /// 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段读的同一份表。
     directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    /// 工作区钩子的信任库（NIBI 协议前端的钩子评审）：入口注入，没接的入口三个方法报 Unsupported。
+    hook_trust: Option<Arc<dyn rust_cli_kernel_api::hook_review::HookTrust>>,
+    /// 用户层 hooks（评审 digest 的默认超时与输出上限来源，config.md §4.1）。
+    user_hooks: Arc<rust_cli_hooks::node_config::NodeHooks>,
 }
 
 impl LocalKernel {
@@ -520,7 +525,21 @@ impl LocalKernel {
             peers: extensions.peers,
             detached,
             directories: session_directories,
+            hook_trust: None,
+            user_hooks: Arc::new(rust_cli_hooks::node_config::NodeHooks::default()),
         }
+    }
+
+    /// 工作区钩子评审（NIBI 协议前端）：用户层 hooks 与信任库。TUI / `-p` 不接，
+    /// [`Kernel::workspace_hook_review`] 三个方法保持 `Unsupported`。
+    pub fn with_hook_review(
+        mut self,
+        user_hooks: rust_cli_hooks::node_config::NodeHooks,
+        trust: Arc<dyn rust_cli_kernel_api::hook_review::HookTrust>,
+    ) -> Self {
+        self.user_hooks = Arc::new(user_hooks);
+        self.hook_trust = Some(trust);
+        self
     }
 
     /// 加载插件、开始连接 MCP 服务器（不等待连接完成，ext.md §3.3）。插件的 agent 文件交给 agent
@@ -546,6 +565,10 @@ impl LocalKernel {
 #[cfg(test)]
 #[path = "lib_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "hook_review_tests.rs"]
+mod hook_review_tests;
 
 #[cfg(test)]
 #[path = "metering_tests.rs"]

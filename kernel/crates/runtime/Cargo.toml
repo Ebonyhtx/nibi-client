@@ -43,6 +43,10 @@ tokio-util.workspace = true
 base64.workspace = true
 futures-util.workspace = true
 rust-cli-kernel-api = { workspace = true, features = ["testing"] }
+# 钩子评审的测试用真实文件系统（工作区里的 `.nibi/config.json`）；本机写盘只经 rust-cli-fs。
+rust-cli-env-local.workspace = true
+rust-cli-fs.workspace = true
 serde_json.workspace = true
+tempfile.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "time"] }
 tokio-util.workspace = true

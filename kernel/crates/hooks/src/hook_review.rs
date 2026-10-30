@@ -60,15 +60,28 @@ pub fn sources<'a>(
         .collect()
 }
 
-/// 一条钩子的展示名：Node 的 `displayName` 用命令；没有单独的 `name` 字段时两者相同。
-fn display_name(hook: &NodeHook) -> String {
-    hook.display()
+/// 一条钩子的展示名：Node 的 `displayName` 是「事件 · matcher」或事件名，不是命令。
+fn display_name(event: &str, matcher: Option<&str>) -> String {
+    match matcher {
+        Some(matcher) => format!("{event} · {matcher}"),
+        None => event.to_owned(),
+    }
 }
 
 fn kind_name(hook: &NodeHook) -> String {
     match &hook.kind {
         crate::node_config::NodeHookKind::Command { .. } => "command".to_owned(),
         crate::node_config::NodeHookKind::Process { .. } => "process".to_owned(),
+    }
+}
+
+/// Node 的 `executionMode`：命令钩子带 `async` 时是后台，其余是前台。
+fn execution_mode(hook: &NodeHook) -> String {
+    match &hook.kind {
+        crate::node_config::NodeHookKind::Command { background, .. } if *background => {
+            "background".to_owned()
+        }
+        _ => "foreground".to_owned(),
     }
 }
 
@@ -129,15 +142,19 @@ pub fn review(
             event: entry.event.as_str().to_owned(),
             matcher: entry.matcher.clone(),
             kind: kind_name(&entry.hook),
-            display_name: display_name(&entry.hook),
+            display_name: display_name(entry.event.as_str(), entry.matcher.as_deref()),
             display_command: entry.hook.display(),
             source_path: entry.source_relative_path.clone(),
             resolved_timeout_ms: entry.resolved_timeout_ms.max(1.0) as u64,
             resolved_max_output_bytes: root.max_output_bytes.max(1.0) as u64,
+            execution_mode: execution_mode(&entry.hook),
             configured_enabled: entry.configured_enabled,
             editable: entry.editable,
             trust_state: trust_state(trusted, &entry.digest, policy_blocked, store_corrupt),
             declaration_digest: entry.digest.clone(),
+            source_discovery_order: entry.source_discovery_order,
+            matcher_index: entry.matcher_index,
+            hook_index: entry.hook_index,
         })
         .collect();
     let enabled: Vec<&WorkspaceHookItem> = items.iter().filter(|item| item.configured_enabled).collect();

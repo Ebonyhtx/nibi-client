@@ -356,3 +356,94 @@ impl HookTrustStore {
 #[cfg(test)]
 #[path = "hook_trust_tests.rs"]
 mod tests;
+
+#[async_trait::async_trait]
+impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
+    async fn load(&self, identity: &str) -> rust_cli_kernel_api::hook_review::HookTrustSnapshot {
+        match HookTrustStore::load(self).await {
+            TrustLoad::Records(records) => rust_cli_kernel_api::hook_review::HookTrustSnapshot {
+                trusted: records
+                    .iter()
+                    .filter(|record| record.workspace_identity == identity)
+                    .map(|record| record.hook_declaration_digest.clone())
+                    .collect(),
+                corrupt: false,
+            },
+            TrustLoad::Missing => rust_cli_kernel_api::hook_review::HookTrustSnapshot::default(),
+            TrustLoad::Corrupt => rust_cli_kernel_api::hook_review::HookTrustSnapshot {
+                corrupt: true,
+                ..Default::default()
+            },
+        }
+    }
+
+    /// Node `grant`：`grantedAt` 是现在（ISO 8601，毫秒）；其余「at grant」字段原样记下。
+    async fn grant(
+        &self,
+        identity: &str,
+        grants: Vec<rust_cli_kernel_api::hook_review::HookTrustGrant>,
+        now_ms: u64,
+    ) -> Result<usize, rust_cli_kernel_api::hook_review::HookTrustError> {
+        let count = grants.len();
+        let granted_at = rust_cli_base::js::date::iso_timestamp(now_ms);
+        let records: Vec<TrustRecord> = grants
+            .into_iter()
+            .map(|grant| TrustRecord {
+                workspace_identity: identity.to_owned(),
+                hook_declaration_digest: grant.declaration_digest,
+                granted_at: granted_at.clone(),
+                last_used_at: None,
+                bundle_digest_at_grant: grant.bundle_digest,
+                event_at_grant: grant.event,
+                display_command_at_grant: grant.display_command,
+                source_path_at_grant: grant.source_path,
+                source_discovery_order_at_grant: Some(grant.source_discovery_order as u64),
+                matcher_at_grant: grant.matcher.map(Some),
+                matcher_index_at_grant: Some(grant.matcher_index as u64),
+                hook_index_at_grant: Some(grant.hook_index as u64),
+                app_version_at_grant: None,
+            })
+            .collect();
+        HookTrustStore::grant(self, records)
+            .await
+            .map_err(|error| match error {
+                TrustError::Corrupt => {
+                    rust_cli_kernel_api::hook_review::HookTrustError::Corrupt
+                }
+                other => rust_cli_kernel_api::hook_review::HookTrustError::Failed {
+                    reason: other.to_string(),
+                },
+            })?;
+        Ok(count)
+    }
+
+    /// Node `revoke`：先数命中的记录，再按 `(identity, digests)` 删。
+    async fn revoke(
+        &self,
+        identity: &str,
+        digests: Option<&[String]>,
+    ) -> Result<usize, rust_cli_kernel_api::hook_review::HookTrustError> {
+        let removed = match HookTrustStore::load(self).await {
+            TrustLoad::Records(records) => records
+                .iter()
+                .filter(|record| {
+                    record.workspace_identity == identity
+                        && digests
+                            .is_none_or(|digests| digests.contains(&record.hook_declaration_digest))
+                })
+                .count(),
+            _ => 0,
+        };
+        HookTrustStore::revoke(self, identity, digests)
+            .await
+            .map_err(|error| match error {
+                TrustError::Corrupt => {
+                    rust_cli_kernel_api::hook_review::HookTrustError::Corrupt
+                }
+                other => rust_cli_kernel_api::hook_review::HookTrustError::Failed {
+                    reason: other.to_string(),
+                },
+            })?;
+        Ok(removed)
+    }
+}
