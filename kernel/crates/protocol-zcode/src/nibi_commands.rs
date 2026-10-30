@@ -76,19 +76,19 @@ pub const HANDLED_COMMANDS: &[&str] = &[
 pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
     (
         "requestWorkspaceHookReview",
-        "工作区 hook 的逐声明评审流：bundleDigest + reviewFlowId + generation + 交互桥；         Rust 的信任模型是按工作区路径（workspace-trust.md §2.3），没有逐声明粒度",
+        "接线缺口（不是能力缺口）：信任库 platform::hook_trust 与 bundle 摘要          hooks::workspace_digest 都已存在，缺的是协议层把评审流（reviewFlowId/generation/         interactionId）接起来并暴露给前端",
     ),
     (
         "respondWorkspaceHookReview",
-        "同上：评审流的响应要改逐声明信任，内核的 store 只有 trust_workspace",
+        "同上：platform::hook_trust::grant 已存在，缺评审流的响应接线",
     ),
     (
         "toggleWorkspaceHookReviewItem",
-        "同上：评审流条目的勾选属于那条评审状态机",
+        "同上：评审流条目的勾选属于协议层的评审状态",
     ),
     (
         "revokeWorkspaceHookTrust",
-        "按 hook 声明摘要撤销：store 没有 untrust，也没有 digest 维度",
+        "同上：platform::hook_trust::revoke 已存在，缺协议层按摘要撤销的接线",
     ),
     (
         "startSavedWorkflow",

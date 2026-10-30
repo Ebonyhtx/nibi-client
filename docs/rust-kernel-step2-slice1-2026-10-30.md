@@ -332,8 +332,10 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 
 剩余 8 个都是**能力缺口**而非接线：
 
-- hook review 四件：逐声明评审流（bundleDigest/reviewFlowId/generation/交互桥）与按摘要撤销；
-  Rust 信任模型是路径级（`trusted_workspace`/`trust_workspace`，无 untrust、无 digest 维度）。
+- hook review 四件：**接线缺口，不是能力缺口**——`platform::hook_trust`（按 digest 的
+  `load`/`grant`/`revoke`）与 `hooks::workspace_digest`（bundle 与条目摘要）都已存在，缺协议层的
+  评审流状态（reviewFlowId/generation/interactionId）与四个命令的接线。（此前记成"信任模型只有
+  路径级"是错误；路径级 `workspace_trust` 是工作区信任提示，另一件事。）
 - workflow 三件：DWF run 能力（与 `createSession.dynamicWorkflow*` 同一缺口）。
 - `discardSharedContext`：分享上下文存储。
 

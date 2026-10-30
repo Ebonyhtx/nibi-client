@@ -294,7 +294,7 @@ Node 从当前对话派生一个"侧聊"子会话（复制整段对话、选择�
 | `setAssistantFeedback` `snoozeInteractionAutoResolution` | 已接住 | — |
 | `sendGoalCommand` `pauseGoal` `resumeGoal` | 已接住 | —（resume 不主动起续跑回合，见 §6.6） |
 | `createSelectionSideSession` | 已接住 | —（忙时拒绝等三条差异，见 §6.7） |
-| `requestWorkspaceHookReview` `respondWorkspaceHookReview` `toggleWorkspaceHookReviewItem` `revokeWorkspaceHookTrust` | **能力缺口** | 逐声明评审流（bundleDigest/reviewFlowId/generation/交互桥）与按摘要撤销；Rust 的信任模型是按工作区路径（`trusted_workspace`/`trust_workspace`，无 untrust、无 digest 维度） |
+| `requestWorkspaceHookReview` `respondWorkspaceHookReview` `toggleWorkspaceHookReviewItem` `revokeWorkspaceHookTrust` | **接线缺口（中等）** | 逐声明信任的库都在：`platform::hook_trust`（`load`/`grant`/`revoke`，按 digest）+ `hooks::workspace_digest`（bundle 与条目摘要）。缺的是协议层的评审流状态（reviewFlowId/generation/interactionId）与四个命令的接线；原先记成"信任模型只有路径级"是**错误**，路径级 `workspace_trust` 是另一件事（工作区信任提示） |
 | `startSavedWorkflow` `resumeWorkflowRun` `amendWorkflowRunSettings` | **能力缺口** | 动态工作流 run 能力（与 `createSession.dynamicWorkflow*` 同一缺口） |
 | `discardSharedContext` | **能力缺口** | 分享上下文存储（Node 的 topic resource / `context_refs`） |
 
