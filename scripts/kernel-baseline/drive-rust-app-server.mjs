@@ -233,12 +233,14 @@ function ack(value, label) {
 }
 
 let editResubmitted = false;
+const checks = {};
 try {
   // 1) startup/storageState：等 ready（先来的是 checking）
   const startup = await waitFor(
     () => notifications.find((n) => n.method === "startup/storageState" && n.params.phase === "ready"),
     "startup/storageState ready",
   );
+  checks.startupMs = startup.params.elapsedMs;
   console.log(`startup: ready elapsed=${startup.params.elapsedMs}ms`);
 
   // 2) createSession（带 firstInput）
@@ -258,6 +260,7 @@ try {
   );
   const sessionId = ack1.result?.sessionId;
   if (!sessionId) throw new Error(`createSession result missing sessionId: ${JSON.stringify(ack1)}`);
+  checks.createSessionPrefix = sessionId.slice(0, 5);
   console.log(`createSession: ${sessionId}`);
 
   // 2.4) 订阅会话主题（Host 正常流程：订阅后泵才会发帧）
@@ -287,6 +290,7 @@ try {
     "assistant reply frame",
     60_000,
   );
+  checks.sendTextStatus = send1.result?.status;
   console.log(`sendText: assistant reply visible, frames=${frames.length}`);
 
   const currentCommittedCount = async () => {
@@ -436,6 +440,7 @@ try {
       "renameSession",
       { title: "drive-renamed" },
     );
+    checks.renameStatus = ackR.status;
     if (ackR.status !== "accepted") throw new Error(`renameSession ${ackR.status}: ${ackR.reasonCode}`);
     const title = await waitFor(
       () => {
@@ -500,6 +505,9 @@ try {
     if (noop.status !== "noop" || noop.reasonCode !== "config.unchanged") {
       throw new Error(`switchModelConfig(noop) ${noop.status}/${noop.reasonCode}`);
     }
+    checks.switchModelChangeStatus = changed.status;
+    checks.switchModelNoopStatus = noop.status;
+    checks.switchModelNoopCode = noop.reasonCode;
     console.log(`switchModelConfig: accepted; same-value noop=config.unchanged`);
   }
 
@@ -513,6 +521,8 @@ try {
     if (again.status !== "accepted") {
       throw new Error(`switchCollaborationMode(same) ${again.status}/${again.reasonCode}`);
     }
+    checks.switchModeChangeStatus = ackM.status;
+    checks.switchModeSameStatus = again.status;
     console.log(`switchCollaborationMode(plan): accepted; same-value accepted`);
   }
 
@@ -520,6 +530,7 @@ try {
     const ack3 = await rowTargetCommand("forkAssistant");
     const child = typeof ack3.result === "string" ? ack3.result : ack3.result?.sessionId;
     if (!child) throw new Error("forkAssistant result missing child session id");
+    checks.forkChildPrefix = String(child ?? "").slice(0, 5);
     console.log(`forkAssistant: child=${child}`);
   }
 
@@ -545,11 +556,13 @@ try {
     // 自己会等已提交的 assistant 消息出现。
     await new Promise((resolve) => setTimeout(resolve, 2000));
     editResubmitted = true;
+    checks.editStatus = ackEd.status;
     console.log(`editUserQuery: accepted, conversation resubmitted`);
   }
 
   if (phases.includes("retry") && editResubmitted) {
     const ack4 = await rowTargetCommand("retryTurn");
+    checks.retryStatus = ack4.status;
     console.log(`retryTurn: accepted`);
   } else if (phases.includes("retry")) {
     // 已知 kernel 行为问题：rewind 后 actor 不响应后续请求。
@@ -567,6 +580,8 @@ try {
     if (ackC.status !== "failed" || ackC.reasonCode !== "fault.command.backgroundWorkCancelRejected.not_found") {
       throw new Error(`cancelBackgroundWork(missing) ${ackC.status}/${ackC.reasonCode}: ${ackC.message}`);
     }
+    checks.cancelStatus = ackC.status;
+    checks.cancelCode = ackC.reasonCode;
     console.log(`cancelBackgroundWork(missing): failed/not_found`);
   }
 
@@ -575,21 +590,14 @@ try {
     const state = buildState();
     const userRow = [...state.rows].reverse().find((row) => row.kind === "userInput");
     if (!userRow) throw new Error("no user row for edit rejection");
-    const ackE = await send("v4/command", {
-      commandId: "0197d3f0-0000-7000-8000-000000000014",
-      clientId: "drive",
-      sessionId,
-      baseRevision: state.revision,
-      baseLogEpoch: state.logEpoch,
-      type: "editUserQuery",
-      payload: {
-        target: { rowId: userRow.rowId, entityId: userRow.entityId },
-        newText: "edited",
-        attachments: [{ ref: "att1", fileName: "a.png", mime: "image/png", bytes: 12 }],
-      },
-      issuedAt: Date.now(),
+    const ackE = await casCommand("editUserQuery", {
+      target: { rowId: userRow.rowId, entityId: userRow.entityId },
+      newText: "edited",
+      attachments: [{ ref: "att1", fileName: "a.png", mime: "image/png", bytes: 12 }],
     });
-    const result = ackE.error ? null : ackE.result;
+    const result = ackE;
+    checks.attachmentStatus = result?.status ?? "error";
+    checks.attachmentCode = result?.reasonCode ?? (ackE.error ? "rpc-error" : null);
     if (isNode) {
       console.log(`editUserQuery(attachments)[node]: ${JSON.stringify(result ?? ackE.error)}`);
     } else {
@@ -600,6 +608,15 @@ try {
     }
   }
 
+  console.log(`RESULT:${JSON.stringify({
+    kernel,
+    checks,
+    metrics: {
+      providerRequests: REQUESTS.length,
+      frames: frames.length,
+      notifications: notifications.length,
+    },
+  })}`);
   console.log(`provider requests: ${REQUESTS.length}`);
   console.log(`final state: ${JSON.stringify((() => { const st = buildState(); return { logEpoch: st.logEpoch, revision: st.revision, stopState: st.stopState, rows: st.rows.map((r) => ({ rowId: r.rowId, kind: r.kind, state: r.state, assistantResponseId: r.assistantResponseId })) }; })())}`);
   console.log("PHASES OK");
