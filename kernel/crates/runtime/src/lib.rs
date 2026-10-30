@@ -157,6 +157,8 @@ pub struct LocalKernel {
     hook_trust: Option<Arc<dyn rust_cli_kernel_api::hook_review::HookTrust>>,
     /// 用户层 hooks（评审 digest 的默认超时与输出上限来源，config.md §4.1）。
     user_hooks: Arc<rust_cli_hooks::node_config::NodeHooks>,
+    /// DWF 引擎（路线 C 的 sidecar）：入口注入，没接的入口三个命令报 Unsupported。
+    workflow_engine: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>>,
 }
 
 impl LocalKernel {
@@ -531,7 +533,18 @@ impl LocalKernel {
             directories: session_directories,
             hook_trust: None,
             user_hooks: Arc::new(rust_cli_hooks::node_config::NodeHooks::default()),
+            workflow_engine: None,
         }
+    }
+
+    /// DWF 引擎（路线 C 的 sidecar）：入口注入。TUI / `-p` 与没接 sidecar 的入口不接，三个命令保持
+    /// `Unsupported`。
+    pub fn with_workflow_engine(
+        mut self,
+        engine: Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>,
+    ) -> Self {
+        self.workflow_engine = Some(engine);
+        self
     }
 
     /// 工作区钩子评审（NIBI 协议前端）：用户层 hooks 与信任库。TUI / `-p` 不接，

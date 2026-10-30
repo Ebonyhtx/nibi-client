@@ -335,3 +335,56 @@ fn with_text_puts_images_before_the_text() {
     // 空正文（attachment-only）：只有图片。
     assert_eq!(with_text(String::new(), vec![]).len(), 0);
 }
+
+#[test]
+fn workflow_faults_carry_the_node_reason_code() {
+    let rejected = workflow_ack(
+        "c1",
+        7,
+        KernelError::Failed {
+            message: "fault.command.savedWorkflowStartRejected.not_found: no workflow named build"
+                .to_owned(),
+        },
+        "startSavedWorkflow",
+    );
+    assert_eq!(rejected.status, Status::Failed);
+    assert_eq!(
+        rejected.reason_code.as_deref(),
+        Some("fault.command.savedWorkflowStartRejected.not_found")
+    );
+    assert_eq!(rejected.message.as_deref(), Some("no workflow named build"));
+
+    // 没有说明时消息就是 fault 码本身。
+    let bare = workflow_ack(
+        "c1",
+        7,
+        KernelError::Failed {
+            message: "fault.command.workflowRunResumeRejected.already_running".to_owned(),
+        },
+        "resumeWorkflowRun",
+    );
+    assert_eq!(
+        bare.message.as_deref(),
+        Some("fault.command.workflowRunResumeRejected.already_running")
+    );
+
+    // 引擎没接：与 Node 的 V4CapabilityUnsupportedError 一致。
+    let missing = workflow_ack(
+        "c1",
+        7,
+        KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        },
+        "amendWorkflowRunSettings",
+    );
+    assert_eq!(
+        missing.reason_code.as_deref(),
+        Some("fault.command.capabilityUnsupported")
+    );
+    assert!(
+        missing
+            .message
+            .as_deref()
+            .is_some_and(|message| message.contains("amendWorkflowRunSettings"))
+    );
+}

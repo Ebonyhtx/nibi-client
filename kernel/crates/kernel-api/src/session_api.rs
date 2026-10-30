@@ -700,6 +700,39 @@ pub trait Kernel: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// NIBI `startSavedWorkflow`：按名字启动一个已保存的工作流（引擎在 sidecar）。
+    /// 缺省实现返回 `Unsupported`（引擎没接的入口）。
+    async fn start_saved_workflow(
+        &self,
+        _parent: &SessionId,
+        _request: crate::workflow::WorkflowStart,
+    ) -> Result<crate::workflow::WorkflowRunStarted, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })
+    }
+
+    /// NIBI `resumeWorkflowRun`：恢复一个可恢复的 run（`workId ≡ runId`）。
+    async fn resume_workflow_run(
+        &self,
+        _run_id: &str,
+        _name: Option<&str>,
+    ) -> Result<crate::workflow::WorkflowRunStarted, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })
+    }
+
+    /// NIBI `amendWorkflowRunSettings`：以新设置修订一个 run（两项设置三态）。
+    async fn amend_workflow_run(
+        &self,
+        _request: crate::workflow::WorkflowAmend,
+    ) -> Result<crate::workflow::WorkflowRunStarted, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })
+    }
+
     /// 跑一轮 DWF actor（路线 C：引擎在 Node sidecar，actor 的模型轮在 Rust）。
     ///
     /// `first` 为真时先建 actor 子会话；`cancel` 取消时按 `aborted` 收口。缺省实现返回 `Unsupported`

@@ -9,7 +9,8 @@ use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{
-    Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, RewindScope, SessionHandle,
+    Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, KernelError, RewindScope,
+    SessionHandle,
 };
 use rust_cli_protocol_core::rpc::RpcError;
 use serde_json::{Map, Value, json};
@@ -481,6 +482,9 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "resumeGoal" => set_goal_paused(handle, envelope, false).await,
         "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
         "discardSharedContext" => discard_shared_context(server, &live.sink, envelope, revision).await,
+        "startSavedWorkflow" => start_saved_workflow(server, envelope, revision).await,
+        "resumeWorkflowRun" => resume_workflow_run(server, envelope, revision).await,
+        "amendWorkflowRunSettings" => amend_workflow_run_settings(server, envelope, revision).await,
         "requestWorkspaceHookReview" => {
             crate::hook_review::request(server, &live.sink, envelope, revision).await
         }
@@ -2193,6 +2197,126 @@ async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
                 0,
             )
         }
+    }
+}
+
+/// DWF 命令的失败 ACK：引擎拒绝的 reasonCode 就是消息里的 fault 前缀，能力缺席时按 Node 的
+/// `V4CapabilityUnsupportedError` 回 `fault.command.capabilityUnsupported`。
+fn workflow_ack(command: &str, revision: u64, error: KernelError, capability: &str) -> Ack {
+    match error {
+        KernelError::Unsupported { .. } => Ack::refused(
+            command,
+            Status::Failed,
+            "fault.command.capabilityUnsupported",
+            format!("capability not supported by this session runtime: {capability}"),
+            revision,
+        ),
+        KernelError::Failed { message } => {
+            let (reason, detail) = match message.split_once(':') {
+                Some((reason, detail)) => (reason.trim(), detail.trim()),
+                None => (message.trim(), message.trim()),
+            };
+            Ack::refused(command, Status::Failed, reason, detail, revision)
+        }
+        other => Ack::refused(command, Status::Failed, "proto.internal", other.to_string(), revision),
+    }
+}
+
+fn workflow_session<'a>(
+    envelope: &'a Envelope,
+    command: &str,
+    name: &str,
+    revision: u64,
+) -> Result<&'a str, Box<Ack>> {
+    envelope.session_id.as_deref().ok_or_else(|| {
+        Box::new(Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.sessionRequired",
+            format!("{name} needs a sessionId"),
+            revision,
+        ))
+    })
+}
+
+/// NIBI `startSavedWorkflow`：中枢的「运行」直接请引擎启动一个已保存的工作流（不经模型轮）。
+async fn start_saved_workflow(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
+    let command = envelope.command_id.as_str();
+    let session = match workflow_session(envelope, command, "startSavedWorkflow", revision) {
+        Ok(session) => session,
+        Err(ack) => return *ack,
+    };
+    let request = rust_cli_kernel_api::workflow::WorkflowStart {
+        name: envelope.payload["name"].as_str().unwrap_or_default().to_owned(),
+        scope: envelope.payload["scope"].as_str().map(str::to_owned),
+        args: envelope.payload.get("args").cloned().filter(|args| !args.is_null()),
+    };
+    match server
+        .kernel
+        .start_saved_workflow(&SessionId::new(session), request)
+        .await
+    {
+        Ok(started) => Ack::accepted(
+            command,
+            revision,
+            Some(json!({
+                "type": "startSavedWorkflow",
+                "runId": started.run_id,
+                "toolCallId": started.tool_call_id,
+            })),
+        ),
+        Err(error) => workflow_ack(command, revision, error, "startSavedWorkflow"),
+    }
+}
+
+/// NIBI `resumeWorkflowRun`：`workId ≡ runId`，门（可恢复集）在引擎侧。
+async fn resume_workflow_run(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
+    let command = envelope.command_id.as_str();
+    if let Err(ack) = workflow_session(envelope, command, "resumeWorkflowRun", revision) {
+        return *ack;
+    }
+    let work = envelope.payload["workId"].as_str().unwrap_or_default();
+    match server
+        .kernel
+        .resume_workflow_run(work, envelope.payload["name"].as_str())
+        .await
+    {
+        Ok(_) => Ack::accepted(command, revision, None),
+        Err(error) => workflow_ack(command, revision, error, "resumeWorkflowRun"),
+    }
+}
+
+/// NIBI `amendWorkflowRunSettings`：两项设置的三态（省略 = 沿用，`null` = 回默认，值 = 设定）。
+async fn amend_workflow_run_settings(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
+    let command = envelope.command_id.as_str();
+    if let Err(ack) = workflow_session(envelope, command, "amendWorkflowRunSettings", revision) {
+        return *ack;
+    }
+    let payload = &envelope.payload;
+    let subagent_model = payload
+        .get("subagentModel")
+        .map(|value| value.as_str().map(str::to_owned));
+    let max_concurrency = payload
+        .get("maxConcurrency")
+        .map(serde_json::Value::as_u64);
+    let request = rust_cli_kernel_api::workflow::WorkflowAmend {
+        run_id: payload["workId"].as_str().unwrap_or_default().to_owned(),
+        subagent_model,
+        max_concurrency,
+    };
+    match server.kernel.amend_workflow_run(request).await {
+        Ok(started) => {
+            let mut result = json!({
+                "type": "amendWorkflowRunSettings",
+                "runId": started.run_id,
+                "toolCallId": started.tool_call_id,
+            });
+            if let Some(superseded) = started.superseded_run_id {
+                result["supersededRunId"] = json!(superseded);
+            }
+            Ack::accepted(command, revision, Some(result))
+        }
+        Err(error) => workflow_ack(command, revision, error, "amendWorkflowRunSettings"),
     }
 }
 

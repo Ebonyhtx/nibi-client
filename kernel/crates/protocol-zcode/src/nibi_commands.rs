@@ -81,15 +81,15 @@ pub const HANDLED_COMMANDS: &[&str] = &[
 pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
     (
         "startSavedWorkflow",
-        "动态工作流的启动器：内核没有 DWF run 能力（与 createSession.dynamicWorkflow* 同一缺口）",
+        "引擎 sidecar 未接（路线 C）：协议处理与内核端口已就位，缺入口注入 `WorkflowEngine`（Node 的 run 引擎）",
     ),
     (
         "resumeWorkflowRun",
-        "同上：DWF run 的恢复",
+        "同上：引擎端口未注入（resume 由 sidecar 的可恢复集把关）",
     ),
     (
         "amendWorkflowRunSettings",
-        "同上：DWF run 的设置修订",
+        "同上：引擎端口未注入（设置修订由 sidecar 编译新 run）",
     ),
 ];
 

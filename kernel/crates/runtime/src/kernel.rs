@@ -3,6 +3,18 @@
 use super::*;
 use rust_cli_kernel_api::permission::ExecutionState;
 
+/// 引擎的业务拒绝 → `KernelError::Failed`，消息以 Node 的 fault 前缀开头（协议层原样上行 reasonCode）。
+fn workflow_fault(
+    prefix: &str,
+    error: rust_cli_kernel_api::workflow::WorkflowEngineError,
+) -> KernelError {
+    let message = match error.message.filter(|message| !message.is_empty()) {
+        Some(message) => format!("{prefix}{}: {message}", error.reason),
+        None => format!("{prefix}{}", error.reason),
+    };
+    KernelError::Failed { message }
+}
+
 fn failed(error: &StoreError) -> KernelError {
     match error {
         StoreError::NotFound { session } => KernelError::NotFound {
@@ -309,6 +321,50 @@ impl Kernel for LocalKernel {
             .workflow_runs(session)
             .await
             .map_err(|error| failed(&error))
+    }
+
+    /// NIBI `startSavedWorkflow`：引擎没接时报 Unsupported（与 Node 的 `V4CapabilityUnsupportedError` 同义）。
+    async fn start_saved_workflow(
+        &self,
+        parent: &SessionId,
+        request: rust_cli_kernel_api::workflow::WorkflowStart,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, KernelError> {
+        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })?;
+        engine
+            .start_saved(parent, request)
+            .await
+            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::SAVED_WORKFLOW_START_REJECTED, error))
+    }
+
+    /// NIBI `resumeWorkflowRun`。
+    async fn resume_workflow_run(
+        &self,
+        run_id: &str,
+        name: Option<&str>,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, KernelError> {
+        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })?;
+        engine
+            .resume(run_id, name)
+            .await
+            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
+    }
+
+    /// NIBI `amendWorkflowRunSettings`。
+    async fn amend_workflow_run(
+        &self,
+        request: rust_cli_kernel_api::workflow::WorkflowAmend,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, KernelError> {
+        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })?;
+        engine
+            .amend(request)
+            .await
+            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_SETTINGS_REJECTED, error))
     }
 
     /// 一轮 DWF actor（路线 C：引擎 sidecar 通过它跑 actor 的模型轮）。

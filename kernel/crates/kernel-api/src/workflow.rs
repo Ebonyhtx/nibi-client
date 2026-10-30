@@ -90,3 +90,88 @@ pub struct WorkflowActorRequest {
     pub message: String,
     pub first: bool,
 }
+
+/// 引擎拒绝码的前缀（Node `SAVED_WORKFLOW_START_REJECTED_FAULT_PREFIX` 等）。
+pub const SAVED_WORKFLOW_START_REJECTED: &str = "fault.command.savedWorkflowStartRejected.";
+pub const WORKFLOW_RUN_RESUME_REJECTED: &str = "fault.command.workflowRunResumeRejected.";
+pub const WORKFLOW_RUN_SETTINGS_REJECTED: &str = "fault.command.workflowRunSettingsRejected.";
+
+/// `startSavedWorkflow`：按名字（可选作用域）启动已保存的工作流。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowStart {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<serde_json::Value>,
+}
+
+/// `amendWorkflowRunSettings`：两项设置的三态（省略 = 沿用，`null` = 回默认，值 = 设定）。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowAmend {
+    pub run_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subagent_model: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_concurrency: Option<Option<u64>>,
+}
+
+/// 引擎接受一次 submit / resume / amend 之后给的两把联接键（`runId` ≡ `workId`）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunStarted {
+    pub run_id: String,
+    pub tool_call_id: String,
+    /// 修订设置时旧 run 仍在飞、被这次调整停下时在场。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_run_id: Option<String>,
+}
+
+/// 引擎的业务拒绝：`reason` 是 Node 词表里的 token，前缀由调用方按命令补。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowEngineError {
+    pub reason: String,
+    pub message: Option<String>,
+}
+
+impl WorkflowEngineError {
+    pub fn new(reason: impl Into<String>) -> Self {
+        Self {
+            reason: reason.into(),
+            message: None,
+        }
+    }
+
+    pub fn with_message(reason: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            reason: reason.into(),
+            message: Some(message.into()),
+        }
+    }
+}
+
+/// DWF 引擎（路线 C 的 sidecar 端口）：启动 / 恢复 / 修订 / 取消一次 run。
+///
+/// submit / resume / amend 成功时给 [`WorkflowRunStarted`]；业务拒绝给 [`WorkflowEngineError`]
+/// （协议层按命令补 `fault.command.*Rejected.<reason>` 前缀）。run 的进度与结算走引擎自己的
+/// 事件通道（`run/event`），不在这里。
+#[async_trait::async_trait]
+pub trait WorkflowEngine: Send + Sync {
+    async fn start_saved(
+        &self,
+        parent: &crate::ids::SessionId,
+        request: WorkflowStart,
+    ) -> Result<WorkflowRunStarted, WorkflowEngineError>;
+
+    async fn resume(
+        &self,
+        run_id: &str,
+        name: Option<&str>,
+    ) -> Result<WorkflowRunStarted, WorkflowEngineError>;
+
+    async fn amend(&self, request: WorkflowAmend) -> Result<WorkflowRunStarted, WorkflowEngineError>;
+
+    async fn cancel(&self, run_id: &str) -> Result<(), WorkflowEngineError>;
+}
