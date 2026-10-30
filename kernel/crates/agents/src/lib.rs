@@ -87,6 +87,8 @@ pub struct AgentsPorts {
     pub monitor: MonitorTexts,
     /// 本机的同伴会话（ListAgents 的同伴段、SendMessage 发给同伴；docs/specs/rust-cli/cross-session.md）。
     pub peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>,
+    /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：子代理继承父会话的条目。
+    pub directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
 }
 
 /// 开关。
@@ -150,6 +152,12 @@ impl Core {
         if let Some(registry) = self.registry() {
             registry.inherit_session_mcp(parent, child);
         }
+    }
+
+    /// 子代理继承父会话的附加工作目录（NIBI `createSession.additionalDirectories`）：判决链与提示词
+    /// 都按子会话取，因此复制一份借用的条目到子会话。
+    pub(crate) fn inherit_session_directories(&self, parent: &SessionId, child: &SessionId) {
+        self.ports.directories.inherit(parent, child);
     }
 }
 

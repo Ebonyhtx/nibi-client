@@ -89,6 +89,9 @@ pub struct PolicyGate {
     scoped: Mutex<HashMap<SessionId, Vec<rust_cli_kernel_api::permission::SourcedRule>>>,
     classifier: Arc<dyn AutoClassifier>,
     options: PolicyOptions,
+    /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：判决时按会话取，
+    /// 与进程级 `--add-dir` 一起进路径根的允许范围（远端机器不带过去，同下）。
+    directories: Option<Arc<rust_cli_kernel_api::session_paths::SessionDirectories>>,
 }
 
 impl Default for PolicyGate {
@@ -104,6 +107,7 @@ impl PolicyGate {
             scoped: Mutex::default(),
             classifier: Arc::new(Unavailable),
             options: PolicyOptions::default(),
+            directories: None,
         }
     }
 
@@ -116,6 +120,16 @@ impl PolicyGate {
     #[must_use]
     pub fn with_options(mut self, options: PolicyOptions) -> Self {
         self.options = options;
+        self
+    }
+
+    /// 接上会话的附加工作目录（runtime 建一个句柄，与内存里的会话表一起给）。
+    #[must_use]
+    pub fn with_session_directories(
+        mut self,
+        directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    ) -> Self {
+        self.directories = Some(directories);
         self
     }
 
@@ -201,6 +215,15 @@ impl PolicyGate {
                     .iter()
                     .map(|dir| dir.as_str().to_owned()),
             );
+            // 会话自己的附加目录（NIBI createSession.additionalDirectories）：工作区之外也按"在工作区内"判决。
+            if let Some(directories) = &self.directories {
+                roots.extend(
+                    directories
+                        .get(&context.session)
+                        .iter()
+                        .map(|dir| dir.as_str().to_owned()),
+                );
+            }
         }
         PathContext {
             cwd: shell.as_ref().map_or_else(

@@ -52,6 +52,7 @@
 //! | [`history`] | 活动历史（最近一次压缩边界之后，含保留段） |
 //! | [`hooks`] | hook 事件、合并结果与 http hook 的出口端口 |
 //! | [`session_api`] | 前端使用的会话 API 与内核事件 |
+//! | [`session_paths`] | 会话的附加工作目录（NIBI `createSession.additionalDirectories`） |
 //! | [`clock`] | 时间与 ID 的注入端口 |
 //! | [`user_command`] | 用户输入的斜杠命令（skill 的用户调用） |
 //! | [`workspace_trust`] | 工作区信任记录的键 |
@@ -107,6 +108,7 @@ pub mod plan;
 pub mod provider;
 pub mod reminder_fold;
 pub mod session_api;
+pub mod session_paths;
 pub mod store;
 pub mod title;
 pub mod tool;

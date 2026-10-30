@@ -147,6 +147,8 @@ pub struct LocalKernel {
     peers: rust_cli_session::PeerDeps,
     /// 父会话关闭之后旧会话的询问入口（进程级，agents.md §4.1.2，工作线 F72）：每个会话 actor 共用这一份。
     detached: Arc<rust_cli_session::DetachedAsks>,
+    /// 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段读的同一份表。
+    directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
 }
 
 impl LocalKernel {
@@ -229,7 +231,13 @@ impl LocalKernel {
         let late = Arc::new(late::LateCompactor::default());
         // 一个判决链实例：工具注册（Edit / Write 的先读规则）与执行管线共用，会话内“总是允许”的
         // 规则因此对两边都生效。规则快照由入口层接入配置后替换（shell-permissions.md §5）。
-        let gate = Arc::new(PolicyGate::default());
+        // 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段共用一份。
+        let session_directories = Arc::new(
+            rust_cli_kernel_api::session_paths::SessionDirectories::new(),
+        );
+        let gate = Arc::new(
+            PolicyGate::default().with_session_directories(session_directories.clone()),
+        );
         // ToolSearch 与延迟工具清单看同一个主线程注册表，建好注册表后绑定（tools-more.md §3.4）；`ENABLE_TOOL_SEARCH` 为关时
         // ToolSearch 不启用（工作线 F89，§3.2.1）。
         let catalog = Arc::new(rust_cli_tools::ToolCatalog::new(
@@ -353,7 +361,9 @@ impl LocalKernel {
                 .with_machines(ports.environments.clone()),
         ))
         // 机器清单提醒（R3，remote-exec.md §20.5.3）。
-        .with_machines(ports.environments.clone());
+        .with_machines(ports.environments.clone())
+        // 会话的附加工作目录（NIBI createSession.additionalDirectories）。
+        .with_session_directories(session_directories.clone());
         let context = Arc::new(context);
         let assembler = context.clone();
         let sessions = OpenSessions::default();
@@ -365,6 +375,7 @@ impl LocalKernel {
             gate: gate.clone(),
             mcp: ext.mcp().clone(),
             ext: ext.clone(),
+            directories: session_directories.clone(),
         });
         let parts = QueryParts {
             model: ports.model.clone(),
@@ -403,6 +414,7 @@ impl LocalKernel {
         // 主循环包一层运行登记；子循环由 `LoopFactory` 用同一套能力组装。
         let agents = Agents::new(
             AgentsPorts {
+                directories: session_directories.clone(),
                 store: ports.store.clone(),
                 ids: ports.ids.clone(),
                 clock: ports.clock.clone(),
@@ -507,6 +519,7 @@ impl LocalKernel {
             closer,
             peers: extensions.peers,
             detached,
+            directories: session_directories,
         }
     }
 

@@ -177,6 +177,31 @@ Host 在 `sendText` / `createSession.firstInput` / `editUserQuery` 里给的是 
 protocol-zcode 36 测试（新增图片引用映射、非图片拒绝、内容块顺序）；双内核驱动用真实 1×1 PNG：
 两边 ACK accepted、`userInput` 行带 1 条引用，对拍门禁 17 → **20** 个必需字段全一致。
 
+## 6.3 会话附加工作目录（`createSession.additionalDirectories`，2026-10-30）
+
+Host 把用户在工作区之外添加的目录随建会话送进来。此前 Rust 只认进程级 `--add-dir`，这些目录
+既不进提示词、也不进判决链的允许范围——读工作区外的文件会逐次询问（yolo 之外）。
+
+实现：
+
+- `kernel-api::session_paths::SessionDirectories`：会话 → 目录表（`set/get/inherit/release`），
+  `Kernel::set_session_directories`（缺省 Unsupported）。
+- `policy`：`PolicyGate::with_session_directories`，`path_context` 把会话的目录接进 `roots`
+  （与本机 `--add-dir` 同规则；远端机器仍只带自己的工作目录）。
+- `context`：`PromptAssembler::with_session_directories`，`shown_facts` 把会话目录并进
+  `EnvFacts.additional_directories`，环境段照常列出（`Additional working directories`）。
+- `agents`：`AgentsPorts.directories` + `create()` 里的 `inherit_session_directories`，子代理继承
+  父会话的附加目录（Node 的子代理 app 继承同一份配置）。
+- `runtime`：一份句柄同时给判决链、上下文与 `Closer`（会话关闭释放）；`protocol-zcode` 的
+  `createSession` 调 `set_session_directories`，空列表等于没有。
+
+**已知差异**：冷恢复（v4 subscribe 触发的 resume）不带 `additionalDirectories`（Node 的
+`resumePersistedSession` 有该参数，但 Rust 的协议前端还没实现这条恢复路径）。
+
+验证：kernel-api 1 个新单测（set/get/inherit/release）；policy 1 个（按会话放行、跨会话隔离、
+子代理继承、远端不带、释放后回到询问）；双内核驱动在隔离 home 里建 `extra-workspace`，两边首轮
+请求的环境段都含该路径；对拍门禁 20 → **21** 个必需字段全一致。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

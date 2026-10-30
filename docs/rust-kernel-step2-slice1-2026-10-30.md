@@ -264,12 +264,27 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 **验证**：runtime 4 单测、protocol-zcode 36 测试；双内核驱动用真实 PNG：两边 accepted、
 行上 1 条引用，对拍门禁 17 → **20** 字段全一致（`attachmentReplayed` 作为模型侧已知差异）。
 
+## 6.10 第十二步：会话附加工作目录（2026-10-30）
+
+`createSession.additionalDirectories` 此前不消费：目录既不进提示词，也不进判决链的允许范围。
+
+- `kernel-api::session_paths::SessionDirectories` + `Kernel::set_session_directories`；
+- `policy`：`path_context` 按会话把目录接进 `roots`（远端机器不带，同 `--add-dir` 规则）；
+- `context`：`shown_facts` 并进 `EnvFacts.additional_directories`，环境段列出；
+- `agents`：子代理继承父会话的目录；`runtime`：一份句柄共用，会话关闭释放；
+- `protocol-zcode`：createSession 调用设置（空列表等于没有）。
+
+已知差异：冷恢复不带该参数（Rust 协议前端还没有那条恢复路径）。验证：policy 新测试（按会话放行、
+跨会话隔离、继承、远端不带、释放后询问）；双内核驱动两边环境段都含 `extra-workspace`；对拍门禁
+20 → **21** 字段全一致。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
-   （图片）已完成；剩下 `additionalDirectories`、`dynamicWorkflowEnabled/Mode`。
+   （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，
+   短期保持点名 warn）。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
 4. `generate-nibi-command-schema.ts --check` 尚未接进 CI（`rust-gates.yml` 只跑 cargo；
    需要一个带 Node 的 job 或把它挂到 `client-gates`，待补）。

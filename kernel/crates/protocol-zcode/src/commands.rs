@@ -1,7 +1,7 @@
 //! 命令的处理（[`crate::inbox`] 的裁决与转交）：P1 的五个命令。
 
 use rust_cli_kernel_api::attachment::AttachmentSource;
-use rust_cli_kernel_api::env::WorkspaceRef;
+use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::{CommandId, InteractionId, SessionId};
 use rust_cli_kernel_api::interaction::PermissionAnswer;
 use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
@@ -545,6 +545,31 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
                 session = %id,
                 error = %error,
                 "the kernel refused the session MCP servers"
+            );
+        }
+    }
+    // 附加工作目录（NIBI createSession.additionalDirectories）：判决链按"在工作区内"处理，
+    // 环境段列出它们。空列表等于没有。
+    if let Some(dirs) = payload["additionalDirectories"].as_array() {
+        let directories: Vec<EnvPath> = dirs
+            .iter()
+            .filter_map(Value::as_str)
+            .map(EnvPath::new)
+            .collect();
+        if directories.len() != dirs.len() {
+            tracing::warn!(
+                event = "protocol.create_session.additional_directories_unparsed",
+                given = dirs.len(),
+                parsed = directories.len(),
+                "createSession.additionalDirectories has entries the kernel cannot map"
+            );
+        }
+        if let Err(error) = server.kernel.set_session_directories(&id, directories).await {
+            tracing::warn!(
+                event = "protocol.create_session.additional_directories_failed",
+                session = %id,
+                error = %error,
+                "the kernel refused the session additional directories"
             );
         }
     }

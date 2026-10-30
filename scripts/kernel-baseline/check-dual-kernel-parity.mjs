@@ -9,7 +9,7 @@
  *   switchModeChangeStatus、switchModeSameStatus、forkChildPrefix、
  *   editStatus、retryStatus、cancelStatus、cancelCode、
  *   mcpToolOffered、mcpOfferedInFirstRequest、mcpToolCalled、mcpToolResult、
- *   attachmentStatus、attachmentCode、attachmentRowRefs
+ *   attachmentStatus、attachmentCode、attachmentRowRefs、additionalDirInPrompt
  *
  * 已知差异（只报告，不判失败）：
  *   - attachmentReplayed：本地路径图片，Rust 读文件并内联进请求；Node 在 OpenAI-compatible
@@ -48,6 +48,7 @@ const REQUIRED = [
   "attachmentStatus",
   "attachmentCode",
   "attachmentRowRefs",
+  "additionalDirInPrompt",
 ];
 const KNOWN_DIFFERENT = ["attachmentReplayed"];
 

@@ -585,6 +585,18 @@ pub trait Kernel: Send + Sync {
     /// 缺省什么都不做。
     fn stop_session_mcp(&self, _session: &SessionId) {}
 
+    /// 给会话装上附加工作目录（NIBI `createSession.additionalDirectories`）：判决链把它们按
+    /// "在工作区内"处理，提示词的环境段列出它们。空列表等于没有。缺省实现返回 `Unsupported`。
+    async fn set_session_directories(
+        &self,
+        _session: &SessionId,
+        _directories: Vec<crate::env::EnvPath>,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session additional directories".to_owned(),
+        })
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///

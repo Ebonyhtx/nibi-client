@@ -105,6 +105,8 @@ pub struct PromptAssembler {
     tasks: std::sync::OnceLock<Arc<dyn TaskReader>>,
     /// 连上的远端机器（R3，remote-exec.md §20.5.3）：机器清单提醒读它的快照；没有时不提醒。
     machines: Option<Arc<dyn EnvironmentRegistry>>,
+    /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：环境段按会话列出。
+    directories: Option<Arc<rust_cli_kernel_api::session_paths::SessionDirectories>>,
 }
 
 /// 当步 attachment 属于哪个循环（docs/specs/rust-cli/agents.md §4.3）。
@@ -146,7 +148,18 @@ impl PromptAssembler {
             changed: None,
             tasks: std::sync::OnceLock::new(),
             machines: None,
+            directories: None,
         }
+    }
+
+    /// 接上会话的附加工作目录（runtime 建一个句柄，与判决链共用）。
+    #[must_use]
+    pub fn with_session_directories(
+        mut self,
+        directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    ) -> Self {
+        self.directories = Some(directories);
+        self
     }
 
     /// 接上执行环境的注册表：连上、断开远端机器时发机器清单提醒（remote-exec.md §20.5.3）。
@@ -245,9 +258,20 @@ impl PromptAssembler {
             .await
             .ok()
             .map(|state| state.cwd);
-        facts.map(|facts| EnvFacts {
-            cwd: shell_cwd.unwrap_or_else(|| facts.cwd.clone()),
-            ..facts.clone()
+        facts.map(|facts| {
+            let mut shown = EnvFacts {
+                cwd: shell_cwd.unwrap_or_else(|| facts.cwd.clone()),
+                ..facts.clone()
+            };
+            // 会话自己的附加目录（NIBI createSession.additionalDirectories）与环境段同一处列出。
+            if let Some(directories) = &self.directories {
+                for dir in directories.get(&request.session) {
+                    if !shown.additional_directories.contains(&dir) {
+                        shown.additional_directories.push(dir);
+                    }
+                }
+            }
+            shown
         })
     }
 

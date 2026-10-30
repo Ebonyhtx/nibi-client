@@ -224,6 +224,16 @@ impl Kernel for LocalKernel {
         self.ext.release_session(session);
     }
 
+    /// NIBI `createSession.additionalDirectories`：判决链把它们按"在工作区内"处理，环境段列出它们。
+    async fn set_session_directories(
+        &self,
+        session: &SessionId,
+        directories: Vec<rust_cli_kernel_api::env::EnvPath>,
+    ) -> Result<(), KernelError> {
+        self.directories.set(session, directories);
+        Ok(())
+    }
+
     /// NIBI `AttachmentRef`：artifact URI 经会话 artifact 存储，路径经会话所在机器的文件端口。
     async fn load_attachment(
         &self,

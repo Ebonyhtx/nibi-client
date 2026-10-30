@@ -72,3 +72,42 @@ fn the_read_only_check_uses_the_machine_path_style() {
     assert!(is_read_only_on("xargs echo", false, PathStyle::Posix));
     assert!(!is_read_only_on("xargs echo", false, PathStyle::Windows));
 }
+
+#[tokio::test]
+async fn session_additional_directories_are_allowed_per_session() {
+    use rust_cli_kernel_api::ids::SessionId;
+    use rust_cli_kernel_api::session_paths::SessionDirectories;
+
+    let directories = Arc::new(SessionDirectories::new());
+    let gate = PolicyGate::new(rules(&[])).with_session_directories(directories.clone());
+    let mode = PermissionMode::AcceptEdits;
+    let mut first = context(mode);
+    first.session = SessionId::new("sess_first");
+    let mut second = context(mode);
+    second.session = SessionId::new("sess_second");
+    // 没有附加目录时，工作区之外要问。
+    assert!(matches!(
+        edit(&gate, &first, "/extra/scoped.txt").await,
+        PermissionDecision::Ask { .. }
+    ));
+    directories.set(&first.session, vec![EnvPath::new("/extra")]);
+    assert_eq!(edit(&gate, &first, "/extra/scoped.txt").await, allow());
+    // 另一个会话不受影响（按会话取，不是进程级）。
+    assert!(matches!(
+        edit(&gate, &second, "/extra/scoped.txt").await,
+        PermissionDecision::Ask { .. }
+    ));
+    // 子代理继承父会话的附加目录。
+    directories.inherit(&first.session, &second.session);
+    assert_eq!(edit(&gate, &second, "/extra/scoped.txt").await, allow());
+    // 远端机器上同样不带过去。
+    assert!(matches!(
+        edit(&gate, &remote(mode), "/extra/scoped.txt").await,
+        PermissionDecision::Ask { .. }
+    ));
+    directories.release(&first.session);
+    assert!(matches!(
+        edit(&gate, &first, "/extra/scoped.txt").await,
+        PermissionDecision::Ask { .. }
+    ));
+}

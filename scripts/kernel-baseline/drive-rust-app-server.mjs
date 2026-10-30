@@ -43,6 +43,10 @@ const dataV2 = join(home, dotDir, "v2");
 mkdirSync(dataV2, { recursive: true });
 const workspace = join(home, "workspace");
 mkdirSync(workspace, { recursive: true });
+// 会话的附加工作目录（NIBI createSession.additionalDirectories）：环境段该列出它。
+const extraDirectory = join(home, "extra-workspace");
+mkdirSync(extraDirectory, { recursive: true });
+writeFileSync(join(extraDirectory, "note.txt"), "extra directory note");
 // 附件回放用的真实图片（1x1 PNG）：两个内核都从本机路径读，不再用假 ref。
 const attachmentPath = join(home, "attachment.png");
 const attachmentBytes = Buffer.from(
@@ -89,7 +93,25 @@ const server = createServer((req, res) => {
       ? textOf(toolMessages[toolMessages.length - 1].content)
       : null;
     if (toolResult !== null) TOOL_RESULTS.push(toolResult);
-    REQUESTS.push({ at: Date.now(), path: req.url, model: parsed?.model ?? null, tools, hasImage });
+    // 按文本比较：JSON 里的反斜杠会转义，直接 includes 路径会永远为假。
+    const messageText = messages
+      .map((message) =>
+        typeof message.content === "string"
+          ? message.content
+          : (message.content ?? [])
+              .map((part) => (typeof part?.text === "string" ? part.text : ""))
+              .join(" "),
+      )
+      .join(" ");
+    const mentionsExtraDir = messageText.includes(extraDirectory);
+    REQUESTS.push({
+      at: Date.now(),
+      path: req.url,
+      model: parsed?.model ?? null,
+      tools,
+      hasImage,
+      mentionsExtraDir,
+    });
     if (process.env.NIBI_DRIVE_DEBUG === "1") {
       const system = messages.find((m) => m.role === "system")?.content;
       const systemText = textOf(system);
@@ -336,6 +358,8 @@ try {
       type: "createSession",
       payload: {
         workspaceId: workspace,
+        // 附加工作目录：环境段要列出它（判决链也按它放行工作区之外的路径）。
+        additionalDirectories: [extraDirectory],
         firstInput: { text: "hello rust kernel", mode: "yolo" },
         // 会话级 MCP：两边内核都该连上并在首发请求前把工具放进工具表（Node 的实现是 runtimeConfig.mcp）。
         mcpServers: [
@@ -385,7 +409,13 @@ try {
     60_000,
   );
   checks.sendTextStatus = send1.result?.status;
-  console.log(`sendText: assistant reply visible, frames=${frames.length}`);
+  checks.additionalDirInPrompt = REQUESTS.some((request) => request.mentionsExtraDir);
+  console.log(
+    `sendText: assistant reply visible, frames=${frames.length}; extra dir in prompt=${checks.additionalDirInPrompt}`,
+  );
+  if (!checks.additionalDirInPrompt) {
+    throw new Error("createSession.additionalDirectories never reached the prompt");
+  }
 
   const currentCommittedCount = async () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
