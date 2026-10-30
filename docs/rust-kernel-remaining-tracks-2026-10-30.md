@@ -164,6 +164,38 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 - 两份 JSON 逐字段 diff，差异字段就是答案；改完把 fixture 固化成仓库内的
   `scripts/kernel-baseline/fixtures/hooks-parity/`，并把这个对比做成可复跑的门禁脚本。
 
+### 阻塞项（2026-10-30）：项目配置目录还是 `.zcode`，这是品牌化轨的事
+
+摘要对拍的矩阵实验把真因定死了。同一份 fixture 反复换内容，两边 CLI 的 `bundleDigest`：
+
+| fixture | Node | Rust | 结论 |
+|---|---|---|---|
+| 只有 `zcode.json`（5 种变体：无/`enabled:true`/`timeoutMs`/两者/`enabled:false`） | 全部 | 全部 | **5/5 MATCH** |
+| `zcode.json` + 旧形状 `.zcode/config.json` | `22826b59`（**不理** `.zcode`） | `98101c0a`（**读** `.zcode`） | DIFF |
+| `zcode.json` + `.nibi/config.json` | `39b48f8f`（**读** `.nibi`） | `22826b59`（**不理** `.nibi`） | DIFF |
+
+**结论**：摘要算法、payload 结构、可选值编码、四个布尔语义**全部一致**；差异只有一个——
+**项目级配置目录名**。Node/NIBI 读 `<工作区>/.nibi/config.json`，Rust 内核读 `<工作区>/.zcode/config.json`
+（`crates/base/src/names.rs` 的 `dot_dir!()` 仍是 `.zcode`）。
+
+这是**真实的静默丢失**，不只影响钩子评审：NIBI 用户写在 `.nibi/config.json` 里的 hooks（以及同一套
+发现逻辑读的权限规则、MCP、插件配置）在 Rust 内核里全部**看不见**；反过来 Rust 用户以为生效的
+`.zcode/config.json`，Node/App 又不读。
+
+**为什么没顺手改**：改它要动 `dot_dir!()` 的语义边界（存储/用户根 vs 项目目录），并重算 vendored 的
+`crates/cli/tests/fixtures/workspace-hooks-golden.json`（4 个用例的 digest 字面量）、`hooks_trust` 的
+文本断言、插件配置发现的两处测试。按既定纪律"品牌化单独 PR、可整体 revert、不混进功能 PR"，这属于
+**品牌化轨**，必须先拍板再动。
+
+**两个选项（需要用户拍板，二选一）**：
+- **A（推荐）先做品牌化的项目目录收口**：新增 `PROJECT_DOT_DIR = ".nibi"`（不动全局 `dot_dir!()`，存储/用户根
+  不变），只改项目配置发现 + digest kind，重算 golden 并用真实 fixture 与 Node CLI 对拍验证；独立 PR，
+  可整体 revert。完成后再继续钩子评审的四条命令。
+- **B 钩子评审先用 `.zcode` 接线**：命令能跑通、对拍也能过（两边都用 `.zcode` fixture），但 NIBI 用户真实
+  的 `.nibi/config.json` 在 Rust 灰度下不可见——等于"功能做了但用户用不上"，不建议进灰度。
+
+已回退：尝试中的 `.nibi` 改动没有留在工作树（`cargo test -p rust-cli files` 绿）。
+
 ### 待查（动手前先读源码确认，不猜）
 
 1. `reviewFlowId` 的生命周期与 `generation` 的精确语义（`interaction-registry.ts` 的
