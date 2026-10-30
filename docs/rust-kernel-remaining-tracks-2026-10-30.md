@@ -104,6 +104,21 @@ pub trait Kernel {
    → 同时确认 Rust 的 `hooks::workspace_digest::runtime_root/bundle` 是否按同样的层次与顺序收集
    （它存在且是库，但"收集哪些层的哪些文件"目前在 CLI 的 `config/trust.rs` 里）。
 
+### 探针结果：摘要对拍的第一次尝试（2026-10-30，未通过，记录在此）
+
+两边的 CLI 都有 `hooks trust status --json`，所以最便宜的对照组是"同一份 fixture + 两个 CLI"。已做：
+
+- fixture：`<ws>/zcode.json` 与 `<ws>/.zcode/config.json`、`<ws>/.nibi/config.json`，内容
+  `{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo pre"}]}],
+  "Stop":[{"hooks":[{"type":"command","command":"echo stop"}]}]}}`；两边都用隔离 HOME 跑。
+- Node：**能发现文件但拒绝内容** —— `.nibi/config.json` 与 `zcode.json` 都回
+  `"Unable to read Workspace Hook config: <path>"`（说明文件名/发现路径成立，是文档形状不对）。
+- Rust：同一 fixture 回 `workspace_hooks_not_applicable`（既没有把它当候选，也没有报解析错）。
+
+结论：**先对齐 fixture 的形状**，再谈摘要。下一步要读的是 Node 侧 hooks 段的 zod schema
+（`@nibi/contracts` 的配置 schema）与 Rust `NodeHooks::from_json` 的接受规则，找出两者共同的最小
+文档；当前 fixture 在两个实现里都不被接受，不能作为对拍基线。
+
 ### 待查（动手前先读源码确认，不猜）
 
 1. `reviewFlowId` 的生命周期与 `generation` 的精确语义（`interaction-registry.ts` 的
