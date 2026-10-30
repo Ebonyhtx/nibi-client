@@ -198,6 +198,12 @@ edit/resubmit 是边界场景），已记录在案。
 返回 Host 偏好；其他回 -32601）、`row.removed` 增量回放、CAS stale/duplicate 就地重试
 （每次新 commandId）、权威 transcript 目标解析。
 
+**对拍门禁（可复跑）**：`node scripts/kernel-baseline/check-dual-kernel-parity.mjs`
+——并行跑两个内核，逐字段比较 13 个必需字段（会话 ID 前缀、各命令 status、noop 码、
+cancel fault 码），附件回放与 metrics 列为已知差异。当前结果：
+`RESULT: OK (13 required fields match)`。启动耗时 rust≈171ms / node≈36ms（公制记录，
+不判失败）。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
