@@ -274,9 +274,14 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 - `agents`：子代理继承父会话的目录；`runtime`：一份句柄共用，会话关闭释放；
 - `protocol-zcode`：createSession 调用设置（空列表等于没有）。
 
-已知差异：冷恢复不带该参数（Rust 协议前端还没有那条恢复路径）。验证：policy 新测试（按会话放行、
-跨会话隔离、继承、远端不带、释放后询问）；双内核驱动两边环境段都含 `extra-workspace`；对拍门禁
-20 → **21** 字段全一致。
+**冷恢复**：Host 的 `subscribe` 参数带 `additionalDirectories`/`resumeThoughtLevel`，Rust 在冷打开时
+应用（live 订阅不消费）：`set_session_directories` + 需要时一次 `SetModel`。新门禁
+`check-cold-resume.mjs`（两段式：正常建会话 → 新进程订阅持久化会话 + 发输入）两个内核都通过。
+
+已知差异：冷恢复不带 `mcpServers`（Host 的订阅参数里没有它，Node 同样拿不到）；回合中途被杀留下
+未结束回合时，冷打开后的输入会排队不跑（两个内核同象，harness 需先干净收尾）。验证：policy 新测试
+（按会话放行、跨会话隔离、继承、远端不带、释放后询问）；双内核驱动两边环境段都含
+`extra-workspace`；对拍门禁 20 → **21** 字段全一致。
 
 ## 4. 尚未完成（Step 2 后续）
 

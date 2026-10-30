@@ -30,6 +30,10 @@ const dotDir = isNode ? ".nibi" : ".zcode";
 const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,rename,switchModel,switchMode,fork,edit,retry,compact,rejections")
   .split("=")[1]
   .split(",");
+// 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
+// subscribe（带 additionalDirectories/resumeThoughtLevel）+ sendText，验证冷打开的恢复提示。
+const resumeSession = args.find((a) => a.startsWith("--resume="))?.split("=").slice(1).join("=");
+const fixedHome = args.find((a) => a.startsWith("--home="))?.split("=").slice(1).join("=");
 // 会话级的 MCP 服务器（NIBI createSession.mcpServers）：一个只提供 echo 的 stdio 服务器。两边内核都
 // 用同一个脚本，工具名 mcp__fake__echo；它出现在 provider 请求的 tools 里就证明"建会话 → 连上 → 进工具表"整链通。
 const fakeMcpScript = join(import.meta.dirname, "fake-mcp-server.mjs");
@@ -38,7 +42,7 @@ if (!process.version.startsWith("v24")) {
   console.error(`warning: running on ${process.version}`);
 }
 
-const home = mkdtempSync(join(tmpdir(), "nibi-rust-drive-"));
+const home = fixedHome ?? mkdtempSync(join(tmpdir(), "nibi-rust-drive-"));
 const dataV2 = join(home, dotDir, "v2");
 mkdirSync(dataV2, { recursive: true });
 const workspace = join(home, "workspace");
@@ -47,6 +51,9 @@ mkdirSync(workspace, { recursive: true });
 const extraDirectory = join(home, "extra-workspace");
 mkdirSync(extraDirectory, { recursive: true });
 writeFileSync(join(extraDirectory, "note.txt"), "extra directory note");
+// 冷恢复时新加的附加目录：只出现在 resume 的 subscribe 参数里，能证明订阅提示被消费。
+const resumeDirectory = join(home, "extra-resume");
+mkdirSync(resumeDirectory, { recursive: true });
 // 附件回放用的真实图片（1x1 PNG）：两个内核都从本机路径读，不再用假 ref。
 const attachmentPath = join(home, "attachment.png");
 const attachmentBytes = Buffer.from(
@@ -103,7 +110,8 @@ const server = createServer((req, res) => {
               .join(" "),
       )
       .join(" ");
-    const mentionsExtraDir = messageText.includes(extraDirectory);
+    const mentionsExtraDir =
+      messageText.includes(extraDirectory) || messageText.includes(resumeDirectory);
     REQUESTS.push({
       at: Date.now(),
       path: req.url,
@@ -348,6 +356,50 @@ try {
   );
   checks.startupMs = startup.params.elapsedMs;
   console.log(`startup: ready elapsed=${startup.params.elapsedMs}ms`);
+
+  if (resumeSession) {
+    // 冷恢复：不建会话，直接订阅一个持久化会话（带两个恢复提示），发一条输入看环境段。
+    const sub = await send("v4/conversation/subscribe", {
+      topic: `conversation/${resumeSession}`,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+      workspace: { workspaceKey: workspace, workspacePath: workspace },
+      additionalDirectories: [resumeDirectory],
+      resumeThoughtLevel: "enabled",
+    });
+    if (!sub.result?.ack) throw new Error(`cold subscribe failed: ${JSON.stringify(sub)}`);
+    console.log(`cold subscribe: ${JSON.stringify(sub.result.ack).slice(0, 120)}`);
+    const ackSend = await send("v4/command", {
+      commandId: "0197d3f0-0000-7000-8000-000000000041",
+      clientId: "drive",
+      sessionId: resumeSession,
+      type: "sendText",
+      payload: { text: "after cold resume" },
+      issuedAt: Date.now(),
+    });
+    console.log(`resume sendText ack: ${JSON.stringify(ackSend)}`);
+    console.log(`resume frames: ${frames.length}`);
+    // 不能拿重放的历史帧当"回复"：等一个**新的** provider 请求（快照里本来就有上一轮的
+    // RUST-DRIVE-REPLY）。
+    await waitFor(
+      () => (REQUESTS.length > 0 ? true : undefined),
+      "a model request after cold resume",
+      60_000,
+    );
+    checks.resumeAdditionalDir = REQUESTS.some((request) => request.mentionsExtraDir);
+    checks.resumeReplied = REQUESTS.length > 0;
+    console.log(
+      `cold resume: replied=${checks.resumeReplied} resume-dir-in-prompt=${checks.resumeAdditionalDir}`,
+    );
+    if (!checks.resumeReplied) throw new Error("cold resume produced no reply");
+    if (!checks.resumeAdditionalDir) {
+      throw new Error("the subscribe additionalDirectories hint never reached the prompt");
+    }
+    console.log(`RESULT:${JSON.stringify({ kernel, checks, metrics: { providerRequests: REQUESTS.length } })}`);
+    console.log("PHASES OK");
+    throw { done: true };
+  }
 
   // 2) createSession（带 firstInput）
   const ack1 = ack(
@@ -785,11 +837,16 @@ try {
   console.log(`final state: ${JSON.stringify((() => { const st = buildState(); return { logEpoch: st.logEpoch, revision: st.revision, stopState: st.stopState, rows: st.rows.map((r) => ({ rowId: r.rowId, kind: r.kind, state: r.state, assistantResponseId: r.assistantResponseId })) }; })())}`);
   console.log("PHASES OK");
 } catch (error) {
+  // 冷恢复分支用 `{ done: true }` 提前结束，不算失败。
+  if (error?.done === true) {
+    // 正常收尾（finally 负责关子进程）。
+  } else {
   console.error("FAILED: " + error.message + String(error.stack ?? "").split(String.fromCharCode(10)).slice(0, 8).join(String.fromCharCode(10)));
 
   console.error(`stderr tail:\n${stderr.split(/\r?\n/).slice(-12).join("\n")}`);
   console.error(`notifications: ${notifications.map((n) => n.method).join(", ")}`);
   process.exitCode = 1;
+  }
 } finally {
   child.stdin.end();
   child.kill();

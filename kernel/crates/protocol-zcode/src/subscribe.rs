@@ -4,7 +4,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
+use rust_cli_kernel_api::env::EnvPath;
+use rust_cli_kernel_api::ids::{CommandId, SessionId};
+use rust_cli_kernel_api::session_api::{Command, CommandEnvelope};
 use rust_cli_kernel_api::store::SessionFilter;
 use rust_cli_protocol_core::connection::Reply;
 use rust_cli_protocol_core::rpc::RpcError;
@@ -48,6 +50,58 @@ async fn stored_rows(server: &Server, workspace: &str) -> Vec<Value> {
     }
 }
 
+/// 冷打开的恢复提示（NIBI Host 的 `conversation/subscribe` 参数）：`additionalDirectories` 是会话的
+/// 附加工作目录（判决链与环境段按会话取），`resumeThoughtLevel` 是旧会话的思考档位暗示（task index 的
+/// 权威值），与持久化的选择不同时改一次。
+///
+/// 两者都只在不改错的地方 warn，不让订阅失败（Node 的冷恢复同样尽力而为）。
+async fn apply_resume_hints(server: &Server, live: &Arc<Bridged<Live>>, params: &Value) {
+    if let Some(dirs) = params["additionalDirectories"].as_array() {
+        let directories: Vec<EnvPath> = dirs
+            .iter()
+            .filter_map(Value::as_str)
+            .map(EnvPath::new)
+            .collect();
+        if let Err(error) = server
+            .kernel
+            .set_session_directories(live.handle.id(), directories)
+            .await
+        {
+            tracing::warn!(
+                event = "protocol.subscribe.additional_directories_failed",
+                session = %live.handle.id(),
+                error = %error,
+                "the kernel refused the resume additional directories"
+            );
+        }
+    }
+    let Some(thought) = params["resumeThoughtLevel"].as_str() else {
+        return;
+    };
+    let Ok(view) = live.handle.view().await else {
+        return;
+    };
+    if view.selection.reasoning.as_deref() == Some(thought) {
+        return;
+    }
+    let mut selection = view.selection;
+    selection.reasoning = Some(thought.to_owned());
+    let envelope = CommandEnvelope {
+        id: CommandId::new(format!("subscribe:{}:thought", live.handle.id().as_str())),
+        command: Command::SetModel { selection },
+    };
+    if let rust_cli_kernel_api::session_api::Ack::Rejected { reason } =
+        live.handle.send(envelope).await
+    {
+        tracing::warn!(
+            event = "protocol.subscribe.resume_thought_rejected",
+            session = %live.handle.id(),
+            reason = %reason,
+            "the kernel rejected the resumed thought level"
+        );
+    }
+}
+
 fn ack(subscription: &str, epoch: &str) -> Value {
     json!({"ack": {"subscriptionId": subscription, "mode": "snapshot", "logEpoch": epoch}})
 }
@@ -59,10 +113,14 @@ pub async fn subscribe(server: &Server, params: &Value) -> Result<Reply, RpcErro
         .unwrap_or_default()
         .to_owned();
     if let Some(session) = topic.strip_prefix(CONVERSATION_PREFIX) {
-        let live = server
-            .live(&SessionId::new(session))
-            .await
-            .map_err(|error| kernel_error(&error))?;
+        let id = SessionId::new(session);
+        // 冷打开（Host 的 `resumePersistedSession` 路径）：subscribe 带来的两个恢复提示只在冷打开时应用
+        // （schema 注释：live conversation 不消费）。Live 会话在内存表里，`get` 直接给句柄。
+        let cold = server.bridge.get(&id).is_none();
+        let live = server.live(&id).await.map_err(|error| kernel_error(&error))?;
+        if cold {
+            apply_resume_hints(server, &live, params).await;
+        }
         let subscription = server.context.fresh("sub");
         let epoch = live.sink.subscribe(&subscription, &connection);
         return Ok(Reply::then(

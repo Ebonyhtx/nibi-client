@@ -195,8 +195,16 @@ Host 把用户在工作区之外添加的目录随建会话送进来。此前 Ru
 - `runtime`：一份句柄同时给判决链、上下文与 `Closer`（会话关闭释放）；`protocol-zcode` 的
   `createSession` 调 `set_session_directories`，空列表等于没有。
 
-**已知差异**：冷恢复（v4 subscribe 触发的 resume）不带 `additionalDirectories`（Node 的
-`resumePersistedSession` 有该参数，但 Rust 的协议前端还没实现这条恢复路径）。
+**冷恢复（同日补）**：Host 的 `conversation/subscribe` 参数带 `additionalDirectories` 与
+`resumeThoughtLevel`（Node 的冷恢复 `resumePersistedSession` 消费它们）。Rust 的 subscribe 现在在
+**冷打开**（内存表里还没有这个会话）时应用这两个提示：`set_session_directories` + 与持久化选择不同
+时发一次 `SetModel`（live 订阅不消费，与 schema 注释一致）。两段式门禁
+`scripts/kernel-baseline/check-cold-resume.mjs`：先正常建会话，再用新进程订阅持久化会话并发送输入，
+两个内核都必须产生新的模型请求且环境段含恢复时新加的目录。
+
+**已知差异（剩）**：冷恢复不带 `mcpServers`（Host 的 subscribe 参数里没有它，Node 同样拿不到——
+这是 Host 契约的现状）；进程在回合中途被杀后，DB 里留下未结束的回合，冷打开后新的输入会排队不跑
+（两个内核同样如此；真机上是 Host 进程回收的时机问题，harness 必须先干净收尾再冷恢复）。
 
 验证：kernel-api 1 个新单测（set/get/inherit/release）；policy 1 个（按会话放行、跨会话隔离、
 子代理继承、远端不带、释放后回到询问）；双内核驱动在隔离 home 里建 `extra-workspace`，两边首轮
