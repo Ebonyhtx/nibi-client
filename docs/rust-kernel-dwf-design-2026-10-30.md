@@ -89,24 +89,31 @@
 （actor 会话与模型调用）。C1 的 sidecar 因此只需要把 driver 换成"接 NIBI 的模型/工具端口"的实现，
 不需要把整个 CLI App 搬进 sidecar。
 
-## 3.2 C1 sidecar 的控制面（草稿，动手前再对一遍）
+## 3.2 C1 sidecar 的控制面（2026-10-30 已用探针验证）
 
-- 形态：`nibi dwf-engine --stdio`（Node CLI 的隐藏子命令；一次进程服务一个父会话的多个 run）。
-  与 Rust 之间是 LF-JSON：
-  - 请求 `{id, method, params}`：`submit`（scriptText | savedName + args + modelBindings +
-    permissionMode + parentSessionId + cwd + caps）、`amend`（runId + 新的 scriptText/settings）、
-    `resume`（runId）、`cancel`（runId + initiator）、`status`；
-  - 事件 `{method:"dwf/event", params:{runId, payload}}`：直接沿用 `toProgressPayload` 的会话事件
-    载荷；Rust 侧投影成 NIBI 的 run 卡/详情数据，并负责写父会话的 control-only 轮与后台任务事实
-    （**父会话只有 Rust 一个写者**）。
-- 所有权：sidecar 只写 `dwf_*` 与 actor 子会话；父会话（`parent_session_id`）的事实由 Rust 写。
-- 启动配置：sidecar 从同一份平台层文件读 provider/凭据（与 app-server 相同的 `StoragePaths`），
-  run 的模型绑定由 `submit` 的 `modelBindings` 指定；缺凭据时 `start_failed` 而不是静默降级。
-- 恢复：sidecar 启动时对 `parentSessionId` 做一次孤儿收敛（run service 的
-  `reconcileOrphanRuns`），把死进程留下的 `running` 行标成 `stopped(interrupted)`；Rust 的
-  `resumeWorkflowRun` 直接透传 `resume`。
-- 验收：3 条命令与 Node 的 ACK/拒绝码一致；同一脚本两边 journal 终态一致；冷恢复后 run 列表与
-  Resume 入口一致。
+`scripts/kernel-baseline/probe-dwf-sidecar.mjs`：父进程扮演"Rust 宿主"，子进程是 sidecar（真实引擎 +
+沙箱子进程 + 真实 sqlite journal），driver 在 sidecar 里、每个方法都是一条 RPC。跑通的线协议：
+
+| 方向 | 方法 | 说明 |
+|---|---|---|
+| 宿主 → engine | `submit`（request） | `{runId, parentSessionId, cwd, scriptText, args, caps}`；回 `{settlement, journal}` |
+| engine → 宿主 | `actor/create`（request） | `{actor:{siteId, ordinal}}` → `{session:{id}}` |
+| engine → 宿主 | `world/read`（request） | `{op,args}` → 结果 |
+| engine → 宿主 | `ask/start`（notify） | `{key, session, instance, typed}` |
+| 宿主 → engine | `ask/reply`（notify） | `{runId, instance, kind: submit|text|fail, payload/text}` |
+| engine → 宿主 | `ask/verdict`（notify） | 引擎对提交的裁决（repair/nudge 的输入） |
+| engine → 宿主 | `ask/cancel`（notify） | 取消在飞 ask |
+| engine → 宿主 | `run/event`（notify） | `RunEvent.type`（进度/结算） |
+
+两个实现要点（探针踩到的）：
+
+1. **engine 的 stdin 读循环不能在 `submit` 上 await**：run 期间的 RPC 响应也走这条管道，阻塞读循环会
+   死锁（表现是沙箱墙钟超时）。
+2. driver 必须把 `journal` 交给引擎（`driver.journal`）；写归引擎，driver 只是持有。
+
+探针断言：actor 走宿主创建、typed ask 先提交错误形状 → 引擎 `node-repairing` + `ask/verdict` reject →
+宿主重提正确形状 → `completed`（artifact `{"answer":42}`）、journal 行 `completed` 且
+`parent_session_id` 正确。这就是"跨进程确定性"的实测：repair 循环只依赖消息顺序。
 
 ## 3.3 C1 细化：driver 走 RPC，模型与工具留在 Rust（2026-10-30 拍板后的调整）
 
