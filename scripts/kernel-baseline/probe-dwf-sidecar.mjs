@@ -65,8 +65,6 @@ function askSpecsFor(dwf, scriptText) {
 // ───────────────────────────── engine（子进程）─────────────────────────────
 async function engine() {
   const { dwf, runWorkflowScript, createDwfJournalStore } = await load();
-  const { db } = migratedDatabase();
-  const journal = createDwfJournalStore(db);
   const lines = createInterface({ input: process.stdin });
   let nextRequest = 1;
   const pending = new Map();
@@ -149,7 +147,9 @@ async function engine() {
     if (message.method === "submit") {
       // 不能在这个读循环里 await：run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
       void (async () => {
-      const { runId, parentSessionId, cwd, scriptText, args, caps } = message.params;
+      const { runId, parentSessionId, cwd, scriptText, args, caps, dbPath } = message.params;
+      const db = new DatabaseSync(dbPath);
+      const journal = createDwfJournalStore(db);
       const driver = new RemoteDriver(journal);
       drivers.set(runId, driver);
       const settlement = await runWorkflowScript({
@@ -166,11 +166,9 @@ async function engine() {
           return driver;
         },
         timeoutMs: 30000,
-      }).catch((error) => ({ status: "failed", error: String(error) }));
-      const row = db
-        .prepare("select status, parent_session_id from dwf_run where id = ?")
-        .get(runId);
-      send({ id: message.id, result: { settlement, journal: row ?? null } });
+      }).catch((error) => ({ status: "errored", error: { message: String(error) } }));
+      db.close();
+      send({ id: message.id, result: { ok: true, settlement } });
       })();
     }
   }
@@ -178,7 +176,11 @@ async function engine() {
 
 // ───────────────────────────── host（父进程，扮演 Rust）─────────────────────────────
 async function host() {
-  const child = spawn(process.execPath, [import.meta.filename, "--engine"], {
+  // 默认起本文件的 engine 模式；PROBE_ENGINE_CMD='["node","dist/nibi.cjs","__nibi-dwf-engine"]'
+  // 可以换成产品入口（Node CLI 的隐藏子命令）。
+  const override = process.env.PROBE_ENGINE_CMD;
+  const command = override ? JSON.parse(override) : [process.execPath, import.meta.filename, "--engine"];
+  const child = spawn(command[0], command.slice(1), {
     cwd: process.cwd(),
     stdio: ["pipe", "pipe", "inherit"],
   });
@@ -246,6 +248,8 @@ async function host() {
     }
   });
 
+  const { db: hostDb, path: hostDbPath } = migratedDatabase();
+  hostDb.close();
   const submitted = await new Promise((resolveSubmit, rejectSubmit) => {
     const id = "h1";
     pending.set(id, resolveSubmit);
@@ -256,6 +260,7 @@ async function host() {
         runId: "run-sidecar",
         parentSessionId: "sess_parent",
         cwd: mkdtempSync(join(tmpdir(), "nibi-dwf-sidecar-cwd-")),
+        dbPath: hostDbPath,
         scriptText: SCRIPT,
         caps: { maxConcurrency: 4 },
       },
@@ -268,7 +273,11 @@ async function host() {
   child.kill();
 
   const settlement = resolved?.settlement;
-  const journal = resolved?.journal;
+  const verify = new DatabaseSync(hostDbPath);
+  const journal = verify
+    .prepare("select status, parent_session_id from dwf_run where id = ?")
+    .get("run-sidecar");
+  verify.close();
   const ok =
     settlement?.status === "completed" &&
     JSON.stringify(settlement.artifact) === '{"answer":42}' &&

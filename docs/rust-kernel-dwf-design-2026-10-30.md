@@ -115,6 +115,20 @@
 宿主重提正确形状 → `completed`（artifact `{"answer":42}`）、journal 行 `completed` 且
 `parent_session_id` 正确。这就是"跨进程确定性"的实测：repair 循环只依赖消息顺序。
 
+**产品入口（2026-10-30 已落地）**：sidecar 是 Node CLI bundle 的隐藏子命令
+`nibi.cjs __nibi-dwf-engine`（`apps/zcode-cli/packages/cli/src/dwf-engine-command.ts`，在 `parseArgs`
+之前分派，与 `__zcode-dwf-child` 同款）。它解析 saved workflow（`resolveSavedWorkflow` +
+`validateWorkflowArgs`）、跑引擎、写 `dwf_*`；`submit` 带 `dbPath`（会话库），journal 由引擎独占写。
+探针用 `PROBE_ENGINE_CMD='["node","…/dist/nibi.cjs","__nibi-dwf-engine"]'` 跑同一个父进程脚本，
+结论与自建引擎一致（typed ask repair、`completed`、journal 行正确）。
+
+**分发方式（用户拍板 B）**：桌面端本来就跑 Electron 内置的 Node（`ELECTRON_RUN_AS_NODE=1` +
+`process.execPath` 指向 Electron Helper；`resolveElectronRuntimeZCodeAgentCommand` 的注释写明
+"不再随包内置一份独立 Node 二进制，体积从 ~180MB 降到 ~16MB"）。所以 sidecar 直接复用同一份
+Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经环境变量拿到启动命令
+（`NIBI_DWF_ENGINE_CMD`，JSON 数组；开发态是 `node src/main.ts`，桌面态是 Helper + `nibi.cjs`）。
+若变量缺席，引擎保持未接（命令回 `fault.command.capabilityUnsupported`）。
+
 ## 3.3 C1 细化：driver 走 RPC，模型与工具留在 Rust（2026-10-30 拍板后的调整）
 
 探针证明的唯一 app 耦合点是 driver（actor 会话与模型调用）。与其把整个 CLI App 搬进 sidecar，
@@ -151,8 +165,12 @@
 - 需要 DWF 的会话由 Host 固定走 Node 内核；同一会话生命周期内不切换；
 - 在设置页/文档写明"Rust 内核暂不提供动态工作流"，避免用户以为是 bug。
 
-## 5. 待拍板的问题
+## 5. 已拍板与剩余问题
 
-1. 路线选 A / B / C。
-2. 若选 C：sidecar 是否允许随内核二进制分发（安装包体积/签名/端口），还是要求"有 Node 才启用"。
-3. DWF 是否列入"切默认"的硬前置：若是，C1–C3 全部完成前 Rust 保持灰度；若否，写死分流表。
+1. 路线：**C**（2026-10-30）。
+2. sidecar 分发：**B**——复用客户端自带的 Node（桌面是 Electron Helper 的 Node 模式 + 同一个
+   `nibi.cjs` bundle），不额外打包；Rust 从 `NIBI_DWF_ENGINE_CMD` 拿启动命令。
+3. 剩余：DWF 是否列入"切默认"的硬前置（若是，C1–C3 全部完成前 Rust 保持灰度）。
+4. C1 未完成：sidecar 的 `resume` / `amend`（run service 的 `resumeDynamicWorkflowRun` 那一套：
+   journal 取脚本、编译、hash 比对、导入缓存）与 `escalate`（挂起/恢复一轮）；Rust 侧的 engine
+   子进程客户端（spawn + actor RPC 转给 `Kernel::run_workflow_actor`）。

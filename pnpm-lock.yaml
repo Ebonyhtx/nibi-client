@@ -411,6 +411,9 @@ importers:
       '@nibi/core':
         specifier: workspace:*
         version: link:../core
+      '@nibi/dynamic-workflow':
+        specifier: workspace:*
+        version: link:../dynamic-workflow
       '@nibi/dynamic-workflow-runtime':
         specifier: workspace:*
         version: link:../dynamic-workflow-runtime

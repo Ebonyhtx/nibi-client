@@ -26,6 +26,7 @@ import { runLoginCommand, runLogoutCommand } from "./login-command.js";
 import { CLI_COMMAND_NAME, CLI_PROCESS_NAME } from "./process-name.js";
 import { isPluginHostInvocation, runPluginHostCommand } from "./plugin-host-command.js";
 import { isDwfChildInvocation, runDwfChildCommand } from "./dwf-child-command.js";
+import { isDwfEngineInvocation, runDwfEngineCommand } from "./dwf-engine-command.js";
 import { runPrompt } from "./prompt-command.js";
 import { runPluginsCommand, type PluginsCommandFlags } from "./plugins-command.js";
 import { runSkillsCommand } from "./skills-command.js";
@@ -351,6 +352,11 @@ export const run = async (ctx: RunContext, deps: RunDependencies = {}): Promise<
   // 自 re-exec，argv 末位是入口文件路径——交给严格 parseArgs 只会报未知参数。
   if (isDwfChildInvocation(ctx.argv)) {
     return await runDwfChildCommand(ctx, ctx.argv.slice(1));
+  }
+
+  // DWF 引擎 sidecar（Rust 内核的路线 C）：同样在 parseArgs 之前分派；stdin 上是控制协议。
+  if (isDwfEngineInvocation(ctx.argv)) {
+    return await runDwfEngineCommand(ctx);
   }
 
   if (ctx.argv[0] === "hooks") {

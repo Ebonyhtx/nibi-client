@@ -30,6 +30,7 @@
     "@nibi/bootstrap": "workspace:*",
     "@nibi/contracts": "workspace:*",
     "@nibi/core": "workspace:*",
+    "@nibi/dynamic-workflow": "workspace:*",
     "@nibi/dynamic-workflow-runtime": "workspace:*",
     "@nibi/i18n": "workspace:*",
     "@nibi/provider-node": "workspace:*",
