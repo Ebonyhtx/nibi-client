@@ -315,6 +315,11 @@ impl ToolRegistry for ExtRegistry {
             .manager(session)
             .map(|manager| manager as Arc<dyn McpConnections>)
     }
+
+    /// 子代理会话继承父会话的会话级 MCP（Node 的子代理 app 继承父 `config.mcp`）。
+    fn inherit_session_mcp(&self, parent: &SessionId, child: &SessionId) {
+        self.sessions.inherit(parent, child);
+    }
 }
 
 struct ExtListings {

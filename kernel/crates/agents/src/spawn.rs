@@ -109,6 +109,8 @@ pub(crate) async fn create(
         created_at_ms: core.ports.clock.now_ms(),
     };
     core.ports.store.create(meta).await?;
+    // 子代理会话看到与父会话同一批会话级 MCP 工具（Node 的子代理 app 继承父 `config.mcp`）。
+    core.inherit_session_mcp(&parent.session, &agent.child);
     inherit_directory(core, &agent).await;
     let first = user(core, prompt, UserOrigin::Human);
     let mut facts = vec![

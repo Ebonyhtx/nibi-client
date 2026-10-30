@@ -133,3 +133,35 @@ fn protocol_servers_become_dynamic_config_with_options() {
     assert_eq!(servers[1].options.timeout_ms, None);
     assert!(servers[1].machine.is_none());
 }
+
+#[tokio::test]
+async fn a_child_session_borrows_its_parents_connections() {
+    let fake = Arc::new(FakeMcp::default().with("files", echo_server()));
+    let scope = TaskScope::root("test", |_| {});
+    let pools = pools(fake, &scope);
+    let parent = SessionId::new("sess_parent");
+    let child = SessionId::new("sess_child");
+    pools.start(&parent, &workspace(), vec![stdio("files")]);
+    let parent_manager = pools.manager(&parent).expect("parent");
+    parent_manager.wait_ready().await;
+
+    // 没继承前子会话没有会话级 MCP（回落到进程级配置）。
+    assert!(pools.manager(&child).is_none());
+    pools.inherit(&parent, &child);
+    let child_manager = pools.manager(&child).expect("child");
+    assert!(Arc::ptr_eq(&parent_manager, &child_manager));
+    let names: Vec<String> = child_manager
+        .tools()
+        .into_iter()
+        .map(|tool| tool.name().to_owned())
+        .collect();
+    assert!(names.iter().any(|name| name == "mcp__files__echo"), "{names:?}");
+
+    // 子会话关闭只移掉借用条目：父会话的连接还在。
+    pools.stop(&child);
+    assert!(pools.manager(&child).is_none());
+    assert!(pools.manager(&parent).is_some());
+    // 父会话没有会话级 MCP 时继承是空操作。
+    pools.inherit(&child, &SessionId::new("sess_grandchild"));
+    assert!(pools.manager(&SessionId::new("sess_grandchild")).is_none());
+}

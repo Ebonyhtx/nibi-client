@@ -194,6 +194,10 @@ impl ToolRegistry for FilteredTools {
         self.inner.session_mcp(session)
     }
 
+    fn inherit_session_mcp(&self, parent: &SessionId, child: &SessionId) {
+        self.inner.inherit_session_mcp(parent, child);
+    }
+
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
         if let Some(tool) = self
             .inner

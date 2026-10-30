@@ -143,6 +143,14 @@ impl Core {
             .upgrade()
             .map(|registry| registry as Arc<dyn ToolRegistry>)
     }
+
+    /// 子代理会话继承父会话的会话级 MCP（NIBI `createSession.mcpServers`）：Node 的子代理 app 直接
+    /// 继承父的 `config.mcp`，这里让子会话看到同一批工具。内核已释放注册表时什么都不做。
+    pub(crate) fn inherit_session_mcp(&self, parent: &SessionId, child: &SessionId) {
+        if let Some(registry) = self.registry() {
+            registry.inherit_session_mcp(parent, child);
+        }
+    }
 }
 
 /// 主线程的工具：基础工具在前，本 crate 的工具在后。
@@ -189,6 +197,11 @@ impl ToolRegistry for AgentRegistry {
     /// 首个模型请求前等的会话级 MCP（NIBI `createSession.mcpServers`）。
     fn session_mcp(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
         self.base.session_mcp(session)
+    }
+
+    /// 子代理会话继承父会话的会话级 MCP（基础注册表持有会话到连接的映射）。
+    fn inherit_session_mcp(&self, parent: &SessionId, child: &SessionId) {
+        self.base.inherit_session_mcp(parent, child);
     }
 
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {

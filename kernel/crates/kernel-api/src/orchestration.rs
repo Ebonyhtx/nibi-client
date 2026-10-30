@@ -404,6 +404,10 @@ pub trait ToolRegistry: Send + Sync {
     fn session_mcp(&self, _session: &SessionId) -> Option<Arc<dyn McpConnections>> {
         None
     }
+
+    /// 子代理会话继承父会话的会话级 MCP（NIBI `createSession.mcpServers`）：Node 的子代理 app 直接
+    /// 继承父的 `config.mcp`。缺省什么都不做。
+    fn inherit_session_mcp(&self, _parent: &SessionId, _child: &SessionId) {}
 }
 
 /// [`ToolRegistry::snapshot`] 的结果。

@@ -19,13 +19,20 @@ use rust_cli_kernel_api::mcp_session::SessionMcpServer;
 
 use super::{McpManager, McpScope, McpServer, McpServerOptions, McpSettings};
 
+/// 一个会话的 MCP 连接：`owned` 表示这套连接是这个会话自己的（关闭时释放）；子代理继承的是父
+/// 会话的连接（`owned: false`），关闭子会话不能把父会话的连接关掉。
+struct Entry {
+    manager: Arc<McpManager>,
+    owned: bool,
+}
+
 /// 会话 → 这个会话的 MCP 连接。管理器本身很小，重活在各服务器的连接任务里。
 pub(crate) struct SessionMcp {
     transport: Arc<dyn McpTransport>,
     spawner: Spawner,
     settings: McpSettings,
     clock: Arc<dyn Clock>,
-    sessions: Mutex<BTreeMap<SessionId, Arc<McpManager>>>,
+    sessions: Mutex<BTreeMap<SessionId, Entry>>,
 }
 
 impl SessionMcp {
@@ -44,7 +51,7 @@ impl SessionMcp {
         }
     }
 
-    fn sessions(&self) -> MutexGuard<'_, BTreeMap<SessionId, Arc<McpManager>>> {
+    fn sessions(&self) -> MutexGuard<'_, BTreeMap<SessionId, Entry>> {
         self.sessions
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -65,22 +72,47 @@ impl SessionMcp {
             self.clock.clone(),
         ));
         manager.start(workspace.clone(), to_servers(servers));
-        let previous = self.sessions().insert(session.clone(), manager.clone());
-        if let Some(previous) = previous {
-            self.spawn_stop(previous);
+        let previous = self.sessions().insert(
+            session.clone(),
+            Entry {
+                manager: manager.clone(),
+                owned: true,
+            },
+        );
+        // 继承来的条目不是自己的连接，不释放。
+        if let Some(previous) = previous.filter(|entry| entry.owned) {
+            self.spawn_stop(previous.manager);
         }
         manager
     }
 
     /// 会话现在的管理器；没带过服务器（或已关闭）时为 None，工具表回落到进程级配置。
     pub(crate) fn manager(&self, session: &SessionId) -> Option<Arc<McpManager>> {
-        self.sessions().get(session).cloned()
+        self.sessions().get(session).map(|entry| entry.manager.clone())
     }
 
-    /// 会话关闭：取消连接任务、关掉客户端（在后台任务里做，关闭路径不等待 IO）。
+    /// 子代理会话继承父会话的连接（NIBI `createSession.mcpServers`）：Node 的子代理 app 直接拿父的
+    /// `config.mcp`，工具可见性相同。共用同一个 manager，不另建连接；父会话没有时什么都不做。
+    pub(crate) fn inherit(&self, parent: &SessionId, child: &SessionId) {
+        let manager = self.manager(parent);
+        if let Some(manager) = manager {
+            self.sessions().insert(
+                child.clone(),
+                Entry {
+                    manager,
+                    owned: false,
+                },
+            );
+        }
+    }
+
+    /// 会话关闭：取消连接任务、关掉客户端（在后台任务里做，关闭路径不等待 IO）。继承来的条目只是
+    /// 从表里移掉，父会话的连接照常。
     pub(crate) fn stop(&self, session: &SessionId) {
-        if let Some(manager) = self.sessions().remove(session) {
-            self.spawn_stop(manager);
+        if let Some(entry) = self.sessions().remove(session)
+            && entry.owned
+        {
+            self.spawn_stop(entry.manager);
         }
     }
 
