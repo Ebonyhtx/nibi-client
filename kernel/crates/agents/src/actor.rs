@@ -19,6 +19,11 @@ use rust_cli_kernel_api::store::{
 };
 use tokio_util::sync::CancellationToken;
 
+use async_trait::async_trait;
+use rust_cli_kernel_api::tool::{PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use serde_json::{Value, json};
+use tokio::sync::mpsc;
+
 use crate::child::ChildSink;
 use crate::context::SubagentContext;
 use crate::definitions::{AgentDefinition, AgentSource};
@@ -43,6 +48,8 @@ pub struct ActorProfile {
     pub allow: Option<Vec<String>>,
     pub deny: Vec<String>,
     pub max_turns: Option<u32>,
+    /// typed ask 的 `result` 形状（JSON Schema）：Some 时给 actor 注册 `submit_result` 工具。
+    pub submit_schema: Option<Value>,
 }
 
 /// 一轮的结果。
@@ -57,6 +64,8 @@ pub struct ActorTurnOutcome {
     /// `completed` / `aborted` / `failed`。
     pub stopped: &'static str,
     pub error: Option<String>,
+    /// typed ask 提交的值（`submit_result` 的参数 `result`）；没调用时为 None。
+    pub submitted: Option<Value>,
 }
 
 /// 一轮失败（不会因为会话缺失等 IO 问题 panic）。
@@ -84,6 +93,157 @@ impl std::error::Error for ActorError {}
 impl From<StoreError> for ActorError {
     fn from(error: StoreError) -> Self {
         Self::Store(error)
+    }
+}
+
+/// typed ask 的提交槽：工具写、actor 轮结束后读。
+#[derive(Default)]
+struct SubmitSlot(std::sync::Mutex<Option<Value>>);
+
+impl SubmitSlot {
+    fn take(&self) -> Option<Value> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+    }
+}
+
+/// `submit_result`：typed ask 的终止通道（Node 的 `workflowSubmitPort` 同义）。
+struct SubmitResultTool {
+    slot: Arc<SubmitSlot>,
+    schema: Value,
+}
+
+#[async_trait]
+impl Tool for SubmitResultTool {
+    fn name(&self) -> &str {
+        "submit_result"
+    }
+
+    fn input_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {"result": self.schema},
+            "required": ["result"],
+            "additionalProperties": false,
+        })
+    }
+
+    fn description(&self, _context: &PromptContext) -> String {
+        "Submit the final result for this task. Call it exactly once when you have the answer;          `result` must match the schema."
+            .to_owned()
+    }
+
+    fn is_read_only(&self, _input: &Value) -> bool {
+        true
+    }
+
+    fn is_concurrency_safe(&self, _input: &Value) -> bool {
+        true
+    }
+
+    fn search_hint(&self) -> Option<&str> {
+        Some("submit the final structured result")
+    }
+
+    /// 合成工具不是模型对工作区的动作：不经过权限门（Node 的 `submit_result` 同样不问）。
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        _context: &ToolUseContext,
+    ) -> rust_cli_kernel_api::permission::PermissionDecision {
+        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+            updated_input: None,
+        }
+    }
+
+    async fn call(
+        &self,
+        input: Value,
+        _context: ToolUseContext,
+        _progress: mpsc::Sender<ToolProgress>,
+    ) -> Result<ToolOutput, ToolError> {
+        let result = input.get("result").cloned().unwrap_or(Value::Null);
+        *self
+            .slot
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(result);
+        Ok(ToolOutput {
+            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+                text: "submitted".to_owned(),
+            }],
+            is_error: false,
+            display: Value::Null,
+        })
+    }
+}
+
+/// actor 的注册表：子代理过滤后的工具，加上 typed ask 的 `submit_result`。
+struct ActorTools {
+    inner: Arc<dyn ToolRegistry>,
+    submit: Option<Arc<SubmitResultTool>>,
+}
+
+impl ToolRegistry for ActorTools {
+    fn tools(&self) -> Vec<Arc<dyn Tool>> {
+        let mut tools = self.inner.tools();
+        if let Some(submit) = &self.submit {
+            tools.push(submit.clone());
+        }
+        tools
+    }
+
+    fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
+        if name == "submit_result" {
+            return self.submit.clone().map(|tool| tool as Arc<dyn Tool>);
+        }
+        self.inner.find(name)
+    }
+
+    fn find_for(&self, session: &rust_cli_kernel_api::ids::SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        if name == "submit_result" {
+            return self.submit.clone().map(|tool| tool as Arc<dyn Tool>);
+        }
+        self.inner.find_for(session, name)
+    }
+
+    fn snapshot(
+        &self,
+        session: &rust_cli_kernel_api::ids::SessionId,
+    ) -> rust_cli_kernel_api::orchestration::ToolSnapshot {
+        let mut snapshot = self.inner.snapshot(session);
+        if let Some(submit) = &self.submit {
+            snapshot.tools.push(submit.clone());
+        }
+        snapshot
+    }
+
+    fn mcp(&self) -> Option<Arc<dyn rust_cli_kernel_api::mcp_state::McpConnections>> {
+        self.inner.mcp()
+    }
+
+    fn mcp_for(
+        &self,
+        session: &rust_cli_kernel_api::ids::SessionId,
+    ) -> Option<Arc<dyn rust_cli_kernel_api::mcp_state::McpConnections>> {
+        self.inner.mcp_for(session)
+    }
+
+    fn session_mcp(
+        &self,
+        session: &rust_cli_kernel_api::ids::SessionId,
+    ) -> Option<Arc<dyn rust_cli_kernel_api::mcp_state::McpConnections>> {
+        self.inner.session_mcp(session)
+    }
+
+    fn inherit_session_mcp(
+        &self,
+        parent: &rust_cli_kernel_api::ids::SessionId,
+        child: &rust_cli_kernel_api::ids::SessionId,
+    ) {
+        self.inner.inherit_session_mcp(parent, child);
     }
 }
 
@@ -186,9 +346,18 @@ impl Agents {
             return Err(ActorError::Unavailable);
         };
         let definition = definition(profile);
-        let tools: Arc<dyn ToolRegistry> = Arc::new(FilteredTools {
-            inner: registry,
-            rule: ToolRule::new(&definition, false, 1),
+        let slot = Arc::new(SubmitSlot::default());
+        let tools: Arc<dyn ToolRegistry> = Arc::new(ActorTools {
+            inner: Arc::new(FilteredTools {
+                inner: registry,
+                rule: ToolRule::new(&definition, false, 1),
+            }),
+            submit: profile.submit_schema.clone().map(|schema| {
+                Arc::new(SubmitResultTool {
+                    slot: slot.clone(),
+                    schema,
+                })
+            }),
         });
         let context: Arc<dyn ContextBuilder> = Arc::new(SubagentContext {
             inner: core.ports.context.clone(),
@@ -259,6 +428,7 @@ impl Agents {
             tool_uses,
             stopped,
             error,
+            submitted: slot.take(),
         })
     }
 }

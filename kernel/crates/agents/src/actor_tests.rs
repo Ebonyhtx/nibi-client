@@ -21,6 +21,7 @@ fn profile(child: &str) -> ActorProfile {
         allow: None,
         deny: vec!["Agent".to_owned()],
         max_turns: Some(1),
+        submit_schema: None,
     }
 }
 

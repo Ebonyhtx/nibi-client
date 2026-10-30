@@ -58,6 +58,9 @@ pub struct WorkflowActorSpec {
     pub deny: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_turns: Option<u32>,
+    /// typed ask 的 `result` 形状（JSON Schema）：在场时给 actor 注册 `submit_result` 工具。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub submit_schema: Option<serde_json::Value>,
 }
 
 /// 一轮 actor 的结果（引擎的 `WorkflowReportSink` 由 sidecar 按它推进）。
@@ -73,6 +76,9 @@ pub struct WorkflowActorTurn {
     pub stopped: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// typed ask 提交的值（`submit_result` 的参数 `result`）；没调用时缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub submitted: Option<serde_json::Value>,
 }
 
 /// 一次 actor 轮的输入（`first` 为真时先建 actor 子会话）。

@@ -413,7 +413,8 @@ DWF 调研（8,524 行规格 + 26k 行 TS 引擎/编译器 + 20 多个工具；�
 **C1 第一步（同日落地）**：`rust_cli_agents::Agents::run_actor_turn` 复用子代理的 `QueryLoop`
 跑 DWF actor 轮（persona 进 system、工具 allow/deny、同一 actor 子会话跨轮续跑、不进 agents 面板），
 `Kernel::run_workflow_actor`（`WorkflowActorSpec/Turn/Request`）把它交给 sidecar 的 driver 调用；
-agents 两例 + runtime 一例测试。`submit_result`/`escalate` 与权限升级留到下一步。
+agents 两例 + runtime 两例测试。typed ask 的 `submit_result` 已接（合成工具、永远放行、
+结果进 `submitted`）；`escalate` 需要挂起/恢复一轮，留给 sidecar 的交互面。
 
 **C1 可行性探针（同日通过）**：`scripts/kernel-baseline/probe-dwf-engine.mjs` 用两个 app-free 包
 （`@nibi/dynamic-workflow` + `dynamic-workflow-runtime`）直接装配引擎——无 ask 与

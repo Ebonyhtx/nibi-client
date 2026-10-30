@@ -335,6 +335,7 @@ impl Kernel for LocalKernel {
             allow: spec.allow,
             deny: spec.deny,
             max_turns: spec.max_turns,
+            submit_schema: spec.submit_schema,
         };
         let outcome = self
             .actors
@@ -350,6 +351,7 @@ impl Kernel for LocalKernel {
             tool_uses: outcome.tool_uses,
             stopped: outcome.stopped.to_owned(),
             error: outcome.error,
+            submitted: outcome.submitted,
         })
     }
 

@@ -133,8 +133,10 @@
 不进 agents 面板；`Kernel::run_workflow_actor` 把它接到内核（`WorkflowActorSpec/Turn/Request`）。
 测试：agents 侧 `actor_tests` 两例（含 persona/system、Subagent 来源、工具减法、同一子会话续跑、
 缺失会话大声失败），runtime 侧 `workflow_actor_tests` 一例（经内核入口跑一轮并落子会话）。
-第二点（跨进程确定性）等 sidecar 控制面落码时用驱动验证。`submit_result`/`escalate` 工具与
-权限升级（escalation）仍是 C1 的下一步。
+**typed ask 已接（同日）**：`ActorProfile.submit_schema` 在场时给 actor 注册 `submit_result`
+（内核里的合成工具，永远放行、不走权限门；结果进 `ActorTurnOutcome.submitted`，对应引擎的
+`sink.askSubmitAttempted`）。`escalate`（求助）还没接：它需要把一轮挂起、等 `resolveQuestion`
+的外部回答，属于 C1 的交互面。第二点（跨进程确定性）等 sidecar 控制面落码时用驱动验证。
 
 ## 4. 若选 A（不移植）需要写进灰度分流表的内容
 
