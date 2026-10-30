@@ -167,6 +167,7 @@ impl Projection {
         }
         let (message_id, model) = (assistant.id.as_str().to_owned(), assistant.model.clone());
         let assistant_text = kind == "assistantText";
+        let feedback = self.feedback.get(&message_id).cloned();
         self.upsert(
             &key,
             |row| {
@@ -175,6 +176,10 @@ impl Projection {
                 row.insert("assistantResponseId".into(), json!(message_id));
                 if assistant_text {
                     row.insert("model".into(), json!(model));
+                    // 已经点过赞/踩的回复（NIBI setAssistantFeedback）落定时带上。
+                    if let Some(feedback) = &feedback {
+                        row.insert("feedback".into(), json!(feedback));
+                    }
                 }
             },
             out,

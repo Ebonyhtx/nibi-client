@@ -462,6 +462,8 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "reorderQueueItem" => reorder_queue_item(handle, envelope).await,
         "setAutoDrain" => set_auto_drain(handle, envelope).await,
         "sendQueuedNow" => send_queued_now(handle, envelope, revision).await,
+        "setAssistantFeedback" => set_assistant_feedback(server, handle, &live.sink, envelope).await,
+        "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
         "deleteSession" => delete_session(server, envelope).await,
         _ => unsupported(envelope, revision),
     }
@@ -1539,6 +1541,103 @@ async fn send_queued_now(handle: &dyn SessionHandle, envelope: &Envelope, revisi
             revision,
         ),
     }
+}
+
+/// NIBI `setAssistantFeedback`：给一条 assistantText 行点/取消赞踩。反馈落成前端记录
+/// （`assistant_feedback`，key 是 assistant 消息 id），同时在活投影里更新那一行。
+async fn set_assistant_feedback(
+    server: &Server,
+    handle: &dyn SessionHandle,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let Some(target) = target_row(&envelope.payload) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "setAssistantFeedback needs a row target",
+            revision,
+        );
+    };
+    let Some(row) = live.row(target.row_id) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            format!("row {} does not exist", target.row_id),
+            revision,
+        );
+    };
+    if row.get("kind").and_then(Value::as_str) != Some("assistantText")
+        || row.get("entityId").and_then(Value::as_str) != Some(target.entity.as_str())
+    {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "setAssistantFeedback targets an assistantText row",
+            revision,
+        );
+    }
+    let Some(message) = row.get("assistantResponseId").and_then(Value::as_str) else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.invalidPayload",
+            "the assistant row has no settled response id",
+            revision,
+        );
+    };
+    let feedback = match envelope.payload["feedback"].as_str() {
+        Some("like") | Some("dislike") => {
+            Some(envelope.payload["feedback"].as_str().unwrap_or_default().to_owned())
+        }
+        Some(other) => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "proto.invalidPayload",
+                format!("unknown feedback {other}"),
+                revision,
+            );
+        }
+        // null = 取消反馈。
+        None => None,
+    };
+    let record = rust_cli_kernel_api::store::FrontendRecord {
+        kind: "assistant_feedback".to_owned(),
+        key: message.to_owned(),
+        data: json!({"feedback": feedback}),
+    };
+    if let Err(error) = server.kernel.put_session_record(handle.id(), record).await {
+        return Ack::refused(
+            command,
+            Status::Failed,
+            "fault.command.assistantFeedbackUnsupported",
+            error.to_string(),
+            revision,
+        );
+    }
+    live.set_feedback(message, feedback).await;
+    Ack::accepted(command, revision, Some(json!({"type": "setAssistantFeedback"})))
+}
+
+/// NIBI `snoozeInteractionAutoResolution`：永久暂停这条询问的自动结束。内核没有自动结束的倒计时
+/// （`askUserQuestionAutoResolutionEnabled` 只记录偏好），所以这条命令在这里是幂等 noop——与 Node 在
+/// "没有进行中的倒计时"时的行为一致。
+async fn snooze_interaction_auto_resolution(envelope: &Envelope) -> Ack {
+    let interaction = envelope.payload["interactionId"]
+        .as_str()
+        .unwrap_or_default();
+    tracing::info!(
+        event = "protocol.snooze_auto_resolution",
+        interaction = %interaction,
+        "the kernel does not schedule auto resolution; the snooze is already in effect"
+    );
+    Ack::accepted(&envelope.command_id, 0, Some(json!({"type": "snoozeInteractionAutoResolution"})))
 }
 
 /// NIBI `applyFileRewind`：row-targeting CAS；只回退文件（`RewindScope::Code`），不动聊天。

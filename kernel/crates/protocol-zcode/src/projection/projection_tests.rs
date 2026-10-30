@@ -434,3 +434,33 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
     });
     assert!(marker.iter().all(|delta| delta.get("row").is_none()));
 }
+
+#[test]
+fn assistant_feedback_marks_the_settled_row() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    feed.apply(KernelEvent::MessageDone {
+        message: assistant(
+            "msg_a1",
+            vec![ContentBlock::Text {
+                text: "an answer".into(),
+            }],
+        ),
+    });
+    // 点赞：已落定的 assistantText 行原地更新。
+    let liked = feed.projection.set_feedback("msg_a1", Some("like".to_owned()));
+    assert_eq!(liked.len(), 1, "{liked:?}");
+    assert_eq!(liked[0]["op"], "row.upserted");
+    assert_eq!(liked[0]["row"]["kind"], "assistantText");
+    assert_eq!(liked[0]["row"]["feedback"], "like");
+    // 取消：字段被去掉。
+    let cleared = feed.projection.set_feedback("msg_a1", None);
+    assert_eq!(cleared[0]["row"].get("feedback"), None);
+    // 同值再点一次：不发增量。
+    assert!(feed.projection.set_feedback("msg_a1", None).is_empty());
+    // 行还没落定时先记：落定后带上（这里只验证不 panic 与空增量）。
+    assert!(feed.projection.set_feedback("msg_none", Some("dislike".to_owned())).is_empty());
+}

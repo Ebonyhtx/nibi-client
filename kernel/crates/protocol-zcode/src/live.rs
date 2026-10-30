@@ -151,6 +151,17 @@ impl Live {
         (state.projection.phase(), state.projection.revision())
     }
 
+    /// NIBI `setAssistantFeedback`：把赞/踩写进投影（行存在时发 `row.upserted`）。
+    pub async fn set_feedback(&self, message: &str, feedback: Option<String>) {
+        let outgoing = {
+            let mut state = self.state();
+            let deltas = state.projection.set_feedback(message, feedback);
+            state.log.record(deltas);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
     /// 协议保存的配置变了：记一组增量并发出。在会话的泵任务里调用。
     pub async fn set_followup(&self, followup: Followup) {
         let outgoing = {

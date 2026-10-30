@@ -76,6 +76,8 @@ pub struct Projection {
     inputs: HashMap<String, InputMeta>,
     /// 用户拒绝了的工具调用：结果投成 cancelled。
     denied: std::collections::HashSet<String>,
+    /// 助手回复的赞/踩（NIBI setAssistantFeedback），按 assistant 消息 id：行落定时带上。
+    feedback: std::collections::BTreeMap<String, String>,
     created_at: u64,
 }
 
@@ -128,6 +130,7 @@ impl Projection {
             error: None,
             executions: 0,
             title: view.meta.title.clone(),
+            feedback: std::collections::BTreeMap::new(),
             selection: view.selection.clone(),
             mode: view.mode,
             plan: view.plan,
@@ -572,6 +575,40 @@ impl Projection {
     }
 
     /// 队列（`queueStateSchema`）：内核的排队输入加上 sendText 时记下的事实。
+    /// NIBI `setAssistantFeedback`：按 assistant 消息 id 记赞/踩，并把已经落定的
+    /// `assistantText` 行原地更新（`row.upserted`）。
+    pub fn set_feedback(&mut self, message: &str, feedback: Option<String>) -> Vec<Value> {
+        match &feedback {
+            Some(value) => {
+                self.feedback.insert(message.to_owned(), value.clone());
+            }
+            None => {
+                self.feedback.remove(message);
+            }
+        }
+        let mut out = Vec::new();
+        let at = self.rows.iter().position(|row| {
+            row.get("kind").and_then(Value::as_str) == Some("assistantText")
+                && row.get("assistantResponseId").and_then(Value::as_str) == Some(message)
+        });
+        if let Some(at) = at {
+            let mut row = self.rows[at].clone();
+            match &feedback {
+                Some(value) => {
+                    row.insert("feedback".into(), json!(value));
+                }
+                None => {
+                    row.remove("feedback");
+                }
+            }
+            if row != self.rows[at] {
+                self.rows[at] = row.clone();
+                out.push(json!({"op": "row.upserted", "row": row}));
+            }
+        }
+        out
+    }
+
     fn queue_state(&self) -> Value {
         let items: Vec<Value> = self
             .queue

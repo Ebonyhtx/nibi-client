@@ -233,6 +233,19 @@ Node 的 queue 组（`editQueueItem` / `deleteQueueItem` / `reorderQueueItem` / 
 排空、`sendQueuedNow` 抢占后开提升项且原文进模型请求）；双内核驱动加队列阶段（真实挂起一轮 → 排两条
 → 编辑/重排/删除/关自动排空 → 放行 → 提升）；对拍门禁 21 → **30** 个必需字段全一致。
 
+## 6.5 反馈与询问 snooze（2026-10-30）
+
+- `setAssistantFeedback`：row-targeting（rowId + entityId 必须是 `assistantText` 行、有已结算的
+  `assistantResponseId`）→ 反馈落成前端记录（`assistant_feedback`，key 是 assistant 消息 id，
+  `{"feedback": "like"|"dislike"|null}`，store 不支持时 failed
+  `fault.command.assistantFeedbackUnsupported`）→ 活投影原地更新那一行（`row.upserted`）。
+  **冷恢复后行上的徽标暂不重建**（与 `InputMeta` 的其它字段同一现状；记录已落库，后续补投影 hydration）。
+- `snoozeInteractionAutoResolution`：内核不调度自动结束的倒计时（`askUserQuestionAutoResolutionEnabled`
+  只记录偏好），命令按幂等 noop 接受并记日志——与 Node 在"没有进行中的倒计时"时的行为一致。
+
+验证：projection 新单测（点赞/取消/同值不发增量/行未落定）；双内核驱动两边
+`setAssistantFeedback` 与 `snoozeInteractionAutoResolution` 都 accepted；对拍门禁 30 → **32**。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

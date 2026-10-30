@@ -845,7 +845,29 @@ try {
     throw new Error(`session MCP tool did not run: ${JSON.stringify(checks.mcpToolResult)}`);
   }
 
-    // 队列命令组：挂住一轮 → 排两条 → 编辑/重排/删除/立刻发送 → 放行。两边内核按同一组断言。
+    // 反馈与询问 snooze：assistantText 行的赞/踩（CAS + row target）与幂等的 snooze。
+  if (phases.includes("rejections")) {
+    const state = buildState();
+    const assistantRow = [...state.rows].reverse().find((row) => row.kind === "assistantText");
+    if (!assistantRow) throw new Error("no assistantText row for feedback");
+    const liked = await casCommand("setAssistantFeedback", {
+      target: { rowId: assistantRow.rowId, entityId: assistantRow.entityId },
+      feedback: "like",
+    });
+    checks.feedbackStatus = liked.status;
+    const snoozed = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000061",
+      "snoozeInteractionAutoResolution",
+      { interactionId: "interaction_none" },
+    );
+    checks.snoozeStatus = snoozed.status;
+    console.log(`feedback=${checks.feedbackStatus} snooze=${checks.snoozeStatus}`);
+    if (checks.feedbackStatus !== "accepted" || checks.snoozeStatus !== "accepted") {
+      throw new Error(`feedback/snooze expected accepted, got ${checks.feedbackStatus}/${checks.snoozeStatus}`);
+    }
+  }
+
+  // 队列命令组：挂住一轮 → 排两条 → 编辑/重排/删除/立刻发送 → 放行。两边内核按同一组断言。
   if (phases.includes("rejections")) {
     // 队列命令都要 baseRevision（CAS）：每次现读投影，stale 就重试一次（命令 id 固定，
     // queueItemId 才能对上）。

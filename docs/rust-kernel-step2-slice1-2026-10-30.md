@@ -297,9 +297,18 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
   一致，被编辑的项在提升后进入模型请求；对拍门禁 21 → **30** 字段全一致。
 - 内核未实现 Node 的 promotion lease/reservation 机制（单进程串行 actor 不需要），语义等价。
 
+## 6.12 第十四步：setAssistantFeedback 与 snoozeInteractionAutoResolution（2026-10-30）
+
+- `setAssistantFeedback`：校验 row target（assistantText + entityId + 已结算 response id），反馈写成
+  前端记录 `assistant_feedback`（key = 消息 id），活投影 `row.upserted`；冷恢复后徽标暂不重建
+  （记录已落库，后续补 hydration）。store 不支持时 failed `fault.command.assistantFeedbackUnsupported`。
+- `snoozeInteractionAutoResolution`：内核没有自动结束倒计时，按幂等 noop 接受并记日志（与 Node
+  在无倒计时时的行为一致）。
+- 验证：projection 单测；双内核驱动两命令都 accepted；对拍门禁 32 字段全一致。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 14 个命令的处理器（goal 3/hook-review 4/workflow 3/`createSelectionSideSession`/`setAssistantFeedback`/`sendGoalCommand`/`snoozeInteractionAutoResolution`/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 12 个命令的处理器（goal 3/hook-review 4/workflow 3/`createSelectionSideSession`/`sendGoalCommand`/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，
