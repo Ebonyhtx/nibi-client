@@ -230,3 +230,39 @@ fn envelope_fields_are_validated() {
     bad_epoch["baseLogEpoch"] = json!("  ");
     assert!(contract.validate(&bad_epoch).is_err());
 }
+
+/// 34 个命令全部有归属：要么接住了，要么明确列在 BLOCKED_COMMANDS 并带上缺的能力。
+/// 漏项会让"没实现"退化成静默的 `unsupported`，切默认前看不出差别。
+#[test]
+fn every_command_is_either_handled_or_explicitly_blocked() {
+    let schema: serde_json::Value =
+        serde_json::from_str(crate::nibi_commands::NIBI_COMMANDS).unwrap();
+    let types: Vec<&str> = schema["commandTypes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|name| name.as_str().unwrap())
+        .collect();
+    assert_eq!(types.len(), 34);
+    let handled: std::collections::HashSet<&str> = HANDLED_COMMANDS.iter().copied().collect();
+    let blocked: std::collections::HashSet<&str> =
+        BLOCKED_COMMANDS.iter().map(|(name, _)| *name).collect();
+    assert_eq!(handled.len(), HANDLED_COMMANDS.len(), "duplicate handled entry");
+    assert_eq!(blocked.len(), BLOCKED_COMMANDS.len(), "duplicate blocked entry");
+    for name in &handled {
+        assert!(!blocked.contains(name), "{name} is both handled and blocked");
+    }
+    for name in &types {
+        assert!(
+            handled.contains(name) || blocked.contains(name),
+            "{name} is neither handled nor listed in BLOCKED_COMMANDS"
+        );
+    }
+    for (name, reason) in BLOCKED_COMMANDS {
+        assert!(
+            !reason.trim().is_empty(),
+            "blocked command {name} needs the missing capability spelled out"
+        );
+        assert!(types.contains(name), "{name} is not a NIBI command type");
+    }
+}

@@ -352,11 +352,21 @@ async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> KernelA
 }
 
 fn unsupported(envelope: &Envelope, revision: u64) -> Ack {
+    // 明确列在 BLOCKED_COMMANDS 里的命令把"缺什么能力"一起说出来：切默认前要能看出这些是功能
+    // 缺口，不是没接线。
+    let missing = crate::nibi_commands::BLOCKED_COMMANDS
+        .iter()
+        .find(|(name, _)| *name == envelope.kind)
+        .map(|(_, reason)| *reason);
+    let message = match missing {
+        Some(reason) => format!("{} is not supported by this kernel yet: {reason}", envelope.kind),
+        None => format!("{} is not supported by this agent yet", envelope.kind),
+    };
     Ack::refused(
         &envelope.command_id,
         Status::Rejected,
         "proto.unsupportedCommand",
-        format!("{} is not supported by this agent yet", envelope.kind),
+        message,
         revision,
     )
 }

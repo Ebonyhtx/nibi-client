@@ -324,9 +324,24 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
   `selection_side_chat` 会话类型与 `sourceCommandId`。
 - 验证：双内核驱动两边 accepted、child 前缀与父不同；对拍门禁 38 字段全一致。
 
+## 6.15 第十七步：命令覆盖表收口（2026-10-30）
+
+34 个命令现在全部有归属：26 个接住、8 个列进 `BLOCKED_COMMANDS`（写清缺的能力），并有
+`every_command_is_either_handled_or_explicitly_blocked` 测试守住"不漏项、不重叠、理由非空"。
+`unsupported` 的 ACK 会把缺的能力带进 message，切默认前能分辨"功能缺口"与"没接线"。
+
+剩余 8 个都是**能力缺口**而非接线：
+
+- hook review 四件：逐声明评审流（bundleDigest/reviewFlowId/generation/交互桥）与按摘要撤销；
+  Rust 信任模型是路径级（`trusted_workspace`/`trust_workspace`，无 untrust、无 digest 维度）。
+- workflow 三件：DWF run 能力（与 `createSession.dynamicWorkflow*` 同一缺口）。
+- `discardSharedContext`：分享上下文存储。
+
+在功能 track 完成或明确"首期走 Node"之前，这 8 项阻塞切默认。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 8 个命令的处理器（hook-review 4/workflow 3/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 8 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，

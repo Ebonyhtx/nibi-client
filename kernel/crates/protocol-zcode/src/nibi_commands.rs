@@ -39,6 +39,75 @@ pub const CREATE_SESSION_FIELDS_NOT_YET_CONSUMED: &[&str] = &[
     "dynamicWorkflowMode",
 ];
 
+/// 已经接住的 NIBI 命令（与 `commands::decide` 的 dispatch 清单一对一；`createSession` 在
+/// `command` 之前的单独分支里）。补一条处理器时两个清单一起改。
+#[cfg(test)]
+pub const HANDLED_COMMANDS: &[&str] = &[
+    "createSession",
+    "sendText",
+    "stop",
+    "resolveInteraction",
+    "setFollowupMode",
+    "switchModelConfig",
+    "switchCollaborationMode",
+    "compact",
+    "renameSession",
+    "cancelBackgroundWork",
+    "forkAssistant",
+    "applyFileRewind",
+    "retryTurn",
+    "editUserQuery",
+    "editQueueItem",
+    "deleteQueueItem",
+    "reorderQueueItem",
+    "setAutoDrain",
+    "sendQueuedNow",
+    "setAssistantFeedback",
+    "createSelectionSideSession",
+    "sendGoalCommand",
+    "pauseGoal",
+    "resumeGoal",
+    "snoozeInteractionAutoResolution",
+    "deleteSession",
+];
+
+/// 内核**还没有能力**实现的 NIBI 命令：名字 + 缺的能力。不是接线缺口，是功能缺口——补之前要先决策
+/// 能力的形状（每项都写在 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表里）。处理器补齐一项就从这里删一项。
+pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
+    (
+        "requestWorkspaceHookReview",
+        "工作区 hook 的逐声明评审流：bundleDigest + reviewFlowId + generation + 交互桥；         Rust 的信任模型是按工作区路径（workspace-trust.md §2.3），没有逐声明粒度",
+    ),
+    (
+        "respondWorkspaceHookReview",
+        "同上：评审流的响应要改逐声明信任，内核的 store 只有 trust_workspace",
+    ),
+    (
+        "toggleWorkspaceHookReviewItem",
+        "同上：评审流条目的勾选属于那条评审状态机",
+    ),
+    (
+        "revokeWorkspaceHookTrust",
+        "按 hook 声明摘要撤销：store 没有 untrust，也没有 digest 维度",
+    ),
+    (
+        "startSavedWorkflow",
+        "动态工作流的启动器：内核没有 DWF run 能力（与 createSession.dynamicWorkflow* 同一缺口）",
+    ),
+    (
+        "resumeWorkflowRun",
+        "同上：DWF run 的恢复",
+    ),
+    (
+        "amendWorkflowRunSettings",
+        "同上：DWF run 的设置修订",
+    ),
+    (
+        "discardSharedContext",
+        "分享上下文的取回/丢弃：内核没有 shared-context 存储（Node 的 topic resource / context_refs）",
+    ),
+];
+
 /// 编译好的 NIBI 命令契约。
 pub struct NibiCommands {
     commands: HashMap<String, Node>,

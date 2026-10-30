@@ -280,6 +280,26 @@ Node 从当前对话派生一个"侧聊"子会话（复制整段对话、选择�
 
 验证：双内核驱动两边 accepted、child 前缀 `sess_`、child 与父不同；对拍门禁 35 → **38**。
 
+## 6.8 命令覆盖表与能力缺口（2026-10-30）
+
+34 个 `CommandType` 现在**全部有归属**：26 个已接住（`HANDLED_COMMANDS`），8 个明确列在
+`BLOCKED_COMMANDS` 并写明缺的能力；`every_command_is_either_handled_or_explicitly_blocked` 守住
+"不漏项、不重叠、理由非空"。`unsupported` 的 ACK 也会把缺的能力一起说出来（`proto.unsupportedCommand`
+的 message），切默认前能一眼看出是功能缺口而不是没接线。
+
+| 命令 | 状态 | 缺的能力 |
+|---|---|---|
+| `createSession` `sendText` `stop` `resolveInteraction` `setFollowupMode` `switchModelConfig` `switchCollaborationMode` `compact` `renameSession` `cancelBackgroundWork` `forkAssistant` `applyFileRewind` `retryTurn` `editUserQuery` `deleteSession` | 已接住 | — |
+| `editQueueItem` `deleteQueueItem` `reorderQueueItem` `setAutoDrain` `sendQueuedNow` | 已接住 | — |
+| `setAssistantFeedback` `snoozeInteractionAutoResolution` | 已接住 | — |
+| `sendGoalCommand` `pauseGoal` `resumeGoal` | 已接住 | —（resume 不主动起续跑回合，见 §6.6） |
+| `createSelectionSideSession` | 已接住 | —（忙时拒绝等三条差异，见 §6.7） |
+| `requestWorkspaceHookReview` `respondWorkspaceHookReview` `toggleWorkspaceHookReviewItem` `revokeWorkspaceHookTrust` | **能力缺口** | 逐声明评审流（bundleDigest/reviewFlowId/generation/交互桥）与按摘要撤销；Rust 的信任模型是按工作区路径（`trusted_workspace`/`trust_workspace`，无 untrust、无 digest 维度） |
+| `startSavedWorkflow` `resumeWorkflowRun` `amendWorkflowRunSettings` | **能力缺口** | 动态工作流 run 能力（与 `createSession.dynamicWorkflow*` 同一缺口） |
+| `discardSharedContext` | **能力缺口** | 分享上下文存储（Node 的 topic resource / `context_refs`） |
+
+这 8 项在功能 track 完成、或明确决定"首期走 Node"之前，**阻塞切默认**（合并计划 §8.1.1 的判据）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
