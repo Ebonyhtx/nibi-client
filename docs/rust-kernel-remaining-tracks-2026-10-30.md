@@ -1,7 +1,7 @@
 # Rust 内核剩余三类功能的排期与设计（2026-10-30 拍板）
 
-> 背景：命令层 34 个 `CommandType` 已有 26 个接住（对拍 38 字段全绿），剩 8 个在
-> `kernel/crates/protocol-zcode/src/nibi_commands.rs` 的 `BLOCKED_COMMANDS` 里。
+> 背景：命令层 34 个 `CommandType` 已有 30 个接住（对拍 63 字段全绿），剩 4 个在
+> `kernel/crates/protocol-zcode/src/nibi_commands.rs` 的 `BLOCKED_COMMANDS` 里（DWF 三件 + `discardSharedContext`）。
 > 用户拍板：**三类都补**，按本文顺序排。无论进度如何，Rust 仍是灰度、`NIBI_KERNEL` 默认 node、
 > 不切默认；切默认的前置是这 8 条全部落地（或明确放弃并在灰度分流表里写死）。
 
@@ -9,7 +9,7 @@
 
 | 步 | 内容 | 量级 | 为什么排这里 | 出口条件 |
 |---|---|---|---|---|
-| 1 | 钩子评审 4 条（`request`/`respond`/`toggle`/`revoke`） | **中偏大**（核实后上调：要移植 admission 评估 + 评审流管控，并把评审请求做成交互 payload） | 库都在（见 §1），不碰摘要算法；补完"带钩子的项目"才敢进灰度 | 4 条 accepted；两条链（请求→勾选→提交、按摘要撤销）双内核一致；Host 能从投影的 pending 交互渲染评审并与之交互 |
+| 1 | 钩子评审 4 条（`request`/`respond`/`toggle`/`revoke`） | **已完成（2026-10-30）** | 库都在（见 §1），不碰摘要算法；补完"带钩子的项目"才敢进灰度 | ✅ 4 条 accepted；双内核 63 字段全一致（含声明摘要 `68ad4faa`）；投影的 pending 交互承载完整 payload |
 | 2 | `discardSharedContext` | 中偏小 | 依赖最少（只碰会话内的分享上下文表）；先把"丢弃"做掉，导入侧随分享服务端进度 | 丢弃后会话里不再有该上下文；重复丢弃幂等；双内核一致 |
 | 3 | DWF：workflow 3 条 + `createSession.dynamicWorkflow*` + 内核 run 能力 | 大（一整套） | 唯一需要独立设计的引擎（run 状态机、调度、持久化、UI 面）；与品牌化分轨，绝不混 PR | 3 条 accepted；run 的启动/恢复/改设置在双内核一致；`createSession` 两个字段真正生效 |
 
@@ -217,6 +217,23 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 3. 驱动是否值得造真实工作区（写一个 hooks 文件）跑端到端；若成本高，先用"快照 + 撤销"两条断言。
 4. 交互 payload 进投影的落点：Rust 的 projection 目前只把 pending 交互投成 `pending` 数组，要确认
    它的字段能否原样承载上面第 2 条的 payload（不够就加字段，不改 Host 契约）。
+
+### 落地结果（2026-10-30，已完成）
+
+- 内核：`kernel-api::hook_review`（快照 + `HookTrust` 端口）、`hooks::hook_review`（纯函数 `review` /
+  `admitted` / `admitted_for`）、`platform::hook_trust` 的端口实现、`LocalKernel::with_hook_review`
+  注入；授权 / 撤销 / 开关当场重建项目层 hooks（`HookEngine::replace_project`）。
+- 协议：评审流（`reviewFlowId` 每会话一份、`generation` 单调、10 分钟截止）、pending 交互
+  `workspaceHookReview`、`workspaceHookAdmission` 提示条；拒绝码按 Node 的
+  `workspace_hooks_review_superseded` / `workspace_hooks_snapshot_mismatch` /
+  `workspace_hooks_trust_store_corrupt` / `workspace_hooks_config_unreadable` /
+  `workspace_hooks_config_write_failed` 分流。
+- 驱动：`hookReview` 阶段（默认阶段表里）覆盖 提示条 → 请求 → 交互 → 关/开 → 授权 → 撤销；
+  `check-dual-kernel-parity` 63 字段全绿，`check-cold-resume` 仍绿。
+- 留档的边界：策略阻断无来源（恒 false）；`taskId`/`runId` 用会话 ID；被替换/超时只撤交互、
+  不发 Node 的 Superseded/Settled 事件。
+
+详见 `kernel/CHANGELOG-FORK.md` §6.10 与 `docs/rust-kernel-step2-slice1-2026-10-30.md` §6.17。
 
 ## 2. `discardSharedContext`：动手前要查的
 

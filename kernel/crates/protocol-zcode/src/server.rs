@@ -1,7 +1,7 @@
 //! App 协议的方法表（docs/specs/rust-cli/app-protocol.md §3.4、§10.3）：P1 的方法；其余回 `-32601`。
 //! 命令在 [`crate::commands`]，订阅在 [`crate::subscribe`]。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
@@ -49,6 +49,8 @@ pub struct Server {
     pub(crate) followups: Mutex<HashMap<SessionId, Followup>>,
     /// 工作区钩子评审的当前 flow（每个会话一份；generation 单调，见 [`crate::hook_review`]）。
     pub(crate) hook_reviews: Mutex<HashMap<SessionId, crate::hook_review::Flow>>,
+    /// 已经上报过提示条的会话（第一次打开时算一次，之后由评审 / 授权 / 撤销刷新）。
+    hook_admissions: Mutex<HashSet<SessionId>>,
     /// 评审截止的计时任务挂在它上面（任务跟着进程的作用域走）。
     pub(crate) spawner: rust_cli_base::Spawner,
     pub(crate) defaults: Defaults,
@@ -88,6 +90,7 @@ impl Server {
             remembered: Mutex::new(Remembered::default()),
             followups: Mutex::new(HashMap::new()),
             hook_reviews: Mutex::new(HashMap::new()),
+            hook_admissions: Mutex::new(HashSet::new()),
             spawner,
             defaults,
             preferences: Mutex::new(Preferences::default()),
@@ -114,11 +117,27 @@ impl Server {
             .copied()
             .unwrap_or(Followup::Queue);
         let (context, topics) = (self.context.clone(), self.topics.clone());
-        self.bridge
+        let live = self
+            .bridge
             .open(session, move |_, view| {
                 Live::new(context, topics, view, followup)
             })
-            .await
+            .await?;
+        // 会话第一次打开：按当前快照上报工作区钩子的提示条（Node 在 activate 时上报 admission）。
+        self.announce_hook_admission(session, live.sink.clone()).await;
+        Ok(live)
+    }
+
+    /// 提示条只算一次；评审 / 授权 / 撤销由命令处理刷新。
+    async fn announce_hook_admission(&self, session: &SessionId, live: Arc<Live>) {
+        let first = self
+            .hook_admissions
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session.clone());
+        if first {
+            crate::hook_review::refresh_session_admission(self, &live).await;
+        }
     }
 
     fn preferences(&self) -> std::sync::MutexGuard<'_, Preferences> {
@@ -152,6 +171,14 @@ impl Server {
     async fn close_session(&self, params: &Value) -> Value {
         let session = SessionId::new(params["sessionId"].as_str().unwrap_or_default());
         self.bridge.close(&session);
+        self.hook_admissions
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&session);
+        self.hook_reviews
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&session);
         json!({"closed": true})
     }
 

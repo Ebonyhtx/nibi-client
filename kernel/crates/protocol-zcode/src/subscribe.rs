@@ -120,8 +120,6 @@ pub async fn subscribe(server: &Server, params: &Value) -> Result<Reply, RpcErro
         let live = server.live(&id).await.map_err(|error| kernel_error(&error))?;
         if cold {
             apply_resume_hints(server, &live, params).await;
-            // 冷打开的会话按当前快照上报工作区钩子的提示条（Node 在 activate 时上报 admission）。
-            crate::hook_review::refresh_session_admission(server, &live.sink).await;
         }
         let subscription = server.context.fresh("sub");
         let epoch = live.sink.subscribe(&subscription, &connection);

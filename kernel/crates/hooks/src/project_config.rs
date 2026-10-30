@@ -19,7 +19,8 @@ const ZCODE_JSON: &str = PROJECT_CONFIG_FILE;
 /// 每一层 `.nibi/` 下的配置文件名。
 const CONFIG_JSON: &str = "config.json";
 /// 种类的名字 `.nibi/config.json`（进 digest）：与 Node `WorkspaceHookConfigFileKind` 同字面。
-const DOT_PROJECT_CONFIG: &str = concat!(".nibi", "/config.json");
+/// 可编辑的项目配置（NIBI 的 `editable` 来源，也是钩子评审就地改写的目标）。
+pub const DOT_PROJECT_CONFIG: &str = concat!(".nibi", "/config.json");
 
 /// 项目文件的种类（Node `WorkspaceHookConfigFileKind`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

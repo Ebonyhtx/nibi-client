@@ -88,6 +88,19 @@ fn execution_mode(hook: &NodeHook) -> String {
     }
 }
 
+/// 展示路径用工作区路径的平台分隔符：NIBI 的 `displayPath` 是 Node `path.relative` 的原样输出
+/// （Windows 上是 `\`），而 digest 里的 `sourceRelativePath` 始终是 `/`。
+fn display_path(root: &str, path: &str) -> String {
+    let relative = relative(root, path);
+    if rust_cli_kernel_api::env_files::PathStyle::infer(root)
+        == rust_cli_kernel_api::env_files::PathStyle::Windows
+    {
+        relative.replace('/', "\\")
+    } else {
+        relative
+    }
+}
+
 /// 一条钩子的信任状态：策略阻断与库损坏优先，其次看信任集合。
 fn trust_state(
     trusted: &HashSet<String>,
@@ -142,7 +155,7 @@ pub fn review(
         .iter()
         .map(|(file, _)| WorkspaceHookSource {
             path: file.path.clone(),
-            display_path: relative(identity, &file.path),
+            display_path: display_path(identity, &file.path),
             editable: file.editable,
         })
         .collect();

@@ -347,9 +347,53 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 钩子评审（中等，先做）→ `discardSharedContext`（中偏小）→ DWF 三件 + 内核 run 能力（大，最后，
 独立 PR）。每步独立提交，不混品牌化；`NIBI_KERNEL` 默认仍是 node，切默认前置是这 8 条全绿或明确放弃。
 
+## 6.17 第十八步：工作区钩子评审四件（2026-10-30）
+
+四条命令全部接住（`requestWorkspaceHookReview` / `respondWorkspaceHookReview` /
+`toggleWorkspaceHookReviewItem` / `revokeWorkspaceHookTrust`），覆盖表变成 **30 接住 / 4 能力缺口**。
+
+**内核侧**
+- `kernel-api::hook_review`：快照形状（`WorkspaceHookReview` + `sources` + 逐条 `WorkspaceHookItem`，
+  字段名对齐 NIBI 的 strict schema：`type` / `executionMode` / `displayName` = 「事件 · matcher」）与
+  信任端口 `HookTrust`（`load`/`grant`/`revoke`）。
+- `hooks::hook_review`：纯函数 `review`（digest 与 Node 逐字节一致）、`admitted`/`admitted_for`
+  （信任变化后重建项目层 hooks 快照）。
+- `platform::hook_trust`：`impl HookTrust for HookTrustStore`（`grantedAt` = `Base::js::date::iso_timestamp`）。
+- `runtime`：`LocalKernel::with_hook_review(user_hooks, trust)` 注入端口（TUI/`-p` 不接，保持
+  `Unsupported`）；四个方法 + **授权/撤销/开关当场生效**（`HookEngine::replace_project` 只换项目层，
+  用户层与插件层不动）。
+
+**协议侧**
+- 评审流状态机（`protocol-zcode::hook_review`）：`reviewFlowId` 每会话一份、`generation` 单调 +1、
+  每代一个 `interactionId`；命令 target 不符 → `workspace_hooks_review_superseded`，快照不符 →
+  `workspace_hooks_snapshot_mismatch`；截止 10 分钟（计时任务到期撤交互）。
+- 评审请求投成 **pending 交互**（`payload.kind === "workspaceHookReview"`），与 Node 的
+  `onWorkspaceHookReviewRequested` 同形；`workspaceHookAdmission`（`pendingCount` 只数启用且待审）在
+  会话第一次打开时上报，评审/授权/开关/撤销后刷新。
+- `toggleWorkspaceHookReviewItem` 只改 `<工作区根>/.nibi/config.json` 里那一条的 `enabled`
+  （`serde_json` 打开 `preserve_order`，两空格缩进 + 换行，与 Node 的 `JSON.stringify(v,null,2)` 同形），
+  写前用重新解析的声明做守卫。
+
+**验证**
+- `drive-rust-app-server.mjs` 新增 `hookReview` 阶段（默认阶段列表里）：订阅时的提示条 → 请求评审 →
+  交互 payload 断言 → 就地关/开（配置落盘 + 换代）→ 授权（信任记录落盘、提示条清空）→ 按摘要撤销
+  （提示条回来）。
+- `check-dual-kernel-parity.mjs`：**63 个必需字段全一致**（38 → 63），其中
+  `hookTrustRecordDigest` 两边同为 `68ad4faa`（声明摘要逐字节一致）、`hookReviewSourcePath` 同为
+  `.nibi\config.json`。
+- `check-cold-resume.mjs` 仍 OK；`cargo test -p rust-cli-kernel-api/-hooks/-runtime/-protocol-zcode` 全绿；
+  `cargo test -p rust-cli` 失败集合与基线一致（9 个环境相关既有失败）。
+
+**已知边界**
+- 企业策略（Node 的 `workspaceHookPolicy`）没有来源：`blocked_policy` 恒为 false。
+- 评审交互的 `taskId`/`runId` 用会话 ID（Host 原样回传，只做 target 匹配）。
+- 被替换的那一代只撤交互，不发 Node 的 `WorkspaceHookReviewSuperseded` 事件（Rust 投影按
+  `pendingInteractions` 的替换收口）。
+- 截止到期只撤交互、不回报 `timed_out` 结算（Host 按同一个 `deadlineAt` 自行收口）。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 8 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 4 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，

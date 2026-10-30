@@ -124,4 +124,117 @@ impl LocalKernel {
         self.hooks.replace_project(settings);
         Ok(())
     }
+
+    /// NIBI `toggleWorkspaceHookReviewItem`：在可编辑的项目配置里改一条钩子的 `enabled`。
+    ///
+    /// 只改这一个字段（NIBI 的 `writeWorkspaceHookConfiguredToggle`）：写之前用刚读到的文件重新解析，
+    /// 声明本体（命令、matcher、序号）与评审时不一致就拒绝——防止评审之后被第三方改动；
+    /// 写完整份 JSON（两空格缩进 + 换行，`serde_json` 打开 preserve_order 后与 Node 的
+    /// `JSON.stringify(value, null, 2)` 同形）。
+    pub(crate) async fn toggle_hook(
+        &self,
+        workspace: &WorkspaceRef,
+        review_item_id: &str,
+        enabled: bool,
+    ) -> Result<(), KernelError> {
+        let mismatch = || KernelError::Failed {
+            message: "workspace_hooks_snapshot_mismatch: the workspace hooks changed after the review"
+                .to_owned(),
+        };
+        let review = self.hook_review_snapshot(workspace).await?;
+        let item = review
+            .items
+            .iter()
+            .find(|item| item.review_item_id == review_item_id)
+            .cloned()
+            .ok_or_else(mismatch)?;
+        if !item.editable
+            || item.source_path != rust_cli_hooks::project_config::DOT_PROJECT_CONFIG
+        {
+            return Err(mismatch());
+        }
+        let files =
+            rust_cli_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+        let file = files
+            .iter()
+            .find(|file| {
+                file.editable
+                    && file.kind == rust_cli_hooks::project_config::ProjectKind::DotProjectConfig
+                    && rust_cli_hooks::project_config::relative(workspace.root.as_str(), &file.path)
+                        == item.source_path
+            })
+            .ok_or_else(mismatch)?;
+        let read = self
+            .machine
+            .files()
+            .read_file(
+                workspace,
+                rust_cli_kernel_api::env::ReadFile {
+                    path: rust_cli_kernel_api::env::EnvPath::new(file.path.clone()),
+                },
+            )
+            .await
+            .map_err(|error| KernelError::Failed {
+                message: format!("workspace_hooks_config_unreadable: {error}"),
+            })?;
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&read.bytes).map_err(|error| KernelError::Failed {
+                message: format!("workspace_hooks_config_unreadable: {error}"),
+            })?;
+        // 守卫：磁盘上的声明与评审时看到的是同一条（命令与 matcher 都要对上）。
+        let (hooks, _) = rust_cli_hooks::node_config::NodeHooks::from_json(&value["hooks"]);
+        let current = hooks
+            .events
+            .iter()
+            .find(|(event, _)| event.as_str() == item.event)
+            .and_then(|(_, matchers)| matchers.get(item.matcher_index))
+            .filter(|matcher| matcher.matcher == item.matcher)
+            .and_then(|matcher| matcher.hooks.get(item.hook_index))
+            .ok_or_else(mismatch)?;
+        if current.display() != item.display_command {
+            return Err(mismatch());
+        }
+        let declaration = value
+            .get_mut("hooks")
+            .and_then(|hooks| hooks.get_mut("events"))
+            .and_then(|events| events.get_mut(item.event.as_str()))
+            .and_then(serde_json::Value::as_array_mut)
+            .and_then(|matchers| matchers.get_mut(item.matcher_index))
+            .and_then(|matcher| matcher.get_mut("hooks"))
+            .and_then(serde_json::Value::as_array_mut)
+            .and_then(|hooks| hooks.get_mut(item.hook_index))
+            .ok_or_else(mismatch)?;
+        declaration["enabled"] = serde_json::json!(enabled);
+        let text = format!(
+            "{}\n",
+            serde_json::to_string_pretty(&value).map_err(|error| KernelError::Failed {
+                message: format!("workspace_hooks_config_write_failed: {error}"),
+            })?
+        );
+        let context = rust_cli_kernel_api::env::OperationContext {
+            environment: workspace.environment.clone(),
+            generation: self.generation.clone(),
+            owner_epoch: OwnerEpoch::LOCAL,
+            operation: self.ports.ids.operation(),
+            origin: rust_cli_kernel_api::env::Origin::User { session: None },
+        };
+        self.machine
+            .files()
+            .put_file(
+                workspace,
+                context,
+                rust_cli_kernel_api::env_files::PutFile {
+                    path: rust_cli_kernel_api::env::EnvPath::new(file.path.clone()),
+                    bytes: text.into_bytes(),
+                    precondition: rust_cli_kernel_api::env::WritePrecondition::Any,
+                    create_parents: false,
+                },
+            )
+            .await
+            .map_err(|error| KernelError::Failed {
+                message: format!("workspace_hooks_config_write_failed: {error}"),
+            })?;
+        self.refresh_admitted_hooks(workspace).await?;
+        Ok(())
+    }
 }

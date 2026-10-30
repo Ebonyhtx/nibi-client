@@ -220,6 +220,46 @@ async fn the_review_reads_the_project_file_and_pending_turns_trusted_after_grant
 }
 
 #[tokio::test]
+async fn toggling_rewrites_only_the_enabled_field_of_the_editable_config() {
+    let (dir, workspace) = workspace_with_hooks().await;
+    let kernel = kernel(Some(Arc::new(MemoryTrust::default())), dir.path());
+    let before = kernel.workspace_hook_review(&workspace).await.unwrap();
+    let toggle_id = before.items[0].review_item_id.clone();
+    assert!(before.items[0].configured_enabled);
+
+    kernel
+        .set_workspace_hook_enabled(&workspace, &toggle_id, false)
+        .await
+        .unwrap();
+    let path = dir.path().join(".nibi").join("config.json");
+    let bytes = rust_cli_fs::read_optional(&path).await.unwrap().unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    // 只改了第一条的 enabled；第二条没有这个字段（不凭空补）。
+    assert_eq!(
+        value["hooks"]["events"]["PreToolUse"][0]["hooks"][0]["enabled"],
+        serde_json::json!(false)
+    );
+    assert!(
+        value["hooks"]["events"]["PreToolUse"][0]["hooks"][1]
+            .get("enabled")
+            .is_none()
+    );
+    let after = kernel.workspace_hook_review(&workspace).await.unwrap();
+    assert!(!after.items[0].configured_enabled);
+    // bundle 摘要带着启用状态：改开关就是换 bundle（评审流因此要换一代）。
+    assert_ne!(after.bundle_digest, before.bundle_digest);
+
+    // 打开：回到原样，摘要也回到原值。
+    kernel
+        .set_workspace_hook_enabled(&workspace, &toggle_id, true)
+        .await
+        .unwrap();
+    let back = kernel.workspace_hook_review(&workspace).await.unwrap();
+    assert!(back.items[0].configured_enabled);
+    assert_eq!(back.bundle_digest, before.bundle_digest);
+}
+
+#[tokio::test]
 async fn an_unknown_review_item_grants_nothing_and_a_workspace_without_hooks_is_not_applicable() {
     let (dir, workspace) = workspace_with_hooks().await;
     let trust = Arc::new(MemoryTrust::default());

@@ -256,18 +256,21 @@ async fn publish(
 }
 
 /// 结算当前的 generation，并在仍有待审项时开出下一代（Node `refreshPendingFlow`）。
+///
+/// 没有当前 flow（授权后已结算、或按摘要直接撤销）时也要重算：撤销的语义是回到待审，提示条要重新
+/// 出现，且按 Node 的 `openReviewFlowForNewPendingItems` 重新开一条评审（不能只留 Settings 的旁路）。
 async fn settle_and_refresh(server: &Server, live: &Arc<Live>, session: &str) {
     let id = SessionId::new(session);
-    let Some(flow) = current(server, &id) else {
-        return;
-    };
-    live.settle_hook_review(&flow.interaction_id).await;
+    let flow = current(server, &id);
+    if let Some(flow) = &flow {
+        live.settle_hook_review(&flow.interaction_id).await;
+    }
     let Ok(review) = snapshot(server, live).await else {
         return;
     };
     refresh_admission(live, &review).await;
     if review.has_pending() {
-        let next = next_flow(server, &review, flow.remote_session_id.as_deref(), Some(&flow));
+        let next = next_flow(server, &review, flow.as_ref().and_then(|f| f.remote_session_id.as_deref()), flow.as_ref());
         store(server, &id, next.clone());
         publish(server, live, id.as_str(), &next, &review).await;
     } else {
@@ -468,6 +471,90 @@ pub async fn respond(server: &Server, live: &Arc<Live>, envelope: &Envelope, rev
     Ack::accepted(command, revision, None)
 }
 
+/// NIBI `toggleWorkspaceHookReviewItem`：就地打开/关闭一条钩子（只改可编辑的项目配置）。
+///
+/// 改完 `enabled` 之后 bundle 摘要变了（摘要里带着启用状态），旧的 generation 必须换掉：这里结算
+/// 当前交互、按新快照开下一代（Node 的 `refreshPendingFlow` 同义）。
+pub async fn toggle(server: &Server, live: &Arc<Live>, envelope: &Envelope, revision: u64) -> Ack {
+    let command = envelope.command_id.as_str();
+    let Some(session) = envelope.session_id.clone() else {
+        return refused(
+            command,
+            "proto.sessionRequired",
+            "toggleWorkspaceHookReviewItem needs a sessionId",
+            revision,
+        );
+    };
+    let payload = &envelope.payload;
+    if payload["sessionId"].as_str() != Some(session.as_str()) {
+        return refused(
+            command,
+            "workspace_hooks_snapshot_mismatch",
+            "the command targets another session",
+            revision,
+        );
+    }
+    let id = SessionId::new(&session);
+    let Some(flow) = current(server, &id) else {
+        return refused(
+            command,
+            "workspace_hooks_review_superseded",
+            "the workspace hook review is no longer pending",
+            revision,
+        );
+    };
+    if !flow.matches_generation(payload) {
+        return refused(
+            command,
+            "workspace_hooks_review_superseded",
+            "a newer workspace hook review replaced this one",
+            revision,
+        );
+    }
+    if !flow.matches_snapshot(payload) {
+        return refused(
+            command,
+            "workspace_hooks_snapshot_mismatch",
+            "the workspace hooks changed since the review opened",
+            revision,
+        );
+    }
+    let review = match snapshot(server, live).await {
+        Ok(review) => review,
+        Err(error) => return capability_error(command, &error, revision),
+    };
+    let Some(item) = payload["reviewItemId"]
+        .as_str()
+        .and_then(|wanted| review.items.iter().find(|item| item.review_item_id == wanted))
+    else {
+        return refused(
+            command,
+            "workspace_hooks_snapshot_mismatch",
+            "the review item is not part of the current workspace hooks",
+            revision,
+        );
+    };
+    if !item.editable {
+        return refused(
+            command,
+            "workspace_hooks_snapshot_mismatch",
+            "the review item is not editable",
+            revision,
+        );
+    }
+    let enabled = payload["enabled"].as_bool().unwrap_or(false);
+    match server
+        .kernel
+        .set_workspace_hook_enabled(&workspace(server, live), &item.review_item_id, enabled)
+        .await
+    {
+        Ok(()) => {}
+        Err(error) => return trust_error(command, &error, revision),
+    }
+    settle_and_refresh(server, live, &session).await;
+    Ack::accepted(command, revision, None)
+}
+
 /// NIBI `revokeWorkspaceHookTrust` 的两种 target：
 /// 评审流内的 `reviewItemIds`，与直接按 `hookDeclarationDigests` 撤销。
 pub async fn revoke(server: &Server, live: &Arc<Live>, envelope: &Envelope, revision: u64) -> Ack {
@@ -585,6 +672,10 @@ fn trust_error(command: &str, error: &KernelError, revision: u64) -> Ack {
     let message = error.to_string();
     let reason = if message.contains("workspace_hooks_trust_store_corrupt") {
         "workspace_hooks_trust_store_corrupt"
+    } else if message.contains("workspace_hooks_snapshot_mismatch") {
+        "workspace_hooks_snapshot_mismatch"
+    } else if message.contains("workspace_hooks_config_unreadable") {
+        "workspace_hooks_config_unreadable"
     } else {
         "workspace_hooks_config_write_failed"
     };

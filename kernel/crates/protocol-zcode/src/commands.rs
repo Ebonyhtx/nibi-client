@@ -486,6 +486,9 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "respondWorkspaceHookReview" => {
             crate::hook_review::respond(server, &live.sink, envelope, revision).await
         }
+        "toggleWorkspaceHookReviewItem" => {
+            crate::hook_review::toggle(server, &live.sink, envelope, revision).await
+        }
         "revokeWorkspaceHookTrust" => {
             crate::hook_review::revoke(server, &live.sink, envelope, revision).await
         }

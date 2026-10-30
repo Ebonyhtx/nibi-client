@@ -70,6 +70,7 @@ pub const HANDLED_COMMANDS: &[&str] = &[
     "snoozeInteractionAutoResolution",
     "requestWorkspaceHookReview",
     "respondWorkspaceHookReview",
+    "toggleWorkspaceHookReviewItem",
     "revokeWorkspaceHookTrust",
     "deleteSession",
 ];
@@ -77,10 +78,6 @@ pub const HANDLED_COMMANDS: &[&str] = &[
 /// 内核**还没有能力**实现的 NIBI 命令：名字 + 缺的能力。不是接线缺口，是功能缺口——补之前要先决策
 /// 能力的形状（每项都写在 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表里）。处理器补齐一项就从这里删一项。
 pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
-    (
-        "toggleWorkspaceHookReviewItem",
-        "评审流已接（request/respond/revoke），缺的是就地改写项目配置的接线：要按 editable 源写 `<工作区根>/.nibi/config.json`（保留原格式、原子写），再重建快照与下一代评审",
-    ),
     (
         "startSavedWorkflow",
         "动态工作流的启动器：内核没有 DWF run 能力（与 createSession.dynamicWorkflow* 同一缺口）",

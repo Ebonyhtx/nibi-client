@@ -270,6 +270,16 @@ impl Kernel for LocalKernel {
         self.revoke_hooks(workspace, declaration_digests).await
     }
 
+    /// NIBI `toggleWorkspaceHookReviewItem`：在可编辑的项目配置里改一条钩子的 `enabled`。
+    async fn set_workspace_hook_enabled(
+        &self,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        review_item_id: &str,
+        enabled: bool,
+    ) -> Result<(), KernelError> {
+        self.toggle_hook(workspace, review_item_id, enabled).await
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

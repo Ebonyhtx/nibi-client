@@ -27,7 +27,7 @@ const binArgs = isNode
   ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
   : ["app-server", "--stdio"];
 const dotDir = isNode ? ".nibi" : ".zcode";
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,rename,switchModel,switchMode,fork,edit,retry,compact,rejections")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,switchModel,switchMode,fork,edit,retry,compact,rejections")
   .split("=")[1]
   .split(",");
 // 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
@@ -47,6 +47,28 @@ const dataV2 = join(home, dotDir, "v2");
 mkdirSync(dataV2, { recursive: true });
 const workspace = join(home, "workspace");
 mkdirSync(workspace, { recursive: true });
+// 工作区钩子评审（NIBI 的 request/respond/revoke）：项目配置在 `.nibi/config.json`（两个内核同一个
+// 发现规则）。开局就写：信任前它不运行，只在订阅会话时以 `workspaceHookAdmission` 提示待审。
+if (phases.includes("hookReview")) {
+  mkdirSync(join(workspace, ".nibi"), { recursive: true });
+  writeFileSync(
+    join(workspace, ".nibi", "config.json"),
+    `${JSON.stringify(
+      {
+        hooks: {
+          enabled: true,
+          events: {
+            PreToolUse: [
+              { matcher: "Bash", hooks: [{ type: "command", command: "node guard.js" }] },
+            ],
+          },
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}
 // 会话的附加工作目录（NIBI createSession.additionalDirectories）：环境段该列出它。
 const extraDirectory = join(home, "extra-workspace");
 mkdirSync(extraDirectory, { recursive: true });
@@ -490,6 +512,7 @@ try {
     throw new Error("createSession.additionalDirectories never reached the prompt");
   }
 
+
   const currentCommittedCount = async () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     const legacy = await send("session/read", { sessionId });
@@ -501,6 +524,8 @@ try {
     let logEpoch = null;
     let revision = 0;
     let stopState = null;
+    let pendingInteractions = [];
+    let workspaceHookAdmission = null;
     const rows = new Map();
     for (const frame of frames) {
       const payload = frame.frame?.payload ?? {};
@@ -511,6 +536,8 @@ try {
         }
         logEpoch = snap.logEpoch ?? logEpoch;
         revision = snap.revision ?? revision;
+        pendingInteractions = snap.pendingInteractions ?? [];
+        workspaceHookAdmission = snap.workspaceHookAdmission ?? null;
         for (const row of snap.rows?.window ?? []) rows.set(row.rowId, row);
       } else if (payload.kind === "deltas") {
         for (const delta of payload.deltas ?? []) {
@@ -529,14 +556,29 @@ try {
           } else if (delta.op === "state.updated" && delta.patch) {
             if (Number.isFinite(delta.patch.revision)) revision = delta.patch.revision;
             if (delta.patch.meta?.logEpoch) logEpoch = delta.patch.meta.logEpoch;
+            if (delta.patch.pendingInteractions) {
+              pendingInteractions = delta.patch.pendingInteractions;
+            }
+            if ("workspaceHookAdmission" in delta.patch) {
+              workspaceHookAdmission = delta.patch.workspaceHookAdmission;
+            }
           }
         }
       }
     }
-    return { logEpoch, revision, stopState, rows: [...rows.values()] };
+    return {
+      logEpoch,
+      revision,
+      stopState,
+      rows: [...rows.values()],
+      pendingInteractions,
+      workspaceHookAdmission,
+    };
   };
   const targetRowOf = (state) =>
+
     [...state.rows].reverse().find((row) => row.assistantResponseId) ?? null;
+
 
   // 4) compact
   if (phases.includes("compact") && (editResubmitted || !phases.includes("edit"))) {
@@ -630,6 +672,228 @@ try {
     );
     return ackResult;
   };
+
+  // 工作区钩子评审：订阅时的提示条 → requestWorkspaceHookReview → 待审交互 → 授权 →
+  // 信任落盘 + 提示条清空 → 按摘要撤销 → 重新待审。
+  if (phases.includes("hookReview")) {
+    const admission = await waitFor(
+      () => buildState().workspaceHookAdmission ?? undefined,
+      "workspaceHookAdmission after subscribe",
+      30_000,
+    );
+    checks.hookAdmissionPending = admission.pendingCount;
+    if (admission.pendingCount !== 1) {
+      throw new Error(`workspaceHookAdmission pendingCount=${admission.pendingCount}`);
+    }
+    if (!/^[a-f0-9]{64}$/u.test(admission.bundleDigest ?? "")) {
+      throw new Error(`workspaceHookAdmission bundleDigest=${admission.bundleDigest}`);
+    }
+
+    const requestReview = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000070",
+      "requestWorkspaceHookReview",
+      {
+        sessionId,
+        workspaceIdentity: admission.workspaceIdentity ?? workspace,
+        bundleDigest: admission.bundleDigest,
+      },
+    );
+    if (requestReview.status !== "accepted") {
+      throw new Error(
+        `requestWorkspaceHookReview ${requestReview.status}/${requestReview.reasonCode}: ${requestReview.message}`,
+      );
+    }
+    checks.hookReviewRequestStatus = requestReview.status;
+
+    const interaction = await waitFor(
+      () => {
+        const state = buildState();
+        return state.pendingInteractions.find(
+          (pending) => pending.payload?.kind === "workspaceHookReview",
+        );
+      },
+      "workspaceHookReview interaction",
+      30_000,
+    );
+    const request = interaction.payload;
+    checks.hookReviewInteractionKind = request.kind;
+    checks.hookReviewGeneration = request.generation;
+    checks.hookReviewHookCount = request.summary?.hookCount;
+    checks.hookReviewPendingCount = request.summary?.pendingCount;
+    checks.hookReviewEventCount = request.summary?.eventCount;
+    checks.hookReviewItemType = request.items?.[0]?.type;
+    checks.hookReviewItemMode = request.items?.[0]?.executionMode;
+    checks.hookReviewItemTrust = request.items?.[0]?.trustState;
+    checks.hookReviewItemDisplayName = request.items?.[0]?.displayName ?? null;
+    checks.hookReviewWarning = request.warningCode;
+    checks.hookReviewSourcePath = request.sourceFiles?.[0]?.displayPath ?? null;
+    if (request.summary?.hookCount !== request.items?.length) {
+      throw new Error(`hookCount ${request.summary?.hookCount} != items ${request.items?.length}`);
+    }
+    if (request.summary?.pendingCount !== 1 || request.summary?.eventCount !== 1) {
+      throw new Error(`review summary ${JSON.stringify(request.summary)}`);
+    }
+    if (request.items?.[0]?.trustState !== "pending_trust") {
+      throw new Error(`review item trustState=${request.items?.[0]?.trustState}`);
+    }
+    if (request.warningCode !== "workspace_hooks_execute_code") {
+      throw new Error(`review warningCode=${request.warningCode}`);
+    }
+    const reviewItem = request.items[0];
+
+    // 就地开关：只改可编辑的项目配置（`.nibi/config.json`）；bundle 摘要随之变化，评审换下一代。
+    const targetOf = (payload) => ({
+      sessionId,
+      taskId: payload.taskId,
+      runId: payload.runId,
+      workspaceIdentity: payload.workspaceIdentity,
+      bundleDigest: payload.bundleDigest,
+      reviewFlowId: payload.reviewFlowId,
+      generation: payload.generation,
+      interactionId: payload.interactionId,
+    });
+    const currentReview = () =>
+      buildState().pendingInteractions.find(
+        (pending) => pending.payload?.kind === "workspaceHookReview",
+      );
+    const toggleOff = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000083",
+      "toggleWorkspaceHookReviewItem",
+      { ...targetOf(request), reviewItemId: reviewItem.reviewItemId, enabled: false },
+    );
+    if (toggleOff.status !== "accepted") {
+      throw new Error(
+        `toggleWorkspaceHookReviewItem(false) ${toggleOff.status}/${toggleOff.reasonCode}: ${toggleOff.message}`,
+      );
+    }
+    const disabledConfig = JSON.parse(
+      readFileSync(join(workspace, ".nibi", "config.json"), "utf8"),
+    );
+    checks.hookToggleConfigEnabled =
+      disabledConfig.hooks?.events?.PreToolUse?.[0]?.hooks?.[0]?.enabled;
+    checks.hookToggleStatus = toggleOff.status;
+    const disabledReview = await waitFor(
+      () => {
+        const current = currentReview();
+        return current && current.payload.generation === request.generation + 1
+          ? current
+          : undefined;
+      },
+      "review generation after toggle off",
+      30_000,
+    );
+    checks.hookToggleGeneration = disabledReview.payload.generation - request.generation;
+    checks.hookToggleConfiguredEnabled = disabledReview.payload.items[0].configuredEnabled;
+    if (checks.hookToggleConfigEnabled !== false) {
+      throw new Error(`config enabled after toggle off = ${checks.hookToggleConfigEnabled}`);
+    }
+    if (checks.hookToggleConfiguredEnabled !== false) {
+      throw new Error(
+        `review item configuredEnabled after toggle off = ${checks.hookToggleConfiguredEnabled}`,
+      );
+    }
+    const toggleOn = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000084",
+      "toggleWorkspaceHookReviewItem",
+      {
+        ...targetOf(disabledReview.payload),
+        reviewItemId: disabledReview.payload.items[0].reviewItemId,
+        enabled: true,
+      },
+    );
+    if (toggleOn.status !== "accepted") {
+      throw new Error(
+        `toggleWorkspaceHookReviewItem(true) ${toggleOn.status}/${toggleOn.reasonCode}: ${toggleOn.message}`,
+      );
+    }
+    const requestAfterToggle = await waitFor(
+      () => {
+        const current = currentReview();
+        return current && current.payload.generation === disabledReview.payload.generation + 1
+          ? current.payload
+          : undefined;
+      },
+      "review generation after toggle on",
+      30_000,
+    );
+    checks.hookToggleRestored = requestAfterToggle.items[0].configuredEnabled;
+
+    const responded = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000081",
+      "respondWorkspaceHookReview",
+      {
+        ...targetOf(requestAfterToggle),
+        decision: {
+          action: "trust_selected",
+          reviewItemIds: [requestAfterToggle.items[0].reviewItemId],
+        },
+      },
+    );
+    if (responded.status !== "accepted") {
+      throw new Error(
+        `respondWorkspaceHookReview ${responded.status}/${responded.reasonCode}: ${responded.message}`,
+      );
+    }
+    checks.hookReviewRespondStatus = responded.status;
+    await waitFor(
+      () =>
+        buildState().pendingInteractions.some(
+          (pending) => pending.payload?.kind === "workspaceHookReview",
+        )
+          ? undefined
+          : true,
+      "workspace hook review settled",
+      30_000,
+    );
+    checks.hookReviewSettled = true;
+    await waitFor(
+      () => (buildState().workspaceHookAdmission === null ? true : undefined),
+      "workspace hook admission cleared",
+      30_000,
+    );
+    checks.hookAdmissionCleared = true;
+
+    // 信任记录落盘（每个内核自己的存储根），字段名与 Node 的 schema 一致。
+    const trustFile = join(home, dotDir, "security", "workspace-hook-trust-v1.json");
+    const store = JSON.parse(readFileSync(trustFile, "utf8"));
+    const record = store.records?.find(
+      (candidate) => candidate.eventAtGrant === "PreToolUse",
+    );
+    if (!record) throw new Error(`no PreToolUse record in ${trustFile}`);
+    if (record.decision !== "trusted" || record.digestAlgorithm !== "sha256") {
+      throw new Error(`trust record decision=${record.decision}`);
+    }
+    checks.hookTrustRecordDigest = record.hookDeclarationDigest.slice(0, 8);
+    checks.hookTrustRecordIdentity = record.workspaceIdentity === workspace;
+
+    const revoked = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000082",
+      "revokeWorkspaceHookTrust",
+      {
+        sessionId,
+        workspaceIdentity: request.workspaceIdentity,
+        bundleDigest: request.bundleDigest,
+        hookDeclarationDigests: [record.hookDeclarationDigest],
+      },
+    );
+    if (revoked.status !== "accepted") {
+      throw new Error(
+        `revokeWorkspaceHookTrust ${revoked.status}/${revoked.reasonCode}: ${revoked.message}`,
+      );
+    }
+    checks.hookReviewRevokeStatus = revoked.status;
+    // 撤销 = 回到待审：提示条重新出现。
+    await waitFor(
+      () => (buildState().workspaceHookAdmission?.pendingCount === 1 ? true : undefined),
+      "workspace hook admission back after revoke",
+      30_000,
+    );
+    checks.hookAdmissionRestored = true;
+    console.log(
+      `workflow hook review: admission=${checks.hookAdmissionPending} generation=${checks.hookReviewGeneration} ` +
+        `item=${checks.hookReviewItemTrust} granted-then-revoked`,
+    );
+  }
 
   if (phases.includes("rename")) {
     const ackR = await simpleCommand(

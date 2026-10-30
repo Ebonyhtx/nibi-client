@@ -657,6 +657,20 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 在可编辑的项目配置（`<工作区根>/.nibi/config.json`）里打开或关闭一条钩子（NIBI
+    /// `toggleWorkspaceHookReviewItem`）：只改 `enabled`，声明本体与信任记录不动。
+    /// 缺省实现返回 `Unsupported`。
+    async fn set_workspace_hook_enabled(
+        &self,
+        _workspace: &WorkspaceRef,
+        _review_item_id: &str,
+        _enabled: bool,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "workspace hook config writes".to_owned(),
+        })
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///
