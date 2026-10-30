@@ -49,6 +49,30 @@ fn absolute_settings_are_kept() {
     );
 }
 
+/// Node `deriveSessionDbPath`：sessionDbPath 没显式给时跟 storage.dir 走（`<storage.dir>/cli/db/db.sqlite`），
+/// 否则隔离/换存储根的运行会打开真实用户根下的库。
+#[test]
+fn the_session_database_follows_the_storage_dir() {
+    let paths = resolve(None, Some("data"));
+    assert_eq!(
+        paths.database().as_path(),
+        Path::new("/work/repo/data/cli/db/db.sqlite")
+    );
+    assert_eq!(
+        resolve(None, Some("~/z"))
+            .database()
+            .as_path(),
+        Path::new("/home/dev/z/cli/db/db.sqlite")
+    );
+    // 显式 sessionDbPath 仍然优先。
+    assert_eq!(
+        resolve(Some("~/db/custom.sqlite"), Some("data"))
+            .database()
+            .as_path(),
+        Path::new("/home/dev/db/custom.sqlite")
+    );
+}
+
 #[test]
 fn joined_storage_paths_stay_storage_paths() {
     let paths = resolve(None, None);

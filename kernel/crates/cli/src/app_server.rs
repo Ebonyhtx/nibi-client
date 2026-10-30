@@ -5,7 +5,6 @@
 //! 不登记跨会话通信），区别只在注入的东西：平台层的账号凭据来源经 Host（G8），前端是 `protocol-zcode`。
 //! 写者先起：Host 要求拉起后 30 s 内有 `startup/storageState`。
 
-use std::hash::{Hash, Hasher};
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
@@ -33,9 +32,12 @@ use crate::{
 pub(crate) struct Parsed {
     /// `--surface`（Host 给 `desktop`）。P1 不按它改提示词（app-protocol.md §13 第 4 项）。
     pub(crate) surface: Option<String>,
+    /// `--prepare-storage`（Host 的存储准备入口；`prepare_storage.rs`）：不进协议读循环，
+    /// 所以不要求 `--stdio`（Host 的 Worker/子进程 argv 恒带它，单独给也接受）。
+    pub(crate) prepare_storage: bool,
 }
 
-/// `app-server` 子命令；不是它时为 None。只认 `--stdio` 与 `--surface`。
+/// `app-server` 子命令；不是它时为 None。只认 `--stdio`、`--surface` 与 `--prepare-storage`。
 pub(crate) fn parse(args: &[String]) -> Option<Result<Parsed, String>> {
     let (first, rest) = args.split_first()?;
     if first != "app-server" {
@@ -43,10 +45,12 @@ pub(crate) fn parse(args: &[String]) -> Option<Result<Parsed, String>> {
     }
     let mut stdio = false;
     let mut surface = None;
+    let mut prepare_storage = false;
     let mut rest = rest.iter();
     while let Some(arg) = rest.next() {
         match arg.as_str() {
             "--stdio" => stdio = true,
+            "--prepare-storage" => prepare_storage = true,
             "--surface" => match rest.next() {
                 Some(value) => surface = Some(value.clone()),
                 None => {
@@ -61,10 +65,13 @@ pub(crate) fn parse(args: &[String]) -> Option<Result<Parsed, String>> {
             },
         }
     }
-    if !stdio {
+    if !stdio && !prepare_storage {
         return Some(Err("error: app-server needs --stdio".to_owned()));
     }
-    Some(Ok(Parsed { surface }))
+    Some(Ok(Parsed {
+        surface,
+        prepare_storage,
+    }))
 }
 
 /// `executor` 与 `app-server` 两个子命令（不走常规命令行参数的解析）：是其中之一时返回退出码。
@@ -80,6 +87,10 @@ pub(crate) fn dispatch(args: &[String]) -> Option<ExitCode> {
             return Some(ExitCode::FAILURE);
         }
     };
+    // 存储准备（Node `prepareProtocolStartupStorage` 的对等物）：握手 + 迁移，不起 async 前端。
+    if parsed.prepare_storage {
+        return Some(crate::prepare_storage::dispatch());
+    }
     let runtime = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
@@ -99,11 +110,10 @@ pub(crate) fn dispatch(args: &[String]) -> Option<ExitCode> {
     })
 }
 
-/// 会话库的不透明 ID：库路径的散列（固定的键，同一个库总是同一个 ID；不带路径）。
+/// 会话库的不透明 ID：Node `createHash("sha256").update(dbPath)` 的同一十六进制（同一个库总是
+/// 同一个 ID，不带路径；Host 按它归并迁移基线，两内核必须一致）。
 fn database_id(path: &std::path::Path) -> String {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    path.hash(&mut hasher);
-    format!("session-db-{:016x}", hasher.finish())
+    rust_cli_node_store::session_database_id(path)
 }
 
 async fn run(parsed: Parsed) -> Result<u8> {

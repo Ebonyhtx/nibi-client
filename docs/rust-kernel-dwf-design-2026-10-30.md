@@ -142,6 +142,12 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
   `resources/rust-kernel/zcode-rs`（**尚未随包附带**）→ 仓库 `kernel/target/{debug,release}`；
 - 走 Rust 时若 Electron runtime 与 `nibi.cjs` 都在，命令的 `env` 带 `NIBI_DWF_ENGINE_CMD`
   （Helper + `__nibi-dwf-engine` + `ELECTRON_RUN_AS_NODE=1`）；不在则不带，三条 DWF 命令按能力不支持回。
+- **存储准备（灰度第二片，2026-10-30）**：Rust app-server 实现 `--prepare-storage`（NDJSON 握手 +
+  `startup/storageState` 进度，与 Node 同一帧序列；对拍 21 字段进 `check-dual-kernel-parity`，总
+  92 字段）后，Rust 命令打开 `supportsStorageStartup` + `storagePreparationProcess`。原生 binary
+  进不了 Worker 线程，`prepareSessionStorage` 增加原生子进程分支：`spawn(command.command,
+  args + --prepare-storage)`，cwd 由 spawn 给出（Rust 入口没有 `--cwd` 参数），握手逻辑两种
+  transport 共用。Node 内核的 Worker 分支不变。
 - 桌面侧仍默认 node；要给真实用户用，还需：把 Rust 二进制放进打包资源、FIX-5（Electron 升级）
   后复核 `ELECTRON_RUN_AS_NODE`、以及阶段 3 的进程管理与三消费者回归。
 

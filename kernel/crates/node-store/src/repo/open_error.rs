@@ -30,6 +30,12 @@ impl StartupError {
         }
     }
 
+    /// `--prepare-storage` 握手自己的失败（超时、传输断开、确认帧无效）：没有 SQLite 错误，
+    /// 只有分类码与一句给 stderr 的话。
+    pub fn for_frame(code: &'static str, message: impl Into<String>) -> Self {
+        Self::new(code, message.into())
+    }
+
     /// Node `classifyDatabaseStartupError`：按 SQLite 主结果码分类。
     pub(super) fn sqlite(error: &rusqlite::Error, context: &str) -> Self {
         let failure = match error {

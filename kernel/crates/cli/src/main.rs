@@ -36,6 +36,7 @@ mod options;
 mod origins;
 mod output;
 mod peers;
+mod prepare_storage;
 mod print_format;
 mod request_headers;
 mod signals;

@@ -178,6 +178,36 @@ pub(crate) async fn read_files(inputs: &ConfigInputs<'_>) -> Files {
     }
 }
 
+/// `--prepare-storage` 的库位置（prepare_storage.rs）：只来自用户级配置与环境变量，没有项目层——
+/// Node 的协议入口 `createConfig({env})` 同一范围（`storage.sessionDbPath` / `storage.dir`）。
+pub(crate) struct UserStorage {
+    pub(crate) dir: Option<String>,
+    pub(crate) session_db_path: Option<String>,
+}
+
+pub(crate) async fn user_storage_layer(
+    paths: &StoragePaths,
+    process_env: &[(String, String)],
+) -> UserStorage {
+    let user = read_cli_config(paths).await;
+    let empty = Map::new();
+    let path_text = paths.cli_config().as_path().display().to_string();
+    let object = match &user {
+        ConfigFile::Loaded(map) => map,
+        _ => &empty,
+    };
+    let layer = Layer {
+        source: RuleSource::UserSettings,
+        object,
+        path: &path_text,
+    };
+    let storage = StorageLayers::from_layers(&[layer], process_env);
+    UserStorage {
+        dir: storage.dir,
+        session_db_path: storage.session_db_path,
+    }
+}
+
 /// 用户层 hooks 的原始 `NodeHooks`（工作区钩子评审的 digest 要它算默认超时与输出上限，
 /// config.md §4.1）：与启动组装读同一份文件。协议前端（app-server）在组装之后单独取一次。
 pub(crate) async fn user_hooks(paths: &rust_cli_paths::StoragePaths) -> NodeHooks {

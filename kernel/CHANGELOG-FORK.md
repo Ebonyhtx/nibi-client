@@ -449,6 +449,34 @@ runtime 独立跑，唯一 app 耦合是 driver。据此把 C1 再细化：**dri
 - **仍未移植**：journal 的 `escalation-*` 事件与 `pendingQuestions` 投影、修订后的「设置轮」、
   `modelBindings`/persona 级模型名解析、`GetWorkflowRun` 工具本身。见设计文档 §5.4。
 
+## 6.14 `--prepare-storage` 存储准备握手（2026-10-30）
+
+Host 的启动存储门（桌面启动先准备好会话库再起 Agent）：Node 侧是
+`prepareProtocolStartupStorage` 的 NDJSON 握手，Rust 现在对等实现，桌面 Rust 命令同时打开
+`supportsStorageStartup`。
+
+- **node-store**：`open_with_progress`（Node `runSqliteSessionMigrationsAsync` 的 onProgress 同一
+  事件序列：checking → checking(事实) → waiting_for_lock → migrating(id/completed/total) →
+  committing → ready → failed，含 `lastAppliedMigrationId` 的「基线读取后才带键、空账本为
+  null」细节）；`Facts` 增 `committed`/`last_applied`/`baseline_read`；`session_database_id` =
+  路径的 sha256 十六进制（Windows 上先归一分隔符——Node 的 `path.resolve` 产物全反斜杠，Host
+  按它归并迁移基线，两内核必须同值；app-server 常规启动帧的 databaseId 从
+  `session-db-<hash>` 切到它）。
+- **cli**：`prepare_storage.rs`（`app-server --stdio --prepare-storage`）：`startup/storagePath`
+  → 30s 等一帧 `startup/storagePathReady`（EOF=`transport_closed`、超时=`startup_status_timeout`、
+  超长/坏帧=`sql_failed）→ 不 reuse 时建目录 + 阻塞打开上报进度 → `startup/storagePrepared`。
+  失败两份帧（打开层本 attempt + 全新 attemptId 序号 1，Node 两层 catch 同形），退出码 1。
+  `backup_required` 不在 Node 枚举里，帧里按 `sql_failed` 报。库的位置只来自用户级配置与环境
+  变量（Node `createConfig({env})` 没有项目层，同范围）。
+- **对齐 Node 的库路径派生**：`StoragePaths::resolve` 在 `sessionDbPath` 未显式给出时跟
+  `storage.dir` 走（Node `deriveSessionDbPath`）；此前 Rust 固定用用户根缺省位置，`ZCODE_STORAGE_DIR`
+  隔离时会打开与 Node 不同的库。缺省（两者都没配）保持收拢前的字节形状（F55 等价性用例）。
+- **门禁**：驱动器新增 `storagePrepare` 阶段（`storage-prepare-probe.mjs`，四用例：全新
+  initialize / 重跑 none / reuse / 损坏 corrupt），**21 个字段**进 `check-dual-kernel-parity`
+  （总 92 字段全一致）；databaseId 不直接跨内核比（两次运行的临时根不同），比的是
+  「= 自己路径的 sha256」这一事实，散列函数由 node-store 的 `the_database_id_matches_node`
+  用固定向量钉死。node-store 另有进度序列 2 例。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

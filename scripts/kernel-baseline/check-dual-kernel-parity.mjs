@@ -104,6 +104,28 @@ const REQUIRED = [
   "sharedContextStoredPreserved",
   "sharedContextSecondStatus",
   "sharedContextSecondCode",
+  // 存储准备握手（app-server --prepare-storage，20 字段）：帧序列、迁移事实、databaseId 自洽与退出码。
+  "storagePrepareInitExit",
+  "storagePrepareInitPhases",
+  "storagePrepareInitFacts",
+  "storagePrepareInitMigrationIds",
+  "storagePrepareInitFirstFrameMs",
+  "storagePrepareInitPrepared",
+  "storagePrepareInitPathAbsolute",
+  "storagePrepareDatabaseIdMatches",
+  "storagePrepareInitTotal",
+  "storagePrepareNoneExit",
+  "storagePrepareNonePhases",
+  "storagePrepareNoneFacts",
+  "storagePrepareNonePrepared",
+  "storagePrepareReuseExit",
+  "storagePrepareReuseStateFrames",
+  "storagePrepareReusePrepared",
+  "storagePrepareCorruptExit",
+  "storagePrepareCorruptCode",
+  "storagePrepareCorruptSqlite",
+  "storagePrepareCorruptFreshAttempt",
+  "storagePrepareCorruptPrepared",
 ];
 const KNOWN_DIFFERENT = ["attachmentReplayed"];
 

@@ -30,7 +30,10 @@
         "src/runtime/methods/steering.ts",
         "src/runtime/methods/turn.ts",
         "src/runtime/methods/turn-model-step.ts",
-        "**/packages/ui/src/remote-connection-flow/index.ts"
+        "**/packages/ui/src/remote-connection-flow/index.ts",
+        // 双内核对拍驱动器：每个阶段一段自包含场景（DWF/存储准备等），按阶段继续拆只会把
+        // 共用的协议夹具打散；已把存储准备探针拆到 storage-prepare-probe.mjs，其余保持完整。
+        "**/scripts/kernel-baseline/drive-rust-app-server.mjs"
       ],
       "rules": {
         "max-lines": ["warn", { "max": 800, "skipBlankLines": true, "skipComments": true }]

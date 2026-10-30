@@ -4,7 +4,8 @@
 //! （docs/specs/rust-m11-node-storage.md §2.2、§8）。
 //!
 //! 与复制来源的差异：
-//! - 不报告启动进度（rust-cli 没有 `--prepare-storage` 握手）；结果里只给迁移事实。
+//! - 启动进度（`Progress`）只为 `--prepare-storage` 握手报告（app-server 的存储准备入口，Node
+//!   `runSqliteSessionMigrationsAsync` 的 `onProgress`）；常规打开传空报告，帧的顺序与 Node 相同。
 //! - 账本按 Node `previousIds` 接管旧 id（只补记账本，不重跑 SQL），不再写死 0023 的特例预检。
 //! - 迁移前备份没有复制：已有业务数据的库若还缺已知迁移，拒绝打开（`backup_required`），
 //!   由 Node CLI / App 先升级。全新库没有要保护的表，照常补齐（docs/specs/rust-cli/node-store.md §2）。
@@ -12,6 +13,7 @@ use super::migrations::{MIGRATIONS, Migration, checksum};
 use super::open_error::Attempt;
 pub use super::open_error::StartupError;
 use rusqlite::{Connection, ErrorCode, OptionalExtension, params};
+use sha2::{Digest, Sha256};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -33,7 +35,37 @@ pub struct Facts {
     /// `none`、`initialize` 或 `upgrade`。
     pub kind: &'static str,
     pub executed: usize,
+    /// `committed` 在 Node 里总等于 `executed`（失败时整体回滚，不会只提交一半）。
+    pub committed: usize,
+    /// 锁内、版本 SQL 之前账本里的最后一个 id（Node `lastAppliedMigrationId`；账本为空是 None）。
+    /// 只在 prepare-storage 的进度帧里上报。
+    pub last_applied: Option<String>,
+    /// 账本基线已经读过：Node 的 facts 对象从这里起带 `lastAppliedMigrationId` 键（空账本是
+    /// `null`），之前没有这个键。
+    pub baseline_read: bool,
 }
+
+/// 一步迁移进度（Node `SqliteMigrationProgress` 的等价物；帧的组装在调用方）。
+pub struct Progress<'a> {
+    /// `checking`、`waiting_for_lock`、`migrating`、`committing`、`ready`、`failed`。
+    pub phase: &'static str,
+    /// 迁移事实（`checking` 的前两步与 `waiting_for_lock` 没有）。
+    pub facts: Option<&'a Facts>,
+    /// 正在执行的迁移（`migrating`）或失败点（`failed`）。
+    pub migration_id: Option<&'a str>,
+    /// 已应用的迁移数（`migrating`）。
+    pub completed: usize,
+    /// 已知迁移的总数（Node 传 `SQLITE_MIGRATIONS.length`，不是待执行的数）。
+    pub total: usize,
+    /// 失败的分类码（`failed`；Node `classifyDatabaseStartupError` 的结果）。
+    pub error_code: Option<&'a str>,
+    /// 失败的 SQLite 主结果码（`failed`，Node `errcode`）。
+    pub sqlite_code: Option<i32>,
+}
+
+/// 进度报告；阻塞线程里同步调用，只做帧的组装与写出。共享闭包（调用方的序号与
+/// 「传输已断」标记走原子量/Cell）。
+pub type Report<'a> = &'a (dyn Fn(&Progress<'_>) + 'a);
 
 /// 打开 `path` 并补齐 Node 的已知迁移。`lock_wait` 是等待其他写者的上限；`now_ms` 写进账本。
 pub fn open(
@@ -41,24 +73,58 @@ pub fn open(
     lock_wait: Duration,
     now_ms: u64,
 ) -> Result<(Connection, Facts), StartupError> {
+    open_with_progress(path, lock_wait, now_ms, &|_| {})
+}
+
+/// 同 [`open`]，另把 Node `onProgress` 的每一步交给 `report`（`--prepare-storage` 握手用）。
+/// 打开与迁移的每个失败都先经 `report` 报 `failed`（Node `openProtocolStartupStorage` 的 catch：
+/// 迁移阶段的失败由 runner 报，更早的失败在这里报），随后调用方自己再报一份。
+pub fn open_with_progress(
+    path: &Path,
+    lock_wait: Duration,
+    now_ms: u64,
+    report: Report<'_>,
+) -> Result<(Connection, Facts), StartupError> {
+    let report_failed = |error: &StartupError| {
+        report(&Progress {
+            phase: "failed",
+            facts: None,
+            migration_id: error.migration_id,
+            completed: 0,
+            total: MIGRATIONS.len(),
+            error_code: Some(error.code),
+            sqlite_code: error.sqlite_code,
+        });
+    };
     let display = path.display().to_string();
-    let conn = Connection::open(path).map_err(|e| {
-        let mut error = StartupError::sqlite(
-            &e,
-            &format!("Failed to open SQLite session database at {display}"),
-        );
-        error.code = "open_failed";
-        error
-    })?;
+    let conn = match Connection::open(path) {
+        Ok(conn) => conn,
+        Err(e) => {
+            let mut error = StartupError::sqlite(
+                &e,
+                &format!("Failed to open SQLite session database at {display}"),
+            );
+            error.code = "open_failed";
+            report_failed(&error);
+            return Err(error);
+        }
+    };
     let context = format!("SQLite setup failed for {display}");
-    conn.busy_timeout(MIGRATION_BUSY_TIMEOUT)
-        .map_err(|e| StartupError::sqlite(&e, &context))?;
-    let runner = Runner {
+    if let Err(error) = conn
+        .busy_timeout(MIGRATION_BUSY_TIMEOUT)
+        .map_err(|e| StartupError::sqlite(&e, &context))
+    {
+        report_failed(&error);
+        return Err(error);
+    }
+    let mut runner = Runner {
         conn: &conn,
         path: &display,
         memory: display == ":memory:",
         deadline: Instant::now() + lock_wait,
         now_ms,
+        report,
+        facts: None,
     };
     let migrated = runner.steps();
     if !conn.is_autocommit() {
@@ -67,9 +133,29 @@ pub fn open(
     }
     // 迁移结束（含失败）恢复业务连接的 5 秒等待，不继承迁移期间的短超时。
     let restored = conn.busy_timeout(BUSY_TIMEOUT);
-    let facts = migrated?;
+    let facts = migrated.inspect_err(|error| runner.failed(error));
     restored.map_err(|e| StartupError::sqlite(&e, &context))?;
+    let facts = facts?;
     Ok((conn, facts))
+}
+
+/// Node 的 databaseId（`createHash("sha256").update(dbPath).digest("hex")`）：同一个库总是同一个
+/// ID，且与 Node 逐字节一致（Host 按它归并迁移基线）；路径明文不出进程。Node 的 dbPath 是
+/// `path.resolve` 的产物（Windows 上分隔符全为 `\`），这里把混用分隔符归一后再散列。
+pub fn session_database_id(path: &Path) -> String {
+    let text = path.to_string_lossy();
+    let normalized = if cfg!(windows) {
+        text.replace('/', "\\")
+    } else {
+        text.to_string()
+    };
+    let digest = Sha256::digest(normalized.as_bytes());
+    let mut id = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(id, "{byte:02x}");
+    }
+    id
 }
 
 struct Runner<'a> {
@@ -78,6 +164,10 @@ struct Runner<'a> {
     memory: bool,
     deadline: Instant,
     now_ms: u64,
+    report: Report<'a>,
+    /// 迁移事实（Node 的 `migration` 对象）：预检后建，账本基线、每个迁移与提交逐步更新；
+    /// 失败帧带最后一次的事实。
+    facts: Option<Facts>,
 }
 
 impl Runner<'_> {
@@ -94,6 +184,7 @@ impl Runner<'_> {
         mut operation: impl FnMut(&Self) -> Result<T, Attempt>,
     ) -> Result<T, StartupError> {
         let mut delay = RETRY_INITIAL_MS;
+        let mut waiting = false;
         loop {
             let attempt = match operation(self) {
                 Ok(value) => return Ok(value),
@@ -112,13 +203,61 @@ impl Runner<'_> {
                 timeout.sqlite_code = attempt.error.sqlite_code;
                 return Err(timeout);
             }
+            if !waiting {
+                waiting = true;
+                (self.report)(&Progress {
+                    phase: "waiting_for_lock",
+                    facts: self.facts.as_ref(),
+                    migration_id: None,
+                    completed: 0,
+                    total: MIGRATIONS.len(),
+                    error_code: None,
+                    sqlite_code: None,
+                });
+            }
             // 本函数只在存储的阻塞线程里运行（docs/specs/rust-cli/node-store.md §3）。
             std::thread::sleep((self.deadline - now).min(Duration::from_millis(delay)));
             delay = (delay * 2).min(RETRY_MAX_MS);
         }
     }
 
-    fn steps(&self) -> Result<Facts, StartupError> {
+    /// Node `onProgress` 的等价物（同一事件序列，帧由调用方组装）。
+    fn report_progress(&self, phase: &'static str, migration_id: Option<&str>, completed: usize) {
+        (self.report)(&Progress {
+            phase,
+            facts: self.facts.as_ref(),
+            migration_id,
+            completed,
+            total: MIGRATIONS.len(),
+            error_code: None,
+            sqlite_code: None,
+        });
+    }
+
+    /// 失败帧：错误码与迁移点原样带出（Node `progress("failed", …)`）。
+    fn failed(&self, error: &StartupError) {
+        (self.report)(&Progress {
+            phase: "failed",
+            facts: self.facts.as_ref(),
+            migration_id: error.migration_id,
+            completed: 0,
+            total: MIGRATIONS.len(),
+            error_code: Some(error.code),
+            sqlite_code: error.sqlite_code,
+        });
+    }
+
+    fn steps(&mut self) -> Result<Facts, StartupError> {
+        // Node 的开头一帧 checking（migration 对象还没建，无事实）。
+        (self.report)(&Progress {
+            phase: "checking",
+            facts: None,
+            migration_id: None,
+            completed: 0,
+            total: MIGRATIONS.len(),
+            error_code: None,
+            sqlite_code: None,
+        });
         self.sql(
             self.conn.execute_batch("pragma foreign_keys = on"),
             "SQLite setup failed",
@@ -126,6 +265,14 @@ impl Runner<'_> {
         .map_err(|a| a.error)?;
         self.acquire(Self::journal_mode)?;
         let kind = self.acquire(Self::preflight)?;
+        self.facts = Some(Facts {
+            kind,
+            executed: 0,
+            committed: 0,
+            last_applied: None,
+            baseline_read: false,
+        });
+        self.report_progress("checking", None, 0);
         self.acquire(|r| {
             r.sql(
                 r.conn.execute_batch("begin immediate"),
@@ -137,6 +284,23 @@ impl Runner<'_> {
             "SQLite migration initialization failed",
         )
         .map_err(|a| a.error)?;
+        // Node 在跑版本 SQL 之前读一次账本的最后一个 id（`lastAppliedMigrationId`），本轮不更新它。
+        let baseline: Option<String> = self
+            .sql(
+                self.conn
+                    .query_row(
+                        "select id from schema_migration order by id desc limit 1",
+                        [],
+                        |r| r.get(0),
+                    )
+                    .optional(),
+                "SQLite migration ledger read failed",
+            )
+            .map_err(|a| a.error)?;
+        if let Some(facts) = self.facts.as_mut() {
+            facts.last_applied = baseline;
+            facts.baseline_read = true;
+        }
         let pending = self.pending()?;
         // 缺陷修复（修复线 F12，双进程迁移竞争）：原来按预检的 `kind == "upgrade"` 拒绝。预检在等写锁之前读库，等锁
         // 期间旧版 Node 可能已建表、补了它知道的迁移并提交，预检的结论过期，结果在已有业务表的库上直接补迁移。Node
@@ -153,28 +317,48 @@ impl Runner<'_> {
             ));
         }
         for migration in &pending {
+            if let Some(facts) = self
+                .facts
+                .as_mut()
+                .filter(|facts| facts.kind == "none")
+            {
+                facts.kind = "upgrade";
+            }
             let context = format!("SQLite migration {} failed", migration.id);
             let tag = |attempt: Attempt| {
                 let mut error = attempt.error;
                 error.migration_id = Some(migration.id);
                 error
             };
+            let completed = self.facts.as_ref().map_or(0, |facts| facts.executed);
+            self.report_progress("migrating", Some(migration.id), completed);
             self.sql(self.apply(migration), &context).map_err(tag)?;
             let ledger = self.conn.execute(
                 "insert into schema_migration (id,checksum,app_version,time_applied) values (?,?,?,?)",
                 params![migration.id, checksum(migration.sql), migration.app_version, self.now_ms as i64],
             );
             self.sql(ledger, &context).map_err(tag)?;
+            if let Some(facts) = self.facts.as_mut() {
+                facts.executed += 1;
+            }
         }
+        self.report_progress("committing", None, 0);
         self.sql(
             self.conn.execute_batch("commit"),
             "SQLite migration commit failed",
         )
         .map_err(|a| a.error)?;
-        Ok(Facts {
+        if let Some(facts) = self.facts.as_mut() {
+            facts.committed = facts.executed;
+        }
+        self.report_progress("ready", None, 0);
+        Ok(self.facts.clone().unwrap_or(Facts {
             kind,
-            executed: pending.len(),
-        })
+            executed: 0,
+            committed: 0,
+            last_applied: None,
+            baseline_read: false,
+        }))
     }
 
     /// Node `migrateExclusive` 的账本核对：已应用的 id（含 `previousIds`）逐个比校验和；只有旧 id

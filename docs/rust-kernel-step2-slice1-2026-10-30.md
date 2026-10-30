@@ -434,6 +434,23 @@ DWF 调研后拍板 **路线 C（Rust 协议面 + Node 引擎 sidecar）**，设
 - 仍未移植：journal 的 `escalation-*` 事件 / `pendingQuestions` 投影、修订后的设置轮、
   `modelBindings` 与 persona 级模型名解析、`GetWorkflowRun` 工具。
 
+## 6.21 第二十二步：`--prepare-storage` 存储准备握手（2026-10-30）
+
+Host 的启动存储门（桌面启动先备好会话库再起 Agent）对等落地；见 CHANGELOG-FORK §6.14 的完整
+要点。摘录：
+
+- node-store `open_with_progress`（Node onProgress 同一事件序列，含 `lastAppliedMigrationId`
+  的带键时机与 Windows 分隔符归一）；`session_database_id` = 路径 sha256（app-server 常规帧的
+  databaseId 一并切换，两内核同值）。
+- cli `prepare_storage.rs`：`startup/storagePath` → 30s 确认帧 → 打开上报 → `storagePrepared`；
+  失败两份帧（本 attempt + 全新 attempt），退出码 1。
+- **顺手修掉的路径分歧**：`StoragePaths::resolve` 在 `sessionDbPath` 未设时跟随 `storage.dir`
+  （Node `deriveSessionDbPath`）——此前 `ZCODE_STORAGE_DIR` 隔离时 Rust 会开到另一个库。
+- 桌面：Rust 命令打开 `supportsStorageStartup` + `storagePreparationProcess`（原生 binary 进不了
+  Worker 线程，`prepareSessionStorage` 增子进程分支，同一段握手）；`NIBI_KERNEL` 默认仍是 node。
+- 门禁：`check-dual-kernel-parity` 增至 **92 字段**（存储准备 21），全一致；冷恢复与 DWF 31 字段
+  照旧全绿。node-store 进度序列 2 例 + databaseId 固定向量。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要

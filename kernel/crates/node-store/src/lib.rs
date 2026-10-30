@@ -60,6 +60,12 @@ use serde_json::json;
 pub use artifacts::uri as artifact_uri;
 pub use clock::{FixedOffset, SystemClock, TimeZone};
 pub use ids::{NodeIds, RandomUuids, UuidSource};
+// `--prepare-storage` 握手（app-server 的存储准备入口）需要的打开进度与库身份；
+// 仓储本身仍是 crate 私有，这里只放出这一条窄缝。
+pub use repo::open::{
+    Facts as OpenFacts, MIGRATION_LOCK_WAIT, Progress as OpenProgress, Report as OpenReport,
+    StartupError, open, open_with_progress, session_database_id,
+};
 
 /// 本机执行环境的 ID（与入口 crate 相同）。只有它的会话写进本地库；`workspace_id` 为 NULL。
 pub const LOCAL_ENVIRONMENT: &str = "local";

@@ -15,6 +15,7 @@ import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { runStoragePreparePhase } from "./storage-prepare-probe.mjs";
 
 const repo = resolve(import.meta.dirname, "../..");
 const args = process.argv.slice(2);
@@ -28,7 +29,7 @@ const binArgs = isNode
   ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
   : ["app-server", "--stdio"];
 const dotDir = isNode ? ".nibi" : ".zcode";
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare")
   .split("=")[1]
   .split(",");
 // 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
@@ -1411,6 +1412,12 @@ try {
         `qid=${checks.dwfEscalateQidPrefix} resolved=${checks.dwfEscalateResolved} ` +
         `answered=${checks.dwfEscalateAnswered}`,
     );
+  }
+
+
+
+  if (phases.includes("storagePrepare")) {
+    await runStoragePreparePhase({ bin, binArgs, isNode, home, dotDir, checks });
   }
 
   if (phases.includes("rename")) {

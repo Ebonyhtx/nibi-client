@@ -144,8 +144,16 @@ impl StoragePaths {
             None => base.join(user_path(home, default)),
         };
         let root = resolve(settings.storage_dir, "");
+        // Node `deriveSessionDbPath`：sessionDbPath 没显式给时跟 storage.dir 走（`<storage.dir>/cli/db/db.sqlite`），
+        // 否则隔离/换存储根的运行会打开真实用户根下的库。storage.dir 也没有时保持收拢前的字节形状
+        // （`user_path(home, DEFAULT_SESSION_DB)`，Windows 上 `.zcode` 后是 `/`，F55 等价性用例按 OsStr 比较）。
+        let database = match (settings.session_db_path, settings.storage_dir) {
+            (Some(value), _) => StoragePath(base.join(expand_home(value, home))),
+            (None, Some(_)) => StoragePath(root.join(DEFAULT_SESSION_DB)),
+            (None, None) => StoragePath(base.join(user_path(home, DEFAULT_SESSION_DB))),
+        };
         Self {
-            database: StoragePath(resolve(settings.session_db_path, DEFAULT_SESSION_DB)),
+            database,
             artifacts: StoragePath(root.join(ARTIFACTS_DIR)),
             root: StoragePath(root),
             config: StoragePath(user_path(home, CONFIG_ROOT)),

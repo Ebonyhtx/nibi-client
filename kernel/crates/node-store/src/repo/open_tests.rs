@@ -1,6 +1,7 @@
 // 复制自 apps/zcode-cli-rust/crates/state/src/node/open_tests.rs（feat/rs 79b6691c55）。
 use super::*;
 use std::sync::mpsc;
+use std::sync::Mutex;
 
 fn open_at(path: &Path, wait: Duration) -> Result<(Connection, Facts), StartupError> {
     open(path, wait, 7)
@@ -24,7 +25,10 @@ fn a_new_database_gets_every_node_migration_once() {
         facts,
         Facts {
             kind: "initialize",
-            executed: 24
+            executed: 24,
+            committed: 24,
+            last_applied: None,
+            baseline_read: true,
         }
     );
     let rows = ledger(&conn);
@@ -56,7 +60,10 @@ fn a_new_database_gets_every_node_migration_once() {
         facts,
         Facts {
             kind: "none",
-            executed: 0
+            executed: 0,
+            committed: 0,
+            last_applied: Some("0024_session_database_identity".to_owned()),
+            baseline_read: true,
         }
     );
 }
@@ -220,4 +227,117 @@ fn an_older_writer_that_migrates_while_we_wait_still_needs_a_backup() {
         .query_row("select count(*) from schema_migration", [], |r| r.get(0))
         .unwrap();
     assert_eq!(count, 22);
+}
+
+/// `--prepare-storage` 的进度序列（Node `runSqliteSessionMigrationsAsync` 的 onProgress 同一顺序）：
+/// 全新库 checking → checking(事实) → migrating×24 → committing → ready；已就绪的库只有 checking、
+/// checking(事实)、ready；损坏的库报 failed 且带分类码。帧字段由调用方组装，这里看 Progress 序列。
+#[test]
+fn progress_reports_the_node_sequence() {
+    type Seen = Vec<(String, Option<(String, usize, usize, Option<String>)>, Option<String>, usize)>;
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("db.sqlite");
+    let seen: Mutex<Seen> = Mutex::new(Vec::new());
+    let report = |progress: &Progress<'_>| {
+        seen.lock().unwrap().push((
+            progress.phase.to_owned(),
+            progress
+                .facts
+                .map(|f| (f.kind.to_owned(), f.executed, f.committed, f.last_applied.clone())),
+            progress.migration_id.map(str::to_owned),
+            progress.completed,
+        ));
+    };
+    open_with_progress(&path, MIGRATION_LOCK_WAIT, 7, &report).unwrap();
+    let fresh = seen.lock().unwrap().clone();
+    seen.lock().unwrap().clear();
+    assert_eq!(
+        fresh
+            .iter()
+            .filter(|(phase, ..)| phase == "migrating")
+            .count(),
+        MIGRATIONS.len()
+    );
+    for (index, (_phase, facts, migration_id, completed)) in
+        fresh.iter().filter(|(p, ..)| p == "migrating").enumerate()
+    {
+        let (kind, executed, committed, _) = facts.as_ref().unwrap();
+        assert_eq!((kind.as_str(), *executed, *committed), ("initialize", index, 0));
+        assert_eq!(migration_id.as_deref(), Some(MIGRATIONS[index].id));
+        assert_eq!(*completed, index);
+    }
+    let (phase, facts, ..) = fresh.last().unwrap();
+    assert_eq!(phase, "ready");
+    // Node 的 lastAppliedMigrationId 是跑版本 SQL 之前账本的最后一个 id：全新库是 null。
+    assert_eq!(
+        facts.as_ref().unwrap(),
+        &(
+            "initialize".to_owned(),
+            MIGRATIONS.len(),
+            MIGRATIONS.len(),
+            None
+        )
+    );
+    // 第一帧 checking 还没有事实（Node 的 migration 对象在预检后才建）。
+    assert_eq!(fresh[0].0, "checking");
+    assert!(fresh[0].1.is_none());
+    assert_eq!(fresh[1].0, "checking");
+    assert_eq!(fresh[1].1.as_ref().unwrap().0, "initialize");
+
+    open_with_progress(&path, MIGRATION_LOCK_WAIT, 7, &report).unwrap();
+    let ready = seen.lock().unwrap().clone();
+    seen.lock().unwrap().clear();
+    let phases: Vec<&str> = ready.iter().map(|(phase, ..)| phase.as_str()).collect();
+    // Node 的 onCommitting 无条件触发（没有待执行迁移也是 committing → ready）。
+    assert_eq!(phases, ["checking", "checking", "committing", "ready"]);
+    // 事实帧在基线读取之前（lastAppliedMigrationId 还没设），ready 帧带上它。
+    let (_, facts, ..) = &ready[1];
+    assert_eq!(
+        facts.as_ref().unwrap(),
+        &("none".to_owned(), 0, 0, None)
+    );
+    let (_, facts, ..) = &ready[3];
+    assert_eq!(
+        facts.as_ref().unwrap(),
+        &(
+            "none".to_owned(),
+            0,
+            0,
+            Some("0024_session_database_identity".to_owned())
+        )
+    );
+
+    // 损坏库：failed 帧带分类码（corrupt），且之前没有 ready。
+    let corrupt = b"this is not a database";
+    let options = rust_cli_fs::WriteOptions {
+        mode: rust_cli_fs::FileMode::Default,
+        temp_name: rust_cli_fs::TempName::Hidden,
+        parent: rust_cli_fs::ParentDir::Create,
+        rename_retry: &[],
+    };
+    tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap()
+        .block_on(rust_cli_fs::atomic_write(&path, &corrupt[..], options))
+        .unwrap();
+    let error = open_with_progress(&path, Duration::from_millis(300), 7, &report).unwrap_err();
+    assert_eq!(error.code, "corrupt");
+    let failed = seen.lock().unwrap().clone();
+    assert_eq!(failed.last().unwrap().0, "failed");
+    assert!(!failed.iter().any(|(phase, ..)| phase == "ready"));
+}
+
+/// Node 的 databaseId：路径的 sha256 十六进制（与 `createHash("sha256").update(dbPath)` 一致）。
+#[test]
+fn the_database_id_matches_node() {
+    let path = Path::new("C:\\Users\\dev\\.zcode\\cli\\db\\db.sqlite");
+    assert_eq!(
+        session_database_id(path),
+        "9e8c79c27312770d1359036d8695b327cc4e25139da10763d1d27d8b5b87ed13"
+    );
+    // Node 的 dbPath 是 `path.resolve` 的产物：Windows 上混用分隔符归一成 `\`（同一个库同一个 ID）。
+    assert_eq!(
+        session_database_id(Path::new("C:\\Users\\dev\\.zcode/cli/db/db.sqlite")),
+        session_database_id(path)
+    );
 }
