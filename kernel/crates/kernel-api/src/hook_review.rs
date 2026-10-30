@@ -74,6 +74,18 @@ pub struct WorkspaceHookItem {
     pub hook_index: usize,
 }
 
+/// 一个含 `hooks` 的项目文件（NIBI payload 的 `sourceFiles[]`）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceHookSource {
+    /// 完整路径（NIBI 的 `path`）。
+    pub path: String,
+    /// 相对工作区根的展示路径（NIBI 的 `displayPath`）。
+    pub display_path: String,
+    /// 是否是可在评审里就地改写的那一份（`<工作区根>/.nibi/config.json`）。
+    pub editable: bool,
+}
+
 /// 一个工作区的钩子评审快照。
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -86,6 +98,9 @@ pub struct WorkspaceHookReview {
     /// 拒绝码（NIBI 的 `reasonCode`）：`not_applicable` / `no_enabled_hooks` / `pending_trust` /
     /// `trusted_persistent` / `blocked_policy` / `trust_store_corrupt`。
     pub reason_code: String,
+    /// 有 hooks 的项目文件（NIBI 的 `sourceFiles`）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sources: Vec<WorkspaceHookSource>,
     pub items: Vec<WorkspaceHookItem>,
 }
 
@@ -98,6 +113,22 @@ impl WorkspaceHookReview {
     /// 有没有可评审的项（NIBI 的 `requestWorkspaceHookReview` 用它决定是否开评审流）。
     pub fn has_pending(&self) -> bool {
         self.pending_count() > 0
+    }
+
+    /// 提示条的 `pendingCount`：Node 的 admission 只数「启用且待审」的声明
+    /// （未启用的钩子不运行，但仍可预先信任）。
+    pub fn admission_pending_count(&self) -> usize {
+        self.items
+            .iter()
+            .filter(|item| item.configured_enabled && item.trust_state.pending())
+            .count()
+    }
+
+    /// 有没有被企业策略阻断的项（`requestWorkspaceHookReview` 的拒绝码用）。
+    pub fn has_blocked_policy(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| item.trust_state == HookTrustState::BlockedPolicy)
     }
 }
 

@@ -173,6 +173,70 @@ impl Live {
         self.write(outgoing).await;
     }
 
+    /// 会话的工作区根（工作区钩子评审的工作区身份）。
+    pub fn workspace(&self) -> &str {
+        &self.workspace
+    }
+
+    /// NIBI `requestWorkspaceHookReview`：登记待审交互（`pendingInteractions` 增量）。
+    pub async fn set_hook_review(&self, request: Value) {
+        let outgoing = {
+            let mut state = self.state();
+            let delta = state.projection.set_hook_review(request);
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
+    /// 评审结算：撤掉这条交互（已结算 / 被新的 generation 替换）。
+    pub async fn settle_hook_review(&self, interaction_id: &str) {
+        let outgoing = {
+            let mut state = self.state();
+            let Some(delta) = state.projection.settle_hook_review(interaction_id) else {
+                return;
+            };
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
+    /// NIBI 的提示条状态（`workspaceHookAdmission`）：只说真的变了的那次。
+    pub async fn set_hook_admission(&self, admission: Option<Value>) {
+        let outgoing = {
+            let mut state = self.state();
+            let Some(delta) = state.projection.set_hook_admission(admission) else {
+                return;
+            };
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
+    /// 评审截止：还是这一代才撤（被替换后新的那一代不受影响）。
+    pub async fn expire_hook_review(&self, flow: &str, generation: u64) {
+        let outgoing = {
+            let mut state = self.state();
+            let Some(current) = state.projection.hook_review() else {
+                return;
+            };
+            if current["reviewFlowId"].as_str() != Some(flow)
+                || current["generation"].as_u64() != Some(generation)
+            {
+                return;
+            }
+            let interaction = current["interactionId"].as_str().unwrap_or_default().to_owned();
+            let Some(delta) = state.projection.settle_hook_review(&interaction) else {
+                return;
+            };
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
     /// 会话列表的当前行。
     pub fn summary(&self) -> Value {
         let state = self.state();

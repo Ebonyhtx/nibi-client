@@ -10,7 +10,7 @@ use rust_cli_kernel_api::hook_review::{
 };
 use rust_cli_kernel_api::ids::EnvironmentId;
 use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::KernelError;
+use rust_cli_kernel_api::session_api::{Kernel, KernelError};
 use rust_cli_kernel_api::testing::{FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments};
 
 use super::*;
@@ -175,6 +175,8 @@ async fn the_review_reads_the_project_file_and_pending_turns_trusted_after_grant
     assert_eq!(items[1].display_command, "node check.js");
     assert_eq!(items[1].execution_mode, "foreground");
     assert_eq!(items[1].trust_state, HookTrustState::PendingTrust);
+    // 没信任前项目层的 hooks 不运行（快照里没有）。
+    assert!(kernel.hooks().await.is_empty());
 
     // 授权第一条：写盘的是当前快照里的摘要与「at grant」元数据。
     let granted = kernel
@@ -189,6 +191,11 @@ async fn the_review_reads_the_project_file_and_pending_turns_trusted_after_grant
     assert_eq!(recorded[0].1[0].event, "PreToolUse");
     assert_eq!(recorded[0].1[0].matcher.as_deref(), Some("Bash|Write"));
     assert_eq!(recorded[0].1[0].bundle_digest, review.bundle_digest);
+    // 授权当场生效：只有已信任的那一条进了 hooks 快照。
+    let admitted = kernel.hooks().await;
+    assert_eq!(admitted.len(), 1, "{admitted:?}");
+    assert_eq!(admitted[0].source, "project");
+    assert_eq!(admitted[0].display, "guard.sh");
 
     // 再读：第一条已信任，第二条仍待审。
     let after = kernel.workspace_hook_review(&workspace).await.unwrap();
@@ -205,6 +212,8 @@ async fn the_review_reads_the_project_file_and_pending_turns_trusted_after_grant
         .await
         .unwrap();
     assert_eq!(revoked, 1);
+    // 撤销当场生效：项目层的 hooks 又空了。
+    assert!(kernel.hooks().await.is_empty());
     let again = kernel.workspace_hook_review(&workspace).await.unwrap();
     assert_eq!(again.items[0].trust_state, HookTrustState::PendingTrust);
     assert_eq!(again.pending_count(), 2);

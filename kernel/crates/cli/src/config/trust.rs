@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use rust_cli_hooks::config::{HookMatcher, HooksSettings};
+use rust_cli_hooks::config::HooksSettings;
 use rust_cli_hooks::node_config::{NODE_EVENTS, NodeHooks};
 use rust_cli_hooks::workspace_digest::{Bundle, DigestEntry, DigestSource, RuntimeRoot};
 use rust_cli_hooks::{HookSource, workspace_digest};
@@ -112,50 +112,9 @@ impl WorkspaceHooks {
 
     /// 已信任且启用的声明，按来源 → 事件 → matcher 分组成 hooks 快照的来源（`HookSource::Project`）。
     pub(crate) fn admitted(&self) -> Vec<(HookSource, HooksSettings)> {
-        let trusted = self.trusted();
-        let mut warnings = Vec::new();
-        // 声明已按 来源 → 事件 → matcher → hook 排好（digest 的遍历顺序），相邻的合成一组。
-        let mut groups: Vec<(&DigestEntry, HookMatcher)> = Vec::new();
-        for entry in self.entries() {
-            if !entry.configured_enabled || !trusted.contains(&entry.digest) {
-                continue;
-            }
-            let command = entry.hook.to_command(self.root.timeout_ms, &mut warnings);
-            match groups.last_mut() {
-                Some((first, matcher))
-                    if first.source_index == entry.source_index
-                        && first.event == entry.event
-                        && first.matcher_index == entry.matcher_index =>
-                {
-                    matcher.hooks.push(command);
-                }
-                _ => groups.push((
-                    entry,
-                    HookMatcher {
-                        matcher: entry.matcher.clone(),
-                        hooks: vec![command],
-                    },
-                )),
-            }
-        }
-        for warning in warnings {
-            tracing::warn!(warning, "project hooks");
-        }
-        let mut sources: Vec<(usize, HooksSettings)> = Vec::new();
-        for (first, matcher) in groups {
-            if sources.last().map(|(index, _)| *index) != Some(first.source_index) {
-                sources.push((first.source_index, HooksSettings::default()));
-            }
-            if let Some((_, settings)) = sources.last_mut() {
-                match settings.hooks.last_mut() {
-                    Some((event, matchers)) if *event == first.event => matchers.push(matcher),
-                    _ => settings.hooks.push((first.event, vec![matcher])),
-                }
-            }
-        }
-        sources
+        rust_cli_hooks::hook_review::admitted(self.entries(), self.root, &self.trusted())
             .into_iter()
-            .map(|(_, settings)| (HookSource::Project, settings))
+            .map(|settings| (HookSource::Project, settings))
             .collect()
     }
 

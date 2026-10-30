@@ -78,6 +78,10 @@ pub struct Projection {
     denied: std::collections::HashSet<String>,
     /// 助手回复的赞/踩（NIBI setAssistantFeedback），按 assistant 消息 id：行落定时带上。
     feedback: std::collections::BTreeMap<String, String>,
+    /// 待审的工作区钩子评审请求（NIBI `workspaceHookReview` 交互的 payload，`requestWorkspaceHookReview`）。
+    hook_review: Option<Value>,
+    /// 工作区钩子的准入提示条（NIBI `workspaceHookAdmission`；null 表示没有待审项）。
+    hook_admission: Option<Value>,
     created_at: u64,
 }
 
@@ -143,6 +147,8 @@ impl Projection {
             total: Usage::default(),
             queue: view.queue.clone(),
             pending: Vec::new(),
+            hook_review: None,
+            hook_admission: None,
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -218,6 +224,56 @@ impl Projection {
             self.followup,
             &self.levels,
         )
+    }
+
+    /// 当前登记着的待审工作区钩子评审（超时判断用）。
+    pub fn hook_review(&self) -> Option<&Value> {
+        self.hook_review.as_ref()
+    }
+
+    /// NIBI `requestWorkspaceHookReview` 打开的评审：登记/替换 pendingInteractions 里的
+    /// `workspaceHookReview` 交互（同一会话只留一条），返回 `state.updated`。
+    pub fn set_hook_review(&mut self, request: Value) -> Value {
+        self.hook_review = Some(request.clone());
+        self.pending
+            .retain(|pending| pending["payload"]["kind"] != "workspaceHookReview");
+        self.pending.push(json!({
+            "interactionId": request["interactionId"],
+            "kind": "workspaceHookReview",
+            "anchorRowId": null,
+            "createdAt": request["createdAt"],
+            "payload": request,
+        }));
+        json!({"op": "state.updated", "patch": {"pendingInteractions": self.pending}})
+    }
+
+    /// 撤掉一条评审交互（已结算 / 超时 / 被新的 generation 替换）。不在时返回 None。
+    pub fn settle_hook_review(&mut self, interaction_id: &str) -> Option<Value> {
+        let matches = |pending: &Value| {
+            pending["payload"]["kind"] == "workspaceHookReview"
+                && pending["interactionId"].as_str() == Some(interaction_id)
+        };
+        if self
+            .hook_review
+            .as_ref()
+            .is_some_and(|request| request["interactionId"].as_str() == Some(interaction_id))
+        {
+            self.hook_review = None;
+        }
+        if !self.pending.iter().any(matches) {
+            return None;
+        }
+        self.pending.retain(|pending| !matches(pending));
+        Some(json!({"op": "state.updated", "patch": {"pendingInteractions": self.pending}}))
+    }
+
+    /// 提示条状态（NIBI `workspaceHookAdmission`）：值没变时不发增量。
+    pub fn set_hook_admission(&mut self, admission: Option<Value>) -> Option<Value> {
+        if self.hook_admission == admission {
+            return None;
+        }
+        self.hook_admission = admission.clone();
+        Some(json!({"op": "state.updated", "patch": {"workspaceHookAdmission": admission}}))
     }
 
     fn base(
@@ -680,7 +736,7 @@ impl Projection {
             "subagents": {"revision": 0, "childSessionIds": [], "running": [], "endedTotal": 0},
             "goal": null,
             "plan": null,
-            "workspaceHookAdmission": null,
+            "workspaceHookAdmission": self.hook_admission,
             "rows": {
                 "window": &self.rows[start..],
                 "totalCount": self.rows.len(),

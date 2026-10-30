@@ -480,6 +480,15 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "pauseGoal" => set_goal_paused(handle, envelope, true).await,
         "resumeGoal" => set_goal_paused(handle, envelope, false).await,
         "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
+        "requestWorkspaceHookReview" => {
+            crate::hook_review::request(server, &live.sink, envelope, revision).await
+        }
+        "respondWorkspaceHookReview" => {
+            crate::hook_review::respond(server, &live.sink, envelope, revision).await
+        }
+        "revokeWorkspaceHookTrust" => {
+            crate::hook_review::revoke(server, &live.sink, envelope, revision).await
+        }
         "deleteSession" => delete_session(server, envelope).await,
         _ => unsupported(envelope, revision),
     }

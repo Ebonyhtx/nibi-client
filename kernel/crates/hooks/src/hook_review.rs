@@ -8,11 +8,14 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::hook_review::{HookTrustState, WorkspaceHookItem, WorkspaceHookReview};
+use rust_cli_kernel_api::hook_review::{
+    HookTrustState, WorkspaceHookItem, WorkspaceHookReview, WorkspaceHookSource,
+};
 
+use crate::config::{HookMatcher, HooksSettings};
 use crate::node_config::{NODE_EVENTS, NodeHook, NodeHooks};
 use crate::project_config::{ProjectFile, relative};
-use crate::workspace_digest::{self, DigestSource};
+use crate::workspace_digest::{self, DigestEntry, DigestSource, RuntimeRoot};
 
 /// 含 `hooks` 的项目文件与解析出的 hooks；7 个事件以外的事件去掉并记警告。
 pub fn candidates<'a>(
@@ -131,9 +134,18 @@ pub fn review(
             } else {
                 "not_applicable".to_owned()
             },
+            sources: Vec::new(),
             items: Vec::new(),
         };
     };
+    let source_files: Vec<WorkspaceHookSource> = found
+        .iter()
+        .map(|(file, _)| WorkspaceHookSource {
+            path: file.path.clone(),
+            display_path: relative(identity, &file.path),
+            editable: file.editable,
+        })
+        .collect();
     let items: Vec<WorkspaceHookItem> = bundle
         .entries
         .iter()
@@ -173,10 +185,78 @@ pub fn review(
         identity: identity.to_owned(),
         bundle_digest: Some(bundle.bundle_digest),
         reason_code: reason_code.to_owned(),
+        sources: source_files,
         items,
     }
 }
 
+/// 已信任且启用的声明，按 来源 → 事件 → matcher 分组成 hooks 快照的来源（`HookSource::Project`）。
+///
+/// 信任变化之后用它重建项目层的快照（NIBI 的评审授权完当场生效，Node 在 admission refresh 里做同一件事）。
+pub fn admitted(
+    entries: &[DigestEntry],
+    root: RuntimeRoot,
+    trusted: &HashSet<String>,
+) -> Vec<HooksSettings> {
+    let mut warnings = Vec::new();
+    // 声明已按 来源 → 事件 → matcher → hook 排好（digest 的遍历顺序），相邻的合成一组。
+    let mut groups: Vec<(&DigestEntry, HookMatcher)> = Vec::new();
+    for entry in entries {
+        if !entry.configured_enabled || !trusted.contains(&entry.digest) {
+            continue;
+        }
+        let command = entry.hook.to_command(root.timeout_ms, &mut warnings);
+        match groups.last_mut() {
+            Some((first, matcher))
+                if first.source_index == entry.source_index
+                    && first.event == entry.event
+                    && first.matcher_index == entry.matcher_index =>
+            {
+                matcher.hooks.push(command);
+            }
+            _ => groups.push((
+                entry,
+                HookMatcher {
+                    matcher: entry.matcher.clone(),
+                    hooks: vec![command],
+                },
+            )),
+        }
+    }
+    for warning in warnings {
+        tracing::warn!(warning, "project hooks");
+    }
+    let mut sources: Vec<(usize, HooksSettings)> = Vec::new();
+    for (first, matcher) in groups {
+        if sources.last().map(|(index, _)| *index) != Some(first.source_index) {
+            sources.push((first.source_index, HooksSettings::default()));
+        }
+        if let Some((_, settings)) = sources.last_mut() {
+            match settings.hooks.last_mut() {
+                Some((event, matchers)) if *event == first.event => matchers.push(matcher),
+                _ => settings.hooks.push((first.event, vec![matcher])),
+            }
+        }
+    }
+    sources.into_iter().map(|(_, settings)| settings).collect()
+}
+
+/// 同 [`admitted`]：自己发现项目文件并算 bundle（信任变化后的运行时重建用）。
+pub fn admitted_for(
+    identity: &str,
+    files: &[ProjectFile],
+    user_hooks: &NodeHooks,
+    trusted: &HashSet<String>,
+) -> Vec<HooksSettings> {
+    let mut warnings = Vec::new();
+    let found = candidates(files, &mut warnings);
+    let root =
+        workspace_digest::runtime_root(std::iter::once(user_hooks).chain(found.iter().map(|(_, hooks)| hooks)));
+    match workspace_digest::bundle(&sources(identity, &found), &root) {
+        Some(bundle) => admitted(&bundle.entries, root, trusted),
+        None => Vec::new(),
+    }
+}
 
 #[cfg(test)]
 #[path = "hook_review_tests.rs"]

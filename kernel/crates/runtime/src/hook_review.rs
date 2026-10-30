@@ -83,10 +83,12 @@ impl LocalKernel {
         if grants.is_empty() {
             return Ok(0);
         }
-        trust
+        let written = trust
             .grant(&review.identity, grants, self.ports.clock.now_ms())
             .await
-            .map_err(trust_failed)
+            .map_err(trust_failed)?;
+        self.refresh_admitted_hooks(workspace).await?;
+        Ok(written)
     }
 
     /// 按声明摘要撤销（当前快照里已没有的摘要也照样撤销：信任记录与配置是否还在无关）。
@@ -96,9 +98,30 @@ impl LocalKernel {
         declaration_digests: &[String],
     ) -> Result<usize, KernelError> {
         let trust = self.hook_trust()?;
-        trust
+        let removed = trust
             .revoke(workspace.root.as_str(), Some(declaration_digests))
             .await
-            .map_err(trust_failed)
+            .map_err(trust_failed)?;
+        self.refresh_admitted_hooks(workspace).await?;
+        Ok(removed)
+    }
+
+    /// 信任变化后重建项目层的 hooks 快照：新授权的钩子当场开始运行、撤销的当场停掉
+    /// （Node 在 admission refresh 里做同一件事）。用户层、命令行层与插件 hooks 不动。
+    async fn refresh_admitted_hooks(&self, workspace: &WorkspaceRef) -> Result<(), KernelError> {
+        let trust = self.hook_trust()?;
+        let files =
+            rust_cli_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+        let identity = workspace.root.as_str();
+        let loaded = trust.load(identity).await;
+        let trusted: HashSet<String> = loaded.trusted.into_iter().collect();
+        let settings = rust_cli_hooks::hook_review::admitted_for(
+            identity,
+            &files,
+            self.user_hooks.as_ref(),
+            &trusted,
+        );
+        self.hooks.replace_project(settings);
+        Ok(())
     }
 }

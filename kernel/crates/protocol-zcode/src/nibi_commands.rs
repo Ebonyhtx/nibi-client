@@ -68,6 +68,9 @@ pub const HANDLED_COMMANDS: &[&str] = &[
     "pauseGoal",
     "resumeGoal",
     "snoozeInteractionAutoResolution",
+    "requestWorkspaceHookReview",
+    "respondWorkspaceHookReview",
+    "revokeWorkspaceHookTrust",
     "deleteSession",
 ];
 
@@ -75,20 +78,8 @@ pub const HANDLED_COMMANDS: &[&str] = &[
 /// 能力的形状（每项都写在 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表里）。处理器补齐一项就从这里删一项。
 pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
     (
-        "requestWorkspaceHookReview",
-        "接线缺口（不是能力缺口）：信任库 platform::hook_trust 与 bundle 摘要          hooks::workspace_digest 都已存在，缺的是协议层把评审流（reviewFlowId/generation/         interactionId）接起来并暴露给前端",
-    ),
-    (
-        "respondWorkspaceHookReview",
-        "同上：platform::hook_trust::grant 已存在，缺评审流的响应接线",
-    ),
-    (
         "toggleWorkspaceHookReviewItem",
-        "同上：评审流条目的勾选属于协议层的评审状态",
-    ),
-    (
-        "revokeWorkspaceHookTrust",
-        "同上：platform::hook_trust::revoke 已存在，缺协议层按摘要撤销的接线",
+        "评审流已接（request/respond/revoke），缺的是就地改写项目配置的接线：要按 editable 源写 `<工作区根>/.nibi/config.json`（保留原格式、原子写），再重建快照与下一代评审",
     ),
     (
         "startSavedWorkflow",

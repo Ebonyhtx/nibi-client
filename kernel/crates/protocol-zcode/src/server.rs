@@ -47,6 +47,10 @@ pub struct Server {
     pub(crate) topics: Arc<Topics>,
     pub(crate) remembered: Mutex<Remembered>,
     pub(crate) followups: Mutex<HashMap<SessionId, Followup>>,
+    /// 工作区钩子评审的当前 flow（每个会话一份；generation 单调，见 [`crate::hook_review`]）。
+    pub(crate) hook_reviews: Mutex<HashMap<SessionId, crate::hook_review::Flow>>,
+    /// 评审截止的计时任务挂在它上面（任务跟着进程的作用域走）。
+    pub(crate) spawner: rust_cli_base::Spawner,
     pub(crate) defaults: Defaults,
     /// 本进程的实例标识（时钟探测的 `clock.instanceId`）。
     pub(crate) instance: String,
@@ -75,7 +79,7 @@ impl Server {
             instance: context.fresh("instance"),
             bridge: SessionBridge::new(
                 kernel.clone(),
-                spawner,
+                spawner.clone(),
                 std::time::Duration::from_millis(30),
             ),
             context,
@@ -83,6 +87,8 @@ impl Server {
             topics,
             remembered: Mutex::new(Remembered::default()),
             followups: Mutex::new(HashMap::new()),
+            hook_reviews: Mutex::new(HashMap::new()),
+            spawner,
             defaults,
             preferences: Mutex::new(Preferences::default()),
         }

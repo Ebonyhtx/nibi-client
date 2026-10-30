@@ -134,6 +134,20 @@ impl HookEngine {
         *loaded = Arc::new(load(config, loaded.plugins.clone()));
     }
 
+    /// 只换项目层（`HookSource::Project`）的来源，其余层与插件 hooks 保留：NIBI 的钩子评审在授权 /
+    /// 撤销之后当场生效（与 Node 的 admission refresh 同一件事），不必重建用户层与命令行层。
+    pub fn replace_project(&self, settings: Vec<HooksSettings>) {
+        let mut loaded = self.loaded.write().unwrap_or_else(PoisonError::into_inner);
+        let mut config = loaded.config.clone();
+        config
+            .sources
+            .retain(|(source, _)| *source != HookSource::Project);
+        config
+            .sources
+            .extend(settings.into_iter().map(|settings| (HookSource::Project, settings)));
+        *loaded = Arc::new(load(config, loaded.plugins.clone()));
+    }
+
     /// 登记插件的 hooks（runtime 在插件加载后调用，hooks.md §2.2）；设置快照保留。读改写在同一把
     /// 写锁里，与 [`HookEngine::replace`] 不会互相冲掉。
     pub fn register_plugins(&self, plugins: Vec<PluginHooks>) {

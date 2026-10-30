@@ -30,6 +30,11 @@ fn the_snapshot_serializes_with_the_nibi_field_names() {
         identity: "/w".into(),
         bundle_digest: Some("ab".repeat(32)),
         reason_code: "pending_trust".into(),
+        sources: vec![WorkspaceHookSource {
+            path: "/w/.nibi/config.json".into(),
+            display_path: ".nibi/config.json".into(),
+            editable: true,
+        }],
         items: vec![item(HookTrustState::PendingTrust), item(HookTrustState::TrustedPersistent)],
     };
     let value = serde_json::to_value(&review).unwrap();
@@ -57,6 +62,7 @@ fn a_review_without_items_is_not_applicable_and_has_no_pending() {
         identity: "/w".into(),
         bundle_digest: None,
         reason_code: "not_applicable".into(),
+        sources: Vec::new(),
         items: Vec::new(),
     };
     assert_eq!(review.pending_count(), 0);
