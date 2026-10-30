@@ -119,6 +119,27 @@ pub trait Kernel {
 （`@nibi/contracts` 的配置 schema）与 Rust `NodeHooks::from_json` 的接受规则，找出两者共同的最小
 文档；当前 fixture 在两个实现里都不被接受，不能作为对拍基线。
 
+### 摘要对拍结果（2026-10-30，已定位到 bundle 信封）
+
+fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOutputBytes?, events: {...} }`，
+事件嵌在 `events` 下）后，两边 CLI 的 `hooks trust status --json` 输出：
+
+| 字段 | Node | Rust | 一致 |
+|---|---|---|---|
+| `reviewItemId` | `workspace-hook-0-PreToolUse-0-0` / `…-Stop-0-0` | 同 | ✅ |
+| 单据摘要 `hookDeclarationDigest` | `607f038e…e543b7` / `f3975076…81deba` | 同 | ✅ **逐字节一致** |
+| `displayCommand` / `sourcePath` / `matcher` / `configuredEnabled` | `echo pre` / `zcode.json` / `Bash` / true | 同 | ✅ |
+| `reasonCode` | `workspace_hooks_pending_trust` | 同 | ✅ |
+| **`bundleDigest`** | `22826b59…7cc6d0` | `98101c0a…4c67e4` | ❌ **不同** |
+
+**结论**：per-declaration 的摘要算法是忠实移植（否则不会逐字节相同）；差异只在 **bundle 的信封**
+——即 `runtimeRoot`（`enabled/timeoutMs/maxOutputBytes`）或 `sources` 列表（层与顺序）中有一处不同。
+这比"算法不一致"好收口得多：下一步分别打印两边的 runtimeRoot 与 sources 即可定位到具体字段。
+
+注意：**逐条摘要一致但 bundle 不同**说明"信任一条钩子"在两边等价（可互认），但"这次评审属于哪一版
+项目配置"（bundleDigest）在两边不等价——评审流的 `snapshot_mismatch` 校验会立刻暴露，所以必须在接线
+前对齐，不能靠"反正都记到同一个 store"糊过去。
+
 ### 待查（动手前先读源码确认，不猜）
 
 1. `reviewFlowId` 的生命周期与 `generation` 的精确语义（`interaction-registry.ts` 的
