@@ -424,6 +424,31 @@ agents 两例 + runtime 两例测试。typed ask 的 `submit_result` 已接（�
 runtime 独立跑，唯一 app 耦合是 driver。据此把 C1 再细化：**driver 反过来 RPC 到 Rust**（模型/工具/
 权限留在 Rust，sidecar 只管编译/沙箱/引擎/journal），见设计文档 §3.2–§3.3。
 
+## 6.13 DWF 修订与升级问答（2026-10-30，路线 C 第三段）
+
+`amendWorkflowRunSettings` 与 `escalate` / `ResolveWorkflowQuestion` 两端落地，三条 DWF 命令
+**全部接住**（`BLOCKED_COMMANDS` 清空）。
+
+- **修订**：Rust `WorkflowEngine::amend` → sidecar `amend` RPC；sidecar 做三态归一（省略 = 沿用、
+  `null` = 回默认、值 = 设定）、「未改」拒绝、编译体检（都在停下任何东西之前）；只改并发且 run
+  在飞时就地 retune（同 runId + `dwf_run.caps_max_concurrency` + `run-caps-changed`），否则以
+  `{superseded}` 停在飞前驱、等它自己结算，再带 `resumedFrom`/`inheritedTokens`/实参启动后继。
+  run 级 `subagentModel` 落 `run-launched`，并在 `actor/create` 时解析成结构化 selection 送进
+  Rust actor 轮（`ActorProfile.selection`）。
+- **升级问答**：`runtime::escalations` 注册表（qid `dwfq-<片段>-<seq>`、全局唯一、只许父会话作答、
+  已退场 qid 有界记忆、per-ask 预算 3）；actor 的 `escalate` 工具与主会话的
+  `ResolveWorkflowQuestion` 工具（描述/输入 schema 与 Node 逐字相同）；通知经 `Agents::notify`
+  走后台子代理 `task-notification` 同一条路（meta user 消息、空闲即开回合、提交后按 seq ack）。
+  取消/丢弃停驻 future 按 `withdrawn` 退场，迟到作答得到 `run_not_in_flight`。
+- **修掉真 bug**：sidecar 的 `node:sqlite` 缺省 busy timeout 为 0，与宿主写同一个 `db.sqlite` 时
+  `updateRunStatus` 会 `SQLITE_BUSY`，run 永远停在 running（约 1/3 概率）。统一用 5s（与存储层
+  启动锁同档）。
+- **门禁**：`check-dwf-engine.mjs` 从 13 字段扩到 **31 字段**（修订 10 + 升级 6），双内核一致。
+  另有 runtime 的 `escalations` 4 例（park/notify/resolve、预算、取消撤下、跨会话拒绝）、
+  内核级 `an_actor_escalation_parks_until_the_parent_answers`、tools 的答题工具 3 例。
+- **仍未移植**：journal 的 `escalation-*` 事件与 `pendingQuestions` 投影、修订后的「设置轮」、
+  `modelBindings`/persona 级模型名解析、`GetWorkflowRun` 工具本身。见设计文档 §5.4。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

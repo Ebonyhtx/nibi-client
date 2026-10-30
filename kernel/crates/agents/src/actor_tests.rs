@@ -22,6 +22,11 @@ fn profile(child: &str) -> ActorProfile {
         deny: vec!["Agent".to_owned()],
         max_turns: Some(1),
         submit_schema: None,
+        run_id: "dwfrun_test".to_owned(),
+        actor: "worker#1@1".to_owned(),
+        actor_name: Some("worker".to_owned()),
+        ask: "worker#1@1".to_owned(),
+        escalation: None,
     }
 }
 

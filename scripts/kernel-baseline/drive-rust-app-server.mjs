@@ -96,6 +96,20 @@ let releaseHold = () => {};
 const holdGate = new Promise((resolve) => {
   releaseHold = resolve;
 });
+// 修订探针要一个**自己**的闸门：同一进程里 dwfResume 先跑，共用一个 gate 会让修订阶段的前驱
+// 不再在飞（也就测不到 supersede 与就地 retune）。
+const AMEND_HOLD_TEXT = "hold amend turn";
+let releaseAmendHold = () => {};
+const amendHoldGate = new Promise((resolve) => {
+  releaseAmendHold = resolve;
+});
+// 升级问答探针（dwfEscalate）：actor 的 ask 指令、主代理给出的答案，以及三步的观察位。
+const ESCALATE_TEXT = "escalate this turn";
+const ESCALATE_ANSWER = "drive escalation answer";
+let escalationRaised = false;
+let escalationResolved = false;
+let escalationAnswered = false;
+let escalationQid = null;
 const textOf = (content) => {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -162,7 +176,7 @@ const server = createServer((req, res) => {
         ? lastUser.content.map((part) => `${part?.type}:${String(part?.text ?? "").slice(0, 40)}`)
         : [String(lastUser?.content ?? "").slice(0, 40)];
       console.error(
-        `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} mcp=${tools.includes(MCP_TOOL)} roles=${messages.map((m) => m.role).join(",")} image=${hasImage} lastUser=${JSON.stringify(lastShape)} system=${JSON.stringify(systemText.slice(0, 40))}`,
+        `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} workflowTools=${JSON.stringify(tools.filter((name) => /workflow|escalate/i.test(String(name))))} mcp=${tools.includes(MCP_TOOL)} resolveTool=${tools.includes("ResolveWorkflowQuestion")} roles=${messages.map((m) => m.role).join(",")} image=${hasImage} lastUser=${JSON.stringify(lastShape)} system=${JSON.stringify(systemText.slice(0, 40))} escalation=${messageText.includes("<workflow-escalation>")} toolResult=${JSON.stringify(toolResult?.slice(0, 160))}`,
       );
     }
     const lastUserText = (() => {
@@ -174,7 +188,96 @@ const server = createServer((req, res) => {
       // 挂住这一轮：驱动在队列命令做完后再放行（抢占会中止这一轮）。
       await holdGate;
     }
+    if (lastUserText.includes(AMEND_HOLD_TEXT)) {
+      // 修订探针的独立闸门（见 AMEND_HOLD_TEXT 处的注释）。
+      await amendHoldGate;
+    }
     res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8" });
+    // DWF 升级问答探针（最后一轮之前的三步）：
+    //   1. actor 的 ask 指令 → 调 escalate 停驻；
+    //   2. 主代理收到 `<workflow-escalation>` 通知 → 调 ResolveWorkflowQuestion 作答；
+    //   3. 带答案的工具结果 → 正文收尾（actor 的轮次继续）。
+    if (toolResult === null && lastUserText.includes(ESCALATE_TEXT) && tools.includes("escalate")) {
+      escalationRaised = true;
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_escalate_1",
+                    type: "function",
+                    function: {
+                      name: "escalate",
+                      arguments: JSON.stringify({
+                        question: "What should I return for the probe?",
+                        context: "I have nothing else to go on.",
+                      }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    // 不按工具名过滤请求里的 tools：Node 把 ResolveWorkflowQuestion 当延迟工具宣布（不在内联
+    // 清单里），Rust 内联给出；按名字直接调在两个内核里都成立。
+    if (toolResult === null && messageText.includes("<workflow-escalation>")) {
+      const qid = /<question-id>([^<]+)<\/question-id>/u.exec(messageText)?.[1] ?? "";
+      escalationQid = qid;
+      escalationResolved = qid.length > 0;
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_resolve_1",
+                    type: "function",
+                    function: {
+                      name: "ResolveWorkflowQuestion",
+                      arguments: JSON.stringify({
+                        question_id: qid,
+                        answer: ESCALATE_ANSWER,
+                      }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    if (toolResult !== null && toolResult.includes(ESCALATE_ANSWER)) {
+      escalationAnswered = true;
+    }
     // 新回合（还没有 assistant 消息）、工具表里有会话级 MCP 工具：要求调用它一次。工具结果回来后的
     // 请求（roles 里有 tool）回正文。标题生成这类请求没有工具，不会触发。
     const freshTurn = !messages.some((message) => message.role === "assistant");
@@ -235,8 +338,8 @@ const providerConfig = {
             group: "standard-personal",
             access: { type: "api-key", apiKey: "fake-key" },
             api: { type: "openai-chat-completions", baseUrl: `http://127.0.0.1:${port}/v1` },
-            personalModelIds: ["fake-model"],
-            modelOrder: ["fake-model"],
+            personalModelIds: ["fake-model", "fake-model-b"],
+            modelOrder: ["fake-model", "fake-model-b"],
           },
         },
       ],
@@ -252,6 +355,27 @@ const providerConfig = {
               contextWindow: 200000,
               // 视觉模型：附件回放要求图片真的进请求（否则内核按 model.md §10.5 换成占位文字）。
               inputFormat: { supportsImage: true, supportsPdf: true },
+              supportsToolCall: true,
+              supportsJsonSchemaOutput: true,
+              supportsNativeWebSearch: false,
+              supportsMidConversationSystem: true,
+              requiresMfjsToolSchema: false,
+            },
+            optionSpecs: {
+              maxOutputTokens: { max: 128000 },
+              reasoningLevel: { values: ["disabled", "enabled"], map: "{}" },
+            },
+          },
+        },
+        // amend 探针的第二个模型：修订只改子代理模型时，actor 的 provider 请求必须切到它
+        // （这是「run 级 subagentModel 真进了 actor 轮」的唯一端到端证据）。
+        {
+          modelId: "fake-model-b",
+          providerId: "drive-fake",
+          config: {
+            enabled: true,
+            properties: {
+              contextWindow: 200000,
               supportsToolCall: true,
               supportsJsonSchemaOutput: true,
               supportsNativeWebSearch: false,
@@ -1065,6 +1189,230 @@ try {
     );
   }
 
+  // DWF 的修订（amendWorkflowRunSettings）：在飞的 run 只改并发 → 就地生效（同一个 runId、
+  // 不铸后继）；再改子代理模型 → 前驱 stopped/superseded、后继带 lineage 指针跑完。
+  if (phases.includes("dwfAmend")) {
+    mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "workflows", "amend.dwf.ts"),
+      [
+        "/* zcode-workflow",
+        "description: amend probe",
+        "*/",
+        'const worker = agent("worker", "You answer questions.");',
+        `return await worker.ask("${AMEND_HOLD_TEXT}");`,
+      ].join(String.fromCharCode(10)) + String.fromCharCode(10),
+    );
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000c0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: { workspaceId: workspace },
+        issuedAt: Date.now(),
+      }),
+      "createSession(dwfAmend)",
+    );
+    const session = created.result?.sessionId;
+    if (!session) throw new Error("createSession(dwfAmend) returned no sessionId");
+    const started = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000c1",
+      "startSavedWorkflow",
+      { name: "amend" },
+      session,
+    );
+    checks.dwfAmendStart = started.status;
+    if (started.status !== "accepted" || !started.result?.runId) {
+      throw new Error(`startSavedWorkflow(amend) ${started.status}/${started.reasonCode}`);
+    }
+    const runId = started.result.runId;
+    const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
+    const rowOf = (id) => {
+      if (!existsSync(dbPath)) return undefined;
+      const db = new DatabaseSync(dbPath);
+      const row = db
+        .prepare(
+          "select status, caps_max_concurrency, resumed_from, failure_json from dwf_run where id = ?",
+        )
+        .get(id);
+      db.close();
+      return row;
+    };
+    const waitRow = async (id, predicate) => {
+      for (let attempt = 0; attempt < 1200; attempt += 1) {
+        const row = rowOf(id);
+        if (row !== undefined && predicate(row)) return row;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return undefined;
+    };
+
+    // 1) 在飞时只改并发：同一个 runId、不铸后继。
+    if (!(await waitRow(runId, (row) => row.status === "running"))) {
+      throw new Error("amended run never reached running");
+    }
+    const retuned = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000c2",
+      "amendWorkflowRunSettings",
+      { workId: runId, maxConcurrency: 2 },
+      session,
+    );
+    checks.dwfAmendRetuneStatus = retuned.status;
+    checks.dwfAmendRetuneSameRun =
+      retuned.result?.runId === runId && retuned.result?.supersededRunId === undefined;
+    checks.dwfAmendRetuneCaps = rowOf(runId)?.caps_max_concurrency ?? null;
+
+    // 2) 改子代理模型：前驱被停下并替代（superseded），后继沿用脚本与实参。带显式的推理档：
+    //    宿主会把它按目录归一成规范串，两个内核因此存下同一个逐字节相同的值。
+    const amended = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000c3",
+      "amendWorkflowRunSettings",
+      { workId: runId, subagentModel: "drive-fake/fake-model-b$enabled" },
+      session,
+    );
+    checks.dwfAmendStatus = amended.status;
+    const nextRun = amended.result?.runId;
+    checks.dwfAmendChangedRun = typeof nextRun === "string" && nextRun !== runId;
+    checks.dwfAmendSuperseded = amended.result?.supersededRunId === runId;
+    if (amended.status !== "accepted" || !nextRun) {
+      throw new Error(
+        `amendWorkflowRunSettings ${amended.status}/${amended.reasonCode}: ${amended.message}`,
+      );
+    }
+    const oldRow = await waitRow(
+      runId,
+      (row) => row.status === "cancelled" || row.status === "failed",
+    );
+    checks.dwfAmendOldStop = oldRow
+      ? `${oldRow.status}/${JSON.parse(oldRow.failure_json ?? "{}").stopReason ?? "?"}`
+      : null;
+    const newRow = await waitRow(nextRun, () => true);
+    checks.dwfAmendLineage = newRow?.resumed_from === runId;
+    // 这次修订的选型落在 `run-launched.subagentModel` 上（两个内核写的是同一个规范串）。
+    {
+      const db = new DatabaseSync(dbPath);
+      const launched = db
+        .prepare(
+          "select payload_json from dwf_event where run_id = ? and type = 'run-launched' order by sequence limit 1",
+        )
+        .get(nextRun);
+      db.close();
+      checks.dwfAmendStoredModel =
+        JSON.parse(launched?.payload_json ?? "{}").subagentModel ?? null;
+    }
+
+    // 3) 放行 hold（后继的那次 ask）：后继跑完，且 actor 真的跑在新模型上。
+    releaseAmendHold();
+    const done = await waitRow(nextRun, (row) => row.status === "completed");
+    checks.dwfAmendCompleted = done ? "completed" : "timeout";
+    checks.dwfAmendActorModel = REQUESTS.some((request) => request.model === "fake-model-b");
+    console.log(
+      `dwf amend: retune=${checks.dwfAmendRetuneStatus}/${checks.dwfAmendRetuneCaps} ` +
+        `amend=${checks.dwfAmendStatus} old=${checks.dwfAmendOldStop} ` +
+        `lineage=${checks.dwfAmendLineage} next=${checks.dwfAmendCompleted} ` +
+        `model=${checks.dwfAmendStoredModel}`,
+    );
+  }
+
+  // DWF 的升级问答：actor 停在 escalate 上等父会话作答；答案原样回到 actor 的轮次，run 跑完。
+  if (phases.includes("dwfEscalate")) {
+    mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "workflows", "escalate.dwf.ts"),
+      [
+        "/* zcode-workflow",
+        "description: escalate probe",
+        "*/",
+        'const worker = agent("worker", "You answer questions.");',
+        `return await worker.ask("${ESCALATE_TEXT}");`,
+      ].join(String.fromCharCode(10)) + String.fromCharCode(10),
+    );
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000d0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: {
+          workspaceId: workspace,
+          // Node 的动态工作流工具面是 Host 控制的灰度闸（fail-closed）；升级问答要用
+          // `ResolveWorkflowQuestion`，所以这个会话显式打开它（alwaysOn）。Rust 侧没有这道闸，
+          // 多出来的字段被忽略。
+          dynamicWorkflowEnabled: true,
+          dynamicWorkflowMode: "alwaysOn",
+        },
+        issuedAt: Date.now(),
+      }),
+      "createSession(dwfEscalate)",
+    );
+    const session = created.result?.sessionId;
+    if (!session) throw new Error("createSession(dwfEscalate) returned no sessionId");
+    // 父会话先有一轮**真实用户输入**：合成通知不能是会话的唯一输入（assistant 的锚点是最后
+    // 一条 `real_user` 消息，两个内核的存储层同一条规则），GUI 里 run 也总从一个有对话的会话起。
+    const seeded = REQUESTS.length;
+    const seed = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000d2",
+      "sendText",
+      { text: "hello escalate probe" },
+      session,
+    );
+    if (seed.status !== "accepted") {
+      throw new Error(`sendText(escalate seed) ${seed.status}/${seed.reasonCode}`);
+    }
+    for (let attempt = 0; attempt < 200 && REQUESTS.length === seeded; attempt += 1) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    await new Promise((r) => setTimeout(r, 300));
+    // 起 run：Node 要求会话空闲（假 provider 即时，上面那一轮此时已经收尾）；万一还没收尾就等它。
+    let started = null;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      started = await simpleCommand(
+        "0197d3f0-0000-7000-8000-0000000000d1",
+        "startSavedWorkflow",
+        { name: "escalate" },
+        session,
+      );
+      if (started.status === "accepted") break;
+      if (!String(started.reasonCode ?? "").endsWith(".session_busy")) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    checks.dwfEscalateStart = started?.status ?? null;
+    if (started?.status !== "accepted" || !started.result?.runId) {
+      throw new Error(`startSavedWorkflow(escalate) ${started?.status}/${started?.reasonCode}`);
+    }
+    const runId = started.result.runId;
+    const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
+    let settled = null;
+    for (let attempt = 0; attempt < 1200; attempt += 1) {
+      if (existsSync(dbPath)) {
+        const db = new DatabaseSync(dbPath);
+        const row = db.prepare("select status from dwf_run where id = ?").get(runId);
+        db.close();
+        if (row?.status === "completed") {
+          settled = "completed";
+          break;
+        }
+        if (row?.status === "failed") {
+          settled = "failed";
+          break;
+        }
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    checks.dwfEscalateStatus = settled ?? "timeout";
+    checks.dwfEscalateRaised = escalationRaised;
+    checks.dwfEscalateQidPrefix =
+      typeof escalationQid === "string" ? escalationQid.slice(0, 5) : null;
+    checks.dwfEscalateResolved = escalationResolved;
+    checks.dwfEscalateAnswered = escalationAnswered;
+    console.log(
+      `dwf escalate: run=${checks.dwfEscalateStatus} raised=${checks.dwfEscalateRaised} ` +
+        `qid=${checks.dwfEscalateQidPrefix} resolved=${checks.dwfEscalateResolved} ` +
+        `answered=${checks.dwfEscalateAnswered}`,
+    );
+  }
+
   if (phases.includes("rename")) {
     const ackR = await simpleCommand(
       "0197d3f0-0000-7000-8000-000000000010",
@@ -1583,6 +1931,10 @@ try {
     },
   })}`);
   console.log(`provider requests: ${REQUESTS.length}`);
+  if (process.env.NIBI_DRIVE_DUMP_STDERR === "1") {
+    console.error(`stderr:\n${stderr}`);
+    console.error(`notifications: ${notifications.map((n) => n.method).join(", ")}`);
+  }
   console.log(`final state: ${JSON.stringify((() => { const st = buildState(); return { logEpoch: st.logEpoch, revision: st.revision, stopState: st.stopState, rows: st.rows.map((r) => ({ rowId: r.rowId, kind: r.kind, state: r.state, assistantResponseId: r.assistantResponseId })) }; })())}`);
   console.log("PHASES OK");
 } catch (error) {

@@ -403,6 +403,14 @@ impl Kernel for LocalKernel {
             deny: spec.deny,
             max_turns: spec.max_turns,
             submit_schema: spec.submit_schema,
+            run_id: spec.run_id,
+            actor: spec.actor,
+            actor_name: spec.actor_name,
+            ask: spec.ask,
+            // Actor 侧的升级端口：注册表是内核自己的一份（与主持工具的答题入口共用）。
+            escalation: Some(Arc::new(escalations::EscalationPort(
+                self.escalations.clone(),
+            ))),
         };
         tracing::debug!(
             event = "dwf.kernel.actor",
@@ -426,6 +434,24 @@ impl Kernel for LocalKernel {
             error: outcome.error,
             submitted: outcome.submitted,
         })
+    }
+
+    /// 回答一个 actor 升级上来的阻塞问题（主会话的 `ResolveWorkflowQuestion` 工具）。
+    async fn resolve_workflow_question(
+        &self,
+        session: &SessionId,
+        qid: &str,
+        answer: &str,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowQuestionResolved, KernelError> {
+        Ok(self.escalations.resolve_question(session, qid, answer))
+    }
+
+    /// 一个会话名下的 run 还欠答案的问题（按提问顺序）。
+    async fn pending_workflow_questions(
+        &self,
+        session: &SessionId,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowQuestion>, KernelError> {
+        Ok(self.escalations.pending(session))
     }
 
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。

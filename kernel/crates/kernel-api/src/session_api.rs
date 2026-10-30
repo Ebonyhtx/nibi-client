@@ -755,6 +755,29 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 回答一个 actor 升级上来的阻塞问题（主代理的 `ResolveWorkflowQuestion` 工具）。
+    ///
+    /// 只有 run 的父会话能回答自己的问题（跨会话的 qid 按 `unknown_question` 拒绝）。
+    /// 缺省实现返回 `Unsupported`（没有 DWF 引擎的入口）。
+    async fn resolve_workflow_question(
+        &self,
+        _session: &SessionId,
+        _qid: &str,
+        _answer: &str,
+    ) -> Result<crate::workflow::WorkflowQuestionResolved, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "dynamic workflow questions".to_owned(),
+        })
+    }
+
+    /// 一个会话名下的 run 还欠答案的问题（按提问顺序）。缺省为空。
+    async fn pending_workflow_questions(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Vec<crate::workflow::WorkflowQuestion>, KernelError> {
+        Ok(Vec::new())
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///

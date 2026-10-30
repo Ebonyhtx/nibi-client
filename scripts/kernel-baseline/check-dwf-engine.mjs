@@ -29,13 +29,31 @@ const REQUIRED = [
   "dwfResumeStatus",
   "dwfResumeCode",
   "dwfResumedStatus",
+  "dwfAmendStart",
+  "dwfAmendRetuneStatus",
+  "dwfAmendRetuneSameRun",
+  "dwfAmendRetuneCaps",
+  "dwfAmendStatus",
+  "dwfAmendChangedRun",
+  "dwfAmendSuperseded",
+  "dwfAmendOldStop",
+  "dwfAmendLineage",
+  "dwfAmendStoredModel",
+  "dwfAmendCompleted",
+  "dwfAmendActorModel",
+  "dwfEscalateStart",
+  "dwfEscalateStatus",
+  "dwfEscalateRaised",
+  "dwfEscalateQidPrefix",
+  "dwfEscalateResolved",
+  "dwfEscalateAnswered",
 ];
 
 function run(kernel) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(
       process.execPath,
-      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume"],
+      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate"],
       { cwd: repo, stdio: ["ignore", "pipe", "pipe"] },
     );
     let stdout = "";

@@ -305,6 +305,23 @@ impl Agents {
     pub fn task_reader(&self) -> Arc<dyn rust_cli_kernel_api::agents::TaskReader> {
         Arc::new(TaskLists(self.core.clone()))
     }
+
+    /// 往会话投递一条后台通知（DWF 升级问答）：与后台子代理的终态通知同一条路——meta user
+    /// 消息、空闲时开回合、提交后按 seq ack、按文字去重。
+    pub fn notify(&self, session: &SessionId, status: &str, text: String) -> u64 {
+        self.core.hub.notify(
+            session,
+            AgentId::new("workflow"),
+            status,
+            rust_cli_base::reminder::wrap(&text),
+        )
+    }
+}
+
+impl rust_cli_kernel_api::workflow::WorkflowNotices for Agents {
+    fn notify(&self, session: &SessionId, text: String) {
+        let _ = self.notify(session, "escalation", text);
+    }
 }
 
 struct TaskLists(Arc<Core>);

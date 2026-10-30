@@ -11,6 +11,7 @@ mod attachment;
 mod catalog;
 mod config;
 mod directory;
+mod escalations;
 mod export;
 mod ext;
 mod hook_review;
@@ -159,6 +160,8 @@ pub struct LocalKernel {
     user_hooks: Arc<rust_cli_hooks::node_config::NodeHooks>,
     /// DWF 引擎（路线 C 的 sidecar）：入口注入，没接的入口三个命令报 Unsupported。
     workflow_engine: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>>,
+    /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
+    escalations: Arc<escalations::WorkflowEscalations>,
 }
 
 impl LocalKernel {
@@ -256,6 +259,9 @@ impl LocalKernel {
         // 会话内定时任务（L11b）：任务表在这里，触发由会话 actor 在空闲时取走。
         let cron =
             rust_cli_tools::CronBoard::new(ports.clock.clone(), extensions.cron_store.clone());
+        // DWF 升级问答的停驻表：主会话的 `ResolveWorkflowQuestion` 与 actor 的 `escalate`
+        // 共用一份；通知通道在 `Agents` 建好之后接上（走后台子代理通知同一条路）。
+        let escalations = Arc::new(escalations::WorkflowEscalations::new(ports.clock.clone()));
         // 基础工具：文件与搜索（L3）、Bash（L4）、交互与 Web 工具（L11a）；Skill 与 MCP 工具由 ext
         // 加在后面（L9），Agent 等由 agents 再加（L7）。
         // Read 整读 PDF 前按会话当前模型的生效配置查 `supports_pdf`（tools-files.md §1.5，修复线 F24）。
@@ -318,6 +324,10 @@ impl LocalKernel {
                     Vec::new()
                 })
                 .with_tools(vec![Arc::new(rust_cli_tools::ReportFindingsTool::new())])
+                // DWF 升级问答的答题入口（主会话；actor 的工具面里被藏起来）。
+                .with_tools(vec![Arc::new(
+                    rust_cli_tools::ResolveWorkflowQuestionTool::new(escalations.clone()),
+                )])
                 .with_tools(rust_cli_tools::worktree_tools(&worktrees)),
         );
         // 用户输入的提及与 bash 模式用基础注册表里的 Read 与 Bash（与模型的调用共用 readFileState 与 shell 状态）。
@@ -461,6 +471,8 @@ impl LocalKernel {
         ));
         let tools = agents.registry();
         catalog.bind(&tools);
+        // 升级提示经 `Agents` 的通知中心送进父会话（与后台子代理的通知同一条 `task-notification` 路）。
+        escalations.attach_notifier(agents.clone());
         // 任务提醒读的清单（agents.md §7.4）：agents 要用上下文，所以建好之后再接给它。
         assembler.bind_tasks(agents.task_reader());
         let usage = Arc::new(usage::UsageAnalyzer {
@@ -534,6 +546,7 @@ impl LocalKernel {
             hook_trust: None,
             user_hooks: Arc::new(rust_cli_hooks::node_config::NodeHooks::default()),
             workflow_engine: None,
+            escalations,
         }
     }
 

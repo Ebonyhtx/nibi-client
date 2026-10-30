@@ -202,5 +202,35 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
      - 门禁 `check-dwf-engine.mjs` 扩展到 13 字段（加 `dwfHoldStart` / `dwfResumeLiveCode` /
        `dwfCancelStatus` / `dwfResumeStatus` / `dwfResumeCode` / `dwfResumedStatus`），双内核一致：
        在飞 resume → `already_running`、cancel accepted、stopped 后 resume accepted、最终 completed。
-   - 未接线：`amend`（需要把 run 的 `subagentModel`/并发绑定传进 actor 轮）与 `escalate`
-     （挂起一轮等父会话回答）。
+   - **修订与升级问答（同日已通）**：
+     - `amendWorkflowRunSettings`：Rust `WorkflowEngine::amend` → sidecar `amend` RPC。sidecar
+       做与宿主 runtime 同一张三态表（省略 = 沿用、`null` = 回默认、值 = 设定）、「未改」当场拒绝、
+       脚本编译体检（都在**停下任何东西之前**）；只改并发且 run 在飞时**就地 retune**（同一个
+       runId、不停、不铸后继：`engine.setMaxConcurrency` + `dwf_run.caps_max_concurrency` +
+       `run-caps-changed`）；否则以 `{ superseded: newRunId }` 停在飞前驱、**等它自己结算**，再带
+       `resumedFrom` / `inheritedTokens` / 实参启动后继。run 级 `subagentModel` 落
+       `run-launched.subagentModel`，并在 `actor/create` 时解析成结构化 selection 传给 Rust 的
+       actor 轮（`ActorProfile.selection`）——探针用第二个模型 `fake-model-b` 端到端证明 actor
+       的 provider 请求真的切到了它。
+     - `escalate` / `ResolveWorkflowQuestion`：Rust 侧的升级问答面（Node 的 escalation 端口同义）。
+       actor 的 `escalate` 工具（描述与输入 schema 与 Node 逐字相同、per-ask 预算 3 次、`refused`
+       是普通工具结果）把问题交给 `runtime::escalations`；注册表铸 `dwfq-<片段>-<seq>`（全局唯一、
+       只许父会话作答、已退场 qid 有界记忆），把与 Node 逐句相同的 `<workflow-escalation>` 通知经
+       `Agents::notify` 送进父会话（走后台子代理 `task-notification` 的同一条路：meta user 消息、
+       空闲即开回合、提交后 ack）。答案由主会话的 `ResolveWorkflowQuestion` 工具
+       （`Kernel::resolve_workflow_question`）送回，停驻的 actor 轮就地继续。取消/丢弃停驻 future
+       会把 qid 按 `withdrawn` 退场（之后的作答得到 `run_not_in_flight`）。
+     - 门禁 `check-dwf-engine.mjs` 扩到 **31 字段**：新增修订组（`dwfAmend*`：retune 同 run 且
+       caps=2、supersede 后继、旧 run `cancelled/superseded`、lineage、`run-launched` 里的规范串、
+       actor 真跑在新模型上）与升级组（`dwfEscalate*`：停驻、通知、作答、答案回到 actor 轮）。
+       双内核一致（OK）。
+     - **本轮修掉的真 bug**：sidecar 的 `node:sqlite` 连接用缺省 busy timeout（0），与宿主
+       （Rust 进程）写同一个 `db.sqlite` 时，`updateRunStatus` 会当场 `SQLITE_BUSY`，run 永远停在
+       running（约 1/3 概率）。改为 5s（与存储层的启动锁同一档）。
+   - 仍未移植（不影响三条命令的协议面，切默认前要评估）：
+     - journal 里的 `escalation-raised` / `escalation-resolved` 事件（Rust 的注册表是内存态；
+       UI 的 `pendingQuestions` 投影与冷回放因此还没有数据源）；
+     - Node 的「设置轮」：修订成功后往会话里排一条 controlOnly 消息（模型可见的「已修订」记录）；
+     - `amend` 的脚本点名模型绑定（`modelBindings`）与 persona 级模型名解析（需要模型目录；
+       规范串形式已支持）；
+     - `GetWorkflowRun` 工具本身（升级通知与工具描述里引用了它，Rust 目前没有这个工具）。

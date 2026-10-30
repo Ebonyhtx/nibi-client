@@ -1,9 +1,9 @@
 # Rust 内核剩余三类功能的排期与设计（2026-10-30 拍板）
 
-> 背景：命令层 34 个 `CommandType` 已有 31 个接住（对拍 71 字段全绿），剩 3 个在
-> `kernel/crates/protocol-zcode/src/nibi_commands.rs` 的 `BLOCKED_COMMANDS` 里（DWF 三件）。
-> 用户拍板：**三类都补**，按本文顺序排。无论进度如何，Rust 仍是灰度、`NIBI_KERNEL` 默认 node、
-> 不切默认；切默认的前置是这 8 条全部落地（或明确放弃并在灰度分流表里写死）。
+> 背景：命令层 34 个 `CommandType` 的协议面已**全部接住**（2026-10-30：三条 DWF 命令从
+> `BLOCKED_COMMANDS` 移到 `HANDLED_COMMANDS`，该清单现在为空）。Rust 仍是灰度、`NIBI_KERNEL`
+> 默认 node、不切默认；切默认的前置是 DWF 的 sidecar/Host 接线与灰度分流表全部落地。
+> 用户拍板：**三类都补**，按本文顺序排。
 
 ## 顺序（按"解锁灰度面 / 风险 / 依赖"排）
 
@@ -11,7 +11,7 @@
 |---|---|---|---|---|
 | 1 | 钩子评审 4 条（`request`/`respond`/`toggle`/`revoke`） | **已完成（2026-10-30）** | 库都在（见 §1），不碰摘要算法；补完"带钩子的项目"才敢进灰度 | ✅ 4 条 accepted；双内核 63 字段全一致（含声明摘要 `68ad4faa`）；投影的 pending 交互承载完整 payload |
 | 2 | `discardSharedContext` | **已完成（2026-10-30）** | 依赖最少（只碰会话内的分享上下文表）；先把"丢弃"做掉，导入侧随分享服务端进度 | ✅ 丢弃后快照 `status=discarded`、存储一致；重复丢弃 `failed/fault.command.inputRejected`；双内核一致（71 字段对拍） |
-| 3 | DWF：workflow 3 条 + `createSession.dynamicWorkflow*` + 内核 run 能力 | 大（一整套） | 唯一需要独立设计的引擎（run 状态机、调度、持久化、UI 面）；与品牌化分轨，绝不混 PR | 3 条 accepted；run 的启动/恢复/改设置在双内核一致；`createSession` 两个字段真正生效 |
+| 3 | DWF：workflow 3 条 + `createSession.dynamicWorkflow*` + 内核 run 能力 | 大（一整套） | 唯一需要独立设计的引擎（run 状态机、调度、持久化、UI 面）；与品牌化分轨，绝不混 PR | ✅ **三条命令全部接住（2026-10-30）**：路线 C（Rust 协议面 + Node 引擎 sidecar）；`check-dwf-engine` 31 字段双内核一致（启动/取消/恢复/修订/升级问答）；run 级 `subagentModel` 真进 actor 轮；`createSession.dynamicWorkflow*` 的 Rust 侧语义仍待定（见下） |
 
 每步独立提交/PR；**不动机器人域名、不做全局改名**（品牌化单独一轮，等所有功能 track 完成）。
 

@@ -123,6 +123,11 @@ struct ActorHandle {
     child: SessionId,
     prompt: String,
     label: String,
+    /// persona 的有效名（`agent("poet")` 的 `"poet"`）；匿名 actor 缺席。
+    name: Option<String>,
+    /// run 级的子代理选型（`amendWorkflowSettings` 的 `subagentModel` / `run-launched`）；
+    /// 缺席 = 内核默认（父会话的默认选型）。
+    selection: Option<rust_cli_kernel_api::model::ModelSelection>,
 }
 
 /// 一次 run 的宿主侧状态。
@@ -426,11 +431,16 @@ where
                 let site = params["actor"]["siteId"].as_str().unwrap_or("actor").to_owned();
                 let persona = &params["persona"];
                 let prompt = persona["system"].as_str().unwrap_or_default().to_owned();
-                let label = persona["name"]
+                let name = persona["name"]
                     .as_str()
                     .filter(|name| !name.is_empty())
-                    .unwrap_or(&site)
-                    .to_owned();
+                    .map(str::to_owned);
+                let label = name.clone().unwrap_or_else(|| site.clone());
+                // 本 run 的子代理选型（规范串在 sidecar 侧已解析成结构化选择）。
+                let selection = serde_json::from_value::<
+                    rust_cli_kernel_api::model::ModelSelection,
+                >(params["model"].clone())
+                .ok();
                 let child = SessionId::new(format!(
                     "sess_dwf_{}",
                     shared.ids.uuid().replace(['-', ':'], "")
@@ -442,6 +452,8 @@ where
                         child: child.clone(),
                         prompt,
                         label,
+                        name,
+                        selection,
                     });
                 tracing::debug!(event = "dwf.actor.stored", site = %site);
                 if let Some(id) = &id {
@@ -642,12 +654,17 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
                 workspace: Some(run.cwd.clone()),
                 prompt: actor.prompt.clone(),
                 label: actor.label.clone(),
-                selection: None,
+                selection: actor.selection.clone(),
                 mode: None,
                 allow: None,
                 deny: Vec::new(),
                 max_turns: None,
                 submit_schema: if typed { Some(schema.clone()) } else { None },
+                run_id: run_id.clone(),
+                actor: format!("{site}@{}", params["instance"]["ordinal"].as_u64().unwrap_or(1)),
+                actor_name: actor.name.clone(),
+                // ask 实例键与 sidecar 的 `key` 同一个（`site@ordinal`）：升级预算按它计。
+                ask: key.clone(),
             },
             message: message.clone(),
             first,
@@ -674,6 +691,20 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
             submitted = turn.submitted.is_some(),
             text_len = turn.text.len(),
         );
+        // 回合本身失败（模型/工具链出错）：与 Node 的 `onTurnRejected` 同义，ask 失败而不是把错误
+        // 文本当成答案交回去。
+        if turn.stopped == "failed" {
+            process.notify("ask/reply", json!({
+                    "runId": run_id,
+                    "instance": params["instance"],
+                    "kind": "fail",
+                    "payload": {
+                        "code": "ActorFailed",
+                        "message": turn.error.clone().unwrap_or_else(|| "the actor turn failed".to_owned()),
+                    },
+                }));
+            break;
+        }
         if typed && turn.submitted.is_some() {
             let (tx, rx) = oneshot::channel();
             run.verdicts
@@ -809,14 +840,50 @@ impl WorkflowEngine for SidecarEngine {
         })
     }
 
-    async fn amend(
-        &self,
-        _request: WorkflowAmend,
-    ) -> Result<WorkflowRunStarted, WorkflowEngineError> {
-        Err(WorkflowEngineError::with_message(
-            "start_failed",
-            "the sidecar does not support amend yet",
-        ))
+    async fn amend(&self, request: WorkflowAmend) -> Result<WorkflowRunStarted, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let run_id = format!("dwfrun-{}", self.shared.ids.uuid());
+        let tool_call_id = format!("settings-{}", self.shared.ids.uuid());
+        let mut params = json!({
+            "predecessorRunId": request.run_id,
+            "runId": run_id,
+            "toolCallId": tool_call_id,
+            "dbPath": self.shared.database.display().to_string(),
+        });
+        // 三态原样递过去：缺席 = 沿用，`null` = 回到默认，值 = 设定（归一在 sidecar，与宿主同表）。
+        if let Some(model) = request.subagent_model {
+            params["subagentModel"] = json!(model);
+        }
+        if let Some(bound) = request.max_concurrency {
+            params["maxConcurrency"] = json!(bound);
+        }
+        let reply = process
+            .request("amend", params)
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        if reply["ok"].as_bool() != Some(true) {
+            return Err(WorkflowEngineError::with_message(
+                reply["reason"].as_str().unwrap_or("start_failed"),
+                reply["message"].as_str().unwrap_or("the workflow run could not be amended"),
+            ));
+        }
+        let started_run = reply["runId"].as_str().unwrap_or_default().to_owned();
+        if started_run != request.run_id {
+            // 后继 run：登记它的父会话与 cwd，供 actor RPC 使用。就地调并发（同一个 runId）不用重登记。
+            let parent = reply["parentSessionId"].as_str().unwrap_or_default();
+            let cwd = reply["cwd"].as_str().unwrap_or_default();
+            self.register_run(
+                &started_run,
+                RunState::new(SessionId::new(parent), cwd.to_owned()),
+            );
+        }
+        Ok(WorkflowRunStarted {
+            run_id: started_run,
+            tool_call_id,
+            superseded_run_id: reply["supersededRunId"].as_str().map(str::to_owned),
+        })
     }
 
     async fn cancel(&self, run_id: &str) -> Result<(), WorkflowEngineError> {

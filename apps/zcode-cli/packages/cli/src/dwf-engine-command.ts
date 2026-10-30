@@ -10,8 +10,11 @@
  *
  *   宿主 → engine：`{id, method:"submit", params:{runId, parentSessionId, cwd, dbPath,
  *                    scriptText? | savedName?+scope?, args?, caps?}}`
+ *                   `{id, method:"resume", params:{runId, dbPath}}`
+ *                   `{id, method:"amend", params:{predecessorRunId, runId, dbPath,
+ *                    subagentModel?, maxConcurrency?, toolCallId?}}`
  *                   `{id, method:"cancel", params:{runId}}`
- *   engine → 宿主：`actor/create`（建 actor 子会话，回 `{session:{id}}`）
+ *   engine → 宿主：`actor/create`（建 actor 子会话，回 `{session:<id>}`；`model` 在场时带上选型）
  *                   `world/read`（files.glob/read/grep，回结果）
  *                   `ask/start` / `ask/verdict` / `ask/cancel` / `run/event`（通知）
  *   宿主 → engine：`{method:"ask/reply", params:{runId, instance, kind:"submit"|"text"|"fail", payload/text}}`
@@ -62,7 +65,71 @@ function askSpecsFor(scriptText: string): Map<string, AskSpec> {
   return buildAskSpecs(table, schemas);
 }
 
-/** 一次 run 的后台执行（受理/恢复共用）：开 journal、建 driver、跑引擎、发 run/settled。 */
+/** 引擎的默认并发 D（docs/dynamic-workflow/concurrency.md「Two bounds on a run」）。宿主那边同一个数，
+ * 这里只用来折算 amend 的三态：`null` = 回到默认并发。
+ */
+const DEFAULT_CONCURRENCY = 4;
+
+/**
+ * sidecar 的 sqlite 连接。db 文件与宿主（Rust 进程）共用：宿主在写会话消息、这里在写 dwf 表，
+ * 写锁冲突时必须**等**（与存储层的 5s 启动锁同一档），不能当场 SQLITE_BUSY 抛出去把 run 留在
+ * running。`node:sqlite` 的缺省 timeout 是 0（立即失败），所以每一处都经这个函数开库。
+ */
+const SQLITE_BUSY_TIMEOUT_MS = 5_000;
+
+function openDatabase(path: string): DatabaseSync {
+  return new DatabaseSync(path, { timeout: SQLITE_BUSY_TIMEOUT_MS });
+}
+
+/** 规范 picker 串 `providerId/modelId[$level]` → Rust 内核的 selection 形状（$ 是推理档分隔符）。 */
+function selectionFromCanonical(
+  value: string | undefined,
+): { provider: string; model: string; reasoning?: string } | undefined {
+  const trimmed = value?.trim();
+  if (trimmed === undefined || trimmed.length === 0) return undefined;
+  const slash = trimmed.indexOf("/");
+  if (slash <= 0 || slash === trimmed.length - 1) return undefined;
+  const provider = trimmed.slice(0, slash);
+  const rest = trimmed.slice(slash + 1);
+  const dollar = rest.indexOf("$");
+  if (dollar <= 0 || dollar >= rest.length - 1) return { provider, model: rest };
+  return { provider, model: rest.slice(0, dollar), reasoning: rest.slice(dollar + 1) };
+}
+
+/** run 的子代理模型（`run-launched.subagentModel`）：amend 的三态与 actor 的选型都读这一条。 */
+function runSubagentModel(journal: JournalStorePort, runId: string): string | undefined {
+  const [first] = journal.listEvents(runId, {
+    types: ["run-launched"],
+    reportItems: "all",
+    limit: 1,
+  });
+  const event = first?.event;
+  return event?.type === "run-launched" ? event.subagentModel : undefined;
+}
+
+/** 三态归一（与宿主 runtime 同一张表；**端口不从前驱继承**，缺席即默认）。 */
+function nextSetting<T>(input: T | null | undefined, current: T | undefined): T | undefined {
+  if (input === undefined) return current;
+  if (input === null) return undefined;
+  return input;
+}
+
+/** 一次 run 在 sidecar 里的活状态（受理 / 恢复 / 修订三条路都造一个）。 */
+interface EngineRun {
+  driver: RemoteDriver;
+  abort: AbortController;
+  db: DatabaseSync;
+  /** 结算 promise：amend 以 `{superseded}` 停下在飞前驱后**等前驱自己结算**。 */
+  settlement: Promise<RunSettlement>;
+  /** 此刻生效的并发上界（内存副本：retune 与「未改」判定读它）。 */
+  maxConcurrency: number;
+  /** 本 run 的子代理模型（规范串）；缺席 = 会话模型。 */
+  subagentModel?: string;
+  /** 引擎的控制面：retune 就地问（bind 发生在引擎构造的同一同步片里）。 */
+  control?: { setMaxConcurrency(next: number): boolean };
+}
+
+/** 一次 run 的后台执行（受理/恢复/修订共用）：开 journal、建 driver、跑引擎、发 run/settled。 */
 function launchRun(
   params: {
     runId: string;
@@ -72,25 +139,63 @@ function launchRun(
     scriptText: string;
     args: Record<string, unknown>;
     caps: { maxConcurrency?: number };
+    /** amend 路径的两项 run 元数据（verbatim 转交引擎，缺省保持缺席）。 */
+    subagentModel?: string;
+    resumedFrom?: string;
+    inheritedTokens?: number;
+    toolCallId?: string;
   },
   request: (method: string, params: unknown) => Promise<unknown>,
   notify: (method: string, params: unknown) => void,
-  runs: Map<string, { driver: RemoteDriver; abort: AbortController; db: DatabaseSync }>,
+  runs: Map<string, EngineRun>,
 ): Promise<RunSettlement> {
-  const db = new DatabaseSync(params.dbPath);
+  const db = openDatabase(params.dbPath);
   const journal = createDwfJournalStore(db);
-  const driver = new RemoteDriver(params.runId, journal, request, notify);
+  const driver = new RemoteDriver(
+    params.runId,
+    journal,
+    request,
+    notify,
+    params.subagentModel,
+  );
   const abort = new AbortController();
-  runs.set(params.runId, { driver, abort, db });
+  const maxConcurrency = params.caps.maxConcurrency ?? DEFAULT_CONCURRENCY;
+  // 条目先落表：引擎构造的同一同步片里就会 `control.bind`，那时必须能在表里找到它。
+  const entry: EngineRun = {
+    driver,
+    abort,
+    db,
+    settlement: Promise.resolve({ status: "errored" } as RunSettlement),
+    maxConcurrency,
+    ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
+  };
+  runs.set(params.runId, entry);
+  // 锚点与选型同车：只有修订路径给得出 toolCallId / subagentModel，全新 submit 保持缺席。
+  const launch =
+    params.toolCallId === undefined && params.subagentModel === undefined
+      ? undefined
+      : {
+          inputId: params.toolCallId ?? params.runId,
+          ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
+        };
   const settlement = runWorkflowScript({
     scriptText: params.scriptText,
     cwd: params.cwd,
     runId: params.runId,
     parentSessionId: params.parentSessionId,
     args: params.args,
-    caps: { maxConcurrency: params.caps.maxConcurrency ?? 4 },
+    caps: { maxConcurrency },
     askSpecs: askSpecsFor(params.scriptText),
     validate: validateFn,
+    ...(launch === undefined ? {} : { launch }),
+    ...(params.resumedFrom === undefined ? {} : { resumedFrom: params.resumedFrom }),
+    ...(params.inheritedTokens === undefined ? {} : { inheritedTokens: params.inheritedTokens }),
+    control: {
+      bind: (engine) => {
+        const bound = runs.get(params.runId);
+        if (bound !== undefined) bound.control = engine;
+      },
+    },
     makeDriver: (sink) => {
       driver.attach(sink as unknown as WorkflowSink);
       return driver as unknown as import("@nibi/dynamic-workflow").WorkflowDriver;
@@ -107,6 +212,7 @@ function launchRun(
       runs.delete(params.runId);
       db.close();
     });
+  entry.settlement = settlement as Promise<RunSettlement>;
   return settlement as Promise<RunSettlement>;
 }
 
@@ -140,17 +246,21 @@ class RemoteDriver {
   private readonly runId: string;
   private readonly request: (method: string, params: unknown) => Promise<unknown>;
   private readonly notify: (method: string, params: unknown) => void;
+  /** 本 run 的子代理模型（规范串，来自 `run-launched.subagentModel` / 本次修订的入参）。 */
+  private readonly subagentModel: string | undefined;
 
   constructor(
     runId: string,
     journal: JournalStorePort,
     request: (method: string, params: unknown) => Promise<unknown>,
     notify: (method: string, params: unknown) => void,
+    subagentModel?: string,
   ) {
     this.runId = runId;
     this.journal = journal;
     this.request = request;
     this.notify = notify;
+    this.subagentModel = subagentModel;
   }
 
   attach(sink: WorkflowSink): void {
@@ -161,10 +271,13 @@ class RemoteDriver {
     actor: { siteId: string; ordinal: number },
     persona: PersonaSpec,
   ): Promise<SessionRef> {
+    // 本 run 的子代理选型随会话一起给宿主：Rust 的 actor 轮按它选模型（缺席 = 内核默认）。
+    const model = selectionFromCanonical(this.subagentModel);
     const reply = (await this.request("actor/create", {
       runId: this.runId,
       actor,
       persona,
+      ...(model === undefined ? {} : { model }),
     })) as { session: string };
     return { id: reply.session };
   }
@@ -223,10 +336,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     string,
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
-  const runs = new Map<
-    string,
-    { driver: RemoteDriver; abort: AbortController; db: DatabaseSync }
-  >();
+  const runs = new Map<string, EngineRun>();
 
   const request = (method: string, params: unknown) =>
     new Promise<unknown>((resolveRequest, rejectRequest) => {
@@ -328,7 +438,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     | { ok: true; accepted: true; parentSessionId: string; cwd: string }
     | { ok: false; reason: string; message: string }
   > {
-    const db = new DatabaseSync(params.dbPath);
+    const db = openDatabase(params.dbPath);
     try {
       const journal = createDwfJournalStore(db);
       const record = journal.getRun(params.runId);
@@ -394,6 +504,163 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     }
   }
 
+  interface AmendParams {
+    /** 被修订的前驱（`workId`）。 */
+    predecessorRunId: string;
+    /** 宿主铸出的**新** runId；只改并发且前驱在飞时就地生效，这个 id 不会被用到。 */
+    runId: string;
+    dbPath: string;
+    /** 三态：缺席 = 沿用，`null` = 回到会话模型，值 = 设定（规范串）。 */
+    subagentModel?: string | null;
+    /** 三态：缺席 = 沿用，`null` = 回到默认并发，值 = 设定。 */
+    maxConcurrency?: number | null;
+    toolCallId?: string;
+  }
+
+  /**
+   * 一次修订的受理（`amendWorkflowRunSettings`）。顺序就是语义：
+   *
+   *   1. 预检前驱（存在、可配置、有存档脚本、脚本编得过）——被拒时**什么都没动**，前驱照旧在跑；
+   *   2. 两项设置的三态归一，「未改」当场拒绝（一次修订会停下在飞的 run，没理由为零改动付代价）；
+   *   3. 只改并发、run 又在飞 → **就地生效**（同一个 runId、不停、不铸后继）；
+   *   4. 否则铸后继：在飞前驱以 `{ superseded }` 停下并**等它自己结算**，再带脚本 / 实参 / 用量起点
+   *      在前驱的行上启动新 run（`resumedFrom` 是 lineage 指针）。
+   */
+  async function acceptAmend(params: AmendParams): Promise<
+    | {
+        ok: true;
+        accepted: true;
+        runId: string;
+        parentSessionId: string;
+        cwd: string;
+        supersededRunId?: string;
+      }
+    | { ok: false; reason: string; message: string }
+  > {
+    const db = openDatabase(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(params.predecessorRunId);
+      if (record === undefined) {
+        return {
+          ok: false,
+          reason: "not_found",
+          message: `run ${params.predecessorRunId} does not exist`,
+        };
+      }
+      // 已完成的 run 每个 ask 都从缓存重放，新设置无处生效；被替代的 run 活的是它的后继。
+      if (record.status === "completed" || record.supersededBy !== undefined) {
+        return {
+          ok: false,
+          reason: "not_configurable",
+          message: `run ${params.predecessorRunId} is ${record.status}`,
+        };
+      }
+      if (record.scriptText === undefined || record.scriptText.length === 0) {
+        return {
+          ok: false,
+          reason: "script_missing",
+          message: `run ${params.predecessorRunId} has no stored script`,
+        };
+      }
+      // 编译体检在**停下任何东西之前**（与宿主 runtime 的顺序一致：坏脚本不让前驱陪葬）。
+      try {
+        const program = createWorkflowProgram(record.scriptText);
+        const diagnostics = collectDiagnostics(program.program);
+        if (diagnostics.length > 0) {
+          return {
+            ok: false,
+            reason: "compile_failed",
+            message: diagnostics
+              .map((diagnostic) => diagnostic.message)
+              .join("; ")
+              .slice(0, 2_000),
+          };
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          message: error instanceof Error ? error.message.slice(0, 2_000) : String(error),
+        };
+      }
+
+      const live = runs.get(params.predecessorRunId);
+      const currentModel = live?.subagentModel ?? runSubagentModel(journal, record.runId);
+      // 等于默认并发的界就是「没有自己的界」：快照只在 ≠ 默认时带 maxConcurrency，同一个读法。
+      const storedBound =
+        live?.maxConcurrency ?? record.caps.maxConcurrency ?? DEFAULT_CONCURRENCY;
+      const currentBound = storedBound === DEFAULT_CONCURRENCY ? undefined : storedBound;
+      const nextModel = nextSetting(params.subagentModel, currentModel);
+      const nextBound = nextSetting(params.maxConcurrency, currentBound);
+      const modelChanged = nextModel !== currentModel;
+      const boundChanged = nextBound !== currentBound;
+      if (!modelChanged && !boundChanged) {
+        return {
+          ok: false,
+          reason: "unchanged",
+          message: `run ${params.predecessorRunId} already has those settings`,
+        };
+      }
+
+      // 只改并发、run 又在飞：就地换引擎的 caps，同一个 runId、不停、不铸后继。
+      if (boundChanged && !modelChanged && live?.control !== undefined) {
+        const target = nextBound ?? DEFAULT_CONCURRENCY;
+        if (live.control.setMaxConcurrency(target)) {
+          live.maxConcurrency = target;
+          return {
+            ok: true,
+            accepted: true,
+            runId: params.predecessorRunId,
+            parentSessionId: record.parentSessionId ?? "",
+            cwd: record.cwd ?? process.cwd(),
+          };
+        }
+        // 引擎说没改（恰好结算）：顺着修订走，与宿主 not_live 的回落同一条。
+      }
+
+      // 前驱在飞：以 `{ superseded }` 停下并等它自己的结算 promise（不是超时、不是轮询 journal）。
+      let supersededRunId: string | undefined;
+      if (live !== undefined) {
+        live.abort.abort({ superseded: params.runId });
+        await live.settlement;
+        supersededRunId = params.predecessorRunId;
+      }
+      // 结算之后再读一次行：用量起点要含前驱最后几轮的花费；实参按前驱自己的那份沿用。
+      const settled = journal.getRun(params.predecessorRunId) ?? record;
+      const parentSessionId = settled.parentSessionId ?? record.parentSessionId ?? "";
+      const cwd = settled.cwd ?? record.cwd ?? process.cwd();
+      void launchRun(
+        {
+          runId: params.runId,
+          parentSessionId,
+          cwd,
+          dbPath: params.dbPath,
+          scriptText: record.scriptText,
+          args: settled.args ?? {},
+          caps: { maxConcurrency: nextBound ?? DEFAULT_CONCURRENCY },
+          ...(nextModel === undefined ? {} : { subagentModel: nextModel }),
+          resumedFrom: params.predecessorRunId,
+          inheritedTokens: settled.spentTokens ?? 0,
+          ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),
+        },
+        request,
+        notify,
+        runs,
+      ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
+      return {
+        ok: true,
+        accepted: true,
+        runId: params.runId,
+        parentSessionId,
+        cwd,
+        ...(supersededRunId === undefined ? {} : { supersededRunId }),
+      };
+    } finally {
+      db.close();
+    }
+  }
+
   const { createInterface } = await import("node:readline");
   const reader = createInterface({ input: ctx.stdin });
   for await (const line of reader) {
@@ -445,6 +712,14 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       // 绝不在这里 await：run 期间的 RPC 响应也走这条 stdin。
       const id = message.id;
       void acceptSubmit(message.params as SubmitParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "amend") {
+      // 同一条纪律：acceptAmend 会 await 前驱的结算，绝不能挡住这条读循环。
+      const id = message.id;
+      void acceptAmend(message.params as AmendParams).then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

@@ -4,7 +4,7 @@
 //! 不产生 hand-back 文本与完成通知：DWF 的 actor 归 run 引擎所有，父会话只通过 run 事件看到它。
 //!
 //! 一轮 = 一条 user 消息 → 子循环 → 终态文本与用量。typed ask 的 `submit_result` 与求助的
-//! `escalate` 工具还没接（C1 的下一步）；这一层先把「persona → system → 一轮 → 终态」打通。
+//! `escalate` 都在这条子循环里：submit 结束一个 ask，escalate 停驻这一轮、等父会话回答。
 
 use std::sync::Arc;
 
@@ -16,6 +16,10 @@ use rust_cli_kernel_api::orchestration::{ContextBuilder, QueryRequest, ToolRegis
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::store::{
     Fact, SessionKind, SessionMeta, StoreError, TurnAnchor,
+};
+use rust_cli_kernel_api::workflow::{
+    ESCALATE_TOOL, RESOLVE_WORKFLOW_QUESTION_TOOL, WorkflowEscalation, WorkflowEscalationOutcome,
+    WorkflowEscalationRequest,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -31,7 +35,7 @@ use crate::toolset::{FilteredTools, ToolRule};
 use crate::{Agents, Core};
 
 /// 一个 actor 的固定属性（一个 run 内跨多轮不变）。
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ActorProfile {
     /// 父会话（`dwf_run.parent_session_id`）。
     pub parent: SessionId,
@@ -50,6 +54,16 @@ pub struct ActorProfile {
     pub max_turns: Option<u32>,
     /// typed ask 的 `result` 形状（JSON Schema）：Some 时给 actor 注册 `submit_result` 工具。
     pub submit_schema: Option<Value>,
+    /// 本 run 的 id（升级问答的路由身份）。
+    pub run_id: String,
+    /// actor 的结构化引用 `site@ordinal`。
+    pub actor: String,
+    /// actor 的有效名（`agent("poet")` 的名字）；匿名 actor 缺席。
+    pub actor_name: Option<String>,
+    /// 本轮的 ask 实例键（`site@ordinal`）：per-ask 的升级预算按它计。
+    pub ask: String,
+    /// 升级端口：Some 时给 actor 注册 `escalate` 工具（恒注入、不做工具面门禁，Node 同）。
+    pub escalation: Option<Arc<dyn WorkflowEscalation>>,
 }
 
 /// 一轮的结果。
@@ -180,10 +194,137 @@ impl Tool for SubmitResultTool {
     }
 }
 
-/// actor 的注册表：子代理过滤后的工具，加上 typed ask 的 `submit_result`。
+/// `escalate`：actor 把真阻塞升级给父会话并**停驻在这一轮里**等答案。
+///
+/// 与 `submit_result` 同构地注入（端口在场即注册），但结算的是**一次问答**而不是 ask 的终态；
+/// 两支结局（answered / refused）都是普通工具结果——把「预算已尽」渲染成错误只会让模型反复撞墙。
+struct EscalateTool {
+    port: Arc<dyn WorkflowEscalation>,
+    /// 路由身份（父会话 / run / actor / ask）：模型只能给 question 与 context。
+    identity: WorkflowEscalationRequest,
+}
+
+/// 工具描述 = actor 侧的使用纪律（与 Node 的 `ESCALATE_DESCRIPTION` 逐句相同）。
+const ESCALATE_DESCRIPTION: &str = "Escalates a question that is BLOCKING you to the main agent that created this workflow, and waits here for the answer.
+
+This is a LAST RESORT, for when you are genuinely stuck on something outside your reach:
+- a gate that is broken or impossible to pass (a check capped at 95 when the threshold is 96);
+- instructions that contradict each other, so no output can satisfy both;
+- a fact you cannot obtain (a tradeoff, an external convention, what 'good' means here) that only whoever started this run knows.
+
+Do NOT use it for curiosity, progress reports, asking permission, confirming a conclusion you could verify yourself, or thinking out loud. None of those are blocked — keep working.
+
+Ask ONE focused question that can be answered in a sentence, and put your evidence in `context`: what you already tried, and exactly where you are stuck. The quality of the answer depends on it.
+
+The cost: this call BLOCKS until the main agent answers, which may take a long time. You get at most 3 escalations per ask; the 4th tells you the budget is spent and to proceed on your own best judgement. Do not spend them on questions not worth waiting for.";
+
+#[async_trait]
+impl Tool for EscalateTool {
+    fn name(&self) -> &str {
+        ESCALATE_TOOL
+    }
+
+    fn input_schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The single focused question that unblocks you. One question per call, answerable in a sentence.",
+                },
+                "context": {
+                    "type": "string",
+                    "description": "What you already tried and where exactly you are stuck — the evidence the answerer needs.",
+                },
+            },
+            "required": ["question"],
+            "additionalProperties": false,
+        })
+    }
+
+    fn description(&self, _context: &PromptContext) -> String {
+        ESCALATE_DESCRIPTION.to_owned()
+    }
+
+    fn is_read_only(&self, _input: &Value) -> bool {
+        false
+    }
+
+    fn is_concurrency_safe(&self, _input: &Value) -> bool {
+        true
+    }
+
+    fn search_hint(&self) -> Option<&str> {
+        Some("escalate a blocking question to the main agent and wait for the answer")
+    }
+
+    /// 协议工具不是模型对工作区的动作：不经过权限门（Node 的 `workflow.escalate` 同样免确认）。
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        _context: &ToolUseContext,
+    ) -> rust_cli_kernel_api::permission::PermissionDecision {
+        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+            updated_input: None,
+        }
+    }
+
+    async fn call(
+        &self,
+        input: Value,
+        context: ToolUseContext,
+        _progress: mpsc::Sender<ToolProgress>,
+    ) -> Result<ToolOutput, ToolError> {
+        let question = input
+            .get("question")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .trim()
+            .to_owned();
+        if question.is_empty() {
+            return Err(ToolError::InvalidInput {
+                message: "`question` must be a non-empty string".to_owned(),
+            });
+        }
+        let request = WorkflowEscalationRequest {
+            question,
+            context: input
+                .get("context")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|context| !context.is_empty())
+                .map(str::to_owned),
+            ..self.identity.clone()
+        };
+        // 取消（ask 被停 / run 被取消）丢下这个 future：停驻项随之撤下，之后的作答得到
+        // `run_not_in_flight`（与 Node 的 `withdrawSessionEscalations` 同义）。
+        let outcome = tokio::select! {
+            outcome = self.port.escalate(request) => outcome,
+            () = context.cancel.cancelled() => return Err(ToolError::Cancelled),
+        };
+        let (text, display) = match outcome {
+            WorkflowEscalationOutcome::Answered { answer, qid } => {
+                (answer, json!({"status": "answered", "qid": qid}))
+            }
+            WorkflowEscalationOutcome::Refused { reason, message } => (
+                message,
+                json!({"status": "refused", "reason": reason}),
+            ),
+        };
+        Ok(ToolOutput {
+            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text { text }],
+            is_error: false,
+            display,
+        })
+    }
+}
+
+/// actor 的注册表：子代理过滤后的工具，加上 typed ask 的 `submit_result` 与求助的 `escalate`。
 struct ActorTools {
     inner: Arc<dyn ToolRegistry>,
     submit: Option<Arc<SubmitResultTool>>,
+    escalate: Option<Arc<EscalateTool>>,
 }
 
 impl ToolRegistry for ActorTools {
@@ -192,6 +333,9 @@ impl ToolRegistry for ActorTools {
         if let Some(submit) = &self.submit {
             tools.push(submit.clone());
         }
+        if let Some(escalate) = &self.escalate {
+            tools.push(escalate.clone());
+        }
         tools
     }
 
@@ -199,12 +343,18 @@ impl ToolRegistry for ActorTools {
         if name == "submit_result" {
             return self.submit.clone().map(|tool| tool as Arc<dyn Tool>);
         }
+        if name == ESCALATE_TOOL {
+            return self.escalate.clone().map(|tool| tool as Arc<dyn Tool>);
+        }
         self.inner.find(name)
     }
 
     fn find_for(&self, session: &rust_cli_kernel_api::ids::SessionId, name: &str) -> Option<Arc<dyn Tool>> {
         if name == "submit_result" {
             return self.submit.clone().map(|tool| tool as Arc<dyn Tool>);
+        }
+        if name == ESCALATE_TOOL {
+            return self.escalate.clone().map(|tool| tool as Arc<dyn Tool>);
         }
         self.inner.find_for(session, name)
     }
@@ -216,6 +366,9 @@ impl ToolRegistry for ActorTools {
         let mut snapshot = self.inner.snapshot(session);
         if let Some(submit) = &self.submit {
             snapshot.tools.push(submit.clone());
+        }
+        if let Some(escalate) = &self.escalate {
+            snapshot.tools.push(escalate.clone());
         }
         snapshot
     }
@@ -249,11 +402,14 @@ impl ToolRegistry for ActorTools {
 
 /// 合成一个 actor 的定义：prompt 就是 persona，工具面按 allow/deny 过滤。
 fn definition(profile: &ActorProfile) -> AgentDefinition {
+    let mut disallowed_tools = profile.deny.clone();
+    // 答题是**父会话**的工具：actor 拿不到它（Node 的 actor 工具面里也没有）。
+    disallowed_tools.push(RESOLVE_WORKFLOW_QUESTION_TOOL.to_owned());
     AgentDefinition {
         agent_type: format!("dwf-actor:{}", profile.label),
         when_to_use: String::new(),
         tools: profile.allow.clone(),
-        disallowed_tools: profile.deny.clone(),
+        disallowed_tools,
         prompt: profile.prompt.clone(),
         source: AgentSource::BuiltIn,
         model: None,
@@ -349,6 +505,20 @@ impl Agents {
         };
         let definition = definition(profile);
         let slot = Arc::new(SubmitSlot::default());
+        let escalate = profile.escalation.clone().map(|port| {
+            Arc::new(EscalateTool {
+                port,
+                identity: WorkflowEscalationRequest {
+                    parent: profile.parent.as_str().to_owned(),
+                    run_id: profile.run_id.clone(),
+                    actor: profile.actor.clone(),
+                    actor_name: profile.actor_name.clone(),
+                    ask: profile.ask.clone(),
+                    question: String::new(),
+                    context: None,
+                },
+            })
+        });
         let tools: Arc<dyn ToolRegistry> = Arc::new(ActorTools {
             inner: Arc::new(FilteredTools {
                 inner: registry,
@@ -360,6 +530,7 @@ impl Agents {
                     schema,
                 })
             }),
+            escalate,
         });
         let context: Arc<dyn ContextBuilder> = Arc::new(SubagentContext {
             inner: core.ports.context.clone(),

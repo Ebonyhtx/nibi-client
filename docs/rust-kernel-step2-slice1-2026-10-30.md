@@ -418,13 +418,29 @@ DWF 调研后拍板 **路线 C（Rust 协议面 + Node 引擎 sidecar）**，设
 - `node-store::repo::dwf::list` 读 `dwf_run`（本会话、按 `time_created`），单测覆盖会话隔离与字段透出；
 - 写面仍归引擎（sidecar 后由引擎独占），3 条命令继续显式 unsupported。
 
+## 6.20 第二十一步：DWF 修订与升级问答（2026-10-30）
+
+`amendWorkflowRunSettings`、actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 落地，
+三条 DWF 命令从 `BLOCKED_COMMANDS` 移到 `HANDLED_COMMANDS`（**34 接住 / 0 能力缺口**）。
+
+- 修订：三态归一与「未改」拒绝、编译体检都在停下任何东西之前；只改并发且 run 在飞时就地 retune
+  （同 runId），否则 `{superseded}` 停前驱、等它结算、带 lineage 起后继；run 级 `subagentModel`
+  经 `run-launched` → `actor/create` → `ActorProfile.selection` 真正作用到 actor 轮。
+- 升级问答：`runtime::escalations` 注册表（qid 全局唯一、只许父会话作答、预算 3/ask、退场记忆有界）；
+  actor 的 `escalate` 工具与主会话的 `ResolveWorkflowQuestion` 工具，通知经 `Agents::notify`
+  走后台子代理的 `task-notification` 同一条路。
+- 门禁：`check-dwf-engine.mjs` **31 字段**双内核一致；`check-dual-kernel-parity` 71 字段、冷恢复门禁
+  照旧全绿。
+- 仍未移植：journal 的 `escalation-*` 事件 / `pendingQuestions` 投影、修订后的设置轮、
+  `modelBindings` 与 persona 级模型名解析、`GetWorkflowRun` 工具。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 3 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
-   契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
+1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要
+   先定 packaging/Host 的 env 接线与上面那段「仍未移植」的取舍。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
-   （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，
-   短期保持点名 warn）。
+   （图片）、`additionalDirectories` 已完成；`dynamicWorkflowEnabled/Mode` 在 Rust 侧没有灰度闸
+   （工具面不按它裁剪），Host 传了就忽略——切默认前按 Node 的语义补齐或写进灰度分流表。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
 4. `generate-nibi-command-schema.ts --check` 尚未接进 CI（`rust-gates.yml` 只跑 cargo；
    需要一个带 Node 的 job 或把它挂到 `client-gates`，待补）。

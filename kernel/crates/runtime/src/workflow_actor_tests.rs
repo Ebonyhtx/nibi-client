@@ -2,8 +2,11 @@
 
 use std::sync::Arc;
 
+use futures_util::stream::{self, StreamExt};
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
+use rust_cli_kernel_api::message::ContentBlock;
+use rust_cli_kernel_api::model::{ModelEvent, ModelError, ModelPort, ModelRequest};
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{CreateSession, Kernel};
 use rust_cli_kernel_api::store::SessionStore;
@@ -12,6 +15,7 @@ use rust_cli_kernel_api::testing::{
     tool_use_response,
 };
 use rust_cli_kernel_api::workflow::{WorkflowActorRequest, WorkflowActorSpec};
+use tokio_util::sync::CancellationToken;
 
 use super::*;
 
@@ -22,7 +26,7 @@ fn workspace() -> WorkspaceRef {
     }
 }
 
-fn kernel(store: Arc<MemoryStore>, model: Arc<ScriptedModel>) -> LocalKernel {
+fn kernel(store: Arc<MemoryStore>, model: Arc<dyn ModelPort>) -> LocalKernel {
     LocalKernel::new(
         Ports {
             model,
@@ -58,6 +62,10 @@ fn actor(parent: &SessionId, child: &str) -> WorkflowActorSpec {
         deny: Vec::new(),
         max_turns: Some(1),
         submit_schema: None,
+        run_id: "dwfrun_test".to_owned(),
+        actor: "worker#1@1".to_owned(),
+        actor_name: Some("worker".to_owned()),
+        ask: "worker#1@1".to_owned(),
     }
 }
 
@@ -116,8 +124,7 @@ async fn an_actor_turn_runs_through_the_kernel_and_returns_its_text() {
 }
 
 #[tokio::test]
-async fn a_typed_ask_submits_its_result_through_the_actor_tool() {
-    let store = Arc::new(MemoryStore::default());
+async fn a_typed_ask_submits_its_result_through_the_actor_tool() {    let store = Arc::new(MemoryStore::default());
     let kernel = kernel(
         store.clone(),
         Arc::new(ScriptedModel::new(vec![
@@ -163,5 +170,111 @@ async fn a_typed_ask_submits_its_result_through_the_actor_tool() {
     assert_eq!(
         turn.submitted,
         Some(serde_json::json!({"answer": 42}))
+    );
+}
+
+/// actor 的 `escalate` 停驻 → 父会话被通知唤醒、调 `ResolveWorkflowQuestion` 作答 → actor 带着答案继续。
+///
+/// 模型按「最后一条消息」路由，于是升级通知开启的父会话回合与 actor 的续跑各拿各的答复，
+/// 不依赖响应的到达顺序（`ScriptedModel` 的队列在这里会因为两个会话并发而错配）。
+#[tokio::test]
+async fn an_actor_escalation_parks_until_the_parent_answers() {
+    struct EscalationModel;
+
+    impl ModelPort for EscalationModel {
+        fn stream(
+            &self,
+            request: ModelRequest,
+            _cancel: CancellationToken,
+        ) -> futures_util::stream::BoxStream<'static, Result<ModelEvent, ModelError>> {
+            let last = request
+                .messages
+                .last()
+                .map(|message| {
+                    message
+                        .content
+                        .iter()
+                        .map(|content| match &content.block {
+                            ContentBlock::Text { text } => text.clone(),
+                            other => serde_json::to_string(other).unwrap_or_default(),
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                })
+                .unwrap_or_default();
+            let response = if last.contains("that way") {
+                text_response(&["continued after the answer"])
+            } else if last.contains("Answer delivered for question") {
+                // 父会话答完之后的收尾（同一个通知回合的第二次请求）。
+                text_response(&["noted"])
+            } else if last.contains("workflow-escalation") {
+                // 父会话收到的升级通知：从通知正文里读出 qid，再调答题工具。
+                let qid = last
+                    .split("dwfq-")
+                    .nth(1)
+                    .map(|rest| {
+                        let tail = rest.split('<').next().unwrap_or(rest).trim();
+                        format!("dwfq-{tail}")
+                    })
+                    .unwrap_or_default();
+                tool_use_response(
+                    "toolu_resolve",
+                    "ResolveWorkflowQuestion",
+                    &serde_json::json!({"question_id": qid, "answer": "that way"}),
+                )
+            } else {
+                tool_use_response(
+                    "toolu_escalate",
+                    "escalate",
+                    &serde_json::json!({"question": "Which way?", "context": "both look equal"}),
+                )
+            };
+            stream::iter(response).boxed()
+        }
+    }
+
+    let store = Arc::new(MemoryStore::default());
+    let kernel = kernel(store, Arc::new(EscalationModel));
+    let parent = kernel
+        .create_session(CreateSession {
+            id: None,
+            workspace: workspace(),
+            selection: selection(),
+            mode: PermissionMode::Default,
+            plan: false,
+        })
+        .await
+        .unwrap();
+    let mut spec = actor(&parent, "sess_actor_escalation");
+    spec.max_turns = None;
+    spec.mode = Some(PermissionMode::BypassPermissions);
+
+    let turn = kernel
+        .run_workflow_actor(
+            WorkflowActorRequest {
+                actor: spec,
+                message: "do the blocked thing".to_owned(),
+                first: true,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        turn.stopped,
+        "completed",
+        "stopped={} error={:?} text={}",
+        turn.stopped,
+        turn.error,
+        turn.text
+    );
+    assert_eq!(turn.text, "continued after the answer");
+    // 作答之后表里不再有欠着答案的问题。
+    assert!(
+        kernel
+            .pending_workflow_questions(&parent)
+            .await
+            .unwrap()
+            .is_empty()
     );
 }

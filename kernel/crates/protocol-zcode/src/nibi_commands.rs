@@ -74,24 +74,17 @@ pub const HANDLED_COMMANDS: &[&str] = &[
     "revokeWorkspaceHookTrust",
     "deleteSession",
     "discardSharedContext",
+    // 三条 DWF 命令：协议处理 + 内核端口 + sidecar 引擎（路线 C）都已接上。没有注入
+    // `NIBI_DWF_ENGINE_CMD` 的入口按 Node 的 `V4CapabilityUnsupportedError` 回
+    // `fault.command.capabilityUnsupported`——那是入口能力差异，不是协议缺口。
+    "startSavedWorkflow",
+    "resumeWorkflowRun",
+    "amendWorkflowRunSettings",
 ];
 
 /// 内核**还没有能力**实现的 NIBI 命令：名字 + 缺的能力。不是接线缺口，是功能缺口——补之前要先决策
 /// 能力的形状（每项都写在 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表里）。处理器补齐一项就从这里删一项。
-pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
-    (
-        "startSavedWorkflow",
-        "引擎 sidecar 未接（路线 C）：协议处理与内核端口已就位，缺入口注入 `WorkflowEngine`（Node 的 run 引擎）",
-    ),
-    (
-        "resumeWorkflowRun",
-        "同上：引擎端口未注入（resume 由 sidecar 的可恢复集把关）",
-    ),
-    (
-        "amendWorkflowRunSettings",
-        "同上：引擎端口未注入（设置修订由 sidecar 编译新 run）",
-    ),
-];
+pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[];
 
 /// 编译好的 NIBI 命令契约。
 pub struct NibiCommands {
