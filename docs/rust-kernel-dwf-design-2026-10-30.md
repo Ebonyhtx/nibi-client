@@ -108,6 +108,26 @@
 - 验收：3 条命令与 Node 的 ACK/拒绝码一致；同一脚本两边 journal 终态一致；冷恢复后 run 列表与
   Resume 入口一致。
 
+## 3.3 C1 细化：driver 走 RPC，模型与工具留在 Rust（2026-10-30 拍板后的调整）
+
+探针证明的唯一 app 耦合点是 driver（actor 会话与模型调用）。与其把整个 CLI App 搬进 sidecar，
+更好的切法是**把 driver 反过来接到 Rust**：
+
+- sidecar（Node，仍 app-free）：`runWorkflowScript` + sqlite journal + 沙箱子进程（这几样本来就要 Node）；
+  `WorkflowDriver` 的每个方法都是一条到 Rust 的 RPC：
+  `createActorSession` → Rust 建一个 actor 子会话；`startAsk` → Rust 跑一轮（模型 + 工具 + 权限），
+  进度经 `sink.askTurnEnded/askSubmitAttempted/askStats/askFailed` 回传；`respondToSubmit`/`cancelAsk`
+  由 Rust 的裁决/中断回推；`executeWorldRead` → Rust 的文件/git 端口；`executeArtifactPublish` →
+  Rust 的 artifact store。
+- 这样模型、工具、权限、子代理全留在 Rust（复用已有 `Agents`/`QueryLoop`），sidecar 只负责
+  编译/沙箱/引擎/journal——**与路线 B 的长期目标兼容**（将来把这部分也搬进 Rust 时，Rust 侧的
+  actor 端口不变）。
+- 新增的 Rust 面：一个 `WorkflowActorPort`（建会话 / 跑一轮 / 取消 / 世界读取 / 产物发布），
+  `LocalKernel` 用现有会话与工具实现它；协议层再包一层 sidecar 进程管理与事件转发。
+- 待验证的两个点（C1 第一步的探针）：actor 轮能否复用子代理的 `QueryLoop`（persona → 系统提示、
+  `submit_result`/`escalate` 工具、权限模式）；以及 ask 的 repair/nudge 循环在跨进程往返下
+  仍保持确定性（引擎只认 `sink` 的调用顺序）。
+
 ## 4. 若选 A（不移植）需要写进灰度分流表的内容
 
 - `NIBI_KERNEL=rust` 时 DWF 命令一律 `unsupported`（现状），Host 端按能力探测降级；

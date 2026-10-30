@@ -415,7 +415,8 @@ DWF 调研（8,524 行规格 + 26k 行 TS 引擎/编译器 + 20 多个工具；�
 `agent/ask` 两段脚本都 `completed`，事件序列完整；再用内核自己的迁移 SQL 建库、经真实
 `createDwfJournalStore(db)` 跑同一段脚本，`dwf_run` 行
 （`id/status/parent_session_id/spent_tokens`）与 Rust 只读端口选的列一致。结论：引擎可脱离 CLI
-runtime 独立跑，唯一 app 耦合是 driver；C1 的 sidecar 控制面草稿见设计文档 §3.2。
+runtime 独立跑，唯一 app 耦合是 driver。据此把 C1 再细化：**driver 反过来 RPC 到 Rust**（模型/工具/
+权限留在 Rust，sidecar 只管编译/沙箱/引擎/journal），见设计文档 §3.2–§3.3。
 
 ## 7. 未完成项
 
