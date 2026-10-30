@@ -176,6 +176,16 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
 2. sidecar 分发：**B**——复用客户端自带的 Node（桌面是 Electron Helper 的 Node 模式 + 同一个
    `nibi.cjs` bundle），不额外打包；Rust 从 `NIBI_DWF_ENGINE_CMD` 拿启动命令。
 3. 剩余：DWF 是否列入"切默认"的硬前置（若是，C1–C3 全部完成前 Rust 保持灰度）。
-4. C1 未完成：sidecar 的 `resume` / `amend`（run service 的 `resumeDynamicWorkflowRun` 那一套：
-   journal 取脚本、编译、hash 比对、导入缓存）与 `escalate`（挂起/恢复一轮）；Rust 侧的 engine
-   子进程客户端（spawn + actor RPC 转给 `Kernel::run_workflow_actor`）。
+4. C1 未完成：
+   - **已落地**：Rust 侧 `SidecarEngine`（`crates/cli/src/dwf_engine_client.rs`）：从
+     `NIBI_DWF_ENGINE_CMD` 拿启动命令、spawn、`actor/create` → actor 子会话、`ask/start` 跑
+     actor 轮并按 `ask/verdict` 做 repair/nudge、`world/read`（glob/read/grep）、`run/settled`
+     收口；app-server 在 env 在场时注入。驱动器新增 `dwfEngine` 阶段（非默认）。
+   - **卡点（2026-10-30 未解决）**：端到端时 run 停在 `running`（`node-dispatched` 后无
+     `node-settled`），`dwf.ask.start` 出现但 `dwf.actor.open` 不出现——`Kernel::run_workflow_actor`
+     没有走完第一段。已加的阶段日志：`dwf.ask.start` / `dwf.ask.no_kernel` / `dwf.actor.open` /
+     `dwf.actor.open.created` / `dwf.actor.loop` / `dwf.actor.run` / `dwf.ask.turn`；复现命令：
+     `NIBI_DWF_ENGINE_CMD='{"command":"node","args":["<repo>/apps/zcode-cli/packages/cli/dist/nibi.cjs","__nibi-dwf-engine"]}' node scripts/kernel-baseline/drive-rust-app-server.mjs --kernel=rust --phases=create,dwfEngine`，
+     日志在驱动器临时 home 的 `.zcode/rust-cli/log/*.jsonl`。
+   - 未接线：sidecar 的 `resume` / `amend`（journal 取脚本、编译、hash 比对、导入缓存）与
+     `escalate`（挂起/恢复一轮）。
