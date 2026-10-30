@@ -47,6 +47,13 @@ const REQUIRED = [
   "dwfEscalateQidPrefix",
   "dwfEscalateResolved",
   "dwfEscalateAnswered",
+  // journal 双轨（dwf_event 里的升级事件）：事件流、载荷形状、问答配对与答案。
+  "dwfEscalateJournalTypes",
+  "dwfEscalateJournalRaisedShape",
+  "dwfEscalateJournalRaisedQuestion",
+  "dwfEscalateJournalQidPrefix",
+  "dwfEscalateJournalOrderOk",
+  "dwfEscalateJournalAnswer",
 ];
 
 function run(kernel) {

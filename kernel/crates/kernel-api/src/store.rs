@@ -525,6 +525,21 @@ pub trait SessionStore: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// 追加一条 DWF run 事件（`dwf_event`；序号在同一条 INSERT 里分配，多进程共享同一个库）。
+    /// `payload_json` 与 Node 的 `RunEvent` 同形（整个事件的 JSON，含 `type` 字段）——升级问答
+    /// 的 `escalation-raised` / `escalation-resolved` 由宿主（路线 C 的 driver）写，其余事件在
+    /// 引擎 sidecar。不支持的实现返回 `Unsupported`。
+    async fn append_workflow_event(
+        &self,
+        _run_id: &str,
+        _event_type: &str,
+        _payload_json: String,
+    ) -> Result<(), StoreError> {
+        Err(StoreError::Unsupported {
+            what: "workflow event journal".to_owned(),
+        })
+    }
+
     /// 记下一个工作区已信任（upsert，workspace-trust.md §2.3）。不支持的实现返回 `Unsupported`。
     async fn trust_workspace(
         &self,

@@ -451,6 +451,22 @@ Host 的启动存储门（桌面启动先备好会话库再起 Agent）对等落
 - 门禁：`check-dual-kernel-parity` 增至 **92 字段**（存储准备 21），全一致；冷恢复与 DWF 31 字段
   照旧全绿。node-store 进度序列 2 例 + databaseId 固定向量。
 
+## 6.22 第二十三步：升级问答的 journal 双轨（2026-10-30）
+
+Node driver 的双轨 record（journal + emit）在路线 C 里由 Rust 宿主补上 durable 轨——
+`escalation-raised` / `escalation-resolved` 落 `dwf_event`，与引擎 sidecar 共写同一个
+`db.sqlite`。journal 由此成为 run 详情 `pendingQuestions` 投影与冷回放的数据源（详见
+CHANGELOG-FORK §6.15）：
+
+- node-store：`append_event`（序号分配与写入同一条 INSERT，多进程共享库不撞号）+
+  `pending_questions` 冷回放（raised 减 resolved）+ `SessionStore::append_workflow_event` 窄口。
+- runtime：`WorkflowEventJournal` 端口 + `SessionJournalSink`；raise **真**写失败 → 撤回 + 拒绝
+  （journal 写不进去的停驻谁也看不见，不诚实），resolve 真写失败 → warn 后答案照送（actor 已经
+  在等）——两条取舍与 Node 逐条对应；`Unsupported`（TUI / 内存存储）不是故障，只剩通知轨停驻
+  照常（Node 引擎自带内存 journal 回退的同义）。
+- 事件载荷与 Node `RunEvent` 同形：`actor` 是结构化 ActorRef（`{siteId, ordinal}`）。
+- 门禁：`check-dwf-engine` **37 字段**双内核一致；runtime journal 双轨 1 例、node-store 事件 2 例。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要

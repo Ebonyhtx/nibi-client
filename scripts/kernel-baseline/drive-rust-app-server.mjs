@@ -1407,10 +1407,57 @@ try {
       typeof escalationQid === "string" ? escalationQid.slice(0, 5) : null;
     checks.dwfEscalateResolved = escalationResolved;
     checks.dwfEscalateAnswered = escalationAnswered;
+    // journal 双轨：升级问答的事件落 `dwf_event`（整个 RunEvent 的 JSON，含 type）——Node 里
+    // 是 driver 的 record，Rust 里是宿主注册表的 journal 轨；两内核的事件流因此同构
+    // （askedAt / qid 全值除外）。这份 journal 就是 pendingQuestions 投影与冷回放的数据源。
+    checks.dwfEscalateJournalTypes = null;
+    checks.dwfEscalateJournalRaisedShape = false;
+    checks.dwfEscalateJournalRaisedQuestion = null;
+    checks.dwfEscalateJournalQidPrefix = null;
+    checks.dwfEscalateJournalOrderOk = false;
+    checks.dwfEscalateJournalAnswer = null;
+    if (settled === "completed" && existsSync(dbPath)) {
+      const db = new DatabaseSync(dbPath);
+      const rows = db
+        .prepare(
+          "select sequence, type, payload_json from dwf_event where run_id = ? order by sequence, rowid",
+        )
+        .all(runId);
+      db.close();
+      const escalations = rows
+        .map((row) => {
+          try {
+            return { type: row.type, payload: JSON.parse(row.payload_json) };
+          } catch {
+            return null;
+          }
+        })
+        .filter((row) => row !== null && row.type.startsWith("escalation-"));
+      const raised = escalations.find((row) => row.type === "escalation-raised");
+      const resolved = escalations.find((row) => row.type === "escalation-resolved");
+      checks.dwfEscalateJournalTypes = escalations.map((row) => row.type).join(",");
+      checks.dwfEscalateJournalRaisedShape =
+        raised !== undefined &&
+        typeof raised.payload.qid === "string" &&
+        typeof raised.payload.question === "string" &&
+        typeof raised.payload.actor === "string" &&
+        typeof raised.payload.askedAt === "number" &&
+        (raised.payload.actorName === undefined ||
+          typeof raised.payload.actorName === "string") &&
+        (raised.payload.context === undefined || typeof raised.payload.context === "string");
+      checks.dwfEscalateJournalRaisedQuestion = raised?.payload.question ?? null;
+      checks.dwfEscalateJournalQidPrefix =
+        typeof raised?.payload.qid === "string" ? raised.payload.qid.slice(0, 5) : null;
+      checks.dwfEscalateJournalOrderOk =
+        raised !== undefined &&
+        resolved !== undefined &&
+        resolved.payload.qid === raised.payload.qid;
+      checks.dwfEscalateJournalAnswer = resolved?.payload.answer ?? null;
+    }
     console.log(
       `dwf escalate: run=${checks.dwfEscalateStatus} raised=${checks.dwfEscalateRaised} ` +
         `qid=${checks.dwfEscalateQidPrefix} resolved=${checks.dwfEscalateResolved} ` +
-        `answered=${checks.dwfEscalateAnswered}`,
+        `answered=${checks.dwfEscalateAnswered} journal=${checks.dwfEscalateJournalTypes}`,
     );
   }
 

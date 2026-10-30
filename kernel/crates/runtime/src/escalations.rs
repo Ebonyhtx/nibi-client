@@ -14,13 +14,15 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
+use serde_json::json;
 use tokio::sync::oneshot;
 
 use rust_cli_kernel_api::clock::Clock;
 use rust_cli_kernel_api::ids::SessionId;
+use rust_cli_kernel_api::store::{SessionStore, StoreError};
 use rust_cli_kernel_api::workflow::{
-    WorkflowEscalation, WorkflowEscalationOutcome, WorkflowEscalationRequest, WorkflowNotices,
-    WorkflowQuestion, WorkflowQuestionResolved, WorkflowQuestions,
+    WorkflowEscalation, WorkflowEscalationOutcome, WorkflowEscalationRequest, WorkflowEventJournal,
+    WorkflowNotices, WorkflowQuestion, WorkflowQuestionResolved, WorkflowQuestions,
 };
 
 /// 一次 ask 内的升级次数上限（与 Node 的 `MAX_ESCALATIONS_PER_ASK` 同值）。
@@ -71,6 +73,9 @@ pub struct WorkflowEscalations {
     inner: Mutex<Inner>,
     /// 把升级提示送进父会话的通知通道；`Agents` 建好之后接上。
     notifier: Mutex<Option<Arc<dyn WorkflowNotices>>>,
+    /// run 事件 journal（`dwf_event`）：升级问答双轨 record 的 durable 轨（Node driver 的
+    /// `record`）。缺席时只剩通知轨——注册表本身仍然工作，只是冷回放看不到这段问答。
+    journal: Mutex<Option<Arc<dyn WorkflowEventJournal>>>,
     clock: Arc<dyn Clock>,
 }
 
@@ -79,6 +84,7 @@ impl WorkflowEscalations {
         Self {
             inner: Mutex::new(Inner::default()),
             notifier: Mutex::new(None),
+            journal: Mutex::new(None),
             clock,
         }
     }
@@ -89,6 +95,18 @@ impl WorkflowEscalations {
             .notifier
             .lock()
             .unwrap_or_else(PoisonError::into_inner) = Some(notifier);
+    }
+
+    /// 接上事件 journal（`SessionStore::append_workflow_event` 的本机实现）。
+    pub fn attach_journal(&self, journal: Arc<dyn WorkflowEventJournal>) {
+        *self.journal.lock().unwrap_or_else(PoisonError::into_inner) = Some(journal);
+    }
+
+    fn journal(&self) -> Option<Arc<dyn WorkflowEventJournal>> {
+        self.journal
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -108,12 +126,52 @@ impl WorkflowEscalations {
     }
 
     /// 结算一个停驻项（三类结构化拒绝各自陈述现状与下一步；文案与 Node 逐字相同）。
-    pub fn resolve_question(
+    ///
+    /// 拆成两半：[`Self::detach`] 校验并摘下（退场记录当场写），journal 落库之后调用方把
+    /// 答案经 [`Self::deliver`] 送进停驻的 future——Node `respondToParkedEscalation` 的
+    /// 「先 record 再 resolve」同一顺序，写不进去也只是观察事件缺失，答案照送。
+    pub async fn resolve_question(
         &self,
         session: &SessionId,
         qid: &str,
         answer: &str,
     ) -> WorkflowQuestionResolved {
+        let (question, tx) = match self.detach(session, qid) {
+            Ok(pair) => pair,
+            Err(rejected) => return rejected,
+        };
+        if let Some(journal) = self.journal()
+            && let Err(error) = journal
+                .append_event(
+                    &question.run_id,
+                    "escalation-resolved",
+                    resolved_payload(&question.qid, answer),
+                )
+                .await
+            && !matches!(error, StoreError::Unsupported { .. })
+        {
+            // 真故障才记 warn；没有 journal 能力的存储（TUI / 内存）安静跳过。
+            tracing::warn!(
+                event = "dynamic_workflow.escalation.resolved_journal_failed",
+                %error,
+                qid,
+                run = %question.run_id,
+                "Dynamic workflow escalation resolved event not journaled"
+            );
+        }
+        self.deliver(tx, answer);
+        WorkflowQuestionResolved::Answered {
+            qid: qid.to_owned(),
+        }
+    }
+
+    /// 校验并摘下一个停驻项（三类拒绝在这里发生；退场记录当场写）。答案由
+    /// [`Self::deliver`] 在 journal 落库后送出。
+    fn detach(
+        &self,
+        session: &SessionId,
+        qid: &str,
+    ) -> Result<(WorkflowQuestion, oneshot::Sender<String>), WorkflowQuestionResolved> {
         let mut inner = self.lock();
         let Some(parked) = inner.parked.get(qid) else {
             let retired = inner
@@ -121,22 +179,22 @@ impl WorkflowEscalations {
                 .get(qid)
                 .filter(|(_, parent)| parent == session);
             return match retired {
-                Some((RetiredReason::Resolved, _)) => WorkflowQuestionResolved::Rejected {
+                Some((RetiredReason::Resolved, _)) => Err(WorkflowQuestionResolved::Rejected {
                     reason: "already_resolved".to_owned(),
                     message: format!(
                         "Question {qid} was already answered and the subagent has moved on with that \
 answer. No need to answer again; if you have more to add, wait for its next escalation."
                     ),
-                },
-                Some((RetiredReason::Withdrawn, _)) => WorkflowQuestionResolved::Rejected {
+                }),
+                Some((RetiredReason::Withdrawn, _)) => Err(WorkflowQuestionResolved::Rejected {
                     reason: "run_not_in_flight".to_owned(),
                     message: format!(
                         "The ask that raised question {qid} is no longer in flight (the run was \
 cancelled, or that ask already failed), so nobody is waiting for this answer. Use GetWorkflowRun \
 to see the run's current state before deciding what to do next."
                     ),
-                },
-                None => WorkflowQuestionResolved::Rejected {
+                }),
+                None => Err(WorkflowQuestionResolved::Rejected {
                     reason: "unknown_question".to_owned(),
                     message: format!(
                         "Unknown question id {qid}. It may be misspelled, or it may come from a \
@@ -144,30 +202,32 @@ process that is gone: parked questions are not persisted, so they vanish on rest
 makes the subagent ask again under a new id). Use GetWorkflowRun to read the run's \
 pendingQuestions for the ids that are actually awaiting an answer."
                     ),
-                },
+                }),
             };
         };
         // 作答只属于 run 的父会话：别的会话拿到的 qid 与「不存在」是同一个事实。
         if parked.question.parent != session.as_str() {
-            return WorkflowQuestionResolved::Rejected {
+            return Err(WorkflowQuestionResolved::Rejected {
                 reason: "unknown_question".to_owned(),
                 message: format!("Unknown question id {qid}."),
-            };
+            });
         }
         let Some(parked) = inner.parked.remove(qid) else {
-            return WorkflowQuestionResolved::Rejected {
+            return Err(WorkflowQuestionResolved::Rejected {
                 reason: "unknown_question".to_owned(),
                 message: format!("Unknown question id {qid}."),
-            };
+            });
         };
         inner.order.retain(|candidate| candidate != qid);
-        retire(&mut inner, qid, RetiredReason::Resolved, session);
         // 先退场再解开停驻的 future：再入（同一轮里紧接着又一次 escalate）必须看到一张已经
         // 不含本 qid 的表。
-        let _ = parked.tx.send(answer.to_owned());
-        WorkflowQuestionResolved::Answered {
-            qid: qid.to_owned(),
-        }
+        retire(&mut inner, qid, RetiredReason::Resolved, session);
+        Ok((parked.question, parked.tx))
+    }
+
+    /// 把答案送进停驻的 future（journal 落库之后的最后一跳）。
+    fn deliver(&self, tx: oneshot::Sender<String>, answer: &str) {
+        let _ = tx.send(answer.to_owned());
     }
 
     /// 撤下一个停驻项而**不作答**（ask 被取消 / 回合失败）。之后对该 qid 的作答得到
@@ -182,11 +242,13 @@ pendingQuestions for the ids that are actually awaiting an answer."
         retire(&mut inner, qid, RetiredReason::Withdrawn, &parent);
     }
 
-    /// 登记一次升级并给出等待端；两条拒绝都在这里发生（预算与无在飞 ask）。
+    /// 登记一次升级并给出等待端；两条拒绝都在这里发生（预算与无在飞 ask）。返回
+    /// `(qid, question, 等待端, 通知全文)`——journal 的载荷由调用方在确认落库意图时组装。
     fn park(
         &self,
         request: WorkflowEscalationRequest,
-    ) -> Result<(String, oneshot::Receiver<String>, String), WorkflowEscalationOutcome> {
+    ) -> Result<(String, WorkflowQuestion, oneshot::Receiver<String>, String), WorkflowEscalationOutcome>
+    {
         let WorkflowEscalationRequest {
             parent,
             run_id,
@@ -236,7 +298,7 @@ pendingQuestions for the ids that are actually awaiting an answer."
         );
         inner.order.push(qid.clone());
         let text = notification_text(&question);
-        Ok((qid, rx, text))
+        Ok((qid, question, rx, text))
     }
 
     fn notifier(&self) -> Option<Arc<dyn WorkflowNotices>> {
@@ -357,6 +419,46 @@ an answer to."
     lines.join("\n")
 }
 
+/// journal 的两条事件载荷（与 Node `RunEvent` 的 `escalation-raised` / `escalation-resolved`
+/// 同形，camelCase 字段、整个事件含 `type`——`dwf_event.payload_json` 存的就是它）。
+/// `actor` 是**结构化** ActorRef（Node 事件里 `actor: ActorRef`，注册表/port 的 `site@ordinal`
+/// 字符串只在 park 与通知里用）。
+fn actor_ref_json(actor: &str) -> serde_json::Value {
+    match actor.rsplit_once('@') {
+        Some((site, ordinal)) => json!({
+            "siteId": site,
+            "ordinal": ordinal.parse::<u64>().unwrap_or(0),
+        }),
+        // 拆不开的身份不编造序号：siteId 原样、ordinal 兜底 0（journal 的重放按数字读）。
+        None => json!({"siteId": actor, "ordinal": 0}),
+    }
+}
+
+fn raised_payload(question: &WorkflowQuestion) -> String {
+    let mut object = serde_json::Map::new();
+    object.insert("type".into(), json!("escalation-raised"));
+    object.insert("qid".into(), json!(question.qid));
+    object.insert("actor".into(), actor_ref_json(&question.actor));
+    if let Some(name) = &question.actor_name {
+        object.insert("actorName".into(), json!(name));
+    }
+    object.insert("question".into(), json!(question.question));
+    if let Some(context) = &question.context {
+        object.insert("context".into(), json!(context));
+    }
+    object.insert("askedAt".into(), json!(question.asked_at));
+    serde_json::Value::Object(object).to_string()
+}
+
+fn resolved_payload(qid: &str, answer: &str) -> String {
+    json!({
+        "type": "escalation-resolved",
+        "qid": qid,
+        "answer": answer,
+    })
+    .to_string()
+}
+
 /// 停驻 future 的撤销守卫：future 被丢弃（ask 取消 / run 取消）时把 qid 按 `withdrawn` 退场。
 struct ParkGuard {
     owner: Arc<WorkflowEscalations>,
@@ -369,6 +471,24 @@ impl Drop for ParkGuard {
     }
 }
 
+/// journal 的本机实现（孤儿规则：会话存储是外部 trait 对象，套一层——与
+/// [`EscalationPort`] 同一先例）。升级问答的事件落 `dwf_event`，与引擎 sidecar 同一个库。
+pub struct SessionJournalSink(pub Arc<dyn SessionStore>);
+
+#[async_trait::async_trait]
+impl WorkflowEventJournal for SessionJournalSink {
+    async fn append_event(
+        &self,
+        run_id: &str,
+        event_type: &str,
+        payload_json: String,
+    ) -> Result<(), StoreError> {
+        self.0
+            .append_workflow_event(run_id, event_type, payload_json)
+            .await
+    }
+}
+
 /// actor 侧的升级端口（`Arc<WorkflowEscalations>` 的薄包装：守卫需要一个可 clone 的 Arc，
 /// 而孤儿规则不允许直接给 `Arc<本地类型>` 实现外部 trait）。
 pub struct EscalationPort(pub Arc<WorkflowEscalations>);
@@ -377,10 +497,30 @@ pub struct EscalationPort(pub Arc<WorkflowEscalations>);
 impl WorkflowEscalation for EscalationPort {
     async fn escalate(&self, request: WorkflowEscalationRequest) -> WorkflowEscalationOutcome {
         let parent = SessionId::new(request.parent.clone());
-        let (qid, rx, text) = match self.0.park(request) {
+        let (qid, question, rx, text) = match self.0.park(request) {
             Ok(parked) => parked,
             Err(refused) => return refused,
         };
+        // 双轨 record 的 durable 轨（Node `makeSessionEscalatePort` 的 `host.record`，顺序同——
+        // park 在前、record 在后）。真写不进去（SQLite/IO 故障）就没有 durable 的问答记录，而
+        // 停驻会让 actor 无限期阻塞在一个谁也看不见的问题上：撤回登记并按拒绝收口，比悄悄
+        // 停驻诚实。存储「没有这个能力」（`Unsupported`：TUI、内存存储）不是故障——与 Node
+        // 引擎自带内存 journal 回退同一语义，只剩通知轨，停驻照常。
+        if let Some(journal) = self.0.journal()
+            && let Err(error) = journal
+                .append_event(&question.run_id, "escalation-raised", raised_payload(&question))
+                .await
+            && !matches!(error, StoreError::Unsupported { .. })
+        {
+            self.0.withdraw(&qid);
+            return WorkflowEscalationOutcome::Refused {
+                reason: "journal_write_failed".to_owned(),
+                message: format!(
+                    "Escalation {qid} could not be recorded in the run journal, so nobody \
+would be able to see or answer it: {error}"
+                ),
+            };
+        }
         if let Some(notifier) = self.0.notifier() {
             notifier.notify(&parent, text);
         }
@@ -412,7 +552,7 @@ impl WorkflowQuestions for WorkflowEscalations {
         qid: &str,
         answer: &str,
     ) -> WorkflowQuestionResolved {
-        self.resolve_question(session, qid, answer)
+        self.resolve_question(session, qid, answer).await
     }
 }
 

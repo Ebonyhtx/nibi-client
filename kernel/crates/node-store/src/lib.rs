@@ -66,6 +66,11 @@ pub use repo::open::{
     Facts as OpenFacts, MIGRATION_LOCK_WAIT, Progress as OpenProgress, Report as OpenReport,
     StartupError, open, open_with_progress, session_database_id,
 };
+// DWF journal 的事件读面（run 详情的 `pendingQuestions` / logTail 数据源；写入走
+// `SessionStore::append_workflow_event`）。
+pub use repo::dwf::{
+    EventRow as DwfEventRow, JournalQuestion, events as dwf_events, pending_questions,
+};
 
 /// 本机执行环境的 ID（与入口 crate 相同）。只有它的会话写进本地库；`workspace_id` 为 NULL。
 pub const LOCAL_ENVIRONMENT: &str = "local";
@@ -381,6 +386,26 @@ impl SessionStore for NodeStore {
         let session = session.as_str().to_owned();
         self.with_db(move |conn, _| repo::dwf::list(conn, &session).map_err(storage))
             .await
+    }
+
+    /// 追加一条 DWF run 事件（`dwf_event`，序号与写入同一条语句——Node `appendEvent` 同形）。
+    async fn append_workflow_event(
+        &self,
+        run_id: &str,
+        event_type: &str,
+        payload_json: String,
+    ) -> Result<(), StoreError> {
+        let work = (
+            run_id.to_owned(),
+            event_type.to_owned(),
+            payload_json,
+            self.ids.now_ms(),
+        );
+        self.with_db(move |conn, _| {
+            repo::dwf::append_event(conn, &work.0, &work.1, &work.2, work.3).map_err(storage)?;
+            Ok(())
+        })
+        .await
     }
 
     /// 记下工作区已信任（upsert；不在会话事务里）。

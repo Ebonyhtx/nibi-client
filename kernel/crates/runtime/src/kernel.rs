@@ -443,7 +443,7 @@ impl Kernel for LocalKernel {
         qid: &str,
         answer: &str,
     ) -> Result<rust_cli_kernel_api::workflow::WorkflowQuestionResolved, KernelError> {
-        Ok(self.escalations.resolve_question(session, qid, answer))
+        Ok(self.escalations.resolve_question(session, qid, answer).await)
     }
 
     /// 一个会话名下的 run 还欠答案的问题（按提问顺序）。

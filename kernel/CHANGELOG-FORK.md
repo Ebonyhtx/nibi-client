@@ -477,6 +477,28 @@ Host 的启动存储门（桌面启动先准备好会话库再起 Agent）：Nod
   「= 自己路径的 sha256」这一事实，散列函数由 node-store 的 `the_database_id_matches_node`
   用固定向量钉死。node-store 另有进度序列 2 例。
 
+## 6.15 升级问答的 journal 双轨（2026-10-30，路线 C 第四段）
+
+Node driver 的双轨 record（journal + emit）在路线 C 里由 Rust 宿主补上 durable 轨：
+`escalation-raised` / `escalation-resolved` 落 `dwf_event`，与引擎 sidecar 共写同一个库。
+journal 因此成为 `pendingQuestions` 投影与冷回放的数据源。
+
+- **node-store**：`repo::dwf::append_event`（序号分配与写入同一条 INSERT——Node `appendEvent`
+  同一条语句，多进程共享库不撞号）、`events` 读面与 `pending_questions` 冷回放（raised 减
+  resolved，`askedAt` 用事件载荷里的提问时刻）；`SessionStore::append_workflow_event` 窄口。
+- **kernel-api**：`WorkflowEventJournal` 端口；runtime 的 `SessionJournalSink`（孤儿规则包装，
+  与 `EscalationPort` 同先例）在内核装配时接到会话存储。
+- **escalations**：raise 在 park 之后 append（**真**写失败（SQLite/IO）→ 撤回登记 +
+  `journal_write_failed` 拒绝——journal 写不进去就没有 durable 的问答记录，悄悄停驻不诚实）；
+  resolve 在送达之前 append（真写失败 → 记 warn，答案照送——actor 已经在等，为一条观察事件
+  把它挂住更坏）。存储「没有这个能力」（`Unsupported`：TUI、内存存储）不是故障——与 Node
+  引擎自带内存 journal 回退同一语义，只剩通知轨，停驻照常。两条取舍与 Node 的 raise/resolve
+  注释逐条对应。事件载荷与 Node `RunEvent` 同形：`actor` 是**结构化** ActorRef
+  （`{siteId, ordinal}`——注册表/工具面的 `site@ordinal` 字符串只在 park 与通知里用）。
+- **门禁**：`check-dwf-engine.mjs` 31 → **37 字段**（journal 事件类型、载荷形状、问答配对、
+  答案文本），双内核一致。runtime 另有 journal 双轨 1 例（两条取舍 + 载荷形状）、
+  node-store 事件 2 例（per-run 序号 + 冷回放）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

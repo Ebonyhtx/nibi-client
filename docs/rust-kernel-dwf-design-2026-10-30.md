@@ -245,8 +245,9 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        （Rust 进程）写同一个 `db.sqlite` 时，`updateRunStatus` 会当场 `SQLITE_BUSY`，run 永远停在
        running（约 1/3 概率）。改为 5s（与存储层的启动锁同一档）。
    - 仍未移植（不影响三条命令的协议面，切默认前要评估）：
-     - journal 里的 `escalation-raised` / `escalation-resolved` 事件（Rust 的注册表是内存态；
-       UI 的 `pendingQuestions` 投影与冷回放因此还没有数据源）；
+     - ~~journal 里的 `escalation-raised` / `escalation-resolved` 事件~~（**已补，2026-10-30 第四段**：
+       宿主注册表写 `dwf_event`，与 sidecar 共写同一个库；`check-dwf-engine` 37 字段。UI 的
+       `pendingQuestions` 投影与冷回放的数据源由此就绪，投影面本身待接）；
      - Node 的「设置轮」：修订成功后往会话里排一条 controlOnly 消息（模型可见的「已修订」记录）；
      - `amend` 的脚本点名模型绑定（`modelBindings`）与 persona 级模型名解析（需要模型目录；
        规范串形式已支持）；

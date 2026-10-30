@@ -177,6 +177,19 @@ pub trait WorkflowNotices: Send + Sync {
     fn notify(&self, session: &crate::ids::SessionId, text: String);
 }
 
+/// run 事件 journal 的窄追加面（`dwf_event`；引擎 sidecar 与宿主写同一个库）。`payload_json`
+/// 与 Node 的 `RunEvent` 同形——整个事件的 JSON，**含 `type` 字段**。升级问答的双轨 record
+/// （Node driver 的 journal + emit）在宿主侧走这里 + [`WorkflowNotices`]。
+#[async_trait::async_trait]
+pub trait WorkflowEventJournal: Send + Sync {
+    async fn append_event(
+        &self,
+        run_id: &str,
+        event_type: &str,
+        payload_json: String,
+    ) -> Result<(), crate::store::StoreError>;
+}
+
 /// 引擎拒绝码的前缀（Node `SAVED_WORKFLOW_START_REJECTED_FAULT_PREFIX` 等）。
 pub const SAVED_WORKFLOW_START_REJECTED: &str = "fault.command.savedWorkflowStartRejected.";
 pub const WORKFLOW_RUN_RESUME_REJECTED: &str = "fault.command.workflowRunResumeRejected.";

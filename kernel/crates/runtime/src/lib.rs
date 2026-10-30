@@ -260,8 +260,12 @@ impl LocalKernel {
         let cron =
             rust_cli_tools::CronBoard::new(ports.clock.clone(), extensions.cron_store.clone());
         // DWF 升级问答的停驻表：主会话的 `ResolveWorkflowQuestion` 与 actor 的 `escalate`
-        // 共用一份；通知通道在 `Agents` 建好之后接上（走后台子代理通知同一条路）。
+        // 共用一份；通知通道在 `Agents` 建好之后接上（走后台子代理通知同一条路）。事件 journal
+        // 用会话库（`dwf_event`，与引擎 sidecar 共写同一份 `db.sqlite`）。
         let escalations = Arc::new(escalations::WorkflowEscalations::new(ports.clock.clone()));
+        escalations.attach_journal(Arc::new(escalations::SessionJournalSink(
+            ports.store.clone(),
+        )));
         // 基础工具：文件与搜索（L3）、Bash（L4）、交互与 Web 工具（L11a）；Skill 与 MCP 工具由 ext
         // 加在后面（L9），Agent 等由 agents 再加（L7）。
         // Read 整读 PDF 前按会话当前模型的生效配置查 `supports_pdf`（tools-files.md §1.5，修复线 F24）。
