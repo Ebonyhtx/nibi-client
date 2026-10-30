@@ -93,6 +93,11 @@
 - 第八步：driver 扩成全 14 命令回归套件（9 正路径 + 2 拒绝路径 + editUserQuery 正路径）。
   发现并修复 kernel rewind 同步路径（`RewindScope::Conversation`）缺 `start_next()` 的
   队列排水缺口（`crates/session/src/rewind.rs`）；异步路径 `finish_rewind` 已有。
+- 第九步：双内核对拍（同一 driver 跑 Node/Rust）——12/13 检查点一致。顺带修：会话 ID
+  生成（`sess_<uuid>`，让 kernel Ids 生成）、noop 词表（switchModelConfig 同值
+  `config.unchanged`；switchCollaborationMode 同值仍 accepted；setFollowupMode 无同值
+  noop）、cancelBackgroundWork 拒绝（failed + `...CancelRejected.not_found`）。
+  唯一有意差异：editUserQuery 附件回放（Rust fail-closed，Node 支持）。
 - ~~**开放 kernel 问题**：editUserQuery 的 rewind→queued Submit 链路~~ **已闭合**：
   ① rewind 同步路径 `start_next()`（本文件上文）；② projection 消费 `HistoryRewritten`
   （清行 + `row.removed` delta）；③ retryTurn 改为 transcript 驱动。全链路

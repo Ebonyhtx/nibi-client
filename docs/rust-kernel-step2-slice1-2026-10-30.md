@@ -166,6 +166,38 @@ startup/storageState ready (~210ms)
 （turnHeader=failed）——plan 模式的 turn 行为需要调查。非关键路径（plan 模式的
 edit/resubmit 是边界场景），已记录在案。
 
+## 6.7 第九步：双内核对拍（同一 driver 跑 Node 与 Rust app-server）
+
+`drive-rust-app-server.mjs --kernel=node|rust`：同一隔离环境、同一假 provider、
+同一命令序列，分别驱动 Node `nibi.cjs app-server --stdio` 与 Rust `zcode-rs.exe app-server --stdio`。
+
+**对拍结果（12/13 一致）**：
+
+| 检查点 | Rust | Node | 一致 |
+|---|---|---|---|
+| startup/storageState ready | ~170 ms | ~37 ms | 都远低于 30s 契约 |
+| createSession 结果 | `sess_<uuid>` | `sess_<uuid>` | ✅（本轮修复：原 Rust 为 `session_<hex>`） |
+| sendText ACK | 字节相同 | 字节相同 | ✅ |
+| renameSession | accepted | accepted | ✅ |
+| switchModelConfig 变更 / 同值 | accepted / noop `config.unchanged` | accepted / noop `config.unchanged` | ✅（本轮修复：原 `proto.unchanged`） |
+| switchCollaborationMode 变更 / 同值 | accepted / accepted | accepted / accepted | ✅（本轮修复：原同值 noop） |
+| forkAssistant | child `sess_<uuid>` | child `sess_<uuid>` | ✅ |
+| editUserQuery | accepted | accepted | ✅ |
+| retryTurn | accepted | accepted | ✅ |
+| cancelBackgroundWork(不存在) | failed + `...CancelRejected.not_found` | failed + `...not_found` | ✅（本轮修复：原 rejected+unknown） |
+| editUserQuery(attachments) | rejected `proto.invalidPayload`（回放未实现） | accepted（支持回放） | ❌ **有意差异**（Rust fail-closed，待附件回放实现） |
+| provider 请求数 | 3 | 5 | 差异（Node 多标题/辅助调用） |
+| 通知面 | 3–5 帧 | 5–6 帧 + telemetry/mcp/CUA 等 | 差异（P1 遥测未实现，§5.2 遥测行） |
+
+**本轮顺手修掉的协议差异**（均是双内核对拍发现）：
+1. 会话 ID 生成：Rust 协议层自带 `session_<hex>` → 改为 Host 不给时让 kernel 的注入 Ids 生成 `sess_<uuid>`（删除 `inbox::new_session_id`）；
+2. noop 词表：switchModelConfig 同值对齐 `config.unchanged`；switchCollaborationMode 同值对齐"仍 accepted"（Node 无同值 noop）；setFollowupMode 去掉同值 noop（Node 无条件幂等 accepted）；
+3. cancelBackgroundWork 拒绝：状态 `rejected`→`failed`，关键词补 "No task found" → `not_found`。
+
+**driver 能力**：`--kernel=rust|node`、反向请求应答（`session/requestRuntimePreferences`
+返回 Host 偏好；其他回 -32601）、`row.removed` 增量回放、CAS stale/duplicate 就地重试
+（每次新 commandId）、权威 transcript 目标解析。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
