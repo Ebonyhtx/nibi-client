@@ -983,6 +983,88 @@ try {
     console.log(`dwf engine: run=${started.result.runId} completed; missing=${checks.dwfMissingCode}`);
   }
 
+  // DWF 的取消与恢复：hold 住的 run → 在飞时 resume 被拒 → cancel → stopped → resume → 完成。
+  if (phases.includes("dwfResume")) {
+    mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "workflows", "hold.dwf.ts"),
+      [
+        "/* zcode-workflow",
+        "description: hold probe",
+        "*/",
+        'const worker = agent("worker", "You answer questions.");',
+        'return await worker.ask("hold this turn");',
+      ].join(String.fromCharCode(10)) + String.fromCharCode(10),
+    );
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000b0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: { workspaceId: workspace },
+        issuedAt: Date.now(),
+      }),
+      "createSession(dwfResume)",
+    );
+    const session = created.result?.sessionId;
+    if (!session) throw new Error("createSession(dwfResume) returned no sessionId");
+    const started = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000b1",
+      "startSavedWorkflow",
+      { name: "hold" },
+      session,
+    );
+    checks.dwfHoldStart = started.status;
+    if (started.status !== "accepted" || !started.result?.runId) {
+      throw new Error(`startSavedWorkflow(hold) ${started.status}/${started.reasonCode}`);
+    }
+    const runId = started.result.runId;
+    const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
+    const waitStatus = async (status) => {
+      for (let attempt = 0; attempt < 1200; attempt += 1) {
+        if (existsSync(dbPath)) {
+          const db = new DatabaseSync(dbPath);
+          const row = db.prepare("select status from dwf_run where id = ?").get(runId);
+          db.close();
+          if (row?.status === status) return true;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return false;
+    };
+    if (!(await waitStatus("running"))) throw new Error("held run never reached running");
+    const live = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000b2",
+      "resumeWorkflowRun",
+      { workId: runId },
+      session,
+    );
+    checks.dwfResumeLiveCode = live.reasonCode ?? null;
+    const cancelled = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000b3",
+      "cancelBackgroundWork",
+      { workId: runId },
+      session,
+    );
+    checks.dwfCancelStatus = cancelled.status;
+    if (!(await waitStatus("cancelled"))) throw new Error("held run never cancelled after cancel");
+    const resumed = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000b4",
+      "resumeWorkflowRun",
+      { workId: runId },
+      session,
+    );
+    checks.dwfResumeStatus = resumed.status;
+    checks.dwfResumeCode = resumed.reasonCode ?? null;
+    releaseHold();
+    const completed = await waitStatus("completed");
+    checks.dwfResumedStatus = completed ? "completed" : "timeout";
+    console.log(
+      `dwf resume: live=${checks.dwfResumeLiveCode} cancel=${checks.dwfCancelStatus} resumed=${checks.dwfResumeStatus}/${checks.dwfResumedStatus}`,
+    );
+  }
+
   if (phases.includes("rename")) {
     const ackR = await simpleCommand(
       "0197d3f0-0000-7000-8000-000000000010",

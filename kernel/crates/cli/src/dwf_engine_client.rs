@@ -776,13 +776,37 @@ impl WorkflowEngine for SidecarEngine {
 
     async fn resume(
         &self,
-        _run_id: &str,
+        run_id: &str,
         _name: Option<&str>,
     ) -> Result<WorkflowRunStarted, WorkflowEngineError> {
-        Err(WorkflowEngineError::with_message(
-            "start_failed",
-            "the sidecar does not support resume yet",
-        ))
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "resume",
+                json!({
+                    "runId": run_id,
+                    "dbPath": self.shared.database.display().to_string(),
+                }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        if reply["ok"].as_bool() != Some(true) {
+            return Err(WorkflowEngineError::with_message(
+                reply["reason"].as_str().unwrap_or("start_failed"),
+                reply["message"].as_str().unwrap_or("the workflow could not resume"),
+            ));
+        }
+        // 引擎把 run 的父会话与 cwd 从 journal 读回来；恢复的 run 重新登记，供 actor RPC 使用。
+        let parent = reply["parentSessionId"].as_str().unwrap_or_default();
+        let cwd = reply["cwd"].as_str().unwrap_or_default();
+        self.register_run(run_id, RunState::new(SessionId::new(parent), cwd.to_owned()));
+        Ok(WorkflowRunStarted {
+            run_id: run_id.to_owned(),
+            tool_call_id: format!("resume-{}", self.shared.ids.uuid()),
+            superseded_run_id: None,
+        })
     }
 
     async fn amend(

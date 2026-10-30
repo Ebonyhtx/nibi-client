@@ -62,6 +62,54 @@ function askSpecsFor(scriptText: string): Map<string, AskSpec> {
   return buildAskSpecs(table, schemas);
 }
 
+/** 一次 run 的后台执行（受理/恢复共用）：开 journal、建 driver、跑引擎、发 run/settled。 */
+function launchRun(
+  params: {
+    runId: string;
+    parentSessionId: string;
+    cwd: string;
+    dbPath: string;
+    scriptText: string;
+    args: Record<string, unknown>;
+    caps: { maxConcurrency?: number };
+  },
+  request: (method: string, params: unknown) => Promise<unknown>,
+  notify: (method: string, params: unknown) => void,
+  runs: Map<string, { driver: RemoteDriver; abort: AbortController; db: DatabaseSync }>,
+): Promise<RunSettlement> {
+  const db = new DatabaseSync(params.dbPath);
+  const journal = createDwfJournalStore(db);
+  const driver = new RemoteDriver(params.runId, journal, request, notify);
+  const abort = new AbortController();
+  runs.set(params.runId, { driver, abort, db });
+  const settlement = runWorkflowScript({
+    scriptText: params.scriptText,
+    cwd: params.cwd,
+    runId: params.runId,
+    parentSessionId: params.parentSessionId,
+    args: params.args,
+    caps: { maxConcurrency: params.caps.maxConcurrency ?? 4 },
+    askSpecs: askSpecsFor(params.scriptText),
+    validate: validateFn,
+    makeDriver: (sink) => {
+      driver.attach(sink as unknown as WorkflowSink);
+      return driver as unknown as import("@nibi/dynamic-workflow").WorkflowDriver;
+    },
+    signal: abort.signal,
+    // run 没有时长上限；墙钟只防沙箱卡死（24h）。
+    timeoutMs: 24 * 60 * 60 * 1000,
+  })
+    .catch((error) => ({
+      status: "errored" as const,
+      error: { message: error instanceof Error ? error.message : String(error) },
+    }))
+    .finally(() => {
+      runs.delete(params.runId);
+      db.close();
+    });
+  return settlement as Promise<RunSettlement>;
+}
+
 interface SubmitParams {
   runId: string;
   parentSessionId: string;
@@ -258,43 +306,92 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     }
 
     // 受理之后在后台跑；结算以 `run/settled` 通知宿主。
-    void (async () => {
-      const db = new DatabaseSync(params.dbPath);
-      const journal = createDwfJournalStore(db);
-      const driver = new RemoteDriver(params.runId, journal, request, notify);
-      const abort = new AbortController();
-      runs.set(params.runId, { driver, abort, db });
-      let settlement: RunSettlement;
-      try {
-        settlement = await runWorkflowScript({
-          scriptText,
-          cwd: params.cwd,
-          runId: params.runId,
-          parentSessionId: params.parentSessionId,
-          args: args ?? {},
-          caps: { maxConcurrency: params.caps?.maxConcurrency ?? 4 },
-          askSpecs: askSpecsFor(scriptText),
-          validate: validateFn,
-          makeDriver: (sink) => {
-            driver.attach(sink as unknown as WorkflowSink);
-            return driver as unknown as import("@nibi/dynamic-workflow").WorkflowDriver;
-          },
-          signal: abort.signal,
-          // run 没有时长上限；墙钟只防沙箱卡死（24h）。
-          timeoutMs: 24 * 60 * 60 * 1000,
-        });
-      } catch (error) {
-        settlement = {
-          status: "errored",
-          error: { message: error instanceof Error ? error.message : String(error) },
-        } as RunSettlement;
-      } finally {
-        runs.delete(params.runId);
-        db.close();
-      }
-      notify("run/settled", { runId: params.runId, settlement });
-    })();
+    void launchRun(
+      {
+        runId: params.runId,
+        parentSessionId: params.parentSessionId,
+        cwd: params.cwd,
+        dbPath: params.dbPath,
+        scriptText,
+        args: args ?? {},
+        caps: params.caps ?? { maxConcurrency: 4 },
+      },
+      request,
+      notify,
+      runs,
+    ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
     return { ok: true, accepted: true };
+  }
+
+  /** 一次 resume 的受理：只认可恢复集（`stopped` 且非 `superseded`），从 journal 取脚本与实参。 */
+  async function acceptResume(params: { runId: string; dbPath: string }): Promise<
+    | { ok: true; accepted: true; parentSessionId: string; cwd: string }
+    | { ok: false; reason: string; message: string }
+  > {
+    const db = new DatabaseSync(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(params.runId);
+      if (record === undefined) {
+        return { ok: false, reason: "not_found", message: `run ${params.runId} does not exist` };
+      }
+      if (runs.has(params.runId)) {
+        return { ok: false, reason: "already_running", message: `run ${params.runId} is live` };
+      }
+      if (record.status === "stopped" && record.stopReason === "superseded") {
+        return {
+          ok: false,
+          reason: "superseded",
+          message: `run ${params.runId} was superseded`,
+        };
+      }
+      if (!(record.status === "stopped" && record.stopReason !== "superseded")) {
+        return {
+          ok: false,
+          reason: "not_resumable",
+          message: `run ${params.runId} is ${record.status} and cannot be resumed`,
+        };
+      }
+      if (record.scriptText === undefined) {
+        return {
+          ok: false,
+          reason: "script_missing",
+          message: `run ${params.runId} has no stored script`,
+        };
+      }
+      const program = createWorkflowProgram(record.scriptText);
+      const diagnostics = collectDiagnostics(program.program);
+      if (diagnostics.length > 0) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          message: diagnostics
+            .map((diagnostic) => diagnostic.message)
+            .join("; ")
+            .slice(0, 2_000),
+        };
+      }
+      const parentSessionId = record.parentSessionId ?? "";
+      const cwd = record.cwd ?? process.cwd();
+      // 与 submit 同一条后台执行；引擎构造时看见既有 run 行走 resume 分支。
+      void launchRun(
+        {
+          runId: params.runId,
+          parentSessionId,
+          cwd,
+          dbPath: params.dbPath,
+          scriptText: record.scriptText,
+          args: record.args ?? {},
+          caps: record.caps ?? { maxConcurrency: 4 },
+        },
+        request,
+        notify,
+        runs,
+      ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
+      return { ok: true, accepted: true, parentSessionId, cwd };
+    } finally {
+      db.close();
+    }
   }
 
   const { createInterface } = await import("node:readline");
@@ -335,6 +432,13 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       if (params.kind === "submit") sink.askSubmitAttempted(params.instance, params.payload);
       else if (params.kind === "text") sink.askTurnEnded(params.instance, params.text ?? "");
       else sink.askFailed(params.instance, params.payload);
+      continue;
+    }
+    if (message.method === "resume") {
+      const id = message.id;
+      void acceptResume(message.params as { runId: string; dbPath: string }).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
       continue;
     }
     if (message.method === "submit") {

@@ -23,13 +23,19 @@ const REQUIRED = [
   "dwfMissingCode",
   "dwfRunStatus",
   "dwfRunParent",
+  "dwfHoldStart",
+  "dwfResumeLiveCode",
+  "dwfCancelStatus",
+  "dwfResumeStatus",
+  "dwfResumeCode",
+  "dwfResumedStatus",
 ];
 
 function run(kernel) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(
       process.execPath,
-      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine"],
+      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume"],
       { cwd: repo, stdio: ["ignore", "pipe", "pipe"] },
     );
     let stdout = "";

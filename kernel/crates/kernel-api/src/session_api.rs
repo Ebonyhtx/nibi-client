@@ -723,6 +723,14 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// NIBI `cancelBackgroundWork` 的 DWF 分支：`workId ≡ runId` 指向一个 DWF run 时取消它。
+    /// 缺省实现返回 `Unsupported`（没有引擎的入口）。
+    async fn cancel_workflow_run(&self, _run_id: &str) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })
+    }
+
     /// NIBI `amendWorkflowRunSettings`：以新设置修订一个 run（两项设置三态）。
     async fn amend_workflow_run(
         &self,

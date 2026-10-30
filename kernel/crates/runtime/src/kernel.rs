@@ -353,6 +353,17 @@ impl Kernel for LocalKernel {
             .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
     }
 
+    /// `cancelBackgroundWork` 落到 DWF run 上：`workId ≡ runId`。
+    async fn cancel_workflow_run(&self, run_id: &str) -> Result<(), KernelError> {
+        let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
+            what: "dynamic workflow engine".to_owned(),
+        })?;
+        engine
+            .cancel(run_id)
+            .await
+            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
+    }
+
     /// NIBI `amendWorkflowRunSettings`。
     async fn amend_workflow_run(
         &self,

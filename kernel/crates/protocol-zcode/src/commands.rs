@@ -463,7 +463,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "switchCollaborationMode" => switch_collaboration_mode(handle, &live.sink, envelope).await,
         "compact" => compact_session(handle, envelope, revision).await,
         "renameSession" => rename_session(handle, envelope, revision).await,
-        "cancelBackgroundWork" => cancel_background_work(handle, envelope, revision).await,
+        "cancelBackgroundWork" => cancel_background_work(server, handle, envelope, revision).await,
         "forkAssistant" => fork_assistant(handle, &live.sink, envelope).await,
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
@@ -1094,6 +1094,7 @@ async fn rename_session(handle: &dyn SessionHandle, envelope: &Envelope, revisio
 /// NIBI `cancelBackgroundWork`：workId（=runId/后台任务 id）→ `Command::StopTask`。
 /// kernel 明确回"没取消任何东西"时按 NIBI 词表上行 rejected（§5.2.1 行 28）。
 async fn cancel_background_work(
+    server: &Server,
     handle: &dyn SessionHandle,
     envelope: &Envelope,
     revision: u64,
@@ -1108,10 +1109,14 @@ async fn cancel_background_work(
             revision,
         );
     };
-    match send(handle, command, Command::StopTask { task: work }).await {
+    match send(handle, command, Command::StopTask { task: work.clone() }).await {
         KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
         KernelAck::Rejected { reason } => {
+            // workId 也可能是一个 DWF run（Node 的 cancelBackgroundTask 同时管后台任务与 run）。
+            if server.kernel.cancel_workflow_run(&work).await.is_ok() {
+                return Ack::accepted(command, revision, None);
+            }
             // 与 Node 对拍：明确"没取消任何东西"时是 failed（不是 rejected），
             // 码是 fault.command.backgroundWorkCancelRejected.<not_found|not_running|...>。
             let code = background_work_cancel_code(&reason);

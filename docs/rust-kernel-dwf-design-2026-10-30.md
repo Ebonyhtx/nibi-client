@@ -191,5 +191,16 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
      `dwfMissingCode` / `dwfRunStatus` / `dwfRunParent` 七字段双内核一致（OK）。
      驱动器的 `dwfEngine` 阶段用**新会话**发起 run（Node 的 `startSavedWorkflowRun` 只对空闲会话
      工作，GUI 同样只对空会话发它）。
-   - 未接线：sidecar 的 `resume` / `amend`（journal 取脚本、编译、hash 比对、导入缓存）与
-     `escalate`（挂起/恢复一轮）。
+   - **取消与恢复（同日已通）**：
+     - `cancelBackgroundWork` 的 `workId` 也认 DWF run：`Kernel::cancel_workflow_run` →
+       `WorkflowEngine::cancel` → sidecar 的 `cancel` 通知 → `AbortController` → journal
+       `cancelled(user)`；协议先试 `StopTask`，被拒才落到 DWF 引擎（Node 的 `cancelBackgroundTask`
+       同样两用）。
+     - sidecar `resume`：只认可恢复集（`stopped` 且非 `superseded`），从 journal 取脚本/实参/caps，
+       编译体检后以**同一 runId** 重新 launch（引擎看见既有行即走 resume 分支）；在飞的 run 回
+       `already_running`，`superseded` 单列，缺脚本 `script_missing`。
+     - 门禁 `check-dwf-engine.mjs` 扩展到 13 字段（加 `dwfHoldStart` / `dwfResumeLiveCode` /
+       `dwfCancelStatus` / `dwfResumeStatus` / `dwfResumeCode` / `dwfResumedStatus`），双内核一致：
+       在飞 resume → `already_running`、cancel accepted、stopped 后 resume accepted、最终 completed。
+   - 未接线：`amend`（需要把 run 的 `subagentModel`/并发绑定传进 actor 轮）与 `escalate`
+     （挂起一轮等父会话回答）。
