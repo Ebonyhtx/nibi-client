@@ -408,6 +408,16 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 - 边界：导入本身仍由 Node 的 server-operations 完成；Node 顺带更新的导入消息元数据
   `sharedContextStatus` 在 Rust 的消息模型里没有对应字段。
 
+## 6.19 第二十步：DWF 路线拍板与只读面（2026-10-30）
+
+DWF 调研后拍板 **路线 C（Rust 协议面 + Node 引擎 sidecar）**，设计与三方案对比见
+[`rust-kernel-dwf-design-2026-10-30.md`](rust-kernel-dwf-design-2026-10-30.md)。第一段只读面已落地：
+
+- `kernel-api::workflow::DynamicWorkflowRun`；`SessionStore::workflow_runs` /
+  `Kernel::dynamic_workflow_runs`（缺省空）；
+- `node-store::repo::dwf::list` 读 `dwf_run`（本会话、按 `time_created`），单测覆盖会话隔离与字段透出；
+- 写面仍归引擎（sidecar 后由引擎独占），3 条命令继续显式 unsupported。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 3 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——

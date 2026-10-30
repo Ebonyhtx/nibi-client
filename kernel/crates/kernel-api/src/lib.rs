@@ -119,6 +119,7 @@ pub mod tool_search;
 pub mod unparsed_input;
 pub mod user_command;
 pub mod user_input;
+pub mod workflow;
 pub mod workspace_trust;
 
 #[cfg(any(test, feature = "testing"))]

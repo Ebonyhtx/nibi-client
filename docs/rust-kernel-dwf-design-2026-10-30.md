@@ -53,13 +53,15 @@
 
 ## 3. 推荐与阶段
 
+**路线已拍板（2026-10-30）：C。**
+
 推荐 **C 先行、B 作为长期选项**；A 只作为"明确放弃 DWF 随 Rust 发布"的备选。
 
 若选 C：
 
 | 阶段 | 内容 | 出口 |
 |---|---|---|
-| C0 | `DwfRuns` 端口（读 `dwf_*`：run/node/event/settlement 的只读面）＋协议侧 run 投影字段 | 冷打开能看到已有 run；不写 |
+| C0 | `DwfRuns` 端口（读 `dwf_*`：run/node/event/settlement 的只读面）＋协议侧 run 投影字段 | **第一段已落地（2026-10-30）**：`SessionStore::workflow_runs` / `Kernel::dynamic_workflow_runs` 读 `dwf_run`（本会话、按 `time_created`），node-store 仓储 + 单测；协议投影字段待引擎事件接进来 |
 | C1 | sidecar 引擎（受管 Node 子进程）＋ submit/amend/resume/cancel 协议 ＋ 3 条命令 | 双内核 3 条命令对拍；run 生命周期（started → completed/failed/cancelled）一致 |
 | C2 | `createSession.dynamicWorkflow*` 激活工具面（经 sidecar 转发 CreateWorkflow 等） | 工具在 Rust 会话可用；saved workflow 列表/启动一致 |
 | C3 | 通知与 UI 投影（run 卡、完成/提问通知、hole 流程） | presentation/transcript 两篇规格的关键路径对齐 |

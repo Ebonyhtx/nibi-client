@@ -267,7 +267,7 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 脚本在 `node:vm` 沙箱里跑（编译器/ lowering / VM 引导 / journal 回放）。好消息是 `dwf_*` 表
 已在 migration 0019 里（Rust 也已逐字节应用 0020–0024），**不需要新增迁移**。
 
-三条路线与推荐（C：Rust 协议面 + Node 引擎 sidecar；B：完整重写；A：不移植、分流写死）见
+**已拍板 C**（Rust 协议面 + Node 引擎 sidecar），第一段只读面已落地。三条路线与阶段见
 [`rust-kernel-dwf-design-2026-10-30.md`](rust-kernel-dwf-design-2026-10-30.md)。**待用户拍板**：
 路线、sidecar 分发方式、DWF 是否是切默认的硬前置。
 

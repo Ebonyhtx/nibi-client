@@ -299,6 +299,18 @@ impl Kernel for LocalKernel {
         self.discard_import(session, context_id).await
     }
 
+    /// 会话发起的 DWF run（只读，`dwf_run` 表；引擎在 Node 侧写）。
+    async fn dynamic_workflow_runs(
+        &self,
+        session: &SessionId,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::DynamicWorkflowRun>, KernelError> {
+        self.ports
+            .store
+            .workflow_runs(session)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

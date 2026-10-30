@@ -392,6 +392,24 @@ bundleDigest 全一致，只有加 `.zcode/config.json` 或 `.nibi/config.json` 
 - Node 会顺带更新导入消息的 `metadata.sharedContextStatus`；Rust 的消息模型没有这条元数据，
   这一步不生效（Rust 的恢复路径本来也不按它排除上下文）。
 
+## 6.12 DWF 路线拍板与只读面（2026-10-30，路线 C 第一段）
+
+DWF 调研（8,524 行规格 + 26k 行 TS 引擎/编译器 + 20 多个工具；脚本跑在 `node:vm` 沙箱里；
+`dwf_*` 表已在 migration 0019）后拍板走 **路线 C：Rust 协议面 + Node 引擎 sidecar**，理由与
+三方案对比见 `docs/rust-kernel-dwf-design-2026-10-30.md`。
+
+第一段落地（只读、无迁移）：
+
+- `kernel-api::workflow::DynamicWorkflowRun`（`id`/`name`/`status`/`sessionId`/`cwd`/
+  `resumedFrom`/`toolCallId`/`spentTokens`/`createdAt`/`updatedAt`）；
+- `SessionStore::workflow_runs`（缺省空）与 `Kernel::dynamic_workflow_runs`（缺省空）；
+- `node-store::repo::dwf::list`：`dwf_run where parent_session_id = ?`，按 `time_created` 升序；
+  单测覆盖会话隔离、字段透出与空结果；
+- 写面仍归引擎（sidecar 接进来后由引擎独占写），Rust 目前只读。
+
+**验证**：`cargo test -p rust-cli-node-store dwf` 绿；`cargo check` 全绿。3 条 DWF 命令仍在
+`BLOCKED_COMMANDS`（引擎未接），覆盖表保持 31 接住 / 3 块。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

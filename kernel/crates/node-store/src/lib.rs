@@ -367,6 +367,16 @@ impl SessionStore for NodeStore {
             .await
     }
 
+    /// 会话发起的 DWF run（`dwf_run`，只读）。
+    async fn workflow_runs(
+        &self,
+        session: &SessionId,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::DynamicWorkflowRun>, StoreError> {
+        let session = session.as_str().to_owned();
+        self.with_db(move |conn, _| repo::dwf::list(conn, &session).map_err(storage))
+            .await
+    }
+
     /// 记下工作区已信任（upsert；不在会话事务里）。
     async fn trust_workspace(&self, key: &TrustKey) -> Result<(), StoreError> {
         let key = key.clone();

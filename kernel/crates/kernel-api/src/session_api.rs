@@ -691,6 +691,15 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 会话发起的 DWF run（NIBI run 卡 / 详情页的只读数据，`dwf_run` 表）。run 的真相在引擎的
+    /// journal；这里只是读面。缺省实现返回空（TUI / `-p` 不展示 run）。
+    async fn dynamic_workflow_runs(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Vec<crate::workflow::DynamicWorkflowRun>, KernelError> {
+        Ok(Vec::new())
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///

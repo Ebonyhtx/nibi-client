@@ -516,6 +516,15 @@ pub trait SessionStore: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// 这个会话发起的 DWF run（`dwf_run.parent_session_id`，只读；run 的真相在引擎的 journal）。
+    /// 不支持的实现返回空（TUI / 内存存储没有 DWF）。
+    async fn workflow_runs(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Vec<crate::workflow::DynamicWorkflowRun>, StoreError> {
+        Ok(Vec::new())
+    }
+
     /// 记下一个工作区已信任（upsert，workspace-trust.md §2.3）。不支持的实现返回 `Unsupported`。
     async fn trust_workspace(
         &self,
