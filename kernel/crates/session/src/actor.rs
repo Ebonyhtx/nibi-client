@@ -561,6 +561,9 @@ impl Actor {
             Command::SetAutoDrain { enabled } => self.set_auto_drain(enabled).await,
             Command::SendQueuedNow { item } => self.send_queued_now(item).await,
             Command::SetGoalPaused { paused } => self.set_goal_paused(paused).await,
+            Command::CreateSelectionSideSession { selection } => {
+                self.create_selection_side_session(selection).await
+            }
         }
     }
 

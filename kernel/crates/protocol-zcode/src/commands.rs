@@ -463,6 +463,9 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "setAutoDrain" => set_auto_drain(handle, envelope).await,
         "sendQueuedNow" => send_queued_now(handle, envelope, revision).await,
         "setAssistantFeedback" => set_assistant_feedback(server, handle, &live.sink, envelope).await,
+        "createSelectionSideSession" => {
+            create_selection_side_session(server, handle, envelope).await
+        }
         "sendGoalCommand" => send_goal_command(handle, envelope).await,
         "pauseGoal" => set_goal_paused(handle, envelope, true).await,
         "resumeGoal" => set_goal_paused(handle, envelope, false).await,
@@ -1544,6 +1547,89 @@ async fn send_queued_now(handle: &dyn SessionHandle, envelope: &Envelope, revisi
             revision,
         ),
     }
+}
+
+/// NIBI `createSelectionSideSession`：派生一个侧聊会话（复制整段对话，选择可覆盖），
+/// 带 `firstInput` 时在**新会话**里提交首条输入。返回 `{type, sessionId}`。
+async fn create_selection_side_session(
+    server: &Server,
+    handle: &dyn SessionHandle,
+    envelope: &Envelope,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    let first = &envelope.payload["firstInput"];
+    // firstInput.modelSelection 是侧聊自己的选择（Node 的 createSelectionSideConversation 同义）；
+    // 缺席时继承当前会话。
+    let selection = selection(&first["modelSelection"]);
+    let child = match send(
+        handle,
+        &format!("{command}:side"),
+        Command::CreateSelectionSideSession {
+            selection: selection.clone(),
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { result } => match result["session"].as_str() {
+            Some(session) => SessionId::new(session),
+            None => {
+                return Ack::refused(
+                    command,
+                    Status::Failed,
+                    "fault.command.sideSessionFailed",
+                    "the kernel returned no side session id",
+                    revision,
+                );
+            }
+        },
+        KernelAck::Duplicate => {
+            return inbox::duplicate(&Ack::accepted(command, revision, None));
+        }
+        KernelAck::Rejected { reason } => {
+            return Ack::refused(
+                command,
+                Status::Rejected,
+                "guard.sideSessionRejected",
+                reason,
+                revision,
+            );
+        }
+    };
+    if let Some(text) = first["text"].as_str() {
+        match server.kernel.open_session(&child).await {
+            Ok(child_handle) => {
+                let submit = Command::Submit {
+                    text: text.to_owned(),
+                    attachments: Vec::new(),
+                    delivery: Delivery::Queue,
+                };
+                if let KernelAck::Rejected { reason } =
+                    send(child_handle.as_ref(), &format!("{command}:input"), submit).await
+                {
+                    tracing::warn!(
+                        event = "protocol.side_session.first_input_rejected",
+                        session = %child,
+                        reason = %reason,
+                        "the side session rejected the first input"
+                    );
+                }
+            }
+            Err(error) => {
+                tracing::warn!(
+                    event = "protocol.side_session.open_failed",
+                    session = %child,
+                    error = %error,
+                    "the side session could not be opened for the first input"
+                );
+            }
+        }
+    }
+    Ack::accepted(
+        command,
+        revision,
+        Some(json!({"type": "createSelectionSideSession", "sessionId": child.as_str()})),
+    )
 }
 
 /// NIBI `sendGoalCommand`：设置/替换目标。Node 把 `/goal`、`/target` 前缀与 `replace` 一并归一，

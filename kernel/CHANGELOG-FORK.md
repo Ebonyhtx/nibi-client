@@ -263,6 +263,23 @@ Node 的 queue 组（`editQueueItem` / `deleteQueueItem` / `reorderQueueItem` / 
 验证：session 新单测（暂停隐藏条件、标记不计数、冷恢复保留暂停、无目标幂等）；双内核驱动两边
 `sendGoalCommand`/`pauseGoal`/`resumeGoal` 都 accepted；对拍门禁 32 → **35**。
 
+## 6.7 侧聊会话（`createSelectionSideSession`，2026-10-30）
+
+Node 从当前对话派生一个"侧聊"子会话（复制整段对话、选择可覆盖、可选带首条输入），用于就同一段
+上下文换模型/换话题再问。
+
+实现：`Command::CreateSelectionSideSession { selection? }` → session 用 `SessionStore::fork` 复制到
+最近一条消息（选择默认继承当前，`firstInput.modelSelection` 覆盖）；协议层随后在新会话里提交
+`firstInput.text` 并返回 `{type, sessionId}`。
+
+**有意差异**：
+1. 忙时拒绝（`guard.sideSessionRejected`）——Node 会切到当前回合起点，Rust 先要求空闲；
+2. 空对话拒绝（`SessionFork.through` 必须是一条消息）；
+3. 未复制 Node 的 `selection_side_chat` 子会话类型与 `sourceCommandId` 记录（Rust 的会话 kind 只有
+   Interactive/Subagent；侧聊按普通子会话落库）。
+
+验证：双内核驱动两边 accepted、child 前缀 `sess_`、child 与父不同；对拍门禁 35 → **38**。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

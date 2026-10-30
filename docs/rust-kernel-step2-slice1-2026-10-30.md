@@ -315,9 +315,18 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 - 有意差异：resume 不主动起续跑回合（Rust 的续跑由回合结束判定驱动；Node 会立刻起后台 continue）。
 - 验证：session 单测；双内核驱动三条都 accepted；对拍门禁 35 字段全一致。
 
+## 6.14 第十六步：createSelectionSideSession（2026-10-30）
+
+- `Command::CreateSelectionSideSession { selection? }`：`SessionStore::fork` 复制整段对话到新会话，
+  选择默认继承、`firstInput.modelSelection` 覆盖；协议层在新会话里提交 `firstInput.text`，
+  返回 `{type, sessionId}`。
+- 有意差异：忙时拒绝（Node 切到当前回合起点）、空对话拒绝、未复制 Node 的
+  `selection_side_chat` 会话类型与 `sourceCommandId`。
+- 验证：双内核驱动两边 accepted、child 前缀与父不同；对拍门禁 38 字段全一致。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 9 个命令的处理器（hook-review 4/workflow 3/`createSelectionSideSession`/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 8 个命令的处理器（hook-review 4/workflow 3/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，

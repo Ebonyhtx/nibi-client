@@ -845,7 +845,28 @@ try {
     throw new Error(`session MCP tool did not run: ${JSON.stringify(checks.mcpToolResult)}`);
   }
 
-    // goal：设置目标（Node 的 /goal 归一后按人类输入提交）→ 暂停 → 恢复。三条都不该失败。
+    // 侧聊会话：从当前对话派生一个子会话并带首条输入；返回的会话 id 与父会话不同。
+  if (phases.includes("rejections")) {
+    const side = await casCommand("createSelectionSideSession", {
+      firstInput: { text: "side chat question" },
+    });
+    checks.sideSessionStatus = side.status;
+    const sideId = side.result?.sessionId;
+    checks.sideSessionChildPrefix = typeof sideId === "string" ? sideId.slice(0, 5) : null;
+    checks.sideSessionDistinct = Boolean(sideId) && sideId !== sessionId;
+    console.log(
+      `side session: status=${checks.sideSessionStatus} child=${sideId} distinct=${checks.sideSessionDistinct}`,
+    );
+    if (
+      checks.sideSessionStatus !== "accepted" ||
+      checks.sideSessionChildPrefix !== "sess_" ||
+      !checks.sideSessionDistinct
+    ) {
+      throw new Error(`side session failed: ${JSON.stringify(side)}`);
+    }
+  }
+
+  // goal：设置目标（Node 的 /goal 归一后按人类输入提交）→ 暂停 → 恢复。三条都不该失败。
   if (phases.includes("rejections")) {
     // 前面的阶段把会话切到过 plan 模式；plan 与 goal 互斥，先切回 build。
     await casCommand("switchCollaborationMode", { mode: "build" });

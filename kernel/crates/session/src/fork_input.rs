@@ -74,6 +74,38 @@ impl Actor {
     }
 }
 
+impl Actor {
+    /// NIBI `createSelectionSideSession`：把整段对话复制到一个新会话，选择可覆盖。只复制消息，
+    /// 不动文件与队列；忙时拒绝（Node 会切到当前回合起点，Rust 先要求空闲）。
+    pub(crate) async fn create_selection_side_session(
+        &self,
+        selection: Option<rust_cli_kernel_api::model::ModelSelection>,
+    ) -> Ack {
+        if self.busy() {
+            return rejected("a turn is running; start the side chat after it finishes");
+        }
+        let Some(last) = self.messages.last().map(|message| message.id().clone()) else {
+            return rejected("the conversation is empty");
+        };
+        let child = self.deps.ids.session();
+        let fork = rust_cli_kernel_api::store::SessionFork {
+            parent: self.meta.id.clone(),
+            child: child.clone(),
+            created_at_ms: self.deps.clock.now_ms(),
+            through: last,
+            selection: selection.unwrap_or_else(|| self.selection.clone()),
+            mode: self.execution.mode,
+            plan: self.execution.plan,
+        };
+        match self.deps.store.fork(fork).await {
+            Ok(receipt) => Ack::Accepted {
+                result: json!({"session": child.as_str(), "copied": receipt.copied}),
+            },
+            Err(error) => rejected(error.to_string()),
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "fork_input_tests.rs"]
 mod tests;

@@ -115,6 +115,13 @@ pub enum Command {
     SetAutoDrain { enabled: bool },
     /// 立刻发送一条排队输入（NIBI `sendQueuedNow`）：忙时先中止当前回合再开它，空闲时直接开。
     SendQueuedNow { item: CommandId },
+    /// 从当前对话派生一个侧聊会话（NIBI `createSelectionSideSession`）：复制到最近一条消息为止，
+    /// 选择可覆盖（`selection` 为空时继承当前），文件不动。只在空闲时接受。
+    /// `Accepted.result` 是 `{session, copied}`。
+    CreateSelectionSideSession {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        selection: Option<ModelSelection>,
+    },
     /// 暂停或恢复 `/goal` 的续跑（NIBI `pauseGoal` / `resumeGoal`）：暂停时条件仍保存，但回合结束
     /// 不再按它续跑；恢复只是重新武装（下一个回合结束照常判定）。暂停会中止正在跑的回合。
     /// `Accepted.result` 是 `{active, paused}`：没有目标时两者都是 false（幂等成功）。
