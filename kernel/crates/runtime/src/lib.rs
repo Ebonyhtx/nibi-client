@@ -19,6 +19,7 @@ mod late;
 mod listings;
 mod permissions;
 mod projects;
+mod shared_context;
 mod table;
 mod usage;
 mod workspace_sessions;
@@ -569,6 +570,10 @@ mod tests;
 #[cfg(test)]
 #[path = "hook_review_tests.rs"]
 mod hook_review_tests;
+
+#[cfg(test)]
+#[path = "shared_context_tests.rs"]
+mod shared_context_tests;
 
 #[cfg(test)]
 #[path = "metering_tests.rs"]

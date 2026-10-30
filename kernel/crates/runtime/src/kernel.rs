@@ -280,6 +280,25 @@ impl Kernel for LocalKernel {
         self.toggle_hook(workspace, review_item_id, enabled).await
     }
 
+    /// NIBI 快照的 `sharedContextImport`：冷打开时从 `session_entry` 读出。
+    async fn shared_context_import(
+        &self,
+        session: &SessionId,
+    ) -> Result<Option<rust_cli_kernel_api::shared_context::SharedContextImportState>, KernelError>
+    {
+        self.shared_context_state(session).await
+    }
+
+    /// NIBI `discardSharedContext`：`pending` → `discarded`。
+    async fn discard_shared_context(
+        &self,
+        session: &SessionId,
+        context_id: &str,
+    ) -> Result<Option<rust_cli_kernel_api::shared_context::SharedContextImportState>, KernelError>
+    {
+        self.discard_import(session, context_id).await
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

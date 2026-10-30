@@ -82,6 +82,9 @@ pub struct Projection {
     hook_review: Option<Value>,
     /// 工作区钩子的准入提示条（NIBI `workspaceHookAdmission`；null 表示没有待审项）。
     hook_admission: Option<Value>,
+    /// 分享导入的本地状态（NIBI 快照的 `sharedContextImport`）：冷打开时从存储种子进来，
+    /// `discardSharedContext` 改成 `discarded`。
+    shared_context_import: Option<Value>,
     created_at: u64,
 }
 
@@ -149,6 +152,7 @@ impl Projection {
             pending: Vec::new(),
             hook_review: None,
             hook_admission: None,
+            shared_context_import: None,
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -274,6 +278,20 @@ impl Projection {
         }
         self.hook_admission = admission.clone();
         Some(json!({"op": "state.updated", "patch": {"workspaceHookAdmission": admission}}))
+    }
+
+    /// 分享导入的种子（冷打开）：不发增量（Node 的 `seedSharedContextImport` 同义）。
+    pub fn seed_shared_context_import(&mut self, value: Option<Value>) {
+        self.shared_context_import = value;
+    }
+
+    /// 分享导入的状态变了（`discardSharedContext`）：`state.updated` 里带上整份状态。
+    pub fn set_shared_context_import(&mut self, value: Option<Value>) -> Option<Value> {
+        if self.shared_context_import == value {
+            return None;
+        }
+        self.shared_context_import = value.clone();
+        Some(json!({"op": "state.updated", "patch": {"sharedContextImport": value}}))
     }
 
     fn base(
@@ -737,6 +755,7 @@ impl Projection {
             "goal": null,
             "plan": null,
             "workspaceHookAdmission": self.hook_admission,
+            "sharedContextImport": self.shared_context_import,
             "rows": {
                 "window": &self.rows[start..],
                 "totalCount": self.rows.len(),

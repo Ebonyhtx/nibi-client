@@ -480,6 +480,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "pauseGoal" => set_goal_paused(handle, envelope, true).await,
         "resumeGoal" => set_goal_paused(handle, envelope, false).await,
         "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
+        "discardSharedContext" => discard_shared_context(server, &live.sink, envelope, revision).await,
         "requestWorkspaceHookReview" => {
             crate::hook_review::request(server, &live.sink, envelope, revision).await
         }
@@ -1792,8 +1793,7 @@ async fn set_assistant_feedback(
     handle: &dyn SessionHandle,
     live: &crate::live::Live,
     envelope: &Envelope,
-) -> Ack {
-    let command = envelope.command_id.as_str();
+) -> Ack {    let command = envelope.command_id.as_str();
     let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
     let Some(target) = target_row(&envelope.payload) else {
         return Ack::refused(
@@ -2196,9 +2196,60 @@ async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
     }
 }
 
+/// NIBI `discardSharedContext`：把还没附加（`pending`）的分享导入标成 `discarded`，
+/// 并把新状态写进投影（快照的 `sharedContextImport`）。不是 pending 时按 Node 的
+/// `fault.command.inputRejected` 拒绝。
+async fn discard_shared_context(
+    server: &Server,
+    live: &crate::live::Live,
+    envelope: &Envelope,
+    revision: u64,
+) -> Ack {
+    let command = envelope.command_id.as_str();
+    let Some(session) = envelope.session_id.as_deref() else {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "proto.sessionRequired",
+            "discardSharedContext needs a sessionId",
+            revision,
+        );
+    };
+    let context_id = envelope.payload["contextId"].as_str().unwrap_or_default();
+    match server
+        .kernel
+        .discard_shared_context(&SessionId::new(session), context_id)
+        .await
+    {
+        Ok(state) => {
+            if let Some(state) = state
+                && let Ok(value) = serde_json::to_value(state)
+            {
+                live.set_shared_context_import(Some(value)).await;
+            }
+            Ack::accepted(command, revision, None)
+        }
+        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { what }) => Ack::refused(
+            command,
+            Status::Failed,
+            "proto.unsupportedCommand",
+            what,
+            revision,
+        ),
+        Err(error) => {
+            let message = error.to_string();
+            let reason = if message.starts_with("fault.command.inputRejected") {
+                "fault.command.inputRejected"
+            } else {
+                "proto.internal"
+            };
+            Ack::refused(command, Status::Failed, reason, message, revision)
+        }
+    }
+}
+
 /// `v4/commands/query`：内存表，然后命令事实（G2）；都没有时 unknown。时钟探测带 `clock`。
-pub async fn query(server: &Server, params: &Value) -> Result<Value, RpcError> {
-    let received = server.context.now();
+pub async fn query(server: &Server, params: &Value) -> Result<Value, RpcError> {    let received = server.context.now();
     let mut results = Vec::new();
     for key in params["commands"].as_array().into_iter().flatten() {
         let session = key["sessionId"].as_str();

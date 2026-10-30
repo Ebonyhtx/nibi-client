@@ -120,6 +120,12 @@ pub async fn subscribe(server: &Server, params: &Value) -> Result<Reply, RpcErro
         let live = server.live(&id).await.map_err(|error| kernel_error(&error))?;
         if cold {
             apply_resume_hints(server, &live, params).await;
+            // 分享导入的本地状态（NIBI 快照的 `sharedContextImport`）：从 session_entry 种子进来。
+            if let Ok(Some(import)) = server.kernel.shared_context_import(&id).await
+                && let Ok(value) = serde_json::to_value(import)
+            {
+                live.sink.seed_shared_context_import(Some(value));
+            }
         }
         let subscription = server.context.fresh("sub");
         let epoch = live.sink.subscribe(&subscription, &connection);

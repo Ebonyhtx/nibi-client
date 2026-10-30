@@ -11,7 +11,8 @@
  */
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -27,7 +28,7 @@ const binArgs = isNode
   ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
   : ["app-server", "--stdio"];
 const dotDir = isNode ? ".nibi" : ".zcode";
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,switchModel,switchMode,fork,edit,retry,compact,rejections")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections")
   .split("=")[1]
   .split(",");
 // 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
@@ -526,6 +527,7 @@ try {
     let stopState = null;
     let pendingInteractions = [];
     let workspaceHookAdmission = null;
+    let sharedContextImport = null;
     const rows = new Map();
     for (const frame of frames) {
       const payload = frame.frame?.payload ?? {};
@@ -538,6 +540,7 @@ try {
         revision = snap.revision ?? revision;
         pendingInteractions = snap.pendingInteractions ?? [];
         workspaceHookAdmission = snap.workspaceHookAdmission ?? null;
+        sharedContextImport = snap.sharedContextImport ?? null;
         for (const row of snap.rows?.window ?? []) rows.set(row.rowId, row);
       } else if (payload.kind === "deltas") {
         for (const delta of payload.deltas ?? []) {
@@ -562,6 +565,9 @@ try {
             if ("workspaceHookAdmission" in delta.patch) {
               workspaceHookAdmission = delta.patch.workspaceHookAdmission;
             }
+            if ("sharedContextImport" in delta.patch) {
+              sharedContextImport = delta.patch.sharedContextImport;
+            }
           }
         }
       }
@@ -573,6 +579,7 @@ try {
       rows: [...rows.values()],
       pendingInteractions,
       workspaceHookAdmission,
+      sharedContextImport,
     };
   };
   const targetRowOf = (state) =>
@@ -914,6 +921,103 @@ try {
       "renamed title in projection",
     );
     console.log(`renameSession: accepted, title visible=${title}`);
+  }
+
+  // 分享导入的丢弃（NIBI discardSharedContext）：存储是 Node 写的 session_entry
+  // （type = v4/shared_context_import）。这里直接往会话库里插一条 pending 导入（Node 的导入
+  // 流程本来就在协议层之外），再让两个内核各丢一次。
+  if (phases.includes("discardSharedContext")) {
+    const dbPath = [
+      join(home, dotDir, "cli", "db", "db.sqlite"),
+      join(home, dotDir, "db", "db.sqlite"),
+      join(home, dotDir, "v2", "db.sqlite"),
+    ].find((candidate) => existsSync(candidate));
+    if (!dbPath) throw new Error(`session db not found under ${join(home, dotDir)}`);
+    const contextId = `ctx_${sessionId.slice(5, 13)}`;
+    const db = new DatabaseSync(dbPath);
+    const now = Date.now();
+    db.prepare(
+      `insert or replace into session_entry (id, session_id, type, time_created, time_updated, data)
+       values (?, ?, ?, ?, ?, ?)`,
+    ).run(
+      `v4_shared_context_import:${sessionId}:share_drive`,
+      sessionId,
+      "v4/shared_context_import",
+      now,
+      now,
+      JSON.stringify({
+        shareId: "share_drive",
+        shareUrl: "https://nibi.example/cn/share/drive01",
+        contextId,
+        status: "pending",
+      }),
+    );
+    db.close();
+
+    const discarded = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000090",
+      "discardSharedContext",
+      { contextId },
+    );
+    if (discarded.status !== "accepted") {
+      throw new Error(
+        `discardSharedContext ${discarded.status}/${discarded.reasonCode}: ${discarded.message}`,
+      );
+    }
+    checks.sharedContextDiscardStatus = discarded.status;
+    // Node 的丢弃是"静态元数据重种子"，不产 delta；重新订阅拿到的快照才带出来。
+    // Rust 的投影在丢弃时也发一条 state.updated，所以这条路径对两边都成立。
+    const resub = await send("v4/conversation/subscribe", {
+      topic: `conversation/${sessionId}`,
+      connectionId: "drive-discard",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    if (!resub.result?.ack && !resub.result?.epoch && !resub.result?.subscription) {
+      throw new Error(`resubscribe after discard failed: ${JSON.stringify(resub)}`);
+    }
+    const projected = await waitFor(
+      () => {
+        const state = buildState();
+        return state.sharedContextImport?.status === "discarded"
+          ? state.sharedContextImport
+          : undefined;
+      },
+      "sharedContextImport discarded in a fresh snapshot",
+      30_000,
+    );
+    checks.sharedContextProjectedStatus = projected.status;
+    checks.sharedContextProjectedId = projected.contextId === contextId;
+    checks.sharedContextProjectedUrl =
+      projected.shareUrl === "https://nibi.example/cn/share/drive01";
+
+    const verify = new DatabaseSync(dbPath);
+    const row = verify
+      .prepare("select data from session_entry where id = ?")
+      .get(`v4_shared_context_import:${sessionId}:share_drive`);
+    verify.close();
+    const stored = row?.data ? JSON.parse(String(row.data)) : null;
+    checks.sharedContextStoredStatus = stored?.status ?? null;
+    checks.sharedContextStoredPreserved = stored?.shareId === "share_drive";
+    if (checks.sharedContextStoredStatus !== "discarded") {
+      throw new Error(`stored shared context status = ${checks.sharedContextStoredStatus}`);
+    }
+
+    const again = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000091",
+      "discardSharedContext",
+      { contextId },
+    );
+    checks.sharedContextSecondStatus = again.status;
+    checks.sharedContextSecondCode = again.reasonCode;
+    if (again.status !== "failed" || again.reasonCode !== "fault.command.inputRejected") {
+      throw new Error(
+        `discardSharedContext(second) ${again.status}/${again.reasonCode}: ${again.message}`,
+      );
+    }
+    console.log(
+      `discardSharedContext: accepted, projected=${checks.sharedContextProjectedStatus}, stored=${checks.sharedContextStoredStatus}`,
+    );
   }
 
   // CAS 命令通用发送：stale/duplicate 就地重试（每次新 commandId）。

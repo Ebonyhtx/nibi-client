@@ -110,6 +110,7 @@ pub mod plan;
 pub mod provider;
 pub mod reminder_fold;
 pub mod session_api;
+pub mod shared_context;
 pub mod session_paths;
 pub mod store;
 pub mod title;

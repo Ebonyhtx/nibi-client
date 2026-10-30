@@ -671,6 +671,26 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 会话的分享导入状态（NIBI 快照的 `sharedContextImport`）：冷打开时喂给投影。没有导入时 None。
+    async fn shared_context_import(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Option<crate::shared_context::SharedContextImportState>, KernelError> {
+        Ok(None)
+    }
+
+    /// NIBI `discardSharedContext`：把还没附加（`pending`）的分享导入标成 `discarded`，返回更新后的
+    /// 状态（没有可放进快照的元数据时是 None，但写入照常发生）。缺省实现返回 `Unsupported`。
+    async fn discard_shared_context(
+        &self,
+        _session: &SessionId,
+        _context_id: &str,
+    ) -> Result<Option<crate::shared_context::SharedContextImportState>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "shared context imports".to_owned(),
+        })
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///

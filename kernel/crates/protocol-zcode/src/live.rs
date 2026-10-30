@@ -237,6 +237,26 @@ impl Live {
         self.write(outgoing).await;
     }
 
+    /// 分享导入的种子（冷打开）：直改投影，不发增量（Node `seedSharedContextImport` 同义）。
+    pub fn seed_shared_context_import(&self, value: Option<Value>) {
+        self.state()
+            .projection
+            .seed_shared_context_import(value);
+    }
+
+    /// 分享导入的状态变了（`discardSharedContext`）：发一条 `state.updated`。
+    pub async fn set_shared_context_import(&self, value: Option<Value>) {
+        let outgoing = {
+            let mut state = self.state();
+            let Some(delta) = state.projection.set_shared_context_import(value) else {
+                return;
+            };
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
     /// 会话列表的当前行。
     pub fn summary(&self) -> Value {
         let state = self.state();

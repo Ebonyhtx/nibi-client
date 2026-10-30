@@ -349,6 +349,8 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 
 ## 6.17 第十八步：工作区钩子评审四件（2026-10-30）
 
+（覆盖表：30 接住 / 4 能力缺口；对拍 63 字段。）
+
 四条命令全部接住（`requestWorkspaceHookReview` / `respondWorkspaceHookReview` /
 `toggleWorkspaceHookReviewItem` / `revokeWorkspaceHookTrust`），覆盖表变成 **30 接住 / 4 能力缺口**。
 
@@ -391,9 +393,24 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
   `pendingInteractions` 的替换收口）。
 - 截止到期只撤交互、不回报 `timed_out` 结算（Host 按同一个 `deadlineAt` 自行收口）。
 
+## 6.18 第十九步：discardSharedContext（2026-10-30）
+
+分享导入的丢弃接住（覆盖表 **31 接住 / 3 能力缺口**，剩下的全是 DWF）。存储复用 Node 已经写好的
+`session_entry`（`type = "v4/shared_context_import"`），**不加迁移**：
+
+- 内核：`Kernel::shared_context_import`（冷打开种子）与 `Kernel::discard_shared_context`
+  （只允许 `pending` → `discarded`，其余 provenance 原样保留）；
+- 协议：冷打开把 `sharedContextImport` 种进投影（不发增量）；丢弃成功写一条
+  `state.updated`，不是 pending 时 `failed` + `fault.command.inputRejected`（与 Node 的 ACK 同状态）；
+- 验证：驱动新增 `discardSharedContext` 阶段（直接往会话库插一条 pending 导入）——丢弃后重新订阅的
+  快照里 `status = discarded`（Node 的丢弃不产 delta，只能从快照读）、存储状态一致、第二次丢弃被拒；
+  `check-dual-kernel-parity` **71 字段全一致**（63 → 71），`check-cold-resume` 仍绿。
+- 边界：导入本身仍由 Node 的 server-operations 完成；Node 顺带更新的导入消息元数据
+  `sharedContextStatus` 在 Rust 的消息模型里没有对应字段。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 4 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 3 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，

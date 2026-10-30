@@ -280,9 +280,9 @@ Node 从当前对话派生一个"侧聊"子会话（复制整段对话、选择�
 
 验证：双内核驱动两边 accepted、child 前缀 `sess_`、child 与父不同；对拍门禁 35 → **38**。
 
-## 6.8 命令覆盖表与能力缺口（2026-10-30，§6.10 又补 4 条）
+## 6.8 命令覆盖表与能力缺口（2026-10-30，§6.10/§6.11 又补 5 条）
 
-34 个 `CommandType` 现在**全部有归属**：30 个已接住（`HANDLED_COMMANDS`），4 个明确列在
+34 个 `CommandType` 现在**全部有归属**：31 个已接住（`HANDLED_COMMANDS`），3 个明确列在
 `BLOCKED_COMMANDS` 并写明缺的能力；`every_command_is_either_handled_or_explicitly_blocked` 守住
 "不漏项、不重叠、理由非空"。`unsupported` 的 ACK 也会把缺的能力一起说出来（`proto.unsupportedCommand`
 的 message），切默认前能一眼看出是功能缺口而不是没接线。
@@ -296,9 +296,9 @@ Node 从当前对话派生一个"侧聊"子会话（复制整段对话、选择�
 | `createSelectionSideSession` | 已接住 | —（忙时拒绝等三条差异，见 §6.7） |
 | `requestWorkspaceHookReview` `respondWorkspaceHookReview` `toggleWorkspaceHookReviewItem` `revokeWorkspaceHookTrust` | **已接住**（§6.10） | —（企业策略阻断没有来源，`blocked_policy` 恒 false） |
 | `startSavedWorkflow` `resumeWorkflowRun` `amendWorkflowRunSettings` | **能力缺口** | 动态工作流 run 能力（与 `createSession.dynamicWorkflow*` 同一缺口） |
-| `discardSharedContext` | **能力缺口** | 分享上下文存储（Node 的 topic resource / `context_refs`） |
+| `discardSharedContext` | **已接住**（§6.11） | —（导入本身仍由 Node 的 server-operations 完成） |
 
-这 4 项在功能 track 完成、或明确决定"首期走 Node"之前，**阻塞切默认**（合并计划 §8.1.1 的判据）。
+这 3 项在功能 track 完成、或明确决定"首期走 Node"之前，**阻塞切默认**（合并计划 §8.1.1 的判据）。
 
 ## 6.9 项目级配置目录改为 `.nibi`（2026-10-30，品牌化轨）
 
@@ -358,6 +358,39 @@ bundleDigest 全一致，只有加 `.zcode/config.json` 或 `.nibi/config.json` 
 - 评审交互的 `taskId`/`runId` 用会话 ID（Host 原样回传，只做 target 匹配）。
 - 被替换的那一代只撤交互，不发 Node 的 `WorkspaceHookReviewSuperseded` 事件（Rust 投影按
   `pendingInteractions` 替换收口）；截止到期同理，不回报 `timed_out`。
+
+## 6.11 分享导入的丢弃（`discardSharedContext`，2026-10-30）
+
+**形状**（已读 Node 源码，不猜）：导入是 Node `server-operations` 写的一条 `session_entry`
+（`type = "v4/shared_context_import"`，`data` 带 `shareId`/`shareUrl`/`contextId`/`status`）。
+`discardSharedContext` 只做一件事：`transitionSharedContextImport` 把 `status` 从 `pending` 改成
+`discarded`（其它状态一律拒绝，Node 报 `fault.command.inputRejected` 且 ACK 是 `failed`），
+并把会话快照的 `sharedContextImport` 重新种成 `discarded`。不新增迁移：读写的都是既有的
+`session_entry`（经 `SessionStore::records`/`put_record` 的前端记录端口）。
+
+**内核侧**
+- `kernel-api::shared_context::SharedContextImportState`（`contextId`/`title`/`shareUrl`/`status`）。
+- `Kernel::shared_context_import`（冷打开的种子；没有导入时 None）与
+  `Kernel::discard_shared_context`（`pending` → `discarded`，返回更新后的状态）。
+- `runtime::shared_context`：从 `v4/shared_context_import` 记录读出（Node `entries.find` 的第一条），
+  标题取会话 meta；丢弃只改 `status`，其余 provenance 原样保留。
+
+**协议侧**
+- 冷打开会话时把 `sharedContextImport` 种进投影（Node 的 `seedSharedContextImport`，不发增量）。
+- `discardSharedContext` 处理：成功时把新状态写成 `state.updated`（Node 的静态种子不产 delta，
+  这里多一条增量，重新订阅时快照口径一致）；不是 `pending` → `failed` +
+  `fault.command.inputRejected`（与 Node 的 ACK 状态一致）。
+
+**验证**
+- 驱动新增 `discardSharedContext` 阶段（默认阶段表）：直接往会话库插一条 pending 导入 → 丢弃 →
+  重新订阅拿到的快照里 `status = discarded`（**Node 的丢弃不产 delta，只能从快照读**）→ 存储里的
+  `status` 也是 `discarded` 且 `shareId` 保留 → 第二次丢弃 `failed/fault.command.inputRejected`。
+- `check-dual-kernel-parity`：**71 个必需字段全一致**（63 → 71）；`check-cold-resume` 仍 OK。
+
+**已知边界**
+- 导入本身（`importSession`）仍只在 Node 的 server-operations 里；Rust 只认已经落库的导入。
+- Node 会顺带更新导入消息的 `metadata.sharedContextStatus`；Rust 的消息模型没有这条元数据，
+  这一步不生效（Rust 的恢复路径本来也不按它排除上下文）。
 
 ## 7. 未完成项
 

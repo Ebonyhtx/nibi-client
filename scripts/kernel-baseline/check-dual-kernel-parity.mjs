@@ -96,6 +96,14 @@ const REQUIRED = [
   "hookToggleGeneration",
   "hookToggleConfiguredEnabled",
   "hookToggleRestored",
+  "sharedContextDiscardStatus",
+  "sharedContextProjectedStatus",
+  "sharedContextProjectedId",
+  "sharedContextProjectedUrl",
+  "sharedContextStoredStatus",
+  "sharedContextStoredPreserved",
+  "sharedContextSecondStatus",
+  "sharedContextSecondCode",
 ];
 const KNOWN_DIFFERENT = ["attachmentReplayed"];
 

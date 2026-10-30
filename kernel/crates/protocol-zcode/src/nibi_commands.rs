@@ -73,6 +73,7 @@ pub const HANDLED_COMMANDS: &[&str] = &[
     "toggleWorkspaceHookReviewItem",
     "revokeWorkspaceHookTrust",
     "deleteSession",
+    "discardSharedContext",
 ];
 
 /// 内核**还没有能力**实现的 NIBI 命令：名字 + 缺的能力。不是接线缺口，是功能缺口——补之前要先决策
@@ -89,10 +90,6 @@ pub const BLOCKED_COMMANDS: &[(&str, &str)] = &[
     (
         "amendWorkflowRunSettings",
         "同上：DWF run 的设置修订",
-    ),
-    (
-        "discardSharedContext",
-        "分享上下文的取回/丢弃：内核没有 shared-context 存储（Node 的 topic resource / context_refs）",
     ),
 ];
 
