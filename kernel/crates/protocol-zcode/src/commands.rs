@@ -452,6 +452,22 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
                 "createSession.mcpServers has entries the kernel cannot map"
             );
         }
+        // 内核的 MCP 连接没有 OAuth 授权、也不接受指定握手版本（ext 的 node_config 同样只 warn）：
+        // 这两项在这里点名，不静默丢掉（Node 的 OAuth 有 15s 授权窗口，Rust 会连成 Failed）。
+        let carrying = |field: &str| {
+            raw.iter()
+                .filter(|server| server.get(field).is_some_and(|value| !value.is_null()))
+                .count()
+        };
+        let (oauth, versioned) = (carrying("oauth"), carrying("protocolVersion"));
+        if oauth > 0 || versioned > 0 {
+            tracing::warn!(
+                event = "protocol.create_session.mcp_servers_unsupported_options",
+                oauth,
+                protocol_version = versioned,
+                "createSession.mcpServers carries oauth/protocolVersion the kernel does not implement"
+            );
+        }
         let workspace = server.workspace(payload["workspaceId"].as_str().unwrap_or_default());
         if let Err(error) = server.kernel.start_session_mcp(&id, &workspace, servers).await {
             tracing::warn!(

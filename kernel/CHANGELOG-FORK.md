@@ -133,6 +133,9 @@ R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用�
    恢复出来的会话没有 MCP，直到 Host 重新建会话。这是 Host 契约的现状，不是内核差异。
 3. `alwaysLoad` 已进选项（影响 ToolSearch 的延迟规则）；会话级 MCP 的首请求等待固定 15 s、
    不读 `-p` 的 prewait 配置（app-server 没有 `-p`）。
+4. `oauth` 与 `protocolVersion` 尚未实现（与 ext 的 node_config 同一现状）：`create_session`
+   对携带这两项条目的会话点名 `warn`（`protocol.create_session.mcp_servers_unsupported_options`），
+   不静默丢；OAuth 保护的服务会连成 Failed，等 MCP OAuth 支持补上。
 
 验证：ext 3 个新测试（每会话独立连接 / 再给一次换掉旧集合 / 协议→配置映射）、kernel-api 2 个
 （序列化往返）、protocol-zcode 3 个（stdio/http/sse 映射、未知形态跳过、firstInput 执行状态优先级）；
