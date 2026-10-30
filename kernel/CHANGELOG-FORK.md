@@ -133,7 +133,11 @@ R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用�
    恢复出来的会话没有 MCP，直到 Host 重新建会话。这是 Host 契约的现状，不是内核差异。
 3. `alwaysLoad` 已进选项（影响 ToolSearch 的延迟规则）；会话级 MCP 的首请求等待固定 15 s、
    不读 `-p` 的 prewait 配置（app-server 没有 `-p`）。
-4. `oauth` 与 `protocolVersion` 尚未实现（与 ext 的 node_config 同一现状）：`create_session`
+4. **子代理会话不继承父会话的 MCP**：子代理的会话 ID 没有自己的 manager，`snapshot(child)`
+   回落到进程级配置（磁盘上的 `.nibi/.agents` 等）。Node 的子代理 app 直接继承父的
+   `config.mcp`，因此动态服务器（CUA broker / 云端项目）在子代理里会缺。补法：agents 生成
+   子会话时按父子关系继承 manager（`Ext::inherit_session_mcp(parent, child)`），待做。
+5. `oauth` 与 `protocolVersion` 尚未实现（与 ext 的 node_config 同一现状）：`create_session`
    对携带这两项条目的会话点名 `warn`（`protocol.create_session.mcp_servers_unsupported_options`），
    不静默丢；OAuth 保护的服务会连成 Failed，等 MCP OAuth 支持补上。
 

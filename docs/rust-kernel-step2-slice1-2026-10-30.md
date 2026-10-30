@@ -241,7 +241,8 @@ plan 开、default。联调里这正是 MCP 工具被权限询问拦住的原因
 **有意差异（记录在案）**：`isolation: workspace` 接受但当前仍按会话建连接（功能一致、连接数更多，
 后续做成共享池）；冷恢复不带 `mcpServers`（Node 侧同样不带，是 Host 契约现状）；`oauth` /
 `protocolVersion` 尚未实现（携带它们的条目会在 ACK 前点名 `warn`，不静默；OAuth 服务器会连成 Failed，
-等 MCP OAuth 支持补上）。
+等 MCP OAuth 支持补上）；**子代理不继承父会话的 MCP**（子会话没有 manager，回落到进程级配置；
+Node 子代理 app 继承父 `config.mcp`——补法见 CHANGELOG-FORK §6.1 第 4 条）。
 
 ## 4. 尚未完成（Step 2 后续）
 
