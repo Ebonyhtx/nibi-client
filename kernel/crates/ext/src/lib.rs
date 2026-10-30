@@ -40,6 +40,8 @@ pub use mcp::{McpManager, McpScope, McpServer, McpServers, McpSettings};
 pub use plugins::{Plugin, PluginAgentFile, PluginSources, Plugins};
 pub use skills::{Skill, SkillCatalog, SkillCommands, SkillSource, SkillTool};
 
+use mcp::SessionMcp;
+
 /// ext 用到的端口，由 runtime 注入。
 #[derive(Clone)]
 pub struct ExtPorts {
@@ -80,6 +82,8 @@ pub struct Ext {
     skills: Arc<SkillCatalog>,
     commands: Arc<SkillCommands>,
     mcp: Arc<McpManager>,
+    /// 会话级的 MCP（NIBI `createSession.mcpServers`）：每个会话一套连接，见 [`SessionMcp`]。
+    session_mcp: Arc<SessionMcp>,
     registry: Arc<ExtRegistry>,
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
@@ -106,16 +110,25 @@ impl Ext {
         if let Some(machines) = ports.machines.clone() {
             mcp.set_machines(machines);
         }
+        // 会话级 MCP 用同一套传输/任务/时钟；每会话一个 manager（见 SessionMcp）。
+        let session_mcp = Arc::new(SessionMcp::new(
+            ports.mcp.clone(),
+            ports.spawner.clone(),
+            config.mcp.clone(),
+            ports.clock.clone(),
+        ));
         let registry = Arc::new(ExtRegistry {
             base,
             skill: skill_tool,
             wait: Arc::new(mcp::WaitForMcpServers::new(Arc::downgrade(&mcp))),
             mcp: mcp.clone(),
+            sessions: session_mcp.clone(),
         });
         Self {
             skills,
             commands,
             mcp,
+            session_mcp,
             registry,
             files: ports.files,
             config,
@@ -154,6 +167,22 @@ impl Ext {
         &self.mcp
     }
 
+    /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。
+    /// 这个会话的工具表从此就是这批服务器（与 Node 的 runtimeConfig.mcp 同语义）。
+    pub fn start_session_mcp(
+        &self,
+        session: &SessionId,
+        workspace: &WorkspaceRef,
+        servers: Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer>,
+    ) {
+        self.session_mcp.start(session, workspace, servers);
+    }
+
+    /// 会话关闭：释放它的 MCP 连接与连接任务（在后台任务里关，不等 IO）。
+    pub fn release_session(&self, session: &SessionId) {
+        self.session_mcp.stop(session);
+    }
+
     /// 加载插件、开始连接 MCP 服务器（每个服务器一个连接任务，不等待）。返回加载好的插件：其中的
     /// agent 文件与 hooks 由 runtime 交给 agents 与 hooks（ext.md §4）。
     pub async fn start(&self) -> Plugins {
@@ -188,26 +217,34 @@ struct ExtRegistry {
     base: Arc<dyn ToolRegistry>,
     skill: Arc<dyn Tool>,
     /// WaitForMcpServers（ext.md §3.8）：有 Pending 的服务器、或这个会话带过它（declared）时在工具表里。启用 ToolSearch
-    /// 时由主循环去掉（tools-more.md §3.3 第 4 条）。
+    /// 时由主循环去掉（tools-more.md §3.3 第 4 条）。进程级的那一个；会话带了自己的服务器时另按会话建。
     wait: Arc<dyn Tool>,
     mcp: Arc<McpManager>,
+    /// 会话级的 MCP（NIBI `createSession.mcpServers`）。
+    sessions: Arc<SessionMcp>,
 }
 
 impl ExtRegistry {
-    fn assemble(&self, wait: bool, mcp: Vec<Arc<dyn Tool>>) -> Vec<Arc<dyn Tool>> {
+    fn assemble(&self, wait: Option<Arc<dyn Tool>>, mcp: Vec<Arc<dyn Tool>>) -> Vec<Arc<dyn Tool>> {
         let mut tools = self.base.tools();
         tools.push(self.skill.clone());
-        if wait {
-            tools.push(self.wait.clone());
+        if let Some(wait) = wait {
+            tools.push(wait);
         }
         tools.extend(mcp);
         tools
+    }
+
+    /// 会话自己的 WaitForMcpServers：连接状态与 declared 都在这个会话的 manager 里。
+    fn session_wait(manager: &Arc<McpManager>) -> Arc<dyn Tool> {
+        Arc::new(mcp::WaitForMcpServers::new(Arc::downgrade(manager)))
     }
 }
 
 impl ToolRegistry for ExtRegistry {
     fn tools(&self) -> Vec<Arc<dyn Tool>> {
-        self.assemble(self.mcp.has_pending(), self.mcp.tools())
+        let wait = self.mcp.has_pending().then(|| self.wait.clone());
+        self.assemble(wait, self.mcp.tools())
     }
 
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
@@ -221,22 +258,62 @@ impl ToolRegistry for ExtRegistry {
         self.base.find(name).or_else(|| self.mcp.find(name))
     }
 
+    /// 会话带了自己的 MCP 服务器时，工具只在自己会话里可见（Node 的 lease 模型）。
+    fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        let Some(manager) = self.sessions.manager(session) else {
+            return self.find(name);
+        };
+        if name == self.skill.name() {
+            return Some(self.skill.clone());
+        }
+        if name == WAIT_FOR_MCP_SERVERS && manager.has_servers() {
+            return Some(Self::session_wait(&manager));
+        }
+        self.base
+            .find(name)
+            .or_else(|| manager.find(name))
+    }
+
     fn withheld(&self, name: &str) -> Option<Arc<dyn Tool>> {
         self.base.withheld(name)
     }
 
     /// MCP 工具、连接中的服务器与 instructions 在同一把锁里取（query.md §1.3，修复线 F36）。
     fn snapshot(&self, session: &SessionId) -> ToolSnapshot {
+        if let Some(manager) = self.sessions.manager(session) {
+            let (tools, view) = manager.snapshot();
+            let wait =
+                (!view.pending().is_empty() || manager.declared(session))
+                    .then(|| Self::session_wait(&manager));
+            return ToolSnapshot {
+                tools: self.assemble(wait, tools),
+                mcp: Some(view),
+            };
+        }
         let (tools, view) = self.mcp.snapshot();
         let wait = !view.pending().is_empty() || self.mcp.declared(session);
         ToolSnapshot {
-            tools: self.assemble(wait, tools),
+            tools: self.assemble(wait.then(|| self.wait.clone()), tools),
             mcp: Some(view),
         }
     }
 
     fn mcp(&self) -> Option<Arc<dyn McpConnections>> {
         Some(self.mcp.clone())
+    }
+
+    fn mcp_for(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        match self.sessions.manager(session) {
+            Some(manager) => Some(manager),
+            None => Some(self.mcp.clone()),
+        }
+    }
+
+    /// 会话级 MCP：主循环在首个模型请求前等它离开 Pending（连接在 createSession 里后台启动）。
+    fn session_mcp(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.sessions
+            .manager(session)
+            .map(|manager| manager as Arc<dyn McpConnections>)
     }
 }
 

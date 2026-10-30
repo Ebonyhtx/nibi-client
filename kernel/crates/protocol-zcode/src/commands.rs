@@ -38,6 +38,101 @@ fn mode(value: &Value, plan: Option<bool>) -> Option<(PermissionMode, bool)> {
     Some((PermissionMode::from_node_name(name)?, plan.unwrap_or(false)))
 }
 
+/// 首条输入的执行状态（Node 的 `resolveSubmittedExecutionState`）：`firstInput.mode/planEnabled` 给了就覆盖
+/// `config.mode/planEnabled`（Node 的 `resolveExecutionState(payload, current)` 同义）；只给 planEnabled 时
+/// 沿用 config 的模式。
+fn first_input_execution(
+    first: &Value,
+    config: &Value,
+    fallback: (PermissionMode, bool),
+) -> (PermissionMode, bool) {
+    let base = mode(&config["mode"], config["planEnabled"].as_bool()).unwrap_or(fallback);
+    if let Some(found) = mode(&first["mode"], first["planEnabled"].as_bool()) {
+        return found;
+    }
+    match first["planEnabled"].as_bool() {
+        Some(plan) => (base.0, plan),
+        None => base,
+    }
+}
+
+/// `createSession.mcpServers` → 会话级的 MCP 服务器（NIBI `nibiProtocolMcpServerSchema` 的两种形态）。
+/// 形状已由契约层按同一 zod 生成的 schema 校验过，这里只做字段搬运；认不出的形态整条丢掉（不静默：
+/// 调用方在数量不等时 warn）。
+fn session_mcp_servers(payload: &Value) -> Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer> {
+    use std::collections::BTreeMap;
+
+    use rust_cli_kernel_api::mcp::McpTransportConfig;
+    use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
+
+    let entries = |value: &Value| -> BTreeMap<String, String> {
+        value
+            .as_array()
+            .map(|pairs| {
+                pairs
+                    .iter()
+                    .filter_map(|pair| {
+                        Some((
+                            pair["name"].as_str()?.to_owned(),
+                            pair["value"].as_str()?.to_owned(),
+                        ))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let isolation = |server: &Value| {
+        match server["isolation"].as_str() {
+            Some("workspace") => McpIsolation::Workspace,
+            _ => McpIsolation::Session,
+        }
+    };
+    payload["mcpServers"]
+        .as_array()
+        .map(|servers| {
+            servers
+                .iter()
+                .filter_map(|server| {
+                    let name = server["name"].as_str()?.to_owned();
+                    let transport = match server["command"].as_str() {
+                        Some(command) => McpTransportConfig::Stdio {
+                            command: command.to_owned(),
+                            args: server["args"]
+                                .as_array()
+                                .map(|args| {
+                                    args.iter()
+                                        .filter_map(|arg| arg.as_str().map(str::to_owned))
+                                        .collect()
+                                })
+                                .unwrap_or_default(),
+                            env: entries(&server["env"]),
+                            cwd: None,
+                        },
+                        None => match server["type"].as_str()? {
+                            "http" => McpTransportConfig::Http {
+                                url: server["url"].as_str()?.to_owned(),
+                                headers: entries(&server["headers"]),
+                            },
+                            "sse" => McpTransportConfig::Sse {
+                                url: server["url"].as_str()?.to_owned(),
+                                headers: entries(&server["headers"]),
+                            },
+                            _ => return None,
+                        },
+                    };
+                    Some(SessionMcpServer {
+                        name,
+                        transport,
+                        always_load: server["alwaysLoad"].as_bool().unwrap_or(false),
+                        timeout_ms: server["timeoutMs"].as_u64(),
+                        isolation: isolation(server),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// row-targeting 的 `target`（`conversationRowTargetSchema`：rowId + entityId）。
 struct TargetRow {
     row_id: u64,
@@ -311,12 +406,13 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         );
     }
     let config = &payload["config"];
+    let first = &payload["firstInput"];
     let chosen = selection(&config["modelSelection"])
         .or_else(|| flat_selection(config))
-        .or_else(|| selection(&payload["firstInput"]["modelSelection"]))
+        .or_else(|| selection(&first["modelSelection"]))
         .unwrap_or_else(|| server.defaults.selection.clone());
-    let (permission, plan) = mode(&config["mode"], config["planEnabled"].as_bool())
-        .unwrap_or((server.defaults.mode, false));
+    let (permission, plan) =
+        first_input_execution(first, config, (server.defaults.mode, false));
     // Host 没给 sessionId 时让 kernel 生成（注入的 Ids → `sess_<uuid>`，与 Node 同格式）；
     // 协议层不再自带 id 生成器。
     let requested = payload["sessionId"].as_str().map(SessionId::new);
@@ -344,6 +440,28 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         Ok(id) => id,
         Err(error) => return refused(error.to_string()),
     };
+    // MCP 是创建期配置（NIBI createSession.mcpServers）：会话的工具表从此就是这批服务器。
+    // 连接在后台建立；给了列表但一条都没认出来时点名，不静默。
+    if let Some(raw) = payload["mcpServers"].as_array() {
+        let servers = session_mcp_servers(payload);
+        if servers.len() != raw.len() {
+            tracing::warn!(
+                event = "protocol.create_session.mcp_servers_unparsed",
+                given = raw.len(),
+                parsed = servers.len(),
+                "createSession.mcpServers has entries the kernel cannot map"
+            );
+        }
+        let workspace = server.workspace(payload["workspaceId"].as_str().unwrap_or_default());
+        if let Err(error) = server.kernel.start_session_mcp(&id, &workspace, servers).await {
+            tracing::warn!(
+                event = "protocol.create_session.mcp_servers_failed",
+                session = %id,
+                error = %error,
+                "the kernel refused the session MCP servers"
+            );
+        }
+    }
     if let Some(followup) = config["followupMode"].as_str().and_then(Followup::parse) {
         server
             .followups

@@ -104,6 +104,41 @@
   editUserQuery→retryTurn→compact **全部 accepted**。遗留：plan 模式下 edit 的
   resubmit turn 失败（非关键路径，记录在案）。
 
+## 6.1 会话级 MCP（NIBI `createSession.mcpServers`，2026-10-30）
+
+R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用户设置里启用的 MCP、插件 MCP、
+动态解析的产品服务器如 CUA broker / 云端项目）。上游/本轮之前的实现只读进程级配置，
+这批服务器会**静默消失**。
+
+实现（与 Node 的 pool + lease 同语义：连接在会话上，工具按会话可见）：
+
+- `kernel-api` 新增 `mcp_session::SessionMcpServer`（name / transport / alwaysLoad / timeoutMs /
+  isolation，camelCase 与协议同名）与 `Kernel::start_session_mcp` / `Kernel::stop_session_mcp`；
+  `ToolRegistry` 新增 `find_for(session, name)`、`mcp_for(session)`、`session_mcp(session)`，
+  缺省都退回进程级方法（TUI / `-p` 行为不变）。
+- `ext` 新增 `SessionMcp`：**每个会话一个 `McpManager`**（同一传输/任务/时钟），
+  `Ext::start_session_mcp` 注册并后台连接，`Ext::release_session` 取消连接任务、关闭客户端；
+  `ExtRegistry` 按会话给 `snapshot` / `find_for` / `mcp_for` / `session_mcp`，
+  带了自己的服务器的会话工具表**就是这批**（与 Node 的 `runtimeConfig.mcp` 相同，不混进程级配置）。
+- `query`：执行器与 MCP 等待改用 `find_for(scope.session, …)`；会话级 MCP 在**首个模型请求前**
+  有界等待（15 s）离开 Pending，与 Node 的 `startMcpStartup` 同义（此前 Rust 首轮请求会缺 MCP 工具）。
+- `runtime`：`LocalKernel::start_session_mcp/stop_session_mcp` 接线；`Closer::released` 释放会话级连接。
+- 包装注册表（`AgentRegistry` / `FilteredTools` / `PolicyFiltered`）逐层转交新方法——漏一层就会
+  退回进程级查找（本轮在联调里实际踩到：工具在工具表里但调用找不到）。
+
+**有意差异（记录在案）**：
+1. `isolation: "workspace"` 的值被接受但**仍按会话建连接**（Node 会跨会话共享一条连接）。
+   功能语义相同（工具可见性一致），只是进程数与连接数更高；等 Step 2 后续再做成共享池。
+2. 冷恢复（v4 subscribe 触发的 `resumePersistedSession`）**不带** `mcpServers`（Node 侧同样不带）：
+   恢复出来的会话没有 MCP，直到 Host 重新建会话。这是 Host 契约的现状，不是内核差异。
+3. `alwaysLoad` 已进选项（影响 ToolSearch 的延迟规则）；会话级 MCP 的首请求等待固定 15 s、
+   不读 `-p` 的 prewait 配置（app-server 没有 `-p`）。
+
+验证：ext 3 个新测试（每会话独立连接 / 再给一次换掉旧集合 / 协议→配置映射）、kernel-api 2 个
+（序列化往返）、protocol-zcode 3 个（stdio/http/sse 映射、未知形态跳过、firstInput 执行状态优先级）；
+双内核驱动新增 `fake-mcp-server.mjs`（stdio MCP），两边内核在首轮请求即带 `mcp__fake__echo`、
+模型调用后拿到 `echo:ping`；对拍门禁 13→**17** 个必需字段全一致。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

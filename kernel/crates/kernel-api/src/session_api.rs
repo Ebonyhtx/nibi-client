@@ -565,6 +565,26 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 给会话装上创建期给的 MCP 服务器（NIBI 协议 `createSession.mcpServers`）：
+    /// 这批服务器属于这个会话，连接在后台建立、不等结果；会话的工具表就是它们（与 Node 的
+    /// runtimeConfig.mcp 同语义）。空列表表示"这个会话没有 MCP"，不连接任何服务器。
+    ///
+    /// 缺省实现不接（TUI / `-p` 用进程级配置，不经过这里）：返回 `Unsupported`，调用方只记日志。
+    async fn start_session_mcp(
+        &self,
+        _session: &SessionId,
+        _workspace: &WorkspaceRef,
+        _servers: Vec<crate::mcp_session::SessionMcpServer>,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session MCP servers".to_owned(),
+        })
+    }
+
+    /// 会话关闭时释放它的 MCP 连接（含连接任务）：之后打开同一会话要由调用方重新给。
+    /// 缺省什么都不做。
+    fn stop_session_mcp(&self, _session: &SessionId) {}
+
     /// `@` 补全的文件清单（docs/specs/rust-cli/tui-input.md §1.2）：相对 shell 当前目录的文件路径。
     async fn workspace_files(
         &self,

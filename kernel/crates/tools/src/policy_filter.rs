@@ -110,6 +110,24 @@ impl ToolRegistry for PolicyFiltered {
     fn mcp(&self) -> Option<Arc<dyn McpConnections>> {
         self.inner.mcp()
     }
+
+    /// 会话级的 MCP（NIBI `createSession.mcpServers`）跟着被包的注册表走。
+    fn mcp_for(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.inner.mcp_for(session)
+    }
+
+    fn session_mcp(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.inner.session_mcp(session)
+    }
+
+    fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        let rules = self.gate.rules();
+        match self.inner.find_for(session, name) {
+            Some(tool) if Self::denied(&rules, tool.name()) => None,
+            Some(tool) => Some(tool),
+            None => self.restored(&rules, name),
+        }
+    }
 }
 
 #[cfg(test)]

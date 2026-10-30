@@ -67,7 +67,8 @@ for (const name of names) {
 
 const document = {
   generatedFrom: "packages/shared/src/nibi-protocol-v4/command.ts",
-  generatedAt: new Date().toISOString().slice(0, 10),
+  // 不写生成日期：`--check` 逐字节比较整份文件，带日期会让门禁在跨日后假红。
+  // 真源与内容的对应关系由 commandTypes/CAS 集合与 payload schema 本身表达。
   commandTypes: names,
   requiresBaseRevision: [...COMMANDS_REQUIRING_BASE_REVISION].sort(),
   requiresBaseLogEpoch: [...ROW_TARGETING_COMMANDS].sort(),

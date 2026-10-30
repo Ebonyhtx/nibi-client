@@ -124,7 +124,7 @@ fn create_session_accepts_every_nibi_field() {
     assert!(!unsupported.contains(&"firstInput.mode"));
     assert!(!unsupported.contains(&"firstInput.planEnabled"));
     // 仍未消费的继续点名。
-    assert!(unsupported.contains(&"mcpServers"));
+    assert!(!unsupported.contains(&"mcpServers")); // 2026-10-30 起经 start_session_mcp 装进会话。
     assert!(unsupported.contains(&"additionalDirectories"));
     assert!(!unsupported.contains(&"permissionScope"));
     assert!(unsupported.contains(&"dynamicWorkflowEnabled"));

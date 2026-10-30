@@ -120,7 +120,7 @@ impl ToolBatch {
     }
 
     pub(crate) fn add(&mut self, id: ToolUseId, name: String, input: Value, assistant: MessageId) {
-        let tool = self.scope.parts.tools.find(&name);
+        let tool = self.scope.parts.tools.find_for(&self.scope.session, &name);
         // 找不到、它的服务器在首次连接时排成不可并发的调用，执行时再等。
         let waits_for_mcp = tool.is_none() && mcp_wait::connecting(&self.scope, &name);
         let (safe, status) = match &tool {

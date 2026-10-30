@@ -208,6 +208,22 @@ impl Kernel for LocalKernel {
         self.ext.mcp().server_infos()
     }
 
+    /// NIBI `createSession.mcpServers`：会话级的 MCP 服务器（连接在后台建立，不等结果）。
+    async fn start_session_mcp(
+        &self,
+        session: &SessionId,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        servers: Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer>,
+    ) -> Result<(), KernelError> {
+        self.ext.start_session_mcp(session, workspace, servers);
+        Ok(())
+    }
+
+    /// 会话关闭：释放它的会话级 MCP 连接（`Closer` 的 `released` 也调一次，重复调用无副作用）。
+    fn stop_session_mcp(&self, session: &SessionId) {
+        self.ext.release_session(session);
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

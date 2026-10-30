@@ -286,6 +286,17 @@ pub(crate) async fn run(
     if shutdown(&scope) {
         return Ok(QueryStop::Aborted);
     }
+    // 会话级 MCP（NIBI createSession.mcpServers）：Node 的 startMcpStartup 在首个模型请求前等连接；
+    // 这里同样有界等待，避免第一轮的工具表缺 MCP 工具。连接失败或超时后照常继续（工具表里仍有
+    // WaitForMcpServers）。中止时立刻退出等待。
+    if let Some(mcp) = scope.parts.tools.session_mcp(&scope.session) {
+        const SESSION_MCP_WAIT_MS: u64 = 15_000;
+        let ready = |view: &rust_cli_kernel_api::mcp_state::McpView| view.pending().is_empty();
+        tokio::select! {
+            _ = mcp.wait(SESSION_MCP_WAIT_MS, &ready) => {}
+            () = scope.abort.aborted() => {}
+        }
+    }
     // 这一步的工具快照（query.md §1.3）：运行开始与每个工具批之后各取一次，附件与请求共用。
     let mut step = StepTools::refresh(&scope, &selection).await;
     // 运行开始：输入那一步的当步 attachment，再提交输入的 UserPromptSubmit 结果（先产生当步 attachment、

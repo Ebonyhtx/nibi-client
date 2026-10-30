@@ -31,6 +31,7 @@
 //! | [`cron_store`] | 持久定时任务的存储端口（任务文件、调度锁、文件变化） |
 //! | [`listing`] | 上下文清单（延迟工具、agent、skill、MCP instructions）的来源 |
 //! | [`mcp`] | MCP 的传输端口与工具来源 |
+//! | [`mcp_session`] | 随会话创建给的 MCP 服务器（NIBI `createSession.mcpServers`） |
 //! | [`mcp_state`] | MCP 连接状态的视图与等待（连接中的服务器，F36） |
 //! | [`monitor`] | Monitor 交给会话 actor 的登记（F83） |
 //! | [`monitor_watch`] | 一个 monitor 的切行、批与限流（纯状态，会话 actor 与 agents 共用，F83） |
@@ -87,6 +88,7 @@ pub mod machine_notices;
 pub mod machine_param;
 pub mod manage;
 pub mod mcp;
+pub mod mcp_session;
 pub mod mcp_state;
 pub mod mcp_vars;
 pub mod message;

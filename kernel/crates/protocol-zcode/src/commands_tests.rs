@@ -187,3 +187,118 @@ fn edit_target_guard_only_accepts_the_latest_real_query() {
     let messages = vec![assistant("a1")];
     assert!(edit_target_guard(&messages, "a1").is_err());
 }
+
+#[test]
+fn session_mcp_servers_maps_stdio_http_and_sse() {
+    use rust_cli_kernel_api::mcp::McpTransportConfig;
+    use rust_cli_kernel_api::mcp_session::McpIsolation;
+
+    let servers = session_mcp_servers(&json!({
+        "mcpServers": [
+            {
+                "name": "files",
+                "command": "node",
+                "args": ["server.mjs", "--root", "/w"],
+                "env": [{"name": "TOKEN", "value": "t"}],
+                "alwaysLoad": true,
+                "timeoutMs": 2500,
+                "isolation": "workspace"
+            },
+            {
+                "name": "cloud",
+                "type": "http",
+                "url": "https://example.invalid/mcp",
+                "headers": [{"name": "Authorization", "value": "Bearer x"}]
+            },
+            {
+                "name": "events",
+                "type": "sse",
+                "url": "https://example.invalid/sse",
+                "headers": []
+            }
+        ]
+    }));
+    assert_eq!(servers.len(), 3);
+    assert_eq!(servers[0].name, "files");
+    assert!(servers[0].always_load);
+    assert_eq!(servers[0].timeout_ms, Some(2500));
+    assert_eq!(servers[0].isolation, McpIsolation::Workspace);
+    assert_eq!(
+        servers[0].transport,
+        McpTransportConfig::Stdio {
+            command: "node".to_owned(),
+            args: ["server.mjs", "--root", "/w"]
+                .iter()
+                .map(|arg| (*arg).to_owned())
+                .collect(),
+            env: [("TOKEN".to_owned(), "t".to_owned())].into_iter().collect(),
+            cwd: None,
+        }
+    );
+    assert_eq!(servers[1].isolation, McpIsolation::Session);
+    assert!(servers[1].timeout_ms.is_none());
+    assert!(matches!(
+        &servers[1].transport,
+        McpTransportConfig::Http { url, headers }
+            if url == "https://example.invalid/mcp"
+                && headers.get("Authorization").map(String::as_str) == Some("Bearer x")
+    ));
+    assert!(matches!(
+        &servers[2].transport,
+        McpTransportConfig::Sse { url, .. } if url == "https://example.invalid/sse"
+    ));
+}
+
+#[test]
+fn session_mcp_servers_skips_unknown_shapes_and_empty_payloads() {
+    // 认不出的形态不装（调用方按数量不等 warn）；没有 mcpServers 时为空。
+    let servers = session_mcp_servers(&json!({
+        "mcpServers": [
+            {"name": "odd", "type": "websocket", "url": "ws://example.invalid"},
+            {"name": "no-command"},
+            {"name": "ok", "command": "node"}
+        ]
+    }));
+    assert_eq!(servers.len(), 1);
+    assert_eq!(servers[0].name, "ok");
+    assert!(session_mcp_servers(&json!({"workspaceId": "w"})).is_empty());
+    // 显式空列表：会话没有 MCP（与 Node 的 runtimeConfig.mcp 空集合同义）。
+    assert!(session_mcp_servers(&json!({"mcpServers": []})).is_empty());
+}
+
+#[test]
+fn first_input_execution_overrides_config_mode() {
+    let yolo = PermissionMode::BypassPermissions;
+    // firstInput.mode 覆盖 config.mode（Node 的 resolveExecutionState(payload, current)）。
+    assert_eq!(
+        first_input_execution(
+            &json!({"mode": "yolo"}),
+            &json!({"mode": "build", "planEnabled": false}),
+            (PermissionMode::Default, false)
+        ),
+        (yolo, false)
+    );
+    // 只给 planEnabled：沿用 config 的模式。
+    assert_eq!(
+        first_input_execution(
+            &json!({"planEnabled": true}),
+            &json!({"mode": "build", "planEnabled": false}),
+            (PermissionMode::Default, false)
+        ),
+        (PermissionMode::Default, true)
+    );
+    // 都没给：config 优先，再退回入口缺省。
+    assert_eq!(
+        first_input_execution(&json!({}), &json!({"mode": "guarded"}), (PermissionMode::Default, false)),
+        (PermissionMode::Guarded, false)
+    );
+    assert_eq!(
+        first_input_execution(&json!({}), &json!({}), (PermissionMode::Default, true)),
+        (PermissionMode::Default, true)
+    );
+    // 旧写法 plan：模式回到 default、plan 打开。
+    assert_eq!(
+        first_input_execution(&json!({"mode": "plan"}), &json!({"mode": "yolo"}), (PermissionMode::Default, false)),
+        (PermissionMode::Default, true)
+    );
+}

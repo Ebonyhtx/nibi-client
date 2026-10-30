@@ -185,10 +185,33 @@ impl ToolRegistry for FilteredTools {
         self.inner.mcp()
     }
 
+    /// 会话级的 MCP（NIBI `createSession.mcpServers`）跟着主注册表走：子代理与主线程同一套连接。
+    fn mcp_for(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.inner.mcp_for(session)
+    }
+
+    fn session_mcp(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.inner.session_mcp(session)
+    }
+
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
         if let Some(tool) = self
             .inner
             .find(name)
+            .filter(|tool| self.rule.allows(tool.name()))
+        {
+            return Some(tool);
+        }
+        if !SEARCH_TOOLS.contains(&name) {
+            return None;
+        }
+        self.tools().into_iter().find(|tool| tool.name() == name)
+    }
+
+    fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        if let Some(tool) = self
+            .inner
+            .find_for(session, name)
             .filter(|tool| self.rule.allows(tool.name()))
         {
             return Some(tool);

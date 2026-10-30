@@ -46,7 +46,7 @@ fn waiting(view: &McpView, name: &str, exhausted: &Exhausted) -> Vec<String> {
 
 /// 要不要等这个找不到的工具：它的服务器在首次连接（Pending、不在重连），本次运行没有等满过。
 pub(crate) fn connecting(scope: &RunScope, name: &str) -> bool {
-    let Some(mcp) = scope.parts.tools.mcp() else {
+    let Some(mcp) = scope.parts.tools.mcp_for(&scope.session) else {
         return false;
     };
     servers_for_tool(&mcp.view(), name)
@@ -66,11 +66,11 @@ pub(crate) async fn wait_for_tool(
     cancel: &CancellationToken,
 ) -> Option<Arc<dyn Tool>> {
     let registry = &scope.parts.tools;
-    let mcp = registry.mcp()?;
+    let mcp = registry.mcp_for(&scope.session)?;
     let full = mcp.tool_wait_ms();
     let budget = full.saturating_sub(waited.load(Ordering::SeqCst));
     if budget == 0 {
-        return registry.find(name);
+        return registry.find_for(&scope.session, name);
     }
     let started = scope.parts.clock.now_ms();
     let done = |view: &McpView| waiting(view, name, &scope.exhausted).is_empty();
@@ -80,7 +80,7 @@ pub(crate) async fn wait_for_tool(
     };
     let elapsed = scope.parts.clock.now_ms().saturating_sub(started);
     waited.fetch_add(elapsed, Ordering::SeqCst);
-    let found = registry.find(name);
+    let found = registry.find_for(&scope.session, name);
     // 一次给了整份预算、等满了仍没有：这些服务器本次运行不再等（只在一次给了整份预算时记）。
     if found.is_none() && budget == full && elapsed >= full {
         scope.exhausted.add(waiting(&view, name, &scope.exhausted));

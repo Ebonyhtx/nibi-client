@@ -363,6 +363,7 @@ impl LocalKernel {
             worktrees,
             gate: gate.clone(),
             mcp: ext.mcp().clone(),
+            ext: ext.clone(),
         });
         let parts = QueryParts {
             model: ports.model.clone(),

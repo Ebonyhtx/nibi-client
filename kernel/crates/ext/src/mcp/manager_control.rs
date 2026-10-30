@@ -125,6 +125,23 @@ impl McpManager {
         }
     }
 
+    /// 这套连接整个不用了（会话关闭，NIBI `createSession.mcpServers` 的会话级 manager）：取消每个连接任务、
+    /// 关掉客户端、清空表。之后这个 manager 不再接服务器（它的会话已经走了）。
+    pub async fn stop_all(&self) {
+        let retired: Vec<Option<Arc<super::Client>>> = {
+            let names: Vec<String> = self.0.servers().keys().cloned().collect();
+            names
+                .iter()
+                .filter_map(|name| self.retire(name, McpStatus::Disabled).map(|(_, client, _, _)| client))
+                .collect()
+        };
+        self.0.changed.send_modify(|version| *version += 1);
+        for client in retired.into_iter().flatten() {
+            client.close().await;
+        }
+        self.0.servers().clear();
+    }
+
     fn status_of(&self, name: &str) -> Option<McpStatus> {
         self.0
             .servers()

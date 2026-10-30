@@ -1,6 +1,5 @@
 {
   "generatedFrom": "packages/shared/src/nibi-protocol-v4/command.ts",
-  "generatedAt": "2026-10-29",
   "commandTypes": [
     "createSession",
     "createSelectionSideSession",

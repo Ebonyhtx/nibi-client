@@ -181,6 +181,16 @@ impl ToolRegistry for AgentRegistry {
         self.base.mcp()
     }
 
+    /// 会话级的 MCP 连接（NIBI `createSession.mcpServers`）由基础注册表给。
+    fn mcp_for(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.base.mcp_for(session)
+    }
+
+    /// 首个模型请求前等的会话级 MCP（NIBI `createSession.mcpServers`）。
+    fn session_mcp(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.base.session_mcp(session)
+    }
+
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
         match self
             .own
@@ -190,6 +200,19 @@ impl ToolRegistry for AgentRegistry {
             Some(tool) if self.base.hides(tool.name()) => None,
             Some(tool) => Some(tool.clone()),
             None => self.base.find(name),
+        }
+    }
+
+    /// 会话级的 MCP 工具只在自己会话里可见（NIBI `createSession.mcpServers`）。
+    fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        match self
+            .own
+            .iter()
+            .find(|tool| tool.name() == name || tool.aliases().contains(&name))
+        {
+            Some(tool) if self.base.hides(tool.name()) => None,
+            Some(tool) => Some(tool.clone()),
+            None => self.base.find_for(session, name),
         }
     }
 

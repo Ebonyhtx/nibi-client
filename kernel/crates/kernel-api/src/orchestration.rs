@@ -350,6 +350,12 @@ pub trait ToolRegistry: Send + Sync {
     fn tools(&self) -> Vec<Arc<dyn Tool>>;
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>>;
 
+    /// 会话的工具查找（NIBI `createSession.mcpServers`）：会话级 MCP 工具只在创建它的会话里可见，
+    /// 只按名字找会串到别的会话。缺省与 [`Self::find`] 相同（进程级注册表）。
+    fn find_for(&self, _session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        self.find(name)
+    }
+
     /// 注册了、但按暴露规则不出现在 [`Self::tools`] 里的工具（有 Bash 时的 Glob / Grep，内嵌搜索，
     /// docs/specs/rust-cli/tools-files.md §1.1）。子代理的工具清单点名它们、又没有 Bash 时补回（
     /// agents.md §4.2，修复线 F16 新增）。缺省没有。
@@ -383,6 +389,19 @@ pub trait ToolRegistry: Send + Sync {
     /// MCP 连接（ToolSearch、WaitForMcpServers 与直接调用连接中服务器的工具时等待，ext.md §3.8，修复线 F36）。
     /// 缺省没有。
     fn mcp(&self) -> Option<Arc<dyn McpConnections>> {
+        None
+    }
+
+    /// 会话的 MCP 连接（NIBI `createSession.mcpServers`）：会话带了自己的服务器时是会话那一套，
+    /// 否则与 [`Self::mcp`] 相同。缺省与 [`Self::mcp`] 相同。
+    fn mcp_for(&self, _session: &SessionId) -> Option<Arc<dyn McpConnections>> {
+        self.mcp()
+    }
+
+    /// 会话级 MCP 的连接（NIBI `createSession.mcpServers`）：与 [`Self::mcp_for`] 不同，这里只给
+    /// **会话自己**那一套；None 表示这个会话没有会话级 MCP（TUI / `-p` / 没带服务器）。主循环在首个
+    /// 模型请求前等它离开 Pending（Node 的 `startMcpStartup` 同样）。缺省没有。
+    fn session_mcp(&self, _session: &SessionId) -> Option<Arc<dyn McpConnections>> {
         None
     }
 }

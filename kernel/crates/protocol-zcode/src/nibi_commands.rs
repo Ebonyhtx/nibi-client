@@ -30,9 +30,9 @@ const REMOVED_SEND_TEXT_FIELDS: &[&str] = &["offPeakTaskId", "offPeakRunType", "
 /// 处理器实现一项就从中删一项；列表非空时 `create_session` 至少要 warn。
 /// 已消费：config.modelSelection/mode/planEnabled/followupMode、config.provider/model/thought、
 /// permissionScope（literal 校验后忽略——kernel 默认 session-scoped）
-/// （2026-10-30 起作选择回落）、firstInput.text/mode/planEnabled（input_meta 捕获）。
+/// （2026-10-30 起作选择回落）、firstInput.text/mode/planEnabled（input_meta 捕获）、
+/// mcpServers（2026-10-30 起经 `Kernel::start_session_mcp` 装进会话，见 `commands::create_session`）。
 pub const CREATE_SESSION_FIELDS_NOT_YET_CONSUMED: &[&str] = &[
-    "mcpServers",
     "additionalDirectories",
     "dynamicWorkflowEnabled",
     "dynamicWorkflowMode",

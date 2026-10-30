@@ -121,6 +121,8 @@ pub(crate) struct Closer {
     pub(crate) gate: Arc<PolicyGate>,
     /// WaitForMcpServers 的 declared 按会话记，会话关闭时清掉（ext.md §3.8、D34）。
     pub(crate) mcp: Arc<rust_cli_ext::McpManager>,
+    /// 会话级的 MCP（NIBI `createSession.mcpServers`）：会话关闭时释放连接与连接任务。
+    pub(crate) ext: Arc<rust_cli_ext::Ext>,
 }
 
 impl rust_cli_session::Released for Closer {
@@ -150,6 +152,8 @@ impl rust_cli_session::Released for Closer {
         self.worktrees.forget(session);
         self.gate.release(session);
         self.mcp.release(session);
+        // 会话级的 MCP 连接（NIBI createSession.mcpServers）随会话一起走：连接任务取消、客户端在后台关闭。
+        self.ext.release_session(session);
         // 最后移出条目：释放作用域会中止这个会话剩下的任务（actor 已经退出，只剩标题等旁路任务）；Closing 的令牌随之
         // 丢弃，等它的打开醒来冷加载，看到的是上面已经清干净的表（先清后移，顺序不能反）。
         let slot = self.sessions.upgrade().and_then(|sessions| {
