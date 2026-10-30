@@ -94,6 +94,16 @@ pub trait Kernel {
 5. **工作量上调**：从"中等（约 1 天）"改为"中偏大"——四个 handler 之上还有 admission 评估、
    flow 生命周期（含 deadline 与 supersede）、交互 payload 投影三层。
 
+6. **bundle 摘要的构造位置与一致性约束**：Node 在
+   `adapters/src/config/config-factory.ts` 生成 `WorkspaceHookBundleSnapshot`，并且**要求
+   `workspaceHookRuntimeRoot` 跨调用点一致**——注释原文：审核请求遍历 default/user/project/env/cli
+   全部层，而"审核中 toggle"曾只读单层 runtimeConfig.hooks，两处推导不同就会产出不同
+   `bundleDigest`，toggle 被误判成 `workspace_hooks_snapshot_mismatch`；所以 Node 把 runtimeRoot
+   显式导出成 `project.workspaceHookRuntimeRoot` 供下游复用。
+   → Rust 侧的地基测试必须**同时比 runtimeRoot 与最终 digest**，否则一旦不一致无法定位是哪一层。
+   → 同时确认 Rust 的 `hooks::workspace_digest::runtime_root/bundle` 是否按同样的层次与顺序收集
+   （它存在且是库，但"收集哪些层的哪些文件"目前在 CLI 的 `config/trust.rs` 里）。
+
 ### 待查（动手前先读源码确认，不猜）
 
 1. `reviewFlowId` 的生命周期与 `generation` 的精确语义（`interaction-registry.ts` 的
