@@ -2525,6 +2525,7 @@ dependencies = [
  "regress",
  "rust-cli-base",
  "rust-cli-kernel-api",
+ "rust-cli-platform",
  "rust-cli-prompts",
  "serde_json",
  "sha2",

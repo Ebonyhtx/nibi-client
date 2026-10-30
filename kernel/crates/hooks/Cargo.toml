@@ -21,6 +21,8 @@ regress.workspace = true
 # 信任 digest 的 JSON 文本按 JS 规则生成（config.md §4.1）。
 rust-cli-base.workspace = true
 rust-cli-kernel-api.workspace = true
+# 项目级配置的解析结果（`ConfigFile`）：发现逻辑下沉到这里后要用。
+rust-cli-platform.workspace = true
 rust-cli-prompts.workspace = true
 serde_json.workspace = true
 # 项目 hooks 信任的 digest（Node 用 sha256，config.md §4.1）。

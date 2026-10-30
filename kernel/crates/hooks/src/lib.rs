@@ -35,6 +35,7 @@ mod interpret;
 mod listing;
 mod matcher;
 pub mod node_config;
+pub mod project_config;
 mod on_error;
 mod output;
 mod persist;
