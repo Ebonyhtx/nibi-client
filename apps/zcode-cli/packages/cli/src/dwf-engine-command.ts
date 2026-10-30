@@ -88,14 +88,17 @@ type SubmitReply =
 class RemoteDriver {
   readonly journal: JournalStorePort;
   sink: WorkflowSink | undefined;
+  private readonly runId: string;
   private readonly request: (method: string, params: unknown) => Promise<unknown>;
   private readonly notify: (method: string, params: unknown) => void;
 
   constructor(
+    runId: string,
     journal: JournalStorePort,
     request: (method: string, params: unknown) => Promise<unknown>,
     notify: (method: string, params: unknown) => void,
   ) {
+    this.runId = runId;
     this.journal = journal;
     this.request = request;
     this.notify = notify;
@@ -107,38 +110,50 @@ class RemoteDriver {
 
   async createActorSession(
     actor: { siteId: string; ordinal: number },
-    _persona: PersonaSpec,
+    persona: PersonaSpec,
   ): Promise<SessionRef> {
-    const reply = (await this.request("actor/create", { actor })) as { session: string };
+    const reply = (await this.request("actor/create", {
+      runId: this.runId,
+      actor,
+      persona,
+    })) as { session: string };
     return { id: reply.session };
   }
 
   startAsk(session: SessionRef, instance: InstanceRef, message: AskMessage): void {
     this.notify("ask/start", {
+      runId: this.runId,
       key: `${instance.siteId}@${instance.ordinal}`,
       session,
       instance,
       typed: message.typed,
+      // 宿主（Rust）要用它跑 actor 轮：指令正文与 typed 时的 schema。
+      instructions: message.instructions,
+      ...(message.schema === undefined ? {} : { schema: message.schema }),
     });
   }
 
   respondToSubmit(instance: InstanceRef, verdict: SubmitVerdict): void {
     this.notify("ask/verdict", {
+      runId: this.runId,
       key: `${instance.siteId}@${instance.ordinal}`,
       verdict,
     });
   }
 
   cancelAsk(instance: InstanceRef): void {
-    this.notify("ask/cancel", { key: `${instance.siteId}@${instance.ordinal}` });
+    this.notify("ask/cancel", {
+      runId: this.runId,
+      key: `${instance.siteId}@${instance.ordinal}`,
+    });
   }
 
   async executeWorldRead(op: WorldReadOp, args: unknown[]): Promise<unknown> {
-    return this.request("world/read", { op, args });
+    return this.request("world/read", { runId: this.runId, op, args });
   }
 
   emit(event: RunEvent): void {
-    this.notify("run/event", { type: event.type });
+    this.notify("run/event", { runId: this.runId, type: event.type });
   }
 }
 
@@ -216,7 +231,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
 
     const db = new DatabaseSync(params.dbPath);
     const journal = createDwfJournalStore(db);
-    const driver = new RemoteDriver(journal, request, notify);
+    const driver = new RemoteDriver(params.runId, journal, request, notify);
     const abort = new AbortController();
     runs.set(params.runId, { driver, abort, db });
     try {

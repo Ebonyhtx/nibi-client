@@ -80,8 +80,9 @@ async function engine() {
   const notify = (method, params) => send({ method, params });
 
   class RemoteDriver {
-    constructor(journal) {
+    constructor(runId, journal) {
       // 引擎直接读 driver.journal（JournalStorePort）；写归引擎，driver 只是持有它。
+      this.runId = runId;
       this.journal = journal;
       this.sink = undefined;
       this.session = new Map();
@@ -91,9 +92,9 @@ async function engine() {
       this.sink = sink;
     }
 
-    async createActorSession(actor) {
+    async createActorSession(actor, persona) {
       if (process.env.PROBE_DEBUG) console.error("[engine] createActorSession", JSON.stringify(actor));
-      const reply = await request("actor/create", { actor });
+      const reply = await request("actor/create", { runId: this.runId, actor, persona });
       if (process.env.PROBE_DEBUG) console.error("[engine] actor session", JSON.stringify(reply));
       return { id: reply.session };
     }
@@ -107,19 +108,19 @@ async function engine() {
 
     respondToSubmit(instance, verdict) {
       const key = `${instance.siteId}@${instance.ordinal}`;
-      notify("ask/verdict", { key, verdict });
+      notify("ask/verdict", { runId: this.runId, key, verdict });
     }
 
     cancelAsk(instance) {
-      notify("ask/cancel", { key: `${instance.siteId}@${instance.ordinal}` });
+      notify("ask/cancel", { runId: this.runId, key: `${instance.siteId}@${instance.ordinal}` });
     }
 
     async executeWorldRead(op, args) {
-      return request("world/read", { op, args });
+      return request("world/read", { runId: this.runId, op, args });
     }
 
     emit(event) {
-      notify("run/event", { type: event.type });
+      notify("run/event", { runId: this.runId, type: event.type });
     }
   }
 
@@ -150,7 +151,7 @@ async function engine() {
       const { runId, parentSessionId, cwd, scriptText, args, caps, dbPath } = message.params;
       const db = new DatabaseSync(dbPath);
       const journal = createDwfJournalStore(db);
-      const driver = new RemoteDriver(journal);
+      const driver = new RemoteDriver(runId, journal);
       drivers.set(runId, driver);
       const settlement = await runWorkflowScript({
         scriptText,
