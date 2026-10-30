@@ -622,6 +622,41 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 工作区钩子的评审快照（NIBI `requestWorkspaceHookReview` 的数据来源）：bundle 摘要、逐条钩子
+    /// 与它们的信任状态。只读。缺省实现返回 `Unsupported`。
+    async fn workspace_hook_review(
+        &self,
+        _workspace: &WorkspaceRef,
+    ) -> Result<crate::hook_review::WorkspaceHookReview, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "workspace hook review".to_owned(),
+        })
+    }
+
+    /// 按评审项授权持久信任（NIBI `respondWorkspaceHookReview`）：返回授了几条。
+    /// 不在快照里的 id 忽略。缺省实现返回 `Unsupported`。
+    async fn grant_workspace_hooks(
+        &self,
+        _workspace: &WorkspaceRef,
+        _review_item_ids: &[String],
+    ) -> Result<usize, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "workspace hook review".to_owned(),
+        })
+    }
+
+    /// 按声明摘要撤销持久信任（NIBI `revokeWorkspaceHookTrust`）：返回撤了几条。
+    /// 缺省实现返回 `Unsupported`。
+    async fn revoke_workspace_hooks(
+        &self,
+        _workspace: &WorkspaceRef,
+        _declaration_digests: &[String],
+    ) -> Result<usize, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "workspace hook review".to_owned(),
+        })
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///

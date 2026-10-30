@@ -50,6 +50,7 @@
 //! | [`compaction`] | 自动压缩的运行状态与结果 |
 //! | [`context_usage`] | 上下文用量（`/context`）的查询、结果与数字写法 |
 //! | [`history`] | 活动历史（最近一次压缩边界之后，含保留段） |
+//! | [`hook_review`] | 工作区钩子的逐条信任快照（NIBI 钩子评审） |
 //! | [`hooks`] | hook 事件、合并结果与 http hook 的出口端口 |
 //! | [`session_api`] | 前端使用的会话 API 与内核事件 |
 //! | [`session_paths`] | 会话的附加工作目录（NIBI `createSession.additionalDirectories`） |
@@ -80,6 +81,7 @@ pub mod env_web;
 pub mod env_worktree;
 pub mod goal;
 pub mod history;
+pub mod hook_review;
 pub mod hooks;
 pub mod ids;
 pub mod image;
