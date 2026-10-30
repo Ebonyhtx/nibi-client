@@ -907,6 +907,7 @@ try {
   }
 
   // DWF 引擎（路线 C）：起 sidecar、跑一个已保存工作流，断言 ACK 与 journal 行。
+  // 用一个**新会话**：Node 的 startSavedWorkflowRun 只对空闲会话工作（GUI 同样只对空会话发它）。
   if (phases.includes("dwfEngine")) {
     mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
     writeFileSync(
@@ -919,10 +920,32 @@ try {
         'return await worker.ask("Say hi.");',
       ].join(String.fromCharCode(10)) + String.fromCharCode(10),
     );
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000a2",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: { workspaceId: workspace },
+        issuedAt: Date.now(),
+      }),
+      "createSession(dwf)",
+    );
+    const dwfSession = created.result?.sessionId;
+    if (!dwfSession) throw new Error("createSession(dwf) returned no sessionId");
+    const missing = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000a1",
+      "startSavedWorkflow",
+      { name: "no_such_workflow" },
+      dwfSession,
+    );
+    checks.dwfMissingStatus = missing.status;
+    checks.dwfMissingCode = missing.reasonCode;
     const started = await simpleCommand(
       "0197d3f0-0000-7000-8000-0000000000a0",
       "startSavedWorkflow",
       { name: "probe" },
+      dwfSession,
     );
     checks.dwfStartStatus = started.status;
     checks.dwfStartRunPrefix =
@@ -934,14 +957,6 @@ try {
         `startSavedWorkflow ${started.status}/${started.reasonCode}: ${started.message}`,
       );
     }
-    const missing = await simpleCommand(
-      "0197d3f0-0000-7000-8000-0000000000a1",
-      "startSavedWorkflow",
-      { name: "no_such_workflow" },
-    );
-    checks.dwfMissingStatus = missing.status;
-    checks.dwfMissingCode = missing.reasonCode;
-
     const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
     const waitRow = async () => {
       for (let attempt = 0; attempt < 1200; attempt += 1) {
@@ -961,7 +976,7 @@ try {
     };
     const row = await waitRow();
     checks.dwfRunStatus = row?.status ?? null;
-    checks.dwfRunParent = row?.parent_session_id === sessionId;
+    checks.dwfRunParent = row?.parent_session_id === dwfSession;
     if (checks.dwfRunStatus !== "completed") {
       throw new Error(`dwf run settled as ${checks.dwfRunStatus}`);
     }

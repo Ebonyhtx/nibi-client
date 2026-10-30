@@ -181,11 +181,15 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
      `NIBI_DWF_ENGINE_CMD` 拿启动命令、spawn、`actor/create` → actor 子会话、`ask/start` 跑
      actor 轮并按 `ask/verdict` 做 repair/nudge、`world/read`（glob/read/grep）、`run/settled`
      收口；app-server 在 env 在场时注入。驱动器新增 `dwfEngine` 阶段（非默认）。
-   - **卡点（2026-10-30 未解决）**：端到端时 run 停在 `running`（`node-dispatched` 后无
-     `node-settled`），`dwf.ask.start` 出现但 `dwf.actor.open` 不出现——`Kernel::run_workflow_actor`
-     没有走完第一段。已加的阶段日志：`dwf.ask.start` / `dwf.ask.no_kernel` / `dwf.actor.open` /
-     `dwf.actor.open.created` / `dwf.actor.loop` / `dwf.actor.run` / `dwf.ask.turn`；复现命令：
-     `NIBI_DWF_ENGINE_CMD='{"command":"node","args":["<repo>/apps/zcode-cli/packages/cli/dist/nibi.cjs","__nibi-dwf-engine"]}' node scripts/kernel-baseline/drive-rust-app-server.mjs --kernel=rust --phases=create,dwfEngine`，
-     日志在驱动器临时 home 的 `.zcode/rust-cli/log/*.jsonl`。
+   - **已解决（同日）**：`ask/start` 指向的是 **actor 会话 id**（`actor/create` 回来的
+     `sess_dwf_*`），不是 actor 站点（`actor#1`）；客户端按站点查表查不到，ask 静默卡住。改为按
+     `session.id` 找 actor 后，端到端跑通：`startSavedWorkflow` accepted、run 在 journal 里
+     `completed`、`parent_session_id` 正确；不存在的名字回
+     `fault.command.savedWorkflowStartRejected.not_found`。
+   - 新门禁 `scripts/kernel-baseline/check-dwf-engine.mjs`（需 `NIBI_DWF_ENGINE_CMD`）：
+     `dwfStartStatus` / `dwfStartRunPrefix` / `dwfStartToolCall` / `dwfMissingStatus` /
+     `dwfMissingCode` / `dwfRunStatus` / `dwfRunParent` 七字段双内核一致（OK）。
+     驱动器的 `dwfEngine` 阶段用**新会话**发起 run（Node 的 `startSavedWorkflowRun` 只对空闲会话
+     工作，GUI 同样只对空会话发它）。
    - 未接线：sidecar 的 `resume` / `amend`（journal 取脚本、编译、hash 比对、导入缓存）与
      `escalate`（挂起/恢复一轮）。

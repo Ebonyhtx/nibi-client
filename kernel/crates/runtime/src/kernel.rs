@@ -393,6 +393,12 @@ impl Kernel for LocalKernel {
             max_turns: spec.max_turns,
             submit_schema: spec.submit_schema,
         };
+        tracing::debug!(
+            event = "dwf.kernel.actor",
+            parent = profile.parent.as_str(),
+            child = profile.child.as_str(),
+            label = %profile.label,
+        );
         let outcome = self
             .actors
             .run_actor_turn(&profile, &request.message, request.first, cancel)

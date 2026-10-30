@@ -438,11 +438,12 @@ where
                 run.actors
                     .lock()
                     .unwrap_or_else(PoisonError::into_inner)
-                    .insert(site, ActorHandle {
+                    .insert(site.clone(), ActorHandle {
                         child: child.clone(),
                         prompt,
                         label,
                     });
+                tracing::debug!(event = "dwf.actor.stored", site = %site);
                 if let Some(id) = &id {
                     process.respond(id, json!({"session": child.as_str()}));
 
@@ -577,6 +578,8 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
     );
     let key = params["key"].as_str().unwrap_or_default().to_owned();
     let site = params["instance"]["siteId"].as_str().unwrap_or_default().to_owned();
+    // ask 指向的是**actor 会话**（`actor/create` 回来的 id），不是 actor 站点；按会话找。
+    let session_id = params["session"]["id"].as_str().unwrap_or_default().to_owned();
     let typed = params["typed"].as_bool().unwrap_or(false);
     let instructions = params["instructions"].as_str().unwrap_or_default().to_owned();
     let schema = params["schema"].clone();
@@ -589,13 +592,16 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
     else {
         return;
     };
+    tracing::debug!(event = "dwf.ask.run", run = %run_id);
     let Some(actor) = run
         .actors
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
-        .get(&site)
+        .values()
+        .find(|actor| actor.child.as_str() == session_id)
         .cloned()
     else {
+        tracing::warn!(event = "dwf.ask.actor_missing", run = %run_id, session = %session_id);
         process.notify("ask/reply", json!({
                 "runId": run_id,
                 "instance": params["instance"],
@@ -617,6 +623,7 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
             }
         }
     };
+    tracing::debug!(event = "dwf.ask.kernel", run = %run_id);
     let cancel = CancellationToken::new();
     run.cancels
         .lock()
