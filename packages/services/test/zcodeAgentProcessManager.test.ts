@@ -1656,6 +1656,9 @@ describe("NIBI_KERNEL 灰度开关", () => {
 
     expect(command?.command).toBe("/opt/nibi/zcode-rs");
     expect(command?.args).toEqual(["app-server", "--stdio", "--surface", "desktop"]);
+    // Rust app-server 已有 --prepare-storage：Host 走启动存储握手，存储准备用原生子进程分支。
+    expect(command?.supportsStorageStartup).toBe(true);
+    expect(command?.storagePreparationProcess).toBe(true);
     expect(JSON.parse(command?.env?.NIBI_DWF_ENGINE_CMD ?? "null")).toEqual({
       command: process.execPath,
       args: [realpathSync(bundle), "__nibi-dwf-engine"],
@@ -1676,6 +1679,8 @@ describe("NIBI_KERNEL 灰度开关", () => {
 
     expect(command?.command).toBe("/opt/nibi/zcode-rs");
     expect(command?.env).toBeUndefined();
+    expect(command?.supportsStorageStartup).toBe(true);
+    expect(command?.storagePreparationProcess).toBe(true);
   });
 
   it("NIBI_KERNEL 未设时即便有 Rust 命令也保持 node 链路", () => {

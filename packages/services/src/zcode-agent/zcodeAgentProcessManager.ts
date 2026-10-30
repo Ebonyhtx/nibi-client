@@ -42,6 +42,8 @@ import { buildAgentWorkspaceIdentityEnv } from "../runtime-tools/agentProxyEnv.j
 export interface ZCodeAgentCommand {
   /** 本地配套 CLI bundle 的存储专用 Worker 入口；远端/自定义命令不推断能力。 */
   storagePreparationEntry?: string;
+  /** 存储准备走原生子进程（Rust 内核：原生 binary 不能进 Worker 线程）；与 entry 互斥。 */
+  storagePreparationProcess?: boolean;
   /** 本次部署的 Agent 支持迁移前的启动通知；旧自定义命令保持原协议。 */
   supportsStorageStartup?: boolean;
   command: string;
@@ -506,8 +508,10 @@ function resolveRustZCodeAgentCommand(
     command: binary,
     args: ["app-server", "--stdio"],
     cwd: context.workspacePath,
-    // 刻意不置 `supportsStorageStartup`：Rust app-server 还没有 `--prepare-storage`（Host 会退回
-    // 旧的启动握手），等它实现后再与 Node 链路一起打开。
+    // Rust app-server 已有 `--prepare-storage`（NDJSON 握手 + startup/storageState 帧，双内核
+    // 对拍 21 字段）；原生 binary 进不了 Worker 线程，存储准备走子进程分支。
+    supportsStorageStartup: true,
+    storagePreparationProcess: true,
     ...(sidecar === null ? {} : { env: { NIBI_DWF_ENGINE_CMD: JSON.stringify(sidecar) } }),
   };
 }
@@ -603,6 +607,8 @@ export function wrapZCodeAgentCommandWithStdioTapDevProxy(
   // 这里只在显式开关打开时用旁路 proxy 写盘，生产构建和默认开发路径都不受影响。
   return {
     supportsStorageStartup: command.supportsStorageStartup,
+    // dev 旁路代理透传 stdio：存储准备的子进程分支同样经它转发（参数原样下传）。
+    storagePreparationProcess: command.storagePreparationProcess,
     command: process.execPath,
     args: [
       tapScript,

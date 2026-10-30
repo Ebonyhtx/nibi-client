@@ -1,4 +1,5 @@
 import { realpath } from "node:fs/promises";
+import { spawn, type ChildProcess } from "node:child_process";
 import { resolve as resolvePath } from "node:path";
 import { Worker } from "node:worker_threads";
 import { createInterface } from "node:readline";
@@ -78,8 +79,7 @@ export function prepareHostStorage(
   });
 }
 
-/** 在 Host 所属 Worker 运行同一 CLI bundle 的存储入口；Host 退出不会留下持锁孤儿进程。 */
-export async function prepareSessionStorage(options: {
+type StoragePrepareOptions = {
   cwd: string;
   env?: Record<string, string>;
   signal: AbortSignal;
@@ -89,33 +89,93 @@ export async function prepareSessionStorage(options: {
   ) => void;
   preparedPaths?: Set<string>;
   observePath: (path: string) => Promise<void>;
-}): Promise<void> {
+};
+
+/** 在 Host 所属 Worker 运行同一 CLI bundle 的存储入口；Host 退出不会留下持锁孤儿进程。
+ *  Rust 内核没有 JS 入口（原生 binary 进不了 Worker 线程），走 `storagePreparationProcess` 的
+ *  子进程分支（同一段握手，见 runStorageHandshakeLines）。 */
+export async function prepareSessionStorage(options: StoragePrepareOptions): Promise<void> {
   const command = resolveDefaultZCodeAgentCommand({
     workspacePath: options.cwd,
     workspaceKey: options.cwd,
     presentationSurface: "desktop",
   });
-  if (!command?.supportsStorageStartup || !command.storagePreparationEntry)
-    throw statusError("unsupported_runtime");
-  const entry = command.storagePreparationEntry;
-  await new Promise<void>((resolve, reject) => {
-    const child = new Worker(entry, {
-      argv: ["app-server", "--stdio", "--prepare-storage", "--cwd", command.cwd ?? options.cwd],
-      env: { ...process.env, ...options.env, ...command.env },
-      stdin: true,
-      stdout: true,
-      stderr: true,
-    });
-    const input = child.stdin!;
-    const lines = createInterface({ input: child.stdout });
+  if (!command?.supportsStorageStartup) throw statusError("unsupported_runtime");
+  if (command.storagePreparationProcess) {
+    await prepareSessionStorageProcess(command, options);
+    return;
+  }
+  if (!command.storagePreparationEntry) throw statusError("unsupported_runtime");
+  const child = new Worker(command.storagePreparationEntry, {
+    argv: ["app-server", "--stdio", "--prepare-storage", "--cwd", command.cwd ?? options.cwd],
+    env: { ...process.env, ...options.env, ...command.env },
+    stdin: true,
+    stdout: true,
+    stderr: true,
+  });
+  await runStorageHandshakeLines({
+    stdin: child.stdin!,
+    stdout: child.stdout!,
+    discard: () => child.stderr!.resume(),
+    endInput: () => void child.stdin!.end(),
+    onExit: (handler) => child.once("exit", (code) => handler(code === 0)),
+    onError: (handler) => child.once("error", (error) => handler(error)),
+    terminate: () => void child.terminate(),
+    options,
+  });
+}
+
+/** Rust 内核的存储准备：`app-server --stdio --prepare-storage` 原生子进程（cwd 由 spawn 给出，
+ *  Rust 的入口只认进程 cwd，没有 `--cwd` 参数）。 */
+async function prepareSessionStorageProcess(
+  command: NonNullable<ReturnType<typeof resolveDefaultZCodeAgentCommand>>,
+  options: StoragePrepareOptions,
+): Promise<void> {
+  const child = spawn(command.command, [...(command.args ?? []), "--prepare-storage"], {
+    cwd: command.cwd ?? options.cwd,
+    env: { ...process.env, ...options.env, ...command.env },
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+  await runStorageHandshakeLines({
+    stdin: child.stdin!,
+    stdout: child.stdout!,
+    discard: () => child.stderr!.resume(),
+    endInput: () => void child.stdin!.end(),
+    onExit: (handler) => child.once("exit", (code) => handler(code === 0)),
+    onError: (handler) => child.once("error", (error) => handler(error)),
+    terminate: () => child.kill(),
+    options,
+  });
+}
+
+/** 握手本体（Node `prepareProtocolStartupStorage` 的 Host 侧）：storagePath → 观测边界 →
+ *  storagePathReady → storageState 进度 → storagePrepared；30 秒首帧门与失败分类两种 transport 共用。 */
+function runStorageHandshakeLines({
+  stdin,
+  stdout,
+  discard,
+  endInput,
+  onExit,
+  onError,
+  terminate,
+  options,
+}: {
+  stdin: NodeJS.WritableStream;
+  stdout: NodeJS.ReadableStream;
+  discard: () => void;
+  endInput: () => void;
+  onExit: (handler: (success: boolean) => void) => void;
+  onError: (handler: (error: unknown) => void) => void;
+  terminate: () => void;
+  options: StoragePrepareOptions;
+}): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const lines = createInterface({ input: stdout });
     let settled = false;
     let prepared = false;
     let pathReceived = false;
     let preparedPath: string | undefined;
     let failure: unknown;
-    const terminate = () => {
-      void child.terminate();
-    };
     const abort = () => {
       failure ??= statusError("transport_closed");
       terminate();
@@ -126,8 +186,8 @@ export async function prepareSessionStorage(options: {
     }, 30_000);
     options.signal.addEventListener("abort", abort, { once: true });
     // stdout 只有有界控制帧，stderr 排空但不把可能含本地路径的原始文本上报。
-    child.stderr.resume();
-    input.on("error", (error) => {
+    discard();
+    stdin.on("error", (error) => {
       failure ??= error;
       terminate();
     });
@@ -151,14 +211,14 @@ export async function prepareSessionStorage(options: {
             const reuse = options.preparedPaths?.has(preparedPath) ?? false;
             if (!reuse) await options.observePath(frame.params.path);
             if (!settled && !failure && !options.signal.aborted)
-              input.write(`${JSON.stringify({ method: "startup/storagePathReady", reuse })}\n`);
+              stdin.write(`${JSON.stringify({ method: "startup/storagePathReady", reuse })}\n`);
           })().catch((error) => {
             failure ??= error;
             terminate();
           });
         } else if (frame.method === "startup/storagePrepared") {
           prepared = pathReceived;
-          input.end();
+          endInput();
         } else if (frame.params.phase === "failed")
           failure ??= statusError(
             frame.params.errorCode ?? "sql_failed",
@@ -175,15 +235,15 @@ export async function prepareSessionStorage(options: {
         terminate();
       }
     });
-    child.once("error", (error) => {
+    onError((error) => {
       failure ??= error;
     });
-    child.once("exit", (code) => {
+    onExit((success) => {
       settled = true;
       clearTimeout(firstStateTimer);
       options.signal.removeEventListener("abort", abort);
       lines.close();
-      if (code === 0 && prepared && !failure) {
+      if (success && prepared && !failure) {
         if (preparedPath) options.preparedPaths?.add(preparedPath);
         resolve();
       } else reject(failure ?? statusError("transport_closed"));
