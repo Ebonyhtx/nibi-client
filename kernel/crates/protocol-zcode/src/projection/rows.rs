@@ -71,6 +71,10 @@ impl Projection {
                             row.insert("inputOrigin".into(), json!(origin));
                         }
                         row.insert("clientId".into(), json!(meta.client));
+                        // 附件引用原样上行：UI 的预览入口靠它（Node 的 userInput.attachments）。
+                        if let Some(attachments) = &meta.attachments {
+                            row.insert("attachments".into(), attachments.clone());
+                        }
                     }
                 }
                 self.append(key, row, out);

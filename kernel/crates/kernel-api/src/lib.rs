@@ -7,6 +7,7 @@
 //! | --- | --- |
 //! | [`abort`] | 带原因的中止信号 |
 //! | [`agents`] | 子代理与任务清单的端口（子循环工厂、会话信号、任务清单存储） |
+//! | [`attachment`] | 会话附件引用（NIBI `AttachmentRef`）与读出的内容 |
 //! | [`checkpoint`] | 文件 checkpoint 与工具结果的配对规则 |
 //! | [`ids`] | 类型化 ID |
 //! | [`message`] | 会话消息与内容块 |
@@ -57,6 +58,7 @@
 
 pub mod abort;
 pub mod agents;
+pub mod attachment;
 pub mod catalog;
 pub mod checkpoint;
 pub mod clock;

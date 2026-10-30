@@ -393,6 +393,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
             admitted_at: 0,
             requested: "startNow",
             admitted: "startNow",
+            attachments: None,
         },
     );
     let queued = feed.apply(KernelEvent::QueueChanged {

@@ -129,7 +129,7 @@ fn create_session_accepts_every_nibi_field() {
     assert!(!unsupported.contains(&"permissionScope"));
     assert!(unsupported.contains(&"dynamicWorkflowEnabled"));
     assert!(unsupported.contains(&"dynamicWorkflowMode"));
-    assert!(unsupported.contains(&"firstInput.attachments"));
+    assert!(!unsupported.contains(&"firstInput.attachments")); // 2026-10-30 起图片附件进内容块。
 }
 
 #[test]

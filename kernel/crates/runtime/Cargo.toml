@@ -39,6 +39,8 @@ tracing.workspace = true
 tokio-util.workspace = true
 
 [dev-dependencies]
+# 附件测试里的 data URL（与 protocol-zcode 同版本）。
+base64.workspace = true
 futures-util.workspace = true
 rust-cli-kernel-api = { workspace = true, features = ["testing"] }
 serde_json.workspace = true

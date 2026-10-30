@@ -302,3 +302,36 @@ fn first_input_execution_overrides_config_mode() {
         (PermissionMode::Default, true)
     );
 }
+
+#[test]
+fn attachment_image_source_maps_images_and_rejects_other_types() {
+    let image = json!({"ref": "zcode-artifact://sess_a/tool-result-1", "fileName": "a.png", "mime": "image/png", "bytes": 12});
+    let (source, media) = attachment_image_source(&image).unwrap();
+    assert_eq!(media, "image/png");
+    assert!(matches!(source, AttachmentSource::Artifact { .. }));
+    // desktop 直传的绝对路径引用。
+    let local = json!({"ref": "/tmp/a.jpg", "fileName": "a.jpg", "mime": "image/jpeg; charset=binary", "bytes": 12});
+    let (source, media) = attachment_image_source(&local).unwrap();
+    assert_eq!(media, "image/jpeg");
+    assert!(matches!(source, AttachmentSource::Path { .. }));
+    // 非图片：不给来源（调用方按 attachmentUnsupported 拒绝）。
+    for mime in ["application/pdf", "video/mp4", "text/plain", ""] {
+        let reference = json!({"ref": "/tmp/a", "fileName": "a", "mime": mime, "bytes": 1});
+        assert!(attachment_image_source(&reference).is_none(), "{mime}");
+    }
+}
+
+#[test]
+fn with_text_puts_images_before_the_text() {
+    let image = ContentBlock::Image {
+        source: ImageSource::Base64 {
+            media_type: "image/png".to_owned(),
+            data: "AAAA".to_owned(),
+        },
+    };
+    let blocks = with_text("hello".to_owned(), vec![image]);
+    assert!(matches!(blocks[0], ContentBlock::Image { .. }));
+    assert!(matches!(&blocks[1], ContentBlock::Text { text } if text == "hello"));
+    // 空正文（attachment-only）：只有图片。
+    assert_eq!(with_text(String::new(), vec![]).len(), 0);
+}

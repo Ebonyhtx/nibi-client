@@ -244,12 +244,32 @@ plan 开、default。联调里这正是 MCP 工具被权限询问拦住的原因
 等 MCP OAuth 支持补上）。子代理继承父会话的连接已落地（`inherit_session_mcp`，借用不释放），
 与 Node 的子代理 app 继承父 `config.mcp` 对齐。
 
+## 6.9 第十一步：会话附件回放（图片，2026-10-30）
+
+**缺口**：Host 的 `sendText` / `createSession.firstInput` / `editUserQuery` 带 `AttachmentRef`
+（`zcode-artifact://<session>/<artifact>` 或本机路径）而不是内容；Rust 之前不消费，图片内容丢。
+
+**实现**（与 Node 的引用模型对读）：
+
+| 层 | 内容 |
+|---|---|
+| kernel-api | `attachment::{AttachmentSource, LoadedAttachment}`；`Kernel::load_attachment(session, workspace, source)`（缺省 Unsupported） |
+| runtime | artifact URI → `ArtifactStore::find/get`（与 Node `NodeToolArtifactStore` 同目录同命名，data URL 在这里解开）；路径 → `Files::read_file`；跨会话引用拒绝；20 MiB 上限 |
+| protocol-zcode | 图片 → `ContentBlock::Image`（base64，图片在正文前）；PDF/视频/文本 **fail-closed** 拒绝（`fault.command.attachmentUnsupported`）；读失败 `fault.command.attachmentUnreadable`；sendText/createSession/editUserQuery/retryTurn 同一条写路径；`userInput` 行的 `attachments` 来自 `InputMeta` |
+
+**已知差异**：本地路径图片 Node 在 OpenAI-compatible 分支降级成 `[Attached <mime>: <path>]` 文本，
+Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持，拒绝是显式的；冷恢复后行上的
+`attachments` 与其它 `InputMeta` 一样只在活会话里有。
+
+**验证**：runtime 4 单测、protocol-zcode 36 测试；双内核驱动用真实 PNG：两边 accepted、
+行上 1 条引用，对拍门禁 17 → **20** 字段全一致（`attachmentReplayed` 作为模型侧已知差异）。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
-2. `createSession` 字段逐项消费：`mcpServers` 与 `firstInput.mode/planEnabled` 已完成；剩下
-   `additionalDirectories`、`dynamicWorkflowEnabled/Mode`、`firstInput.attachments`。
+2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
+   （图片）已完成；剩下 `additionalDirectories`、`dynamicWorkflowEnabled/Mode`。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
 4. `generate-nibi-command-schema.ts --check` 尚未接进 CI（`rust-gates.yml` 只跑 cargo；
    需要一个带 Node 的 job 或把它挂到 `client-gates`，待补）。

@@ -145,6 +145,38 @@ R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用�
 双内核驱动新增 `fake-mcp-server.mjs`（stdio MCP），两边内核在首轮请求即带 `mcp__fake__echo`、
 模型调用后拿到 `echo:ping`；对拍门禁 13→**17** 个必需字段全一致。
 
+## 6.2 会话附件回放（图片，2026-10-30）
+
+Host 在 `sendText` / `createSession.firstInput` / `editUserQuery` 里给的是 `AttachmentRef` 引用
+（`zcode-artifact://<session>/<artifact>` 或本机绝对路径），不是内容。此前 Rust 协议前端把附件当
+不支持的字段（createSession 点名 warn、editUserQuery fail-closed 拒绝），图片内容会丢。
+
+实现：
+
+- `kernel-api::attachment`：`AttachmentSource`（Artifact/本机路径）与 `LoadedAttachment`；
+  `Kernel::load_attachment(session, workspace, source)`（缺省 Unsupported）。
+- `runtime::attachment`：artifact URI → `ArtifactStore::find` + `get`（Rust 的 node-store 与 Node 的
+  `NodeToolArtifactStore` 同目录同命名，Host chunk 上传的 `data:<mime>;base64,…` 从这里解开）；
+  路径 → 会话机器 `Files::read_file`；跨会话的 artifact 引用直接拒绝；20 MiB 上限。
+- `protocol-zcode`：命令里的附件 → `ContentBlock::Image`（base64 内联，图片在正文之前，Node
+  `buildUserContentFromTurn` 的排法）；只有图片能进 Rust 的 user 消息内容块，PDF / 视频 / 文本材料
+  **fail-closed** 拒绝（`fault.command.attachmentUnsupported`），读不出来回
+  `fault.command.attachmentUnreadable`——不静默丢内容。三条命令都走同一条写路径：
+  `sendText`、`createSession.firstInput`、`editUserQuery`（含 attachment-only 改写）；
+  `retryTurn` 重放原消息的内容块（图片跟着回来）。
+- 行投影：`InputMeta.attachments` 让 `userInput` 行带原始 `AttachmentRef`（UI 预览入口）。
+
+**已知差异（记录在案）**：
+1. 模型侧渲染：本地路径图片，Rust 读文件并内联进请求；Node 在 OpenAI-compatible 的本地路径分支
+   降级成 `[Attached <mime>: <path>]` 文本（artifact URI 形态才回读 data URL）。Rust 是"多做了"，
+   不是少做；模型是否收到图片还取决于 `inputFormat.supportsImage`（两边同一套降级规则）。
+2. PDF / 视频 / 文本材料附件仍不支持（Rust 的 user 消息内容块只有 Text 与 Image）；拒绝是显式的。
+3. 冷恢复后 `userInput.attachments` 与其它 `InputMeta` 字段一样只在活会话里有（P1 现状）。
+
+验证：runtime 4 个单测（data URL 解码、原样字节、artifact URI 解析与百分号转义、超限拒绝）；
+protocol-zcode 36 测试（新增图片引用映射、非图片拒绝、内容块顺序）；双内核驱动用真实 1×1 PNG：
+两边 ACK accepted、`userInput` 行带 1 条引用，对拍门禁 17 → **20** 个必需字段全一致。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

@@ -43,6 +43,13 @@ const dataV2 = join(home, dotDir, "v2");
 mkdirSync(dataV2, { recursive: true });
 const workspace = join(home, "workspace");
 mkdirSync(workspace, { recursive: true });
+// 附件回放用的真实图片（1x1 PNG）：两个内核都从本机路径读，不再用假 ref。
+const attachmentPath = join(home, "attachment.png");
+const attachmentBytes = Buffer.from(
+  "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c6360000000020001e221bc330000000049454e44ae426082",
+  "hex",
+);
+writeFileSync(attachmentPath, attachmentBytes);
 
 // ── 本地假 provider（OpenAI chat-completions，SSE）──
 const REQUESTS = [];
@@ -70,17 +77,28 @@ const server = createServer((req, res) => {
     const tools = Array.isArray(parsed?.tools)
       ? parsed.tools.map((tool) => tool?.function?.name ?? tool?.name ?? null)
       : [];
+    const hasImage = messages.some((message) => {
+      const content = message.content;
+      if (!Array.isArray(content)) return false;
+      return content.some(
+        (part) => part?.type === "image_url" || part?.type === "image" || part?.image_url,
+      );
+    });
     const toolMessages = messages.filter((message) => message.role === "tool");
     const toolResult = toolMessages.length
       ? textOf(toolMessages[toolMessages.length - 1].content)
       : null;
     if (toolResult !== null) TOOL_RESULTS.push(toolResult);
-    REQUESTS.push({ at: Date.now(), path: req.url, model: parsed?.model ?? null, tools });
+    REQUESTS.push({ at: Date.now(), path: req.url, model: parsed?.model ?? null, tools, hasImage });
     if (process.env.NIBI_DRIVE_DEBUG === "1") {
       const system = messages.find((m) => m.role === "system")?.content;
       const systemText = textOf(system);
+      const lastUser = [...messages].reverse().find((message) => message.role === "user");
+      const lastShape = Array.isArray(lastUser?.content)
+        ? lastUser.content.map((part) => `${part?.type}:${String(part?.text ?? "").slice(0, 40)}`)
+        : [String(lastUser?.content ?? "").slice(0, 40)];
       console.error(
-        `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} mcp=${tools.includes(MCP_TOOL)} max_tokens=${parsed?.max_tokens ?? "?"} roles=${messages.map((m) => m.role).join(",")} system=${JSON.stringify(systemText.slice(0, 60))}`,
+        `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} mcp=${tools.includes(MCP_TOOL)} roles=${messages.map((m) => m.role).join(",")} image=${hasImage} lastUser=${JSON.stringify(lastShape)} system=${JSON.stringify(systemText.slice(0, 40))}`,
       );
     }
     res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8" });
@@ -159,6 +177,8 @@ const providerConfig = {
             enabled: true,
             properties: {
               contextWindow: 200000,
+              // 视觉模型：附件回放要求图片真的进请求（否则内核按 model.md §10.5 换成占位文字）。
+              inputFormat: { supportsImage: true, supportsPdf: true },
               supportsToolCall: true,
               supportsJsonSchemaOutput: true,
               supportsNativeWebSearch: false,
@@ -659,26 +679,49 @@ try {
     console.log(`cancelBackgroundWork(missing): failed/not_found`);
   }
 
-  // 拒绝路径 2：editUserQuery 带附件 → fail-closed（附件回放未实现）。
+  // 附件回放：sendText 带一张真实图片（本机路径），两个内核都该接受、把图片送进模型请求，并在
+  // userInput 行上留下附件引用（UI 预览入口）。
   if (phases.includes("rejections")) {
-    const state = buildState();
-    const userRow = [...state.rows].reverse().find((row) => row.kind === "userInput");
-    if (!userRow) throw new Error("no user row for edit rejection");
-    const ackE = await casCommand("editUserQuery", {
-      target: { rowId: userRow.rowId, entityId: userRow.entityId },
-      newText: "edited",
-      attachments: [{ ref: "att1", fileName: "a.png", mime: "image/png", bytes: 12 }],
-    });
-    const result = ackE;
-    checks.attachmentStatus = result?.status ?? "error";
-    checks.attachmentCode = result?.reasonCode ?? (ackE.error ? "rpc-error" : null);
-    if (isNode) {
-      console.log(`editUserQuery(attachments)[node]: ${JSON.stringify(result ?? ackE.error)}`);
-    } else {
-      if (!result || result.status !== "rejected" || result.reasonCode !== "proto.invalidPayload") {
-        throw new Error(`editUserQuery(attachments) expected rejected invalidPayload, got ${JSON.stringify(result ?? ackE.error)}`);
-      }
-      console.log(`editUserQuery(attachments): rejected fail-closed (attachment replay not implemented)`);
+    const ackA = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000031",
+      "sendText",
+      {
+        text: "what is in this image",
+        attachments: [
+          {
+            ref: attachmentPath,
+            fileName: "attachment.png",
+            mime: "image/png",
+            bytes: attachmentBytes.length,
+          },
+        ],
+      },
+    );
+    checks.attachmentStatus = ackA.status;
+    checks.attachmentCode = ackA.reasonCode ?? null;
+    console.log(`sendText(attachments): ${JSON.stringify(ackA)}`);
+    if (ackA.status !== "accepted") {
+      throw new Error(`sendText(attachments) expected accepted, got ${JSON.stringify(ackA)}`);
+    }
+    // 等这一轮跑完，让行投影与 provider 请求都落定。
+    await waitFor(
+      () => (buildState().stopState === "idle" ? true : undefined),
+      "idle after the attachment turn",
+      60_000,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    checks.attachmentReplayed = REQUESTS.some((request) => request.hasImage);
+    const lastUser = [...buildState().rows].reverse().find((row) => row.kind === "userInput");
+    checks.attachmentRowRefs = (lastUser?.attachments ?? []).length;
+    console.log(
+      `sendText(attachments): id=${ackA.result?.inputId ?? "?"} image-in-request=${checks.attachmentReplayed} row-refs=${checks.attachmentRowRefs}`,
+    );
+    if (checks.attachmentRowRefs !== 1) throw new Error(`userInput row carries ${checks.attachmentRowRefs} attachments`);
+    // 模型侧：Rust 读本机路径并把图片内联进请求；Node 在 OpenAI-compatible 的本地路径分支降级成
+    // `[Attached image/png: <path>]` 文本（附件 URI 形态才会回读 data URL）。这里只对 Rust 硬断言，
+    // Node 的结果作为已知差异记录。
+    if (!isNode && !checks.attachmentReplayed) {
+      throw new Error("the attachment image never reached the model request");
     }
   }
 

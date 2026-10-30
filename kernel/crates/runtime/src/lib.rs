@@ -7,6 +7,7 @@
 //! 每个会话一个 actor，运行在自己的子任务作用域里；内核释放时根作用域中止全部会话任务。
 
 mod agents;
+mod attachment;
 mod catalog;
 mod config;
 mod directory;

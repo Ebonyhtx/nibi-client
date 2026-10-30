@@ -8,10 +8,12 @@
  *   switchModelChangeStatus、switchModelNoopStatus、switchModelNoopCode、
  *   switchModeChangeStatus、switchModeSameStatus、forkChildPrefix、
  *   editStatus、retryStatus、cancelStatus、cancelCode、
- *   mcpToolOffered、mcpOfferedInFirstRequest、mcpToolCalled、mcpToolResult
+ *   mcpToolOffered、mcpOfferedInFirstRequest、mcpToolCalled、mcpToolResult、
+ *   attachmentStatus、attachmentCode、attachmentRowRefs
  *
  * 已知差异（只报告，不判失败）：
- *   - attachmentStatus/Code：Rust 附件回放未实现，fail-closed 拒绝；Node 执行编辑。
+ *   - attachmentReplayed：本地路径图片，Rust 读文件并内联进请求；Node 在 OpenAI-compatible
+ *     的本地路径分支降级成 `[Attached <mime>: <path>]` 文本（artifact URI 形态才回读 data URL）。
  *   - metrics：provider 请求数/帧数/通知数（Node 多标题与遥测通知）。
  *
  * 前提：`cargo build -p rust-cli` 产出 kernel/target/debug/zcode-rs.exe，
@@ -43,8 +45,11 @@ const REQUIRED = [
   "mcpOfferedInFirstRequest",
   "mcpToolCalled",
   "mcpToolResult",
+  "attachmentStatus",
+  "attachmentCode",
+  "attachmentRowRefs",
 ];
-const KNOWN_DIFFERENT = ["attachmentStatus", "attachmentCode"];
+const KNOWN_DIFFERENT = ["attachmentReplayed"];
 
 function run(kernel) {
   return new Promise((resolveRun, rejectRun) => {
@@ -115,6 +120,6 @@ console.log("");
 console.log(
   failed
     ? "RESULT: MISMATCH"
-    : `RESULT: OK (${REQUIRED.length} required fields match; attachment replay is a known difference)`,
+    : `RESULT: OK (${REQUIRED.length} required fields match; model-side attachment rendering is a known difference)`,
 );
 if (failed) process.exitCode = 1;

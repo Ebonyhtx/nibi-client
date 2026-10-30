@@ -1,7 +1,10 @@
 //! 命令的处理（[`crate::inbox`] 的裁决与转交）：P1 的五个命令。
 
+use rust_cli_kernel_api::attachment::AttachmentSource;
+use rust_cli_kernel_api::env::WorkspaceRef;
 use rust_cli_kernel_api::ids::{CommandId, InteractionId, SessionId};
 use rust_cli_kernel_api::interaction::PermissionAnswer;
+use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
 use rust_cli_kernel_api::permission::PermissionMode;
@@ -54,6 +57,73 @@ fn first_input_execution(
         Some(plan) => (base.0, plan),
         None => base,
     }
+}
+
+/// 一条图片附件引用 → 读取来源与规范化 mime；不是图片时为 None（调用方拒绝）。
+fn attachment_image_source(reference: &Value) -> Option<(AttachmentSource, String)> {
+    let mime = reference["mime"].as_str().unwrap_or_default();
+    let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+    if !media.starts_with("image/") {
+        return None;
+    }
+    let reference = reference["ref"].as_str().unwrap_or_default().to_owned();
+    let source = if reference.starts_with(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME) {
+        AttachmentSource::Artifact { uri: reference }
+    } else {
+        AttachmentSource::Path { path: reference }
+    };
+    Some((source, media))
+}
+
+/// 命令里的附件（NIBI `AttachmentRef`）→ 模型内容块。
+///
+/// 只支持图片：Rust 的 user 消息内容块没有 PDF / 文本 / 视频形态（`ContentBlock` 只有 Text 与
+/// Image），其他类型 fail-closed 拒绝并点名 mime，不静默丢掉内容。图片按 Node 的排法放在正文之前。
+async fn attachment_blocks(
+    kernel: &std::sync::Arc<dyn rust_cli_kernel_api::session_api::Kernel>,
+    session: &SessionId,
+    workspace: &WorkspaceRef,
+    refs: &[Value],
+) -> Result<Vec<ContentBlock>, (&'static str, String)> {
+    use base64::Engine;
+
+    let mut blocks = Vec::with_capacity(refs.len());
+    for reference in refs {
+        let Some((source, media)) = attachment_image_source(reference) else {
+            let mime = reference["mime"].as_str().unwrap_or_default();
+            let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+            return Err((
+                "fault.command.attachmentUnsupported",
+                format!("attachments of type {media} are not supported yet; only images are"),
+            ));
+        };
+        let loaded = kernel
+            .load_attachment(session, workspace, source)
+            .await
+            .map_err(|error| {
+                (
+                    "fault.command.attachmentUnreadable",
+                    error.to_string(),
+                )
+            })?;
+        blocks.push(ContentBlock::Image {
+            source: ImageSource::Base64 {
+                media_type: loaded
+                    .media_type
+                    .unwrap_or_else(|| media.clone()),
+                data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
+            },
+        });
+    }
+    Ok(blocks)
+}
+
+/// 正文与附件内容块：图片在前、正文在后（Node `buildUserContentFromTurn` 的排法）。
+fn with_text(text: String, mut blocks: Vec<ContentBlock>) -> Vec<ContentBlock> {
+    if !text.is_empty() {
+        blocks.push(ContentBlock::Text { text });
+    }
+    blocks
 }
 
 /// `createSession.mcpServers` → 会话级的 MCP 服务器（NIBI `nibiProtocolMcpServerSchema` 的两种形态）。
@@ -362,7 +432,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
     let (phase, revision) = live.sink.status();
     let handle = live.handle.as_ref();
     match envelope.kind.as_str() {
-        "sendText" => send_text(handle, &live.sink, envelope, phase, revision).await,
+        "sendText" => send_text(server, handle, &live.sink, envelope, phase, revision).await,
         "stop" => match send(handle, &envelope.command_id, Command::Interrupt).await {
             KernelAck::Accepted { .. } => Ack::accepted(&envelope.command_id, revision, None),
             KernelAck::Duplicate => {
@@ -386,7 +456,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "forkAssistant" => fork_assistant(handle, &live.sink, envelope).await,
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
-        "editUserQuery" => edit_user_query(handle, &live.sink, envelope).await,
+        "editUserQuery" => edit_user_query(server, handle, &live.sink, envelope).await,
         "deleteSession" => delete_session(server, envelope).await,
         _ => unsupported(envelope, revision),
     }
@@ -493,15 +563,30 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     let mut result = json!({"type": "createSession", "sessionId": id.as_str()});
     let first = &payload["firstInput"];
     if let Some(text) = first["text"].as_str() {
+        // 首条输入的附件（图片）与正文一起提交；解不出就拒绝（会话按 Node 的 draft 语义留下）。
+        let refs = first["attachments"].as_array().cloned().unwrap_or_default();
+        let submit = if refs.is_empty() {
+            Command::Submit {
+                text: text.to_owned(),
+                attachments: Vec::new(),
+                delivery: Delivery::Queue,
+            }
+        } else {
+            let workspace = server.workspace(payload["workspaceId"].as_str().unwrap_or_default());
+            match attachment_blocks(&server.kernel, &id, &workspace, &refs).await {
+                Ok(blocks) => Command::SubmitContent {
+                    content: with_text(text.to_owned(), blocks),
+                    delivery: Delivery::Queue,
+                },
+                Err((code, message)) => {
+                    return Ack::refused(&envelope.command_id, Status::Rejected, code, message, 0);
+                }
+            }
+        };
         live.sink.remember_input(
             &envelope.command_id,
             input_meta(envelope, first, "startNow", "startNow"),
         );
-        let submit = Command::Submit {
-            text: text.to_owned(),
-            attachments: Vec::new(),
-            delivery: Delivery::Queue,
-        };
         if let KernelAck::Accepted { .. } =
             send(live.handle.as_ref(), &envelope.command_id, submit).await
         {
@@ -530,10 +615,15 @@ fn input_meta(
         admitted_at: 0,
         requested,
         admitted,
+        attachments: payload
+            .get("attachments")
+            .filter(|value| value.as_array().is_some_and(|items| !items.is_empty()))
+            .cloned(),
     }
 }
 
 async fn send_text(
+    server: &Server,
     handle: &dyn SessionHandle,
     live: &crate::live::Live,
     envelope: &Envelope,
@@ -586,12 +676,34 @@ async fn send_text(
         Some("queue") => "queue",
         _ => "startNow",
     };
-    live.remember_input(command, input_meta(envelope, payload, requested, admitted));
-    let submit = Command::Submit {
-        text: payload["text"].as_str().unwrap_or_default().to_owned(),
-        attachments: Vec::new(),
-        delivery,
+    let text = payload["text"].as_str().unwrap_or_default().to_owned();
+    let refs = payload["attachments"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    // 附件：先解出内容（失败就拒绝这条命令，不静默丢内容），正文与图片一起提交。
+    let submit = if refs.is_empty() {
+        Command::Submit {
+            text,
+            attachments: Vec::new(),
+            delivery,
+        }
+    } else {
+        let workspace = view
+            .as_ref()
+            .map(|view| view.meta.workspace.clone())
+            .unwrap_or_else(|| server.workspace(""));
+        match attachment_blocks(&server.kernel, handle.id(), &workspace, &refs).await {
+            Ok(blocks) => Command::SubmitContent {
+                content: with_text(text, blocks),
+                delivery,
+            },
+            Err((code, message)) => {
+                return Ack::refused(command, Status::Rejected, code, message, revision);
+            }
+        }
     };
+    live.remember_input(command, input_meta(envelope, payload, requested, admitted));
     let result = json!({"type": "inputAccepted", "delivery": admitted, "inputId": command});
     match send(handle, command, submit).await {
         KernelAck::Accepted { .. } => Ack::accepted(command, revision, Some(result)),
@@ -954,6 +1066,8 @@ async fn cancel_background_work(
 struct RetryTarget {
     user_message: String,
     text: String,
+    /// 原始输入的内容块：重发时保留图片等非文本块（附件回放）。
+    content: Vec<ContentBlock>,
 }
 
 /// assistant 行 → 该轮 user 消息：视图里定位 assistant 消息，向前找最近的 user 消息。
@@ -994,12 +1108,18 @@ fn retry_target(messages: &[rust_cli_kernel_api::message::Message]) -> Result<Re
             "
 ",
         );
-    if text.is_empty() {
+    // 只有图片、没有正文的消息也能重发（Node 允许 attachment-only 的输入）。
+    let has_media = user_message
+        .content
+        .iter()
+        .any(|block| !matches!(block, ContentBlock::Text { .. }));
+    if text.is_empty() && !has_media {
         return Err("the original user input has no text to resend".to_owned());
     }
     Ok(RetryTarget {
         user_message: user_message.id.as_str().to_owned(),
         text,
+        content: user_message.content.clone(),
     })
 }
 
@@ -1164,17 +1284,24 @@ async fn retry_turn(
             );
         }
     }
-    // 2) 重发原文；idle 下 Queue 落成 startNow（与 sendText 的准入同判）。
-    match send(
-        handle,
-        command,
+    // 2) 重发原文（有图片时带原内容块）；idle 下 Queue 落成 startNow（与 sendText 的准入同判）。
+    let submit = if retry
+        .content
+        .iter()
+        .all(|block| matches!(block, ContentBlock::Text { .. }))
+    {
         Command::Submit {
             text: retry.text,
             attachments: Vec::new(),
             delivery: Delivery::Queue,
-        },
-    )
-    .await
+        }
+    } else {
+        Command::SubmitContent {
+            content: retry.content,
+            delivery: Delivery::Queue,
+        }
+    };
+    match send(handle, command, submit).await
     {
         KernelAck::Accepted { .. } => Ack::accepted(command, view.revision, None),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, view.revision, None)),
@@ -1271,13 +1398,13 @@ async fn apply_file_rewind(
 
 /// NIBI `editUserQuery`：换文本的 retryTurn。target 是 real user 行（entityId 即该
 /// user 消息 id）→ `guard.latestQueryEditOnly` → rewind 截断该轮 → 重发 newText。
+/// 附件（图片）与 newText 一起重发；其他类型 fail-closed 拒绝（`attachmentUnsupported`）。
 /// 与 Node 的差异（记录在案）：
-/// - 附件回放（AttachmentRef → TurnAttachment）未实现：payload 带附件时 fail-closed
-///   拒绝（Node 允许 attachment-only edit）；
 /// - workspaceMode=rewind 直接用 kernel `Rewind{scope: Both}`（文件+对话一次提交），
 ///   Node 的 preview/blocked UI 流（guard.workspaceRewind*）暂无对应 ACK 形状；
 /// - conversationQuotes 暂不消费：出现时 warn（不静默）。
 async fn edit_user_query(
+    server: &Server,
     handle: &dyn SessionHandle,
     live: &crate::live::Live,
     envelope: &Envelope,
@@ -1336,16 +1463,11 @@ async fn edit_user_query(
             view.revision,
         );
     }
-    let attachments = envelope.payload["attachments"].as_array();
-    if attachments.is_some_and(|items| !items.is_empty()) {
-        return Ack::refused(
-            command,
-            Status::Rejected,
-            "proto.invalidPayload",
-            "attachment replay is not supported yet; resend without attachments",
-            view.revision,
-        );
-    }
+    // 附件随改写一起重发（Node 允许 attachment-only 的改写）。
+    let refs = envelope.payload["attachments"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
     if envelope
         .payload
         .get("conversationQuotes")
@@ -1365,7 +1487,7 @@ async fn edit_user_query(
             view.revision,
         );
     };
-    if new_text.trim().is_empty() {
+    if new_text.trim().is_empty() && refs.is_empty() {
         return Ack::refused(
             command,
             Status::Rejected,
@@ -1438,17 +1560,27 @@ async fn edit_user_query(
             );
         }
     }
-    match send(
-        handle,
-        command,
+    // 带附件时连同图片内容块重发（attachment-only 的改写也在这里落成同一条写路径）。
+    let submit = if refs.is_empty() {
         Command::Submit {
             text: new_text,
             attachments: Vec::new(),
             delivery: Delivery::Queue,
-        },
-    )
-    .await
-    {
+        }
+    } else {
+        let blocks =
+            match attachment_blocks(&server.kernel, handle.id(), &view.meta.workspace, &refs).await {
+                Ok(blocks) => blocks,
+                Err((code, message)) => {
+                    return Ack::refused(command, Status::Rejected, code, message, view.revision);
+                }
+            };
+        Command::SubmitContent {
+            content: with_text(new_text, blocks),
+            delivery: Delivery::Queue,
+        }
+    };
+    match send(handle, command, submit).await {
         KernelAck::Accepted { .. } => Ack::accepted(
             command,
             view.revision,

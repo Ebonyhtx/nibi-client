@@ -585,6 +585,21 @@ pub trait Kernel: Send + Sync {
     /// 缺省什么都不做。
     fn stop_session_mcp(&self, _session: &SessionId) {}
 
+    /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
+    /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
+    ///
+    /// 缺省实现返回 `Unsupported`：调用方按"附件不可用"拒绝这条命令（不静默丢内容）。
+    async fn load_attachment(
+        &self,
+        _session: &SessionId,
+        _workspace: &WorkspaceRef,
+        _source: crate::attachment::AttachmentSource,
+    ) -> Result<crate::attachment::LoadedAttachment, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session attachments".to_owned(),
+        })
+    }
+
     /// `@` 补全的文件清单（docs/specs/rust-cli/tui-input.md §1.2）：相对 shell 当前目录的文件路径。
     async fn workspace_files(
         &self,

@@ -224,6 +224,16 @@ impl Kernel for LocalKernel {
         self.ext.release_session(session);
     }
 
+    /// NIBI `AttachmentRef`：artifact URI 经会话 artifact 存储，路径经会话所在机器的文件端口。
+    async fn load_attachment(
+        &self,
+        session: &SessionId,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        source: rust_cli_kernel_api::attachment::AttachmentSource,
+    ) -> Result<rust_cli_kernel_api::attachment::LoadedAttachment, KernelError> {
+        self.attachment_content(session, workspace, source).await
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

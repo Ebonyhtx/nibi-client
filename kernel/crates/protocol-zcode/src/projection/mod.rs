@@ -35,6 +35,8 @@ pub struct InputMeta {
     pub admitted_at: u64,
     pub requested: &'static str,
     pub admitted: &'static str,
+    /// 命令带的附件引用（NIBI `AttachmentRef`，原样进 userInput 行的 `attachments`）。
+    pub attachments: Option<Value>,
 }
 
 /// 一个回合里的行。

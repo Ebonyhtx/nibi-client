@@ -31,12 +31,12 @@ const REMOVED_SEND_TEXT_FIELDS: &[&str] = &["offPeakTaskId", "offPeakRunType", "
 /// 已消费：config.modelSelection/mode/planEnabled/followupMode、config.provider/model/thought、
 /// permissionScope（literal 校验后忽略——kernel 默认 session-scoped）
 /// （2026-10-30 起作选择回落）、firstInput.text/mode/planEnabled（input_meta 捕获）、
-/// mcpServers（2026-10-30 起经 `Kernel::start_session_mcp` 装进会话，见 `commands::create_session`）。
+/// mcpServers（2026-10-30 起经 `Kernel::start_session_mcp` 装进会话，见 `commands::create_session`）、
+/// firstInput.attachments（同日：图片经 `Kernel::load_attachment` 进内容块，其他类型 fail-closed 拒绝）。
 pub const CREATE_SESSION_FIELDS_NOT_YET_CONSUMED: &[&str] = &[
     "additionalDirectories",
     "dynamicWorkflowEnabled",
     "dynamicWorkflowMode",
-    "firstInput.attachments",
 ];
 
 /// 编译好的 NIBI 命令契约。
