@@ -54,6 +54,5 @@ fn the_idempotency_table_forgets_the_oldest() {
     }
     assert!(table.get(&key(Some("s"), "c0")).is_none());
     assert!(table.get(&key(Some("s"), "c2")).is_some());
-    assert!(new_session_id().as_str().starts_with("session_"));
-    assert_eq!(new_session_id().as_str().len(), "session_".len() + 32);
+    // 会话 ID 由 kernel 的注入 Ids 生成（`sess_<uuid>`），协议层不再自带生成器。
 }

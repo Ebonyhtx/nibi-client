@@ -16,10 +16,18 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const repo = resolve(import.meta.dirname, "../..");
-const bin = join(repo, "kernel/target/debug/zcode-rs.exe");
 const args = process.argv.slice(2);
 const keep = args.includes("--keep");
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,rename,switchModel,switchMode,fork,rejections,edit,retry,compact")
+const kernel = (args.find((a) => a.startsWith("--kernel")) ?? "--kernel=rust").split("=")[1];
+const isNode = kernel === "node";
+const bin = isNode
+  ? process.execPath
+  : join(repo, "kernel/target/debug/zcode-rs.exe");
+const binArgs = isNode
+  ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
+  : ["app-server", "--stdio"];
+const dotDir = isNode ? ".nibi" : ".zcode";
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,rename,switchModel,switchMode,fork,edit,retry,compact,rejections")
   .split("=")[1]
   .split(",");
 
@@ -28,7 +36,7 @@ if (!process.version.startsWith("v24")) {
 }
 
 const home = mkdtempSync(join(tmpdir(), "nibi-rust-drive-"));
-const dataV2 = join(home, ".zcode", "v2");
+const dataV2 = join(home, dotDir, "v2");
 mkdirSync(dataV2, { recursive: true });
 const workspace = join(home, "workspace");
 mkdirSync(workspace, { recursive: true });
@@ -85,7 +93,18 @@ const providerConfig = {
           providerId: "drive-fake",
           config: {
             enabled: true,
-            properties: { supportsJsonSchemaOutput: true, supportsMidConversationSystem: true },
+            properties: {
+              contextWindow: 200000,
+              supportsToolCall: true,
+              supportsJsonSchemaOutput: true,
+              supportsNativeWebSearch: false,
+              supportsMidConversationSystem: true,
+              requiresMfjsToolSchema: false,
+            },
+            optionSpecs: {
+              maxOutputTokens: { max: 128000 },
+              reasoningLevel: { values: ["disabled", "enabled"], map: "{}" },
+            },
           },
         },
       ],
@@ -97,15 +116,24 @@ const providerConfig = {
 writeFileSync(join(dataV2, "provider_config.json"), JSON.stringify(providerConfig, null, 2));
 
 // ── 进程与协议 ──
-const child = spawn(bin, ["app-server", "--stdio"], {
+const child = spawn(bin, binArgs, {
   cwd: workspace,
   env: {
     ...process.env,
-    RUST_LOG: process.env.RUST_LOG ?? 'debug',
+    ...(isNode ? {} : { RUST_LOG: process.env.RUST_LOG ?? "debug" }),
     USERPROFILE: home,
     HOME: home,
-    ZCODE_DATA_BASE_DIR: home,
-    ZCODE_STORAGE_DIR: join(home, ".zcode"),
+    ...(isNode
+      ? {
+          NIBI_DATA_BASE_DIR: home,
+          NIBI_STORAGE_DIR: join(home, dotDir),
+          NIBI_SETTINGS_DIR: dataV2,
+          NIBI_ENDPOINT_ORIGIN: "http://127.0.0.1:9",
+        }
+      : {
+          ZCODE_DATA_BASE_DIR: home,
+          ZCODE_STORAGE_DIR: join(home, dotDir),
+        }),
   },
   stdio: ["pipe", "pipe", "pipe"],
 });
@@ -141,6 +169,23 @@ function parseLine(line) {
     value = JSON.parse(line);
   } catch {
     console.error(`[non-json] ${line.slice(0, 200)}`);
+    return;
+  }
+  // 内核 → Host 的反向请求：必须应答（Node 的 createSession 会反向问 runtime preferences）。
+  if (value.method !== undefined && value.id !== undefined) {
+    const reply =
+      value.method === "session/requestRuntimePreferences"
+        ? {
+            result: {
+              askUserQuestionAutoResolutionEnabled: true,
+              memoryEnabled: false,
+              nativeSearchEnhancementsEnabled: true,
+              toolSearchMode: "off",
+            },
+          }
+        : { error: { code: -32601, message: `drive: ${value.method} not supported` } };
+    child.stdin.write(`${JSON.stringify({ id: value.id, ...reply })}
+`);
     return;
   }
   if (value.method !== undefined && value.id === undefined) {
@@ -438,15 +483,24 @@ try {
   };
 
   if (phases.includes("switchModel")) {
-    const ackS = await casCommand("switchModelConfig", {
+    const changed = await casCommand("switchModelConfig", {
       provider: "drive-fake",
       model: "fake-model",
-      thought: "max",
+      thought: "disabled",
     });
-    if (ackS.status !== "accepted") {
-      throw new Error(`switchModelConfig ${ackS.status}: ${ackS.reasonCode} ${ackS.message}`);
+    if (changed.status !== "accepted") {
+      throw new Error(`switchModelConfig ${changed.status}: ${changed.reasonCode} ${changed.message}`);
     }
-    console.log(`switchModelConfig: accepted`);
+    // 同值再发：Node/Rust 都回 noop + config.unchanged（driver 层对照点）。
+    const noop = await casCommand("switchModelConfig", {
+      provider: "drive-fake",
+      model: "fake-model",
+      thought: "disabled",
+    });
+    if (noop.status !== "noop" || noop.reasonCode !== "config.unchanged") {
+      throw new Error(`switchModelConfig(noop) ${noop.status}/${noop.reasonCode}`);
+    }
+    console.log(`switchModelConfig: accepted; same-value noop=config.unchanged`);
   }
 
   if (phases.includes("switchMode")) {
@@ -454,7 +508,12 @@ try {
     if (ackM.status !== "accepted") {
       throw new Error(`switchCollaborationMode ${ackM.status}: ${ackM.reasonCode} ${ackM.message}`);
     }
-    console.log(`switchCollaborationMode(plan): accepted`);
+    // 与 Node 对拍：同值仍 accepted（Node 没有同值 noop）。
+    const again = await casCommand("switchCollaborationMode", { mode: "plan" });
+    if (again.status !== "accepted") {
+      throw new Error(`switchCollaborationMode(same) ${again.status}/${again.reasonCode}`);
+    }
+    console.log(`switchCollaborationMode(plan): accepted; same-value accepted`);
   }
 
   if (phases.includes("fork")) {
@@ -462,49 +521,6 @@ try {
     const child = typeof ack3.result === "string" ? ack3.result : ack3.result?.sessionId;
     if (!child) throw new Error("forkAssistant result missing child session id");
     console.log(`forkAssistant: child=${child}`);
-  }
-
-  // 拒绝路径 1：cancelBackgroundWork 指向不存在的任务 → 明确 fault（不是假装成功）。
-  if (phases.includes("rejections")) {
-    const ackC = await simpleCommand(
-      "0197d3f0-0000-7000-8000-000000000013",
-      "cancelBackgroundWork",
-      { workId: "no-such-task" },
-    );
-    if (ackC.status !== "rejected") {
-      throw new Error(`cancelBackgroundWork should be rejected, got ${ackC.status}`);
-    }
-    const code = ackC.reasonCode ?? "";
-    if (!code.startsWith("fault.command.backgroundWorkCancelRejected.")) {
-      throw new Error(`cancelBackgroundWork fault code unexpected: ${code}`);
-    }
-    console.log(`cancelBackgroundWork(missing): rejected with ${code.split(".").at(-1)}`);
-  }
-
-  // 拒绝路径 2：editUserQuery 带附件 → fail-closed（附件回放未实现）。
-  if (phases.includes("rejections")) {
-    const state = buildState();
-    const userRow = [...state.rows].reverse().find((row) => row.kind === "userInput");
-    if (!userRow) throw new Error("no user row for edit rejection");
-    const ackE = await send("v4/command", {
-      commandId: "0197d3f0-0000-7000-8000-000000000014",
-      clientId: "drive",
-      sessionId,
-      baseRevision: state.revision,
-      baseLogEpoch: state.logEpoch,
-      type: "editUserQuery",
-      payload: {
-        target: { rowId: userRow.rowId, entityId: userRow.entityId },
-        newText: "edited",
-        attachments: [{ ref: "att1", fileName: "a.png", mime: "image/png", bytes: 12 }],
-      },
-      issuedAt: Date.now(),
-    });
-    const result = ackE.error ? null : ackE.result;
-    if (!result || result.status !== "rejected" || result.reasonCode !== "proto.invalidPayload") {
-      throw new Error(`editUserQuery(attachments) should be rejected invalidPayload, got ${JSON.stringify(result ?? ackE.error)}`);
-    }
-    console.log(`editUserQuery(attachments): rejected fail-closed`);
   }
 
   // editUserQuery：改最后一轮 user query → rewind + 重发（conversation 重建后等新回复）。
@@ -539,6 +555,49 @@ try {
     // 已知 kernel 行为问题：rewind 后 actor 不响应后续请求。
     // skip compact/retry（它们需要 actor 存活）。
     console.log(`retryTurn: skipped; compact: skipped (kernel unresponsive after rewind+queued Submit)`);
+  }
+
+  // 拒绝路径 1：cancelBackgroundWork 指向不存在的任务 → 明确 fault（不是假装成功）。
+  if (phases.includes("rejections")) {
+    const ackC = await simpleCommand(
+      "0197d3f0-0000-7000-8000-000000000013",
+      "cancelBackgroundWork",
+      { workId: "no-such-task" },
+    );
+    if (ackC.status !== "failed" || ackC.reasonCode !== "fault.command.backgroundWorkCancelRejected.not_found") {
+      throw new Error(`cancelBackgroundWork(missing) ${ackC.status}/${ackC.reasonCode}: ${ackC.message}`);
+    }
+    console.log(`cancelBackgroundWork(missing): failed/not_found`);
+  }
+
+  // 拒绝路径 2：editUserQuery 带附件 → fail-closed（附件回放未实现）。
+  if (phases.includes("rejections")) {
+    const state = buildState();
+    const userRow = [...state.rows].reverse().find((row) => row.kind === "userInput");
+    if (!userRow) throw new Error("no user row for edit rejection");
+    const ackE = await send("v4/command", {
+      commandId: "0197d3f0-0000-7000-8000-000000000014",
+      clientId: "drive",
+      sessionId,
+      baseRevision: state.revision,
+      baseLogEpoch: state.logEpoch,
+      type: "editUserQuery",
+      payload: {
+        target: { rowId: userRow.rowId, entityId: userRow.entityId },
+        newText: "edited",
+        attachments: [{ ref: "att1", fileName: "a.png", mime: "image/png", bytes: 12 }],
+      },
+      issuedAt: Date.now(),
+    });
+    const result = ackE.error ? null : ackE.result;
+    if (isNode) {
+      console.log(`editUserQuery(attachments)[node]: ${JSON.stringify(result ?? ackE.error)}`);
+    } else {
+      if (!result || result.status !== "rejected" || result.reasonCode !== "proto.invalidPayload") {
+        throw new Error(`editUserQuery(attachments) expected rejected invalidPayload, got ${JSON.stringify(result ?? ackE.error)}`);
+      }
+      console.log(`editUserQuery(attachments): rejected fail-closed (attachment replay not implemented)`);
+    }
   }
 
   console.log(`provider requests: ${REQUESTS.length}`);

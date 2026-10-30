@@ -164,7 +164,10 @@ fn background_work_cancel_code(reason: &str) -> &'static str {
     let lower = reason.to_ascii_lowercase();
     if lower.contains("not running") {
         "not_running"
-    } else if lower.contains("not found") || lower.contains("unknown") || lower.contains("no such")
+    } else if lower.contains("not found")
+        || lower.contains("no task found")
+        || lower.contains("unknown")
+        || lower.contains("no such")
     {
         "not_found"
     } else if lower.contains("cancel") && lower.contains("support") {
@@ -314,21 +317,14 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         .unwrap_or_else(|| server.defaults.selection.clone());
     let (permission, plan) = mode(&config["mode"], config["planEnabled"].as_bool())
         .unwrap_or((server.defaults.mode, false));
-    let id = payload["sessionId"]
-        .as_str()
-        .map_or_else(inbox::new_session_id, SessionId::new);
-    if let Some(followup) = config["followupMode"].as_str().and_then(Followup::parse) {
-        server
-            .followups
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .insert(id.clone(), followup);
-    }
+    // Host 没给 sessionId 时让 kernel 生成（注入的 Ids → `sess_<uuid>`，与 Node 同格式）；
+    // 协议层不再自带 id 生成器。
+    let requested = payload["sessionId"].as_str().map(SessionId::new);
     let workspace = payload["workspaceId"].as_str().unwrap_or_default();
     let created = server
         .kernel
         .create_session(CreateSession {
-            id: Some(id.clone()),
+            id: requested,
             workspace: server.workspace(workspace),
             selection: chosen,
             mode: permission,
@@ -348,6 +344,13 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         Ok(id) => id,
         Err(error) => return refused(error.to_string()),
     };
+    if let Some(followup) = config["followupMode"].as_str().and_then(Followup::parse) {
+        server
+            .followups
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(id.clone(), followup);
+    }
     let live = match server.live(&id).await {
         Ok(live) => live,
         Err(error) => return refused(error.to_string()),
@@ -576,15 +579,7 @@ async fn set_followup(
             revision,
         );
     };
-    if live.sink.followup() == wanted {
-        return Ack::refused(
-            command,
-            Status::Noop,
-            "proto.unchanged",
-            "the followup mode is already set",
-            revision,
-        );
-    }
+    // Node 的 setFollowupMode 无条件执行（幂等 accepted），没有同值 noop。
     if let Some(stale) = cas_check_with_epoch(
         command,
         envelope.base_revision,
@@ -640,7 +635,7 @@ async fn switch_model_config(
         return Ack::refused(
             command,
             Status::Noop,
-            "proto.unchanged",
+            "config.unchanged",
             "the model is already set",
             view.revision,
         );
@@ -696,14 +691,10 @@ async fn switch_collaboration_mode(
             view.revision,
         );
     };
+    // 与 Node 对拍：switchCollaborationMode 同值仍回 accepted（Node 无条件 setMode，
+    // 没有同值 noop；同值 noop 只存在于 switchModelConfig）。
     if view.mode == permission && view.plan == plan {
-        return Ack::refused(
-            command,
-            Status::Noop,
-            "proto.unchanged",
-            "the collaboration mode is already set",
-            view.revision,
-        );
+        return Ack::accepted(command, view.revision, None);
     }
     if let Some(stale) = cas_check_with_epoch(
         command,
@@ -810,10 +801,12 @@ async fn cancel_background_work(
         KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
         KernelAck::Rejected { reason } => {
+            // 与 Node 对拍：明确"没取消任何东西"时是 failed（不是 rejected），
+            // 码是 fault.command.backgroundWorkCancelRejected.<not_found|not_running|...>。
             let code = background_work_cancel_code(&reason);
             Ack::refused(
                 command,
-                Status::Rejected,
+                Status::Failed,
                 &format!("{BACKGROUND_WORK_CANCEL_REJECTED_FAULT_PREFIX}{code}"),
                 reason,
                 revision,

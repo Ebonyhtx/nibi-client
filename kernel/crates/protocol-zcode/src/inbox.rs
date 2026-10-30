@@ -7,7 +7,6 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::store::FrontendRecord;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -165,15 +164,6 @@ pub fn find_fact(records: &[FrontendRecord], command: &str) -> Option<Ack> {
         let ack: Ack = serde_json::from_value(record.data["ack"].clone()).ok()?;
         (ack.command_id == command).then_some(ack)
     })
-}
-
-/// 生成会话 ID（Host 没给时；Node 的写法 `session_<32 位十六进制>`）。
-pub fn new_session_id() -> SessionId {
-    SessionId::new(format!(
-        "session_{:016x}{:016x}",
-        rust_cli_base::random::u64(),
-        rust_cli_base::random::u64()
-    ))
 }
 
 #[cfg(test)]
