@@ -140,6 +140,30 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 项目配置"（bundleDigest）在两边不等价——评审流的 `snapshot_mismatch` 校验会立刻暴露，所以必须在接线
 前对齐，不能靠"反正都记到同一个 store"糊过去。
 
+### bundle 差异的定位（2026-10-30 第二轮：结构一致，只差值）
+
+逐字段比对两边的哈希输入（Node `packages/shared/src/workspace-hook-digest.ts:150-181` 的
+`bundlePayload` vs Rust `crates/hooks/src/workspace_digest.rs:199-233` 的 `payload`）：
+
+| 结构 | Node | Rust | 一致 |
+|---|---|---|---|
+| 信封 | `["workspace-hook-bundle", 1, sources, hooks]` | 同（`SCHEMA_VERSION = 1`） | ✅ |
+| source 元素（7 项） | `[relPath, discoveryOrder, configFileKind, explicitProjectConfig, canonicalOptional(enabled), canonicalOptional(timeoutMs), canonicalOptional(maxOutputBytes)]` | 同 | ✅ |
+| hook 元素（5 项） | `[hookDeclarationDigest, sourceRootEnabled, declarationEnabled, runtimeHooksEnabled, configuredEnabled]` | 同 | ✅ |
+| 可选值编码 | `canonicalOptional` → `["unset"]` / `["set", v]` | `optional` → 同 | ✅ |
+| 序列化 | `sha256(JSON.stringify(payload))` | `sha256(&payload)`（同一套紧凑 JSON） | ✅（单据摘要已证） |
+
+**所以差异只剩 4 个布尔值或 sources 列表长度**：`sourceRootEnabled`、`declarationEnabled`、
+`runtimeHooksEnabled`、`configuredEnabled`。注意单据摘要里包含 `sourceRelativePath` 与
+`sourceDiscoveryOrder` 且两边相同，所以 sources 列表至少第一项的路径/顺序一致。
+
+**下一步（一次就能定死）**：把 payload 本身打印出来对比，而不是猜布尔值——
+- Node：`tsx` 小脚本调 `buildWorkspaceHookBundleSnapshot({...})` 并把 `bundlePayload` 现算一遍
+  （该模块只导出 snapshot，不导出 payload；临时在脚本里按同样结构重建，或加一个仅测试用的导出）。
+- Rust：在 `crates/hooks/src/workspace_digest_tests.rs` 加一个打印 `payload` 的测试（同一 fixture）。
+- 两份 JSON 逐字段 diff，差异字段就是答案；改完把 fixture 固化成仓库内的
+  `scripts/kernel-baseline/fixtures/hooks-parity/`，并把这个对比做成可复跑的门禁脚本。
+
 ### 待查（动手前先读源码确认，不猜）
 
 1. `reviewFlowId` 的生命周期与 `generation` 的精确语义（`interaction-registry.ts` 的
