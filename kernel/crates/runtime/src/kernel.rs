@@ -311,6 +311,48 @@ impl Kernel for LocalKernel {
             .map_err(|error| failed(&error))
     }
 
+    /// 一轮 DWF actor（路线 C：引擎 sidecar 通过它跑 actor 的模型轮）。
+    async fn run_workflow_actor(
+        &self,
+        request: rust_cli_kernel_api::workflow::WorkflowActorRequest,
+        cancel: Option<tokio_util::sync::CancellationToken>,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowActorTurn, KernelError> {
+        let spec = request.actor;
+        let root = spec.workspace.unwrap_or_default();
+        let profile = rust_cli_agents::ActorProfile {
+            parent: SessionId::new(spec.parent),
+            child: SessionId::new(spec.child),
+            workspace: rust_cli_kernel_api::env::WorkspaceRef {
+                environment: rust_cli_kernel_api::ids::EnvironmentId::new(
+                    rust_cli_kernel_api::env_registry::LOCAL_MACHINE,
+                ),
+                root: rust_cli_kernel_api::env::EnvPath::new(root),
+            },
+            selection: spec.selection.unwrap_or_else(|| self.defaults.selection.clone()),
+            mode: spec.mode.unwrap_or(self.defaults.mode),
+            prompt: spec.prompt,
+            label: spec.label,
+            allow: spec.allow,
+            deny: spec.deny,
+            max_turns: spec.max_turns,
+        };
+        let outcome = self
+            .actors
+            .run_actor_turn(&profile, &request.message, request.first, cancel)
+            .await
+            .map_err(|error| KernelError::Failed {
+                message: error.to_string(),
+            })?;
+        Ok(rust_cli_kernel_api::workflow::WorkflowActorTurn {
+            child: outcome.child.as_str().to_owned(),
+            text: outcome.text,
+            tokens: outcome.tokens,
+            tool_uses: outcome.tool_uses,
+            stopped: outcome.stopped.to_owned(),
+            error: outcome.error,
+        })
+    }
+
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,

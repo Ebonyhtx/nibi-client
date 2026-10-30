@@ -9,6 +9,7 @@
 //! runtime 组装：[`Agents::registry`] 是主线程的工具注册表，[`Agents::track`] 包住主循环，
 //! [`Agents::signals`] 交给会话 actor，[`AgentCatalog`] 交给 context 作 agent 清单。
 
+mod actor;
 mod agent_tool;
 mod child;
 mod context;
@@ -48,6 +49,7 @@ use rust_cli_kernel_api::orchestration::{ContextBuilder, QueryRunner, ToolRegist
 use rust_cli_kernel_api::store::SessionStore;
 use rust_cli_kernel_api::tool::Tool;
 
+pub use actor::{ActorError, ActorProfile, ActorTurnOutcome};
 pub use agent_tool::AgentTool;
 pub use context::AgentCatalog;
 pub use definitions::{AgentDefinition, AgentSource, builtins};

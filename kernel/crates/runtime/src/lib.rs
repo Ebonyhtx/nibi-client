@@ -123,6 +123,8 @@ pub struct LocalKernel {
     runner: Arc<dyn QueryRunner>,
     /// 子代理的信号来源（后台子代理的通知、任务清单变化），交给每个会话 actor。
     agents: Arc<dyn AgentSignals>,
+    /// 同一个 `Agents` 实例（DWF 的 actor 轮经它跑；信号与工具注册表都是这一份）。
+    actors: Arc<rust_cli_agents::Agents>,
     /// 定时任务的唤醒与到期任务（tools-more.md §10.4）；`-p` 不触发，是 `NoCron`。
     cron: Arc<dyn rust_cli_kernel_api::cron::CronSignals>,
     compactor: Arc<dyn Compactor>,
@@ -418,7 +420,7 @@ impl LocalKernel {
         };
         // 子代理与任务清单（工作线 L7）：主线程的工具注册表换成 agents 的（基础工具 + Agent 等），
         // 主循环包一层运行登记；子循环由 `LoopFactory` 用同一套能力组装。
-        let agents = Agents::new(
+        let agents = Arc::new(Agents::new(
             AgentsPorts {
                 directories: session_directories.clone(),
                 store: ports.store.clone(),
@@ -454,7 +456,7 @@ impl LocalKernel {
                 // 修复线 L-A：交互会话缺省打开 fork 子代理，`-p` 关；环境变量可以改（agents.md §8.1.1）。
                 fork: defaults.limits.fork_subagent.unwrap_or(!non_interactive),
             },
-        );
+        ));
         let tools = agents.registry();
         catalog.bind(&tools);
         // 任务提醒读的清单（agents.md §7.4）：agents 要用上下文，所以建好之后再接给它。
@@ -506,6 +508,7 @@ impl LocalKernel {
             defaults,
             runner,
             agents: agents.signals(),
+            actors: agents.clone(),
             cron: if non_interactive {
                 Arc::new(rust_cli_kernel_api::cron::NoCron)
             } else {
@@ -574,6 +577,10 @@ mod hook_review_tests;
 #[cfg(test)]
 #[path = "shared_context_tests.rs"]
 mod shared_context_tests;
+
+#[cfg(test)]
+#[path = "workflow_actor_tests.rs"]
+mod workflow_actor_tests;
 
 #[cfg(test)]
 #[path = "metering_tests.rs"]

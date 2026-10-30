@@ -128,6 +128,14 @@
   `submit_result`/`escalate` 工具、权限模式）；以及 ask 的 repair/nudge 循环在跨进程往返下
   仍保持确定性（引擎只认 `sink` 的调用顺序）。
 
+**第一点已验证（2026-10-30）**：`rust_cli_agents::Agents::run_actor_turn`（`crates/agents/src/actor.rs`）
+复用子循环做到——persona 进 system 的第二段、工具面按 allow/deny 过滤、actor 子会话跨轮续跑、
+不进 agents 面板；`Kernel::run_workflow_actor` 把它接到内核（`WorkflowActorSpec/Turn/Request`）。
+测试：agents 侧 `actor_tests` 两例（含 persona/system、Subagent 来源、工具减法、同一子会话续跑、
+缺失会话大声失败），runtime 侧 `workflow_actor_tests` 一例（经内核入口跑一轮并落子会话）。
+第二点（跨进程确定性）等 sidecar 控制面落码时用驱动验证。`submit_result`/`escalate` 工具与
+权限升级（escalation）仍是 C1 的下一步。
+
 ## 4. 若选 A（不移植）需要写进灰度分流表的内容
 
 - `NIBI_KERNEL=rust` 时 DWF 命令一律 `unsupported`（现状），Host 端按能力探测降级；

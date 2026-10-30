@@ -410,6 +410,11 @@ DWF 调研（8,524 行规格 + 26k 行 TS 引擎/编译器 + 20 多个工具；�
 **验证**：`cargo test -p rust-cli-node-store dwf` 绿；`cargo check` 全绿。3 条 DWF 命令仍在
 `BLOCKED_COMMANDS`（引擎未接），覆盖表保持 31 接住 / 3 块。
 
+**C1 第一步（同日落地）**：`rust_cli_agents::Agents::run_actor_turn` 复用子代理的 `QueryLoop`
+跑 DWF actor 轮（persona 进 system、工具 allow/deny、同一 actor 子会话跨轮续跑、不进 agents 面板），
+`Kernel::run_workflow_actor`（`WorkflowActorSpec/Turn/Request`）把它交给 sidecar 的 driver 调用；
+agents 两例 + runtime 一例测试。`submit_result`/`escalate` 与权限升级留到下一步。
+
 **C1 可行性探针（同日通过）**：`scripts/kernel-baseline/probe-dwf-engine.mjs` 用两个 app-free 包
 （`@nibi/dynamic-workflow` + `dynamic-workflow-runtime`）直接装配引擎——无 ask 与
 `agent/ask` 两段脚本都 `completed`，事件序列完整；再用内核自己的迁移 SQL 建库、经真实

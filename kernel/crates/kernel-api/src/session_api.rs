@@ -700,6 +700,20 @@ pub trait Kernel: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// 跑一轮 DWF actor（路线 C：引擎在 Node sidecar，actor 的模型轮在 Rust）。
+    ///
+    /// `first` 为真时先建 actor 子会话；`cancel` 取消时按 `aborted` 收口。缺省实现返回 `Unsupported`
+    /// （TUI / `-p` 不跑 DWF）。
+    async fn run_workflow_actor(
+        &self,
+        _request: crate::workflow::WorkflowActorRequest,
+        _cancel: Option<tokio_util::sync::CancellationToken>,
+    ) -> Result<crate::workflow::WorkflowActorTurn, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "dynamic workflow actors".to_owned(),
+        })
+    }
+
     /// 读出一条会话附件（NIBI `AttachmentRef`）：artifact URI 经会话的 artifact 存储，路径经会话所在
     /// 机器的文件端口。`workspace` 是这条命令的会话工作区（相对路径按它解析）。
     ///

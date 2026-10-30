@@ -58,7 +58,7 @@ pub(crate) fn mode(parent: PermissionMode, declared: Option<PermissionMode>) -> 
     }
 }
 
-fn user(core: &Core, text: &str, origin: UserOrigin) -> Message {
+pub(crate) fn user(core: &Core, text: &str, origin: UserOrigin) -> Message {
     Message::User(UserMessage {
         id: core.ports.ids.message(),
         content: vec![ContentBlock::Text {
@@ -69,7 +69,7 @@ fn user(core: &Core, text: &str, origin: UserOrigin) -> Message {
 }
 
 /// 提交到子会话；返回这一批之后的当前轮（子会话的当前轮由这里与 `ChildSink` 持有，node-store.md §4，修复线 F6）。
-async fn commit(
+pub(crate) async fn commit(
     core: &Core,
     session: &SessionId,
     facts: Vec<Fact>,
