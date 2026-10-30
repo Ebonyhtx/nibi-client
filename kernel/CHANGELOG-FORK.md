@@ -499,6 +499,28 @@ journal 因此成为 `pendingQuestions` 投影与冷回放的数据源。
   答案文本），双内核一致。runtime 另有 journal 双轨 1 例（两条取舍 + 载荷形状）、
   node-store 事件 2 例（per-run 序号 + 冷回放）。
 
+## 6.16 `GetWorkflowRun` 工具（2026-10-30，路线 C 第五段）
+
+升级通知与答题拒绝文案都引用的查询兜底，journal 读面落地后把它接上。
+
+- **node-store**：`repo::dwf::run_detail`——run 行终态拆解（Node `decodeRunSettlement` 同规：
+  cancelled 包络 → `stopped(+reason/supersededBy/error)`、failed 的 `Interrupted` 码 →
+  `stopped(interrupted)`）、标签派生（name → 脚本首行截 80 → runId，读时派生不回写）、
+  节点计数（`nodesObserved` = 已落库行数，不冒充总步数）、actors、log 尾巴 20 条
+  （`order by sequence desc limit` 下推再反转）与冷回放的待答问题；
+  `SessionStore::workflow_run_detail` 窄口（缺省 `Unsupported`）。
+- **kernel-api**：`WorkflowRunIntrospection` 端口 + `WorkflowRunDetail` 等类型；
+  runtime 的 `WorkflowRunDetailReader` 合成 journal 事实与停驻注册表的活项（按 qid 去重，
+  journal 冷回放 ∪ 注册表）。
+- **tools**：`GetWorkflowRunTool`（名字/描述/输入 schema 与 Node 逐字相同；描述里的
+  引导文案同一段）。模型面是 Node 格式器同一块序的子集：summary（`buildWorkflowRunSummary`
+  的可 sourced 从句）、身份块、pending_questions（引导句逐字）、log_tail（块恒在场、空尾巴
+  一句固定文案、`[seq] | age | message` 行）、usage、result（completed 的顶层返回值，
+  string 原样/其余 pretty JSON）、error、`<amendable>`/`<resumable>` 路由提示（逐字）。
+  阶段表/花名册/留白/产物读面未接，对应块整体缺席——「没有」与「不知道」分开。
+- **门禁**：`check-dwf-engine.mjs` 37 → **45 字段**（真 id 的状态/摘要/用量/归属/amendable/
+  待答区缺席/log 尾巴形状 + 坏 id 的 run_not_found），双内核一致。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

@@ -146,6 +146,336 @@ pub fn pending_questions(conn: &Connection, run_id: &str) -> Result<Vec<JournalQ
     Ok(pending)
 }
 
+/// 一行 run 的完整读取（`GetWorkflowRun` 详情的取数面；`failure_json` 保持原文，终态
+/// 的拆解——stopped 包络 / Interrupted 判别——按 Node `decodeRunSettlement` 由调用方做）。
+pub struct RunRow {
+    pub id: String,
+    pub parent_session_id: Option<String>,
+    pub name: Option<String>,
+    pub script_text: Option<String>,
+    pub status: String,
+    pub resumed_from: Option<String>,
+    pub caps_max_concurrency: i64,
+    pub spent_tokens: i64,
+    pub result_json: Option<String>,
+    pub failure_json: Option<String>,
+    pub time_created: i64,
+    pub time_updated: i64,
+}
+
+pub fn run_row(conn: &Connection, run_id: &str) -> Result<Option<RunRow>> {
+    conn.query_row(
+        "select id, parent_session_id, name, script_text, status, resumed_from,
+                caps_max_concurrency, spent_tokens, result_json, failure_json,
+                time_created, time_updated
+         from dwf_run where id = ?",
+        params![run_id],
+        |row| {
+            Ok(RunRow {
+                id: row.get(0)?,
+                parent_session_id: row.get(1)?,
+                name: row.get(2)?,
+                script_text: row.get(3)?,
+                status: row.get(4)?,
+                resumed_from: row.get(5)?,
+                caps_max_concurrency: row.get(6)?,
+                spent_tokens: row.get(7)?,
+                result_json: row.get(8)?,
+                failure_json: row.get(9)?,
+                time_created: row.get(10)?,
+                time_updated: row.get(11)?,
+            })
+        },
+    )
+    .optional()
+    .map_err(Into::into)
+}
+
+/// 节点行计数（`nodesObserved` 是已落库节点的行数，三态之和——绝不冒充「总步数」）。
+pub struct NodeCounts {
+    pub observed: u64,
+    pub running: u64,
+    pub completed: u64,
+    pub failed: u64,
+}
+
+pub fn node_counts(conn: &Connection, run_id: &str) -> Result<NodeCounts> {
+    let mut query = conn.prepare_cached(
+        "select status, count(*) from dwf_node where run_id = ? group by status",
+    )?;
+    let rows = query.query_map(params![run_id], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+    })?;
+    let mut counts = NodeCounts {
+        observed: 0,
+        running: 0,
+        completed: 0,
+        failed: 0,
+    };
+    for row in rows {
+        let (status, count) = row?;
+        let count = count.max(0) as u64;
+        counts.observed += count;
+        match status.as_str() {
+            "running" => counts.running = count,
+            "completed" => counts.completed = count,
+            "failed" => counts.failed = count,
+            _ => {}
+        }
+    }
+    Ok(counts)
+}
+
+/// 一个 actor 站点实例（恒定的身份表；persona 刻意不出——整段 system prompt 无界）。
+pub struct ActorRow {
+    pub site_id: String,
+    pub ordinal: i64,
+    pub name: Option<String>,
+}
+
+pub fn actors(conn: &Connection, run_id: &str) -> Result<Vec<ActorRow>> {
+    let mut query = conn.prepare_cached(
+        "select site_id, ordinal, name from dwf_actor where run_id = ? order by id",
+    )?;
+    let rows = query.query_map(params![run_id], |row| {
+        Ok(ActorRow {
+            site_id: row.get(0)?,
+            ordinal: row.get(1)?,
+            name: row.get(2)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// `log()` 叙事的尾巴，按时序（`order by sequence desc limit ?` 再反转——一条长 run 的
+/// dwf_event 是它最大的表，为尾巴几条读全表是分页要排除的做法；type 列下推）。
+pub fn log_tail(conn: &Connection, run_id: &str, limit: usize) -> Result<Vec<EventRow>> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+    let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+    let mut query = conn.prepare_cached(
+        "select sequence, type, payload_json, time_created from dwf_event
+         where run_id = ? and type = 'log' order by sequence desc limit ?",
+    )?;
+    let mut rows = query
+        .query_map(params![run_id, limit], |row| {
+            Ok(EventRow {
+                sequence: row.get(0)?,
+                event_type: row.get(1)?,
+                payload_json: row.get(2)?,
+                time_created: row.get(3)?,
+            })
+        })?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    rows.reverse();
+    Ok(rows)
+}
+
+/// 详情读面的 log 尾巴上限（Node `DEFAULT_LOG_TAIL_LIMIT`）。
+pub const LOG_TAIL_LIMIT: usize = 20;
+/// Node `INTERRUPTED_CODE`：失败码为它的 `failed` 行，逻辑状态是 `stopped(interrupted)`——
+/// 「进程死了」与「脚本真失败」是模型要分别处理的两件事。
+const INTERRUPTED_CODE: &str = "Interrupted";
+/// 展示标签的字符上限（Node `DYNAMIC_WORKFLOW_RUN_LABEL_MAX_CHARS`；派生值是启发式，越长越不像标签）。
+const LABEL_MAX_CHARS: usize = 80;
+
+/// 脚本派生标签：首个非空行（trim 后截 80）——首行是**诚实的**（「脚本以此开头」），启发式
+/// 每多一条就多一种在别人的脚本上给出误导标签的方式。整段皆空白时回 runId。
+fn derived_label(script_text: Option<&str>, run_id: &str) -> String {
+    let Some(text) = script_text else {
+        return run_id.to_owned();
+    };
+    for line in text.split('\n') {
+        let line = line.trim();
+        if !line.is_empty() {
+            let mut label: String = line.chars().take(LABEL_MAX_CHARS).collect();
+            if line.chars().count() > LABEL_MAX_CHARS {
+                label.push('…');
+            }
+            return label;
+        }
+    }
+    run_id.to_owned()
+}
+
+/// 详情合成（Node `decodeRunSettlement` + run service 详情投影的 journal 侧）：run 行的终态
+/// 拆解（stopped 包络 / Interrupted 判别）、标签派生、节点计数、actors、log 尾巴与冷回放的
+/// 待答问题。未知 runId → `None`。停驻注册表的活项由运行时的读面并进来。
+pub fn run_detail(
+    conn: &Connection,
+    session: &str,
+    run_id: &str,
+) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunDetail>> {
+    use rust_cli_kernel_api::workflow as api;
+    let Some(row) = run_row(conn, run_id)? else {
+        return Ok(None);
+    };
+    // 终态拆解的产物（Node `DwfRunSettlementFields` 的读取侧等价物）。
+    struct Settlement {
+        status: String,
+        stop_reason: Option<String>,
+        superseded_by: Option<String>,
+        failure: Option<(String, String)>,
+    }
+    let settlement = match row.status.as_str() {
+        // stopped 包络：`{stopReason, supersededBy?, error?}`（Node `encodeRunSettlement` 的
+        // stopped 一支）；缺字段按缺省 stopReason=user 兜底（Node 的 decode 同规）。
+        "cancelled" => {
+            let envelope = row
+                .failure_json
+                .as_deref()
+                .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok());
+            let stop_reason = envelope
+                .as_ref()
+                .and_then(|value| value["stopReason"].as_str())
+                .unwrap_or("user")
+                .to_owned();
+            let superseded = envelope
+                .as_ref()
+                .and_then(|value| value["supersededBy"].as_str())
+                .filter(|value| !value.is_empty())
+                .map(str::to_owned);
+            let failure = envelope.as_ref().and_then(|value| {
+                Some((
+                    value["error"]["code"].as_str()?.to_owned(),
+                    value["error"]["message"].as_str()?.to_owned(),
+                ))
+            });
+            Settlement {
+                status: "stopped".to_owned(),
+                stop_reason: Some(stop_reason),
+                superseded_by: superseded,
+                failure,
+            }
+        }
+        // failed：code == Interrupted 是「进程死了」（stopped/interrupted），其余是脚本真失败。
+        "failed" => {
+            let failure_json = row
+                .failure_json
+                .as_deref()
+                .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok());
+            let code = failure_json
+                .as_ref()
+                .and_then(|value| value["code"].as_str())
+                .unwrap_or("Unknown");
+            let failure = failure_json.as_ref().and_then(|value| {
+                Some((
+                    value["code"].as_str()?.to_owned(),
+                    value["message"].as_str()?.to_owned(),
+                ))
+            });
+            if code == INTERRUPTED_CODE {
+                Settlement {
+                    status: "stopped".to_owned(),
+                    stop_reason: Some("interrupted".to_owned()),
+                    superseded_by: None,
+                    failure,
+                }
+            } else {
+                Settlement {
+                    status: "errored".to_owned(),
+                    stop_reason: None,
+                    superseded_by: None,
+                    failure,
+                }
+            }
+        }
+        "completed" => Settlement {
+            status: "completed".to_owned(),
+            stop_reason: None,
+            superseded_by: None,
+            failure: None,
+        },
+        other => Settlement {
+            status: other.to_owned(),
+            stop_reason: None,
+            superseded_by: None,
+            failure: None,
+        },
+    };
+    let Settlement {
+        status,
+        stop_reason,
+        superseded_by,
+        failure,
+    } = settlement;
+    let (label, label_source) = match row.name.as_deref().map(str::trim).filter(|name| !name.is_empty()) {
+        Some(name) => (name.to_owned(), "name"),
+        None => (derived_label(row.script_text.as_deref(), run_id), "script"),
+    };
+    // completed 的顶层返回值：string 原样、其余 pretty JSON（Node `serializeWorkflowArtifact`）。
+    let result_text = if status == "completed" {
+        row.result_json.as_deref().and_then(|text| {
+            serde_json::from_str::<serde_json::Value>(text)
+                .ok()
+                .map(|value| match value {
+                    serde_json::Value::String(text) => text,
+                    other => serde_json::to_string_pretty(&other).unwrap_or_default(),
+                })
+        })
+    } else {
+        None
+    };
+    let counts = node_counts(conn, run_id)?;
+    let actors = actors(conn, run_id)?
+        .into_iter()
+        .map(|actor| api::WorkflowRunActor {
+            site_id: actor.site_id,
+            ordinal: actor.ordinal,
+            name: actor.name,
+        })
+        .collect();
+    let log_tail = log_tail(conn, run_id, LOG_TAIL_LIMIT)?
+        .into_iter()
+        .filter_map(|event| {
+            let payload = serde_json::from_str::<serde_json::Value>(&event.payload_json).ok()?;
+            let message = payload["message"].as_str().map(str::to_owned)?;
+            Some(api::WorkflowRunLogEntry {
+                sequence: event.sequence,
+                message,
+                at: (event.time_created >= 0).then_some(event.time_created as u64),
+            })
+        })
+        .collect();
+    let pending = pending_questions(conn, run_id)?
+        .into_iter()
+        .map(|question| api::WorkflowRunPendingQuestion {
+            qid: question.qid,
+            actor: question.actor,
+            actor_name: question.actor_name,
+            question: question.question,
+            context: question.context,
+            asked_at: question.asked_at,
+        })
+        .collect();
+    Ok(Some(api::WorkflowRunDetail {
+        run_id: row.id.clone(),
+        label,
+        label_source,
+        status,
+        stop_reason,
+        resumed_from: row.resumed_from.clone(),
+        superseded_by,
+        owned_by_this_session: row.parent_session_id.as_deref() == Some(session),
+        created_at: row.time_created.max(0) as u64,
+        updated_at: row.time_updated.max(0) as u64,
+        spent_tokens: row.spent_tokens.max(0) as u64,
+        nodes: api::WorkflowRunNodeCounts {
+            observed: counts.observed,
+            running: counts.running,
+            completed: counts.completed,
+            failed: counts.failed,
+        },
+        actors,
+        log_tail,
+        pending_questions: pending,
+        result_text,
+        error: failure.map(|(code, message)| api::WorkflowRunError { code, message }),
+        max_concurrency: (row.caps_max_concurrency > 0).then_some(row.caps_max_concurrency as u64),
+    }))
+}
+
 #[cfg(test)]
 #[path = "dwf_tests.rs"]
 mod tests;

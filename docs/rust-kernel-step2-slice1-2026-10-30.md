@@ -467,6 +467,14 @@ CHANGELOG-FORK §6.15）：
 - 事件载荷与 Node `RunEvent` 同形：`actor` 是结构化 ActorRef（`{siteId, ordinal}`）。
 - 门禁：`check-dwf-engine` **37 字段**双内核一致；runtime journal 双轨 1 例、node-store 事件 2 例。
 
+## 6.23 第二十四步：`GetWorkflowRun` 工具（2026-10-30）
+
+升级通知与答题拒绝文案都引用的查询兜底，journal 读面落地后接上（详见 CHANGELOG-FORK §6.16）：
+journal 终态拆解/标签派生/节点计数/log 尾巴/待答问题（node-store `run_detail`）∪ 停驻注册表
+活项（runtime `WorkflowRunDetailReader`）→ tools 的 `GetWorkflowRunTool`（名字/描述/输入
+schema 与 Node 逐字，模型面块序同、可 sourced 字段子集；`<amendable>`/`<resumable>` 路由
+提示逐字）。阶段表/花名册/留白/产物读面未接，对应块缺席。门禁 **45 字段**双内核一致。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要

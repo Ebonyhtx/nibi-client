@@ -251,4 +251,6 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
      - Node 的「设置轮」：修订成功后往会话里排一条 controlOnly 消息（模型可见的「已修订」记录）；
      - `amend` 的脚本点名模型绑定（`modelBindings`）与 persona 级模型名解析（需要模型目录；
        规范串形式已支持）；
-     - `GetWorkflowRun` 工具本身（升级通知与工具描述里引用了它，Rust 目前没有这个工具）。
+     - ~~`GetWorkflowRun` 工具本身~~（**v1 已接，2026-10-30 第五段**：journal 读面 + 停驻
+       注册表合成；名字/描述/输入 schema 与模型面块序与 Node 逐字，`check-dwf-engine` 45 字段。
+       阶段表/花名册/留白/产物四类读面未接，对应块整体缺席——投影面落地后补）。

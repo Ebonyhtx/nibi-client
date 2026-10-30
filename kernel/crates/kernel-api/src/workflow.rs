@@ -190,6 +190,97 @@ pub trait WorkflowEventJournal: Send + Sync {
     ) -> Result<(), crate::store::StoreError>;
 }
 
+/// 节点行计数（`nodesObserved` 是已落库节点的行数，三态之和——绝不冒充「总步数」，
+/// 动态工作流没有静态总数）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunNodeCounts {
+    pub observed: u64,
+    pub running: u64,
+    pub completed: u64,
+    pub failed: u64,
+}
+
+/// 一个 actor 站点实例（恒定的身份表；persona 刻意不出——整段 system prompt 无界）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunActor {
+    pub site_id: String,
+    pub ordinal: i64,
+    pub name: Option<String>,
+}
+
+/// 一条 `log()` 叙事。`at` 是这条事件落 journal 的时刻；没有这一列的老 journal 上缺席。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunLogEntry {
+    pub sequence: i64,
+    pub message: String,
+    pub at: Option<u64>,
+}
+
+/// 一个此刻停驻、等主代理作答的升级问题（升级通知丢弃后的查询兜底，模型侧唯一的发现面）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunPendingQuestion {
+    pub qid: String,
+    /// 提问的 actor，`site@ordinal` 形态。
+    pub actor: String,
+    pub actor_name: Option<String>,
+    pub question: String,
+    pub context: Option<String>,
+    /// 提问时刻（epoch ms，与 createdAt / updatedAt 同一把尺）。
+    pub asked_at: u64,
+}
+
+/// 结构化失败（journal `failure_json` 的 code/message；稳定判别键——模型必须能分辨
+/// 「进程死了」与「脚本真失败」）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunError {
+    pub code: String,
+    pub message: String,
+}
+
+/// 一个 run 的详情读面（journal + 停驻注册表的合成；`GetWorkflowRun` 的取数底座）。
+/// 阶段表 / 花名册相位 / 留白 / 用户面产物等读面尚未接的，字段整体缺席而不是空表。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunDetail {
+    pub run_id: String,
+    /// 已烹熟的展示标签（name → 脚本首个非空行 → runId；读时派生，绝不回写）。
+    pub label: String,
+    /// `"name"` = 用户起的名字；`"script"` = 读时从脚本派生（含 runId 兜底）。
+    pub label_source: &'static str,
+    /// 生命周期词：`pending` / `running` / `completed` / `errored` / `stopped`。
+    pub status: String,
+    /// `status == "stopped"` 才在场。
+    pub stop_reason: Option<String>,
+    pub resumed_from: Option<String>,
+    /// 本 run 被哪次修订停下并替代（stopped(superseded) 的结算袋）。
+    pub superseded_by: Option<String>,
+    pub owned_by_this_session: bool,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub spent_tokens: u64,
+    pub nodes: WorkflowRunNodeCounts,
+    pub actors: Vec<WorkflowRunActor>,
+    pub log_tail: Vec<WorkflowRunLogEntry>,
+    /// 此刻还欠答案的升级问题（journal 冷回放 ∪ 停驻注册表的活项）。
+    pub pending_questions: Vec<WorkflowRunPendingQuestion>,
+    /// completed 才在场：脚本的顶层返回值，已序列化成文本（string 原样、其余 pretty JSON）。
+    pub result_text: Option<String>,
+    /// errored 恒可回；stopped 只对 provider / interrupted 在场。
+    pub error: Option<WorkflowRunError>,
+    /// 本 run 自己的并发上界（低于天花板时才由调用方放行到模型面）。
+    pub max_concurrency: Option<u64>,
+}
+
+/// run 详情的取数端口（`GetWorkflowRun` 工具读它；journal 是真相，宿主合成停驻注册表）。
+#[async_trait::async_trait]
+pub trait WorkflowRunIntrospection: Send + Sync {
+    /// 未知 runId → `None`（调用方给 `run_not_found`）。
+    async fn run_detail(
+        &self,
+        session: &crate::ids::SessionId,
+        run_id: &str,
+    ) -> Result<Option<WorkflowRunDetail>, crate::store::StoreError>;
+}
+
 /// 引擎拒绝码的前缀（Node `SAVED_WORKFLOW_START_REJECTED_FAULT_PREFIX` 等）。
 pub const SAVED_WORKFLOW_START_REJECTED: &str = "fault.command.savedWorkflowStartRejected.";
 pub const WORKFLOW_RUN_RESUME_REJECTED: &str = "fault.command.workflowRunResumeRejected.";

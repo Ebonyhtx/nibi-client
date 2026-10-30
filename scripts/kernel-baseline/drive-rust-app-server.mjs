@@ -111,6 +111,9 @@ let escalationRaised = false;
 let escalationResolved = false;
 let escalationAnswered = false;
 let escalationQid = null;
+// run 详情探针（GetWorkflowRun）：provider 路由按这个 id 调工具；阶段里先看真 id、再看坏 id。
+let inspectRunId = null;
+let inspectAttempt = 0;
 const textOf = (content) => {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -217,6 +220,42 @@ const server = createServer((req, res) => {
                         question: "What should I return for the probe?",
                         context: "I have nothing else to go on.",
                       }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    // run 详情探针（GetWorkflowRun）：最后一个 user 文本是探针口令时，按全局的 inspectRunId
+    // 调工具（真 id 先行；换上坏 id 再来一次验 run_not_found）。writeHead 已由 handler 统一发过。
+    if (lastUserText.includes("inspect the run") && inspectRunId !== null) {
+      inspectAttempt += 1;
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: `call_drive_inspect_${inspectAttempt}`,
+                    type: "function",
+                    function: {
+                      name: "GetWorkflowRun",
+                      arguments: JSON.stringify({ run_id: inspectRunId }),
                     },
                   },
                 ],
@@ -1439,8 +1478,10 @@ try {
       checks.dwfEscalateJournalRaisedShape =
         raised !== undefined &&
         typeof raised.payload.qid === "string" &&
+        // actor 是结构化 ActorRef（{siteId, ordinal}，Node `RunEvent` 同形），不是字符串。
+        typeof raised.payload.actor?.siteId === "string" &&
+        typeof raised.payload.actor?.ordinal === "number" &&
         typeof raised.payload.question === "string" &&
-        typeof raised.payload.actor === "string" &&
         typeof raised.payload.askedAt === "number" &&
         (raised.payload.actorName === undefined ||
           typeof raised.payload.actorName === "string") &&
@@ -1458,6 +1499,52 @@ try {
       `dwf escalate: run=${checks.dwfEscalateStatus} raised=${checks.dwfEscalateRaised} ` +
         `qid=${checks.dwfEscalateQidPrefix} resolved=${checks.dwfEscalateResolved} ` +
         `answered=${checks.dwfEscalateAnswered} journal=${checks.dwfEscalateJournalTypes}`,
+    );
+
+    // ── run 详情探针（GetWorkflowRun，升级通知里引用的查询兜底）──
+    // 真 id：父会话里说探针口令 → 模型按路由调 GetWorkflowRun(runId) → 工具结果（模型面文本）
+    // 落 TOOL_RESULTS，断言状态/摘要/用量/待答区缺席；坏 id：同一口令再来一次 → run_not_found。
+    const inspectProbe = async (runIdForProbe) => {
+      const seen = TOOL_RESULTS.length;
+      inspectRunId = runIdForProbe;
+      inspectAttempt += 1;
+      const turn = await simpleCommand(
+        `0197d3f0-0000-7000-8000-000000000d${inspectAttempt.toString(16).padStart(2, "0")}`,
+        "sendText",
+        { text: "inspect the run" },
+        session,
+      );
+      if (turn.status !== "accepted") {
+        throw new Error(`sendText(inspect) ${turn.status}/${turn.reasonCode}`);
+      }
+      for (let attempt = 0; attempt < 300; attempt += 1) {
+        const fresh = TOOL_RESULTS.slice(seen);
+        if (fresh.some((result) => result.includes("<status>") || result.includes("run_not_found"))) {
+          return fresh;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      throw new Error("the GetWorkflowRun probe never produced a tool result");
+    };
+    const detailResults = await inspectProbe(runId);
+    const detailText = detailResults.find((result) => result.includes("<status>")) ?? "";
+    const statusTag = /<status>([^<]+)<\/status>/u.exec(detailText)?.[1] ?? null;
+    checks.dwfRunToolStatus = statusTag;
+    checks.dwfRunToolCompletedSummary = /<summary>Completed in /.test(detailText);
+    checks.dwfRunToolUsage = /<usage>spent_tokens=\d+ nodes_observed=\d+ /.test(detailText);
+    checks.dwfRunToolOwned = detailText.includes("<owned_by_this_session>true</owned_by_this_session>");
+    checks.dwfRunToolAmendable = detailText.includes("<amendable>");
+    // 已结算的 run 没有在等问题：pending 区整字段缺席（空节读起来像「问过、已答完」）。
+    checks.dwfRunToolPendingAbsent = !detailText.includes("<pending_questions>");
+    // 块恒在场（Node `formatWorkflowRunLogTailBlock`）：空尾巴是一句固定文案，不是缺席。
+    checks.dwfRunToolLogTailShape = detailText.includes("<log_tail>");
+    const missingResults = await inspectProbe("dwfrun-does-not-exist");
+    checks.dwfRunToolNotFound = missingResults.some((result) => result.includes("run_not_found"));
+    inspectRunId = null;
+    console.log(
+      `run detail: status=${checks.dwfRunToolStatus} summary=${checks.dwfRunToolCompletedSummary} ` +
+        `owned=${checks.dwfRunToolOwned} pendingAbsent=${checks.dwfRunToolPendingAbsent} ` +
+        `notFound=${checks.dwfRunToolNotFound}`,
     );
   }
 

@@ -74,6 +74,7 @@ mod web_search;
 mod web_side;
 mod web_texts;
 mod workflow_question;
+mod workflow_run_detail;
 mod worktree;
 mod worktree_exit;
 mod worktree_texts;
@@ -110,6 +111,7 @@ pub use user_input::UserInputTools;
 pub use web_fetch::{SideModel, WebFetchTool};
 pub use web_search::WebSearchTool;
 pub use workflow_question::ResolveWorkflowQuestionTool;
+pub use workflow_run_detail::GetWorkflowRunTool;
 pub use worktree::{WorktreeBoard, worktree_tools};
 pub use write::WriteTool;
 

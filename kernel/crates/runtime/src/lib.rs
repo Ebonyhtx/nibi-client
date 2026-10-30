@@ -332,6 +332,15 @@ impl LocalKernel {
                 .with_tools(vec![Arc::new(
                     rust_cli_tools::ResolveWorkflowQuestionTool::new(escalations.clone()),
                 )])
+                // DWF run 详情（`GetWorkflowRun`）：journal 读面 ∪ 停驻注册表的活项——
+                // 升级通知与答题拒绝文案里引用的查询兜底。
+                .with_tools(vec![Arc::new(rust_cli_tools::GetWorkflowRunTool::new(
+                    Arc::new(escalations::WorkflowRunDetailReader {
+                        store: ports.store.clone(),
+                        escalations: escalations.clone(),
+                    }),
+                    ports.clock.clone(),
+                ))])
                 .with_tools(rust_cli_tools::worktree_tools(&worktrees)),
         );
         // 用户输入的提及与 bash 模式用基础注册表里的 Read 与 Bash（与模型的调用共用 readFileState 与 shell 状态）。

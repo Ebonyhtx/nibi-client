@@ -23,6 +23,7 @@ use rust_cli_kernel_api::store::{SessionStore, StoreError};
 use rust_cli_kernel_api::workflow::{
     WorkflowEscalation, WorkflowEscalationOutcome, WorkflowEscalationRequest, WorkflowEventJournal,
     WorkflowNotices, WorkflowQuestion, WorkflowQuestionResolved, WorkflowQuestions,
+    WorkflowRunDetail, WorkflowRunIntrospection, WorkflowRunPendingQuestion,
 };
 
 /// 一次 ask 内的升级次数上限（与 Node 的 `MAX_ESCALATIONS_PER_ASK` 同值）。
@@ -486,6 +487,45 @@ impl WorkflowEventJournal for SessionJournalSink {
         self.0
             .append_workflow_event(run_id, event_type, payload_json)
             .await
+    }
+}
+
+/// `GetWorkflowRun` 的合成读面：journal 的全部事实（`workflow_run_detail`）∪ 停驻注册表的
+/// 活项（journal 没记到的——`Unsupported` 存储或写入失败之外的路径）。
+pub struct WorkflowRunDetailReader {
+    pub store: Arc<dyn SessionStore>,
+    pub escalations: Arc<WorkflowEscalations>,
+}
+
+#[async_trait::async_trait]
+impl WorkflowRunIntrospection for WorkflowRunDetailReader {
+    async fn run_detail(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+    ) -> Result<Option<WorkflowRunDetail>, StoreError> {
+        let mut detail = self.store.workflow_run_detail(session, run_id).await?;
+        if let Some(detail) = &mut detail {
+            for question in self.escalations.pending(session) {
+                if question.run_id != run_id
+                    || detail
+                        .pending_questions
+                        .iter()
+                        .any(|pending| pending.qid == question.qid)
+                {
+                    continue;
+                }
+                detail.pending_questions.push(WorkflowRunPendingQuestion {
+                    qid: question.qid,
+                    actor: question.actor,
+                    actor_name: question.actor_name,
+                    question: question.question,
+                    context: question.context,
+                    asked_at: question.asked_at,
+                });
+            }
+        }
+        Ok(detail)
     }
 }
 

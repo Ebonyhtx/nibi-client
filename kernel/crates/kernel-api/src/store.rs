@@ -540,6 +540,16 @@ pub trait SessionStore: Send + Sync {
         })
     }
 
+    /// 一个 run 的详情读面（journal 侧全部事实 + 冷回放的待答问题；停驻注册表的活项由调用方
+    /// 合成）。未知 runId 返回 `None`。不支持的实现返回 `None`（TUI / 内存存储没有 DWF）。
+    async fn workflow_run_detail(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+    ) -> Result<Option<crate::workflow::WorkflowRunDetail>, StoreError> {
+        Ok(None)
+    }
+
     /// 记下一个工作区已信任（upsert，workspace-trust.md §2.3）。不支持的实现返回 `Unsupported`。
     async fn trust_workspace(
         &self,

@@ -408,6 +408,20 @@ impl SessionStore for NodeStore {
         .await
     }
 
+    /// 一个 run 的详情读面（journal 全部事实 + 终态拆解 + 冷回放待答问题；
+    /// 停驻注册表的活项由运行时的合成读面并进来）。
+    async fn workflow_run_detail(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+    ) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunDetail>, StoreError> {
+        let work = (session.as_str().to_owned(), run_id.to_owned());
+        self.with_db(move |conn, _| {
+            repo::dwf::run_detail(conn, &work.0, &work.1).map_err(storage)
+        })
+        .await
+    }
+
     /// 记下工作区已信任（upsert；不在会话事务里）。
     async fn trust_workspace(&self, key: &TrustKey) -> Result<(), StoreError> {
         let key = key.clone();

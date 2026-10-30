@@ -54,6 +54,16 @@ const REQUIRED = [
   "dwfEscalateJournalQidPrefix",
   "dwfEscalateJournalOrderOk",
   "dwfEscalateJournalAnswer",
+  // run 详情工具（GetWorkflowRun，升级文案引用的查询兜底）：状态、摘要、用量、归属、
+  // 待答区缺席与 run_not_found。
+  "dwfRunToolStatus",
+  "dwfRunToolCompletedSummary",
+  "dwfRunToolUsage",
+  "dwfRunToolOwned",
+  "dwfRunToolAmendable",
+  "dwfRunToolPendingAbsent",
+  "dwfRunToolLogTailShape",
+  "dwfRunToolNotFound",
 ];
 
 function run(kernel) {
