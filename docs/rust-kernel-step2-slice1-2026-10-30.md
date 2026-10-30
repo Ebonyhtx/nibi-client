@@ -341,6 +341,12 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
 
 在功能 track 完成或明确"首期走 Node"之前，这 8 项阻塞切默认。
 
+## 6.16 剩余三类功能的排期（2026-10-30 拍板：都补）
+
+顺序与设计草案另立文档 [`rust-kernel-remaining-tracks-2026-10-30.md`](rust-kernel-remaining-tracks-2026-10-30.md)：
+钩子评审（中等，先做）→ `discardSharedContext`（中偏小）→ DWF 三件 + 内核 run 能力（大，最后，
+独立 PR）。每步独立提交，不混品牌化；`NIBI_KERNEL` 默认仍是 node，切默认前置是这 8 条全绿或明确放弃。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 8 个命令是能力缺口（见 §6.15 与 `kernel/CHANGELOG-FORK.md` §6.8 的覆盖表），不是接线；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
