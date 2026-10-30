@@ -328,3 +328,41 @@ fn finished_goals_are_not_restored_and_stale_verdicts_are_ignored() {
     let view = goals.view(&[], 20).active.unwrap();
     assert_eq!(view.tokens, 7);
 }
+
+#[test]
+fn pausing_hides_the_condition_and_survives_a_cold_open() {
+    let now = 1_000;
+    let status = |status: GoalStatus| {
+        Message::Attachment(AttachmentMessage {
+            id: MessageId::new("msg_status"),
+            source: goal::STATUS_SOURCE.to_owned(),
+            text: String::new(),
+            data: serde_json::to_value(status).unwrap(),
+        })
+    };
+    let mut goals = Goals::default();
+    goals.observe(&status(sentinel(false, "tests pass")), now);
+    assert_eq!(goals.condition().as_deref(), Some("tests pass"));
+    // 暂停：条件不再交给回合结束的续跑判定。
+    assert_eq!(goals.set_paused(true), (true, true));
+    assert_eq!(goals.condition(), None);
+    // 持久标记再喂一次：仍暂停，且不算一次评估。
+    goals.observe(&status(paused_status("tests pass", true)), now);
+    assert_eq!(goals.condition(), None);
+    assert_eq!(goals.view(&[], now).active.unwrap().iterations, 0);
+    // 冷恢复：最后一条 status 是暂停 → 恢复后仍暂停；resume 重新武装。
+    let mut restored = Goals::restore(
+        &[
+            status(sentinel(false, "tests pass")),
+            status(paused_status("tests pass", true)),
+        ],
+        now,
+    );
+    assert_eq!(restored.condition(), None);
+    assert_eq!(restored.set_paused(false), (true, false));
+    assert_eq!(restored.condition().as_deref(), Some("tests pass"));
+    // 没有目标时暂停/恢复都是幂等成功。
+    let mut empty = Goals::default();
+    assert_eq!(empty.set_paused(true), (false, false));
+    assert_eq!(empty.set_paused(false), (false, false));
+}

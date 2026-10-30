@@ -306,9 +306,18 @@ Rust 读文件内联（多做不少做）；PDF/视频/文本附件仍不支持�
   在无倒计时时的行为一致）。
 - 验证：projection 单测；双内核驱动两命令都 accepted；对拍门禁 32 字段全一致。
 
+## 6.13 第十五步：goal 三件（2026-10-30）
+
+- `sendGoalCommand`：前缀归一 + plan 互斥 + 空目标拒绝 → 以 `/goal <objective>` 提交（内核的
+  `goal_inputs` 负责写 sentinel/命令消息/说明并开回合）。
+- `pauseGoal`/`resumeGoal`：`Command::SetGoalPaused`；暂停藏条件（不续跑）并中止当前回合；`GoalStatus`
+  加 `paused`/`marker` 持久化，冷恢复保留暂停位；无目标幂等成功。
+- 有意差异：resume 不主动起续跑回合（Rust 的续跑由回合结束判定驱动；Node 会立刻起后台 continue）。
+- 验证：session 单测；双内核驱动三条都 accepted；对拍门禁 35 字段全一致。
+
 ## 4. 尚未完成（Step 2 后续）
 
-1. 其余 12 个命令的处理器（goal 3/hook-review 4/workflow 3/`createSelectionSideSession`/`sendGoalCommand`/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
+1. 其余 9 个命令的处理器（hook-review 4/workflow 3/`createSelectionSideSession`/`discardSharedContext`）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
 2. `createSession` 字段逐项消费：`mcpServers`、`firstInput.mode/planEnabled`、`firstInput.attachments`
    （图片）、`additionalDirectories` 已完成；只剩 `dynamicWorkflowEnabled/Mode`（依赖内核的 DWF 能力，

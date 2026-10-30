@@ -20,6 +20,12 @@ pub struct GoalStatus {
     /// 条件被判为不可能。
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub failed: bool,
+    /// 目标被用户暂停（NIBI `pauseGoal`）：条件仍保存，但不再参与回合结束的续跑判定。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub paused: bool,
+    /// 这条状态是暂停/恢复的标记，不是一次评估（评估结果不计 marker）。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub marker: bool,
     pub condition: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,

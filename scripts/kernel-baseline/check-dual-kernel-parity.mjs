@@ -12,7 +12,8 @@
  *   attachmentStatus、attachmentCode、attachmentRowRefs、additionalDirInPrompt、
  *   queueEnqueued、queueEditStatus、queueReorderStatus、queueDeleteStatus、
  *   queueDeleteMissingStatus、queueDeleteMissingCode、queueAutoDrainStatus、
- *   queuePromoteStatus、queuePromotedInRequest、feedbackStatus、snoozeStatus
+ *   queuePromoteStatus、queuePromotedInRequest、feedbackStatus、snoozeStatus、
+ *   goalSetStatus、goalPauseStatus、goalResumeStatus
  *
  * 已知差异（只报告，不判失败）：
  *   - attachmentReplayed：本地路径图片，Rust 读文件并内联进请求；Node 在 OpenAI-compatible
@@ -63,6 +64,9 @@ const REQUIRED = [
   "queuePromotedInRequest",
   "feedbackStatus",
   "snoozeStatus",
+  "goalSetStatus",
+  "goalPauseStatus",
+  "goalResumeStatus",
 ];
 const KNOWN_DIFFERENT = ["attachmentReplayed"];
 

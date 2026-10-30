@@ -845,7 +845,35 @@ try {
     throw new Error(`session MCP tool did not run: ${JSON.stringify(checks.mcpToolResult)}`);
   }
 
-    // 反馈与询问 snooze：assistantText 行的赞/踩（CAS + row target）与幂等的 snooze。
+    // goal：设置目标（Node 的 /goal 归一后按人类输入提交）→ 暂停 → 恢复。三条都不该失败。
+  if (phases.includes("rejections")) {
+    // 前面的阶段把会话切到过 plan 模式；plan 与 goal 互斥，先切回 build。
+    await casCommand("switchCollaborationMode", { mode: "build" });
+    const goalSet = await casCommand("sendGoalCommand", {
+      text: "/goal finish the queue tests",
+      displayText: "/goal finish the queue tests",
+    });
+    checks.goalSetStatus = goalSet.status;
+    if (goalSet.status !== "accepted") console.log(`goal set ack: ${JSON.stringify(goalSet)}`);
+    const paused = await casCommand("pauseGoal", {});
+    checks.goalPauseStatus = paused.status;
+    const resumed = await casCommand("resumeGoal", {});
+    checks.goalResumeStatus = resumed.status;
+    console.log(
+      `goal: set=${checks.goalSetStatus} pause=${checks.goalPauseStatus} resume=${checks.goalResumeStatus}`,
+    );
+    if (
+      checks.goalSetStatus !== "accepted" ||
+      checks.goalPauseStatus !== "accepted" ||
+      checks.goalResumeStatus !== "accepted"
+    ) {
+      throw new Error(
+        `goal commands expected accepted, got ${checks.goalSetStatus}/${checks.goalPauseStatus}/${checks.goalResumeStatus}`,
+      );
+    }
+  }
+
+  // 反馈与询问 snooze：assistantText 行的赞/踩（CAS + row target）与幂等的 snooze。
   if (phases.includes("rejections")) {
     const state = buildState();
     const assistantRow = [...state.rows].reverse().find((row) => row.kind === "assistantText");

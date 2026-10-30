@@ -24,6 +24,8 @@ fn status(met: bool, failed: bool) -> GoalStatus {
         failed,
         condition: "tests pass".to_owned(),
         reason: Some("no test runner".to_owned()),
+        paused: false,
+        marker: false,
         iterations: (met || failed).then_some(2),
         duration_ms: (met || failed).then_some(65_000),
         tokens: (met || failed).then_some(1_234),

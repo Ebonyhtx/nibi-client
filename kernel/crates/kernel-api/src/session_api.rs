@@ -115,6 +115,10 @@ pub enum Command {
     SetAutoDrain { enabled: bool },
     /// 立刻发送一条排队输入（NIBI `sendQueuedNow`）：忙时先中止当前回合再开它，空闲时直接开。
     SendQueuedNow { item: CommandId },
+    /// 暂停或恢复 `/goal` 的续跑（NIBI `pauseGoal` / `resumeGoal`）：暂停时条件仍保存，但回合结束
+    /// 不再按它续跑；恢复只是重新武装（下一个回合结束照常判定）。暂停会中止正在跑的回合。
+    /// `Accepted.result` 是 `{active, paused}`：没有目标时两者都是 false（幂等成功）。
+    SetGoalPaused { paused: bool },
     /// bash 模式的输入（`!命令`，tui-input.md §2）：会话经 [`crate::user_input::UserInputs::bash`] 执行，
     /// 记下 `<bash-input>` 与输出两条 user 消息，再调模型。
     Bash {

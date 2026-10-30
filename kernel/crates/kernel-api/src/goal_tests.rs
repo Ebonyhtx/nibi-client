@@ -32,6 +32,8 @@ fn goal_status_uses_the_fixed_keys() {
         iterations: None,
         duration_ms: None,
         tokens: None,
+        paused: false,
+        marker: false,
     };
     assert_eq!(
         round_trip(&set),
@@ -46,6 +48,8 @@ fn goal_status_uses_the_fixed_keys() {
         iterations: Some(2),
         duration_ms: Some(1500),
         tokens: Some(40),
+        paused: false,
+        marker: false,
     };
     assert_eq!(
         round_trip(&met),

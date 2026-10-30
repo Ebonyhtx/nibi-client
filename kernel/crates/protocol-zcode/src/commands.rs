@@ -463,6 +463,9 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "setAutoDrain" => set_auto_drain(handle, envelope).await,
         "sendQueuedNow" => send_queued_now(handle, envelope, revision).await,
         "setAssistantFeedback" => set_assistant_feedback(server, handle, &live.sink, envelope).await,
+        "sendGoalCommand" => send_goal_command(handle, envelope).await,
+        "pauseGoal" => set_goal_paused(handle, envelope, true).await,
+        "resumeGoal" => set_goal_paused(handle, envelope, false).await,
         "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
         "deleteSession" => delete_session(server, envelope).await,
         _ => unsupported(envelope, revision),
@@ -1537,6 +1540,137 @@ async fn send_queued_now(handle: &dyn SessionHandle, envelope: &Envelope, revisi
             &envelope.command_id,
             Status::Failed,
             "fault.command.executionFailed",
+            reason,
+            revision,
+        ),
+    }
+}
+
+/// NIBI `sendGoalCommand`：设置/替换目标。Node 把 `/goal`、`/target` 前缀与 `replace` 一并归一，
+/// 然后按一次真实的人类输入提交（设置目标并开始推进）。plan 模式与目标互斥（Node 的
+/// `guard.planGoalMutuallyExclusive`）。
+async fn send_goal_command(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack {
+    let command = envelope.command_id.as_str();
+    let view = match handle.view().await {
+        Ok(view) => view,
+        Err(error) => {
+            return Ack::refused(
+                command,
+                Status::Failed,
+                "fault.command.sessionUnavailable",
+                error.to_string(),
+                0,
+            );
+        }
+    };
+    if view.plan {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "guard.planGoalMutuallyExclusive",
+            "Plan and Goal cannot be active at the same time.",
+            view.revision,
+        );
+    }
+    let objective = goal_objective(envelope.payload["text"].as_str().unwrap_or_default());
+    if objective.is_empty() {
+        return Ack::refused(
+            command,
+            Status::Rejected,
+            "fault.command.goalRejected.emptyObjective",
+            "Usage: /goal <objective>",
+            view.revision,
+        );
+    }
+    // 与 sendText 同一条准入：先作用本次的模型与模式。
+    if let Some(chosen) = selection(&envelope.payload["modelSelection"]) {
+        let _ = send(
+            handle,
+            &format!("{command}:model"),
+            Command::SetModel { selection: chosen },
+        )
+        .await;
+    }
+    if let Some((permission, plan)) = mode(&envelope.payload["mode"], envelope.payload["planEnabled"].as_bool())
+        && (view.mode != permission || view.plan != plan)
+    {
+        let _ = send(
+            handle,
+            &format!("{command}:mode"),
+            Command::SetMode { mode: permission },
+        )
+        .await;
+        let _ = send(
+            handle,
+            &format!("{command}:plan"),
+            Command::SetPlan { enabled: plan },
+        )
+        .await;
+    }
+    match send(
+        handle,
+        command,
+        Command::Submit {
+            text: format!("/goal {objective}"),
+            attachments: Vec::new(),
+            delivery: Delivery::Queue,
+        },
+    )
+    .await
+    {
+        KernelAck::Accepted { .. } => Ack::accepted(
+            command,
+            view.revision,
+            Some(json!({"type": "sendGoalCommand", "objective": objective})),
+        ),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, view.revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "guard.inputRejected",
+            reason,
+            view.revision,
+        ),
+    }
+}
+
+/// `/goal`、`/target` 前缀与开头的 `replace` 归一（Node 的 `parseGoalObjectiveFromCommandText`）。
+fn goal_objective(text: &str) -> String {
+    let trimmed = text.trim();
+    let rest = match trimmed.get(..5).filter(|prefix| prefix.eq_ignore_ascii_case("/goal")) {
+        Some(_) => &trimmed[5..],
+        None => match trimmed.get(..7).filter(|prefix| prefix.eq_ignore_ascii_case("/target")) {
+            Some(_) => &trimmed[7..],
+            None => trimmed,
+        },
+    };
+    let rest = rest.trim();
+    match rest.get(..7).filter(|prefix| prefix.eq_ignore_ascii_case("replace")) {
+        Some(_) if rest.len() == 7 || rest[7..].starts_with(char::is_whitespace) => rest[7..].trim(),
+        _ => rest,
+    }
+    .to_owned()
+}
+
+/// NIBI `pauseGoal` / `resumeGoal`：暂停或恢复目标的续跑；没有目标时幂等成功。
+async fn set_goal_paused(handle: &dyn SessionHandle, envelope: &Envelope, paused: bool) -> Ack {
+    let command = envelope.command_id.as_str();
+    let revision = handle.view().await.map(|view| view.revision).unwrap_or(0);
+    match send(handle, command, Command::SetGoalPaused { paused }).await {
+        KernelAck::Accepted { result } => Ack::accepted(
+            command,
+            revision,
+            Some(json!({
+                "type": if paused { "pauseGoal" } else { "resumeGoal" },
+                "active": result["active"],
+                "paused": result["paused"],
+            })),
+        ),
+        KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
+        KernelAck::Rejected { reason } => Ack::refused(
+            command,
+            Status::Rejected,
+            "fault.command.goalRejected.persistenceFailed",
             reason,
             revision,
         ),

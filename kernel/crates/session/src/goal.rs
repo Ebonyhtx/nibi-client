@@ -8,6 +8,7 @@
 use rust_cli_kernel_api::goal::{self, ActiveGoal, GoalStatus, GoalView};
 use rust_cli_kernel_api::hooks::StopVerdict;
 use rust_cli_kernel_api::ids::MessageId;
+use rust_cli_kernel_api::session_api::Ack;
 use rust_cli_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
@@ -15,7 +16,7 @@ use rust_cli_kernel_api::store::StoreError;
 use rust_cli_kernel_api::user_command::{self, LOCAL_COMMAND_SOURCE};
 use rust_cli_prompts::texts::render;
 
-use crate::actor::Actor;
+use crate::actor::{Actor, rejected};
 use crate::slash::Inputs;
 
 /// 条件的长度上限（按 UTF-16 码元计）。
@@ -53,6 +54,8 @@ struct Active {
     set_at_ms: u64,
     tokens_at_start: u64,
     last_reason: Option<String>,
+    /// 被用户暂停（NIBI `pauseGoal`）：条件仍保存，但不参与回合结束的续跑判定。
+    paused: bool,
 }
 
 fn status_of(message: &Message) -> Option<GoalStatus> {
@@ -76,6 +79,7 @@ impl Goals {
                 set_at_ms: now_ms,
                 tokens_at_start: 0,
                 last_reason: None,
+                paused: status.paused,
             });
         Self {
             active,
@@ -83,9 +87,25 @@ impl Goals {
         }
     }
 
+    /// 生效中的目标条件；被暂停时不给（回合结束不按它续跑，NIBI `pauseGoal`）。
     pub(crate) fn condition(&self) -> Option<String> {
-        self.active.as_ref().map(|active| active.condition.clone())
+        self.active
+            .as_ref()
+            .filter(|active| !active.paused)
+            .map(|active| active.condition.clone())
     }
+
+    /// 暂停 / 恢复（`Command::SetGoalPaused`）。返回有没有目标、以及现在是不是暂停。
+    pub(crate) fn set_paused(&mut self, paused: bool) -> (bool, bool) {
+        match &mut self.active {
+            Some(active) => {
+                active.paused = paused;
+                (true, paused)
+            }
+            None => (false, false),
+        }
+    }
+
 
     /// 一条消息提交之后：`goal_status` 改目标，主线程的 assistant 累计输出 token。
     pub(crate) fn observe(&mut self, message: &Message, now_ms: u64) {
@@ -103,6 +123,7 @@ impl Goals {
                 set_at_ms: now_ms,
                 tokens_at_start: self.output_tokens,
                 last_reason: None,
+                paused: false,
             });
             return;
         }
@@ -110,6 +131,11 @@ impl Goals {
             return;
         };
         if active.condition != status.condition {
+            return;
+        }
+        // 暂停 / 恢复的标记：只改 paused，不算一次评估（NIBI pauseGoal / resumeGoal）。
+        if status.marker {
+            active.paused = status.paused;
             return;
         }
         if status.met || status.failed {
@@ -169,6 +195,8 @@ impl Goals {
             failed,
             condition: condition.to_owned(),
             reason: reason.clone(),
+            paused: false,
+            marker: false,
             iterations: Some(active.iterations + 1),
             duration_ms: Some(now_ms.saturating_sub(active.set_at_ms)),
             tokens: Some(self.output_tokens - active.tokens_at_start),
@@ -182,6 +210,8 @@ impl Goals {
                 failed: false,
                 condition: condition.to_owned(),
                 reason: reason.clone(),
+                paused: false,
+                marker: false,
                 iterations: None,
                 duration_ms: None,
                 tokens: None,
@@ -198,6 +228,24 @@ fn sentinel(met: bool, condition: &str) -> GoalStatus {
         failed: false,
         condition: condition.to_owned(),
         reason: None,
+        paused: false,
+        marker: false,
+        iterations: None,
+        duration_ms: None,
+        tokens: None,
+    }
+}
+
+/// 暂停 / 恢复的持久标记（NIBI `pauseGoal` / `resumeGoal`）：同一条目标的新状态，不是评估结果。
+fn paused_status(condition: &str, paused: bool) -> GoalStatus {
+    GoalStatus {
+        met: false,
+        sentinel: false,
+        failed: false,
+        condition: condition.to_owned(),
+        reason: None,
+        paused,
+        marker: true,
         iterations: None,
         duration_ms: None,
         tokens: None,
@@ -308,6 +356,38 @@ impl Actor {
         messages.push(self.status_message(&status));
         self.record_all(messages.clone()).await?;
         Ok(messages)
+    }
+
+    /// NIBI `pauseGoal` / `resumeGoal`：改目标的暂停位并落一条持久标记；暂停时中止正在跑的回合
+    /// （与 Node 的 `activeController.abort` 同义）。没有目标时幂等成功。
+    pub(crate) async fn set_goal_paused(&mut self, paused: bool) -> Ack {
+        let Some(condition) = self
+            .goal
+            .view(&self.messages, self.deps.clock.now_ms())
+            .active
+            .map(|active| active.condition)
+        else {
+            return Ack::Accepted {
+                result: serde_json::json!({"active": false, "paused": false}),
+            };
+        };
+        let (active, paused_now) = self.goal.set_paused(paused);
+        let message = self.status_message(&paused_status(&condition, paused));
+        if let Err(error) = self.record_all(vec![message]).await {
+            return rejected(error.to_string());
+        }
+        if paused && self.running.is_some() {
+            let _ = self.interrupt().await;
+        }
+        tracing::info!(
+            event = "session.goal.paused",
+            active,
+            paused = paused_now,
+            "goal pause changed"
+        );
+        Ack::Accepted {
+            result: serde_json::json!({"active": active, "paused": paused_now}),
+        }
     }
 
     pub(crate) fn goal_view(&self) -> GoalView {

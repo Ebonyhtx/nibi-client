@@ -246,6 +246,23 @@ Node 的 queue 组（`editQueueItem` / `deleteQueueItem` / `reorderQueueItem` / 
 验证：projection 新单测（点赞/取消/同值不发增量/行未落定）；双内核驱动两边
 `setAssistantFeedback` 与 `snoozeInteractionAutoResolution` 都 accepted；对拍门禁 30 → **32**。
 
+## 6.6 goal 三件（2026-10-30）
+
+- `sendGoalCommand`：归一 `/goal`、`/target` 前缀与开头的 `replace`（Node 的
+  `parseGoalObjectiveFromCommandText`），plan 模式与目标互斥（`guard.planGoalMutuallyExclusive`），空目标
+  `fault.command.goalRejected.emptyObjective`；然后按一次人类输入提交 `/goal <objective>`——内核的
+  `goal_inputs` 写 sentinel + 命令消息 + 说明并开回合，与 Node 的"设置目标并开始推进"同义。
+- `pauseGoal` / `resumeGoal`（`Command::SetGoalPaused`）：目标保存、只改暂停位；暂停时
+  `Goals::condition()` 不给条件（回合结束不按它续跑）并中止正在跑的回合；恢复只是重新武装。
+  持久化：`GoalStatus` 新增 `paused` 与 `marker`（标记不是评估，不计 iterations），冷恢复读最后一条
+  状态时恢复暂停位。没有目标时幂等成功（`{active:false, paused:false}`）。
+- **有意差异**：`resumeGoal` 不主动起"续跑回合"——Rust 的续跑由回合结束的 stop-hook 判定驱动
+  （`condition()` 有值才评），Node 的 resume 会立刻起一个后台 continue 回合。等 goal 后台续跑
+  （`continueActiveTarget` 等价物）落地后再对齐。
+
+验证：session 新单测（暂停隐藏条件、标记不计数、冷恢复保留暂停、无目标幂等）；双内核驱动两边
+`sendGoalCommand`/`pauseGoal`/`resumeGoal` 都 accepted；对拍门禁 32 → **35**。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
