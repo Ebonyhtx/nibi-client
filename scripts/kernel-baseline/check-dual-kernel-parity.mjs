@@ -7,7 +7,8 @@
  *   createSessionPrefix、sendTextStatus、renameStatus、
  *   switchModelChangeStatus、switchModelNoopStatus、switchModelNoopCode、
  *   switchModeChangeStatus、switchModeSameStatus、forkChildPrefix、
- *   editStatus、retryStatus、cancelStatus、cancelCode
+ *   editStatus、retryStatus、cancelStatus、cancelCode、
+ *   mcpToolOffered、mcpOfferedInFirstRequest、mcpToolCalled、mcpToolResult
  *
  * 已知差异（只报告，不判失败）：
  *   - attachmentStatus/Code：Rust 附件回放未实现，fail-closed 拒绝；Node 执行编辑。
@@ -38,6 +39,10 @@ const REQUIRED = [
   "retryStatus",
   "cancelStatus",
   "cancelCode",
+  "mcpToolOffered",
+  "mcpOfferedInFirstRequest",
+  "mcpToolCalled",
+  "mcpToolResult",
 ];
 const KNOWN_DIFFERENT = ["attachmentStatus", "attachmentCode"];
 
@@ -107,5 +112,9 @@ console.log(
 );
 console.log(`startup: rust=${rust.checks?.startupMs ?? "?"}ms node=${node.checks?.startupMs ?? "?"}ms`);
 console.log("");
-console.log(failed ? "RESULT: MISMATCH" : "RESULT: OK (13 required fields match; attachment replay is a known difference)");
+console.log(
+  failed
+    ? "RESULT: MISMATCH"
+    : `RESULT: OK (${REQUIRED.length} required fields match; attachment replay is a known difference)`,
+);
 if (failed) process.exitCode = 1;

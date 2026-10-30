@@ -30,6 +30,9 @@ const dotDir = isNode ? ".nibi" : ".zcode";
 const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,rename,switchModel,switchMode,fork,edit,retry,compact,rejections")
   .split("=")[1]
   .split(",");
+// 会话级的 MCP 服务器（NIBI createSession.mcpServers）：一个只提供 echo 的 stdio 服务器。两边内核都
+// 用同一个脚本，工具名 mcp__fake__echo；它出现在 provider 请求的 tools 里就证明"建会话 → 连上 → 进工具表"整链通。
+const fakeMcpScript = join(import.meta.dirname, "fake-mcp-server.mjs");
 
 if (!process.version.startsWith("v24")) {
   console.error(`warning: running on ${process.version}`);
@@ -43,6 +46,18 @@ mkdirSync(workspace, { recursive: true });
 
 // ── 本地假 provider（OpenAI chat-completions，SSE）──
 const REQUESTS = [];
+// 会话级 MCP 的回执：模型先要一次 mcp__fake__echo，拿到工具结果后再回正文。两边内核走同一条路径。
+const MCP_TOOL = "mcp__fake__echo";
+const TOOL_RESULTS = [];
+const textOf = (content) => {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part === "string" ? part : (part?.text ?? "")))
+      .join("");
+  }
+  return content === undefined || content === null ? "" : JSON.stringify(content);
+};
 const server = createServer((req, res) => {
   let raw = "";
   req.on("data", (chunk) => (raw += chunk));
@@ -51,9 +66,58 @@ const server = createServer((req, res) => {
     try {
       parsed = JSON.parse(raw);
     } catch {}
-    REQUESTS.push({ at: Date.now(), path: req.url, model: parsed?.model ?? null });
-    const text = "RUST-DRIVE-REPLY";
+    const messages = Array.isArray(parsed?.messages) ? parsed.messages : [];
+    const tools = Array.isArray(parsed?.tools)
+      ? parsed.tools.map((tool) => tool?.function?.name ?? tool?.name ?? null)
+      : [];
+    const toolMessages = messages.filter((message) => message.role === "tool");
+    const toolResult = toolMessages.length
+      ? textOf(toolMessages[toolMessages.length - 1].content)
+      : null;
+    if (toolResult !== null) TOOL_RESULTS.push(toolResult);
+    REQUESTS.push({ at: Date.now(), path: req.url, model: parsed?.model ?? null, tools });
+    if (process.env.NIBI_DRIVE_DEBUG === "1") {
+      const system = messages.find((m) => m.role === "system")?.content;
+      const systemText = textOf(system);
+      console.error(
+        `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} mcp=${tools.includes(MCP_TOOL)} max_tokens=${parsed?.max_tokens ?? "?"} roles=${messages.map((m) => m.role).join(",")} system=${JSON.stringify(systemText.slice(0, 60))}`,
+      );
+    }
     res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8" });
+    // 新回合（还没有 assistant 消息）、工具表里有会话级 MCP 工具：要求调用它一次。工具结果回来后的
+    // 请求（roles 里有 tool）回正文。标题生成这类请求没有工具，不会触发。
+    const freshTurn = !messages.some((message) => message.role === "assistant");
+    if (freshTurn && toolResult === null && tools.includes(MCP_TOOL)) {
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_mcp_1",
+                    type: "function",
+                    function: { name: MCP_TOOL, arguments: JSON.stringify({ text: "ping" }) },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    const text = "RUST-DRIVE-REPLY";
     res.write(
       `data: ${JSON.stringify({ choices: [{ delta: { content: text, role: "assistant" }, index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
     );
@@ -253,6 +317,16 @@ try {
       payload: {
         workspaceId: workspace,
         firstInput: { text: "hello rust kernel", mode: "yolo" },
+        // 会话级 MCP：两边内核都该连上并在首发请求前把工具放进工具表（Node 的实现是 runtimeConfig.mcp）。
+        mcpServers: [
+          {
+            name: "fake",
+            command: process.execPath,
+            args: [fakeMcpScript],
+            env: [],
+            alwaysLoad: true,
+          },
+        ],
       },
       issuedAt: Date.now(),
     }),
@@ -606,6 +680,23 @@ try {
       }
       console.log(`editUserQuery(attachments): rejected fail-closed (attachment replay not implemented)`);
     }
+  }
+
+  // 会话级 MCP：任一主回合请求的工具表里出现 mcp__fake__echo，即"createSession.mcpServers → 连接 → 工具表 → 请求"
+  // 整链通（Node 的 runtimeConfig.mcp 与 Rust 的会话级 manager 都走这条断言）。
+  const mcpOffered = REQUESTS.filter((request) =>
+    (request.tools ?? []).includes("mcp__fake__echo"),
+  );
+  checks.mcpToolOffered = mcpOffered.length > 0;
+  checks.mcpOfferedInFirstRequest = (REQUESTS[0]?.tools ?? []).includes("mcp__fake__echo");
+  // 工具真的被调用并执行：假 provider 要求一次 mcp__fake__echo，工具结果回到下一请求。
+  checks.mcpToolCalled = TOOL_RESULTS.length > 0;
+  checks.mcpToolResult = TOOL_RESULTS[0] ?? null;
+  console.log(
+    `session mcp: tool offered in ${mcpOffered.length}/${REQUESTS.length} provider requests (first=${checks.mcpOfferedInFirstRequest}); called=${checks.mcpToolCalled} result=${JSON.stringify(checks.mcpToolResult)}`,
+  );
+  if (!checks.mcpToolCalled || !String(checks.mcpToolResult).startsWith("echo:")) {
+    throw new Error(`session MCP tool did not run: ${JSON.stringify(checks.mcpToolResult)}`);
   }
 
   console.log(`RESULT:${JSON.stringify({

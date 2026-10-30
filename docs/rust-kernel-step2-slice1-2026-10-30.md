@@ -199,16 +199,54 @@ edit/resubmit 是边界场景），已记录在案。
 （每次新 commandId）、权威 transcript 目标解析。
 
 **对拍门禁（可复跑）**：`node scripts/kernel-baseline/check-dual-kernel-parity.mjs`
-——并行跑两个内核，逐字段比较 13 个必需字段（会话 ID 前缀、各命令 status、noop 码、
-cancel fault 码），附件回放与 metrics 列为已知差异。当前结果：
-`RESULT: OK (13 required fields match)`。启动耗时 rust≈171ms / node≈36ms（公制记录，
+——并行跑两个内核，逐字段比较 17 个必需字段（会话 ID 前缀、各命令 status、noop 码、
+cancel fault 码、会话级 MCP 四字段），附件回放与 metrics 列为已知差异。当前结果：
+`RESULT: OK (17 required fields match)`。启动耗时 rust≈180ms / node≈38ms（公制记录，
 不判失败）。
+
+## 6.8 第十步：会话级 MCP（`createSession.mcpServers`，R12）
+
+**缺口**：Host 把完整 MCP 配置随 `createSession.mcpServers` 送进来（用户设置里启用的 MCP、插件 MCP、
+CUA broker / 云端项目的动态服务器）；内核只读进程级配置，这批服务器会静默消失——R12 最高风险项。
+
+**Node 语义（对读）**：`protocolMcpServersToRuntimeMcpConfig` → `runtimeConfig.mcp`（创建期一次写入，
+是会话的**完整**集合）；连接在进程级 `McpConnectionPool` 里，按 lease 归属：`isolation: session`
+（缺省）每会话一条连接，`workspace` 跨会话共享；`startMcpStartup` 在首个模型请求前等启动。
+
+**Rust 实现**：
+
+| 层 | 内容 |
+|---|---|
+| kernel-api | `mcp_session::SessionMcpServer`（camelCase：name/transport/alwaysLoad/timeoutMs/isolation）；`Kernel::start_session_mcp` / `stop_session_mcp`（缺省 Unsupported/空）；`ToolRegistry::find_for/mcp_for/session_mcp`（缺省退回进程级） |
+| ext | `SessionMcp`：每会话一个 `McpManager`；`Ext::start_session_mcp` / `release_session`；`ExtRegistry` 按会话给 `snapshot/find_for/mcp_for/session_mcp`（带了自己的服务器的会话，工具表就是这批） |
+| query | 执行器与 MCP 等待改用 `find_for(session, …)`；会话级 MCP 在首个模型请求前有界等 15 s（Node `startMcpStartup` 同义） |
+| runtime | `LocalKernel` 两个方法接线；`Closer::released` 释放会话级连接（取消任务 + 关客户端） |
+| 包装注册表 | `AgentRegistry` / `FilteredTools` / `PolicyFiltered` 转交新方法（漏一层就退回进程级查找） |
+
+**顺带修掉的 R12 同类缺口**：`createSession.firstInput.mode/planEnabled` 以前只记进 `input_meta`，
+没有应用到会话执行状态（Node 的 `resolveSubmittedExecutionState` 会应用）。现在
+`first_input_execution`：`firstInput` 优先、`config` 次之、入口缺省兜底；`plan` 旧写法仍读成
+plan 开、default。联调里这正是 MCP 工具被权限询问拦住的原因（yolo 没生效）。
+
+**验证**：
+
+- 单测：ext 3（每会话独立连接、再给一次换掉旧集合、协议→配置映射）、kernel-api 2（序列化往返）、
+  protocol-zcode 3（stdio/http/sse 映射、未知形态跳过、执行状态优先级）；相关 crate 全绿。
+- 双内核真实链路：新 `scripts/kernel-baseline/fake-mcp-server.mjs`（stdio JSON-RPC，工具 `echo`）。
+  两边内核在**首个** provider 请求里就带 `mcp__fake__echo`（`alwaysLoad` 语义不延迟），
+  假 provider 要求调用一次，工具结果回到下一请求——`mcpToolResult = "echo:ping"` 两边一致。
+- 对拍门禁必需字段 13 → **17**（新增 `mcpToolOffered` / `mcpOfferedInFirstRequest` /
+  `mcpToolCalled` / `mcpToolResult`）：`RESULT: OK (17 required fields match)`。
+
+**有意差异（记录在案）**：`isolation: workspace` 接受但当前仍按会话建连接（功能一致、连接数更多，
+后续做成共享池）；冷恢复不带 `mcpServers`（Node 侧同样不带，是 Host 契约现状）。
 
 ## 4. 尚未完成（Step 2 后续）
 
 1. 其余 20 个命令的处理器（queue 编辑组/goal/hook-review/workflow*/deleteSession 等）；plan 模式下 editUserQuery 的 resubmit turn 失败需调查——
    契约已收口，行为按 Rust 规划 §5.2.1 的行逐个补，每补一组跑 Node/Rust 对照。
-2. `createSession` 字段逐项消费（消掉 `CREATE_SESSION_FIELDS_NOT_YET_CONSUMED`）。
+2. `createSession` 字段逐项消费：`mcpServers` 与 `firstInput.mode/planEnabled` 已完成；剩下
+   `additionalDirectories`、`dynamicWorkflowEnabled/Mode`、`firstInput.attachments`。
 3. 订阅续传/背压、附件分片、17 反向请求（P1 之外的 §5.3 不变量）。
 4. `generate-nibi-command-schema.ts --check` 尚未接进 CI（`rust-gates.yml` 只跑 cargo；
    需要一个带 Node 的 job 或把它挂到 `client-gates`，待补）。
