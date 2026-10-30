@@ -146,30 +146,31 @@ async function engine() {
       continue;
     }
     if (message.method === "submit") {
-      // 不能在这个读循环里 await：run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
-      void (async () => {
+      // 受理即回（命令的 ACK 只等受理）；run 在后台跑，结算走 run/settled 通知。
       const { runId, parentSessionId, cwd, scriptText, args, caps, dbPath } = message.params;
-      const db = new DatabaseSync(dbPath);
-      const journal = createDwfJournalStore(db);
-      const driver = new RemoteDriver(runId, journal);
-      drivers.set(runId, driver);
-      const settlement = await runWorkflowScript({
-        scriptText,
-        cwd,
-        runId,
-        parentSessionId,
-        args: args ?? {},
-        caps: caps ?? { maxConcurrency: 4 },
-        askSpecs: askSpecsFor(dwf, scriptText),
-        validate: (schema, value) => dwf.validate(schema, value),
-        makeDriver: (sink) => {
-          driver.attach(sink);
-          return driver;
-        },
-        timeoutMs: 30000,
-      }).catch((error) => ({ status: "errored", error: { message: String(error) } }));
-      db.close();
-      send({ id: message.id, result: { ok: true, settlement } });
+      send({ id: message.id, result: { ok: true, accepted: true } });
+      void (async () => {
+        const db = new DatabaseSync(dbPath);
+        const journal = createDwfJournalStore(db);
+        const driver = new RemoteDriver(runId, journal);
+        drivers.set(runId, driver);
+        const settlement = await runWorkflowScript({
+          scriptText,
+          cwd,
+          runId,
+          parentSessionId,
+          args: args ?? {},
+          caps: caps ?? { maxConcurrency: 4 },
+          askSpecs: askSpecsFor(dwf, scriptText),
+          validate: (schema, value) => dwf.validate(schema, value),
+          makeDriver: (sink) => {
+            driver.attach(sink);
+            return driver;
+          },
+          timeoutMs: 30000,
+        }).catch((error) => ({ status: "errored", error: { message: String(error) } }));
+        db.close();
+        send({ method: "run/settled", params: { runId, settlement } });
       })();
     }
   }
@@ -190,7 +191,7 @@ async function host() {
   const events = [];
   let asks = 0;
   let repairs = 0;
-  let resolved = null;
+  let settled = null;
   const send = (message) => child.stdin.write(`${JSON.stringify(message)}\n`);
   const reply = (id, result) => send({ id, result });
 
@@ -215,6 +216,9 @@ async function host() {
         break;
       case "run/event":
         events.push(message.params.type);
+        break;
+      case "run/settled":
+        settled = message.params.settlement;
         break;
       case "ask/verdict":
         if (message.params.verdict?.kind !== "accept") {
@@ -269,11 +273,26 @@ async function host() {
     setTimeout(() => rejectSubmit(new Error("submit timed out")), 40_000);
   });
 
-  resolved = submitted;
+  if (!submitted?.accepted) {
+    console.log(JSON.stringify({ submit: submitted }));
+    console.log("RESULT: FAILED");
+    process.exit(1);
+  }
+  // 受理之后等结算通知（引擎在后台跑）。
+  const settlement = await new Promise((resolveSettlement, rejectSettlement) => {
+    const timer = setInterval(() => {
+      if (settled) {
+        clearInterval(timer);
+        resolveSettlement(settled);
+      }
+    }, 20);
+    setTimeout(() => {
+      clearInterval(timer);
+      rejectSettlement(new Error("run/settled timed out"));
+    }, 40_000);
+  });
   child.stdin.end();
   child.kill();
-
-  const settlement = resolved?.settlement;
   const verify = new DatabaseSync(hostDbPath);
   const journal = verify
     .prepare("select status, parent_session_id from dwf_run where id = ?")

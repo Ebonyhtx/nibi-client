@@ -24,6 +24,7 @@ import { createDwfJournalStore } from "@nibi/adapters/storage";
 import { resolveSavedWorkflow, validateWorkflowArgs } from "@nibi/core";
 import {
   buildAskSpecs,
+  collectDiagnostics,
   collectSites,
   createWorkflowProgram,
   synthesizeAskSchemas,
@@ -81,7 +82,7 @@ type Outgoing = (message: unknown) => void;
  * 成功时回 `{ok:true, settlement}`。
  */
 type SubmitReply =
-  | { ok: true; settlement: RunSettlement }
+  | { ok: true; accepted: true }
   | { ok: false; reason: string; message: string };
 
 /** driver：引擎的手，每一下都伸回宿主。 */
@@ -187,8 +188,11 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     });
   const notify = (method: string, params: unknown) => out({ method, params });
 
-  /** 一次 submit：解析脚本文本（saved 名字或内联）→ 编译 → 跑引擎。 */
-  async function submit(params: SubmitParams): Promise<SubmitReply> {
+  /**
+   * 一次 submit 的**受理**：解析脚本文本（saved 名字或内联）→ 编译体检 → 回 accepted。
+   * run 本身在后台跑（命令的 ACK 只等受理；结算走 `run/settled` 通知）。
+   */
+  async function acceptSubmit(params: SubmitParams): Promise<SubmitReply> {
     let scriptText = params.scriptText;
     let args = params.args;
     if (params.savedName !== undefined) {
@@ -229,41 +233,66 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       };
     }
 
-    const db = new DatabaseSync(params.dbPath);
-    const journal = createDwfJournalStore(db);
-    const driver = new RemoteDriver(params.runId, journal, request, notify);
-    const abort = new AbortController();
-    runs.set(params.runId, { driver, abort, db });
+    // 编译体检：坏脚本在受理阶段就回 compile_failed（有界诊断），不建 run。
     try {
-      const settlement = await runWorkflowScript({
-        scriptText,
-        cwd: params.cwd,
-        runId: params.runId,
-        parentSessionId: params.parentSessionId,
-        args: args ?? {},
-        caps: { maxConcurrency: params.caps?.maxConcurrency ?? 4 },
-        askSpecs: askSpecsFor(scriptText),
-        validate: validateFn,
-        makeDriver: (sink) => {
-          driver.attach(sink as unknown as WorkflowSink);
-          return driver as unknown as import("@nibi/dynamic-workflow").WorkflowDriver;
-        },
-        signal: abort.signal,
-        // run 没有时长上限；墙钟只防沙箱卡死（24h）。
-        timeoutMs: 24 * 60 * 60 * 1000,
-      });
-      return { ok: true, settlement };
+      const program = createWorkflowProgram(scriptText);
+      const diagnostics = collectDiagnostics(program.program);
+      if (diagnostics.length > 0) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          message: diagnostics
+            .map((diagnostic) => diagnostic.message)
+            .join("; ")
+            .slice(0, 2_000),
+        };
+      }
     } catch (error) {
-      // 编译/装配失败（没有进入引擎）：按 Node 的 compile_failed 回。
       return {
         ok: false,
         reason: "compile_failed",
         message: error instanceof Error ? error.message.slice(0, 2_000) : String(error),
       };
-    } finally {
-      runs.delete(params.runId);
-      db.close();
     }
+
+    // 受理之后在后台跑；结算以 `run/settled` 通知宿主。
+    void (async () => {
+      const db = new DatabaseSync(params.dbPath);
+      const journal = createDwfJournalStore(db);
+      const driver = new RemoteDriver(params.runId, journal, request, notify);
+      const abort = new AbortController();
+      runs.set(params.runId, { driver, abort, db });
+      let settlement: RunSettlement;
+      try {
+        settlement = await runWorkflowScript({
+          scriptText,
+          cwd: params.cwd,
+          runId: params.runId,
+          parentSessionId: params.parentSessionId,
+          args: args ?? {},
+          caps: { maxConcurrency: params.caps?.maxConcurrency ?? 4 },
+          askSpecs: askSpecsFor(scriptText),
+          validate: validateFn,
+          makeDriver: (sink) => {
+            driver.attach(sink as unknown as WorkflowSink);
+            return driver as unknown as import("@nibi/dynamic-workflow").WorkflowDriver;
+          },
+          signal: abort.signal,
+          // run 没有时长上限；墙钟只防沙箱卡死（24h）。
+          timeoutMs: 24 * 60 * 60 * 1000,
+        });
+      } catch (error) {
+        settlement = {
+          status: "errored",
+          error: { message: error instanceof Error ? error.message : String(error) },
+        } as RunSettlement;
+      } finally {
+        runs.delete(params.runId);
+        db.close();
+      }
+      notify("run/settled", { runId: params.runId, settlement });
+    })();
+    return { ok: true, accepted: true };
   }
 
   const { createInterface } = await import("node:readline");
@@ -309,7 +338,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     if (message.method === "submit") {
       // 绝不在这里 await：run 期间的 RPC 响应也走这条 stdin。
       const id = message.id;
-      void submit(message.params as SubmitParams).then((result) => {
+      void acceptSubmit(message.params as SubmitParams).then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

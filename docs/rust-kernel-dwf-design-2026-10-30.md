@@ -105,6 +105,11 @@
 | engine → 宿主 | `ask/cancel`（notify） | 取消在飞 ask |
 | engine → 宿主 | `run/event`（notify） | `RunEvent.type`（进度/结算） |
 
+**受理与结算分开**（2026-10-30，命令 ACK 语义要求）：`submit` 只做解析/编译体检并回
+`{ok:true,accepted:true}`；run 在后台跑，结算走 `run/settled` 通知（`{runId,settlement}`）。
+`startSavedWorkflow` 的 ACK 因此能立即回两把联接键（`runId` ≡ `workId`、`toolCallId`），不必等 run 跑完。
+坏脚本在受理阶段就以 `compile_failed` + 有界诊断拒绝，不建 run。
+
 两个实现要点（探针踩到的）：
 
 1. **engine 的 stdin 读循环不能在 `submit` 上 await**：run 期间的 RPC 响应也走这条管道，阻塞读循环会
