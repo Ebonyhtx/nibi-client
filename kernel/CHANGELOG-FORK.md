@@ -8,7 +8,7 @@
 | 项 | 值 |
 |---|---|
 | 上游仓库 | `https://github.com/MBearo/ZCode-rs` |
-| 参考克隆 | `D:\ZCODE-RUST\ZCode-rs`（工作树 detached） |
+| 参考克隆 | ~~`D:\ZCODE-RUST\ZCode-rs`~~ 已清理（2026-10-31；vendoring 完成后不再本地保留，需要时从 GitHub `MBearo/ZCode-rs` 重取 `6d349ed4`） |
 | pin commit | `6d349ed4c4cf31e05079056c08e6bea495544116`（0.1.67，build 67） |
 | npm 发布 | `@mbearo/zcode@0.1.67`，2026-10-29T13:11:41Z |
 | 主包 integrity | `sha512-oxCElsqdr+tUUTtMpUdHndKxmqy5+zXIjrII65ZMC6LXVk+ABVuyyd7OFZeS4IMoBDqJEb1kjgHGk46PRR4D9A==`（本地 npm pack 逐字节校验通过） |
