@@ -9,7 +9,7 @@
 
 | 步 | 内容 | 量级 | 为什么排这里 | 出口条件 |
 |---|---|---|---|---|
-| 1 | 钩子评审 4 条（`request`/`respond`/`toggle`/`revoke`） | 中 | 纯接线 + 一个评审状态机；库都在（见 §1），不碰安全算法的实现；补完"带钩子的项目"才敢进灰度 | 4 条 accepted；两条链（请求→勾选→提交、按摘要撤销）双内核一致；信任记录落盘可复读 |
+| 1 | 钩子评审 4 条（`request`/`respond`/`toggle`/`revoke`） | **中偏大**（核实后上调：要移植 admission 评估 + 评审流管控，并把评审请求做成交互 payload） | 库都在（见 §1），不碰摘要算法；补完"带钩子的项目"才敢进灰度 | 4 条 accepted；两条链（请求→勾选→提交、按摘要撤销）双内核一致；Host 能从投影的 pending 交互渲染评审并与之交互 |
 | 2 | `discardSharedContext` | 中偏小 | 依赖最少（只碰会话内的分享上下文表）；先把"丢弃"做掉，导入侧随分享服务端进度 | 丢弃后会话里不再有该上下文；重复丢弃幂等；双内核一致 |
 | 3 | DWF：workflow 3 条 + `createSession.dynamicWorkflow*` + 内核 run 能力 | 大（一整套） | 唯一需要独立设计的引擎（run 状态机、调度、持久化、UI 面）；与品牌化分轨，绝不混 PR | 3 条 accepted；run 的启动/恢复/改设置在双内核一致；`createSession` 两个字段真正生效 |
 
@@ -68,15 +68,41 @@ pub trait Kernel {
   （`hookDeclarationDigests`）→ 换算成 digest → `revoke_workspace_hooks`；未命中按 Node 的
   noop/拒绝语义对齐。
 
+### 核实结果（2026-10-30，已读源码，不要再猜）
+
+1. **评审请求走交互通道**：CLI 把评审请求作为一条 interaction 放进 v4 投影
+   （`interaction.payload.kind === "workspaceHookReview"`，见
+   `bootstrap/src/app/workspace-hook-review-request.ts` 与
+   `bootstrap/src/nibi-protocol-v4/product-projection.ts` 的 1553/3425/3437 行）。Host 从投影的
+   pending 交互渲染评审面板。`presentWorkspaceHookReviewRequestSchema` 定义了但**没有调用方**——
+   不是反向请求。
+2. **payload 形状**：`workspaceHookReviewRequestPayloadSchema`（`kind` / `reviewFlowId` /
+   `generation` / `interactionId` / `sessionId` / `taskId` / `runId` / `workspaceIdentity` /
+   `bundleDigest` / `createdAt` / `deadlineAt` / `sourceFiles[]` / `summary{eventCount,hookCount,
+   pendingCount}` / `items[{reviewItemId,event,matcher,type,displayName,displayCommand,sourcePath,
+   resolvedTimeoutMs,resolvedMaxOutputBytes,executionMode,configuredEnabled,editable,trustState}]` /
+   `warningCode:"workspace_hooks_execute_code"`），并有交叉校验（hookCount=items.length、
+   eventCount=去重事件数、pendingCount=待信任项数）。
+3. **请求的命令语义**（`requestWorkspaceHookReview`）：校验 target 与当前 admission 快照的
+   `workspaceIdentity`/`bundleDigest` 一致（不一致 → `workspace_hooks_snapshot_mismatch`）；
+   无待审项时安全 no-op accepted；有 `blocked_policy` → `workspace_hooks_blocked_by_policy`；
+   信任库损坏 → `workspace_hooks_trust_store_corrupt`；否则开/复用评审流并监管超时。
+4. **Node 侧的真实构成**（不能只搬四个 handler）：`workspace-hook-review-controller.ts`（flow 的
+   开/复用/监管）+ admission 快照 + coordinator 评估 + `interaction-registry`（generation 与
+   supersede）+ 持久信任的策略校验（`canMutatePersistentTrust`）+ telemetry。Rust 侧要等价移植
+   其中的 admission/coordinator 部分，否则 `snapshot_mismatch`/`superseded` 这些语义对不上。
+5. **工作量上调**：从"中等（约 1 天）"改为"中偏大"——四个 handler 之上还有 admission 评估、
+   flow 生命周期（含 deadline 与 supersede）、交互 payload 投影三层。
+
 ### 待查（动手前先读源码确认，不猜）
 
-1. `workspaceHookReviewRequestPayloadSchema` 的完整返回字段与 `interaction` 形状（Node
-   `interaction-broker.ts` 的 `onAutoResolutionUpdated` 一带是参考）。
-2. `reviewFlowId` 的生命周期与 `generation` 的精确语义（Node `workspace-hook-review.ts` +
-   `interaction-registry.ts`）。
-3. Node 认的 hooks 文件名/格式（`candidates`/`sources`）与 Rust `NodeHooks::from_json` 是否逐字
-   一致——不一致则 bundle 摘要会不同，评审会对不上。
-4. 驱动是否值得造真实工作区（写一个 hooks 文件）跑端到端；若成本高，先用"快照 + 撤销"两条断言。
+1. `reviewFlowId` 的生命周期与 `generation` 的精确语义（`interaction-registry.ts` 的
+   `getCurrentFlow`/supersede 与 `workspace-hook-review-controller.ts` 的 `openOrReuseFlow`）。
+2. Node 认的 hooks 文件名/格式（`candidates`/`sources`）与 Rust `NodeHooks::from_json` 是否逐字
+   一致——不一致则 bundle 摘要会不同、评审会对不上（先跑一个两边的摘要对比测试）。
+3. 驱动是否值得造真实工作区（写一个 hooks 文件）跑端到端；若成本高，先用"快照 + 撤销"两条断言。
+4. 交互 payload 进投影的落点：Rust 的 projection 目前只把 pending 交互投成 `pending` 数组，要确认
+   它的字段能否原样承载上面第 2 条的 payload（不够就加字段，不改 Host 契约）。
 
 ## 2. `discardSharedContext`：动手前要查的
 
