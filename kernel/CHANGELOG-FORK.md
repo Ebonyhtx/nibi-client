@@ -860,6 +860,26 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.36）：修订把 `subagentModel
   ask 会抢在 ACK 回程之前）；waitRow 要盯后继的行（前驱物理态本来就是 cancelled）。
 - **门禁**：81 → **88 字段**（`dwfPin*` 七字段，双内核逐字节一致：amend/cancel/resume accepted、
   `dwfPinResumedActor=true`、`dwfPinResumed=completed`、`dwfPinStored=drive-fake/fake-model-b$enabled`）。
+## 6.30 打包轨第一段：Rust 内核进打包资源（2026-11-01，路线 C 第十九段）
+
+桌面灰度的分发面（docs/rust-kernel-dwf-design-2026-10-30.md 的分发拍板 B：sidecar 用
+Electron 自带 Node 跑 `nibi.cjs __nibi-dwf-engine`，不额外打包 Node 二进制）：
+
+- **prepare:rust-kernel**（desktop 脚本，挂进 prepare:runtime-assets）：把构建好的内核二进制
+  暂存进 `.staging/rust-kernel/<executable>`——`NIBI_RUST_KERNEL_BIN` 显式指文件 →
+  `kernel/target/release` → `debug` 兜底；**可选资产**：两档都没有时跳过退出 0，正式包不携带
+  内核也要能跑（`NIBI_KERNEL` 默认 node，进程管理器运行时回退 node 链路）。
+- **electron-builder**：extraResources 按暂存存在与否条件收进 `<resources>/rust-kernel`（配置
+  构建期 `existsSync` 判定，正/负路径都验过）；afterPack 断言暂存过的包产物里二进制在场。
+  签名断言不覆盖它——灰度期不买证书，二进制只在 `NIBI_KERNEL=rust` 时被拉起。
+- **ELECTRON_RUN_AS_NODE 复核**（Electron 41.0.3）：桌面自带的 electron.exe 以
+  `ELECTRON_RUN_AS_NODE=1` 跑 `nibi.cjs __nibi-dwf-engine`——probe-dwf-sidecar 全握手通过
+  （actor/create、typed ask 的 repair 循环、run 事件流、journal completed）。**FIX-5（Electron
+  44）合入后必须重跑这一条**（node 版本变化会动沙箱/journal 行为）。
+- **进程管理三消费者**：主代理 spawn / 存储准备子进程（`storagePreparationProcess: true` 走
+  `--prepare-storage` 原生分支）/ DWF 侧车 env——单测在台式机环境被 vitest runner 的
+  `validateTags` 崩溃挡住（stash 对拍 HEAD 同样失败，预存环境问题非本片引入）；以根 typecheck
+  与既有 88 字段 DWF 门禁（侧车 env 端到端）兜住。
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

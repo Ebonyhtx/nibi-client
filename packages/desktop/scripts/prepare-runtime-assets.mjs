@@ -31,6 +31,9 @@ const shouldPrepareCuaHelper = target.os === "win32" || process.env.NIBI_ENABLE_
 // 运行时由 app 的 Electron Node runtime 执行。Source Server 资源由独立 stage:remote-assets 入口负责。
 const localRuntimeScripts = [
   ...(shouldPrepareCuaHelper ? ["prepare:cua-helper"] : []),
+  // Rust 内核二进制（灰度轨，可选资产）：本机构建过就暂存进 .staging/rust-kernel，
+  // 打包按 extraResources 收进 <resources>/rust-kernel；没构建过脚本自行跳过。
+  "prepare:rust-kernel",
   "prepare:agent-bundle",
   // 2026-10-26：不再跑 `prepare:windows-cua-helper`（上游契约路径）。它按
   // `<package>/node_modules/@trycua/...` 找原生件，而 pnpm 的 hoisted 布局把它放在仓库根，

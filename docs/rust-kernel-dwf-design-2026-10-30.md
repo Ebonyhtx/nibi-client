@@ -148,7 +148,7 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
   进不了 Worker 线程，`prepareSessionStorage` 增加原生子进程分支：`spawn(command.command,
   args + --prepare-storage)`，cwd 由 spawn 给出（Rust 入口没有 `--cwd` 参数），握手逻辑两种
   transport 共用。Node 内核的 Worker 分支不变。
-- 桌面侧仍默认 node；要给真实用户用，还需：把 Rust 二进制放进打包资源、FIX-5（Electron 升级）
+- 桌面侧仍默认 node；要给真实用户用，还需：~~把 Rust 二进制放进打包资源~~（**已接，2026-11-01 第十九段**：prepare:rust-kernel 可选暂存 + extraResources 条件收包 + afterPack 断言；ELECTRON_RUN_AS_NODE 在 Electron 41 复核通过）、FIX-5（Electron 升级，合入后须重跑 AS_NODE 侧车复核）
   后复核 `ELECTRON_RUN_AS_NODE`、以及阶段 3 的进程管理与三消费者回归。
 
 ## 3.3 C1 细化：driver 走 RPC，模型与工具留在 Rust（2026-10-30 拍板后的调整）

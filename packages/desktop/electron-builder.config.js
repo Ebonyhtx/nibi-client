@@ -64,6 +64,13 @@ const workspaceRoot = resolve(import.meta.dirname, "../..");
 const desktopPackageRoot = import.meta.dirname;
 // Computer Use Helper（macOS .app、Windows runtime）只随真实 producer 打包；开源占位包下跳过随包资源与校验。
 const shouldPackageComputerUseHelper = isRealComputerUseProducerInstalled({ desktopPackageRoot });
+// Rust 内核二进制（灰度轨，可选资产）：prepare:rust-kernel 暂存进 .staging/rust-kernel 时才
+// 随包发布（<resources>/rust-kernel/<executable>，进程管理器的打包位次）。NIBI_KERNEL 默认
+// node——没暂存就整字段缺席，运行时回退 node 链路，打包结果与切流前逐字节相同。
+const rustKernelExecutable = targetPlatform.os === "win32" ? "zcode-rs.exe" : "zcode-rs";
+const shouldPackageRustKernel = existsSync(
+  resolve(workspaceRoot, ".staging", "rust-kernel", rustKernelExecutable),
+);
 const HELPER_FILENAME = "zcode-browser-import-helper.exe";
 const runtimeModuleLookupRoots = [
   desktopPackageRoot,
@@ -681,6 +688,18 @@ export default {
     runTimedSync("afterPack:assertPackagedCuaSharp", () => assertPackagedCuaSharp(context));
     runTimedSync("afterPack:assertPackagedCuaKoffi", () => assertPackagedCuaKoffi(context));
     runTimedSync("afterPack:assertPackagedCuaHelper", () => assertPackagedCuaHelper(context));
+    if (shouldPackageRustKernel) {
+      runTimedSync("afterPack:assertPackagedRustKernel", () => {
+        const packed = resolve(
+          resolvePackagedResourcesDir(context),
+          "rust-kernel",
+          rustKernelExecutable,
+        );
+        if (!existsSync(packed)) {
+          throw new Error(`packaged Rust kernel binary is missing: ${packed}`);
+        }
+      });
+    }
     if (actualWindowsTarget && shouldPackageComputerUseHelper) {
       await runTimedAsync("afterPack:finalizePackagedWindowsCuaHelper", () =>
         finalizePackagedWindowsCuaHelper({
@@ -738,6 +757,16 @@ export default {
             // 只是不吸附，所以这里不做存在性断言。
             from: "resources/macos-window-bounds/zcode-window-bounds",
             to: "macos-window-bounds/zcode-window-bounds",
+          },
+        ]
+      : []),
+    ...(shouldPackageRustKernel
+      ? [
+          {
+            // Rust 内核（灰度轨）：可选资产，暂存过才进包。签名断言不覆盖它——灰度期不买证书，
+            // 只在 NIBI_KERNEL=rust 时被拉起（node 默认链路不碰它）。
+            from: resolve(workspaceRoot, ".staging/rust-kernel"),
+            to: "rust-kernel",
           },
         ]
       : []),

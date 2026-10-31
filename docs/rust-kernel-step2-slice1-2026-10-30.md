@@ -745,3 +745,19 @@ modelBindings / scriptPath / name / toolCallId 全部从 journal 重读，caps �
   waitRow 盯后继的行。
 - **门禁**：81 → **88 字段**，双内核逐字节一致。
 - **仍缺**：amend+resume 的导入缓存重建（性能缺口，非正确性）；stall/blocked（时间门控）。
+
+## 6.37 第三十八步：打包轨第一段——内核进打包资源（2026-11-01）
+
+尾单的打包轨开工（详见 CHANGELOG-FORK §6.30）。桌面灰度的分发拍板 B（sidecar 用 Electron
+自带 Node，不额外打包 Node 二进制）在这一段补上最后一环：内核二进制随包。
+
+- **prepare:rust-kernel**：可选资产暂存（`NIBI_RUST_KERNEL_BIN` → release → debug；全缺跳过
+  退出 0）——正式包不携带内核也要能跑，这是「Rust 只允许灰度/可选」纪律在分发面的形状。
+- **electron-builder**：extraResources 条件收进 `<resources>/rust-kernel`（存在性判定在配置
+  构建期，正/负路径都验过）；afterPack 断言；签名断言不覆盖（灰度期无证书，只在
+  `NIBI_KERNEL=rust` 时被拉起）。
+- **ELECTRON_RUN_AS_NODE 复核（Electron 41.0.3）**：electron.exe 以 AS_NODE 跑
+  `__nibi-dwf-engine`——probe-dwf-sidecar 全握手通过。FIX-5（Electron 44）合入后必须重跑。
+- **三消费者回归**：主代理 spawn / 存储准备子进程 / DWF 侧车 env 的单测在本机被 vitest runner
+  `validateTags` 崩溃挡住（stash 对拍 HEAD 同败，预存环境问题）；根 typecheck（services +
+  desktop main/renderer/preload）与 88 字段 DWF 门禁兜住。
