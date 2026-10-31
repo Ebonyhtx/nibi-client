@@ -550,6 +550,31 @@ turn」）：模型可见的 controlOnly 合成输入，GUI 的运行卡与冷�
   「改了什么」from/to/ceiling、修订句 supersedes、冷恢复键 `source`/`semantics`/`metadata`
   形状、名字带引号），双内核一致；复跑时三个门禁全绿（parity 92、cold-resume）。
 
+## 6.18 脚本点名的模型绑定（2026-10-30，路线 C 第七段）
+
+launch.md「Models the script names」：`agent(…, { model: "名字" })` 的每个名字在 launch 时对着
+**本机**模型目录解析成规范串绑定表，actor 的选型按 persona 点名查表。
+
+- **宿主**：`SidecarEngine` 带上 `ModelDirectory`（platform 的目录）；新宿主 RPC
+  `models/resolve`——sidecar 报名字（与沿用的前驱绑定表），宿主解成
+  `{bindings, unresolved}`。`resolve_model_reference` 是 Node `resolveModelReference` 的移植：
+  三档特异性（全称 → 裸名在默认 provider 下 → 别的 provider 拒绝跨账单）、大小写不敏感、
+  `$level` 必须是合法档位（注册表拼写胜出）、缺席取目录默认档（档位表最后一个，Node
+  `model-catalog-port` 同一读法）；Rust 目录只列可用模型，Node 的 `disabled` 档落成
+  `not_found`。3 个单测。
+- **sidecar**：submit/amend 起跑前抽脚本点名的名字（`analyzeWorkflowScript` 的
+  `modelReferences`，去重按首次出现序）→ `models/resolve`（修订把前驱 `run-launched
+  .modelBindings` 作为 inherited 递进去，沿用的名字解的是前驱记下的规范串——用户在前驱
+  确认窗里换过的模型留得住）→ 绑定表进 `run-launched.modelBindings`。解不出来按
+  `compile_failed`（启动）/ `model_unavailable`（修订）拒绝，旧 run 不动。
+- **actor 选型**：`createActorSession` 按 persona 点名查表，优先级 persona 绑定 > run 级
+  `subagentModel` > 缺席（内核默认）——Node `workflow-actor-model` 的同一张表。点名的名字
+  不在表里是接线故障，大声失败（Node `WorkflowActorModelUnboundError` 同义），不悄悄退回。
+- **门禁**：`check-dwf-engine.mjs` 55 → **58 字段**：saved 工作流的 persona 点名
+  `fake-model-b`（会话模型是 fake-model），两条 run 的 `run-launched.modelBindings` 与
+  `{"fake-model-b":"drive-fake/fake-model-b$enabled"}` 逐字节一致、第一个 ask 的 provider
+  请求真在 fake-model-b 上、修订沿用同名绑定——绑定链路两端各自端到端可证。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

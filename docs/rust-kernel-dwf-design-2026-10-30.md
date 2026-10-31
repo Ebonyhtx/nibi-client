@@ -257,8 +257,13 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        Node 侧顺手修了 `snapshotOf` 从不填 `name` 的缺口（设置轮的句子因此从没带过名字）。
        `check-dwf-engine` 55 字段。live 投影的 `executionKind: "controlOnly"` 与运行卡渲染仍未接
        ——投影面的活，详见投影面条目）；
-     - `amend` 的脚本点名模型绑定（`modelBindings`）与 persona 级模型名解析（需要模型目录；
-       规范串形式已支持）；
+     - ~~`amend` 的脚本点名模型绑定（`modelBindings`）与 persona 级模型名解析~~（**已补，
+       2026-10-30 第七段**：sidecar 抽脚本点名的名字 → 新宿主 RPC `models/resolve` 对着本机
+       目录解成规范串（Node `resolveModelReference` 同规：三档特异性、provider 边界、档位表
+       默认档取最后一个）→ 落 `run-launched.modelBindings` → actor 的选型按 persona 点名查表
+       （优先级 persona 绑定 > run 级 > 缺席；点名没绑定大声失败）。修订沿用前驱那张表、同名
+       再解析；解不出来按 compile_failed（启动）/ model_unavailable（修订）拒绝、旧 run 不动。
+       `check-dwf-engine` 58 字段。resume 的 pin（journal 里钉住的上一世模型）仍未接）；
      - ~~`GetWorkflowRun` 工具本身~~（**v1 已接，2026-10-30 第五段**：journal 读面 + 停驻
        注册表合成；名字/描述/输入 schema 与模型面块序与 Node 逐字，`check-dwf-engine` 45 字段。
        阶段表/花名册/留白/产物四类读面未接，对应块整体缺席——投影面落地后补）。

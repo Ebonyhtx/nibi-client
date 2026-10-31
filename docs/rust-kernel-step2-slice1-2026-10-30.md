@@ -503,6 +503,16 @@ live 投影仍把控制轮当普通 agent 轮画（`executionKind: "controlOnly"
 TurnStarted`），运行卡由冷恢复的 `metadata.workflowLaunch` 而来——归投影面。门禁 **55 字段**
 双内核一致（启动/retune/修订三条控制轮的句面、元数据与冷恢复键逐项对拍）。
 
+## 6.25 第二十六步：脚本点名的模型绑定（2026-10-30）
+
+launch.md「Models the script names」（详见 CHANGELOG-FORK §6.18）：`agent(…, { model })` 的
+名字在 launch 时对着本机目录解成规范串绑定表，actor 的选型按 persona 点名查表。sidecar 抽名字
+（编译器 9010 保证封闭集合）→ 新宿主 RPC `models/resolve`（`resolve_model_reference`：三档
+特异性 + provider 边界 + 档位表默认档取最后一个，3 个单测）→ `run-launched.modelBindings` →
+actor 选型（persona 绑定 > run 级 > 缺席；点名没绑定大声失败）。修订沿用前驱那张表同名再解析，
+解不出来按 compile_failed / model_unavailable 拒绝。门禁 55 → **58 字段**（两条 run 的绑定表
+逐字节一致 + 第一个 ask 真跑在被点名的模型上）。resume 的 pin 仍未接。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要

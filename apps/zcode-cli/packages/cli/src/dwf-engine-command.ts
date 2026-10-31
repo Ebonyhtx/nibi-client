@@ -27,6 +27,7 @@ import { DatabaseSync } from "node:sqlite";
 import { createDwfJournalStore } from "@nibi/adapters/storage";
 import { resolveSavedWorkflow, validateWorkflowArgs } from "@nibi/core";
 import {
+  analyzeWorkflowScript,
   buildAskSpecs,
   collectDiagnostics,
   collectSites,
@@ -114,6 +115,61 @@ function runSubagentModel(journal: JournalStorePort, runId: string): string | un
   return event?.type === "run-launched" ? event.subagentModel : undefined;
 }
 
+/** run 的脚本点名绑定表（`run-launched.modelBindings`）：amend 沿用前驱的同名绑定按它。 */
+function runModelBindings(journal: JournalStorePort, runId: string): Record<string, string> | undefined {
+  const [first] = journal.listEvents(runId, {
+    types: ["run-launched"],
+    reportItems: "all",
+    limit: 1,
+  });
+  const event = first?.event;
+  if (event?.type !== "run-launched" || event.modelBindings === undefined) return undefined;
+  const bindings: Record<string, string> = {};
+  for (const [name, canonical] of Object.entries(event.modelBindings)) {
+    if (typeof canonical === "string") bindings[name] = canonical;
+  }
+  return Object.keys(bindings).length === 0 ? undefined : bindings;
+}
+
+/**
+ * 脚本点名的模型名字（launch.md「Models the script names」）：去重、按第一次出现的顺序。编译器
+ * 保证这是封闭集合（9010）；解析成规范串是宿主那一半（`models/resolve` RPC 对着本机目录）。
+ * 编不过的脚本没有可说的名字——调用方在编译体检里就已经拒绝了。
+ */
+function scriptModelNames(scriptText: string): string[] {
+  let analysis;
+  try {
+    analysis = analyzeWorkflowScript(scriptText);
+  } catch {
+    return [];
+  }
+  if (!analysis.ok) return [];
+  return [...new Set(analysis.modelReferences.map((reference) => reference.name))];
+}
+
+/**
+ * 向宿主解析脚本点名的名字（沿用的名字解的是前驱记下的规范串，不是名字本身——用户在前驱确认窗
+ * 里换过的模型因此留得住）。解不出来返回 `null`，`message` 是逐名字的人话（调用方原样进拒绝）。
+ */
+async function resolveScriptModels(
+  request: (method: string, params: unknown) => Promise<unknown>,
+  names: readonly string[],
+  inherited: Record<string, string> | undefined,
+): Promise<{ bindings: Record<string, string> } | { bindings: null; message: string }> {
+  if (names.length === 0) return { bindings: {} };
+  const answer = (await request("models/resolve", {
+    names: [...names],
+    ...(inherited === undefined ? {} : { inherited }),
+  })) as { bindings?: Record<string, string>; unresolved?: { name: string; message: string }[] };
+  const bindings: Record<string, string> = {};
+  for (const [name, canonical] of Object.entries(answer.bindings ?? {})) {
+    if (typeof canonical === "string") bindings[name] = canonical;
+  }
+  const unresolved = answer.unresolved ?? [];
+  if (unresolved.length === 0) return { bindings };
+  return { bindings: null, message: unresolved.map((entry) => entry.message).join("\n") };
+}
+
 /** 三态归一（与宿主 runtime 同一张表；**端口不从前驱继承**，缺席即默认）。 */
 function nextSetting<T>(input: T | null | undefined, current: T | undefined): T | undefined {
   if (input === undefined) return current;
@@ -196,6 +252,8 @@ function launchRun(
     toolCallId?: string;
     /** run 的展示名（saved 名字）；落 dwf_run.name，设置轮的「已修订」记录按它题名。 */
     name?: string;
+    /** 脚本点名的模型绑定表（宿主目录解出来的规范串）：落 run-launched，actor 的选型按它。 */
+    modelBindings?: Record<string, string>;
   },
   request: (method: string, params: unknown) => Promise<unknown>,
   notify: (method: string, params: unknown) => void,
@@ -209,6 +267,7 @@ function launchRun(
     request,
     notify,
     params.subagentModel,
+    params.modelBindings,
   );
   const abort = new AbortController();
   const maxConcurrency = params.caps.maxConcurrency ?? DEFAULT_CONCURRENCY;
@@ -224,11 +283,14 @@ function launchRun(
   runs.set(params.runId, entry);
   // 锚点与选型同车：只有修订路径给得出 toolCallId / subagentModel，全新 submit 保持缺席。
   const launch =
-    params.toolCallId === undefined && params.subagentModel === undefined
+    params.toolCallId === undefined &&
+    params.subagentModel === undefined &&
+    params.modelBindings === undefined
       ? undefined
       : {
           inputId: params.toolCallId ?? params.runId,
           ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
+          ...(params.modelBindings === undefined ? {} : { modelBindings: params.modelBindings }),
         };
   const settlement = runWorkflowScript({
     scriptText: params.scriptText,
@@ -311,6 +373,8 @@ class RemoteDriver {
   private readonly notify: (method: string, params: unknown) => void;
   /** 本 run 的子代理模型（规范串，来自 `run-launched.subagentModel` / 本次修订的入参）。 */
   private readonly subagentModel: string | undefined;
+  /** 脚本点名的绑定表（规范串）：persona 点名的模型按它查（launch.md「Models the script names」）。 */
+  private readonly modelBindings: Record<string, string> | undefined;
 
   constructor(
     runId: string,
@@ -318,12 +382,14 @@ class RemoteDriver {
     request: (method: string, params: unknown) => Promise<unknown>,
     notify: (method: string, params: unknown) => void,
     subagentModel?: string,
+    modelBindings?: Record<string, string>,
   ) {
     this.runId = runId;
     this.journal = journal;
     this.request = request;
     this.notify = notify;
     this.subagentModel = subagentModel;
+    this.modelBindings = modelBindings;
   }
 
   attach(sink: WorkflowSink): void {
@@ -334,8 +400,24 @@ class RemoteDriver {
     actor: { siteId: string; ordinal: number },
     persona: PersonaSpec,
   ): Promise<SessionRef> {
-    // 本 run 的子代理选型随会话一起给宿主：Rust 的 actor 轮按它选模型（缺席 = 内核默认）。
-    const model = selectionFromCanonical(this.subagentModel);
+    // 选型优先级（Node workflow-actor-model 的同一张表）：persona 点名的绑定 > 本 run 的
+    // 子代理模型 > 缺席（内核默认）。点名的名字不在表里是接线故障（编译器 9010 保证封闭集合、
+    // launch 时整张表解析过）——宁可大声失败，悄悄退回 run 的模型就是跑一个没人批过的选型。
+    let canonical = this.subagentModel;
+    if (persona.model !== undefined) {
+      const bound = this.modelBindings?.[persona.model];
+      if (bound === undefined) {
+        const boundNames = Object.keys(this.modelBindings ?? {});
+        throw new Error(
+          `This subagent's persona names the model "${persona.model}", which the run did not resolve at launch` +
+            (boundNames.length === 0
+              ? " (the script named no models)."
+              : ` (it resolved: ${boundNames.map((name) => `"${name}"`).join(", ")}).`),
+        );
+      }
+      canonical = bound;
+    }
+    const model = selectionFromCanonical(canonical);
     const reply = (await this.request("actor/create", {
       runId: this.runId,
       actor,
@@ -497,6 +579,18 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       };
     }
 
+    // 脚本点名的模型（launch.md「Models the script names」）：宿主的目录解出来才起 run——
+    // 解不出来的名字按 Node 的启动路径同一个理由码（compile_failed），什么都不跑。
+    const names = scriptModelNames(scriptText);
+    let modelBindings: Record<string, string> | undefined;
+    if (names.length > 0) {
+      const resolved = await resolveScriptModels(request, names, undefined);
+      if (resolved.bindings === null) {
+        return { ok: false, reason: "compile_failed", message: resolved.message.slice(0, 2_000) };
+      }
+      if (Object.keys(resolved.bindings).length > 0) modelBindings = resolved.bindings;
+    }
+
     // 受理之后在后台跑；结算以 `run/settled` 通知宿主。
     void launchRun(
       {
@@ -509,6 +603,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         caps: params.caps ?? { maxConcurrency: DEFAULT_CONCURRENCY },
         // run 的展示名 = saved 名字（Node 的启动路径同一条读法）；设置轮与侧板题名按它。
         ...(params.savedName === undefined ? {} : { name: params.savedName }),
+        ...(modelBindings === undefined ? {} : { modelBindings }),
       },
       request,
       notify,
@@ -678,6 +773,28 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         };
       }
 
+      // 脚本点名的模型：重跑的是这个 run 自己的脚本，每个名字在 launch 时都绑定过，照旧沿用那张表
+      // 并对着目录再解析一遍（沿用的名字解的是前驱记下的规范串）。解不出来停在这里——与「弹层选的
+      // 模型解不出来」同一个原因码（model_unavailable），旧 run 不动。
+      const names = scriptModelNames(record.scriptText);
+      let modelBindings: Record<string, string> | undefined;
+      if (names.length > 0) {
+        const inherited = runModelBindings(journal, params.predecessorRunId);
+        const resolved = await resolveScriptModels(request, names, inherited);
+        if (resolved.bindings === null) {
+          return {
+            ok: false,
+            reason: "model_unavailable",
+            message:
+              `The models named in the script of run ${params.predecessorRunId} cannot be used now: ${resolved.message}`.slice(
+                0,
+                2_000,
+              ),
+          };
+        }
+        if (Object.keys(resolved.bindings).length > 0) modelBindings = resolved.bindings;
+      }
+
       const live = runs.get(params.predecessorRunId);
       const currentModel = live?.subagentModel ?? runSubagentModel(journal, record.runId);
       // 等于默认并发的界就是「没有自己的界」：快照只在 ≠ 默认时带 maxConcurrency，同一个读法。
@@ -734,6 +851,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           args: settled.args ?? {},
           caps: { maxConcurrency: nextBound ?? DEFAULT_CONCURRENCY },
           ...(nextModel === undefined ? {} : { subagentModel: nextModel }),
+          ...(modelBindings === undefined ? {} : { modelBindings }),
           resumedFrom: params.predecessorRunId,
           inheritedTokens: settled.spentTokens ?? 0,
           ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),

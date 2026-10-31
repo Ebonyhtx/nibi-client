@@ -41,6 +41,11 @@ const REQUIRED = [
   "dwfAmendStoredModel",
   "dwfAmendCompleted",
   "dwfAmendActorModel",
+  // 脚本点名的模型绑定（launch.md「Models the script names」）：launch 时解成规范串落
+  // run-launched，actor 的选型按它（persona 点名 > run 级），修订沿用同名绑定。
+  "dwfBindingsLaunch",
+  "dwfBindingsActorModel",
+  "dwfBindingsAmend",
   // 控制轮（中枢启动轮 + 修订成功后父会话里的 controlOnly 记录）：句面、元数据与冷恢复键。
   "dwfLaunchTurnText",
   "dwfLaunchTurnMeta",

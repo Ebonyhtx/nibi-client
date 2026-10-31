@@ -228,7 +228,7 @@ async fn serve(
         limits: model_limits,
     } = models::assemble(
         egress,
-        platform,
+        platform.clone(),
         startup.explicit,
         (None, None),
         (clock.clone(), device),
@@ -315,6 +315,7 @@ async fn serve(
                 ids.clone(),
                 local_machine.clone(),
                 paths.database().as_path().to_path_buf(),
+                platform.clone(),
             ))),
             Err(error) => {
                 tracing::warn!(

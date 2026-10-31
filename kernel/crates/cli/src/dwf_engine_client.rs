@@ -151,12 +151,127 @@ impl RunState {
     }
 }
 
+/// 一个模型引用的解析结果：规范串 `providerId/modelId[$level]`，或失败原因（候选清单在
+/// `message` 里）。语义与 Node `resolveModelReference` 同规（docs/dynamic-workflow/launch.md
+/// 「`subagent_model` resolves by specificity」）：
+///
+///   1. `providerId/modelId` 全称精确命中；
+///   2. 裸 `modelId` 在目录默认选择的 provider 下有 → 取它，别的 provider 也有同名无所谓；
+///   3. 裸 `modelId` 只在别的 provider 下有 → 拒绝（不替用户跨账单）。
+///
+/// 全部比较大小写不敏感。目录里没有默认选择时没有边界可守：裸名唯一就取、多个即歧义。
+/// `$level` 在场必须是该模型的合法档位（用注册表自己的拼写）；缺席时取目录默认档（档位表的
+/// 最后一个，Node `model-catalog-port` 的同一读法），模型没有档位就不带。Rust 目录只列可用的
+/// 模型，Node 的 `disabled` 档在这里落成 `not_found`。
+pub(crate) fn resolve_model_reference(
+    catalog: &rust_cli_kernel_api::provider::ModelCatalog,
+    text: &str,
+) -> Result<String, String> {
+    let trimmed = text.trim();
+    let (reference, level) = match trimmed.split_once('$') {
+        Some((reference, level)) => (reference, Some(level)),
+        None => (trimmed, None),
+    };
+    let qualified = reference.split_once('/');
+    let mut matches: Vec<&rust_cli_kernel_api::provider::CatalogModel> = catalog
+        .models
+        .iter()
+        .filter(|entry| match qualified {
+            Some((provider_ref, model_ref)) => {
+                entry.provider.eq_ignore_ascii_case(provider_ref)
+                    && entry.model.eq_ignore_ascii_case(model_ref)
+            }
+            None => entry.model.eq_ignore_ascii_case(reference),
+        })
+        .collect();
+    if matches.is_empty() {
+        let ids: Vec<String> = catalog
+            .models
+            .iter()
+            .map(|entry| format!("{}/{}", entry.provider, entry.model))
+            .collect();
+        return Err(match ids.is_empty() {
+            true => "No models are configured on this host.".to_owned(),
+            false => format!(
+                "No configured model matches `{text}`. Available models: {}.",
+                ids.join(", ")
+            ),
+        });
+    }
+    // provider 边界（第 2、3 档）：裸名绝不悄悄落到另一个 provider 上。
+    let default = catalog.default.as_ref();
+    let home: Vec<_> = match (qualified.is_none(), default) {
+        (true, Some(default)) => {
+            let guarded: Vec<_> = matches
+                .iter()
+                .copied()
+                .filter(|entry| entry.provider.eq_ignore_ascii_case(&default.provider))
+                .collect();
+            if guarded.is_empty() {
+                let ids: Vec<String> = matches
+                    .iter()
+                    .map(|entry| format!("{}/{}", entry.provider, entry.model))
+                    .collect();
+                return Err(format!(
+                    "The model `{text}` exists only under other providers ({}); pass the fully qualified id to cross that boundary.",
+                    ids.join(", ")
+                ));
+            }
+            guarded
+        }
+        _ => matches.split_off(0),
+    };
+    let entry = match home.as_slice() {
+        [only] => *only,
+        many => many
+            .iter()
+            .copied()
+            .find(|entry| {
+                default.is_some_and(|default| {
+                    entry.provider.eq_ignore_ascii_case(&default.provider)
+                        && entry.model.eq_ignore_ascii_case(&default.model)
+                })
+            })
+            .ok_or_else(|| {
+                let ids: Vec<String> = many
+                    .iter()
+                    .map(|entry| format!("{}/{}", entry.provider, entry.model))
+                    .collect();
+                format!("`{text}` is ambiguous: {}.", ids.join(", "))
+            })?,
+    };
+    // 档位：注册表自己的拼写胜出；缺席取默认档（最后一个），模型没有档位就不带。
+    let level = match level {
+        Some(level) => Some(
+            entry
+                .reasoning_levels
+                .iter()
+                .find(|candidate| candidate.eq_ignore_ascii_case(level))
+                .ok_or_else(|| {
+                    let levels = entry.reasoning_levels.join(", ");
+                    format!(
+                        "The model `{}` has no reasoning level `{level}` (it offers: {levels}).",
+                        entry.model
+                    )
+                })?,
+        ),
+        None => entry.reasoning_levels.last(),
+    };
+    Ok(match level {
+        Some(level) => format!("{}/{}${}", entry.provider, entry.model, level),
+        None => format!("{}/{}", entry.provider, entry.model),
+    })
+}
+
 struct EngineShared {
     command: SidecarCommand,
     spawner: Spawner,
     ids: Arc<dyn Ids>,
     machine: MachineEnv,
     database: PathBuf,
+    /// 模型目录（脚本点名模型的解析，launch.md「Models the script names」）：sidecar 报名字，
+    /// 这里对着本机目录解成规范串绑定表。
+    models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
     kernel: Mutex<Option<Weak<dyn Kernel>>>,
     process: Mutex<Option<Arc<Process>>>,
     runs: Mutex<HashMap<String, Arc<RunState>>>,
@@ -174,6 +289,7 @@ impl SidecarEngine {
         ids: Arc<dyn Ids>,
         machine: MachineEnv,
         database: PathBuf,
+        models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
     ) -> Self {
         Self {
             shared: Arc::new(EngineShared {
@@ -182,6 +298,7 @@ impl SidecarEngine {
                 ids,
                 machine,
                 database,
+                models,
                 kernel: Mutex::new(None),
                 process: Mutex::new(None),
                 runs: Mutex::new(HashMap::new()),
@@ -459,6 +576,49 @@ where
                 if let Some(id) = &id {
                     process.respond(id, json!({"session": child.as_str()}));
 
+                }
+            }
+            "models/resolve" => {
+                // 脚本点名的模型（launch.md「Models the script names」）：sidecar 报名字（与沿用的
+                // 前驱绑定表），这里对着本机目录解成规范串；解不出来的原样退回（sidecar 按
+                // compile_failed / model_unavailable 拒绝，旧 run 不动）。
+                let params = &message["params"];
+                let names: Vec<&str> = params["names"]
+                    .as_array()
+                    .map(|names| names.iter().filter_map(|name| name.as_str()).collect())
+                    .unwrap_or_default();
+                let inherited = params["inherited"].clone();
+                let models = shared.models.clone();
+                let resolved = async {
+                    let catalog = models.catalog().await;
+                    let mut bindings = serde_json::Map::new();
+                    let mut unresolved: Vec<Value> = Vec::new();
+                    for name in names {
+                        let previous = inherited.get(name).and_then(Value::as_str);
+                        let answer = match previous {
+                            Some(previous) => resolve_model_reference(&catalog, previous)
+                                .map_err(|message| {
+                                    format!(
+                                        "\"{name}\" keeps the model the amended run bound it to, \
+                                         {previous}, which cannot be used now. {message}"
+                                    )
+                                }),
+                            None => resolve_model_reference(&catalog, name).map_err(|message| {
+                                format!("The model \"{name}\" named in the script cannot be used: {message}")
+                            }),
+                        };
+                        match answer {
+                            Ok(canonical) => {
+                                bindings.insert(name.to_owned(), json!(canonical));
+                            }
+                            Err(message) => unresolved.push(json!({"name": name, "message": message})),
+                        }
+                    }
+                    json!({"bindings": bindings, "unresolved": unresolved})
+                }
+                .await;
+                if let Some(id) = &id {
+                    process.respond(id, resolved);
                 }
             }
             "world/read" => {

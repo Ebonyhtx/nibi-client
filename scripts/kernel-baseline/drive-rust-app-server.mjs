@@ -1239,7 +1239,9 @@ try {
         "/* zcode-workflow",
         "description: amend probe",
         "*/",
-        'const worker = agent("worker", "You answer questions.");',
+        // persona 点名模型（launch.md「Models the script names」）：launch 时对目录解成绑定表，
+        // actor 的选型按它（先于 run 级子代理模型）——这条链路两端各自端到端可证。
+        'const worker = agent("worker", { system: "You answer questions.", model: "fake-model-b" });',
         `return await worker.ask("${AMEND_HOLD_TEXT}");`,
       ].join(String.fromCharCode(10)) + String.fromCharCode(10),
     );
@@ -1292,6 +1294,28 @@ try {
     if (!(await waitRow(runId, (row) => row.status === "running"))) {
       throw new Error("amended run never reached running");
     }
+    // 脚本点名的绑定表（launch.md「Models the script names」）：launch 时解成规范串落
+    // run-launched；actor 的选型按它（persona 点名 > run 级）——第一个 ask 的请求真在
+    // fake-model-b 上，就是这条链路的端到端证据。
+    const launchedOf = (id) => {
+      const db = new DatabaseSync(dbPath);
+      const launched = db
+        .prepare(
+          "select payload_json from dwf_event where run_id = ? and type = 'run-launched' order by sequence limit 1",
+        )
+        .get(id);
+      db.close();
+      return JSON.parse(launched?.payload_json ?? "{}");
+    };
+    const waitActorRequest = async () => {
+      for (let attempt = 0; attempt < 300; attempt += 1) {
+        if (REQUESTS.some((request) => request.model === "fake-model-b")) return true;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return false;
+    };
+    checks.dwfBindingsLaunch = JSON.stringify(launchedOf(runId).modelBindings ?? null);
+    checks.dwfBindingsActorModel = await waitActorRequest();
     const retuned = await simpleCommand(
       "0197d3f0-0000-7000-8000-0000000000c2",
       "amendWorkflowRunSettings",
@@ -1329,7 +1353,8 @@ try {
       : null;
     const newRow = await waitRow(nextRun, () => true);
     checks.dwfAmendLineage = newRow?.resumed_from === runId;
-    // 这次修订的选型落在 `run-launched.subagentModel` 上（两个内核写的是同一个规范串）。
+    // 这次修订的选型落在 `run-launched.subagentModel` 上（两个内核写的是同一个规范串）；
+    // 脚本点名的绑定表沿用前驱那张（同名再解析一遍，结果不变）。
     {
       const db = new DatabaseSync(dbPath);
       const launched = db
@@ -1338,8 +1363,9 @@ try {
         )
         .get(nextRun);
       db.close();
-      checks.dwfAmendStoredModel =
-        JSON.parse(launched?.payload_json ?? "{}").subagentModel ?? null;
+      const payload = JSON.parse(launched?.payload_json ?? "{}");
+      checks.dwfAmendStoredModel = payload.subagentModel ?? null;
+      checks.dwfBindingsAmend = JSON.stringify(payload.modelBindings ?? null);
     }
 
     // 3) 放行 hold（后继的那次 ask）：后继跑完，且 actor 真的跑在新模型上。
