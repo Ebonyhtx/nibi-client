@@ -530,6 +530,7 @@ impl Actor {
             command: Some(command),
             execution_kind: Some(TurnExecutionKind::ControlOnly),
             workflow_launch: Some(launch.clone()),
+            input_source: None,
         });
         self.log.append(KernelEvent::MessageDone {
             message: message.clone(),

@@ -48,6 +48,7 @@ fn turn(n: &str) -> Vec<KernelEvent> {
         KernelEvent::TurnStarted {
             execution_kind: None,
             workflow_launch: None,
+            input_source: None,
             turn: TurnId::new(n),
             command: None,
         },

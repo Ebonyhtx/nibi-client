@@ -4,7 +4,9 @@ use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::{
     CommandId, EnvironmentId, InteractionId, MessageId, SessionId, ToolUseId, TraceId, TurnId,
 };
-use rust_cli_kernel_api::message::{AssistantMessage, Message, UserMessage, UserOrigin};
+use rust_cli_kernel_api::message::{
+    AssistantMessage, Message, UserMessage, UserOrigin, TASK_NOTIFICATION_SOURCE,
+};
 use rust_cli_kernel_api::model::BlockDelta;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
 use rust_cli_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta};
@@ -129,6 +131,7 @@ fn a_text_turn_becomes_rows_and_control_states() {
     let mut feed = Feed::new();
     let started = feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
+        input_source: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -216,6 +219,7 @@ fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
+        input_source: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
@@ -277,6 +281,7 @@ fn an_interrupted_turn_cancels_running_tools() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
+        input_source: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
@@ -417,6 +422,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
     );
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
+        input_source: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -449,6 +455,7 @@ fn assistant_feedback_marks_the_settled_row() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
+        input_source: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -487,6 +494,7 @@ fn the_hub_launch_turn_renders_as_a_control_only_row() {
     });
     let started = feed.apply(KernelEvent::TurnStarted {
         execution_kind: Some(TurnExecutionKind::ControlOnly),
+        input_source: None,
         workflow_launch: Some(launch.clone()),
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -539,6 +547,7 @@ fn a_control_turn_on_a_started_session_leaves_control_alone() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
+        input_source: None,
         workflow_launch: None,
         turn: TurnId::new("turn_0"),
         command: Some(CommandId::new("c0")),
@@ -553,6 +562,7 @@ fn a_control_turn_on_a_started_session_leaves_control_alone() {
     });
     let started = feed.apply(KernelEvent::TurnStarted {
         execution_kind: Some(TurnExecutionKind::ControlOnly),
+        input_source: None,
         workflow_launch: Some(json!({"runId": "dwfrun_2"})),
         turn: TurnId::new("turn_1"),
         command: None,
@@ -612,4 +622,94 @@ fn the_cold_projection_rebuilds_launch_turns_as_control_only() {
     assert_eq!(inputs[0]["origin"], "workflowLaunch");
     assert_eq!(inputs[0]["workflowLaunch"], launch);
     assert_eq!(inputs[1]["origin"], "realUser");
+}
+
+/// 后台通知开的 model-only 轮：轮头 origin backgroundResult、无用户气泡、照常是 agent 轮
+/// （有工时、control 推进 running）。
+#[test]
+fn a_background_notification_turn_reads_as_a_background_result_header() {
+    let mut feed = Feed::new();
+    let started = feed.apply(KernelEvent::TurnStarted {
+        input_source: Some(TurnInputSource::BackgroundTask),
+        execution_kind: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    // 真实 agent 轮：control 照常推进 running，只是 origin 不同。
+    assert_eq!(
+        ops(&started),
+        [
+            "row.appended(turnHeader)",
+            "state(availability,control,inputRouting,revision)",
+        ],
+        "{started:?}",
+    );
+    assert_eq!(started[0]["row"]["origin"], "backgroundResult");
+    assert_eq!(started[0]["row"]["executionKind"], "agent");
+    let input = feed.apply(KernelEvent::MessageDone {
+        message: Message::User(UserMessage {
+            id: MessageId::new("msg_notice"),
+            content: vec![ContentBlock::Text {
+                text: "<task-notification>done</task-notification>".into(),
+            }],
+            origin: UserOrigin::Meta {
+                source: TASK_NOTIFICATION_SOURCE.into(),
+            },
+        }),
+    });
+    // model-only：没有用户气泡行。
+    assert_eq!(ops(&input), ["state(revision)"], "{input:?}");
+    let done = feed.apply(KernelEvent::MessageDone {
+        message: assistant(
+            "msg_a1",
+            vec![ContentBlock::Text {
+                text: "the background task finished".into(),
+            }],
+        ),
+    });
+    assert_eq!(done[0]["row"]["kind"], "assistantText");
+    let finished = feed.apply(KernelEvent::TurnFinished {
+        turn: TurnId::new("turn_1"),
+        outcome: TurnOutcome::Success,
+        usage: None,
+    });
+    assert_eq!(finished[0]["row"]["state"], "completedSuccess");
+    // 有 Agent 工时（区别于 controlOnly 轮）。
+    assert_eq!(finished[0]["row"]["activeMs"], 3);
+}
+
+/// 冷投影：task-notification 的 meta 消息开自己的 backgroundResult 轮，其后的 assistant
+/// 归本轮；它不产生用户气泡行。
+#[test]
+fn the_cold_projection_opens_a_turn_for_task_notification_messages() {
+    let view = view(vec![
+        Message::User(UserMessage {
+            id: MessageId::new("msg_notice"),
+            content: vec![ContentBlock::Text {
+                text: "<task-notification>done</task-notification>".into(),
+            }],
+            origin: UserOrigin::Meta {
+                source: TASK_NOTIFICATION_SOURCE.into(),
+            },
+        }),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::Text {
+                text: "the background task finished".into(),
+            }],
+        ),
+    ]);
+    let projection = Projection::from_view(&view, Followup::Queue, Vec::new());
+    let snapshot = projection.snapshot(9, "epoch-1");
+    let rows = snapshot["rows"]["window"].as_array().unwrap();
+    let kinds: Vec<&str> = rows
+        .iter()
+        .filter_map(|row| row["kind"].as_str())
+        .collect();
+    assert_eq!(kinds, ["turnHeader", "assistantText"], "{rows:?}");
+    let header = &rows[0];
+    assert_eq!(header["origin"], "backgroundResult");
+    assert_eq!(header["executionKind"], "agent");
+    assert_eq!(header["state"], "completedSuccess");
 }

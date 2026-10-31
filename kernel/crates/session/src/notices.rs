@@ -13,8 +13,9 @@ use crate::actor::Actor;
 use crate::lane::Waiting;
 use crate::watched::Watched;
 
-/// 通知开启的回合里，user 消息的来源（排队命令的 `task-notification` 模式）。
-pub(crate) const NOTICE_SOURCE: &str = "task-notification";
+/// 通知开启的回合里，user 消息的来源（排队命令的 `task-notification` 模式）；常量在 kernel-api
+/// （冷投影按同一张表认通知轮）。
+pub(crate) use rust_cli_kernel_api::message::TASK_NOTIFICATION_SOURCE as NOTICE_SOURCE;
 
 /// 执行环境的通知流：本机与连上的远端机器合成一个流（R3，remote-exec.md §20.7.2），每条带机器名。某台机器不提供
 /// 通知或断开时，合成流丢掉那台的流、继续等其余的。

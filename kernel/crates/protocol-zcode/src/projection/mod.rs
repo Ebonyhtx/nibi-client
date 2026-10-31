@@ -13,7 +13,8 @@ use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent, Usage};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{
-    KernelEvent, QueuedInput, SequencedEvent, SessionView, TurnExecutionKind, TurnOutcome,
+    KernelEvent, QueuedInput, SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
+    TurnOutcome,
 };
 use rust_cli_kernel_api::tool::ToolOutput;
 use serde_json::{Map, Value, json};
@@ -376,12 +377,14 @@ impl Projection {
                 command,
                 execution_kind,
                 workflow_launch,
+                input_source,
             } => {
                 self.start_turn(
                     turn.as_str(),
                     command.as_ref().map(|c| c.as_str().to_owned()),
                     *execution_kind,
                     workflow_launch.as_ref(),
+                    *input_source,
                     now,
                     seq,
                     &mut out,
@@ -578,6 +581,7 @@ impl Projection {
         command: Option<String>,
         execution_kind: Option<TurnExecutionKind>,
         launch: Option<&Value>,
+        input_source: Option<TurnInputSource>,
         now: u64,
         seq: u64,
         out: &mut Vec<Value>,
@@ -605,12 +609,13 @@ impl Projection {
             launch: launch.cloned(),
         });
         let mut row = self.base(turn, turn, "turnHeader", now, seq);
-        // 中枢启动/设置轮：轮头与输入行都用 workflowLaunch origin（UI 据此画启动卡而非用户气泡，
-        // Node event-normalizer 的 turnHeaderOrigin），`workflowLaunch` 元数据原样上行。
-        let origin = if launch.is_some() {
-            "workflowLaunch"
-        } else {
-            "userInput"
+        // 轮头的 origin（Node `turnHeaderOrigin(inputSource)` 同一张表）：中枢启动/设置轮
+        // workflowLaunch（UI 据此画启动卡而非用户气泡）、后台通知轮 backgroundResult、
+        // 其余 userInput。
+        let origin = match (launch.is_some(), input_source) {
+            (true, _) => "workflowLaunch",
+            (false, Some(TurnInputSource::BackgroundTask)) => "backgroundResult",
+            (false, None) => "userInput",
         };
         row.insert("origin".into(), json!(origin));
         let kind = if control_only { "controlOnly" } else { "agent" };

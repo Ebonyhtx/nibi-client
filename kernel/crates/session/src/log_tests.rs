@@ -212,6 +212,7 @@ async fn the_revision_counts_state_changes_only() {
     log.append(KernelEvent::TurnStarted {
         execution_kind: None,
         workflow_launch: None,
+        input_source: None,
         turn: TurnId::new("turn_1"),
         command: None,
     });

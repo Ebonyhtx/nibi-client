@@ -160,6 +160,11 @@ pub struct AssistantMessage {
 /// 不是模型生成的 assistant 消息的模型名。
 pub const SYNTHETIC_MODEL: &str = "<synthetic>";
 
+/// 后台通知开的 model-only 轮的 meta 消息来源标签（`UserOrigin::Meta` 的 `source`；会话 actor
+/// 的通知 lane 写它，冷投影据它重建 `origin: "backgroundResult"` 的通知轮头）。这是内核自己的
+/// 标签——Node 的消息记录顶层写 `source: "background_task"`（另一个判据面，见 node-store）。
+pub const TASK_NOTIFICATION_SOURCE: &str = "task-notification";
+
 /// 续写会话时补在最后一条没有回答的 user 消息之后的 assistant 文字（docs/specs/rust-cli/session-lifecycle.md
 /// §6.3.1）：界面不显示；随续写后的第一批提交落库，存成只给模型看的记录（工作线 F77）。
 pub const NO_RESPONSE_REQUESTED: &str = "No response requested.";

@@ -61,6 +61,9 @@ const REQUIRED = [
   // executionKind=controlOnly + 元数据上行，收口不带 activeMs（Node product-projection 同形）。
   "dwfControlRows",
   "dwfControlRowShape",
+  // 后台通知轮的轮头面（escalation 的后台通知在父会话开的 model-only 轮）：轮头
+  // origin=backgroundResult、executionKind=agent（Node turnHeaderOrigin("background_task")）。
+  "dwfNoticeRow",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",

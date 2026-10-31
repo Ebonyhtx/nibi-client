@@ -93,6 +93,7 @@ impl Actor {
             command: Some(command.clone()),
             execution_kind: None,
             workflow_launch: None,
+            input_source: None,
         });
         let abort = Abort::new();
         let (sender, requests) = mpsc::channel(SINK_REQUESTS);

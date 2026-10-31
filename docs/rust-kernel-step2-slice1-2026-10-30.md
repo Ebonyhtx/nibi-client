@@ -582,3 +582,24 @@ cargo +1.95.0 test -p rust-cli-protocol-zcode --locked --offline
 - **暴露的下一个缺口**：run 通知轮的轮头行 Node 是 `origin: "backgroundResult"`（live 同），
   Rust 活投影开成 userInput、冷投影不立轮头（通知是 `UserOrigin::Meta` 的 meta 消息，cold.rs
   不认它开轮）——通知/同伴轮的 origin 面下一片接。
+
+## 6.28 第二十九步：后台通知轮的轮头面（2026-10-30）
+
+后台通知开的 model-only 轮按 `origin: "backgroundResult"` 呈现（详见 CHANGELOG-FORK §6.21）。
+判据以 Node 的三处为准：TurnStarted payload 的 `inputSource: "background_task"`（runtime-command
+queue 的通知 drain）、`turnHeaderOrigin` 表（background_task → backgroundResult；subagent_message
+落默认 userInput）、transcript-hydration 的 `getConversationModelOnlyTurnTriggerSource`
+（model-only synthetic user 自己开轮）。
+
+- **事件面**：`TurnStarted` 增 `input_source: Option<TurnInputSource>`（现只有 `background_task`）；
+  通知来源标签 `TASK_NOTIFICATION_SOURCE` 升到 kernel-api（lane 与冷投影同表）。
+- **session**：通知 lane 开轮按批次带标记——同伴-only 批不带（Node 表里同伴轮 origin 仍是
+  userInput），其余通知批带。
+- **投影**：`start_turn` 的 origin 三分；冷投影为 task-notification 的 meta 消息开
+  backgroundResult 轮（无用户气泡，assistant 归本轮）。两个新投影单测。
+- **门禁**：`check-dwf-engine.mjs` 65 → **66 字段**（`dwfNoticeRow` 在 escalate 阶段探升级通知轮
+  的轮头；冷面用驱动 `NIBI_DRIVE_DUMP_SNAPSHOT=1` 转储对拍 escalate 会话，raise 通知轮逐字段
+  一致）。
+- **暴露的缺口**（下一片「DWF 的后台通知链」）：sidecar `run/settled` Rust 宿主不通知父会话；
+  escalation 回答缺第二轮通知；通知无结构化 `originMeta`（run 卡关联键）；Node 写的通知记录
+  Rust hydrate 整个丢掉（互认缺口）。

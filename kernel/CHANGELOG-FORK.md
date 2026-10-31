@@ -625,6 +625,31 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
   下一个缺口：run 通知轮的轮头行 Node 是 `origin: "backgroundResult"`（live 也一样），Rust
   现在开成 userInput（冷投影干脆不立轮头）——下一片接。
 
+## 6.21 后台通知轮的轮头面（2026-10-30，路线 C 第十段）
+
+后台通知（`<task-notification>` 信封）开的 model-only 轮在投影里按 `origin: "backgroundResult"`
+呈现（详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.28）：
+
+- **kernel-api**：`KernelEvent::TurnStarted` 增 `input_source`（`TurnInputSource`，只有
+  `background_task` 一档；Node `turnHeaderOrigin` 的表——`background_task` → backgroundResult，
+  同伴消息的 `subagent_message` 落默认 userInput 所以内核不给它标记）。通知来源标签
+  `TASK_NOTIFICATION_SOURCE`（"task-notification"）挪进 kernel-api，会话 lane 与冷投影同表。
+- **session**：通知 lane 开轮时带上标记（同伴-only 的批次不带）；其余轮不带。
+- **protocol-zcode 投影**：`start_turn` 的 origin 三分（workflowLaunch / backgroundResult /
+  userInput）；冷投影认 task-notification 的 meta 消息、自己开 backgroundResult 的轮（其后的
+  assistant 归本轮、无用户气泡）。两个新投影单测（live 通知轮形状 + 冷重建）。
+- **门禁**：`check-dwf-engine.mjs` 65 → **66 字段**（`dwfNoticeRow`：escalate 阶段升级通知轮的
+  轮头，两内核 origin/executionKind/终态一致）。冷面用驱动冷模式转储对拍 escalate 会话：raise
+  通知轮的行两内核逐字段一致。
+- **本轮暴露的通知链缺口**（下一片）：① sidecar 的 `run/settled` Rust 宿主只从进程表摘掉，
+  不给父会话发后台通知（Node 的 run 完成/进展通知是父会话里的 backgroundResult 轮）；②
+  escalation 的**回答**在 Node 还有第二轮 backgroundResult 通知，Rust 只在 raise 时通知；③
+  通知的结构化 `originMeta`（backgroundSource/workId/title，run 卡 → 详情页的关联键，
+  `WorkflowNotices::notify` 现在只有 text）。存储侧还有一处互认缺口：Node 写的通知记录
+  （顶层 `source: "background_task"` + `inputPresentation`）与 Rust 的 meta 记录（`metadata`
+  里的 rustCli 标记）形状不同，Rust hydrate 会把 Node 写的通知整个丢掉（模型上下文也丢）——
+  通知链切片一起对齐。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

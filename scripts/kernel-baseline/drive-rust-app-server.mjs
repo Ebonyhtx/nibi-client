@@ -1175,6 +1175,8 @@ try {
     if (checks.dwfRunStatus !== "completed") {
       throw new Error(`dwf run settled as ${checks.dwfRunStatus}`);
     }
+    // 通知轮探针（origin=backgroundResult 的轮头）等 run/settled → 父会话通知链接上后再加：
+    // Rust 宿主现在只把结算从进程表摘掉，不给父会话发后台通知（Node 会发）——见 CHANGELOG §6.21。
     console.log(`dwf engine: run=${started.result.runId} completed; missing=${checks.dwfMissingCode}`);
   }
 
@@ -1584,6 +1586,13 @@ try {
     );
     const session = created.result?.sessionId;
     if (!session) throw new Error("createSession(dwfEscalate) returned no sessionId");
+    // 订阅这个会话的主题：升级通知轮的轮头探针（origin=backgroundResult）靠它的帧。
+    await send("v4/conversation/subscribe", {
+      topic: `conversation/${session}`,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
     // 父会话先有一轮**真实用户输入**：合成通知不能是会话的唯一输入（assistant 的锚点是最后
     // 一条 `real_user` 消息，两个内核的存储层同一条规则），GUI 里 run 也总从一个有对话的会话起。
     const seeded = REQUESTS.length;
@@ -1692,10 +1701,29 @@ try {
         resolved.payload.qid === raised.payload.qid;
       checks.dwfEscalateJournalAnswer = resolved?.payload.answer ?? null;
     }
+    // 升级通知轮的轮头（Node `turnHeaderOrigin("background_task")`）：escalation 的后台通知在
+    // 父会话开 model-only 轮，轮头 origin=backgroundResult、executionKind=agent。
+    const noticeHeader = () =>
+      [...buildState(`conversation/${session}`).rows].find(
+        (candidate) => candidate.kind === "turnHeader" && candidate.origin === "backgroundResult",
+      );
+    await waitFor(
+      () => (noticeHeader()?.state === "completedSuccess" ? true : undefined),
+      "backgroundResult escalation header",
+      30_000,
+    ).catch(() => {});
+    const notice = noticeHeader();
+    checks.dwfNoticeRow =
+      notice && notice.executionKind === "agent" && notice.state === "completedSuccess"
+        ? "ok"
+        : notice
+          ? `${notice.executionKind}/${notice.state}`
+          : "absent";
     console.log(
       `dwf escalate: run=${checks.dwfEscalateStatus} raised=${checks.dwfEscalateRaised} ` +
         `qid=${checks.dwfEscalateQidPrefix} resolved=${checks.dwfEscalateResolved} ` +
-        `answered=${checks.dwfEscalateAnswered} journal=${checks.dwfEscalateJournalTypes}`,
+        `answered=${checks.dwfEscalateAnswered} journal=${checks.dwfEscalateJournalTypes} ` +
+        `notice=${checks.dwfNoticeRow}`,
     );
 
     // ── run 详情探针（GetWorkflowRun，升级通知里引用的查询兜底）──

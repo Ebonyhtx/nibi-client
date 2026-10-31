@@ -33,6 +33,18 @@ pub enum TurnExecutionKind {
     ControlOnly,
 }
 
+/// 合成输入开的轮的来源（Node `TurnStarted.inputSource`，contracts session.events.ts 的
+/// `SyntheticUserMessageSource` 子集）：投影据它在轮头行派生 `origin`（Node `turnHeaderOrigin`
+/// 的同一张表——`background_task` → `backgroundResult`；真人输入缺席，origin 是 `userInput`）。
+/// 同伴消息的 `subagent_message` 在 Node 的表里落默认 `userInput`，内核不给它这个标记。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TurnInputSource {
+    /// 后台任务通知（`<task-notification>` 信封开的 model-only 轮；shell / 子代理 / 工作流 run
+    /// 的完成与提问通知都走它）。
+    BackgroundTask,
+}
+
 /// 运行中提交的输入怎样投递（工具边界吸收排队消息）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -303,6 +315,10 @@ pub enum KernelEvent {
         /// 的 `workflowLaunch` 字段、`origin: "workflowLaunch"` 都由它驱动。
         #[serde(default, skip_serializing_if = "Option::is_none")]
         workflow_launch: Option<Value>,
+        /// 合成输入的来源（后台通知等）：轮头行的 `origin` 由它派生（Node
+        /// `turnHeaderOrigin(inputSource)`）；缺席是普通用户输入轮。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        input_source: Option<TurnInputSource>,
     },
     TurnFinished {
         turn: TurnId,

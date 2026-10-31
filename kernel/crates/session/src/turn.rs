@@ -11,7 +11,7 @@ use rust_cli_kernel_api::model::QuerySource;
 use rust_cli_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, OrchestrationError, QueryEvent, QueryRequest, QueryStop,
 };
-use rust_cli_kernel_api::session_api::{Ack, KernelEvent, TurnOutcome};
+use rust_cli_kernel_api::session_api::{Ack, KernelEvent, TurnInputSource, TurnOutcome};
 use rust_cli_kernel_api::store::{Fact, StoreError};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -151,11 +151,19 @@ impl Actor {
             self.ack_notice(notice).await;
         }
         let turn = self.deps.ids.turn();
+        // 通知轮的轮头 origin（Node `turnHeaderOrigin`）：后台通知开的是 backgroundResult；
+        // 同伴消息（subagent_message）在 Node 的表里落默认 userInput，不带标记。
+        let input_source = if notices.iter().all(|notice| matches!(notice, Waiting::Peer(_))) {
+            None
+        } else {
+            Some(TurnInputSource::BackgroundTask)
+        };
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
             command: None,
             execution_kind: None,
             workflow_launch: None,
+            input_source,
         });
         for message in &users {
             self.log.append(KernelEvent::MessageDone {

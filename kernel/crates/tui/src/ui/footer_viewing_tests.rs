@@ -76,6 +76,7 @@ fn main_app(lang: Lang) -> App {
         KernelEvent::TurnStarted {
             execution_kind: None,
             workflow_launch: None,
+            input_source: None,
             turn: rust_cli_kernel_api::ids::TurnId::new("turn_1"),
             command: None,
         },
