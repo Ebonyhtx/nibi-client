@@ -58,6 +58,8 @@ impl RunNoticeFacts {
 }
 
 const TASK_NOTIFICATION_MAX_CHARS: usize = 120_000;
+/// 留白通知里 prompt 的界（Node `WORKFLOW_HOLE_PROMPT_MAX_CHARS`；引擎侧已截过一遍，宿主照尺复量）。
+const HOLE_PROMPT_MAX_CHARS: usize = 4_000;
 /// `<reports>` 一节的字符预算；单条的界让一条超长产物吃不掉整节。
 const REPORTS_PREVIEW_MAX_CHARS: usize = 8_000;
 const REPORT_ITEM_MAX_CHARS: usize = 2_000;
@@ -333,6 +335,128 @@ fn workflow_notification_meta(
         }
     }
     Value::Object(meta)
+}
+
+/// 留白到达的通知（Node `formatWorkflowHoleNotification` 逐字）+ 结构化 manifest（kind:"hole"）。
+/// `hole` 是 sidecar `run/event` 的载荷（事件原文 + 编译期事实 + reachedAt）；`name`/`script_path`
+/// 是 run 展示元数据（journal 读出，缺席按 Node 的兜底链落 runId / 退「GetWorkflowRun 读脚本」句）。
+pub(crate) fn compose_hole_reached_notice(
+    run_id: &str,
+    hole: &Value,
+    name: Option<&str>,
+    script_path: Option<&str>,
+) -> Option<(String, Value)> {
+    let instance = &hole["instance"];
+    let site_id = instance["siteId"].as_str()?;
+    let ordinal = instance["ordinal"].as_u64()?;
+    let hole_name = hole["name"].as_str()?;
+    let hole_type = hole["type"].as_str().unwrap_or("unknown");
+    let prompt = hole["prompt"]
+        .as_str()
+        .filter(|prompt| !prompt.is_empty())
+        .map(|prompt| clip(prompt, HOLE_PROMPT_MAX_CHARS));
+    let line = hole["line"].as_u64();
+    let before = hole["before"].as_str();
+    let after = hole["after"].as_str();
+    let run_label = name.unwrap_or(run_id);
+    let mut lines = vec![
+        "[SYSTEM NOTIFICATION - NOT USER INPUT]".to_owned(),
+        "This is an automated workflow event, NOT a message from the user.".to_owned(),
+        "Do NOT interpret this as user acknowledgement, confirmation, or response to any pending question."
+            .to_owned(),
+        String::new(),
+        "<workflow-hole>".to_owned(),
+        format!("  <run-id>{}</run-id>", escape_xml(run_id)),
+        format!("  <run>{}</run>", escape_xml(run_label)),
+        format!("  <hole-id>{}</hole-id>", escape_xml(site_id)),
+        format!("  <name>{}</name>", escape_xml(hole_name)),
+        format!("  <type>{}</type>", escape_xml(hole_type)),
+    ];
+    if let Some(prompt) = &prompt {
+        lines.push(format!("  <prompt>{}</prompt>", escape_xml(prompt)));
+    }
+    if let Some(path) = script_path {
+        lines.push(format!("  <draft>{}</draft>", escape_xml(path)));
+    }
+    if let Some(line) = line {
+        lines.push(format!("  <line>{line}</line>"));
+    }
+    if let Some(before) = before {
+        lines.push(format!("  <before>{}</before>", escape_xml(before)));
+    }
+    if let Some(after) = after {
+        lines.push(format!("  <after>{}</after>", escape_xml(after)));
+    }
+    let where_clause = match (before, after) {
+        (Some(before), Some(after)) => format!(" between phases \"{before}\" and \"{after}\""),
+        (Some(before), None) => format!(" after phase \"{before}\""),
+        (None, Some(after)) => format!(" before phase \"{after}\""),
+        (None, None) => String::new(),
+    };
+    let draft = match script_path {
+        Some(path) => format!(
+            "Read the draft at {path}{} for the context",
+            line.map(|line| format!(" (the hole is on line {line})"))
+                .unwrap_or_default()
+        ),
+        None => "Read the run's script with GetWorkflowRun for the context".to_owned(),
+    };
+    lines.push("</workflow-hole>".to_owned());
+    lines.push(String::new());
+    lines.push(format!(
+        "Workflow run {run_label} ({run_id}) reached the hole \"{hole_name}\" ({site_id}){where_clause} and is waiting for you to write its body."
+    ));
+    lines.push(format!(
+        "Next step: {draft}, write the statements of the hole's function, and call \
+FillWorkflowHole with run_id=\"{run_id}\" and hole_id=\"{site_id}\" and the body as `script`."
+    ));
+    lines.push(format!(
+        "The body is compiled where the hole stands and sees every binding declared before it; it \
+must return a value of type `{hole_type}` — or, when the next step is not known yet, do one step \
+and end with a new tail hole of the same type named for the next step (`return await \
+hole<{hole_type}>(\"…\", …)`); the last fill returns. Write only the statements — not the hole \
+call, not an arrow, not the script around it."
+    ));
+    lines.push(
+        "Only this branch of the script is parked — every other subagent and the rest of the \
+control flow keep going. So do not drop what you are doing, but do not leave it unfilled either: \
+nothing times out on its behalf."
+            .to_owned(),
+    );
+    lines.push(
+        "If this notification is ever lost, GetWorkflowRun lists the holes this run is still \
+waiting at."
+            .to_owned(),
+    );
+    let text = truncate(lines.join("\n"));
+    // manifest（Node notifyHoleReached 的 workflowNotification）：GUI 的留白行按 run 投影的
+    // `holes` 翻三种活状态；prompt 同一把尺。字段次序跟 Node 的对象字面量（kind / siteId /
+    // ordinal / name / type / ...facts / reachedAt）。
+    let mut entry = serde_json::Map::new();
+    entry.insert("kind".into(), json!("hole"));
+    entry.insert("siteId".into(), json!(site_id));
+    entry.insert("ordinal".into(), json!(ordinal));
+    entry.insert("name".into(), json!(hole_name));
+    entry.insert("type".into(), json!(hole_type));
+    if let Some(prompt) = &prompt {
+        entry.insert("prompt".into(), json!(prompt));
+    }
+    if let Some(path) = script_path {
+        entry.insert("draftPath".into(), json!(path));
+    }
+    if let Some(line) = line {
+        entry.insert("line".into(), json!(line));
+    }
+    if let Some(before) = before {
+        entry.insert("before".into(), json!(before));
+    }
+    if let Some(after) = after {
+        entry.insert("after".into(), json!(after));
+    }
+    if let Some(reached_at) = hole["reachedAt"].as_u64() {
+        entry.insert("reachedAt".into(), json!(reached_at));
+    }
+    Some((text, Value::Object(entry)))
 }
 
 /// `Workflow "{subject}" …` 的一句话摘要（Node `buildWorkflowTaskSummary`）。

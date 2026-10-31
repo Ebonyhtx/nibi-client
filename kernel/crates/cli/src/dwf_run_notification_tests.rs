@@ -236,3 +236,68 @@ fn the_manifest_bounds_and_kind_filter_follow_the_shared_schema() {
     assert_eq!(manifest["artifactsTruncated"], json!(true));
     assert_eq!(manifest["durationMs"], json!(12));
 }
+
+/// 留白到达的通知：信封逐字 + manifest（kind:"hole"）与 Node 的对象字面量同形。
+#[test]
+fn the_hole_notification_reads_as_the_full_envelope_with_a_hole_manifest() {
+    let hole = json!({
+        "instance": {"siteId": "hole#abc123", "ordinal": 1},
+        "name": "fill the verdict",
+        "prompt": "What should I return for the probe?",
+        "type": "Plan",
+        "line": 5,
+        "reachedAt": 1793440930389u64,
+    });
+    let (text, manifest) = compose_hole_reached_notice(
+        "dwfrun-1",
+        &hole,
+        Some("holeprobe"),
+        Some("D:/repo/.nibi/workflows/holeprobe.dwf.ts"),
+    )
+    .expect("composes");
+    assert!(text.contains("<workflow-hole>"), "{text}");
+    assert!(text.contains("  <run>holeprobe</run>"), "{text}");
+    assert!(text.contains("  <hole-id>hole#abc123</hole-id>"), "{text}");
+    assert!(text.contains("  <type>Plan</type>"), "{text}");
+    assert!(text.contains("  <prompt>What should I return for the probe?</prompt>"), "{text}");
+    assert!(text.contains("  <draft>D:/repo/.nibi/workflows/holeprobe.dwf.ts</draft>"), "{text}");
+    assert!(text.contains("  <line>5</line>"), "{text}");
+    assert!(
+        text.contains("Workflow run holeprobe (dwfrun-1) reached the hole \"fill the verdict\" (hole#abc123) and is waiting for you to write its body."),
+        "{text}"
+    );
+    assert!(
+        text.contains("call FillWorkflowHole with run_id=\"dwfrun-1\" and hole_id=\"hole#abc123\" and the body as `script`."),
+        "{text}"
+    );
+    assert_eq!(
+        manifest,
+        json!({
+            "kind": "hole",
+            "siteId": "hole#abc123",
+            "ordinal": 1,
+            "name": "fill the verdict",
+            "type": "Plan",
+            "prompt": "What should I return for the probe?",
+            "draftPath": "D:/repo/.nibi/workflows/holeprobe.dwf.ts",
+            "line": 5,
+            "reachedAt": 1793440930389u64,
+        }),
+    );
+}
+
+/// 无脚本文件的 run：draft 句退回 GetWorkflowRun；type 缺席占位 unknown。
+#[test]
+fn the_hole_notification_falls_back_without_a_script_file() {
+    let hole = json!({
+        "instance": {"siteId": "hole#x", "ordinal": 2},
+        "name": "next",
+    });
+    let (text, manifest) =
+        compose_hole_reached_notice("dwfrun-2", &hole, None, None).expect("composes");
+    assert!(text.contains("Next step: Read the run's script with GetWorkflowRun for the context"), "{text}");
+    assert!(text.contains("  <type>unknown</type>"), "{text}");
+    assert_eq!(manifest["type"], json!("unknown"));
+    assert!(manifest.get("draftPath").is_none());
+    assert!(manifest.get("line").is_none());
+}

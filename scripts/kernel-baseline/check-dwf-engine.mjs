@@ -70,6 +70,12 @@ const REQUIRED = [
   // escalation manifest 的判别分支：升级通知记录的 originMeta.workflowNotification
   // （kind/qid/actor/question 与信封同源，qid uuid 段归一）——Node notifyEscalationRaised 同形。
   "dwfEscalateMeta",
+  // 留白到达的通知链：`<workflow-hole>` 信封的文本指纹（uuid/墙钟/工作区路径归一）与
+  // originMeta 的 kind:"hole" manifest（Node notifyHoleReached 同形）；FillWorkflowHole 工具面
+  // 之前 run 以取消收口。
+  "dwfHoleNotice",
+  "dwfHoleMeta",
+  "dwfHoleCancel",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",
@@ -105,7 +111,7 @@ function run(kernel) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(
       process.execPath,
-      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate"],
+      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate,dwfHole"],
       { cwd: repo, stdio: ["ignore", "pipe", "pipe"] },
     );
     let stdout = "";

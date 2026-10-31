@@ -716,6 +716,50 @@ where
                 }
             }
             "run/event" => {
+                let params = &message["params"];
+                if params["type"] == "hole-reached" {
+                    // 留白到达的通知（Node notifyHoleReached 同一条后台任务路）：sidecar 的
+                    // run/event 带完整载荷（事件原文 + 编译期事实 + run 展示元数据），宿主组
+                    // `<workflow-hole>` 信封与 kind:"hole" 的 manifest 投给父会话。run 还在飞
+                    // （停驻在留白上），进程表里有它的父会话。
+                    if let Some(run) = shared
+                        .runs
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .get(params["runId"].as_str().unwrap_or_default())
+                        .cloned()
+                        && let Some((text, manifest)) =
+                            crate::dwf_run_notification::compose_hole_reached_notice(
+                                params["runId"].as_str().unwrap_or_default(),
+                                &params["hole"],
+                                params["name"].as_str(),
+                                params["scriptPath"].as_str(),
+                            )
+                        {
+                            let origin_meta = serde_json::json!({
+                                "backgroundSource": "workflow",
+                                "title": params["name"]
+                                    .as_str()
+                                    .unwrap_or(params["runId"].as_str().unwrap_or_default()),
+                                "workId": params["runId"],
+                                "workflowNotification": manifest,
+                            });
+                            let kernel = shared
+                                .kernel
+                                .lock()
+                                .unwrap_or_else(PoisonError::into_inner)
+                                .as_ref()
+                                .and_then(Weak::upgrade);
+                            match kernel.as_ref().and_then(|kernel| kernel.workflow_notices()) {
+                                Some(notices) => {
+                                    notices.notify_with(&run.parent, text, Some(origin_meta))
+                                }
+                                None => {
+                                    tracing::warn!(event = "dwf.hole.no_notices", run = %params["runId"])
+                                }
+                            }
+                        }
+                }
                 tracing::debug!(event = "dwf.run.event", payload = %message["params"]);
             }
             "run/settled" => {

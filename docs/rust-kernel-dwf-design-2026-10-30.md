@@ -286,6 +286,9 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        第十三段**：`UserOrigin::Meta` 携带、`notify_with` 投递、记录/轮头行两级落、冷重建；
        run 终态 manifest 全套载荷，指纹门禁逐字节一致。~~escalation 的 manifest 判别分支~~
        （**已接，2026-10-30 第十四段**：base 三键 + kind/qid/actor/question/context/askedAt，
-       展示名走 run 行标签链，`check-dwf-engine` 68 字段；stall/hole/blocked 的通知投递链
-       在 Rust 还没有——journal 事件有、通知不发，与 `workflows/runs` 中枢方法一起评估））；
+       展示名走 run 行标签链，`check-dwf-engine` 68 字段）；~~hole 的通知投递链~~（**已接，
+       2026-10-30 第十五段**：sidecar 完整载荷 + workflow-drafts 工作副本 + 宿主
+       `<workflow-hole>` 信封与 kind:"hole" manifest，`check-dwf-engine` 71 字段，双内核指纹
+       逐字节一致；FillWorkflowHole 工具面是下一片。stall/blocked 的投递链仍缺——与
+       `workflows/runs` 中枢方法一起评估））；
        `workflows/runs` 中枢方法仍待做）；

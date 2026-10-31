@@ -22,6 +22,8 @@
  * 不变式：读循环绝不 `await` 一个 run——run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
  */
 import { availableParallelism } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createDwfJournalStore } from "@nibi/adapters/storage";
@@ -30,8 +32,11 @@ import {
   analyzeWorkflowScript,
   buildAskSpecs,
   collectDiagnostics,
+  collectPhaseNames,
   collectSites,
   createWorkflowProgram,
+  interpret,
+  projectControlFlow,
   synthesizeAskSchemas,
   validate,
   type AskMessage,
@@ -60,11 +65,93 @@ export function isDwfEngineInvocation(argv: readonly string[]): boolean {
 /** 节点校验器适配到引擎的 `ValidateFn` 契约。 */
 const validateFn: ValidateFn = (schema, value) => validate(schema as JsonSchema, value);
 
-function askSpecsFor(scriptText: string): Map<string, AskSpec> {
+function askSpecsFor(scriptText: string): {
+  askSpecs: Map<string, AskSpec>;
+  holes: { siteId: string; name: string; type: string; line: number; open: boolean }[];
+  phases: string[];
+  openHoleIndexes: number[];
+} {
+  // run 内通知要用的编译期事实与 askSpecs 一次编译同出（bootstrap 的 compileOnce 同一条链：
+  // 站点表 → 留白事实表；控制流投影 → 阶段表）。留白事实表从站点表抄字段而不是持表本身——
+  // 表挂着整棵 AST，活到 run 结算会拖住内存。
   const workflow = createWorkflowProgram(scriptText);
   const table = collectSites(workflow);
   const { schemas } = synthesizeAskSchemas(workflow, table);
-  return buildAskSpecs(table, schemas);
+  const core = interpret(workflow, table);
+  const flowNames = collectPhaseNames(projectControlFlow(core));
+  return {
+    askSpecs: buildAskSpecs(table, schemas),
+    holes: table.holes.map((site) => ({
+      siteId: site.id,
+      name: site.name ?? site.id,
+      type: site.typeText ?? "unknown",
+      line: site.loc.line,
+      open: site.body === undefined,
+    })),
+    phases: flowNames.phaseNames,
+    openHoleIndexes: flowNames.holes,
+  };
+}
+
+const WORKFLOW_DRAFTS_DIR = ".nibi/workflow-drafts";
+const SAVED_WORKFLOW_FILE_EXTENSION = ".dwf.ts";
+const WORKFLOW_DRAFT_SLUG_DROP_PATTERN = /[^\p{L}\p{N}_.-]/gu;
+const WORKFLOW_DRAFT_WHITESPACE_PATTERN = /\s+/gu;
+const WORKFLOW_DRAFT_MAX_SLUG_CHARS = 64;
+const WORKFLOW_DRAFT_FALLBACK_SLUG = "workflow";
+const WORKFLOW_DRAFT_MAX_ATTEMPTS = 1_000;
+
+/**
+ * 名字 → 文件名主干（Node `workflowDraftSlug` 逐字）：空白连成 `-`，字母表（Unicode 字母 /
+ * 数字 / `_ . -`）之外的一概丢掉，按码点截到上限；什么都不剩、或只剩点时用兜底词。
+ */
+function workflowDraftSlug(name: string): string {
+  const reduced = Array.from(
+    name
+      .trim()
+      .replace(WORKFLOW_DRAFT_WHITESPACE_PATTERN, "-")
+      .replace(WORKFLOW_DRAFT_SLUG_DROP_PATTERN, ""),
+  )
+    .slice(0, WORKFLOW_DRAFT_MAX_SLUG_CHARS)
+    .join("")
+    .replace(/^[.-]+|[.-]+$/gu, "");
+  if (reduced === "" || /^\.+$/u.test(reduced)) return WORKFLOW_DRAFT_FALLBACK_SLUG;
+  return reduced;
+}
+
+/**
+ * 工作副本：`<cwd>/.nibi/workflow-drafts/<slug>.dwf.ts`，逐字节（saved 来源连元数据块一起）。
+ * 同名冲突按 `-2`、`-3`… 顺延，`wx` 独占创建（并发提交不落同一个文件）；目录自带一份
+ * `.gitignore: *`（缺席时写一次）。尽力而为：写不进去返回 undefined，调用方退回无草稿文案。
+ */
+async function writeWorkflowDraft(input: {
+  cwd: string;
+  name: string;
+  source: string;
+}): Promise<{ path: string } | undefined> {
+  try {
+    const dir = path.join(input.cwd, WORKFLOW_DRAFTS_DIR);
+    await mkdir(dir, { recursive: true });
+    try {
+      await writeFile(path.join(dir, ".gitignore"), "*\n", { encoding: "utf8", flag: "wx" });
+    } catch {
+      // 用户改过就不动它（EEXIST 同义）。
+    }
+    const slug = workflowDraftSlug(input.name);
+    for (let attempt = 1; attempt <= WORKFLOW_DRAFT_MAX_ATTEMPTS; attempt += 1) {
+      const fileName = `${attempt === 1 ? slug : `${slug}-${attempt}`}${SAVED_WORKFLOW_FILE_EXTENSION}`;
+      const filePath = path.join(dir, fileName);
+      try {
+        await writeFile(filePath, input.source, { encoding: "utf8", flag: "wx" });
+        return { path: filePath };
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      }
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** 引擎的默认并发 D（docs/dynamic-workflow/concurrency.md「Two bounds on a run」）：
@@ -252,6 +339,8 @@ function launchRun(
     toolCallId?: string;
     /** run 的展示名（saved 名字）；落 dwf_run.name，设置轮的「已修订」记录按它题名。 */
     name?: string;
+    /** saved 工作流的脚本文件（绝对路径）：留白通知的 draft 来源；内联脚本缺席。 */
+    savedPath?: string;
     /** 脚本点名的模型绑定表（宿主目录解出来的规范串）：落 run-launched，actor 的选型按它。 */
     modelBindings?: Record<string, string>;
   },
@@ -265,6 +354,9 @@ function launchRun(
   // workflowNotificationDurationMs 同源——跨 resume 的累计 activeDurationMs 由 run 服务
   // 维护，sidecar 路径按本世代算）。
   const startedAtMs = Date.now();
+  // 留白通知的编译期事实（留白表 + 阶段表）与 askSpecs 一次编译同出；run 展示名与脚本落点
+  // 一起进 driver——hole-reached 的完整载荷从这里组（Node toProgressPayload 的同源派生）。
+  const compiled = askSpecsFor(params.scriptText);
   const driver = new RemoteDriver(
     params.runId,
     journal,
@@ -272,6 +364,7 @@ function launchRun(
     notify,
     params.subagentModel,
     params.modelBindings,
+    { holes: compiled.holes, phases: compiled.phases },
   );
   const abort = new AbortController();
   const maxConcurrency = params.caps.maxConcurrency ?? DEFAULT_CONCURRENCY;
@@ -285,17 +378,16 @@ function launchRun(
     ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
   };
   runs.set(params.runId, entry);
-  // 锚点与选型同车：只有修订路径给得出 toolCallId / subagentModel，全新 submit 保持缺席。
-  const launch =
-    params.toolCallId === undefined &&
-    params.subagentModel === undefined &&
-    params.modelBindings === undefined
-      ? undefined
-      : {
-          inputId: params.toolCallId ?? params.runId,
-          ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
-          ...(params.modelBindings === undefined ? {} : { modelBindings: params.modelBindings }),
-        };
+  // 锚点与选型同车；阶段表、开放留白下标与脚本落点恒在场（Node 的 run-launched 同三件：
+  // resume 的冷读面与留白通知从事件头读回）。inputId 缺席锚点时落 runId——引擎只记录不读。
+  const launch = {
+    inputId: params.toolCallId ?? params.runId,
+    ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
+    ...(params.modelBindings === undefined ? {} : { modelBindings: params.modelBindings }),
+    ...(params.savedPath === undefined ? {} : { scriptPath: params.savedPath }),
+    ...(compiled.phases.length === 0 ? {} : { phaseNames: compiled.phases }),
+    ...(compiled.openHoleIndexes.length === 0 ? {} : { holes: compiled.openHoleIndexes }),
+  };
   const settlement = runWorkflowScript({
     scriptText: params.scriptText,
     cwd: params.cwd,
@@ -304,7 +396,7 @@ function launchRun(
     args: params.args,
     caps: { maxConcurrency },
     ...(params.name === undefined ? {} : { name: params.name }),
-    askSpecs: askSpecsFor(params.scriptText),
+    askSpecs: compiled.askSpecs,
     validate: validateFn,
     ...(launch === undefined ? {} : { launch }),
     ...(params.resumedFrom === undefined ? {} : { resumedFrom: params.resumedFrom }),
@@ -445,6 +537,8 @@ class RemoteDriver {
   private readonly subagentModel: string | undefined;
   /** 脚本点名的绑定表（规范串）：persona 点名的模型按它查（launch.md「Models the script names」）。 */
   private readonly modelBindings: Record<string, string> | undefined;
+  /** 留白通知的编译期事实与 run 展示元数据（hole-reached 的完整载荷从这里组）。 */
+  private readonly facts: RunFacts;
 
   constructor(
     runId: string,
@@ -453,6 +547,7 @@ class RemoteDriver {
     notify: (method: string, params: unknown) => void,
     subagentModel?: string,
     modelBindings?: Record<string, string>,
+    facts?: RunFacts,
   ) {
     this.runId = runId;
     this.journal = journal;
@@ -460,6 +555,7 @@ class RemoteDriver {
     this.notify = notify;
     this.subagentModel = subagentModel;
     this.modelBindings = modelBindings;
+    this.facts = facts ?? { holes: [], phases: [] };
   }
 
   attach(sink: WorkflowSink): void {
@@ -530,8 +626,53 @@ class RemoteDriver {
   }
 
   emit(event: RunEvent): void {
+    if (event.type === "hole-reached") {
+      // 留白到达的完整载荷（Node toProgressPayload + notifyHoleReached 的快照合并同构）：
+      // 事件原文（instance/name/prompt）+ 编译期事实（type/line/before/after）+ 到达时刻
+      //（journal 同步片里的墙钟）+ run 展示元数据。宿主据它组 `<workflow-hole>` 通知。
+      const hole = this.facts.holes.find((candidate) => candidate.siteId === event.instance.siteId);
+      const index = hole === undefined ? -1 : this.facts.phases.indexOf(event.name);
+      const before = index > 0 ? this.facts.phases[index - 1] : undefined;
+      const after =
+        index >= 0 && index + 1 < this.facts.phases.length
+          ? this.facts.phases[index + 1]
+          : undefined;
+      // 展示名与脚本落点从 journal 读（三条入口同构）：名字在 run 行上；脚本落点在
+      // run-launched 的事件头（本世或建 run 那一世写的都在）。
+      const record = this.journal.getRun(this.runId);
+      const launched = this.journal
+        .listEvents(this.runId, { types: ["run-launched"], reportItems: { limit: 0 } })
+        .at(-1)?.event as { scriptPath?: unknown } | undefined;
+      const scriptPath =
+        typeof launched?.scriptPath === "string" && launched.scriptPath.length > 0
+          ? launched.scriptPath
+          : undefined;
+      this.notify("run/event", {
+        runId: this.runId,
+        type: event.type,
+        ...(record?.name === undefined ? {} : { name: record.name }),
+        ...(scriptPath === undefined ? {} : { scriptPath }),
+        hole: {
+          instance: event.instance,
+          name: event.name,
+          ...(event.prompt === undefined ? {} : { prompt: event.prompt }),
+          ...(hole === undefined ? {} : { type: hole.type }),
+          ...(hole === undefined ? {} : { line: hole.line }),
+          ...(before === undefined ? {} : { before }),
+          ...(after === undefined ? {} : { after }),
+          reachedAt: Date.now(),
+        },
+      });
+      return;
+    }
     this.notify("run/event", { runId: this.runId, type: event.type });
   }
+}
+
+/** driver 随身带的 run 事实（留白通知的载荷来源；askSpecs 同一次编译产出）。 */
+interface RunFacts {
+  holes: { siteId: string; name: string; type: string; line: number; open: boolean }[];
+  phases: string[];
 }
 
 /** 引擎交给 driver 的回报面（`WorkflowReportSink` 中这一层用到的三个）。 */
@@ -577,6 +718,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       script: string;
       args?: Record<string, unknown>;
     } | undefined;
+    // 工作副本的路径（saved 路径才有）；内联脚本没有——run 的 scriptPath 缺席，通知退回
+    // GetWorkflowRun 的老话。
+    let draftPath: string | undefined;
     if (params.savedName !== undefined) {
       // JSON 里缺席是 undefined、显式缺省是 null；scope 的 null 与 undefined 同义。
       const scope = params.scope ?? undefined;
@@ -608,9 +752,20 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       }
       scriptText = resolved.script;
       args = validated.args;
+      // 工作副本（Node `writeWorkflowDraft` 同一条规矩）：中枢直接启动把 saved 定义逐字节
+      // 拷进 `.nibi/workflow-drafts/`——它是 run 的可编辑脚本文件（留白通知的 draft、补全
+      // 落盘的家）。写不成就没有 scriptPath——run 照常起，通知退回 GetWorkflowRun 的老话。
+      const draft = await writeWorkflowDraft({
+        cwd: params.cwd,
+        name: resolved.name,
+        source: resolved.script,
+      });
+      draftPath = draft?.path;
       launch = {
         name: resolved.name,
         scope: resolved.scope,
+        // 启动轮 meta 的 path 是 saved 定义的落点（launch.md）；run 的可编辑脚本文件
+        // （workflow-drafts 工作副本）另走 launchRun 的 savedPath，两者不同物。
         path: resolved.path,
         ...(resolved.meta.description === undefined
           ? {}
@@ -673,6 +828,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         caps: params.caps ?? { maxConcurrency: DEFAULT_CONCURRENCY },
         // run 的展示名 = saved 名字（Node 的启动路径同一条读法）；设置轮与侧板题名按它。
         ...(params.savedName === undefined ? {} : { name: params.savedName }),
+        savedPath: draftPath,
         ...(modelBindings === undefined ? {} : { modelBindings }),
       },
       request,

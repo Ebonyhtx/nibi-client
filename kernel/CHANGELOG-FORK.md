@@ -746,6 +746,34 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
   待接——stall/hole 的通知在 Rust 侧还没有投递链（journal 事件有、通知不发），与
   `workflows/runs` 中枢方法一起评估。
 
+## 6.26 留白到达的通知链（2026-10-30，路线 C 第十五段）
+
+§6.25 留下的三类 run 中通知第一个接上——也是 FillWorkflowHole 工具面的前置（详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.33）：
+
+- **sidecar**：`run/event` 的 hole-reached 从只报类型升级为**完整载荷**（Node
+  `toProgressPayload` + `notifyHoleReached` 的快照合并同构）——事件原文（instance/name/prompt）
+  + 编译期事实（type/line 来自站点表、before/after 来自控制流投影的阶段表，与 askSpecs 一次
+  编译同出）+ reachedAt + run 展示元数据（名字在 run 行、脚本落点在 run-launched 的事件头，
+  三条入口同构）。launch 对象恒在场：inputId（锚点缺席落 runId）、phaseNames、openHoleIndexes、
+  scriptPath 恒写（Node 的 run-launched 同三件，resume 的冷读面从事件头读回）。
+- **工作副本**：中枢直接启动把 saved 定义逐字节拷进 `.nibi/workflow-drafts/<slug>.dwf.ts`
+  （Node `writeWorkflowDraft` 同一条规矩：slug 规则、`-2/-3` 顺延、`wx` 独占、目录自带
+  `.gitignore: *`、尽力而为）——它是 run 的可编辑脚本文件；**启动轮 meta 的 path 仍是 saved
+  定义的落点**（两者不同物，修掉一处真分歧：工作副本曾顶替了 meta 的 path）。
+- **宿主**：`run/event` 的 hole-reached 组 `<workflow-hole>` 信封（Node
+  `formatWorkflowHoleNotification` 逐字：banner、信封字段、where 从句三态、draft 句两态、
+  FillWorkflowHole 指引与留白体写作规则）+ `kind: "hole"` 的 manifest（siteId/ordinal/name/
+  type/prompt/draftPath/line/before/after/reachedAt）投给父会话（run 停驻在留白上，进程表有
+  父会话）。15 个通知单测。
+- **门禁**：`check-dwf-engine.mjs` 68 → **71 字段**——新探针阶段 `dwfHole`（起一个停在留白上的
+  run → 收 `<workflow-hole>` 通知 → 取消收口；FillWorkflowHole 工具面之前 run 以取消结束），
+  `dwfHoleNotice`（文本指纹，uuid/墙钟/工作区路径归一）与 `dwfHoleMeta`（originMeta 指纹）两
+  内核 **1610/2896616398**、**333/3564330292** 逐字节一致；`dwfHoleCancel` accepted。顺手修两
+  处探针问题：hole 的类型实参必须是 facade 可见的类型（`Plan` 不可见 → `string`，2304）；探针
+  驱动里 Python 写入的 `
+` 会打断正则字面量（老坑）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

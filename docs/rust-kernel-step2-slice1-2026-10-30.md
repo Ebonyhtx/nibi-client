@@ -667,3 +667,18 @@ part 两级 `metadata.originMeta`）、`buildTurnHeaderRow`（轮头行同字段
   runId vs registry.description 的真分歧。
 - **暴露的投递缺口**：stall / hole / blocked 三类 run 中通知在 Rust 还没有投递链（journal 事件
   有、通知不发）——与 `workflows/runs` 中枢方法一起评估。
+
+## 6.33 第三十四步：留白到达的通知链（2026-10-30）
+
+§6.25 的三类 run 中通知第一个接上（详见 CHANGELOG-FORK §6.26）。判据锚点：Node
+`notifyHoleReached`（originMeta 组装 + 快照合并的兜底链）、`formatWorkflowHoleNotification`
+（信封逐字）、`writeWorkflowDraft`/`workflowDraftSlug`（工作副本）、`toProgressPayload` 的
+withHoleFacts（载荷派生）。
+
+- **sidecar**：askSpecs 的一次编译扩出留白事实表（站点表）与阶段表（控制流投影）；
+  `run/event` 的 hole-reached 带完整载荷；launch 恒在场（scriptPath/phaseNames/holes）；
+  中枢启动铸 workflow-drafts 工作副本（可编辑脚本文件）。
+- **宿主**：`compose_hole_reached_notice`（信封 + manifest）经 notify_with 投父会话。
+- **门禁**：68 → **71 字段**（`dwfHole` 探针阶段 + 两个指纹字段，双内核逐字节一致）。
+- **修掉的分歧**：工作副本曾顶替启动轮 meta 的 path（Node：meta 的 path 是 saved 定义、
+  run 的 scriptPath 是工作副本——两个不同物）。

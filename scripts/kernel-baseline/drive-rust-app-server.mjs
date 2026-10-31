@@ -1966,6 +1966,133 @@ try {
 
   // 分享导入的丢弃（NIBI discardSharedContext）：存储是 Node 写的 session_entry
   // （type = v4/shared_context_import）。这里直接往会话库里插一条 pending 导入（Node 的导入
+  // 留白到达的通知链（launch.md「Holes」）：起一个停在留白上的 run → 父会话收到
+  // `<workflow-hole>` 的后台通知（文本指纹 + originMeta 的 kind:"hole" manifest）→ 取消。
+  // FillWorkflowHole 的工具面是下一片；这里只证投递链。
+  if (phases.includes("dwfHole")) {
+    mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "workflows", "holeprobe.dwf.ts"),
+      [
+        "/* zcode-workflow",
+        "description: hole probe",
+        "*/",
+        'return await hole<string>("fill the verdict", "What should I return for the probe?");',
+      ].join(String.fromCharCode(10)) + String.fromCharCode(10),
+    );
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000e1",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: { workspaceId: workspace },
+        issuedAt: Date.now(),
+      }),
+      "createSession(dwfHole)",
+    );
+    const session = created.result?.sessionId;
+    if (!session) throw new Error("createSession(dwfHole) returned no sessionId");
+    // 父会话先有一轮真实用户输入（通知轮的 assistant 锚点规则，与 escalate 探针同一条）。
+    const seeded = REQUESTS.length;
+    await simpleCommand("0197d3f0-0000-7000-8000-0000000000e2", "sendText", { text: "hello hole probe" }, session);
+    for (let attempt = 0; attempt < 800 && REQUESTS.length === seeded; attempt += 1) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    await new Promise((r) => setTimeout(r, 1_500));
+    await send("v4/conversation/subscribe", {
+      topic: `conversation/${session}`,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    let started = null;
+    for (let attempt = 0; attempt < 1_200; attempt += 1) {
+      started = await simpleCommand(
+        "0197d3f0-0000-7000-8000-0000000000e0",
+        "startSavedWorkflow",
+        { name: "holeprobe" },
+        session,
+      );
+      if (started.status === "accepted") break;
+      if (!String(started.reasonCode ?? "").endsWith(".session_busy")) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (started?.status !== "accepted" || !started.result?.runId) {
+      throw new Error(`startSavedWorkflow(holeprobe) ${started?.status}/${started?.reasonCode}`);
+    }
+    const runId = started.result.runId;
+    const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
+    // 通知记录（文本 + 记录级 originMeta）：指纹归一（uuid/墙钟/工作区路径遮掉）。
+    const holeNoticeOf = () => {
+      if (!existsSync(dbPath)) return null;
+      const db = new DatabaseSync(dbPath);
+      const row = db
+        .prepare(
+          "select m.data as info, p.data as part from part p join message m on m.id = p.message_id " +
+            "where m.session_id = ? and json_extract(m.data,'$.metadata.source') in ('task-notification','background_task') " +
+            "order by p.rowid desc limit 1",
+        )
+        .get(session);
+      db.close();
+      if (!row) return null;
+      const info = JSON.parse(row.info);
+      const part = JSON.parse(row.part);
+      if (!String(part.text ?? "").includes("<workflow-hole>")) return null;
+      return { text: part.text, originMeta: info.metadata?.originMeta ?? null };
+    };
+    await waitFor(() => (holeNoticeOf() ? true : undefined), "workflow-hole notification", 60_000).catch(() => {});
+    checks.dwfHoleNotice = (() => {
+      const notice = holeNoticeOf();
+      if (!notice) return "absent";
+      const normalized = (notice.text ?? "")
+        .replace(/<\/?system-reminder>\n?/g, "")
+        .replaceAll(workspace, "<ws>")
+        .replace(/(dwfrun|launch|resume)-[0-9a-f-]+/g, "$1-X")
+        .replace(/reachedAt":\d+/g, 'reachedAt":"D"')
+        .trim();
+      let hash = 0;
+      for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
+      return `${normalized.length}/${hash >>> 0}`;
+    })();
+    checks.dwfHoleMeta = (() => {
+      const notice = holeNoticeOf();
+      if (!notice) return "absent";
+      const meta = notice.originMeta ?? {};
+      const wf = meta.workflowNotification ?? {};
+      const normalized = JSON.stringify({
+        backgroundSource: meta.backgroundSource,
+        title: meta.title,
+        workId: "dwfrun-X",
+        kind: wf.kind,
+        siteId: wf.siteId,
+        ordinal: wf.ordinal,
+        name: wf.name,
+        type: wf.type,
+        prompt: wf.prompt,
+        draftPath: typeof wf.draftPath === "string" ? wf.draftPath.replaceAll(workspace, "<ws>") : null,
+        line: wf.line,
+        before: wf.before ?? null,
+        after: wf.after ?? null,
+        reachedAtIsNumber: typeof wf.reachedAt === "number",
+      });
+      let hash = 0;
+      for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
+      return `${normalized.length}/${hash >>> 0}`;
+    })();
+    // run 停在留白上：取消收口（FillWorkflowHole 的工具面是下一片）。
+    const cancelled = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000e3",
+      "cancelBackgroundWork",
+      { workId: runId },
+      session,
+    );
+    checks.dwfHoleCancel = cancelled.status;
+    console.log(
+      `dwf hole: run=${runId.slice(0, 16)} notice=${checks.dwfHoleNotice} meta=${checks.dwfHoleMeta} cancel=${checks.dwfHoleCancel}`,
+    );
+  }
+
   // 流程本来就在协议层之外），再让两个内核各丢一次。
   if (phases.includes("discardSharedContext")) {
     const dbPath = [
