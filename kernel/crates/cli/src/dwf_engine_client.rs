@@ -1200,6 +1200,116 @@ impl WorkflowEngine for SidecarEngine {
         process.notify("cancel", json!({"runId": run_id}));
         Ok(())
     }
+
+    async fn fill_target(
+        &self,
+        run_id: &str,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowFillTarget, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "holes",
+                json!({
+                    "runId": run_id,
+                    "dbPath": self.shared.database.display().to_string(),
+                }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        if reply["ok"].as_bool() != Some(true) {
+            return Err(WorkflowEngineError::with_message(
+                reply["reason"].as_str().unwrap_or("start_failed"),
+                reply["message"].as_str().unwrap_or("the run could not be read"),
+            ));
+        }
+        Ok(rust_cli_kernel_api::workflow::WorkflowFillTarget {
+            name: reply["name"].as_str().map(str::to_owned),
+            draft_path: reply["draftPath"].as_str().map(str::to_owned),
+            status: reply["status"].as_str().unwrap_or("running").to_owned(),
+            stop_reason: reply["stopReason"].as_str().map(str::to_owned),
+            holes: reply["holes"]
+                .as_array()
+                .map(|holes| {
+                    holes
+                        .iter()
+                        .map(|hole| rust_cli_kernel_api::workflow::WorkflowFillTargetHole {
+                            site_id: hole["siteId"].as_str().unwrap_or_default().to_owned(),
+                            name: hole["name"].as_str().unwrap_or_default().to_owned(),
+                            hole_type: hole["type"].as_str().unwrap_or("unknown").to_owned(),
+                            line: hole["line"].as_u64(),
+                            waiting: hole["waiting"].as_bool().unwrap_or(false),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+        })
+    }
+
+    async fn fill_hole(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        hole_id: &str,
+        body: &str,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowFillOutcome, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "fill",
+                json!({
+                    "runId": run_id,
+                    "holeId": hole_id,
+                    "body": body,
+                    "dbPath": self.shared.database.display().to_string(),
+                    "parentSessionId": session.as_str(),
+                }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        if reply["ok"].as_bool() == Some(true) {
+            return Ok(rust_cli_kernel_api::workflow::WorkflowFillOutcome::Filled {
+                phases_added: reply["phasesAdded"]
+                    .as_array()
+                    .map(|names| {
+                        names
+                            .iter()
+                            .filter_map(|name| name.as_str().map(str::to_owned))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+                script_path: reply["scriptPath"].as_str().map(str::to_owned),
+                script_text: reply["scriptText"].as_str().unwrap_or_default().to_owned(),
+            });
+        }
+        Ok(rust_cli_kernel_api::workflow::WorkflowFillOutcome::Refused {
+            reason: reply["reason"].as_str().unwrap_or("hole_not_waiting").to_owned(),
+            message: reply["message"].as_str().unwrap_or_default().to_owned(),
+            diagnostics: reply["diagnostics"]
+                .as_array()
+                .map(|diagnostics| {
+                    diagnostics
+                        .iter()
+                        .map(|diagnostic| {
+                            rust_cli_kernel_api::workflow::WorkflowFillDiagnostic {
+                                line: diagnostic["line"].as_u64().unwrap_or_default(),
+                                column: diagnostic["column"].as_u64().unwrap_or_default(),
+                                message: diagnostic["message"]
+                                    .as_str()
+                                    .unwrap_or_default()
+                                    .to_owned(),
+                                code: diagnostic["code"].as_u64().unwrap_or_default(),
+                                in_fill: diagnostic["inFill"].as_bool().unwrap_or(false),
+                            }
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+        })
+    }
 }
 
 /// 让读线程在测试里能构造一个 `SidecarEngine` 的共享状态；生产代码不用。

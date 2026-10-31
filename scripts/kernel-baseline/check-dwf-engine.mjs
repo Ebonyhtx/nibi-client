@@ -71,11 +71,18 @@ const REQUIRED = [
   // （kind/qid/actor/question 与信封同源，qid uuid 段归一）——Node notifyEscalationRaised 同形。
   "dwfEscalateMeta",
   // 留白到达的通知链：`<workflow-hole>` 信封的文本指纹（uuid/墙钟/工作区路径归一）与
-  // originMeta 的 kind:"hole" manifest（Node notifyHoleReached 同形）；FillWorkflowHole 工具面
-  // 之前 run 以取消收口。
+  // originMeta 的 kind:"hole" manifest（Node notifyHoleReached 同形）。
   "dwfHoleNotice",
   "dwfHoleMeta",
-  "dwfHoleCancel",
+  // 留白补全（FillWorkflowHole 的工具面）：通知轮里读技能 → 交函数体 → 放行停驻分支 → run
+  // 跑到 completed。补全回话的指纹、fill 文件逐字节、草稿就地改写、journal 双轨（hole-filled
+  // 的 filledAt/filledBy/scriptPath）、run 行与终态通知。
+  "dwfHoleFill",
+  "dwfHoleFillFile",
+  "dwfHoleDraftRewritten",
+  "dwfHoleJournal",
+  "dwfHoleRunRow",
+  "dwfHoleSettled",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",

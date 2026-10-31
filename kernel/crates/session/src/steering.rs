@@ -22,8 +22,8 @@ use crate::sink::{ActorSink, SinkRequest};
 pub(crate) enum ClaimedItem {
     /// 插话，带组装好的 UPS 事件。
     Prompt(CommandId, String, Box<HookEvent>),
-    /// 通知全文。
-    Notice(String),
+    /// 通知整项（并入的记录要它的来源与 originMeta，不只是全文）。
+    Notice(crate::lane::Waiting),
 }
 
 /// 领取到的插话与通知；没有 UPS hook 时 `hooks` 为 None。
@@ -76,7 +76,7 @@ impl Actor {
                         Box::new(event),
                     ));
                 }
-                Lane::Notice(notice) => items.push(ClaimedItem::Notice(notice.text())),
+                Lane::Notice(notice) => items.push(ClaimedItem::Notice(notice.clone())),
             }
         }
         let hooks = self
@@ -121,7 +121,7 @@ impl Actor {
 /// 领取之后、交回之前的一项。
 enum Screened {
     Prompt(CommandId, String, Box<HookOutcome>),
-    Notice(String),
+    Notice(crate::lane::Waiting),
 }
 
 impl ActorSink {
@@ -144,8 +144,8 @@ impl ActorSink {
         let mut barrier = false;
         for item in claimed.items {
             let (command, text, event) = match item {
-                ClaimedItem::Notice(text) => {
-                    screened.push(Screened::Notice(text));
+                ClaimedItem::Notice(notice) => {
+                    screened.push(Screened::Notice(notice));
                     continue;
                 }
                 ClaimedItem::Prompt(..) if barrier => continue,
@@ -192,7 +192,11 @@ impl ActorSink {
                         after: outcome.messages,
                     }));
                 }
-                Screened::Notice(text) => absorbed.push(Absorbed::Notice(text)),
+                Screened::Notice(notice) => absorbed.push(Absorbed::Notice {
+                    text: notice.text(),
+                    source: notice.source().to_owned(),
+                    origin_meta: notice.origin_meta().cloned(),
+                }),
             }
         }
         let (reply, answer) = oneshot::channel();

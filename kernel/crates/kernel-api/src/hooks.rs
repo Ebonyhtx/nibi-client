@@ -285,16 +285,27 @@ impl Steered {
 pub enum Absorbed {
     /// 插话：`queued_command`（`commandMode: prompt`），之后提交它的 hook 消息。
     Prompt(Steered),
-    /// 通知全文：`queued_command`（`commandMode: task-notification`）。
-    Notice(String),
+    /// 通知全文：`queued_command`（`commandMode: task-notification`）。`source` / `origin_meta`
+    /// 是通知记录的来源与运行卡关联键——并入也先落一条 meta user 消息（Node 的 mid-turn drain
+    /// 先 persist 批记录），转录里与开回合的通知同形。
+    Notice {
+        text: String,
+        source: String,
+        origin_meta: Option<serde_json::Value>,
+    },
 }
 
 impl Absorbed {
-    /// 没有到达顺序时的排列：先插话、后通知（`RunSink::take_absorbed` 的缺省）。
+    /// 没有到达顺序时的排列：先插话、后通知（`RunSink::take_absorbed` 的缺省）。缺省面没有
+    /// 结构化元数据，来源落 `task-notification` 的裸记录。
     pub fn ordered(steered: Vec<Steered>, notices: Vec<String>) -> Vec<Self> {
         let prompts = steered.into_iter().map(Self::Prompt);
         prompts
-            .chain(notices.into_iter().map(Self::Notice))
+            .chain(notices.into_iter().map(|text| Self::Notice {
+                text,
+                source: crate::message::TASK_NOTIFICATION_SOURCE.to_owned(),
+                origin_meta: None,
+            }))
             .collect()
     }
 }

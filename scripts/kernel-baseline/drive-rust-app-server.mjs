@@ -114,6 +114,12 @@ let escalationQid = null;
 // run 详情探针（GetWorkflowRun）：provider 路由按这个 id 调工具；阶段里先看真 id、再看坏 id。
 let inspectRunId = null;
 let inspectAttempt = 0;
+// 留白补全探针（dwfHole）：通知轮里模型先读 dynamic-workflows 技能（Node 的技能门在
+// resolveInput 挡没读技能的补全；Rust 侧没有 Skill 工具，这次调用回「没有这个工具」，两个内核
+// 的下一步相同），再交 FillWorkflowHole。分阶段推进，读循环里的每个请求最多往前一步。
+let holeFillStage = "idle"; // idle → skill-emitted → done
+let holeFillText = null;
+let holeFillCompileFailed = null;
 const textOf = (content) => {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
@@ -147,6 +153,18 @@ const server = createServer((req, res) => {
       ? textOf(toolMessages[toolMessages.length - 1].content)
       : null;
     if (toolResult !== null) TOOL_RESULTS.push(toolResult);
+    // 补全结果的捕获（dwfHole）：技能结果到达时 stage 还是 skill-emitted，不会误捕技能正文里
+    // 引述的同款句子。
+    if (toolResult !== null && toolResult.includes("The fill joined run")) {
+      holeFillText = toolResult;
+    }
+    if (
+      holeFillStage === "done" &&
+      toolResult !== null &&
+      toolResult.includes("The effective script does not compile")
+    ) {
+      holeFillCompileFailed = toolResult;
+    }
     // 按文本比较：JSON 里的反斜杠会转义，直接 includes 路径会永远为假。
     const messageText = messages
       .map((message) =>
@@ -317,6 +335,54 @@ const server = createServer((req, res) => {
     }
     if (toolResult !== null && toolResult.includes(ESCALATE_ANSWER)) {
       escalationAnswered = true;
+    }
+    // 留白补全探针（dwfHole）：见 holeFillStage 处的注释。run/hole 的 id 从通知信封里读——
+    // `<workflow-hole>` 的两行标签是模型看到的同一个来源（launch.md「The `FillWorkflowHole` tool」）。
+    if (messageText.includes("<workflow-hole>") && holeFillStage !== "done") {
+      const holeRunId = /<run-id>([^<]+)<\/run-id>/u.exec(messageText)?.[1] ?? "";
+      const holeId = /<hole-id>([^<]+)<\/hole-id>/u.exec(messageText)?.[1] ?? "";
+      const emit = (toolCall) => {
+        res.write(
+          `data: ${JSON.stringify({
+            choices: [{ delta: { role: "assistant", tool_calls: [toolCall] }, index: 0 }],
+            id: "drive",
+            object: "chat.completion.chunk",
+          })}\n\n`,
+        );
+        res.write(
+          `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+        );
+        res.write("data: [DONE]\n\n");
+        res.end();
+      };
+      if (holeFillStage !== "skill-emitted") {
+        holeFillStage = "skill-emitted";
+        emit({
+          index: 0,
+          id: "call_drive_skill_1",
+          type: "function",
+          function: {
+            name: "Skill",
+            arguments: JSON.stringify({ skill: "dynamic-workflows" }),
+          },
+        });
+        return;
+      }
+      holeFillStage = "done";
+      emit({
+        index: 0,
+        id: "call_drive_fill_1",
+        type: "function",
+        function: {
+          name: "FillWorkflowHole",
+          arguments: JSON.stringify({
+            run_id: holeRunId,
+            hole_id: holeId,
+            script: 'return "probe-verdict";',
+          }),
+        },
+      });
+      return;
     }
     // 新回合（还没有 assistant 消息）、工具表里有会话级 MCP 工具：要求调用它一次。工具结果回来后的
     // 请求（roles 里有 tool）回正文。标题生成这类请求没有工具，不会触发。
@@ -1980,13 +2046,37 @@ try {
         'return await hole<string>("fill the verdict", "What should I return for the probe?");',
       ].join(String.fromCharCode(10)) + String.fromCharCode(10),
     );
+    // Node 的技能门（fill-workflow-hole-resolve 的 resolveInput）要求会话历史里有一次成功的
+    // `Skill(dynamic-workflows)`：stub 在通知轮里先调 Skill 再调 FillWorkflowHole，技能从工作区
+    // 的 `.nibi/skills/` 发现（providers roots.ts 的项目根）。Rust 侧没有 Skill 工具，这次调用
+    // 回「没有这个工具」，多出来的文件被忽略。
+    mkdirSync(join(workspace, ".nibi", "skills", "dynamic-workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "skills", "dynamic-workflows", "SKILL.md"),
+      [
+        "---",
+        "name: dynamic-workflows",
+        "description: probe fixture for the fill skill gate",
+        "---",
+        "",
+        "The dynamic-workflows skill body for the drive probe.",
+        "",
+      ].join(String.fromCharCode(10)),
+    );
     const created = ack(
       await send("v4/command", {
         commandId: "0197d3f0-0000-7000-8000-0000000000e1",
         clientId: "drive",
         sessionId: null,
         type: "createSession",
-        payload: { workspaceId: workspace },
+        payload: {
+          workspaceId: workspace,
+          // Node 的动态工作流工具面是 Host 控制的灰度闸（fail-closed）；留白补全要用
+          // `FillWorkflowHole`，所以这个会话显式打开它（alwaysOn，与 dwfEscalate 同一条）。
+          // Rust 侧没有这道闸，多出来的字段被忽略。
+          dynamicWorkflowEnabled: true,
+          dynamicWorkflowMode: "alwaysOn",
+        },
         issuedAt: Date.now(),
       }),
       "createSession(dwfHole)",
@@ -2080,16 +2170,116 @@ try {
       for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
       return `${normalized.length}/${hash >>> 0}`;
     })();
-    // run 停在留白上：取消收口（FillWorkflowHole 的工具面是下一片）。
-    const cancelled = await simpleCommand(
-      "0197d3f0-0000-7000-8000-0000000000e3",
-      "cancelBackgroundWork",
-      { workId: runId },
-      session,
+    // 留白补全：通知轮里的模型先读技能、再交 FillWorkflowHole（provider stub 脚本化）；补全
+    // 放行停驻的分支，run 继续跑到 completed，终态通知随后落库。
+    await waitFor(() => (holeFillText ? true : undefined), "FillWorkflowHole result", 90_000).catch(
+      () => {},
     );
-    checks.dwfHoleCancel = cancelled.status;
+    // 终态通知（`<task-notification>`，不含 `<workflow-hole>` 的那条）：补全后 run 自己结算。
+    const settleNoticeOf = () => {
+      if (!existsSync(dbPath)) return null;
+      const db = new DatabaseSync(dbPath);
+      const rows = db
+        .prepare(
+          "select m.data as info, p.data as part from part p join message m on m.id = p.message_id " +
+            "where m.session_id = ? and json_extract(m.data,'$.metadata.source') in ('task-notification','background_task') " +
+            "order by p.rowid desc limit 6",
+        )
+        .all(session);
+      db.close();
+      for (const row of rows) {
+        const text = JSON.parse(row.part).text ?? "";
+        if (text.includes("<task-notification>") && !text.includes("<workflow-hole>")) {
+          return text;
+        }
+      }
+      return null;
+    };
+    await waitFor(() => (settleNoticeOf() ? true : undefined), "settled notice after fill", 90_000).catch(
+      () => {},
+    );
+    const normalizeFillText = (text) =>
+      (text ?? "")
+        .replace(/<\/?system-reminder>\n?/g, "")
+        .replaceAll(workspace, "<ws>")
+        .replace(/(dwfrun|launch|resume)-[0-9a-f-]+/g, "$1-X")
+        .trim();
+    const fingerprint = (normalized) => {
+      let hash = 0;
+      for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
+      return `${normalized.length}/${hash >>> 0}`;
+    };
+    checks.dwfHoleFill = holeFillText
+      ? fingerprint(normalizeFillText(holeFillText))
+      : holeFillCompileFailed
+        ? "compile_failed"
+        : "absent";
+    // fill 文件（「The fill file」）：内联函数体逐字节落盘，`<run-slug>.<hole-slug>.dwf.ts`。
+    const fillFilePath = join(workspace, ".nibi", "workflow-drafts", "holeprobe.fill-the-verdict.dwf.ts");
+    checks.dwfHoleFillFile = existsSync(fillFilePath)
+      ? readFileSync(fillFilePath, "utf8") === 'return "probe-verdict";'
+        ? "ok"
+        : "wrong-bytes"
+      : "missing";
+    // run 的草稿被**就地**改写（「The draft after a fill」）：有效脚本里是补全的函数体。
+    const draftPath = join(workspace, ".nibi", "workflow-drafts", "holeprobe.dwf.ts");
+    checks.dwfHoleDraftRewritten = existsSync(draftPath)
+      ? readFileSync(draftPath, "utf8").includes('return "probe-verdict";') &&
+          readFileSync(draftPath, "utf8").includes("hole<string>")
+        ? "ok"
+        : "unspliced"
+      : "missing";
+    // journal 双轨：hole-reached → hole-filled（filledAt/filledBy/scriptPath 齐全），run 行
+    // completed 且行上的脚本已是有效脚本。
+    checks.dwfHoleJournal = null;
+    checks.dwfHoleRunRow = null;
+    if (existsSync(dbPath)) {
+      const db = new DatabaseSync(dbPath);
+      const rows = db
+        .prepare(
+          "select sequence, type, payload_json from dwf_event where run_id = ? order by sequence, rowid",
+        )
+        .all(runId);
+      const run = db.prepare("select status, script_text, name from dwf_run where id = ?").get(runId);
+      db.close();
+      const holes = rows
+        .map((row) => {
+          try {
+            return { type: row.type, payload: JSON.parse(row.payload_json) };
+          } catch {
+            return null;
+          }
+        })
+        .filter((row) => row !== null && row.type.startsWith("hole-"));
+      const filled = holes.find((row) => row.type === "hole-filled");
+      checks.dwfHoleJournal = JSON.stringify({
+        types: holes.map((row) => row.type).join(","),
+        orderOk:
+          holes.findIndex((row) => row.type === "hole-filled") >
+          holes.findIndex((row) => row.type === "hole-reached"),
+        filledAtIsNumber: typeof filled?.payload?.filledAt === "number",
+        filledByIsSession: filled?.payload?.filledBy === session,
+        scriptPathIsDraft:
+          typeof filled?.payload?.scriptPath === "string" &&
+          filled.payload.scriptPath.endsWith("holeprobe.dwf.ts"),
+      });
+      checks.dwfHoleRunRow =
+        run === undefined
+          ? "missing"
+          : JSON.stringify({
+              status: run.status,
+              spliced:
+                typeof run.script_text === "string" && run.script_text.includes("probe-verdict"),
+              name: run.name ?? null,
+            });
+    }
+    checks.dwfHoleSettled = settleNoticeOf()
+      ? fingerprint(normalizeFillText(settleNoticeOf()).replace(/"durationMs":\d+/g, '"durationMs":"D"'))
+      : "absent";
     console.log(
-      `dwf hole: run=${runId.slice(0, 16)} notice=${checks.dwfHoleNotice} meta=${checks.dwfHoleMeta} cancel=${checks.dwfHoleCancel}`,
+      `dwf hole: run=${runId.slice(0, 16)} notice=${checks.dwfHoleNotice} meta=${checks.dwfHoleMeta} ` +
+        `fill=${checks.dwfHoleFill} file=${checks.dwfHoleFillFile} draft=${checks.dwfHoleDraftRewritten} ` +
+        `journal=${checks.dwfHoleJournal} row=${checks.dwfHoleRunRow} settled=${checks.dwfHoleSettled}`,
     );
   }
 

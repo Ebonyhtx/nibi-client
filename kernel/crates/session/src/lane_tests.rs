@@ -121,7 +121,9 @@ async fn a_notice_during_a_tool_joins_the_turn_at_the_next_tool_boundary() {
     assert!(format!("{:?}", requests[1].messages).contains("<task-id>b1</task-id>"));
     let view = session.view().await.unwrap();
     assert_eq!(absorbed(&view.messages), ["notice:b1"]);
-    assert!(notices_in(&view.messages).is_empty());
+    // 并入也落一条 meta 记录（Node 的 mid-turn drain 先 persist 批记录）：转录里这条通知与
+    // 开回合的通知同形，模型的上下文里仍只有 attachment 那一份。
+    assert_eq!(notices_in(&view.messages).len(), 1);
     assert_eq!(env.acked(), [1]);
     assert!(view.background.is_empty() && !view.running);
 }

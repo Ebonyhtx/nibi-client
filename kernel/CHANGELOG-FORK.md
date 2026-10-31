@@ -774,6 +774,45 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.33）：
   驱动里 Python 写入的 `
 ` 会打断正则字面量（老坑）。
 
+## 6.27 FillWorkflowHole 工具面（2026-10-30，路线 C 第十六段）
+
+留白还代码的地方（docs/dynamic-workflow/launch.md「The `FillWorkflowHole` tool」；详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.34）：
+
+- **sidecar**：`holes`（确认前读面：run 行元数据 + 留白表——`waiting` 只在**本进程**引擎的
+  停驻表里成立，`filled` 来自事件，两样都不是的到达不出现）与 `fill`（bootstrap
+  `dynamic-workflow-run-fill.ts` 的 fillOnce 逐字移植：拼接 `spliceHoleBody` → 与提交同款的
+  `analyzeWorkflowScript`（9011 未绑定模型含 9012）→ 站点稳定性复核 `checkSiteStability` →
+  lowering 出 `holeBodies[holeId]` → 引擎控制面 `fillHole`（换表、`updateRunScript`、记
+  `hole-filled`、放行停驻分支，一个同步步骤）→ 草稿**就地改写**或**铸造**（引擎拒绝时把刚铸的
+  删掉））。同一 run 的补全**串行**（Node fillQueues 的同一条 bug 根因），链排空即删键；拒绝即
+  零副作用。诊断映射 `mapFillDiagnostics`（inFill 锚定函数体行）逐字。
+- **kernel-api**：`WorkflowEngine::fill_target` / `fill_hole` 两方法 + `WorkflowFillTarget` /
+  `WorkflowFillOutcome` / `WorkflowFillDiagnostic` 镜像类型；`WorkflowEngineSlot` 工具面槽
+  （注册表建好时 sidecar 还没接上，`with_workflow_engine` 之后工具在调用时读）。
+- **工具**：`FillWorkflowHole`（tools crate）——恰好一个函数体来源（400）、`path` 逐字节读、
+  确认前等待判定（Node findWaitingHole 的四条文案逐字）、`fill_unchanged` 记忆（被拒字节表，
+  只对 `path` 比对）、内联函数体先写 fill 文件（`<run-slug>.<hole-slug>.dwf.ts`，slug 规则与
+  `-2` 顺延同草稿一条规矩）、编译失败的整段回话（lead 两态 + 诊断按落点锚文件 + 体外诊断指路
+  AmendWorkflow）、成功回话逐字。UI 轨两件（确认窗预览单槽、技能门）路线 C 没有宿主面，记尾单。
+- **并入也落记录**：工具边界的通知并入（`Absorbed::Notice`）此前只落 attachment——Node 的
+  mid-turn drain 先 persist 批记录。修齐：`ClaimedItem::Notice` 带整项通知，并入先落一条 meta
+  user 消息（来源 + originMeta，与开回合的通知同形），**不进本次运行的上下文**（模型仍只读
+  attachment 那一份）。终态通知落在跑的回合里时不再失踪（这是本轮对拍抓到的真分歧：补全很快，
+  run/settled 常常撞进工具边界）。
+- **sidecar 债务**：`launchRun` 的返回类型从谎称 `Promise<RunSettlement>` 改成真实的
+  `{settlement, notice}`（三处调用点的解构此前靠 cast 瞒着 tsc）；裸错误折算 errored 结算改用
+  `new WorkflowError("DriverError", …)`。
+- **门禁**：`check-dwf-engine.mjs` 71 → **76 字段**——`dwfHole` 探针从「取消收口」升级为真实
+  回填：stub 在通知轮先调 `Skill(dynamic-workflows)`（Node 的技能门；Rust 无 Skill 工具，回
+  「没有这个工具」，两边下一步相同）再交 `FillWorkflowHole`，dwfHole 会话显式开灰度闸
+  （`dynamicWorkflowMode: "alwaysOn"`，与 dwfEscalate 同一条）并带一个工作区技能夹具。六条
+  新字段：`dwfHoleFill`（补全回话指纹 **422/1198194394** 两内核逐字节一致）、`dwfHoleFillFile`
+  （fill 文件逐字节）、`dwfHoleDraftRewritten`（草稿就地改写含函数体）、`dwfHoleJournal`
+  （hole-reached → hole-filled 的顺序与 filledAt/filledBy 载荷）、`dwfHoleRunRow`（completed +
+  行上脚本已拼入函数体）、`dwfHoleSettled`（终态通知指纹 **842/3592966377** 一致）；
+  `dwfHoleCancel` 退场。查询点：session 库 `dwf_event` / `dwf_run` 与消息库同轮读。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

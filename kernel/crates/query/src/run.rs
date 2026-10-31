@@ -170,9 +170,22 @@ async fn absorb_steering(scope: &RunScope, history: &mut Vec<Message>) -> Result
                 let data = json!({ "prompt": steered.text, "commandMode": "prompt" });
                 (text, data, steered.after)
             }
-            Absorbed::Notice(notice) => {
-                let data = json!({ "prompt": notice, "commandMode": "task-notification" });
-                (notice, data, Vec::new())
+            Absorbed::Notice {
+                text,
+                source,
+                origin_meta,
+            } => {
+                // 并入也先落一条 meta user 消息（Node 的 mid-turn drain 先 persist 批记录）：
+                // 转录里这条通知与开回合的通知同形（NOTICE_TURN_SOURCES 的读面按它认领），
+                // 但不进本次运行的上下文——并入的文字只随下面的 attachment 进一次。
+                let record = Message::User(UserMessage {
+                    id: scope.parts.ids.message(),
+                    content: vec![ContentBlock::Text { text: text.clone() }],
+                    origin: UserOrigin::Meta { source, origin_meta },
+                });
+                scope.sink.commit_message(record).await?;
+                let data = json!({ "prompt": text, "commandMode": "task-notification" });
+                (text, data, Vec::new())
             }
         };
         let attachment = Message::Attachment(AttachmentMessage {

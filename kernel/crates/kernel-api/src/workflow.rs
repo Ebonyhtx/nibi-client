@@ -4,6 +4,8 @@
 //! 引擎仍在 Node 侧（见 `docs/rust-kernel-dwf-design-2026-10-30.md` 的路线 C）。写面等 sidecar
 //! 接进来时再加，且由引擎独占写。
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::model::ModelSelection;
@@ -550,6 +552,68 @@ pub struct WorkflowEngineError {
     pub message: Option<String>,
 }
 
+/// 一条补全诊断（Node `DynamicWorkflowRunFillHoleDiagnostic` 的镜像）。`in_fill` 为真时
+/// `line` / `column` 是**函数体内**的坐标（拼进去的那一段），否则是脚本坐标——工具层据此把它
+/// 锚到 fill 文件或 run 的草稿。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowFillDiagnostic {
+    pub line: u64,
+    pub column: u64,
+    pub message: String,
+    pub code: u64,
+    pub in_fill: bool,
+}
+
+/// 一次补全的结局（Node `FillWorkflowHoleResult` 的镜像）。拒绝时**零副作用**：留白照旧在等。
+/// `reason` 是 Node 词表里的 token：`run_not_found` / `hole_not_waiting` / `compile_failed` /
+/// `fill_ids_unstable`；`compile_failed` 恒带 `diagnostics`。
+#[derive(Debug, Clone, PartialEq)]
+pub enum WorkflowFillOutcome {
+    Filled {
+        phases_added: Vec<String>,
+        script_path: Option<String>,
+        script_text: String,
+    },
+    Refused {
+        reason: String,
+        message: String,
+        diagnostics: Vec<WorkflowFillDiagnostic>,
+    },
+}
+
+/// FillWorkflowHole 的确认前读面（Node resolveInput 里那次 `port.getTask` 的窄版）：run 行的
+/// 展示元数据与留白表。`waiting` 只在引擎真的停驻着它时成立；`filled` 来自事件；两样都不是的
+/// 到达不出现（进程亡故后没有 promise 在等）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowFillTarget {
+    /// run 行的名字（saved 名字）；内联脚本缺席。
+    pub name: Option<String>,
+    /// run 的草稿（工作副本）路径；没有草稿的 run 缺席。
+    pub draft_path: Option<String>,
+    /// `running` / `stopped` / `completed` / `errored`（journal 行）。
+    pub status: String,
+    /// `status == "stopped"` 才在场。
+    pub stop_reason: Option<String>,
+    pub holes: Vec<WorkflowFillTargetHole>,
+}
+
+/// 确认前读面上的一处留白（工具据 `waiting` 判「这个 run 是不是在等它」）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowFillTargetHole {
+    pub site_id: String,
+    pub name: String,
+    /// 类型实参原文（`Verdict`）；读不到时 `unknown`。
+    pub hole_type: String,
+    /// 留白调用在草稿里的行号（1 起）。
+    pub line: Option<u64>,
+    pub waiting: bool,
+}
+
+/// DWF 工具面的引擎槽：工具注册表建好时 sidecar 还没接上（`with_workflow_engine` 在入口最后
+/// 才调），工具在调用时读槽；缺席即「本会话不能补全」。
+pub type WorkflowEngineSlot = Arc<std::sync::Mutex<Option<Arc<dyn WorkflowEngine>>>>;
+
 impl WorkflowEngineError {
     pub fn new(reason: impl Into<String>) -> Self {
         Self {
@@ -588,4 +652,21 @@ pub trait WorkflowEngine: Send + Sync {
     async fn amend(&self, request: WorkflowAmend) -> Result<WorkflowRunStarted, WorkflowEngineError>;
 
     async fn cancel(&self, run_id: &str) -> Result<(), WorkflowEngineError>;
+
+    /// FillWorkflowHole 的确认前读面：run 的展示元数据与留白表（[`WorkflowFillTarget`]）。
+    /// 未知 runId → `Err`（`reason: "run_not_found"`）。
+    async fn fill_target(
+        &self,
+        run_id: &str,
+    ) -> Result<WorkflowFillTarget, WorkflowEngineError>;
+
+    /// 给一处正在等的留白补上函数体（Node `port.fillHole` 的镜像）：拼接、编译、稳定性复核与
+    /// 引擎放行都在引擎侧；这里只透传。`session` 落进 `hole-filled.filledBy`。
+    async fn fill_hole(
+        &self,
+        session: &crate::ids::SessionId,
+        run_id: &str,
+        hole_id: &str,
+        body: &str,
+    ) -> Result<WorkflowFillOutcome, WorkflowEngineError>;
 }

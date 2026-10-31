@@ -127,8 +127,16 @@ fn absorbed_defaults_to_prompts_before_notices() {
         items,
         vec![
             Absorbed::Prompt(Steered::plain("s1".to_owned())),
-            Absorbed::Notice("n1".to_owned()),
-            Absorbed::Notice("n2".to_owned()),
+            Absorbed::Notice {
+                text: "n1".to_owned(),
+                source: crate::message::TASK_NOTIFICATION_SOURCE.to_owned(),
+                origin_meta: None,
+            },
+            Absorbed::Notice {
+                text: "n2".to_owned(),
+                source: crate::message::TASK_NOTIFICATION_SOURCE.to_owned(),
+                origin_meta: None,
+            },
         ]
     );
 }

@@ -682,3 +682,29 @@ withHoleFacts（载荷派生）。
 - **门禁**：68 → **71 字段**（`dwfHole` 探针阶段 + 两个指纹字段，双内核逐字节一致）。
 - **修掉的分歧**：工作副本曾顶替启动轮 meta 的 path（Node：meta 的 path 是 saved 定义、
   run 的 scriptPath 是工作副本——两个不同物）。
+
+## 6.34 第三十五步：FillWorkflowHole 工具面（2026-10-30）
+
+§6.33 的尾单第一项（详见 CHANGELOG-FORK §6.27）。判据锚点：bootstrap
+`dynamic-workflow-run-fill.ts` 的 fillOnce（顺序就是语义，拒绝即零副作用）、
+`dynamic-workflow-run-holes.ts` 的 mapFillDiagnostics / unboundFillModelDiagnostics、
+`dynamic-workflow-run-compile.ts` 的 compileProgram（fill 面裁剪）、launch.md「The fill file」
+与「The draft after a fill」。
+
+- **sidecar**：`holes`（确认前读面）与 `fill`（fillOnce 逐字）两条 RPC；同一 run 的补全串行
+  （fillQueues 同规）；草稿就地改写 / 无草稿先铸（引擎拒绝时删刚铸的）；
+  `launchRun` 返回类型修真（`{settlement, notice}`，三处解构不再靠 cast 瞒 tsc——这是顺手还的
+  类型债，包 typecheck 在 HEAD 就有八条这类错）。
+- **kernel-api + 客户端**：`WorkflowEngine::fill_target` / `fill_hole` + 镜像类型；
+  `WorkflowEngineSlot`（工具注册表先建、sidecar 后接的时序缝）。
+- **工具**：`FillWorkflowHole`（runtime 注册，槽取引擎）：400 恰好一个来源、`fill_unchanged`、
+  fill 文件先铸、等待判定四条文案、编译失败整段回话、成功回话逐字。
+- **并入也落记录（真分歧）**：门禁对拍抓到——补全后的 run/settled 常撞进工具边界，Rust 的
+  mid-turn 并入只落 attachment、通知记录失踪（Node 的 drain 先 persist 批记录）。修齐：
+  `Absorbed::Notice` 带 source/origin_meta，并入先落 meta user 消息（与开回合同形），不进本次
+  上下文。
+- **探针**：dwfHole 会话开灰度闸 + 工作区技能夹具；stub 两段式（Skill → FillWorkflowHole，
+  run/hole 的 id 从通知信封的 `<run-id>`/`<hole-id>` 读）；**71 → 76 字段**：dwfHoleFill
+  （422/1198194394）、dwfHoleFillFile、dwfHoleDraftRewritten、dwfHoleJournal、dwfHoleRunRow、
+  dwfHoleSettled（842/3592966377）双内核逐字节一致，dwfHoleCancel 退场。
+- **UI 轨尾单**：确认窗预览单槽（resolveInput 拼一次有效脚本）与技能门在路线 C 没有宿主面。

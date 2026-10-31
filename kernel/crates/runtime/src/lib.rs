@@ -160,6 +160,8 @@ pub struct LocalKernel {
     user_hooks: Arc<rust_cli_hooks::node_config::NodeHooks>,
     /// DWF 引擎（路线 C 的 sidecar）：入口注入，没接的入口三个命令报 Unsupported。
     workflow_engine: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>>,
+    /// 同一引擎的工具面槽：注册表建好时引擎还没接上，`FillWorkflowHole` 在调用时读它。
+    workflow_engine_slot: rust_cli_tools::WorkflowEngineSlot,
     /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
     escalations: Arc<escalations::WorkflowEscalations>,
 }
@@ -282,6 +284,9 @@ impl LocalKernel {
             builtin.file_state().cloned().unwrap_or_default();
         let file_states: Arc<dyn ReadFileStates> = read_files.clone();
         let worktrees = Arc::new(rust_cli_tools::WorktreeBoard::default());
+        // DWF 工具面的引擎槽：入口的 `with_workflow_engine` 在注册表建好之后才调，工具在调用时读。
+        let workflow_engine_slot: rust_cli_tools::WorkflowEngineSlot =
+            Arc::new(std::sync::Mutex::new(None));
         let base: Arc<dyn rust_cli_kernel_api::orchestration::ToolRegistry> = Arc::new(
             builtin
                 .with_search_opt_in(defaults.search_tools)
@@ -343,6 +348,11 @@ impl LocalKernel {
                         escalations: escalations.clone(),
                     }),
                     ports.clock.clone(),
+                ))])
+                // DWF 留白补全（`FillWorkflowHole`）：引擎经槽取得（sidecar 在入口最后才接上；
+                // 缺席回「本会话不能补全」的同一条结构化失败）。
+                .with_tools(vec![Arc::new(rust_cli_tools::FillWorkflowHoleTool::new(
+                    workflow_engine_slot.clone(),
                 ))])
                 .with_tools(rust_cli_tools::worktree_tools(&worktrees)),
         );
@@ -562,6 +572,7 @@ impl LocalKernel {
             hook_trust: None,
             user_hooks: Arc::new(rust_cli_hooks::node_config::NodeHooks::default()),
             workflow_engine: None,
+            workflow_engine_slot,
             escalations,
         }
     }
@@ -572,6 +583,9 @@ impl LocalKernel {
         mut self,
         engine: Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>,
     ) -> Self {
+        if let Ok(mut slot) = self.workflow_engine_slot.lock() {
+            *slot = Some(engine.clone());
+        }
         self.workflow_engine = Some(engine);
         self
     }

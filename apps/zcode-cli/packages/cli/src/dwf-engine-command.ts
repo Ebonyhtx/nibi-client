@@ -14,6 +14,8 @@
  *                   `{id, method:"amend", params:{predecessorRunId, runId, dbPath,
  *                    subagentModel?, maxConcurrency?, toolCallId?}}`
  *                   `{id, method:"cancel", params:{runId}}`
+ *                   `{id, method:"holes", params:{runId, dbPath}}`（FillWorkflowHole 的确认前读面）
+ *                   `{id, method:"fill", params:{runId, holeId, body, dbPath, parentSessionId?}}`
  *   engine → 宿主：`actor/create`（建 actor 子会话，回 `{session:<id>}`；`model` 在场时带上选型）
  *                   `world/read`（files.glob/read/grep，回结果）
  *                   `ask/start` / `ask/verdict` / `ask/cancel` / `run/event`（通知）
@@ -21,8 +23,9 @@
  *
  * 不变式：读循环绝不 `await` 一个 run——run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
  */
+import { createHash } from "node:crypto";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
-import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -31,26 +34,36 @@ import { resolveSavedWorkflow, validateWorkflowArgs } from "@nibi/core";
 import {
   analyzeWorkflowScript,
   buildAskSpecs,
+  checkSiteStability,
   collectDiagnostics,
   collectPhaseNames,
+  collectSitePhases,
   collectSites,
   createWorkflowProgram,
   interpret,
+  lowerWorkflow,
   projectControlFlow,
+  spliceHoleBody,
   synthesizeAskSchemas,
   validate,
+  MODEL_UNRESOLVED_CODE,
   type AskMessage,
   type AskSpec,
+  type CompileDiagnostic,
   type InstanceRef,
   type JournalStorePort,
   type JsonSchema,
+  type ModelReference,
   type PersonaSpec,
   type RunEvent,
   type RunSettlement,
   type SessionRef,
+  type SiteTable,
   type SubmitVerdict,
   type ValidateFn,
+  type WorkflowProgram,
   type WorldReadOp,
+  WorkflowError,
 } from "@nibi/dynamic-workflow";
 import { runWorkflowScript } from "@nibi/dynamic-workflow-runtime";
 
@@ -312,14 +325,28 @@ interface EngineRun {
   driver: RemoteDriver;
   abort: AbortController;
   db: DatabaseSync;
-  /** 结算 promise：amend 以 `{superseded}` 停下在飞前驱后**等前驱自己结算**。 */
-  settlement: Promise<RunSettlement>;
+  /** 结算 promise：amend 以 `{superseded}` 停下在飞前驱后**等前驱自己结算**（只等结束，不读值）。 */
+  settlement: Promise<unknown>;
   /** 此刻生效的并发上界（内存副本：retune 与「未改」判定读它）。 */
   maxConcurrency: number;
   /** 本 run 的子代理模型（规范串）；缺席 = 会话模型。 */
   subagentModel?: string;
-  /** 引擎的控制面：retune 就地问（bind 发生在引擎构造的同一同步片里）。 */
-  control?: { setMaxConcurrency(next: number): boolean };
+  /** 引擎的控制面：retune 就地问（bind 发生在引擎构造的同一同步片里）；留白放行与停驻表同面。 */
+  control?: {
+    setMaxConcurrency(next: number): boolean;
+    fillHole(fill: {
+      siteId: string;
+      code: string;
+      script: { text: string; hash: string };
+      askSpecs: ReadonlyMap<string, AskSpec>;
+      sitePhases: ReadonlyMap<string, string>;
+      phaseNames: string[];
+      holes?: number[];
+      filledBy?: string;
+      scriptPath?: string;
+    }): { ok: true } | { ok: false; reason: "not_waiting" | "settled" };
+    openHoles(): { siteId: string; ordinal: number; name: string; since: number }[];
+  };
 }
 
 /** 一次 run 的后台执行（受理/恢复/修订共用）：开 journal、建 driver、跑引擎、发 run/settled。 */
@@ -347,7 +374,7 @@ function launchRun(
   request: (method: string, params: unknown) => Promise<unknown>,
   notify: (method: string, params: unknown) => void,
   runs: Map<string, EngineRun>,
-): Promise<RunSettlement> {
+): Promise<{ settlement: RunSettlement; notice: SettleNotice }> {
   const db = openDatabase(params.dbPath);
   const journal = createDwfJournalStore(db);
   // 本世代的起点（终态通知的 durationMs：completedAt - startedAt；Node 的
@@ -415,9 +442,13 @@ function launchRun(
     // run 没有时长上限；墙钟只防沙箱卡死（24h）。
     timeoutMs: 24 * 60 * 60 * 1000,
   })
-    .catch((error) => ({
-      status: "errored" as const,
-      error: { message: error instanceof Error ? error.message : String(error) },
+    .catch((error): RunSettlement => ({
+      status: "errored",
+      // 引擎抛出的裸错误折算成 errored 结算：DriverError 是引擎错误码表里「引擎自身失败」的那一档。
+      error: new WorkflowError(
+        "DriverError",
+        error instanceof Error ? error.message : String(error),
+      ),
     }))
     .then((settled) =>
       // 结算通知的事实随结算一起交回（宿主据它组 `<task-notification>` 的终态通知）。journal 是
@@ -433,8 +464,8 @@ function launchRun(
       runs.delete(params.runId);
       db.close();
     });
-  entry.settlement = settlement as Promise<RunSettlement>;
-  return settlement as Promise<RunSettlement>;
+  entry.settlement = settlement;
+  return settlement;
 }
 
 /**
@@ -491,6 +522,147 @@ function settleNoticeFacts(
     ...(record?.spentTokens === undefined ? {} : { spentTokens: record.spentTokens }),
     durationMs: Math.max(0, durationMs),
   };
+}
+
+type SettleNotice = ReturnType<typeof settleNoticeFacts>;
+
+// ============================================================
+// 留白补全（FillWorkflowHole 的服务面；docs/dynamic-workflow/launch.md「The `FillWorkflowHole`
+// tool」）——bootstrap `dynamic-workflow-run-fill.ts` 的 fillOnce 逐字移植：拼接、与提交同款的
+// 分析、站点稳定性复核、lowering 出函数体、引擎放行、草稿就地改写。拒绝即零副作用（留白照旧在等）。
+// ============================================================
+
+/** 「run 没有 draftPath 时铸草稿用的兜底名」与补全拒绝码表（fill-service 面共用）。 */
+const FILL_DRAFT_FALLBACK_NAME = "workflow";
+
+interface FillDiagnostic {
+  line: number;
+  column: number;
+  message: string;
+  code: number;
+  inFill: boolean;
+}
+
+/**
+ * 补全的有效脚本里点名了本 run 绑定表之外的模型 → 9011，每个名字一条，落在它第一次出现的位置
+ * （bootstrap `unboundFillModelDiagnostics` 逐字）。
+ */
+function unboundFillModelDiagnostics(
+  references: readonly ModelReference[],
+  bindings: Readonly<Record<string, string>> | undefined,
+): CompileDiagnostic[] {
+  const bound = Object.entries(bindings ?? {});
+  const available =
+    bound.length === 0
+      ? "this run was launched without naming any model"
+      : `this run was launched with ${bound.map(([name, canonical]) => `"${name}" = ${canonical}`).join("; ")}`;
+  const reported = new Set<string>();
+  const diagnostics: CompileDiagnostic[] = [];
+  for (const reference of references) {
+    if (bindings?.[reference.name] !== undefined || reported.has(reference.name)) continue;
+    reported.add(reference.name);
+    diagnostics.push({
+      code: MODEL_UNRESOLVED_CODE,
+      line: reference.line,
+      column: reference.column,
+      message: `The model "${reference.name}" is not one the run can use: ${available}, and a fill can name only those. Use one of them, or drop \`model\` from the persona; to add a model, revise the run with AmendWorkflow.`,
+    });
+  }
+  return diagnostics;
+}
+
+function leadingWhitespace(line: string): number {
+  return /^[ \t]*/u.exec(line)?.[0].length ?? 0;
+}
+
+/**
+ * 补全被拒时的诊断映射（bootstrap `mapFillDiagnostics` 逐字）：拼接把函数体插在脚本第
+ * `insertedAtLine` 行起的 `insertedLines - 1` 行里（最后一行是右花括号），每行前面垫了调用缩进
+ * 加两格。落在函数体行里的诊断标 `inFill`，行列改成函数体自己的坐标；落在右花括号那一行的算到
+ * 调用那一行上；落在插入点之后的整体前移 `insertedLines`。
+ */
+function mapFillDiagnostics(input: {
+  diagnostics: readonly CompileDiagnostic[];
+  effectiveText: string;
+  body: string;
+  insertedAtLine: number;
+  insertedLines: number;
+}): FillDiagnostic[] {
+  const { diagnostics, insertedAtLine, insertedLines } = input;
+  const firstBodyLine = insertedAtLine;
+  const lastBodyLine = insertedAtLine + insertedLines - 2;
+  const closingLine = insertedAtLine + insertedLines - 1;
+  const effectiveLines = input.effectiveText.split("\n");
+  const bodyLines = input.body.replace(/\r?\n$/u, "").split(/\r?\n/u);
+  return diagnostics.map((diagnostic) => {
+    const base = { message: diagnostic.message, code: diagnostic.code };
+    if (diagnostic.line >= firstBodyLine && diagnostic.line <= lastBodyLine) {
+      const bodyLine = diagnostic.line - firstBodyLine + 1;
+      const indent =
+        leadingWhitespace(effectiveLines[diagnostic.line - 1] ?? "") -
+        leadingWhitespace(bodyLines[bodyLine - 1] ?? "");
+      return {
+        ...base,
+        inFill: true,
+        line: bodyLine,
+        column: Math.max(1, diagnostic.column - Math.max(0, indent)),
+      };
+    }
+    if (diagnostic.line === closingLine) {
+      return { ...base, inFill: false, line: insertedAtLine - 1, column: diagnostic.column };
+    }
+    if (diagnostic.line > closingLine) {
+      return {
+        ...base,
+        inFill: false,
+        line: diagnostic.line - insertedLines,
+        column: diagnostic.column,
+      };
+    }
+    return { ...base, inFill: false, line: diagnostic.line, column: diagnostic.column };
+  });
+}
+
+/**
+ * 「编译一次」的后半段对**已建好的** Program（bootstrap `compileProgram` 的 fill 面裁剪：补全不
+ * 铸 actor submit profile、不做 world.run 字面量复核——那两件与放行无关，前面的分析与稳定性复核
+ * 已经把脏脚本挡完）。哈希算在作者原文上（与 resume 比对的对象同一把尺）。
+ */
+function compileFillProgram(
+  scriptText: string,
+  workflow: WorkflowProgram,
+  collected?: SiteTable,
+): {
+  askSpecs: Map<string, AskSpec>;
+  sitePhases: ReadonlyMap<string, string>;
+  holeBodies: Record<string, string>;
+  phases: { phaseNames: string[]; holes: number[] };
+  scriptHash: string;
+} {
+  const table = collected ?? collectSites(workflow);
+  const { diagnostics: schemaDiagnostics, schemas } = synthesizeAskSchemas(workflow, table);
+  if (schemaDiagnostics.length > 0) {
+    throw new Error(
+      `dynamic workflow submit received a script with unsupported ask result types: ${schemaDiagnostics
+        .map((diagnostic) => `L${diagnostic.line}:C${diagnostic.column} ${diagnostic.message}`)
+        .join("; ")}`,
+    );
+  }
+  const askSpecs = buildAskSpecs(table, schemas);
+  const core = interpret(workflow, table);
+  const lowered = lowerWorkflow(workflow, table);
+  return {
+    askSpecs,
+    sitePhases: collectSitePhases(core),
+    holeBodies: lowered.holeBodies,
+    phases: collectPhaseNames(projectControlFlow(core)),
+    scriptHash: createHash("sha256").update(scriptText, "utf8").digest("hex"),
+  };
+}
+
+/** 拼接前脚本的阶段表（同一条投影规则），`phasesAdded` 的比对基准。 */
+function phaseNamesOf(workflow: WorkflowProgram, table: SiteTable): Set<string> {
+  return new Set(collectPhaseNames(projectControlFlow(interpret(workflow, table))).phaseNames);
 }
 
 interface SubmitParams {
@@ -693,6 +865,8 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     { resolve: (value: unknown) => void; reject: (error: Error) => void }
   >();
   const runs = new Map<string, EngineRun>();
+  // 每个 run 的补全串行链（enqueueFill）：runId → 该 run 最后一次排进去的补全。链排空即删键。
+  const fills = new Map<string, Promise<unknown>>();
 
   const request = (method: string, params: unknown) =>
     new Promise<unknown>((resolveRequest, rejectRequest) => {
@@ -1106,6 +1280,343 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     }
   }
 
+  interface HolesParams {
+    runId: string;
+    dbPath: string;
+  }
+
+  /**
+   * FillWorkflowHole 的确认前读面（Node resolveInput 里那次 `port.getTask` 的窄版）：run 行的
+   * 展示元数据 + 留白表。`waiting` 只在**本进程**引擎的停驻表里有它时成立（进程亡故后没有
+   * promise 在等，单靠事件会把一个没人问的留白报成在等）；`filled` 来自事件。留白事实的
+   * type/line 从 run 行脚本的一次编译里读（无留白到达过的 run 不付这笔编译）。
+   */
+  async function acceptHoles(params: HolesParams): Promise<
+    | {
+        ok: true;
+        name?: string;
+        draftPath?: string;
+        status: string;
+        stopReason?: string;
+        holes: { siteId: string; name: string; type: string; line?: number; waiting: boolean }[];
+      }
+    | { ok: false; reason: string; message: string }
+  > {
+    const db = openDatabase(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(params.runId);
+      const live = runs.get(params.runId);
+      if (record === undefined && live === undefined) {
+        return {
+          ok: false,
+          reason: "run_not_found",
+          message: `No run with id ${params.runId}.`,
+        };
+      }
+      // 留白事实表：run 行的（有效）脚本一次编译；没有到达过的留白就不编译（绝大多数 run）。
+      const events = journal.listEvents(params.runId, {
+        types: ["hole-reached", "hole-filled"],
+        reportItems: { limit: 0 },
+      });
+      let compiled: { siteId: string; name: string; type: string; line: number }[] | undefined;
+      if (events.length > 0 && record?.scriptText !== undefined) {
+        try {
+          compiled = collectSites(createWorkflowProgram(record.scriptText)).holes.map((site) => ({
+            siteId: site.id,
+            name: site.name ?? site.id,
+            type: site.typeText ?? "unknown",
+            line: site.loc.line,
+          }));
+        } catch {
+          compiled = undefined; // 读面：脚本编不过时这两项缺席，不抛。
+        }
+      }
+      const bySite = new Map((compiled ?? []).map((hole) => [hole.siteId, hole]));
+      const open = new Set(
+        (live?.control?.openHoles() ?? []).map((hole) => `${hole.siteId}@${hole.ordinal}`),
+      );
+      const filled = new Map<string, boolean>();
+      const reached: { siteId: string; ordinal: number; name: string }[] = [];
+      for (const stored of events) {
+        const event = stored.event as {
+          type: string;
+          instance?: { siteId: string; ordinal: number };
+          name?: string;
+          siteId?: string;
+        };
+        if (event.type === "hole-reached" && event.instance !== undefined) {
+          reached.push({
+            siteId: event.instance.siteId,
+            ordinal: event.instance.ordinal,
+            name: event.name ?? event.instance.siteId,
+          });
+        } else if (event.type === "hole-filled" && event.siteId !== undefined) {
+          filled.set(event.siteId, true);
+        }
+      }
+      const holes = reached
+        .filter((hole) => open.has(`${hole.siteId}@${hole.ordinal}`) || filled.has(hole.siteId))
+        .map((hole) => {
+          const facts = bySite.get(hole.siteId);
+          return {
+            siteId: hole.siteId,
+            name: hole.name,
+            type: facts?.type ?? "unknown",
+            ...(facts === undefined ? {} : { line: facts.line }),
+            waiting: open.has(`${hole.siteId}@${hole.ordinal}`),
+          };
+        });
+      const launched = journal
+        .listEvents(params.runId, { types: ["run-launched"], reportItems: { limit: 0 } })
+        .at(-1)?.event as { scriptPath?: unknown } | undefined;
+      const draftPath =
+        typeof launched?.scriptPath === "string" && launched.scriptPath.length > 0
+          ? launched.scriptPath
+          : undefined;
+      const name = record?.name ?? undefined;
+      return {
+        ok: true,
+        ...(name === undefined ? {} : { name }),
+        ...(draftPath === undefined ? {} : { draftPath }),
+        status: record?.status ?? "running",
+        ...(record?.stopReason === undefined ? {} : { stopReason: record.stopReason }),
+        holes,
+      };
+    } finally {
+      db.close();
+    }
+  }
+
+  interface FillParams {
+    runId: string;
+    holeId: string;
+    body: string;
+    dbPath: string;
+    /** 补全它的会话，落进 `hole-filled.filledBy`。 */
+    parentSessionId?: string;
+  }
+
+  /**
+   * 一次补全（`FillWorkflowHole` 工具的服务面；bootstrap fillOnce 逐字）。同一个 run 的补全
+   * **串行**执行（Node fillQueues 的同一条 bug 根因：一个 run 可以同时停在两处留白，模型会把
+   * 两次 FillWorkflowHole 放进同一个并行批；从读脚本到引擎放行之间有 await，第二次调用就会拿
+   * 第一次补全之前的文本去拼）。上一次被拒绝（甚至抛错）不阻塞下一次；不同 run 之间互不排队。
+   */
+  function enqueueFill(params: FillParams): Promise<unknown> {
+    const previous = fills.get(params.runId) ?? Promise.resolve();
+    const turn = previous.then(
+      () => acceptFill(params),
+      () => acceptFill(params),
+    );
+    const settled: Promise<unknown> = turn.then(
+      () => undefined,
+      () => undefined,
+    );
+    fills.set(params.runId, settled);
+    void settled.then(() => {
+      if (fills.get(params.runId) === settled) fills.delete(params.runId);
+    });
+    return turn;
+  }
+
+  async function acceptFill(params: FillParams): Promise<unknown> {
+    const { runId, holeId } = params;
+    const live = runs.get(runId);
+    const db = openDatabase(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(runId);
+      if (live === undefined && record === undefined) {
+        return { ok: false, reason: "run_not_found", message: `No run with id ${runId}.` };
+      }
+      // 在飞判定看本进程注册表：journal 说 running 而这里没有它，是别的进程（或死进程）的 run。
+      // 停下的 run 指向 ResumeWorkflowRun——resume 会重新到达留白、再问一次。
+      if (live === undefined || live.control === undefined) {
+        const status = record?.status;
+        const hint =
+          status === "stopped"
+            ? `Run ${runId} is stopped; ResumeWorkflowRun it first, after which the hole asks again.`
+            : status === "completed" || status === "errored"
+              ? `Run ${runId} has ended (${status}); nothing is waiting.`
+              : `Run ${runId} is not in flight in this session.`;
+        return { ok: false, reason: "hole_not_waiting", message: hint };
+      }
+
+      // run 此刻的脚本（run 行上的就是引擎手里的那份：一次补全会同步换掉它）。在自己轮到时才读
+      // ——排在前面的补全已经把它换成了带那个函数体的有效脚本。
+      const scriptText = record?.scriptText;
+      if (scriptText === undefined || scriptText.length === 0) {
+        return {
+          ok: false,
+          reason: "hole_not_waiting",
+          message: `run ${runId} has no stored script`,
+        };
+      }
+      const workflow = createWorkflowProgram(scriptText);
+      const before = collectSites(workflow);
+      const site = before.holes.find((hole) => hole.id === holeId);
+      if (site === undefined) {
+        const known = before.holes.map((hole) => `${hole.id} (${hole.name ?? "?"})`).join(", ");
+        return {
+          ok: false,
+          reason: "hole_not_waiting",
+          message: `${holeId} is not a hole of run ${runId}${known === "" ? "" : `; its holes are ${known}`}.`,
+        };
+      }
+      if (site.body !== undefined) {
+        return {
+          ok: false,
+          reason: "hole_not_waiting",
+          message: `${holeId} of run ${runId} is already filled.`,
+        };
+      }
+
+      // 拼接 + 与提交同款的分析（9012 与其余 authoring 规则都在里面）。
+      const spliced = spliceHoleBody(scriptText, before, holeId, params.body);
+      if (spliced === undefined) {
+        return {
+          ok: false,
+          reason: "hole_not_waiting",
+          message: `${holeId} of run ${runId} cannot take a body.`,
+        };
+      }
+      const bindings = runModelBindings(journal, runId);
+      const analysis = analyzeWorkflowScript(spliced.text);
+      const diagnostics = analysis.ok
+        ? unboundFillModelDiagnostics(analysis.modelReferences, bindings)
+        : analysis.diagnostics;
+      if (diagnostics.length > 0) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          message: `The effective script does not compile (${diagnostics.length} diagnostic${
+            diagnostics.length === 1 ? "" : "s"
+          }); nothing was spliced and the hole is still waiting.`,
+          diagnostics: mapFillDiagnostics({
+            diagnostics,
+            effectiveText: spliced.text,
+            body: params.body,
+            insertedAtLine: spliced.insertedAtLine,
+            insertedLines: spliced.insertedLines,
+          }),
+        };
+      }
+
+      // 稳定性复核在编译产物之前：编译（schema 合成、lowering）对一份 id 会错位的脚本是白付。
+      const effective = createWorkflowProgram(spliced.text);
+      const after = collectSites(effective);
+      const stability = checkSiteStability(
+        before,
+        after,
+        holeId,
+        spliced.insertedAtLine,
+        spliced.insertedLines,
+      );
+      if (!stability.ok) {
+        return {
+          ok: false,
+          reason: "fill_ids_unstable",
+          message: `The compiled effective script renumbered an existing site (${stability.detail}). This is a host fault, not a problem with the body; the hole is still waiting.`,
+        };
+      }
+      let compiledFill: ReturnType<typeof compileFillProgram>;
+      try {
+        compiledFill = compileFillProgram(spliced.text, effective, after);
+      } catch (error) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          message: `The effective script does not compile: ${
+            error instanceof Error ? error.message.slice(0, 2_000) : String(error)
+          }`,
+        };
+      }
+      const code = compiledFill.holeBodies[holeId];
+      if (code === undefined) {
+        // 拼接成功、稳定性通过，lowering 却没给出这处留白的函数体：只可能是分析器与 lowering 的
+        // 契约漂移。按宿主故障报，而不是把 undefined 递给引擎。
+        return {
+          ok: false,
+          reason: "fill_ids_unstable",
+          message: `Lowering produced no body for ${holeId}; this is a host fault and the hole is still waiting.`,
+        };
+      }
+
+      // 交给引擎（一个同步步骤：换表、写回有效脚本、记 hole-filled、放行停驻的分支）。没有草稿的
+      // run 先铸一份，路径随事件落 journal；引擎随后拒绝（竞态：刚结算 / 没在等）时把这个本次刚铸
+      // 的文件删掉——谁都还没见过的文件不在「草稿绝不在模型背后被动」之列。
+      const launched = journal
+        .listEvents(runId, { types: ["run-launched"], reportItems: { limit: 0 } })
+        .at(-1)?.event as { scriptPath?: unknown } | undefined;
+      const scriptPath =
+        typeof launched?.scriptPath === "string" && launched.scriptPath.length > 0
+          ? launched.scriptPath
+          : undefined;
+      let minted: string | undefined;
+      if (scriptPath === undefined) {
+        const written = await writeWorkflowDraft({
+          cwd: record?.cwd ?? process.cwd(),
+          name:
+            record?.name ??
+            compiledFill.phases.phaseNames[0] ??
+            FILL_DRAFT_FALLBACK_NAME,
+          source: spliced.text,
+        });
+        minted = written?.path;
+      }
+      const result = live.control.fillHole({
+        siteId: holeId,
+        code,
+        script: { text: spliced.text, hash: compiledFill.scriptHash },
+        askSpecs: compiledFill.askSpecs,
+        sitePhases: compiledFill.sitePhases,
+        phaseNames: compiledFill.phases.phaseNames,
+        ...(compiledFill.phases.holes.length === 0 ? {} : { holes: compiledFill.phases.holes }),
+        ...(params.parentSessionId === undefined ? {} : { filledBy: params.parentSessionId }),
+        ...(minted === undefined ? {} : { scriptPath: minted }),
+      });
+      if (result === undefined || !result.ok) {
+        if (minted !== undefined) {
+          try {
+            await rm(minted, { force: true });
+          } catch {
+            // 删不掉只算孤儿文件：补全已经照常被拒，这里没有别的话可说。
+          }
+        }
+        return {
+          ok: false,
+          reason: "hole_not_waiting",
+          message:
+            result?.reason === "settled"
+              ? `Run ${runId} has already settled; nothing is waiting.`
+              : `Run ${runId} is not waiting at ${holeId}: it has not reached it yet, or it is already filled.`,
+        };
+      }
+
+      // 引擎收下了：草稿跟着换（没有草稿的 run 用刚铸的那份；有草稿的**就地**改写，路径不变
+      // ——「草稿绝不在模型背后被覆盖」的唯一例外，模型要的正是这次写入）。尽力而为：写不进去
+      // 不撤销补全——journal 已经是真相，草稿只是把手。
+      const finalPath = minted ?? scriptPath;
+      if (minted === undefined && scriptPath !== undefined) {
+        try {
+          await writeFile(scriptPath, spliced.text, { encoding: "utf8" });
+        } catch {
+          // 草稿改写失败不撤销补全（journal 是真相）；回话里的路径照旧（文件还在，只是内容旧了）。
+        }
+      }
+      const previousPhases = phaseNamesOf(workflow, before);
+      return {
+        ok: true,
+        phasesAdded: compiledFill.phases.phaseNames.filter((name) => !previousPhases.has(name)),
+        ...(finalPath === undefined ? {} : { scriptPath: finalPath }),
+        scriptText: spliced.text,
+      };
+    } finally {
+      db.close();
+    }
+  }
+
   const { createInterface } = await import("node:readline");
   const reader = createInterface({ input: ctx.stdin });
   for await (const line of reader) {
@@ -1165,6 +1676,22 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       // 同一条纪律：acceptAmend 会 await 前驱的结算，绝不能挡住这条读循环。
       const id = message.id;
       void acceptAmend(message.params as AmendParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "holes") {
+      // FillWorkflowHole 的确认前读面（run 元数据 + 留白表）。
+      const id = message.id;
+      void acceptHoles(message.params as HolesParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "fill") {
+      // 补全会 await 编译与草稿落盘，也绝不挡读循环；同一 run 的补全在 enqueueFill 里串行。
+      const id = message.id;
+      void enqueueFill(message.params as FillParams).then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

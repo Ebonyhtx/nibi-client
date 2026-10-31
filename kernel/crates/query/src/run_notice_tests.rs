@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use async_trait::async_trait;
 use rust_cli_kernel_api::abort::Abort;
 use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use rust_cli_kernel_api::message::{ UserOrigin,ContentBlock, Message, ToolResultContent};
 use rust_cli_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, QueryEvent, QueryStop,
     RunSink,
@@ -95,10 +95,19 @@ async fn notices_join_the_run_after_the_steering_input() {
         QueryStop::Completed
     );
     let messages = inner.messages();
-    let [Message::Attachment(prompt), Message::Attachment(notice)] = &messages[2..4] else {
-        panic!("expected the steering input, then the notice: {messages:?}");
+    // 并入也先落一条 meta user 消息（Node 的 mid-turn drain 先 persist 批记录）：记录与
+    // attachment 同文，记录带来源（缺省面没有结构化元数据），只有 attachment 进模型上下文。
+    let [Message::Attachment(prompt), Message::User(record), Message::Attachment(notice)] =
+        &messages[2..5]
+    else {
+        panic!("expected the steering input, then the notice record and attachment: {messages:?}");
     };
     assert_eq!(prompt.data["commandMode"], "prompt");
+    let UserOrigin::Meta { source, origin_meta } = &record.origin else {
+        panic!("expected a meta record for the notice: {record:?}");
+    };
+    assert_eq!(source, "task-notification");
+    assert_eq!(origin_meta, &None);
     assert_eq!(notice.source, "queued_command");
     assert_eq!(notice.text, NOTICE);
     assert_eq!(

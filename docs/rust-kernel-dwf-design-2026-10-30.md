@@ -289,6 +289,10 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        展示名走 run 行标签链，`check-dwf-engine` 68 字段）；~~hole 的通知投递链~~（**已接，
        2026-10-30 第十五段**：sidecar 完整载荷 + workflow-drafts 工作副本 + 宿主
        `<workflow-hole>` 信封与 kind:"hole" manifest，`check-dwf-engine` 71 字段，双内核指纹
-       逐字节一致；FillWorkflowHole 工具面是下一片。stall/blocked 的投递链仍缺——与
-       `workflows/runs` 中枢方法一起评估））；
+       逐字节一致；~~FillWorkflowHole 工具面~~（**已接，2026-10-30 第十六段**：sidecar
+       `holes`/`fill` 两 RPC（fillOnce 逐字、同 run 串行、草稿就地改写/铸造）+ 宿主工具
+       （fill 文件先铸、fill_unchanged、诊断锚定）+ 并入也落记录（mid-turn fold 先 persist
+       meta 记录，与 Node drain 同形）+ 探针真实回填收口，`check-dwf-engine` 76 字段双内核
+       逐字节一致。UI 轨的确认窗预览与技能门路线 C 没有宿主面。stall/blocked 的投递链仍缺
+       ——与 `workflows/runs` 中枢方法一起评估））；
        `workflows/runs` 中枢方法仍待做）；
