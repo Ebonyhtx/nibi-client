@@ -230,6 +230,19 @@ pub struct CommitReceipt {
     pub sequence: u64,
 }
 
+/// 冷视图里的工作流控制轮（[`LoadedSession::launches`] / `SessionView::launches`）：哪条 user 消息是
+/// NIBI 中枢启动 / run 卡「配置」的控制轮与它的 `metadata.workflowLaunch`（launch.md「The launch/settings
+/// turn」）。存储上由消息记录的 `source: "workflow_launch"` 判定（Node `workflowLaunchOfMessage` 同一
+/// 判据）；`hydrate` 的 `Message::User` 不带消息元数据，冷投影据这份清单在 real-user 轮边界里重建
+/// controlOnly 的启动/设置轮。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionLaunchTurn {
+    pub message: MessageId,
+    /// 消息记录上的 `metadata.workflowLaunch`（runId/toolCallId/name?/scope/path?/args?/description?/script?，原样）。
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub launch: Value,
+}
+
 /// 冷加载结果：活动分支上的消息（已应用切点与压缩边界）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoadedSession {
@@ -264,6 +277,9 @@ pub struct LoadedSession {
     /// 模型侧的历史只是 `messages`；界面显示 `earlier ++ messages`。没有压缩点时为空（serde 缺省为空、为空时不写出）。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub earlier: Vec<Message>,
+    /// 这段历史里的工作流控制轮（[`SessionLaunchTurn`]，earlier 与 messages 都算；serde 缺省为空）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub launches: Vec<SessionLaunchTurn>,
 }
 
 /// 有意图、没有结果的操作（[`Fact::OperationIntent`] 原样）。

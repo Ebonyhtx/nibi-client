@@ -112,6 +112,7 @@ fn loaded_sessions_round_trip_with_open_work() {
     let loaded = LoadedSession {
         meta,
         messages: vec![assistant()],
+        launches: Vec::new(),
         model: None,
         mode: None,
         plan: false,

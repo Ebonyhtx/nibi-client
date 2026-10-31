@@ -598,6 +598,33 @@ launch.md「Models the script names」：`agent(…, { model: "名字" })` 的�
   实形态探针（带阶段/留白/产物的工作流的停驻态对拍）本轮撤下——Node 会话的轮调度让探针轮
   时长不可控；等 FillWorkflowHole 切片（那时 run 有真正的停驻/补全周期）再回来。
 
+## 6.20 控制轮的投影面（2026-10-30，路线 C 第九段）
+
+中枢启动 / 设置轮在活投影与冷投影里按 controlOnly 呈现（详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
+
+- **kernel-api**：`KernelEvent::TurnStarted` 增 `execution_kind`（`TurnExecutionKind`：agent /
+  controlOnly，缺席按 agent 读，与 Node `payload.executionKind ?? "agent"` 同读法）与
+  `workflow_launch`（控制轮的元数据，与消息记录上同一份）；`SessionView` / `LoadedSession` 增
+  `launches`（`SessionLaunchTurn { message, launch }`——`Message::User` 不带消息元数据，冷投影靠
+  这份清单认控制轮；node-store 冷读取从记录的 `source: "workflow_launch"` 采集，MemoryStore 从
+  事实采集）。
+- **session**：`write_launch` 的轮边界事件带上 controlOnly 标记、元数据与命令 id（Node
+  `emitControlOnlyUserTurn` 的 TurnStarted payload 同形），并追加进 actor 的 `launches`。
+- **protocol-zcode 投影**：`start_turn` 按 controlOnly 分岔——轮头与输入行 `origin:
+  "workflowLaunch"` + `executionKind: "controlOnly"` + `workflowLaunch` 元数据上行；不推进
+  running、不立 activeWork、不清 lastError（Node onTurnStarted 只在 agent 分支动 control）；
+  收口不带 activeMs、不补 usage，draft 会话推进终态（Node leaveDraftAfterControlOnlyTurn：
+  sessions-index 否则把恒 draft 的中枢会话丢掉）。冷投影从 `SessionView.launches` 按
+  `workflowLaunchOfMessage` 同判据重建控制轮。
+- **驱动/门禁**：`check-dwf-engine.mjs` 63 → **65 字段**——`dwfControlRows`（3 只控制轮的行数）
+  与 `dwfControlRowShape`（origin/executionKind/元数据/无 activeMs 逐项）；驱动给修订会话补上
+  会话主题订阅、`buildState` 按 topic 过滤（多会话的行 rowId 各自从头编号，不能混一张 Map）。
+  冷面对拍用驱动冷模式的 `NIBI_DRIVE_DUMP_SNAPSHOT=1` 行转储做了一次开发期验证：两内核冷快照
+  的 6 只控制轮行逐字段一致（origin/executionKind/state/无 activeMs/runId）。冷探针顺带暴露
+  下一个缺口：run 通知轮的轮头行 Node 是 `origin: "backgroundResult"`（live 也一样），Rust
+  现在开成 userInput（冷投影干脆不立轮头）——下一片接。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

@@ -36,6 +36,8 @@ fn app(lang: Lang) -> App {
             seq: 1,
             revision: 0,
             event: KernelEvent::TurnStarted {
+                execution_kind: None,
+                workflow_launch: None,
                 turn: TurnId::new("turn_1"),
                 command: None,
             },

@@ -46,6 +46,8 @@ fn fire(kind: CronFireKind, fold: Option<u32>) -> KernelEvent {
 fn turn(n: &str) -> Vec<KernelEvent> {
     vec![
         KernelEvent::TurnStarted {
+            execution_kind: None,
+            workflow_launch: None,
             turn: TurnId::new(n),
             command: None,
         },

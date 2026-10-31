@@ -73,7 +73,9 @@ use rust_cli_kernel_api::session_api::{
     Ack, CommandEnvelope, EndReason, KernelError, KernelEvent, RewindOption, SequencedEvent,
     SessionHandle, SessionView, StartSource,
 };
-use rust_cli_kernel_api::store::{ArtifactStore, SessionMeta, SessionStore, WorkspaceCheckpoint};
+use rust_cli_kernel_api::store::{
+    ArtifactStore, SessionLaunchTurn, SessionMeta, SessionStore, WorkspaceCheckpoint,
+};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 
@@ -173,6 +175,9 @@ pub struct SessionState {
     /// 当前轮以错误结束（冷加载的 `LoadedSession.last_turn_failed`）：续写时不补 assistant（session-lifecycle.md
     /// §6.3.1）。
     pub last_turn_failed: bool,
+    /// 工作流控制轮（冷加载的 `LoadedSession.launches`，launch.md）：会话 actor 在 `write_launch` 时追加，
+    /// `view()` 带给冷投影。
+    pub launches: Vec<SessionLaunchTurn>,
 }
 
 /// 会话是新建的还是从存储加载的；新建时发出 `SessionCreated`。

@@ -7,7 +7,7 @@ use rust_cli_kernel_api::ids::{
 use rust_cli_kernel_api::message::{AssistantMessage, Message, UserMessage, UserOrigin};
 use rust_cli_kernel_api::model::BlockDelta;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
+use rust_cli_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta};
 use rust_cli_kernel_api::testing::selection;
 use serde_json::json;
 
@@ -41,6 +41,7 @@ fn view(messages: Vec<Message>) -> SessionView {
         context_usage: None,
         context_notice: Default::default(),
         output_speed: None,
+        launches: Vec::new(),
     }
 }
 
@@ -127,6 +128,8 @@ fn ops(deltas: &[Value]) -> Vec<String> {
 fn a_text_turn_becomes_rows_and_control_states() {
     let mut feed = Feed::new();
     let started = feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
     });
@@ -212,6 +215,8 @@ fn a_text_turn_becomes_rows_and_control_states() {
 fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
     });
@@ -271,6 +276,8 @@ fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
 fn an_interrupted_turn_cancels_running_tools() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
     });
@@ -409,6 +416,8 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
             .all(|delta| delta["patch"].get("queue").is_none())
     );
     feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
     });
@@ -439,6 +448,8 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
 fn assistant_feedback_marks_the_settled_row() {
     let mut feed = Feed::new();
     feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
     });
@@ -463,4 +474,142 @@ fn assistant_feedback_marks_the_settled_row() {
     assert!(feed.projection.set_feedback("msg_a1", None).is_empty());
     // 行还没落定时先记：落定后带上（这里只验证不 panic 与空增量）。
     assert!(feed.projection.set_feedback("msg_none", Some("dislike".to_owned())).is_empty());
+}
+
+/// 中枢直接启动的启动轮（launch.md）：controlOnly 的轮头与输入行——workflowLaunch origin、
+/// 元数据上行、不推进 running、收口不带 activeMs；draft 会话照 leaveDraft 推进终态。
+#[test]
+fn the_hub_launch_turn_renders_as_a_control_only_row() {
+    let mut feed = Feed::new();
+    let launch = json!({
+        "runId": "dwfrun_1", "toolCallId": "launch-1",
+        "name": "amend", "scope": "project",
+    });
+    let started = feed.apply(KernelEvent::TurnStarted {
+        execution_kind: Some(TurnExecutionKind::ControlOnly),
+        workflow_launch: Some(launch.clone()),
+        turn: TurnId::new("turn_1"),
+        command: Some(CommandId::new("c1")),
+    });
+    // control 不进 running（Node 的 onTurnStarted 只在 agent 分支动 control）：除了行与
+    // revision 没有别的状态增量。
+    assert_eq!(
+        ops(&started),
+        ["row.appended(turnHeader)", "state(revision)"],
+        "{started:?}",
+    );
+    let header = &started[0]["row"];
+    assert_eq!(header["origin"], "workflowLaunch");
+    assert_eq!(header["executionKind"], "controlOnly");
+    assert_eq!(header["workflowLaunch"], launch);
+    assert_eq!(header["sourceCommandId"], "c1");
+    assert_eq!(header["state"], "running");
+    let input = feed.apply(KernelEvent::MessageDone {
+        message: user("msg_u1", "Started the saved workflow \"amend\" (project) from the workflows hub as run dwfrun_1."),
+    });
+    assert_eq!(
+        ops(&input),
+        ["row.appended(userInput)", "state(revision)"],
+        "{input:?}",
+    );
+    assert_eq!(input[0]["row"]["origin"], "workflowLaunch");
+    assert_eq!(input[0]["row"]["workflowLaunch"], launch);
+    assert_eq!(input[0]["row"]["sourceCommandId"], "c1");
+    let finished = feed.apply(KernelEvent::TurnFinished {
+        turn: TurnId::new("turn_1"),
+        outcome: TurnOutcome::Success,
+        usage: None,
+    });
+    // draft 会话推进终态（leaveDraftAfterControlOnlyTurn），但不补 usage，轮头不带 activeMs。
+    assert_eq!(
+        ops(&finished),
+        ["row.upserted(turnHeader)", "state(availability,control,inputRouting,revision)"],
+        "{finished:?}",
+    );
+    assert_eq!(finished[0]["row"]["state"], "completedSuccess");
+    assert_eq!(finished[0]["row"].get("activeMs"), None);
+    assert_eq!(finished[1]["patch"]["control"]["phase"], "completedSuccess");
+    assert_eq!(finished[1]["patch"].get("usage"), None);
+}
+
+/// 已经开过的会话上的控制轮（设置轮）：照旧不碰 session control（Node：非 draft 会话上的
+/// 控制轮不伪造 running / 工时）。
+#[test]
+fn a_control_turn_on_a_started_session_leaves_control_alone() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_0"),
+        command: Some(CommandId::new("c0")),
+    });
+    feed.apply(KernelEvent::MessageDone {
+        message: user("msg_u0", "hello"),
+    });
+    feed.apply(KernelEvent::TurnFinished {
+        turn: TurnId::new("turn_0"),
+        outcome: TurnOutcome::Success,
+        usage: None,
+    });
+    let started = feed.apply(KernelEvent::TurnStarted {
+        execution_kind: Some(TurnExecutionKind::ControlOnly),
+        workflow_launch: Some(json!({"runId": "dwfrun_2"})),
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    assert_eq!(
+        ops(&started),
+        ["row.appended(turnHeader)", "state(revision)"],
+        "{started:?}",
+    );
+    let finished = feed.apply(KernelEvent::TurnFinished {
+        turn: TurnId::new("turn_1"),
+        outcome: TurnOutcome::Success,
+        usage: None,
+    });
+    // 只收口轮头；control 与 usage 都不动。
+    assert_eq!(
+        ops(&finished),
+        ["row.upserted(turnHeader)", "state(revision)"],
+        "{finished:?}",
+    );
+    assert_eq!(finished[0]["row"]["state"], "completedSuccess");
+}
+
+/// 冷投影：视图带工作流控制轮清单时，启动/设置轮按 controlOnly 重建（Node transcript-hydration
+/// 的 workflowLaunchOfMessage）；清单没有的真人输入照旧是 agent 轮。
+#[test]
+fn the_cold_projection_rebuilds_launch_turns_as_control_only() {
+    let launch = json!({"runId": "dwfrun_1", "toolCallId": "launch-1", "name": "amend"});
+    let mut view = view(vec![
+        user("msg_launch", "Started the saved workflow \"amend\" (project)."),
+        user("msg_real", "hello"),
+    ]);
+    view.launches = vec![SessionLaunchTurn {
+        message: MessageId::new("msg_launch"),
+        launch: launch.clone(),
+    }];
+    let projection = Projection::from_view(&view, Followup::Queue, Vec::new());
+    let snapshot = projection.snapshot(9, "epoch-1");
+    let rows = snapshot["rows"]["window"].as_array().unwrap();
+    let headers: Vec<_> = rows
+        .iter()
+        .filter(|row| row["kind"] == "turnHeader")
+        .collect();
+    assert_eq!(headers.len(), 2, "{rows:?}");
+    assert_eq!(headers[0]["origin"], "workflowLaunch");
+    assert_eq!(headers[0]["executionKind"], "controlOnly");
+    assert_eq!(headers[0]["workflowLaunch"], launch);
+    // 收口在消息末尾：控制轮没有 activeMs；后面那条真人输入还是普通 agent 轮。
+    assert_eq!(headers[0]["state"], "completedSuccess");
+    assert_eq!(headers[0].get("activeMs"), None);
+    assert_eq!(headers[1]["origin"], "userInput");
+    assert_eq!(headers[1]["executionKind"], "agent");
+    let inputs: Vec<_> = rows
+        .iter()
+        .filter(|row| row["kind"] == "userInput")
+        .collect();
+    assert_eq!(inputs[0]["origin"], "workflowLaunch");
+    assert_eq!(inputs[0]["workflowLaunch"], launch);
+    assert_eq!(inputs[1]["origin"], "realUser");
 }

@@ -163,6 +163,8 @@ pub(crate) struct Setup {
     pub turn: Option<rust_cli_kernel_api::store::TurnAnchor>,
     /// 冷加载时当前轮以错误结束（resume_sentinel_tests.rs）；缺省否。
     pub last_turn_failed: bool,
+    /// 工作流控制轮（launch_tests.rs）；缺省没有。
+    pub launches: Vec<rust_cli_kernel_api::store::SessionLaunchTurn>,
     /// 跨会话（peers_tests.rs）；缺省关闭。
     pub peers: crate::PeerDeps,
     /// 父会话关闭之后的询问入口（detached_tests.rs）；缺省没有。
@@ -201,6 +203,7 @@ impl Setup {
             directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
             turn: None,
             last_turn_failed: false,
+            launches: Vec::new(),
             peers: crate::PeerDeps::off(),
             detached: None,
             store: None,
@@ -291,6 +294,7 @@ impl Setup {
                 start: self.start,
                 turn: self.turn,
                 last_turn_failed: self.last_turn_failed,
+                launches: self.launches,
             },
             self.opened,
         );

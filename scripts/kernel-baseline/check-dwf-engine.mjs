@@ -57,6 +57,10 @@ const REQUIRED = [
   "dwfSettingsTurnAmendSupersedes",
   "dwfSettingsTurnAmendMeta",
   "dwfSettingsTurnSource",
+  // 活投影的 controlOnly 面：中枢启动/设置轮的轮头与输入行都是 workflowLaunch origin +
+  // executionKind=controlOnly + 元数据上行，收口不带 activeMs（Node product-projection 同形）。
+  "dwfControlRows",
+  "dwfControlRowShape",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",

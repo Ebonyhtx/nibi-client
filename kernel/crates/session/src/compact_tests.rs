@@ -184,6 +184,7 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
             start: rust_cli_kernel_api::session_api::StartSource::Startup,
             turn: None,
             last_turn_failed: false,
+            launches: Vec::new(),
         },
         Opened::Loaded,
     );

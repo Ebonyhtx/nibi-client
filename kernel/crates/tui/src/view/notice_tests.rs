@@ -54,6 +54,8 @@ fn the_main_notice_is_replaced_and_cleared_by_the_stream() {
         1,
         0,
         KernelEvent::TurnStarted {
+            execution_kind: None,
+            workflow_launch: None,
             turn: turn.clone(),
             command: None,
         },

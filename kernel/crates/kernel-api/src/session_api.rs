@@ -19,8 +19,19 @@ use crate::message::{CompactTrigger, Message, Usage};
 use crate::model::{BlockDelta, ModelSelection};
 use crate::orchestration::InteractionRequest;
 use crate::permission::PermissionMode;
-use crate::store::{ArtifactRef, SessionFilter, SessionMeta, SessionSummary};
+use crate::store::{ArtifactRef, SessionFilter, SessionLaunchTurn, SessionMeta, SessionSummary};
 use crate::tool::{ToolOutput, ToolProgress};
+
+/// 轮的执行种类（Node `TurnExecutionKind`，contracts session.events.ts）：`agent` 是普通模型
+/// 回合；`controlOnly` 不开模型回合——NIBI 中枢启动 / run 卡「配置」的控制轮
+/// （docs/dynamic-workflow/launch.md「The settings turn」）。事件上缺席（`None`）按 `agent` 读，
+/// 与 Node 的 `payload.executionKind ?? "agent"` 同一读法。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TurnExecutionKind {
+    Agent,
+    ControlOnly,
+}
 
 /// 运行中提交的输入怎样投递（工具边界吸收排队消息）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -279,10 +290,19 @@ pub enum KernelEvent {
     PlanChanged {
         enabled: bool,
     },
+    #[serde(rename_all = "camelCase")]
     TurnStarted {
         turn: TurnId,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         command: Option<CommandId>,
+        /// 控制轮标记（NIBI 中枢启动/设置轮）：投影据它在轮头行写 `executionKind: "controlOnly"`，
+        /// 不把会话 control 推进 running（Node 的 onTurnStarted 只在 agent 分支动 control）。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        execution_kind: Option<TurnExecutionKind>,
+        /// 控制轮的 `metadata.workflowLaunch`（与消息记录上同一份）：轮头行与 userInput 行
+        /// 的 `workflowLaunch` 字段、`origin: "workflowLaunch"` 都由它驱动。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        workflow_launch: Option<Value>,
     },
     TurnFinished {
         turn: TurnId,
@@ -459,6 +479,11 @@ pub struct SessionView {
     /// 本进程里最近一个完成的主回合请求（子代理的快照是子代理请求，F112）的输出速度（F105）：只在内存里，冷打开的为空。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_speed: Option<crate::metering::OutputSpeed>,
+    /// 这段历史里的工作流控制轮（NIBI 中枢启动 / run 卡「配置」的消息记录带 `source: "workflow_launch"`
+    /// 与 `metadata.workflowLaunch`，launch.md）：冷投影据它在 real-user 轮边界里重建 controlOnly 的
+    /// 启动/设置轮（Node transcript-hydration 的 `workflowLaunchOfMessage` 同一判据）。serde 缺省为空。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub launches: Vec<SessionLaunchTurn>,
 }
 
 // 会话生命周期的类型（SessionStart / SessionEnd 的来源、rewind 选择器的条目）放在分出的文件里（400 行上限，

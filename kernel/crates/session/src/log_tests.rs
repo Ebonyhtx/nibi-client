@@ -210,6 +210,8 @@ async fn the_revision_counts_state_changes_only() {
     };
     assert_eq!(log.revision(), 0);
     log.append(KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
     });

@@ -91,6 +91,8 @@ impl Actor {
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
             command: Some(command.clone()),
+            execution_kind: None,
+            workflow_launch: None,
         });
         let abort = Abort::new();
         let (sender, requests) = mpsc::channel(SINK_REQUESTS);

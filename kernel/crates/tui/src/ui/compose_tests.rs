@@ -104,6 +104,8 @@ mod send_now {
 
     fn started() -> KernelEvent {
         KernelEvent::TurnStarted {
+            execution_kind: None,
+            workflow_launch: None,
             turn: TurnId::new("t1"),
             command: None,
         }

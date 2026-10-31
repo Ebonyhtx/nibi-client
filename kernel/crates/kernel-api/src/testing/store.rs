@@ -14,8 +14,9 @@ use crate::message::AttachmentMessage;
 use crate::message::Message;
 use crate::store::{
     ArtifactPurpose, ArtifactRef, ArtifactStore, CommitReceipt, Fact, FactBatch, ForkReceipt,
-    LoadedSession, SessionFilter, SessionFork, SessionKind, SessionMeta, SessionOrder, SessionPage,
-    SessionQuery, SessionRecord, SessionStore, SessionSummary, StoreError,
+    LoadedSession, SessionFilter, SessionFork, SessionKind, SessionLaunchTurn, SessionMeta,
+    SessionOrder, SessionPage, SessionQuery, SessionRecord, SessionStore, SessionSummary,
+    StoreError,
 };
 
 /// 重放事实得到活动历史与 checkpoint 清单：`RevertSet` 之后活动历史 = `kept` + 切点之后追加的
@@ -236,6 +237,17 @@ impl SessionStore for MemoryStore {
                 .get(session)
                 .and_then(|turns| turns.iter().rev().find_map(Clone::clone)),
             last_turn_failed: last_turn_failed(facts),
+            // 工作流控制轮（launch.md）：事实里带 WorkflowLaunchMessage 的消息，冷视图带给投影。
+            launches: facts
+                .iter()
+                .filter_map(|fact| match fact {
+                    Fact::WorkflowLaunchMessage { id, launch, .. } => Some(SessionLaunchTurn {
+                        message: id.clone(),
+                        launch: launch.clone(),
+                    }),
+                    _ => None,
+                })
+                .collect(),
         })
     }
 

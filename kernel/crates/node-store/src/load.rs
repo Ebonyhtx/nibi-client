@@ -1,12 +1,14 @@
 //! 冷读取：会话行、活动分支上的消息、模型选择与模式；会话列表
 //! （docs/specs/rust-cli/node-store.md §5，docs/specs/rust-m11-node-storage.md §6）。
+use std::borrow::Cow;
+
 use rusqlite::Connection;
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId};
 use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
 use rust_cli_kernel_api::permission::ExecutionState;
 use rust_cli_kernel_api::store::{
-    LoadedSession, SessionKind, SessionMeta, SessionSummary, TurnAnchor,
+    LoadedSession, SessionKind, SessionLaunchTurn, SessionMeta, SessionSummary, TurnAnchor,
 };
 use rust_cli_kernel_api::store::{SessionFilter, StoreError};
 use serde_json::Value;
@@ -17,6 +19,7 @@ use crate::mode;
 use crate::operations;
 use crate::records;
 use crate::repo::messages;
+use crate::repo::messages::WithParts;
 use crate::repo::sessions::{self, SessionRow};
 use crate::state::{self, PERMISSION_MODE_ENTRY};
 use crate::{LOCAL_ENVIRONMENT, OrStorage};
@@ -50,6 +53,11 @@ pub fn load(
     let loaded = LoadedSession {
         messages: crate::hydrate::hydrate(&active),
         earlier: crate::hydrate::hydrate(&earlier),
+        // 工作流控制轮（NIBI 中枢启动/设置轮，launch.md）：earlier 与活动段都算，显示顺序在前。
+        launches: launch_turns(&earlier)
+            .into_iter()
+            .chain(launch_turns(&active))
+            .collect(),
         model,
         mode: execution.map(|state| state.mode),
         plan: execution.is_some_and(|state| state.plan),
@@ -85,6 +93,21 @@ pub fn list(conn: &Connection, filter: &SessionFilter) -> Result<Vec<SessionSumm
             updated_at_ms: u64::try_from(row.time_updated).unwrap_or(0),
         })
         .collect())
+}
+
+/// 消息记录里带 `source: "workflow_launch"` 的控制轮（NIBI 中枢启动/设置轮，launch.md）：
+/// 消息 id 与 `metadata.workflowLaunch`。冷投影据它在 real-user 轮边界里重建 controlOnly 的
+/// 轮（Node `workflowLaunchOfMessage` 同一判据）；元数据缺了也照记——投影拿不到值时退回
+/// 普通 agent 轮的呈现。
+fn launch_turns(records: &[Cow<'_, WithParts>]) -> Vec<SessionLaunchTurn> {
+    records
+        .iter()
+        .filter(|record| record.info["source"] == "workflow_launch")
+        .map(|record| SessionLaunchTurn {
+            message: MessageId::new(record.id()),
+            launch: record.info["metadata"]["workflowLaunch"].clone(),
+        })
+        .collect()
 }
 
 fn meta(row: &SessionRow) -> SessionMeta {

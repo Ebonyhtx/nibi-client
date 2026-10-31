@@ -112,6 +112,7 @@ pub(crate) async fn session_on_machines<E: rust_cli_kernel_api::testing::AllPort
             start: rust_cli_kernel_api::session_api::StartSource::Startup,
             turn: None,
             last_turn_failed: false,
+            launches: Vec::new(),
         },
         Opened::Loaded,
     )

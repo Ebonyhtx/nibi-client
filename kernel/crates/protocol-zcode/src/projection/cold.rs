@@ -1,7 +1,7 @@
 //! 冷投影：从会话视图（已提交的消息）重建行。没有事件的时间，行的时间取会话的创建时间；回合以真人输入为界。
 
 use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::{SequencedEvent, SessionView};
+use rust_cli_kernel_api::session_api::{SequencedEvent, SessionView, TurnExecutionKind};
 use rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
 
 use super::{Projection, state::Phase, tool_key};
@@ -24,7 +24,24 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                 interrupted = false;
                 turns += 1;
                 let turn = format!("{}:turn:{turns}", user.id.as_str());
-                projection.start_turn(&turn, None, at, 0, &mut out);
+                // 工作流控制轮（NIBI 中枢启动/设置轮，launch.md）：消息记录带 `source: "workflow_launch"`
+                // 的 user 消息按 controlOnly 重建（Node transcript-hydration 的 workflowLaunchOfMessage
+                // 同一判据）；清单里没有或元数据缺席时退回普通 agent 轮。
+                let launch = view
+                    .launches
+                    .iter()
+                    .find(|entry| entry.message == user.id)
+                    .map(|entry| &entry.launch)
+                    .filter(|launch| !launch.is_null());
+                projection.start_turn(
+                    &turn,
+                    None,
+                    launch.map(|_| TurnExecutionKind::ControlOnly),
+                    launch,
+                    at,
+                    0,
+                    &mut out,
+                );
                 projection.message(message, at, 0, &mut out);
             }
             Message::User(user) => {
@@ -80,11 +97,14 @@ impl Projection {
         let Some(turn) = self.turn.as_ref().map(|turn| turn.id.clone()) else {
             return;
         };
+        let control_only = self.turn.as_ref().is_some_and(|turn| {
+            turn.execution_kind == Some(TurnExecutionKind::ControlOnly)
+        });
         let outcome = if interrupted {
             rust_cli_kernel_api::session_api::TurnOutcome::Interrupted
         } else {
             rust_cli_kernel_api::session_api::TurnOutcome::Success
         };
-        self.finish_turn(&turn, &outcome, None, at, out);
+        self.finish_turn(&turn, &outcome, None, control_only, at, out);
     }
 }

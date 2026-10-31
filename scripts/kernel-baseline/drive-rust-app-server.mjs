@@ -608,6 +608,27 @@ try {
     if (!checks.resumeAdditionalDir) {
       throw new Error("the subscribe additionalDirectories hint never reached the prompt");
     }
+    // NIBI_DRIVE_DUMP_SNAPSHOT=1：把冷投影快照里的行打成 (kind, origin, executionKind, state,
+    // activeMs, workflowLaunch.runId)——controlOnly 冷面的开发期对拍用（只读快照帧，不掺后续增量）。
+    if (process.env.NIBI_DRIVE_DUMP_SNAPSHOT) {
+      const snapshot = frames
+        .map((frame) => frame.frame?.payload)
+        .filter((payload) => payload?.kind === "snapshot")
+        .map((payload) => payload.snapshot)[0];
+      const rows = snapshot?.rows?.window ?? [];
+      console.log(
+        `cold rows: ${JSON.stringify(
+          rows.map((row) => [
+            row.kind,
+            row.origin,
+            row.executionKind,
+            row.state,
+            row.activeMs ?? null,
+            row.workflowLaunch?.runId ?? null,
+          ]),
+        )}`,
+      );
+    }
 
   console.log(`RESULT:${JSON.stringify({ kernel, checks, metrics: { providerRequests: REQUESTS.length } })}`);
     console.log("PHASES OK");
@@ -690,7 +711,8 @@ try {
   };
 
   // 轻量回放：snapshot.rows + deltas（row.appended / row.upserted / state.updated.patch）。
-  const buildState = () => {
+  // topic 给定时只回放该会话主题的帧（多会话的行 rowId 各自从头编号，不能混进一张 Map）。
+  const buildState = (topic = null) => {
     let logEpoch = null;
     let revision = 0;
     let stopState = null;
@@ -699,6 +721,7 @@ try {
     let sharedContextImport = null;
     const rows = new Map();
     for (const frame of frames) {
+      if (topic && (frame.topic ?? frame.frame?.topic) !== topic) continue;
       const payload = frame.frame?.payload ?? {};
       if (payload.kind === "snapshot") {
         const snap = payload.snapshot ?? {};
@@ -1098,6 +1121,13 @@ try {
     );
     const dwfSession = created.result?.sessionId;
     if (!dwfSession) throw new Error("createSession(dwf) returned no sessionId");
+    // 订阅这个会话的主题（Host 正常流程）：活投影的 controlOnly 行探针靠它的帧。
+    await send("v4/conversation/subscribe", {
+      topic: `conversation/${dwfSession}`,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
     const missing = await simpleCommand(
       "0197d3f0-0000-7000-8000-0000000000a1",
       "startSavedWorkflow",
@@ -1259,6 +1289,13 @@ try {
     );
     const session = created.result?.sessionId;
     if (!session) throw new Error("createSession(dwfAmend) returned no sessionId");
+    // 订阅这个会话的主题（Host 正常流程）：活投影的 controlOnly 行探针靠它的帧。
+    await send("v4/conversation/subscribe", {
+      topic: `conversation/${session}`,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
     const started = await simpleCommand(
       "0197d3f0-0000-7000-8000-0000000000c1",
       "startSavedWorkflow",
@@ -1481,6 +1518,36 @@ try {
       `dwf settings turn: count=${checks.dwfSettingsTurnCount} launch=${checks.dwfLaunchTurnText}/${checks.dwfLaunchTurnMeta} ` +
         `retune=${checks.dwfSettingsTurnRetuneInPlace}/${checks.dwfSettingsTurnRetuneMeta} ` +
         `next=${checks.dwfSettingsTurnAmendModel}/${checks.dwfSettingsTurnAmendMeta}`,
+    );
+
+    // 活投影的 controlOnly 面（launch.md 控制轮的行形状，Node product-projection 同形）：
+    // 轮头与输入行都用 workflowLaunch origin、executionKind=controlOnly、元数据原样上行；
+    // 轮头收口不带 activeMs（0 秒不能被旧 UI 读成「已工作 1 秒」）。
+    const dwfTopic = `conversation/${session}`;
+    const controlRowsOf = () =>
+      [...buildState(dwfTopic).rows].filter((row) => row.executionKind === "controlOnly");
+    // SQL 落库先于投影帧：等三只控制轮的行都到了再对形状。
+    await waitFor(
+      () => (controlRowsOf().length >= 3 ? true : undefined),
+      "controlOnly projection rows",
+      30_000,
+    ).catch(() => {});
+    const controlRows = controlRowsOf();
+    checks.dwfControlRows = controlRows.length;
+    checks.dwfControlRowShape = controlRows.every(
+      (row) =>
+        row.origin === "workflowLaunch" &&
+        typeof row.workflowLaunch?.runId === "string" &&
+        (row.kind === "turnHeader"
+          ? row.state === "completedSuccess" && row.activeMs === undefined
+          : row.kind === "userInput"),
+    )
+      ? "ok"
+      : JSON.stringify(
+          controlRows.map((row) => [row.kind, row.origin, row.state, row.activeMs]),
+        ).slice(0, 140);
+    console.log(
+      `dwf control rows: count=${checks.dwfControlRows} shape=${checks.dwfControlRowShape}`,
     );
   }
 

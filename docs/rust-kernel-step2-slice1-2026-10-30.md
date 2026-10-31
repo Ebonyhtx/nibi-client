@@ -548,3 +548,37 @@ cargo test -p rust-cli-protocol-zcode --locked --offline
 cargo clippy -p rust-cli-protocol-zcode --all-targets --offline -- -D warnings
 cargo +1.95.0 test -p rust-cli-protocol-zcode --locked --offline
 ```
+
+## 6.27 第二十八步：控制轮的投影面（2026-10-30）
+
+中枢启动 / 设置轮在活投影与冷投影里按 controlOnly 呈现（详见 CHANGELOG-FORK §6.20）。行形状
+以 Node 的三处为准逐字段移植：`buildTurnHeaderRow`（`origin: turnHeaderOrigin(inputSource)` +
+`executionKind: payload.executionKind ?? "agent"`）、product-projection 轮头/输入行上的
+`workflowLaunch` 元数据、`onTurnComplete` 的 controlOnly 分支（只收口轮头不碰 session control，
+`leaveDraftAfterControlOnlyTurn` 让 draft 会话推进终态——否则 sessions-index 把恒为 draft 的
+中枢直接启动会话丢掉，侧栏要等重启才出现）。
+
+- **事件面**：`KernelEvent::TurnStarted` 增 `execution_kind: Option<TurnExecutionKind>`
+  （agent / controlOnly；缺席按 agent，与 Node normalizer 同读法）与 `workflow_launch:
+  Option<Value>`（控制轮元数据）。`SessionView` / `LoadedSession` 增 `launches:
+  Vec<SessionLaunchTurn>`（消息 id + `metadata.workflowLaunch`）——`Message::User` 不带消息
+  元数据（168 处字面量的类型不能为它加字段），冷投影靠这份并行清单认控制轮。
+- **session**：`write_launch` 的 TurnStarted 带 controlOnly + 元数据 + 命令 id；actor 持
+  `launches`（冷加载取 `LoadedSession.launches`，`write_launch` 追加），`view()` 带出。
+- **node-store**：冷读取从消息记录的 `source: "workflow_launch"` 采集（earlier + 活动段都算）；
+  MemoryStore 从事实采集。测试夹具逐个补 `launches: Vec::new()`。
+- **投影**：`start_turn` 增控制轮参数——轮头行 `origin`/`executionKind`/`workflowLaunch`、
+  不动 phase/active/error、输入行同 origin；`finish_turn` 按 control_only 收口（无 activeMs、
+  无 usage patch、phase 只在 Draft 时推进并返回是否推进）；TurnStarted/TurnFinished 的
+  state 增量按 Node 的分支裁剪（控制轮起止都不发 control/usage patch，draft 推进除外）。
+  冷投影从 `SessionView.launches` 按 `workflowLaunchOfMessage` 同判据重建（元数据缺席退回普通
+  agent 轮）；`close_cold_turn` 识别控制轮。
+- **测试**：projection_tests 3 个新钉（控制轮行形状 + draft 推进、已开始会话上不碰 control、
+  冷重建控制轮 + 清单缺席回退）。
+- **门禁**：`check-dwf-engine.mjs` 63 → **65 字段**。驱动给修订会话订阅会话主题，
+  `buildState` 按 topic 过滤（多会话行 rowId 冲突），新增 `dwfControlRows` / `dwfControlRowShape`
+  ——两内核各 3 只控制轮行、形状逐项一致。冷面用驱动冷模式的 `NIBI_DRIVE_DUMP_SNAPSHOT=1`
+  转储做开发期对拍：6 只控制轮行两内核逐字段一致。
+- **暴露的下一个缺口**：run 通知轮的轮头行 Node 是 `origin: "backgroundResult"`（live 同），
+  Rust 活投影开成 userInput、冷投影不立轮头（通知是 `UserOrigin::Meta` 的 meta 消息，cold.rs
+  不认它开轮）——通知/同伴轮的 origin 面下一片接。

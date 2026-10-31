@@ -18,9 +18,12 @@ use rust_cli_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, OrchestrationError, QueryError, QueryStop,
 };
 use rust_cli_kernel_api::session_api::{
-    Ack, Command, CommandEnvelope, Delivery, KernelEvent, QueuedInput, SessionView, TurnOutcome,
+    Ack, Command, CommandEnvelope, Delivery, KernelEvent, QueuedInput, SessionView,
+    TurnExecutionKind, TurnOutcome,
 };
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionMeta, TurnAnchor, WorkspaceCheckpoint};
+use rust_cli_kernel_api::store::{
+    Fact, FactBatch, SessionLaunchTurn, SessionMeta, TurnAnchor, WorkspaceCheckpoint,
+};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 
@@ -198,6 +201,9 @@ pub(crate) struct Actor {
     /// 回合在跑时到达的工作流控制轮（NIBI 中枢/「配置」，launch.md「The settings turn」）：
     /// 收尾后按到达顺序落（与 Node 的 runtime 命令队列同一条时机——先于新 run 的通知）。
     pub(crate) pending_launch: VecDeque<LaunchTurn>,
+    /// 已落的工作流控制轮（冷加载的 `LoadedSession.launches` + 本进程落的）：`view()` 带给冷投影
+    /// （`Message::User` 不带消息元数据，冷投影靠这份清单认 controlOnly 轮）。
+    pub(crate) launches: Vec<SessionLaunchTurn>,
     seen: HashSet<CommandId>,
     /// 当前轮（开启它的真实用户输入与轮次 ID）：随每个批次交给存储（node-store.md §4，修复线 F6）；冷加载时取
     /// `LoadedSession.turn`。只在 `commit` 里改，锁不跨 await。
@@ -292,6 +298,7 @@ impl Actor {
             goal,
             held_records: Vec::new(),
             pending_launch: VecDeque::new(),
+            launches: state.launches,
             seen: HashSet::new(),
             turn: std::sync::Mutex::new(state.turn),
             resume_pending: std::sync::Mutex::new(resume_pending),
@@ -508,20 +515,28 @@ impl Actor {
         });
         let turn = self.deps.ids.turn();
         self.commit(
-            Some(command),
+            Some(command.clone()),
             vec![Fact::WorkflowLaunchMessage {
                 id: message.id().clone(),
                 text,
-                launch,
+                launch: launch.clone(),
             }],
         )
         .await?;
+        // 控制轮的完整轮边界（Node `emitControlOnlyUserTurn` 同形）：executionKind=controlOnly +
+        // workflowLaunch 元数据（活投影的轮头行与 userInput 行靠它画启动卡），不开模型回合。
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
-            command: None,
+            command: Some(command),
+            execution_kind: Some(TurnExecutionKind::ControlOnly),
+            workflow_launch: Some(launch.clone()),
         });
         self.log.append(KernelEvent::MessageDone {
             message: message.clone(),
+        });
+        self.launches.push(SessionLaunchTurn {
+            message: message.id().clone(),
+            launch,
         });
         self.messages.push(message);
         self.log.append(KernelEvent::TurnFinished {
@@ -809,6 +824,7 @@ impl Actor {
             context_usage: self.context_occupancy(),
             context_notice: self.context_notice().unwrap_or_default(),
             output_speed: self.output_speed,
+            launches: self.launches.clone(),
         }
     }
 }

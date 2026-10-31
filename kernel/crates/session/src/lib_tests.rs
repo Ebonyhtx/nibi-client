@@ -303,6 +303,7 @@ async fn asking_session_with(
             start: StartSource::Startup,
             turn: None,
             last_turn_failed: false,
+            launches: Vec::new(),
         },
         Opened::Created,
     );

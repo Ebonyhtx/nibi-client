@@ -105,6 +105,7 @@ impl Kernel for LocalKernel {
                 start,
                 turn: None,
                 last_turn_failed: false,
+                launches: Vec::new(),
             },
             Opened::Created,
         );
@@ -156,6 +157,7 @@ impl Kernel for LocalKernel {
             start,
             turn: loaded.turn,
             last_turn_failed: loaded.last_turn_failed,
+            launches: loaded.launches,
         };
         Ok(self.start(state, Opened::Loaded))
     }

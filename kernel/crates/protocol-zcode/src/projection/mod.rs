@@ -13,7 +13,7 @@ use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent, Usage};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{
-    KernelEvent, QueuedInput, SequencedEvent, SessionView, TurnOutcome,
+    KernelEvent, QueuedInput, SequencedEvent, SessionView, TurnExecutionKind, TurnOutcome,
 };
 use rust_cli_kernel_api::tool::ToolOutput;
 use serde_json::{Map, Value, json};
@@ -48,6 +48,10 @@ struct Turn {
     /// 当前模型响应的序号（流式增量带来；assistant 消息落定时用它找行）。
     response: Option<u32>,
     keys: Vec<String>,
+    /// 控制轮标记（NIBI 中枢启动/设置轮，launch.md）：行与 control 的走法都按它分岔。
+    execution_kind: Option<TurnExecutionKind>,
+    /// 控制轮的 `metadata.workflowLaunch`（轮头行与 userInput 行的 `workflowLaunch` 字段）。
+    launch: Option<Value>,
 }
 
 /// 一个会话的投影。
@@ -367,15 +371,26 @@ impl Projection {
         let mut patch = Map::new();
         let seq = event.seq;
         match &event.event {
-            KernelEvent::TurnStarted { turn, command } => {
+            KernelEvent::TurnStarted {
+                turn,
+                command,
+                execution_kind,
+                workflow_launch,
+            } => {
                 self.start_turn(
                     turn.as_str(),
                     command.as_ref().map(|c| c.as_str().to_owned()),
+                    *execution_kind,
+                    workflow_launch.as_ref(),
                     now,
                     seq,
                     &mut out,
                 );
-                self.phase_patch(&mut patch);
+                // 控制轮不动 session control（Node 的 onTurnStarted 只在 agent 分支推 running，
+                // controlOnly 不伪造 running 与工时）。
+                if *execution_kind != Some(TurnExecutionKind::ControlOnly) {
+                    self.phase_patch(&mut patch);
+                }
             }
             KernelEvent::MessageDone { message } => self.message(message, now, seq, &mut out),
             KernelEvent::HistoryRewritten { .. } => {
@@ -487,9 +502,26 @@ impl Projection {
                 outcome,
                 usage,
             } => {
-                self.finish_turn(turn.as_str(), outcome, usage.as_ref(), now, &mut out);
-                self.phase_patch(&mut patch);
-                patch.insert("usage".into(), state::usage(self.context, &self.total));
+                // 控制轮收尾（Node onTurnComplete 的 controlOnly 分支）：只收口轮头，不碰 session
+                // control、不补 usage——会话还停在 draft 时除外（leaveDraftAfterControlOnlyTurn：
+                // 冷恢复矛盾，sessions-index 会把恒为 draft 的会话丢掉）。
+                let control_only = self.turn.as_ref().is_some_and(|turn| {
+                    turn.execution_kind == Some(TurnExecutionKind::ControlOnly)
+                });
+                let advanced = self.finish_turn(
+                    turn.as_str(),
+                    outcome,
+                    usage.as_ref().filter(|_| !control_only),
+                    control_only,
+                    now,
+                    &mut out,
+                );
+                if !control_only || advanced {
+                    self.phase_patch(&mut patch);
+                }
+                if !control_only {
+                    patch.insert("usage".into(), state::usage(self.context, &self.total));
+                }
                 if !self.pending.is_empty() {
                     self.pending.clear();
                     patch.insert("pendingInteractions".into(), json!([]));
@@ -539,32 +571,53 @@ impl Projection {
         out
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn start_turn(
         &mut self,
         turn: &str,
         command: Option<String>,
+        execution_kind: Option<TurnExecutionKind>,
+        launch: Option<&Value>,
         now: u64,
         seq: u64,
         out: &mut Vec<Value>,
     ) {
-        self.executions += 1;
-        self.phase = Phase::Running;
-        self.error = None;
-        self.active = Some(ActiveWork {
-            execution: format!("runtime_command_{}", self.executions),
-            command: command.clone(),
-            started_at: now,
-        });
+        let control_only = execution_kind == Some(TurnExecutionKind::ControlOnly);
+        // 控制轮不开模型回合：不推进 running、不立 activeWork、不清 lastError
+        // （Node 的 onTurnStarted 只在 agent 分支动 session control）。
+        if !control_only {
+            self.executions += 1;
+            self.phase = Phase::Running;
+            self.error = None;
+            self.active = Some(ActiveWork {
+                execution: format!("runtime_command_{}", self.executions),
+                command: command.clone(),
+                started_at: now,
+            });
+        }
         self.turn = Some(Turn {
             id: turn.to_owned(),
             command: command.clone(),
             started_at: now,
             response: None,
             keys: Vec::new(),
+            execution_kind,
+            launch: launch.cloned(),
         });
         let mut row = self.base(turn, turn, "turnHeader", now, seq);
-        row.insert("origin".into(), json!("userInput"));
-        row.insert("executionKind".into(), json!("agent"));
+        // 中枢启动/设置轮：轮头与输入行都用 workflowLaunch origin（UI 据此画启动卡而非用户气泡，
+        // Node event-normalizer 的 turnHeaderOrigin），`workflowLaunch` 元数据原样上行。
+        let origin = if launch.is_some() {
+            "workflowLaunch"
+        } else {
+            "userInput"
+        };
+        row.insert("origin".into(), json!(origin));
+        let kind = if control_only { "controlOnly" } else { "agent" };
+        row.insert("executionKind".into(), json!(kind));
+        if let Some(launch) = launch {
+            row.insert("workflowLaunch".into(), launch.clone());
+        }
         if let Some(command) = &command {
             row.insert("sourceCommandId".into(), json!(command));
         }
@@ -573,14 +626,16 @@ impl Projection {
         self.append(turn_key(turn), row, out);
     }
 
+    /// 收口一个回合；返回控制轮是否把 draft 会话推进了终态（普通回合总是 true）。
     fn finish_turn(
         &mut self,
         turn: &str,
         outcome: &TurnOutcome,
         usage: Option<&Usage>,
+        control_only: bool,
         now: u64,
         out: &mut Vec<Value>,
-    ) {
+    ) -> bool {
         if let Some(usage) = usage {
             state::add_usage(&mut self.total, usage);
         }
@@ -599,7 +654,12 @@ impl Projection {
                 ("failed", "failed", Phase::Error)
             }
         };
-        self.phase = phase;
+        // 控制轮不动会话 control（Node：非 draft 会话上的控制轮照旧不碰 session control）；
+        // draft 会话上推进到终态，sessions-index 才会认领中枢直接启动的会话。
+        let advanced = !control_only || self.phase == Phase::Draft;
+        if advanced {
+            self.phase = phase;
+        }
         self.active = None;
         let started = self.turn.as_ref().map_or(now, |turn| turn.started_at);
         let keys = self.turn.take().map(|turn| turn.keys).unwrap_or_default();
@@ -639,13 +699,18 @@ impl Projection {
             |row| {
                 row.insert("state".into(), json!(header));
                 row.insert("endedAt".into(), json!(now));
-                row.insert("activeMs".into(), json!(now.saturating_sub(started)));
+                // 控制轮没有 Agent 工时（Node 的 controlOnly 分支不带 activeMs；0 秒也不能
+                // 落下去——旧 UI 会把它格式化成「已工作 1 秒」）。
+                if !control_only {
+                    row.insert("activeMs".into(), json!(now.saturating_sub(started)));
+                }
                 if let Some(tokens) = output_tokens {
                     row.insert("outputTokens".into(), json!(tokens));
                 }
             },
             out,
         );
+        advanced
     }
 
     /// 队列（`queueStateSchema`）：内核的排队输入加上 sendText 时记下的事实。

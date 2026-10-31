@@ -74,6 +74,8 @@ fn main_app(lang: Lang) -> App {
         &mut app,
         4,
         KernelEvent::TurnStarted {
+            execution_kind: None,
+            workflow_launch: None,
             turn: rust_cli_kernel_api::ids::TurnId::new("turn_1"),
             command: None,
         },
@@ -137,6 +139,7 @@ fn subagent_view(mode: PermissionMode, plan: bool, stats: bool) -> Transcript {
             duration_ms: 4_000,
             first_content_ms: Some(1_000),
         }),
+        launches: Vec::new(),
     };
     Transcript::from_view(view, 0)
 }
@@ -487,5 +490,6 @@ fn snapshot_of(view: Transcript) -> SessionView {
         context_usage: view.context_usage(),
         context_notice: view.context_notice(),
         output_speed: view.output_speed(),
+        launches: Vec::new(),
     }
 }

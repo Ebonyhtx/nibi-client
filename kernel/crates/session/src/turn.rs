@@ -154,6 +154,8 @@ impl Actor {
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
             command: None,
+            execution_kind: None,
+            workflow_launch: None,
         });
         for message in &users {
             self.log.append(KernelEvent::MessageDone {

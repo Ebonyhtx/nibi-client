@@ -62,7 +62,14 @@ impl Projection {
                 }
                 let mut row = self.base(&turn.id, user.id.as_str(), "userInput", now, seq);
                 row.insert("text".into(), json!(text_of(&user.content)));
-                row.insert("origin".into(), json!("realUser"));
+                // 中枢启动/设置轮的输入行：与轮头同用 workflowLaunch origin（UI 据此画启动卡而非
+                // 用户气泡，Node mapUserInputOrigin），元数据原样上行；普通输入还是 realUser。
+                if let Some(launch) = &turn.launch {
+                    row.insert("origin".into(), json!("workflowLaunch"));
+                    row.insert("workflowLaunch".into(), launch.clone());
+                } else {
+                    row.insert("origin".into(), json!("realUser"));
+                }
                 if let Some(command) = &turn.command {
                     row.insert("sourceCommandId".into(), json!(command));
                     row.insert("rootSourceCommandId".into(), json!(command));

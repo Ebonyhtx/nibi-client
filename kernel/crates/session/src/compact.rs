@@ -45,6 +45,8 @@ impl Actor {
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
             command: Some(command),
+            execution_kind: None,
+            workflow_launch: None,
         });
         self.log.append(KernelEvent::CompactStarted {
             trigger: CompactTrigger::Manual,

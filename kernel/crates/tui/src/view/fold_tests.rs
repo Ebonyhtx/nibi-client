@@ -107,6 +107,8 @@ fn delta(response: u32, index: usize, text: &str) -> KernelEvent {
 
 fn started() -> KernelEvent {
     KernelEvent::TurnStarted {
+        execution_kind: None,
+        workflow_launch: None,
         turn: TurnId::new("t1"),
         command: Some(CommandId::new("c1")),
     }
