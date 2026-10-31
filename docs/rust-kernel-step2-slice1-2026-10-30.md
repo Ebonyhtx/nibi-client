@@ -513,6 +513,19 @@ actor 选型（persona 绑定 > run 级 > 缺席；点名没绑定大声失败�
 解不出来按 compile_failed / model_unavailable 拒绝。门禁 55 → **58 字段**（两条 run 的绑定表
 逐字节一致 + 第一个 ask 真跑在被点名的模型上）。resume 的 pin 仍未接。
 
+## 6.26 第二十七步：GetWorkflowRun 的情势截面与产物（2026-10-30）
+
+四块缺了的读面接上（详见 CHANGELOG-FORK §6.19）：`<holes>` / `<health>` / `<phases>` /
+`<subagents>` / `<artifacts>` 五个块 + 身份行（`<max_concurrency>` / `<subagent_model>` /
+`<script_models>`）。数据源与 Node 同构：**一趟事件扫**（Node `indexRosterEvents` 的移植）喂
+阶段时刻 / 停滞 / 结算序；节点行（非 report、不带结果）喂花名册的成败与 token；`hole-reached`
+× `hole-filled` 合流出留白（waiting 只认宿主注入的开放集——进程亡故后没有 promise 在等，
+单靠事件会把没人问的留白报成在等）；`kind='artifact'` 的行按「只收 completed、版本取最新、
+itemCount 只数预置看板、primary 带头」归并。格式器逐字移植（行头 1 起的序号、列宽由本次的行
+算出、`ahead` 行只有名字与状态、终态不带 stalled、leftover 说明、产物行与完成通知共用一个
+格式器），10 个单测钉住输出。门禁 58 → **63 字段**；实形态探针（带阶段/留白/产物的停驻态
+对拍）因 Node 轮调度敏感撤下，等 FillWorkflowHole 切片。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要

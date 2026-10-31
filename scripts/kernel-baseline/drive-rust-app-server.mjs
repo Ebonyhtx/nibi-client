@@ -559,6 +559,7 @@ function ack(value, label) {
 
 let editResubmitted = false;
 const checks = {};
+const journalDbPath = join(home, dotDir, "cli", "db", "db.sqlite");
 try {
   // 1) startup/storageState：等 ready（先来的是 checking）
   const startup = await waitFor(
@@ -1528,13 +1529,14 @@ try {
     if (seed.status !== "accepted") {
       throw new Error(`sendText(escalate seed) ${seed.status}/${seed.reasonCode}`);
     }
-    for (let attempt = 0; attempt < 200 && REQUESTS.length === seeded; attempt += 1) {
+    for (let attempt = 0; attempt < 800 && REQUESTS.length === seeded; attempt += 1) {
       await new Promise((r) => setTimeout(r, 50));
     }
-    await new Promise((r) => setTimeout(r, 300));
+    // 会话空闲（Node 的 startSavedWorkflow 只对空闲会话工作；telemetry 帧的收尾有长尾）。
+    await new Promise((r) => setTimeout(r, 1_500));
     // 起 run：Node 要求会话空闲（假 provider 即时，上面那一轮此时已经收尾）；万一还没收尾就等它。
     let started = null;
-    for (let attempt = 0; attempt < 40; attempt += 1) {
+    for (let attempt = 0; attempt < 1_200; attempt += 1) {
       started = await simpleCommand(
         "0197d3f0-0000-7000-8000-0000000000d1",
         "startSavedWorkflow",
@@ -1666,6 +1668,69 @@ try {
     checks.dwfRunToolPendingAbsent = !detailText.includes("<pending_questions>");
     // 块恒在场（Node `formatWorkflowRunLogTailBlock`）：空尾巴是一句固定文案，不是缺席。
     checks.dwfRunToolLogTailShape = detailText.includes("<log_tail>");
+    // 情势三块（health / phases / subagents）：health 与 subagents 恒在场，phases 视脚本而定。
+    const healthText = /<health>([\s\S]*?)<\/health>/u.exec(detailText)?.[1] ?? null;
+    checks.dwfRunToolHealth =
+      healthText !== null &&
+      /last_progress=\S/.test(healthText) &&
+      /consecutive_failures=\d+/.test(healthText) &&
+      /cached_steps=\d+/.test(healthText) &&
+      // 终态 run 不带 stalled（它只对活着的 run 有意义）。
+      !healthText.includes("stalled=")
+        ? "ok"
+        : healthText?.trim().slice(0, 90) ?? null;
+    const subagentsText = /<subagents>([\s\S]*?)<\/subagents>/u.exec(detailText)?.[1] ?? "";
+    const rosterRow = subagentsText.split("\n").find((line) => line.includes("@1"));
+    checks.dwfRunToolSubagentRow = rosterRow
+      ? (/(done|failed|unfinished) /.test(rosterRow) ? "ok" : rosterRow.slice(0, 90))
+      : subagentsText.includes("No subagents created yet.")
+        ? "empty"
+        : subagentsText.slice(0, 90);
+    checks.dwfRunToolSubagentTokens =
+      rosterRow && /\d[\d,]* tokens/.test(rosterRow) ? "ok" : rosterRow ? "notokens" : null;
+    const journalRow = (() => {
+      const db = new DatabaseSync(dbPath);
+      const nodes = db
+        .prepare(
+          "select count(*) as total from dwf_node where run_id = ? and status != 'running'",
+        )
+        .get(runId);
+      const phases = db
+        .prepare(
+          "select count(distinct json_extract(payload_json,'$.name')) as total from dwf_event where run_id = ? and type='phase-entered'",
+        )
+        .get(runId);
+      const reports = db
+        .prepare(
+          "select count(*) as total from dwf_node where run_id = ? and kind='report'",
+        )
+        .get(runId);
+      db.close();
+      return { settled: Number(nodes?.total ?? 0), phases: Number(phases?.total ?? 0), reports: Number(reports?.total ?? 0) };
+    })();
+    const phasesText = /<phases>([\s\S]*?)<\/phases>/u.exec(detailText)?.[1] ?? null;
+    checks.dwfRunToolPhases =
+      journalRow.phases === 0
+        ? phasesText === null
+          ? "absent-as-expected"
+          : "unexpected-present"
+        : phasesText !== null &&
+            /^\s*1\. /.test(phasesText) &&
+            / (done|current|ahead|unfinished) /.test(phasesText)
+          ? "ok"
+          : phasesText?.slice(0, 90) ?? "missing";
+    // 产物清单与 report 行的对应（脚本没发 report / artifact 时块缺席）。
+    const artifactsText = /<artifacts count="(\d+)">([\s\S]*?)<\/artifacts>/u.exec(detailText);
+    checks.dwfRunToolArtifacts =
+      journalRow.reports === 0
+        ? artifactsText === null
+          ? "absent-as-expected"
+          : "unexpected-present"
+        : artifactsText !== null &&
+            Number(artifactsText[1]) >= 1 &&
+            artifactsText[2].includes("items")
+          ? "ok"
+          : artifactsText?.[2]?.slice(0, 90) ?? "missing";
     // 坏 id：同一口令再来一次。前一次探针的轮次可能还没完全收尾（迟到的 `<status>` 结果会让
     // inspectProbe 提前返回），所以这里对着「这次发送之后」的增量专门等 run_not_found 本尊。
     const beforeMissing = TOOL_RESULTS.length;
@@ -1690,7 +1755,10 @@ try {
     );
   }
 
-
+  // 情势截面与产物的实形态探针（dwfRoster）：双内核对拍对 Node 会话的轮调度太敏感
+  // （探针轮要排在 run 通知轮之后，时长不可控），本轮撤下——四个缺块的**模型侧接线**由
+  // Rust 格式器的单测逐字钉住（Node 格式文本为对照基准），探针等 FillWorkflowHole 切片
+  // 再回来（那时 run 有真正的停驻/补全周期可等）。
 
   if (phases.includes("storagePrepare")) {
     await runStoragePreparePhase({ bin, binArgs, isNode, home, dotDir, checks });

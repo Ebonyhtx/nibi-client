@@ -238,8 +238,8 @@ pub struct WorkflowRunError {
 }
 
 /// 一个 run 的详情读面（journal + 停驻注册表的合成；`GetWorkflowRun` 的取数底座）。
-/// 阶段表 / 花名册相位 / 留白 / 用户面产物等读面尚未接的，字段整体缺席而不是空表。
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// 无从得知的字段整体缺席而不是空表（「没有」与「不知道」分开）。
+#[derive(Debug, Clone, PartialEq)]
 pub struct WorkflowRunDetail {
     pub run_id: String,
     /// 已烹熟的展示标签（name → 脚本首个非空行 → runId；读时派生，绝不回写）。
@@ -268,6 +268,173 @@ pub struct WorkflowRunDetail {
     pub error: Option<WorkflowRunError>,
     /// 本 run 自己的并发上界（低于天花板时才由调用方放行到模型面）。
     pub max_concurrency: Option<u64>,
+    /// 本 run 的子代理模型（规范串，`run-launched.subagentModel`；设过才在场）。
+    pub subagent_model: Option<String>,
+    /// 脚本点名的绑定表（`run-launched.modelBindings`；点名过才在场）。
+    pub model_bindings: Option<serde_json::Value>,
+    /// 阶段表：声明序 + 进过未声明的（脚本没声明、也一个都没进过时整字段缺席）。
+    pub phases: Option<Vec<WorkflowRunPhaseView>>,
+    /// 子代理花名册（恒在场；按铸造顺序）。
+    pub subagents: Vec<WorkflowRunSubagentView>,
+    /// run 整体还在不在动（恒在场）。
+    pub health: WorkflowRunHealth,
+    /// 留白（到达过且此刻在等或补过；零条整字段缺席）。
+    pub holes: Option<Vec<WorkflowRunHole>>,
+    /// 用户面产物（零件时整字段缺席）。
+    pub artifacts: Option<Vec<WorkflowRunArtifact>>,
+}
+
+/// 一个阶段在情势截面里的处境（Node `GetWorkflowRunPhase` 的镜像）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunPhaseView {
+    pub name: String,
+    /// `ahead` = 声明了还没到（唯一 rounds=0 的状态）。
+    pub state: String,
+    pub rounds: u64,
+    pub nodes_settled: u64,
+    pub nodes_running: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entered_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exited_at: Option<u64>,
+}
+
+/// 子代理此刻在干什么（Node `GetWorkflowRunSubagent` 的镜像）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunSubagentView {
+    pub site_id: String,
+    pub ordinal: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// 七词闭集（Node `subagentStateOf` 的同一判定顺序）。
+    pub state: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phase_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_ask: Option<WorkflowRunSubagentAsk>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait: Option<WorkflowRunSubagentWait>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parked_on: Option<String>,
+    pub steps_settled: u64,
+    pub steps_failed: u64,
+    pub tokens: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_progress_at: Option<u64>,
+}
+
+/// 子代理当前 ask 的截面（Node `GetWorkflowRunSubagentAsk` 的镜像；turn/toolCalls 缺席读作
+/// 「不知道」，`0` 读作「一个工具都没调过」）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunSubagentAsk {
+    pub site_id: String,
+    pub ordinal: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor_seq: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instructions_head: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turn: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_tool: Option<WorkflowRunSubagentLastTool>,
+}
+
+/// 最近一次被观察到的工具调用（target 是线索，不是入参）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunSubagentLastTool {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<u64>,
+}
+
+/// 当前 ask 在等什么（Node `GetWorkflowRunSubagentWait` 的镜像）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunSubagentWait {
+    pub cause: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retry_after_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub since: Option<u64>,
+}
+
+/// run 整体还在不在动（Node `GetWorkflowRunHealth` 的镜像）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunHealth {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_progress_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stalled_since: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub concurrency: Option<WorkflowRunConcurrencyHealth>,
+    pub consecutive_failures: u64,
+    pub cached_steps: u64,
+    /// 仅终态 run：还标着 running 的节点行数（进程死在它们下面）。为 0 时缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub leftover_running: Option<u64>,
+    /// 本读面恒知停驻表（journal 冷回放 ∪ 注册表）。
+    pub pending_questions_known: bool,
+}
+
+/// run 级并发现状（只在被压到界以下时在场）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunConcurrencyHealth {
+    pub effective: u64,
+    pub cap: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub since: Option<u64>,
+}
+
+/// 一处留白（Node `GetWorkflowRunHole` 的镜像）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunHole {
+    pub site_id: String,
+    pub ordinal: u64,
+    pub name: String,
+    /// 类型实参原文（`Verdict`）。
+    pub hole_type: String,
+    pub state: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub since: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filled_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filled_by: Option<String>,
+}
+
+/// 一件用户面产物（Node `GetWorkflowRunArtifact` 的镜像；不带 uri——模型读不了 store）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunArtifact {
+    pub id: String,
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    pub version: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+    pub item_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary: Option<bool>,
 }
 
 /// run 详情的取数端口（`GetWorkflowRun` 工具读它；journal 是真相，宿主合成停驻注册表）。

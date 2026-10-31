@@ -80,6 +80,12 @@ const REQUIRED = [
   "dwfRunToolPendingAbsent",
   "dwfRunToolLogTailShape",
   "dwfRunToolNotFound",
+  // 情势截面（health / phases / subagents）与产物清单：块存在性、行形状与 journal 对账。
+  "dwfRunToolHealth",
+  "dwfRunToolSubagentRow",
+  "dwfRunToolSubagentTokens",
+  "dwfRunToolPhases",
+  "dwfRunToolArtifacts",
 ];
 
 function run(kernel) {

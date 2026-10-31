@@ -1,10 +1,9 @@
 //! `GetWorkflowRun` 工具（Node `get-workflow-run.ts` 的路线 C 读面）：单 run 的自适应详情——
-//! 进度摘要 + log 尾巴 + 待答问题 + 收场。数据源是 journal（`SessionStore::workflow_run_detail`）
-//! 并上停驻注册表的活项（`WorkflowRunIntrospection` 端口，运行时合成）。
+//! 进度摘要 + 身份 + 待答问题 + 留白 + 健康/阶段/花名册 + log 尾巴 + 用量 + 收场 + 路由。
+//! 数据源是 journal（`SessionStore::workflow_run_detail`）并上停驻注册表的活项
+//! （`WorkflowRunIntrospection` 端口，运行时合成）。
 //!
-//! 刻意**不做** wait/block 语义：等待是 TaskOutput 的活，这里是即时快照。阶段表 / 花名册相位 /
-//! 留白 / 用户面产物等读面尚未接（投影面落地后补），对应块整体缺席而不是渲染空节——
-//! 「没有」与「不知道」是两个不同的事实。
+//! 刻意**不做** wait/block 语义：等待是 TaskOutput 的活，这里是即时快照。
 
 use std::sync::Arc;
 
@@ -13,7 +12,10 @@ use rust_cli_kernel_api::message::ToolResultContent;
 use rust_cli_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
-use rust_cli_kernel_api::workflow::{WorkflowRunDetail, WorkflowRunIntrospection};
+use rust_cli_kernel_api::workflow::{
+    WorkflowRunArtifact, WorkflowRunDetail, WorkflowRunIntrospection, WorkflowRunSubagentAsk,
+    WorkflowRunSubagentView,
+};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -35,6 +37,11 @@ Reach for it when: (a) the user asks how a workflow is going, (b) you want to re
 /// 停驻问题的引导句（Node `PENDING_QUESTIONS_INSTRUCTION` 逐字）：合成读面恒知道停驻表，
 /// 所以「查不到」的那一句（Node `PENDING_QUESTIONS_UNKNOWN`）在本读面上不可达，不收。
 const PENDING_QUESTIONS_INSTRUCTION: &str = "Each of these subagents is parked waiting for an answer and nothing times out on its behalf. Answer one with ResolveWorkflowQuestion using the ID in brackets. The rest of the run keeps running meanwhile.";
+
+/// 留白块的引导句（Node `holeBlocks` 逐字）：有在等的与全补完的两支。
+const HOLES_WAITING_INSTRUCTION_PREFIX: &str = "Each waiting hole parks one branch of the script until you supply its body, and nothing times out on its behalf. Read the run's draft for context, write only the statements of the hole's function returning its type, and call FillWorkflowHole with run_id=\"";
+const HOLES_WAITING_INSTRUCTION_SUFFIX: &str = "\" and the hole id in brackets as hole_id. The rest of the run keeps running meanwhile.";
+const HOLES_ALL_FILLED_INSTRUCTION: &str = "Every hole above has been filled; its body is part of the run's script now (see <amendable> to change it).";
 
 /// 能力缺席的业务失败（逐字同 Node：静默回空会让模型把「没跑过 workflow」和「读不到」混成同一结论）。
 const INTROSPECTION_UNAVAILABLE: &str = "workflow_introspection_unavailable: this session cannot read workflow runs — workflow execution is not available here, so no run history is reachable. This is a capability gap, not an empty project.";
@@ -180,6 +187,7 @@ fn unavailable_output() -> ToolOutput {
 /// 再是身份与生命周期，再是**此刻等着模型做的事**（停驻的问题），然后是叙事、用量与收场路由。
 fn format_model_content(detail: &WorkflowRunDetail, now: u64) -> String {
     let summary = build_summary(detail, now);
+    let terminal = is_terminal(&detail.status);
     let mut blocks = vec![
         format!("<summary>{}</summary>", escape(&summary)),
         format!("<run_id>{}</run_id>", escape(&detail.run_id)),
@@ -195,6 +203,29 @@ fn format_model_content(detail: &WorkflowRunDetail, now: u64) -> String {
     }
     if let Some(resumed) = &detail.resumed_from {
         blocks.push(format!("<resumed_from>{}</resumed_from>", escape(resumed)));
+    }
+    if let Some(bound) = &detail.max_concurrency {
+        blocks.push(format!("<max_concurrency>{bound}</max_concurrency>"));
+    }
+    if let Some(model) = &detail.subagent_model {
+        blocks.push(format!("<subagent_model>{}</subagent_model>", escape(model)));
+    }
+    if let Some(bindings) = &detail.model_bindings
+        && let Some(object) = bindings.as_object()
+        && !object.is_empty()
+    {
+        let rows = object
+            .iter()
+            .map(|(name, canonical)| {
+                format!(
+                    "\"{}\" = {}",
+                    escape(name),
+                    escape(canonical.as_str().unwrap_or_default())
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        blocks.push(format!("<script_models>\n{rows}\n</script_models>"));
     }
     if let Some(superseded) = &detail.superseded_by {
         blocks.push(format!(
@@ -215,6 +246,10 @@ fn format_model_content(detail: &WorkflowRunDetail, now: u64) -> String {
         format_instant(now, detail.updated_at)
     ));
     blocks.extend(pending_question_blocks(detail, now));
+    blocks.extend(hole_blocks(detail, now));
+    blocks.push(health_block(detail, now, terminal));
+    blocks.extend(phases_block(detail, now, terminal));
+    blocks.push(subagents_block(detail, now));
     // 叙事尾巴（Node `formatWorkflowRunLogTailBlock` 逐字）：块恒在场；事件带落库时刻时前缀
     // 年龄，老 journal 上没有这一列的行只有序号。空段（= 不知道的事实）直接消失，不留下
     // 两个连着的间隔；行尾 trim 掉最后一列的补白。
@@ -263,8 +298,423 @@ fn format_model_content(detail: &WorkflowRunDetail, now: u64) -> String {
             escape(&error.message)
         ));
     }
+    if let Some(artifacts) = &detail.artifacts
+        && !artifacts.is_empty()
+    {
+        // 用户面产物排在 result / error 之后（同完成通知的顺序）：行的格式与完成通知逐字
+        // 共用一个格式器（Node `formatPublishedArtifactLine`）。
+        let lines = artifacts
+            .iter()
+            .map(|artifact| escape(&artifact_line(artifact)))
+            .collect::<Vec<_>>()
+            .join("\n");
+        blocks.push(format!(
+            "<artifacts count=\"{}\">\n{lines}\n</artifacts>",
+            artifacts.len()
+        ));
+    }
     blocks.extend(routing_blocks(detail));
     blocks.join("\n\n")
+}
+
+/// `- report (markdown, primary, v2, …): Title`（Node `formatPublishedArtifactLine` 逐字）。
+fn artifact_line(artifact: &WorkflowRunArtifact) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if artifact.primary == Some(true) {
+        parts.push(artifact.kind.clone());
+        parts.push("primary".to_owned());
+    } else {
+        parts.push(artifact.kind.clone());
+    }
+    parts.push(format!("v{}", artifact.version));
+    if let Some(content_type) = &artifact.content_type
+        && !content_type.is_empty()
+    {
+        parts.push(content_type.clone());
+    }
+    let preset = matches!(artifact.kind.as_str(), "chart" | "table" | "metrics" | "board");
+    if preset {
+        parts.push(format!(
+            "{} item{}",
+            artifact.item_count,
+            if artifact.item_count == 1 { "" } else { "s" }
+        ));
+    } else if let Some(bytes) = artifact.bytes {
+        parts.push(format!("{bytes} bytes"));
+    }
+    let head = format!("- {} ({})", artifact.id, parts.join(", "));
+    match artifact.title.as_deref().map(str::trim) {
+        Some(title) if !title.is_empty() => format!("{head}: {title}"),
+        _ => head,
+    }
+}
+
+/// 留白块（Node `holeBlocks` 逐字）：紧随停驻的问题——同一种「此刻等着模型做的事」。
+fn hole_blocks(detail: &WorkflowRunDetail, now: u64) -> Vec<String> {
+    let Some(holes) = &detail.holes else {
+        return Vec::new();
+    };
+    if holes.is_empty() {
+        return Vec::new();
+    }
+    let lines = holes
+        .iter()
+        .map(|hole| {
+            let head = format!(
+                "[{}] \"{}\": {}",
+                escape(&hole.site_id),
+                escape(&hole.name),
+                escape(&hole.hole_type)
+            );
+            if hole.state == "waiting" {
+                let age = format_relative_age(now, hole.since)
+                    .map_or_else(String::new, |age| format!(" — waiting {}", age.replace(" ago", "")));
+                return format!("{head}{age}");
+            }
+            let age = hole
+                .filled_at
+                .and_then(|at| format_relative_age(now, Some(at)))
+                .map_or_else(String::new, |age| format!(" — filled {age}"));
+            let by = hole
+                .filled_by
+                .as_deref()
+                .map_or_else(String::new, |by| format!(" by {}", escape(by)));
+            format!("{head}{age}{by}")
+        })
+        .collect::<Vec<_>>();
+    let waiting = holes.iter().filter(|hole| hole.state == "waiting").count();
+    let instruction = if waiting == 0 {
+        HOLES_ALL_FILLED_INSTRUCTION.to_owned()
+    } else {
+        format!(
+            "{HOLES_WAITING_INSTRUCTION_PREFIX}{}{HOLES_WAITING_INSTRUCTION_SUFFIX}",
+            escape(&detail.run_id)
+        )
+    };
+    vec![format!("<holes>\n{}\n\n{instruction}\n</holes>", lines.join("\n"))]
+}
+
+/// `<health>`（Node `formatWorkflowRunHealthBlock` 逐字）：一行 key=value；终态 run 带遗留说明。
+fn health_block(detail: &WorkflowRunDetail, now: u64, terminal: bool) -> String {
+    let health = &detail.health;
+    let mut cells: Vec<String> = Vec::new();
+    if let Some(age) = format_relative_age(now, health.last_progress_at) {
+        cells.push(format!("last_progress={age}"));
+    }
+    if let Some(concurrency) = &health.concurrency {
+        let why = [
+            concurrency.reason.as_deref().map(escape),
+            concurrency
+                .since
+                .and_then(|since| format_relative_age(now, Some(since)))
+                .map(|age| format!("since {age}")),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ");
+        cells.push(format!(
+            "concurrency={}/{}{}",
+            concurrency.effective,
+            concurrency.cap,
+            if why.is_empty() { String::new() } else { format!(" ({why})") }
+        ));
+    }
+    if !terminal {
+        let stalled = match format_relative_age(now, health.stalled_since) {
+            Some(age) => format!("since {age}"),
+            None => "no".to_owned(),
+        };
+        cells.push(format!("stalled={stalled}"));
+    }
+    cells.push(format!("consecutive_failures={}", health.consecutive_failures));
+    cells.push(format!("cached_steps={}", health.cached_steps));
+    let note = match (terminal, health.leftover_running) {
+        (true, Some(leftover)) if leftover > 0 => format!(
+            "\nThe {leftover} \"running\" step{} below {} leftover{} of the exited process, not live work.",
+            if leftover == 1 { "" } else { "s" },
+            if leftover == 1 { "is a" } else { "are" },
+            if leftover == 1 { "" } else { "s" },
+        ),
+        _ => String::new(),
+    };
+    format!("<health>{}{note}</health>", cells.join("  "))
+}
+
+/// `<phases>`（Node `formatWorkflowRunPhasesBlock` 逐字）：列宽由本次的行算出来（有上界 24）；
+/// `ahead` 的行只有名字和状态。
+fn phases_block(detail: &WorkflowRunDetail, now: u64, terminal: bool) -> Vec<String> {
+    let Some(phases) = &detail.phases else {
+        return Vec::new();
+    };
+    if phases.is_empty() {
+        return Vec::new();
+    }
+    const MAX_COLUMN_WIDTH: usize = 24;
+    let width = |values: &[String]| -> usize {
+        values
+            .iter()
+            .map(|value| value.chars().count())
+            .max()
+            .unwrap_or(0)
+            .min(MAX_COLUMN_WIDTH)
+    };
+    let names: Vec<String> = phases
+        .iter()
+        .enumerate()
+        .map(|(index, phase)| format!("{}. {}", index + 1, escape(&phase.name)))
+        .collect();
+    let states: Vec<String> = phases.iter().map(|phase| phase.state.clone()).collect();
+    let name_width = width(&names);
+    let state_width = width(&states);
+    let lines = phases
+        .iter()
+        .enumerate()
+        .map(|(index, phase)| {
+            let name = pad_column(&names[index], name_width);
+            let state = pad_column(&states[index], state_width);
+            let rounds = if phase.rounds == 0 {
+                String::new()
+            } else {
+                format!(
+                    "{} round{}",
+                    phase.rounds,
+                    if phase.rounds == 1 { "" } else { "s" }
+                )
+            };
+            let counts = if phase.nodes_running > 0 {
+                format!(
+                    "{} settled, {} {}",
+                    phase.nodes_settled,
+                    phase.nodes_running,
+                    if terminal { "unfinished" } else { "running" }
+                )
+            } else if phase.nodes_settled == 0 {
+                String::new()
+            } else {
+                format!(
+                    "{} step{} settled",
+                    phase.nodes_settled,
+                    if phase.nodes_settled == 1 { "" } else { "s" }
+                )
+            };
+            // 没有离开时刻：活着的 run 说「到现在为止」，终态 run 什么也不说——它的离开时刻
+            // 无人记录，拿读时的 now 去减等于把「进程死后的这几个小时」算进那个阶段。
+            let duration = match (phase.entered_at, phase.exited_at) {
+                (_, Some(exited_at)) if phase.entered_at.is_some() => {
+                    format_duration(exited_at.saturating_sub(phase.entered_at.unwrap_or(0)))
+                }
+                (Some(entered_at), None) if !terminal => {
+                    format!("{} so far", format_duration(now.saturating_sub(entered_at)))
+                }
+                _ => String::new(),
+            };
+            [name, state, rounds, counts, duration]
+                .into_iter()
+                .filter(|cell| !cell.is_empty())
+                .collect::<Vec<_>>()
+                .join("  ")
+                .trim_end()
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    vec![format!("<phases>\n{}\n</phases>", lines.join("\n"))]
+}
+
+fn pad_column(value: &str, width: usize) -> String {
+    let length = value.chars().count();
+    if length >= width {
+        value.to_owned()
+    } else {
+        format!("{value}{}", " ".repeat(width - length))
+    }
+}
+
+/// `<subagents>`（Node `formatWorkflowRunSubagentsBlock` 逐字）：一行一个子代理 + 缩进的
+/// task 行；「正在做什么」按相位分叉。
+fn subagents_block(detail: &WorkflowRunDetail, now: u64) -> String {
+    if detail.subagents.is_empty() {
+        return "<subagents>No subagents created yet.</subagents>".to_owned();
+    }
+    const MAX_COLUMN_WIDTH: usize = 24;
+    const TASK_LINE_INDENT: &str = "  ";
+    let width = |values: &[String]| -> usize {
+        values
+            .iter()
+            .map(|value| value.chars().count())
+            .max()
+            .unwrap_or(0)
+            .min(MAX_COLUMN_WIDTH)
+    };
+    let names: Vec<String> = detail
+        .subagents
+        .iter()
+        .map(|subagent| subagent.name.as_deref().map(escape).unwrap_or_default())
+        .collect();
+    let addresses: Vec<String> = detail
+        .subagents
+        .iter()
+        .map(|subagent| format!("{}@{}", escape(&subagent.site_id), subagent.ordinal))
+        .collect();
+    let states: Vec<String> = detail
+        .subagents
+        .iter()
+        .map(|subagent| subagent.state.clone())
+        .collect();
+    let name_width = width(&names);
+    let address_width = width(&addresses);
+    let state_width = width(&states);
+    let asked_at_by_qid: std::collections::HashMap<&str, u64> = detail
+        .pending_questions
+        .iter()
+        .map(|question| (question.qid.as_str(), question.asked_at))
+        .collect();
+    let mut lines: Vec<String> = Vec::new();
+    detail.subagents.iter().enumerate().for_each(|(index, subagent)| {
+        let activity = subagent_activity_cell(subagent, now, &asked_at_by_qid);
+        let phase_cell = subagent
+            .phase_name
+            .as_deref()
+            .map_or_else(String::new, |name| format!("phase {}", escape(name)));
+        let tokens_cell = if subagent.tokens > 0 {
+            format!("{} tokens", format_count(subagent.tokens))
+        } else {
+            String::new()
+        };
+        lines.push(
+            [
+                pad_column(&names[index], name_width),
+                pad_column(&addresses[index], address_width),
+                pad_column(&states[index], state_width),
+                phase_cell,
+                activity,
+                tokens_cell,
+            ]
+            .into_iter()
+            .filter(|cell| !cell.is_empty())
+            .collect::<Vec<_>>()
+            .join("  ")
+            .trim_end()
+            .to_owned(),
+        );
+        if let Some(head) = subagent
+            .current_ask
+            .as_ref()
+            .and_then(|ask| ask.instructions_head.as_deref())
+            .filter(|head| !head.is_empty())
+        {
+            lines.push(format!("{TASK_LINE_INDENT}task: {}", escape(head)));
+        }
+    });
+    format!("<subagents>\n{}\n</subagents>", lines.join("\n"))
+}
+
+/// 「正在做什么」格（Node `subagentActivityCell` 的同一条判定链）。
+fn subagent_activity_cell(
+    subagent: &WorkflowRunSubagentView,
+    now: u64,
+    asked_at_by_qid: &std::collections::HashMap<&str, u64>,
+) -> String {
+    if subagent.state == "parked"
+        && let Some(parked_on) = &subagent.parked_on
+    {
+        let waited = asked_at_by_qid
+            .get(parked_on.as_str())
+            .and_then(|at| format_relative_age(now, Some(*at)))
+            .map_or_else(String::new, |age| format!(" for {}", age.replace(" ago", "")));
+        return format!("on question {}{waited}", escape(parked_on));
+    }
+    if subagent.state == "waiting" {
+        return wait_cell(subagent, now);
+    }
+    if subagent.state == "unfinished"
+        && let Some(ask) = &subagent.current_ask
+    {
+        return format!("{} was in flight at the stop", ask_address(ask));
+    }
+    if let Some(ask) = &subagent.current_ask {
+        return executing_cell(ask, now);
+    }
+    settled_cell(subagent)
+}
+
+fn ask_address(ask: &WorkflowRunSubagentAsk) -> String {
+    // actorSeq 是 journal 的 0 基列；模型面按人读的 1 基说「第几步」。
+    let step = ask
+        .actor_seq
+        .map_or_else(String::new, |seq| format!(" (step {})", seq + 1));
+    format!("{}@{}{step}", escape(&ask.site_id), ask.ordinal)
+}
+
+fn executing_cell(ask: &WorkflowRunSubagentAsk, now: u64) -> String {
+    let mut parts = vec![ask_address(ask)];
+    if let Some(started_at) = ask.started_at
+        && let Some(age) = format_relative_age(now, Some(started_at))
+    {
+        parts.push(format!("{} on this step", age.replace(" ago", "")));
+    }
+    if let Some(turn) = ask.turn {
+        parts.push(format!("turn {turn}"));
+    }
+    if let Some(tool_calls) = ask.tool_calls {
+        parts.push(format!(
+            "{} tool call{}",
+            tool_calls,
+            if tool_calls == 1 { "" } else { "s" }
+        ));
+    }
+    if let Some(last_tool) = &ask.last_tool {
+        let target = last_tool
+            .target
+            .as_deref()
+            .map_or_else(String::new, |target| format!(" {}", escape(target)));
+        let age = last_tool
+            .at
+            .and_then(|at| format_relative_age(now, Some(at)))
+            .map_or_else(String::new, |age| format!(" {age}"));
+        parts.push(format!(
+            "last {}{target}{age}",
+            escape(&last_tool.name)
+        ));
+    }
+    parts.join(", ")
+}
+
+fn wait_cell(subagent: &WorkflowRunSubagentView, now: u64) -> String {
+    let Some(wait) = &subagent.wait else {
+        return String::new();
+    };
+    let waited = wait
+        .since
+        .and_then(|since| format_relative_age(now, Some(since)))
+        .map_or_else(String::new, |age| format!(" for {}", age.replace(" ago", "")));
+    if wait.cause == "slot" {
+        return format!("waiting for a slot{waited}");
+    }
+    let after = wait
+        .reason
+        .as_deref()
+        .map_or_else(String::new, |reason| format!(" after {}", escape(reason)));
+    let retry = wait
+        .retry_after_ms
+        .map_or_else(String::new, |ms| format!(", retry in {}", format_duration(ms)));
+    format!("backoff{after}{waited}{retry}")
+}
+
+fn settled_cell(subagent: &WorkflowRunSubagentView) -> String {
+    if subagent.steps_settled == 0 && subagent.steps_failed == 0 {
+        return String::new();
+    }
+    let failed = if subagent.steps_failed > 0 {
+        format!(", {} failed", subagent.steps_failed)
+    } else {
+        String::new()
+    };
+    format!(
+        "{} step{}{failed}",
+        subagent.steps_settled,
+        if subagent.steps_settled == 1 { "" } else { "s" }
+    )
 }
 
 /// 停驻中的升级问题，排在用量/收场之前：这一块是**一件此刻等着模型做的事**，埋在叙事后面
@@ -508,3 +958,7 @@ fn escape(value: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
 }
+
+#[cfg(test)]
+#[path = "workflow_run_detail_tests.rs"]
+mod tests;

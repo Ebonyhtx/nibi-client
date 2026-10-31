@@ -575,6 +575,29 @@ launch.md「Models the script names」：`agent(…, { model: "名字" })` 的�
   `{"fake-model-b":"drive-fake/fake-model-b$enabled"}` 逐字节一致、第一个 ask 的 provider
   请求真在 fake-model-b 上、修订沿用同名绑定——绑定链路两端各自端到端可证。
 
+## 6.19 GetWorkflowRun 的情势截面与产物（2026-10-30，路线 C 第八段）
+
+四块缺了的读面接上（详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.26）：
+
+- **kernel-api**：`WorkflowRunDetail` 增 `subagent_model` / `model_bindings`（`run-launched` 上的
+  元数据）与 `phases` / `subagents` / `health` / `holes` / `artifacts` 五个截面字段及其镜像类型
+  （`WorkflowRunPhaseView` / `WorkflowRunSubagentView(+Ask/LastTool/Wait)` / `WorkflowRunHealth
+  (+ConcurrencyHealth)` / `WorkflowRunHole` / `WorkflowRunArtifact`）。
+- **node-store**：`repo::dwf` 增事件一趟扫的 `index_events`（Node `indexRosterEvents` 的移植：
+  进度/停滞/阶段时刻/结算序，`node-waiting` 刻意不算进度）、`node_rows`（非 report 行不带结果）、
+  `tagged_report_counts`（`group by` 下推的 itemCount）、`hole_rows`（`hole-reached` ×
+  `hole-filled` 合流，waiting 只认宿主注入的开放集）、`artifact_rows`（`kind='artifact'` 归并：
+  只收 completed、版本取最新、itemCount 只数预置看板、primary 带头）；`run_detail` 一次事件读喂
+  全部读面，并抽出 `subagent_model` / `model_bindings`。
+- **tools**：`workflow_run_detail.rs` 补齐 `<max_concurrency>` / `<subagent_model>` /
+  `<script_models>` 身份行与 `<holes>` / `<health>` / `<phases>` / `<subagents>` / `<artifacts>`
+  五个块（Node 格式器逐字移植：行头 1 起的序号、列宽由本次的行算出、`ahead` 行只有名字与状态、
+  终态不带 stalled、leftover 说明、产物行与完成通知共用一个格式器）；10 个单测钉住输出。
+- **门禁**：`check-dwf-engine.mjs` 58 → **63 字段**（escalate run 上 health 三键 + 终态无
+  stalled、subagent 行形与 tokens 列、phases/artifacts 按脚本缺席、run_not_found 照绿）。
+  实形态探针（带阶段/留白/产物的工作流的停驻态对拍）本轮撤下——Node 会话的轮调度让探针轮
+  时长不可控；等 FillWorkflowHole 切片（那时 run 有真正的停驻/补全周期）再回来。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

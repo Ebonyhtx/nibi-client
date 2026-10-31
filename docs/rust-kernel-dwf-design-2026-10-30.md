@@ -267,6 +267,7 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
      - ~~`GetWorkflowRun` 工具本身~~（**v1 已接，2026-10-30 第五段**：journal 读面 + 停驻
        注册表合成；名字/描述/输入 schema 与模型面块序与 Node 逐字，`check-dwf-engine` 45 字段。
        阶段表/花名册/留白/产物四类读面未接，对应块整体缺席——投影面落地后补）。
-     - 投影面（GUI 中枢与控制轮的活体渲染）：`workflows/runs` 中枢方法、run 详情的阶段表/
-       花名册/留白/产物读面、控制轮的 live `executionKind: "controlOnly"`（Rust 的 live/冷投影
-       目前把控制轮当普通 agent 轮画，GUI 的运行卡由冷恢复的 `metadata.workflowLaunch` 而来）。
+     - 投影面（GUI 中枢与控制轮的活体渲染）：~~run 详情的阶段表/花名册/留白/产物读面~~
+       （**模型侧已接，2026-10-30 第八段**：`GetWorkflowRun` 的 `<phases>`/`<subagents>`/
+       `<holes>`/`<health>`/`<artifacts>` 五块 + 身份三行，`check-dwf-engine` 63 字段；
+       live 投影的 `executionKind`/运行卡与 `workflows/runs` 中枢方法仍待做）；
