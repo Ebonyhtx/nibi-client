@@ -276,7 +276,10 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        从 `SessionView.launches` 重建，`check-dwf-engine` 65 字段 + 冷快照开发期对拍 6 行一致。
        ~~run 通知轮的 `backgroundResult` 轮头面~~（**已接，2026-10-30 第十段**：`TurnStarted`
        带 `input_source`，通知轮轮头 `origin: "backgroundResult"`，冷投影为 task-notification
-       的 meta 消息开轮；`check-dwf-engine` 66 字段 + escalate 会话冷快照对拍。但通知**链**的
-       三件仍缺——sidecar `run/settled` 不通知父会话、escalation 回答缺第二轮通知、通知无结构化
-       `originMeta`（run 卡关联键），见 CHANGELOG §6.21）；
+       的 meta 消息开轮；`check-dwf-engine` 66 字段 + escalate 会话冷快照对拍）；
+       ~~`run/settled` 的终态通知链~~（**已接，2026-10-30 第十一段**：sidecar 结算随附 journal
+       事实 → 宿主逐字移植的通知信封（`dwf_run_notification.rs`）→ `Kernel::workflow_notices()`
+       投父会话；superseded 按 coordinator 压下；`check-dwf-engine` 67 字段，通知文本指纹
+       （`dwfNoticeText`）两内核逐字节一致。仍缺结构化 `originMeta`（运行卡关联键 + manifest
+       载荷）与 Node 写通知记录的 hydrate 互认）；
        `workflows/runs` 中枢方法仍待做）；

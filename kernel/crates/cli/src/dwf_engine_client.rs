@@ -134,16 +134,20 @@ struct ActorHandle {
 struct RunState {
     parent: SessionId,
     cwd: String,
+    /// 宿主铸的锚点（中枢启动 `launch-`、修订 `settings-`）：终态通知的 `<tool-use-id>`。
+    /// resume 不铸新锚点——通知用 journal 行上的原值（sidecar 的 notice 事实带来）。
+    tool_call_id: Option<String>,
     actors: Mutex<HashMap<String, ActorHandle>>,
     verdicts: Mutex<HashMap<String, oneshot::Sender<Value>>>,
     cancels: Mutex<HashMap<String, CancellationToken>>,
 }
 
 impl RunState {
-    fn new(parent: SessionId, cwd: String) -> Self {
+    fn new(parent: SessionId, cwd: String, tool_call_id: Option<String>) -> Self {
         Self {
             parent,
             cwd,
+            tool_call_id,
             actors: Mutex::new(HashMap::new()),
             verdicts: Mutex::new(HashMap::new()),
             cancels: Mutex::new(HashMap::new()),
@@ -722,6 +726,52 @@ where
                     run = run_id,
                     settlement = %params["settlement"]
                 );
+                let run = shared
+                    .runs
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .get(run_id)
+                    .cloned();
+                if let Some(run) = run {
+                    // 被修订替代的 run 不发终态通知（Node coordinator 同一条裁决）：停下它的那次
+                    // AmendWorkflow 的工具结果就是模型对这次停止的全部所知，再来一条会把它送进
+                    // 「去修订它」的循环。
+                    let superseded = params["settlement"]["status"] == "stopped"
+                        && params["settlement"]["reason"] == "superseded";
+                    // 终态通知进父会话（Node 的后台任务结算通知同一条 `task-notification` 路）：
+                    // 锚点宿主铸的用宿主的，resume 沿用 journal 行上的原值，都没有按 Node 的
+                    // 兜底合成 `resume-` 前缀。
+                    let facts = crate::dwf_run_notification::RunNoticeFacts::parse(&params["notice"]);
+                    let tool_use_id = run
+                        .tool_call_id
+                        .clone()
+                        .or_else(|| facts.tool_call_id.clone())
+                        .unwrap_or_else(|| format!("resume-{run_id}"));
+                    let text = if superseded {
+                        None
+                    } else {
+                        crate::dwf_run_notification::compose_run_settled_notice(
+                            run_id,
+                            Some(&tool_use_id),
+                            &facts,
+                            &params["settlement"],
+                        )
+                    };
+                    if let Some(text) = text {
+                        let kernel = shared
+                            .kernel
+                            .lock()
+                            .unwrap_or_else(PoisonError::into_inner)
+                            .as_ref()
+                            .and_then(Weak::upgrade);
+                        match kernel.as_ref().and_then(|kernel| kernel.workflow_notices()) {
+                            Some(notices) => notices.notify(&run.parent, text),
+                            None => {
+                                tracing::warn!(event = "dwf.run.settled.no_notices", run = run_id)
+                            }
+                        }
+                    }
+                }
                 shared
                     .runs
                     .lock()
@@ -929,7 +979,10 @@ impl WorkflowEngine for SidecarEngine {
         let run_id = format!("dwfrun-{}", self.shared.ids.uuid());
         // `launch-` 前缀：中枢启动的合成锚点，与设置轮的 `settings-` 同族（launch.md 的键名）。
         let tool_call_id = format!("launch-{}", self.shared.ids.uuid());
-        self.register_run(&run_id, RunState::new(parent.clone(), cwd.clone()));
+        self.register_run(
+            &run_id,
+            RunState::new(parent.clone(), cwd.clone(), Some(tool_call_id.clone())),
+        );
         let process = self.ensure_process().map_err(|error| {
             WorkflowEngineError::with_message("start_failed", error)
         })?;
@@ -1008,7 +1061,10 @@ impl WorkflowEngine for SidecarEngine {
         // 引擎把 run 的父会话与 cwd 从 journal 读回来；恢复的 run 重新登记，供 actor RPC 使用。
         let parent = reply["parentSessionId"].as_str().unwrap_or_default();
         let cwd = reply["cwd"].as_str().unwrap_or_default();
-        self.register_run(run_id, RunState::new(SessionId::new(parent), cwd.to_owned()));
+        self.register_run(
+            run_id,
+            RunState::new(SessionId::new(parent), cwd.to_owned(), None),
+        );
         Ok(WorkflowRunStarted {
             run_id: run_id.to_owned(),
             tool_call_id: format!("resume-{}", self.shared.ids.uuid()),
@@ -1054,7 +1110,7 @@ impl WorkflowEngine for SidecarEngine {
             let cwd = reply["cwd"].as_str().unwrap_or_default();
             self.register_run(
                 &started_run,
-                RunState::new(SessionId::new(parent), cwd.to_owned()),
+                RunState::new(SessionId::new(parent), cwd.to_owned(), Some(tool_call_id.clone())),
             );
         }
         // 设置轮材料（引擎算好的「改了什么」）：原样交给协议层写会话记录。`predecessorRunId`

@@ -603,3 +603,22 @@ queue 的通知 drain）、`turnHeaderOrigin` 表（background_task → backgrou
 - **暴露的缺口**（下一片「DWF 的后台通知链」）：sidecar `run/settled` Rust 宿主不通知父会话；
   escalation 回答缺第二轮通知；通知无结构化 `originMeta`（run 卡关联键）；Node 写的通知记录
   Rust hydrate 整个丢掉（互认缺口）。
+
+## 6.29 第三十步：run 的终态通知链（2026-10-30）
+
+`run/settled` 接成父会话里的后台通知轮（详见 CHANGELOG-FORK §6.22）。对拍锚点：Node
+`formatLocalWorkflowTaskNotification` 的 local_workflow 分支 + `buildWorkflowTaskSummary` +
+`workflowDeliveryGuidance` + `<reports>`/`<artifacts>` 两节（`dwfNoticeText` 指纹字段逐字节
+互比，837/4198312385 = 837/4198312385）。
+
+- **sidecar**：`launchRun` 的结算链在 db 关闭前读 journal（run 行的名字/toolCallId/用量、
+  `run-launched` 的脚本落点、report 条目 + 真实总数、artifact-published 记录），随
+  `run/settled.notice` 上行；三条入口（submit/resume/amend）同构。
+- **宿主**：`dwf_run_notification.rs` 纯函数组合器（信封 + summary + result 序列化 +
+  providerStop 表驱动 `<error>` 块 + 两节预览 + 呈现指引 + 120k 截断），11 单测；run/settled
+  处理器组文本经 `Kernel::workflow_notices()`（新端口）投给父会话；superseded 的终态通知按
+  Node coordinator 压下。
+- **门禁**：66 → **67 字段**；冷面用驱动 `NIBI_DRIVE_DUMP_SNAPSHOT=1` 对拍 escalate 会话，
+  run 终态通知轮两内核同为 backgroundResult + assistantText。
+- **仍缺**：通知的结构化 `originMeta`（运行卡关联键 + workflowNotification manifest 载荷）；
+  Node 写的通知记录 Rust hydrate 整个丢掉（互认）。

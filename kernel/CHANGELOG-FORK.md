@@ -650,6 +650,34 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
   里的 rustCli 标记）形状不同，Rust hydrate 会把 Node 写的通知整个丢掉（模型上下文也丢）——
   通知链切片一起对齐。
 
+## 6.22 run 的终态通知链（2026-10-30，路线 C 第十一段）
+
+`run/settled` 从「宿主只摘表」接成父会话里的后台通知轮（详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.29）：
+
+- **sidecar**：结算时随 `run/settled` 带上通知事实（`notice`：run 行的名字/toolCallId、
+  `run-launched` 的脚本落点、report 条目（快照同款 256 条上限）与真实总条数、
+  `artifact-published` 记录、用量）——journal 是唯一数据源，submit/resume/amend 三条入口同构；
+  读取发生在结算的 `.then` 里（db 还开着）。
+- **宿主**：新模块 `dwf_run_notification.rs` 逐字移植 Node 的
+  `formatLocalWorkflowTaskNotification`（local_workflow 分支：信封顺序、`<status>` 用 run 的
+  三终态词、`<stop-reason>`、summary / result（字符串原样、其余两空格 JSON）/ 表驱动的
+  providerStop `<error>` 块 / `<reports>`（8k 预算、单条 2k、`[n] item`）/ `<artifacts>`
+  （每 id 最新版、primary 带头、预置看板点数、8 行）+ 呈现指引（completed 与 stopped 五
+  reason × errored × 兜底全分支）+ 120k 截断），11 个单测钉字。锚点宿主铸的用宿主的、resume
+  沿用 journal 行值、都没有按 Node 合成 `resume-` 前缀；**被修订替代的 run 不发终态通知**
+  （Node coordinator 同一条裁决）。经 `Kernel::workflow_notices()`（新端口缺省 None，runtime
+  返回通知中心）→ `Agents::notify` → 通知 lane——上一段的 backgroundResult 轮头面照常生效。
+- **门禁**：`check-dwf-engine.mjs` 66 → **67 字段**（`dwfNoticeText`：引擎阶段终态通知的模型面
+  文本，归一（剥 system-reminder 包装、遮每内核现铸的 run/tool 锚点 uuid）后的「长度/指纹」
+  两内核逐字节一致——837/4198312385 = 837/4198312385）。escalate 会话的冷快照对拍：run 终态
+  通知轮两内核同为 backgroundResult + assistantText。
+- **§6.21 暴露的缺口对账**：① run/settled 通知——本段接上；②「escalation 回答的第二轮通知」
+  ——对拍复核那是 run 的终态通知（escalation-resolved 本就不通知），随本段到位；③ 通知的结构化
+  `originMeta`（backgroundSource/workId/title + workflowNotification manifest，GUI 运行卡的
+  关联键与载荷）仍缺——信封文本不含它，下一片接；④ Node 写的通知记录与 Rust meta 记录的形状
+  差异（Rust hydrate 丢 Node 通知）仍缺。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

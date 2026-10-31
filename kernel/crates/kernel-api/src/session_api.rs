@@ -1020,6 +1020,13 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 给会话投一条后台通知（`Agents::notify` 的 `task-notification` 同一条路，空闲时开 model-only
+    /// 的通知轮）：工作流 run 的终态通知从这里进父会话（升级提示同路，runtime 组装时接上通知中心）。
+    /// 缺省没有通知中心（TUI / `-p` 不经这里）。
+    fn workflow_notices(&self) -> Option<std::sync::Arc<dyn crate::workflow::WorkflowNotices>> {
+        None
+    }
+
     /// 旧会话的询问（docs/specs/rust-cli/agents.md §4.1.2，工作线 F72）：先给出还没回答的，再给出之后的变化。缺省
     /// 没有（流不结束）。
     fn detached_asks(&self) -> BoxStream<'static, crate::interaction::DetachedEvent> {

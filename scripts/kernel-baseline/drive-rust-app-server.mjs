@@ -1175,9 +1175,39 @@ try {
     if (checks.dwfRunStatus !== "completed") {
       throw new Error(`dwf run settled as ${checks.dwfRunStatus}`);
     }
-    // 通知轮探针（origin=backgroundResult 的轮头）等 run/settled → 父会话通知链接上后再加：
-    // Rust 宿主现在只把结算从进程表摘掉，不给父会话发后台通知（Node 会发）——见 CHANGELOG §6.21。
-    console.log(`dwf engine: run=${started.result.runId} completed; missing=${checks.dwfMissingCode}`);
+    // 终态通知的模型面文本（`run/settled.notice` → 父会话的 `<task-notification>`，Node
+    // formatLocalWorkflowTaskNotification 同形）：字段存归一后的「长度/指纹」互比。system-reminder
+    // 包装是宿主通知中心已知的差异（归一剥掉），run/tool 锚点的 uuid 每内核现铸（归一遮掉）。
+    const noticeTextOf = () => {
+      if (!existsSync(dbPath)) return null;
+      const db = new DatabaseSync(dbPath);
+      const row = db
+        .prepare(
+          "select p.data from part p join message m on m.id = p.message_id where m.session_id = ? " +
+            "and json_extract(m.data,'$.metadata.source') in ('task-notification','background_task') " +
+            "order by p.rowid desc limit 1",
+        )
+        .get(dwfSession);
+      db.close();
+      return row ? (JSON.parse(row.data).text ?? null) : null;
+    };
+    await waitFor(() => (noticeTextOf() ? true : undefined), "terminal notification text", 30_000).catch(
+      () => {},
+    );
+    checks.dwfNoticeText = (() => {
+      const raw = noticeTextOf();
+      if (!raw) return "absent";
+      const normalized = raw
+        .replace(/<\/?system-reminder>\n?/g, "")
+        .replace(/(dwfrun|launch|resume)-[0-9a-f-]+/g, "$1-X")
+        .trim();
+      let hash = 0;
+      for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
+      return `${normalized.length}/${hash >>> 0}`;
+    })();
+    console.log(
+      `dwf engine: run=${started.result.runId} completed; missing=${checks.dwfMissingCode} notice=${checks.dwfNoticeText}`,
+    );
   }
 
   // DWF 的取消与恢复：hold 住的 run → 在飞时 resume 被拒 → cancel → stopped → resume → 完成。

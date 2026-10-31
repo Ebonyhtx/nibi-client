@@ -61,6 +61,9 @@ const REQUIRED = [
   // executionKind=controlOnly + 元数据上行，收口不带 activeMs（Node product-projection 同形）。
   "dwfControlRows",
   "dwfControlRowShape",
+  // 终态通知的模型面文本（run/settled → 父会话 `<task-notification>`）：归一后的长度/指纹
+  // 互比（system-reminder 包装与每内核现铸的 uuid 归一），逐字节对齐由它钉住。
+  "dwfNoticeText",
   // 后台通知轮的轮头面（escalation 的后台通知在父会话开的 model-only 轮）：轮头
   // origin=backgroundResult、executionKind=agent（Node turnHeaderOrigin("background_task")）。
   "dwfNoticeRow",

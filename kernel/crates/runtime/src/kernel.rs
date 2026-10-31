@@ -32,6 +32,11 @@ impl Kernel for LocalKernel {
         self.create_session_as(request, StartSource::Startup).await
     }
 
+    /// 后台通知中心（DWF run 的终态通知进父会话；升级提示同路）。
+    fn workflow_notices(&self) -> Option<std::sync::Arc<dyn rust_cli_kernel_api::workflow::WorkflowNotices>> {
+        Some(self.actors.clone())
+    }
+
     /// 旧会话的询问（agents.md §4.1.2，工作线 F72）。
     fn detached_asks(
         &self,

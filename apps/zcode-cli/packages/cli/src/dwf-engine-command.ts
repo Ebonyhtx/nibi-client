@@ -323,12 +323,72 @@ function launchRun(
       status: "errored" as const,
       error: { message: error instanceof Error ? error.message : String(error) },
     }))
+    .then((settled) =>
+      // 结算通知的事实随结算一起交回（宿主据它组 `<task-notification>` 的终态通知）。journal 是
+      // 唯一数据源，此刻还开着——db 在 finally 里才关。submit/resume/amend 三条入口同构。
+      {
+        return { settlement: settled, notice: settleNoticeFacts(journal, params.runId) };
+      },
+    )
     .finally(() => {
       runs.delete(params.runId);
       db.close();
     });
   entry.settlement = settlement as Promise<RunSettlement>;
   return settlement as Promise<RunSettlement>;
+}
+
+/**
+ * run 结算随附的终态通知事实（`run/settled.notice`）：宿主据它组 Node
+ * `formatLocalWorkflowTaskNotification` 同形的 `<task-notification>`，投给父会话。全部从
+ * journal 读——名字与 toolCallId 在 run 行上，脚本落点在 `run-launched`，渐进产物与用户面
+ * 产物、用量在事件流里。
+ */
+function settleNoticeFacts(
+  journal: ReturnType<typeof createDwfJournalStore>,
+  runId: string,
+): {
+  name?: string;
+  toolCallId?: string;
+  scriptPath?: string;
+  reports: unknown[];
+  reportCount: number;
+  artifacts: unknown[];
+  spentTokens?: number;
+} {
+  const record = journal.getRun(runId);
+  const launched = journal
+    .listEvents(runId, { types: ["run-launched"], reportItems: { limit: 0 } })
+    .at(-1)?.event as { scriptPath?: unknown } | undefined;
+  const scriptPath =
+    typeof launched?.scriptPath === "string" && launched.scriptPath.length > 0
+      ? launched.scriptPath
+      : undefined;
+  // 快照同款上限（DYNAMIC_WORKFLOW_SNAPSHOT_MAX_REPORTS）：预览预算（8k 字符）远先于此截断。
+  const reportEvents = journal.listEvents(runId, {
+    types: ["report"],
+    reportItems: { limit: 256 },
+  });
+  const reportTotal = journal.listEvents(runId, {
+    types: ["report"],
+    reportItems: { limit: 0 },
+  }).length;
+  const artifacts = journal
+    .listEvents(runId, { types: ["artifact-published"], reportItems: { limit: 0 } })
+    .map((stored) => (stored.event as { artifact?: unknown }).artifact)
+    .filter((artifact) => artifact !== undefined && artifact !== null);
+  const name = record?.name ?? undefined;
+  return {
+    ...(name === undefined ? {} : { name }),
+    ...(record?.toolCallId === undefined ? {} : { toolCallId: record.toolCallId }),
+    ...(scriptPath === undefined ? {} : { scriptPath }),
+    reports: reportEvents
+      .map((stored) => (stored.event as { item?: unknown }).item)
+      .filter((item) => item !== undefined),
+    reportCount: Math.max(reportTotal, reportEvents.length),
+    artifacts,
+    ...(record?.spentTokens === undefined ? {} : { spentTokens: record.spentTokens }),
+  };
 }
 
 interface SubmitParams {
@@ -608,7 +668,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       request,
       notify,
       runs,
-    ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
+    ).then(({ settlement, notice }) =>
+        notify("run/settled", { runId: params.runId, settlement, notice }),
+      );
     // 启动轮材料（中枢直接启动，launch.md「The launch turn」）：宿主据它往父会话写 controlOnly
     // 的启动轮。saved 路径才有名字/作用域/落点；内联脚本（工具路径专用）没有这些。
     return { ok: true, accepted: true, ...(launch === undefined ? {} : launch) };
@@ -678,7 +740,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         request,
         notify,
         runs,
-      ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
+      ).then(({ settlement, notice }) =>
+        notify("run/settled", { runId: params.runId, settlement, notice }),
+      );
       return { ok: true, accepted: true, parentSessionId, cwd };
     } finally {
       db.close();
@@ -859,7 +923,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         request,
         notify,
         runs,
-      ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
+      ).then(({ settlement, notice }) =>
+        notify("run/settled", { runId: params.runId, settlement, notice }),
+      );
       return {
         ok: true,
         accepted: true,

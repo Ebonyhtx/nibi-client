@@ -12,6 +12,7 @@ mod clipboard;
 mod commander;
 mod config;
 mod dwf_engine_client;
+mod dwf_run_notification;
 mod editor;
 mod effort;
 mod embedded;
