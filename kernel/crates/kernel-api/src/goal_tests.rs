@@ -96,6 +96,7 @@ fn stop_conditions_and_verdicts_round_trip() {
         }],
         origin: UserOrigin::Meta {
             source: "stop_hook_feedback".to_owned(),
+            origin_meta: None,
         },
     });
     for verdict in [

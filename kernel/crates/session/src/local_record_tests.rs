@@ -30,7 +30,7 @@ fn sources(messages: &[Message]) -> Vec<String> {
         .iter()
         .filter_map(|message| match message {
             Message::User(user) => match &user.origin {
-                UserOrigin::Meta { source } => Some(source.clone()),
+                UserOrigin::Meta { source, .. } => Some(source.clone()),
                 UserOrigin::Human => Some("human".to_owned()),
                 _ => None,
             },
@@ -166,7 +166,7 @@ async fn a_record_during_a_turn_waits_until_the_turn_ends() {
         .messages
         .iter()
         .position(|message| {
-            matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { source: LOCAL_COMMAND_INPUT_SOURCE.to_owned() })
+            matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { origin_meta: None, source: LOCAL_COMMAND_INPUT_SOURCE.to_owned() })
         })
         .expect("the record after the turn");
     assert!(

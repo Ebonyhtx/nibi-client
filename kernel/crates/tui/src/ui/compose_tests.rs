@@ -107,6 +107,7 @@ mod send_now {
             execution_kind: None,
             workflow_launch: None,
             input_source: None,
+            origin_meta: None,
             turn: TurnId::new("t1"),
             command: None,
         }

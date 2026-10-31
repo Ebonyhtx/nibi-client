@@ -76,6 +76,7 @@ fn the_conversation_keeps_user_and_assistant_text_only() {
             "meta1",
             UserOrigin::Meta {
                 source: "continue".to_owned(),
+                origin_meta: None,
             },
             vec![text("Continue from where you left off.")],
         ),

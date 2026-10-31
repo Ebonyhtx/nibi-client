@@ -105,7 +105,14 @@ pub(crate) async fn expand(
                         user(id, expanded.text, UserOrigin::Human)
                     }
                     ExpandedKind::Meta { source } => {
-                        user(ids.message(), expanded.text, UserOrigin::Meta { source })
+                        user(
+                            ids.message(),
+                            expanded.text,
+                            UserOrigin::Meta {
+                                source,
+                                origin_meta: None,
+                            },
+                        )
                     }
                     // 例如 `-p` 下未知命令的提醒：随 attachment 规则在发给模型前上浮到输入之前。
                     ExpandedKind::Attachment { source } => Message::Attachment(AttachmentMessage {

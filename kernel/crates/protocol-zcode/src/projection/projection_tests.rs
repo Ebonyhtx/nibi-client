@@ -132,6 +132,7 @@ fn a_text_turn_becomes_rows_and_control_states() {
     let started = feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
         input_source: None,
+        origin_meta: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -220,6 +221,7 @@ fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
         input_source: None,
+        origin_meta: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
@@ -282,6 +284,7 @@ fn an_interrupted_turn_cancels_running_tools() {
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
         input_source: None,
+        origin_meta: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: None,
@@ -423,6 +426,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
         input_source: None,
+        origin_meta: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -456,6 +460,7 @@ fn assistant_feedback_marks_the_settled_row() {
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
         input_source: None,
+        origin_meta: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -495,6 +500,7 @@ fn the_hub_launch_turn_renders_as_a_control_only_row() {
     let started = feed.apply(KernelEvent::TurnStarted {
         execution_kind: Some(TurnExecutionKind::ControlOnly),
         input_source: None,
+        origin_meta: None,
         workflow_launch: Some(launch.clone()),
         turn: TurnId::new("turn_1"),
         command: Some(CommandId::new("c1")),
@@ -548,6 +554,7 @@ fn a_control_turn_on_a_started_session_leaves_control_alone() {
     feed.apply(KernelEvent::TurnStarted {
         execution_kind: None,
         input_source: None,
+        origin_meta: None,
         workflow_launch: None,
         turn: TurnId::new("turn_0"),
         command: Some(CommandId::new("c0")),
@@ -563,6 +570,7 @@ fn a_control_turn_on_a_started_session_leaves_control_alone() {
     let started = feed.apply(KernelEvent::TurnStarted {
         execution_kind: Some(TurnExecutionKind::ControlOnly),
         input_source: None,
+        origin_meta: None,
         workflow_launch: Some(json!({"runId": "dwfrun_2"})),
         turn: TurnId::new("turn_1"),
         command: None,
@@ -631,6 +639,7 @@ fn a_background_notification_turn_reads_as_a_background_result_header() {
     let mut feed = Feed::new();
     let started = feed.apply(KernelEvent::TurnStarted {
         input_source: Some(TurnInputSource::BackgroundTask),
+        origin_meta: None,
         execution_kind: None,
         workflow_launch: None,
         turn: TurnId::new("turn_1"),
@@ -655,6 +664,7 @@ fn a_background_notification_turn_reads_as_a_background_result_header() {
             }],
             origin: UserOrigin::Meta {
                 source: TASK_NOTIFICATION_SOURCE.into(),
+                origin_meta: None,
             },
         }),
     });
@@ -691,6 +701,7 @@ fn the_cold_projection_opens_a_turn_for_task_notification_messages() {
             }],
             origin: UserOrigin::Meta {
                 source: TASK_NOTIFICATION_SOURCE.into(),
+                origin_meta: None,
             },
         }),
         assistant(
@@ -726,6 +737,7 @@ fn the_cold_projection_reads_node_written_notification_records() {
             }],
             origin: UserOrigin::Meta {
                 source: "background_task".into(),
+                origin_meta: None,
             },
         }),
         assistant(

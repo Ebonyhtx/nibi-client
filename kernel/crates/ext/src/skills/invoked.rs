@@ -62,7 +62,7 @@ fn calls(history: &[Message]) -> Vec<(String, Option<String>, String)> {
     let mut found = Vec::new();
     for (index, message) in history.iter().enumerate() {
         match message {
-            Message::User(user) if matches!(&user.origin, UserOrigin::Meta { source } if source == SKILL_MESSAGE_SOURCE) =>
+            Message::User(user) if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == SKILL_MESSAGE_SOURCE) =>
             {
                 let Some(name) = index
                     .checked_sub(1)

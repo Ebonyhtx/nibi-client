@@ -438,6 +438,7 @@ async fn tools(store: &NodeStore) -> Result<SessionId> {
             vec![text("Output token limit hit."), text("Resume directly.")],
             UserOrigin::Meta {
                 source: "max_output_tokens_recovery".into(),
+                origin_meta: None,
             },
         ),
         intent("op_4", "Bash", &json!({"command": "make"})),

@@ -747,7 +747,7 @@ where
                         .clone()
                         .or_else(|| facts.tool_call_id.clone())
                         .unwrap_or_else(|| format!("resume-{run_id}"));
-                    let text = if superseded {
+                    let composed = if superseded {
                         None
                     } else {
                         crate::dwf_run_notification::compose_run_settled_notice(
@@ -757,15 +757,26 @@ where
                             &params["settlement"],
                         )
                     };
-                    if let Some(text) = text {
+                    if let Some((text, manifest)) = composed {
                         let kernel = shared
                             .kernel
                             .lock()
                             .unwrap_or_else(PoisonError::into_inner)
                             .as_ref()
                             .and_then(Weak::upgrade);
+                        // 结构化 originMeta（Node `buildWorkflowNotificationOriginMeta`
+                        // 同形）：base 三键 + 终态 manifest 载荷。title 与 manifest 的 summary
+                        // 同源——通知主题（run 行的名字，缺席退回 runId）。
+                        let mut origin_meta = serde_json::json!({
+                            "backgroundSource": "workflow",
+                            "title": facts.name.as_deref().unwrap_or(run_id),
+                            "workId": run_id,
+                        });
+                        origin_meta["workflowNotification"] = manifest;
                         match kernel.as_ref().and_then(|kernel| kernel.workflow_notices()) {
-                            Some(notices) => notices.notify(&run.parent, text),
+                            Some(notices) => {
+                                notices.notify_with(&run.parent, text, Some(origin_meta))
+                            }
                             None => {
                                 tracing::warn!(event = "dwf.run.settled.no_notices", run = run_id)
                             }

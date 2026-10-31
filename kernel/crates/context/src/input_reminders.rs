@@ -63,7 +63,7 @@ pub(crate) fn turn_input(history: &[Message]) -> Option<TurnInput> {
     };
     match &last.origin {
         UserOrigin::Human if !is_command(last) => Some(TurnInput::Typed(texts_of(last, "\n"))),
-        UserOrigin::Meta { source } if source == SKILL_SOURCE => {
+        UserOrigin::Meta { source, .. } if source == SKILL_SOURCE => {
             // 用户调用的 skill：前一条是命令标签；模型经 Skill 工具调用的（前一条是工具结果）不算。
             let Some(Message::User(command)) = messages.next() else {
                 return None;

@@ -160,7 +160,13 @@ fn user(record: &WithParts) -> Option<Message> {
             UserOrigin::CompactSummary
         } else if let Some(source) = notice_source {
             // Node 拼写原样保留（读侧按同集合认它）；记录不回写，round-trip 无损。
-            UserOrigin::Meta { source }
+            // Node 把 originMeta 放在记录级 metadata（后台通知才有），原样带回去。
+            UserOrigin::Meta {
+                source,
+                origin_meta: info["metadata"]["originMeta"]
+                    .as_object()
+                    .map(|_| info["metadata"]["originMeta"].clone()),
+            }
         } else {
             UserOrigin::Human
         },

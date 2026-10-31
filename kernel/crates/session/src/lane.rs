@@ -62,6 +62,15 @@ impl Waiting {
         }
     }
 
+    /// 通知的结构化 originMeta（后台通知的运行卡关联键）：只有子代理通知通道带它
+    /// （工作流 run 的终态与升级通知经 `WorkflowNotices::notify_with` 注入）。
+    pub(crate) fn origin_meta(&self) -> Option<&serde_json::Value> {
+        match self {
+            Self::Agent(notice) => notice.origin_meta.as_ref(),
+            _ => None,
+        }
+    }
+
     /// 只在工具边界并入、不开回合（`-p` 的回执，passive）。
     pub(crate) fn passive(&self) -> bool {
         matches!(self, Self::Peer(item) if item.passive())
@@ -98,7 +107,7 @@ fn is_slash(text: &str) -> bool {
 /// 消息里的通知全文：开回合的 meta user 消息，或工具边界并入的 `task-notification` attachment。
 fn notice_text(message: &Message) -> Option<&str> {
     match message {
-        Message::User(user) if matches!(&user.origin, UserOrigin::Meta { source } if source == NOTICE_SOURCE || source == PEER_SOURCE) => {
+        Message::User(user) if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == NOTICE_SOURCE || source == PEER_SOURCE) => {
             match user.content.as_slice() {
                 [ContentBlock::Text { text }] => Some(text),
                 _ => None,

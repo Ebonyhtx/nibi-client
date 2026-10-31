@@ -146,6 +146,7 @@ pub(crate) fn meta(ids: &dyn Ids, source: &str, text: String) -> Message {
         content: vec![ContentBlock::Text { text }],
         origin: UserOrigin::Meta {
             source: source.to_owned(),
+            origin_meta: None,
         },
     })
 }

@@ -42,7 +42,7 @@ pub(crate) struct Fold {
 
 fn is_cron_prompt(message: &Message) -> bool {
     matches!(message, Message::User(user)
-        if matches!(&user.origin, UserOrigin::Meta { source } if source == CRON_SOURCE))
+        if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == CRON_SOURCE))
 }
 
 fn denied(content: &[rust_cli_kernel_api::message::ToolResultContent]) -> bool {
@@ -108,7 +108,7 @@ impl FoldState {
                     }
                     // 人类输入、定时任务、后台通知（有来源的输入）都算外来输入；其余 meta 不算。
                     UserOrigin::Human | UserOrigin::CompactSummary => return None,
-                    UserOrigin::Meta { source }
+                    UserOrigin::Meta { source, .. }
                         if source == CRON_SOURCE || source == NOTICE_SOURCE =>
                     {
                         return None;
@@ -221,6 +221,7 @@ impl Actor {
                     }],
                     origin: UserOrigin::Meta {
                         source: FOLD_SOURCE.to_owned(),
+                        origin_meta: None,
                     },
                 })]
             })

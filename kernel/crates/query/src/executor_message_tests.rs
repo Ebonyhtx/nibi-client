@@ -24,6 +24,7 @@ fn note(text: &str) -> Message {
         }],
         origin: UserOrigin::Meta {
             source: "test".to_owned(),
+            origin_meta: None,
         },
     })
 }

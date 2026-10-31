@@ -39,6 +39,7 @@ fn app(lang: Lang) -> App {
                 execution_kind: None,
                 workflow_launch: None,
                 input_source: None,
+                origin_meta: None,
                 turn: TurnId::new("turn_1"),
                 command: None,
             },

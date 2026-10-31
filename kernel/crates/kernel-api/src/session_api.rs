@@ -319,6 +319,10 @@ pub enum KernelEvent {
         /// `turnHeaderOrigin(inputSource)`）；缺席是普通用户输入轮。
         #[serde(default, skip_serializing_if = "Option::is_none")]
         input_source: Option<TurnInputSource>,
+        /// 后台通知的结构化 originMeta（Node `BackgroundResultOriginMeta`）：轮头行的
+        /// `originMeta` 字段（GUI 运行卡的关联键）。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        origin_meta: Option<Value>,
     },
     TurnFinished {
         turn: TurnId,

@@ -36,6 +36,7 @@ fn a_new_prompt_starts_a_new_anchor_and_other_batches_keep_the_current_one() {
         "done",
         UserOrigin::Meta {
             source: "task-notification".to_owned(),
+            origin_meta: None,
         },
     );
     let interrupt = user(

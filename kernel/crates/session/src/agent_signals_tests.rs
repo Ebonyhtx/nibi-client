@@ -46,6 +46,7 @@ fn notice(seq: u64) -> AgentSignal {
         agent: AgentId::new("agent_1"),
         status: "completed".to_owned(),
         text: "<system-reminder>\nagent done\n</system-reminder>".to_owned(),
+        origin_meta: None,
     })
 }
 
@@ -152,7 +153,7 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
     let notices: Vec<&Message> = view
         .messages
         .iter()
-        .filter(|message| matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { source: "task-notification".to_owned() }))
+        .filter(|message| matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { origin_meta: None, source: "task-notification".to_owned() }))
         .collect();
     assert_eq!(notices.len(), 1);
     assert!(

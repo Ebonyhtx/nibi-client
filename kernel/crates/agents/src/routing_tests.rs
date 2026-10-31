@@ -155,7 +155,8 @@ async fn an_owner_with_live_children_parks_and_resumes_on_their_notice() {
     assert_eq!(
         first.origin,
         UserOrigin::Meta {
-            source: "task-notification".to_owned()
+            source: "task-notification".to_owned(),
+            origin_meta: None,
         }
     );
     let [ContentBlock::Text { text: prompt }] = first.content.as_slice() else {

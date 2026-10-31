@@ -1183,13 +1183,18 @@ try {
       const db = new DatabaseSync(dbPath);
       const row = db
         .prepare(
-          "select p.data from part p join message m on m.id = p.message_id where m.session_id = ? " +
+          "select m.data as info, p.data as part from part p join message m on m.id = p.message_id where m.session_id = ? " +
             "and json_extract(m.data,'$.metadata.source') in ('task-notification','background_task') " +
             "order by p.rowid desc limit 1",
         )
         .get(dwfSession);
       db.close();
-      return row ? (JSON.parse(row.data).text ?? null) : null;
+      if (!row) return null;
+      const info = JSON.parse(row.info);
+      return JSON.stringify({
+        text: JSON.parse(row.part).text ?? null,
+        originMeta: info.metadata?.originMeta ?? null,
+      });
     };
     await waitFor(() => (noticeTextOf() ? true : undefined), "terminal notification text", 30_000).catch(
       () => {},
@@ -1197,10 +1202,18 @@ try {
     checks.dwfNoticeText = (() => {
       const raw = noticeTextOf();
       if (!raw) return "absent";
-      const normalized = raw
+      const payload = JSON.parse(raw);
+      // system-reminder 包装是宿主通知中心已知的差异（剥掉）；uuid 每内核现铸（遮掉）。
+      const text = (payload.text ?? "")
         .replace(/<\/?system-reminder>\n?/g, "")
         .replace(/(dwfrun|launch|resume)-[0-9a-f-]+/g, "$1-X")
         .trim();
+      const originMeta = { ...payload.originMeta, workId: "dwfrun-X", title: payload.originMeta?.title?.replace(/(dwfrun|launch|resume)-[0-9a-f-]+/g, "$1-X") ?? null };
+      // durationMs 是每 run 现测的墙钟值（两边各自测量），归一遮掉。
+      if (originMeta?.workflowNotification?.durationMs !== undefined) {
+        originMeta.workflowNotification.durationMs = "D";
+      }
+      const normalized = JSON.stringify({ text, originMeta });
       let hash = 0;
       for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
       return `${normalized.length}/${hash >>> 0}`;

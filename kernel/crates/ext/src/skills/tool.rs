@@ -186,6 +186,7 @@ impl SkillTool {
             content: vec![ContentBlock::Text { text: content }],
             origin: UserOrigin::Meta {
                 source: SKILL_MESSAGE_SOURCE.to_owned(),
+                origin_meta: None,
             },
         });
         ToolCallOutput {

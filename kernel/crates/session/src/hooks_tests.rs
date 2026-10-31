@@ -16,6 +16,7 @@ fn meta_message(id: &str, text: &str) -> Message {
         content: vec![ContentBlock::Text { text: text.into() }],
         origin: UserOrigin::Meta {
             source: "hook_additional_context".into(),
+            origin_meta: None,
         },
     })
 }

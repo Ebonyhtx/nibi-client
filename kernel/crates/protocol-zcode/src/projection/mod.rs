@@ -378,6 +378,7 @@ impl Projection {
                 execution_kind,
                 workflow_launch,
                 input_source,
+                origin_meta,
             } => {
                 self.start_turn(
                     turn.as_str(),
@@ -385,6 +386,7 @@ impl Projection {
                     *execution_kind,
                     workflow_launch.as_ref(),
                     *input_source,
+                    origin_meta.as_ref(),
                     now,
                     seq,
                     &mut out,
@@ -575,6 +577,7 @@ impl Projection {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     fn start_turn(
         &mut self,
         turn: &str,
@@ -582,6 +585,7 @@ impl Projection {
         execution_kind: Option<TurnExecutionKind>,
         launch: Option<&Value>,
         input_source: Option<TurnInputSource>,
+        origin_meta: Option<&Value>,
         now: u64,
         seq: u64,
         out: &mut Vec<Value>,
@@ -622,6 +626,10 @@ impl Projection {
         row.insert("executionKind".into(), json!(kind));
         if let Some(launch) = launch {
             row.insert("workflowLaunch".into(), launch.clone());
+        }
+        // 后台通知的运行卡关联键（Node buildTurnHeaderRow 的 originMeta 同形）。
+        if let Some(origin_meta) = origin_meta {
+            row.insert("originMeta".into(), origin_meta.clone());
         }
         if let Some(command) = &command {
             row.insert("sourceCommandId".into(), json!(command));

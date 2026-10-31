@@ -49,7 +49,7 @@ fn has_live_children(agents: &Agents, owner: &AgentId) -> bool {
 
 fn to_root(hub: &Hub, root: &SessionId, notice: Notice) {
     let text = texts::notification_wrap(&notice.envelope);
-    hub.notify(root, notice.from, notice.status, text);
+    hub.notify(root, notice.from, notice.status, text, None);
 }
 
 /// 把通知送给 owner（§5.1 第 2 条）：在跑进邮箱；停放就续跑；已结束、不存在或没有 owner 时送顶层会话。
@@ -257,6 +257,7 @@ pub(crate) async fn wake(core: &Arc<Core>, wakes: Vec<Wake>) {
                 texts::notification_wrap(&envelopes.join("\n\n")),
                 UserOrigin::Meta {
                     source: "task-notification".to_owned(),
+                    origin_meta: None,
                 },
             ),
             // 续跑时按来自父代理的消息包一层说明（`The coordinator sent a message while you were

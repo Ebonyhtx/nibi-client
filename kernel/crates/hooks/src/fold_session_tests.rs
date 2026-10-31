@@ -43,7 +43,7 @@ fn stop_feedback_context_and_prevent() {
         "Stop hook feedback:\n[g]: run tests"
     );
     assert!(matches!(&out.messages[0], Message::User(user)
-        if user.origin == UserOrigin::Meta { source: "stop_hook_feedback".to_owned() }));
+        if user.origin == UserOrigin::Meta { origin_meta: None, source: "stop_hook_feedback".to_owned() }));
     assert!(text(&out.messages[1]).contains("Stop hook additional context: note"));
     assert!(!out.prevent_continuation);
     let prevented = stop(

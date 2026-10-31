@@ -175,6 +175,19 @@ pub trait WorkflowQuestions: Send + Sync {
 /// 通知通道（运行时把升级提示送进父会话的 `task-notification` 流）。
 pub trait WorkflowNotices: Send + Sync {
     fn notify(&self, session: &crate::ids::SessionId, text: String);
+
+    /// 带结构化 originMeta 的投递（Node `BackgroundResultOriginMeta`：backgroundSource/title/
+    /// workId，运行卡关联键；`workflowNotification` manifest 载荷之后同车）。缺省丢弃元数据、
+    /// 落回 [`Self::notify`]（不认识它的实现照常只投文本）。
+    fn notify_with(
+        &self,
+        session: &crate::ids::SessionId,
+        text: String,
+        origin_meta: Option<serde_json::Value>,
+    ) {
+        let _ = origin_meta;
+        self.notify(session, text)
+    }
 }
 
 /// run 事件 journal 的窄追加面（`dwf_event`；引擎 sidecar 与宿主写同一个库）。`payload_json`

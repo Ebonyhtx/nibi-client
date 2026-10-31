@@ -282,6 +282,8 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        投父会话；superseded 按 coordinator 压下；`check-dwf-engine` 67 字段，通知文本指纹
        （`dwfNoticeText`）两内核逐字节一致）；~~Node 写通知记录的 hydrate 互认~~（**已接，
        2026-10-30 第十二段**：providerContextOnly 判据 + 触发源拼写还原 Meta，冷投影认两个
-       拼写，夹具的旧补偿过滤对通知族不再生效）。仍缺结构化 `originMeta`（运行卡关联键 +
-       manifest 载荷））；
+       拼写，夹具的旧补偿过滤对通知族不再生效）；~~结构化 `originMeta`~~（**已接，2026-10-30
+       第十三段**：`UserOrigin::Meta` 携带、`notify_with` 投递、记录/轮头行两级落、冷重建；
+       run 终态 manifest 全套载荷，指纹门禁逐字节一致。escalation/stall/hole/blocked 的
+       manifest 判别分支仍缺——信封文本与 base 三键已齐））；
        `workflows/runs` 中枢方法仍待做）；

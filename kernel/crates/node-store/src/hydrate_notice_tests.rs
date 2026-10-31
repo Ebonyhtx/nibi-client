@@ -64,7 +64,7 @@ fn a_node_written_task_notification_keeps_its_text_and_notice_origin() {
             panic!("expected a user message for {source}");
         };
         assert!(
-            matches!(&user.origin, UserOrigin::Meta { source: kept } if kept == source),
+            matches!(&user.origin, UserOrigin::Meta { origin_meta: None, source: kept } if kept == source),
             "{source}: {:?}",
             user.origin
         );

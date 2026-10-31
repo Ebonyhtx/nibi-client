@@ -290,7 +290,8 @@ async fn set_workspace_moves_an_idle_session_and_commits_the_note() {
     assert_eq!(
         note.origin,
         UserOrigin::Meta {
-            source: "rust-cli/cd".to_owned()
+            source: "rust-cli/cd".to_owned(),
+            origin_meta: None,
         }
     );
     assert_eq!(

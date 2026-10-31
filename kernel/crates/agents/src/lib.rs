@@ -309,18 +309,40 @@ impl Agents {
     /// 往会话投递一条后台通知（DWF 升级问答）：与后台子代理的终态通知同一条路——meta user
     /// 消息、空闲时开回合、提交后按 seq ack、按文字去重。
     pub fn notify(&self, session: &SessionId, status: &str, text: String) -> u64 {
+        self.notify_with(session, status, text, None)
+    }
+
+    /// 带结构化 originMeta 的投递（工作流 run 的终态与升级通知）：通知轮的轮头行与 meta 记录
+    /// 都带它（Node 的 `enqueueBackgroundTaskNotification` 同形）。
+    pub fn notify_with(
+        &self,
+        session: &SessionId,
+        status: &str,
+        text: String,
+        origin_meta: Option<serde_json::Value>,
+    ) -> u64 {
         self.core.hub.notify(
             session,
             AgentId::new("workflow"),
             status,
             rust_cli_base::reminder::wrap(&text),
+            origin_meta,
         )
     }
 }
 
 impl rust_cli_kernel_api::workflow::WorkflowNotices for Agents {
     fn notify(&self, session: &SessionId, text: String) {
-        let _ = self.notify(session, "escalation", text);
+        let _ = self.notify_with(session, "escalation", text, None);
+    }
+
+    fn notify_with(
+        &self,
+        session: &SessionId,
+        text: String,
+        origin_meta: Option<serde_json::Value>,
+    ) {
+        let _ = self.notify_with(session, "escalation", text, origin_meta);
     }
 }
 

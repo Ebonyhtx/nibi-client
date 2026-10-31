@@ -11,7 +11,7 @@
 //! 同构）；`tool_use_id` 由宿主补（中枢启动的 `launch-` 锚点只在宿主手里，resume 沿用 sidecar
 //! 带来的 run 行值）。
 
-use serde_json::Value;
+use serde_json::{Value, json};
 
 /// 一次结算随附的通知事实（sidecar `run/settled.notice` 的形状，全部来自 journal）。
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -26,6 +26,8 @@ pub(crate) struct RunNoticeFacts {
     /// `artifact-published` 的产物记录（每次成功发布一条；合并取每 id 最新版）。
     pub(crate) artifacts: Vec<Value>,
     pub(crate) spent_tokens: Option<u64>,
+    /// 本世代的墙钟时长（sidecar 结算时现测；Node 的 snapshot startedAt→completedAt 同源）。
+    pub(crate) duration_ms: Option<u64>,
 }
 
 impl RunNoticeFacts {
@@ -50,6 +52,7 @@ impl RunNoticeFacts {
                 .map(|items| items.to_vec())
                 .unwrap_or_default(),
             spent_tokens: value["spentTokens"].as_u64(),
+            duration_ms: value["durationMs"].as_u64(),
         }
     }
 }
@@ -63,13 +66,14 @@ const ARTIFACTS_MAX_LINES: usize = 8;
 /// 预置看板的「大小」是点数不是字节（`PRESET_ARTIFACT_KINDS`）。
 const PRESET_ARTIFACT_KINDS: [&str; 4] = ["chart", "table", "metrics", "board"];
 
-/// 终态通知全文；三终态（completed / errored / stopped）之外原样返回 None（调用方不投）。
+/// 终态通知全文 + 结构化 manifest（`originMeta.workflowNotification`）；三终态
+/// （completed / errored / stopped）之外原样返回 None（调用方不投）。
 pub(crate) fn compose_run_settled_notice(
     run_id: &str,
     tool_use_id: Option<&str>,
     facts: &RunNoticeFacts,
     settlement: &Value,
-) -> Option<String> {
+) -> Option<(String, Value)> {
     let status = settlement["status"].as_str()?;
     let run_status = match status {
         "completed" => "completed",
@@ -151,7 +155,184 @@ pub(crate) fn compose_run_settled_notice(
         facts.script_path.as_deref(),
     ));
 
-    Some(truncate(lines.join("\n")))
+    let text = truncate(lines.join("\n"));
+    let manifest =
+        workflow_notification_meta(&subject, run_status, stop_reason, facts, settlement);
+    Some((text, manifest))
+}
+
+/// manifest 载荷的界（shared `workflowNotificationMetaSchema` 同值；发射侧就地截断——
+/// 超界会让轮头行落库时 zod 拒收，截断是构造前的纪律）。
+const MANIFEST_SUMMARY_MAX: usize = 500;
+const MANIFEST_RESULT_MAX: usize = 4_000;
+const MANIFEST_ERROR_MAX: usize = 2_000;
+const MANIFEST_REPORT_ITEM_MAX: usize = 500;
+const MANIFEST_REPORT_ITEMS_MAX: usize = 8;
+const MANIFEST_ARTIFACT_KINDS: [&str; 6] =
+    ["file", "markdown", "chart", "table", "metrics", "board"];
+const MANIFEST_ARTIFACT_TITLE_MAX: usize = 120;
+const MANIFEST_ARTIFACT_ID_MAX: usize = 64;
+const MANIFEST_ARTIFACT_CONTENT_TYPE_MAX: usize = 255;
+const MANIFEST_ARTIFACT_DESCRIPTION_MAX: usize = 500;
+
+fn manifest_clip(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        return text.to_owned();
+    }
+    let head: String = text.chars().take(max - 1).collect();
+    format!("{head}\u{2026}")
+}
+
+/// 终态 manifest（Node `buildWorkflowTerminalNotification` + 两个 manifest 节）：
+/// summary 与通知主题同源；result / resultForm 只在产物在场时携带；reports / artifacts
+/// 三个终态一律携带（死在第 12 个 ask 上的 run 仍做完了 11 个的活）。
+fn workflow_notification_meta(
+    subject: &str,
+    run_status: &str,
+    stop_reason: Option<&str>,
+    facts: &RunNoticeFacts,
+    settlement: &Value,
+) -> Value {
+    let mut meta = serde_json::Map::new();
+    meta.insert("kind".into(), json!("terminal"));
+    meta.insert("status".into(), json!(run_status));
+    if let Some(reason) = stop_reason {
+        meta.insert("stopReason".into(), json!(reason));
+    }
+    meta.insert(
+        "summary".into(),
+        json!(manifest_clip(subject, MANIFEST_SUMMARY_MAX)),
+    );
+    if run_status == "completed"
+        && let Some(result) = serialize_artifact(settlement.get("artifact"))
+    {
+        if result.chars().count() > MANIFEST_RESULT_MAX {
+            meta.insert("result".into(), json!(manifest_clip(&result, MANIFEST_RESULT_MAX)));
+            meta.insert("resultTruncated".into(), json!(true));
+        } else {
+            meta.insert("result".into(), json!(result));
+        }
+        let prose = settlement["artifact"].is_string();
+        meta.insert("resultForm".into(), json!(if prose { "prose" } else { "json" }));
+    }
+    if let Some(error) = settlement["error"]["message"]
+        .as_str()
+        .filter(|text| !text.is_empty())
+    {
+        meta.insert("error".into(), json!(manifest_clip(error, MANIFEST_ERROR_MAX)));
+    }
+    // 用量 tokens 发射时不可知（只在内存态投影里），所以只带 durationMs，tokens 留给 GUI
+    // 渲染期按 runId 联查（Node 同一条注释的裁决）。
+    if let Some(duration_ms) = facts.duration_ms {
+        meta.insert("durationMs".into(), json!(duration_ms));
+    }
+    // reports：逐条 ≤500、最多 8 条；count 恒是真实总条数（count ≠ shown 即预览是局部的）。
+    // 零条整字段缺席——不发一节空的。
+    if !facts.reports.is_empty() {
+        let preview: Vec<Value> = facts
+            .reports
+            .iter()
+            .take(MANIFEST_REPORT_ITEMS_MAX)
+            .map(|item| {
+                json!(manifest_clip(
+                    &serialize_artifact(Some(item)).unwrap_or_default(),
+                    MANIFEST_REPORT_ITEM_MAX
+                ))
+            })
+            .collect();
+        meta.insert(
+            "reports".into(),
+            json!({
+                "count": facts.report_count.max(facts.reports.len() as u64),
+                "shown": preview.len(),
+                "preview": preview,
+            }),
+        );
+    }
+    // artifacts chips：交付物先进（8 的上界永远砍不到它）；kind 白名单外的整条丢、id 与
+    // 版本是 chip 的身份键（坏条目同样整条丢——放行会让 zod 拒收整份载荷）。截断诚实：
+    // 判据是「画出来的比总数少」，被上界砍掉的与被种类过滤掉的一样算没画出来。
+    if !facts.artifacts.is_empty() {
+        let mut latest: Vec<(String, u64, usize)> = Vec::new();
+        for (index, record) in facts.artifacts.iter().enumerate() {
+            let Some(id) = record["id"].as_str() else { continue };
+            let version = record["version"].as_u64().unwrap_or(0);
+            if let Some(slot) = latest.iter_mut().find(|(known, _, _)| known == id) {
+                if version >= slot.1 {
+                    slot.1 = version;
+                    slot.2 = index;
+                }
+            } else {
+                latest.push((id.to_owned(), version, index));
+            }
+        }
+        let mut rows: Vec<&Value> = latest
+            .into_iter()
+            .filter_map(|(_, _, index)| facts.artifacts.get(index))
+            .collect();
+        rows.sort_by_key(|record| !record["primary"].as_bool().unwrap_or(false));
+        let mut entries: Vec<Value> = Vec::new();
+        for record in &rows {
+            if entries.len() >= ARTIFACTS_MAX_LINES {
+                break;
+            }
+            let Some(id) = record["id"].as_str().filter(|id| !id.is_empty()) else {
+                continue;
+            };
+            if id.chars().count() > MANIFEST_ARTIFACT_ID_MAX {
+                continue;
+            }
+            let Some(kind) = record["kind"]
+                .as_str()
+                .filter(|kind| MANIFEST_ARTIFACT_KINDS.contains(kind))
+            else {
+                continue;
+            };
+            let Some(version) = record["version"].as_u64().filter(|version| *version >= 1) else {
+                continue;
+            };
+            let mut entry = serde_json::Map::new();
+            entry.insert("id".into(), json!(id));
+            entry.insert("kind".into(), json!(kind));
+            if let Some(title) = record["title"]
+                .as_str()
+                .map(str::trim)
+                .filter(|title| !title.is_empty())
+            {
+                entry.insert(
+                    "title".into(),
+                    json!(manifest_clip(title, MANIFEST_ARTIFACT_TITLE_MAX)),
+                );
+            }
+            entry.insert("version".into(), json!(version));
+            if let Some(content_type) = record["contentType"].as_str().filter(|text| {
+                !text.is_empty() && text.chars().count() <= MANIFEST_ARTIFACT_CONTENT_TYPE_MAX
+            }) {
+                entry.insert("contentType".into(), json!(content_type));
+            }
+            if record["primary"].as_bool() == Some(true) {
+                entry.insert("primary".into(), json!(true));
+                if let Some(description) = record["description"]
+                    .as_str()
+                    .map(str::trim)
+                    .filter(|text| !text.is_empty())
+                {
+                    entry.insert(
+                        "description".into(),
+                        json!(manifest_clip(description, MANIFEST_ARTIFACT_DESCRIPTION_MAX)),
+                    );
+                }
+            }
+            entries.push(Value::Object(entry));
+        }
+        if !entries.is_empty() {
+            meta.insert("artifacts".into(), Value::Array(entries.clone()));
+            if entries.len() < rows.len() {
+                meta.insert("artifactsTruncated".into(), json!(true));
+            }
+        }
+    }
+    Value::Object(meta)
 }
 
 /// `Workflow "{subject}" …` 的一句话摘要（Node `buildWorkflowTaskSummary`）。

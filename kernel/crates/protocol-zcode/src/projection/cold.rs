@@ -49,6 +49,7 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                     launch.map(|_| TurnExecutionKind::ControlOnly),
                     launch,
                     None,
+                    None,
                     at,
                     0,
                     &mut out,
@@ -62,7 +63,7 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
             Message::User(user)
                 if matches!(
                     &user.origin,
-                    UserOrigin::Meta { source } if NOTICE_TURN_SOURCES.contains(&source.as_str())
+                    UserOrigin::Meta { source, .. } if NOTICE_TURN_SOURCES.contains(&source.as_str())
                 ) =>
             {
                 if projection.turn.is_some() {
@@ -71,12 +72,17 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                 interrupted = false;
                 turns += 1;
                 let turn = format!("{}:turn:{turns}", user.id.as_str());
+                let origin_meta = match &user.origin {
+                    UserOrigin::Meta { origin_meta, .. } => origin_meta.clone(),
+                    _ => None,
+                };
                 projection.start_turn(
                     &turn,
                     None,
                     None,
                     None,
                     Some(TurnInputSource::BackgroundTask),
+                    origin_meta.as_ref(),
                     at,
                     0,
                     &mut out,

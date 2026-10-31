@@ -29,6 +29,7 @@ fn meta(id: &str, text: &str) -> Message {
         text,
         UserOrigin::Meta {
             source: "local-command".to_owned(),
+            origin_meta: None,
         },
     )
 }

@@ -248,6 +248,7 @@ impl Actor {
             execution_kind: None,
             workflow_launch: None,
             input_source: None,
+            origin_meta: None,
         });
         let hook = self.user_prompt_submit(&text);
         // `/goal` 是内置的本地命令：消息按 actor 现在的目标算好，不经 skill 展开（goal.md §2.1）。

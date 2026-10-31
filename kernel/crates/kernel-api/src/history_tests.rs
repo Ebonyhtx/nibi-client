@@ -91,6 +91,7 @@ fn relinks_the_preserved_tail_after_the_summary_with_cleared_usage() {
             "att",
             UserOrigin::Meta {
                 source: "file".to_owned(),
+                origin_meta: None,
             },
         ),
     ];

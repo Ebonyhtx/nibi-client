@@ -140,6 +140,7 @@ async fn meta_and_interrupt_messages_keep_their_origin() {
             vec![text("Output token limit hit."), text("Resume directly.")],
             UserOrigin::Meta {
                 source: "max_output_tokens_recovery".into(),
+                origin_meta: None,
             },
         ),
         assistant("msg_ry_a2", vec![text("Again")], None),
@@ -185,6 +186,7 @@ async fn meta_messages_with_images_are_refused() {
         vec![image],
         UserOrigin::Meta {
             source: "hook".into(),
+            origin_meta: None,
         },
     );
     let result = t.store.commit(&sid(), batch(None, vec![fact])).await;

@@ -74,7 +74,7 @@ fn texts(messages: &[Message]) -> Vec<(String, String)> {
             Message::User(user) => {
                 let origin = match &user.origin {
                     UserOrigin::Human => "human".to_owned(),
-                    UserOrigin::Meta { source } => source.clone(),
+                    UserOrigin::Meta { source, .. } => source.clone(),
                     other => format!("{other:?}"),
                 };
                 let text = match &user.content[..] {

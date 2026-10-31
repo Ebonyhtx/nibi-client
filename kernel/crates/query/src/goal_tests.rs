@@ -129,6 +129,7 @@ fn feedback(text: &str) -> Message {
         }],
         origin: UserOrigin::Meta {
             source: "stop_hook_feedback".to_owned(),
+            origin_meta: None,
         },
     })
 }

@@ -97,7 +97,7 @@ pub fn tool_reference_text(tool_name: &str) -> String {
 }
 
 /// 一条 user 消息从哪里来。决定 UI 是否显示、resume 时怎样重放。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum UserOrigin {
     /// 用户输入。
@@ -105,7 +105,15 @@ pub enum UserOrigin {
     /// 工具结果，`assistant` 是发出 tool_use 的那条 assistant 消息。
     ToolResult { assistant: MessageId },
     /// 内核生成、只给模型看的消息（续写提示、hook 阻塞原因等）；`source` 是来源标签。
-    Meta { source: String },
+    /// 后台通知还带结构化的 `originMeta`（Node `BackgroundResultOriginMeta`：
+    /// `backgroundSource`/`title`/`workId`，GUI 的运行卡关联键）——落进记录的
+    /// `metadata.originMeta`（Node `persistSyntheticUserNoticeForSession` 同形），冷投影据它
+    /// 在通知轮的轮头行上还原同一份。缺席即普通 meta 消息。
+    Meta {
+        source: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        origin_meta: Option<Value>,
+    },
     /// 压缩摘要。
     CompactSummary,
 }

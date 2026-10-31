@@ -147,6 +147,7 @@ fn tokens_are_due_after_human_input_and_tool_results_only() {
     // Skill 的正文排在 tool_result 之后，算在这次工具结果里。
     let skill = user(UserOrigin::Meta {
         source: "skill".to_owned(),
+        origin_meta: None,
     });
     assert!(tokens_due(&[result.clone(), skill.clone()]));
     // 用户调用 skill（命令标签 + 正文）不是普通的用户输入：不宣布（ext.md §2.7）。
@@ -161,10 +162,12 @@ fn tokens_are_due_after_human_input_and_tool_results_only() {
     assert!(!tokens_due(&[command, skill, attachment.clone()]));
     let notice = user(UserOrigin::Meta {
         source: "task-notification".to_owned(),
+        origin_meta: None,
     });
     assert!(!tokens_due(&[result, notice]));
     let nudge = user(UserOrigin::Meta {
         source: "max_output_tokens_recovery".to_owned(),
+        origin_meta: None,
     });
     assert!(!tokens_due(&[nudge, attachment]));
     assert!(!tokens_due(&[]));
@@ -181,6 +184,7 @@ fn inputs_are_not_announced_after_the_goal_prompt_or_stop_feedback() {
             }],
             origin: UserOrigin::Meta {
                 source: source.to_owned(),
+                origin_meta: None,
             },
         })
     };

@@ -39,6 +39,7 @@ fn meta(id: &str, text: &str) -> Fact {
             content: vec![ContentBlock::Text { text: text.into() }],
             origin: UserOrigin::Meta {
                 source: "task-notification".into(),
+                origin_meta: None,
             },
         }),
     }

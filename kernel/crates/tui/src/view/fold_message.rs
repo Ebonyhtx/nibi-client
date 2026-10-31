@@ -108,7 +108,7 @@ impl Transcript {
                         }
                     }
                 }
-                UserOrigin::Meta { source } if source == user_command::LOCAL_COMMAND_SOURCE => {
+                UserOrigin::Meta { source, .. } if source == user_command::LOCAL_COMMAND_SOURCE => {
                     let text = user
                         .content
                         .iter()
@@ -120,7 +120,7 @@ impl Transcript {
                     self.push(Body::Output(text), now_ms);
                 }
                 // 同伴消息开的回合（cross-session.md §2.6）：显示成 `@ 名字 ›`。
-                UserOrigin::Meta { source } if source == PEER_SOURCE => {
+                UserOrigin::Meta { source, .. } if source == PEER_SOURCE => {
                     let text: String = user
                         .content
                         .iter()

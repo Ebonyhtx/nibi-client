@@ -562,7 +562,18 @@ would be able to see or answer it: {error}"
             };
         }
         if let Some(notifier) = self.0.notifier() {
-            notifier.notify(&parent, text);
+            // 结构化 originMeta（Node `notifyEscalationRaised` 同形：backgroundSource/title/workId
+            // 三键 + escalation manifest——manifest 载荷后片接）。展示名的兜底链与 Node 同源：
+            // hub 启动的 run 没有展示名，落 runId。
+            notifier.notify_with(
+                &parent,
+                text,
+                Some(serde_json::json!({
+                    "backgroundSource": "workflow",
+                    "title": question.run_id,
+                    "workId": question.run_id,
+                })),
+            );
         }
         let guard = ParkGuard {
             owner: self.0.clone(),

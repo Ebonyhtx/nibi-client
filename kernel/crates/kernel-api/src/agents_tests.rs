@@ -59,6 +59,7 @@ fn signals_round_trip() {
             agent: AgentId::new("agent_1"),
             status: "completed".to_owned(),
             text: "<system-reminder>…</system-reminder>".to_owned(),
+            origin_meta: None,
         }),
         AgentSignal::TasksChanged {
             tasks: json!([{"id": "1"}]),

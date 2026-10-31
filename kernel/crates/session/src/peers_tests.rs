@@ -113,7 +113,7 @@ fn user_texts(messages: &[Message]) -> Vec<(String, String)> {
         .filter_map(|message| match message {
             Message::User(user) => {
                 let source = match &user.origin {
-                    UserOrigin::Meta { source } => source.clone(),
+                    UserOrigin::Meta { source, .. } => source.clone(),
                     _ => String::new(),
                 };
                 let text = user

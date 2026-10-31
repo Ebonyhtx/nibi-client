@@ -32,7 +32,9 @@ pub fn append(ctx: &Commit<'_>, message: &Message) -> Result<(), StoreError> {
             }
             UserOrigin::Human => append_user(ctx, user),
             UserOrigin::ToolResult { assistant } => tool_parts::settle(ctx, user, assistant),
-            UserOrigin::Meta { source } => notices::append_meta(ctx, user, source),
+            UserOrigin::Meta { source, origin_meta } => {
+                notices::append_meta(ctx, user, source, origin_meta.as_ref())
+            }
             UserOrigin::CompactSummary => crate::compaction::append_summary(ctx, user),
         },
         Message::Assistant(assistant) => append_assistant(ctx, assistant),

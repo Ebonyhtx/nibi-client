@@ -698,6 +698,36 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.29）：
 - **测试**：node-store 3 个新钉（两个拼写保留文本 + origin、非触发源照旧丢、非
   provider-visible 照旧丢）+ 投影 1 个跨库冷读钉。
 
+## 6.24 通知的结构化 originMeta（2026-10-30，路线 C 第十三段）
+
+§6.22-§6.23 之后的最后一块通知缺口：`originMeta`（Node `BackgroundResultOriginMeta`，GUI 运行
+卡的关联键与通知卡载荷）端到端——结构化载体、信封、记录、行、冷重建（详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
+
+- **kernel-api**：`UserOrigin::Meta` 变体带 `origin_meta: Option<Value>`（`Eq` 从 UserOrigin 链
+  上摘除——workspace 无一处理需要它，全树零 fallout）；`AgentNotice` 同增（ 同去 Eq）；
+  `WorkflowNotices` 增 `notify_with`（缺省丢弃元数据落回 `notify`）；`TurnStarted` 增
+  `origin_meta`。
+- **投递链**：`Agents::notify_with` → hub（AgentNotice 携带）→ 信号 → lane（`Waiting::origin_meta`
+  助手，只有子代理通知通道带）→ 通知轮（meta 消息的 origin 携带 + TurnStarted 上行）。
+- **存储**：`append_meta` 把 originMeta 写进记录与 part 的 `metadata.originMeta`（Node
+  `persistSyntheticUserNoticeForSession` 同形）；hydrate 两条还原路（rustCli 标记路、Node 记录
+  的 `metadata.originMeta`）都读回变体；冷投影的通知轮臂从消息 origin 取值 → 轮头行
+  `originMeta`（live 同字段，Node `buildTurnHeaderRow` 同形）。
+- **宿主**：run/settled 组 base 三键（backgroundSource=workflow / title=主题 / workId=runId）+
+  **终态 manifest 载荷**（`workflowNotification`：kind/status/stopReason/summary(≤500)/
+  result(≤4k, resultTruncated/resultForm prose|json)/error(≤2k)/reports(≤8 条×≤500, count=真实
+  总数)/artifacts chips(kind 六字面量白名单、id≤64、version≥1、title≤120、contentType≤255、
+  description≤500 仅 primary、artifactsTruncated=画出来的比总数少)/durationMs（本世代墙钟））；
+  sidecar 的 notice 事实补 durationMs（结算时现测）。escalation 的 raise 通知带同三键（
+  escalation manifest 下片）。superseded 照旧压下。
+- **门禁**：`dwfNoticeText` 的指纹升级为「文本 + 记录级 originMeta」（durationMs 每 run 现测、
+  归一遮掉）——**1071→1088 字符的 manifest 差异当场现形后消除**，两内核 1088/1588820788 逐字
+  节一致；`dwfNoticeRow` 加验轮头行的 `originMeta.backgroundSource/workId`。13 个单测。
+- **对账**：§6.22-§6.23 的「仍缺 originMeta」清账。剩余：escalation/stall/hole/blocked 的
+  manifest 判别分支（信封文本已逐字、base 三键已带，缺各自的 manifest 载荷）；Node 写的记录上
+  的 originMeta 已随 §6.23 的判据进入 hydrate（本轮补了读取）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

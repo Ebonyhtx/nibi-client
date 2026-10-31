@@ -130,6 +130,7 @@ impl Actor {
             content: vec![ContentBlock::Text { text: note }],
             origin: UserOrigin::Meta {
                 source: NOTE_SOURCE.to_owned(),
+                origin_meta: None,
             },
         }));
         self.commit_record_messages(Some(command), messages).await

@@ -42,6 +42,7 @@ fn feedback(text: &str) -> Message {
         }],
         origin: UserOrigin::Meta {
             source: "hook_blocking_error".to_owned(),
+            origin_meta: None,
         },
     })
 }

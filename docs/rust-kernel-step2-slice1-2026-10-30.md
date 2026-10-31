@@ -636,3 +636,20 @@ queue 的通知 drain）、`turnHeaderOrigin` 表（background_task → backgrou
 - **夹具**：`node_written_sessions_read_back_their_text` 的 legacy_synthetic 剥离对通知族不再
   生效（当年的补偿，缺口已修）。
 - **测试**：node-store 3 + 投影 1。
+
+## 6.31 第三十二步：通知的结构化 originMeta（2026-10-30）
+
+运行卡关联键与通知卡载荷端到端（详见 CHANGELOG-FORK §6.24）。判据锚点：Node
+`buildWorkflowNotificationOriginMeta`（base 三键 + `buildWorkflowTerminalNotification` 的
+manifest + `workflowNotificationDurationMs`）、`persistSyntheticUserNoticeForSession`（记录与
+part 两级 `metadata.originMeta`）、`buildTurnHeaderRow`（轮头行同字段）。
+
+- **载体**：`UserOrigin::Meta { source, origin_meta }`（Eq 从 UserOrigin/AgentNotice 摘除，全树
+  零 fallout）+ `AgentNotice.origin_meta` + `WorkflowNotices::notify_with` + `TurnStarted.origin_meta`。
+- **投递**：`Agents::notify_with` → hub → lane（`Waiting::origin_meta`）→ 通知轮的消息 origin
+  （记录 `metadata.originMeta` 两级同写）与 TurnStarted（轮头行 `originMeta`，live/cold 同形）。
+- **载荷**：run/settled 的 base 三键 + 终态 manifest（summary/result/resultForm/error/reports/
+  artifacts chips/durationMs，全套界与发射侧截断）；escalation raise 带 base 三键。
+- **门禁**：`dwfNoticeText` 指纹升级（文本 + originMeta，durationMs 归一）——18 字符的
+  durationMs 缺口当场现形后补齐，两内核 1088/1588820788；`dwfNoticeRow` 加验 base 键。
+  13 个通知单测（manifest 界、chips 白名单、截断诚实）。

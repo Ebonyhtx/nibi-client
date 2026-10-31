@@ -21,6 +21,7 @@ fn meta(id: &str, source: &str) -> Message {
         }],
         origin: UserOrigin::Meta {
             source: source.to_owned(),
+            origin_meta: None,
         },
     })
 }

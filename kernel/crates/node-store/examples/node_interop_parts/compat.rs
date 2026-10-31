@@ -190,6 +190,7 @@ async fn displayed(store: &NodeStore) -> Result<SessionId> {
             vec![text("Review the branch.")],
             UserOrigin::Meta {
                 source: "skill".into(),
+                origin_meta: None,
             },
         ),
         attachment(

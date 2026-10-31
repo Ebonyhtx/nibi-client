@@ -83,7 +83,7 @@ fn meta_sources(messages: &[Message]) -> Vec<String> {
         .iter()
         .filter_map(|message| match message {
             Message::User(user) => match &user.origin {
-                UserOrigin::Meta { source } => Some(source.clone()),
+                UserOrigin::Meta { source, .. } => Some(source.clone()),
                 _ => None,
             },
             _ => None,

@@ -81,8 +81,9 @@ pub(crate) enum TurnInput {
 
 impl Actor {
     pub(crate) async fn start_turn(&mut self, input: TurnInput) -> Result<(), String> {
-        let meta = |source: &str| UserOrigin::Meta {
+        let meta = |source: &str, origin_meta: Option<serde_json::Value>| UserOrigin::Meta {
             source: source.to_owned(),
+            origin_meta,
         };
         // 定时任务触发：界面行与 `/loop` 的折叠说明（排在 prompt 之前，tools-more.md §18.3）。
         let mut fired = None;
@@ -109,13 +110,18 @@ impl Actor {
                 fired = Some(self.fire_prelude(fire.kind));
                 // `/loop` 的哨兵在这里展开（tools-more.md §17.3）。
                 let prompt = self.resolve_loop_prompt(fire.prompt).await;
-                (vec![(prompt, meta(crate::cron::CRON_SOURCE))], Vec::new())
+                (vec![(prompt, meta(crate::cron::CRON_SOURCE, None))], Vec::new())
             }
             TurnInput::Notices(notices) => {
                 // 同伴消息开回合时用空闲的写法与自己的来源（cross-session.md §1.7）。
+                // 通知的结构化 originMeta（后台通知的运行卡关联键）整批取第一份——Node 的
+                // 通知批单来源一致时才带，混合批本来就是缺席。
+                let origin_meta = notices
+                    .iter()
+                    .find_map(|notice| notice.origin_meta().cloned());
                 let texts = notices
                     .iter()
-                    .map(|notice| (notice.turn_text(), meta(notice.source())))
+                    .map(|notice| (notice.turn_text(), meta(notice.source(), origin_meta.clone())))
                     .collect();
                 (texts, notices)
             }
@@ -164,6 +170,7 @@ impl Actor {
             execution_kind: None,
             workflow_launch: None,
             input_source,
+            origin_meta: notices.iter().find_map(|notice| notice.origin_meta().cloned()),
         });
         for message in &users {
             self.log.append(KernelEvent::MessageDone {

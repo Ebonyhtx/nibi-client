@@ -94,6 +94,7 @@ impl Actor {
             execution_kind: None,
             workflow_launch: None,
             input_source: None,
+            origin_meta: None,
         });
         let abort = Abort::new();
         let (sender, requests) = mpsc::channel(SINK_REQUESTS);
@@ -129,6 +130,7 @@ impl Actor {
                     BASH_CAVEAT.to_owned(),
                     UserOrigin::Meta {
                         source: LOCAL_COMMAND_CAVEAT_SOURCE.to_owned(),
+                        origin_meta: None,
                     },
                 );
                 let interrupted = user(ids.message(), INTERRUPTED.to_owned(), UserOrigin::Human);

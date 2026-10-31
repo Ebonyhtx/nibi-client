@@ -17,7 +17,7 @@ use crate::actor::{Actor, accepted};
 
 /// 这条 user 消息是本地命令的记录（固定说明、命令输入、输出或记录带的 meta）。
 pub(crate) fn is_record(user: &UserMessage) -> bool {
-    matches!(&user.origin, UserOrigin::Meta { source } if [
+    matches!(&user.origin, UserOrigin::Meta { source, .. } if [
         LOCAL_COMMAND_CAVEAT_SOURCE,
         LOCAL_COMMAND_INPUT_SOURCE,
         LOCAL_COMMAND_OUTPUT_SOURCE,
@@ -37,6 +37,7 @@ pub(crate) fn record_messages(ids: &dyn Ids, record: &LocalCommandRecord) -> Vec
                 content: vec![ContentBlock::Text { text }],
                 origin: UserOrigin::Meta {
                     source: source.to_owned(),
+                    origin_meta: None,
                 },
             })
         })

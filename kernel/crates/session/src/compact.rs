@@ -48,6 +48,7 @@ impl Actor {
             execution_kind: None,
             workflow_launch: None,
             input_source: None,
+            origin_meta: None,
         });
         self.log.append(KernelEvent::CompactStarted {
             trigger: CompactTrigger::Manual,

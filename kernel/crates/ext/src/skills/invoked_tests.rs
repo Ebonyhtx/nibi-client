@@ -29,6 +29,7 @@ fn body(text: &str) -> Message {
         text,
         UserOrigin::Meta {
             source: SKILL_MESSAGE_SOURCE.to_owned(),
+            origin_meta: None,
         },
     )
 }

@@ -117,7 +117,7 @@ fn cron_prompts(messages: &[Message]) -> Vec<String> {
         .iter()
         .filter_map(|message| match message {
             Message::User(user)
-                if matches!(&user.origin, UserOrigin::Meta { source } if source == "scheduled-task") =>
+                if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == "scheduled-task") =>
             {
                 match user.content.as_slice() {
                     [ContentBlock::Text { text }] => Some(text.clone()),

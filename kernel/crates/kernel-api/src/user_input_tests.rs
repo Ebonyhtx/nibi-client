@@ -69,6 +69,7 @@ fn only_real_user_input_opens_a_turn() {
     let notice = UserMessage {
         origin: UserOrigin::Meta {
             source: "task-notification".to_owned(),
+            origin_meta: None,
         },
         ..human("done")
     };

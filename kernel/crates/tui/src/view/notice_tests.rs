@@ -57,6 +57,7 @@ fn the_main_notice_is_replaced_and_cleared_by_the_stream() {
             execution_kind: None,
             workflow_launch: None,
             input_source: None,
+            origin_meta: None,
             turn: turn.clone(),
             command: None,
         },

@@ -267,7 +267,8 @@ async fn the_four_stop_answers() {
     assert_eq!(
         user.origin,
         UserOrigin::Meta {
-            source: "stop_hook_feedback".to_owned()
+            source: "stop_hook_feedback".to_owned(),
+            origin_meta: None,
         }
     );
     assert_eq!(

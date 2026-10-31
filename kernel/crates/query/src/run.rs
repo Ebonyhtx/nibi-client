@@ -125,6 +125,7 @@ async fn conclude(
                 }],
                 origin: UserOrigin::Meta {
                     source: source.to_owned(),
+                    origin_meta: None,
                 },
             });
             commit(scope, history, message).await?;

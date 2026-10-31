@@ -261,6 +261,10 @@ function launchRun(
 ): Promise<RunSettlement> {
   const db = openDatabase(params.dbPath);
   const journal = createDwfJournalStore(db);
+  // 本世代的起点（终态通知的 durationMs：completedAt - startedAt；Node 的
+  // workflowNotificationDurationMs 同源——跨 resume 的累计 activeDurationMs 由 run 服务
+  // 维护，sidecar 路径按本世代算）。
+  const startedAtMs = Date.now();
   const driver = new RemoteDriver(
     params.runId,
     journal,
@@ -327,7 +331,10 @@ function launchRun(
       // 结算通知的事实随结算一起交回（宿主据它组 `<task-notification>` 的终态通知）。journal 是
       // 唯一数据源，此刻还开着——db 在 finally 里才关。submit/resume/amend 三条入口同构。
       {
-        return { settlement: settled, notice: settleNoticeFacts(journal, params.runId) };
+        return {
+          settlement: settled,
+          notice: settleNoticeFacts(journal, params.runId, Date.now() - startedAtMs),
+        };
       },
     )
     .finally(() => {
@@ -347,6 +354,7 @@ function launchRun(
 function settleNoticeFacts(
   journal: ReturnType<typeof createDwfJournalStore>,
   runId: string,
+  durationMs: number,
 ): {
   name?: string;
   toolCallId?: string;
@@ -355,6 +363,7 @@ function settleNoticeFacts(
   reportCount: number;
   artifacts: unknown[];
   spentTokens?: number;
+  durationMs?: number;
 } {
   const record = journal.getRun(runId);
   const launched = journal
@@ -388,6 +397,7 @@ function settleNoticeFacts(
     reportCount: Math.max(reportTotal, reportEvents.length),
     artifacts,
     ...(record?.spentTokens === undefined ? {} : { spentTokens: record.spentTokens }),
+    durationMs: Math.max(0, durationMs),
   };
 }
 

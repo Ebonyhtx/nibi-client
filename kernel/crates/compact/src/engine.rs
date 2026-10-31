@@ -135,6 +135,7 @@ impl Engine<'_> {
                 }],
                 origin: UserOrigin::Meta {
                     source: source.to_owned(),
+                    origin_meta: None,
                 },
             })
         };

@@ -53,7 +53,7 @@ fn body(call: &ToolCallOutput) -> &str {
         [
             Message::User(UserMessage {
                 content,
-                origin: UserOrigin::Meta { source },
+                origin: UserOrigin::Meta { source, .. },
                 ..
             }),
         ] if source == SKILL_MESSAGE_SOURCE => match &content[..] {

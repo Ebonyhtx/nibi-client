@@ -531,6 +531,7 @@ impl Actor {
             execution_kind: Some(TurnExecutionKind::ControlOnly),
             workflow_launch: Some(launch.clone()),
             input_source: None,
+            origin_meta: None,
         });
         self.log.append(KernelEvent::MessageDone {
             message: message.clone(),

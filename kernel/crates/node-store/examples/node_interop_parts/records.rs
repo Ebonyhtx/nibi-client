@@ -46,6 +46,7 @@ pub(super) async fn write(dir: &str) -> Result<()> {
                     content: vec![text(&body)],
                     origin: UserOrigin::Meta {
                         source: source.to_owned(),
+                        origin_meta: None,
                     },
                 }),
             }

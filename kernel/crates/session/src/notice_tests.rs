@@ -126,6 +126,7 @@ pub(super) fn notices_in(messages: &[Message]) -> Vec<String> {
                 if user.origin
                     == UserOrigin::Meta {
                         source: "task-notification".to_owned(),
+                        origin_meta: None,
                     } =>
             {
                 Some(format!("{:?}", user.content))
@@ -209,6 +210,7 @@ async fn a_notice_that_is_already_in_the_conversation_is_only_acked() {
         }],
         origin: UserOrigin::Meta {
             source: "task-notification".to_owned(),
+            origin_meta: None,
         },
     });
     let session = session(

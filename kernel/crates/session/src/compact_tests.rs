@@ -296,7 +296,7 @@ fn record_texts(messages: &[Message]) -> Vec<String> {
         .iter()
         .filter_map(|message| match message {
             Message::User(user)
-                if matches!(&user.origin, rust_cli_kernel_api::message::UserOrigin::Meta { source } if source.starts_with("local-command")) =>
+                if matches!(&user.origin, rust_cli_kernel_api::message::UserOrigin::Meta { source, .. } if source.starts_with("local-command")) =>
             {
                 match user.content.as_slice() {
                     [rust_cli_kernel_api::message::ContentBlock::Text { text }] => Some(text.clone()),

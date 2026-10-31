@@ -139,7 +139,8 @@ async fn the_session_moves_and_gets_the_note_with_the_new_rules() {
     assert_eq!(
         note.origin,
         UserOrigin::Meta {
-            source: "rust-cli/cd".to_owned()
+            source: "rust-cli/cd".to_owned(),
+            origin_meta: None,
         }
     );
     let ContentBlock::Text { text } = &note.content[0] else {
@@ -209,7 +210,7 @@ fn cd_notes(messages: &[Message]) -> usize {
     messages
         .iter()
         .filter(|message| {
-            matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { source: "rust-cli/cd".to_owned() })
+            matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { origin_meta: None, source: "rust-cli/cd".to_owned() })
         })
         .count()
 }
@@ -220,7 +221,7 @@ fn metas(messages: &[Message]) -> Vec<(String, String)> {
         .iter()
         .filter_map(|message| match message {
             Message::User(user) => match (&user.origin, user.content.as_slice()) {
-                (UserOrigin::Meta { source }, [ContentBlock::Text { text }]) => {
+                (UserOrigin::Meta { source, .. }, [ContentBlock::Text { text }]) => {
                     Some((source.clone(), text.clone()))
                 }
                 _ => None,

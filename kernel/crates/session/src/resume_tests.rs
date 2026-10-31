@@ -143,6 +143,7 @@ fn meta_messages_after_the_results_do_not_hide_the_trailing_calls() {
         }],
         origin: UserOrigin::Meta {
             source: "skill".to_owned(),
+            origin_meta: None,
         },
     });
     let messages = vec![

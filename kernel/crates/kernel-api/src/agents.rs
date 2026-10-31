@@ -47,7 +47,7 @@ pub trait SubagentQueries: Send + Sync {
 }
 
 /// 后台子代理的终态通知（排队优先级 `later`）。
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentNotice {
     /// 在接收会话内单调递增；ack 用它。
     pub seq: u64,
@@ -56,6 +56,11 @@ pub struct AgentNotice {
     pub status: String,
     /// 完整的通知文本（含 `<system-reminder>` 包装），作为 meta user 消息提交。
     pub text: String,
+    /// 结构化的 originMeta（Node `BackgroundResultOriginMeta`：backgroundSource/title/workId，
+    /// GUI 的运行卡关联键）——通知轮的轮头行与 meta 记录的 `metadata.originMeta` 都带它。
+    /// 工作流 run 的终态/升级通知带；普通子代理通知缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin_meta: Option<serde_json::Value>,
 }
 
 /// 发给某个会话的信号。

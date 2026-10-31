@@ -145,6 +145,7 @@ impl Hub {
         agent: AgentId,
         status: &str,
         text: String,
+        origin_meta: Option<Value>,
     ) -> u64 {
         let seq = {
             let mut channels = self.channels();
@@ -155,6 +156,7 @@ impl Hub {
                 agent,
                 status: status.to_owned(),
                 text,
+                origin_meta,
             };
             let order = channel.order();
             channel.pending.push((order, notice));

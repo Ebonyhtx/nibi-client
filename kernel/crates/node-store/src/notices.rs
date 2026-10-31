@@ -77,10 +77,15 @@ pub fn append_attachment(
     } else {
         attachment.source.clone()
     };
-    save(ctx, attachment.id.as_str(), &source, &blocks, marker)
+    save(ctx, attachment.id.as_str(), &source, &blocks, marker, None)
 }
 
-pub fn append_meta(ctx: &Commit<'_>, user: &UserMessage, source: &str) -> Result<(), StoreError> {
+pub fn append_meta(
+    ctx: &Commit<'_>,
+    user: &UserMessage,
+    source: &str,
+    origin_meta: Option<&serde_json::Value>,
+) -> Result<(), StoreError> {
     let texts = texts(user, META)?;
     save(
         ctx,
@@ -88,19 +93,20 @@ pub fn append_meta(ctx: &Commit<'_>, user: &UserMessage, source: &str) -> Result
         source,
         &texts,
         json!({"message": META}),
+        origin_meta,
     )
 }
 
 pub fn append_interrupt(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
     let texts = texts(user, INTERRUPT)?;
     let marker = json!({"message": INTERRUPT});
-    save(ctx, user.id.as_str(), INTERRUPT_SOURCE, &texts, marker)
+    save(ctx, user.id.as_str(), INTERRUPT_SOURCE, &texts, marker, None)
 }
 
 pub fn append_bash_output(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
     let texts = texts(user, BASH_OUTPUT)?;
     let marker = json!({"message": BASH_OUTPUT});
-    save(ctx, user.id.as_str(), BASH_OUTPUT_SOURCE, &texts, marker)
+    save(ctx, user.id.as_str(), BASH_OUTPUT_SOURCE, &texts, marker, None)
 }
 
 fn texts(user: &UserMessage, what: &str) -> Result<Vec<ContentBlock>, StoreError> {
@@ -117,8 +123,13 @@ fn texts(user: &UserMessage, what: &str) -> Result<Vec<ContentBlock>, StoreError
 
 /// Node `reminderPartMetadata` 去掉 `runtimeMessage`（那是 Node 运行时的来源名，这里的来源是
 /// 内核的 attachment type）。
-fn metadata(source: &str) -> Value {
-    json!({"source": source, "visibility": "model-only"})
+fn metadata(source: &str, origin_meta: Option<&serde_json::Value>) -> Value {
+    let mut out = json!({"source": source, "visibility": "model-only"});
+    if let Some(origin_meta) = origin_meta {
+        // Node `persistSyntheticUserNoticeForSession` 同形：记录与 part 两级 metadata 都带。
+        out["originMeta"] = origin_meta.clone();
+    }
+    out
 }
 
 /// Node `persistRuntimeReminderMessage` 的消息。`modelSelection` 只带 provider 与 model（Node
@@ -129,9 +140,11 @@ fn message(
     source: &str,
     selection: Option<&Value>,
     turn: Option<&str>,
+    origin_meta: Option<&serde_json::Value>,
 ) -> Value {
     let mut out = json!({"id": id, "sessionID": session, "role": "user",
-        "time": {"created": created}, "agent": AGENT, "metadata": metadata(source)});
+        "time": {"created": created}, "agent": AGENT,
+        "metadata": metadata(source, origin_meta)});
     if let Some(selection) = selection {
         out["modelSelection"] =
             json!({"providerId": selection["providerId"], "modelId": selection["modelId"]});
@@ -155,6 +168,7 @@ fn save(
     source: &str,
     blocks: &[ContentBlock],
     marker: Value,
+    origin_meta: Option<&serde_json::Value>,
 ) -> Result<(), StoreError> {
     let created = created_at(id, ctx.now);
     let selection = state::selection(ctx.conn, ctx.session).storage()?;
@@ -166,9 +180,10 @@ fn save(
         source,
         selection.as_ref(),
         turn.as_deref(),
+        origin_meta,
     );
     messages::save_message(ctx.conn, &info, ctx.now as i64).storage()?;
-    let mut metadata = metadata(source);
+    let mut metadata = metadata(source, origin_meta);
     metadata[RUST_CLI] = marker;
     for block in blocks {
         let part = match block {
@@ -240,7 +255,13 @@ pub fn hydrate(record: &WithParts) -> Option<Message> {
         META => Message::User(UserMessage {
             id,
             content: content(),
-            origin: UserOrigin::Meta { source },
+            origin: UserOrigin::Meta {
+                source,
+                // 后台通知的结构化 originMeta（Node `metadata.originMeta` 同形）。
+                origin_meta: record.info["metadata"]["originMeta"]
+                    .as_object()
+                    .map(|_| record.info["metadata"]["originMeta"].clone()),
+            },
         }),
         INTERRUPT | BASH_OUTPUT => Message::User(UserMessage {
             id,

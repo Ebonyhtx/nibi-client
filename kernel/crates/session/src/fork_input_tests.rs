@@ -255,6 +255,7 @@ fn the_turn_runs_until_the_next_input() {
         "<task-notification>done</task-notification>",
         UserOrigin::Meta {
             source: "task-notification".to_owned(),
+            origin_meta: None,
         },
     );
     let call = ContentBlock::ToolUse {

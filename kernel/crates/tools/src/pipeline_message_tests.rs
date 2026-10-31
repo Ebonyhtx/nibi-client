@@ -31,6 +31,7 @@ fn loaded() -> Message {
         }],
         origin: UserOrigin::Meta {
             source: "skill".to_owned(),
+            origin_meta: None,
         },
     })
 }

@@ -6,6 +6,7 @@ use serde_json::json;
 fn facts() -> RunNoticeFacts {
     RunNoticeFacts {
         name: Some("probe".to_owned()),
+        duration_ms: Some(12),
         ..RunNoticeFacts::default()
     }
 }
@@ -13,7 +14,7 @@ fn facts() -> RunNoticeFacts {
 #[test]
 fn a_completed_run_reads_as_the_full_envelope_with_guidance() {
     let settlement = json!({"status": "completed", "artifact": "the worker said hi"});
-    let text = compose_run_settled_notice("dwfrun-1", Some("launch-abc"), &facts(), &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-1", Some("launch-abc"), &facts(), &settlement)
         .expect("completed composes");
     assert_eq!(
         text,
@@ -35,7 +36,7 @@ fn a_completed_run_reads_as_the_full_envelope_with_guidance() {
 #[test]
 fn an_unnamed_run_falls_back_to_the_run_id_as_subject() {
     let settlement = json!({"status": "completed", "artifact": {"answer": 2}});
-    let text = compose_run_settled_notice("dwfrun-9", None, &RunNoticeFacts::default(), &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-9", None, &RunNoticeFacts::default(), &settlement)
         .expect("completed composes");
     assert!(text.contains("<description>dwfrun-9</description>"), "{text}");
     assert!(text.contains("<summary>Workflow &quot;dwfrun-9&quot; completed.</summary>"), "{text}");
@@ -48,7 +49,7 @@ fn an_unnamed_run_falls_back_to_the_run_id_as_subject() {
 #[test]
 fn a_user_stopped_run_says_do_not_resume() {
     let settlement = json!({"status": "stopped", "reason": "user"});
-    let text = compose_run_settled_notice("dwfrun-2", None, &facts(), &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-2", None, &facts(), &settlement)
         .expect("stopped composes");
     assert!(text.contains("<status>stopped</status>"), "{text}");
     assert!(text.contains("<stop-reason>user</stop-reason>"), "{text}");
@@ -66,7 +67,7 @@ fn an_errored_run_points_at_amend_with_the_script_path() {
     let settlement = json!({"status": "errored", "error": {"code": "ValidationFailed", "message": "boom"}});
     let mut my_facts = facts();
     my_facts.script_path = Some("D:/repo/.nibi/workflows/probe.dwf.ts".to_owned());
-    let text = compose_run_settled_notice("dwfrun-3", Some("launch-1"), &my_facts, &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-3", Some("launch-1"), &my_facts, &settlement)
         .expect("errored composes");
     assert!(text.contains("<status>errored</status>"), "{text}");
     assert!(text.contains("<summary>Workflow &quot;probe&quot; errored: the script failed.</summary>"), "{text}");
@@ -97,7 +98,7 @@ fn a_provider_stop_renders_the_table_driven_error_block() {
             },
         },
     });
-    let text = compose_run_settled_notice("dwfrun-4", None, &facts(), &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-4", None, &facts(), &settlement)
         .expect("provider stop composes");
     assert!(
         text.contains(
@@ -119,7 +120,7 @@ fn reports_carry_the_true_count_and_a_budgeted_preview() {
         .map(|index| json!(format!("finding {index}")))
         .collect();
     my_facts.report_count = 11;
-    let text = compose_run_settled_notice("dwfrun-5", None, &my_facts, &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-5", None, &my_facts, &settlement)
         .expect("completed composes");
     assert!(text.contains("<reports count=\"11\" shown=\"3\">"), "{text}");
     assert!(text.contains("[1] finding 1
@@ -131,7 +132,7 @@ fn reports_carry_the_true_count_and_a_budgeted_preview() {
 #[test]
 fn a_zero_report_run_has_no_reports_section() {
     let settlement = json!({"status": "completed", "artifact": "done"});
-    let text = compose_run_settled_notice("dwfrun-6", None, &facts(), &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-6", None, &facts(), &settlement)
         .expect("completed composes");
     assert!(!text.contains("<reports"), "{text}");
 }
@@ -145,7 +146,7 @@ fn artifacts_merge_versions_and_lead_with_primary() {
         json!({"id": "summary", "kind": "markdown", "title": "Summary", "version": 2, "contentType": "text/markdown", "bytes": 2048, "primary": true}),
         json!({"id": "board", "kind": "metrics", "title": "Numbers", "version": 2, "itemCount": 9}),
     ];
-    let text = compose_run_settled_notice("dwfrun-7", None, &my_facts, &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-7", None, &my_facts, &settlement)
         .expect("completed composes");
     assert!(text.contains("<artifacts count=\"2\">"), "{text}");
     // primary 带头；board 取最新版本；预置看板是点数不是字节。
@@ -160,7 +161,7 @@ fn artifacts_merge_versions_and_lead_with_primary() {
 #[test]
 fn xml_metacharacters_are_escaped_but_the_error_block_keeps_quotes() {
     let settlement = json!({"status": "completed", "artifact": "a <b> & \"c\" 'd'"});
-    let text = compose_run_settled_notice("dwfrun-8", None, &facts(), &settlement)
+    let (text, _manifest) = compose_run_settled_notice("dwfrun-8", None, &facts(), &settlement)
         .expect("completed composes");
     assert!(
         text.contains("<result>a &lt;b&gt; &amp; &quot;c&quot; &apos;d&apos;</result>"),
@@ -182,4 +183,56 @@ fn the_iso_helper_matches_node_date_to_isostring() {
     assert_eq!(iso_millis("0"), "1970-01-01T00:00:00.000Z");
     // 2026-10-31T00:00:00.000Z 的 epoch 毫秒。
     assert_eq!(iso_millis("1793404800000"), "2026-10-31T00:00:00.000Z");
+}
+
+/// manifest 载荷（`originMeta.workflowNotification`）：summary/result/resultForm 与产物 chips。
+#[test]
+fn the_manifest_carries_the_terminal_payload_and_chips() {
+    let settlement = json!({"status": "completed", "artifact": "the answer"});
+    let mut my_facts = facts();
+    my_facts.artifacts = vec![json!({
+        "id": "summary", "kind": "markdown", "title": "Summary", "version": 2,
+        "contentType": "text/markdown", "bytes": 2048, "primary": true,
+        "description": "the deliverable",
+    })];
+    let (text, manifest) =
+        compose_run_settled_notice("dwfrun-1", None, &my_facts, &settlement).expect("composes");
+    assert!(text.contains("<result>the answer</result>"), "{text}");
+    assert_eq!(
+        manifest,
+        json!({
+            "kind": "terminal",
+            "status": "completed",
+            "summary": "probe",
+            "result": "the answer",
+            "resultForm": "prose",
+            "artifacts": [{
+                "id": "summary", "kind": "markdown", "title": "Summary",
+                "version": 2, "contentType": "text/markdown", "primary": true,
+                "description": "the deliverable",
+            }],
+            "durationMs": 12,
+        }),
+    );
+}
+
+/// manifest 的界：result 超 4k 截断并带 resultTruncated；未知 kind 的 chip 整条丢；
+/// artifactsTruncated 是「画出来的比总数少」。
+#[test]
+fn the_manifest_bounds_and_kind_filter_follow_the_shared_schema() {
+    let settlement = json!({"status": "completed", "artifact": "x".repeat(5_000)});
+    let mut my_facts = facts();
+    my_facts.artifacts = vec![
+        json!({"id": "odd", "kind": "mystery", "title": "?", "version": 1}),
+        json!({"id": "board", "kind": "metrics", "title": "N", "version": 1, "itemCount": 3}),
+    ];
+    let (_, manifest) =
+        compose_run_settled_notice("dwfrun-1", None, &my_facts, &settlement).expect("composes");
+    assert_eq!(manifest["resultTruncated"], json!(true));
+    assert_eq!(manifest["result"].as_str().map(|s| s.chars().count()), Some(4_000));
+    // 未知 kind 整条丢；剩下的那条构成截断诚实（画出来的比总数少）。
+    assert_eq!(manifest["artifacts"].as_array().unwrap().len(), 1);
+    assert_eq!(manifest["artifacts"][0]["id"], json!("board"));
+    assert_eq!(manifest["artifactsTruncated"], json!(true));
+    assert_eq!(manifest["durationMs"], json!(12));
 }

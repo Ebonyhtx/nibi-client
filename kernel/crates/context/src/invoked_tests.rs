@@ -59,6 +59,7 @@ fn skills_already_in_the_kept_tail_are_skipped() {
         }],
         origin: UserOrigin::Meta {
             source: "skill".to_owned(),
+            origin_meta: None,
         },
     });
     assert!(announce(vec![skill("deploy", "Deploy it.")], &[body, earlier]).is_some());

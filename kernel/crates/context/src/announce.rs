@@ -120,7 +120,7 @@ pub(crate) fn tokens_due(history: &[Message]) -> bool {
     let last = history.iter().rev().find(|message| {
         !matches!(message, Message::Attachment(_))
             && !matches!(message, Message::User(user)
-                if matches!(&user.origin, UserOrigin::Meta { source } if source == SKILL_SOURCE))
+                if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == SKILL_SOURCE))
     });
     match last {
         // 修 bug（L22）：用户调用 skill 时人类输入是命令标签，不算普通的用户输入，这一步不宣布；
@@ -149,7 +149,7 @@ pub(crate) fn inputs_due(history: &[Message]) -> bool {
         .find(|message| !matches!(message, Message::Attachment(_)));
     match last {
         Some(Message::User(user)) => match &user.origin {
-            UserOrigin::Meta { source } => {
+            UserOrigin::Meta { source, .. } => {
                 source != goal::PROMPT_SOURCE && source != STOP_FEEDBACK_SOURCE
             }
             UserOrigin::Human => !user.content.iter().any(|block| {
