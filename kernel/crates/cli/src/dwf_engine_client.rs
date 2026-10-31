@@ -767,7 +767,8 @@ impl WorkflowEngine for SidecarEngine {
         })?;
         let cwd = view.meta.workspace.root.as_str().to_owned();
         let run_id = format!("dwfrun-{}", self.shared.ids.uuid());
-        let tool_call_id = format!("call-{}", self.shared.ids.uuid());
+        // `launch-` 前缀：中枢启动的合成锚点，与设置轮的 `settings-` 同族（launch.md 的键名）。
+        let tool_call_id = format!("launch-{}", self.shared.ids.uuid());
         self.register_run(&run_id, RunState::new(parent.clone(), cwd.clone()));
         let process = self.ensure_process().map_err(|error| {
             WorkflowEngineError::with_message("start_failed", error)
@@ -798,10 +799,25 @@ impl WorkflowEngine for SidecarEngine {
                 reply["message"].as_str().unwrap_or("the workflow could not start"),
             ));
         }
+        // 启动轮材料（中枢直接启动）：解析 saved 定义的引擎原样转交，宿主写启动轮。
+        let launch_turn = if reply["name"].as_str().is_some() {
+            Some(rust_cli_kernel_api::workflow::WorkflowLaunchTurn {
+                name: reply["name"].as_str().unwrap_or_default().to_owned(),
+                scope: reply["scope"].as_str().unwrap_or_default().to_owned(),
+                path: reply["path"].as_str().map(str::to_owned),
+                description: reply["description"].as_str().map(str::to_owned),
+                args: reply.get("args").filter(|args| !args.is_null()).cloned(),
+                script: reply["script"].as_str().map(str::to_owned),
+            })
+        } else {
+            None
+        };
         Ok(WorkflowRunStarted {
             run_id,
             tool_call_id,
             superseded_run_id: None,
+            settings_turn: None,
+            launch_turn,
         })
     }
 
@@ -837,6 +853,8 @@ impl WorkflowEngine for SidecarEngine {
             run_id: run_id.to_owned(),
             tool_call_id: format!("resume-{}", self.shared.ids.uuid()),
             superseded_run_id: None,
+            settings_turn: None,
+            launch_turn: None,
         })
     }
 
@@ -879,10 +897,28 @@ impl WorkflowEngine for SidecarEngine {
                 RunState::new(SessionId::new(parent), cwd.to_owned()),
             );
         }
+        // 设置轮材料（引擎算好的「改了什么」）：原样交给协议层写会话记录。`predecessorRunId`
+        // 只在铸出后继时在场——缺席即就地生效，渲染端据此只画一行（与 Node 的元数据同一条读法）。
+        let successor = started_run != request.run_id;
+        let settings_turn = reply["settings"].as_object().map(|settings| {
+            let mut amend = serde_json::Map::new();
+            if successor {
+                amend.insert("predecessorRunId".into(), json!(request.run_id));
+            }
+            for (key, value) in settings {
+                amend.insert(key.clone(), value.clone());
+            }
+            rust_cli_kernel_api::workflow::WorkflowSettingsTurn {
+                name: reply["name"].as_str().map(str::to_owned),
+                amend: Value::Object(amend),
+            }
+        });
         Ok(WorkflowRunStarted {
             run_id: started_run,
             tool_call_id,
             superseded_run_id: reply["supersededRunId"].as_str().map(str::to_owned),
+            settings_turn,
+            launch_turn: None,
         })
     }
 

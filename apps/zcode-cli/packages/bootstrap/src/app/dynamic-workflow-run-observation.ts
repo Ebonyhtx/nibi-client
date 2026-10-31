@@ -201,6 +201,10 @@ export function snapshotOf(
   // 归属：AmendWorkflow 的
   // resolveInput 读快照判「是不是本会话的 run」；lineage 两端指针见 lineageFields。
   const parentSessionId = entry?.parentSessionId ?? record?.parentSessionId;
+  // run 自己的名字：设置轮（amendWorkflowRunSettings）据它题名「已修订」记录，GUI「配置」的
+  // 成功路径也读它。内存副本优先于 journal，与上面每一个间隙字段同规（submit → createRun 的
+  // 微任务里行还不存在）；以前快照一直漏了这个字段，设置轮的句子因此从没带过名字。
+  const name = entry?.name ?? record?.name;
 
   return {
     runId: taskId,
@@ -210,6 +214,7 @@ export function snapshotOf(
     ...(terminal ? { runStatus } : {}),
     ...(stopReason === undefined ? {} : { stopReason }),
     ...(parentSessionId === undefined ? {} : { parentSessionId }),
+    ...(name === undefined ? {} : { name }),
     ...lineageFields(entry?.resumedFrom ?? record?.resumedFrom, supersededByOf(entry, record)),
     // 内存副本优先于 journal，与上面每一个间隙字段同规：submit → createRun 的那几个微任务里
     // 行还不存在，而 AmendWorkflow 的 resolveInput 恰好会在那时读这张快照。

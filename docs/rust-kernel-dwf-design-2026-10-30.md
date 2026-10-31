@@ -248,9 +248,20 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
      - ~~journal 里的 `escalation-raised` / `escalation-resolved` 事件~~（**已补，2026-10-30 第四段**：
        宿主注册表写 `dwf_event`，与 sidecar 共写同一个库；`check-dwf-engine` 37 字段。UI 的
        `pendingQuestions` 投影与冷回放的数据源由此就绪，投影面本身待接）；
-     - Node 的「设置轮」：修订成功后往会话里排一条 controlOnly 消息（模型可见的「已修订」记录）；
+     - ~~Node 的「设置轮」~~（**已补，2026-10-30 第六段**：启动轮 + 设置轮都落了——
+       `Command::WorkflowLaunch` 进会话 actor（忙时排队、空闲即落、不开模型回合），存储按
+       `persistWorkflowLaunchUserMessage` 的形状写（`source: "workflow_launch"` +
+       `metadata.workflowLaunch`），规范句与元数据与 Node 逐字；sidecar 的 submit/amend 回复带
+       齐「名字/作用域/脚本」与「改了什么」材料，默认并发 D 改回与宿主同一个 CPU 公式（常量 4
+       曾让设置轮的 ceiling 在多核机上分叉），中枢启动的 toolCallId 从 `call-` 归位 `launch-`；
+       Node 侧顺手修了 `snapshotOf` 从不填 `name` 的缺口（设置轮的句子因此从没带过名字）。
+       `check-dwf-engine` 55 字段。live 投影的 `executionKind: "controlOnly"` 与运行卡渲染仍未接
+       ——投影面的活，详见投影面条目）；
      - `amend` 的脚本点名模型绑定（`modelBindings`）与 persona 级模型名解析（需要模型目录；
        规范串形式已支持）；
      - ~~`GetWorkflowRun` 工具本身~~（**v1 已接，2026-10-30 第五段**：journal 读面 + 停驻
        注册表合成；名字/描述/输入 schema 与模型面块序与 Node 逐字，`check-dwf-engine` 45 字段。
        阶段表/花名册/留白/产物四类读面未接，对应块整体缺席——投影面落地后补）。
+     - 投影面（GUI 中枢与控制轮的活体渲染）：`workflows/runs` 中枢方法、run 详情的阶段表/
+       花名册/留白/产物读面、控制轮的 live `executionKind: "controlOnly"`（Rust 的 live/冷投影
+       目前把控制轮当普通 agent 轮画，GUI 的运行卡由冷恢复的 `metadata.workflowLaunch` 而来）。

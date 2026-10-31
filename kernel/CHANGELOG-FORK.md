@@ -521,6 +521,35 @@ journal 因此成为 `pendingQuestions` 投影与冷回放的数据源。
 - **门禁**：`check-dwf-engine.mjs` 37 → **45 字段**（真 id 的状态/摘要/用量/归属/amendable/
   待答区缺席/log 尾巴形状 + 坏 id 的 run_not_found），双内核一致。
 
+## 6.17 启动轮与设置轮（2026-10-30，路线 C 第六段）
+
+中枢「运行」与 run 卡「配置」成功后的会话记录（launch.md「The launch turn」与「The settings
+turn」）：模型可见的 controlOnly 合成输入，GUI 的运行卡与冷恢复读 `metadata.workflowLaunch`。
+
+- **kernel-api**：`Command::WorkflowLaunch { text, launch }`（会话 actor 忙时排队、空闲即落，
+  开消息 + `TurnStarted`/`TurnFinished` 轮边界、不开模型回合）；`Fact::WorkflowLaunchMessage`
+  （存储事实，`TurnAnchor::after` 认它自成一轮）；`WorkflowRunStarted` 增 `launch_turn` /
+  `settings_turn`（引擎回复带的材料）。
+- **node-store**：`append_launch` 按 Node `persistWorkflowLaunchUserMessage` 的形状写
+  （`source: "workflow_launch"`、`metadata.workflowLaunch`、`semantics` 同键序）；`hydrate::user`
+  对这类 synthetic text part 网开一面——冷加载后文本照常进模型上下文（Node 的 provider
+  history 同规；不然一次重启就把「已修订」记录从模型眼里抹掉）。
+- **protocol-zcode**：`workflow_settings_turn.rs`——两条规范句（Node `buildSettingsMessageText`
+  / `buildLaunchMessageText` 的逐字移植）与元数据构造（键序照 `boundWorkflowLaunchMeta`，
+  args 4KB / description 500 / script 256k 三道上界同款）；`startSavedWorkflow` /
+  `amendWorkflowRunSettings` 成功后发轮，写失败只记日志不回滚（Node 同规）。
+- **sidecar**：`dwf-engine-command.ts`——submit/amend 回复带齐材料（saved 的名字/作用域/落点/
+  脚本/实参；修订的 from/to/ceiling）；默认并发 D 从常量 4 改回宿主同款 CPU 公式
+  `max(4, min(16, cores − 2))`（多核机上 ceiling 曾分叉）；submit 把 saved 名字落
+  `dwf_run.name`；中枢启动 toolCallId `call-` 归位 `launch-`（与设置轮 `settings-` 同族）。
+- **Node 侧**：`snapshotOf` 补上从没填过的 `name`（registry/journal 都有）——设置轮的
+  「已修订」句子因此从没带过名字。
+- **投影面剩余**：live 投影把控制轮当普通 agent 轮画（`executionKind: "controlOnly"` 未穿
+  `KernelEvent::TurnStarted`），运行卡渲染归 GUI 投影面切片。
+- **门禁**：`check-dwf-engine.mjs` 45 → **55 字段**（启动轮句面/元数据、设置轮就地生效句、
+  「改了什么」from/to/ceiling、修订句 supersedes、冷恢复键 `source`/`semantics`/`metadata`
+  形状、名字带引号），双内核一致；复跑时三个门禁全绿（parity 92、cold-resume）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

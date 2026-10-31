@@ -102,7 +102,10 @@ fn user(record: &WithParts) -> Option<Message> {
                     _ => None,
                 };
             }
-            if !(visible_text(part) && (summary || part["synthetic"] != true)) {
+            // 工作流控制轮（启动/设置轮）的 text part 虽是 synthetic，语义却是 real_user 的可见输入
+            // （Node 的 provider history 恢复也保留它）：冷加载照常进模型上下文。
+            let launch = part["metadata"]["source"] == "workflow_launch";
+            if !(visible_text(part) && (summary || part["synthetic"] != true || launch)) {
                 return None;
             }
             let text = provider_text(part);

@@ -12,13 +12,13 @@ use rust_cli_kernel_api::hooks::HookOutcome;
 use rust_cli_kernel_api::ids::{
     CommandId, InteractionId, MessageId, OwnerEpoch, RunId, ToolUseId, TurnId,
 };
-use rust_cli_kernel_api::message::Message;
+use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, OrchestrationError, QueryError, QueryStop,
 };
 use rust_cli_kernel_api::session_api::{
-    Ack, Command, CommandEnvelope, Delivery, KernelEvent, QueuedInput, SessionView,
+    Ack, Command, CommandEnvelope, Delivery, KernelEvent, QueuedInput, SessionView, TurnOutcome,
 };
 use rust_cli_kernel_api::store::{Fact, FactBatch, SessionMeta, TurnAnchor, WorkspaceCheckpoint};
 use tokio::sync::{mpsc, oneshot};
@@ -195,6 +195,9 @@ pub(crate) struct Actor {
     pub(crate) goal: crate::goal::Goals,
     /// 回合或压缩在跑时到达的本地命令记录（修复线 L-A，local_record.rs）：收尾后按到达顺序提交。
     pub(crate) held_records: Vec<rust_cli_kernel_api::user_command::LocalCommandRecord>,
+    /// 回合在跑时到达的工作流控制轮（NIBI 中枢/「配置」，launch.md「The settings turn」）：
+    /// 收尾后按到达顺序落（与 Node 的 runtime 命令队列同一条时机——先于新 run 的通知）。
+    pub(crate) pending_launch: VecDeque<LaunchTurn>,
     seen: HashSet<CommandId>,
     /// 当前轮（开启它的真实用户输入与轮次 ID）：随每个批次交给存储（node-store.md §4，修复线 F6）；冷加载时取
     /// `LoadedSession.turn`。只在 `commit` 里改，锁不跨 await。
@@ -231,6 +234,13 @@ pub(crate) fn accepted() -> Ack {
     Ack::Accepted {
         result: serde_json::Value::Null,
     }
+}
+
+/// 排队中的工作流控制轮（[`Command::WorkflowLaunch`]）：忙时先攒着，回合收尾按到达顺序落。
+pub(crate) struct LaunchTurn {
+    pub(crate) command: CommandId,
+    pub(crate) text: String,
+    pub(crate) launch: serde_json::Value,
 }
 
 impl Actor {
@@ -281,6 +291,7 @@ impl Actor {
             naming: None,
             goal,
             held_records: Vec::new(),
+            pending_launch: VecDeque::new(),
             seen: HashSet::new(),
             turn: std::sync::Mutex::new(state.turn),
             resume_pending: std::sync::Mutex::new(resume_pending),
@@ -448,6 +459,7 @@ impl Actor {
             return;
         }
         let pending = !self.queue.is_empty()
+            || !self.pending_launch.is_empty()
             || self
                 .lane
                 .iter()
@@ -455,6 +467,69 @@ impl Actor {
         if pending {
             self.start_next().await;
         }
+    }
+
+    /// 工作流控制轮（NIBI 中枢与「配置」的 controlOnly 记录，launch.md「The settings turn」）：
+    /// 忙时排队，空闲时立即落。落库失败整个拒绝（调用方决定重试与否）；内存与事件只在提交成功后动。
+    async fn workflow_launch(
+        &mut self,
+        id: CommandId,
+        text: String,
+        launch: serde_json::Value,
+    ) -> Ack {
+        if self.busy() {
+            self.pending_launch.push_back(LaunchTurn {
+                command: id,
+                text,
+                launch,
+            });
+            return accepted();
+        }
+        match self.write_launch(id, text, launch).await {
+            Ok(()) => accepted(),
+            Err(reason) => rejected(reason),
+        }
+    }
+
+    /// 落一条控制轮：合成 user 消息（Node `persistWorkflowLaunchUserMessage` 的形状）+
+    /// 完整的轮边界（`TurnStarted` / `TurnFinished`），不开模型回合。文本进 `messages`
+    /// （模型下一回合照常读它）；存储按 `WorkflowLaunchMessage` 写（node-store 的
+    /// `append_launch`，`source: "workflow_launch"` + `metadata.workflowLaunch`）。
+    pub(crate) async fn write_launch(
+        &mut self,
+        command: CommandId,
+        text: String,
+        launch: serde_json::Value,
+    ) -> Result<(), String> {
+        let message = Message::User(UserMessage {
+            id: self.deps.ids.message(),
+            content: vec![ContentBlock::Text { text: text.clone() }],
+            origin: UserOrigin::Human,
+        });
+        let turn = self.deps.ids.turn();
+        self.commit(
+            Some(command),
+            vec![Fact::WorkflowLaunchMessage {
+                id: message.id().clone(),
+                text,
+                launch,
+            }],
+        )
+        .await?;
+        self.log.append(KernelEvent::TurnStarted {
+            turn: turn.clone(),
+            command: None,
+        });
+        self.log.append(KernelEvent::MessageDone {
+            message: message.clone(),
+        });
+        self.messages.push(message);
+        self.log.append(KernelEvent::TurnFinished {
+            turn,
+            outcome: TurnOutcome::Success,
+            usage: None,
+        });
+        Ok(())
     }
 
     async fn command(&mut self, envelope: CommandEnvelope) -> Ack {
@@ -563,6 +638,9 @@ impl Actor {
             Command::SetGoalPaused { paused } => self.set_goal_paused(paused).await,
             Command::CreateSelectionSideSession { selection } => {
                 self.create_selection_side_session(selection).await
+            }
+            Command::WorkflowLaunch { text, launch } => {
+                self.workflow_launch(id, text, launch).await
             }
         }
     }

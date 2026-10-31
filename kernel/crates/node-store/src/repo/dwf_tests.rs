@@ -77,7 +77,7 @@ fn appended_events_get_per_run_sequences() {
         0
     );
     assert_eq!(
-        append_event(&conn, "run_a", "escalation-resolved", &format!(r#"{{"type":"escalation-resolved","qid":"dwfq-a-1","answer":"that way"}}"#), 600).unwrap(),
+        append_event(&conn, "run_a", "escalation-resolved", r#"{"type":"escalation-resolved","qid":"dwfq-a-1","answer":"that way"}"#, 600).unwrap(),
         1
     );
     // 另一个 run 的序号独立计数。

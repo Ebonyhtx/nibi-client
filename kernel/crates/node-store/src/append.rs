@@ -44,6 +44,62 @@ pub fn append(ctx: &Commit<'_>, message: &Message) -> Result<(), StoreError> {
     }
 }
 
+/// 工作流控制轮的合成输入（NIBI 中枢启动 / run 卡「配置」，docs/dynamic-workflow/launch.md）：
+/// Node `persistWorkflowLaunchUserMessage` 的形状——`source: "workflow_launch"` + `metadata.workflowLaunch`
+/// 的可见 user 消息与一个 `synthetic` text part。冷恢复（GUI 的 transcript hydration）据
+/// `source` 认启动/设置轮，`metadata.workflowLaunch` 画运行卡；文本照常进模型上下文
+/// （hydrate 对这一类 synthetic part 网开一面，[`crate::hydrate::user`]）。这一批自成一轮。
+pub fn append_launch(
+    ctx: &Commit<'_>,
+    id: &str,
+    text: &str,
+    launch: &Value,
+) -> Result<(), StoreError> {
+    if messages::exists(ctx.conn, id).storage()? {
+        return Err(storage(format!("message {id} is already stored")));
+    }
+    let created = created_at(id, ctx.now);
+    let turn = ctx
+        .anchored_turn(id)
+        .unwrap_or_else(|| turn_id(&(ctx.uuid)()));
+    let mut info = json!({
+        "id": id, "sessionID": ctx.session, "role": "user",
+        "time": {"created": created}, "agent": records::AGENT,
+        "metadata": {"workflowLaunch": launch},
+        "source": "workflow_launch",
+        "synthetic": true,
+        "visibility": "user-visible",
+        "tools": {},
+    });
+    if let Some(selection) = state::selection(ctx.conn, ctx.session).storage()? {
+        info["modelSelection"] = selection;
+    }
+    // 控制轮的语义（Node：real_user 的 user_prompt 带 source）——GUI 与冷恢复按它读。
+    info["semantics"] = json!({
+        "origin": "real_user",
+        "kind": "user_prompt",
+        "source": "workflow_launch",
+        "uiVisibility": "visible",
+        "providerVisibility": "visible",
+        "transcriptVisibility": "visible",
+    });
+    if let Some(anchor) = records::anchor(Some(&turn), Some("realUser"), None) {
+        info["anchor"] = anchor;
+    }
+    messages::save_message(ctx.conn, &info, ctx.now as i64).storage()?;
+    ctx.opened(id, &turn);
+    let part = json!({
+        "id": part_id(ctx.now, &(ctx.uuid)()),
+        "sessionID": ctx.session, "messageID": id,
+        "type": "text", "text": text,
+        "metadata": {"source": "workflow_launch", "visibility": "user-visible"},
+        "synthetic": true,
+        "time": {"start": created, "end": created},
+    });
+    messages::save_part(ctx.conn, &part, ctx.now as i64).storage()?;
+    Ok(())
+}
+
 pub(crate) fn block_kind(block: &ContentBlock) -> &'static str {
     match block {
         ContentBlock::Text { .. } => "text",

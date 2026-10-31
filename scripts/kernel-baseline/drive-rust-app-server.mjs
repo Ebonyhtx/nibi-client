@@ -13,7 +13,7 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { DatabaseSync } from "node:sqlite";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runStoragePreparePhase } from "./storage-prepare-probe.mjs";
 
@@ -1353,6 +1353,108 @@ try {
         `lineage=${checks.dwfAmendLineage} next=${checks.dwfAmendCompleted} ` +
         `model=${checks.dwfAmendStoredModel}`,
     );
+
+    // 4) 控制轮（docs/dynamic-workflow/launch.md「The launch turn」与「The settings turn」）：中枢
+    //    启动 + 两次修订成功后，父会话里各有一条 controlOnly 的合成输入（source=workflow_launch +
+    //    metadata.workflowLaunch），模型面的规范句与元数据两边逐句一致。Node 的 ACK 先于控制轮
+    //    落库回，所以轮询等；行序 = 启动、就地 retune、修订出后继。
+    const launchRows = () => {
+      const db = new DatabaseSync(dbPath);
+      const rows = db
+        .prepare(
+          "select id, data from message where session_id = ? and json_extract(data,'$.source')='workflow_launch' order by time_created, id",
+        )
+        .all(session);
+      const parts = db
+        .prepare(
+          "select message_id, data from part where message_id in (select id from message where session_id = ?) and json_extract(data,'$.type')='text'",
+        )
+        .all(session);
+      db.close();
+      const textOf = new Map(
+        parts.map((part) => [part.message_id, JSON.parse(part.data).text ?? null]),
+      );
+      return rows.map((row) => {
+        const info = JSON.parse(row.data);
+        return { info, text: textOf.get(row.id) ?? null };
+      });
+    };
+    const waitLaunch = async (count) => {
+      for (let attempt = 0; attempt < 600; attempt += 1) {
+        const rows = launchRows();
+        if (rows.length >= count) return rows;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return launchRows();
+    };
+    const DEFAULT_D = Math.max(4, Math.min(16, availableParallelism() - 2));
+    const turns = await waitLaunch(3);
+    checks.dwfSettingsTurnCount = turns.length;
+    const [launchTurn, retuneTurn, successorTurn] = turns;
+    const launchText = launchTurn?.text ?? "";
+    checks.dwfLaunchTurnText =
+      launchText.startsWith('Started the saved workflow "amend" (project) from the workflows hub as run ') &&
+      launchText.endsWith(
+        "Progress and results arrive as background notifications; do not start it again.",
+      )
+        ? "ok"
+        : launchText.slice(0, 140) || null;
+    const launchMeta = launchTurn?.info?.metadata?.workflowLaunch;
+    checks.dwfLaunchTurnMeta =
+      launchMeta?.name === "amend" &&
+      launchMeta?.scope === "project" &&
+      launchMeta?.runId === runId &&
+      String(launchMeta?.toolCallId ?? "").startsWith("launch-") &&
+      launchMeta?.path === join(workspace, ".nibi", "workflows", "amend.dwf.ts") &&
+      typeof launchMeta?.script === "string"
+        ? "ok"
+        : JSON.stringify(launchMeta ?? null)?.slice(0, 140);
+    const retuneText = retuneTurn?.text ?? "";
+    checks.dwfSettingsTurnRetuneInPlace =
+      retuneText.includes("at most 2 of its subagents run at once") &&
+      retuneText.includes("nothing was stopped and no new run was started")
+        ? "ok"
+        : retuneText.slice(0, 140) || null;
+    const retuneAmend = retuneTurn?.info?.metadata?.workflowLaunch?.amend;
+    checks.dwfSettingsTurnRetuneMeta = retuneAmend
+      ? `${retuneAmend.maxConcurrency?.to ?? "?"}|${retuneAmend.predecessorRunId ?? "-"}|${
+          retuneAmend.ceiling === DEFAULT_D ? "D" : String(retuneAmend.ceiling ?? "?")
+        }`
+      : null;
+    const successorText = successorTurn?.text ?? "";
+    checks.dwfSettingsTurnName =
+      retuneText.includes('("amend")') && successorText.includes('("amend")') ? "ok" : "missing";
+    checks.dwfSettingsTurnAmendModel = successorText.includes(
+      "its subagents now run on drive-fake/fake-model-b$enabled",
+    )
+      ? "ok"
+      : successorText.slice(0, 140) || null;
+    checks.dwfSettingsTurnAmendSupersedes = successorText.includes("supersedes run")
+      ? "ok"
+      : "missing";
+    const successorAmend = successorTurn?.info?.metadata?.workflowLaunch?.amend;
+    checks.dwfSettingsTurnAmendMeta = successorAmend
+      ? `${successorAmend.predecessorRunId === runId ? "pred" : "?"}|${
+          successorAmend.subagentModel?.to ?? "?"
+        }|${successorAmend.ceiling === DEFAULT_D ? "D" : String(successorAmend.ceiling ?? "?")}|${
+          successorAmend.maxConcurrency === undefined ? "nobound" : "bound"
+        }`
+      : null;
+    checks.dwfSettingsTurnSource = turns.every(
+      (turn) =>
+        turn.info.source === "workflow_launch" &&
+        turn.info.semantics?.source === "workflow_launch" &&
+        turn.info.semantics?.origin === "real_user" &&
+        typeof turn.info.metadata?.workflowLaunch?.runId === "string" &&
+        typeof turn.info.metadata?.workflowLaunch?.toolCallId === "string",
+    )
+      ? "ok"
+      : "shape";
+    console.log(
+      `dwf settings turn: count=${checks.dwfSettingsTurnCount} launch=${checks.dwfLaunchTurnText}/${checks.dwfLaunchTurnMeta} ` +
+        `retune=${checks.dwfSettingsTurnRetuneInPlace}/${checks.dwfSettingsTurnRetuneMeta} ` +
+        `next=${checks.dwfSettingsTurnAmendModel}/${checks.dwfSettingsTurnAmendMeta}`,
+    );
   }
 
   // DWF 的升级问答：actor 停在 escalate 上等父会话作答；答案原样回到 actor 的轮次，run 跑完。
@@ -1538,8 +1640,22 @@ try {
     checks.dwfRunToolPendingAbsent = !detailText.includes("<pending_questions>");
     // 块恒在场（Node `formatWorkflowRunLogTailBlock`）：空尾巴是一句固定文案，不是缺席。
     checks.dwfRunToolLogTailShape = detailText.includes("<log_tail>");
-    const missingResults = await inspectProbe("dwfrun-does-not-exist");
-    checks.dwfRunToolNotFound = missingResults.some((result) => result.includes("run_not_found"));
+    // 坏 id：同一口令再来一次。前一次探针的轮次可能还没完全收尾（迟到的 `<status>` 结果会让
+    // inspectProbe 提前返回），所以这里对着「这次发送之后」的增量专门等 run_not_found 本尊。
+    const beforeMissing = TOOL_RESULTS.length;
+    await inspectProbe("dwfrun-does-not-exist");
+    checks.dwfRunToolNotFound = await waitFor(
+      () =>
+        TOOL_RESULTS
+          .slice(beforeMissing)
+          .some((result) => result.includes("run_not_found"))
+          ? true
+          : undefined,
+      "the not-found probe's run_not_found result",
+    ).then(
+      () => true,
+      () => false,
+    );
     inspectRunId = null;
     console.log(
       `run detail: status=${checks.dwfRunToolStatus} summary=${checks.dwfRunToolCompletedSummary} ` +

@@ -21,6 +21,7 @@
  *
  * 不变式：读循环绝不 `await` 一个 run——run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
  */
+import { availableParallelism } from "node:os";
 import { DatabaseSync } from "node:sqlite";
 
 import { createDwfJournalStore } from "@nibi/adapters/storage";
@@ -65,10 +66,16 @@ function askSpecsFor(scriptText: string): Map<string, AskSpec> {
   return buildAskSpecs(table, schemas);
 }
 
-/** 引擎的默认并发 D（docs/dynamic-workflow/concurrency.md「Two bounds on a run」）。宿主那边同一个数，
- * 这里只用来折算 amend 的三态：`null` = 回到默认并发。
+/** 引擎的默认并发 D（docs/dynamic-workflow/concurrency.md「Two bounds on a run」）：
+ * `max(4, min(16, availableParallelism() − 2))`。宿主那边同一个数（Node 宿主在
+ * bootstrap 的 workflow-default-concurrency 里算同一个公式），这里只用来折算 amend 的三态
+ * （`null` = 回到默认并发）与设置轮元数据的 `ceiling`。以前这里曾是常量 4，与宿主的 CPU
+ * 推导值在多核机上分叉，设置轮的 from/to 因此两边对不上——改回同一个公式。
  */
-const DEFAULT_CONCURRENCY = 4;
+const DEFAULT_CONCURRENCY = Math.max(
+  4,
+  Math.min(16, availableParallelism() - 2),
+);
 
 /**
  * sidecar 的 sqlite 连接。db 文件与宿主（Rust 进程）共用：宿主在写会话消息、这里在写 dwf 表，
@@ -114,6 +121,49 @@ function nextSetting<T>(input: T | null | undefined, current: T | undefined): T 
   return input;
 }
 
+/** run 自己的名字（无名缺席）：设置轮的会话记录按这一条，绝不拿 run id 当标题。 */
+function runDisplayName(name: string | null | undefined): string | undefined {
+  const trimmed = name?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+}
+
+/** 「改了什么」的 from/to（缺一端即那一端是默认）：只有改动过的设置在场。 */
+function fromTo<T>(from: T | undefined, to: T | undefined): { from?: T; to?: T } {
+  return { ...(from === undefined ? {} : { from }), ...(to === undefined ? {} : { to }) };
+}
+
+/**
+ * amend 回复的设置轮材料：宿主据它往父会话写 controlOnly 记录（Node 宿主的
+ * WorkflowSettingsAmendMeta 同形——两项设置只有改动过的在场，`ceiling` 装默认并发 D）。
+ * 就地 retune 与铸后继两条路共用：分别只在各自改动过的项上带 from/to。
+ */
+function settingsTurnOf(
+  name: string | null | undefined,
+  modelChanged: boolean,
+  currentModel: string | undefined,
+  nextModel: string | undefined,
+  boundChanged: boolean,
+  currentBound: number | undefined,
+  nextBound: number | undefined,
+): {
+  name?: string;
+  settings: {
+    subagentModel?: { from?: string; to?: string };
+    maxConcurrency?: { from?: number; to?: number };
+    ceiling: number;
+  };
+} {
+  const display = runDisplayName(name);
+  return {
+    ...(display === undefined ? {} : { name: display }),
+    settings: {
+      ...(modelChanged ? { subagentModel: fromTo(currentModel, nextModel) } : {}),
+      ...(boundChanged ? { maxConcurrency: fromTo(currentBound, nextBound) } : {}),
+      ceiling: DEFAULT_CONCURRENCY,
+    },
+  };
+}
+
 /** 一次 run 在 sidecar 里的活状态（受理 / 恢复 / 修订三条路都造一个）。 */
 interface EngineRun {
   driver: RemoteDriver;
@@ -144,6 +194,8 @@ function launchRun(
     resumedFrom?: string;
     inheritedTokens?: number;
     toolCallId?: string;
+    /** run 的展示名（saved 名字）；落 dwf_run.name，设置轮的「已修订」记录按它题名。 */
+    name?: string;
   },
   request: (method: string, params: unknown) => Promise<unknown>,
   notify: (method: string, params: unknown) => void,
@@ -185,6 +237,7 @@ function launchRun(
     parentSessionId: params.parentSessionId,
     args: params.args,
     caps: { maxConcurrency },
+    ...(params.name === undefined ? {} : { name: params.name }),
     askSpecs: askSpecsFor(params.scriptText),
     validate: validateFn,
     ...(launch === undefined ? {} : { launch }),
@@ -236,7 +289,17 @@ type Outgoing = (message: unknown) => void;
  * 成功时回 `{ok:true, settlement}`。
  */
 type SubmitReply =
-  | { ok: true; accepted: true }
+  | {
+      ok: true;
+      accepted: true;
+      /** 启动轮材料（saved 路径才在场，docs/dynamic-workflow/launch.md「The launch turn」）。 */
+      name?: string;
+      scope?: string;
+      path?: string;
+      description?: string;
+      script?: string;
+      args?: Record<string, unknown>;
+    }
   | { ok: false; reason: string; message: string };
 
 /** driver：引擎的手，每一下都伸回宿主。 */
@@ -353,6 +416,15 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
   async function acceptSubmit(params: SubmitParams): Promise<SubmitReply> {
     let scriptText = params.scriptText;
     let args = params.args;
+    // 启动轮材料（saved 路径才收集；docs/dynamic-workflow/launch.md「The launch turn」）。
+    let launch: {
+      name: string;
+      scope: string;
+      path: string;
+      description?: string;
+      script: string;
+      args?: Record<string, unknown>;
+    } | undefined;
     if (params.savedName !== undefined) {
       // JSON 里缺席是 undefined、显式缺省是 null；scope 的 null 与 undefined 同义。
       const scope = params.scope ?? undefined;
@@ -384,6 +456,16 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       }
       scriptText = resolved.script;
       args = validated.args;
+      launch = {
+        name: resolved.name,
+        scope: resolved.scope,
+        path: resolved.path,
+        ...(resolved.meta.description === undefined
+          ? {}
+          : { description: resolved.meta.description }),
+        script: resolved.script,
+        ...(Object.keys(validated.args).length === 0 ? {} : { args: validated.args }),
+      };
     }
     if (scriptText === undefined) {
       return {
@@ -424,13 +506,17 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         dbPath: params.dbPath,
         scriptText,
         args: args ?? {},
-        caps: params.caps ?? { maxConcurrency: 4 },
+        caps: params.caps ?? { maxConcurrency: DEFAULT_CONCURRENCY },
+        // run 的展示名 = saved 名字（Node 的启动路径同一条读法）；设置轮与侧板题名按它。
+        ...(params.savedName === undefined ? {} : { name: params.savedName }),
       },
       request,
       notify,
       runs,
     ).then((settlement) => notify("run/settled", { runId: params.runId, settlement }));
-    return { ok: true, accepted: true };
+    // 启动轮材料（中枢直接启动，launch.md「The launch turn」）：宿主据它往父会话写 controlOnly
+    // 的启动轮。saved 路径才有名字/作用域/落点；内联脚本（工具路径专用）没有这些。
+    return { ok: true, accepted: true, ...(launch === undefined ? {} : launch) };
   }
 
   /** 一次 resume 的受理：只认可恢复集（`stopped` 且非 `superseded`），从 journal 取脚本与实参。 */
@@ -534,6 +620,13 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         parentSessionId: string;
         cwd: string;
         supersededRunId?: string;
+        /** 设置轮材料：run 自己的名字（无名缺席）与「改了什么」（宿主据此写会话记录）。 */
+        name?: string;
+        settings?: {
+          subagentModel?: { from?: string; to?: string };
+          maxConcurrency?: { from?: number; to?: number };
+          ceiling: number;
+        };
       }
     | { ok: false; reason: string; message: string }
   > {
@@ -614,6 +707,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
             runId: params.predecessorRunId,
             parentSessionId: record.parentSessionId ?? "",
             cwd: record.cwd ?? process.cwd(),
+            ...settingsTurnOf(record.name, modelChanged, currentModel, nextModel, boundChanged, currentBound, nextBound),
           };
         }
         // 引擎说没改（恰好结算）：顺着修订走，与宿主 not_live 的回落同一条。
@@ -655,6 +749,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         parentSessionId,
         cwd,
         ...(supersededRunId === undefined ? {} : { supersededRunId }),
+        ...settingsTurnOf(record.name, modelChanged, currentModel, nextModel, boundChanged, currentBound, nextBound),
       };
     } finally {
       db.close();

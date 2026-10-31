@@ -151,6 +151,15 @@ pub enum Fact {
         child: SessionId,
         agent_type: String,
     },
+    /// 工作流控制轮的合成输入（NIBI `startSavedWorkflow` 启动轮 / `amendWorkflowRunSettings` 设置轮，
+    /// docs/dynamic-workflow/launch.md）：可见的合成 user 消息，`text` 进模型上下文，
+    /// `launch` 是 `metadata.workflowLaunch`（runId/toolCallId/name?/amend）。存储按 Node
+    /// `persistWorkflowLaunchUserMessage` 的形状写（`source: "workflow_launch"`），这一批自成一轮。
+    WorkflowLaunchMessage {
+        id: MessageId,
+        text: String,
+        launch: Value,
+    },
 }
 
 /// 本机项目规则集的一次修改（`SessionStore::change_project_rules`）：`behavior` 这一类里先删 `remove`、再加
@@ -200,6 +209,8 @@ impl TurnAnchor {
             Fact::MessageAppended {
                 message: Message::User(user),
             } if crate::user_input::opens_turn(user) => Some(&user.id),
+            // 工作流控制轮自己是一轮（Node 的 controlOnly turn 也推进 turnNumber）。
+            Fact::WorkflowLaunchMessage { id, .. } => Some(id),
             _ => None,
         });
         match (prompts.next(), prompts.next()) {

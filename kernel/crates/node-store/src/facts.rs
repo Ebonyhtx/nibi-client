@@ -261,6 +261,9 @@ pub(crate) fn apply(ctx: &Commit<'_>, fact: &Fact) -> Result<(), StoreError> {
             child,
             agent_type,
         } => crate::tool_parts::link(ctx, tool_use, (agent.as_str(), child.as_str(), agent_type)),
+        Fact::WorkflowLaunchMessage { id, text, launch } => {
+            crate::append::append_launch(ctx, id.as_str(), text, launch)
+        }
     }
 }
 

@@ -489,6 +489,17 @@ impl Actor {
         }
         // 这次工作期间到达的本地命令记录先进对话，再开下一个回合（修复线 L-A，tui-manage.md §11.3）。
         self.flush_held_records().await;
+        // 排队的工作流控制轮先落（NIBI 中枢/「配置」的 controlOnly 记录；与 Node 的 runtime 命令队列
+        // 同优先级：先于新 run 的任何通知，launch.md「The settings turn」）。它不开模型回合；落库失败
+        // 只记日志（记录是观测，回滚一条提交换不回已在飞的新 run）。
+        while let Some(launch) = self.pending_launch.pop_front() {
+            if let Err(reason) = self
+                .write_launch(launch.command, launch.text, launch.launch)
+                .await
+            {
+                tracing::warn!(%reason, "a queued workflow launch turn could not be stored");
+            }
+        }
         // 被提升的输入（NIBI sendQueuedNow）先开：抢占的回合刚收尾，队列顺序让位给这次显式提升。
         let input = if let Some((input, kind)) = self.promote.take() {
             self.promoted_input(input, kind)

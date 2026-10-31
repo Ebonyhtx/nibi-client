@@ -322,6 +322,45 @@ pub struct WorkflowRunStarted {
     /// 修订设置时旧 run 仍在飞、被这次调整停下时在场。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub superseded_run_id: Option<String>,
+    /// 设置轮材料（docs/dynamic-workflow/launch.md「The settings turn」）：只在 amend 的回复在场，
+    /// 宿主据它往父会话写 controlOnly 记录。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings_turn: Option<WorkflowSettingsTurn>,
+    /// 启动轮材料（docs/dynamic-workflow/launch.md「The launch turn」）：只在中枢启动的回复在场，
+    /// 宿主据它往父会话写 controlOnly 的启动轮。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub launch_turn: Option<WorkflowLaunchTurn>,
+}
+
+/// 一次修订的会话记录材料：run 自己的名字（无名缺席）与「改了什么」。
+///
+/// `amend` 是 Node `WorkflowSettingsAmendMeta` 的 JSON（`predecessorRunId` 只在铸出后继时在场；
+/// 两项设置只有改动过的带 from/to，缺一端即那一端是默认；`ceiling` 装默认并发 D）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowSettingsTurn {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub amend: serde_json::Value,
+}
+
+/// 启动轮材料（中枢直接启动，docs/dynamic-workflow/launch.md「The launch turn」）：引擎解析
+/// saved 定义之后的原样事实，宿主据它往父会话写 controlOnly 的启动轮。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowLaunchTurn {
+    pub name: String,
+    pub scope: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// 校验并回填默认值之后的实参；空袋缺席（Node 的 `hasArgs`）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<serde_json::Value>,
+    /// 工作流脚本原文（`metadata.workflowLaunch.script`，256k 字符上界由宿主收口）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub script: Option<String>,
 }
 
 /// 引擎的业务拒绝：`reason` 是 Node 词表里的 token，前缀由调用方按命令补。

@@ -482,9 +482,11 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "resumeGoal" => set_goal_paused(handle, envelope, false).await,
         "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
         "discardSharedContext" => discard_shared_context(server, &live.sink, envelope, revision).await,
-        "startSavedWorkflow" => start_saved_workflow(server, envelope, revision).await,
+        "startSavedWorkflow" => start_saved_workflow(server, Some(handle), envelope, revision).await,
         "resumeWorkflowRun" => resume_workflow_run(server, envelope, revision).await,
-        "amendWorkflowRunSettings" => amend_workflow_run_settings(server, envelope, revision).await,
+        "amendWorkflowRunSettings" => {
+            amend_workflow_run_settings(server, Some(handle), envelope, revision).await
+        }
         "requestWorkspaceHookReview" => {
             crate::hook_review::request(server, &live.sink, envelope, revision).await
         }
@@ -2245,7 +2247,12 @@ fn workflow_session<'a>(
 }
 
 /// NIBI `startSavedWorkflow`：中枢的「运行」直接请引擎启动一个已保存的工作流（不经模型轮）。
-async fn start_saved_workflow(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
+async fn start_saved_workflow(
+    server: &Server,
+    handle: Option<&dyn SessionHandle>,
+    envelope: &Envelope,
+    revision: u64,
+) -> Ack {
     let command = envelope.command_id.as_str();
     let session = match workflow_session(envelope, command, "startSavedWorkflow", revision) {
         Ok(session) => session,
@@ -2261,15 +2268,42 @@ async fn start_saved_workflow(server: &Server, envelope: &Envelope, revision: u6
         .start_saved_workflow(&SessionId::new(session), request)
         .await
     {
-        Ok(started) => Ack::accepted(
-            command,
-            revision,
-            Some(json!({
-                "type": "startSavedWorkflow",
-                "runId": started.run_id,
-                "toolCallId": started.tool_call_id,
-            })),
-        ),
+        Ok(started) => {
+            // 启动轮（launch.md「The launch turn」）：用户在中枢里点的「运行」就是他的真实动作，
+            // 以一条 controlOnly 的合成输入落进会话（模型直到通知到来才第一次听说这次 run）。
+            // 失败只记日志不回滚——run 已在飞（Node 的同一条规矩）。
+            let session_id = SessionId::new(session);
+            if let Some((owner, turn)) =
+                crate::workflow_settings_turn::launch_turn(&session_id, &started)
+            {
+                match handle {
+                    Some(handle) => {
+                        if let KernelAck::Rejected { reason } = send(handle, command, turn).await {
+                            tracing::warn!(
+                                event = "workflow.launch.turn.failed",
+                                session = %owner.as_str(),
+                                %reason,
+                                "the launch turn could not be stored",
+                            );
+                        }
+                    }
+                    None => tracing::warn!(
+                        event = "workflow.launch.turn.no_session",
+                        session = %owner.as_str(),
+                        "the launch turn had no open session to record in",
+                    ),
+                }
+            }
+            Ack::accepted(
+                command,
+                revision,
+                Some(json!({
+                    "type": "startSavedWorkflow",
+                    "runId": started.run_id,
+                    "toolCallId": started.tool_call_id,
+                })),
+            )
+        }
         Err(error) => workflow_ack(command, revision, error, "startSavedWorkflow"),
     }
 }
@@ -2292,11 +2326,17 @@ async fn resume_workflow_run(server: &Server, envelope: &Envelope, revision: u64
 }
 
 /// NIBI `amendWorkflowRunSettings`：两项设置的三态（省略 = 沿用，`null` = 回默认，值 = 设定）。
-async fn amend_workflow_run_settings(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
+async fn amend_workflow_run_settings(
+    server: &Server,
+    handle: Option<&dyn SessionHandle>,
+    envelope: &Envelope,
+    revision: u64,
+) -> Ack {
     let command = envelope.command_id.as_str();
-    if let Err(ack) = workflow_session(envelope, command, "amendWorkflowRunSettings", revision) {
-        return *ack;
-    }
+    let session = match workflow_session(envelope, command, "amendWorkflowRunSettings", revision) {
+        Ok(session) => session,
+        Err(ack) => return *ack,
+    };
     let payload = &envelope.payload;
     let subagent_model = payload
         .get("subagentModel")
@@ -2309,8 +2349,33 @@ async fn amend_workflow_run_settings(server: &Server, envelope: &Envelope, revis
         subagent_model,
         max_concurrency,
     };
+    let predecessor = request.run_id.clone();
     match server.kernel.amend_workflow_run(request).await {
         Ok(started) => {
+            // 设置轮（launch.md「The settings turn」）：成功后的 controlOnly 会话记录。失败只记
+            // 日志不回滚——新 run 已在飞，撤回它反而制造孤儿（Node 的同一条规矩）。
+            let session_id = SessionId::new(session);
+            if let Some((owner, turn)) =
+                crate::workflow_settings_turn::settings_turn(&session_id, &predecessor, &started)
+            {
+                match handle {
+                    Some(handle) => {
+                        if let KernelAck::Rejected { reason } = send(handle, command, turn).await {
+                            tracing::warn!(
+                                event = "workflow.settings.turn.failed",
+                                session = %owner.as_str(),
+                                %reason,
+                                "the settings turn could not be stored",
+                            );
+                        }
+                    }
+                    None => tracing::warn!(
+                        event = "workflow.settings.turn.no_session",
+                        session = %owner.as_str(),
+                        "the settings turn had no open session to record in",
+                    ),
+                }
+            }
             let mut result = json!({
                 "type": "amendWorkflowRunSettings",
                 "runId": started.run_id,

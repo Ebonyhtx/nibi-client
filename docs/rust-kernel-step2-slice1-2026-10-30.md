@@ -475,6 +475,34 @@ journal 终态拆解/标签派生/节点计数/log 尾巴/待答问题（node-st
 schema 与 Node 逐字，模型面块序同、可 sourced 字段子集；`<amendable>`/`<resumable>` 路由
 提示逐字）。阶段表/花名册/留白/产物读面未接，对应块缺席。门禁 **45 字段**双内核一致。
 
+## 6.24 第二十五步：启动轮与设置轮（2026-10-30）
+
+中枢「运行」与 run 卡「配置」成功后的会话记录（docs/dynamic-workflow/launch.md 两节，详见
+CHANGELOG-FORK §6.17）：两条路共用一套 machinery——
+
+- **kernel-api**：`Command::WorkflowLaunch { text, launch }`（controlOnly 控制轮）与
+  `Fact::WorkflowLaunchMessage`（合成输入事实，`TurnAnchor::after` 认它自成一轮）；
+  `WorkflowRunStarted` 带上 `launch_turn`（启动材料）与 `settings_turn`（「改了什么」）。
+- **node-store**：`append_launch` 按 Node `persistWorkflowLaunchUserMessage` 的形状写消息与
+  text part（`source: "workflow_launch"`、`metadata.workflowLaunch`、`semantics.source` 同键）；
+  `hydrate::user` 对 `metadata.source=workflow_launch` 的 synthetic part 网开一面——冷加载后
+  文本照常进模型上下文（Node 的 provider history 同规）。
+- **session actor**：忙时排进 `pending_launch`、回合收尾先落（Node 的 runtime 命令队列同
+  优先级：先于新 run 的通知），空闲即落；落的是消息 + 完整轮边界、不开模型回合，文本进
+  `messages`（模型下一回合读到）。
+- **protocol**：`workflow_settings_turn.rs` 逐字移植两条规范句与元数据构造（含 args 4KB/
+  description 500/script 256k 三道 Node 上界）；`startSavedWorkflow` / `amendWorkflowRunSettings`
+  成功后发轮，写失败只记日志不回滚。
+- **sidecar**：submit/amend 回复带齐材料（名字/作用域/落点/脚本/实参与 from/to/ceiling）；
+  默认并发 D 从常量 4 改回宿主同款 CPU 公式（多核机上 ceiling 曾分叉）；submit 把 saved 名字
+  落 `dwf_run.name`；中枢启动 toolCallId `call-` 归位 `launch-`。
+- **Node 侧修一个真缺口**：`snapshotOf` 从不填 `name`（registry 与 journal 都有），设置轮的
+  「已修订」句子因此从没带过名字——补上后两边逐句一致。
+
+live 投影仍把控制轮当普通 agent 轮画（`executionKind: "controlOnly"` 未穿 `KernelEvent::
+TurnStarted`），运行卡由冷恢复的 `metadata.workflowLaunch` 而来——归投影面。门禁 **55 字段**
+双内核一致（启动/retune/修订三条控制轮的句面、元数据与冷恢复键逐项对拍）。
+
 ## 4. 尚未完成（Step 2 后续）
 
 1. DWF 仍是路线 C 的灰度面（`NIBI_DWF_ENGINE_CMD` 未注入的入口按能力不支持回）；切默认前要

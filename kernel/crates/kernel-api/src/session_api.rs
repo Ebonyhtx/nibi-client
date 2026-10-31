@@ -185,6 +185,16 @@ pub enum Command {
     /// 对话。没有要写的（没有补、已经写过、被回退掉）时什么都不做，回执是 `Accepted`；提交失败时 `Rejected`，它留到下一批
     /// 带消息的提交。
     StoreResumeSentinel,
+    /// 工作流控制轮（NIBI 中枢与 run 卡「配置」的 controlOnly 记录，docs/dynamic-workflow/launch.md
+    /// 「The settings turn」）：落一条可见的合成 user 消息（文本进模型上下文，`metadata.workflowLaunch`
+    /// 与 `source: "workflow_launch"` 供 GUI 与冷恢复认它），不开模型回合。忙时排队，回合收尾先落。
+    /// 总是 `Accepted`（提交失败 `Rejected`）。
+    WorkflowLaunch {
+        /// 模型可见的规范句（Node `buildSettingsMessageText` 的逐字移植）。
+        text: String,
+        /// `metadata.workflowLaunch`（runId/toolCallId/name?/amend，有界后的 JSON）。
+        launch: Value,
+    },
 }
 
 /// 带 ID 的命令；同一个 ID 重复提交时返回 [`Ack::Duplicate`]，不重复执行。

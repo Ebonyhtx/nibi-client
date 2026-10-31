@@ -19,6 +19,7 @@ mod projection;
 mod server;
 mod subscribe;
 mod wire;
+mod workflow_settings_turn;
 
 use std::sync::Arc;
 
