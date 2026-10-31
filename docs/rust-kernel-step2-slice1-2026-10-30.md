@@ -731,3 +731,17 @@ withHoleFacts（载荷派生）。
   （driver 钟的 `stallAfterMs` 缺省 20 分钟、只按重试原因上膛），blocked 是父会话空闲钟——两者
   都是时间门控的生产行为，没有可注入的阈值就没有诚实的两内核探针；等有配置旋钮或 fixture 级
   对拍再接。
+
+## 6.36 第三十七步：resume 的模型 pin（2026-11-01）
+
+§6.27 尾单的「resume 的 pin」（详见 CHANGELOG-FORK §6.29）。判据锚点：Node
+`resumeDynamicWorkflowRun`（dynamic-workflow-run-submit.ts）——条目上的 subagentModel /
+modelBindings / scriptPath / name / toolCallId 全部从 journal 重读，caps 沿行，脚本哈希先验。
+
+- **sidecar**：`acceptResume` 补 pin 五件 + 哈希先验（`script_mismatch`）。引擎侧本来就会在
+  哈希不一致时同步抛错；先验把「记录仍可修复」这个事实留在结构化拒绝里。
+- **探针**：`dwfResumePin` 阶段（修订出后继 → 取消 → resume → 恢复出的 ask 仍在 pin 模型上）。
+  探针三坑记档：计数快照先于 resume 命令；actor 请求按工具表判别（正文被 400 字符截断挤出）；
+  waitRow 盯后继的行。
+- **门禁**：81 → **88 字段**，双内核逐字节一致。
+- **仍缺**：amend+resume 的导入缓存重建（性能缺口，非正确性）；stall/blocked（时间门控）。

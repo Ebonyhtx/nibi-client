@@ -90,6 +90,16 @@ const REQUIRED = [
   "dwfRunsNamed",
   "dwfRunsTruncated",
   "dwfRunsInvalid",
+  // resume 的模型 pin：修订把 subagentModel 写进 run-launched，取消再恢复之后 actor 仍跑在
+  // pin 住的模型上（无 persona 点名的 fixture——run 级模型是唯一选型来源，掉回会话默认即
+  // pin 丢失）。
+  "dwfPinStart",
+  "dwfPinAmend",
+  "dwfPinCancel",
+  "dwfPinResume",
+  "dwfPinResumedActor",
+  "dwfPinResumed",
+  "dwfPinStored",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",
@@ -125,7 +135,7 @@ function run(kernel) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(
       process.execPath,
-      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate,dwfHole,dwfRuns"],
+      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate,dwfHole,dwfRuns,dwfResumePin"],
       { cwd: repo, stdio: ["ignore", "pipe", "pipe"] },
     );
     let stdout = "";

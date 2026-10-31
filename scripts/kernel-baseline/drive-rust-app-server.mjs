@@ -88,6 +88,7 @@ writeFileSync(attachmentPath, attachmentBytes);
 
 // ── 本地假 provider（OpenAI chat-completions，SSE）──
 const REQUESTS = [];
+const T0 = Date.now();
 // 会话级 MCP 的回执：模型先要一次 mcp__fake__echo，拿到工具结果后再回正文。两边内核走同一条路径。
 const MCP_TOOL = "mcp__fake__echo";
 const TOOL_RESULTS = [];
@@ -105,6 +106,14 @@ const amendHoldGate = new Promise((resolve) => {
   releaseAmendHold = resolve;
 });
 // 升级问答探针（dwfEscalate）：actor 的 ask 指令、主代理给出的答案，以及三步的观察位。
+// resume 的模型 pin 探针（dwfResumePin）：第三个独立闸门——修订出后继后，后继停在自己的一次
+// ask 上，取消再恢复，恢复后的那次 ask 必须还跑在 pin 住的模型上（hold 住的那两次请求都在等
+// 自己的闸门，互不可见）。
+const PIN_HOLD_TEXT = "hold pin turn";
+let releasePinHold = () => {};
+const pinHoldGate = new Promise((resolve) => {
+  releasePinHold = resolve;
+});
 const ESCALATE_TEXT = "escalate this turn";
 const ESCALATE_ANSWER = "drive escalation answer";
 let escalationRaised = false;
@@ -198,7 +207,7 @@ const server = createServer((req, res) => {
         ? lastUser.content.map((part) => `${part?.type}:${String(part?.text ?? "").slice(0, 40)}`)
         : [String(lastUser?.content ?? "").slice(0, 40)];
       console.error(
-        `provider request #${REQUESTS.length}: model=${parsed?.model ?? "?"} tools=${tools.length} workflowTools=${JSON.stringify(tools.filter((name) => /workflow|escalate/i.test(String(name))))} mcp=${tools.includes(MCP_TOOL)} resolveTool=${tools.includes("ResolveWorkflowQuestion")} roles=${messages.map((m) => m.role).join(",")} image=${hasImage} lastUser=${JSON.stringify(lastShape)} system=${JSON.stringify(systemText.slice(0, 40))} escalation=${messageText.includes("<workflow-escalation>")} toolResult=${JSON.stringify(toolResult?.slice(0, 160))}`,
+        `provider request #${REQUESTS.length} at+${Date.now() - T0}ms: model=${parsed?.model ?? "?"} tools=${tools.length} workflowTools=${JSON.stringify(tools.filter((name) => /workflow|escalate/i.test(String(name))))} mcp=${tools.includes(MCP_TOOL)} resolveTool=${tools.includes("ResolveWorkflowQuestion")} roles=${messages.map((m) => m.role).join(",")} image=${hasImage} lastUser=${JSON.stringify(lastShape)} system=${JSON.stringify(systemText.slice(0, 40))} escalation=${messageText.includes("<workflow-escalation>")} toolResult=${JSON.stringify(toolResult?.slice(0, 160))}`,
       );
     }
     const lastUserText = (() => {
@@ -213,6 +222,10 @@ const server = createServer((req, res) => {
     if (lastUserText.includes(AMEND_HOLD_TEXT)) {
       // 修订探针的独立闸门（见 AMEND_HOLD_TEXT 处的注释）。
       await amendHoldGate;
+    }
+    if (lastUserText.includes(PIN_HOLD_TEXT)) {
+      // resume pin 探针的独立闸门（见 PIN_HOLD_TEXT 处的注释）。
+      await pinHoldGate;
     }
     res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8" });
     // DWF 升级问答探针（最后一轮之前的三步）：
@@ -2280,6 +2293,137 @@ try {
       `dwf hole: run=${runId.slice(0, 16)} notice=${checks.dwfHoleNotice} meta=${checks.dwfHoleMeta} ` +
         `fill=${checks.dwfHoleFill} file=${checks.dwfHoleFillFile} draft=${checks.dwfHoleDraftRewritten} ` +
         `journal=${checks.dwfHoleJournal} row=${checks.dwfHoleRunRow} settled=${checks.dwfHoleSettled}`,
+    );
+  }
+
+  // resume 的模型 pin（Node resumeDynamicWorkflowRun 同一条读）：run 的身份包含它跑在哪个
+  // 模型上——修订把 subagentModel 写进 run-launched，取消再恢复之后，恢复出来的那次 ask 必须
+  // 还跑在同一个模型上。无 persona 点名的 fixture（hold 家族）：run 级子代理模型是唯一选型
+  // 来源，恢复后的 actor 落在 fake-model-b 就是 pin 端到端的证据；掉回会话默认（fake-model）
+  // 即 pin 丢失。
+  if (phases.includes("dwfResumePin")) {
+    mkdirSync(join(workspace, ".nibi", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspace, ".nibi", "workflows", "pinhold.dwf.ts"),
+      [
+        "/* zcode-workflow",
+        "description: resume pin probe",
+        "*/",
+        'const worker = agent("worker", "You answer questions.");',
+        `return await worker.ask("${PIN_HOLD_TEXT}");`,
+      ].join(String.fromCharCode(10)) + String.fromCharCode(10),
+    );
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000d8",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: { workspaceId: workspace },
+        issuedAt: Date.now(),
+      }),
+      "createSession(dwfResumePin)",
+    );
+    const session = created.result?.sessionId;
+    if (!session) throw new Error("createSession(dwfResumePin) returned no sessionId");
+    const started = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000d9",
+      "startSavedWorkflow",
+      { name: "pinhold" },
+      session,
+    );
+    checks.dwfPinStart = started.status;
+    if (started.status !== "accepted" || !started.result?.runId) {
+      throw new Error(`startSavedWorkflow(pinhold) ${started.status}/${started.reasonCode}`);
+    }
+    const runId = started.result.runId;
+    const dbPath = join(home, dotDir, "cli", "db", "db.sqlite");
+    const waitRow = async (id, predicate) => {
+      for (let attempt = 0; attempt < 1200; attempt += 1) {
+        if (existsSync(dbPath)) {
+          const db = new DatabaseSync(dbPath);
+          const row = db.prepare("select status from dwf_run where id = ?").get(id);
+          db.close();
+          if (row !== undefined && predicate(row)) return row;
+        }
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      return undefined;
+    };
+    if (!(await waitRow(runId, (row) => row.status === "running"))) {
+      throw new Error("pin probe run never reached running");
+    }
+    // 在飞的 run 改子代理模型：前驱 stopped(superseded)，后继带 pin 起来、停在自己的 ask 上。
+    const amended = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000da",
+      "amendWorkflowRunSettings",
+      { workId: runId, subagentModel: "drive-fake/fake-model-b$enabled" },
+      session,
+    );
+    checks.dwfPinAmend = amended.status;
+    const nextRun = amended.result?.runId;
+    if (amended.status !== "accepted" || !nextRun) {
+      throw new Error(`amend(pin) ${amended.status}/${amended.reasonCode}: ${amended.message}`);
+    }
+    // actor 请求的判别用工具表（escalate 只在 actor 的清单里）：lastUserText 被截到最后 400
+    // 字符，actor 的 ask 正文会被收尾的 deferred-tools 提示挤出去，按正文过滤永远扑空。
+    const pinRequests = () =>
+      REQUESTS.filter(
+        (request) => request.model === "fake-model-b" && request.tools.includes("escalate"),
+      ).length;
+    for (let attempt = 0; attempt < 300 && pinRequests() === 0; attempt += 1) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    // 后继停住：取消 → stopped(user)。
+    const cancelled = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000db",
+      "cancelBackgroundWork",
+      { workId: nextRun },
+      session,
+    );
+    checks.dwfPinCancel = cancelled.status;
+    // 后继的行（前驱物理态本来就是 cancelled，等它没有意义）。
+    if (!(await waitRow(nextRun, (row) => row.status === "cancelled"))) {
+      throw new Error("pin probe successor never cancelled");
+    }
+    // 恢复：恢复出来的那次 ask 是 pin 的证据。快照**先于**命令（恢复出的 ask 可能赶在 ACK
+    // 回程之前到达），轮询窗口收短到 10s——挂住的 ask 不能超过 provider 空闲耐受，观察到就放行。
+    const before = pinRequests();
+    const resumed = await simpleCommand(
+      "0197d3f0-0000-7000-8000-0000000000dc",
+      "resumeWorkflowRun",
+      { workId: nextRun },
+      session,
+    );
+    checks.dwfPinResume = resumed.status;
+    if (resumed.status !== "accepted") {
+      throw new Error(`resume(pin) ${resumed.status}/${resumed.reasonCode}: ${resumed.message}`);
+    }
+    let after = before;
+    for (let attempt = 0; attempt < 100 && after === before; attempt += 1) {
+      await new Promise((r) => setTimeout(r, 100));
+      after = pinRequests();
+    }
+    checks.dwfPinResumedActor = after > before;
+    // 放行：两次挂住的 ask（后继第一世 + 恢复世）一起走完，run 跑到 completed。
+    releasePinHold();
+    const done = await waitRow(nextRun, (row) => row.status === "completed");
+    checks.dwfPinResumed = done ? "completed" : "timeout";
+    {
+      const db = new DatabaseSync(dbPath);
+      const launched = db
+        .prepare(
+          "select payload_json from dwf_event where run_id = ? and type = 'run-launched' order by sequence limit 1",
+        )
+        .get(nextRun);
+      db.close();
+      const payload = JSON.parse(launched?.payload_json ?? "{}");
+      checks.dwfPinStored = payload.subagentModel ?? null;
+    }
+    console.log(
+      `dwf resume pin: amend=${checks.dwfPinAmend} cancel=${checks.dwfPinCancel} ` +
+        `resume=${checks.dwfPinResume} actor=${checks.dwfPinResumedActor} ` +
+        `resumed=${checks.dwfPinResumed} stored=${checks.dwfPinStored}`,
     );
   }
 

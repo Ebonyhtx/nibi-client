@@ -300,4 +300,7 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        workflow_runs_page` + `protocol-zcode` 分支（严格 zod 镜像、journal 缺席回空页）+ sidecar
        run 行元数据三处分歧修齐（锚点/空实参/后继名），`check-dwf-engine` 81 字段双内核逐字节
        一致）；
+       ~~resume 的 pin~~（**已接，2026-11-01 第十八段**：acceptResume 从 journal 重读
+       subagentModel/modelBindings/scriptPath/name/toolCallId + 哈希先验，恢复出的 ask 仍在 pin
+       模型上，`check-dwf-engine` 88 字段；导入缓存重建仍缺——变贵不变错）；
        `workflows/runs` 中枢方法仍待做）；

@@ -1074,9 +1074,33 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
             .slice(0, 2_000),
         };
       }
+      // 服务端先验（引擎构造时仍二次校验，防御纵深）：记录被外力改写（scriptText 与
+      // scriptHash 不再自洽）时结构化拒绝，而不是让引擎在 launch 里同步抛错——那会把条目
+      // 簿记成 failed 终态，掩盖「记录仍可修复」这个事实。
+      const scriptHash = createHash("sha256").update(record.scriptText, "utf8").digest("hex");
+      if (record.scriptHash !== undefined && record.scriptHash !== scriptHash) {
+        return {
+          ok: false,
+          reason: "script_mismatch",
+          message: `run ${params.runId}'s stored script does not match its recorded hash`,
+        };
+      }
+      // resume 的 pin（Node resumeDynamicWorkflowRun 同一条读）：一次 run 的身份包含它跑在
+      // 哪个模型上、被谁绑定过、脚本文件在哪、叫什么、由哪个锚点发起——全部建 run 那一世
+      // 写死、本 run 余生不变，resume 从 journal 重读，**永不接受新的**。
+      const resumedSubagentModel = runSubagentModel(journal, params.runId);
+      const resumedModelBindings = runModelBindings(journal, params.runId);
+      const launched = journal
+        .listEvents(params.runId, { types: ["run-launched"], reportItems: { limit: 0 } })
+        .at(-1)?.event as { scriptPath?: unknown } | undefined;
+      const resumedScriptPath =
+        typeof launched?.scriptPath === "string" && launched.scriptPath.length > 0
+          ? launched.scriptPath
+          : undefined;
       const parentSessionId = record.parentSessionId ?? "";
       const cwd = record.cwd ?? process.cwd();
-      // 与 submit 同一条后台执行；引擎构造时看见既有 run 行走 resume 分支。
+      // 与 submit 同一条后台执行；引擎构造时看见既有 run 行走 resume 分支（行上的 tool_call_id
+      // / name / args 都不会重写——锚点只进 run-launched 的事件头）。
       void launchRun(
         {
           runId: params.runId,
@@ -1085,7 +1109,12 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           dbPath: params.dbPath,
           scriptText: record.scriptText,
           args: record.args,
-          caps: record.caps ?? { maxConcurrency: 4 },
+          caps: record.caps ?? undefined,
+          ...(resumedSubagentModel === undefined ? {} : { subagentModel: resumedSubagentModel }),
+          ...(resumedModelBindings === undefined ? {} : { modelBindings: resumedModelBindings }),
+          ...(resumedScriptPath === undefined ? {} : { savedPath: resumedScriptPath }),
+          ...(record.name === undefined ? {} : { name: record.name }),
+          ...(record.toolCallId === undefined ? {} : { toolCallId: record.toolCallId }),
         },
         request,
         notify,

@@ -839,6 +839,27 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.35）：GUI 中枢按「工作�
   `dwfRunsTruncated`（limit 1 多取判截断）、`dwfRunsInvalid`（limit 0 → `-32602`，两内核同码）。
   workspace ref 契约要求 `workspaceKey`（strict）——探针第一版漏了它，Node 侧 -32602，顺带
   钉住两内核的参数面同形。
+## 6.29 resume 的模型 pin（2026-11-01，路线 C 第十八段）
+
+一次 run 的身份包含它跑在哪个模型上（Node `resumeDynamicWorkflowRun` 同一条读；详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.36）：修订把 `subagentModel` 写进 `run-launched`，
+取消再恢复之后，恢复出来的 actor 必须还跑在同一个模型上。
+
+- **sidecar**：`acceptResume` 补齐 pin——`runSubagentModel` / `runModelBindings` / `scriptPath`
+  （三者都从 journal 的事件头重读，建 run 那一世写死、余生不变）、`record.name`、
+  `record.toolCallId`（进 run-launched 的事件头；行上的元数据 resume 不重写）、`caps` 沿用
+  journal 行（去掉 `{maxConcurrency: 4}` 的假兜底）。**script hash 服务端先验**：行被外力改写
+  （scriptText 与 scriptHash 不自洽）时结构化拒绝 `script_mismatch`，不让引擎在 launch 里同步
+  抛错把条目簿记成 failed。导入缓存的重建仍缺（amend+resume 的未消费导入退化成 live 重跑，
+  变贵不变错）——记尾单。
+- **探针**：新阶段 `dwfResumePin`——无 persona 点名的 `pinhold.dwf.ts`（run 级模型是唯一选型
+  来源），起 run → 在飞改模型（前驱 superseded、后继带 pin 停在自己的 ask 上）→ 取消后继 →
+  resume → **恢复出来的那次 ask 仍跑在 fake-model-b 上**（掉回会话默认即 pin 丢失）→ 放行跑完。
+  actor 请求的判别用工具表（`escalate` 只在 actor 清单里）——lastUserText 截最后 400 字符，
+  ask 正文会被 deferred-tools 提示挤出去。两个探针坑：计数快照要先于 resume 命令（恢复出的
+  ask 会抢在 ACK 回程之前）；waitRow 要盯后继的行（前驱物理态本来就是 cancelled）。
+- **门禁**：81 → **88 字段**（`dwfPin*` 七字段，双内核逐字节一致：amend/cancel/resume accepted、
+  `dwfPinResumedActor=true`、`dwfPinResumed=completed`、`dwfPinStored=drive-fake/fake-model-b$enabled`）。
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
