@@ -653,3 +653,17 @@ part 两级 `metadata.originMeta`）、`buildTurnHeaderRow`（轮头行同字段
 - **门禁**：`dwfNoticeText` 指纹升级（文本 + originMeta，durationMs 归一）——18 字符的
   durationMs 缺口当场现形后补齐，两内核 1088/1588820788；`dwfNoticeRow` 加验 base 键。
   13 个通知单测（manifest 界、chips 白名单、截断诚实）。
+
+## 6.32 第三十三步：escalation 的 manifest 判别分支（2026-10-30）
+
+§6.24 的四个判别分支第一个接上（详见 CHANGELOG-FORK §6.25）。判据锚点：Node
+`notifyEscalationRaised`（originMeta 组装 + `WORKFLOW_ESCALATION_TEXT_MAX_CHARS = 4_000` 的发射
+侧截断 + `registry.description ?? runId` 的展示名兜底链）。
+
+- **escalations**：store 钩子（`attach_store`，runtime 接 `ports.store`）+ `escalation_origin_meta`
+  组合器（base 三键 + kind/qid/actor/question/context(≤4000)/askedAt）+ `run_label` 助手
+  （`workflow_run_detail` 的标签链，question.parent 作 session 键）。
+- **门禁**：67 → **68 字段**（`dwfEscalateMeta` 指纹，两内核 211/3795793529）。修掉 title 落
+  runId vs registry.description 的真分歧。
+- **暴露的投递缺口**：stall / hole / blocked 三类 run 中通知在 Rust 还没有投递链（journal 事件
+  有、通知不发）——与 `workflows/runs` 中枢方法一起评估。

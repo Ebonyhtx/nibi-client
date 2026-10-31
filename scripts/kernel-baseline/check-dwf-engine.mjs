@@ -67,6 +67,9 @@ const REQUIRED = [
   // 后台通知轮的轮头面（escalation 的后台通知在父会话开的 model-only 轮）：轮头
   // origin=backgroundResult、executionKind=agent（Node turnHeaderOrigin("background_task")）。
   "dwfNoticeRow",
+  // escalation manifest 的判别分支：升级通知记录的 originMeta.workflowNotification
+  // （kind/qid/actor/question 与信封同源，qid uuid 段归一）——Node notifyEscalationRaised 同形。
+  "dwfEscalateMeta",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",

@@ -266,6 +266,9 @@ impl LocalKernel {
         escalations.attach_journal(Arc::new(escalations::SessionJournalSink(
             ports.store.clone(),
         )));
+        // run 行的只读面：升级通知的 originMeta 展示名走 run 行的标签链（Node
+        // registry.description 的同源兜底）。
+        escalations.attach_store(ports.store.clone());
         // 基础工具：文件与搜索（L3）、Bash（L4）、交互与 Web 工具（L11a）；Skill 与 MCP 工具由 ext
         // 加在后面（L9），Agent 等由 agents 再加（L7）。
         // Read 整读 PDF 前按会话当前模型的生效配置查 `supports_pdf`（tools-files.md §1.5，修复线 F24）。

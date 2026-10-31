@@ -77,6 +77,9 @@ pub struct WorkflowEscalations {
     /// run 事件 journal（`dwf_event`）：升级问答双轨 record 的 durable 轨（Node driver 的
     /// `record`）。缺席时只剩通知轨——注册表本身仍然工作，只是冷回放看不到这段问答。
     journal: Mutex<Option<Arc<dyn WorkflowEventJournal>>>,
+    /// run 行的只读面（`workflow_run_detail` 的标签链：name → 脚本首行 → runId）——通知的
+    /// originMeta 展示名按它兜底（Node registry.description 同源）。缺席落 runId。
+    store: Mutex<Option<Arc<dyn SessionStore>>>,
     clock: Arc<dyn Clock>,
 }
 
@@ -86,6 +89,7 @@ impl WorkflowEscalations {
             inner: Mutex::new(Inner::default()),
             notifier: Mutex::new(None),
             journal: Mutex::new(None),
+            store: Mutex::new(None),
             clock,
         }
     }
@@ -108,6 +112,15 @@ impl WorkflowEscalations {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone()
+    }
+
+    /// 接上 run 行的只读面（originMeta 展示名的兜底链）。
+    pub fn attach_store(&self, store: Arc<dyn SessionStore>) {
+        *self.store.lock().unwrap_or_else(PoisonError::into_inner) = Some(store);
+    }
+
+    fn store(&self) -> Option<Arc<dyn SessionStore>> {
+        self.store.lock().unwrap_or_else(PoisonError::into_inner).clone()
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -435,6 +448,58 @@ fn actor_ref_json(actor: &str) -> serde_json::Value {
     }
 }
 
+/// run 的展示名（run 行的标签链：name → 脚本首行 → runId，`run_detail` 同一条读法）。
+/// store 缺席（TUI / 内存存储）或读不出时落 runId——通知是同步产出，这里允许一次 I/O。
+/// 详情查询按 (session, run) 双键：question.parent 就是发起会话。
+async fn run_label(escalations: &WorkflowEscalations, parent: &SessionId, run_id: &str) -> String {
+    let Some(store) = escalations.store() else {
+        return run_id.to_owned();
+    };
+    match store.workflow_run_detail(parent, run_id).await {
+        Ok(Some(detail)) => detail.label,
+        _ => run_id.to_owned(),
+    }
+}
+
+/// escalation 通知的 originMeta（base 三键 + `kind: "escalation"` 的 manifest 载荷）。
+/// question / context 发射侧就地截断（shared schema 限 4000 字符——超界会让轮头行落库时
+/// zod 拒收）。actor 兜底链与通知文本同一条（actorName 缺席落结构化 ref）。
+/// 展示名走 run 行的标签链（name → runId），与终态通知的 title 同一条兜底。
+fn escalation_origin_meta(question: &WorkflowQuestion, label: &str) -> serde_json::Value {
+    const TEXT_MAX: usize = 4_000;
+    let clip = |text: &str| {
+        if text.chars().count() <= TEXT_MAX {
+            text.to_owned()
+        } else {
+            let head: String = text.chars().take(TEXT_MAX - 1).collect();
+            format!("{head}\u{2026}")
+        }
+    };
+    let actor = question
+        .actor_name
+        .as_deref()
+        .unwrap_or(question.actor.as_str());
+    let mut manifest = serde_json::Map::new();
+    manifest.insert("kind".into(), json!("escalation"));
+    manifest.insert("qid".into(), json!(question.qid));
+    manifest.insert("actor".into(), json!(actor));
+    manifest.insert("question".into(), json!(clip(&question.question)));
+    if let Some(context) = question
+        .context
+        .as_deref()
+        .filter(|context| !context.is_empty())
+    {
+        manifest.insert("context".into(), json!(clip(context)));
+    }
+    manifest.insert("askedAt".into(), json!(question.asked_at));
+    serde_json::json!({
+        "backgroundSource": "workflow",
+        "title": label,
+        "workId": question.run_id,
+        "workflowNotification": serde_json::Value::Object(manifest),
+    })
+}
+
 fn raised_payload(question: &WorkflowQuestion) -> String {
     let mut object = serde_json::Map::new();
     object.insert("type".into(), json!("escalation-raised"));
@@ -562,18 +627,11 @@ would be able to see or answer it: {error}"
             };
         }
         if let Some(notifier) = self.0.notifier() {
-            // 结构化 originMeta（Node `notifyEscalationRaised` 同形：backgroundSource/title/workId
-            // 三键 + escalation manifest——manifest 载荷后片接）。展示名的兜底链与 Node 同源：
-            // hub 启动的 run 没有展示名，落 runId。
-            notifier.notify_with(
-                &parent,
-                text,
-                Some(serde_json::json!({
-                    "backgroundSource": "workflow",
-                    "title": question.run_id,
-                    "workId": question.run_id,
-                })),
-            );
+            // 结构化 originMeta（Node `notifyEscalationRaised` 同形）：base 三键 + escalation
+            // manifest 载荷（GUI 折叠成「Subagent X has a question」，展开显示问题全文）。
+            // 展示名的兜底链与 Node 同源：run 行的 name（registry.description）缺席落 runId。
+            let label = run_label(&self.0, &parent, &question.run_id).await;
+            notifier.notify_with(&parent, text, Some(escalation_origin_meta(&question, &label)));
         }
         let guard = ParkGuard {
             owner: self.0.clone(),

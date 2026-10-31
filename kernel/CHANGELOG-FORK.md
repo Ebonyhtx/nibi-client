@@ -728,6 +728,24 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
   manifest 判别分支（信封文本已逐字、base 三键已带，缺各自的 manifest 载荷）；Node 写的记录上
   的 originMeta 已随 §6.23 的判据进入 hydrate（本轮补了读取）。
 
+## 6.25 escalation 的 manifest 判别分支（2026-10-30，路线 C 第十四段）
+
+§6.24 留的四个判别分支第一个接上（详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.32）：
+
+- **escalations**：`WorkflowEscalations` 增 store 钩子（run 行的只读面，runtime 组装时接上
+  `ports.store`）——raise 通知的 originMeta 走 `escalation_origin_meta`：base 三键 + `kind:
+  "escalation"` 的 manifest 载荷（qid / actor / question / context ≤4000 / askedAt），展示名走
+  run 行的标签链（`workflow_run_detail` 的 name → 脚本首行 → runId；Node
+  `registry.description ?? runId` 同源兜底，store 缺席落 runId）。
+- **门禁**：`check-dwf-engine.mjs` 67 → **68 字段**（`dwfEscalateMeta`：升级通知记录的
+  originMeta 指纹——backgroundSource/title/workId + manifest 的 kind/qid(归一)/actor/question/
+  hasContext/askedAtIsNumber，两内核 **211/3795793529** 逐字节一致）。修掉一处真分歧：此前
+  Rust 的 escalation originMeta title 落 runId，Node 走 registry.description（probe run 的
+  title 曾一边 `dwfrun-…` 一边 `escalate`）。
+- 剩余三个判别分支（stall / hole / blocked）信封文本已逐字、base 三键已齐，各自 manifest 载荷
+  待接——stall/hole 的通知在 Rust 侧还没有投递链（journal 事件有、通知不发），与
+  `workflows/runs` 中枢方法一起评估。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

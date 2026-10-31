@@ -284,6 +284,8 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        2026-10-30 第十二段**：providerContextOnly 判据 + 触发源拼写还原 Meta，冷投影认两个
        拼写，夹具的旧补偿过滤对通知族不再生效）；~~结构化 `originMeta`~~（**已接，2026-10-30
        第十三段**：`UserOrigin::Meta` 携带、`notify_with` 投递、记录/轮头行两级落、冷重建；
-       run 终态 manifest 全套载荷，指纹门禁逐字节一致。escalation/stall/hole/blocked 的
-       manifest 判别分支仍缺——信封文本与 base 三键已齐））；
+       run 终态 manifest 全套载荷，指纹门禁逐字节一致。~~escalation 的 manifest 判别分支~~
+       （**已接，2026-10-30 第十四段**：base 三键 + kind/qid/actor/question/context/askedAt，
+       展示名走 run 行标签链，`check-dwf-engine` 68 字段；stall/hole/blocked 的通知投递链
+       在 Rust 还没有——journal 事件有、通知不发，与 `workflows/runs` 中枢方法一起评估））；
        `workflows/runs` 中枢方法仍待做）；

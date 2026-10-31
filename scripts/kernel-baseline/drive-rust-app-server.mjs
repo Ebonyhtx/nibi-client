@@ -1762,6 +1762,47 @@ try {
         : notice
           ? `${notice.executionKind}/${notice.state}`
           : "absent";
+    // escalation manifest 的判别分支（Node notifyEscalationRaised 同形）：升级通知记录上的
+    // originMeta.workflowNotification——kind/qid/actor/question 与信封同源；qid 的 uuid 段归一。
+    const escalationMetaOf = () => {
+      if (!existsSync(dbPath)) return null;
+      const db = new DatabaseSync(dbPath);
+      const row = db
+        .prepare(
+          "select m.data as info from message m where m.session_id = ? " +
+            "and json_extract(m.data,'$.metadata.originMeta.workflowNotification.kind') = 'escalation' " +
+            "order by m.rowid desc limit 1",
+        )
+        .get(session);
+      db.close();
+      if (!row) return null;
+      const info = JSON.parse(row.info);
+      return info.metadata?.originMeta ?? null;
+    };
+    await waitFor(
+      () => (escalationMetaOf() ? true : undefined),
+      "escalation originMeta record",
+      30_000,
+    ).catch(() => {});
+    checks.dwfEscalateMeta = (() => {
+      const meta = escalationMetaOf();
+      if (!meta) return "absent";
+      const wf = meta.workflowNotification ?? {};
+      const normalized = JSON.stringify({
+        backgroundSource: meta.backgroundSource,
+        title: meta.title,
+        workId: "dwfrun-X",
+        kind: wf.kind,
+        qid: typeof wf.qid === "string" ? wf.qid.replace(/[0-9a-f-]{8,}/g, "X") : null,
+        actor: wf.actor,
+        question: wf.question,
+        hasContext: wf.context !== undefined,
+        askedAtIsNumber: typeof wf.askedAt === "number",
+      });
+      let hash = 0;
+      for (const ch of normalized) hash = (hash * 31 + ch.codePointAt(0)) | 0;
+      return `${normalized.length}/${hash >>> 0}`;
+    })();
     console.log(
       `dwf escalate: run=${checks.dwfEscalateStatus} raised=${checks.dwfEscalateRaised} ` +
         `qid=${checks.dwfEscalateQidPrefix} resolved=${checks.dwfEscalateResolved} ` +
