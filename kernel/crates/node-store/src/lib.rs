@@ -388,6 +388,49 @@ impl SessionStore for NodeStore {
             .await
     }
 
+    /// `workflows/runs`（NIBI 协议中枢）的运行历史页（journal 直读，跨会话；SQL 与终态拆解
+    /// 逐字对齐 Node 的 `listRuns` / `decodeRunListItem`）。
+    async fn workflow_runs_page(
+        &self,
+        cwd: Option<String>,
+        name: Option<String>,
+        limit: usize,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunPageRow>, StoreError> {
+        self.with_db(move |conn, _| {
+            repo::dwf::list_runs_hub(conn, cwd.as_deref(), name.as_deref(), limit)
+                .map_err(storage)
+                .map(|rows| {
+                    rows.into_iter()
+                        .map(|row| rust_cli_kernel_api::workflow::WorkflowRunPageRow {
+                            artifacts: if row.artifacts.is_empty() {
+                                None
+                            } else {
+                                Some(
+                                    row.artifacts
+                                        .into_iter()
+                                        .take(8)
+                                        .map(rust_cli_kernel_api::workflow::WorkflowRunArtifact::from)
+                                        .collect(),
+                                )
+                            },
+                            args: row.args,
+                            created_at: row.created_at,
+                            cwd: row.cwd,
+                            name: row.name,
+                            parent_session_id: row.parent_session_id,
+                            run_id: row.run_id,
+                            spent_tokens: row.spent_tokens,
+                            status: row.status,
+                            stop_reason: row.stop_reason,
+                            tool_call_id: row.tool_call_id,
+                            updated_at: row.updated_at,
+                        })
+                        .collect()
+                })
+        })
+        .await
+    }
+
     /// 追加一条 DWF run 事件（`dwf_event`，序号与写入同一条语句——Node `appendEvent` 同形）。
     async fn append_workflow_event(
         &self,

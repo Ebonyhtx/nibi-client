@@ -577,6 +577,21 @@ pub trait SessionStore: Send + Sync {
         Ok(None)
     }
 
+    /// `workflows/runs`（NIBI 协议中枢）的运行历史页（journal 直读，**跨会话**）：cwd/name 过滤
+    /// 与 `time_updated desc` 排序、limit 全部下推 SQL。`limit` 是「页上限 + 1」的截断探测
+    /// 语义（调用方多取一条判 `truncated`），存储层不设自己的天花板。不支持的实现返回
+    /// `Unsupported`。
+    async fn workflow_runs_page(
+        &self,
+        _cwd: Option<String>,
+        _name: Option<String>,
+        _limit: usize,
+    ) -> Result<Vec<crate::workflow::WorkflowRunPageRow>, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "workflow runs page".to_owned(),
+        })
+    }
+
     /// 记下一个工作区已信任（upsert，workspace-trust.md §2.3）。不支持的实现返回 `Unsupported`。
     async fn trust_workspace(
         &self,

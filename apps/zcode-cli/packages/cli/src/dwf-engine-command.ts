@@ -357,12 +357,14 @@ function launchRun(
     cwd: string;
     dbPath: string;
     scriptText: string;
-    args: Record<string, unknown>;
+    /** 实参**原样**转交 harness（落 args_json 与冻结 args 全局）；缺席保持缺席（行上 NULL）。 */
+    args?: Record<string, unknown>;
     caps: { maxConcurrency?: number };
     /** amend 路径的两项 run 元数据（verbatim 转交引擎，缺省保持缺席）。 */
     subagentModel?: string;
     resumedFrom?: string;
     inheritedTokens?: number;
+    /** 发起 run 的锚点（`launch-`/`settings-`/工具调用的 id）：落 dwf_run.tool_call_id。 */
     toolCallId?: string;
     /** run 的展示名（saved 名字）；落 dwf_run.name，设置轮的「已修订」记录按它题名。 */
     name?: string;
@@ -423,6 +425,8 @@ function launchRun(
     args: params.args,
     caps: { maxConcurrency },
     ...(params.name === undefined ? {} : { name: params.name }),
+    // 锚点落 dwf_run.tool_call_id（Node 的 run 行同一条写法）；launch.inputId 是事件头，两处同源。
+    ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),
     askSpecs: compiled.askSpecs,
     validate: validateFn,
     ...(launch === undefined ? {} : { launch }),
@@ -676,6 +680,8 @@ interface SubmitParams {
   args?: Record<string, unknown>;
   caps?: { maxConcurrency?: number };
   homeDir?: string;
+  /** 发起 run 的锚点（宿主铸的 `launch-`）：落 dwf_run.tool_call_id。 */
+  toolCallId?: string;
 }
 
 type Outgoing = (message: unknown) => void;
@@ -990,6 +996,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       if (Object.keys(resolved.bindings).length > 0) modelBindings = resolved.bindings;
     }
 
+    // 空实参归一成缺席（Node 启动路径的 hasArgs 同一条判据：无实参时行上 args_json 缺席，
+    // 「没有实参」与「实参是空袋」在行层面不区分）。
+    const rowArgs = args !== undefined && Object.keys(args).length > 0 ? args : undefined;
     // 受理之后在后台跑；结算以 `run/settled` 通知宿主。
     void launchRun(
       {
@@ -998,8 +1007,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         cwd: params.cwd,
         dbPath: params.dbPath,
         scriptText,
-        args: args ?? {},
+        args: rowArgs,
         caps: params.caps ?? { maxConcurrency: DEFAULT_CONCURRENCY },
+        ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),
         // run 的展示名 = saved 名字（Node 的启动路径同一条读法）；设置轮与侧板题名按它。
         ...(params.savedName === undefined ? {} : { name: params.savedName }),
         savedPath: draftPath,
@@ -1074,7 +1084,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           cwd,
           dbPath: params.dbPath,
           scriptText: record.scriptText,
-          args: record.args ?? {},
+          args: record.args,
           caps: record.caps ?? { maxConcurrency: 4 },
         },
         request,
@@ -1252,7 +1262,9 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           cwd,
           dbPath: params.dbPath,
           scriptText: record.scriptText,
-          args: settled.args ?? {},
+          args: settled.args,
+          // 后继沿用前驱的名字（Node 的修订路径同一条：GUI 按「工作流名 = run 名」归属）。
+          ...(record.name === undefined ? {} : { name: record.name }),
           caps: { maxConcurrency: nextBound ?? DEFAULT_CONCURRENCY },
           ...(nextModel === undefined ? {} : { subagentModel: nextModel }),
           ...(modelBindings === undefined ? {} : { modelBindings }),

@@ -950,6 +950,21 @@ pub struct ArtifactRow {
     pub primary: bool,
 }
 
+impl From<ArtifactRow> for rust_cli_kernel_api::workflow::WorkflowRunArtifact {
+    fn from(artifact: ArtifactRow) -> Self {
+        Self {
+            id: artifact.id,
+            kind: artifact.kind,
+            title: artifact.title,
+            version: artifact.version,
+            content_type: artifact.content_type,
+            bytes: artifact.bytes,
+            item_count: artifact.item_count,
+            primary: artifact.primary.then_some(true),
+        }
+    }
+}
+
 pub fn artifact_rows(conn: &Connection, run_id: &str) -> Result<Vec<ArtifactRow>> {
     let mut query = conn.prepare_cached(
         "select artifact_id, result_json, time_updated from dwf_node
@@ -1053,29 +1068,21 @@ fn derived_label(script_text: Option<&str>, run_id: &str) -> String {
 /// 详情合成（Node `decodeRunSettlement` + run service 详情投影的 journal 侧）：run 行的终态
 /// 拆解（stopped 包络 / Interrupted 判别）、标签派生、节点计数、actors、log 尾巴与冷回放的
 /// 待答问题。未知 runId → `None`。停驻注册表的活项由运行时的读面并进来。
-pub fn run_detail(
-    conn: &Connection,
-    session: &str,
-    run_id: &str,
-) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunDetail>> {
-    use rust_cli_kernel_api::workflow as api;
-    let Some(row) = run_row(conn, run_id)? else {
-        return Ok(None);
-    };
-    // 终态拆解的产物（Node `DwfRunSettlementFields` 的读取侧等价物）。
-    struct Settlement {
-        status: String,
-        stop_reason: Option<String>,
-        superseded_by: Option<String>,
-        failure: Option<(String, String)>,
-    }
-    let settlement = match row.status.as_str() {
+/// 终态拆解的产物（Node `DwfRunSettlementFields` 的读取侧等价物）：详情面与中枢的运行历史页共用。
+struct Settlement {
+    status: String,
+    stop_reason: Option<String>,
+    superseded_by: Option<String>,
+    failure: Option<(String, String)>,
+}
+
+/// run 行的逻辑状态与终态拆解（Node `decodeRunSettlement` 同一条映射，只活在这一处）。
+fn settlement_of(status: &str, failure_json: Option<&str>) -> Settlement {
+    match status {
         // stopped 包络：`{stopReason, supersededBy?, error?}`（Node `encodeRunSettlement` 的
         // stopped 一支）；缺字段按缺省 stopReason=user 兜底（Node 的 decode 同规）。
         "cancelled" => {
-            let envelope = row
-                .failure_json
-                .as_deref()
+            let envelope = failure_json
                 .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok());
             let stop_reason = envelope
                 .as_ref()
@@ -1102,10 +1109,8 @@ pub fn run_detail(
         }
         // failed：code == Interrupted 是「进程死了」（stopped/interrupted），其余是脚本真失败。
         "failed" => {
-            let failure_json = row
-                .failure_json
-                .as_deref()
-                .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok());
+            let failure_json =
+                failure_json.and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok());
             let code = failure_json
                 .as_ref()
                 .and_then(|value| value["code"].as_str())
@@ -1144,7 +1149,100 @@ pub fn run_detail(
             superseded_by: None,
             failure: None,
         },
+    }
+}
+
+/// 中枢运行历史页的一行（`workflows/runs` 的 `ZCodeSavedWorkflowRun` 的取数面）。
+pub struct HubRunRow {
+    pub run_id: String,
+    pub name: Option<String>,
+    pub status: String,
+    pub stop_reason: Option<String>,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub spent_tokens: u64,
+    pub parent_session_id: Option<String>,
+    pub tool_call_id: Option<String>,
+    /// `args_json` 的解析值（NULL 即缺席；「没有实参」与「实参是空袋」在记录层面可分辨）。
+    pub args: Option<serde_json::Value>,
+    pub cwd: Option<String>,
+    /// 用户面产物（与 `GetWorkflowRun` 同一条归并；零件的 run 是空表——调用方据此让整字段缺席）。
+    pub artifacts: Vec<ArtifactRow>,
+}
+
+/// 中枢的运行历史页（Node `listRuns` 的 SQL 逐字：cwd/name 谓词下推、`time_updated desc`、
+/// limit **不设天花板**——调用方传「钳制上限 + 1」当截断探测行，加 `min(50,…)` 会让
+/// `truncated` 在恰好 50 时永久缺席）。cwd 是**字面**等值匹配（写入侧原样落、读侧原样查）。
+pub fn list_runs_hub(
+    conn: &Connection,
+    cwd: Option<&str>,
+    name: Option<&str>,
+    limit: usize,
+) -> Result<Vec<HubRunRow>> {
+    let sql = format!(
+        "select id, parent_session_id, cwd, name, tool_call_id, args_json, spent_tokens,
+                status, failure_json, time_created, time_updated
+         from dwf_run
+         where 1 = 1{}{}
+         order by time_updated desc
+         limit ?",
+        if cwd.is_some() { " and cwd = ?" } else { "" },
+        if name.is_some() { " and name = ?" } else { "" },
+    );
+    let mut statement = conn.prepare(&sql)?;
+    let cwd = cwd.map(str::to_owned);
+    let name = name.map(str::to_owned);
+    let limit_bound = limit as i64;
+    let mut bindings: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    if let Some(cwd) = &cwd {
+        bindings.push(Box::new(cwd.clone()));
+    }
+    if let Some(name) = &name {
+        bindings.push(Box::new(name.clone()));
+    }
+    bindings.push(Box::new(limit_bound));
+    let rows = statement.query_map(
+        rusqlite::params_from_iter(bindings.iter().map(std::convert::AsRef::as_ref)),
+        |row| {
+        let settlement = settlement_of(
+            &row.get::<_, String>(7)?,
+            row.get::<_, Option<String>>(8)?.as_deref(),
+        );
+        Ok(HubRunRow {
+            run_id: row.get(0)?,
+            parent_session_id: row.get(1)?,
+            cwd: row.get(2)?,
+            name: row.get(3)?,
+            tool_call_id: row.get(4)?,
+            args: row
+                .get::<_, Option<String>>(5)?
+                .and_then(|text| serde_json::from_str(&text).ok()),
+            spent_tokens: row.get::<_, i64>(6)?.max(0) as u64,
+            status: settlement.status,
+            stop_reason: settlement.stop_reason,
+            created_at: row.get::<_, i64>(9)?.max(0) as u64,
+            updated_at: row.get::<_, i64>(10)?.max(0) as u64,
+            // 占位：artifact_rows 要 conn，map 闭包借不动；下面补填。
+            artifacts: Vec::new(),
+        })
+    })?;
+    let mut out = rows.collect::<rusqlite::Result<Vec<HubRunRow>>>()?;
+    for entry in &mut out {
+        entry.artifacts = artifact_rows(conn, &entry.run_id)?;
+    }
+    Ok(out)
+}
+
+pub fn run_detail(
+    conn: &Connection,
+    session: &str,
+    run_id: &str,
+) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunDetail>> {
+    use rust_cli_kernel_api::workflow as api;
+    let Some(row) = run_row(conn, run_id)? else {
+        return Ok(None);
     };
+    let settlement = settlement_of(row.status.as_str(), row.failure_json.as_deref());
     let Settlement {
         status,
         stop_reason,

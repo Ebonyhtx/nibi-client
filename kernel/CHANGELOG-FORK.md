@@ -813,6 +813,32 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.34）：
   行上脚本已拼入函数体）、`dwfHoleSettled`（终态通知指纹 **842/3592966377** 一致）；
   `dwfHoleCancel` 退场。查询点：session 库 `dwf_event` / `dwf_run` 与消息库同轮读。
 
+## 6.28 `workflows/runs` 中枢方法（2026-10-30，路线 C 第十七段）
+
+NIBI 协议中枢的第一个方法（Node `listSavedWorkflowRunsOp` 同一契约；详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.35）：GUI 中枢按「工作流名 = run 名」归属运行
+历史，只读 journal、在任何会话之外。
+
+- **node-store**：`repo::dwf::list_runs_hub`——Node `listRuns` 的 SQL 逐字（cwd/name 谓词下推、
+  `time_updated desc`、limit **不设天花板**——调用方传「钳制上限 + 1」当截断探测行）；终态拆解
+  从 `run_detail` 提取成 `settlement_of` 共用；产物 chips 复用 `artifact_rows` 的同一条归并
+  （≤8 件、只带 id/kind/title?/version/contentType?）。`SessionStore::workflow_runs_page` 新端口。
+- **kernel**：`Kernel::workflow_runs_page`（缺省 `Unsupported`）→ runtime 转 store。
+- **协议**：`protocol-zcode` 新分支 `workflows/runs`（`nibi_workflows.rs`）——参数契约从 Node 的
+  zod 逐字（`.strict()`：未知键/类型错/空串/limit 出界一律 `-32602`，message 前缀同形；
+  workspace ref 的 `workspaceKey` 必填）；journal 缺席（内核没接会话库）回**空页**不报错；
+  `truncated` 由多取的一条判定。
+- **sidecar 行元数据（对拍抓到的三处真分歧）**：中枢启动的 run 行此前 `tool_call_id` NULL、
+  `args_json` 落 `{}`、修订后继丢 `name`——Node 的 run 行带 `launch-` 锚点、无实参时 args 缺席
+  （「没有实参」与「实参是空袋」在行层面不区分）、后继沿用前驱的名字。修法：submit 参数带
+  锚点（`launchRun` verbatim 转交 harness 的 `toolCallId`）、空实参归一成缺席（hasArgs 同一条
+  判据）、amend 后继带 `record.name`；resume 沿用行上原值不动。
+- **门禁**：`check-dwf-engine.mjs` 76 → **81 字段**——新探针阶段 `dwfRuns`（dwf 各阶段已在同
+  一工作区造出六个 run：holeprobe/escalate/amend×2/hold/probe，各态齐备）：`dwfRunsCount`、
+  `dwfRunsOrder`（页序 + 行形状指纹，uuid/墙钟/工作区路径归一）、`dwfRunsNamed`（名字过滤）、
+  `dwfRunsTruncated`（limit 1 多取判截断）、`dwfRunsInvalid`（limit 0 → `-32602`，两内核同码）。
+  workspace ref 契约要求 `workspaceKey`（strict）——探针第一版漏了它，Node 侧 -32602，顺带
+  钉住两内核的参数面同形。
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

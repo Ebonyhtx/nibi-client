@@ -2283,6 +2283,67 @@ try {
     );
   }
 
+  // NIBI 协议中枢（workflows/runs，Node listSavedWorkflowRunsOp 同一契约）：run 历史页只读
+  // journal、跨会话。到这里 dwf 各阶段已在同一工作区造出多个 run（completed/stopped 各态），
+  // 页码、名字过滤、截断与参数违规都有实体可查。指纹归一：run/会话锚点遮 uuid、墙钟遮 D、
+  // 工作区路径遮 <ws>、用量只比类型（两内核的记账可能差在四舍五入）。
+  if (phases.includes("dwfRuns")) {
+    const normalizeRuns = (result) =>
+      JSON.stringify(
+        (result?.runs ?? []).map((run) => ({
+          name: run.name ?? null,
+          status: run.status,
+          stopReason: run.stopReason ?? null,
+          cwd: typeof run.cwd === "string" ? run.cwd.replaceAll(workspace, "<ws>") : null,
+          hasParent:
+            typeof run.parentSessionId === "string" && run.parentSessionId.startsWith("sess_"),
+          hasToolCall: typeof run.toolCallId === "string",
+          hasArgs: run.args !== undefined,
+          artifactsShape:
+            run.artifacts === undefined
+              ? "absent"
+              : Array.isArray(run.artifacts)
+                ? `array:${run.artifacts.length}`
+                : "invalid",
+          spentTokensIsNumber: typeof run.spentTokens === "number",
+        })),
+      );
+    // workspace ref 的契约要求 workspaceKey（strict；GUI 用稳定键标识工作区，op 只读 workspacePath）。
+    const workspaceRef = { workspacePath: workspace, workspaceKey: workspace };
+    const full = ack(
+      await send("workflows/runs", { workspace: workspaceRef, limit: 50 }),
+      "workflows/runs(full)",
+    );
+    checks.dwfRunsCount = full?.runs?.length ?? null;
+    checks.dwfRunsOrder = normalizeRuns(full);
+    const named = ack(
+      await send("workflows/runs", {
+        workspace: workspaceRef,
+        name: "holeprobe",
+        limit: 50,
+      }),
+      "workflows/runs(named)",
+    );
+    checks.dwfRunsNamed = normalizeRuns(named);
+    const truncated = ack(
+      await send("workflows/runs", { workspace: workspaceRef, limit: 1 }),
+      "workflows/runs(truncated)",
+    );
+    checks.dwfRunsTruncated = JSON.stringify({
+      pageLength: truncated?.runs?.length ?? null,
+      truncated: truncated?.truncated === true,
+    });
+    const invalid = await send("workflows/runs", {
+      workspace: workspaceRef,
+      limit: 0,
+    });
+    checks.dwfRunsInvalid = String(invalid?.error?.code ?? "no-error");
+    console.log(
+      `dwf runs: count=${checks.dwfRunsCount} named=${checks.dwfRunsNamed} ` +
+        `truncated=${checks.dwfRunsTruncated} invalid=${checks.dwfRunsInvalid}`,
+    );
+  }
+
   // 流程本来就在协议层之外），再让两个内核各丢一次。
   if (phases.includes("discardSharedContext")) {
     const dbPath = [

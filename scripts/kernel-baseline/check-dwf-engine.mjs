@@ -83,6 +83,13 @@ const REQUIRED = [
   "dwfHoleJournal",
   "dwfHoleRunRow",
   "dwfHoleSettled",
+  // NIBI 协议中枢（workflows/runs，Node listSavedWorkflowRunsOp 同一契约）：页数与顺序、
+  // 名字过滤（holeprobe）、截断（多取一条判 truncated）与参数违规 -32602。
+  "dwfRunsCount",
+  "dwfRunsOrder",
+  "dwfRunsNamed",
+  "dwfRunsTruncated",
+  "dwfRunsInvalid",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",
@@ -118,7 +125,7 @@ function run(kernel) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(
       process.execPath,
-      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate,dwfHole"],
+      [driver, `--kernel=${kernel}`, "--phases=create,dwfEngine,dwfResume,dwfAmend,dwfEscalate,dwfHole,dwfRuns"],
       { cwd: repo, stdio: ["ignore", "pipe", "pipe"] },
     );
     let stdout = "";

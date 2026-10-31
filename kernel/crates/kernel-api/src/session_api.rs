@@ -1031,6 +1031,19 @@ pub trait Kernel: Send + Sync {
         None
     }
 
+    /// `workflows/runs`（NIBI 协议中枢）：运行历史的一页（journal 直读，**跨会话**）。
+    /// 不支持的入口回 `Unsupported`——协议层按 Node 的 journal 缺席同规回空页。
+    async fn workflow_runs_page(
+        &self,
+        _cwd: Option<String>,
+        _name: Option<String>,
+        _limit: usize,
+    ) -> Result<Vec<crate::workflow::WorkflowRunPageRow>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "workflow runs page".to_owned(),
+        })
+    }
+
     /// 旧会话的询问（docs/specs/rust-cli/agents.md §4.1.2，工作线 F72）：先给出还没回答的，再给出之后的变化。缺省
     /// 没有（流不结束）。
     fn detached_asks(&self) -> BoxStream<'static, crate::interaction::DetachedEvent> {

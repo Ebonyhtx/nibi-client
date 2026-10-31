@@ -37,6 +37,20 @@ impl Kernel for LocalKernel {
         Some(self.actors.clone())
     }
 
+    /// `workflows/runs`（NIBI 协议中枢）：journal 直读的运行历史页。
+    async fn workflow_runs_page(
+        &self,
+        cwd: Option<String>,
+        name: Option<String>,
+        limit: usize,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunPageRow>, KernelError> {
+        self.ports
+        .store
+        .workflow_runs_page(cwd, name, limit)
+        .await
+        .map_err(|error| KernelError::Failed { message: error.to_string() })
+    }
+
     /// 旧会话的询问（agents.md §4.1.2，工作线 F72）。
     fn detached_asks(
         &self,

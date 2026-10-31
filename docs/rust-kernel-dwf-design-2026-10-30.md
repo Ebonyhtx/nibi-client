@@ -294,5 +294,10 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        （fill 文件先铸、fill_unchanged、诊断锚定）+ 并入也落记录（mid-turn fold 先 persist
        meta 记录，与 Node drain 同形）+ 探针真实回填收口，`check-dwf-engine` 76 字段双内核
        逐字节一致。UI 轨的确认窗预览与技能门路线 C 没有宿主面。stall/blocked 的投递链仍缺
-       ——与 `workflows/runs` 中枢方法一起评估））；
+       ——都是时间门控的生产行为（stall=重试主导 20 分钟、blocked=父会话空闲钟），没有可注入
+       的阈值就没有诚实的探针，等配置旋钮或 fixture 级对拍再接）；~~`workflows/runs` 中枢方法~~
+       （**已接，2026-10-30 第十七段**：node-store `list_runs_hub`（SQL 逐字）+ `Kernel::
+       workflow_runs_page` + `protocol-zcode` 分支（严格 zod 镜像、journal 缺席回空页）+ sidecar
+       run 行元数据三处分歧修齐（锚点/空实参/后继名），`check-dwf-engine` 81 字段双内核逐字节
+       一致）；
        `workflows/runs` 中枢方法仍待做）；

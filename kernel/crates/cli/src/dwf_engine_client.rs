@@ -1047,6 +1047,8 @@ impl WorkflowEngine for SidecarEngine {
             "cwd": cwd,
             "dbPath": self.shared.database.display().to_string(),
             "savedName": request.name,
+            // 锚点落 dwf_run.tool_call_id（Node 的 run 行同一条写法；GUI 从中枢打开实例详情按它）。
+            "toolCallId": tool_call_id,
         });
         if let Some(scope) = request.scope {
             params["scope"] = json!(scope);

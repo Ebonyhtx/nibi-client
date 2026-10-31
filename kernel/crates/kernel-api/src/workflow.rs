@@ -614,6 +614,38 @@ pub struct WorkflowFillTargetHole {
 /// 才调），工具在调用时读槽；缺席即「本会话不能补全」。
 pub type WorkflowEngineSlot = Arc<std::sync::Mutex<Option<Arc<dyn WorkflowEngine>>>>;
 
+/// `workflows/runs`（NIBI 协议中枢）的一行（Node `ZCodeSavedWorkflowRun` 的取数面）：按
+/// `dwf_run.name` 归属到工作流的运行历史。可选键缺席即「没有」（老行 / 无产物），不发空串。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunPageRow {
+    pub run_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// `pending` / `running` / `completed` / `errored` / `stopped`（journal 行的终态拆解）。
+    pub status: String,
+    /// `status == "stopped"` 才在场。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub spent_tokens: u64,
+    /// 发起它的会话与 CreateWorkflow 工具调用：有这两个才能从中枢打开实例详情。老行可缺。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<serde_json::Value>,
+    /// 实际运行的项目目录（`dwf_run.cwd`）。全局档跨 cwd 查询，GUI 用它给每行标项目。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    /// 这次运行发布的**用户面产物**（≤ 8 件，与 `GetWorkflowRun` 同一条归并）——中枢的运行
+    /// 历史行在状态词之后画 kind chips。零件整字段缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifacts: Option<Vec<WorkflowRunArtifact>>,
+}
+
 impl WorkflowEngineError {
     pub fn new(reason: impl Into<String>) -> Self {
         Self {

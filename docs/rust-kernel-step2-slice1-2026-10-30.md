@@ -708,3 +708,26 @@ withHoleFacts（载荷派生）。
   （422/1198194394）、dwfHoleFillFile、dwfHoleDraftRewritten、dwfHoleJournal、dwfHoleRunRow、
   dwfHoleSettled（842/3592966377）双内核逐字节一致，dwfHoleCancel 退场。
 - **UI 轨尾单**：确认窗预览单槽（resolveInput 拼一次有效脚本）与技能门在路线 C 没有宿主面。
+
+## 6.35 第三十六步：`workflows/runs` 中枢方法（2026-10-30）
+
+§6.27 尾单的下一项（详见 CHANGELOG-FORK §6.28）：NIBI 协议中枢的第一个方法落到 Rust 内核。
+判据锚点：Node `listSavedWorkflowRunsOp`（bootstrap/nibi-protocol/saved-workflows.ts）、
+`listRuns` SQL（adapters dwf-journal-introspection.ts，注释里的「别在这里加天花板」同规）、
+`decodeRunListItem` 的终态拆解、`savedWorkflowRunArtifacts` 的 chips 归并。
+
+- **读面**：`list_runs_hub`（node-store）——谓词/排序/limit 全下推 SQL，limit 是「页上限 + 1」
+  的截断探测语义；`settlement_of` 从 `run_detail` 提取共用；产物 chips 与 GetWorkflowRun 同一条
+  归并（`artifact_rows`）。
+- **端口链**：`SessionStore::workflow_runs_page` → `Kernel::workflow_runs_page`（缺省
+  `Unsupported`）→ `protocol-zcode` 的 `workflows/runs` 分支（`nibi_workflows.rs`，严格 zod 镜像
+  校验、journal 缺席回空页、`truncated` 判定）。
+- **sidecar 行元数据（对拍真分歧 ×3）**：run 行的 `tool_call_id`/`args_json`/后继 `name` 三处
+  与 Node 不同——修成 submit 带锚点、空实参缺席（hasArgs 判据）、后继沿用前驱名。resume 沿用
+  行上原值（不动）。
+- **门禁**：76 → **81 字段**（`dwfRuns` 阶段五字段，双内核逐字节一致；`-32602` 同码）。workspace
+  ref 要求 `workspaceKey`——探针第一版漏发，Node 拒绝后钉进契约。
+- **stall/blocked 仍缺**（§6.25 尾单余下两项）：stall 是「重试主导 + 20 分钟无成功」的墙钟事实
+  （driver 钟的 `stallAfterMs` 缺省 20 分钟、只按重试原因上膛），blocked 是父会话空闲钟——两者
+  都是时间门控的生产行为，没有可注入的阈值就没有诚实的两内核探针；等有配置旋钮或 fixture 级
+  对拍再接。

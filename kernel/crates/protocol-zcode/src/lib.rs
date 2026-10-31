@@ -15,6 +15,7 @@ mod index;
 mod legacy;
 mod live;
 mod nibi_commands;
+mod nibi_workflows;
 mod projection;
 mod server;
 mod subscribe;
