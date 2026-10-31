@@ -622,3 +622,17 @@ queue 的通知 drain）、`turnHeaderOrigin` 表（background_task → backgrou
   run 终态通知轮两内核同为 backgroundResult + assistantText。
 - **仍缺**：通知的结构化 `originMeta`（运行卡关联键 + workflowNotification manifest 载荷）；
   Node 写的通知记录 Rust hydrate 整个丢掉（互认）。
+
+## 6.30 第三十一步：通知记录的跨库互认（2026-10-30）
+
+§6.21 缺口 ④（详见 CHANGELOG-FORK §6.23）：Node 写的后台通知记录 Rust 冷读整个丢掉。
+判据锚点：Node `getConversationMessageProjectionPolicy` 的 providerContextOnly（两个判据面）与
+`session-history-hydrator` 的 `userEntriesFromParts`（非 attachment 类 synthetic 文本进 prompt
+块——`background_task`/`task_notification` 不在 system-reminder 源注册表里，不走附件路）。
+
+- **hydrate**：`node_notice_source` 判据 + synthetic 文本保留 + `UserOrigin::Meta` 按来源拼写
+  还原；Rust 自写记录（rustCli 标记路）不受影响。
+- **冷投影**：`NOTICE_TURN_SOURCES` 收两个 Node 拼写。
+- **夹具**：`node_written_sessions_read_back_their_text` 的 legacy_synthetic 剥离对通知族不再
+  生效（当年的补偿，缺口已修）。
+- **测试**：node-store 3 + 投影 1。

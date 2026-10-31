@@ -510,6 +510,10 @@ mod records_tools_tests;
 mod hydrate_tests;
 
 #[cfg(test)]
+#[path = "hydrate_notice_tests.rs"]
+mod hydrate_notice_tests;
+
+#[cfg(test)]
 #[path = "title_tests.rs"]
 mod title_tests;
 

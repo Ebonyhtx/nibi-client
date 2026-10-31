@@ -713,3 +713,36 @@ fn the_cold_projection_opens_a_turn_for_task_notification_messages() {
     assert_eq!(header["executionKind"], "agent");
     assert_eq!(header["state"], "completedSuccess");
 }
+
+/// 跨库读：Node 写的通知记录 hydrate 成 `background_task` 拼写的 Meta 消息，冷投影认它开
+/// 同一个 backgroundResult 轮。
+#[test]
+fn the_cold_projection_reads_node_written_notification_records() {
+    let view = view(vec![
+        Message::User(UserMessage {
+            id: MessageId::new("msg_notice_node"),
+            content: vec![ContentBlock::Text {
+                text: "<task-notification>done</task-notification>".into(),
+            }],
+            origin: UserOrigin::Meta {
+                source: "background_task".into(),
+            },
+        }),
+        assistant(
+            "msg_a2",
+            vec![ContentBlock::Text {
+                text: "the background task finished".into(),
+            }],
+        ),
+    ]);
+    let projection = Projection::from_view(&view, Followup::Queue, Vec::new());
+    let snapshot = projection.snapshot(9, "epoch-1");
+    let rows = snapshot["rows"]["window"].as_array().unwrap();
+    let headers: Vec<_> = rows
+        .iter()
+        .filter(|row| row["kind"] == "turnHeader")
+        .collect();
+    assert_eq!(headers.len(), 1, "{rows:?}");
+    assert_eq!(headers[0]["origin"], "backgroundResult");
+    assert_eq!(headers[0]["executionKind"], "agent");
+}

@@ -83,7 +83,13 @@ fn node_text(entry: &Value) -> Option<Value> {
         return Some(json!({"role": "tool", "id": message["toolCallId"],
             "error": message["isError"], "content": node_content(&message["content"])}));
     }
-    if role == "user" && entry["metadata"]["source"] == "legacy_synthetic" && !summary_like(message)
+    // 旧过滤剥掉所有 legacy_synthetic 的 user 条目，补偿当时 Rust 冷读丢合成消息的缺口。
+    // 现在通知族（task-notification 信封）在两边都进 provider 历史，照常比较；其余
+    // legacy_synthetic（fork 提示等）两边都不读，维持剥离。
+    if role == "user"
+        && entry["metadata"]["source"] == "legacy_synthetic"
+        && !summary_like(message)
+        && !task_notification_like(message)
     {
         return None;
     }
@@ -122,6 +128,14 @@ fn node_text(entry: &Value) -> Option<Value> {
         }
         _ => None,
     }
+}
+
+/// `<task-notification>` 信封：通知族的 provider 历史两边同形（本 crate 的
+/// `node_notice_source` 判据与它一致）。
+fn task_notification_like(message: &Value) -> bool {
+    message["content"]
+        .as_str()
+        .is_some_and(|text| text.starts_with("<task-notification>"))
 }
 
 /// 压缩摘要在 Node 历史里也标为 legacy_synthetic，但它属于文本部分。

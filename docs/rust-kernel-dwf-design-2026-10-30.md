@@ -280,6 +280,8 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        ~~`run/settled` 的终态通知链~~（**已接，2026-10-30 第十一段**：sidecar 结算随附 journal
        事实 → 宿主逐字移植的通知信封（`dwf_run_notification.rs`）→ `Kernel::workflow_notices()`
        投父会话；superseded 按 coordinator 压下；`check-dwf-engine` 67 字段，通知文本指纹
-       （`dwfNoticeText`）两内核逐字节一致。仍缺结构化 `originMeta`（运行卡关联键 + manifest
-       载荷）与 Node 写通知记录的 hydrate 互认）；
+       （`dwfNoticeText`）两内核逐字节一致）；~~Node 写通知记录的 hydrate 互认~~（**已接，
+       2026-10-30 第十二段**：providerContextOnly 判据 + 触发源拼写还原 Meta，冷投影认两个
+       拼写，夹具的旧补偿过滤对通知族不再生效）。仍缺结构化 `originMeta`（运行卡关联键 +
+       manifest 载荷））；
        `workflows/runs` 中枢方法仍待做）；

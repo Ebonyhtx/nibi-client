@@ -1,14 +1,20 @@
 //! 冷投影：从会话视图（已提交的消息）重建行。没有事件的时间，行的时间取会话的创建时间；回合以真人输入为界。
 
-use rust_cli_kernel_api::message::{
-    ContentBlock, Message, SystemMessage, TASK_NOTIFICATION_SOURCE, UserOrigin,
-};
+use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
 use rust_cli_kernel_api::session_api::{
     SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
 };
 use rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
 
 use super::{Projection, state::Phase, tool_key};
+
+/// 通知轮的来源标签集合：内核自己的（`task-notification`）与 Node 记录上的两个拼写
+/// （跨库读时 hydrate 原样保留 `background_task` / `task_notification`）。
+const NOTICE_TURN_SOURCES: [&str; 3] = [
+    "task-notification",
+    "background_task",
+    "task_notification",
+];
 
 /// 从视图的消息建行；阶段按最后一个回合与 `running` 定。
 pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
@@ -56,7 +62,7 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
             Message::User(user)
                 if matches!(
                     &user.origin,
-                    UserOrigin::Meta { source } if source == TASK_NOTIFICATION_SOURCE
+                    UserOrigin::Meta { source } if NOTICE_TURN_SOURCES.contains(&source.as_str())
                 ) =>
             {
                 if projection.turn.is_some() {

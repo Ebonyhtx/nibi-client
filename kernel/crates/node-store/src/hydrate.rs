@@ -80,6 +80,34 @@ fn provider_text(part: &Value) -> &str {
     part["text"].as_str().unwrap_or("")
 }
 
+/// Node 写的后台通知记录（`<task-notification>` 信封的 synthetic user 消息，policy
+/// `providerContextOnly` + 触发源集合里的 background_task / task_notification 两个拼写）。
+/// Rust 自己写的 meta 记录走 `metadata.rustCli` 的另一条还原路，到不了这里。跨库读时保留
+/// 文本（Node 的 provider history 也保留它），并按通知来源还原 origin——冷投影据此开
+/// backgroundResult 的通知轮。
+fn node_notice_source(info: &Value, parts: &[Value]) -> Option<String> {
+    if info["synthetic"] != true {
+        return None;
+    }
+    // providerContextOnly 的两个判据面（Node `getConversationMessageProjectionPolicy`）：
+    // 语义在场看 providerVisibility，缺席看记录级 visibility。
+    let provider_visible = info["semantics"]["providerVisibility"] == "visible"
+        || info["visibility"] == "model-only";
+    if !provider_visible {
+        return None;
+    }
+    let source = info["source"]
+        .as_str()
+        .or_else(|| {
+            parts
+                .iter()
+                .find(|part| part["type"] == "text")
+                .and_then(|part| part["metadata"]["source"].as_str())
+        })?
+        .to_owned();
+    (source == "background_task" || source == "task_notification").then_some(source)
+}
+
 fn user(record: &WithParts) -> Option<Message> {
     let info = &record.info;
     let shared = &info["metadata"]["sharedContextStatus"];
@@ -88,6 +116,7 @@ fn user(record: &WithParts) -> Option<Message> {
         return None;
     }
     let summary = truthy(info.get("summary"));
+    let notice_source = node_notice_source(info, &record.parts);
     let content: Vec<ContentBlock> = record
         .parts
         .iter()
@@ -105,7 +134,10 @@ fn user(record: &WithParts) -> Option<Message> {
             // 工作流控制轮（启动/设置轮）的 text part 虽是 synthetic，语义却是 real_user 的可见输入
             // （Node 的 provider history 恢复也保留它）：冷加载照常进模型上下文。
             let launch = part["metadata"]["source"] == "workflow_launch";
-            if !(visible_text(part) && (summary || part["synthetic"] != true || launch)) {
+            // 后台通知的 synthetic text part 同理：provider 历史保留（跨库读否则丢通知）。
+            if !(visible_text(part)
+                && (summary || part["synthetic"] != true || launch || notice_source.is_some()))
+            {
                 return None;
             }
             let text = provider_text(part);
@@ -126,6 +158,9 @@ fn user(record: &WithParts) -> Option<Message> {
         content,
         origin: if summary {
             UserOrigin::CompactSummary
+        } else if let Some(source) = notice_source {
+            // Node 拼写原样保留（读侧按同集合认它）；记录不回写，round-trip 无损。
+            UserOrigin::Meta { source }
         } else {
             UserOrigin::Human
         },

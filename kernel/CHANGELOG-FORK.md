@@ -678,6 +678,26 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.29）：
   关联键与载荷）仍缺——信封文本不含它，下一片接；④ Node 写的通知记录与 Rust meta 记录的形状
   差异（Rust hydrate 丢 Node 通知）仍缺。
 
+## 6.23 通知记录的跨库互认（2026-10-30，路线 C 第十二段）
+
+§6.21 列的缺口 ④：Node 写的后台通知记录 Rust 冷读整个丢掉（模型上下文也丢）——接上：
+
+- **hydrate**：Node 写的 synthetic user 记录若满足 `providerContextOnly` 的两个判据面之一
+  （`semantics.providerVisibility == "visible"` 或记录级 `visibility == "model-only"`）且来源在
+  通知触发集合里（`background_task` / `task_notification` 两个拼写），保留 synthetic 文本并按
+  来源还原 `UserOrigin::Meta`——Node 的 provider history 同样保留它
+  （`userEntriesFromParts` 对非 attachment 类 synthetic 文本照常进 prompt 块）。Rust 自己写的
+  meta 记录走 `metadata.rustCli` 的另一条还原路，不受影响（记录顶层无 source，拼写也不同）。
+  其他 synthetic（todo_reminder 一类、fork 提示、hiddenSynthetic）照旧不进。
+- **冷投影**：通知轮臂的来源集合扩到两个 Node 拼写——跨库读 Node 写的会话时，通知轮照常
+  以 `backgroundResult` 重建。
+- **夹具修正**：`node_written_sessions_read_back_their_text` 的旧预处理把所有
+  `legacy_synthetic` 的 user 条目从两边剥掉，补偿的是当时 Rust 冷读丢合成消息的缺口；现在
+  通知族照常比较（fixture 的 basic/rich 两例都在），其余 legacy_synthetic（fork 提示等）
+  维持剥离。
+- **测试**：node-store 3 个新钉（两个拼写保留文本 + origin、非触发源照旧丢、非
+  provider-visible 照旧丢）+ 投影 1 个跨库冷读钉。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
