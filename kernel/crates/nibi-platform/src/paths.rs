@@ -170,9 +170,11 @@ mod tests {
 
     #[test]
     fn defaults_match_node_layout() {
-        let home = Path::new("C:/Users/ebony");
-        let resolved = paths("C:/Users/ebony", &[]);
-        assert_eq!(resolved.data_base(), home);
+        // 平台中立的家目录：POSIX 与 Windows 都按「相对于 home 的布局」断言，
+        // 不把盘符写进夹具（Linux 上 `C:/…` 是相对路径，join 语义会翻转——CI 首跑踩过）。
+        let home = PathBuf::from(std::env::temp_dir().join("nibi-paths-fixture-home"));
+        let resolved = paths(home.as_path().to_str().expect("utf-8 home"), &[]);
+        assert_eq!(resolved.data_base(), &home);
         assert_eq!(resolved.storage_root(), &home.join(".nibi"));
         assert_eq!(resolved.settings_root(), &home.join(".nibi/v2"));
         assert_eq!(
@@ -192,28 +194,38 @@ mod tests {
 
     #[test]
     fn data_base_and_storage_root_are_independent() {
+        // 三个 env 覆盖各自独立、凭据/钥匙从 data_base 派生——断言关系而不是
+        // 字面路径（夹具用临时目录，两个平台 join 语义一致）。
+        let base = std::env::temp_dir().join("nibi-paths-fixture-data");
+        let store = std::env::temp_dir().join("nibi-paths-fixture-store");
+        let settings = std::env::temp_dir().join("nibi-paths-fixture-settings");
+        let home = std::env::temp_dir().join("nibi-paths-fixture-home");
         let resolved = paths(
-            "C:/Users/ebony",
+            home.to_str().expect("utf-8 home"),
             &[
-                (ENV_DATA_BASE_DIR, "D:/isolated/data"),
-                (ENV_STORAGE_DIR, "D:/isolated/store"),
-                (ENV_SETTINGS_DIR, "D:/isolated/settings"),
+                (ENV_DATA_BASE_DIR, base.to_str().expect("utf-8 base")),
+                (ENV_STORAGE_DIR, store.to_str().expect("utf-8 store")),
+                (
+                    ENV_SETTINGS_DIR,
+                    settings.to_str().expect("utf-8 settings"),
+                ),
             ],
         );
-        assert_eq!(resolved.data_base(), Path::new("D:/isolated/data"));
-        assert_eq!(resolved.storage_root(), Path::new("D:/isolated/store"));
-        assert_eq!(resolved.settings_root(), Path::new("D:/isolated/settings"));
+        assert_eq!(resolved.data_base(), &base);
+        assert_eq!(resolved.storage_root(), &store);
+        assert_eq!(resolved.settings_root(), &settings);
         assert_eq!(
             resolved.credentials(),
-            Path::new("D:/isolated/data/.nibi/v2/credentials.json")
+            base.join(".nibi/v2/credentials.json")
         );
         assert_eq!(
             resolved.credential_install_key(),
-            Path::new("D:/isolated/data/.nibi/machine/credential-v2.key")
+            base.join(".nibi/machine/credential-v2.key")
         );
         assert_eq!(
             resolved.session_database(),
-            Path::new("D:/isolated/store/cli/db/db.sqlite")
+            // NIBI_STORAGE_DIR 的覆盖值就是 .nibi 根本身（不再追加 .nibi 段）。
+            store.join("cli/db/db.sqlite")
         );
     }
 
