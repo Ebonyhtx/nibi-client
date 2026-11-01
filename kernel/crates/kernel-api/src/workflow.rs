@@ -787,4 +787,14 @@ pub trait WorkflowEngine: Send + Sync {
         workspace_path: &str,
         name: &str,
     ) -> Result<Value, WorkflowEngineError>;
+
+    /// `workflows/forRun`（完成卡的推导判定）：三规则按序——对话说的候选 → run 跑的脚本逐字
+    /// 节相同 → run 名=定义名。回复是 Node `findSavedWorkflowForRunOp` 的原形（entry/match/
+    /// runArgs，全 optional）。`candidates` 是协议层验过的数组（缺席/空同形）。
+    async fn hub_find_saved_workflow_for_run(
+        &self,
+        workspace_path: &str,
+        run_id: &str,
+        candidates: Value,
+    ) -> Result<Value, WorkflowEngineError>;
 }

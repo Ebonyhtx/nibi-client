@@ -813,3 +813,17 @@ workflows.ts）与 @nibi/core 的 `listSavedWorkflows` / `resolveSavedWorkflow` 
 - **门禁**：93 → **112 字段**（dwf 写面 19 字段，双内核逐字节一致：save 五态 + 遮蔽、
   updateMeta 读-改-写 + 严格 -32602、move 撞档 + 搬运 + 再搬、delete ok/再删/缺名/坏名）；
   protocol-zcode 8 个单测；顺带补 resume-pin 段欠下的两处测试构造器 `seed: None`。
+
+## 6.41 第四十二步：`workflows/forRun` 完成卡的推导判定（2026-11-01）
+
+中枢面收尾（详见 CHANGELOG-FORK §6.34）：「这次 run 对应哪个已保存工作流」落 Rust。判据
+锚点：Node `findSavedWorkflowForRunOp`（bootstrap/nibi-protocol/saved-workflows-run.ts）
+与三规则顺序（候选 → 脚本 → 名字）。
+
+- **sidecar 承载三规则**：候选规则最优先（非法名字跳过不是错误）；脚本规则项目档先于全局
+  档、按文件名序扫（上界 50，Node 同值）；名字规则不定向 first-wins。`runArgs` 与命中无关
+  ——run 在就给（实参窗预填）。查不到 run 记录只跳过 2、3，候选仍然算数。
+- **读面降级**：没接 sidecar 回空对象——Node 自己查不到 run 时回的就是这个原形。
+- **门禁**：112 → **119 字段**（dwfForRun 七字段：脚本规则命中 fromrun——它从这次 run 存
+  出来、脚本逐字节相同且文件名序在 holeprobe 前；候选 trim + 最优先；非法跳过；空对象；
+  候选数组三态 -32602。runArgs-present 用 args_json 的 DB 直写夹具）。

@@ -1105,6 +1105,20 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// `workflows/forRun`（完成卡的推导判定）：候选与脚本比对都要 sidecar 的 frontmatter
+    /// 解析器。没接 sidecar 的入口回 `Unsupported`，runtime 层按「run 记录缺席」的原形降级
+    /// （Node 自己查不到 run 时回的就是空对象）。
+    async fn hub_find_saved_workflow_for_run(
+        &self,
+        _workspace_path: &str,
+        _run_id: &str,
+        _candidates: serde_json::Value,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saved workflow lookup for a run".to_owned(),
+        })
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）：运行历史的一页（journal 直读，**跨会话**）。
     /// 不支持的入口回 `Unsupported`——协议层按 Node 的 journal 缺席同规回空页。
     async fn workflow_runs_page(

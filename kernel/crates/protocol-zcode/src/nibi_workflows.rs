@@ -17,6 +17,10 @@ use crate::server::Server;
 /// 中枢的页大小上限（Node `NIBI_WORKFLOWS_RUNS_MAX_LIMIT`）；多取一条**只为判定 truncated**。
 const MAX_LIMIT: u64 = 50;
 
+/// forRun 的候选上界（Node `NIBI_WORKFLOWS_FOR_RUN_MAX_CANDIDATES`）：一次 run 在一段对话里
+/// 被存过的次数远小于它。
+const FOR_RUN_MAX_CANDIDATES: usize = 8;
+
 pub(crate) async fn runs(server: &Server, raw: &Value) -> Result<Value, RpcError> {
     let params = raw
         .as_object()
@@ -428,6 +432,85 @@ pub(crate) async fn move_workflow(server: &Server, raw: &Value) -> Result<Value,
         Ok(reply) => Ok(reply),
         Err(error) => Err(RpcError::internal(error_message(error))),
     }
+}
+
+/// `workflows/forRun`（Node `findSavedWorkflowForRunOp` 同一契约）：完成卡的推导判定——
+/// 三规则按序（对话说的候选 → run 跑的脚本 → run 叫的名），答案推导得来、不记在卡上。
+pub(crate) async fn for_run(server: &Server, raw: &Value) -> Result<Value, RpcError> {
+    let params = raw
+        .as_object()
+        .ok_or_else(|| invalid("params must be an object"))?;
+    strict_keys(params, &["workspace", "runId", "candidates"])?;
+    let workspace_path = workspace_path_of(params)?;
+    let run_id = non_empty_string_of(params, "runId")?;
+    // 候选缺席与空数组同形（Node `params.candidates ?? []`）；缺省不进线。
+    let candidates = match params.get("candidates") {
+        None | Some(Value::Null) => Value::Array(Vec::new()),
+        Some(value) => candidates_of(value)?,
+    };
+    match server
+        .kernel
+        .hub_find_saved_workflow_for_run(&workspace_path, &run_id, candidates)
+        .await
+    {
+        Ok(reply) => Ok(reply),
+        Err(error) => Err(RpcError::internal(error_message(error))),
+    }
+}
+
+/// 候选数组的严格校验（`zcodeWorkflowsForRunCandidateSchema` 的同一形状：≤ 8 条、每条
+/// `.strict()` 只有 name + 可选 scope）。原样回传清洗后的数组——sidecar 的名字合法性检查
+/// 仍会逐条过一遍（非法候选是跳过，不是错误）。
+fn candidates_of(value: &Value) -> Result<Value, RpcError> {
+    let items = value
+        .as_array()
+        .ok_or_else(|| invalid("`candidates` must be an array"))?;
+    if items.len() > FOR_RUN_MAX_CANDIDATES {
+        return Err(invalid(format!(
+            "`candidates` must have at most {FOR_RUN_MAX_CANDIDATES} items"
+        )));
+    }
+    let mut clean = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let candidate = item
+            .as_object()
+            .ok_or_else(|| invalid(format!("`candidates[{index}]` must be an object")))?;
+        let mut entry = serde_json::Map::new();
+        for (key, item) in candidate {
+            match key.as_str() {
+                "name" => {
+                    let text = required_non_empty(item, "`candidates[].name`")?;
+                    entry.insert("name".into(), Value::String(text));
+                }
+                "scope" => {
+                    let scope = item.as_str().filter(|scope| {
+                        matches!(*scope, "project" | "global")
+                    });
+                    match scope {
+                        Some(scope) => {
+                            entry.insert("scope".into(), Value::String(scope.to_owned()));
+                        }
+                        None => {
+                            return Err(invalid(
+                                "`candidates[].scope` must be `project` or `global`",
+                            ));
+                        }
+                    }
+                }
+                other => {
+                    return Err(invalid(format!(
+                        "Unrecognized key `{other}` in `candidates[{index}]`"
+                    )));
+                }
+            }
+        }
+        // name 必填（schema 无 `.optional()`）。
+        if !entry.contains_key("name") {
+            return Err(invalid("`candidates[].name` must be a non-empty string"));
+        }
+        clean.push(Value::Object(entry));
+    }
+    Ok(Value::Array(clean))
 }
 
 /// 降级（没接 sidecar 的入口）由 kernel 层现做：home 在机器事实里，协议层不读环境。

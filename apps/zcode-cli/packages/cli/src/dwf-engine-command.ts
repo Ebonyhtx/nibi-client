@@ -18,8 +18,8 @@
  *                   `{id, method:"fill", params:{runId, holeId, body, dbPath, parentSessionId?}}`
  *                   `{id, method:"workflows/list"|"workflows/get", params:{workspacePath, name?, scope?}}`
  *                   （GUI 中枢读面）`{id, method:"workflows/save"|"workflows/updateMeta"|
- *                   "workflows/delete"|"workflows/move", params:{workspacePath, …}}`（写面；save 另带
- *                   runId + dbPath，脚本从 journal 读）
+ *                   "workflows/delete"|"workflows/move"|"workflows/forRun", params:{workspacePath, …}}`
+ *                   （写面与完成卡的推导判定；save / forRun 另带 runId + dbPath，journal 在这一侧）
  *   engine → 宿主：`actor/create`（建 actor 子会话，回 `{session:<id>}`；`model` 在场时带上选型）
  *                   `world/read`（files.glob/read/grep，回结果）
  *                   `ask/start` / `ask/verdict` / `ask/cancel` / `run/event`（通知）
@@ -2009,6 +2009,86 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     }
   }
 
+  // ============================================================
+  // 「这次 run 对应哪个已保存工作流」（workflows/forRun；Node findSavedWorkflowForRunOp 同一
+  // 契约）。完成卡的「已保存」芯片与「再次运行」都问这一个问题，而答案**推导得来、不记在
+  // 卡上**——三规则按序命中即返回（spec 的同一顺序）：对话说的（候选）→ run 跑的（脚本逐字
+  // 节相同）→ run 叫的（run 名 = 定义名）。查不到 run 记录时只跳过 2、3（候选仍然算数）。
+  // ============================================================
+  interface HubForRunParams {
+    workspacePath: string;
+    runId: string;
+    dbPath: string;
+    /** scope 是协议层验过的枚举（超集进不来），这里照 Node 的 zod 后形状声明。 */
+    candidates?: { name: string; scope?: "project" | "global" }[];
+  }
+
+  /** 脚本比对要扫的文件数上界（Node 同值）：异常目录不至于把一次查询变成一次全盘读。 */
+  const SCRIPT_MATCH_SCAN_LIMIT = 50;
+
+  /** 解析结果 → 协议 entry（与 `workflows/list` 的行同形，不含脚本正文）。 */
+  function hubEntryOf(resolved: {
+    name: string;
+    path: string;
+    scope: string;
+    meta: { description: string; whenToUse?: string; args?: Record<string, unknown> };
+  }): unknown {
+    return {
+      name: resolved.name,
+      description: resolved.meta.description,
+      ...(resolved.meta.whenToUse === undefined ? {} : { whenToUse: resolved.meta.whenToUse }),
+      ...(resolved.meta.args === undefined ? {} : { args: resolved.meta.args }),
+      scope: resolved.scope,
+      path: resolved.path,
+    };
+  }
+
+  async function acceptHubForRun(params: HubForRunParams): Promise<unknown> {
+    const cwd = params.workspacePath;
+    const db = openDatabase(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(params.runId);
+      // 实参与命中与否无关：它服务的是「再次运行」的实参窗预填，run 在就给。
+      const runArgs = record?.args === undefined ? {} : { runArgs: record.args };
+
+      for (const candidate of params.candidates ?? []) {
+        if (!isValidSavedWorkflowName(candidate.name)) continue;
+        const resolved = resolveSavedWorkflow({
+          cwd,
+          name: candidate.name,
+          ...(candidate.scope === undefined ? {} : { scope: candidate.scope }),
+        });
+        if (resolved.ok) return { entry: hubEntryOf(resolved), match: "candidate", ...runArgs };
+      }
+
+      const script = record?.scriptText;
+      if (script !== undefined) {
+        // 项目档先于全局档：同名遮蔽的方向就是这个方向，内容相同时也该报本项目那一份。
+        for (const scope of ["project", "global"] as const) {
+          const listed = listSavedWorkflows({ cwd, scope });
+          for (const entry of listed.entries.slice(0, SCRIPT_MATCH_SCAN_LIMIT)) {
+            const resolved = resolveSavedWorkflow({ cwd, name: entry.name, scope });
+            if (resolved.ok && resolved.script === script) {
+              return { entry: hubEntryOf(resolved), match: "script", ...runArgs };
+            }
+          }
+        }
+      }
+
+      const name = record?.name;
+      if (name !== undefined && isValidSavedWorkflowName(name)) {
+        // 不定向：项目档 first-wins，与中枢之外的所有按名查找同规。
+        const resolved = resolveSavedWorkflow({ cwd, name });
+        if (resolved.ok) return { entry: hubEntryOf(resolved), match: "name", ...runArgs };
+      }
+
+      return { ...runArgs };
+    } finally {
+      db.close();
+    }
+  }
+
   const { createInterface } = await import("node:readline");
   const reader = createInterface({ input: ctx.stdin });
   for await (const line of reader) {
@@ -2117,6 +2197,14 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     if (message.method === "workflows/move") {
       const id = message.id;
       void acceptHubMove(message.params as HubMoveParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/forRun") {
+      // 完成卡的推导判定：读 journal（dbPath）+ 现扫两根定义目录，同规不挡读循环。
+      const id = message.id;
+      void acceptHubForRun(message.params as HubForRunParams).then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

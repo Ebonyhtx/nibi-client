@@ -239,6 +239,7 @@ impl Server {
             "workflows/updateMeta" => crate::nibi_workflows::update_workflow_meta(self, &params).await.map(Reply::new),
             "workflows/delete" => crate::nibi_workflows::delete_workflow(self, &params).await.map(Reply::new),
             "workflows/move" => crate::nibi_workflows::move_workflow(self, &params).await.map(Reply::new),
+            "workflows/forRun" => crate::nibi_workflows::for_run(self, &params).await.map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

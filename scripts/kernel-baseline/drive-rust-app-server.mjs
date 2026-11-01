@@ -2744,6 +2744,79 @@ try {
       "workflows/delete(bad name)",
     );
     checks.dwfDeleteInvalidName = deleteBadName?.reason ?? "no-reply";
+    // 「这次 run 对应哪个已保存工作流」（workflows/forRun，Node findSavedWorkflowForRunOp 同一
+    // 契约）：三规则按序——候选（对话说的）→ 脚本（run 跑的，项目档先于全局档、按文件名序）
+    // → 名字（run 叫的）。holeprobe 的 journal 记录先补上实参（与真跑带实参的 run 同形——
+    // DB 直写是本 driver 的既有夹具手法），runArgs-present 路径才有实体可查。脚本规则的
+    // 命中是 fromrun 而不是 holeprobe：fromrun 是从这次 run 存出来的（脚本逐字节相同），
+    // 且文件名序排在前头——两内核同序才可对拍。
+    const journalDb = new DatabaseSync(join(home, dotDir, "cli", "db", "db.sqlite"));
+    journalDb
+      .prepare("update dwf_run set args_json = ? where id = ?")
+      .run(JSON.stringify({ pr: "main" }), holeprobeRunId);
+    journalDb.close();
+    const forRunScript = ack(
+      await send("workflows/forRun", { workspace: workspaceRef, runId: holeprobeRunId }),
+      "workflows/forRun",
+    );
+    checks.dwfForRunScript = JSON.stringify({
+      match: forRunScript?.match ?? null,
+      entryName: forRunScript?.entry?.name ?? null,
+      entryScope: forRunScript?.entry?.scope ?? null,
+      noScriptKey: forRunScript?.entry !== undefined && forRunScript.entry.script === undefined,
+      runArgs: forRunScript?.runArgs ?? null,
+    });
+    // 候选规则最优先，且非法名字跳过（不是错误）：trim 后的 hold 命中，".." 被跳过。
+    const forRunCandidate = ack(
+      await send("workflows/forRun", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        candidates: [{ name: " hold " }],
+      }),
+      "workflows/forRun(candidate)",
+    );
+    checks.dwfForRunCandidate = JSON.stringify({
+      match: forRunCandidate?.match ?? null,
+      entryName: forRunCandidate?.entry?.name ?? null,
+      hasRunArgs: forRunCandidate?.runArgs !== undefined,
+    });
+    const forRunSkip = ack(
+      await send("workflows/forRun", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        candidates: [{ name: ".." }, { name: "hold" }],
+      }),
+      "workflows/forRun(skip)",
+    );
+    checks.dwfForRunCandidateSkip = forRunSkip?.match ?? "no-reply";
+    // 查不到 run：只跳过脚本与名字两条（候选仍然算数）；这里候选为空 → 空对象原形。
+    const forRunEmpty = ack(
+      await send("workflows/forRun", { workspace: workspaceRef, runId: "run_nope" }),
+      "workflows/forRun(empty)",
+    );
+    checks.dwfForRunEmpty = JSON.stringify({
+      hasEntry: forRunEmpty?.entry !== undefined,
+      hasMatch: forRunEmpty?.match !== undefined,
+      hasRunArgs: forRunEmpty?.runArgs !== undefined,
+    });
+    const forRunTooMany = await send("workflows/forRun", {
+      workspace: workspaceRef,
+      runId: holeprobeRunId,
+      candidates: Array.from({ length: 9 }, (_, index) => ({ name: `w${index}` })),
+    });
+    checks.dwfForRunTooMany = String(forRunTooMany?.error?.code ?? "no-error");
+    const forRunCandidateBad = await send("workflows/forRun", {
+      workspace: workspaceRef,
+      runId: holeprobeRunId,
+      candidates: [{ name: "hold", nope: 1 }],
+    });
+    checks.dwfForRunCandidateBad = String(forRunCandidateBad?.error?.code ?? "no-error");
+    const forRunInvalid = await send("workflows/forRun", {
+      workspace: workspaceRef,
+      runId: holeprobeRunId,
+      bogus: 1,
+    });
+    checks.dwfForRunInvalid = String(forRunInvalid?.error?.code ?? "no-error");
     console.log(
       `dwf runs: count=${checks.dwfRunsCount} named=${checks.dwfRunsNamed} ` +
         `truncated=${checks.dwfRunsTruncated} invalid=${checks.dwfRunsInvalid}`,
@@ -2752,6 +2825,7 @@ try {
       `dwf hub writes: save=${checks.dwfSaveOk} update=${checks.dwfUpdateMetaApplied} ` +
         `move=${checks.dwfMoveOk} delete=${checks.dwfDeleteOk}`,
     );
+    console.log(`dwf hub forRun: script=${checks.dwfForRunScript} candidate=${checks.dwfForRunCandidate}`);
   }
 
   // 流程本来就在协议层之外），再让两个内核各丢一次。

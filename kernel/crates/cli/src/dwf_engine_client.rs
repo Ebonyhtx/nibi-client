@@ -1353,6 +1353,31 @@ impl WorkflowEngine for SidecarEngine {
         Ok(reply)
     }
 
+    async fn hub_find_saved_workflow_for_run(
+        &self,
+        workspace_path: &str,
+        run_id: &str,
+        candidates: Value,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        // dbPath 与 save 同源：三规则里两条要读 run 记录（脚本与名字），候选规则不读也照收。
+        let reply = process
+            .request(
+                "workflows/forRun",
+                json!({
+                    "workspacePath": workspace_path,
+                    "runId": run_id,
+                    "dbPath": self.shared.database.display().to_string(),
+                    "candidates": candidates,
+                }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
     async fn fill_target(
         &self,
         run_id: &str,

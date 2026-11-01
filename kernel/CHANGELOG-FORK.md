@@ -951,6 +951,28 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.40）：
   test --workspace` 因 vendored 的 platform lib-test 编译断（include_str 六级 `../` 指向上游
   仓库布局，子树合并后不存在）而根本没跑起来，本轮按既定口径以**分 crate** 验证为准）。
 
+## 6.34 `workflows/forRun` 完成卡的推导判定（2026-11-01，路线 C 第二十三段）
+
+完成卡的「已保存」芯片与「再次运行」的判定（Node `findSavedWorkflowForRunOp` 同一契约；
+详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.41）。答案**推导得来、不记在卡上**：
+三规则按序命中即返回——对话说的候选（规则 1）→ run 跑的脚本逐字节相同（规则 2，项目档
+先于全局档、按文件名序）→ run 叫的名字（规则 3，不定向 first-wins）。
+
+- **sidecar**：三规则逐字（`isValidSavedWorkflowName` 非法候选是**跳过**不是错误；查不到
+  run 记录只跳过 2、3，候选仍然算数）；`runArgs` 与命中无关——run 在就给（「再次运行」的
+  实参窗预填）。entry 与 `workflows/list` 的行同形（不含脚本正文）。`dbPath` 与 save 同源：
+  规则 2、3 都要读 run 记录。
+- **端口链**：`WorkflowEngine::hub_find_saved_workflow_for_run` → `Kernel` → 协议分支。读面
+  降级：没接 sidecar 的入口回空对象——与 Node 自己查不到 run 的原形同形（没有 entry、没有
+  match、没有 runArgs）。
+- **协议**：候选数组严格入参（≤ 8 条、每条 `.strict()` 只有 name + 可选 scope、名字做 zod
+  同款 trim）；候选缺席与空数组同形（Node `?? []`）。
+- **门禁**：112 → **119 字段**（`dwfForRunScript` 脚本规则命中 fromrun——它是从这次 run 存
+  出来的、脚本逐字节相同且文件名序在 holeprobe 前；`dwfForRunCandidate` 候选规则最优先 +
+  名字 trim；`dwfForRunCandidateSkip` 非法名字跳过；`dwfForRunEmpty` 查不到 run 的空对象；
+  候选数组三态 -32602）。runArgs-present 路径用 `dwf_run.args_json` 的 DB 直写夹具（与真跑
+  带实参的 run 同形——本 driver 的既有手法）。协议层 9 单测（+候选形状/上界）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

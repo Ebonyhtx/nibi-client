@@ -131,6 +131,15 @@ const REQUIRED = [
   "dwfDeleteAgain",
   "dwfDeleteMissing",
   "dwfDeleteInvalidName",
+  // 完成卡的推导判定（workflows/forRun）：三规则按序（候选最优先且非法名字跳过、脚本规则
+  // 命中 run 存出来的 fromrun——文件名序在 holeprobe 前、空对象原形）与候选数组的严格入参。
+  "dwfForRunScript",
+  "dwfForRunCandidate",
+  "dwfForRunCandidateSkip",
+  "dwfForRunEmpty",
+  "dwfForRunTooMany",
+  "dwfForRunCandidateBad",
+  "dwfForRunInvalid",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",

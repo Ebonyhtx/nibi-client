@@ -198,3 +198,25 @@ fn scope_defaults_to_project_and_takes_both_values() {
         invalid_message(scope_of(&params));
     }
 }
+
+#[test]
+fn for_run_candidates_strictly_shape_each_entry() {
+    // 名字做 zod 的 trim 转换；scope 原样保留；未知键炸 -32602。
+    let clean = candidates_of(&json!([
+        { "name": " hold " },
+        { "name": "amend", "scope": "global" },
+    ]))
+    .unwrap();
+    assert_eq!(clean[0]["name"], "hold");
+    assert_eq!(clean[1]["scope"], "global");
+    // name 必填；scope 只有枚举两值；每条 strict。
+    invalid_message(candidates_of(&json!([{ "scope": "global" }])));
+    invalid_message(candidates_of(&json!([{ "name": "hold", "scope": "both" }])));
+    invalid_message(candidates_of(&json!([{ "name": "hold", "nope": 1 }])));
+    invalid_message(candidates_of(&json!(["hold"])));
+    // 上界 8（Node NIBI_WORKFLOWS_FOR_RUN_MAX_CANDIDATES）。
+    let nine: Vec<_> = (0..9).map(|index| json!({ "name": format!("w{index}") })).collect();
+    invalid_message(candidates_of(&Value::Array(nine)));
+    let eight: Vec<_> = (0..8).map(|index| json!({ "name": format!("w{index}") })).collect();
+    candidates_of(&Value::Array(eight)).unwrap();
+}

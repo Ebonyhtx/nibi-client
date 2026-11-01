@@ -153,6 +153,23 @@ impl Kernel for LocalKernel {
             .map_err(workflow_engine_failure)
     }
 
+    /// `workflows/forRun`（完成卡的推导判定）：读面——降级与 Node 自己查不到 run 的原形同形
+    /// （空对象：没有 entry、没有 match、没有 runArgs）。
+    async fn hub_find_saved_workflow_for_run(
+        &self,
+        workspace_path: &str,
+        run_id: &str,
+        candidates: serde_json::Value,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            return Ok(serde_json::json!({}));
+        };
+        engine
+            .hub_find_saved_workflow_for_run(workspace_path, run_id, candidates)
+            .await
+            .map_err(workflow_engine_failure)
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）：journal 直读的运行历史页。
     async fn workflow_runs_page(
         &self,
