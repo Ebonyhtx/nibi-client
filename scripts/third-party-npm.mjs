@@ -155,33 +155,73 @@ export function assertProductionGraphs(lockedProjects, installedProjects, isInst
   return locked;
 }
 
+// Windows 句柄压力：`pnpm -r ls --depth Infinity` 在本仓一次性打开数千个 package.json，会撞
+// EMFILE（实测稳定复现且失败文件每次不同——句柄尖峰，不是固定上限；CI 的 Linux 不受影响）。
+// 降级路径：按锁文件 importers 逐目录跑同一条命令再按序合并——单进程文件数小一个量级，输出
+// 与 `-r` 逐字同形（每个 importer 一个元素的数组按序拼接）。
+function readLockfileImporters(lockfileText) {
+  const directories = [];
+  let inImporters = false;
+  for (const line of lockfileText.split(/\r?\n/u)) {
+    if (/^\S/u.test(line)) {
+      if (inImporters) break;
+      inImporters = line === "importers:";
+      continue;
+    }
+    if (!inImporters) continue;
+    const header = /^ {2}([^ ].*):$/u.exec(line);
+    if (header) directories.push(header[1]);
+  }
+  if (directories.length === 0) throw new Error("pnpm-lock.yaml has no importers section");
+  return directories;
+}
+
+async function runPnpmLs(args, cwd) {
+  const { stdout } = await exec("pnpm", args, {
+    cwd,
+    maxBuffer: 256 * 1024 * 1024,
+    ...resolveSpawnRuntimeOptions("pnpm"),
+  });
+  return JSON.parse(stdout);
+}
+
+async function runWorkspaceLs(root, lockfileText, lockfileOnly) {
+  const args = [
+    "-r",
+    "ls",
+    "--prod",
+    "--json",
+    "--depth",
+    "Infinity",
+    ...(lockfileOnly ? ["--lockfile-only"] : []),
+  ];
+  try {
+    return await runPnpmLs(args, root);
+  } catch (error) {
+    if (!String(error.stdout ?? "").includes("EMFILE")) throw error;
+  }
+  const merged = [];
+  for (const directory of readLockfileImporters(lockfileText)) {
+    merged.push(
+      ...(await runPnpmLs(
+        ["ls", "--prod", "--json", "--depth", "Infinity", ...(lockfileOnly ? ["--lockfile-only"] : [])],
+        join(root, directory),
+      )),
+    );
+  }
+  return merged;
+}
+
 export async function readWorkspaceProductionGraph(root) {
   root = await realpath(root);
   // 修复：pnpm ls 默认读取安装快照，不能把旧图与当前锁文件哈希拼成有效声明。
-  const [locked, actual] = await Promise.all(
-    [true, false].map(async (lockfileOnly) => {
-      const { stdout } = await exec(
-        "pnpm",
-        [
-          "-r",
-          "ls",
-          "--prod",
-          "--json",
-          "--depth",
-          "Infinity",
-          ...(lockfileOnly ? ["--lockfile-only"] : []),
-        ],
-        {
-          cwd: root,
-          maxBuffer: 256 * 1024 * 1024,
-          ...resolveSpawnRuntimeOptions("pnpm"),
-        },
-      );
-      return JSON.parse(stdout);
-    }),
-  );
+  const lockfileText = await readFile(join(root, "pnpm-lock.yaml"), "utf8");
+  const [locked, actual] = await Promise.all([
+    runWorkspaceLs(root, lockfileText, true),
+    runWorkspaceLs(root, lockfileText, false),
+  ]);
   const isInstallable = createInstallablePackageFilter(
-    readLockfilePlatformConstraints(await readFile(join(root, "pnpm-lock.yaml"), "utf8")),
+    readLockfilePlatformConstraints(lockfileText),
     await readInstallTargets(root),
   );
   const required = assertProductionGraphs(locked, actual, isInstallable);
