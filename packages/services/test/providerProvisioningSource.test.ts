@@ -24,7 +24,17 @@ function personalRepository(root: string) {
   });
   cleanups.push(async () => {
     repo.dispose();
-    await rm(root, { recursive: true, force: true });
+    // Windows：dispose 到句柄真正释放是异步的，紧跟的 rm 偶发 ENOTEMPTY（windows CI 实测一次
+    // 且只此一处）；短退避重试几次——临时目录清不掉不影响断言，但不该让它炸掉整个 shard。
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await rm(root, { recursive: true, force: true });
+        return;
+      } catch (error) {
+        if (attempt >= 4 || (error as NodeJS.ErrnoException).code !== "ENOTEMPTY") throw error;
+        await new Promise((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+      }
+    }
   });
   return repo;
 }
