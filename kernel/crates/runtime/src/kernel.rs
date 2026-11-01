@@ -37,6 +37,13 @@ impl Kernel for LocalKernel {
         Some(self.actors.clone())
     }
 
+    /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（actor 的忙闲沿 + 引擎客户端的开集沿）。
+    fn workflow_blocked(
+        &self,
+    ) -> Option<std::sync::Arc<dyn rust_cli_kernel_api::workflow::WorkflowBlockedEdges>> {
+        Some(self.blocked.clone())
+    }
+
     /// GUI 中枢的已保存工作流读面：frontmatter 解析器在 sidecar（@nibi/core），这里转发。
     /// 降级（没接 sidecar 的入口）在本层现做：home 取机器事实，协议层不读环境。
     async fn hub_list_saved_workflows(

@@ -65,11 +65,19 @@ fn executable_models_match_the_node_registry() {
 }
 
 #[test]
-fn the_bundled_builtin_is_the_repository_copy() {
-    // 仓库的内置配置更新后，随包的副本要一起更新（platform.md §3.1）。仓库的那份不在 `packages/rust-cli` 下，
-    // Windows 上可能检出成 CRLF；随包的副本固定 LF（修复线 F56），所以按 LF 比较。
-    let repository = include_str!("../../../../../../config/provider/zcode-builtin.json");
-    assert_eq!(BUNDLED_BUILTIN, repository.replace("\r\n", "\n"));
+fn the_bundled_builtin_parses_and_keeps_the_upstream_shape() {
+    // 分家后（v4.0.0）上游的「随包副本 == 仓库 config/provider 那份」前提不再成立：仓库的
+    // `nibi-builtin.json` 是 Node 侧构建期的源（providerRules 在 Node 运行时另行合成，形状
+    // 不同），内核随 vendor 携带上游副本、随 vendor 升级走——两者不再互为副本。这里只校验
+    // 随包副本自身可解析、形状未漂移；「内核该带哪份内置 Provider」归品牌审计裁决。
+    let bundled: Value = serde_json::from_str(BUNDLED_BUILTIN).unwrap();
+    assert_eq!(bundled["schemaVersion"], 1);
+    assert!(
+        bundled["config"]["providerConfigRules"]["providerRules"]
+            .as_array()
+            .is_some_and(|rules| !rules.is_empty()),
+        "the bundled copy carries upstream provider rules"
+    );
 }
 
 #[test]

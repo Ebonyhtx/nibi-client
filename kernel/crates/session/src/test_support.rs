@@ -169,6 +169,8 @@ pub(crate) struct Setup {
     pub peers: crate::PeerDeps,
     /// 父会话关闭之后的询问入口（detached_tests.rs）；缺省没有。
     pub detached: Option<Arc<crate::DetachedAsks>>,
+    /// 提醒钟的会话侧边（blocked 接线）；缺省没有。
+    pub blocked: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowBlockedEdges>>,
     /// 共用的存储（重开会话的测试）；缺省每次新建。
     pub store: Option<Arc<MemoryStore>>,
     /// 执行环境的注册表（R3）；缺省只有本机（[`Setup::machine`] 与 [`Setup::local`]）。
@@ -206,6 +208,7 @@ impl Setup {
             launches: Vec::new(),
             peers: crate::PeerDeps::off(),
             detached: None,
+            blocked: None,
             store: None,
             machines: None,
             root: "/work",
@@ -283,6 +286,7 @@ impl Setup {
                 directory_rules: self.directory_rules,
                 peers: self.peers,
                 detached: self.detached,
+                blocked: self.blocked.clone(),
             },
             SessionState {
                 meta,

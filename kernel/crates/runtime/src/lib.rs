@@ -9,6 +9,7 @@
 mod agents;
 mod attachment;
 pub mod blocked;
+mod blocked_board;
 mod catalog;
 mod config;
 mod directory;
@@ -165,6 +166,9 @@ pub struct LocalKernel {
     workflow_engine_slot: rust_cli_tools::WorkflowEngineSlot,
     /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
     escalations: Arc<escalations::WorkflowEscalations>,
+    /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（blocked_board.md）：actor 的忙闲沿与
+    /// 引擎客户端的开集沿都汇到这里，每个会话一尊钟。
+    blocked: Arc<blocked_board::WorkflowBlockedBoard>,
 }
 
 impl LocalKernel {
@@ -500,6 +504,17 @@ impl LocalKernel {
         catalog.bind(&tools);
         // 升级提示经 `Agents` 的通知中心送进父会话（与后台子代理的通知同一条 `task-notification` 路）。
         escalations.attach_notifier(agents.clone());
+        // 「run 还欠着决定、主代理闲着」的提醒钟（blocked_board）：每个会话一尊钟，忙闲沿由
+        // actor 报、开集沿由引擎客户端转发；发也走 `Agents` 的通知中心同一条路。会话 actor 在
+        // 打开时经会话依赖拿到侧边（table.rs 的 deps 装配）。
+        let blocked = Arc::new(blocked_board::WorkflowBlockedBoard::new(
+            ports.store.clone(),
+            escalations.clone(),
+            workflow_engine_slot.clone(),
+            ports.clock.clone(),
+            scope.spawner(),
+        ));
+        blocked.attach_notifier(agents.clone());
         // 任务提醒读的清单（agents.md §7.4）：agents 要用上下文，所以建好之后再接给它。
         assembler.bind_tasks(agents.task_reader());
         let usage = Arc::new(usage::UsageAnalyzer {
@@ -575,6 +590,7 @@ impl LocalKernel {
             workflow_engine: None,
             workflow_engine_slot,
             escalations,
+            blocked,
         }
     }
 

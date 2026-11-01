@@ -733,6 +733,33 @@ where
             }
             "run/event" => {
                 let params = &message["params"];
+                // 改变开集的四类事件让该 run 在父会话的提醒钟里重新得到一对（Node
+                // noteWorkflowReminderRunEvent 的同一事件词表）：钟板在 runtime，经 kernel 的
+                // 端口转发。run 不在进程表里（上一世的）没有父会话可转。
+                if matches!(
+                    params["type"].as_str(),
+                    Some("escalation-raised" | "escalation-resolved" | "hole-reached" | "hole-filled")
+                ) && let Some(run) = shared
+                    .runs
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .get(params["runId"].as_str().unwrap_or_default())
+                    .cloned()
+                {
+                    let kernel = shared
+                        .kernel
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .as_ref()
+                        .and_then(Weak::upgrade);
+                    if let Some(blocked) = kernel.as_ref().and_then(|kernel| kernel.workflow_blocked())
+                    {
+                        blocked.open_set_changed(
+                            &run.parent,
+                            params["runId"].as_str().unwrap_or_default(),
+                        );
+                    }
+                }
                 if params["type"] == "hole-reached" {                    // 留白到达的通知（Node notifyHoleReached 同一条后台任务路）：sidecar 的
                     // run/event 带完整载荷（事件原文 + 编译期事实 + run 展示元数据），宿主组
                     // `<workflow-hole>` 信封与 kind:"hole" 的 manifest 投给父会话。run 还在飞

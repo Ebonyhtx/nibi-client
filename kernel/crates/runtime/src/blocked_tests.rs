@@ -47,7 +47,9 @@ struct SentRecord {
 }
 
 fn state_of(state: &Arc<Mutex<ManualState>>) -> std::sync::MutexGuard<'_, ManualState> {
-    state.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+    state
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 struct ManualState {
@@ -102,8 +104,18 @@ impl WorkflowBlockedReminderHost for ManualHost {
             run_id: reminder.run_id,
             ordinal: reminder.ordinal,
             now: reminder.now,
-            question_ids: reminder.open.questions.iter().map(|q| q.qid.clone()).collect(),
-            hole_ids: reminder.open.holes.iter().map(|h| h.site_id.clone()).collect(),
+            question_ids: reminder
+                .open
+                .questions
+                .iter()
+                .map(|q| q.qid.clone())
+                .collect(),
+            hole_ids: reminder
+                .open
+                .holes
+                .iter()
+                .map(|h| h.site_id.clone())
+                .collect(),
         });
     }
 
@@ -122,7 +134,11 @@ impl WorkflowBlockedReminderHost for ManualHost {
 }
 
 /// Node harness 的 `turn`：一轮开始又结束——钟先停、空闲沿再起。
-async fn turn(clock: &WorkflowBlockedReminderClock<ManualHost>, host: &ManualHost, duration_ms: u64) {
+async fn turn(
+    clock: &WorkflowBlockedReminderClock<ManualHost>,
+    host: &ManualHost,
+    duration_ms: u64,
+) {
     host.lock().idle = false;
     clock.session_busy();
     advance(host, duration_ms).await;
@@ -177,7 +193,11 @@ fn harness() -> (
     let host = ManualHost {
         state: state.clone(),
     };
-    (WorkflowBlockedReminderClock::new(Arc::new(host.clone())), state, host)
+    (
+        WorkflowBlockedReminderClock::new(Arc::new(host.clone())),
+        state,
+        host,
+    )
 }
 
 fn sent_of(host: &ManualHost) -> Vec<SentRecord> {
@@ -247,7 +267,10 @@ async fn no_open_decisions_at_due_time_neither_reminds_nor_burns_the_count() {
     );
     turn(&clock, &host, 0).await;
     advance(&host, FIRST).await;
-    assert_eq!(sent_of(&host).iter().map(|r| r.ordinal).collect::<Vec<_>>(), vec![1]);
+    assert_eq!(
+        sent_of(&host).iter().map(|r| r.ordinal).collect::<Vec<_>>(),
+        vec![1]
+    );
 }
 
 #[tokio::test]
@@ -289,14 +312,20 @@ async fn second_reminder_after_thirty_more_minutes_then_silence() {
     );
     clock.session_idle();
     advance(&host, FIRST).await;
-    assert_eq!(sent_of(&host).iter().map(|r| r.ordinal).collect::<Vec<_>>(), vec![1]);
+    assert_eq!(
+        sent_of(&host).iter().map(|r| r.ordinal).collect::<Vec<_>>(),
+        vec![1]
+    );
 
     // 提醒自己唤起一轮（模型没作答就收了尾）。
     turn(&clock, &host, MIN).await;
     advance(&host, SECOND - 1).await;
     assert_eq!(sent_of(&host).len(), 1);
     advance(&host, 1).await;
-    assert_eq!(sent_of(&host).iter().map(|r| r.ordinal).collect::<Vec<_>>(), vec![1, 2]);
+    assert_eq!(
+        sent_of(&host).iter().map(|r| r.ordinal).collect::<Vec<_>>(),
+        vec![1, 2]
+    );
 
     turn(&clock, &host, MIN).await;
     advance(&host, 24 * 60 * MIN).await;
@@ -532,7 +561,10 @@ async fn a_turn_arriving_while_reading_the_snapshot_voids_this_expiry() {
     }
     impl WorkflowBlockedReminderHost for PendingHost {
         fn now_ms(&self) -> u64 {
-            *self.now.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+            *self
+                .now
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
         }
         fn is_idle(&self) -> bool {
             true
@@ -547,7 +579,10 @@ async fn a_turn_arriving_while_reading_the_snapshot_voids_this_expiry() {
             let released = self.released.clone();
             Box::pin(async move {
                 std::future::poll_fn(|_| {
-                    if *released.lock().unwrap_or_else(std::sync::PoisonError::into_inner) {
+                    if *released
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    {
                         Poll::Ready(())
                     } else {
                         Poll::Pending
@@ -590,7 +625,8 @@ async fn a_turn_arriving_while_reading_the_snapshot_voids_this_expiry() {
     });
     let clock = WorkflowBlockedReminderClock::new(host);
     clock.session_idle();
-    *now.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = FIRST;
+    *now.lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = FIRST;
     let (_, fire) = timers
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -602,12 +638,18 @@ async fn a_turn_arriving_while_reading_the_snapshot_voids_this_expiry() {
     assert!(expiry.as_mut().poll(&mut context).is_pending());
     // 读快照期间来了一轮：这次到点作废，不在那一轮旁边再塞一条。
     clock.session_busy();
-    *released.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = true;
-    assert!(matches!(expiry.as_mut().poll(&mut context), Poll::Ready(())));
-    assert!(sent
+    *released
         .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
-        .is_empty());
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = true;
+    assert!(matches!(
+        expiry.as_mut().poll(&mut context),
+        Poll::Ready(())
+    ));
+    assert!(
+        sent.lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .is_empty()
+    );
 }
 
 #[tokio::test]
@@ -769,7 +811,10 @@ fn a_blocked_notice_with_question_and_hole_matches_node_byte_for_byte() {
         1,
         15 * 60_000,
         vec![question("q1")],
-        vec![WorkflowBlockedHole { since: Some(5 * 60_000), ..hole("hole#1") }],
+        vec![WorkflowBlockedHole {
+            since: Some(5 * 60_000),
+            ..hole("hole#1")
+        }],
     ));
     assert_eq!(
         text,
@@ -858,7 +903,10 @@ fn the_listing_overflow_says_where_the_rest_are() {
         questions,
         Vec::new(),
     ));
-    assert!(text.contains("<open-questions count=\"9\" shown=\"8\">"), "{text}");
+    assert!(
+        text.contains("<open-questions count=\"9\" shown=\"8\">"),
+        "{text}"
+    );
     assert!(
         text.contains("GetWorkflowRun lists the ones not shown here (run_id=\"dwfrun_b3\")."),
         "{text}"
@@ -870,4 +918,52 @@ fn the_listing_overflow_says_where_the_rest_are() {
         ),
         "{text}"
     );
+}
+
+// ============================================================
+// 快照刷新后的重排（board 的后台刷新落定；Rust 接线层专有——Node 的 liveRunIds 是同步的）
+// ============================================================
+
+#[tokio::test]
+async fn rearm_picks_up_a_run_that_appeared_after_the_idle_edge() {
+    let (clock, state, host) = harness();
+    // 空闲沿时快照还空（board 的同步半）——没有排钟。
+    clock.session_idle();
+    assert_eq!(pending_timers(&host), 0);
+
+    // 刷新落定：run 与它的开集此刻才可见，rearm 把它补排上。
+    state_of(&state).live.push("run-a".to_owned());
+    state_of(&state).open.insert(
+        "run-a".to_owned(),
+        Some(WorkflowOpenDecisions {
+            questions: vec![question("q1")],
+            holes: Vec::new(),
+            draft_path: None,
+        }),
+    );
+    clock.rearm();
+    assert_eq!(pending_timers(&host), 1);
+
+    advance(&host, FIRST).await;
+    let sent = sent_of(&host);
+    assert_eq!(sent.len(), 1, "one reminder after the refreshed arm");
+    assert_eq!(sent[0].run_id, "run-a");
+    assert_eq!(sent[0].ordinal, 1);
+}
+
+#[tokio::test]
+async fn rearm_while_busy_or_never_idle_is_a_noop() {
+    let (clock, state, host) = harness();
+    // 从没闲下来过：rearm 不排钟。
+    state_of(&state).live.push("run-a".to_owned());
+    clock.rearm();
+    assert_eq!(pending_timers(&host), 0);
+
+    // 忙着（一轮在跑）：rearm 不排钟，也不把空闲段记成现在。
+    state_of(&state).idle = false;
+    clock.session_busy();
+    clock.rearm();
+    assert_eq!(pending_timers(&host), 0);
+    advance(&host, FIRST).await;
+    assert!(sent_of(&host).is_empty());
 }

@@ -149,6 +149,19 @@ impl<H: WorkflowBlockedReminderHost> ClockCore<H> {
         self.lock().sent.clear();
     }
 
+    /// 快照刷新后的重排（board 的后台 live-run 刷新落定）：会话正闲着的话把空闲段重起到
+    /// 现在、从 0 重排——同步半按旧快照排钟可能漏掉刚出现的 run；到点复核虽然用新快照，
+    /// 但复核只在有定时器时发生，漏排的 run 要靠这里补排。忙 / 停时 no-op。不动任何 run
+    /// 的提醒次数（那是开集沿与用户发话的事）。
+    fn rearm(self: &Arc<Self>) {
+        let mut state = self.lock();
+        if state.stopped || state.idle_since.is_none() {
+            return;
+        }
+        state.idle_since = Some(self.host.now_ms());
+        self.arm(&mut state, 0);
+    }
+
     /// 这个 run 的开集变了（raised / resolved / reached / filled）：它重新得到一对提醒。会话正
     /// 闲着的话空闲钟也从此刻重起——否则一个已经闲了三小时的会话上，新的一对会因为「早就过了
     /// 15 分钟」而永远排不上。
@@ -180,7 +193,9 @@ impl<H: WorkflowBlockedReminderHost> ClockCore<H> {
 
     /// 这个 run 下一次提醒要求的空闲时长；次数用完即 `None`。
     fn delay_for(state: &ClockState, delays: &[u64], run_id: &str) -> Option<u64> {
-        delays.get(state.sent.get(run_id).copied().unwrap_or(0)).copied()
+        delays
+            .get(state.sent.get(run_id).copied().unwrap_or(0))
+            .copied()
     }
 
     /// 此刻在飞的 run；顺手忘掉不再在飞的 run 的次数——同一个 id 之后被 resume 重臂是新的一世，
@@ -214,7 +229,9 @@ impl<H: WorkflowBlockedReminderHost> ClockCore<H> {
             return;
         };
         let epoch = state.epoch;
-        let wait = idle_since.saturating_add(target).saturating_sub(self.host.now_ms());
+        let wait = idle_since
+            .saturating_add(target)
+            .saturating_sub(self.host.now_ms());
         let clock = Arc::downgrade(self);
         let fire: BoxedFire = Box::new(move || {
             Box::pin(async move {
@@ -248,8 +265,7 @@ impl<H: WorkflowBlockedReminderHost> ClockCore<H> {
         for run_id in live {
             let due_run = {
                 let state = self.lock();
-                Self::delay_for(&state, &self.delays, &run_id)
-                    .filter(|delay| *delay <= reached)
+                Self::delay_for(&state, &self.delays, &run_id).filter(|delay| *delay <= reached)
             };
             if due_run.is_none() {
                 continue;
@@ -338,6 +354,11 @@ impl<H: WorkflowBlockedReminderHost> WorkflowBlockedReminderClock<H> {
         self.0.user_spoke();
     }
 
+    /// 快照刷新后的重排：会话正闲着的话把空闲段重起到现在、从 0 重排（忙 / 停时 no-op）。
+    pub fn rearm(&self) {
+        self.0.rearm();
+    }
+
     /// 这个 run 的开集变了：它重新得到一对提醒（会话闲着时空闲钟从此刻重起）。
     pub fn open_set_changed(&self, run_id: &str) {
         self.0.open_set_changed(run_id);
@@ -387,7 +408,10 @@ fn bound_blocked_text(value: &str) -> String {
     if value.chars().count() <= WORKFLOW_BLOCKED_TEXT_MAX_CHARS {
         return value.to_owned();
     }
-    let head: String = value.chars().take(WORKFLOW_BLOCKED_TEXT_MAX_CHARS - 1).collect();
+    let head: String = value
+        .chars()
+        .take(WORKFLOW_BLOCKED_TEXT_MAX_CHARS - 1)
+        .collect();
     format!("{head}…")
 }
 
@@ -410,7 +434,10 @@ pub fn format_workflow_blocked_notification(input: &WorkflowBlockedNoticeInput) 
     lines.push("<workflow-blocked>".to_owned());
     lines.push(format!("  <run-id>{}</run-id>", escape_xml(run_id)));
     lines.push(format!("  <run>{}</run>", escape_xml(&input.run_label)));
-    lines.push(format!("  <reminder>{} of {}</reminder>", input.ordinal, input.total));
+    lines.push(format!(
+        "  <reminder>{} of {}</reminder>",
+        input.ordinal, input.total
+    ));
     let shown_questions: Vec<_> = input
         .questions
         .iter()
@@ -445,7 +472,11 @@ pub fn format_workflow_blocked_notification(input: &WorkflowBlockedNoticeInput) 
         }
         lines.push("  </open-questions>".to_owned());
     }
-    let shown_holes: Vec<_> = input.holes.iter().take(WORKFLOW_BLOCKED_MAX_LISTED).collect();
+    let shown_holes: Vec<_> = input
+        .holes
+        .iter()
+        .take(WORKFLOW_BLOCKED_MAX_LISTED)
+        .collect();
     if !input.holes.is_empty() {
         lines.push(format!(
             "  <open-holes count=\"{}\" shown=\"{}\">",
@@ -453,7 +484,9 @@ pub fn format_workflow_blocked_notification(input: &WorkflowBlockedNoticeInput) 
             shown_holes.len()
         ));
         for hole in &shown_holes {
-            let line = hole.line.map_or(String::new(), |line| format!(" line=\"{line}\""));
+            let line = hole
+                .line
+                .map_or(String::new(), |line| format!(" line=\"{line}\""));
             lines.push(format!(
                 "    <hole id=\"{}\" name=\"{}\" type=\"{}\"{} waited-ms=\"{}\"/>",
                 escape_xml(&hole.site_id),
@@ -476,13 +509,18 @@ pub fn format_workflow_blocked_notification(input: &WorkflowBlockedNoticeInput) 
         .questions
         .iter()
         .map(|question| waited_ms(input.now, question.asked_at))
-        .chain(input.holes.iter().map(|hole| waited_ms(input.now, hole.since)))
+        .chain(
+            input
+                .holes
+                .iter()
+                .map(|hole| waited_ms(input.now, hole.since)),
+        )
         .max()
         .unwrap_or(0);
-    let minutes = (oldest / MS_PER_MINUTE + u64::from(oldest % MS_PER_MINUTE * 2 >= MS_PER_MINUTE)).max(1);
+    let minutes =
+        (oldest / MS_PER_MINUTE + u64::from(oldest % MS_PER_MINUTE * 2 >= MS_PER_MINUTE)).max(1);
     let what = [
-        (!input.questions.is_empty())
-            .then(|| count_noun(input.questions.len(), "question")),
+        (!input.questions.is_empty()).then(|| count_noun(input.questions.len(), "question")),
         (!input.holes.is_empty()).then(|| count_noun(input.holes.len(), "hole")),
     ]
     .into_iter()

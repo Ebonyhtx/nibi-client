@@ -138,6 +138,10 @@ pub struct SessionDeps {
     pub peers: PeerDeps,
     /// 父会话关闭之后旧会话的询问入口（进程级，agents.md §4.1.2，工作线 F72）；没有时那些询问按会话已关闭失败。
     pub detached: Option<Arc<DetachedAsks>>,
+    /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（kernel-api `WorkflowBlockedEdges`，
+    /// transcript-and-notifications.md「Reminding an idle main agent」）：actor 在忙闲转换处
+    /// 调用，钟与宿主装配在 runtime。没有时（测试 / 嵌入）没有提醒链。
+    pub blocked: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowBlockedEdges>>,
 }
 
 /// 会话关闭的收尾（docs/specs/rust-cli/session-lifecycle.md §3.3、§3.3.1）：每个会话的关闭任务各调用一次。

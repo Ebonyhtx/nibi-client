@@ -50,5 +50,6 @@ rust-cli-env-local.workspace = true
 rust-cli-fs.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "time"] }
+# 暂停时钟（blocked_board_tests 的提醒档走虚拟毫秒，F17 的先例——watchdog 同款）。
+tokio = { workspace = true, features = ["macros", "rt", "time", "test-util"] }
 tokio-util.workspace = true

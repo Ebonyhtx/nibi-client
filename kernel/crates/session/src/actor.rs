@@ -335,6 +335,9 @@ impl Actor {
     pub(crate) async fn run(mut self, mut requests: mpsc::Receiver<Request>) {
         // 跨会话：绑定为主会话并从库里恢复（cross-session.md §2.2）；在处理第一条命令之前。
         self.peers_open().await;
+        // 提醒钟的忙闲沿（上一次的 busy 值；None = 循环还没算过）：变化时才调（transcript-and-
+        // notifications.md「Reminding an idle main agent」——一轮开始钟停，队列排空起算空闲）。
+        let mut last_busy: Option<bool> = None;
         loop {
             // 修复（R1-1）：以前这里在“所有句柄都已释放”（`recv` 返回 None）时退出，但内核的会话表一直持有
             // 句柄，这个分支永远到不了——关闭后 actor 还活着，收到后台通知就自己开回合。现在由 `Request::Close`
@@ -380,12 +383,24 @@ impl Actor {
                 Next::Sink(None) => self.finish_turn().await,
             }
             // 登记里的 busy / idle 只看 actor 自己的状态，变化时才写（cross-session.md §2.1）。
-            let status = if self.busy() {
+            let busy_now = self.busy();
+            let status = if busy_now {
                 rust_cli_kernel_api::peers::PeerStatus::Busy
             } else {
                 rust_cli_kernel_api::peers::PeerStatus::Idle
             };
             self.peer_status(status).await;
+            // 提醒钟的忙闲沿跟着同一条裁决走（变化时才调；已在段里时钟自己 no-op）。
+            if last_busy != Some(busy_now) {
+                if let Some(blocked) = &self.deps.blocked {
+                    if busy_now {
+                        blocked.session_busy(&self.meta.id);
+                    } else {
+                        blocked.session_idle(&self.meta.id);
+                    }
+                }
+                last_busy = Some(busy_now);
+            }
         }
     }
 
@@ -394,6 +409,10 @@ impl Actor {
     async fn close(&mut self, reply: oneshot::Sender<()>, reason: AbortReason) {
         tracing::info!(event = "session.closing", session = %self.meta.id, busy = self.busy(), "session closing");
         self.closing = Some(reply);
+        // 提醒钟随会话关（此后不再排钟、不再发）。
+        if let Some(blocked) = &self.deps.blocked {
+            blocked.session_closed(&self.meta.id);
+        }
         // `/clear`、`/resume`（用户中止）之后旧会话的后台子代理照样询问（agents.md §4.1.2，工作线 F72）：先登记这个会话
         // 与它的标题，下面取消的会话级询问与之后的询问都转到进程级的入口。退出程序时不登记。
         if reason == AbortReason::User

@@ -80,6 +80,15 @@ pub(crate) enum TurnInput {
 }
 
 impl Actor {
+    /// 真人发话（prompt / steer 进在跑的一轮）：提醒钟给每个 run 重新一对。合成来源的注入
+    /// （通知、定时任务、同伴消息）不经过这里（Node 命令队列的「prompt 且无合成来源」与
+    /// steering.ts 的 `user_steer` 同一判据）。
+    pub(crate) fn user_spoke(&self) {
+        if let Some(blocked) = &self.deps.blocked {
+            blocked.user_spoke(&self.meta.id);
+        }
+    }
+
     pub(crate) async fn start_turn(&mut self, input: TurnInput) -> Result<(), String> {
         let meta = |source: &str, origin_meta: Option<serde_json::Value>| UserOrigin::Meta {
             source: source.to_owned(),
@@ -95,14 +104,20 @@ impl Actor {
                 screened,
                 more,
             } => {
+                // 真人发话：每个 run 重新得到一对提醒（Node `noteWorkflowReminderCommandStarted`
+                // 的「prompt 且无合成来源」——Rust 里 Human/Content/Bash 三种回合都是真人输入，
+                // 通知与定时任务走别的变体）。
+                self.user_spoke();
                 self.start_human_turn(command, vec![ContentBlock::Text { text }], screened, more);
                 return Ok(());
             }
             TurnInput::Content { command, content } => {
+                self.user_spoke();
                 self.start_human_turn(command, content, None, Vec::new());
                 return Ok(());
             }
             TurnInput::Bash { command, line } => {
+                self.user_spoke();
                 self.start_bash_turn(command, line);
                 return Ok(());
             }
@@ -233,7 +248,16 @@ impl Actor {
             }
             SinkRequest::CancelAsk { tool_use } => self.cancel_ask(&tool_use).await,
             SinkRequest::ClaimSteering { reply } => {
-                let _ = reply.send(self.claim_steering());
+                let claimed = self.claim_steering();
+                // 用户 steer 进在跑的一轮：每个 run 重新得到一对提醒（Node steering.ts 的
+                // `user_steer` 同一入口）。
+                if claimed
+                    .as_ref()
+                    .is_some_and(crate::steering::Claimed::has_prompt)
+                {
+                    self.user_spoke();
+                }
+                let _ = reply.send(claimed);
             }
             SinkRequest::SettleSteering { fates, reply } => {
                 self.settle_steering(fates);

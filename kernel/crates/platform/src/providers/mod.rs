@@ -44,7 +44,9 @@ use catalog::Snapshot;
 const FULL_READ_EVERY: Duration = Duration::from_secs(60);
 /// 单个配置文件的上限（旧 Rust CLI 的 registry 相同）。
 const MAX_CONFIG_BYTES: usize = 8 * 1024 * 1024;
-/// 随包的内置 Provider 配置：复制自仓库的 `config/provider/zcode-builtin.json`（测试校验两者相同）。
+/// 随包的内置 Provider 配置：上游 vendor 的副本（随 vendor 升级走）。分家后仓库的
+/// `config/provider/nibi-builtin.json` 是 Node 侧构建期的源、形状不同，两者不再互为副本
+/// （原「副本一致」测试据实改写；内核该带哪份归品牌审计裁决）。文件名仍是上游名。
 pub(crate) const BUNDLED_BUILTIN: &str = include_lf!("../../assets/zcode-builtin.json");
 /// 个人配置不存在时的内容（Node 同样按空配置处理）。
 const EMPTY_PERSONAL: &[u8] = br#"{"schemaVersion":1,"config":{}}"#;

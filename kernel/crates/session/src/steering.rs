@@ -33,6 +33,15 @@ pub(crate) struct Claimed {
     pub(crate) abort: CancellationToken,
 }
 
+impl Claimed {
+    /// 这批里有没有插话（提醒钟的「用户 steer 进在跑的一轮」只认插话——通知不算用户发话）。
+    pub(crate) fn has_prompt(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| matches!(item, ClaimedItem::Prompt(..)))
+    }
+}
+
 /// 一条插话的结局。
 pub(crate) enum Fate {
     /// 并入本回合：出队。

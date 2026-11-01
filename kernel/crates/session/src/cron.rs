@@ -46,6 +46,10 @@ impl Actor {
     /// 经取消路径回收工具的进程树。
     pub(crate) async fn shutdown(&mut self) -> Ack {
         self.shutting_down = true;
+        // 进程要退出：提醒钟一并停（此后不再排钟、不再发）。
+        if let Some(blocked) = &self.deps.blocked {
+            blocked.session_closed(&self.meta.id);
+        }
         if let Some(running) = &self.running {
             running.abort.abort(AbortReason::Shutdown);
         } else if let Some(cancel) = self.job.as_ref().and_then(|job| job.cancel.as_ref()) {

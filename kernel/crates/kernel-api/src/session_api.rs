@@ -1031,6 +1031,14 @@ pub trait Kernel: Send + Sync {
         None
     }
 
+    /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（[`crate::workflow::WorkflowBlockedEdges`]，
+    /// docs/dynamic-workflow/transcript-and-notifications.md「Reminding an idle main agent」）：
+    /// 会话 actor 在忙闲转换处调用，引擎客户端把 run 的开集事件经这里转发给父会话的钟。
+    /// 缺省没有（TUI / `-p` 不经这里）。
+    fn workflow_blocked(&self) -> Option<std::sync::Arc<dyn crate::workflow::WorkflowBlockedEdges>> {
+        None
+    }
+
     /// GUI 中枢的已保存工作流读面（`workflows/list` / `workflows/get`）：frontmatter 解析器在
     /// sidecar 的 @nibi/core，没接 sidecar 的入口回 `Unsupported`（协议层按空页 / not_found 降级）。
     async fn hub_list_saved_workflows(

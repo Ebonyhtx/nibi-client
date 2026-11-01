@@ -223,6 +223,29 @@ pub trait WorkflowNotices: Send + Sync {
     }
 }
 
+/// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（Node `WorkflowBlockedReminderClock` 的
+/// 三个状态入口 + 开集事件，docs/dynamic-workflow/transcript-and-notifications.md
+/// 「Reminding an idle main agent」）。会话 actor 在自己的忙闲转换处调用前三个（`user_spoke`
+/// 只认真人发话，合成来源的注入不算）；开集事件（`escalation-raised` / `escalation-resolved` /
+/// `hole-reached` / `hole-filled`）由引擎客户端从 run/event 转发给父会话。钟本体与宿主装配
+/// 在 runtime（`blocked.rs` 纯件 + board）。
+pub trait WorkflowBlockedEdges: Send + Sync {
+    /// 一轮开始（任何来源）：钟停，空闲时长作废。
+    fn session_busy(&self, session: &crate::ids::SessionId);
+
+    /// 命令队列排空：空闲段从这里起算（已在空闲段里时 no-op）。
+    fn session_idle(&self, session: &crate::ids::SessionId);
+
+    /// 真人发话（prompt / steer）：每个 run 重新得到一对提醒。
+    fn user_spoke(&self, session: &crate::ids::SessionId);
+
+    /// 这个 run 的开集变了：它重新得到一对提醒（会话闲着时空闲钟从此刻重起）。
+    fn open_set_changed(&self, session: &crate::ids::SessionId, run_id: &str);
+
+    /// 会话关闭：此后不再排钟、不再发。
+    fn session_closed(&self, session: &crate::ids::SessionId);
+}
+
 /// run 事件 journal 的窄追加面（`dwf_event`；引擎 sidecar 与宿主写同一个库）。`payload_json`
 /// 与 Node 的 `RunEvent` 同形——整个事件的 JSON，**含 `type` 字段**。升级问答的双轨 record
 /// （Node driver 的 journal + emit）在宿主侧走这里 + [`WorkflowNotices`]。
