@@ -3,6 +3,7 @@
 import process from "node:process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isRealComputerUseProducerInstalled } from "./computer-use-producer.mjs";
 import { resolveNativeSearchReleasePlan } from "../../../scripts/native-search-tools-config.mjs";
 import { runCommand } from "../../../scripts/spawn-command.mjs";
 import { getTargetPlatform } from "./target-platform.mjs";
@@ -25,7 +26,12 @@ const shouldPrepareMacosWindowBounds = target.os === "darwin";
 // Computer Use Helper：把引擎（@trycua/cua-driver）与我们的 helper 打成产品态目录
 // `<resources>/tools/cua-helper`（含 runtime-manifest.json，宿主会校验 entry/addon 的 sha256）。
 // 目前宿主侧的解析器只有 Windows 分支（macOS 是另一条 installer 路径），所以先只在 win32 上出包。
-const shouldPrepareCuaHelper = target.os === "win32" || process.env.NIBI_ENABLE_CUA_HELPER === "1";
+// 与规范同一道门（computer-use-producer-detection.md）：开源占位包（zcodeCuaPlaceholder）没有
+// 私有引擎，这里必须跳过——否则开源树的打包入口在 win32 上必然失败（builder 配置侧早已按同一
+// 判定跳过，prepare 链此前漏接）。
+const shouldPrepareCuaHelper =
+  (target.os === "win32" || process.env.NIBI_ENABLE_CUA_HELPER === "1") &&
+  isRealComputerUseProducerInstalled({ desktopPackageRoot: desktopRoot });
 
 // 本机桌面包不再内置 glm 原生二进制（prepare:glm），改为内置 agent 的 JS bundle（prepare:agent-bundle），
 // 运行时由 app 的 Electron Node runtime 执行。Source Server 资源由独立 stage:remote-assets 入口负责。

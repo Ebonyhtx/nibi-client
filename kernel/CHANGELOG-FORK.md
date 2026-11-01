@@ -1041,23 +1041,30 @@ run 还欠着决定」——落 Rust。
 - **测试**：21（纯件 19+rearm 2）+ 板 8（tokio 暂停时钟，`ticks_until` 轮询到预期——tokio
   advance 先跳时再轮询，轮询里排的定时器下一拍才触发）；**29 全绿**；门禁 **OK（119 字段）**。
 
-## 6.38 打包轨 CI 门禁：三平台建内核、暂存与冒烟（2026-11-01）
+## 6.38 打包轨 CI 门禁：三平台真实打包与内核冒烟（2026-11-01）
 
-§6.37（打包轨第一段，公开仓 `391265f1`）的 CI 侧闭环（公开仓本切片提交）：完整 electron-builder
-打包需要 GLM 等内部资源（`NIBI_DEPS_BASE_URL` 走内网资产服务），CI 无密钥不可达——完整打包链
-留在本地（`NIBI_ENV=production`），CI 钉的是「内核能建、能暂存、暂存产物能握手」与 builder
-接线的漂移。
+§6.37（打包轨第一段，公开仓 `391265f1`）的 CI 侧闭环（公开仓 `f70f58ac` 初版 + 升级）：三平台
+矩阵各跑**真实打包**（`bundle.mjs` → electron-builder），断言 Rust 内核二进制进了打包资源位次
+（win/linux 的 `*-unpacked/resources`、mac 的 `.app/Contents/Resources`），并对**打包产物里的
+内核**跑 `--prepare-storage` 冒烟。
 
-- **新 workflow `desktop-package-gates.yml`**：三平台矩阵，每台 `cargo build --locked --release
-  -p rust-cli --bin zcode-rs` → 复用桌面的 `prepare-rust-kernel.mjs` 暂存（不另写一份，同一条
-  位次链）→ 断言暂存产物在场 → 断言 builder 配置三处接线标记（`rust-kernel` / 
-  `assertPackagedRustKernel` / `shouldPackageRustKernel`，防后续重构悄悄丢线）→ 冒烟。
-- **冒烟**（`scripts/desktop-package/smoke-prepare-storage.mjs`）：对暂存二进制跑
-  `app-server --stdio --prepare-storage` 握手——形状照抄桌面宿主
+- **无内网依赖（全链实测证伪旧结论）**：4.0 起本机打包链不下载 GLM 原生二进制
+  （`prepare:glm` 已移出链条，`resources/glm` 是 JS bundle——`prepare-runtime-assets.mjs`
+  链注释与 `main/index.ts:1410` 为锚）；native-search 与 electron-builder 辅助包在无
+  `NIBI_DEPS_BASE_URL` 时走官方/repository 回退（`bundle.mjs` 的开源构建回退分支）。本机在
+  干净环境（无内网变量）实测全链：产物 `NIBI-4.0.0-win-x64.exe`（191.9 MiB），unpacked 里
+  `resources/rust-kernel/zcode-rs.exe` 冒烟 phase=ready。
+- **顺带修的开源树断账**：`prepare-runtime-assets.mjs` 在 win32 上**无条件**跑
+  `prepare:cua-helper`，违反 `computer-use-producer-detection.md` 的规范（「检测不到真实
+  producer 时跳过，不能让开源树的入口失败」）——占位包没有私有引擎 `@trycua/cua-driver`，
+  开源树打包在第一步必然炸（实测复现）。已按 builder 配置同一判定接门；真实 producer 的
+  闭源树不受影响（门照样通过）。
+- **冒烟**（`scripts/desktop-package/smoke-prepare-storage.mjs`）：握手照抄桌面宿主
   （storagePath → 回 storagePathReady{reuse:false} → storageState 各相 → storagePrepared；
   phase=failed 或 30s 首帧超时即失败）。隔离纪律与 kernel-baseline 同一条：五个根变量全改，
-  绝不写真实 `~/.nibi`。数据库 id 是哈希（路径不外泄）。本机对 release 二进制全绿。
-- 触发面：kernel/** + 打包三文件 + 本 workflow（与 rust-gates 同哲学：只门自己看的东西）。
+  绝不写真实 `~/.nibi`。数据库 id 是哈希（路径不外泄）。
+- 触发面：kernel/** + packages/desktop/** + 本 workflow（打包覆盖整个桌面，desktop 变更
+  本来就可能破坏它）。
 
 ## 7. 未完成项
 

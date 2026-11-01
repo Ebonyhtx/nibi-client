@@ -1,13 +1,12 @@
 name: desktop-package-gates
 
-# 打包轨门禁（391265f1 的 CI 侧闭环）：三平台各自把 Rust 内核建到 release、按桌面的暂存
-# 脚本收进 .staging/rust-kernel、跑打包产物冒烟（--prepare-storage 握手，隔离 HOME）。
+# 打包轨门禁（391265f1 本地链 + f70f58ac 初版 CI 的升级）：三平台各跑一次**真实打包**
+# （bundle.mjs → electron-builder），断言 Rust 内核二进制进了打包资源位次，并对**打包产物里的
+# 内核**跑 --prepare-storage 冒烟。
 #
-# 边界（有意不做的部分）：
-# - 完整 electron-builder 打包需要 GLM 等内部资源（NIBI_DEPS_BASE_URL 走内网资产服务），
-#   CI 无密钥不可达——完整打包链在本地验（NIBI_ENV=production），这里只钉「内核能建、能暂存、
-#   暂存产物能握手」与 builder 配置的接线不漂移（grep 三处标记）。
-# - 不缓存 cargo：少一个要钉 SHA 的 action；运行时长可接受（rust-gates 的全量 check 同机时）。
+# 无内网依赖（2026-11-01 全链实测）：本机打包链自 4.0 起不下载 GLM 原生二进制（resources/glm
+# 是 JS bundle）；native-search 与 electron-builder 辅助包在无 NIBI_DEPS_BASE_URL 时走官方/
+# repository 回退（bundle.mjs 的开源构建回退分支）。CI 环境与本机打包同构。
 #
 # 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
 
@@ -15,18 +14,16 @@ on:
   push:
     paths:
       - "kernel/**"
-      - "packages/desktop/electron-builder.config.js"
-      - "packages/desktop/scripts/prepare-rust-kernel.mjs"
-      - "packages/desktop/scripts/prepare-runtime-assets.mjs"
+      - "packages/desktop/**"
       - "scripts/desktop-package/**"
+      - "scripts/native-search-tools-config.mjs"
       - ".github/workflows/desktop-package-gates.yml"
   pull_request:
     paths:
       - "kernel/**"
-      - "packages/desktop/electron-builder.config.js"
-      - "packages/desktop/scripts/prepare-rust-kernel.mjs"
-      - "packages/desktop/scripts/prepare-runtime-assets.mjs"
+      - "packages/desktop/**"
       - "scripts/desktop-package/**"
+      - "scripts/native-search-tools-config.mjs"
       - ".github/workflows/desktop-package-gates.yml"
   workflow_dispatch:
 
@@ -41,11 +38,26 @@ jobs:
   package-gate:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            bundle-os: linux
+            bundle-arch: x64
+            kernel-exe: zcode-rs
+            resource-dir: packages/desktop/dist/linux-unpacked/resources
+          - os: windows-latest
+            bundle-os: win
+            bundle-arch: x64
+            kernel-exe: zcode-rs.exe
+            resource-dir: packages/desktop/dist/win-unpacked/resources
+          - os: macos-latest
+            bundle-os: mac
+            bundle-arch: arm64
+            kernel-exe: zcode-rs
+            resource-dir: packages/desktop/dist/mac-arm64/NIBI.app/Contents/Resources
     env:
       TURBO_TELEMETRY_DISABLED: "1"
     steps:
@@ -64,21 +76,19 @@ jobs:
       - name: cargo build (release, kernel binary)
         working-directory: kernel
         run: cargo build --locked --release -p rust-cli --bin zcode-rs
-      - name: Stage the kernel binary (desktop prepare script)
-        run: node packages/desktop/scripts/prepare-rust-kernel.mjs
-      - name: Assert the staged binary
+      - name: Package the desktop app (kernel staged via prepare:rust-kernel)
+        working-directory: packages/desktop
+        env:
+          NIBI_ENV: production
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: node scripts/bundle.mjs --os=${{ matrix.bundle-os }} --arch=${{ matrix.bundle-arch }}
+      - name: Assert the packaged kernel binary
         shell: bash
         run: |
-          exe="zcode-rs"
-          [ "${{ runner.os }}" = "Windows" ] && exe="zcode-rs.exe"
-          test -f ".staging/rust-kernel/$exe" || { echo "missing .staging/rust-kernel/$exe" >&2; exit 1; }
-          echo "staged .staging/rust-kernel/$exe"
-      - name: Assert the builder config still wires the rust-kernel resource
-        shell: bash
-        run: |
-          config="packages/desktop/electron-builder.config.js"
-          grep -q 'rust-kernel' "$config" || { echo "builder config lost the rust-kernel marker" >&2; exit 1; }
-          grep -q 'assertPackagedRustKernel' "$config" || { echo "builder config lost the afterPack assert" >&2; exit 1; }
-          grep -q 'shouldPackageRustKernel' "$config" || { echo "builder config lost the staging switch" >&2; exit 1; }
-      - name: Smoke the staged binary (storage handshake)
-        run: node scripts/desktop-package/smoke-prepare-storage.mjs ".staging/rust-kernel/zcode-rs${{ runner.os == 'Windows' && '.exe' || '' }}"
+          test -f "${{ matrix.resource-dir }}/rust-kernel/${{ matrix.kernel-exe }}" || {
+            echo "missing ${{ matrix.resource-dir }}/rust-kernel/${{ matrix.kernel-exe }}" >&2
+            exit 1
+          }
+          echo "packaged kernel present"
+      - name: Smoke the packaged kernel (storage handshake)
+        run: node scripts/desktop-package/smoke-prepare-storage.mjs "${{ matrix.resource-dir }}/rust-kernel/${{ matrix.kernel-exe }}"
