@@ -973,6 +973,27 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.40）：
   候选数组三态 -32602）。runArgs-present 路径用 `dwf_run.args_json` 的 DB 直写夹具（与真跑
   带实参的 run 同形——本 driver 的既有手法）。协议层 9 单测（+候选形状/上界）。
 
+## 6.35 `run-stalled` 的投递链（2026-11-01，路线 C 第二十四段）
+
+run 级停滞的 run 中通知（Node 的 stall 链：driver 的 stall 钟 → 引擎 record → run service
+进度汇 → `notifyRunStalled`）。停滞是**生产可达**的观察（provider 故障 → 重试主导 → 20 分钟
+墙钟），此前 Rust 宿主对 run-stalled 只记 debug 日志——用户永远不知道 run 卡住了。
+
+- **sidecar**：`run-stalled` 事件此前只转发 `{runId, type}`（type-only），现在带载荷
+  `{stall: {sinceMs, reason?, cap?}}` + 展示名（与 hole 分支同构，journal 的 run 行读）。
+  stall 钟（`createRunStallClock`）本身在 driver 里跑真时间——sidecar 与 Node 同一份代码，
+  零 Rust 工作。
+- **宿主**：`compose_stall_notice`（Node `formatWorkflowStallNotification` 逐字——XML-ish
+  结构化半段转义、散文半段原样、分钟数 `Math.max(1, Math.round(...))` 不单数化）+ manifest
+  （`{kind:"stall", sinceMs, reason?≤64, cap?}`）→ `workflow_notices` 投父会话（与 hole/
+  settled 同一条后台通知路）。载荷形状不对回 `None` 跳过并记日志（Node 观察面的同一条纪律）。
+- **探针的边界**：stall 钟的 20 分钟墙钟没有可注入阈值（`stallAfterMs` 只在 driver deps 上，
+  两个内核的 app-server 都不暴露）——活探针等配置旋钮；本段以 **fixture 级对拍**收口：四条
+  单测把三案文本（带 reason+cap / 无 reason+cap / 转义+分钟钳制）与 Node 格式器的实测输出
+  逐字节对拍，外加畸形载荷跳过。**blocked（父会话空闲钟的提醒）不在本段**：它的钟挂在 Node
+  runtime 的命令队列/转向/开集事件上，Rust 运行时的对应落点（空闲沿在哪里计数）是设计决定，
+  留尾单。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

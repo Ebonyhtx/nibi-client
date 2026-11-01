@@ -733,8 +733,7 @@ where
             }
             "run/event" => {
                 let params = &message["params"];
-                if params["type"] == "hole-reached" {
-                    // 留白到达的通知（Node notifyHoleReached 同一条后台任务路）：sidecar 的
+                if params["type"] == "hole-reached" {                    // 留白到达的通知（Node notifyHoleReached 同一条后台任务路）：sidecar 的
                     // run/event 带完整载荷（事件原文 + 编译期事实 + run 展示元数据），宿主组
                     // `<workflow-hole>` 信封与 kind:"hole" 的 manifest 投给父会话。run 还在飞
                     // （停驻在留白上），进程表里有它的父会话。
@@ -775,6 +774,54 @@ where
                                 }
                             }
                         }
+                }
+                if params["type"] == "run-stalled" {
+                    // run 级停滞的 run 中通知（Node notifyRunStalled 同一条后台任务路）：20 分钟
+                    // 没有一次成功的模型请求、期间至少排定过一次重试——生产可达（provider 故障），
+                    // 文案说死「不需要模型做任何事」。载荷形状不对就跳过并记日志（观察面不抛异常）。
+                    if let Some(run) = shared
+                        .runs
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .get(params["runId"].as_str().unwrap_or_default())
+                        .cloned()
+                    {
+                        match crate::dwf_run_notification::compose_stall_notice(
+                            params["runId"].as_str().unwrap_or_default(),
+                            params["name"].as_str(),
+                            &params["stall"],
+                        ) {
+                            Some((text, manifest)) => {
+                                let origin_meta = serde_json::json!({
+                                    "backgroundSource": "workflow",
+                                    "title": params["name"]
+                                        .as_str()
+                                        .unwrap_or(params["runId"].as_str().unwrap_or_default()),
+                                    "workId": params["runId"],
+                                    "workflowNotification": manifest,
+                                });
+                                let kernel = shared
+                                    .kernel
+                                    .lock()
+                                    .unwrap_or_else(PoisonError::into_inner)
+                                    .as_ref()
+                                    .and_then(Weak::upgrade);
+                                match kernel.as_ref().and_then(|kernel| kernel.workflow_notices()) {
+                                    Some(notices) => {
+                                        notices.notify_with(&run.parent, text, Some(origin_meta))
+                                    }
+                                    None => {
+                                        tracing::warn!(event = "dwf.stall.no_notices", run = %params["runId"])
+                                    }
+                                }
+                            }
+                            None => tracing::warn!(
+                                event = "dwf.stall.malformed",
+                                run = %params["runId"],
+                                payload = %params["stall"]
+                            ),
+                        }
+                    }
                 }
                 tracing::debug!(event = "dwf.run.event", payload = %message["params"]);
             }

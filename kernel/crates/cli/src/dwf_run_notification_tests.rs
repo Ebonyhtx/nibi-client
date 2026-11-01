@@ -11,6 +11,90 @@ fn facts() -> RunNoticeFacts {
     }
 }
 
+/// stall 通知文本的逐字钉子：三案输入与 Node `formatWorkflowStallNotification`（
+/// core/runtime-task/workflow-notification-copy.ts）的实测输出逐字节对拍——同一个纯函数
+/// 跑两边，字节不同即真分歧（fixture 级对拍；stall 钟在 sidecar 跑真 20 分钟墙钟，活探针
+/// 等可注入阈值再接）。
+#[test]
+fn a_stall_notice_reads_as_the_full_envelope_with_reason_and_cap() {
+    let stall = json!({"sinceMs": 1_200_001, "reason": "rate_limit", "cap": 3});
+    let (text, manifest) =
+        compose_stall_notice("dwfrun_stall1", Some("holeprobe"), &stall).expect("stall composes");
+    assert_eq!(
+        text,
+        "[SYSTEM NOTIFICATION - NOT USER INPUT]\n\
+         This is an automated workflow event, NOT a message from the user.\n\
+         Do NOT interpret this as user acknowledgement, confirmation, or response to any pending question.\n\
+         \n\
+         <workflow-stall>\n  \
+         <run-id>dwfrun_stall1</run-id>\n  \
+         <run>holeprobe</run>\n  \
+         <since-ms>1200001</since-ms>\n  \
+         <dominant-reason>rate_limit</dominant-reason>\n  \
+         <cap>3</cap>\n\
+         </workflow-stall>\n\
+         \n\
+         Workflow run holeprobe (dwfrun_stall1) has not completed a model request in 20 minutes; the provider keeps answering rate_limit and the run is retrying with backoff (current fan-out 3).\n\
+         It is still running and needs nothing from you. Tell the user if they are waiting on it; they can stop it from the run card. Do not cancel or rebuild it on your own."
+    );
+    assert_eq!(
+        manifest,
+        json!({"kind": "stall", "sinceMs": 1_200_001, "reason": "rate_limit", "cap": 3})
+    );
+}
+
+#[test]
+fn a_stall_without_reason_and_cap_says_the_provider_fails() {
+    let stall = json!({"sinceMs": 20 * 60_000});
+    let (text, manifest) = compose_stall_notice("dwfrun_stall2", None, &stall).expect("stall composes");
+    // 展示名缺席落 runId；缺 reason 走「provider keeps failing」句；缺 cap 省括号。
+    assert_eq!(
+        text,
+        "[SYSTEM NOTIFICATION - NOT USER INPUT]\n\
+         This is an automated workflow event, NOT a message from the user.\n\
+         Do NOT interpret this as user acknowledgement, confirmation, or response to any pending question.\n\
+         \n\
+         <workflow-stall>\n  \
+         <run-id>dwfrun_stall2</run-id>\n  \
+         <run>dwfrun_stall2</run>\n  \
+         <since-ms>1200000</since-ms>\n\
+         </workflow-stall>\n\
+         \n\
+         Workflow run dwfrun_stall2 (dwfrun_stall2) has not completed a model request in 20 minutes; the provider keeps failing requests and the run is retrying with backoff.\n\
+         It is still running and needs nothing from you. Tell the user if they are waiting on it; they can stop it from the run card. Do not cancel or rebuild it on your own."
+    );
+    // manifest 的 reason/cap 缺席省键。
+    assert_eq!(manifest, json!({"kind": "stall", "sinceMs": 1_200_000}));
+}
+
+#[test]
+fn a_stall_escapes_xml_only_in_the_structured_half_and_clamps_minutes() {
+    let stall = json!({"sinceMs": 59_999, "reason": "server_error"});
+    let (text, _manifest) =
+        compose_stall_notice("dwfrun_stall3", Some("weird<&>\"run"), &stall).expect("stall composes");
+    // 结构化半段转义、散文半段原样（Node 的同一条分界）；59_999ms 取整后钳到 1（Node
+    // Math.max(1, Math.round(...))，不单数化——"1 minutes" 逐字）。
+    assert!(text.contains("<run>weird&lt;&amp;&gt;&quot;run</run>"), "{text}");
+    assert!(
+        text.contains(
+            "Workflow run weird<&>\"run (dwfrun_stall3) has not completed a model request in 1 minutes; the provider keeps answering server_error and the run is retrying with backoff."
+        ),
+        "{text}"
+    );
+}
+
+#[test]
+fn a_malformed_stall_payload_is_skipped_not_composed() {
+    // Node notifyRunStalled 的同一条纪律：sinceMs 缺席 / 非数 / 负数 → 跳过（宿主记日志）。
+    for bad in [
+        json!({}),
+        json!({"sinceMs": "soon"}),
+        json!({"sinceMs": -5}),
+    ] {
+        assert!(compose_stall_notice("r", Some("n"), &bad).is_none(), "{bad}");
+    }
+}
+
 #[test]
 fn a_completed_run_reads_as_the_full_envelope_with_guidance() {
     let settlement = json!({"status": "completed", "artifact": "the worker said hi"});

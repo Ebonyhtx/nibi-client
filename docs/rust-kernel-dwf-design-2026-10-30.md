@@ -310,4 +310,5 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        engine/kernel 两层端口、降级在 runtime kernel（home 取机器事实），`check-dwf-engine` 93
        字段双内核逐字节一致）；
        ~~中枢已保存工作流写面~~（**已接，2026-11-01 第二十二段**：`workflows/save` / `updateMeta` / `delete` / `move`——save 只收 runId、脚本从 journal 读，名字合法性 / 覆盖闸 / analyzeScript 与 move 的只此一向都在 sidecar（@nibi/core 承载，Rust 不重复正则）；协议层 trim 对齐（nonEmptyString 是转换的一部分，写面拿它拼文件名）+ meta/args 全形状校验；**写面没有降级**（没接 sidecar 的入口 fail-closed——读面的空页诚实，写面没有对应形状），`check-dwf-engine` 112 字段双内核逐字节一致）；
-       ~~完成卡的推导判定~~（**已接，2026-11-01 第二十三段**：`workflows/forRun`——三规则按序（候选最优先且非法名字跳过、脚本规则命中 run 存出来的 fromrun——文件名序在前、查不到 run 回空对象原形）；候选数组严格入参（≤8、strict、trim），`check-dwf-engine` 119 字段双内核逐字节一致）。
+       ~~完成卡的推导判定~~（**已接，2026-11-01 第二十三段**：`workflows/forRun`——三规则按序（候选最优先且非法名字跳过、脚本规则命中 run 存出来的 fromrun——文件名序在前、查不到 run 回空对象原形）；候选数组严格入参（≤8、strict、trim），`check-dwf-engine` 119 字段双内核逐字节一致）；
+       ~~run-stalled 的投递链~~（**已接，2026-11-01 第二十四段**：sidecar 事件从 type-only 升级为带载荷（stall + 展示名），宿主 `compose_stall_notice` 逐字（Node formatWorkflowStallNotification）+ manifest → workflow_notices 投父会话；stall 钟留在 driver（sidecar 与 Node 同一份代码，真 20 分钟墙钟）。fixture 级对拍收口（四单测：三案逐字节 + 畸形载荷跳过）——活探针等可注入阈值；**blocked（父会话空闲钟）留尾单**：提醒钟挂在 Node runtime 的命令队列/转向/开集事件上，Rust 的空闲沿落点是设计决定）。

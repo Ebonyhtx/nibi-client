@@ -827,3 +827,19 @@ workflows.ts）与 @nibi/core 的 `listSavedWorkflows` / `resolveSavedWorkflow` 
 - **门禁**：112 → **119 字段**（dwfForRun 七字段：脚本规则命中 fromrun——它从这次 run 存
   出来、脚本逐字节相同且文件名序在 holeprobe 前；候选 trim + 最优先；非法跳过；空对象；
   候选数组三态 -32602。runArgs-present 用 args_json 的 DB 直写夹具）。
+
+## 6.42 第四十三步：`run-stalled` 的投递链（2026-11-01）
+
+stall 链收口（详见 CHANGELOG-FORK §6.35）：停滞通知的生产可达路径（provider 故障 → 重试主导
+→ 20 分钟墙钟）落 Rust。判据锚点：Node `formatWorkflowStallNotification`
+（core/runtime-task/workflow-notification-copy.ts）与 `notifyRunStalled`
+（core/runtime/methods/dynamic-workflow-run-progress.ts）。
+
+- **sidecar**：run-stalled 从 type-only 转发升级为带载荷（`stall` + 展示名，与 hole 分支同
+  构）；stall 钟本身留在 driver（sidecar 与 Node 同一份代码，真 20 分钟墙钟，零 Rust 工作）。
+- **宿主**：`compose_stall_notice` 逐字（结构化半段转义 / 散文原样的分界、分钟钳制、manifest
+  的 reason ≤64 界）→ `workflow_notices` 投父会话。
+- **探针边界**：无注入阈值就没有活探针（两个内核的 app-server 都不暴露 `stallAfterMs`）——
+  本段以 fixture 级对拍收口（四单测：三案逐字节 + 畸形载荷跳过）；活探针等配置旋钮。
+  **blocked 留尾单**：提醒钟挂在 Node runtime 的命令队列/转向/开集事件上，Rust 的空闲沿
+  落点是设计决定。

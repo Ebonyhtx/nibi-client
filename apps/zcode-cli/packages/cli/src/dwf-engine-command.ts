@@ -914,6 +914,23 @@ class RemoteDriver {
     if (event.type === "node-settled") {
       this.backfillBoundary(event);
     }
+    if (event.type === "run-stalled") {
+      // run 级停滞的载荷（Node toProgressPayload 同形）：driver 的 stall 钟发现「连续
+      // sinceMs 没有一次成功的模型请求、期间至少排定过一次重试」。宿主据它组
+      // `<workflow-stall>` 通知；展示名同 hole 分支从 journal 读。
+      const record = this.journal.getRun(this.runId);
+      this.notify("run/event", {
+        runId: this.runId,
+        type: event.type,
+        ...(record?.name === undefined ? {} : { name: record.name }),
+        stall: {
+          sinceMs: event.sinceMs,
+          ...(event.reason === undefined ? {} : { reason: event.reason }),
+          ...(event.cap === undefined ? {} : { cap: event.cap }),
+        },
+      });
+      return;
+    }
     this.notify("run/event", { runId: this.runId, type: event.type });
   }
 }

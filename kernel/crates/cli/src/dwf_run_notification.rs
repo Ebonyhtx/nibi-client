@@ -459,6 +459,86 @@ waiting at."
     Some((text, Value::Object(entry)))
 }
 
+/// run 级停滞的 run 中通知（Node `formatWorkflowStallNotification` 逐字）+ 结构化 manifest
+/// （Node `notifyRunStalled` 的 `workflowNotification`，kind:"stall"）。`stall` 是 sidecar
+/// `run/event` 的载荷（`sinceMs` 必带，`reason`/`cap` 在场才带）；`name` 是 journal 的 run 行
+/// 展示名（缺席按 Node 的兜底链落 runId）。载荷形状不对回 `None`——宿主跳过并记日志
+/// （Node 的同一条纪律：观察面绝不抛异常）。
+pub(crate) fn compose_stall_notice(
+    run_id: &str,
+    name: Option<&str>,
+    stall: &Value,
+) -> Option<(String, Value)> {
+    let since_ms = stall["sinceMs"].as_f64()?;
+    if !since_ms.is_finite() || since_ms < 0.0 {
+        return None;
+    }
+    let reason = stall["reason"]
+        .as_str()
+        .filter(|reason| !reason.is_empty())
+        .map(str::to_owned);
+    let cap = stall["cap"]
+        .as_f64()
+        .filter(|cap| cap.is_finite() && *cap >= 0.0)
+        .map(|cap| cap.floor() as u64);
+    let run_label = name.unwrap_or(run_id);
+    let minutes = ((since_ms / 60_000.0).round() as i64).max(1);
+    let mut lines = vec![
+        "[SYSTEM NOTIFICATION - NOT USER INPUT]".to_owned(),
+        "This is an automated workflow event, NOT a message from the user.".to_owned(),
+        "Do NOT interpret this as user acknowledgement, confirmation, or response to any pending question."
+            .to_owned(),
+        String::new(),
+        "<workflow-stall>".to_owned(),
+        format!("  <run-id>{}</run-id>", escape_xml(run_id)),
+        format!("  <run>{}</run>", escape_xml(run_label)),
+        format!("  <since-ms>{}</since-ms>", since_ms.max(0.0).floor() as i64),
+    ];
+    if let Some(reason) = &reason {
+        lines.push(format!(
+            "  <dominant-reason>{}</dominant-reason>",
+            escape_xml(reason)
+        ));
+    }
+    if let Some(cap) = cap {
+        lines.push(format!("  <cap>{cap}</cap>"));
+    }
+    let reason_clause = match &reason {
+        None => "the provider keeps failing requests".to_owned(),
+        Some(reason) => format!("the provider keeps answering {reason}"),
+    };
+    let cap_clause = cap
+        .map(|cap| format!(" (current fan-out {cap})"))
+        .unwrap_or_default();
+    lines.push("</workflow-stall>".to_owned());
+    lines.push(String::new());
+    lines.push(format!(
+        "Workflow run {run_label} ({run_id}) has not completed a model request in {minutes} \
+minutes; {reason_clause} and the run is retrying with backoff{cap_clause}."
+    ));
+    lines.push(
+        "It is still running and needs nothing from you. Tell the user if they are waiting on \
+it; they can stop it from the run card. Do not cancel or rebuild it on your own."
+            .to_owned(),
+    );
+    let text = truncate(lines.join("\n"));
+    // manifest（Node notifyRunStalled 的 workflowNotification）：GUI 折叠成停滞条；reason 在
+    // manifest 里有自己的界（≤64），正文用全文——两个面各按各的尺，同 Node。
+    let mut manifest = serde_json::Map::new();
+    manifest.insert("kind".into(), json!("stall"));
+    manifest.insert("sinceMs".into(), json!(since_ms.floor() as i64));
+    if let Some(reason) = &reason {
+        manifest.insert("reason".into(), json!(clip(reason, STALL_REASON_MAX_CHARS)));
+    }
+    if let Some(cap) = cap {
+        manifest.insert("cap".into(), json!(cap));
+    }
+    Some((text, Value::Object(manifest)))
+}
+
+/// manifest 载荷里 reason 的界（Node notifyRunStalled 的 `reason.slice(0, 64)`）。
+const STALL_REASON_MAX_CHARS: usize = 64;
+
 /// `Workflow "{subject}" …` 的一句话摘要（Node `buildWorkflowTaskSummary`）。
 fn build_summary(subject: &str, run_status: &str, tracker_status: &str, stop_reason: Option<&str>) -> String {
     let prefix = format!("Workflow \"{subject}\"");
