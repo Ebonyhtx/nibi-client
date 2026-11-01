@@ -15,6 +15,8 @@ on:
     paths:
       - "kernel/**"
       - "packages/desktop/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - "scripts/desktop-package/**"
       - "scripts/native-search-tools-config.mjs"
       - ".github/workflows/desktop-package-gates.yml"
@@ -22,6 +24,8 @@ on:
     paths:
       - "kernel/**"
       - "packages/desktop/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
       - "scripts/desktop-package/**"
       - "scripts/native-search-tools-config.mjs"
       - ".github/workflows/desktop-package-gates.yml"
