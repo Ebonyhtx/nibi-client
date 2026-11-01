@@ -994,6 +994,29 @@ run 级停滞的 run 中通知（Node 的 stall 链：driver 的 stall 钟 → �
   runtime 的命令队列/转向/开集事件上，Rust 运行时的对应落点（空闲沿在哪里计数）是设计决定，
   留尾单。
 
+## 6.36 blocked 提醒链的纯件：钟与文案（2026-11-01，路线 C 第二十五段）
+
+「主代理闲着、run 还欠着决定」的提醒——**接线前的第一半**（Node
+core/runtime-task/workflow-blocked-reminder.ts 的钟 + `formatWorkflowBlockedNotification`
+的文案，逐字移植为 `runtime/src/blocked.rs` 的纯件）：
+
+- **钟**（[`WorkflowBlockedReminderClock`]）：纯状态机——量的是**空闲时长**（不是决定开了
+  多久）、开集**到点现读**（唯一跨空闲段留存的状态是每 run 已提醒次数）、每 run 至多两次
+  （15 分钟、再 30 分钟），用户发话或该 run 开集变化才重新给一对；到点回调带 epoch 作废
+  （读快照期间来了一轮即作废）。宿主端口同形（now/isIdle/liveRunIds/readOpen/remind/schedule），
+  定时器由宿主驱动（生产 `tokio::spawn`、测试手动轮询，一毫秒不真等）。
+- **文案**：XML-ish 汇总（问题/留白各列 ≤8、超出的 `count` ≠ `shown` 说真话）+ 按单复数
+  分叉的散文 + 「不靠瞎答让提醒停下」的出路句。escape/truncate 与 escalations.rs 的同族
+  助手同实现（runtime 侧自有一份——文案的消费点在 runtime 装配层，cli 的那份到不了）。
+- **单测 19 条**：钟的 15 个行为场景从 Node 的
+  `tests/workflow-blocked-reminder-clock.test.ts` **逐条移植**（手动时钟桩同构；期望值从
+  规格算出），文案三案与 Node 格式器实测输出**逐字节对拍**（问题+留白 / 草稿+行号+末次
+  提醒 / 超列+context）。
+- **下一半（接线）**：busy/idle/userSpoke 边挂 session actor（`peer_status` 转换处是天然
+  挂钩位，经 actor deps 注入——detached 询问的同一条模式）、开集事件从 client 的 run/event
+  来、live-run 查询走 store、readOpen 并 escalations.pending 与 journal 的留白回放、投递走
+  `workflow_notices`。数据源与挂钩位都已勘定，落下一片。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

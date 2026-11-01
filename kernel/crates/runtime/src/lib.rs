@@ -8,6 +8,7 @@
 
 mod agents;
 mod attachment;
+pub mod blocked;
 mod catalog;
 mod config;
 mod directory;

@@ -843,3 +843,16 @@ stall 链收口（详见 CHANGELOG-FORK §6.35）：停滞通知的生产可达�
   本段以 fixture 级对拍收口（四单测：三案逐字节 + 畸形载荷跳过）；活探针等配置旋钮。
   **blocked 留尾单**：提醒钟挂在 Node runtime 的命令队列/转向/开集事件上，Rust 的空闲沿
   落点是设计决定。
+
+## 6.43 第四十四步：blocked 提醒链的纯件（2026-11-01）
+
+接线前的第一半（详见 CHANGELOG-FORK §6.36）：提醒钟（纯状态机，宿主端口同形）与文案
+（`formatWorkflowBlockedNotification` 逐字）移植为 `runtime/src/blocked.rs`。判据锚点：Node
+`WorkflowBlockedReminderClock`（空闲时长、两次上限、到点现读、epoch 作废）与其测试文件的
+15 个行为场景。
+
+- **单测 19 条**：钟 15 场景逐条移植（手动时钟 + 手动定时器，`noop_waker` 手动轮询让
+  「读快照中途作废」可测）；文案三案与 Node 实测输出逐字节对拍。
+- **接线的勘定**：busy/idle/userSpoke 边挂 session actor（peer_status 转换处，actor deps
+  注入，detached 询问同模式）；开集事件来自 client 的 run/event；live-run 走 store 查询；
+  readOpen 并 escalations.pending 与 journal 留白回放；投递走 workflow_notices。落下一片。
