@@ -124,7 +124,8 @@
   "pnpm": {
     "overrides": {
       "react": "19.2.7",
-      "react-dom": "19.2.7"
+      "react-dom": "19.2.7",
+      "node-abi": "4.40.0"
     },
     "patchedDependencies": {
       "@radix-ui/react-collapsible@1.1.12": "patches/@radix-ui__react-collapsible@1.1.12.patch",
