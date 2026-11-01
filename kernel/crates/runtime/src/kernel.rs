@@ -428,6 +428,8 @@ impl Kernel for LocalKernel {
             actor: spec.actor,
             actor_name: spec.actor_name,
             ask: spec.ask,
+            // amend-resume 的转录种子：建会话时由 node-store 兑现（幂等）。
+            seed: spec.seed,
             // Actor 侧的升级端口：注册表是内核自己的一份（与主持工具的答题入口共用）。
             escalation: Some(Arc::new(escalations::EscalationPort(
                 self.escalations.clone(),
@@ -454,6 +456,7 @@ impl Kernel for LocalKernel {
             stopped: outcome.stopped.to_owned(),
             error: outcome.error,
             submitted: outcome.submitted,
+            message_count: outcome.message_count,
         })
     }
 

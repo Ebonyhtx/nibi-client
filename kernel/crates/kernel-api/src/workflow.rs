@@ -75,6 +75,9 @@ pub struct WorkflowActorSpec {
     /// 本轮的 ask 实例键（`site@ordinal`）：per-ask 的升级预算按它计。
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub ask: String,
+    /// amend-resume 的转录种子（消费过导入的 actor 才带；宿主在建会话时兑现）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub seed: Option<WorkflowActorSeed>,
 }
 
 /// 一轮 actor 的结果（引擎的 `WorkflowReportSink` 由 sidecar 按它推进）。
@@ -93,6 +96,9 @@ pub struct WorkflowActorTurn {
     /// typed ask 提交的值（`submit_result` 的参数 `result`）；没调用时缺席。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub submitted: Option<serde_json::Value>,
+    /// 本轮结束时 actor 会话已落库的消息条数（ask 边界记账的值；driver 据它补写
+    /// `NodeRecord.messageBoundary`）。宿主在交出本轮结果**之前**数好（先数后报）。
+    pub message_count: u64,
 }
 
 /// 一次 actor 轮的输入（`first` 为真时先建 actor 子会话）。
@@ -103,6 +109,30 @@ pub struct WorkflowActorRequest {
     /// ask 的正文（引擎的 `AskMessage` 渲染后的文本）。
     pub message: String,
     pub first: bool,
+}
+
+/// 种子兑现的结局（Node `seedActorTranscript` 的返回语义：跳过的两种归一个返回值）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum SeedFulfillment {
+    /// 实际复制的条数。
+    Copied(u64),
+    /// 目标已满（≥ message_count）——修订 run 崩溃后 resume 重挂已装满的会话。
+    SkippedFilled,
+    /// 目标里已有自己的历史（存在非种子 id 的消息）——一个字节都不动。
+    SkippedLive,
+}
+
+/// amend-resume 的转录种子（引擎 `ActorSessionSeed` 的镜像）：该 actor 消费了 ≥1 条导入 ask
+/// 条目时在场——宿主必须在首个 ask 之前把源会话的前 `message_count` 条消息按值复制进新铸的
+/// 会话（幂等，规则见 node-store 的 `fulfill_actor_seed`）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowActorSeed {
+    /// 转录来源会话（前驱或更早祖先的该名 actor 会话）。
+    pub source_session_id: String,
+    /// 复制源会话前多少条消息（count offset 跨前缀复制不变）。
+    pub message_count: u64,
 }
 
 /// 一个停驻中的升级问答（引擎 `escalation-raised` 与快照 `pendingQuestions` 的同源事实）。

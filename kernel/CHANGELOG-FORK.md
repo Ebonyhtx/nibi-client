@@ -880,6 +880,30 @@ Electron 自带 Node 跑 `nibi.cjs __nibi-dwf-engine`，不额外打包 Node 二
   `--prepare-storage` 原生分支）/ DWF 侧车 env——单测在台式机环境被 vitest runner 的
   `validateTags` 崩溃挡住（stash 对拍 HEAD 同样失败，预存环境问题非本片引入）；以根 typecheck
   与既有 88 字段 DWF 门禁（侧车 env 端到端）兜住。
+## 6.31 amend-resume 的导入缓存全链（2026-11-01，路线 C 第二十段）
+
+修订续跑的性能链补齐（Node 的 amend-resume 导入特性在路线 C 的全链；详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.38）：修订后继与恢复的 run 此前都从零重跑
+未消费的导入——结果正确，只是花掉本可省下的 token。
+
+- **构建/重建（sidecar）**：`buildImportedCache` / `rebuildImportedCacheForResume` 从 bootstrap
+  导出（**同一份纯函数跑在两个内核**——「两侧必须是同一张表」的正确性前提就是字面上同一段
+  代码）。amend 在前驱结算之后构建（全部会话静默，`quietSessions` 缺席即此，与重建侧同形）；
+  构建失败是接线故障，按 Node 的同一条纪律拒绝修订（`import_failed`）。resume 在
+  `resumedFrom` 在场时重建，**任何失败只降级不拒绝**（前驱 journal 是加速结构，丢了变贵不变
+  错）。转录存取面缺席：候选照收的降级（源诚实性检查缺位，driver 侧的种子兑现兜底）。
+- **ask 边界记账（driver 拥有的补写字段）**：宿主每轮 ask 结束时数好会话消息条数（先数后报
+  ——宿主在交出本轮之前数，引擎可能立刻派发下一个 ask），随 `ask/reply` 同车；sidecar 在
+  `node-settled` 时 getNode+putNode 补写 `messageBoundary`（结算即整条替换，补写必须在它
+  之后；cancelled 的 ask 不补——它们从不进导入前缀）。 typed ask 的 submit 轮同样带数。
+- **种子兑现（宿主）**：消费过导入的 actor 由引擎带 `ActorSessionSeed`，经 `actor/create` RPC
+  透传到宿主，node-store 的 `fulfill_actor_seed` 在建会话时按值复制（fork_clone 的克隆器：新
+  id、parentID 与 part 锚点重映射）。种子 id 按 (目标会话, 下标) 纯确定（`msg_<target>-seed-<i>`）
+  ——半截复制的可修复性与幂等判据（目标已满跳过 / 目标有自己的历史一字节不动 / 源短于边界
+  corruption 级大声失败）。计数与复制走同一个存取面（口径一致是边界的根基）。
+- **门禁**：88 → **89 字段**（`dwfImportBoundary`：修订后继完结的 ask 节点带 messageBoundary，
+  双内核一致）；门禁串行化（并行跑两个驱动时探针的轮询窗口两次被 CPU 争用拖爆——一次几分钟
+  的门禁，稳比快值钱）。
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

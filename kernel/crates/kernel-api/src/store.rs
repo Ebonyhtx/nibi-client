@@ -577,6 +577,28 @@ pub trait SessionStore: Send + Sync {
         Ok(None)
     }
 
+    /// amend-resume 的种子兑现（Node `seedActorTranscript` 同一条规则）：把源会话的前
+    /// `message_count` 条消息按值复制进目标会话（新 id、parentID 重映射），幂等——目标已满
+    /// （≥ message_count）或已有自己的历史时跳过。源会话短于边界是 corruption 级错误（大声失败）。
+    async fn fulfill_actor_seed(
+        &self,
+        _target: &SessionId,
+        _source: &SessionId,
+        _message_count: u64,
+    ) -> Result<crate::workflow::SeedFulfillment, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "actor seed fulfillment".to_owned(),
+        })
+    }
+
+    /// 一个会话已落库的消息条数（ask 边界记账的值；「数消息与复制消息走同一个存取面」——
+    /// 口径必须与 [`Self::fulfill_actor_seed`] 一致）。
+    async fn session_message_count(&self, _session: &SessionId) -> Result<u64, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session message count".to_owned(),
+        })
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）的运行历史页（journal 直读，**跨会话**）：cwd/name 过滤
     /// 与 `time_updated desc` 排序、limit 全部下推 SQL。`limit` 是「页上限 + 1」的截断探测
     /// 语义（调用方多取一条判 `truncated`），存储层不设自己的天花板。不支持的实现返回

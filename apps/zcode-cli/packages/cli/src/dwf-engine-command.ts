@@ -61,11 +61,22 @@ import {
   type SiteTable,
   type SubmitVerdict,
   type ValidateFn,
+  type ActorSessionSeed,
+  type ImportedRunCache,
   type WorkflowProgram,
   type WorldReadOp,
   WorkflowError,
 } from "@nibi/dynamic-workflow";
 import { runWorkflowScript } from "@nibi/dynamic-workflow-runtime";
+
+// 修订/恢复的导入缓存构建（Node 同一份纯函数——「两侧必须是同一张表」的正确性前提就是
+// 字面上跑同一段代码；buildImportedCache 的门与降级语义见 bootstrap 的
+// dynamic-workflow-import.ts 文件头）。转录存取面缺席：候选照收（源诚实性检查降级，
+// driver 侧的种子兑现仍是 corruption 级的兜底）。
+import {
+  buildImportedCache,
+  rebuildImportedCacheForResume,
+} from "@nibi/bootstrap";
 
 import type { RunContext } from "@nibi/shared-types";
 
@@ -372,6 +383,8 @@ function launchRun(
     savedPath?: string;
     /** 脚本点名的模型绑定表（宿主目录解出来的规范串）：落 run-launched，actor 的选型按它。 */
     modelBindings?: Record<string, string>;
+    /** 修订/恢复带来的导入缓存（前驱 journal 构建的加速结构；缺席即无缓存可用）。 */
+    importedCache?: ImportedRunCache;
   },
   request: (method: string, params: unknown) => Promise<unknown>,
   notify: (method: string, params: unknown) => void,
@@ -432,6 +445,7 @@ function launchRun(
     ...(launch === undefined ? {} : { launch }),
     ...(params.resumedFrom === undefined ? {} : { resumedFrom: params.resumedFrom }),
     ...(params.inheritedTokens === undefined ? {} : { inheritedTokens: params.inheritedTokens }),
+    ...(params.importedCache === undefined ? {} : { importedCache: params.importedCache }),
     control: {
       bind: (engine) => {
         const bound = runs.get(params.runId);
@@ -717,6 +731,8 @@ class RemoteDriver {
   private readonly modelBindings: Record<string, string> | undefined;
   /** 留白通知的编译期事实与 run 展示元数据（hole-reached 的完整载荷从这里组）。 */
   private readonly facts: RunFacts;
+  /** 每个 ask 实例最近一次宿主报的边界计数（先数后报：宿主在交出本轮前已数好）。 */
+  private readonly lastCounts = new Map<string, number>();
 
   constructor(
     runId: string,
@@ -743,6 +759,7 @@ class RemoteDriver {
   async createActorSession(
     actor: { siteId: string; ordinal: number },
     persona: PersonaSpec,
+    seed?: ActorSessionSeed,
   ): Promise<SessionRef> {
     // 选型优先级（Node workflow-actor-model 的同一张表）：persona 点名的绑定 > 本 run 的
     // 子代理模型 > 缺席（内核默认）。点名的名字不在表里是接线故障（编译器 9010 保证封闭集合、
@@ -767,6 +784,8 @@ class RemoteDriver {
       actor,
       persona,
       ...(model === undefined ? {} : { model }),
+      // amend-resume 的转录种子：兑现是宿主的事（node-store 的种子复制，建会话时幂等）。
+      ...(seed === undefined ? {} : { seed }),
     })) as { session: string };
     return { id: reply.session };
   }
@@ -801,6 +820,37 @@ class RemoteDriver {
 
   async executeWorldRead(op: WorldReadOp, args: unknown[]): Promise<unknown> {
     return this.request("world/read", { runId: this.runId, op, args });
+  }
+
+  /** 宿主每轮报的 messageCount：最近一次的值就是本次交换的边界候选。 */
+  noteCount(instance: InstanceRef, messageCount: number): void {
+    this.lastCounts.set(`${instance.siteId}@${instance.ordinal}`, messageCount);
+  }
+
+  /**
+   * ask 边界记账（Node journalAskMessageBoundary 同一族）：引擎结算 ask 节点时（emit 看见
+   * node-settled）把宿主报的条数补写进 journal 行——getNode 拿整条记录、只加边界再 putNode，
+   * status / result / inputHash 一个不动。node-settled 时记录已在 journal 且结算即整条替换，
+   * 补写必须在它之后（写在之前会被抹掉）。宿主报数先于引擎知晓本轮结束，所以这个数就是
+   * 本次交换结束那一刻的会话长度。
+   */
+  private backfillBoundary(event: {
+    instance: { siteId: string; ordinal: number };
+    outcome?: unknown;
+  }): void {
+    if (event.outcome !== "ok") return;
+    const key = `${event.instance.siteId}@${event.instance.ordinal}`;
+    const boundary = this.lastCounts.get(key);
+    if (boundary === undefined) return;
+    this.lastCounts.delete(key);
+    try {
+      const recorded = this.journal.getNode(this.runId, event.instance.siteId, event.instance.ordinal);
+      if (recorded === undefined) return;
+      this.journal.putNode({ ...recorded, messageBoundary: boundary });
+    } catch {
+      // 记账写入失败不打挂一个已经结算好的 ask（这里跑在 emit 的同步片里，抛出会把事件流炸断）。
+      // 代价与 Node 相同：这个 ask 不可导入，run 因此不可作前驱。
+    }
   }
 
   emit(event: RunEvent): void {
@@ -842,6 +892,9 @@ class RemoteDriver {
         },
       });
       return;
+    }
+    if (event.type === "node-settled") {
+      this.backfillBoundary(event);
     }
     this.notify("run/event", { runId: this.runId, type: event.type });
   }
@@ -1088,6 +1141,16 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       // resume 的 pin（Node resumeDynamicWorkflowRun 同一条读）：一次 run 的身份包含它跑在
       // 哪个模型上、被谁绑定过、脚本文件在哪、叫什么、由哪个锚点发起——全部建 run 那一世
       // 写死、本 run 余生不变，resume 从 journal 重读，**永不接受新的**。
+      // 修订 run 的 resume：重建导入缓存（Node rebuildImportedCacheForResume 同一条读；
+      // **任何失败都只降级、不拒绝 resume**——前驱 journal 是存续依赖，但只是加速结构，
+      // 丢了未消费的导入退化成 live 重执行）。
+      const importedCache =
+        record.resumedFrom === undefined
+          ? undefined
+          : await rebuildImportedCacheForResume(
+              { journal },
+              { runId: params.runId, predecessorRunId: record.resumedFrom },
+            );
       const resumedSubagentModel = runSubagentModel(journal, params.runId);
       const resumedModelBindings = runModelBindings(journal, params.runId);
       const launched = journal
@@ -1115,6 +1178,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           ...(resumedScriptPath === undefined ? {} : { savedPath: resumedScriptPath }),
           ...(record.name === undefined ? {} : { name: record.name }),
           ...(record.toolCallId === undefined ? {} : { toolCallId: record.toolCallId }),
+          ...(importedCache === undefined ? {} : { importedCache }),
         },
         request,
         notify,
@@ -1282,6 +1346,20 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       }
       // 结算之后再读一次行：用量起点要含前驱最后几轮的花费；实参按前驱自己的那份沿用。
       const settled = journal.getRun(params.predecessorRunId) ?? record;
+      // 修订后继的导入缓存（Node 的修订路径同一条构建；同一段代码，两侧才是同一张表）。
+      // 前驱已在上面的 `await live.settlement` 里结算——全部会话静默，quietSessions 缺席即
+      // 「全部静默」，与重建侧同形。转录存取面缺席（候选照收的降级见文件头注释）。构建失败
+      // 是接线故障（预检刚过、前驱已终态），按 Node 的同一条纪律上抛成拒绝，而不是悄悄
+      // 让未消费的导入 live 重跑。
+      const importBuilt = await buildImportedCache({ journal }, params.predecessorRunId);
+      if (!importBuilt.ok) {
+        return {
+          ok: false,
+          reason: "import_failed",
+          message: `dynamic workflow amend could not import from run ${params.predecessorRunId} after settlement: ${importBuilt.reason}`,
+        };
+      }
+      const importedCache = importBuilt.cache;
       const parentSessionId = settled.parentSessionId ?? record.parentSessionId ?? "";
       const cwd = settled.cwd ?? record.cwd ?? process.cwd();
       void launchRun(
@@ -1299,6 +1377,7 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
           ...(modelBindings === undefined ? {} : { modelBindings }),
           resumedFrom: params.predecessorRunId,
           inheritedTokens: settled.spentTokens ?? 0,
+          importedCache,
           ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),
         },
         request,
@@ -1689,10 +1768,16 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         kind: "submit" | "text" | "fail";
         payload?: unknown;
         text?: string;
+        /** 宿主每轮报的会话消息条数（先数后报）；ask 边界记账的候选值。 */
+        messageCount?: number;
       };
       const run = runs.get(params.runId);
       const sink = run?.driver.sink;
       if (!sink) continue;
+      // 宿主每轮都带 messageCount（先数后报）；最近一次的值在 node-settled 时补写成边界。
+      if (typeof params.messageCount === "number") {
+        run.driver.noteCount(params.instance, params.messageCount);
+      }
       if (params.kind === "submit") sink.askSubmitAttempted(params.instance, params.payload);
       else if (params.kind === "text") sink.askTurnEnded(params.instance, params.text ?? "");
       else sink.askFailed(params.instance, params.payload);

@@ -106,6 +106,14 @@ export type {
 // customCommandPromptResolver applies, or the two disagree and a reserved name
 // reaches the model as literal prompt text. See prompt-command.ts.
 export { isReservedZCodeSlashCommandName } from "./slash-command-surface.js";
+// DWF 导入缓存的构建面（路线 C 的 sidecar 复用同一份纯函数——「两侧必须是同一张表」的
+// 正确性前提就是字面上跑同一段代码；见 app/dynamic-workflow-import.ts 文件头）。
+export {
+  buildImportedCache,
+  rebuildImportedCacheForResume,
+} from "./app/dynamic-workflow-import.js";
+export type { AmendImportOptions } from "./app/dynamic-workflow-import.js";
+export type { ImportedRunCache } from "@nibi/dynamic-workflow";
 export {
   grantWorkspaceHookTrust,
   inspectWorkspaceHookTrust,

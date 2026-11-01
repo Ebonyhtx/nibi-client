@@ -31,7 +31,7 @@ pub(crate) async fn runs(server: &Server, raw: &Value) -> Result<Value, RpcError
     if workspace
         .get("workspaceKey")
         .and_then(Value::as_str)
-        .is_none_or(|key| key.is_empty())
+        .is_none_or(str::is_empty)
     {
         return Err(invalid("`workspace.workspaceKey` must be a non-empty string"));
     }

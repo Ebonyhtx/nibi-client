@@ -123,6 +123,8 @@ struct ActorHandle {
     child: SessionId,
     prompt: String,
     label: String,
+    /// amend-resume 的转录种子（消费过导入的 actor 才带；建会话时兑现）。
+    seed: Option<rust_cli_kernel_api::workflow::WorkflowActorSeed>,
     /// persona 的有效名（`agent("poet")` 的 `"poet"`）；匿名 actor 缺席。
     name: Option<String>,
     /// run 级的子代理选型（`amendWorkflowSettings` 的 `subagentModel` / `run-launched`）；
@@ -566,6 +568,19 @@ where
                     "sess_dwf_{}",
                     shared.ids.uuid().replace(['-', ':'], "")
                 ));
+                // 种子按 (sourceSessionId, messageCount) 透传——兑现是宿主的事（node-store 的
+                // 种子复制，建会话时幂等）。
+                let seed = if params["seed"].is_object() {
+                    Some(rust_cli_kernel_api::workflow::WorkflowActorSeed {
+                        source_session_id: params["seed"]["sourceSessionId"]
+                            .as_str()
+                            .unwrap_or_default()
+                            .to_owned(),
+                        message_count: params["seed"]["messageCount"].as_u64().unwrap_or_default(),
+                    })
+                } else {
+                    None
+                };
                 run.actors
                     .lock()
                     .unwrap_or_else(PoisonError::into_inner)
@@ -575,6 +590,7 @@ where
                         label,
                         name,
                         selection,
+                        seed,
                     });
                 tracing::debug!(event = "dwf.actor.stored", site = %site);
                 if let Some(id) = &id {
@@ -930,6 +946,7 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
                 actor_name: actor.name.clone(),
                 // ask 实例键与 sidecar 的 `key` 同一个（`site@ordinal`）：升级预算按它计。
                 ask: key.clone(),
+                seed: actor.seed.clone(),
             },
             message: message.clone(),
             first,
@@ -1005,11 +1022,14 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
                 _ => break,
             }
         }
+        // messageCount 随文本同车：sidecar 据它补写 ask 节点的 messageBoundary（先数后报——
+        // 宿主在交出本轮结果之前已经数好）。
         process.notify("ask/reply", json!({
                 "runId": run_id,
                 "instance": params["instance"],
                 "kind": "text",
                 "text": turn.text,
+                "messageCount": turn.message_count,
             }));
         break;
     }

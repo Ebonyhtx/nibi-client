@@ -388,6 +388,33 @@ impl SessionStore for NodeStore {
             .await
     }
 
+    /// amend-resume 的种子兑现（fork_clone 的种子复制；两条跳过规则与确定性 id 同一条约定）。
+    async fn fulfill_actor_seed(
+        &self,
+        target: &SessionId,
+        source: &SessionId,
+        message_count: u64,
+    ) -> Result<rust_cli_kernel_api::workflow::SeedFulfillment, StoreError> {
+        let work = (
+            target.as_str().to_owned(),
+            source.as_str().to_owned(),
+            message_count,
+            self.ids.now_ms(),
+        );
+        self.with_db(move |conn, _| {
+            crate::fork_clone::fulfill_actor_seed(conn, work.3, &work.0, &work.1, work.2 as usize)
+                .map_err(storage)
+        })
+        .await
+    }
+
+    /// 一个会话已落库的消息条数（ask 边界记账的值；与种子复制同一条口径）。
+    async fn session_message_count(&self, session: &SessionId) -> Result<u64, StoreError> {
+        let session = session.as_str().to_owned();
+        self.with_db(move |conn, _| repo::messages::message_count(conn, &session).map_err(storage))
+            .await
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）的运行历史页（journal 直读，跨会话；SQL 与终态拆解
     /// 逐字对齐 Node 的 `listRuns` / `decodeRunListItem`）。
     async fn workflow_runs_page(

@@ -212,6 +212,17 @@ pub fn messages(conn: &Connection, session: &str) -> Result<Vec<WithParts>> {
 }
 
 /// 消息 `id` 是否已存在（任一会话；`message.id` 是全库主键）。
+/// 一个会话已落库的消息条数（ask 边界记账的值；「数消息与复制消息走同一个存取面」——
+/// 口径必须与种子复制一致：都按 message 行数，sequence 升序的读者同一份）。
+pub fn message_count(conn: &Connection, session: &str) -> Result<u64> {
+    let rows = conn.query_row(
+        "select count(*) from message where session_id = ?",
+        params![session],
+        |row| row.get::<_, i64>(0),
+    )?;
+    Ok(rows.max(0) as u64)
+}
+
 pub fn exists(conn: &Connection, id: &str) -> Result<bool> {
     Ok(conn
         .prepare_cached("select 1 from message where id = ?")?

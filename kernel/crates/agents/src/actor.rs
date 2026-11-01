@@ -54,6 +54,8 @@ pub struct ActorProfile {
     pub max_turns: Option<u32>,
     /// typed ask 的 `result` 形状（JSON Schema）：Some 时给 actor 注册 `submit_result` 工具。
     pub submit_schema: Option<Value>,
+    /// amend-resume 的转录种子：`first` 建会话时兑现（复制源前缀，幂等），缺席即无导入。
+    pub seed: Option<rust_cli_kernel_api::workflow::WorkflowActorSeed>,
     /// 本 run 的 id（升级问答的路由身份）。
     pub run_id: String,
     /// actor 的结构化引用 `site@ordinal`。
@@ -78,6 +80,8 @@ pub struct ActorTurnOutcome {
     /// `completed` / `aborted` / `failed`。
     pub stopped: &'static str,
     pub error: Option<String>,
+    /// 本轮结束时 actor 会话已落库的消息条数（ask 边界记账的值）。
+    pub message_count: u64,
     /// typed ask 提交的值（`submit_result` 的参数 `result`）；没调用时为 None。
     pub submitted: Option<Value>,
 }
@@ -442,6 +446,18 @@ async fn open(
                 created_at_ms: core.ports.clock.now_ms(),
             })
             .await?;
+        // 种子兑现先于首轮输入（复制的转录在前、ask 消息在后，sequence 顺序即上下文顺序）；
+        // 兑现失败是 corruption 级（源短于边界），大声失败而不是拿空上下文开场。
+        if let Some(seed) = &profile.seed {
+            core.ports
+                .store
+                .fulfill_actor_seed(
+                    &profile.child,
+                    &SessionId::new(seed.source_session_id.clone()),
+                    seed.message_count,
+                )
+                .await?;
+        }
         let turn = crate::spawn::commit(
             core,
             &profile.child,
@@ -596,6 +612,14 @@ impl Agents {
             ) => ("completed", None),
             Err(error) => ("failed", Some(error.to_string())),
         };
+        // 边界计数在交出本轮结果**之前**数好（先数后报：引擎可能立刻在同一会话上派发下一个
+        // ask，那轮的消息会落进同一个会话，把本次计数撑大）。
+        let message_count = core
+            .ports
+            .store
+            .session_message_count(&profile.child)
+            .await
+            .unwrap_or_default();
         Ok(ActorTurnOutcome {
             child: profile.child.clone(),
             text,
@@ -604,6 +628,7 @@ impl Agents {
             stopped,
             error,
             submitted: slot.take(),
+            message_count,
         })
     }
 }

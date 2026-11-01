@@ -100,6 +100,8 @@ const REQUIRED = [
   "dwfPinResumedActor",
   "dwfPinResumed",
   "dwfPinStored",
+  // ask 边界记账（导入链第一环）：完结的 ask 节点带 messageBoundary。
+  "dwfImportBoundary",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",
@@ -159,7 +161,10 @@ function run(kernel) {
   });
 }
 
-const [rust, node] = await Promise.all([run("rust"), run("node")]);
+// 串行跑两个驱动：并行时各自的会话轮调度互相争 CPU，探针的轮询窗口（30s 级）偶发超时
+// （dwfRunTool 的 GetWorkflowRun 探针两次在 node 侧被拖爆）。DWF 门禁一次几分钟，串行更稳。
+const rust = await run("rust");
+const node = await run("node");
 let failed = false;
 for (const field of REQUIRED) {
   const left = rust.checks?.[field] ?? null;

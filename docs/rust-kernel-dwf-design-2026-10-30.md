@@ -302,5 +302,8 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        一致）；
        ~~resume 的 pin~~（**已接，2026-11-01 第十八段**：acceptResume 从 journal 重读
        subagentModel/modelBindings/scriptPath/name/toolCallId + 哈希先验，恢复出的 ask 仍在 pin
-       模型上，`check-dwf-engine` 88 字段；导入缓存重建仍缺——变贵不变错）；
+       模型上；~~导入缓存重建仍缺~~——**已接，2026-11-01 第二十段**：buildImportedCache /
+       rebuildImportedCacheForResume（同一份纯函数）+ ask 边界记账（宿主先数后报、sidecar
+       node-settled 补写）+ 种子兑现（宿主 fork_clone 按值复制、确定性种子 id），
+       `check-dwf-engine` 89 字段）；
        `workflows/runs` 中枢方法仍待做）；

@@ -10,6 +10,8 @@ use rust_cli_kernel_api::store::StoreError;
 use serde_json::{Map, Value, json};
 
 use crate::OrStorage;
+use crate::storage;
+use rusqlite::Connection;
 use crate::facts::Commit;
 use crate::ids::{message_id, part_id};
 use crate::notices::RUST_CLI;
@@ -132,9 +134,20 @@ fn boundary(boundary: &Value, map: &Mapping) -> Value {
     Value::Object(out)
 }
 
-/// Node `clonePartForFork`（legacy：只有消息 ID 映射）。
+/// Node `clonePartForFork`（legacy：只有消息 ID 映射）。`part_id_override` 在场时用它（种子
+/// 复制的确定性 id），缺席按原样现铸。
 fn part(ctx: &Commit<'_>, part: &Value, map: &Mapping, next: &str) -> Value {
-    let new_id = || part_id(ctx.now, &(ctx.uuid)());
+    part_with_id(ctx, part, map, next, &part_id(ctx.now, &(ctx.uuid)()))
+}
+
+fn part_with_id(
+    ctx: &Commit<'_>,
+    part: &Value,
+    map: &Mapping,
+    next: &str,
+    part_id_override: &str,
+) -> Value {
+    let new_id = || part_id_override.to_owned();
     let mut out = object(part);
     out.insert("id".into(), new_id().into());
     out.insert("sessionID".into(), ctx.session.into());
@@ -265,6 +278,64 @@ fn verification(
         ..entry.clone()
     };
     Some((copy, Value::Object(cloned)))
+}
+
+/// DWF amend-resume 的种子兑现（Node `seedActorTranscript` 同一条规则）：把源会话的前
+/// `message_count` 条消息（连同各自的 part）按值复制进目标会话。
+///
+/// 种子 id 按 (目标会话, 前缀下标) 纯确定（Node `seededMessageId`：`msg_<target>-seed-<i>`，
+/// part 同式）——半截复制的可修复性与幂等判据都靠它：
+///   - 目标已有 ≥ message_count 条：整段跳过（修订 run 崩溃后 resume 重挂已装满的会话，再抄
+///     一遍等于把上文翻倍）；
+///   - 目标里但凡有一条不是本会话种子 id：跳过（边界会长大——目标有自己的历史时一个字节都不动）；
+///   - 源会话短于边界：corruption 级错误（大声失败；可降级的一半在构建器侧的门里）。
+pub(crate) fn fulfill_actor_seed(
+    conn: &Connection,
+    now_ms: u64,
+    target: &str,
+    source: &str,
+    message_count: usize,
+) -> Result<rust_cli_kernel_api::workflow::SeedFulfillment, StoreError> {
+    let existing = messages::messages(conn, target).storage()?;
+    if existing.len() >= message_count {
+        return Ok(rust_cli_kernel_api::workflow::SeedFulfillment::SkippedFilled);
+    }
+    let only_seeds = existing
+        .iter()
+        .enumerate()
+        .all(|(index, record)| record.id() == format!("msg_{target}-seed-{index}"));
+    if !only_seeds {
+        return Ok(rust_cli_kernel_api::workflow::SeedFulfillment::SkippedLive);
+    }
+    let source_messages = messages::messages(conn, source).storage()?;
+    if source_messages.len() < message_count {
+        return Err(storage(format!(
+            "cannot seed the subagent transcript: source session {source} has only {} messages, but the boundary requires the first {message_count}",
+            source_messages.len()
+        )));
+    }
+    // 老 id → 新 id：assistant 的 parentID 与 part 的内嵌锚点都按它重映射。前缀连续，每条消息
+    // 引用到的更早消息必然已经在表里（下标严格递增）。
+    let mut map = Mapping::new();
+    for (index, record) in source_messages.iter().enumerate().take(message_count) {
+        let next = format!("msg_{target}-seed-{index}");
+        map.insert(record.id().to_owned(), next.clone());
+        let info = message(&record.info, &map, target, &next);
+        messages::save_message(conn, &info, now_ms as i64).storage()?;
+        for (part_index, part) in record.parts.iter().enumerate() {
+            let cloned = part_with_id(
+                &Commit::new(conn, target, (now_ms, &(|| String::new())), None, &[], None),
+                part,
+                &map,
+                &next,
+                &format!("part_{target}-seed-{index}-{part_index}"),
+            );
+            messages::save_part(conn, &cloned, now_ms as i64).storage()?;
+        }
+    }
+    Ok(rust_cli_kernel_api::workflow::SeedFulfillment::Copied(
+        message_count as u64,
+    ))
 }
 
 /// Node `deriveForkedGoalStatusFromCopiedVerifications`。

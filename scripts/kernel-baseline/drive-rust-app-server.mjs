@@ -1535,6 +1535,22 @@ try {
     const done = await waitRow(nextRun, (row) => row.status === "completed");
     checks.dwfAmendCompleted = done ? "completed" : "timeout";
     checks.dwfAmendActorModel = REQUESTS.some((request) => request.model === "fake-model-b");
+    // ask 边界记账（amend-resume 导入链的第一环）：完结的 ask 节点带 messageBoundary
+    // （driver 拥有的补写字段——宿主先数后报，sidecar 在 node-settled 时 getNode+putNode）。
+    {
+      const db = new DatabaseSync(dbPath);
+      const rows = db
+        .prepare(
+          "select message_boundary from dwf_node where run_id = ? and kind = 'ask' and status = 'completed'",
+        )
+        .all(nextRun);
+      db.close();
+      checks.dwfImportBoundary = JSON.stringify(
+        rows.map((row) => ({
+          hasBoundary: typeof row.message_boundary === "number" && row.message_boundary > 0,
+        })),
+      );
+    }
     console.log(
       `dwf amend: retune=${checks.dwfAmendRetuneStatus}/${checks.dwfAmendRetuneCaps} ` +
         `amend=${checks.dwfAmendStatus} old=${checks.dwfAmendOldStop} ` +

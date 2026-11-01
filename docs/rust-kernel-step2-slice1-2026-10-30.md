@@ -761,3 +761,19 @@ modelBindings / scriptPath / name / toolCallId 全部从 journal 重读，caps �
 - **三消费者回归**：主代理 spawn / 存储准备子进程 / DWF 侧车 env 的单测在本机被 vitest runner
   `validateTags` 崩溃挡住（stash 对拍 HEAD 同败，预存环境问题）；根 typecheck（services +
   desktop main/renderer/preload）与 88 字段 DWF 门禁兜住。
+
+## 6.38 第三十九步：amend-resume 的导入缓存全链（2026-11-01）
+
+§6.29 尾单的「导入缓存重建」从性能缺口长成全链（详见 CHANGELOG-FORK §6.31）：缓存构建、
+ask 边界记账与种子兑现三件必须一起接——缓存没有边界就建不出来（`missing_boundaries`），
+建出来了没有种子兑现消费不到。判据锚点：Node `dynamic-workflow-import.ts`（门与降级）、
+`workflow-driver-transcript.ts`（边界记账与种子）、`workflow-actor-transcript.ts`（计数与复制
+的同一存取面）、`fork_clone` 的克隆器。
+
+- **sidecar**：amend 构建（前驱结算后，quietSessions 缺席=全部静默；失败拒绝修订）、resume
+  重建（失败只降级）；`createActorSession` 透传种子；`node-settled` 时补写边界（宿主每轮
+  `ask/reply` 带 messageCount，先数后报）。
+- **宿主**：`WorkflowActorSpec.seed` → `ActorProfile.seed` → `open()` 建会话时兑现
+  （node-store `fulfill_actor_seed`：fork_clone 克隆器 + 确定性种子 id + 两条跳过规则 + 源短于
+  边界大声失败）；`WorkflowActorTurn.messageCount`（先数后报）。
+- **门禁**：88 → **89 字段**（dwfImportBoundary）；门禁串行化。
