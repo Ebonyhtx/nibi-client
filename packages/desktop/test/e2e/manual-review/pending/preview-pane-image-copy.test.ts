@@ -74,9 +74,20 @@ describe("右侧图片预览复制 E2E", () => {
       await copy.click();
       await browser.waitUntil(
         async () => {
-          const result = await browser.electron.execute((electron) => {
-            const image = electron.clipboard.readImage();
-            return { empty: image.isEmpty(), ...image.getSize() };
+          const result = await browser.electron.execute(async (electron) => {
+            // Electron 44 起 readImage 移除：read() 回 ClipboardItem[]，图片在 image/png 槽位。
+            const items = await electron.clipboard.read();
+            const image = items.find((item) => item.types.includes("image/png"));
+            if (!image) return { empty: true, width: 0, height: 0 };
+            const blob = await image.getType("image/png");
+            const size = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+              blob.arrayBuffer().then((buffer) => {
+                // PNG 头：宽高在 IHDR（字节 16..24）。
+                const view = new DataView(buffer);
+                resolve({ width: view.getUint32(16), height: view.getUint32(20) });
+              }, reject);
+            });
+            return { empty: false, ...size };
           });
           return !result.empty && result.width === width && result.height === height;
         },

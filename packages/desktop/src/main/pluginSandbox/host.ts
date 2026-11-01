@@ -4,6 +4,7 @@ import type { PluginSandboxHandle, PluginSandboxRegisterInput } from "@nibi/shar
 import {
   BrowserWindow,
   clipboard,
+  ClipboardItem,
   nativeImage,
   MessageChannelMain,
   app,
@@ -345,11 +346,13 @@ export function installPluginSandboxHost(input: {
       new ClipboardItem({
         "image/png": new Blob(
           [
-            (
-              process.platform === "win32"
-                ? nativeImage.createFromBitmap(cropped.toBitmap(), cropped.getSize())
-                : cropped
-            ).toPNG(),
+            new Uint8Array(
+              (
+                process.platform === "win32"
+                  ? nativeImage.createFromBitmap(cropped.toBitmap(), cropped.getSize())
+                  : cropped
+              ).toPNG(),
+            ),
           ],
           { type: "image/png" },
         ),
