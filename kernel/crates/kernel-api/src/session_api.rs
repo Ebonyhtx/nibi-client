@@ -1031,6 +1031,29 @@ pub trait Kernel: Send + Sync {
         None
     }
 
+    /// GUI 中枢的已保存工作流读面（`workflows/list` / `workflows/get`）：frontmatter 解析器在
+    /// sidecar 的 @nibi/core，没接 sidecar 的入口回 `Unsupported`（协议层按空页 / not_found 降级）。
+    async fn hub_list_saved_workflows(
+        &self,
+        _workspace_path: &str,
+        _scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saved workflow listing".to_owned(),
+        })
+    }
+
+    async fn hub_get_saved_workflow(
+        &self,
+        _workspace_path: &str,
+        _name: &str,
+        _scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saved workflow lookup".to_owned(),
+        })
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）：运行历史的一页（journal 直读，**跨会话**）。
     /// 不支持的入口回 `Unsupported`——协议层按 Node 的 journal 缺席同规回空页。
     async fn workflow_runs_page(

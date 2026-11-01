@@ -231,8 +231,10 @@ impl Server {
             "v4/conversation/resync" => crate::subscribe::resync(self, &params).await,
             "v4/connection/flow" => crate::subscribe::flow(self, &params).await,
             "v4/sessionsIndex/reconcile" => crate::subscribe::reconcile(self, &params).await,
-            // NIBI 协议中枢（GUI）：运行历史页（journal 直读，跨会话；contract 见 nibi_workflows.rs）。
+            // NIBI 协议中枢（GUI）：运行历史页 + 已保存工作流读面（contract 见 nibi_workflows.rs）。
             "workflows/runs" => crate::nibi_workflows::runs(self, &params).await.map(Reply::new),
+            "workflows/list" => crate::nibi_workflows::list_workflows(self, &params).await.map(Reply::new),
+            "workflows/get" => crate::nibi_workflows::get_workflow(self, &params).await.map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

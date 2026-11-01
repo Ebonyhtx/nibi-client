@@ -7,6 +7,7 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::model::ModelSelection;
 use crate::permission::PermissionMode;
@@ -731,4 +732,21 @@ pub trait WorkflowEngine: Send + Sync {
         hole_id: &str,
         body: &str,
     ) -> Result<WorkflowFillOutcome, WorkflowEngineError>;
+
+    /// GUI 中枢的已保存工作流读面（`workflows/list`）：定向 scope 的目录枚举，回复是
+    /// Node `listSavedWorkflowsOp` 的原形（解析器在 sidecar 的 @nibi/core，宿主只转发）。
+    async fn hub_list_saved_workflows(
+        &self,
+        workspace_path: &str,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError>;
+
+    /// GUI 中枢的单个已保存工作流（`workflows/get`）：定向 scope 的解析，回复是 Node
+    /// `getSavedWorkflowOp` 的原形（ok:true 六键或 ok:false 失败袋）。
+    async fn hub_get_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError>;
 }

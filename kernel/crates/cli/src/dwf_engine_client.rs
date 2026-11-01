@@ -1223,6 +1223,43 @@ impl WorkflowEngine for SidecarEngine {
         Ok(())
     }
 
+    async fn hub_list_saved_workflows(
+        &self,
+        workspace_path: &str,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "workflows/list",
+                json!({ "workspacePath": workspace_path, "scope": scope }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
+    async fn hub_get_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "workflows/get",
+                json!({ "workspacePath": workspace_path, "name": name, "scope": scope }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
     async fn fill_target(
         &self,
         run_id: &str,

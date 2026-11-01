@@ -2498,6 +2498,51 @@ try {
       limit: 0,
     });
     checks.dwfRunsInvalid = String(invalid?.error?.code ?? "no-error");
+    // GUI 中枢的已保存工作流读面（workflows/list|get，Node listSavedWorkflowsOp /
+    // getSavedWorkflowOp 同一契约）：项目档列出各阶段的夹具，get 读 holeprobe 的脚本本体，
+    // 缺名按四态 not_found 拒绝，全局档在隔离 HOME 下是空页 + 可 watch 的目录。
+    const hubList = ack(
+      await send("workflows/list", { workspace: workspaceRef }),
+      "workflows/list",
+    );
+    checks.dwfHubList = JSON.stringify({
+      names: (hubList?.workflows ?? []).map((entry) => entry.name).sort(),
+      scopes: [...new Set((hubList?.workflows ?? []).map((entry) => entry.scope))],
+      invalidEmpty: Array.isArray(hubList?.invalid) && hubList.invalid.length === 0,
+      dirIsWorkflows:
+        typeof hubList?.dir === "string" &&
+        hubList.dir.replaceAll("\\", "/").endsWith(".nibi/workflows"),
+      entriesHaveArgs: (hubList?.workflows ?? []).every(
+        (entry) => typeof entry.description === "string" && entry.path.endsWith(".dwf.ts"),
+      ),
+    });
+    const hubGet = ack(
+      await send("workflows/get", { workspace: workspaceRef, name: "holeprobe" }),
+      "workflows/get",
+    );
+    checks.dwfHubGet = JSON.stringify({
+      ok: hubGet?.ok === true,
+      name: hubGet?.name ?? null,
+      scope: hubGet?.scope ?? null,
+      scriptHasHole:
+        typeof hubGet?.script === "string" && hubGet.script.includes("hole<string>"),
+      hasMeta: hubGet?.meta !== undefined && typeof hubGet.meta === "object",
+    });
+    const hubMissing = await send("workflows/get", {
+      workspace: workspaceRef,
+      name: "no-such-workflow",
+    });
+    checks.dwfHubGetMissing = ack(hubMissing, "workflows/get(missing)")?.reason ?? "no-reply";
+    const hubGlobal = ack(
+      await send("workflows/list", { workspace: workspaceRef, scope: "global" }),
+      "workflows/list(global)",
+    );
+    checks.dwfHubListGlobal = JSON.stringify({
+      empty: Array.isArray(hubGlobal?.workflows) && hubGlobal.workflows.length === 0,
+      dirIsWorkflows:
+        typeof hubGlobal?.dir === "string" &&
+        hubGlobal.dir.replaceAll("\\", "/").endsWith(".nibi/workflows"),
+    });
     console.log(
       `dwf runs: count=${checks.dwfRunsCount} named=${checks.dwfRunsNamed} ` +
         `truncated=${checks.dwfRunsTruncated} invalid=${checks.dwfRunsInvalid}`,

@@ -102,6 +102,12 @@ const REQUIRED = [
   "dwfPinStored",
   // ask 边界记账（导入链第一环）：完结的 ask 节点带 messageBoundary。
   "dwfImportBoundary",
+  // GUI 中枢的已保存工作流读面（workflows/list|get）：项目档列举、脚本本体读取、缺名
+  // 四态拒绝与全局档空页（隔离 HOME）。
+  "dwfHubList",
+  "dwfHubGet",
+  "dwfHubGetMissing",
+  "dwfHubListGlobal",
   "dwfEscalateStart",
   "dwfEscalateStatus",
   "dwfEscalateRaised",

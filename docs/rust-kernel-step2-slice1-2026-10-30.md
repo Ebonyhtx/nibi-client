@@ -777,3 +777,15 @@ ask 边界记账与种子兑现三件必须一起接——缓存没有边界就�
   （node-store `fulfill_actor_seed`：fork_clone 克隆器 + 确定性种子 id + 两条跳过规则 + 源短于
   边界大声失败）；`WorkflowActorTurn.messageCount`（先数后报）。
 - **门禁**：88 → **89 字段**（dwfImportBoundary）；门禁串行化。
+
+## 6.39 第四十步：`workflows/list` / `workflows/get` 中枢读面（2026-11-01）
+
+§6.28 的中枢面扩展（详见 CHANGELOG-FORK §6.32）：已保存工作流的两个只读方法落 Rust。判据
+锚点：Node `listSavedWorkflowsOp` / `getSavedWorkflowOp`（bootstrap/nibi-protocol/saved-
+workflows.ts）与 @nibi/core 的 `listSavedWorkflows` / `resolveSavedWorkflow` / `savedWorkflowRoot`。
+
+- **sidecar 承载解析**：frontmatter 不在 Rust 重写——sidecar RPC 回 Node op 的原形，宿主只
+  转发；定向 scope 的枚举语义（绝不走无向变体）逐字。
+- **端口**：engine/kernel 两层 + 协议两分支；降级在 runtime kernel（home 取 `EnvFacts.home`），
+  协议层把 Unsupported 视为接线故障（内核层已经降过级，协议层不再造目录）。
+- **门禁**：89 → **93 字段**（dwfHub 四字段，双内核逐字节一致）。

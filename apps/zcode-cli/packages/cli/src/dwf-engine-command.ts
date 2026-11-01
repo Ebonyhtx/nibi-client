@@ -30,7 +30,12 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createDwfJournalStore } from "@nibi/adapters/storage";
-import { resolveSavedWorkflow, validateWorkflowArgs } from "@nibi/core";
+import {
+  listSavedWorkflows,
+  resolveSavedWorkflow,
+  savedWorkflowRoot,
+  validateWorkflowArgs,
+} from "@nibi/core";
 import {
   analyzeWorkflowScript,
   buildAskSpecs,
@@ -1737,6 +1742,61 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     }
   }
 
+  // ============================================================
+  // GUI 中枢的已保存工作流读面（workflows/list / workflows/get；Node 的 listSavedWorkflowsOp /
+  // getSavedWorkflowOp 同一契约）。解析器与序列化器只从 @nibi/core 取——这里不解析
+  // frontmatter，也不拼 YAML；sidecar 进程的 homedir 与宿主同源（隔离 HOME 由启动方设好），
+  // 全局根因此指向同一份。
+  // ============================================================
+  interface HubListParams {
+    workspacePath: string;
+    scope?: string;
+  }
+
+  async function acceptHubList(params: HubListParams): Promise<unknown> {
+    const scope = params.scope === "global" ? "global" : "project";
+    // 中枢的 PROJECT 组只列本项目那一份，全局组只列全局那一份——**永远**传定向 scope，绝不走
+    // 无向变体（两根 first-wins 会把 global 混进 project 组，把被遮蔽的 global 从全局组里藏掉）。
+    const listed = listSavedWorkflows({ cwd: params.workspacePath, scope });
+    // 扫过的目录（即使不存在也回）：GUI 的文件监听靠它 watch。
+    return {
+      workflows: listed.entries,
+      invalid: listed.invalid,
+      dir: savedWorkflowRoot(params.workspacePath, scope).dir,
+    };
+  }
+
+  interface HubGetParams {
+    workspacePath: string;
+    name: string;
+    scope?: string;
+  }
+
+  async function acceptHubGet(params: HubGetParams): Promise<unknown> {
+    const scope = params.scope === "global" ? "global" : "project";
+    // 定向 scope：`global` 只查全局根、不做遮蔽——中枢的全局组要看到被项目档遮蔽的那份。
+    const resolved = resolveSavedWorkflow({
+      cwd: params.workspacePath,
+      name: params.name,
+      scope,
+    });
+    if (!resolved.ok) {
+      return {
+        ok: false,
+        reason: resolved.reason,
+        ...("detail" in resolved && resolved.detail ? { detail: String(resolved.detail) } : {}),
+      };
+    }
+    return {
+      ok: true,
+      name: resolved.name,
+      path: resolved.path,
+      scope: resolved.scope,
+      meta: resolved.meta,
+      script: resolved.script,
+    };
+  }
+
   const { createInterface } = await import("node:readline");
   const reader = createInterface({ input: ctx.stdin });
   for await (const line of reader) {
@@ -1802,6 +1862,20 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       // 同一条纪律：acceptAmend 会 await 前驱的结算，绝不能挡住这条读循环。
       const id = message.id;
       void acceptAmend(message.params as AmendParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/list") {
+      const id = message.id;
+      void acceptHubList(message.params as HubListParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/get") {
+      const id = message.id;
+      void acceptHubGet(message.params as HubGetParams).then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

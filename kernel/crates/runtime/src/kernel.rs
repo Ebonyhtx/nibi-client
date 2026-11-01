@@ -37,6 +37,66 @@ impl Kernel for LocalKernel {
         Some(self.actors.clone())
     }
 
+    /// GUI 中枢的已保存工作流读面：frontmatter 解析器在 sidecar（@nibi/core），这里转发。
+    /// 降级（没接 sidecar 的入口）在本层现做：home 取机器事实，协议层不读环境。
+    async fn hub_list_saved_workflows(
+        &self,
+        workspace_path: &str,
+        scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            // home 取机器事实（EnvFacts.home；协议层不读环境）。
+            let home = self
+                .machine
+                .info()
+                .facts(&rust_cli_kernel_api::env::WorkspaceRef {
+                    environment: rust_cli_kernel_api::ids::EnvironmentId::new(
+                        rust_cli_kernel_api::env_registry::LOCAL_MACHINE,
+                    ),
+                    root: rust_cli_kernel_api::env::EnvPath::new(workspace_path.to_owned()),
+                })
+                .await
+                .ok()
+                .and_then(|facts| facts.home)
+                .map(|home| home.as_str().to_owned());
+            return Ok(serde_json::json!({
+                "workflows": [],
+                "invalid": [],
+                "dir": saved_workflow_dir(home, workspace_path, scope),
+            }));
+        };
+        engine
+            .hub_list_saved_workflows(workspace_path, scope)
+            .await
+            .map_err(|error| KernelError::Failed {
+                message: match error.message {
+                    Some(message) => message,
+                    None => error.reason,
+                },
+            })
+    }
+
+    async fn hub_get_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            // 降级：与「目录里没有这个文件」同形（GUI 显示未找到，不假装内核坏了）。
+            return Ok(serde_json::json!({ "ok": false, "reason": "not_found" }));
+        };
+        engine
+            .hub_get_saved_workflow(workspace_path, name, scope)
+            .await
+            .map_err(|error| KernelError::Failed {
+                message: match error.message {
+                    Some(message) => message,
+                    None => error.reason,
+                },
+            })
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）：journal 直读的运行历史页。
     async fn workflow_runs_page(
         &self,
@@ -674,5 +734,17 @@ impl Kernel for LocalKernel {
         workspace: &rust_cli_kernel_api::env::WorkspaceRef,
     ) -> Vec<rust_cli_kernel_api::user_command::UserCommand> {
         self.ext.user_commands().commands(workspace).await
+    }
+}
+
+/// 已保存工作流目录的降级现拼（Node `savedWorkflowRoot` 同一约定：项目档落
+/// `<cwd>/.nibi/workflows/`、全局档落 `~/.nibi/workflows/`——home 取机器事实，协议层不读环境）。
+fn saved_workflow_dir(home: Option<String>, workspace_path: &str, scope: &str) -> String {
+    let trim = |value: &str| value.trim_end_matches(['/', '\\']).to_owned();
+    match scope {
+        "global" => home
+            .map(|home| format!("{}/.nibi/workflows", trim(&home)))
+            .unwrap_or_else(|| format!("{}/.nibi/workflows", trim(workspace_path))),
+        _ => format!("{}/.nibi/workflows", trim(workspace_path)),
     }
 }

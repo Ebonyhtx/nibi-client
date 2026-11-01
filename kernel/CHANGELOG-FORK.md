@@ -904,6 +904,24 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.38）：修订后继与恢复的
 - **门禁**：88 → **89 字段**（`dwfImportBoundary`：修订后继完结的 ask 节点带 messageBoundary，
   双内核一致）；门禁串行化（并行跑两个驱动时探针的轮询窗口两次被 CPU 争用拖爆——一次几分钟
   的门禁，稳比快值钱）。
+## 6.32 `workflows/list` / `workflows/get` 中枢读面（2026-11-01，路线 C 第二十一段）
+
+GUI 中枢的已保存工作流读面（Node `listSavedWorkflowsOp` / `getSavedWorkflowOp` 同一契约；
+详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.39）：
+
+- **sidecar**：`workflows/list`（定向 scope 的目录枚举——**永远传定向 scope**，两根 first-wins
+  会把被遮蔽的 global 从全局组里藏掉）与 `workflows/get`（单个解析 + 失败四态）。解析器与
+  序列化器只从 @nibi/core 取——frontmatter 不在 Rust 重写，**零漂移**；sidecar 进程的 homedir
+  与宿主同源（隔离 HOME 由启动方设好），全局根因此指向同一份。
+- **端口链**：`WorkflowEngine::hub_list_saved_workflows / hub_get_saved_workflow`（回复是 Node
+  op 的原形 Value）→ `Kernel` 同名方法 → 协议分支。**降级在本层现做**（没接 sidecar 的入口：
+  空页 + 按同一约定的目录 / `not_found`）——home 取机器事实（`EnvFacts.home`），协议层不读
+  环境（`std::env::var` 是策展禁项）。
+- **协议**：两分支严格入参（workspace ref 的双键、scope 枚举、name 非空）；`workflows/get` 的
+  回复是 ok:true 六键或失败袋的 union，原样转发。
+- **门禁**：89 → **93 字段**（`dwfHubList` 项目档列举六夹具 + 目录形状、`dwfHubGet` 脚本本体、
+  `dwfHubGetMissing` 四态拒绝、`dwfHubListGlobal` 隔离 HOME 空页；dir 的分隔符在探针里归一——
+  Windows 反斜杠会让尾部判定两边同假）。
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。

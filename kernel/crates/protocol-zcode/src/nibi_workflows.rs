@@ -131,6 +131,85 @@ pub(crate) async fn runs(server: &Server, raw: &Value) -> Result<Value, RpcError
     })
 }
 
+/// workspace ref 的严格校验（`workflows/runs` 与 list/get 共用）：路径与稳定键都必填。
+fn workspace_path_of(params: &serde_json::Map<String, Value>) -> Result<String, RpcError> {
+    let workspace = params
+        .get("workspace")
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid("`workspace` must be an object"))?;
+    let workspace_path = workspace
+        .get("workspacePath")
+        .and_then(Value::as_str)
+        .filter(|path| !path.is_empty())
+        .ok_or_else(|| invalid("`workspace.workspacePath` must be a non-empty string"))?;
+    // 稳定键是 ref 契约的必填项（strict；op 只读 workspacePath，键的存在照样要验）。
+    if workspace
+        .get("workspaceKey")
+        .and_then(Value::as_str)
+        .is_none_or(str::is_empty)
+    {
+        return Err(invalid("`workspace.workspaceKey` must be a non-empty string"));
+    }
+    Ok(workspace_path.to_owned())
+}
+
+/// 定向 scope（缺省 `project`；`global` 只查全局根）。
+fn scope_of(params: &serde_json::Map<String, Value>) -> Result<String, RpcError> {
+    match params.get("scope") {
+        None => Ok("project".to_owned()),
+        Some(Value::String(scope)) if scope == "project" || scope == "global" => {
+            Ok(scope.clone())
+        }
+        Some(_) => Err(invalid("`scope` must be `project` or `global`")),
+    }
+}
+
+/// `workflows/list`（Node `listSavedWorkflowsOp` 同一契约）：定向 scope 的目录枚举。
+/// frontmatter 解析器在 sidecar（@nibi/core，宿主只转发）；没接 sidecar 的入口回空页——
+/// 中枢据此显示「尚未保存」，与 journal 缺席的空运行历史同一条降级。
+pub(crate) async fn list_workflows(server: &Server, raw: &Value) -> Result<Value, RpcError> {
+    let params = raw
+        .as_object()
+        .ok_or_else(|| invalid("params must be an object"))?;
+    let workspace_path = workspace_path_of(params)?;
+    let scope = scope_of(params)?;
+    match server.kernel.hub_list_saved_workflows(&workspace_path, &scope).await {
+        Ok(reply) => Ok(reply),
+        Err(error) => Err(RpcError::internal(error_message(error))),
+    }
+}
+
+/// `workflows/get`（Node `getSavedWorkflowOp` 同一契约）：单个已保存工作流的解析。
+pub(crate) async fn get_workflow(server: &Server, raw: &Value) -> Result<Value, RpcError> {
+    let params = raw
+        .as_object()
+        .ok_or_else(|| invalid("params must be an object"))?;
+    let workspace_path = workspace_path_of(params)?;
+    let scope = scope_of(params)?;
+    let name = match params.get("name") {
+        Some(Value::String(name)) if !name.is_empty() => name.clone(),
+        _ => return Err(invalid("`name` must be a non-empty string")),
+    };
+    match server
+        .kernel
+        .hub_get_saved_workflow(&workspace_path, &name, &scope)
+        .await
+    {
+        Ok(reply) => Ok(reply),
+        // 没接 sidecar：与「目录里没有这个文件」同形（GUI 显示未找到，不假装内核坏了）。
+        Err(KernelError::Unsupported { .. }) => Ok(json!({ "ok": false, "reason": "not_found" })),
+        Err(error) => Err(RpcError::internal(error_message(error))),
+    }
+}
+
+/// 降级（没接 sidecar 的入口）由 kernel 层现做：home 在机器事实里，协议层不读环境。
+fn error_message(error: KernelError) -> String {
+    match error {
+        KernelError::Failed { message } => message,
+        other => other.to_string(),
+    }
+}
+
 /// 参数违规（Node `parseParams` 的 `-32602`，message 前缀同形）。
 fn invalid(message: impl std::fmt::Display) -> RpcError {
     RpcError::invalid_params(format!("Invalid params — {message}"))

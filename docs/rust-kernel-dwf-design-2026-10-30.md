@@ -305,5 +305,8 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        模型上；~~导入缓存重建仍缺~~——**已接，2026-11-01 第二十段**：buildImportedCache /
        rebuildImportedCacheForResume（同一份纯函数）+ ask 边界记账（宿主先数后报、sidecar
        node-settled 补写）+ 种子兑现（宿主 fork_clone 按值复制、确定性种子 id），
-       `check-dwf-engine` 89 字段）；
+       `check-dwf-engine` 89 字段）；~~中枢已保存工作流读面~~（**已接，2026-11-01 第二十一段**：
+       `workflows/list` / `workflows/get`——sidecar 承载 @nibi/core 解析器（frontmatter 零漂移）、
+       engine/kernel 两层端口、降级在 runtime kernel（home 取机器事实），`check-dwf-engine` 93
+       字段双内核逐字节一致）；
        `workflows/runs` 中枢方法仍待做）；
