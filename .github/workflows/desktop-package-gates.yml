@@ -1,0 +1,84 @@
+name: desktop-package-gates
+
+# 打包轨门禁（391265f1 的 CI 侧闭环）：三平台各自把 Rust 内核建到 release、按桌面的暂存
+# 脚本收进 .staging/rust-kernel、跑打包产物冒烟（--prepare-storage 握手，隔离 HOME）。
+#
+# 边界（有意不做的部分）：
+# - 完整 electron-builder 打包需要 GLM 等内部资源（NIBI_DEPS_BASE_URL 走内网资产服务），
+#   CI 无密钥不可达——完整打包链在本地验（NIBI_ENV=production），这里只钉「内核能建、能暂存、
+#   暂存产物能握手」与 builder 配置的接线不漂移（grep 三处标记）。
+# - 不缓存 cargo：少一个要钉 SHA 的 action；运行时长可接受（rust-gates 的全量 check 同机时）。
+#
+# 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
+
+on:
+  push:
+    paths:
+      - "kernel/**"
+      - "packages/desktop/electron-builder.config.js"
+      - "packages/desktop/scripts/prepare-rust-kernel.mjs"
+      - "packages/desktop/scripts/prepare-runtime-assets.mjs"
+      - "scripts/desktop-package/**"
+      - ".github/workflows/desktop-package-gates.yml"
+  pull_request:
+    paths:
+      - "kernel/**"
+      - "packages/desktop/electron-builder.config.js"
+      - "packages/desktop/scripts/prepare-rust-kernel.mjs"
+      - "packages/desktop/scripts/prepare-runtime-assets.mjs"
+      - "scripts/desktop-package/**"
+      - ".github/workflows/desktop-package-gates.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-package-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-gate:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      TURBO_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.33.2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: "1.95.0"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: cargo build (release, kernel binary)
+        working-directory: kernel
+        run: cargo build --locked --release -p rust-cli --bin zcode-rs
+      - name: Stage the kernel binary (desktop prepare script)
+        run: node packages/desktop/scripts/prepare-rust-kernel.mjs
+      - name: Assert the staged binary
+        shell: bash
+        run: |
+          exe="zcode-rs"
+          [ "${{ runner.os }}" = "Windows" ] && exe="zcode-rs.exe"
+          test -f ".staging/rust-kernel/$exe" || { echo "missing .staging/rust-kernel/$exe" >&2; exit 1; }
+          echo "staged .staging/rust-kernel/$exe"
+      - name: Assert the builder config still wires the rust-kernel resource
+        shell: bash
+        run: |
+          config="packages/desktop/electron-builder.config.js"
+          grep -q 'rust-kernel' "$config" || { echo "builder config lost the rust-kernel marker" >&2; exit 1; }
+          grep -q 'assertPackagedRustKernel' "$config" || { echo "builder config lost the afterPack assert" >&2; exit 1; }
+          grep -q 'shouldPackageRustKernel' "$config" || { echo "builder config lost the staging switch" >&2; exit 1; }
+      - name: Smoke the staged binary (storage handshake)
+        run: node scripts/desktop-package/smoke-prepare-storage.mjs ".staging/rust-kernel/zcode-rs${{ runner.os == 'Windows' && '.exe' || '' }}"

@@ -856,3 +856,38 @@ stall 链收口（详见 CHANGELOG-FORK §6.35）：停滞通知的生产可达�
 - **接线的勘定**：busy/idle/userSpoke 边挂 session actor（peer_status 转换处，actor deps
   注入，detached 询问同模式）；开集事件来自 client 的 run/event；live-run 走 store 查询；
   readOpen 并 escalations.pending 与 journal 留白回放；投递走 workflow_notices。落下一片。
+
+## 6.44 第四十五步：blocked 提醒链接线（2026-11-01）
+
+§6.25 尾单的最后一项收口（详见 CHANGELOG-FORK §6.37，公开仓 `ec8930cf`）：「父会话闲着、
+run 还欠着决定」的提醒钟落 Rust，DWF 通知链尾单清零。判据锚点：Node
+`core/runtime/methods/dynamic-workflow-blocked-reminder.ts`（宿主与接线）+
+`runtime-command-queue.ts:81` / `steering.ts:161`（忙闲沿与 userSpoke）。
+
+- **端口**：kernel-api `WorkflowBlockedEdges` + `Kernel::workflow_blocked`（缺省 None）。
+- **会话侧**：actor 的 peer_status 裁决处发 busy/idle 沿；close/shutdown 停钟；user_spoke
+  认 Human/Content/Bash 回合与带 prompt 的插话领取（合成来源不算——与 Node「prompt 且无
+  inputSource」同判据）。
+- **装配**：runtime `blocked_board.rs`——每会话一尊钟；readOpen 三源合成（注册表停驻问答 ∪
+  引擎 fill_target 的 waiting 留白 + journal 的 since ∪ store 的 live-run 快照）；remind 走
+  `Agents` 通知路（originMeta 用自己的 `workflowBlocked` 键）；store 异步查询与同步钟边缘之间
+  用「同步半 + 代际守卫后台刷新 + `rearm()` 重放」缝合。
+- **门禁**：29 单测 + check-dwf-engine OK（119 字段）。机器高载时 node 侧驱动会连 flakes
+  （失败点每次不同），安静后一次过——门禁复跑要挑安静机器。
+
+## 6.45 第四十六步：141 字面量协议审计（2026-11-01）
+
+报告在私有仓 `docs/planning/rust-kernel-protocol-141-audit-2026-11-01.md`：两侧枚举（Rust
+受理面 / Host 实发面，全 file:line）+ diff。**内核 118 项覆盖 29/118**，v4 命令通道 34/34
+全收，controller/plugins 归 Host 符合分工，offPeak 已删项确证。切流阻断清单：legacy 会话双轨
+8 条（Host 建会话两轨并行、Rust 只收 v4）、v4 查询/附件/usage 22 RPC（Host 全实发）、
+mcp-ui 16+2、遥测面（真机矩阵的「资源面板」项按此口径判定）、runtime/capabilities 恒 false。
+补齐顺序见报告 §9。随审计修掉 `updateDynamicWorkflowPolicy` 的 P4 残注（`6e070ba3`）。
+
+## 6.46 第四十七步：打包轨 CI 门禁（2026-11-01）
+
+§6.37 打包第一段的 CI 闭环（详见 CHANGELOG-FORK §6.38）：新 workflow
+`desktop-package-gates.yml` 三平台矩阵——release 建内核 → 复用 `prepare-rust-kernel.mjs`
+暂存 → 断言暂存产物与 builder 三处接线标记 → `--prepare-storage` 冒烟（隔离 HOME，握手形状
+照抄桌面宿主）。完整 electron-builder 打包需内网 GLM 资源，CI 不可达——留本地（
+`NIBI_ENV=production`），这是有意的边界。本机按 CI 步骤逐步预演全绿。

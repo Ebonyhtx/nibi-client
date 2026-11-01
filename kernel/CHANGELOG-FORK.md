@@ -1017,6 +1017,48 @@ core/runtime-task/workflow-blocked-reminder.ts 的钟 + `formatWorkflowBlockedNo
   来、live-run 查询走 store、readOpen 并 escalations.pending 与 journal 的留白回放、投递走
   `workflow_notices`。数据源与挂钩位都已勘定，落下一片。
 
+## 6.37 blocked 提醒链接线（2026-11-01，路线 C 第二十六段）
+
+§6.36 纯件的宿主装配（公开仓 `ec8930cf`）。DWF 尾单清零：通知链的最后一环——「父会话闲着、
+run 还欠着决定」——落 Rust。
+
+- **端口**：kernel-api 新 `WorkflowBlockedEdges`（busy/idle/userSpoke/open_set_changed/
+  session_closed，全带 SessionId）+ `Kernel::workflow_blocked` 访问器（缺省 None，TUI/-p 不经）。
+- **会话侧**：SessionDeps 加 `blocked`；actor 主循环在写 `peer_status` 的同一条 busy 裁决处发
+  沿（变化才调）；`close()`/`shutdown()` 发 `session_closed`；`user_spoke` 只认真人——
+  `start_turn` 的 Human/Content/Bash 三变体 + 插话领取带 prompt（`Claimed::has_prompt`），
+  通知/定时任务/同伴消息这些合成来源不算（Node「prompt 且无 inputSource」的同判据）。
+- **装配层**（runtime `blocked_board.rs`）：进程级 `WorkflowBlockedBoard`，每会话一尊钟。
+  readOpen 合成三源——停驻问答读注册表（**冷回放不提醒**，与 Node 读活快照同口径）、等待留白读
+  引擎 `fill_target` 的 `waiting`（journal 只到「到达过」）、在飞 run 读 store（status=running
+  快照）；remind 走 `Agents` 通知同一条路，originMeta 用自己的 `workflowBlocked` 键
+  （`workflowNotification` union 线上闭集）。
+- **异步边界**：store 查询异步而钟边缘同步——每边缘先做同步半（停钟/清次数/旧快照排钟），再
+  后台刷新快照 + 代际守卫重放（Idle 走纯件新增的 `rearm()`；开集沿重放同一入口）。竞态窗口里
+  漏排的 run 由到点复核的 `delay <= reached` 现读补上——退化是「晚一档」，不丢。
+- **客户端**：引擎客户端把四类开集 run 事件（escalation-raised/resolved/hole-reached/
+  hole-filled）经 `Kernel::workflow_blocked` 转发给父会话。
+- **测试**：21（纯件 19+rearm 2）+ 板 8（tokio 暂停时钟，`ticks_until` 轮询到预期——tokio
+  advance 先跳时再轮询，轮询里排的定时器下一拍才触发）；**29 全绿**；门禁 **OK（119 字段）**。
+
+## 6.38 打包轨 CI 门禁：三平台建内核、暂存与冒烟（2026-11-01）
+
+§6.37（打包轨第一段，公开仓 `391265f1`）的 CI 侧闭环（公开仓本切片提交）：完整 electron-builder
+打包需要 GLM 等内部资源（`NIBI_DEPS_BASE_URL` 走内网资产服务），CI 无密钥不可达——完整打包链
+留在本地（`NIBI_ENV=production`），CI 钉的是「内核能建、能暂存、暂存产物能握手」与 builder
+接线的漂移。
+
+- **新 workflow `desktop-package-gates.yml`**：三平台矩阵，每台 `cargo build --locked --release
+  -p rust-cli --bin zcode-rs` → 复用桌面的 `prepare-rust-kernel.mjs` 暂存（不另写一份，同一条
+  位次链）→ 断言暂存产物在场 → 断言 builder 配置三处接线标记（`rust-kernel` / 
+  `assertPackagedRustKernel` / `shouldPackageRustKernel`，防后续重构悄悄丢线）→ 冒烟。
+- **冒烟**（`scripts/desktop-package/smoke-prepare-storage.mjs`）：对暂存二进制跑
+  `app-server --stdio --prepare-storage` 握手——形状照抄桌面宿主
+  （storagePath → 回 storagePathReady{reuse:false} → storageState 各相 → storagePrepared；
+  phase=failed 或 30s 首帧超时即失败）。隔离纪律与 kernel-baseline 同一条：五个根变量全改，
+  绝不写真实 `~/.nibi`。数据库 id 是哈希（路径不外泄）。本机对 release 二进制全绿。
+- 触发面：kernel/** + 打包三文件 + 本 workflow（与 rust-gates 同哲学：只门自己看的东西）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
