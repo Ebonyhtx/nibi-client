@@ -89,14 +89,15 @@ fn ambiguous_bare_names_fail_without_a_default_anchor() {
 
 #[test]
 fn the_launch_command_parses_the_json_shape() {
+    // 路径是任意占位（解析只看 JSON 形状）；用不含工作区绝对路径的写法过 public-repo 扫描。
     let command = SidecarCommand::parse(
-        r#"{"command":"C:/Program Files/NIBI/NIBI Helper.exe","args":["C:/NIBI/nibi.cjs","__nibi-dwf-engine"],"env":{"ELECTRON_RUN_AS_NODE":"1"}}"#,
+        r#"{"command":"C:/Program Files/App/NIBI Helper.exe","args":["C:/Program Files/App/nibi.cjs","__nibi-dwf-engine"],"env":{"ELECTRON_RUN_AS_NODE":"1"}}"#,
     )
     .unwrap();
-    assert_eq!(command.command, "C:/Program Files/NIBI/NIBI Helper.exe");
+    assert_eq!(command.command, "C:/Program Files/App/NIBI Helper.exe");
     assert_eq!(
         command.args,
-        ["C:/NIBI/nibi.cjs", "__nibi-dwf-engine"]
+        ["C:/Program Files/App/nibi.cjs", "__nibi-dwf-engine"]
     );
     assert_eq!(
         command.env,
