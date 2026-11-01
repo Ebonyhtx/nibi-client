@@ -80,6 +80,10 @@ jobs:
       - name: cargo build (release, kernel binary)
         working-directory: kernel
         run: cargo build --locked --release -p rust-cli --bin zcode-rs
+      # fpm 的 pacman 后端要 bsdtar（ubuntu runner 没有；exit 127 实测）。deb/rpm/AppImage 不需要。
+      - name: Install bsdtar (pacman target needs it)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libarchive-tools
       - name: Package the desktop app (kernel staged via prepare:rust-kernel)
         working-directory: packages/desktop
         env:
