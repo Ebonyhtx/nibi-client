@@ -217,7 +217,9 @@ impl Server {
                     "updatedSessionCount": 0}),
                 )
             }
-            // 动态工作流不移植（P4 决定）：回 disabled 生效。
+            // 动态工作流的灰度闸由 Host 自己判（发 `enabled:true` 时引擎经入口注入，命令面
+            // 已全收）；这里回执只是应答（Host 只验 schema 不消费值，zcodeAgentService.ts:3252），
+            // 恒 false 是历史残桩——按实况回报归 141 审计 F2 的 capabilities 一并处理。
             "workspace/updateDynamicWorkflowPolicy" => {
                 reply(json!({"workspace": params["workspace"], "enabled": false}))
             }
