@@ -1,5 +1,10 @@
 # Rust 内核剩余三类功能的排期与设计（2026-10-30 拍板）
 
+> **✅ 2026-11-01 状态：三类全部落地**——钩子评审 = `hook_review.rs`（四命令 + 10 分钟评审窗，
+> CHANGELOG-FORK §6.2x）；`discardSharedContext` = `commands.rs:2396-2443`（pending→discarded +
+> `state.updated` 增量）；DWF = 侧车全链（119 字段门禁）+ blocked 提醒链 `ec8930cf`。本文保留为
+> 当时的设计草案与排期记录；最新缺口清单以私有仓 141 审计报告为准。
+
 > 背景：命令层 34 个 `CommandType` 的协议面已**全部接住**（2026-10-30：三条 DWF 命令从
 > `BLOCKED_COMMANDS` 移到 `HANDLED_COMMANDS`，该清单现在为空）。Rust 仍是灰度、`NIBI_KERNEL`
 > 默认 node、不切默认；切默认的前置是 DWF 的 sidecar/Host 接线与灰度分流表全部落地。
