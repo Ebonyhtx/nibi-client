@@ -80,7 +80,9 @@ export function resolveE2EElectronBinary({
 
   throw createElectronBinaryUnavailableError(
     packageRoots,
-    "Electron install.js 已结束，但 path.txt 或其指向的可执行文件仍然缺失；请确认未设置 ELECTRON_SKIP_BINARY_DOWNLOAD",
+    // Electron 42 起二进制不再随 postinstall 下载（install.js 手动跑才是常规路径）；这里它跑完了
+    // 仍缺文件，属于镜像/网络层面的失败，而不是可跳过的开关被设置。
+    "Electron install.js 已结束，但 path.txt 或其指向的可执行文件仍然缺失；请检查 ELECTRON_MIRROR 与网络",
   );
 }
 

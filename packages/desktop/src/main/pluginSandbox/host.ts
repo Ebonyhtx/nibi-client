@@ -338,11 +338,23 @@ export function installPluginSandboxHost(input: {
     // 截图期间页面可能释放或换代；旧请求不得把错误页面的图像写入剪贴板。
     if (!isCurrent()) throw new Error("Sandbox capture is no longer available");
     const cropped = captured.crop(scaleCaptureRect(request, captured.getSize()));
-    clipboard.writeImage(
-      process.platform === "win32"
-        ? nativeImage.createFromBitmap(cropped.toBitmap(), cropped.getSize())
-        : cropped,
-    );
+    // Electron 44 起 `clipboard.writeImage` 移除（剪贴板重构为 W3C 异步 API），等价写法是
+    // `clipboard.write([new ClipboardItem(...)])`：PNG blob 进 image/png 槽位。这里本就是
+    // 异步 handler 的收尾，`await` 不改变调用方时序。
+    await clipboard.write([
+      new ClipboardItem({
+        "image/png": new Blob(
+          [
+            (
+              process.platform === "win32"
+                ? nativeImage.createFromBitmap(cropped.toBitmap(), cropped.getSize())
+                : cropped
+            ).toPNG(),
+          ],
+          { type: "image/png" },
+        ),
+      }),
+    ]);
   });
   ipcMain.handle(
     PlatformChannels.PluginSandboxDispose,
