@@ -277,7 +277,9 @@ pub fn load_or_create_install_key(path: &Path) -> Result<[u8; KEY_BYTES], Creden
                 })?;
         }
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            // 另一个进程先写成功；下面统一读回。
+            // 另一个进程先写成功；下面统一读回。注意「create_new 成功 → 写入内容」之间有一个
+            // 窗口：并发读回会看到空文件（POSIX 上实测会，Windows 的共享锁语义掩盖了它）——
+            // 有界等待内容出现，窗口耗尽仍空才按 fail-closed 报错。
         }
         Err(source) => {
             return Err(CredentialError::InstallKeyWrite {
@@ -286,7 +288,21 @@ pub fn load_or_create_install_key(path: &Path) -> Result<[u8; KEY_BYTES], Creden
             });
         }
     }
-    read_install_key(path)?.ok_or_else(|| CredentialError::InstallKeyVanished(path.to_path_buf()))
+    const CONTENT_WAIT_ATTEMPTS: usize = 20;
+    const CONTENT_WAIT_INTERVAL_MS: u64 = 10;
+    for attempt in 0..CONTENT_WAIT_ATTEMPTS {
+        let read = read_install_key(path);
+        match read {
+            Ok(Some(key)) => return Ok(key),
+            Ok(None) => return Err(CredentialError::InstallKeyVanished(path.to_path_buf())),
+            // 空文件：创建者在写内容的路上，等一小拍再读。
+            Err(CredentialError::InstallKeyEmpty(_)) if attempt + 1 < CONTENT_WAIT_ATTEMPTS => {
+                std::thread::sleep(std::time::Duration::from_millis(CONTENT_WAIT_INTERVAL_MS));
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Err(CredentialError::InstallKeyEmpty(path.to_path_buf()))
 }
 
 fn decode_install_key(path: &Path, raw: &str) -> Result<Option<[u8; KEY_BYTES]>, CredentialError> {

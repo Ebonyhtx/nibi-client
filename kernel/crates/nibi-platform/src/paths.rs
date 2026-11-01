@@ -172,8 +172,9 @@ mod tests {
     fn defaults_match_node_layout() {
         // 平台中立的家目录：POSIX 与 Windows 都按「相对于 home 的布局」断言，
         // 不把盘符写进夹具（Linux 上 `C:/…` 是相对路径，join 语义会翻转——CI 首跑踩过）。
-        let home = PathBuf::from(std::env::temp_dir().join("nibi-paths-fixture-home"));
-        let resolved = paths(home.as_path().to_str().expect("utf-8 home"), &[]);
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let home = dir.path().join("home");
+        let resolved = paths(home.to_str().expect("utf-8 home"), &[]);
         assert_eq!(resolved.data_base(), &home);
         assert_eq!(resolved.storage_root(), &home.join(".nibi"));
         assert_eq!(resolved.settings_root(), &home.join(".nibi/v2"));
@@ -196,10 +197,11 @@ mod tests {
     fn data_base_and_storage_root_are_independent() {
         // 三个 env 覆盖各自独立、凭据/钥匙从 data_base 派生——断言关系而不是
         // 字面路径（夹具用临时目录，两个平台 join 语义一致）。
-        let base = std::env::temp_dir().join("nibi-paths-fixture-data");
-        let store = std::env::temp_dir().join("nibi-paths-fixture-store");
-        let settings = std::env::temp_dir().join("nibi-paths-fixture-settings");
-        let home = std::env::temp_dir().join("nibi-paths-fixture-home");
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let base = dir.path().join("data");
+        let store = dir.path().join("store");
+        let settings = dir.path().join("settings");
+        let home = dir.path().join("home");
         let resolved = paths(
             home.to_str().expect("utf-8 home"),
             &[
