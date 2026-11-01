@@ -66,6 +66,7 @@ fn actor(parent: &SessionId, child: &str) -> WorkflowActorSpec {
         actor: "worker#1@1".to_owned(),
         actor_name: Some("worker".to_owned()),
         ask: "worker#1@1".to_owned(),
+        seed: None,
     }
 }
 

@@ -309,4 +309,4 @@ Node 与同一个 `nibi.cjs` bundle，**不额外打包**。Rust 侧由入口经
        `workflows/list` / `workflows/get`——sidecar 承载 @nibi/core 解析器（frontmatter 零漂移）、
        engine/kernel 两层端口、降级在 runtime kernel（home 取机器事实），`check-dwf-engine` 93
        字段双内核逐字节一致）；
-       `workflows/runs` 中枢方法仍待做）；
+       ~~中枢已保存工作流写面~~（**已接，2026-11-01 第二十二段**：`workflows/save` / `updateMeta` / `delete` / `move`——save 只收 runId、脚本从 journal 读，名字合法性 / 覆盖闸 / analyzeScript 与 move 的只此一向都在 sidecar（@nibi/core 承载，Rust 不重复正则）；协议层 trim 对齐（nonEmptyString 是转换的一部分，写面拿它拼文件名）+ meta/args 全形状校验；**写面没有降级**（没接 sidecar 的入口 fail-closed——读面的空页诚实，写面没有对应形状），`check-dwf-engine` 112 字段双内核逐字节一致）。

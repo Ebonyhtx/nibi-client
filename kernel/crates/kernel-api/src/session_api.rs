@@ -1054,6 +1054,57 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// GUI 中枢的已保存工作流写面（`workflows/save` / `updateMeta` / `delete` / `move`）：
+    /// 序列化器与编译检查在 sidecar，没接 sidecar 的入口**没有降级**——写面没有「照旧空页」
+    /// 的诚实形状（假装删除了一个看不见的文件、或写一个解析不了的文件都是谎），缺省 `Unsupported`
+    /// 由 runtime 层升为明确失败。
+    async fn hub_save_workflow_from_run(
+        &self,
+        _workspace_path: &str,
+        _run_id: &str,
+        _name: &str,
+        _meta: serde_json::Value,
+        _scope: &str,
+        _overwrite: bool,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saving workflows from runs".to_owned(),
+        })
+    }
+
+    async fn hub_update_saved_workflow_meta(
+        &self,
+        _workspace_path: &str,
+        _name: &str,
+        _meta: serde_json::Value,
+        _scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saved workflow meta updates".to_owned(),
+        })
+    }
+
+    async fn hub_delete_saved_workflow(
+        &self,
+        _workspace_path: &str,
+        _name: &str,
+        _scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saved workflow deletion".to_owned(),
+        })
+    }
+
+    async fn hub_move_saved_workflow(
+        &self,
+        _workspace_path: &str,
+        _name: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "saved workflow moves".to_owned(),
+        })
+    }
+
     /// `workflows/runs`（NIBI 协议中枢）：运行历史的一页（journal 直读，**跨会话**）。
     /// 不支持的入口回 `Unsupported`——协议层按 Node 的 journal 缺席同规回空页。
     async fn workflow_runs_page(

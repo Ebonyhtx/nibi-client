@@ -789,3 +789,27 @@ workflows.ts）与 @nibi/core 的 `listSavedWorkflows` / `resolveSavedWorkflow` 
 - **端口**：engine/kernel 两层 + 协议两分支；降级在 runtime kernel（home 取 `EnvFacts.home`），
   协议层把 Unsupported 视为接线故障（内核层已经降过级，协议层不再造目录）。
 - **门禁**：89 → **93 字段**（dwfHub 四字段，双内核逐字节一致）。
+
+## 6.40 第四十一步：`workflows/save` / `updateMeta` / `delete` / `move` 中枢写面（2026-11-01）
+
+§6.28 的中枢面扩展收尾（详见 CHANGELOG-FORK §6.33）：完成卡的「直接保存」、元数据改写、
+删除与「搬回项目」四个写方法落 Rust。判据锚点：Node 四个 write op
+（bootstrap/nibi-protocol/saved-workflows-run.ts / saved-workflows.ts）与 @nibi/core 的
+`saveSavedWorkflow` / `moveSavedWorkflow` / `serializeSavedWorkflow` / `isValidSavedWorkflowName`。
+
+- **sidecar 承载全部规则**：名字合法性（路径穿越的防线，先验后拼）、覆盖闸、`analyzeScript`
+  类型检查与落盘都在 sidecar；`save` 不收脚本只收 runId，正文从 journal 读（`dbPath` 与
+  holes/fill 同一家）——要存的是这次 run 实际执行的那一份，修订过的 run 存的是结算它的那一份。
+  意外 fs 失败收敛成 `engine_error` 结构化错误（promise 拒绝只会变成宿主悬等）。
+- **写面没有降级**：读面的降级（空页 / not_found）是诚实的（「没看到」），写面没有对应的
+  诚实形状——没接 sidecar 的入口 fail-closed，runtime 层升为明确失败。
+- **协议层的 trim 对齐**：`nonEmptyString` 是 `z.string().trim().min(1)`，trim 是 zod 转换的
+  一部分——Node 把 `" foo "` 解析成 `"foo"`，写面拿名字拼文件名，宿主不照做就写出第二个名字。
+  runs/list/get 的 workspace/name 校验一并统一到同一组助手；`workflows/runs` 的顶层未知键
+  拒绝补齐（zod `.strict()` 同规）。
+- **meta/args 全形状校验**：shared 与 contracts 两个 schema 由 bootstrap 协议测试互相钉住；
+  协议层按 shared 全形状校验（`.strict()` 未知键、`type` 四词表、`default` unknown），sidecar
+  的 contracts 再解析一遍是漂移的追赶闸（炸成 `engine_error`，不写自己读不回来的文件）。
+- **门禁**：93 → **112 字段**（dwf 写面 19 字段，双内核逐字节一致：save 五态 + 遮蔽、
+  updateMeta 读-改-写 + 严格 -32602、move 撞档 + 搬运 + 再搬、delete ok/再删/缺名/坏名）；
+  protocol-zcode 8 个单测；顺带补 resume-pin 段欠下的两处测试构造器 `seed: None`。

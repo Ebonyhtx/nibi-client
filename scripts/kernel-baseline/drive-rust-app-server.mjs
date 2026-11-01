@@ -2543,9 +2543,214 @@ try {
         typeof hubGlobal?.dir === "string" &&
         hubGlobal.dir.replaceAll("\\", "/").endsWith(".nibi/workflows"),
     });
+    // GUI 中枢的已保存工作流写面（workflows/save / updateMeta / delete / move，Node 四个
+    // write op 同一契约）：save 从完结 run 的 journal 脚本落盘（名字先验、覆盖闸与类型检查
+    // 都在 agent 一侧），updateMeta 读-改-写，move 只此一向（全局→项目，不覆盖），delete 按
+    // scope 选根。路径断言归一（工作区遮 <ws>、HOME 遮 <home>），两内核逐字节对拍。
+    const homePosix = home.replaceAll("\\", "/");
+    const isGlobalWorkflowsPath = (path) =>
+      typeof path === "string" &&
+      path.replaceAll("\\", "/").startsWith(`${homePosix}/.nibi/workflows/`);
+    const isProjectWorkflowsPath = (path) =>
+      typeof path === "string" &&
+      path.replaceAll("\\", "/").startsWith(`${workspace.replaceAll("\\", "/")}/.nibi/workflows/`);
+    const holeprobeRunId = (full?.runs ?? []).find(
+      (run) => run.name === "holeprobe" && run.status === "completed",
+    )?.runId;
+    const saveOk = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        name: "fromrun",
+        meta: { description: "Saved from the holeprobe run" },
+      }),
+      "workflows/save",
+    );
+    checks.dwfSaveOk = JSON.stringify({
+      ok: saveOk?.ok === true,
+      name: saveOk?.name ?? null,
+      scope: saveOk?.scope ?? null,
+      overwritten: saveOk?.overwritten ?? null,
+      shadowing: saveOk?.shadowing ?? null,
+      pathIsWorkflows: isProjectWorkflowsPath(saveOk?.path),
+    });
+    const saveAgain = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        name: "fromrun",
+        meta: { description: "Saved from the holeprobe run" },
+      }),
+      "workflows/save(again)",
+    );
+    checks.dwfSaveTargetExists = JSON.stringify({
+      reason: saveAgain?.reason ?? "no-reply",
+      hasPath: typeof saveAgain?.path === "string",
+    });
+    const saveOverwrite = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        name: "fromrun",
+        meta: { description: "Saved from the holeprobe run" },
+        overwrite: true,
+      }),
+      "workflows/save(overwrite)",
+    );
+    checks.dwfSaveOverwrite = JSON.stringify({
+      ok: saveOverwrite?.ok === true,
+      overwritten: saveOverwrite?.overwritten ?? null,
+    });
+    const saveGet = ack(
+      await send("workflows/get", { workspace: workspaceRef, name: "fromrun" }),
+      "workflows/get(saved)",
+    );
+    checks.dwfGetSaved = JSON.stringify({
+      ok: saveGet?.ok === true,
+      scope: saveGet?.scope ?? null,
+      scriptMatchesRun:
+        typeof saveGet?.script === "string" && saveGet.script.includes("hole<string>"),
+    });
+    const updateMeta = ack(
+      await send("workflows/updateMeta", {
+        workspace: workspaceRef,
+        name: "fromrun",
+        meta: { description: "Updated description", whenToUse: "When the hub needs it" },
+      }),
+      "workflows/updateMeta",
+    );
+    checks.dwfUpdateMetaOk = JSON.stringify({
+      ok: updateMeta?.ok === true,
+      pathIsWorkflows: isProjectWorkflowsPath(updateMeta?.path),
+    });
+    const updatedGet = ack(
+      await send("workflows/get", { workspace: workspaceRef, name: "fromrun" }),
+      "workflows/get(updated)",
+    );
+    checks.dwfUpdateMetaApplied = JSON.stringify({
+      ok: updatedGet?.ok === true,
+      description: updatedGet?.meta?.description ?? null,
+      whenToUse: updatedGet?.meta?.whenToUse ?? null,
+    });
+    const updateMetaInvalid = await send("workflows/updateMeta", {
+      workspace: workspaceRef,
+      name: "fromrun",
+      meta: { description: "x", bogus: 1 },
+    });
+    checks.dwfUpdateMetaInvalid = String(updateMetaInvalid?.error?.code ?? "no-error");
+    const saveBadName = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        name: "../escape",
+        meta: { description: "x" },
+      }),
+      "workflows/save(bad name)",
+    );
+    checks.dwfSaveInvalidName = saveBadName?.reason ?? "no-reply";
+    const saveNoRun = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: "run_nope",
+        name: "fromrun2",
+        meta: { description: "x" },
+      }),
+      "workflows/save(no run)",
+    );
+    checks.dwfSaveRunNotFound = saveNoRun?.reason ?? "no-reply";
+    // 遮蔽事实与 move 的两个失败分支：全局档存同名（项目档已有）→ shadowing；move 撞项目档
+    // → target_exists。move 的成功分支另存一份再搬。
+    const saveGlobal = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        name: "holeprobe",
+        meta: { description: "Global shadow of the project fixture" },
+        scope: "global",
+      }),
+      "workflows/save(global)",
+    );
+    checks.dwfSaveGlobalShadowing = JSON.stringify({
+      ok: saveGlobal?.ok === true,
+      scope: saveGlobal?.scope ?? null,
+      shadowing: saveGlobal?.shadowing ?? null,
+      pathIsGlobalWorkflows: isGlobalWorkflowsPath(saveGlobal?.path),
+    });
+    const moveClash = ack(
+      await send("workflows/move", { workspace: workspaceRef, name: "holeprobe" }),
+      "workflows/move(clash)",
+    );
+    checks.dwfMoveTargetExists = JSON.stringify({
+      reason: moveClash?.reason ?? "no-reply",
+      hasPath: typeof moveClash?.path === "string",
+    });
+    const saveMoveMe = ack(
+      await send("workflows/save", {
+        workspace: workspaceRef,
+        runId: holeprobeRunId,
+        name: "moveme",
+        meta: { description: "Global candidate to move back" },
+        scope: "global",
+      }),
+      "workflows/save(moveme)",
+    );
+    checks.dwfSaveMove = JSON.stringify({
+      ok: saveMoveMe?.ok === true,
+      scope: saveMoveMe?.scope ?? null,
+      pathIsGlobalWorkflows: isGlobalWorkflowsPath(saveMoveMe?.path),
+    });
+    const moveOk = ack(
+      await send("workflows/move", { workspace: workspaceRef, name: "moveme" }),
+      "workflows/move",
+    );
+    checks.dwfMoveOk = JSON.stringify({
+      ok: moveOk?.ok === true,
+      fromIsGlobal: isGlobalWorkflowsPath(moveOk?.from),
+      toIsProject: isProjectWorkflowsPath(moveOk?.to),
+    });
+    const moveAgain = ack(
+      await send("workflows/move", { workspace: workspaceRef, name: "moveme" }),
+      "workflows/move(again)",
+    );
+    checks.dwfMoveAgain = moveAgain?.reason ?? "no-reply";
+    const movedGet = ack(
+      await send("workflows/get", { workspace: workspaceRef, name: "moveme" }),
+      "workflows/get(moved)",
+    );
+    checks.dwfGetMoved = JSON.stringify({
+      ok: movedGet?.ok === true,
+      scope: movedGet?.scope ?? null,
+    });
+    const deleteOk = ack(
+      await send("workflows/delete", { workspace: workspaceRef, name: "moveme" }),
+      "workflows/delete",
+    );
+    checks.dwfDeleteOk = JSON.stringify({
+      ok: deleteOk?.ok === true,
+      pathIsWorkflows: isProjectWorkflowsPath(deleteOk?.path),
+    });
+    const deleteAgain = ack(
+      await send("workflows/delete", { workspace: workspaceRef, name: "moveme" }),
+      "workflows/delete(again)",
+    );
+    checks.dwfDeleteAgain = deleteAgain?.reason ?? "no-reply";
+    const deleteMissing = ack(
+      await send("workflows/delete", { workspace: workspaceRef, name: "no-such-workflow" }),
+      "workflows/delete(missing)",
+    );
+    checks.dwfDeleteMissing = deleteMissing?.reason ?? "no-reply";
+    const deleteBadName = ack(
+      await send("workflows/delete", { workspace: workspaceRef, name: ".." }),
+      "workflows/delete(bad name)",
+    );
+    checks.dwfDeleteInvalidName = deleteBadName?.reason ?? "no-reply";
     console.log(
       `dwf runs: count=${checks.dwfRunsCount} named=${checks.dwfRunsNamed} ` +
         `truncated=${checks.dwfRunsTruncated} invalid=${checks.dwfRunsInvalid}`,
+    );
+    console.log(
+      `dwf hub writes: save=${checks.dwfSaveOk} update=${checks.dwfUpdateMetaApplied} ` +
+        `move=${checks.dwfMoveOk} delete=${checks.dwfDeleteOk}`,
     );
   }
 

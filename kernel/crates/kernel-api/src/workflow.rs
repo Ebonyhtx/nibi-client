@@ -749,4 +749,42 @@ pub trait WorkflowEngine: Send + Sync {
         name: &str,
         scope: &str,
     ) -> Result<Value, WorkflowEngineError>;
+
+    /// GUI 中枢的已保存工作流写面（`workflows/save`）：完成卡的直接保存——按 runId 从
+    /// journal 读这次 run 实际执行的脚本（sidecar 靠 `dbPath` 打开同一份 journal），按
+    /// SaveWorkflow 同一套规则落盘。回复是 Node `saveSavedWorkflowFromRunOp` 的原形。
+    async fn hub_save_workflow_from_run(
+        &self,
+        workspace_path: &str,
+        run_id: &str,
+        name: &str,
+        meta: Value,
+        scope: &str,
+        overwrite: bool,
+    ) -> Result<Value, WorkflowEngineError>;
+
+    /// `workflows/updateMeta`：只改写文件顶部的元数据（读回脚本正文、整文件覆写）。回复是
+    /// Node `updateSavedWorkflowMetaOp` 的原形。
+    async fn hub_update_saved_workflow_meta(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        meta: Value,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError>;
+
+    /// `workflows/delete`：只按名字删（名字合法性是路径穿越的防线，先验后拼在 sidecar）。
+    async fn hub_delete_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError>;
+
+    /// `workflows/move`：全局根的同名文件搬到项目根（只此一向；无 scope 入参）。
+    async fn hub_move_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+    ) -> Result<Value, WorkflowEngineError>;
 }

@@ -27,6 +27,7 @@ fn profile(child: &str) -> ActorProfile {
         actor_name: Some("worker".to_owned()),
         ask: "worker#1@1".to_owned(),
         escalation: None,
+        seed: None,
     }
 }
 

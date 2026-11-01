@@ -1260,6 +1260,99 @@ impl WorkflowEngine for SidecarEngine {
         Ok(reply)
     }
 
+    async fn hub_save_workflow_from_run(
+        &self,
+        workspace_path: &str,
+        run_id: &str,
+        name: &str,
+        meta: Value,
+        scope: &str,
+        overwrite: bool,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        // dbPath 与 holes/fill 同源：journal 是 run 记录的家，脚本正文从它读。
+        let reply = process
+            .request(
+                "workflows/save",
+                json!({
+                    "workspacePath": workspace_path,
+                    "runId": run_id,
+                    "dbPath": self.shared.database.display().to_string(),
+                    "name": name,
+                    "meta": meta,
+                    "scope": scope,
+                    "overwrite": overwrite,
+                }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
+    async fn hub_update_saved_workflow_meta(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        meta: Value,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "workflows/updateMeta",
+                json!({
+                    "workspacePath": workspace_path,
+                    "name": name,
+                    "meta": meta,
+                    "scope": scope,
+                }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
+    async fn hub_delete_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        scope: &str,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "workflows/delete",
+                json!({ "workspacePath": workspace_path, "name": name, "scope": scope }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
+    async fn hub_move_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+    ) -> Result<Value, WorkflowEngineError> {
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("start_failed", error)
+        })?;
+        let reply = process
+            .request(
+                "workflows/move",
+                json!({ "workspacePath": workspace_path, "name": name }),
+            )
+            .await
+            .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
+        Ok(reply)
+    }
+
     async fn fill_target(
         &self,
         run_id: &str,

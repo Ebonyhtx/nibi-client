@@ -68,12 +68,7 @@ impl Kernel for LocalKernel {
         engine
             .hub_list_saved_workflows(workspace_path, scope)
             .await
-            .map_err(|error| KernelError::Failed {
-                message: match error.message {
-                    Some(message) => message,
-                    None => error.reason,
-                },
-            })
+            .map_err(workflow_engine_failure)
     }
 
     async fn hub_get_saved_workflow(
@@ -89,12 +84,73 @@ impl Kernel for LocalKernel {
         engine
             .hub_get_saved_workflow(workspace_path, name, scope)
             .await
-            .map_err(|error| KernelError::Failed {
-                message: match error.message {
-                    Some(message) => message,
-                    None => error.reason,
-                },
-            })
+            .map_err(workflow_engine_failure)
+    }
+
+    /// GUI 中枢的已保存工作流写面（`workflows/save` / `updateMeta` / `delete` / `move`）：
+    /// 解析器、序列化器与编译检查都在 sidecar。写面**没有降级**——没有 sidecar 就没有「照旧
+    /// 空页」的诚实形状（删一个看不见的文件、写一个没人解析得了的文件都是谎），fail-closed。
+    async fn hub_save_workflow_from_run(
+        &self,
+        workspace_path: &str,
+        run_id: &str,
+        name: &str,
+        meta: serde_json::Value,
+        scope: &str,
+        overwrite: bool,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            return Err(hub_write_unavailable());
+        };
+        engine
+            .hub_save_workflow_from_run(workspace_path, run_id, name, meta, scope, overwrite)
+            .await
+            .map_err(workflow_engine_failure)
+    }
+
+    async fn hub_update_saved_workflow_meta(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        meta: serde_json::Value,
+        scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            return Err(hub_write_unavailable());
+        };
+        engine
+            .hub_update_saved_workflow_meta(workspace_path, name, meta, scope)
+            .await
+            .map_err(workflow_engine_failure)
+    }
+
+    async fn hub_delete_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+        scope: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            return Err(hub_write_unavailable());
+        };
+        engine
+            .hub_delete_saved_workflow(workspace_path, name, scope)
+            .await
+            .map_err(workflow_engine_failure)
+    }
+
+    async fn hub_move_saved_workflow(
+        &self,
+        workspace_path: &str,
+        name: &str,
+    ) -> Result<serde_json::Value, KernelError> {
+        let Some(engine) = self.workflow_engine.as_ref() else {
+            return Err(hub_write_unavailable());
+        };
+        engine
+            .hub_move_saved_workflow(workspace_path, name)
+            .await
+            .map_err(workflow_engine_failure)
     }
 
     /// `workflows/runs`（NIBI 协议中枢）：journal 直读的运行历史页。
@@ -746,5 +802,24 @@ fn saved_workflow_dir(home: Option<String>, workspace_path: &str, scope: &str) -
             .map(|home| format!("{}/.nibi/workflows", trim(&home)))
             .unwrap_or_else(|| format!("{}/.nibi/workflows", trim(workspace_path))),
         _ => format!("{}/.nibi/workflows", trim(workspace_path)),
+    }
+}
+
+/// sidecar 的失败 → 内核错误（`reason` 兜底、`message` 在场时优先——中枢读/写两面的同一条映射）。
+fn workflow_engine_failure(
+    error: rust_cli_kernel_api::workflow::WorkflowEngineError,
+) -> KernelError {
+    KernelError::Failed {
+        message: match error.message {
+            Some(message) => message,
+            None => error.reason,
+        },
+    }
+}
+
+/// 写面在没有 sidecar 的入口上 fail-closed 的那句话（读面降级成空页，写面没有诚实的空写）。
+fn hub_write_unavailable() -> KernelError {
+    KernelError::Failed {
+        message: "the saved-workflow hub writes need the workflow engine sidecar, which is not wired into this entry".to_owned(),
     }
 }

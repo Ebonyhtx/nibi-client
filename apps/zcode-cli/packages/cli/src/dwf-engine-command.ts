@@ -16,6 +16,10 @@
  *                   `{id, method:"cancel", params:{runId}}`
  *                   `{id, method:"holes", params:{runId, dbPath}}`（FillWorkflowHole 的确认前读面）
  *                   `{id, method:"fill", params:{runId, holeId, body, dbPath, parentSessionId?}}`
+ *                   `{id, method:"workflows/list"|"workflows/get", params:{workspacePath, name?, scope?}}`
+ *                   （GUI 中枢读面）`{id, method:"workflows/save"|"workflows/updateMeta"|
+ *                   "workflows/delete"|"workflows/move", params:{workspacePath, …}}`（写面；save 另带
+ *                   runId + dbPath，脚本从 journal 读）
  *   engine → 宿主：`actor/create`（建 actor 子会话，回 `{session:<id>}`；`model` 在场时带上选型）
  *                   `world/read`（files.glob/read/grep，回结果）
  *                   `ask/start` / `ask/verdict` / `ask/cancel` / `run/event`（通知）
@@ -24,16 +28,25 @@
  * 不变式：读循环绝不 `await` 一个 run——run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
  */
 import { createHash } from "node:crypto";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, unlink, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createDwfJournalStore } from "@nibi/adapters/storage";
+import { SavedWorkflowMetaSchema, isValidSavedWorkflowName } from "@nibi/contracts";
+import type { SavedWorkflowMeta } from "@nibi/contracts";
 import {
+  analyzeScript,
+  findSavedWorkflowShadowing,
   listSavedWorkflows,
+  moveSavedWorkflow,
   resolveSavedWorkflow,
+  saveSavedWorkflow,
+  savedWorkflowExists,
+  savedWorkflowPath,
   savedWorkflowRoot,
+  serializeSavedWorkflow,
   validateWorkflowArgs,
 } from "@nibi/core";
 import {
@@ -1797,6 +1810,205 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     };
   }
 
+  // ============================================================
+  // GUI 中枢的已保存工作流写面（workflows/save / updateMeta / delete / move；Node 的
+  // saveSavedWorkflowFromRunOp / updateSavedWorkflowMetaOp / deleteSavedWorkflowOp /
+  // moveSavedWorkflowOp 同一契约）。与读面同一条纪律：序列化器、名字规则与类型检查器都从
+  // @nibi/core / @nibi/contracts 取，这里不拼 YAML、不重复正则。save 需要 journal 读 run 的
+  // scriptText（Node 的同一条理由：要存的是这次 run 实际执行的那一份，调用方手上未必有）。
+  // 四个方法都可能撞 fs 错误；这里把意外失败收敛成 `engine_error` 而不是让 promise 拒绝——
+  // 拒绝只会变成宿主侧的悬等，业务失败袋（ok:false reason …）才是协议的正常通道。
+  // ============================================================
+  interface HubSaveParams {
+    workspacePath: string;
+    runId: string;
+    dbPath: string;
+    name: string;
+    meta: unknown;
+    scope?: string;
+    overwrite?: boolean;
+  }
+
+  /** 诊断回给 GUI 的上界（Node 同值）：弹层里只放得下开头几条。 */
+  const SAVE_DIAGNOSTICS_MAX_LINES = 5;
+  const SAVE_DIAGNOSTICS_MAX_CHARS = 1_000;
+
+  function boundedDiagnostics(
+    diagnostics: readonly { line: number; column: number; message: string }[],
+  ): string {
+    const text = diagnostics
+      .slice(0, SAVE_DIAGNOSTICS_MAX_LINES)
+      .map((diagnostic) => `L${diagnostic.line}:C${diagnostic.column} ${diagnostic.message}`)
+      .join("\n");
+    return text.length > SAVE_DIAGNOSTICS_MAX_CHARS
+      ? `${text.slice(0, SAVE_DIAGNOSTICS_MAX_CHARS)}…`
+      : text;
+  }
+
+  function describeError(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  /**
+   * 协议层已按 shared schema 严格验过 meta；这里再用 contracts 的那份解析一次——「两边漂移」
+   * 的追赶闸（Node 同一条）：宁可在这炸成结构化错误，也不写出一个自己读不回来的文件。
+   */
+  type HubMetaParse =
+    | { ok: true; meta: SavedWorkflowMeta }
+    | {
+        ok: false;
+        reply: { ok: false; reason: "engine_error"; message: string };
+      };
+
+  function parseHubMeta(meta: unknown): HubMetaParse {
+    try {
+      return { ok: true, meta: SavedWorkflowMetaSchema.parse(meta) };
+    } catch (error) {
+      return {
+        ok: false,
+        reply: {
+          ok: false,
+          reason: "engine_error",
+          message: `saved workflow meta failed the contracts schema: ${describeError(error)}`,
+        },
+      };
+    }
+  }
+
+  async function acceptHubSave(params: HubSaveParams): Promise<unknown> {
+    const scope = params.scope === "global" ? "global" : "project";
+    const cwd = params.workspacePath;
+    // 名字先验后拼路径：这条顺序是路径穿越的防线本身（Node 同一条）。
+    if (!isValidSavedWorkflowName(params.name)) return { ok: false, reason: "invalid_name" };
+    const parsed = parseHubMeta(params.meta);
+    if (!parsed.ok) return parsed.reply;
+    const meta = parsed.meta;
+    const db = openDatabase(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(params.runId);
+      if (record === undefined) return { ok: false, reason: "run_not_found" };
+      // scriptText 落库始于 workflow-live-run；更早的记录没有可保存的脚本原文（Node 同一条）。
+      if (record.scriptText === undefined) return { ok: false, reason: "script_missing" };
+      const script = record.scriptText;
+
+      const targetPath = savedWorkflowPath(savedWorkflowRoot(cwd, scope), params.name);
+      // 覆盖是用户的决定，不是一次保存的副作用（Node 同一条）。
+      if (params.overwrite !== true && savedWorkflowExists({ cwd, name: params.name, scope })) {
+        return { ok: false, reason: "target_exists", path: targetPath };
+      }
+
+      const analysis = analyzeScript(script);
+      if (!analysis.ok) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          path: targetPath,
+          detail: boundedDiagnostics(analysis.diagnostics),
+        };
+      }
+
+      const shadowing = findSavedWorkflowShadowing({ cwd, name: params.name, scope });
+      try {
+        const written = saveSavedWorkflow({ cwd, name: params.name, meta, script, scope });
+        return {
+          ok: true,
+          name: params.name,
+          scope: written.scope,
+          path: written.path,
+          // 写的那一刻重新判定，不回抄入参（Node 同一条理由）。
+          overwritten: written.overwritten,
+          ...(shadowing === undefined ? {} : { shadowing }),
+        };
+      } catch (error) {
+        // 写失败（只读挂载、权限）是一条业务分支，不是协议错误：GUI 要把它画在弹层里。
+        return { ok: false, reason: "write_error", path: targetPath, detail: describeError(error) };
+      }
+    } finally {
+      db.close();
+    }
+  }
+
+  interface HubUpdateMetaParams {
+    workspacePath: string;
+    name: string;
+    meta: unknown;
+    scope?: string;
+  }
+
+  async function acceptHubUpdateMeta(params: HubUpdateMetaParams): Promise<unknown> {
+    const scope = params.scope === "global" ? "global" : "project";
+    const parsed = parseHubMeta(params.meta);
+    if (!parsed.ok) return parsed.reply;
+    const meta = parsed.meta;
+    const resolved = resolveSavedWorkflow({
+      cwd: params.workspacePath,
+      name: params.name,
+      scope,
+    });
+    if (!resolved.ok) {
+      return {
+        ok: false,
+        reason: resolved.reason,
+        ...("detail" in resolved && resolved.detail ? { detail: String(resolved.detail) } : {}),
+      };
+    }
+    // 只改写文件顶部的元数据：读回当前脚本正文，再整文件覆写为 serialize(newMeta, script)。
+    // 读-改-写在同一次调用内完成（Node 同一条，不做三方合并）。
+    try {
+      await writeFile(resolved.path, serializeSavedWorkflow(meta, resolved.script), "utf8");
+    } catch (error) {
+      // Node 里这条是协议错误（op 拒绝 → internal error）；这里收敛成 engine_error 袋，
+      // 宿主映射回 internal error——同一可观测量，且 promise 不会悬挂。
+      return { ok: false, reason: "engine_error", message: describeError(error) };
+    }
+    return { ok: true, path: resolved.path };
+  }
+
+  interface HubDeleteParams {
+    workspacePath: string;
+    name: string;
+    scope?: string;
+  }
+
+  async function acceptHubDelete(params: HubDeleteParams): Promise<unknown> {
+    const scope = params.scope === "global" ? "global" : "project";
+    // 只按名字删：isValidSavedWorkflowName 先于拼路径——路径穿越的防线本身（Node 同一条）。
+    if (!isValidSavedWorkflowName(params.name)) return { ok: false, reason: "invalid_name" };
+    const targetPath = savedWorkflowPath(savedWorkflowRoot(params.workspacePath, scope), params.name);
+    try {
+      await unlink(targetPath);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException | undefined)?.code;
+      if (code === "ENOENT" || code === "ENOTDIR") return { ok: false, reason: "not_found" };
+      return { ok: false, reason: "read_error", detail: describeError(error) };
+    }
+    return { ok: true, path: targetPath };
+  }
+
+  interface HubMoveParams {
+    workspacePath: string;
+    name: string;
+  }
+
+  async function acceptHubMove(params: HubMoveParams): Promise<unknown> {
+    // 全局根的同名文件搬到 workspace 项目根（只此一向；core 的 moveSavedWorkflow 承载全部规则）。
+    const result = moveSavedWorkflow({ cwd: params.workspacePath, name: params.name });
+    if (result.ok) return { ok: true, from: result.from, to: result.to };
+    // core 的失败分支与协议 result 逐字对齐；path / detail 在场时原样带出（缺席即省键）。
+    switch (result.reason) {
+      case "invalid_name":
+        return { ok: false, reason: "invalid_name", detail: result.detail };
+      case "not_found":
+        return { ok: false, reason: "not_found" };
+      case "target_exists":
+        return { ok: false, reason: "target_exists", path: result.path };
+      case "read_error":
+      case "write_error":
+        return { ok: false, reason: result.reason, path: result.path, detail: result.detail };
+    }
+  }
+
   const { createInterface } = await import("node:readline");
   const reader = createInterface({ input: ctx.stdin });
   for await (const line of reader) {
@@ -1876,6 +2088,35 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     if (message.method === "workflows/get") {
       const id = message.id;
       void acceptHubGet(message.params as HubGetParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/save") {
+      // 写面同规：绝不 await（save 会读 journal、编译脚本并落盘）。
+      const id = message.id;
+      void acceptHubSave(message.params as HubSaveParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/updateMeta") {
+      const id = message.id;
+      void acceptHubUpdateMeta(message.params as HubUpdateMetaParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/delete") {
+      const id = message.id;
+      void acceptHubDelete(message.params as HubDeleteParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "workflows/move") {
+      const id = message.id;
+      void acceptHubMove(message.params as HubMoveParams).then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

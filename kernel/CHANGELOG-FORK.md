@@ -922,6 +922,35 @@ GUI 中枢的已保存工作流读面（Node `listSavedWorkflowsOp` / `getSavedW
 - **门禁**：89 → **93 字段**（`dwfHubList` 项目档列举六夹具 + 目录形状、`dwfHubGet` 脚本本体、
   `dwfHubGetMissing` 四态拒绝、`dwfHubListGlobal` 隔离 HOME 空页；dir 的分隔符在探针里归一——
   Windows 反斜杠会让尾部判定两边同假）。
+
+## 6.33 `workflows/save` / `updateMeta` / `delete` / `move` 中枢写面（2026-11-01，路线 C 第二十二段）
+
+GUI 中枢的已保存工作流写面（Node `saveSavedWorkflowFromRunOp` / `updateSavedWorkflowMetaOp` /
+`deleteSavedWorkflowOp` / `moveSavedWorkflowOp` 同一契约；详见
+docs/rust-kernel-step2-slice1-2026-10-30.md §6.40）：
+
+- **sidecar**：四个方法与读面同一条纪律——序列化器（`serializeSavedWorkflow`）、名字规则
+  （`isValidSavedWorkflowName`，路径穿越的防线**先验后拼**）与类型检查器（`analyzeScript`）
+  都从 @nibi/core / @nibi/contracts 取，不拼 YAML、不重复正则。`workflows/save` 不收脚本只收
+  runId：脚本从 journal 读（`dbPath` 与 holes/fill 同一家），存的是这次 run 实际执行的
+  那一份。写面的意外 fs 失败收敛成 `engine_error` 结构化错误而不是让 promise 拒绝（拒绝只会
+  变成宿主侧的悬等）。
+- **端口链**：`WorkflowEngine` 增四方法（回复是 Node op 原形 Value）→ `Kernel` 同名 → 协议
+  分支。**写面没有降级**：没接 sidecar 的入口 fail-closed（没有「照旧空页」的诚实形状——删
+  一个看不见的文件、写一个没人解析得了的文件都是谎）；runtime 层升为明确失败。
+- **协议**：四分支严格入参；`nonEmptyString` 的 trim 是 zod 转换的一部分（Node 的 parseParams
+  把 `" foo "` 解析成 `"foo"`，写面拿名字拼文件名，宿主不照做就写出第二个名字）——本段把
+  runs/list/get 的 workspace/name 校验一并统一到同一组助手；meta/args 按共享 schema 全形状
+  校验（`.strict()` 未知键、`type` 四词表、`default` unknown），sidecar 的 contracts schema
+  再解析一遍是「两边漂移」的追赶闸。`workflows/runs` 的顶层未知键拒绝补齐（此前仅逐键读取）。
+- **门禁**：93 → **112 字段**（save 的 ok/target_exists/overwrite/invalid_name/run_not_found
+  五态 + 遮蔽事实、updateMeta 读-改-写 + 严格 -32602、move 撞项目档 + 成功搬运 + 再搬
+  not_found、delete ok/再删/缺名/坏名；路径断言按 `<ws>`/`<home>` 归一）。协议层 8 个单测
+  （trim 转换、strict 未知键、meta/args 形状、scope 枚举）；顺带补上 resume-pin 段欠下的两处
+  测试构造器 `seed: None`（runtime/workflow_actor_tests、agents/actor_tests——此前 `cargo
+  test --workspace` 因 vendored 的 platform lib-test 编译断（include_str 六级 `../` 指向上游
+  仓库布局，子树合并后不存在）而根本没跑起来，本轮按既定口径以**分 crate** 验证为准）。
+
 ## 7. 未完成项
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
