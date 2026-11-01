@@ -26,7 +26,7 @@ import { runLoginCommand, runLogoutCommand } from "./login-command.js";
 import { CLI_COMMAND_NAME, CLI_PROCESS_NAME } from "./process-name.js";
 import { isPluginHostInvocation, runPluginHostCommand } from "./plugin-host-command.js";
 import { isDwfChildInvocation, runDwfChildCommand } from "./dwf-child-command.js";
-import { isDwfEngineInvocation, runDwfEngineCommand } from "./dwf-engine-command.js";
+import { isDwfEngineInvocation, runDwfEngineCommand } from "./dwf-engine/dwf-engine-command.js";
 import { runPrompt } from "./prompt-command.js";
 import { runPluginsCommand, type PluginsCommandFlags } from "./plugins-command.js";
 import { runSkillsCommand } from "./skills-command.js";
