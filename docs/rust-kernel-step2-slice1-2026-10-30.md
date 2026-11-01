@@ -884,10 +884,16 @@ run 还欠着决定」的提醒钟落 Rust，DWF 通知链尾单清零。判据�
 mcp-ui 16+2、遥测面（真机矩阵的「资源面板」项按此口径判定）、runtime/capabilities 恒 false。
 补齐顺序见报告 §9。随审计修掉 `updateDynamicWorkflowPolicy` 的 P4 残注（`6e070ba3`）。
 
-## 6.46 第四十七步：打包轨 CI 门禁（2026-11-01）
+## 6.46 第四十七步：打包轨 CI 门禁（2026-11-01，同日升级为真实打包）
 
-§6.37 打包第一段的 CI 闭环（详见 CHANGELOG-FORK §6.38）：新 workflow
-`desktop-package-gates.yml` 三平台矩阵——release 建内核 → 复用 `prepare-rust-kernel.mjs`
-暂存 → 断言暂存产物与 builder 三处接线标记 → `--prepare-storage` 冒烟（隔离 HOME，握手形状
-照抄桌面宿主）。完整 electron-builder 打包需内网 GLM 资源，CI 不可达——留本地（
-`NIBI_ENV=production`），这是有意的边界。本机按 CI 步骤逐步预演全绿。
+§6.37 打包第一段的 CI 闭环（详见 CHANGELOG-FORK §6.38）：workflow `desktop-package-gates.yml`
+三平台矩阵各跑**真实打包**（`bundle.mjs` → electron-builder），断言 Rust 内核进打包资源位次
+（win/linux unpacked、mac `.app/Contents/Resources`），并对打包产物里的内核跑
+`--prepare-storage` 冒烟（隔离 HOME，握手形状照抄桌面宿主）。
+
+**初版「CI 需内网 GLM 资源」的结论是错的**（误读了 pre-4.0 的 prepare:glm 链）：4.0 起本机
+打包不下载 GLM 原生二进制（resources/glm 是 JS bundle），native-search/builder 辅助包在无
+内网配置时走官方/repository 回退。干净环境实测全链：`NIBI-4.0.0-win-x64.exe`（191.9 MiB）
++ unpacked 内核冒烟 phase=ready。顺带修的开源树断账：`prepare-runtime-assets.mjs` 未按
+`computer-use-producer-detection.md` 接占位包门，win32 上无条件跑 `prepare:cua-helper`，
+开源树打包第一步必然炸（占位包没有私有引擎 `@trycua/cua-driver`，实测复现）——已接门。
