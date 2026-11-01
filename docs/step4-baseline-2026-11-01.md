@@ -47,12 +47,40 @@
 **诚实注记**：假 provider 立即返回，首段文本时间主要反映内核/进程启动开销，不是真实
 模型的首字延迟；单回合探针的 RSS 峰值含启动开销，长任务增长必须看下面的场景测量。
 
-## 3. 未验证项（Step 4 的剩余工作）
+## 3. 三场景（scenarios 模式；假 provider、app-server stdio 驱动、进程内采样）
+
+工具：`scripts/kernel-baseline/collect-kernel-scenarios.mjs`（新建，与 collector 同纪律）。
+两档负载各跑一轮：
+
+### 场景 A：长会话 + compact
+
+| 负载 | 采样点 | RSS |
+|---|---|---:|
+| 32 KiB × 25 回（小负载） | baseline → turn-25 | 146.5 → 130.9 MiB（持平：负载太小，GC 跟得上） |
+| **256 KiB × 40 回（放大约 10 MB 上下文）** | baseline | 138.6 MiB |
+| | turn-10 | 369.0 MiB（峰） |
+| | turn-20 | 129.8 MiB（GC 释放——锯齿） |
+| | turn-40 / compact 前 | 430.3 MiB |
+| | **compact 后** | **129.7 MiB（回落 300 MiB，回到基线）** |
+
+结论：Node 内核在该负载下的增长是**锯齿形**（V8 周期性回收），compact 实测把 RSS
+打回基线；没有发现跨 compact 的单调泄漏。数据：`.artifacts/kernel-baseline/scenarios-*/`。
+
+### 场景 B：MCP 重载
+
+同会话挂 2 个假 MCP 服务（stdio）：agent 进程树采样 11 个进程、其中 node 子进程 6 个
+（MCP 服务 + 沙箱/工具子进程）。子进程增量与角色归属见 summary.json 的 tree 样本。
+
+### 场景 C：DWF
+
+单 ask 工作流（保存 → startSavedWorkflow → actor 到假 provider → 结算）：
+RSS 133.7 → 498.3 MiB（放大约 10 MB 上下文 + 引擎/driver 常驻增量）；退出后树清空
+（treeAtExit=0，无孤儿沙箱进程）。
+
+## 4. 未验证项（Step 4 剩余）
 
 | 项 | 状态 | 计划 |
 |---|---|---|
 | Electron 进程树 attach（Host/renderer/Agent/MCP 按角色 RSS/私有内存时间序列） | 未跑 | 与 FIX-5 真机矩阵合并执行：运营者真机跑应用时挂采样器 |
-| 场景 A：长会话 + compact（上下文增长曲线、GC 停顿、compact 后回落） | 未跑 | agent-server stdio 驱动（假 provider，扩展 collector） |
-| 场景 B：MCP 重载（node_repl/插件 MCP 子进程树增量） | 未跑 | 同上 + fake-mcp-server.mjs |
-| 场景 C：DWF（引擎+沙箱子进程增量） | 未跑 | 同上（DWF 夹具已在 kernel-baseline） |
+| GC 停顿明细（sampler 只记 RSS/heap，无 pause 时间线） | 未跑 | 需要 GC 事件钩子，属可选深化 |
 | 真实 provider 首字延迟 | 未跑 | 依赖真实 provider 配置，切流前单独测 |
