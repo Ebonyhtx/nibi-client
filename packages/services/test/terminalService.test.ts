@@ -190,6 +190,17 @@ describe("terminalService", () => {
     expect(env.CI).toBeUndefined();
   });
 
+  it("should disable the PowerShell update banner inside the embedded terminal", () => {
+    const env = resolveTerminalEnv({ PATH: "/bin" });
+
+    // pwsh 7.6.x 的更新提示在 ConPTY 下会 FailFast（totalWidth -17），内嵌终端必须关掉它。
+    if (process.platform === "win32") {
+      expect(env.POWERSHELL_UPDATECHECK).toBe("Off");
+    } else {
+      expect(env.POWERSHELL_UPDATECHECK).toBeUndefined();
+    }
+  });
+
   it("should add common macOS command paths for GUI-launched terminal environments", () => {
     const env = resolveTerminalEnv({
       PATH: "/usr/bin:/bin:/usr/bin",

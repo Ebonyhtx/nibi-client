@@ -228,6 +228,13 @@ export function resolveTerminalEnv(env: NodeJS.ProcessEnv = process.env): NodeJS
     nextEnv.LC_ALL = fallbackLocale;
   }
 
+  // PowerShell 7.6.x 的交互式更新提示在 ConPTY 下会因 ConsoleHost 的宽度计算直接 FailFast
+  // （totalWidth '-17'，本机 pwsh 7.6.7 实测：用户一敲键盘终端就退出）。内嵌终端不需要
+  // 交互式更新提示，关掉它既避免崩溃，也避免把更新 banner 写进 xterm。
+  if (process.platform === "win32") {
+    nextEnv.POWERSHELL_UPDATECHECK = "Off";
+  }
+
   return nextEnv;
 }
 
