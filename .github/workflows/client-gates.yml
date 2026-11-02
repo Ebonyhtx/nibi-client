@@ -108,17 +108,15 @@ jobs:
         run: pnpm run typecheck
       - name: Windows-only tests
         run: pnpm exec vitest run --project windows-only --maxWorkers=1
-      # Windows runner 的内存更紧：threads worker 会在 shard 1 末尾偶发
-      # ERR_WORKER_OUT_OF_MEMORY（测试本身全过，是 worker 累计堆超限）。6 分片仍复现，
-      # 说明不是单分片文件数问题；改用 forks（每个测试文件独立子进程，堆不跨文件累积）。
-      - name: Unit tests (4 shards, fork pool)
+      # threads worker 在 shard 1 累计堆超限（4 分片 ~475 文件、6 分片 ~316 文件都复现）。
+      # 两个 worker 把单 worker 的文件数减半，峰值随之下降；forks 虽隔离但单文件进程启动在
+      # windows-latest 上过慢，且出现 runner 丢日志，不再采用。
+      - name: Unit tests (4 shards)
         shell: bash
-        env:
-          NIBI_TEST_POOL: forks
         run: |
           failed=0
           for shard in 1 2 3 4; do
-            pnpm run test:unit --shard=$shard/4 --project unit --project fork-isolated --maxWorkers=1 || failed=1
+            pnpm run test:unit --shard=$shard/4 --project unit --project fork-isolated --maxWorkers=2 || failed=1
           done
           exit $failed
       - name: CLI unit tests
