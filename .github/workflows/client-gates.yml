@@ -98,6 +98,9 @@ jobs:
         run: pnpm exec turbo run build --filter="./apps/zcode-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Unit tests (shard ${{ matrix.shard }}/3)
         run: pnpm run test:unit --shard=${{ matrix.shard }}/3 --project unit --project fork-isolated --maxWorkers=2
+      - name: Build workspace dist files for the CLI suite
+        if: matrix.shard == 1
+        run: pnpm run build:workspace-dists
       - name: CLI unit tests
         if: matrix.shard == 1
         working-directory: apps/zcode-cli
@@ -208,6 +211,9 @@ jobs:
       # windows-latest 上过慢，且出现 runner 丢日志，不再采用。
       - name: Unit tests (shard ${{ matrix.shard }}/4)
         run: pnpm run test:unit --shard=${{ matrix.shard }}/4 --project unit --project fork-isolated --maxWorkers=2
+      - name: Build workspace dist files for the CLI suite
+        if: matrix.shard == 1
+        run: pnpm run build:workspace-dists
       - name: CLI unit tests
         if: matrix.shard == 1
         working-directory: apps/zcode-cli
@@ -288,6 +294,9 @@ jobs:
         run: pnpm exec turbo run build --filter="./apps/zcode-cli/packages/*" --concurrency=4 && pnpm --filter @nibi/e2e-report build:node
       - name: Unit tests (shard ${{ matrix.shard }}/3)
         run: pnpm run test:unit --shard=${{ matrix.shard }}/3 --project unit --project fork-isolated --maxWorkers=2
+      - name: Build workspace dist files for the CLI suite
+        if: matrix.shard == 1
+        run: pnpm run build:workspace-dists
       - name: CLI unit tests
         if: matrix.shard == 1
         working-directory: apps/zcode-cli
