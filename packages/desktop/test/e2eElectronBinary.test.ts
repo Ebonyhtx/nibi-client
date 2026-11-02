@@ -112,7 +112,9 @@ describe("E2E Electron binary preflight", () => {
         installElectronPackage: vi.fn(),
         repoRoot,
       }),
-    ).toThrow(/ELECTRON_SKIP_BINARY_DOWNLOAD/u);
+    // Electron 42 起二进制不再随 postinstall 下载、44 已移除 ELECTRON_SKIP_BINARY_DOWNLOAD；
+    // install.js 跑完仍缺文件时按「镜像/网络」报错（FIX-5 同步的文案）。
+    ).toThrow(/path\.txt 或其指向的可执行文件仍然缺失/u);
   });
 });
 
