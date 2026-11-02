@@ -90,6 +90,7 @@ flowchart TD
   async onUnauthorized() {                               // transport 之后自动重试一次
     const pair = await loadCanonical();
     if (!pair?.tokens?.refresh_token) throw interactiveRequired();
+    if (pair.tokens.access_token !== lastIssued) return; // 被拒的不是这枚：让重试重新 token()
     await refreshUnderLock(pair, { reactive: true });
   },
 }
@@ -98,6 +99,14 @@ flowchart TD
 SDK 契约（`index.d.mts:186-201`）：`onUnauthorized()` 返回 `Promise<void>`，返回值被忽略；它的职责是
 「让下一次 `token()` 返回可用 token」。因此 `refreshUnderLock` 必须把结果发布到 canonical 并让
 provider 的下一次读取绕过缓存。
+
+**只刷新确实被拒的那一枚 token。** `onUnauthorized()` 只知道「某个请求被拒」，不知道那个请求带的是
+哪一枚 token。跨进程下 follower 的首次连接可能**无认证**发出（当时还没有凭据），401 在途时 leader
+完成了授权；若此时读到新凭据就刷新，会把 leader 刚发布、从未被资源服务器拒绝的 refresh token 换掉。
+rotation 严格服务器换代后，重试带着新 access token 仍被资源服务器拒绝，表现为
+`401 after re-authentication`（实测：linux CI 上另一侧重连失败）。provider 记录最后一次交给 SDK 的
+access token，只在它与当前 canonical 相同时刷新；无认证请求、或已被对端换代的凭据一律直接返回，
+让 SDK 的重试重新调 `token()` 拿到新凭据。
 
 401 座位语义（`index.mjs:4848-4866`、`5103-5120`、`5340-5358`）：
 
