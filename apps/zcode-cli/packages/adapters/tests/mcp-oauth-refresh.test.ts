@@ -349,6 +349,97 @@ describe("MCP OAuth refresh single-flight", () => {
       .toMatchObject({ tokens: { refresh_token: "seeded-refresh-token" } });
   });
 
+  it("does not rotate credentials that appeared after the rejected request", async () => {
+    const authServer = await startFakeAuthorizationServer({
+      respond: () => ({
+        status: 200,
+        payload: {
+          access_token: "unexpected-rotated-token",
+          expires_in: 3600,
+          refresh_token: "unexpected-rotated-refresh-token",
+          token_type: "Bearer",
+        },
+      }),
+    });
+    const directory = await mkdtemp(join(tmpdir(), "zcode-mcp-oauth-appeared-"));
+    temporaryDirectories.push(directory);
+    const credentialStore = createSharedZCodeCredentialStore({
+      env: { NIBI_CREDENTIAL_SECRET: "appeared-secret" },
+      filePath: join(directory, "credentials.json"),
+    });
+    const mcpUrl = `${authServer.baseUrl}/mcp`;
+    const keyPrefix = createCredentialKeyPrefix("refresh-test", mcpUrl, {
+      type: "authorization_code",
+      scope: MCP_SCOPE,
+    });
+    const provider = createMcpOAuthTokenProvider({
+      config: { type: "authorization_code", scope: MCP_SCOPE },
+      credentialStore,
+      keyPrefix,
+      serverName: "refresh-test",
+      serverUrl: mcpUrl,
+    });
+
+    // 请求发出时还没有凭据（follower 的首次连接）——401 属于这个无认证请求。
+    await expect(provider.token()).resolves.toBeUndefined();
+    // 401 在途期间，leader 完成授权并发布凭据。
+    await publishCanonicalCredentials(credentialStore, keyPrefix, {
+      clientInformation: { client_id: "winner-client" },
+      publishedBy: "winner",
+      tokens: {
+        access_token: "winner-access-token",
+        expires_in: 3600,
+        refresh_token: "winner-refresh-token",
+        token_type: "Bearer",
+      },
+    });
+
+    // 被拒的不是 winner 的 token：不能刷新它（rotation 会换掉一枚从未被拒绝的凭据）。
+    await expect(provider.onUnauthorized?.({} as never)).resolves.toBeUndefined();
+    expect(authServer.refreshRequests).toHaveLength(0);
+    // SDK 的重试会重新调 token()，直接拿到 leader 发布的凭据。
+    await expect(provider.token()).resolves.toBe("winner-access-token");
+  });
+
+  it("does not rotate a credential another process already replaced", async () => {
+    const authServer = await startFakeAuthorizationServer({
+      respond: () => ({
+        status: 200,
+        payload: {
+          access_token: "unexpected-rotated-token",
+          expires_in: 3600,
+          refresh_token: "unexpected-rotated-refresh-token",
+          token_type: "Bearer",
+        },
+      }),
+    });
+    const seeded = await seedCredentials({
+      authBaseUrl: authServer.baseUrl,
+      // 足够长的有效期：token() 不会主动刷新，保证 401 针对的是 seeded-access-token。
+      expiresInSeconds: 7200,
+      secret: "refresh-replaced-secret",
+    });
+    const provider = createProvider(seeded);
+
+    await expect(provider.token()).resolves.toBe("seeded-access-token");
+    // 401 在途期间，另一个进程完成换代。
+    await publishCanonicalCredentials(seeded.credentialStore, seeded.keyPrefix, {
+      clientInformation: { client_id: "seeded-client" },
+      publishedBy: "peer-refresh",
+      tokens: {
+        access_token: "peer-rotated-access-token",
+        expires_in: 7200,
+        refresh_token: "peer-rotated-refresh-token",
+        token_type: "Bearer",
+      },
+    });
+
+    // 被拒的旧 token 已被替换：再刷一次只会多一次 rotation，直接用对端的结果。
+    await expect(provider.onUnauthorized?.({} as never)).resolves.toBeUndefined();
+    expect(authServer.refreshRequests).toHaveLength(0);
+    await expect(provider.token()).resolves.toBe("peer-rotated-access-token");
+  });
+
   it("demands interactive authorization when no refresh token is available", async () => {
     const authServer = await startFakeAuthorizationServer({
       respond: () => ({ status: 200, payload: {} }),
