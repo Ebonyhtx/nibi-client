@@ -7,8 +7,10 @@ import {
   type WorkspaceOpenConfirmPayload,
 } from "./contract.js";
 
-const WINDOW_WIDTH = 520;
-const WINDOW_HEIGHT = 336;
+// 窗口比可见卡片四周各多 24px：透明窗口让 CSS 圆角与投影完整显示，
+// 不再出现「圆角卡片画在方形不透明窗口里」的双层边框。
+const WINDOW_WIDTH = 568;
+const WINDOW_HEIGHT = 384;
 
 let activeWindow: BrowserWindow | null = null;
 
@@ -56,13 +58,15 @@ export async function confirmWorkspaceOpenInWindow(input: {
       modal: true,
       show: false,
       frame: false,
+      transparent: true,
+      hasShadow: false,
       resizable: false,
       minimizable: false,
       maximizable: false,
       fullscreenable: false,
       skipTaskbar: true,
       roundedCorners: true,
-      backgroundColor: dark ? "#171716" : "#f9f2e4",
+      backgroundColor: "#00000000",
       webPreferences: {
         preload: join(import.meta.dirname, "../preload/workspaceOpenConfirm.cjs"),
         contextIsolation: true,

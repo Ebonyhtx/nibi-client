@@ -63,12 +63,13 @@
       .surface {
         display: flex;
         flex-direction: column;
-        height: 100%;
+        height: calc(100% - 48px);
+        margin: 24px;
         background: var(--bg);
         border: 1px solid var(--border);
         border-radius: 14px;
         overflow: hidden;
-        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
       }
       .drag {
         -webkit-app-region: drag;
