@@ -47,8 +47,9 @@ export function createMcpOAuthTokenProvider(
   // 401 钩子只知道「某个请求被拒」，不知道那个请求带的是哪个 token。跨进程并发下这会让
   // follower 把 leader 刚发布的凭据误当成被拒的凭据：请求发出时还没有 token（无认证 401），
   // 等 onUnauthorized 读凭据时 leader 已经发布，于是它刷新的是一枚从未被资源服务器拒绝的
-  // refresh token。rotation 严格服务器会因此换代，把整个共享凭据换成资源服务器不认的
-  // access token（实测：另一侧重连报 `401 after re-authentication`）。
+  // refresh token。这会多换一次代；在 rotation 严格、资源服务器对 token 有额外绑定
+  // （本测试的严格假服务器只认授权码换来的那一枚）的场景下，重试会继续被拒（实测另一侧
+  // 重连报 `401 after re-authentication`）。
   // 记录本 provider 最后一次交给 SDK 的 token，onUnauthorized 只刷新「确实被拒」的那一枚。
   let tokenRequested = false;
   let lastIssuedAccessToken: string | undefined;
