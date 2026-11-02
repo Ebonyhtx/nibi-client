@@ -14,6 +14,13 @@ const electronMocks = vi.hoisted(() => ({
 const fsMocks = vi.hoisted(() => ({
   statSync: vi.fn(),
 }));
+const confirmWorkspaceOpenInWindowMock = vi.hoisted(() =>
+  vi.fn<(input: unknown) => Promise<boolean | undefined>>(async () => true),
+);
+
+vi.mock("../src/main/workspaceOpenConfirmWindow.js", () => ({
+  confirmWorkspaceOpenInWindow: confirmWorkspaceOpenInWindowMock,
+}));
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -53,6 +60,8 @@ beforeEach(() => {
   electronMocks.getAllWindows.mockReset();
   electronMocks.setAsDefaultProtocolClient.mockClear();
   fsMocks.statSync.mockClear();
+  confirmWorkspaceOpenInWindowMock.mockReset();
+  confirmWorkspaceOpenInWindowMock.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -75,12 +84,16 @@ describe("desktopOAuthDeepLink workspace open routing", () => {
     const handled = handleDeepLink(buildWorkspaceOpenUrl(workspacePath), logger);
 
     expect(handled).toBe(true);
+    await flushAsyncRouting();
+    expect(confirmWorkspaceOpenInWindowMock).toHaveBeenCalledWith(
+      expect.objectContaining({ path: workspacePath }),
+    );
+    expect(electronMocks.showMessageBoxSync).not.toHaveBeenCalled();
     expect(targetWindow.webContents.send).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(
       "[deep-link] 工作区打开请求命中未就绪窗口，先缓存等待 renderer ready",
       { windowId: 7, path: workspacePath },
     );
-    expect(electronMocks.showMessageBoxSync).toHaveBeenCalled();
 
     deliverPendingDeepLink(targetWindow.webContents);
 
@@ -106,11 +119,13 @@ describe("desktopOAuthDeepLink workspace open routing", () => {
     const handled = handleDeepLink(buildWorkspaceOpenUrl(workspacePath), logger);
 
     expect(handled).toBe(true);
+    await flushAsyncRouting();
     expect(targetWindow.webContents.send).toHaveBeenCalledWith(
       PlatformChannels.OpenWorkspacePath,
       workspacePath,
     );
-    expect(electronMocks.showMessageBoxSync).toHaveBeenCalled();
+    expect(confirmWorkspaceOpenInWindowMock).toHaveBeenCalled();
+    expect(electronMocks.showMessageBoxSync).not.toHaveBeenCalled();
   });
 
   it("工作区打开路由使用业务窗口解析器，不会选中 CUA 辅助浮层", async () => {
@@ -155,13 +170,43 @@ describe("desktopOAuthDeepLink workspace open routing", () => {
     });
 
     expect(handled).toBe(true);
-    expect(electronMocks.showMessageBoxSync).toHaveBeenCalledWith(
-      targetWindow,
+    await flushAsyncRouting();
+    expect(confirmWorkspaceOpenInWindowMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        buttons: ["打开文件夹", "取消"],
-        title: "打开外部 NIBI 链接？",
+        path: workspacePath,
+        copy: expect.objectContaining({
+          windowTitle: "在 NIBI 中打开这个文件夹？",
+          sourceLabel: "来源：外部链接",
+          buttons: ["打开文件夹", "取消"],
+        }),
       }),
     );
+    expect(electronMocks.showMessageBoxSync).not.toHaveBeenCalled();
+    expect(targetWindow.webContents.send).toHaveBeenCalledWith(
+      PlatformChannels.OpenWorkspacePath,
+      workspacePath,
+    );
+  });
+
+  it("品牌化确认窗不可用时回退原生弹窗并继续投递", async () => {
+    const workspacePath = createTempWorkspace();
+    const targetWindow = createMockWindow(24);
+    const logger = { info: vi.fn(), warn: vi.fn() };
+    confirmWorkspaceOpenInWindowMock.mockResolvedValue(undefined);
+    electronMocks.showMessageBoxSync.mockReturnValue(0);
+    electronMocks.getFocusedWindow.mockReturnValue(targetWindow);
+    electronMocks.getAllWindows.mockReturnValue([targetWindow]);
+
+    const { deliverPendingDeepLink, handleDeepLink } =
+      await import("../src/main/desktopOAuthDeepLink.js");
+    deliverPendingDeepLink(targetWindow.webContents);
+    targetWindow.webContents.send.mockClear();
+
+    const handled = handleDeepLink(buildWorkspaceOpenUrl(workspacePath), logger);
+
+    expect(handled).toBe(true);
+    await flushAsyncRouting();
+    expect(electronMocks.showMessageBoxSync).toHaveBeenCalledWith(targetWindow, expect.any(Object));
     expect(targetWindow.webContents.send).toHaveBeenCalledWith(
       PlatformChannels.OpenWorkspacePath,
       workspacePath,
@@ -226,7 +271,7 @@ describe("desktopOAuthDeepLink workspace open routing", () => {
     const workspacePath = createTempWorkspace();
     const targetWindow = createMockWindow(12);
     const logger = { info: vi.fn(), warn: vi.fn() };
-    electronMocks.showMessageBoxSync.mockReturnValue(1);
+    confirmWorkspaceOpenInWindowMock.mockResolvedValue(false);
     electronMocks.getFocusedWindow.mockReturnValue(targetWindow);
     electronMocks.getAllWindows.mockReturnValue([targetWindow]);
 
@@ -239,6 +284,7 @@ describe("desktopOAuthDeepLink workspace open routing", () => {
     const handled = handleDeepLink(buildWorkspaceOpenUrl(workspacePath), logger);
 
     expect(handled).toBe(true);
+    await flushAsyncRouting();
     expect(targetWindow.webContents.send).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith("[deep-link] 用户取消打开外部链接工作区", {
       path: workspacePath,
@@ -380,11 +426,16 @@ function createMockWindow(webContentsId: number) {
       send: vi.fn(),
     },
     focus: vi.fn(),
+    isDestroyed: vi.fn(() => false),
     isMinimized: vi.fn(() => false),
     isVisible: vi.fn(() => true),
     restore: vi.fn(),
     show: vi.fn(),
   };
+}
+
+function flushAsyncRouting(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 function buildWorkspaceOpenUrl(workspacePath: string): string {

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:"
+    />
+    <title>NIBI</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f9f2e4;
+        --card: #fffdf9;
+        --text: #1f2a37;
+        --subtle: #6b6257;
+        --border: rgba(31, 42, 55, 0.12);
+        --border-strong: rgba(31, 42, 55, 0.2);
+        --primary: #e08a3e;
+        --primary-hover: #d97d2f;
+        --primary-text: #fffdf9;
+        --secondary: rgba(31, 42, 55, 0.06);
+        --secondary-hover: rgba(31, 42, 55, 0.1);
+        --focus: rgba(224, 138, 62, 0.45);
+        --path-bg: rgba(31, 42, 55, 0.04);
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #171716;
+        --card: #1e1f21;
+        --text: #f3ead8;
+        --subtle: #b9ad9a;
+        --border: rgba(243, 234, 216, 0.14);
+        --border-strong: rgba(243, 234, 216, 0.24);
+        --primary: #e8c491;
+        --primary-hover: #f0d2a6;
+        --primary-text: #171716;
+        --secondary: rgba(243, 234, 216, 0.08);
+        --secondary-hover: rgba(243, 234, 216, 0.14);
+        --focus: rgba(232, 196, 145, 0.5);
+        --path-bg: rgba(243, 234, 216, 0.06);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        font:
+          13px/1.5 -apple-system,
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          system-ui,
+          sans-serif;
+        color: var(--text);
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .surface {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      }
+      .drag {
+        -webkit-app-region: drag;
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 42px;
+        padding: 0 10px 0 16px;
+        flex: 0 0 auto;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: var(--subtle);
+      }
+      .mark {
+        width: 18px;
+        height: 18px;
+        border-radius: 6px;
+        background: var(--primary);
+        display: grid;
+        place-items: center;
+        color: var(--primary-text);
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .close {
+        -webkit-app-region: no-drag;
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--subtle);
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .close:hover {
+        background: var(--secondary-hover);
+        color: var(--text);
+      }
+      .body {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 4px 24px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.35;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .source {
+        align-self: flex-start;
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 11.5px;
+        color: var(--subtle);
+        background: var(--secondary);
+      }
+      .path {
+        margin: 2px 0 0;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--path-bg);
+        font:
+          12px/1.5 "Cascadia Code",
+          "SFMono-Regular",
+          Consolas,
+          monospace;
+        color: var(--text);
+        max-height: 92px;
+        overflow: auto;
+        word-break: break-all;
+        user-select: text;
+      }
+      .warning {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--subtle);
+      }
+      .footer {
+        flex: 0 0 auto;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 18px 24px 20px;
+      }
+      button.action {
+        -webkit-app-region: no-drag;
+        height: 34px;
+        padding: 0 16px;
+        border-radius: 9px;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        outline: none;
+      }
+      button.action:focus-visible {
+        box-shadow: 0 0 0 3px var(--focus);
+      }
+      .cancel {
+        background: var(--secondary);
+        color: var(--text);
+        border-color: var(--border) !important;
+      }
+      .cancel:hover {
+        background: var(--secondary-hover);
+      }
+      .confirm {
+        background: var(--primary);
+        color: var(--primary-text);
+      }
+      .confirm:hover {
+        background: var(--primary-hover);
+      }
+      .confirm:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .error {
+        display: none;
+        padding: 10px 12px;
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        color: var(--subtle);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="surface" role="dialog" aria-modal="true" aria-labelledby="title">
+      <header class="titlebar drag">
+        <div class="brand"><span class="mark">N</span><span>NIBI</span></div>
+        <button class="close" id="close" type="button" aria-label="取消">×</button>
+      </header>
+      <section class="body">
+        <h1 id="title">在 NIBI 中打开这个文件夹？</h1>
+        <span class="source" id="source">来源：外部链接</span>
+        <div class="path" id="path"></div>
+        <p class="warning" id="warning">
+          只打开你信任来源的文件夹。项目设置可能影响 agent 运行。
+        </p>
+        <p class="error" id="error">无法读取本次链接的路径，请取消后重试。</p>
+      </section>
+      <footer class="footer">
+        <button class="action cancel" id="cancel" type="button">取消</button>
+        <button class="action confirm" id="confirm" type="button">打开文件夹</button>
+      </footer>
+    </main>
+    <script>
+      (() => {
+        const api = window.workspaceOpenConfirm;
+        const payload = api?.getPayload() ?? null;
+        const dismiss = () => api?.resolve(false);
+        const title = document.getElementById("title");
+        const source = document.getElementById("source");
+        const path = document.getElementById("path");
+        const warning = document.getElementById("warning");
+        const error = document.getElementById("error");
+        const cancel = document.getElementById("cancel");
+        const confirm = document.getElementById("confirm");
+        const close = document.getElementById("close");
+
+        if (payload) {
+          document.documentElement.dataset.theme = payload.dark ? "dark" : "light";
+          title.textContent = payload.copy.windowTitle;
+          source.textContent = payload.copy.sourceLabel;
+          path.textContent = payload.path;
+          warning.textContent = payload.copy.warning;
+          cancel.textContent = payload.copy.buttons[1];
+          confirm.textContent = payload.copy.buttons[0];
+          close.setAttribute("aria-label", payload.copy.buttons[1]);
+        } else {
+          path.hidden = true;
+          warning.hidden = true;
+          error.style.display = "block";
+          confirm.disabled = true;
+        }
+
+        cancel.addEventListener("click", dismiss);
+        close.addEventListener("click", dismiss);
+        confirm.addEventListener("click", () => api?.resolve(true));
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            dismiss();
+          }
+        });
+        // 信任必须是明确选择：默认焦点落在取消，避免连续回车误授权。
+        cancel.focus();
+      })();
+    </script>
+  </body>
+</html>

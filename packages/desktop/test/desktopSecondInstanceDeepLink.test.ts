@@ -14,6 +14,13 @@ const electronMocks = vi.hoisted(() => ({
 const fsMocks = vi.hoisted(() => ({
   statSync: vi.fn(),
 }));
+const confirmWorkspaceOpenInWindowMock = vi.hoisted(() =>
+  vi.fn<(input: unknown) => Promise<boolean | undefined>>(async () => true),
+);
+
+vi.mock("../src/main/workspaceOpenConfirmWindow.js", () => ({
+  confirmWorkspaceOpenInWindow: confirmWorkspaceOpenInWindowMock,
+}));
 
 vi.mock("node:fs", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs")>();
@@ -53,6 +60,8 @@ beforeEach(() => {
   electronMocks.getAllWindows.mockReset();
   electronMocks.setAsDefaultProtocolClient.mockClear();
   fsMocks.statSync.mockClear();
+  confirmWorkspaceOpenInWindowMock.mockReset();
+  confirmWorkspaceOpenInWindowMock.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -103,12 +112,11 @@ describe("desktop second-instance workspace deep link routing", () => {
     });
 
     expect(handled).toBe(true);
-    expect(electronMocks.showMessageBoxSync).toHaveBeenCalledWith(
-      targetWindow,
-      expect.objectContaining({
-        buttons: ["打开文件夹", "取消"],
-      }),
+    await flushAsyncRouting();
+    expect(confirmWorkspaceOpenInWindowMock).toHaveBeenCalledWith(
+      expect.objectContaining({ path: workspacePath }),
     );
+    expect(electronMocks.showMessageBoxSync).not.toHaveBeenCalled();
     expect(targetWindow.webContents.send).toHaveBeenCalledWith(
       PlatformChannels.OpenWorkspacePath,
       workspacePath,
@@ -147,7 +155,7 @@ describe("desktop second-instance workspace deep link routing", () => {
     const workspacePath = createTempWorkspace();
     const targetWindow = createMockWindow(32);
     const logger = { warn: vi.fn() };
-    electronMocks.showMessageBoxSync.mockReturnValue(1);
+    confirmWorkspaceOpenInWindowMock.mockResolvedValue(false);
     electronMocks.getFocusedWindow.mockReturnValue(targetWindow);
     electronMocks.getAllWindows.mockReturnValue([targetWindow]);
 
@@ -180,6 +188,7 @@ describe("desktop second-instance workspace deep link routing", () => {
     });
 
     expect(handled).toBe(true);
+    await flushAsyncRouting();
     expect(targetWindow.webContents.send).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith("[deep-link] 用户取消打开外部链接工作区", {
       path: workspacePath,
@@ -259,11 +268,16 @@ function createMockWindow(webContentsId: number) {
       send: vi.fn(),
     },
     focus: vi.fn(),
+    isDestroyed: vi.fn(() => false),
     isMinimized: vi.fn(() => false),
     isVisible: vi.fn(() => true),
     restore: vi.fn(),
     show: vi.fn(),
   };
+}
+
+function flushAsyncRouting(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
 }
 
 function buildWorkspaceOpenUrl(workspacePath: string): string {

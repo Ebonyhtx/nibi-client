@@ -241,6 +241,11 @@ export default defineConfig(({ mode }) => {
           index: resolve(__dirname, "src/renderer/index.html"),
           "resource-manager": resolve(__dirname, "src/renderer/resource-manager.html"),
           "cua-permission-panel": resolve(__dirname, "src/renderer/cua-permission-panel.html"),
+          // 外部 workspace 深链的品牌化确认窗（main 直接持有，不经过主 renderer）
+          "workspace-open-confirm": resolve(
+            __dirname,
+            "src/renderer/workspace-open-confirm.html",
+          ),
           // 插件 UI 沙箱的受信 shell，经 zcode-sandbox:// 提供
           "plugin-sandbox": resolve(__dirname, "src/renderer/plugin-sandbox.html"),
         },

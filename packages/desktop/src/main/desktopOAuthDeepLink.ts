@@ -18,6 +18,7 @@ import {
   isShareImportUrl,
 } from "./desktopDeepLinkUrl.js";
 import { registerLinuxDeepLinkProtocol } from "./desktopLinuxDeepLinkRegistration.js";
+import { confirmWorkspaceOpenInWindow } from "./workspaceOpenConfirmWindow.js";
 
 interface DeepLinkWorkspaceGateOptions {
   canOpenWorkspace?: (workspacePath: string) => boolean;
@@ -32,6 +33,10 @@ export interface ExternalWorkspaceOpenDialogCopy {
   title: string;
   message: string;
   detail: (path: string) => string;
+  /** 品牌化确认窗文案；原生兜底不使用。 */
+  windowTitle: string;
+  sourceLabel: string;
+  warning: string;
 }
 
 interface OAuthRouteTarget {
@@ -147,6 +152,9 @@ export function resolveExternalWorkspaceOpenDialogCopy(
       title: "打开外部 NIBI 链接？",
       message: "是否在 NIBI 中打开此文件夹？",
       detail: (path) => `${path}\n\n只打开你信任来源的文件夹。项目设置可能影响 agent runtime。`,
+      windowTitle: "在 NIBI 中打开这个文件夹？",
+      sourceLabel: "来源：外部链接",
+      warning: "只打开你信任来源的文件夹。项目设置可能影响 agent 运行。",
     };
   }
 
@@ -156,6 +164,10 @@ export function resolveExternalWorkspaceOpenDialogCopy(
     message: "Open this folder in NIBI?",
     detail: (path) =>
       `${path}\n\nOnly open folders from sources you trust. Project settings may affect the agent runtime.`,
+    windowTitle: "Open this folder in NIBI?",
+    sourceLabel: "Source: external link",
+    warning:
+      "Only open folders from sources you trust. Project settings may affect the agent runtime.",
   };
 }
 
@@ -279,10 +291,49 @@ export function handleDeepLink(
       ? options.resolveApplicationWindow()
       : (BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null);
     // nibi://workspace/open 来自浏览器/IM 等外部应用，不能等同于用户在
-    // ZCode 内部选择目录；确认必须发生在 statSync 之前，避免项目配置被静默信任。
-    if (
-      !confirmExternalWorkspaceOpen(workspacePath, logger, targetWindow, options.confirmationCopy)
-    ) {
+    // NIBI 内部选择目录；确认必须发生在 statSync 之前，避免项目配置被静默信任。
+    //
+    // 运行中有业务窗口时用 main 直接持有的品牌化确认窗（页面内容无法伪造授权）；
+    // 窗口创建/加载失败或冷启动尚无窗口时回退原生同步弹窗，安全边界不变。
+    const copy =
+      options.confirmationCopy ?? resolveExternalWorkspaceOpenDialogCopy("en-US");
+    if (targetWindow && !targetWindow.isDestroyed()) {
+      void confirmWorkspaceOpenInWindow({
+        copy,
+        logger,
+        parent: targetWindow,
+        path: workspacePath,
+      })
+        .then((accepted) => {
+          if (accepted === undefined) {
+            if (!confirmExternalWorkspaceOpen(workspacePath, logger, targetWindow, copy)) {
+              return;
+            }
+          } else if (!accepted) {
+            logger.warn("[deep-link] 用户取消打开外部链接工作区", { path: workspacePath });
+            return;
+          }
+          handleOpenWorkspacePath(workspacePath, logger, {
+            allowWithoutReadyWindow: true,
+            resolveApplicationWindow: options.resolveApplicationWindow,
+          });
+        })
+        .catch((error: unknown) => {
+          logger.warn("[deep-link] 品牌化确认窗异常，回退原生弹窗", {
+            error: error instanceof Error ? error.message : String(error),
+            path: workspacePath,
+          });
+          if (confirmExternalWorkspaceOpen(workspacePath, logger, targetWindow, copy)) {
+            handleOpenWorkspacePath(workspacePath, logger, {
+              allowWithoutReadyWindow: true,
+              resolveApplicationWindow: options.resolveApplicationWindow,
+            });
+          }
+        });
+      return true;
+    }
+
+    if (!confirmExternalWorkspaceOpen(workspacePath, logger, targetWindow, copy)) {
       return true;
     }
 
