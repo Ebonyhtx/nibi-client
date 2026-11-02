@@ -57,8 +57,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       - name: Lint
         run: pnpm run lint
       - name: Accessibility gate
@@ -94,8 +94,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       - name: Unit tests (shard ${{ matrix.shard }}/3)
         run: pnpm run test:unit --shard=${{ matrix.shard }}/3 --project unit --project fork-isolated --maxWorkers=2
       - name: CLI unit tests
@@ -136,8 +136,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       - name: Lint
         run: pnpm run lint
       - name: Accessibility gate
@@ -172,8 +172,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       - name: Windows-only tests
         run: pnpm exec vitest run --project windows-only --maxWorkers=1
 
@@ -201,8 +201,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       # threads worker 在 shard 1 累计堆超限（4 分片 ~475 文件、6 分片 ~316 文件都复现）。
       # 两个 worker 把单 worker 的文件数减半，峰值随之下降；forks 虽隔离但单文件进程启动在
       # windows-latest 上过慢，且出现 runner 丢日志，不再采用。
@@ -247,8 +247,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       - name: Lint
         run: pnpm run lint
       - name: Accessibility gate
@@ -284,8 +284,8 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Build contracts and CLI packages
-        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build
+      - name: Build contracts, CLI and e2e-report packages
+        run: pnpm --filter @nibi/contracts build && pnpm -r --filter "./apps/zcode-cli/packages/*" build && pnpm --filter @nibi/e2e-report build:node
       - name: Unit tests (shard ${{ matrix.shard }}/3)
         run: pnpm run test:unit --shard=${{ matrix.shard }}/3 --project unit --project fork-isolated --maxWorkers=2
       - name: CLI unit tests
