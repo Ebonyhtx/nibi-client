@@ -1,4 +1,4 @@
-import { chmod, mkdir } from "node:fs/promises";
+import { chmod, mkdir, rename, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
@@ -42,13 +42,23 @@ export const buildBrowserUsePluginBundles = async ({
 } = {}) => {
   // node_repl 宿主的产物由 @nibi/node-repl-host 自己构建与携带；这个包只出 browser-client。
   await mkdir(dirname(browserClientOutfile), { recursive: true });
-  await build(
-    createBundleOptions({
-      entryPoint: resolve(packageRoot, "src", "browser-client.ts"),
-      outfile: browserClientOutfile,
-    }),
-  );
-  await chmod(browserClientOutfile, executableFileMode);
+  // bootstrap 的 seed 会在并发测试里读取这个文件并校验 sha256；直接写目标路径时，
+  // 读者可能看到写了一半的内容（turbo test 的 build 与 bootstrap test 并行）。
+  // 先写临时文件再原子 rename，任何读者看到的都是完整产物。
+  const temporaryOutfile = `${browserClientOutfile}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    await build(
+      createBundleOptions({
+        entryPoint: resolve(packageRoot, "src", "browser-client.ts"),
+        outfile: temporaryOutfile,
+      }),
+    );
+    await chmod(temporaryOutfile, executableFileMode);
+    await rename(temporaryOutfile, browserClientOutfile);
+  } catch (error) {
+    await rm(temporaryOutfile, { force: true }).catch(() => {});
+    throw error;
+  }
   return { browserClientOutfile };
 };
 

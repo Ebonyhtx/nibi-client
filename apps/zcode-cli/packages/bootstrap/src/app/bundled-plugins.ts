@@ -62,6 +62,9 @@ const includedTopLevelPaths = new Set([
 ]);
 
 interface OfficialPluginSeedFile {
+  // 扫描时一次读入的字节快照：seed 复制与 sha256 校验必须针对同一份内容，否则并发的
+  // 构建/测试在扫描后改写源文件会让校验读到半截产物（2026-11-02 CLI 测试实测）。
+  bytes?: Buffer;
   mode?: number;
   path: string;
   sha256: string;
@@ -381,6 +384,7 @@ function collectFilesystemPluginFiles(
     if (!shouldIncludePluginFile(relativePath, allowedTopLevelPaths)) continue;
     const bytes = readFileSync(sourcePath);
     files.push({
+      bytes,
       mode: modeForSeedFile(relativePath, statSync(sourcePath).mode),
       path: relativePath,
       sha256: hashBytes(bytes),
@@ -411,7 +415,9 @@ function readSeedFileBytes(
   plugin: OfficialPluginSeedPluginSource,
   file: OfficialPluginSeedFile,
 ): Buffer {
-  if (source.kind === "filesystem" && file.sourcePath) return readFileSync(file.sourcePath);
+  if (source.kind === "filesystem" && file.sourcePath) {
+    return file.bytes ?? readFileSync(file.sourcePath);
+  }
   const sea = getSeaModule();
   if (!sea?.isSea()) throw new Error("SEA plugin asset is unavailable outside SEA runtime.");
   return Buffer.from(
