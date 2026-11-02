@@ -226,6 +226,31 @@ impl Server {
             "workspace/readPresentation" => reply(self.read_presentation(&params).await),
             // 目录来源按 sessionIds 查父链：rust 的会话没有要报的父链（子代理不进列表），P1 回空列表。
             "session/list" => reply(json!({"sessions": []})),
+            // 旧会话入口（141 F5）：Host 的任务适配器、时间线、设置面板仍在用；内部桥到 v4 语义。
+            "session/create" => crate::legacy_session::create(self, &params)
+                .await
+                .map(Reply::new),
+            "session/resume" => crate::legacy_session::resume(self, &params)
+                .await
+                .map(Reply::new),
+            "session/messages" => crate::legacy_session::messages(self, &params)
+                .await
+                .map(Reply::new),
+            "session/compact" => crate::legacy_session::compact(self, &params)
+                .await
+                .map(Reply::new),
+            "session/goal" => crate::legacy_session::goal(self, &params)
+                .await
+                .map(Reply::new),
+            "session/setModel" => crate::legacy_session::set_model(self, &params)
+                .await
+                .map(Reply::new),
+            "session/setThoughtLevel" => crate::legacy_session::set_thought_level(self, &params)
+                .await
+                .map(Reply::new),
+            "session/setMode" => crate::legacy_session::set_mode(self, &params)
+                .await
+                .map(Reply::new),
             "session/read" => crate::legacy::read(self, &params).await.map(Reply::new),
             "session/close" => reply(self.close_session(&params).await),
             "v4/conversation/subscribe" => crate::subscribe::subscribe(self, &params).await,

@@ -22,7 +22,7 @@ use crate::projection::state::{Followup, Phase};
 use crate::server::{Server, kernel_error};
 
 /// App 的模型选择 → 内核的选择。
-fn selection(value: &Value) -> Option<ModelSelection> {
+pub(crate) fn selection(value: &Value) -> Option<ModelSelection> {
     Some(ModelSelection {
         provider: value["providerId"].as_str()?.to_owned(),
         model: value["modelId"].as_str()?.to_owned(),
@@ -34,7 +34,7 @@ fn selection(value: &Value) -> Option<ModelSelection> {
 }
 
 /// App 的模式与 plan 开关 → 内核的权限模式与 plan（README §5 的映射；`plan` 是旧写法，读成 plan 开、build）。
-fn mode(value: &Value, plan: Option<bool>) -> Option<(PermissionMode, bool)> {
+pub(crate) fn mode(value: &Value, plan: Option<bool>) -> Option<(PermissionMode, bool)> {
     let name = value.as_str()?;
     if name == "plan" {
         return Some((PermissionMode::Default, true));
@@ -130,7 +130,7 @@ fn with_text(text: String, mut blocks: Vec<ContentBlock>) -> Vec<ContentBlock> {
 /// `createSession.mcpServers` → 会话级的 MCP 服务器（NIBI `nibiProtocolMcpServerSchema` 的两种形态）。
 /// 形状已由契约层按同一 zod 生成的 schema 校验过，这里只做字段搬运；认不出的形态整条丢掉（不静默：
 /// 调用方在数量不等时 warn）。
-fn session_mcp_servers(payload: &Value) -> Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer> {
+pub(crate) fn session_mcp_servers(payload: &Value) -> Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer> {
     use std::collections::BTreeMap;
 
     use rust_cli_kernel_api::mcp::McpTransportConfig;
@@ -343,7 +343,7 @@ fn background_work_cancel_code(reason: &str) -> &'static str {
     }
 }
 
-async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> KernelAck {
+pub(crate) async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> KernelAck {
     handle
         .send(CommandEnvelope {
             id: CommandId::new(id),

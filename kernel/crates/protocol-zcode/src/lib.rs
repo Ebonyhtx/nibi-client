@@ -13,6 +13,8 @@ mod inbound;
 mod inbox;
 mod index;
 mod legacy;
+mod legacy_session;
+mod legacy_snapshot;
 mod live;
 mod nibi_commands;
 mod nibi_workflows;
