@@ -18,7 +18,8 @@ import {
   isShareImportUrl,
 } from "./desktopDeepLinkUrl.js";
 import { registerLinuxDeepLinkProtocol } from "./desktopLinuxDeepLinkRegistration.js";
-import { confirmWorkspaceOpenInWindow } from "./workspaceOpenConfirmWindow.js";
+import { confirmWorkspaceOpenInWindow } from "./workspace-open-confirm/index.js";
+import type { ExternalWorkspaceOpenDialogCopy } from "./workspace-open-confirm/contract.js";
 
 interface DeepLinkWorkspaceGateOptions {
   canOpenWorkspace?: (workspacePath: string) => boolean;
@@ -28,16 +29,7 @@ interface DeepLinkWorkspaceGateOptions {
   resolveApplicationWindow?: () => BrowserWindow | null;
 }
 
-export interface ExternalWorkspaceOpenDialogCopy {
-  buttons: [string, string];
-  title: string;
-  message: string;
-  detail: (path: string) => string;
-  /** 品牌化确认窗文案；原生兜底不使用。 */
-  windowTitle: string;
-  sourceLabel: string;
-  warning: string;
-}
+export type { ExternalWorkspaceOpenDialogCopy } from "./workspace-open-confirm/contract.js";
 
 interface OAuthRouteTarget {
   windowId: number;

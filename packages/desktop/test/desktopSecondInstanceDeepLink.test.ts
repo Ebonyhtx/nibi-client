@@ -18,7 +18,7 @@ const confirmWorkspaceOpenInWindowMock = vi.hoisted(() =>
   vi.fn<(input: unknown) => Promise<boolean | undefined>>(async () => true),
 );
 
-vi.mock("../src/main/workspaceOpenConfirmWindow.js", () => ({
+vi.mock("../src/main/workspace-open-confirm/index.js", () => ({
   confirmWorkspaceOpenInWindow: confirmWorkspaceOpenInWindowMock,
 }));
 

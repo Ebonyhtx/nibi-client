@@ -1,11 +1,11 @@
 import { join } from "node:path";
 import { BrowserWindow, ipcMain, nativeTheme } from "electron";
-import type { ExternalWorkspaceOpenDialogCopy } from "./desktopOAuthDeepLink.js";
 import {
   WORKSPACE_OPEN_CONFIRM_ARG_PREFIX,
   WORKSPACE_OPEN_CONFIRM_RESULT_CHANNEL,
+  type WorkspaceOpenConfirmCopy,
   type WorkspaceOpenConfirmPayload,
-} from "../shared/workspaceOpenConfirm.js";
+} from "./contract.js";
 
 const WINDOW_WIDTH = 520;
 const WINDOW_HEIGHT = 336;
@@ -22,7 +22,7 @@ let activeWindow: BrowserWindow | null = null;
  * 安全约束不变：确认完成前不调用 `handleOpenWorkspacePath`，也不做目录探测。
  */
 export async function confirmWorkspaceOpenInWindow(input: {
-  copy: ExternalWorkspaceOpenDialogCopy;
+  copy: WorkspaceOpenConfirmCopy;
   logger: { warn: (...args: unknown[]) => void };
   parent: BrowserWindow;
   path: string;

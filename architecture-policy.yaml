@@ -744,6 +744,19 @@ modules:
     layers:
       app: .
     owner: agent
+  # desktop-workspace-open-confirm：由 architecture:adopt 登记
+  - id: desktop-workspace-open-confirm
+    roots:
+      - packages/desktop/src/main/workspace-open-confirm
+      - packages/desktop/src/preload/workspace-open-confirm
+    managed: true
+    requires: []
+    publicEntrypoints:
+      - packages/desktop/src/main/workspace-open-confirm/index.ts
+      - packages/desktop/src/main/workspace-open-confirm/contract.ts
+    layers:
+      adapters: .
+    owner: desktop
 
 global:
   # 临时时间戳（2026-09-10）：unmanaged-new-file 只约束此日期之后首次入库的文件。

@@ -19,8 +19,33 @@ export interface WorkspaceOpenConfirmCopy {
   buttons: [string, string];
 }
 
+/**
+ * 原生兜底与深链路由沿用的完整文案形状（比品牌化窗多出原生 TaskDialog 的字段）。
+ * 定义在契约层，避免确认窗反向依赖 desktopOAuthDeepLink 所在的 legacy desktop 模块。
+ */
+export interface ExternalWorkspaceOpenDialogCopy extends WorkspaceOpenConfirmCopy {
+  title: string;
+  message: string;
+  detail: (path: string) => string;
+}
+
 export interface WorkspaceOpenConfirmPayload {
   path: string;
   dark: boolean;
   copy: WorkspaceOpenConfirmCopy;
+}
+
+/**
+ * 主进程确认窗对外契约。
+ *
+ * `parent` 是 Electron BrowserWindow（契约层不 import Electron，保持可移植）；
+ * 返回 `false` = 用户取消/关闭，`true` = 明确确认，`undefined` = 品牌化窗不可用，
+ * 调用方必须回退原生确认（不得直接打开）。
+ */
+export interface WorkspaceOpenConfirmContract {
+  confirm(input: {
+    copy: WorkspaceOpenConfirmCopy;
+    parent: unknown;
+    path: string;
+  }): Promise<boolean | undefined>;
 }

@@ -9,7 +9,7 @@ import {
   WORKSPACE_OPEN_CONFIRM_ARG_PREFIX,
   WORKSPACE_OPEN_CONFIRM_RESULT_CHANNEL,
   type WorkspaceOpenConfirmPayload,
-} from "../shared/workspaceOpenConfirm.js";
+} from "../../main/workspace-open-confirm/contract.js";
 
 function readPayload(): WorkspaceOpenConfirmPayload | null {
   const raw = process.argv.find((arg) => arg.startsWith(WORKSPACE_OPEN_CONFIRM_ARG_PREFIX));
