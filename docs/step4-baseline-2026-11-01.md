@@ -12,7 +12,7 @@
 
 | 项 | 值 |
 |---|---|
-| 仓库 | `Ebonyhtx/nibi-client` main（本地 `441c2ecf`，未 push） |
+| 仓库 | `Ebonyhtx/nibi-client` main（**基线测量当时**本地 `441c2ecf`，未 push；2026-11-01 晚起开发已转到 `dev` 分支） |
 | Node（构建机/系统） | v24.22.2（FIX-3） |
 | Node（仓钉定/SEA 基底） | 24.22.1（FIX-4） |
 | Electron | 44.10.1（FIX-5） |
