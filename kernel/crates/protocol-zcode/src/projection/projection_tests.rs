@@ -187,17 +187,23 @@ fn a_text_turn_becomes_rows_and_control_states() {
             ..Usage::default()
         }),
     });
+    // 收口后行级动作一起来：输入可编辑、回复可重试/分叉（141 审计行级 actions）。
     assert_eq!(
         ops(&finished),
         [
             "row.upserted(turnHeader)",
+            "row.upserted(userInput)",
+            "row.upserted(assistantText)",
             "state(availability,control,inputRouting,revision,usage)"
         ]
     );
     assert_eq!(finished[0]["row"]["state"], "completedSuccess");
-    assert_eq!(finished[1]["patch"]["control"]["phase"], "completedSuccess");
+    assert_eq!(finished[1]["row"]["actions"]["canEdit"], true);
+    assert_eq!(finished[2]["row"]["actions"]["canRetry"], true);
+    assert_eq!(finished[2]["row"]["actions"]["canFork"], true);
+    assert_eq!(finished[3]["patch"]["control"]["phase"], "completedSuccess");
     assert_eq!(
-        finished[1]["patch"]["usage"]["cumulative"]["outputTokens"],
+        finished[3]["patch"]["usage"]["cumulative"]["outputTokens"],
         3
     );
     let snapshot = feed.projection.snapshot(9, "epoch-1");

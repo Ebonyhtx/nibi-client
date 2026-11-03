@@ -3,6 +3,7 @@
 //!
 //! 行：turnHeader（回合）、userInput（真人输入）、assistantText、reasoning、toolCall；其余事件只改状态或忽略（P1）。
 
+mod actions;
 mod cold;
 mod files;
 mod rows;
@@ -170,6 +171,8 @@ impl Projection {
         for (interaction, request) in &view.pending {
             projection.ask(interaction.as_str(), request, view.meta.created_at_ms);
         }
+        // 冷快照也要带行级动作（快照本身承载状态，不需要增量）。
+        projection.refresh_actions(&mut Vec::new());
         projection
     }
 
@@ -586,13 +589,24 @@ impl Projection {
             self.revision = event.revision;
             patch.insert("revision".into(), json!(self.revision));
         }
+        // 行级动作只在会改变它们的事件后重算（流式增量不触发）。
+        if matches!(
+            &event.event,
+            KernelEvent::TurnStarted { .. }
+                | KernelEvent::TurnFinished { .. }
+                | KernelEvent::MessageDone { .. }
+                | KernelEvent::FileChanges { .. }
+                | KernelEvent::InteractionAsked { .. }
+                | KernelEvent::InteractionResolved { .. }
+        ) {
+            self.refresh_actions(&mut out);
+        }
         if !patch.is_empty() {
             out.push(json!({"op": "state.updated", "patch": patch}));
         }
         out
     }
 
-    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::too_many_arguments)]
     fn start_turn(
         &mut self,
