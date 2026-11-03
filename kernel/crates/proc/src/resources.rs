@@ -224,7 +224,8 @@ fn parse_vm_rss_kb(text: &str) -> Option<u64> {
 #[cfg(all(unix, not(target_os = "linux")))]
 async fn sample_group(pgid: u32) -> Option<Vec<ProcessSample>> {
     let rows = ps_rows(&["-o", "pid=,rss=,cputime=", "-g", &pgid.to_string()], false).await?;
-    Some(samples_of(&rows))
+    let members: Vec<&SampleRow> = rows.iter().collect();
+    Some(samples_of(&members))
 }
 
 #[cfg(all(unix, not(target_os = "linux")))]
@@ -513,13 +514,13 @@ mod tests {
         ];
         let trees = tree_members(&relations, &[10, 99]);
         assert_eq!(trees.get(&10), Some(&vec![10, 11, 12]));
-        assert!(trees.get(&99).is_none());
+        assert!(!trees.contains_key(&99));
     }
 
     /// 样本只含读得到 RSS 的进程，并按 pid 排序。
     #[test]
     fn samples_skip_processes_without_rss() {
-        let relations = vec![
+        let relations = [
             Relation { pid: 2, parent: 1, group: 2, cpu_time_ms: Some(10) },
             Relation { pid: 1, parent: 0, group: 1, cpu_time_ms: Some(5) },
             Relation { pid: 3, parent: 1, group: 3, cpu_time_ms: Some(7) },

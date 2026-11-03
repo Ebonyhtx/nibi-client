@@ -71,6 +71,17 @@ jobs:
       - name: cargo check
         working-directory: kernel
         run: cargo check --locked --workspace
+      # 只在本机 macOS 上编译到的分支（`cfg(unix, not(target_os = "linux"))`）不会出现在
+      # ubuntu 的 checks 里。取一批没有 C 依赖的 crate 做 aarch64-apple-darwin 交叉检查：
+      # proc 的 macOS 采样器就曾在这里漏过（本地 Windows 与 ubuntu 都不编译它）。
+      - name: macOS-only code compiles
+        working-directory: kernel
+        run: |
+          rustup target add aarch64-apple-darwin
+          cargo check --locked \
+            -p rust-cli-proc -p rust-cli-fs -p rust-cli-policy \
+            -p rust-cli-session -p rust-cli-ext \
+            --target aarch64-apple-darwin
       - name: nibi-platform tests
         working-directory: kernel
         run: cargo test -p nibi-platform --locked
