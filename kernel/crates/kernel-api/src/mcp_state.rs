@@ -127,6 +127,12 @@ pub trait McpConnections: Send + Sync {
     fn processes(&self) -> Vec<McpChildProcess> {
         Vec::new()
     }
+
+    /// 五分钟资源采样的目标（`process/mcpResourceSamples`，141 审计 §9 F3）：每个 stdio 子进程的
+    /// pid 与遥测身份。与 [`processes`](Self::processes) 的区别是这里带 `mcpId` / 实例标识 / 启动时刻。
+    fn resource_targets(&self) -> Vec<crate::process_table::McpResourceTarget> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]

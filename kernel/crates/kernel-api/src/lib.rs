@@ -95,6 +95,7 @@ pub mod manage;
 pub mod mcp;
 pub mod mcp_session;
 pub mod mcp_state;
+pub mod mcp_telemetry;
 pub mod mcp_vars;
 pub mod message;
 pub mod metering;

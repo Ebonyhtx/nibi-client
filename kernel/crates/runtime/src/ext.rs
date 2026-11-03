@@ -27,6 +27,9 @@ pub struct Extensions {
     /// Monitor 开着（工作线 F83，tools-more.md §19.1）：注册 Monitor，Bash 与 CronCreate 的描述随之变，Bash 拦前台的
     /// 长 `sleep`。产品缺省开，由入口给（只给测试用的变量关掉，Windows 上要有 Git Bash）；这里缺省关（测试与嵌入）。
     pub monitor: bool,
+    /// MCP 进程遥测的出口（`process/mcpTelemetry`，141 审计 §9 F3）：入口在协议 server 建好之前接上；
+    /// None 时（TUI、嵌入、测试）什么都不发。
+    pub mcp_telemetry: Option<rust_cli_ext::McpTelemetrySetup>,
 }
 
 impl Extensions {
@@ -38,6 +41,7 @@ impl Extensions {
             peers: rust_cli_session::PeerDeps::off(),
             streaming_input: false,
             monitor: false,
+            mcp_telemetry: None,
         }
     }
 }

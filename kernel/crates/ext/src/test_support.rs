@@ -60,6 +60,8 @@ pub(crate) struct FakeMcp {
     released: Mutex<HashMap<String, Value>>,
     /// 每次连接的（服务器名，工作区根）。
     roots: Mutex<Vec<(String, String)>>,
+    /// [`FakeMcp::with_pid`] 之后每个连接都报这个 pid（`process/childProcesses` 与遥测测试）。
+    pid: std::sync::atomic::AtomicU32,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -134,6 +136,25 @@ impl FakeMcp {
         self
     }
 
+    /// 这个传输上的连接都报 `pid`（stdio 服务器才有 pid；HTTP / SSE 不设）。
+    pub(crate) fn with_pid(self, pid: u32) -> Self {
+        self.pid.store(pid, Ordering::Relaxed);
+        self
+    }
+
+    /// 服务器进程自己退出了（`process/mcpTelemetry` 的 crash 判据）。
+    pub(crate) fn exit_server(&self, server: &str) {
+        for connection in lock(&self.connections).values() {
+            if connection.server == server {
+                let _ = connection.sender.send(McpTransportEvent::Closed {
+                    reason: Some("process exited".to_owned()),
+                    session_expired: false,
+                    exited: true,
+                });
+            }
+        }
+    }
+
     /// 收到的消息（服务器名，消息）。
     pub(crate) fn received(&self) -> Vec<(String, Value)> {
         lock(&self.received).clone()
@@ -162,6 +183,7 @@ impl FakeMcp {
                 let _ = connection.sender.send(McpTransportEvent::Closed {
                     reason: Some("gone".to_owned()),
                     session_expired,
+                    exited: false,
                 });
             }
         }
@@ -192,6 +214,11 @@ impl McpTransport for FakeMcp {
             },
         );
         Ok(McpConnectionId::new(id))
+    }
+
+    fn pid(&self, _connection: &McpConnectionId) -> Option<u32> {
+        let pid = self.pid.load(Ordering::Relaxed);
+        (pid > 0).then_some(pid)
     }
 
     async fn send(&self, connection: &McpConnectionId, message: Value) -> Result<(), McpError> {
@@ -248,6 +275,7 @@ impl McpTransport for FakeMcp {
             let _ = found.sender.send(McpTransportEvent::Closed {
                 reason: None,
                 session_expired: false,
+                exited: false,
             });
         }
         Ok(())

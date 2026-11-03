@@ -193,6 +193,7 @@ impl HttpLink {
             self.deliver(vec![McpTransportEvent::Closed {
                 reason: Some("MCP session expired".to_owned()),
                 session_expired: true,
+                exited: false,
             }]);
             return Err(McpError::Closed {
                 message: "MCP session expired".to_owned(),
@@ -250,6 +251,7 @@ async fn until_closed(closed: CancellationToken, events: Events) {
         .send(McpTransportEvent::Closed {
             reason: None,
             session_expired: false,
+            exited: false,
         })
         .await;
 }
@@ -307,6 +309,7 @@ pub(crate) async fn sse(
             .send(McpTransportEvent::Closed {
                 reason,
                 session_expired: false,
+                exited: false,
             })
             .await;
     });

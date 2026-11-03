@@ -83,6 +83,10 @@ pub enum McpTransportEvent {
         /// HTTP 传输上服务器说会话已过期（404 且带会话 ID）：重连后可以重试。
         #[serde(default)]
         session_expired: bool,
+        /// 服务器进程自己退出了（不是我们关的、也不是写失败）：`process/mcpTelemetry` 的
+        /// `process_crash` 判据。远端执行器上的服务器报 `false`（那边自己做遥测）。
+        #[serde(default)]
+        exited: bool,
     },
 }
 

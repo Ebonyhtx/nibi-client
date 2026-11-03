@@ -185,6 +185,11 @@ async fn serve(
     // 协议 server 读另一头转发成通知。
     let (tool_telemetry, tool_exec_channel) =
         rust_cli_protocol_zcode::telemetry::ToolExecChannel::channel();
+    // MCP 进程的生命周期事件（`process/mcpTelemetry`）：ext 写这一头，协议 server 转发。
+    let (mcp_telemetry, mcp_events) = tokio::sync::mpsc::unbounded_channel();
+    // 本进程的读数（`process/resourceSample` 与 MCP 五分钟采样共用一份）。
+    let process_metrics: Arc<dyn rust_cli_kernel_api::process_metrics::ProcessMetrics> =
+        Arc::new(rust_cli_env_local::process_metrics::LocalProcessMetrics::new());
     let monitor = options::monitor(startup.explicit.assume, shell.bash.is_some());
     let mcp_transport = Arc::new(LocalMcpTransport::new(
         shell.ledger.clone(),
@@ -296,6 +301,15 @@ async fn serve(
     )
     .await;
     extensions.monitor = monitor;
+    // `mcpId` 的盐：桌面注入的设备标识；没有时 ext 退回进程级随机串（跨进程不可关联）。
+    extensions.mcp_telemetry = Some(rust_cli_ext::McpTelemetrySetup {
+        sink: mcp_telemetry,
+        id_salt: startup
+            .env
+            .get("NIBI_TELEMETRY_DEVICE_MID")
+            .unwrap_or_default()
+            .to_owned(),
+    });
     extensions.cron_store = Some(Arc::new(LocalCronStore::new(
         &workspace.root,
         clock.clone(),
@@ -366,7 +380,7 @@ async fn serve(
     // 只量本进程——切到 Rust 内核后那个进程就是内核，Host 采不到。
     let telemetry = rust_cli_protocol_zcode::telemetry::ResourceTelemetry::start(
         context.clone(),
-        Arc::new(rust_cli_env_local::process_metrics::LocalProcessMetrics::new()),
+        process_metrics.clone(),
         &spawner,
     );
     // 网络捕获（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）：Host 开关，
@@ -385,6 +399,11 @@ async fn serve(
             rust_cli_protocol_zcode::telemetry::TelemetryPorts {
                 capture: Some(capture),
                 tool_exec: Some(tool_exec_channel),
+                mcp_events: Some(mcp_events),
+                mcp_resource: Some(rust_cli_protocol_zcode::telemetry::McpResourcePorts {
+                    sampler: Arc::new(rust_cli_env_local::process_sampler::LocalProcessSampler::new()),
+                    metrics: process_metrics,
+                }),
             },
         ) => {
             result?;

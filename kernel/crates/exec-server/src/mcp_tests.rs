@@ -49,6 +49,8 @@ impl FakeMcp {
         let _ = links[index].0.send(McpTransportEvent::Closed {
             reason: Some("MCP server \"browser-a\" process exited".to_owned()),
             session_expired: false,
+            // 远端执行器上的服务器进程：crash 由那边判。
+            exited: true,
         });
         links[index].0 = mpsc::unbounded_channel().0;
     }
@@ -114,6 +116,7 @@ impl McpTransport for FakeMcp {
         let _ = tx.send(McpTransportEvent::Closed {
             reason: None,
             session_expired: false,
+            exited: false,
         });
         // 换掉发送端：之后流结束（同 LocalMcpTransport 送出 Closed 后结束）。
         links[Self::index(connection)].0 = mpsc::unbounded_channel().0;

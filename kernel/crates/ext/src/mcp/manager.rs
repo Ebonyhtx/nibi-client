@@ -13,6 +13,7 @@ use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::listing::ListingEntry;
 use rust_cli_kernel_api::mcp::{McpTransport, McpTransportConfig};
+use rust_cli_kernel_api::mcp_telemetry::McpProcessIdentity;
 use rust_cli_kernel_api::tool::Tool;
 use serde_json::Value;
 use tokio::sync::{Notify, watch};
@@ -22,6 +23,7 @@ use super::config::{McpServer, McpServerOptions, McpSettings};
 use super::connection::{self, Session, has_capability};
 use super::resources;
 use super::rpc::{Client, Notice};
+use super::telemetry::McpTelemetrySlot;
 use super::tool::{McpTool, name_too_long, note_long_names};
 
 /// 断开后重连的次数与退避。
@@ -41,10 +43,22 @@ pub enum McpStatus {
     Disabled,
 }
 
+/// 一个仍在运行的服务器进程（`process/childProcesses` / `process/mcpResourceSamples` /
+/// `process/mcpTelemetry` 共用）：pid 与遥测身份。
+#[derive(Debug, Clone)]
+pub(crate) struct ServerProcess {
+    pub pid: u32,
+    pub identity: McpProcessIdentity,
+    /// `workspace` / `session`（事件里的 `mcpIsolation`）。
+    pub isolation: &'static str,
+}
+
 struct Server {
     config: McpServer,
     status: McpStatus,
     client: Option<Arc<Client>>,
+    /// 这个服务器当前那次进程启动的遥测身份；没有进程（HTTP / SSE、未连、已退出）时 `None`。
+    process: Option<ServerProcess>,
     tools: Vec<Arc<dyn Tool>>,
     instructions: Option<String>,
     resources: bool,
@@ -69,6 +83,7 @@ impl Server {
             config,
             status,
             client: None,
+            process: None,
             tools: Vec::new(),
             instructions: None,
             resources: false,
@@ -104,6 +119,11 @@ pub(crate) struct Inner {
     print: AtomicBool,
     /// 有 resources 能力的服务器连上过：之后三个资源工具一直在（ext.md §3.3.3）。
     resources_seen: AtomicBool,
+    /// MCP 进程遥测的出口（`process/mcpTelemetry`，141 审计 §9 F3）：入口在连接开始之前装上；
+    /// 没有时（TUI、测试）什么都不发。
+    telemetry: OnceLock<McpTelemetrySlot>,
+    /// 这个会话的 `session_startup` 已经发过（每个 manager 一次）。
+    startup_reported: AtomicBool,
 }
 
 impl Inner {
@@ -240,7 +260,7 @@ impl Inner {
         name: &str,
         generation: u64,
         session: Session,
-    ) -> (Option<String>, bool) {
+    ) -> (Option<String>, bool, bool) {
         let Session {
             client,
             mut notices,
@@ -289,10 +309,11 @@ impl Inner {
                 Notice::Closed {
                     reason,
                     session_expired,
-                } => return (reason, session_expired),
+                    exited,
+                } => return (reason, session_expired, exited),
             }
         }
-        (None, false)
+        (None, false, false)
     }
 
     /// 一个服务器的连接任务：收到取消消息（重连、停用）时停下（tui-manage.md §6.1）。
@@ -307,6 +328,65 @@ impl Inner {
             () = cancel.cancelled() => {}
             () = self.clone().connect(workspace, config, generation) => {}
         }
+    }
+
+    /// 记下一个服务器进程的遥测身份并发 `process_start`（没有 pid 的传输——HTTP / SSE——什么都不做）。
+    fn record_process(
+        &self,
+        name: &str,
+        config: &McpServer,
+        generation: u64,
+        pid: Option<u32>,
+    ) {
+        let Some(pid) = pid else {
+            return;
+        };
+        let Some(slot) = self.telemetry.get() else {
+            return;
+        };
+        let plugin_scope = config.scope == crate::McpScope::Plugin;
+        let now = self.clock.now_ms();
+        let identity = slot.telemetry.identity(name, plugin_scope, now);
+        slot.telemetry
+            .process_started(name, plugin_scope, slot.isolation, &identity, now);
+        self.update(name, generation, |server| {
+            server.process = Some(ServerProcess {
+                pid,
+                identity,
+                isolation: slot.isolation,
+            });
+        });
+    }
+
+    /// 进程自己退出了：发一条 `process_crash` 并清掉记录（记录先取走，重连时不会报两次）。
+    fn record_crash(&self, name: &str, config: &McpServer) {
+        let Some(process) = self
+            .servers()
+            .get_mut(name)
+            .and_then(|server| server.process.take())
+        else {
+            return;
+        };
+        let Some(slot) = self.telemetry.get() else {
+            return;
+        };
+        let plugin_scope = config.scope == crate::McpScope::Plugin;
+        let now = self.clock.now_ms();
+        // 会话级连接只影响自己那一个会话；进程级连接不绑定会话。
+        let affected = u32::from(slot.session.is_some());
+        slot.telemetry.process_crashed(
+            name,
+            plugin_scope,
+            process.isolation,
+            &process.identity,
+            affected,
+            now,
+        );
+    }
+
+    /// 主动关闭 / 重连之前清掉进程记录（没有进程记录时是空操作）。
+    fn clear_process(&self, name: &str, generation: u64) {
+        self.update(name, generation, |server| server.process = None);
     }
 
     /// 连接与重连（ext.md §3.3）：首次连接失败即失败；连上后断开时 stdio 失败，HTTP / SSE 退避重连。
@@ -334,7 +414,14 @@ impl Inner {
                 Ok(session) => {
                     connected_once = true;
                     attempts = 0;
-                    let (reason, expired) = self.serve(&name, generation, session).await;
+                    // 进程遥测（`process/mcpTelemetry`）：连上就拿 pid 记一次启动事实。
+                    self.record_process(&name, &config, generation, session.client.pid());
+                    let (reason, expired, exited) = self.serve(&name, generation, session).await;
+                    // 进程自己退出了：报一条 crash（主动关闭、写失败都不算）。
+                    if exited {
+                        self.record_crash(&name, &config);
+                    }
+                    self.clear_process(&name, generation);
                     // `-p` 里 stdio 断开：工具留着，等下次调用再连（ext.md §3.3.3）。
                     if !remote && self.print.load(Ordering::Relaxed) {
                         let mut wake = None;
@@ -373,6 +460,7 @@ impl Inner {
                     server.status = McpStatus::Failed { reason };
                     server.client = None;
                     server.tools.clear();
+                    server.process = None;
                     server.reconnecting = false;
                     server.dormant = false;
                 });
@@ -415,7 +503,15 @@ impl McpManager {
             noted_names: Mutex::default(),
             print: AtomicBool::new(false),
             resources_seen: AtomicBool::new(false),
+            telemetry: OnceLock::new(),
+            startup_reported: AtomicBool::new(false),
         }))
+    }
+
+    /// 装上 MCP 进程遥测的出口（`process/mcpTelemetry`，141 审计 §9 F3）：连接开始之前给一次。
+    /// 第二次给无效（`OnceLock`），与 `set_machines` 同一姿态。
+    pub(crate) fn attach_telemetry(&self, slot: McpTelemetrySlot) {
+        let _ = self.0.telemetry.set(slot);
     }
 
     /// 远端机器的注册表（R5，remote-exec.md §22.6）：`start` 之前给一次；绑定到远端机器的服务器从它取管道。F98（§25.5）：

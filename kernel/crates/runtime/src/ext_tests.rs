@@ -109,6 +109,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             peers: rust_cli_session::PeerDeps::off(),
             streaming_input: false,
             monitor: false,
+            mcp_telemetry: None,
         },
     );
     kernel.start_extensions().await;

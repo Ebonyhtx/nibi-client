@@ -47,6 +47,8 @@ fn event(event: wm::McpEvent) -> McpTransportEvent {
         } => McpTransportEvent::Closed {
             reason,
             session_expired,
+            // 远端执行器上的服务器进程由那边自己做遥测。
+            exited: false,
         },
     }
 }
@@ -177,6 +179,7 @@ impl McpTransport for RemoteEnvironment {
         let closed = |reason: String| McpTransportEvent::Closed {
             reason: Some(reason),
             session_expired: false,
+            exited: false,
         };
         stream::once(async move { client.stream(request, BodyBuilder::new().finish()).await })
             .flat_map(move |opened| match opened {

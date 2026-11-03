@@ -10,6 +10,8 @@ use async_trait::async_trait;
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::manage::McpServerState;
 use rust_cli_kernel_api::mcp_state::{McpChildProcess, McpConnections, McpServerView, McpView};
+use rust_cli_kernel_api::mcp_telemetry::{resolve_source, plugin_name as mcp_plugin_name};
+use rust_cli_kernel_api::process_table::McpResourceTarget;
 use rust_cli_kernel_api::tool::Tool;
 
 use super::{Inner, McpManager, McpStatus, Server, instructions_of, tools_of};
@@ -28,30 +30,36 @@ fn state_of(status: &McpStatus) -> McpServerState {
     }
 }
 
-/// 仍在运行的 MCP 子进程（`process/childProcesses`）：只列连上过的 stdio 服务器（HTTP / SSE 没有子进程），
+/// 仍在运行的 MCP 子进程（`process/childProcesses`）：只列真的有进程的服务器（HTTP / SSE 没有子进程），
 /// 归属从服务器名的 `plugin:<name>:<key>` 命名空间与 scope 推导（Node `listChildProcesses` 同一条规则）。
 fn processes_of(servers: &BTreeMap<String, Server>) -> Vec<McpChildProcess> {
     servers
         .values()
         .filter_map(|server| {
-            let client = server.client.as_ref()?;
-            let pid = client.pid()?;
+            let process = server.process.as_ref()?;
             let name = &server.config.name;
-            let (mcp_source, plugin_name) = if server.config.scope == McpScope::Plugin {
-                // `plugin:<name>:<key>`：第二段是插件名。
-                let plugin = name
-                    .strip_prefix("plugin:")
-                    .and_then(|rest| rest.split(':').next())
-                    .map(str::to_owned);
-                ("plugin", plugin)
-            } else {
-                ("custom", None)
-            };
+            let plugin_scope = server.config.scope == McpScope::Plugin;
             Some(McpChildProcess {
-                pid,
+                pid: process.pid,
                 server_name: name.clone(),
-                mcp_source: mcp_source.to_owned(),
-                plugin_name,
+                mcp_source: resolve_source(name, plugin_scope).as_str().to_owned(),
+                plugin_name: mcp_plugin_name(name, plugin_scope),
+            })
+        })
+        .collect()
+}
+
+/// 五分钟资源采样的目标（`process/mcpResourceSamples`）：pid 与遥测身份。
+fn resource_targets_of(servers: &BTreeMap<String, Server>) -> Vec<McpResourceTarget> {
+    servers
+        .values()
+        .filter_map(|server| {
+            let process = server.process.as_ref()?;
+            Some(McpResourceTarget {
+                pid: process.pid,
+                mcp_id: process.identity.mcp_id.clone(),
+                instance_id: process.identity.instance_id.clone(),
+                started_at_ms: process.identity.started_at_ms,
             })
         })
         .collect()
@@ -76,6 +84,61 @@ fn pending(server: &Server) -> bool {
 }
 
 impl Inner {
+    /// 这一时点的视图。顺带在第一次取视图时发一条 `session_startup`（`process/mcpTelemetry`）：
+    /// 与 Node 的 pool 在第一次 `snapshot()` 时发同一件事。
+    fn view(&self) -> McpView {
+        self.report_startup();
+        view_of(&self.servers())
+    }
+
+    /// 每个会话级 manager 只发一次；进程级 manager（`workspace` 隔离、不绑定会话）不发。
+    fn report_startup(&self) {
+        use std::sync::atomic::Ordering;
+
+        let Some(slot) = self.telemetry.get() else {
+            return;
+        };
+        let Some(session) = slot.session.as_ref() else {
+            return;
+        };
+        let (configured, connected, processes) = {
+            let servers = self.servers();
+            // 还在连的服务器等它落定：Node 的 pool 也是在 lease 连接完成之后才取快照计数。
+            if servers
+                .values()
+                .any(|server| server.status == McpStatus::Pending)
+            {
+                return;
+            }
+            if self.startup_reported.swap(true, Ordering::Relaxed) {
+                return;
+            }
+            let configured = u32::try_from(servers.len()).unwrap_or(u32::MAX);
+            let connected = u32::try_from(
+                servers
+                    .values()
+                    .filter(|server| server.status == McpStatus::Connected)
+                    .count(),
+            )
+            .unwrap_or(u32::MAX);
+            let processes = u32::try_from(
+                servers
+                    .values()
+                    .filter(|server| server.process.is_some())
+                    .count(),
+            )
+            .unwrap_or(u32::MAX);
+            (configured, connected, processes)
+        };
+        slot.telemetry.session_startup(
+            session,
+            configured,
+            connected,
+            processes,
+            self.clock.now_ms(),
+        );
+    }
+
     /// 按服务器表判断（只在锁里调用 `check`，`check` 不能再碰管理器）。
     fn check(&self, check: impl Fn(&BTreeMap<String, Server>) -> bool) -> bool {
         check(&self.servers())
@@ -211,7 +274,7 @@ impl McpManager {
 #[async_trait]
 impl McpConnections for McpManager {
     fn view(&self) -> McpView {
-        view_of(&self.0.servers())
+        self.0.view()
     }
 
     async fn wait(
@@ -240,8 +303,16 @@ impl McpConnections for McpManager {
     fn processes(&self) -> Vec<McpChildProcess> {
         processes_of(&self.0.servers())
     }
+
+    fn resource_targets(&self) -> Vec<McpResourceTarget> {
+        resource_targets_of(&self.0.servers())
+    }
 }
 
 #[cfg(test)]
 #[path = "manager_state_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "manager_telemetry_tests.rs"]
+mod telemetry_tests;

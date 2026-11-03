@@ -172,6 +172,7 @@ fn event(event: McpTransportEvent) -> wm::McpEvent {
         McpTransportEvent::Closed {
             reason,
             session_expired,
+            ..
         } => wm::McpEvent::Closed {
             reason,
             session_expired,

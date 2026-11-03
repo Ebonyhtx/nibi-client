@@ -25,6 +25,7 @@ fn ext(env: MemoryEnvironment, fake: Arc<FakeMcp>, scope: &TaskScope, servers: M
         machines: None,
         spawner: scope.spawner(),
         clock: crate::clock_tests::TokioClock::new(),
+        mcp_telemetry: None,
     };
     let config = ExtConfig {
         mcp: McpSettings {

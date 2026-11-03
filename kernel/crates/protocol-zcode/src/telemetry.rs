@@ -14,9 +14,13 @@ use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 use rust_cli_base::{Spawner, Task};
+use rust_cli_kernel_api::mcp_telemetry::McpTelemetryEvent;
+use rust_cli_kernel_api::process_metrics::ProcessMetrics;
+use rust_cli_kernel_api::process_table::{MCP_RESOURCE_SAMPLE_INTERVAL, McpResourceSampler, ProcessSampler};
+use rust_cli_kernel_api::session_api::Kernel;
 use rust_cli_kernel_api::network_capture::{CaptureState, NetworkCapture};
 use rust_cli_net::EgressObserver;
-use rust_cli_kernel_api::process_metrics::{ProcessMetrics, ResourceSampler, RESOURCE_SAMPLE_INTERVAL};
+use rust_cli_kernel_api::process_metrics::{ResourceSampler, RESOURCE_SAMPLE_INTERVAL};
 
 use crate::context::Context;
 
@@ -29,14 +33,108 @@ pub const NETWORK_REQUESTS: &str = "process/networkRequests";
 
 /// Bash 命令的资源事实（Host `nibiProtocolNotifications.toolExecResource`）。
 pub const TOOL_EXEC_RESOURCE: &str = "process/toolExecResource";
+/// MCP 进程的生命周期事件（Host `nibiProtocolNotifications.mcpTelemetry`）。
+pub const MCP_TELEMETRY: &str = "process/mcpTelemetry";
+/// MCP 子进程的五分钟资源样本（Host `nibiProtocolNotifications.mcpResourceSamples`）。
+pub const MCP_RESOURCE_SAMPLES: &str = "process/mcpResourceSamples";
 
-/// 入口接给协议层的遥测端口（141 审计 §9 F3）：网络捕获的运行时与 Bash 资源事实的通道。
+/// 入口接给协议层的遥测端口（141 审计 §9 F3）。
 #[derive(Default)]
 pub struct TelemetryPorts {
     /// 网络捕获（`process/networkCapture` → `process/networkRequests`）。
     pub capture: Option<Arc<Capture>>,
     /// Bash 命令的资源事实（`process/toolExecResource`）。
     pub tool_exec: Option<ToolExecChannel>,
+    /// MCP 进程的生命周期事件（`process/mcpTelemetry`）。
+    pub mcp_events: Option<tokio::sync::mpsc::UnboundedReceiver<McpTelemetryEvent>>,
+    /// MCP 五分钟资源采样的读数端与本机事实：两个都给才起采样任务。
+    pub mcp_resource: Option<McpResourcePorts>,
+}
+
+/// `process/mcpResourceSamples` 需要的东西：进程表读数与本机事实（平台、核数、内存总量）。
+pub struct McpResourcePorts {
+    pub sampler: Arc<dyn ProcessSampler>,
+    pub metrics: Arc<dyn ProcessMetrics>,
+}
+
+/// 把 MCP 生命周期事件转成通知（通道关闭时任务结束）。
+pub fn forward_mcp_events(
+    context: Arc<Context>,
+    spawner: &Spawner,
+    mut events: tokio::sync::mpsc::UnboundedReceiver<McpTelemetryEvent>,
+) {
+    std::mem::drop(spawner.spawn("mcp-telemetry", async move {
+        while let Some(event) = events.recv().await {
+            if let Ok(params) = serde_json::to_value(&event) {
+                context.peer.notify(MCP_TELEMETRY, &params).await;
+            }
+        }
+    }));
+}
+
+/// 五分钟 MCP 资源采样（141 审计 §9 F3）：每个 stdio 子进程的进程树 → 按 `mcpId` 分组的样本。
+///
+/// 与 Node 的 `createMcpResourceTelemetry` 同一条口径：没有目标进程时清基线（下一拍的间隔回到 5 分钟），
+/// 整次采样失败也清基线（不能把跨失败窗口的 CPU 算成均值）。
+pub fn start_mcp_resource_sampler(
+    context: Arc<Context>,
+    kernel: Arc<dyn Kernel>,
+    ports: McpResourcePorts,
+    spawner: &Spawner,
+) -> Task<()> {
+    start_mcp_resource_sampler_with_interval(
+        context,
+        kernel,
+        ports,
+        spawner,
+        MCP_RESOURCE_SAMPLE_INTERVAL,
+    )
+}
+
+/// 同 [`start_mcp_resource_sampler`]，节拍可注入（测试用）。
+pub fn start_mcp_resource_sampler_with_interval(
+    context: Arc<Context>,
+    kernel: Arc<dyn Kernel>,
+    ports: McpResourcePorts,
+    spawner: &Spawner,
+    interval: Duration,
+) -> Task<()> {
+    spawner.spawn("mcp-resource-sampler", async move {
+        let metrics = &ports.metrics;
+        let mut state = McpResourceSampler::new(
+            metrics.platform(),
+            metrics.arch(),
+            metrics.logical_cpu_count(),
+            metrics
+                .total_memory_bytes()
+                .map(|bytes| bytes / (1024 * 1024 * 1024))
+                .unwrap_or(0),
+        );
+        let mut ticker = tokio::time::interval(interval);
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        // 第一个 tick 立即到期；Node 的第一个样本在 5 分钟之后。
+        ticker.tick().await;
+        loop {
+            ticker.tick().await;
+            let targets = kernel.mcp_resource_targets().await;
+            if targets.is_empty() {
+                state.clear();
+                continue;
+            }
+            let roots: Vec<u32> = targets.iter().map(|target| target.pid).collect();
+            let Some(trees) = ports.sampler.sample_trees(&roots).await else {
+                state.clear();
+                continue;
+            };
+            let samples = state.sample(&targets, &trees, context.clock.now_ms());
+            if samples.is_empty() {
+                continue;
+            }
+            if let Ok(params) = serde_json::to_value(&samples) {
+                context.peer.notify(MCP_RESOURCE_SAMPLES, &params).await;
+            }
+        }
+    })
 }
 
 /// 入口接给执行环境的 Bash 事实通道（141 审计 §9 F3）。

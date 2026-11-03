@@ -377,6 +377,7 @@ impl LocalKernel {
                 machines: Some(ports.environments.clone()),
                 spawner: scope.spawner(),
                 clock: ports.clock.clone(),
+                mcp_telemetry: extensions.mcp_telemetry.clone(),
             },
             base,
             extensions.config,

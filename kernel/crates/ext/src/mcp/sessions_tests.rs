@@ -42,6 +42,7 @@ fn pools(fake: Arc<FakeMcp>, scope: &TaskScope) -> SessionMcp {
         scope.spawner(),
         McpSettings::default(),
         crate::clock_tests::TokioClock::new(),
+        None,
     )
 }
 

@@ -236,6 +236,7 @@ async fn run(pipes: Pipes) {
         () = closing.cancelled() => Stop::Closed,
     };
     // 进程自己退出时直接收拾残留；主动关闭与写失败时先 TERM 再 KILL。
+    let exited = matches!(stop, Stop::Exited);
     let (reason, shutdown) = match stop {
         Stop::Closed => (None, Shutdown::Graceful),
         Stop::Exited => (
@@ -257,6 +258,8 @@ async fn run(pipes: Pipes) {
         .send(McpTransportEvent::Closed {
             reason,
             session_expired: false,
+            // 进程自己退出才是 crash（主动关闭、写失败都不算）。
+            exited,
         })
         .await;
 }

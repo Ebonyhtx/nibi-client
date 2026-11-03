@@ -4,6 +4,7 @@ fn closed() -> Notice {
     Notice::Closed {
         reason: Some("gone".to_owned()),
         session_expired: false,
+        exited: false,
     }
 }
 

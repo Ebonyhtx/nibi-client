@@ -17,6 +17,7 @@ use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::mcp::McpTransport;
 use rust_cli_kernel_api::mcp_session::SessionMcpServer;
 
+use super::telemetry::{McpTelemetry, McpTelemetrySlot};
 use super::{McpManager, McpScope, McpServer, McpServerOptions, McpSettings};
 
 /// 一个会话的 MCP 连接：`owned` 表示这套连接是这个会话自己的（关闭时释放）；子代理继承的是父
@@ -32,6 +33,8 @@ pub(crate) struct SessionMcp {
     spawner: Spawner,
     settings: McpSettings,
     clock: Arc<dyn Clock>,
+    /// 进程遥测的出口（`process/mcpTelemetry`）：每个会话级 manager 装同一份，隔离口径是 `session`。
+    telemetry: Option<Arc<McpTelemetry>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
 }
 
@@ -41,14 +44,32 @@ impl SessionMcp {
         spawner: Spawner,
         settings: McpSettings,
         clock: Arc<dyn Clock>,
+        telemetry: Option<Arc<McpTelemetry>>,
     ) -> Self {
         Self {
             transport,
             spawner,
             settings,
             clock,
+            telemetry,
             sessions: Mutex::default(),
         }
+    }
+
+    /// 当前所有会话级 manager（继承来的同一份只返回一次）。`process/childProcesses` 与五分钟采样都
+    /// 要看到会话级的连接——NIBI 的桌面会话走的正是这一条。
+    pub(crate) fn managers(&self) -> Vec<Arc<McpManager>> {
+        let mut seen = Vec::new();
+        let mut managers = Vec::new();
+        for entry in self.sessions().values() {
+            let pointer = Arc::as_ptr(&entry.manager);
+            if seen.contains(&pointer) {
+                continue;
+            }
+            seen.push(pointer);
+            managers.push(entry.manager.clone());
+        }
+        managers
     }
 
     fn sessions(&self) -> MutexGuard<'_, BTreeMap<SessionId, Entry>> {
@@ -71,6 +92,13 @@ impl SessionMcp {
             self.settings.clone(),
             self.clock.clone(),
         ));
+        if let Some(telemetry) = self.telemetry.clone() {
+            manager.attach_telemetry(McpTelemetrySlot {
+                telemetry,
+                isolation: "session",
+                session: Some(session.clone()),
+            });
+        }
         manager.start(workspace.clone(), to_servers(servers));
         let previous = self.sessions().insert(
             session.clone(),

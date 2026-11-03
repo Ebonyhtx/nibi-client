@@ -228,6 +228,148 @@ async fn tool_exec_facts_become_notifications() {
     assert_eq!(params["cliRssKb"], 65_536);
 }
 
+/// 五分钟 MCP 资源采样：按 `mcpId` 分组的一条样本，经通道变成 `process/mcpResourceSamples`
+/// （`params` 是数组，与 Host schema 一致）。
+#[tokio::test]
+async fn mcp_resource_samples_are_sent_to_the_host() {
+    use std::collections::BTreeMap;
+
+    use async_trait::async_trait;
+    use rust_cli_kernel_api::process_table::{McpResourceTarget, ProcessSample, ProcessSampler};
+    use rust_cli_kernel_api::session_api::{Kernel, KernelError, SessionHandle};
+    use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
+
+    struct FakeKernel;
+
+    #[async_trait]
+    impl Kernel for FakeKernel {
+        async fn create_session(
+            &self,
+            _request: rust_cli_kernel_api::session_api::CreateSession,
+        ) -> Result<rust_cli_kernel_api::ids::SessionId, KernelError> {
+            Err(KernelError::Unsupported {
+                what: "session creation".to_owned(),
+            })
+        }
+
+        async fn list_sessions(
+            &self,
+            _filter: SessionFilter,
+        ) -> Result<Vec<SessionSummary>, KernelError> {
+            Ok(Vec::new())
+        }
+
+        async fn open_session(
+            &self,
+            _session: &rust_cli_kernel_api::ids::SessionId,
+        ) -> Result<Arc<dyn SessionHandle>, KernelError> {
+            Err(KernelError::Unsupported {
+                what: "sessions".to_owned(),
+            })
+        }
+
+        async fn mcp_resource_targets(&self) -> Vec<McpResourceTarget> {
+            vec![McpResourceTarget {
+                pid: 100,
+                mcp_id: "plugin:aaaaaaaaaaaa".to_owned(),
+                instance_id: "inst-1".to_owned(),
+                started_at_ms: 1_759_999_000_000,
+            }]
+        }
+    }
+
+    struct FakeSampler;
+
+    #[async_trait]
+    impl ProcessSampler for FakeSampler {
+        fn tree_scope(&self) -> &'static str {
+            "process_tree"
+        }
+
+        async fn sample_group(&self, _pgid: u32) -> Option<Vec<ProcessSample>> {
+            None
+        }
+
+        async fn sample_trees(
+            &self,
+            roots: &[u32],
+        ) -> Option<BTreeMap<u32, Vec<ProcessSample>>> {
+            Some(
+                roots
+                    .iter()
+                    .map(|root| {
+                        (
+                            *root,
+                            vec![ProcessSample {
+                                pid: i32::try_from(*root).unwrap(),
+                                rss_kb: 2_048,
+                                cpu_time_ms: Some(50),
+                            }],
+                        )
+                    })
+                    .collect(),
+            )
+        }
+    }
+
+    struct FakeMetrics;
+
+    impl ProcessMetrics for FakeMetrics {
+        fn platform(&self) -> &'static str {
+            "linux"
+        }
+        fn arch(&self) -> &'static str {
+            "x64"
+        }
+        fn logical_cpu_count(&self) -> u32 {
+            4
+        }
+        fn total_memory_bytes(&self) -> Option<u64> {
+            Some(16 * 1024 * 1024 * 1024)
+        }
+        fn uptime_seconds(&self) -> Option<u64> {
+            None
+        }
+        fn read(&self) -> Option<ProcessUsage> {
+            None
+        }
+    }
+
+    let (peer, host_side, scope) = channel();
+    let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
+    let task = start_mcp_resource_sampler_with_interval(
+        context,
+        Arc::new(FakeKernel),
+        McpResourcePorts {
+            sampler: Arc::new(FakeSampler),
+            metrics: Arc::new(FakeMetrics),
+        },
+        &scope.spawner(),
+        Duration::from_millis(50),
+    );
+    let mut reader = BufReader::new(host_side);
+    let mut line = String::new();
+    tokio::time::timeout(Duration::from_secs(5), reader.read_line(&mut line))
+        .await
+        .expect("a frame within the timeout")
+        .expect("a frame");
+    task.abort();
+    let frame: Value = serde_json::from_str(&line).expect("a JSON frame");
+    assert_eq!(frame["method"], "process/mcpResourceSamples");
+    let params = frame["params"].as_array().expect("an array of samples");
+    assert_eq!(params.len(), 1);
+    let sample = &params[0];
+    assert_eq!(sample["mcpId"], "plugin:aaaaaaaaaaaa");
+    assert_eq!(sample["processCount"], 1);
+    assert_eq!(sample["rssKbTotal"], 2_048);
+    assert_eq!(sample["intervalMs"], 300_000);
+    assert_eq!(sample["platform"], "linux");
+    assert_eq!(sample["logicalCpuCount"], 4);
+    assert_eq!(sample["totalMemoryGb"], 16);
+    let token = sample["instanceToken"].as_str().expect("a token");
+    assert_eq!(token.len(), 16);
+}
+
 /// 没开捕获时观察者什么都不发。
 #[tokio::test]
 async fn requests_are_not_captured_while_the_capture_is_off() {

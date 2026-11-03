@@ -37,6 +37,7 @@ use rust_cli_kernel_api::tool::Tool;
 use rust_cli_policy::PolicyGate;
 
 pub use mcp::{McpManager, McpScope, McpServer, McpServers, McpSettings};
+pub use mcp::{McpTelemetry, McpTelemetrySetup, McpTelemetrySlot};
 pub use plugins::{Plugin, PluginAgentFile, PluginSources, Plugins};
 pub use skills::{Skill, SkillCatalog, SkillCommands, SkillSource, SkillTool};
 
@@ -60,6 +61,9 @@ pub struct ExtPorts {
     pub spawner: Spawner,
     /// MCP 等待的截止时刻（ext.md §3.3.1、§3.8）。
     pub clock: Arc<dyn Clock>,
+    /// MCP 进程遥测（`process/mcpTelemetry`，141 审计 §9 F3）：入口给的通道与加盐用的设备标识。
+    /// None 时什么都不发（TUI、测试）。
+    pub mcp_telemetry: Option<mcp::McpTelemetrySetup>,
 }
 
 /// 入口层给出的配置快照。
@@ -101,12 +105,25 @@ impl Ext {
         let commands = Arc::new(SkillCommands::new(skills.clone(), runner.clone()));
         let skill_tool: Arc<dyn Tool> =
             Arc::new(SkillTool::new(skills.clone(), ports.ids.clone(), runner));
+        // 进程遥测的出口（两个 manager 共用一份：`mcpId` 的盐只算一次）。
+        let telemetry = ports
+            .mcp_telemetry
+            .as_ref()
+            .map(|setup| mcp::McpTelemetry::new(setup.sink.clone(), setup.id_salt.clone()));
         let mcp = Arc::new(McpManager::new(
             ports.mcp.clone(),
             ports.spawner.clone(),
             config.mcp.clone(),
             ports.clock.clone(),
         ));
+        if let Some(telemetry) = telemetry.clone() {
+            // 进程级配置的服务器跨会话复用（Node 的 workspace 隔离）。
+            mcp.attach_telemetry(mcp::McpTelemetrySlot {
+                telemetry,
+                isolation: "workspace",
+                session: None,
+            });
+        }
         if let Some(machines) = ports.machines.clone() {
             mcp.set_machines(machines);
         }
@@ -116,6 +133,7 @@ impl Ext {
             ports.spawner.clone(),
             config.mcp.clone(),
             ports.clock.clone(),
+            telemetry,
         ));
         let registry = Arc::new(ExtRegistry {
             base,
@@ -165,6 +183,27 @@ impl Ext {
 
     pub fn mcp(&self) -> &Arc<McpManager> {
         &self.mcp
+    }
+
+    /// 全部仍在运行的 MCP 子进程（`process/childProcesses`）：进程级配置与会话级连接都算，同一 manager
+    /// 被多个会话继承时只列一次。
+    pub fn mcp_child_processes(&self) -> Vec<rust_cli_kernel_api::mcp_state::McpChildProcess> {
+        use rust_cli_kernel_api::mcp_state::McpConnections;
+        let mut all = self.mcp.processes();
+        for manager in self.session_mcp.managers() {
+            all.extend(manager.processes());
+        }
+        all
+    }
+
+    /// 五分钟资源采样的目标（`process/mcpResourceSamples`）：与上面同一份清单，另带遥测身份。
+    pub fn mcp_resource_targets(&self) -> Vec<rust_cli_kernel_api::process_table::McpResourceTarget> {
+        use rust_cli_kernel_api::mcp_state::McpConnections;
+        let mut all = self.mcp.resource_targets();
+        for manager in self.session_mcp.managers() {
+            all.extend(manager.resource_targets());
+        }
+        all
     }
 
     /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。

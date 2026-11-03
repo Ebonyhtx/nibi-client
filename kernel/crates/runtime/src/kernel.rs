@@ -537,8 +537,12 @@ impl Kernel for LocalKernel {
 
     /// `process/childProcesses`：仍在运行的 MCP 子进程（pid 与归属）。
     async fn mcp_child_processes(&self) -> Vec<rust_cli_kernel_api::mcp_state::McpChildProcess> {
-        use rust_cli_kernel_api::mcp_state::McpConnections;
-        self.ext.mcp().processes()
+        // 进程级配置与会话级连接都算（NIBI 的桌面会话走会话级），同一 manager 被继承时只列一次。
+        self.ext.mcp_child_processes()
+    }
+
+    async fn mcp_resource_targets(&self) -> Vec<rust_cli_kernel_api::process_table::McpResourceTarget> {
+        self.ext.mcp_resource_targets()
     }
 
     /// NIBI `requestWorkspaceHookReview` 的数据来源：工作区钩子当前的信任快照（只读）。

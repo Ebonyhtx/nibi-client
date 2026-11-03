@@ -117,7 +117,8 @@ async fn server_requests_notifications_and_close() {
         notices.recv().await,
         Some(Notice::Closed {
             reason: Some("gone".to_owned()),
-            session_expired: true
+            session_expired: true,
+            exited: false
         })
     );
     assert!(client.is_closed());

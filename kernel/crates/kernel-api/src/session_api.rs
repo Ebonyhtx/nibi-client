@@ -1044,6 +1044,13 @@ pub trait Kernel: Send + Sync {
         Vec::new()
     }
 
+    /// 五分钟 MCP 资源采样的目标（`process/mcpResourceSamples`，141 审计 §9 F3）：与
+    /// [`mcp_child_processes`](Self::mcp_child_processes) 同一份清单，另带 `mcpId` / 实例标识 /
+    /// 启动时刻。缺省为空（没有 MCP 能力的实现）。
+    async fn mcp_resource_targets(&self) -> Vec<crate::process_table::McpResourceTarget> {
+        Vec::new()
+    }
+
     /// `/plan open`（tui-manage.md §8，L29）：会话的计划文件位置，以及它是否有内容。
     async fn plan_file(
         &self,

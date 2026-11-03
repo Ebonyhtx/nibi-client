@@ -137,7 +137,12 @@ where
     R: AsyncBufRead + Unpin,
 {
     let peer: Peer = context.peer.clone();
-    let telemetry::TelemetryPorts { capture, tool_exec } = ports;
+    let telemetry::TelemetryPorts {
+        capture,
+        tool_exec,
+        mcp_events,
+        mcp_resource,
+    } = ports;
     let server = Arc::new(server::Server::new(
         context,
         kernel,
@@ -153,6 +158,19 @@ where
     if let Some(channel) = tool_exec {
         // 执行环境的 Bash 事实 → `process/toolExecResource`（141 审计 §9 F3）。
         std::mem::drop(channel.forward(server.context.clone(), &spawner));
+    }
+    if let Some(events) = mcp_events {
+        // MCP 生命周期事实 → `process/mcpTelemetry`。
+        telemetry::forward_mcp_events(server.context.clone(), &spawner, events);
+    }
+    if let Some(resource) = mcp_resource {
+        // 五分钟 MCP 资源采样 → `process/mcpResourceSamples`。
+        std::mem::drop(telemetry::start_mcp_resource_sampler(
+            server.context.clone(),
+            server.kernel.clone(),
+            resource,
+            &spawner,
+        ));
     }
     connection::serve(
         reader,

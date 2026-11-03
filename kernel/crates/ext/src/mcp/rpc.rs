@@ -42,6 +42,8 @@ pub(crate) enum Notice {
     Closed {
         reason: Option<String>,
         session_expired: bool,
+        /// 服务器进程自己退出了（`process/mcpTelemetry` 的 crash 判据）。
+        exited: bool,
     },
 }
 
@@ -233,6 +235,7 @@ impl Reader {
         let mut closing = Notice::Closed {
             reason: Some("event stream ended".to_owned()),
             session_expired: false,
+            exited: false,
         };
         while let Some(event) = events.next().await {
             match event {
@@ -240,10 +243,12 @@ impl Reader {
                 McpTransportEvent::Closed {
                     reason,
                     session_expired,
+                    exited,
                 } => {
                     closing = Notice::Closed {
                         reason,
                         session_expired,
+                        exited,
                     };
                     break;
                 }

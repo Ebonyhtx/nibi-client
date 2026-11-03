@@ -43,6 +43,7 @@ fn transport_types_round_trip() {
     round_trip(&McpTransportEvent::Closed {
         reason: Some("exited".to_owned()),
         session_expired: false,
+        exited: true,
     });
     round_trip(&McpError::Connect {
         message: "spawn failed".to_owned(),
