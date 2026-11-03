@@ -43,9 +43,17 @@ function isPidRunning(pid: number): boolean {
   return status.length > 0 && !status.startsWith("Z");
 }
 
+/// 产品侧的清理预算旋钮（NIBI_PROCESS_TREE_CLEANUP_BUDGET_SCALE）也放大测试的等待窗口：
+/// windows-latest 上 taskkill/身份查询比开发机慢一个数量级，固定 4s 会偶发假失败。
+const CLEANUP_BUDGET_SCALE = (() => {
+  const value = Number(process.env.NIBI_PROCESS_TREE_CLEANUP_BUDGET_SCALE ?? "1");
+  return Number.isFinite(value) && value > 0 ? value : 1;
+})();
+const PID_EXIT_TIMEOUT_MS = 4_000 * CLEANUP_BUDGET_SCALE;
+
 async function waitForPidExit(
   pid: number,
-  timeoutMs = 4_000,
+  timeoutMs = PID_EXIT_TIMEOUT_MS,
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -60,7 +68,7 @@ async function waitForPidExit(
 async function waitForProcessTreeSnapshotIdentity(
   child: ChildProcessWithoutNullStreams,
   pid: number,
-  timeoutMs = 4_000,
+  timeoutMs = PID_EXIT_TIMEOUT_MS,
 ): Promise<
   | {
     snapshot: ProcessTreeSnapshot;
