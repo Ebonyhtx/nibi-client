@@ -599,6 +599,117 @@ pub trait SessionStore: Send + Sync {
         Ok(None)
     }
 
+    // ——— v4 查询面（141 审计 §9 第 2 项）：run 目录 + 详情页四个切片 ———
+    //
+    // 四条读面都**先过同一条授权链**（run 行存在 ∧ `parent_session_id` 等于本会话；NULL 的
+    // 老行不放行——「无从判定」不是「判定通过」），再碰任何行。拒绝一律归一成空结果
+    // （空目录 / 空页 / `None`），不告诉越权的调用方它猜对了哪一半。
+
+    /// 本会话发起的 run 目录（`v4/conversation/workflowRuns`），最近更新在前。
+    ///
+    /// `limit` 是**页上限**（调用方已钳过），存储层不再设自己的天花板。不支持的实现返回空。
+    async fn workflow_run_summaries(
+        &self,
+        _session: &SessionId,
+        _limit: usize,
+    ) -> Result<Vec<crate::workflow::WorkflowRunSummaryRow>, StoreError> {
+        Ok(Vec::new())
+    }
+
+    /// 一个 run 的事件日志的一页（条数与字节两道界）。未知 / 不属于本会话 → 空页。
+    async fn workflow_run_events(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _query: crate::workflow::WorkflowRunEventQuery,
+    ) -> Result<crate::workflow::WorkflowRunEventPage, StoreError> {
+        Ok(crate::workflow::WorkflowRunEventPage {
+            events: Vec::new(),
+            has_more: false,
+        })
+    }
+
+    /// 一个 run 的用户面产物清单（全量版本）。未知 / 不属于本会话 → `None`。
+    async fn workflow_run_artifacts(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+    ) -> Result<Option<Vec<crate::workflow::WorkflowRunArtifactDetail>>, StoreError> {
+        Ok(None)
+    }
+
+    /// 喂给某个预置产物的 `report` 条目的一页。未知 / 不属于本会话 → 空页。
+    async fn workflow_run_artifact_items(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _query: crate::workflow::WorkflowRunArtifactItemQuery,
+    ) -> Result<crate::workflow::WorkflowRunArtifactItemPage, StoreError> {
+        Ok(crate::workflow::WorkflowRunArtifactItemPage {
+            items: Vec::new(),
+            has_more: false,
+        })
+    }
+
+    /// 一个产物版本的字节（`workflowRunArtifactRead` 的取数面）：run 必须属于本会话 ∧
+    /// journal 里有 `(artifactId, version)` 的 completed 行，然后才拿**行上的** uri 去读。
+    ///
+    /// 返回 `(bytes, contentType)`；`content_type` 取 journal 记录上的值（UI 分派渲染器的精确
+    /// 匹配契约），不是 store 按文件名回推的那一份。无此版本 / 不是你的 run / 是看板 → `None`
+    /// ——三者对调用方是同一个业务事实。
+    async fn workflow_run_artifact_bytes(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _artifact_id: &str,
+        _version: u64,
+    ) -> Result<Option<(Vec<u8>, Option<String>)>, StoreError> {
+        Ok(None)
+    }
+
+    /// 一个 run 的工作区 transcript 清单（`world-read` / `world-run` 行，**不带正文**）。
+    /// 未知 / 不属于本会话 → `None`（网关归一成空清单）。
+    async fn workflow_run_workspace(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+    ) -> Result<Option<Vec<crate::workflow::WorkflowRunWorkspaceNode>>, StoreError> {
+        Ok(None)
+    }
+
+    /// 一个工作区节点的正文，按 `max_bytes` 保形有界化。非 world 行 / 未知 / 不是你的 run →
+    /// `None`。
+    async fn workflow_run_node_result(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _site_id: &str,
+        _ordinal: u64,
+        _max_bytes: u64,
+    ) -> Result<Option<crate::workflow::WorkflowRunNodeResult>, StoreError> {
+        Ok(None)
+    }
+
+    // ——— v4 usage 查询 ———
+
+    /// 应用级用量聚合（`v4/usage/stats` 的取数面）。不支持的实现返回 `Unsupported`。
+    async fn app_usage(
+        &self,
+        _query: crate::usage::AppUsageQuery,
+    ) -> Result<crate::usage::AppUsage, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "app usage aggregation".to_owned(),
+        })
+    }
+
+    /// 会话级 token 用量（`v4/conversation/usage` 的取数面）。不支持的实现返回
+    /// `Unsupported`。
+    async fn session_usage(&self, _session: &SessionId) -> Result<crate::usage::SessionUsage, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session usage aggregation".to_owned(),
+        })
+    }
+
     /// amend-resume 的种子兑现（Node `seedActorTranscript` 同一条规则）：把源会话的前
     /// `message_count` 条消息按值复制进目标会话（新 id、parentID 重映射），幂等——目标已满
     /// （≥ message_count）或已有自己的历史时跳过。源会话短于边界是 corruption 级错误（大声失败）。

@@ -509,6 +509,185 @@ impl SessionStore for NodeStore {
         self.with_db(move |conn, ids| workspace_trust::record(conn, &key, ids.now_ms()))
             .await
     }
+
+    // ——— v4 查询面（141 审计 §9 第 2 项）———
+    //
+    // 六条读面共用一条授权链（run 行存在 ∧ `parent_session_id` 是本会话；见
+    // `repo::run_queries` 的文件头），拒绝一律归一成空结果。
+
+    async fn workflow_run_summaries(
+        &self,
+        session: &SessionId,
+        limit: usize,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunSummaryRow>, StoreError> {
+        let session = session.as_str().to_owned();
+        self.with_db(move |conn, _| {
+            repo::run_queries::summaries(conn, &session, limit).map_err(storage)
+        })
+        .await
+    }
+
+    async fn workflow_run_events(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        query: rust_cli_kernel_api::workflow::WorkflowRunEventQuery,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunEventPage, StoreError> {
+        let work = (session.as_str().to_owned(), run_id.to_owned());
+        self.with_db(move |conn, _| {
+            repo::run_queries::events(conn, &work.0, &work.1, query).map_err(storage)
+        })
+        .await
+    }
+
+    async fn workflow_run_artifacts(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunArtifactDetail>>, StoreError>
+    {
+        let work = (session.as_str().to_owned(), run_id.to_owned());
+        self.with_db(move |conn, _| {
+            repo::run_queries::artifacts(conn, &work.0, &work.1).map_err(storage)
+        })
+        .await
+    }
+
+    async fn workflow_run_artifact_items(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        query: rust_cli_kernel_api::workflow::WorkflowRunArtifactItemQuery,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunArtifactItemPage, StoreError> {
+        let work = (session.as_str().to_owned(), run_id.to_owned());
+        self.with_db(move |conn, _| {
+            repo::run_queries::artifact_items(conn, &work.0, &work.1, &query).map_err(storage)
+        })
+        .await
+    }
+
+    /// 一个产物版本的字节：先在库里走完 ①②（run 属于本会话）与 ③（journal 里有该版本的
+    /// completed 行），拿到**行上的** uri 之后才碰 store。
+    ///
+    /// 读 store 走 [`ArtifactStore::find`] + [`ArtifactStore::get`]：uri 里的 id 只用于在会话
+    /// 产物目录里按 id 后缀找回文件，**绝不当路径用**（与 `readArtifact` 同一条纪律）。
+    async fn workflow_run_artifact_bytes(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        artifact_id: &str,
+        version: u64,
+    ) -> Result<Option<(Vec<u8>, Option<String>)>, StoreError> {
+        let work = (
+            session.as_str().to_owned(),
+            run_id.to_owned(),
+            artifact_id.to_owned(),
+        );
+        let located = self
+            .with_db(move |conn, _| {
+                repo::run_queries::artifact_version_uri(conn, &work.0, &work.1, &work.2, version)
+                    .map_err(storage)
+            })
+            .await?;
+        let Some((uri, content_type)) = located else {
+            return Ok(None);
+        };
+        // uri 的 owner 必须是本会话（`artifact_version_uri` 已保证 run 归属；这里再比一次是因为
+        // 行上的 uri 来自 journal，而 journal 是外部写入面——两处各判一次，同一个 id 不会在两层
+        // 上得到不同解释）。
+        let Some((owner, id)) = parse_artifact_uri(&uri) else {
+            return Ok(None);
+        };
+        if owner != session.as_str() {
+            return Ok(None);
+        }
+        let Some(artifact) = self.find(session, &ArtifactId::new(id)).await? else {
+            return Ok(None);
+        };
+        let bytes = self.get(&artifact).await?;
+        Ok(Some((bytes, content_type)))
+    }
+
+    async fn workflow_run_workspace(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunWorkspaceNode>>, StoreError>
+    {
+        let work = (session.as_str().to_owned(), run_id.to_owned());
+        self.with_db(move |conn, _| {
+            repo::run_queries::workspace_nodes(conn, &work.0, &work.1).map_err(storage)
+        })
+        .await
+    }
+
+    async fn workflow_run_node_result(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        site_id: &str,
+        ordinal: u64,
+        max_bytes: u64,
+    ) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunNodeResult>, StoreError> {
+        let work = (
+            session.as_str().to_owned(),
+            run_id.to_owned(),
+            site_id.to_owned(),
+        );
+        self.with_db(move |conn, _| {
+            repo::run_queries::node_result(conn, &work.0, &work.1, &work.2, ordinal, max_bytes)
+                .map_err(storage)
+        })
+        .await
+    }
+
+    async fn app_usage(
+        &self,
+        query: rust_cli_kernel_api::usage::AppUsageQuery,
+    ) -> Result<rust_cli_kernel_api::usage::AppUsage, StoreError> {
+        self.with_db(move |conn, _| usage_query::app_usage(conn, &query))
+            .await
+    }
+
+    async fn session_usage(
+        &self,
+        session: &SessionId,
+    ) -> Result<rust_cli_kernel_api::usage::SessionUsage, StoreError> {
+        let session = session.as_str().to_owned();
+        self.with_db(move |conn, _| usage_query::session_usage(conn, &session))
+            .await
+    }
+}
+
+/// `zcode-artifact://<会话>/<artifact>` 的两段（百分号解码）。形状不对时为 None。
+///
+/// 与 runtime 的同名私有函数逐字同义：那一份给附件读取用（它会解 data URL），这一份只取两段
+/// 交给 [`ArtifactStore::find`]。分开写是因为两处的上层语义不同（附件要 mime 与解码后的字节，
+/// 产物读面要原始字节与行上的 contentType），而共用一个函数会把两套错误语义拧在一起。
+fn parse_artifact_uri(uri: &str) -> Option<(String, String)> {
+    let rest = uri.strip_prefix(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
+    let (owner, id) = rest.split_once('/')?;
+    if owner.is_empty() || id.is_empty() || id.contains('/') {
+        return None;
+    }
+    Some((percent_decode(owner)?, percent_decode(id)?))
+}
+
+fn percent_decode(value: &str) -> Option<String> {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            let hex = bytes.get(index + 1..index + 3)?;
+            out.push(u8::from_str_radix(std::str::from_utf8(hex).ok()?, 16).ok()?);
+            index += 3;
+        } else {
+            out.push(bytes[index]);
+            index += 1;
+        }
+    }
+    String::from_utf8(out).ok()
 }
 
 #[async_trait]

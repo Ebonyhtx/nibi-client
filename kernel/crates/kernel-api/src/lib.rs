@@ -117,6 +117,7 @@ pub mod title;
 pub mod tool;
 pub mod tool_search;
 pub mod unparsed_input;
+pub mod usage;
 pub mod user_command;
 pub mod user_input;
 pub mod workflow;

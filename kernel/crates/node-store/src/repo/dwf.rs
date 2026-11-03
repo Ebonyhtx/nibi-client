@@ -1048,7 +1048,7 @@ const LABEL_MAX_CHARS: usize = 80;
 
 /// 脚本派生标签：首个非空行（trim 后截 80）——首行是**诚实的**（「脚本以此开头」），启发式
 /// 每多一条就多一种在别人的脚本上给出误导标签的方式。整段皆空白时回 runId。
-fn derived_label(script_text: Option<&str>, run_id: &str) -> String {
+pub(super) fn derived_label(script_text: Option<&str>, run_id: &str) -> String {
     let Some(text) = script_text else {
         return run_id.to_owned();
     };
@@ -1069,15 +1069,17 @@ fn derived_label(script_text: Option<&str>, run_id: &str) -> String {
 /// 拆解（stopped 包络 / Interrupted 判别）、标签派生、节点计数、actors、log 尾巴与冷回放的
 /// 待答问题。未知 runId → `None`。停驻注册表的活项由运行时的读面并进来。
 /// 终态拆解的产物（Node `DwfRunSettlementFields` 的读取侧等价物）：详情面与中枢的运行历史页共用。
-struct Settlement {
-    status: String,
-    stop_reason: Option<String>,
-    superseded_by: Option<String>,
-    failure: Option<(String, String)>,
+/// `pub(super)`：`repo::run_queries` 的 v4 查询面用同一个拆解（两处各写一份，stopped/superseded
+/// 的判据迟早分叉）。
+pub(super) struct Settlement {
+    pub(super) status: String,
+    pub(super) stop_reason: Option<String>,
+    pub(super) superseded_by: Option<String>,
+    pub(super) failure: Option<(String, String)>,
 }
 
 /// run 行的逻辑状态与终态拆解（Node `decodeRunSettlement` 同一条映射，只活在这一处）。
-fn settlement_of(status: &str, failure_json: Option<&str>) -> Settlement {
+pub(super) fn settlement_of(status: &str, failure_json: Option<&str>) -> Settlement {
     match status {
         // stopped 包络：`{stopReason, supersededBy?, error?}`（Node `encodeRunSettlement` 的
         // stopped 一支）；缺字段按缺省 stopReason=user 兜底（Node 的 decode 同规）。

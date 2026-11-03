@@ -176,6 +176,387 @@ pub fn activity(conn: &Connection, query: &ActivityQuery) -> Result<ActivityStat
     })
 }
 
+// ————————————————————————————————————————————————————————————————
+// v4 usage 查询（141 审计 §9 第 2 项）：`v4/usage/stats` 与 `v4/conversation/usage`。
+//
+// SQL 逐字对齐 Node `repositories/usage.ts` 的 `queryAppUsage` / `queryTaskUsage`——两侧读
+// 同一批表，口径一旦分叉，同一个用户在两个内核下会看到不同的用量。**不做展示推导**：按本地日
+// 切分在这里（偏移由调用方给），热力图 / 连续天数 / 份额是协议层的纯投影（Node 的
+// `buildAppUsageSnapshot`）。
+// ————————————————————————————————————————————————————————————————
+
+/// 应用级用量的四路聚合 + 汇总（Node `queryAppUsage` 的 SQL 逐字移植）。
+pub fn app_usage(
+    conn: &Connection,
+    query: &rust_cli_kernel_api::usage::AppUsageQuery,
+) -> Result<rust_cli_kernel_api::usage::AppUsage, StoreError> {
+    use rust_cli_kernel_api::usage::{AppUsage, AppUsageDayModelRow, AppUsageDayRow, AppUsageModelRow, AppUsageToolRow};
+
+    let (since, until, offset) = (
+        i64::try_from(query.since_ms).unwrap_or(i64::MAX),
+        i64::try_from(query.until_ms).unwrap_or(i64::MAX),
+        query.tz_offset_ms,
+    );
+
+    // 模型侧的总计。`avg(...)` 在没有行时是 NULL——「没有可用样本」与「0 ms」必须分开。
+    let (total_tokens, input_tokens, output_tokens, reasoning_tokens, cache_creation, cache_read, requests, errors, avg_ttft) = conn
+        .prepare_cached(
+            "select
+               coalesce(sum(computed_total_tokens), 0),
+               coalesce(sum(input_tokens), 0),
+               coalesce(sum(output_tokens), 0),
+               coalesce(sum(reasoning_tokens), 0),
+               coalesce(sum(cache_creation_input_tokens), 0),
+               coalesce(sum(cache_read_input_tokens), 0),
+               count(*),
+               coalesce(sum(case when status = 'error' then 1 else 0 end), 0),
+               avg(time_to_first_token_ms)
+             from model_usage
+             where started_at >= ?1 and started_at <= ?2",
+        )
+        .storage()?
+        .query_row([since, until], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, i64>(2)?,
+                row.get::<_, i64>(3)?,
+                row.get::<_, i64>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, i64>(7)?,
+                row.get::<_, Option<f64>>(8)?,
+            ))
+        })
+        .storage()?;
+
+    let (total_sessions, total_turns, avg_turn_duration) = conn
+        .prepare_cached(
+            "select
+               count(distinct session_id),
+               count(*),
+               avg(case when status = 'completed' then duration_ms else null end)
+             from turn_usage
+             where started_at >= ?1 and started_at <= ?2",
+        )
+        .storage()?
+        .query_row([since, until], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, i64>(1)?,
+                row.get::<_, Option<f64>>(2)?,
+            ))
+        })
+        .storage()?;
+
+    let longest_session: i64 = conn
+        .prepare_cached(
+            "select coalesce(max(sessionDurationMs), 0) from (
+               select coalesce(sum(case when status = 'completed' then duration_ms else 0 end), 0)
+                 as sessionDurationMs
+               from turn_usage
+               where started_at >= ?1 and started_at <= ?2
+               group by session_id
+             )",
+        )
+        .storage()?
+        .query_row([since, until], |row| row.get(0))
+        .storage()?;
+
+    let (tool_calls, tool_errors) = conn
+        .prepare_cached(
+            "select count(*), coalesce(sum(case when status = 'error' then 1 else 0 end), 0)
+             from tool_usage where started_at >= ?1 and started_at <= ?2",
+        )
+        .storage()?
+        .query_row([since, until], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+        })
+        .storage()?;
+
+    let models = conn
+        .prepare_cached(
+            "select model_id,
+                    coalesce(sum(computed_total_tokens), 0),
+                    coalesce(sum(input_tokens), 0),
+                    coalesce(sum(output_tokens), 0),
+                    count(*)
+             from model_usage
+             where started_at >= ?1 and started_at <= ?2
+             group by model_id
+             order by 2 desc",
+        )
+        .storage()?
+        .query_map([since, until], |row| {
+            Ok(AppUsageModelRow {
+                model_id: row.get::<_, Option<String>>(0)?,
+                total_tokens: to_u64(row.get::<_, i64>(1)?),
+                input_tokens: to_u64(row.get::<_, i64>(2)?),
+                output_tokens: to_u64(row.get::<_, i64>(3)?),
+                request_count: to_u64(row.get::<_, i64>(4)?),
+            })
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+
+    let tools = conn
+        .prepare_cached(
+            "select tool_name,
+                    count(*),
+                    coalesce(sum(case when status = 'error' then 1 else 0 end), 0),
+                    avg(duration_ms)
+             from tool_usage
+             where started_at >= ?1 and started_at <= ?2
+             group by tool_name
+             order by 2 desc",
+        )
+        .storage()?
+        .query_map([since, until], |row| {
+            Ok(AppUsageToolRow {
+                tool_name: row.get(0)?,
+                call_count: to_u64(row.get::<_, i64>(1)?),
+                error_count: to_u64(row.get::<_, i64>(2)?),
+                avg_duration_ms: row.get::<_, Option<f64>>(3)?,
+            })
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+
+    // 三张表按本地日归桶，再在内存里合并（三个 `group by` 各自走索引，合并是一次小表遍历）。
+    // 偏移是调用方给的查询时刻值——Node 的 `queryAppUsage` 同一条近似（DST 跨日边界最多 1 小时
+    // 误差，对用量统计可接受）。
+    let day_tokens = conn
+        .prepare_cached(
+            "select cast((started_at + ?1) / ?2 as integer), coalesce(sum(computed_total_tokens), 0)
+             from model_usage where started_at >= ?3 and started_at <= ?4
+             group by 1",
+        )
+        .storage()?
+        .query_map([offset, DAY_MS, since, until], |row| {
+            Ok((row.get::<_, i64>(0)?, to_u64(row.get::<_, i64>(1)?)))
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+    let day_turns = conn
+        .prepare_cached(
+            "select cast((started_at + ?1) / ?2 as integer), count(*)
+             from turn_usage where started_at >= ?3 and started_at <= ?4
+             group by 1",
+        )
+        .storage()?
+        .query_map([offset, DAY_MS, since, until], |row| {
+            Ok((row.get::<_, i64>(0)?, to_u64(row.get::<_, i64>(1)?)))
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+    let day_tools = conn
+        .prepare_cached(
+            "select cast((started_at + ?1) / ?2 as integer), count(*)
+             from tool_usage where started_at >= ?3 and started_at <= ?4
+             group by 1",
+        )
+        .storage()?
+        .query_map([offset, DAY_MS, since, until], |row| {
+            Ok((row.get::<_, i64>(0)?, to_u64(row.get::<_, i64>(1)?)))
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+    let mut day_map: std::collections::BTreeMap<i64, AppUsageDayRow> =
+        std::collections::BTreeMap::new();
+    for (day, tokens) in day_tokens {
+        day_map.insert(
+            day,
+            AppUsageDayRow {
+                day_index: day,
+                total_tokens: tokens,
+                turn_count: 0,
+                tool_call_count: 0,
+            },
+        );
+    }
+    for (day, turns) in day_turns {
+        day_map.entry(day).or_insert(AppUsageDayRow {
+            day_index: day,
+            total_tokens: 0,
+            turn_count: 0,
+            tool_call_count: 0,
+        }).turn_count = turns;
+    }
+    for (day, calls) in day_tools {
+        day_map.entry(day).or_insert(AppUsageDayRow {
+            day_index: day,
+            total_tokens: 0,
+            turn_count: 0,
+            tool_call_count: 0,
+        }).tool_call_count = calls;
+    }
+
+    let day_models = conn
+        .prepare_cached(
+            "select cast((started_at + ?1) / ?2 as integer), model_id,
+                    coalesce(sum(computed_total_tokens), 0)
+             from model_usage where started_at >= ?3 and started_at <= ?4
+             group by 1, model_id",
+        )
+        .storage()?
+        .query_map([offset, DAY_MS, since, until], |row| {
+            Ok(AppUsageDayModelRow {
+                day_index: row.get::<_, i64>(0)?,
+                model_id: row.get::<_, Option<String>>(1)?,
+                total_tokens: to_u64(row.get::<_, i64>(2)?),
+            })
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+
+    Ok(AppUsage {
+        total_tokens: to_u64(total_tokens),
+        input_tokens: to_u64(input_tokens),
+        output_tokens: to_u64(output_tokens),
+        reasoning_tokens: to_u64(reasoning_tokens),
+        cache_creation_tokens: to_u64(cache_creation),
+        cache_read_tokens: to_u64(cache_read),
+        model_request_count: to_u64(requests),
+        model_error_count: to_u64(errors),
+        avg_time_to_first_token_ms: avg_ttft,
+        total_sessions: to_u64(total_sessions),
+        total_turns: to_u64(total_turns),
+        avg_turn_duration_ms: avg_turn_duration,
+        longest_session_ms: to_u64(longest_session),
+        tool_call_count: to_u64(tool_calls),
+        tool_error_count: to_u64(tool_errors),
+        models,
+        tools,
+        days: day_map.into_values().collect(),
+        day_models,
+    })
+}
+
+/// 会话级 token 用量（Node `queryTaskUsage` 的逐行模拟）。
+///
+/// 逐行而不是纯 SQL 聚合的理由就是 Node 的那条注释：输入侧要按来源做**增量**记账（压缩会让
+/// 后续 context 变小，累计消耗不能因此回扣历史，但基线必须降到压缩后的值），这是顺序相关的
+/// 状态机，SQL 的 `group by` 表达不出来。
+pub fn session_usage(
+    conn: &Connection,
+    session: &str,
+) -> Result<rust_cli_kernel_api::usage::SessionUsage, StoreError> {
+    use rust_cli_kernel_api::usage::SessionUsage;
+    let rows = conn
+        .prepare_cached(
+            "select query_source, status, input_tokens, output_tokens, reasoning_tokens,
+                    cache_creation_input_tokens, cache_read_input_tokens,
+                    computed_total_tokens, provider_total_tokens
+             from model_usage
+             where session_id = ?
+             order by started_at asc, id asc",
+        )
+        .storage()?
+        .query_map([session], |row| {
+            Ok(SessionUsageRow {
+                query_source: row.get(0)?,
+                status: row.get(1)?,
+                input_tokens: row.get::<_, i64>(2)?.max(0) as u64,
+                output_tokens: row.get::<_, i64>(3)?.max(0) as u64,
+                reasoning_tokens: row.get::<_, i64>(4)?.max(0) as u64,
+                cache_creation_tokens: row.get::<_, i64>(5)?.max(0) as u64,
+                cache_read_tokens: row.get::<_, i64>(6)?.max(0) as u64,
+                computed_total_tokens: row.get::<_, i64>(7)?.max(0) as u64,
+                provider_total_tokens: row.get::<_, Option<i64>>(8)?.map(|value| value.max(0) as u64),
+            })
+        })
+        .storage()?
+        .collect::<Result<Vec<_>, _>>()
+        .storage()?;
+
+    let mut usage = SessionUsage::default();
+    for row in rows {
+        let raw_total = row.provider_total_tokens.unwrap_or(row.computed_total_tokens);
+        let input_side = input_side_tokens(&row);
+        let source = baseline_source(&row.query_source);
+        let incremental_input = match source {
+            // 压缩会让后续 context input 变小：累计消耗不能回扣历史，但基线必须降到压缩后的
+            // 值，后续新增轮次才能继续按增量计算。
+            Some(source) => {
+                let baseline = usage.input_baseline_by_source.get(source).copied().unwrap_or(0);
+                let incremental = input_side.saturating_sub(baseline);
+                usage
+                    .input_baseline_by_source
+                    .insert(source.to_owned(), input_side);
+                incremental
+            }
+            None => input_side,
+        };
+        let non_input = raw_total.saturating_sub(input_side);
+        usage.total_tokens = usage.total_tokens.saturating_add(incremental_input).saturating_add(non_input);
+        usage.input_tokens = usage.input_tokens.saturating_add(incremental_input);
+        usage.output_tokens = usage.output_tokens.saturating_add(row.output_tokens);
+        usage.reasoning_tokens = usage.reasoning_tokens.saturating_add(row.reasoning_tokens);
+        // 缓存读写只在不属于三个已知来源时单列（已知来源的输入侧已含它们）。
+        if source.is_none() {
+            usage.cache_creation_tokens = usage.cache_creation_tokens.saturating_add(row.cache_creation_tokens);
+            usage.cache_read_tokens = usage.cache_read_tokens.saturating_add(row.cache_read_tokens);
+        }
+        usage.model_request_count = usage.model_request_count.saturating_add(1);
+        if row.status == "error" {
+            usage.model_error_count = usage.model_error_count.saturating_add(1);
+        }
+    }
+    Ok(usage)
+}
+
+struct SessionUsageRow {
+    query_source: String,
+    status: String,
+    input_tokens: u64,
+    output_tokens: u64,
+    reasoning_tokens: u64,
+    cache_creation_tokens: u64,
+    cache_read_tokens: u64,
+    computed_total_tokens: u64,
+    provider_total_tokens: Option<u64>,
+}
+
+/// Node `inputSideTokensFromStoredUsage`：AI SDK v6 写出的 `input_tokens` 已是总输入（含缓存
+/// 读写）；老行的输入不含缓存，靠「哪个总数更接近」判出来。
+fn input_side_tokens(row: &SessionUsageRow) -> u64 {
+    let input = row.input_tokens;
+    let cache = row.cache_creation_tokens.saturating_add(row.cache_read_tokens);
+    if input == 0 {
+        return cache;
+    }
+    if cache == 0 {
+        return input;
+    }
+    let output = row.output_tokens;
+    let total = row.provider_total_tokens.unwrap_or(row.computed_total_tokens);
+    if total > 0 {
+        let total_input_distance = total.abs_diff(input.saturating_add(output));
+        let no_cache_input_distance =
+            total.abs_diff(input.saturating_add(cache).saturating_add(output));
+        if no_cache_input_distance < total_input_distance {
+            return input.saturating_add(cache);
+        }
+    }
+    input
+}
+
+/// Node `taskUsageInputBaselineSource`：三个已知来源才做增量记账。
+fn baseline_source(query_source: &str) -> Option<&'static str> {
+    match query_source {
+        "main_turn" => Some("main_turn"),
+        "subagent" => Some("subagent"),
+        "workflow_child" => Some("workflow_child"),
+        _ => None,
+    }
+}
+
 #[cfg(test)]
 #[path = "usage_query_tests.rs"]
 mod tests;

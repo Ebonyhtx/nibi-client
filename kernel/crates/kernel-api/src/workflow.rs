@@ -300,7 +300,8 @@ pub struct WorkflowRunPendingQuestion {
 
 /// 结构化失败（journal `failure_json` 的 code/message；稳定判别键——模型必须能分辨
 /// 「进程死了」与「脚本真失败」）。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkflowRunError {
     pub code: String,
     pub message: String,
@@ -698,6 +699,237 @@ pub struct WorkflowRunPageRow {
     /// 历史行在状态词之后画 kind chips。零件整字段缺席。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub artifacts: Option<Vec<WorkflowRunArtifact>>,
+}
+
+// ————————————————————————————————————————————————————————————————
+// v4 查询面（141 审计 §9 第 2 项）：run 详情 7 条与枚举 1 条。
+//
+// 与上面的中枢读面并行而不合并：中枢回的是「按名字归属的运行历史」，它的行形状是
+// `WorkflowRunPageRow`（带 args/cwd/产物 chips，界 50 条）；这一族回的是**会话视角**的
+// run 目录与详情页三个切片（事件页、产物页、工作区 transcript），字段与 Node 的 v4
+// schema 一一对应。两套界不同（64 条 / 500 事件 / 2000 节点），合并会把界也一起混掉。
+// ————————————————————————————————————————————————————————————————
+
+/// run 目录的一行（`v4/conversation/workflowRuns` 的元素）。
+///
+/// 与 [`WorkflowRunPageRow`] 的差别是**没有 cwd/args/产物 chips**，多了 `resumable`——
+/// 后者由存储按 resume 门的同一个谓词算好，UI 绝不自行推导（两处谓词会漂移）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunSummaryRow {
+    pub run_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    /// 展示标签（服务端读时派生：`name` → 脚本首行 → runId）。
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<u64>,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resumed_from: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_code: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_message: Option<String>,
+    pub resumable: bool,
+}
+
+/// 事件日志的一行（`v4/conversation/workflowRunEvents` 的元素）：`payload` 是事件对象去掉
+/// `type` 后的其余字段，已按结构界有界化（字符串长度 / 数组条数 / 键数 / 深度）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunEventRow {
+    pub sequence: u64,
+    /// 事件判别式（`run-started` / `node-settled` / `report` …）。
+    pub r#type: String,
+    pub payload: serde_json::Value,
+    /// 载荷被裁剪过（原始事实仍在 journal）。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub truncated: bool,
+}
+
+/// 事件日志的一页；`has_more` 由存储判定（页可能因字节上界提前收尾）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunEventPage {
+    pub events: Vec<WorkflowRunEventRow>,
+    pub has_more: bool,
+}
+
+/// 事件页的查询袋。条数与字节两道界都由调用方给定（存储层精确兑现、不另加天花板）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WorkflowRunEventQuery {
+    /// 只取 sequence **严格大于**该值的事件；缺省从头取。
+    pub after_sequence: Option<u64>,
+    pub limit: usize,
+    /// 一页载荷的字节上界（按落库的 `payload_json` 字节计）。
+    pub max_bytes: u64,
+}
+
+/// 一个产物**版本**的元数据（`workflowRunArtifacts` 的元素里 `versions[]` 的形状）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunArtifactVersion {
+    pub version: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+    /// store 的 `zcode-artifact://…`。**只给 CLI 侧用**——模型与 renderer 都读不了它，
+    /// 协议层必须把它剥掉（[`WorkflowRunArtifactVersion::public`]）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uri: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spec: Option<serde_json::Value>,
+    pub published_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary: Option<bool>,
+}
+
+/// 一件用户面产物的**全部版本**（`workflowRunArtifacts` 的元素）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunArtifactDetail {
+    pub id: String,
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spec: Option<serde_json::Value>,
+    /// 最新版号（= `versions` 末项的 version）。
+    pub version: u64,
+    /// 版本升序；失败的发布**不在**这里（失败行不认领 id / 种类 / 版本）。
+    pub versions: Vec<WorkflowRunArtifactVersion>,
+    /// 打了这个 id 标签的 `report` 条目数（预置看板的数据量；内容产物恒 0）。
+    pub item_count: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary: Option<bool>,
+}
+
+/// 看板取数的一行（`workflowRunArtifactData` 的元素）：cursor = journal sequence。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunArtifactItem {
+    pub sequence: u64,
+    pub site_id: String,
+    pub ordinal: u64,
+    /// 条目原值；请求带 `fields` 时缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub item: Option<serde_json::Value>,
+    /// 请求带 `fields` 时：路径 → 值（走不通的路径不在表里）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fields: Option<serde_json::Value>,
+}
+
+/// 看板条目的一页。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunArtifactItemPage {
+    pub items: Vec<WorkflowRunArtifactItem>,
+    pub has_more: bool,
+}
+
+/// 看板条目的查询袋（条数与字节两道界由调用方给定）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunArtifactItemQuery {
+    pub artifact_id: String,
+    pub after_sequence: Option<u64>,
+    pub limit: usize,
+    pub max_bytes: u64,
+    /// 只取这些字段路径（[`read_workflow_artifact_field`] 的规则）；`None` = 整条 item。
+    pub fields: Option<Vec<String>>,
+    /// 一个字段值的序列化字节上界（超过回成截短的字符串）。
+    pub max_field_value_bytes: u64,
+}
+
+/// 工作区 transcript 的一行（`workflowRunWorkspace` 的元素；**不带正文**）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunWorkspaceNode {
+    pub site_id: String,
+    pub ordinal: u64,
+    /// `world-read` / `world-run`。
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub op: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<serde_json::Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_truncated: Option<bool>,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<WorkflowRunError>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<WorkflowRunWorkspaceSummary>,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+/// 清单上一行的摘要：不解正文就能报的几个数（哪个在场取决于 op）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunWorkspaceSummary {
+    pub result_bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result_count: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_code: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stdout_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stderr_bytes: Option<u64>,
+}
+
+/// 一个工作区节点的正文（`workflowRunNodeResult` 的结果）：按 `max_bytes` **保形**有界化。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunNodeResult {
+    pub status: String,
+    /// 有界化后的正文；running 行与 failed 行缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<WorkflowRunError>,
+    pub truncated: bool,
+    /// 截断前的序列化字节数。
+    pub total_bytes: u64,
+}
+
+/// 按点路径从一条 report item 里取值（`readWorkflowArtifactField` 的规则，协议上的契约）：
+/// 按 `.` 切段；当前值是数组时，段按 `Number(段)` 当下标（非负整数且在界内才算）；是对象时
+/// 按键取；走不通（null、标量、越界、缺键）得 `None`。
+///
+/// 这条规则同时是 CLI 在 SQLite 里取字段的依据，两侧必须逐字相同——渲染器拿到的值必须与它
+/// 自己从整条 item 里取出来的逐字相同。
+pub fn read_workflow_artifact_field(item: &serde_json::Value, path: &str) -> Option<serde_json::Value> {
+    let mut cursor = item;
+    for segment in path.split('.') {
+        match cursor {
+            serde_json::Value::Array(items) => {
+                let index = segment.parse::<i64>().ok().filter(|index| *index >= 0)?;
+                cursor = items.get(usize::try_from(index).ok()?)?;
+            }
+            serde_json::Value::Object(fields) => cursor = fields.get(segment)?,
+            _ => return None,
+        }
+    }
+    Some(cursor.clone())
 }
 
 impl WorkflowEngineError {

@@ -267,6 +267,34 @@ impl Server {
             "workflows/delete" => crate::nibi_workflows::delete_workflow(self, &params).await.map(Reply::new),
             "workflows/move" => crate::nibi_workflows::move_workflow(self, &params).await.map(Reply::new),
             "workflows/forRun" => crate::nibi_workflows::for_run(self, &params).await.map(Reply::new),
+            // v4 查询面（141 审计 §9 第 2 项）：usage 2 条 + run 详情 7 条。
+            // 数据全在内核侧的会话库，纯投影与分页；参数契约从 Host 的 zod 逐字
+            // （contract 见 v4_queries.rs 的文件头）。
+            "v4/usage/stats" => crate::v4_queries::usage_stats(self, &params).await.map(Reply::new),
+            "v4/conversation/usage" => crate::v4_queries::conversation_usage(self, &params)
+                .await
+                .map(Reply::new),
+            "v4/conversation/workflowRuns" => crate::v4_queries::workflow_runs(self, &params)
+                .await
+                .map(Reply::new),
+            "v4/conversation/workflowRunEvents" => {
+                crate::v4_queries::workflow_run_events(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/workflowRunArtifacts" => {
+                crate::v4_queries::workflow_run_artifacts(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/workflowRunArtifactData" => {
+                crate::v4_queries::workflow_run_artifact_data(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/workflowRunArtifactRead" => {
+                crate::v4_queries::workflow_run_artifact_read(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/workflowRunWorkspace" => {
+                crate::v4_queries::workflow_run_workspace(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/workflowRunNodeResult" => {
+                crate::v4_queries::workflow_run_node_result(self, &params).await.map(Reply::new)
+            }
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

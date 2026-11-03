@@ -306,6 +306,123 @@ fn the_message_queries_only_scan_the_covering_index() {
     }
 }
 
+// ———— v4 usage 查询（141 审计 §9 第 2 项）————
+
+/// 应用级聚合的口径（Node `queryAppUsage` 的同一条 SQL）：只按 `started_at` 落在
+/// `[since, until]` 的行、按模型与工具分组、三张表按本地日归桶。
+#[tokio::test]
+async fn app_usage_aggregates_across_sessions_by_day() {
+    use rust_cli_kernel_api::usage::AppUsageQuery;
+    let t = TestStore::new();
+    started(&t, "sess_u1").await;
+    started(&t, "sess_u2").await;
+    facts(
+        &t,
+        "sess_u1",
+        vec![
+            call("msg_u1", "opus", DAY + 1_000, 900, CallStatus::Completed),
+            call("msg_u2", "opus", DAY + 2_000, 300, CallStatus::Error),
+        ],
+    )
+    .await;
+    facts(
+        &t,
+        "sess_u2",
+        vec![call("msg_u3", "haiku", 2 * DAY + 5_000, 700, CallStatus::Completed)],
+    )
+    .await;
+    t.connection()
+        .execute(
+            "insert into turn_usage (session_id, turn_id, status, started_at, duration_ms,
+                model_request_count, input_tokens, output_tokens, computed_total_tokens)
+             values ('sess_u1', 'turn_1', 'completed', ?1, 1200, 2, 200, 40, 400)",
+            [DAY + 1_000],
+        )
+        .unwrap();
+    t.connection()
+        .execute(
+            "insert into tool_usage (id, session_id, tool_call_id, tool_name, status, started_at, duration_ms)
+             values ('tool_1', 'sess_u1', 'tc_1', 'read', 'error', ?1, 30)",
+            [DAY + 1_500],
+        )
+        .unwrap();
+
+    let usage = super::app_usage(
+        &t.connection(),
+        &AppUsageQuery {
+            since_ms: 0,
+            until_ms: 3 * DAY,
+            tz_offset_ms: 0,
+        },
+    )
+    .unwrap();
+    assert_eq!(usage.model_request_count, 3);
+    assert_eq!(usage.model_error_count, 1);
+    // 三行各 155 输入（夹具的 100 + 5 缓存写 + 50 缓存读，node-store 按 AI SDK v6 归一成
+    // 总输入）与 20 输出。这里刻意断言**原始列之和**而不是减去缓存：Node 的
+    // `queryAppUsage` 同样直接 `sum(input_tokens)`，两侧口径必须逐字相同。
+    assert_eq!(usage.input_tokens, 465);
+    assert_eq!(usage.output_tokens, 60);
+    assert_eq!(usage.models.len(), 2);
+    assert_eq!(usage.models[0].model_id.as_deref(), Some("opus"));
+    assert_eq!(usage.models[0].request_count, 2);
+    assert_eq!(usage.tool_call_count, 1);
+    assert_eq!(usage.tool_error_count, 1);
+    assert_eq!(usage.tools[0].tool_name, "read");
+    assert_eq!(usage.tools[0].avg_duration_ms, Some(30.0));
+    assert_eq!(usage.total_sessions, 1);
+    assert_eq!(usage.total_turns, 1);
+    // 按本地日：第 0 天两行、第 1 天一行。
+    assert_eq!(usage.days.len(), 2);
+    assert_eq!(usage.days[0].day_index, 1);
+    assert_eq!(usage.days[0].tool_call_count, 1);
+    assert_eq!(usage.days[1].day_index, 2);
+
+    // 时间窗把第 0 天的行排除在外。
+    let windowed = super::app_usage(
+        &t.connection(),
+        &AppUsageQuery {
+            since_ms: 2 * DAY,
+            until_ms: 3 * DAY,
+            tz_offset_ms: 0,
+        },
+    )
+    .unwrap();
+    assert_eq!(windowed.model_request_count, 1);
+    assert_eq!(windowed.days.len(), 1);
+}
+
+/// 会话级用量的增量记账（Node `queryTaskUsage`）：同一来源的第二行只算「输入侧的增量」，
+/// 压缩让 context 变小时不回扣历史，但基线降到压缩后的值。
+#[tokio::test]
+async fn session_usage_accounts_input_side_incrementally_per_source() {
+    let t = TestStore::new();
+    started(&t, "sess_t1").await;
+    // hand-written rows：三行同源，输入侧 1000 → 1500 → 800（压缩）。
+    for (id, at, input) in [("r1", DAY, 1_000), ("r2", DAY + 1_000, 1_500), ("r3", DAY + 2_000, 800)] {
+        t.connection()
+            .execute(
+                "insert into model_usage (id, logical_request_id, session_id, query_source,
+                    provider_id, model_id, status, started_at, input_tokens, output_tokens,
+                    computed_total_tokens)
+                 values (?1, ?1, 'sess_t1', 'main_turn', 'p', 'opus', 'completed', ?2, ?3, 10, ?4)",
+                rusqlite::params![id, at, input, input + 10],
+            )
+            .unwrap();
+    }
+    let usage = super::session_usage(&t.connection(), "sess_t1").unwrap();
+    // 增量：1000 + 500 + 0（800 < 基线 1500，不回扣）= 1500 输入；非输入侧每行 10。
+    assert_eq!(usage.input_tokens, 1_500);
+    assert_eq!(usage.total_tokens, 1_530);
+    assert_eq!(usage.model_request_count, 3);
+    assert_eq!(usage.input_baseline_by_source.get("main_turn"), Some(&800));
+
+    // 空会话是零值（不是错误）。
+    started(&t, "sess_empty_usage").await;
+    let empty = super::session_usage(&t.connection(), "sess_empty_usage").unwrap();
+    assert_eq!(empty, rust_cli_kernel_api::usage::SessionUsage::default());
+}
+
 #[test]
 fn dates_and_day_indexes_round_trip() {
     assert_eq!(super::day_index("1970-01-01"), Some(0));

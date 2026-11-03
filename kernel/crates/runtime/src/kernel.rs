@@ -578,6 +578,131 @@ impl Kernel for LocalKernel {
             .map_err(|error| failed(&error))
     }
 
+    /// 本会话的 run 目录（`v4/conversation/workflowRuns`）。
+    async fn workflow_run_summaries(
+        &self,
+        session: &SessionId,
+        limit: usize,
+    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunSummaryRow>, KernelError> {
+        self.ports
+            .store
+            .workflow_run_summaries(session, limit)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 一个 run 的事件日志的一页（`v4/conversation/workflowRunEvents`）。
+    async fn workflow_run_events(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        query: rust_cli_kernel_api::workflow::WorkflowRunEventQuery,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunEventPage, KernelError> {
+        self.ports
+            .store
+            .workflow_run_events(session, run_id, query)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 一个 run 的用户面产物清单（`v4/conversation/workflowRunArtifacts`）。
+    async fn workflow_run_artifacts(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunArtifactDetail>>, KernelError>
+    {
+        self.ports
+            .store
+            .workflow_run_artifacts(session, run_id)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 看板取数的一页（`v4/conversation/workflowRunArtifactData`）。
+    async fn workflow_run_artifact_items(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        query: rust_cli_kernel_api::workflow::WorkflowRunArtifactItemQuery,
+    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunArtifactItemPage, KernelError> {
+        self.ports
+            .store
+            .workflow_run_artifact_items(session, run_id, query)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 一个产物版本的字节（`v4/conversation/workflowRunArtifactRead`）。
+    async fn workflow_run_artifact_bytes(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        artifact_id: &str,
+        version: u64,
+    ) -> Result<Option<(Vec<u8>, Option<String>)>, KernelError> {
+        self.ports
+            .store
+            .workflow_run_artifact_bytes(session, run_id, artifact_id, version)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 工作区 transcript 清单（`v4/conversation/workflowRunWorkspace`）。
+    async fn workflow_run_workspace(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunWorkspaceNode>>, KernelError>
+    {
+        self.ports
+            .store
+            .workflow_run_workspace(session, run_id)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 一个工作区节点的正文（`v4/conversation/workflowRunNodeResult`）。
+    async fn workflow_run_node_result(
+        &self,
+        session: &SessionId,
+        run_id: &str,
+        site_id: &str,
+        ordinal: u64,
+        max_bytes: u64,
+    ) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunNodeResult>, KernelError> {
+        self.ports
+            .store
+            .workflow_run_node_result(session, run_id, site_id, ordinal, max_bytes)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 应用级用量聚合（`v4/usage/stats`）：SQL 在存储，`range` → `[since, until)` 的换算与
+    /// 时区偏移在协议层（它才拿得到请求里的 `timeZone`）。
+    async fn app_usage(
+        &self,
+        query: rust_cli_kernel_api::usage::AppUsageQuery,
+    ) -> Result<rust_cli_kernel_api::usage::AppUsage, KernelError> {
+        self.ports
+            .store
+            .app_usage(query)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
+    /// 会话级 token 用量（`v4/conversation/usage`）。
+    async fn session_usage(
+        &self,
+        session: &SessionId,
+    ) -> Result<rust_cli_kernel_api::usage::SessionUsage, KernelError> {
+        self.ports
+            .store
+            .session_usage(session)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
     /// NIBI `startSavedWorkflow`：引擎没接时报 Unsupported（与 Node 的 `V4CapabilityUnsupportedError` 同义）。
     async fn start_saved_workflow(
         &self,

@@ -21,6 +21,7 @@ mod nibi_workflows;
 mod projection;
 mod server;
 mod subscribe;
+mod v4_queries;
 mod wire;
 mod workflow_settings_turn;
 

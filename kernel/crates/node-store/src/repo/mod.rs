@@ -10,6 +10,7 @@ pub mod messages;
 pub mod migrations;
 pub mod open;
 mod open_error;
+pub mod run_queries;
 pub mod sessions;
 pub mod usage;
 

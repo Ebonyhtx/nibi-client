@@ -784,6 +784,110 @@ pub trait Kernel: Send + Sync {
         Ok(Vec::new())
     }
 
+    // ——— v4 查询面（141 审计 §9 第 2 项）———
+    //
+    // 六条 run 读面与两条 usage 聚合。**缺省一律返回空 / `Unsupported`**：这些是 NIBI 桌面
+    // 的投影面，TUI 与 `-p` 没有读者；协议层按「内核不支持 → 回空结果」处理，与 Node 的
+    // journal 缺席同规（中枢显示「尚未运行」而不是报错）。
+
+    /// 本会话的 run 目录（`v4/conversation/workflowRuns`），最近更新在前。
+    async fn workflow_run_summaries(
+        &self,
+        _session: &SessionId,
+        _limit: usize,
+    ) -> Result<Vec<crate::workflow::WorkflowRunSummaryRow>, KernelError> {
+        Ok(Vec::new())
+    }
+
+    /// 一个 run 的事件日志的一页（`v4/conversation/workflowRunEvents`）。
+    async fn workflow_run_events(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _query: crate::workflow::WorkflowRunEventQuery,
+    ) -> Result<crate::workflow::WorkflowRunEventPage, KernelError> {
+        Ok(crate::workflow::WorkflowRunEventPage {
+            events: Vec::new(),
+            has_more: false,
+        })
+    }
+
+    /// 一个 run 的用户面产物清单（`v4/conversation/workflowRunArtifacts`）。未知 / 不属于本会话
+    /// 回 `None`。
+    async fn workflow_run_artifacts(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+    ) -> Result<Option<Vec<crate::workflow::WorkflowRunArtifactDetail>>, KernelError> {
+        Ok(None)
+    }
+
+    /// 喂给某个预置产物的 `report` 条目的一页（`v4/conversation/workflowRunArtifactData`）。
+    async fn workflow_run_artifact_items(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _query: crate::workflow::WorkflowRunArtifactItemQuery,
+    ) -> Result<crate::workflow::WorkflowRunArtifactItemPage, KernelError> {
+        Ok(crate::workflow::WorkflowRunArtifactItemPage {
+            items: Vec::new(),
+            has_more: false,
+        })
+    }
+
+    /// 一个产物版本的字节（`v4/conversation/workflowRunArtifactRead`）：run 属于本会话 ∧
+    /// journal 里有该版本的 completed 行才读。无此版本 / 不是你的 run / 是看板 → `None`。
+    async fn workflow_run_artifact_bytes(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _artifact_id: &str,
+        _version: u64,
+    ) -> Result<Option<(Vec<u8>, Option<String>)>, KernelError> {
+        Ok(None)
+    }
+
+    /// 一个 run 的工作区 transcript 清单（`v4/conversation/workflowRunWorkspace`，不带正文）。
+    async fn workflow_run_workspace(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+    ) -> Result<Option<Vec<crate::workflow::WorkflowRunWorkspaceNode>>, KernelError> {
+        Ok(None)
+    }
+
+    /// 一个工作区节点的正文（`v4/conversation/workflowRunNodeResult`），按 `max_bytes` 保形有界化。
+    async fn workflow_run_node_result(
+        &self,
+        _session: &SessionId,
+        _run_id: &str,
+        _site_id: &str,
+        _ordinal: u64,
+        _max_bytes: u64,
+    ) -> Result<Option<crate::workflow::WorkflowRunNodeResult>, KernelError> {
+        Ok(None)
+    }
+
+    /// 应用级用量聚合（`v4/usage/stats`）。缺省 `Unsupported`：协议层据此回空快照（UI 显示空态）。
+    async fn app_usage(
+        &self,
+        _query: crate::usage::AppUsageQuery,
+    ) -> Result<crate::usage::AppUsage, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "app usage aggregation".to_owned(),
+        })
+    }
+
+    /// 会话级 token 用量（`v4/conversation/usage`）。缺省 `Unsupported`，协议层回零值结果。
+    async fn session_usage(
+        &self,
+        _session: &SessionId,
+    ) -> Result<crate::usage::SessionUsage, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session usage aggregation".to_owned(),
+        })
+    }
+
     /// NIBI `startSavedWorkflow`：按名字启动一个已保存的工作流（引擎在 sidecar）。
     /// 缺省实现返回 `Unsupported`（引擎没接的入口）。
     async fn start_saved_workflow(
