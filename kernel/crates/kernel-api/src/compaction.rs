@@ -246,6 +246,8 @@ fn block_tokens(block: &ContentBlock) -> u64 {
         ContentBlock::Image {
             source: ImageSource::Base64 { .. } | ImageSource::Artifact { .. },
         } => IMAGE_TOKENS,
+        // 用户贴的 PDF 与工具结果里的 document 同一档（上面 `result_tokens` 的规则）：按图算，不按字节算。
+        ContentBlock::Document { .. } => IMAGE_TOKENS,
         ContentBlock::Thinking { thinking, .. } => rough_tokens(thinking),
         ContentBlock::RedactedThinking { data } => rough_tokens(data),
         ContentBlock::ToolUse { name, input, .. } => rough_tokens(&format!("{name}{input}")),

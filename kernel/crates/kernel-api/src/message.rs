@@ -20,6 +20,17 @@ pub enum ContentBlock {
     Image {
         source: ImageSource,
     },
+    /// 用户消息里的文件附件（PDF）：Node 的 `file` part。`source` 与图片同一种写法（base64 或
+    /// Artifact 引用），`media_type` 在 `source` 里；`name` 是展示名（Node `file` part 的
+    /// `filename`），落库与界面用，线上协议不需要它。
+    ///
+    /// 与 [`ToolResultContent::Document`]（Read 整读 PDF 的结果）是同一件事的两处位置：那边在工具
+    /// 结果里，这边是用户自己贴的文件。模型线格式也一致（`{type:"document", source}`）。
+    Document {
+        source: ImageSource,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+    },
     Thinking {
         thinking: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
