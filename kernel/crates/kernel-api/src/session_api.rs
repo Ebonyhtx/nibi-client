@@ -605,6 +605,16 @@ pub trait SessionHandle: Send + Sync {
     }
 
     /// 一个后台命令的详情（Shell 详情，tui-panels.md §3.3）；不认识时为 None。
+    /// 一个后台命令的输出尾窗（`v4/conversation/backgroundBashOutput`）：`max_bytes` 由协议层给
+    /// （Host 的界是 8 KiB）。任务不认识、或所在的机器不支持时 `None`。
+    async fn background_output(
+        &self,
+        _task: &str,
+        _max_bytes: u64,
+    ) -> Result<Option<crate::manage::BackgroundOutput>, KernelError> {
+        Ok(None)
+    }
+
     async fn shell_detail(
         &self,
         _task: &str,

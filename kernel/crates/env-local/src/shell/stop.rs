@@ -40,6 +40,43 @@ impl Shells {
         lookup(&self.shared.state(), request)
     }
 
+    /// 后台命令输出文件的末尾 `max_bytes` 字节（`v4/conversation/backgroundBashOutput`）。
+    ///
+    /// 任务不认识时 `None`。命令的 `Running` 即使在结束后也留在 `commands` 里（快照与任务列表
+    /// 同源），所以终态命令的输出照样读得到。
+    pub(crate) async fn background_output(
+        &self,
+        request: &BackgroundTask,
+        max_bytes: u64,
+    ) -> Option<rust_cli_kernel_api::env_shell::BackgroundOutputTail> {
+        let operation = {
+            let state = self.shared.state();
+            let shell = state.sessions.get(&request.session)?;
+            shell
+                .background
+                .get(&request.task)
+                .or_else(|| {
+                    shell
+                        .notices
+                        .iter()
+                        .find(|notice| notice.task == request.task)
+                        .map(|notice| &notice.operation)
+                })?
+                .clone()
+        };
+        let output = {
+            let state = self.shared.state();
+            state.commands.get(&operation)?.output.clone()
+        };
+        let (bytes, total_bytes) = read_tail(&output, max_bytes).await.ok()?;
+        Some(rust_cli_kernel_api::env_shell::BackgroundOutputTail {
+            bytes,
+            total_bytes,
+            truncated: total_bytes > max_bytes,
+            path: rust_cli_kernel_api::env::EnvPath::new(output.to_string_lossy()),
+        })
+    }
+
     /// 还在跑的后台命令从开始到现在的毫秒数；已结束、已停止或不认识时为 None（tui-panels.md §3.3）。
     pub(crate) fn background_elapsed(&self, request: &BackgroundTask) -> Option<u64> {
         let state = self.shared.state();
@@ -115,5 +152,58 @@ impl Shells {
                 running.task.clone()
             })
             .collect()
+    }
+}
+
+/// 文件末尾最多 `max_bytes` 字节与总字节数。读不到（文件已删、权限）时错误。
+#[expect(
+    clippy::disallowed_methods,
+    reason = "env-local 是进程 IO 的入口：后台命令的输出文件在本地（README §4）"
+)]
+async fn read_tail(path: &std::path::Path, max_bytes: u64) -> std::io::Result<(Vec<u8>, u64)> {
+    use tokio::io::{AsyncReadExt, AsyncSeekExt};
+
+    let mut file = tokio::fs::File::open(path).await?;
+    let total = file.metadata().await?.len();
+    if total > max_bytes {
+        let offset = i64::try_from(max_bytes).unwrap_or(i64::MAX);
+        file.seek(std::io::SeekFrom::End(-offset)).await?;
+    }
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).await?;
+    Ok((bytes, total))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 尾窗只回文件末尾的 `max_bytes` 字节，`total_bytes` 仍是整份文件的大小。
+    #[tokio::test]
+    async fn the_tail_keeps_the_last_bytes_and_reports_the_total() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("task.output");
+        tokio::fs::write(&path, b"0123456789").await.unwrap();
+        let (bytes, total) = read_tail(&path, 4).await.unwrap();
+        assert_eq!(bytes, b"6789");
+        assert_eq!(total, 10);
+    }
+
+    /// 文件比界短时整份返回，不加填充也不报错。
+    #[tokio::test]
+    async fn a_short_file_is_returned_whole() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("task.output");
+        tokio::fs::write(&path, b"hi").await.unwrap();
+        let (bytes, total) = read_tail(&path, 4_096).await.unwrap();
+        assert_eq!(bytes, b"hi");
+        assert_eq!(total, 2);
+    }
+
+    /// 文件不存在时是错误（协议层据此回 `read_failed`）。
+    #[tokio::test]
+    async fn a_missing_file_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(read_tail(&dir.path().join("nope.output"), 16).await.is_err());
     }
 }

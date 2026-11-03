@@ -366,6 +366,25 @@ impl SessionHandle for Session {
         self.deps.agents.subagent_view(&self.id, agent).await
     }
 
+    /// 后台命令的输出尾窗（`v4/conversation/backgroundBashOutput`）。
+    async fn background_output(
+        &self,
+        task: &str,
+        max_bytes: u64,
+    ) -> Result<Option<rust_cli_kernel_api::manage::BackgroundOutput>, KernelError> {
+        let meta = self.ask(|reply| Request::Meta { reply }).await?;
+        tasks::background_output(&self.deps, &meta.workspace, &meta.id, task, max_bytes)
+            .await
+            .map_err(|error| match error {
+                rust_cli_kernel_api::env::EnvError::Unsupported { what } => {
+                    KernelError::Unsupported { what }
+                }
+                other => KernelError::Failed {
+                    message: other.to_string(),
+                },
+            })
+    }
+
     /// Shell 详情：与 `background_tasks` 同一份账本与输出文件（tui-panels.md §3.3）。
     async fn shell_detail(
         &self,

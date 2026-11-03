@@ -37,6 +37,20 @@ pub struct BackgroundEntry {
     pub reconnecting: bool,
 }
 
+/// 一个后台命令的输出尾窗（`v4/conversation/backgroundBashOutput`）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BackgroundOutput {
+    /// 任务 ID。
+    pub work_id: String,
+    pub status: crate::env_shell::BackgroundStatus,
+    /// 输出文件末尾的字节（解码后的文本，坏字节按替换字符处理）。
+    pub output: String,
+    /// 文件比 `output` 长。
+    pub truncated: bool,
+    /// 输出文件在执行环境里的路径（Host 用它做「打开文件」）。
+    pub output_path: String,
+}
+
 /// `BackgroundEntry.output` 最多保留的行数。
 pub const OUTPUT_TAIL_LINES: usize = 40;
 

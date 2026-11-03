@@ -226,6 +226,18 @@ pub trait Background: Send + Sync {
         Err(not_provided("background_elapsed"))
     }
 
+    /// 后台命令输出文件的末尾 `max_bytes` 字节（read，`v4/conversation/backgroundBashOutput`）。
+    ///
+    /// 缺省不支持（远端执行器由那边实现）；不认识的命令回 `Ok(None)`。深度取舍：Node 的同一
+    /// 读取有 8 KiB 的界与 `outputPath`，界由调用方给，这里不另设上限。
+    async fn background_output_tail(
+        &self,
+        _request: BackgroundTask,
+        _max_bytes: u64,
+    ) -> Result<Option<crate::env_shell::BackgroundOutputTail>, EnvError> {
+        Err(not_provided("background_output_tail"))
+    }
+
     /// 停止后台命令（mutate，TaskStop）：不发终态通知，立即不再算 [`ShellState::background`]。
     async fn stop_background_command(
         &self,

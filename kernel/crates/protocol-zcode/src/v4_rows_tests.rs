@@ -130,6 +130,38 @@ impl SessionHandle for FakeHandle {
     async fn view(&self) -> Result<SessionView, KernelError> {
         Ok(self.view.clone())
     }
+
+    async fn background_output(
+        &self,
+        task: &str,
+        max_bytes: u64,
+    ) -> Result<Option<rust_cli_kernel_api::manage::BackgroundOutput>, KernelError> {
+        assert_eq!(max_bytes, 8_192, "the protocol layer passes the Host bound");
+        match task {
+            "work_ok" => Ok(Some(rust_cli_kernel_api::manage::BackgroundOutput {
+                work_id: task.to_owned(),
+                status: rust_cli_kernel_api::env_shell::BackgroundStatus::Completed,
+                output: "done
+".to_owned(),
+                truncated: true,
+                output_path: "/work/tasks/work_ok.output".to_owned(),
+            })),
+            "work_killed" => Ok(Some(rust_cli_kernel_api::manage::BackgroundOutput {
+                work_id: task.to_owned(),
+                status: rust_cli_kernel_api::env_shell::BackgroundStatus::Killed,
+                output: String::new(),
+                truncated: false,
+                output_path: "/work/tasks/work_killed.output".to_owned(),
+            })),
+            "work_remote" => Err(KernelError::Unsupported {
+                what: "background_output_tail".to_owned(),
+            }),
+            "work_broken" => Err(KernelError::Failed {
+                message: "io error: permission denied".to_owned(),
+            }),
+            _ => Ok(None),
+        }
+    }
 }
 
 struct FakeKernel {
@@ -257,6 +289,51 @@ async fn plans_lists_terminal_plan_calls_newest_first() {
         .collect();
     assert!(ids[0] > ids[1], "newest first");
     assert!(reply.result["atLogEpoch"].as_str().is_some_and(|epoch| !epoch.is_empty()));
+}
+
+/// 后台命令输出：四种结果形状与 Host 的联合类型逐一对应（成功 / 没有这个任务 / 机器不支持 / 读失败）。
+#[tokio::test]
+async fn background_bash_output_covers_all_result_shapes() {
+    let server = server("sess_bg");
+
+    let reply = Handler(server.clone())
+        .request(
+            "v4/conversation/backgroundBashOutput",
+            json!({"sessionId": "sess_bg", "workId": "work_ok"}),
+        )
+        .await
+        .expect("a result");
+    assert_eq!(reply.result["kind"], "output");
+    assert_eq!(reply.result["status"], "completed");
+    assert_eq!(reply.result["output"], "done
+");
+    assert_eq!(reply.result["truncated"], true);
+    assert_eq!(reply.result["outputPath"], "/work/tasks/work_ok.output");
+
+    let reply = Handler(server.clone())
+        .request(
+            "v4/conversation/backgroundBashOutput",
+            json!({"sessionId": "sess_bg", "workId": "work_killed"}),
+        )
+        .await
+        .expect("a result");
+    assert_eq!(reply.result["status"], "cancelled");
+
+    for (work, kind) in [
+        ("work_missing", "unavailable"),
+        ("work_remote", "unsupported"),
+        ("work_broken", "read_failed"),
+    ] {
+        let reply = Handler(server.clone())
+            .request(
+                "v4/conversation/backgroundBashOutput",
+                json!({"sessionId": "sess_bg", "workId": work}),
+            )
+            .await
+            .expect("a result");
+        assert_eq!(reply.result["kind"], kind, "{work}");
+        assert_eq!(reply.result["workId"], work);
+    }
 }
 
 /// 参数契约：未知键、越界 `limit`、非法 `clientMode` 都是 `-32602`。

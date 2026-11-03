@@ -206,6 +206,50 @@ fn output_path(
     rust_cli_kernel_api::env::EnvPath::new(format!("{base}/{task}.output"))
 }
 
+/// 一个后台命令的输出尾窗（`v4/conversation/backgroundBashOutput`）：按本机、再按连上的远端机器
+/// 依次问（任务 ID 跨机器不重复）。找到任务但所在的机器不支持时把 `Unsupported` 原样交给协议层
+/// （Host 有 `unsupported` 这一档）。
+pub(crate) async fn background_output(
+    deps: &SessionDeps,
+    workspace: &WorkspaceRef,
+    session: &SessionId,
+    task: &str,
+    max_bytes: u64,
+) -> Result<Option<rust_cli_kernel_api::manage::BackgroundOutput>, rust_cli_kernel_api::env::EnvError> {
+    let key = BackgroundTask {
+        session: session.clone(),
+        task: rust_cli_kernel_api::ids::ShellTaskId::new(task),
+    };
+    for place in places(deps, workspace) {
+        let info = place
+            .machine
+            .background()
+            .background_command(key.clone())
+            .await
+            .ok()
+            .flatten();
+        let Some(info) = info else {
+            continue;
+        };
+        return match place
+            .machine
+            .background()
+            .background_output_tail(key, max_bytes)
+            .await?
+        {
+            Some(tail) => Ok(Some(rust_cli_kernel_api::manage::BackgroundOutput {
+                work_id: task.to_owned(),
+                status: info.status,
+                output: String::from_utf8_lossy(&tail.bytes).into_owned(),
+                truncated: tail.truncated,
+                output_path: tail.path.as_str().to_owned(),
+            })),
+            None => Ok(None),
+        };
+    }
+    Ok(None)
+}
+
 /// 一个后台命令的详情（Shell 详情，docs/specs/rust-cli/tui-panels.md §3.3）：与 `/tasks` 同一份账本与输出
 /// 文件；不认识时为 None。按本机、再按连上的远端机器依次问（任务 ID 跨机器不重复，remote-exec.md §20.7.2、§21.6）。
 /// 在调用方的任务里跑，不占用 actor。

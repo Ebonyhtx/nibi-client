@@ -58,6 +58,8 @@ const WORKSPACE_MAX_NODES: usize = 2_000;
 const WORKSPACE_RESULT_MAX_BYTES: u64 = 32 * 1024;
 /// `PROTOCOL_V4_LIMITS.rowsRangeMaxLimit`：一次最多取这么多行。
 const ROWS_RANGE_MAX_LIMIT: u64 = 200;
+/// `BACKGROUND_BASH_OUTPUT_MAX_BYTES`：后台命令输出的读取界（Host 同一常数）。
+const BACKGROUND_OUTPUT_MAX_BYTES: u64 = 8_192;
 /// run 目录的上限与缺省（Node `MAX_LIST_RUNS_LIMIT` / `DEFAULT_LIST_RUNS_LIMIT`）。
 /// 协议 schema 已把 `limit` 限在 [1, 64]，这里的常量只用于缺省值。
 const RUNS_DEFAULT_LIMIT: usize = 16;
@@ -234,6 +236,67 @@ pub(crate) async fn plans(server: &Server, params: &Value) -> Result<Value, RpcE
         "atSeq": live.sink.seq(),
         "atLogEpoch": live.sink.epoch(),
     }))
+}
+
+/// 后台命令的状态换成 Host 的六值词表。
+///
+/// 内核的 [`BackgroundStatus`](rust_cli_kernel_api::env_shell::BackgroundStatus) 只有四个值：
+/// `timed_out` 与 `spawn_error` 分不出来——超时结束在账本里就是 `Failed`，起不来的命令根本没有
+/// 记录（回 `unavailable`）。如实映射，不猜。
+fn background_status_name(status: rust_cli_kernel_api::env_shell::BackgroundStatus) -> &'static str {
+    use rust_cli_kernel_api::env_shell::BackgroundStatus;
+    match status {
+        BackgroundStatus::Running => "running",
+        BackgroundStatus::Completed => "completed",
+        BackgroundStatus::Failed => "failed",
+        BackgroundStatus::Killed => "cancelled",
+    }
+}
+
+/// `v4/conversation/backgroundBashOutput`：一个后台命令的输出尾窗（≤ 8 KiB，`truncated` 表示还有更早的）。
+///
+/// 与 Node 的 `readBackgroundBashOutput` 同一条口径：先冻结状态再读文件；任务不存在或不属于这个
+/// 会话回 `unavailable`，所在机器不支持回 `unsupported`（远端执行器没有实现这条读面），读取失败回
+/// `read_failed`。三种失败都是**结果**不是协议错误——Host 的 schema 本来就是联合类型。
+pub(crate) async fn background_bash_output(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(params, &["sessionId", "workId"])?;
+    let session = required_string(params, "sessionId")?;
+    let work_id = required_string(params, "workId")?;
+    let live = match server.live(&SessionId::new(session)).await {
+        Ok(live) => live,
+        // 会话不存在：Node 的同一读取也只是「没有这个任务」。
+        Err(rust_cli_kernel_api::session_api::KernelError::NotFound { .. }) => {
+            return Ok(json!({"kind": "unavailable", "workId": work_id}));
+        }
+        Err(error) => return Err(crate::server::kernel_error(&error)),
+    };
+    match live
+        .handle
+        .background_output(&work_id, BACKGROUND_OUTPUT_MAX_BYTES)
+        .await
+    {
+        Ok(Some(output)) => Ok(json!({
+            "kind": "output",
+            "workId": output.work_id,
+            "status": background_status_name(output.status),
+            "output": output.output,
+            "truncated": output.truncated,
+            "outputPath": output.output_path,
+        })),
+        Ok(None) => Ok(json!({"kind": "unavailable", "workId": work_id})),
+        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+            Ok(json!({"kind": "unsupported", "workId": work_id}))
+        }
+        Err(error) => Ok(json!({
+            "kind": "read_failed",
+            "workId": work_id,
+            "code": error.to_string(),
+        })),
+    }
 }
 
 // ———— run 详情 + 目录 ————

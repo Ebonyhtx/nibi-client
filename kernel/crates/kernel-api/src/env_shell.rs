@@ -244,6 +244,19 @@ pub enum BackgroundStatus {
     Killed,
 }
 
+/// 后台命令输出文件的尾窗（`v4/conversation/backgroundBashOutput` 的 `output` 一侧）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BackgroundOutputTail {
+    /// 文件末尾的字节（最多调用方给的字节数）；UTF-8 解码由上层做（坏字节按替换字符处理）。
+    pub bytes: Vec<u8>,
+    /// 文件的总字节数。
+    pub total_bytes: u64,
+    /// 文件比 `bytes` 长（客户端据此提示「只看了末尾」）。
+    pub truncated: bool,
+    /// 输出文件在执行环境里的路径（Host 用它做「打开文件」）。
+    pub path: EnvPath,
+}
+
 impl BackgroundStatus {
     /// 终态的状态：退出码 0 是 completed；其余正常结束或失败是 failed；取消、中断等是 killed。
     pub fn ended(outcome: &Outcome, exit_code: Option<i32>) -> Self {

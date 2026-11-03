@@ -362,6 +362,14 @@ impl Background for LocalEnvironment {
     ) -> Result<Vec<rust_cli_kernel_api::ids::ShellTaskId>, EnvError> {
         Ok(self.shells()?.background_foreground(session, reason))
     }
+
+    async fn background_output_tail(
+        &self,
+        request: BackgroundTask,
+        max_bytes: u64,
+    ) -> Result<Option<rust_cli_kernel_api::env_shell::BackgroundOutputTail>, EnvError> {
+        Ok(self.shells()?.background_output(&request, max_bytes).await)
+    }
 }
 
 #[async_trait]

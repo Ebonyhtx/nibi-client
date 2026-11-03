@@ -305,6 +305,11 @@ impl Server {
             "v4/conversation/plans" => {
                 crate::v4_queries::plans(self, &params).await.map(Reply::new)
             }
+            "v4/conversation/backgroundBashOutput" => {
+                crate::v4_queries::background_bash_output(self, &params)
+                    .await
+                    .map(Reply::new)
+            }
             "v4/usage/stats" => crate::v4_queries::usage_stats(self, &params).await.map(Reply::new),
             "v4/conversation/usage" => crate::v4_queries::conversation_usage(self, &params)
                 .await
