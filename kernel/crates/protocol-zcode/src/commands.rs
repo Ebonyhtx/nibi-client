@@ -60,11 +60,14 @@ fn first_input_execution(
     }
 }
 
-/// 一条图片附件引用 → 读取来源与规范化 mime；不是图片时为 None（调用方拒绝）。
-fn attachment_image_source(reference: &Value) -> Option<(AttachmentSource, String)> {
+/// 一条附件引用 → 读取来源与规范化 mime；认不出的类型（视频、音频、任意二进制）为 None，调用方拒绝。
+///
+/// 支持图片与 PDF：Node 的 `filePartToContentBlock` 与 AI SDK 的 file part 都只认这两类
+/// （`application/pdf` 走 `document` 块，其余非文本 MIME 在 Node 侧同样降级成占位文本）。
+fn attachment_source(reference: &Value) -> Option<(AttachmentSource, String)> {
     let mime = reference["mime"].as_str().unwrap_or_default();
     let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
-    if !media.starts_with("image/") {
+    if !media.starts_with("image/") && media != "application/pdf" {
         return None;
     }
     let reference = reference["ref"].as_str().unwrap_or_default().to_owned();
@@ -78,8 +81,8 @@ fn attachment_image_source(reference: &Value) -> Option<(AttachmentSource, Strin
 
 /// 命令里的附件（NIBI `AttachmentRef`）→ 模型内容块。
 ///
-/// 只支持图片：Rust 的 user 消息内容块没有 PDF / 文本 / 视频形态（`ContentBlock` 只有 Text 与
-/// Image），其他类型 fail-closed 拒绝并点名 mime，不静默丢掉内容。图片按 Node 的排法放在正文之前。
+/// 图片与 PDF：图片进 `Image` 块、PDF 进 `Document` 块（Node `filePartToContentBlock` 的同一分法）。
+/// 其他类型 fail-closed 拒绝并点名 mime，不静默丢掉内容。附件按 Node 的排法放在正文之前。
 async fn attachment_blocks(
     kernel: &std::sync::Arc<dyn rust_cli_kernel_api::session_api::Kernel>,
     session: &SessionId,
@@ -90,12 +93,12 @@ async fn attachment_blocks(
 
     let mut blocks = Vec::with_capacity(refs.len());
     for reference in refs {
-        let Some((source, media)) = attachment_image_source(reference) else {
+        let Some((source, media)) = attachment_source(reference) else {
             let mime = reference["mime"].as_str().unwrap_or_default();
             let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
             return Err((
                 "fault.command.attachmentUnsupported",
-                format!("attachments of type {media} are not supported yet; only images are"),
+                format!("attachments of type {media} are not supported yet; only images and PDFs are"),
             ));
         };
         let loaded = kernel
@@ -107,13 +110,17 @@ async fn attachment_blocks(
                     error.to_string(),
                 )
             })?;
-        blocks.push(ContentBlock::Image {
-            source: ImageSource::Base64 {
-                media_type: loaded
-                    .media_type
-                    .unwrap_or_else(|| media.clone()),
-                data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
-            },
+        let source = ImageSource::Base64 {
+            media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
+            data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
+        };
+        blocks.push(if media == "application/pdf" {
+            ContentBlock::Document {
+                source,
+                name: reference["fileName"].as_str().map(str::to_owned),
+            }
+        } else {
+            ContentBlock::Image { source }
         });
     }
     Ok(blocks)

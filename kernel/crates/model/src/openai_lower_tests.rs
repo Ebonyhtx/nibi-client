@@ -246,9 +246,39 @@ fn documents_lower_to_file_parts_after_the_tool_result() {
                 call_id: "toolu_1".to_owned(),
                 output: "PDF file read: /w/doc.pdf (5 bytes)".to_owned(),
             },
-            Item::User(vec![Part::File(
-                "data:application/pdf;base64,JVBERi0=".to_owned()
-            )]),
+            Item::User(vec![Part::File {
+                url: "data:application/pdf;base64,JVBERi0=".to_owned(),
+                name: None,
+            }]),
         ]
+    );
+}
+
+/// 用户贴的 PDF（消息级的 document 块）：与工具结果里的 document 同一条 `file` part，另带展示名。
+#[test]
+fn user_documents_lower_to_file_parts_with_their_name() {
+    let messages = vec![message(
+        ApiRole::User,
+        vec![
+            text("summarize this"),
+            ContentBlock::Document {
+                source: ImageSource::Base64 {
+                    media_type: "application/pdf".to_owned(),
+                    data: "JVBERi0=".to_owned(),
+                },
+                name: Some("paper.pdf".to_owned()),
+            },
+        ],
+    )];
+    assert_eq!(
+        items(Vec::new(), messages).unwrap(),
+        vec![Item::User(vec![
+            // 消息级的块按原顺序（只有工具结果里的媒体才被提到 user 片段前面）。
+            Part::Text("summarize this".to_owned()),
+            Part::File {
+                url: "data:application/pdf;base64,JVBERi0=".to_owned(),
+                name: Some("paper.pdf".to_owned()),
+            },
+        ])]
     );
 }

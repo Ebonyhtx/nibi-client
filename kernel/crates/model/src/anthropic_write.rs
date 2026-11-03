@@ -102,6 +102,16 @@ fn block(out: &mut String, block: &ContentBlock) -> Result<(), ModelError> {
             key(out, "source", false);
             image_source(out, source)?;
         }
+        // 用户贴的 PDF（Node `file` part → AI SDK 的 file part）：AI SDK 写成
+        // `{type:"document", source, title: filename}`，filename 缺席时整项不写。
+        ContentBlock::Document { source, name } => {
+            kind(out, "document");
+            key(out, "source", false);
+            image_source(out, source)?;
+            if let Some(name) = name {
+                text_field(out, "title", name);
+            }
+        }
         ContentBlock::Thinking {
             thinking,
             signature,

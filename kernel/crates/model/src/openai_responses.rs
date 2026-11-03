@@ -122,8 +122,9 @@ fn lower(item: Item, system_role: &str, input: &mut Vec<Value>) {
                 .map(|part| match part {
                     Part::Text(text) => json!({"type": "input_text", "text": text}),
                     Part::Image(url) => json!({"type": "input_image", "image_url": url}),
-                    Part::File(url) => json!({"type": "input_file",
-                        "filename": crate::openai_chat::PDF_NAME, "file_data": url}),
+                    Part::File { url, name } => json!({"type": "input_file",
+                        "filename": name.as_deref().unwrap_or(crate::openai_chat::PDF_NAME),
+                        "file_data": url}),
                 })
                 .collect();
             input.push(json!({"role": "user", "content": content}));

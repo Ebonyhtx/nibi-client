@@ -162,10 +162,9 @@ fn user_part(part: Part) -> Value {
     match part {
         Part::Text(text) => json!({"type": "text", "text": text}),
         Part::Image(url) => json!({"type": "image_url", "image_url": {"url": url}}),
-        // Node 经 AI SDK（`@ai-sdk/openai-compatible`）的写法；document 块没有文件名，AI SDK 也用这个缺省名。
-        Part::File(url) => {
-            json!({"type": "file", "file": {"filename": PDF_NAME, "file_data": url}})
-        }
+        // Node 经 AI SDK（`@ai-sdk/openai-compatible`）的写法：`filename` 取文件块的名字，没有时用 AI SDK 的缺省名。
+        Part::File { url, name } => json!({"type": "file",
+            "file": {"filename": name.as_deref().unwrap_or(PDF_NAME), "file_data": url}}),
     }
 }
 

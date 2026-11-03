@@ -50,6 +50,55 @@ async fn pasted_images_round_trip_as_node_file_parts() {
     assert_eq!(loaded.meta.title, "what is this [Image #1]");
 }
 
+/// 用户贴的 PDF（Node `file` part，mime 是 `application/pdf`）：写成同一条 `file` part，`filename` 落
+/// `filename`，冷读取还原成 document 块（与 `filePartToContentBlock` 的 PDF 分支同形）。
+#[tokio::test]
+async fn pasted_pdfs_round_trip_as_node_file_parts() {
+    let t = TestStore::new();
+    started(&t, "sess_1").await;
+    let document = ContentBlock::Document {
+        source: ImageSource::Base64 {
+            media_type: "application/pdf".into(),
+            data: "JVBERi0xLjQ=".into(),
+        },
+        name: Some("paper.pdf".into()),
+    };
+    let message = Message::User(UserMessage {
+        id: MessageId::new("msg_ru_u1"),
+        content: vec![
+            ContentBlock::Text {
+                text: "summarize this".into(),
+            },
+            document,
+        ],
+        origin: UserOrigin::Human,
+    });
+    t.store
+        .commit(
+            &SessionId::new("sess_1"),
+            batch(
+                Some("cmd"),
+                vec![Fact::MessageAppended {
+                    message: message.clone(),
+                }],
+            ),
+        )
+        .await
+        .unwrap();
+    let parts = t.rows("select data from part where message_id = 'msg_ru_u1' order by sequence");
+    let file: Value = parts
+        .iter()
+        .filter_map(|row| row[0].as_str())
+        .map(|data| serde_json::from_str::<Value>(data).unwrap())
+        .find(|part| part["type"] == "file")
+        .expect("a file part");
+    assert_eq!(file["mime"], "application/pdf");
+    assert_eq!(file["filename"], "paper.pdf");
+    assert_eq!(file["url"], "data:application/pdf;base64,JVBERi0xLjQ=");
+    let loaded = t.store.load(&SessionId::new("sess_1")).await.unwrap();
+    assert_eq!(loaded.messages, vec![message]);
+}
+
 /// 带内容块的 attachment（tui-input.md §1.3、node-store.md §4.5）：内容块写成同一条合成消息里 text part 之后的
 /// part（文字块是 synthetic text part，图片是 Node `file` part），`rustCli.data` 不重复存；冷读取按 part 顺序还原。
 #[tokio::test]

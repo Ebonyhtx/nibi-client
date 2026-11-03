@@ -3,7 +3,8 @@
 //! 记录模板与 Node 逐字节一致（`records`）；Node 记录里内核消息没有的字段（父消息、轮次、
 //! provider、模式、目录）从库里读（`state`）。
 use rust_cli_kernel_api::message::{
-    AssistantMessage, ContentBlock, Message, StopReason, SystemMessage, UserMessage, UserOrigin,
+    AssistantMessage, ContentBlock, ImageSource, Message, StopReason, SystemMessage, UserMessage,
+    UserOrigin,
 };
 use rust_cli_kernel_api::store::{Fact, StoreError};
 use serde_json::{Value, json};
@@ -106,6 +107,7 @@ pub(crate) fn block_kind(block: &ContentBlock) -> &'static str {
     match block {
         ContentBlock::Text { .. } => "text",
         ContentBlock::Image { .. } => "image",
+        ContentBlock::Document { .. } => "document",
         ContentBlock::Thinking { .. } => "thinking",
         ContentBlock::RedactedThinking { .. } => "redacted_thinking",
         ContentBlock::ToolUse { .. } => "tool_use",
@@ -121,12 +123,14 @@ pub(crate) fn block_kind(block: &ContentBlock) -> &'static str {
 /// `titleFromInput` 取首条输入作标题（Node 在首条输入时建会话行）。
 fn append_user(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
     let mut texts = Vec::with_capacity(user.content.len());
-    // 粘贴的图片（tui-input.md §3.2）：文字 part 之后的 Node `file` part（`persistUserPrompt` 的附件顺序）。
-    let mut images = Vec::new();
+    // 粘贴的图片与文件附件（tui-input.md §3.2）：文字 part 之后的 Node `file` part（`persistUserPrompt`
+    // 的附件顺序）。`name` 是 PDF 的展示名（Node `file` part 的 `filename`）。
+    let mut files: Vec<(&ImageSource, Option<&str>)> = Vec::new();
     for block in &user.content {
         match block {
             ContentBlock::Text { text } => texts.push(text.as_str()),
-            ContentBlock::Image { source } => images.push(source),
+            ContentBlock::Image { source } => files.push((source, None)),
+            ContentBlock::Document { source, name } => files.push((source, name.as_deref())),
             other => return Err(unsupported(&format!("user {} block", block_kind(other)))),
         }
     }
@@ -160,11 +164,12 @@ fn append_user(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
         );
         messages::save_part(ctx.conn, &part, ctx.now as i64).storage()?;
     }
-    for source in images {
+    for (source, name) in files {
         let part = crate::tool_content::file_part(
             part_id(ctx.now, &(ctx.uuid)()),
             (ctx.session, id),
             source,
+            name,
         );
         messages::save_part(ctx.conn, &part, ctx.now as i64).storage()?;
     }

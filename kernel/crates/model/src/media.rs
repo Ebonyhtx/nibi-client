@@ -47,6 +47,12 @@ pub(crate) fn project(messages: &mut [ApiMessage], endpoint: &ModelEndpoint) {
                         text: placeholder(source, "image input"),
                     };
                 }
+                // 用户贴的 PDF 与工具结果里的 document 同一档：不支持 PDF 的端点换成 Node 的占位。
+                ContentBlock::Document { source, .. } if !endpoint.supports_pdf => {
+                    content.block = ContentBlock::Text {
+                        text: placeholder(source, "PDF input"),
+                    };
+                }
                 ContentBlock::ToolResult { content, .. } => project_result(content, endpoint),
                 _ => {}
             }
@@ -212,6 +218,48 @@ mod tests {
         );
         let mut kept = request();
         project(&mut kept.messages, &endpoint(true));
+        assert_eq!(kept, request());
+    }
+
+    /// 用户贴的 PDF（消息级的 document 块，不是工具结果里的）在不支持 PDF 的端点上换成同一句占位；
+    /// 支持 PDF 时原样留着。
+    #[test]
+    fn user_documents_become_node_placeholders_for_text_only_models() {
+        let document = ContentBlock::Document {
+            source: ImageSource::Base64 {
+                media_type: "application/pdf".to_owned(),
+                data: "JVBERi0=".to_owned(),
+            },
+            name: Some("paper.pdf".to_owned()),
+        };
+        let request = || {
+            vec![ApiMessage {
+                role: ApiRole::User,
+                content: vec![
+                    plain(ContentBlock::Text {
+                        text: "summarize".to_owned(),
+                    }),
+                    plain(document.clone()),
+                ],
+                output_config: None,
+            }]
+        };
+        let mut projected = request();
+        project(&mut projected, &endpoint(true));
+        assert_eq!(
+            projected[0].content[1].block,
+            ContentBlock::Text {
+                text: "[Attached application/pdf]\n[Media omitted from provider request because the selected model does not support PDF input.]".to_owned()
+            }
+        );
+        let mut kept = request();
+        project(
+            &mut kept,
+            &ModelEndpoint {
+                supports_pdf: true,
+                ..endpoint(true)
+            },
+        );
         assert_eq!(kept, request());
     }
 }

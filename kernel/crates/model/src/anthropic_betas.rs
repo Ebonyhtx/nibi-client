@@ -98,16 +98,27 @@ impl MessageFlags {
 }
 
 fn has_pdf(block: &ContentBlock) -> bool {
-    let ContentBlock::ToolResult { content, .. } = block else {
-        return false;
+    // 用户贴的 PDF 是消息级的 document 块（AI SDK 的 `file` part 分支同样加 `pdfs` beta）。
+    let source = match block {
+        ContentBlock::Document { source, .. } => Some(source),
+        ContentBlock::ToolResult { content, .. } => {
+            return content.iter().any(|item| match item {
+                ToolResultContent::Document {
+                    source:
+                        ImageSource::Base64 { media_type, .. }
+                        | ImageSource::Artifact { media_type, .. },
+                } => media_type == PDF,
+                _ => false,
+            });
+        }
+        _ => None,
     };
-    content.iter().any(|item| match item {
-        ToolResultContent::Document {
-            source:
-                ImageSource::Base64 { media_type, .. } | ImageSource::Artifact { media_type, .. },
-        } => media_type == PDF,
-        _ => false,
-    })
+    matches!(
+        source,
+        Some(
+            ImageSource::Base64 { media_type, .. } | ImageSource::Artifact { media_type, .. }
+        ) if media_type == PDF
+    )
 }
 
 fn is_pdf(item: &Value) -> bool {

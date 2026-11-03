@@ -26,14 +26,19 @@ fn placeholder(media_type: &str) -> String {
     format!("[Attached {media_type}]")
 }
 
-/// 一张图片 → Node `FilePart`（键序同 Node）。内联图片的 url 是 data URL（Node 没有 artifact store
-/// 时的写法）；Artifact 引用的 url 是 `zcode-artifact://`，引用本身记在 `metadata.rustCli`。
+/// 一张图片或一个文件附件 → Node `FilePart`（键序同 Node）。内联图片的 url 是 data URL（Node 没有
+/// artifact store 时的写法）；Artifact 引用的 url 是 `zcode-artifact://`，引用本身记在 `metadata.rustCli`。
+/// `name` 是文件附件的展示名（Node `file` part 的 `filename`），图片没有。
 pub(crate) fn file_part(
     id: String,
     (session, message): (&str, &str),
     source: &ImageSource,
+    name: Option<&str>,
 ) -> Value {
     let mut out = json!({"id": id, "messageID": message, "sessionID": session, "type": "file"});
+    if let Some(name) = name {
+        out["filename"] = name.into();
+    }
     match source {
         ImageSource::Base64 { media_type, data } => {
             out["mime"] = media_type.as_str().into();
@@ -83,7 +88,7 @@ pub fn store(
                     // PDF 与图片同一写法（file part，mime 是 application/pdf；node-store.md §4.6，F24）。
                     ToolResultContent::Image { source }
                     | ToolResultContent::Document { source } => {
-                        attachments.push(file_part(part_id(), owner, source));
+                        attachments.push(file_part(part_id(), owner, source, None));
                         json!({"type": "attachment", "attachmentIndex": attachments.len() - 1})
                     }
                     // Node 的 layout 解析器不认识这一项，会退回 `output`；本工程按 layout 还原。

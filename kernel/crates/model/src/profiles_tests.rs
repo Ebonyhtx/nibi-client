@@ -436,6 +436,27 @@ fn a_gateway_sends_the_betas_node_sends() {
         beta.as_deref(),
         Some("pdfs-2024-09-25,code-execution-web-tools-2026-02-09")
     );
+    // 用户贴的 PDF（消息级的 document 块）同样要 `pdfs`（AI SDK 的 file part 分支）。
+    let mut request = main_request("claude-opus-4-1", false);
+    request.messages.truncate(1);
+    request.tools.clear();
+    request.options.tool_flags.clear();
+    request.messages.push(ApiMessage {
+        role: ApiRole::User,
+        content: vec![ApiContent {
+            block: ContentBlock::Document {
+                source: ImageSource::Base64 {
+                    media_type: "application/pdf".to_owned(),
+                    data: "JVBERi0=".to_owned(),
+                },
+                name: Some("paper.pdf".to_owned()),
+            },
+            cache_control: None,
+        }],
+        output_config: None,
+    });
+    let (_, _, beta) = encode(&pdf, request);
+    assert_eq!(beta.as_deref(), Some("pdfs-2024-09-25"));
 }
 
 /// 工作线 F93（用户决定 2026-10-24，推翻 F23；model.md §3.2）：Anthropic 官方地址上的 WebSearch 旁路请求也用 Node 的

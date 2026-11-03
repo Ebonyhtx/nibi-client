@@ -121,12 +121,18 @@ fn user(record: &WithParts) -> Option<Message> {
         .parts
         .iter()
         .filter_map(|part| {
-            // 人类输入的图片（Node `file` part，tui-input.md §3.2）按 part 的顺序读回；其他附件与读不出的
-            // 图片仍然不读（node-store.md §5）。
+            // 人类输入的图片与文件附件（Node `file` part，tui-input.md §3.2）按 part 的顺序读回；其他附件与
+            // 读不出的图片仍然不读（node-store.md §5）。
             if part["type"] == "file" {
                 return match crate::tool_content::from_file_part(part) {
                     ToolResultContent::Image { source } if !summary => {
                         Some(ContentBlock::Image { source })
+                    }
+                    ToolResultContent::Document { source } if !summary => {
+                        Some(ContentBlock::Document {
+                            source,
+                            name: part["filename"].as_str().map(str::to_owned),
+                        })
                     }
                     _ => None,
                 };

@@ -24,8 +24,12 @@ pub(crate) enum Part {
     Text(String),
     /// `data:<media_type>;base64,<data>`。
     Image(String),
-    /// PDF 文档（Read 整读的 document 块，model.md §10.6）：`data:application/pdf;base64,<data>`。
-    File(String),
+    /// PDF 文档（Read 整读的 document 块，model.md §10.6；用户贴的 PDF 同）：`data:application/pdf;base64,<data>`
+    /// 加展示名（OpenAI 的 `file` part 带 `filename`，缺席时用 AI SDK 的缺省名）。
+    File {
+        url: String,
+        name: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -106,7 +110,9 @@ pub(crate) fn items(
                         ContentBlock::RedactedThinking { .. }
                         | ContentBlock::ServerToolUse { .. }
                         | ContentBlock::WebSearchToolResult { .. } => {}
-                        ContentBlock::Image { .. } | ContentBlock::ToolResult { .. } => {
+                        ContentBlock::Image { .. }
+                        | ContentBlock::Document { .. }
+                        | ContentBlock::ToolResult { .. } => {
                             return Err(invalid(
                                 "assistant messages carry only text and tool calls",
                             ));
@@ -137,6 +143,11 @@ fn user(
         match block {
             ContentBlock::Text { text } => parts.push(Part::Text(text)),
             ContentBlock::Image { source } => parts.push(Part::Image(data_url(source)?)),
+            // 用户贴的 PDF：与工具结果里的 document 同一条 OpenAI `file` part，另带展示名。
+            ContentBlock::Document { source, name } => parts.push(Part::File {
+                url: data_url(source)?,
+                name,
+            }),
             ContentBlock::ToolResult {
                 tool_use_id,
                 content,
@@ -151,7 +162,10 @@ fn user(
                             images.push(Part::Image(data_url(source)?));
                         }
                         ToolResultContent::Document { source } => {
-                            images.push(Part::File(data_url(source)?));
+                            images.push(Part::File {
+                                url: data_url(source)?,
+                                name: None,
+                            });
                         }
                         // OpenAI 没有 tool_reference：降成文本（model.md §10）。
                         ToolResultContent::ToolReference { tool_name } => {

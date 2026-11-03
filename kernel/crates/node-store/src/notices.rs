@@ -196,6 +196,13 @@ fn save(
                 part_id(ctx.now, &(ctx.uuid)()),
                 (ctx.session, id),
                 source,
+                None,
+            ),
+            ContentBlock::Document { source, name } => crate::tool_content::file_part(
+                part_id(ctx.now, &(ctx.uuid)()),
+                (ctx.session, id),
+                source,
+                name.as_deref(),
             ),
             other => {
                 return Err(unsupported(&format!(

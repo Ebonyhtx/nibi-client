@@ -165,6 +165,14 @@ mod reference {
             ContentBlock::Image { source } => {
                 object([("type", text("image")), ("source", image_source(source)?)])
             }
+            ContentBlock::Document { source, name } => {
+                let mut block =
+                    object([("type", text("document")), ("source", image_source(source)?)]);
+                if let Some(name) = name {
+                    block.insert("title".into(), Value::String(name));
+                }
+                block
+            }
             ContentBlock::Thinking {
                 thinking,
                 signature,
@@ -400,6 +408,28 @@ fn shapes() -> Vec<ApiMessage> {
                     None,
                 ),
                 item(ContentBlock::Image { source: image() }, cache(None, None)),
+                // 用户贴的 PDF：`document` 块带 `title`（AI SDK 的 file part 写法）。
+                item(
+                    ContentBlock::Document {
+                        source: ImageSource::Base64 {
+                            media_type: "application/pdf".to_owned(),
+                            data: "JVBERi0=".to_owned(),
+                        },
+                        name: Some("paper.pdf".to_owned()),
+                    },
+                    None,
+                ),
+                // 没有展示名时不写 `title`。
+                item(
+                    ContentBlock::Document {
+                        source: ImageSource::Base64 {
+                            media_type: "application/pdf".to_owned(),
+                            data: "JVBERi0=".to_owned(),
+                        },
+                        name: None,
+                    },
+                    None,
+                ),
             ],
             None,
         ),

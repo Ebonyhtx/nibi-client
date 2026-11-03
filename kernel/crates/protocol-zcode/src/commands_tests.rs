@@ -304,20 +304,25 @@ fn first_input_execution_overrides_config_mode() {
 }
 
 #[test]
-fn attachment_image_source_maps_images_and_rejects_other_types() {
+fn attachment_source_maps_images_and_pdfs_and_rejects_other_types() {
     let image = json!({"ref": "zcode-artifact://sess_a/tool-result-1", "fileName": "a.png", "mime": "image/png", "bytes": 12});
-    let (source, media) = attachment_image_source(&image).unwrap();
+    let (source, media) = attachment_source(&image).unwrap();
     assert_eq!(media, "image/png");
     assert!(matches!(source, AttachmentSource::Artifact { .. }));
     // desktop 直传的绝对路径引用。
     let local = json!({"ref": "/tmp/a.jpg", "fileName": "a.jpg", "mime": "image/jpeg; charset=binary", "bytes": 12});
-    let (source, media) = attachment_image_source(&local).unwrap();
+    let (source, media) = attachment_source(&local).unwrap();
     assert_eq!(media, "image/jpeg");
     assert!(matches!(source, AttachmentSource::Path { .. }));
-    // 非图片：不给来源（调用方按 attachmentUnsupported 拒绝）。
-    for mime in ["application/pdf", "video/mp4", "text/plain", ""] {
+    // PDF 也受理（走 document 块）；mime 参数被剥掉。
+    let pdf = json!({"ref": "zcode-artifact://sess_a/tool-result-2", "fileName": "a.pdf", "mime": "application/pdf", "bytes": 12});
+    let (source, media) = attachment_source(&pdf).unwrap();
+    assert_eq!(media, "application/pdf");
+    assert!(matches!(source, AttachmentSource::Artifact { .. }));
+    // 其余类型：不给来源（调用方按 attachmentUnsupported 拒绝）。
+    for mime in ["video/mp4", "text/plain", "application/octet-stream", ""] {
         let reference = json!({"ref": "/tmp/a", "fileName": "a", "mime": mime, "bytes": 1});
-        assert!(attachment_image_source(&reference).is_none(), "{mime}");
+        assert!(attachment_source(&reference).is_none(), "{mime}");
     }
 }
 

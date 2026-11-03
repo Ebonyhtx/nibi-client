@@ -120,6 +120,14 @@ pub(crate) fn block(block: &ContentBlock) -> Value {
     match block {
         ContentBlock::Text { text } => json!({"type": "text", "text": text}),
         ContentBlock::Image { source } => json!({"type": "image", "source": image_source(source)}),
+        // 文件附件（用户贴的 PDF）：与 tool_result 里的 document 同一种写法，另外带上展示名。
+        ContentBlock::Document { source, name } => {
+            let mut value = json!({"type": "document", "source": image_source(source)});
+            if let Some(name) = name {
+                value["name"] = json!(name);
+            }
+            value
+        }
         ContentBlock::Thinking {
             thinking,
             signature,

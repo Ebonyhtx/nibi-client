@@ -149,19 +149,29 @@ fn tool_part(
     })
 }
 
-fn file_part(session: &str, message: &str, index: usize, source: &ImageSource) -> Option<Value> {
+fn file_part(
+    session: &str,
+    message: &str,
+    index: usize,
+    source: &ImageSource,
+    name: Option<&str>,
+) -> Option<Value> {
     let ImageSource::Base64 { media_type, data } = source else {
         // Artifact 引用要经 Host 的 artifact 路由才可读；旧协议没有这条路由，宁可不显示。
         return None;
     };
-    Some(json!({
+    let mut part = json!({
         "partId": part_id(message, index, "file"),
         "sessionId": session,
         "messageId": message,
         "type": "file",
         "mime": media_type,
         "url": format!("data:{media_type};base64,{data}"),
-    }))
+    });
+    if let Some(name) = name {
+        part["filename"] = json!(name);
+    }
+    Some(part)
 }
 
 /// 一条消息里的内容块 → 旧协议 part。工具结果单独在第 2 遍结算，不在这里出 part。
@@ -181,7 +191,13 @@ fn parts(session: &str, message: &str, content: &[ContentBlock], profile: Profil
                 parts.push(tool_part(session, message, index, id.as_str(), name, input));
             }
             ContentBlock::Image { source } if profile == Profile::Full => {
-                if let Some(part) = file_part(session, message, index, source) {
+                if let Some(part) = file_part(session, message, index, source, None) {
+                    parts.push(part);
+                }
+            }
+            // 用户贴的 PDF：旧协议同样用 `file` part（Host 的 `filePartToContentBlock` 认 `application/pdf`）。
+            ContentBlock::Document { source, name } if profile == Profile::Full => {
+                if let Some(part) = file_part(session, message, index, source, name.as_deref()) {
                     parts.push(part);
                 }
             }
