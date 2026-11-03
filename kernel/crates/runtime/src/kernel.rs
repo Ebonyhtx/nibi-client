@@ -475,6 +475,14 @@ impl Kernel for LocalKernel {
         self.ext.mcp().server_infos()
     }
 
+    /// `mcp/list`（141 审计 §9 第 6 项）：状态页专属的连接集合，与会话级/进程级的连接分开。
+    async fn mcp_list(
+        &self,
+        request: rust_cli_kernel_api::mcp_status::McpListRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_status::McpServerStatus>, KernelError> {
+        Ok(self.ext.mcp_list(request).await)
+    }
+
     /// NIBI `createSession.mcpServers`：会话级的 MCP 服务器（连接在后台建立，不等结果）。
     async fn start_session_mcp(
         &self,

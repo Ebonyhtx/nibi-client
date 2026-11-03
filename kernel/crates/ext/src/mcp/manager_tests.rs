@@ -103,7 +103,8 @@ async fn connects_lists_and_calls_tools() {
             (
                 "broken".to_owned(),
                 McpStatus::Failed {
-                    reason: "spawn failed".to_owned()
+                    reason: "spawn failed".to_owned(),
+                    kind: rust_cli_kernel_api::mcp_status::McpFailureKind::ProcessStartFailed,
                 }
             ),
             ("files".to_owned(), McpStatus::Connected),
@@ -263,7 +264,7 @@ async fn list_changed_refreshes_and_stdio_closing_fails() {
     {
         changes.changed().await.unwrap();
     }
-    assert!(matches!(&manager.status()[0].1, McpStatus::Failed { reason } if reason == "gone"));
+    assert!(matches!(&manager.status()[0].1, McpStatus::Failed { reason, .. } if reason == "gone"));
     assert!(manager.tools().is_empty());
 }
 
@@ -383,7 +384,8 @@ async fn node_options_apply_per_server() {
         status.contains(&(
             "silent".to_owned(),
             McpStatus::Failed {
-                reason: "MCP server \"silent\" connection timed out after 50ms".to_owned()
+                reason: "MCP server \"silent\" connection timed out after 50ms".to_owned(),
+                kind: rust_cli_kernel_api::mcp_status::McpFailureKind::ConnectionTimeout,
             }
         )),
         "{status:?}"

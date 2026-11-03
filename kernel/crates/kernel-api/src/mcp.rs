@@ -44,6 +44,17 @@ pub enum McpTransportConfig {
     },
 }
 
+impl McpTransportConfig {
+    /// 配置的传输种类（`mcp/list` 的 `transport` 字段）。
+    pub fn kind(&self) -> crate::mcp_status::McpTransportKind {
+        match self {
+            Self::Stdio { .. } => crate::mcp_status::McpTransportKind::Stdio,
+            Self::Sse { .. } => crate::mcp_status::McpTransportKind::Sse,
+            Self::Http { .. } => crate::mcp_status::McpTransportKind::Http,
+        }
+    }
+}
+
 /// 建立一条连接。`server` 只用于日志与错误文本。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct McpConnect {

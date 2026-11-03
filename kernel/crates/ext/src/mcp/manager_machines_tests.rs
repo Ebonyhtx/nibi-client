@@ -166,7 +166,8 @@ async fn a_server_bound_to_a_machine_that_is_not_connected_fails() {
         [(
             "browser-b".to_owned(),
             McpStatus::Failed {
-                reason: "Machine \"gpu-1\" is not connected.".to_owned()
+                reason: "Machine \"gpu-1\" is not connected.".to_owned(),
+                kind: rust_cli_kernel_api::mcp_status::McpFailureKind::RuntimeUnavailable,
             }
         )]
     );
@@ -306,6 +307,7 @@ async fn a_failed_bound_server_reconnects_when_its_machine_arrives() {
     manager.wait_ready().await;
     let failed = |machine: &str| McpStatus::Failed {
         reason: format!("Machine \"{machine}\" is not connected."),
+        kind: rust_cli_kernel_api::mcp_status::McpFailureKind::RuntimeUnavailable,
     };
     assert_eq!(
         manager.status(),

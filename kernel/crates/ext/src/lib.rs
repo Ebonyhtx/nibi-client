@@ -88,6 +88,8 @@ pub struct Ext {
     mcp: Arc<McpManager>,
     /// 会话级的 MCP（NIBI `createSession.mcpServers`）：每个会话一套连接，见 [`SessionMcp`]。
     session_mcp: Arc<SessionMcp>,
+    /// `mcp/list` 的状态检查：每个工作区一套独立连接（141 审计 §9 第 6 项）。
+    status_mcp: Arc<mcp::McpStatusRegistry>,
     registry: Arc<ExtRegistry>,
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
@@ -133,6 +135,14 @@ impl Ext {
             ports.spawner.clone(),
             config.mcp.clone(),
             ports.clock.clone(),
+            telemetry.clone(),
+        ));
+        // `mcp/list` 的状态检查（141 审计 §9 第 6 项）：每工作区一套独立连接，与上面两套都不混。
+        let status_mcp = Arc::new(mcp::McpStatusRegistry::new(
+            ports.mcp.clone(),
+            ports.spawner.clone(),
+            config.mcp.clone(),
+            ports.clock.clone(),
             telemetry,
         ));
         let registry = Arc::new(ExtRegistry {
@@ -147,6 +157,7 @@ impl Ext {
             commands,
             mcp,
             session_mcp,
+            status_mcp,
             registry,
             files: ports.files,
             config,
@@ -185,12 +196,15 @@ impl Ext {
         &self.mcp
     }
 
-    /// 全部仍在运行的 MCP 子进程（`process/childProcesses`）：进程级配置与会话级连接都算，同一 manager
-    /// 被多个会话继承时只列一次。
+    /// 全部仍在运行的 MCP 子进程（`process/childProcesses`）：进程级配置、会话级连接与状态页的连接都算，
+    /// 同一 manager 被多个会话继承时只列一次。
     pub fn mcp_child_processes(&self) -> Vec<rust_cli_kernel_api::mcp_state::McpChildProcess> {
         use rust_cli_kernel_api::mcp_state::McpConnections;
         let mut all = self.mcp.processes();
         for manager in self.session_mcp.managers() {
+            all.extend(manager.processes());
+        }
+        for manager in self.status_mcp.managers() {
             all.extend(manager.processes());
         }
         all
@@ -203,7 +217,19 @@ impl Ext {
         for manager in self.session_mcp.managers() {
             all.extend(manager.resource_targets());
         }
+        for manager in self.status_mcp.managers() {
+            all.extend(manager.resource_targets());
+        }
         all
+    }
+
+    /// `mcp/list`（141 审计 §9 第 6 项）：`connect` 收敛状态页的连接集合并等连接落定，`status` 只读快照。
+    /// 状态页的连接与会话级/进程级的连接都不混（Node 的 mcp/list 专用进程同语义）。
+    pub async fn mcp_list(
+        &self,
+        request: rust_cli_kernel_api::mcp_status::McpListRequest,
+    ) -> Vec<rust_cli_kernel_api::mcp_status::McpServerStatus> {
+        self.status_mcp.list(request).await
     }
 
     /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。
@@ -237,10 +263,17 @@ impl Ext {
         .await
         .plugins;
         self.skills.set_plugin_roots(loaded.skill_roots());
+        let plugin_servers = loaded.mcp_servers();
         let mut servers = self.config.mcp.servers.clone();
-        servers.extend(loaded.mcp_servers());
-        self.mcp.start(workspace, servers);
+        servers.extend(plugin_servers.iter().cloned());
+        self.mcp.start(workspace.clone(), servers);
         self.mcp.register_disabled(self.config.mcp_disabled.clone());
+        // `mcp/list` 的缺省集合（`mcpServers` 缺席时）与插件服务器：状态页的连接从这里起。
+        self.status_mcp.seed(
+            workspace.root.as_str(),
+            self.config.mcp.servers.clone(),
+            plugin_servers,
+        );
         loaded
     }
 

@@ -16,11 +16,12 @@ impl McpManager {
     /// 启动时停用的服务器（配置里 `enabled: false`）：登记为 disabled，不连接；`/mcp enable` 时才连。
     pub fn register_disabled(&self, servers: Vec<McpServer>) {
         {
+            let now = self.0.clock.now_ms();
             let mut known = self.0.servers();
             for config in servers {
                 known
                     .entry(config.name.clone())
-                    .or_insert_with(|| Server::new(config, McpStatus::Disabled));
+                    .or_insert_with(|| Server::new(config, McpStatus::Disabled, now));
             }
         }
         self.0.changed.send_modify(|version| *version += 1);
@@ -38,11 +39,13 @@ impl McpManager {
         CancellationToken,
     )> {
         let mut servers = self.0.servers();
+        let now = self.0.clock.now_ms();
         let server = servers.get_mut(name)?;
         server.cancel.cancel();
         server.generation += 1;
         server.cancel = CancellationToken::new();
         server.status = status;
+        server.updated_at_ms = now;
         server.tools.clear();
         server.prompts.clear();
         server.instructions = None;

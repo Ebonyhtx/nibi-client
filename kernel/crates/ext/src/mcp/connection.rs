@@ -6,12 +6,32 @@ use std::time::Duration;
 use rust_cli_base::Spawner;
 use rust_cli_kernel_api::env::WorkspaceRef;
 use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, LOCAL_MACHINE};
-use rust_cli_kernel_api::mcp::{McpConnect, McpTransport};
+use rust_cli_kernel_api::mcp::{McpConnect, McpError, McpTransport, McpTransportConfig};
+use rust_cli_kernel_api::mcp_status::McpFailureKind;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
 use super::McpServer;
 use super::rpc::{Client, RpcError};
+
+/// 握手失败：给用户看的文本 + Host `mcp/list` 的失败分类（`failureKind`）。
+///
+/// 分类在失败发生的地方定（传输、进程、握手、超时各有各的语义），不靠解析错误文本——
+/// 界面拿到的分类与日志里的原因来自同一处。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct OpenFailure {
+    pub message: String,
+    pub kind: McpFailureKind,
+}
+
+impl OpenFailure {
+    fn new(message: impl Into<String>, kind: McpFailureKind) -> Self {
+        Self {
+            message: message.into(),
+            kind,
+        }
+    }
+}
 
 /// MCP 协议版本（Node 配置的警告文字也引用它，F55）。
 pub(crate) const PROTOCOL_VERSION: &str = "2025-06-18";
@@ -75,16 +95,22 @@ pub(crate) async fn open(
     server: &McpServer,
     timeout: Duration,
     client_version: &str,
-) -> Result<Session, String> {
+) -> Result<Session, OpenFailure> {
     let timed_out = || {
-        format!(
-            "MCP server \"{}\" connection timed out after {}ms",
-            server.name,
-            timeout.as_millis()
+        OpenFailure::new(
+            format!(
+                "MCP server \"{}\" connection timed out after {}ms",
+                server.name,
+                timeout.as_millis()
+            ),
+            McpFailureKind::ConnectionTimeout,
         )
     };
     let handshake = async {
-        let (transport, workspace) = pipe.resolve(server.machine.as_deref()).await?;
+        let (transport, workspace) = pipe.resolve(server.machine.as_deref()).await.map_err(|message| {
+            // 绑定的机器没连上（R3）：不是这个服务器自己的错。
+            OpenFailure::new(message, McpFailureKind::RuntimeUnavailable)
+        })?;
         let transport = &transport;
         let workspace = &workspace;
         let connection = transport
@@ -97,7 +123,17 @@ pub(crate) async fn open(
                 },
             )
             .await
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| {
+                // stdio 起不来是进程问题；HTTP / SSE 连不上是传输问题。
+                let kind = match (&error, &server.transport) {
+                    (McpError::Unsupported { .. }, _) => McpFailureKind::RuntimeUnavailable,
+                    (McpError::Connect { .. }, McpTransportConfig::Stdio { .. }) => {
+                        McpFailureKind::ProcessStartFailed
+                    }
+                    _ => McpFailureKind::ConnectionFailed,
+                };
+                OpenFailure::new(error.to_string(), kind)
+            })?;
         let roots = vec![workspace.root.as_str().to_owned()];
         let (client, notices) = Client::start(transport.clone(), connection, spawner, roots);
         let params = json!({
@@ -114,13 +150,19 @@ pub(crate) async fn open(
                 // `timed out`；按 spec（ext.md §3.3）报连接超时的文本。
                 return Err(match error {
                     RpcError::TimedOut => timed_out(),
-                    other => other.to_string(),
+                    other => OpenFailure::new(
+                        other.to_string(),
+                        McpFailureKind::ProtocolNegotiationFailed,
+                    ),
                 });
             }
         };
         if let Err(error) = client.notify("notifications/initialized", None).await {
             client.close().await;
-            return Err(error.to_string());
+            return Err(OpenFailure::new(
+                error.to_string(),
+                McpFailureKind::ProtocolError,
+            ));
         }
         let instructions = result
             .get("instructions")

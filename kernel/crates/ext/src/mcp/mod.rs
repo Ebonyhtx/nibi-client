@@ -12,6 +12,7 @@ mod result;
 mod rpc;
 mod sessions;
 mod startup;
+mod status;
 mod telemetry;
 mod tool;
 mod wait_tool;
@@ -24,6 +25,7 @@ pub use telemetry::{McpTelemetry, McpTelemetrySetup, McpTelemetrySlot};
 pub use node_config::{NodeMcpServer, parse_node_servers};
 pub use parse::{expand_vars, merge_scopes, parse_servers, parse_servers_keeping};
 pub(crate) use sessions::SessionMcp;
+pub(crate) use status::McpStatusRegistry;
 pub use startup::{
     DEFAULT_CONNECT_WAIT_MS, DEFAULT_PREWAIT_MS, McpStartup, prewait_ms, required_servers,
     wait_for_deferrable,

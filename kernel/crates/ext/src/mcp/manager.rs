@@ -1,7 +1,7 @@
 //! MCP 连接管理（docs/specs/rust-cli/ext.md §3.3）：每个服务器一个连接任务，状态与工具快照只在这里，
 //! 注册表每步读当前快照；`list_changed` 重新拉取；HTTP / SSE 断开后退避重连。
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::Duration;
@@ -13,6 +13,9 @@ use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::listing::ListingEntry;
 use rust_cli_kernel_api::mcp::{McpTransport, McpTransportConfig};
+use rust_cli_kernel_api::mcp_status::{
+    McpFailureKind, McpProtocolEra, McpServerStatus, McpServerStatusKind,
+};
 use rust_cli_kernel_api::mcp_telemetry::McpProcessIdentity;
 use rust_cli_kernel_api::tool::Tool;
 use serde_json::Value;
@@ -20,7 +23,7 @@ use tokio::sync::{Notify, watch};
 use tokio_util::sync::CancellationToken;
 
 use super::config::{McpServer, McpServerOptions, McpSettings};
-use super::connection::{self, Session, has_capability};
+use super::connection::{self, OpenFailure, Session, has_capability};
 use super::resources;
 use super::rpc::{Client, Notice};
 use super::telemetry::McpTelemetrySlot;
@@ -36,8 +39,10 @@ const MAX_BACKOFF_MS: u64 = 30_000;
 pub enum McpStatus {
     Pending,
     Connected,
+    /// 连接失败：给用户看的原因 + Host `mcp/list` 的失败分类（`failureKind`）。
     Failed {
         reason: String,
+        kind: McpFailureKind,
     },
     /// 停用（配置里 `enabled: false`，或 `/mcp disable`，docs/specs/rust-cli/tui-manage.md §6）：不连接。
     Disabled,
@@ -56,6 +61,8 @@ pub(crate) struct ServerProcess {
 struct Server {
     config: McpServer,
     status: McpStatus,
+    /// 状态最后一次变化的时刻（Unix 毫秒；`mcp/list` 的 `updatedAt`，141 审计 §9 第 6 项）。
+    updated_at_ms: u64,
     client: Option<Arc<Client>>,
     /// 这个服务器当前那次进程启动的遥测身份；没有进程（HTTP / SSE、未连、已退出）时 `None`。
     process: Option<ServerProcess>,
@@ -78,10 +85,11 @@ struct Server {
 }
 
 impl Server {
-    fn new(config: McpServer, status: McpStatus) -> Self {
+    fn new(config: McpServer, status: McpStatus, now: u64) -> Self {
         Self {
             config,
             status,
+            updated_at_ms: now,
             client: None,
             process: None,
             tools: Vec::new(),
@@ -139,6 +147,7 @@ impl Inner {
             .filter(|server| server.generation == generation)
         {
             change(server);
+            server.updated_at_ms = self.clock.now_ms();
         }
         self.changed.send_modify(|version| *version += 1);
     }
@@ -402,7 +411,7 @@ impl Inner {
                 machines: self.machines.get(),
                 workspace: &workspace,
             };
-            let reason = match connection::open(
+            let failure = match connection::open(
                 &pipe,
                 &self.spawner,
                 &config,
@@ -446,18 +455,25 @@ impl Inner {
                         // stdio 不重连：下面马上记为失败。
                         server.reconnecting = remote;
                     });
-                    reason.unwrap_or_else(|| "connection closed".to_owned())
+                    // 连上之后断开：不是握手问题，归到 `unexpected_disconnect`。
+                    OpenFailure {
+                        message: reason.unwrap_or_else(|| "connection closed".to_owned()),
+                        kind: McpFailureKind::UnexpectedDisconnect,
+                    }
                 }
-                Err(reason) => reason,
+                Err(failure) => failure,
             };
             if !remote || !connected_once || attempts >= MAX_RECONNECTS {
                 tracing::warn!(
                     server = name,
-                    reason = logged_reason(&reason),
+                    reason = logged_reason(&failure.message),
                     "MCP server failed"
                 );
                 self.update(&name, generation, |server| {
-                    server.status = McpStatus::Failed { reason };
+                    server.status = McpStatus::Failed {
+                        reason: failure.message,
+                        kind: failure.kind,
+                    };
                     server.client = None;
                     server.tools.clear();
                     server.process = None;
@@ -538,13 +554,14 @@ impl McpManager {
             .workspace
             .lock()
             .unwrap_or_else(PoisonError::into_inner) = Some(workspace.clone());
+        let now = self.0.clock.now_ms();
         for config in servers {
             let cancel = {
                 let mut known = self.0.servers();
                 if known.contains_key(&config.name) {
                     continue;
                 }
-                let server = Server::new(config.clone(), McpStatus::Pending);
+                let server = Server::new(config.clone(), McpStatus::Pending, now);
                 let cancel = server.cancel.clone();
                 known.insert(config.name.clone(), server);
                 cancel
@@ -553,6 +570,87 @@ impl McpManager {
             self.0.spawner.spawn_resident("mcp-connection", task);
         }
         self.0.changed.send_modify(|version| *version += 1);
+    }
+
+    /// 把连接集合收敛到 `servers`（Host `mcp/list` 的 `mode: "connect"`）。
+    ///
+    /// 这次给的是**完整集合**：缺席的断开并移出，新名字开始连，配置变了的换掉重连。同步返回，
+    /// 连接在后台任务里进行（调用方随后 [`wait_ready`](Self::wait_ready)）。
+    pub fn reconcile(&self, workspace: WorkspaceRef, servers: Vec<McpServer>) {
+        *self
+            .0
+            .workspace
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Some(workspace.clone());
+        let incoming: BTreeSet<String> = servers
+            .iter()
+            .map(|server| server.name.clone())
+            .collect();
+        let now = self.0.clock.now_ms();
+        let mut closers: Vec<Arc<Client>> = Vec::new();
+        let mut starts: Vec<(McpServer, u64, CancellationToken)> = Vec::new();
+        {
+            let mut known = self.0.servers();
+            let stale: Vec<String> = known
+                .keys()
+                .filter(|name| !incoming.contains(*name))
+                .cloned()
+                .collect();
+            for name in stale {
+                if let Some(server) = known.remove(&name) {
+                    server.cancel.cancel();
+                    if let Some(client) = server.client {
+                        closers.push(client);
+                    }
+                }
+            }
+            for config in servers {
+                match known.get_mut(&config.name) {
+                    None => {
+                        let server = Server::new(config.clone(), McpStatus::Pending, now);
+                        let (generation, cancel) = (server.generation, server.cancel.clone());
+                        known.insert(config.name.clone(), server);
+                        starts.push((config, generation, cancel));
+                    }
+                    Some(server)
+                        if server.config != config
+                            // 同配置的失败也重试一次：`mcp/list` 的 `connect` 是「真实检查」，
+                            // 手动刷新要能把上一次失败的服务器再连一遍。
+                            || matches!(server.status, McpStatus::Failed { .. }) =>
+                    {
+                        server.cancel.cancel();
+                        server.generation += 1;
+                        server.cancel = CancellationToken::new();
+                        if let Some(client) = server.client.take() {
+                            closers.push(client);
+                        }
+                        server.config = config.clone();
+                        server.status = McpStatus::Pending;
+                        server.updated_at_ms = now;
+                        server.tools.clear();
+                        server.prompts.clear();
+                        server.instructions = None;
+                        server.resources = false;
+                        server.expired = false;
+                        server.reconnecting = false;
+                        server.dormant = false;
+                        server.process = None;
+                        starts.push((config, server.generation, server.cancel.clone()));
+                    }
+                    Some(_) => {}
+                }
+            }
+        }
+        self.0.changed.send_modify(|version| *version += 1);
+        for client in closers {
+            self.0
+                .spawner
+                .spawn_resident("mcp-close", async move { client.close().await });
+        }
+        for (config, generation, cancel) in starts {
+            let task = self.0.clone().run(workspace.clone(), config, generation, cancel);
+            self.0.spawner.spawn_resident("mcp-connection", task);
+        }
     }
 
     /// 有 resources 能力的服务器时先是三个资源工具，然后是已连接的服务器的工具（按名字排序）。
@@ -591,7 +689,9 @@ impl McpManager {
                 let (state, reason) = match &server.status {
                     McpStatus::Pending => (McpServerState::Pending, None),
                     McpStatus::Connected => (McpServerState::Connected, None),
-                    McpStatus::Failed { reason } => (McpServerState::Failed, Some(reason.clone())),
+                    McpStatus::Failed { reason, .. } => {
+                        (McpServerState::Failed, Some(reason.clone()))
+                    }
                     McpStatus::Disabled => (McpServerState::Disabled, None),
                 };
                 McpServerInfo {
@@ -600,6 +700,43 @@ impl McpManager {
                     reason,
                     tools: server.tools.len(),
                     machine: remote_machine(&server.config),
+                }
+            })
+            .collect()
+    }
+
+    /// `mcp/list` 的状态快照（Host `zcodeMcpServerStatusSnapshotSchema` 的内核侧字段）。
+    ///
+    /// 失败分类来自连接失败发生的地方（[`OpenFailure`]）；`updatedAt` 是这条服务器状态最后
+    /// 一次变化的时刻。`serverRequestId` 与 `authorization` 内核没有事实源，留空。
+    pub fn server_statuses(&self) -> Vec<McpServerStatus> {
+        self.0
+            .servers()
+            .values()
+            .map(|server| {
+                let (status, error, failure_kind) = match &server.status {
+                    McpStatus::Pending => (McpServerStatusKind::Connecting, None, None),
+                    McpStatus::Connected => (McpServerStatusKind::Connected, None, None),
+                    McpStatus::Failed { reason, kind } => (
+                        McpServerStatusKind::Failed,
+                        Some(reason.clone()),
+                        Some(*kind),
+                    ),
+                    McpStatus::Disabled => (McpServerStatusKind::Disabled, None, None),
+                };
+                McpServerStatus {
+                    name: server.config.name.clone(),
+                    status,
+                    transport: server.config.transport.kind(),
+                    tool_count: server.tools.len(),
+                    updated_at_ms: server.updated_at_ms,
+                    error,
+                    failure_kind,
+                    server_request_id: None,
+                    // 内核的客户端固定说 `2025-06-18`（`connection::PROTOCOL_VERSION`）：连上的是 legacy。
+                    protocol_era: matches!(server.status, McpStatus::Connected)
+                        .then_some(McpProtocolEra::Legacy),
+                    authorization: None,
                 }
             })
             .collect()

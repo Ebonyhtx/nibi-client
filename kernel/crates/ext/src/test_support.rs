@@ -136,6 +136,11 @@ impl FakeMcp {
         self
     }
 
+    /// 不再拒绝这个服务器的连接（上一次失败之后的「现在能连了」）。
+    pub(crate) fn accepting(&self, name: &str) {
+        lock(&self.refuse).retain(|refused| refused != name);
+    }
+
     /// 这个传输上的连接都报 `pid`（stdio 服务器才有 pid；HTTP / SSE 不设）。
     pub(crate) fn with_pid(self, pid: u32) -> Self {
         self.pid.store(pid, Ordering::Relaxed);

@@ -390,6 +390,9 @@ impl Server {
                     })
                     .collect::<Vec<_>>(),
             })),
+            // `mcp/list`（141 审计 §9 第 6 项 F7）：设置页的工作区 MCP 状态检查。`connect` 收敛
+            // 状态页自己的连接集合并等连接落定；`status` 只读（OAuth 轮询）。
+            "mcp/list" => crate::mcp_rpc::list(self, &params).await.map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),
