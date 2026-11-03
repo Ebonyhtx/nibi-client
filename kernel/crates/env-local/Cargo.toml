@@ -36,6 +36,14 @@ tracing.workspace = true
 # MCP SSE 传输：`endpoint` 事件的相对地址按 SSE URL 解析（mcp/http.rs）。
 url.workspace = true
 
+[target.'cfg(unix)'.dependencies]
+# 本进程的累计 CPU 与常驻内存（process_metrics.rs，141 审计 F3）。
+libc.workspace = true
+
+[target.'cfg(windows)'.dependencies]
+# 同上：GetProcessTimes / GetProcessMemoryInfo / GlobalMemoryStatusEx。
+windows-sys.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 # net：测试夹具的本地 HTTP 服务（套接字只在测试里，README §4）。

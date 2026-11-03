@@ -23,6 +23,7 @@ mod ledger;
 mod mcp;
 mod meta;
 mod pdf;
+pub mod process_metrics;
 mod rewind;
 mod search;
 mod shell;

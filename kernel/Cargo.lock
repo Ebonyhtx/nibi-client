@@ -2353,6 +2353,7 @@ dependencies = [
  "grep-regex",
  "grep-searcher",
  "ignore",
+ "libc",
  "notify",
  "rust-cli-base",
  "rust-cli-fs",
@@ -2365,6 +2366,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "url",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

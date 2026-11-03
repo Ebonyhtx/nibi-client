@@ -357,6 +357,13 @@ async fn serve(
         environment: EnvironmentId::new(LOCAL_ENVIRONMENT),
     };
     let input = tokio::io::BufReader::new(tokio::io::stdin());
+    // 进程资源遥测（`process/resourceSample`，141 审计 §9 F3）：桌面资源面板的 `cli_chat` 泳道读它。
+    // 只量本进程——切到 Rust 内核后那个进程就是内核，Host 采不到。
+    let telemetry = rust_cli_protocol_zcode::telemetry::ResourceTelemetry::start(
+        context.clone(),
+        Arc::new(rust_cli_env_local::process_metrics::LocalProcessMetrics::new()),
+        &spawner,
+    );
     // 读到 Host 关掉输入或收到退出信号时结束（Host 回收整棵进程树）。
     tokio::select! {
         result = rust_cli_protocol_zcode::serve(input, context, kernel, defaults, spawner, Options::default()) => {
@@ -364,6 +371,7 @@ async fn serve(
         }
         () = stop.token.cancelled() => {}
     }
+    telemetry.stop();
     Ok(())
 }
 
