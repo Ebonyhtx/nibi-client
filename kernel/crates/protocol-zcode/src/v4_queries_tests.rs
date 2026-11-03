@@ -429,6 +429,49 @@ fn fake_with(kernel: FakeKernel) -> (Arc<Server>, Arc<Seen>) {
     (server(Arc::new(kernel)), seen)
 }
 
+// ———— 能力探测（141 审计 F1 / F2）————
+
+/// `runtime/capabilities` 按**真实能力**回报。
+///
+/// 两个 true 位各有一条消费方依赖它：
+/// - `independentPlanState`：Host 的 `ensureIndependentPlanSupport` 在 false 时**抛错**
+///   （`proto.independentPlanUnsupported`），所以恒 false 会让桌面任何带 plan 的命令在本地就被拒。
+///   内核确实有 plan 模式（EnterPlanMode / ExitPlanMode 工具、`Command::SetPlan`、`planEnabled` 映射）。
+/// - `historyFirst`：Host 据此选「先在 Host 读历史再起 runtime」的冷打开路径。Rust 内核的
+///   `session_snapshot` 本身就是存储直读、`Live::new` 从 `SessionView` 建冷投影，历史恒为第一手。
+#[tokio::test]
+async fn capabilities_report_the_real_kernel_surface() {
+    let (server, _seen) = fake();
+    let reply = Handler(server)
+        .request("runtime/capabilities", Value::Null)
+        .await
+        .unwrap();
+    assert_eq!(reply.result["independentPlanState"], true);
+    assert_eq!(reply.result["historyFirst"], true);
+    // 内核没有这两个能力面（Host 侧也没有消费方）：如实回 false。
+    assert_eq!(reply.result["sessionDirectorySource"], false);
+    assert_eq!(reply.result["genUiContext"], false);
+}
+
+/// `workspace/updateDynamicWorkflowPolicy` 的回执按实况回 `enabled: true`。
+///
+/// 动态工作流已全链实现（34 个 CommandType 含 3 个工作流命令 + 8 个中枢方法 + 引擎 sidecar）。
+/// Host 只验 schema 不消费这个值，所以这不是行为开关——它是「这条注释与这个默认值是否还成立」
+/// 的问题（141 审计 F1：恒 false 是「动态工作流不移植」时代的残桩）。
+#[tokio::test]
+async fn the_dynamic_workflow_policy_reply_reflects_the_implemented_engine() {
+    let (server, _seen) = fake();
+    let reply = Handler(server)
+        .request(
+            "workspace/updateDynamicWorkflowPolicy",
+            json!({"workspace": {"workspacePath": "/w", "workspaceKey": "k"}, "enabled": true}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reply.result["enabled"], true);
+    assert_eq!(reply.result["workspace"]["workspacePath"], "/w");
+}
+
 // ———— 参数契约 ————
 
 #[tokio::test]

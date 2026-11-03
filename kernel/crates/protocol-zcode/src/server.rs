@@ -185,10 +185,22 @@ impl Server {
     async fn dispatch(&self, method: &str, params: Value) -> Result<Reply, RpcError> {
         let reply = |value: Value| Ok(Reply::new(value));
         match method {
-            // 不支持的能力给 false（app-protocol.md §4.3）。
+            // 能力探测（141 审计 F2）：按**真实能力**回报，恒 false 会让 Host 静默走降级路径。
+            //
+            // - `independentPlanState`：内核有完整的 plan 模式——`EnterPlanMode` / `ExitPlanMode`
+            //   工具（`tools/src/plan_mode.rs`）、`Command::SetPlan`、createSession/sendText 的
+            //   `planEnabled` 映射。Host 的 `ensureIndependentPlanSupport` 在 false 时**抛错**
+            //   （`proto.independentPlanUnsupported`），所以这条只能是 true，否则桌面一发带 plan 的
+            //   命令就被本地拒掉。
+            // - `historyFirst`：Host 侧的语义是「先经反向 RPC `loadPersistedMessages` 在 Host 读历史，
+            //   再起 runtime」。Rust 内核不走那条路——它自己的 `session_snapshot` 就是存储直读，
+            //   `Live::new` 从 `SessionView` 建冷投影，历史永远是第一手。所以对 Host 而言「历史先行」
+            //   在这里恒成立，回报 true 是准确的（Host 只是据此选一条更快的冷打开路径）。
+            // - `sessionDirectorySource` / `genUiContext`：内核没有这两个能力面（Host 侧也没有消费方），
+            //   如实回 false。
             "runtime/capabilities" => reply(json!({
-                "independentPlanState": false,
-                "historyFirst": false,
+                "independentPlanState": true,
+                "historyFirst": true,
                 "sessionDirectorySource": false,
                 "genUiContext": false,
             })),
@@ -217,11 +229,14 @@ impl Server {
                     "updatedSessionCount": 0}),
                 )
             }
-            // 动态工作流的灰度闸由 Host 自己判（发 `enabled:true` 时引擎经入口注入，命令面
-            // 已全收）；这里回执只是应答（Host 只验 schema 不消费值，zcodeAgentService.ts:3252），
-            // 恒 false 是历史残桩——按实况回报归 141 审计 F2 的 capabilities 一并处理。
+            // 动态工作流的灰度闸由 Host 自己判（它只在 `enabled:true` 时才注入引擎）；这里回执只是
+            // 应答——Host 只验 schema 不消费值（zcodeAgentService.ts:3252）。
+            //
+            // 按**实况**回报：动态工作流已全链实现（34 个 CommandType 含 3 个工作流命令 + 8 个中枢
+            // 方法 + 引擎 sidecar 路线 C），所以这里回 true 而不是恒 false。恒 false 曾是「动态工作流
+            // 不移植（P4 决定）」时代的残桩，那条决定早已被推翻（141 审计 F1）。
             "workspace/updateDynamicWorkflowPolicy" => {
-                reply(json!({"workspace": params["workspace"], "enabled": false}))
+                reply(json!({"workspace": params["workspace"], "enabled": true}))
             }
             "workspace/readPresentation" => reply(self.read_presentation(&params).await),
             // 目录来源按 sessionIds 查父链：rust 的会话没有要报的父链（子代理不进列表），P1 回空列表。
