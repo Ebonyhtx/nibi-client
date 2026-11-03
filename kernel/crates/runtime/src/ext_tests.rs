@@ -110,6 +110,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             streaming_input: false,
             monitor: false,
             mcp_telemetry: None,
+            mcp_ui: None,
         },
     );
     kernel.start_extensions().await;

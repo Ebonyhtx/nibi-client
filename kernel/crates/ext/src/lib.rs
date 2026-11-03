@@ -29,6 +29,10 @@ use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
 use rust_cli_kernel_api::machine::{EnvInfo, Files};
 use rust_cli_kernel_api::mcp::McpTransport;
 use rust_cli_kernel_api::mcp_state::{McpConnections, WAIT_FOR_MCP_SERVERS};
+use rust_cli_kernel_api::mcp_ui::{
+    McpResourceContent, McpResourcePage, McpResourceTemplatePage, McpUiError, McpUiInstanceRequest,
+    McpUiListRequest, McpUiReadRequest, McpUiSubscriptionRequest,
+};
 use rust_cli_kernel_api::message::Message;
 use rust_cli_kernel_api::orchestration::{
     ContextRequest, OrchestrationError, ToolRegistry, ToolSnapshot,
@@ -64,6 +68,10 @@ pub struct ExtPorts {
     /// MCP 进程遥测（`process/mcpTelemetry`，141 审计 §9 F3）：入口给的通道与加盐用的设备标识。
     /// None 时什么都不发（TUI、测试）。
     pub mcp_telemetry: Option<mcp::McpTelemetrySetup>,
+    /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量）：入口接给协议层；None 时什么都不发。
+    pub mcp_ui_events: Option<
+        tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>,
+    >,
 }
 
 /// 入口层给出的配置快照。
@@ -131,6 +139,10 @@ impl Ext {
         if let Some(machines) = ports.machines.clone() {
             mcp.set_machines(machines);
         }
+        // MCP Apps 的资源通知（`pluginUi.*`）：进程级 manager 也装上（会话语义之外的配置服务器）。
+        if let Some(events) = ports.mcp_ui_events.clone() {
+            mcp.attach_ui_events(events);
+        }
         // 会话级 MCP 用同一套传输/任务/时钟；每会话一个 manager（见 SessionMcp）。
         let session_mcp = Arc::new(SessionMcp::new(
             ports.mcp.clone(),
@@ -138,6 +150,7 @@ impl Ext {
             config.mcp.clone(),
             ports.clock.clone(),
             telemetry.clone(),
+            ports.mcp_ui_events.clone(),
         ));
         // `mcp/list` 的状态检查（141 审计 §9 第 6 项）：每工作区一套独立连接，与上面两套都不混。
         let status_mcp = Arc::new(mcp::McpStatusRegistry::new(
@@ -158,6 +171,28 @@ impl Ext {
         let app_instances = Arc::new(mcp::McpAppInstances::new(
             rust_cli_kernel_api::process_table::uuid_v4(),
         ));
+        // 实例关闭 → `pluginUi.instanceClosed`（页面卸载）。凭证先移除、再取消令牌，这个回调在
+        // 取消之后触发，迟到的结果拿不回执行权。
+        if let Some(events) = ports.mcp_ui_events.clone() {
+            app_instances.set_on_closed(std::sync::Arc::new(move |binding, lease| {
+                use rust_cli_kernel_api::mcp_ui::{McpUiEvent, McpUiSubscriber};
+                let plugin_id = rust_cli_kernel_api::mcp_telemetry::plugin_name(
+                    &binding.server,
+                    binding.server.starts_with("plugin:"),
+                )
+                .unwrap_or_else(|| binding.server.clone());
+                let _ = events.send(McpUiEvent::InstanceClosed {
+                    session: SessionId::new(binding.session.clone()),
+                    plugin_id,
+                    server: binding.server.clone(),
+                    subscribers: vec![McpUiSubscriber {
+                        scope_id: lease.token.clone(),
+                        generation: lease.generation,
+                        instance: lease.clone(),
+                    }],
+                });
+            }));
+        }
         Self {
             skills,
             commands,
@@ -260,11 +295,11 @@ impl Ext {
     }
 
     /// `mcp/uiCloseInstance`：`only_if_idle` 时只关没有进行中调用的实例；未知凭证不报错（Node 幂等）。
-    pub fn mcp_ui_close(
+    pub async fn mcp_ui_close(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+        request: McpUiInstanceRequest,
         only_if_idle: bool,
-    ) -> Result<bool, rust_cli_kernel_api::mcp_ui::McpUiError> {
+    ) -> Result<bool, McpUiError> {
         match self.app_instances.validate_bound(&request) {
             Ok(()) => {}
             // 凭证已经不在了：幂等，没有可关的东西（Node 只校验还在册的那些）。
@@ -276,30 +311,50 @@ impl Ext {
             return Ok(false);
         }
         self.app_instances.close(&request.instance);
+        self.forget_instance(&request.scope.session, &request.instance.token)
+            .await;
         Ok(true)
     }
 
     /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
-    pub fn mcp_ui_validate(
+    pub async fn mcp_ui_validate(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
-    ) -> Result<(), rust_cli_kernel_api::mcp_ui::McpUiError> {
+        request: McpUiInstanceRequest,
+    ) -> Result<(), McpUiError> {
+        self.check_instance(&request).await.map(|_| ())
+    }
+
+    /// 校验实例；不通过时（连接换代已经把凭证撤销）把它的资源订阅一并退掉。
+    async fn check_instance(&self, request: &McpUiInstanceRequest) -> Result<String, McpUiError> {
         let manager = self.mcp_for_session(&request.scope.session);
         let current = manager.app_connection(&request.scope.server_name);
-        self.app_instances.validate(&request, current).map(|_| ())
+        match self.app_instances.validate(request, current) {
+            Ok(bound) => Ok(bound),
+            Err(error) => {
+                self.forget_instance(&request.scope.session, &request.instance.token)
+                    .await;
+                Err(error)
+            }
+        }
+    }
+
+    /// 实例作废之后退掉它的资源订阅（`session|token|` 前缀；退订是尽力而为）。
+    async fn forget_instance(&self, session: &SessionId, token: &str) {
+        let prefix = format!("{}|{token}|", session.as_str());
+        self.mcp_for_session(session)
+            .unsubscribe_resources_for(&prefix)
+            .await;
     }
 
     /// `mcp/readResource`：宿主取页面 HTML；`uri` 必须是实例绑定的那个资源。
     pub async fn mcp_ui_read_resource(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, rust_cli_kernel_api::mcp_ui::McpUiError>
-    {
+        request: McpUiReadRequest,
+    ) -> Result<Vec<McpResourceContent>, McpUiError> {
         let manager = self.mcp_for_session(&request.instance.scope.session);
-        let current = manager.app_connection(&request.instance.scope.server_name);
-        let bound = self.app_instances.validate(&request.instance, current)?;
+        let bound = self.check_instance(&request.instance).await?;
         if bound != request.uri {
-            return Err(rust_cli_kernel_api::mcp_ui::McpUiError::binding_mismatch());
+            return Err(McpUiError::binding_mismatch());
         }
         manager
             .read_resource(&request.instance.scope.server_name, &request.uri)
@@ -309,12 +364,10 @@ impl Ext {
     /// `mcp/uiReadResource`：页面发起的资源读取（`_meta` 与大小/MIME 的界在协议层）。
     pub async fn mcp_ui_read_resource_for_ui(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, rust_cli_kernel_api::mcp_ui::McpUiError>
-    {
+        request: McpUiReadRequest,
+    ) -> Result<Vec<McpResourceContent>, McpUiError> {
         let manager = self.mcp_for_session(&request.instance.scope.session);
-        let current = manager.app_connection(&request.instance.scope.server_name);
-        self.app_instances.validate(&request.instance, current)?;
+        self.check_instance(&request.instance).await?;
         manager
             .read_resource(&request.instance.scope.server_name, &request.uri)
             .await
@@ -323,12 +376,10 @@ impl Ext {
     /// `mcp/uiListResources`：页面发起的 `resources/list`（一页，游标透传）。
     pub async fn mcp_ui_list_resources(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourcePage, rust_cli_kernel_api::mcp_ui::McpUiError>
-    {
+        request: McpUiListRequest,
+    ) -> Result<McpResourcePage, McpUiError> {
         let manager = self.mcp_for_session(&request.instance.scope.session);
-        let current = manager.app_connection(&request.instance.scope.server_name);
-        self.app_instances.validate(&request.instance, current)?;
+        self.check_instance(&request.instance).await?;
         manager
             .list_resources(
                 &request.instance.scope.server_name,
@@ -340,18 +391,47 @@ impl Ext {
     /// `mcp/uiListResourceTemplates`：页面发起的 `resources/templates/list`（一页）。
     pub async fn mcp_ui_list_resource_templates(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
-    ) -> Result<
-        rust_cli_kernel_api::mcp_ui::McpResourceTemplatePage,
-        rust_cli_kernel_api::mcp_ui::McpUiError,
-    > {
+        request: McpUiListRequest,
+    ) -> Result<McpResourceTemplatePage, McpUiError> {
         let manager = self.mcp_for_session(&request.instance.scope.session);
-        let current = manager.app_connection(&request.instance.scope.server_name);
-        self.app_instances.validate(&request.instance, current)?;
+        self.check_instance(&request.instance).await?;
         manager
             .list_resource_templates(
                 &request.instance.scope.server_name,
                 request.cursor.as_deref(),
+            )
+            .await
+    }
+
+    /// `mcp/uiSubscribeResource`：页面订阅一个资源（引用计数与断线重放都在连接管理里）。
+    pub async fn mcp_ui_subscribe(
+        &self,
+        request: McpUiSubscriptionRequest,
+    ) -> Result<(), McpUiError> {
+        let key = subscription_key(&request)?;
+        self.check_instance(&request.instance).await?;
+        self.mcp_for_session(&request.instance.scope.session)
+            .subscribe_resource(
+                &request.instance.scope.server_name,
+                &request.uri,
+                &key,
+                &request.instance.instance,
+            )
+            .await
+    }
+
+    /// `mcp/uiUnsubscribeResource`：页面退订一个资源（最后一个订阅者退订时通知服务器）。
+    pub async fn mcp_ui_unsubscribe(
+        &self,
+        request: McpUiSubscriptionRequest,
+    ) -> Result<(), McpUiError> {
+        let key = subscription_key(&request)?;
+        self.check_instance(&request.instance).await?;
+        self.mcp_for_session(&request.instance.scope.session)
+            .unsubscribe_resource(
+                &request.instance.scope.server_name,
+                &request.uri,
+                &key,
             )
             .await
     }
@@ -406,6 +486,21 @@ impl Ext {
     pub async fn wait_for_print(&self) {
         self.mcp.wait_for_print().await;
     }
+}
+
+/// 订阅键 = 会话 | 沙箱作用域 | 代际（Node `buildMcpUiSubscriberKey`）；作用域必须是实例的 token，
+/// 代际必须是凭证的代际——两者都对上才允许订阅/退订（Node 的 "Invalid MCP App subscription binding"）。
+fn subscription_key(request: &McpUiSubscriptionRequest) -> Result<String, McpUiError> {
+    let instance = &request.instance.instance;
+    if request.scope_id != instance.token || request.generation != instance.generation {
+        return Err(McpUiError::failed("Invalid MCP App subscription binding"));
+    }
+    Ok(format!(
+        "{}|{}|{}",
+        request.instance.scope.session.as_str(),
+        request.scope_id,
+        request.generation
+    ))
 }
 
 /// 基础工具在前，Skill 其次（有连接中的服务器时再加 WaitForMcpServers），MCP 工具最后（MCP 工具是连接任务发布的

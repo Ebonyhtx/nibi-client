@@ -30,6 +30,9 @@ pub struct Extensions {
     /// MCP 进程遥测的出口（`process/mcpTelemetry`，141 审计 §9 F3）：入口在协议 server 建好之前接上；
     /// None 时（TUI、嵌入、测试）什么都不发。
     pub mcp_telemetry: Option<rust_cli_ext::McpTelemetrySetup>,
+    /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量，141 审计 §9 第 6 项）：入口把另一头交给协议层；
+    /// None 时（TUI、嵌入、测试）什么都不发。
+    pub mcp_ui: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
 }
 
 impl Extensions {
@@ -42,6 +45,7 @@ impl Extensions {
             streaming_input: false,
             monitor: false,
             mcp_telemetry: None,
+            mcp_ui: None,
         }
     }
 }

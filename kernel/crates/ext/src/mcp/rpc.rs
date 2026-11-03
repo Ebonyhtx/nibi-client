@@ -39,6 +39,8 @@ pub(crate) enum RpcError {
 pub(crate) enum Notice {
     /// `notifications/<kind>/list_changed`：`tools`、`resources`、`prompts`。
     ListChanged(String),
+    /// `notifications/resources/updated`：订阅的资源变了（按 URI 合并）。
+    ResourceUpdated(String),
     Closed {
         reason: Option<String>,
         session_expired: bool,
@@ -269,7 +271,7 @@ impl Reader {
         match (method, id) {
             (None, Some(id)) => self.response(&id, &message),
             (Some(method), Some(id)) => self.server_request(method, id).await,
-            (Some(method), None) => self.notification(method),
+            (Some(method), None) => self.notification(method, &message),
             (None, None) => tracing::debug!("ignored an MCP message without method or id"),
         }
     }
@@ -305,7 +307,16 @@ impl Reader {
         }
     }
 
-    fn notification(&self, method: &str) {
+    fn notification(&self, method: &str, message: &Value) {
+        if method == "notifications/resources/updated"
+            && let Some(uri) = message
+                .pointer("/params/uri")
+                .and_then(Value::as_str)
+                .filter(|uri| !uri.is_empty())
+        {
+            self.notices.send(Notice::ResourceUpdated(uri.to_owned()));
+            return;
+        }
         let kind = method
             .strip_prefix("notifications/")
             .and_then(|rest| rest.strip_suffix("/list_changed"));

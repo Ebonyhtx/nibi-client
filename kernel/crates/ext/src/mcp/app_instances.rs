@@ -58,11 +58,16 @@ struct Record {
     pins: usize,
 }
 
+/// 实例关闭之后的通知（`pluginUi.instanceClosed`）：在取消令牌之后调用。
+type ClosedCallback = Arc<dyn Fn(&Binding, &McpAppInstance) + Send + Sync>;
+
 pub(crate) struct McpAppInstances {
     runtime_id: String,
     generation: Mutex<u64>,
     records: Mutex<BTreeMap<String, Record>>,
     logical: Mutex<BTreeMap<String, String>>,
+    /// 实例关闭之后的通知（`pluginUi.instanceClosed`）：在取消令牌之后调用。
+    on_closed: Mutex<Option<ClosedCallback>>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -76,7 +81,13 @@ impl McpAppInstances {
             generation: Mutex::new(0),
             records: Mutex::new(BTreeMap::new()),
             logical: Mutex::new(BTreeMap::new()),
+            on_closed: Mutex::new(None),
         }
+    }
+
+    /// 装上关闭通知（只给一次；之后的调用覆盖）。
+    pub(crate) fn set_on_closed(&self, callback: ClosedCallback) {
+        *lock(&self.on_closed) = Some(callback);
     }
 
     /// 开实例（同一逻辑页面同连接代际幂等）。
@@ -207,6 +218,9 @@ impl McpAppInstances {
         }
         drop(logical);
         record.cancel.cancel();
+        if let Some(callback) = lock(&self.on_closed).clone() {
+            callback(&record.binding, &record.lease);
+        }
         true
     }
 

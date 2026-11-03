@@ -18,6 +18,8 @@ use super::rpc::Notice;
 struct Pending {
     /// 还没取走的 `list_changed` 种类，按第一次到达的顺序。
     changed: Vec<String>,
+    /// 还没取走的 `resources/updated` 的 URI（同一个 URI 只留一条：页面收到后重新读，不丢内容）。
+    updated: Vec<String>,
     closed: Option<Notice>,
 }
 
@@ -62,6 +64,11 @@ impl NoticeSender {
                         pending.changed.push(kind);
                     }
                 }
+                Notice::ResourceUpdated(uri) => {
+                    if !pending.updated.contains(&uri) {
+                        pending.updated.push(uri);
+                    }
+                }
                 closed @ Notice::Closed { .. } => pending.closed = Some(closed),
             }
         }
@@ -72,11 +79,15 @@ impl NoticeSender {
 impl NoticeReceiver {
     fn take(&self) -> Option<Notice> {
         let mut pending = lock(&self.pending);
-        if pending.changed.is_empty() {
-            pending.closed.take()
-        } else {
-            Some(Notice::ListChanged(pending.changed.remove(0)))
+        if let Some(kind) = pending.changed.first().cloned() {
+            pending.changed.remove(0);
+            return Some(Notice::ListChanged(kind));
         }
+        if let Some(uri) = pending.updated.first().cloned() {
+            pending.updated.remove(0);
+            return Some(Notice::ResourceUpdated(uri));
+        }
+        pending.closed.take()
     }
 
     /// 下一条通知；发送方已释放且没有剩下的通知时为 None。

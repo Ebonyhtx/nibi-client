@@ -43,6 +43,7 @@ fn pools(fake: Arc<FakeMcp>, scope: &TaskScope) -> SessionMcp {
         McpSettings::default(),
         crate::clock_tests::TokioClock::new(),
         None,
+        None,
     )
 }
 

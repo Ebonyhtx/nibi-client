@@ -21,7 +21,7 @@ use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
 use rust_cli_kernel_api::mcp_ui::{
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourceTemplate,
     McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest, McpUiReadRequest, McpUiScope,
-    UI_READ_MAX_BYTES, decoded_base64_len, mime_allowed_for_ui,
+    McpUiSubscriptionRequest, UI_READ_MAX_BYTES, decoded_base64_len, mime_allowed_for_ui,
 };
 use rust_cli_kernel_api::session_api::KernelError;
 use rust_cli_protocol_core::rpc::RpcError;
@@ -338,6 +338,61 @@ pub(crate) async fn list_resource_templates(
     Ok(value)
 }
 
+/// `mcp/uiSubscribeResource`：页面订阅一个资源（引用计数与断线重放都在连接管理里）。
+pub(crate) async fn subscribe_resource(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "generation",
+            "uri",
+        ],
+        "mcp/uiSubscribeResource params",
+    )?;
+    let request = subscription_request(params, server)?;
+    server
+        .kernel
+        .mcp_ui_subscribe(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({}))
+}
+
+/// `mcp/uiUnsubscribeResource`：页面退订一个资源（最后一个订阅者退订时通知服务器）。
+pub(crate) async fn unsubscribe_resource(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "generation",
+            "uri",
+        ],
+        "mcp/uiUnsubscribeResource params",
+    )?;
+    let request = subscription_request(params, server)?;
+    server
+        .kernel
+        .mcp_ui_unsubscribe(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({}))
+}
+
 /// 页面请求的作用域：会话 + 会话自己的 MCP server 表（`pluginId` 只做展示与日志）。
 fn scope_param(params: &Map<String, Value>, server: &Server) -> Result<McpUiScope, RpcError> {
     let (workspace_path, identity) = workspace_param(params.get("workspace"))?;
@@ -377,6 +432,21 @@ fn list_request(
     Ok(McpUiListRequest {
         instance: instance_request(params, server)?,
         cursor: optional_bounded_string(params, "cursor", 2048)?,
+    })
+}
+
+fn subscription_request(
+    params: &Map<String, Value>,
+    server: &Server,
+) -> Result<McpUiSubscriptionRequest, RpcError> {
+    Ok(McpUiSubscriptionRequest {
+        instance: instance_request(params, server)?,
+        scope_id: bounded_string(params, "scopeId", 256)?,
+        generation: params
+            .get("generation")
+            .and_then(Value::as_u64)
+            .ok_or_else(|| invalid("`generation` must be a non-negative integer"))?,
+        uri: bounded_string(params, "uri", 2048)?,
     })
 }
 

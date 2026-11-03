@@ -15,7 +15,7 @@ use rust_cli_kernel_api::mcp_status::{
 use rust_cli_kernel_api::mcp_ui::{
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
     McpResourceTemplate, McpResourceTemplatePage, McpUiInstanceRequest, McpUiListRequest,
-    McpUiOpenRequest, McpUiReadRequest,
+    McpUiOpenRequest, McpUiReadRequest, McpUiSubscriptionRequest,
 };
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
@@ -59,6 +59,8 @@ enum UiCall {
     ReadForUi(McpUiReadRequest),
     List(McpUiListRequest),
     Templates(McpUiListRequest),
+    Subscribe(McpUiSubscriptionRequest),
+    Unsubscribe(McpUiSubscriptionRequest),
 }
 
 impl FakeKernel {
@@ -157,6 +159,20 @@ impl Kernel for FakeKernel {
     ) -> Result<McpResourceTemplatePage, KernelError> {
         self.record(UiCall::Templates(request))?;
         Ok(self.templates.clone())
+    }
+
+    async fn mcp_ui_subscribe(
+        &self,
+        request: McpUiSubscriptionRequest,
+    ) -> Result<(), KernelError> {
+        self.record(UiCall::Subscribe(request))
+    }
+
+    async fn mcp_ui_unsubscribe(
+        &self,
+        request: McpUiSubscriptionRequest,
+    ) -> Result<(), KernelError> {
+        self.record(UiCall::Unsubscribe(request))
     }
 }
 
@@ -766,4 +782,27 @@ async fn app_parameters_are_rejected_like_zod() {
         let error = call_error_named(server.clone(), method, params.clone()).await;
         assert_eq!(error.code, -32602, "{method} {params}: {error:?}");
     }
+}
+
+/// 订阅与退订：作用域、代际与 URI 原样到内核，回执是空对象。
+#[tokio::test]
+async fn subscriptions_map_the_subscriber_identity() {
+    let (server, ui) = fake_ui(FakeKernel::default());
+    let mut params = with_instance(scope_json());
+    params["scopeId"] = json!("token-1");
+    params["generation"] = json!(2);
+    params["uri"] = json!("ui://panel.html");
+    let reply = call_method(server.clone(), "mcp/uiSubscribeResource", params.clone()).await;
+    assert_eq!(reply, json!({}));
+    let reply = call_method(server, "mcp/uiUnsubscribeResource", params).await;
+    assert_eq!(reply, json!({}));
+    let calls = ui.lock().unwrap();
+    let UiCall::Subscribe(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.scope_id, "token-1");
+    assert_eq!(request.generation, 2);
+    assert_eq!(request.uri, "ui://panel.html");
+    assert_eq!(request.instance.instance.token, "token-1");
+    assert!(matches!(&calls[1], UiCall::Unsubscribe(_)));
 }

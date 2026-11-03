@@ -175,6 +175,16 @@ impl Live {
         (state.projection.phase(), state.projection.revision())
     }
 
+    /// 一条只进 live 帧的增量（`pluginUi.*`，141 审计 §9 第 6 项）：不改投影、不进冷恢复。
+    pub async fn emit_delta(&self, delta: Value) {
+        let outgoing = {
+            let mut state = self.state();
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
     /// NIBI `setAssistantFeedback`：把赞/踩写进投影（行存在时发 `row.upserted`）。
     pub async fn set_feedback(&self, message: &str, feedback: Option<String>) {
         let outgoing = {

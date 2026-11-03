@@ -1173,6 +1173,26 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// `mcp/uiSubscribeResource`：页面订阅一个资源（按服务器与 URI 引用计数）。
+    async fn mcp_ui_subscribe(
+        &self,
+        _request: crate::mcp_ui::McpUiSubscriptionRequest,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app resource subscriptions".to_owned(),
+        })
+    }
+
+    /// `mcp/uiUnsubscribeResource`：页面退订一个资源（最后一个订阅者退订时通知服务器）。
+    async fn mcp_ui_unsubscribe(
+        &self,
+        _request: crate::mcp_ui::McpUiSubscriptionRequest,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app resource subscriptions".to_owned(),
+        })
+    }
+
     /// 仍在运行的 MCP 子进程（`process/childProcesses`，141 审计 §9 F3）：pid 与归属，不含采样值。
     /// 桌面按 pid 把整机进程表归到插件；缺省为空（没有 MCP 能力的实现）。
     async fn mcp_child_processes(&self) -> Vec<crate::mcp_state::McpChildProcess> {

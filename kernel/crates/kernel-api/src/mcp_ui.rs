@@ -175,6 +175,17 @@ pub struct McpUiListRequest {
     pub cursor: Option<String>,
 }
 
+/// `mcp/uiSubscribeResource` / `mcp/uiUnsubscribeResource`：订阅者身份 = 会话 + 沙箱作用域 + 代际。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiSubscriptionRequest {
+    pub instance: McpUiInstanceRequest,
+    /// 沙箱作用域（必须等于实例的 token，Node 的 `scopeId` 约定）。
+    pub scope_id: String,
+    /// 实例代际（必须等于凭证的代际）。
+    pub generation: u64,
+    pub uri: String,
+}
+
 /// 一条已连接的 MCP 服务器的身份快照（Node `appConnectionSnapshot`）。
 ///
 /// 实例凭证绑定这一对：连接换了代际，旧实例就不能再执行任何请求。
@@ -336,6 +347,52 @@ impl McpUiError {
     pub fn binding_mismatch() -> Self {
         Self::failed("MCP App resource binding mismatch")
     }
+}
+
+/// `resources/list|templates/list|subscribe` 的订阅者身份：沙箱作用域 + 代际 + 完整凭证。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpUiSubscriber {
+    /// 沙箱作用域（等于实例的 token，Node 的订阅键里用 scopeId）。
+    pub scope_id: String,
+    pub generation: u64,
+    pub instance: McpAppInstance,
+}
+
+/// 从 MCP 连接流向协议层的一次 UI 事件（live-only，不落盘）。
+///
+/// 协议层把它变成 `v4/conversation/frame` 里的 `pluginUi.*` 增量；`session` 是它该投递的会话。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum McpUiEvent {
+    /// 服务器说某个资源变了（`notifications/resources/updated`）。
+    ResourceUpdated {
+        session: SessionId,
+        plugin_id: String,
+        server: String,
+        uri: String,
+        subscribers: Vec<McpUiSubscriber>,
+    },
+    /// 服务器的资源清单变了（`notifications/resources/list_changed`）。
+    ResourceListChanged {
+        session: SessionId,
+        plugin_id: String,
+        server: String,
+        subscribers: Vec<McpUiSubscriber>,
+    },
+    /// 实例被关闭（页面要卸载）。
+    InstanceClosed {
+        session: SessionId,
+        plugin_id: String,
+        server: String,
+        subscribers: Vec<McpUiSubscriber>,
+    },
+}
+
+/// 资源通知的一种（`resources/updated` 带 URI，`resources/list_changed` 不带）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum McpResourceSignal {
+    Updated(String),
+    ListChanged,
 }
 
 #[cfg(test)]

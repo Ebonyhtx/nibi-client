@@ -17,8 +17,9 @@ use rust_cli_kernel_api::mcp_status::{
     McpFailureKind, McpProtocolEra, McpServerStatus, McpServerStatusKind,
 };
 use rust_cli_kernel_api::mcp_ui::{
-    McpAppConnection, McpResourceContent, McpResourceDescriptor, McpResourcePage,
-    McpResourceTemplate, McpResourceTemplatePage, McpUiError, tool_visibility, visible_to_model,
+    McpAppConnection, McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
+    McpResourceSignal, McpResourceTemplate, McpResourceTemplatePage, McpUiError, McpUiEvent,
+    McpUiSubscriber, tool_visibility, visible_to_model,
 };
 use rust_cli_kernel_api::mcp_telemetry::McpProcessIdentity;
 use rust_cli_kernel_api::tool::Tool;
@@ -77,7 +78,10 @@ struct Server {
     /// 第一次拉清单时记下，`list_changed` 重拉时整表替换（MCP Apps 的模型工具表与页面调用都用它）。
     visibility: BTreeMap<String, Vec<String>>,
     instructions: Option<String>,
+    /// 连上过、有 resources 能力的服务器（ext.md §3.3.3）：之后资源工具一直在。
     resources: bool,
+    /// 服务器声明了 `resources.subscribe`（MCP Apps 的资源订阅）。
+    resource_subscribe: bool,
     prompts: Vec<Value>,
     /// 最近一次断开是 HTTP 会话过期（工具调用据此重试一次）。
     expired: bool,
@@ -106,6 +110,7 @@ impl Server {
             visibility: BTreeMap::new(),
             instructions: None,
             resources: false,
+            resource_subscribe: false,
             prompts: Vec::new(),
             expired: false,
             reconnecting: false,
@@ -143,6 +148,11 @@ pub(crate) struct Inner {
     telemetry: OnceLock<McpTelemetrySlot>,
     /// 这个会话的 `session_startup` 已经发过（每个 manager 一次）。
     startup_reported: AtomicBool,
+    /// MCP Apps 的资源订阅：（服务器, URI）→ 订阅键 → 页面凭证。第一个订阅者登记时向服务器发
+    /// `resources/subscribe`，最后一个退订时发 `resources/unsubscribe`；重连后重放。
+    subscriptions: Mutex<BTreeMap<(String, String), BTreeMap<String, McpAppInstance>>>,
+    /// UI 事件出口（`pluginUi.*` 增量）：入口接上；None 时（TUI、测试）什么都不发。
+    ui_events: OnceLock<tokio::sync::mpsc::UnboundedSender<McpUiEvent>>,
 }
 
 impl Inner {
@@ -317,6 +327,11 @@ impl Inner {
             Vec::new()
         };
         let resources = has_capability(&capabilities, "resources");
+        let resource_subscribe = resources
+            && capabilities
+                .pointer("/resources/subscribe")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
         if resources {
             self.resources_seen.store(true, Ordering::Relaxed);
         }
@@ -330,11 +345,14 @@ impl Inner {
             server.prompts = prompts;
             server.instructions = instructions;
             server.resources = resources;
+            server.resource_subscribe = resource_subscribe;
             server.expired = false;
             server.reconnecting = false;
             server.dormant = false;
         });
         tracing::info!(server = name, "MCP server connected");
+        // 重连之后把订阅重放给新连接（Node 的 adapter 同一条）。
+        self.replay_subscriptions(name, &client).await;
         while let Some(notice) = notices.recv().await {
             match notice {
                 Notice::ListChanged(kind) if kind == "tools" => {
@@ -349,7 +367,14 @@ impl Inner {
                     let prompts = self.prompts_of(name, &client).await;
                     self.update(name, generation, |server| server.prompts = prompts);
                 }
-                // resources 不缓存清单：ListMcpResourcesTool 每次实时拉取。
+                // 资源清单变了：告诉订阅者重新拉清单（清单本身仍不缓存）。
+                Notice::ListChanged(kind) if kind == "resources" => {
+                    self.resource_signal(name, McpResourceSignal::ListChanged);
+                }
+                Notice::ResourceUpdated(uri) => {
+                    self.resource_signal(name, McpResourceSignal::Updated(uri));
+                }
+                // 其余 list_changed 不缓存清单：工具每次实时拉取。
                 Notice::ListChanged(_) => {}
                 Notice::Closed {
                     reason,
@@ -432,6 +457,112 @@ impl Inner {
     /// 主动关闭 / 重连之前清掉进程记录（没有进程记录时是空操作）。
     fn clear_process(&self, name: &str, generation: u64) {
         self.update(name, generation, |server| server.process = None);
+    }
+
+    /// 服务器绑定的插件 id：插件服务器取 `plugin:<name>:<key>` 的名字，其余用服务器名
+    /// （Node 的 `pluginId` 只做展示；非插件 server 时调用方也用服务器名）。
+    fn plugin_id_of(&self, server: &str) -> String {
+        let plugin_scope = self
+            .servers()
+            .get(server)
+            .is_some_and(|server| server.config.scope == crate::McpScope::Plugin);
+        rust_cli_kernel_api::mcp_telemetry::plugin_name(server, plugin_scope)
+            .unwrap_or_else(|| server.to_owned())
+    }
+
+    /// 资源通知 → 各会话一条 UI 事件（没有订阅者时直接丢弃）。
+    fn resource_signal(&self, server: &str, signal: McpResourceSignal) {
+        let Some(sender) = self.ui_events.get() else {
+            return;
+        };
+        let mut grouped: BTreeMap<String, Vec<McpUiSubscriber>> = BTreeMap::new();
+        {
+            let subscriptions = self
+                .subscriptions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            let entries: Vec<&BTreeMap<String, McpAppInstance>> = match &signal {
+                McpResourceSignal::Updated(uri) => subscriptions
+                    .get(&(server.to_owned(), uri.clone()))
+                    .into_iter()
+                    .collect(),
+                McpResourceSignal::ListChanged => subscriptions
+                    .iter()
+                    .filter(|((name, _), _)| name == server)
+                    .map(|(_, entry)| entry)
+                    .collect(),
+            };
+            for entry in entries {
+                for (key, instance) in entry {
+                    let Some(session) = key.split('|').next().filter(|session| !session.is_empty())
+                    else {
+                        continue;
+                    };
+                    grouped
+                        .entry(session.to_owned())
+                        .or_default()
+                        .push(McpUiSubscriber {
+                            scope_id: instance.token.clone(),
+                            generation: instance.generation,
+                            instance: instance.clone(),
+                        });
+                }
+            }
+        }
+        if grouped.is_empty() {
+            return;
+        }
+        let plugin_id = self.plugin_id_of(server);
+        for (session, subscribers) in grouped {
+            let event = match &signal {
+                McpResourceSignal::Updated(uri) => McpUiEvent::ResourceUpdated {
+                    session: SessionId::new(session),
+                    plugin_id: plugin_id.clone(),
+                    server: server.to_owned(),
+                    uri: uri.clone(),
+                    subscribers,
+                },
+                McpResourceSignal::ListChanged => McpUiEvent::ResourceListChanged {
+                    session: SessionId::new(session),
+                    plugin_id: plugin_id.clone(),
+                    server: server.to_owned(),
+                    subscribers,
+                },
+            };
+            let _ = sender.send(event);
+        }
+    }
+
+    /// 连上（或重连）之后把订阅重放给新连接；失败只记日志（下一次重连还会试）。
+    async fn replay_subscriptions(&self, server: &str, client: &Client) {
+        let uris: Vec<String> = {
+            let subscriptions = self
+                .subscriptions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            subscriptions
+                .iter()
+                .filter(|((name, _), entry)| name == server && !entry.is_empty())
+                .map(|((_, uri), _)| uri.clone())
+                .collect()
+        };
+        if uris.is_empty() {
+            return;
+        }
+        let timeout = Duration::from_millis(self.settings.tool_timeout_for(self.options(server)));
+        for uri in uris {
+            if let Err(error) = client
+                .request(
+                    "resources/subscribe",
+                    json!({"uri": uri}),
+                    timeout,
+                    &CancellationToken::new(),
+                )
+                .await
+            {
+                tracing::warn!(server, uri = %uri, %error, "could not replay an MCP resource subscription");
+            }
+        }
     }
 
     /// 连接与重连（ext.md §3.3）：首次连接失败即失败；连上后断开时 stdio 失败，HTTP / SSE 退避重连。
@@ -559,6 +690,8 @@ impl McpManager {
             resources_seen: AtomicBool::new(false),
             telemetry: OnceLock::new(),
             startup_reported: AtomicBool::new(false),
+            subscriptions: Mutex::default(),
+            ui_events: OnceLock::new(),
         }))
     }
 
@@ -566,6 +699,14 @@ impl McpManager {
     /// 第二次给无效（`OnceLock`），与 `set_machines` 同一姿态。
     pub(crate) fn attach_telemetry(&self, slot: McpTelemetrySlot) {
         let _ = self.0.telemetry.set(slot);
+    }
+
+    /// 装上 MCP Apps 的事件出口（`pluginUi.*` 增量）：连接开始之前给一次。
+    pub(crate) fn attach_ui_events(
+        &self,
+        sender: tokio::sync::mpsc::UnboundedSender<McpUiEvent>,
+    ) {
+        let _ = self.0.ui_events.set(sender);
     }
 
     /// 远端机器的注册表（R5，remote-exec.md §22.6）：`start` 之前给一次；绑定到远端机器的服务器从它取管道。F98（§25.5）：
@@ -641,6 +782,12 @@ impl McpManager {
                         closers.push(client);
                     }
                 }
+                // 服务器不在集合里了：它的资源订阅一并作废（不再有连接可投递）。
+                self.0
+                    .subscriptions
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .retain(|(server, _), _| server != &name);
             }
             for config in servers {
                 match known.get_mut(&config.name) {
@@ -895,6 +1042,139 @@ impl McpManager {
             .and_then(Value::as_array)
             .map(|items| items.iter().filter_map(resource_content).collect())
             .unwrap_or_default())
+    }
+
+    /// 服务器的资源订阅能力（MCP Apps 的资源订阅只在声明了 `resources.subscribe` 时可用）。
+    pub fn supports_resource_subscribe(&self, server: &str) -> bool {
+        self.0
+            .servers()
+            .get(server)
+            .is_some_and(|server| server.status == McpStatus::Connected && server.resource_subscribe)
+    }
+
+    /// 订阅一个资源：第一个订阅者向服务器发 `resources/subscribe`；失败时撤回这次登记。
+    pub async fn subscribe_resource(
+        &self,
+        server: &str,
+        uri: &str,
+        key: &str,
+        instance: &McpAppInstance,
+    ) -> Result<(), McpUiError> {
+        let (client, timeout) = self.resource_client(server)?;
+        if !self.supports_resource_subscribe(server) {
+            return Err(McpUiError::unsupported(server, "resources/subscribe"));
+        }
+        let first = {
+            let mut subscriptions = self
+                .0
+                .subscriptions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            let entry = subscriptions
+                .entry((server.to_owned(), uri.to_owned()))
+                .or_default();
+            let first = entry.is_empty();
+            entry.insert(key.to_owned(), instance.clone());
+            first
+        };
+        if first
+            && let Err(error) = client
+                .request(
+                    "resources/subscribe",
+                    json!({"uri": uri}),
+                    timeout,
+                    &CancellationToken::new(),
+                )
+                .await
+        {
+            // 撤回这次的登记；期间若别的订阅者进来了，保留登记。
+            let mut subscriptions = self
+                .0
+                .subscriptions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            if let Some(entry) = subscriptions.get_mut(&(server.to_owned(), uri.to_owned())) {
+                entry.remove(key);
+                if entry.is_empty() {
+                    subscriptions.remove(&(server.to_owned(), uri.to_owned()));
+                }
+            }
+            return Err(ui_error(server, "resources/subscribe", error));
+        }
+        Ok(())
+    }
+
+    /// 退订一个资源：最后一个订阅者退订时向服务器发 `resources/unsubscribe`（尽力而为）。
+    pub async fn unsubscribe_resource(
+        &self,
+        server: &str,
+        uri: &str,
+        key: &str,
+    ) -> Result<(), McpUiError> {
+        let last = {
+            let mut subscriptions = self
+                .0
+                .subscriptions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            let Some(entry) = subscriptions.get_mut(&(server.to_owned(), uri.to_owned())) else {
+                return Ok(());
+            };
+            entry.remove(key);
+            if !entry.is_empty() {
+                return Ok(());
+            }
+            subscriptions.remove(&(server.to_owned(), uri.to_owned()));
+            true
+        };
+        if last
+            && let Ok((client, timeout)) = self.resource_client(server)
+        {
+            // 连接已经没了也不算错误：退订是收尾动作。
+            let _ = client
+                .request(
+                    "resources/unsubscribe",
+                    json!({"uri": uri}),
+                    timeout,
+                    &CancellationToken::new(),
+                )
+                .await;
+        }
+        Ok(())
+    }
+
+    /// 页面关闭：退掉它（`session|token|` 前缀）的全部订阅（Node `unsubscribeResourcesForUi`）。
+    pub async fn unsubscribe_resources_for(&self, prefix: &str) {
+        let emptied: Vec<(String, String)> = {
+            let mut subscriptions = self
+                .0
+                .subscriptions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+            let mut emptied = Vec::new();
+            for ((server, uri), entry) in subscriptions.iter_mut() {
+                entry.retain(|key, _| !key.starts_with(prefix));
+                if entry.is_empty() {
+                    emptied.push((server.clone(), uri.clone()));
+                }
+            }
+            for key in &emptied {
+                subscriptions.remove(key);
+            }
+            emptied
+        };
+        for (server, uri) in emptied {
+            if let Ok((client, timeout)) = self.resource_client(&server) {
+                let _ = client
+                    .request(
+                        "resources/unsubscribe",
+                        json!({"uri": uri}),
+                        timeout,
+                        &CancellationToken::new(),
+                    )
+                    .await;
+            }
+        }
     }
 
     /// 服务器的 prompts（`prompts/list` 的原样结果）。

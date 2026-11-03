@@ -35,6 +35,8 @@ pub(crate) struct SessionMcp {
     clock: Arc<dyn Clock>,
     /// 进程遥测的出口（`process/mcpTelemetry`）：每个会话级 manager 装同一份，隔离口径是 `session`。
     telemetry: Option<Arc<McpTelemetry>>,
+    /// MCP Apps 的事件出口（`pluginUi.*` 增量）：每个会话级 manager 装同一份。
+    ui_events: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
 }
 
@@ -45,6 +47,7 @@ impl SessionMcp {
         settings: McpSettings,
         clock: Arc<dyn Clock>,
         telemetry: Option<Arc<McpTelemetry>>,
+        ui_events: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
     ) -> Self {
         Self {
             transport,
@@ -52,6 +55,7 @@ impl SessionMcp {
             settings,
             clock,
             telemetry,
+            ui_events,
             sessions: Mutex::default(),
         }
     }
@@ -98,6 +102,9 @@ impl SessionMcp {
                 isolation: "session",
                 session: Some(session.clone()),
             });
+        }
+        if let Some(events) = self.ui_events.clone() {
+            manager.attach_ui_events(events);
         }
         manager.start(workspace.clone(), to_servers(servers));
         let previous = self.sessions().insert(

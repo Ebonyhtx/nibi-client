@@ -416,6 +416,12 @@ impl Server {
             "mcp/uiListResourceTemplates" => crate::mcp_rpc::list_resource_templates(self, &params)
                 .await
                 .map(Reply::new),
+            "mcp/uiSubscribeResource" => crate::mcp_rpc::subscribe_resource(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiUnsubscribeResource" => crate::mcp_rpc::unsubscribe_resource(self, &params)
+                .await
+                .map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

@@ -310,6 +310,10 @@ async fn serve(
             .unwrap_or_default()
             .to_owned(),
     });
+    // MCP Apps 的 UI 事件（`pluginUi.*` 增量，141 审计 §9 第 6 项）：ext 写这一头，协议 server
+    // 按会话投进 live 投影。
+    let (mcp_ui_events, mcp_ui_receiver) = tokio::sync::mpsc::unbounded_channel();
+    extensions.mcp_ui = Some(mcp_ui_events);
     extensions.cron_store = Some(Arc::new(LocalCronStore::new(
         &workspace.root,
         clock.clone(),
@@ -400,6 +404,7 @@ async fn serve(
                 capture: Some(capture),
                 tool_exec: Some(tool_exec_channel),
                 mcp_events: Some(mcp_events),
+                mcp_ui_events: Some(mcp_ui_receiver),
                 mcp_resource: Some(rust_cli_protocol_zcode::telemetry::McpResourcePorts {
                     sampler: Arc::new(rust_cli_env_local::process_sampler::LocalProcessSampler::new()),
                     metrics: process_metrics,

@@ -511,7 +511,10 @@ impl Kernel for LocalKernel {
         request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
         only_if_idle: bool,
     ) -> Result<bool, KernelError> {
-        self.ext.mcp_ui_close(request, only_if_idle).map_err(mcp_ui_error)
+        self.ext
+            .mcp_ui_close(request, only_if_idle)
+            .await
+            .map_err(mcp_ui_error)
     }
 
     /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
@@ -519,7 +522,7 @@ impl Kernel for LocalKernel {
         &self,
         request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
     ) -> Result<(), KernelError> {
-        self.ext.mcp_ui_validate(request).map_err(mcp_ui_error)
+        self.ext.mcp_ui_validate(request).await.map_err(mcp_ui_error)
     }
 
     /// `mcp/readResource`：宿主取页面 HTML（必须等于实例绑定的资源）。
@@ -559,6 +562,25 @@ impl Kernel for LocalKernel {
     ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourceTemplatePage, KernelError> {
         self.ext
             .mcp_ui_list_resource_templates(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiSubscribeResource`：页面订阅一个资源。
+    async fn mcp_ui_subscribe(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiSubscriptionRequest,
+    ) -> Result<(), KernelError> {
+        self.ext.mcp_ui_subscribe(request).await.map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiUnsubscribeResource`：页面退订一个资源。
+    async fn mcp_ui_unsubscribe(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiSubscriptionRequest,
+    ) -> Result<(), KernelError> {
+        self.ext
+            .mcp_ui_unsubscribe(request)
             .await
             .map_err(mcp_ui_error)
     }

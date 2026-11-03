@@ -15,6 +15,7 @@ use std::time::Duration;
 
 use rust_cli_base::{Spawner, Task};
 use rust_cli_kernel_api::mcp_telemetry::McpTelemetryEvent;
+use rust_cli_kernel_api::mcp_ui::McpUiEvent;
 use rust_cli_kernel_api::process_metrics::ProcessMetrics;
 use rust_cli_kernel_api::process_table::{MCP_RESOURCE_SAMPLE_INTERVAL, McpResourceSampler, ProcessSampler};
 use rust_cli_kernel_api::session_api::Kernel;
@@ -49,6 +50,8 @@ pub struct TelemetryPorts {
     pub mcp_events: Option<tokio::sync::mpsc::UnboundedReceiver<McpTelemetryEvent>>,
     /// MCP 五分钟资源采样的读数端与本机事实：两个都给才起采样任务。
     pub mcp_resource: Option<McpResourcePorts>,
+    /// MCP Apps 的 UI 事件（`pluginUi.*` 增量，141 审计 §9 第 6 项）：按会话投进 live 投影。
+    pub mcp_ui_events: Option<tokio::sync::mpsc::UnboundedReceiver<McpUiEvent>>,
 }
 
 /// `process/mcpResourceSamples` 需要的东西：进程表读数与本机事实（平台、核数、内存总量）。

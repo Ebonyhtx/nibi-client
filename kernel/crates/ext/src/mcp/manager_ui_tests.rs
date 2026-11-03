@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use rust_cli_base::TaskScope;
 use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::mcp_ui::{McpUiError, visible_to_app};
+use rust_cli_kernel_api::mcp_ui::{McpAppInstance, McpUiError, McpUiEvent, visible_to_app};
 use serde_json::json;
 
 use super::*;
@@ -50,7 +50,10 @@ fn new_manager(fake: Arc<FakeMcp>, scope: &TaskScope) -> McpManager {
 
 /// 一个声明了 resources 能力的服务器：列表分页、模板、读取都按 MCP 的形状回答。
 fn resources() -> Arc<Handler> {
-    server(json!({"resources": {}}), None, |method, params| match method {
+    server(
+        json!({"resources": {"subscribe": true}}),
+        None,
+        |method, params| match method {
         "resources/list" => Some(Ok(if params.get("cursor").is_some() {
             json!({"resources": [{"uri": "file:///b", "name": "b"}]})
         } else {
@@ -78,8 +81,11 @@ fn resources() -> Arc<Handler> {
                 "_meta": {"ui": {"prefersBorder": false}},
             }],
         }))),
+        // 订阅与退订的回执（不回答会让请求等到工具期限）。
+        "resources/subscribe" | "resources/unsubscribe" => Some(Ok(json!({}))),
         _ => None,
-    })
+        },
+    )
 }
 
 /// 连接身份：配置不变时稳定，换配置时代际加一、身份变；只有已连接的服务器才有。
@@ -256,4 +262,143 @@ async fn app_only_tools_stay_out_of_the_model_table() {
         Some(vec!["model".to_owned(), "app".to_owned()])
     );
     assert!(manager.app_tool_visibility("files", "missing").is_none());
+}
+
+fn credential(token: &str, generation: u64) -> McpAppInstance {
+    McpAppInstance {
+        runtime_id: "runtime-1".to_owned(),
+        generation,
+        app_identity: "a".repeat(64),
+        token: token.to_owned(),
+    }
+}
+
+fn subscribe_count(fake: &FakeMcp, method: &str) -> usize {
+    fake.received()
+        .into_iter()
+        .filter(|(_, message)| message["method"] == method)
+        .count()
+}
+
+/// 资源订阅按（服务器, URI）引用计数：第一个订阅者发 subscribe，最后一个退订才发 unsubscribe；
+/// `resources/updated` 按会话变成一条 UI 事件，携带全部订阅者的凭证。
+#[tokio::test]
+async fn subscriptions_are_reference_counted_and_notifications_reach_the_pages() {
+    let fake = Arc::new(FakeMcp::default().with("files", resources()));
+    let scope = TaskScope::root("ui", |_| {});
+    let (events, mut received) = tokio::sync::mpsc::unbounded_channel();
+    let manager = McpManager::new(
+        fake.clone(),
+        scope.spawner(),
+        McpSettings::default(),
+        crate::clock_tests::TokioClock::new(),
+    );
+    manager.attach_ui_events(events);
+    manager.start(workspace(), vec![stdio("files")]);
+    manager.wait_ready().await;
+
+    let first = credential("token-1", 1);
+    let second = credential("token-2", 2);
+    manager
+        .subscribe_resource("files", "ui://panel.html", "s1|token-1|1", &first)
+        .await
+        .expect("first subscriber");
+    manager
+        .subscribe_resource("files", "ui://panel.html", "s1|token-2|2", &second)
+        .await
+        .expect("second subscriber");
+    assert_eq!(subscribe_count(&fake, "resources/subscribe"), 1);
+
+    // 服务器说资源变了：两组订阅者拿到同一条事件（按会话分组）。
+    fake.push(
+        "files",
+        json!({
+            "jsonrpc": "2.0",
+            "method": "notifications/resources/updated",
+            "params": {"uri": "ui://panel.html"},
+        }),
+    );
+    let event = tokio::time::timeout(std::time::Duration::from_secs(2), received.recv())
+        .await
+        .expect("an event")
+        .expect("a channel value");
+    match event {
+        McpUiEvent::ResourceUpdated {
+            session,
+            server,
+            uri,
+            subscribers,
+            ..
+        } => {
+            assert_eq!(session.as_str(), "s1");
+            assert_eq!(server, "files");
+            assert_eq!(uri, "ui://panel.html");
+            assert_eq!(subscribers.len(), 2);
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // 退订一个：还留着另一个，不发 unsubscribe；退订最后一个才发。
+    manager
+        .unsubscribe_resource("files", "ui://panel.html", "s1|token-1|1")
+        .await
+        .expect("unsubscribe one");
+    assert_eq!(subscribe_count(&fake, "resources/unsubscribe"), 0);
+    manager
+        .unsubscribe_resource("files", "ui://panel.html", "s1|token-2|2")
+        .await
+        .expect("unsubscribe last");
+    assert_eq!(subscribe_count(&fake, "resources/unsubscribe"), 1);
+}
+
+/// 页面关闭按 `session|token|` 前缀退掉它的全部资源（最后一个订阅者才通知服务器）。
+#[tokio::test]
+async fn forgetting_a_page_drops_its_subscriptions() {
+    let fake = Arc::new(FakeMcp::default().with("files", resources()));
+    let scope = TaskScope::root("ui", |_| {});
+    let manager = new_manager(fake.clone(), &scope);
+    manager.start(workspace(), vec![stdio("files")]);
+    manager.wait_ready().await;
+    manager
+        .subscribe_resource("files", "ui://a", "s1|token-1|1", &credential("token-1", 1))
+        .await
+        .expect("subscribe");
+    manager
+        .subscribe_resource(
+            "files",
+            "ui://other",
+            "s1|token-2|1",
+            &credential("token-2", 1),
+        )
+        .await
+        .expect("other page");
+    manager.unsubscribe_resources_for("s1|token-1|").await;
+    assert_eq!(subscribe_count(&fake, "resources/unsubscribe"), 1, "只退掉这一页的");
+    // 另一页的订阅还在：退订它时才发第二条 unsubscribe。
+    manager
+        .unsubscribe_resource("files", "ui://other", "s1|token-2|1")
+        .await
+        .expect("unsubscribe other");
+    assert_eq!(subscribe_count(&fake, "resources/unsubscribe"), 2);
+}
+
+/// 没有声明 `resources.subscribe` 的服务器：订阅是 Unsupported，不是静默失败。
+#[tokio::test]
+async fn a_server_without_subscribe_support_is_unsupported() {
+    let fake = Arc::new(FakeMcp::default().with(
+        "files",
+        server(json!({"resources": {}}), None, |method, _| {
+            (method == "resources/list").then(|| Ok(json!({"resources": []})))
+        }),
+    ));
+    let scope = TaskScope::root("ui", |_| {});
+    let manager = new_manager(fake, &scope);
+    manager.start(workspace(), vec![stdio("files")]);
+    manager.wait_ready().await;
+    assert!(matches!(
+        manager
+            .subscribe_resource("files", "ui://x", "s1|token-1|1", &credential("token-1", 1))
+            .await,
+        Err(McpUiError::Unsupported { .. })
+    ));
 }
