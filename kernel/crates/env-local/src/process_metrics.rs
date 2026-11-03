@@ -198,8 +198,43 @@ fn total_memory_bytes() -> Option<u64> {
     sysconf_pages(libc::_SC_PHYS_PAGES)
 }
 
-/// macOS / BSD：`_SC_AVPHYS_PAGES` 是系统可用页数（比 libuv 的 `vm_statistics64` 粗，但同一量级）。
-#[cfg(all(unix, not(target_os = "linux")))]
+/// macOS：`os.freemem()` / libuv 的口径是 `vm_statistics64` 的 free + inactive 页乘页大小。
+/// `_SC_AVPHYS_PAGES` 只在 BSD 与 Linux 上有，macOS 的 `unistd.h` 不定义它。
+#[cfg(target_os = "macos")]
+#[expect(
+    unsafe_code,
+    reason = "sysconf(3) 与 host_statistics64 是 Mach/libc FFI，没有安全封装"
+)]
+#[allow(
+    deprecated,
+    reason = "libc 建议换 mach2，但为这一个调用加依赖不值得；mach_host_self 的 ABI 稳定"
+)]
+fn free_memory_bytes() -> Option<u64> {
+    // SAFETY: sysconf 只读系统常量；host_statistics64 只写调用方给的结构，count 与结构大小一致。
+    unsafe {
+        let page_size = libc::sysconf(libc::_SC_PAGESIZE);
+        if page_size <= 0 {
+            return None;
+        }
+        let mut stats = std::mem::MaybeUninit::<libc::vm_statistics64_data_t>::zeroed();
+        let mut count = libc::HOST_VM_INFO64_COUNT;
+        let status = libc::host_statistics64(
+            libc::mach_host_self(),
+            libc::HOST_VM_INFO64,
+            stats.as_mut_ptr().cast(),
+            &mut count,
+        );
+        if status != libc::KERN_SUCCESS {
+            return None;
+        }
+        let stats = stats.assume_init();
+        let free_pages = u64::from(stats.free_count) + u64::from(stats.inactive_count);
+        Some(free_pages.saturating_mul(u64::try_from(page_size).ok()?))
+    }
+}
+
+/// BSD：`_SC_AVPHYS_PAGES` 是系统可用页数（比 macOS 的 `vm_statistics64` 粗，但同一量级）。
+#[cfg(all(unix, not(target_os = "linux"), not(target_os = "macos")))]
 fn free_memory_bytes() -> Option<u64> {
     sysconf_pages(libc::_SC_AVPHYS_PAGES)
 }
