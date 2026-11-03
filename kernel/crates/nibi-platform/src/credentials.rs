@@ -288,7 +288,9 @@ pub fn load_or_create_install_key(path: &Path) -> Result<[u8; KEY_BYTES], Creden
             });
         }
     }
-    const CONTENT_WAIT_ATTEMPTS: usize = 20;
+    // CI 的 4 核 runner 上创建者线程可能被调度走数百毫秒；窗口给到 2s。正常路径第一次读就有
+    // 内容，不会等；窗口耗尽仍空才 fail-closed。
+    const CONTENT_WAIT_ATTEMPTS: usize = 200;
     const CONTENT_WAIT_INTERVAL_MS: u64 = 10;
     for attempt in 0..CONTENT_WAIT_ATTEMPTS {
         let read = read_install_key(path);
