@@ -13,6 +13,7 @@ use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId};
 use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::{PermissionMode, ToolPolicy};
+use super::imported_history;
 use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Kernel, KernelError, SequencedEvent,
     SessionHandle, SessionView,
@@ -271,8 +272,39 @@ async fn create_registers_the_tool_policy_with_the_kernel() {
     assert_eq!(policies[0].deny, ["Bash"]);
 }
 
+#[test]
+fn imported_history_maps_claude_and_shared_context() {
+    let (title, created, history) = imported_history(&json!({
+        "importedHistory": {
+            "source": "claudeCode",
+            "title": "Migrated",
+            "createdAt": 5,
+            "messages": [
+                {"role": "user", "content": "hi", "timestamp": 1},
+                {"role": "assistant", "content": "yo"}
+            ]
+        }
+    }))
+    .unwrap();
+    assert_eq!(title.as_deref(), Some("Migrated"));
+    assert_eq!(created, Some(5));
+    assert_eq!(history.len(), 2);
+    assert_eq!(history[0].role, "user");
+    assert_eq!(history[1].content, "yo");
+
+    let (_, _, history) = imported_history(&json!({
+        "importedHistory": {
+            "source": "sharedContext",
+            "title": "Shared",
+            "markdown": "# context"
+        }
+    }))
+    .unwrap();
+    assert_eq!(history[0].content, "# context");
+}
+
 #[tokio::test]
-async fn create_refuses_imported_history_until_it_is_wired() {
+async fn create_fails_closed_when_the_kernel_cannot_import_history() {
     let (server, _sent, created, _policies) = fake("sess_new");
     let error = match Handler(server)
         .request(
@@ -287,8 +319,7 @@ async fn create_refuses_imported_history_until_it_is_wired() {
         Ok(_) => panic!("expected imported history to be refused"),
         Err(error) => error,
     };
-    assert_eq!(error.code, -32010);
-    assert!(error.message.contains("does not import session history"));
+    assert!(error.message.contains("imported session history"));
     assert!(created.lock().unwrap().is_empty());
 }
 

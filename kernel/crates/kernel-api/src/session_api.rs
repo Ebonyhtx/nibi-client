@@ -464,6 +464,16 @@ pub struct CreateSession {
     pub plan: bool,
 }
 
+/// 导入的历史消息（NIBI `createSession.importedHistory`，Claude Code 迁移）：只有角色、正文与
+/// 原时间戳；时间戳用于展示，内核消息本身仍按提交时间落库。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ImportedMessage {
+    pub role: String,
+    pub content: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp_ms: Option<u64>,
+}
+
 /// 会话的当前视图（前端重连或首次打开时用）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SessionView {
@@ -608,6 +618,22 @@ pub trait SessionHandle: Send + Sync {
 #[async_trait]
 pub trait Kernel: Send + Sync {
     async fn create_session(&self, request: CreateSession) -> Result<SessionId, KernelError>;
+
+    /// 建会话并写入导入的历史（NIBI `createSession.importedHistory`）：标题、创建时间与父会话
+    /// 一起落库，历史消息按提交顺序写进同一个会话。缺省 `Unsupported`，调用方必须 fail-closed，
+    /// 不能静默建一个空会话。
+    async fn create_session_with_history(
+        &self,
+        _request: CreateSession,
+        _title: Option<String>,
+        _created_at_ms: Option<u64>,
+        _parent: Option<SessionId>,
+        _history: Vec<ImportedMessage>,
+    ) -> Result<SessionId, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "imported session history".to_owned(),
+        })
+    }
 
     async fn open_session(
         &self,

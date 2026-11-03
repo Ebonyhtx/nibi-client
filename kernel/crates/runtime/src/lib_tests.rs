@@ -44,6 +44,51 @@ fn workspace() -> WorkspaceRef {
 }
 
 #[tokio::test]
+async fn imported_history_is_persisted_with_title_and_created_at() {
+    use rust_cli_kernel_api::session_api::ImportedMessage;
+
+    let store = Arc::new(MemoryStore::default());
+    let first = kernel(
+        store.clone(),
+        Arc::new(ScriptedModel::new(Vec::new())),
+    );
+    let id = first
+        .create_session_with_history(
+            CreateSession {
+                id: None,
+                workspace: workspace(),
+                selection: selection(),
+                mode: PermissionMode::Default,
+                plan: false,
+            },
+            Some("Migrated".to_owned()),
+            Some(42),
+            None,
+            vec![
+                ImportedMessage {
+                    role: "user".to_owned(),
+                    content: "hi".to_owned(),
+                    timestamp_ms: Some(1),
+                },
+                ImportedMessage {
+                    role: "assistant".to_owned(),
+                    content: "yo".to_owned(),
+                    timestamp_ms: None,
+                },
+            ],
+        )
+        .await
+        .unwrap();
+    drop(first);
+
+    let reopened = kernel(store, Arc::new(ScriptedModel::new(Vec::new())));
+    let view = reopened.session_snapshot(&id).await.unwrap();
+    assert_eq!(view.meta.title, "Migrated");
+    assert_eq!(view.meta.created_at_ms, 42);
+    assert_eq!(view.messages.len(), 2);
+}
+
+#[tokio::test]
 async fn a_created_session_runs_a_turn_and_reloads_after_restart() {
     let store = Arc::new(MemoryStore::default());
     let first = kernel(

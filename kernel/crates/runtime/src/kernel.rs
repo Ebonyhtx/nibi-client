@@ -271,6 +271,100 @@ impl Kernel for LocalKernel {
         Ok(id)
     }
 
+    /// 建会话并写入导入的历史（NIBI `createSession.importedHistory`）：标题、创建时间与父会话
+    /// 一起落库，历史消息按提交顺序写进同一个会话。
+    async fn create_session_with_history(
+        &self,
+        request: CreateSession,
+        title: Option<String>,
+        created_at_ms: Option<u64>,
+        parent: Option<SessionId>,
+        history: Vec<rust_cli_kernel_api::session_api::ImportedMessage>,
+    ) -> Result<SessionId, KernelError> {
+        use rust_cli_kernel_api::message::{
+            AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin,
+        };
+
+        let id = request
+            .id
+            .clone()
+            .unwrap_or_else(|| self.ports.ids.session());
+        let meta = SessionMeta {
+            id: id.clone(),
+            kind: SessionKind::Interactive,
+            parent,
+            workspace: request.workspace.clone(),
+            title: title.unwrap_or_default(),
+            trace: TraceId::new(id.as_str()),
+            created_at_ms: created_at_ms.unwrap_or_else(|| self.ports.clock.now_ms()),
+        };
+        self.ports
+            .store
+            .create(meta.clone())
+            .await
+            .map_err(|error| failed(&error))?;
+        let execution = ExecutionState::from_parts(request.mode, request.plan);
+        let mut facts = vec![
+            Fact::ModelSelected {
+                selection: request.selection.clone(),
+            },
+            Fact::ExecutionChanged { state: execution },
+        ];
+        let mut messages = Vec::new();
+        for imported in history {
+            let id = self.ports.ids.message();
+            let content = vec![ContentBlock::Text {
+                text: imported.content,
+            }];
+            let message = if imported.role == "assistant" {
+                Message::Assistant(AssistantMessage {
+                    id,
+                    content,
+                    model: "<imported>".to_owned(),
+                    stop_reason: None,
+                    usage: None,
+                })
+            } else {
+                Message::User(UserMessage {
+                    id,
+                    content,
+                    origin: UserOrigin::Human,
+                })
+            };
+            facts.push(Fact::MessageAppended {
+                message: message.clone(),
+            });
+            messages.push(message);
+        }
+        let batch = FactBatch {
+            owner_epoch: OwnerEpoch::LOCAL,
+            command: None,
+            facts,
+            turn: None,
+        };
+        self.ports
+            .store
+            .commit(&id, batch)
+            .await
+            .map_err(|error| failed(&error))?;
+        self.start(
+            SessionState {
+                meta,
+                messages,
+                earlier: Vec::new(),
+                selection: request.selection,
+                mode: execution,
+                checkpoints: Vec::new(),
+                start: StartSource::Startup,
+                turn: None,
+                last_turn_failed: false,
+                launches: Vec::new(),
+            },
+            Opened::Created,
+        );
+        Ok(id)
+    }
+
     async fn open_session_as(
         &self,
         session: &SessionId,

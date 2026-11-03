@@ -6,6 +6,7 @@
 use rust_cli_kernel_api::env::EnvPath;
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::permission::ToolPolicy;
+use rust_cli_kernel_api::session_api::ImportedMessage;
 use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CreateSession, Delivery, SessionHandle, SessionView,
 };
@@ -103,15 +104,42 @@ fn tool_policy(params: &Value) -> Option<ToolPolicy> {
     (!policy.is_empty()).then_some(policy)
 }
 
-/// 还没承载、且忽略会放宽安全边界的字段：宁可直接拒绝，也不静默放行。
-fn reject_unenforced(params: &Value) -> Result<(), RpcError> {
-    if params.get("importedHistory").is_some_and(|value| !value.is_null()) {
-        return Err(RpcError::new(
-            REQUEST_REJECTED,
-            "the Rust kernel does not import session history yet; refusing to create an empty session",
-        ));
+/// `importedHistory`（Claude Code 迁移 / 分享上下文）→ 标题、创建时间与消息。
+fn imported_history(
+    params: &Value,
+) -> Option<(Option<String>, Option<u64>, Vec<ImportedMessage>)> {
+    let imported = params.get("importedHistory").filter(|value| !value.is_null())?;
+    let title = imported["title"].as_str().map(str::to_owned);
+    let created_at = imported["createdAt"].as_u64();
+    if let Some(messages) = imported["messages"].as_array() {
+        let history = messages
+            .iter()
+            .filter_map(|message| {
+                let content = message["content"].as_str()?.to_owned();
+                if content.is_empty() {
+                    return None;
+                }
+                Some(ImportedMessage {
+                    role: message["role"].as_str().unwrap_or("user").to_owned(),
+                    content,
+                    timestamp_ms: message["timestamp"].as_u64(),
+                })
+            })
+            .collect();
+        return Some((title, created_at, history));
     }
-    Ok(())
+    // sharedContext 变体没有 messages，正文是 markdown。
+    imported["markdown"].as_str().map(|markdown| {
+        (
+            title,
+            created_at,
+            vec![ImportedMessage {
+                role: "user".to_owned(),
+                content: markdown.to_owned(),
+                timestamp_ms: None,
+            }],
+        )
+    })
 }
 
 async fn apply_tool_policy(
@@ -164,7 +192,6 @@ async fn apply_mcp(server: &Server, session: &SessionId, params: &Value, workspa
 }
 
 pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> {
-    reject_unenforced(params)?;
     let workspace = params["workspace"]["workspacePath"]
         .as_str()
         .filter(|path| !path.is_empty())
@@ -197,17 +224,31 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
     }
     let (mode, plan) =
         commands::mode(&params["mode"], None).unwrap_or((server.defaults.mode, false));
-    let id = server
-        .kernel
-        .create_session(CreateSession {
-            id: params["sessionId"].as_str().map(SessionId::new),
-            workspace: server.workspace(workspace),
-            selection,
-            mode,
-            plan,
-        })
-        .await
-        .map_err(|error| kernel_error(&error))?;
+    let request = CreateSession {
+        id: params["sessionId"].as_str().map(SessionId::new),
+        workspace: server.workspace(workspace),
+        selection,
+        mode,
+        plan,
+    };
+    let id = match imported_history(params) {
+        Some((title, created_at, history)) => server
+            .kernel
+            .create_session_with_history(
+                request,
+                title,
+                created_at,
+                params["parentSessionId"].as_str().map(SessionId::new),
+                history,
+            )
+            .await
+            .map_err(|error| kernel_error(&error))?,
+        None => server
+            .kernel
+            .create_session(request)
+            .await
+            .map_err(|error| kernel_error(&error))?,
+    };
     let directories = apply_directories(params);
     if !directories.is_empty()
         && let Err(error) = server
@@ -232,7 +273,6 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
 }
 
 pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> {
-    reject_unenforced(params)?;
     let id = session_id(params)?;
     apply_tool_policy(server, &id, params).await?;
     let before = view(server, &id).await?;
