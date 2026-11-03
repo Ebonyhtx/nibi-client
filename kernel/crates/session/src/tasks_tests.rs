@@ -204,6 +204,24 @@ impl Background for Shells {
     async fn background_elapsed(&self, task: BackgroundTask) -> Result<Option<u64>, EnvError> {
         Ok((task.task.as_str() == format!("{}1", self.prefix)).then_some(65_000))
     }
+
+    async fn background_output_tail(
+        &self,
+        task: BackgroundTask,
+        max_bytes: u64,
+    ) -> Result<Option<rust_cli_kernel_api::env_shell::BackgroundOutputTail>, EnvError> {
+        if !task.task.as_str().starts_with(self.prefix) {
+            return Ok(None);
+        }
+        let text = format!("tail of {}", task.task);
+        assert_eq!(max_bytes, 8_192);
+        Ok(Some(rust_cli_kernel_api::env_shell::BackgroundOutputTail {
+            bytes: text.into_bytes(),
+            total_bytes: 100,
+            truncated: true,
+            path: EnvPath::new(format!("{}/{}.output", self.outputs, task.task)),
+        }))
+    }
 }
 
 impl Search for Shells {}
@@ -386,6 +404,34 @@ async fn shell_details_show_the_last_ten_lines_and_the_runtime() {
             lines: Vec::new(),
             total: 0
         }
+    );
+}
+
+/// `v4/conversation/backgroundBashOutput`：按本机、再按连上的远端机器找到任务，读回尾窗。
+#[tokio::test]
+async fn background_output_reads_the_tail_from_the_owning_machine() {
+    let mut setup = Setup::new(std::sync::Arc::new(ScriptedModel::new(Vec::new())));
+    setup.set_env(std::sync::Arc::new(Shells::LOCAL));
+    let built = setup.build().await;
+    let output = built
+        .session
+        .background_output("b1", 8_192)
+        .await
+        .unwrap()
+        .expect("the task exists");
+    assert_eq!(output.work_id, "b1");
+    assert_eq!(output.status, BackgroundStatus::Running);
+    assert_eq!(output.output, "tail of b1");
+    assert!(output.truncated);
+    assert_eq!(output.output_path, "/tmp/tasks/b1.output");
+    // 不认识的任务：None（协议层回 `unavailable`）。
+    assert!(
+        built
+            .session
+            .background_output("nope", 8_192)
+            .await
+            .unwrap()
+            .is_none()
     );
 }
 
