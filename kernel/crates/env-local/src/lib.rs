@@ -24,6 +24,7 @@ mod mcp;
 mod meta;
 mod pdf;
 pub mod process_metrics;
+pub mod process_sampler;
 mod rewind;
 mod search;
 mod shell;

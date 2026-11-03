@@ -10,6 +10,7 @@ mod embedded;
 pub(crate) mod environ;
 mod mounts;
 mod notices;
+mod sampler;
 mod sandbox;
 mod socket;
 mod stop;
@@ -206,6 +207,9 @@ pub(crate) struct Shells {
     shared: Arc<Shared>,
     /// 输出文件的上限（生产是 [`OUTPUT_LIMIT`]；测试换成小的）。
     limit: OutputLimit,
+    /// Bash 命令的资源事实（`process/toolExecResource`，141 审计 §9 F3）：入口接上协议层的通知任务；
+    /// None 时不做采样（TUI、测试与嵌入）。
+    telemetry: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::process_table::ToolExecResource>>,
 }
 
 fn session_of(context: &OperationContext) -> SessionId {
@@ -247,7 +251,16 @@ impl Shells {
                 notices: signal::channel(0).0,
             }),
             limit: OUTPUT_LIMIT,
+            telemetry: None,
         }
+    }
+
+    /// 接上 Bash 资源事实的出口（`process/toolExecResource`）。入口在协议 server 建好之前接。
+    pub(crate) fn set_telemetry(
+        &mut self,
+        sink: tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::process_table::ToolExecResource>,
+    ) {
+        self.telemetry = Some(sink);
     }
 
     /// 测试用小的上限与间隔（5 GB / 5 s 在测试里不可行）。只有 Unix 的测试用（F66：Windows 上是死代码）。
@@ -378,6 +391,15 @@ impl Shells {
             movable: request.on_timeout.is_some() && request.background.is_none(),
             started: std::time::Instant::now(),
         });
+        // Bash 命令的资源采样（`process/toolExecResource`）：只对真正的命令，hook 与 ws monitor 不算。
+        if request.hook.is_none()
+            && let Some(sink) = self.telemetry.clone()
+        {
+            drop(self.scope.spawner().spawn(
+                "bash-resource-sampler",
+                sampler::watch(launched.pid(), running.clone(), sink),
+            ));
+        }
         {
             let mut state = self.shared.state();
             state

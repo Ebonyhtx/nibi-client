@@ -10,6 +10,7 @@
 //! 读不到就返回 `None`：上层这一拍跳过，不用 0 冒充（Node 的 `toRoundedUnit` 同一姿态）。
 
 use rust_cli_kernel_api::process_metrics::{ProcessMetrics, ProcessUsage};
+use rust_cli_kernel_api::process_table::{node_arch, node_platform};
 
 /// 本机实现。
 pub struct LocalProcessMetrics {
@@ -32,11 +33,11 @@ impl Default for LocalProcessMetrics {
 
 impl ProcessMetrics for LocalProcessMetrics {
     fn platform(&self) -> &'static str {
-        std::env::consts::OS
+        node_platform()
     }
 
     fn arch(&self) -> &'static str {
-        std::env::consts::ARCH
+        node_arch()
     }
 
     fn logical_cpu_count(&self) -> u32 {
@@ -48,6 +49,10 @@ impl ProcessMetrics for LocalProcessMetrics {
 
     fn total_memory_bytes(&self) -> Option<u64> {
         total_memory_bytes()
+    }
+
+    fn free_memory_bytes(&self) -> Option<u64> {
+        free_memory_bytes()
     }
 
     fn uptime_seconds(&self) -> Option<u64> {
@@ -146,30 +151,62 @@ fn read() -> Option<ProcessUsage> {
 
 #[cfg(target_os = "linux")]
 fn total_memory_bytes() -> Option<u64> {
+    meminfo_kb("MemTotal:").map(|kb| kb.saturating_mul(1_024))
+}
+
+/// Node `os.freemem()` 在 Linux 上读的就是 `MemFree`（libuv 的 `sysinfo.freeram`），这里同源。
+#[cfg(target_os = "linux")]
+fn free_memory_bytes() -> Option<u64> {
+    meminfo_kb("MemFree:").map(|kb| kb.saturating_mul(1_024))
+}
+
+#[cfg(target_os = "linux")]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "/proc 是进程信息伪文件，不是本机存储（README §3.2 的 proc 函数级豁免）"
+)]
+fn meminfo_kb(key: &str) -> Option<u64> {
     let meminfo = std::fs::read_to_string("/proc/meminfo").ok()?;
-    let line = meminfo
-        .lines()
-        .find(|line| line.starts_with("MemTotal:"))?;
-    let kb: u64 = line.split_whitespace().nth(1)?.parse().ok()?;
-    Some(kb.saturating_mul(1_024))
+    let line = meminfo.lines().find(|line| line.starts_with(key))?;
+    line[key.len()..].split_whitespace().next()?.parse().ok()
+}
+
+/// 本进程当前的常驻内存（KB）。
+pub(crate) fn current_rss_kb() -> Option<u64> {
+    read().map(|usage| usage.rss_bytes / 1_024)
+}
+
+/// 系统可用内存（KB）。
+pub(crate) fn free_memory_kb() -> Option<u64> {
+    free_memory_bytes().map(|bytes| bytes / 1_024)
 }
 
 #[cfg(all(unix, not(target_os = "linux")))]
 #[expect(unsafe_code, reason = "sysconf(3) 是 libc 的 FFI，没有安全封装")]
-fn total_memory_bytes() -> Option<u64> {
+fn sysconf_pages(name: libc::c_int) -> Option<u64> {
     // SAFETY: `sysconf` 只读系统常量。
-    let pages = unsafe { libc::sysconf(libc::_SC_PHYS_PAGES) };
-    // SAFETY: 同上。
+    let pages = unsafe { libc::sysconf(name) };
     let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
     if pages <= 0 || page_size <= 0 {
         return None;
     }
-    Some((pages as u64).saturating_mul(page_size as u64))
+    u64::try_from(pages).ok()?.checked_mul(u64::try_from(page_size).ok()?)
+}
+
+#[cfg(all(unix, not(target_os = "linux")))]
+fn total_memory_bytes() -> Option<u64> {
+    sysconf_pages(libc::_SC_PHYS_PAGES)
+}
+
+/// macOS / BSD：`_SC_AVPHYS_PAGES` 是系统可用页数（比 libuv 的 `vm_statistics64` 粗，但同一量级）。
+#[cfg(all(unix, not(target_os = "linux")))]
+fn free_memory_bytes() -> Option<u64> {
+    sysconf_pages(libc::_SC_AVPHYS_PAGES)
 }
 
 #[cfg(windows)]
 #[expect(unsafe_code, reason = "GlobalMemoryStatusEx 是 Win32 FFI，没有安全封装")]
-fn total_memory_bytes() -> Option<u64> {
+fn memory_status() -> Option<windows_sys::Win32::System::SystemInformation::MEMORYSTATUSEX> {
     use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 
     // SAFETY: 只写调用方给的结构；`dwLength` 按 API 要求先填结构大小。
@@ -179,12 +216,27 @@ fn total_memory_bytes() -> Option<u64> {
         if GlobalMemoryStatusEx(&mut status) == 0 {
             return None;
         }
-        Some(status.ullTotalPhys)
+        Some(status)
     }
+}
+
+#[cfg(windows)]
+fn total_memory_bytes() -> Option<u64> {
+    memory_status().map(|status| status.ullTotalPhys)
+}
+
+#[cfg(windows)]
+fn free_memory_bytes() -> Option<u64> {
+    memory_status().map(|status| status.ullAvailPhys)
 }
 
 #[cfg(not(any(unix, windows)))]
 fn total_memory_bytes() -> Option<u64> {
+    None
+}
+
+#[cfg(not(any(unix, windows)))]
+fn free_memory_bytes() -> Option<u64> {
     None
 }
 

@@ -181,6 +181,10 @@ async fn serve(
     let account = platform.clone();
     let shell =
         crate::shell::config(startup.env.clone(), &startup.temp, !names_search_tools(&[])).await;
+    // Bash 命令的资源事实（`process/toolExecResource`，141 审计 §9 F3）：执行环境写这一头，
+    // 协议 server 读另一头转发成通知。
+    let (tool_telemetry, tool_exec_channel) =
+        rust_cli_protocol_zcode::telemetry::ToolExecChannel::channel();
     let monitor = options::monitor(startup.explicit.assume, shell.bash.is_some());
     let mcp_transport = Arc::new(LocalMcpTransport::new(
         shell.ledger.clone(),
@@ -194,6 +198,7 @@ async fn serve(
     let env = Arc::new(
         LocalEnvironment::new(Some(startup.home.clone()))
             .with_shell(shell)
+            .with_tool_telemetry(tool_telemetry)
             .with_web(egress.clone()),
     );
     let environments = setup::environments(env, mcp_transport);
@@ -377,7 +382,10 @@ async fn serve(
             defaults,
             spawner,
             Options::default(),
-            Some(capture),
+            rust_cli_protocol_zcode::telemetry::TelemetryPorts {
+                capture: Some(capture),
+                tool_exec: Some(tool_exec_channel),
+            },
         ) => {
             result?;
         }

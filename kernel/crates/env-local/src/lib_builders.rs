@@ -42,6 +42,21 @@ impl LocalEnvironment {
         self
     }
 
+    /// Bash 命令的资源事实（`process/toolExecResource`，141 审计 §9 F3）交给 `sink` 的另一头：
+    /// 入口接到协议层的通知任务上。要在 [`with_shell`](Self::with_shell) 之后调用。
+    #[must_use]
+    pub fn with_tool_telemetry(
+        mut self,
+        sink: tokio::sync::mpsc::UnboundedSender<
+            rust_cli_kernel_api::process_table::ToolExecResource,
+        >,
+    ) -> Self {
+        if let Some(shells) = self.shells.as_mut() {
+            shells.set_telemetry(sink);
+        }
+        self
+    }
+
     /// git、pdfinfo 与 pdftoppm 子进程的环境：白名单投影，`SHELL` 照快照继承（F58：以前没设时写空串）。
     pub(crate) fn git_env(&self) -> std::collections::BTreeMap<String, String> {
         environ::project(&self.snapshot, None)

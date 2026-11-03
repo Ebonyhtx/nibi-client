@@ -27,6 +27,7 @@ mod identity;
 pub mod job;
 pub mod ledger;
 pub mod private;
+pub mod resources;
 pub mod shell;
 pub mod tree;
 

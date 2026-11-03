@@ -111,12 +111,19 @@ where
     R: AsyncBufRead + Unpin,
 {
     serve_with_capture(
-        reader, context, kernel, defaults, spawner, options, None,
+        reader,
+        context,
+        kernel,
+        defaults,
+        spawner,
+        options,
+        telemetry::TelemetryPorts::default(),
     )
     .await
 }
 
-/// 同 [`serve`]，另给网络捕获的运行时（入口把观察者装到 `Egress` 之后传进来）。
+/// 同 [`serve`]，另给网络捕获的运行时（入口把观察者装到 `Egress` 之后传进来）与 Bash 资源事实的通道
+/// （入口把它另一头的发送端交给了执行环境）。
 pub async fn serve_with_capture<R>(
     reader: R,
     context: Arc<Context>,
@@ -124,12 +131,13 @@ pub async fn serve_with_capture<R>(
     defaults: Defaults,
     spawner: Spawner,
     options: Options,
-    capture: Option<Arc<telemetry::Capture>>,
+    ports: telemetry::TelemetryPorts,
 ) -> std::io::Result<()>
 where
     R: AsyncBufRead + Unpin,
 {
     let peer: Peer = context.peer.clone();
+    let telemetry::TelemetryPorts { capture, tool_exec } = ports;
     let server = Arc::new(server::Server::new(
         context,
         kernel,
@@ -141,6 +149,10 @@ where
         // 攒批任务与服务器同生共死（作用域关闭时结束）。
         // 任务跟着 spawner 的作用域走；句柄不用。
         std::mem::drop(capture.start());
+    }
+    if let Some(channel) = tool_exec {
+        // 执行环境的 Bash 事实 → `process/toolExecResource`（141 审计 §9 F3）。
+        std::mem::drop(channel.forward(server.context.clone(), &spawner));
     }
     connection::serve(
         reader,

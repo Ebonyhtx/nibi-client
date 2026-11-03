@@ -191,6 +191,43 @@ async fn captured_requests_are_batched_to_the_host() {
     );
 }
 
+/// Bash 事实经通道变成 `process/toolExecResource`（141 审计 §9 F3）：字段原样上线，形状是 Host schema。
+#[tokio::test]
+async fn tool_exec_facts_become_notifications() {
+    let (peer, host_side, scope) = channel();
+    let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
+    let (sender, channel) = ToolExecChannel::channel();
+    std::mem::drop(channel.forward(context, &scope.spawner()));
+    let fact = rust_cli_kernel_api::process_table::ToolExecResource {
+        completion_token: Some("00000000-0000-4000-a000-000000000000".to_owned()),
+        platform: "linux".to_owned(),
+        tool_name: "bash".to_owned(),
+        duration_ms: 30_000,
+        exit_kind: rust_cli_kernel_api::process_table::ToolExitKind::Completed,
+        tree_rss_kb_peak: Some(2_048),
+        tree_cpu_time_ms: Some(1_500),
+        sample_count: 2,
+        cli_rss_kb: 65_536,
+        system_free_memory_kb: 1_048_576,
+    };
+    sender.send(fact).expect("the forwarder is alive");
+    let mut reader = BufReader::new(host_side);
+    let mut line = String::new();
+    tokio::time::timeout(Duration::from_secs(5), reader.read_line(&mut line))
+        .await
+        .expect("a frame within the timeout")
+        .expect("a frame");
+    let frame: Value = serde_json::from_str(&line).expect("a JSON frame");
+    assert_eq!(frame["method"], "process/toolExecResource");
+    let params = &frame["params"];
+    assert_eq!(params["toolName"], "bash");
+    assert_eq!(params["durationMs"], 30_000);
+    assert_eq!(params["exitKind"], "completed");
+    assert_eq!(params["sampleCount"], 2);
+    assert_eq!(params["treeRssKbPeak"], 2_048);
+    assert_eq!(params["cliRssKb"], 65_536);
+}
+
 /// 没开捕获时观察者什么都不发。
 #[tokio::test]
 async fn requests_are_not_captured_while_the_capture_is_off() {

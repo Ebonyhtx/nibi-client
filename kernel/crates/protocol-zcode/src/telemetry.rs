@@ -27,6 +27,39 @@ pub const NETWORK_CAPTURE: &str = "process/networkCapture";
 /// CLI 送回请求批次（`nibiProtocolNotifications.processNetworkRequests`）。
 pub const NETWORK_REQUESTS: &str = "process/networkRequests";
 
+/// Bash 命令的资源事实（Host `nibiProtocolNotifications.toolExecResource`）。
+pub const TOOL_EXEC_RESOURCE: &str = "process/toolExecResource";
+
+/// 入口接给协议层的遥测端口（141 审计 §9 F3）：网络捕获的运行时与 Bash 资源事实的通道。
+#[derive(Default)]
+pub struct TelemetryPorts {
+    /// 网络捕获（`process/networkCapture` → `process/networkRequests`）。
+    pub capture: Option<Arc<Capture>>,
+    /// Bash 命令的资源事实（`process/toolExecResource`）。
+    pub tool_exec: Option<ToolExecChannel>,
+}
+
+/// 入口接给执行环境的 Bash 事实通道（141 审计 §9 F3）。
+///
+/// 生产者在 `env-local`（它知道进程组 pid 与终态），消费者在这里：转发成 `process/toolExecResource`。
+/// 用通道而不是让执行环境直接发通知：执行环境不认识协议，也不该认识。
+pub struct ToolExecChannel {
+    records: tokio::sync::mpsc::UnboundedReceiver<
+        rust_cli_kernel_api::process_table::ToolExecResource,
+    >,
+}
+
+impl ToolExecChannel {
+    /// 一对（发送端交给 `LocalEnvironment::with_tool_telemetry`）。
+    pub fn channel() -> (
+        tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::process_table::ToolExecResource>,
+        Self,
+    ) {
+        let (sender, records) = tokio::sync::mpsc::unbounded_channel();
+        (sender, Self { records })
+    }
+}
+
 /// 起的采样任务；任务跟着作用域走（作用域关闭时它在等待点上结束）。
 pub struct ResourceTelemetry {
     task: Task<()>,
@@ -73,6 +106,20 @@ impl ResourceTelemetry {
     /// 停掉采样（进程退出或测试收尾）。
     pub fn stop(self) {
         self.task.abort();
+    }
+}
+
+impl ToolExecChannel {
+    /// 把执行环境送来的事实转成通知（通道关闭时任务结束）。
+    pub fn forward(self, context: Arc<Context>, spawner: &Spawner) -> Task<()> {
+        let mut records = self.records;
+        spawner.spawn("tool-exec-telemetry", async move {
+            while let Some(fact) = records.recv().await {
+                if let Ok(params) = serde_json::to_value(&fact) {
+                    context.peer.notify(TOOL_EXEC_RESOURCE, &params).await;
+                }
+            }
+        })
     }
 }
 

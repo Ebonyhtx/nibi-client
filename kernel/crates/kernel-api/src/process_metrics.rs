@@ -68,6 +68,11 @@ pub trait ProcessMetrics: Send + Sync {
     fn logical_cpu_count(&self) -> u32;
     /// 物理内存总量（字节）；读不到时 `None`。
     fn total_memory_bytes(&self) -> Option<u64>;
+    /// 系统可用物理内存（字节，Node `os.freemem()`）；读不到时 `None`。
+    /// `process/toolExecResource` 的 `systemFreeMemoryKb` 用它。
+    fn free_memory_bytes(&self) -> Option<u64> {
+        None
+    }
     /// 本进程已运行的秒数；读不到时 `None`。
     fn uptime_seconds(&self) -> Option<u64>;
     /// 累计 CPU 与当前内存；读不到时 `None`（这一拍跳过，保留旧基线）。
