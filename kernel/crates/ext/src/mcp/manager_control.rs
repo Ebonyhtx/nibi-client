@@ -47,6 +47,7 @@ impl McpManager {
         server.status = status;
         server.updated_at_ms = now;
         server.tools.clear();
+        server.model_tools.clear();
         server.prompts.clear();
         server.instructions = None;
         server.resources = false;

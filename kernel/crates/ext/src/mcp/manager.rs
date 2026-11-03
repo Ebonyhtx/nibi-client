@@ -16,16 +16,20 @@ use rust_cli_kernel_api::mcp::{McpTransport, McpTransportConfig};
 use rust_cli_kernel_api::mcp_status::{
     McpFailureKind, McpProtocolEra, McpServerStatus, McpServerStatusKind,
 };
+use rust_cli_kernel_api::mcp_ui::{
+    McpAppConnection, McpResourceContent, McpResourceDescriptor, McpResourcePage,
+    McpResourceTemplate, McpResourceTemplatePage, McpUiError, tool_visibility, visible_to_model,
+};
 use rust_cli_kernel_api::mcp_telemetry::McpProcessIdentity;
 use rust_cli_kernel_api::tool::Tool;
-use serde_json::Value;
+use serde_json::{Value, json};
 use tokio::sync::{Notify, watch};
 use tokio_util::sync::CancellationToken;
 
 use super::config::{McpServer, McpServerOptions, McpSettings};
 use super::connection::{self, OpenFailure, Session, has_capability};
 use super::resources;
-use super::rpc::{Client, Notice};
+use super::rpc::{Client, Notice, RpcError};
 use super::telemetry::McpTelemetrySlot;
 use super::tool::{McpTool, name_too_long, note_long_names};
 
@@ -67,6 +71,11 @@ struct Server {
     /// 这个服务器当前那次进程启动的遥测身份；没有进程（HTTP / SSE、未连、已退出）时 `None`。
     process: Option<ServerProcess>,
     tools: Vec<Arc<dyn Tool>>,
+    /// 进模型工具表的那些（`_meta.ui.visibility` 含 `model`）；`tools` 是服务器列出的全部。
+    model_tools: Vec<Arc<dyn Tool>>,
+    /// 工具的可见性（`_meta.ui.visibility`），按服务器给的原始工具名；缺省两者都有。
+    /// 第一次拉清单时记下，`list_changed` 重拉时整表替换（MCP Apps 的模型工具表与页面调用都用它）。
+    visibility: BTreeMap<String, Vec<String>>,
     instructions: Option<String>,
     resources: bool,
     prompts: Vec<Value>,
@@ -93,6 +102,8 @@ impl Server {
             client: None,
             process: None,
             tools: Vec::new(),
+            model_tools: Vec::new(),
+            visibility: BTreeMap::new(),
             instructions: None,
             resources: false,
             prompts: Vec::new(),
@@ -225,29 +236,48 @@ impl Inner {
         }
     }
 
-    async fn tools_of(self: &Arc<Self>, server: &str, client: &Client) -> Vec<Arc<dyn Tool>> {
+    async fn tools_of(
+        self: &Arc<Self>,
+        server: &str,
+        client: &Client,
+    ) -> (
+        Vec<Arc<dyn Tool>>,
+        Vec<Arc<dyn Tool>>,
+        BTreeMap<String, Vec<String>>,
+    ) {
         let options = self.options(server);
         let timeout = Duration::from_millis(self.settings.connect_timeout_for(options));
         match connection::list(client, "tools/list", "tools", timeout).await {
             Ok(listed) => {
-                let tools: Vec<Arc<dyn Tool>> = listed
-                    .iter()
-                    .filter_map(|item| {
-                        McpTool::from_listed(
-                            server,
-                            item,
-                            options.always_load,
-                            Arc::downgrade(self),
-                        )
-                    })
-                    .map(|tool| Arc::new(tool) as Arc<dyn Tool>)
-                    .collect();
-                note_long_names(server, &tools, &self.noted_names);
-                tools
+                // 可见性按原始工具名记全（含 app-only），模型工具表只收 `model` 那一半。
+                let mut visibility: BTreeMap<String, Vec<String>> = BTreeMap::new();
+                let mut all: Vec<Arc<dyn Tool>> = Vec::new();
+                let mut model: Vec<Arc<dyn Tool>> = Vec::new();
+                for item in &listed {
+                    let Some(tool) = McpTool::from_listed(
+                        server,
+                        item,
+                        options.always_load,
+                        Arc::downgrade(self),
+                    ) else {
+                        continue;
+                    };
+                    let visible = tool_visibility(item.get("_meta"));
+                    if let Some(name) = item.get("name").and_then(Value::as_str) {
+                        visibility.insert(name.to_owned(), visible.clone());
+                    }
+                    let tool: Arc<dyn Tool> = Arc::new(tool);
+                    if visible_to_model(&visible) {
+                        model.push(tool.clone());
+                    }
+                    all.push(tool);
+                }
+                note_long_names(server, &model, &self.noted_names);
+                (all, model, visibility)
             }
             Err(error) => {
                 tracing::warn!(server, %error, "MCP tools/list failed");
-                Vec::new()
+                (Vec::new(), Vec::new(), BTreeMap::new())
             }
         }
     }
@@ -276,10 +306,10 @@ impl Inner {
             capabilities,
             instructions,
         } = session;
-        let tools = if has_capability(&capabilities, "tools") {
+        let (tools, model_tools, visibility) = if has_capability(&capabilities, "tools") {
             self.tools_of(name, &client).await
         } else {
-            Vec::new()
+            (Vec::new(), Vec::new(), BTreeMap::new())
         };
         let prompts = if has_capability(&capabilities, "prompts") {
             self.prompts_of(name, &client).await
@@ -295,6 +325,8 @@ impl Inner {
             server.status = McpStatus::Connected;
             server.client = Some(published);
             server.tools = tools;
+            server.model_tools = model_tools;
+            server.visibility = visibility;
             server.prompts = prompts;
             server.instructions = instructions;
             server.resources = resources;
@@ -306,8 +338,12 @@ impl Inner {
         while let Some(notice) = notices.recv().await {
             match notice {
                 Notice::ListChanged(kind) if kind == "tools" => {
-                    let tools = self.tools_of(name, &client).await;
-                    self.update(name, generation, |server| server.tools = tools);
+                    let (tools, model_tools, visibility) = self.tools_of(name, &client).await;
+                    self.update(name, generation, |server| {
+                        server.tools = tools;
+                        server.model_tools = model_tools;
+                        server.visibility = visibility;
+                    });
                 }
                 Notice::ListChanged(kind) if kind == "prompts" => {
                     let prompts = self.prompts_of(name, &client).await;
@@ -451,6 +487,7 @@ impl Inner {
                         server.status = McpStatus::Pending;
                         server.client = None;
                         server.tools.clear();
+                        server.model_tools.clear();
                         server.expired = expired;
                         // stdio 不重连：下面马上记为失败。
                         server.reconnecting = remote;
@@ -476,6 +513,7 @@ impl Inner {
                     };
                     server.client = None;
                     server.tools.clear();
+                    server.model_tools.clear();
                     server.process = None;
                     server.reconnecting = false;
                     server.dormant = false;
@@ -628,6 +666,7 @@ impl McpManager {
                         server.status = McpStatus::Pending;
                         server.updated_at_ms = now;
                         server.tools.clear();
+                        server.model_tools.clear();
                         server.prompts.clear();
                         server.instructions = None;
                         server.resources = false;
@@ -742,6 +781,122 @@ impl McpManager {
             .collect()
     }
 
+    /// MCP Apps 的连接身份（Node `appConnectionSnapshot`）：只有已连接的服务器才有。
+    /// `identity` 是平台、工作区、服务器名与配置的摘要；配置或工作区换了就换身份。
+    pub fn app_connection(&self, server: &str) -> Option<McpAppConnection> {
+        let servers = self.0.servers();
+        let found = servers
+            .get(server)
+            .filter(|server| server.status == McpStatus::Connected)?;
+        let workspace = self
+            .0
+            .workspace
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()?;
+        Some(McpAppConnection {
+            identity: connection_identity(&workspace, &found.config),
+            generation: found.generation,
+        })
+    }
+
+    /// 工具的可见性（`_meta.ui.visibility`）：服务器没给这个工具时 `None`。
+    pub fn app_tool_visibility(&self, server: &str, tool: &str) -> Option<Vec<String>> {
+        self.0.servers().get(server)?.visibility.get(tool).cloned()
+    }
+
+    /// 资源请求的连接与期限（只接受已连接、声明了 resources 能力的服务器）。
+    fn resource_client(&self, server: &str) -> Result<(Arc<Client>, Duration), McpUiError> {
+        let servers = self.0.servers();
+        let found = servers
+            .get(server)
+            .ok_or_else(|| McpUiError::not_connected(server))?;
+        if found.status != McpStatus::Connected {
+            return Err(McpUiError::not_connected(server));
+        }
+        if !found.resources {
+            return Err(McpUiError::unsupported(server, "resources"));
+        }
+        let client = found
+            .client
+            .clone()
+            .ok_or_else(|| McpUiError::not_connected(server))?;
+        let timeout = Duration::from_millis(self.0.settings.tool_timeout_for(found.config.options));
+        Ok((client, timeout))
+    }
+
+    /// `resources/list` 的一页（游标原样透传；`None` 是最后一页）。
+    pub async fn list_resources(
+        &self,
+        server: &str,
+        cursor: Option<&str>,
+    ) -> Result<McpResourcePage, McpUiError> {
+        let (client, timeout) = self.resource_client(server)?;
+        let params = cursor.map_or_else(|| json!({}), |cursor| json!({"cursor": cursor}));
+        let result = client
+            .request("resources/list", params, timeout, &CancellationToken::new())
+            .await
+            .map_err(|error| ui_error(server, "resources/list", error))?;
+        Ok(McpResourcePage {
+            resources: result
+                .get("resources")
+                .and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(resource_descriptor).collect())
+                .unwrap_or_default(),
+            next_cursor: next_cursor(&result),
+        })
+    }
+
+    /// `resources/templates/list` 的一页。
+    pub async fn list_resource_templates(
+        &self,
+        server: &str,
+        cursor: Option<&str>,
+    ) -> Result<McpResourceTemplatePage, McpUiError> {
+        let (client, timeout) = self.resource_client(server)?;
+        let params = cursor.map_or_else(|| json!({}), |cursor| json!({"cursor": cursor}));
+        let result = client
+            .request(
+                "resources/templates/list",
+                params,
+                timeout,
+                &CancellationToken::new(),
+            )
+            .await
+            .map_err(|error| ui_error(server, "resources/templates/list", error))?;
+        Ok(McpResourceTemplatePage {
+            resource_templates: result
+                .get("resourceTemplates")
+                .and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(resource_template).collect())
+                .unwrap_or_default(),
+            next_cursor: next_cursor(&result),
+        })
+    }
+
+    /// `resources/read`：内容原样交回（`_meta` 保留；面向页面的界在协议层）。
+    pub async fn read_resource(
+        &self,
+        server: &str,
+        uri: &str,
+    ) -> Result<Vec<McpResourceContent>, McpUiError> {
+        let (client, timeout) = self.resource_client(server)?;
+        let result = client
+            .request(
+                "resources/read",
+                json!({"uri": uri}),
+                timeout,
+                &CancellationToken::new(),
+            )
+            .await
+            .map_err(|error| ui_error(server, "resources/read", error))?;
+        Ok(result
+            .get("contents")
+            .and_then(Value::as_array)
+            .map(|items| items.iter().filter_map(resource_content).collect())
+            .unwrap_or_default())
+    }
+
     /// 服务器的 prompts（`prompts/list` 的原样结果）。
     pub fn prompts(&self, server: &str) -> Vec<Value> {
         self.0
@@ -784,7 +939,7 @@ fn tools_of(inner: &Arc<Inner>, servers: &BTreeMap<String, Server>) -> Vec<Arc<d
         Vec::new()
     };
     let mut own: Vec<Arc<dyn Tool>> = connected()
-        .flat_map(|server| server.tools.iter())
+        .flat_map(|server| server.model_tools.iter())
         .filter(|tool| !name_too_long(tool.name()))
         .cloned()
         .collect();
@@ -814,6 +969,119 @@ fn instructions_of(servers: &BTreeMap<String, Server>) -> Vec<ListingEntry> {
             })
         })
         .collect()
+}
+
+// ———— MCP Apps 的资源面与连接身份（141 审计 §9 第 6 项）————
+
+fn string_field(value: &Value, key: &str) -> Option<String> {
+    value.get(key).and_then(Value::as_str).map(str::to_owned)
+}
+
+fn resource_descriptor(value: &Value) -> Option<McpResourceDescriptor> {
+    let uri = value
+        .get("uri")
+        .and_then(Value::as_str)
+        .filter(|uri| !uri.is_empty())?;
+    Some(McpResourceDescriptor {
+        uri: uri.to_owned(),
+        name: string_field(value, "name"),
+        title: string_field(value, "title"),
+        description: string_field(value, "description"),
+        mime_type: string_field(value, "mimeType"),
+        meta: value.get("_meta").and_then(Value::as_object).cloned(),
+    })
+}
+
+fn resource_template(value: &Value) -> Option<McpResourceTemplate> {
+    let uri_template = value
+        .get("uriTemplate")
+        .and_then(Value::as_str)
+        .filter(|uri| !uri.is_empty())?;
+    Some(McpResourceTemplate {
+        uri_template: uri_template.to_owned(),
+        name: string_field(value, "name"),
+        title: string_field(value, "title"),
+        description: string_field(value, "description"),
+        mime_type: string_field(value, "mimeType"),
+    })
+}
+
+fn resource_content(value: &Value) -> Option<McpResourceContent> {
+    let uri = value.get("uri").and_then(Value::as_str)?;
+    Some(McpResourceContent {
+        uri: uri.to_owned(),
+        mime_type: string_field(value, "mimeType"),
+        text: string_field(value, "text"),
+        blob: string_field(value, "blob"),
+        meta: value.get("_meta").and_then(Value::as_object).cloned(),
+    })
+}
+
+fn next_cursor(value: &Value) -> Option<String> {
+    value
+        .get("nextCursor")
+        .and_then(Value::as_str)
+        .filter(|cursor| !cursor.is_empty())
+        .map(str::to_owned)
+}
+
+/// RPC 错误 → MCP Apps 的错误：不认识的 method 是 `Unsupported`，连接没了是 `NotConnected`。
+fn ui_error(server: &str, operation: &str, error: RpcError) -> McpUiError {
+    match error {
+        RpcError::Server { code: -32601, .. } => McpUiError::unsupported(server, operation),
+        RpcError::Closed(_) | RpcError::Send(_) => McpUiError::not_connected(server),
+        other => McpUiError::failed(other.to_string()),
+    }
+}
+
+/// 连接身份（Node `appConnectionSnapshot` 的 `identity`）：平台、工作区、服务器名与配置的摘要。
+///
+/// 与 Node 的差异：Node 还混入 `process.execPath`；内核不混入可执行文件路径——升级内核不该让页面
+/// 的持久状态（widgetState 的键）失效。配置里的凭据只进摘要，不输出。
+fn connection_identity(workspace: &WorkspaceRef, config: &McpServer) -> String {
+    use sha2::{Digest, Sha256};
+
+    let fingerprint = match &config.transport {
+        McpTransportConfig::Stdio {
+            command,
+            args,
+            env,
+            cwd,
+        } => {
+            let mut env: Vec<String> = env.iter().map(|(key, value)| format!("{key}\u{1f}{value}")).collect();
+            env.sort();
+            format!(
+                "stdio\u{1e}{command}\u{1e}{}\u{1e}{}\u{1e}{}",
+                args.join("\u{1f}"),
+                env.join("\u{1e}"),
+                cwd.as_deref().unwrap_or("")
+            )
+        }
+        McpTransportConfig::Sse { url, headers } => {
+            format!("sse\u{1e}{url}\u{1e}{}", header_fingerprint(headers))
+        }
+        McpTransportConfig::Http { url, headers } => {
+            format!("http\u{1e}{url}\u{1e}{}", header_fingerprint(headers))
+        }
+    };
+    let input = format!(
+        "{}\u{1e}{}\u{1e}{}\u{1e}{fingerprint}\u{1e}{:?}\u{1e}{}",
+        rust_cli_kernel_api::process_table::node_platform(),
+        workspace.root.as_str(),
+        config.name,
+        config.options.timeout_ms,
+        config.options.always_load
+    );
+    let digest = Sha256::digest(input.as_bytes());
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn header_fingerprint(headers: &BTreeMap<String, String>) -> String {
+    headers
+        .iter()
+        .map(|(key, value)| format!("{key}\u{1f}{value}"))
+        .collect::<Vec<_>>()
+        .join("\u{1e}")
 }
 
 /// 已连接、有 resources 能力的服务器与它们的客户端（资源工具用）。
@@ -857,3 +1125,7 @@ mod dormant_tests;
 #[cfg(test)]
 #[path = "manager_machines_tests.rs"]
 mod machines_tests;
+
+#[cfg(test)]
+#[path = "manager_ui_tests.rs"]
+mod ui_tests;
