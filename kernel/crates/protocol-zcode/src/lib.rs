@@ -17,6 +17,7 @@ mod legacy;
 mod legacy_session;
 mod legacy_snapshot;
 mod live;
+mod local_ttft;
 mod nibi_commands;
 mod nibi_workflows;
 mod projection;

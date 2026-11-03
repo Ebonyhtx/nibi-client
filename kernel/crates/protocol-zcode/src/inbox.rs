@@ -34,6 +34,9 @@ pub struct Envelope {
     pub payload: Value,
     #[serde(default)]
     pub input_origin: Option<String>,
+    /// renderer 的首 token 观察上下文（`localTtftContextSchema`，141 审计 §9 第 5 项余项）。
+    #[serde(default)]
+    pub ttft: Option<Value>,
 }
 
 /// ACK 的状态（`commandAckSchema.status`）。

@@ -56,6 +56,8 @@ pub struct Server {
     pub(crate) defaults: Defaults,
     /// 本进程的实例标识（时钟探测的 `clock.instanceId`）。
     pub(crate) instance: String,
+    /// 首 token 时延观察（`v4/telemetry/local-ttft`，141 审计 §9 第 5 项余项）。
+    pub(crate) local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
     /// 附件事务的暂存表（`v4/attachment/begin|chunk|commit|abort`，见 [`crate::attachment_upload`]）。
     pub(crate) uploads: crate::attachment_upload::Registry,
     /// 网络捕获的开关与攒批（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）。
@@ -86,8 +88,10 @@ impl Server {
         let topics = Arc::new(Topics::new(context.clone(), &spawner));
         let capture = capture
             .unwrap_or_else(|| crate::telemetry::Capture::new(context.clone(), &spawner));
+        let instance = context.fresh("instance");
         Self {
-            instance: context.fresh("instance"),
+            local_ttft: Arc::new(crate::local_ttft::LocalTtftRecorder::new(instance.clone())),
+            instance,
             bridge: SessionBridge::new(
                 kernel.clone(),
                 spawner.clone(),
@@ -128,10 +132,11 @@ impl Server {
             .copied()
             .unwrap_or(Followup::Queue);
         let (context, topics) = (self.context.clone(), self.topics.clone());
+        let local_ttft = self.local_ttft.clone();
         let live = self
             .bridge
             .open(session, move |_, view| {
-                Live::new(context, topics, view, followup)
+                Live::new(context, topics, view, followup, local_ttft)
             })
             .await?;
         // 冷打开的每轮文件摘要（轮头角标与撤销入口）：读不出 artifact 只少一个角标，不拦打开。

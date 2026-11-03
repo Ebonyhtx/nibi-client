@@ -29,8 +29,8 @@ struct State {
     summaries: bool,
     /// `v4/telemetry/event` 的事实派生（141 审计 §9 第 5 项余项）。
     telemetry: crate::conversation_telemetry::ConversationTelemetry,
-    /// 待发的事实（在 `flush` 里一次发完，与逻辑帧同序；流式增量不逐条 await）。
-    pending_facts: Vec<Value>,
+    /// 待发的通知（方法名 + 载荷；在 `flush` 里一次发完，与逻辑帧同序；流式增量不逐条 await）。
+    pending_facts: Vec<(String, Value)>,
 }
 
 /// 锁里算好、锁外写出的东西：（订阅、区间、payload）与变了的会话列表行。
@@ -42,6 +42,7 @@ struct Outgoing {
 pub struct Live {
     context: Arc<Context>,
     topics: Arc<Topics>,
+    local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
     session: String,
     workspace: String,
     created_at: u64,
@@ -54,6 +55,7 @@ impl Live {
         topics: Arc<Topics>,
         view: &SessionView,
         followup: Followup,
+        local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
     ) -> Self {
         let levels = view.selection.reasoning.iter().cloned().collect();
         let epoch = context.fresh("epoch");
@@ -74,6 +76,7 @@ impl Live {
             }),
             context,
             topics,
+            local_ttft,
         }
     }
 
@@ -383,7 +386,16 @@ impl SessionSink for Live {
         if let Some(fact) = state.telemetry.facts(&event, now)
             && let Ok(payload) = serde_json::to_value(fact)
         {
-            state.pending_facts.push(payload);
+            state
+                .pending_facts
+                .push((crate::conversation_telemetry::METHOD.to_owned(), payload));
+        }
+        for fact in self.local_ttft.event(&self.session, &event.event, now) {
+            if let Ok(payload) = serde_json::to_value(fact) {
+                state
+                    .pending_facts
+                    .push((crate::local_ttft::METHOD.to_owned(), payload));
+            }
         }
     }
 
@@ -393,10 +405,8 @@ impl SessionSink for Live {
             let facts = std::mem::take(&mut state.pending_facts);
             (self.collect(&mut state), facts)
         };
-        for fact in facts {
-            self.context
-                .notify(crate::conversation_telemetry::METHOD, &fact)
-                .await;
+        for (method, fact) in facts {
+            self.context.notify(&method, &fact).await;
         }
         self.write(outgoing).await;
     }

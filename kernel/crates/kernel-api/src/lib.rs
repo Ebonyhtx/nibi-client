@@ -90,6 +90,7 @@ pub mod image;
 pub mod interaction;
 pub mod listing;
 pub mod local_services;
+pub mod local_ttft;
 pub mod machine;
 pub mod machine_notices;
 pub mod machine_param;

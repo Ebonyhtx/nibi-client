@@ -382,6 +382,8 @@ fn unsupported(envelope: &Envelope, revision: u64) -> Ack {
 pub async fn command(server: &Server, params: Value) -> Result<Value, RpcError> {
     let envelope: Envelope = serde_json::from_value(params.clone())
         .map_err(|error| RpcError::invalid_params(format!("Invalid command envelope: {error}")))?;
+    // 首 token 观察：命令到达就记（重复与满容量不记；与 Node 的 receive 同一时机）。
+    observe_received(server, &envelope).await;
     let key = inbox::key(envelope.session_id.as_deref(), &envelope.command_id);
     let known = server
         .remembered
@@ -402,6 +404,7 @@ pub async fn command(server: &Server, params: Value) -> Result<Value, RpcError> 
         ),
         Ok(()) => decide(server, &envelope).await,
     };
+    observe_settled(server, &envelope, &ack).await;
     if ack.status != Status::Duplicate {
         server
             .remembered
@@ -420,6 +423,44 @@ pub async fn command(server: &Server, params: Value) -> Result<Value, RpcError> 
         tracing::warn!(event = "protocol.command_fact.failed", error = %error, "writing the command fact failed");
     }
     Ok(ack.to_value())
+}
+
+/// 命令到达：renderer 带了 `ttft` 就建一条观察记录并发第一份快照。
+async fn observe_received(server: &Server, envelope: &Envelope) {
+    let Some(context) = envelope.ttft.as_ref().and_then(|value| {
+        serde_json::from_value::<rust_cli_kernel_api::local_ttft::LocalTtftContext>(value.clone()).ok()
+    }) else {
+        return;
+    };
+    let now = server.context.now();
+    // 忙闲（`sendMode`）要读投影；命令入口不为埋点开会话，未知即不写。
+    if let Some(fact) = server.local_ttft.receive(
+        &context,
+        &envelope.command_id,
+        envelope.session_id.as_deref(),
+        now,
+        None,
+    ) && let Ok(payload) = serde_json::to_value(fact)
+    {
+        server.context.notify(crate::local_ttft::METHOD, &payload).await;
+    }
+}
+
+/// 命令结算：accepted 记受理时刻，rejected/failed/noop 记终态。
+async fn observe_settled(server: &Server, envelope: &Envelope, ack: &Ack) {
+    let now = server.context.now();
+    let fact = match ack.status {
+        Status::Accepted | Status::Duplicate => server.local_ttft.admitted(&envelope.command_id, now),
+        Status::Rejected | Status::Failed | Status::Noop => {
+            server.local_ttft.rejected(&envelope.command_id, now)
+        }
+        Status::Stale => None,
+    };
+    if let Some(fact) = fact
+        && let Ok(payload) = serde_json::to_value(fact)
+    {
+        server.context.notify(crate::local_ttft::METHOD, &payload).await;
+    }
 }
 
 async fn decide(server: &Server, envelope: &Envelope) -> Ack {
