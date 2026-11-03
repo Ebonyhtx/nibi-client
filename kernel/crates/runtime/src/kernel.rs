@@ -511,6 +511,30 @@ impl Kernel for LocalKernel {
         self.attachment_content(session, workspace, source).await
     }
 
+    /// `v4/attachment/commit`：一次上传事务的完整内容写进会话 artifact（Node `writePromptAttachment` 同形）。
+    async fn store_attachment(
+        &self,
+        session: &SessionId,
+        _file_name: &str,
+        media_type: &str,
+        bytes: Vec<u8>,
+    ) -> Result<rust_cli_kernel_api::attachment::StoredAttachment, KernelError> {
+        self.store_attachment_content(session, media_type, bytes)
+            .await
+    }
+
+    /// 已发送附件的回读（`v4/attachment/read` 与 share 的 attachmentRead/Stat）。
+    async fn read_attachment(
+        &self,
+        session: &SessionId,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        source: rust_cli_kernel_api::attachment::AttachmentSource,
+        media_type: &str,
+    ) -> Result<rust_cli_kernel_api::attachment::AttachmentPayload, KernelError> {
+        self.read_attachment_content(session, workspace, source, media_type)
+            .await
+    }
+
     /// NIBI `requestWorkspaceHookReview` 的数据来源：工作区钩子当前的信任快照（只读）。
     async fn workspace_hook_review(
         &self,

@@ -181,6 +181,11 @@ impl Projection {
             .find(|row| row.get("rowId").and_then(Value::as_u64) == Some(row_id))
     }
 
+    /// 全部行（附件回读的授权要在里面按 `attachments` 找）。
+    pub fn rows(&self) -> Vec<Map<String, Value>> {
+        self.rows.clone()
+    }
+
     pub fn phase(&self) -> Phase {
         self.phase
     }

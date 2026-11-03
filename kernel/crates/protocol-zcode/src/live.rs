@@ -146,6 +146,11 @@ impl Live {
         self.state().projection.row(row_id).cloned()
     }
 
+    /// 当前投影的全部行（附件回读的行/序号/引用三重授权要按 `attachments` 找；与快照的窗口同源）。
+    pub fn rows(&self) -> Vec<Map<String, Value>> {
+        self.state().projection.rows()
+    }
+
     pub fn status(&self) -> (Phase, u64) {
         let state = self.state();
         (state.projection.phase(), state.projection.revision())

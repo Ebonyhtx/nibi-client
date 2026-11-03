@@ -216,6 +216,11 @@ pub async fn flow(server: &Server, params: &Value) -> Result<Reply, RpcError> {
         for live in server.bridge.sessions() {
             live.sink.drop_connection(connection);
         }
+        // 附件事务的暂存按连接隔离（Host `clearConnection`）：连接断了，这个连接的半截上传与
+        // 已提交记录都不再有用。
+        server
+            .uploads
+            .with(|table| table.clear_connection(connection));
     }
     Ok(Reply::new(json!({})))
 }

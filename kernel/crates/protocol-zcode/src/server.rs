@@ -56,6 +56,8 @@ pub struct Server {
     pub(crate) defaults: Defaults,
     /// 本进程的实例标识（时钟探测的 `clock.instanceId`）。
     pub(crate) instance: String,
+    /// 附件事务的暂存表（`v4/attachment/begin|chunk|commit|abort`，见 [`crate::attachment_upload`]）。
+    pub(crate) uploads: crate::attachment_upload::Registry,
     preferences: Mutex<Preferences>,
 }
 
@@ -93,6 +95,7 @@ impl Server {
             hook_admissions: Mutex::new(HashSet::new()),
             spawner,
             defaults,
+            uploads: crate::attachment_upload::Registry::default(),
             preferences: Mutex::new(Preferences::default()),
         }
     }
@@ -179,6 +182,9 @@ impl Server {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .remove(&session);
+        // 附件事务的暂存按会话隔离（Host `clearSession`）。
+        self.uploads
+            .with(|table| table.clear_session(session.as_str()));
         json!({"closed": true})
     }
 
@@ -309,6 +315,21 @@ impl Server {
             }
             "v4/conversation/workflowRunNodeResult" => {
                 crate::v4_queries::workflow_run_node_result(self, &params).await.map(Reply::new)
+            }
+            // 附件事务与回读（141 审计 §9 第 4 项）：上行四条走进程内暂存表，回读四条按已授权行。
+            "v4/attachment/begin" => crate::attachment_rpc::begin(self, &params).await.map(Reply::new),
+            "v4/attachment/chunk" => crate::attachment_rpc::chunk(self, &params).await.map(Reply::new),
+            "v4/attachment/commit" => crate::attachment_rpc::commit(self, &params).await.map(Reply::new),
+            "v4/attachment/abort" => crate::attachment_rpc::abort(self, &params).await.map(Reply::new),
+            "v4/attachment/read" => crate::attachment_rpc::read(self, &params).await.map(Reply::new),
+            "v4/attachment/previewSource" => {
+                crate::attachment_rpc::preview_source(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/attachmentRead" => {
+                crate::attachment_rpc::conversation_read(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/attachmentStat" => {
+                crate::attachment_rpc::conversation_stat(self, &params).await.map(Reply::new)
             }
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),

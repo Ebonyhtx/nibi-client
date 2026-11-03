@@ -24,6 +24,8 @@ rust-cli-platform.workspace = true
 rust-cli-protocol-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# 附件事务 commit 的 sha256 校验（Host `createHash("sha256")` 同算法）。
+sha2.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "sync", "time"] }
 tracing.workspace = true
 

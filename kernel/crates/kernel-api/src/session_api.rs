@@ -981,6 +981,40 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 把一次上传事务的完整内容写进会话的 artifact 存储（`v4/attachment/commit`）。
+    ///
+    /// 调用方（协议层）已经逐片核过总量与 checksum；这里只负责**原子写**并回引用。会话不存在时
+    /// `NotFound`。缺省实现 `Unsupported`，协议层回结构化的 `fault.attachment.putUnsupported`。
+    async fn store_attachment(
+        &self,
+        _session: &SessionId,
+        _file_name: &str,
+        _media_type: &str,
+        _bytes: Vec<u8>,
+    ) -> Result<crate::attachment::StoredAttachment, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session attachment storage".to_owned(),
+        })
+    }
+
+    /// 读出一条**已发送**附件的内容与元数据（`v4/attachment/read` 与 share 的
+    /// `conversation/attachmentRead|attachmentStat`）。与 [`Self::load_attachment`] 的区别：那条是
+    /// 命令准入时把引用变成内容块，这条是 UI 按已授权的行/引用回读，`mtime_ms` 供 share 预检判断
+    /// 文件是否在选中之后被改过。
+    ///
+    /// 缺省实现 `Unsupported`，协议层回 `fault.attachment.readUnsupported` / `statUnsupported`。
+    async fn read_attachment(
+        &self,
+        _session: &SessionId,
+        _workspace: &WorkspaceRef,
+        _source: crate::attachment::AttachmentSource,
+        _media_type: &str,
+    ) -> Result<crate::attachment::AttachmentPayload, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session attachment reads".to_owned(),
+        })
+    }
+
     /// `@` 补全的文件清单（docs/specs/rust-cli/tui-input.md §1.2）：相对 shell 当前目录的文件路径。
     async fn workspace_files(
         &self,

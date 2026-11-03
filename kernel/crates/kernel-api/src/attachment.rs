@@ -27,6 +27,29 @@ pub struct LoadedAttachment {
     pub media_type: Option<String>,
 }
 
+/// 一次附件上传事务的暂存结果（`v4/attachment/commit` 的返回值）。
+///
+/// 内容已经**完整**写进会话的 artifact 存储、按引用核验过大小；调用方拿到 `uri` 才能把它放进
+/// 会话事实（`AttachmentRef.ref`）。`bytes` 是内容长度，`media_type` 是提交时声明的类型。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StoredAttachment {
+    pub uri: String,
+    pub media_type: String,
+    pub bytes: u64,
+}
+
+/// 已发送附件的内容与元数据（`v4/attachment/read` / `conversation/attachmentRead` 的读取结果）。
+///
+/// `bytes` 是**整个**附件（协议层按 offset/limit 切片）；`media_type` 取自内容本身，缺省时用引用上
+/// 声明的类型。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AttachmentPayload {
+    pub bytes: Vec<u8>,
+    pub media_type: String,
+    /// 内容修改时间（毫秒）。只有落在文件系统上的引用才有；artifact 引用没有。
+    pub mtime_ms: Option<u64>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

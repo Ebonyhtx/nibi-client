@@ -21,6 +21,8 @@ mod nibi_workflows;
 mod projection;
 mod server;
 mod subscribe;
+mod attachment_rpc;
+mod attachment_upload;
 mod v4_queries;
 mod wire;
 mod workflow_settings_turn;

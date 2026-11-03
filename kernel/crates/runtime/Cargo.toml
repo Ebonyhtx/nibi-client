@@ -36,13 +36,13 @@ rust-cli-query.workspace = true
 rust-cli-session.workspace = true
 rust-cli-tools.workspace = true
 tracing.workspace = true
+# 附件的 data URL（Node `writePromptAttachment` 同形，写入侧也要编码）。
+base64.workspace = true
 # 升级问答的停驻 future（`tokio::sync::oneshot`）。
 tokio = { workspace = true, features = ["sync"] }
 tokio-util.workspace = true
 
 [dev-dependencies]
-# 附件测试里的 data URL（与 protocol-zcode 同版本）。
-base64.workspace = true
 futures-util.workspace = true
 rust-cli-kernel-api = { workspace = true, features = ["testing"] }
 # 钩子评审的测试用真实文件系统（工作区里的 `.nibi/config.json`）；本机写盘只经 rust-cli-fs。
