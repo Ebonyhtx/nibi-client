@@ -299,6 +299,12 @@ impl Server {
             // v4 查询面（141 审计 §9 第 2 项）：usage 2 条 + run 详情 7 条。
             // 数据全在内核侧的会话库，纯投影与分页；参数契约从 Host 的 zod 逐字
             // （contract 见 v4_queries.rs 的文件头）。
+            "v4/conversation/rowsRange" => {
+                crate::v4_queries::rows_range(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/plans" => {
+                crate::v4_queries::plans(self, &params).await.map(Reply::new)
+            }
             "v4/usage/stats" => crate::v4_queries::usage_stats(self, &params).await.map(Reply::new),
             "v4/conversation/usage" => crate::v4_queries::conversation_usage(self, &params)
                 .await

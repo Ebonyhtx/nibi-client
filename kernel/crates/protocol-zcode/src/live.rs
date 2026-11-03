@@ -141,6 +141,11 @@ impl Live {
         self.state().log.epoch().to_owned()
     }
 
+    /// 主题日志的序号（只读查询的 `atSeq`：客户端据此丢弃跨代际的陈旧读）。
+    pub fn seq(&self) -> u64 {
+        self.state().log.seq()
+    }
+
     /// 按 rowId 找投影行（row-targeting 命令的 target 解析）。
     pub fn row(&self, row_id: u64) -> Option<Map<String, Value>> {
         self.state().projection.row(row_id).cloned()

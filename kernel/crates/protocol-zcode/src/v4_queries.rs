@@ -56,6 +56,8 @@ const ARTIFACT_MAX_FIELD_VALUE_BYTES: u64 = 4_096;
 /// `WORKFLOW_WORKSPACE_LIMITS.maxNodes` / `resultMaxBytes`。
 const WORKSPACE_MAX_NODES: usize = 2_000;
 const WORKSPACE_RESULT_MAX_BYTES: u64 = 32 * 1024;
+/// `PROTOCOL_V4_LIMITS.rowsRangeMaxLimit`：一次最多取这么多行。
+const ROWS_RANGE_MAX_LIMIT: u64 = 200;
 /// run 目录的上限与缺省（Node `MAX_LIST_RUNS_LIMIT` / `DEFAULT_LIST_RUNS_LIMIT`）。
 /// 协议 schema 已把 `limit` 限在 [1, 64]，这里的常量只用于缺省值。
 const RUNS_DEFAULT_LIMIT: usize = 16;
@@ -109,6 +111,129 @@ fn required_u64(params: &serde_json::Map<String, Value>, key: &str) -> Result<u6
         .get(key)
         .and_then(Value::as_u64)
         .ok_or_else(|| invalid(format!("`{key}` must be a non-negative integer")))
+}
+
+// ———— 行分页与计划目录（历史回填）————
+
+/// `v4/conversation/rowsRange`：按 `beforeRowId` 游标向上取一窗历史行（只读、无状态）。
+///
+/// 与 Node 的 `getRowsRange` 同一条口径：全序是 rowId 升序；取 `rowId < beforeRowId` 的最后 `limit`
+/// 行；`hasMore` 是「这一窗之前还有没有」。数据源是会话投影的全量行（不是快照的 tail window）——
+/// 冷会话经 `server.live()` 走与订阅相同的冷恢复管线先把投影建起来。
+///
+/// `clientMode` 目前不改变结果：Host 的 `filterConversationRowsForProfile` 今天是恒等函数
+/// （没有 profile 专属的行种类），这里保留参数校验与方向，不发明过滤。
+pub(crate) async fn rows_range(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(params, &["sessionId", "clientMode", "beforeRowId", "limit"])?;
+    let session = params
+        .get("sessionId")
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid("`sessionId` must be a string"))?;
+    if let Some(mode) = params.get("clientMode") {
+        match mode {
+            Value::String(value)
+                if matches!(
+                    value.as_str(),
+                    "desktop-continuous" | "web-remote-replayable"
+                ) => {}
+            _ => {
+                return Err(invalid(
+                    "`clientMode` must be `desktop-continuous` or `web-remote-replayable`",
+                ));
+            }
+        }
+    }
+    let before = optional_u64(params, "beforeRowId")?;
+    let limit = required_u64(params, "limit")?;
+    if limit == 0 || limit > ROWS_RANGE_MAX_LIMIT {
+        return Err(invalid(format!(
+            "`limit` must be between 1 and {ROWS_RANGE_MAX_LIMIT}"
+        )));
+    }
+    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+    let live = server
+        .live(&SessionId::new(session.to_owned()))
+        .await
+        .map_err(|error| crate::server::kernel_error(&error))?;
+    let all = live.sink.rows();
+    let eligible: Vec<Value> = all
+        .into_iter()
+        .filter(|row| {
+            before.is_none_or(|before| row["rowId"].as_u64().unwrap_or(0) < before)
+        })
+        .map(Value::Object)
+        .collect();
+    let start = eligible.len().saturating_sub(limit);
+    let rows = eligible[start..].to_vec();
+    let (_, revision) = live.sink.status();
+    Ok(json!({
+        "rows": rows,
+        "atSeq": live.sink.seq(),
+        "atRevision": revision,
+        "atLogEpoch": live.sink.epoch(),
+        "hasMore": eligible.len() > rows.len(),
+    }))
+}
+
+/// 计划行的 `input.plan` 是不是一段非空 markdown（Node `hasPlanMarkdown`）。
+fn plan_markdown(row: &serde_json::Map<String, Value>) -> bool {
+    if let Some(plan) = row.get("input").and_then(|input| input.get("plan"))
+        && plan.as_str().is_some_and(|plan| !plan.trim().is_empty())
+    {
+        return true;
+    }
+    let Some(text) = row.get("inputText").and_then(Value::as_str) else {
+        return false;
+    };
+    if text.trim().is_empty() {
+        return false;
+    }
+    serde_json::from_str::<Value>(text)
+        .ok()
+        .and_then(|parsed| parsed.get("plan").and_then(Value::as_str).map(str::to_owned))
+        .is_some_and(|plan| !plan.trim().is_empty())
+}
+
+/// `v4/conversation/plans`：当前有效分支的终态 `ExitPlanMode` 目录（rowId 降序）。
+///
+/// Node 的注释写明「目录来自完整有效 projection，不能用 renderer 的有界 tail window 推导」，
+/// 这里读全量行（比 Node 实现里的 `snapshot.rows.window` 更完整）；终态判据是
+/// `success` / `error` / `cancelled`，与 Host 的 `TERMINAL_PLAN_STATUSES` 同值。
+pub(crate) async fn plans(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(params, &["sessionId"])?;
+    let session = required_string(params, "sessionId")?;
+    let live = server
+        .live(&SessionId::new(session))
+        .await
+        .map_err(|error| crate::server::kernel_error(&error))?;
+    let mut plans: Vec<Value> = live
+        .sink
+        .rows()
+        .into_iter()
+        .filter(|row| {
+            row["kind"] == "toolCall"
+                && row["toolName"] == "ExitPlanMode"
+                && matches!(
+                    row["status"].as_str(),
+                    Some("success" | "error" | "cancelled")
+                )
+                && plan_markdown(row)
+        })
+        .map(Value::Object)
+        .collect();
+    plans.sort_by(|left, right| {
+        right["rowId"]
+            .as_u64()
+            .unwrap_or(0)
+            .cmp(&left["rowId"].as_u64().unwrap_or(0))
+    });
+    Ok(json!({
+        "plans": plans,
+        "atSeq": live.sink.seq(),
+        "atLogEpoch": live.sink.epoch(),
+    }))
 }
 
 // ———— run 详情 + 目录 ————
@@ -979,3 +1104,7 @@ fn civil_date_of_day(day: i64) -> String {
 #[cfg(test)]
 #[path = "v4_queries_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "v4_rows_tests.rs"]
+mod rows_tests;
