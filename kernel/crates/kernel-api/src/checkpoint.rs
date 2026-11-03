@@ -8,9 +8,11 @@
 
 use std::collections::HashMap;
 
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::clock::Ids;
+use crate::file_changes::DiffHunk;
 use crate::ids::{MessageId, ToolUseId};
 use crate::message::{ContentBlock, Message, UserOrigin};
 use crate::session_api::FileChange;
@@ -19,6 +21,48 @@ use crate::tool::ToolOutput;
 
 /// `ToolOutput.display` 里放 checkpoint 的键。
 pub const DISPLAY_KEY: &str = "checkpoint";
+
+/// checkpoint artifact 里本工程用到的字段（Node `workspaceCheckpointArtifactSchema`）。
+///
+/// 写入方是 tools 的 `checkpoint::record`（键序与缩进照 Node）；读取方是 rewind、文件变更聚合与
+/// 回退预览。`afterContent` 可能缺席（旧 artifact 只带补丁），这时不能重建写入后的内容。
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckpointArtifact {
+    /// 写这个文件的工具名（bash 类要被回退预览忽略）。
+    #[serde(default)]
+    pub tool_name: String,
+    #[serde(default)]
+    pub files: Vec<CheckpointFile>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckpointFile {
+    pub path: String,
+    #[serde(default)]
+    pub existed_before: bool,
+    #[serde(default)]
+    pub before_content: Option<String>,
+    #[serde(default)]
+    pub after_content: Option<String>,
+    /// 写入时记下的补丁块（没有 `afterContent` 时聚合退回它）。
+    #[serde(default)]
+    pub structured_patch: Vec<DiffHunk>,
+}
+
+impl CheckpointArtifact {
+    pub fn parse(bytes: &[u8]) -> Result<Self, serde_json::Error> {
+        serde_json::from_slice(bytes)
+    }
+}
+
+impl CheckpointFile {
+    /// 恢复成的内容；`None` 表示删掉这个文件。
+    pub fn restore_content(&self) -> Option<&str> {
+        self.before_content.as_deref().filter(|_| self.existed_before)
+    }
+}
 
 /// 已结束、结果还没提交的工具调用带出的 checkpoint。
 #[derive(Debug, Default)]

@@ -107,6 +107,14 @@ pub enum Command {
         target: MessageId,
         scope: RewindScope,
     },
+    /// 只回退文件、不动对话，且只回退给定消息集合里的 checkpoint（NIBI `applyFileRewind` 的
+    /// turn 语义：一轮里的 user / assistant 消息 id）。`turn` 有值时成功后发
+    /// [`KernelEvent::FilesRestored`]，投影据此把这一轮的 `fileChanges.state` 标成 `reverted`。
+    RestoreFiles {
+        messages: Vec<MessageId>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        turn: Option<TurnId>,
+    },
     /// 从 `at` 处分叉出新会话；Ack 的 `result` 是新会话 ID。
     Fork {
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -362,6 +370,11 @@ pub enum KernelEvent {
         files: Vec<FileChange>,
         rewindable: bool,
     },
+    /// 只回退文件的回退成功了（NIBI `applyFileRewind`）：投影把这一轮的 `fileChanges.state`
+    /// 标成 `reverted`（Node `RewindTriggered{scope: workspace, reason: file_summary_rewind}`）。
+    FilesRestored {
+        turn: TurnId,
+    },
     InteractionAsked {
         interaction: InteractionId,
         request: InteractionRequest,
@@ -613,6 +626,36 @@ pub trait SessionHandle: Send + Sync {
         _max_bytes: u64,
     ) -> Result<Option<crate::manage::BackgroundOutput>, KernelError> {
         Ok(None)
+    }
+
+    /// 每一轮的改动摘要（冷投影的轮头 `fileChanges`）：按开启这一轮的 user 消息分组。
+    /// 读不出 artifact 的回合跳过（只影响轮头角标，不影响会话打开）。
+    async fn file_change_summaries(
+        &self,
+    ) -> Result<Vec<crate::file_changes::TurnFileSummary>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "file change summaries".to_owned(),
+        })
+    }
+
+    /// `v4/conversation/fileChanges`：给定消息集合（一轮里的 user / assistant 消息）的文件改动明细。
+    async fn file_changes(
+        &self,
+        _messages: &[MessageId],
+    ) -> Result<crate::file_changes::FileChangesReport, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "file changes".to_owned(),
+        })
+    }
+
+    /// `v4/conversation/fileRewindPreview`：给定消息集合的只读回退预览（不登记 token、不改文件）。
+    async fn file_rewind_preview(
+        &self,
+        _messages: &[MessageId],
+    ) -> Result<crate::file_changes::RewindPreview, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "file rewind preview".to_owned(),
+        })
     }
 
     async fn shell_detail(

@@ -204,6 +204,7 @@ impl Transcript {
             // BackgroundWork 之后重取（tui-display.md §1）；其余不显示（tui.md §9）。
             KernelEvent::WorkspaceChanged { workspace } => self.workspace = workspace,
             KernelEvent::HistoryRewritten { .. }
+            | KernelEvent::FilesRestored { .. }
             | KernelEvent::SessionCreated { .. }
             | KernelEvent::Subagent { .. } => {}
             // 终态只进投影（Shell 详情在内核已不认识这条命令时用，tui-panels.md §3.3）。

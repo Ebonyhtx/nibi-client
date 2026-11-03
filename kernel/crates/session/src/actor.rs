@@ -50,6 +50,11 @@ pub(crate) enum Request {
     RewindOptions {
         reply: oneshot::Sender<crate::rewind::Snapshot>,
     },
+    /// 给定消息集合选中这一轮的 checkpoint（文件变更明细与回退预览）；空集合是全部。
+    Checkpoints {
+        messages: Vec<MessageId>,
+        reply: oneshot::Sender<Vec<rust_cli_kernel_api::store::WorkspaceCheckpoint>>,
+    },
     Goal {
         reply: oneshot::Sender<rust_cli_kernel_api::goal::GoalView>,
     },
@@ -81,6 +86,7 @@ pub(crate) enum AskScope {
 pub(crate) enum JobDone {
     Startup(Box<rust_cli_kernel_api::hooks::HookOutcome>),
     Rewind(Box<crate::rewind::Finished>),
+    RestoreFiles(Box<crate::rewind::FinishedFiles>),
 }
 
 pub(crate) struct Job {
@@ -440,6 +446,13 @@ impl Actor {
             Request::RewindOptions { reply } => {
                 let _ = reply.send(self.rewind_snapshot());
             }
+            Request::Checkpoints { messages, reply } => {
+                let selected = crate::file_changes::select(&self.checkpoints, &messages)
+                    .into_iter()
+                    .cloned()
+                    .collect();
+                let _ = reply.send(selected);
+            }
             Request::Goal { reply } => {
                 let _ = reply.send(self.goal_view());
             }
@@ -463,6 +476,9 @@ impl Actor {
                 match envelope.command {
                     Command::Rewind { target, scope } => {
                         return self.rewind(envelope.id, target, scope, reply).await;
+                    }
+                    Command::RestoreFiles { messages, turn } => {
+                        return self.restore_files(envelope.id, messages, turn, reply).await;
                     }
                     Command::GenerateName => return self.generate_name(envelope.id, reply),
                     _ => {}
@@ -649,7 +665,7 @@ impl Actor {
             Command::BackgroundForeground { reason } => self.background_foreground(reason).await,
             Command::StoreResumeSentinel => self.store_resume_sentinel(id).await,
             // 在 `handle` 里处理（回执要等事务结束或名字）。
-            Command::Rewind { .. } | Command::GenerateName => {
+            Command::Rewind { .. } | Command::RestoreFiles { .. } | Command::GenerateName => {
                 rejected("this command is handled by the actor loop")
             }
             Command::Bash {
@@ -810,6 +826,7 @@ impl Actor {
         match done {
             Ok(JobDone::Startup(outcome)) => self.finish_startup(*outcome).await,
             Ok(JobDone::Rewind(finished)) => self.finish_rewind(*finished).await,
+            Ok(JobDone::RestoreFiles(finished)) => self.finish_restore_files(*finished).await,
             Err(error) => {
                 tracing::warn!(%error, "a session job ended without a result");
                 self.start_next().await;

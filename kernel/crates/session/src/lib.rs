@@ -15,6 +15,7 @@ mod closing;
 mod compact;
 mod cron;
 mod detached;
+mod file_changes;
 mod fork;
 mod fork_input;
 mod goal;
@@ -63,7 +64,7 @@ use futures_util::stream::BoxStream;
 use rust_cli_base::{Spawner, Task};
 use rust_cli_kernel_api::agents::AgentSignals;
 use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::ids::{Generation, SessionId};
+use rust_cli_kernel_api::ids::{Generation, MessageId, SessionId};
 use rust_cli_kernel_api::local_services::LocalServices;
 use rust_cli_kernel_api::machine::MachineEnv;
 use rust_cli_kernel_api::message::Message;
@@ -267,6 +268,15 @@ impl Session {
     ) -> Result<T, KernelError> {
         closing::ask(&self.requests, request).await
     }
+
+    /// 给定消息集合选中这一轮的 checkpoint；空集合是全部（冷打开的摘要）。
+    async fn checkpoints(&self, messages: &[MessageId]) -> Result<Vec<WorkspaceCheckpoint>, KernelError> {
+        self.ask(|reply| Request::Checkpoints {
+            messages: messages.to_vec(),
+            reply,
+        })
+        .await
+    }
 }
 
 fn closed() -> KernelError {
@@ -321,6 +331,43 @@ impl SessionHandle for Session {
     async fn rewind_options(&self) -> Result<Vec<RewindOption>, KernelError> {
         let snapshot = self.ask(|reply| Request::RewindOptions { reply }).await?;
         Ok(rewind::options(self.deps.artifacts.as_ref(), snapshot).await)
+    }
+
+    /// 每轮的改动摘要：actor 给出 checkpoint，artifact 在调用方的任务里读（与 `rewind_options` 同一分工）。
+    async fn file_change_summaries(
+        &self,
+    ) -> Result<Vec<rust_cli_kernel_api::file_changes::TurnFileSummary>, KernelError> {
+        let checkpoints = self.checkpoints(&[]).await?;
+        let selected: Vec<&WorkspaceCheckpoint> = checkpoints.iter().collect();
+        Ok(file_changes::summaries(self.deps.artifacts.as_ref(), &selected).await)
+    }
+
+    async fn file_changes(
+        &self,
+        messages: &[MessageId],
+    ) -> Result<rust_cli_kernel_api::file_changes::FileChangesReport, KernelError> {
+        let checkpoints = self.checkpoints(messages).await?;
+        let selected: Vec<&WorkspaceCheckpoint> = checkpoints.iter().collect();
+        file_changes::report(self.deps.artifacts.as_ref(), &selected)
+            .await
+            .map_err(|message| KernelError::Failed { message })
+    }
+
+    async fn file_rewind_preview(
+        &self,
+        messages: &[MessageId],
+    ) -> Result<rust_cli_kernel_api::file_changes::RewindPreview, KernelError> {
+        let checkpoints = self.checkpoints(messages).await?;
+        let meta = self.ask(|reply| Request::Meta { reply }).await?;
+        let selected: Vec<&WorkspaceCheckpoint> = checkpoints.iter().collect();
+        Ok(file_changes::preview(
+            self.deps.artifacts.as_ref(),
+            self.deps.machine.files(),
+            &meta.workspace,
+            self.deps.machines.as_ref(),
+            &selected,
+        )
+        .await)
     }
 
     async fn goal(&self) -> Result<rust_cli_kernel_api::goal::GoalView, KernelError> {

@@ -9,7 +9,6 @@ use rust_cli_kernel_api::ids::MessageId;
 use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use rust_cli_kernel_api::session_api::FileChange;
 use rust_cli_kernel_api::store::WorkspaceCheckpoint;
-use serde::Deserialize;
 
 /// 中断文本（合成的消息）；这两条不是可选的 user 消息（kernel-api 的定义，F55）。
 const INTERRUPTS: [&str; 2] = rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
@@ -82,20 +81,8 @@ pub(crate) fn checkpoints_from<'a>(
         .collect()
 }
 
-/// checkpoint artifact 里本工程用到的字段（Node `workspaceCheckpointArtifactSchema`）。
-#[derive(Debug, Clone, Deserialize)]
-pub(crate) struct Artifact {
-    pub files: Vec<ArtifactFile>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct ArtifactFile {
-    pub path: String,
-    pub existed_before: bool,
-    pub before_content: Option<String>,
-    pub after_content: Option<String>,
-}
+/// checkpoint artifact（读写形状在 kernel-api：文件变更聚合与回退预览用同一份）。
+pub(crate) use rust_cli_kernel_api::checkpoint::CheckpointArtifact as Artifact;
 
 /// 恢复计划：按写入的逆序、按路径模拟（Node `buildWorkspaceFileRewindPlan`）。每个路径期望磁盘上是
 /// 最后一次写入后的内容，恢复成最早一次写入前的内容；中间两次写入接不上（被别的方式改过）时报冲突。

@@ -227,3 +227,55 @@ async fn a_conflicting_file_rejects_the_whole_rewind() {
     );
     assert!(built.session.view().await.unwrap().messages.is_empty());
 }
+
+/// 只回退文件（NIBI `applyFileRewind`）：文件回到写入前、对话不动，成功后发 `FilesRestored`
+/// （投影把这一轮标成 reverted），checkpoint 不再可用。
+#[tokio::test]
+async fn restoring_files_keeps_the_conversation_and_marks_the_turn() {
+    let (built, env, prompt) = wrote().await;
+    let mut history = built.session.subscribe(Some(0));
+    let seen = until(&mut history, |e| {
+        matches!(e, KernelEvent::TurnFinished { .. })
+    })
+    .await;
+    let turn = seen
+        .iter()
+        .find_map(|event| match event {
+            KernelEvent::TurnStarted { turn, .. } => Some(turn.clone()),
+            _ => None,
+        })
+        .expect("a turn");
+    let before = built.session.view().await.unwrap().messages.len();
+    let mut events = built.session.subscribe(None);
+    let ack = built
+        .session
+        .send(envelope(
+            "r1",
+            Command::RestoreFiles {
+                messages: vec![prompt],
+                turn: Some(turn),
+            },
+        ))
+        .await;
+    let Ack::Accepted { result } = ack else {
+        panic!("{ack:?}")
+    };
+    assert_eq!(
+        result["restored"],
+        json!([{"path": "/work/a.txt", "action": "restore"}])
+    );
+    assert_eq!(file(&env, "/work/a.txt").as_deref(), Some("old\n"));
+    assert_eq!(
+        built.session.view().await.unwrap().messages.len(),
+        before,
+        "对话不动"
+    );
+    until(&mut events, |e| {
+        matches!(e, KernelEvent::FilesRestored { .. })
+    })
+    .await;
+    // 对话还在，选择器里这一轮仍在；但已经没有可回退的代码。
+    let options = built.session.rewind_options().await.unwrap();
+    assert_eq!(options.len(), 1);
+    assert!(!options[0].code);
+}

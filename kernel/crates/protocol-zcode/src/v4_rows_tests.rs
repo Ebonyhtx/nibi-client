@@ -162,6 +162,59 @@ impl SessionHandle for FakeHandle {
             _ => Ok(None),
         }
     }
+
+    async fn file_change_summaries(
+        &self,
+    ) -> Result<Vec<rust_cli_kernel_api::file_changes::TurnFileSummary>, KernelError> {
+        Ok(vec![rust_cli_kernel_api::file_changes::TurnFileSummary {
+            prompt: MessageId::new("u1"),
+            files: 2,
+            additions: 5,
+            deletions: 1,
+        }])
+    }
+
+    async fn file_changes(
+        &self,
+        messages: &[MessageId],
+    ) -> Result<rust_cli_kernel_api::file_changes::FileChangesReport, KernelError> {
+        assert_eq!(
+            messages.iter().map(MessageId::as_str).collect::<Vec<_>>(),
+            ["u1", "a1", "a2", "a3"],
+            "the protocol layer resolves the turn's message ids"
+        );
+        Ok(rust_cli_kernel_api::file_changes::FileChangesReport {
+            files: 1,
+            additions: 5,
+            deletions: 1,
+            items: vec![rust_cli_kernel_api::file_changes::FileChangeItem {
+                path: "/work/a.txt".to_owned(),
+                additions: 5,
+                deletions: 1,
+                write_count: 1,
+                tool_names: vec!["Edit".to_owned()],
+                patches: Vec::new(),
+            }],
+        })
+    }
+
+    async fn file_rewind_preview(
+        &self,
+        messages: &[MessageId],
+    ) -> Result<rust_cli_kernel_api::file_changes::RewindPreview, KernelError> {
+        assert_eq!(messages.len(), 4);
+        Ok(rust_cli_kernel_api::file_changes::RewindPreview {
+            can_apply: true,
+            safe_files: vec![rust_cli_kernel_api::file_changes::RewindSafeFile {
+                action: rust_cli_kernel_api::file_changes::RewindAction::Restore,
+                operation_count: 1,
+                path: "/work/a.txt".to_owned(),
+                tool_names: vec!["Edit".to_owned()],
+            }],
+            unsafe_files: Vec::new(),
+            ignored_files: Vec::new(),
+        })
+    }
 }
 
 struct FakeKernel {
@@ -215,6 +268,225 @@ fn server(id: &str) -> Arc<Server> {
         },
         None,
     ))
+}
+
+/// 轮头行、`atRevision` 与 `atLogEpoch`（只读查询的 CAS 基线）。
+async fn turn_header(server: &Arc<Server>, session: &str) -> (Value, u64, String) {
+    let reply = Handler(server.clone())
+        .request(
+            "v4/conversation/rowsRange",
+            json!({"sessionId": session, "limit": 200}),
+        )
+        .await
+        .expect("a page");
+    let rows = reply.result["rows"].as_array().expect("rows");
+    let header = rows
+        .iter()
+        .find(|row| row["kind"] == "turnHeader")
+        .expect("a turn header")
+        .clone();
+    let revision = reply.result["atRevision"].as_u64().expect("a revision");
+    let epoch = reply.result["atLogEpoch"]
+        .as_str()
+        .expect("an epoch")
+        .to_owned();
+    (header, revision, epoch)
+}
+
+/// 失败的分支取错误（`Reply` 没有 Debug，不能用 `expect_err`）。
+fn expect_error<T>(
+    result: Result<T, rust_cli_protocol_core::rpc::RpcError>,
+    what: &str,
+) -> rust_cli_protocol_core::rpc::RpcError {
+    match result {
+        Ok(_) => panic!("{what}"),
+        Err(error) => error,
+    }
+}
+
+fn target_params(session: &str, header: &Value, revision: u64, epoch: &str) -> Value {
+    json!({
+        "sessionId": session,
+        "target": {"rowId": header["rowId"], "entityId": header["entityId"]},
+        "baseRevision": revision,
+        "baseLogEpoch": epoch,
+    })
+}
+
+/// 文件变更明细：轮头目标解析成这一轮的消息集，结果就是会话侧的汇总。
+#[tokio::test]
+async fn file_changes_answers_for_a_turn_header() {
+    let server = server("sess_files");
+    let (header, revision, epoch) = turn_header(&server, "sess_files").await;
+    // 冷打开的摘要把撤销入口挂上了（set_file_summaries），这是 Host 的两道闸。
+    assert_eq!(header["fileChanges"]["files"], 2);
+    assert_eq!(header["actions"]["canRewindFiles"], true);
+    let reply = Handler(server.clone())
+        .request(
+            "v4/conversation/fileChanges",
+            target_params("sess_files", &header, revision, &epoch),
+        )
+        .await
+        .expect("a report");
+    assert_eq!(
+        reply.result,
+        json!({
+            "files": 1,
+            "additions": 5,
+            "deletions": 1,
+            "items": [{
+                "path": "/work/a.txt",
+                "additions": 5,
+                "deletions": 1,
+                "writeCount": 1,
+                "toolNames": ["Edit"],
+                "patches": [],
+            }],
+        })
+    );
+}
+
+/// 回退预览：canApply 与三组文件的形状逐一对应 Host 的 schema。
+#[tokio::test]
+async fn file_rewind_preview_answers_for_a_turn_header() {
+    let server = server("sess_preview");
+    let (header, revision, epoch) = turn_header(&server, "sess_preview").await;
+    let reply = Handler(server.clone())
+        .request(
+            "v4/conversation/fileRewindPreview",
+            target_params("sess_preview", &header, revision, &epoch),
+        )
+        .await
+        .expect("a preview");
+    assert_eq!(
+        reply.result,
+        json!({
+            "canApply": true,
+            "safeFiles": [{
+                "action": "restore",
+                "operationCount": 1,
+                "path": "/work/a.txt",
+                "toolNames": ["Edit"],
+            }],
+            "unsafeFiles": [],
+            "ignoredFiles": [],
+        })
+    );
+}
+
+/// 两道 CAS：revision 与 logEpoch 不符都拒绝（Host 的 `resolveQueryRowTarget` 同一对码）。
+#[tokio::test]
+async fn file_queries_reject_stale_bases() {
+    let server = server("sess_stale");
+    let (header, revision, epoch) = turn_header(&server, "sess_stale").await;
+    let mut params = target_params("sess_stale", &header, revision, &epoch);
+    params["baseRevision"] = json!(revision + 1);
+    let error = expect_error(
+        Handler(server.clone())
+            .request("v4/conversation/fileChanges", params)
+            .await,
+        "a stale revision",
+    );
+    assert_eq!(error.message, "proto.staleRevision");
+    let mut params = target_params("sess_stale", &header, revision, &epoch);
+    params["baseLogEpoch"] = json!("another-epoch");
+    let error = expect_error(
+        Handler(server.clone())
+            .request("v4/conversation/fileRewindPreview", params)
+            .await,
+        "a stale epoch",
+    );
+    assert_eq!(error.message, "proto.staleLogEpoch");
+}
+
+/// 目标不是轮头行（或 entity 换了）：`guard.actionUnavailable` / `proto.staleTarget`。
+#[tokio::test]
+async fn file_queries_only_accept_a_live_turn_header() {
+    let server = server("sess_guard");
+    let (_header, revision, epoch) = turn_header(&server, "sess_guard").await;
+    let reply = Handler(server.clone())
+        .request(
+            "v4/conversation/rowsRange",
+            json!({"sessionId": "sess_guard", "limit": 200}),
+        )
+        .await
+        .expect("a page");
+    let rows = reply.result["rows"].as_array().expect("rows");
+    let user = rows
+        .iter()
+        .find(|row| row["kind"] == "userInput")
+        .expect("a user row")
+        .clone();
+    let mut params = target_params("sess_guard", &user, revision, &epoch);
+    let error = expect_error(
+        Handler(server.clone())
+            .request("v4/conversation/fileChanges", params.clone())
+            .await,
+        "a non-header row",
+    );
+    assert_eq!(error.message, "guard.actionUnavailable");
+    // 同一个 rowId、换了 entityId：行已经动过。
+    params["target"]["entityId"] = json!("someone-else");
+    let error = expect_error(
+        Handler(server.clone())
+            .request("v4/conversation/fileRewindPreview", params)
+            .await,
+        "a moved row",
+    );
+    assert_eq!(error.message, "proto.staleTarget");
+    // 「只有轮头可撤销」的两道闸：非轮头行也在 rewind 入口处被挡。
+    let mut rewind = target_params("sess_guard", &user, revision, &epoch);
+    rewind["target"]["entityId"] = json!(user["entityId"]);
+    let error = expect_error(
+        Handler(server)
+            .request("v4/conversation/fileRewindPreview", rewind)
+            .await,
+        "a non-header rewind target",
+    );
+    assert_eq!(error.message, "guard.actionUnavailable");
+}
+
+/// 参数契约：未知键、缺 target、baseRevision 不是整数都是 `-32602`。
+#[tokio::test]
+async fn file_queries_validate_their_params() {
+    let server = server("sess_bad_files");
+    let (header, revision, epoch) = turn_header(&server, "sess_bad_files").await;
+    let valid = target_params("sess_bad_files", &header, revision, &epoch);
+    for params in [
+        {
+            let mut params = valid.clone();
+            params["extra"] = json!(1);
+            params
+        },
+        {
+            let mut params = valid.clone();
+            params.as_object_mut().unwrap().remove("target");
+            params
+        },
+        {
+            let mut params = valid.clone();
+            params["target"] = json!({"rowId": 1});
+            params
+        },
+        {
+            let mut params = valid.clone();
+            params["baseRevision"] = json!("7");
+            params
+        },
+        {
+            let mut params = valid.clone();
+            params["baseLogEpoch"] = json!("");
+            params
+        },
+    ] {
+        let error = expect_error(
+            Handler(server.clone())
+                .request("v4/conversation/fileChanges", params.clone())
+                .await,
+            "invalid params",
+        );
+        assert_eq!(error.code, -32602, "{params}");
+    }
 }
 
 /// 一窗一窗往上翻：全序是 rowId 升序，`beforeRowId` 之前的最后 `limit` 行，`hasMore` 表示还有更早的；
@@ -357,4 +629,35 @@ async fn rows_range_validates_its_params() {
         };
         assert_eq!(error.code, -32602, "{params}");
     }
+}
+
+/// `applyFileRewind` 的接线：轮头目标 → 这一轮的消息 → 预览 → `RestoreFiles`。ACK 是 Host 的
+/// `{type, applied, preview, response}` 形状（此前这条命令回的是空 result，Host schema 解不出）。
+#[tokio::test]
+async fn apply_file_rewind_returns_the_host_result_shape() {
+    let server = server("sess_apply");
+    let (header, revision, epoch) = turn_header(&server, "sess_apply").await;
+    let envelope = json!({
+        "commandId": "c1",
+        "clientId": "k",
+        "sessionId": "sess_apply",
+        "type": "applyFileRewind",
+        "payload": {"target": {"rowId": header["rowId"], "entityId": header["entityId"]}},
+        "baseRevision": revision,
+        "baseLogEpoch": epoch,
+        "issuedAt": 1,
+    });
+    let reply = Handler(server)
+        .request("v4/command", envelope)
+        .await
+        .expect("an ack");
+    assert_eq!(reply.result["status"], "accepted");
+    let result = &reply.result["result"];
+    assert_eq!(result["type"], "applyFileRewind");
+    assert_eq!(result["applied"], true);
+    assert_eq!(result["preview"]["canApply"], true);
+    assert_eq!(
+        result["response"],
+        "Rewound 1 file from summary checkpoints."
+    );
 }

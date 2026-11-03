@@ -4,6 +4,7 @@
 //! 行：turnHeader（回合）、userInput（真人输入）、assistantText、reasoning、toolCall；其余事件只改状态或忽略（P1）。
 
 mod cold;
+mod files;
 mod rows;
 pub mod state;
 
@@ -53,6 +54,8 @@ struct Turn {
     execution_kind: Option<TurnExecutionKind>,
     /// 控制轮的 `metadata.workflowLaunch`（轮头行与 userInput 行的 `workflowLaunch` 字段）。
     launch: Option<Value>,
+    /// 这一轮写过的「机器 + 路径」（摘要的 `files` 去重，Node 的 summary 按文件数算）。
+    file_paths: Vec<(Option<String>, String)>,
 }
 
 /// 一个会话的投影。
@@ -403,6 +406,14 @@ impl Projection {
                 }
             }
             KernelEvent::MessageDone { message } => self.message(message, now, seq, &mut out),
+            KernelEvent::FileChanges {
+                turn,
+                files,
+                rewindable,
+            } => self.file_changes(turn.as_str(), files, *rewindable, &mut out),
+            KernelEvent::FilesRestored { turn } => {
+                self.files_restored(turn.as_str(), &mut out);
+            }
             KernelEvent::HistoryRewritten { .. } => {
                 // rewind 后投影重建（与 TUI 的 runner 同语义）：清空行、重置状态。
                 // 发 `row.removed{fromRowId:0}` 让客户端也清空（协议已有的 op，
@@ -616,6 +627,7 @@ impl Projection {
             keys: Vec::new(),
             execution_kind,
             launch: launch.cloned(),
+            file_paths: Vec::new(),
         });
         let mut row = self.base(turn, turn, "turnHeader", now, seq);
         // 轮头的 origin（Node `turnHeaderOrigin(inputSource)` 同一张表）：中枢启动/设置轮
@@ -712,6 +724,8 @@ impl Projection {
             );
         }
         let output_tokens = usage.map(|usage| usage.output_tokens);
+        // 终态才给「撤销文件」入口（Node 的 materialization 规则：running 时不给）。
+        let can_rewind = self.pending.is_empty();
         self.upsert(
             &turn_key(turn),
             |row| {
@@ -725,6 +739,14 @@ impl Projection {
                 if let Some(tokens) = output_tokens {
                     row.insert("outputTokens".into(), json!(tokens));
                 }
+                // 轮头已经有一轮的摘要（`FileChanges` 早于收口到达）：这时补上撤销入口。
+                if can_rewind
+                    && row
+                        .get("fileChanges")
+                        .and_then(Value::as_object)
+                        .is_some_and(|changes| changes.get("state") != Some(&json!("reverted")))
+                {
+                    files::set_can_rewind(row);                }
             },
             out,
         );

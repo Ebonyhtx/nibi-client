@@ -238,8 +238,99 @@ pub(crate) async fn plans(server: &Server, params: &Value) -> Result<Value, RpcE
     }))
 }
 
-/// 后台命令的状态换成 Host 的六值词表。
+/// 只读查询的 `target` 参数：`{rowId, entityId}`（Host `conversationRowTargetSchema`）。
+fn target_param(
+    params: &serde_json::Map<String, Value>,
+) -> Result<crate::row_target::Target, RpcError> {
+    let target = params
+        .get("target")
+        .ok_or_else(|| invalid("`target` is required"))?;
+    crate::row_target::Target::from_value(target)
+        .ok_or_else(|| invalid("`target` must have `rowId` and `entityId`"))
+}
+
+/// 只读查询的两道 CAS：`baseRevision` 与 `baseLogEpoch` 必须等于当前值（Host 的
+/// `resolveQueryRowTarget` 用同一对错误码拒绝跨代际的发布数据）。
+fn check_bases(
+    live: &crate::live::Live,
+    base_revision: u64,
+    base_epoch: &str,
+) -> Result<(), RpcError> {
+    let (_, revision) = live.status();
+    if base_revision != revision {
+        return Err(RpcError::internal("proto.staleRevision"));
+    }
+    if base_epoch != live.epoch() {
+        return Err(RpcError::internal("proto.staleLogEpoch"));
+    }
+    Ok(())
+}
+
+/// `v4/conversation/fileChanges`：一轮的文件改动明细（每个路径的增删行、写入次数、工具与补丁块）。
 ///
+/// 与 Node 的 `readConversationFileChangesFromEvents` 同一条口径：按这一轮的 checkpoint 聚合，
+/// 有写入后内容时按「第一次写入前 → 最后一次写入后」重算补丁。`target` 必须是轮头行（Host 的
+/// `resolveRowActionTarget` 同一约束）。
+pub(crate) async fn file_changes(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &["sessionId", "target", "baseRevision", "baseLogEpoch"],
+    )?;
+    let session = required_string(params, "sessionId")?;
+    let target = target_param(params)?;
+    let base_revision = required_u64(params, "baseRevision")?;
+    let base_epoch = required_string(params, "baseLogEpoch")?;
+    let live = server
+        .live(&SessionId::new(session))
+        .await
+        .map_err(|error| crate::server::kernel_error(&error))?;
+    check_bases(&live.sink, base_revision, &base_epoch)?;
+    let messages = crate::row_target::message_ids(&live.sink, &target).map_err(RpcError::internal)?;
+    let report = match live.handle.file_changes(&messages).await {
+        Ok(report) => report,
+        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+            return Err(RpcError::internal("fault.fileChanges.unsupported"));
+        }
+        Err(error) => return Err(crate::server::kernel_error(&error)),
+    };
+    serde_json::to_value(report).map_err(|error| RpcError::internal(error.to_string()))
+}
+
+/// `v4/conversation/fileRewindPreview`：一轮文件的只读回退预览（安全 / 不安全 / 忽略）。
+///
+/// 只读：不写文件、不登记回退 token。执行仍走 `applyFileRewind` 命令。
+pub(crate) async fn file_rewind_preview(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &["sessionId", "target", "baseRevision", "baseLogEpoch"],
+    )?;
+    let session = required_string(params, "sessionId")?;
+    let target = target_param(params)?;
+    let base_revision = required_u64(params, "baseRevision")?;
+    let base_epoch = required_string(params, "baseLogEpoch")?;
+    let live = server
+        .live(&SessionId::new(session))
+        .await
+        .map_err(|error| crate::server::kernel_error(&error))?;
+    check_bases(&live.sink, base_revision, &base_epoch)?;
+    let messages =
+        crate::row_target::rewind_message_ids(&live.sink, &target).map_err(RpcError::internal)?;
+    let preview = match live.handle.file_rewind_preview(&messages).await {
+        Ok(preview) => preview,
+        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+            return Err(RpcError::internal("fault.fileRewindPreview.unsupported"));
+        }
+        Err(error) => return Err(crate::server::kernel_error(&error)),
+    };
+    serde_json::to_value(preview).map_err(|error| RpcError::internal(error.to_string()))
+}
+
+/// 后台命令的状态换成 Host 的六值词表。///
 /// 内核的 [`BackgroundStatus`](rust_cli_kernel_api::env_shell::BackgroundStatus) 只有四个值：
 /// `timed_out` 与 `spawn_error` 分不出来——超时结束在账本里就是 `Failed`，起不来的命令根本没有
 /// 记录（回 `unavailable`）。如实映射，不猜。

@@ -79,6 +79,7 @@ pub mod env_rewind;
 pub mod env_shell;
 pub mod env_web;
 pub mod env_worktree;
+pub mod file_changes;
 pub mod goal;
 pub mod history;
 pub mod hook_review;

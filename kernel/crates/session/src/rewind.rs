@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use rust_cli_kernel_api::env::{OperationContext, Origin};
 use rust_cli_kernel_api::env_rewind::RestoreAction;
-use rust_cli_kernel_api::ids::{CommandId, MessageId, OperationId, OwnerEpoch};
+use rust_cli_kernel_api::ids::{CommandId, MessageId, OperationId, OwnerEpoch, TurnId};
 use rust_cli_kernel_api::machine::{Checkpoints, not_connected};
 use rust_cli_kernel_api::session_api::{Ack, KernelEvent, RewindOption, RewindScope};
 use rust_cli_kernel_api::store::{ArtifactStore, Fact, RevertCursor, WorkspaceCheckpoint};
@@ -30,6 +30,17 @@ pub(crate) struct Finished {
     /// 每台机器的 token（提交之后释放）。
     tokens: Vec<(Arc<dyn Checkpoints>, OperationId)>,
     /// 撤销成功的 checkpoint（R3：跨机器时一台 apply 失败，成功的那几台也要记下）。
+    restored: Vec<String>,
+    result: Result<Value, String>,
+}
+
+/// 只回退文件的事务结果（NIBI `applyFileRewind`）：不截断对话，成功后把这一轮标成 reverted。
+pub(crate) struct FinishedFiles {
+    command: CommandId,
+    /// 这一轮的 id（投影据此把轮头的 `fileChanges.state` 标成 reverted）；缺席时不发事件。
+    turn: Option<TurnId>,
+    reply: oneshot::Sender<Ack>,
+    tokens: Vec<(Arc<dyn Checkpoints>, OperationId)>,
     restored: Vec<String>,
     result: Result<Value, String>,
 }
@@ -194,6 +205,108 @@ impl Actor {
             }))
         });
         self.job = Some(Job { task, cancel: None });
+    }
+
+    /// 只回退给定消息集合（一轮）里的 checkpoint，不动对话（NIBI `applyFileRewind`）。
+    ///
+    /// 与 [`Self::rewind`] 的两点不同：checkpoint 按这一轮的 prompt / assistant 消息精确选（不是
+    /// 「target 之后的所有」——旧轮的摘要面板也能撤销，而不会连带撤掉后面的轮）；成功后发
+    /// [`KernelEvent::FilesRestored`]，投影把这一轮标成 `reverted`。
+    pub(crate) async fn restore_files(
+        &mut self,
+        command: CommandId,
+        messages: Vec<MessageId>,
+        turn: Option<TurnId>,
+        reply: oneshot::Sender<Ack>,
+    ) {
+        if self.busy() {
+            let _ = reply.send(rejected("a turn is running; rewind files after it finishes"));
+            return;
+        }
+        let undo: Vec<WorkspaceCheckpoint> =
+            crate::file_changes::select(&self.checkpoints, &messages)
+                .into_iter()
+                .cloned()
+                .collect();
+        if undo.is_empty() {
+            let _ = reply.send(rejected("there are no code changes to restore"));
+            return;
+        }
+        let groups = match self.rewind_groups(undo) {
+            Ok(groups) => groups,
+            Err(reason) => {
+                let _ = reply.send(rejected(reason));
+                return;
+            }
+        };
+        let tokens = groups
+            .iter()
+            .map(|group| (group.port.clone(), group.token().clone()))
+            .collect();
+        let store = self.deps.artifacts.clone();
+        let task = self.deps.spawner.spawn("rewind-files", async move {
+            let outcome = rewind_machines::restore(store.as_ref(), &groups).await;
+            JobDone::RestoreFiles(Box::new(FinishedFiles {
+                command,
+                turn,
+                reply,
+                tokens,
+                restored: outcome.restored,
+                result: outcome.result.map(|done| restored_json(&done)),
+            }))
+        });
+        self.job = Some(Job { task, cancel: None });
+    }
+
+    /// 只回退文件的事务结束：提交撤销的 checkpoint、发 `FilesRestored`、回复，最后释放 token。
+    pub(crate) async fn finish_restore_files(&mut self, finished: FinishedFiles) {
+        let FinishedFiles {
+            command,
+            turn,
+            reply,
+            tokens,
+            restored: checkpoints,
+            result,
+        } = finished;
+        let ack = match result {
+            // 跨机器时一台 apply 失败：成功的那几台已经改回，记下它们再拒绝（R3）。
+            Err(reason) if !checkpoints.is_empty() => {
+                let fact = Fact::CheckpointsRestored {
+                    checkpoints: checkpoints.clone(),
+                };
+                if self.commit(Some(command), vec![fact]).await.is_ok() {
+                    self.checkpoints.retain(|c| !checkpoints.contains(&c.id));
+                }
+                rejected(reason)
+            }
+            Err(reason) => rejected(reason),
+            Ok(restored) => {
+                let fact = Fact::CheckpointsRestored {
+                    checkpoints: checkpoints.clone(),
+                };
+                match self.commit(Some(command), vec![fact]).await {
+                    Ok(()) => {
+                        self.checkpoints.retain(|c| !checkpoints.contains(&c.id));
+                        if let Some(turn) = turn {
+                            self.log.append(KernelEvent::FilesRestored { turn });
+                        }
+                        Ack::Accepted {
+                            result: json!({"restored": restored}),
+                        }
+                    }
+                    Err(reason) => rejected(reason),
+                }
+            }
+        };
+        let _ = reply.send(ack);
+        drop(self.deps.spawner.spawn("rewind-finish", async move {
+            for (port, token) in tokens {
+                if let Err(error) = port.rewind_finish(&token).await {
+                    tracing::warn!(%error, "rewind token was not released");
+                }
+            }
+        }));
+        self.start_next().await;
     }
 
     /// 事务结束：先提交（撤销的 checkpoint、对话游标），再改内存、发事件、回复，最后释放 token。

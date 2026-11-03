@@ -134,6 +134,14 @@ impl Server {
                 Live::new(context, topics, view, followup)
             })
             .await?;
+        // 冷打开的每轮文件摘要（轮头角标与撤销入口）：读不出 artifact 只少一个角标，不拦打开。
+        // 只挂一次；之后的写入走 `FileChanges` 事件。先看旗标，别让每条命令都重读一遍 artifact。
+        if live.sink.needs_file_summaries() {
+            match live.handle.file_change_summaries().await {
+                Ok(summaries) => live.sink.set_file_summaries(&summaries).await,
+                Err(error) => tracing::debug!(%error, "file change summaries are unavailable"),
+            }
+        }
         // 会话第一次打开：按当前快照上报工作区钩子的提示条（Node 在 activate 时上报 admission）。
         self.announce_hook_admission(session, live.sink.clone()).await;
         Ok(live)
@@ -307,6 +315,14 @@ impl Server {
             }
             "v4/conversation/backgroundBashOutput" => {
                 crate::v4_queries::background_bash_output(self, &params)
+                    .await
+                    .map(Reply::new)
+            }
+            "v4/conversation/fileChanges" => {
+                crate::v4_queries::file_changes(self, &params).await.map(Reply::new)
+            }
+            "v4/conversation/fileRewindPreview" => {
+                crate::v4_queries::file_rewind_preview(self, &params)
                     .await
                     .map(Reply::new)
             }

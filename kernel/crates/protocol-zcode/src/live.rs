@@ -25,6 +25,8 @@ struct State {
     log: TopicLog<Value>,
     /// 最后一次发出去的会话列表行（活动时间记成 0，不参与比较）。
     summary: Option<Value>,
+    /// 冷打开的每轮文件摘要已经挂上（只算一次，之后靠 `FileChanges` 事件）。
+    summaries: bool,
 }
 
 /// 锁里算好、锁外写出的东西：（订阅、区间、payload）与变了的会话列表行。
@@ -60,6 +62,7 @@ impl Live {
                 projection: Projection::from_view(view, followup, levels),
                 log: TopicLog::new(epoch),
                 summary: None,
+                summaries: false,
             }),
             context,
             topics,
@@ -322,6 +325,33 @@ impl Live {
         if let Some(row) = outgoing.summary {
             self.topics.upsert(&self.workspace, row);
         }
+    }
+
+    /// 冷打开的每轮文件摘要还没挂（`server.live()` 据此决定要不要读 artifact）。
+    pub fn needs_file_summaries(&self) -> bool {
+        !self.state().summaries
+    }
+
+    /// 冷打开的每轮文件摘要挂到轮头（141 审计 §9 第 2 项余项）。只算一次：之后的写入走
+    /// `FileChanges` 事件。读不出 artifact 的回合由会话侧跳过，这里拿到的就是可用的那些。
+    pub async fn set_file_summaries(
+        &self,
+        summaries: &[rust_cli_kernel_api::file_changes::TurnFileSummary],
+    ) {
+        let outgoing = {
+            let mut state = self.state();
+            if state.summaries {
+                return;
+            }
+            state.summaries = true;
+            let deltas = state.projection.set_file_summaries(summaries);
+            if deltas.is_empty() {
+                return;
+            }
+            state.log.record(deltas);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
     }
 
     /// 把当前的会话列表行发出去（建会话之后，列表马上看得到）。在会话的泵任务里调用。

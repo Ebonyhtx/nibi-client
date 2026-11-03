@@ -13,9 +13,6 @@ use rust_cli_kernel_api::store::ArtifactPurpose;
 use rust_cli_kernel_api::tool::ToolUseContext;
 use serde_json::{Value, json};
 
-/// 上下文行数（jsdiff `structuredPatch` 的默认值）。
-const CONTEXT: usize = 3;
-
 /// 一次写入：路径、写入前的字节（文件不存在时 None）、写入后的字节、写入后的 mtime。
 pub(crate) struct Change<'a> {
     pub tool: &'a str,
@@ -85,58 +82,16 @@ pub(crate) async fn record(context: &ToolUseContext, change: Change<'_>) -> Opti
 
 /// 去掉公共前后缀后的一个 hunk（带 3 行上下文）；返回 hunk 列表与增删行数。
 /// 不是最小 diff：Node / App 有 `afterContent` 时按前后内容重算统计（spec §4.1）。
+///
+/// 算法在 [`rust_cli_kernel_api::file_changes`]（会话侧的文件变更聚合与回退预览用同一份）。
 pub(crate) fn structured_patch(before: &str, after: &str) -> (Vec<Value>, usize, usize) {
-    let old: Vec<&str> = lines(before);
-    let new: Vec<&str> = lines(after);
-    let prefix = old.iter().zip(&new).take_while(|(a, b)| a == b).count();
-    let suffix = old[prefix..]
-        .iter()
-        .rev()
-        .zip(new[prefix..].iter().rev())
-        .take_while(|(a, b)| a == b)
-        .count();
-    let removed = &old[prefix..old.len() - suffix];
-    let added = &new[prefix..new.len() - suffix];
-    if removed.is_empty() && added.is_empty() {
-        return (Vec::new(), 0, 0);
-    }
-    let lead = prefix.min(CONTEXT);
-    let trail = suffix.min(CONTEXT);
-    let mut body: Vec<String> = old[prefix - lead..prefix]
-        .iter()
-        .map(|line| format!(" {line}"))
+    let (hunks, additions, deletions) =
+        rust_cli_kernel_api::file_changes::structured_patch(before, after);
+    let hunks = hunks
+        .into_iter()
+        .map(|hunk| serde_json::to_value(hunk).unwrap_or(Value::Null))
         .collect();
-    body.extend(removed.iter().map(|line| format!("-{line}")));
-    body.extend(added.iter().map(|line| format!("+{line}")));
-    let tail = old.len() - suffix;
-    body.extend(
-        old[tail..tail + trail]
-            .iter()
-            .map(|line| format!(" {line}")),
-    );
-    let old_lines = lead + removed.len() + trail;
-    let new_lines = lead + added.len() + trail;
-    // jsdiff：某一侧没有行时起始行号为 0。
-    let start = |count: usize| if count == 0 { 0 } else { prefix - lead + 1 };
-    let hunk = json!({
-        "oldStart": start(old_lines),
-        "oldLines": old_lines,
-        "newStart": start(new_lines),
-        "newLines": new_lines,
-        "lines": body,
-    });
-    (vec![hunk], added.len(), removed.len())
-}
-
-/// 按 `\n` 分行，行内不含换行符；末尾的换行不产生空行。
-fn lines(text: &str) -> Vec<&str> {
-    if text.is_empty() {
-        return Vec::new();
-    }
-    text.strip_suffix('\n')
-        .unwrap_or(text)
-        .split('\n')
-        .collect()
+    (hunks, additions as usize, deletions as usize)
 }
 
 #[cfg(test)]

@@ -1938,46 +1938,96 @@ async fn apply_file_rewind(
             revision,
         );
     };
-    let Some(row) = live.row(target.row_id) else {
-        return Ack::refused(
-            command,
-            Status::Rejected,
-            "proto.invalidPayload",
-            format!("row {} does not exist", target.row_id),
-            revision,
-        );
+    // Host 的入口是轮头行（`resolveRowActionTarget`）：内核把同一行解析成这一轮的消息集合，
+    // 按 checkpoint 的 prompt / assistant 精确回退，不连带撤掉后面的轮。
+    let row_target = crate::row_target::Target {
+        row_id: target.row_id,
+        entity_id: target.entity.clone(),
     };
-    let message = match row_message_id(&row, &target.entity) {
-        Ok(message) => message,
+    let messages = match crate::row_target::rewind_message_ids(live, &row_target) {
+        Ok(messages) => messages,
         Err(reason) => {
+            return Ack::refused(command, Status::Rejected, &reason, reason.clone(), revision);
+        }
+    };
+    let turn = live
+        .row(row_target.row_id)
+        .and_then(|row| row.get("turnId").and_then(Value::as_str).map(str::to_owned));
+    // 先预览：不安全的文件一个都不写（Node 的 `buildWorkspaceFileRewindPlan` + `canApply`）。
+    let preview = match handle.file_rewind_preview(&messages).await {
+        Ok(preview) => preview,
+        Err(error) => {
             return Ack::refused(
                 command,
                 Status::Rejected,
-                "proto.invalidPayload",
-                reason,
+                "fault.command.fileRewindFailed",
+                error.to_string(),
                 revision,
             );
         }
     };
+    let unsafe_response = "File rewind was not applied because at least one file is unsafe.";
+    if !preview.can_apply {
+        return Ack::accepted(
+            command,
+            revision,
+            Some(json!({
+                "type": "applyFileRewind",
+                "applied": false,
+                "preview": preview,
+                "response": unsafe_response,
+            })),
+        );
+    }
+    let safe_files = preview.safe_files.len();
     match send(
         handle,
         command,
-        Command::Rewind {
-            target: rust_cli_kernel_api::ids::MessageId::new(message),
-            scope: RewindScope::Code,
+        Command::RestoreFiles {
+            messages,
+            turn: turn.map(rust_cli_kernel_api::ids::TurnId::new),
         },
     )
     .await
     {
-        KernelAck::Accepted { .. } => Ack::accepted(command, revision, None),
+        KernelAck::Accepted { .. } => {
+            let noun = if safe_files == 1 { "file" } else { "files" };
+            Ack::accepted(
+                command,
+                revision,
+                Some(json!({
+                    "type": "applyFileRewind",
+                    "applied": true,
+                    "preview": preview,
+                    "response": format!("Rewound {safe_files} {noun} from summary checkpoints."),
+                })),
+            )
+        }
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, revision, None)),
-        KernelAck::Rejected { reason } => Ack::refused(
-            command,
-            Status::Rejected,
-            "fault.command.fileRewindFailed",
-            reason,
-            revision,
-        ),
+        // 预览之后文件又变了（或机器掉线）：如实回「没有应用」与原因，不冒充成功。
+        KernelAck::Rejected { reason } => {
+            let mut preview = preview;
+            preview.can_apply = false;
+            preview.unsafe_files.push(rust_cli_kernel_api::file_changes::RewindUnsafeFile {
+                path: "workspace".to_owned(),
+                reason: rust_cli_kernel_api::file_changes::RewindUnsafeReason::FileReadFailed,
+                operation_count: 1,
+                tool_names: Vec::new(),
+                current_hash: None,
+                expected_hash: None,
+                message: Some(reason.clone()),
+            });
+            Ack::accepted(
+                command,
+                revision,
+                Some(json!({
+                    "type": "applyFileRewind",
+                    "applied": false,
+                    "preview": preview,
+                    "response": reason,
+                })),
+            )
+        }
     }
 }
 
