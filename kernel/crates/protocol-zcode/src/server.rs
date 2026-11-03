@@ -58,6 +58,8 @@ pub struct Server {
     pub(crate) instance: String,
     /// 附件事务的暂存表（`v4/attachment/begin|chunk|commit|abort`，见 [`crate::attachment_upload`]）。
     pub(crate) uploads: crate::attachment_upload::Registry,
+    /// 网络捕获的开关与攒批（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）。
+    pub(crate) capture: Arc<crate::telemetry::Capture>,
     preferences: Mutex<Preferences>,
 }
 
@@ -72,13 +74,18 @@ pub(crate) fn kernel_error(error: &KernelError) -> RpcError {
 }
 
 impl Server {
+    /// `capture` 是网络捕获的运行时：入口要先把它的观察者装到 `Egress` 上，所以由调用方建好传进来
+    /// （`None` 时自建一份——观察者没装，捕获就只会空转）。
     pub fn new(
         context: Arc<Context>,
         kernel: Arc<dyn Kernel>,
         spawner: rust_cli_base::Spawner,
         defaults: Defaults,
+        capture: Option<Arc<crate::telemetry::Capture>>,
     ) -> Self {
         let topics = Arc::new(Topics::new(context.clone(), &spawner));
+        let capture = capture
+            .unwrap_or_else(|| crate::telemetry::Capture::new(context.clone(), &spawner));
         Self {
             instance: context.fresh("instance"),
             bridge: SessionBridge::new(
@@ -96,6 +103,7 @@ impl Server {
             spawner,
             defaults,
             uploads: crate::attachment_upload::Registry::default(),
+            capture,
             preferences: Mutex::new(Preferences::default()),
         }
     }
@@ -331,6 +339,25 @@ impl Server {
             "v4/conversation/attachmentStat" => {
                 crate::attachment_rpc::conversation_stat(self, &params).await.map(Reply::new)
             }
+            // 进程资源面（141 审计 §9 F3）：`process/childProcesses` 是 Host→CLI 的请求，其余四族是
+            // CLI→Host 的通知（见 `telemetry.rs`）。这里只答请求的那一条；`process/networkCapture`
+            // 是 Host→CLI 的通知，见 `Handler::notification`。
+            "process/childProcesses" => reply(json!({
+                "processes": self.kernel.mcp_child_processes().await
+                    .iter()
+                    .map(|process| {
+                        let mut value = json!({
+                            "pid": process.pid,
+                            "serverName": process.server_name,
+                            "mcpSource": process.mcp_source,
+                        });
+                        if let Some(plugin) = &process.plugin_name {
+                            value["pluginName"] = json!(plugin);
+                        }
+                        value
+                    })
+                    .collect::<Vec<_>>(),
+            })),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),
@@ -346,5 +373,14 @@ impl Service for Handler {
     async fn request(&self, method: &str, params: Value) -> Result<Reply, RpcError> {
         Inbound::get().method(method, &params)?;
         self.0.dispatch(method, params).await
+    }
+
+    /// Host 发来的通知。目前只有 `process/networkCapture`（开/关网络捕获）一条有语义，其余
+    /// 与以前一样忽略——Rust 的入站通知面就是这一条（141 审计 §9 F3）。
+    async fn notification(&self, method: &str, params: Value) {
+        if method == crate::telemetry::NETWORK_CAPTURE {
+            // 形状不对就当没收到（Node 的 `safeParse` 同一姿态）；不开捕获时这是零成本。
+            self.0.capture.control(&params);
+        }
     }
 }

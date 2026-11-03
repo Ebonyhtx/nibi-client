@@ -227,7 +227,7 @@ async fn serve(
         selection,
         limits: model_limits,
     } = models::assemble(
-        egress,
+        egress.clone(),
         platform.clone(),
         startup.explicit,
         (None, None),
@@ -364,9 +364,21 @@ async fn serve(
         Arc::new(rust_cli_env_local::process_metrics::LocalProcessMetrics::new()),
         &spawner,
     );
+    // 网络捕获（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）：Host 开关，
+    // CLI 把出站请求的批次送回去。观察者装在本进程唯一的出口上，所以覆盖全部出站路径。
+    let capture = rust_cli_protocol_zcode::telemetry::Capture::new(context.clone(), &spawner);
+    egress.observe(capture.observer());
     // 读到 Host 关掉输入或收到退出信号时结束（Host 回收整棵进程树）。
     tokio::select! {
-        result = rust_cli_protocol_zcode::serve(input, context, kernel, defaults, spawner, Options::default()) => {
+        result = rust_cli_protocol_zcode::serve_with_capture(
+            input,
+            context,
+            kernel,
+            defaults,
+            spawner,
+            Options::default(),
+            Some(capture),
+        ) => {
             result?;
         }
         () = stop.token.cancelled() => {}

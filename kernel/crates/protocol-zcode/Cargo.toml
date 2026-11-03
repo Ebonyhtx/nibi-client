@@ -19,6 +19,8 @@ async-trait.workspace = true
 base64.workspace = true
 rust-cli-base.workspace = true
 rust-cli-kernel-api.workspace = true
+# 网络捕获挂在出口的观察者上（141 审计 §9 F3，`process/networkCapture`）。
+rust-cli-net.workspace = true
 # 账号模型的每请求鉴权来源（G8，HeaderSource）。
 rust-cli-platform.workspace = true
 rust-cli-protocol-core.workspace = true

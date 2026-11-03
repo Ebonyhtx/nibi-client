@@ -99,6 +99,7 @@ pub mod mcp_vars;
 pub mod message;
 pub mod metering;
 pub mod model;
+pub mod network_capture;
 pub mod monitor;
 pub mod monitor_watch;
 pub mod orchestration;

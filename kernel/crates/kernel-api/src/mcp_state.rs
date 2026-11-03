@@ -86,6 +86,22 @@ pub fn servers_for_tool<'a>(view: &'a McpView, tool_name: &str) -> Vec<&'a McpSe
     found
 }
 
+/// 一条仍在运行的 MCP 子进程（`process/childProcesses` 的一行，141 审计 §9 F3）。
+///
+/// 桌面读整机进程表、按 pid 把内存/CPU 归到插件；这份清单是唯一的归属来源，所以每条都必须带
+/// **配置里的服务器名**与来源（Node `McpTelemetrySource`：`builtin` / `plugin` / `custom`）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpChildProcess {
+    pub pid: u32,
+    pub server_name: String,
+    /// `builtin` / `plugin` / `custom`（Node `zcodeProcessChildProcessSchema.mcpSource` 的三个值）。
+    pub mcp_source: String,
+    /// `plugin:<name>:<key>` 的插件名；其他来源没有。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plugin_name: Option<String>,
+}
+
 /// MCP 连接（ext 实现）。
 #[async_trait]
 pub trait McpConnections: Send + Sync {
@@ -105,6 +121,12 @@ pub trait McpConnections: Send + Sync {
 
     /// 直接调用连接中服务器的工具时，一次模型响应里最多等多久（`min(MCP_TIMEOUT, 10000)` ms）。
     fn tool_wait_ms(&self) -> u64;
+
+    /// 仍在运行的 MCP 子进程（`process/childProcesses`，141 审计 §9 F3）：pid 与归属，不含采样值。
+    /// 没有这些能力的实现返回空（HTTP / SSE 服务器本来就没有子进程）。
+    fn processes(&self) -> Vec<McpChildProcess> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]

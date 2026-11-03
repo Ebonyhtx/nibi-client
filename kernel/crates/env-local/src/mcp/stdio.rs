@@ -25,6 +25,8 @@ use crate::shell::environ;
 pub(crate) struct StdioLink {
     outbox: mpsc::Sender<Value>,
     closing: CancellationToken,
+    /// 服务器进程的 pid（`process/childProcesses` 的归属来源）。
+    pid: u32,
 }
 
 impl StdioLink {
@@ -45,6 +47,10 @@ impl StdioLink {
 
     pub(crate) fn close(&self) {
         self.closing.cancel();
+    }
+
+    pub(crate) fn pid(&self) -> u32 {
+        self.pid
     }
 }
 
@@ -117,6 +123,7 @@ pub(crate) async fn start(
             message: format!("MCP server \"{}\" has no pipes", launch.server),
         });
     };
+    let pid = tracked.pid();
     let (outbox, inbox) = mpsc::channel(OUTBOX_CAPACITY);
     let closing = CancellationToken::new();
     let server = launch.server.to_owned();
@@ -130,7 +137,14 @@ pub(crate) async fn start(
         events,
         closing: closing.clone(),
     }));
-    Ok((std::sync::Arc::new(StdioLink { outbox, closing }), task))
+    Ok((
+        std::sync::Arc::new(StdioLink {
+            outbox,
+            closing,
+            pid,
+        }),
+        task,
+    ))
 }
 
 struct Pipes {

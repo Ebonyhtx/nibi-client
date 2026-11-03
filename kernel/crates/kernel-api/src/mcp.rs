@@ -117,6 +117,12 @@ pub trait McpTransport: Send + Sync {
     fn events(&self, connection: &McpConnectionId) -> BoxStream<'static, McpTransportEvent>;
 
     async fn close(&self, connection: &McpConnectionId) -> Result<(), McpError>;
+
+    /// stdio 服务器进程的 pid（`process/childProcesses` 的归属来源，141 审计 §9 F3）。HTTP / SSE
+    /// 没有子进程，返回 `None`；缺省实现也返回 `None`。
+    fn pid(&self, _connection: &McpConnectionId) -> Option<u32> {
+        None
+    }
 }
 
 /// 没有 MCP 传输时的空实现：连接一律失败。

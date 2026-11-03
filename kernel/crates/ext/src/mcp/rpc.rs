@@ -156,6 +156,11 @@ impl Client {
         self.closed.is_cancelled()
     }
 
+    /// 服务器进程的 pid（stdio 才有；`process/childProcesses` 的归属来源）。
+    pub(crate) fn pid(&self) -> Option<u32> {
+        self.transport.pid(&self.connection)
+    }
+
     pub(crate) async fn notify(&self, method: &str, params: Option<Value>) -> Result<(), RpcError> {
         let mut message = json!({"jsonrpc": "2.0", "method": method});
         if let Some(params) = params {

@@ -211,6 +211,7 @@ fn server(kernel: Arc<dyn Kernel>) -> Arc<Server> {
             mode: PermissionMode::Default,
             environment: EnvironmentId::new("env"),
         },
+        None,
     ))
 }
 

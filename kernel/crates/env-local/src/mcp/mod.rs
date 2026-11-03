@@ -207,6 +207,16 @@ impl McpTransport for LocalMcpTransport {
         }
     }
 
+    fn pid(&self, connection: &McpConnectionId) -> Option<u32> {
+        match self.connections().get(connection.as_str()) {
+            Some(Connection {
+                outbox: Outbox::Stdio(link),
+                ..
+            }) => Some(link.pid()),
+            _ => None,
+        }
+    }
+
     async fn close(&self, connection: &McpConnectionId) -> Result<(), McpError> {
         let Some(found) = self.connections().remove(connection.as_str()) else {
             return Ok(());

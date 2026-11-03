@@ -140,3 +140,68 @@ async fn stopping_the_sampler_stops_the_frames() {
     let quiet = tokio::time::timeout(Duration::from_millis(250), reader.read_line(&mut line)).await;
     assert!(quiet.is_err(), "unexpected frame: {line}");
 }
+
+/// `process/networkCapture` 开/关的语义（Host `networkCaptureControlSchema`）：`{captureId}` 开，
+/// `null` 关，形状不对当没收到。
+#[tokio::test]
+async fn the_capture_control_follows_the_host_contract() {
+    let (peer, _host, scope) = channel();
+    let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
+    let capture = Capture::new(context, &scope.spawner());
+    assert!(capture.control(&serde_json::json!({"captureId": "cap-1"})));
+    assert_eq!(capture.state.with(|state| state.capture_id().map(str::to_owned)), Some("cap-1".to_owned()));
+    assert!(capture.control(&serde_json::json!({"captureId": null})));
+    assert!(capture.state.with(|state| state.capture_id().is_none()));
+    // 形状不对：空串、超长、缺字段、非字符串。
+    assert!(!capture.control(&serde_json::json!({"captureId": ""})));
+    assert!(!capture.control(&serde_json::json!({"captureId": "x".repeat(101)})));
+    assert!(!capture.control(&serde_json::json!({})));
+    assert!(!capture.control(&serde_json::json!({"captureId": 7})));
+}
+
+/// 出站请求经观察者进来、攒批任务发出去：一批 `process/networkRequests`，记录带 pid 与脱敏 URL。
+#[tokio::test]
+async fn captured_requests_are_batched_to_the_host() {
+    let (peer, host_side, scope) = channel();
+    let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
+    let capture = Capture::new(context, &scope.spawner());
+    let observer = capture.observer().expect("an observer");
+    capture.start();
+    capture.control(&serde_json::json!({"captureId": "cap-1"}));
+    observer.request("GET", "https://example.com/a?secret=1");
+    let mut reader = BufReader::new(host_side);
+    let mut line = String::new();
+    // 攒批窗口是 250 ms；给足余量。
+    tokio::time::timeout(Duration::from_secs(5), reader.read_line(&mut line))
+        .await
+        .expect("a frame within the timeout")
+        .expect("a frame");
+    let frame: Value = serde_json::from_str(&line).expect("a JSON frame");
+    assert_eq!(frame["method"], "process/networkRequests");
+    let params = &frame["params"];
+    assert_eq!(params["captureId"], "cap-1");
+    let records = params["records"].as_array().expect("records");
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0]["method"], "GET");
+    assert_eq!(records[0]["processType"], "cli");
+    assert_eq!(records[0]["pid"], std::process::id());
+    assert_eq!(
+        records[0]["url"],
+        "https://example.com/a?secret=%5Bredacted%5D"
+    );
+}
+
+/// 没开捕获时观察者什么都不发。
+#[tokio::test]
+async fn requests_are_not_captured_while_the_capture_is_off() {
+    let (peer, host_side, scope) = channel();
+    let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
+    let capture = Capture::new(context, &scope.spawner());
+    let observer = capture.observer().expect("an observer");
+    capture.start();
+    observer.request("GET", "https://example.com/a");
+    let mut reader = BufReader::new(host_side);
+    let mut line = String::new();
+    let quiet = tokio::time::timeout(Duration::from_millis(400), reader.read_line(&mut line)).await;
+    assert!(quiet.is_err(), "unexpected frame: {line}");
+}

@@ -64,11 +64,22 @@ impl Snapshot {
     }
 }
 
+/// 出站请求的观察者（`process/networkRequests` 的数据来源，141 审计 §9 F3）。
+///
+/// 网络 crate 不认识协议的批次形状，也不知道捕获开没开：它只把「刚发出一条请求」这件事告诉
+/// 观察者，由观察者自己判断要不要记、怎么攒批。没装观察者时这一层是零成本的空分支。
+pub trait EgressObserver: Send + Sync {
+    /// 一条出站请求（`method` 已是大写形式，`url` 是原始 URL）。
+    fn request(&self, method: &str, url: &str);
+}
+
 /// 网络出口。所有出站 HTTP 都经它发出。
 pub struct Egress {
     current: ArcSwap<Snapshot>,
     /// 最近一次发起替换的序号；快照只被序号更大的替换覆盖。
     issued: AtomicU64,
+    /// 出站请求的观察者（网络捕获）；没有时不起作用。
+    observer: std::sync::RwLock<Option<Arc<dyn EgressObserver>>>,
 }
 
 impl Egress {
@@ -77,6 +88,7 @@ impl Egress {
         Ok(Self {
             current: ArcSwap::from_pointee(snapshot),
             issued: AtomicU64::new(0),
+            observer: std::sync::RwLock::new(None),
         })
     }
 
@@ -99,7 +111,24 @@ impl Egress {
     }
 
     /// 发送请求，返回响应头已到达的响应。非 2xx 状态也是 `Ok`，由调用方分类。
+    /// 装上出站请求的观察者（网络捕获）；`None` 摘掉。
+    pub fn observe(&self, observer: Option<Arc<dyn EgressObserver>>) {
+        *self
+            .observer
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = observer;
+    }
+
     pub async fn send(&self, request: HttpRequest) -> Result<HttpResponse, NetError> {
+        // 观察在发出之前：捕获要的是「客户端发了什么」，不是「服务端答了什么」。
+        let observer = self
+            .observer
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        if let Some(observer) = observer {
+            observer.request(request.method.as_str(), &request.url);
+        }
         let snapshot = self.current.load_full();
         let mut headers = snapshot.headers.clone();
         for (name, value) in &request.headers {

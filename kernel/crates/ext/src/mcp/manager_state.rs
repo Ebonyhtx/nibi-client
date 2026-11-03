@@ -9,10 +9,11 @@ use std::time::Duration;
 use async_trait::async_trait;
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::{McpConnections, McpServerView, McpView};
+use rust_cli_kernel_api::mcp_state::{McpChildProcess, McpConnections, McpServerView, McpView};
 use rust_cli_kernel_api::tool::Tool;
 
 use super::{Inner, McpManager, McpStatus, Server, instructions_of, tools_of};
+use crate::McpScope;
 use crate::mcp::startup::{DEFAULT_PREWAIT_MS, segment};
 
 /// 直接调用连接中服务器的工具时，一次模型响应里等待的上限（10 s）。
@@ -25,6 +26,35 @@ fn state_of(status: &McpStatus) -> McpServerState {
         McpStatus::Failed { .. } => McpServerState::Failed,
         McpStatus::Disabled => McpServerState::Disabled,
     }
+}
+
+/// 仍在运行的 MCP 子进程（`process/childProcesses`）：只列连上过的 stdio 服务器（HTTP / SSE 没有子进程），
+/// 归属从服务器名的 `plugin:<name>:<key>` 命名空间与 scope 推导（Node `listChildProcesses` 同一条规则）。
+fn processes_of(servers: &BTreeMap<String, Server>) -> Vec<McpChildProcess> {
+    servers
+        .values()
+        .filter_map(|server| {
+            let client = server.client.as_ref()?;
+            let pid = client.pid()?;
+            let name = &server.config.name;
+            let (mcp_source, plugin_name) = if server.config.scope == McpScope::Plugin {
+                // `plugin:<name>:<key>`：第二段是插件名。
+                let plugin = name
+                    .strip_prefix("plugin:")
+                    .and_then(|rest| rest.split(':').next())
+                    .map(str::to_owned);
+                ("plugin", plugin)
+            } else {
+                ("custom", None)
+            };
+            Some(McpChildProcess {
+                pid,
+                server_name: name.clone(),
+                mcp_source: mcp_source.to_owned(),
+                plugin_name,
+            })
+        })
+        .collect()
 }
 
 fn view_of(servers: &BTreeMap<String, Server>) -> McpView {
@@ -205,6 +235,10 @@ impl McpConnections for McpManager {
 
     fn tool_wait_ms(&self) -> u64 {
         self.0.settings.connect_timeout_ms.min(TOOL_WAIT_CAP_MS)
+    }
+
+    fn processes(&self) -> Vec<McpChildProcess> {
+        processes_of(&self.0.servers())
     }
 }
 

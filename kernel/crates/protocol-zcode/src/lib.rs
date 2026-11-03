@@ -110,13 +110,38 @@ pub async fn serve<R>(
 where
     R: AsyncBufRead + Unpin,
 {
+    serve_with_capture(
+        reader, context, kernel, defaults, spawner, options, None,
+    )
+    .await
+}
+
+/// 同 [`serve`]，另给网络捕获的运行时（入口把观察者装到 `Egress` 之后传进来）。
+pub async fn serve_with_capture<R>(
+    reader: R,
+    context: Arc<Context>,
+    kernel: Arc<dyn Kernel>,
+    defaults: Defaults,
+    spawner: Spawner,
+    options: Options,
+    capture: Option<Arc<telemetry::Capture>>,
+) -> std::io::Result<()>
+where
+    R: AsyncBufRead + Unpin,
+{
     let peer: Peer = context.peer.clone();
     let server = Arc::new(server::Server::new(
         context,
         kernel,
         spawner.clone(),
         defaults,
+        capture.clone(),
     ));
+    if let Some(capture) = capture {
+        // 攒批任务与服务器同生共死（作用域关闭时结束）。
+        // 任务跟着 spawner 的作用域走；句柄不用。
+        std::mem::drop(capture.start());
+    }
     connection::serve(
         reader,
         peer,

@@ -21,6 +21,8 @@ icu_normalizer.workspace = true
 rust-cli-base.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+# 网络捕获的 URL 脱敏（network_capture.rs，141 审计 F3）。
+url.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["sync"] }

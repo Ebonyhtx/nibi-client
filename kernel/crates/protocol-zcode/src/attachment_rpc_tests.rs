@@ -170,6 +170,7 @@ fn server(kernel: Arc<FakeKernel>) -> Arc<Server> {
             mode: PermissionMode::Default,
             environment: EnvironmentId::new("env"),
         },
+        None,
     ))
 }
 

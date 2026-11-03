@@ -403,6 +403,7 @@ fn server(kernel: Arc<FakeKernel>) -> Arc<Server> {
             mode: PermissionMode::Default,
             environment: EnvironmentId::new("env"),
         },
+        None,
     ))
 }
 
@@ -700,6 +701,7 @@ async fn unknown_runs_get_empty_lists_rather_than_errors() {
             mode: PermissionMode::Default,
             environment: EnvironmentId::new("env"),
         },
+        None,
     ));
     let reply = Handler(server.clone())
         .request(

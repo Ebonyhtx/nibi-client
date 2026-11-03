@@ -535,6 +535,12 @@ impl Kernel for LocalKernel {
             .await
     }
 
+    /// `process/childProcesses`：仍在运行的 MCP 子进程（pid 与归属）。
+    async fn mcp_child_processes(&self) -> Vec<rust_cli_kernel_api::mcp_state::McpChildProcess> {
+        use rust_cli_kernel_api::mcp_state::McpConnections;
+        self.ext.mcp().processes()
+    }
+
     /// NIBI `requestWorkspaceHookReview` 的数据来源：工作区钩子当前的信任快照（只读）。
     async fn workspace_hook_review(
         &self,
