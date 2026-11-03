@@ -393,6 +393,29 @@ impl Server {
             // `mcp/list`（141 审计 §9 第 6 项 F7）：设置页的工作区 MCP 状态检查。`connect` 收敛
             // 状态页自己的连接集合并等连接落定；`status` 只读（OAuth 轮询）。
             "mcp/list" => crate::mcp_rpc::list(self, &params).await.map(Reply::new),
+            // MCP Apps（141 审计 §9 第 6 项 F7）：实例凭证 + 资源读取。插件页面的其余方法
+            // （工具调用、采样、AppTool、订阅）在后续切片接上。
+            "mcp/uiOpenInstance" => crate::mcp_rpc::open_instance(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiCloseInstance" => crate::mcp_rpc::close_instance(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiValidateInstance" => crate::mcp_rpc::validate_instance(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/readResource" => crate::mcp_rpc::read_resource(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiReadResource" => crate::mcp_rpc::read_resource_for_ui(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiListResources" => crate::mcp_rpc::list_resources(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiListResourceTemplates" => crate::mcp_rpc::list_resource_templates(self, &params)
+                .await
+                .map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

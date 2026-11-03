@@ -15,8 +15,15 @@
 
 use rust_cli_base::js::iso_timestamp;
 use rust_cli_kernel_api::mcp::McpTransportConfig;
+use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
+use rust_cli_kernel_api::mcp_ui::{
+    McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourceTemplate,
+    McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest, McpUiReadRequest, McpUiScope,
+    UI_READ_MAX_BYTES, decoded_base64_len, mime_allowed_for_ui,
+};
+use rust_cli_kernel_api::session_api::KernelError;
 use rust_cli_protocol_core::rpc::RpcError;
 use serde_json::{Map, Value, json};
 
@@ -30,7 +37,8 @@ pub(crate) async fn list(server: &Server, params: &Value) -> Result<Value, RpcEr
         &["workspace", "mcpServers", "mode"],
         "mcp/list params",
     )?;
-    let workspace = server.workspace(&workspace_path(params.get("workspace"))?);
+    let (workspace_path, _) = workspace_param(params.get("workspace"))?;
+    let workspace = server.workspace(&workspace_path);
     let connect = match params.get("mode").and_then(Value::as_str) {
         None | Some("connect") => true,
         Some("status") => false,
@@ -116,6 +124,428 @@ fn snapshot(status: &McpServerStatus) -> Value {
     }
     value
 }
+
+// ———— MCP Apps（mcp/ui*，141 审计 §9 第 6 项 F7）————
+
+/// `mcp/uiOpenInstance`：为页面开一个实例凭证。
+pub(crate) async fn open_instance(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "accountContext",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "resourceUri",
+            "ownerWebContentsId",
+        ],
+        "mcp/uiOpenInstance params",
+    )?;
+    let scope = scope_param(params, server)?;
+    let request = McpUiOpenRequest {
+        scope,
+        scope_id: bounded_string(params, "scopeId", 4096)?,
+        resource_uri: bounded_string(params, "resourceUri", 2048)?,
+        owner_web_contents_id: params
+            .get("ownerWebContentsId")
+            .and_then(Value::as_i64)
+            .filter(|id| *id > 0)
+            .ok_or_else(|| invalid("`ownerWebContentsId` must be a positive integer"))?,
+        account_context: optional_bounded_string(params, "accountContext", 256)?,
+    };
+    let instance = server
+        .kernel
+        .mcp_ui_open(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    serde_json::to_value(&instance).map_err(|error| RpcError::internal(error.to_string()))
+}
+
+/// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
+pub(crate) async fn validate_instance(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    // Host 用 close 的 schema 校验这一条（`onlyIfIdle` 可带，这里不看）。
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "onlyIfIdle",
+        ],
+        "mcp/uiValidateInstance params",
+    )?;
+    let request = instance_request(params, server)?;
+    server
+        .kernel
+        .mcp_ui_validate(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({}))
+}
+
+/// `mcp/uiCloseInstance`：`onlyIfIdle` 时只关没有进行中调用的实例；未知凭证按幂等处理。
+pub(crate) async fn close_instance(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "onlyIfIdle",
+        ],
+        "mcp/uiCloseInstance params",
+    )?;
+    let request = instance_request(params, server)?;
+    let only_if_idle = optional_bool(params, "onlyIfIdle")?.unwrap_or(false);
+    let closed = server
+        .kernel
+        .mcp_ui_close(request, only_if_idle)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"closed": closed}))
+}
+
+/// `mcp/readResource`：宿主取页面的 `ui://` HTML（`_meta` 原样给宿主，界面据此拿 csp）。
+pub(crate) async fn read_resource(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "uri",
+        ],
+        "mcp/readResource params",
+    )?;
+    let request = read_request(params, server)?;
+    let contents = server
+        .kernel
+        .mcp_ui_read_resource(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"contents": contents.iter().map(|content| content_json(content, true)).collect::<Vec<_>>()}))
+}
+
+/// `mcp/uiReadResource`：页面发起的资源读取。去掉 `_meta`，并按 8 MiB 与 MIME 白名单判界
+/// （超限不截断——半个 GLB / 图片没有意义）。
+pub(crate) async fn read_resource_for_ui(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "uri",
+        ],
+        "mcp/uiReadResource params",
+    )?;
+    let request = read_request(params, server)?;
+    let uri = request.uri.clone();
+    let contents = server
+        .kernel
+        .mcp_ui_read_resource_for_ui(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"contents": bound_ui_contents(&uri, &contents)?}))
+}
+
+/// `mcp/uiListResources`：页面发起的 `resources/list`（一页）。
+pub(crate) async fn list_resources(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "cursor",
+        ],
+        "mcp/uiListResources params",
+    )?;
+    let request = list_request(params, server)?;
+    let page = server
+        .kernel
+        .mcp_ui_list_resources(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    let mut value = json!({
+        "resources": page
+            .resources
+            .iter()
+            .map(resource_descriptor_json)
+            .collect::<Vec<_>>(),
+    });
+    if let Some(cursor) = page.next_cursor {
+        value["nextCursor"] = json!(cursor);
+    }
+    Ok(value)
+}
+
+/// `mcp/uiListResourceTemplates`：页面发起的 `resources/templates/list`（一页）。
+pub(crate) async fn list_resource_templates(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "cursor",
+        ],
+        "mcp/uiListResourceTemplates params",
+    )?;
+    let request = list_request(params, server)?;
+    let page = server
+        .kernel
+        .mcp_ui_list_resource_templates(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    let mut value = json!({
+        "resourceTemplates": page
+            .resource_templates
+            .iter()
+            .map(resource_template_json)
+            .collect::<Vec<_>>(),
+    });
+    if let Some(cursor) = page.next_cursor {
+        value["nextCursor"] = json!(cursor);
+    }
+    Ok(value)
+}
+
+/// 页面请求的作用域：会话 + 会话自己的 MCP server 表（`pluginId` 只做展示与日志）。
+fn scope_param(params: &Map<String, Value>, server: &Server) -> Result<McpUiScope, RpcError> {
+    let (workspace_path, identity) = workspace_param(params.get("workspace"))?;
+    Ok(McpUiScope {
+        workspace: server.workspace(&workspace_path),
+        workspace_identity: identity.unwrap_or_else(|| workspace_path.clone()),
+        session: SessionId::new(required_string(params, "sessionId")?),
+        plugin_id: required_string(params, "pluginId")?,
+        server_name: required_string(params, "serverName")?,
+    })
+}
+
+fn instance_request(
+    params: &Map<String, Value>,
+    server: &Server,
+) -> Result<McpUiInstanceRequest, RpcError> {
+    Ok(McpUiInstanceRequest {
+        scope: scope_param(params, server)?,
+        instance: instance_param(params.get("instance"))?,
+    })
+}
+
+fn read_request(
+    params: &Map<String, Value>,
+    server: &Server,
+) -> Result<McpUiReadRequest, RpcError> {
+    Ok(McpUiReadRequest {
+        instance: instance_request(params, server)?,
+        uri: bounded_string(params, "uri", 2048)?,
+    })
+}
+
+fn list_request(
+    params: &Map<String, Value>,
+    server: &Server,
+) -> Result<McpUiListRequest, RpcError> {
+    Ok(McpUiListRequest {
+        instance: instance_request(params, server)?,
+        cursor: optional_bounded_string(params, "cursor", 2048)?,
+    })
+}
+
+/// Host 的 `mcpAppInstanceSchema`：四个字段逐字回来；`appIdentity` 是 64 位小写十六进制。
+fn instance_param(value: Option<&Value>) -> Result<McpAppInstance, RpcError> {
+    let value = value
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid("`instance` must be an object"))?;
+    strict_keys(
+        value,
+        &["runtimeId", "generation", "appIdentity", "token"],
+        "instance",
+    )?;
+    let app_identity = required_string(value, "appIdentity")?;
+    if app_identity.len() != 64
+        || !app_identity
+            .chars()
+            .all(|character| matches!(character, '0'..='9' | 'a'..='f'))
+    {
+        return Err(invalid("`appIdentity` must be 64 lowercase hex characters"));
+    }
+    Ok(McpAppInstance {
+        runtime_id: required_string(value, "runtimeId")?,
+        generation: value
+            .get("generation")
+            .and_then(Value::as_u64)
+            .filter(|generation| *generation > 0)
+            .ok_or_else(|| invalid("`generation` must be a positive integer"))?,
+        app_identity,
+        token: required_string(value, "token")?,
+    })
+}
+
+fn bounded_string(
+    params: &Map<String, Value>,
+    key: &str,
+    max: usize,
+) -> Result<String, RpcError> {
+    let value = required_string(params, key)?;
+    if value.chars().count() > max {
+        return Err(invalid(format!("`{key}` must be at most {max} characters")));
+    }
+    Ok(value)
+}
+
+fn optional_bounded_string(
+    params: &Map<String, Value>,
+    key: &str,
+    max: usize,
+) -> Result<Option<String>, RpcError> {
+    match params.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(_) => bounded_string(params, key, max).map(Some),
+    }
+}
+
+/// 一项资源内容：Host 的 `_meta` 键名与内核的 `meta` 不同，单独写。
+fn content_json(content: &McpResourceContent, include_meta: bool) -> Value {
+    let mut value = json!({"uri": content.uri});
+    if let Some(mime) = &content.mime_type {
+        value["mimeType"] = json!(mime);
+    }
+    if let Some(text) = &content.text {
+        value["text"] = json!(text);
+    }
+    if let Some(blob) = &content.blob {
+        value["blob"] = json!(blob);
+    }
+    if include_meta && let Some(meta) = &content.meta {
+        value["_meta"] = Value::Object(meta.clone());
+    }
+    value
+}
+
+fn resource_descriptor_json(descriptor: &McpResourceDescriptor) -> Value {
+    let mut value = json!({"uri": descriptor.uri});
+    for (key, field) in [
+        ("name", &descriptor.name),
+        ("title", &descriptor.title),
+        ("description", &descriptor.description),
+        ("mimeType", &descriptor.mime_type),
+    ] {
+        if let Some(text) = field {
+            value[key] = json!(text);
+        }
+    }
+    if let Some(meta) = &descriptor.meta {
+        value["_meta"] = Value::Object(meta.clone());
+    }
+    value
+}
+
+fn resource_template_json(template: &McpResourceTemplate) -> Value {
+    let mut value = json!({"uriTemplate": template.uri_template});
+    for (key, field) in [
+        ("name", &template.name),
+        ("title", &template.title),
+        ("description", &template.description),
+        ("mimeType", &template.mime_type),
+    ] {
+        if let Some(text) = field {
+            value[key] = json!(text);
+        }
+    }
+    value
+}
+
+/// 页面的读取界：MIME 白名单、blob 必须带 MIME、总量 8 MiB；去掉 `_meta`。
+fn bound_ui_contents(
+    uri: &str,
+    contents: &[McpResourceContent],
+) -> Result<Vec<Value>, RpcError> {
+    let mut bytes = 0usize;
+    let mut bounded = Vec::new();
+    for content in contents {
+        let rejected = |reason: String| RpcError::new(-32001, reason);
+        if let Some(mime) = &content.mime_type
+            && !mime_allowed_for_ui(mime)
+        {
+            return Err(rejected(format!(
+                "MCP resource \"{}\" has mimeType \"{mime}\" which is not allowed for plugin UI reads",
+                content.uri
+            )));
+        }
+        if content.blob.is_some() && content.mime_type.is_none() {
+            return Err(rejected(format!(
+                "MCP resource \"{}\" has binary content without a mimeType",
+                content.uri
+            )));
+        }
+        if let Some(text) = &content.text {
+            bytes += text.len();
+        }
+        if let Some(blob) = &content.blob {
+            bytes += decoded_base64_len(blob);
+        }
+        if bytes > UI_READ_MAX_BYTES {
+            return Err(rejected(format!(
+                "MCP resource \"{uri}\" is {bytes} bytes, exceeding the {UI_READ_MAX_BYTES} byte limit for plugin UI reads"
+            )));
+        }
+        bounded.push(content_json(content, false));
+    }
+    Ok(bounded)
+}
+
+/// MCP Apps 的内核错误 → RPC 错误码：不可用 -32001、绑定不符 -32602、其余按内部错误（与 Node 的
+/// `ProtocolRequestError` 同一组码；Host 只看消息）。
+fn ui_error(error: &KernelError) -> RpcError {
+    match error {
+        KernelError::NotFound { session } => RpcError::new(
+            crate::server::SESSION_UNAVAILABLE,
+            format!("Session unavailable: {}", session.as_str()),
+        ),
+        KernelError::Unsupported { what } => {
+            RpcError::new(-32001, format!("MCP App request is not supported: {what}"))
+        }
+        KernelError::Failed { message } if message == APP_UNAVAILABLE => {
+            RpcError::new(-32001, message.clone())
+        }
+        KernelError::Failed { message } if message == BINDING_MISMATCH => {
+            RpcError::new(-32602, message.clone())
+        }
+        KernelError::Failed { message } => RpcError::internal(message.clone()),
+    }
+}
+
+const APP_UNAVAILABLE: &str = "MCP App connection is unavailable";
+const BINDING_MISMATCH: &str = "MCP App resource binding mismatch";
 
 // ———— 参数校验（Host zod 的 `.strict()` 语义）————
 
@@ -225,7 +655,7 @@ fn isolation(params: &Map<String, Value>) -> Result<McpIsolation, RpcError> {
     }
 }
 
-fn workspace_path(value: Option<&Value>) -> Result<String, RpcError> {
+fn workspace_param(value: Option<&Value>) -> Result<(String, Option<String>), RpcError> {
     let value = value
         .and_then(Value::as_object)
         .ok_or_else(|| invalid("`workspace` must be an object"))?;
@@ -239,7 +669,14 @@ fn workspace_path(value: Option<&Value>) -> Result<String, RpcError> {
         ],
         "workspace",
     )?;
-    required_string(value, "workspacePath")
+    let path = required_string(value, "workspacePath")?;
+    let identity = value
+        .get("workspaceIdentity")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|identity| !identity.is_empty())
+        .map(str::to_owned);
+    Ok((path, identity))
 }
 
 /// 一个服务器条目 → 协议类型；第二个值是这个服务器带 `oauth`（内核不实现授权流）。

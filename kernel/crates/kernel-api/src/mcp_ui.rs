@@ -14,8 +14,166 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use crate::env::WorkspaceRef;
+use crate::ids::SessionId;
+
 /// `ui://` 资源的 URI 前缀（Node `MCP_APPS_UI_RESOURCE_SCHEME`）。
 pub const UI_RESOURCE_SCHEME: &str = "ui://";
+
+/// 页面发起的 `resources/read` 单次结果总大小上限（Node `MCP_APPS_UI_READ_RESOURCE_MAX_BYTES`）。
+pub const UI_READ_MAX_BYTES: usize = 8 * 1024 * 1024;
+
+/// 页面读取的 MIME 白名单（`/` 结尾是前缀匹配，其余精确匹配；参数与大小写忽略）。
+pub const UI_READ_MIME_ALLOWLIST: &[&str] = &[
+    "text/",
+    "application/json",
+    "application/xml",
+    "application/yaml",
+    "application/x-yaml",
+    "application/pdf",
+    "application/rtf",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.oasis.opendocument.text",
+    "application/vnd.oasis.opendocument.spreadsheet",
+    "application/vnd.oasis.opendocument.presentation",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "image/svg+xml",
+    "image/gif",
+    "image/avif",
+    "image/bmp",
+    "image/tiff",
+    "image/x-icon",
+    "image/vnd.microsoft.icon",
+    "image/heic",
+    "image/heif",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/ogg",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/webm",
+    "audio/aac",
+    "audio/flac",
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+    "video/quicktime",
+    "video/mpeg",
+    "application/zip",
+    "application/gzip",
+    "application/x-gzip",
+    "application/x-tar",
+    "application/x-7z-compressed",
+    "application/vnd.rar",
+    "font/woff",
+    "font/woff2",
+    "font/ttf",
+    "font/otf",
+    "model/gltf+json",
+    "model/gltf-binary",
+    "application/octet-stream",
+];
+
+/// 页面的 `resources/read` 是否接受这个 MIME（Node `isMcpAppsUiReadResourceMimeAllowed`）。
+pub fn mime_allowed_for_ui(mime_type: &str) -> bool {
+    let essence = mime_type
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    if essence.is_empty() {
+        return false;
+    }
+    UI_READ_MIME_ALLOWLIST.iter().any(|entry| {
+        if let Some(prefix) = entry.strip_suffix('/') {
+            essence.starts_with(prefix)
+        } else {
+            essence == *entry
+        }
+    })
+}
+
+/// base64 文本解码后的字节数（Node `decodedBytes`：长度按 4 的倍数算，减掉填充）。
+pub fn decoded_base64_len(blob: &str) -> usize {
+    let padding = if blob.ends_with("==") {
+        2
+    } else if blob.ends_with('=') {
+        1
+    } else {
+        0
+    };
+    blob.len() / 4 * 3 - padding
+}
+
+/// 一次页面会话的凭证（Host `mcpAppInstanceSchema`）。
+///
+/// 四个字段都是 Host 回传时逐字比对的内容：内核按 `token` 查记录，再比 `runtimeId` /
+/// `generation` / `appIdentity`——任何一个对不上都当作「不再授权」。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpAppInstance {
+    /// 进程级实例标识（同一进程里所有页面共用）。
+    pub runtime_id: String,
+    /// 单调代际（每次开新实例加一）。
+    pub generation: u64,
+    /// 稳定应用身份（64 位十六进制；配置/工作区不变时同一个页面同值）。
+    pub app_identity: String,
+    /// 不可猜的凭证（Host 每次请求回传）。
+    pub token: String,
+}
+
+/// 页面请求的作用域（Host `zcodeMcpUiPluginScopeShape` 的 `workspace/sessionId/pluginId/serverName`）。
+///
+/// 归属真相是**会话自己的 MCP server 表**：插件 server 与普通 MCP server 同一张表，任何已连接的
+/// server 都能渲染 MCP App；`pluginId` 只用于展示与日志（Node `assertMcpUiServerScope` 同一条）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiScope {
+    pub workspace: WorkspaceRef,
+    /// 实例绑定的工作区身份：Host 的 `workspaceIdentity`（去空白）或 `workspacePath`。
+    pub workspace_identity: String,
+    pub session: SessionId,
+    pub plugin_id: String,
+    pub server_name: String,
+}
+
+/// 开一个页面实例（`mcp/uiOpenInstance`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiOpenRequest {
+    pub scope: McpUiScope,
+    pub scope_id: String,
+    pub resource_uri: String,
+    pub owner_web_contents_id: i64,
+    pub account_context: Option<String>,
+}
+
+/// 已有实例的一次请求（`close` / `validate` / 资源与调用方法都以它为作用域）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiInstanceRequest {
+    pub scope: McpUiScope,
+    pub instance: McpAppInstance,
+}
+
+/// `mcp/readResource`：除了实例校验，还要求 `uri` 等于实例绑定的 `resourceUri`。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiReadRequest {
+    pub instance: McpUiInstanceRequest,
+    pub uri: String,
+}
+
+/// `resources/list|templates/list`：游标原样透传。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiListRequest {
+    pub instance: McpUiInstanceRequest,
+    pub cursor: Option<String>,
+}
 
 /// 一条已连接的 MCP 服务器的身份快照（Node `appConnectionSnapshot`）。
 ///
@@ -162,6 +320,21 @@ impl McpUiError {
         Self::Failed {
             message: message.into(),
         }
+    }
+
+    /// 凭证、作用域或连接代际对不上（Node 的 "MCP App instance is no longer authorized"）。
+    pub fn not_authorized() -> Self {
+        Self::failed("MCP App instance is no longer authorized")
+    }
+
+    /// 服务器不在会话的连接表里，或当前没连上（Node 的 "MCP App connection is unavailable"）。
+    pub fn app_unavailable() -> Self {
+        Self::failed("MCP App connection is unavailable")
+    }
+
+    /// `mcp/readResource` 的 `uri` 不是实例绑定的那个资源。
+    pub fn binding_mismatch() -> Self {
+        Self::failed("MCP App resource binding mismatch")
     }
 }
 

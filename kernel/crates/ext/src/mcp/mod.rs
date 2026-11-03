@@ -1,6 +1,7 @@
 //! MCP 的语义部分（docs/specs/rust-cli/ext.md §3）：连接管理、握手、工具包装、结果转换、instructions、
 //! resources。传输经 kernel-api 的 `McpTransport`（本地实现在 env-local）。
 
+mod app_instances;
 mod config;
 mod connection;
 mod manager;
@@ -17,6 +18,7 @@ mod telemetry;
 mod tool;
 mod wait_tool;
 
+pub(crate) use app_instances::McpAppInstances;
 pub use config::{
     McpScope, McpServer, McpServerOptions, McpServers, McpSettings, normalize_name, tool_name,
 };

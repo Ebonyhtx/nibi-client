@@ -12,6 +12,11 @@ use rust_cli_kernel_api::mcp_status::{
     McpFailureKind, McpListRequest, McpProtocolEra, McpServerStatus, McpServerStatusKind,
     McpTransportKind,
 };
+use rust_cli_kernel_api::mcp_ui::{
+    McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
+    McpResourceTemplate, McpResourceTemplatePage, McpUiInstanceRequest, McpUiListRequest,
+    McpUiOpenRequest, McpUiReadRequest,
+};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{CreateSession, Kernel, KernelError};
@@ -35,6 +40,35 @@ fn selection() -> ModelSelection {
 struct FakeKernel {
     seen: Arc<Mutex<Vec<McpListRequest>>>,
     statuses: Vec<McpServerStatus>,
+    /// MCP Apps 的入参与固定回答。
+    ui: Arc<Mutex<Vec<UiCall>>>,
+    open: Option<McpAppInstance>,
+    contents: Vec<McpResourceContent>,
+    resources: McpResourcePage,
+    templates: McpResourceTemplatePage,
+    fail: Option<KernelError>,
+}
+
+/// 记录到的 MCP Apps 调用（断言协议层的参数映射）。
+#[derive(Debug, Clone, PartialEq)]
+enum UiCall {
+    Open(McpUiOpenRequest),
+    Close(McpUiInstanceRequest, bool),
+    Validate(McpUiInstanceRequest),
+    Read(McpUiReadRequest),
+    ReadForUi(McpUiReadRequest),
+    List(McpUiListRequest),
+    Templates(McpUiListRequest),
+}
+
+impl FakeKernel {
+    fn record(&self, call: UiCall) -> Result<(), KernelError> {
+        self.ui.lock().unwrap().push(call);
+        match &self.fail {
+            Some(error) => Err(error.clone()),
+            None => Ok(()),
+        }
+    }
 }
 
 #[async_trait]
@@ -67,6 +101,71 @@ impl Kernel for FakeKernel {
     ) -> Result<Vec<McpServerStatus>, KernelError> {
         self.seen.lock().unwrap().push(request);
         Ok(self.statuses.clone())
+    }
+
+    async fn mcp_ui_open(
+        &self,
+        request: McpUiOpenRequest,
+    ) -> Result<McpAppInstance, KernelError> {
+        self.record(UiCall::Open(request))?;
+        Ok(self.open.clone().unwrap_or_else(default_instance))
+    }
+
+    async fn mcp_ui_close(
+        &self,
+        request: McpUiInstanceRequest,
+        only_if_idle: bool,
+    ) -> Result<bool, KernelError> {
+        self.record(UiCall::Close(request, only_if_idle))?;
+        Ok(true)
+    }
+
+    async fn mcp_ui_validate(
+        &self,
+        request: McpUiInstanceRequest,
+    ) -> Result<(), KernelError> {
+        self.record(UiCall::Validate(request))
+    }
+
+    async fn mcp_ui_read_resource(
+        &self,
+        request: McpUiReadRequest,
+    ) -> Result<Vec<McpResourceContent>, KernelError> {
+        self.record(UiCall::Read(request))?;
+        Ok(self.contents.clone())
+    }
+
+    async fn mcp_ui_read_resource_for_ui(
+        &self,
+        request: McpUiReadRequest,
+    ) -> Result<Vec<McpResourceContent>, KernelError> {
+        self.record(UiCall::ReadForUi(request))?;
+        Ok(self.contents.clone())
+    }
+
+    async fn mcp_ui_list_resources(
+        &self,
+        request: McpUiListRequest,
+    ) -> Result<McpResourcePage, KernelError> {
+        self.record(UiCall::List(request))?;
+        Ok(self.resources.clone())
+    }
+
+    async fn mcp_ui_list_resource_templates(
+        &self,
+        request: McpUiListRequest,
+    ) -> Result<McpResourceTemplatePage, KernelError> {
+        self.record(UiCall::Templates(request))?;
+        Ok(self.templates.clone())
+    }
+}
+
+fn default_instance() -> McpAppInstance {
+    McpAppInstance {
+        runtime_id: "runtime-1".to_owned(),
+        generation: 2,
+        app_identity: "a".repeat(64),
+        token: "token-1".to_owned(),
     }
 }
 
@@ -340,4 +439,331 @@ async fn http_and_sse_servers_keep_their_headers() {
         other => panic!("{other:?}"),
     }
     assert!(matches!(servers[1].transport, McpTransportConfig::Sse { .. }));
+}
+
+// ———— MCP Apps（141 审计 §9 第 6 项 F7）————
+
+fn fake_ui(kernel: FakeKernel) -> (Arc<Server>, Arc<Mutex<Vec<UiCall>>>) {
+    let ui = kernel.ui.clone();
+    (server(Arc::new(kernel)), ui)
+}
+
+async fn call_method(server: Arc<Server>, method: &str, params: Value) -> Value {
+    Handler(server)
+        .request(method, params)
+        .await
+        .unwrap_or_else(|error| panic!("{method}: {error:?}"))
+        .result
+}
+
+async fn call_error_named(
+    server: Arc<Server>,
+    method: &str,
+    params: Value,
+) -> rust_cli_protocol_core::rpc::RpcError {
+    match Handler(server).request(method, params).await {
+        Ok(_) => panic!("expected {method} to fail"),
+        Err(error) => error,
+    }
+}
+
+fn instance_json() -> Value {
+    json!({
+        "runtimeId": "runtime-1",
+        "generation": 2,
+        "appIdentity": "a".repeat(64),
+        "token": "token-1",
+    })
+}
+
+fn scope_json() -> Value {
+    json!({
+        "workspace": {"workspacePath": "/w", "workspaceKey": "k"},
+        "sessionId": "s1",
+        "pluginId": "toolkit",
+        "serverName": "plugin:toolkit:panel",
+    })
+}
+
+fn with_instance(mut params: Value) -> Value {
+    params["instance"] = instance_json();
+    params
+}
+
+/// `mcp/uiOpenInstance`：Host 的字段逐个落到内核请求上，返回实例凭证。
+#[tokio::test]
+async fn opening_an_instance_maps_the_host_scope() {
+    let (server, ui) = fake_ui(FakeKernel::default());
+    let reply = call_method(
+        server,
+        "mcp/uiOpenInstance",
+        json!({
+            "workspace": {"workspacePath": "/w", "workspaceIdentity": "ident-1", "workspaceKey": "k"},
+            "sessionId": "s1",
+            "pluginId": "toolkit",
+            "serverName": "plugin:toolkit:panel",
+            "scopeId": "scope-1",
+            "resourceUri": "ui://panel.html",
+            "ownerWebContentsId": 42,
+            "accountContext": "acct",
+        }),
+    )
+    .await;
+    assert_eq!(reply, instance_json());
+    let calls = ui.lock().unwrap();
+    let UiCall::Open(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.scope.workspace_identity, "ident-1");
+    assert_eq!(request.scope.workspace.root.as_str(), "/w");
+    assert_eq!(request.scope.session.as_str(), "s1");
+    assert_eq!(request.scope.plugin_id, "toolkit");
+    assert_eq!(request.scope.server_name, "plugin:toolkit:panel");
+    assert_eq!(request.scope_id, "scope-1");
+    assert_eq!(request.resource_uri, "ui://panel.html");
+    assert_eq!(request.owner_web_contents_id, 42);
+    assert_eq!(request.account_context.as_deref(), Some("acct"));
+}
+
+/// 不带 `workspaceIdentity` 时实例绑定工作区路径。
+#[tokio::test]
+async fn the_workspace_identity_falls_back_to_the_path() {
+    let (server, ui) = fake_ui(FakeKernel::default());
+    call_method(
+        server,
+        "mcp/uiOpenInstance",
+        json!({
+            "workspace": {"workspacePath": "/w", "workspaceKey": "k"},
+            "sessionId": "s1",
+            "pluginId": "toolkit",
+            "serverName": "plugin:toolkit:panel",
+            "scopeId": "scope-1",
+            "resourceUri": "ui://panel.html",
+            "ownerWebContentsId": 1,
+        }),
+    )
+    .await;
+    let calls = ui.lock().unwrap();
+    let UiCall::Open(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.scope.workspace_identity, "/w");
+    assert!(request.account_context.is_none());
+}
+
+/// 关闭与校验：`onlyIfIdle` 透传，返回形状与 Host 的 schema 一致。
+#[tokio::test]
+async fn close_and_validate_round_trip() {
+    let (server, ui) = fake_ui(FakeKernel::default());
+    let mut params = with_instance(scope_json());
+    params["onlyIfIdle"] = json!(true);
+    let reply = call_method(server.clone(), "mcp/uiCloseInstance", params).await;
+    assert_eq!(reply, json!({"closed": true}));
+    let reply = call_method(server, "mcp/uiValidateInstance", with_instance(scope_json())).await;
+    assert_eq!(reply, json!({}));
+    let calls = ui.lock().unwrap();
+    assert!(matches!(&calls[0], UiCall::Close(_, true)));
+    assert!(matches!(&calls[1], UiCall::Validate(_)));
+}
+
+fn contents() -> Vec<McpResourceContent> {
+    vec![McpResourceContent {
+        uri: "ui://panel.html".to_owned(),
+        mime_type: Some("text/html".to_owned()),
+        text: Some("<html></html>".to_owned()),
+        blob: None,
+        meta: Some(serde_json::Map::from_iter([(
+            "ui".to_owned(),
+            json!({"prefersBorder": true}),
+        )])),
+    }]
+}
+
+/// `mcp/readResource` 给宿主 `_meta`（宿主据此拿 csp）；`mcp/uiReadResource` 去掉它。
+#[tokio::test]
+async fn host_reads_keep_meta_and_page_reads_drop_it() {
+    let kernel = FakeKernel {
+        contents: contents(),
+        ..FakeKernel::default()
+    };
+    let (server, _ui) = fake_ui(kernel);
+    let mut params = with_instance(scope_json());
+    params["uri"] = json!("ui://panel.html");
+    let reply = call_method(server.clone(), "mcp/readResource", params.clone()).await;
+    assert_eq!(
+        reply,
+        json!({"contents": [{
+            "uri": "ui://panel.html",
+            "mimeType": "text/html",
+            "text": "<html></html>",
+            "_meta": {"ui": {"prefersBorder": true}},
+        }]})
+    );
+    let reply = call_method(server, "mcp/uiReadResource", params).await;
+    assert_eq!(
+        reply,
+        json!({"contents": [{
+            "uri": "ui://panel.html",
+            "mimeType": "text/html",
+            "text": "<html></html>",
+        }]})
+    );
+}
+
+/// 页面的读取界：MIME 白名单、blob 必须带 MIME、总量 8 MiB；超限不截断。
+#[tokio::test]
+async fn page_reads_are_bounded() {
+    let cases = [
+        (
+            McpResourceContent {
+                uri: "ui://x".to_owned(),
+                mime_type: Some("image/jxl".to_owned()),
+                text: Some("x".to_owned()),
+                blob: None,
+                meta: None,
+            },
+            "not allowed",
+        ),
+        (
+            McpResourceContent {
+                uri: "ui://x".to_owned(),
+                mime_type: None,
+                text: None,
+                blob: Some("AAAA".to_owned()),
+                meta: None,
+            },
+            "without a mimeType",
+        ),
+    ];
+    for (content, message) in cases {
+        let kernel = FakeKernel {
+            contents: vec![content],
+            ..FakeKernel::default()
+        };
+        let (server, _ui) = fake_ui(kernel);
+        let mut params = with_instance(scope_json());
+        params["uri"] = json!("ui://x");
+        let error = call_error_named(server, "mcp/uiReadResource", params).await;
+        assert_eq!(error.code, -32001);
+        assert!(error.message.contains(message), "{}", error.message);
+    }
+
+    let kernel = FakeKernel {
+        contents: vec![McpResourceContent {
+            uri: "ui://big".to_owned(),
+            mime_type: Some("text/plain".to_owned()),
+            text: Some("x".repeat(rust_cli_kernel_api::mcp_ui::UI_READ_MAX_BYTES + 1)),
+            blob: None,
+            meta: None,
+        }],
+        ..FakeKernel::default()
+    };
+    let (server, _ui) = fake_ui(kernel);
+    let mut params = with_instance(scope_json());
+    params["uri"] = json!("ui://big");
+    let error = call_error_named(server, "mcp/uiReadResource", params).await;
+    assert_eq!(error.code, -32001);
+    assert!(error.message.contains("byte limit"), "{}", error.message);
+}
+
+/// 资源列表与模板：描述符带 `_meta`，`nextCursor` 只在有下一页时写。
+#[tokio::test]
+async fn resource_pages_keep_descriptors_and_cursors() {
+    let kernel = FakeKernel {
+        resources: McpResourcePage {
+            resources: vec![McpResourceDescriptor {
+                uri: "ui://panel.html".to_owned(),
+                name: Some("panel".to_owned()),
+                title: None,
+                description: None,
+                mime_type: Some("text/html".to_owned()),
+                meta: Some(serde_json::Map::from_iter([(
+                    "ui".to_owned(),
+                    json!({"prefersBorder": true}),
+                )])),
+            }],
+            next_cursor: Some("page-2".to_owned()),
+        },
+        templates: McpResourceTemplatePage {
+            resource_templates: vec![McpResourceTemplate {
+                uri_template: "file:///{path}".to_owned(),
+                name: None,
+                title: Some("file".to_owned()),
+                description: None,
+                mime_type: None,
+            }],
+            next_cursor: None,
+        },
+        ..FakeKernel::default()
+    };
+    let (server, ui) = fake_ui(kernel);
+    let mut params = with_instance(scope_json());
+    params["cursor"] = json!("page-1");
+    let reply = call_method(server.clone(), "mcp/uiListResources", params).await;
+    assert_eq!(
+        reply,
+        json!({
+            "resources": [{
+                "uri": "ui://panel.html",
+                "name": "panel",
+                "mimeType": "text/html",
+                "_meta": {"ui": {"prefersBorder": true}},
+            }],
+            "nextCursor": "page-2",
+        })
+    );
+    let reply = call_method(
+        server,
+        "mcp/uiListResourceTemplates",
+        with_instance(scope_json()),
+    )
+    .await;
+    assert_eq!(
+        reply,
+        json!({"resourceTemplates": [{"uriTemplate": "file:///{path}", "title": "file"}]})
+    );
+    let calls = ui.lock().unwrap();
+    assert!(matches!(&calls[0], UiCall::List(request) if request.cursor.as_deref() == Some("page-1")));
+    assert!(matches!(&calls[1], UiCall::Templates(_)));
+}
+
+/// 参数按 Host 的 zod 拒绝：坏凭证、坏作用域、未知键。
+#[tokio::test]
+async fn app_parameters_are_rejected_like_zod() {
+    let (server, _ui) = fake_ui(FakeKernel::default());
+    let mut bad_identity = with_instance(scope_json());
+    bad_identity["instance"]["appIdentity"] = json!("A".repeat(64));
+    let mut zero_generation = with_instance(scope_json());
+    zero_generation["instance"]["generation"] = json!(0);
+    let mut unknown = with_instance(scope_json());
+    unknown["extra"] = json!(1);
+    let mut missing_uri = with_instance(scope_json());
+    missing_uri["uri"] = json!("");
+    for (method, params) in [
+        (
+            "mcp/uiOpenInstance",
+            json!({
+                "workspace": {"workspacePath": "/w", "workspaceKey": "k"},
+                "sessionId": "s1", "pluginId": "p", "serverName": "s",
+                "scopeId": "scope", "resourceUri": "ui://x", "ownerWebContentsId": 0,
+            }),
+        ),
+        (
+            "mcp/uiOpenInstance",
+            json!({
+                "workspace": {"workspacePath": "/w", "workspaceKey": "k"},
+                "sessionId": "s1", "pluginId": "p", "serverName": "s",
+                "scopeId": "scope", "resourceUri": "ui://x", "ownerWebContentsId": 1,
+                "extra": 1,
+            }),
+        ),
+        ("mcp/uiCloseInstance", bad_identity),
+        ("mcp/uiValidateInstance", zero_generation),
+        ("mcp/readResource", unknown),
+        ("mcp/uiReadResource", missing_uri),
+        ("mcp/uiListResources", with_instance(json!({"sessionId": "s1"}))),
+    ] {
+        let error = call_error_named(server.clone(), method, params.clone()).await;
+        assert_eq!(error.code, -32602, "{method} {params}: {error:?}");
+    }
 }

@@ -90,6 +90,8 @@ pub struct Ext {
     session_mcp: Arc<SessionMcp>,
     /// `mcp/list` 的状态检查：每个工作区一套独立连接（141 审计 §9 第 6 项）。
     status_mcp: Arc<mcp::McpStatusRegistry>,
+    /// MCP Apps 的实例凭证（`mcp/ui*`）：进程级一本账，按 token 查。
+    app_instances: Arc<mcp::McpAppInstances>,
     registry: Arc<ExtRegistry>,
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
@@ -152,12 +154,17 @@ impl Ext {
             mcp: mcp.clone(),
             sessions: session_mcp.clone(),
         });
+        // MCP Apps 的凭证账本：进程级一个实例标识（Node 每个 agent 进程一个 `McpUiInstances`）。
+        let app_instances = Arc::new(mcp::McpAppInstances::new(
+            rust_cli_kernel_api::process_table::uuid_v4(),
+        ));
         Self {
             skills,
             commands,
             mcp,
             session_mcp,
             status_mcp,
+            app_instances,
             registry,
             files: ports.files,
             config,
@@ -232,6 +239,123 @@ impl Ext {
         self.status_mcp.list(request).await
     }
 
+    /// 一个会话的 MCP 连接：会话自己的那套，没带服务器时回落到进程级配置（Node 的 session → pool lease）。
+    fn mcp_for_session(&self, session: &SessionId) -> Arc<McpManager> {
+        self.session_mcp
+            .manager(session)
+            .unwrap_or_else(|| self.mcp.clone())
+    }
+
+    /// `mcp/uiOpenInstance`：页面实例凭证（同一逻辑页面同连接代际幂等）。
+    pub fn mcp_ui_open(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiOpenRequest,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpAppInstance, rust_cli_kernel_api::mcp_ui::McpUiError>
+    {
+        let manager = self.mcp_for_session(&request.scope.session);
+        let connection = manager
+            .app_connection(&request.scope.server_name)
+            .ok_or_else(rust_cli_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
+        Ok(self.app_instances.open(request, connection))
+    }
+
+    /// `mcp/uiCloseInstance`：`only_if_idle` 时只关没有进行中调用的实例；未知凭证不报错（Node 幂等）。
+    pub fn mcp_ui_close(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+        only_if_idle: bool,
+    ) -> Result<bool, rust_cli_kernel_api::mcp_ui::McpUiError> {
+        match self.app_instances.validate_bound(&request) {
+            Ok(()) => {}
+            // 凭证已经不在了：幂等，没有可关的东西（Node 只校验还在册的那些）。
+            Err(_) if !self.app_instances.is_known(&request.instance.token) => return Ok(true),
+            // 在册但作用域/代际对不上：不能用别的会话或来源的凭证撤销页面。
+            Err(error) => return Err(error),
+        }
+        if only_if_idle && self.app_instances.is_busy(&request.instance) {
+            return Ok(false);
+        }
+        self.app_instances.close(&request.instance);
+        Ok(true)
+    }
+
+    /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
+    pub fn mcp_ui_validate(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+    ) -> Result<(), rust_cli_kernel_api::mcp_ui::McpUiError> {
+        let manager = self.mcp_for_session(&request.scope.session);
+        let current = manager.app_connection(&request.scope.server_name);
+        self.app_instances.validate(&request, current).map(|_| ())
+    }
+
+    /// `mcp/readResource`：宿主取页面 HTML；`uri` 必须是实例绑定的那个资源。
+    pub async fn mcp_ui_read_resource(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, rust_cli_kernel_api::mcp_ui::McpUiError>
+    {
+        let manager = self.mcp_for_session(&request.instance.scope.session);
+        let current = manager.app_connection(&request.instance.scope.server_name);
+        let bound = self.app_instances.validate(&request.instance, current)?;
+        if bound != request.uri {
+            return Err(rust_cli_kernel_api::mcp_ui::McpUiError::binding_mismatch());
+        }
+        manager
+            .read_resource(&request.instance.scope.server_name, &request.uri)
+            .await
+    }
+
+    /// `mcp/uiReadResource`：页面发起的资源读取（`_meta` 与大小/MIME 的界在协议层）。
+    pub async fn mcp_ui_read_resource_for_ui(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, rust_cli_kernel_api::mcp_ui::McpUiError>
+    {
+        let manager = self.mcp_for_session(&request.instance.scope.session);
+        let current = manager.app_connection(&request.instance.scope.server_name);
+        self.app_instances.validate(&request.instance, current)?;
+        manager
+            .read_resource(&request.instance.scope.server_name, &request.uri)
+            .await
+    }
+
+    /// `mcp/uiListResources`：页面发起的 `resources/list`（一页，游标透传）。
+    pub async fn mcp_ui_list_resources(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourcePage, rust_cli_kernel_api::mcp_ui::McpUiError>
+    {
+        let manager = self.mcp_for_session(&request.instance.scope.session);
+        let current = manager.app_connection(&request.instance.scope.server_name);
+        self.app_instances.validate(&request.instance, current)?;
+        manager
+            .list_resources(
+                &request.instance.scope.server_name,
+                request.cursor.as_deref(),
+            )
+            .await
+    }
+
+    /// `mcp/uiListResourceTemplates`：页面发起的 `resources/templates/list`（一页）。
+    pub async fn mcp_ui_list_resource_templates(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
+    ) -> Result<
+        rust_cli_kernel_api::mcp_ui::McpResourceTemplatePage,
+        rust_cli_kernel_api::mcp_ui::McpUiError,
+    > {
+        let manager = self.mcp_for_session(&request.instance.scope.session);
+        let current = manager.app_connection(&request.instance.scope.server_name);
+        self.app_instances.validate(&request.instance, current)?;
+        manager
+            .list_resource_templates(
+                &request.instance.scope.server_name,
+                request.cursor.as_deref(),
+            )
+            .await
+    }
+
     /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。
     /// 这个会话的工具表从此就是这批服务器（与 Node 的 runtimeConfig.mcp 同语义）。
     pub fn start_session_mcp(
@@ -243,9 +367,10 @@ impl Ext {
         self.session_mcp.start(session, workspace, servers);
     }
 
-    /// 会话关闭：释放它的 MCP 连接与连接任务（在后台任务里关，不等 IO）。
+    /// 会话关闭：释放它的 MCP 连接与连接任务（在后台任务里关，不等 IO），页面实例一并作废。
     pub fn release_session(&self, session: &SessionId) {
         self.session_mcp.stop(session);
+        self.app_instances.close_session(session.as_str());
     }
 
     /// 加载插件、开始连接 MCP 服务器（每个服务器一个连接任务，不等待）。返回加载好的插件：其中的

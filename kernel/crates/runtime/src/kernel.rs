@@ -26,6 +26,20 @@ fn failed(error: &StoreError) -> KernelError {
     }
 }
 
+/// MCP Apps 的错误 → 内核错误：能力缺失是 `Unsupported`，其余（未授权、连接不可用、服务器错误）
+/// 都是 `Failed`，协议层按消息映射错误码。
+fn mcp_ui_error(error: rust_cli_kernel_api::mcp_ui::McpUiError) -> KernelError {
+    use rust_cli_kernel_api::mcp_ui::McpUiError;
+    match error {
+        McpUiError::Unsupported { server, operation } => KernelError::Unsupported {
+            what: format!("MCP server \"{server}\" {operation}"),
+        },
+        other => KernelError::Failed {
+            message: other.to_string(),
+        },
+    }
+}
+
 #[async_trait]
 impl Kernel for LocalKernel {
     async fn create_session(&self, request: CreateSession) -> Result<SessionId, KernelError> {
@@ -481,6 +495,72 @@ impl Kernel for LocalKernel {
         request: rust_cli_kernel_api::mcp_status::McpListRequest,
     ) -> Result<Vec<rust_cli_kernel_api::mcp_status::McpServerStatus>, KernelError> {
         Ok(self.ext.mcp_list(request).await)
+    }
+
+    /// `mcp/uiOpenInstance`（141 审计 §9 第 6 项 F7）：页面实例凭证。
+    async fn mcp_ui_open(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiOpenRequest,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpAppInstance, KernelError> {
+        self.ext.mcp_ui_open(request).map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiCloseInstance`：`only_if_idle` 时只关没有进行中调用的实例。
+    async fn mcp_ui_close(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+        only_if_idle: bool,
+    ) -> Result<bool, KernelError> {
+        self.ext.mcp_ui_close(request, only_if_idle).map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
+    async fn mcp_ui_validate(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+    ) -> Result<(), KernelError> {
+        self.ext.mcp_ui_validate(request).map_err(mcp_ui_error)
+    }
+
+    /// `mcp/readResource`：宿主取页面 HTML（必须等于实例绑定的资源）。
+    async fn mcp_ui_read_resource(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
+        self.ext.mcp_ui_read_resource(request).await.map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiReadResource`：页面发起的资源读取。
+    async fn mcp_ui_read_resource_for_ui(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
+        self.ext
+            .mcp_ui_read_resource_for_ui(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiListResources`：页面发起的 `resources/list`。
+    async fn mcp_ui_list_resources(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourcePage, KernelError> {
+        self.ext
+            .mcp_ui_list_resources(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiListResourceTemplates`：页面发起的 `resources/templates/list`。
+    async fn mcp_ui_list_resource_templates(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourceTemplatePage, KernelError> {
+        self.ext
+            .mcp_ui_list_resource_templates(request)
+            .await
+            .map_err(mcp_ui_error)
     }
 
     /// NIBI `createSession.mcpServers`：会话级的 MCP 服务器（连接在后台建立，不等结果）。

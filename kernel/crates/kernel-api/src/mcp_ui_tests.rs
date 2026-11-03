@@ -77,6 +77,26 @@ fn a_connection_snapshot_round_trips() {
     assert_eq!(back, connection);
 }
 
+/// 页面读取的 MIME 白名单：`text/` 前缀、精确匹配（忽略参数与大小写）。
+#[test]
+fn the_ui_read_mime_allowlist_matches_the_host() {
+    assert!(mime_allowed_for_ui("text/html;profile=mcp-app"));
+    assert!(mime_allowed_for_ui("TEXT/PLAIN"));
+    assert!(mime_allowed_for_ui("application/json"));
+    assert!(mime_allowed_for_ui("image/png"));
+    assert!(mime_allowed_for_ui("model/gltf-binary"));
+    assert!(mime_allowed_for_ui("text/"));
+    assert!(mime_allowed_for_ui("application/octet-stream; charset=x"));
+    assert!(!mime_allowed_for_ui("application/x-msdownload"));
+    assert!(!mime_allowed_for_ui(""));
+    assert!(!mime_allowed_for_ui("; charset=utf-8"));
+    // base64 解码后的字节数（带填充）。
+    assert_eq!(decoded_base64_len("AAAA"), 3);
+    assert_eq!(decoded_base64_len("AAA="), 2);
+    assert_eq!(decoded_base64_len("AA=="), 1);
+    assert_eq!(decoded_base64_len(""), 0);
+}
+
 /// 错误文本给用户看（协议层再映射错误码）。
 #[test]
 fn errors_say_what_failed() {

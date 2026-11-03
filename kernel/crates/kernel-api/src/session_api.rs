@@ -1102,6 +1102,77 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// `mcp/uiOpenInstance`（MCP Apps）：为页面开一个实例凭证。默认 `Unsupported`。
+    async fn mcp_ui_open(
+        &self,
+        _request: crate::mcp_ui::McpUiOpenRequest,
+    ) -> Result<crate::mcp_ui::McpAppInstance, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app instances".to_owned(),
+        })
+    }
+
+    /// `mcp/uiCloseInstance`：`only_if_idle` 时只关没有进行中调用的实例。
+    async fn mcp_ui_close(
+        &self,
+        _request: crate::mcp_ui::McpUiInstanceRequest,
+        _only_if_idle: bool,
+    ) -> Result<bool, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app instances".to_owned(),
+        })
+    }
+
+    /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
+    async fn mcp_ui_validate(
+        &self,
+        _request: crate::mcp_ui::McpUiInstanceRequest,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app instances".to_owned(),
+        })
+    }
+
+    /// `mcp/readResource`：宿主取页面的 `ui://` HTML（实例绑定的资源）。
+    async fn mcp_ui_read_resource(
+        &self,
+        _request: crate::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<crate::mcp_ui::McpResourceContent>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app resources".to_owned(),
+        })
+    }
+
+    /// `mcp/uiReadResource`：页面发起的资源读取（`_meta` 由协议层剥掉并判界）。
+    async fn mcp_ui_read_resource_for_ui(
+        &self,
+        _request: crate::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<crate::mcp_ui::McpResourceContent>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app resources".to_owned(),
+        })
+    }
+
+    /// `mcp/uiListResources`：页面发起的 `resources/list`（一页）。
+    async fn mcp_ui_list_resources(
+        &self,
+        _request: crate::mcp_ui::McpUiListRequest,
+    ) -> Result<crate::mcp_ui::McpResourcePage, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app resources".to_owned(),
+        })
+    }
+
+    /// `mcp/uiListResourceTemplates`：页面发起的 `resources/templates/list`（一页）。
+    async fn mcp_ui_list_resource_templates(
+        &self,
+        _request: crate::mcp_ui::McpUiListRequest,
+    ) -> Result<crate::mcp_ui::McpResourceTemplatePage, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app resources".to_owned(),
+        })
+    }
+
     /// 仍在运行的 MCP 子进程（`process/childProcesses`，141 审计 §9 F3）：pid 与归属，不含采样值。
     /// 桌面按 pid 把整机进程表归到插件；缺省为空（没有 MCP 能力的实现）。
     async fn mcp_child_processes(&self) -> Vec<crate::mcp_state::McpChildProcess> {
