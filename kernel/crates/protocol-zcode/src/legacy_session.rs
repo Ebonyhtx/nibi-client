@@ -60,6 +60,15 @@ async fn view(server: &Server, session: &SessionId) -> Result<SessionView, RpcEr
         .map_err(|error| kernel_error(&error))
 }
 
+/// 逐条消息时间；存储不支持时回退到会话创建时间（快照层兜底）。
+async fn times(server: &Server, session: &SessionId) -> legacy_snapshot::Times {
+    server
+        .kernel
+        .session_message_times(session)
+        .await
+        .unwrap_or_default()
+}
+
 fn applied(ack: KernelAck) -> Result<Value, RpcError> {
     match ack {
         KernelAck::Accepted { result } => Ok(result),
@@ -70,6 +79,28 @@ fn applied(ack: KernelAck) -> Result<Value, RpcError> {
 
 async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> Result<Value, RpcError> {
     applied(commands::send(handle, id, command).await)
+}
+
+/// 还没承载、且忽略会放宽安全边界的字段：宁可直接拒绝，也不静默放行。
+fn reject_unenforced(params: &Value) -> Result<(), RpcError> {
+    let non_empty_list = |field: &str| {
+        params[field]
+            .as_array()
+            .is_some_and(|items| !items.is_empty())
+    };
+    if non_empty_list("toolAllowlist") || non_empty_list("toolDenylist") {
+        return Err(RpcError::new(
+            REQUEST_REJECTED,
+            "the Rust kernel does not enforce toolAllowlist/toolDenylist yet; refusing to open a session with a weaker tool policy",
+        ));
+    }
+    if params.get("importedHistory").is_some_and(|value| !value.is_null()) {
+        return Err(RpcError::new(
+            REQUEST_REJECTED,
+            "the Rust kernel does not import session history yet; refusing to create an empty session",
+        ));
+    }
+    Ok(())
 }
 
 fn apply_directories(params: &Value) -> Vec<EnvPath> {
@@ -107,6 +138,7 @@ async fn apply_mcp(server: &Server, session: &SessionId, params: &Value, workspa
 }
 
 pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    reject_unenforced(params)?;
     let workspace = params["workspace"]["workspacePath"]
         .as_str()
         .filter(|path| !path.is_empty())
@@ -168,10 +200,12 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         .view()
         .await
         .map_err(|error| kernel_error(&error))?;
-    Ok(legacy_snapshot::snapshot(&view, Profile::Full))
+    let times = times(server, &id).await;
+    Ok(legacy_snapshot::snapshot(&view, Profile::Full, &times))
 }
 
 pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    reject_unenforced(params)?;
     let id = session_id(params)?;
     let before = view(server, &id).await?;
     if let Some(level) = params["thoughtLevel"].as_str()
@@ -199,16 +233,16 @@ pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> 
             error = %error, "the kernel refused the legacy additional directories");
     }
     apply_mcp(server, &id, params, workspace).await;
-    Ok(legacy_snapshot::snapshot(
-        &view(server, &id).await?,
-        Profile::Full,
-    ))
+    let view = view(server, &id).await?;
+    let times = times(server, &id).await;
+    Ok(legacy_snapshot::snapshot(&view, Profile::Full, &times))
 }
 
 pub async fn messages(server: &Server, params: &Value) -> Result<Value, RpcError> {
     let id = session_id(params)?;
     let view = view(server, &id).await?;
-    let mut messages = legacy_snapshot::messages(&view, Profile::Full);
+    let times = times(server, &id).await;
+    let mut messages = legacy_snapshot::messages(&view, Profile::Full, &times);
     if let Some(after) = params["afterMessageId"].as_str()
         && let Some(position) = messages
             .iter()
@@ -250,13 +284,14 @@ pub async fn compact(server: &Server, params: &Value) -> Result<Value, RpcError>
         .view()
         .await
         .map_err(|error| kernel_error(&error))?;
+    let times = times(server, &id).await;
     let mut compact = json!({"state": "accepted"});
     if let Some(input) = params["inputId"].as_str() {
         compact["inputId"] = json!(input);
     }
     Ok(json!({
         "response": "",
-        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full),
+        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full, &times),
         "compact": compact,
     }))
 }
@@ -353,9 +388,10 @@ pub async fn goal(server: &Server, params: &Value) -> Result<Value, RpcError> {
         .view()
         .await
         .map_err(|error| kernel_error(&error))?;
+    let times = times(server, &id).await;
     Ok(json!({
         "response": response,
-        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full),
+        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full, &times),
         "startedTurn": started_turn,
     }))
 }
@@ -386,7 +422,8 @@ async fn mutation_snapshot(
         .view()
         .await
         .map_err(|error| kernel_error(&error))?;
-    Ok(legacy_snapshot::snapshot(&after, Profile::Full))
+    let times = times(server, &id).await;
+    Ok(legacy_snapshot::snapshot(&after, Profile::Full, &times))
 }
 
 pub async fn set_model(server: &Server, params: &Value) -> Result<Value, RpcError> {

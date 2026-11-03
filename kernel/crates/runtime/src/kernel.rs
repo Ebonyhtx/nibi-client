@@ -724,6 +724,24 @@ impl Kernel for LocalKernel {
         self.snapshot(session).await
     }
 
+    /// 旧协议快照的逐条消息时间：node-store 从 `message` 行的 `time_created/time_updated` 读出。
+    async fn session_message_times(
+        &self,
+        session: &SessionId,
+    ) -> Result<
+        std::collections::HashMap<
+            rust_cli_kernel_api::ids::MessageId,
+            rust_cli_kernel_api::store::MessageTime,
+        >,
+        KernelError,
+    > {
+        self.ports
+            .store
+            .message_times(session)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
     /// 前端记录（缺口 G2）：经存储端口原样落库，不经会话 actor（记录不是会话状态）。
     async fn put_session_record(
         &self,

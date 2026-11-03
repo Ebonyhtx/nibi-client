@@ -11,7 +11,7 @@ use rust_cli_kernel_api::message::{
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::SessionView;
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
+use rust_cli_kernel_api::store::{MessageTime, SessionKind, SessionMeta};
 use serde_json::json;
 
 use super::*;
@@ -117,7 +117,7 @@ fn view() -> SessionView {
 
 #[test]
 fn full_profile_keeps_text_reasoning_and_a_settled_tool_call() {
-    let messages = messages(&view(), Profile::Full);
+    let messages = messages(&view(), Profile::Full, &Times::new());
     assert_eq!(
         messages.len(),
         3,
@@ -141,8 +141,31 @@ fn full_profile_keeps_text_reasoning_and_a_settled_tool_call() {
 }
 
 #[test]
+fn persisted_message_times_drive_the_snapshot() {
+    let mut times = Times::new();
+    times.insert(
+        MessageId::new("u1"),
+        MessageTime {
+            created_at_ms: 500,
+            updated_at_ms: Some(500),
+        },
+    );
+    times.insert(
+        MessageId::new("a1"),
+        MessageTime {
+            created_at_ms: 600,
+            updated_at_ms: Some(900),
+        },
+    );
+    let messages = messages(&view(), Profile::Full, &times);
+    assert_eq!(messages[0]["info"]["time"]["created"], 500);
+    assert_eq!(messages[1]["info"]["time"]["created"], 600);
+    assert_eq!(messages[1]["info"]["time"]["completed"], 900);
+}
+
+#[test]
 fn index_profile_drops_reasoning_and_tools() {
-    let messages = messages(&view(), Profile::Index);
+    let messages = messages(&view(), Profile::Index, &Times::new());
     let assistant = &messages[1];
     let parts = assistant["parts"].as_array().unwrap();
     assert_eq!(parts.len(), 1);
@@ -152,7 +175,7 @@ fn index_profile_drops_reasoning_and_tools() {
 
 #[test]
 fn snapshot_carries_the_host_required_sections() {
-    let snapshot = snapshot(&view(), Profile::Full);
+    let snapshot = snapshot(&view(), Profile::Full, &Times::new());
     assert_eq!(snapshot["protocol"]["name"], "ZCode Protocol");
     assert_eq!(snapshot["session"]["sessionId"], "sess_1");
     assert_eq!(snapshot["session"]["sessionKind"], "interactive");
@@ -173,7 +196,7 @@ fn snapshot_carries_the_host_required_sections() {
 fn no_reasoning_omits_the_thought_level_current_field() {
     let mut view = view();
     view.selection.reasoning = None;
-    let snapshot = snapshot(&view, Profile::Full);
+    let snapshot = snapshot(&view, Profile::Full, &Times::new());
     assert_eq!(snapshot["settings"]["thoughtLevel"]["enabled"], false);
     assert!(
         snapshot["settings"]["thoughtLevel"]
@@ -183,10 +206,20 @@ fn no_reasoning_omits_the_thought_level_current_field() {
 }
 
 #[test]
+fn a_fork_reports_its_parent_session() {
+    let mut view = view();
+    view.meta.kind = SessionKind::Fork;
+    view.meta.parent = Some(SessionId::new("sess_parent"));
+    let snapshot = snapshot(&view, Profile::Full, &Times::new());
+    assert_eq!(snapshot["session"]["parentSessionId"], "sess_parent");
+    assert_eq!(snapshot["session"]["sessionKind"], "fork");
+}
+
+#[test]
 fn plan_mode_is_reported_as_plan() {
     let mut view = view();
     view.plan = true;
-    let snapshot = snapshot(&view, Profile::Full);
+    let snapshot = snapshot(&view, Profile::Full, &Times::new());
     assert_eq!(snapshot["session"]["mode"], "plan");
     assert_eq!(snapshot["projection"]["mode"], "plan");
 }

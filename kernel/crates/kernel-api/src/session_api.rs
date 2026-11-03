@@ -3,6 +3,7 @@
 //! TUI 与 headless 只经这里驱动内核；第二阶段的 ZCode Protocol 前端也一样。事件覆盖 spec §7
 //! 列出的 V4 适配层输入，每个事件带会话内单调递增的 seq，并能从持久事实重建（§6 规则 13）。
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -19,7 +20,9 @@ use crate::message::{CompactTrigger, Message, Usage};
 use crate::model::{BlockDelta, ModelSelection};
 use crate::orchestration::InteractionRequest;
 use crate::permission::PermissionMode;
-use crate::store::{ArtifactRef, SessionFilter, SessionLaunchTurn, SessionMeta, SessionSummary};
+use crate::store::{
+    ArtifactRef, MessageTime, SessionFilter, SessionLaunchTurn, SessionMeta, SessionSummary,
+};
 use crate::tool::{ToolOutput, ToolProgress};
 
 /// 轮的执行种类（Node `TurnExecutionKind`，contracts session.events.ts）：`agent` 是普通模型
@@ -1010,6 +1013,17 @@ pub trait Kernel: Send + Sync {
     async fn session_snapshot(&self, _session: &SessionId) -> Result<SessionView, KernelError> {
         Err(KernelError::Unsupported {
             what: "session snapshots".to_owned(),
+        })
+    }
+
+    /// 会话里每条消息的持久时间（旧协议快照的时间戳）。缺省 `Unsupported`，调用方回退到会话
+    /// 创建时间；node-store 从 `message` 行的 `time_created/time_updated` 读出。
+    async fn session_message_times(
+        &self,
+        _session: &SessionId,
+    ) -> Result<HashMap<MessageId, MessageTime>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "message timestamps".to_owned(),
         })
     }
 

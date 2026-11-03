@@ -1,6 +1,7 @@
 //! 冷读取：会话行、活动分支上的消息、模型选择与模式；会话列表
 //! （docs/specs/rust-cli/node-store.md §5，docs/specs/rust-m11-node-storage.md §6）。
 use std::borrow::Cow;
+use std::collections::HashMap;
 
 use rusqlite::Connection;
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
@@ -8,7 +9,8 @@ use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, Tur
 use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
 use rust_cli_kernel_api::permission::ExecutionState;
 use rust_cli_kernel_api::store::{
-    LoadedSession, SessionKind, SessionLaunchTurn, SessionMeta, SessionSummary, TurnAnchor,
+    LoadedSession, MessageTime, SessionKind, SessionLaunchTurn, SessionMeta, SessionSummary,
+    TurnAnchor,
 };
 use rust_cli_kernel_api::store::{SessionFilter, StoreError};
 use serde_json::Value;
@@ -78,8 +80,37 @@ pub fn load(
     Ok((loaded, crate::rewind::active_checkpoints(conn, session)?))
 }
 
-pub fn list(conn: &Connection, filter: &SessionFilter) -> Result<Vec<SessionSummary>, StoreError> {
-    if filter.workspace.environment.as_str() != LOCAL_ENVIRONMENT {
+/// 会话里每条消息的持久时间：旧协议快照的 `info.time.created/completed` 用它。
+pub fn message_times(
+    conn: &Connection,
+    session: &SessionId,
+) -> Result<HashMap<MessageId, MessageTime>, StoreError> {
+    let mut query = conn
+        .prepare("select id, time_created, time_updated from message where session_id = ?")
+        .storage()?;
+    let rows = query
+        .query_map([session.as_str()], |row| {
+            let id: String = row.get(0)?;
+            let created: i64 = row.get(1)?;
+            let updated: i64 = row.get(2)?;
+            Ok((id, created, updated))
+        })
+        .storage()?;
+    let mut times = HashMap::new();
+    for row in rows {
+        let (id, created, updated) = row.storage()?;
+        times.insert(
+            MessageId::new(id),
+            MessageTime {
+                created_at_ms: u64::try_from(created).unwrap_or_default(),
+                updated_at_ms: Some(u64::try_from(updated).unwrap_or_default()),
+            },
+        );
+    }
+    Ok(times)
+}
+
+pub fn list(conn: &Connection, filter: &SessionFilter) -> Result<Vec<SessionSummary>, StoreError> {    if filter.workspace.environment.as_str() != LOCAL_ENVIRONMENT {
         return Err(unsupported("sessions of a remote environment"));
     }
     // 本目录的顶层会话与 fork 出的会话，按活动时间倒序（session-lifecycle.md §6.2）。

@@ -1,8 +1,10 @@
 //! 旧协议（`session/read|create|resume|messages|compact|goal|set*`）共用的快照投影。
 //!
 //! 形状对齐 `zcodeSessionStateSnapshotSchema`（packages/shared/src/nibi-protocol）：Host 会按严格
-//! schema 解析，缺字段不是“少显示一点”，而是整个响应被拒。内核的会话视图没有逐条消息的时间戳与
-//! 成本，这里用会话创建时间与 0 成本如实占位；消息顺序由数组保证，不靠时间戳排序。
+//! schema 解析，缺字段不是“少显示一点”，而是整个响应被拒。逐条消息时间由
+//! [`Kernel::session_message_times`](rust_cli_kernel_api::session_api::Kernel::session_message_times)
+//! 从存储注入（node-store 的 `time_created/time_updated`），取不到时回退到会话创建时间；成本 UI
+//! 不显示，仍为 0。消息顺序同时由数组保证，不单靠时间戳排序。
 //!
 //! `Profile::Index` 只出正文（`session/read` 的 task-index 同步，去掉工具/思考大载荷）；
 //! `Profile::Full` 出正文、思考、工具调用与结果（`session/messages` 与其它快照）。
@@ -13,8 +15,9 @@ use rust_cli_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, Message, ToolResultContent, Usage, UserMessage,
     UserOrigin,
 };
+use rust_cli_kernel_api::ids::MessageId;
 use rust_cli_kernel_api::session_api::SessionView;
-use rust_cli_kernel_api::store::SessionKind;
+use rust_cli_kernel_api::store::{MessageTime, SessionKind};
 use serde_json::{Value, json};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,13 +26,22 @@ pub(crate) enum Profile {
     Index,
 }
 
+pub(crate) type Times = HashMap<MessageId, MessageTime>;
+
+fn time_of(times: &Times, id: &MessageId, fallback: u64) -> MessageTime {
+    times.get(id).copied().unwrap_or(MessageTime {
+        created_at_ms: fallback,
+        updated_at_ms: None,
+    })
+}
+
 /// 消息的 `info` 形状（user/assistant 的判别字段不同）。
-fn user_info(session: &str, message: &UserMessage, at: u64) -> Value {
+fn user_info(session: &str, message: &UserMessage, time: MessageTime) -> Value {
     json!({
         "messageId": message.id.as_str(),
         "sessionId": session,
         "role": "user",
-        "time": {"created": at},
+        "time": {"created": time.created_at_ms},
         "agent": "main",
     })
 }
@@ -39,21 +51,25 @@ fn assistant_info(
     message: &AssistantMessage,
     view: &SessionView,
     parent: &str,
-    at: u64,
+    time: MessageTime,
 ) -> Value {
     let root = view.meta.workspace.root.as_str();
-    json!({
+    let mut info = json!({
         "messageId": message.id.as_str(),
         "sessionId": session,
         "role": "assistant",
-        "time": {"created": at, "completed": at},
+        "time": {"created": time.created_at_ms},
         "parentMessageId": parent,
         "agent": "main",
         "model": model_value(&view.selection),
         "path": {"cwd": root, "root": root},
         "cost": 0,
         "tokens": tokens_value(message.usage),
-    })
+    });
+    if let Some(completed) = time.updated_at_ms.filter(|updated| *updated >= time.created_at_ms) {
+        info["time"]["completed"] = json!(completed);
+    }
+    info
 }
 
 fn model_value(selection: &rust_cli_kernel_api::model::ModelSelection) -> Value {
@@ -194,9 +210,10 @@ struct ToolSlot {
     part: usize,
     input: Value,
     name: String,
+    started_at: u64,
 }
 
-pub(crate) fn messages(view: &SessionView, profile: Profile) -> Vec<Value> {
+pub(crate) fn messages(view: &SessionView, profile: Profile, times: &Times) -> Vec<Value> {
     let session = view.meta.id.as_str();
     let at = view.meta.created_at_ms;
     let mut out: Vec<Value> = Vec::new();
@@ -204,12 +221,13 @@ pub(crate) fn messages(view: &SessionView, profile: Profile) -> Vec<Value> {
     let mut calls: HashMap<String, ToolSlot> = HashMap::new();
 
     for message in &view.messages {
+        let time = time_of(times, message.id(), at);
         match message {
             Message::User(user) if user.origin == UserOrigin::Human => {
                 let id = user.id.as_str().to_owned();
                 last_user = Some(id.clone());
                 let parts = parts(session, &id, &user.content, profile);
-                out.push(json!({"info": user_info(session, user, at), "parts": parts}));
+                out.push(json!({"info": user_info(session, user, time), "parts": parts}));
             }
             Message::User(user) if matches!(&user.origin, UserOrigin::ToolResult { .. }) => {
                 if profile != Profile::Full {
@@ -228,12 +246,14 @@ pub(crate) fn messages(view: &SessionView, profile: Profile) -> Vec<Value> {
                         continue;
                     };
                     let output = tool_result_text(content);
+                    let completed_at = time.created_at_ms;
                     let state = if *is_error {
                         json!({"status": "error", "input": slot.input, "error": output,
-                            "metadata": {}, "startedAt": at, "completedAt": at})
+                            "metadata": {}, "startedAt": slot.started_at, "completedAt": completed_at})
                     } else {
                         json!({"status": "completed", "input": slot.input, "output": output,
-                            "title": slot.name, "metadata": {}, "startedAt": at, "completedAt": at})
+                            "title": slot.name, "metadata": {}, "startedAt": slot.started_at,
+                            "completedAt": completed_at})
                     };
                     out[slot.message]["parts"][slot.part]["state"] = state;
                 }
@@ -261,11 +281,12 @@ pub(crate) fn messages(view: &SessionView, profile: Profile) -> Vec<Value> {
                             part,
                             input: object_input(input),
                             name: name.clone(),
+                            started_at: time.created_at_ms,
                         },
                     );
                 }
                 out.push(json!({
-                    "info": assistant_info(session, assistant, view, &parent, at),
+                    "info": assistant_info(session, assistant, view, &parent, time),
                     "parts": parts_value,
                 }));
             }
@@ -291,14 +312,14 @@ fn session_kind(kind: SessionKind) -> &'static str {
     }
 }
 
-pub(crate) fn snapshot(view: &SessionView, profile: Profile) -> Value {
+pub(crate) fn snapshot(view: &SessionView, profile: Profile, times: &Times) -> Value {
     let session = view.meta.id.as_str();
     let workspace = view.meta.workspace.root.as_str();
     let at = view.meta.created_at_ms;
     let running = view.running;
     let status = if running { "running" } else { "idle" };
     let mode = mode_name(view);
-    let messages = messages(view, profile);
+    let messages = messages(view, profile, times);
     let turn_count = messages
         .iter()
         .filter(|message| message["info"]["role"] == "user")
@@ -321,7 +342,7 @@ pub(crate) fn snapshot(view: &SessionView, profile: Profile) -> Value {
         thought_level["current"] = json!(level);
     }
 
-    json!({
+    let mut snapshot = json!({
         "protocol": {"name": "ZCode Protocol", "version": 1},
         "session": {
             "createdAt": at,
@@ -366,7 +387,11 @@ pub(crate) fn snapshot(view: &SessionView, profile: Profile) -> Value {
         "slashCommands": [],
         "todos": [],
         "todoGroups": [],
-    })
+    });
+    if let Some(parent) = &view.meta.parent {
+        snapshot["session"]["parentSessionId"] = json!(parent.as_str());
+    }
+    snapshot
 }
 
 #[cfg(test)]

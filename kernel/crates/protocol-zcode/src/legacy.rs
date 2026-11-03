@@ -16,5 +16,10 @@ pub async fn read(server: &Server, params: &Value) -> Result<Value, RpcError> {
         None => server.kernel.session_snapshot(&session).await,
     }
     .map_err(|error| kernel_error(&error))?;
-    Ok(legacy_snapshot::snapshot(&view, Profile::Index))
+    let times = server
+        .kernel
+        .session_message_times(&session)
+        .await
+        .unwrap_or_default();
+    Ok(legacy_snapshot::snapshot(&view, Profile::Index, &times))
 }

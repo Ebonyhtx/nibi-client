@@ -45,13 +45,15 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
 use rusqlite::Connection;
+use std::collections::HashMap;
+
 use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
+use rust_cli_kernel_api::ids::{ArtifactId, MessageId, SessionId};
 use rust_cli_kernel_api::permission::{PermissionMode, ProjectRules};
 use rust_cli_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, ArtifactStore, CommitReceipt, FactBatch, ForkReceipt,
-    LoadedSession, SessionFilter, SessionFork, SessionKind, SessionMeta, SessionPage, SessionQuery,
-    SessionStore, SessionSummary, StoreError,
+    LoadedSession, MessageTime, SessionFilter, SessionFork, SessionKind, SessionMeta, SessionPage,
+    SessionQuery, SessionStore, SessionSummary, StoreError,
 };
 use rust_cli_kernel_api::workspace_trust::TrustKey;
 use rust_cli_paths::StoragePaths;
@@ -234,6 +236,15 @@ impl SessionStore for NodeStore {
             .await?;
         loaded.checkpoints = node_checkpoints::resolve(self.paths.artifacts(), checkpoints).await;
         Ok(loaded)
+    }
+
+    async fn message_times(
+        &self,
+        session: &SessionId,
+    ) -> Result<HashMap<MessageId, MessageTime>, StoreError> {
+        let session = session.clone();
+        self.with_db(move |conn, _| load::message_times(conn, &session))
+            .await
     }
 
     async fn list(&self, filter: SessionFilter) -> Result<Vec<SessionSummary>, StoreError> {

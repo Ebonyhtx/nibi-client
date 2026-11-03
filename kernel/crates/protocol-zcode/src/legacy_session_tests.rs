@@ -1,6 +1,7 @@
 //! 旧会话入口经 `Handler` 的真实分派：参数映射、快照回包与 CAS 错误码。用最小 Kernel/Handle
 //! 替身，不碰存储与模型。
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -16,7 +17,9 @@ use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Kernel, KernelError, SequencedEvent,
     SessionHandle, SessionView,
 };
-use rust_cli_kernel_api::store::{SessionFilter, SessionKind, SessionMeta, SessionSummary};
+use rust_cli_kernel_api::store::{
+    MessageTime, SessionFilter, SessionKind, SessionMeta, SessionSummary,
+};
 use rust_cli_protocol_core::connection::{self, Options, Service};
 use serde_json::{Value, json};
 
@@ -159,6 +162,21 @@ impl Kernel for FakeKernel {
     ) -> Result<Vec<SessionSummary>, KernelError> {
         Ok(Vec::new())
     }
+
+    async fn session_message_times(
+        &self,
+        _session: &SessionId,
+    ) -> Result<HashMap<MessageId, MessageTime>, KernelError> {
+        let mut times = HashMap::new();
+        times.insert(
+            MessageId::new("u1"),
+            MessageTime {
+                created_at_ms: 1234,
+                updated_at_ms: Some(1234),
+            },
+        );
+        Ok(times)
+    }
 }
 
 fn server(kernel: Arc<dyn Kernel>) -> Arc<Server> {
@@ -211,10 +229,53 @@ async fn create_maps_model_and_thought_level_then_returns_a_snapshot() {
         .unwrap();
     assert_eq!(reply.result["session"]["sessionId"], "sess_new");
     assert_eq!(reply.result["settings"]["thoughtLevel"]["current"], "high");
+    assert_eq!(reply.result["messages"][0]["info"]["time"]["created"], 1234);
     let created = created.lock().unwrap();
     assert_eq!(created.len(), 1);
     assert_eq!(created[0].id.as_ref().unwrap().as_str(), "sess_new");
     assert_eq!(created[0].selection.reasoning.as_deref(), Some("high"));
+}
+
+#[tokio::test]
+async fn create_refuses_a_tool_policy_the_kernel_cannot_enforce() {
+    let (server, _sent, created) = fake("sess_new");
+    let error = match Handler(server)
+        .request(
+            "session/create",
+            json!({
+                "workspace": {"workspacePath": "/work"},
+                "toolDenylist": ["Bash"],
+            }),
+        )
+        .await
+    {
+        Ok(_) => panic!("expected the tool policy to be refused"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, -32010);
+    assert!(error.message.contains("toolAllowlist/toolDenylist"));
+    assert!(created.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn create_refuses_imported_history_until_it_is_wired() {
+    let (server, _sent, created) = fake("sess_new");
+    let error = match Handler(server)
+        .request(
+            "session/create",
+            json!({
+                "workspace": {"workspacePath": "/work"},
+                "importedHistory": {"source": "claudeCode", "messages": []},
+            }),
+        )
+        .await
+    {
+        Ok(_) => panic!("expected imported history to be refused"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, -32010);
+    assert!(error.message.contains("does not import session history"));
+    assert!(created.lock().unwrap().is_empty());
 }
 
 #[tokio::test]

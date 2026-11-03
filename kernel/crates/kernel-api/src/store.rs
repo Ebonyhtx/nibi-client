@@ -4,6 +4,8 @@
 //! message / part / session_entry 记录（逐字节与 Node 一致）；云端适配器映射成自己的表。
 //! 一个模型步骤的事实在一次 [`SessionStore::commit`] 里提交，事务成功后才返回回执。
 
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -243,6 +245,15 @@ pub struct SessionLaunchTurn {
     pub launch: Value,
 }
 
+/// 一条消息的持久时间（Node `message` 行的 `time_created` / `time_updated`）。旧协议快照的
+/// `info.time.created/completed` 用它；内核的会话视图本身不存逐条时间。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MessageTime {
+    pub created_at_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at_ms: Option<u64>,
+}
+
 /// 冷加载结果：活动分支上的消息（已应用切点与压缩边界）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoadedSession {
@@ -413,6 +424,17 @@ pub trait SessionStore: Send + Sync {
     ) -> Result<CommitReceipt, StoreError>;
 
     async fn load(&self, session: &SessionId) -> Result<LoadedSession, StoreError>;
+
+    /// 会话里每条消息的持久时间（旧协议快照的时间戳；见 [`MessageTime`]）。缺省实现返回
+    /// `Unsupported`，调用方回退到会话创建时间。
+    async fn message_times(
+        &self,
+        _session: &SessionId,
+    ) -> Result<HashMap<MessageId, MessageTime>, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "message timestamps".to_owned(),
+        })
+    }
 
     async fn list(&self, filter: SessionFilter) -> Result<Vec<SessionSummary>, StoreError>;
 
