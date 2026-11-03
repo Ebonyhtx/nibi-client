@@ -150,3 +150,27 @@ fn mode_names_round_trip() {
     assert_eq!(PermissionMode::from_cli_choice("guarded"), None);
     assert_eq!(PermissionMode::from_node_name("default"), None);
 }
+
+#[test]
+fn tool_policy_allows_by_name_and_honours_the_allowlist() {
+    let deny = ToolPolicy {
+        allow: Vec::new(),
+        deny: vec!["Bash".to_owned()],
+    };
+    assert!(!deny.allows("Bash"));
+    assert!(deny.allows("Read"));
+
+    let allow = ToolPolicy {
+        allow: vec!["Read".to_owned(), "Grep".to_owned()],
+        deny: Vec::new(),
+    };
+    assert!(allow.allows("Read"));
+    assert!(!allow.allows("Bash"));
+
+    let all = ToolPolicy {
+        allow: Vec::new(),
+        deny: vec!["*".to_owned()],
+    };
+    assert!(!all.allows("Read"));
+    assert!(ToolPolicy::default().allows("Bash"));
+}

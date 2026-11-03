@@ -5,6 +5,7 @@
 
 use rust_cli_kernel_api::env::EnvPath;
 use rust_cli_kernel_api::ids::SessionId;
+use rust_cli_kernel_api::permission::ToolPolicy;
 use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CreateSession, Delivery, SessionHandle, SessionView,
 };
@@ -81,19 +82,29 @@ async fn send(handle: &dyn SessionHandle, id: &str, command: Command) -> Result<
     applied(commands::send(handle, id, command).await)
 }
 
-/// 还没承载、且忽略会放宽安全边界的字段：宁可直接拒绝，也不静默放行。
-fn reject_unenforced(params: &Value) -> Result<(), RpcError> {
-    let non_empty_list = |field: &str| {
+fn tool_policy(params: &Value) -> Option<ToolPolicy> {
+    let list = |field: &str| {
         params[field]
             .as_array()
-            .is_some_and(|items| !items.is_empty())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .filter(|name| !name.is_empty())
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
     };
-    if non_empty_list("toolAllowlist") || non_empty_list("toolDenylist") {
-        return Err(RpcError::new(
-            REQUEST_REJECTED,
-            "the Rust kernel does not enforce toolAllowlist/toolDenylist yet; refusing to open a session with a weaker tool policy",
-        ));
-    }
+    let policy = ToolPolicy {
+        allow: list("toolAllowlist"),
+        deny: list("toolDenylist"),
+    };
+    (!policy.is_empty()).then_some(policy)
+}
+
+/// 还没承载、且忽略会放宽安全边界的字段：宁可直接拒绝，也不静默放行。
+fn reject_unenforced(params: &Value) -> Result<(), RpcError> {
     if params.get("importedHistory").is_some_and(|value| !value.is_null()) {
         return Err(RpcError::new(
             REQUEST_REJECTED,
@@ -101,6 +112,21 @@ fn reject_unenforced(params: &Value) -> Result<(), RpcError> {
         ));
     }
     Ok(())
+}
+
+async fn apply_tool_policy(
+    server: &Server,
+    session: &SessionId,
+    params: &Value,
+) -> Result<(), RpcError> {
+    let Some(policy) = tool_policy(params) else {
+        return Ok(());
+    };
+    server
+        .kernel
+        .set_session_tool_policy(session, policy)
+        .await
+        .map_err(|error| kernel_error(&error))
 }
 
 fn apply_directories(params: &Value) -> Vec<EnvPath> {
@@ -192,6 +218,7 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         tracing::warn!(event = "protocol.legacy.directories_failed", session = %id,
             error = %error, "the kernel refused the legacy additional directories");
     }
+    apply_tool_policy(server, &id, params).await?;
     apply_mcp(server, &id, params, workspace).await;
     let live = open(server, &id).await?;
     crate::subscribe::announce(&live);
@@ -207,6 +234,7 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
 pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> {
     reject_unenforced(params)?;
     let id = session_id(params)?;
+    apply_tool_policy(server, &id, params).await?;
     let before = view(server, &id).await?;
     if let Some(level) = params["thoughtLevel"].as_str()
         && before.selection.reasoning.as_deref() != Some(level)

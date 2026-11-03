@@ -370,6 +370,12 @@ pub trait ToolRegistry: Send + Sync {
         false
     }
 
+    /// 会话版的 [`Self::hides`]：会话级工具清单（NIBI `toolAllowlist/toolDenylist`）也要算进去。
+    /// 外层注册表（Agent 等）在按会话列工具、找工具时用它；缺省与 [`Self::hides`] 相同。
+    fn hides_for(&self, _session: &SessionId, name: &str) -> bool {
+        self.hides(name)
+    }
+
     /// [`Self::tools`] 的顺序就是发给模型的顺序（子代理按点名的工具清单排，agents.md §4.2，修复线 F16 新增）。
     /// 缺省 false：主循环发请求前按名字排序（tools-more.md §3.3）。
     fn keeps_order(&self) -> bool {

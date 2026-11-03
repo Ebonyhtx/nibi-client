@@ -204,6 +204,31 @@ pub struct SourcedRule {
     pub rule: PermissionRule,
 }
 
+/// 会话级的工具清单（NIBI `createSession.toolAllowlist/toolDenylist`）：在权限判决之前先把工具
+/// 从清单与查找里去掉。`allow` 非空时只留名单里的；`deny` 总是去掉；`*` 匹配全部。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ToolPolicy {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub allow: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub deny: Vec<String>,
+}
+
+impl ToolPolicy {
+    pub fn is_empty(&self) -> bool {
+        self.allow.is_empty() && self.deny.is_empty()
+    }
+
+    pub fn allows(&self, name: &str) -> bool {
+        let matches = |rules: &[String]| {
+            rules
+                .iter()
+                .any(|rule| rule == "*" || rule.as_str() == name)
+        };
+        !matches(&self.deny) && (self.allow.is_empty() || matches(&self.allow))
+    }
+}
+
 /// 判决链用的规则快照（README §6 规则 7：带版本的快照值）。由入口层或会话从配置组装后交给
 /// 判决链；判决链自己不读配置。
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]

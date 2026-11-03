@@ -48,7 +48,7 @@ use rust_cli_kernel_api::env_files::PathStyle;
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::orchestration::PermissionGate;
 use rust_cli_kernel_api::permission::{
-    PermissionDecision, PermissionMode, PermissionRule, PermissionRules,
+    PermissionDecision, PermissionMode, PermissionRule, PermissionRules, ToolPolicy,
 };
 use rust_cli_kernel_api::plan::PlanFiles;
 use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
@@ -87,6 +87,9 @@ pub struct PolicyGate {
     /// Node 群协作会话（`permission.scope = session`）自己的规则集：判决时代替快照里的本机项目规则集
     /// （LocalSettings）。会话 actor 打开这种会话时由 runtime 放进来（修复线 F2）。
     scoped: Mutex<HashMap<SessionId, Vec<rust_cli_kernel_api::permission::SourcedRule>>>,
+    /// 会话级的工具清单（NIBI `createSession.toolAllowlist/toolDenylist`）：工具清单与查找先按它过滤，
+    /// 判决链再按规则判。会话关闭时随 `release` 清掉。
+    tool_policies: Mutex<HashMap<SessionId, ToolPolicy>>,
     classifier: Arc<dyn AutoClassifier>,
     options: PolicyOptions,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：判决时按会话取，
@@ -105,6 +108,7 @@ impl PolicyGate {
         Self {
             rules: RwLock::new(Arc::new(rules)),
             scoped: Mutex::default(),
+            tool_policies: Mutex::default(),
             classifier: Arc::new(Unavailable),
             options: PolicyOptions::default(),
             directories: None,
@@ -169,6 +173,27 @@ impl PolicyGate {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .remove(session);
+        self.tool_policies
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+    }
+
+    /// 设置会话级的工具清单（NIBI create/resume 的 toolAllowlist/toolDenylist）。
+    pub fn set_tool_policy(&self, session: &SessionId, policy: ToolPolicy) {
+        self.tool_policies
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session.clone(), policy);
+    }
+
+    /// 这个会话的工具清单；没设过时为 None（不限制）。
+    pub fn tool_policy(&self, session: &SessionId) -> Option<ToolPolicy> {
+        self.tool_policies
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned()
     }
 
     /// 这个会话判决用的快照：群协作会话把 LocalSettings 换成它自己的规则集，其余会话就是当前快照。

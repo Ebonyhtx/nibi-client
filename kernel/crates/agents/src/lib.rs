@@ -191,7 +191,13 @@ impl ToolRegistry for AgentRegistry {
     /// 基础注册表的快照（同一时点的 MCP 状态，query.md §1.3）加上本 crate 的工具。
     fn snapshot(&self, session: &SessionId) -> ToolSnapshot {
         let mut snapshot = self.base.snapshot(session);
-        snapshot.tools.extend(self.own_visible().cloned());
+        let own: Vec<Arc<dyn Tool>> = self
+            .own
+            .iter()
+            .filter(|tool| tool.is_enabled() && !self.base.hides_for(session, tool.name()))
+            .cloned()
+            .collect();
+        snapshot.tools.extend(own);
         snapshot
     }
 
@@ -233,7 +239,7 @@ impl ToolRegistry for AgentRegistry {
             .iter()
             .find(|tool| tool.name() == name || tool.aliases().contains(&name))
         {
-            Some(tool) if self.base.hides(tool.name()) => None,
+            Some(tool) if self.base.hides_for(session, tool.name()) => None,
             Some(tool) => Some(tool.clone()),
             None => self.base.find_for(session, name),
         }

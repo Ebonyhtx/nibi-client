@@ -19,7 +19,7 @@ use crate::ids::{
 use crate::message::{CompactTrigger, Message, Usage};
 use crate::model::{BlockDelta, ModelSelection};
 use crate::orchestration::InteractionRequest;
-use crate::permission::PermissionMode;
+use crate::permission::{PermissionMode, ToolPolicy};
 use crate::store::{
     ArtifactRef, MessageTime, SessionFilter, SessionLaunchTurn, SessionMeta, SessionSummary,
 };
@@ -1024,6 +1024,18 @@ pub trait Kernel: Send + Sync {
     ) -> Result<HashMap<MessageId, MessageTime>, KernelError> {
         Err(KernelError::Unsupported {
             what: "message timestamps".to_owned(),
+        })
+    }
+
+    /// 设置会话级工具清单（NIBI `createSession.toolAllowlist/toolDenylist`）：判决链与工具注册表
+    /// 都按它过滤。缺省 `Unsupported`，调用方必须 fail-closed，不能继续用未限制的工具面。
+    async fn set_session_tool_policy(
+        &self,
+        _session: &SessionId,
+        _policy: ToolPolicy,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session tool policies".to_owned(),
         })
     }
 

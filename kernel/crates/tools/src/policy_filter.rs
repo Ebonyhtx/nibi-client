@@ -55,14 +55,30 @@ impl PolicyFiltered {
         self.inner.withheld(name)
     }
 
-    fn visible(&self, tools: Vec<Arc<dyn Tool>>) -> Vec<Arc<dyn Tool>> {
+    /// 会话级工具清单（NIBI toolAllowlist/toolDenylist）允许这个名字；没设过时不限制。
+    fn session_allows(&self, session: &SessionId, name: &str) -> bool {
+        self.gate
+            .tool_policy(session)
+            .is_none_or(|policy| policy.allows(name))
+    }
+
+    fn visible(
+        &self,
+        tools: Vec<Arc<dyn Tool>>,
+        session: Option<&SessionId>,
+    ) -> Vec<Arc<dyn Tool>> {
         let rules = self.gate.rules();
         let mut kept: Vec<Arc<dyn Tool>> = tools
             .into_iter()
-            .filter(|tool| !Self::denied(&rules, tool.name()))
+            .filter(|tool| {
+                !Self::denied(&rules, tool.name())
+                    && session.is_none_or(|session| self.session_allows(session, tool.name()))
+            })
             .collect();
         for name in SEARCH {
-            if kept.iter().all(|tool| tool.name() != name) {
+            if kept.iter().all(|tool| tool.name() != name)
+                && session.is_none_or(|session| self.session_allows(session, name))
+            {
                 kept.extend(self.restored(&rules, name));
             }
         }
@@ -72,7 +88,7 @@ impl PolicyFiltered {
 
 impl ToolRegistry for PolicyFiltered {
     fn tools(&self) -> Vec<Arc<dyn Tool>> {
-        self.visible(self.inner.tools())
+        self.visible(self.inner.tools(), None)
     }
 
     fn find(&self, name: &str) -> Option<Arc<dyn Tool>> {
@@ -103,7 +119,7 @@ impl ToolRegistry for PolicyFiltered {
 
     fn snapshot(&self, session: &SessionId) -> ToolSnapshot {
         let mut snapshot = self.inner.snapshot(session);
-        snapshot.tools = self.visible(snapshot.tools);
+        snapshot.tools = self.visible(snapshot.tools, Some(session));
         snapshot
     }
 
@@ -125,12 +141,19 @@ impl ToolRegistry for PolicyFiltered {
     }
 
     fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+        if !self.session_allows(session, name) {
+            return None;
+        }
         let rules = self.gate.rules();
         match self.inner.find_for(session, name) {
             Some(tool) if Self::denied(&rules, tool.name()) => None,
             Some(tool) => Some(tool),
             None => self.restored(&rules, name),
         }
+    }
+
+    fn hides_for(&self, session: &SessionId, name: &str) -> bool {
+        !self.session_allows(session, name) || Self::denied(&self.gate.rules(), name)
     }
 }
 

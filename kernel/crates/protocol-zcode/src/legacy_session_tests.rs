@@ -12,7 +12,7 @@ use rust_cli_kernel_api::goal::{ActiveGoal, GoalView};
 use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId};
 use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
+use rust_cli_kernel_api::permission::{PermissionMode, ToolPolicy};
 use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Kernel, KernelError, SequencedEvent,
     SessionHandle, SessionView,
@@ -28,6 +28,7 @@ use crate::server::{Defaults, Handler, Server};
 
 type Sent = Arc<Mutex<Vec<CommandEnvelope>>>;
 type Created = Arc<Mutex<Vec<CreateSession>>>;
+type Policies = Arc<Mutex<Vec<ToolPolicy>>>;
 
 fn selection() -> ModelSelection {
     ModelSelection {
@@ -124,6 +125,7 @@ struct FakeKernel {
     selected: Mutex<ModelSelection>,
     sent: Sent,
     created: Created,
+    policies: Policies,
 }
 
 #[async_trait]
@@ -177,6 +179,18 @@ impl Kernel for FakeKernel {
         );
         Ok(times)
     }
+
+    async fn set_session_tool_policy(
+        &self,
+        _session: &SessionId,
+        policy: ToolPolicy,
+    ) -> Result<(), KernelError> {
+        self.policies
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(policy);
+        Ok(())
+    }
 }
 
 fn server(kernel: Arc<dyn Kernel>) -> Arc<Server> {
@@ -199,21 +213,23 @@ fn server(kernel: Arc<dyn Kernel>) -> Arc<Server> {
     ))
 }
 
-fn fake(id: &str) -> (Arc<Server>, Sent, Created) {
+fn fake(id: &str) -> (Arc<Server>, Sent, Created, Policies) {
     let sent = Arc::new(Mutex::new(Vec::new()));
     let created = Arc::new(Mutex::new(Vec::new()));
+    let policies = Arc::new(Mutex::new(Vec::new()));
     let kernel = Arc::new(FakeKernel {
         view: view(id),
         selected: Mutex::new(selection()),
         sent: sent.clone(),
         created: created.clone(),
+        policies: policies.clone(),
     });
-    (server(kernel), sent, created)
+    (server(kernel), sent, created, policies)
 }
 
 #[tokio::test]
 async fn create_maps_model_and_thought_level_then_returns_a_snapshot() {
-    let (server, _sent, created) = fake("sess_new");
+    let (server, _sent, created, _policies) = fake("sess_new");
     let reply = Handler(server)
         .request(
             "session/create",
@@ -237,9 +253,9 @@ async fn create_maps_model_and_thought_level_then_returns_a_snapshot() {
 }
 
 #[tokio::test]
-async fn create_refuses_a_tool_policy_the_kernel_cannot_enforce() {
-    let (server, _sent, created) = fake("sess_new");
-    let error = match Handler(server)
+async fn create_registers_the_tool_policy_with_the_kernel() {
+    let (server, _sent, created, policies) = fake("sess_new");
+    Handler(server)
         .request(
             "session/create",
             json!({
@@ -248,18 +264,16 @@ async fn create_refuses_a_tool_policy_the_kernel_cannot_enforce() {
             }),
         )
         .await
-    {
-        Ok(_) => panic!("expected the tool policy to be refused"),
-        Err(error) => error,
-    };
-    assert_eq!(error.code, -32010);
-    assert!(error.message.contains("toolAllowlist/toolDenylist"));
-    assert!(created.lock().unwrap().is_empty());
+        .unwrap();
+    assert_eq!(created.lock().unwrap().len(), 1);
+    let policies = policies.lock().unwrap();
+    assert_eq!(policies.len(), 1);
+    assert_eq!(policies[0].deny, ["Bash"]);
 }
 
 #[tokio::test]
 async fn create_refuses_imported_history_until_it_is_wired() {
-    let (server, _sent, created) = fake("sess_new");
+    let (server, _sent, created, _policies) = fake("sess_new");
     let error = match Handler(server)
         .request(
             "session/create",
@@ -280,7 +294,7 @@ async fn create_refuses_imported_history_until_it_is_wired() {
 
 #[tokio::test]
 async fn set_model_sends_set_model_and_reports_the_snapshot() {
-    let (server, sent, _created) = fake("sess_1");
+    let (server, sent, _created, _policies) = fake("sess_1");
     let reply = Handler(server)
         .request(
             "session/setModel",
@@ -303,7 +317,7 @@ async fn set_model_sends_set_model_and_reports_the_snapshot() {
 
 #[tokio::test]
 async fn a_stale_revision_is_rejected_with_the_node_error_code() {
-    let (server, sent, _created) = fake("sess_1");
+    let (server, sent, _created, _policies) = fake("sess_1");
     let error = match Handler(server)
         .request(
             "session/setMode",
@@ -321,7 +335,7 @@ async fn a_stale_revision_is_rejected_with_the_node_error_code() {
 
 #[tokio::test]
 async fn messages_applies_the_after_and_limit_window() {
-    let (server, _sent, _created) = fake("sess_1");
+    let (server, _sent, _created, _policies) = fake("sess_1");
     let reply = Handler(server)
         .request(
             "session/messages",
@@ -336,7 +350,7 @@ async fn messages_applies_the_after_and_limit_window() {
 
 #[tokio::test]
 async fn goal_show_returns_the_active_objective() {
-    let (server, _sent, _created) = fake("sess_1");
+    let (server, _sent, _created, _policies) = fake("sess_1");
     let reply = Handler(server)
         .request(
             "session/goal",
@@ -356,7 +370,7 @@ async fn goal_show_returns_the_active_objective() {
 
 #[tokio::test]
 async fn compact_sends_a_compact_command_and_reports_accepted() {
-    let (server, sent, _created) = fake("sess_1");
+    let (server, sent, _created, _policies) = fake("sess_1");
     let reply = Handler(server)
         .request(
             "session/compact",

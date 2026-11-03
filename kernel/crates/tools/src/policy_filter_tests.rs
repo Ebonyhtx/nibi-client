@@ -108,3 +108,47 @@ fn replaced_rules_apply_on_the_next_listing() {
     let snapshot = tools.snapshot(&rust_cli_kernel_api::ids::SessionId::new("s"));
     assert!(!names(&snapshot.tools).contains(&"Edit"));
 }
+
+/// 会话级 toolDenylist 只影响这个会话的清单与查找；另一个会话不变。
+#[test]
+fn a_session_denylist_hides_tools_only_for_that_session() {
+    use rust_cli_kernel_api::permission::ToolPolicy;
+
+    let (tools, gate) = registry(&[]);
+    let session = SessionId::new("sess_1");
+    gate.set_tool_policy(
+        &session,
+        ToolPolicy {
+            allow: Vec::new(),
+            deny: vec!["Bash".to_owned()],
+        },
+    );
+    let snapshot = tools.snapshot(&session);
+    let listed = names(&snapshot.tools);
+    assert!(!listed.contains(&"Bash"));
+    assert!(listed.contains(&"Read"));
+    assert!(tools.find_for(&session, "Bash").is_none());
+    assert!(tools.find_for(&SessionId::new("sess_2"), "Bash").is_some());
+    assert!(tools.hides_for(&session, "Bash"));
+    assert!(!tools.hides_for(&session, "Read"));
+}
+
+/// 会话级 toolAllowlist 只留名单里的工具（搜索补回也受它约束）。
+#[test]
+fn a_session_allowlist_keeps_only_the_named_tools() {
+    use rust_cli_kernel_api::permission::ToolPolicy;
+
+    let (tools, gate) = registry(&[]);
+    let session = SessionId::new("sess_1");
+    gate.set_tool_policy(
+        &session,
+        ToolPolicy {
+            allow: vec!["Read".to_owned()],
+            deny: Vec::new(),
+        },
+    );
+    let snapshot = tools.snapshot(&session);
+    assert_eq!(names(&snapshot.tools), ["Read"]);
+    assert!(tools.find_for(&session, "Read").is_some());
+    assert!(tools.find_for(&session, "Edit").is_none());
+}

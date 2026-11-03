@@ -742,6 +742,15 @@ impl Kernel for LocalKernel {
             .map_err(|error| failed(&error))
     }
 
+    async fn set_session_tool_policy(
+        &self,
+        session: &SessionId,
+        policy: rust_cli_kernel_api::permission::ToolPolicy,
+    ) -> Result<(), KernelError> {
+        self.gate.set_tool_policy(session, policy);
+        Ok(())
+    }
+
     /// 前端记录（缺口 G2）：经存储端口原样落库，不经会话 actor（记录不是会话状态）。
     async fn put_session_record(
         &self,
