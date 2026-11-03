@@ -13,7 +13,7 @@ use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{
-    Ack, CommandEnvelope, Kernel, KernelError, SessionHandle, SessionView,
+    Kernel, KernelError, SessionHandle,
 };
 use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
 use rust_cli_protocol_core::connection::{self, Options, Service};

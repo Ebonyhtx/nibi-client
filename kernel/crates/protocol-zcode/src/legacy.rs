@@ -21,5 +21,11 @@ pub async fn read(server: &Server, params: &Value) -> Result<Value, RpcError> {
         .session_message_times(&session)
         .await
         .unwrap_or_default();
-    Ok(legacy_snapshot::snapshot(&view, Profile::Index, &times))
+    // Index 只出正文，没有图片 part，不用读 artifact。
+    Ok(legacy_snapshot::snapshot(
+        &view,
+        Profile::Index,
+        &times,
+        &legacy_snapshot::Media::new(),
+    ))
 }

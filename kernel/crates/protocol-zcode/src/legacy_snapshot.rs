@@ -8,15 +8,24 @@
 //!
 //! `Profile::Index` 只出正文（`session/read` 的 task-index 同步，去掉工具/思考大载荷）；
 //! `Profile::Full` 出正文、思考、工具调用与结果（`session/messages` 与其它快照）。
+//!
+//! 历史里的图片与 PDF 有两种落法：内联 base64（`ImageSource::Base64`，直接写进 part 的 `url`），
+//! 或 artifact 引用（`ImageSource::Artifact`，Node 把大图外置成 `zcode-artifact://`）。旧协议没有
+//! artifact 路由，所以引用要先由调用方经 [`resolve_media`] 读回内容、拼成 data URL 再进快照——
+//! 否则历史图片在桌面里是空白（141 审计 §9 F5 的剩余项）。
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
+use rust_cli_kernel_api::attachment::AttachmentSource;
+use rust_cli_kernel_api::env::WorkspaceRef;
+use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, Message, ToolResultContent, Usage, UserMessage,
     UserOrigin,
 };
 use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::session_api::SessionView;
+use rust_cli_kernel_api::session_api::{Kernel, SessionView};
 use rust_cli_kernel_api::store::{MessageTime, SessionKind};
 use serde_json::{Value, json};
 
@@ -27,6 +36,110 @@ pub(crate) enum Profile {
 }
 
 pub(crate) type Times = HashMap<MessageId, MessageTime>;
+
+/// artifact 引用 → 已读回的 data URL（`resolve_media` 的产物）。
+pub(crate) type Media = HashMap<String, String>;
+
+/// 把历史里所有 artifact 引用的图片与 PDF 读回成 data URL。
+///
+/// 只读 `Profile::Full` 会用的那几类块；读不出的引用**不进**表（快照里照旧不显示，与以前一致），
+/// 一个坏引用不该让整份快照失败。上限由 `Kernel::read_attachment` 自己管。
+pub(crate) async fn resolve_media(
+    kernel: &Arc<dyn Kernel>,
+    session: &SessionId,
+    workspace: &WorkspaceRef,
+    view: &SessionView,
+) -> Media {
+    let mut media = Media::new();
+    let mut blocks: Vec<&ContentBlock> = Vec::new();
+    // attachment 消息的块是借不出来的（`blocks()` 现算），先收进一个自有缓冲。
+    let attached: Vec<ContentBlock> = view
+        .messages
+        .iter()
+        .filter_map(|message| match message {
+            Message::Attachment(attachment) => Some(attachment.blocks()),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    for message in &view.messages {
+        match message {
+            Message::User(user) => blocks.extend(user.content.iter()),
+            Message::Assistant(assistant) => blocks.extend(assistant.content.iter()),
+            Message::System(_) | Message::Attachment(_) => {}
+        }
+    }
+    blocks.extend(attached.iter());
+    for block in blocks {
+        let (ContentBlock::Image { source } | ContentBlock::Document { source, .. }) = block else {
+            continue;
+        };
+        let ImageSource::Artifact {
+            media_type: declared,
+            artifact,
+        } = source
+        else {
+            continue;
+        };
+        let uri = artifact_uri(artifact);
+        if media.contains_key(&uri) {
+            continue;
+        }
+        // 读不出的引用不进表：快照里照旧不显示，一个坏引用不该让整份快照失败。
+        let Ok(payload) = kernel
+            .read_attachment(
+                session,
+                workspace,
+                AttachmentSource::Artifact { uri: uri.clone() },
+                declared,
+            )
+            .await
+        else {
+            continue;
+        };
+        let media_type = payload
+            .media_type
+            .split(';')
+            .next()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+            .unwrap_or_else(|| declared.clone());
+        use base64::Engine;
+        media.insert(
+            uri,
+            format!(
+                "data:{media_type};base64,{}",
+                base64::engine::general_purpose::STANDARD.encode(&payload.bytes)
+            ),
+        );
+    }
+    media
+}
+
+/// `zcode-artifact://<会话>/<artifact>`（与内核 `ArtifactRef` 的写侧同形）。
+fn artifact_uri(artifact: &rust_cli_kernel_api::store::ArtifactRef) -> String {
+    format!(
+        "{}{}/{}",
+        rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME,
+        encode_component(artifact.session.as_str()),
+        encode_component(artifact.id.as_str())
+    )
+}
+
+fn encode_component(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric()
+            || matches!(byte, b'-' | b'_' | b'.' | b'!' | b'~' | b'*' | b'\'' | b'(' | b')')
+        {
+            out.push(byte as char);
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
 
 fn time_of(times: &Times, id: &MessageId, fallback: u64) -> MessageTime {
     times.get(id).copied().unwrap_or(MessageTime {
@@ -155,10 +268,16 @@ fn file_part(
     index: usize,
     source: &ImageSource,
     name: Option<&str>,
+    media: &Media,
 ) -> Option<Value> {
-    let ImageSource::Base64 { media_type, data } = source else {
-        // Artifact 引用要经 Host 的 artifact 路由才可读；旧协议没有这条路由，宁可不显示。
-        return None;
+    // 内联的直接拼 data URL；artifact 引用取 `resolve_media` 读回的那一份（读不出时不显示）。
+    let (media_type, url) = match source {
+        ImageSource::Base64 { media_type, data } => {
+            (media_type.clone(), format!("data:{media_type};base64,{data}"))
+        }
+        ImageSource::Artifact { media_type, artifact } => {
+            (media_type.clone(), media.get(&artifact_uri(artifact))?.clone())
+        }
     };
     let mut part = json!({
         "partId": part_id(message, index, "file"),
@@ -166,7 +285,7 @@ fn file_part(
         "messageId": message,
         "type": "file",
         "mime": media_type,
-        "url": format!("data:{media_type};base64,{data}"),
+        "url": url,
     });
     if let Some(name) = name {
         part["filename"] = json!(name);
@@ -175,7 +294,13 @@ fn file_part(
 }
 
 /// 一条消息里的内容块 → 旧协议 part。工具结果单独在第 2 遍结算，不在这里出 part。
-fn parts(session: &str, message: &str, content: &[ContentBlock], profile: Profile) -> Vec<Value> {
+fn parts(
+    session: &str,
+    message: &str,
+    content: &[ContentBlock],
+    profile: Profile,
+    media: &Media,
+) -> Vec<Value> {
     let mut parts = Vec::new();
     for (index, block) in content.iter().enumerate() {
         match block {
@@ -191,13 +316,15 @@ fn parts(session: &str, message: &str, content: &[ContentBlock], profile: Profil
                 parts.push(tool_part(session, message, index, id.as_str(), name, input));
             }
             ContentBlock::Image { source } if profile == Profile::Full => {
-                if let Some(part) = file_part(session, message, index, source, None) {
+                if let Some(part) = file_part(session, message, index, source, None, media) {
                     parts.push(part);
                 }
             }
             // 用户贴的 PDF：旧协议同样用 `file` part（Host 的 `filePartToContentBlock` 认 `application/pdf`）。
             ContentBlock::Document { source, name } if profile == Profile::Full => {
-                if let Some(part) = file_part(session, message, index, source, name.as_deref()) {
+                if let Some(part) =
+                    file_part(session, message, index, source, name.as_deref(), media)
+                {
                     parts.push(part);
                 }
             }
@@ -229,7 +356,12 @@ struct ToolSlot {
     started_at: u64,
 }
 
-pub(crate) fn messages(view: &SessionView, profile: Profile, times: &Times) -> Vec<Value> {
+pub(crate) fn messages(
+    view: &SessionView,
+    profile: Profile,
+    times: &Times,
+    media: &Media,
+) -> Vec<Value> {
     let session = view.meta.id.as_str();
     let at = view.meta.created_at_ms;
     let mut out: Vec<Value> = Vec::new();
@@ -242,7 +374,7 @@ pub(crate) fn messages(view: &SessionView, profile: Profile, times: &Times) -> V
             Message::User(user) if user.origin == UserOrigin::Human => {
                 let id = user.id.as_str().to_owned();
                 last_user = Some(id.clone());
-                let parts = parts(session, &id, &user.content, profile);
+                let parts = parts(session, &id, &user.content, profile, media);
                 out.push(json!({"info": user_info(session, user, time), "parts": parts}));
             }
             Message::User(user) if matches!(&user.origin, UserOrigin::ToolResult { .. }) => {
@@ -277,7 +409,7 @@ pub(crate) fn messages(view: &SessionView, profile: Profile, times: &Times) -> V
             Message::Assistant(assistant) => {
                 let id = assistant.id.as_str().to_owned();
                 let parent = last_user.clone().unwrap_or_else(|| id.clone());
-                let parts_value = parts(session, &id, &assistant.content, profile);
+                let parts_value = parts(session, &id, &assistant.content, profile, media);
                 let message_index = out.len();
                 for block in &assistant.content {
                     let ContentBlock::ToolUse { id, name, input } = block else {
@@ -328,14 +460,19 @@ fn session_kind(kind: SessionKind) -> &'static str {
     }
 }
 
-pub(crate) fn snapshot(view: &SessionView, profile: Profile, times: &Times) -> Value {
+pub(crate) fn snapshot(
+    view: &SessionView,
+    profile: Profile,
+    times: &Times,
+    media: &Media,
+) -> Value {
     let session = view.meta.id.as_str();
     let workspace = view.meta.workspace.root.as_str();
     let at = view.meta.created_at_ms;
     let running = view.running;
     let status = if running { "running" } else { "idle" };
     let mode = mode_name(view);
-    let messages = messages(view, profile, times);
+    let messages = messages(view, profile, times, media);
     let turn_count = messages
         .iter()
         .filter(|message| message["info"]["role"] == "user")

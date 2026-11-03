@@ -117,7 +117,7 @@ fn view() -> SessionView {
 
 #[test]
 fn full_profile_keeps_text_reasoning_and_a_settled_tool_call() {
-    let messages = messages(&view(), Profile::Full, &Times::new());
+    let messages = messages(&view(), Profile::Full, &Times::new(), &Media::new());
     assert_eq!(
         messages.len(),
         3,
@@ -157,7 +157,7 @@ fn persisted_message_times_drive_the_snapshot() {
             updated_at_ms: Some(900),
         },
     );
-    let messages = messages(&view(), Profile::Full, &times);
+    let messages = messages(&view(), Profile::Full, &times, &Media::new());
     assert_eq!(messages[0]["info"]["time"]["created"], 500);
     assert_eq!(messages[1]["info"]["time"]["created"], 600);
     assert_eq!(messages[1]["info"]["time"]["completed"], 900);
@@ -165,7 +165,7 @@ fn persisted_message_times_drive_the_snapshot() {
 
 #[test]
 fn index_profile_drops_reasoning_and_tools() {
-    let messages = messages(&view(), Profile::Index, &Times::new());
+    let messages = messages(&view(), Profile::Index, &Times::new(), &Media::new());
     let assistant = &messages[1];
     let parts = assistant["parts"].as_array().unwrap();
     assert_eq!(parts.len(), 1);
@@ -175,7 +175,7 @@ fn index_profile_drops_reasoning_and_tools() {
 
 #[test]
 fn snapshot_carries_the_host_required_sections() {
-    let snapshot = snapshot(&view(), Profile::Full, &Times::new());
+    let snapshot = snapshot(&view(), Profile::Full, &Times::new(), &Media::new());
     assert_eq!(snapshot["protocol"]["name"], "ZCode Protocol");
     assert_eq!(snapshot["session"]["sessionId"], "sess_1");
     assert_eq!(snapshot["session"]["sessionKind"], "interactive");
@@ -196,7 +196,7 @@ fn snapshot_carries_the_host_required_sections() {
 fn no_reasoning_omits_the_thought_level_current_field() {
     let mut view = view();
     view.selection.reasoning = None;
-    let snapshot = snapshot(&view, Profile::Full, &Times::new());
+    let snapshot = snapshot(&view, Profile::Full, &Times::new(), &Media::new());
     assert_eq!(snapshot["settings"]["thoughtLevel"]["enabled"], false);
     assert!(
         snapshot["settings"]["thoughtLevel"]
@@ -210,7 +210,7 @@ fn a_fork_reports_its_parent_session() {
     let mut view = view();
     view.meta.kind = SessionKind::Fork;
     view.meta.parent = Some(SessionId::new("sess_parent"));
-    let snapshot = snapshot(&view, Profile::Full, &Times::new());
+    let snapshot = snapshot(&view, Profile::Full, &Times::new(), &Media::new());
     assert_eq!(snapshot["session"]["parentSessionId"], "sess_parent");
     assert_eq!(snapshot["session"]["sessionKind"], "fork");
 }
@@ -219,7 +219,60 @@ fn a_fork_reports_its_parent_session() {
 fn plan_mode_is_reported_as_plan() {
     let mut view = view();
     view.plan = true;
-    let snapshot = snapshot(&view, Profile::Full, &Times::new());
+    let snapshot = snapshot(&view, Profile::Full, &Times::new(), &Media::new());
     assert_eq!(snapshot["session"]["mode"], "plan");
     assert_eq!(snapshot["projection"]["mode"], "plan");
+}
+
+/// 历史里的 artifact 图片：`resolve_media` 读回内容之后，`file` part 的 `url` 是 data URL
+/// （141 审计 §9 F5 的剩余项）；读不出的引用照旧不显示，不让整份快照失败。
+#[test]
+fn artifact_images_are_inlined_from_the_resolved_media() {
+    use rust_cli_kernel_api::ids::ArtifactId;
+    use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef};
+
+    let artifact = ArtifactRef {
+        session: SessionId::new("sess_1"),
+        id: ArtifactId::new("tool-result-1"),
+        purpose: ArtifactPurpose::Media,
+        media_type: "image/png".to_owned(),
+        size: 12,
+    };
+    let mut view = view();
+    view.messages.push(Message::User(UserMessage {
+        id: MessageId::new("u2"),
+        content: vec![ContentBlock::Image {
+            source: ImageSource::Artifact {
+                media_type: "image/png".to_owned(),
+                artifact: artifact.clone(),
+            },
+        }],
+        origin: UserOrigin::Human,
+    }));
+    let uri = format!(
+        "{}{}/{}",
+        rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME,
+        "sess_1",
+        "tool-result-1"
+    );
+    // 没有解析结果：不显示（与以前一致）。
+    let plain = messages(&view, Profile::Full, &Times::new(), &Media::new());
+    let file_parts: Vec<_> = plain
+        .iter()
+        .flat_map(|message| message["parts"].as_array().cloned().unwrap_or_default())
+        .filter(|part| part["type"] == "file")
+        .collect();
+    assert!(file_parts.is_empty(), "{file_parts:?}");
+
+    // 解析出内容之后：`url` 是 data URL。
+    let mut media = Media::new();
+    media.insert(uri, "data:image/png;base64,iVBORw0KGgo=".to_owned());
+    let resolved = messages(&view, Profile::Full, &Times::new(), &media);
+    let file = resolved
+        .iter()
+        .flat_map(|message| message["parts"].as_array().cloned().unwrap_or_default())
+        .find(|part| part["type"] == "file")
+        .expect("a file part");
+    assert_eq!(file["mime"], "image/png");
+    assert_eq!(file["url"], "data:image/png;base64,iVBORw0KGgo=");
 }

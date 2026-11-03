@@ -62,6 +62,12 @@ async fn view(server: &Server, session: &SessionId) -> Result<SessionView, RpcEr
         .map_err(|error| kernel_error(&error))
 }
 
+/// 历史里的 artifact 图片/PDF → data URL（旧协议没有 artifact 路由，只能内联）。
+async fn media(server: &Server, session: &SessionId, view: &SessionView) -> legacy_snapshot::Media {
+    let workspace = server.workspace(view.meta.workspace.root.as_str());
+    legacy_snapshot::resolve_media(&server.kernel, session, &workspace, view).await
+}
+
 /// 逐条消息时间；存储不支持时回退到会话创建时间（快照层兜底）。
 async fn times(server: &Server, session: &SessionId) -> legacy_snapshot::Times {
     server
@@ -269,7 +275,8 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         .await
         .map_err(|error| kernel_error(&error))?;
     let times = times(server, &id).await;
-    Ok(legacy_snapshot::snapshot(&view, Profile::Full, &times))
+    let media = media(server, &id, &view).await;
+    Ok(legacy_snapshot::snapshot(&view, Profile::Full, &times, &media))
 }
 
 pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> {
@@ -303,14 +310,16 @@ pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> 
     apply_mcp(server, &id, params, workspace).await;
     let view = view(server, &id).await?;
     let times = times(server, &id).await;
-    Ok(legacy_snapshot::snapshot(&view, Profile::Full, &times))
+    let media = media(server, &id, &view).await;
+    Ok(legacy_snapshot::snapshot(&view, Profile::Full, &times, &media))
 }
 
 pub async fn messages(server: &Server, params: &Value) -> Result<Value, RpcError> {
     let id = session_id(params)?;
     let view = view(server, &id).await?;
     let times = times(server, &id).await;
-    let mut messages = legacy_snapshot::messages(&view, Profile::Full, &times);
+    let media = media(server, &id, &view).await;
+    let mut messages = legacy_snapshot::messages(&view, Profile::Full, &times, &media);
     if let Some(after) = params["afterMessageId"].as_str()
         && let Some(position) = messages
             .iter()
@@ -353,13 +362,14 @@ pub async fn compact(server: &Server, params: &Value) -> Result<Value, RpcError>
         .await
         .map_err(|error| kernel_error(&error))?;
     let times = times(server, &id).await;
+    let media = media(server, &id, &after).await;
     let mut compact = json!({"state": "accepted"});
     if let Some(input) = params["inputId"].as_str() {
         compact["inputId"] = json!(input);
     }
     Ok(json!({
         "response": "",
-        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full, &times),
+        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full, &times, &media),
         "compact": compact,
     }))
 }
@@ -457,9 +467,10 @@ pub async fn goal(server: &Server, params: &Value) -> Result<Value, RpcError> {
         .await
         .map_err(|error| kernel_error(&error))?;
     let times = times(server, &id).await;
+    let media = media(server, &id, &after).await;
     Ok(json!({
         "response": response,
-        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full, &times),
+        "snapshot": legacy_snapshot::snapshot(&after, Profile::Full, &times, &media),
         "startedTurn": started_turn,
     }))
 }
@@ -491,7 +502,8 @@ async fn mutation_snapshot(
         .await
         .map_err(|error| kernel_error(&error))?;
     let times = times(server, &id).await;
-    Ok(legacy_snapshot::snapshot(&after, Profile::Full, &times))
+    let media = media(server, &id, &after).await;
+    Ok(legacy_snapshot::snapshot(&after, Profile::Full, &times, &media))
 }
 
 pub async fn set_model(server: &Server, params: &Value) -> Result<Value, RpcError> {
