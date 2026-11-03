@@ -83,6 +83,11 @@ impl Context {
             .remove(subscription);
     }
 
+    /// 一条全局通知（不属于任何主题的事实流，如 `v4/telemetry/event`）。
+    pub async fn notify(&self, method: &str, params: &Value) -> bool {
+        self.peer.notify(method, params).await
+    }
+
     /// 写一个逻辑帧（`topicFrame`）：快照或一段增量。
     pub async fn frame(
         &self,

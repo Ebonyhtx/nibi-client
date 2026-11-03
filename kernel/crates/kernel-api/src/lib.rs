@@ -66,6 +66,7 @@ pub mod checkpoint;
 pub mod clock;
 pub mod compaction;
 pub mod context_usage;
+pub mod conversation_telemetry;
 pub mod cron;
 pub mod cron_store;
 pub mod env;

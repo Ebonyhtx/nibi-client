@@ -27,6 +27,10 @@ struct State {
     summary: Option<Value>,
     /// 冷打开的每轮文件摘要已经挂上（只算一次，之后靠 `FileChanges` 事件）。
     summaries: bool,
+    /// `v4/telemetry/event` 的事实派生（141 审计 §9 第 5 项余项）。
+    telemetry: crate::conversation_telemetry::ConversationTelemetry,
+    /// 待发的事实（在 `flush` 里一次发完，与逻辑帧同序；流式增量不逐条 await）。
+    pending_facts: Vec<Value>,
 }
 
 /// 锁里算好、锁外写出的东西：（订阅、区间、payload）与变了的会话列表行。
@@ -63,6 +67,10 @@ impl Live {
                 log: TopicLog::new(epoch),
                 summary: None,
                 summaries: false,
+                telemetry: crate::conversation_telemetry::ConversationTelemetry::new(
+                    view.meta.id.as_str(),
+                ),
+                pending_facts: Vec::new(),
             }),
             context,
             topics,
@@ -368,16 +376,28 @@ impl Live {
 impl SessionSink for Live {
     async fn event(&self, event: SequencedEvent) {
         let now = self.context.now();
+        // 事实派生与投影在同一把锁里（顺序即事件顺序）；发出在 `flush` 里。
         let mut state = self.state();
         let deltas = state.projection.apply(&event, now);
         state.log.record(deltas);
+        if let Some(fact) = state.telemetry.facts(&event, now)
+            && let Ok(payload) = serde_json::to_value(fact)
+        {
+            state.pending_facts.push(payload);
+        }
     }
 
     async fn flush(&self) {
-        let outgoing = {
+        let (outgoing, facts) = {
             let mut state = self.state();
-            self.collect(&mut state)
+            let facts = std::mem::take(&mut state.pending_facts);
+            (self.collect(&mut state), facts)
         };
+        for fact in facts {
+            self.context
+                .notify(crate::conversation_telemetry::METHOD, &fact)
+                .await;
+        }
         self.write(outgoing).await;
     }
 }
