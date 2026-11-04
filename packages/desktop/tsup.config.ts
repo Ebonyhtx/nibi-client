@@ -352,6 +352,11 @@ export default defineConfig([
     // node:sqlite 只有带前缀的内置入口；tsup 去掉 node: 会错误加载第三方 sqlite 包。
     removeNodeProtocol: false,
     target: "node22",
+    // 插件管理复用的 adapters 链路会带入 proxy-agent → debug 这类 CJS 包，它们内部
+    // 动态 require("tty")。ESM 产物里必须提供真实的 require，否则 host 进程启动即崩。
+    banner: {
+      js: "import { createRequire as __nibiCreateRequire } from 'node:module'; const require = __nibiCreateRequire(import.meta.url);",
+    },
     // host 与 main 共用同一套 services 图，继续内联 undici 会在 Electron ESM runtime 里触发同样的 dynamic require 崩溃。
     // 这里同样保留为外部依赖，避免 desktop 开发态和打包态 host 进程启动失败。
     external: desktopNodeRuntimeExternals,
