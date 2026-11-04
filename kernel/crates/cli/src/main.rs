@@ -121,6 +121,27 @@ struct Startup {
     os: rust_cli_tui::Os,
 }
 
+/// 付费插件门禁的授权事实：从 NIBI v2 凭据读 token/device/state（与 Node 同一份文件）。
+pub(crate) fn read_paid_license(startup: &Startup) -> rust_cli_ext::plugins::PaidLicense {
+    let paths = nibi_platform::paths::NibiPaths::resolve(&startup.home, |key| {
+        startup.env.get(key).map(str::to_owned)
+    });
+    let credentials = nibi_platform::license_store::read_license_credentials(
+        &paths.credentials(),
+        |key| startup.env.get(key).map(str::to_owned),
+    );
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or_default();
+    rust_cli_ext::plugins::PaidLicense {
+        token: credentials.token.unwrap_or_default(),
+        device_id: credentials.device_id,
+        refusal: credentials.refusal,
+        now_ms,
+    }
+}
+
 /// 非空（去掉首尾空白）的环境变量值。
 fn non_empty(value: Option<String>) -> Option<String> {
     value
@@ -369,6 +390,7 @@ async fn session(
         paths: &paths,
         process_env: &startup.env,
         flag: resolved.settings.as_ref(),
+        paid_license: Some(read_paid_license(&startup)),
     })
     .await;
     // 会话库与产物目录按 Node 的 `storage.sessionDbPath` / `storage.dir`（用户级 → 项目级 → 环境变量，

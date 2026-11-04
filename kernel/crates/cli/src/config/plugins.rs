@@ -129,36 +129,53 @@ pub(crate) async fn sources(
     section: PluginSection,
     root: &str,
     storage: &StoragePath,
+    paid_license: Option<rust_cli_ext::plugins::PaidLicense>,
 ) -> PluginSources {
     let mut candidates = Vec::new();
+    let mut paid_installed_ids = Vec::new();
     if section.enabled {
-        let candidate = |dir: String, marketplace: &str, origin| PluginCandidate {
+        let candidate = |dir: String, marketplace: &str, origin, paid| PluginCandidate {
             dir: EnvPath::new(dir),
             marketplace: marketplace.to_owned(),
             origin,
+            paid,
         };
         for dir in &section.dirs {
             candidates.push(candidate(
                 resolve_dir(root, dir),
                 INLINE,
                 PluginOrigin::ConfigDir,
+                false,
             ));
         }
         for dir in official_plugin_roots(storage).await {
             let dir = dir.to_string_lossy().into_owned();
-            candidates.push(candidate(dir, OFFICIAL, PluginOrigin::Official));
+            candidates.push(candidate(dir, OFFICIAL, PluginOrigin::Official, false));
         }
-        for plugin in installed_plugins(storage).await {
+        let installed = installed_plugins(storage).await;
+        paid_installed_ids = installed
+            .iter()
+            .filter(|plugin| plugin.paid)
+            .map(|plugin| plugin.id.clone())
+            .collect();
+        for plugin in installed {
             let dir = installed_root(storage, &plugin)
                 .to_string_lossy()
                 .into_owned();
-            candidates.push(candidate(dir, &plugin.marketplace, PluginOrigin::Installed));
+            candidates.push(candidate(
+                dir,
+                &plugin.marketplace,
+                PluginOrigin::Installed,
+                plugin.paid,
+            ));
         }
     }
     PluginSources {
         candidates,
         enabled_plugins: section.enabled_plugins,
         suppressed_builtins: section.suppressed_builtins,
+        paid_installed_ids,
+        paid_license,
     }
 }
 

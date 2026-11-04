@@ -28,6 +28,7 @@ fn candidate(dir: &str, marketplace: &str, origin: PluginOrigin) -> PluginCandid
         dir: EnvPath::new(dir),
         marketplace: marketplace.to_owned(),
         origin,
+        paid: false,
     }
 }
 
@@ -97,6 +98,8 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
         ],
         enabled_plugins: enabled(&[("off@inline", false), ("on-kit@market", true)]),
         suppressed_builtins: vec![format!("zcode-guide@{OFFICIAL}")],
+        paid_installed_ids: Vec::new(),
+        paid_license: None,
     };
     let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
     // 配置目录缺省启用；官方插件只有缺省名单里的启用；已安装插件要 `enabledPlugins` 打开。
@@ -120,6 +123,58 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
             (Some("market-kit@market"), &SkipReason::Disabled),
         ]
     );
+}
+
+#[tokio::test]
+async fn paid_plugins_are_pruned_without_a_license() {
+    let files = [
+        manifest(
+            "/Users/dev/paid",
+            r#"{"name": "paid-kit", "skills": "./skills"}"#,
+        ),
+        (
+            "/Users/dev/paid/skills/secret/SKILL.md".to_owned(),
+            "---\ndescription: Secret\n---\nBody\n".to_owned(),
+        ),
+    ];
+    let sources = PluginSources {
+        candidates: vec![PluginCandidate {
+            dir: EnvPath::new("/Users/dev/paid"),
+            marketplace: "inline".to_owned(),
+            origin: PluginOrigin::ConfigDir,
+            paid: true,
+        }],
+        enabled_plugins: enabled(&[("paid-kit@inline", true)]),
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    assert!(names(&loaded).is_empty(), "{:?}", names(&loaded));
+    assert!(matches!(
+        loaded.skipped[0].reason,
+        SkipReason::MembershipRequired(_)
+    ));
+}
+
+#[tokio::test]
+async fn installed_paid_records_prune_the_official_cache_copy_too() {
+    // 官方缓存与 installed_plugins.json 同 id 时，官方候选先到；付费判据必须看安装记录，
+    // 否则把 paid 记录复制到官方缓存旁就能绕过门禁。
+    let files = [official_manifest(
+        "paid-kit",
+        r#", "skills": "./skills""#,
+    )];
+    let sources = PluginSources {
+        candidates: vec![official("paid-kit")],
+        enabled_plugins: enabled(&[("paid-kit@nibi-official", true)]),
+        paid_installed_ids: vec![format!("paid-kit@{OFFICIAL}")],
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    assert!(names(&loaded).is_empty(), "{:?}", names(&loaded));
+    assert!(matches!(
+        loaded.skipped[0].reason,
+        SkipReason::MembershipRequired(_)
+    ));
 }
 
 #[tokio::test]

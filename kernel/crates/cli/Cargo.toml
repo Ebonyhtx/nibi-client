@@ -45,6 +45,8 @@ rust-cli-exec-transport.workspace = true
 rust-cli-exec-wire.workspace = true
 rust-cli-executor-host.workspace = true
 rust-cli-ext.workspace = true
+# 付费插件门禁：从 NIBI v2 凭据读 license token/device/state。
+nibi-platform.workspace = true
 rust-cli-fs.workspace = true
 rust-cli-headless.workspace = true
 # `app-server --stdio`：App 协议的前端（app-protocol.md §3.7）。

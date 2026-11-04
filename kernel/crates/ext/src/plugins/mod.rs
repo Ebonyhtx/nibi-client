@@ -18,8 +18,8 @@ use crate::mcp::{McpScope, McpServer, parse_servers};
 use crate::skills::PluginSkillRoot;
 
 pub use self::select::{
-    Loaded, NodeDependency, PluginCandidate, PluginOrigin, PluginSources, SkipReason, Skipped,
-    load_all,
+    Loaded, NodeDependency, PaidLicense, PluginCandidate, PluginOrigin, PluginSources, SkipReason,
+    Skipped, load_all,
 };
 
 /// manifest 的位置，按 Node `PLUGIN_MANIFEST_DIRS` 的顺序（NIBI 自有清单目录第一位）。

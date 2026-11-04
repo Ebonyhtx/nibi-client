@@ -55,6 +55,8 @@ pub struct PluginCandidate {
     /// 插件 id 的后半（`inline`、`nibi-official` 或记录里的 marketplace）。
     pub marketplace: String,
     pub origin: PluginOrigin,
+    /// 安装记录 `paid=true`（marketplace manifest 的 paid 在加载 manifest 后再判）。
+    pub paid: bool,
 }
 
 /// 入口层组装的插件来源（配置快照的一部分，config.md §2.1）。
@@ -66,6 +68,40 @@ pub struct PluginSources {
     pub enabled_plugins: BTreeMap<String, bool>,
     /// 合并后的 `plugins.suppressedBuiltins`。
     pub suppressed_builtins: Vec<String>,
+    /// 安装记录里 `paid=true` 的插件 id：官方缓存候选与安装记录同 id 时也要按付费件判。
+    pub paid_installed_ids: Vec<String>,
+    /// 付费插件授权（token/设备/refusal）；`None` 时付费件一律拒绝（fail-closed）。
+    pub paid_license: Option<PaidLicense>,
+}
+
+/// 付费插件授权事实。判定逻辑在 `nibi_platform::paid_plugin`，这里只携带输入。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PaidLicense {
+    pub token: String,
+    pub device_id: Option<String>,
+    pub refusal: Option<String>,
+    pub now_ms: u64,
+}
+
+impl PaidLicense {
+    /// 该插件是否被当前 license 覆盖；未覆盖时返回 Node 同文案的拒绝原因。
+    pub fn check(&self, plugin_name: &str) -> Result<(), String> {
+        let decision = nibi_platform::paid_plugin::evaluate(
+            nibi_platform::paid_plugin::PaidPluginEvaluation {
+                token: &self.token,
+                plugin_name,
+                device_id: self.device_id.as_deref(),
+                refusal: self.refusal.as_deref(),
+                now_ms: self.now_ms,
+                keys: &nibi_platform::license::public_key,
+            },
+        );
+        if decision.allowed {
+            Ok(())
+        } else {
+            Err(decision.message)
+        }
+    }
 }
 
 /// 官方插件依赖的 Node 运行时或宿主（ext.md §4.4）。
@@ -110,6 +146,8 @@ pub enum SkipReason {
     /// 与已经加载的插件同名（marketplace 不同，ext.md D22）。
     DuplicateName,
     NodeRuntime(NodeDependency),
+    /// 付费插件，但当前 license 不覆盖/无效（R30 发现层门禁）。
+    MembershipRequired(String),
 }
 
 impl SkipReason {
@@ -124,6 +162,7 @@ impl SkipReason {
             Self::ShadowedBySession => "a --plugin-dir plugin has the same name".to_owned(),
             Self::DuplicateName => "a loaded plugin has the same name".to_owned(),
             Self::NodeRuntime(dependency) => dependency.describe().to_owned(),
+            Self::MembershipRequired(message) => message.clone(),
         }
     }
 }
@@ -245,6 +284,25 @@ impl Admission<'_> {
         if !enabled.unwrap_or(default) {
             return reject(SkipReason::Disabled);
         }
+        // 付费插件发现层门禁（R30）：manifest 或安装记录任一 paid=true 都要会员授权；
+        // 拒绝时整个插件不加载，skill/MCP/hooks/agents 能力根因此天然为空。
+        let paid = candidate.paid
+            || self.sources.paid_installed_ids.iter().any(|paid| paid == &id)
+            || manifest
+                .get("paid")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+        if paid {
+            let Some(license) = self.sources.paid_license.as_ref() else {
+                return reject(SkipReason::MembershipRequired(
+                    "该插件是会员专享插件：这台设备还没有 NIBI 会员凭证，请登录后开通会员"
+                        .to_owned(),
+                ));
+            };
+            if let Err(message) = license.check(&name) {
+                return reject(SkipReason::MembershipRequired(message));
+            }
+        }
         if self.session.contains(&name) {
             return reject(SkipReason::ShadowedBySession);
         }
@@ -270,6 +328,9 @@ fn log(skipped: &Skipped) {
             tracing::debug!(dir, id, reason, "plugin skipped");
         }
         SkipReason::NodeRuntime(_) => tracing::info!(dir, id, reason, "plugin skipped"),
+        SkipReason::MembershipRequired(_) => {
+            tracing::info!(dir, id, reason, "paid plugin skipped")
+        }
         _ => tracing::warn!(dir, id, reason, "plugin skipped"),
     }
 }

@@ -224,6 +224,7 @@ async fn serve(
         paths: &paths,
         process_env: &startup.env,
         flag: None,
+        paid_license: Some(crate::read_paid_license(&startup)),
     })
     .await;
     let paths = setup::storage_paths(&startup, &config.storage.settings());

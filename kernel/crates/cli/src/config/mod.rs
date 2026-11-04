@@ -42,6 +42,8 @@ pub(crate) struct ConfigInputs<'a> {
     /// `--settings` 给的配置（docs/specs/rust-cli/cli-args.md §8）：Node 配置的同一种写法，排在项目级之后（文件层里
     /// 优先级最高），命令行的单项参数仍在它之上。
     pub(crate) flag: Option<&'a Map<String, Value>>,
+    /// 付费插件发现层门禁的授权事实（token/设备/refusal）。`None` 时付费件一律拒绝。
+    pub(crate) paid_license: Option<rust_cli_ext::plugins::PaidLicense>,
 }
 
 /// `--settings` 一层在警告里的名字。
@@ -274,7 +276,13 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
     let plugin_root = inputs
         .paths
         .plugin_storage(storage.dir.as_deref(), std::path::Path::new(root));
-    let plugins = plugins::sources(plugin_section, root, &plugin_root).await;
+    let plugins = plugins::sources(
+        plugin_section,
+        root,
+        &plugin_root,
+        inputs.paid_license.clone(),
+    )
+    .await;
     let user_hooks = match user_object.and_then(|object| object.get("hooks")) {
         Some(value) => {
             let (parsed, found) = NodeHooks::from_json(value);

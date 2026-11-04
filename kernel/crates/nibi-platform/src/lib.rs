@@ -19,5 +19,6 @@
 pub mod credentials;
 pub mod device_flow;
 pub mod license;
+pub mod license_store;
 pub mod paid_plugin;
 pub mod paths;

@@ -2237,6 +2237,7 @@ dependencies = [
  "futures-util",
  "libc",
  "mimalloc",
+ "nibi-platform",
  "rcgen",
  "rust-cli-base",
  "rust-cli-context",
@@ -2479,6 +2480,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "futures-util",
+ "nibi-platform",
  "regex",
  "rust-cli-base",
  "rust-cli-kernel-api",

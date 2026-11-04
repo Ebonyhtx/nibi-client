@@ -115,7 +115,7 @@ async fn candidates_follow_the_node_order() {
         enabled_plugins: [("kit@market".to_owned(), true)].into_iter().collect(),
         suppressed_builtins: vec!["zcode-guide@nibi-official".to_owned()],
     };
-    let sources = sources(section.clone(), "/Users/dev/repo", &root).await;
+    let sources = sources(section.clone(), "/Users/dev/repo", &root, None).await;
     let candidates: Vec<(String, &str, PluginOrigin)> = sources
         .candidates
         .iter()
@@ -161,7 +161,7 @@ async fn sources_of(
     section: PluginSection,
     root: &rust_cli_paths::StoragePath,
 ) -> rust_cli_ext::plugins::PluginSources {
-    sources(section, "/Users/dev/repo", root).await
+    sources(section, "/Users/dev/repo", root, None).await
 }
 
 #[test]

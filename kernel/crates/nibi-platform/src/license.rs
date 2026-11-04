@@ -26,6 +26,27 @@ pub const LICENSE_ISSUER: &str = "nibi-license";
 pub const CHECK_INTERVAL_MS: u64 = 72 * 3600 * 1000;
 pub const OFFLINE_GRACE_MS: u64 = 7 * 86400 * 1000;
 
+/// 生产 license 公钥表（`kid` → 原始 32B Ed25519 公钥的 base64）。
+///
+/// 与 `@nibi/shared` 的 `NIBI_LICENSE_PUBLIC_KEYS` 同一把钥匙（PEM 里的 DER 去掉
+/// `302a300506032b6570032100` 前缀后的 32 字节）；Node 与 Rust 必须认同一个 `kid`。
+pub const PRODUCTION_PUBLIC_KEYS: &[(&str, &str)] = &[(
+    "z0SZbhR92-WZRiLD",
+    "+QYJULcdmorIU9+SB9Fh6KOK2VGvuSo1dnPML0kxsCc=",
+)];
+
+/// 按 JWT header 的 `kid` 取生产公钥；未知 `kid` 返回 None（fail-closed）。
+pub fn public_key(kid: Option<&str>) -> Option<[u8; 32]> {
+    let kid = kid?.trim();
+    let (_, encoded) = PRODUCTION_PUBLIC_KEYS
+        .iter()
+        .find(|(candidate, _)| *candidate == kid)?;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .ok()?;
+    bytes.try_into().ok()
+}
+
 #[derive(Debug, Error)]
 pub enum LicenseError {
     #[error("license token is malformed")]

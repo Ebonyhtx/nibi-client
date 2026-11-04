@@ -179,6 +179,7 @@ async fn inspect_workspace(context: &TrustContext<'_>, options: &Options) -> Wor
         paths: context.paths,
         process_env: &[],
         flag: None,
+        paid_license: None,
     };
     let files = read_files(&inputs).await;
     let mut warnings = Vec::new();

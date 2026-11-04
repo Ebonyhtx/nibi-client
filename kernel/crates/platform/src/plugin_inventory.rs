@@ -35,6 +35,8 @@ pub struct InstalledPlugin {
     pub version: String,
     /// 记录里的插件目录；Node 格式里可以是空串（见 [`installed_root`]）。
     pub install_path: String,
+    /// 安装记录里的 `paid=true`：发现层付费门禁的判据之一（复制件也拦）。
+    pub paid: bool,
 }
 
 /// 读 JSON 对象；文件不存在、读不出或不是对象时为 None（Node `readJsonFileSync` 返回 undefined）。
@@ -70,6 +72,7 @@ fn node_record(value: &Value) -> Option<InstalledPlugin> {
         marketplace: text(object, "marketplace")?.to_owned(),
         version: text(object, "version")?.to_owned(),
         install_path: text(object, "installPath")?.to_owned(),
+        paid: object.get("paid").and_then(Value::as_bool).unwrap_or(false),
     })
 }
 
@@ -97,6 +100,7 @@ fn map_records(id: &str, entry: &Value) -> Vec<InstalledPlugin> {
                 marketplace: marketplace.to_owned(),
                 version: text(item, "version").unwrap_or(DEFAULT_VERSION).to_owned(),
                 install_path: install_path.to_owned(),
+                paid: item.get("paid").and_then(Value::as_bool).unwrap_or(false),
             })
         })
         .collect()

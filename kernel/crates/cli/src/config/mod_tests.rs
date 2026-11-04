@@ -55,6 +55,7 @@ async fn assemble_with(user: Option<Value>, files: &[(&str, Value)]) -> ConfigSn
         paths: &paths,
         process_env: &[],
         flag: None,
+        paid_license: None,
     })
     .await
 }

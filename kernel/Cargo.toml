@@ -193,6 +193,7 @@ rust-cli-paths = { path = "crates/paths" }
 rust-cli-net = { path = "crates/net" }
 rust-cli-fs = { path = "crates/fs" }
 rust-cli-platform = { path = "crates/platform" }
+nibi-platform = { path = "crates/nibi-platform" }
 rust-cli-proc = { path = "crates/proc" }
 rust-cli-prompts = { path = "crates/prompts" }
 rust-cli-kernel-api = { path = "crates/kernel-api" }
