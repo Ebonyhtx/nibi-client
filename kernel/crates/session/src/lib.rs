@@ -185,6 +185,9 @@ pub struct SessionState {
     /// 工作流控制轮（冷加载的 `LoadedSession.launches`，launch.md）：会话 actor 在 `write_launch` 时追加，
     /// `view()` 带给冷投影。
     pub launches: Vec<SessionLaunchTurn>,
+    /// 每轮输入的模型选择（冷加载的 `LoadedSession.model_turns`）：actor 在提交用户输入时追加，
+    /// `view()` 带给冷投影（模型切换分隔线）。
+    pub model_turns: Vec<rust_cli_kernel_api::store::SessionModelTurn>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行，状态与消息只在
     /// 内存里；第一条用户输入提交时 actor 才写会话行与初始事实（`actor.rs` 的 `promote`）。
     pub draft: bool,

@@ -186,6 +186,7 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),
+            model_turns: Vec::new(),
             draft: false,
         },
         Opened::Loaded,

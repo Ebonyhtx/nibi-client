@@ -38,6 +38,7 @@ fn snapshot(messages: Vec<Message>, running: bool) -> SessionView {
         context_notice: Default::default(),
         output_speed: None,
         launches: Vec::new(),
+        model_turns: Vec::new(),
     }
 }
 

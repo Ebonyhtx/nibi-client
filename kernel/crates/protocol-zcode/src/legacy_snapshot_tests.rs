@@ -112,6 +112,7 @@ fn view() -> SessionView {
         context_notice: ContextNotice::Hidden,
         output_speed: None,
         launches: Vec::new(),
+        model_turns: Vec::new(),
     }
 }
 

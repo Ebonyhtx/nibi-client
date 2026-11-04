@@ -576,6 +576,10 @@ pub struct SessionView {
     /// 启动/设置轮（Node transcript-hydration 的 `workflowLaunchOfMessage` 同一判据）。serde 缺省为空。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub launches: Vec<SessionLaunchTurn>,
+    /// 每轮用户输入时刻的模型选择（Node 消息记录上的 `modelSelection`）：冷投影据它在轮边界补
+    /// `modelChange` 分隔线。serde 缺省为空。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub model_turns: Vec<crate::store::SessionModelTurn>,
 }
 
 // 会话生命周期的类型（SessionStart / SessionEnd 的来源、rewind 选择器的条目）放在分出的文件里（400 行上限，

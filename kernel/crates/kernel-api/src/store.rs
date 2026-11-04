@@ -245,6 +245,14 @@ pub struct SessionLaunchTurn {
     pub launch: Value,
 }
 
+/// 一条用户输入时刻的模型选择（Node 消息记录上的 `modelSelection`）。冷投影据它补
+/// `modelChange` 分隔线：与上一轮的比较变了才画（Node 的 transcript hydration 同判据）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionModelTurn {
+    pub message: MessageId,
+    pub selection: ModelSelection,
+}
+
 /// 一条消息的持久时间（Node `message` 行的 `time_created` / `time_updated`）。旧协议快照的
 /// `info.time.created/completed` 用它；内核的会话视图本身不存逐条时间。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -291,6 +299,9 @@ pub struct LoadedSession {
     /// 这段历史里的工作流控制轮（[`SessionLaunchTurn`]，earlier 与 messages 都算；serde 缺省为空）。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub launches: Vec<SessionLaunchTurn>,
+    /// 每轮真实输入的模型选择（[`SessionModelTurn`]，earlier 与 messages 都算；serde 缺省为空）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub model_turns: Vec<SessionModelTurn>,
 }
 
 /// 有意图、没有结果的操作（[`Fact::OperationIntent`] 原样）。

@@ -22,6 +22,13 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
     let mut out = Vec::new();
     let mut turns = 0u64;
     let mut interrupted = false;
+    // 每轮用户输入时刻的模型选择：与上一轮不同才画 `modelChange` 分隔线（Node transcript hydration 同判据）。
+    let selections: std::collections::HashMap<&str, &rust_cli_kernel_api::model::ModelSelection> =
+        view.model_turns
+            .iter()
+            .map(|turn| (turn.message.as_str(), &turn.selection))
+            .collect();
+    let mut previous_selection = None;
     for message in &view.messages {
         match message {
             Message::User(user)
@@ -34,6 +41,15 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                 interrupted = false;
                 turns += 1;
                 let turn = format!("{}:turn:{turns}", user.id.as_str());
+                model_change(
+                    projection,
+                    &selections,
+                    &mut previous_selection,
+                    &user.id,
+                    &turn,
+                    at,
+                    &mut out,
+                );
                 // 工作流控制轮（NIBI 中枢启动/设置轮，launch.md）：消息记录带 `source: "workflow_launch"`
                 // 的 user 消息按 controlOnly 重建（Node transcript-hydration 的 workflowLaunchOfMessage
                 // 同一判据）；清单里没有或元数据缺席时退回普通 agent 轮。
@@ -72,6 +88,15 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                 interrupted = false;
                 turns += 1;
                 let turn = format!("{}:turn:{turns}", user.id.as_str());
+                model_change(
+                    projection,
+                    &selections,
+                    &mut previous_selection,
+                    &user.id,
+                    &turn,
+                    at,
+                    &mut out,
+                );
                 let origin_meta = match &user.origin {
                     UserOrigin::Meta { origin_meta, .. } => origin_meta.clone(),
                     _ => None,
@@ -137,6 +162,28 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
             projection.close_cold_turn(interrupted, at, &mut out);
         }
     }
+}
+
+/// 这一轮的用户输入换了 provider/model：在轮头之前补一行 `modelChange` 分隔线。
+/// 第一轮没有「上一轮」可比，不画（Node 的 source-less 情形不落行）。
+fn model_change(
+    projection: &mut Projection,
+    selections: &std::collections::HashMap<&str, &rust_cli_kernel_api::model::ModelSelection>,
+    previous: &mut Option<rust_cli_kernel_api::model::ModelSelection>,
+    message: &rust_cli_kernel_api::ids::MessageId,
+    turn: &str,
+    at: u64,
+    out: &mut Vec<serde_json::Value>,
+) {
+    let Some(selection) = selections.get(message.as_str()) else {
+        return;
+    };
+    if let Some(from) = previous.as_ref()
+        && (from.provider != selection.provider || from.model != selection.model)
+    {
+        projection.append_model_change(turn, from, selection, at, 0, out);
+    }
+    *previous = Some((*selection).clone());
 }
 
 impl Projection {

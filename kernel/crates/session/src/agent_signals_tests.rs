@@ -121,6 +121,7 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),
+            model_turns: Vec::new(),
             draft: false,
         },
         Opened::Loaded,

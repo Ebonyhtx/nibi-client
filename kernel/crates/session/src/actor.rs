@@ -227,6 +227,9 @@ pub(crate) struct Actor {
     /// 已落的工作流控制轮（冷加载的 `LoadedSession.launches` + 本进程落的）：`view()` 带给冷投影
     /// （`Message::User` 不带消息元数据，冷投影靠这份清单认 controlOnly 轮）。
     pub(crate) launches: Vec<SessionLaunchTurn>,
+    /// 每轮输入的模型选择（冷加载的 `LoadedSession.model_turns` + 本进程提交的用户输入）：
+    /// `view()` 带给冷投影补模型切换分隔线。锁不跨 await（与 `turn` 同一写法）。
+    pub(crate) model_turns: std::sync::Mutex<Vec<rust_cli_kernel_api::store::SessionModelTurn>>,
     seen: HashSet<CommandId>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行。期间的提交只改
     /// 内存；第一条用户输入（[`opens_turn`]）提交时 [`Self::promote`] 写会话行与初始事实，之后照常落库。
@@ -340,6 +343,7 @@ impl Actor {
             held_records: Vec::new(),
             pending_launch: VecDeque::new(),
             launches: state.launches,
+            model_turns: std::sync::Mutex::new(state.model_turns),
             seen: HashSet::new(),
             draft,
             pending_project_mode: std::sync::Mutex::new(None),
@@ -763,6 +767,17 @@ impl Actor {
         let pending = self.pending_resume(&facts);
         let stored_pending = !pending.is_empty();
         let facts: Vec<Fact> = pending.into_iter().chain(facts).collect();
+        // 这一批新落库的用户输入带着提交时刻的选择（Node 消息记录的 `modelSelection`）：
+        // 冷投影靠它重建模型切换分隔线。
+        let recorded: Vec<MessageId> = facts
+            .iter()
+            .filter_map(|fact| match fact {
+                Fact::MessageAppended {
+                    message: Message::User(user),
+                } => Some(user.id.clone()),
+                _ => None,
+            })
+            .collect();
         if self.draft.load(Ordering::SeqCst) {
             if !promotes(&facts) {
                 // 草稿期间的状态变更（切模型、切模式、hook 消息）只在内存里；会话行等第一条用户输入。
@@ -786,6 +801,18 @@ impl Actor {
             .turn
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = turn;
+        if !recorded.is_empty() {
+            let mut turns = self
+                .model_turns
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            turns.extend(recorded.into_iter().map(|message| {
+                rust_cli_kernel_api::store::SessionModelTurn {
+                    message,
+                    selection: self.selection.clone(),
+                }
+            }));
+        }
         if stored_pending {
             self.resume_pending
                 .lock()
@@ -985,6 +1012,11 @@ impl Actor {
             context_notice: self.context_notice().unwrap_or_default(),
             output_speed: self.output_speed,
             launches: self.launches.clone(),
+            model_turns: self
+                .model_turns
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone(),
         }
     }
 }

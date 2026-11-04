@@ -44,6 +44,7 @@ fn view(messages: Vec<Message>) -> SessionView {
         context_notice: Default::default(),
         output_speed: None,
         launches: Vec::new(),
+        model_turns: Vec::new(),
     }
 }
 
@@ -778,4 +779,115 @@ fn a_snapshot_omits_shared_context_import_until_one_is_seeded() {
         .seed_shared_context_import(Some(json!({"title": "Shared", "status": "pending"})));
     let snapshot = feed.projection.snapshot(0, "epoch");
     assert_eq!(snapshot["sharedContextImport"]["title"], "Shared");
+}
+
+fn pick(
+    provider: &str,
+    model: &str,
+    thought: Option<&str>,
+) -> rust_cli_kernel_api::model::ModelSelection {
+    rust_cli_kernel_api::model::ModelSelection {
+        provider: provider.into(),
+        model: model.into(),
+        reasoning: thought.map(str::to_owned),
+        connection: None,
+    }
+}
+
+/// 模型切换在「下一轮真正开跑」时落一行 lightBoundary，排在轮头之前；只切思考档不落行
+/// （Node 的 `modelChange` 分隔线同判据）。
+#[test]
+fn a_model_change_marks_the_next_turn_before_its_header() {
+    let mut feed = Feed::new();
+    let thought_only = feed.apply(KernelEvent::ModelChanged {
+        selection: pick("fixture", "scripted", Some("low")),
+    });
+    assert!(
+        thought_only.iter().all(|delta| delta.get("row").is_none()),
+        "{thought_only:?}"
+    );
+    let switched = feed.apply(KernelEvent::ModelChanged {
+        selection: pick("other", "next", Some("high")),
+    });
+    assert!(
+        switched.iter().all(|delta| delta["op"] != "row.appended"),
+        "切换本身不落行：{switched:?}"
+    );
+    let started = feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    assert_eq!(
+        ops(&started),
+        [
+            "row.appended(timelineMarker)",
+            "row.appended(turnHeader)",
+            "state(availability,control,inputRouting,revision)",
+        ]
+    );
+    let marker = &started[0]["row"];
+    assert_eq!(marker["lane"], "lightBoundary");
+    assert_eq!(marker["turnId"], "turn_1");
+    assert_eq!(marker["marker"]["type"], "modelChange");
+    assert_eq!(marker["marker"]["fromProvider"], "fixture");
+    assert_eq!(marker["marker"]["fromModel"], "scripted");
+    assert_eq!(marker["marker"]["toProvider"], "other");
+    assert_eq!(marker["marker"]["toModel"], "next");
+    assert_eq!(marker["marker"]["toThought"], "high");
+    assert_eq!(
+        marker["entityId"],
+        "model-change:turn_1:fixture/scripted->other/next"
+    );
+    assert!(marker["rowId"].as_u64() < started[1]["row"]["rowId"].as_u64());
+}
+
+/// 冷打开：每轮用户消息带着当时的选择，与上一轮不同才补分隔线（第一轮不画）。
+#[test]
+fn a_cold_open_restores_model_change_markers_from_message_selections() {
+    use rust_cli_kernel_api::store::SessionModelTurn;
+
+    let messages = vec![
+        user("u1", "first"),
+        assistant("a1", vec![ContentBlock::Text { text: "one".into() }]),
+        user("u2", "second"),
+        assistant("a2", vec![ContentBlock::Text { text: "two".into() }]),
+    ];
+    let mut cold = view(messages);
+    cold.model_turns = vec![
+        SessionModelTurn {
+            message: MessageId::new("u1"),
+            selection: pick("fixture", "scripted", Some("high")),
+        },
+        SessionModelTurn {
+            message: MessageId::new("u2"),
+            selection: pick("other", "next", None),
+        },
+    ];
+    let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    let rows = projection.rows();
+    let markers: Vec<_> = rows
+        .iter()
+        .filter(|row| row["kind"] == "timelineMarker")
+        .collect();
+    assert_eq!(markers.len(), 1, "{rows:?}");
+    let marker = &markers[0];
+    assert_eq!(marker["turnId"], "u2:turn:2");
+    assert_eq!(marker["marker"]["type"], "modelChange");
+    assert_eq!(marker["marker"]["fromProvider"], "fixture");
+    assert_eq!(marker["marker"]["toProvider"], "other");
+    assert_eq!(marker["marker"]["toThought"], "");
+    // 分隔线在第二个轮头之前。
+    let marker_at = rows
+        .iter()
+        .position(|row| row["kind"] == "timelineMarker")
+        .unwrap();
+    let header_at = rows
+        .iter()
+        .position(|row| row["kind"] == "turnHeader" && row["turnId"] == "u2:turn:2")
+        .unwrap();
+    assert!(marker_at < header_at, "{rows:?}");
 }

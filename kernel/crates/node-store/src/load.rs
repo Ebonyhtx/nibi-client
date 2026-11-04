@@ -9,8 +9,8 @@ use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, Tur
 use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
 use rust_cli_kernel_api::permission::ExecutionState;
 use rust_cli_kernel_api::store::{
-    LoadedSession, MessageTime, SessionKind, SessionLaunchTurn, SessionMeta, SessionSummary,
-    TurnAnchor,
+    LoadedSession, MessageTime, SessionKind, SessionLaunchTurn, SessionMeta, SessionModelTurn,
+    SessionSummary, TurnAnchor,
 };
 use rust_cli_kernel_api::store::{SessionFilter, StoreError};
 use serde_json::Value;
@@ -59,6 +59,11 @@ pub fn load(
         launches: launch_turns(&earlier)
             .into_iter()
             .chain(launch_turns(&active))
+            .collect(),
+        // 每轮输入的模型选择（Node 消息记录上的 `modelSelection`）：冷投影补 modelChange 分隔线。
+        model_turns: model_turns(&earlier)
+            .into_iter()
+            .chain(model_turns(&active))
             .collect(),
         model,
         mode: execution.map(|state| state.mode),
@@ -137,6 +142,23 @@ fn launch_turns(records: &[Cow<'_, WithParts>]) -> Vec<SessionLaunchTurn> {
         .map(|record| SessionLaunchTurn {
             message: MessageId::new(record.id()),
             launch: record.info["metadata"]["workflowLaunch"].clone(),
+        })
+        .collect()
+}
+
+/// 每轮用户输入时刻的模型选择：Node 把当时的 `runtime/model_selection` 写进 user 消息的
+/// `modelSelection`。严格结构优先，坏数据跳过（冷投影只拿它画分隔线，不能因此读不出会话）。
+fn model_turns(records: &[Cow<'_, WithParts>]) -> Vec<SessionModelTurn> {
+    records
+        .iter()
+        .filter(|record| record.info["role"] == "user")
+        .filter_map(|record| {
+            let selection =
+                crate::repo::codecs::parse_model_selection(&record.info["modelSelection"])?;
+            Some(SessionModelTurn {
+                message: MessageId::new(record.id()),
+                selection: kernel_selection(&selection),
+            })
         })
         .collect()
 }

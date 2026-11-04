@@ -97,6 +97,9 @@ pub struct Projection {
     /// 正在跑的压缩分隔线（`timelineMarker` 的 key）：`CompactStarted` 落 running，
     /// 边界消息改 success，`CompactDone`/回合失败收尾。
     compact_marker: Option<String>,
+    /// 已切换、还没开跑的模型（from → to）：下一轮开头落 `modelChange` 分隔线
+    /// （Node 的 lightBoundary；只比 provider/model，切思考档不落）。
+    pending_model_change: Option<(ModelSelection, ModelSelection)>,
     created_at: u64,
 }
 
@@ -166,6 +169,7 @@ impl Projection {
             hook_admission: None,
             shared_context_import: None,
             compact_marker: None,
+            pending_model_change: None,
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -568,6 +572,12 @@ impl Projection {
                 patch.insert("meta".into(), state::meta(&self.title, true));
             }
             KernelEvent::ModelChanged { selection } => {
+                // 切换先记住，等下一轮真正开跑才落分隔线（Node：切换后没有新回合就不画线）。
+                if self.selection.provider != selection.provider
+                    || self.selection.model != selection.model
+                {
+                    self.pending_model_change = Some((self.selection.clone(), selection.clone()));
+                }
                 self.selection = selection.clone();
                 patch.insert("config".into(), self.config());
             }
@@ -654,6 +664,11 @@ impl Projection {
             launch: launch.cloned(),
             file_paths: Vec::new(),
         });
+        // 模型切换的分隔线：切换事件先记在 pending，真正开跑的下一轮才落一行
+        // （Node 的 `modelChange` 是 lightBoundary，只比 provider/model）。
+        if let Some((from, to)) = self.pending_model_change.take() {
+            self.append_model_change(turn, &from, &to, now, seq, out);
+        }
         let mut row = self.base(turn, turn, "turnHeader", now, seq);
         // 轮头的 origin（Node `turnHeaderOrigin(inputSource)` 同一张表）：中枢启动/设置轮
         // workflowLaunch（UI 据此画启动卡而非用户气泡）、后台通知轮 backgroundResult、
@@ -679,6 +694,37 @@ impl Projection {
         row.insert("state".into(), json!("running"));
         row.insert("startedAt".into(), json!(now));
         self.append(turn_key(turn), row, out);
+    }
+
+    /// `modelChange` 分隔线（Node 的 lightBoundary 行）：轮头之前一行，`entityId` 带 from→to。
+    /// 实时由 `ModelChanged` 记 pending、下一轮开头落；冷打开按每轮消息上的选择比较后直接落。
+    fn append_model_change(
+        &mut self,
+        turn: &str,
+        from: &ModelSelection,
+        to: &ModelSelection,
+        now: u64,
+        seq: u64,
+        out: &mut Vec<Value>,
+    ) {
+        let entity = format!(
+            "model-change:{turn}:{}/{}->{}/{}",
+            from.provider, from.model, to.provider, to.model
+        );
+        let mut row = self.base(turn, &entity, "timelineMarker", now, seq);
+        row.insert("lane".into(), json!("lightBoundary"));
+        row.insert(
+            "marker".into(),
+            json!({
+                "type": "modelChange",
+                "fromProvider": from.provider,
+                "fromModel": from.model,
+                "toProvider": to.provider,
+                "toModel": to.model,
+                "toThought": to.reasoning.clone().unwrap_or_default(),
+            }),
+        );
+        self.append(format!("model-change:{turn}"), row, out);
     }
 
     /// 收口一个回合；返回控制轮是否把 draft 会话推进了终态（普通回合总是 true）。

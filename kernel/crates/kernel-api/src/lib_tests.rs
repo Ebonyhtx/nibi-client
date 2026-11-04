@@ -113,6 +113,7 @@ fn loaded_sessions_round_trip_with_open_work() {
         meta,
         messages: vec![assistant()],
         launches: Vec::new(),
+        model_turns: Vec::new(),
         model: None,
         mode: None,
         plan: false,

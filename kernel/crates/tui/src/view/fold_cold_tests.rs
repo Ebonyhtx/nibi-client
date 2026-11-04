@@ -107,6 +107,7 @@ fn a_cold_view_rebuilds_rows_with_tool_results() {
         context_notice: Default::default(),
         output_speed: None,
         launches: Vec::new(),
+        model_turns: Vec::new(),
     };
     let view = Transcript::from_view(snapshot.clone(), 0);
     assert_eq!(view.last_seq(), 7);

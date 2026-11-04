@@ -302,6 +302,7 @@ impl Setup {
                 turn: self.turn,
                 last_turn_failed: self.last_turn_failed,
                 launches: self.launches,
+                model_turns: Vec::new(),
                 draft: self.draft,
             },
             self.opened,

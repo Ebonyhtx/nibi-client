@@ -248,6 +248,7 @@ impl SessionStore for MemoryStore {
                     _ => None,
                 })
                 .collect(),
+            model_turns: Vec::new(),
         })
     }
 

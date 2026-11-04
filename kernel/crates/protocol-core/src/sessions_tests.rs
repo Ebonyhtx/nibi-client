@@ -143,6 +143,7 @@ fn view(last_seq: u64) -> SessionView {
         context_notice: Default::default(),
         output_speed: None,
         launches: Vec::new(),
+        model_turns: Vec::new(),
     }
 }
 
