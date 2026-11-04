@@ -3292,16 +3292,24 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
           transport: hostApiNetworkTransport,
           log: (message, details) => logger.warn(message, details),
           establishOwner: () => {
+            // 一键回退：NIBI_PLUGIN_ROUTING=agent 时恢复旧的 agent 代理路径（R30 缓解）。
+            const useHostPluginManagement =
+              process.env.NIBI_PLUGIN_ROUTING?.trim().toLowerCase() !== "agent";
+            logger.info(
+              `Plugin management backend: ${useHostPluginManagement ? "host-local" : "agent (NIBI_PLUGIN_ROUTING=agent)"}`,
+            );
             const initializedServices = createLocalServices({
               // 插件管理下沉 Host：17 条工作区级方法直答，不再依赖 agent 内核；
               // 2 条会话权威 catalog 与 suggested 进度仍转发给持有 session 的内核。
-              pluginManagementFactory: ({ zcodeAgentService }) => {
-                logger.info("Plugin management backend: host-local");
-                return createLocalPluginManagementBackend({
-                  fallback: zcodeAgentService,
-                  env: process.env,
-                });
-              },
+              ...(useHostPluginManagement
+                ? {
+                    pluginManagementFactory: ({ zcodeAgentService }: { zcodeAgentService: IZCodeAgentService }) =>
+                      createLocalPluginManagementBackend({
+                        fallback: zcodeAgentService,
+                        env: process.env,
+                      }),
+                  }
+                : {}),
               reportPluginTelemetryEvent: (event) => {
                 parentPort?.postMessage({
                   type: HostResponseTypes.PluginTelemetry,
