@@ -92,6 +92,30 @@ async fn a_draft_is_stored_when_the_first_input_is_committed() {
 }
 
 #[tokio::test]
+async fn external_activity_persists_a_draft_before_the_first_input() {
+    let mut setup = model_with(Vec::new());
+    setup.stored = false;
+    setup.draft = true;
+    let built = setup.build().await;
+    let id = SessionId::new("sess_1");
+    assert!(built.store.load(&id).await.is_err());
+
+    built.session.persist_draft().await.unwrap();
+    assert!(!built.session.is_draft(), "the draft was promoted");
+    let loaded = built.store.load(&id).await.expect("the row exists now");
+    assert!(loaded.messages.is_empty(), "no input has been committed");
+    let facts = built.store.facts(&id);
+    assert!(
+        facts
+            .iter()
+            .any(|fact| matches!(fact, Fact::ModelSelected { .. })),
+        "{facts:?}"
+    );
+    // 已经不是草稿：再调一次无害、不重复建行。
+    built.session.persist_draft().await.unwrap();
+}
+
+#[tokio::test]
 async fn closing_a_draft_stores_nothing() {
     let mut setup = model_with(Vec::new());
     setup.stored = false;

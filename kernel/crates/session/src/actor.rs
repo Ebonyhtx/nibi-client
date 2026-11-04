@@ -76,6 +76,11 @@ pub(crate) enum Request {
         reply: oneshot::Sender<()>,
         reason: AbortReason,
     },
+    /// 草稿的外部活动（Node `ensureSessionPersistedForExternalActivity`）：现在写会话行与初始事实。
+    /// 不是草稿时立即回 `Ok`。
+    Persist {
+        reply: oneshot::Sender<Result<(), String>>,
+    },
     /// 会话级的询问（`Interactions::lasting`，agents.md §4.1.1）：不属于哪个回合，回合结束与中断都不取消它。
     Ask {
         request: InteractionRequest,
@@ -493,6 +498,17 @@ impl Actor {
             }
             Request::Selection { reply } => {
                 let _ = reply.send(self.selection.clone());
+            }
+            // 草稿提升：关闭中不写会话行（草稿随关闭一起消失），其余情况立即落库。
+            Request::Persist { reply } => {
+                let result = if self.closing.is_some() || self.shutting_down {
+                    Err("the session is closing".to_owned())
+                } else if self.draft.load(Ordering::SeqCst) {
+                    self.promote().await
+                } else {
+                    Ok(())
+                };
+                let _ = reply.send(result);
             }
             Request::Close { reply, reason } => self.close(reply, reason).await,
             // 关闭中、要退出时不再登记询问：丢下回复，询问方按会话已关闭处理。

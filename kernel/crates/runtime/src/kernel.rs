@@ -1370,6 +1370,14 @@ impl Kernel for LocalKernel {
         session: &SessionId,
         record: rust_cli_kernel_api::store::FrontendRecord,
     ) -> Result<(), KernelError> {
+        // 草稿（`persistence: "deferred"`）的外部活动：写前端记录（含 `v4/command_fact`）前先把会话行
+        // 落下。Node 的 v4 admission 也在写 `session_input` 前持久化主记录——否则记录没有主行，首条
+        // 命令事实会丢。
+        if let Some(live) = self.settled(session).await
+            && let Err(error) = live.persist_draft().await
+        {
+            tracing::warn!(%error, %session, "the draft session could not be persisted");
+        }
         self.ports
             .store
             .put_record(session, &record)

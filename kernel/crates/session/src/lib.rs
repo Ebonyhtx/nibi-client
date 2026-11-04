@@ -278,6 +278,17 @@ impl Session {
         self.draft.load(std::sync::atomic::Ordering::SeqCst)
     }
 
+    /// 草稿的外部活动（Node `ensureSessionPersistedForExternalActivity`）：让 actor 现在写会话行与
+    /// 初始事实。已经不是草稿时直接返回；关闭中的草稿不落库。
+    pub async fn persist_draft(&self) -> Result<(), KernelError> {
+        if !self.is_draft() {
+            return Ok(());
+        }
+        self.ask(|reply| Request::Persist { reply })
+            .await?
+            .map_err(|message| KernelError::Failed { message })
+    }
+
     async fn ask<T>(
         &self,
         request: impl FnOnce(oneshot::Sender<T>) -> Request,

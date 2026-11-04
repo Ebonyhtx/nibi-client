@@ -200,6 +200,48 @@ async fn a_deferred_session_is_not_listed_until_the_first_input() {
 }
 
 #[tokio::test]
+async fn a_frontend_record_persists_a_draft() {
+    use rust_cli_kernel_api::store::{FrontendRecord, SessionStore};
+
+    let store = Arc::new(MemoryStore::default());
+    let kernel = kernel(store.clone(), Arc::new(ScriptedModel::new(Vec::new())));
+    let id = kernel
+        .create_session_deferred(
+            CreateSession {
+                id: None,
+                workspace: workspace(),
+                selection: selection(),
+                mode: PermissionMode::Default,
+                plan: false,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    assert!(store.load(&id).await.is_err());
+    // v4 的首条命令事实在输入提交之前写：草稿必须先落主记录，否则记录表没有主行。
+    kernel
+        .put_session_record(
+            &id,
+            FrontendRecord {
+                kind: "v4/command_fact".to_owned(),
+                key: "v4_command_fact:test:c1".to_owned(),
+                data: serde_json::json!({"status": "accepted"}),
+            },
+        )
+        .await
+        .unwrap();
+    assert!(store.load(&id).await.is_ok(), "the draft was promoted");
+    assert!(
+        !kernel
+            .session_records(&id, "v4/command_fact")
+            .await
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[tokio::test]
 async fn a_created_session_runs_a_turn_and_reloads_after_restart() {
     let store = Arc::new(MemoryStore::default());
     let first = kernel(
