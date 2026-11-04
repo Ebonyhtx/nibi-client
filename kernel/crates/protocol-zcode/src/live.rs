@@ -312,6 +312,36 @@ impl Live {
         .to_value()
     }
 
+    /// 会话所属的工作区根（fork 后补发列表行要用）。
+    pub(crate) fn workspace_root(&self) -> &str {
+        &self.workspace
+    }
+
+    /// 新会话（fork）在存储里创建后补发一次会话列表行。
+    ///
+    /// sessions-index 的实时行只来自打开过的 Live 会话；fork 不会自动打开子会话，缺这一行
+    /// Host 的任务列表要等重启后的快照才看得到。
+    pub(crate) fn publish_stored_session(
+        &self,
+        session: &str,
+        title: &str,
+        created_at: u64,
+        last_reply: Option<&str>,
+    ) {
+        let row = Summary {
+            session,
+            workspace: &self.workspace,
+            title,
+            phase: Phase::CompletedSuccess,
+            created_at,
+            activity_at: self.context.now(),
+            last_reply,
+            permissions: 0,
+        }
+        .to_value();
+        self.topics.upsert(&self.workspace, row);
+    }
+
     /// 待发的增量与变了的会话列表行（阶段、标题、待回答的询问或预览变了才发，活动时间不算）。
     fn collect(&self, state: &mut State) -> Outgoing {
         let frames = state

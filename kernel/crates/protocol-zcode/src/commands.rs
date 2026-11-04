@@ -12,6 +12,7 @@ use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, KernelError, RewindScope,
     SessionHandle,
 };
+use rust_cli_kernel_api::store::SessionFilter;
 use rust_cli_protocol_core::rpc::RpcError;
 use serde_json::{Map, Value, json};
 
@@ -512,7 +513,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "compact" => compact_session(handle, envelope, revision).await,
         "renameSession" => rename_session(handle, envelope, revision).await,
         "cancelBackgroundWork" => cancel_background_work(server, handle, envelope, revision).await,
-        "forkAssistant" => fork_assistant(handle, &live.sink, envelope).await,
+        "forkAssistant" => fork_assistant(server, handle, &live.sink, envelope).await,
         "applyFileRewind" => apply_file_rewind(handle, &live.sink, envelope).await,
         "retryTurn" => retry_turn(handle, &live.sink, envelope).await,
         "editUserQuery" => edit_user_query(server, handle, &live.sink, envelope).await,
@@ -1243,8 +1244,37 @@ fn retry_target(messages: &[rust_cli_kernel_api::message::Message]) -> Result<Re
     })
 }
 
+/// fork 出来的子会话不会自动打开，sessions-index 的实时行就缺这一条；从存储里读回它的
+/// 摘要补发一次，Host 的任务列表和 fork 后的原地跳转立刻能看到（否则要等重启的快照）。
+async fn publish_forked_session(server: &Server, live: &crate::live::Live, session: &str) {
+    if session.is_empty() {
+        return;
+    }
+    let filter = SessionFilter {
+        workspace: server.workspace(live.workspace_root()),
+        limit: 200,
+    };
+    match server.kernel.workspace_sessions(filter).await {
+        Ok(sessions) => {
+            if let Some(found) = sessions
+                .iter()
+                .find(|entry| entry.summary.id.as_str() == session)
+            {
+                live.publish_stored_session(
+                    session,
+                    &found.summary.title,
+                    found.summary.updated_at_ms,
+                    found.last_reply.as_deref(),
+                );
+            }
+        }
+        Err(error) => tracing::warn!(session, %error, "reading the forked session summary failed"),
+    }
+}
+
 /// NIBI `forkAssistant`：row-targeting CAS（revision+epoch）；稳定 assistant 行 → `Command::Fork`。
 async fn fork_assistant(
+    server: &Server,
     handle: &dyn SessionHandle,
     live: &crate::live::Live,
     envelope: &Envelope,
@@ -1313,6 +1343,7 @@ async fn fork_assistant(
     {
         KernelAck::Accepted { result } => {
             let session = result.as_str().unwrap_or_default().to_owned();
+            publish_forked_session(server, live, &session).await;
             Ack::accepted(
                 command,
                 revision,
