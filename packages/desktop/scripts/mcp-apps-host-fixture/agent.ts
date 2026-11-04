@@ -2,18 +2,27 @@ import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createServer, type Socket } from "node:net";
 import { createInterface } from "node:readline";
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NibiProtocolClient } from "../../../services/src/zcode-agent/nibiProtocolClient.js";
 import { ZCodeStdioTransport } from "../../../services/src/zcode-agent/zcodeStdioTransport.js";
-import { terminateProcessTree } from "../../../services/src/process/processTreeTerminator.js";
 
 // 夹具是测试进程：未捕获异常不能落到 Electron 的默认错误框上。强制结束 agent 或被取消的运行时
 // 会让控制 socket 报 ECONNRESET，以前这会弹一个“A JavaScript error occurred in the main process”
 // 对话框，打断运营者的桌面。这里只记录并以 1 退出（测试进程本来就该失败退出）。
 process.on("uncaughtException", (error) => {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  // 强杀 agent/页面时 Windows 的管道或控制 socket 会抛 ECONNRESET/EPIPE；测试进程忽略即可，
+  // 不能让一个收尾期的 socket 重置中断整条链路。
+  if (code === "ECONNRESET" || code === "EPIPE") {
+    process.stderr.write(`[fixture] ignored uncaught ${code}\n`);
+    return;
+  }
   process.stderr.write(`[fixture] uncaught exception: ${error?.stack ?? String(error)}\n`);
   process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  process.stderr.write(`[fixture] unhandled rejection: ${String(reason)}\n`);
 });
 
 export class Events<T> {
@@ -43,6 +52,7 @@ export async function startAgent(
   const approvals = new Events<any>();
   const notifications = new Events<any>();
   const sockets = new Map<string, Socket>();
+  const connections = new Set<Socket>();
   const socketSources = new Map<Socket, string>();
   // Rust 内核（`--rust`）：同一个夹具改为拉起 `zcode-rs app-server --stdio`，MCP 服务器仍用 node。
   // Rust 的交互是 v4 `pendingInteractions` + `resolveInteraction`，不是 legacy 反向请求；下面把
@@ -73,6 +83,8 @@ export async function startAgent(
   };
 
   const control = createServer((socket) => {
+    connections.add(socket);
+    socket.on("close", () => connections.delete(socket));
     socket.on("error", (error) => {
       process.stderr.write(`[fixture] control socket error: ${error.message}\n`);
     });
@@ -101,6 +113,16 @@ export async function startAgent(
   const port = (control.address() as { port: number }).port;
   const data = join(root, "agent-data");
   await mkdir(data, { recursive: true });
+  // Rust 没有 NIBI_PERSONAL_PROVIDER_CONFIG_FILE 的等价环境变量：把夹具的 personal provider
+  // 配置放到它读的 `~/.nibi/v2/provider_config.json`（HOME/ZCODE_DATA_BASE_DIR 都指到 data）。
+  if (rustBin && providerEnv.NIBI_PERSONAL_PROVIDER_CONFIG_FILE) {
+    const configDir = join(data, ".nibi", "v2");
+    await mkdir(configDir, { recursive: true });
+    await copyFile(
+      providerEnv.NIBI_PERSONAL_PROVIDER_CONFIG_FILE,
+      join(configDir, "provider_config.json"),
+    );
+  }
   // 不继承 API key、真实用户认证及 Electron Node 标志，模型测试也只通过显式传入的隔离配置访问本地 fixture。
   const child = spawn(rustBin || node, rustBin ? ["app-server", "--stdio"] : [cli, "app-server"], {
     cwd: data,
@@ -118,12 +140,30 @@ export async function startAgent(
             USERPROFILE: data,
             ZCODE_DATA_BASE_DIR: data,
             ZCODE_STORAGE_DIR: data,
+            // 采样/模型夹具给的是 Node 的 NIBI_* 内置 provider 文件；Rust 读 ZCODE_*。
+            ...(providerEnv.NIBI_BUILTIN_PROVIDER_CONFIG_FILE
+              ? {
+                  ZCODE_BUILTIN_PROVIDER_CONFIG_FILE:
+                    providerEnv.NIBI_BUILTIN_PROVIDER_CONFIG_FILE,
+                }
+              : {}),
           }
         : {}),
       ...providerEnv,
     },
     stdio: ["pipe", "pipe", "pipe"],
   });
+  // 强杀 agent 时 Windows 的 stdio 管道也会报 ECONNRESET/EPIPE；不接住同样会变成
+  // Electron 主进程的未捕获异常（弹窗）。这里是测试夹具，记录即可。
+  for (const [stream, name] of [
+    [child.stdin, "stdin"],
+    [child.stdout, "stdout"],
+    [child.stderr, "stderr"],
+  ] as const) {
+    stream?.on("error", (error) => {
+      process.stderr.write(`[fixture] agent ${name} error: ${error.message}\n`);
+    });
+  }
   const transport = new ZCodeStdioTransport(child, {
     onStderrLine: (line) => process.stderr.write(line + "\n"),
   });
@@ -190,6 +230,25 @@ export async function startAgent(
       visibility: "foreground",
       clientMode: "desktop-continuous",
     });
+  };
+  const forceClose = () => {
+    if (child.pid) {
+      try {
+        if (process.platform === "win32") {
+          const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+            detached: true,
+            stdio: "ignore",
+          });
+          killer.unref();
+        } else {
+          process.kill(-child.pid, "SIGKILL");
+        }
+      } catch (error) {
+        process.stderr.write(`[fixture] force close failed: ${String(error)}\n`);
+      }
+    }
+    client.dispose();
+    for (const socket of connections) socket.destroy();
   };
   return {
     call,
@@ -309,39 +368,27 @@ export async function startAgent(
       };
     },
     async close() {
-      // Node 基线在这台机器上会卡在 disposeAndWait 的 stderr drain/CIM 收尾（2026-11 实测，
-      // 与内核无关）。夹具不能被这个收尾卡住：超时后直接按进程树兜底。
-      const closed = await Promise.race([
-        transport.disposeAndWait().then(() => true),
-        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 15_000)),
+      // 先走正常退出（stdin EOF），让会话库把 WAL 收尾；3 秒没退再按进程树强杀。
+      // disposeAndWait 在这台机器上会卡在 CIM/stderr drain（Node 基线同样），夹具不用它。
+      if (child.exitCode === null && child.signalCode === null) {
+        child.stdin?.end();
+        const exited = await new Promise<boolean>((resolve) => {
+          const timer = setTimeout(() => resolve(false), 3_000);
+          child.once("exit", () => {
+            clearTimeout(timer);
+            resolve(true);
+          });
+        });
+        if (!exited) forceClose();
+      }
+      client.dispose();
+      for (const socket of connections) socket.destroy();
+      await Promise.race([
+        new Promise<void>((resolve) => control.close(() => resolve())),
+        new Promise<void>((resolve) => setTimeout(resolve, 1_000)),
       ]);
-      if (!closed) {
-        process.stderr.write("[fixture] agent close timed out; forcing process tree\n");
-        terminateProcessTree(child);
-      }
-      client.dispose();
-      for (const socket of sockets.values()) socket.destroy();
-      await new Promise<void>((resolve) => control.close(() => resolve()));
     },
-    /// 不走 transport 的 CIM/快照收尾，直接按进程树强杀；给会把清理窗口省掉的门禁模式用。
-    forceClose() {
-      if (child.pid) {
-        try {
-          if (process.platform === "win32") {
-            const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
-              detached: true,
-              stdio: "ignore",
-            });
-            killer.unref();
-          } else {
-            process.kill(-child.pid, "SIGKILL");
-          }
-        } catch (error) {
-          process.stderr.write(`[fixture] force close failed: ${String(error)}\n`);
-        }
-      }
-      client.dispose();
-      for (const socket of sockets.values()) socket.destroy();
-    },
+    /// 不走 transport 的 CIM/快照收尾，直接按进程树强杀。
+    forceClose,
   };
 }
