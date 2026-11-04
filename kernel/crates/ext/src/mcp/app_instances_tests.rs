@@ -80,6 +80,34 @@ fn opening_the_same_page_twice_reuses_the_lease() {
     assert!(registry.validate(&request(first), Some(connection(0))).is_err());
 }
 
+/// 并发 open 同一逻辑页面：每个线程都必须拿到同一张凭证。Node 的单线程事件循环让
+/// check-and-insert 天然原子；Rust 的 IPC 线程会并发进来，所以 `open` 需要自己串行化。
+#[test]
+fn concurrent_opens_share_one_lease() {
+    let registry = registry();
+    let barrier = Arc::new(std::sync::Barrier::new(8));
+    let mut threads = Vec::new();
+    for _ in 0..8 {
+        let registry = registry.clone();
+        let barrier = barrier.clone();
+        threads.push(std::thread::spawn(move || {
+            barrier.wait();
+            let mut tokens = Vec::new();
+            for _ in 0..50 {
+                tokens.push(registry.open(open("scope-1"), connection(0)).token);
+            }
+            tokens
+        }));
+    }
+    let tokens: Vec<String> = threads
+        .into_iter()
+        .flat_map(|thread| thread.join().expect("thread"))
+        .collect();
+    let first = tokens.first().cloned().unwrap_or_default();
+    assert!(tokens.iter().all(|token| token == &first), "{tokens:?}");
+    assert_eq!(lock(&registry.records).len(), 1);
+}
+
 /// 校验：凭证、作用域与当前连接三者都对上才算有效；当前连接对不上会直接撤销凭证。
 #[test]
 fn validation_checks_the_lease_scope_and_connection() {

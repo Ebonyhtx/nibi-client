@@ -66,6 +66,10 @@ pub(crate) struct McpAppInstances {
     generation: Mutex<u64>,
     records: Mutex<BTreeMap<String, Record>>,
     logical: Mutex<BTreeMap<String, String>>,
+    /// `open` 的整段临界区：Node 是单线程事件循环，check-and-insert 天然原子；Rust 的
+    /// `mcp/uiOpenInstance` 会被多个 Electron IPC 线程并发调用，只靠 `logical` 的两次加锁
+    /// 会让两个并发 open 都看不到对方，各发一代凭证（桌面 MCP Apps 夹具实测）。
+    open_lock: Mutex<()>,
     /// 进行中的页面工具调用（Node `activeUiToolCalls`）：`会话\0token:callId` → 取消令牌。
     calls: Mutex<BTreeMap<String, CancellationToken>>,
     /// 已经结束的调用（Node `finishedUiToolCalls`）：同一个 `callId` 不能再用（接纳、取消与终态去重共用）。
@@ -85,6 +89,7 @@ impl McpAppInstances {
             generation: Mutex::new(0),
             records: Mutex::new(BTreeMap::new()),
             logical: Mutex::new(BTreeMap::new()),
+            open_lock: Mutex::new(()),
             calls: Mutex::new(BTreeMap::new()),
             finished: Mutex::new(std::collections::BTreeSet::new()),
             on_closed: Mutex::new(None),
@@ -102,6 +107,8 @@ impl McpAppInstances {
         request: McpUiOpenRequest,
         source: McpAppConnection,
     ) -> McpAppInstance {
+        // 整段串行：并发 open 必须看到前一个刚刚写入的 logical 行（见字段注释）。
+        let _open = lock(&self.open_lock);
         let binding = Binding {
             workspace: request.scope.workspace_identity.clone(),
             account_context: request.account_context.clone(),
