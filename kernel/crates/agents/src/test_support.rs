@@ -494,6 +494,7 @@ fn built_full(
     let compactor = Arc::new(ContextFake::default());
     let ports = AgentsPorts {
         directories: Arc::new(rust_cli_kernel_api::session_paths::SessionDirectories::new()),
+        plugins: None,
         store: store.clone(),
         ids: Arc::new(SequentialIds::default()),
         clock,

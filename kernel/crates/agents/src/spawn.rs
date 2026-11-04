@@ -110,9 +110,10 @@ pub(crate) async fn create(
     };
     core.ports.store.create(meta).await?;
     // 子代理会话看到与父会话同一批会话级 MCP 工具（Node 的子代理 app 继承父 `config.mcp`），
-    // 也继承父会话的附加工作目录。
+    // 也继承父会话的附加工作目录与插件快照（skills/hooks/agents）。
     core.inherit_session_mcp(&parent.session, &agent.child);
     core.inherit_session_directories(&parent.session, &agent.child);
+    core.inherit_session_plugins(&parent.session, &agent.child);
     inherit_directory(core, &agent).await;
     let first = user(core, prompt, UserOrigin::Human);
     let mut facts = vec![

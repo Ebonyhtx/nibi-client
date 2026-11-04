@@ -118,6 +118,25 @@ pub struct Limits {
     pub fork_subagent: Option<bool>,
 }
 
+/// 子代理会话继承父会话的插件快照（skills/hooks/agents 根）。
+///
+/// agents crate 建子会话时直接走 store（不经过 `Kernel::create_session_inner`），没有机会执行
+/// 会话级快照；Node 的子代理 app 与父共用插件，这里把父会话的三份根复制给子会话。
+struct SubagentPlugins {
+    ext: Arc<Ext>,
+    agents: Arc<AgentCatalog>,
+    hooks: Arc<HookEngine>,
+}
+
+impl rust_cli_agents::SubagentPluginInheritance for SubagentPlugins {
+    fn inherit(&self, parent: &SessionId, child: &SessionId) {
+        self.ext
+            .copy_session_skill_roots(parent, child.clone());
+        self.agents.copy_session(parent, child.clone());
+        self.hooks.copy_session(parent, child.clone());
+    }
+}
+
 pub struct LocalKernel {
     ports: Ports,
     /// 本机（注册表的 `local_machine()`）：会话、`/cd`、导出、项目清单、`@` 清单都在本机。
@@ -507,6 +526,11 @@ impl LocalKernel {
                     end: agents::monitor_end,
                 },
                 peers: extensions.peers.port.clone(),
+                plugins: Some(Arc::new(SubagentPlugins {
+                    ext: ext.clone(),
+                    agents: agent_catalog.clone(),
+                    hooks: hooks.clone(),
+                })),
             },
             parts.tools.clone(),
             AgentsConfig {

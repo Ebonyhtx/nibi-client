@@ -91,6 +91,14 @@ pub struct AgentsPorts {
     pub peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：子代理继承父会话的条目。
     pub directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    /// 子代理会话继承父会话的插件快照（skills/hooks/agents 根）：Node 的子代理 app 与父共用插件。
+    /// 没接时为空（测试夹具）；运行时的实现见 runtime 的 `SubagentPlugins`。
+    pub plugins: Option<Arc<dyn SubagentPluginInheritance>>,
+}
+
+/// 子代理会话继承父会话的插件快照。runtime 实现它，把父会话的 skills/hooks/agents 根复制给子会话。
+pub trait SubagentPluginInheritance: Send + Sync {
+    fn inherit(&self, parent: &SessionId, child: &SessionId);
 }
 
 /// 开关。
@@ -160,6 +168,13 @@ impl Core {
     /// 都按子会话取，因此复制一份借用的条目到子会话。
     pub(crate) fn inherit_session_directories(&self, parent: &SessionId, child: &SessionId) {
         self.ports.directories.inherit(parent, child);
+    }
+
+    /// 子代理继承父会话的插件快照（skills/hooks/agents 根）：Node 的子代理 app 与父会话共用插件。
+    pub(crate) fn inherit_session_plugins(&self, parent: &SessionId, child: &SessionId) {
+        if let Some(plugins) = &self.ports.plugins {
+            plugins.inherit(parent, child);
+        }
     }
 }
 
