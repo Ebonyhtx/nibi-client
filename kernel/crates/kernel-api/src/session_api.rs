@@ -462,6 +462,11 @@ pub enum KernelEvent {
     WorkflowLifecycle {
         fact: WorkflowLifecycleFact,
     },
+    /// 动态工作流的实时进度（快照 `workflowRuns` 状态键的事实来源）：引擎 sidecar 的每条
+    /// `run/event` 一条。只广播、不落库、不进模型上下文；投影按它推进 run 卡与详情页。
+    WorkflowRunProgress {
+        progress: crate::workflow::WorkflowRunProgress,
+    },
 }
 
 /// `workflow.lifecycle` 的两个阶段（Host `workflowLifecycleFactSchema.phase` 的拼写）。
@@ -1570,6 +1575,16 @@ pub trait Kernel: Send + Sync {
     /// 事实来源）：`actor-created` → `actor-spawned`，`run-settled` → `run-settled`。会话不在本进程
     /// （已关闭）或入口没有会话事件流时返回 false，调用方只记日志。
     fn note_workflow_lifecycle(&self, _session: &SessionId, _fact: WorkflowLifecycleFact) -> bool {
+        false
+    }
+
+    /// 把 DWF 引擎的一条进度事件写进父会话的事件流（快照 `workflowRuns` 的实时来源）。会话不在
+    /// 本进程（已关闭）或入口没有会话事件流时返回 false，调用方只记日志。
+    fn note_workflow_run_progress(
+        &self,
+        _session: &SessionId,
+        _progress: crate::workflow::WorkflowRunProgress,
+    ) -> bool {
         false
     }
 

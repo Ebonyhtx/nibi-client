@@ -142,6 +142,9 @@ struct RunState {
     actors: Mutex<HashMap<String, ActorHandle>>,
     verdicts: Mutex<HashMap<String, oneshot::Sender<Value>>>,
     cancels: Mutex<HashMap<String, CancellationToken>>,
+    /// 本 run 已收到的引擎事件数（`workflowRuns.lastEventSequence` 的单调序号；
+    /// journal 的真实 sequence 在 sidecar 侧，宿主只保证单调）。
+    events: AtomicU64,
 }
 
 impl RunState {
@@ -153,7 +156,12 @@ impl RunState {
             actors: Mutex::new(HashMap::new()),
             verdicts: Mutex::new(HashMap::new()),
             cancels: Mutex::new(HashMap::new()),
+            events: AtomicU64::new(0),
         }
+    }
+
+    fn next_event_sequence(&self) -> u64 {
+        self.events.fetch_add(1, Ordering::Relaxed) + 1
     }
 }
 
@@ -763,6 +771,44 @@ where
             }
             "run/event" => {
                 let params = &message["params"];
+                // 实时进度 → 父会话的 `workflowRuns` 状态键：sidecar 把事件对象原样随
+                // `run/event` 带来（`event`），宿主只取读面需要的键归约。run 不在进程表里
+                // （上一世的、或本入口没登记的）没有父会话可投，引擎自己的 journal 仍是完整事实。
+                if let Some(event) = params.get("event")
+                    && let Some(run) = shared
+                        .runs
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .get(params["runId"].as_str().unwrap_or_default())
+                        .cloned()
+                {
+                    let mut payload = event.clone();
+                    if let Some(object) = payload.as_object_mut() {
+                        object.remove("type");
+                    }
+                    let progress = rust_cli_kernel_api::workflow::WorkflowRunProgress {
+                        run_id: params["runId"].as_str().unwrap_or_default().to_owned(),
+                        tool_call_id: run.tool_call_id.clone(),
+                        sequence: run.next_event_sequence(),
+                        event_type: params["type"].as_str().unwrap_or_default().to_owned(),
+                        payload,
+                        actor_session_id: None,
+                    };
+                    let kernel = shared
+                        .kernel
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .as_ref()
+                        .and_then(Weak::upgrade);
+                    if let Some(kernel) = kernel
+                        && !kernel.note_workflow_run_progress(&run.parent, progress)
+                    {
+                        tracing::debug!(
+                            event = "dwf.progress.no_session",
+                            run = %params["runId"]
+                        );
+                    }
+                }
                 // 改变开集的四类事件让该 run 在父会话的提醒钟里重新得到一对（Node
                 // noteWorkflowReminderRunEvent 的同一事件词表）：钟板在 runtime，经 kernel 的
                 // 端口转发。run 不在进程表里（上一世的）没有父会话可转。

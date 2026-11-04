@@ -309,6 +309,16 @@ impl Session {
             .append(KernelEvent::WorkflowLifecycle { fact });
     }
 
+    /// 把 DWF 引擎的一条进度事件写进本会话的事件流（快照 `workflowRuns` 的实时来源）：与
+    /// [`Self::note_workflow_lifecycle`] 同一条只广播、不落库的路径。
+    pub fn note_workflow_run_progress(
+        &self,
+        progress: rust_cli_kernel_api::workflow::WorkflowRunProgress,
+    ) {
+        self.log
+            .append(KernelEvent::WorkflowRunProgress { progress });
+    }
+
     /// 给定消息集合选中这一轮的 checkpoint；空集合是全部（冷打开的摘要）。
     async fn checkpoints(&self, messages: &[MessageId]) -> Result<Vec<WorkspaceCheckpoint>, KernelError> {
         self.ask(|reply| Request::Checkpoints {

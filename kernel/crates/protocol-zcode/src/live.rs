@@ -405,6 +405,26 @@ impl Live {
         self.write(outgoing).await;
     }
 
+    /// 冷打开时用 `dwf_run` 的摘要补种 `workflowRuns`（Node 的冷回放同一入口的轻量版）：
+    /// 投影还没有 run 时写入头字段并发一条整键 `state.updated`，首帧快照同时带上它。
+    pub async fn seed_workflow_runs(
+        &self,
+        rows: &[rust_cli_kernel_api::workflow::WorkflowRunSummaryRow],
+    ) {
+        let outgoing = {
+            let mut state = self.state();
+            let Some(value) = state.projection.seed_workflow_runs(rows) else {
+                return;
+            };
+            state.log.record(vec![json!({
+                "op": "state.updated",
+                "patch": {"workflowRuns": value},
+            })]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
     /// 把当前的会话列表行发出去（建会话之后，列表马上看得到）。在会话的泵任务里调用。
     pub async fn publish_summary(&self) {
         let outgoing = {

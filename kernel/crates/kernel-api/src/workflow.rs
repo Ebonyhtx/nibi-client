@@ -35,6 +35,30 @@ pub struct DynamicWorkflowRun {
     pub updated_at: u64,
 }
 
+/// 一条 DWF 引擎进度事件（`workflowRuns` 状态键的输入；Node 的
+/// `DynamicWorkflowRunProgressPayload` 同形）。
+///
+/// 引擎 sidecar 在一条 run 事件落 journal 之后经 `run/event` 通知宿主；`payload` 是事件对象
+/// 去掉 `type` 的其余字段。宿主只按读面需要的键归约（run 行、节点、阶段、留白），不做完整
+/// journal 重放。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRunProgress {
+    pub run_id: String,
+    /// 发起这次 run 的工具调用（工具卡 → run 的联接键；中枢启动是 `launch-…`）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    /// run 内的单调序号（`run/event` 的到达顺序；只用于 `lastEventSequence` 的单调性）。
+    pub sequence: u64,
+    /// 引擎事件判别式（`run-started` / `node-settled` / `run-settled` …）。
+    pub event_type: String,
+    /// 事件载荷（已去掉 `type`）。
+    pub payload: Value,
+    /// `actor-created` 上的子代理会话 id（引擎按 `(runId, actorRef)` 确定地铸出）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub actor_session_id: Option<String>,
+}
+
 /// 一个 DWF actor 的固定属性（引擎 sidecar 在 `createActorSession` 时给）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

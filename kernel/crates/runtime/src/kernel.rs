@@ -216,6 +216,25 @@ impl Kernel for LocalKernel {
         }
     }
 
+    /// DWF 引擎的实时进度写进父会话事件流（快照 `workflowRuns` 的实时来源）。
+    fn note_workflow_run_progress(
+        &self,
+        session: &rust_cli_kernel_api::ids::SessionId,
+        progress: rust_cli_kernel_api::workflow::WorkflowRunProgress,
+    ) -> bool {
+        let sessions = self
+            .sessions
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        match sessions.get(session).and_then(table::Slot::open) {
+            Some(open) => {
+                open.note_workflow_run_progress(progress);
+                true
+            }
+            None => false,
+        }
+    }
+
     /// GUI 中枢的已保存工作流读面：frontmatter 解析器在 sidecar（@nibi/core），这里转发。
     /// 降级（没接 sidecar 的入口）在本层现做：home 取机器事实，协议层不读环境。
     async fn hub_list_saved_workflows(

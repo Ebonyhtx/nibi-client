@@ -158,6 +158,7 @@ fn changes_state(event: &KernelEvent) -> bool {
             | KernelEvent::ModelNotice { .. }
             | KernelEvent::ModelRequestStatus { .. }
             | KernelEvent::WorkflowLifecycle { .. }
+            | KernelEvent::WorkflowRunProgress { .. }
     )
 }
 

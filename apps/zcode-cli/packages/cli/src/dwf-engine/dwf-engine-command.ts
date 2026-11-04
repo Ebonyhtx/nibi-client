@@ -896,6 +896,8 @@ class RemoteDriver {
       this.notify("run/event", {
         runId: this.runId,
         type: event.type,
+        // 宿主 `workflowRuns` 投影的输入：事件原文（与 journal 里那份同一个对象）。
+        event,
         ...(record?.name === undefined ? {} : { name: record.name }),
         ...(scriptPath === undefined ? {} : { scriptPath }),
         hole: {
@@ -922,6 +924,7 @@ class RemoteDriver {
       this.notify("run/event", {
         runId: this.runId,
         type: event.type,
+        event,
         ...(record?.name === undefined ? {} : { name: record.name }),
         stall: {
           sinceMs: event.sinceMs,
@@ -931,7 +934,7 @@ class RemoteDriver {
       });
       return;
     }
-    this.notify("run/event", { runId: this.runId, type: event.type });
+    this.notify("run/event", { runId: this.runId, type: event.type, event });
   }
 }
 

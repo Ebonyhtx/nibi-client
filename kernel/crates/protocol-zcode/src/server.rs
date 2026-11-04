@@ -147,6 +147,12 @@ impl Server {
                 Err(error) => tracing::debug!(%error, "file change summaries are unavailable"),
             }
         }
+        // 冷打开的 `workflowRuns`（run 卡在重启后仍显示上次的终态）：索引行来自 `dwf_run`，
+        // 节点/阶段仍由详情页的 journal 查询面提供。读不出只是少一张卡的头，不拦打开。
+        match self.kernel.workflow_run_summaries(session, 8).await {
+            Ok(rows) => live.sink.seed_workflow_runs(&rows).await,
+            Err(error) => tracing::debug!(%error, "workflow run summaries are unavailable"),
+        }
         // 会话第一次打开：按当前快照上报工作区钩子的提示条（Node 在 activate 时上报 admission）。
         self.announce_hook_admission(session, live.sink.clone()).await;
         Ok(live)

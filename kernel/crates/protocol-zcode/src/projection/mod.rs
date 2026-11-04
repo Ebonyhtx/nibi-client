@@ -8,6 +8,7 @@ mod cold;
 mod files;
 mod rows;
 pub mod state;
+mod workflow_runs;
 
 use std::collections::HashMap;
 
@@ -22,6 +23,7 @@ use rust_cli_kernel_api::tool::ToolOutput;
 use serde_json::{Map, Value, json};
 
 use state::{ActiveWork, Followup, LastError, Phase};
+use workflow_runs::WorkflowRunsState;
 
 /// 快照里最多带的行（尾部窗口）。
 const WINDOW_ROWS: usize = 200;
@@ -100,6 +102,9 @@ pub struct Projection {
     /// 已切换、还没开跑的模型（from → to）：下一轮开头落 `modelChange` 分隔线
     /// （Node 的 lightBoundary；只比 provider/model，切思考档不落）。
     pending_model_change: Option<(ModelSelection, ModelSelection)>,
+    /// DWF 引擎 run 的实时运行态（快照的 `workflowRuns` 键）：一条 `run/event` 推进一格，
+    /// run 卡、状态与 Stop 都从这里读（Node `workflowRuns` 投影的同名状态键）。
+    workflow_runs: WorkflowRunsState,
     created_at: u64,
 }
 
@@ -177,6 +182,7 @@ impl Projection {
             shared_context_import: None,
             compact_marker: None,
             pending_model_change: None,
+            workflow_runs: WorkflowRunsState::default(),
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -314,6 +320,17 @@ impl Projection {
     /// 分享导入的种子（冷打开）：不发增量（Node 的 `seedSharedContextImport` 同义）。
     pub fn seed_shared_context_import(&mut self, value: Option<Value>) {
         self.shared_context_import = value;
+    }
+
+    /// `workflowRuns` 的冷种子（`dwf_run` 摘要）：返回整份状态给调用方发 `state.updated`；
+    /// 实时表已经在时不覆盖（返回 None）。
+    pub fn seed_workflow_runs(
+        &mut self,
+        rows: &[rust_cli_kernel_api::workflow::WorkflowRunSummaryRow],
+    ) -> Option<Value> {
+        self.workflow_runs
+            .seed(rows)
+            .then(|| json!(self.workflow_runs))
     }
 
     /// 分享导入的状态变了（`discardSharedContext`）：`state.updated` 里带上整份状态。
@@ -611,6 +628,13 @@ impl Projection {
             }
             KernelEvent::CompactDone { .. } => {
                 self.compact_done();
+            }
+            KernelEvent::WorkflowRunProgress { progress } => {
+                // 整键替换（`workflowRuns` 是高频派生状态，Node 发键级增量；Rust 这一版先发整键，
+                // 行数与条目都由归约的界压住）。语义无变化时不发，与 Node reducer 的幂等同规。
+                if self.workflow_runs.apply(progress) {
+                    patch.insert("workflowRuns".into(), json!(self.workflow_runs));
+                }
             }
             _ => {}
         }
@@ -949,6 +973,10 @@ impl Projection {
         // （Host 的 `sharedContextImportSchema` 会拒整帧，客户端报 `fault.subscription.contentRejected`）。
         if let Some(value) = &self.shared_context_import {
             snapshot["sharedContextImport"] = value.clone();
+        }
+        // 同一条 optional 纪律：没有 run 时整个键不写（schema 是 optional，不是 nullable）。
+        if !self.workflow_runs.is_empty() {
+            snapshot["workflowRuns"] = json!(self.workflow_runs);
         }
         snapshot
     }
