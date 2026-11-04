@@ -19,6 +19,9 @@ fn policy(network: NetworkPolicy, required: bool) -> SandboxPolicy {
     }
 }
 
+// sandbox profile 只在 macOS 上执行；其中的路径按 `/` 拼写，Windows 的 `Path::join` 用 `\`，
+// 字符串断言在那边没有意义。
+#[cfg(unix)]
 #[test]
 fn macos_profile_keeps_the_base_and_adds_rules() {
     let profile = macos_profile(
@@ -222,7 +225,7 @@ fn bwrap_protects_the_same_paths_as_macos() {
         at(".bashrc"),
         at(".git/hooks"),
         at(".vscode"),
-        at(".zcode"),
+        at(".nibi"),
         at(".git/config"),
     );
     for expected in [
@@ -233,7 +236,7 @@ fn bwrap_protects_the_same_paths_as_macos() {
     ] {
         assert!(binds.contains(&expected), "{expected:?} in {binds:?}");
     }
-    // `.zcode/commands` 与 `.zcode/agents` 都缺 `.zcode`：只绑一次。
+    // `.nibi/commands` 与 `.nibi/agents` 都缺 `.nibi`：只绑一次。
     let zcode_binds = binds.iter().filter(|b| b[2] == zcode).count();
     assert_eq!(zcode_binds, 1);
     // 可写绑定在前，保护在后（后面的挂载覆盖前面的）。
@@ -310,11 +313,11 @@ fn bwrap_skips_paths_under_a_git_file() {
 
 #[test]
 fn the_protected_directories_keep_their_names() {
-    // F55：名字取 base 的定义；值是固定的目录表（产品目录是 `.zcode`）。
+    // F55：名字取 base 的定义；值是固定的目录表（产品目录是 `.nibi`）。
     use rust_cli_base::names::{AGENTS_DIR, DOT_DIR};
     assert_eq!(
         PROTECTED_DIRS,
-        [".vscode", ".idea", ".zcode/commands", ".zcode/agents"]
+        [".vscode", ".idea", ".nibi/commands", ".nibi/agents"]
     );
     assert!(PROTECTED_DIRS.contains(&format!("{DOT_DIR}/{AGENTS_DIR}").as_str()));
 }

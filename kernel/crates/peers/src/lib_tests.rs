@@ -26,6 +26,8 @@ async fn start(scope: &TaskScope, dir: &std::path::Path, pid: u32, cwd: &str) ->
     .await
 }
 
+// 跨会话通信走 Unix domain socket（`uds::supported()` 只在 unix 为真）；Windows 上它按设计关闭。
+#[cfg(unix)]
 #[tokio::test]
 async fn two_instances_find_each_other_and_exchange_a_message_and_a_receipt() {
     let dir = tempfile::tempdir().unwrap();

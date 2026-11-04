@@ -14,6 +14,12 @@ use rust_cli_kernel_api::env_worktree::{
 use super::*;
 use crate::git::tests::git;
 
+/// 路径比较的形状：Windows 的 `canonicalize` 带 `\\?\` 前缀与反斜杠，git 报的路径是正斜杠。
+fn comparable(path: &Path) -> String {
+    let text = path.to_string_lossy().replace('\\', "/");
+    text.strip_prefix("//?/").unwrap_or(&text).to_owned()
+}
+
 fn projected(home: &Path) -> BTreeMap<String, String> {
     BTreeMap::from([
         ("PATH".to_owned(), std::env::var("PATH").unwrap_or_default()),
@@ -61,8 +67,11 @@ async fn creates_resumes_lists_inspects_and_removes_a_worktree() {
     else {
         panic!("not created");
     };
-    let expected = root.join(".zcode/worktrees/user+feature");
-    assert_eq!(path.as_str(), expected.to_string_lossy());
+    let expected = root.join(".nibi/worktrees/user+feature");
+    assert_eq!(
+        comparable(std::path::Path::new(path.as_str())),
+        comparable(&expected)
+    );
     assert_eq!(branch, "worktree-user+feature");
     assert!(!existed);
     assert!(expected.join("a.txt").is_file());
@@ -77,12 +86,16 @@ async fn creates_resumes_lists_inspects_and_removes_a_worktree() {
         .await
         .unwrap();
     assert_eq!(
-        listed.root.as_ref().map(EnvPath::as_str),
-        Some(&*root.to_string_lossy())
+        listed
+            .root
+            .as_ref()
+            .map(|root| comparable(std::path::Path::new(root.as_str()))),
+        Some(comparable(&root))
     );
-    assert!(listed.entries.iter().any(
-        |entry| entry.path == path && entry.branch.as_deref() == Some("worktree-user+feature")
-    ));
+    assert!(listed.entries.iter().any(|entry| {
+        comparable(Path::new(entry.path.as_str())) == comparable(Path::new(path.as_str()))
+            && entry.branch.as_deref() == Some("worktree-user+feature")
+    }));
 
     // 一个未提交文件、一个新提交。
     std::fs::write(expected.join("b.txt"), "b\n").unwrap();
