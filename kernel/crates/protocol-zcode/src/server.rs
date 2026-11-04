@@ -285,14 +285,33 @@ impl Server {
                     "updatedSessionCount": 0}),
                 )
             }
-            // 动态工作流的灰度闸由 Host 自己判（它只在 `enabled:true` 时才注入引擎）；这里回执只是
-            // 应答——Host 只验 schema 不消费值（zcodeAgentService.ts:3252）。
-            //
-            // 按**实况**回报：动态工作流已全链实现（34 个 CommandType 含 3 个工作流命令 + 8 个中枢
-            // 方法 + 引擎 sidecar 路线 C），所以这里回 true 而不是恒 false。恒 false 曾是「动态工作流
-            // 不移植（P4 决定）」时代的残桩，那条决定早已被推翻（141 审计 F1）。
+            // 动态工作流的灰度门由 Host 判定：它在 client 启动、任何 session 工作之前同步
+            // workspace 级结论，**关闭时不发这条请求**（CLI 缺省即关闭）。这里落地并回实际值；
+            // Host 只验 schema 不消费回执（zcodeAgentService.ts:3252）。mode 只在开启时有意义，
+            // `onDemand` 是 Node 的作者工具按需激活——内核没有对应工具，记下供对齐。
             "workspace/updateDynamicWorkflowPolicy" => {
-                reply(json!({"workspace": params["workspace"], "enabled": true}))
+                let enabled = params["enabled"].as_bool().unwrap_or(false);
+                let on_demand = enabled && params["mode"].as_str() == Some("onDemand");
+                let path = params["workspace"]["workspacePath"]
+                    .as_str()
+                    .or_else(|| params["workspace"].as_str())
+                    .unwrap_or_default();
+                if let Err(error) = self
+                    .kernel
+                    .update_dynamic_workflow_policy(
+                        &self.workspace(path),
+                        rust_cli_kernel_api::session_api::DynamicWorkflowGate::new(enabled, on_demand),
+                    )
+                    .await
+                {
+                    // 策略只影响之后创建/恢复的会话（Node 同一语义），同步失败不阻断客户端就绪。
+                    tracing::warn!(
+                        event = "protocol.dynamic_workflow.policy_failed",
+                        error = %error,
+                        "the kernel did not store the dynamic workflow policy"
+                    );
+                }
+                reply(json!({"workspace": params["workspace"], "enabled": enabled}))
             }
             "workspace/readPresentation" => reply(self.read_presentation(&params).await),
             // 目录来源按 sessionIds 查父链：rust 的会话没有要报的父链（子代理不进列表），P1 回空列表。

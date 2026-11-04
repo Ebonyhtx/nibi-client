@@ -692,6 +692,27 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         Ok(live) => live,
         Err(error) => return refused(error.to_string()),
     };
+    // 动态工作流灰度的显式值（Host 只在开启时带）：Host 关闭时什么都不发，所以这里只认 `true`；
+    // 与 workspace 策略取或（Node `resolveDynamicWorkflowRuntimeGate` 同序）。必须在会话打开之后落：
+    // 打开时按 workspace 策略定了缺省门（Host 进程缺席 = 关闭）。
+    if payload["dynamicWorkflowEnabled"].as_bool() == Some(true) {
+        let on_demand = payload["dynamicWorkflowMode"].as_str() == Some("onDemand");
+        if let Err(error) = server
+            .kernel
+            .set_session_dynamic_workflow(
+                &id,
+                rust_cli_kernel_api::session_api::DynamicWorkflowGate::new(true, on_demand),
+            )
+            .await
+        {
+            tracing::warn!(
+                event = "protocol.create_session.dynamic_workflow_failed",
+                session = %id,
+                error = %error,
+                "the kernel refused the explicit dynamic workflow gate"
+            );
+        }
+    }
     crate::subscribe::announce(&live);
     let mut result = json!({"type": "createSession", "sessionId": id.as_str()});
     let first = &payload["firstInput"];

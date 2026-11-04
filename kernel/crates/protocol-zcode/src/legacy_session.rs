@@ -163,6 +163,31 @@ async fn apply_tool_policy(
         .map_err(|error| kernel_error(&error))
 }
 
+/// 旧协议的动态工作流灰度字段（Host 的 create/resume 只在开启时带 `true`）：显式值与 workspace
+/// 策略取或，与 v4 createSession 同一条（Node `resolveDynamicWorkflowRuntimeGate` 同序）。
+/// 必须在会话打开之后调——打开时按 workspace 策略定了缺省门（Host 进程缺席 = 关闭）。
+async fn apply_dynamic_workflow(server: &Server, session: &SessionId, params: &Value) {
+    if params["dynamicWorkflowEnabled"].as_bool() != Some(true) {
+        return;
+    }
+    let on_demand = params["dynamicWorkflowMode"].as_str() == Some("onDemand");
+    if let Err(error) = server
+        .kernel
+        .set_session_dynamic_workflow(
+            session,
+            rust_cli_kernel_api::session_api::DynamicWorkflowGate::new(true, on_demand),
+        )
+        .await
+    {
+        tracing::warn!(
+            event = "protocol.legacy.dynamic_workflow_failed",
+            session = %session,
+            error = %error,
+            "the kernel refused the explicit dynamic workflow gate"
+        );
+    }
+}
+
 fn apply_directories(params: &Value) -> Vec<EnvPath> {
     params["additionalDirectories"]
         .as_array()
@@ -221,8 +246,6 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         "toolDenylist",
         "importedHistory",
         "titleGenerationEnabled",
-        "dynamicWorkflowEnabled",
-        "dynamicWorkflowMode",
     ]
     .into_iter()
     .filter(|field| params.get(*field).is_some())
@@ -321,6 +344,8 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
     apply_tool_policy(server, &id, params).await?;
     apply_mcp(server, &id, params, workspace).await;
     let live = open(server, &id).await?;
+    // 打开之后才落显式灰度门（打开时按 workspace 策略定了缺省）。
+    apply_dynamic_workflow(server, &id, params).await;
     crate::subscribe::announce(&live);
     let view = live
         .handle
@@ -336,6 +361,8 @@ pub async fn resume(server: &Server, params: &Value) -> Result<Value, RpcError> 
     let id = session_id(params)?;
     apply_tool_policy(server, &id, params).await?;
     let before = view(server, &id).await?;
+    // 冷恢复时 runtime 重建、缺省门按 workspace 策略重算；Host 随 resume 带的显式 true 在这里覆盖。
+    apply_dynamic_workflow(server, &id, params).await;
     if let Some(level) = params["thoughtLevel"].as_str()
         && before.selection.reasoning.as_deref() != Some(level)
     {

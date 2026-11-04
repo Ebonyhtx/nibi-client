@@ -391,10 +391,14 @@ async fn serve(
     let directory: Option<Arc<dyn ModelDirectory>> =
         (!explicit).then(|| platform.clone() as Arc<dyn ModelDirectory>);
     let title_model = kernel.ports().model.clone();
-    let kernel = kernel.with_titles(TitleModel {
-        model: title_model,
-        directory,
-    });
+    let kernel = kernel
+        .with_titles(TitleModel {
+            model: title_model,
+            directory,
+        })
+        // 本进程在服务 Host 协议：动态工作流的灰度缺省是「没有策略 = 关闭」，与 CLI/TUI 的
+        // 「不参加灰度、工具全注册」分开。
+        .with_host_serving();
     // DWF 引擎 sidecar（路线 C）：Host/开发经 `NIBI_DWF_ENGINE_CMD` 指过来；缺席时三条 DWF 命令保持
     // `fault.command.capabilityUnsupported`。
     let workflow_engine = startup

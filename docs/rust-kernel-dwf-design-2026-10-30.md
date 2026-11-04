@@ -63,7 +63,7 @@
 |---|---|---|
 | C0 | `DwfRuns` 端口（读 `dwf_*`：run/node/event/settlement 的只读面）＋协议侧 run 投影字段 | **第一段已落地（2026-10-30）**：`SessionStore::workflow_runs` / `Kernel::dynamic_workflow_runs` 读 `dwf_run`（本会话、按 `time_created`），node-store 仓储 + 单测；协议投影字段待引擎事件接进来 |
 | C1 | sidecar 引擎（受管 Node 子进程）＋ submit/amend/resume/cancel 协议 ＋ 3 条命令 | 双内核 3 条命令对拍；run 生命周期（started → completed/failed/cancelled）一致 |
-| C2 | `createSession.dynamicWorkflow*` 激活工具面（经 sidecar 转发 CreateWorkflow 等） | 工具在 Rust 会话可用；saved workflow 列表/启动一致 |
+| C2 | `createSession.dynamicWorkflow*` / `workspace/updateDynamicWorkflowPolicy` 决定工具面（**2026-11-05 已落地**：Host 关闭时三件套不注册；内核没有 authoring 工具，`onDemand` 只记录） | 关闭态工具表不含三件套、开启态照常；双内核门禁一致 |
 | C3 | 通知与 UI 投影（run 卡、完成/提问通知、hole 流程） | presentation/transcript 两篇规格的关键路径对齐 |
 
 验收判据（C1 起每阶段跑）：

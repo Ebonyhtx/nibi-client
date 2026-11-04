@@ -225,6 +225,10 @@ impl LocalKernel {
         if let Some(Slot::Open(open)) = sessions.get(&id) {
             return open.session.clone();
         }
+        // 出生/冷恢复时按此刻的 workspace 策略定这个会话的动态工作流门（Node 的 record 门：
+        // 已有会话的工具面不回收，只有新建与恢复读策略）。Host 显式给的值由协议层在打开后覆盖。
+        let gate = self.dynamic_workflow_gate(&state.meta.workspace);
+        self.gate.set_dynamic_workflow(&id, gate);
         let scope = self.scope.spawner().child(format!("session/{id}"));
         let deps = SessionDeps {
             store: self.ports.store.clone(),

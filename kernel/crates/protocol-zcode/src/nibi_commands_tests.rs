@@ -127,8 +127,8 @@ fn create_session_accepts_every_nibi_field() {
     assert!(!unsupported.contains(&"mcpServers")); // 2026-10-30 起经 start_session_mcp 装进会话。
     assert!(!unsupported.contains(&"additionalDirectories")); // 2026-10-30 起进会话的附加目录。
     assert!(!unsupported.contains(&"permissionScope"));
-    assert!(unsupported.contains(&"dynamicWorkflowEnabled"));
-    assert!(unsupported.contains(&"dynamicWorkflowMode"));
+    assert!(!unsupported.contains(&"dynamicWorkflowEnabled"));
+    assert!(!unsupported.contains(&"dynamicWorkflowMode"));
     assert!(!unsupported.contains(&"firstInput.attachments")); // 2026-10-30 起图片附件进内容块。
 }
 

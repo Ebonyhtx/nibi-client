@@ -3134,6 +3134,14 @@ try {
   );
   checks.mcpToolOffered = mcpOffered.length > 0;
   checks.mcpOfferedInFirstRequest = (mainRequests[0]?.tools ?? []).includes("mcp__fake__echo");
+  // 动态工作流灰度门的关闭态（P0-2）：Host 会话不带显式 flag、workspace 策略也没有时，三件套不进
+  // 工具表。Node 在灰度关时根本不注册它们；Rust 的 app-server 把「没有策略」按关闭处理。
+  // （开启态由 dwfEngine 阶段显式带 flag 的两个会话覆盖。）
+  checks.dwfToolsAbsentWithoutHostGate = [
+    "FillWorkflowHole",
+    "GetWorkflowRun",
+    "ResolveWorkflowQuestion",
+  ].every((name) => !(mainRequests[0]?.tools ?? []).includes(name));
   // 工具真的被调用并执行：假 provider 要求一次 mcp__fake__echo，工具结果回到下一请求。
   checks.mcpToolCalled = TOOL_RESULTS.length > 0;
   checks.mcpToolResult = TOOL_RESULTS[0] ?? null;

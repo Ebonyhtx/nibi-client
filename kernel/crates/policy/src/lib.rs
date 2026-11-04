@@ -51,6 +51,7 @@ use rust_cli_kernel_api::permission::{
     PermissionDecision, PermissionMode, PermissionRule, PermissionRules, ToolPolicy,
 };
 use rust_cli_kernel_api::plan::PlanFiles;
+use rust_cli_kernel_api::session_api::DynamicWorkflowGate;
 use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
 use serde_json::Value;
 
@@ -90,6 +91,12 @@ pub struct PolicyGate {
     /// 会话级的工具清单（NIBI `createSession.toolAllowlist/toolDenylist`）：工具清单与查找先按它过滤，
     /// 判决链再按规则判。会话关闭时随 `release` 清掉。
     tool_policies: Mutex<HashMap<SessionId, ToolPolicy>>,
+    /// 会话的动态工作流灰度门（NIBI Host 的 `dynamicWorkflowEnabled`）：关闭时三个工作流工具不进
+    /// 该会话的工具表。没登记 = 不参加灰度（CLI/TUI），工具全注册。
+    dynamic_workflows: Mutex<HashMap<SessionId, DynamicWorkflowGate>>,
+    /// 没登记门的会话的缺省值（子代理与 actor 会话直接经存储建，不经过内核的会话启动路径）：
+    /// Host 进程由入口置成关闭（fail-closed，Agent 工具不能变成绕开灰度的后门）；CLI/TUI 不参加灰度。
+    dynamic_workflow_default: Mutex<DynamicWorkflowGate>,
     classifier: Arc<dyn AutoClassifier>,
     options: PolicyOptions,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：判决时按会话取，
@@ -109,6 +116,8 @@ impl PolicyGate {
             rules: RwLock::new(Arc::new(rules)),
             scoped: Mutex::default(),
             tool_policies: Mutex::default(),
+            dynamic_workflows: Mutex::default(),
+            dynamic_workflow_default: Mutex::new(DynamicWorkflowGate::UNGATED),
             classifier: Arc::new(Unavailable),
             options: PolicyOptions::default(),
             directories: None,
@@ -177,6 +186,10 @@ impl PolicyGate {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .remove(session);
+        self.dynamic_workflows
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
     }
 
     /// 设置会话级的工具清单（NIBI create/resume 的 toolAllowlist/toolDenylist）。
@@ -194,6 +207,42 @@ impl PolicyGate {
             .unwrap_or_else(PoisonError::into_inner)
             .get(session)
             .cloned()
+    }
+
+    /// 设置会话的动态工作流灰度门（Host 的 workspace 策略或 createSession 显式值）。
+    pub fn set_dynamic_workflow(&self, session: &SessionId, gate: DynamicWorkflowGate) {
+        self.dynamic_workflows
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session.clone(), gate);
+    }
+
+    /// 没登记门的会话的缺省值（入口按「是否在服务 Host 协议」设置；缺省不参加灰度）。
+    pub fn set_dynamic_workflow_default(&self, gate: DynamicWorkflowGate) {
+        *self
+            .dynamic_workflow_default
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = gate;
+    }
+
+    /// 这个会话的动态工作流灰度门；没登记时用进程缺省（CLI/TUI 不参加灰度）。
+    pub fn dynamic_workflow(&self, session: &SessionId) -> DynamicWorkflowGate {
+        self.dynamic_workflow_override(session)
+            .unwrap_or_else(|| {
+                *self
+                    .dynamic_workflow_default
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+            })
+    }
+
+    /// 登记过的门（子代理继承父会话时要区分「登记为关闭」与「没参加灰度」）。
+    pub fn dynamic_workflow_override(&self, session: &SessionId) -> Option<DynamicWorkflowGate> {
+        self.dynamic_workflows
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .copied()
     }
 
     /// 这个会话判决用的快照：群协作会话把 LocalSettings 换成它自己的规则集，其余会话就是当前快照。

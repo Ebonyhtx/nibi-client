@@ -14,6 +14,7 @@ use std::sync::{Arc, OnceLock, Weak};
 
 use async_trait::async_trait;
 use regex::Regex;
+use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
 use rust_cli_kernel_api::mcp_state::McpConnections;
 use rust_cli_kernel_api::message::ToolResultContent;
@@ -68,11 +69,13 @@ impl ToolCatalog {
         self.registry().ok()?.mcp()
     }
 
-    /// 启用的工具，按名字排序（与发给模型的顺序相同）。
-    fn tools(&self) -> Result<Vec<Arc<dyn Tool>>, String> {
+    /// 这个会话的工具池：与发给模型的快照同一条逐会话规则（会话工具清单、动态工作流灰度门）。
+    /// ToolSearch 的查找范围必须与模型能调的集合一致——否则会搜出一个调用时才被判为未知的工具。
+    fn tools_for(&self, session: &SessionId) -> Result<Vec<Arc<dyn Tool>>, String> {
         let mut tools: Vec<_> = self
             .registry()?
-            .tools()
+            .snapshot(session)
+            .tools
             .into_iter()
             .filter(|tool| tool.is_enabled())
             .collect();
@@ -290,7 +293,7 @@ impl Tool for ToolSearchTool {
             .map_or(5, |max| max as usize);
         let all = self
             .catalog
-            .tools()
+            .tools_for(&context.session)
             .map_err(|message| ToolError::Failed { message })?;
         let select = select_query(query);
         // 先照常搜；`select:` 时记下找不到的名字。
@@ -319,7 +322,7 @@ impl Tool for ToolSearchTool {
                 Some(_) => (missing.join(" "), Some(missing_list.as_str())),
                 None => (query.to_owned(), None),
             };
-            let tools = || self.catalog.tools();
+            let tools = || self.catalog.tools_for(&context.session);
             let search = |tools: &[Arc<dyn Tool>]| Self::search(query, list, max_results, tools);
             let found =
                 tool_search_mcp::retry(mcp.as_ref(), &all, &text_for, tools, search, &context)

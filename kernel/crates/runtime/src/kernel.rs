@@ -64,6 +64,11 @@ impl LocalKernel {
     ) -> Result<SessionId, KernelError> {
         let id = request.id.unwrap_or_else(|| self.ports.ids.session());
         let workspace = request.workspace.clone();
+        // 子会话继承父会话此刻的动态工作流门（Node 子代理 runtimeConfig 的结构性继承）：父显式打开
+        // 而 workspace 策略缺席时，子会话不能退回关闭。父会话没登记（CLI/TUI）时不继承。
+        let inherited_dynamic_workflow = parent
+            .as_ref()
+            .and_then(|parent| self.gate.dynamic_workflow_override(parent));
         let meta = SessionMeta {
             id: id.clone(),
             kind: SessionKind::Interactive,
@@ -121,6 +126,9 @@ impl LocalKernel {
             },
             Opened::Created,
         );
+        if let Some(gate) = inherited_dynamic_workflow {
+            self.gate.set_dynamic_workflow(&id, gate);
+        }
         Ok(id)
     }
 
@@ -453,6 +461,10 @@ impl Kernel for LocalKernel {
             .id
             .clone()
             .unwrap_or_else(|| self.ports.ids.session());
+        // 内核建的子会话（带父链的 create / 导入）继承父会话此刻的门，与 `create_session_inner` 同一条。
+        let inherited_dynamic_workflow = parent
+            .as_ref()
+            .and_then(|parent| self.gate.dynamic_workflow_override(parent));
         let meta = SessionMeta {
             id: id.clone(),
             kind: SessionKind::Interactive,
@@ -528,6 +540,9 @@ impl Kernel for LocalKernel {
             },
             Opened::Created,
         );
+        if let Some(gate) = inherited_dynamic_workflow {
+            self.gate.set_dynamic_workflow(&id, gate);
+        }
         Ok(id)
     }
 
@@ -976,6 +991,31 @@ impl Kernel for LocalKernel {
         Ok(())
     }
 
+    /// Host 同步的 workspace 级动态工作流策略（Node `appRuntimePreferences`）：只影响之后创建/
+    /// 恢复的会话；键是工作区根，与 `create_session` 的 `WorkspaceRef` 对上。
+    async fn update_dynamic_workflow_policy(
+        &self,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        gate: rust_cli_kernel_api::session_api::DynamicWorkflowGate,
+    ) -> Result<(), KernelError> {
+        self.dynamic_workflow
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(workspace.root.as_str().to_owned(), gate);
+        Ok(())
+    }
+
+    /// `createSession.dynamicWorkflowEnabled/Mode`：Host 显式值覆盖 workspace 结论（Node 的取值是
+    /// 「显式 true 或 workspace 开启」；显式 false 不否决 workspace，所以只有 true 走到这里）。
+    async fn set_session_dynamic_workflow(
+        &self,
+        session: &SessionId,
+        gate: rust_cli_kernel_api::session_api::DynamicWorkflowGate,
+    ) -> Result<(), KernelError> {
+        self.gate.set_dynamic_workflow(session, gate);
+        Ok(())
+    }
+
     /// NIBI `AttachmentRef`：artifact URI 经会话 artifact 存储，路径经会话所在机器的文件端口。
     async fn load_attachment(
         &self,
@@ -1274,6 +1314,15 @@ impl Kernel for LocalKernel {
         cancel: Option<tokio_util::sync::CancellationToken>,
     ) -> Result<rust_cli_kernel_api::workflow::WorkflowActorTurn, KernelError> {
         let spec = request.actor;
+        // actor 子会话直接经存储建、不经过内核的会话启动路径：继承父会话此刻的动态工作流门，
+        // 与 Node 子代理的结构性继承同一条（Host 关灰度时 actor 也看不到三件套）。
+        if let Some(gate) = self
+            .gate
+            .dynamic_workflow_override(&SessionId::new(spec.parent.clone()))
+        {
+            self.gate
+                .set_dynamic_workflow(&SessionId::new(spec.child.clone()), gate);
+        }
         let root = spec.workspace.unwrap_or_default();
         let profile = rust_cli_agents::ActorProfile {
             parent: SessionId::new(spec.parent),

@@ -50,6 +50,7 @@ const REQUIRED = [
   "mcpOfferedInFirstRequest",
   "mcpToolCalled",
   "mcpToolResult",
+  "dwfToolsAbsentWithoutHostGate",
   "attachmentStatus",
   "attachmentCode",
   "attachmentRowRefs",

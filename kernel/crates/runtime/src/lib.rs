@@ -28,7 +28,9 @@ mod table;
 mod usage;
 mod workspace_sessions;
 
+use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::{Mutex, PoisonError};
 
 use async_trait::async_trait;
 use rust_cli_agents::{AgentCatalog, Agents, AgentsConfig, AgentsPorts, MemoryTaskLists};
@@ -39,7 +41,7 @@ use rust_cli_ext::{Ext, ExtPorts};
 use rust_cli_hooks::{HookEngine, HookPorts};
 use rust_cli_kernel_api::agents::{AgentSignals, TaskListStore};
 use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::env::{OperationContext, Origin};
+use rust_cli_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
 use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
 use rust_cli_kernel_api::ids::{Generation, OwnerEpoch, SessionId, ToolUseId, TraceId};
 use rust_cli_kernel_api::local_services::LocalServices;
@@ -49,7 +51,7 @@ use rust_cli_kernel_api::orchestration::{Compactor, QueryRunner};
 use rust_cli_kernel_api::peers::ModeClass;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{
-    CreateSession, Kernel, KernelError, SessionHandle, StartSource,
+    CreateSession, DynamicWorkflowGate, Kernel, KernelError, SessionHandle, StartSource,
 };
 use rust_cli_kernel_api::store::{
     ArtifactStore, Fact, FactBatch, SessionFilter, SessionKind, SessionMeta, SessionStore,
@@ -191,6 +193,12 @@ pub struct LocalKernel {
     workflow_engine_slot: rust_cli_tools::WorkflowEngineSlot,
     /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
     escalations: Arc<escalations::WorkflowEscalations>,
+    /// 本进程在服务 Host 协议（`app-server` 入口置位）：Host 关闭灰度时**什么都不发**，所以「没有
+    /// workspace 策略」要靠调用方区分——Host 会话按关闭，CLI/TUI 不参加灰度（工具全注册）。
+    host_serving: bool,
+    /// workspace 级的动态工作流策略（Node `appRuntimePreferences`）：Host 经
+    /// `workspace/updateDynamicWorkflowPolicy` 同步；键是工作区根。只影响之后创建/恢复的会话。
+    dynamic_workflow: Mutex<HashMap<String, rust_cli_kernel_api::session_api::DynamicWorkflowGate>>,
     /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（blocked_board.md）：actor 的忙闲沿与
     /// 引擎客户端的开集沿都汇到这里，每个会话一尊钟。
     blocked: Arc<blocked_board::WorkflowBlockedBoard>,
@@ -643,6 +651,8 @@ impl LocalKernel {
             workflow_engine: None,
             workflow_engine_slot,
             escalations,
+            host_serving: false,
+            dynamic_workflow: Mutex::default(),
             blocked,
         }
     }
@@ -670,6 +680,32 @@ impl LocalKernel {
         self.user_hooks = Arc::new(user_hooks);
         self.hook_trust = Some(trust);
         self
+    }
+
+    /// 本进程在服务 Host 协议（`app-server` 入口）：动态工作流的灰度缺省按 Host 语义——
+    /// 没有 workspace 策略就是关闭，而不是 CLI/TUI 的「不参加灰度、工具全注册」。
+    /// 缺省门同时落到判决链上：子代理与 actor 会话直接经存储建、不经过会话启动路径，
+    /// 它们也必须按 Host 的结论走，否则 Agent 工具就是绕开灰度的后门。
+    #[must_use]
+    pub fn with_host_serving(mut self) -> Self {
+        self.host_serving = true;
+        self.gate
+            .set_dynamic_workflow_default(DynamicWorkflowGate::default());
+        self
+    }
+
+    /// 这个工作区此刻的动态工作流门（Node `resolveDynamicWorkflowRuntimeGate` 的 workspace 一半）：
+    /// Host 进程读 Host 同步来的策略，缺席按关闭；CLI/TUI 不参加灰度。
+    pub(crate) fn dynamic_workflow_gate(&self, workspace: &WorkspaceRef) -> DynamicWorkflowGate {
+        if !self.host_serving {
+            return DynamicWorkflowGate::UNGATED;
+        }
+        self.dynamic_workflow
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(workspace.root.as_str())
+            .copied()
+            .unwrap_or_default()
     }
 
     /// 加载插件、开始连接 MCP 服务器（不等待连接完成，ext.md §3.3）。插件的 agent 文件交给 agent
@@ -719,3 +755,7 @@ mod closing_tests;
 #[cfg(test)]
 #[path = "permission_scope_tests.rs"]
 mod permission_scope_tests;
+
+#[cfg(test)]
+#[path = "dynamic_workflow_tests.rs"]
+mod dynamic_workflow_tests;

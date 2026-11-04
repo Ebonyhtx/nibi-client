@@ -12,7 +12,9 @@ use rust_cli_base::TaskScope;
 use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Kernel, KernelError, SessionHandle};
+use rust_cli_kernel_api::session_api::{
+    DynamicWorkflowGate, Kernel, KernelError, SessionHandle,
+};
 use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
 use rust_cli_kernel_api::usage::{
     AppUsage, AppUsageDayModelRow, AppUsageDayRow, AppUsageModelRow, AppUsageQuery,
@@ -71,6 +73,8 @@ struct Seen {
     summaries: Mutex<Vec<usize>>,
     artifact_reads: Mutex<Vec<(String, String, u64)>>,
     node_results: Mutex<Vec<(String, u64, u64)>>,
+    /// workspace 级的动态工作流策略（`workspace/updateDynamicWorkflowPolicy` 落库值）。
+    dynamic_workflow: Mutex<Vec<(String, DynamicWorkflowGate)>>,
 }
 
 /// 替身 Kernel：所有 v4 读面都回一份固定数据（或按 `fail` 报错）。
@@ -94,6 +98,20 @@ impl Kernel for FakeKernel {
         Err(KernelError::Unsupported {
             what: "session creation".to_owned(),
         })
+    }
+
+    /// workspace 级动态工作流策略：记下落库值（协议层只负责转发与回执）。
+    async fn update_dynamic_workflow_policy(
+        &self,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        gate: DynamicWorkflowGate,
+    ) -> Result<(), KernelError> {
+        self.seen
+            .dynamic_workflow
+            .lock()
+            .unwrap()
+            .push((workspace.root.as_str().to_owned(), gate));
+        Ok(())
     }
 
     async fn list_sessions(
@@ -454,23 +472,44 @@ async fn capabilities_report_the_real_kernel_surface() {
     assert_eq!(reply.result["genUiContext"], false);
 }
 
-/// `workspace/updateDynamicWorkflowPolicy` 的回执按实况回 `enabled: true`。
+/// `workspace/updateDynamicWorkflowPolicy` 落 workspace 级策略并回实际值。
 ///
-/// 动态工作流已全链实现（34 个 CommandType 含 3 个工作流命令 + 8 个中枢方法 + 引擎 sidecar）。
-/// Host 只验 schema 不消费这个值，所以这不是行为开关——它是「这条注释与这个默认值是否还成立」
-/// 的问题（141 审计 F1：恒 false 是「动态工作流不移植」时代的残桩）。
+/// Host 只在开启时发这条请求（关闭时什么都不发，CLI 缺省即关闭），所以两种取值都要能收：
+/// `enabled` 按参数回，`mode` 只在开启时有意义（`onDemand` 记录给 Host 对齐）。
 #[tokio::test]
-async fn the_dynamic_workflow_policy_reply_reflects_the_implemented_engine() {
-    let (server, _seen) = fake();
-    let reply = Handler(server)
+async fn the_dynamic_workflow_policy_is_stored_and_echoed() {
+    let (server, seen) = fake();
+    let reply = Handler(server.clone())
         .request(
             "workspace/updateDynamicWorkflowPolicy",
-            json!({"workspace": {"workspacePath": "/w", "workspaceKey": "k"}, "enabled": true}),
+            json!({
+                "workspace": {"workspacePath": "/w", "workspaceKey": "k"},
+                "enabled": true,
+                "mode": "onDemand"
+            }),
         )
         .await
         .unwrap();
     assert_eq!(reply.result["enabled"], true);
     assert_eq!(reply.result["workspace"]["workspacePath"], "/w");
+    assert_eq!(
+        seen.dynamic_workflow.lock().unwrap().as_slice(),
+        [("/w".to_owned(), DynamicWorkflowGate::new(true, true))]
+    );
+
+    // 关闭（旧 Host 的兼容形态，没有 mode）：回 false，门是关的。
+    let reply = Handler(server)
+        .request(
+            "workspace/updateDynamicWorkflowPolicy",
+            json!({"workspace": {"workspacePath": "/w", "workspaceKey": "k"}, "enabled": false}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reply.result["enabled"], false);
+    assert_eq!(
+        seen.dynamic_workflow.lock().unwrap().last().cloned(),
+        Some(("/w".to_owned(), DynamicWorkflowGate::new(false, false)))
+    );
 }
 
 // ———— 参数契约 ————

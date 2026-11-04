@@ -531,6 +531,37 @@ pub struct CreateSession {
     pub plan: bool,
 }
 
+/// 动态工作流的灰度结论（Node `resolveDynamicWorkflowRuntimeGate` 的镜像）。
+///
+/// Host 才发 `workspace/updateDynamicWorkflowPolicy`（关闭时它什么都不发），而 CLI/TUI 根本不参加
+/// 灰度：两者都没有策略时只能按调用方区分。内核因此把「本进程在服务 Host 协议」与「workspace 级
+/// 结论」分开记，会话出生/冷恢复时合成这一个值：
+///
+/// - `enabled` 为假时，三个有实现的工作流工具（`FillWorkflowHole` / `GetWorkflowRun` /
+///   `ResolveWorkflowQuestion`）不进该会话的工具表（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 关闭时的
+///   同一语义；Node 还下架另外八个内核没有的工具）。
+/// - `on_demand` 是 Node 的 `dynamicWorkflowToolsOnDemand`：作者工具出生时下架、首次使用时激活。
+///   内核没有 authoring 工具（`CreateWorkflow` 等不在 Rust 工具面里），这一位只记录，不影响工具表。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DynamicWorkflowGate {
+    pub enabled: bool,
+    #[serde(default)]
+    pub on_demand: bool,
+}
+
+impl DynamicWorkflowGate {
+    pub fn new(enabled: bool, on_demand: bool) -> Self {
+        Self { enabled, on_demand }
+    }
+
+    /// CLI/TUI 的「不参加灰度」：工具全注册。
+    pub const UNGATED: Self = Self {
+        enabled: true,
+        on_demand: false,
+    };
+}
+
 /// 导入的历史消息（NIBI `createSession.importedHistory`，Claude Code 迁移）：只有角色、正文与
 /// 原时间戳；时间戳用于展示，内核消息本身仍按提交时间落库。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -860,6 +891,28 @@ pub trait Kernel: Send + Sync {
         Err(KernelError::Unsupported {
             what: "session permission scope".to_owned(),
         })
+    }
+
+    /// Host 同步到进程的动态工作流灰度结论（Node `workspace/updateDynamicWorkflowPolicy` →
+    /// `appRuntimePreferences`，workspace 级）。只影响之后创建/恢复的会话——与 Node 一样，
+    /// 已活跃会话的工具面不回收。CLI/TUI 的进程从不调它。缺省实现什么都不做。
+    async fn update_dynamic_workflow_policy(
+        &self,
+        _workspace: &WorkspaceRef,
+        _gate: DynamicWorkflowGate,
+    ) -> Result<(), KernelError> {
+        Ok(())
+    }
+
+    /// 会话出生/冷恢复后覆盖它的动态工作流灰度门（NIBI `createSession.dynamicWorkflowEnabled/
+    /// Mode`，只有 Host 显式 `true` 时才带）：显式值与 workspace 结论取或，与 Node
+    /// `resolveDynamicWorkflowRuntimeGate` 同序。缺省实现什么都不做。
+    async fn set_session_dynamic_workflow(
+        &self,
+        _session: &SessionId,
+        _gate: DynamicWorkflowGate,
+    ) -> Result<(), KernelError> {
+        Ok(())
     }
 
     /// 工作区钩子的评审快照（NIBI `requestWorkspaceHookReview` 的数据来源）：bundle 摘要、逐条钩子

@@ -33,11 +33,9 @@ const REMOVED_SEND_TEXT_FIELDS: &[&str] = &["offPeakTaskId", "offPeakRunType", "
 /// （2026-10-30 起作选择回落）、firstInput.text/mode/planEnabled（input_meta 捕获）、
 /// mcpServers（2026-10-30 起经 `Kernel::start_session_mcp` 装进会话，见 `commands::create_session`）、
 /// firstInput.attachments（同日：图片经 `Kernel::load_attachment` 进内容块，其他类型 fail-closed 拒绝）、
-/// additionalDirectories（同日：`Kernel::set_session_directories`，判决链与环境段按会话取）。
-pub const CREATE_SESSION_FIELDS_NOT_YET_CONSUMED: &[&str] = &[
-    "dynamicWorkflowEnabled",
-    "dynamicWorkflowMode",
-];
+/// additionalDirectories（同日：`Kernel::set_session_directories`，判决链与环境段按会话取）、
+/// dynamicWorkflowEnabled/Mode（2026-11-05 起：打开后覆盖会话的灰度门，关闭时三件套不进工具表）。
+pub const CREATE_SESSION_FIELDS_NOT_YET_CONSUMED: &[&str] = &[];
 
 /// 已经接住的 NIBI 命令（与 `commands::decide` 的 dispatch 清单一对一；`createSession` 在
 /// `command` 之前的单独分支里）。补一条处理器时两个清单一起改。

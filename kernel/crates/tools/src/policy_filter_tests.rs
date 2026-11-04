@@ -152,3 +152,42 @@ fn a_session_allowlist_keeps_only_the_named_tools() {
     assert!(tools.find_for(&session, "Read").is_some());
     assert!(tools.find_for(&session, "Edit").is_none());
 }
+
+/// 动态工作流灰度门关闭：三件套只在这个会话的清单与查找里消失；没登记的会话（CLI/TUI）与进程级
+/// 清单不受影响，重新打开后恢复。
+#[test]
+fn a_closed_dynamic_workflow_gate_hides_the_three_tools_for_that_session() {
+    use rust_cli_kernel_api::session_api::DynamicWorkflowGate;
+
+    let wf = [
+        "FillWorkflowHole",
+        "GetWorkflowRun",
+        "ResolveWorkflowQuestion",
+    ];
+    let tools: Vec<Arc<dyn Tool>> = std::iter::once("Bash")
+        .chain(wf)
+        .map(|name| Arc::new(FakeTool::new(name, true, "ok")) as Arc<dyn Tool>)
+        .collect();
+    let gate = Arc::new(PolicyGate::new(rules(&[])));
+    let inner: Arc<dyn ToolRegistry> = Arc::new(BuiltinTools::new(tools));
+    let tools = PolicyFiltered::new(inner, gate.clone());
+
+    let host = SessionId::new("host");
+    gate.set_dynamic_workflow(&host, DynamicWorkflowGate::new(false, false));
+    let closed = tools.snapshot(&host);
+    assert_eq!(names(&closed.tools), ["Bash"]);
+    for name in wf {
+        assert!(tools.find_for(&host, name).is_none(), "{name}");
+        assert!(tools.hides_for(&host, name), "{name}");
+    }
+    // 没登记的会话不参加灰度（CLI/TUI）：三件套照常。
+    let cli = SessionId::new("cli");
+    assert!(names(&tools.snapshot(&cli).tools).contains(&"FillWorkflowHole"));
+    assert!(tools.find_for(&cli, "GetWorkflowRun").is_some());
+    // 进程级清单不按会话门过滤。
+    assert!(names(&tools.tools()).contains(&"ResolveWorkflowQuestion"));
+    // 打开后恢复。
+    gate.set_dynamic_workflow(&host, DynamicWorkflowGate::new(true, true));
+    assert!(names(&tools.snapshot(&host).tools).contains(&"FillWorkflowHole"));
+    assert!(tools.find_for(&host, "FillWorkflowHole").is_some());
+}

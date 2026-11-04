@@ -21,6 +21,14 @@ use crate::{glob, grep};
 /// 被 Bash 藏起来、Bash 不在清单里时补回的搜索工具（按这个顺序）。
 const SEARCH: [&str; 2] = [glob::NAME, grep::NAME];
 
+/// 动态工作流灰度门关闭时下架的三件套（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 里内核有对应实现的
+/// 三个；另外八个内核没有工具面）。决定权在 Host，逐会话存在判决链的门上。
+const DYNAMIC_WORKFLOW: [&str; 3] = [
+    crate::fill_workflow_hole::FILL_WORKFLOW_HOLE_TOOL,
+    crate::workflow_run_detail::GET_WORKFLOW_RUN_TOOL,
+    rust_cli_kernel_api::workflow::RESOLVE_WORKFLOW_QUESTION_TOOL,
+];
+
 /// 按规则快照过滤的注册表：包住基础工具与 MCP 工具，外层（Agent 等）经 [`ToolRegistry::hides`] 过滤自己的工具。
 pub struct PolicyFiltered {
     inner: Arc<dyn ToolRegistry>,
@@ -62,6 +70,13 @@ impl PolicyFiltered {
             .is_none_or(|policy| policy.allows(name))
     }
 
+    /// 会话的动态工作流灰度门允许这个名字（关闭时三件套不出现在清单与查找里）。没给会话时
+    /// （进程级清单、CLI/TUI）不限制。
+    fn workflow_allows(&self, session: Option<&SessionId>, name: &str) -> bool {
+        !DYNAMIC_WORKFLOW.contains(&name)
+            || session.is_none_or(|session| self.gate.dynamic_workflow(session).enabled)
+    }
+
     fn visible(
         &self,
         tools: Vec<Arc<dyn Tool>>,
@@ -72,6 +87,7 @@ impl PolicyFiltered {
             .into_iter()
             .filter(|tool| {
                 !Self::denied(&rules, tool.name())
+                    && self.workflow_allows(session, tool.name())
                     && session.is_none_or(|session| self.session_allows(session, tool.name()))
             })
             .collect();
@@ -141,7 +157,7 @@ impl ToolRegistry for PolicyFiltered {
     }
 
     fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
-        if !self.session_allows(session, name) {
+        if !self.session_allows(session, name) || !self.workflow_allows(Some(session), name) {
             return None;
         }
         let rules = self.gate.rules();
@@ -153,7 +169,9 @@ impl ToolRegistry for PolicyFiltered {
     }
 
     fn hides_for(&self, session: &SessionId, name: &str) -> bool {
-        !self.session_allows(session, name) || Self::denied(&self.gate.rules(), name)
+        !self.session_allows(session, name)
+            || !self.workflow_allows(Some(session), name)
+            || Self::denied(&self.gate.rules(), name)
     }
 }
 
