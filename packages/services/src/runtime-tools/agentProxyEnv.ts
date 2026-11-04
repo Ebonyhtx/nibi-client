@@ -133,6 +133,12 @@ export function buildRustKernelStorageEnv(env: NodeJS.ProcessEnv): Record<string
   if (storage) result.ZCODE_STORAGE_DIR = storage;
   const data = env.NIBI_DATA_BASE_DIR?.trim();
   if (data) result.ZCODE_DATA_BASE_DIR = data;
+  // 显式会话库（dev/e2e 与自建部署会直接点名一个文件）：不映射的话 Rust 按 storage.dir 推出另一个
+  // 库，两个内核读到不同的历史。Node 的两个别名与 Rust 同名。
+  const dbPath = env.NIBI_SESSION_DB_PATH?.trim();
+  if (dbPath) result.ZCODE_SESSION_DB_PATH = dbPath;
+  const db = env.NIBI_SESSION_DB?.trim();
+  if (db) result.ZCODE_SESSION_DB = db;
   return result;
 }
 

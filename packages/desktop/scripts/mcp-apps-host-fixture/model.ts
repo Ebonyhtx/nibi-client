@@ -101,6 +101,21 @@ export async function startModel(root: string, cli: string) {
       return;
     }
     requests.emit({ body, plan, tool, url: req.url });
+    // 计划里的 provider 错误在流式分支也要模拟（Rust 的采样走流式，Node 走非流式）：401 按
+    // 认证错误回，不带 SSE。
+    if (plan?.status) {
+      res.writeHead(plan.status, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: {
+            message: "fixture provider denied",
+            type: "authentication_error",
+            code: "invalid_api_key",
+          },
+        }),
+      );
+      return;
+    }
     // Rust 的采样走流式；Node 的采样是非流式。`delayed`/`holdStream` 在流式请求里也要能挂住，
     // 释放时按计划键回文本（与上面的非流式分支同义），取消时按连接关闭记 aborted。
     if (plan?.holdStream || plan?.delayed) {
@@ -130,6 +145,8 @@ export async function startModel(root: string, cli: string) {
             created: 1,
             model,
             choices: [{ index: 0, delta: {}, finish_reason: plan?.finishReason ?? "stop" }],
+            // 与立即返回的流式分支和非流式分支同一条用量：挂起后释放的完成行也要记账。
+            usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
           })}\n\n`,
         );
         res.end("data: [DONE]\n\n");

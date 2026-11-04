@@ -156,11 +156,16 @@ describe("buildRustKernelStorageEnv", () => {
       buildRustKernelStorageEnv({
         NIBI_DATA_BASE_DIR: " D:/nibi-data ",
         NIBI_STORAGE_DIR: " D:/nibi-storage ",
+        NIBI_SESSION_DB: " D:/nibi-storage/session.sqlite ",
       }),
     ).toEqual({
       ZCODE_DATA_BASE_DIR: "D:/nibi-data",
       ZCODE_STORAGE_DIR: "D:/nibi-storage",
+      ZCODE_SESSION_DB: "D:/nibi-storage/session.sqlite",
     });
+    expect(
+      buildRustKernelStorageEnv({ NIBI_SESSION_DB_PATH: "D:/state/state.sqlite" }),
+    ).toEqual({ ZCODE_SESSION_DB_PATH: "D:/state/state.sqlite" });
   });
 
   it("does not invent aliases when neither root is overridden", () => {

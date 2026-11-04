@@ -140,6 +140,9 @@ export async function startAgent(
             USERPROFILE: data,
             ZCODE_DATA_BASE_DIR: data,
             ZCODE_STORAGE_DIR: data,
+            // Host 在 spawn 边界把 NIBI_SESSION_DB* 映射成同名 ZCODE_*（buildRustKernelStorageEnv）：
+            // 会话库落在同一个文件，数据库断言与两个内核的历史才不会分叉。
+            ZCODE_SESSION_DB: join(data, "session.sqlite"),
             // 采样/模型夹具给的是 Node 的 NIBI_* 内置 provider 文件；Rust 读 ZCODE_*。
             ...(providerEnv.NIBI_BUILTIN_PROVIDER_CONFIG_FILE
               ? {
