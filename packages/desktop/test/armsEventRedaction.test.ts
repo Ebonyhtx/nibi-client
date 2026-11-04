@@ -137,12 +137,12 @@ describe("redactArmsEventBatch - api / resource", () => {
       {
         event_type: "resource",
         type: "api",
-        url: "https://zcode.z.ai/api/v1/event/report?state=abc123#x",
-        name: "https://zcode.z.ai/api/v1/event/report?state=abc123",
+        url: "https://api.example.test/api/v1/event/report?state=abc123#x",
+        name: "https://api.example.test/api/v1/event/report?state=abc123",
       },
     ]);
-    expect(event!.url).toBe("https://zcode.z.ai/api/v1/event/report");
-    expect(event!.name).toBe("https://zcode.z.ai/api/v1/event/report");
+    expect(event!.url).toBe("https://api.example.test/api/v1/event/report");
+    expect(event!.name).toBe("https://api.example.test/api/v1/event/report");
   });
 
   it("归一化路由里的 UUID 身份段", () => {
@@ -150,10 +150,10 @@ describe("redactArmsEventBatch - api / resource", () => {
       {
         event_type: "resource",
         type: "api",
-        url: "https://zcode.z.ai/api/v1/tasks/0f8fad5b-d9cb-469f-a165-70867728950e/messages",
+        url: "https://api.example.test/api/v1/tasks/0f8fad5b-d9cb-469f-a165-70867728950e/messages",
       },
     ]);
-    expect(event!.url).toBe("https://zcode.z.ai/api/v1/tasks/{segment}/messages");
+    expect(event!.url).toBe("https://api.example.test/api/v1/tasks/{segment}/messages");
   });
 
   it("脱敏 api 事件的错误 message", () => {
@@ -161,7 +161,7 @@ describe("redactArmsEventBatch - api / resource", () => {
       {
         event_type: "resource",
         type: "api",
-        url: "https://zcode.z.ai/api/v1/ping",
+        url: "https://api.example.test/api/v1/ping",
         message: "connect ECONNREFUSED for /Users/erin/.nibi/socket",
       },
     ]);

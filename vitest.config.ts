@@ -112,9 +112,10 @@ const linuxOnlyExcludes = process.platform === "win32" ? [] : linuxHangs;
 const waitForDefaults = fileURLToPath(new URL("./vitest.wait-for-defaults.ts", import.meta.url));
 
 export default defineConfig({
-  // 测试固定注入事件上报端点，使遥测上报链路在单测中可验证；真实构建由 scripts/build-time-config.mjs 决定。
+  // 测试专用占位端点：回环地址，fetch 在单测里被 mock，永不离开本机；真实构建由
+  // scripts/build-time-config.mjs 决定（默认空 = 关闭，绝不指向上游）。
   define: {
-    __NIBI_TELEMETRY_REPORT_ENDPOINT__: JSON.stringify("https://zcode.z.ai/api/v1/event/report"),
+    __NIBI_TELEMETRY_REPORT_ENDPOINT__: JSON.stringify("http://127.0.0.1:9/api/v1/event/report"),
   },
   resolve: {
     alias: {

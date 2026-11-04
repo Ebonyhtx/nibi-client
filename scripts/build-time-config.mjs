@@ -33,14 +33,51 @@ function pickValue(env, defaults, key) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/**
+ * 上报端点只允许「NIBI 自己的接收端」或空字符串（关闭）。
+ * 上游域名必须在这里硬拒绝：一旦发出去，用户/设备数据就落到了我们不控制的服务。
+ */
+const UPSTREAM_HOST_MARKERS = ["zcode", "codegeex"];
+
+function assertNibiOwnedEndpoint(key, value) {
+  if (value === "") return value;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${key} 必须是绝对 URL，或留空关闭`);
+  }
+  const host = url.hostname.toLowerCase();
+  const upstream =
+    UPSTREAM_HOST_MARKERS.some((marker) => host.includes(marker)) ||
+    host === "z.ai" ||
+    host.endsWith(".z.ai");
+  if (upstream) {
+    throw new Error(
+      `${key} 指向上游域名 ${host}；只能用 NIBI 自己的接收端，或留空关闭`,
+    );
+  }
+  const loopback = host === "localhost" || host === "127.0.0.1" || host === "::1";
+  if (url.protocol !== "https:" && !loopback) {
+    throw new Error(`${key} 必须使用 https（本机回环可用 http）`);
+  }
+  return value;
+}
+
 export async function resolveBuildTimeConfig(
   env = process.env,
   { defaultsPath = PRIVATE_BUILD_DEFAULTS_PATH } = {},
 ) {
   const defaults = await readPrivateDefaults(defaultsPath);
   return {
-    armsRumEndpoint: pickValue(env, defaults, "NIBI_ARMS_RUM_ENDPOINT"),
-    telemetryReportEndpoint: pickValue(env, defaults, "NIBI_TELEMETRY_REPORT_ENDPOINT"),
+    armsRumEndpoint: assertNibiOwnedEndpoint(
+      "NIBI_ARMS_RUM_ENDPOINT",
+      pickValue(env, defaults, "NIBI_ARMS_RUM_ENDPOINT"),
+    ),
+    telemetryReportEndpoint: assertNibiOwnedEndpoint(
+      "NIBI_TELEMETRY_REPORT_ENDPOINT",
+      pickValue(env, defaults, "NIBI_TELEMETRY_REPORT_ENDPOINT"),
+    ),
     autoUpdateEnabled: ENABLED_VALUES.has(
       pickValue(env, defaults, "NIBI_AUTO_UPDATE").toLowerCase(),
     ),

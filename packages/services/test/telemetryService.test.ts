@@ -186,7 +186,7 @@ describe("telemetryCore", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://zcode.z.ai/api/v1/event/report",
+      "http://127.0.0.1:9/api/v1/event/report",
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({ "Content-Type": "application/json" }),

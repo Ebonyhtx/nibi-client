@@ -63,6 +63,37 @@ test("私有默认配置格式错误时直接报错，不静默关闭", async ()
   await assert.rejects(resolveBuildTimeConfig({}, { defaultsPath }), /必须是 JSON 对象/);
 });
 
+test("上报端点硬拒绝上游域名与明文非回环地址", async () => {
+  const missing = { defaultsPath: join(dir, "missing.json") };
+  await assert.rejects(
+    resolveBuildTimeConfig(
+      { NIBI_ARMS_RUM_ENDPOINT: "https://upstream.zcode.invalid/api/v1/event/report" },
+      missing,
+    ),
+    /上游域名/,
+  );
+  await assert.rejects(
+    resolveBuildTimeConfig(
+      { NIBI_TELEMETRY_REPORT_ENDPOINT: "https://cdn.zcode-upstream.invalid/event" },
+      missing,
+    ),
+    /上游域名/,
+  );
+  await assert.rejects(
+    resolveBuildTimeConfig({ NIBI_ARMS_RUM_ENDPOINT: "http://rum.example.com/x" }, missing),
+    /https/,
+  );
+  assert.equal(
+    (
+      await resolveBuildTimeConfig(
+        { NIBI_ARMS_RUM_ENDPOINT: "http://127.0.0.1:9/api/v1/event/report" },
+        missing,
+      )
+    ).armsRumEndpoint,
+    "http://127.0.0.1:9/api/v1/event/report",
+  );
+});
+
 test("define 以 JSON 字面量注入", () => {
   assert.deepEqual(
     createBuildTimeConfigDefines({

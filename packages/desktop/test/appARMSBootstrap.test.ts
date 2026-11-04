@@ -182,7 +182,7 @@ describe("appARMSBootstrap beforeReport", () => {
         {
           event_type: "resource",
           type: "api",
-          url: "https://zcode.z.ai/api/v1/event/report?state=abc123",
+          url: "https://api.example.test/api/v1/event/report?state=abc123",
         },
       ],
     }) as { events: Array<Record<string, unknown>> };
@@ -192,7 +192,7 @@ describe("appARMSBootstrap beforeReport", () => {
     expect(result.events[1]!.message).not.toContain("alice");
     expect(result.events[1]!.message).not.toContain("secret");
     expect(result.events[1]!.message).not.toContain("bob@example.com");
-    expect(result.events[2]!.url).toBe("https://zcode.z.ai/api/v1/event/report");
+    expect(result.events[2]!.url).toBe("https://api.example.test/api/v1/event/report");
   });
 
   it("脱敏排在网络 ingest 之后，聚合仍拿到原始 URL", async () => {
@@ -210,15 +210,15 @@ describe("appARMSBootstrap beforeReport", () => {
       {
         event_type: "resource",
         type: "api",
-        url: "https://zcode.z.ai/api/v1/tasks/0f8fad5b-d9cb-469f-a165-70867728950e?token=x",
+        url: "https://api.example.test/api/v1/tasks/0f8fad5b-d9cb-469f-a165-70867728950e?token=x",
       },
     ];
     beforeReport({ events });
 
     expect(urlsSeenByAggregator).toEqual([
-      "https://zcode.z.ai/api/v1/tasks/0f8fad5b-d9cb-469f-a165-70867728950e?token=x",
+      "https://api.example.test/api/v1/tasks/0f8fad5b-d9cb-469f-a165-70867728950e?token=x",
     ]);
-    expect(events[0]!.url).toBe("https://zcode.z.ai/api/v1/tasks/{segment}");
+    expect(events[0]!.url).toBe("https://api.example.test/api/v1/tasks/{segment}");
   });
   beforeEach(() => {
     vi.resetModules();

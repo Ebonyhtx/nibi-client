@@ -83,8 +83,8 @@ describe("redactTelemetryText", () => {
 
 describe("redactTelemetryUrl", () => {
   it("丢弃 query 与 fragment", () => {
-    expect(redactTelemetryUrl("https://zcode.z.ai/api/v1/event/report?a=1&b=2#x")).toBe(
-      "https://zcode.z.ai/api/v1/event/report",
+    expect(redactTelemetryUrl("https://api.example.test/api/v1/event/report?a=1&b=2#x")).toBe(
+      "https://api.example.test/api/v1/event/report",
     );
   });
 

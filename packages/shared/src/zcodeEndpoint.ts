@@ -410,15 +410,12 @@ export function rewriteZCodeEndpointUrl(input: string | URL, endpointOrigin: str
   } catch {
     return input;
   }
-  // 认这两个 origin 作为"可改写的来源"（2026-10-13）：
+  // 认这两个 origin 作为"可改写的来源"：
   //   ① 我们自己的（DEFAULT_NIBI_ENDPOINT_ORIGIN，fork 后 = api.nibistudio.top）
   //   ② 上游的（UPSTREAM_NIBI_ENDPOINT_ORIGIN = zcode.z.ai）
-  // 为什么要认上游那个：**编译期注入的常量仍可能指向上游域名**——
-  // 例如遥测上报地址来自构建期 `__NIBI_TELEMETRY_REPORT_ENDPOINT__`
-  // （`scripts/build-time-config.mjs` 的 private defaults），vitest 里就是
-  // `https://zcode.z.ai/api/v1/event/report`。只认 ① 时这类 URL 命中不了改写、
-  // 于是"把请求指向我们端点"静默失效（真机后果：遥测绕过我们的端点直发上游；
-  // 测试里的表现是本地接收器一个请求都收不到）。
+  // ② 是**兜底重写**，不是允许配置上游：构建期 `scripts/build-time-config.mjs` 已硬拒绝
+  // 上游端点，正常构建不会出现它；保留这一支只处理历史常量/遗留 bundle 里可能带出的上游
+  // URL，把它改写回我们的端点，避免"配错了反而直发上游"。
   const sourceOrigins = [DEFAULT_NIBI_ENDPOINT_ORIGIN, UPSTREAM_NIBI_ENDPOINT_ORIGIN];
   if (!sourceOrigins.includes(parsed.origin)) {
     return input;

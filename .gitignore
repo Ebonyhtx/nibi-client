@@ -90,3 +90,6 @@ apps/zcode-cli/packages/*/backup/
 
 # 本地验收截图/临时产物（证据放工作区根目录的 .artifacts，不入库）
 /.artifacts/
+
+# 构建期私有默认配置（可能含上报端点/更新源）；只存在于内部发布环境，绝不入库
+/config/private/
