@@ -51,6 +51,14 @@ const REQUIRED = [
   "mcpToolCalled",
   "mcpToolResult",
   "dwfToolsAbsentWithoutHostGate",
+  // 非 yolo 的权限交互（v4 pendingInteractions → resolveInteraction）：弹窗种类/工具名/锚点与
+  // 批准后工具真的执行。
+  "permissionPromptKind",
+  "permissionPromptTool",
+  "permissionAnchorRow",
+  "permissionFreeText",
+  "permissionResolveStatus",
+  "permissionToolExecuted",
   "attachmentStatus",
   "attachmentCode",
   "attachmentRowRefs",

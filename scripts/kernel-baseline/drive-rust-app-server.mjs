@@ -31,7 +31,7 @@ const binArgs = isNode
 // Rust 内核的用户根从 2026-10-29 起与 Node 共用 `~/.nibi`（nibi-platform `DOT_DIR`），
 // 驱动脚本曾按旧 `.zcode` 落 provider_config.json，导致会话拿不到模型、整条对拍超时。
 const dotDir = ".nibi";
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare,permission")
   .split("=")[1]
   .split(",");
 // 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
@@ -118,6 +118,8 @@ const pinHoldGate = new Promise((resolve) => {
 });
 const ESCALATE_TEXT = "escalate this turn";
 const ESCALATE_ANSWER = "drive escalation answer";
+// 非 yolo 的权限交互探针（P0-1 收尾）：默认模式下让模型写一个文件，走 v4 的权限询问。
+const PERMISSION_TEXT = "ask permission for the probe";
 let escalationRaised = false;
 let escalationResolved = false;
 let escalationAnswered = false;
@@ -289,6 +291,44 @@ const server = createServer((req, res) => {
                     function: {
                       name: "GetWorkflowRun",
                       arguments: JSON.stringify({ run_id: inspectRunId }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    // 非 yolo 权限探针：默认模式下让模型写一个工作区文件，触发一次权限询问（v4
+    // `pendingInteractions`），由驱动用 `resolveInteraction` 批准。
+    if (toolResult === null && lastUserText.includes(PERMISSION_TEXT)) {
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_permission_1",
+                    type: "function",
+                    function: {
+                      name: "Write",
+                      arguments: JSON.stringify({
+                        file_path: join(workspace, "permission-probe.txt"),
+                        content: "permission probe\n",
+                      }),
                     },
                   },
                 ],
@@ -579,6 +619,12 @@ function parseLine(line) {
   }
   // 内核 → Host 的反向请求：必须应答（Node 的 createSession 会反向问 runtime preferences）。
   if (value.method !== undefined && value.id !== undefined) {
+    if (typeof value.method === "string" && value.method.startsWith("interaction/")) {
+      // 交互类反向通道与 v4 `resolveInteraction` 竞速（interaction-response-race）：真实桌面不在这条
+      // 通道上立刻作答，驱动也不作——否则立即的 -32601 会让竞速在 v4 应答到达前失败
+      // （工具结果变成 "Permission request failed"）。挂住，等 v4 命令赢。
+      return;
+    }
     const reply =
       value.method === "session/requestRuntimePreferences"
         ? {
@@ -3346,6 +3392,95 @@ try {
         )}`,
       );
       throw new Error("the promoted queued input never reached the provider");
+    }
+  }
+
+  // 非 yolo 的权限交互（P0-1 收尾）：默认模式下 Write 先落 v4 `pendingInteractions`（kind=permission），
+  // 驱动用前向 `resolveInteraction`（allowOnce）收口，工具再执行、tool_result 回灌。与 M4 真机门禁
+  // `conversation-session-v4-permission` 走同一条协议路径；这里做双内核对拍。
+  if (phases.includes("permission")) {
+    const permissionOutput = join(workspace, "permission-probe.txt");
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000b0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: {
+          workspaceId: workspace,
+          // 默认模式（非 yolo）：Write 需要用户批准。
+          config: { mode: "default" },
+          firstInput: { text: "permission probe seed" },
+        },
+        issuedAt: Date.now(),
+      }),
+      "createSession(permission)",
+    );
+    const permissionSession = created.result?.sessionId;
+    if (!permissionSession) throw new Error("createSession(permission) returned no sessionId");
+    const topic = `conversation/${permissionSession}`;
+    await send("v4/conversation/subscribe", {
+      topic,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    const turn = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000b1",
+        clientId: "drive",
+        sessionId: permissionSession,
+        type: "sendText",
+        payload: { text: PERMISSION_TEXT },
+        issuedAt: Date.now(),
+      }),
+      "sendText(permission)",
+    );
+    if (turn.status !== "accepted") {
+      throw new Error(`sendText(permission) ${turn.status}/${turn.reasonCode}`);
+    }
+    const prompt = await waitFor(
+      () =>
+        buildState(topic).pendingInteractions.find(
+          (pending) => pending.payload?.kind === "permission",
+        ),
+      "permission interaction",
+      60_000,
+    );
+    checks.permissionPromptKind = prompt.payload.kind;
+    checks.permissionPromptTool = prompt.payload.toolName;
+    checks.permissionAnchorRow = Boolean(prompt.anchorRowId);
+    checks.permissionFreeText = prompt.payload.freeText === true;
+    const optionIds = (prompt.payload.options ?? []).map((option) => option.optionId);
+    if (!optionIds.includes("allowOnce")) {
+      throw new Error(`permission options lack allowOnce: ${JSON.stringify(optionIds)}`);
+    }
+    const resolved = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000b2",
+        clientId: "drive",
+        sessionId: permissionSession,
+        type: "resolveInteraction",
+        payload: {
+          interactionId: prompt.interactionId,
+          answer: { optionId: "allowOnce" },
+        },
+        issuedAt: Date.now(),
+      }),
+      "resolveInteraction",
+    );
+    checks.permissionResolveStatus = resolved.status;
+    await waitFor(
+      () => (existsSync(permissionOutput) ? true : undefined),
+      "permission tool writes the file",
+      60_000,
+    );
+    checks.permissionToolExecuted = true;
+    console.log(
+      `permission: kind=${checks.permissionPromptKind} tool=${checks.permissionPromptTool} resolve=${checks.permissionResolveStatus} wrote=${checks.permissionToolExecuted}`,
+    );
+    if (checks.permissionResolveStatus !== "accepted") {
+      throw new Error(`resolveInteraction ${checks.permissionResolveStatus}`);
     }
   }
 
