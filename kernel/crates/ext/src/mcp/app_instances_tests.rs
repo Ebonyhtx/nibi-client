@@ -108,6 +108,20 @@ fn concurrent_opens_share_one_lease() {
     assert_eq!(lock(&registry.records).len(), 1);
 }
 
+/// 一个服务器的连接断了：只有绑定它的凭证失效，别的服务器与会话不受影响。
+#[test]
+fn closing_a_server_revokes_only_its_leases() {
+    let registry = registry();
+    let keep = registry.open(open("scope-1"), connection(0));
+    let mut other = open("scope-2");
+    other.scope.server_name = "plugin:toolkit:other".to_owned();
+    let drop = registry.open(other, connection(0));
+    registry.close_server(Some("s1"), "plugin:toolkit:other");
+    assert!(registry.validate(&request(keep.clone()), Some(connection(0))).is_ok());
+    assert!(!registry.is_known(&drop.token));
+    assert!(registry.is_known(&keep.token));
+}
+
 /// 校验：凭证、作用域与当前连接三者都对上才算有效；当前连接对不上会直接撤销凭证。
 #[test]
 fn validation_checks_the_lease_scope_and_connection() {

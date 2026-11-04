@@ -49,11 +49,16 @@ async fn sampling_builds_a_one_shot_request_and_returns_the_text() {
         .expect("sampled");
     assert_eq!(result.model, "scripted");
     assert_eq!(result.text, "hello world");
-    assert_eq!(result.stop_reason, "end_turn");
+    assert_eq!(result.stop_reason, "endTurn");
     let requests = model.requests();
     assert_eq!(requests.len(), 1);
     let request = &requests[0];
     assert_eq!(request.max_tokens, 64);
+    assert_eq!(
+        request.options.provider_max_output_tokens,
+        Some(64),
+        "the provider patch must cap at the page's maxTokens"
+    );
     assert_eq!(request.system[0].text, "be brief");
     assert_eq!(request.source.node_name(), "mcp_app_sampling");
     assert_eq!(request.messages[0].role, ApiRole::User);

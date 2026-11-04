@@ -153,6 +153,8 @@ pub(crate) struct Inner {
     subscriptions: Mutex<BTreeMap<(String, String), BTreeMap<String, McpAppInstance>>>,
     /// UI 事件出口（`pluginUi.*` 增量）：入口接上；None 时（TUI、测试）什么都不发。
     ui_events: OnceLock<tokio::sync::mpsc::UnboundedSender<McpUiEvent>>,
+    /// 一个服务器的连接断了（含重连前的换代）：让 MCP Apps 的实例凭证失效并取消进行中的调用/采样。
+    connection_lost: Mutex<Option<Arc<dyn Fn(&str) + Send + Sync>>>,
 }
 
 impl Inner {
@@ -171,6 +173,18 @@ impl Inner {
             server.updated_at_ms = self.clock.now_ms();
         }
         self.changed.send_modify(|version| *version += 1);
+    }
+
+    /// 这个服务器的连接断了：通知装上的页面实例清理（连接换代让凭证失效）。
+    fn notify_connection_lost(&self, name: &str) {
+        let callback = self
+            .connection_lost
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        if let Some(callback) = callback {
+            callback(name);
+        }
     }
 
     pub(crate) fn settings(&self) -> &McpSettings {
@@ -653,6 +667,8 @@ impl Inner {
                     // 进程遥测（`process/mcpTelemetry`）：连上就拿 pid 记一次启动事实。
                     self.record_process(&name, &config, generation, session.client.pid());
                     let (reason, expired, exited) = self.serve(&name, generation, session).await;
+                    // 连接断了：页面实例与进行中的页面调用/采样一起作废（Node 的连接换代）。
+                    self.notify_connection_lost(&name);
                     // 进程自己退出了：报一条 crash（主动关闭、写失败都不算）。
                     if exited {
                         self.record_crash(&name, &config);
@@ -752,6 +768,7 @@ impl McpManager {
             startup_reported: AtomicBool::new(false),
             subscriptions: Mutex::default(),
             ui_events: OnceLock::new(),
+            connection_lost: Mutex::default(),
         }))
     }
 
@@ -767,6 +784,15 @@ impl McpManager {
         sender: tokio::sync::mpsc::UnboundedSender<McpUiEvent>,
     ) {
         let _ = self.0.ui_events.set(sender);
+    }
+
+    /// 装上“连接断了”的通知：MCP Apps 的实例凭证随连接作废（Node 连接换代同样关闭页面）。
+    pub(crate) fn set_on_connection_lost(&self, callback: Arc<dyn Fn(&str) + Send + Sync>) {
+        *self
+            .0
+            .connection_lost
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Some(callback);
     }
 
     /// 远端机器的注册表（R5，remote-exec.md §22.6）：`start` 之前给一次；绑定到远端机器的服务器从它取管道。F98（§25.5）：

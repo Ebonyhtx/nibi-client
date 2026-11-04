@@ -14,7 +14,7 @@ use rust_cli_kernel_api::mcp_ui::{
 use rust_cli_kernel_api::message::{ContentBlock, ImageSource, StopReason};
 use rust_cli_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest,
-    ModelSelection, QuerySource, SystemBlock,
+    ModelSelection, QuerySource, RequestOptions, SystemBlock,
 };
 use tokio_util::sync::CancellationToken;
 
@@ -91,7 +91,12 @@ impl McpUiSamplingPort for KernelSampling {
             temperature: None,
             betas: Vec::new(),
             source: QuerySource::Side(SIDE_MCP_APP_SAMPLING.to_owned()),
-            options: Default::default(),
+            // Provider 补丁的输出上限要跟随页面给的 `maxTokens`；不给时目录模型会按自己的上限
+            // 改写 `max_tokens`（Node 是 `Math.min(params.maxTokens, model.max)`）。
+            options: RequestOptions {
+                provider_max_output_tokens: Some(request.max_tokens),
+                ..Default::default()
+            },
         };
         let mut stream = self.model.stream(request, cancel);
         let mut model = String::new();
@@ -117,15 +122,21 @@ impl McpUiSamplingPort for KernelSampling {
                 Err(error) => return Err(error.to_string()),
             }
         }
-        let stop_reason = stop_reason.unwrap_or(StopReason::EndTurn);
-        let stop_reason = serde_json::to_value(stop_reason)
-            .ok()
-            .and_then(|value| value.as_str().map(str::to_owned))
-            .unwrap_or_else(|| "end_turn".to_owned());
+        // MCP Apps 的 `stopReason` 是 camelCase（Node 的 finishReason 映射：stop→endTurn、
+        // length→maxTokens）；`StopReason` 的 serde 是 snake_case，不能直接透传。
+        let stop_reason = match stop_reason.unwrap_or(StopReason::EndTurn) {
+            StopReason::EndTurn => "endTurn",
+            StopReason::MaxTokens | StopReason::ModelContextWindowExceeded => "maxTokens",
+            StopReason::StopSequence => "stopSequence",
+            StopReason::ToolUse => "toolUse",
+            StopReason::PauseTurn => "pauseTurn",
+            StopReason::Refusal => "refusal",
+            StopReason::Unknown => "endTurn",
+        };
         Ok(McpUiSamplingResult {
             model,
             text,
-            stop_reason,
+            stop_reason: stop_reason.to_owned(),
         })
     }
 }

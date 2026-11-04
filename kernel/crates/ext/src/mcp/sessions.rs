@@ -40,6 +40,8 @@ pub(crate) struct SessionMcp {
     telemetry: Option<Arc<McpTelemetry>>,
     /// MCP Apps 的事件出口（`pluginUi.*` 增量）：每个会话级 manager 装同一份。
     ui_events: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
+    /// MCP Apps 的实例账本：连接断了时按（会话, 服务器）作废页面凭证。`Ext::new` 建好之后装上。
+    app_instances: std::sync::OnceLock<Arc<super::McpAppInstances>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
 }
 
@@ -59,8 +61,14 @@ impl SessionMcp {
             clock,
             telemetry,
             ui_events,
+            app_instances: std::sync::OnceLock::new(),
             sessions: Mutex::default(),
         }
+    }
+
+    /// 装上 MCP Apps 的实例账本：会话级 manager 的连接断了时，按（会话, 服务器）作废页面凭证。
+    pub(crate) fn set_app_instances(&self, instances: Arc<super::McpAppInstances>) {
+        let _ = self.app_instances.set(instances);
     }
 
     /// 当前所有会话级 manager（继承来的同一份只返回一次）。`process/childProcesses` 与五分钟采样都
@@ -147,6 +155,12 @@ impl SessionMcp {
         }
         if let Some(events) = self.ui_events.clone() {
             manager.attach_ui_events(events);
+        }
+        if let Some(instances) = self.app_instances.get().cloned() {
+            let session = session.clone();
+            manager.set_on_connection_lost(Arc::new(move |server| {
+                instances.close_server(Some(session.as_str()), server);
+            }));
         }
         manager.start(workspace.clone(), to_servers(merged.clone()));
         self.sessions().insert(

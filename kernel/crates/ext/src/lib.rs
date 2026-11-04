@@ -219,6 +219,14 @@ impl Ext {
                 sampling_calls.clear_instance(&lease.token);
             }));
         }
+        // 连接断了：进程级 manager 管到的页面实例按服务器作废（会话级 manager 在 SessionMcp 里各自接）。
+        session_mcp.set_app_instances(app_instances.clone());
+        {
+            let instances = app_instances.clone();
+            mcp.set_on_connection_lost(std::sync::Arc::new(move |server| {
+                instances.close_server(None, server);
+            }));
+        }
         Self {
             skills,
             commands,

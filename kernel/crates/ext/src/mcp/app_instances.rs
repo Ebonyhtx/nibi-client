@@ -252,6 +252,22 @@ impl McpAppInstances {
         }
     }
 
+    /// 一个 MCP 连接断了：绑定它的实例全部作废并取消进行中的调用/采样（Node 的连接换代同样
+    /// 让页面凭证失效）。`session` 为 None 时跨会话（进程级 manager 的场景）。
+    pub(crate) fn close_server(&self, session: Option<&str>, server: &str) {
+        let leases: Vec<McpAppInstance> = lock(&self.records)
+            .values()
+            .filter(|record| {
+                record.binding.server == server
+                    && session.is_none_or(|session| record.binding.session == session)
+            })
+            .map(|record| record.lease.clone())
+            .collect();
+        for lease in leases {
+            self.close(&lease);
+        }
+    }
+
     /// 有没有这个 token 的记录（`close` 用它区分「已经关了」与「凭证不对」）。
     pub(crate) fn is_known(&self, token: &str) -> bool {
         lock(&self.records).contains_key(token)

@@ -313,6 +313,10 @@ impl Server {
             "session/goal" => crate::legacy_session::goal(self, &params)
                 .await
                 .map(Reply::new),
+            // 旧 usage 查询（Host 的 `getTaskTokenUsage` 与 v4 `conversation/usage` 同一份数据）。
+            "session/usage" => crate::v4_queries::conversation_usage(self, &params)
+                .await
+                .map(Reply::new),
             "session/setModel" => crate::legacy_session::set_model(self, &params)
                 .await
                 .map(Reply::new),
