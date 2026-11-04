@@ -320,6 +320,62 @@ async fn a_node_group_session_keeps_rules_and_mode_in_the_session_row() {
     );
 }
 
+/// `createSession.permissionScope: "session"` 的写入面：`set_session_permission` 建出作用域之后，
+/// “总是允许”与改模式都只落会话行（Node `updateSession({permission})` 之后的同一条路径）。
+#[tokio::test]
+async fn set_session_permission_creates_the_scope_later_grants_use() {
+    use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule, RuleBehavior};
+    let t = TestStore::new();
+    started(&t, "sess_1").await;
+    let session = SessionId::new("sess_1");
+    t.store
+        .set_session_permission(
+            &session,
+            json!({"version":1,"scope":"session","mode":"build"}),
+        )
+        .await
+        .unwrap();
+    let remember = Fact::PermissionRulesAdded {
+        behavior: RuleBehavior::Allow,
+        rules: vec![PermissionRule {
+            tool: "Bash".into(),
+            content: Some("npm test:*".into()),
+        }],
+    };
+    t.store
+        .commit(&session, batch(None, vec![remember]))
+        .await
+        .unwrap();
+    t.store
+        .commit(
+            &session,
+            batch(
+                None,
+                vec![Fact::ProjectModeSet {
+                    mode: PermissionMode::AcceptEdits,
+                }],
+            ),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        rows_of(&t, "select permission from session where id = 'sess_1'"),
+        vec![json!(
+            r#"{"version":1,"scope":"session","mode":"build","allow":[{"toolName":"Bash","ruleContent":"npm test:*"}]}"#
+        )]
+    );
+    assert_eq!(rows_of(&t, "select count(*) from local_setting"), vec![json!(0)]);
+    // 没有这条会话行时明确失败，不静默写空。
+    assert_eq!(
+        t.store
+            .set_session_permission(&SessionId::new("sess_missing"), json!({}))
+            .await
+            .unwrap_err()
+            .to_string(),
+        "session not found: sess_missing"
+    );
+}
+
 /// 子代理调用的关联（`Fact::SubagentLinked`）写进 tool part 的 `state.metadata`（Node 子代理查询读它）。
 #[tokio::test]
 async fn a_subagent_link_lands_in_the_tool_part_state() {

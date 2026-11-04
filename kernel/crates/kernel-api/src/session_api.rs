@@ -848,6 +848,20 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// NIBI `createSession.permissionScope: "session"`（群协作会话）：创建后把
+    /// `{version:1, scope:"session", mode:"build"}` 写进会话行，并让这个已打开的会话换用它自己的
+    /// 规则集（Node `createSessionRecordForV4` 的 `updateSession` + 每次判决读会话行）。
+    /// 缺省实现返回 `Unsupported`，调用方 fail-closed。
+    async fn apply_session_permission_scope(
+        &self,
+        _session: &SessionId,
+        _scope: &str,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session permission scope".to_owned(),
+        })
+    }
+
     /// 工作区钩子的评审快照（NIBI `requestWorkspaceHookReview` 的数据来源）：bundle 摘要、逐条钩子
     /// 与它们的信任状态。只读。缺省实现返回 `Unsupported`。
     async fn workspace_hook_review(

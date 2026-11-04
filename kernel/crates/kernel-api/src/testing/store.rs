@@ -87,6 +87,8 @@ pub struct MemoryStore {
     trusted: Mutex<Vec<crate::workspace_trust::TrustKey>>,
     /// 每个批次带的回合锚点，按提交顺序（node-store.md §4，修复线 F6）。
     turns: Mutex<HashMap<SessionId, Vec<Option<crate::store::TurnAnchor>>>>,
+    /// 会话行的 `permission`（群协作会话的规则与模式，F2/`permissionScope`）。
+    permissions: Mutex<HashMap<SessionId, serde_json::Value>>,
     /// 软删除的会话（修复线 F29，node-store.md §5.1）：事实保留，读、列、提交都当作不存在。
     deleted: Mutex<HashSet<SessionId>>,
     /// 测试给的活动时间（`set_updated`）；没有时取创建时间。
@@ -119,6 +121,11 @@ impl MemoryStore {
             .get(session)
             .map(|(_, facts)| facts.clone())
             .unwrap_or_default()
+    }
+
+    /// 会话行的 `permission`（群协作会话的规则与模式，`permissionScope` 的写入面）。
+    pub fn session_permission(&self, session: &SessionId) -> Option<serde_json::Value> {
+        lock(&self.permissions).get(session).cloned()
     }
 
     /// 会话的活动时间（`query_sessions` 的排序与显示，测试用）。
@@ -563,6 +570,55 @@ impl SessionStore for MemoryStore {
             .get(workspace.root.as_str())
             .cloned()
             .unwrap_or_default())
+    }
+
+    /// 群协作会话（`permission.scope = "session"`）的规则：会话行里的 permission 对象。
+    async fn session_rules(
+        &self,
+        session: &SessionId,
+    ) -> Result<Option<crate::permission::ProjectRules>, StoreError> {
+        let permission = lock(&self.permissions).get(session).cloned();
+        Ok(permission
+            .as_ref()
+            .filter(|permission| permission["scope"].as_str() == Some("session"))
+            .map(|permission| {
+                let rules = |key: &str| {
+                    permission[key]
+                        .as_array()
+                        .map(|items| {
+                            items
+                                .iter()
+                                .filter_map(|item| {
+                                    Some(crate::permission::PermissionRule {
+                                        tool: item["toolName"].as_str()?.to_owned(),
+                                        content: item["ruleContent"].as_str().map(str::to_owned),
+                                    })
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                };
+                crate::permission::ProjectRules {
+                    allow: rules("allow"),
+                    deny: rules("deny"),
+                    ask: rules("ask"),
+                }
+            }))
+    }
+
+    /// Node `updateSession({permission})`：`permissionScope: "session"` 创建后写这一列。
+    async fn set_session_permission(
+        &self,
+        session: &SessionId,
+        permission: serde_json::Value,
+    ) -> Result<(), StoreError> {
+        if !lock(&self.sessions).contains_key(session) {
+            return Err(StoreError::NotFound {
+                session: session.clone(),
+            });
+        }
+        lock(&self.permissions).insert(session.clone(), permission);
+        Ok(())
     }
 
     /// 与 node-store 相同的语义：这一类里先删、再加并去重（保留先出现的）。

@@ -517,6 +517,16 @@ pub trait PermissionGate: Send + Sync {
     /// 看到它（共享的权限上下文）。缺省什么都不做。
     async fn local_rules_committed(&self, _workspace: &crate::env::WorkspaceRef) {}
 
+    /// “总是允许”的规则已写进**会话自己**的规则集（`permission.scope = "session"`，Node
+    /// `persistProjectPermissionUpdates` 的会话分支）：判决链重新读会话行，换掉这个会话的规则层。
+    /// 缺省什么都不做（不是群协作会话的实现不需要）。
+    async fn session_rules_committed(
+        &self,
+        _session: &crate::ids::SessionId,
+        _workspace: &crate::env::WorkspaceRef,
+    ) {
+    }
+
     /// hook 放行或要求询问时仍然生效的检查：
     /// deny / ask 规则、工具自身检查的拒绝、规则与安全路径的询问。没有命中时为 None
     /// （docs/specs/rust-cli/hooks.md §6）。

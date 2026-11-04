@@ -57,7 +57,7 @@ use rust_cli_kernel_api::store::{
 };
 use rust_cli_kernel_api::workspace_trust::TrustKey;
 use rust_cli_paths::StoragePaths;
-use serde_json::json;
+use serde_json::{Value, json};
 
 pub use artifacts::uri as artifact_uri;
 pub use clock::{FixedOffset, SystemClock, TimeZone};
@@ -289,6 +289,28 @@ impl SessionStore for NodeStore {
         let session = session.as_str().to_owned();
         self.with_db(move |conn, _| project_rules::session_read(conn, &session))
             .await
+    }
+
+    /// Node `updateSession({permission})`：`createSession.permissionScope: "session"` 创建后立即写会话行。
+    async fn set_session_permission(
+        &self,
+        session: &SessionId,
+        permission: Value,
+    ) -> Result<(), StoreError> {
+        let session = session.clone();
+        self.with_db(move |conn, ids| {
+            let now = i64::try_from(ids.now_ms()).unwrap_or(i64::MAX);
+            let update = repo::sessions::Update {
+                id: session.as_str().to_owned(),
+                permission: Some(permission),
+                ..Default::default()
+            };
+            match repo::sessions::update(conn, &update, now).storage()? {
+                0 => Err(StoreError::NotFound { session }),
+                _ => Ok(()),
+            }
+        })
+        .await
     }
 
     /// `/permissions` 的修改（docs/specs/rust-cli/tui-manage.md §1.1）：项目 ID 同 [`Self::project_rules`]。

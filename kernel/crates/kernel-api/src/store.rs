@@ -482,6 +482,19 @@ pub trait SessionStore: Send + Sync {
         Ok(None)
     }
 
+    /// 写会话的权限记录（Node `updateSession({permission})`）：`createSession.permissionScope: "session"`
+    /// 在创建后立即写 `{version:1, scope:"session", mode:"build"}`，之后的规则与模式都落这一列。
+    /// 不支持的实现返回 `Unsupported`。
+    async fn set_session_permission(
+        &self,
+        _session: &SessionId,
+        _permission: Value,
+    ) -> Result<(), StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session permission record".to_owned(),
+        })
+    }
+
     /// 本机项目的持久模式（Node `getProjectPermissionMode`，docs/specs/rust-cli/config.md §2.2）：启动时读一次，
     /// 作为新会话的缺省模式；没有或不合法时为 None。不支持的实现返回 `Unsupported`。
     async fn project_mode(

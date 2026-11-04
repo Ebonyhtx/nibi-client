@@ -572,8 +572,15 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         .or_else(|| flat_selection(config))
         .or_else(|| selection(&first["modelSelection"]))
         .unwrap_or_else(|| server.defaults.selection.clone());
-    let (permission, plan) =
+    let (mut permission, mut plan) =
         first_input_execution(first, config, (server.defaults.mode, false));
+    // 群协作会话（`permissionScope: "session"`）：Node 的 v4-bridge 在 record 建好后
+    // `setExecutionState({mode:"build"})`，与这里创建期就落 build 等价；授权行在创建后写（见下）。
+    let scoped = payload["permissionScope"].as_str() == Some("session");
+    if scoped {
+        permission = PermissionMode::Default;
+        plan = false;
+    }
     // Host 没给 sessionId 时让 kernel 生成（注入的 Ids → `sess_<uuid>`，与 Node 同格式）；
     // 协议层不再自带 id 生成器。
     let requested = payload["sessionId"].as_str().map(SessionId::new);
@@ -601,6 +608,16 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         Ok(id) => id,
         Err(error) => return refused(error.to_string()),
     };
+    // 群协作授权：Node 在 createSessionRecord 之后立即 updateSession({permission})；写不进去时整条
+    // 创建失败（Host 的群任务不能带着项目级授权开跑）。
+    if scoped
+        && let Err(error) = server
+            .kernel
+            .apply_session_permission_scope(&id, "session")
+            .await
+    {
+        return refused(error.to_string());
+    }
     // MCP 是创建期配置（NIBI createSession.mcpServers）：会话的工具表从此就是这批服务器。
     // 连接在后台建立；给了列表但一条都没认出来时点名，不静默。
     if let Some(raw) = payload["mcpServers"].as_array() {

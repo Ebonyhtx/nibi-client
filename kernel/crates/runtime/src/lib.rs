@@ -715,3 +715,7 @@ mod metering_tests;
 #[cfg(test)]
 #[path = "closing_tests.rs"]
 mod closing_tests;
+
+#[cfg(test)]
+#[path = "permission_scope_tests.rs"]
+mod permission_scope_tests;

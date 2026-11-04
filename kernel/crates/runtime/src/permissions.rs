@@ -123,6 +123,23 @@ impl PermissionGate for SharedRules {
     async fn local_rules_committed(&self, workspace: &WorkspaceRef) {
         reload_local(&self.gate, self.store.as_ref(), workspace).await;
     }
+
+    /// 群协作会话的“总是允许”落在会话行：重读它并换掉这个会话的规则层（gate 的快照只在会话打开时
+    /// 取过一次）。
+    async fn session_rules_committed(
+        &self,
+        session: &rust_cli_kernel_api::ids::SessionId,
+        _workspace: &WorkspaceRef,
+    ) {
+        match self.store.session_rules(session).await {
+            Ok(Some(rules)) => self.gate.scope(session, &rules),
+            Ok(None) => {}
+            Err(error) => {
+                tracing::warn!(%error, session = %session.as_str(),
+                    "the session permission rules could not be read back")
+            }
+        }
+    }
 }
 
 async fn change_local(

@@ -948,6 +948,34 @@ impl Kernel for LocalKernel {
         Ok(())
     }
 
+    /// NIBI `createSession.permissionScope: "session"`：Node 在 v4-bridge 里 create 之后立刻
+    /// `updateSession({permission})` 并 `setExecutionState(build)`。这里写同一列，并把已打开会话的
+    /// 规则层换成会话自己的（gate 是进程级快照，打开时读到的是旧值）。
+    async fn apply_session_permission_scope(
+        &self,
+        session: &SessionId,
+        scope: &str,
+    ) -> Result<(), KernelError> {
+        if scope != "session" {
+            return Ok(());
+        }
+        let permission = serde_json::json!({"version": 1, "scope": "session", "mode": "build"});
+        self.ports
+            .store
+            .set_session_permission(session, permission)
+            .await
+            .map_err(|error| failed(&error))?;
+        match self.ports.store.session_rules(session).await {
+            Ok(Some(rules)) => self.gate.scope(session, &rules),
+            Ok(None) => {}
+            Err(error) => {
+                tracing::warn!(%error, session = %session.as_str(),
+                    "the session permission rules could not be read after scope set")
+            }
+        }
+        Ok(())
+    }
+
     /// NIBI `AttachmentRef`：artifact URI 经会话 artifact 存储，路径经会话所在机器的文件端口。
     async fn load_attachment(
         &self,

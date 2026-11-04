@@ -175,9 +175,13 @@ impl Pipeline {
                 // “总是允许”：会话 actor 已把规则与交互的解决同一批落库；判决链按 `/permissions` 的路径读回库值、换上
                 // LocalSettings 层（shell-permissions.md §5）。修复（R1-2）：以前这里交给判决链另存一份按会话的规则，
                 // 子代理与 `/clear` 之后的新会话看不到，又问一次。
-                // 规则只有一套，存在本机的项目里：用会话的工作区（远端调用的上下文换了工作区，R3）。
+                // 规则只有一套：普通会话在本机的项目里（用会话的工作区；远端调用换了工作区，R3）；
+                // 群协作会话（`permission.scope = "session"`）在会话行里，两条都要刷新。
                 if !remember.is_empty() {
                     self.gate.local_rules_committed(&call.hooks.workspace).await;
+                    self.gate
+                        .session_rules_committed(&context.session, &call.hooks.workspace)
+                        .await;
                 }
                 Ok(None)
             }
