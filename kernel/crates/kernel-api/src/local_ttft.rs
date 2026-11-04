@@ -4,9 +4,9 @@
 //! 带 `ttft: {version, observationId}`（`localTtftContextSchema`）；内核在命令受理、回合开始、
 //! 首个输出与终态时各发一份快照。
 //!
-//! 内核没有采集点的字段如实缺席：`requestAt`（模型请求开始没有事件）、`details`（回合准备阶段
-//! 没有分段计时）、`queryId`/`requestId`/`logicalCallId`（模型端口没有请求标识）、`clockInvalid`
-//! （时钟探测面未实现）。
+//! `requestAt`/`requestId`/`queryId`/`provider`/`model` 在首个主回合 `model_request_started`
+//! 时填充；内核没有采集点的字段如实缺席：`details`（回合准备阶段没有分段计时）、`logicalCallId`
+//! （模型端口没有逻辑调用标识）、`clockInvalid`（时钟探测面未实现）。
 
 use serde::{Deserialize, Serialize};
 

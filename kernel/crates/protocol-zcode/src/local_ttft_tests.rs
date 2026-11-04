@@ -164,3 +164,72 @@ fn stale_records_expire_and_capacity_is_bounded() {
             .is_none()
     );
 }
+
+/// 主回合模型请求开始：补 `requestAt` 与请求标识（`requestId`/`queryId`/provider/model）。
+/// 重试是同一逻辑请求，不覆盖首次 `requestAt`；旁路请求（compact 等）不记。
+#[test]
+fn a_main_model_request_fills_request_at_and_identifiers() {
+    use rust_cli_kernel_api::model::{ModelRequestStatus, ModelRequestStatusKind};
+
+    let recorder = LocalTtftRecorder::new("cli-1".to_owned());
+    recorder
+        .receive(&context(), "c1", Some("s1"), 1_000, Some(false))
+        .expect("a record");
+    recorder.admitted("c1", 1_010);
+    recorder.event("s1", &started("c1"), 1_020);
+    let status = ModelRequestStatus {
+        kind: ModelRequestStatusKind::ModelRequestStarted,
+        request_id: "req-1".to_owned(),
+        provider_id: "p1".to_owned(),
+        model_id: "m1".to_owned(),
+        provider_hostname: Some("api.example.com".to_owned()),
+        transport: "sse".to_owned(),
+        query_source: Some("main_turn".to_owned()),
+        query_id: Some("run_1".to_owned()),
+        attempt: 1,
+        max_attempts: 4,
+        duration_ms: None,
+        reason: None,
+        retryable: None,
+        status_code: None,
+        delay_ms: None,
+        next_attempt: None,
+        idle_ms: None,
+        timeout_ms: None,
+    };
+    let snapshot = recorder
+        .event(
+            "s1",
+            &KernelEvent::ModelRequestStatus {
+                status: status.clone(),
+            },
+            1_030,
+        )
+        .pop()
+        .expect("request milestone");
+    assert_eq!(snapshot.request_at, Some(1_030));
+    assert_eq!(snapshot.request_id.as_deref(), Some("req-1"));
+    assert_eq!(snapshot.query_id.as_deref(), Some("run_1"));
+    assert_eq!(snapshot.provider.as_deref(), Some("p1"));
+    assert_eq!(snapshot.model.as_deref(), Some("m1"));
+
+    // 第二次尝试（新 requestId）不覆盖首次 requestAt。
+    let mut retry = status.clone();
+    retry.attempt = 2;
+    retry.request_id = "req-2".to_owned();
+    let snapshot = recorder
+        .event("s1", &KernelEvent::ModelRequestStatus { status: retry }, 1_040)
+        .pop()
+        .expect("second attempt");
+    assert_eq!(snapshot.request_at, Some(1_030));
+    assert_eq!(snapshot.request_id.as_deref(), Some("req-1"));
+
+    // 旁路请求不属于这条命令的首 token 观察。
+    let mut side = status;
+    side.query_source = Some("compact".to_owned());
+    assert!(
+        recorder
+            .event("s1", &KernelEvent::ModelRequestStatus { status: side }, 1_050)
+            .is_empty()
+    );
+}

@@ -3,10 +3,13 @@
 //! renderer 在命令信封上带 `ttft: {version, observationId}`；这里按命令记一条记录，在命令受理、
 //! 回合开始、首个输出与终态各发一份快照（与 Node 的 `LocalTtftRecorder` 同一组里程碑）。
 //!
-//! 如实缺席：`requestAt`（模型请求开始没有事件）、`details`（回合准备阶段没有分段计时）、
-//! `queryId`/`requestId`/`logicalCallId`（模型端口没有请求标识）、`clockInvalid`（时钟探测面未
-//! 实现）、容量拒绝的 ACK 标记（`ttftExcluded: "capacity"` 尚未加到 ACK——超过 128 条在途时
-//! 新观察静默不记，与 Node 的「不记事实」一致，但少一个给前端的原因字段）。
+//! `requestAt`/`requestId`/`queryId`/`provider`/`model` 由模型传输层的
+//! `ModelRequestStatus`（`model_request_started`，只认 `query_source == "main_turn"`）填充。
+//!
+//! 如实缺席：`details`（回合准备阶段没有分段计时）、`logicalCallId`（模型端口没有逻辑调用
+//! 标识）、`clockInvalid`（时钟探测面未实现）、容量拒绝的 ACK 标记（`ttftExcluded: "capacity"`
+//! 尚未加到 ACK——超过 128 条在途时新观察静默不记，与 Node 的「不记事实」一致，但少一个给前端
+//! 的原因字段）。
 
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
@@ -172,6 +175,33 @@ impl LocalTtftRecorder {
                 }) {
                     record.output_at = Some(now);
                     record.output_kind = Some("tool".to_owned());
+                    out.push(Self::bump(record));
+                }
+            }
+            KernelEvent::ModelRequestStatus { status } => {
+                // 首次主回合请求：补 `requestAt` 与请求标识（Node 在请求开始时记这一段）。
+                if status.kind
+                    != rust_cli_kernel_api::model::ModelRequestStatusKind::ModelRequestStarted
+                    || status.query_source.as_deref() != Some("main_turn")
+                {
+                    return out;
+                }
+                if let Some(record) = records.iter_mut().find(|record| {
+                    record.session_id.as_deref() == Some(session)
+                        && record.execution_at.is_some()
+                        && record.terminal.is_none()
+                }) {
+                    record.request_at.get_or_insert(now);
+                    record.request_id.get_or_insert_with(|| status.request_id.clone());
+                    if record.query_id.is_none() {
+                        record.query_id = status.query_id.clone();
+                    }
+                    if record.provider.is_none() {
+                        record.provider = Some(status.provider_id.clone());
+                    }
+                    if record.model.is_none() {
+                        record.model = Some(status.model_id.clone());
+                    }
                     out.push(Self::bump(record));
                 }
             }
