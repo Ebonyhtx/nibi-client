@@ -627,6 +627,8 @@ impl Ext {
             system_prompt: request.system_prompt.clone(),
             max_tokens: request.max_tokens,
             selection,
+            // 用量行挂在发起会话名下（Node `sampleModel` 是会话运行时的方法）。
+            session: Some(request.instance.scope.session.clone()),
         };
         let result = self
             .sampling_calls

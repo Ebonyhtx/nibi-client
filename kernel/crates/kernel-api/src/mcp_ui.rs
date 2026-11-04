@@ -391,6 +391,9 @@ pub struct McpUiSamplingInput {
     pub max_tokens: u32,
     /// 会话当前的模型选择（None 时用缺省选择）：采样是回合外请求，不改变会话的选择。
     pub selection: Option<crate::model::ModelSelection>,
+    /// 发起采样的会话：用量行挂在它名下（Node 的 `sampleModel` 是会话运行时的方法，在 `finally`
+    /// 里写 `model_usage`）。None 时只做请求、不记账（模型端的单元测试）。
+    pub session: Option<crate::ids::SessionId>,
 }
 
 /// 一次采样的结果（协议层补 `role` / `content` 外壳）。

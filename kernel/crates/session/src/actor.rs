@@ -70,6 +70,12 @@ pub(crate) enum Request {
     Selection {
         reply: oneshot::Sender<rust_cli_kernel_api::model::ModelSelection>,
     },
+    /// 回合外模型请求（MCP Apps 采样）的用量行：与主回合的用量走同一个 `Fact::ModelCalled`
+    /// （Node 在 `sample-model.ts` 的 `finally` 里写 `model_usage`）。单独一批，不产生会话消息。
+    RecordUsage {
+        call: Box<rust_cli_kernel_api::metering::ModelCall>,
+        reply: oneshot::Sender<Result<(), String>>,
+    },
     /// 关闭会话（`SessionHandle::close`）：中止前台工作，等它收尾后回复并退出（spec §3.3）。`reason` 是中止在跑的
     /// 回合用的原因：退出是 `Shutdown`，`/clear`、`/resume` 是 `User`（修复线 F38）。
     Close {
@@ -502,6 +508,13 @@ impl Actor {
             }
             Request::Selection { reply } => {
                 let _ = reply.send(self.selection.clone());
+            }
+            Request::RecordUsage { call, reply } => {
+                // 用量是观测：写不进去只记日志，不影响这次采样（Node 的 `recordModelUsageFact` 同）。
+                let result = self
+                    .commit(None, vec![Fact::ModelCalled { call: *call }])
+                    .await;
+                let _ = reply.send(result);
             }
             // 草稿提升：关闭中不写会话行（草稿随关闭一起消失），其余情况立即落库。
             Request::Persist { reply } => {

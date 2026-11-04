@@ -3,14 +3,59 @@
 use std::sync::Arc;
 
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::ids::{SessionId, ToolUseId};
+use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use rust_cli_kernel_api::message::{StopReason, Usage};
+use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
+use rust_cli_kernel_api::model::QuerySource;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
 use rust_cli_kernel_api::permission::PermissionMode;
 use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, SequencedEvent, SessionHandle};
-use rust_cli_kernel_api::testing::ScriptedModel;
+use rust_cli_kernel_api::store::Fact;
+use rust_cli_kernel_api::testing::{ScriptedModel, selection};
 use serde_json::json;
 
 use crate::test_support::{Setup, envelope, until};
+
+/// 回合外模型请求（MCP Apps 采样）的用量行：会话 actor 提交 `Fact::ModelCalled`，不产生会话消息
+/// （Node `sample-model.ts` 的 `recordModelUsageFact`）。
+#[tokio::test]
+async fn out_of_turn_usage_is_stored_as_a_model_call() {
+    let built = Setup::new(Arc::new(ScriptedModel::new(Vec::new())))
+        .build()
+        .await;
+    let call = ModelCall {
+        message: MessageId::new("msg_sampling_1"),
+        source: QuerySource::Side("mcp_app_sampling".to_owned()),
+        selection: selection(),
+        started_at_ms: 1_000,
+        first_token_at_ms: Some(1_100),
+        first_content_at_ms: Some(1_100),
+        completed_at_ms: 1_400,
+        status: CallStatus::Completed,
+        stop_reason: Some(StopReason::EndTurn),
+        tool_calls: 0,
+        usage: Some(Usage {
+            input_tokens: 10,
+            output_tokens: 5,
+            ..Usage::default()
+        }),
+        retries: 0,
+        error: None,
+    };
+    built
+        .session
+        .record_usage(call.clone())
+        .await
+        .expect("recorded");
+    let facts = built.store.facts(&SessionId::new("sess_1"));
+    assert!(facts.contains(&Fact::ModelCalled { call }));
+    assert!(
+        !facts
+            .iter()
+            .any(|fact| matches!(fact, Fact::MessageAppended { .. })),
+        "回合外采样不写会话消息：{facts:?}"
+    );
+}
 
 /// 不在回合里也能读到 owner（actor）的当前模式与工作目录。
 #[tokio::test]

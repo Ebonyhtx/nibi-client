@@ -391,11 +391,18 @@ impl LocalKernel {
             rust_cli_tools::UserInputTools::new(base.as_ref(), gate.clone())
                 .with_bash_timeouts(defaults.limits.bash),
         );
+        // 会话表（session-lifecycle.md §3.3.1）：每个会话归谁的唯一来源。采样端口也要用它把回合外
+        // 请求的用量行交给发起会话的 actor，所以在建端口之前就建好。
+        let sessions = OpenSessions::default();
         // MCP Apps 采样：回合外的一次性模型请求用会话的缺省选择（页面不给模型选择）。
         let sampling: Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort> =
             Arc::new(sampling::KernelSampling::new(
                 ports.model.clone(),
                 defaults.selection.clone(),
+                ports.clock.clone(),
+                ports.ids.clone(),
+                sessions.clone(),
+                ports.store.clone(),
             ));
         let plugin_loader = extensions.plugin_loader.clone();
         let ext = Arc::new(Ext::new(
@@ -452,7 +459,6 @@ impl LocalKernel {
         .with_session_directories(session_directories.clone());
         let context = Arc::new(context);
         let assembler = context.clone();
-        let sessions = OpenSessions::default();
         let closer = Arc::new(Closer {
             sessions: Arc::downgrade(&sessions),
             context: context.clone(),

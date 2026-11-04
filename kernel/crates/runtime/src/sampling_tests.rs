@@ -15,7 +15,14 @@ async fn sampling_builds_a_one_shot_request_and_returns_the_text() {
         "hello ", "world",
     ])]));
     let port: Arc<dyn ModelPort> = model.clone();
-    let sampling = KernelSampling::new(port, selection());
+    let sampling = KernelSampling::new(
+        port,
+        selection(),
+        Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
+        Arc::new(rust_cli_kernel_api::testing::SequentialIds::default()),
+        OpenSessions::default(),
+        Arc::new(rust_cli_kernel_api::testing::MemoryStore::default()),
+    );
     let result = sampling
         .sample(
             McpUiSamplingInput {
@@ -42,6 +49,7 @@ async fn sampling_builds_a_one_shot_request_and_returns_the_text() {
                 system_prompt: Some("be brief".to_owned()),
                 max_tokens: 64,
                 selection: None,
+                session: None,
             },
             CancellationToken::new(),
         )

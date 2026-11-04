@@ -349,6 +349,22 @@ impl Session {
         self.ask(|reply| Request::Selection { reply }).await
     }
 
+    /// 记一次回合外模型请求的用量（MCP Apps 采样）：Node 在 `sample-model.ts` 的 `finally` 里写
+    /// `model_usage`，请求失败或取消也记。草稿会话先落库（Node 采样前 `ensureSessionPersisted`），
+    /// 否则用量行没有会话行可挂。
+    pub async fn record_usage(
+        &self,
+        call: rust_cli_kernel_api::metering::ModelCall,
+    ) -> Result<(), KernelError> {
+        self.persist_draft().await?;
+        self.ask(|reply| Request::RecordUsage {
+            call: Box::new(call),
+            reply,
+        })
+        .await?
+        .map_err(|message| KernelError::Failed { message })
+    }
+
     /// 会话级的询问入口（`Interactions::lasting`）：回合外工具授权的审批链用它，
     /// 询问不随回合结束取消、只随会话关闭取消。
     pub fn session_interactions(&self) -> Arc<dyn rust_cli_kernel_api::orchestration::Interactions> {
