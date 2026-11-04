@@ -283,6 +283,14 @@ pub(crate) async fn respond(
                     // （docs/specs/rust-cli/stall-visibility.md §1）。
                     let _ = scope.sink.emit(QueryEvent::ModelNotice { notice }).await;
                 }
+                Some(Ok(ModelStreamItem::Status(status))) => {
+                    // 请求生命周期状态（`v4/telemetry/event` 的 `model.request.status`）：只进事件流，
+                    // 不影响本轮内容。
+                    let _ = scope
+                        .sink
+                        .emit(QueryEvent::ModelRequestStatus { status })
+                        .await;
+                }
                 Some(Ok(ModelStreamItem::Event(event))) => {
                     // 首字（Node `firstModelTokenAt`）与首个内容（F105）。
                     timing.observe(&event, scope.parts.clock.as_ref());

@@ -76,7 +76,9 @@ impl Reply {
                 // 的输入是 0。这里的用量是适配器合并好的累计值，整体采用（同主循环的组装器）。
                 self.usage = usage;
             }
-            ModelStreamItem::Notice(_) | ModelStreamItem::Event(_) => {}
+            ModelStreamItem::Notice(_)
+            | ModelStreamItem::Event(_)
+            | ModelStreamItem::Status(_) => {}
         }
     }
 }

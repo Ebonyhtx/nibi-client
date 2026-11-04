@@ -552,6 +552,7 @@ where
                     continue;
                 };
                 let site = params["actor"]["siteId"].as_str().unwrap_or("actor").to_owned();
+                let ordinal = params["actor"]["ordinal"].as_i64().unwrap_or(0);
                 let persona = &params["persona"];
                 let prompt = persona["system"].as_str().unwrap_or_default().to_owned();
                 let name = persona["name"]
@@ -593,6 +594,35 @@ where
                         seed,
                     });
                 tracing::debug!(event = "dwf.actor.stored", site = %site);
+                // `workflow.lifecycle` 的 `actor-spawned`：子代理会话 ↔ actor ↔ 父会话的归属事实
+                // （Node 的 `DynamicWorkflowRunProgress` → 埋点同源）。没有启动输入 id 时
+                // `sourceCommandId` 缺席（Node 的 launchInputId 内核拿不到）。
+                let kernel = shared
+                    .kernel
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .as_ref()
+                    .and_then(Weak::upgrade);
+                if let Some(kernel) = kernel {
+                    let fact = rust_cli_kernel_api::session_api::WorkflowLifecycleFact {
+                        run_id: run_id.to_owned(),
+                        phase: rust_cli_kernel_api::session_api::WorkflowLifecyclePhase::ActorSpawned,
+                        tool_call_id: run.tool_call_id.clone(),
+                        agent_id: Some(format!("{site}@{ordinal}")),
+                        child_session_id: Some(child.as_str().to_owned()),
+                        status: None,
+                        stop_reason: None,
+                        error_message: None,
+                        source_command_id: None,
+                    };
+                    if !kernel.note_workflow_lifecycle(&run.parent, fact) {
+                        tracing::debug!(
+                            event = "dwf.lifecycle.no_session",
+                            run = run_id,
+                            phase = "actor-spawned"
+                        );
+                    }
+                }
                 if let Some(id) = &id {
                     process.respond(id, json!({"session": child.as_str()}));
 
@@ -867,6 +897,60 @@ where
                     .get(run_id)
                     .cloned();
                 if let Some(run) = run {
+                    // `workflow.lifecycle` 的 `run-settled`：该 run 全部子代理的终态（Node 的
+                    // `DynamicWorkflowRunProgress` → 埋点同源）。被修订替代的 run 也有结算事实。
+                    let kernel = shared
+                        .kernel
+                        .lock()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .as_ref()
+                        .and_then(Weak::upgrade);
+                    if let Some(kernel) = kernel
+                        && let Some(status) = params["settlement"]["status"]
+                            .as_str()
+                            .filter(|status| matches!(*status, "completed" | "errored" | "stopped"))
+                    {
+                        let stop_reason = (status == "stopped")
+                            .then(|| params["settlement"]["reason"].as_str())
+                            .flatten()
+                            .filter(|reason| !reason.is_empty())
+                            .map(str::to_owned);
+                        // 错误原文照引擎事件（errored 恒带；stopped 只对 provider / interrupted 带）；
+                        // user / model 停下没有原文，用固定文案加原因（Node 同文案）。
+                        let engine_message = params["settlement"]["error"]["message"]
+                            .as_str()
+                            .filter(|message| !message.is_empty())
+                            .map(str::to_owned);
+                        let error_message = if status == "completed" {
+                            None
+                        } else {
+                            engine_message.or_else(|| {
+                                (status == "stopped").then(|| match stop_reason.as_deref() {
+                                    Some(reason) => format!("Workflow run stopped ({reason})"),
+                                    None => "Workflow run stopped".to_owned(),
+                                })
+                            })
+                        };
+                        let fact = rust_cli_kernel_api::session_api::WorkflowLifecycleFact {
+                            run_id: run_id.to_owned(),
+                            phase:
+                                rust_cli_kernel_api::session_api::WorkflowLifecyclePhase::RunSettled,
+                            tool_call_id: run.tool_call_id.clone(),
+                            agent_id: None,
+                            child_session_id: None,
+                            status: Some(status.to_owned()),
+                            stop_reason,
+                            error_message,
+                            source_command_id: None,
+                        };
+                        if !kernel.note_workflow_lifecycle(&run.parent, fact) {
+                            tracing::debug!(
+                                event = "dwf.lifecycle.no_session",
+                                run = run_id,
+                                phase = "run-settled"
+                            );
+                        }
+                    }
                     // 被修订替代的 run 不发终态通知（Node coordinator 同一条裁决）：停下它的那次
                     // AmendWorkflow 的工具结果就是模型对这次停止的全部所知，再来一条会把它送进
                     // 「去修订它」的循环。

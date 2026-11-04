@@ -1,10 +1,9 @@
-//! 会话事件 → `v4/telemetry/event` 事实（141 审计 §9 第 5 项余项）。
+//! 会话事件 → `v4/telemetry/event` 事实（141 审计 §9 第 5 项）。
 //!
 //! 与 Node 的 `conversation-telemetry-facts.ts` 同源同向：从会话事件流派生埋点事实，只带 id、
-//! 状态与白名单里的性能字段。内核事件流能如实产出的 8 个 kind 见
-//! [`rust_cli_kernel_api::conversation_telemetry`]；`model.request.status` 与
-//! `workflow.lifecycle` 没有采集点（模型端口没有 request/retry/stall 事件，run 进度不经过会话
-//! 事件流），不产生事实。
+//! 状态与白名单里的性能字段。10 个 kind 的契约形状见
+//! [`rust_cli_kernel_api::conversation_telemetry`]；模型请求状态来自传输层的 `ModelRequestStatus`
+//! 事件，工作流归属来自 DWF 引擎写进父会话的 `WorkflowLifecycle` 事件。
 //!
 //! 有状态：首个流块的标记、工具开始的时刻、当前轮的命令归因、权限询问的工具关联、Agent 工具
 //! 的后台标记。状态按会话（一个 `Live` 一份）保存，轮收口时清掉这一轮的部分。
@@ -16,10 +15,11 @@ use rust_cli_kernel_api::conversation_telemetry::{
 };
 use rust_cli_kernel_api::ids::InteractionId;
 use rust_cli_kernel_api::message::CompactTrigger;
-use rust_cli_kernel_api::model::BlockDelta;
+use rust_cli_kernel_api::model::{BlockDelta, ModelRequestStatusKind};
 use rust_cli_kernel_api::orchestration::InteractionRequest;
 use rust_cli_kernel_api::session_api::{
     KernelEvent, SequencedEvent, SubagentPhase, TurnExecutionKind, TurnInputSource, TurnOutcome,
+    WorkflowLifecyclePhase,
 };
 
 /// 通知方法名（Host `V4_NOTIFICATIONS.conversationTelemetryFact`）。
@@ -297,6 +297,102 @@ impl ConversationTelemetry {
                     background,
                     status: None,
                     error_message: None,
+                })
+            }
+            KernelEvent::ModelRequestStatus { status } => {
+                // 每支只带契约里该有的字段（Node 的映射同形：completed 只带 duration；
+                // retry 带 delay/nextAttempt/reason/statusCode；stalled 带 idle/timeout）。
+                let (
+                    duration_ms,
+                    reason,
+                    retryable,
+                    status_code,
+                    delay_ms,
+                    next_attempt,
+                    idle_ms,
+                    timeout_ms,
+                ) = match status.kind {
+                    ModelRequestStatusKind::ModelRequestCompleted => {
+                        (status.duration_ms, None, None, None, None, None, None, None)
+                    }
+                    ModelRequestStatusKind::ModelRequestFailed => (
+                        status.duration_ms,
+                        status.reason.clone(),
+                        status.retryable,
+                        status.status_code,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ),
+                    ModelRequestStatusKind::ModelRequestRetryScheduled => (
+                        None,
+                        status.reason.clone(),
+                        None,
+                        status.status_code,
+                        status.delay_ms,
+                        status.next_attempt,
+                        None,
+                        None,
+                    ),
+                    ModelRequestStatusKind::ModelStreamStalled => (
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        status.idle_ms,
+                        status.timeout_ms,
+                    ),
+                    ModelRequestStatusKind::ModelRequestStarted => {
+                        (None, None, None, None, None, None, None, None)
+                    }
+                };
+                Some(ConversationTelemetryFact::ModelRequestStatus {
+                    base: self.base(event, now),
+                    request_id: status.request_id.clone(),
+                    status: status.kind.as_str().to_owned(),
+                    provider_id: status.provider_id.clone(),
+                    model_id: status.model_id.clone(),
+                    // 内核的端点只有线上协议（anthropic-messages / openai-*），没有 Node 的
+                    // providerKind（厂商词）；不冒充，如实缺席。
+                    provider_kind: None,
+                    provider_hostname: status.provider_hostname.clone(),
+                    transport: status.transport.clone(),
+                    query_source: status.query_source.clone(),
+                    query_id: status.query_id.clone(),
+                    attempt: status.attempt,
+                    max_attempts: status.max_attempts,
+                    duration_ms,
+                    reason,
+                    retryable,
+                    status_code,
+                    delay_ms,
+                    next_attempt,
+                    idle_ms,
+                    timeout_ms,
+                })
+            }
+            KernelEvent::WorkflowLifecycle { fact } => {
+                let mut base = self.base(event, now);
+                if fact.source_command_id.is_some() {
+                    base.source_command_id = fact.source_command_id.clone();
+                }
+                Some(ConversationTelemetryFact::WorkflowLifecycle {
+                    base,
+                    phase: match fact.phase {
+                        WorkflowLifecyclePhase::ActorSpawned => "actor-spawned",
+                        WorkflowLifecyclePhase::RunSettled => "run-settled",
+                    }
+                    .to_owned(),
+                    run_id: fact.run_id.clone(),
+                    tool_call_id: fact.tool_call_id.clone(),
+                    agent_id: fact.agent_id.clone(),
+                    child_session_id: fact.child_session_id.clone(),
+                    status: fact.status.clone(),
+                    stop_reason: fact.stop_reason.clone(),
+                    error_message: fact.error_message.clone(),
                 })
             }
             KernelEvent::TurnFinished {

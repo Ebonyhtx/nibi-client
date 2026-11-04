@@ -71,6 +71,7 @@ fn events(start: Instant, chunks: Vec<(u64, String)>, limits: Limits) -> Events<
 /// 一项的种类，事件写成 `event`。
 fn shape(next: Option<Next>) -> String {
     match next {
+        Some(Next::Item(Ok(ModelStreamItem::Status(_)))) => "status".to_owned(),
         Some(Next::Item(Ok(ModelStreamItem::Event(_)))) => "event".to_owned(),
         Some(Next::Item(Ok(ModelStreamItem::Notice(ModelNotice::Stalled { retry_in_ms })))) => {
             format!("stalled({retry_in_ms})")

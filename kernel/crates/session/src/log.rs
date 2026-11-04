@@ -156,6 +156,8 @@ fn changes_state(event: &KernelEvent) -> bool {
             | KernelEvent::ScheduledFire { .. }
             | KernelEvent::SystemNotice { .. }
             | KernelEvent::ModelNotice { .. }
+            | KernelEvent::ModelRequestStatus { .. }
+            | KernelEvent::WorkflowLifecycle { .. }
     )
 }
 

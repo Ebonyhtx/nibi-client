@@ -7,7 +7,8 @@ use rust_cli_kernel_api::model::{ModelError, ModelNotice};
 use rust_cli_net::retry::jitter;
 
 use super::{
-    Connect, MAX_OVERLOADED_BEFORE_FALLBACK, REPEATED_OVERLOAD, millis, stops_on_repeated_overload,
+    Connect, FailurePlan, MAX_OVERLOADED_BEFORE_FALLBACK, REPEATED_OVERLOAD, RetryPlan, millis,
+    stops_on_repeated_overload,
 };
 use crate::errors::dispose::{Action, Exhausted, Phase, dispose};
 use crate::errors::{Class, Verdict};
@@ -20,14 +21,16 @@ const CAPACITY_RETRIES: u32 = 2;
 const TRUNCATION_RETRIES: u32 = 1;
 
 impl Connect {
-    /// 一次失败：要重发时返回重试通知与等待时长（这次发送的模型轨迹记 `Failed` 带等待）；否则返回给调用方的错误。
-    /// 凭据被拒、端点可续期时先续期（只换凭据与 Provider header；请求体已按原端点编码，不再改）。
+    /// 一次失败：要重发时返回重试通知、等待时长与两条状态事实（这次发送的模型轨迹记 `Failed` 带等待）；
+    /// 否则返回给调用方的错误与 `model_request_failed` 事实。凭据被拒、端点可续期时先续期（只换凭据与
+    /// Provider header；请求体已按原端点编码，不再改）。
     pub(super) async fn fail(
         mut self: Box<Self>,
         verdict: Verdict,
         phase: Phase,
         tape: Option<Tape>,
-    ) -> Result<(ModelNotice, Box<Self>, Duration), ModelError> {
+    ) -> Result<Box<RetryPlan>, Box<FailurePlan>> {
+        let status_code = verdict.status_code;
         let delay = match self.delay_for(&verdict, phase) {
             Ok(delay) => {
                 end(
@@ -38,7 +41,8 @@ impl Connect {
             }
             Err(error) => {
                 end(tape, End::Failed(verdict.error, None));
-                return Err(error);
+                let status = self.failed_status(&error, false, status_code);
+                return Err(Box::new(FailurePlan { error, status }));
             }
         };
         if verdict.class == Class::AuthRejected && self.endpoint.renewable {
@@ -50,8 +54,15 @@ impl Connect {
                 &self.context,
             );
             match self.cancel.run_until_cancelled(renewed).await {
-                None => return Err(ModelError::Cancelled),
-                Some(Err(error)) => return Err(error),
+                None => {
+                    let error = ModelError::Cancelled;
+                    let status = self.failed_status(&error, false, None);
+                    return Err(Box::new(FailurePlan { error, status }));
+                }
+                Some(Err(error)) => {
+                    let status = self.failed_status(&error, false, None);
+                    return Err(Box::new(FailurePlan { error, status }));
+                }
                 Some(Ok(endpoint)) => {
                     self.endpoint.credential = endpoint.credential;
                     self.endpoint.headers = endpoint.headers;
@@ -72,6 +83,8 @@ impl Connect {
             error = %verdict.error,
             "model request failed; retrying"
         );
+        let failed = self.failed_status(&verdict.error, true, status_code);
+        let scheduled = self.retry_status(&verdict.error, status_code, delay);
         let notice = ModelNotice::Retrying {
             attempt: self.attempt,
             max_retries,
@@ -80,7 +93,13 @@ impl Connect {
         };
         self.attempt += 1;
         self.notified = true;
-        Ok((notice, self, delay))
+        Ok(Box::new(RetryPlan {
+            notice,
+            connect: self,
+            delay,
+            failed,
+            scheduled,
+        }))
     }
 
     /// 处置表的动作换成等待时长；不再重发时是给调用方的错误（换 fallback、连续过载、不可重试或到了上限）。

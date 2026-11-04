@@ -77,6 +77,10 @@ pub enum QueryEvent {
     },
     /// 模型端口的通知（重试、停顿、恢复），只供显示（docs/specs/rust-cli/stall-visibility.md §1）。
     ModelNotice { notice: crate::model::ModelNotice },
+    /// 模型请求的生命周期状态（`v4/telemetry/event` 的 `model.request.status` 事实来源）。
+    ModelRequestStatus {
+        status: crate::model::ModelRequestStatus,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -68,6 +68,8 @@ pub(crate) struct Verdict {
     pub retry_after: Option<Duration>,
     /// `x-should-retry`。
     pub should_retry: Option<bool>,
+    /// 拿到 HTTP 响应时的状态码（`v4/telemetry/event` 的 `statusCode`）；传输层错误没有。
+    pub status_code: Option<u16>,
 }
 
 impl Verdict {
@@ -77,6 +79,7 @@ impl Verdict {
             error,
             retry_after: None,
             should_retry: None,
+            status_code: None,
         }
     }
 
@@ -134,6 +137,7 @@ pub(crate) fn classify_response(
     });
     verdict.retry_after = retry_after;
     verdict.should_retry = should_retry(headers);
+    verdict.status_code = Some(status);
     verdict
 }
 

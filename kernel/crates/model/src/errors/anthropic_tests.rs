@@ -53,6 +53,7 @@ fn status_codes_map_to_error_kinds_and_classes() {
             },
             retry_after: Some(Duration::from_secs(7)),
             should_retry: None,
+            status_code: Some(429),
         }
     );
     let overloaded = failure(529, &[], &api_error("overloaded_error", "Overloaded"));

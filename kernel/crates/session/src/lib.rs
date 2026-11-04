@@ -271,6 +271,16 @@ impl Session {
         closing::ask(&self.requests, request).await
     }
 
+    /// 把 DWF 引擎的归属事实写进本会话的事件流（`v4/telemetry/event` 的 `workflow.lifecycle`
+    /// 事实来源）：只广播、不落库、不动 revision（`log.rs` 的 `changes_state`）。
+    pub fn note_workflow_lifecycle(
+        &self,
+        fact: rust_cli_kernel_api::session_api::WorkflowLifecycleFact,
+    ) {
+        self.log
+            .append(KernelEvent::WorkflowLifecycle { fact });
+    }
+
     /// 给定消息集合选中这一轮的 checkpoint；空集合是全部（冷打开的摘要）。
     async fn checkpoints(&self, messages: &[MessageId]) -> Result<Vec<WorkspaceCheckpoint>, KernelError> {
         self.ask(|reply| Request::Checkpoints {

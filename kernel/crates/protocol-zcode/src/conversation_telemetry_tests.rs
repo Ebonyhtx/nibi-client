@@ -456,3 +456,6 @@ fn control_turns_and_background_turns_keep_their_origin() {
     assert_eq!(execution_kind.as_deref(), Some("controlOnly"));
     assert_eq!(input_source.as_deref(), Some("background_task"));
 }
+
+#[path = "conversation_telemetry_status_tests.rs"]
+mod status;

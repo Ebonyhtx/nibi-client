@@ -402,12 +402,79 @@ pub enum ModelNotice {
     Resumed,
 }
 
+/// 一次模型请求的生命周期状态（Node `ModelNetworkStatusEvent` 的内核侧投影）。
+///
+/// 采集点在模型传输层（`crates/model`）：一次逻辑请求的每次尝试发一条 `started`，成功读完发
+/// `completed`，失败发 `failed`（可重试时另发 `retry_scheduled`），看门狗中止发 `stream_stalled`。
+/// 这些事实只供显示与 `v4/telemetry/event` 的 `model.request.status` 使用，不落库。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelRequestStatusKind {
+    ModelRequestStarted,
+    ModelRequestCompleted,
+    ModelRequestFailed,
+    ModelRequestRetryScheduled,
+    ModelStreamStalled,
+}
+
+impl ModelRequestStatusKind {
+    /// 线上词（与 Host `modelRequestStatusFactSchema.status` 同拼写）。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ModelRequestStarted => "model_request_started",
+            Self::ModelRequestCompleted => "model_request_completed",
+            Self::ModelRequestFailed => "model_request_failed",
+            Self::ModelRequestRetryScheduled => "model_retry_scheduled",
+            Self::ModelStreamStalled => "model_stream_stalled",
+        }
+    }
+}
+
+/// 一次尝试的状态事实。字段按状态缺席（Host 的 strict schema 只认白名单键）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelRequestStatus {
+    pub kind: ModelRequestStatusKind,
+    pub request_id: String,
+    pub provider_id: String,
+    pub model_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_hostname: Option<String>,
+    /// 传输形态：内核的三种协议都在 HTTP 上读 SSE 流。
+    pub transport: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query_source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub query_id: Option<String>,
+    pub attempt: u32,
+    /// 含首次尝试的总尝试数（`max_retries + 1`）。
+    pub max_attempts: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retryable: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status_code: Option<u16>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delay_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_attempt: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idle_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout_ms: Option<u64>,
+}
+
 /// [`ModelPort::stream_with_notices`] 的元素。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 pub enum ModelStreamItem {
     Event(ModelEvent),
     Notice(ModelNotice),
+    /// 请求生命周期状态（不需要显示的通知，`v4/telemetry/event` 的事实来源）。
+    Status(ModelRequestStatus),
 }
 
 /// 模型调用。错误也作为流的元素返回，调用方只处理一个流。

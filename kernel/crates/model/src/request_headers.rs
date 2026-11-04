@@ -162,13 +162,15 @@ fn merge_betas(headers: &mut Vec<(String, HeaderValue)>, name: &str, configured:
 }
 
 /// 这次发送的完整请求：编码结果（①）加上凭据（②）、来源头（③）、Provider 配置（④）与每请求头（⑤）。请求体是
-/// `Bytes`，克隆不复制内容。`headers` 为 None 时没有 ③ 与 ⑤。
+/// `Bytes`，克隆不复制内容。`headers` 为 None 时没有 ③ 与 ⑤。`request_id` 由调用方为这次发送预先取好
+/// （`v4/telemetry/event` 的 `requestId` 与 `x-request-id` 同一个值）；None 时现取一个。
 pub(crate) fn outbound(
     protocol: &dyn Protocol,
     encoded: &HttpRequest,
     endpoint: &ModelEndpoint,
     headers: Option<&RequestHeaders>,
     origin: &Origin,
+    request_id: Option<&str>,
 ) -> HttpRequest {
     let mut http = encoded.clone();
     for (name, value) in protocol.credential_headers(&endpoint.credential) {
@@ -201,7 +203,10 @@ pub(crate) fn outbound(
         put(&mut http.headers, name, HeaderValue::Secret(value.clone()));
     }
     if let Some(headers) = headers {
-        let request_id = (headers.request_id)();
+        let request_id = match request_id {
+            Some(request_id) => request_id.to_owned(),
+            None => (headers.request_id)(),
+        };
         for (name, value) in
             attribution::headers(origin, &endpoint.base_url, &headers.trace_id, request_id)
         {

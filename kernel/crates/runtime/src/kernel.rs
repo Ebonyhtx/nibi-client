@@ -70,6 +70,26 @@ impl Kernel for LocalKernel {
         Some(self.blocked.clone())
     }
 
+    /// DWF 引擎的归属事实写进父会话事件流（`v4/telemetry/event` 的 `workflow.lifecycle`）。
+    /// 会话不在本进程（已关闭）时返回 false，引擎客户端只记日志。
+    fn note_workflow_lifecycle(
+        &self,
+        session: &rust_cli_kernel_api::ids::SessionId,
+        fact: rust_cli_kernel_api::session_api::WorkflowLifecycleFact,
+    ) -> bool {
+        let sessions = self
+            .sessions
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        match sessions.get(session).and_then(table::Slot::open) {
+            Some(open) => {
+                open.note_workflow_lifecycle(fact);
+                true
+            }
+            None => false,
+        }
+    }
+
     /// GUI 中枢的已保存工作流读面：frontmatter 解析器在 sidecar（@nibi/core），这里转发。
     /// 降级（没接 sidecar 的入口）在本层现做：home 取机器事实，协议层不读环境。
     async fn hub_list_saved_workflows(

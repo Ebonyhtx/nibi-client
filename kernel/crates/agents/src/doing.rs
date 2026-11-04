@@ -33,7 +33,8 @@ impl Doing {
             // 推理、文字与工具参数的增量、工具调用：没有活动（F26 去掉“正在推理”，F62 去掉工具名）。
             QueryEvent::Delta { .. }
             | QueryEvent::ToolStarted { .. }
-            | QueryEvent::ToolFinished { .. } => None,
+            | QueryEvent::ToolFinished { .. }
+            | QueryEvent::ModelRequestStatus { .. } => None,
             QueryEvent::ToolProgress { .. } => return None,
             QueryEvent::ModelNotice { notice } => match notice {
                 ModelNotice::Retrying {

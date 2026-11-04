@@ -449,6 +449,52 @@ pub enum KernelEvent {
     ModelNotice {
         notice: crate::model::ModelNotice,
     },
+    /// 模型请求的生命周期状态（`v4/telemetry/event` 的 `model.request.status` 事实来源）：
+    /// 只落实时日志，不落库、不进模型上下文。
+    ModelRequestStatus {
+        status: crate::model::ModelRequestStatus,
+    },
+    /// 动态工作流的归属事实（`v4/telemetry/event` 的 `workflow.lifecycle` 事实来源）：DWF 引擎的
+    /// `actor-created` / `run-settled` 写进父会话的事件流。不落库、不进模型上下文。
+    WorkflowLifecycle {
+        fact: WorkflowLifecycleFact,
+    },
+}
+
+/// `workflow.lifecycle` 的两个阶段（Host `workflowLifecycleFactSchema.phase` 的拼写）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WorkflowLifecyclePhase {
+    ActorSpawned,
+    RunSettled,
+}
+
+/// 动态工作流子代理的归属事实（Node `conversation-telemetry-workflow-facts.ts` 同源同向）：
+/// 只带 id 与状态，不带脚本、prompt、结果正文。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowLifecycleFact {
+    pub run_id: String,
+    pub phase: WorkflowLifecyclePhase,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    /// `actor-spawned` 必带：`siteId@ordinal`（与引擎 refToString 同串）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_id: Option<String>,
+    /// `actor-spawned` 必带：引擎铸的 actor 子会话 id。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub child_session_id: Option<String>,
+    /// `run-settled` 必带：`completed` / `errored` / `stopped`。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// 只在 `stopped` 时在场。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_message: Option<String>,
+    /// 发起这个 run 的输入 id（Node 的 `launchInputId`）。内核的引擎客户端拿不到时缺席。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_command_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1480,6 +1526,13 @@ pub trait Kernel: Send + Sync {
     /// 缺省没有（TUI / `-p` 不经这里）。
     fn workflow_blocked(&self) -> Option<std::sync::Arc<dyn crate::workflow::WorkflowBlockedEdges>> {
         None
+    }
+
+    /// 把 DWF 引擎的归属事实写进父会话的事件流（`v4/telemetry/event` 的 `workflow.lifecycle`
+    /// 事实来源）：`actor-created` → `actor-spawned`，`run-settled` → `run-settled`。会话不在本进程
+    /// （已关闭）或入口没有会话事件流时返回 false，调用方只记日志。
+    fn note_workflow_lifecycle(&self, _session: &SessionId, _fact: WorkflowLifecycleFact) -> bool {
+        false
     }
 
     /// GUI 中枢的已保存工作流读面（`workflows/list` / `workflows/get`）：frontmatter 解析器在

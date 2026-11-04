@@ -95,7 +95,9 @@ impl AgentActivity {
                 delta: BlockDelta::Thinking(text),
             } => self.stream(message, index, text, true),
             QueryEvent::ModelNotice { notice } => Notice::fold(&mut self.notice, notice, now_ms),
-            QueryEvent::Delta { .. } | QueryEvent::ToolProgress { .. } => {}
+            QueryEvent::Delta { .. }
+            | QueryEvent::ToolProgress { .. }
+            | QueryEvent::ModelRequestStatus { .. } => {}
         }
     }
 }

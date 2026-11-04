@@ -196,6 +196,7 @@ fn provider_headers_sit_between_the_source_and_the_request_headers() {
         &configured,
         Some(&ids()),
         &origin,
+        None,
     );
     let headers = wire(&http);
     assert_eq!(find(&headers, "x-api-key"), Some("configured-key"));
@@ -222,6 +223,7 @@ fn without_request_headers_only_the_adapter_and_provider_layers_remain() {
         &plain,
         None,
         &crate::attribution::Origin::default(),
+        None,
     );
     let names: Vec<_> = wire(&http).into_iter().map(|(name, _)| name).collect();
     assert_eq!(
@@ -245,6 +247,7 @@ fn openrouter_gets_the_attribution_headers() {
             &chat,
             Some(&ids()),
             &crate::attribution::Origin::default(),
+            None,
         );
         let headers = wire(&http);
         assert_eq!(find(&headers, "x-openrouter-title"), expected, "{base_url}");
@@ -264,6 +267,7 @@ fn openrouter_gets_the_attribution_headers() {
         &configured,
         Some(&ids()),
         &crate::attribution::Origin::default(),
+        None,
     );
     assert_eq!(find(&wire(&http), "x-openrouter-title"), Some("Mine"));
 }
@@ -290,6 +294,7 @@ fn configured_betas_are_merged() {
             &beta,
             None,
             &crate::attribution::Origin::default(),
+            None,
         );
         assert_eq!(
             find(&wire(&http), "anthropic-beta"),
@@ -308,6 +313,7 @@ fn configured_betas_are_merged() {
         &chat,
         None,
         &crate::attribution::Origin::default(),
+        None,
     );
     assert_eq!(find(&wire(&http), "anthropic-beta"), Some("C-3"));
 }

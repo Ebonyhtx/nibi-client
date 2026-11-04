@@ -43,6 +43,10 @@ async fn items(model: &ProviderModel) -> Vec<Result<ModelStreamItem, ModelError>
             request("hi", QuerySource::MainThread),
             CancellationToken::new(),
         )
+        .filter_map(|item| async move {
+            // 生命周期状态不是这些用例的对象：去掉它，断言只关心通知与事件。
+            (!matches!(item, Ok(ModelStreamItem::Status(_)))).then_some(item)
+        })
         .collect()
         .await
 }
@@ -57,6 +61,7 @@ fn shape(items: &[Result<ModelStreamItem, ModelError>]) -> Vec<String> {
             })) => format!("retrying({error}, {delay_ms})"),
             Ok(ModelStreamItem::Notice(ModelNotice::Stalled { .. })) => "stalled".to_owned(),
             Ok(ModelStreamItem::Notice(ModelNotice::Resumed)) => "resumed".to_owned(),
+            Ok(ModelStreamItem::Status(_)) => "status".to_owned(),
             Ok(ModelStreamItem::Event(_)) => "event".to_owned(),
             Err(error) => format!("error({error:?})"),
         })
@@ -194,23 +199,40 @@ async fn cancelling_while_stalled_ends_at_once() {
     let cancel = CancellationToken::new();
     let mut stream =
         model.stream_with_notices(request("hi", QuerySource::MainThread), cancel.clone());
+    // 生命周期状态不是这个用例的对象：跳过它看通知与事件。
+    async fn next_visible(
+        stream: &mut futures_util::stream::BoxStream<
+            'static,
+            Result<ModelStreamItem, ModelError>,
+        >,
+    ) -> Option<Result<ModelStreamItem, ModelError>> {
+        loop {
+            match stream.next().await {
+                Some(Ok(ModelStreamItem::Status(_))) => continue,
+                other => return other,
+            }
+        }
+    }
     assert!(matches!(
-        stream.next().await,
+        next_visible(&mut stream).await,
         Some(Ok(ModelStreamItem::Event(ModelEvent::MessageStart { .. })))
     ));
     // 文本块的开始与正文。
     for _ in 0..2 {
         assert!(matches!(
-            stream.next().await,
+            next_visible(&mut stream).await,
             Some(Ok(ModelStreamItem::Event(_)))
         ));
     }
     assert!(matches!(
-        stream.next().await,
+        next_visible(&mut stream).await,
         Some(Ok(ModelStreamItem::Notice(ModelNotice::Stalled { .. })))
     ));
     cancel.cancel();
-    assert_eq!(stream.next().await, Some(Err(ModelError::Cancelled)));
+    assert_eq!(
+        next_visible(&mut stream).await,
+        Some(Err(ModelError::Cancelled))
+    );
     assert_eq!(stream.next().await, None);
 }
 

@@ -20,12 +20,14 @@
 //! 字节产出 `Stalled`（读流与看门狗在 `transport_read.rs`）。
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
 use rust_cli_kernel_api::clock::Clock;
 use rust_cli_kernel_api::model::{
-    ModelError, ModelNotice, ModelRequest, ModelSelection, ModelStreamItem, QuerySource,
+    ModelError, ModelNotice, ModelRequest, ModelRequestStatus, ModelRequestStatusKind,
+    ModelSelection, ModelStreamItem, QuerySource,
 };
 use rust_cli_kernel_api::provider::{EndpointContext, ModelEndpoint, ModelEndpoints, WireProtocol};
 use rust_cli_net::retry::RetryPolicy;
@@ -175,10 +177,44 @@ pub(crate) fn stream(
 
 enum State {
     Resolve(Box<Start>),
-    Connect(Box<Connect>),
+    /// 一次尝试之前：取这次发送的请求 id、记开始时刻，先交出 `model_request_started`。
+    Begin(Box<Connect>),
+    Attempt(Box<Connect>),
     Wait(Box<Connect>, Duration),
     Read(Box<Read>),
+    /// 先交出一项，再继续内层状态（重试一次要交出 failed / retry_scheduled / notice 三项）。
+    Emit(Box<Result<ModelStreamItem, ModelError>>, Box<State>),
+    /// 交出这个错误之后结束。
+    Failing(ModelError),
     Done,
+}
+
+/// 依次交出 `items`，最后进入 `tail`。
+fn before(items: Vec<Result<ModelStreamItem, ModelError>>, tail: State) -> State {
+    let mut state = tail;
+    for item in items.into_iter().rev() {
+        state = State::Emit(Box::new(item), Box::new(state));
+    }
+    state
+}
+
+fn started(status: ModelRequestStatus) -> Result<ModelStreamItem, ModelError> {
+    Ok(ModelStreamItem::Status(status))
+}
+
+fn retry_state(plan: Box<RetryPlan>) -> State {
+    before(
+        vec![
+            started(plan.failed),
+            started(plan.scheduled),
+            Ok(ModelStreamItem::Notice(plan.notice)),
+        ],
+        State::Wait(plan.connect, plan.delay),
+    )
+}
+
+fn failure_state(plan: Box<FailurePlan>) -> State {
+    before(vec![started(plan.status)], State::Failing(plan.error))
 }
 
 async fn step(mut state: State) -> Option<(Result<ModelStreamItem, ModelError>, State)> {
@@ -186,18 +222,17 @@ async fn step(mut state: State) -> Option<(Result<ModelStreamItem, ModelError>, 
         state = match state {
             State::Done => return None,
             State::Resolve(start) => match start.resolve().await {
-                Ok(connect) => State::Connect(Box::new(connect)),
+                Ok(connect) => State::Begin(Box::new(connect)),
                 Err(error) => return Some((Err(error), State::Done)),
             },
-            State::Connect(connect) => match connect.attempt().await {
+            State::Begin(mut connect) => {
+                let status = connect.begin_attempt();
+                return Some((started(status), State::Attempt(connect)));
+            }
+            State::Attempt(connect) => match connect.attempt().await {
                 Outcome::Opened(read) => State::Read(read),
-                Outcome::Retry(notice, connect, delay) => {
-                    return Some((
-                        Ok(ModelStreamItem::Notice(notice)),
-                        State::Wait(connect, delay),
-                    ));
-                }
-                Outcome::Failed(error) => return Some((Err(error), State::Done)),
+                Outcome::Retry(plan) => retry_state(plan),
+                Outcome::Failed(plan) => failure_state(plan),
             },
             State::Wait(connect, delay) => {
                 match connect
@@ -205,45 +240,78 @@ async fn step(mut state: State) -> Option<(Result<ModelStreamItem, ModelError>, 
                     .run_until_cancelled(tokio::time::sleep(delay))
                     .await
                 {
-                    Some(()) => State::Connect(connect),
-                    None => return Some((Err(ModelError::Cancelled), State::Done)),
+                    Some(()) => State::Begin(connect),
+                    None => {
+                        // 等待重试时被取消：这次尝试以 cancelled 收口（Node 同一条 failed 事件）。
+                        let status = connect.failure_status(&ModelError::Cancelled);
+                        before(
+                            vec![started(status)],
+                            State::Failing(ModelError::Cancelled),
+                        )
+                    }
                 }
             }
-            State::Read(mut read) => match read.next().await? {
-                Next::Item(item) => {
-                    let next = if item.is_err() {
-                        State::Done
-                    } else {
-                        State::Read(read)
+            State::Emit(item, next) => return Some((*item, *next)),
+            State::Failing(error) => return Some((Err(error), State::Done)),
+            State::Read(mut read) => match read.next().await {
+                None => {
+                    let status = read.completed_status();
+                    before(vec![started(status)], State::Done)
+                }
+                Some(Next::Item(item)) => {
+                    return match item {
+                        Ok(item) => Some((Ok(item), State::Read(read))),
+                        Err(error) => {
+                            let status = read.failure_status(&error);
+                            Some((started(status), State::Failing(error)))
+                        }
                     };
-                    return Some((item, next));
                 }
                 // 交出边界之前失败（P1，provider-errors.md §3.2）：扣住的事件随响应丢掉，按处置表重发或交给调用方。
-                Next::Early(verdict) => {
+                Some(Next::Early(verdict)) => {
                     let (connect, tape) = read.into_parts();
                     return Some(match connect.fail(verdict, Phase::Stream, tape).await {
-                        Ok((notice, connect, delay)) => (
-                            Ok(ModelStreamItem::Notice(notice)),
-                            State::Wait(connect, delay),
-                        ),
-                        Err(error) => (Err(error), State::Done),
+                        Ok(plan) => {
+                            let failed = plan.failed.clone();
+                            (started(failed), retry_state(plan))
+                        }
+                        Err(plan) => {
+                            let status = plan.status.clone();
+                            (started(status), failure_state(plan))
+                        }
                     });
                 }
-                Next::Idle(limit) => {
+                Some(Next::Idle(limit)) => {
                     // 丢掉这次响应（关闭连接），按进度决定静默重发、G 还是报错（stall-visibility.md §2.3）。
                     let progress = read.progress();
                     let (connect, tape) = read.into_parts();
                     let idle = ModelError::StreamIdle {
                         idle_ms: millis(limit),
                     };
+                    let stalled = connect.stalled_status(millis(limit), millis(limit));
                     return Some(match connect.idle(limit, progress) {
-                        Ok((notice, connect)) => {
+                        Ok(mut plan) => {
                             end(tape, End::Idle(idle, Some(0)));
-                            (Ok(ModelStreamItem::Notice(notice)), State::Connect(connect))
+                            // 看门狗的静默重发是立即的：retry_scheduled 的等待是 0。
+                            plan.scheduled.reason = Some("stream_idle_timeout".to_owned());
+                            (
+                                started(stalled),
+                                before(
+                                    vec![
+                                        started(plan.failed),
+                                        started(plan.scheduled),
+                                        Ok(ModelStreamItem::Notice(plan.notice)),
+                                    ],
+                                    State::Begin(plan.connect),
+                                ),
+                            )
                         }
-                        Err(error) => {
+                        Err(plan) => {
                             end(tape, End::Idle(idle, None));
-                            (Err(error), State::Done)
+                            (
+                                started(stalled),
+                                before(vec![started(plan.status)], State::Failing(plan.error)),
+                            )
                         }
                     });
                 }
@@ -311,6 +379,13 @@ impl Start {
         let selection = request.selection.clone();
         let fallback = request.options.fallback_model.clone();
         let overload_retry = retries_overload(&request.source);
+        // 状态事实要的来源与回合 id（编码会消费请求）。
+        let source = request.source.clone();
+        let query_id = request
+            .options
+            .run
+            .as_ref()
+            .map(|run| run.as_str().to_owned());
         // 模型不接受图片时换成占位文字（model.md §10.5），三种协议共用。
         crate::media::project(&mut request.messages, &endpoint);
         let profile = route.profile(&endpoint);
@@ -350,6 +425,10 @@ impl Start {
             limits,
             cancel,
             trail,
+            source,
+            query_id,
+            started_ms: 0,
+            request_id: None,
         })
     }
 }
@@ -389,12 +468,37 @@ pub(crate) struct Connect {
     cancel: CancellationToken,
     /// 模型轨迹：每次发送开一个录音（model-io.md §6）。
     trail: Option<Trail>,
+    /// 这次请求的来源（`v4/telemetry/event` 的 `querySource`）。
+    source: QuerySource,
+    /// 回合 ID（`v4/telemetry/event` 的 `queryId`）：请求没带时缺席。
+    query_id: Option<String>,
+    /// 这次尝试的开始时刻（`model_request_*` 的 `durationMs` 起点）。
+    started_ms: u64,
+    /// 这次发送的 `x-request-id`（同一枚用于请求头与 `requestId` 事实）。
+    request_id: Option<String>,
+}
+
+/// 重试一次要交出的全部东西（状态事实、给界面的通知与下一次发送）。
+pub(crate) struct RetryPlan {
+    pub notice: ModelNotice,
+    pub connect: Box<Connect>,
+    pub delay: Duration,
+    /// `model_request_failed`（这次尝试的失败）。
+    pub failed: ModelRequestStatus,
+    /// `model_retry_scheduled`（下一次尝试与等待）。
+    pub scheduled: ModelRequestStatus,
+}
+
+/// 终态失败：错误本身与 `model_request_failed` 事实。
+pub(crate) struct FailurePlan {
+    pub error: ModelError,
+    pub status: ModelRequestStatus,
 }
 
 enum Outcome {
     Opened(Box<Read>),
-    Retry(ModelNotice, Box<Connect>, Duration),
-    Failed(ModelError),
+    Retry(Box<RetryPlan>),
+    Failed(Box<FailurePlan>),
 }
 
 impl Connect {
@@ -407,6 +511,7 @@ impl Connect {
             &self.endpoint,
             self.route.headers.as_deref(),
             &self.origin,
+            self.request_id.as_deref(),
         );
         let mut tape = self
             .trail
@@ -418,7 +523,9 @@ impl Connect {
             .await
         else {
             end(tape, End::Cancelled);
-            return Outcome::Failed(ModelError::Cancelled);
+            let error = ModelError::Cancelled;
+            let status = self.failure_status(&error);
+            return Outcome::Failed(Box::new(FailurePlan { error, status }));
         };
         let verdict = match sent {
             Ok(response) if response.is_success() => {
@@ -441,7 +548,9 @@ impl Connect {
                 {
                     None => {
                         end(tape, End::Cancelled);
-                        return Outcome::Failed(ModelError::Cancelled);
+                        let error = ModelError::Cancelled;
+                        let status = self.failure_status(&error);
+                        return Outcome::Failed(Box::new(FailurePlan { error, status }));
                     }
                     Some(Ok(body)) => {
                         if let Some(tape) = &mut tape {
@@ -461,13 +570,103 @@ impl Connect {
             Err(error) => errors::classify_transport(&error),
         };
         match self.fail(verdict, Phase::Head, tape).await {
-            Ok((notice, connect, delay)) => Outcome::Retry(notice, connect, delay),
-            Err(error) => Outcome::Failed(error),
+            Ok(plan) => Outcome::Retry(plan),
+            Err(plan) => Outcome::Failed(plan),
         }
     }
 
     pub(crate) fn cancel(&self) -> &CancellationToken {
         &self.cancel
+    }
+
+    /// 含首次尝试的总尝试数（`v4/telemetry/event` 的 `maxAttempts`）。
+    fn max_attempts(&self) -> u32 {
+        self.route.retry.max_retries.saturating_add(1)
+    }
+
+    /// 这次尝试已经过去多久（用注入的时钟，测试在暂停的时钟上也是准的）。
+    fn elapsed_ms(&self) -> u64 {
+        self.route
+            .clock
+            .now_ms()
+            .saturating_sub(self.started_ms)
+    }
+
+    fn status(&self, kind: ModelRequestStatusKind) -> ModelRequestStatus {
+        ModelRequestStatus {
+            kind,
+            request_id: self.request_id.clone().unwrap_or_default(),
+            provider_id: self.selection.provider.clone(),
+            model_id: self.endpoint.model.clone(),
+            provider_hostname: host_of(&self.endpoint.base_url),
+            transport: "sse".to_owned(),
+            query_source: Some(self.source.node_name()),
+            query_id: self.query_id.clone(),
+            attempt: self.attempt,
+            max_attempts: self.max_attempts(),
+            duration_ms: None,
+            reason: None,
+            retryable: None,
+            status_code: None,
+            delay_ms: None,
+            next_attempt: None,
+            idle_ms: None,
+            timeout_ms: None,
+        }
+    }
+
+    /// 开始一次尝试：取这次发送的请求 id（与 `x-request-id` 同一枚）、记开始时刻。
+    pub(crate) fn begin_attempt(&mut self) -> ModelRequestStatus {
+        self.started_ms = self.route.clock.now_ms();
+        self.request_id = Some(match self.route.headers.as_deref() {
+            Some(headers) => (headers.request_id)(),
+            None => fallback_request_id(self.route.clock.as_ref()),
+        });
+        self.status(ModelRequestStatusKind::ModelRequestStarted)
+    }
+
+    /// 一次成功读流的终态（`model_request_completed`）。
+    pub(crate) fn completed_status(&self) -> ModelRequestStatus {
+        let mut status = self.status(ModelRequestStatusKind::ModelRequestCompleted);
+        status.duration_ms = Some(self.elapsed_ms());
+        status
+    }
+
+    /// 一次失败的终态（没有可选的状态码 / 可重试标记）。
+    pub(crate) fn failure_status(&self, error: &ModelError) -> ModelRequestStatus {
+        self.failed_status(error, false, None)
+    }
+
+    fn failed_status(
+        &self,
+        error: &ModelError,
+        retryable: bool,
+        status_code: Option<u16>,
+    ) -> ModelRequestStatus {
+        let mut status = self.status(ModelRequestStatusKind::ModelRequestFailed);
+        status.duration_ms = Some(self.elapsed_ms());
+        status.reason = Some(failure_reason(error).to_owned());
+        status.retryable = Some(retryable);
+        status.status_code = status_code;
+        status
+    }
+
+    /// 一次看门狗中止（`model_stream_stalled`）。
+    pub(crate) fn stalled_status(&self, idle_ms: u64, timeout_ms: u64) -> ModelRequestStatus {
+        let mut status = self.status(ModelRequestStatusKind::ModelStreamStalled);
+        status.idle_ms = Some(idle_ms);
+        status.timeout_ms = Some(timeout_ms);
+        status
+    }
+
+    /// 决定重发之后的 `model_retry_scheduled`（`attempt` 还没有加一）。
+    fn retry_status(&self, error: &ModelError, status_code: Option<u16>, delay: Duration) -> ModelRequestStatus {
+        let mut status = self.status(ModelRequestStatusKind::ModelRequestRetryScheduled);
+        status.delay_ms = Some(millis(delay));
+        status.next_attempt = Some(self.attempt.saturating_add(1));
+        status.reason = Some(failure_reason(error).to_owned());
+        status.status_code = status_code;
+        status
     }
 
     /// 看门狗中止了这次流（stall-visibility.md §2.3）。`progress` 是（解码出过事件，越过了交出边界）。越过了边界：报
@@ -477,18 +676,20 @@ impl Connect {
         mut self: Box<Self>,
         limit: Duration,
         (received, crossed): (bool, bool),
-    ) -> Result<(ModelNotice, Box<Self>), ModelError> {
+    ) -> Result<Box<RetryPlan>, Box<FailurePlan>> {
         let error = ModelError::StreamIdle {
             idle_ms: millis(limit),
         };
         if crossed {
-            return Err(error);
+            let status = self.failure_status(&error);
+            return Err(Box::new(FailurePlan { error, status }));
         }
         let max_retries = self.route.retry.max_retries;
         if !received && self.stalls == 0 && self.attempt <= max_retries {
             self.stalls += 1;
         } else if self.resend().is_none() {
-            return Err(error);
+            let status = self.failure_status(&error);
+            return Err(Box::new(FailurePlan { error, status }));
         }
         tracing::debug!(
             event = "model.attempt.failed",
@@ -499,6 +700,8 @@ impl Connect {
             error = %error,
             "model stream idle; retrying"
         );
+        let failed = self.failed_status(&error, true, None);
+        let scheduled = self.retry_status(&error, None, Duration::ZERO);
         let notice = ModelNotice::Retrying {
             attempt: self.attempt,
             max_retries,
@@ -507,8 +710,64 @@ impl Connect {
         };
         self.attempt += 1;
         self.notified = true;
-        Ok((notice, self))
+        Ok(Box::new(RetryPlan {
+            notice,
+            connect: self,
+            delay: Duration::ZERO,
+            failed,
+            scheduled,
+        }))
     }
+}
+
+/// `v4/telemetry/event` 的 `reason` 词表（Node `ModelFailureReason` 的拼写；内核没有对应词的
+/// 用自己的词，Host schema 收任意字符串）。
+fn failure_reason(error: &ModelError) -> &'static str {
+    match error {
+        ModelError::Cancelled => "cancelled",
+        ModelError::RateLimited { .. } => "rate_limited",
+        ModelError::Overloaded { .. } => "provider_overloaded",
+        ModelError::PromptTooLong { .. } => "context_exceeded",
+        ModelError::Authentication { .. } => "auth_failed",
+        ModelError::InvalidRequest { .. } => "invalid_request",
+        ModelError::Network { .. } => "network_error",
+        ModelError::Server { .. } => "server_error",
+        ModelError::Protocol { .. }
+        | ModelError::FallbackTriggered { .. }
+        | ModelError::Unsupported { .. } => "unknown",
+        ModelError::StreamIdle { .. } => "timeout",
+        ModelError::QuotaExhausted { .. } => "quota_exhausted",
+        ModelError::ContentBlocked { .. } => "content_blocked",
+        ModelError::RequestTooLarge { .. } => "request_too_large",
+    }
+}
+
+/// 端点地址里的主机名（Host `providerHostname`：不带 scheme、端口、路径；IPv6 保留方括号）。
+fn host_of(base_url: &str) -> Option<String> {
+    let rest = base_url
+        .split_once("://")
+        .map_or(base_url, |(_, rest)| rest);
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let authority = authority.rsplit('@').next().unwrap_or(authority);
+    if authority.is_empty() {
+        return None;
+    }
+    if let Some(after) = authority.strip_prefix('[') {
+        let host = after.split_once(']')?.0;
+        return (!host.is_empty()).then(|| format!("[{host}]"));
+    }
+    let host = authority.split(':').next().unwrap_or(authority);
+    (!host.is_empty()).then(|| host.to_ascii_lowercase())
+}
+
+/// 没有每请求头来源（测试、嵌入）时的请求 id：进程内唯一，够关联同一进程的日志与事实。
+fn fallback_request_id(clock: &dyn Clock) -> String {
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    format!(
+        "req_{}_{}",
+        clock.now_ms(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    )
 }
 
 #[path = "transport_retry.rs"]

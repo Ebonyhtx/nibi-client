@@ -1,18 +1,16 @@
-//! 会话实时事实（141 审计 §9 第 5 项余项）：`v4/telemetry/event` 通知的线上形状。
+//! 会话实时事实（141 审计 §9 第 5 项）：`v4/telemetry/event` 通知的线上形状。
 //!
 //! Host 的契约是 `packages/shared/src/nibi-protocol-v4/telemetry.ts` 的
-//! `conversationTelemetryFactSchema`（10 个 kind 的严格判别联合，每支 `.strict()`）。这里只建
-//! **内核事件流能如实产出的 8 个 kind**：
+//! `conversationTelemetryFactSchema`（10 个 kind 的严格判别联合，每支 `.strict()`）。这里建的是
+//! 内核事件流能如实产出的 10 个 kind：
 //!
 //! - `turn.started` / `turn.terminal` / `usage.delta` / `compaction.terminal`；
-//! - `stream.chunk` / `tool.lifecycle` / `permission.lifecycle` / `subagent.lifecycle`。
+//! - `stream.chunk` / `tool.lifecycle` / `permission.lifecycle` / `subagent.lifecycle`；
+//! - `model.request.status`（模型传输层的请求生命周期）与 `workflow.lifecycle`（DWF 引擎的
+//!   actor 创建 / run 结算写进父会话事件流）。
 //!
-//! 缺的两支与原因：
-//! - `model.request.status`：内核的模型端口没有 request / retry / stall 这些可观察事件
-//!   （Node 侧来自 `ModelNetworkStatus` 事件），没有采集点就没有事实；
-//! - `workflow.lifecycle`：来自动态工作流的 run 进度事件，内核的 run 进度不经过会话事件流。
-//!
-//! 每个字段都是 Host schema 的白名单字段；可选字段缺席就不写（strict 不认多余键）。
+//! 每个字段都是 Host schema 的白名单字段；可选字段缺席就不写（strict 不认多余键）。Node 有而内核
+//! 没有的字段（`providerKind`、工作流的 `sourceCommandId` 等）如实缺席，不造值。
 
 use serde::{Deserialize, Serialize};
 
@@ -241,6 +239,66 @@ pub enum ConversationTelemetryFact {
         background: bool,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         status: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_message: Option<String>,
+    },
+    /// 一次模型请求的状态（Host `modelRequestStatusFactSchema`）。
+    #[serde(rename = "model.request.status", rename_all = "camelCase")]
+    ModelRequestStatus {
+        #[serde(flatten)]
+        base: TelemetryFactBase,
+        request_id: String,
+        /// `model_request_started` / `model_request_completed` / `model_request_failed` /
+        /// `model_retry_scheduled` / `model_stream_stalled`。
+        status: String,
+        provider_id: String,
+        model_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        provider_kind: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        provider_hostname: Option<String>,
+        transport: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        query_source: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        query_id: Option<String>,
+        attempt: u32,
+        max_attempts: u32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        duration_ms: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        reason: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        retryable: Option<bool>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        status_code: Option<u16>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        delay_ms: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        next_attempt: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        idle_ms: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        timeout_ms: Option<u64>,
+    },
+    /// 动态工作流子代理的归属事实（Host `workflowLifecycleFactSchema`）。
+    #[serde(rename = "workflow.lifecycle", rename_all = "camelCase")]
+    WorkflowLifecycle {
+        #[serde(flatten)]
+        base: TelemetryFactBase,
+        /// `actor-spawned` 或 `run-settled`。
+        phase: String,
+        run_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tool_call_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        agent_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        child_session_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        status: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        stop_reason: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         error_message: Option<String>,
     },

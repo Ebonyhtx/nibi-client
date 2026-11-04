@@ -30,6 +30,8 @@ use crate::protocol::StreamDecoder;
 use crate::transport::Connect;
 
 /// 读流的下一步。
+// 不装箱 `Item`：每个流式事件都走这里，装箱会多一次分配；这个枚举只在栈上短暂存在。
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Next {
     Item(Result<ModelStreamItem, ModelError>),
     /// 超过了这个空闲上限：这次响应作废。
@@ -105,6 +107,19 @@ impl Read {
     pub(crate) fn into_parts(self: Box<Self>) -> (Box<Connect>, Option<Tape>) {
         let Self { connect, tape, .. } = *self;
         (connect, tape)
+    }
+
+    /// 这次响应正常读完（`model_request_completed`）。
+    pub(crate) fn completed_status(&self) -> rust_cli_kernel_api::model::ModelRequestStatus {
+        self.connect.completed_status()
+    }
+
+    /// 越过交出边界之后的流内失败（`model_request_failed`，不再重试）。
+    pub(crate) fn failure_status(
+        &self,
+        error: &ModelError,
+    ) -> rust_cli_kernel_api::model::ModelRequestStatus {
+        self.connect.failure_status(error)
     }
 
     /// 下一项；流正常结束时为 `None`。流结束或交给调用方的出错时结束这次发送的录音（交出边界之前的失败由 transport

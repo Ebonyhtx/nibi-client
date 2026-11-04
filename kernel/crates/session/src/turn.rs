@@ -461,6 +461,10 @@ impl Actor {
             }
             // 模型通知只供显示，不落库（stall-visibility.md §1）。
             QueryEvent::ModelNotice { notice } => KernelEvent::ModelNotice { notice },
+            // 请求生命周期状态只进实时事件流（`v4/telemetry/event` 的事实来源），不落库。
+            QueryEvent::ModelRequestStatus { status } => {
+                KernelEvent::ModelRequestStatus { status }
+            }
         };
         self.log.append(event);
     }

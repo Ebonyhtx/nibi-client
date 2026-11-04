@@ -219,6 +219,8 @@ impl Transcript {
             KernelEvent::ModelNotice { notice } => {
                 super::Notice::fold(&mut self.notice, notice, now_ms);
             }
+            // 请求状态与工作流归属只供埋点，不进 TUI 记录。
+            KernelEvent::ModelRequestStatus { .. } | KernelEvent::WorkflowLifecycle { .. } => {}
             // 扣住的同伴消息不进记录：批准框只看会话视图与这个快照（cross-session.md §2.6）。
             KernelEvent::PeerHeldChanged { held } => self.peer_held = held,
         }

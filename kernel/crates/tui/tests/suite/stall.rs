@@ -45,7 +45,7 @@ impl ModelPort for NoticeModel {
             .filter_map(|item| async move {
                 match item {
                     Ok(ModelStreamItem::Event(event)) => Some(Ok(event)),
-                    Ok(ModelStreamItem::Notice(_)) => None,
+                    Ok(ModelStreamItem::Notice(_) | ModelStreamItem::Status(_)) => None,
                     Err(error) => Some(Err(error)),
                 }
             })

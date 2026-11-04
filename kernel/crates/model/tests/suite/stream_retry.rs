@@ -8,7 +8,8 @@
 
 use futures_util::StreamExt;
 use rust_cli_kernel_api::model::{
-    ModelError, ModelEvent, ModelNotice, ModelPort, ModelStreamItem, QuerySource,
+    ModelError, ModelEvent, ModelNotice, ModelPort, ModelRequestStatusKind, ModelStreamItem,
+    QuerySource,
 };
 use rust_cli_model::ProviderModel;
 use serde_json::json;
@@ -46,6 +47,10 @@ async fn shape_of(
 ) -> (Vec<String>, Vec<Result<ModelStreamItem, ModelError>>) {
     let items: Vec<_> = model
         .stream_with_notices(request("hi", source), CancellationToken::new())
+        .filter_map(|item| async move {
+            // 生命周期状态不是这些用例的对象：去掉它，断言只关心通知与事件。
+            (!matches!(item, Ok(ModelStreamItem::Status(_)))).then_some(item)
+        })
         .collect()
         .await;
     let shape = items
@@ -58,6 +63,7 @@ async fn shape_of(
                 format!("retrying({error}, {delay})")
             }
             Ok(ModelStreamItem::Notice(notice)) => format!("{notice:?}").to_lowercase(),
+            Ok(ModelStreamItem::Status(_)) => "status".to_owned(),
             Ok(ModelStreamItem::Event(_)) => "event".to_owned(),
             Err(error) => format!("error({error})"),
         })
@@ -205,4 +211,70 @@ async fn overloads_in_the_head_and_the_stream_share_the_count() {
         })]
     );
     assert_eq!(server.requests().len(), 3);
+}
+
+/// 请求生命周期状态：每次尝试先 `started`；失败时 `failed`（可重试）+ `retry_scheduled`；
+/// 正常读完 `completed`。字段与 Node 的 `ModelNetworkStatusEvent` 同义。
+#[tokio::test]
+async fn retries_report_request_lifecycle_statuses() {
+    let server = Fixture::start(vec![
+        Reply::new(500).send(
+            json!({"type": "error", "error": {"type": "api_error", "message": "boom"}}).to_string(),
+        ),
+        Reply::new(200).send(text_response(&["ok"])),
+    ])
+    .await;
+    let model = model_at(server.url(), fast_retry(3)).await;
+    let items: Vec<_> = model
+        .stream_with_notices(
+            request("hi", QuerySource::MainThread),
+            CancellationToken::new(),
+        )
+        .collect()
+        .await;
+    let statuses: Vec<_> = items
+        .iter()
+        .filter_map(|item| match item {
+            Ok(ModelStreamItem::Status(status)) => Some(status),
+            _ => None,
+        })
+        .collect();
+    let kinds: Vec<_> = statuses.iter().map(|status| status.kind).collect();
+    assert_eq!(
+        kinds,
+        [
+            ModelRequestStatusKind::ModelRequestStarted,
+            ModelRequestStatusKind::ModelRequestFailed,
+            ModelRequestStatusKind::ModelRequestRetryScheduled,
+            ModelRequestStatusKind::ModelRequestStarted,
+            ModelRequestStatusKind::ModelRequestCompleted,
+        ],
+        "{statuses:?}"
+    );
+    let first = statuses[0];
+    assert_eq!(first.attempt, 1);
+    assert_eq!(first.max_attempts, 4);
+    assert!(!first.request_id.is_empty());
+    assert_eq!(first.provider_id, "anthropic");
+    assert_eq!(first.transport, "sse");
+    assert_eq!(first.query_source.as_deref(), Some("main_turn"));
+    assert_eq!(first.provider_hostname.as_deref(), Some("127.0.0.1"));
+    let failed = statuses[1];
+    assert_eq!(failed.attempt, 1);
+    assert_eq!(failed.reason.as_deref(), Some("server_error"));
+    assert_eq!(failed.retryable, Some(true));
+    assert_eq!(failed.status_code, Some(500));
+    assert!(failed.duration_ms.is_some());
+    let retry = statuses[2];
+    assert_eq!(retry.attempt, 1);
+    assert_eq!(retry.next_attempt, Some(2));
+    assert_eq!(retry.status_code, Some(500));
+    assert!(retry.delay_ms.is_some());
+    let second = statuses[3];
+    assert_eq!(second.attempt, 2);
+    assert_ne!(second.request_id, first.request_id);
+    let completed = statuses[4];
+    assert_eq!(completed.attempt, 2);
+    assert!(completed.duration_ms.is_some());
+    assert!(completed.retryable.is_none());
 }

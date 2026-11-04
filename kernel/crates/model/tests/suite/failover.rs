@@ -171,6 +171,10 @@ async fn retries_are_reported_as_notices() {
             request("hi", QuerySource::MainThread),
             CancellationToken::new(),
         )
+        .filter_map(|item| async move {
+            // 生命周期状态不是这个用例的对象。
+            (!matches!(item, Ok(ModelStreamItem::Status(_)))).then_some(item)
+        })
         .collect()
         .await;
     match items.first() {
