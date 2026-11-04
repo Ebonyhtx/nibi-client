@@ -212,10 +212,16 @@ async fn child_process() {
         return;
     };
     let pid = std::process::id();
+    // 两个子进程与整仓测试并行跑：等锁上限从产品缺省 2s 放宽到 10s，避免调度抖动让等待方先超时、
+    // 退回自己生成的值（那是测试环境的抖动，不是产品语义）。
     let device = DeviceMid::new(
         &paths(Path::new(&home)),
         Arc::new(move || format!("pid-{pid}")),
-    );
+    )
+    .with_lock_options(PidLockOptions {
+        attempts: 1_000,
+        ..PidLockOptions::default()
+    });
     std::fs::write(out, device.get().await).unwrap();
 }
 
