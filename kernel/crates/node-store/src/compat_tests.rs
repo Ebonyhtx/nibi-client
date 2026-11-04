@@ -286,7 +286,7 @@ async fn a_node_group_session_keeps_rules_and_mode_in_the_session_row() {
     assert_eq!(
         rows_of(&t, "select permission from session where id = 'sess_1'"),
         vec![json!(
-            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Read"},{"toolName":"Bash","ruleContent":"npm test:*"}]}"#
+            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Read"},{"toolName":"Bash","ruleContent":"npm test:*"}],"rust-cli/permission_mode":"acceptEdits"}"#
         )]
     );
     assert_eq!(
@@ -361,7 +361,7 @@ async fn set_session_permission_creates_the_scope_later_grants_use() {
     assert_eq!(
         rows_of(&t, "select permission from session where id = 'sess_1'"),
         vec![json!(
-            r#"{"version":1,"scope":"session","mode":"build","allow":[{"toolName":"Bash","ruleContent":"npm test:*"}]}"#
+            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Bash","ruleContent":"npm test:*"}],"rust-cli/permission_mode":"acceptEdits"}"#
         )]
     );
     assert_eq!(rows_of(&t, "select count(*) from local_setting"), vec![json!(0)]);

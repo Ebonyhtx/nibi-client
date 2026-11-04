@@ -56,14 +56,25 @@ fn decode(text: &str) -> Option<PermissionMode> {
 }
 
 /// 在提交事务里写本会话所在项目的持久模式（Node `saveProjectPermissionMode`，整份替换）。Node 群协作会话
-/// （`permission.scope = session`）不写：Node `setMode` 的群模式属于任务授权，不能成为工作区的缺省（修复线 F2）。
+/// （`permission.scope = session`）不写工作区缺省，模式写回会话行的 `permission.mode`（修复线 F2；
+/// 2026-11-05 补上会话行的这一笔——以前直接返回 Ok，冷恢复会退回创建时的 build）。
 pub(crate) fn write(ctx: &Commit<'_>, mode: PermissionMode) -> Result<(), StoreError> {
     let row = crate::repo::sessions::get(ctx.conn, ctx.session).storage()?;
-    if row
+    if let Some(permission) = row
         .as_ref()
         .and_then(|row| crate::project_rules::scoped(row.permission.as_ref()))
-        .is_some()
     {
+        // Node 群协作会话（`permission.scope = session`）的 `setMode`：模式写回会话行的
+        // `permission.mode`（`{...permission, mode}`，保留 scope 与规则），不写工作区的缺省模式。
+        let mut next = permission.clone();
+        next.insert("mode".into(), mode::permission_value(mode).into());
+        next.insert(PERMISSION_MODE_ENTRY.into(), mode::entry_name(mode).into());
+        let update = crate::repo::sessions::Update {
+            id: ctx.session.to_owned(),
+            permission: Some(Value::Object(next)),
+            ..Default::default()
+        };
+        crate::repo::sessions::update(ctx.conn, &update, ctx.now as i64).storage()?;
         return Ok(());
     }
     let project = session_project(ctx)?;
