@@ -25,7 +25,7 @@ use rust_cli_kernel_api::clock::Clock;
 use rust_cli_kernel_api::message::ContentBlock;
 use rust_cli_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest,
-    ModelSelection, QuerySource, RequestOptions,
+    ModelSelection, ModelStreamItem, QuerySource, RequestOptions,
 };
 use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
 use rust_cli_model::{FixedEndpoint, ModelIoRecord, ModelIoSink, ProviderModel, RetryPolicy};
@@ -330,5 +330,52 @@ async fn deepseek_invalid_model_is_not_retried() {
         recorder.records().len(),
         1,
         "non-retryable errors are sent once"
+    );
+}
+
+#[tokio::test]
+#[ignore = "live provider test; export NIBI_LIVE_DEEPSEEK_KEY first"]
+async fn deepseek_cancel_is_not_retried() {
+    let (model, recorder) = model(WireProtocol::OpenAiChatCompletions).await;
+    let selected =
+        std::env::var("NIBI_LIVE_DEEPSEEK_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_owned());
+    let cancel = CancellationToken::new();
+    let mut stream = model.stream_with_notices(
+        request(
+            "Write a 5000 word essay about the history of computing.",
+            &selected,
+        ),
+        cancel.clone(),
+    );
+    let mut saw_event = false;
+    let mut error = None;
+    while let Some(item) = stream.next().await {
+        match item {
+            Ok(
+                ModelStreamItem::Event(_) | ModelStreamItem::Notice(_) | ModelStreamItem::Status(_),
+            ) => {
+                if !saw_event {
+                    saw_event = true;
+                    cancel.cancel();
+                }
+            }
+            Err(failure) => {
+                error = Some(failure);
+                break;
+            }
+        }
+    }
+    println!(
+        "cancel: saw_event={saw_event} error={error:?} requests=[{}]",
+        summarize(&recorder.records())
+    );
+    assert!(
+        saw_event,
+        "the request must reach the stream before cancelling"
+    );
+    assert_eq!(
+        recorder.records().len(),
+        1,
+        "a cancelled request is sent once"
     );
 }
