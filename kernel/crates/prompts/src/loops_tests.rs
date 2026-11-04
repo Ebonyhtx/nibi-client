@@ -39,12 +39,12 @@ fn loop_file_paths_are_the_project_then_home() {
     assert_eq!(
         loop_file_paths("/Users/dev/repo", Some("/Users/dev"), join),
         [
-            "/Users/dev/repo|.zcode|loop.md",
-            "/Users/dev|.zcode|loop.md"
+            "/Users/dev/repo|.nibi|loop.md",
+            "/Users/dev|.nibi|loop.md"
         ]
     );
     assert_eq!(
         loop_file_paths("C:\\repo", None, join),
-        ["C:\\repo|.zcode|loop.md"]
+        ["C:\\repo|.nibi|loop.md"]
     );
 }

@@ -75,16 +75,16 @@ fn separator(style: PathStyle) -> char {
 /// 计划文件放在哪里。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Layout {
-    /// L11c 的旧布局：`<home>/.zcode/plans/<会话>.md`，子代理 `<会话>-agent-<agent>.md`。
+    /// L11c 的旧布局：`<home>/.nibi/plans/<会话>.md`，子代理 `<会话>-agent-<agent>.md`。
     Home,
-    /// Node 的位置（2026-10-18）：`<工作区>/.zcode/plans/plan-<会话>.md`。
+    /// Node 的位置（2026-10-18）：`<工作区>/.nibi/plans/plan-<会话>.md`。
     Workspace,
 }
 
 /// 本会话的计划文件。
 ///
-/// 现在用 [`PlanFiles::in_workspace`]：`<工作区>/.zcode/plans/plan-<会话>.md`（Node
-/// `resolveApprovedPlanFilePath`）。[`PlanFiles::new`] 是 L11c 的旧布局（`<home>/.zcode/plans/<会话>.md`，
+/// 现在用 [`PlanFiles::in_workspace`]：`<工作区>/.nibi/plans/plan-<会话>.md`（Node
+/// `resolveApprovedPlanFilePath`）。[`PlanFiles::new`] 是 L11c 的旧布局（`<home>/.nibi/plans/<会话>.md`，
 /// 文件名不用随机词组），保留不用。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanFiles {
@@ -116,7 +116,7 @@ impl PlanFiles {
     pub fn new(facts: &PathFacts, session: &SessionId) -> Option<Self> {
         let home = facts.home.as_ref()?.as_str();
         Some(Self {
-            // F58：与执行环境里别的 `.zcode` 一样用 `PathStyle::join`（以前只去末尾的分隔符再拼）。
+            // F58：与执行环境里别的 `.nibi` 一样用 `PathStyle::join`（以前只去末尾的分隔符再拼）。
             dir: facts.style.join(home, &[DOT_DIR, "plans"]),
             session: session.to_string(),
             style: facts.style,
@@ -124,7 +124,7 @@ impl PlanFiles {
         })
     }
 
-    /// Node 的位置：`<root>/.zcode/plans/plan-<会话>.md`（tools-more.md §2.2）。`root` 是会话的工作目录；
+    /// Node 的位置：`<root>/.nibi/plans/plan-<会话>.md`（tools-more.md §2.2）。`root` 是会话的工作目录；
     /// 会话 ID 净化后为空时返回 None（Node 报错）。子代理传子会话的 ID。
     pub fn in_workspace(facts: &PathFacts, root: &EnvPath, session: &SessionId) -> Option<Self> {
         let session = sanitize(session.as_str());
@@ -132,7 +132,7 @@ impl PlanFiles {
             return None;
         }
         Some(Self {
-            // F58：与执行环境里别的 `.zcode` 一样用 `PathStyle::join`（Node `path.join`；以前只去末尾的分隔符再拼）。
+            // F58：与执行环境里别的 `.nibi` 一样用 `PathStyle::join`（Node `path.join`；以前只去末尾的分隔符再拼）。
             dir: facts.style.join(root.as_str(), &[DOT_DIR, "plans"]),
             session,
             style: facts.style,

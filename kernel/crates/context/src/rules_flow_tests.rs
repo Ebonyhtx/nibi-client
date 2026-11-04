@@ -30,7 +30,7 @@ fn facts() -> EnvFacts {
 
 fn environment() -> MemoryEnvironment {
     MemoryEnvironment::new(facts())
-        .with_file("/Users/dev/.zcode/AGENTS.md", "user rules")
+        .with_file("/Users/dev/.nibi/AGENTS.md", "user rules")
         .with_file("/Users/dev/w/AGENTS.md", "project rules @docs/style.md")
         .with_file("/Users/dev/w/docs/style.md", "style guide")
         .with_file("/Users/dev/w/src/AGENTS.md", "src rules")
@@ -135,7 +135,7 @@ async fn the_first_step_announces_rules_before_the_git_status() {
     assert_eq!(
         paths,
         [
-            "/Users/dev/.zcode/AGENTS.md",
+            "/Users/dev/.nibi/AGENTS.md",
             "/Users/dev/w/AGENTS.md",
             "/Users/dev/w/docs/style.md"
         ]

@@ -90,7 +90,7 @@ impl Actor {
         }
     }
 
-    /// 读 loop.md：先工作区根下的 `.zcode/loop.md`，再 `~/.zcode/loop.md`（tools-more.md §17.1）。
+    /// 读 loop.md：先工作区根下的 `.nibi/loop.md`，再 `~/.nibi/loop.md`（tools-more.md §17.1）。
     async fn read_loop_file(&self) -> Option<LoopFile> {
         let workspace = &self.meta.workspace;
         // home 与路径拼法都取执行环境的路径事实（F58：与规则文件、子代理、skill 同一个 `PathStyle::join`）。

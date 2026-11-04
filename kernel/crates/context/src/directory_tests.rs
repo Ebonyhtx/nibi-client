@@ -22,9 +22,9 @@ fn assembler() -> PromptAssembler {
     .with_file("/Users/dev/AGENTS.md", "dev rules")
     .with_file("/Users/dev/other/AGENTS.md", "other rules")
     .with_file("/Users/dev/other/AGENTS.local.md", "local notes")
-    .with_file("/Users/dev/other/.zcode/rules/style.md", "style rule")
+    .with_file("/Users/dev/other/.nibi/rules/style.md", "style rule")
     .with_file(
-        "/Users/dev/other/.zcode/rules/scoped.md",
+        "/Users/dev/other/.nibi/rules/scoped.md",
         "---\npaths: src/**\n---\nonly src",
     );
     let env = Arc::new(env);
@@ -73,7 +73,7 @@ async fn new_directory_rules_skip_what_was_announced() {
         .find("Contents of /Users/dev/other/AGENTS.local.md")
         .unwrap();
     let style = text
-        .find("Contents of /Users/dev/other/.zcode/rules/style.md")
+        .find("Contents of /Users/dev/other/.nibi/rules/style.md")
         .unwrap();
     assert!(other < local && local < style, "{text}");
     assert!(

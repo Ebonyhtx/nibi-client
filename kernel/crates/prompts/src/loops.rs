@@ -100,7 +100,7 @@ pub fn loop_file(path: &str, raw: &str) -> Option<LoopFile> {
     })
 }
 
-/// loop.md 的两个位置：项目根下的 `.zcode/loop.md`，再是 `~/.zcode/loop.md`。`join` 是执行环境的路径拼法
+/// loop.md 的两个位置：项目根下的 `.nibi/loop.md`，再是 `~/.nibi/loop.md`。`join` 是执行环境的路径拼法
 /// （调用方传 kernel-api 的 `PathStyle::join`）。
 ///
 /// 修复线 F58：以前这里自己按路径里有没有 `\` 选分隔符、只去末尾的分隔符，与规则文件、子代理、skill 的

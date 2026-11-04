@@ -46,19 +46,19 @@ async fn startup_loads_the_rules_in_priority_order() {
     let env = MemoryEnvironment::new(facts("/Users/dev/w"))
         .with_file("/Library/Application Support/ZCode/AGENTS.md", "managed")
         .with_file(
-            "/Library/Application Support/ZCode/.zcode/rules/m.md",
+            "/Library/Application Support/ZCode/.nibi/rules/m.md",
             "managed rule",
         )
-        .with_file("/Users/dev/.zcode/AGENTS.md", "user")
-        .with_file("/Users/dev/.zcode/rules/u.md", "user rule")
+        .with_file("/Users/dev/.nibi/AGENTS.md", "user")
+        .with_file("/Users/dev/.nibi/rules/u.md", "user rule")
         .with_file("/Users/dev/AGENTS.md", "above the workspace")
         .with_file("/Users/dev/w/AGENTS.md", "project")
-        .with_file("/Users/dev/w/.zcode/AGENTS.md", "dot zcode")
-        .with_file("/Users/dev/w/.zcode/rules/a.md", "rule a")
-        .with_file("/Users/dev/w/.zcode/rules/sub/b.md", "rule b")
-        .with_file("/Users/dev/w/.zcode/rules/note.txt", "not markdown")
+        .with_file("/Users/dev/w/.nibi/AGENTS.md", "dot zcode")
+        .with_file("/Users/dev/w/.nibi/rules/a.md", "rule a")
+        .with_file("/Users/dev/w/.nibi/rules/sub/b.md", "rule b")
+        .with_file("/Users/dev/w/.nibi/rules/note.txt", "not markdown")
         .with_file(
-            "/Users/dev/w/.zcode/rules/ts.md",
+            "/Users/dev/w/.nibi/rules/ts.md",
             "---\npaths: src/**/*.ts\n---\nts",
         )
         .with_file("/Users/dev/w/AGENTS.local.md", "local")
@@ -73,23 +73,23 @@ async fn startup_loads_the_rules_in_priority_order() {
                 Kind::Managed
             ),
             (
-                "/Library/Application Support/ZCode/.zcode/rules/m.md",
+                "/Library/Application Support/ZCode/.nibi/rules/m.md",
                 Kind::Managed
             ),
-            ("/Users/dev/.zcode/AGENTS.md", Kind::User),
-            ("/Users/dev/.zcode/rules/u.md", Kind::User),
-            // `/Users/dev` 这一层：`.zcode/AGENTS.md` 与 `.zcode/rules` 就是用户级的，已处理过。
+            ("/Users/dev/.nibi/AGENTS.md", Kind::User),
+            ("/Users/dev/.nibi/rules/u.md", Kind::User),
+            // `/Users/dev` 这一层：`.nibi/AGENTS.md` 与 `.nibi/rules` 就是用户级的，已处理过。
             ("/Users/dev/AGENTS.md", Kind::Project),
             ("/Users/dev/w/AGENTS.md", Kind::Project),
-            ("/Users/dev/w/.zcode/AGENTS.md", Kind::Project),
-            ("/Users/dev/w/.zcode/rules/a.md", Kind::Project),
-            ("/Users/dev/w/.zcode/rules/sub/b.md", Kind::Project),
+            ("/Users/dev/w/.nibi/AGENTS.md", Kind::Project),
+            ("/Users/dev/w/.nibi/rules/a.md", Kind::Project),
+            ("/Users/dev/w/.nibi/rules/sub/b.md", Kind::Project),
             ("/Users/dev/w/AGENTS.local.md", Kind::Local),
         ]
     );
     // Linux 的系统目录是 /etc/zcode。
     let linux = scope(&env, &ws).startup("linux").await;
-    assert_eq!(linux[0].path, "/Users/dev/.zcode/AGENTS.md");
+    assert_eq!(linux[0].path, "/Users/dev/.nibi/AGENTS.md");
 }
 
 #[tokio::test]
@@ -108,7 +108,7 @@ async fn includes_stop_at_cycles_depth_binaries_and_the_workspace_edge() {
         .with_file("/w/docs/code.md", "inside a code block")
         .with_file("/w/img.png", "binary")
         .with_file("/Users/dev/outside.md", "outside the workspace")
-        .with_file("/Users/dev/.zcode/AGENTS.md", "user @~/notes.md")
+        .with_file("/Users/dev/.nibi/AGENTS.md", "user @~/notes.md")
         .with_file("/Users/dev/notes.md", "user notes");
     let ws = workspace("/w");
     let files = scope(&env, &ws).startup("linux").await;
@@ -116,7 +116,7 @@ async fn includes_stop_at_cycles_depth_binaries_and_the_workspace_edge() {
     assert_eq!(
         paths,
         [
-            "/Users/dev/.zcode/AGENTS.md",
+            "/Users/dev/.nibi/AGENTS.md",
             // User 类型的 include 可以在工作区外。
             "/Users/dev/notes.md",
             "/w/AGENTS.md",
@@ -142,7 +142,7 @@ async fn contents_drop_frontmatter_and_comments_and_empty_files_are_skipped() {
             "/w/AGENTS.md",
             "---\ntitle: x\n---\n# Rules\r\n\r\n<!-- private -->\r\n\r\nUse tabs.\r\n",
         )
-        .with_file("/w/.zcode/AGENTS.md", "<!-- only a comment -->\n\n")
+        .with_file("/w/.nibi/AGENTS.md", "<!-- only a comment -->\n\n")
         .with_file("/w/AGENTS.local.md", "  \n");
     let ws = workspace("/w");
     let files = scope(&env, &ws).startup("linux").await;
@@ -153,27 +153,27 @@ async fn contents_drop_frontmatter_and_comments_and_empty_files_are_skipped() {
 
 #[tokio::test]
 async fn a_nested_worktree_skips_checked_in_files_of_the_main_repository() {
-    let env = MemoryEnvironment::new(facts("/r/.zcode/worktrees/wt"))
+    let env = MemoryEnvironment::new(facts("/r/.nibi/worktrees/wt"))
         .with_file("/r/AGENTS.md", "main repo project")
         .with_file("/r/AGENTS.local.md", "main repo local")
         .with_file("/r/.git/HEAD", "ref: refs/heads/main")
         .with_file("/r/.git/worktrees/wt/commondir", "../..\n")
         .with_file(
             "/r/.git/worktrees/wt/gitdir",
-            "/r/.zcode/worktrees/wt/.git\n",
+            "/r/.nibi/worktrees/wt/.git\n",
         )
         .with_file(
-            "/r/.zcode/worktrees/wt/.git",
+            "/r/.nibi/worktrees/wt/.git",
             "gitdir: /r/.git/worktrees/wt\n",
         )
-        .with_file("/r/.zcode/worktrees/wt/AGENTS.md", "worktree project");
-    let ws = workspace("/r/.zcode/worktrees/wt");
+        .with_file("/r/.nibi/worktrees/wt/AGENTS.md", "worktree project");
+    let ws = workspace("/r/.nibi/worktrees/wt");
     let files = scope(&env, &ws).startup("linux").await;
     assert_eq!(
         summary(&files),
         [
             ("/r/AGENTS.local.md", Kind::Local),
-            ("/r/.zcode/worktrees/wt/AGENTS.md", Kind::Project),
+            ("/r/.nibi/worktrees/wt/AGENTS.md", Kind::Project),
         ]
     );
 }
@@ -182,48 +182,48 @@ async fn a_nested_worktree_skips_checked_in_files_of_the_main_repository() {
 async fn a_touched_file_brings_its_directory_rules_and_matching_conditional_rules() {
     let env = MemoryEnvironment::new(facts("/w"))
         .with_file(
-            "/Users/dev/.zcode/rules/u.md",
+            "/Users/dev/.nibi/rules/u.md",
             "---\npaths: src/ui\n---\nuser ui",
         )
         .with_file(
-            "/Users/dev/.zcode/rules/other.md",
+            "/Users/dev/.nibi/rules/other.md",
             "---\npaths: lib\n---\nuser lib",
         )
         .with_file("/w/AGENTS.md", "root (already announced)")
         .with_file("/w/src/AGENTS.md", "src")
-        .with_file("/w/src/ui/.zcode/AGENTS.md", "ui dot")
+        .with_file("/w/src/ui/.nibi/AGENTS.md", "ui dot")
         .with_file("/w/src/ui/AGENTS.local.md", "ui local")
-        .with_file("/w/src/ui/.zcode/rules/plain.md", "ui plain")
+        .with_file("/w/src/ui/.nibi/rules/plain.md", "ui plain")
         .with_file(
-            "/w/src/ui/.zcode/rules/cond.md",
+            "/w/src/ui/.nibi/rules/cond.md",
             "---\npaths: \"*.tsx\"\n---\nui tsx",
         )
         .with_file(
-            "/w/src/ui/.zcode/rules/css.md",
+            "/w/src/ui/.nibi/rules/css.md",
             "---\npaths: \"*.css\"\n---\nui css",
         )
         .with_file(
-            "/w/.zcode/rules/tsx.md",
+            "/w/.nibi/rules/tsx.md",
             "---\npaths: src/**/*.tsx\n---\nroot tsx",
         )
         .with_file(
-            "/w/.zcode/rules/docs.md",
+            "/w/.nibi/rules/docs.md",
             "---\npaths: docs\n---\nroot docs",
         )
-        .with_file("/w/.zcode/rules/plain.md", "root plain");
+        .with_file("/w/.nibi/rules/plain.md", "root plain");
     let ws = workspace("/w");
     let scope = scope(&env, &ws);
     let files = scope.nested("linux", "/w/src/ui/button.tsx", None).await;
     assert_eq!(
         summary(&files),
         [
-            ("/Users/dev/.zcode/rules/u.md", Kind::User),
+            ("/Users/dev/.nibi/rules/u.md", Kind::User),
             ("/w/src/AGENTS.md", Kind::Project),
-            ("/w/src/ui/.zcode/AGENTS.md", Kind::Project),
+            ("/w/src/ui/.nibi/AGENTS.md", Kind::Project),
             ("/w/src/ui/AGENTS.local.md", Kind::Local),
-            ("/w/src/ui/.zcode/rules/plain.md", Kind::Project),
-            ("/w/src/ui/.zcode/rules/cond.md", Kind::Project),
-            ("/w/.zcode/rules/tsx.md", Kind::Project),
+            ("/w/src/ui/.nibi/rules/plain.md", Kind::Project),
+            ("/w/src/ui/.nibi/rules/cond.md", Kind::Project),
+            ("/w/.nibi/rules/tsx.md", Kind::Project),
         ]
     );
     // 工作区根里的文件：没有子目录，只看条件规则。

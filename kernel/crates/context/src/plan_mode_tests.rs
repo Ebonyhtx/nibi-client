@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use super::*;
 use crate::{ContextConfig, ContextPorts, PromptAssembler, Surface};
 
-const PLAN: &str = "/Users/dev/w/.zcode/plans/plan-sess_1.md";
+const PLAN: &str = "/Users/dev/w/.nibi/plans/plan-sess_1.md";
 
 pub(super) fn human() -> Message {
     Message::User(UserMessage {
@@ -276,7 +276,7 @@ async fn the_exit_points_at_the_plan_file_only_when_it_exists() {
 #[tokio::test]
 async fn subagents_get_their_own_text_and_plan_file() {
     // 子代理跑在子会话：同一目录下的 `plan-<子会话>.md`（tools-more.md §2.2、D15）。
-    let plan = "/Users/dev/w/.zcode/plans/plan-sess_subagent_agent_1.md";
+    let plan = "/Users/dev/w/.nibi/plans/plan-sess_subagent_agent_1.md";
     // 子代理的 plan_mode 只在工具轮结束时的当步 attachment 里（F16，agents.md §4.3），这里直接取那一组。
     let found = assembler(Some("/Users/dev"), None)
         .turn_attachments(request(PermissionMode::Plan, Some("a1")), &[human()])

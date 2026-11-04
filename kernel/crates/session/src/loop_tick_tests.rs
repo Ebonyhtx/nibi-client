@@ -38,12 +38,12 @@ fn loop_md_is_resent_only_when_it_changes() {
     let mut ticks = LoopTicks::default();
     let file = |content: &str| {
         Some(LoopFile {
-            path: "/work/.zcode/loop.md".to_owned(),
+            path: "/work/.nibi/loop.md".to_owned(),
             content: content.to_owned(),
         })
     };
     let first = ticks.file(true, file("- check CI"));
-    assert!(first.starts_with("# /loop tick \u{2014} tasks from /work/.zcode/loop.md\n\n"));
+    assert!(first.starts_with("# /loop tick \u{2014} tasks from /work/.nibi/loop.md\n\n"));
     assert!(first.contains(
         "---\n\n- check CI\n\n---\n\n# /loop tick \u{2014} loop.md tasks (dynamic pacing)"
     ));
@@ -112,7 +112,7 @@ fn scheduled(messages: &[Message]) -> Vec<String> {
         .collect()
 }
 
-/// 触发的哨兵在开回合时展开：loop.md 从工作区的 `.zcode/loop.md` 读；关闭会话时通知任务表。
+/// 触发的哨兵在开回合时展开：loop.md 从工作区的 `.nibi/loop.md` 读；关闭会话时通知任务表。
 #[tokio::test]
 async fn a_fired_sentinel_becomes_the_loop_md_tasks() {
     let model = Arc::new(ScriptedModel::new(vec![text_response(&["done"])]));
@@ -128,7 +128,7 @@ async fn a_fired_sentinel_becomes_the_loop_md_tasks() {
     let environment: Arc<MemoryEnvironment> = Arc::new(
         Arc::try_unwrap(env())
             .unwrap_or_else(|_| unreachable!("fresh environment"))
-            .with_file("/work/.zcode/loop.md", "\n- run the tests\n"),
+            .with_file("/work/.nibi/loop.md", "\n- run the tests\n"),
     );
     let mut setup = Setup::new(model);
     setup.cron = cron.clone();
@@ -139,7 +139,7 @@ async fn a_fired_sentinel_becomes_the_loop_md_tasks() {
     let view = built.session.view().await.unwrap();
     let prompts = scheduled(&view.messages);
     assert_eq!(prompts.len(), 1);
-    assert!(prompts[0].starts_with("# /loop tick \u{2014} tasks from /work/.zcode/loop.md"));
+    assert!(prompts[0].starts_with("# /loop tick \u{2014} tasks from /work/.nibi/loop.md"));
     assert!(prompts[0].contains("\n- run the tests\n"));
     assert!(prompts[0].ends_with(loops::file_tick_fixed()));
     built.session.close(EndReason::Clear).await;
