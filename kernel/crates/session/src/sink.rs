@@ -273,9 +273,9 @@ impl Interactions for ActorSink {
 /// 会话级的询问入口：询问经会话的请求通道交给 actor，登记为不属于回合的交互，只随会话关闭取消。actor 收不下时
 /// （已经退出、正在关闭，或关闭时取消了这条询问）改走进程级的入口（agents.md §4.1.2）。
 pub(crate) struct SessionAsks {
-    requests: mpsc::WeakSender<crate::actor::Request>,
-    session: SessionId,
-    detached: Option<Arc<crate::detached::DetachedAsks>>,
+    pub(crate) requests: mpsc::WeakSender<crate::actor::Request>,
+    pub(crate) session: SessionId,
+    pub(crate) detached: Option<Arc<crate::detached::DetachedAsks>>,
 }
 
 impl SessionAsks {

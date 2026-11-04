@@ -471,6 +471,26 @@ pub trait ToolExecutor: Send + Sync {
     ) -> ToolExecution {
         ToolExecution::output(self.execute(tool, input, context, progress).await)
     }
+
+    /// 只跑校验、PreToolUse hooks 与权限判决链，**不执行工具本身**（Node `executor.authorizeAppTool`）：
+    /// MCP Apps 的页面调用复用宿主的审批链，批准之后由调用方直接发 `tools/call`。返回批准后的输入
+    /// （hook 或判决链可能改过）；拒绝时给出拒绝结果。
+    ///
+    /// 缺省实现一律拒绝：没有审批能力的执行器不能为回合外调用开门。
+    async fn authorize(
+        &self,
+        _tool: Arc<dyn Tool>,
+        _input: Value,
+        _context: ToolUseContext,
+    ) -> Result<Value, ToolOutput> {
+        Err(ToolOutput {
+            content: vec![crate::message::ToolResultContent::Text {
+                text: "Tool authorization is not available".to_owned(),
+            }],
+            is_error: true,
+            display: Value::Null,
+        })
+    }
 }
 
 /// 通用权限判决链（deny 规则 → 工具自身检查 → 模式 → allow 规则 → 询问）。

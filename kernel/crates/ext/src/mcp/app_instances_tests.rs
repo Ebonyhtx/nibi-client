@@ -187,3 +187,60 @@ fn a_retained_instance_is_busy_until_released() {
     assert!(signal.is_cancelled());
     drop(retain);
 }
+
+/// 调用账本：同一个 `callId` 不能重复；取消触发令牌；结束后也不能复用。
+#[test]
+fn call_ledger_deduplicates_and_cancels() {
+    let registry = registry();
+    let lease = registry.open(open("scope-1"), connection(0));
+    let guard = registry
+        .begin_call("s1", &lease, "call-1")
+        .expect("accepted");
+    let token = guard.token();
+    assert!(registry.is_busy(&lease), "进行中的调用占住实例");
+
+    // 进行中重复：拒绝，且不占第二个位。
+    assert!(registry.begin_call("s1", &lease, "call-1").is_err());
+
+    assert!(registry.cancel_call("s1", &lease, "call-1"));
+    assert!(token.is_cancelled());
+
+    // 已结束的 callId 不再接纳；取消回 false。
+    assert!(registry.begin_call("s1", &lease, "call-1").is_err());
+    assert!(!registry.cancel_call("s1", &lease, "call-1"));
+    drop(guard);
+    assert!(!registry.is_busy(&lease));
+
+    // 别的会话可以用同一个 callId（键里有会话）。
+    let mut other = scope();
+    other.session = SessionId::new("s2");
+    let their_lease = registry.open(
+        McpUiOpenRequest {
+            scope: other,
+            scope_id: "scope-2".to_owned(),
+            resource_uri: "ui://panel.html".to_owned(),
+            owner_web_contents_id: 7,
+            account_context: None,
+        },
+        connection(0),
+    );
+    assert!(registry.begin_call("s2", &their_lease, "call-1").is_ok());
+}
+
+/// 关实例先撤账本：进行中的调用被取消，凭证不在之后不能再接纳。
+#[test]
+fn closing_an_instance_clears_its_calls() {
+    let registry = registry();
+    let lease = registry.open(open("scope-1"), connection(0));
+    let guard = registry
+        .begin_call("s1", &lease, "call-1")
+        .expect("accepted");
+    let token = guard.token();
+    registry.close(&lease);
+    assert!(token.is_cancelled(), "实例的取消令牌传给调用");
+    drop(guard);
+    assert!(
+        registry.begin_call("s1", &lease, "call-2").is_err(),
+        "凭证已经不在"
+    );
+}

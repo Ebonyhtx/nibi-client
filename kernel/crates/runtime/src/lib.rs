@@ -38,8 +38,9 @@ use rust_cli_ext::{Ext, ExtPorts};
 use rust_cli_hooks::{HookEngine, HookPorts};
 use rust_cli_kernel_api::agents::{AgentSignals, TaskListStore};
 use rust_cli_kernel_api::clock::{Clock, Ids};
+use rust_cli_kernel_api::env::{OperationContext, Origin};
 use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::{Generation, OwnerEpoch, SessionId, TraceId};
+use rust_cli_kernel_api::ids::{Generation, OwnerEpoch, SessionId, ToolUseId, TraceId};
 use rust_cli_kernel_api::local_services::LocalServices;
 use rust_cli_kernel_api::machine::MachineEnv;
 use rust_cli_kernel_api::model::{ModelPort, ModelSelection};
@@ -53,7 +54,7 @@ use rust_cli_kernel_api::store::{
     ArtifactStore, Fact, FactBatch, SessionFilter, SessionKind, SessionMeta, SessionStore,
     SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::tool::ReadFileStates;
+use rust_cli_kernel_api::tool::{ReadFileStates, ToolOutput, ToolUseContext};
 use rust_cli_policy::PolicyGate;
 use rust_cli_query::{QueryLoop, QueryParts};
 use rust_cli_session::{Opened, Session, SessionState};
@@ -124,6 +125,8 @@ pub struct LocalKernel {
     local: LocalServices,
     defaults: Defaults,
     runner: Arc<dyn QueryRunner>,
+    /// 工具执行管线（与主循环同一个实例）：回合外授权（MCP Apps 的页面调用）经它跑校验、hooks 与权限。
+    executor: Arc<dyn rust_cli_kernel_api::orchestration::ToolExecutor>,
     /// 子代理的信号来源（后台子代理的通知、任务清单变化），交给每个会话 actor。
     agents: Arc<dyn AgentSignals>,
     /// 同一个 `Agents` 实例（DWF 的 actor 轮经它跑；信号与工具注册表都是这一份）。
@@ -463,6 +466,9 @@ impl LocalKernel {
             non_interactive,
             limits: defaults.limits.request,
         };
+        // 回合外的工具审批（MCP Apps 的 `mcp/uiCallTool`）用同一条执行管线：校验、PreToolUse hooks 与
+        // 权限判决都在 `Pipeline::authorize` 里，调用本身由 ext 的 MCP 连接发出（不产生对话回合）。
+        let executor = parts.executor.clone();
         // 子代理与任务清单（工作线 L7）：主线程的工具注册表换成 agents 的（基础工具 + Agent 等），
         // 主循环包一层运行登记；子循环由 `LoopFactory` 用同一套能力组装。
         let agents = Arc::new(Agents::new(
@@ -565,6 +571,7 @@ impl LocalKernel {
             local,
             defaults,
             runner,
+            executor,
             agents: agents.signals(),
             actors: agents.clone(),
             cron: if non_interactive {

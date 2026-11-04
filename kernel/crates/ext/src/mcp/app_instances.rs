@@ -66,6 +66,10 @@ pub(crate) struct McpAppInstances {
     generation: Mutex<u64>,
     records: Mutex<BTreeMap<String, Record>>,
     logical: Mutex<BTreeMap<String, String>>,
+    /// 进行中的页面工具调用（Node `activeUiToolCalls`）：`会话\0token:callId` → 取消令牌。
+    calls: Mutex<BTreeMap<String, CancellationToken>>,
+    /// 已经结束的调用（Node `finishedUiToolCalls`）：同一个 `callId` 不能再用（接纳、取消与终态去重共用）。
+    finished: Mutex<std::collections::BTreeSet<String>>,
     /// 实例关闭之后的通知（`pluginUi.instanceClosed`）：在取消令牌之后调用。
     on_closed: Mutex<Option<ClosedCallback>>,
 }
@@ -81,6 +85,8 @@ impl McpAppInstances {
             generation: Mutex::new(0),
             records: Mutex::new(BTreeMap::new()),
             logical: Mutex::new(BTreeMap::new()),
+            calls: Mutex::new(BTreeMap::new()),
+            finished: Mutex::new(std::collections::BTreeSet::new()),
             on_closed: Mutex::new(None),
         }
     }
@@ -217,6 +223,9 @@ impl McpAppInstances {
             logical.remove(&key);
         }
         drop(logical);
+        // 实例的凭证终结时释放它的调用账本（Node `clearMcpUiInstanceCalls`）：取消令牌随
+        // `record.cancel` 一起发出，账本里不留旧 `callId`。
+        self.clear_calls(&record.binding.session, &record.lease.token);
         record.cancel.cancel();
         if let Some(callback) = lock(&self.on_closed).clone() {
             callback(&record.binding, &record.lease);
@@ -249,9 +258,6 @@ impl McpAppInstances {
     }
 
     /// 占住实例（工具调用、采样）：拿到取消令牌与一个离开作用域就释放的占位。
-    ///
-    /// 切片 2 还没有调用方（`mcp/uiCallTool` 与采样在切片 3）；测试已经用上，先留接口。
-    #[allow(dead_code, reason = "切片 3 的 uiCallTool / sampling 使用")]
     pub(crate) fn retain(self: &Arc<Self>, token: &str) -> Option<(CancellationToken, Retain)> {
         let mut records = lock(&self.records);
         let record = records.get_mut(token)?;
@@ -272,8 +278,72 @@ impl McpAppInstances {
         }
     }
 
+    /// 接纳一个页面工具调用（Node `activeUiToolCalls.set` 那一半）：去重、占住实例、登记取消令牌。
+    ///
+    /// 去重在实例校验之前（与 Node 的处理器同序）：同一个 `callId` 已经进行或已经结束时直接拒绝，
+    /// 不让它再走一遍审批链。占位与账本由返回的 [`CallGuard`] 在离开作用域时释放。
+    pub(crate) fn begin_call(
+        self: &Arc<Self>,
+        session: &str,
+        lease: &McpAppInstance,
+        call_id: &str,
+    ) -> Result<CallGuard, McpUiError> {
+        let key = call_key(session, &lease.token, call_id);
+        if lock(&self.calls).contains_key(&key) || lock(&self.finished).contains(&key) {
+            return Err(McpUiError::duplicate_call());
+        }
+        // 凭证不在了：不能执行（也占不住）。
+        let Some((cancel, retain)) = self.retain(&lease.token) else {
+            return Err(McpUiError::not_authorized());
+        };
+        // 实例关闭时子令牌一起取消（调用中途关页面会停掉 `tools/call`）。
+        let token = cancel.child_token();
+        lock(&self.calls).insert(key.clone(), token.clone());
+        Ok(CallGuard {
+            registry: self.clone(),
+            key,
+            token,
+            _retain: retain,
+        })
+    }
+
+    /// 取消一个进行中的调用（Node `activeUiToolCalls.get` + `abort`）：没有时记入已结束并回 `false`。
+    pub(crate) fn cancel_call(&self, session: &str, lease: &McpAppInstance, call_id: &str) -> bool {
+        let key = call_key(session, &lease.token, call_id);
+        let token = lock(&self.calls).remove(&key);
+        lock(&self.finished).insert(key);
+        match token {
+            Some(token) => {
+                token.cancel();
+                true
+            }
+            None => false,
+        }
+    }
+
+    fn finish_call(&self, key: &str) {
+        lock(&self.calls).remove(key);
+        lock(&self.finished).insert(key.to_owned());
+    }
+
+    /// 实例的凭证终结：中止它的全部进行中调用并清掉账本（`session\0token:` 前缀）。
+    fn clear_calls(&self, session: &str, token: &str) {
+        let prefix = format!("{session}\u{0}{token}:");
+        let mut calls = lock(&self.calls);
+        let keys: Vec<String> = calls
+            .keys()
+            .filter(|key| key.starts_with(&prefix))
+            .cloned()
+            .collect();
+        for key in keys {
+            calls.remove(&key);
+        }
+        drop(calls);
+        lock(&self.finished).retain(|key| !key.starts_with(&prefix));
+    }
+
     /// 实例的取消令牌（关实例时触发）。
-    #[allow(dead_code, reason = "切片 3 的 uiCallTool / sampling 使用")]
+    #[allow(dead_code, reason = "采样（uiSampling）还没接上")]
     pub(crate) fn cancellation(&self, token: &str) -> Option<CancellationToken> {
         lock(&self.records)
             .get(token)
@@ -282,7 +352,6 @@ impl McpAppInstances {
 }
 
 /// 一次占用；离开作用域时自动释放。
-#[allow(dead_code, reason = "切片 3 的 uiCallTool / sampling 使用")]
 pub(crate) struct Retain {
     registry: Arc<McpAppInstances>,
     token: String,
@@ -292,6 +361,32 @@ impl Drop for Retain {
     fn drop(&mut self) {
         self.registry.release(&self.token);
     }
+}
+
+/// 一次页面工具调用的在场凭证：持有实例占用、取消令牌与去重账本；离开作用域时记入已结束。
+pub struct CallGuard {
+    registry: Arc<McpAppInstances>,
+    key: String,
+    token: CancellationToken,
+    _retain: Retain,
+}
+
+impl CallGuard {
+    /// 这次调用与所属实例的取消令牌（`mcp/uiCancelCall` 与关页面都会触发）。
+    pub fn token(&self) -> CancellationToken {
+        self.token.clone()
+    }
+}
+
+impl Drop for CallGuard {
+    fn drop(&mut self) {
+        self.registry.finish_call(&self.key);
+    }
+}
+
+/// 调用账本的键（Node `${sessionId}\0${token}:${callId}`）。
+fn call_key(session: &str, token: &str, call_id: &str) -> String {
+    format!("{session}\u{0}{token}:{call_id}")
 }
 
 /// 稳定应用身份：工作区身份、服务器、连接身份与账号上下文的摘要。

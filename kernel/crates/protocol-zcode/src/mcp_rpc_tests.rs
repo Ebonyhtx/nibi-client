@@ -14,8 +14,9 @@ use rust_cli_kernel_api::mcp_status::{
 };
 use rust_cli_kernel_api::mcp_ui::{
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
-    McpResourceTemplate, McpResourceTemplatePage, McpUiInstanceRequest, McpUiListRequest,
-    McpUiOpenRequest, McpUiReadRequest, McpUiSubscriptionRequest,
+    McpResourceTemplate, McpResourceTemplatePage, McpUiCallToolRequest, McpUiCancelCallRequest,
+    McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest, McpUiReadRequest,
+    McpUiSubscriptionRequest, tool_not_found_message,
 };
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
@@ -47,6 +48,8 @@ struct FakeKernel {
     resources: McpResourcePage,
     templates: McpResourceTemplatePage,
     fail: Option<KernelError>,
+    /// `mcp/uiCallTool` 的固定回答（原样的 `CallToolResult`）。
+    call_result: Value,
 }
 
 /// 记录到的 MCP Apps 调用（断言协议层的参数映射）。
@@ -61,6 +64,8 @@ enum UiCall {
     Templates(McpUiListRequest),
     Subscribe(McpUiSubscriptionRequest),
     Unsubscribe(McpUiSubscriptionRequest),
+    Call(McpUiCallToolRequest),
+    CancelCall(McpUiCancelCallRequest),
 }
 
 impl FakeKernel {
@@ -173,6 +178,19 @@ impl Kernel for FakeKernel {
         request: McpUiSubscriptionRequest,
     ) -> Result<(), KernelError> {
         self.record(UiCall::Unsubscribe(request))
+    }
+
+    async fn mcp_ui_call_tool(&self, request: McpUiCallToolRequest) -> Result<Value, KernelError> {
+        self.record(UiCall::Call(request))?;
+        Ok(self.call_result.clone())
+    }
+
+    async fn mcp_ui_cancel_call(
+        &self,
+        request: McpUiCancelCallRequest,
+    ) -> Result<bool, KernelError> {
+        self.record(UiCall::CancelCall(request))?;
+        Ok(true)
     }
 }
 
@@ -805,4 +823,103 @@ async fn subscriptions_map_the_subscriber_identity() {
     assert_eq!(request.uri, "ui://panel.html");
     assert_eq!(request.instance.instance.token, "token-1");
     assert!(matches!(&calls[1], UiCall::Unsubscribe(_)));
+}
+
+/// `mcp/uiCallTool`：参数逐项落到内核请求（`arguments` 缺省是 `{}`），结果只留 Host 的四个键。
+#[tokio::test]
+async fn calling_a_tool_maps_the_arguments_and_keeps_the_host_result_shape() {
+    let kernel = FakeKernel {
+        call_result: json!({
+            "content": [{"type": "text", "text": "ok"}],
+            "structuredContent": {"n": 1},
+            "isError": false,
+            "_meta": {"trace": "t"},
+            "unexpected": true,
+        }),
+        ..FakeKernel::default()
+    };
+    let (server, ui) = fake_ui(kernel);
+    let mut params = with_instance(scope_json());
+    params["toolName"] = json!("echo");
+    params["callId"] = json!("call-1");
+    let reply = call_method(server.clone(), "mcp/uiCallTool", params.clone()).await;
+    assert_eq!(
+        reply,
+        json!({
+            "content": [{"type": "text", "text": "ok"}],
+            "structuredContent": {"n": 1},
+            "isError": false,
+            "_meta": {"trace": "t"},
+        })
+    );
+    {
+        let calls = ui.lock().unwrap();
+        let UiCall::Call(request) = &calls[0] else {
+            panic!("{calls:?}")
+        };
+        assert_eq!(request.tool_name, "echo");
+        assert_eq!(request.call_id, "call-1");
+        assert!(request.arguments.is_empty());
+        assert_eq!(request.instance.scope.session.as_str(), "s1");
+    }
+
+    // `arguments` 是对象时原样交给内核；不是对象按 -32602 拒绝。
+    params["arguments"] = json!({"text": "hi"});
+    call_method(server.clone(), "mcp/uiCallTool", params.clone()).await;
+    {
+        let calls = ui.lock().unwrap();
+        let UiCall::Call(request) = &calls[1] else {
+            panic!("{calls:?}")
+        };
+        assert_eq!(request.arguments.get("text"), Some(&json!("hi")));
+    }
+    params["arguments"] = json!("not-an-object");
+    let error = call_error_named(server, "mcp/uiCallTool", params).await;
+    assert_eq!(error.code, -32602, "{error:?}");
+}
+
+/// 工具不存在与只给模型用是 -32602 的两种结构化原因（Node `McpUiToolAccessError`）。
+#[tokio::test]
+async fn tool_access_failures_are_invalid_params_with_a_reason() {
+    let server_name = "plugin:toolkit:panel";
+    for (message, reason) in [
+        (tool_not_found_message(server_name, "missing"), "tool_not_found"),
+        (
+            rust_cli_kernel_api::mcp_ui::tool_not_app_visible_message(server_name, "secret"),
+            "tool_not_app_visible",
+        ),
+    ] {
+        let kernel = FakeKernel {
+            fail: Some(KernelError::Failed {
+                message: message.clone(),
+            }),
+            ..FakeKernel::default()
+        };
+        let (server, _ui) = fake_ui(kernel);
+        let mut params = with_instance(scope_json());
+        params["toolName"] = json!(if reason == "tool_not_found" { "missing" } else { "secret" });
+        params["callId"] = json!("call-1");
+        let error = call_error_named(server, "mcp/uiCallTool", params).await;
+        assert_eq!(error.code, -32602, "{error:?}");
+        assert_eq!(error.message, message);
+        let data = error.data.clone().expect("structured reason");
+        assert_eq!(data["reason"], json!(reason));
+        assert_eq!(data["serverName"], json!(server_name));
+    }
+}
+
+/// `mcp/uiCancelCall`：作用域与 `callId` 原样到内核，回执是 `{cancelled}`。
+#[tokio::test]
+async fn cancelling_a_call_returns_the_host_shape() {
+    let (server, ui) = fake_ui(FakeKernel::default());
+    let mut params = with_instance(scope_json());
+    params["callId"] = json!("call-1");
+    let reply = call_method(server, "mcp/uiCancelCall", params).await;
+    assert_eq!(reply, json!({"cancelled": true}));
+    let calls = ui.lock().unwrap();
+    let UiCall::CancelCall(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.call_id, "call-1");
+    assert_eq!(request.instance.scope.session.as_str(), "s1");
 }

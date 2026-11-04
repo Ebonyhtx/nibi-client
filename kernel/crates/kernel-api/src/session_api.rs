@@ -1193,6 +1193,30 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// `mcp/uiCallTool`：页面回调一个本服务器的工具（工具名是服务器给的原始名）。
+    ///
+    /// 复用宿主的工具审批链（schema → PreToolUse hooks → 权限判决，可能经会话询问用户），
+    /// 批准后直接发 `tools/call`；结果是 MCP 的原始 `CallToolResult`，不产生对话回合、不落库。
+    /// 缺省 `Unsupported`（没有 MCP 能力的实现）。
+    async fn mcp_ui_call_tool(
+        &self,
+        _request: crate::mcp_ui::McpUiCallToolRequest,
+    ) -> Result<serde_json::Value, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app tool calls".to_owned(),
+        })
+    }
+
+    /// `mcp/uiCancelCall`：取消一个进行中的页面工具调用；没有这个调用时 `false`（幂等）。
+    async fn mcp_ui_cancel_call(
+        &self,
+        _request: crate::mcp_ui::McpUiCancelCallRequest,
+    ) -> Result<bool, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app tool calls".to_owned(),
+        })
+    }
+
     /// 仍在运行的 MCP 子进程（`process/childProcesses`，141 审计 §9 F3）：pid 与归属，不含采样值。
     /// 桌面按 pid 把整机进程表归到插件；缺省为空（没有 MCP 能力的实现）。
     async fn mcp_child_processes(&self) -> Vec<crate::mcp_state::McpChildProcess> {

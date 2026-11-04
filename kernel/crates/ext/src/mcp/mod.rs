@@ -18,6 +18,7 @@ mod telemetry;
 mod tool;
 mod wait_tool;
 
+pub use app_instances::CallGuard;
 pub(crate) use app_instances::McpAppInstances;
 pub use config::{
     McpScope, McpServer, McpServerOptions, McpServers, McpSettings, normalize_name, tool_name,

@@ -20,8 +20,9 @@ use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
 use rust_cli_kernel_api::mcp_ui::{
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourceTemplate,
-    McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest, McpUiReadRequest, McpUiScope,
-    McpUiSubscriptionRequest, UI_READ_MAX_BYTES, decoded_base64_len, mime_allowed_for_ui,
+    McpUiCallToolRequest, McpUiCancelCallRequest, McpUiInstanceRequest, McpUiListRequest,
+    McpUiOpenRequest, McpUiReadRequest, McpUiScope, McpUiSubscriptionRequest, UI_READ_MAX_BYTES,
+    decoded_base64_len, mime_allowed_for_ui, tool_not_app_visible_message, tool_not_found_message,
 };
 use rust_cli_kernel_api::session_api::KernelError;
 use rust_cli_protocol_core::rpc::RpcError;
@@ -391,6 +392,119 @@ pub(crate) async fn unsubscribe_resource(
         .await
         .map_err(|error| ui_error(&error))?;
     Ok(json!({}))
+}
+
+/// `mcp/uiCallTool`：页面回调一个本服务器的工具。复用宿主审批链，不产生 transcript row；
+/// 结果是 MCP 的原始 `CallToolResult`（只保留 Host schema 的四个键）。
+pub(crate) async fn call_tool(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "toolName",
+            "arguments",
+            "callId",
+        ],
+        "mcp/uiCallTool params",
+    )?;
+    let arguments = match params.get("arguments") {
+        None | Some(Value::Null) => Map::new(),
+        Some(Value::Object(map)) => map.clone(),
+        Some(_) => return Err(invalid("`arguments` must be an object")),
+    };
+    let request = McpUiCallToolRequest {
+        instance: instance_request(params, server)?,
+        tool_name: required_string(params, "toolName")?,
+        arguments,
+        call_id: bounded_string(params, "callId", 128)?,
+    };
+    let value = server
+        .kernel
+        .mcp_ui_call_tool(request.clone())
+        .await
+        .map_err(|error| ui_call_error(&error, &request))?;
+    call_tool_result(value)
+}
+
+/// `mcp/uiCancelCall`：取消 `mcp/uiCallTool` 带 `callId` 的进行中调用；归属校验同调用。
+pub(crate) async fn cancel_call(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "callId",
+        ],
+        "mcp/uiCancelCall params",
+    )?;
+    let request = McpUiCancelCallRequest {
+        instance: instance_request(params, server)?,
+        call_id: bounded_string(params, "callId", 128)?,
+    };
+    let cancelled = server
+        .kernel
+        .mcp_ui_cancel_call(request)
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"cancelled": cancelled}))
+}
+
+/// `tools/call` 的结果只留 Host `zcodeMcpUiCallToolResultSchema` 的四个键；`content` 缺失是服务器的
+/// 协议错误（MCP 要求它一定在）。
+fn call_tool_result(value: Value) -> Result<Value, RpcError> {
+    let Some(content) = value.get("content").and_then(Value::as_array).cloned() else {
+        return Err(RpcError::internal(
+            "MCP server returned an unexpected tools/call result",
+        ));
+    };
+    let mut result = json!({"content": content});
+    if let Some(structured) = value.get("structuredContent") {
+        result["structuredContent"] = structured.clone();
+    }
+    if let Some(is_error) = value.get("isError").and_then(Value::as_bool) {
+        result["isError"] = json!(is_error);
+    }
+    if let Some(meta) = value.get("_meta") {
+        result["_meta"] = meta.clone();
+    }
+    Ok(result)
+}
+
+/// 页面调用的错误码（Node `translateScopeError`）：工具不存在与只给模型用都是 -32602，带结构化原因；
+/// 其余沿用资源面的映射。
+fn ui_call_error(error: &KernelError, request: &McpUiCallToolRequest) -> RpcError {
+    let server = request.instance.scope.server_name.as_str();
+    let tool = request.tool_name.as_str();
+    let reason = match error {
+        KernelError::Failed { message } if *message == tool_not_found_message(server, tool) => {
+            "tool_not_found"
+        }
+        KernelError::Failed { message } if *message == tool_not_app_visible_message(server, tool) => {
+            "tool_not_app_visible"
+        }
+        _ => return ui_error(error),
+    };
+    RpcError::new(
+        -32602,
+        match reason {
+            "tool_not_found" => tool_not_found_message(server, tool),
+            _ => tool_not_app_visible_message(server, tool),
+        },
+    )
+    .with_data(json!({
+        "reason": reason,
+        "serverName": server,
+        "toolName": tool,
+    }))
 }
 
 /// 页面请求的作用域：会话 + 会话自己的 MCP server 表（`pluginId` 只做展示与日志）。

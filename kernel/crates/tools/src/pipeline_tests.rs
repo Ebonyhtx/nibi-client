@@ -555,3 +555,54 @@ async fn background_agents_without_prompts_get_the_denial_text() {
         "{events:?}"
     );
 }
+
+/// `authorize` 只跑前半（校验、PreToolUse hooks、权限判决），不执行工具本身（MCP Apps 的页面调用）。
+#[tokio::test]
+async fn authorize_runs_the_chain_but_not_the_tool() {
+    let hooks = Arc::new(RecordingHooks::default());
+    let pipeline = Pipeline::new(
+        Arc::new(FixedGate(PermissionDecision::Allow {
+            updated_input: None,
+        })),
+        hooks.clone(),
+    );
+    let tool = Arc::new(FakeTool::new("Bash", false, "ran"));
+    let started = tool.started.clone();
+    let input = pipeline
+        .authorize(tool, json!({"command": "echo hi"}), context(allow()))
+        .await
+        .expect("allowed");
+    assert_eq!(input, json!({"command": "echo hi"}));
+    assert_eq!(
+        hooks.0.lock().unwrap().as_slice(),
+        &[HookEventName::PreToolUse],
+        "只跑 PreToolUse，不跑 PostToolUse"
+    );
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(50), started.notified())
+            .await
+            .is_err(),
+        "工具本身没有执行"
+    );
+}
+
+/// 拒绝时原样给出拒绝文字（权限判决链的拒绝）。
+#[tokio::test]
+async fn authorize_returns_the_denial() {
+    let pipeline = Pipeline::new(
+        Arc::new(FixedGate(PermissionDecision::Deny {
+            message: "not now".to_owned(),
+        })),
+        Arc::new(RecordingHooks::default()),
+    );
+    let error = pipeline
+        .authorize(
+            Arc::new(FakeTool::new("Bash", false, "ran")),
+            json!({}),
+            context(allow()),
+        )
+        .await
+        .expect_err("denied");
+    assert!(error.is_error);
+    assert_eq!(text(&error), "not now");
+}

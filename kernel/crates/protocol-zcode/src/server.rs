@@ -393,8 +393,8 @@ impl Server {
             // `mcp/list`（141 审计 §9 第 6 项 F7）：设置页的工作区 MCP 状态检查。`connect` 收敛
             // 状态页自己的连接集合并等连接落定；`status` 只读（OAuth 轮询）。
             "mcp/list" => crate::mcp_rpc::list(self, &params).await.map(Reply::new),
-            // MCP Apps（141 审计 §9 第 6 项 F7）：实例凭证 + 资源读取。插件页面的其余方法
-            // （工具调用、采样、AppTool、订阅）在后续切片接上。
+            // MCP Apps（141 审计 §9 第 6 项 F7）：实例凭证、资源、订阅与页面工具调用。采样与
+            // AppTool 在后续切片接上。
             "mcp/uiOpenInstance" => crate::mcp_rpc::open_instance(self, &params)
                 .await
                 .map(Reply::new),
@@ -420,6 +420,12 @@ impl Server {
                 .await
                 .map(Reply::new),
             "mcp/uiUnsubscribeResource" => crate::mcp_rpc::unsubscribe_resource(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiCallTool" => crate::mcp_rpc::call_tool(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiCancelCall" => crate::mcp_rpc::cancel_call(self, &params)
                 .await
                 .map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),

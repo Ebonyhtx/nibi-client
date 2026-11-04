@@ -29,6 +29,8 @@ mod loop_fold;
 mod loop_tick;
 #[cfg(test)]
 mod metering_tests;
+#[cfg(test)]
+mod out_of_turn_tests;
 mod mode;
 mod monitors;
 mod notices;
@@ -276,6 +278,30 @@ impl Session {
             reply,
         })
         .await
+    }
+
+    /// 回合外的工具授权（MCP Apps 的页面调用）要的会话当前状态：权限模式与工作目录。
+    /// 两者都按请求时的值回答，owner 是会话 actor（`/cd` 与模式切换之后立即生效）。
+    pub async fn out_of_turn_context(
+        &self,
+    ) -> Result<
+        (
+            rust_cli_kernel_api::permission::PermissionMode,
+            rust_cli_kernel_api::env::WorkspaceRef,
+        ),
+        KernelError,
+    > {
+        self.ask(|reply| Request::TurnContext { reply }).await
+    }
+
+    /// 会话级的询问入口（`Interactions::lasting`）：回合外工具授权的审批链用它，
+    /// 询问不随回合结束取消、只随会话关闭取消。
+    pub fn session_interactions(&self) -> Arc<dyn rust_cli_kernel_api::orchestration::Interactions> {
+        Arc::new(crate::sink::SessionAsks {
+            requests: self.requests.downgrade(),
+            session: self.id.clone(),
+            detached: self.deps.detached.clone(),
+        })
     }
 }
 

@@ -193,6 +193,66 @@ impl Inner {
             .and_then(|server| server.client.clone())
     }
 
+    /// 服务器列出的某个工具（按服务器给的原始名）：页面调用用它拿 schema 与只读标记。
+    pub(crate) fn ui_tool(&self, server: &str, tool: &str) -> Option<Arc<dyn Tool>> {
+        let servers = self.servers();
+        let found = servers
+            .get(server)
+            .filter(|server| server.status == McpStatus::Connected)?;
+        found
+            .tools
+            .iter()
+            .find(|candidate| {
+                candidate
+                    .mcp_info()
+                    .is_some_and(|info| info.server == server && info.tool == tool)
+            })
+            .cloned()
+    }
+
+    /// 页面发起的 `tools/call`（`mcp/uiCallTool` 的后半）：原始 `CallToolResult`，不转成模型工具结果、
+    /// 不落盘。超时、断开与重试的口径与模型调用相同（`McpTool::call`）。
+    pub(crate) async fn call_tool_for_ui(
+        &self,
+        server: &str,
+        tool: &str,
+        arguments: Value,
+        cancel: &CancellationToken,
+    ) -> Result<Value, McpUiError> {
+        let timeout = Duration::from_millis(self.settings.tool_timeout_for(self.options(server)));
+        let params = json!({"name": tool, "arguments": arguments});
+        let mut retried = false;
+        loop {
+            // `-p` 里断开、等下次调用的服务器在这里再连（ext.md §3.3.3）。
+            let client = match self.client(server) {
+                Some(client) => Some(client),
+                None => self.reconnect_dormant(server).await,
+            }
+            .ok_or_else(|| McpUiError::not_connected(server))?;
+            match client
+                .request("tools/call", params.clone(), timeout, cancel)
+                .await
+            {
+                Ok(value) => return Ok(value),
+                Err(RpcError::Cancelled) => {
+                    return Err(McpUiError::failed("MCP App tool call was cancelled"));
+                }
+                Err(RpcError::TimedOut) => {
+                    return Err(McpUiError::failed(format!(
+                        "MCP server \"{server}\" tool \"{tool}\" timed out after {}s",
+                        timeout.as_millis() / 1000
+                    )));
+                }
+                // 会话过期（HTTP 404）：等连接任务重连后重试一次。
+                Err(RpcError::Closed(_)) if !retried && self.expired(server) => {
+                    retried = true;
+                    self.wait_reconnected(server, &client).await;
+                }
+                Err(error) => return Err(McpUiError::failed(error.to_string())),
+            }
+        }
+    }
+
     /// `-p` 里断开、等下次调用的服务器：叫醒连接任务，等它重新连上（返回新的客户端）或失败（None）。不在等
     /// 下次调用时也是 None。
     pub(crate) async fn reconnect_dormant(&self, name: &str) -> Option<Arc<Client>> {
@@ -849,6 +909,24 @@ impl McpManager {
         self.tools()
             .into_iter()
             .find(|tool| tool.name() == name || tool.aliases().contains(&name))
+    }
+
+    /// 服务器列出的某个工具（服务器给的原始名，`mcp/uiCallTool` 的审批目标）。
+    pub fn ui_tool(&self, server: &str, tool: &str) -> Option<Arc<dyn Tool>> {
+        self.0.ui_tool(server, tool)
+    }
+
+    /// 页面发起的 `tools/call`：原始 `CallToolResult`（`mcp/uiCallTool` 的后半）。
+    pub async fn call_tool_for_ui(
+        &self,
+        server: &str,
+        tool: &str,
+        arguments: Value,
+        cancel: &CancellationToken,
+    ) -> Result<Value, McpUiError> {
+        self.0
+            .call_tool_for_ui(server, tool, arguments, cancel)
+            .await
     }
 
     /// 已连接、有 instructions 的服务器，按名字排序：`## <server>\n<instructions>`（ext.md §3.6）。

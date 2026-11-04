@@ -40,6 +40,18 @@ fn mcp_ui_error(error: rust_cli_kernel_api::mcp_ui::McpUiError) -> KernelError {
     }
 }
 
+/// 审批拒绝的文字：第一条文本内容（权限拒绝、hook 拒绝都在这里），没有时给固定文字。
+fn tool_output_text(output: &ToolOutput) -> String {
+    output
+        .content
+        .iter()
+        .find_map(|content| match content {
+            rust_cli_kernel_api::message::ToolResultContent::Text { text } => Some(text.clone()),
+            _ => None,
+        })
+        .unwrap_or_else(|| "the tool call was rejected".to_owned())
+}
+
 #[async_trait]
 impl Kernel for LocalKernel {
     async fn create_session(&self, request: CreateSession) -> Result<SessionId, KernelError> {
@@ -581,6 +593,91 @@ impl Kernel for LocalKernel {
     ) -> Result<(), KernelError> {
         self.ext
             .mcp_ui_unsubscribe(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiCallTool`：页面回调一个本服务器的工具。
+    ///
+    /// 与 Node `callMcpToolForUi` 同一条链：实例与可见性校验 → 宿主审批（schema、PreToolUse hooks、
+    /// 权限判决，可能询问用户）→ 复核连接代际 → 发 `tools/call`。工具**不经**模型的执行管线，
+    /// 结果也不落库：页面拿到的是 MCP 的原始 `CallToolResult`。
+    async fn mcp_ui_call_tool(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiCallToolRequest,
+    ) -> Result<serde_json::Value, KernelError> {
+        let session_id = request.instance.scope.session.clone();
+        // Node 的 `requireSession`：只认本进程里打开着的会话（不冷加载存储）。
+        let session = self.settled(&session_id).await.ok_or_else(|| {
+            KernelError::NotFound {
+                session: session_id.clone(),
+            }
+        })?;
+        // 先去重并占住实例（`onlyIfIdle` 的关页面看这个占位），再校验归属。
+        let guard = self.ext.mcp_ui_begin_call(&request).map_err(mcp_ui_error)?;
+        let tool = self
+            .ext
+            .mcp_ui_app_tool(&request.instance, &request.tool_name)
+            .await
+            .map_err(mcp_ui_error)?;
+        // 会话当前的模式与工作目录：owner 是 actor（`/cd` 与模式切换之后立即生效）。
+        let (mode, workspace) = session.out_of_turn_context().await?;
+        let context = ToolUseContext {
+            session: session_id.clone(),
+            run: self.ports.ids.run(),
+            tool_use: ToolUseId::new(format!("ui-{}", self.ports.ids.uuid())),
+            agent: None,
+            workspace: workspace.clone(),
+            mode,
+            cancel: guard.token(),
+            machine: self.machine.clone(),
+            local: self.local.clone(),
+            artifacts: self.ports.artifacts.clone(),
+            interactions: session.session_interactions(),
+            operation: OperationContext {
+                environment: workspace.environment.clone(),
+                generation: self.generation.clone(),
+                owner_epoch: OwnerEpoch::LOCAL,
+                operation: self.ports.ids.operation(),
+                origin: Origin::User {
+                    session: Some(session_id.clone()),
+                },
+            },
+        };
+        // 审批链与回合内的工具调用同一条；hook 或判决链改过的输入由 `authorize` 返回。
+        let input = self
+            .executor
+            .authorize(
+                tool,
+                serde_json::Value::Object(request.arguments.clone()),
+                context,
+            )
+            .await
+            .map_err(|output| KernelError::Failed {
+                message: tool_output_text(&output),
+            })?;
+        // 审批期间连接可能被替换：批准只属于原连接，执行前必须再验证一次（Node 同一条）。
+        self.ext
+            .mcp_ui_validate(request.instance.clone())
+            .await
+            .map_err(mcp_ui_error)?;
+        self.ext
+            .mcp_ui_call_tool(&request, input, &guard.token())
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiCancelCall`：取消进行中的页面工具调用；没有时 `false`（幂等）。
+    async fn mcp_ui_cancel_call(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiCancelCallRequest,
+    ) -> Result<bool, KernelError> {
+        let session_id = request.instance.scope.session.clone();
+        if self.settled(&session_id).await.is_none() {
+            return Err(KernelError::NotFound { session: session_id });
+        }
+        self.ext
+            .mcp_ui_cancel_call(request)
             .await
             .map_err(mcp_ui_error)
     }

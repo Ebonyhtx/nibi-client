@@ -58,6 +58,13 @@ pub(crate) enum Request {
     Goal {
         reply: oneshot::Sender<rust_cli_kernel_api::goal::GoalView>,
     },
+    /// 回合外的工具授权要的会话当前状态：权限模式与工作目录（MCP Apps 的页面调用）。
+    TurnContext {
+        reply: oneshot::Sender<(
+            rust_cli_kernel_api::permission::PermissionMode,
+            rust_cli_kernel_api::env::WorkspaceRef,
+        )>,
+    },
     /// 关闭会话（`SessionHandle::close`）：中止前台工作，等它收尾后回复并退出（spec §3.3）。`reason` 是中止在跑的
     /// 回合用的原因：退出是 `Shutdown`，`/clear`、`/resume` 是 `User`（修复线 F38）。
     Close {
@@ -455,6 +462,9 @@ impl Actor {
             }
             Request::Goal { reply } => {
                 let _ = reply.send(self.goal_view());
+            }
+            Request::TurnContext { reply } => {
+                let _ = reply.send((self.mode(), self.meta.workspace.clone()));
             }
             Request::Close { reply, reason } => self.close(reply, reason).await,
             // 关闭中、要退出时不再登记询问：丢下回复，询问方按会话已关闭处理。

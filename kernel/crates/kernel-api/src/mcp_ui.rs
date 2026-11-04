@@ -186,6 +186,28 @@ pub struct McpUiSubscriptionRequest {
     pub uri: String,
 }
 
+/// `mcp/uiCallTool`：页面回调一个本服务器的工具（Node `callMcpToolForUi`）。
+///
+/// 调用复用宿主的工具审批链（schema → PreToolUse hooks → 权限判决），但不产生对话回合：
+/// 结果原样回给页面，不落库。`call_id` 由宿主生成，`mcp/uiCancelCall` 用它取消进行中的调用。
+#[derive(Debug, Clone, PartialEq)]
+pub struct McpUiCallToolRequest {
+    pub instance: McpUiInstanceRequest,
+    /// 服务器给的原始工具名（不是模型工具表里的 `mcp__<server>__<tool>`）。
+    pub tool_name: String,
+    /// 调用参数（Node 的 `arguments`，缺省是 `{}`）。
+    pub arguments: Map<String, Value>,
+    /// 宿主生成的调用 id（Node `callId`，最长 128）。
+    pub call_id: String,
+}
+
+/// `mcp/uiCancelCall`：取消一个进行中的页面工具调用。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiCancelCallRequest {
+    pub instance: McpUiInstanceRequest,
+    pub call_id: String,
+}
+
 /// 一条已连接的 MCP 服务器的身份快照（Node `appConnectionSnapshot`）。
 ///
 /// 实例凭证绑定这一对：连接换了代际，旧实例就不能再执行任何请求。
@@ -308,6 +330,15 @@ pub enum McpUiError {
     /// 服务器没有声明这个能力（例如没有 `resources.subscribe`）。
     #[error("MCP server \"{server}\" does not support {operation}")]
     Unsupported { server: String, operation: String },
+    /// 页面调用的工具不在服务器的清单里（Node `tool_not_found`，协议层映射到 -32602）。
+    #[error("MCP tool \"{tool}\" is not available on server \"{server}\"")]
+    ToolNotFound { server: String, tool: String },
+    /// 工具存在但 `_meta.ui.visibility` 不含 `app`，只给模型用（Node `tool_not_app_visible`，-32602）。
+    #[error("MCP tool \"{tool}\" on server \"{server}\" is not visible to plugin UI")]
+    ToolNotAppVisible { server: String, tool: String },
+    /// 同一个 `callId` 已经在进行或已经结束（Node `Duplicate MCP App callId`）。
+    #[error("Duplicate MCP App callId")]
+    DuplicateCall,
     /// 服务器回了错误、超时或连接中途断开。
     #[error("{message}")]
     Failed { message: String },
@@ -338,6 +369,26 @@ impl McpUiError {
         Self::failed("MCP App instance is no longer authorized")
     }
 
+    /// 页面调用的工具不存在（与 [`tool_not_found_message`] 同一段文字）。
+    pub fn tool_not_found(server: &str, tool: &str) -> Self {
+        Self::ToolNotFound {
+            server: server.to_owned(),
+            tool: tool.to_owned(),
+        }
+    }
+
+    /// 页面调用的工具只给模型用（与 [`tool_not_app_visible_message`] 同一段文字）。
+    pub fn tool_not_app_visible(server: &str, tool: &str) -> Self {
+        Self::ToolNotAppVisible {
+            server: server.to_owned(),
+            tool: tool.to_owned(),
+        }
+    }
+
+    pub fn duplicate_call() -> Self {
+        Self::DuplicateCall
+    }
+
     /// 服务器不在会话的连接表里，或当前没连上（Node 的 "MCP App connection is unavailable"）。
     pub fn app_unavailable() -> Self {
         Self::failed("MCP App connection is unavailable")
@@ -347,6 +398,16 @@ impl McpUiError {
     pub fn binding_mismatch() -> Self {
         Self::failed("MCP App resource binding mismatch")
     }
+}
+
+/// 页面调用的工具不存在时的文字：ext 的 `Display` 与协议层的错误分类共用这一段。
+pub fn tool_not_found_message(server: &str, tool: &str) -> String {
+    format!("MCP tool \"{tool}\" is not available on server \"{server}\"")
+}
+
+/// 页面调用的工具只给模型用时的文字（同一段共用）。
+pub fn tool_not_app_visible_message(server: &str, tool: &str) -> String {
+    format!("MCP tool \"{tool}\" on server \"{server}\" is not visible to plugin UI")
 }
 
 /// `resources/list|templates/list|subscribe` 的订阅者身份：沙箱作用域 + 代际 + 完整凭证。

@@ -22,6 +22,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rust_cli_base::Spawner;
+use serde_json::Value;
+use tokio_util::sync::CancellationToken;
+
 use rust_cli_kernel_api::clock::{Clock, Ids};
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::SessionId;
@@ -30,8 +33,9 @@ use rust_cli_kernel_api::machine::{EnvInfo, Files};
 use rust_cli_kernel_api::mcp::McpTransport;
 use rust_cli_kernel_api::mcp_state::{McpConnections, WAIT_FOR_MCP_SERVERS};
 use rust_cli_kernel_api::mcp_ui::{
-    McpResourceContent, McpResourcePage, McpResourceTemplatePage, McpUiError, McpUiInstanceRequest,
-    McpUiListRequest, McpUiReadRequest, McpUiSubscriptionRequest,
+    McpResourceContent, McpResourcePage, McpResourceTemplatePage, McpUiCallToolRequest,
+    McpUiCancelCallRequest, McpUiError, McpUiInstanceRequest, McpUiListRequest, McpUiReadRequest,
+    McpUiSubscriptionRequest, visible_to_app,
 };
 use rust_cli_kernel_api::message::Message;
 use rust_cli_kernel_api::orchestration::{
@@ -434,6 +438,70 @@ impl Ext {
                 &key,
             )
             .await
+    }
+
+    /// `mcp/uiCallTool` 的审批目标：实例校验通过后给出服务器列出的那个工具（带 schema、只读标记与
+    /// 可见性）。工具不存在与只给模型用是 Node 的两种 `-32602` 原因，这里分开报。
+    pub async fn mcp_ui_app_tool(
+        &self,
+        request: &McpUiInstanceRequest,
+        tool_name: &str,
+    ) -> Result<Arc<dyn Tool>, McpUiError> {
+        self.check_instance(request).await?;
+        let server = &request.scope.server_name;
+        let manager = self.mcp_for_session(&request.scope.session);
+        let Some(visibility) = manager.app_tool_visibility(server, tool_name) else {
+            return Err(McpUiError::tool_not_found(server, tool_name));
+        };
+        if !visible_to_app(&visibility) {
+            return Err(McpUiError::tool_not_app_visible(server, tool_name));
+        }
+        manager
+            .ui_tool(server, tool_name)
+            .ok_or_else(|| McpUiError::tool_not_found(server, tool_name))
+    }
+
+    /// 接纳一个页面工具调用：去重、占住实例（`onlyIfIdle` 会看到它），并给出取消令牌。
+    /// 审批与执行由 runtime 做（审批链只在它那里）；账本随返回的 [`CallGuard`](mcp::CallGuard) 释放。
+    pub fn mcp_ui_begin_call(
+        &self,
+        request: &McpUiCallToolRequest,
+    ) -> Result<mcp::CallGuard, McpUiError> {
+        self.app_instances.begin_call(
+            request.instance.scope.session.as_str(),
+            &request.instance.instance,
+            &request.call_id,
+        )
+    }
+
+    /// `mcp/uiCallTool` 的后半：用审批后的输入发 `tools/call`，结果是 MCP 的原始 `CallToolResult`。
+    pub async fn mcp_ui_call_tool(
+        &self,
+        request: &McpUiCallToolRequest,
+        input: Value,
+        cancel: &CancellationToken,
+    ) -> Result<Value, McpUiError> {
+        self.mcp_for_session(&request.instance.scope.session)
+            .call_tool_for_ui(
+                &request.instance.scope.server_name,
+                &request.tool_name,
+                input,
+                cancel,
+            )
+            .await
+    }
+
+    /// `mcp/uiCancelCall`：取消进行中的调用；没有时 `false`（幂等）。归属与实例校验同调用。
+    pub async fn mcp_ui_cancel_call(
+        &self,
+        request: McpUiCancelCallRequest,
+    ) -> Result<bool, McpUiError> {
+        self.check_instance(&request.instance).await?;
+        Ok(self.app_instances.cancel_call(
+            request.instance.scope.session.as_str(),
+            &request.instance.instance,
+            &request.call_id,
+        ))
     }
 
     /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。

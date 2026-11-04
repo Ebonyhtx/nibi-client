@@ -444,6 +444,24 @@ impl ToolExecutor for Pipeline {
             .await;
         messages.finish(output, true)
     }
+
+    /// 审批链的前半（Node `authorizeAppTool`）：schema → `validate_input` → PreToolUse hooks →
+    /// 权限判决（需要时询问）。不执行工具、不跑 PostToolUse；hook 的附加上下文不返回（页面调用没有回合）。
+    async fn authorize(
+        &self,
+        tool: Arc<dyn Tool>,
+        input: Value,
+        context: ToolUseContext,
+    ) -> Result<Value, ToolOutput> {
+        let mut messages = HookMessages::default();
+        match self
+            .admit(tool.as_ref(), input, context, &mut messages)
+            .await
+        {
+            Ok((input, _routed)) => Ok(input),
+            Err(Rejection::ByHook(output) | Rejection::Other(output)) => Err(output),
+        }
+    }
 }
 
 #[cfg(test)]
