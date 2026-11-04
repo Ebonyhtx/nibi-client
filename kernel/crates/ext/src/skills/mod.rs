@@ -174,6 +174,19 @@ impl SkillCatalog {
             .remove(session);
     }
 
+    /// 子代理继承父会话的插件根（Node 子代理 app 继承父 app 的插件配置）。
+    pub fn copy_session(&self, from: &SessionId, to: SessionId) {
+        let roots = self
+            .session_plugins
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(from)
+            .cloned();
+        if let Some(roots) = roots {
+            self.set_session_plugin_roots(to, roots);
+        }
+    }
+
     fn plugin_roots(&self) -> Vec<PluginSkillRoot> {
         self.plugins
             .lock()

@@ -744,6 +744,11 @@ impl Ext {
     pub fn clear_session_plugins(&self, session: &SessionId) {
         self.skills.clear_session(session);
     }
+
+    /// 子代理继承父会话的 skill 根。
+    pub fn copy_session_skill_roots(&self, from: &SessionId, to: SessionId) {
+        self.skills.copy_session(from, to);
+    }
 }
 
 /// 订阅键 = 会话 | 沙箱作用域 | 代际（Node `buildMcpUiSubscriberKey`）；作用域必须是实例的 token，

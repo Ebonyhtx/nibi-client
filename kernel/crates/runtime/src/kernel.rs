@@ -102,7 +102,8 @@ impl LocalKernel {
         // 会话级插件快照：NIBI 一个 app-server 承载多个会话，新装/启用的插件必须在
         // 新会话（以及冷恢复）里可见，而不改已有会话。快照只活在这个会话里，不落库。
         // CLI/TUI 没有 loader（单会话进程），继续用 `ext.start()` 的进程级快照。
-        self.apply_session_plugin_snapshot(&id, &workspace).await;
+        self.apply_session_plugin_snapshot(&id, &workspace, meta.parent.as_ref())
+            .await;
         self.start(
             SessionState {
                 meta,
@@ -130,10 +131,20 @@ impl LocalKernel {
         &self,
         session: &SessionId,
         workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        parent: Option<&SessionId>,
     ) {
         let Some(loader) = &self.plugin_loader else {
             return;
         };
+        // 子代理继承父会话的插件集（Node 子代理 app 继承父 app）；父会话不在时按新快照。
+        if let Some(parent) = parent {
+            self.ext
+                .copy_session_skill_roots(parent, session.clone());
+            self.agent_catalog
+                .copy_session(parent, session.clone());
+            self.hooks.copy_session(parent, session.clone());
+            return;
+        }
         let plugins = loader.load(workspace).await;
         let (agents, hooks) = crate::ext::plugin_parts(&plugins);
         self.ext
@@ -549,7 +560,7 @@ impl Kernel for LocalKernel {
             draft: false,
         };
         // 冷恢复：会话 runtime 重建，插件快照重新解析（Node 冷恢复重建 App 的同一语义）。
-        self.apply_session_plugin_snapshot(session, &state.meta.workspace)
+        self.apply_session_plugin_snapshot(session, &state.meta.workspace, None)
             .await;
         Ok(self.start(state, Opened::Loaded))
     }

@@ -102,6 +102,19 @@ impl AgentCatalog {
             .remove(session);
     }
 
+    /// 子代理继承父会话的插件 agent 文件。
+    pub fn copy_session(&self, from: &SessionId, to: SessionId) {
+        let files = self
+            .session_plugins
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(from)
+            .cloned();
+        if let Some(files) = files {
+            self.set_session_plugins(to, files);
+        }
+    }
+
     fn files_for(&self, session: Option<&SessionId>) -> Vec<PluginAgentFile> {
         if let Some(session) = session
             && let Some(files) = self

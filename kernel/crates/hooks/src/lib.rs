@@ -176,6 +176,19 @@ impl HookEngine {
             .remove(session);
     }
 
+    /// 子代理继承父会话的插件 hooks。
+    pub fn copy_session(&self, from: &SessionId, to: SessionId) {
+        let plugins = self
+            .session_plugins
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(from)
+            .cloned();
+        if let Some(plugins) = plugins {
+            self.register_session_plugins(to, plugins);
+        }
+    }
+
     fn snapshot(&self) -> Arc<Loaded> {
         self.loaded
             .read()
