@@ -1,6 +1,6 @@
 //! 用户根收拢（F55）前后的等价性：每个存储位置与收拢前的写法逐字节相同（比较 `OsStr`，不是 `Path` 的组件）。
 //!
-//! 右边是收拢前 `lib.rs` 的原式（`home.join(".zcode/v2")` 这样整段接上的，与 `.join(".zcode").join(…)` 分开接的，
+//! 右边是收拢前 `lib.rs` 的原式（`home.join(".nibi/v2")` 这样整段接上的，与 `.join(".nibi").join(…)` 分开接的，
 //! 在 Windows 上分隔符不同，这里按原样写）。macOS / Linux 上两种写法的结果相同；Windows 上的形状见文件末尾的
 //! `cfg(windows)` 用例（本线不改 Windows 的混用分隔符，config.md §2.3）。
 
@@ -31,11 +31,11 @@ fn default_storage_locations_are_byte_identical_to_the_old_formulas() {
     let base = Path::new("/work/repo");
     for home in homes() {
         let paths = StoragePaths::resolve(&StorageSettings::default(), &home, base);
-        let root = old_expand("~/.zcode", &home, base);
-        let config = home.join(".zcode/v2");
+        let root = old_expand("~/.nibi", &home, base);
+        let config = home.join(".nibi/v2");
         assert_eq!(
             os(paths.database().as_path()),
-            os(&old_expand("~/.zcode/cli/db/db.sqlite", &home, base))
+            os(&old_expand("~/.nibi/cli/db/db.sqlite", &home, base))
         );
         assert_eq!(
             os(paths.artifacts().as_path()),
@@ -58,7 +58,7 @@ fn default_storage_locations_are_byte_identical_to_the_old_formulas() {
             os(paths.update_cache().as_path()),
             os(&root.join("rust-cli/version.json"))
         );
-        assert_eq!(os(paths.zcode_config().as_path()), os(&config));
+        assert_eq!(os(paths.nibi_config().as_path()), os(&config));
         assert_eq!(
             os(paths.provider_config().as_path()),
             os(&config.join("provider_config.json"))
@@ -85,23 +85,23 @@ fn default_storage_locations_are_byte_identical_to_the_old_formulas() {
         );
         assert_eq!(
             os(paths.settings().as_path()),
-            os(&home.join(".zcode/v2").join("setting.json"))
+            os(&home.join(".nibi/v2").join("setting.json"))
         );
         assert_eq!(
             os(paths.cli_config().as_path()),
-            os(&home.join(".zcode/cli/config.json"))
+            os(&home.join(".nibi/cli/config.json"))
         );
         for blank in [None, Some(""), Some("  ")] {
             assert_eq!(
                 os(paths.hook_trust_store(blank).as_path()),
                 os(&home
-                    .join(".zcode")
+                    .join(".nibi")
                     .join("security/workspace-hook-trust-v1.json"))
             );
         }
         assert_eq!(
             os(paths.plugin_storage(None, base).as_path()),
-            os(&old_expand("~/.zcode", &home, base)
+            os(&old_expand("~/.nibi", &home, base)
                 .join("cli")
                 .join("plugins"))
         );
@@ -131,16 +131,16 @@ fn configured_locations_are_byte_identical_to_the_old_formulas() {
     let data = Path::new("/srv/data");
     let moved = paths.clone().with_data_base_dir(data);
     assert_eq!(
-        os(moved.zcode_config().as_path()),
-        os(&data.join(".zcode/v2"))
+        os(moved.nibi_config().as_path()),
+        os(&data.join(".nibi/v2"))
     );
     assert_eq!(
         os(moved.credentials().as_path()),
-        os(&data.join(".zcode/v2").join("credentials.json"))
+        os(&data.join(".nibi/v2").join("credentials.json"))
     );
     assert_eq!(
         os(moved.settings().as_path()),
-        os(&home.join(".zcode/v2").join("setting.json"))
+        os(&home.join(".nibi/v2").join("setting.json"))
     );
     // 信任记录与插件存储跟随调用方给的 `storage.dir`。
     assert_eq!(
@@ -162,14 +162,14 @@ fn configured_locations_are_byte_identical_to_the_old_formulas() {
 #[test]
 fn the_user_root_is_computed_in_one_place() {
     for home in homes() {
-        assert_eq!(os(&user_path(&home, "")), os(&home.join(".zcode")));
-        assert_eq!(os(&user_path(&home, "v2")), os(&home.join(".zcode/v2")));
+        assert_eq!(os(&user_path(&home, "")), os(&home.join(".nibi")));
+        assert_eq!(os(&user_path(&home, "v2")), os(&home.join(".nibi/v2")));
         assert_eq!(
             os(&user_path(&home, "cli/db/db.sqlite")),
-            os(&home.join(".zcode/cli/db/db.sqlite"))
+            os(&home.join(".nibi/cli/db/db.sqlite"))
         );
     }
-    assert_eq!(DOT_DIR, ".zcode");
+    assert_eq!(DOT_DIR, ".nibi");
 }
 
 #[cfg(unix)]
@@ -181,21 +181,21 @@ fn unix_defaults_spell_the_documented_strings() {
         Path::new("/work/repo"),
     );
     let text = |path: &StoragePath| path.as_path().to_string_lossy().into_owned();
-    assert_eq!(text(paths.database()), "/Users/dev/.zcode/cli/db/db.sqlite");
-    assert_eq!(text(paths.artifacts()), "/Users/dev/.zcode/cli/artifacts");
+    assert_eq!(text(paths.database()), "/Users/dev/.nibi/cli/db/db.sqlite");
+    assert_eq!(text(paths.artifacts()), "/Users/dev/.nibi/cli/artifacts");
     assert_eq!(
         text(&paths.cli_config()),
-        "/Users/dev/.zcode/cli/config.json"
+        "/Users/dev/.nibi/cli/config.json"
     );
-    assert_eq!(text(paths.settings()), "/Users/dev/.zcode/v2/setting.json");
+    assert_eq!(text(paths.settings()), "/Users/dev/.nibi/v2/setting.json");
     assert_eq!(
         text(&paths.provider_config()),
-        "/Users/dev/.zcode/v2/provider_config.json"
+        "/Users/dev/.nibi/v2/provider_config.json"
     );
-    assert_eq!(text(&paths.logs()), "/Users/dev/.zcode/rust-cli/log");
+    assert_eq!(text(&paths.logs()), "/Users/dev/.nibi/rust-cli/log");
     assert_eq!(
         user_path(Path::new("/Users/dev"), "").to_string_lossy(),
-        "/Users/dev/.zcode"
+        "/Users/dev/.nibi"
     );
 }
 
@@ -211,27 +211,27 @@ fn windows_defaults_keep_their_current_shape() {
     let text = |path: &StoragePath| path.as_path().to_string_lossy().into_owned();
     assert_eq!(
         text(paths.database()),
-        r"C:\Users\dev\.zcode/cli/db/db.sqlite"
+        r"C:\Users\dev\.nibi/cli/db/db.sqlite"
     );
     assert_eq!(
         text(paths.artifacts()),
-        r"C:\Users\dev\.zcode\cli/artifacts"
+        r"C:\Users\dev\.nibi\cli/artifacts"
     );
     assert_eq!(
         text(&paths.cli_config()),
-        r"C:\Users\dev\.zcode/cli/config.json"
+        r"C:\Users\dev\.nibi/cli/config.json"
     );
     assert_eq!(
         text(paths.settings()),
-        r"C:\Users\dev\.zcode/v2\setting.json"
+        r"C:\Users\dev\.nibi/v2\setting.json"
     );
     assert_eq!(
         text(&paths.provider_config()),
-        r"C:\Users\dev\.zcode/v2\provider_config.json"
+        r"C:\Users\dev\.nibi/v2\provider_config.json"
     );
-    assert_eq!(text(&paths.logs()), r"C:\Users\dev\.zcode\rust-cli/log");
+    assert_eq!(text(&paths.logs()), r"C:\Users\dev\.nibi\rust-cli/log");
     assert_eq!(
         user_path(Path::new(r"C:\Users\dev"), "v2").to_string_lossy(),
-        r"C:\Users\dev\.zcode/v2"
+        r"C:\Users\dev\.nibi/v2"
     );
 }

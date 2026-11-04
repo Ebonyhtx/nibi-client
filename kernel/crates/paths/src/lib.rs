@@ -129,6 +129,8 @@ pub struct StoragePaths {
     database: StoragePath,
     artifacts: StoragePath,
     root: StoragePath,
+    /// 用户级 CLI 配置的父目录：`storage.dir` 覆盖时跟它走，否则是用户根。
+    cli_config_root: StoragePath,
     config: StoragePath,
     settings: StoragePath,
     builtin_provider_config: Option<StoragePath>,
@@ -155,6 +157,10 @@ impl StoragePaths {
         Self {
             database,
             artifacts: StoragePath(root.join(ARTIFACTS_DIR)),
+            cli_config_root: match settings.storage_dir {
+                Some(_) => StoragePath(root.clone()),
+                None => StoragePath(user_path(home, "")),
+            },
             root: StoragePath(root),
             config: StoragePath(user_path(home, CONFIG_ROOT)),
             settings: StoragePath(user_path(home, CONFIG_ROOT).join("setting.json")),
@@ -180,8 +186,8 @@ impl StoragePaths {
         self
     }
 
-    /// 账号与 Provider 配置的根（默认 `~/.zcode/v2`）。
-    pub fn zcode_config(&self) -> &StoragePath {
+    /// 账号与 Provider 配置的根（默认 `~/.nibi/v2`）。
+    pub fn nibi_config(&self) -> &StoragePath {
         &self.config
     }
 
@@ -242,9 +248,19 @@ impl StoragePaths {
 }
 
 impl StoragePaths {
-    /// Node CLI 的用户级配置 `<home>/.zcode/cli/config.json`（与 Node、App 共用）。
+    /// Node CLI 的用户级配置 `<storage.dir>/cli/config.json`（与 Node、App 共用）。
+    ///
+    /// `storage.dir` 缺省是用户根 `~/.nibi`；隔离运行时经 `ZCODE_STORAGE_DIR` 覆盖时，
+    /// 这里必须跟着同一个根走，否则 Rust 读真实用户配置、Host 写隔离配置，插件启停
+    /// 与用户设置两边看不见同一份文件。
     pub fn cli_config(&self) -> StoragePath {
-        StoragePath(user_path(&self.home, CLI_CONFIG))
+        // 与 user_path 的拼法保持一致（`<root>/cli/config.json`，`/` 不跟随平台改写），
+        // 避免 Windows 上多出一层反斜杠、破坏与 Node 共用的字节形状。
+        StoragePath(PathBuf::from(format!(
+            "{}/{}",
+            self.cli_config_root.as_path().display(),
+            CLI_CONFIG
+        )))
     }
 
     /// 项目 hooks 的信任记录。`storage_dir` 是用户级配置的 `storage.dir`（Node

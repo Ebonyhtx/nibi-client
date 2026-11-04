@@ -31,7 +31,7 @@ fn the_plugins_section_merges_like_node() {
     let user = object(json!({"plugins": {
         "dirs": ["/Users/dev/a", "rel"],
         "enabledPlugins": {"x@m": true, "y@m": true},
-        "suppressedBuiltins": ["s1@zcode-plugins-official"],
+        "suppressedBuiltins": ["s1@nibi-official"],
         "extraKnownMarketplaces": {"team": {"source": {"source": "github", "repo": "example/plugins"}}},
         "options": {"x@m": {"key": "value"}}
     }}));
@@ -39,7 +39,7 @@ fn the_plugins_section_merges_like_node() {
         object(
             json!({"plugins": {"dirs": ["rel", "/Users/dev/b"], "enabledPlugins": {"y@m": false}}}),
         ),
-        object(json!({"plugins": {"suppressedBuiltins": ["s2@zcode-plugins-official"]}})),
+        object(json!({"plugins": {"suppressedBuiltins": ["s2@nibi-official"]}})),
     ];
     let mut warnings = Vec::new();
     let merged = merge(&layers(&user, &projects), &mut warnings);
@@ -51,7 +51,7 @@ fn the_plugins_section_merges_like_node() {
         merged.enabled_plugins.into_iter().collect::<Vec<_>>(),
         [("x@m".to_owned(), true), ("y@m".to_owned(), false)]
     );
-    assert_eq!(merged.suppressed_builtins, ["s2@zcode-plugins-official"]);
+    assert_eq!(merged.suppressed_builtins, ["s2@nibi-official"]);
 
     let off = [object(json!({"plugins": {"enabled": false}}))];
     let merged = merge(&layers(&user, &off), &mut warnings);
@@ -87,10 +87,10 @@ async fn candidates_follow_the_node_order() {
     let root = StoragePaths::resolve(&Default::default(), home, home).plugin_storage(None, home);
     let guide = root
         .as_path()
-        .join("cache/zcode-plugins-official/zcode-guide/0.3.0");
+        .join("cache/nibi-official/zcode-guide/0.3.0");
     let partition = root
         .as_path()
-        .join("marketplaces/zcode-plugins-official/bundled-marketplace.json");
+        .join("marketplaces/nibi-official/bundled-marketplace.json");
     std::fs::create_dir_all(partition.parent().unwrap()).unwrap();
     std::fs::write(
         &partition,
@@ -113,7 +113,7 @@ async fn candidates_follow_the_node_order() {
         enabled: true,
         dirs: vec!["/Users/dev/abs".to_owned(), "rel/kit".to_owned()],
         enabled_plugins: [("kit@market".to_owned(), true)].into_iter().collect(),
-        suppressed_builtins: vec!["zcode-guide@zcode-plugins-official".to_owned()],
+        suppressed_builtins: vec!["zcode-guide@nibi-official".to_owned()],
     };
     let sources = sources(section.clone(), "/Users/dev/repo", &root).await;
     let candidates: Vec<(String, &str, PluginOrigin)> = sources
@@ -136,7 +136,7 @@ async fn candidates_follow_the_node_order() {
             ),
             (
                 guide.to_string_lossy().into_owned(),
-                "zcode-plugins-official",
+                "nibi-official",
                 PluginOrigin::Official
             ),
             (

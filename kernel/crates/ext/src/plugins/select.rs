@@ -52,7 +52,7 @@ pub enum PluginOrigin {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PluginCandidate {
     pub dir: EnvPath,
-    /// 插件 id 的后半（`inline`、`zcode-plugins-official` 或记录里的 marketplace）。
+    /// 插件 id 的后半（`inline`、`nibi-official` 或记录里的 marketplace）。
     pub marketplace: String,
     pub origin: PluginOrigin,
 }

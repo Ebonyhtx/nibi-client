@@ -120,6 +120,22 @@ export function buildAgentWorkspaceIdentityEnv(
   return trimmed ? { [NIBI_WORKSPACE_IDENTITY_ENV]: trimmed } : {};
 }
 
+/**
+ * NIBI 隔离根 → Rust 内核读取的 `ZCODE_*` 别名。
+ *
+ * Rust 内核的用户根已改为 `~/.nibi`，默认安装下与 Host 同根；但 dev/e2e/自建部署会用
+ * `NIBI_STORAGE_DIR` / `NIBI_DATA_BASE_DIR` 换根，Rust 仍按 `ZCODE_*` 读。这里在 spawn
+ * 边界把同一份根交给两种内核，插件配置、已安装清单、会话库与凭据才不会分叉。
+ */
+export function buildRustKernelStorageEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const result: Record<string, string> = {};
+  const storage = env.NIBI_STORAGE_DIR?.trim();
+  if (storage) result.ZCODE_STORAGE_DIR = storage;
+  const data = env.NIBI_DATA_BASE_DIR?.trim();
+  if (data) result.ZCODE_DATA_BASE_DIR = data;
+  return result;
+}
+
 function normalizeProxyValue(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) {

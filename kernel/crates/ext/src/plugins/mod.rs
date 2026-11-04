@@ -22,8 +22,9 @@ pub use self::select::{
     load_all,
 };
 
-/// manifest 的位置，按 Node `findManifest` 的顺序。
-const MANIFESTS: [&str; 3] = [
+/// manifest 的位置，按 Node `PLUGIN_MANIFEST_DIRS` 的顺序（NIBI 自有清单目录第一位）。
+const MANIFESTS: [&str; 4] = [
+    ".nibi-plugin/plugin.json",
     ".zcode-plugin/plugin.json",
     ".claude-plugin/plugin.json",
     ".codex-plugin/plugin.json",

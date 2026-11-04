@@ -89,7 +89,7 @@ fn write(path: &Path, content: &str) {
 /// 一个插件：manifest、一个 skill、一个在 UserPromptSubmit 时写标记文件的 hook。
 fn plugin(dir: &Path, name: &str, skill: &str, marker: &str) {
     write(
-        &dir.join(".zcode-plugin/plugin.json"),
+        &dir.join(".nibi-plugin/plugin.json"),
         &format!(r#"{{"name": "{name}", "version": "1.0.0"}}"#),
     );
     write(
@@ -136,16 +136,16 @@ fn plugins_come_from_the_node_config_and_installed_plugins() {
         &serde_json::json!({"version": 1, "plugins": [record("kit"), record("off")]}).to_string(),
     );
     // 官方内置缓存：skill-creator 在缺省启用名单里；browser-use 依赖 Node 宿主的 node_repl，不加载。
-    let cache = storage.join("cache/zcode-plugins-official");
+    let cache = storage.join("cache/nibi-official");
     let creator = cache.join("skill-creator/0.1.0");
     let browser = cache.join("browser-use/0.5.1");
     plugin(&creator, "skill-creator", "skill-creator", "creator.marker");
     plugin(&browser, "browser-use", "control-browser", "browser.marker");
     let entry = |name: &str, path: &Path| serde_json::json!({"name": name, "cachePath": path.to_string_lossy(), "source": "filesystem"});
     write(
-        &storage.join("marketplaces/zcode-plugins-official/bundled-marketplace.json"),
+        &storage.join("marketplaces/nibi-official/bundled-marketplace.json"),
         &serde_json::json!({"version": 1, "manifest": {
-            "name": "zcode-plugins-official",
+            "name": "nibi-official",
             "plugins": [entry("skill-creator", &creator), entry("browser-use", &browser)]
         }})
         .to_string(),

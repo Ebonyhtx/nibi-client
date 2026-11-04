@@ -9,6 +9,7 @@ import {
   buildAgentProxyEnv,
   buildAgentRuntimeEnv,
   buildAgentWorkspaceIdentityEnv,
+  buildRustKernelStorageEnv,
 } from "../src/runtime-tools/agentProxyEnv.js";
 
 describe("buildAgentProxyEnv", () => {
@@ -146,6 +147,25 @@ describe("buildAgentWorkspaceIdentityEnv", () => {
     });
     expect(buildAgentWorkspaceIdentityEnv("   ")).toEqual({});
     expect(buildAgentWorkspaceIdentityEnv(undefined)).toEqual({});
+  });
+});
+
+describe("buildRustKernelStorageEnv", () => {
+  it("maps NIBI isolation roots to the ZCODE_* names the Rust kernel reads", () => {
+    expect(
+      buildRustKernelStorageEnv({
+        NIBI_DATA_BASE_DIR: " D:/nibi-data ",
+        NIBI_STORAGE_DIR: " D:/nibi-storage ",
+      }),
+    ).toEqual({
+      ZCODE_DATA_BASE_DIR: "D:/nibi-data",
+      ZCODE_STORAGE_DIR: "D:/nibi-storage",
+    });
+  });
+
+  it("does not invent aliases when neither root is overridden", () => {
+    expect(buildRustKernelStorageEnv({})).toEqual({});
+    expect(buildRustKernelStorageEnv({ NIBI_STORAGE_DIR: "  " })).toEqual({});
   });
 });
 

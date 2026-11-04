@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn the_names_keep_their_values() {
-    // F55 只收拢定义的位置，名字的值不变（与 Node CLI、App 共用的目录与文件）。
-    assert_eq!(DOT_DIR, ".zcode");
+    // NIBI 品牌化收口：用户根与 Node CLI/App 共用 `~/.nibi`（计划 §4.5）。
+    assert_eq!(DOT_DIR, ".nibi");
     assert_eq!(crate::dot_dir!(), DOT_DIR);
     assert_eq!(
         concat!("~/", crate::dot_dir!(), "/cli/db/db.sqlite"),
-        "~/.zcode/cli/db/db.sqlite"
+        "~/.nibi/cli/db/db.sqlite"
     );
     assert_eq!(RULES_FILE, "AGENTS.md");
     assert_eq!(LOCAL_RULES_FILE, "AGENTS.local.md");
@@ -15,7 +15,7 @@ fn the_names_keep_their_values() {
     assert_eq!(AGENTS_DIR, "agents");
     assert_eq!(SCHEDULED_TASKS_FILE, "scheduled_tasks.json");
     assert_eq!(CLIENT_NAME, "zcode");
-    assert_eq!(OFFICIAL_MARKETPLACE, "zcode-plugins-official");
+    assert_eq!(OFFICIAL_MARKETPLACE, "nibi-official");
 }
 
 #[test]

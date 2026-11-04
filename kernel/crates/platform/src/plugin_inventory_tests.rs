@@ -88,13 +88,13 @@ async fn installed_plugins_read_the_map_format() {
 async fn official_roots_come_from_the_bundled_partition() {
     let dir = tempfile::tempdir().unwrap();
     let root = storage(dir.path());
-    let cache = root.as_path().join("cache/zcode-plugins-official");
+    let cache = root.as_path().join("cache/nibi-official");
     let partition = root
         .as_path()
-        .join("marketplaces/zcode-plugins-official/bundled-marketplace.json");
+        .join("marketplaces/nibi-official/bundled-marketplace.json");
     let entry = |name: &str, path: &Path| serde_json::json!({"name": name, "cachePath": path.to_string_lossy(), "version": "1"});
     let manifest = serde_json::json!({"version": 1, "manifest": {
-        "name": "zcode-plugins-official",
+        "name": "nibi-official",
         "plugins": [
             entry("zcode-guide", &cache.join("zcode-guide/0.3.0")),
             // 越出该插件的缓存目录、指向插件目录本身、名字越出缓存目录：都不认。
@@ -120,7 +120,7 @@ async fn official_roots_scan_the_cache_without_a_partition() {
     let dir = tempfile::tempdir().unwrap();
     let root = storage(dir.path());
     assert!(official_plugin_roots(&root).await.is_empty());
-    let cache = root.as_path().join("cache/zcode-plugins-official");
+    let cache = root.as_path().join("cache/nibi-official");
     write(
         &cache.join("zcode-guide/0.3.0/.zcode-plugin/plugin.json"),
         "{}",
@@ -141,7 +141,7 @@ async fn official_roots_scan_the_cache_without_a_partition() {
     write(
         &root
             .as_path()
-            .join("marketplaces/zcode-plugins-official/bundled-marketplace.json"),
+            .join("marketplaces/nibi-official/bundled-marketplace.json"),
         r#"{"version": 2, "manifest": {"plugins": []}}"#,
     )
     .await;

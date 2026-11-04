@@ -8,11 +8,14 @@
 //! 边界脚本（`scripts/rust-cli/boundaries`，`SINGLE_DEFINITIONS`）拒绝本文件以外的产品代码在字符串字面量里
 //! 写 `.zcode` 路径段。
 
-/// 产品目录名 `.zcode`，给 `concat!` 拼 `const` 用（`const` 里不能用 [`DOT_DIR`]）；别处写 [`DOT_DIR`]。
+/// 产品目录名 `.nibi`，给 `concat!` 拼 `const` 用（`const` 里不能用 [`DOT_DIR`]）；别处写 [`DOT_DIR`]。
+///
+/// NIBI 的品牌化收口（计划 §4.5）：Rust 内核与 Node CLI/App 共用同一个用户根
+/// `~/.nibi`。此前是 `.zcode`，会让插件存储、用户配置与凭据在默认安装下分叉。
 #[macro_export]
 macro_rules! dot_dir {
     () => {
-        ".zcode"
+        ".nibi"
     };
 }
 
@@ -48,7 +51,7 @@ pub const SCHEDULED_TASKS_FILE: &str = "scheduled_tasks.json";
 
 /// Node 的官方插件市场名（`ZCODE_OFFICIAL_PLUGIN_MARKETPLACE`）：插件 id 的后半、缓存与分片的目录名。platform 的
 /// 已安装清单、ext 的插件选择、入口合并 `plugins` 段都用它（F55：以前三处各写一份）。
-pub const OFFICIAL_MARKETPLACE: &str = "zcode-plugins-official";
+pub const OFFICIAL_MARKETPLACE: &str = "nibi-official";
 
 /// 执行器的目录（docs/specs/rust-cli/remote-exec.md §19.4）：用户根下的 `rust-cli/exec`。本机的位置由 paths 的
 /// `StoragePaths::executor()` 算；远端的位置由 ssh-connect 按远端的 home 拼（远端只用这个目录，不碰 `cli/`）。

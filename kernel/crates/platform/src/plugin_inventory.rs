@@ -3,8 +3,8 @@
 //! 都在插件存储根（`StoragePaths::plugin_storage`）下，是本机存储，经 rust-cli-fs 读：
 //! - `installed_plugins.json`：数组格式（`plugins` 是数组，Node 写的）与对象格式（`plugins` 是以 id 为键的对象）都认
 //!   （Node `normalizeInstalledPluginsState`）；
-//! - `marketplaces/zcode-plugins-official/bundled-marketplace.json`：Node 播种的内置插件分片，条目的
-//!   `cachePath` 是插件目录；分片不存在时扫描 `cache/zcode-plugins-official/*/*`（Node `scanOfficialCache`）。
+//! - `marketplaces/nibi-official/bundled-marketplace.json`：Node 播种的内置插件分片，条目的
+//!   `cachePath` 是插件目录；分片不存在时扫描 `cache/nibi-official/*/*`（Node `scanOfficialCache`）。
 //!
 //! 只读：不做 Node 的原子目录崩溃恢复（`recoverAtomicTargetSync`，ext.md D24）。插件目录里的内容由 ext
 //! 经执行环境端口读。
@@ -145,7 +145,7 @@ pub fn installed_root(root: &StoragePath, plugin: &InstalledPlugin) -> PathBuf {
 }
 
 /// bundled 分片里的插件目录（Node `loadBundledOfficialPluginRootsSync`）：`cachePath` 必须在
-/// `<存储根>/cache/zcode-plugins-official/<name>/` 之下（严格的后代），名字不能越出缓存目录。分片不存在、
+/// `<存储根>/cache/nibi-official/<name>/` 之下（严格的后代），名字不能越出缓存目录。分片不存在、
 /// 版本不是 1 或 `manifest` 不是对象时为 None。
 fn bundled_roots(root: &StoragePath, partition: &Map<String, Value>) -> Option<Vec<PathBuf>> {
     if partition.get("version").and_then(Value::as_u64) != Some(1) {
@@ -175,7 +175,7 @@ fn bundled_roots(root: &StoragePath, partition: &Map<String, Value>) -> Option<V
 }
 
 /// 官方内置插件的目录：bundled 分片的 `cachePath`，按分片顺序；分片不存在时扫描
-/// `cache/zcode-plugins-official/<插件>/<版本>`，按名字排序（Node 按目录顺序）。
+/// `cache/nibi-official/<插件>/<版本>`，按名字排序（Node 按目录顺序）。
 pub async fn official_plugin_roots(root: &StoragePath) -> Vec<PathBuf> {
     let partition = root
         .as_path()

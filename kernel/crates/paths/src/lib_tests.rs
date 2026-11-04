@@ -18,11 +18,11 @@ fn defaults_follow_the_node_cli() {
     let paths = resolve(None, None);
     assert_eq!(
         paths.database().as_path(),
-        Path::new("/home/dev/.zcode/cli/db/db.sqlite")
+        Path::new("/home/dev/.nibi/cli/db/db.sqlite")
     );
     assert_eq!(
         paths.artifacts().as_path(),
-        Path::new("/home/dev/.zcode/cli/artifacts")
+        Path::new("/home/dev/.nibi/cli/artifacts")
     );
 }
 
@@ -79,7 +79,7 @@ fn joined_storage_paths_stay_storage_paths() {
     let session = paths.artifacts().join("sess_1");
     assert_eq!(
         session.as_path(),
-        Path::new("/home/dev/.zcode/cli/artifacts/sess_1")
+        Path::new("/home/dev/.nibi/cli/artifacts/sess_1")
     );
 }
 
@@ -88,7 +88,7 @@ fn memory_lives_under_the_storage_root() {
     let paths = resolve(None, None);
     assert_eq!(
         paths.memory_dir("/work/repo").as_path(),
-        Path::new("/home/dev/.zcode/projects/-work-repo/memory")
+        Path::new("/home/dev/.nibi/projects/-work-repo/memory")
     );
     assert_eq!(sanitize_path("C:\\a b/c.d"), "C--a-b-c-d");
     // 代理对是两个 UTF-16 码元，各换成一个 `-`。
@@ -110,29 +110,29 @@ fn account_and_provider_files_follow_node() {
     let paths = resolve(None, None);
     assert_eq!(
         paths.provider_config().as_path(),
-        Path::new("/home/dev/.zcode/v2/provider_config.json")
+        Path::new("/home/dev/.nibi/v2/provider_config.json")
     );
     assert_eq!(
         paths.credentials().as_path(),
-        Path::new("/home/dev/.zcode/v2/credentials.json")
+        Path::new("/home/dev/.nibi/v2/credentials.json")
     );
     assert_eq!(
         paths.builtin_provider_cache().as_path(),
-        Path::new("/home/dev/.zcode/v2/runtime/provider")
+        Path::new("/home/dev/.nibi/v2/runtime/provider")
     );
     assert_eq!(
         paths.settings().as_path(),
-        Path::new("/home/dev/.zcode/v2/setting.json")
+        Path::new("/home/dev/.nibi/v2/setting.json")
     );
     // ZCODE_DATA_BASE_DIR 只移动账号与 Provider 配置，设置文件仍在 home 下。
     let moved = paths.with_data_base_dir(Path::new("/data"));
     assert_eq!(
         moved.credentials().as_path(),
-        Path::new("/data/.zcode/v2/credentials.json")
+        Path::new("/data/.nibi/v2/credentials.json")
     );
     assert_eq!(
         moved.settings().as_path(),
-        Path::new("/home/dev/.zcode/v2/setting.json")
+        Path::new("/home/dev/.nibi/v2/setting.json")
     );
 }
 
@@ -141,12 +141,12 @@ fn the_tui_history_follows_the_config_root() {
     let paths = resolve(None, None);
     assert_eq!(
         paths.tui_history().as_path(),
-        Path::new("/home/dev/.zcode/v2/tui/history.jsonl")
+        Path::new("/home/dev/.nibi/v2/tui/history.jsonl")
     );
     let moved = paths.with_data_base_dir(Path::new("/data"));
     assert_eq!(
         moved.tui_history().as_path(),
-        Path::new("/data/.zcode/v2/tui/history.jsonl")
+        Path::new("/data/.nibi/v2/tui/history.jsonl")
     );
 }
 
@@ -154,7 +154,7 @@ fn the_tui_history_follows_the_config_root() {
 fn task_lists_live_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).task_list("sess_1").as_path(),
-        Path::new("/home/dev/.zcode/tasks/sess_1.json")
+        Path::new("/home/dev/.nibi/tasks/sess_1.json")
     );
     assert_eq!(
         resolve(None, Some("data")).task_list("sess_1").as_path(),
@@ -166,7 +166,7 @@ fn task_lists_live_under_the_storage_root() {
 fn run_logs_live_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).logs().as_path(),
-        Path::new("/home/dev/.zcode/rust-cli/log")
+        Path::new("/home/dev/.nibi/rust-cli/log")
     );
     assert_eq!(
         resolve(None, Some("data")).logs().as_path(),
@@ -178,7 +178,7 @@ fn run_logs_live_under_the_storage_root() {
 fn the_peer_registry_lives_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).peers().as_path(),
-        Path::new("/home/dev/.zcode/rust-cli/peers")
+        Path::new("/home/dev/.nibi/rust-cli/peers")
     );
 }
 
@@ -187,7 +187,7 @@ fn the_peer_registry_lives_under_the_storage_root() {
 fn the_update_cache_lives_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).update_cache().as_path(),
-        Path::new("/home/dev/.zcode/rust-cli/version.json")
+        Path::new("/home/dev/.nibi/rust-cli/version.json")
     );
     assert_eq!(
         resolve(None, Some("data")).update_cache().as_path(),
@@ -201,12 +201,12 @@ fn the_machine_list_lives_under_the_user_root() {
     for storage in [None, Some("data")] {
         assert_eq!(
             resolve(None, storage).machines().as_path(),
-            Path::new("/home/dev/.zcode/rust-cli/machines.json")
+            Path::new("/home/dev/.nibi/rust-cli/machines.json")
         );
         // MCP 服务器的机器绑定（R5，remote-exec.md §22.2）：同样在用户根下。
         assert_eq!(
             resolve(None, storage).mcp_machines().as_path(),
-            Path::new("/home/dev/.zcode/rust-cli/mcp-machines.json")
+            Path::new("/home/dev/.nibi/rust-cli/mcp-machines.json")
         );
     }
 }
@@ -221,36 +221,36 @@ fn the_executor_lives_under_the_user_root() {
         let at = |path: StoragePath| path.as_path().to_path_buf();
         assert_eq!(
             executor.dir().as_path(),
-            Path::new("/home/dev/.zcode/rust-cli/exec")
+            Path::new("/home/dev/.nibi/rust-cli/exec")
         );
         assert_eq!(
             at(executor.socket()),
-            Path::new("/home/dev/.zcode/rust-cli/exec/executor.sock")
+            Path::new("/home/dev/.nibi/rust-cli/exec/executor.sock")
         );
         assert_eq!(
             at(executor.lock()),
-            Path::new("/home/dev/.zcode/rust-cli/exec/executor.lock")
+            Path::new("/home/dev/.nibi/rust-cli/exec/executor.lock")
         );
         assert_eq!(
             at(executor.spawn_lock()),
-            Path::new("/home/dev/.zcode/rust-cli/exec/spawn.lock")
+            Path::new("/home/dev/.nibi/rust-cli/exec/spawn.lock")
         );
         assert_eq!(
             at(executor.ledger()),
-            Path::new("/home/dev/.zcode/rust-cli/exec/ledger")
+            Path::new("/home/dev/.nibi/rust-cli/exec/ledger")
         );
         assert_eq!(
             at(executor.logs()),
-            Path::new("/home/dev/.zcode/rust-cli/exec/log")
+            Path::new("/home/dev/.nibi/rust-cli/exec/log")
         );
         assert_eq!(
             at(executor.binary("0.1.0")),
-            Path::new("/home/dev/.zcode/rust-cli/exec/bin/0.1.0/zcode-rs")
+            Path::new("/home/dev/.nibi/rust-cli/exec/bin/0.1.0/zcode-rs")
         );
         assert_eq!(
             at(executor.artifact("0.1.0", "x86_64-unknown-linux-musl")),
             Path::new(
-                "/home/dev/.zcode/rust-cli/exec/dist/0.1.0/x86_64-unknown-linux-musl/zcode-rs"
+                "/home/dev/.nibi/rust-cli/exec/dist/0.1.0/x86_64-unknown-linux-musl/zcode-rs"
             )
         );
     }
@@ -261,11 +261,11 @@ fn the_cli_config_and_the_hook_trust_store_follow_the_node_cli() {
     let paths = resolve(None, Some("data"));
     assert_eq!(
         paths.cli_config().as_path(),
-        Path::new("/home/dev/.zcode/cli/config.json")
+        Path::new("/work/repo/data/cli/config.json")
     );
     assert_eq!(
         paths.hook_trust_store(None).as_path(),
-        Path::new("/home/dev/.zcode/security/workspace-hook-trust-v1.json")
+        Path::new("/home/dev/.nibi/security/workspace-hook-trust-v1.json")
     );
     // 相对路径相对 home（不随 cwd 漂移），`~/` 展开，绝对路径原样，空白视为没有。
     assert_eq!(
@@ -282,7 +282,7 @@ fn the_cli_config_and_the_hook_trust_store_follow_the_node_cli() {
     );
     assert_eq!(
         paths.hook_trust_store(Some("  ")).as_path(),
-        Path::new("/home/dev/.zcode/security/workspace-hook-trust-v1.json")
+        Path::new("/home/dev/.nibi/security/workspace-hook-trust-v1.json")
     );
 }
 
@@ -293,7 +293,7 @@ fn the_plugin_storage_follows_the_node_cli() {
     // Node `getPluginStorageRoot(getCliStorageRoot(resolvePath(storage.dir)))`。
     assert_eq!(
         paths.plugin_storage(None, base).as_path(),
-        Path::new("/home/dev/.zcode/cli/plugins")
+        Path::new("/home/dev/.nibi/cli/plugins")
     );
     assert_eq!(
         paths.plugin_storage(Some("~/z"), base).as_path(),
@@ -310,7 +310,7 @@ fn the_plugin_storage_follows_the_node_cli() {
     );
     assert_eq!(
         paths.plugin_storage(Some(" "), base).as_path(),
-        Path::new("/home/dev/.zcode/cli/plugins")
+        Path::new("/home/dev/.nibi/cli/plugins")
     );
 }
 
@@ -322,11 +322,11 @@ fn the_model_io_directory_follows_the_node_cli() {
     let base = Path::new("/work/repo");
     assert_eq!(
         paths.model_io(None, base, false).as_path(),
-        Path::new("/home/dev/.zcode/cli/rollout")
+        Path::new("/home/dev/.nibi/cli/rollout")
     );
     assert_eq!(
         paths.model_io(None, base, true).as_path(),
-        Path::new("/home/dev/.zcode/cli/debug")
+        Path::new("/home/dev/.nibi/cli/debug")
     );
     assert_eq!(
         paths.model_io(Some("data"), base, false).as_path(),
@@ -345,19 +345,19 @@ fn the_telemetry_state_follows_the_data_base_dir() {
     let paths = resolve(None, None);
     assert_eq!(
         paths.telemetry_state().as_path(),
-        Path::new("/home/dev/.zcode/v2/telemetry-state.json")
+        Path::new("/home/dev/.nibi/v2/telemetry-state.json")
     );
     assert_eq!(
         paths.telemetry_lock().as_path(),
-        Path::new("/home/dev/.zcode/v2/telemetry-state.lock")
+        Path::new("/home/dev/.nibi/v2/telemetry-state.lock")
     );
     let moved = paths.with_data_base_dir(Path::new("/data"));
     assert_eq!(
         moved.telemetry_state().as_path(),
-        Path::new("/data/.zcode/v2/telemetry-state.json")
+        Path::new("/data/.nibi/v2/telemetry-state.json")
     );
     assert_eq!(
         moved.telemetry_lock().as_path(),
-        Path::new("/data/.zcode/v2/telemetry-state.lock")
+        Path::new("/data/.nibi/v2/telemetry-state.lock")
     );
 }

@@ -118,7 +118,17 @@ fn database_id(path: &std::path::Path) -> String {
 
 async fn run(parsed: Parsed) -> Result<u8> {
     let startup = crate::capture()?;
-    let paths = setup::storage_paths(&startup, &StorageSettings::default());
+    // 用户配置/插件清单/会话库都要先按入口环境定位：Node 的 `NIBI_STORAGE_DIR`
+    // 在 spawn 边界映射成 `ZCODE_STORAGE_DIR`，这里若用默认值会读真实用户根，
+    // 隔离运行与 Host 管理面就会各自看见不同的 config/plugins。
+    let storage = StorageSettings {
+        session_db_path: startup
+            .env
+            .get("ZCODE_SESSION_DB_PATH")
+            .or_else(|| startup.env.get("ZCODE_SESSION_DB")),
+        storage_dir: startup.env.get("ZCODE_STORAGE_DIR"),
+    };
+    let paths = setup::storage_paths(&startup, &storage);
     let clock = Arc::new(SystemClock::new(startup.zone.clone()));
     // 日志只写文件：stdout 是协议（logging.md §6）。
     let run_log = log::RunLog::start(paths.logs().as_path().to_path_buf(), clock.clone());

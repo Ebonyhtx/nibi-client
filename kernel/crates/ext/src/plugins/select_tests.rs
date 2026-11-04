@@ -8,11 +8,11 @@ use rust_cli_kernel_api::testing::MemoryEnvironment;
 use super::*;
 use crate::test_support::{facts, workspace};
 
-const OFFICIAL: &str = "zcode-plugins-official";
+const OFFICIAL: &str = "nibi-official";
 const CACHE: &str = "/Users/dev/.zcode/cli/plugins/cache";
 
 fn manifest(dir: &str, body: &str) -> (String, String) {
-    (format!("{dir}/.zcode-plugin/plugin.json"), body.to_owned())
+    (format!("{dir}/.nibi-plugin/plugin.json"), body.to_owned())
 }
 
 fn env(files: &[(String, String)]) -> MemoryEnvironment {
@@ -110,11 +110,11 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
         [
             (Some("off@inline"), &SkipReason::Disabled),
             (
-                Some("restore-legacy-sessions@zcode-plugins-official"),
+                Some("restore-legacy-sessions@nibi-official"),
                 &SkipReason::Disabled
             ),
             (
-                Some("zcode-guide@zcode-plugins-official"),
+                Some("zcode-guide@nibi-official"),
                 &SkipReason::Suppressed
             ),
             (Some("market-kit@market"), &SkipReason::Disabled),
@@ -228,7 +228,7 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
             candidate("/Users/dev/third", "market", PluginOrigin::Installed),
         ],
         enabled_plugins: enabled(&[
-            ("computer-use@zcode-plugins-official", true),
+            ("computer-use@nibi-official", true),
             ("third@market", true),
         ]),
         ..PluginSources::default()
@@ -240,28 +240,28 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
         reasons(&loaded),
         [
             (
-                Some("browser-use@zcode-plugins-official"),
+                Some("browser-use@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::NodeRepl)
             ),
             (
-                Some("computer-use@zcode-plugins-official"),
+                Some("computer-use@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::NodeRepl)
             ),
             (
-                Some("documents@zcode-plugins-official"),
+                Some("documents@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::PluginHost)
             ),
             (
-                Some("image-search@zcode-plugins-official"),
+                Some("image-search@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::OfficialAuth)
             ),
             (
-                Some("visualize@zcode-plugins-official"),
+                Some("visualize@nibi-official"),
                 &SkipReason::NodeRuntime(NodeDependency::ViewHost)
             ),
             // 未启用的插件只记“未启用”，不判定 Node 依赖。
             (
-                Some("android-emulator@zcode-plugins-official"),
+                Some("android-emulator@nibi-official"),
                 &SkipReason::Disabled
             ),
         ]
