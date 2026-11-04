@@ -94,6 +94,9 @@ pub struct Projection {
     /// 分享导入的本地状态（NIBI 快照的 `sharedContextImport`）：冷打开时从存储种子进来，
     /// `discardSharedContext` 改成 `discarded`。
     shared_context_import: Option<Value>,
+    /// 正在跑的压缩分隔线（`timelineMarker` 的 key）：`CompactStarted` 落 running，
+    /// 边界消息改 success，`CompactDone`/回合失败收尾。
+    compact_marker: Option<String>,
     created_at: u64,
 }
 
@@ -162,6 +165,7 @@ impl Projection {
             hook_review: None,
             hook_admission: None,
             shared_context_import: None,
+            compact_marker: None,
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -540,6 +544,7 @@ impl Projection {
                     now,
                     &mut out,
                 );
+                self.compact_turn_finished(outcome, &mut out);
                 if !control_only || advanced {
                     self.phase_patch(&mut patch);
                 }
@@ -582,6 +587,12 @@ impl Projection {
                 if after != before {
                     patch.insert("queue".into(), after);
                 }
+            }
+            KernelEvent::CompactStarted { trigger } => {
+                self.compact_started(*trigger, now, seq, &mut out);
+            }
+            KernelEvent::CompactDone { .. } => {
+                self.compact_done();
             }
             _ => {}
         }

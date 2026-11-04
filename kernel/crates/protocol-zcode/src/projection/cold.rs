@@ -123,6 +123,9 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                 }
             }
             Message::Assistant(_) => projection.message(message, at, 0, &mut out),
+            Message::System(SystemMessage::CompactBoundary(boundary)) => {
+                projection.compact_boundary(boundary, at, 0, &mut out);
+            }
             Message::System(SystemMessage::Interrupted { .. }) => interrupted = true,
             _ => {}
         }
