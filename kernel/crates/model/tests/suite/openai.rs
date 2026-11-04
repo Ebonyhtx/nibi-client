@@ -21,7 +21,7 @@ use super::fixture::{Fixture, Reply};
 
 const KEY: &str = "sk-openai-test-0123456789";
 
-fn endpoint(protocol: WireProtocol, base_url: String) -> ModelEndpoint {
+pub(super) fn endpoint(protocol: WireProtocol, base_url: String) -> ModelEndpoint {
     ModelEndpoint {
         supports_pdf: false,
         supports_video: false,
@@ -38,14 +38,14 @@ fn endpoint(protocol: WireProtocol, base_url: String) -> ModelEndpoint {
     }
 }
 
-async fn model(endpoint: ModelEndpoint) -> ProviderModel {
+pub(super) async fn model(endpoint: ModelEndpoint) -> ProviderModel {
     let egress = Arc::new(Egress::new(NetworkPolicy::default()).await.unwrap());
     ProviderModel::new(egress, Arc::new(FixedEndpoint::new(endpoint)), clock())
         .with_retry(fast_retry(2))
 }
 
 /// 每个事件一行 `data:`，再把整段切成 7 字节的块（任意切分）。
-fn sse(events: &[serde_json::Value], done: bool) -> Reply {
+pub(super) fn sse(events: &[serde_json::Value], done: bool) -> Reply {
     let mut text: String = events
         .iter()
         .map(|event| format!("data: {event}\n\n"))

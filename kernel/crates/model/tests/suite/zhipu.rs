@@ -22,13 +22,13 @@ use super::fixture::{Fixture, Reply};
 const ZHIPU_ANTHROPIC: &str = "https://open.bigmodel.cn/api/anthropic";
 const ZHIPU_OPENAI: &str = "https://open.bigmodel.cn/api/paas/v4";
 
-async fn zhipu(server: &Fixture) -> ProviderModel {
+pub(super) async fn zhipu(server: &Fixture) -> ProviderModel {
     model_at(server.url(), fast_retry(3))
         .await
         .with_assumed_base_url(ZHIPU_ANTHROPIC)
 }
 
-fn coded(status: u16, code: &str, message: &str) -> Reply {
+pub(super) fn coded(status: u16, code: &str, message: &str) -> Reply {
     Reply::new(status)
         .header("content-type", "application/json")
         .send(json!({"error": {"code": code, "message": message}}).to_string())
@@ -125,7 +125,7 @@ fn chat_endpoint(base_url: String) -> ModelEndpoint {
     }
 }
 
-async fn chat(server: &Fixture) -> ProviderModel {
+pub(super) async fn chat(server: &Fixture) -> ProviderModel {
     let egress = Arc::new(Egress::new(NetworkPolicy::default()).await.unwrap());
     ProviderModel::new(
         egress,
@@ -136,7 +136,7 @@ async fn chat(server: &Fixture) -> ProviderModel {
     .with_assumed_base_url(ZHIPU_OPENAI)
 }
 
-fn chat_reply(chunks: &[Value]) -> Reply {
+pub(super) fn chat_reply(chunks: &[Value]) -> Reply {
     let mut text: String = chunks
         .iter()
         .map(|chunk| format!("data: {chunk}\n\n"))

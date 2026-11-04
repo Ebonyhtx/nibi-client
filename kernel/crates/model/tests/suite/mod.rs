@@ -7,6 +7,7 @@ mod limits;
 mod metadata;
 mod model_io;
 mod openai;
+mod provider_matrix;
 mod scenarios;
 mod stall;
 mod stream_retry;
