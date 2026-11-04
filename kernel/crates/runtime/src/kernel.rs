@@ -317,6 +317,17 @@ impl Kernel for LocalKernel {
         Ok(id)
     }
 
+    /// 建会话时落父会话（legacy `session/create` 的 `parentSessionId`）：与导入历史的写入路径
+    /// 共用（空标题、无历史、创建时刻取现在）。
+    async fn create_session_with_parent(
+        &self,
+        request: CreateSession,
+        parent: Option<SessionId>,
+    ) -> Result<SessionId, KernelError> {
+        self.create_session_with_history(request, None, None, parent, Vec::new())
+            .await
+    }
+
     /// 建会话并写入导入的历史（NIBI `createSession.importedHistory`）：标题、创建时间与父会话
     /// 一起落库，历史消息按提交顺序写进同一个会话。
     async fn create_session_with_history(

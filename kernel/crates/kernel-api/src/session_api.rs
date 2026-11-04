@@ -734,6 +734,17 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 建会话时落父会话（legacy `session/create` 的 `parentSessionId`）：fork / 项目会话的父链。
+    /// 缺省忽略父会话、照常建会话；能落父链的入口覆写（运行时的实现与 `create_session_with_history`
+    /// 共用一条写入路径）。
+    async fn create_session_with_parent(
+        &self,
+        request: CreateSession,
+        _parent: Option<SessionId>,
+    ) -> Result<SessionId, KernelError> {
+        self.create_session(request).await
+    }
+
     async fn open_session(
         &self,
         session: &SessionId,

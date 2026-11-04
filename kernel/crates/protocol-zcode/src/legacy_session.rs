@@ -205,7 +205,6 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
     // Host 的旧 create 还带一批内核没有承载面的字段；点名而不是静默丢。
     let ignored: Vec<&str> = [
         "persistence",
-        "parentSessionId",
         "toolAllowlist",
         "toolDenylist",
         "importedHistory",
@@ -237,16 +236,17 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         mode,
         plan,
     };
+    let parent = params["parentSessionId"].as_str().map(SessionId::new);
     let id = match imported_history(params) {
         Some((title, created_at, history)) => server
             .kernel
-            .create_session_with_history(
-                request,
-                title,
-                created_at,
-                params["parentSessionId"].as_str().map(SessionId::new),
-                history,
-            )
+            .create_session_with_history(request, title, created_at, parent, history)
+            .await
+            .map_err(|error| kernel_error(&error))?,
+        // 没有导入历史也要落父链（fork / 项目会话的父会话）。
+        None if parent.is_some() => server
+            .kernel
+            .create_session_with_parent(request, parent)
             .await
             .map_err(|error| kernel_error(&error))?,
         None => server

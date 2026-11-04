@@ -89,6 +89,28 @@ async fn imported_history_is_persisted_with_title_and_created_at() {
 }
 
 #[tokio::test]
+async fn a_session_can_be_created_below_a_parent() {
+    let store = Arc::new(MemoryStore::default());
+    let kernel = kernel(store, Arc::new(ScriptedModel::new(Vec::new())));
+    let parent = rust_cli_kernel_api::ids::SessionId::new("sess_parent");
+    let id = kernel
+        .create_session_with_parent(
+            CreateSession {
+                id: None,
+                workspace: workspace(),
+                selection: selection(),
+                mode: PermissionMode::Default,
+                plan: false,
+            },
+            Some(parent.clone()),
+        )
+        .await
+        .unwrap();
+    let view = kernel.session_snapshot(&id).await.unwrap();
+    assert_eq!(view.meta.parent, Some(parent));
+}
+
+#[tokio::test]
 async fn a_created_session_runs_a_turn_and_reloads_after_restart() {
     let store = Arc::new(MemoryStore::default());
     let first = kernel(
