@@ -1610,7 +1610,7 @@ describe("NodePluginAdapter", () => {
     try {
       const zipBuffer = createStoredZip([
         {
-          path: "cdn-plugin-1.2.3/.claude-plugin/plugin.json",
+          path: "cdn-plugin-1.2.3/.nibi-plugin/plugin.json",
           content: JSON.stringify({
             commands: "commands",
             name: "cdn-plugin",

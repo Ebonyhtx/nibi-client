@@ -398,7 +398,10 @@ function resolveZipRoot(input: {
 }
 
 function hasPluginManifest(rootPath: string): boolean {
+  // NIBI 自有清单目录优先：官方插件已迁到 .nibi-plugin，漏掉它会把「只有 .nibi-plugin
+  // 的 zip」当成非插件包拒掉（与 PLUGIN_MANIFEST_DIRS 的顺序保持一致）。
   return (
+    fileExists(join(rootPath, ".nibi-plugin", "plugin.json")) ||
     fileExists(join(rootPath, ".zcode-plugin", "plugin.json")) ||
     fileExists(join(rootPath, ".claude-plugin", "plugin.json")) ||
     fileExists(join(rootPath, ".codex-plugin", "plugin.json"))
