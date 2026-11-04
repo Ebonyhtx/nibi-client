@@ -296,7 +296,7 @@ describe("desktopStabilityTelemetry", () => {
       type: "Utility",
       reason: "abnormal-exit",
       exitCode: 1,
-      serviceName: "zcode-host-local-1",
+      serviceName: "nibi-host-local-1",
       name: "Node Utility Process",
     });
 
@@ -306,7 +306,7 @@ describe("desktopStabilityTelemetry", () => {
       properties: expect.objectContaining({
         crash_scope: "host",
         process_role: "host",
-        process_name: "zcode-host-local-1",
+        process_name: "nibi-host-local-1",
       }),
     });
   });
@@ -342,7 +342,7 @@ describe("desktopStabilityTelemetry", () => {
       type: "Utility",
       reason,
       exitCode: 137,
-      serviceName: "zcode-host-local-1",
+      serviceName: "nibi-host-local-1",
       name: "Node Utility Process",
     });
 
@@ -393,8 +393,8 @@ describe("desktopStabilityTelemetry", () => {
       const { mapChildProcessGoneToProcessRole, shouldReportChildProcessGoneAsCrash } =
         await import("../src/main/desktopStabilityTelemetry.js");
 
-      // 实际进程名（shared/src/process-names.ts）是 nibi-*；旧前缀仍兼容。
-      for (const name of ["nibi-host-local-1", "zcode-host-local-1"]) {
+      // 进程名由 shared/src/process-names.ts 铸造，形态恒为 nibi-*。
+      for (const name of ["nibi-host-local-1"]) {
         expect(mapChildProcessGoneToProcessRole("Utility", name)).toBe("host");
         expect(
           shouldReportChildProcessGoneAsCrash({
@@ -405,7 +405,7 @@ describe("desktopStabilityTelemetry", () => {
           }),
         ).toBe(true);
       }
-      for (const name of ["nibi-agent-glm-workspace", "zcode-agent-glm-workspace"]) {
+      for (const name of ["nibi-agent-glm-workspace"]) {
         expect(mapChildProcessGoneToProcessRole("Utility", name)).toBe("agent");
         expect(
           shouldReportChildProcessGoneAsCrash({
@@ -427,7 +427,7 @@ describe("desktopStabilityTelemetry", () => {
           type: "Utility",
           reason: "clean-exit",
           exitCode: 0,
-          name: "zcode-host-local-1",
+          name: "nibi-host-local-1",
         }),
       ).toBe(false);
     });
