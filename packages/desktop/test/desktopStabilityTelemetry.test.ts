@@ -389,19 +389,33 @@ describe("desktopStabilityTelemetry", () => {
       ).toBe(false);
     });
 
-    it("reports zcode host child process exits as crash", async () => {
+    it("reports host and agent child process exits as crash", async () => {
       const { mapChildProcessGoneToProcessRole, shouldReportChildProcessGoneAsCrash } =
         await import("../src/main/desktopStabilityTelemetry.js");
 
-      expect(mapChildProcessGoneToProcessRole("Utility", "zcode-host-local-1")).toBe("host");
-      expect(
-        shouldReportChildProcessGoneAsCrash({
-          type: "Utility",
-          reason: "abnormal-exit",
-          exitCode: 256,
-          name: "zcode-host-local-1",
-        }),
-      ).toBe(true);
+      // 实际进程名（shared/src/process-names.ts）是 nibi-*；旧前缀仍兼容。
+      for (const name of ["nibi-host-local-1", "zcode-host-local-1"]) {
+        expect(mapChildProcessGoneToProcessRole("Utility", name)).toBe("host");
+        expect(
+          shouldReportChildProcessGoneAsCrash({
+            type: "Utility",
+            reason: "abnormal-exit",
+            exitCode: 256,
+            name,
+          }),
+        ).toBe(true);
+      }
+      for (const name of ["nibi-agent-glm-workspace", "zcode-agent-glm-workspace"]) {
+        expect(mapChildProcessGoneToProcessRole("Utility", name)).toBe("agent");
+        expect(
+          shouldReportChildProcessGoneAsCrash({
+            type: "Utility",
+            reason: "abnormal-exit",
+            exitCode: 256,
+            name,
+          }),
+        ).toBe(true);
+      }
     });
 
     it("does not report clean child exits as crash", async () => {

@@ -714,10 +714,12 @@ function mapChildProcessGoneToProcessRoleWithName(
   type: string,
   processName?: string,
 ): StabilityProcessRole {
-  if (processName?.startsWith("zcode-host")) {
+  // 进程名自 4.0 起是 `nibi-host-*` / `nibi-agent-*`（`shared/src/process-names.ts` 的
+  // NIBI_PROCESS_PREFIX）；旧前缀保留一版兼容，避免正在跑的旧进程被归成 utility。
+  if (processName?.startsWith("nibi-host") || processName?.startsWith("zcode-host")) {
     return "host";
   }
-  if (processName?.startsWith("zcode-agent")) {
+  if (processName?.startsWith("nibi-agent") || processName?.startsWith("zcode-agent")) {
     return "agent";
   }
   switch (type) {
