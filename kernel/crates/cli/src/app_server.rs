@@ -383,7 +383,7 @@ async fn serve(
         kernel_defaults,
         context_config,
         compact,
-        store,
+        store.clone(),
         extensions,
     );
     // 会话标题（titles.md §2）：桌面与 TUI 同一套生成——首条人类输入后一次 `session_title`
@@ -408,6 +408,7 @@ async fn serve(
                 local_machine.clone(),
                 paths.database().as_path().to_path_buf(),
                 platform.clone(),
+                store.clone(),
             ))),
             Err(error) => {
                 tracing::warn!(

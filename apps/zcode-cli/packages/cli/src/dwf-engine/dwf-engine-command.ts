@@ -28,7 +28,7 @@
  * 不变式：读循环绝不 `await` 一个 run——run 期间的 RPC 响应也走这条 stdin，阻塞读循环会死锁。
  */
 import { createHash } from "node:crypto";
-import { mkdir, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open as openFile, realpath, rm, unlink, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -50,6 +50,8 @@ import {
   validateWorkflowArgs,
 } from "@nibi/core";
 import {
+  ARTIFACT_CAPS,
+  ARTIFACT_ID_PATTERN,
   analyzeWorkflowScript,
   buildAskSpecs,
   checkSiteStability,
@@ -83,6 +85,9 @@ import {
   type ImportedRunCache,
   type WorkflowProgram,
   type WorldReadOp,
+  type ArtifactPublishRequest,
+  type ArtifactVersionRecord,
+  type WorkflowErrorCode,
   WorkflowError,
 } from "@nibi/dynamic-workflow";
 import { runWorkflowScript } from "@nibi/dynamic-workflow-runtime";
@@ -419,6 +424,7 @@ function launchRun(
   const compiled = askSpecsFor(params.scriptText);
   const driver = new RemoteDriver(
     params.runId,
+    params.cwd,
     journal,
     request,
     notify,
@@ -736,11 +742,186 @@ type SubmitReply =
     }
   | { ok: false; reason: string; message: string };
 
+/** 扩展名 → MIME（与 Node `workflow-artifact-publish` 同一张表；表外一律 octet-stream）。 */
+const ARTIFACT_CONTENT_TYPES: Readonly<Record<string, string>> = {
+  csv: "text/csv",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  gif: "image/gif",
+  htm: "text/html",
+  html: "text/html",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  json: "application/json",
+  markdown: "text/markdown",
+  md: "text/markdown",
+  pdf: "application/pdf",
+  png: "image/png",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  svg: "image/svg+xml",
+  txt: "text/plain",
+  webp: "image/webp",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+/** 裸 MIME（不带参数）：UI 在精确字符串上分派。 */
+const BARE_CONTENT_TYPE = /^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*\/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]*$/;
+
+function assertArtifactId(request: ArtifactPublishRequest): void {
+  const { id } = request;
+  if (id.length > ARTIFACT_CAPS.maxIdLength || !ARTIFACT_ID_PATTERN.test(id)) {
+    throw new WorkflowError(
+      "DriverError",
+      `artifact.${request.op}: id '${id}' is not a valid artifact id. Use at most ` +
+        `${ARTIFACT_CAPS.maxIdLength} characters from [A-Za-z0-9_.-].`,
+    );
+  }
+}
+
+function artifactPublishOptions(request: ArtifactPublishRequest): {
+  title?: string;
+  description?: string;
+  contentType?: string;
+} {
+  const raw = request.opts;
+  if (raw === undefined) return {};
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new WorkflowError(
+      "DriverError",
+      `artifact.${request.op}: opts must be an options object. Pass an object or omit the argument.`,
+    );
+  }
+  const bag = raw as { title?: unknown; description?: unknown; contentType?: unknown };
+  const title = artifactOptionText(request, "title", bag.title, ARTIFACT_CAPS.maxTitleLength);
+  const description = artifactOptionText(
+    request,
+    "description",
+    bag.description,
+    ARTIFACT_CAPS.maxDescriptionLength,
+  );
+  const contentType =
+    request.op === "file" ? artifactOptionContentType(request, bag.contentType) : undefined;
+  return {
+    ...(title === undefined ? {} : { title }),
+    ...(description === undefined ? {} : { description }),
+    ...(contentType === undefined ? {} : { contentType }),
+  };
+}
+
+function artifactOptionText(
+  request: ArtifactPublishRequest,
+  name: string,
+  value: unknown,
+  max: number,
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") {
+    throw new WorkflowError(
+      "DriverError",
+      `artifact.${request.op}: opts.${name} must be a string.`,
+    );
+  }
+  if (value.length > max) {
+    throw new WorkflowError(
+      "ArtifactTooLarge",
+      `artifact.${request.op}: opts.${name} is ${value.length} characters, over the cap of ${max}.`,
+    );
+  }
+  return value;
+}
+
+function artifactOptionContentType(
+  request: ArtifactPublishRequest,
+  value: unknown,
+): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") {
+    throw new WorkflowError("DriverError", "artifact.file: opts.contentType must be a string.");
+  }
+  if (!BARE_CONTENT_TYPE.test(value)) {
+    throw new WorkflowError(
+      "DriverError",
+      `artifact.file: opts.contentType '${value}' is not a bare MIME type such as 'application/pdf'.`,
+    );
+  }
+  return value;
+}
+
+function artifactContentTypeOf(file: string): string {
+  const name = path.basename(file);
+  const dot = name.lastIndexOf(".");
+  if (dot <= 0 || dot === name.length - 1) return "application/octet-stream";
+  const extension = name.slice(dot + 1).toLowerCase();
+  if (!/^[a-z0-9]+$/.test(extension)) return "application/octet-stream";
+  return ARTIFACT_CONTENT_TYPES[extension] ?? "application/octet-stream";
+}
+
+/**
+ * 工作区相对路径 → 可读的真实路径，两次越界判定（词法 + realpath）：与 Node 的实现同一条
+ * 纪律——软链按真实路径判，发布把字节拷进持久 store，一条软链不能把 `~/.ssh/id_rsa` 变成卡片。
+ */
+async function resolveWorkspaceFile(
+  cwd: string,
+  given: string,
+): Promise<{ real: string; relative: string }> {
+  const resolved = path.resolve(cwd, given);
+  const relative = path.relative(cwd, resolved);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new WorkflowError(
+      "ArtifactPathOutsideWorkspace",
+      `artifact.file: path '${given}' resolves outside the workspace. Only files inside the workspace can be published.`,
+    );
+  }
+  const realCwd = await realpath(cwd);
+  let real: string;
+  try {
+    real = await realpath(resolved);
+  } catch (cause) {
+    throw new WorkflowError(
+      "ArtifactSourceMissing",
+      `artifact.file: '${given}' does not exist or is not a regular file.`,
+      { cause },
+    );
+  }
+  const realRelative = path.relative(realCwd, real);
+  if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) {
+    throw new WorkflowError(
+      "ArtifactPathOutsideWorkspace",
+      `artifact.file: path '${given}' resolves outside the workspace (symlinks are judged by their real path).`,
+    );
+  }
+  return { real, relative: path.relative(cwd, resolved) };
+}
+
+/** cap+1 字节探测：恰好 cap 放行，超过拒绝。 */
+async function readCappedBytes(target: string, cap: number): Promise<Buffer> {
+  const handle = await openFile(target, "r");
+  try {
+    const buffer = Buffer.alloc(cap + 1);
+    let offset = 0;
+    while (offset < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, offset, buffer.length - offset, offset);
+      if (bytesRead === 0) break;
+      offset += bytesRead;
+    }
+    if (offset > cap) {
+      throw new WorkflowError(
+        "ArtifactTooLarge",
+        `artifact.file: file is over the cap of ${cap} bytes. Publish a smaller artifact.`,
+      );
+    }
+    return buffer.subarray(0, offset);
+  } finally {
+    await handle.close();
+  }
+}
+
 /** driver：引擎的手，每一下都伸回宿主。 */
 class RemoteDriver {
   readonly journal: JournalStorePort;
   sink: WorkflowSink | undefined;
   private readonly runId: string;
+  /** 本 run 的工作区（`artifact.file` 的越界判定与相对路径出处）。 */
+  private readonly cwd: string;
   private readonly request: (method: string, params: unknown) => Promise<unknown>;
   private readonly notify: (method: string, params: unknown) => void;
   /** 本 run 的子代理模型（规范串，来自 `run-launched.subagentModel` / 本次修订的入参）。 */
@@ -754,6 +935,7 @@ class RemoteDriver {
 
   constructor(
     runId: string,
+    cwd: string,
     journal: JournalStorePort,
     request: (method: string, params: unknown) => Promise<unknown>,
     notify: (method: string, params: unknown) => void,
@@ -762,6 +944,7 @@ class RemoteDriver {
     facts?: RunFacts,
   ) {
     this.runId = runId;
+    this.cwd = cwd;
     this.journal = journal;
     this.request = request;
     this.notify = notify;
@@ -838,6 +1021,83 @@ class RemoteDriver {
 
   async executeWorldRead(op: WorldReadOp, args: unknown[]): Promise<unknown> {
     return this.request("world/read", { runId: this.runId, op, args });
+  }
+
+  /**
+   * 用户面产物发布（`artifact.markdown` / `artifact.file`）：形状、路径越界与字节读取在这一侧
+   * （与 Node `executeArtifactPublish` 同一套判据），字节交给 Rust 的 artifact store
+   * （`ArtifactPurpose::Deliverable`），回执由 store 给出 `zcode-artifact://` 引用。
+   */
+  async executeArtifactPublish(request: ArtifactPublishRequest): Promise<ArtifactVersionRecord> {
+    assertArtifactId(request);
+    const options = artifactPublishOptions(request);
+    let payload: { bytes: Buffer; contentType: string; sourcePath?: string };
+    if (request.op === "file") {
+      const given = request.path;
+      if (typeof given !== "string" || given.length === 0) {
+        throw new WorkflowError(
+          "DriverError",
+          "artifact.file: path must be a non-empty string. Pass the workspace-relative path the subagent wrote.",
+        );
+      }
+      const { real, relative } = await resolveWorkspaceFile(this.cwd, given);
+      let bytes: Buffer;
+      try {
+        bytes = await readCappedBytes(real, ARTIFACT_CAPS.maxFileBytes);
+      } catch (cause) {
+        if (cause instanceof WorkflowError) throw cause;
+        throw new WorkflowError(
+          "ArtifactSourceMissing",
+          `artifact.file: '${given}' does not exist or is not a regular file.`,
+          { cause },
+        );
+      }
+      payload = {
+        bytes,
+        contentType: options.contentType ?? artifactContentTypeOf(real),
+        sourcePath: relative,
+      };
+    } else {
+      const content = request.content;
+      if (typeof content !== "string") {
+        throw new WorkflowError("DriverError", "artifact.markdown: content must be a string.");
+      }
+      const bytes = Buffer.from(content, "utf8");
+      if (bytes.length > ARTIFACT_CAPS.maxMarkdownBytes) {
+        throw new WorkflowError(
+          "ArtifactTooLarge",
+          `artifact.markdown: content is ${bytes.length} bytes, over the cap of ${ARTIFACT_CAPS.maxMarkdownBytes} bytes.`,
+        );
+      }
+      payload = { bytes, contentType: "text/markdown" };
+    }
+    const reply = (await this.request("artifact/publish", {
+      runId: this.runId,
+      request: {
+        id: request.id,
+        op: request.op,
+        version: request.version,
+        contentType: payload.contentType,
+        ...(options.title === undefined ? {} : { title: options.title }),
+        ...(options.description === undefined ? {} : { description: options.description }),
+        ...(payload.sourcePath === undefined ? {} : { sourcePath: payload.sourcePath }),
+        ...(request.op === "file"
+          ? { bytesBase64: payload.bytes.toString("base64") }
+          : { content: request.content }),
+      },
+    })) as {
+      ok?: boolean;
+      record?: ArtifactVersionRecord;
+      code?: string;
+      message?: string;
+    };
+    if (reply.ok !== true || reply.record === undefined) {
+      throw new WorkflowError(
+        (reply.code ?? "ArtifactStoreUnavailable") as WorkflowErrorCode,
+        reply.message ?? "the artifact could not be published",
+      );
+    }
+    return reply.record;
   }
 
   /** 宿主每轮报的 messageCount：最近一次的值就是本次交换的边界候选。 */

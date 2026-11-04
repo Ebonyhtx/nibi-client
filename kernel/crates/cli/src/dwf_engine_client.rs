@@ -16,6 +16,7 @@ use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, Weak};
 
+use base64::Engine;
 use rust_cli_base::Spawner;
 use rust_cli_kernel_api::clock::Ids;
 use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
@@ -23,6 +24,7 @@ use rust_cli_kernel_api::env_files::{GlobFiles, GrepMode, GrepOutcome, GrepSearc
 use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::machine::MachineEnv;
 use rust_cli_kernel_api::session_api::Kernel;
+use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactStore};
 use rust_cli_kernel_api::workflow::{
     WorkflowAmend, WorkflowEngine, WorkflowEngineError, WorkflowRunStarted, WorkflowStart,
 };
@@ -286,6 +288,9 @@ struct EngineShared {
     /// 模型目录（脚本点名模型的解析，launch.md「Models the script names」）：sidecar 报名字，
     /// 这里对着本机目录解成规范串绑定表。
     models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
+    /// 用户面产物的落盘面（`artifact/publish`，`ArtifactPurpose::Deliverable`）：sidecar 读文件/
+    /// 验形状，这里只负责写进会话的 artifact store 并回 `zcode-artifact://` 引用。
+    artifacts: Arc<dyn ArtifactStore>,
     kernel: Mutex<Option<Weak<dyn Kernel>>>,
     process: Mutex<Option<Arc<Process>>>,
     runs: Mutex<HashMap<String, Arc<RunState>>>,
@@ -304,6 +309,7 @@ impl SidecarEngine {
         machine: MachineEnv,
         database: PathBuf,
         models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
+        artifacts: Arc<dyn ArtifactStore>,
     ) -> Self {
         Self {
             shared: Arc::new(EngineShared {
@@ -313,6 +319,7 @@ impl SidecarEngine {
                 machine,
                 database,
                 models,
+                artifacts,
                 kernel: Mutex::new(None),
                 process: Mutex::new(None),
                 runs: Mutex::new(HashMap::new()),
@@ -507,6 +514,118 @@ fn resolve_path(cwd: &str, path: &str) -> String {
 fn relative_path(cwd: &str, path: &str) -> String {
     let prefix = format!("{}/", cwd.trim_end_matches(['/', '\\']));
     path.strip_prefix(&prefix).unwrap_or(path).to_owned()
+}
+
+/// `artifact/publish`：把 sidecar 读好的字节写进本会话的 artifact store。
+///
+/// 分工与 Node 的 `executeArtifactPublish` 同一条线：sidecar 做**读取侧**（id/opts 形状、工作区
+/// 越界、realpath、cap+1 字节探测），宿主只做**落盘侧**（`ArtifactPurpose::Deliverable` 的
+/// `ArtifactStore::put`）并回 `zcode-artifact://` 引用。拒绝是结构化 `{ok:false, code, message}`，
+/// sidecar 原样抛成可被脚本 catch 的 `WorkflowError`。
+async fn publish_artifact(shared: &EngineShared, params: &Value) -> Value {
+    const MAX_FILE_BYTES: usize = 20 * 1024 * 1024;
+    const MAX_MARKDOWN_BYTES: usize = 256 * 1024;
+    let run_id = params["runId"].as_str().unwrap_or_default();
+    let run = shared
+        .runs
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .get(run_id)
+        .cloned();
+    let Some(run) = run else {
+        return json!({"ok": false, "code": "DriverError", "message": format!("unknown run {run_id}")});
+    };
+    let request = &params["request"];
+    let id = request["id"].as_str().unwrap_or_default();
+    if id.is_empty()
+        || id.len() > 64
+        || !id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'.' | b'-'))
+    {
+        return json!({"ok": false, "code": "DriverError", "message": format!("artifact id '{id}' is not valid")});
+    }
+    let op = request["op"].as_str().unwrap_or_default();
+    let bytes = match op {
+        "markdown" => {
+            let content = request["content"].as_str().unwrap_or_default();
+            let bytes = content.as_bytes().to_vec();
+            if bytes.len() > MAX_MARKDOWN_BYTES {
+                return json!({
+                    "ok": false,
+                    "code": "ArtifactTooLarge",
+                    "message": format!("artifact.markdown: content is {} bytes, over the cap of {MAX_MARKDOWN_BYTES} bytes", bytes.len()),
+                });
+            }
+            bytes
+        }
+        "file" => {
+            let Some(encoded) = request["bytesBase64"].as_str() else {
+                return json!({"ok": false, "code": "DriverError", "message": "artifact.file: content is missing"});
+            };
+            let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(encoded) else {
+                return json!({"ok": false, "code": "DriverError", "message": "artifact.file: content is not valid base64"});
+            };
+            if bytes.len() > MAX_FILE_BYTES {
+                return json!({
+                    "ok": false,
+                    "code": "ArtifactTooLarge",
+                    "message": format!("artifact.file: contents are {} bytes, over the cap of {MAX_FILE_BYTES} bytes", bytes.len()),
+                });
+            }
+            bytes
+        }
+        other => {
+            return json!({"ok": false, "code": "DriverError", "message": format!("unknown artifact op '{other}'")});
+        }
+    };
+    let content_type = request["contentType"]
+        .as_str()
+        .filter(|value| {
+            value.len() <= 200
+                && value.contains('/')
+                && !value.contains(';')
+                && !value.contains(char::is_whitespace)
+        })
+        .unwrap_or("application/octet-stream")
+        .to_owned();
+    let reference = match shared
+        .artifacts
+        .put(&run.parent, ArtifactPurpose::Deliverable, content_type.clone(), bytes)
+        .await
+    {
+        Ok(reference) => reference,
+        Err(error) => {
+            return json!({
+                "ok": false,
+                "code": "ArtifactStoreUnavailable",
+                "message": format!("Cannot publish \"{id}\": {error}"),
+            });
+        }
+    };
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0);
+    let mut record = json!({
+        "id": id,
+        "kind": op,
+        "version": request["version"].as_u64().unwrap_or(1),
+        "contentType": content_type,
+        "bytes": reference.size,
+        "uri": format!(
+            "zcode-artifact://{}/{}",
+            reference.session.as_str(),
+            reference.id.as_str()
+        ),
+        "publishedAt": now,
+    });
+    for key in ["title", "description", "sourcePath"] {
+        if let Some(value) = request[key].as_str() {
+            record[key] = json!(value);
+        }
+    }
+    json!({"ok": true, "record": record})
 }
 
 /// 读线程：响应按 id 交回等待者；请求/通知在这里分派。
@@ -707,6 +826,15 @@ where
                             process.respond(id, json!({"error": error}));
                         }
                     }
+                }
+            }
+            // 用户面产物发布（`artifact.markdown` / `artifact.file`）：sidecar 已完成形状校验、
+            // 路径越界判定与字节读取，这里只把字节写进本会话的 artifact store（Deliverable），
+            // 回 `ArtifactVersionRecord`（引擎据此发 `artifact-published`）。
+            "artifact/publish" => {
+                let result = publish_artifact(&shared, &message["params"]).await;
+                if let Some(id) = &id {
+                    process.respond(id, result);
                 }
             }
             "ask/start" => {
