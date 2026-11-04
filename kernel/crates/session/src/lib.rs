@@ -185,6 +185,9 @@ pub struct SessionState {
     /// 工作流控制轮（冷加载的 `LoadedSession.launches`，launch.md）：会话 actor 在 `write_launch` 时追加，
     /// `view()` 带给冷投影。
     pub launches: Vec<SessionLaunchTurn>,
+    /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行，状态与消息只在
+    /// 内存里；第一条用户输入提交时 actor 才写会话行与初始事实（`actor.rs` 的 `promote`）。
+    pub draft: bool,
 }
 
 /// 会话是新建的还是从存储加载的；新建时发出 `SessionCreated`。
@@ -199,6 +202,9 @@ pub struct Session {
     requests: mpsc::Sender<Request>,
     log: Arc<EventLog>,
     deps: SessionDeps,
+    /// 草稿（`persistence: "deferred"`）：第一条用户输入之前还没有会话行，列表类投影不显示它。actor
+    /// 提交首条输入时把它置为 false（[`Actor::promote`]），这里与 actor 共用同一个旗标。
+    draft: Arc<std::sync::atomic::AtomicBool>,
     /// 每台远端机器上一份的后台命令（远端执行 F96，remote-exec.md §23.3）：快照的唯一 owner 是会话；重连中的机器用它。
     last_remote: tasks::LastSeen,
     /// 关闭的进度（[`closing`]）：None 还没关；Some 关闭任务已经起了，令牌在它结束时取消。
@@ -210,6 +216,7 @@ impl Session {
     pub fn spawn(deps: SessionDeps, mut state: SessionState, opened: Opened) -> Self {
         let id = state.meta.id.clone();
         let log = Arc::new(EventLog::new());
+        let draft = Arc::new(std::sync::atomic::AtomicBool::new(state.draft));
         let mut pending = Vec::new();
         match opened {
             Opened::Created => {
@@ -246,6 +253,7 @@ impl Session {
             state,
             requests.downgrade(),
             pending,
+            draft.clone(),
         );
         let task = spawner.spawn_resident("session-actor", async move {
             if let Some(history) = resume {
@@ -258,10 +266,16 @@ impl Session {
             requests,
             log,
             deps,
+            draft,
             last_remote: tasks::LastSeen::default(),
             closing: Mutex::default(),
             _actor: task,
         }
+    }
+
+    /// 这个会话还是草稿（还没有会话行）：列表类投影（工作区面板、项目页）不把它算进去。
+    pub fn is_draft(&self) -> bool {
+        self.draft.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     async fn ask<T>(
@@ -332,6 +346,10 @@ fn closed() -> KernelError {
 impl SessionHandle for Session {
     fn id(&self) -> &SessionId {
         &self.id
+    }
+
+    fn is_draft(&self) -> bool {
+        Session::is_draft(self)
     }
 
     async fn send(&self, envelope: CommandEnvelope) -> Ack {
@@ -496,3 +514,7 @@ mod queue_tests;
 #[cfg(test)]
 #[path = "machines_tests.rs"]
 mod machines_tests;
+
+#[cfg(test)]
+#[path = "draft_tests.rs"]
+mod draft_tests;

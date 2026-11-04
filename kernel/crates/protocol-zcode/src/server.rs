@@ -9,7 +9,7 @@ use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Kernel, KernelError};
+use rust_cli_kernel_api::session_api::{EndReason, Kernel, KernelError};
 use rust_cli_protocol_core::connection::{Reply, Service};
 use rust_cli_protocol_core::rpc::RpcError;
 use rust_cli_protocol_core::sessions::{Bridged, SessionBridge};
@@ -194,7 +194,30 @@ impl Server {
 
     async fn close_session(&self, params: &Value) -> Value {
         let session = SessionId::new(params["sessionId"].as_str().unwrap_or_default());
-        self.bridge.close(&session);
+        // 条件关闭（Node `shouldCloseSessionForExpectedPersistence`）：deferred 的草稿可能刚被首条输入
+        // 提升，这时不能关一个已经变成真任务的会话。没有打开着的记录时按“不是这个持久化状态”回答
+        // false（Host 保留会话；Node 在这种情况下 requireSession 报错）。
+        if let Some(expected) = params["expectedPersistence"].as_str() {
+            let current = self
+                .bridge
+                .get(&session)
+                .map(|live| if live.handle.is_draft() { "deferred" } else { "immediate" });
+            if current != Some(expected) {
+                return json!({"closed": false});
+            }
+        }
+        let live = self.bridge.close(&session);
+        // 真正关闭内核里的会话（Node `record.app.close()`）：SessionEnd、后台任务收尾与按会话的表都走
+        // 这条路径。之前只停止转发、actor 一直活着，关闭后再打开拿到的是旧 actor。
+        if let Some(live) = live {
+            for notice in live.handle.close(EndReason::Other).await {
+                tracing::warn!(
+                    session = %session,
+                    %notice,
+                    "a SessionEnd hook failed while closing the session"
+                );
+            }
+        }
         self.hook_admissions
             .lock()
             .unwrap_or_else(PoisonError::into_inner)

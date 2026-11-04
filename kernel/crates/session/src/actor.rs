@@ -3,6 +3,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use rust_cli_base::Task;
 use rust_cli_kernel_api::abort::{Abort, AbortReason};
@@ -222,6 +223,13 @@ pub(crate) struct Actor {
     /// （`Message::User` 不带消息元数据，冷投影靠这份清单认 controlOnly 轮）。
     pub(crate) launches: Vec<SessionLaunchTurn>,
     seen: HashSet<CommandId>,
+    /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行。期间的提交只改
+    /// 内存；第一条用户输入（[`opens_turn`]）提交时 [`Self::promote`] 写会话行与初始事实，之后照常落库。
+    /// 与 [`crate::Session`] 共用同一个旗标（列表投影读它）。
+    draft: Arc<AtomicBool>,
+    /// 草稿期间用户改过的项目权限模式（`Fact::ProjectModeSet`）：提升会话时与初始事实一起提交，
+    /// 否则这次切换会随着草稿一起丢掉。
+    pending_project_mode: std::sync::Mutex<Option<rust_cli_kernel_api::permission::PermissionMode>>,
     /// 当前轮（开启它的真实用户输入与轮次 ID）：随每个批次交给存储（node-store.md §4，修复线 F6）；冷加载时取
     /// `LoadedSession.turn`。只在 `commit` 里改，锁不跨 await。
     turn: std::sync::Mutex<Option<TurnAnchor>>,
@@ -259,6 +267,16 @@ pub(crate) fn accepted() -> Ack {
     }
 }
 
+/// 这一批事实会不会开一个真正的用户回合（Node 草稿提升的判据：首条输入，不是 hook 附件或后台元消息）。
+fn promotes(facts: &[Fact]) -> bool {
+    facts.iter().any(|fact| match fact {
+        Fact::MessageAppended {
+            message: Message::User(user),
+        } => rust_cli_kernel_api::user_input::opens_turn(user),
+        _ => false,
+    })
+}
+
 /// 排队中的工作流控制轮（[`Command::WorkflowLaunch`]）：忙时先攒着，回合收尾按到达顺序落。
 pub(crate) struct LaunchTurn {
     pub(crate) command: CommandId,
@@ -275,6 +293,7 @@ impl Actor {
         state: crate::SessionState,
         asks: mpsc::WeakSender<Request>,
         resume_pending: Vec<MessageId>,
+        draft: Arc<AtomicBool>,
     ) -> Self {
         // 本机与连上的远端机器的通知（R3，remote-exec.md §20.7.2）。
         let stream = Notices::new(rust_cli_kernel_api::machine_notices::all_shell_notices(
@@ -317,6 +336,8 @@ impl Actor {
             pending_launch: VecDeque::new(),
             launches: state.launches,
             seen: HashSet::new(),
+            draft,
+            pending_project_mode: std::sync::Mutex::new(None),
             turn: std::sync::Mutex::new(state.turn),
             resume_pending: std::sync::Mutex::new(resume_pending),
             closing: None,
@@ -725,7 +746,15 @@ impl Actor {
         let turn = TurnAnchor::after(current.as_ref(), &facts, || self.deps.ids.turn());
         let pending = self.pending_resume(&facts);
         let stored_pending = !pending.is_empty();
-        let facts = pending.into_iter().chain(facts).collect();
+        let facts: Vec<Fact> = pending.into_iter().chain(facts).collect();
+        if self.draft.load(Ordering::SeqCst) {
+            if !promotes(&facts) {
+                // 草稿期间的状态变更（切模型、切模式、hook 消息）只在内存里；会话行等第一条用户输入。
+                self.remember_draft(&facts);
+                return Ok(());
+            }
+            self.promote().await?;
+        }
         let batch = FactBatch {
             owner_epoch: OwnerEpoch::LOCAL,
             command,
@@ -748,6 +777,66 @@ impl Actor {
                 .clear();
         }
         Ok(())
+    }
+
+    /// 草稿的第一次真实用户输入：补写会话行、当前选择/模式与草稿期间已经产生的消息（SessionStart hook
+    /// 的附件等）。之后 `self.draft` 为 false，提交走正常路径。
+    async fn promote(&self) -> Result<(), String> {
+        self.deps
+            .store
+            .create(self.meta.clone())
+            .await
+            .map_err(|error| error.to_string())?;
+        // 行已经存在；即使下面的初始事实写失败也不再当作草稿（否则下一次提交会重复建行）。
+        self.draft.store(false, Ordering::SeqCst);
+        let mut facts = vec![
+            Fact::ModelSelected {
+                selection: self.selection.clone(),
+            },
+            Fact::ExecutionChanged {
+                state: self.execution,
+            },
+        ];
+        if let Some(mode) = self
+            .pending_project_mode
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .take()
+        {
+            facts.push(Fact::ProjectModeSet { mode });
+        }
+        facts.extend(
+            self.messages
+                .iter()
+                .cloned()
+                .map(|message| Fact::MessageAppended { message }),
+        );
+        let batch = FactBatch {
+            owner_epoch: OwnerEpoch::LOCAL,
+            command: None,
+            facts,
+            turn: None,
+        };
+        self.deps
+            .store
+            .commit(&self.meta.id, batch)
+            .await
+            .map(|_| ())
+            .map_err(|error| error.to_string())
+    }
+
+    /// 草稿期间不落库、但提升时必须补上的一小类事实：项目层的权限模式（`user_mode` 的 `save`）。
+    fn remember_draft(&self, facts: &[Fact]) {
+        let mode = facts.iter().rev().find_map(|fact| match fact {
+            Fact::ProjectModeSet { mode } => Some(*mode),
+            _ => None,
+        });
+        if let Some(mode) = mode {
+            *self
+                .pending_project_mode
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(mode);
+        }
     }
 
     /// 续写时补的消息还没落库、这一批有消息：返回它们，按历史里的顺序排在这一批最前面（工作线 F77、F81，

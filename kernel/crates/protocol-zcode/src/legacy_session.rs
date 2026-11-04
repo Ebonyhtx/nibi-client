@@ -8,7 +8,7 @@ use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::permission::ToolPolicy;
 use rust_cli_kernel_api::session_api::ImportedMessage;
 use rust_cli_kernel_api::session_api::{
-    Ack as KernelAck, Command, CreateSession, Delivery, SessionHandle, SessionView,
+    Ack as KernelAck, Command, CreateSession, Delivery, KernelError, SessionHandle, SessionView,
 };
 use rust_cli_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
@@ -197,6 +197,19 @@ async fn apply_mcp(server: &Server, session: &SessionId, params: &Value, workspa
     }
 }
 
+/// 立即落库的建会话（没有草稿能力的嵌入内核的降级路径）。
+async fn create_immediately(
+    server: &Server,
+    request: CreateSession,
+    parent: Option<SessionId>,
+) -> Result<SessionId, RpcError> {
+    let created = match parent {
+        Some(parent) => server.kernel.create_session_with_parent(request, Some(parent)).await,
+        None => server.kernel.create_session(request).await,
+    };
+    created.map_err(|error| kernel_error(&error))
+}
+
 pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> {
     let workspace = params["workspace"]["workspacePath"]
         .as_str()
@@ -204,7 +217,6 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         .ok_or_else(|| RpcError::invalid_params("workspace.workspacePath is required"))?;
     // Host 的旧 create 还带一批内核没有承载面的字段；点名而不是静默丢。
     let ignored: Vec<&str> = [
-        "persistence",
         "toolAllowlist",
         "toolDenylist",
         "importedHistory",
@@ -222,6 +234,17 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
             "legacy session/create carries fields the kernel does not consume yet"
         );
     }
+    // `persistence`：`deferred` 的会话在第一条输入之前不落库（Node `ensureSessionPersisted`），
+    // 不进会话列表/sessions-index；`immediate` 或缺席照常立即落库。
+    let persistence = params.get("persistence").and_then(Value::as_str);
+    if let Some(value) = persistence
+        && !matches!(value, "immediate" | "deferred")
+    {
+        return Err(RpcError::invalid_params(
+            "persistence must be \"immediate\" or \"deferred\"",
+        ));
+    }
+    let deferred = persistence == Some("deferred");
     let mut selection =
         commands::selection(&params["model"]).unwrap_or_else(|| server.defaults.selection.clone());
     if let Some(level) = params["thoughtLevel"].as_str() {
@@ -237,19 +260,49 @@ pub async fn create(server: &Server, params: &Value) -> Result<Value, RpcError> 
         plan,
     };
     let parent = params["parentSessionId"].as_str().map(SessionId::new);
-    let id = match imported_history(params) {
-        Some((title, created_at, history)) => server
+    let id = match (imported_history(params), deferred) {
+        // 导入历史本身就要立刻写正文与标题，deferred 在这里没有意义（Host 的导入入口都用
+        // immediate）；点名并立即落库，而不是假装能延后。
+        (Some((title, created_at, history)), true) => {
+            tracing::warn!(
+                event = "protocol.legacy.deferred_with_imported_history",
+                "legacy session/create asked for deferred persistence together with imported history; \
+                 the history entry is persisted immediately"
+            );
+            server
+                .kernel
+                .create_session_with_history(request, title, created_at, parent, history)
+                .await
+                .map_err(|error| kernel_error(&error))?
+        }
+        (Some((title, created_at, history)), false) => server
             .kernel
             .create_session_with_history(request, title, created_at, parent, history)
             .await
             .map_err(|error| kernel_error(&error))?,
+        (None, true) => {
+            let fallback = request.clone();
+            let fallback_parent = parent.clone();
+            match server.kernel.create_session_deferred(request, parent).await {
+                Ok(id) => id,
+                // 没有草稿能力的嵌入内核（测试替身、旧实现）：退回立即落库，但点名，不静默改变语义。
+                Err(KernelError::Unsupported { .. }) => {
+                    tracing::warn!(
+                        event = "protocol.legacy.deferred_unsupported",
+                        "the kernel cannot defer session persistence; creating a stored session instead"
+                    );
+                    create_immediately(server, fallback, fallback_parent).await?
+                }
+                Err(error) => return Err(kernel_error(&error)),
+            }
+        }
         // 没有导入历史也要落父链（fork / 项目会话的父会话）。
-        None if parent.is_some() => server
+        (None, false) if parent.is_some() => server
             .kernel
             .create_session_with_parent(request, parent)
             .await
             .map_err(|error| kernel_error(&error))?,
-        None => server
+        (None, false) => server
             .kernel
             .create_session(request)
             .await

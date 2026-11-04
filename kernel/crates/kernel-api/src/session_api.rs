@@ -599,6 +599,12 @@ pub enum KernelError {
 pub trait SessionHandle: Send + Sync {
     fn id(&self) -> &SessionId;
 
+    /// 这个会话还是草稿（legacy `session/create` 的 `persistence: "deferred"`，第一条用户输入之前
+    /// 还没有会话行）。`session/close` 的 `expectedPersistence` 条件关闭用它。缺省不是草稿。
+    fn is_draft(&self) -> bool {
+        false
+    }
+
     async fn send(&self, command: CommandEnvelope) -> Ack;
 
     /// 订阅 `after` 之后的事件；`after` 为空时从当前位置开始。
@@ -743,6 +749,20 @@ pub trait Kernel: Send + Sync {
         _parent: Option<SessionId>,
     ) -> Result<SessionId, KernelError> {
         self.create_session(request).await
+    }
+
+    /// 建会话但先不落库（legacy `session/create` 的 `persistence: "deferred"`）：草稿只在内存里，
+    /// 不出现在会话列表、`sessions-index` 与搜索里；第一条用户输入提交时才写会话行与历史
+    /// （Node `ensureSessionPersisted`）。`parent` 同 [`Self::create_session_with_parent`]。
+    /// 缺省 `Unsupported`，调用方降级成立即落库并在日志里点名。
+    async fn create_session_deferred(
+        &self,
+        _request: CreateSession,
+        _parent: Option<SessionId>,
+    ) -> Result<SessionId, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "deferred session persistence".to_owned(),
+        })
     }
 
     async fn open_session(

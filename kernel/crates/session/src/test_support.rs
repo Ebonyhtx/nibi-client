@@ -144,6 +144,8 @@ pub(crate) struct Setup {
     pub start: StartSource,
     /// 为 false 时存储里没有这个会话，所有提交都失败。
     pub stored: bool,
+    /// 草稿（`persistence: "deferred"`）：与 `stored = false` 搭配，第一条用户输入提交时才落库。
+    pub draft: bool,
     pub cron: Arc<dyn rust_cli_kernel_api::cron::CronSignals>,
     /// 会话标题的生成（title_tests.rs）。
     pub titles: Option<crate::TitleModel>,
@@ -195,6 +197,7 @@ impl Setup {
             opened: Opened::Created,
             start: StartSource::Startup,
             stored: true,
+            draft: false,
             cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
             titles: None,
             side_model: None,
@@ -299,6 +302,7 @@ impl Setup {
                 turn: self.turn,
                 last_turn_failed: self.last_turn_failed,
                 launches: self.launches,
+                draft: self.draft,
             },
             self.opened,
         );

@@ -305,6 +305,7 @@ async fn asking_session_with(
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),
+            draft: false,
         },
         Opened::Created,
     );

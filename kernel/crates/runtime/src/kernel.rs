@@ -52,6 +52,72 @@ fn tool_output_text(output: &ToolOutput) -> String {
         .unwrap_or_else(|| "the tool call was rejected".to_owned())
 }
 
+/// 建会话的共同写入路径（`create_session_as` / `create_session_deferred`）：`draft` 时不写会话行与
+/// 初始事实，等会话 actor 在第一条用户输入提交时按当时的选择与模式补写（草稿提升，`session` crate）。
+impl LocalKernel {
+    async fn create_session_inner(
+        &self,
+        request: CreateSession,
+        start: StartSource,
+        parent: Option<SessionId>,
+        draft: bool,
+    ) -> Result<SessionId, KernelError> {
+        let id = request.id.unwrap_or_else(|| self.ports.ids.session());
+        let meta = SessionMeta {
+            id: id.clone(),
+            kind: SessionKind::Interactive,
+            parent,
+            workspace: request.workspace,
+            title: String::new(),
+            // 顶层会话的链路 ID 取会话 ID；子会话、子代理继承父会话的链路 ID。
+            trace: TraceId::new(id.as_str()),
+            created_at_ms: self.ports.clock.now_ms(),
+        };
+        // 执行状态（修复线 F20）：单值的 `plan` 是“plan 开、default”，另记的 `plan` 打开 plan。
+        let execution = ExecutionState::from_parts(request.mode, request.plan);
+        if !draft {
+            self.ports
+                .store
+                .create(meta.clone())
+                .await
+                .map_err(|error| failed(&error))?;
+            let batch = FactBatch {
+                owner_epoch: OwnerEpoch::LOCAL,
+                command: None,
+                facts: vec![
+                    Fact::ModelSelected {
+                        selection: request.selection.clone(),
+                    },
+                    Fact::ExecutionChanged { state: execution },
+                ],
+                turn: None,
+            };
+            self.ports
+                .store
+                .commit(&id, batch)
+                .await
+                .map_err(|error| failed(&error))?;
+        }
+        self.start(
+            SessionState {
+                meta,
+                messages: Vec::new(),
+                earlier: Vec::new(),
+                selection: request.selection,
+                mode: execution,
+                checkpoints: Vec::new(),
+                start,
+                turn: None,
+                last_turn_failed: false,
+                launches: Vec::new(),
+                draft,
+            },
+            Opened::Created,
+        );
+        Ok(id)
+    }
+}
+
 #[async_trait]
 impl Kernel for LocalKernel {
     async fn create_session(&self, request: CreateSession) -> Result<SessionId, KernelError> {
@@ -265,56 +331,18 @@ impl Kernel for LocalKernel {
         request: CreateSession,
         start: StartSource,
     ) -> Result<SessionId, KernelError> {
-        let id = request.id.unwrap_or_else(|| self.ports.ids.session());
-        let meta = SessionMeta {
-            id: id.clone(),
-            kind: SessionKind::Interactive,
-            parent: None,
-            workspace: request.workspace,
-            title: String::new(),
-            // 顶层会话的链路 ID 取会话 ID；子会话、子代理继承父会话的链路 ID。
-            trace: TraceId::new(id.as_str()),
-            created_at_ms: self.ports.clock.now_ms(),
-        };
-        self.ports
-            .store
-            .create(meta.clone())
+        self.create_session_inner(request, start, None, false).await
+    }
+
+    /// 草稿（legacy `session/create` 的 `persistence: "deferred"`）：这一刻不写会话行与初始事实，
+    /// 会话只在内存里；第一条用户输入提交时由会话 actor 补写（`session` crate 的草稿提升）。
+    async fn create_session_deferred(
+        &self,
+        request: CreateSession,
+        parent: Option<SessionId>,
+    ) -> Result<SessionId, KernelError> {
+        self.create_session_inner(request, StartSource::Startup, parent, true)
             .await
-            .map_err(|error| failed(&error))?;
-        // 执行状态（修复线 F20）：单值的 `plan` 是“plan 开、default”，另记的 `plan` 打开 plan。
-        let execution = ExecutionState::from_parts(request.mode, request.plan);
-        let batch = FactBatch {
-            owner_epoch: OwnerEpoch::LOCAL,
-            command: None,
-            facts: vec![
-                Fact::ModelSelected {
-                    selection: request.selection.clone(),
-                },
-                Fact::ExecutionChanged { state: execution },
-            ],
-            turn: None,
-        };
-        self.ports
-            .store
-            .commit(&id, batch)
-            .await
-            .map_err(|error| failed(&error))?;
-        self.start(
-            SessionState {
-                meta,
-                messages: Vec::new(),
-                earlier: Vec::new(),
-                selection: request.selection,
-                mode: execution,
-                checkpoints: Vec::new(),
-                start,
-                turn: None,
-                last_turn_failed: false,
-                launches: Vec::new(),
-            },
-            Opened::Created,
-        );
-        Ok(id)
     }
 
     /// 建会话时落父会话（legacy `session/create` 的 `parentSessionId`）：与导入历史的写入路径
@@ -416,6 +444,7 @@ impl Kernel for LocalKernel {
                 turn: None,
                 last_turn_failed: false,
                 launches: Vec::new(),
+                draft: false,
             },
             Opened::Created,
         );
@@ -468,6 +497,8 @@ impl Kernel for LocalKernel {
             turn: loaded.turn,
             last_turn_failed: loaded.last_turn_failed,
             launches: loaded.launches,
+            // 冷加载的会话一定已经落库（草稿没有行可加载）。
+            draft: false,
         };
         Ok(self.start(state, Opened::Loaded))
     }

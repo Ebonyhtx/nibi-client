@@ -31,6 +31,7 @@ type Sent = Arc<Mutex<Vec<CommandEnvelope>>>;
 type Created = Arc<Mutex<Vec<CreateSession>>>;
 type Parents = Arc<Mutex<Vec<Option<SessionId>>>>;
 type Policies = Arc<Mutex<Vec<ToolPolicy>>>;
+type Deferred = Arc<Mutex<Vec<Option<SessionId>>>>;
 
 fn selection() -> ModelSelection {
     ModelSelection {
@@ -82,12 +83,17 @@ fn view(id: &str) -> SessionView {
 struct FakeHandle {
     view: SessionView,
     sent: Sent,
+    draft: bool,
 }
 
 #[async_trait]
 impl SessionHandle for FakeHandle {
     fn id(&self) -> &SessionId {
         &self.view.meta.id
+    }
+
+    fn is_draft(&self) -> bool {
+        self.draft
     }
 
     async fn send(&self, command: CommandEnvelope) -> KernelAck {
@@ -129,6 +135,8 @@ struct FakeKernel {
     created: Created,
     policies: Policies,
     parents: Parents,
+    deferred: Deferred,
+    draft: bool,
 }
 
 #[async_trait]
@@ -157,6 +165,18 @@ impl Kernel for FakeKernel {
         self.create_session(request).await
     }
 
+    async fn create_session_deferred(
+        &self,
+        request: CreateSession,
+        parent: Option<SessionId>,
+    ) -> Result<SessionId, KernelError> {
+        self.deferred
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push(parent);
+        self.create_session(request).await
+    }
+
     async fn open_session(
         &self,
         _session: &SessionId,
@@ -170,6 +190,7 @@ impl Kernel for FakeKernel {
         Ok(Arc::new(FakeHandle {
             view,
             sent: self.sent.clone(),
+            draft: self.draft,
         }))
     }
 
@@ -229,11 +250,18 @@ fn server(kernel: Arc<dyn Kernel>) -> Arc<Server> {
     ))
 }
 
-fn fake(id: &str) -> (Arc<Server>, Sent, Created, Policies, Parents) {
+type Fakes = (Arc<Server>, Sent, Created, Policies, Parents, Deferred);
+
+fn fake_all(id: &str) -> Fakes {
+    fake_all_with(id, false)
+}
+
+fn fake_all_with(id: &str, draft: bool) -> Fakes {
     let sent = Arc::new(Mutex::new(Vec::new()));
     let created = Arc::new(Mutex::new(Vec::new()));
     let policies = Arc::new(Mutex::new(Vec::new()));
     let parents = Arc::new(Mutex::new(Vec::new()));
+    let deferred = Arc::new(Mutex::new(Vec::new()));
     let kernel = Arc::new(FakeKernel {
         view: view(id),
         selected: Mutex::new(selection()),
@@ -241,8 +269,15 @@ fn fake(id: &str) -> (Arc<Server>, Sent, Created, Policies, Parents) {
         created: created.clone(),
         policies: policies.clone(),
         parents: parents.clone(),
+        deferred: deferred.clone(),
+        draft,
     });
-    (server(kernel), sent, created, policies, parents)
+    (server(kernel), sent, created, policies, parents, deferred)
+}
+
+fn fake(id: &str) -> (Arc<Server>, Sent, Created, Policies, Parents) {
+    let (server, sent, created, policies, parents, _deferred) = fake_all(id);
+    (server, sent, created, policies, parents)
 }
 
 #[tokio::test]
@@ -310,6 +345,81 @@ async fn create_records_the_parent_session() {
         parents[0].as_ref().map(SessionId::as_str),
         Some("sess_parent")
     );
+}
+
+#[tokio::test]
+async fn create_with_deferred_persistence_asks_for_a_draft() {
+    let (server, _sent, created, _policies, _parents, deferred) = fake_all("sess_new");
+    let reply = Handler(server)
+        .request(
+            "session/create",
+            json!({
+                "workspace": {"workspacePath": "/work"},
+                "sessionId": "sess_new",
+                "persistence": "deferred",
+            }),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reply.result["session"]["sessionId"], "sess_new");
+    assert_eq!(deferred.lock().unwrap().len(), 1, "the draft path is used");
+    assert_eq!(created.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn create_rejects_an_unknown_persistence() {
+    let (server, _sent, created, _policies, _parents) = fake("sess_new");
+    let error = match Handler(server)
+        .request(
+            "session/create",
+            json!({
+                "workspace": {"workspacePath": "/work"},
+                "sessionId": "sess_new",
+                "persistence": "eventually",
+            }),
+        )
+        .await
+    {
+        Ok(_) => panic!("expected the persistence value to be refused"),
+        Err(error) => error,
+    };
+    assert!(error.message.contains("persistence"), "{}", error.message);
+    assert!(created.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn close_honours_expected_persistence() {
+    let (server, _sent, _created, _policies, _parents, _deferred) = fake_all_with("sess_1", true);
+    // 先把会话打开（deferred 的 create 会经 bridge 打开它）。
+    Handler(server.clone())
+        .request(
+            "session/create",
+            json!({
+                "workspace": {"workspacePath": "/work"},
+                "sessionId": "sess_1",
+                "persistence": "deferred",
+            }),
+        )
+        .await
+        .unwrap();
+    // 草稿还在：期望 immediate 的条件关闭不成立，Host 不能把它当真任务关掉。
+    let reply = Handler(server.clone())
+        .request(
+            "session/close",
+            json!({"sessionId": "sess_1", "expectedPersistence": "immediate"}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reply.result["closed"], false);
+    // 期望 deferred：正常关闭草稿。
+    let reply = Handler(server)
+        .request(
+            "session/close",
+            json!({"sessionId": "sess_1", "expectedPersistence": "deferred"}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reply.result["closed"], true);
 }
 
 #[test]

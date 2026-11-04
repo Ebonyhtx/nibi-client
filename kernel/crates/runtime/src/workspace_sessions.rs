@@ -61,6 +61,10 @@ impl LocalKernel {
         let mut live: HashMap<SessionId, (SessionActivity, Option<String>, SessionMeta)> =
             HashMap::new();
         for session in open {
+            // 草稿（persistence: "deferred"）没有会话行，也不能借“打开着”混进列表。
+            if session.is_draft() {
+                continue;
+            }
             let Ok(view) = session.view().await else {
                 continue;
             };

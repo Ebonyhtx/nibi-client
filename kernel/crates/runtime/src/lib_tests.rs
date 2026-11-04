@@ -111,6 +111,95 @@ async fn a_session_can_be_created_below_a_parent() {
 }
 
 #[tokio::test]
+async fn a_deferred_session_is_not_listed_until_the_first_input() {
+    use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
+
+    let store = Arc::new(MemoryStore::default());
+    let kernel = kernel(
+        store.clone(),
+        Arc::new(ScriptedModel::new(vec![text_response(&["hi"])])),
+    );
+    let id = kernel
+        .create_session_deferred(
+            CreateSession {
+                id: None,
+                workspace: workspace(),
+                selection: selection(),
+                mode: PermissionMode::Default,
+                plan: false,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    let filter = SessionFilter {
+        workspace: workspace(),
+        limit: 10,
+    };
+    assert!(
+        store.load(&id).await.is_err(),
+        "a draft must not have a session row"
+    );
+    assert!(
+        kernel
+            .list_sessions(filter.clone())
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        kernel
+            .workspace_sessions(filter.clone())
+            .await
+            .unwrap()
+            .is_empty(),
+        "a draft must not leak into the workspace panel"
+    );
+
+    // 草稿能在同一进程里打开；第一条输入提交时才出现会话行。
+    let session = kernel.open_session(&id).await.unwrap();
+    let mut events = session.subscribe(Some(0));
+    session
+        .send(CommandEnvelope {
+            id: CommandId::new("c1"),
+            command: Command::Submit {
+                text: "hello".to_owned(),
+                attachments: Vec::new(),
+                delivery: Delivery::Queue,
+            },
+        })
+        .await;
+    loop {
+        let event = tokio::time::timeout(Duration::from_secs(5), events.next())
+            .await
+            .unwrap()
+            .unwrap();
+        if let KernelEvent::TurnFinished { outcome, .. } = event.event {
+            assert_eq!(outcome, TurnOutcome::Success);
+            break;
+        }
+    }
+    assert!(store.load(&id).await.is_ok(), "the draft was promoted");
+    assert!(
+        kernel
+            .list_sessions(filter.clone())
+            .await
+            .unwrap()
+            .iter()
+            .any(|session| session.id == id)
+    );
+    assert!(
+        kernel
+            .workspace_sessions(filter)
+            .await
+            .unwrap()
+            .iter()
+            .any(|session| session.summary.id == id),
+        "the promoted session is a normal workspace session"
+    );
+}
+
+#[tokio::test]
 async fn a_created_session_runs_a_turn_and_reloads_after_restart() {
     let store = Arc::new(MemoryStore::default());
     let first = kernel(
