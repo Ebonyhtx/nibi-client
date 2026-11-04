@@ -123,7 +123,12 @@ async fn the_value_written_while_waiting_for_the_lock_wins() {
     )
     .unwrap();
     let (uuid, calls) = counting();
-    let device = DeviceMid::new(&paths(home.path()), uuid);
+    // 并行测试负载下写锁的任务可能被调度推迟：等锁的上限放到 10s，别让“等锁超时→用本进程生成的
+    // UUID”这条错误路径先发生（产品缺省是 2s，受伤的场景只是测试本身的调度）。
+    let device = DeviceMid::new(&paths(home.path()), uuid).with_lock_options(PidLockOptions {
+        attempts: 1_000,
+        ..PidLockOptions::default()
+    });
     let writer = async {
         tokio::time::sleep(Duration::from_millis(100)).await;
         std::fs::write(&file, "{\"deviceMid\":\"from-the-other-process\"}").unwrap();
