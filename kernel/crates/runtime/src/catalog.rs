@@ -39,7 +39,7 @@ pub(crate) async fn catalog(usage: &UsageAnalyzer, query: &CatalogQuery) -> Sess
     });
     let agents = usage
         .agents
-        .definitions(&query.workspace)
+        .definitions_for(Some(&query.session), &query.workspace)
         .await
         .into_iter()
         .map(|agent| agent.agent_type)
