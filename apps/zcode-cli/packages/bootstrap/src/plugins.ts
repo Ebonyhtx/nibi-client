@@ -62,7 +62,7 @@ import {
   OFFICIAL_NODE_REPL_HOST_PLUGIN_NAME,
   OFFICIAL_PLUGIN_DEFINITIONS,
 } from "./app/official-plugin-definitions.js";
-import { getCliStorageRoot, getPluginStorageRoot } from "./app/paths.js";
+import { getCliStorageRoot, getPluginStorageRoot } from "./app/storage-paths.js";
 import { withPluginStorageLock } from "./lib/plugin-storage-lock.js";
 
 export interface ResolveZCodePluginsOptions {

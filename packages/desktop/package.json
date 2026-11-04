@@ -69,6 +69,7 @@
     "@opentelemetry/resources": "2.6.1",
     "@opentelemetry/sdk-metrics": "2.6.1",
     "@opentelemetry/sdk-trace-base": "2.6.1",
+    "@nibi/bootstrap": "workspace:*",
     "@nibi/client": "workspace:*",
     "@nibi/e2e-report": "workspace:*",
     "@nibi/provider": "workspace:*",

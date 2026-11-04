@@ -7,7 +7,8 @@ import {
 } from "@nibi/shared";
 import type { PluginMetadata } from "@nibi/contracts";
 import { resolveZCodePlugins } from "../plugins.js";
-import { parseParams, type NibiProtocolAgentServerContext } from "./server-types.js";
+import { parseParams } from "./server-types.js";
+import type { PluginManagementContext } from "./plugins.js";
 
 export function listPluginUiSurfacesFromPlugins(
   plugins: readonly PluginMetadata[],
@@ -33,7 +34,7 @@ export function listPluginUiSurfacesFromPlugins(
 }
 
 export async function listPluginUiSurfaces(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsListUiSurfacesResult> {
   const params = parseParams(zcodePluginsListUiSurfacesParamsSchema, rawParams);

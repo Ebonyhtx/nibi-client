@@ -1097,6 +1097,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Host 进程可注入的本地插件 backend：17 条工作区级管理方法 + 工作区级 UI 入口。
+ * 会话权威的 reference catalog 仍由 `service` 内部转发给内核。
+ */
+export interface LocalPluginManagementBackend {
+  service: IPluginManagementService;
+  listPluginUiSurfaces?: (params: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    remoteSessionId?: string;
+  }) => Promise<import("@nibi/shared").ZCodePluginsListUiSurfacesResult>;
+}
+
+/**
  * 创建包含所有本地服务的 ServiceCollection
  *
  * @param options.parentPort - Electron host process 的 parentPort，
@@ -1146,6 +1159,14 @@ export function createLocalServices(options: {
   forwardSessionMessageSendRequested?: (
     request: SessionMessageSendRequested,
   ) => Promise<void> | void;
+  /**
+   * 插件管理 backend 工厂：Host 进程注入本地实现后，17 条工作区级方法由 Host 直答，
+   * 不再经过 agent 协议（Rust 内核因此不需要实现 plugins/*）；缺省保持原代理，
+   * 兼容 CLI/stdin 宿主与远端。
+   */
+  pluginManagementFactory?: (input: {
+    zcodeAgentService: IZCodeAgentService;
+  }) => LocalPluginManagementBackend;
   /** desktop local host 在 manual run 落库后直接派发，不经过 scheduler 正常路径。 */
   onAutomationManualRunRequested?: (params: {
     automation: ZCodeAutomation;
@@ -1568,6 +1589,10 @@ export function createLocalServices(options: {
     close: (params) => zcodeAgentService.closeMcpUiInstance(params),
   });
   invalidatePluginUiAccounts = () => pluginUiAccounts.invalidate();
+  // Host 进程注入本地插件 backend 时，插件 UI 入口也走同一份工作区投影；
+  // 未注入的宿主（CLI/stdin/远端）保持 agent 代理。backend 在 agent service
+  // 构造完成后才赋值，桥接闭包按请求时读取，不能提前求值。
+  let localPluginManagement: LocalPluginManagementBackend | undefined;
   const pluginUiBridgeService = createPluginUiBridgeService({
     reportTelemetryEvent: options?.reportPluginTelemetryEvent,
     openInstance: (params) => pluginUiAccounts.open(params),
@@ -1584,7 +1609,9 @@ export function createLocalServices(options: {
       zcodeAgentService.listMcpResourceTemplatesForUi(params),
     subscribeMcpResourceForUi: (params) => zcodeAgentService.subscribeMcpResourceForUi(params),
     unsubscribeMcpResourceForUi: (params) => zcodeAgentService.unsubscribeMcpResourceForUi(params),
-    listPluginUiSurfaces: (params) => zcodeAgentService.listPluginUiSurfaces(params),
+    listPluginUiSurfaces: (params) =>
+      localPluginManagement?.listPluginUiSurfaces?.(params) ??
+      zcodeAgentService.listPluginUiSurfaces(params),
     registerSandbox: options?.registerPluginSandbox,
     // 云端项目：面板经受限 RPC 调到这里；工作区与令牌都留在宿主侧。
     projectSync: projectSyncClient,
@@ -2498,6 +2525,8 @@ export function createLocalServices(options: {
           };
         }),
       });
+  // agent service 已构造：此时才能把本地插件 backend 接到前面的 UI 桥闭包与下面的注册点。
+  localPluginManagement = options?.pluginManagementFactory?.({ zcodeAgentService });
   // 注册链上的懒工厂会各自创建 tasks-index sqlite repo；先收集到本数组，
   // services 集合建好后在 return 前统一登记进 sharedSqliteRepos 侧表
   const sqliteReposToClose: Array<{ close(): void }> = [];
@@ -2602,7 +2631,8 @@ export function createLocalServices(options: {
     .register(
       IPluginManagementService,
       createPluginManagementService({
-        zcodeAgentService,
+        // Host 进程可注入 local backend（17 条直答）；缺省仍走 agent 代理。
+        zcodeAgentService: localPluginManagement?.service ?? zcodeAgentService,
         reportTelemetryEvent: options?.reportPluginTelemetryEvent,
         // 4.0 重建时这行接线跟着上游注册表一起被替换掉了，只剩函数定义——
         // 结果是官网刚买完会员、客户端不重启仍装不了收费件。净室验收补回。

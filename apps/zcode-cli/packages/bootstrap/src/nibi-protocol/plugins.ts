@@ -30,7 +30,7 @@ import {
   type ZCodePluginsUninstallResult,
   type ZCodePluginsValidateResult,
 } from "@nibi/shared";
-import type { PluginDiagnostic, PluginMetadata } from "@nibi/contracts";
+import type { Logger, PluginDiagnostic, PluginMetadata } from "@nibi/contracts";
 import {
   addZCodePluginMarketplace,
   configureZCodePlugin,
@@ -49,10 +49,22 @@ import {
 } from "../plugins.js";
 import { listInstalledPluginRecords } from "@nibi/adapters/plugins";
 import { withPluginStorageLock } from "../lib/plugin-storage-lock.js";
-import { getCliStorageRoot, getPluginStorageRoot } from "../app/paths.js";
+import { getCliStorageRoot, getPluginStorageRoot } from "../app/storage-paths.js";
 import { resolveOfficialPluginHostMcpServerNames } from "../app/official-plugin-definitions.js";
 import { createConfig, resolvePath, type ConfigResult } from "@nibi/adapters/config";
-import { parseParams, type NibiProtocolAgentServerContext } from "./server-types.js";
+import { parseParams } from "./server-types.js";
+
+/**
+ * 插件管理工作区级处理器需要的最小上下文。
+ *
+ * Host 进程复用这些处理器时没有 agent 的 session/notify 设施；这 15 条都只读
+ * `logger` 与 `deps.env`。会话权威的 plugin reference catalog 不在此文件，仍走
+ * 持有 session 的内核/agent。
+ */
+export interface PluginManagementContext {
+  logger?: Logger;
+  deps?: { env?: NodeJS.ProcessEnv };
+}
 
 // 把 CLI 的 PluginMetadata 投影成协议可序列化的 ZCodePluginInfo (只保留 UI 需要的字段)。
 // 导出给"宿主产出 → 协议 schema"的边界测试用：这一层没有类型检查网，
@@ -147,7 +159,7 @@ function resolveInlinePluginRootSource(
 }
 
 function createPluginConfigView(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   workspacePath: string,
   configScope: "user" | "workspace" | undefined,
 ): ConfigResult {
@@ -223,7 +235,7 @@ function toPluginDiagnostic(diagnostic: PluginDiagnostic): ZCodePluginDiagnostic
 }
 
 export async function listPlugins(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsListResult> {
   const params = parseParams(zcodePluginsListParamsSchema, rawParams);
@@ -253,7 +265,7 @@ export async function listPlugins(
 }
 
 export async function setPluginEnabled(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
   abortSignal?: AbortSignal,
 ): Promise<ZCodePluginsSetEnabledResult> {
@@ -278,7 +290,7 @@ export async function setPluginEnabled(
 }
 
 export async function getPluginsOverview(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsOverviewResult> {
   const params = parseParams(zcodePluginsOverviewParamsSchema, rawParams);
@@ -306,7 +318,7 @@ export async function getPluginsOverview(
 }
 
 export async function addPluginMarketplace(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
   abortSignal?: AbortSignal,
 ): Promise<ZCodePluginsMarketplaceMutationResult> {
@@ -325,7 +337,7 @@ export async function addPluginMarketplace(
 }
 
 export async function removePluginMarketplace(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsMarketplaceMutationResult> {
   const params = parseParams(zcodePluginsMarketplaceRemoveParamsSchema, rawParams);
@@ -341,7 +353,7 @@ export async function removePluginMarketplace(
 }
 
 export async function updatePluginMarketplace(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
   abortSignal?: AbortSignal,
 ): Promise<ZCodePluginsMarketplaceMutationResult> {
@@ -362,7 +374,7 @@ export async function updatePluginMarketplace(
 }
 
 export async function installPlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
   abortSignal?: AbortSignal,
 ): Promise<ZCodePluginsInstallResult> {
@@ -387,7 +399,7 @@ export async function installPlugin(
 }
 
 export async function uninstallPlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsUninstallResult> {
   const params = parseParams(zcodePluginsUninstallParamsSchema, rawParams);
@@ -406,7 +418,7 @@ export async function uninstallPlugin(
 }
 
 export async function updatePlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsInstallResult> {
   const params = parseParams(zcodePluginsUpdateParamsSchema, rawParams);
@@ -445,7 +457,7 @@ export async function updatePlugin(
 // 恢复一个被抑制（"卸载"）的内置插件：清除 suppressedBuiltins 标记并立即重新 seed。
 // bootstrap 侧的同名函数被别名为 restoreBuiltinPluginCore，避免与本协议处理器重名。
 export async function restoreBuiltinPlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsRestoreBuiltinResult> {
   const params = parseParams(zcodePluginsRestoreBuiltinParamsSchema, rawParams);
@@ -458,7 +470,7 @@ export async function restoreBuiltinPlugin(
 }
 
 export async function configurePlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsConfigureResult> {
   const params = parseParams(zcodePluginsConfigureParamsSchema, rawParams);
@@ -475,7 +487,7 @@ export async function configurePlugin(
 }
 
 export async function resetPluginConfig(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsConfigureResult> {
   const params = parseParams(zcodePluginsResetConfigParamsSchema, rawParams);
@@ -489,7 +501,7 @@ export async function resetPluginConfig(
 }
 
 export async function validatePlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsValidateResult> {
   const params = parseParams(zcodePluginsValidateParamsSchema, rawParams);
@@ -515,7 +527,7 @@ export async function validatePlugin(
 }
 
 export async function describePlugin(
-  context: NibiProtocolAgentServerContext,
+  context: PluginManagementContext,
   rawParams: unknown,
 ): Promise<ZCodePluginsDescribeResult> {
   const params = parseParams(zcodePluginsDescribeParamsSchema, rawParams);

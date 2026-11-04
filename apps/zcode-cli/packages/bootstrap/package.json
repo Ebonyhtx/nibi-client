@@ -13,6 +13,10 @@
     "./v4-replay": {
       "types": "./dist/nibi-protocol-v4/replay.d.ts",
       "import": "./dist/nibi-protocol-v4/replay.js"
+    },
+    "./plugin-management": {
+      "types": "./dist/plugin-management.d.ts",
+      "import": "./dist/plugin-management.js"
     }
   },
   "scripts": {

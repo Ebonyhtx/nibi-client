@@ -78,6 +78,7 @@ import {
   type HostApiNetworkTransport,
 } from "@nibi/services/node";
 import { createHostResourceUsageResponder } from "./hostResourceUsage.js";
+import { createLocalPluginManagementBackend } from "./localPluginManagementService.js";
 import {
   HostMessageTypes,
   HostResponseTypes,
@@ -3292,6 +3293,15 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
           log: (message, details) => logger.warn(message, details),
           establishOwner: () => {
             const initializedServices = createLocalServices({
+              // 插件管理下沉 Host：17 条工作区级方法直答，不再依赖 agent 内核；
+              // 2 条会话权威 catalog 与 suggested 进度仍转发给持有 session 的内核。
+              pluginManagementFactory: ({ zcodeAgentService }) => {
+                logger.info("Plugin management backend: host-local");
+                return createLocalPluginManagementBackend({
+                  fallback: zcodeAgentService,
+                  env: process.env,
+                });
+              },
               reportPluginTelemetryEvent: (event) => {
                 parentPort?.postMessage({
                   type: HostResponseTypes.PluginTelemetry,

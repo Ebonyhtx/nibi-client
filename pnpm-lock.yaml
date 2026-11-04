@@ -915,6 +915,9 @@ importers:
       '@modelcontextprotocol/ext-apps':
         specifier: 2.0.0
         version: 2.0.0(@modelcontextprotocol/client@2.0.0)(@modelcontextprotocol/core@2.0.0)(@modelcontextprotocol/server@2.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(zod@4.6.5)
+      '@nibi/bootstrap':
+        specifier: workspace:*
+        version: link:../../apps/zcode-cli/packages/bootstrap
       '@nibi/client':
         specifier: workspace:*
         version: link:../client

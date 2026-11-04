@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
-import { writeBundledOfficialMarketplacePartitionSync } from "@nibi/adapters";
+import { writeBundledOfficialMarketplacePartitionSync } from "@nibi/adapters/plugins";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE, type Logger } from "@nibi/contracts";
 import { isZCodeCuaInternalFeatureEnabled, NIBI_CUA_OFFICIAL_PLUGIN_ID } from "@nibi/shared";
 import {

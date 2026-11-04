@@ -364,6 +364,11 @@ export default defineConfig([
       "@nibi/provider",
       "@nibi/provider-node",
       "@nibi/cua",
+      // 插件管理改由 Host 进程直答：复用 bootstrap/adapters 的同一份实现。
+      // 只经由 `@nibi/bootstrap/plugin-management` 的窄导入面进入，不会拖入 @nibi/core。
+      "@nibi/bootstrap",
+      "@nibi/adapters",
+      "@nibi/contracts",
     ],
     define: createSharedDefines(),
     // 与 main 保持一致的 chunk 隔离策略，避免 host/main 产物相互覆盖。
