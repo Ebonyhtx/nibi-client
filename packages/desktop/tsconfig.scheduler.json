@@ -1,6 +1,8 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
+		// 只做类型检查：out/scheduler 是 tsup 的 ESM 产物，tsc -b 落盘会把它换成逐模块编译产物。
+		"noEmit": true,
 		"outDir": "out/scheduler",
 		"rootDir": "src/scheduler",
 		"lib": ["es2025"],

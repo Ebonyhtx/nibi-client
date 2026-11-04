@@ -1,6 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // 只做类型检查：out/host 是 tsup 的产物（ESM bundle + createRequire banner）。
+    // tsc -b 若在这里落盘，会把 bundle 换成逐模块编译产物并丢掉 banner，
+    // 之后 dev 启动 host 进程会因 CJS 动态 require 直接退出。
+    "noEmit": true,
     "outDir": "out/host",
     "rootDir": "src/host",
     "lib": ["es2025"]
