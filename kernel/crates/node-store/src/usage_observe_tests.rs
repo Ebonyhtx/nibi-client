@@ -2,8 +2,6 @@
 //! 记一条带原因的 warn。现场：库跑过开发分支的迁移，`model_usage` 没有 `variant` 列。
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
-
 use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
 use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, UserMessage, UserOrigin};
 use rust_cli_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
@@ -61,15 +59,19 @@ async fn stored(t: &TestStore) -> Vec<String> {
         .collect()
 }
 
-/// 当前线程上的 warn 事件，每条是字段名 → 值（`Debug` 的文字；消息在 `message`）。
-#[derive(Clone, Default)]
-struct Warnings(Arc<Mutex<Vec<BTreeMap<&'static str, String>>>>);
-
-impl Warnings {
-    fn take(&self) -> Vec<BTreeMap<&'static str, String>> {
-        std::mem::take(&mut self.0.lock().unwrap())
-    }
+// 当前线程正在收集的 warn（只有显式调用 [`capture`] 的测试线程有值）。
+thread_local! {
+    static CAPTURE: std::cell::RefCell<Option<Vec<BTreeMap<&'static str, String>>>> =
+        const { std::cell::RefCell::new(None) };
 }
+
+/// 测试进程共用的全局订阅者。
+///
+/// 缺陷修复：原来只用 `with_default`（线程局部订阅者）。tracing 的 callsite 兴趣缓存按**全局**订阅者
+/// 计算，并行的阻塞线程（`with_db` 的 `spawn_blocking`）会在别的线程装上订阅者时把 callsite 重新
+/// 算成“没人要”，本测试偶发收不到 warn（单跑必过、并行常挂）。装一个全局订阅者后兴趣恒为“可能”，
+/// 事件只写进当前线程已开始的收集，其他测试线程的事件被丢弃。
+struct Warnings;
 
 impl Subscriber for Warnings {
     fn enabled(&self, _: &Metadata<'_>) -> bool {
@@ -92,12 +94,32 @@ impl Subscriber for Warnings {
         event.record(&mut |field: &Field, value: &dyn Debug| {
             fields.insert(field.name(), format!("{value:?}"));
         });
-        self.0.lock().unwrap().push(fields);
+        CAPTURE.with(|slot| {
+            if let Some(events) = slot.borrow_mut().as_mut() {
+                events.push(fields);
+            }
+        });
     }
 
     fn enter(&self, _: &Id) {}
 
     fn exit(&self, _: &Id) {}
+}
+
+fn install() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let _ = tracing::subscriber::set_global_default(Warnings);
+    });
+}
+
+/// 在当前线程收集 `run` 期间的 warn 事件。
+fn capture<T>(run: impl FnOnce() -> T) -> (T, Vec<BTreeMap<&'static str, String>>) {
+    install();
+    CAPTURE.with(|slot| *slot.borrow_mut() = Some(Vec::new()));
+    let result = run();
+    let logged = CAPTURE.with(|slot| slot.borrow_mut().take().unwrap_or_default());
+    (result, logged)
 }
 
 #[tokio::test]
@@ -195,19 +217,17 @@ async fn the_skipped_usage_is_logged_with_its_reason() {
     started(&t, "sess_1").await;
     commit(&t, vec![user("msg_u1", "hi")]).await;
     break_schema(&t, RENAMED_VARIANT);
-    let warnings = Warnings::default();
     let facts = vec![
         assistant("msg_a1", vec![text("hello")], None),
         model_call("msg_a1"),
     ];
-    // 同步调用提交（存储平时在阻塞线程里调它），订阅者只在当前线程。
+    // 同步调用提交（存储平时在阻塞线程里调它），收集只作用于当前线程。
     let mut conn = t.connection();
     let ids = fixed_ids(&t.source);
-    let committed = tracing::subscriber::with_default(warnings.clone(), || {
+    let (committed, logged) = capture(|| {
         crate::facts::commit(&mut conn, &sid(), &batch(None, facts), &ids)
     });
     assert!(committed.is_ok(), "{committed:?}");
-    let logged = warnings.take();
     assert_eq!(logged.len(), 1, "{logged:?}");
     assert_eq!(logged[0]["event"], "\"usage.model.write.failed\"");
     assert_eq!(logged[0]["session"], "sess_1");
