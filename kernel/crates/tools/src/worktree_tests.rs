@@ -140,11 +140,11 @@ async fn create_switches_the_session_and_exit_keeps_it() {
         .unwrap();
     assert_eq!(
         text,
-        "Created worktree at /Users/dev/work/.zcode/worktrees/user+feature on branch worktree-user+feature. The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted."
+        "Created worktree at /Users/dev/work/.nibi/worktrees/user+feature on branch worktree-user+feature. The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted."
     );
     assert_eq!(
         fixture.switches(),
-        ["/Users/dev/work/.zcode/worktrees/user+feature"]
+        ["/Users/dev/work/.nibi/worktrees/user+feature"]
     );
     assert_eq!(
         message(fixture.validate(ENTER, json!({"name": "again"})).await),
@@ -153,7 +153,7 @@ async fn create_switches_the_session_and_exit_keeps_it() {
     let text = fixture.call(EXIT, json!({"action": "keep"})).await.unwrap();
     assert_eq!(
         text,
-        "Exited worktree. Your work is preserved at /Users/dev/work/.zcode/worktrees/user+feature on branch worktree-user+feature. Session is now back in /Users/dev/work."
+        "Exited worktree. Your work is preserved at /Users/dev/work/.nibi/worktrees/user+feature on branch worktree-user+feature. Session is now back in /Users/dev/work."
     );
     assert_eq!(fixture.switches()[1], ROOT);
     assert!(fixture.validate(EXIT, json!({"action": "keep"})).await != Validation::Ok);
@@ -169,7 +169,7 @@ async fn resumed_and_default_names() {
         text,
         format!(
             // 缺省名是会话 `sess_1` 的词组（tools-more.md §11.6）。
-            "Resumed worktree at /Users/dev/work/.zcode/worktrees/lazy-foraging-planet on branch worktree-lazy-foraging-planet.{} The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted.",
+            "Resumed worktree at /Users/dev/work/.nibi/worktrees/lazy-foraging-planet on branch worktree-lazy-foraging-planet.{} The session is now working in the worktree. Use ExitWorktree to leave mid-session, or exit the session to be prompted.",
             texts::RESUMED_NOTE
         )
     );
@@ -203,7 +203,7 @@ async fn remove_refuses_unsaved_work_until_confirmed() {
         .unwrap();
     assert_eq!(
         text,
-        "Exited and removed worktree at /Users/dev/work/.zcode/worktrees/w. Discarded 2 commits and 1 uncommitted file. Session is now back in /Users/dev/work."
+        "Exited and removed worktree at /Users/dev/work/.nibi/worktrees/w. Discarded 2 commits and 1 uncommitted file. Session is now back in /Users/dev/work."
     );
     assert_eq!(
         *fixture
@@ -211,7 +211,7 @@ async fn remove_refuses_unsaved_work_until_confirmed() {
             .removed
             .lock()
             .unwrap_or_else(PoisonError::into_inner),
-        ["/Users/dev/work/.zcode/worktrees/w"]
+        ["/Users/dev/work/.nibi/worktrees/w"]
     );
 }
 
@@ -223,7 +223,7 @@ async fn unverifiable_state_blocks_removal() {
     fixture.call(ENTER, json!({"name": "w"})).await.unwrap();
     let (text, code) = message(fixture.validate(EXIT, json!({"action": "remove"})).await);
     assert!(
-        text.starts_with("Could not verify worktree state at /Users/dev/work/.zcode/worktrees/w.")
+        text.starts_with("Could not verify worktree state at /Users/dev/work/.nibi/worktrees/w.")
     );
     assert_eq!(code, Some(3));
 }
@@ -233,7 +233,7 @@ async fn entering_existing_worktrees() {
     let fixture = Fixture::new(Git::new());
     let context = fixture.context();
     let enter = fixture.tool(ENTER);
-    let managed = json!({"path": ".zcode/worktrees/old"});
+    let managed = json!({"path": ".nibi/worktrees/old"});
     assert_eq!(
         enter.check_permissions(&managed, &context).await,
         PermissionDecision::Allow {
@@ -259,13 +259,13 @@ async fn entering_existing_worktrees() {
     );
     let text = fixture.call(ENTER, managed).await.unwrap();
     assert!(text.starts_with(
-        "Entered worktree at /Users/dev/work/.zcode/worktrees/old on branch worktree-old."
+        "Entered worktree at /Users/dev/work/.nibi/worktrees/old on branch worktree-old."
     ));
     // 经 path 进入的已有 worktree 不能删。
     let (text, code) = message(fixture.validate(EXIT, json!({"action": "remove"})).await);
     assert_eq!(code, Some(4));
     assert!(text.starts_with(
-        "This session is not the owner of the worktree at /Users/dev/work/.zcode/worktrees/old"
+        "This session is not the owner of the worktree at /Users/dev/work/.nibi/worktrees/old"
     ));
 }
 
@@ -288,7 +288,7 @@ fn enter_worktree_does_not_mention_subagent_isolation() {
 }
 
 /// 工作线 F57：Windows 上 git 列出的是 `C:/…`，解析后的 `path` 是 `C:\…`；以前按字符串比较，带 `path` 总报 not
-/// registered，托管位置的判断（`<根>/.zcode/worktrees/` 的字符串前缀）也用错了写法。现在用 kernel-api `env_path` 的键
+/// registered，托管位置的判断（`<根>/.nibi/worktrees/` 的字符串前缀）也用错了写法。现在用 kernel-api `env_path` 的键
 /// （规范化后不分大小写），进入后的工作目录是本机写法。
 #[tokio::test]
 async fn windows_worktrees_are_compared_by_path_key() {
@@ -299,9 +299,9 @@ async fn windows_worktrees_are_compared_by_path_key() {
     let context = fixture.context();
     let enter = fixture.tool(ENTER);
     for path in [
-        r".zcode\worktrees\old",
-        r"C:\Users\dev\work\.zcode\worktrees\old",
-        r"c:\users\dev\work\.zcode\worktrees\OLD\",
+        r".nibi\worktrees\old",
+        r"C:\Users\dev\work\.nibi\worktrees\old",
+        r"c:\users\dev\work\.nibi\worktrees\OLD\",
     ] {
         assert_eq!(
             enter
@@ -337,18 +337,18 @@ async fn windows_worktrees_are_compared_by_path_key() {
     let text = fixture
         .call(
             ENTER,
-            json!({"path": r"c:\users\dev\work\.zcode\worktrees\old"}),
+            json!({"path": r"c:\users\dev\work\.nibi\worktrees\old"}),
         )
         .await
         .unwrap();
     assert!(
         text.starts_with(
-            r"Entered worktree at C:\Users\dev\work\.zcode\worktrees\old on branch worktree-old."
+            r"Entered worktree at C:\Users\dev\work\.nibi\worktrees\old on branch worktree-old."
         ),
         "{text}"
     );
     assert_eq!(
         fixture.switches(),
-        [r"C:\Users\dev\work\.zcode\worktrees\old"]
+        [r"C:\Users\dev\work\.nibi\worktrees\old"]
     );
 }

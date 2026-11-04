@@ -102,7 +102,7 @@ fn name_error(name: &str) -> Option<String> {
     None
 }
 
-/// `path` 严格在仓库 `root` 的 `.zcode/worktrees/` 里。
+/// `path` 严格在仓库 `root` 的 `.nibi/worktrees/` 里。
 fn managed(style: PathStyle, path: &str, root: &str) -> bool {
     let managed = style.join(root, &[DOT_DIR, WORKTREES_DIR]);
     style.is_within(path, &managed) && !style.same(path, &managed)
@@ -215,7 +215,7 @@ impl Tool for EnterWorktreeTool {
         Validation::Ok
     }
 
-    /// 新建：放行。进入已有 worktree：在本仓库 `.zcode/worktrees/` 下且已登记时放行，否则询问。
+    /// 新建：放行。进入已有 worktree：在本仓库 `.nibi/worktrees/` 下且已登记时放行，否则询问。
     async fn check_permissions(
         &self,
         input: &Value,
@@ -229,7 +229,7 @@ impl Tool for EnterWorktreeTool {
         };
         let style = style(context);
         match self.registered(context, raw).await {
-            // 严格在本仓库的 `.zcode/worktrees/` 里（F57：按 `env_path` 的键，以前是 `<根>/.zcode/worktrees/` 的字符串前缀，
+            // 严格在本仓库的 `.nibi/worktrees/` 里（F57：按 `env_path` 的键，以前是 `<根>/.nibi/worktrees/` 的字符串前缀，
             // Windows 上写法对不上）。
             Ok((path, root, _)) if managed(style, &path, &root) => allow,
             Ok((path, ..)) => PermissionDecision::Ask {

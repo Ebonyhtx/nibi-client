@@ -7,7 +7,7 @@ use crate::target::{SshTarget, quote};
 #[test]
 fn the_probe_output_is_parsed() {
     let output = "os Linux\narch aarch64\nhome /home/u\nhash sha256sum\nhash openssl\n\
-candidate /home/u/.zcode/rust-cli/exec/bin/0.1.0/zcode-rs\t{\"version\":\"0.1.0\",\"protocol\":1,\"executable\":\"/x\",\"resident\":{\"version\":\"0.1.0\",\"protocol\":1,\"idle\":true,\"pid\":3,\"later\":1}}\n\
+candidate /home/u/.nibi/rust-cli/exec/bin/0.1.0/zcode-rs\t{\"version\":\"0.1.0\",\"protocol\":1,\"executable\":\"/x\",\"resident\":{\"version\":\"0.1.0\",\"protocol\":1,\"idle\":true,\"pid\":3,\"later\":1}}\n\
 candidate /usr/bin/zcode-rs\t\n\
 candidate /usr/bin/zcode-rs\tnot json\n";
     let probe = Probe::parse(output).unwrap();
@@ -35,7 +35,7 @@ candidate /usr/bin/zcode-rs\tnot json\n";
     assert!(probe.resident().unwrap().idle);
     assert_eq!(
         probe.binary_path("0.2.0"),
-        "/home/u/.zcode/rust-cli/exec/bin/0.2.0/zcode-rs"
+        "/home/u/.nibi/rust-cli/exec/bin/0.2.0/zcode-rs"
     );
     assert!(Probe::parse("Welcome to fish\n").is_err());
 }
@@ -83,7 +83,7 @@ async fn the_script_finds_ours_and_the_npm_one_and_never_runs_zcode() {
         std::fs::write(path, text).unwrap();
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
     };
-    let exec = home.path().join(".zcode/rust-cli/exec/bin");
+    let exec = home.path().join(".nibi/rust-cli/exec/bin");
     write(
         &exec.join("0.1.0/zcode-rs"),
         "#!/bin/sh\n[ \"$*\" = 'executor status --json' ] && echo '{\"version\":\"0.1.0\",\"protocol\":1,\"resident\":null}'\n",
@@ -143,13 +143,13 @@ async fn the_script_finds_ours_and_the_npm_one_and_never_runs_zcode() {
         .collect();
     assert!(
         found.contains(&(
-            "/.zcode/rust-cli/exec/bin/0.1.0/zcode-rs".to_owned(),
+            "/.nibi/rust-cli/exec/bin/0.1.0/zcode-rs".to_owned(),
             Some("0.1.0".to_owned())
         )),
         "{found:?}"
     );
     assert!(
-        found.contains(&("/.zcode/rust-cli/exec/bin/0.0.1/zcode-rs".to_owned(), None)),
+        found.contains(&("/.nibi/rust-cli/exec/bin/0.0.1/zcode-rs".to_owned(), None)),
         "{found:?}"
     );
     assert!(
@@ -276,8 +276,8 @@ fn the_remote_libc_is_parsed() {
 #[test]
 fn the_missing_glibc_version_is_read_from_the_loader_message() {
     use crate::provision::missing_glibc;
-    let stderr = "/root/x/.zcode-rs.upload.7: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found (required by /root/x/.zcode-rs.upload.7)\n\
-/root/x/.zcode-rs.upload.7: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /root/x/.zcode-rs.upload.7)\n\
+    let stderr = "/root/x/.nibi-rs.upload.7: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found (required by /root/x/.nibi-rs.upload.7)\n\
+/root/x/.nibi-rs.upload.7: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /root/x/.nibi-rs.upload.7)\n\
 the executor did not run on the remote (exit 1)\n";
     assert_eq!(missing_glibc(stderr).as_deref(), Some("GLIBC_2.34"));
     assert_eq!(missing_glibc("sh: zcode-rs: not found\n"), None);

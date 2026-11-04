@@ -228,7 +228,7 @@ impl PolicyGate {
             .ok();
         let facts = context.machine.info().path_facts(workspace).await.ok();
         // 计划文件与 ExitPlanMode、计划模式 attachment 同一来源（kernel-api `PlanFiles`）：
-        // `<工作区>/.zcode/plans/plan-<会话>.md`（tools-more.md §2.2）。
+        // `<工作区>/.nibi/plans/plan-<会话>.md`（tools-more.md §2.2）。
         let plans = facts
             .as_ref()
             .and_then(|facts| PlanFiles::in_workspace(facts, &workspace.root, &context.session));

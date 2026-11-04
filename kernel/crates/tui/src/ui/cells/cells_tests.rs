@@ -260,7 +260,7 @@ fn fire_rows_use_the_fixed_text_in_both_languages() {
 fn the_blocking_line_error_reads_as_a_full_context() {
     assert_eq!(
         text(&[row(1, Body::Error("Prompt is too long".into()))], false).join(""),
-        "⏺ Context limit reached · /compact or /clear to   continue"
+        "● Context limit reached · /compact or /clear to   continue"
     );
     assert_eq!(
         words::turn_error(

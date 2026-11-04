@@ -7,7 +7,7 @@ async fn the_user_config_is_read_from_the_cli_directory() {
     let dir = tempfile::tempdir().unwrap();
     let paths = StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
     assert_eq!(read_cli_config(&paths).await, ConfigFile::Missing);
-    let file = dir.path().join(".zcode/cli/config.json");
+    let file = dir.path().join(".nibi/cli/config.json");
     write(&file, r#"{"permission":{"mode":"plan"}}"#).await;
     let read = read_cli_config(&paths).await;
     assert_eq!(read.object().unwrap()["permission"]["mode"], "plan");
@@ -28,7 +28,7 @@ mod ui_locale {
     fn setup() -> (tempfile::TempDir, StoragePaths, std::path::PathBuf) {
         let dir = tempfile::tempdir().unwrap();
         let paths = StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
-        let file = dir.path().join(".zcode/cli/config.json");
+        let file = dir.path().join(".nibi/cli/config.json");
         (dir, paths, file)
     }
 
@@ -133,7 +133,7 @@ mod ui_theme {
     async fn the_theme_is_set_in_place_and_bad_files_are_kept() {
         let dir = tempfile::tempdir().unwrap();
         let paths = StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
-        let file = dir.path().join(".zcode/cli/config.json");
+        let file = dir.path().join(".nibi/cli/config.json");
         write_ui_theme(&paths, UiTheme::Light).await.unwrap();
         assert_eq!(
             read_text(&file).await.unwrap(),
@@ -159,7 +159,7 @@ mod ui_theme {
 async fn mcp_enabled_is_set_in_place_and_the_legacy_field_goes() {
     let dir = tempfile::tempdir().unwrap();
     let paths = StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
-    let file = dir.path().join(".zcode/cli/config.json");
+    let file = dir.path().join(".nibi/cli/config.json");
     write(
         &file,
         r#"{"mcp":{"servers":{"docs":{"command":"d","enable":false,"enabled":true,"x":1},"other":{"url":"u"}}},"ui":{}}"#,
@@ -195,7 +195,7 @@ async fn concurrent_writes_keep_each_other() {
     use crate::test_support::read_text;
     let dir = tempfile::tempdir().unwrap();
     let paths = StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
-    let file = dir.path().join(".zcode/cli/config.json");
+    let file = dir.path().join(".nibi/cli/config.json");
     write(
         &file,
         r#"{"mcp":{"servers":{"a":{"command":"x","enabled":true}}}}"#,

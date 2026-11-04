@@ -37,7 +37,7 @@ async fn auto_mode_takes_the_accept_edits_fast_path_then_asks_the_classifier() {
         &allowed,
         PermissionMode::Auto,
         "Write",
-        json!({"file_path": "/w/.zcode/settings.json"}),
+        json!({"file_path": "/w/.nibi/settings.json"}),
     )
     .await;
     assert!(matches!(sensitive, PermissionDecision::Ask { .. }));
@@ -183,7 +183,7 @@ async fn check_rules_reports_only_the_gates_hooks_cannot_bypass() {
     let sensitive = gate
         .check_rules(
             &Named("Write", PermissionDecision::Passthrough),
-            &json!({"file_path": "/w/.zcode/settings.json"}),
+            &json!({"file_path": "/w/.nibi/settings.json"}),
             &context(PermissionMode::Default),
         )
         .await;

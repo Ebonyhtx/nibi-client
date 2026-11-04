@@ -74,13 +74,13 @@ fn definitions_are_deferred_with_search_hints() {
     assert!(create.starts_with("Schedule a prompt to be enqueued at a future time."));
     // 持久任务打开时的文本（tools-more.md §16.6，D17 取消）。
     assert!(create.contains("## Durability"));
-    assert!(create.contains("Pass durable: true to write to .zcode/scheduled_tasks.json"));
+    assert!(create.contains("Pass durable: true to write to .nibi/scheduled_tasks.json"));
     let schema = tool(&board, CREATE).input_schema();
     assert!(
         schema["properties"]["durable"]["description"]
             .as_str()
             .unwrap()
-            .starts_with("true = persist to .zcode/scheduled_tasks.json")
+            .starts_with("true = persist to .nibi/scheduled_tasks.json")
     );
 }
 
@@ -245,7 +245,7 @@ async fn durable_jobs_go_to_the_file() {
     .await;
     assert_eq!(
         text,
-        "Scheduled recurring job 1a2b3c4d (Every 5 minutes). Persisted to .zcode/scheduled_tasks.json. Auto-expires after 7 days. Use CronDelete to cancel sooner."
+        "Scheduled recurring job 1a2b3c4d (Every 5 minutes). Persisted to .nibi/scheduled_tasks.json. Auto-expires after 7 days. Use CronDelete to cancel sooner."
     );
     let stored = store.snapshot();
     assert_eq!(stored.len(), 1);

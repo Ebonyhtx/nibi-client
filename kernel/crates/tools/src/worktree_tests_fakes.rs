@@ -152,7 +152,7 @@ impl GitPort for Git {
     ) -> Result<WorktreeCreated, EnvError> {
         let flat = request.name.replace('/', "+");
         Ok(WorktreeCreated::Ready {
-            path: EnvPath::new(format!("{ROOT}/.zcode/worktrees/{flat}")),
+            path: EnvPath::new(format!("{ROOT}/.nibi/worktrees/{flat}")),
             branch: format!("worktree-{flat}"),
             head_commit: Some("abc".to_owned()),
             existed: self.existed,
@@ -174,7 +174,7 @@ impl GitPort for Git {
             root: Some(EnvPath::new(root)),
             entries: vec![
                 entry(root, "main"),
-                entry(&format!("{root}/.zcode/worktrees/old"), "worktree-old"),
+                entry(&format!("{root}/.nibi/worktrees/old"), "worktree-old"),
                 entry(elsewhere, "side"),
             ],
         })

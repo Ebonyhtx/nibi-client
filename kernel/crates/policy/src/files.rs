@@ -42,7 +42,7 @@ pub fn tool_access(tool: &str) -> Option<(Access, &'static str)> {
     })
 }
 
-/// 写入要额外确认的位置（危险的文件与目录，配置目录是 `.zcode`）。
+/// 写入要额外确认的位置（危险的文件与目录，配置目录是 `.nibi`）。
 const SENSITIVE_DIRS: &[&str] = &[".git", ".vscode", ".idea", DOT_DIR];
 const SENSITIVE_FILES: &[&str] = &[
     ".gitconfig",
@@ -55,7 +55,7 @@ const SENSITIVE_FILES: &[&str] = &[
     ".ripgreprc",
     ".mcp.json",
     // 项目配置 `zcode.json`（带 MCP 服务器与 hooks）。修复线 F58：以前是机械替换出来的
-    // `.zcode.json`（zcode 没有这个文件），真正的项目配置不在表里；用户级配置在 `~/.zcode/` 下，目录规则已覆盖。
+    // `.zcode.json`（zcode 没有这个文件），真正的项目配置不在表里；用户级配置在 `~/.nibi/` 下，目录规则已覆盖。
     rust_cli_base::names::PROJECT_CONFIG_FILE,
 ];
 
@@ -125,7 +125,7 @@ pub fn check(access: Access, path: Option<&str>, inputs: &Inputs<'_>) -> Check {
                 return Check::deny(texts::file_edit_denied(&resolved));
             }
             // 本会话的计划文件（tools-more.md §2.5）：不看模式，排在安全路径之前
-            // （计划目录在 `.zcode` 下）；ask 规则仍然生效（先查 ask 规则再查计划文件）。
+            // （计划目录在 `.nibi` 下）；ask 规则仍然生效（先查 ask 规则再查计划文件）。
             if paths.is_plan_file(&resolved) {
                 if rule(RuleBehavior::Ask) {
                     return ask(texts::file_write_request(&resolved), AskKind::Rule);

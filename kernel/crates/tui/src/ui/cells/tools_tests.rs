@@ -420,7 +420,7 @@ fn tools_of_a_server_on_a_remote_machine_end_with_its_machine() {
     let head = render(&cells[0], &ctx);
     assert_eq!(
         plain(&head[0]),
-        "⏺ browser-a.navigate(url: \"https://example.com\") (MCP)  @dev-a"
+        "● browser-a.navigate(url: \"https://example.com\") (MCP)  @dev-a"
     );
     let tag = head[0].spans.last().unwrap();
     assert_eq!(tag.content, "@dev-a");

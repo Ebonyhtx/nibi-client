@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 use super::*;
 use crate::test_more::{Ctx, TextEnv, output_text};
 
-const PLAN_PATH: &str = "/Users/dev/work/.zcode/plans/plan-sess_1.md";
+const PLAN_PATH: &str = "/Users/dev/work/.nibi/plans/plan-sess_1.md";
 
 fn approve(mode: PermissionMode) -> serde_json::Value {
     serde_json::to_value(PlanApprovalAnswer::Approve { mode }).unwrap()

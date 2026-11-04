@@ -29,7 +29,7 @@ fn counting() -> (super::NewUuid, Arc<AtomicUsize>) {
 }
 
 fn state_file(home: &Path) -> PathBuf {
-    home.join(".zcode/v2/telemetry-state.json")
+    home.join(".nibi/v2/telemetry-state.json")
 }
 
 fn quick() -> PidLockOptions {
@@ -78,7 +78,7 @@ async fn the_first_request_generates_and_keeps_the_other_fields() {
     assert_eq!(device.get().await, "uuid-1");
     assert!(!file.exists(), "the value is cached in the process");
     assert_eq!(calls.load(Ordering::SeqCst), 1);
-    assert!(!home.path().join(".zcode/v2/telemetry-state.lock").exists());
+    assert!(!home.path().join(".nibi/v2/telemetry-state.lock").exists());
 }
 
 /// 文件不存在（目录也没有）或损坏时当作空对象。
@@ -114,7 +114,7 @@ async fn a_missing_or_broken_file_is_an_empty_state() {
 async fn the_value_written_while_waiting_for_the_lock_wins() {
     let home = tempfile::tempdir().unwrap();
     let file = state_file(home.path());
-    let lock = home.path().join(".zcode/v2/telemetry-state.lock");
+    let lock = home.path().join(".nibi/v2/telemetry-state.lock");
     std::fs::create_dir_all(file.parent().unwrap()).unwrap();
     // 另一个“进程”（这里是本进程的 pid，活着）持锁。
     std::fs::write(
@@ -142,8 +142,8 @@ async fn the_value_written_while_waiting_for_the_lock_wins() {
 #[tokio::test]
 async fn file_system_errors_fall_back_to_one_generated_id() {
     let home = tempfile::tempdir().unwrap();
-    std::fs::create_dir_all(home.path().join(".zcode")).unwrap();
-    std::fs::write(home.path().join(".zcode/v2"), "a file, not a directory").unwrap();
+    std::fs::create_dir_all(home.path().join(".nibi")).unwrap();
+    std::fs::write(home.path().join(".nibi/v2"), "a file, not a directory").unwrap();
     let (uuid, calls) = counting();
     let device = DeviceMid::new(&paths(home.path()), uuid);
     assert_eq!(device.get().await, "uuid-1");
@@ -151,7 +151,7 @@ async fn file_system_errors_fall_back_to_one_generated_id() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 
     let home = tempfile::tempdir().unwrap();
-    let lock = home.path().join(".zcode/v2/telemetry-state.lock");
+    let lock = home.path().join(".nibi/v2/telemetry-state.lock");
     std::fs::create_dir_all(lock.parent().unwrap()).unwrap();
     std::fs::write(
         &lock,
@@ -232,6 +232,6 @@ async fn two_processes_generating_at_once_keep_one_value() {
         for out in &outs {
             assert_eq!(std::fs::read_to_string(out).unwrap(), stored);
         }
-        assert!(!home.path().join(".zcode/v2/telemetry-state.lock").exists());
+        assert!(!home.path().join(".nibi/v2/telemetry-state.lock").exists());
     }
 }

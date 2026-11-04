@@ -2,7 +2,7 @@
 //!
 //! 工具只改任务表（[`CronBoard`]），任务记在顶层会话名下（`Interactions::owner_session`，前台子代理
 //! 转给父会话）。触发由会话 actor 在空闲时取走到期任务（§10.4）。`durable: true` 的任务写进
-//! `.zcode/scheduled_tasks.json`（§16）；计数、删除校验与列出每次重读文件。
+//! `.nibi/scheduled_tasks.json`（§16）；计数、删除校验与列出每次重读文件。
 
 use async_trait::async_trait;
 use rust_cli_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
@@ -26,7 +26,7 @@ pub const LIST: &str = "CronList";
 
 /// CronCreate 结果的两种说明之一（另一种 `Persisted to
 /// .zcode/scheduled_tasks.json` 在结果里用共用的名字拼）。产品名按替换规则换成 ZCode（2026-10-18 用户确认，
-/// tools-more.md §10.2），路径换成 `.zcode`，其余逐字。
+/// tools-more.md §10.2），路径取产品目录 `.nibi`，其余逐字。
 const SESSION_ONLY: &str = "Session-only (not written to disk, dies when ZCode exits)";
 /// 循环任务的有效天数（有效期 / 1 天）。
 const MAX_AGE_DAYS: u64 = crate::cron_expr::RECURRING_MAX_AGE_MS / 86_400_000;

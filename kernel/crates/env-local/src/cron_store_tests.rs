@@ -3,12 +3,13 @@ use rust_cli_kernel_api::cron_store::NewCronTask;
 
 use super::*;
 
-/// 注入的时钟：晚于各用例里任务的 `created_at`（与以前读系统时间时的先后相同）。
+/// 注入的时钟：与任务的 `created_at` 相同。Windows 没有进程启动时间，创建者判定回退到
+/// `created_at >= started_ms`；真实创建总是晚于进程启动，等价于“本进程建的”。
 struct Later;
 
 impl Clock for Later {
     fn now_ms(&self) -> u64 {
-        1_800_000_000_000
+        1_760_000_000_000
     }
 
     fn time_zone(&self) -> String {
@@ -32,7 +33,7 @@ fn new_task(id: &str, session: &str) -> NewCronTask {
 }
 
 async fn file(dir: &tempfile::TempDir) -> Vec<FileTask> {
-    let bytes = rust_cli_fs::read_optional(&dir.path().join(".zcode/scheduled_tasks.json"))
+    let bytes = rust_cli_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
         .await
         .unwrap()
         .unwrap_or_default();
@@ -97,7 +98,7 @@ async fn remove_and_mark_fired_rewrite_the_file() {
         ("a1", Some(99))
     );
     // 没有匹配：文件不动（监听不会收到事件）。
-    let before = rust_cli_fs::read_optional(&dir.path().join(".zcode/scheduled_tasks.json"))
+    let before = rust_cli_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
         .await
         .unwrap();
     store
@@ -106,7 +107,7 @@ async fn remove_and_mark_fired_rewrite_the_file() {
         })
         .await
         .unwrap();
-    let after = rust_cli_fs::read_optional(&dir.path().join(".zcode/scheduled_tasks.json"))
+    let after = rust_cli_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
         .await
         .unwrap();
     assert_eq!(before, after);
@@ -157,7 +158,12 @@ async fn creators_projects_and_claim() {
     store.write(&[reused, no_pid, legacy, mine]).await.unwrap();
     let tasks = store.tasks().await.unwrap();
     let by_id = |id: &str| tasks.iter().find(|task| task.id == id).unwrap().clone();
+    // Windows 不取进程启动时间（identity.rs）：同一个 PID 上记着别的启动时间时无法判断 PID 复用，
+    // 保守地当作另一个活着的进程；unix 能分出复用。
+    #[cfg(unix)]
     assert_eq!(by_id("reused").creator, CronCreator::Gone);
+    #[cfg(not(unix))]
+    assert_eq!(by_id("reused").creator, CronCreator::Running);
     assert!(by_id("reused").in_project);
     assert_eq!(by_id("no-pid").creator, CronCreator::Gone);
     assert!(!by_id("no-pid").in_project);
@@ -171,7 +177,12 @@ async fn creators_projects_and_claim() {
         .unwrap();
     let tasks = store.tasks().await.unwrap();
     let mine = tasks.iter().find(|task| task.id == "mine").unwrap();
+    // 认领只改 PID 与启动时间：Windows 没有启动时间可写，任务又是在假时钟之前创建的，判定回退到
+    // `created_at >= started_ms` 为假，因此读回仍是 Running（已知的平台差异，见 identity.rs）。
+    #[cfg(unix)]
     assert_eq!(mine.creator, CronCreator::ThisProcess);
+    #[cfg(not(unix))]
+    assert_eq!(mine.creator, CronCreator::Running);
 }
 
 /// 监听（端到端，系统的监听服务）：本进程写入与“别的进程”直接写文件都产出变化；无关文件不产出。逻辑本身在
@@ -188,7 +199,7 @@ async fn creators_projects_and_claim() {
 async fn changes_follow_writes_to_the_tasks_file() {
     let dir = tempfile::tempdir().unwrap();
     let store = store(&dir);
-    rust_cli_fs::create_dir_all(&dir.path().join(".zcode"))
+    rust_cli_fs::create_dir_all(&dir.path().join(".nibi"))
         .await
         .unwrap();
     let mut changes = store.changes();
@@ -214,7 +225,7 @@ async fn changes_follow_writes_to_the_tasks_file() {
         .is_ok()
     {}
     rust_cli_fs::atomic_write(
-        &dir.path().join(".zcode/other.json"),
+        &dir.path().join(".nibi/other.json"),
         b"{}",
         write_options(),
     )
@@ -227,7 +238,7 @@ async fn changes_follow_writes_to_the_tasks_file() {
         "unrelated files do not count"
     );
     rust_cli_fs::atomic_write(
-        &dir.path().join(".zcode/scheduled_tasks.json"),
+        &dir.path().join(".nibi/scheduled_tasks.json"),
         b"{\"tasks\": []}\n",
         write_options(),
     )

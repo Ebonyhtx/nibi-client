@@ -22,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 use crate::test_support::rules;
 use crate::{PolicyGate, PolicyOptions, texts};
 
-const PLAN: &str = "/w/.zcode/plans/plan-s1.md";
+const PLAN: &str = "/w/.nibi/plans/plan-s1.md";
 
 struct NoAnswers;
 
@@ -127,7 +127,7 @@ async fn plan_mode_allows_writing_and_reading_this_sessions_plan_files() {
         let decision = decide(&gate, tool, PLAN, PermissionMode::Plan).await;
         assert!(allowed(&decision), "{tool}: {decision:?}");
     }
-    // 不看模式：default、acceptEdits 下写计划文件也不询问（计划目录在工作区的 `.zcode` 下，放行排在
+    // 不看模式：default、acceptEdits 下写计划文件也不询问（计划目录在工作区的 `.nibi` 下，放行排在
     // 安全路径之前，不按敏感文件询问）。
     for mode in [PermissionMode::Default, PermissionMode::AcceptEdits] {
         assert!(
@@ -156,14 +156,14 @@ async fn other_writes_stay_blocked_in_plan_mode() {
             message: texts::CLASSIFIER_UNAVAILABLE.to_owned()
         }
     );
-    // 别的会话（含子代理的子会话）的计划文件、旧的文件名都不放行：它们在 `.zcode` 下，按安全路径
+    // 别的会话（含子代理的子会话）的计划文件、旧的文件名都不放行：它们在 `.nibi` 下，按安全路径
     // 询问（不经分类器）。
     for path in [
-        "/w/.zcode/plans/plan-s2.md",
-        "/w/.zcode/plans/plan-sess_subagent_agent_a1.md",
-        "/w/.zcode/plans/plan-s1-agent-a1.md",
-        "/w/.zcode/plans/s1.md",
-        "/w/.zcode/plans/plan-s1.txt",
+        "/w/.nibi/plans/plan-s2.md",
+        "/w/.nibi/plans/plan-sess_subagent_agent_a1.md",
+        "/w/.nibi/plans/plan-s1-agent-a1.md",
+        "/w/.nibi/plans/s1.md",
+        "/w/.nibi/plans/plan-s1.txt",
     ] {
         assert_eq!(
             decide(&gate, "Write", path, PermissionMode::Plan).await,
@@ -210,14 +210,14 @@ async fn edit_allow_rules_no_longer_override_plan_mode() {
 
 #[tokio::test]
 async fn deny_and_ask_rules_still_apply_to_the_plan_file() {
-    let denied = PolicyGate::new(rules(&[(RuleBehavior::Deny, "Edit(//w/.zcode/**)")]));
+    let denied = PolicyGate::new(rules(&[(RuleBehavior::Deny, "Edit(//w/.nibi/**)")]));
     assert_eq!(
         decide(&denied, "Write", PLAN, PermissionMode::Plan).await,
         PermissionDecision::Deny {
             message: texts::file_edit_denied(PLAN)
         }
     );
-    let asked = PolicyGate::new(rules(&[(RuleBehavior::Ask, "Edit(//w/.zcode/**)")])).with_options(
+    let asked = PolicyGate::new(rules(&[(RuleBehavior::Ask, "Edit(//w/.nibi/**)")])).with_options(
         PolicyOptions {
             auto_in_plan: false,
         },
