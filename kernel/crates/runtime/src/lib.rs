@@ -62,7 +62,7 @@ use rust_cli_session::{Opened, Session, SessionState};
 use rust_cli_tools::Pipeline;
 use table::{Closer, OpenSessions};
 
-pub use ext::{ExtConfig, Extensions};
+pub use ext::{ExtConfig, Extensions, PluginSnapshotLoader};
 pub use permissions::{
     bash_rule_label, bash_rule_seed, format_rule as format_permission_rule,
     parse_rule as parse_permission_rule,
@@ -138,6 +138,8 @@ pub struct LocalKernel {
     gate: Arc<PolicyGate>,
     /// skill、MCP 与插件（docs/specs/rust-cli/ext.md）。
     ext: Arc<Ext>,
+    /// 会话创建时重新读插件快照的入口（NIBI 多会话进程）；None 时用启动快照（CLI/TUI）。
+    plugin_loader: Option<Arc<dyn ext::PluginSnapshotLoader>>,
     /// 会话侧 hooks 与回退事务的执行环境实例（L10，docs/specs/rust-cli/session-lifecycle.md）。
     hooks: Arc<HookEngine>,
     /// agent 类型的来源（context 的清单与 Agent 工具共用）；插件 agent 在插件加载后设置。
@@ -376,6 +378,7 @@ impl LocalKernel {
                 ports.model.clone(),
                 defaults.selection.clone(),
             ));
+        let plugin_loader = extensions.plugin_loader.clone();
         let ext = Arc::new(Ext::new(
             ExtPorts {
                 info: machine.info().clone(),
@@ -440,6 +443,8 @@ impl LocalKernel {
             mcp: ext.mcp().clone(),
             ext: ext.clone(),
             directories: session_directories.clone(),
+            hooks: hooks.clone(),
+            agents: agent_catalog.clone(),
         });
         let parts = QueryParts {
             model: ports.model.clone(),
@@ -590,6 +595,7 @@ impl LocalKernel {
             compactor,
             gate,
             ext,
+            plugin_loader,
             hooks,
             agent_catalog,
             titles: None,

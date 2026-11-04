@@ -17,7 +17,7 @@ fn k1_greet_substitutes_arguments_named_and_indexed() {
 
 #[test]
 fn k1_plain_appends_the_arguments_when_there_is_no_placeholder() {
-    let body = "Base directory for this skill: /w/.zcode/skills/plain\n\n# Plain skill\n\nNo frontmatter here.\n";
+    let body = "Base directory for this skill: /w/.nibi/skills/plain\n\n# Plain skill\n\nNo frontmatter here.\n";
     assert_eq!(
         substitute(body, "extra words", &[]),
         format!("{body}\n\nARGUMENTS: extra words")

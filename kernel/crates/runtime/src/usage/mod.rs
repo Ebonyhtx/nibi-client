@@ -213,14 +213,14 @@ impl UsageAnalyzer {
         let counter = Counter { per_token };
         let custom: Vec<_> = self
             .agents
-            .definitions(&query.workspace)
+            .definitions_for(query.session.as_ref(), &query.workspace)
             .await
             .into_iter()
             .filter(|agent| agent.source != AgentSource::BuiltIn)
             .collect();
         let sources: BTreeMap<String, (&'static str, Option<String>)> = self
             .skills
-            .skills(&query.workspace)
+            .skills_for(query.session.as_ref(), &query.workspace)
             .await
             .iter()
             .map(|skill| (skill.name.clone(), skill_source(&skill.source)))

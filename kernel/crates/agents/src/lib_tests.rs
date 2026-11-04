@@ -368,7 +368,7 @@ async fn the_agent_tool_has_no_isolation_and_no_sdk_wording() {
     assert!(!description.contains("isolation"), "{description}");
     assert!(!description.contains("SDK"), "{description}");
     assert!(
-        description.contains("come from its definition (`.zcode/agents/*.md` frontmatter).\n- Subagents run in the background by default;"),
+        description.contains("come from its definition (`.nibi/agents/*.md` frontmatter).\n- Subagents run in the background by default;"),
         "{description}"
     );
     let context = crate::test_support::tool_context(

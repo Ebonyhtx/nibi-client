@@ -94,7 +94,7 @@ async fn a_later_start_replaces_the_previous_set() {
     let session = SessionId::new("sess_a");
     let first = pools.start(&session, &workspace(), vec![stdio("files")]);
     first.wait_ready().await;
-    let second = pools.start(&session, &workspace(), vec![stdio("web")]);
+    let second = pools.replace(&session, &workspace(), vec![stdio("web")]);
     second.wait_ready().await;
     assert!(!Arc::ptr_eq(&first, &second));
     let tools: Vec<String> = second
@@ -107,6 +107,30 @@ async fn a_later_start_replaces_the_previous_set() {
     assert!(pools.manager(&session).is_some());
     pools.stop(&session);
     assert!(pools.manager(&session).is_none());
+}
+
+#[tokio::test]
+async fn a_later_start_merges_the_previous_set() {
+    let fake = Arc::new(
+        FakeMcp::default()
+            .with("files", echo_server())
+            .with("web", echo_server()),
+    );
+    let scope = TaskScope::root("test", |_| {});
+    let pools = pools(fake, &scope);
+    let session = SessionId::new("sess_merge");
+    let first = pools.start(&session, &workspace(), vec![stdio("files")]);
+    first.wait_ready().await;
+    let second = pools.start(&session, &workspace(), vec![stdio("web")]);
+    second.wait_ready().await;
+    let tools: Vec<String> = second
+        .tools()
+        .into_iter()
+        .map(|tool| tool.name().to_owned())
+        .collect();
+    assert!(tools.iter().any(|name| name == "mcp__files__echo"), "{tools:?}");
+    assert!(tools.iter().any(|name| name == "mcp__web__echo"), "{tools:?}");
+    pools.stop(&session);
 }
 
 #[test]

@@ -73,7 +73,7 @@ async fn the_registry_adds_skill_and_mcp_tools_after_the_base() {
     ));
     let scope = TaskScope::root("test", |_| {});
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{CWD}/.zcode/skills/greet/SKILL.md"),
+        &format!("{CWD}/.nibi/skills/greet/SKILL.md"),
         "---\ndescription: Greet\n---\n",
     );
     let servers = vec![McpServer {

@@ -117,7 +117,10 @@ impl UserCommands for SkillCommands {
         let Some((name, args)) = parse(text) else {
             return Expansion::NotCommand;
         };
-        let skills = self.catalog.skills(&context.workspace).await;
+        let skills = self
+            .catalog
+            .skills_for(Some(&context.session), &context.workspace)
+            .await;
         let Some((skill, args)) = find(&skills, name, args) else {
             // `-p` 的回退：输入照常发给模型，后面跟一条提醒（TUI 在发送前自己提示未知命令）。
             if self.catalog.print_session()

@@ -3,18 +3,31 @@
 
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use rust_cli_agents::PluginAgentFile;
 use rust_cli_ext::Plugins;
 use rust_cli_hooks::PluginHooks;
 use rust_cli_kernel_api::cron_store::CronStore;
+use rust_cli_kernel_api::env::WorkspaceRef;
 
 pub use rust_cli_ext::ExtConfig;
+
+/// 会话创建时的插件快照来源（NIBI 一个 app-server 承载多个会话）。
+///
+/// 入口（CLI）负责重新读插件配置、安装清单与 license；每次 `session/create` 调一次，
+/// 返回的快照只属于该会话，不写回进程级状态。返回空插件表示“当前没有可用插件”。
+#[async_trait]
+pub trait PluginSnapshotLoader: Send + Sync {
+    async fn load(&self, workspace: &WorkspaceRef) -> Plugins;
+}
 
 /// 入口层给内核的扩展配置：配置快照与持久定时任务的存储。MCP 传输在机器上（`MachineEnv::mcp()`，经 `Ports` 的注册表，
 /// remote-exec.md §15.8.1）。
 #[derive(Clone)]
 pub struct Extensions {
     pub config: ExtConfig,
+    /// 会话创建时重新读插件快照的入口；None 时用 `config.plugins` 的启动快照（CLI/TUI）。
+    pub plugin_loader: Option<Arc<dyn PluginSnapshotLoader>>,
     /// 持久定时任务的存储（入口给本地的 `LocalCronStore`，第二阶段在 App 下换成 App 的实现；tools-more.md
     /// §16.2）。随任务表一起建好（F11，审查 R1-13：原来内核建好后再经 `with_cron_store` 装上）；None 时没有
     /// 持久任务（测试、嵌入）。`-p` 也给：CronCreate `durable: true` 照常写文件，只是不调度。
@@ -40,6 +53,7 @@ impl Extensions {
     pub fn none() -> Self {
         Self {
             config: ExtConfig::default(),
+            plugin_loader: None,
             cron_store: None,
             peers: rust_cli_session::PeerDeps::off(),
             streaming_input: false,

@@ -43,7 +43,7 @@ fn read(path: &str) -> Vec<Message> {
 
 #[tokio::test]
 async fn the_listing_hides_model_disabled_and_inactive_conditional_skills() {
-    let dir = format!("{CWD}/.zcode/skills");
+    let dir = format!("{CWD}/.nibi/skills");
     let env = MemoryEnvironment::new(facts())
         .with_file(
             &format!("{dir}/always/SKILL.md"),
@@ -78,4 +78,55 @@ async fn the_listing_hides_model_disabled_and_inactive_conditional_skills() {
         lines(catalog.listing(&workspace(), &history, "").await),
         ["- always: Always", "- ts: TS"]
     );
+}
+
+#[tokio::test]
+async fn session_plugin_roots_do_not_leak_between_sessions() {
+    let env = Arc::new(
+        MemoryEnvironment::new(facts())
+            .with_file(
+                "/Users/dev/plugins/a/skills/alpha/SKILL.md",
+                "---\ndescription: Alpha\n---\n",
+            )
+            .with_file(
+                "/Users/dev/plugins/b/skills/beta/SKILL.md",
+                "---\ndescription: Beta\n---\n",
+            ),
+    );
+    let catalog = SkillCatalog::new(env.clone(), env);
+    let a = SessionId::new("session-a");
+    let b = SessionId::new("session-b");
+    catalog.set_session_plugin_roots(
+        a.clone(),
+        vec![PluginSkillRoot {
+            plugin: "alpha-kit".to_owned(),
+            dir: "/Users/dev/plugins/a/skills".to_owned(),
+        }],
+    );
+    catalog.set_session_plugin_roots(
+        b.clone(),
+        vec![PluginSkillRoot {
+            plugin: "beta-kit".to_owned(),
+            dir: "/Users/dev/plugins/b/skills".to_owned(),
+        }],
+    );
+    let names = |skills: Vec<Arc<Skill>>| -> Vec<String> {
+        skills
+            .into_iter()
+            .map(|skill| skill.name.clone())
+            .filter(|name| name.contains(':'))
+            .collect()
+    };
+    assert_eq!(
+        names(catalog.skills_for(Some(&a), &workspace()).await),
+        ["alpha-kit:alpha"]
+    );
+    assert_eq!(
+        names(catalog.skills_for(Some(&b), &workspace()).await),
+        ["beta-kit:beta"]
+    );
+    // 没有会话快照时回落到进程级根（这里是空的）：两个会话的插件不互相泄漏。
+    assert!(names(catalog.skills(&workspace()).await).is_empty());
+    catalog.clear_session(&a);
+    assert!(names(catalog.skills_for(Some(&a), &workspace()).await).is_empty());
 }

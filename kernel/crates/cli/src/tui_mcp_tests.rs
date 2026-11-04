@@ -55,7 +55,7 @@ fn env() -> Arc<MemoryEnvironment> {
 async fn user_and_project_servers_go_to_their_own_files() {
     let home = tempfile::tempdir().unwrap();
     let paths = StoragePaths::resolve(&Default::default(), home.path(), home.path());
-    let user_file = home.path().join(".zcode/cli/config.json");
+    let user_file = home.path().join(".nibi/cli/config.json");
     std::fs::create_dir_all(user_file.parent().unwrap()).unwrap();
     std::fs::write(&user_file, r#"{"mcp":{"servers":{"docs":{"url":"u"}}}}"#).unwrap();
     let env = env();

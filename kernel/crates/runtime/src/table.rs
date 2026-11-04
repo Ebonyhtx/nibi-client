@@ -125,6 +125,10 @@ pub(crate) struct Closer {
     pub(crate) ext: Arc<rust_cli_ext::Ext>,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：随会话释放。
     pub(crate) directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    /// 会话级插件 hooks（NIBI 多会话）：随会话释放。
+    pub(crate) hooks: Arc<rust_cli_hooks::HookEngine>,
+    /// 会话级插件 agents（NIBI 多会话）：随会话释放。
+    pub(crate) agents: Arc<rust_cli_agents::AgentCatalog>,
 }
 
 impl rust_cli_session::Released for Closer {
@@ -156,6 +160,10 @@ impl rust_cli_session::Released for Closer {
         self.mcp.release(session);
         // 会话级的 MCP 连接（NIBI createSession.mcpServers）随会话一起走：连接任务取消、客户端在后台关闭。
         self.ext.release_session(session);
+        // 会话级插件快照（skills/hooks/agents）随会话释放；冷恢复会重新解析。
+        self.ext.clear_session_plugins(session);
+        self.hooks.clear_session(session);
+        self.agents.clear_session(session);
         // 会话的附加工作目录（NIBI createSession.additionalDirectories）随会话释放。
         self.directories.release(session);
         // 最后移出条目：释放作用域会中止这个会话剩下的任务（actor 已经退出，只剩标题等旁路任务）；Closing 的令牌随之

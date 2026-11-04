@@ -220,6 +220,54 @@ pub(crate) async fn user_hooks(paths: &rust_cli_paths::StoragePaths) -> NodeHook
         .unwrap_or_default()
 }
 
+/// 会话级插件快照：重新读用户/项目配置的 `plugins` 段与安装清单，返回这次会话要用的插件。
+///
+/// 只读、不改进程级快照；app-server 每个 `session/create` 调一次。付费门禁的 license 也在这里
+/// 重新读，所以会员刷新后新会话能立刻生效（老会话保持原快照）。
+pub(crate) async fn plugin_snapshot(inputs: &ConfigInputs<'_>) -> rust_cli_ext::Plugins {
+    let Files {
+        user_path,
+        user,
+        projects,
+    } = read_files(inputs).await;
+    let mut warnings = Vec::new();
+    let empty = Map::new();
+    let user_object = object(&user_path, &user, &mut warnings);
+    let mut layers = vec![Layer {
+        source: RuleSource::UserSettings,
+        object: user_object.unwrap_or(&empty),
+        path: &user_path,
+    }];
+    for project in &projects {
+        if let Some(object) = object(&project.path, &project.file, &mut warnings) {
+            layers.push(Layer {
+                source: RuleSource::ProjectSettings,
+                object,
+                path: &project.path,
+            });
+        }
+    }
+    let section = plugins::merge(&layers, &mut warnings);
+    let storage = StorageLayers::from_layers(&layers, inputs.process_env);
+    let root = inputs.workspace.root.as_str();
+    let plugin_root = inputs
+        .paths
+        .plugin_storage(storage.dir.as_deref(), std::path::Path::new(root));
+    let sources = plugins::sources(
+        section,
+        root,
+        &plugin_root,
+        inputs.paid_license.clone(),
+    )
+    .await;
+    for warning in warnings {
+        tracing::warn!(warning, "plugin snapshot config");
+    }
+    rust_cli_ext::plugins::load_all(inputs.files, inputs.workspace, &[], &sources)
+        .await
+        .plugins
+}
+
 /// 读配置文件并组装快照。只在启动时调用一次（没有文件监听，config.md §6 D6）。
 pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
     let mut warnings = Vec::new();

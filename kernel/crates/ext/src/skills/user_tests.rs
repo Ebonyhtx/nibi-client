@@ -23,12 +23,12 @@ const DENIED: &str = "---\ndescription: Runs a denied command\n---\nOut: !`rm -r
 fn env() -> Arc<MemoryEnvironment> {
     Arc::new(
         MemoryEnvironment::new(facts())
-            .with_file(&format!("{CWD}/.zcode/skills/greet/SKILL.md"), GREET)
-            .with_file(&format!("{CWD}/.zcode/skills/helper/SKILL.md"), HELPER)
-            .with_file(&format!("{CWD}/.zcode/skills/inner/SKILL.md"), INNER)
-            .with_file(&format!("{CWD}/.zcode/skills/denied/SKILL.md"), DENIED)
+            .with_file(&format!("{CWD}/.nibi/skills/greet/SKILL.md"), GREET)
+            .with_file(&format!("{CWD}/.nibi/skills/helper/SKILL.md"), HELPER)
+            .with_file(&format!("{CWD}/.nibi/skills/inner/SKILL.md"), INNER)
+            .with_file(&format!("{CWD}/.nibi/skills/denied/SKILL.md"), DENIED)
             .with_file(
-                &format!("{CWD}/.zcode/skills/plain/SKILL.md"),
+                &format!("{CWD}/.nibi/skills/plain/SKILL.md"),
                 "# Plain skill\n\nNo frontmatter here.\n",
             ),
     )
@@ -82,7 +82,7 @@ async fn k6_greet_expands_to_tags_and_the_body() {
                 meta(
                     SKILL_MESSAGE_SOURCE,
                     &format!(
-                        "Base directory for this skill: {CWD}/.zcode/skills/greet\n\nSay hello to Ada (Ada, first: Ada).\nSkill dir: {CWD}/.zcode/skills/greet\nInline: out:echo inline-ok\n"
+                        "Base directory for this skill: {CWD}/.nibi/skills/greet\n\nSay hello to Ada (Ada, first: Ada).\nSkill dir: {CWD}/.nibi/skills/greet\nInline: out:echo inline-ok\n"
                     ),
                 ),
             ],
@@ -103,7 +103,7 @@ async fn k7_disabled_for_the_model_still_expands_without_args() {
                 meta(
                     SKILL_MESSAGE_SOURCE,
                     &format!(
-                        "Base directory for this skill: {CWD}/.zcode/skills/helper\n\nHidden helper.\n"
+                        "Base directory for this skill: {CWD}/.nibi/skills/helper\n\nHidden helper.\n"
                     ),
                 ),
             ],

@@ -101,7 +101,10 @@ impl Tool for SkillTool {
         if raw.trim().is_empty() {
             return invalid(format!("Invalid skill format: {raw}"), 1);
         }
-        let skills = self.catalog.skills(&context.workspace).await;
+        let skills = self
+            .catalog
+            .skills_for(Some(&context.session), &context.workspace)
+            .await;
         let Some(skill) = skills.iter().find(|skill| skill.name == name) else {
             let message = match closest(&name, &skills) {
                 Some(close) => format!("Unknown skill: {name}. Did you mean {close}?"),
@@ -127,7 +130,11 @@ impl Tool for SkillTool {
         context: &ToolUseContext,
     ) -> PermissionDecision {
         let (_, name) = requested(input);
-        match self.catalog.find(&context.workspace, &name).await {
+        match self
+            .catalog
+            .find_for(Some(&context.session), &context.workspace, &name)
+            .await
+        {
             Some(skill) if skill.is_safe() => PermissionDecision::Allow {
                 updated_input: None,
             },
@@ -154,7 +161,11 @@ impl Tool for SkillTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolCallOutput, ToolError> {
         let (_, name) = requested(&input);
-        let Some(skill) = self.catalog.find(&context.workspace, &name).await else {
+        let Some(skill) = self
+            .catalog
+            .find_for(Some(&context.session), &context.workspace, &name)
+            .await
+        else {
             return Err(ToolError::Failed {
                 message: format!("Unknown skill: {name}"),
             });

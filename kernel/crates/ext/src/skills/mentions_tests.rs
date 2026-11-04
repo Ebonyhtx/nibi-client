@@ -37,7 +37,7 @@ fn the_command_at_the_start_is_skipped() {
 
 #[tokio::test]
 async fn only_skills_are_mentioned_once_each_in_order() {
-    let dir = format!("{CWD}/.zcode/skills");
+    let dir = format!("{CWD}/.nibi/skills");
     let env = MemoryEnvironment::new(facts())
         .with_file(
             &format!("{dir}/greet/SKILL.md"),

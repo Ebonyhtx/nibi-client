@@ -699,6 +699,51 @@ impl Ext {
     pub async fn wait_for_print(&self) {
         self.mcp.wait_for_print().await;
     }
+
+    /// 进程级配置的 MCP 服务器（不含插件）；会话要自己建 manager 时把它并进去。
+    pub fn base_mcp_servers(&self) -> Vec<McpServer> {
+        self.config.mcp.servers.clone()
+    }
+
+    /// 按当前插件来源加载一份快照，不改进程级状态（会话级插件用；入口可在启动时换来源）。
+    pub async fn plugin_snapshot(&self, workspace: &WorkspaceRef) -> Plugins {
+        plugins::load_all(
+            self.files.as_ref(),
+            workspace,
+            &self.config.plugin_dirs,
+            &self.config.plugins,
+        )
+        .await
+        .plugins
+    }
+
+    /// 把会话的插件快照装进 skill 目录；会话关闭时由 [`Ext::release_session`] 清掉。
+    pub fn set_session_skill_roots(
+        &self,
+        session: SessionId,
+        plugins: &Plugins,
+    ) {
+        self.skills
+            .set_session_plugin_roots(session, plugins.skill_roots());
+    }
+
+    /// 把这份插件快照的 MCP 服务器放进 `mcp/list` 的状态页种子（工作区级，取最近一次会话快照）。
+    pub fn refresh_status_servers(
+        &self,
+        workspace: &WorkspaceRef,
+        plugins: &Plugins,
+    ) {
+        self.status_mcp.seed(
+            workspace.root.as_str(),
+            self.base_mcp_servers(),
+            plugins.mcp_servers(),
+        );
+    }
+
+    /// 会话关闭时清掉 skill 快照（hooks/agents 由 runtime 各自清）。
+    pub fn clear_session_plugins(&self, session: &SessionId) {
+        self.skills.clear_session(session);
+    }
 }
 
 /// 订阅键 = 会话 | 沙箱作用域 | 代际（Node `buildMcpUiSubscriberKey`）；作用域必须是实例的 token，
@@ -881,7 +926,12 @@ impl ListingSource for ExtListings {
     ) -> Result<Listings, OrchestrationError> {
         let skills = self
             .skills
-            .listing(&request.workspace, history, &request.selection.model)
+            .listing_for(
+                Some(&request.session),
+                &request.workspace,
+                history,
+                &request.selection.model,
+            )
             .await;
         Ok(Listings {
             skills,
@@ -895,7 +945,10 @@ impl ListingSource for ExtListings {
         request: &ContextRequest,
         history: &[Message],
     ) -> Result<Vec<rust_cli_kernel_api::listing::InvokedSkill>, OrchestrationError> {
-        Ok(self.skills.invoked(&request.workspace, history).await)
+        Ok(self
+            .skills
+            .invoked_for(Some(&request.session), &request.workspace, history)
+            .await)
     }
 
     /// 输入中间的 skill 提及（ext.md §2.8）。
@@ -904,7 +957,10 @@ impl ListingSource for ExtListings {
         request: &ContextRequest,
         input: &str,
     ) -> Result<Vec<String>, OrchestrationError> {
-        Ok(self.skills.mentions(&request.workspace, input).await)
+        Ok(self
+            .skills
+            .mentions_for(Some(&request.session), &request.workspace, input)
+            .await)
     }
 
     /// 有工具快照时用快照里的（与工具同一时点，query.md §1.3）；否则取现在的。

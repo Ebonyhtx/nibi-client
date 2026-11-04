@@ -296,7 +296,7 @@ async fn the_plan_file_is_the_node_location() {
         session: session.clone(),
     };
     let file = kernel.plan_file(query.clone()).await.unwrap();
-    assert_eq!(file.path, "/Users/dev/project/.zcode/plans/plan-ses_1.md");
+    assert_eq!(file.path, "/Users/dev/project/.nibi/plans/plan-ses_1.md");
     assert!(!file.exists);
     env.set_file(&file.path, "");
     assert!(!kernel.plan_file(query.clone()).await.unwrap().exists);

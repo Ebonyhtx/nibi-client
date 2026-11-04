@@ -46,7 +46,7 @@ pub(crate) async fn catalog(usage: &UsageAnalyzer, query: &CatalogQuery) -> Sess
         .collect();
     let skills = usage
         .skills
-        .skills(&query.workspace)
+        .skills_for(Some(&query.session), &query.workspace)
         .await
         .iter()
         .filter(|skill| skill.user_invocable)

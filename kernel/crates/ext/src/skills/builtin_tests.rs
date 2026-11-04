@@ -70,24 +70,24 @@ async fn empty_and_interval_only_inputs_use_the_defaults() {
     assert!(fixed.contains("(input was empty or just the interval `5m`)"));
     assert!(fixed.contains("1. Convert `5m` to a 5-field cron expression."));
     let env = MemoryEnvironment::new(facts())
-        .with_file(&format!("{HOME}/.zcode/loop.md"), "- home task\n")
-        .with_file(&format!("{CWD}/.zcode/loop.md"), "\n- project task\n");
+        .with_file(&format!("{HOME}/.nibi/loop.md"), "- home task\n")
+        .with_file(&format!("{CWD}/.nibi/loop.md"), "\n- project task\n");
     let file = launch(env, "").await;
-    let path = format!("{CWD}/.zcode/loop.md");
+    let path = format!("{CWD}/.nibi/loop.md");
     assert!(file.contains(&format!("has a loop-tasks file at `{path}`")));
     assert!(file.ends_with(&format!("## Loop tasks (from {path})\n\n- project task")));
 }
 
 /// loop.md 的位置与规则文件、子代理、skill 一样用执行环境的 `PathStyle::join` 拼（修复线 F58）：home
-/// 里有 `..` 时也找得到。以前按路径里有没有 `\` 选分隔符、只去末尾的分隔符，得到 `/Users/x/../dev/.zcode/loop.md`。
+/// 里有 `..` 时也找得到。以前按路径里有没有 `\` 选分隔符、只去末尾的分隔符，得到 `/Users/x/../dev/.nibi/loop.md`。
 #[tokio::test]
 async fn the_loop_file_path_is_joined_like_the_other_dot_dirs() {
     let mut odd = facts();
     odd.home = Some(rust_cli_kernel_api::env::EnvPath::new("/Users/x/../dev/"));
     let env =
-        MemoryEnvironment::new(odd).with_file(&format!("{HOME}/.zcode/loop.md"), "- home task\n");
+        MemoryEnvironment::new(odd).with_file(&format!("{HOME}/.nibi/loop.md"), "- home task\n");
     let file = launch(env, "").await;
-    let path = format!("{HOME}/.zcode/loop.md");
+    let path = format!("{HOME}/.nibi/loop.md");
     assert!(
         file.ends_with(&format!("## Loop tasks (from {path})\n\n- home task")),
         "{file}"
@@ -98,7 +98,7 @@ async fn the_loop_file_path_is_joined_like_the_other_dot_dirs() {
 #[tokio::test]
 async fn the_builtin_comes_after_file_skills() {
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{CWD}/.zcode/skills/greet/SKILL.md"),
+        &format!("{CWD}/.nibi/skills/greet/SKILL.md"),
         "---\ndescription: Greet\n---\n",
     );
     let env = Arc::new(env);
@@ -122,7 +122,7 @@ async fn the_builtin_comes_after_file_skills() {
         "- security-review: Complete a security review of the pending changes on the current branch"
     );
     let shadow = MemoryEnvironment::new(facts()).with_file(
-        &format!("{CWD}/.zcode/skills/loop/SKILL.md"),
+        &format!("{CWD}/.nibi/skills/loop/SKILL.md"),
         "---\ndescription: Mine\n---\n",
     );
     let shadow = Arc::new(shadow);

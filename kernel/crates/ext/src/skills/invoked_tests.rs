@@ -61,7 +61,7 @@ fn skill(name: &str, path: &str, content: &str) -> InvokedSkill {
 #[tokio::test]
 async fn invoked_skills_are_named_by_the_call_and_listed_newest_first() {
     let env = MemoryEnvironment::new(facts()).with_file(
-        &format!("{CWD}/.zcode/skills/deploy/SKILL.md"),
+        &format!("{CWD}/.nibi/skills/deploy/SKILL.md"),
         "---\ndescription: Deploy\n---\nDeploy it.\n",
     );
     let env = Arc::new(env);
@@ -88,7 +88,7 @@ async fn invoked_skills_are_named_by_the_call_and_listed_newest_first() {
         body("STRAY"),
     ];
     assert_eq!(
-        invoked(&catalog, &workspace(), &history).await,
+        invoked(&catalog, &workspace(), &history, &[]).await,
         [
             skill("deploy", "projectSettings:deploy", "DEPLOY"),
             skill("review", "review", "REVIEW"),

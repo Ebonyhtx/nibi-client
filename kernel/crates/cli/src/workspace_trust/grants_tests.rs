@@ -38,7 +38,7 @@ fn rules_are_sorted_and_written_in_display_form() {
 }
 
 fn grants_of(texts: &[&str]) -> Grants {
-    grants(".zcode/config.json", &rules(texts)).unwrap()
+    grants(".nibi/config.json", &rules(texts)).unwrap()
 }
 
 #[test]

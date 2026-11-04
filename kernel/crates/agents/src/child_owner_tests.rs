@@ -79,7 +79,7 @@ async fn foreground_children_forward_to_the_parent_session() {
     let own = SessionId::new("sess_child");
     assert_eq!(child.owner_session(&own).await, SessionId::new("sess_root"));
     child
-        .set_workspace(&own, EnvPath::new("/Users/dev/repo/.zcode/worktrees/a"))
+        .set_workspace(&own, EnvPath::new("/Users/dev/repo/.nibi/worktrees/a"))
         .await
         .unwrap_or_else(|error| panic!("{error}"));
     // 被取消的询问撤回也转给父会话（R1-5）。
@@ -89,7 +89,7 @@ async fn foreground_children_forward_to_the_parent_session() {
     assert_eq!(
         *root.0.lock().unwrap_or_else(PoisonError::into_inner),
         [
-            "sess_parent /Users/dev/repo/.zcode/worktrees/a",
+            "sess_parent /Users/dev/repo/.nibi/worktrees/a",
             "sess_parent cancel toolu_1"
         ]
     );

@@ -50,12 +50,14 @@ pub mod workspace_digest;
 #[cfg(test)]
 mod test_support;
 
+use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock};
 
 use async_trait::async_trait;
 use rust_cli_kernel_api::hooks::{
     HookEvent, HookEventName, HookOutcome, HookRunner, StopCondition, StopVerdict,
 };
+use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::model::small_fast_model;
 use tokio_util::sync::CancellationToken;
 
@@ -112,6 +114,8 @@ struct Loaded {
 pub struct HookEngine {
     ports: HookPorts,
     loaded: RwLock<Arc<Loaded>>,
+    /// 会话级插件 hooks（NIBI 一个 app-server 承载多个会话；有快照时覆盖进程级插件 hooks）。
+    session_plugins: RwLock<HashMap<SessionId, Vec<PluginHooks>>>,
 }
 
 impl HookEngine {
@@ -124,6 +128,7 @@ impl HookEngine {
         Self {
             ports,
             loaded: RwLock::new(Arc::new(load(config, Vec::new()))),
+            session_plugins: RwLock::default(),
         }
     }
 
@@ -155,11 +160,41 @@ impl HookEngine {
         *loaded = Arc::new(load(loaded.config.clone(), plugins));
     }
 
+    /// 登记某个会话的插件 hooks（会话快照；运行中的事件用同一份快照）。
+    pub fn register_session_plugins(&self, session: SessionId, plugins: Vec<PluginHooks>) {
+        self.session_plugins
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session, plugins);
+    }
+
+    /// 会话关闭时释放它的插件 hooks。
+    pub fn clear_session(&self, session: &SessionId) {
+        self.session_plugins
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+    }
+
     fn snapshot(&self) -> Arc<Loaded> {
         self.loaded
             .read()
             .unwrap_or_else(PoisonError::into_inner)
             .clone()
+    }
+
+    /// 这次事件生效的 hook 集合：会话有插件快照时用「设置 + 会话插件」，否则用进程级快照。
+    fn effective_for(&self, session: &SessionId, loaded: &Loaded) -> Effective {
+        let session_plugins = self
+            .session_plugins
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned();
+        match session_plugins {
+            Some(plugins) => loaded.config.effective_with(&plugins),
+            None => loaded.effective.clone(),
+        }
     }
 
     /// hook 输入的 `cwd`：调用方给出的，或会话的 shell cwd，再没有时是工作区根。
@@ -194,7 +229,8 @@ impl HookRunner for HookEngine {
         if !loaded.config.trusted || cancel.is_cancelled() {
             return HookOutcome::default();
         }
-        let Some(matchers) = loaded.effective.matchers.get(&event.name) else {
+        let effective = self.effective_for(&event.session, &loaded);
+        let Some(matchers) = effective.matchers.get(&event.name) else {
             return HookOutcome::default();
         };
         let hooks = matcher::select(event.name, matchers, &event.payload);
@@ -212,8 +248,8 @@ impl HookRunner for HookEngine {
             input,
             default_timeout_ms: default_timeout_ms(event.name),
             http: HttpPolicy {
-                allowed_urls: loaded.effective.allowed_urls.as_deref(),
-                allowed_env_vars: loaded.effective.allowed_env_vars.as_deref(),
+                allowed_urls: effective.allowed_urls.as_deref(),
+                allowed_env_vars: effective.allowed_env_vars.as_deref(),
                 env: &loaded.config.env,
             },
             prompt_model: loaded.config.prompt_model.as_ref(),

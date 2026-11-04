@@ -34,7 +34,7 @@ fn env(files: &[(&str, Value)]) -> MemoryEnvironment {
 fn home(user: Option<Value>) -> (tempfile::TempDir, StoragePaths) {
     let dir = tempfile::tempdir().unwrap();
     if let Some(user) = user {
-        let file = dir.path().join(".zcode/cli/config.json");
+        let file = dir.path().join(".nibi/cli/config.json");
         std::fs::create_dir_all(file.parent().unwrap()).unwrap();
         std::fs::write(&file, user.to_string()).unwrap();
     }

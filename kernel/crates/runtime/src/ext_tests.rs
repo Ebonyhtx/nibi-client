@@ -105,6 +105,7 @@ async fn plugin_agents_reach_the_agent_listing() {
                 workspace: Some(workspace()),
                 ..ExtConfig::default()
             },
+            plugin_loader: None,
             cron_store: None,
             peers: rust_cli_session::PeerDeps::off(),
             streaming_input: false,

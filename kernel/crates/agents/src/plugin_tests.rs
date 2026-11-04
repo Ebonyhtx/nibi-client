@@ -72,7 +72,7 @@ async fn plugin_agents_sit_between_built_ins_and_user_agents() {
             "---\ndescription: Plugin explore.\n---\nE.",
         )
         .with_file(
-            "/Users/dev/.zcode/agents/kit-review.md",
+            "/Users/dev/.nibi/agents/kit-review.md",
             "---\nname: kit:review\ndescription: User override.\n---\nU.",
         );
     let env = Arc::new(env);

@@ -17,14 +17,14 @@ const HELPER: &str = "---\nname: Helper\ndescription: A helper the model must no
 fn env() -> Arc<MemoryEnvironment> {
     Arc::new(
         MemoryEnvironment::new(facts())
-            .with_file(&format!("{CWD}/.zcode/skills/greet/SKILL.md"), GREET)
-            .with_file(&format!("{CWD}/.zcode/skills/helper/SKILL.md"), HELPER)
+            .with_file(&format!("{CWD}/.nibi/skills/greet/SKILL.md"), GREET)
+            .with_file(&format!("{CWD}/.nibi/skills/helper/SKILL.md"), HELPER)
             .with_file(
-                &format!("{CWD}/.zcode/skills/plain/SKILL.md"),
+                &format!("{CWD}/.nibi/skills/plain/SKILL.md"),
                 "# Plain skill\n\nNo frontmatter here.\n",
             )
             .with_file(
-                &format!("{CWD}/.zcode/skills/vars/SKILL.md"),
+                &format!("{CWD}/.nibi/skills/vars/SKILL.md"),
                 "${ZCODE_PROJECT_DIR} ${CLAUDE_SESSION_ID}\n",
             ),
     )
@@ -78,7 +78,7 @@ async fn k1_greet_loads_the_body_after_the_result() {
     assert_eq!(
         body(&call),
         format!(
-            "Base directory for this skill: {CWD}/.zcode/skills/greet\n\nSay hello to Ada (Ada, first: Ada).\nSkill dir: {CWD}/.zcode/skills/greet\nInline: out:echo inline-ok\n"
+            "Base directory for this skill: {CWD}/.nibi/skills/greet\n\nSay hello to Ada (Ada, first: Ada).\nSkill dir: {CWD}/.nibi/skills/greet\nInline: out:echo inline-ok\n"
         )
     );
 }
@@ -101,7 +101,7 @@ async fn k1_plain_and_variables() {
     assert_eq!(
         body(&call),
         format!(
-            "Base directory for this skill: {CWD}/.zcode/skills/plain\n\n# Plain skill\n\nNo frontmatter here.\n\n\nARGUMENTS: extra words"
+            "Base directory for this skill: {CWD}/.nibi/skills/plain\n\n# Plain skill\n\nNo frontmatter here.\n\n\nARGUMENTS: extra words"
         )
     );
     let vars = tool

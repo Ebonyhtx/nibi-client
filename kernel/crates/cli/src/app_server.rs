@@ -5,27 +5,56 @@
 //! 不登记跨会话通信），区别只在注入的东西：平台层的账号凭据来源经 Host（G8），前端是 `protocol-zcode`。
 //! 写者先起：Host 要求拉起后 30 s 内有 `startup/storageState`。
 
+use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::Result;
+use async_trait::async_trait;
 use rust_cli_base::TaskScope;
+use rust_cli_base::secret::EnvSnapshot;
 use rust_cli_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::EnvironmentId;
+use rust_cli_kernel_api::machine::Files;
 use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
 use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
 use rust_cli_paths::StorageSettings;
 use rust_cli_protocol_core::connection::{self, Options};
 use rust_cli_protocol_zcode::{Context, Defaults, HostHeaders, Startup};
-use rust_cli_runtime::{ContextConfig, Defaults as KernelDefaults, LocalKernel, Ports, Surface};
+use rust_cli_runtime::{
+    ContextConfig, Defaults as KernelDefaults, LocalKernel, PluginSnapshotLoader, Ports, Surface,
+};
 
 use crate::args::names_search_tools;
 use crate::output::eprint_line;
 use crate::{
     LOCAL_ENVIRONMENT, VERSION, config, limits, log, mcp, model_io, models, options, setup,
 };
+
+/// 会话级插件快照加载器：每个 `session/create` 重新读配置、已安装清单与 license。
+struct SessionPluginLoader {
+    home: PathBuf,
+    env: EnvSnapshot,
+    paths: rust_cli_paths::StoragePaths,
+    files: Arc<dyn Files>,
+}
+
+#[async_trait]
+impl PluginSnapshotLoader for SessionPluginLoader {
+    async fn load(&self, workspace: &WorkspaceRef) -> rust_cli_ext::Plugins {
+        let inputs = config::ConfigInputs {
+            files: self.files.as_ref(),
+            workspace,
+            paths: &self.paths,
+            process_env: &self.env,
+            flag: None,
+            paid_license: Some(crate::read_paid_license_from(&self.home, &self.env)),
+        };
+        config::plugin_snapshot(&inputs).await
+    }
+}
 
 /// 子命令的参数。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -311,6 +340,14 @@ async fn serve(
         &config,
     )
     .await;
+    // 插件按会话解析：进程级不再加载插件（避免启动快照 + 会话快照各一套连接）。
+    extensions.config.plugins = Default::default();
+    extensions.plugin_loader = Some(Arc::new(SessionPluginLoader {
+        home: startup.home.clone(),
+        env: startup.env.clone(),
+        paths: paths.clone(),
+        files: local_machine.files().clone(),
+    }));
     extensions.monitor = monitor;
     // `mcpId` 的盐：桌面注入的设备标识；没有时 ext 退回进程级随机串（跨进程不可关联）。
     extensions.mcp_telemetry = Some(rust_cli_ext::McpTelemetrySetup {

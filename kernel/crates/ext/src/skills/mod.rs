@@ -24,6 +24,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use rust_cli_kernel_api::env::{EnvFacts, FileVersion, WorkspaceRef};
+use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::listing::ListingEntry;
 use rust_cli_kernel_api::machine::{EnvInfo, Files};
 use rust_cli_kernel_api::message::Message;
@@ -124,6 +125,8 @@ pub struct SkillCatalog {
     info: Arc<dyn EnvInfo>,
     files: Arc<dyn Files>,
     plugins: Mutex<Vec<PluginSkillRoot>>,
+    /// 会话级插件根（NIBI 一个 app-server 承载多个会话）：有会话快照时覆盖进程级根。
+    session_plugins: Mutex<HashMap<SessionId, Vec<PluginSkillRoot>>>,
     cache: Mutex<Cache>,
     /// 单次的 `-p`（`singleShotPrintSession`）：内置 `/loop` 的 Monitor 超时随它（tools-more.md §17.1）。
     print: AtomicBool,
@@ -135,6 +138,7 @@ impl SkillCatalog {
             info,
             files,
             plugins: Mutex::default(),
+            session_plugins: Mutex::default(),
             cache: Mutex::default(),
             print: AtomicBool::new(false),
         }
@@ -154,11 +158,39 @@ impl SkillCatalog {
         *self.plugins.lock().unwrap_or_else(PoisonError::into_inner) = roots;
     }
 
+    /// 会话级插件根（NIBI 每个会话创建时解析一次；运行中不热更新）。
+    pub fn set_session_plugin_roots(&self, session: SessionId, roots: Vec<PluginSkillRoot>) {
+        self.session_plugins
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session, roots);
+    }
+
+    /// 会话关闭时释放它的插件根。
+    pub fn clear_session(&self, session: &SessionId) {
+        self.session_plugins
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+    }
+
     fn plugin_roots(&self) -> Vec<PluginSkillRoot> {
         self.plugins
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone()
+    }
+
+    fn plugin_roots_for(&self, session: Option<&SessionId>) -> Vec<PluginSkillRoot> {
+        let Some(session) = session else {
+            return self.plugin_roots();
+        };
+        self.session_plugins
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned()
+            .unwrap_or_else(|| self.plugin_roots())
     }
 
     pub(crate) fn cached(&self, path: &str, version: &FileVersion) -> Option<Arc<Skill>> {
@@ -177,6 +209,15 @@ impl SkillCatalog {
 
     /// 这一步发现的全部 skill，按优先级排好、同名只留第一个（ext.md §2.1）。
     pub async fn skills(&self, workspace: &WorkspaceRef) -> Vec<Arc<Skill>> {
+        self.skills_for(None, workspace).await
+    }
+
+    /// 会话级版本：有该会话的插件快照时用它，否则回落到进程级根（CLI/TUI）。
+    pub async fn skills_for(
+        &self,
+        session: Option<&SessionId>,
+        workspace: &WorkspaceRef,
+    ) -> Vec<Arc<Skill>> {
         let facts = match self.info.facts(workspace).await {
             Ok(facts) => facts,
             Err(error) => {
@@ -184,11 +225,17 @@ impl SkillCatalog {
                 return Vec::new();
             }
         };
-        self.skills_with(workspace, &facts).await
+        self.skills_with(workspace, &facts, &self.plugin_roots_for(session))
+            .await
     }
 
-    async fn skills_with(&self, workspace: &WorkspaceRef, facts: &EnvFacts) -> Vec<Arc<Skill>> {
-        let mut found = load::discover(self, workspace, facts, &self.plugin_roots()).await;
+    async fn skills_with(
+        &self,
+        workspace: &WorkspaceRef,
+        facts: &EnvFacts,
+        plugins: &[PluginSkillRoot],
+    ) -> Vec<Arc<Skill>> {
+        let mut found = load::discover(self, workspace, facts, plugins).await;
         // 内置 skill 排在文件与插件 skill 之后，同名时前面的生效。
         found.extend(builtin::skills());
         let mut seen = HashSet::new();
@@ -204,12 +251,50 @@ impl SkillCatalog {
         workspace: &WorkspaceRef,
         history: &[Message],
     ) -> Vec<rust_cli_kernel_api::listing::InvokedSkill> {
-        invoked::invoked(self, workspace, history).await
+        self.invoked_for(None, workspace, history).await
+    }
+
+    pub async fn invoked_for(
+        &self,
+        session: Option<&SessionId>,
+        workspace: &WorkspaceRef,
+        history: &[Message],
+    ) -> Vec<rust_cli_kernel_api::listing::InvokedSkill> {
+        invoked::invoked(
+            self,
+            workspace,
+            history,
+            &self.plugin_roots_for(session),
+        )
+        .await
     }
 
     /// 按名字找（Skill 工具用）。
     pub async fn find(&self, workspace: &WorkspaceRef, name: &str) -> Option<Arc<Skill>> {
-        self.skills(workspace)
+        self.find_for(None, workspace, name).await
+    }
+
+    pub async fn find_for(
+        &self,
+        session: Option<&SessionId>,
+        workspace: &WorkspaceRef,
+        name: &str,
+    ) -> Option<Arc<Skill>> {
+        self.skills_for(session, workspace)
+            .await
+            .into_iter()
+            .find(|skill| skill.name == name)
+    }
+
+    /// 按显式插件根找（`invoked` 的历史来源判定用）。
+    pub(crate) async fn find_with(
+        &self,
+        workspace: &WorkspaceRef,
+        name: &str,
+        plugins: &[PluginSkillRoot],
+    ) -> Option<Arc<Skill>> {
+        let facts = self.info.facts(workspace).await.ok()?;
+        self.skills_with(workspace, &facts, plugins)
             .await
             .into_iter()
             .find(|skill| skill.name == name)
@@ -223,10 +308,22 @@ impl SkillCatalog {
         history: &[Message],
         model: &str,
     ) -> Vec<ListingEntry> {
+        self.listing_for(None, workspace, history, model).await
+    }
+
+    pub async fn listing_for(
+        &self,
+        session: Option<&SessionId>,
+        workspace: &WorkspaceRef,
+        history: &[Message],
+        model: &str,
+    ) -> Vec<ListingEntry> {
         let Ok(facts) = self.info.facts(workspace).await else {
             return Vec::new();
         };
-        let skills = self.skills_with(workspace, &facts).await;
+        let skills = self
+            .skills_with(workspace, &facts, &self.plugin_roots_for(session))
+            .await;
         let touched = paths::touched(history, facts.cwd.as_str());
         let visible: Vec<Arc<Skill>> = skills
             .iter()

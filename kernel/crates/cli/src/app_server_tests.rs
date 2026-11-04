@@ -62,7 +62,7 @@ fn the_host_arguments_select_the_app_server() {
 
 #[test]
 fn the_database_id_hides_the_path_and_is_stable_in_a_process() {
-    let path = std::path::Path::new("/Users/dev/.zcode/cli/db/db.sqlite");
+    let path = std::path::Path::new("/Users/dev/.nibi/cli/db/db.sqlite");
     let id = database_id(path);
     assert_eq!(id, database_id(path));
     assert!(!id.contains("Users"));

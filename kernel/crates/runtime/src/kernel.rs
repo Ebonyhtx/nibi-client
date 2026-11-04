@@ -63,6 +63,7 @@ impl LocalKernel {
         draft: bool,
     ) -> Result<SessionId, KernelError> {
         let id = request.id.unwrap_or_else(|| self.ports.ids.session());
+        let workspace = request.workspace.clone();
         let meta = SessionMeta {
             id: id.clone(),
             kind: SessionKind::Interactive,
@@ -98,6 +99,10 @@ impl LocalKernel {
                 .await
                 .map_err(|error| failed(&error))?;
         }
+        // 会话级插件快照：NIBI 一个 app-server 承载多个会话，新装/启用的插件必须在
+        // 新会话（以及冷恢复）里可见，而不改已有会话。快照只活在这个会话里，不落库。
+        // CLI/TUI 没有 loader（单会话进程），继续用 `ext.start()` 的进程级快照。
+        self.apply_session_plugin_snapshot(&id, &workspace).await;
         self.start(
             SessionState {
                 meta,
@@ -115,6 +120,49 @@ impl LocalKernel {
             Opened::Created,
         );
         Ok(id)
+    }
+
+    /// 给一个会话装上当前的插件快照：skills、hooks、agents 与 MCP。
+    ///
+    /// 只在入口提供 `PluginSnapshotLoader`（NIBI app-server）时生效；CLI/TUI 继续用进程级快照。
+    /// 冷恢复也走这里——会话 runtime 重建就重新解析，与 Node “冷恢复重建 App”一致。
+    async fn apply_session_plugin_snapshot(
+        &self,
+        session: &SessionId,
+        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+    ) {
+        let Some(loader) = &self.plugin_loader else {
+            return;
+        };
+        let plugins = loader.load(workspace).await;
+        let (agents, hooks) = crate::ext::plugin_parts(&plugins);
+        self.ext
+            .set_session_skill_roots(session.clone(), &plugins);
+        self.ext.refresh_status_servers(workspace, &plugins);
+        self.agent_catalog
+            .set_session_plugins(session.clone(), agents);
+        self.hooks
+            .register_session_plugins(session.clone(), hooks);
+        let plugin_servers = plugins.mcp_servers();
+        if plugin_servers.is_empty() {
+            return;
+        }
+        // 会话自己要一套 MCP 连接时，进程级配置的服务器也要在场（Node 的 App runtimeConfig.mcp
+        // 同时含 CLI 配置与插件服务器）。
+        let servers: Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer> = self
+            .ext
+            .base_mcp_servers()
+            .into_iter()
+            .chain(plugin_servers)
+            .map(|server| rust_cli_kernel_api::mcp_session::SessionMcpServer {
+                name: server.name,
+                transport: server.transport,
+                always_load: server.options.always_load,
+                timeout_ms: server.options.timeout_ms,
+                isolation: Default::default(),
+            })
+            .collect();
+        self.ext.start_session_mcp(session, workspace, servers);
     }
 }
 
@@ -500,6 +548,9 @@ impl Kernel for LocalKernel {
             // 冷加载的会话一定已经落库（草稿没有行可加载）。
             draft: false,
         };
+        // 冷恢复：会话 runtime 重建，插件快照重新解析（Node 冷恢复重建 App 的同一语义）。
+        self.apply_session_plugin_snapshot(session, &state.meta.workspace)
+            .await;
         Ok(self.start(state, Opened::Loaded))
     }
 

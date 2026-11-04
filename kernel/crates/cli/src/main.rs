@@ -123,12 +123,20 @@ struct Startup {
 
 /// 付费插件门禁的授权事实：从 NIBI v2 凭据读 token/device/state（与 Node 同一份文件）。
 pub(crate) fn read_paid_license(startup: &Startup) -> rust_cli_ext::plugins::PaidLicense {
-    let paths = nibi_platform::paths::NibiPaths::resolve(&startup.home, |key| {
-        startup.env.get(key).map(str::to_owned)
+    read_paid_license_from(&startup.home, &startup.env)
+}
+
+/// 同 [`read_paid_license`]，给只持有 home/env 的调用方（会话级插件快照加载器）。
+pub(crate) fn read_paid_license_from(
+    home: &std::path::Path,
+    env: &rust_cli_base::secret::EnvSnapshot,
+) -> rust_cli_ext::plugins::PaidLicense {
+    let paths = nibi_platform::paths::NibiPaths::resolve(home, |key| {
+        env.get(key).map(str::to_owned)
     });
     let credentials = nibi_platform::license_store::read_license_credentials(
         &paths.credentials(),
-        |key| startup.env.get(key).map(str::to_owned),
+        |key| env.get(key).map(str::to_owned),
     );
     let now_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

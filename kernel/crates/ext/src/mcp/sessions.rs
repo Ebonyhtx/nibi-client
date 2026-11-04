@@ -22,9 +22,12 @@ use super::{McpManager, McpScope, McpServer, McpServerOptions, McpSettings};
 
 /// 一个会话的 MCP 连接：`owned` 表示这套连接是这个会话自己的（关闭时释放）；子代理继承的是父
 /// 会话的连接（`owned: false`），关闭子会话不能把父会话的连接关掉。
+#[derive(Clone)]
 struct Entry {
     manager: Arc<McpManager>,
     owned: bool,
+    /// 这个会话当前这批服务器（插件快照 + Host `createSession.mcpServers` 合并后的完整集合）。
+    servers: Vec<SessionMcpServer>,
 }
 
 /// 会话 → 这个会话的 MCP 连接。管理器本身很小，重活在各服务器的连接任务里。
@@ -82,14 +85,53 @@ impl SessionMcp {
             .unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// 给会话装上这批服务器并开始连接（不等待）。同一会话再给一次时换掉旧的一套：
-    /// Node 的 `connectConfiguredServers` 也是"这次给的是完整集合"。
+    /// 给会话装上这批服务器并开始连接（不等待）。同一会话再给一次时**合并**：
+    /// 插件快照先装、Host 的 `createSession.mcpServers` 后装，同名覆盖、新名字追加；
+    /// 最后仍是一套完整集合（Node 一次给全量，这里分两次给的是同一事实）。
     pub(crate) fn start(
         &self,
         session: &SessionId,
         workspace: &WorkspaceRef,
         servers: Vec<SessionMcpServer>,
     ) -> Arc<McpManager> {
+        self.install(session, workspace, servers, true)
+    }
+
+    /// 换掉这个会话的整套服务器（Node `connectConfiguredServers` 的“这次给的是完整集合”）。
+    #[cfg(test)]
+    pub(crate) fn replace(
+        &self,
+        session: &SessionId,
+        workspace: &WorkspaceRef,
+        servers: Vec<SessionMcpServer>,
+    ) -> Arc<McpManager> {
+        self.install(session, workspace, servers, false)
+    }
+
+    fn install(
+        &self,
+        session: &SessionId,
+        workspace: &WorkspaceRef,
+        servers: Vec<SessionMcpServer>,
+        merge: bool,
+    ) -> Arc<McpManager> {
+        let previous = self.sessions().remove(session);
+        // 继承来的条目不是自己的连接：不并进新集合，也不释放。
+        let mut merged = if merge {
+            previous
+                .as_ref()
+                .filter(|entry| entry.owned)
+                .map(|entry| entry.servers.clone())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        for server in servers {
+            match merged.iter_mut().find(|known| known.name == server.name) {
+                Some(known) => *known = server,
+                None => merged.push(server),
+            }
+        }
         let manager = Arc::new(McpManager::new(
             self.transport.clone(),
             self.spawner.clone(),
@@ -106,15 +148,15 @@ impl SessionMcp {
         if let Some(events) = self.ui_events.clone() {
             manager.attach_ui_events(events);
         }
-        manager.start(workspace.clone(), to_servers(servers));
-        let previous = self.sessions().insert(
+        manager.start(workspace.clone(), to_servers(merged.clone()));
+        self.sessions().insert(
             session.clone(),
             Entry {
                 manager: manager.clone(),
                 owned: true,
+                servers: merged,
             },
         );
-        // 继承来的条目不是自己的连接，不释放。
         if let Some(previous) = previous.filter(|entry| entry.owned) {
             self.spawn_stop(previous.manager);
         }
@@ -129,13 +171,14 @@ impl SessionMcp {
     /// 子代理会话继承父会话的连接（NIBI `createSession.mcpServers`）：Node 的子代理 app 直接拿父的
     /// `config.mcp`，工具可见性相同。共用同一个 manager，不另建连接；父会话没有时什么都不做。
     pub(crate) fn inherit(&self, parent: &SessionId, child: &SessionId) {
-        let manager = self.manager(parent);
-        if let Some(manager) = manager {
+        let parent = self.sessions().get(parent).cloned();
+        if let Some(parent) = parent {
             self.sessions().insert(
                 child.clone(),
                 Entry {
-                    manager,
+                    manager: parent.manager,
                     owned: false,
+                    servers: parent.servers,
                 },
             );
         }

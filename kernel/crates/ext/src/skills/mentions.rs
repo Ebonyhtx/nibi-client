@@ -59,6 +59,16 @@ impl SkillCatalog {
     /// 输入里对得上可调用 skill 的名字，同一个 skill 一次、按出现顺序。禁止模型调用的也算（用户键入的）；print
     /// 会话返回空（`-p` 与 stream-json 的输入不算人类键入）。
     pub async fn mentions(&self, workspace: &WorkspaceRef, input: &str) -> Vec<String> {
+        self.mentions_for(None, workspace, input).await
+    }
+
+    /// 会话级版本：插件根随会话快照。
+    pub async fn mentions_for(
+        &self,
+        session: Option<&rust_cli_kernel_api::ids::SessionId>,
+        workspace: &WorkspaceRef,
+        input: &str,
+    ) -> Vec<String> {
         if self.print_session() {
             return Vec::new();
         }
@@ -66,7 +76,7 @@ impl SkillCatalog {
         if tokens.is_empty() {
             return Vec::new();
         }
-        let skills = self.skills(workspace).await;
+        let skills = self.skills_for(session, workspace).await;
         let mut seen = HashSet::new();
         tokens
             .into_iter()

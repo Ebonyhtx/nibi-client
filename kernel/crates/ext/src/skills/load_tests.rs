@@ -97,15 +97,15 @@ fn names(skills: &[Arc<Skill>]) -> Vec<String> {
 async fn sources_are_ordered_and_the_first_name_wins() {
     let mut env = MemoryEnvironment::new(facts());
     for (path, text) in [
-        skill_file(&format!("{HOME}/.zcode/skills"), "shared", "user zcode"),
+        skill_file(&format!("{HOME}/.nibi/skills"), "shared", "user zcode"),
         skill_file(&format!("{HOME}/.agents/skills"), "shared", "user agents"),
         skill_file(&format!("{HOME}/.agents/skills"), "beta", "user beta"),
-        skill_file(&format!("{CWD}/.zcode/skills"), "alpha", "project"),
-        skill_file(&format!("{CWD}/.zcode/skills"), "shared", "project shared"),
+        skill_file(&format!("{CWD}/.nibi/skills"), "alpha", "project"),
+        skill_file(&format!("{CWD}/.nibi/skills"), "shared", "project shared"),
         skill_file(&format!("{CWD}/.agents/skills"), "Zed", "project agents"),
-        skill_file("/Users/dev/.zcode/skills/not-a-skill.md", "x", "ignored"),
+        skill_file("/Users/dev/.nibi/skills/not-a-skill.md", "x", "ignored"),
         skill_file(
-            "/Library/Application Support/ZCode/.zcode/skills",
+            "/Library/Application Support/ZCode/.nibi/skills",
             "managed",
             "managed",
         ),
@@ -113,8 +113,8 @@ async fn sources_are_ordered_and_the_first_name_wins() {
         env = env.with_file(&path, &text);
     }
     // 单个 .md 文件不是 skill；没有 SKILL.md 的目录也不是。
-    env = env.with_file(&format!("{CWD}/.zcode/skills/loose.md"), "x");
-    env = env.with_file(&format!("{CWD}/.zcode/skills/empty/README.md"), "x");
+    env = env.with_file(&format!("{CWD}/.nibi/skills/loose.md"), "x");
+    env = env.with_file(&format!("{CWD}/.nibi/skills/empty/README.md"), "x");
     let env = Arc::new(env);
     let catalog = SkillCatalog::new(env.clone(), env);
     let skills = catalog.skills(&workspace()).await;
@@ -137,13 +137,13 @@ async fn project_levels_stop_at_the_git_root() {
     env_facts.cwd = EnvPath::new(&nested);
     let env = MemoryEnvironment::new(env_facts)
         .with_file(&format!("{CWD}/.git/HEAD"), "ref")
-        .with_file("/Users/dev/outside/.zcode/skills/far/SKILL.md", "x")
+        .with_file("/Users/dev/outside/.nibi/skills/far/SKILL.md", "x")
         .with_file(
-            &format!("{nested}/.zcode/skills/near/SKILL.md"),
+            &format!("{nested}/.nibi/skills/near/SKILL.md"),
             "---\ndescription: near\n---\n",
         )
         .with_file(
-            &format!("{CWD}/.zcode/skills/root/SKILL.md"),
+            &format!("{CWD}/.nibi/skills/root/SKILL.md"),
             "---\ndescription: root\n---\n",
         );
     let env = Arc::new(env);
@@ -162,11 +162,11 @@ async fn a_dot_git_that_is_neither_file_nor_directory_does_not_stop_the_levels()
         .with_special(&format!("{nested}/.git"))
         .with_file(&format!("{CWD}/.git/HEAD"), "ref")
         .with_file(
-            &format!("{nested}/.zcode/skills/near/SKILL.md"),
+            &format!("{nested}/.nibi/skills/near/SKILL.md"),
             "---\ndescription: near\n---\n",
         )
         .with_file(
-            &format!("{CWD}/.zcode/skills/root/SKILL.md"),
+            &format!("{CWD}/.nibi/skills/root/SKILL.md"),
             "---\ndescription: root\n---\n",
         );
     let env = Arc::new(env);
@@ -175,7 +175,7 @@ async fn a_dot_git_that_is_neither_file_nor_directory_does_not_stop_the_levels()
     assert_eq!(names(&skills), ["near=near", "root=root"]);
 }
 
-/// 每一层都是 `.zcode` 在前、`.agents` 在后，层与层之间离 cwd 近的在前；同名时用户级在项目级之前
+/// 每一层都是 `.nibi` 在前、`.agents` 在后，层与层之间离 cwd 近的在前；同名时用户级在项目级之前
 /// （ext.md §2.1，与 Node `skillRootsForBase` 的拼接顺序相同）。
 #[tokio::test]
 async fn each_level_reads_zcode_before_agents_and_nearer_levels_first() {
@@ -190,11 +190,11 @@ async fn each_level_reads_zcode_before_agents_and_nearer_levels_first() {
             "user agents",
         ),
         skill_file(&format!("{HOME}/.agents/skills"), "both", "user agents"),
-        skill_file(&format!("{nested}/.zcode/skills"), "both", "near zcode"),
+        skill_file(&format!("{nested}/.nibi/skills"), "both", "near zcode"),
         skill_file(&format!("{nested}/.agents/skills"), "near", "near agents"),
         skill_file(&format!("{nested}/.agents/skills"), "level", "near agents"),
-        skill_file(&format!("{CWD}/.zcode/skills"), "level", "root zcode"),
-        skill_file(&format!("{CWD}/.zcode/skills"), "near", "root zcode"),
+        skill_file(&format!("{CWD}/.nibi/skills"), "level", "root zcode"),
+        skill_file(&format!("{CWD}/.nibi/skills"), "near", "root zcode"),
     ] {
         env = env.with_file(&path, &text);
     }

@@ -65,18 +65,18 @@ fn the_permission_mode_accepts_the_manual_alias() {
 async fn loads_user_then_project_dirs_up_to_the_git_root() {
     let env = MemoryEnvironment::new(facts("/Users/dev/repo/pkg"))
         .with_file(
-            "/Users/dev/.zcode/agents/user.md",
+            "/Users/dev/.nibi/agents/user.md",
             "---\nname: helper\ndescription: User helper.\n---\nUser.",
         )
         .with_file("/Users/dev/repo/.git/HEAD", "ref: refs/heads/main\n")
         .with_file(
-            "/Users/dev/repo/.zcode/agents/helper.md",
+            "/Users/dev/repo/.nibi/agents/helper.md",
             "---\nname: helper\ndescription: Repo helper.\n---\nRepo.",
         )
-        .with_file("/Users/dev/repo/pkg/.zcode/agents/reviewer.md", REVIEWER)
-        .with_file("/Users/dev/repo/pkg/.zcode/agents/notes.txt", "ignored")
+        .with_file("/Users/dev/repo/pkg/.nibi/agents/reviewer.md", REVIEWER)
+        .with_file("/Users/dev/repo/pkg/.nibi/agents/notes.txt", "ignored")
         .with_file(
-            "/Users/dev/outside/.zcode/agents/x.md",
+            "/Users/dev/outside/.nibi/agents/x.md",
             "---\nname: x\ndescription: X.\n---\n",
         );
     let layers = load(&env, &workspace("/Users/dev/repo/pkg"), &env.facts).await;
@@ -106,7 +106,7 @@ async fn a_dot_git_that_is_neither_file_nor_directory_does_not_stop_the_walk() {
         .with_special("/Users/dev/repo/pkg/.git")
         .with_file("/Users/dev/repo/.git/HEAD", "ref: refs/heads/main\n")
         .with_file(
-            "/Users/dev/repo/.zcode/agents/helper.md",
+            "/Users/dev/repo/.nibi/agents/helper.md",
             "---\nname: helper\ndescription: Repo helper.\n---\nRepo.",
         );
     let layers = load(&env, &workspace("/Users/dev/repo/pkg"), &env.facts).await;

@@ -107,6 +107,7 @@ pub(crate) async fn invoked(
     catalog: &SkillCatalog,
     workspace: &WorkspaceRef,
     history: &[Message],
+    plugins: &[super::PluginSkillRoot],
 ) -> Vec<InvokedSkill> {
     let mut seen = HashSet::new();
     let mut out = Vec::new();
@@ -116,7 +117,7 @@ pub(crate) async fn invoked(
         }
         let path = match path {
             Some(path) => path,
-            None => match catalog.find(workspace, &name).await {
+            None => match catalog.find_with(workspace, &name, plugins).await {
                 Some(skill) => format!("{}:{name}", source_label(&skill.source)),
                 None => name.clone(),
             },

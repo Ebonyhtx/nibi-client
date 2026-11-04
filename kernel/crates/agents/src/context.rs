@@ -2,10 +2,12 @@
 //! （context 的子代理分支），system 段换成子代理自己的（docs/specs/rust-cli/agents.md §4.3）。
 //! 以及 agent 清单（`ListingSource`，交给主线程的 `agent_listing_delta`）。
 
+use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock};
 
 use async_trait::async_trait;
 use rust_cli_kernel_api::env::WorkspaceRef;
+use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
 use rust_cli_kernel_api::machine::{EnvInfo, Files};
 use rust_cli_kernel_api::message::{AttachmentMessage, Message};
@@ -66,6 +68,8 @@ pub struct AgentCatalog {
     files: Arc<dyn Files>,
     /// 插件 agent 文件；只由 runtime 在插件加载后设置（agents.md §3）。
     plugins: RwLock<Vec<PluginAgentFile>>,
+    /// 会话级插件 agent（NIBI 一个 app-server 承载多个会话；有快照时覆盖进程级）。
+    session_plugins: RwLock<HashMap<SessionId, Vec<PluginAgentFile>>>,
 }
 
 impl AgentCatalog {
@@ -74,6 +78,7 @@ impl AgentCatalog {
             info,
             files,
             plugins: RwLock::default(),
+            session_plugins: RwLock::default(),
         }
     }
 
@@ -82,13 +87,48 @@ impl AgentCatalog {
         *self.plugins.write().unwrap_or_else(PoisonError::into_inner) = files;
     }
 
-    /// 当前可用的 agent 类型（`/context` 的自定义 agent 也用它，context-usage.md §3）。
-    pub async fn definitions(&self, workspace: &WorkspaceRef) -> Vec<AgentDefinition> {
-        let files = self
-            .plugins
+    /// 会话级插件 agent 文件；会话关闭时清掉。
+    pub fn set_session_plugins(&self, session: SessionId, files: Vec<PluginAgentFile>) {
+        self.session_plugins
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session, files);
+    }
+
+    pub fn clear_session(&self, session: &SessionId) {
+        self.session_plugins
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
+    }
+
+    fn files_for(&self, session: Option<&SessionId>) -> Vec<PluginAgentFile> {
+        if let Some(session) = session
+            && let Some(files) = self
+                .session_plugins
+                .read()
+                .unwrap_or_else(PoisonError::into_inner)
+                .get(session)
+        {
+            return files.clone();
+        }
+        self.plugins
             .read()
             .unwrap_or_else(PoisonError::into_inner)
-            .clone();
+            .clone()
+    }
+
+    /// 当前可用的 agent 类型（`/context` 的自定义 agent 也用它，context-usage.md §3）。
+    pub async fn definitions(&self, workspace: &WorkspaceRef) -> Vec<AgentDefinition> {
+        self.definitions_for(None, workspace).await
+    }
+
+    pub async fn definitions_for(
+        &self,
+        session: Option<&SessionId>,
+        workspace: &WorkspaceRef,
+    ) -> Vec<AgentDefinition> {
+        let files = self.files_for(session);
         let mut layers = vec![
             builtins(),
             plugin::load(self.files.as_ref(), workspace, &files).await,
@@ -105,7 +145,7 @@ impl AgentCatalog {
 impl ListingSource for AgentCatalog {
     async fn listings(&self, request: &ContextRequest) -> Result<Listings, OrchestrationError> {
         let agents = self
-            .definitions(&request.workspace)
+            .definitions_for(Some(&request.session), &request.workspace)
             .await
             .iter()
             .map(|definition| ListingEntry {
