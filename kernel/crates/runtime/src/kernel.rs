@@ -911,6 +911,9 @@ impl Kernel for LocalKernel {
     /// 会话关闭：释放它的会话级 MCP 连接（`Closer` 的 `released` 也调一次，重复调用无副作用）。
     fn stop_session_mcp(&self, session: &SessionId) {
         self.ext.release_session(session);
+        self.ext.clear_session_plugins(session);
+        self.hooks.clear_session(session);
+        self.agent_catalog.clear_session(session);
     }
 
     /// NIBI `createSession.additionalDirectories`：判决链把它们按"在工作区内"处理，环境段列出它们。
