@@ -764,3 +764,18 @@ fn the_cold_projection_reads_node_written_notification_records() {
     assert_eq!(headers[0]["origin"], "backgroundResult");
     assert_eq!(headers[0]["executionKind"], "agent");
 }
+
+/// `sharedContextImport` 是 optional、不是 nullable：没有分享导入时快照必须**不写**这个键
+/// （写 null 会被 Host 的 `sharedContextImportSchema` 拒整帧，客户端显示
+/// `fault.subscription.contentRejected`）。
+#[test]
+fn a_snapshot_omits_shared_context_import_until_one_is_seeded() {
+    let mut feed = Feed::new();
+    let snapshot = feed.projection.snapshot(0, "epoch");
+    assert!(snapshot.get("sharedContextImport").is_none(), "{snapshot}");
+
+    feed.projection
+        .seed_shared_context_import(Some(json!({"title": "Shared", "status": "pending"})));
+    let snapshot = feed.projection.snapshot(0, "epoch");
+    assert_eq!(snapshot["sharedContextImport"]["title"], "Shared");
+}

@@ -853,7 +853,7 @@ impl Projection {
     /// 快照（`conversationSnapshotSchema`）：`seq` 是主题的序号，`epoch` 是主题的代际标识。
     pub fn snapshot(&self, seq: u64, epoch: &str) -> Value {
         let start = self.rows.len().saturating_sub(WINDOW_ROWS);
-        json!({
+        let mut snapshot = json!({
             "protocolVersion": 1,
             "sessionId": self.session,
             "logEpoch": epoch,
@@ -874,13 +874,18 @@ impl Projection {
             "goal": null,
             "plan": null,
             "workspaceHookAdmission": self.hook_admission,
-            "sharedContextImport": self.shared_context_import,
             "rows": {
                 "window": &self.rows[start..],
                 "totalCount": self.rows.len(),
                 "firstRowId": self.rows.first().map(|row| row["rowId"].clone()),
             },
-        })
+        });
+        // 协议里这个键是 optional、不是 nullable：没有分享导入时**不写**，不能写 null
+        // （Host 的 `sharedContextImportSchema` 会拒整帧，客户端报 `fault.subscription.contentRejected`）。
+        if let Some(value) = &self.shared_context_import {
+            snapshot["sharedContextImport"] = value.clone();
+        }
+        snapshot
     }
 }
 
