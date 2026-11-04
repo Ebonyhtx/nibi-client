@@ -183,10 +183,12 @@ impl Transcript {
             KernelEvent::ContextUsage {
                 used_tokens,
                 max_tokens,
+                window_tokens,
             } => {
                 self.occupancy = Some(rust_cli_kernel_api::compaction::ContextOccupancy {
                     used_tokens,
                     max_tokens,
+                    window_tokens,
                 });
             }
             // footer 的 TPS（F105）：只取最新的一份。

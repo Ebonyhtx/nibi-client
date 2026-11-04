@@ -158,10 +158,17 @@ impl Projection {
             plan: view.plan,
             followup,
             levels,
+            // App 的「总量」用模型的原始窗口（Node `usage.contextWindow.maxTokens`）；旧视图只带
+            // 有效窗口时退回它。
             context: view
                 .context_usage
                 .as_ref()
-                .map(|usage| (usage.used_tokens, usage.max_tokens)),
+                .map(|usage| {
+                    (
+                        usage.used_tokens,
+                        usage.window_tokens.unwrap_or(usage.max_tokens),
+                    )
+                }),
             total: Usage::default(),
             queue: view.queue.clone(),
             pending: Vec::new(),
@@ -563,8 +570,9 @@ impl Projection {
             KernelEvent::ContextUsage {
                 used_tokens,
                 max_tokens,
+                window_tokens,
             } => {
-                self.context = Some((*used_tokens, *max_tokens));
+                self.context = Some((*used_tokens, window_tokens.unwrap_or(*max_tokens)));
                 patch.insert("usage".into(), state::usage(self.context, &self.total));
             }
             KernelEvent::TitleChanged { title } => {

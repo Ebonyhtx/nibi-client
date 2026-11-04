@@ -389,6 +389,7 @@ fn the_revision_comes_from_the_events_only() {
             KernelEvent::ContextUsage {
                 used_tokens: 5,
                 max_tokens: 10,
+                window_tokens: None,
             },
         ),
         0,
@@ -890,4 +891,32 @@ fn a_cold_open_restores_model_change_markers_from_message_selections() {
         .position(|row| row["kind"] == "turnHeader" && row["turnId"] == "u2:turn:2")
         .unwrap();
     assert!(marker_at < header_at, "{rows:?}");
+}
+
+/// App 的「总量」用模型原始窗口（`window_tokens`），没有时退回有效窗口；冷视图同一口径。
+#[test]
+fn the_context_window_display_prefers_the_raw_window() {
+    let mut feed = Feed::new();
+    let deltas = feed.apply(KernelEvent::ContextUsage {
+        used_tokens: 1_020,
+        max_tokens: 127_000,
+        window_tokens: Some(128_000),
+    });
+    let usage = &deltas[0]["patch"]["usage"]["contextWindow"];
+    assert_eq!(usage["usedTokens"], 1_020);
+    assert_eq!(usage["maxTokens"], 128_000);
+
+    use rust_cli_kernel_api::compaction::ContextOccupancy;
+    let mut cold = view(Vec::new());
+    cold.context_usage = Some(ContextOccupancy {
+        used_tokens: 1_020,
+        max_tokens: 127_000,
+        window_tokens: Some(128_000),
+    });
+    let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    let snapshot = projection.snapshot(0, "epoch");
+    assert_eq!(
+        snapshot["usage"]["contextWindow"]["maxTokens"],
+        serde_json::json!(128_000)
+    );
 }

@@ -262,7 +262,8 @@ async fn compact_runs_as_a_turn_and_commits_one_batch() {
     // 修复线 L-A 起另有 `/compact` 记录的 3 条）。
     assert!(events.contains(&KernelEvent::ContextUsage {
         used_tokens: 7,
-        max_tokens: 100
+        max_tokens: 100,
+        window_tokens: None
     }));
     assert!(matches!(
         events.last(),
@@ -350,7 +351,8 @@ async fn the_view_carries_the_context_usage_and_notice() {
         view.context_usage,
         Some(rust_cli_kernel_api::compaction::ContextOccupancy {
             used_tokens: 2,
-            max_tokens: 100
+            max_tokens: 100,
+            window_tokens: None
         })
     );
     assert_eq!(
@@ -400,7 +402,8 @@ async fn changing_the_model_recomputes_the_context() {
             },
             KernelEvent::ContextUsage {
                 used_tokens: 2,
-                max_tokens: 1_000
+                max_tokens: 1_000,
+                window_tokens: None
             }
         ]
     );

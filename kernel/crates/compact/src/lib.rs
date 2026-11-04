@@ -174,6 +174,12 @@ impl Compactor for Compaction {
         ))
     }
 
+    /// App 的「总量」：模型窗口本身（不减摘要预留），与 Node `usage.contextWindow.maxTokens` 一致。
+    fn window_tokens(&self, selection: &ModelSelection) -> Option<u64> {
+        let facts = self.config.facts(selection);
+        Some(window::window(&facts, &self.config.thresholds).window)
+    }
+
     /// 输入框下方“上下文快满”的提示（compact.md §2.1）：与 [`Self::should_auto_compact`] 同一套 token、窗口
     /// （[`CompactConfig::facts`]）、来源与开关。
     fn context_notice(

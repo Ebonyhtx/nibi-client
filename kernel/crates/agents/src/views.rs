@@ -141,6 +141,7 @@ pub(crate) async fn view(
                 |(used_tokens, max_tokens)| rust_cli_kernel_api::compaction::ContextOccupancy {
                     used_tokens,
                     max_tokens,
+                    window_tokens: compactor.window_tokens(&selection),
                 },
             );
     let context_notice = compactor

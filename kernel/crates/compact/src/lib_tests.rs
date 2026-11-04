@@ -279,3 +279,16 @@ fn the_context_usage_uses_the_same_tokens_and_window() {
         Some((tokens, window))
     );
 }
+
+/// App 的「总量」是模型的原始窗口（不减摘要预留），与 footer 用的有效窗口分开；
+/// Node `usage.contextWindow.maxTokens` 同口径。
+#[test]
+fn the_display_window_keeps_the_raw_model_window() {
+    let request = request(history(60_000), CompactTrigger::Auto);
+    let compaction = Compaction::new(ports(ScriptedRunner::new(Vec::new()), no_tools()), config());
+    assert_eq!(compaction.window_tokens(&request.selection), Some(100_000));
+    assert_eq!(
+        compaction.context_usage(&request.messages, &request.selection),
+        Some((60_000, 80_000))
+    );
+}

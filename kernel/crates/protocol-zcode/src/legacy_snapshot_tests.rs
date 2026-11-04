@@ -108,6 +108,7 @@ fn view() -> SessionView {
         context_usage: Some(ContextOccupancy {
             used_tokens: 12,
             max_tokens: 100,
+            window_tokens: None,
         }),
         context_notice: ContextNotice::Hidden,
         output_speed: None,

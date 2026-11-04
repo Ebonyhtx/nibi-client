@@ -117,11 +117,14 @@ pub enum ContextNotice {
 }
 
 /// 上下文用量：token 与有效窗口（[`Compactor::context_usage`] 的结果，`KernelEvent::ContextUsage` 是同一对值；
-/// docs/specs/rust-cli/compact.md §2.1、tui-display.md §2.6，修复线 F27）。
+/// docs/specs/rust-cli/compact.md §2.1、tui-display.md §2.6，修复线 F27）。`window_tokens` 是模型的原始窗口
+/// （未减摘要预留），App 的「总量」显示它（Node `usage.contextWindow.maxTokens` 同口径）；压缩判定仍用有效窗口。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextOccupancy {
     pub used_tokens: u64,
     pub max_tokens: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_tokens: Option<u64>,
 }
 
 impl ContextOccupancy {
@@ -159,6 +162,11 @@ pub trait Compactor: Send + Sync {
         _history: &[Message],
         _selection: &ModelSelection,
     ) -> Option<(u64, u64)> {
+        None
+    }
+
+    /// 模型的原始上下文窗口（未减摘要预留）：App 的「总量」用它（Node 同口径）。默认不知道。
+    fn window_tokens(&self, _selection: &ModelSelection) -> Option<u64> {
         None
     }
 

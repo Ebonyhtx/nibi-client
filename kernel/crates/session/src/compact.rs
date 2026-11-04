@@ -168,11 +168,13 @@ impl Actor {
         if let Some(ContextOccupancy {
             used_tokens,
             max_tokens,
+            window_tokens,
         }) = self.context_occupancy()
         {
             self.log.append(KernelEvent::ContextUsage {
                 used_tokens,
                 max_tokens,
+                window_tokens,
             });
         }
     }
@@ -190,6 +192,7 @@ impl Actor {
             .map(|(used_tokens, max_tokens)| ContextOccupancy {
                 used_tokens,
                 max_tokens,
+                window_tokens: self.deps.compactor.window_tokens(&self.selection),
             })
     }
 }

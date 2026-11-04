@@ -131,6 +131,7 @@ fn speed_app(
             event: KernelEvent::ContextUsage {
                 used_tokens: 66_600,
                 max_tokens: 180_000,
+                window_tokens: None,
             },
         },
         0,
@@ -224,6 +225,7 @@ fn ctx_and_cache_show_one_decimal() {
                 event: KernelEvent::ContextUsage {
                     used_tokens,
                     max_tokens,
+                    window_tokens: None,
                 },
             },
             0,

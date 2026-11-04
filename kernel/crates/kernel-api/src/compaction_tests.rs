@@ -103,11 +103,13 @@ fn the_used_percent_is_the_context_used_formula() {
     let occupancy = ContextOccupancy {
         used_tokens: 66_600,
         max_tokens: 180_000,
+        window_tokens: None,
     };
     assert_eq!(occupancy.percent(), 37);
     let event = KernelEvent::ContextUsage {
         used_tokens: 1,
         max_tokens: 2,
+        window_tokens: None,
     };
     assert_eq!(
         serde_json::to_value(&event).unwrap(),

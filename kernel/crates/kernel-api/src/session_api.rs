@@ -385,6 +385,9 @@ pub enum KernelEvent {
     ContextUsage {
         used_tokens: u64,
         max_tokens: u64,
+        /// 模型的原始窗口（未减摘要预留；App 的「总量」显示它）。旧事件没有时按 `max_tokens` 显示。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        window_tokens: Option<u64>,
     },
     /// 上下文快满的提示（docs/specs/rust-cli/compact.md §2.1）：提交带用量的 assistant 与压缩结果之后重算。
     ContextNotice {

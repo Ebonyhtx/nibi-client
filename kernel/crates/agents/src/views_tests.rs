@@ -549,6 +549,7 @@ async fn the_view_carries_the_subagents_context_and_speed() {
         Some(ContextOccupancy {
             used_tokens: 1_000,
             max_tokens: 10_000,
+            window_tokens: None,
         })
     );
     assert_eq!(view.context_notice, ContextNotice::Used { percent: 1 });
