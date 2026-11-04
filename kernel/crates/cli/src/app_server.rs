@@ -1,9 +1,12 @@
 //! `zcode app-server --stdio [--surface desktop]`（docs/specs/rust-cli/app-protocol.md §3.7、§10）：App 的 Host 经 stdio
 //! 拉起的协议前端。参数照 Host 现在给 Node 的（`ZA:zcodeAgentProcessManager.ts` 的 `applyPresentationSurfaceToCommand`）。
 //!
-//! 组装与 `-p` 相同的内核（同一套提示词与工具，Surface 是交互形态；不问工作区信任、不生成标题、不连远端机器、
+//! 组装与 `-p` 相同的内核（同一套提示词与工具，Surface 是交互形态；不问工作区信任、不连远端机器、
 //! 不登记跨会话通信），区别只在注入的东西：平台层的账号凭据来源经 Host（G8），前端是 `protocol-zcode`。
 //! 写者先起：Host 要求拉起后 30 s 内有 `startup/storageState`。
+//!
+//! 标题生成与桌面 Node 一致：首条人类输入后发一次 `session_title` 侧请求（`TitleModel`），
+//! 用户可见的标题、标题来源与这条请求的用量行都按 Node 的口径。
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -18,6 +21,7 @@ use rust_cli_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::EnvironmentId;
 use rust_cli_kernel_api::machine::Files;
+use rust_cli_kernel_api::provider::ModelDirectory;
 use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
 use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
 use rust_cli_paths::StorageSettings;
@@ -25,6 +29,7 @@ use rust_cli_protocol_core::connection::{self, Options};
 use rust_cli_protocol_zcode::{Context, Defaults, HostHeaders, Startup};
 use rust_cli_runtime::{
     ContextConfig, Defaults as KernelDefaults, LocalKernel, PluginSnapshotLoader, Ports, Surface,
+    TitleModel,
 };
 
 use crate::args::names_search_tools;
@@ -272,6 +277,13 @@ async fn serve(
         anyhow::bail!("opening the session database failed: {error}");
     }
     let device = setup::device_id(&paths, ids.clone());
+    // 显式覆盖（`ZCODE_API_KEY`）时没有模型目录（与 TUI 的 `main.rs` 同一判据）；
+    // `startup.explicit` 马上随 `models::assemble` 移走，先算出来。
+    let explicit = startup
+        .explicit
+        .api_key
+        .as_ref()
+        .is_some_and(|key| !key.expose().is_empty());
     let models::Assembled {
         model,
         selection,
@@ -374,6 +386,15 @@ async fn serve(
         store,
         extensions,
     );
+    // 会话标题（titles.md §2）：桌面与 TUI 同一套生成——首条人类输入后一次 `session_title`
+    // 侧请求，Node 桌面同样发。显式 API key 覆盖时没有模型目录，辅助选项不补。
+    let directory: Option<Arc<dyn ModelDirectory>> =
+        (!explicit).then(|| platform.clone() as Arc<dyn ModelDirectory>);
+    let title_model = kernel.ports().model.clone();
+    let kernel = kernel.with_titles(TitleModel {
+        model: title_model,
+        directory,
+    });
     // DWF 引擎 sidecar（路线 C）：Host/开发经 `NIBI_DWF_ENGINE_CMD` 指过来；缺席时三条 DWF 命令保持
     // `fault.command.capabilityUnsupported`。
     let workflow_engine = startup
