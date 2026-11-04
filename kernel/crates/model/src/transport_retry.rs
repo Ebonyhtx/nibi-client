@@ -66,6 +66,8 @@ impl Connect {
                 Some(Ok(endpoint)) => {
                     self.endpoint.credential = endpoint.credential;
                     self.endpoint.headers = endpoint.headers;
+                    // 一次请求只续期一次：再被拒就按静态凭据失败，不循环刷新。
+                    self.endpoint.renewable = false;
                 }
             }
         }
@@ -105,6 +107,15 @@ impl Connect {
     /// 处置表的动作换成等待时长；不再重发时是给调用方的错误（换 fallback、连续过载、不可重试或到了上限）。
     fn delay_for(&mut self, verdict: &Verdict, phase: Phase) -> Result<Duration, ModelError> {
         let failed = || verdict.error.clone();
+        // 凭据被拒：静态 API key 重发同一个 key 只会得到同一个 401（Node 的失败分类同样标
+        // `retryable: false`）。只有可续期的端点（官方账号）才值得用新凭据再试一次；续期成功后
+        // `renewable` 置 false（见 `fail`），所以最多多一次请求。
+        if verdict.class == Class::AuthRejected
+            && !self.endpoint.renewable
+            && verdict.should_retry != Some(true)
+        {
+            return Err(verdict.error.clone());
+        }
         let action = dispose(
             verdict.class,
             phase,

@@ -187,3 +187,47 @@ async fn zhipu_server_error_is_retried_then_completes() {
     assert!(events.iter().all(Result::is_ok), "{events:?}");
     assert_eq!(server.requests().len(), 2);
 }
+
+/// Anthropic：401 静态 API key 只发一次（Node 的分类器标 `retryable: false`；以前这里按
+/// `AuthRejected` 的处置表重试到上限，白白发了三次）。
+#[tokio::test]
+async fn anthropic_authentication_is_not_retried() {
+    let server = Fixture::start(vec![Reply::new(401).send(
+        json!({"type": "error", "error": {
+            "type": "authentication_error", "message": "invalid x-api-key"
+        }})
+        .to_string(),
+    )])
+    .await;
+    let model = model_at(server.url(), fast_retry(3)).await;
+    let events = collect(&model, request("hi", QuerySource::MainThread)).await;
+    assert_eq!(
+        events,
+        vec![Err(ModelError::Authentication {
+            message: "invalid x-api-key".to_owned()
+        })]
+    );
+    assert_eq!(server.requests().len(), 1);
+}
+
+/// OpenAI Chat：401 静态 API key 同样只发一次。
+#[tokio::test]
+async fn openai_authentication_is_not_retried() {
+    let reply = Reply::new(401).send(
+        json!({"error": {"message": "bad key", "type": "authentication_error"}}).to_string(),
+    );
+    let server = Fixture::start(vec![reply]).await;
+    let model = openai::model(openai::endpoint(
+        rust_cli_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
+        server.url(),
+    ))
+    .await;
+    let events = collect(&model, request("hi", QuerySource::MainThread)).await;
+    assert_eq!(
+        events,
+        vec![Err(ModelError::Authentication {
+            message: "bad key".to_owned()
+        })]
+    );
+    assert_eq!(server.requests().len(), 1);
+}
