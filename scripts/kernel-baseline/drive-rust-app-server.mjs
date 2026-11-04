@@ -28,7 +28,9 @@ const bin = isNode
 const binArgs = isNode
   ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
   : ["app-server", "--stdio"];
-const dotDir = isNode ? ".nibi" : ".zcode";
+// Rust 内核的用户根从 2026-10-29 起与 Node 共用 `~/.nibi`（nibi-platform `DOT_DIR`），
+// 驱动脚本曾按旧 `.zcode` 落 provider_config.json，导致会话拿不到模型、整条对拍超时。
+const dotDir = ".nibi";
 const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare")
   .split("=")[1]
   .split(",");
@@ -768,11 +770,33 @@ try {
   console.log(`sendText ack: ${JSON.stringify(send1)}`);
 
   // 3) 等 assistant 回复（假 provider 即时返回）
-  await waitFor(
-    () => (JSON.stringify(frames).includes("RUST-DRIVE-REPLY") ? true : undefined),
-    "assistant reply frame",
-    60_000,
-  );
+  //
+  // 不能只搜帧里的 RUST-DRIVE-REPLY：标题生成请求也拿到同一句默认回复，`meta.title` 会先把它带进
+  // 帧；Rust 从 M6 起会先流式发标题请求，于是"回复可见"会在主回合的 provider 请求之前就成立，
+  // 后续 additionalDirectories 断言读到的是标题请求。这里只认真正的 assistantText 行。
+  const assistantReplyRow = () => {
+    const rowsById = new Map();
+    for (const frame of frames) {
+      const payload = frame.frame?.payload ?? {};
+      if (payload.kind === "snapshot") {
+        for (const row of payload.snapshot?.rows?.window ?? []) rowsById.set(row.rowId, row);
+      }
+      for (const delta of payload.deltas ?? []) {
+        if (delta.op === "row.removed") {
+          const from = delta.fromRowId ?? 0;
+          for (const key of [...rowsById.keys()]) if (key >= from) rowsById.delete(key);
+        } else if (delta.op === "row.appended" || delta.op === "row.upserted") {
+          rowsById.set(delta.row.rowId, { ...rowsById.get(delta.row.rowId), ...delta.row });
+        }
+      }
+    }
+    return [...rowsById.values()].find(
+      (row) =>
+        row.kind === "assistantText" &&
+        String(row.text ?? "").includes("RUST-DRIVE-REPLY"),
+    );
+  };
+  await waitFor(() => assistantReplyRow(), "assistant reply row", 60_000);
   checks.sendTextStatus = send1.result?.status;
   checks.additionalDirInPrompt = REQUESTS.some((request) => request.mentionsExtraDir);
   console.log(
@@ -3101,11 +3125,15 @@ try {
 
   // 会话级 MCP：任一主回合请求的工具表里出现 mcp__fake__echo，即"createSession.mcpServers → 连接 → 工具表 → 请求"
   // 整链通（Node 的 runtimeConfig.mcp 与 Rust 的会话级 manager 都走这条断言）。
+  //
+  // 标题生成请求（M6 起两个内核都有）不带工具表，不能拿 REQUESTS[0] 当"首个主回合请求"：那会让
+  // 这条门禁在标题请求排第一时恒为 false，看起来两边一致，实际什么都没验证。
+  const mainRequests = REQUESTS.filter((request) => (request.tools ?? []).length > 0);
   const mcpOffered = REQUESTS.filter((request) =>
     (request.tools ?? []).includes("mcp__fake__echo"),
   );
   checks.mcpToolOffered = mcpOffered.length > 0;
-  checks.mcpOfferedInFirstRequest = (REQUESTS[0]?.tools ?? []).includes("mcp__fake__echo");
+  checks.mcpOfferedInFirstRequest = (mainRequests[0]?.tools ?? []).includes("mcp__fake__echo");
   // 工具真的被调用并执行：假 provider 要求一次 mcp__fake__echo，工具结果回到下一请求。
   checks.mcpToolCalled = TOOL_RESULTS.length > 0;
   checks.mcpToolResult = TOOL_RESULTS[0] ?? null;
