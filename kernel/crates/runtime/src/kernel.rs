@@ -682,6 +682,65 @@ impl Kernel for LocalKernel {
             .map_err(mcp_ui_error)
     }
 
+    /// `mcp/uiRegisterAppTools`：登记页面实例的工具；模型工具表在下一步请求里看到它们。
+    async fn mcp_ui_register_app_tools(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiRegisterAppToolsRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpUiAppToolRegistration>, KernelError> {
+        let session = request.instance.scope.session.clone();
+        if self.settled(&session).await.is_none() {
+            return Err(KernelError::NotFound { session });
+        }
+        self.ext
+            .mcp_ui_register_app_tools(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiUnregisterAppTools`：收回实例的工具。会话已经关闭时按幂等处理（`removed: 0`）。
+    async fn mcp_ui_unregister_app_tools(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiUnregisterAppToolsRequest,
+    ) -> Result<usize, KernelError> {
+        let session = request.instance.scope.session.clone();
+        if self.settled(&session).await.is_none() {
+            return Ok(0);
+        }
+        self.ext
+            .mcp_ui_unregister_app_tools(request)
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiClaimAppToolCall`：渲染端认领待执行调用。
+    async fn mcp_ui_claim_app_tool_call(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiClaimAppToolCallRequest,
+    ) -> Result<bool, KernelError> {
+        let session = request.instance.scope.session.clone();
+        if self.settled(&session).await.is_none() {
+            return Err(KernelError::NotFound { session });
+        }
+        self.ext
+            .mcp_ui_claim_app_tool_call(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiResolveAppToolCall`：页面回传执行结果或错误。
+    async fn mcp_ui_resolve_app_tool_call(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiResolveAppToolCallRequest,
+    ) -> Result<bool, KernelError> {
+        let session = request.instance.scope.session.clone();
+        if self.settled(&session).await.is_none() {
+            return Err(KernelError::NotFound { session });
+        }
+        self.ext
+            .mcp_ui_resolve_app_tool_call(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
     /// NIBI `createSession.mcpServers`：会话级的 MCP 服务器（连接在后台建立，不等结果）。
     async fn start_session_mcp(
         &self,

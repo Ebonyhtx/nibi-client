@@ -428,6 +428,18 @@ impl Server {
             "mcp/uiCancelCall" => crate::mcp_rpc::cancel_call(self, &params)
                 .await
                 .map(Reply::new),
+            "mcp/uiRegisterAppTools" => crate::mcp_rpc::register_app_tools(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiUnregisterAppTools" => crate::mcp_rpc::unregister_app_tools(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiClaimAppToolCall" => crate::mcp_rpc::claim_app_tool_call(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiResolveAppToolCall" => crate::mcp_rpc::resolve_app_tool_call(self, &params)
+                .await
+                .map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

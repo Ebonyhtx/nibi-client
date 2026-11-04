@@ -23,6 +23,62 @@ pub const UI_RESOURCE_SCHEME: &str = "ui://";
 /// 页面发起的 `resources/read` 单次结果总大小上限（Node `MCP_APPS_UI_READ_RESOURCE_MAX_BYTES`）。
 pub const UI_READ_MAX_BYTES: usize = 8 * 1024 * 1024;
 
+/// App-Provided Tools 的限额与命名（Node `@zcode/shared/mcp-apps`）。
+pub const APP_TOOLS_MAX_PER_INSTANCE: usize = 50;
+pub const APP_TOOL_NAME_MAX_CHARS: usize = 128;
+pub const APP_TOOL_TITLE_MAX_CHARS: usize = 256;
+pub const APP_TOOL_DESCRIPTION_MAX_CHARS: usize = 4096;
+/// `inputSchema` / `outputSchema` 序列化后的上限（UTF-8 字节）。
+pub const APP_TOOL_SCHEMA_MAX_BYTES: usize = 64 * 1024;
+/// 模型调用参数进信箱前的上限；超限直接以错误结束，不下发。
+pub const APP_TOOL_ARGUMENTS_MAX_BYTES: usize = 1024 * 1024;
+/// 渲染端认领待执行调用的期限；超时视为页面未运行。
+pub const APP_TOOL_CLAIM_TIMEOUT_MS: u64 = 5_000;
+/// 认领后页面执行 `tools/call` 的期限。
+pub const APP_TOOL_CALL_TIMEOUT_MS: u64 = 30_000;
+/// 单次结果序列化上限。
+pub const APP_TOOL_RESULT_MAX_BYTES: usize = 10 * 1024 * 1024;
+pub const APP_TOOL_ERROR_MESSAGE_MAX_CHARS: usize = 4096;
+pub const APP_TOOL_CALL_ID_MAX_CHARS: usize = 128;
+/// 模型侧名字前缀（与 MCP 工具的 `mcp__` 不冲突）。
+pub const APP_TOOL_MODEL_NAME_PREFIX: &str = "app__";
+
+/// 模型侧名字的一段：非 `[A-Za-z0-9_-]` 换成 `_` 并合并连续下划线（Node
+/// `sanitizeMcpAppsModelNamePart`）。
+pub fn sanitize_app_tool_model_part(name: &str) -> String {
+    let mut out = String::with_capacity(name.len());
+    let mut last_underscore = false;
+    for character in name.chars() {
+        let keep = character.is_ascii_alphanumeric() || character == '_' || character == '-';
+        if keep {
+            out.push(character);
+            last_underscore = false;
+        } else if !last_underscore {
+            out.push('_');
+            last_underscore = true;
+        }
+    }
+    if out.is_empty() {
+        "unknown".to_owned()
+    } else {
+        out
+    }
+}
+
+/// 模型侧名字 `app__<server>__<tool>`（Node `buildMcpAppsAppToolModelName`）。
+pub fn app_tool_model_name(server: &str, tool: &str) -> String {
+    format!(
+        "{APP_TOOL_MODEL_NAME_PREFIX}{}__{}",
+        sanitize_app_tool_model_part(server),
+        sanitize_app_tool_model_part(tool)
+    )
+}
+
+/// JSON 序列化后的字节数（Node 的 `jsonBytes`；序列化失败按无穷大算）。
+pub fn json_bytes(value: &Value) -> usize {
+    serde_json::to_vec(value).map_or(usize::MAX, |bytes| bytes.len())
+}
+
 /// 页面读取的 MIME 白名单（`/` 结尾是前缀匹配，其余精确匹配；参数与大小写忽略）。
 pub const UI_READ_MIME_ALLOWLIST: &[&str] = &[
     "text/",
@@ -206,6 +262,85 @@ pub struct McpUiCallToolRequest {
 pub struct McpUiCancelCallRequest {
     pub instance: McpUiInstanceRequest,
     pub call_id: String,
+}
+
+/// App 提供的工具声明里的 annotations（Node `mcpAppsAppToolAnnotationsSchema`）。
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpUiAppToolAnnotations {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_only_hint: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destructive_hint: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotent_hint: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_world_hint: Option<bool>,
+}
+
+/// 页面登记的一个工具（Node `mcpAppsAppToolDescriptorSchema`）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct McpUiAppToolDescriptor {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// 必须是 `type: "object"` 的 JSON Schema（协议层校验）。
+    pub input_schema: Value,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_schema: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub annotations: Option<McpUiAppToolAnnotations>,
+}
+
+/// `mcp/uiRegisterAppTools`：页面把它的工具登记给模型（整体替换这个实例的集合）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct McpUiRegisterAppToolsRequest {
+    pub instance: McpUiInstanceRequest,
+    /// 沙箱作用域（必须等于实例 token）。
+    pub scope_id: String,
+    /// 实例代际。
+    pub generation: u64,
+    pub tools: Vec<McpUiAppToolDescriptor>,
+}
+
+/// `mcp/uiRegisterAppTools` 的一条回执：页面里的名字与模型侧名字。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpUiAppToolRegistration {
+    pub name: String,
+    pub model_name: String,
+}
+
+/// `mcp/uiUnregisterAppTools`：页面卸载时收回它的工具。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiUnregisterAppToolsRequest {
+    pub instance: McpUiInstanceRequest,
+    pub scope_id: String,
+    pub generation: u64,
+}
+
+/// `mcp/uiClaimAppToolCall`：渲染端认领一次待执行的 AppTool 调用。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiClaimAppToolCallRequest {
+    pub instance: McpUiInstanceRequest,
+    pub scope_id: String,
+    pub generation: u64,
+    pub call_id: String,
+}
+
+/// `mcp/uiResolveAppToolCall`：页面执行完，回传结果或错误（二者恰有一个）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct McpUiResolveAppToolCallRequest {
+    pub instance: McpUiInstanceRequest,
+    pub scope_id: String,
+    pub generation: u64,
+    pub call_id: String,
+    pub result: Option<Value>,
+    pub error: Option<String>,
 }
 
 /// 一条已连接的 MCP 服务器的身份快照（Node `appConnectionSnapshot`）。
@@ -446,6 +581,18 @@ pub enum McpUiEvent {
         plugin_id: String,
         server: String,
         subscribers: Vec<McpUiSubscriber>,
+    },
+    /// 实例信箱：一次待执行的 AppTool 调用（只投给 `subscribers` 里那一个实例）。
+    /// `cancelled` 为真时是收尾通知（参数为空、页面只需清理）。
+    AppToolCall {
+        session: SessionId,
+        plugin_id: String,
+        server: String,
+        subscribers: Vec<McpUiSubscriber>,
+        call_id: String,
+        tool_name: String,
+        arguments: Map<String, Value>,
+        cancelled: bool,
     },
 }
 

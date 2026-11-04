@@ -2,6 +2,7 @@
 //! resources。传输经 kernel-api 的 `McpTransport`（本地实现在 env-local）。
 
 mod app_instances;
+mod app_tools;
 mod config;
 mod connection;
 mod manager;
@@ -20,6 +21,7 @@ mod wait_tool;
 
 pub use app_instances::CallGuard;
 pub(crate) use app_instances::McpAppInstances;
+pub(crate) use app_tools::AppToolRegistry;
 pub use config::{
     McpScope, McpServer, McpServerOptions, McpServers, McpSettings, normalize_name, tool_name,
 };

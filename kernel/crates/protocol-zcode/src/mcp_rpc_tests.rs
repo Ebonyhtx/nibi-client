@@ -14,9 +14,10 @@ use rust_cli_kernel_api::mcp_status::{
 };
 use rust_cli_kernel_api::mcp_ui::{
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
-    McpResourceTemplate, McpResourceTemplatePage, McpUiCallToolRequest, McpUiCancelCallRequest,
-    McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest, McpUiReadRequest,
-    McpUiSubscriptionRequest, tool_not_found_message,
+    McpResourceTemplate, McpResourceTemplatePage, McpUiAppToolRegistration, McpUiCallToolRequest,
+    McpUiCancelCallRequest, McpUiClaimAppToolCallRequest, McpUiInstanceRequest, McpUiListRequest,
+    McpUiOpenRequest, McpUiReadRequest, McpUiRegisterAppToolsRequest, McpUiResolveAppToolCallRequest,
+    McpUiSubscriptionRequest, McpUiUnregisterAppToolsRequest, tool_not_found_message,
 };
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
@@ -50,6 +51,10 @@ struct FakeKernel {
     fail: Option<KernelError>,
     /// `mcp/uiCallTool` 的固定回答（原样的 `CallToolResult`）。
     call_result: Value,
+    /// App-Provided Tools 的固定回答。
+    registrations: Vec<McpUiAppToolRegistration>,
+    removed: usize,
+    accepted: bool,
 }
 
 /// 记录到的 MCP Apps 调用（断言协议层的参数映射）。
@@ -66,6 +71,10 @@ enum UiCall {
     Unsubscribe(McpUiSubscriptionRequest),
     Call(McpUiCallToolRequest),
     CancelCall(McpUiCancelCallRequest),
+    RegisterTools(McpUiRegisterAppToolsRequest),
+    UnregisterTools(McpUiUnregisterAppToolsRequest),
+    ClaimAppTool(McpUiClaimAppToolCallRequest),
+    ResolveAppTool(McpUiResolveAppToolCallRequest),
 }
 
 impl FakeKernel {
@@ -191,6 +200,38 @@ impl Kernel for FakeKernel {
     ) -> Result<bool, KernelError> {
         self.record(UiCall::CancelCall(request))?;
         Ok(true)
+    }
+
+    async fn mcp_ui_register_app_tools(
+        &self,
+        request: McpUiRegisterAppToolsRequest,
+    ) -> Result<Vec<McpUiAppToolRegistration>, KernelError> {
+        self.record(UiCall::RegisterTools(request))?;
+        Ok(self.registrations.clone())
+    }
+
+    async fn mcp_ui_unregister_app_tools(
+        &self,
+        request: McpUiUnregisterAppToolsRequest,
+    ) -> Result<usize, KernelError> {
+        self.record(UiCall::UnregisterTools(request))?;
+        Ok(self.removed)
+    }
+
+    async fn mcp_ui_claim_app_tool_call(
+        &self,
+        request: McpUiClaimAppToolCallRequest,
+    ) -> Result<bool, KernelError> {
+        self.record(UiCall::ClaimAppTool(request))?;
+        Ok(self.accepted)
+    }
+
+    async fn mcp_ui_resolve_app_tool_call(
+        &self,
+        request: McpUiResolveAppToolCallRequest,
+    ) -> Result<bool, KernelError> {
+        self.record(UiCall::ResolveAppTool(request))?;
+        Ok(self.accepted)
     }
 }
 
@@ -922,4 +963,147 @@ async fn cancelling_a_call_returns_the_host_shape() {
     };
     assert_eq!(request.call_id, "call-1");
     assert_eq!(request.instance.scope.session.as_str(), "s1");
+}
+
+// ———— App-Provided Tools（mcp/ui*AppTools*）————
+
+fn app_tool_params() -> Value {
+    let mut params = with_instance(scope_json());
+    params["scopeId"] = json!("token-1");
+    params["generation"] = json!(2);
+    params
+}
+
+/// `mcp/uiRegisterAppTools`：工具描述符逐项落到内核请求，回执是 `{tools:[{name,modelName}]}`。
+#[tokio::test]
+async fn registering_app_tools_maps_descriptors_and_returns_model_names() {
+    let kernel = FakeKernel {
+        registrations: vec![McpUiAppToolRegistration {
+            name: "echo".to_owned(),
+            model_name: "app__plugin_toolkit_panel__echo".to_owned(),
+        }],
+        ..FakeKernel::default()
+    };
+    let (server, ui) = fake_ui(kernel);
+    let mut params = app_tool_params();
+    params["tools"] = json!([{
+        "name": "echo",
+        "title": "Echo",
+        "description": "echoes",
+        "inputSchema": {"type": "object", "properties": {"text": {"type": "string"}}},
+        "annotations": {"readOnlyHint": true, "openWorldHint": false},
+    }]);
+    let reply = call_method(server, "mcp/uiRegisterAppTools", params).await;
+    assert_eq!(
+        reply,
+        json!({"tools": [{"name": "echo", "modelName": "app__plugin_toolkit_panel__echo"}]})
+    );
+    let calls = ui.lock().unwrap();
+    let UiCall::RegisterTools(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.scope_id, "token-1");
+    assert_eq!(request.generation, 2);
+    assert_eq!(request.instance.scope.session.as_str(), "s1");
+    assert_eq!(request.tools.len(), 1);
+    assert_eq!(request.tools[0].name, "echo");
+    assert_eq!(request.tools[0].title.as_deref(), Some("Echo"));
+    let annotations = request.tools[0].annotations.as_ref().expect("annotations");
+    assert_eq!(annotations.read_only_hint, Some(true));
+    assert_eq!(annotations.open_world_hint, Some(false));
+}
+
+/// 描述符按 Node 的 strict schema 校验：未知键、非对象 schema、超限数量与错误类型都是 -32602。
+#[tokio::test]
+async fn app_tool_descriptors_are_validated_like_zod() {
+    let (server, _ui) = fake_ui(FakeKernel::default());
+    let too_long = "x".repeat(129);
+    let too_many: Vec<Value> = (0..51)
+        .map(|index| json!({"name": format!("t{index}"), "inputSchema": {"type": "object"}}))
+        .collect();
+    let cases = [
+        json!([{"name": "a", "inputSchema": {"type": "object"}, "extra": 1}]),
+        json!([{"name": "a", "inputSchema": {"type": "array"}}]),
+        json!([{"name": too_long, "inputSchema": {"type": "object"}}]),
+        json!(too_many),
+        json!([{"name": "a", "inputSchema": {"type": "object"}, "annotations": {"readOnlyHint": "yes"}}]),
+        json!([{"name": "a", "inputSchema": {"type": "object"}, "annotations": {"extra": true}}]),
+        json!("not-an-array"),
+    ];
+    for (index, tools) in cases.into_iter().enumerate() {
+        let mut params = app_tool_params();
+        params["tools"] = tools;
+        let error = call_error_named(server.clone(), "mcp/uiRegisterAppTools", params).await;
+        assert_eq!(error.code, -32602, "case {index}: {error:?}");
+    }
+    // 未知的顶层键。
+    let mut params = app_tool_params();
+    params["tools"] = json!([]);
+    params["extra"] = json!(1);
+    let error = call_error_named(server, "mcp/uiRegisterAppTools", params).await;
+    assert_eq!(error.code, -32602, "{error:?}");
+}
+
+/// `mcp/uiUnregisterAppTools` / `mcp/uiClaimAppToolCall` / `mcp/uiResolveAppToolCall` 的形状。
+#[tokio::test]
+async fn app_tool_claim_and_resolve_round_trip() {
+    let kernel = FakeKernel {
+        removed: 2,
+        accepted: true,
+        ..FakeKernel::default()
+    };
+    let (server, ui) = fake_ui(kernel);
+    let reply = call_method(
+        server.clone(),
+        "mcp/uiUnregisterAppTools",
+        app_tool_params(),
+    )
+    .await;
+    assert_eq!(reply, json!({"removed": 2}));
+
+    let mut claim = app_tool_params();
+    claim["callId"] = json!("call-1");
+    let reply = call_method(server.clone(), "mcp/uiClaimAppToolCall", claim).await;
+    assert_eq!(reply, json!({"accepted": true}));
+
+    let mut resolve = app_tool_params();
+    resolve["callId"] = json!("call-1");
+    resolve["result"] = json!({"content": [{"type": "text", "text": "ok"}], "isError": false});
+    let reply = call_method(server.clone(), "mcp/uiResolveAppToolCall", resolve).await;
+    assert_eq!(reply, json!({"accepted": true}));
+
+    let calls = ui.lock().unwrap();
+    assert!(matches!(&calls[0], UiCall::UnregisterTools(_)));
+    let UiCall::ClaimAppTool(claim) = &calls[1] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(claim.call_id, "call-1");
+    let UiCall::ResolveAppTool(resolve) = &calls[2] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(resolve.call_id, "call-1");
+    assert_eq!(
+        resolve.result.as_ref().unwrap()["content"][0]["text"],
+        json!("ok")
+    );
+    assert!(resolve.error.is_none());
+}
+
+/// `resolve` 必须恰好给 `result` 或 `error` 之一；`error` 是 `{message}`。
+#[tokio::test]
+async fn resolving_requires_exactly_one_outcome() {
+    let (server, _ui) = fake_ui(FakeKernel::default());
+    let mut both = app_tool_params();
+    both["callId"] = json!("call-1");
+    both["result"] = json!({"content": []});
+    both["error"] = json!({"message": "nope"});
+    let mut neither = app_tool_params();
+    neither["callId"] = json!("call-1");
+    let mut bad_error = app_tool_params();
+    bad_error["callId"] = json!("call-1");
+    bad_error["error"] = json!({"message": "x", "extra": 1});
+    for params in [both, neither, bad_error] {
+        let error = call_error_named(server.clone(), "mcp/uiResolveAppToolCall", params).await;
+        assert_eq!(error.code, -32602, "{error:?}");
+    }
 }

@@ -1217,6 +1217,47 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// `mcp/uiRegisterAppTools`（App-Provided Tools）：页面把它的工具登记给模型，返回曝光部分的
+    /// 页面名与模型名。缺省 `Unsupported`。
+    async fn mcp_ui_register_app_tools(
+        &self,
+        _request: crate::mcp_ui::McpUiRegisterAppToolsRequest,
+    ) -> Result<Vec<crate::mcp_ui::McpUiAppToolRegistration>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app tools".to_owned(),
+        })
+    }
+
+    /// `mcp/uiUnregisterAppTools`：收回实例的工具，返回它登记时声明的工具数。
+    async fn mcp_ui_unregister_app_tools(
+        &self,
+        _request: crate::mcp_ui::McpUiUnregisterAppToolsRequest,
+    ) -> Result<usize, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app tools".to_owned(),
+        })
+    }
+
+    /// `mcp/uiClaimAppToolCall`：渲染端认领一次待执行的 AppTool 调用。
+    async fn mcp_ui_claim_app_tool_call(
+        &self,
+        _request: crate::mcp_ui::McpUiClaimAppToolCallRequest,
+    ) -> Result<bool, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app tools".to_owned(),
+        })
+    }
+
+    /// `mcp/uiResolveAppToolCall`：页面回传执行结果或错误（二者恰有一个）。
+    async fn mcp_ui_resolve_app_tool_call(
+        &self,
+        _request: crate::mcp_ui::McpUiResolveAppToolCallRequest,
+    ) -> Result<bool, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "MCP app tools".to_owned(),
+        })
+    }
+
     /// 仍在运行的 MCP 子进程（`process/childProcesses`，141 审计 §9 F3）：pid 与归属，不含采样值。
     /// 桌面按 pid 把整机进程表归到插件；缺省为空（没有 MCP 能力的实现）。
     async fn mcp_child_processes(&self) -> Vec<crate::mcp_state::McpChildProcess> {

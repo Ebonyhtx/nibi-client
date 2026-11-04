@@ -77,6 +77,30 @@ fn split(event: McpUiEvent) -> (rust_cli_kernel_api::ids::SessionId, Value) {
                 "subscribers": subscribers.iter().map(subscriber).collect::<Vec<_>>(),
             }),
         ),
+        McpUiEvent::AppToolCall {
+            session,
+            plugin_id,
+            server,
+            subscribers,
+            call_id,
+            tool_name,
+            arguments,
+            cancelled,
+        } => {
+            let mut delta = json!({
+                "op": "pluginUi.appToolCall",
+                "pluginId": plugin_id,
+                "serverName": server,
+                "subscribers": subscribers.iter().map(subscriber).collect::<Vec<_>>(),
+                "callId": call_id,
+                "toolName": tool_name,
+                "arguments": arguments,
+            });
+            if cancelled {
+                delta["cancelled"] = json!(true);
+            }
+            (session, delta)
+        }
     }
 }
 

@@ -104,6 +104,8 @@ pub struct Ext {
     status_mcp: Arc<mcp::McpStatusRegistry>,
     /// MCP Apps 的实例凭证（`mcp/ui*`）：进程级一本账，按 token 查。
     app_instances: Arc<mcp::McpAppInstances>,
+    /// App-Provided Tools 的登记表（按会话）：模型工具表与实例信箱共用这一份。
+    app_tools: Arc<mcp::AppToolRegistry>,
     registry: Arc<ExtRegistry>,
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
@@ -164,12 +166,18 @@ impl Ext {
             ports.clock.clone(),
             telemetry,
         ));
+        // App-Provided Tools 的登记表（`app__<server>__<tool>`）：按会话记实例、待执行调用与模型工具表。
+        let app_tools = Arc::new(mcp::AppToolRegistry::new(
+            ports.ids.clone(),
+            ports.mcp_ui_events.clone(),
+        ));
         let registry = Arc::new(ExtRegistry {
             base,
             skill: skill_tool,
             wait: Arc::new(mcp::WaitForMcpServers::new(Arc::downgrade(&mcp))),
             mcp: mcp.clone(),
             sessions: session_mcp.clone(),
+            app_tools: app_tools.clone(),
         });
         // MCP Apps 的凭证账本：进程级一个实例标识（Node 每个 agent 进程一个 `McpUiInstances`）。
         let app_instances = Arc::new(mcp::McpAppInstances::new(
@@ -204,6 +212,7 @@ impl Ext {
             session_mcp,
             status_mcp,
             app_instances,
+            app_tools,
             registry,
             files: ports.files,
             config,
@@ -504,6 +513,74 @@ impl Ext {
         ))
     }
 
+    /// `mcp/uiRegisterAppTools`：登记一个页面实例的工具（同作用域的新代际替换旧代际），返回曝光部分。
+    pub async fn mcp_ui_register_app_tools(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiRegisterAppToolsRequest,
+    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpUiAppToolRegistration>, McpUiError> {
+        self.check_instance(&request.instance).await?;
+        check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
+        let session = request.instance.scope.session.clone();
+        Ok(self.app_tools.register(&session, request))
+    }
+
+    /// `mcp/uiUnregisterAppTools`：收回实例的工具（页面卸载时的尽力收尾）。
+    pub fn mcp_ui_unregister_app_tools(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiUnregisterAppToolsRequest,
+    ) -> Result<usize, McpUiError> {
+        check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
+        Ok(self.app_tools.unregister(
+            &request.instance.scope.session,
+            &request.scope_id,
+            request.generation,
+        ))
+    }
+
+    /// `mcp/uiClaimAppToolCall`：渲染端认领一次待执行调用。
+    pub async fn mcp_ui_claim_app_tool_call(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiClaimAppToolCallRequest,
+    ) -> Result<bool, McpUiError> {
+        self.check_instance(&request.instance).await?;
+        check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
+        Ok(self.app_tools.claim(
+            &request.instance.scope.session,
+            &request.scope_id,
+            request.generation,
+            &request.call_id,
+        ))
+    }
+
+    /// `mcp/uiResolveAppToolCall`：页面执行完回传结果或错误。
+    pub async fn mcp_ui_resolve_app_tool_call(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiResolveAppToolCallRequest,
+    ) -> Result<bool, McpUiError> {
+        self.check_instance(&request.instance).await?;
+        check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
+        let outcome = match (request.result, request.error) {
+            (Some(result), None) => Ok(result),
+            (None, Some(error)) => Err(if error.is_empty() {
+                "App tool failed".to_owned()
+            } else {
+                error
+            }),
+            _ => {
+                return Err(McpUiError::failed(
+                    "exactly one of result or error is required",
+                ));
+            }
+        };
+        Ok(self.app_tools.resolve(
+            &request.instance.scope.session,
+            &request.scope_id,
+            request.generation,
+            &request.call_id,
+            outcome,
+        ))
+    }
+
     /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。
     /// 这个会话的工具表从此就是这批服务器（与 Node 的 runtimeConfig.mcp 同语义）。
     pub fn start_session_mcp(
@@ -519,6 +596,8 @@ impl Ext {
     pub fn release_session(&self, session: &SessionId) {
         self.session_mcp.stop(session);
         self.app_instances.close_session(session.as_str());
+        // App-Provided Tools 的登记与待执行调用随会话结束（Node `clearMcpUiAppToolsForSession`）。
+        self.app_tools.clear_session(session);
     }
 
     /// 加载插件、开始连接 MCP 服务器（每个服务器一个连接任务，不等待）。返回加载好的插件：其中的
@@ -558,6 +637,18 @@ impl Ext {
 
 /// 订阅键 = 会话 | 沙箱作用域 | 代际（Node `buildMcpUiSubscriberKey`）；作用域必须是实例的 token，
 /// 代际必须是凭证的代际——两者都对上才允许订阅/退订（Node 的 "Invalid MCP App subscription binding"）。
+/// App-Provided Tools 的绑定：沙箱作用域必须等于实例 token，代际必须等于凭证的代际。
+fn check_app_tool_binding(
+    request: &McpUiInstanceRequest,
+    scope_id: &str,
+    generation: u64,
+) -> Result<(), McpUiError> {
+    if scope_id != request.instance.token || generation != request.instance.generation {
+        return Err(McpUiError::failed("Invalid MCP App binding"));
+    }
+    Ok(())
+}
+
 fn subscription_key(request: &McpUiSubscriptionRequest) -> Result<String, McpUiError> {
     let instance = &request.instance.instance;
     if request.scope_id != instance.token || request.generation != instance.generation {
@@ -582,6 +673,8 @@ struct ExtRegistry {
     mcp: Arc<McpManager>,
     /// 会话级的 MCP（NIBI `createSession.mcpServers`）。
     sessions: Arc<SessionMcp>,
+    /// App-Provided Tools（`app__<server>__<tool>`）：只按会话进模型工具表。
+    app_tools: Arc<mcp::AppToolRegistry>,
 }
 
 impl ExtRegistry {
@@ -598,6 +691,23 @@ impl ExtRegistry {
     /// 会话自己的 WaitForMcpServers：连接状态与 declared 都在这个会话的 manager 里。
     fn session_wait(manager: &Arc<McpManager>) -> Arc<dyn Tool> {
         Arc::new(mcp::WaitForMcpServers::new(Arc::downgrade(manager)))
+    }
+
+    /// 把会话的 App-Provided Tools 接到工具表末尾：模型侧名字与已有工具冲突时以已有工具为准
+    /// （Node 注册时的 `silentDuplicateWarning` 同一条）。
+    fn with_app_tools(
+        &self,
+        session: &SessionId,
+        mut tools: Vec<Arc<dyn Tool>>,
+    ) -> Vec<Arc<dyn Tool>> {
+        let mut names: std::collections::BTreeSet<String> =
+            tools.iter().map(|tool| tool.name().to_owned()).collect();
+        for tool in self.app_tools.tools_for(session) {
+            if names.insert(tool.name().to_owned()) {
+                tools.push(tool);
+            }
+        }
+        tools
     }
 }
 
@@ -618,20 +728,22 @@ impl ToolRegistry for ExtRegistry {
         self.base.find(name).or_else(|| self.mcp.find(name))
     }
 
-    /// 会话带了自己的 MCP 服务器时，工具只在自己会话里可见（Node 的 lease 模型）。
+    /// 会话带了自己的 MCP 服务器时，工具只在自己会话里可见（Node 的 lease 模型）；App 工具的
+    /// 模型侧名字只在登记它的会话里找得到。
     fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
-        let Some(manager) = self.sessions.manager(session) else {
-            return self.find(name);
+        let found = match self.sessions.manager(session) {
+            None => self.find(name),
+            Some(manager) => {
+                if name == self.skill.name() {
+                    Some(self.skill.clone())
+                } else if name == WAIT_FOR_MCP_SERVERS && manager.has_servers() {
+                    Some(Self::session_wait(&manager))
+                } else {
+                    self.base.find(name).or_else(|| manager.find(name))
+                }
+            }
         };
-        if name == self.skill.name() {
-            return Some(self.skill.clone());
-        }
-        if name == WAIT_FOR_MCP_SERVERS && manager.has_servers() {
-            return Some(Self::session_wait(&manager));
-        }
-        self.base
-            .find(name)
-            .or_else(|| manager.find(name))
+        found.or_else(|| self.app_tools.find(session, name))
     }
 
     fn withheld(&self, name: &str) -> Option<Arc<dyn Tool>> {
@@ -646,14 +758,17 @@ impl ToolRegistry for ExtRegistry {
                 (!view.pending().is_empty() || manager.declared(session))
                     .then(|| Self::session_wait(&manager));
             return ToolSnapshot {
-                tools: self.assemble(wait, tools),
+                tools: self.with_app_tools(session, self.assemble(wait, tools)),
                 mcp: Some(view),
             };
         }
         let (tools, view) = self.mcp.snapshot();
         let wait = !view.pending().is_empty() || self.mcp.declared(session);
         ToolSnapshot {
-            tools: self.assemble(wait.then(|| self.wait.clone()), tools),
+            tools: self.with_app_tools(
+                session,
+                self.assemble(wait.then(|| self.wait.clone()), tools),
+            ),
             mcp: Some(view),
         }
     }

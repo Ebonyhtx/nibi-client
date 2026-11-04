@@ -89,3 +89,44 @@ fn plugin_ui_events_become_live_deltas() {
         })
     );
 }
+
+/// AppTool 信箱：待执行调用带 callId/toolName/arguments；收尾通知带 `cancelled` 与空参数。
+#[test]
+fn app_tool_calls_become_mailbox_deltas() {
+    let arguments = json!({"text": "hi"});
+    let (_, delta) = split(McpUiEvent::AppToolCall {
+        session: SessionId::new("s1"),
+        plugin_id: "toolkit".to_owned(),
+        server: "plugin:toolkit:panel".to_owned(),
+        subscribers: subscribers(),
+        call_id: "call-1".to_owned(),
+        tool_name: "echo".to_owned(),
+        arguments: arguments.as_object().unwrap().clone(),
+        cancelled: false,
+    });
+    assert_eq!(
+        delta,
+        json!({
+            "op": "pluginUi.appToolCall",
+            "pluginId": "toolkit",
+            "serverName": "plugin:toolkit:panel",
+            "subscribers": [subscriber_json()],
+            "callId": "call-1",
+            "toolName": "echo",
+            "arguments": {"text": "hi"},
+        })
+    );
+
+    let (_, delta) = split(McpUiEvent::AppToolCall {
+        session: SessionId::new("s1"),
+        plugin_id: "toolkit".to_owned(),
+        server: "plugin:toolkit:panel".to_owned(),
+        subscribers: subscribers(),
+        call_id: "call-1".to_owned(),
+        tool_name: "echo".to_owned(),
+        arguments: serde_json::Map::new(),
+        cancelled: true,
+    });
+    assert_eq!(delta["cancelled"], json!(true));
+    assert_eq!(delta["arguments"], json!({}));
+}

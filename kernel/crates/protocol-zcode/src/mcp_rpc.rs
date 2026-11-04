@@ -19,10 +19,14 @@ use rust_cli_kernel_api::ids::SessionId;
 use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
 use rust_cli_kernel_api::mcp_ui::{
-    McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourceTemplate,
-    McpUiCallToolRequest, McpUiCancelCallRequest, McpUiInstanceRequest, McpUiListRequest,
-    McpUiOpenRequest, McpUiReadRequest, McpUiScope, McpUiSubscriptionRequest, UI_READ_MAX_BYTES,
-    decoded_base64_len, mime_allowed_for_ui, tool_not_app_visible_message, tool_not_found_message,
+    APP_TOOL_DESCRIPTION_MAX_CHARS, APP_TOOL_ERROR_MESSAGE_MAX_CHARS, APP_TOOL_NAME_MAX_CHARS,
+    APP_TOOL_SCHEMA_MAX_BYTES, APP_TOOL_TITLE_MAX_CHARS, APP_TOOLS_MAX_PER_INSTANCE, McpAppInstance,
+    McpResourceContent, McpResourceDescriptor, McpResourceTemplate, McpUiAppToolAnnotations,
+    McpUiAppToolDescriptor, McpUiCallToolRequest, McpUiCancelCallRequest,
+    McpUiClaimAppToolCallRequest, McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest,
+    McpUiReadRequest, McpUiRegisterAppToolsRequest, McpUiResolveAppToolCallRequest, McpUiScope,
+    McpUiSubscriptionRequest, McpUiUnregisterAppToolsRequest, UI_READ_MAX_BYTES, decoded_base64_len,
+    json_bytes, mime_allowed_for_ui, tool_not_app_visible_message, tool_not_found_message,
 };
 use rust_cli_kernel_api::session_api::KernelError;
 use rust_cli_protocol_core::rpc::RpcError;
@@ -505,6 +509,301 @@ fn ui_call_error(error: &KernelError, request: &McpUiCallToolRequest) -> RpcErro
         "serverName": server,
         "toolName": tool,
     }))
+}
+
+/// `mcp/uiRegisterAppTools`：页面把它的工具登记给模型（这个实例的集合整体替换）。
+pub(crate) async fn register_app_tools(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "generation",
+            "tools",
+        ],
+        "mcp/uiRegisterAppTools params",
+    )?;
+    let (instance, scope_id, generation) = app_tool_instance(params, server)?;
+    let tools = app_tool_descriptors(params.get("tools"))?;
+    let registered = server
+        .kernel
+        .mcp_ui_register_app_tools(McpUiRegisterAppToolsRequest {
+            instance,
+            scope_id,
+            generation,
+            tools,
+        })
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"tools": registered}))
+}
+
+/// `mcp/uiUnregisterAppTools`：页面卸载时收回它的工具（会话已关闭时幂等回 0）。
+pub(crate) async fn unregister_app_tools(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "generation",
+        ],
+        "mcp/uiUnregisterAppTools params",
+    )?;
+    let (instance, scope_id, generation) = app_tool_instance(params, server)?;
+    let removed = server
+        .kernel
+        .mcp_ui_unregister_app_tools(McpUiUnregisterAppToolsRequest {
+            instance,
+            scope_id,
+            generation,
+        })
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"removed": removed}))
+}
+
+/// `mcp/uiClaimAppToolCall`：渲染端认领一次待执行的 AppTool 调用。
+pub(crate) async fn claim_app_tool_call(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "generation",
+            "callId",
+        ],
+        "mcp/uiClaimAppToolCall params",
+    )?;
+    let (instance, scope_id, generation) = app_tool_instance(params, server)?;
+    let call_id = bounded_string(params, "callId", 128)?;
+    let accepted = server
+        .kernel
+        .mcp_ui_claim_app_tool_call(McpUiClaimAppToolCallRequest {
+            instance,
+            scope_id,
+            generation,
+            call_id,
+        })
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"accepted": accepted}))
+}
+
+/// `mcp/uiResolveAppToolCall`：页面执行完回传结果或错误（二者恰有一个）。
+pub(crate) async fn resolve_app_tool_call(
+    server: &Server,
+    params: &Value,
+) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "scopeId",
+            "generation",
+            "callId",
+            "result",
+            "error",
+        ],
+        "mcp/uiResolveAppToolCall params",
+    )?;
+    let (instance, scope_id, generation) = app_tool_instance(params, server)?;
+    let call_id = bounded_string(params, "callId", 128)?;
+    let result = match params.get("result") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(call_tool_result(value.clone())?),
+    };
+    let error = match params.get("error") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(app_tool_error(value)?),
+    };
+    if result.is_some() == error.is_some() {
+        return Err(invalid("exactly one of `result` or `error` is required"));
+    }
+    let accepted = server
+        .kernel
+        .mcp_ui_resolve_app_tool_call(McpUiResolveAppToolCallRequest {
+            instance,
+            scope_id,
+            generation,
+            call_id,
+            result,
+            error,
+        })
+        .await
+        .map_err(|error| ui_error(&error))?;
+    Ok(json!({"accepted": accepted}))
+}
+
+/// App 工具的实例身份：作用域与代际（Node `zcodeMcpUiAppToolInstanceShape`）。
+fn app_tool_instance(
+    params: &Map<String, Value>,
+    server: &Server,
+) -> Result<(McpUiInstanceRequest, String, u64), RpcError> {
+    let instance = instance_request(params, server)?;
+    let scope_id = bounded_string(params, "scopeId", 256)?;
+    let generation = params
+        .get("generation")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| invalid("`generation` must be a non-negative integer"))?;
+    Ok((instance, scope_id, generation))
+}
+
+/// 页面登记的工具清单（Node `mcpAppsAppToolDescriptorSchema`，最多 50 个）。
+fn app_tool_descriptors(value: Option<&Value>) -> Result<Vec<McpUiAppToolDescriptor>, RpcError> {
+    let list = value
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("`tools` must be an array"))?;
+    if list.len() > APP_TOOLS_MAX_PER_INSTANCE {
+        return Err(invalid(format!(
+            "`tools` must contain at most {APP_TOOLS_MAX_PER_INSTANCE} items"
+        )));
+    }
+    list.iter().map(app_tool_descriptor).collect()
+}
+
+fn app_tool_descriptor(value: &Value) -> Result<McpUiAppToolDescriptor, RpcError> {
+    let value = value
+        .as_object()
+        .ok_or_else(|| invalid("each tool must be an object"))?;
+    strict_keys(
+        value,
+        &[
+            "name",
+            "title",
+            "description",
+            "inputSchema",
+            "outputSchema",
+            "annotations",
+        ],
+        "app tool",
+    )?;
+    let name = required_string(value, "name")?;
+    if name.chars().count() > APP_TOOL_NAME_MAX_CHARS {
+        return Err(invalid(format!(
+            "tool `name` must be at most {APP_TOOL_NAME_MAX_CHARS} characters"
+        )));
+    }
+    Ok(McpUiAppToolDescriptor {
+        name,
+        title: optional_text(value, "title", APP_TOOL_TITLE_MAX_CHARS)?,
+        description: optional_text(value, "description", APP_TOOL_DESCRIPTION_MAX_CHARS)?,
+        input_schema: schema_param(value.get("inputSchema"), "inputSchema")?,
+        output_schema: match value.get("outputSchema") {
+            None | Some(Value::Null) => None,
+            Some(schema) => Some(schema_param(Some(schema), "outputSchema")?),
+        },
+        annotations: match value.get("annotations") {
+            None | Some(Value::Null) => None,
+            Some(annotations) => Some(app_tool_annotations(annotations)?),
+        },
+    })
+}
+
+fn app_tool_annotations(value: &Value) -> Result<McpUiAppToolAnnotations, RpcError> {
+    let value = value
+        .as_object()
+        .ok_or_else(|| invalid("`annotations` must be an object"))?;
+    strict_keys(
+        value,
+        &[
+            "title",
+            "readOnlyHint",
+            "destructiveHint",
+            "idempotentHint",
+            "openWorldHint",
+        ],
+        "app tool annotations",
+    )?;
+    let boolean = |key: &str| -> Result<Option<bool>, RpcError> {
+        match value.get(key) {
+            None | Some(Value::Null) => Ok(None),
+            Some(flag) => flag
+                .as_bool()
+                .map(Some)
+                .ok_or_else(|| invalid(format!("`annotations.{key}` must be a boolean"))),
+        }
+    };
+    Ok(McpUiAppToolAnnotations {
+        title: optional_text(value, "title", APP_TOOL_TITLE_MAX_CHARS)?,
+        read_only_hint: boolean("readOnlyHint")?,
+        destructive_hint: boolean("destructiveHint")?,
+        idempotent_hint: boolean("idempotentHint")?,
+        open_world_hint: boolean("openWorldHint")?,
+    })
+}
+
+/// 工具的 schema：必须是对象且 `type: "object"`，序列化后 ≤64 KiB（Node `objectSchemaSchema`）。
+fn schema_param(value: Option<&Value>, key: &str) -> Result<Value, RpcError> {
+    let value = value.ok_or_else(|| invalid(format!("`{key}` is required")))?;
+    let Some(object) = value.as_object() else {
+        return Err(invalid(format!("`{key}` must be an object")));
+    };
+    if object.get("type").and_then(Value::as_str) != Some("object") {
+        return Err(invalid(format!("`{key}` schema type must be object")));
+    }
+    if json_bytes(value) > APP_TOOL_SCHEMA_MAX_BYTES {
+        return Err(invalid(format!("`{key}` schema is too large")));
+    }
+    Ok(value.clone())
+}
+
+/// `resolve` 的错误分支：`{message}`，最长 4096（Node 的 strict error schema）。
+fn app_tool_error(value: &Value) -> Result<String, RpcError> {
+    let value = value
+        .as_object()
+        .ok_or_else(|| invalid("`error` must be an object"))?;
+    strict_keys(value, &["message"], "app tool error")?;
+    text(value.get("message"), "message", APP_TOOL_ERROR_MESSAGE_MAX_CHARS)
+}
+
+/// 可空的字符串字段：允许空串（Node 的 `.max()` 不限空），只限长度。
+fn optional_text(
+    params: &Map<String, Value>,
+    key: &str,
+    max: usize,
+) -> Result<Option<String>, RpcError> {
+    match params.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(value) => text(Some(value), key, max).map(Some),
+    }
+}
+
+fn text(value: Option<&Value>, key: &str, max: usize) -> Result<String, RpcError> {
+    let value = value
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid(format!("`{key}` must be a string")))?;
+    if value.chars().count() > max {
+        return Err(invalid(format!(
+            "`{key}` must be at most {max} characters"
+        )));
+    }
+    Ok(value.to_owned())
 }
 
 /// 页面请求的作用域：会话 + 会话自己的 MCP server 表（`pluginId` 只做展示与日志）。
