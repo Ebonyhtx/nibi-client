@@ -741,6 +741,38 @@ impl Kernel for LocalKernel {
             .map_err(mcp_ui_error)
     }
 
+    /// `mcp/uiSampling`：页面请求宿主模型采样一次（回合外的一次性模型请求）。
+    async fn mcp_ui_sampling(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiSamplingRequest,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpUiSamplingResult, KernelError> {
+        let session_id = request.instance.scope.session.clone();
+        let Some(session) = self.settled(&session_id).await else {
+            return Err(KernelError::NotFound { session: session_id });
+        };
+        // 采样用会话当前的模型选择（回合外请求不改变它）。
+        let selection = session.out_of_turn_selection().await?;
+        self.ext
+            .mcp_ui_sampling(request, Some(selection))
+            .await
+            .map_err(mcp_ui_error)
+    }
+
+    /// `mcp/uiCancelSampling`：取消进行中的采样；没有时 `false`（幂等）。
+    async fn mcp_ui_cancel_sampling(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
+    ) -> Result<bool, KernelError> {
+        let session = request.instance.scope.session.clone();
+        if self.settled(&session).await.is_none() {
+            return Err(KernelError::NotFound { session });
+        }
+        self.ext
+            .mcp_ui_cancel_sampling(request)
+            .await
+            .map_err(mcp_ui_error)
+    }
+
     /// NIBI `createSession.mcpServers`：会话级的 MCP 服务器（连接在后台建立，不等结果）。
     async fn start_session_mcp(
         &self,

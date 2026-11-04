@@ -22,6 +22,7 @@ mod late;
 mod listings;
 mod permissions;
 mod projects;
+mod sampling;
 mod shared_context;
 mod table;
 mod usage;
@@ -369,6 +370,12 @@ impl LocalKernel {
             rust_cli_tools::UserInputTools::new(base.as_ref(), gate.clone())
                 .with_bash_timeouts(defaults.limits.bash),
         );
+        // MCP Apps 采样：回合外的一次性模型请求用会话的缺省选择（页面不给模型选择）。
+        let sampling: Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort> =
+            Arc::new(sampling::KernelSampling::new(
+                ports.model.clone(),
+                defaults.selection.clone(),
+            ));
         let ext = Arc::new(Ext::new(
             ExtPorts {
                 info: machine.info().clone(),
@@ -382,6 +389,7 @@ impl LocalKernel {
                 clock: ports.clock.clone(),
                 mcp_telemetry: extensions.mcp_telemetry.clone(),
                 mcp_ui_events: extensions.mcp_ui.clone(),
+                sampling: Some(sampling),
             },
             base,
             extensions.config,

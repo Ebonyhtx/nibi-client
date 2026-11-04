@@ -76,6 +76,9 @@ pub struct ExtPorts {
     pub mcp_ui_events: Option<
         tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>,
     >,
+    /// 回合外的一次模型请求（MCP Apps 采样）：runtime 用会话当前的模型选择实现；None 时
+    /// `mcp/uiSampling` 如实报不支持（TUI、测试）。
+    pub sampling: Option<Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort>>,
 }
 
 /// 入口层给出的配置快照。
@@ -106,6 +109,9 @@ pub struct Ext {
     app_instances: Arc<mcp::McpAppInstances>,
     /// App-Provided Tools 的登记表（按会话）：模型工具表与实例信箱共用这一份。
     app_tools: Arc<mcp::AppToolRegistry>,
+    /// 采样的额度与终态账本；`sampling` 是模型请求的出口（runtime 注入）。
+    sampling_calls: Arc<mcp::SamplingCalls>,
+    sampling: Option<Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort>>,
     registry: Arc<ExtRegistry>,
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
@@ -183,11 +189,14 @@ impl Ext {
         let app_instances = Arc::new(mcp::McpAppInstances::new(
             rust_cli_kernel_api::process_table::uuid_v4(),
         ));
+        let sampling_calls = Arc::new(mcp::SamplingCalls::new());
         // 实例关闭 → `pluginUi.instanceClosed`（页面卸载）。凭证先移除、再取消令牌，这个回调在
-        // 取消之后触发，迟到的结果拿不回执行权。
+        // 取消之后触发，迟到的结果拿不回执行权；进行中的采样一并取消（Node 的实例作用域 signal）。
         if let Some(events) = ports.mcp_ui_events.clone() {
+            let sampling_calls = sampling_calls.clone();
             app_instances.set_on_closed(std::sync::Arc::new(move |binding, lease| {
                 use rust_cli_kernel_api::mcp_ui::{McpUiEvent, McpUiSubscriber};
+                sampling_calls.clear_instance(&lease.token);
                 let plugin_id = rust_cli_kernel_api::mcp_telemetry::plugin_name(
                     &binding.server,
                     binding.server.starts_with("plugin:"),
@@ -204,6 +213,11 @@ impl Ext {
                     }],
                 });
             }));
+        } else {
+            let sampling_calls = sampling_calls.clone();
+            app_instances.set_on_closed(std::sync::Arc::new(move |_binding, lease| {
+                sampling_calls.clear_instance(&lease.token);
+            }));
         }
         Self {
             skills,
@@ -213,6 +227,8 @@ impl Ext {
             status_mcp,
             app_instances,
             app_tools,
+            sampling_calls,
+            sampling: ports.sampling,
             registry,
             files: ports.files,
             config,
@@ -579,6 +595,56 @@ impl Ext {
             &request.call_id,
             outcome,
         ))
+    }
+
+    /// `mcp/uiSampling`：页面请求宿主模型采样一次（60 秒、并发与操作账本在 [`SamplingCalls`]）。
+    pub async fn mcp_ui_sampling(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiSamplingRequest,
+        selection: Option<rust_cli_kernel_api::model::ModelSelection>,
+    ) -> Result<rust_cli_kernel_api::mcp_ui::McpUiSamplingResult, McpUiError> {
+        self.check_instance(&request.instance).await?;
+        let Some(port) = self.sampling.clone() else {
+            return Err(McpUiError::unsupported(
+                &request.instance.scope.server_name,
+                "sampling",
+            ));
+        };
+        let lease = &request.instance.instance;
+        let Some((instance_cancel, retain)) = self.app_instances.retain(&lease.token) else {
+            return Err(McpUiError::not_authorized());
+        };
+        let input = rust_cli_kernel_api::mcp_ui::McpUiSamplingInput {
+            messages: request.messages.clone(),
+            system_prompt: request.system_prompt.clone(),
+            max_tokens: request.max_tokens,
+            selection,
+        };
+        let result = self
+            .sampling_calls
+            .execute(
+                &request.instance.scope.session,
+                &lease.token,
+                &instance_cancel,
+                &request.operation_id,
+                |cancel| async move { port.sample(input, cancel).await },
+            )
+            .await;
+        drop(retain);
+        let result = result?;
+        // 采样期间连接可能换代：结果只属于原连接（Node 在 sampleModel 前后各 validate 一次）。
+        self.check_instance(&request.instance).await?;
+        Ok(result)
+    }
+
+    /// `mcp/uiCancelSampling`：取消进行中的采样；没有时 `false`（幂等）。
+    pub async fn mcp_ui_cancel_sampling(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
+    ) -> Result<bool, McpUiError> {
+        self.check_instance(&request.instance).await?;
+        self.sampling_calls
+            .cancel(&request.instance.instance.token, &request.operation_id)
     }
 
     /// 给会话装上创建期给的 MCP 服务器（NIBI `createSession.mcpServers`）：连接在后台建立，不改进程级配置。

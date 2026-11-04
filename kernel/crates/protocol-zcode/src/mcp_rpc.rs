@@ -20,13 +20,17 @@ use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
 use rust_cli_kernel_api::mcp_ui::{
     APP_TOOL_DESCRIPTION_MAX_CHARS, APP_TOOL_ERROR_MESSAGE_MAX_CHARS, APP_TOOL_NAME_MAX_CHARS,
-    APP_TOOL_SCHEMA_MAX_BYTES, APP_TOOL_TITLE_MAX_CHARS, APP_TOOLS_MAX_PER_INSTANCE, McpAppInstance,
-    McpResourceContent, McpResourceDescriptor, McpResourceTemplate, McpUiAppToolAnnotations,
-    McpUiAppToolDescriptor, McpUiCallToolRequest, McpUiCancelCallRequest,
-    McpUiClaimAppToolCallRequest, McpUiInstanceRequest, McpUiListRequest, McpUiOpenRequest,
-    McpUiReadRequest, McpUiRegisterAppToolsRequest, McpUiResolveAppToolCallRequest, McpUiScope,
-    McpUiSubscriptionRequest, McpUiUnregisterAppToolsRequest, UI_READ_MAX_BYTES, decoded_base64_len,
-    json_bytes, mime_allowed_for_ui, tool_not_app_visible_message, tool_not_found_message,
+    APP_TOOL_SCHEMA_MAX_BYTES, APP_TOOL_TITLE_MAX_CHARS, APP_TOOLS_MAX_PER_INSTANCE,
+    McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourceTemplate,
+    McpUiAppToolAnnotations, McpUiAppToolDescriptor, McpUiCallToolRequest, McpUiCancelCallRequest,
+    McpUiCancelSamplingRequest, McpUiClaimAppToolCallRequest, McpUiInstanceRequest, McpUiListRequest,
+    McpUiOpenRequest, McpUiReadRequest, McpUiRegisterAppToolsRequest, McpUiResolveAppToolCallRequest,
+    McpUiSamplingContent, McpUiSamplingMessage, McpUiSamplingRequest, McpUiScope,
+    McpUiSubscriptionRequest, McpUiUnregisterAppToolsRequest, SAMPLING_BUSY, SAMPLING_CANCELLED,
+    SAMPLING_DUPLICATE, SAMPLING_IMAGE_MAX_BYTES, SAMPLING_IMAGE_MIME_TYPES, SAMPLING_LIMIT,
+    SAMPLING_MAX_BLOCKS, SAMPLING_MAX_BYTES, SAMPLING_TIMED_OUT, UI_READ_MAX_BYTES,
+    decoded_base64_len, json_bytes, mime_allowed_for_ui, tool_not_app_visible_message,
+    tool_not_found_message,
 };
 use rust_cli_kernel_api::session_api::KernelError;
 use rust_cli_protocol_core::rpc::RpcError;
@@ -804,6 +808,379 @@ fn text(value: Option<&Value>, key: &str, max: usize) -> Result<String, RpcError
         )));
     }
     Ok(value.to_owned())
+}
+
+/// `mcp/uiSampling`：页面请求宿主模型采样一次（回合外的一次性模型请求）。
+pub(crate) async fn sample(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "operationId",
+            "request",
+        ],
+        "mcp/uiSampling params",
+    )?;
+    let instance = instance_request(params, server)?;
+    let operation_id = bounded_string(params, "operationId", 128)?;
+    let request = sampling_request(params.get("request"))?;
+    let result = server
+        .kernel
+        .mcp_ui_sampling(McpUiSamplingRequest {
+            instance,
+            operation_id,
+            messages: request.messages,
+            system_prompt: request.system_prompt,
+            max_tokens: request.max_tokens,
+        })
+        .await
+        .map_err(|error| sampling_error(&error))?;
+    Ok(json!({
+        "role": "assistant",
+        "model": result.model,
+        "content": {"type": "text", "text": result.text},
+        "stopReason": result.stop_reason,
+    }))
+}
+
+/// `mcp/uiCancelSampling`：取消进行中的采样（没有时幂等回 `false`）。
+pub(crate) async fn cancel_sampling(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let params = object(params)?;
+    strict_keys(
+        params,
+        &[
+            "instance",
+            "workspace",
+            "sessionId",
+            "pluginId",
+            "serverName",
+            "operationId",
+        ],
+        "mcp/uiCancelSampling params",
+    )?;
+    let request = McpUiCancelSamplingRequest {
+        instance: instance_request(params, server)?,
+        operation_id: bounded_string(params, "operationId", 128)?,
+    };
+    let cancelled = server
+        .kernel
+        .mcp_ui_cancel_sampling(request)
+        .await
+        .map_err(|error| sampling_error(&error))?;
+    Ok(json!({"cancelled": cancelled}))
+}
+
+/// 采样请求的受理子集（Node 只开放宿主确实实现的官方子集；模型偏好与 metadata 只做校验与计费，
+/// 不转发给 provider）。
+struct SamplingRequest {
+    messages: Vec<McpUiSamplingMessage>,
+    system_prompt: Option<String>,
+    max_tokens: u32,
+}
+
+fn sampling_request(value: Option<&Value>) -> Result<SamplingRequest, RpcError> {
+    let value = value
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid("`request` must be an object"))?;
+    strict_keys(
+        value,
+        &[
+            "messages",
+            "systemPrompt",
+            "maxTokens",
+            "includeContext",
+            "modelPreferences",
+            "metadata",
+            "_meta",
+        ],
+        "sampling request",
+    )?;
+    let Some(messages_value) = value.get("messages").and_then(Value::as_array) else {
+        return Err(invalid("`request.messages` must be an array"));
+    };
+    if messages_value.is_empty() || messages_value.len() > SAMPLING_MAX_BLOCKS {
+        return Err(invalid(format!(
+            "`request.messages` must contain 1..={SAMPLING_MAX_BLOCKS} items"
+        )));
+    }
+    let mut messages = Vec::with_capacity(messages_value.len());
+    let mut blocks = 0usize;
+    let mut bytes = 0usize;
+    let mut block_metadata = 0usize;
+    for message in messages_value {
+        let message = message
+            .as_object()
+            .ok_or_else(|| invalid("each sampling message must be an object"))?;
+        strict_keys(message, &["role", "content"], "sampling message")?;
+        let role = required_string(message, "role")?;
+        if role != "user" && role != "assistant" {
+            return Err(invalid("`role` must be \"user\" or \"assistant\""));
+        }
+        let content = sampling_content(
+            message.get("content"),
+            &mut blocks,
+            &mut bytes,
+            &mut block_metadata,
+        )?;
+        messages.push(McpUiSamplingMessage { role, content });
+    }
+    if blocks > SAMPLING_MAX_BLOCKS {
+        return Err(invalid("Sampling content exceeds host limits"));
+    }
+    let system_prompt = optional_text(value, "systemPrompt", SAMPLING_MAX_BYTES)?;
+    bytes += system_prompt.as_ref().map_or(0, String::len);
+    let max_tokens = value
+        .get("maxTokens")
+        .and_then(Value::as_u64)
+        .filter(|tokens| *tokens > 0 && *tokens <= u64::from(u32::MAX))
+        .ok_or_else(|| invalid("`maxTokens` must be a positive integer"))?;
+    if let Some(context) = value.get("includeContext")
+        && context.as_str() != Some("none")
+    {
+        return Err(invalid("`includeContext` must be \"none\""));
+    }
+    sampling_preferences(value.get("modelPreferences"))?;
+    for key in ["metadata", "_meta"] {
+        if let Some(metadata) = value.get(key)
+            && !metadata.is_object()
+        {
+            return Err(invalid(format!("`{key}` must be an object")));
+        }
+    }
+    let metadata = json_bytes(&json!({
+        "metadata": value.get("metadata"),
+        "_meta": value.get("_meta"),
+    }));
+    if bytes.saturating_add(block_metadata).saturating_add(metadata) > SAMPLING_MAX_BYTES {
+        return Err(invalid("Sampling content exceeds host limits"));
+    }
+    Ok(SamplingRequest {
+        messages,
+        system_prompt,
+        max_tokens: u32::try_from(max_tokens).unwrap_or(u32::MAX),
+    })
+}
+
+fn sampling_content(
+    value: Option<&Value>,
+    blocks: &mut usize,
+    bytes: &mut usize,
+    metadata: &mut usize,
+) -> Result<Vec<McpUiSamplingContent>, RpcError> {
+    let Some(value) = value else {
+        return Err(invalid("`content` is required"));
+    };
+    match value {
+        Value::Array(items) => {
+            if items.is_empty() || items.len() > SAMPLING_MAX_BLOCKS {
+                return Err(invalid(format!(
+                    "sampling content must contain 1..={SAMPLING_MAX_BLOCKS} blocks"
+                )));
+            }
+            items
+                .iter()
+                .map(|block| sampling_block(block, blocks, bytes, metadata))
+                .collect()
+        }
+        Value::Object(_) => Ok(vec![sampling_block(
+            value, blocks, bytes, metadata,
+        )?]),
+        _ => Err(invalid("`content` must be a block or an array of blocks")),
+    }
+}
+
+fn sampling_block(
+    value: &Value,
+    blocks: &mut usize,
+    bytes: &mut usize,
+    metadata: &mut usize,
+) -> Result<McpUiSamplingContent, RpcError> {
+    let block = value
+        .as_object()
+        .ok_or_else(|| invalid("each sampling block must be an object"))?;
+    let kind = required_string(block, "type")?;
+    match kind.as_str() {
+        "text" => {
+            strict_keys(block, &["type", "text", "annotations", "_meta"], "text block")?;
+            let text = block
+                .get("text")
+                .and_then(Value::as_str)
+                .ok_or_else(|| invalid("`text` must be a string"))?;
+            if text.len() > SAMPLING_MAX_BYTES {
+                return Err(invalid("Sampling content exceeds host limits"));
+            }
+            *bytes += text.len();
+            sampling_annotations(block.get("annotations"))?;
+            sampling_meta(block.get("_meta"))?;
+            *metadata += json_bytes(&json!({
+                "annotations": block.get("annotations"),
+                "_meta": block.get("_meta"),
+            }));
+            *blocks += 1;
+            Ok(McpUiSamplingContent::Text {
+                text: text.to_owned(),
+            })
+        }
+        "image" => {
+            strict_keys(
+                block,
+                &["type", "mimeType", "data", "annotations", "_meta"],
+                "image block",
+            )?;
+            let mime_type = required_string(block, "mimeType")?;
+            if !SAMPLING_IMAGE_MIME_TYPES.contains(&mime_type.as_str()) {
+                return Err(invalid("`mimeType` is not an allowed image type"));
+            }
+            let data = required_string(block, "data")?;
+            if !valid_base64(&data) {
+                return Err(invalid("`data` must be base64"));
+            }
+            let decoded = decoded_base64_len(&data);
+            if decoded > SAMPLING_IMAGE_MAX_BYTES {
+                return Err(invalid("Sampling content exceeds host limits"));
+            }
+            *bytes += decoded;
+            sampling_annotations(block.get("annotations"))?;
+            sampling_meta(block.get("_meta"))?;
+            *metadata += json_bytes(&json!({
+                "annotations": block.get("annotations"),
+                "_meta": block.get("_meta"),
+            }));
+            *blocks += 1;
+            Ok(McpUiSamplingContent::Image { mime_type, data })
+        }
+        other => Err(invalid(format!("unsupported sampling block type {other:?}"))),
+    }
+}
+
+fn sampling_annotations(value: Option<&Value>) -> Result<(), RpcError> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let annotations = value
+        .as_object()
+        .ok_or_else(|| invalid("`annotations` must be an object"))?;
+    strict_keys(
+        annotations,
+        &["audience", "priority", "lastModified"],
+        "sampling annotations",
+    )?;
+    if let Some(audience) = annotations.get("audience") {
+        let list = audience
+            .as_array()
+            .ok_or_else(|| invalid("`audience` must be an array"))?;
+        for item in list {
+            if !matches!(item.as_str(), Some("user" | "assistant")) {
+                return Err(invalid("`audience` items must be user or assistant"));
+            }
+        }
+    }
+    sampling_priority(annotations.get("priority"), "priority")?;
+    if let Some(modified) = annotations.get("lastModified")
+        && !modified.is_string()
+    {
+        return Err(invalid("`lastModified` must be a string"));
+    }
+    Ok(())
+}
+
+fn sampling_priority(value: Option<&Value>, key: &str) -> Result<(), RpcError> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let Some(number) = value.as_f64() else {
+        return Err(invalid(format!("`{key}` must be a number")));
+    };
+    if !(0.0..=1.0).contains(&number) {
+        return Err(invalid(format!("`{key}` must be between 0 and 1")));
+    }
+    Ok(())
+}
+
+fn sampling_meta(value: Option<&Value>) -> Result<(), RpcError> {
+    if let Some(meta) = value
+        && !meta.is_object()
+    {
+        return Err(invalid("`_meta` must be an object"));
+    }
+    Ok(())
+}
+
+fn sampling_preferences(value: Option<&Value>) -> Result<(), RpcError> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    let preferences = value
+        .as_object()
+        .ok_or_else(|| invalid("`modelPreferences` must be an object"))?;
+    strict_keys(
+        preferences,
+        &[
+            "hints",
+            "costPriority",
+            "speedPriority",
+            "intelligencePriority",
+        ],
+        "model preferences",
+    )?;
+    if let Some(hints) = preferences.get("hints") {
+        let list = hints
+            .as_array()
+            .ok_or_else(|| invalid("`hints` must be an array"))?;
+        if list.len() > 16 {
+            return Err(invalid("`hints` must contain at most 16 items"));
+        }
+        for hint in list {
+            let hint = hint
+                .as_object()
+                .ok_or_else(|| invalid("each hint must be an object"))?;
+            strict_keys(hint, &["name"], "model hint")?;
+            if hint.get("name").is_some() {
+                text(hint.get("name"), "name", 256)?;
+            }
+        }
+    }
+    sampling_priority(preferences.get("costPriority"), "costPriority")?;
+    sampling_priority(preferences.get("speedPriority"), "speedPriority")?;
+    sampling_priority(
+        preferences.get("intelligencePriority"),
+        "intelligencePriority",
+    )?;
+    Ok(())
+}
+
+/// base64：长度是 4 的倍数、字符集合规、`=` 只在末尾（最多两个）。
+fn valid_base64(data: &str) -> bool {
+    if data.is_empty() || !data.len().is_multiple_of(4) {
+        return false;
+    }
+    let trimmed = data.trim_end_matches('=');
+    if data.len() - trimmed.len() > 2 {
+        return false;
+    }
+    trimmed
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'+' || byte == b'/')
+}
+
+/// 采样的错误码（Node `samplingCalls`）：取消 / 超时 / 并发 / 账本满都是 -32000，
+/// `operationId` 重复是 -32602。
+fn sampling_error(error: &KernelError) -> RpcError {
+    let KernelError::Failed { message } = error else {
+        return ui_error(error);
+    };
+    match message.as_str() {
+        SAMPLING_CANCELLED | SAMPLING_TIMED_OUT | SAMPLING_BUSY | SAMPLING_LIMIT => {
+            RpcError::new(-32000, message.clone())
+        }
+        SAMPLING_DUPLICATE => RpcError::new(-32602, message.clone()),
+        _ => ui_error(error),
+    }
 }
 
 /// 页面请求的作用域：会话 + 会话自己的 MCP server 表（`pluginId` 只做展示与日志）。

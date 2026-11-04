@@ -12,6 +12,7 @@ mod parse;
 mod resources;
 mod result;
 mod rpc;
+mod sampling;
 mod sessions;
 mod startup;
 mod status;
@@ -22,6 +23,7 @@ mod wait_tool;
 pub use app_instances::CallGuard;
 pub(crate) use app_instances::McpAppInstances;
 pub(crate) use app_tools::AppToolRegistry;
+pub(crate) use sampling::SamplingCalls;
 pub use config::{
     McpScope, McpServer, McpServerOptions, McpServers, McpSettings, normalize_name, tool_name,
 };

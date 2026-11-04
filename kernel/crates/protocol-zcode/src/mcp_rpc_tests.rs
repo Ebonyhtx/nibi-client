@@ -17,7 +17,8 @@ use rust_cli_kernel_api::mcp_ui::{
     McpResourceTemplate, McpResourceTemplatePage, McpUiAppToolRegistration, McpUiCallToolRequest,
     McpUiCancelCallRequest, McpUiClaimAppToolCallRequest, McpUiInstanceRequest, McpUiListRequest,
     McpUiOpenRequest, McpUiReadRequest, McpUiRegisterAppToolsRequest, McpUiResolveAppToolCallRequest,
-    McpUiSubscriptionRequest, McpUiUnregisterAppToolsRequest, tool_not_found_message,
+    McpUiSamplingRequest, McpUiSamplingResult, McpUiSubscriptionRequest,
+    McpUiUnregisterAppToolsRequest, tool_not_found_message,
 };
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::permission::PermissionMode;
@@ -55,6 +56,8 @@ struct FakeKernel {
     registrations: Vec<McpUiAppToolRegistration>,
     removed: usize,
     accepted: bool,
+    /// 采样的固定回答。
+    sampling: Option<McpUiSamplingResult>,
 }
 
 /// 记录到的 MCP Apps 调用（断言协议层的参数映射）。
@@ -75,6 +78,8 @@ enum UiCall {
     UnregisterTools(McpUiUnregisterAppToolsRequest),
     ClaimAppTool(McpUiClaimAppToolCallRequest),
     ResolveAppTool(McpUiResolveAppToolCallRequest),
+    Sample(McpUiSamplingRequest),
+    CancelSampling(rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest),
 }
 
 impl FakeKernel {
@@ -231,6 +236,26 @@ impl Kernel for FakeKernel {
         request: McpUiResolveAppToolCallRequest,
     ) -> Result<bool, KernelError> {
         self.record(UiCall::ResolveAppTool(request))?;
+        Ok(self.accepted)
+    }
+
+    async fn mcp_ui_sampling(
+        &self,
+        request: McpUiSamplingRequest,
+    ) -> Result<McpUiSamplingResult, KernelError> {
+        self.record(UiCall::Sample(request))?;
+        Ok(self.sampling.clone().unwrap_or_else(|| McpUiSamplingResult {
+            model: "scripted".to_owned(),
+            text: "hello".to_owned(),
+            stop_reason: "end_turn".to_owned(),
+        }))
+    }
+
+    async fn mcp_ui_cancel_sampling(
+        &self,
+        request: rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
+    ) -> Result<bool, KernelError> {
+        self.record(UiCall::CancelSampling(request))?;
         Ok(self.accepted)
     }
 }
@@ -1106,4 +1131,130 @@ async fn resolving_requires_exactly_one_outcome() {
         let error = call_error_named(server.clone(), "mcp/uiResolveAppToolCall", params).await;
         assert_eq!(error.code, -32602, "{error:?}");
     }
+}
+
+// ———— 采样（mcp/uiSampling）————
+
+fn sampling_params() -> Value {
+    let mut params = with_instance(scope_json());
+    params["operationId"] = json!("op-1");
+    params["request"] = json!({
+        "messages": [
+            {"role": "user", "content": [
+                {"type": "text", "text": "hi"},
+                {"type": "image", "mimeType": "image/png", "data": "aGk="},
+            ]},
+            {"role": "assistant", "content": {"type": "text", "text": "hello"}},
+        ],
+        "systemPrompt": "be brief",
+        "maxTokens": 64,
+        "includeContext": "none",
+        "modelPreferences": {"hints": [{"name": "fast"}], "costPriority": 0.5},
+        "metadata": {"k": 1},
+        "_meta": {"m": 2},
+    });
+    params
+}
+
+/// `mcp/uiSampling`：消息 / 系统提示 / maxTokens 落到内核请求，结果为 Host 的四字段形状。
+#[tokio::test]
+async fn sampling_maps_the_request_and_returns_the_host_result() {
+    let (server, ui) = fake_ui(FakeKernel::default());
+    let reply = call_method(server, "mcp/uiSampling", sampling_params()).await;
+    assert_eq!(
+        reply,
+        json!({
+            "role": "assistant",
+            "model": "scripted",
+            "content": {"type": "text", "text": "hello"},
+            "stopReason": "end_turn",
+        })
+    );
+    let calls = ui.lock().unwrap();
+    let UiCall::Sample(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.operation_id, "op-1");
+    assert_eq!(request.max_tokens, 64);
+    assert_eq!(request.system_prompt.as_deref(), Some("be brief"));
+    assert_eq!(request.messages.len(), 2);
+    assert_eq!(request.messages[0].role, "user");
+    assert_eq!(request.messages[0].content.len(), 2);
+    assert!(matches!(
+        &request.messages[0].content[1],
+        rust_cli_kernel_api::mcp_ui::McpUiSamplingContent::Image { mime_type, .. }
+            if mime_type == "image/png"
+    ));
+    assert_eq!(request.messages[1].role, "assistant");
+}
+
+/// 采样请求按 Node 的 strict schema 校验。
+#[tokio::test]
+async fn sampling_requests_are_validated_like_zod() {
+    let (server, _ui) = fake_ui(FakeKernel::default());
+    let too_many_blocks: Vec<Value> = (0..65)
+        .map(|index| json!({"type": "text", "text": format!("t{index}")}))
+        .collect();
+    let cases = [
+        json!({"messages": [], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": {"type": "audio"}}], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": {"type": "image", "mimeType": "image/gif", "data": "aGk="}}], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": {"type": "image", "mimeType": "image/png", "data": "abc"}}], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": too_many_blocks}], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": {"type": "text", "text": "x"}}], "maxTokens": 0}),
+        json!({"messages": [{"role": "user", "content": {"type": "text", "text": "x"}}], "maxTokens": 1, "includeContext": "all"}),
+        json!({"messages": [{"role": "system", "content": {"type": "text", "text": "x"}}], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": {"type": "text", "text": "x"}, "extra": 1}], "maxTokens": 1}),
+        json!({"messages": [{"role": "user", "content": {"type": "text", "text": "x"}}], "maxTokens": 1, "metadata": []}),
+        json!({"messages": [{"role": "user", "content": {"type": "text", "text": "x"}}], "maxTokens": 1, "modelPreferences": {"costPriority": 2}}),
+        json!({"messages": [{"role": "user", "content": {"type": "text", "text": "x"}}], "maxTokens": 1, "unknown": 1}),
+    ];
+    for (index, request) in cases.into_iter().enumerate() {
+        let mut params = sampling_params();
+        params["request"] = request;
+        let error = call_error_named(server.clone(), "mcp/uiSampling", params).await;
+        assert_eq!(error.code, -32602, "case {index}: {error:?}");
+    }
+}
+
+/// 采样的错误码：忙 / 取消 / 超时 / 账本满是 -32000，重复 operationId 是 -32602。
+#[tokio::test]
+async fn sampling_failures_map_to_the_node_codes() {
+    for (message, code) in [
+        (rust_cli_kernel_api::mcp_ui::SAMPLING_BUSY, -32000),
+        (rust_cli_kernel_api::mcp_ui::SAMPLING_CANCELLED, -32000),
+        (rust_cli_kernel_api::mcp_ui::SAMPLING_TIMED_OUT, -32000),
+        (rust_cli_kernel_api::mcp_ui::SAMPLING_LIMIT, -32000),
+        (rust_cli_kernel_api::mcp_ui::SAMPLING_DUPLICATE, -32602),
+    ] {
+        let kernel = FakeKernel {
+            fail: Some(KernelError::Failed {
+                message: message.to_owned(),
+            }),
+            ..FakeKernel::default()
+        };
+        let (server, _ui) = fake_ui(kernel);
+        let error = call_error_named(server, "mcp/uiSampling", sampling_params()).await;
+        assert_eq!(error.code, code, "{message}: {error:?}");
+        assert_eq!(error.message, message);
+    }
+}
+
+/// `mcp/uiCancelSampling`：operationId 原样到内核，回执是 `{cancelled}`。
+#[tokio::test]
+async fn cancelling_sampling_returns_the_host_shape() {
+    let kernel = FakeKernel {
+        accepted: true,
+        ..FakeKernel::default()
+    };
+    let (server, ui) = fake_ui(kernel);
+    let mut params = with_instance(scope_json());
+    params["operationId"] = json!("op-1");
+    let reply = call_method(server, "mcp/uiCancelSampling", params).await;
+    assert_eq!(reply, json!({"cancelled": true}));
+    let calls = ui.lock().unwrap();
+    let UiCall::CancelSampling(request) = &calls[0] else {
+        panic!("{calls:?}")
+    };
+    assert_eq!(request.operation_id, "op-1");
 }

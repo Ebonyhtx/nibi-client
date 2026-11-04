@@ -294,6 +294,13 @@ impl Session {
         self.ask(|reply| Request::TurnContext { reply }).await
     }
 
+    /// 回合外的模型请求（MCP Apps 采样）要的当前模型选择：owner 是会话 actor。
+    pub async fn out_of_turn_selection(
+        &self,
+    ) -> Result<rust_cli_kernel_api::model::ModelSelection, KernelError> {
+        self.ask(|reply| Request::Selection { reply }).await
+    }
+
     /// 会话级的询问入口（`Interactions::lasting`）：回合外工具授权的审批链用它，
     /// 询问不随回合结束取消、只随会话关闭取消。
     pub fn session_interactions(&self) -> Arc<dyn rust_cli_kernel_api::orchestration::Interactions> {

@@ -74,6 +74,22 @@ pub fn app_tool_model_name(server: &str, tool: &str) -> String {
     )
 }
 
+/// MCP Apps 采样（`mcp/uiSampling`）的限额与错误文字（Node `@zcode/shared/mcp-apps`）。
+pub const SAMPLING_TIMEOUT_MS: u64 = 60_000;
+pub const SAMPLING_MAX_BYTES: usize = 8 * 1024 * 1024;
+pub const SAMPLING_MAX_BLOCKS: usize = 64;
+pub const SAMPLING_MAX_PER_SESSION: usize = 4;
+pub const SAMPLING_MAX_PER_AGENT: usize = 8;
+pub const SAMPLING_MAX_OPERATIONS: usize = 4096;
+pub const SAMPLING_IMAGE_MAX_BYTES: usize = 4 * 1024 * 1024;
+pub const SAMPLING_IMAGE_MIME_TYPES: &[&str] = &["image/png", "image/jpeg", "image/webp"];
+
+pub const SAMPLING_CANCELLED: &str = "Sampling cancelled";
+pub const SAMPLING_TIMED_OUT: &str = "Sampling timed out";
+pub const SAMPLING_BUSY: &str = "Sampling busy";
+pub const SAMPLING_LIMIT: &str = "Sampling operation limit reached; reopen the App";
+pub const SAMPLING_DUPLICATE: &str = "Duplicate sampling operationId";
+
 /// JSON 序列化后的字节数（Node 的 `jsonBytes`；序列化失败按无穷大算）。
 pub fn json_bytes(value: &Value) -> usize {
     serde_json::to_vec(value).map_or(usize::MAX, |bytes| bytes.len())
@@ -343,6 +359,65 @@ pub struct McpUiResolveAppToolCallRequest {
     pub error: Option<String>,
 }
 
+/// 采样消息里的一个内容块（宿主只实现 text 与 image，Node 同一条）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum McpUiSamplingContent {
+    Text { text: String },
+    Image { mime_type: String, data: String },
+}
+
+/// 一条采样消息：`user` 或 `assistant`。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiSamplingMessage {
+    pub role: String,
+    pub content: Vec<McpUiSamplingContent>,
+}
+
+/// `mcp/uiSampling`：页面请求宿主模型采样一次。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiSamplingRequest {
+    pub instance: McpUiInstanceRequest,
+    pub operation_id: String,
+    pub messages: Vec<McpUiSamplingMessage>,
+    pub system_prompt: Option<String>,
+    pub max_tokens: u32,
+}
+
+/// 模型端口要的输入（不含实例身份：模型侧不需要它）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct McpUiSamplingInput {
+    pub messages: Vec<McpUiSamplingMessage>,
+    pub system_prompt: Option<String>,
+    pub max_tokens: u32,
+    /// 会话当前的模型选择（None 时用缺省选择）：采样是回合外请求，不改变会话的选择。
+    pub selection: Option<crate::model::ModelSelection>,
+}
+
+/// 一次采样的结果（协议层补 `role` / `content` 外壳）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiSamplingResult {
+    pub model: String,
+    pub text: String,
+    pub stop_reason: String,
+}
+
+/// `mcp/uiCancelSampling`：取消一个进行中的采样操作。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpUiCancelSamplingRequest {
+    pub instance: McpUiInstanceRequest,
+    pub operation_id: String,
+}
+
+/// 回合外的一次模型请求（MCP Apps 采样）：runtime 用会话当前的模型选择实现。
+#[async_trait::async_trait]
+pub trait McpUiSamplingPort: Send + Sync {
+    async fn sample(
+        &self,
+        request: McpUiSamplingInput,
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<McpUiSamplingResult, String>;
+}
+
 /// 一条已连接的 MCP 服务器的身份快照（Node `appConnectionSnapshot`）。
 ///
 /// 实例凭证绑定这一对：连接换了代际，旧实例就不能再执行任何请求。
@@ -474,6 +549,18 @@ pub enum McpUiError {
     /// 同一个 `callId` 已经在进行或已经结束（Node `Duplicate MCP App callId`）。
     #[error("Duplicate MCP App callId")]
     DuplicateCall,
+    /// 采样被取消 / 超时 / 并发满 / 操作账本满（Node 的 -32000 一族）。
+    #[error("Sampling cancelled")]
+    SamplingCancelled,
+    #[error("Sampling timed out")]
+    SamplingTimedOut,
+    #[error("Sampling busy")]
+    SamplingBusy,
+    #[error("Sampling operation limit reached; reopen the App")]
+    SamplingLimit,
+    /// 同一个 `operationId` 已经用过（-32602）。
+    #[error("Duplicate sampling operationId")]
+    SamplingDuplicate,
     /// 服务器回了错误、超时或连接中途断开。
     #[error("{message}")]
     Failed { message: String },

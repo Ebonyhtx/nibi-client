@@ -440,6 +440,12 @@ impl Server {
             "mcp/uiResolveAppToolCall" => crate::mcp_rpc::resolve_app_tool_call(self, &params)
                 .await
                 .map(Reply::new),
+            "mcp/uiSampling" => crate::mcp_rpc::sample(self, &params)
+                .await
+                .map(Reply::new),
+            "mcp/uiCancelSampling" => crate::mcp_rpc::cancel_sampling(self, &params)
+                .await
+                .map(Reply::new),
             "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),

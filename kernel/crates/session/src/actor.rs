@@ -65,6 +65,10 @@ pub(crate) enum Request {
             rust_cli_kernel_api::env::WorkspaceRef,
         )>,
     },
+    /// 回合外的模型请求（MCP Apps 采样）要的当前模型选择。
+    Selection {
+        reply: oneshot::Sender<rust_cli_kernel_api::model::ModelSelection>,
+    },
     /// 关闭会话（`SessionHandle::close`）：中止前台工作，等它收尾后回复并退出（spec §3.3）。`reason` 是中止在跑的
     /// 回合用的原因：退出是 `Shutdown`，`/clear`、`/resume` 是 `User`（修复线 F38）。
     Close {
@@ -465,6 +469,9 @@ impl Actor {
             }
             Request::TurnContext { reply } => {
                 let _ = reply.send((self.mode(), self.meta.workspace.clone()));
+            }
+            Request::Selection { reply } => {
+                let _ = reply.send(self.selection.clone());
             }
             Request::Close { reply, reason } => self.close(reply, reason).await,
             // 关闭中、要退出时不再登记询问：丢下回复，询问方按会话已关闭处理。
