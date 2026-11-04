@@ -105,17 +105,18 @@ async fn with_file_lock_creates_the_parent_and_releases_on_error() {
 }
 
 /// 修 bug（F17）：建出的锁目录在拿到锁之前被别的等待者回收时，建 owner 文件在 Linux 上报 NotFound、在 macOS
-/// 上报 InvalidInput（EINVAL），两种都是“输掉了”、重来；别的错误照常报出。
+/// 上报 InvalidInput（EINVAL）、在 Windows（删除挂起）上报 PermissionDenied，都是“输掉了”、重来；
+/// 没建过目录时别的错误照常报出。
 #[test]
 fn a_lost_directory_is_retried_on_every_platform() {
-    for kind in [ErrorKind::NotFound, ErrorKind::InvalidInput] {
+    for kind in [
+        ErrorKind::NotFound,
+        ErrorKind::InvalidInput,
+        ErrorKind::PermissionDenied,
+    ] {
         assert!(lost_created(true, &io::Error::from(kind)), "{kind:?}");
         assert!(!lost_created(false, &io::Error::from(kind)), "{kind:?}");
     }
-    assert!(!lost_created(
-        true,
-        &io::Error::from(ErrorKind::PermissionDenied)
-    ));
 }
 
 /// 空目录不等 grace 就被回收：别的等待者常在 mkdir 与建 owner 文件之间删掉目录。16 个任务分 25 轮、每轮各取一次锁，

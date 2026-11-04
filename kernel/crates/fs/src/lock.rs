@@ -125,10 +125,15 @@ fn give_up(lock_dir: &Path, elapsed: Duration, removal: Option<io::Error>) -> io
 
 /// 建出的锁目录在拿到锁之前被别的等待者回收了（它看到的是 mkdir 之后、owner 文件写完之前的空目录）：重来。
 /// 修 bug（F17）：这时建 owner 文件在 Linux 上报 ENOENT，在 macOS 上报 EINVAL（实测：并发 rmdir 时
-/// `open(O_CREAT | O_EXCL)` 返回 EINVAL）。以前只认 NotFound，macOS 上同一进程的并发取锁偶发
-/// `Invalid argument (os error 22)`，凭据写入失败。
+/// `open(O_CREAT | O_EXCL)` 返回 EINVAL）。Windows 上目录处于“删除挂起”时任何访问都报
+/// `PermissionDenied`，同样属于被回收；真正的权限问题会重试到 `max_wait`，由 `give_up` 报出删除时
+/// 的权限错误或超时。
 fn lost_created(created: bool, error: &io::Error) -> bool {
-    created && matches!(error.kind(), ErrorKind::NotFound | ErrorKind::InvalidInput)
+    created
+        && matches!(
+            error.kind(),
+            ErrorKind::NotFound | ErrorKind::InvalidInput | ErrorKind::PermissionDenied
+        )
 }
 
 /// `<file>.lock`：目录锁与单文件锁（lock_single）同一个命名（F55：以前两边各写一份）。
@@ -158,6 +163,9 @@ pub async fn acquire_file_lock(file: &Path, options: &LockOptions) -> io::Result
     let started = Instant::now();
     let mut observer = InstanceObserver::default();
     let mut last_removal_error: Option<io::Error> = None;
+    // Windows 上目录处于“删除挂起”时 `create_dir` 报 PermissionDenied，等它消失就好；连续几次仍然
+    // 拒绝说明是真的没有权限，按原错误报出。
+    let mut denied_creates = 0usize;
 
     for attempt in 0usize.. {
         let mut created = false;
@@ -177,7 +185,15 @@ pub async fn acquire_file_lock(file: &Path, options: &LockOptions) -> io::Result
             let _ = tokio::fs::remove_dir(&lock_dir).await;
         }
         let lost_created = lost_created(created, &error);
-        if error.kind() != ErrorKind::AlreadyExists && !lost_created {
+        let denied_create = !created
+            && error.kind() == ErrorKind::PermissionDenied
+            && denied_creates < 4;
+        if denied_create {
+            denied_creates += 1;
+        } else {
+            denied_creates = 0;
+        }
+        if error.kind() != ErrorKind::AlreadyExists && !lost_created && !denied_create {
             return Err(error);
         }
         // 等待者自己等了多久不能证明锁失效；到上限直接超时，不再做一次回收（避免越过上限误删）。

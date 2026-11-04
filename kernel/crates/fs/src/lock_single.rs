@@ -150,10 +150,16 @@ where
         None => format!("{{\"pid\":{pid},\"token\":\"{token}\"}}\n"),
     };
     let started = Instant::now();
+    let mut denied = 0usize;
     loop {
         match create(&path, &content).await {
             Ok(()) => break,
-            Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
+            Err(error) if error.kind() == ErrorKind::AlreadyExists => denied = 0,
+            // Windows 上锁文件处于“删除挂起”（持有者刚释放）时 `create_new` 报 PermissionDenied，
+            // 等它消失就好；连续几次仍然拒绝说明是真的没有权限，按原错误报出。
+            Err(error) if error.kind() == ErrorKind::PermissionDenied && denied < 4 => {
+                denied += 1;
+            }
             Err(error) => return Err(error),
         }
         remove_stale(&path, options.stale).await?;
