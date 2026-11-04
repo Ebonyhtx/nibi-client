@@ -11,7 +11,14 @@ const require = createRequire(import.meta.url);
 const desktop = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(desktop, "../..");
 const output = await mkdtemp(join(tmpdir(), "zcode-mcp-host-e2e-"));
+if (process.env.NIBI_MCP_E2E_DEBUG) console.error(`[e2e] output: ${output}`);
 const fixture = join(desktop, "scripts/mcp-apps-host-fixture");
+// `--rust`：宿主夹具改为拉起 Rust app-server（交互走 v4 pendingInteractions），
+// 用于补 §8.1.1 MCP Apps 的 Rust 真机链路。默认仍是 Node agent。
+const rustKernel = process.argv.includes("--rust");
+if (rustKernel) {
+  await access(join(root, "kernel/target/debug/zcode-rs.exe"));
+}
 const showcaseServer = process.env.NIBI_SHOWCASE_SERVER;
 if (process.argv.includes("--showcase-only")) {
   if (!showcaseServer)
@@ -183,7 +190,8 @@ const modes =
           ? ["rows"]
           : process.argv.includes("--managed-only")
             ? ["interaction", "managed", "managed-empty"]
-            : process.argv.includes("--chain-only")
+            : process.argv.includes("--chain-only") ||
+                process.argv.includes("--chain-core-only")
               ? ["chain"]
               : process.argv.includes("--retention-only")
                 ? ["retention"]
@@ -205,6 +213,8 @@ const modes =
 for (const mode of modes) {
   await new Promise((accept, reject) => {
     const env = { ...process.env };
+    if (rustKernel) env.NIBI_MCP_E2E_RUST_BIN = join(root, "kernel/target/debug/zcode-rs.exe");
+    if (process.argv.includes("--chain-core-only")) env.NIBI_MCP_E2E_CORE_ONLY = "1";
     if (process.argv.includes("--photocraft-background-only")) {
       if (!env.NIBI_PHOTOCRAFT_SERVER)
         throw new Error("Set NIBI_PHOTOCRAFT_SERVER to the built PhotoCraft dist/server.mjs");
@@ -240,7 +250,15 @@ for (const mode of modes) {
         child.kill("SIGKILL");
         reject(new Error(`Electron fixture timed out (${mode})`));
       },
-      mode === "background" ? (process.env.NIBI_PHOTOCRAFT_SERVER ? 300_000 : 180_000) : 90_000,
+      // chain 模式跑完整组合矩阵（每个组合都开窗口、走审批），90s 是 2026-11 之前单页面的预算；
+      // 现在 Node 基线自己也会超时，按实测放到 5 分钟，避免把慢当成挂。
+      mode === "background"
+        ? process.env.NIBI_PHOTOCRAFT_SERVER
+          ? 300_000
+          : 180_000
+        : mode === "chain"
+          ? 300_000
+          : 90_000,
     );
     child.on("error", reject);
     child.on("exit", (code) => {
