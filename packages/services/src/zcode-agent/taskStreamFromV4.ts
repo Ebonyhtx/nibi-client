@@ -50,6 +50,15 @@ export interface V4TaskStreamSinkOptions {
     "subscribeConversationV4" | "unsubscribeConversationV4" | "onDynamicConversationFrame"
   >;
   target: ZCodeAgentSessionTarget;
+  /**
+   * 每个投影事件同时投给全局 task 事件源（`onDynamicStreamEvent`）。
+   *
+   * 全局源与 listener 是两个不同的订阅面：listener 是 `onDynamicTaskEvent(params)`
+   * 那种带 workspace 身份的订阅（bot 主路径），全局源是 `onDynamicStreamEvent(taskId)`
+   * （bot 在 taskService 没有 `onDynamicTaskEvent` 时的 fallback，以及 Host 间镜像）。
+   * 只投 listener 会让后者在 Rust 内核下一个事件都收不到。
+   */
+  publishGlobal?: (event: ZCodeStreamEvent) => void;
   /** 订阅/解码失败时的 warn（不抛：读路径降级不能影响任务本身）。 */
   warn?: (message: string, error?: unknown) => void;
 }
@@ -656,6 +665,9 @@ export class V4TaskStreamSink {
     for (const listener of this.listeners) {
       listener(event);
     }
+    // 全局源 = onDynamicStreamEvent 的入口（bot 的 fallback 分支、Host 间镜像）；
+    // onDynamicTaskEvent 那条走上面的 listener。
+    this.options.publishGlobal?.(event);
   }
 }
 

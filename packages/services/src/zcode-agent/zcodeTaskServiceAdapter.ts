@@ -1054,6 +1054,9 @@ export function createZCodeTaskServiceAdapter(
           workspaceIdentity: target.workspaceIdentity,
           sessionId: target.taskId,
         },
+        // 双投：listener 供 onDynamicTaskEvent（bot 主路径，带 workspace 身份）；
+        // 全局 emitter 供 onDynamicStreamEvent（bot 的 fallback 分支、Host 间镜像）。
+        publishGlobal: (event) => getGlobalTaskEmitter(target.taskId).fire(event),
         warn: (message, error) => logger.warn(undefined, message, error),
       });
       v4TaskStreamSinks.set(key, sink);

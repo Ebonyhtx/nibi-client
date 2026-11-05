@@ -147,13 +147,15 @@ function createHarness(initialFrame: ConversationTopicFrame) {
     }),
     unsubscribeConversationV4: unsubscribe,
   };
+  const globalEvents: ZCodeStreamEvent[] = [];
   const sink = new V4TaskStreamSink({
     agent: agent as never,
     target: { workspacePath: "/work", sessionId: "task" },
+    publishGlobal: (event) => globalEvents.push(event),
   });
   const events: ZCodeStreamEvent[] = [];
   const release = sink.addListener((event) => events.push(event));
-  return { agent, sink, events, emit, unsubscribe, release };
+  return { agent, sink, events, globalEvents, emit, unsubscribe, release };
 }
 
 describe("v4 task stream projection", () => {
@@ -236,6 +238,17 @@ describe("v4 task stream projection", () => {
     expect(unsubscribe).toHaveBeenCalledWith(
       expect.objectContaining({ subscriptionId: "mine", sessionId: "task" }),
     );
+  });
+
+  it("publishes every projected event to the global source", async () => {
+    const { sink, events, globalEvents } = createHarness(
+      snapshotFrame([turnHeaderRow(1, "running"), assistantRow(2, "hi", "streaming")]),
+    );
+    sink.activate();
+    await Promise.resolve();
+    // 全局源 = onDynamicStreamEvent（bot 的 fallback、Host 间镜像）；只投 listener 会让它静默。
+    expect(globalEvents.length).toBeGreaterThan(0);
+    expect(globalEvents.map((event) => event.type)).toEqual(events.map((event) => event.type));
   });
 
   it("projects a pending permission so the bot is not stuck waiting", async () => {
