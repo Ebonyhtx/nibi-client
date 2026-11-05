@@ -461,6 +461,16 @@ const SESSION_SEND_OPTIONAL_COMPAT_FIELDS = new Set<SessionSendCompatField>([
 const SESSION_SUBSCRIBE_RETRY_BASE_DELAY_MS = 500;
 const SESSION_SUBSCRIBE_RETRY_MAX_DELAY_MS = 5_000;
 const SESSION_SUBSCRIBE_MAX_ATTEMPTS = 8;
+
+/**
+ * 内核没有实现这个旧方法（-32601）。重试不会变好：Rust 内核的旧会话面没有 `session/subscribe`
+ * （141 审计的 live 缺口，Host 的读路径迁移属 M5 波次 3）。识别出来就直接降级为本地事件，
+ * 不再白等约 23 秒，也不刷无意义的重试日志。
+ */
+function isProtocolMethodNotFound(error: unknown): boolean {
+  return error instanceof Error && /Method not found/i.test(error.message);
+}
+
 const MAX_TRACKED_SESSION_EVENT_IDS = 10_000;
 const SSH_REMOTE_WORKSPACE_IDENTITY_PREFIX = "remote:ssh:";
 const WSL_REMOTE_WORKSPACE_IDENTITY_PREFIX = "remote:wsl:";
@@ -5390,6 +5400,20 @@ export function createZCodeAgentService(
             releaseBufferedLiveEvents();
           } catch (error) {
             if (cancelled) {
+              return;
+            }
+            if (isProtocolMethodNotFound(error)) {
+              // 内核没有这个旧方法：bot/task 的实时投影降级为本地事件（v4 会话帧不受影响）。
+              console.warn(
+                formatLogPrefix("zcode-agent", process.pid),
+                "内核未实现旧 session/subscribe，task/bot 实时投影降级为本地事件",
+                {
+                  sessionId: params.sessionId,
+                  workspaceKey: resolveWorkspaceKey(params),
+                  message: error instanceof Error ? error.message : String(error),
+                },
+              );
+              releaseBufferedLiveEvents();
               return;
             }
             if (attempt >= SESSION_SUBSCRIBE_MAX_ATTEMPTS - 1) {

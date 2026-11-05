@@ -452,6 +452,35 @@ fn question_answers_map_the_host_action_and_content() {
     }
 }
 
+/// “总是允许”：判决链没给建议时按 Node 造默认规则（工具名 + 输入里的路径/命令/URL）。
+/// 没有这条，Write/Edit/WebFetch 这类非 Bash 工具的“始终允许”等于没点。
+#[test]
+fn allow_always_defaults_to_a_tool_rule_when_there_are_no_suggestions() {
+    assert_eq!(
+        remember_rules("Write", &json!({"file_path": "/tmp/x.txt", "content": "hi"}), &[]),
+        vec![PermissionRule {
+            tool: "Write".to_owned(),
+            content: Some("/tmp/x.txt".to_owned())
+        }]
+    );
+    let suggested = vec![PermissionRule {
+        tool: "Bash".to_owned(),
+        content: Some("git status".to_owned()),
+    }];
+    assert_eq!(
+        remember_rules("Bash", &json!({"command": "git status"}), &suggested),
+        suggested
+    );
+    // 输入里没有 Node 认的键：只记工具名。
+    assert_eq!(
+        remember_rules("TodoWrite", &json!({"todos": []}), &[]),
+        vec![PermissionRule {
+            tool: "TodoWrite".to_owned(),
+            content: None
+        }]
+    );
+}
+
 /// ExitPlanMode 的 v4 应答 → 内核回答：allowOnce / content.answer=approve 是批准，其余文字是
 /// “继续计划”的反馈，decline/cancel 是不批准。
 #[test]

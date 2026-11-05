@@ -9,7 +9,7 @@ use rust_cli_kernel_api::interaction::{
 use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::PermissionMode;
+use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule};
 use rust_cli_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, KernelError, RewindScope,
     SessionHandle,
@@ -915,6 +915,29 @@ fn question_answer(answer: &Value, questions: &Value) -> QuestionAnswer {
     }
 }
 
+/// “总是允许”的记忆规则：判决链给了建议就用建议；没有时按 Node 的
+/// `buildDefaultPermissionUpdates`（permission-suggestions.ts）造一条默认规则——工具名 + 输入里
+/// 第一个 `command`/`url`/`file_path`/`path`/`pattern`。没有这条，非 Bash 工具（Write/Edit/
+/// WebFetch…）选“始终允许”等于没点（规则集不会变，下一次还会问）。
+fn remember_rules(tool: &str, input: &Value, suggestions: &[PermissionRule]) -> Vec<PermissionRule> {
+    if !suggestions.is_empty() {
+        return suggestions.to_vec();
+    }
+    let content = ["command", "url", "file_path", "path", "pattern"]
+        .iter()
+        .find_map(|key| {
+            input
+                .get(*key)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|text| !text.is_empty())
+        });
+    vec![PermissionRule {
+        tool: tool.to_owned(),
+        content: content.map(str::to_owned),
+    }]
+}
+
 /// v4 的计划审批应答 → 内核的 `PlanApprovalAnswer`（Node `v4AnswerToPlanApprovalResponse` 与
 /// `planApprovalResponseToBrokerResult` 的镜像）：批准 = `content.answer == "approve"`（Host 的
 /// Approve 选项）或 allowOnce；其余文字是“继续计划”的反馈；decline/cancel 是不批准。
@@ -976,7 +999,11 @@ async fn resolve(
     };
     let resolved = match &request {
         InteractionRequest::Permission {
-            suggestions, tool_use, ..
+            suggestions,
+            tool,
+            input,
+            tool_use,
+            ..
         } => {
             // “完全访问”：先把会话切到 yolo（之后不再询问），再放行这一次。
             if option == Some("fullAccess") {
@@ -994,7 +1021,7 @@ async fn resolve(
                     remember: Vec::new(),
                 },
                 Some("allowAlways") => PermissionAnswer::Allow {
-                    remember: suggestions.clone(),
+                    remember: remember_rules(tool, input, suggestions),
                 },
                 _ => PermissionAnswer::Deny {
                     feedback: answer["freeText"]

@@ -11,13 +11,16 @@ import { skipOccupationOnboardingIfPresent } from "../../../helpers/occupation-o
 import { resolveE2EStorageRoot, resolveE2EToolPath } from "../../../helpers/e2e-runtime-paths.js";
 import { createFeishuConfig } from "../../helpers/bots-service-harness.js";
 import {
-  approveV4Permission,
+  approveV4PermissionAlways,
+  clickV4QueueItemDelete,
   clickV4Stop,
+  getV4QueueItems,
   prepareV4ConversationE2E,
   selectV4TaskById,
   sendV4Prompt,
   waitForV4PermissionDialogInComposerDock,
   waitForV4Pane,
+  waitForV4QueueCount,
   waitForV4TimelineContaining,
 } from "../../../helpers/v4-conversation.js";
 
@@ -151,16 +154,19 @@ describe("group task permission scope (real Host)", () => {
     expect(permission.scope).toBe("session");
     expect(permission.mode).toBe("build");
 
-    // 群的模型回合可能仍在跑；停下它，再用同一条会话做权限点击。
+    // 群的模型回合可能仍在跑；停下它、清掉群消息留下的排队项，再用同一条会话做权限点击。
     const pane = await waitForV4Pane((state) => !!state.sessionId, "群任务会话没有进入 pane", 30000);
     if (pane.canStop) await clickV4Stop();
     await waitForV4Pane((state) => !state.canStop, "群任务的首个回合没有停下", 30000);
+    for (const item of await getV4QueueItems()) await clickV4QueueItemDelete(item.queueItemId);
+    await waitForV4QueueCount(0, 30000);
 
     await selectV4TaskById(created!.id);
     await sendV4Prompt(PERMISSION_PROMPT);
     await waitForV4PermissionDialogInComposerDock();
     await screenshot("group-permission-dialog");
-    expect(await approveV4Permission()).toBe(true);
+    // Allow always：只有“总是允许”会落规则；Allow once 不落任何规则，验证不到会话行。
+    await approveV4PermissionAlways();
     await waitForV4TimelineContaining("V4_PERMISSION_DONE", 60000);
     await screenshot("group-permission-done");
 

@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "caseName": "feishu-group-permission-scope",
+  "spec": "./test/e2e/bots/manual-review/pending/feishu-group-permission-scope.test.ts",
+  "fixtures": [
+    {
+      "id": "group-permission-group-title-rust",
+      "description": "群消息首发在 Rust 内核上触发的标题请求。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Rust 标题 sidecar 用自有提示词；没有这条时请求会落到群回复 fixture（500/错形）。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["You are naming a coding session", "E2E_GROUP_PERMISSION"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "group-permission-group-title-rust",
+          "inputTokens": 64,
+          "outputTokens": 8,
+          "text": "{\"title\":\"E2E Group Permission\"}"
+        }
+      }
+    },
+    {
+      "id": "group-permission-group-title-node",
+      "description": "群消息首发在 Node 内核上触发的标题请求。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Node 与 Rust 的标题提示词不同，两条都钉住，跑哪个内核都确定。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["Generate a concise title", "E2E_GROUP_PERMISSION"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "group-permission-group-title-node",
+          "inputTokens": 64,
+          "outputTokens": 8,
+          "text": "{\"title\":\"E2E Group Permission\"}"
+        }
+      }
+    },
+    {
+      "id": "group-permission-group-turn",
+      "description": "群消息的模型回合：回一段普通文本，让群任务进入空闲（不做工具调用）。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "验收关心的是群任务创建与随后的权限弹窗，群回合本身只需要干净结束。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["E2E_GROUP_PERMISSION"],
+        "bodyIncludes": ["E2E_GROUP_PERMISSION"],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "You are naming a coding session",
+          "E2E_V4_PERMISSION_WRITE"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "group-permission-group-turn",
+          "inputTokens": 80,
+          "outputTokens": 8,
+          "text": "E2E_GROUP_PERMISSION_OK"
+        }
+      }
+    },
+    {
+      "id": "group-permission-write-call",
+      "description": "群会话里发 Write 提示：默认模式触发权限弹窗。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "和 M4 权限门禁用同一条 Write 工具调用形状，工具 id 单独一条以免跨用例串。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "lastUserMessageIncludes": ["E2E_V4_PERMISSION_WRITE"],
+        "bodyIncludes": ["E2E_V4_PERMISSION_WRITE"],
+        "bodyExcludes": ["Generate a concise title", "You are naming a coding session"]
+      },
+      "response": {
+        "statusCode": 200,
+        "toolUse": {
+          "id": "toolu_group_permission_write",
+          "name": "Write",
+          "input": {
+            "file_path": "{{e2eRuntimeRoot}}/feishu-group-permission-scope/group-write-output.txt",
+            "content": "E2E_GROUP_PERMISSION_WRITE_RESULT\n"
+          }
+        }
+      }
+    },
+    {
+      "id": "group-permission-final",
+      "description": "批准后的终态响应。",
+      "metadata": {
+        "kind": "main",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "工具结果回灌后的固定终态文本。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": ["E2E_V4_PERMISSION_WRITE", "toolu_group_permission_write"],
+        "bodyExcludes": ["Generate a concise title", "You are naming a coding session"]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "group-permission-final",
+          "inputTokens": 80,
+          "outputTokens": 8,
+          "text": "V4_PERMISSION_DONE"
+        }
+      }
+    }
+  ]
+}
