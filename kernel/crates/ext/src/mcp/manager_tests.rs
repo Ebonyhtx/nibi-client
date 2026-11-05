@@ -434,7 +434,7 @@ async fn the_handshake_reports_the_client_version_from_the_entry() {
         .unwrap();
     assert_eq!(
         initialize["params"]["clientInfo"],
-        json!({"name": "zcode", "version": "0.1.42"})
+        json!({"name": "nibi", "version": "0.1.42"})
     );
 }
 

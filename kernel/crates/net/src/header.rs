@@ -17,10 +17,10 @@ pub const JSON: &str = "application/json";
 /// `text/event-stream`（SSE）。
 pub const EVENT_STREAM: &str = "text/event-stream";
 
-/// 模型请求的 User-Agent：`ZCode/<版本>`（修复线 F58，照 Node `buildCliZCodeSourceHeaders`，模型端点是与 Node 共用的
+/// 模型请求的 User-Agent：`NIBI/<版本>`（修复线 F58，照 Node `buildCliZCodeSourceHeaders`，模型端点是与 Node 共用的
 /// 后端；ai-sdk 追加的后缀不冒用）。账号接口与 OAuth 不发（Node 不设）。
-pub fn zcode_user_agent(version: &str) -> String {
-    format!("ZCode/{version}")
+pub fn nibi_user_agent(version: &str) -> String {
+    format!("NIBI/{version}")
 }
 
 /// `Bearer <token>`，作为秘密值（Debug 不含原值）。

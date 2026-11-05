@@ -139,7 +139,7 @@ pub(crate) async fn open(
         let params = json!({
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {"roots": {}},
-            "clientInfo": {"name": rust_cli_base::names::CLIENT_NAME, "version": client_version},
+            "clientInfo": {"name": rust_cli_base::names::MCP_CLIENT_NAME, "version": client_version},
         });
         let never = CancellationToken::new();
         let result = match client.request("initialize", params, timeout, &never).await {

@@ -13,7 +13,7 @@ use crate::openai_chat::OpenAiChat;
 fn facts() -> SourceFacts {
     SourceFacts {
         version: "0.1.52".to_owned(),
-        endpoint_origin: "https://zcode.z.ai".to_owned(),
+        endpoint_origin: "https://api.nibistudio.top".to_owned(),
         release_channel: "production".to_owned(),
         locale: Some("zh-CN".to_owned()),
         time_zone: Some("Asia/Shanghai".to_owned()),
@@ -28,10 +28,10 @@ fn facts() -> SourceFacts {
 fn source_headers_follow_node() {
     let headers = source_headers(&facts());
     let expected = [
-        ("http-referer", "https://zcode.z.ai"),
-        ("user-agent", "ZCode/0.1.52"),
+        ("http-referer", "https://api.nibistudio.top"),
+        ("user-agent", "NIBI/0.1.52"),
         ("x-zcode-app-version", "0.1.52"),
-        ("x-title", "Z Code@cli"),
+        ("x-title", "NIBI@cli"),
         ("x-release-channel", "production"),
         ("x-client-language", "zh-CN"),
         ("x-client-timezone", "Asia/Shanghai"),
@@ -67,7 +67,7 @@ fn unprintable_values_follow_node() {
         });
         assert_eq!(
             value(&headers, "user-agent").as_deref(),
-            Some("ZCode/unknown")
+            Some("NIBI/unknown")
         );
         assert_eq!(value(&headers, "x-zcode-app-version"), None, "{version:?}");
         assert_eq!(
@@ -85,10 +85,7 @@ fn unprintable_values_follow_node() {
         os_release: Some(" 24.6.0\n".to_owned()),
         ..facts()
     });
-    assert_eq!(
-        value(&headers, "user-agent").as_deref(),
-        Some("ZCode/1.2.3")
-    );
+    assert_eq!(value(&headers, "user-agent").as_deref(), Some("NIBI/1.2.3"));
     assert_eq!(value(&headers, "x-os-version").as_deref(), Some("24.6.0"));
     for (platform, category) in [
         ("darwin", "macos"),
@@ -206,7 +203,7 @@ fn provider_headers_sit_between_the_source_and_the_request_headers() {
     assert_eq!(find(&headers, "x-session-type"), Some("kept"));
     assert_eq!(find(&headers, "x-zcode-session-type"), Some("other"));
     assert_eq!(find(&headers, "x-request-id"), Some("q"));
-    assert_eq!(find(&headers, "x-title"), Some("Z Code@cli"));
+    assert_eq!(find(&headers, "x-title"), Some("NIBI@cli"));
 }
 
 /// 没有入口给的来源头与 ID（测试）：只有适配器的头、凭据与 Provider 配置。
@@ -236,7 +233,7 @@ fn without_request_headers_only_the_adapter_and_provider_layers_remain() {
 #[test]
 fn openrouter_gets_the_attribution_headers() {
     for (base_url, expected) in [
-        ("https://openrouter.ai/api/v1", Some("ZCode")),
+        ("https://openrouter.ai/api/v1", Some("NIBI")),
         ("http://openrouter.ai/api/v1", None),
         ("https://api.example.com/v1", None),
     ] {

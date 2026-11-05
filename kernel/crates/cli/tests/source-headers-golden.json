@@ -11,11 +11,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -23,7 +23,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -57,7 +57,7 @@
     },
     {
       "env": {
-        "ZCODE_ENV": " TEST "
+        "NIBI_ENV": " TEST "
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -72,7 +72,7 @@
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -80,7 +80,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -114,8 +114,8 @@
     },
     {
       "env": {
-        "ZCODE_ENV": "test",
-        "ZCODE_TEST_BASE_URL": "https://test.example.com/x"
+        "NIBI_ENV": "test",
+        "NIBI_TEST_BASE_URL": "https://test.example.com/x"
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -130,7 +130,7 @@
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -138,7 +138,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -172,7 +172,7 @@
     },
     {
       "env": {
-        "ZCODE_BASE_URL": "https://zcode.example.com:8443/path"
+        "NIBI_BASE_URL": "https://zcode.example.com:8443/path"
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -187,7 +187,7 @@
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -195,7 +195,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -229,7 +229,7 @@
     },
     {
       "env": {
-        "ZCODE_APP_VERSION": "3.4.5"
+        "NIBI_APP_VERSION": "3.4.5"
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -240,11 +240,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/3.4.5"
+          "NIBI/3.4.5"
         ],
         [
           "X-ZCode-App-Version",
@@ -252,7 +252,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -286,7 +286,7 @@
     },
     {
       "env": {
-        "ZCODE_APP_VERSION": ""
+        "NIBI_APP_VERSION": ""
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -297,15 +297,15 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/unknown"
+          "NIBI/unknown"
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -339,7 +339,7 @@
     },
     {
       "env": {
-        "ZCODE_APP_VERSION": " 3.4.5-beta.1 "
+        "NIBI_APP_VERSION": " 3.4.5-beta.1 "
       },
       "appVersion": "0.1.52",
       "locale": "en-US",
@@ -350,11 +350,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/3.4.5-beta.1"
+          "NIBI/3.4.5-beta.1"
         ],
         [
           "X-ZCode-App-Version",
@@ -362,7 +362,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -405,15 +405,15 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/unknown"
+          "NIBI/unknown"
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -456,15 +456,15 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/unknown"
+          "NIBI/unknown"
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -505,11 +505,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -517,7 +517,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -560,11 +560,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -572,7 +572,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -615,11 +615,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -627,7 +627,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -670,11 +670,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -682,7 +682,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -725,11 +725,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -737,7 +737,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",
@@ -776,11 +776,11 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api.nibistudio.top"
         ],
         [
           "User-Agent",
-          "ZCode/0.1.52"
+          "NIBI/0.1.52"
         ],
         [
           "X-ZCode-App-Version",
@@ -788,7 +788,7 @@
         ],
         [
           "X-Title",
-          "Z Code@cli"
+          "NIBI@cli"
         ],
         [
           "X-Release-Channel",

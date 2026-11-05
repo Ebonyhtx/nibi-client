@@ -262,7 +262,7 @@ class NodeMcpAdapter implements McpPort {
   private readonly activeCallTraces = new Map<string, McpElicitationTrace>();
 
   constructor(options: CreateMcpAdapterOptions) {
-    this.clientName = options.clientName ?? "zcode";
+    this.clientName = options.clientName ?? "nibi";
     this.clientVersion = options.clientVersion ?? "0.0.0";
     this.connectionContext = options.connectionContext;
     this.env = options.env;

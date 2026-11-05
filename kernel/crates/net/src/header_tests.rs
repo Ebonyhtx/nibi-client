@@ -19,5 +19,5 @@ fn the_names_and_values_keep_their_spelling() {
 #[test]
 fn the_model_user_agent_follows_node() {
     assert_eq!(USER_AGENT, "user-agent");
-    assert_eq!(zcode_user_agent("0.1.52"), "ZCode/0.1.52");
+    assert_eq!(nibi_user_agent("0.1.52"), "NIBI/0.1.52");
 }

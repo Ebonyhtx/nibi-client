@@ -191,7 +191,7 @@ impl ProjectTokens {
         }
         let started = self.clock.now_ms();
         let body = json!({
-            "clientType": rust_cli_base::names::CLIENT_NAME,
+            "clientType": rust_cli_base::names::TOKEN_CLIENT_TYPE,
             "clientVersion": self.origins.client_version
         });
         let reply = self

@@ -41,7 +41,7 @@ fn endpoint(base_url: String, headers: &[(&str, &str)]) -> ModelEndpoint {
 fn facts() -> SourceFacts {
     SourceFacts {
         version: "0.1.52".to_owned(),
-        endpoint_origin: "https://zcode.z.ai".to_owned(),
+        endpoint_origin: "https://api.nibistudio.top".to_owned(),
         release_channel: "production".to_owned(),
         locale: Some("en-US".to_owned()),
         time_zone: Some("Asia/Shanghai".to_owned()),
@@ -86,7 +86,7 @@ fn single<'a>(captured: &'a Captured, name: &str) -> Option<&'a str> {
 }
 
 /// 修 bug（F64）：Provider 配置的 `User-Agent` 覆盖本工程的（Node `mergeModelRequestHeaders`：名字不分大小写，后来的
-/// 替换旧的）。以前 `user-agent` 在 Provider 配置之后加，配置的值被换成 `ZCode/<版本>`。
+/// 替换旧的）。以前 `user-agent` 在 Provider 配置之后加，配置的值被换成 `NIBI/<版本>`。
 #[tokio::test]
 async fn the_provider_user_agent_replaces_ours() {
     let server = Fixture::start(vec![ok()]).await;
@@ -124,8 +124,8 @@ async fn provider_headers_go_between_the_source_and_the_request_headers() {
     assert!(events.iter().all(Result::is_ok), "{events:?}");
     let captured = &server.requests()[0];
     for (name, value) in [
-        ("http-referer", "https://zcode.z.ai"),
-        ("user-agent", "ZCode/0.1.52"),
+        ("http-referer", "https://api.nibistudio.top"),
+        ("user-agent", "NIBI/0.1.52"),
         ("x-zcode-app-version", "0.1.52"),
         ("x-title", "Probe"),
         ("x-release-channel", "production"),

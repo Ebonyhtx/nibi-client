@@ -1412,7 +1412,7 @@ describe("MCP OAuth client credentials e2e", () => {
       ]);
       expect(registrationRequests).toHaveLength(1);
       expect(registrationRequests[0]).toMatchObject({
-        client_name: "ZCode notion",
+        client_name: "NIBI notion",
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],
         scope: MCP_SCOPE,

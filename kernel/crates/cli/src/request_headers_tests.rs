@@ -112,11 +112,11 @@ fn the_version_and_the_service_address() {
     let host = Host::default();
     let facts = facts(&none, "0.1.52", &host).unwrap();
     assert_eq!(facts.version, "0.1.52");
-    assert_eq!(facts.endpoint_origin, "https://zcode.z.ai");
+    assert_eq!(facts.endpoint_origin, "https://api.nibistudio.top");
     assert_eq!(facts.release_channel, "production");
     assert_eq!(facts.platform, node_platform());
     assert_eq!(facts.arch, node_arch());
-    let bad = |name: &str| (name == "ZCODE_BASE_URL").then(|| "ftp://x".to_owned());
+    let bad = |name: &str| (name == "NIBI_BASE_URL").then(|| "ftp://x".to_owned());
     assert!(super::facts(&bad, "0.1.52", &host).is_err());
 }
 

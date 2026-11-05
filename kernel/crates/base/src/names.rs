@@ -60,9 +60,13 @@ pub const EXECUTOR_HOME: &str = "rust-cli/exec";
 /// Unix 上的可执行文件名（cli-args.md §13）：上传到远端的执行器、远端探测的候选都是这个名字。
 pub const UNIX_EXECUTABLE: &str = "zcode-rs";
 
-/// 发给服务的客户端名：MCP `initialize` 的 `clientInfo.name` 与签发项目令牌的 `clientType`（F55：以前 ext 与
-/// platform 各写一份；版本号由入口传下去）。
-pub const CLIENT_NAME: &str = "zcode";
+/// MCP `initialize` 的 `clientInfo.name`（F55：以前 ext 与 platform 各写一份；版本号由入口传下去）。这是对第三方
+/// MCP server 可见的客户端身份，用 NIBI 的品牌名。
+pub const MCP_CLIENT_NAME: &str = "nibi";
+
+/// 签发项目令牌的 `clientType`：**服务端契约**。NIBI 服务按 `"zcode"` 校验（桌面 e2e 的控制面 mock 也这样断言），
+/// 改名要与服务端同一批迁移，不能单独跟品牌化改。
+pub const TOKEN_CLIENT_TYPE: &str = "zcode";
 
 /// 给用户程序的变量名（hook 进程的环境、插件 MCP 的环境与 `${…}` 配置变量、插件 agent 与 skill 正文里的 `${…}`）：
 /// Node 两套都给，`ZCODE_*` 与另一种插件格式用的名字（同时兼容两种插件，config.md §2.5.1）。F55：以前 hooks、ext、

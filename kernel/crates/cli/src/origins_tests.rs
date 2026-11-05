@@ -17,7 +17,8 @@ fn origins(pairs: &[(&str, &str)]) -> Result<AccountOrigins, String> {
 #[test]
 fn production_defaults() {
     let origins = origins(&[]).unwrap();
-    assert_eq!(origins.zcode_api, "https://zcode.z.ai/api/v1");
+    // Node `DEFAULT_NIBI_ENDPOINT_ORIGIN`：NIBI 自己的服务，不是上游。
+    assert_eq!(origins.zcode_api, "https://api.nibistudio.top/api/v1");
     assert_eq!(origins.zai_api, "https://api.z.ai");
     assert_eq!(origins.bigmodel_api, "https://bigmodel.cn");
     assert_eq!(origins.client_version, "0.1.0");
@@ -25,7 +26,8 @@ fn production_defaults() {
 
 #[test]
 fn environment_overrides_follow_node() {
-    let test = origins(&[("ZCODE_ENV", "TEST")]).unwrap();
+    let test = origins(&[("NIBI_ENV", "TEST")]).unwrap();
+    // Node `TEST_NIBI_ENDPOINT_ORIGIN`（上游的技术端点）与 Node 一致。
     assert_eq!(test.zcode_api, "https://zcode.z.ai/api/v1");
     assert_eq!(test.bigmodel_api, "https://bigmodel.cn");
     // Z.ai 业务地址按 App 的 resolveZaiBusinessBaseUrl（工作线 F47）。
@@ -40,7 +42,7 @@ fn environment_overrides_follow_node() {
     .unwrap();
     assert_eq!(zai.zai_api, "https://zai.example.com");
     let zai = origins(&[
-        ("ZCODE_ENV", "test"),
+        ("NIBI_ENV", "test"),
         ("ZAI_BUSINESS_BASE_URL", "http://127.0.0.1:9000/"),
         ("ZAI_TEST_BUSINESS_BASE_URL", "https://zai-test.example.com"),
     ])
@@ -49,8 +51,8 @@ fn environment_overrides_follow_node() {
     assert!(origins(&[("ZAI_BUSINESS_BASE_URL", "not a url")]).is_err());
     // 通用覆盖优先于分环境覆盖；只取 origin。
     let overridden = origins(&[
-        ("ZCODE_PRODUCTION_BASE_URL", "https://prod.example.com"),
-        ("ZCODE_ENDPOINT_ORIGIN", "http://127.0.0.1:8080/path"),
+        ("NIBI_PRODUCTION_BASE_URL", "https://prod.example.com"),
+        ("NIBI_ENDPOINT_ORIGIN", "http://127.0.0.1:8080/path"),
         (
             "BIGMODEL_PRODUCTION_API_BASE_URL",
             "https://big.example.com/x",
@@ -61,13 +63,35 @@ fn environment_overrides_follow_node() {
     assert_eq!(overridden.bigmodel_api, "https://big.example.com");
     // 测试环境不看生产环境的变量。
     let scoped = origins(&[
-        ("ZCODE_ENV", "test"),
-        ("ZCODE_PRODUCTION_BASE_URL", "https://prod.example.com"),
+        ("NIBI_ENV", "test"),
+        ("NIBI_PRODUCTION_BASE_URL", "https://prod.example.com"),
         ("BIGMODEL_TEST_API_BASE_URL", "https://dev.example.com"),
     ])
     .unwrap();
     assert_eq!(scoped.zcode_api, "https://zcode.z.ai/api/v1");
     assert_eq!(scoped.bigmodel_api, "https://dev.example.com");
+    assert!(origins(&[("NIBI_BASE_URL", "ftp://example.com")]).is_err());
+}
+
+/// 环境档与端点：NIBI 名优先，旧名 `ZCODE_*` 只在整个 NIBI 缺失时回退（Host 只下发 NIBI 名）。
+#[test]
+fn nibi_names_win_and_the_legacy_names_still_work() {
+    let both = origins(&[("NIBI_ENV", "production"), ("ZCODE_ENV", "test")]).unwrap();
+    assert_eq!(both.zcode_api, "https://api.nibistudio.top/api/v1");
+    let both = origins(&[
+        ("NIBI_BASE_URL", "https://nibi.example.com"),
+        ("ZCODE_BASE_URL", "https://legacy.example.com"),
+        ("ZCODE_ENDPOINT_ORIGIN", "https://legacy-2.example.com"),
+    ])
+    .unwrap();
+    assert_eq!(both.zcode_api, "https://nibi.example.com/api/v1");
+    // 没有任何 NIBI 变量时旧名照旧生效。
+    let legacy = origins(&[
+        ("ZCODE_ENV", "test"),
+        ("ZCODE_TEST_BASE_URL", "https://legacy-test.example.com/x"),
+    ])
+    .unwrap();
+    assert_eq!(legacy.zcode_api, "https://legacy-test.example.com/api/v1");
     assert!(origins(&[("ZCODE_BASE_URL", "ftp://example.com")]).is_err());
 }
 
@@ -82,7 +106,7 @@ fn team_manage_pages_follow_the_app() {
         "https://bigmodel.cn/coding-plan/team/plans"
     );
     let test = origins(&[
-        ("ZCODE_ENV", "test"),
+        ("NIBI_ENV", "test"),
         ("BIGMODEL_TEST_API_BASE_URL", "https://dev.example.com"),
     ])
     .unwrap();

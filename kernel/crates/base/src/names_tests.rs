@@ -14,7 +14,8 @@ fn the_names_keep_their_values() {
     assert_eq!(WORKTREES_DIR, "worktrees");
     assert_eq!(AGENTS_DIR, "agents");
     assert_eq!(SCHEDULED_TASKS_FILE, "scheduled_tasks.json");
-    assert_eq!(CLIENT_NAME, "zcode");
+    assert_eq!(MCP_CLIENT_NAME, "nibi");
+    assert_eq!(TOKEN_CLIENT_TYPE, "zcode");
     assert_eq!(OFFICIAL_MARKETPLACE, "nibi-official");
 }
 

@@ -337,7 +337,7 @@ describe("createMcpAdapter", () => {
 
     expect(capturedClientInfo).toEqual([
       {
-        name: "zcode",
+        name: "nibi",
         version: "9.8.7",
       },
     ]);

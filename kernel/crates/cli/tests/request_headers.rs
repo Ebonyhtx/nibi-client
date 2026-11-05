@@ -86,7 +86,7 @@ fn a_real_request_carries_the_node_headers() {
     let requests = run(&[
         ("LANG", "zh_CN.UTF-8"),
         ("TZ", "Asia/Tokyo"),
-        ("ZCODE_ENV", "test"),
+        ("NIBI_ENV", "test"),
     ]);
     assert_eq!(requests.len(), 2);
     let version = version();
@@ -102,10 +102,10 @@ fn a_real_request_carries_the_node_headers() {
     };
     for headers in &requests {
         for (name, value) in [
-            ("http-referer", "https://zcode.z.ai"),
-            ("user-agent", format!("ZCode/{version}").as_str()),
+            ("http-referer", "https://api.nibistudio.top"),
+            ("user-agent", format!("NIBI/{version}").as_str()),
             ("x-zcode-app-version", version.as_str()),
-            ("x-title", "Z Code@cli"),
+            ("x-title", "NIBI@cli"),
             ("x-release-channel", "test"),
             ("x-client-language", "zh-CN"),
             ("x-client-timezone", "Asia/Tokyo"),
@@ -135,18 +135,23 @@ fn a_real_request_carries_the_node_headers() {
     assert_ne!(get(first, "x-request-id"), get(second, "x-request-id"));
 }
 
-/// `ZCODE_APP_VERSION` 设了就用它（Node 的 `??`：空值也算设了，版本写 `unknown`、不发版本头）；没设 `LANG` 时是 `en-US`。
+/// `NIBI_APP_VERSION` 设了就用它（Node 的 `??`：空值也算设了，版本写 `unknown`、不发版本头）；旧名
+/// `ZCODE_APP_VERSION` 只在没设 NIBI 名时回退；没设 `LANG` 时是 `en-US`。
 #[test]
 fn the_app_version_variable_comes_first() {
-    let requests = run(&[("ZCODE_APP_VERSION", "9.9.9"), ("TZ", "UTC")]);
+    let requests = run(&[("NIBI_APP_VERSION", "9.9.9"), ("TZ", "UTC")]);
     let headers = &requests[0];
-    assert_eq!(get(headers, "user-agent"), Some("ZCode/9.9.9"));
+    assert_eq!(get(headers, "user-agent"), Some("NIBI/9.9.9"));
     assert_eq!(get(headers, "x-zcode-app-version"), Some("9.9.9"));
     assert_eq!(get(headers, "x-client-language"), Some("en-US"));
     assert_eq!(get(headers, "x-client-timezone"), Some("UTC"));
-    assert_eq!(get(headers, "http-referer"), Some("https://zcode.z.ai"));
+    assert_eq!(get(headers, "http-referer"), Some("https://api.nibistudio.top"));
     assert_eq!(get(headers, "x-release-channel"), Some("production"));
-    let requests = run(&[("ZCODE_APP_VERSION", "")]);
-    assert_eq!(get(&requests[0], "user-agent"), Some("ZCode/unknown"));
+    let requests = run(&[("NIBI_APP_VERSION", "")]);
+    assert_eq!(get(&requests[0], "user-agent"), Some("NIBI/unknown"));
     assert_eq!(get(&requests[0], "x-zcode-app-version"), None);
+    // 旧名回退：只设旧名时仍按它发（独立 CLI 的历史脚本）。
+    let requests = run(&[("ZCODE_APP_VERSION", "8.8.8")]);
+    assert_eq!(get(&requests[0], "user-agent"), Some("NIBI/8.8.8"));
+    assert_eq!(get(&requests[0], "x-zcode-app-version"), Some("8.8.8"));
 }

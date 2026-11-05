@@ -85,14 +85,14 @@ pub fn source_headers(facts: &SourceFacts) -> Vec<(String, String)> {
         ("http-referer", facts.endpoint_origin.clone()),
         (
             header::USER_AGENT,
-            header::zcode_user_agent(version.unwrap_or(UNKNOWN)),
+            header::nibi_user_agent(version.unwrap_or(UNKNOWN)),
         ),
     ];
     if let Some(version) = version {
         out.push(("x-zcode-app-version", version.to_owned()));
     }
     out.extend([
-        ("x-title", "Z Code@cli".to_owned()),
+        ("x-title", "NIBI@cli".to_owned()),
         ("x-release-channel", facts.release_channel.clone()),
         ("x-client-language", printable_or_unknown(&facts.locale)),
         ("x-client-timezone", printable_or_unknown(&facts.time_zone)),
@@ -112,7 +112,7 @@ pub fn source_headers(facts: &SourceFacts) -> Vec<(String, String)> {
 
 /// OpenRouter 端点另带的两个归因头（Node `OPENROUTER_ATTRIBUTION_HEADERS`）。
 const OPENROUTER: [(&str, &str); 2] = [
-    ("x-openrouter-title", "ZCode"),
+    ("x-openrouter-title", "NIBI"),
     ("x-openrouter-categories", "programming-app"),
 ];
 
