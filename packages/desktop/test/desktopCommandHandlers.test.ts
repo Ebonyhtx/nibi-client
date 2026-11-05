@@ -324,7 +324,7 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
       command: DesktopCommandIds.SetZCodeEndpointTest,
     });
     expect(commandOptions.settingService.update).toHaveBeenLastCalledWith({
-      zcodeEndpointOrigin: "https://zcode.z.ai",
+      zcodeEndpointOrigin: "https://api-test.nibistudio.top",
     });
 
     await executeDesktopCommand({

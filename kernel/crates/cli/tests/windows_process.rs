@@ -58,7 +58,7 @@ impl Sandbox {
     }
 
     /// 起 `nibi-rs` 的命令：只有系统变量、找 Git Bash 的变量与本测试设的；`model` 是本地模型夹具的地址。
-    fn zcode(&self, args: &[&str], model: Option<&str>) -> Command {
+    fn nibi(&self, args: &[&str], model: Option<&str>) -> Command {
         let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(args)

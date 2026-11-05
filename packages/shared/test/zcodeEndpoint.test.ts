@@ -51,9 +51,9 @@ describe("zcodeEndpoint", () => {
     expect(
       resolveZCodeEndpointOrigin({
         env: "test",
-        overrideOrigin: "https://zcode.z.ai/api/v1/ignored?x=1",
+        overrideOrigin: "https://override.example/api/v1/ignored?x=1",
       }),
-    ).toBe(TEST_NIBI_ENDPOINT_ORIGIN);
+    ).toBe("https://override.example");
   });
 
   it("ignores overrides in production", () => {
@@ -118,7 +118,7 @@ describe("zcodeEndpoint", () => {
       resolveWebRemoteControlRelayWsUrl({
         endpointOrigin: TEST_NIBI_ENDPOINT_ORIGIN,
       }),
-    ).toBe("wss://zcode.z.ai/api/v1/remote/ws2");
+    ).toBe("wss://api-test.nibistudio.top/api/v1/remote/ws2");
     expect(
       resolveWebRemoteControlRelayWsUrl({
         endpointOrigin: DEFAULT_NIBI_ENDPOINT_ORIGIN,
@@ -172,7 +172,7 @@ describe("zcodeEndpoint", () => {
 
   it("builds product endpoint URLs from the selected environment", () => {
     expect(buildRuntimeZCodeApiUrl({ NIBI_ENV: "test" }, "/api/v1/oauth/token")).toBe(
-      "https://zcode.z.ai/api/v1/oauth/token",
+      "https://api-test.nibistudio.top/api/v1/oauth/token",
     );
     expect(buildRuntimeZaiOAuthUrl({ NIBI_ENV: "test" }, "/api/oauth/authorize")).toBe(
       "https://chat.z.ai/api/oauth/authorize",
@@ -253,9 +253,9 @@ describe("zcodeEndpoint", () => {
 
   it("persists optional endpoint override in app settings", () => {
     expect(
-      appSettingsSchema.parse({ zcodeEndpointOrigin: "https://zcode.z.ai/path" })
+      appSettingsSchema.parse({ zcodeEndpointOrigin: "https://override.example/path" })
         .zcodeEndpointOrigin,
-    ).toBe(TEST_NIBI_ENDPOINT_ORIGIN);
+    ).toBe("https://override.example");
     expect(
       appSettingsPatchSchema.parse({ zcodeEndpointOrigin: "http://localhost:3030/foo" })
         .zcodeEndpointOrigin,

@@ -15,9 +15,10 @@ use rust_cli_platform::AccountOrigins;
 
 /// NIBI 的正式服务（Node `DEFAULT_NIBI_ENDPOINT_ORIGIN`，`packages/shared/src/zcodeEndpoint.ts`）。
 const NIBI_ORIGIN: &str = "https://api.nibistudio.top";
-/// 测试档的默认端点（Node `TEST_NIBI_ENDPOINT_ORIGIN`：上游的技术端点；NIBI 自己的测试部署用
-/// `NIBI_TEST_BASE_URL` 覆盖）。与 Node 保持一致，不在这里另立默认值。
-const NIBI_TEST_ORIGIN: &str = "https://zcode.z.ai";
+/// 测试档的默认端点（Node `TEST_NIBI_ENDPOINT_ORIGIN` 同一保留位：NIBI 自有域名，测试后端
+/// 尚未部署；用 `NIBI_TEST_BASE_URL` 覆盖）。分家前这里是上游技术端点——任何默认回退到
+/// 上游都会把登录/换证发给第三方，属于端点隔离缺陷。
+const NIBI_TEST_ORIGIN: &str = "https://api-test.nibistudio.top";
 const BIGMODEL_ORIGIN: &str = "https://bigmodel.cn";
 const BIGMODEL_TEST_ORIGIN: &str = "https://bigmodel.cn";
 const ZAI_API: &str = "https://api.z.ai";

@@ -68,7 +68,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://zcode.z.ai"
+          "https://api-test.nibistudio.top"
         ],
         [
           "User-Agent",

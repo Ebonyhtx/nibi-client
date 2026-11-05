@@ -8,8 +8,11 @@ export const DEFAULT_NIBI_ENDPOINT_ORIGIN = "https://api.nibistudio.top";
 // 而 rewriteZCodeEndpointUrl 只改写"认得的来源"——不认这个就会出现"要改写的 URL 命中不了"
 // （遥测绕过我们的端点直发上游）。见该函数注释。
 export const UPSTREAM_NIBI_ENDPOINT_ORIGIN = "https://zcode.z.ai";
-// 上游新增（技术端点，非用户可见文案）：test 档端点。
-export const TEST_NIBI_ENDPOINT_ORIGIN = "https://zcode.z.ai";
+// test 档端点：NIBI 自有域名的保留位（尚未部署测试后端）。
+// 分家前这里是上游 https://zcode.z.ai；任何默认回退到上游都违反端点隔离
+// （test 档构建会把登录换证/许可证检查发给上游）。未部署时 DNS 失败即 fail-closed，
+// 测试/E2E 必须显式注入 NIBI_BASE_URL 或本地 mock。
+export const TEST_NIBI_ENDPOINT_ORIGIN = "https://api-test.nibistudio.top";
 // NIBI 会员购买页（我们自己的官网）。客户端内嵌的是这一页，不是上游 Coding Plan 页。
 export const DEFAULT_NIBI_WEB_ORIGIN = "https://nibistudio.top";
 export const NIBI_WEB_ORIGIN_ALIASES: readonly string[] = ["https://www.nibistudio.top"];
