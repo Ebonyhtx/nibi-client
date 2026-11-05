@@ -58,7 +58,7 @@ pub const OFFICIAL_MARKETPLACE: &str = "nibi-official";
 pub const EXECUTOR_HOME: &str = "rust-cli/exec";
 
 /// Unix 上的可执行文件名（cli-args.md §13）：上传到远端的执行器、远端探测的候选都是这个名字。
-pub const UNIX_EXECUTABLE: &str = "zcode-rs";
+pub const UNIX_EXECUTABLE: &str = "nibi-rs";
 
 /// MCP `initialize` 的 `clientInfo.name`（F55：以前 ext 与 platform 各写一份；版本号由入口传下去）。这是对第三方
 /// MCP server 可见的客户端身份，用 NIBI 的品牌名。

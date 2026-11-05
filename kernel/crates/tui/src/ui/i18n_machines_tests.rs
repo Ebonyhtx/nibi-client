@@ -119,11 +119,11 @@ fn downloads_musl_and_old_glibc_are_said_plainly() {
     };
     assert_eq!(
         failure_text(Lang::En, "dev-a", &download),
-        "Couldn't download the zcode 0.1.61 executor (aarch64-unknown-linux-gnu) to upload to dev-a: GET https://registry.example.com/x: HTTP 404. No compatible executor is installed there either."
+        "Couldn't download the NIBI 0.1.61 executor (aarch64-unknown-linux-gnu) to upload to dev-a: GET https://registry.example.com/x: HTTP 404. No compatible executor is installed there either."
     );
     assert_eq!(
         failure_text(Lang::Zh, "dev-a", &download),
-        "无法下载要上传到 dev-a 的 zcode 0.1.61 执行器（aarch64-unknown-linux-gnu）：GET https://registry.example.com/x: HTTP 404。那台机器上也没有兼容的执行器。"
+        "无法下载要上传到 dev-a 的 NIBI 0.1.61 执行器（aarch64-unknown-linux-gnu）：GET https://registry.example.com/x: HTTP 404。那台机器上也没有兼容的执行器。"
     );
     // F107（remote-exec.md §28.6）：平台没有包（Intel Mac）、上传的执行器被系统杀掉（签名无效）。
     let no_package = MachineFailure::NoPackage {
@@ -131,27 +131,27 @@ fn downloads_musl_and_old_glibc_are_said_plainly() {
     };
     assert_eq!(
         failure_text(Lang::En, "mac-2", &no_package),
-        "There's no zcode executor package for mac-2 (it would be darwin-x64), and no compatible executor is installed there. Install zcode on that machine with `npm i -g @mbearo/zcode`, then connect again."
+        "There's no NIBI executor package for mac-2 (it would be darwin-x64), and no compatible executor is installed there. Install NIBI on that machine with `npm i -g @nibi/cli`, then connect again."
     );
     assert_eq!(
         failure_text(Lang::Zh, "mac-2", &no_package),
-        "没有 mac-2 这种平台的 zcode 执行器包（应该是 darwin-x64），那台机器上也没有兼容的执行器。请在那台机器上用 `npm i -g @mbearo/zcode` 装好 zcode，然后再连。"
+        "没有 mac-2 这种平台的 NIBI 执行器包（应该是 darwin-x64），那台机器上也没有兼容的执行器。请在那台机器上用 `npm i -g @nibi/cli` 装好 NIBI，然后再连。"
     );
     assert_eq!(
         failure_text(Lang::En, "mac-2", &MachineFailure::Unsigned),
-        "The uploaded zcode executor was killed on mac-2: macOS refuses to run it because its signature is not valid. Install zcode on that machine with `npm i -g @mbearo/zcode`, or sign the file there with `codesign -s -`."
+        "The uploaded NIBI executor was killed on mac-2: macOS refuses to run it because its signature is not valid. Install NIBI on that machine with `npm i -g @nibi/cli`, or sign the file there with `codesign -s -`."
     );
     assert_eq!(
         failure_text(Lang::Zh, "mac-2", &MachineFailure::Unsigned),
-        "上传到 mac-2 的 zcode 执行器被系统杀掉了：macOS 认为它的签名无效，不让它运行。请在那台机器上用 `npm i -g @mbearo/zcode` 装好 zcode，或者在那台机器上用 `codesign -s -` 给它签名。"
+        "上传到 mac-2 的 NIBI 执行器被系统杀掉了：macOS 认为它的签名无效，不让它运行。请在那台机器上用 `npm i -g @nibi/cli` 装好 NIBI，或者在那台机器上用 `codesign -s -` 给它签名。"
     );
     assert_eq!(
         failure_text(Lang::En, "dev-a", &MachineFailure::Musl),
-        "dev-a uses musl libc (for example Alpine), and there's no zcode executor package for musl. Use a glibc-based Linux such as Debian or Ubuntu."
+        "dev-a uses musl libc (for example Alpine), and there's no NIBI executor package for musl. Use a glibc-based Linux such as Debian or Ubuntu."
     );
     assert_eq!(
         failure_text(Lang::Zh, "dev-a", &MachineFailure::Musl),
-        "dev-a 用的是 musl libc（例如 Alpine），没有对应的 zcode 执行器包。请换用基于 glibc 的 Linux（例如 Debian、Ubuntu）。"
+        "dev-a 用的是 musl libc（例如 Alpine），没有对应的 NIBI 执行器包。请换用基于 glibc 的 Linux（例如 Debian、Ubuntu）。"
     );
     let old = |glibc: Option<&str>| MachineFailure::OldGlibc {
         glibc: glibc.map(str::to_owned),
@@ -159,11 +159,11 @@ fn downloads_musl_and_old_glibc_are_said_plainly() {
     };
     assert_eq!(
         failure_text(Lang::En, "dev-a", &old(Some("2.31"))),
-        "The zcode executor can't run on dev-a: it needs GLIBC_2.34, but dev-a has glibc 2.31. Upgrade that machine's system or use a newer Linux."
+        "The NIBI executor can't run on dev-a: it needs GLIBC_2.34, but dev-a has glibc 2.31. Upgrade that machine's system or use a newer Linux."
     );
     assert_eq!(
         failure_text(Lang::Zh, "dev-a", &old(Some("2.31"))),
-        "zcode 执行器在 dev-a 上跑不起来：它要 GLIBC_2.34，dev-a 的 glibc 是 2.31。请升级那台机器的系统或换用更新的 Linux。"
+        "NIBI 执行器在 dev-a 上跑不起来：它要 GLIBC_2.34，dev-a 的 glibc 是 2.31。请升级那台机器的系统或换用更新的 Linux。"
     );
     assert!(
         failure_text(Lang::En, "dev-a", &old(None)).contains("but dev-a's glibc is older."),
@@ -185,10 +185,10 @@ fn a_latest_with_another_protocol_names_both_versions_and_the_way_out() {
     };
     assert_eq!(
         failure_text(Lang::En, "dev-a", &failure),
-        "This zcode (0.1.64, protocol 1) isn't on npm, and the latest executor on npm, zcode 0.1.63, speaks protocol 2, so there's no executor for dev-a. Connect again after a new version is published, or put a zcode 0.1.64 executor at ~/.nibi/rust-cli/exec/dist/0.1.64/aarch64-unknown-linux-gnu/zcode-rs on this computer."
+        "This NIBI (0.1.64, protocol 1) isn't on npm, and the latest executor on npm, NIBI 0.1.63, speaks protocol 2, so there's no executor for dev-a. Connect again after a new version is published, or put a NIBI 0.1.64 executor at ~/.nibi/rust-cli/exec/dist/0.1.64/aarch64-unknown-linux-gnu/nibi-rs on this computer."
     );
     assert_eq!(
         failure_text(Lang::Zh, "dev-a", &failure),
-        "本机的 zcode 0.1.64（协议 1）不在 npm 上，npm 上最新的执行器 zcode 0.1.63 是协议 2，dev-a 没有能用的执行器。请在发布新版之后再连，或者把 zcode 0.1.64 的执行器放到本机的 ~/.nibi/rust-cli/exec/dist/0.1.64/aarch64-unknown-linux-gnu/zcode-rs。"
+        "本机的 NIBI 0.1.64（协议 1）不在 npm 上，npm 上最新的执行器 NIBI 0.1.63 是协议 2，dev-a 没有能用的执行器。请在发布新版之后再连，或者把 NIBI 0.1.64 的执行器放到本机的 ~/.nibi/rust-cli/exec/dist/0.1.64/aarch64-unknown-linux-gnu/nibi-rs。"
     );
 }

@@ -448,7 +448,7 @@ async fn openai_quota_and_content_filter() {
 fn print_mode_reads_the_assumed_base_url() {
     let sandbox = Sandbox::new();
     let fixture = sse::serve_with(vec![coded(429, "1308", "已达到套餐用量上限")]);
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "hi"])
         .current_dir(&sandbox.work)

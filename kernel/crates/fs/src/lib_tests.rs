@@ -69,7 +69,7 @@ async fn private_files_are_exactly_owner_only() {
 async fn executable_files_are_exactly_0755() {
     use std::os::unix::fs::PermissionsExt;
     let directory = tempfile::tempdir().unwrap();
-    let target = directory.path().join("zcode-rs");
+    let target = directory.path().join("nibi-rs");
     atomic_write(
         &target,
         b"\x7fELF",
@@ -80,7 +80,7 @@ async fn executable_files_are_exactly_0755() {
     let mode = std::fs::metadata(&target).unwrap().permissions().mode();
     assert_eq!(mode & 0o777, 0o755);
     assert_eq!(std::fs::read(&target).unwrap(), b"\x7fELF");
-    assert_eq!(entries(directory.path()), ["zcode-rs"]);
+    assert_eq!(entries(directory.path()), ["nibi-rs"]);
 }
 
 #[tokio::test]

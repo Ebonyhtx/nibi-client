@@ -78,7 +78,7 @@ fn run(tz: &str, offset_minutes: i64) -> (String, String, [String; 2]) {
     std::fs::create_dir_all(&home).unwrap();
     let (server, bodies) = model_server();
     let before = local_date(offset_minutes);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "what day is it"])
         .current_dir(&work)
         .env_clear()

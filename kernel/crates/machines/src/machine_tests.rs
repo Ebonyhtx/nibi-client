@@ -35,7 +35,7 @@ impl Provisioner for Steps {
 
 fn provisioned() -> Provisioned {
     Provisioned {
-        program: "/remote/zcode-rs".to_owned(),
+        program: "/remote/nibi-rs".to_owned(),
         args: vec!["executor".to_owned(), "--stdio".to_owned()],
     }
 }

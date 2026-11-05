@@ -1,6 +1,6 @@
 [package]
 name = "rust-cli"
-description = "rust-cli composition root and the zcode-rs executable (command name zcode)"
+description = "rust-cli composition root and the nibi-rs executable (command name nibi)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,11 +10,11 @@ publish.workspace = true
 [lints]
 workspace = true
 
-# 可执行文件名 `zcode-rs`（macOS / Linux 的进程列表里显示它），用户敲的命令仍是 `zcode`（npm 包的 bin 名）：
+# 可执行文件名 `nibi-rs`（macOS / Linux 的进程列表里显示它），用户敲的命令是 `nibi`（npm 包的 bin 名）：
 # docs/specs/rust-cli/cli-args.md §13，工作线 F59。脚本经 scripts/rust-cli/binary.mjs 取这个名字。Windows 的平台包里
-# 打包时复制成 `zcode.exe`（工作线 F71；cargo 不能按平台起不同的名字）。
+# 打包时复制成 `nibi.exe`（工作线 F71；cargo 不能按平台起不同的名字）。
 [[bin]]
-name = "zcode-rs"
+name = "nibi-rs"
 path = "src/main.rs"
 doctest = false
 

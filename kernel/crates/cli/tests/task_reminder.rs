@@ -44,7 +44,7 @@ async fn ten_rounds_without_task_tools_bring_the_reminder() {
     }
     script.push(sse::text_reply("done"));
     let fixture = sse::serve(script);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()

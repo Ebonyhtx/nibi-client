@@ -54,7 +54,7 @@ export async function startAgent(
   const sockets = new Map<string, Socket>();
   const connections = new Set<Socket>();
   const socketSources = new Map<Socket, string>();
-  // Rust 内核（`--rust`）：同一个夹具改为拉起 `zcode-rs app-server --stdio`，MCP 服务器仍用 node。
+  // Rust 内核（`--rust`）：同一个夹具改为拉起 `nibi-rs app-server --stdio`，MCP 服务器仍用 node。
   // Rust 的交互是 v4 `pendingInteractions` + `resolveInteraction`，不是 legacy 反向请求；下面把
   // pending 权限项归一成 legacy 形状，调用方（`r.params.input.key`）与 `respond` 都不用改。
   const rustBin = process.env.NIBI_MCP_E2E_RUST_BIN?.trim();

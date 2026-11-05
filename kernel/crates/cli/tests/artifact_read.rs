@@ -143,7 +143,7 @@ async fn read_returns_persisted_tool_and_hook_output_from_the_real_store() {
         })),
         sse::Reply::Fixed(sse::text_reply("read back")),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         // 点名 Grep 才暴露它（tools-files.md §1.1）。
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .args(["--allowedTools", "Grep,Read"])

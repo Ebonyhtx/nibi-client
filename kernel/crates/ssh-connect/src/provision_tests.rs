@@ -91,7 +91,7 @@ impl Remote {
         bytes[..4].copy_from_slice(&0xfeed_facfu32.to_le_bytes());
         bytes[4..8].copy_from_slice(&0x0100_000cu32.to_le_bytes());
         bytes.extend_from_slice(&[7u8; 5000]);
-        let path = self.root.path().join("zcode-rs-darwin");
+        let path = self.root.path().join("nibi-rs-darwin");
         std::fs::write(&path, &bytes).unwrap();
         (path, bytes)
     }
@@ -103,7 +103,7 @@ impl Remote {
         bytes[16] = 2;
         bytes[18] = 62;
         bytes.extend_from_slice(&[7u8; 5000]);
-        let path = self.root.path().join("zcode-rs");
+        let path = self.root.path().join("nibi-rs");
         std::fs::write(&path, &bytes).unwrap();
         (path, bytes)
     }
@@ -133,7 +133,7 @@ async fn the_executor_is_uploaded_verified_and_used() {
     let provisioned = provisioner.provision().await.unwrap();
     let installed = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/zcode-rs");
+        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs");
     assert_eq!(
         provisioned,
         Provisioned {
@@ -149,7 +149,7 @@ async fn the_executor_is_uploaded_verified_and_used() {
         .unwrap()
         .map(|entry| entry.unwrap().file_name())
         .collect();
-    assert_eq!(left, [std::ffi::OsString::from("zcode-rs")]);
+    assert_eq!(left, [std::ffi::OsString::from("nibi-rs")]);
 }
 
 #[tokio::test]
@@ -157,7 +157,7 @@ async fn an_installed_executor_of_the_same_version_is_used_without_uploading() {
     let remote = Remote::new();
     let installed = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/zcode-rs");
+        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs");
     std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
     std::fs::write(
         &installed,
@@ -256,9 +256,9 @@ async fn ssh_failures_that_retrying_cannot_fix_are_rejected() {
         matches!(&denied, Err(LinkError::Rejected(message)) if message.contains("Permission denied")),
         "{denied:?}"
     );
-    let missing = ended(&remote, "dev-a", "/nowhere/zcode-rs").await;
+    let missing = ended(&remote, "dev-a", "/nowhere/nibi-rs").await;
     assert!(
-        matches!(&missing, Err(LinkError::Rejected(message)) if message.contains("/nowhere/zcode-rs")),
+        matches!(&missing, Err(LinkError::Rejected(message)) if message.contains("/nowhere/nibi-rs")),
         "{missing:?}"
     );
     let down = ended(&remote, "down", "/bin/true").await;
@@ -276,8 +276,8 @@ fn the_rejection_rules_follow_the_ssh_messages() {
         "executor exited (exit status: 255): Received disconnect from 10.0.0.2 port 22:2: Too many authentication failures\n",
         "executor exited (exit status: 255): Host key verification failed.\n",
         "executor exited (exit status: 255): @@@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @@@\n",
-        "executor exited (exit status: 127): sh: /root/.zcode/rust-cli/exec/bin/x/zcode-rs: not found\n",
-        "executor exited (exit status: 126): sh: /root/x/zcode-rs: Permission denied\n",
+        "executor exited (exit status: 127): sh: /root/.zcode/rust-cli/exec/bin/x/nibi-rs: not found\n",
+        "executor exited (exit status: 126): sh: /root/x/nibi-rs: Permission denied\n",
     ] {
         assert!(rejected(message), "{message}");
     }
@@ -315,7 +315,7 @@ async fn uploading_reports_its_size_first() {
     let remote = Remote::new();
     let installed = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/zcode-rs");
+        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs");
     std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
     std::fs::write(
         &installed,

@@ -1,5 +1,5 @@
-//! 可执行文件名与命令名（docs/specs/rust-cli/cli-args.md §13，工作线 F59）：cargo 产出的可执行文件是 `zcode-rs`
-//! （Cargo `[[bin]]` 名，打包位次是 `nibi-rs`），用户敲的命令是 `nibi`（npm 包的 bin 名）。把产物复制成这些名字
+//! 可执行文件名与命令名（docs/specs/rust-cli/cli-args.md §13，工作线 F59）：cargo 产出的可执行文件是 `nibi-rs`
+//! （Cargo `[[bin]]` 名，也是打包位次），用户敲的命令是 `nibi`（npm 包的 bin 名）。把产物复制成这些名字
 //! （Windows 带 `.exe`）都走正常入口：argv0 分派只认 rg / bfs / ugrep；帮助与版本里的程序名固定是 `nibi`，
 //! 不看 argv[0]。临时 HOME，不读真实配置。
 #![allow(
@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
 use system_env::KeepSystem as _;
 
-const BUILT: &str = env!("CARGO_BIN_EXE_zcode-rs");
+const BUILT: &str = env!("CARGO_BIN_EXE_nibi-rs");
 
 /// 把产物复制成 `dir/<name>`（Windows 加 `.exe`）。
 fn copy_as(dir: &Path, name: &str) -> PathBuf {
@@ -45,7 +45,7 @@ fn run(program: &Path, flag: &str, home: &Path) -> Output {
 fn the_built_executable_is_zcode_rs() {
     assert_eq!(
         Path::new(BUILT).file_name().unwrap().to_str(),
-        Some(format!("zcode-rs{EXE_SUFFIX}").as_str())
+        Some(format!("nibi-rs{EXE_SUFFIX}").as_str())
     );
 }
 
@@ -54,7 +54,7 @@ fn copies_named_zcode_rs_or_zcode_start_normally() {
     let version = env!("NIBI_BUILD_VERSION");
     // 放在产物旁边：同一个卷上复制更快（APFS 上是克隆）。
     let dir = tempfile::tempdir_in(Path::new(BUILT).parent().unwrap()).unwrap();
-    for name in ["zcode-rs", "zcode"] {
+    for name in ["nibi-rs", "zcode"] {
         let program = copy_as(dir.path(), name);
         let home = tempfile::tempdir().unwrap();
 

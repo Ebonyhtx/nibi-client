@@ -195,9 +195,9 @@ pub(crate) fn gzip(bytes: &[u8]) -> Vec<u8> {
     encoder.finish().unwrap()
 }
 
-/// npm 样子的平台包：`package/package.json`、`package/build.json`、`package/bin/zcode-rs`。
+/// npm 样子的平台包：`package/package.json`、`package/build.json`、`package/bin/nibi-rs`。
 pub(crate) fn package(binary: &[u8], build: &[u8]) -> Vec<u8> {
-    let manifest = br#"{"name":"@mbearo/zcode-linux-x64-gnu"}"#.to_vec();
+    let manifest = br#"{"name":"@nibi/cli-linux-x64-gnu"}"#.to_vec();
     gzip(&tar(&[
         (
             header("package/package.json", "", manifest.len(), b'0'),
@@ -208,7 +208,7 @@ pub(crate) fn package(binary: &[u8], build: &[u8]) -> Vec<u8> {
             build.to_vec(),
         ),
         (
-            header("package/bin/zcode-rs", "", binary.len(), b'0'),
+            header("package/bin/nibi-rs", "", binary.len(), b'0'),
             binary.to_vec(),
         ),
     ]))

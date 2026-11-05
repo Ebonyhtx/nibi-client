@@ -50,7 +50,7 @@ async fn an_ssh_machine_is_provisioned_used_and_survives_a_dropped_link() {
     };
     let sshd = Sshd::start();
     sshd.wait_ready().await;
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
 
     // 1. 部署：上传、远端 sha256 与本机相同、权限只给本用户；第二次不再上传。
     let provisioner = SshProvisioner::new(sshd.target(), wanted(), vec![artifact.clone()]);
@@ -372,7 +372,7 @@ async fn a_listed_machine_runs_bash_and_read_in_the_container() {
     assert!(read.contains("from the container"), "{read}");
 
     // 收尾：停掉容器里的常驻执行器（容器随后删掉）。
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
     let (ok, out, err) = sshd.ssh(&format!("{installed} executor stop"));
     assert!(ok, "{out}{err}");
 }
@@ -470,7 +470,7 @@ async fn a_bound_mcp_server_runs_in_the_container() {
     );
 
     // 收尾：停掉容器里的常驻执行器（它起的服务器随之结束；容器随后删掉）。
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
     let (ok, out, err) = sshd.ssh(&format!("{installed} executor stop"));
     assert!(ok, "{out}{err}");
 }

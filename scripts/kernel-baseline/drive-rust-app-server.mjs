@@ -4,7 +4,7 @@
  *   node scripts/kernel-baseline/drive-rust-app-server.mjs [--keep] [--phases create,compact,fork,retry]
  *
  * 做法：隔离 HOME + 本地假 provider（与 collect-kernel-baseline.mjs 同款），起
- * `kernel/target/debug/zcode-rs.exe app-server --stdio`，按 LF-JSON 协议驱动：
+ * `kernel/target/debug/nibi-rs.exe app-server --stdio`，按 LF-JSON 协议驱动：
  *   startup/storageState → v4/command createSession → sendText →（流式帧）→ turn 完成
  *   → compact → forkAssistant → retryTurn，每步断言 ACK。
  * 不写真实 ~/.zcode / ~/.nibi；不调用真实模型。
@@ -24,7 +24,7 @@ const kernel = (args.find((a) => a.startsWith("--kernel")) ?? "--kernel=rust").s
 const isNode = kernel === "node";
 const bin = isNode
   ? process.execPath
-  : join(repo, "kernel/target/debug/zcode-rs.exe");
+  : join(repo, "kernel/target/debug/nibi-rs.exe");
 const binArgs = isNode
   ? [join(repo, "apps/zcode-cli/packages/cli/dist/nibi.cjs"), "app-server", "--stdio"]
   : ["app-server", "--stdio"];

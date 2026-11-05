@@ -207,7 +207,7 @@ fn admin_frames_round_trip_and_tolerate_new_names() {
             version: "0.1.0".to_owned(),
             instance: "i1".to_owned(),
             pid: 42,
-            executable: Some("/home/u/zcode-rs".to_owned()),
+            executable: Some("/home/u/nibi-rs".to_owned()),
             uptime_ms: 5,
             clients: 1,
             calls: 0,

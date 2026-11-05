@@ -138,7 +138,7 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
 
     // 缓存按 macOS 的 target 放（与 Linux 的 aarch64 不是同一个目录）。
     let dist = home.path().join(".nibi/rust-cli/exec/dist");
-    let cached = dist.join(format!("{VERSION}/{TARGET}/zcode-rs"));
+    let cached = dist.join(format!("{VERSION}/{TARGET}/nibi-rs"));
     let (_, local_sum, _) = run("shasum", &["-a", "256", BIN]);
     let (_, cached_sum, _) = run("shasum", &["-a", "256", &cached.to_string_lossy()]);
     assert_eq!(
@@ -154,7 +154,7 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
     // 上传到远端的执行器：sha256 相同、试跑没留东西、没有隔离属性（§28.5）。
     let installed = sshd
         .home()
-        .join(format!(".nibi/rust-cli/exec/bin/{VERSION}/zcode-rs"));
+        .join(format!(".nibi/rust-cli/exec/bin/{VERSION}/nibi-rs"));
     let installed = installed.to_string_lossy().into_owned();
     let (ok, remote_sum, err) = sshd.ssh(&format!("shasum -a 256 {installed}"));
     assert!(ok, "{err}");
@@ -169,7 +169,7 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
     assert!(ok, "{err}");
     assert_eq!(
         listing.split_whitespace().collect::<Vec<_>>(),
-        ["zcode-rs"],
+        ["nibi-rs"],
         "no trial leftovers: {listing}"
     );
     let (ok, attributes, err) = sshd.ssh(&format!("xattr {installed}"));

@@ -245,12 +245,12 @@ fn the_executor_lives_under_the_user_root() {
         );
         assert_eq!(
             at(executor.binary("0.1.0")),
-            Path::new("/home/dev/.nibi/rust-cli/exec/bin/0.1.0/zcode-rs")
+            Path::new("/home/dev/.nibi/rust-cli/exec/bin/0.1.0/nibi-rs")
         );
         assert_eq!(
             at(executor.artifact("0.1.0", "x86_64-unknown-linux-musl")),
             Path::new(
-                "/home/dev/.nibi/rust-cli/exec/dist/0.1.0/x86_64-unknown-linux-musl/zcode-rs"
+                "/home/dev/.nibi/rust-cli/exec/dist/0.1.0/x86_64-unknown-linux-musl/nibi-rs"
             )
         );
     }

@@ -76,7 +76,7 @@ async fn zcode_writes_the_relative_path_the_permission_check_judged_after_cd() {
         ),
         sse::text_reply("after tools"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args([
             "-p",
             "go",
@@ -192,7 +192,7 @@ async fn a_subagent_starts_in_the_directory_the_parent_was_in() {
         ),
         sse::text_reply("after tools"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()

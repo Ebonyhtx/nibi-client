@@ -36,7 +36,7 @@ fn a_tool_whose_name_is_too_long_is_not_sent_to_the_model() {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/mcp-long-names.mjs");
     let config = json!({"mcpServers": {"names": {"command": node(), "args": [server]}}});
     let fixture = sse::serve(vec![sse::text_reply("done")]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "hi", "--strict-mcp-config", "--mcp-config"])
         .arg(config.to_string())
         .current_dir(&work)

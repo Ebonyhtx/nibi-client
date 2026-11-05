@@ -57,9 +57,9 @@ impl Sandbox {
         .unwrap();
     }
 
-    /// 起 `zcode-rs` 的命令：只有系统变量、找 Git Bash 的变量与本测试设的；`model` 是本地模型夹具的地址。
+    /// 起 `nibi-rs` 的命令：只有系统变量、找 Git Bash 的变量与本测试设的；`model` 是本地模型夹具的地址。
     fn zcode(&self, args: &[&str], model: Option<&str>) -> Command {
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(args)
             .current_dir(&self.work)
@@ -207,7 +207,7 @@ fn ctrl_break(group: u32) -> bool {
 
 /// `-p` 的 Bash 在 `sleep` 时收到用户中断：中止回合，以 0 退出（同 Unix 的 SIGINT，session-lifecycle.md §3.5），日志里有
 /// `process.signal` 与 `process.exit`。以前经 npm 启动器时启动器把 Ctrl+C 转成 TerminateProcess，退出码是 1（F66
-/// 改了启动器，见 session-lifecycle.md §3.5.1；这里直接起 zcode-rs）。
+/// 改了启动器，见 session-lifecycle.md §3.5.1；这里直接起 nibi-rs）。
 #[test]
 fn a_user_interrupt_during_print_mode_exits_with_zero() {
     use std::os::windows::process::CommandExt as _;

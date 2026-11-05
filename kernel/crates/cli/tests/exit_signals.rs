@@ -68,7 +68,7 @@ fn run_and_signal(signal: &str) -> Option<i32> {
         sse::tools_reply(&[sse::tool_block(0, "toolu_sleep", "Bash", &bash)]),
         sse::text_reply("done"),
     ]);
-    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()
@@ -149,7 +149,7 @@ fn signal_during_the_prompt_hook(signal: &str) -> (Option<i32>, String) {
     ]}]}}});
     std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
     let fixture = sse::serve(vec![sse::text_reply("never sent")]);
-    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "gap prompt", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()
@@ -263,7 +263,7 @@ fn stream_json_and_signal(signal: &str) -> (Option<i32>, String) {
         "Bash",
         &bash,
     )])]);
-    let child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args([
             "-p",
             "go",

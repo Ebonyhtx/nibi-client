@@ -15,7 +15,7 @@ use std::process::{Output, Stdio};
 use system_env::KeepSystem as _;
 
 fn zcode(home: &Path, flag: &str) -> Output {
-    rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .arg(flag)
         .env_clear()
         .keep_system()

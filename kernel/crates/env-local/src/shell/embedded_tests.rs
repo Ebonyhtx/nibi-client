@@ -14,15 +14,15 @@ fn search(path: &str, find_and_grep: bool) -> EmbeddedSearch {
 const RG: &str = r#"# Check for rg availability
 if ! hash rg 2>/dev/null && ! typeset -f rg >/dev/null 2>&1; then
   function rg {
-  local _zc_bin="${NIBI_EXECPATH:-}"
-  [[ -x $_zc_bin ]] || _zc_bin='/opt/Z Code/zcode'
-  if [[ ! -x $_zc_bin ]]; then command rg ${1+"$@"}; return; fi
+  local _nibi_bin="${NIBI_EXECPATH:-}"
+  [[ -x $_nibi_bin ]] || _nibi_bin='/opt/Z Code/zcode'
+  if [[ ! -x $_nibi_bin ]]; then command rg ${1+"$@"}; return; fi
   if [[ -n ${ZSH_VERSION:-} ]]; then
-    ARGV0=rg "$_zc_bin" ${1+"$@"}
+    ARGV0=rg "$_nibi_bin" ${1+"$@"}
   elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-    ARGV0=rg "$_zc_bin" ${1+"$@"}
+    ARGV0=rg "$_nibi_bin" ${1+"$@"}
   else
-    (exec -a rg "$_zc_bin" ${1+"$@"})
+    (exec -a rg "$_nibi_bin" ${1+"$@"})
   fi
 }
 fi"#;
@@ -31,15 +31,15 @@ const FIND_GREP: &str = r#"# Shadow find/grep with embedded bfs/ugrep
 unalias find 2>/dev/null || true
 unalias grep 2>/dev/null || true
 function find {
-  local _zc_bin="${NIBI_EXECPATH:-}"
-  [[ -x $_zc_bin ]] || _zc_bin='/opt/Z Code/zcode'
-  if [[ ! -x $_zc_bin ]]; then command find ${1+"$@"}; return; fi
+  local _nibi_bin="${NIBI_EXECPATH:-}"
+  [[ -x $_nibi_bin ]] || _nibi_bin='/opt/Z Code/zcode'
+  if [[ ! -x $_nibi_bin ]]; then command find ${1+"$@"}; return; fi
   if [[ -n ${ZSH_VERSION:-} ]]; then
-    ARGV0=bfs "$_zc_bin" -S dfs -regextype findutils-default ${1+"$@"}
+    ARGV0=bfs "$_nibi_bin" -S dfs -regextype findutils-default ${1+"$@"}
   elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-    ARGV0=bfs "$_zc_bin" -S dfs -regextype findutils-default ${1+"$@"}
+    ARGV0=bfs "$_nibi_bin" -S dfs -regextype findutils-default ${1+"$@"}
   else
-    (exec -a bfs "$_zc_bin" -S dfs -regextype findutils-default ${1+"$@"})
+    (exec -a bfs "$_nibi_bin" -S dfs -regextype findutils-default ${1+"$@"})
   fi
 }
 function grep {
@@ -47,15 +47,15 @@ function grep {
   for _zc_a in ${1+"$@"}; do
     case "$_zc_a" in -*-filter*|-*-pager*|-*-view*|-*-format-open*|-*-config*|---*|-@*|-*-save-config*|-[Zz]*|-[!-]*[Zz]*|--null|--null-data) command grep ${1+"$@"}; return ;; esac
   done
-  local _zc_bin="${NIBI_EXECPATH:-}"
-  [[ -x $_zc_bin ]] || _zc_bin='/opt/Z Code/zcode'
-  if [[ ! -x $_zc_bin ]]; then command grep ${1+"$@"}; return; fi
+  local _nibi_bin="${NIBI_EXECPATH:-}"
+  [[ -x $_nibi_bin ]] || _nibi_bin='/opt/Z Code/zcode'
+  if [[ ! -x $_nibi_bin ]]; then command grep ${1+"$@"}; return; fi
   if [[ -n ${ZSH_VERSION:-} ]]; then
-    ARGV0=ugrep "$_zc_bin" -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl ${1+"$@"}
+    ARGV0=ugrep "$_nibi_bin" -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl ${1+"$@"}
   elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
-    ARGV0=ugrep "$_zc_bin" -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl ${1+"$@"}
+    ARGV0=ugrep "$_nibi_bin" -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl ${1+"$@"}
   else
-    (exec -a ugrep "$_zc_bin" -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl ${1+"$@"})
+    (exec -a ugrep "$_nibi_bin" -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl ${1+"$@"})
   fi
 }"#;
 

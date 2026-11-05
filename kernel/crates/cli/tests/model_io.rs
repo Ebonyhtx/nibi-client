@@ -79,7 +79,7 @@ fn run(runtime: Option<&str>, prepare: impl FnOnce(&Path)) -> Run {
     std::fs::create_dir_all(&home).unwrap();
     prepare(&home);
     let server = model_server();
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", PROMPT])
         .current_dir(&work)

@@ -61,7 +61,7 @@ async fn a_tool_input_that_is_not_json_becomes_an_input_validation_error() {
         ]),
         sse::text_reply("after tools"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()

@@ -108,7 +108,7 @@ fn sandbox() -> Sandbox {
 }
 
 fn zcode(sandbox: &Sandbox, cwd: &Path, url: &str, args: &[&str], extra: &[(&str, &str)]) -> Child {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(args)
         .current_dir(cwd)

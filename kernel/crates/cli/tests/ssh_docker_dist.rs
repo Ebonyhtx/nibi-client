@@ -8,7 +8,7 @@
 //!    试跑核对协议 → 握手 → `Bash{machine}`。
 //!
 //! 包是把 `test:rust-cli` 交叉编译的 musl 静态 debug 产物（`NIBI_TEST_SSH_ARTIFACT`）照 npm 平台包的样子打成
-//! `@mbearo/zcode-linux-<arch>-gnu@<版本>`（静态产物在 glibc 的系统上照样能跑）。没有 Docker 或没有产物时跳过并写明
+//! `@nibi/cli-linux-<arch>-gnu@<版本>`（静态产物在 glibc 的系统上照样能跑）。没有 Docker 或没有产物时跳过并写明
 //! 原因。容器与镜像用完删掉（名字带各自修复线的前缀）。
 #![cfg(unix)]
 #![allow(
@@ -101,11 +101,11 @@ fn platform(artifact: &Path) -> (&'static str, &'static str) {
     }
 }
 
-/// 照 npm 平台包的样子打包（`package/bin/zcode-rs` 0755、`package/build.json` 写 `version`），返回 tarball 的字节。
+/// 照 npm 平台包的样子打包（`package/bin/nibi-rs` 0755、`package/build.json` 写 `version`），返回 tarball 的字节。
 fn pack(artifact: &Path, target: &str, version: &str, dir: &Path) -> Vec<u8> {
     let package = dir.join("package");
     std::fs::create_dir_all(package.join("bin")).unwrap();
-    let binary = package.join("bin/zcode-rs");
+    let binary = package.join("bin/nibi-rs");
     std::fs::copy(artifact, &binary).unwrap();
     std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o755)).unwrap();
     let bytes = std::fs::read(&binary).unwrap();
@@ -139,8 +139,8 @@ fn pack(artifact: &Path, target: &str, version: &str, dir: &Path) -> Vec<u8> {
 /// 路径，tarball 的路径）。
 fn registry_for(id: &str, version: &str, tarball: Vec<u8>) -> (Registry, String, String) {
     let registry = Registry::start();
-    let name = format!("@mbearo/zcode-{id}");
-    let packument = format!("/@mbearo%2fzcode-{id}");
+    let name = format!("@nibi/cli-{id}");
+    let packument = format!("/@nibi%2fcli-{id}");
     let tarball_path = format!("/{name}/-/zcode-{id}-{version}.tgz");
     let integrity = format!(
         "sha512-{}",
@@ -235,7 +235,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     let packing = tempfile::tempdir().unwrap();
     let tarball = pack(&artifact, target, VERSION, packing.path());
     let (registry, packument, tarball_path) = registry_for(id, VERSION, tarball);
-    let sshd = Sshd::start_with(Image::Debian, "f100-zcode-rs-test-sshd");
+    let sshd = Sshd::start_with(Image::Debian, "f100-nibi-rs-test-sshd");
     sshd.wait_ready().await;
     let (ok, _, err) = sshd.ssh("mkdir -p /srv/proj && ldd --version | head -n 1");
     assert!(ok, "{err}");
@@ -257,7 +257,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     assert!(result.contains("12."), "debian_version: {result}");
     assert_eq!(registry.seen(), [packument, tarball_path]);
     let cached: PathBuf = home.path().join(format!(
-        ".nibi/rust-cli/exec/dist/{VERSION}/{target}/zcode-rs"
+        ".nibi/rust-cli/exec/dist/{VERSION}/{target}/nibi-rs"
     ));
     assert_eq!(
         std::fs::read(&cached).unwrap(),
@@ -265,7 +265,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     );
     assert_eq!(mode(&cached), 0o755);
     assert_eq!(mode(cached.parent().unwrap()), 0o700);
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
     let (_, remote_sum, _) = sshd.ssh(&format!("sha256sum {installed}"));
     let (_, local_sum, _) = run("shasum", &["-a", "256", &artifact.to_string_lossy()]);
     assert_eq!(
@@ -308,7 +308,7 @@ async fn a_musl_machine_is_refused_before_downloading() {
     let packing = tempfile::tempdir().unwrap();
     let tarball = pack(&artifact, target, VERSION, packing.path());
     let (registry, _, _) = registry_for(id, VERSION, tarball);
-    let sshd = Sshd::start_with(Image::Alpine, "f100-zcode-rs-test-sshd");
+    let sshd = Sshd::start_with(Image::Alpine, "f100-nibi-rs-test-sshd");
     sshd.wait_ready().await;
     let (ok, _, err) = sshd.ssh("mkdir -p /srv/proj");
     assert!(ok, "{err}");
@@ -362,7 +362,7 @@ async fn a_local_build_falls_back_to_the_latest_on_the_registry() {
     let packing = tempfile::tempdir().unwrap();
     let tarball = pack(&artifact, target, LATEST, packing.path());
     let (registry, packument, tarball_path) = registry_for(id, LATEST, tarball);
-    let sshd = Sshd::start_with(Image::Debian, "f103-zcode-rs-test-sshd");
+    let sshd = Sshd::start_with(Image::Debian, "f103-nibi-rs-test-sshd");
     sshd.wait_ready().await;
     let (ok, _, err) = sshd.ssh("mkdir -p /srv/proj");
     assert!(ok, "{err}");
@@ -388,11 +388,11 @@ async fn a_local_build_falls_back_to_the_latest_on_the_registry() {
     // 按实际版本缓存与上传。
     let dist = home.path().join(".nibi/rust-cli/exec/dist");
     assert_eq!(
-        std::fs::read(dist.join(format!("{LATEST}/{target}/zcode-rs"))).unwrap(),
+        std::fs::read(dist.join(format!("{LATEST}/{target}/nibi-rs"))).unwrap(),
         std::fs::read(&artifact).unwrap()
     );
     assert!(!dist.join(VERSION).exists());
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{LATEST}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{LATEST}/nibi-rs");
     let (ok, listing, err) =
         sshd.ssh("ls -A /root/.nibi/rust-cli/exec/bin /root/.nibi/rust-cli/exec/bin/*");
     assert!(ok, "{err}");
@@ -401,8 +401,8 @@ async fn a_local_build_falls_back_to_the_latest_on_the_registry() {
             .split_whitespace()
             .filter(|word| !word.ends_with(':'))
             .collect::<Vec<_>>(),
-        [LATEST, "zcode-rs"],
-        "only bin/{LATEST}/zcode-rs, no trial leftovers: {listing}"
+        [LATEST, "nibi-rs"],
+        "only bin/{LATEST}/nibi-rs, no trial leftovers: {listing}"
     );
     let (_, remote_sum, _) = sshd.ssh(&format!("sha256sum {installed}"));
     let (_, local_sum, _) = run("shasum", &["-a", "256", &artifact.to_string_lossy()]);

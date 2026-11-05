@@ -93,7 +93,7 @@ fn package_names_follow_the_npm_rules() {
     for good in [
         "zcode",
         "@scope/zcode",
-        "@mbearo/zcode-win32-x64",
+        "@nibi/cli-win32-x64",
         "a.b_c~d-e",
         "1zcode",
     ] {

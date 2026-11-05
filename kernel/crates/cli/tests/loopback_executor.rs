@@ -100,7 +100,7 @@ async fn the_executor_serves_the_ports_over_stdio_and_exits_when_closed() {
         ),
     ];
     let connector = StdioConnector::new(ChildCommand {
-        program: PathBuf::from(env!("CARGO_BIN_EXE_zcode-rs")),
+        program: PathBuf::from(env!("CARGO_BIN_EXE_nibi-rs")),
         args: ["executor", "--stdio", "--standalone", "--add-dir", "/extra"]
             .map(str::to_owned)
             .to_vec(),

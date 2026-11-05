@@ -72,14 +72,14 @@ pub(crate) const RUNS: &str = "[ \"$1 $2\" = 'executor status' ] && exit 3\nexit
 pub(crate) fn installed(remote: &Remote) -> PathBuf {
     remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/zcode-rs")
+        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs")
 }
 
 /// 远端已有一个协议相同的旧版本（例如 npm 装的）。
 pub(crate) fn older_candidate(remote: &Remote) -> PathBuf {
     let older = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.1.9/zcode-rs");
+        .join(".zcode/rust-cli/exec/bin/0.1.9/nibi-rs");
     std::fs::create_dir_all(older.parent().unwrap()).unwrap();
     std::fs::write(
         &older,
@@ -132,7 +132,7 @@ async fn a_downloaded_executor_is_uploaded_after_a_trial_run() {
         .unwrap()
         .map(|entry| entry.unwrap().file_name())
         .collect();
-    assert_eq!(left, [std::ffi::OsString::from("zcode-rs")]);
+    assert_eq!(left, [std::ffi::OsString::from("nibi-rs")]);
 }
 
 #[tokio::test]

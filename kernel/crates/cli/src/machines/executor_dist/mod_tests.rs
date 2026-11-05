@@ -18,7 +18,7 @@ use super::fake_npm_tests::{FakeNpm, build_json, image, package, sha256_hex, sri
 use super::{NpmExecutors, registry};
 use crate::options::TestDeclarations;
 
-const X64: &str = "@mbearo/zcode-linux-x64-gnu";
+const X64: &str = "@nibi/cli-linux-x64-gnu";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 
 struct Setup {
@@ -74,7 +74,7 @@ async fn a_package_is_downloaded_verified_and_cached() {
     let setup = setup().await;
     let (binary, tarball) = good("0.2.0");
     let packument = setup.npm.publish(X64, "0.2.0", &tarball, None);
-    assert_eq!(packument, "/@mbearo%2fzcode-linux-x64-gnu");
+    assert_eq!(packument, "/@nibi%2fcli-linux-x64-gnu");
     assert_eq!(
         setup.source.cached("0.2.0", Platform::LinuxX86_64).await,
         None
@@ -96,7 +96,7 @@ async fn a_package_is_downloaded_verified_and_cached() {
         seen,
         [
             packument,
-            "/@mbearo/zcode-linux-x64-gnu/-/zcode-linux-x64-gnu-0.2.0.tgz".to_owned()
+            "/@nibi/cli-linux-x64-gnu/-/cli-linux-x64-gnu-0.2.0.tgz".to_owned()
         ]
     );
     // 缓存命中：来源报告它，再要也不联网。
@@ -135,7 +135,7 @@ async fn a_wrong_integrity_is_refused_and_nothing_is_cached() {
     assert_eq!(
         error,
         DownloadError::Failed(
-            "@mbearo/zcode-linux-x64-gnu 0.2.0: the download does not match the registry's sha512 integrity"
+            "@nibi/cli-linux-x64-gnu 0.2.0: the download does not match the registry's sha512 integrity"
                 .to_owned()
         )
     );
@@ -163,7 +163,7 @@ async fn a_wrong_build_record_or_binary_is_refused() {
         (
             build_json("0.2.0", TARGET, &sha256_hex(b"another binary")),
             binary.clone(),
-            "build.json's sha256 does not match bin/zcode-rs",
+            "build.json's sha256 does not match bin/nibi-rs",
         ),
         (
             build_json("0.2.0", "aarch64-unknown-linux-gnu", &sha256_hex(&binary)),
@@ -178,7 +178,7 @@ async fn a_wrong_build_record_or_binary_is_refused() {
         (
             build_json("0.2.0", TARGET, &sha256_hex(&image(Platform::LinuxAarch64))),
             image(Platform::LinuxAarch64),
-            "bin/zcode-rs is not a x86_64-unknown-linux-gnu executable",
+            "bin/nibi-rs is not a x86_64-unknown-linux-gnu executable",
         ),
     ];
     for (build, binary, why) in cases {
@@ -209,7 +209,7 @@ async fn a_missing_package_or_version_says_why() {
         panic!("{error:?}");
     };
     assert!(
-        reason.ends_with("/@mbearo%2fzcode-linux-x64-gnu: HTTP 404"),
+        reason.ends_with("/@nibi%2fcli-linux-x64-gnu: HTTP 404"),
         "{reason}"
     );
     assert_eq!(latest, None);
@@ -223,7 +223,7 @@ async fn a_missing_package_or_version_says_why() {
     assert_eq!(
         error,
         DownloadError::Unpublished {
-            reason: "npm package @mbearo/zcode-linux-x64-gnu version 0.2.0 is missing".to_owned(),
+            reason: "npm package @nibi/cli-linux-x64-gnu version 0.2.0 is missing".to_owned(),
             latest: Some("0.1.9".to_owned()),
         }
     );
@@ -275,16 +275,16 @@ fn each_architecture_has_its_platform_package() {
     assert_eq!(super::package::package_name(Platform::LinuxX86_64), X64);
     assert_eq!(
         super::package::package_name(Platform::LinuxAarch64),
-        "@mbearo/zcode-linux-arm64-gnu"
+        "@nibi/cli-linux-arm64-gnu"
     );
     // F107（remote-exec.md §28.2）：macOS 的包；`darwin-x64` 没有发布，只用来写错误。
     assert_eq!(
         super::package::package_name(Platform::MacosAarch64),
-        "@mbearo/zcode-darwin-arm64"
+        "@nibi/cli-darwin-arm64"
     );
     assert_eq!(
         super::package::package_name(Platform::MacosX86_64),
-        "@mbearo/zcode-darwin-x64"
+        "@nibi/cli-darwin-x64"
     );
 }
 
@@ -293,14 +293,14 @@ fn each_architecture_has_its_platform_package() {
 #[tokio::test]
 async fn a_macos_package_is_downloaded_and_cached_under_its_own_target() {
     let setup = setup().await;
-    const DARWIN: &str = "@mbearo/zcode-darwin-arm64";
+    const DARWIN: &str = "@nibi/cli-darwin-arm64";
     const DARWIN_TARGET: &str = "aarch64-apple-darwin";
     let binary = image(Platform::MacosAarch64);
     let build = build_json("0.2.0", DARWIN_TARGET, &sha256_hex(&binary));
     let packument = setup
         .npm
         .publish(DARWIN, "0.2.0", &package(&binary, &build), None);
-    assert_eq!(packument, "/@mbearo%2fzcode-darwin-arm64");
+    assert_eq!(packument, "/@nibi%2fcli-darwin-arm64");
     let path = setup
         .source
         .download("0.2.0", Platform::MacosAarch64)
@@ -338,7 +338,7 @@ async fn a_macos_package_is_downloaded_and_cached_under_its_own_target() {
     assert!(
         error
             .reason()
-            .contains("bin/zcode-rs is not a aarch64-apple-darwin executable"),
+            .contains("bin/nibi-rs is not a aarch64-apple-darwin executable"),
         "{error:?}"
     );
 

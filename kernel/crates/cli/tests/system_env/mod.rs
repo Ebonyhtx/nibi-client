@@ -1,4 +1,4 @@
-//! 起 `zcode-rs` 的真实进程测试在 `env_clear()` 之后用（工作线 F66）：Windows 上把系统必需的变量从测试进程带过去——
+//! 起 `nibi-rs` 的真实进程测试在 `env_clear()` 之后用（工作线 F66）：Windows 上把系统必需的变量从测试进程带过去——
 //! 没有 `SystemRoot` 时子进程的 Winsock 起不来（连不上本地的模型夹具），没有 `TEMP` / `TMP` 时 Node 写法的临时目录是
 //! 相对路径 `undefined\temp`。Unix 上什么都不做（测试照旧只给自己设的变量）。
 

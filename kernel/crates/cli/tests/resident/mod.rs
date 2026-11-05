@@ -15,7 +15,7 @@ use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::EnvironmentId;
 use serde_json::Value;
 
-pub const BIN: &str = env!("CARGO_BIN_EXE_zcode-rs");
+pub const BIN: &str = env!("CARGO_BIN_EXE_nibi-rs");
 
 /// 一个临时的用户环境；丢掉时停掉它的常驻执行器。
 pub struct Home {

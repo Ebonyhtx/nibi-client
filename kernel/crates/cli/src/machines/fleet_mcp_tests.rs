@@ -134,7 +134,7 @@ fn fleet(
     let make = move |_: &MachineEntry| {
         let endpoint = TestEndpoint {
             ready: Ready(Provisioned {
-                program: "zcode-rs".to_owned(),
+                program: "nibi-rs".to_owned(),
                 args: Vec::new(),
             }),
             connector: connector.clone(),

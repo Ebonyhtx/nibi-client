@@ -56,7 +56,7 @@ fn model_server() -> String {
 
 /// 在 `work` 里跑一次 `zcode -p`，`extra` 是额外的环境变量。
 fn run(home: &Path, work: &Path, extra: &[(&str, &Path)]) {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "storage probe"])
         .current_dir(work)

@@ -398,10 +398,10 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
             format!("{name} 是 {os} {arch}；远端机器只支持 Linux x86_64 / aarch64 与 macOS arm64。")
         }
         (Lang::En, MachineFailure::NoArtifact { version, target }) => format!(
-            "There's no zcode {version} build for {target} to upload to {name}, and no compatible executor is installed there."
+            "There's no NIBI {version} build for {target} to upload to {name}, and no compatible executor is installed there."
         ),
         (Lang::Zh, MachineFailure::NoArtifact { version, target }) => format!(
-            "没有能上传到 {name} 的 zcode {version}（{target}）产物，那台机器上也没有兼容的执行器。"
+            "没有能上传到 {name} 的 NIBI {version}（{target}）产物，那台机器上也没有兼容的执行器。"
         ),
         (
             Lang::En,
@@ -411,7 +411,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 busy: true,
             },
         ) => format!(
-            "The executor on {name} is zcode {version} (protocol {protocol}) and is busy, so it can't be replaced now. Connect again once its work ends, or stop it on {name} with `zcode-rs executor stop` (its background tasks end)."
+            "The executor on {name} is NIBI {version} (protocol {protocol}) and is busy, so it can't be replaced now. Connect again once its work ends, or stop it on {name} with `nibi-rs executor stop` (its background tasks end)."
         ),
         (
             Lang::Zh,
@@ -421,7 +421,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 busy: true,
             },
         ) => format!(
-            "{name} 上的执行器是 zcode {version}（协议 {protocol}），正忙，现在不能换。等它的工作结束后再连，或者在 {name} 上运行 `zcode-rs executor stop` 停掉它（它上面的后台任务会结束）。"
+            "{name} 上的执行器是 NIBI {version}（协议 {protocol}），正忙，现在不能换。等它的工作结束后再连，或者在 {name} 上运行 `nibi-rs executor stop` 停掉它（它上面的后台任务会结束）。"
         ),
         (
             Lang::En,
@@ -429,7 +429,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 version, protocol, ..
             },
         ) => format!(
-            "The executor on {name} is zcode {version} (protocol {protocol}), which this zcode can't use."
+            "The executor on {name} is NIBI {version} (protocol {protocol}), which this NIBI can't use."
         ),
         (
             Lang::Zh,
@@ -437,7 +437,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 version, protocol, ..
             },
         ) => format!(
-            "{name} 上的执行器是 zcode {version}（协议 {protocol}），本机的 zcode 不能用它。"
+            "{name} 上的执行器是 NIBI {version}（协议 {protocol}），本机的 NIBI 不能用它。"
         ),
         (Lang::En, MachineFailure::Upload(m)) => {
             format!("Uploading the executor to {name} failed: {m}")
@@ -456,7 +456,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 reason,
             },
         ) => format!(
-            "Couldn't download the zcode {version} executor ({target}) to upload to {name}: {reason}. No compatible executor is installed there either."
+            "Couldn't download the NIBI {version} executor ({target}) to upload to {name}: {reason}. No compatible executor is installed there either."
         ),
         (
             Lang::Zh,
@@ -466,13 +466,13 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 reason,
             },
         ) => format!(
-            "无法下载要上传到 {name} 的 zcode {version} 执行器（{target}）：{reason}。那台机器上也没有兼容的执行器。"
+            "无法下载要上传到 {name} 的 NIBI {version} 执行器（{target}）：{reason}。那台机器上也没有兼容的执行器。"
         ),
         (Lang::En, MachineFailure::Musl) => format!(
-            "{name} uses musl libc (for example Alpine), and there's no zcode executor package for musl. Use a glibc-based Linux such as Debian or Ubuntu."
+            "{name} uses musl libc (for example Alpine), and there's no NIBI executor package for musl. Use a glibc-based Linux such as Debian or Ubuntu."
         ),
         (Lang::Zh, MachineFailure::Musl) => format!(
-            "{name} 用的是 musl libc（例如 Alpine），没有对应的 zcode 执行器包。请换用基于 glibc 的 Linux（例如 Debian、Ubuntu）。"
+            "{name} 用的是 musl libc（例如 Alpine），没有对应的 NIBI 执行器包。请换用基于 glibc 的 Linux（例如 Debian、Ubuntu）。"
         ),
         (Lang::En, MachineFailure::OldGlibc { glibc, needs }) => {
             let has = glibc.as_ref().map_or_else(
@@ -480,7 +480,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 |version| format!("{name} has glibc {version}"),
             );
             format!(
-                "The zcode executor can't run on {name}: it needs {needs}, but {has}. Upgrade that machine's system or use a newer Linux."
+                "The NIBI executor can't run on {name}: it needs {needs}, but {has}. Upgrade that machine's system or use a newer Linux."
             )
         }
         (Lang::Zh, MachineFailure::OldGlibc { glibc, needs }) => {
@@ -489,7 +489,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 |version| format!("{name} 的 glibc 是 {version}"),
             );
             format!(
-                "zcode 执行器在 {name} 上跑不起来：它要 {needs}，{has}。请升级那台机器的系统或换用更新的 Linux。"
+                "NIBI 执行器在 {name} 上跑不起来：它要 {needs}，{has}。请升级那台机器的系统或换用更新的 Linux。"
             )
         }
         // F103（remote-exec.md §27.7）：本机的版本不在 npm 上，npm 的 latest 说别的协议。
@@ -503,7 +503,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 target,
             },
         ) => format!(
-            "This zcode ({version}, protocol {protocol}) isn't on npm, and the latest executor on npm, zcode {latest}, speaks protocol {latest_protocol}, so there's no executor for {name}. Connect again after a new version is published, or put a zcode {version} executor at {} on this computer.",
+            "This NIBI ({version}, protocol {protocol}) isn't on npm, and the latest executor on npm, NIBI {latest}, speaks protocol {latest_protocol}, so there's no executor for {name}. Connect again after a new version is published, or put a NIBI {version} executor at {} on this computer.",
             cached_executor(version, target)
         ),
         (
@@ -516,21 +516,21 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
                 target,
             },
         ) => format!(
-            "本机的 zcode {version}（协议 {protocol}）不在 npm 上，npm 上最新的执行器 zcode {latest} 是协议 {latest_protocol}，{name} 没有能用的执行器。请在发布新版之后再连，或者把 zcode {version} 的执行器放到本机的 {}。",
+            "本机的 NIBI {version}（协议 {protocol}）不在 npm 上，npm 上最新的执行器 NIBI {latest} 是协议 {latest_protocol}，{name} 没有能用的执行器。请在发布新版之后再连，或者把 NIBI {version} 的执行器放到本机的 {}。",
             cached_executor(version, target)
         ),
         // F107（remote-exec.md §28.6）：这个平台没有包（Intel Mac）、上传的执行器被系统杀掉（签名无效）。
         (Lang::En, MachineFailure::NoPackage { package }) => format!(
-            "There's no zcode executor package for {name} (it would be {package}), and no compatible executor is installed there. Install zcode on that machine with `npm i -g @mbearo/zcode`, then connect again."
+            "There's no NIBI executor package for {name} (it would be {package}), and no compatible executor is installed there. Install NIBI on that machine with `npm i -g @nibi/cli`, then connect again."
         ),
         (Lang::Zh, MachineFailure::NoPackage { package }) => format!(
-            "没有 {name} 这种平台的 zcode 执行器包（应该是 {package}），那台机器上也没有兼容的执行器。请在那台机器上用 `npm i -g @mbearo/zcode` 装好 zcode，然后再连。"
+            "没有 {name} 这种平台的 NIBI 执行器包（应该是 {package}），那台机器上也没有兼容的执行器。请在那台机器上用 `npm i -g @nibi/cli` 装好 NIBI，然后再连。"
         ),
         (Lang::En, MachineFailure::Unsigned) => format!(
-            "The uploaded zcode executor was killed on {name}: macOS refuses to run it because its signature is not valid. Install zcode on that machine with `npm i -g @mbearo/zcode`, or sign the file there with `codesign -s -`."
+            "The uploaded NIBI executor was killed on {name}: macOS refuses to run it because its signature is not valid. Install NIBI on that machine with `npm i -g @nibi/cli`, or sign the file there with `codesign -s -`."
         ),
         (Lang::Zh, MachineFailure::Unsigned) => format!(
-            "上传到 {name} 的 zcode 执行器被系统杀掉了：macOS 认为它的签名无效，不让它运行。请在那台机器上用 `npm i -g @mbearo/zcode` 装好 zcode，或者在那台机器上用 `codesign -s -` 给它签名。"
+            "上传到 {name} 的 NIBI 执行器被系统杀掉了：macOS 认为它的签名无效，不让它运行。请在那台机器上用 `npm i -g @nibi/cli` 装好 NIBI，或者在那台机器上用 `codesign -s -` 给它签名。"
         ),
         (Lang::En, MachineFailure::Refused(m)) => {
             format!("The executor on {name} refused the connection: {m}")
@@ -545,7 +545,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
     }
 }
 
-/// 本机缓存里放执行器的位置（F103，remote-exec.md §27.7）：`~/.zcode/rust-cli/exec/dist/<版本>/<target>/zcode-rs`。
+/// 本机缓存里放执行器的位置（F103，remote-exec.md §27.7）：`~/.nibi/rust-cli/exec/dist/<版本>/<target>/nibi-rs`。
 fn cached_executor(version: &str, target: &str) -> String {
     use rust_cli_base::names::{DOT_DIR, EXECUTOR_HOME, UNIX_EXECUTABLE};
     format!("~/{DOT_DIR}/{EXECUTOR_HOME}/dist/{version}/{target}/{UNIX_EXECUTABLE}")

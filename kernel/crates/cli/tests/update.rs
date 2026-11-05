@@ -36,7 +36,7 @@ fn fake_managers(bin: &Path) {
 
 fn zcode(home: &Path, args: &[&str], vars: &[(&str, &str)]) -> Output {
     let bin = home.join("bin");
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(args)
         .current_dir(home)
@@ -87,7 +87,7 @@ fn without_a_marker_the_update_command_asks_for_a_manual_update() {
         assert_eq!(output.status.code(), Some(1), "{output:?}");
         assert_eq!(
             text(&output.stderr),
-            "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode\n"
+            "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli\n"
         );
         assert!(output.stdout.is_empty(), "{output:?}");
     }
@@ -209,7 +209,7 @@ fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode\n"
+        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli\n"
     );
     assert!(!handoff.exists());
     // 交接文件的目录不存在：报系统错误、退出码 1，不起包管理器。

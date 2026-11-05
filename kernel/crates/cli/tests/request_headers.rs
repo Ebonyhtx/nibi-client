@@ -25,7 +25,7 @@ fn is_uuid(value: &str) -> bool {
 }
 
 fn version() -> String {
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .arg("--version")
         .env_clear()
         .output()
@@ -44,7 +44,7 @@ fn run(vars: &[(&str, &str)]) -> Vec<sse::Headers> {
     std::fs::create_dir_all(&home).unwrap();
     let read = sse::tool_block(0, "toolu_1", "Read", r#"{"file_path":"/nonexistent-f64"}"#);
     let fixture = sse::serve(vec![sse::tools_reply(&[read]), sse::text_reply("done")]);
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "hi", "--session-id", SESSION])
         .current_dir(&work)

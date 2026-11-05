@@ -23,7 +23,7 @@ use rust_cli_kernel_api::ids::{
 };
 use rust_cli_kernel_api::machine::Commands;
 
-const ZCODE: &str = env!("CARGO_BIN_EXE_zcode-rs");
+const ZCODE: &str = env!("CARGO_BIN_EXE_nibi-rs");
 
 struct Harness {
     _dir: tempfile::TempDir,

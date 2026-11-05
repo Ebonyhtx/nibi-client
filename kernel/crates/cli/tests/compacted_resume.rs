@@ -149,7 +149,7 @@ async fn the_first_request_after_resuming_is_unchanged() {
     for (name, keep) in SHAPES {
         let sandbox = seeded(&keep).await;
         let fixture = sse::serve(vec![sse::text_reply("resumed answer")]);
-        let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+        let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
             .args(["-p", "--resume", SESSION, "next question"])
             .current_dir(&sandbox.work)
             .env_clear()

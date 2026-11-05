@@ -81,7 +81,7 @@ async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
         reply_with_server_blocks(&notes.to_string_lossy()),
         sse::text_reply("done"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go"])
         .current_dir(&work)
         .env_clear()

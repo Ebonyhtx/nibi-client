@@ -27,7 +27,7 @@ fn resident(version: &str, protocol: u32, idle: bool) -> Resident {
         version: version.to_owned(),
         protocol,
         idle,
-        executable: Some(format!("/home/u/bin/{version}/zcode-rs")),
+        executable: Some(format!("/home/u/bin/{version}/nibi-rs")),
     }
 }
 
@@ -108,45 +108,45 @@ fn macos_remotes_go_through_the_same_table() {
         );
     }
     // 远端已有同版本的候选：直接用（Intel Mac 也是这条路，例如那台机器上自己装了 zcode）。
-    let exact = macos("x86_64", vec![("/npm/zcode-rs", report("0.2.0", 1, None))]);
+    let exact = macos("x86_64", vec![("/npm/nibi-rs", report("0.2.0", 1, None))]);
     assert_eq!(
         choose(&exact, &wanted(), false),
-        Ok(Plan::Use("/npm/zcode-rs".to_owned()))
+        Ok(Plan::Use("/npm/nibi-rs".to_owned()))
     );
     // 协议相同、版本不同的候选：没有产物时用它。
-    let compatible = macos("arm64", vec![("/npm/zcode-rs", report("0.1.9", 1, None))]);
+    let compatible = macos("arm64", vec![("/npm/nibi-rs", report("0.1.9", 1, None))]);
     assert_eq!(
         choose(&compatible, &wanted(), false),
-        Ok(Plan::Use("/npm/zcode-rs".to_owned()))
+        Ok(Plan::Use("/npm/nibi-rs".to_owned()))
     );
     // 常驻进程在跑、版本相同：用它自己的二进制。
     let running = macos(
         "arm64",
         vec![(
-            "/Users/dev/.zcode/rust-cli/exec/bin/0.2.0/zcode-rs",
+            "/Users/dev/.zcode/rust-cli/exec/bin/0.2.0/nibi-rs",
             report("0.2.0", 1, Some(resident("0.2.0", 1, true))),
         )],
     );
     assert_eq!(
         choose(&running, &wanted(), true),
-        Ok(Plan::Use("/home/u/bin/0.2.0/zcode-rs".to_owned()))
+        Ok(Plan::Use("/home/u/bin/0.2.0/nibi-rs".to_owned()))
     );
 }
 
 #[test]
 fn without_a_resident_the_same_version_then_an_upload_then_a_compatible_one() {
     let exact = probe(vec![
-        ("/npm/zcode-rs", report("0.1.9", 1, None)),
-        ("/home/u/bin/0.2.0/zcode-rs", report("0.2.0", 1, None)),
+        ("/npm/nibi-rs", report("0.1.9", 1, None)),
+        ("/home/u/bin/0.2.0/nibi-rs", report("0.2.0", 1, None)),
     ]);
     assert_eq!(
         choose(&exact, &wanted(), true),
-        Ok(Plan::Use("/home/u/bin/0.2.0/zcode-rs".to_owned()))
+        Ok(Plan::Use("/home/u/bin/0.2.0/nibi-rs".to_owned()))
     );
     let npm = probe(vec![
-        ("/old/zcode-rs", None),
-        ("/npm/zcode-rs", report("0.1.9", 1, None)),
-        ("/future/zcode-rs", report("0.9.0", 2, None)),
+        ("/old/nibi-rs", None),
+        ("/npm/nibi-rs", report("0.1.9", 1, None)),
+        ("/future/nibi-rs", report("0.9.0", 2, None)),
     ]);
     assert_eq!(
         choose(&npm, &wanted(), true),
@@ -154,9 +154,9 @@ fn without_a_resident_the_same_version_then_an_upload_then_a_compatible_one() {
     );
     assert_eq!(
         choose(&npm, &wanted(), false),
-        Ok(Plan::Use("/npm/zcode-rs".to_owned()))
+        Ok(Plan::Use("/npm/nibi-rs".to_owned()))
     );
-    let nothing = probe(vec![("/future/zcode-rs", report("0.9.0", 2, None))]);
+    let nothing = probe(vec![("/future/nibi-rs", report("0.9.0", 2, None))]);
     assert_eq!(
         choose(&nothing, &wanted(), false),
         Err(ProvisionError::NoArtifact {
@@ -169,24 +169,24 @@ fn without_a_resident_the_same_version_then_an_upload_then_a_compatible_one() {
 #[test]
 fn a_resident_of_the_same_version_is_used() {
     let remote = probe(vec![(
-        "/npm/zcode-rs",
+        "/npm/nibi-rs",
         report("0.1.9", 1, Some(resident("0.2.0", 1, false))),
     )]);
     assert_eq!(
         choose(&remote, &wanted(), true),
-        Ok(Plan::Use("/home/u/bin/0.2.0/zcode-rs".to_owned()))
+        Ok(Plan::Use("/home/u/bin/0.2.0/nibi-rs".to_owned()))
     );
 }
 
 #[test]
 fn a_busy_compatible_resident_of_another_version_is_kept() {
     let remote = probe(vec![(
-        "/home/u/bin/0.1.0/zcode-rs",
+        "/home/u/bin/0.1.0/nibi-rs",
         report("0.1.0", 1, Some(resident("0.1.0", 1, false))),
     )]);
     assert_eq!(
         choose(&remote, &wanted(), true),
-        Ok(Plan::Use("/home/u/bin/0.1.0/zcode-rs".to_owned()))
+        Ok(Plan::Use("/home/u/bin/0.1.0/nibi-rs".to_owned()))
     );
 }
 
@@ -194,7 +194,7 @@ fn a_busy_compatible_resident_of_another_version_is_kept() {
 fn an_idle_resident_of_another_version_is_replaced_when_possible() {
     let idle = Some(resident("0.1.0", 1, true));
     let remote = probe(vec![(
-        "/home/u/bin/0.1.0/zcode-rs",
+        "/home/u/bin/0.1.0/nibi-rs",
         report("0.1.0", 1, idle),
     )]);
     assert_eq!(
@@ -204,11 +204,11 @@ fn an_idle_resident_of_another_version_is_replaced_when_possible() {
     // 没有本机产物：协议相同就继续用它。
     assert_eq!(
         choose(&remote, &wanted(), false),
-        Ok(Plan::Use("/home/u/bin/0.1.0/zcode-rs".to_owned()))
+        Ok(Plan::Use("/home/u/bin/0.1.0/nibi-rs".to_owned()))
     );
     // 协议不同而空闲：没有产物也没有兼容的二进制时报不兼容（不忙）。
     let other = Some(resident("0.9.0", 2, true));
-    let remote = probe(vec![("/future/zcode-rs", report("0.9.0", 2, other))]);
+    let remote = probe(vec![("/future/nibi-rs", report("0.9.0", 2, other))]);
     assert_eq!(
         choose(&remote, &wanted(), true),
         Ok(Plan::Upload(Platform::LinuxX86_64))
@@ -226,7 +226,7 @@ fn an_idle_resident_of_another_version_is_replaced_when_possible() {
 #[test]
 fn a_busy_incompatible_resident_is_refused() {
     let busy = Some(resident("0.9.0", 2, false));
-    let remote = probe(vec![("/future/zcode-rs", report("0.9.0", 2, busy))]);
+    let remote = probe(vec![("/future/nibi-rs", report("0.9.0", 2, busy))]);
     assert_eq!(
         choose(&remote, &wanted(), true),
         Err(ProvisionError::Incompatible {

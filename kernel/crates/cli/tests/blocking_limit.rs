@@ -17,7 +17,7 @@ fn run(fixture: &sse::Fixture, disable_compact: bool) -> Output {
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&home).unwrap();
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)

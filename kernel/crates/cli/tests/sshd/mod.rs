@@ -17,7 +17,7 @@ use rust_cli_ssh_connect::{SshConnector, SshProvisioner, SshTarget, Wanted};
 #[cfg(unix)]
 pub mod local;
 
-pub const BIN: &str = env!("CARGO_BIN_EXE_zcode-rs");
+pub const BIN: &str = env!("CARGO_BIN_EXE_nibi-rs");
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const BASE_IMAGE: &str = "alpine:3.20";
 pub const HOST: &str = "zcode-test";
@@ -123,7 +123,7 @@ UseDNS no
 
 impl Sshd {
     pub fn start() -> Self {
-        Self::start_with(Image::Alpine, "zcode-rs-test-sshd")
+        Self::start_with(Image::Alpine, "nibi-rs-test-sshd")
     }
 
     /// `prefix`：容器与镜像名字的前缀（每个测试线自己的，不和别的容器撞名）。

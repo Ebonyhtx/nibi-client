@@ -12,7 +12,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-const ZCODE: &str = env!("CARGO_BIN_EXE_zcode-rs");
+const ZCODE: &str = env!("CARGO_BIN_EXE_nibi-rs");
 
 /// 把 zcode 放到 `dir/<name>`：Unix 上是符号链接（同 `exec -a` 改 argv[0] 的效果），Windows 上复制成 `<name>.exe`。
 fn alias(dir: &Path, name: &str) -> PathBuf {

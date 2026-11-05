@@ -169,7 +169,7 @@ pub(crate) enum TestDeclarations {
 }
 
 impl TestDeclarations {
-    /// 本次构建的取值：debug 构建接受（本地对照测试跑 `target/debug/zcode-rs`），release 构建忽略。
+    /// 本次构建的取值：debug 构建接受（本地对照测试跑 `target/debug/nibi-rs`），release 构建忽略。
     pub(crate) const BUILD: Self = if cfg!(debug_assertions) {
         Self::Accepted
     } else {

@@ -22,10 +22,10 @@ fn integrity_needs_a_matching_sha512_entry() {
 fn entries_named_by_a_ustar_prefix_or_a_pax_path_are_found() {
     let binary = image(Platform::LinuxAarch64);
     let build = build_json("0.2.0", "aarch64-unknown-linux-gnu", &sha256_hex(&binary));
-    let pax = b"30 path=package/bin/zcode-rs\n".to_vec();
+    let pax = b"30 path=package/bin/nibi-rs\n".to_vec();
     let archive = gzip(&tar(&[
         (header("build.json", "package", build.len(), b'0'), build),
-        (header("PaxHeader/zcode-rs", "", pax.len(), b'x'), pax),
+        (header("PaxHeader/nibi-rs", "", pax.len(), b'x'), pax),
         (
             header("ignored-short-name", "", binary.len(), b'0'),
             binary.clone(),
@@ -47,7 +47,7 @@ fn a_cut_or_incomplete_package_is_refused() {
             build.clone(),
         ),
         (
-            header("package/bin/zcode-rs", "", binary.len(), b'0'),
+            header("package/bin/nibi-rs", "", binary.len(), b'0'),
             binary,
         ),
     ]);
@@ -60,7 +60,7 @@ fn a_cut_or_incomplete_package_is_refused() {
     )]));
     assert_eq!(
         extract(&only_build, "0.2.0", Platform::LinuxX86_64).unwrap_err(),
-        "the package has no bin/zcode-rs"
+        "the package has no bin/nibi-rs"
     );
     assert!(
         extract(b"not gzip", "0.2.0", Platform::LinuxX86_64)

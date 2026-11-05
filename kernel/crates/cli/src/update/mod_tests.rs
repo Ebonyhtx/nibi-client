@@ -281,7 +281,7 @@ async fn the_update_command_without_a_marker_asks_for_a_manual_update() {
     let error = command(Command::Run, &[], &mut out).await.unwrap_err();
     assert_eq!(
         error.to_string(),
-        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode"
+        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli"
     );
     assert!(out.is_empty());
     let mut help = Vec::new();

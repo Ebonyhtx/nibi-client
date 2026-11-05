@@ -28,7 +28,7 @@ use rust_cli_tui::update::{UpdateChoice, UpdateInfo};
 use crate::flags::Fatal;
 pub(crate) use install::Install;
 
-/// `zcode update` 的帮助（commander 12 的子命令形式；说明是 Codex 的，update.md §9）。
+/// `nibi update` 的帮助（commander 12 的子命令形式；说明是 Codex 的，update.md §9）。
 const HELP: &str = "Usage: nibi update|upgrade [options]
 
 Update NIBI to the latest version
@@ -36,10 +36,10 @@ Update NIBI to the latest version
 Options:
   -h, --help  Display help for command
 ";
-/// 没有标记时 `zcode update` 的报错（update.md §9）。链接是 npm 入口包的页面
+/// 没有标记时 `nibi update` 的报错（update.md §9）。链接是 npm 入口包的页面
 /// （用户决定 2026-10-23，工作线 F71；以前没有链接）：没有标记时不知道包名，只在这里写死，有标记时的链接由启动器给的包名
-/// 拼（`install.rs`）。
-const UNDETECTED: &str = "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode";
+/// 拼（`install.rs`）。`@nibi/cli` 是 NIBI 的 npm 入口包（发布平台包时同批上线）。
+const UNDETECTED: &str = "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@nibi/cli";
 
 /// 启动时的输入（入口给出）。
 pub(crate) struct Inputs<'a> {

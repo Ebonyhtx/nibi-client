@@ -8,10 +8,10 @@ use rust_cli_ssh_connect::Platform;
 use serde_json::Value;
 use sha2::{Digest, Sha256, Sha512};
 
-/// 平台包名的前缀（NIBI-rs 的发布脚本 `scripts/rust-cli/npm/package.mjs`：`@mbearo/zcode-<id>`）。
-const PACKAGE_PREFIX: &str = "@mbearo/zcode-";
+/// 平台包名的前缀（NIBI-rs 的发布脚本 `scripts/rust-cli/npm/package.mjs`：`@nibi/cli-<id>`）。
+const PACKAGE_PREFIX: &str = "@nibi/cli-";
 /// 包里的执行器与构建记录（发布脚本放的位置；npm 的 tarball 里每项都在 `package/` 下）。
-const BINARY_ENTRY: &str = "package/bin/zcode-rs";
+const BINARY_ENTRY: &str = "package/bin/nibi-rs";
 const BUILD_ENTRY: &str = "package/build.json";
 /// 包里一项最多读这么多（执行器几十 MB；防止坏的 tar 头让内存失控）。
 const MAX_ENTRY: u64 = 512 * 1024 * 1024;
@@ -59,7 +59,7 @@ pub(super) fn extract(
 ) -> Result<Vec<u8>, String> {
     let found = entries(flate2::read::GzDecoder::new(tarball))
         .map_err(|error| format!("cannot read the package: {error}"))?;
-    let binary = found.binary.ok_or("the package has no bin/zcode-rs")?;
+    let binary = found.binary.ok_or("the package has no bin/nibi-rs")?;
     let build = found.build.ok_or("the package has no build.json")?;
     let build: Value = serde_json::from_slice(&build)
         .map_err(|error| format!("build.json is not JSON: {error}"))?;
@@ -78,10 +78,10 @@ pub(super) fn extract(
         ));
     }
     if !field("sha256").eq_ignore_ascii_case(&hex(&Sha256::digest(&binary))) {
-        return Err("build.json's sha256 does not match bin/zcode-rs".to_owned());
+        return Err("build.json's sha256 does not match bin/nibi-rs".to_owned());
     }
     if !platform.runs_image(&binary) {
-        return Err(format!("bin/zcode-rs is not a {target} executable"));
+        return Err(format!("bin/nibi-rs is not a {target} executable"));
     }
     Ok(binary)
 }

@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::time::{Duration, SystemTime};
 
-const ZCODE: &str = env!("CARGO_BIN_EXE_zcode-rs");
+const ZCODE: &str = env!("CARGO_BIN_EXE_nibi-rs");
 /// prelude 里 find 函数的缺省参数。
 const DEFAULTS: [&str; 4] = ["-S", "dfs", "-regextype", "findutils-default"];
 

@@ -50,7 +50,7 @@ impl Sandbox {
     /// 跑一次 `zcode -p hi`（不继承父进程的环境），返回第一个主请求的请求体与 `anthropic-beta`。
     fn first_request(&self, vars: &[(&str, &str)], args: &[&str]) -> (Value, Option<String>) {
         let fixture = sse::serve(vec![sse::text_reply("hello")]);
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(["-p", "hi"])
             .args(args)
@@ -232,7 +232,7 @@ async fn a_custom_gateway_provider_gets_local_tool_search() {
     let fixture = sse::serve(vec![sse::text_reply("hello")]);
     let text = config.to_string().replace(fixture_url, &fixture.url);
     std::fs::write(sandbox.home.join(".nibi/v2/provider_config.json"), text).unwrap();
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     let output = command
         .args(["-p", "hi", "--model", "personal:gateway/claude-opus-5-5"])
         .current_dir(&sandbox.work)
@@ -274,7 +274,7 @@ async fn a_tool_loaded_on_a_gateway_is_sent_as_a_plain_definition() {
         )]),
         sse::text_reply("done"),
     ]);
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     let output = command
         .args(["-p", "load it"])
         .current_dir(&sandbox.work)

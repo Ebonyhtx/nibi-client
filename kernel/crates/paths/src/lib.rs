@@ -393,7 +393,7 @@ impl ExecutorPaths {
         self.dir.join("log")
     }
 
-    /// 上传的执行器 `bin/<版本>/zcode-rs`。
+    /// 上传的执行器 `bin/<版本>/nibi-rs`。
     pub fn binary(&self, version: &str) -> StoragePath {
         self.dir
             .join("bin")
@@ -401,7 +401,7 @@ impl ExecutorPaths {
             .join(rust_cli_base::names::UNIX_EXECUTABLE)
     }
 
-    /// 本机侧缓存的 Linux 产物 `dist/<版本>/<target>/zcode-rs`（上传用）。
+    /// 本机侧缓存的 Linux 产物 `dist/<版本>/<target>/nibi-rs`（上传用）。
     pub fn artifact(&self, version: &str, target: &str) -> StoragePath {
         self.dir
             .join("dist")

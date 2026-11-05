@@ -149,7 +149,7 @@ fn zcode(home: &Path, builtin: &Path, url: &str) -> Output {
     let work = home.join("work");
     std::fs::create_dir_all(work.join(".git")).unwrap();
     let secret = golden()["secret"].as_str().unwrap().to_owned();
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "hello"])
         .current_dir(&work)

@@ -50,7 +50,7 @@ impl Sandbox {
 
     /// 在工作区里跑一次 `zcode -p`：空环境，只给 home、模型端点与 `vars`。
     fn run(&self, base_url: &str, vars: &[(&str, &str)]) -> Output {
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"));
+        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(["-p", "say done"])
             .current_dir(&self.work)

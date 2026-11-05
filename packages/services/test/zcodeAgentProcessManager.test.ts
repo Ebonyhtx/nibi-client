@@ -1646,7 +1646,7 @@ describe("NIBI_KERNEL 灰度开关", () => {
   it("NIBI_KERNEL=rust 拉起 Rust app-server，并带上 DWF 侧车 env", () => {
     const bundle = sandboxWithBundle();
     process.env.NIBI_KERNEL = "rust";
-    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/zcode-rs";
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
 
     const command = resolveDefaultZCodeAgentCommand({
       presentationSurface: "desktop",
@@ -1654,7 +1654,7 @@ describe("NIBI_KERNEL 灰度开关", () => {
       workspaceKey: "/repo/workspace",
     });
 
-    expect(command?.command).toBe("/opt/nibi/zcode-rs");
+    expect(command?.command).toBe("/opt/nibi/nibi-rs");
     expect(command?.args).toEqual(["app-server", "--stdio", "--surface", "desktop"]);
     // Rust app-server 已有 --prepare-storage：Host 走启动存储握手，存储准备用原生子进程分支。
     expect(command?.supportsStorageStartup).toBe(true);
@@ -1670,14 +1670,14 @@ describe("NIBI_KERNEL 灰度开关", () => {
     sandboxWithBundle();
     delete process.versions.electron;
     process.env.NIBI_KERNEL = "rust";
-    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/zcode-rs";
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
 
     const command = resolveDefaultZCodeAgentCommand({
       workspacePath: "/repo/workspace",
       workspaceKey: "/repo/workspace",
     });
 
-    expect(command?.command).toBe("/opt/nibi/zcode-rs");
+    expect(command?.command).toBe("/opt/nibi/nibi-rs");
     expect(command?.env).toBeUndefined();
     expect(command?.supportsStorageStartup).toBe(true);
     expect(command?.storagePreparationProcess).toBe(true);
@@ -1685,7 +1685,7 @@ describe("NIBI_KERNEL 灰度开关", () => {
 
   it("NIBI_KERNEL 未设时即便有 Rust 命令也保持 node 链路", () => {
     sandboxWithBundle();
-    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/zcode-rs";
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
 
     const command = resolveDefaultZCodeAgentCommand({
       workspacePath: "/repo/workspace",

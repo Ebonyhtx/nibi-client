@@ -10,7 +10,7 @@
 //! candidate <路径>\t<`<路径> executor status --json` 的第一行，可以为空>
 //! ```
 //!
-//! 只执行名字是 `zcode-rs` 的文件：`PATH` 上的 `zcode` 可能是 Node 版 CLI，不能拿它跑 `executor …`。老版本的 `zcode-rs`
+//! 只执行名字是 `nibi-rs` 的文件：`PATH` 上的 `zcode` 可能是 Node 版 CLI，不能拿它跑 `executor …`。老版本的 `nibi-rs`
 //! 不认 `executor status --json`，按未知选项报错退出（不做任何事），输出为空，算不兼容。
 
 use rust_cli_base::names::{DOT_DIR, EXECUTOR_HOME, UNIX_EXECUTABLE};

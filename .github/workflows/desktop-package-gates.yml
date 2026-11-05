@@ -79,7 +79,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: cargo build (release, kernel binary)
         working-directory: kernel
-        run: cargo build --locked --release -p rust-cli --bin zcode-rs
+        run: cargo build --locked --release -p rust-cli --bin nibi-rs
       # fpm 的 pacman 后端要 bsdtar（ubuntu runner 没有；exit 127 实测）。deb/rpm/AppImage 不需要。
       - name: Install bsdtar (pacman target needs it)
         if: matrix.os == 'ubuntu-latest'

@@ -37,7 +37,7 @@ impl Drop for LocalSshd {
         if self
             .dir
             .to_string_lossy()
-            .starts_with("/tmp/f107-zcode-rs-sshd-")
+            .starts_with("/tmp/f107-nibi-rs-sshd-")
         {
             let _ = std::fs::remove_dir_all(&self.dir);
         }
@@ -67,7 +67,7 @@ impl LocalSshd {
     fn start() -> Result<Self, String> {
         let user = whoami()?;
         let dir = PathBuf::from(format!(
-            "/tmp/f107-zcode-rs-sshd-{}-{:x}",
+            "/tmp/f107-nibi-rs-sshd-{}-{:x}",
             std::process::id(),
             rust_cli_base::random::u64() & 0xffff
         ));
@@ -254,12 +254,12 @@ fn free_port() -> Result<u16, String> {
     Ok(port)
 }
 
-/// 照 npm 平台包的样子打包（`package/bin/zcode-rs` 0755、`package/build.json`），返回 tarball 的字节。
+/// 照 npm 平台包的样子打包（`package/bin/nibi-rs` 0755、`package/build.json`），返回 tarball 的字节。
 pub fn pack(binary: &Path, target: &str, version: &str, dir: &Path) -> Vec<u8> {
     use sha2::{Digest, Sha256};
     let package = dir.join("package");
     std::fs::create_dir_all(package.join("bin")).unwrap();
-    let copied = package.join("bin/zcode-rs");
+    let copied = package.join("bin/nibi-rs");
     std::fs::copy(binary, &copied).unwrap();
     std::fs::set_permissions(&copied, std::fs::Permissions::from_mode(0o755)).unwrap();
     let bytes = std::fs::read(&copied).unwrap();
@@ -356,8 +356,8 @@ impl Registry {
     pub fn publish(&self, id: &str, version: &str, tarball: Vec<u8>) -> (String, String) {
         use base64::Engine;
         use sha2::{Digest, Sha512};
-        let name = format!("@mbearo/zcode-{id}");
-        let packument = format!("/@mbearo%2fzcode-{id}");
+        let name = format!("@nibi/cli-{id}");
+        let packument = format!("/@nibi%2fcli-{id}");
         let tarball_path = format!("/{name}/-/zcode-{id}-{version}.tgz");
         let integrity = format!(
             "sha512-{}",

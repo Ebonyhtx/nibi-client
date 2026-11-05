@@ -38,7 +38,7 @@ async fn an_invoked_skill_comes_back_after_compaction() {
         sse::text_reply("<summary>The user asked to deploy.</summary>"),
         sse::text_reply("done"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
+    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()

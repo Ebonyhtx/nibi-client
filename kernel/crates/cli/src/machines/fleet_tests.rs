@@ -88,7 +88,7 @@ fn make(remote: &Remote) -> MakeMachine {
         });
         let endpoint = TestEndpoint {
             ready: Ready(Provisioned {
-                program: "zcode-rs".to_owned(),
+                program: "nibi-rs".to_owned(),
                 args: Vec::new(),
             }),
             fail,

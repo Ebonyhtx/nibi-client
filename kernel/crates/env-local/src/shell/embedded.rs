@@ -92,23 +92,23 @@ fn function(
         ));
         lines.push("  done".to_owned());
     }
-    lines.push(format!(r#"  local _zc_bin="${{{EXECPATH}:-}}""#));
+    lines.push(format!(r#"  local _nibi_bin="${{{EXECPATH}:-}}""#));
     lines.push(format!(
-        "  [[ -x $_zc_bin ]] || _zc_bin={}",
+        "  [[ -x $_nibi_bin ]] || _nibi_bin={}",
         quote(fallback_path)
     ));
     lines.push(format!(
-        r#"  if [[ ! -x $_zc_bin ]]; then command {name} ${{1+"$@"}}; return; fi"#
+        r#"  if [[ ! -x $_nibi_bin ]]; then command {name} ${{1+"$@"}}; return; fi"#
     ));
     lines.push("  if [[ -n ${ZSH_VERSION:-} ]]; then".to_owned());
-    lines.push(format!(r#"    ARGV0={argv0} "$_zc_bin" {args}"#));
+    lines.push(format!(r#"    ARGV0={argv0} "$_nibi_bin" {args}"#));
     lines.push(
         r#"  elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then"#
             .to_owned(),
     );
-    lines.push(format!(r#"    ARGV0={argv0} "$_zc_bin" {args}"#));
+    lines.push(format!(r#"    ARGV0={argv0} "$_nibi_bin" {args}"#));
     lines.push("  else".to_owned());
-    lines.push(format!(r#"    (exec -a {argv0} "$_zc_bin" {args})"#));
+    lines.push(format!(r#"    (exec -a {argv0} "$_nibi_bin" {args})"#));
     lines.push("  fi".to_owned());
     lines.push("}".to_owned());
     lines.join("\n")

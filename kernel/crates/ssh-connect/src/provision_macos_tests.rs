@@ -53,7 +53,7 @@ async fn a_macos_remote_downloads_uploads_and_trial_runs_the_executor() {
         .unwrap()
         .map(|entry| entry.unwrap().file_name())
         .collect();
-    assert_eq!(left, [std::ffi::OsString::from("zcode-rs")]);
+    assert_eq!(left, [std::ffi::OsString::from("nibi-rs")]);
 }
 
 /// F107（§28.5）：试跑被系统杀掉（SIGKILL）时说签名无效、写明办法，远端不留文件；Linux 的远端上同样的退出码照旧是
