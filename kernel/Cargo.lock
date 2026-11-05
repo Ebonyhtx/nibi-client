@@ -2265,7 +2265,7 @@ dependencies = [
  "rust-cli-proc",
  "rust-cli-prompts",
  "rust-cli-protocol-core",
- "rust-cli-protocol-zcode",
+ "rust-cli-protocol-nibi",
  "rust-cli-query",
  "rust-cli-runtime",
  "rust-cli-ssh-connect",
@@ -2741,7 +2741,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-cli-protocol-zcode"
+name = "rust-cli-protocol-nibi"
 version = "0.1.0"
 dependencies = [
  "async-trait",

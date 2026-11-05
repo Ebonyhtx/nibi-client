@@ -2,7 +2,7 @@
 //! 拉起的协议前端。参数照 Host 现在给 Node 的（`ZA:zcodeAgentProcessManager.ts` 的 `applyPresentationSurfaceToCommand`）。
 //!
 //! 组装与 `-p` 相同的内核（同一套提示词与工具，Surface 是交互形态；不问工作区信任、不连远端机器、
-//! 不登记跨会话通信），区别只在注入的东西：平台层的账号凭据来源经 Host（G8），前端是 `protocol-zcode`。
+//! 不登记跨会话通信），区别只在注入的东西：平台层的账号凭据来源经 Host（G8），前端是 `protocol-nibi`。
 //! 写者先起：Host 要求拉起后 30 s 内有 `startup/storageState`。
 //!
 //! 标题生成与桌面 Node 一致：首条人类输入后发一次 `session_title` 侧请求（`TitleModel`），
@@ -26,7 +26,7 @@ use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
 use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
 use rust_cli_paths::StorageSettings;
 use rust_cli_protocol_core::connection::{self, Options};
-use rust_cli_protocol_zcode::{Context, Defaults, HostHeaders, Startup};
+use rust_cli_protocol_nibi::{Context, Defaults, HostHeaders, Startup};
 use rust_cli_runtime::{
     ContextConfig, Defaults as KernelDefaults, LocalKernel, PluginSnapshotLoader, Ports, Surface,
     TitleModel,
@@ -228,7 +228,7 @@ async fn serve(
     // Bash 命令的资源事实（`process/toolExecResource`，141 审计 §9 F3）：执行环境写这一头，
     // 协议 server 读另一头转发成通知。
     let (tool_telemetry, tool_exec_channel) =
-        rust_cli_protocol_zcode::telemetry::ToolExecChannel::channel();
+        rust_cli_protocol_nibi::telemetry::ToolExecChannel::channel();
     // MCP 进程的生命周期事件（`process/mcpTelemetry`）：ext 写这一头，协议 server 转发。
     let (mcp_telemetry, mcp_events) = tokio::sync::mpsc::unbounded_channel();
     // 本进程的读数（`process/resourceSample` 与 MCP 五分钟采样共用一份）。
@@ -456,30 +456,30 @@ async fn serve(
     let input = tokio::io::BufReader::new(tokio::io::stdin());
     // 进程资源遥测（`process/resourceSample`，141 审计 §9 F3）：桌面资源面板的 `cli_chat` 泳道读它。
     // 只量本进程——切到 Rust 内核后那个进程就是内核，Host 采不到。
-    let telemetry = rust_cli_protocol_zcode::telemetry::ResourceTelemetry::start(
+    let telemetry = rust_cli_protocol_nibi::telemetry::ResourceTelemetry::start(
         context.clone(),
         process_metrics.clone(),
         &spawner,
     );
     // 网络捕获（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）：Host 开关，
     // CLI 把出站请求的批次送回去。观察者装在本进程唯一的出口上，所以覆盖全部出站路径。
-    let capture = rust_cli_protocol_zcode::telemetry::Capture::new(context.clone(), &spawner);
+    let capture = rust_cli_protocol_nibi::telemetry::Capture::new(context.clone(), &spawner);
     egress.observe(capture.observer());
     // 读到 Host 关掉输入或收到退出信号时结束（Host 回收整棵进程树）。
     tokio::select! {
-        result = rust_cli_protocol_zcode::serve_with_capture(
+        result = rust_cli_protocol_nibi::serve_with_capture(
             input,
             context,
             kernel,
             defaults,
             spawner,
             Options::default(),
-            rust_cli_protocol_zcode::telemetry::TelemetryPorts {
+            rust_cli_protocol_nibi::telemetry::TelemetryPorts {
                 capture: Some(capture),
                 tool_exec: Some(tool_exec_channel),
                 mcp_events: Some(mcp_events),
                 mcp_ui_events: Some(mcp_ui_receiver),
-                mcp_resource: Some(rust_cli_protocol_zcode::telemetry::McpResourcePorts {
+                mcp_resource: Some(rust_cli_protocol_nibi::telemetry::McpResourcePorts {
                     sampler: Arc::new(rust_cli_env_local::process_sampler::LocalProcessSampler::new()),
                     metrics: process_metrics,
                 }),

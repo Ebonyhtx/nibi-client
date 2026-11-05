@@ -1,6 +1,6 @@
 /**
  * 从 NIBI 的单一来源 `packages/shared/src/nibi-protocol-v4/command.ts` 生成
- * `kernel/crates/protocol-zcode/schema/nibi-commands.json`。
+ * `kernel/crates/protocol-nibi/schema/nibi-commands.json`。
  *
  * 用法：
  *   pnpm exec tsx scripts/kernel-baseline/generate-nibi-command-schema.ts
@@ -25,7 +25,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "..", "..");
 const output = resolve(
   repoRoot,
-  "kernel/crates/protocol-zcode/schema/nibi-commands.json",
+  "kernel/crates/protocol-nibi/schema/nibi-commands.json",
 );
 
 const names = Object.keys(commandPayloadSchemas);

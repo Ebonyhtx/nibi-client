@@ -1,5 +1,5 @@
 [package]
-name = "rust-cli-protocol-zcode"
+name = "rust-cli-protocol-nibi"
 description = "The App protocol front end of rust-cli (V4 methods, commands, topics and the legacy methods the Host still calls)"
 version.workspace = true
 edition.workspace = true

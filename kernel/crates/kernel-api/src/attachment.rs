@@ -6,7 +6,7 @@
 //! - 本机绝对路径：desktop 直传，经会话所在机器的文件端口读。
 //!
 //! 内核只负责"把引用变成字节"（[`Kernel::load_attachment`](crate::session_api::Kernel::load_attachment)）；
-//! 哪些类型能进消息、怎么排内容块由协议前端决定（`protocol-zcode`）。
+//! 哪些类型能进消息、怎么排内容块由协议前端决定（`protocol-nibi`）。
 
 use serde::{Deserialize, Serialize};
 
