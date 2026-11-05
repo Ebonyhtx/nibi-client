@@ -100,6 +100,17 @@ export class V4TaskStreamSink {
   private lastPlanFingerprint: string | undefined;
   /** 工具输入里的 TodoWrite 计划：终态输出到达前先用它点亮顶部计划面板。 */
   private readonly toolPlanFingerprint = new Map<string, string>();
+  /** 上一次投影出去的 queue 项（sourceCommandId），用于识别「被移除」。 */
+  private queuedInputIds = new Set<string>();
+  /**
+   * 已从队列消失、但还没判定是「开跑了」还是「被丢弃」的输入。
+   *
+   * Rust 内核不发 legacy `turn.steerDropped`：队列项被删（deleteQueueItem）、
+   * 插话被丢掉（Fate::Dropped）、或运行时重启后队列不持久化，都只表现为
+   * `queue` 状态少了一项。判定靠顺序：内核先 `emit_queue` 再 `TurnStarted`，
+   * 所以下一次回合开始时，同 id = drained，其余 = discarded。
+   */
+  private readonly unresolvedQueueRemovals = new Set<string>();
 
   constructor(private readonly options: V4TaskStreamSinkOptions) {}
 
@@ -254,6 +265,51 @@ export class V4TaskStreamSink {
     if (patch.usage) this.projectUsage(patch.usage);
     if (patch.meta) this.projectMeta(patch.meta);
     if (patch.plan !== undefined) this.projectPlan(patch.plan);
+    if (patch.queue) this.projectQueue(patch.queue.items);
+  }
+
+  /**
+   * 队列项消失 = 开跑或被丢弃。内核的 `queue` 状态是唯一事实源（它不发 legacy 的
+   * `turn.steerDropped`），所以这里只记录「谁消失了」，等下一次回合开始再裁决：
+   * 同 id 开跑 = drained，其余 = discarded。bot 靠这个把群输入表情从「等待」收口。
+   */
+  private projectQueue(items: readonly { sourceCommandId: string }[]): void {
+    const next = new Set(items.map((item) => item.sourceCommandId));
+    for (const id of this.queuedInputIds) {
+      if (!next.has(id)) this.unresolvedQueueRemovals.add(id);
+    }
+    this.queuedInputIds = next;
+  }
+
+  /** 回合开始时裁决上一批队列移除：开跑的那一项算 drained，其余算被丢弃。 */
+  private settleQueueRemovals(startedInputId: string | undefined): void {
+    if (this.unresolvedQueueRemovals.size === 0) return;
+    const drained = startedInputId && this.unresolvedQueueRemovals.has(startedInputId);
+    const discarded = [...this.unresolvedQueueRemovals].filter((id) => id !== startedInputId);
+    this.unresolvedQueueRemovals.clear();
+    if (drained) {
+      this.emitQueueStatus("drained", [startedInputId]);
+    }
+    if (discarded.length > 0) {
+      this.emitQueueStatus("discarded", discarded);
+    }
+  }
+
+  private emitQueueStatus(
+    status: "drained" | "discarded",
+    pendingInputIds: string[],
+  ): void {
+    // 刻意不带 inputId：这条状态说的是「上一批排队输入」，不是当前回合的输入。
+    // 带上新回合的 inputId 会让 bot 的私聊归属过滤把它当成别的轮次而丢掉。
+    this.emit({
+      type: "turn_steer_status",
+      taskId: this.options.target.sessionId,
+      traceId: generateTraceId(this.options.target.sessionId),
+      status,
+      pendingInputIds,
+      // 不带 reason：内核不区分「用户删了」和「插话被丢」，两者都是「移除/拒绝」，
+      // 正好对应 bot 的非 session_resumed 文案。编一个 session_resumed 会谎报重启。
+    });
   }
 
   private projectPendingInteractions(pending: readonly PendingInteraction[]): void {
@@ -552,6 +608,10 @@ export class V4TaskStreamSink {
     const key = inputId ?? "unknown";
     if (this.startedInputs.has(key)) return;
     this.startedInputs.add(key);
+    // 内核的顺序是「先 QueueChanged（队列空了）再 TurnStarted」，所以回合开始是裁决
+    // 「消失的队列项到底开跑了还是被丢了」的唯一时点。必须在 task_run_started 之前发，
+    // 否则 bot 会先按新回合重置状态，再收到旧输入的丢弃事件。
+    this.settleQueueRemovals(inputId);
     this.emit({
       type: "task_run_started",
       taskId: this.options.target.sessionId,

@@ -490,4 +490,103 @@ describe("v4 task stream projection", () => {
       (plans[1] as Extract<ZCodeStreamEvent, { type: "plan" }>).steps.map((step) => step.status),
     ).toEqual(["completed", "completed"]);
   });
+
+  it("settles a vanished queue item as discarded when another input starts", async () => {
+    const { sink, events, emit } = createHarness(snapshotFrame([turnHeaderRow(1, "running")]));
+    sink.activate();
+    await Promise.resolve();
+    const queued = (sourceCommandId: string) => ({
+      sourceCommandId,
+      queueItemId: `queue_${sourceCommandId}`,
+      clientId: "c1",
+      kind: "sendText" as const,
+      text: sourceCommandId,
+      attachments: [],
+      delivery: { requested: "queue" as const, admitted: "queue" as const },
+      order: { admissionSeq: 0 },
+      steer: { state: "notRequested" as const },
+      dispatch: { state: "queued" as const },
+      admittedAt: 1_000,
+    });
+    emit(
+      deltasFrame([
+        { op: "state.updated", patch: { queue: { items: [queued("in-2")], autoDrain: true } } },
+      ]),
+    );
+    // 队列空了，但下一个开跑的是 in-3：in-2 是被丢弃的。
+    emit(deltasFrame([{ op: "state.updated", patch: { queue: { items: [], autoDrain: true } } }]));
+    expect(events.some((event) => event.type === "turn_steer_status")).toBe(false);
+
+    emit(
+      deltasFrame([
+        {
+          op: "row.appended",
+          row: {
+            rowId: 9,
+            turnId: "turn-2",
+            createdAt: 3_000,
+            createdAtSeq: 9,
+            kind: "turnHeader",
+            origin: "userInput",
+            sourceCommandId: "in-3",
+            state: "running",
+            startedAt: 3_000,
+          } as ConversationRow,
+        },
+      ]),
+    );
+    const status = events.find(
+      (event): event is Extract<ZCodeStreamEvent, { type: "turn_steer_status" }> =>
+        event.type === "turn_steer_status",
+    );
+    expect(status).toMatchObject({ status: "discarded", pendingInputIds: ["in-2"] });
+    expect(status?.reason).toBeUndefined();
+  });
+
+  it("settles a vanished queue item as drained when that same input starts", async () => {
+    const { sink, events, emit } = createHarness(snapshotFrame([turnHeaderRow(1, "running")]));
+    sink.activate();
+    await Promise.resolve();
+    const queued = {
+      sourceCommandId: "in-2",
+      queueItemId: "queue_in-2",
+      clientId: "c1",
+      kind: "sendText" as const,
+      text: "next",
+      attachments: [],
+      delivery: { requested: "queue" as const, admitted: "queue" as const },
+      order: { admissionSeq: 0 },
+      steer: { state: "notRequested" as const },
+      dispatch: { state: "queued" as const },
+      admittedAt: 1_000,
+    };
+    emit(
+      deltasFrame([{ op: "state.updated", patch: { queue: { items: [queued], autoDrain: true } } }]),
+    );
+    emit(deltasFrame([{ op: "state.updated", patch: { queue: { items: [], autoDrain: true } } }]));
+    emit(
+      deltasFrame([
+        {
+          op: "row.appended",
+          row: {
+            rowId: 9,
+            turnId: "turn-2",
+            createdAt: 3_000,
+            createdAtSeq: 9,
+            kind: "turnHeader",
+            origin: "userInput",
+            sourceCommandId: "in-2",
+            state: "running",
+            startedAt: 3_000,
+          } as ConversationRow,
+        },
+      ]),
+    );
+    const statuses = events.filter(
+      (event): event is Extract<ZCodeStreamEvent, { type: "turn_steer_status" }> =>
+        event.type === "turn_steer_status",
+    );
+    expect(statuses).toHaveLength(1);
+    expect(statuses[0]).toMatchObject({ status: "drained", pendingInputIds: ["in-2"] });
+  });
 });
