@@ -29,7 +29,9 @@ describe("TelemetryCore final HTTP privacy boundary", () => {
       homes.push(homeDir);
       const core = createTelemetryCore({
         homeDir,
-        resolveZCodeEndpointOrigin: () => `http://127.0.0.1:${address.port}`,
+        // 直接指向本机接收器：构建期端点常量在单测里是回环占位（127.0.0.1:9），
+        // 而 endpoint 重写只认 NIBI/上游自有 origin，不会把占位改写到随机端口。
+        reportEndpoint: `http://127.0.0.1:${address.port}/api/v1/event/report`,
       });
       const context = { clientTimezone: "UTC", clientLanguage: "en-US", screenResolution: "1x1" };
       await core.reportEvent({

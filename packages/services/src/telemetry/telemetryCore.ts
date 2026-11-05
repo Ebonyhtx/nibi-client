@@ -54,6 +54,11 @@ interface TelemetryCoreDependencies {
   osVersion?: string;
   homeDir?: string;
   resolveZCodeEndpointOrigin?: () => Promise<string> | string;
+  /**
+   * 上报端点覆盖（测试缝）。生产端点由构建期常量决定；单测用它指向本机接收器，
+   * 才能验证真实出网边界（脱敏、header、重试），而不是只断言常量本身。
+   */
+  reportEndpoint?: string;
   requestTimeoutMs?: number;
   sleep?: (ms: number) => Promise<void>;
   warn?: (message: string) => void;
@@ -416,7 +421,8 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
     deviceMid: string,
   ): Promise<void> {
     // 构建期未配置事件上报端点时不上报（见 docs/desktop/build-time-optional-capabilities.md）
-    if (!REPORT_ENDPOINT) return;
+    const reportEndpoint = dependencies.reportEndpoint ?? REPORT_ENDPOINT;
+    if (!reportEndpoint) return;
     let marketingParams: OAuthLoginAttribution | null = null;
     try {
       marketingParams = await loadMarketingParams();
@@ -456,8 +462,8 @@ export function createTelemetryCore(dependencies: TelemetryCoreDependencies = {}
 
     const endpoint = String(
       rewriteZCodeEndpointUrl(
-        REPORT_ENDPOINT,
-        (await dependencies.resolveZCodeEndpointOrigin?.()) ?? REPORT_ENDPOINT,
+        reportEndpoint,
+        (await dependencies.resolveZCodeEndpointOrigin?.()) ?? reportEndpoint,
       ),
     );
 

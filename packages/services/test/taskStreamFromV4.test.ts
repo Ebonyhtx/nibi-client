@@ -165,7 +165,16 @@ describe("v4 task stream projection", () => {
     sink.activate();
     expect(agent.subscribeConversationV4).toHaveBeenCalledOnce();
     await Promise.resolve();
-    expect(events.map((event) => event.type)).toEqual(["task_run_started", "agent_message_chunk"]);
+    // 状态面（模式/模型/用量/标题）先播，再播运行中的回合。
+    expect(events.map((event) => event.type)).toEqual([
+      "mode_update",
+      "glm_agent_model_state_update",
+      "config_option_update",
+      "usage_update",
+      "session_info_update",
+      "task_run_started",
+      "agent_message_chunk",
+    ]);
   });
 
   it("replays the running turn, then forwards deltas and closes on the terminal turn header", async () => {
@@ -227,5 +236,245 @@ describe("v4 task stream projection", () => {
     expect(unsubscribe).toHaveBeenCalledWith(
       expect.objectContaining({ subscriptionId: "mine", sessionId: "task" }),
     );
+  });
+
+  it("projects a pending permission so the bot is not stuck waiting", async () => {
+    const { sink, events, emit } = createHarness(snapshotFrame([turnHeaderRow(1, "running")]));
+    sink.activate();
+    await Promise.resolve();
+    emit(
+      deltasFrame([
+        {
+          op: "state.updated",
+          patch: {
+            pendingInteractions: [
+              {
+                interactionId: "ix-1",
+                kind: "permission",
+                anchorRowId: 2,
+                createdAt: 1_000,
+                payload: {
+                  kind: "permission",
+                  toolCallId: "tool-1",
+                  toolName: "Write",
+                  summary: "Write to a.txt",
+                  detail: { file_path: "a.txt" },
+                  freeText: true,
+                  options: [
+                    {
+                      optionId: "allowOnce",
+                      label: "Allow once",
+                      kind: "allowOnce",
+                      response: { decision: "allow" },
+                    },
+                    {
+                      optionId: "deny",
+                      label: "Deny",
+                      kind: "deny",
+                      response: { decision: "deny" },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ]),
+    );
+    const request = events.find((event) => event.type === "permission_request");
+    expect(request).toMatchObject({
+      requestId: "ix-1",
+      kind: "Write",
+      kind: "Write",
+      description: "Write to a.txt",
+      freeText: true,
+    });
+    expect(
+      (request as Extract<ZCodeStreamEvent, { type: "permission_request" }>).options.map(
+        (option) => option.optionId,
+      ),
+    ).toEqual(["allowOnce", "deny"]);
+
+    // 同一个 interaction 在后续 patch 里重复出现时不重发（bot 会重复弹卡片）。
+    emit(
+      deltasFrame([
+        {
+          op: "state.updated",
+          patch: {
+            pendingInteractions: [
+              {
+                interactionId: "ix-1",
+                kind: "permission",
+                anchorRowId: 2,
+                createdAt: 1_000,
+                payload: {
+                  kind: "permission",
+                  toolCallId: "tool-1",
+                  toolName: "Write",
+                  summary: "Write to a.txt",
+                  detail: {},
+                  options: [],
+                },
+              },
+            ],
+          },
+        },
+      ]),
+    );
+    expect(events.filter((event) => event.type === "permission_request")).toHaveLength(1);
+  });
+
+  it("turns a disappearing interaction into a response event", async () => {
+    const { sink, events, emit } = createHarness(snapshotFrame([turnHeaderRow(1, "running")]));
+    sink.activate();
+    await Promise.resolve();
+    emit(
+      deltasFrame([
+        {
+          op: "state.updated",
+          patch: {
+            pendingInteractions: [
+              {
+                interactionId: "ix-q",
+                kind: "userInput",
+                anchorRowId: 2,
+                createdAt: 1_000,
+                payload: {
+                  kind: "userInput",
+                  prompt: "AskUserQuestion pauses execution",
+                  freeText: true,
+                  toolName: "AskUserQuestion",
+                  questions: [
+                    {
+                      question: "Which one?",
+                      header: "Choice",
+                      options: [{ value: "a", label: "A" }],
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ]),
+    );
+    expect(events.find((event) => event.type === "elicitation_request")).toMatchObject({
+      requestId: "ix-q",
+      message: "Which one?",
+      header: "Choice",
+    });
+    emit(deltasFrame([{ op: "state.updated", patch: { pendingInteractions: [] } }]));
+    expect(events.find((event) => event.type === "elicitation_response")).toMatchObject({
+      requestId: "ix-q",
+      action: "accept",
+    });
+  });
+
+  it("projects config changes once and suppresses repeats", async () => {
+    const { sink, events, emit } = createHarness(snapshotFrame([turnHeaderRow(1, "running")]));
+    sink.activate();
+    await Promise.resolve();
+    const before = events.filter((event) => event.type === "mode_update").length;
+    emit(
+      deltasFrame([
+        {
+          op: "state.updated",
+          patch: {
+            config: {
+              provider: "glm",
+              model: "glm-5",
+              thought: "high",
+              thoughtLevels: ["low", "high"],
+              followupMode: "queue",
+              mode: "plan",
+            },
+          },
+        },
+      ]),
+    );
+    // mode 与思考档都变了：各发一次（seed 时已各发过一次）。
+    expect(events.filter((event) => event.type === "mode_update")).toHaveLength(before + 1);
+    expect(events.filter((event) => event.type === "glm_agent_model_state_update")).toHaveLength(2);
+    emit(
+      deltasFrame([
+        {
+          op: "state.updated",
+          patch: {
+            config: {
+              provider: "glm",
+              model: "glm-5",
+              thought: "high",
+              thoughtLevels: ["low", "high"],
+              followupMode: "queue",
+              mode: "plan",
+            },
+          },
+        },
+      ]),
+    );
+    expect(events.filter((event) => event.type === "mode_update")).toHaveLength(before + 1);
+  });
+
+  it("projects plan steps from state and from TodoWrite tool rows", async () => {
+    const { sink, events, emit } = createHarness(snapshotFrame([turnHeaderRow(1, "running")]));
+    sink.activate();
+    await Promise.resolve();
+    emit(
+      deltasFrame([
+        {
+          op: "state.updated",
+          patch: {
+            plan: {
+              items: [
+                { id: "1", content: "Read the file", status: "completed" },
+                { id: "2", content: "Patch it", status: "inProgress" },
+              ],
+              updatedAt: 2_000,
+            },
+          },
+        },
+      ]),
+    );
+    const fromState = events.filter((event) => event.type === "plan");
+    expect(fromState).toHaveLength(1);
+    expect(
+      (fromState[0] as Extract<ZCodeStreamEvent, { type: "plan" }>).steps.map((step) => [
+        step.title,
+        step.status,
+      ]),
+    ).toEqual([
+      ["Read the file", "completed"],
+      ["Patch it", "in_progress"],
+    ]);
+
+    emit(
+      deltasFrame([
+        {
+          op: "row.appended",
+          row: {
+            rowId: 5,
+            turnId: "turn-1",
+            createdAt: 2_100,
+            createdAtSeq: 5,
+            kind: "toolCall",
+            toolCallId: "todo-1",
+            toolName: "TodoWrite",
+            status: "running",
+            inputText: "",
+            input: {
+              todos: [
+                { id: "1", content: "Read the file", status: "completed" },
+                { id: "2", content: "Patch it", status: "completed" },
+              ],
+            },
+          } as ConversationRow,
+        },
+      ]),
+    );
+    const plans = events.filter((event) => event.type === "plan");
+    expect(plans).toHaveLength(2);
+    expect(
+      (plans[1] as Extract<ZCodeStreamEvent, { type: "plan" }>).steps.map((step) => step.status),
+    ).toEqual(["completed", "completed"]);
   });
 });

@@ -4511,6 +4511,8 @@ describe("ZCode legacy task compat task index", () => {
       sessionId: acpSessionId,
       deliveryKind: "desktop-continuous",
       includeSnapshot: false,
+      // Rust 内核没有旧 session/subscribe：这个回调激活 v4 帧投影（见 taskStreamFromV4）。
+      onLegacyStreamUnavailable: expect.any(Function),
     });
 
     await service.sendPrompt({

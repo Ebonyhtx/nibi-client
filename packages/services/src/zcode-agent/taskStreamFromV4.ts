@@ -1,9 +1,17 @@
 // task/bot 读路径的 v4 帧投影：旧 `session/subscribe` 在内核里不存在时（Rust），
-// 把 `conversation/<sessionId>` 的 row 增量翻译成 bot 消费的 `ZCodeStreamEvent` 子集。
+// 把 `conversation/<sessionId>` 的 row/state 增量翻译成 bot 消费的 `ZCodeStreamEvent` 子集。
 //
 // 为什么需要这一层：Rust 内核不投影 legacy `session/event`，`onDynamicTaskEvent` 过去只有
 // 一个订阅源，群机器人的 IM 回复（agent_message_chunk → task_complete flush）因此静默。
-// 投影只覆盖 bot 真正消费的事件（运行开始、正文/思考增量、工具卡、终态），不做完整 UI 时间线。
+//
+// 投影面（= `botsService.handleStreamEvent` 与 host 镜像真正消费的事件）：
+//   - 行：运行开始、正文/思考增量、工具卡、终态；
+//   - `pendingInteractions`：权限与提问（AskUserQuestion / ExitPlanMode）。缺了它群任务会
+//     永远卡在等待确认——这是 Rust 下最致命的一处读路径空洞；
+//   - `config`：模型/思考档/模式（bot 的 /model /think /mode 与 UI 工具栏都读它）；
+//   - `usage`：上下文用量（UI 比例条与手机端）；
+//   - `meta`：会话标题；
+//   - `plan`：TodoWrite 步骤（顶部计划面板）。
 //
 // 触发条件严格：只有 `onDynamicSessionEvent` 收到 -32601 才启动，Node 内核不会同时出现两条流。
 import {
@@ -13,8 +21,25 @@ import {
   type ConversationSnapshot,
   type ConversationTopicFrame,
   type ConversationTopicWireCandidate,
+  type PendingInteraction,
+  type SessionConfigState,
+  type SessionMetaState,
+  type SessionUsageState,
+  type StatePatch,
 } from "@nibi/shared/nibi-protocol-v4";
-import { generateTraceId, type ZCodeStreamEvent } from "@nibi/shared";
+import {
+  extractPlanStepsFromToolInput,
+  extractPlanStepsFromToolOutput,
+  formatModelPickerValue,
+  generateTraceId,
+  getZCodeAgentAvailableModes,
+  normalizeAvailableZCodeMode,
+  type ModelSelection,
+  type ZCodeConfigOption,
+  type ZCodePermissionOption,
+  type ZCodePlanStep as PlanStep,
+  type ZCodeStreamEvent,
+} from "@nibi/shared";
 import type { IZCodeAgentService, ZCodeAgentSessionTarget } from "./zcodeAgent.js";
 
 type ToolStreamStatus = "pending" | "in_progress" | "completed" | "failed" | "denied" | "stopped";
@@ -50,6 +75,22 @@ export class V4TaskStreamSink {
   private readonly toolCallEmitted = new Set<string>();
   private readonly startedInputs = new Set<string>();
   private readonly terminalTurns = new Set<number>();
+
+  /** 上一次投影出去的 pendingInteractions 身份，用于只在增删时发事件（不重发同一条）。 */
+  private pendingInteractionIds = new Set<string>();
+  /** 已经发过请求事件、还没被回答的交互（重发 patch 时跳过）。 */
+  private readonly announcedInteractions = new Set<string>();
+  /** 已发过 permission_request 的交互，用来决定「消失」时发 permission_response 还是 elicitation_response。 */
+  private readonly permissionInteractions = new Set<string>();
+  /** 上一次投影出去的 config，用于抑制无变化的重复事件。 */
+  private lastConfig: SessionConfigState | undefined;
+  /** 上一次投影出去的 usage 值，用于抑制无变化的重复事件。 */
+  private lastUsage: SessionUsageState | undefined;
+  private lastTitle: string | undefined;
+  /** 上一次投影出去的 plan 步骤指纹，用于抑制无变化的重复事件。 */
+  private lastPlanFingerprint: string | undefined;
+  /** 工具输入里的 TodoWrite 计划：终态输出到达前先用它点亮顶部计划面板。 */
+  private readonly toolPlanFingerprint = new Map<string, string>();
 
   constructor(private readonly options: V4TaskStreamSinkOptions) {}
 
@@ -145,6 +186,7 @@ export class V4TaskStreamSink {
           this.forgetRowsFrom(delta.fromRowId);
           break;
         case "state.updated":
+          this.acceptState(delta.patch);
           break;
         // workflowRun.* 与 conversation 正文无关
         default:
@@ -154,6 +196,16 @@ export class V4TaskStreamSink {
   }
 
   private seed(snapshot: ConversationSnapshot): void {
+    // 状态面先播：即便没有运行中的回合（冷恢复的历史会话），标题/用量/计划/待答交互
+    // 也必须让订阅方看到——否则群机器人重启后看不到已经挂着的权限请求。
+    this.acceptState({
+      config: snapshot.config,
+      usage: snapshot.usage,
+      meta: snapshot.meta,
+      plan: snapshot.plan,
+      pendingInteractions: snapshot.pendingInteractions,
+    });
+
     const rows = snapshot.rows.window;
     let activeIndex = -1;
     // 只投影“最后一个仍在运行的 turn”：历史轮次的正文不该被机器人当成新回复发出去。
@@ -180,6 +232,236 @@ export class V4TaskStreamSink {
       if (row.kind === "userInput" && row.sourceCommandId) return row.sourceCommandId;
     }
     return undefined;
+  }
+
+  /**
+   * `state.updated` 是**键级整体替换**（不是深合并），所以每个在场的键都按完整值投影。
+   * 只处理读路径消费的键；`control`/`availability`/`queue` 等由 UI 的 v4 store 直接读，
+   * 不在这条 legacy 词表里重复一份。
+   */
+  private acceptState(patch: StatePatch): void {
+    if (patch.pendingInteractions) this.projectPendingInteractions(patch.pendingInteractions);
+    if (patch.config) this.projectConfig(patch.config);
+    if (patch.usage) this.projectUsage(patch.usage);
+    if (patch.meta) this.projectMeta(patch.meta);
+    if (patch.plan !== undefined) this.projectPlan(patch.plan);
+  }
+
+  private projectPendingInteractions(pending: readonly PendingInteraction[]): void {
+    const next = new Set(pending.map((interaction) => interaction.interactionId));
+    // 已消失的交互 = 被回答/取消：发对应的 response 事件，让 bot 收起卡片、UI 清弹窗。
+    for (const interactionId of this.pendingInteractionIds) {
+      if (next.has(interactionId)) continue;
+      this.emitInteractionResolved(interactionId);
+    }
+    this.pendingInteractionIds = next;
+    for (const interaction of pending) {
+      // 同一个 interactionId 只发一次请求事件；后续 patch 重复携带它是常态。
+      if (this.announcedInteractions.has(interaction.interactionId)) continue;
+      this.announcedInteractions.add(interaction.interactionId);
+      this.emitInteractionRequest(interaction);
+    }
+  }
+
+  private emitInteractionRequest(interaction: PendingInteraction): void {
+    const traceId = this.activeInputId ?? generateTraceId(this.options.target.sessionId);
+    const base = {
+      taskId: this.options.target.sessionId,
+      traceId,
+      ...(this.activeInputId ? { inputId: this.activeInputId } : {}),
+      requestId: interaction.interactionId,
+    };
+    if (interaction.payload.kind === "permission") {
+      const payload = interaction.payload;
+      this.permissionInteractions.add(interaction.interactionId);
+      this.emit({
+        ...base,
+        type: "permission_request",
+        description: payload.summary,
+        kind: payload.toolName,
+        title: payload.toolName,
+        options: permissionOptionsFromPayload(payload.options, payload.fullAccessOption),
+        ...(payload.freeText ? { freeText: true } : {}),
+        ...(payload.origin ? { origin: payload.origin } : {}),
+        raw: interaction,
+      });
+      return;
+    }
+    if (interaction.payload.kind === "userInput") {
+      const payload = interaction.payload;
+      const questions = (payload.questions ?? []).map((question) => ({
+        question: question.question,
+        header: question.header,
+        options: question.options.map((option) => ({
+          value: option.value,
+          label: option.label,
+          ...(option.description ? { description: option.description } : {}),
+        })),
+        ...(question.multiSelect ? { multiSelect: true } : {}),
+      }));
+      const first = questions[0];
+      this.emit({
+        ...base,
+        type: "elicitation_request",
+        message: first?.question ?? payload.prompt,
+        ...(first?.header ? { header: first.header } : {}),
+        options: first?.options ?? [],
+        ...(first?.multiSelect ? { multiSelect: true } : {}),
+        ...(questions.length > 0 ? { questions } : {}),
+        ...(payload.origin ? { origin: payload.origin } : {}),
+        ...(payload.schema !== undefined ? { schema: payload.schema } : {}),
+      });
+      return;
+    }
+    // workspaceHookReview 不是 bot/镜像的交互面（工作区级软门禁由 UI 的 v4 store 处理）。
+  }
+
+  private emitInteractionResolved(interactionId: string): void {
+    this.announcedInteractions.delete(interactionId);
+    // 权限：没有任何消费方读 `permission_response`（bot / UI / 手机端都只读 request），
+    // 而 v4 的 `pendingInteractions` 消失并不告诉我们用户选了 allow 还是 deny。
+    // 编一个 decision 只会制造假事实，所以这里不发事件。
+    if (this.permissionInteractions.delete(interactionId)) return;
+    const traceId = this.activeInputId ?? generateTraceId(this.options.target.sessionId);
+    // 提问：bot 靠 requestId 清掉自己的待答卡片（不看 action），这是它唯一的收口信号。
+    this.emit({
+      type: "elicitation_response",
+      taskId: this.options.target.sessionId,
+      traceId,
+      ...(this.activeInputId ? { inputId: this.activeInputId } : {}),
+      requestId: interactionId,
+      action: "accept",
+    });
+  }
+
+  private projectConfig(config: SessionConfigState): void {
+    const previous = this.lastConfig;
+    this.lastConfig = config;
+    if (
+      previous &&
+      previous.provider === config.provider &&
+      previous.model === config.model &&
+      previous.thought === config.thought &&
+      previous.mode === config.mode &&
+      previous.thoughtLevels.join("\u0000") === config.thoughtLevels.join("\u0000")
+    ) {
+      return;
+    }
+    const traceId = this.activeInputId ?? generateTraceId(this.options.target.sessionId);
+    const base = {
+      taskId: this.options.target.sessionId,
+      traceId,
+      ...(this.activeInputId ? { inputId: this.activeInputId } : {}),
+    };
+    // 模式：bot 的 /mode 与 UI 工具栏读 mode_update。
+    if (!previous || previous.mode !== config.mode) {
+      this.emit({
+        ...base,
+        type: "mode_update",
+        currentModeId: normalizeAvailableZCodeMode(config.mode as never),
+        availableModes: getZCodeAgentAvailableModes(),
+      });
+    }
+    // 模型/思考档：glm_agent_model_state_update 是旧栈唯一的模型态事件。
+    if (
+      !previous ||
+      previous.provider !== config.provider ||
+      previous.model !== config.model ||
+      previous.thought !== config.thought ||
+      previous.thoughtLevels.join("\u0000") !== config.thoughtLevels.join("\u0000")
+    ) {
+      this.emit({
+        ...base,
+        type: "glm_agent_model_state_update",
+        version: 1,
+        sessionId: this.options.target.sessionId,
+        reason: !previous
+          ? "session_initialized"
+          : previous.provider !== config.provider || previous.model !== config.model
+            ? "model_changed"
+            : "thought_level_changed",
+        model: {
+          currentValue: formatModelPickerValue({
+            providerId: config.provider,
+            modelId: config.model,
+            ...(config.thought ? { options: { reasoningLevel: config.thought } } : {}),
+          } as ModelSelection),
+        },
+        thoughtLevel: {
+          enabled: config.thoughtLevels.length > 0,
+          ...(config.thought ? { currentValue: config.thought } : {}),
+          options: config.thoughtLevels.map((level) => ({ value: level, name: level })),
+        },
+        contextWindow: { tokens: 0 },
+      });
+      // 顺带把完整 configOptions 发一次：bot 的 /model 列表读它。
+      this.emit({ ...base, type: "config_option_update", configOptions: configOptionsFromState(config) });
+    }
+  }
+
+  private projectUsage(usage: SessionUsageState): void {
+    const previous = this.lastUsage;
+    this.lastUsage = usage;
+    const window = usage.contextWindow;
+    if (!window) return;
+    if (
+      previous?.contextWindow &&
+      previous.contextWindow.usedTokens === window.usedTokens &&
+      previous.contextWindow.maxTokens === window.maxTokens &&
+      previous.cumulative.inputTokens === usage.cumulative.inputTokens &&
+      previous.cumulative.outputTokens === usage.cumulative.outputTokens
+    ) {
+      return;
+    }
+    const traceId = this.activeInputId ?? generateTraceId(this.options.target.sessionId);
+    this.emit({
+      type: "usage_update",
+      taskId: this.options.target.sessionId,
+      traceId,
+      ...(this.activeInputId ? { inputId: this.activeInputId } : {}),
+      size: window.maxTokens,
+      used: window.usedTokens,
+      cost: null,
+      ...(window.cache ? { cache: window.cache } : {}),
+      ...(window.breakdown ? { breakdown: window.breakdown } : {}),
+    });
+  }
+
+  private projectMeta(meta: SessionMetaState): void {
+    if (meta.title === this.lastTitle) return;
+    this.lastTitle = meta.title;
+    if (!meta.title) return;
+    const traceId = this.activeInputId ?? generateTraceId(this.options.target.sessionId);
+    this.emit({
+      type: "session_info_update",
+      taskId: this.options.target.sessionId,
+      traceId,
+      ...(this.activeInputId ? { inputId: this.activeInputId } : {}),
+      title: meta.title,
+    });
+  }
+
+  private projectPlan(plan: ConversationSnapshot["plan"]): void {
+    const steps = (plan?.items ?? []).map((item) => ({
+      id: item.id,
+      title: item.content,
+      status: mapPlanStatus(item.status),
+    }));
+    this.emitPlanSteps(steps);
+  }
+
+  private emitPlanSteps(steps: PlanStep[]): void {
+    const fingerprint = steps.map((step) => `${step.id}\u0000${step.status}`).join("\u0001");
+    if (!steps.length || fingerprint === this.lastPlanFingerprint) return;
+    this.lastPlanFingerprint = fingerprint;
+    const traceId = this.activeInputId ?? generateTraceId(this.options.target.sessionId);
+    this.emit({
+      type: "plan",
+      taskId: this.options.target.sessionId,
+      traceId,
+      ...(this.activeInputId ? { inputId: this.activeInputId } : {}),
+      steps,
+    });
   }
 
   private acceptRow(row: ConversationRow): void {
@@ -314,6 +596,7 @@ export class V4TaskStreamSink {
         input: row.input ?? row.inputText,
         raw: row,
       });
+      this.projectToolPlan(row.toolCallId, row.toolName, row.input ?? row.inputText, "input");
       return;
     }
     if (previous === status) return;
@@ -331,6 +614,30 @@ export class V4TaskStreamSink {
       ...(row.error?.message ? { error: row.error.message } : {}),
       raw: row,
     });
+    if (status === "completed" || status === "failed") {
+      this.projectToolPlan(row.toolCallId, row.toolName, row.output?.text, "output");
+    }
+  }
+
+  /**
+   * TodoWrite 的步骤既可以从工具输入取（刚排好计划），也可以从输出取（模型回写状态）。
+   * 输入侧先点亮面板，输出侧再按最终状态覆盖；同一份内容不重复发。
+   */
+  private projectToolPlan(
+    toolCallId: string,
+    toolName: string,
+    value: unknown,
+    source: "input" | "output",
+  ): void {
+    const steps =
+      source === "input"
+        ? extractPlanStepsFromToolInput({ title: toolName, kind: toolName, input: value })
+        : extractPlanStepsFromToolOutput({ title: toolName, kind: toolName, output: value });
+    if (!steps) return;
+    const fingerprint = steps.map((step) => `${step.id}\u0000${step.status}`).join("\u0001");
+    if (this.toolPlanFingerprint.get(toolCallId) === fingerprint) return;
+    this.toolPlanFingerprint.set(toolCallId, fingerprint);
+    this.emitPlanSteps(steps);
   }
 
   private forgetRowsFrom(fromRowId: number): void {
@@ -368,4 +675,78 @@ function mapToolStatus(status: string): ToolStreamStatus {
     default:
       return "in_progress";
   }
+}
+
+function mapPlanStatus(status: string): PlanStep["status"] {
+  switch (status) {
+    case "completed":
+      return "completed";
+    case "inProgress":
+    case "in_progress":
+      return "in_progress";
+    default:
+      return "pending";
+  }
+}
+
+/** v4 的 permission 选项 → legacy 事件形状（bot 的按钮文案与排序都按它分类）。 */
+function permissionOptionsFromPayload(
+  options: readonly { optionId: string; label: string; kind: string }[],
+  fullAccessOption?: { optionId: string; label: string; kind: string },
+): ZCodePermissionOption[] {
+  const mapped = options.map((option) => ({
+    optionId: option.optionId,
+    name: option.label,
+    kind: option.kind,
+  })) as ZCodePermissionOption[];
+  // 「完全访问」是 v4 的附加能力；legacy 事件用 custom 选项承载，bot 会当成普通按钮。
+  return fullAccessOption
+    ? [
+        ...mapped,
+        {
+          optionId: fullAccessOption.optionId,
+          name: fullAccessOption.label,
+          kind: "custom",
+        } as ZCodePermissionOption,
+      ]
+    : mapped;
+}
+
+/** v4 config → legacy configOptions（bot 的 /model、/mode、/think 菜单读它）。 */
+function configOptionsFromState(config: SessionConfigState): ZCodeConfigOption[] {
+  const modelValue = formatModelPickerValue({
+    providerId: config.provider,
+    modelId: config.model,
+    ...(config.thought ? { options: { reasoningLevel: config.thought } } : {}),
+  } as ModelSelection);
+  return [
+    {
+      id: "model",
+      name: "Model",
+      category: "model",
+      type: "select",
+      currentValue: modelValue,
+      options: [{ value: modelValue, name: modelValue }],
+    },
+    {
+      id: "mode",
+      name: "Mode",
+      category: "mode",
+      type: "select",
+      currentValue: normalizeAvailableZCodeMode(config.mode as never),
+      options: getZCodeAgentAvailableModes().map((mode) => ({
+        value: mode.id,
+        name: mode.name,
+        ...(mode.description ? { description: mode.description } : {}),
+      })),
+    },
+    {
+      id: "thought_level",
+      name: "Thinking",
+      category: "thought_level",
+      type: "select",
+      currentValue: config.thought,
+      options: config.thoughtLevels.map((level) => ({ value: level, name: level })),
+    },
+  ];
 }

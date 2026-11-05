@@ -42,10 +42,13 @@ it("adds every public header and re-reads authorization on retry and logout", as
   });
   await core.reportAppLaunch(context);
   expect(fetchImpl.mock.calls[0]?.[1]?.redirect).toBe("error");
+  // HTTP-Referer 跟随**实际上报端点**，不是固定的上游域。单测里上报端点是
+  // vitest.config.ts 注入的回环占位（127.0.0.1:9），所以这里断言回环 origin；
+  // 真实构建由 scripts/build-time-config.mjs 注入 NIBI 自有端点（默认空 = 关闭）。
   expect(fetchImpl.mock.calls[0]?.[1]?.headers).toEqual({
     "Content-Type": "application/json",
     "User-Agent": "NIBI/1.2.3",
-    "HTTP-Referer": "https://zcode.z.ai",
+    "HTTP-Referer": "http://127.0.0.1:9",
     "X-Title": "NIBI@electron",
     "X-ZCode-App-Version": "1.2.3",
     "X-Platform": "darwin-arm64",
