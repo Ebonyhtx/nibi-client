@@ -1029,3 +1029,17 @@ exceptions:
       - packages/ui/src/settings/nibiMembershipState.ts
       - packages/ui/src/settings/useNibiMembership.ts
     reason: 会员阶段判定与状态 hook 是左下角账户菜单、插件市场付费门禁共用的同一份纯逻辑；放在 ui/settings 既有目录，只依赖 @nibi/services 的只读状态类型，不新增跨层依赖。接管整个 ui 包不在本次范围内。
+  - id: rust-migration-unmanaged-files
+    rule: unmanaged-new-file
+    paths:
+      - apps/zcode-cli/packages/bootstrap/src/app/storage-paths.ts
+      - apps/zcode-cli/packages/bootstrap/src/plugin-management.ts
+      - packages/desktop/src/host/localPluginManagementService.ts
+      - packages/services/src/zcode-agent/taskStreamFromV4.ts
+      - packages/zcode-server-cli/src/packaging/nodeDistIntegrity.ts
+    reason: >-
+      Rust 内核改造期间的五个新文件：storage-paths / plugin-management 是从 bootstrap 既有实现抽出的
+      同层文件，localPluginManagementService 让插件管理留在 Host（不再转 agent），taskStreamFromV4 是
+      v4 事件到旧 task 事件的投影，nodeDistIntegrity 是 Server CLI 下载 Node 二进制的 sha256 校验。
+      四处所属目录（zcode-cli bootstrap、desktop/host、services/zcode-agent、zcode-server-cli）都还是
+      上游的未受管大区，逐个接管要单独一轮模块边界重构；这里按路径逐个登记，不放开整目录。
