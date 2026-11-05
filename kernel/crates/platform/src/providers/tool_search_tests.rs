@@ -88,7 +88,8 @@ fn no_catalog_endpoint_uses_native_tool_search() {
     }
 }
 
-/// 账号 provider（内置配置的 providerRules，`zhipu-account`）的端点模板：地址都在 z.ai / bigmodel.cn 下，同样不是原生。
+/// 账号 provider（内置配置的 providerRules，`zhipu-account`）的直连端点：地址在 z.ai / bigmodel.cn 下，同样不是原生。
+/// 走上游 zcode.z.ai 网关的套餐已从 NIBI 移除。
 #[test]
 fn account_provider_templates_use_local_tool_search() {
     let config = builtin();
@@ -99,7 +100,7 @@ fn account_provider_templates_use_local_tool_search() {
         .iter()
         .filter(|rule| rule["config"]["access"]["type"] == "zhipu-account")
         .collect();
-    assert!(accounts.len() >= 10, "{}", accounts.len());
+    assert!(accounts.len() >= 4, "{}", accounts.len());
     let site = SiteRules::new(&config);
     for rule in accounts {
         let api = &rule["config"]["api"];

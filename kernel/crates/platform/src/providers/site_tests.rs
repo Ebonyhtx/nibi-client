@@ -110,24 +110,13 @@ fn official_sites_get_their_capabilities() {
     let gateway = site(anthropic, "https://gw.example.com", "claude-opus-5-5");
     assert!(!gateway.supports_native_web_search);
     assert!(gateway.supports_mid_conversation_system);
-    for base_url in [
-        "https://api.z.ai/api/anthropic",
-        "https://open.bigmodel.cn/api/anthropic",
-        "https://zcode.z.ai/api/v1/zcode-plan/anthropic",
-        "https://zcode.z.ai/api/v1/highspeed/anthropic",
-    ] {
+    // 只保留 Z.ai / BigModel 的直连站点；上游 zcode.z.ai 套餐网关不在 NIBI 的站点规则里。
+    for base_url in ["https://api.z.ai/api/anthropic", "https://open.bigmodel.cn/api/anthropic"] {
         let glm = site(anthropic, base_url, "glm-5.1");
         assert!(glm.supports_native_web_search, "{base_url}");
         assert!(glm.supports_mid_conversation_system, "{base_url}");
         assert!(glm.supports_image && glm.supports_video, "{base_url}");
     }
-    let off_peak = site(
-        anthropic,
-        "https://zcode.z.ai/api/v1/off-peak/anthropic",
-        "glm-5.1",
-    );
-    assert!(!off_peak.supports_native_web_search);
-    assert!(off_peak.supports_mid_conversation_system);
     let deepseek = site(
         anthropic,
         "https://api.deepseek.com/anthropic",
@@ -216,13 +205,13 @@ fn glm_5_3_flash_follows_the_node_rules() {
             .effective_config
             .clone()
     };
+    // 直连 api.z.ai / open.bigmodel.cn 的个人与团队套餐保留（provider 账号登录）；
+    // 走上游 zcode.z.ai 网关的 start/off-peak/highspeed 套餐已移除。
     for (provider_id, web_search) in [
         ("account:bigmodel-team-coding-plan", true),
         ("account:bigmodel-individual-coding-plan", true),
         ("account:zai-team-coding-plan", true),
         ("account:zai-individual-coding-plan", true),
-        ("account:zai-start-plan", true),
-        ("account:zai-offpeak-idle-plan", false),
     ] {
         let config = effective(provider_id);
         let capabilities = crate::providers::catalog::capabilities(&config);

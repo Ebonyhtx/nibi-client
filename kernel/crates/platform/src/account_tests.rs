@@ -112,8 +112,8 @@ async fn individual_plans_follow_the_manual_key_or_the_app_login() {
         &overlay(&builtin(), Some(&manual), &[BIGMODEL]),
         BIGMODEL
     ));
-    // 独立 CLI 不支持的账号 provider 显式不授权。
-    assert!(!entitled(&layer, "account:zai-start-plan"));
+    // 走上游 zcode.z.ai 网关的套餐 provider 已移除（不留在 NIBI 的账号层里）。
+    assert!(!layer.providers.contains_key("account:zai-start-plan"));
     assert!(
         layer
             .providers

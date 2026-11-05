@@ -13,10 +13,11 @@
 //   node scripts/sync-upstream-provider-config.mjs --from <release.json|https://...>        # dry-run
 //   node scripts/sync-upstream-provider-config.mjs --from ... --write                      # 写回两份随包配置
 //   node scripts/sync-upstream-provider-config.mjs --from ... --revision 35 --write
+//   node scripts/sync-upstream-provider-config.mjs --from ... --write --rust   # 同时更新 Rust 随包
 //   node scripts/sync-upstream-provider-config.mjs --from <client/configs 端点> --proxy http://127.0.0.1:7897
 //
-// 不处理 Rust 内核的随包副本（`kernel/crates/platform/assets/nibi-builtin.json`）：它按 vendor
-// 升级走，形状也不同；需要 Rust 独立 CLI/TUI 看到新模型时另开一次内核发布。
+// 加 `--rust` 会同时写 `kernel/crates/platform/assets/nibi-builtin.json`：它与 Node 源同模板/
+// 同模型规则，但保留上游 providerRules（独立 Rust 的 Z.ai/BigModel 账号登录路径）。
 
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -43,6 +44,9 @@ function parseArgs(argv) {
         break;
       case "--write":
         args.write = true;
+        break;
+      case "--rust":
+        args.rust = true;
         break;
       default:
         throw new Error(`unknown argument ${JSON.stringify(flag)}`);
@@ -200,6 +204,41 @@ export function buildSyncedConfigs({ upstream, currentProd, currentTest, revisio
   };
 }
 
+/**
+ * Rust 独立 CLI/TUI 的随包配置：与 Node 源同源，但保留上游的 `providerRules`——
+ * 那是 Z.ai/BigModel 的 **provider 账号登录** 路径（不是 NIBI 会员），独立 Rust 需要它。
+ * Node 源里 providerRules 由运行时合成，所以是空数组；两份的模板与模型规则一致。
+ */
+export function buildRustConfig({ upstream, revision }) {
+  const upstreamModelRules = upstream.config.modelConfigRules ?? {};
+  // 独立 Rust 保留 provider 账号登录（App 登录镜像）：只留直连 api.z.ai / open.bigmodel.cn
+  // 的个人/团队套餐；走上游 zcode.z.ai 网关的 start/off-peak/highspeed 套餐不进 NIBI。
+  const providerRules = (upstream.config.providerConfigRules?.providerRules ?? []).filter(
+    (rule) => !isUpstreamZcodeSiteRule({ baseUrlMatch: rule?.config?.api?.baseUrl ?? "" }),
+  );
+  const providerIds = new Set(providerRules.map((rule) => rule.providerId));
+  return {
+    schemaVersion: 1,
+    revision,
+    config: {
+      ...upstream.config,
+      providerConfigRules: {
+        templateRules: upstream.config.providerConfigRules?.templateRules ?? [],
+        providerRules,
+      },
+      modelConfigRules: {
+        ...upstreamModelRules,
+        providerSiteRules: (upstreamModelRules.providerSiteRules ?? []).filter(
+          (rule) => !isUpstreamZcodeSiteRule(rule),
+        ),
+        builtinProviderModelRules: (upstreamModelRules.builtinProviderModelRules ?? []).filter(
+          (rule) => providerIds.has(rule.providerId),
+        ),
+      },
+    },
+  };
+}
+
 async function validateRelease(release) {
   const { decodeZCodeBuiltinRelease } = await tsImport(
     pathToFileURL(resolve(repositoryRoot, "packages/provider-node/src/nibi-builtin-release.ts")).href,
@@ -226,6 +265,7 @@ async function main() {
   });
   await validateRelease(result.prod);
   await validateRelease(result.test);
+  const rust = args.rust ? buildRustConfig({ upstream, revision: result.prod.revision }) : null;
 
   process.stdout.write(
     `${JSON.stringify(
@@ -238,6 +278,7 @@ async function main() {
         currentTemplatesMissingUpstream: result.templates.missingUpstream,
         nibiOverridesDropped: result.overridesDropped,
         modelChanges: result.modelChanges,
+        rustAsset: args.rust ? "kernel/crates/platform/assets/nibi-builtin.json" : null,
         wrote: args.write === true,
       },
       null,
@@ -256,9 +297,20 @@ async function main() {
     await writeFile(resolve(repositoryRoot, path), `${JSON.stringify(release, null, 2)}\n`, "utf8");
   }
   process.stdout.write(`updated ${PROD_PATH} and ${TEST_PATH} (revision ${result.prod.revision})\n`);
-  process.stdout.write(
-    "Rust bundled asset unchanged: kernel/crates/platform/assets/nibi-builtin.json needs its own release.\n",
-  );
+  if (rust) {
+    await writeFile(
+      resolve(repositoryRoot, "kernel/crates/platform/assets/nibi-builtin.json"),
+      `${JSON.stringify(rust, null, 2)}\n`,
+      "utf8",
+    );
+    process.stdout.write(
+      "updated kernel/crates/platform/assets/nibi-builtin.json (providerRules kept for account auth)\n",
+    );
+  } else {
+    process.stdout.write(
+      "Rust bundled asset unchanged; pass --rust to update it in the same run.\n",
+    );
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
