@@ -675,7 +675,7 @@ impl Kernel for LocalKernel {
         &self,
         request: rust_cli_kernel_api::mcp_ui::McpUiOpenRequest,
     ) -> Result<rust_cli_kernel_api::mcp_ui::McpAppInstance, KernelError> {
-        self.ext.mcp_ui_open(request).map_err(mcp_ui_error)
+        self.ext.mcp_ui_open(request).await.map_err(mcp_ui_error)
     }
 
     /// `mcp/uiCloseInstance`：`only_if_idle` 时只关没有进行中调用的实例。

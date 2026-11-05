@@ -51,6 +51,10 @@ pub use skills::{Skill, SkillCatalog, SkillCommands, SkillSource, SkillTool};
 
 use mcp::SessionMcp;
 
+/// `mcp/uiOpenInstance` 首次签发时等目标服务器离开 Pending 的窗口：与默认 `MCP_TIMEOUT`
+/// （连接与握手 30s）同一个量级；服务器失败或超时后这一行按“不可用”拒绝。
+const MCP_UI_OPEN_WAIT_MS: u64 = 30_000;
+
 /// ext 用到的端口，由 runtime 注入。
 #[derive(Clone)]
 pub struct ExtPorts {
@@ -319,12 +323,35 @@ impl Ext {
     }
 
     /// `mcp/uiOpenInstance`：页面实例凭证（同一逻辑页面同连接代际幂等）。
-    pub fn mcp_ui_open(
+    ///
+    /// 首次签发要在服务器还在 `initialize` 时等它（Node `waitForAppConnection` 等 `connecting`
+    /// 同一条）：桌面会在会话刚建、MCP 尚未 ready 时打开页面，立即回“不可用”会把等待态变成错误页。
+    /// 已有凭证的校验路径仍然是同步拒绝（`mcp_ui_validate`）。
+    pub async fn mcp_ui_open(
         &self,
         request: rust_cli_kernel_api::mcp_ui::McpUiOpenRequest,
     ) -> Result<rust_cli_kernel_api::mcp_ui::McpAppInstance, rust_cli_kernel_api::mcp_ui::McpUiError>
     {
         let manager = self.mcp_for_session(&request.scope.session);
+        if manager.app_connection(&request.scope.server_name).is_none() {
+            // 与默认 `MCP_TIMEOUT`（连接与握手 30s）同一窗口；连不上时这一行之后仍是“不可用”。
+            let server = request.scope.server_name.clone();
+            manager
+                .wait(
+                    MCP_UI_OPEN_WAIT_MS,
+                    &move |view: &rust_cli_kernel_api::mcp_state::McpView| {
+                        !view
+                            .servers
+                            .iter()
+                            .any(|row| {
+                                row.name == server
+                                    && row.state
+                                        == rust_cli_kernel_api::manage::McpServerState::Pending
+                            })
+                    },
+                )
+                .await;
+        }
         let connection = manager
             .app_connection(&request.scope.server_name)
             .ok_or_else(rust_cli_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
