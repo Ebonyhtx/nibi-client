@@ -1,5 +1,5 @@
 //! 远端 MCP 的会话级真实进程测试（docs/specs/rust-cli/remote-exec.md §22.10）：`zcode -p` 连本地 SSE 夹具，debug 构建的
-//! `_ZCODE_ASSUME_LOOPBACK_MACHINES` 把 `machines.json` 里连着的 dev-a 经 loopback 连上（一个执行器子进程，工作目录与本机
+//! `_NIBI_ASSUME_LOOPBACK_MACHINES` 把 `machines.json` 里连着的 dev-a 经 loopback 连上（一个执行器子进程，工作目录与本机
 //! 不同）。`mcp-machines.json` 把一个 stdio 服务器（仓库里的 bash 夹具）绑到 dev-a：它由那台机器的执行器起，`${VAR}` 在
 //! 执行器展开；同一份配置不绑定时照旧在本机、原样不展开（Node 配置的规则）。
 #![cfg(unix)]
@@ -34,20 +34,20 @@ fn sandbox(bindings: Value) -> Sandbox {
     let (home, work, remote) = (base.join("home"), base.join("work"), base.join("remote"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&remote).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/rust-cli")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/rust-cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     std::fs::write(work.join("notes.txt"), "local notes\n").unwrap();
     std::fs::write(remote.join("notes.txt"), "remote notes\n").unwrap();
     let machines = json!({"version": 1, "machines": [
         {"name": "dev-a", "ssh": "dev-a", "workingDirectory": remote.display().to_string(), "connected": true}
     ]});
     std::fs::write(
-        home.join(".zcode/rust-cli/machines.json"),
+        home.join(".nibi/rust-cli/machines.json"),
         machines.to_string(),
     )
     .unwrap();
     std::fs::write(
-        home.join(".zcode/rust-cli/mcp-machines.json"),
+        home.join(".nibi/rust-cli/mcp-machines.json"),
         json!({"version": 1, "servers": bindings}).to_string(),
     )
     .unwrap();
@@ -59,7 +59,7 @@ fn sandbox(bindings: Value) -> Sandbox {
         "alwaysLoad": true
     });
     let config = json!({"mcp": {"servers": {"remote-fx": server, "local-fx": server}}});
-    std::fs::write(home.join(".zcode/cli/config.json"), config.to_string()).unwrap();
+    std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
     Sandbox {
         _dir: dir,
         home,
@@ -75,12 +75,12 @@ fn run(sandbox: &Sandbox, fixture: &sse::Fixture) -> Output {
         .env_clear()
         .env("HOME", &sandbox.home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &sandbox.home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("ZCODE_RUNTIME_ENV", "test")
-        .env("_ZCODE_ASSUME_LOOPBACK_MACHINES", "1")
+        .env("NIBI_DATA_BASE_DIR", &sandbox.home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("NIBI_RUNTIME_ENV", "test")
+        .env("_NIBI_ASSUME_LOOPBACK_MACHINES", "1")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -159,7 +159,7 @@ fn gone(pid: &str) -> bool {
 }
 
 fn run_log(home: &Path) -> String {
-    let log = home.join(".zcode/rust-cli/log");
+    let log = home.join(".nibi/rust-cli/log");
     std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap_or_default())

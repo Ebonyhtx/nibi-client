@@ -60,10 +60,10 @@ impl Sandbox {
             .env("USERPROFILE", &self.home)
             .env("PATH", "/usr/bin:/bin")
             .env("TZ", "UTC")
-            .env("ZCODE_DATA_BASE_DIR", &self.home)
-            .env("ZCODE_MODEL_BASE_URL", base_url)
-            .env("ZCODE_API_KEY", "test-key-network-egress")
-            .env("ZCODE_MODEL", "claude-opus-5-5");
+            .env("NIBI_DATA_BASE_DIR", &self.home)
+            .env("NIBI_MODEL_BASE_URL", base_url)
+            .env("NIBI_API_KEY", "test-key-network-egress")
+            .env("NIBI_MODEL", "claude-opus-5-5");
         for (name, value) in vars {
             command.env(name, value);
         }
@@ -122,13 +122,13 @@ fn zcode_variables_win_over_the_standard_ones() {
         &[
             // Node 的写法：没有 scheme 时补 `http://`。
             (
-                "ZCODE_HTTP_PROXY",
+                "NIBI_HTTP_PROXY",
                 &format!("127.0.0.1:{}", zcode_proxy.port),
             ),
             // 相对路径相对 cwd。
-            ("ZCODE_AGENT_CA_CERT", "agent-ca.pem"),
+            ("NIBI_AGENT_CA_CERT", "agent-ca.pem"),
             // 两套同时设：标准变量不生效。`NODE_EXTRA_CA_CERTS` 是无关的 CA，要是也被用上（或者
-            // `ZCODE_AGENT_CA_CERT` 没被用上），模型端点的证书就不受信任。
+            // `NIBI_AGENT_CA_CERT` 没被用上），模型端点的证书就不受信任。
             ("HTTPS_PROXY", &standard_proxy.url()),
             ("NODE_EXTRA_CA_CERTS", &other_ca),
         ],
@@ -181,9 +181,9 @@ fn a_no_proxy_match_goes_direct() {
     succeeded(&s.run(
         &model.url(),
         &[
-            ("ZCODE_HTTP_PROXY", &proxy.url()),
-            ("ZCODE_NO_PROXY", &rule),
-            ("ZCODE_AGENT_CA_CERT", &ca),
+            ("NIBI_HTTP_PROXY", &proxy.url()),
+            ("NIBI_NO_PROXY", &rule),
+            ("NIBI_AGENT_CA_CERT", &ca),
         ],
     ));
     assert_eq!(proxy.targets(), Vec::<String>::new());
@@ -208,13 +208,13 @@ fn an_invalid_standard_proxy_stops_before_any_request() {
     assert_eq!(text(&output.stdout), "");
     assert!(fixture.main_requests().is_empty());
 
-    // `ZCODE_HTTP_PROXY` 有效时不读标准变量，格式不对也不报错。
+    // `NIBI_HTTP_PROXY` 有效时不读标准变量，格式不对也不报错。
     let proxy = egress::connect_proxy();
     succeeded(&s.run(
         &fixture.url,
         &[
-            ("ZCODE_HTTP_PROXY", &proxy.url()),
-            ("ZCODE_NO_PROXY", "127.0.0.1"),
+            ("NIBI_HTTP_PROXY", &proxy.url()),
+            ("NIBI_NO_PROXY", "127.0.0.1"),
             ("HTTPS_PROXY", "proxy.example.com:8080"),
         ],
     ));
@@ -229,19 +229,19 @@ fn ca_files_that_cannot_be_used() {
     let missing = s.work.join("missing.pem");
     let missing = missing.to_string_lossy();
 
-    // `ZCODE_AGENT_CA_CERT` 读不出：启动就报错退出（config.md D14），不发请求。
-    let output = s.run(&fixture.url, &[("ZCODE_AGENT_CA_CERT", &missing)]);
+    // `NIBI_AGENT_CA_CERT` 读不出：启动就报错退出（config.md D14），不发请求。
+    let output = s.run(&fixture.url, &[("NIBI_AGENT_CA_CERT", &missing)]);
     assert_eq!(output.status.code(), Some(1));
     let stderr = text(&output.stderr);
     assert!(
-        stderr.contains("ZCODE_AGENT_CA_CERT") && stderr.contains(missing.as_ref()),
+        stderr.contains("NIBI_AGENT_CA_CERT") && stderr.contains(missing.as_ref()),
         "{stderr}"
     );
     assert!(fixture.main_requests().is_empty());
 
     // 没有可用的证书：照常启动，HTTPS 在证书校验时失败（Node 的 `ca` 相同），请求没有到达。
     s.write("junk.pem", "not a certificate\n");
-    let output = s.run(&model.url(), &[("ZCODE_AGENT_CA_CERT", "junk.pem")]);
+    let output = s.run(&model.url(), &[("NIBI_AGENT_CA_CERT", "junk.pem")]);
     assert!(!output.status.success(), "{}", text(&output.stdout));
     assert_eq!(model.requests(), Vec::<String>::new());
 

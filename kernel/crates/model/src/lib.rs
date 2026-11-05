@@ -127,7 +127,7 @@ impl ProviderModel {
     }
 
     /// 端点一律按 Anthropic 官方端点处理（`cache_control.scope`、`diagnostics`、流空闲上限，model.md §3.2）。
-    /// 只给测试用：入口在 `_ZCODE_ASSUME_FIRST_PARTY_BASE_URL` 为真时对显式覆盖的端点打开（model.md §6），让本地
+    /// 只给测试用：入口在 `_NIBI_ASSUME_FIRST_PARTY_BASE_URL` 为真时对显式覆盖的端点打开（model.md §6），让本地
     /// 替身端点也收到第一方形状。
     pub fn with_assumed_first_party(mut self) -> Self {
         if let Ok(route) = &mut self.route {
@@ -137,7 +137,7 @@ impl ProviderModel {
     }
 
     /// 查请求方案与厂商（错误码表）时把端点的 base URL 当成 `base_url`，请求仍发到真实地址。只给测试用：入口在
-    /// `_ZCODE_ASSUME_BASE_URL` 有值时打开（model.md §6，docs/specs/rust-cli/provider-errors.md D13），让本地夹具走到
+    /// `_NIBI_ASSUME_BASE_URL` 有值时打开（model.md §6，docs/specs/rust-cli/provider-errors.md D13），让本地夹具走到
     /// 智谱的方案与码表。[`with_assumed_first_party`](Self::with_assumed_first_party) 优先。
     #[must_use]
     pub fn with_assumed_base_url(mut self, base_url: impl Into<String>) -> Self {
@@ -159,7 +159,7 @@ impl ProviderModel {
         self
     }
 
-    /// 入口读到 `ZCODE_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：每个请求的 `max_tokens` 压到不超过它。每个
+    /// 入口读到 `NIBI_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：每个请求的 `max_tokens` 压到不超过它。每个
     /// 请求都是 `min(请求自己的值 || 有效上限, 有效上限)`，旁路请求（WebSearch、prompt hook、标题）因此也被压低；
     /// 主循环自己的值由 query 按卡片算（可能抬高到缺省以上）。平台层的补丁另按配置取小（model.md §9）。
     #[must_use]

@@ -131,14 +131,14 @@ pub(crate) fn dispatch(args: &[String]) -> Option<ExitCode> {
     {
         Ok(runtime) => runtime,
         Err(error) => {
-            eprint_line(&format!("zcode: cannot start the async runtime: {error}"));
+            eprint_line(&format!("nibi: cannot start the async runtime: {error}"));
             return Some(ExitCode::FAILURE);
         }
     };
     Some(match runtime.block_on(run(parsed)) {
         Ok(code) => ExitCode::from(code),
         Err(error) => {
-            eprint_line(&format!("zcode: {error:#}"));
+            eprint_line(&format!("nibi: {error:#}"));
             ExitCode::FAILURE
         }
     })
@@ -153,14 +153,14 @@ fn database_id(path: &std::path::Path) -> String {
 async fn run(parsed: Parsed) -> Result<u8> {
     let startup = crate::capture()?;
     // 用户配置/插件清单/会话库都要先按入口环境定位：Node 的 `NIBI_STORAGE_DIR`
-    // 在 spawn 边界映射成 `ZCODE_STORAGE_DIR`，这里若用默认值会读真实用户根，
+    // 在 spawn 边界映射成 `NIBI_STORAGE_DIR`，这里若用默认值会读真实用户根，
     // 隔离运行与 Host 管理面就会各自看见不同的 config/plugins。
     let storage = StorageSettings {
         session_db_path: startup
             .env
-            .get("ZCODE_SESSION_DB_PATH")
-            .or_else(|| startup.env.get("ZCODE_SESSION_DB")),
-        storage_dir: startup.env.get("ZCODE_STORAGE_DIR"),
+            .get("NIBI_SESSION_DB_PATH")
+            .or_else(|| startup.env.get("NIBI_SESSION_DB")),
+        storage_dir: startup.env.get("NIBI_STORAGE_DIR"),
     };
     let paths = setup::storage_paths(&startup, &storage);
     let clock = Arc::new(SystemClock::new(startup.zone.clone()));
@@ -277,7 +277,7 @@ async fn serve(
         anyhow::bail!("opening the session database failed: {error}");
     }
     let device = setup::device_id(&paths, ids.clone());
-    // 显式覆盖（`ZCODE_API_KEY`）时没有模型目录（与 TUI 的 `main.rs` 同一判据）；
+    // 显式覆盖（`NIBI_API_KEY`）时没有模型目录（与 TUI 的 `main.rs` 同一判据）；
     // `startup.explicit` 马上随 `models::assemble` 移走，先算出来。
     let explicit = startup
         .explicit

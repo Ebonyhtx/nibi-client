@@ -155,7 +155,7 @@ impl Pending {
         lines.extend(self.digests.iter().map(|d| format!("pending digest: {d}")));
         let quoted = serde_json::to_string(&self.identity).unwrap_or_default();
         lines.push(format!(
-            "Review with: zcode hooks trust review --workspace {quoted}"
+            "Review with: nibi hooks trust review --workspace {quoted}"
         ));
         format!("{}\n", lines.join("\n"))
     }

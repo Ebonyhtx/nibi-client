@@ -127,7 +127,7 @@ fn configured_locations_are_byte_identical_to_the_old_formulas() {
         os(&root.join("cli/artifacts"))
     );
     assert_eq!(os(paths.logs().as_path()), os(&root.join("rust-cli/log")));
-    // `ZCODE_DATA_BASE_DIR` 只换账号与 Provider 的配置根，设置文件仍在 home 下。
+    // `NIBI_DATA_BASE_DIR` 只换账号与 Provider 的配置根，设置文件仍在 home 下。
     let data = Path::new("/srv/data");
     let moved = paths.clone().with_data_base_dir(data);
     assert_eq!(

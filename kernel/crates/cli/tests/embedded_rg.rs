@@ -36,7 +36,7 @@ fn run(program: &Path, args: &[&str], cwd: &Path, home: &Path, extra: &[(&str, &
         .env_clear()
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .env("ZCODE_DATA_BASE_DIR", home)
+        .env("NIBI_DATA_BASE_DIR", home)
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -159,7 +159,7 @@ fn the_tool_does_not_pass_argv0_on() {
 fn other_names_are_zcode() {
     let home = tempfile::tempdir().unwrap();
     let bin = tempfile::tempdir().unwrap();
-    let version = env!("ZCODE_BUILD_VERSION");
+    let version = env!("NIBI_BUILD_VERSION");
     for name in ["rgx", "zcode-rg", "grep"] {
         let program = alias(bin.path(), name);
         let output = run(&program, &["--version"], home.path(), home.path(), &[]);

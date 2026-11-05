@@ -49,7 +49,7 @@ fn run(program: &Path, args: &[&str], cwd: &Path, home: &Path, extra: &[(&str, &
         .env_clear()
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .env("ZCODE_DATA_BASE_DIR", home)
+        .env("NIBI_DATA_BASE_DIR", home)
         .env("PATH", std::env::var_os("PATH").unwrap_or_default())
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

@@ -129,9 +129,9 @@ impl Sandbox {
             .env("HOME", &self.home)
             .env("USERPROFILE", &self.home)
             .env("PATH", "/usr/bin:/bin")
-            .env("ZCODE_DATA_BASE_DIR", &self.home)
-            .env("ZCODE_API_KEY", "test-key")
-            .env("ZCODE_MODEL", "claude-opus-5-5")
+            .env("NIBI_DATA_BASE_DIR", &self.home)
+            .env("NIBI_API_KEY", "test-key")
+            .env("NIBI_MODEL", "claude-opus-5-5")
             .stdin(if stdin.is_some() {
                 Stdio::piped()
             } else {
@@ -140,7 +140,7 @@ impl Sandbox {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         if let Some(server) = server {
-            command.env("ZCODE_MODEL_BASE_URL", &server.url);
+            command.env("NIBI_MODEL_BASE_URL", &server.url);
         }
         command.envs(vars.iter().copied());
         let mut child = command.spawn().unwrap();
@@ -460,7 +460,7 @@ fn yolo_launches_in_bypass_and_the_old_flag_is_an_unknown_option() {
 #[test]
 fn effort_sets_the_request_effort() {
     let sandbox = Sandbox::new();
-    let first_party = [("_ZCODE_ASSUME_FIRST_PARTY_BASE_URL", "1")];
+    let first_party = [("_NIBI_ASSUME_FIRST_PARTY_BASE_URL", "1")];
     let efforts = |args: &[&str]| {
         let server = Server::start();
         let output = sandbox.run_with(args, Some(&server), None, &first_party);

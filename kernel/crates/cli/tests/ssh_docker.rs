@@ -4,12 +4,12 @@
 //! 1. 部署：探测、上传本机的 Linux 产物、远端校验 sha256；第二次部署不再上传；
 //! 2. 连接状态机连上，执行端口的一部分（文件、搜索、命令）在容器里执行；
 //! 3. 杀掉本机的 ssh 进程：客户端重连，正在跑的命令继续，输出接着取到；
-//! 4. `-p` 经只给测试的 SSH 入口（`_ZCODE_ASSUME_SSH_EXECUTOR`），Bash 在容器里执行；
+//! 4. `-p` 经只给测试的 SSH 入口（`_NIBI_ASSUME_SSH_EXECUTOR`），Bash 在容器里执行；
 //! 5. 远端 MCP（§22.10）：绑定到 dev-a 的 stdio 服务器（仓库里的 bash 夹具，复制进容器）由容器里的执行器起，工具的结果
 //!    来自容器里的文件与命令，`${HOME}` 是容器里的。
 //!
-//! Linux 产物由 `test:rust-cli`（scripts/rust-cli/test.mjs）交叉编译后经 `ZCODE_TEST_SSH_ARTIFACT` 交进来；没有 Docker 或没有
-//! 产物时跳过并写明原因（`ZCODE_TEST_SSH_SKIP`）。容器与镜像用完删掉。
+//! Linux 产物由 `test:rust-cli`（scripts/rust-cli/test.mjs）交叉编译后经 `NIBI_TEST_SSH_ARTIFACT` 交进来；没有 Docker 或没有
+//! 产物时跳过并写明原因（`NIBI_TEST_SSH_SKIP`）。容器与镜像用完删掉。
 #![cfg(unix)]
 #![allow(
     clippy::disallowed_methods,
@@ -50,7 +50,7 @@ async fn an_ssh_machine_is_provisioned_used_and_survives_a_dropped_link() {
     };
     let sshd = Sshd::start();
     sshd.wait_ready().await;
-    let installed = format!("/root/.zcode/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
 
     // 1. 部署：上传、远端 sha256 与本机相同、权限只给本用户；第二次不再上传。
     let provisioner = SshProvisioner::new(sshd.target(), wanted(), vec![artifact.clone()]);
@@ -247,13 +247,13 @@ async fn an_ssh_machine_is_provisioned_used_and_survives_a_dropped_link() {
         .env("HOME", home.path())
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_DATA_BASE_DIR", home.path())
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("_ZCODE_ASSUME_SSH_EXECUTOR", HOST)
-        .env("_ZCODE_ASSUME_SSH_CONFIG", sshd.config())
-        .env("_ZCODE_ASSUME_SSH_ARTIFACT", &artifact)
+        .env("NIBI_DATA_BASE_DIR", home.path())
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("_NIBI_ASSUME_SSH_EXECUTOR", HOST)
+        .env("_NIBI_ASSUME_SSH_CONFIG", sshd.config())
+        .env("_NIBI_ASSUME_SSH_ARTIFACT", &artifact)
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -292,7 +292,7 @@ async fn a_listed_machine_runs_bash_and_read_in_the_container() {
     let work = tempfile::tempdir().unwrap();
     let work_path = std::fs::canonicalize(work.path()).unwrap();
     let home = tempfile::tempdir().unwrap();
-    let list = home.path().join(".zcode/rust-cli/machines.json");
+    let list = home.path().join(".nibi/rust-cli/machines.json");
     std::fs::create_dir_all(list.parent().unwrap()).unwrap();
     std::fs::write(
         &list,
@@ -326,14 +326,14 @@ async fn a_listed_machine_runs_bash_and_read_in_the_container() {
         .env("HOME", home.path())
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_DATA_BASE_DIR", home.path())
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("ZCODE_RUNTIME_ENV", "test")
-        .env("_ZCODE_ASSUME_SSH_MACHINES", "1")
-        .env("_ZCODE_ASSUME_SSH_CONFIG", sshd.config())
-        .env("_ZCODE_ASSUME_SSH_ARTIFACT", &artifact)
+        .env("NIBI_DATA_BASE_DIR", home.path())
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("NIBI_RUNTIME_ENV", "test")
+        .env("_NIBI_ASSUME_SSH_MACHINES", "1")
+        .env("_NIBI_ASSUME_SSH_CONFIG", sshd.config())
+        .env("_NIBI_ASSUME_SSH_ARTIFACT", &artifact)
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -372,7 +372,7 @@ async fn a_listed_machine_runs_bash_and_read_in_the_container() {
     assert!(read.contains("from the container"), "{read}");
 
     // 收尾：停掉容器里的常驻执行器（容器随后删掉）。
-    let installed = format!("/root/.zcode/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
     let (ok, out, err) = sshd.ssh(&format!("{installed} executor stop"));
     assert!(ok, "{out}{err}");
 }
@@ -399,9 +399,9 @@ async fn a_bound_mcp_server_runs_in_the_container() {
     let work = tempfile::tempdir().unwrap();
     let work_path = std::fs::canonicalize(work.path()).unwrap();
     let home = tempfile::tempdir().unwrap();
-    let rust_cli = home.path().join(".zcode/rust-cli");
+    let rust_cli = home.path().join(".nibi/rust-cli");
     std::fs::create_dir_all(&rust_cli).unwrap();
-    std::fs::create_dir_all(home.path().join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.path().join(".nibi/cli")).unwrap();
     let machines = serde_json::json!({"version": 1, "machines": [
         {"name": "dev-a", "ssh": HOST, "workingDirectory": "/srv/proj", "connected": true}
     ]});
@@ -417,7 +417,7 @@ async fn a_bound_mcp_server_runs_in_the_container() {
         "alwaysLoad": true
     }}}});
     std::fs::write(
-        home.path().join(".zcode/cli/config.json"),
+        home.path().join(".nibi/cli/config.json"),
         config.to_string(),
     )
     .unwrap();
@@ -437,14 +437,14 @@ async fn a_bound_mcp_server_runs_in_the_container() {
         .env("HOME", home.path())
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_DATA_BASE_DIR", home.path())
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("ZCODE_RUNTIME_ENV", "test")
-        .env("_ZCODE_ASSUME_SSH_MACHINES", "1")
-        .env("_ZCODE_ASSUME_SSH_CONFIG", sshd.config())
-        .env("_ZCODE_ASSUME_SSH_ARTIFACT", &artifact)
+        .env("NIBI_DATA_BASE_DIR", home.path())
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("NIBI_RUNTIME_ENV", "test")
+        .env("_NIBI_ASSUME_SSH_MACHINES", "1")
+        .env("_NIBI_ASSUME_SSH_CONFIG", sshd.config())
+        .env("_NIBI_ASSUME_SSH_ARTIFACT", &artifact)
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -470,7 +470,7 @@ async fn a_bound_mcp_server_runs_in_the_container() {
     );
 
     // 收尾：停掉容器里的常驻执行器（它起的服务器随之结束；容器随后删掉）。
-    let installed = format!("/root/.zcode/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
     let (ok, out, err) = sshd.ssh(&format!("{installed} executor stop"));
     assert!(ok, "{out}{err}");
 }

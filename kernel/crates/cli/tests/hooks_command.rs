@@ -61,7 +61,7 @@ exit 0
 "#;
 
 const CONTEXT: &str = r#"cat > /dev/null
-printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"dir=%s pwd=%s"}}' "$ZCODE_PROJECT_DIR" "$(pwd -P)"
+printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"dir=%s pwd=%s"}}' "$NIBI_PROJECT_DIR" "$(pwd -P)"
 "#;
 
 struct Harness {

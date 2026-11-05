@@ -91,7 +91,7 @@ async fn team_and_personal_exchanges_match_the_app() {
                 zai_api: server.url(),
                 bigmodel_api: server.url(),
                 bigmodel_team_plans: format!("{}/coding-plan/team/plans", server.url()),
-                // App 的 `ZCODE_VERSION` 在源码检出里是 0.0.0-dev。
+                // App 的 `NIBI_VERSION` 在源码检出里是 0.0.0-dev。
                 client_version: "0.0.0-dev".to_owned(),
             },
         );

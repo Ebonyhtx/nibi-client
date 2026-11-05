@@ -21,7 +21,7 @@ macro_rules! dot_dir {
 
 /// 项目级配置目录名：NIBI 的 Node CLI / App / 协议前端都读 `<工作区>/.nibi/config.json`。
 ///
-/// 与 [`DOT_DIR`] 分开：`DOT_DIR` 是本内核自己的存储与用户根目录（由 `ZCODE_DATA_BASE_DIR` 等注入），
+/// 与 [`DOT_DIR`] 分开：`DOT_DIR` 是本内核自己的存储与用户根目录（由 `NIBI_DATA_BASE_DIR` 等注入），
 /// 项目级配置必须与 NIBI 的其它实现共读同一个文件。实测（2026-10-30）：`zcode.json` 的 5 组变体两边
 /// bundleDigest 全一致，只有带 `.zcode/config.json` 或 `.nibi/config.json` 时才分叉——Rust 读前者、
 /// NIBI 读后者，等于同一份项目配置两边看见的不是同一个文件。品牌化收口时再把 `DOT_DIR` 一并统一。
@@ -49,7 +49,7 @@ pub const AGENTS_DIR: &str = "agents";
 /// 项目里 `.zcode/` 下的定时任务文件：env-local 读写，工具的结果文字提到它。
 pub const SCHEDULED_TASKS_FILE: &str = "scheduled_tasks.json";
 
-/// Node 的官方插件市场名（`ZCODE_OFFICIAL_PLUGIN_MARKETPLACE`）：插件 id 的后半、缓存与分片的目录名。platform 的
+/// Node 的官方插件市场名（`NIBI_OFFICIAL_PLUGIN_MARKETPLACE`）：插件 id 的后半、缓存与分片的目录名。platform 的
 /// 已安装清单、ext 的插件选择、入口合并 `plugins` 段都用它（F55：以前三处各写一份）。
 pub const OFFICIAL_MARKETPLACE: &str = "nibi-official";
 
@@ -69,17 +69,17 @@ pub const MCP_CLIENT_NAME: &str = "nibi";
 pub const TOKEN_CLIENT_TYPE: &str = "zcode";
 
 /// 给用户程序的变量名（hook 进程的环境、插件 MCP 的环境与 `${…}` 配置变量、插件 agent 与 skill 正文里的 `${…}`）：
-/// Node 两套都给，`ZCODE_*` 与另一种插件格式用的名字（同时兼容两种插件，config.md §2.5.1）。F55：以前 hooks、ext、
+/// Node 两套都给，`NIBI_*` 与另一种插件格式用的名字（同时兼容两种插件，config.md §2.5.1）。F55：以前 hooks、ext、
 /// agents 各写一份；各处的顺序与集合不同（例如 skill 正文不认另一种格式的第二个会话 ID 名），没有统一，只共用名字。
 pub mod vars {
-    pub const ZCODE_PLUGIN_ROOT: &str = "ZCODE_PLUGIN_ROOT";
+    pub const NIBI_PLUGIN_ROOT: &str = "NIBI_PLUGIN_ROOT";
     pub const CLAUDE_PLUGIN_ROOT: &str = "CLAUDE_PLUGIN_ROOT";
-    pub const ZCODE_PROJECT_DIR: &str = "ZCODE_PROJECT_DIR";
+    pub const NIBI_PROJECT_DIR: &str = "NIBI_PROJECT_DIR";
     pub const CLAUDE_PROJECT_DIR: &str = "CLAUDE_PROJECT_DIR";
-    pub const ZCODE_SESSION_ID: &str = "ZCODE_SESSION_ID";
+    pub const NIBI_SESSION_ID: &str = "NIBI_SESSION_ID";
     pub const CLAUDE_SESSION_ID: &str = "CLAUDE_SESSION_ID";
     pub const CLAUDE_CODE_SESSION_ID: &str = "CLAUDE_CODE_SESSION_ID";
-    pub const ZCODE_SKILL_DIR: &str = "ZCODE_SKILL_DIR";
+    pub const NIBI_SKILL_DIR: &str = "NIBI_SKILL_DIR";
     pub const CLAUDE_SKILL_DIR: &str = "CLAUDE_SKILL_DIR";
 
     /// 文本里的引用写法 `${NAME}`。

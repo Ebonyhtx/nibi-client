@@ -48,7 +48,7 @@ pub(crate) async fn run(command: ExecutorCommand) -> u8 {
     match result {
         Ok(()) => 0,
         Err(error) => {
-            eprint_line(&format!("zcode executor: {error:#}"));
+            eprint_line(&format!("nibi executor: {error:#}"));
             1
         }
     }
@@ -151,7 +151,7 @@ async fn resident(daemon: bool) -> u8 {
         Ok(startup) => startup,
         Err(error) => {
             report(&format!("{} {error:#}", proxy::ERROR));
-            eprint_line(&format!("zcode executor: {error:#}"));
+            eprint_line(&format!("nibi executor: {error:#}"));
             return 1;
         }
     };
@@ -162,7 +162,7 @@ async fn resident(daemon: bool) -> u8 {
             report(proxy::READY);
             if !daemon {
                 eprint_line(&format!(
-                    "zcode executor: listening on {}",
+                    "nibi executor: listening on {}",
                     resident.socket().display()
                 ));
             }
@@ -177,19 +177,19 @@ async fn resident(daemon: bool) -> u8 {
             if daemon {
                 0
             } else {
-                eprint_line("zcode executor: another executor is already running");
+                eprint_line("nibi executor: another executor is already running");
                 1
             }
         }
         Ok(Err(StartError::Failed(message))) => {
             report(&format!("{} {message}", proxy::ERROR));
-            eprint_line(&format!("zcode executor: {message}"));
+            eprint_line(&format!("nibi executor: {message}"));
             exit_log(&Err(anyhow::anyhow!(message)));
             1
         }
         Err(error) => {
             report(&format!("{} {error:#}", proxy::ERROR));
-            eprint_line(&format!("zcode executor: {error:#}"));
+            eprint_line(&format!("nibi executor: {error:#}"));
             exit_log(&Err(error));
             1
         }
@@ -283,7 +283,7 @@ pub(crate) fn status_report(resident: Option<&ExecutorStatus>) -> serde_json::Va
 fn status_lines(status: &ExecutorStatus, socket: &std::path::Path) -> Vec<String> {
     let yes = |value: bool| if value { "yes" } else { "no" };
     vec![
-        "zcode executor is running".to_owned(),
+        "nibi executor is running".to_owned(),
         format!(
             "  version   {} (protocol {})",
             status.version, status.protocol
@@ -305,7 +305,7 @@ async fn status(json: bool) -> u8 {
     let startup = match super::capture() {
         Ok(startup) => startup,
         Err(error) => {
-            eprint_line(&format!("zcode executor: {error:#}"));
+            eprint_line(&format!("nibi executor: {error:#}"));
             return 1;
         }
     };
@@ -313,7 +313,7 @@ async fn status(json: bool) -> u8 {
     let resident = match admin::status(socket.as_path()).await {
         Ok(resident) => resident,
         Err(error) => {
-            eprint_line(&format!("zcode executor: {error}"));
+            eprint_line(&format!("nibi executor: {error}"));
             return 1;
         }
     };
@@ -325,7 +325,7 @@ async fn status(json: bool) -> u8 {
             print_line(&line);
         }
     } else {
-        print_line("zcode executor is not running");
+        print_line("nibi executor is not running");
     }
     if running { 0 } else { NOT_RUNNING }
 }
@@ -334,29 +334,29 @@ async fn stop(if_idle: bool) -> u8 {
     let startup = match super::capture() {
         Ok(startup) => startup,
         Err(error) => {
-            eprint_line(&format!("zcode executor: {error:#}"));
+            eprint_line(&format!("nibi executor: {error:#}"));
             return 1;
         }
     };
     let paths = executor_paths(&startup);
     match admin::stop(paths.socket().as_path(), paths.lock().as_path(), if_idle).await {
         Ok(Stopped::NotRunning) => {
-            print_line("zcode executor is not running");
+            print_line("nibi executor is not running");
             0
         }
         Ok(Stopped::Stopped(status)) => {
-            print_line(&format!("zcode executor stopped (pid {})", status.pid));
+            print_line(&format!("nibi executor stopped (pid {})", status.pid));
             0
         }
         Ok(Stopped::Busy(status)) => {
             print_line(&format!(
-                "zcode executor is busy (clients {}, calls {}, streams {}, commands {}, notices {}); not stopped",
+                "nibi executor is busy (clients {}, calls {}, streams {}, commands {}, notices {}); not stopped",
                 status.clients, status.calls, status.streams, status.commands, status.notices
             ));
             1
         }
         Err(error) => {
-            eprint_line(&format!("zcode executor: {error}"));
+            eprint_line(&format!("nibi executor: {error}"));
             1
         }
     }

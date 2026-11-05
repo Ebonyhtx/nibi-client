@@ -7,7 +7,7 @@
 //! 3. F103（§27）：本机的版本不在注册表里，注册表只有 latest `0.0.9`：debian 里走完 404 → latest → 上传到 `bin/0.0.9/` →
 //!    试跑核对协议 → 握手 → `Bash{machine}`。
 //!
-//! 包是把 `test:rust-cli` 交叉编译的 musl 静态 debug 产物（`ZCODE_TEST_SSH_ARTIFACT`）照 npm 平台包的样子打成
+//! 包是把 `test:rust-cli` 交叉编译的 musl 静态 debug 产物（`NIBI_TEST_SSH_ARTIFACT`）照 npm 平台包的样子打成
 //! `@mbearo/zcode-linux-<arch>-gnu@<版本>`（静态产物在 glibc 的系统上照样能跑）。没有 Docker 或没有产物时跳过并写明
 //! 原因。容器与镜像用完删掉（名字带各自修复线的前缀）。
 #![cfg(unix)]
@@ -163,7 +163,7 @@ fn registry_for(id: &str, version: &str, tarball: Vec<u8>) -> (Registry, String,
 
 /// 机器清单：dev-a 经 ssh 连 `HOST`，工作目录 `/srv/proj`。
 fn machine_list(home: &Path) {
-    let list = home.join(".zcode/rust-cli/machines.json");
+    let list = home.join(".nibi/rust-cli/machines.json");
     std::fs::create_dir_all(list.parent().unwrap()).unwrap();
     std::fs::write(
         &list,
@@ -199,14 +199,14 @@ fn print_run(sshd: &Sshd, home: &Path, work: &Path, registry: &str) -> (Output, 
         .env("HOME", home)
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("ZCODE_RUNTIME_ENV", "test")
-        .env("_ZCODE_ASSUME_SSH_MACHINES", "1")
-        .env("_ZCODE_ASSUME_SSH_CONFIG", sshd.config())
-        .env("_ZCODE_ASSUME_NPM_REGISTRY", registry)
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("NIBI_RUNTIME_ENV", "test")
+        .env("_NIBI_ASSUME_SSH_MACHINES", "1")
+        .env("_NIBI_ASSUME_SSH_CONFIG", sshd.config())
+        .env("_NIBI_ASSUME_NPM_REGISTRY", registry)
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -257,7 +257,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     assert!(result.contains("12."), "debian_version: {result}");
     assert_eq!(registry.seen(), [packument, tarball_path]);
     let cached: PathBuf = home.path().join(format!(
-        ".zcode/rust-cli/exec/dist/{VERSION}/{target}/zcode-rs"
+        ".nibi/rust-cli/exec/dist/{VERSION}/{target}/zcode-rs"
     ));
     assert_eq!(
         std::fs::read(&cached).unwrap(),
@@ -265,7 +265,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     );
     assert_eq!(mode(&cached), 0o755);
     assert_eq!(mode(cached.parent().unwrap()), 0o700);
-    let installed = format!("/root/.zcode/rust-cli/exec/bin/{VERSION}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/zcode-rs");
     let (_, remote_sum, _) = sshd.ssh(&format!("sha256sum {installed}"));
     let (_, local_sum, _) = run("shasum", &["-a", "256", &artifact.to_string_lossy()]);
     assert_eq!(
@@ -275,7 +275,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
 
     // 2. 远端的执行器停掉、删掉，再连一次：用本机缓存重新上传，不再下载。
     let (ok, out, err) = sshd.ssh(&format!(
-        "{installed} executor stop && rm -rf /root/.zcode/rust-cli/exec/bin"
+        "{installed} executor stop && rm -rf /root/.nibi/rust-cli/exec/bin"
     ));
     assert!(ok, "{out}{err}");
     let (output, requests) = print_run(&sshd, home.path(), &work_path, &registry.url);
@@ -328,7 +328,7 @@ async fn a_musl_machine_is_refused_before_downloading() {
         "no model request before the machine connects"
     );
     assert!(registry.seen().is_empty(), "{:?}", registry.seen());
-    assert!(!home.path().join(".zcode/rust-cli/exec/dist").exists());
+    assert!(!home.path().join(".nibi/rust-cli/exec/dist").exists());
 }
 
 /// 注册表的 latest（F103）：比本机的 debug 版本旧，本机的版本不在注册表里。
@@ -349,7 +349,7 @@ fn logged(home: &Path, text: &str) -> bool {
             }
         })
     }
-    walk(&home.join(".zcode"), text)
+    walk(&home.join(".nibi"), text)
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -386,15 +386,15 @@ async fn a_local_build_falls_back_to_the_latest_on_the_registry() {
         [packument.clone(), packument, tarball_path]
     );
     // 按实际版本缓存与上传。
-    let dist = home.path().join(".zcode/rust-cli/exec/dist");
+    let dist = home.path().join(".nibi/rust-cli/exec/dist");
     assert_eq!(
         std::fs::read(dist.join(format!("{LATEST}/{target}/zcode-rs"))).unwrap(),
         std::fs::read(&artifact).unwrap()
     );
     assert!(!dist.join(VERSION).exists());
-    let installed = format!("/root/.zcode/rust-cli/exec/bin/{LATEST}/zcode-rs");
+    let installed = format!("/root/.nibi/rust-cli/exec/bin/{LATEST}/zcode-rs");
     let (ok, listing, err) =
-        sshd.ssh("ls -A /root/.zcode/rust-cli/exec/bin /root/.zcode/rust-cli/exec/bin/*");
+        sshd.ssh("ls -A /root/.nibi/rust-cli/exec/bin /root/.nibi/rust-cli/exec/bin/*");
     assert!(ok, "{err}");
     assert_eq!(
         listing

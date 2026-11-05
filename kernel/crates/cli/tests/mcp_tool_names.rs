@@ -44,10 +44,10 @@ fn a_tool_whose_name_is_too_long_is_not_sent_to_the_model() {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -72,7 +72,7 @@ fn a_tool_whose_name_is_too_long_is_not_sent_to_the_model() {
     assert!(!names.contains(&"mcp__names__lookup"), "{names:?}");
     assert!(!text.contains(&long), "{names:?}");
     // 运行日志（开发构建写 warn）：每个名字一行，带服务器、工具名与长度。
-    let log = home.join(".zcode/rust-cli/log");
+    let log = home.join(".nibi/rust-cli/log");
     let file = std::fs::read_dir(&log)
         .unwrap()
         .next()

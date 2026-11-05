@@ -121,7 +121,7 @@ async fn with_no_system_roots_the_bundled_roots_alone_still_build_a_client() {
     let extra = CaBundle::from_pem(server.ca_pem.as_bytes());
     let merged = build_client(&policy(TrustRoots::Extra(extra.clone())), false).unwrap();
     assert_eq!(get(&merged, &url).await, Ok("ok".to_owned()));
-    // ZCODE_AGENT_CA_CERT：只信任文件里的。
+    // NIBI_AGENT_CA_CERT：只信任文件里的。
     let only = build_client(&policy(TrustRoots::Only(extra)), false).unwrap();
     assert_eq!(get(&only, &url).await, Ok("ok".to_owned()));
     let other = CaBundle::from_pem(pki("other").ca_pem.as_bytes());

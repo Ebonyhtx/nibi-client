@@ -170,9 +170,9 @@ fn zcode(home: &Path, builtin: &Path, url: &str, extra: &[&str]) -> Output {
         .env("HOME", home)
         .env("USERPROFILE", home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_CREDENTIAL_SECRET", "test-secret")
-        .env("ZCODE_BUILTIN_PROVIDER_CONFIG_FILE", builtin)
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_CREDENTIAL_SECRET", "test-secret")
+        .env("NIBI_BUILTIN_PROVIDER_CONFIG_FILE", builtin)
         .env("BIGMODEL_API_BASE_URL", url)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -252,7 +252,7 @@ fn an_expired_team_plan_explains_itself() {
     let output = zcode(&home, &builtin, &url, &[]);
     assert!(!output.status.success());
     let all = format!("{}{}", text(&output.stdout), text(&output.stderr));
-    // 管理页照 App 只看 `ZCODE_ENV`，不跟随指向本地替身的 `BIGMODEL_API_BASE_URL`（修复线 F58）。
+    // 管理页照 App 只看 `NIBI_ENV`，不跟随指向本地替身的 `BIGMODEL_API_BASE_URL`（修复线 F58）。
     let notice = "Team plan expired. Contact your team administrator. Manage team plan: https://bigmodel.cn/coding-plan/team/plans";
     assert!(all.contains(notice), "{all}");
     assert_eq!(model_auth(&seen), None);

@@ -130,13 +130,13 @@ async fn only_whitelisted_variables_reach_the_command(kind: Kind) {
         kind,
         vec![
             ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
-            ("ZCODE_API_KEY".to_owned(), "secret".to_owned()),
+            ("NIBI_API_KEY".to_owned(), "secret".to_owned()),
             ("LC_ALL".to_owned(), "C".to_owned()),
         ],
     )
     .await;
     let start = shell.request(
-        "echo \"${ZCODE_API_KEY:-none} $LC_ALL $GIT_EDITOR $ZCODE\"",
+        "echo \"${NIBI_API_KEY:-none} $LC_ALL $GIT_EDITOR $ZCODE\"",
         CwdScope::Pinned,
     );
     let ran = shell.run("op1", start).await;
@@ -168,7 +168,7 @@ async fn run_hook(
     start.hook = Some(HookIo {
         stdin,
         env: BTreeMap::from([(
-            "ZCODE_PROJECT_DIR".to_owned(),
+            "NIBI_PROJECT_DIR".to_owned(),
             "/Users/dev/project".to_owned(),
         )]),
     });
@@ -213,7 +213,7 @@ async fn hook_reads_stdin_and_separates_stderr(kind: Kind) {
     let (stdout, stderr, outcome, exit) = run_hook(
         &shell,
         "op1",
-        r#"input=$(cat); echo "got $input"; echo "dir $ZCODE_PROJECT_DIR"; echo oops >&2; exit 2"#,
+        r#"input=$(cat); echo "got $input"; echo "dir $NIBI_PROJECT_DIR"; echo oops >&2; exit 2"#,
         "{\"a\":1}\n".to_owned(),
     )
     .await;

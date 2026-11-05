@@ -2,9 +2,9 @@
 //! 只给本测试用的 `sshd`（临时主机密钥、临时客户端密钥、`-F` 临时 ssh 配置、`SetEnv HOME=<临时目录>/home`），用完杀掉。
 //!
 //! 不改本机的任何系统设置（不开远程登录、不动防火墙）：`sshd` 以当前用户的身份跑在前台，只有这把临时密钥能登录，
-//! 远端的 `$HOME` 是临时目录，所以不碰用户真实的 `~/.zcode`、`~/.ssh`。
+//! 远端的 `$HOME` 是临时目录，所以不碰用户真实的 `~/.nibi`、`~/.ssh`。
 //!
-//! 临时目录放在 `/tmp` 下而不是 `$TMPDIR`：远端的 `executor.sock` 在 `$HOME/.zcode/rust-cli/exec/` 下，macOS 的
+//! 临时目录放在 `/tmp` 下而不是 `$TMPDIR`：远端的 `executor.sock` 在 `$HOME/.nibi/rust-cli/exec/` 下，macOS 的
 //! `sun_path` 上限是 104 字节，`$TMPDIR`（`/var/folders/…`）加上这一段会超。
 #![allow(dead_code, reason = "不同的测试文件用到的辅助函数不同")]
 

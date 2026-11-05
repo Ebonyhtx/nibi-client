@@ -129,7 +129,7 @@ async fn invalid_policies_are_rejected() {
 
 #[tokio::test]
 async fn certificate_sets_that_read_as_empty_still_build_a_client() {
-    // `ZCODE_AGENT_CA_CERT` 里没有可用证书：照常构造，HTTPS 在证书校验时失败（Node 的 `ca` 相同）。
+    // `NIBI_AGENT_CA_CERT` 里没有可用证书：照常构造，HTTPS 在证书校验时失败（Node 的 `ca` 相同）。
     for roots in [
         TrustRoots::Only(CaBundle::from_pem(b"not a pem")),
         TrustRoots::Extra(CaBundle::from_pem(b"not a pem")),

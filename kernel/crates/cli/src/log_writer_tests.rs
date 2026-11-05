@@ -73,9 +73,6 @@ async fn files_older_than_seven_days_are_removed_when_a_day_opens() {
         "nibi-2026-10-11.jsonl",
         "nibi-2026-10-17.jsonl",
         "nibi-notes.jsonl",
-        // 旧名：升级后也要按同一天回收，否则会永远留在磁盘上。
-        "zcode-2026-10-02.jsonl",
-        "zcode-notes.jsonl",
         "other.txt",
     ] {
         std::fs::write(dir.path().join(name), "").unwrap();
@@ -89,8 +86,7 @@ async fn files_older_than_seven_days_are_removed_when_a_day_opens() {
             "nibi-2026-10-17.jsonl",
             "nibi-2026-10-18.jsonl",
             "nibi-notes.jsonl",
-            "other.txt",
-            "zcode-notes.jsonl"
+            "other.txt"
         ]
     );
 }

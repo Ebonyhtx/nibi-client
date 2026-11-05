@@ -136,7 +136,7 @@ async fn a_foreground_agent_shows_its_retry_under_the_agent_row() {
     );
     let setup = Setup {
         width: 100,
-        // 前台子代理只在 fork 关着时有（`ZCODE_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
+        // 前台子代理只在 fork 关着时有（`NIBI_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
         fork_subagent: Some(false),
         ..Setup::default()
     };
@@ -246,7 +246,7 @@ async fn a_foreground_agent_shows_its_thinking_in_the_row_only() {
     let setup = Setup {
         width: 100,
         height: 30,
-        // 前台子代理只在 fork 关着时有（`ZCODE_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
+        // 前台子代理只在 fork 关着时有（`NIBI_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
         fork_subagent: Some(false),
         ..Setup::default()
     };

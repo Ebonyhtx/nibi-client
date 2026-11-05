@@ -45,10 +45,8 @@ pub(crate) fn facts(
     };
     let test = crate::origins::is_test(&non_empty);
     Ok(SourceFacts {
-        // Node `env[NIBI_APP_VERSION] ?? appVersion`：设了（空值也算）就用它；旧名 `ZCODE_APP_VERSION` 回退。
-        version: var("NIBI_APP_VERSION")
-            .or_else(|| var("ZCODE_APP_VERSION"))
-            .unwrap_or_else(|| version.to_owned()),
+        // Node `env[NIBI_APP_VERSION] ?? appVersion`：设了（空值也算）就用它。
+        version: var("NIBI_APP_VERSION").unwrap_or_else(|| version.to_owned()),
         endpoint_origin: crate::origins::nibi_origin(&non_empty)?,
         release_channel: if test { "test" } else { "production" }.to_owned(),
         locale: if cfg!(windows) {

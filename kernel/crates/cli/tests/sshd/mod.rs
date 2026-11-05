@@ -415,14 +415,14 @@ pub fn context(operation: &str) -> OperationContext {
 
 /// 没有 Docker 或没有 Linux 产物时跳过（写明原因）；有时返回产物的路径。
 pub fn artifact_or_skip() -> Option<PathBuf> {
-    let reason = std::env::var("ZCODE_TEST_SSH_SKIP").ok();
-    match std::env::var("ZCODE_TEST_SSH_ARTIFACT") {
+    let reason = std::env::var("NIBI_TEST_SSH_SKIP").ok();
+    match std::env::var("NIBI_TEST_SSH_ARTIFACT") {
         Ok(path) if Path::new(&path).is_file() && docker(&["info"]).0 => Some(PathBuf::from(path)),
         _ => {
             eprintln!(
                 "SSH Docker test skipped: {}",
                 reason.unwrap_or_else(|| {
-                    "ZCODE_TEST_SSH_ARTIFACT is not set (run pnpm test:rust-cli)".to_owned()
+                    "NIBI_TEST_SSH_ARTIFACT is not set (run pnpm test:rust-cli)".to_owned()
                 })
             );
             None

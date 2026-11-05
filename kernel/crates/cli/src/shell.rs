@@ -16,7 +16,7 @@ const GIT_BASH_DIRS: [&str; 2] = [
     r"C:\Program Files\Git\bin\bash.exe",
     r"C:\Program Files (x86)\Git\bin\bash.exe",
 ];
-/// `ZCODE_GIT_BASH_PATH` 认的文件名（比较时转小写）。
+/// `NIBI_GIT_BASH_PATH` 认的文件名（比较时转小写）。
 const GIT_BASH_NAMES: [&str; 4] = ["bash.exe", "sh.exe", "bash", "sh"];
 /// 探测时跑 `<shell> --version` 的时限。
 const PROBE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -42,17 +42,17 @@ fn supported(shell: &str) -> bool {
     shell.contains("bash") || shell.contains("zsh")
 }
 
-/// 找 shell：`ZCODE_SHELL`
+/// 找 shell：`NIBI_SHELL`
 /// 是能执行的 bash / zsh 时用它；否则按候选表取第一个能执行的。`shell` 是 `SHELL`（Windows 上是 Git Bash）。
 async fn find(overridden: Option<&str>, shell: Option<&str>, host: &impl Host) -> Option<String> {
     if let Some(chosen) = overridden {
         if supported(chosen) && host.executable(chosen).await {
-            tracing::debug!(shell = chosen, "using shell override ZCODE_SHELL");
+            tracing::debug!(shell = chosen, "using shell override NIBI_SHELL");
             return Some(chosen.to_owned());
         }
         tracing::debug!(
             shell = chosen,
-            "ZCODE_SHELL is not a valid bash/zsh path, falling back to detection"
+            "NIBI_SHELL is not a valid bash/zsh path, falling back to detection"
         );
     }
     let prefer_bash = shell.is_some_and(|value| value.contains("bash"));
@@ -115,7 +115,7 @@ fn git_bash(configured: Option<&str>, host: &impl Host) -> Option<String> {
             } else {
                 "is not a bash/sh binary"
             },
-            "ZCODE_GIT_BASH_PATH ignored; falling back to auto-detection"
+            "NIBI_GIT_BASH_PATH ignored; falling back to auto-detection"
         );
     }
     if let Some(found) = GIT_BASH_DIRS.iter().find(|path| host.exists(path)) {
@@ -145,7 +145,7 @@ async fn resolve(
     host: &impl Host,
 ) -> (Option<String>, Option<PathBuf>) {
     let git_bash = if windows {
-        git_bash(lookup(env, "ZCODE_GIT_BASH_PATH"), host)
+        git_bash(lookup(env, "NIBI_GIT_BASH_PATH"), host)
     } else {
         None
     };
@@ -157,7 +157,7 @@ async fn resolve(
     } else {
         lookup(env, "SHELL").map(str::to_owned)
     };
-    let found = find(lookup(env, "ZCODE_SHELL"), shell.as_deref(), host)
+    let found = find(lookup(env, "NIBI_SHELL"), shell.as_deref(), host)
         .await
         .map(PathBuf::from);
     (git_bash, found)

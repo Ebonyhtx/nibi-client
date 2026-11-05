@@ -117,10 +117,10 @@ fn zcode(sandbox: &Sandbox, cwd: &Path, url: &str, args: &[&str], extra: &[(&str
         .env("USERPROFILE", &sandbox.home)
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_DATA_BASE_DIR", &sandbox.home)
-        .env("ZCODE_MODEL_BASE_URL", url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &sandbox.home)
+        .env("NIBI_MODEL_BASE_URL", url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -131,7 +131,7 @@ fn zcode(sandbox: &Sandbox, cwd: &Path, url: &str, args: &[&str], extra: &[(&str
 }
 
 fn registry(home: &Path) -> PathBuf {
-    home.join(".zcode").join("rust-cli").join("peers")
+    home.join(".nibi").join("rust-cli").join("peers")
 }
 
 /// 等到登记目录里有 `count` 份登记（进程启动、绑定收件箱之后写）。
@@ -278,7 +278,7 @@ fn a_mode_mismatch_holds_the_message_and_the_sender_hears_held_then_expired() {
             "--allowedTools",
             "Bash",
         ],
-        &[("ZCODE_USER_DIALOG_TIMEOUT_MS", "1500")],
+        &[("NIBI_USER_DIALOG_TIMEOUT_MS", "1500")],
     );
     wait_registered(&sandbox.home, 1);
     let fixture_b = sse::serve_with(sender_script(vec![
@@ -477,7 +477,7 @@ fn a_held_message_survives_reopening_the_session() {
         Reply::Fixed(sse::text_reply("A done")),
         Reply::Fixed(sse::text_reply("A again")),
     ]);
-    let timeout = [("ZCODE_USER_DIALOG_TIMEOUT_MS", "3600000")];
+    let timeout = [("NIBI_USER_DIALOG_TIMEOUT_MS", "3600000")];
     let a = zcode(
         &sandbox,
         &sandbox.work,

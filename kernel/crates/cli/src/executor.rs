@@ -153,7 +153,7 @@ pub(crate) fn main(parsed: Result<ExecutorCommand, String>) -> ExitCode {
     {
         Ok(runtime) => runtime,
         Err(error) => {
-            eprint_line(&format!("zcode: cannot start the async runtime: {error}"));
+            eprint_line(&format!("nibi: cannot start the async runtime: {error}"));
             return ExitCode::FAILURE;
         }
     };

@@ -44,11 +44,11 @@ const VARS: &[&str] = &[
     "XTERM_VERSION",
     "VTE_VERSION",
     "ALACRITTY_LOG",
-    // 滚轮每格的行数（tui-select.md §4.2）；速度是 `ZCODE_SCROLL_SPEED`。
+    // 滚轮每格的行数（tui-select.md §4.2）；速度是 `NIBI_SCROLL_SPEED`。
     "CURSOR_TRACE_ID",
     "VSCODE_GIT_ASKPASS_MAIN",
     "TERMINAL_EMULATOR",
-    "ZCODE_SCROLL_SPEED",
+    "NIBI_SCROLL_SPEED",
 ];
 
 /// 环境变量有非空的值。
@@ -203,17 +203,17 @@ pub(crate) fn startup(target: &SessionTarget, pick: bool) -> Startup {
 }
 
 /// 提问框的空闲超时（tools-more.md §1.1，工作线 F72）：配置的 `askUserQuestionTimeout` 与两个环境变量
-/// `ZCODE_AFK_TIMEOUT_MS` / `ZCODE_AFK_COUNTDOWN_MS`（JS 的整数读法，读不出整数时没设；环境变量压过配置）。
+/// `NIBI_AFK_TIMEOUT_MS` / `NIBI_AFK_COUNTDOWN_MS`（JS 的整数读法，读不出整数时没设；环境变量压过配置）。
 ///
 /// 负数（工作线 F78，用户决定）：超时是负数时不超时，门槛是负数时不显示倒计时。以前两者都按 0：负的超时
 /// 一弹出就到期，与“不超时”的意图相反。
 fn question_timeout(setting_ms: Option<u64>, env: &[(String, String)]) -> Option<QuestionTimeout> {
-    let timeout = afk_ms(env, "ZCODE_AFK_TIMEOUT_MS");
+    let timeout = afk_ms(env, "NIBI_AFK_TIMEOUT_MS");
     if timeout.is_some_and(|ms| ms < 0.0) {
         return None;
     }
     // 门槛 0 不显示倒计时：剩下的秒数在到期之前总不小于 1。
-    let countdown = afk_ms(env, "ZCODE_AFK_COUNTDOWN_MS").map(|ms| ms.max(0.0) as u64);
+    let countdown = afk_ms(env, "NIBI_AFK_COUNTDOWN_MS").map(|ms| ms.max(0.0) as u64);
     QuestionTimeout::new(setting_ms, timeout.map(|ms| ms as u64), countdown)
 }
 
@@ -284,17 +284,17 @@ mod tests {
     fn only_terminal_and_locale_variables_reach_the_interface() {
         let env = [
             ("LANG".to_owned(), "zh_CN.UTF-8".to_owned()),
-            ("ZCODE_API_KEY".to_owned(), "sk-test".to_owned()),
+            ("NIBI_API_KEY".to_owned(), "sk-test".to_owned()),
             ("TERM".to_owned(), "xterm-256color".to_owned()),
             ("TMUX".to_owned(), "/tmp/tmux-501/default,1,0".to_owned()),
             // 滚轮的速度。
-            ("ZCODE_SCROLL_SPEED".to_owned(), "5".to_owned()),
+            ("NIBI_SCROLL_SPEED".to_owned(), "5".to_owned()),
         ];
         let vars = vars(&env);
         assert_eq!(vars.len(), 4);
-        assert!(!vars.contains_key("ZCODE_API_KEY"));
+        assert!(!vars.contains_key("NIBI_API_KEY"));
         assert_eq!(
-            vars.get("ZCODE_SCROLL_SPEED").map(String::as_str),
+            vars.get("NIBI_SCROLL_SPEED").map(String::as_str),
             Some("5")
         );
     }
@@ -302,7 +302,7 @@ mod tests {
     /// 提问框空闲超时的环境变量（tools-more.md §1.1，工作线 F72）：JS 的整数读法，读不出整数时没设。
     #[test]
     fn idle_timeout_variables_read_like_integers() {
-        let env = |value: &str| vec![("ZCODE_AFK_TIMEOUT_MS".to_owned(), value.to_owned())];
+        let env = |value: &str| vec![("NIBI_AFK_TIMEOUT_MS".to_owned(), value.to_owned())];
         let timeout = |value: &str| question_timeout(None, &env(value)).map(|t| t.timeout_ms);
         assert_eq!(timeout("4000"), Some(4000));
         assert_eq!(timeout(" 1500ms"), Some(1500));
@@ -320,14 +320,14 @@ mod tests {
     fn a_negative_idle_timeout_turns_the_timer_off() {
         let env = |name: &str, value: &str| vec![(name.to_owned(), value.to_owned())];
         assert_eq!(
-            question_timeout(None, &env("ZCODE_AFK_TIMEOUT_MS", "-5")),
+            question_timeout(None, &env("NIBI_AFK_TIMEOUT_MS", "-5")),
             None
         );
         assert_eq!(
-            question_timeout(Some(300_000), &env("ZCODE_AFK_TIMEOUT_MS", "-1")),
+            question_timeout(Some(300_000), &env("NIBI_AFK_TIMEOUT_MS", "-1")),
             None
         );
-        let countdown = question_timeout(Some(60_000), &env("ZCODE_AFK_COUNTDOWN_MS", "-1"))
+        let countdown = question_timeout(Some(60_000), &env("NIBI_AFK_COUNTDOWN_MS", "-1"))
             .expect("the setting still applies");
         assert_eq!((countdown.timeout_ms, countdown.countdown_ms), (60_000, 0));
     }

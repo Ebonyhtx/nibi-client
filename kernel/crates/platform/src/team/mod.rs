@@ -333,7 +333,7 @@ impl TeamPlans {
     }
 
     /// 管理团队套餐的地址（App `MODEL_PROVIDER_FAMILY_SPECS` 的 `teamCodingPlanManageUrl`）。z.ai 写死，App 也没有测试
-    /// 环境的变体（F58 核对过：F55 以为是 bug）；BigModel 只看 `ZCODE_ENV`（入口算好，`AccountOrigins::bigmodel_team_plans`）。
+    /// 环境的变体（F58 核对过：F55 以为是 bug）；BigModel 只看 `NIBI_ENV`（入口算好，`AccountOrigins::bigmodel_team_plans`）。
     /// 修复线 F58：BigModel 以前从账号地址拼，设了 `BIGMODEL_*` 覆盖变量时跟着变，App 不跟。
     pub fn manage_url(&self, family: Family) -> String {
         match family {

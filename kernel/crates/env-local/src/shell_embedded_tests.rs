@@ -1,6 +1,6 @@
 //! Bash 工具命令前的 prelude 真实地跑（docs/specs/rust-cli/embedded-search.md §8，工作线 F53）：bash 与 zsh 下
 //! `find` / `grep` / `rg` 转给本进程的二进制（这里是记下参数的假二进制），带上缺省参数；grep 的退回列表、二进制
-//! 不可执行时、系统已有 rg 时用系统的命令（临时 PATH 里的假命令）；hook 命令没有 prelude 与 `ZCODE_EXECPATH`。
+//! 不可执行时、系统已有 rg 时用系统的命令（临时 PATH 里的假命令）；hook 命令没有 prelude 与 `NIBI_EXECPATH`。
 //! 真实的分派（argv0 → bfs / ugrep / rg）在 cli 的 `tests/embedded_bash.rs`。
 #![cfg(unix)]
 
@@ -41,7 +41,7 @@ fn setup(shell: &str, executable: Option<&str>, find_and_grep: bool, with_rg: bo
     let binary = base.join("bin/zcode");
     script(
         &binary,
-        r#"echo "zcode[${ZCODE_EXECPATH:-unset}${ARGV0:+ ARGV0=$ARGV0}]: $*""#,
+        r#"echo "zcode[${NIBI_EXECPATH:-unset}${ARGV0:+ ARGV0=$ARGV0}]: $*""#,
     );
     let mut fixture = probe;
     let mut config = fixture.shells.config.clone();
@@ -201,12 +201,12 @@ fn setup_without_find_and_grep() -> Setup {
     setup("/bin/bash", None, false, false)
 }
 
-/// hook 命令不经包装：没有 prelude，也没有 `ZCODE_EXECPATH`。
+/// hook 命令不经包装：没有 prelude，也没有 `NIBI_EXECPATH`。
 #[tokio::test]
 async fn hooks_get_neither_the_prelude_nor_the_variable() {
     let setup = setup("/bin/bash", None, true, false);
     let mut start = request(
-        "echo ${ZCODE_EXECPATH:-unset}; find . -name x",
+        "echo ${NIBI_EXECPATH:-unset}; find . -name x",
         &setup.fixture.root,
         CwdScope::Pinned,
     );

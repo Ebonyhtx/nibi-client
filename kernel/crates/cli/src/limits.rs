@@ -1,4 +1,4 @@
-//! 交给内核的开关（docs/specs/rust-cli/cli-args.md §9，修复线 F42）：`ZCODE_MAX_OUTPUT_TOKENS`、`MAX_THINKING_TOKENS`、
+//! 交给内核的开关（docs/specs/rust-cli/cli-args.md §9，修复线 F42）：`NIBI_MAX_OUTPUT_TOKENS`、`MAX_THINKING_TOKENS`、
 //! `BASH_DEFAULT_TIMEOUT_MS` / `BASH_MAX_TIMEOUT_MS`，工作线 F89 加 `ENABLE_TOOL_SEARCH`（tools-more.md §3.2.1）。值按 JS 风格
 //! 的整数读法（`js_int`）。
 
@@ -91,15 +91,15 @@ fn positive(value: Option<f64>) -> Option<u64> {
     value.filter(|value| *value > 0.0).map(|value| value as u64)
 }
 
-/// `ZCODE_MAX_OUTPUT_TOKENS`：没设或空时 None；`js_int` 不是正数时也是 None（用缺省，记一条 warn）。只在入口
+/// `NIBI_MAX_OUTPUT_TOKENS`：没设或空时 None；`js_int` 不是正数时也是 None（用缺省，记一条 warn）。只在入口
 /// `capture` 调一次（F58）。
 pub(crate) fn max_output_tokens(env: &[(String, String)]) -> Option<u32> {
-    let value = raw(env, "ZCODE_MAX_OUTPUT_TOKENS")?;
+    let value = raw(env, "NIBI_MAX_OUTPUT_TOKENS")?;
     let parsed = positive(js_int(value));
     if parsed.is_none() {
         tracing::warn!(
             event = "env.invalid",
-            name = "ZCODE_MAX_OUTPUT_TOKENS",
+            name = "NIBI_MAX_OUTPUT_TOKENS",
             value,
             "invalid value, using the model default"
         );
@@ -185,10 +185,10 @@ pub(crate) fn limits(env: &[(String, String)], max_output_tokens: Option<u32>) -
     }
 }
 
-/// `ZCODE_FORK_SUBAGENT`（修复线 L-A，agents.md §8.1.1；真假值的写法同对照实现）：真值打开，假值关掉，
+/// `NIBI_FORK_SUBAGENT`（修复线 L-A，agents.md §8.1.1；真假值的写法同对照实现）：真值打开，假值关掉，
 /// 别的值与没设都按形态。
 pub(crate) fn fork_subagent(env: &[(String, String)]) -> Option<bool> {
-    let value = raw(env, "ZCODE_FORK_SUBAGENT")?;
+    let value = raw(env, "NIBI_FORK_SUBAGENT")?;
     match rust_cli_base::js::string::trim(value)
         .to_lowercase()
         .as_str()

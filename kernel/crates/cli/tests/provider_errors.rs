@@ -3,7 +3,7 @@
 //!
 //! 夹具在 127.0.0.1，按只给测试的声明（`with_assumed_base_url`，D13）把它当成智谱的地址，走到智谱的码表；不带声明时是
 //! 通用的协议层。每个场景断言请求次数、回合的结局与库里的消息。另有一条真实进程的 `-p`：声明经环境变量
-//! `_ZCODE_ASSUME_BASE_URL` 进来，退出码与输出。
+//! `_NIBI_ASSUME_BASE_URL` 进来，退出码与输出。
 #![allow(
     clippy::disallowed_methods,
     clippy::unwrap_used,
@@ -441,7 +441,7 @@ async fn openai_quota_and_content_filter() {
     );
 }
 
-/// 真实进程：`-p` 经显式覆盖连夹具，只给测试的 `_ZCODE_ASSUME_BASE_URL` 让它按智谱的码表分类；配额码不重试，退出码 1，
+/// 真实进程：`-p` 经显式覆盖连夹具，只给测试的 `_NIBI_ASSUME_BASE_URL` 让它按智谱的码表分类；配额码不重试，退出码 1，
 /// 输出是配额用尽的说明。release 构建不读测试声明（model.md §6），只在 debug 构建跑。
 #[cfg(debug_assertions)]
 #[test]
@@ -457,11 +457,11 @@ fn print_mode_reads_the_assumed_base_url() {
         .env("HOME", &sandbox.home)
         .env("USERPROFILE", &sandbox.home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &sandbox.home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("_ZCODE_ASSUME_BASE_URL", ZHIPU)
+        .env("NIBI_DATA_BASE_DIR", &sandbox.home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("_NIBI_ASSUME_BASE_URL", ZHIPU)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());

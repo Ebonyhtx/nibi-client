@@ -31,7 +31,7 @@ const TARGET: &str = "aarch64-apple-darwin";
 
 /// 机器清单：dev-a 经 ssh 连本测试的 sshd，工作目录是远端 HOME 下的一个目录。
 fn machine_list(home: &Path, working: &Path) {
-    let list = home.join(".zcode/rust-cli/machines.json");
+    let list = home.join(".nibi/rust-cli/machines.json");
     std::fs::create_dir_all(list.parent().unwrap()).unwrap();
     std::fs::write(
         &list,
@@ -68,14 +68,14 @@ fn print_run(sshd: &LocalSshd, home: &Path, work: &Path, registry: &str) -> (Out
         .env("HOME", home)
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("ZCODE_RUNTIME_ENV", "test")
-        .env("_ZCODE_ASSUME_SSH_MACHINES", "1")
-        .env("_ZCODE_ASSUME_SSH_CONFIG", sshd.config())
-        .env("_ZCODE_ASSUME_NPM_REGISTRY", registry)
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("NIBI_RUNTIME_ENV", "test")
+        .env("_NIBI_ASSUME_SSH_MACHINES", "1")
+        .env("_NIBI_ASSUME_SSH_CONFIG", sshd.config())
+        .env("_NIBI_ASSUME_NPM_REGISTRY", registry)
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -137,7 +137,7 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
     assert_eq!(registry.seen(), [packument, tarball_path]);
 
     // 缓存按 macOS 的 target 放（与 Linux 的 aarch64 不是同一个目录）。
-    let dist = home.path().join(".zcode/rust-cli/exec/dist");
+    let dist = home.path().join(".nibi/rust-cli/exec/dist");
     let cached = dist.join(format!("{VERSION}/{TARGET}/zcode-rs"));
     let (_, local_sum, _) = run("shasum", &["-a", "256", BIN]);
     let (_, cached_sum, _) = run("shasum", &["-a", "256", &cached.to_string_lossy()]);
@@ -154,7 +154,7 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
     // 上传到远端的执行器：sha256 相同、试跑没留东西、没有隔离属性（§28.5）。
     let installed = sshd
         .home()
-        .join(format!(".zcode/rust-cli/exec/bin/{VERSION}/zcode-rs"));
+        .join(format!(".nibi/rust-cli/exec/bin/{VERSION}/zcode-rs"));
     let installed = installed.to_string_lossy().into_owned();
     let (ok, remote_sum, err) = sshd.ssh(&format!("shasum -a 256 {installed}"));
     assert!(ok, "{err}");
@@ -163,7 +163,7 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
         local_sum.split_whitespace().next()
     );
     let (ok, listing, err) = sshd.ssh(&format!(
-        "ls -A {home}/.zcode/rust-cli/exec/bin/{VERSION}",
+        "ls -A {home}/.nibi/rust-cli/exec/bin/{VERSION}",
         home = sshd.home().display()
     ));
     assert!(ok, "{err}");
@@ -179,13 +179,13 @@ async fn a_macos_machine_downloads_uploads_and_runs_the_executor() {
         "a file written over ssh is not quarantined: {attributes}"
     );
     // 常驻执行器的 socket 在远端的 HOME 下，路径不超过 macOS 的 104 字节上限（§28.7）。
-    let socket = sshd.home().join(".zcode/rust-cli/exec/executor.sock");
+    let socket = sshd.home().join(".nibi/rust-cli/exec/executor.sock");
     assert!(socket.to_string_lossy().len() < 104, "{}", socket.display());
     assert!(socket.exists(), "the resident executor is listening");
 
     // 2. 停掉远端的执行器、删掉 bin/，再连一次：用本机缓存重新上传，不再下载。
     let (ok, out, err) = sshd.ssh(&format!(
-        "{installed} executor stop && rm -rf {home}/.zcode/rust-cli/exec/bin",
+        "{installed} executor stop && rm -rf {home}/.nibi/rust-cli/exec/bin",
         home = sshd.home().display()
     ));
     assert!(ok, "{out}{err}");

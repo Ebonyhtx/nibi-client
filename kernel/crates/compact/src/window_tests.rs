@@ -87,7 +87,7 @@ fn window_and_percent_overrides_are_bounded() {
     assert_eq!(threshold(&facts, &invalid), 967_000);
 }
 
-/// `ZCODE_MAX_OUTPUT_TOKENS` 比 20000 小时摘要的预留跟着变小（修复线 F42）；比 20000 大
+/// `NIBI_MAX_OUTPUT_TOKENS` 比 20000 小时摘要的预留跟着变小（修复线 F42）；比 20000 大
 /// 或没设时预留仍是 20000。
 #[test]
 fn the_output_limit_shrinks_the_summary_reserve() {

@@ -34,7 +34,7 @@ use crate::token::Family;
 pub(crate) const INDIVIDUAL_CODING_PLAN: &str = "individual-coding-plan";
 pub(crate) const TEAM_CODING_PLAN: &str = "team-coding-plan";
 /// bigmodel 旧版本可能把它误写进 OAuth access token（App 的防御）。
-pub(crate) const ZCODE_JWT_KEY: &str = "zcodejwttoken";
+pub(crate) const NIBI_JWT_KEY: &str = "zcodejwttoken";
 
 /// 账号连接的身份键（Node `standaloneAccountIdentityCredentialKey`）。
 pub(crate) fn identity_key(provider: &str) -> String {
@@ -55,7 +55,7 @@ pub(crate) fn manual_key(provider: &str, identity: &str) -> String {
     )
 }
 
-/// OAuth access token 的键（`SHARED_ZCODE_CREDENTIAL_KEYS`）。
+/// OAuth access token 的键（`SHARED_NIBI_CREDENTIAL_KEYS`）。
 pub(crate) fn oauth_key(family: &str) -> &'static str {
     if family == "zai" {
         "oauth:zai:access_token"
@@ -147,7 +147,7 @@ pub(crate) fn team_accounts(
                 family,
                 identity: credentials.and_then(|c| profile_id(c, family)),
                 token: present(oauth_key(family.as_str())),
-                zcode_jwt: present(ZCODE_JWT_KEY),
+                zcode_jwt: present(NIBI_JWT_KEY),
             })
         })
         .collect()
@@ -300,7 +300,7 @@ pub(crate) fn request_auth(
         Some(OAuthLogin {
             identity: profile_id(credentials, family)?,
             access_token: credentials.present(oauth_key(family.as_str()))?,
-            zcode_jwt: credentials.present(ZCODE_JWT_KEY),
+            zcode_jwt: credentials.present(NIBI_JWT_KEY),
         })
     });
     login.map(RequestAuth::OAuth).ok_or_else(|| {

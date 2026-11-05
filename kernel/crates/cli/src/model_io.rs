@@ -19,7 +19,7 @@ use tokio::sync::{mpsc, oneshot};
 use crate::model_io_files::Files;
 
 /// 选模式的环境变量（Node 的名字与取值，config.md §2.5）。
-const RUNTIME_ENV: &str = "ZCODE_RUNTIME_ENV";
+const RUNTIME_ENV: &str = "NIBI_RUNTIME_ENV";
 /// 队列容量：满了丢这一条并计数（model-io.md §6）。
 const CAPACITY: usize = 64;
 
@@ -34,7 +34,7 @@ pub(crate) enum Mode {
     Production,
 }
 
-/// `ZCODE_RUNTIME_ENV`（去首尾空白、不分大小写，Node `normalizeNIBIRuntimeEnv`）；其他值或没有时按构建。
+/// `NIBI_RUNTIME_ENV`（去首尾空白、不分大小写，Node `normalizeNIBIRuntimeEnv`）；其他值或没有时按构建。
 pub(crate) fn mode(value: Option<&str>, debug_build: bool) -> Mode {
     match value
         .map(|value| value.trim().to_ascii_lowercase())

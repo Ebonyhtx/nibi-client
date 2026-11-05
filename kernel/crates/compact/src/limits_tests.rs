@@ -198,7 +198,7 @@ fn without_a_configured_entry_the_card_and_the_default_apply() {
     assert_eq!(none.facts(&selection("other")), unknown);
 }
 
-/// 回归：`ZCODE_AUTO_COMPACT_WINDOW` 照旧盖过配置的窗口（`min(窗口, 覆盖值)`）：300000 − 20000。
+/// 回归：`NIBI_AUTO_COMPACT_WINDOW` 照旧盖过配置的窗口（`min(窗口, 覆盖值)`）：300000 − 20000。
 #[test]
 fn the_window_override_still_caps_the_configured_window() {
     let compaction = compaction(

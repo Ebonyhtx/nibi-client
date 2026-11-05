@@ -1,5 +1,5 @@
 //! `nibi --version` / `-v` / `-V` 的真实进程（docs/specs/rust-cli/version.md §8）：临时 HOME，不读任何真实
-//! 配置；输出 `nibi <版本> (rust-cli)`，版本来自 build.rs 给的 `ZCODE_BUILD_VERSION`（与二进制同一次编译）。
+//! 配置；输出 `nibi <版本> (rust-cli)`，版本来自 build.rs 给的 `NIBI_BUILD_VERSION`（与二进制同一次编译）。
 #![allow(
     clippy::disallowed_methods,
     reason = "测试检查临时 HOME 里有没有写出文件，release 下读仓库里的计数文件"
@@ -21,7 +21,7 @@ fn zcode(home: &Path, flag: &str) -> Output {
         .keep_system()
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .env("ZCODE_DATA_BASE_DIR", home)
+        .env("NIBI_DATA_BASE_DIR", home)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -31,7 +31,7 @@ fn zcode(home: &Path, flag: &str) -> Output {
 
 #[test]
 fn every_version_flag_prints_the_build_version() {
-    let version = env!("ZCODE_BUILD_VERSION");
+    let version = env!("NIBI_BUILD_VERSION");
     let home = tempfile::tempdir().unwrap();
     for flag in ["--version", "-v", "-V"] {
         let output = zcode(home.path(), flag);
@@ -49,7 +49,7 @@ fn every_version_flag_prints_the_build_version() {
 
 #[test]
 fn the_build_version_follows_the_profile() {
-    let version = env!("ZCODE_BUILD_VERSION");
+    let version = env!("NIBI_BUILD_VERSION");
     let parts: Vec<&str> = version.split('.').collect();
     assert_eq!(parts.len(), 3, "{version}");
     // major、minor 总是来自 Cargo.toml。
@@ -68,7 +68,7 @@ fn the_build_version_follows_the_profile() {
         .trim()
         .parse()
         .unwrap();
-    if let Some(published) = option_env!("ZCODE_RELEASE_VERSION") {
+    if let Some(published) = option_env!("NIBI_RELEASE_VERSION") {
         // 正式发版：等于变量，文件只读、没有加 1。
         assert_eq!(version, published);
         assert_eq!(count, committed, "{version}");

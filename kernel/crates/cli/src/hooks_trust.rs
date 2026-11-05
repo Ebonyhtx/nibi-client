@@ -14,11 +14,11 @@ use crate::config::trust::WorkspaceHooks;
 use crate::config::{ConfigInputs, read_files};
 
 pub(crate) const USAGE: &str = "Usage:
-  zcode hooks trust status [--workspace <path-or-identity>] [--json]
-  zcode hooks trust review [--workspace <path-or-identity>] [--json]
-  zcode hooks trust grant --workspace <path-or-identity> --hook-digest <sha256> [--hook-digest <sha256> ...]
-  zcode hooks trust grant --workspace <path-or-identity> --all-current --bundle-digest <sha256>
-  zcode hooks trust revoke --workspace <path-or-identity> [--hook-digest <sha256> ... | --all]
+  nibi hooks trust status [--workspace <path-or-identity>] [--json]
+  nibi hooks trust review [--workspace <path-or-identity>] [--json]
+  nibi hooks trust grant --workspace <path-or-identity> --hook-digest <sha256> [--hook-digest <sha256> ...]
+  nibi hooks trust grant --workspace <path-or-identity> --all-current --bundle-digest <sha256>
+  nibi hooks trust revoke --workspace <path-or-identity> [--hook-digest <sha256> ... | --all]
 ";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 //! 模型轨迹的真实进程（docs/specs/rust-cli/model-io.md §8）：临时 home 与本地假的 Anthropic 端点，`zcode -p` 跑一次后，
-//! `<home>/.zcode/cli/{debug,rollout}/` 下有这个会话的 `model-io-<会话>.jsonl`，形状符合 spec；回复里解码器不认识的块
-//! 记进 `decoder.skippedBlocks`；生产模式按 Node 的规则轮转；测试环境（`ZCODE_RUNTIME_ENV=test`）不写；文件里没有
+//! `<home>/.nibi/cli/{debug,rollout}/` 下有这个会话的 `model-io-<会话>.jsonl`，形状符合 spec；回复里解码器不认识的块
+//! 记进 `decoder.skippedBlocks`；生产模式按 Node 的规则轮转；测试环境（`NIBI_RUNTIME_ENV=test`）不写；文件里没有
 //! API key。
 #![allow(
     clippy::disallowed_methods,
@@ -70,7 +70,7 @@ struct Run {
     _dir: tempfile::TempDir,
 }
 
-/// 准备临时 home（`prepare` 可以先放文件），跑一次 `zcode -p`；`runtime` 是 `ZCODE_RUNTIME_ENV` 的值。
+/// 准备临时 home（`prepare` 可以先放文件），跑一次 `zcode -p`；`runtime` 是 `NIBI_RUNTIME_ENV` 的值。
 fn run(runtime: Option<&str>, prepare: impl FnOnce(&Path)) -> Run {
     let dir = tempfile::tempdir().unwrap();
     let base = std::fs::canonicalize(dir.path()).unwrap();
@@ -88,15 +88,15 @@ fn run(runtime: Option<&str>, prepare: impl FnOnce(&Path)) -> Run {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &server)
-        .env("ZCODE_API_KEY", KEY)
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &server)
+        .env("NIBI_API_KEY", KEY)
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if let Some(value) = runtime {
-        command.env("ZCODE_RUNTIME_ENV", value);
+        command.env("NIBI_RUNTIME_ENV", value);
     }
     let output = command.output().unwrap();
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -142,9 +142,9 @@ fn session_records(dir: &Path) -> (String, Vec<Value>) {
 #[test]
 fn a_debug_build_records_the_round_under_cli_debug() {
     let run = run(None, |_| {});
-    let dir = run.home.join(".zcode/cli/debug");
+    let dir = run.home.join(".nibi/cli/debug");
     let (name, records) = session_records(&dir);
-    assert!(!run.home.join(".zcode/cli/rollout").exists());
+    assert!(!run.home.join(".nibi/cli/rollout").exists());
     assert_eq!(records.len(), 1, "{records:#?}");
     let record = &records[0];
     let session = record["sessionId"].as_str().unwrap();
@@ -193,7 +193,7 @@ fn a_debug_build_records_the_round_under_cli_debug() {
 fn production_rotates_the_shared_directory_like_node() {
     // 生产模式写 rollout：目录里已有 3 个别的会话文件时删掉最旧的一个，留位给新会话（最多 3 个）。
     let run = run(Some("production"), |home| {
-        let dir = home.join(".zcode/cli/rollout");
+        let dir = home.join(".nibi/cli/rollout");
         std::fs::create_dir_all(&dir).unwrap();
         for (name, age) in [
             ("model-io-a.jsonl", 3),
@@ -212,7 +212,7 @@ fn production_rotates_the_shared_directory_like_node() {
         }
         std::fs::write(dir.join("notes.txt"), "kept").unwrap();
     });
-    let dir = run.home.join(".zcode/cli/rollout");
+    let dir = run.home.join(".nibi/cli/rollout");
     let (_, records) = session_records(&dir);
     assert_eq!(records[0]["outcome"], "completed");
     let names: Vec<String> = model_io_files(&dir)
@@ -223,12 +223,12 @@ fn production_rotates_the_shared_directory_like_node() {
     assert!(names.contains(&"model-io-b.jsonl".to_owned()), "{names:?}");
     assert!(names.contains(&"model-io-c.jsonl".to_owned()), "{names:?}");
     assert!(dir.join("notes.txt").exists());
-    assert!(!run.home.join(".zcode/cli/debug").exists());
+    assert!(!run.home.join(".nibi/cli/debug").exists());
 }
 
 #[test]
 fn the_test_environment_writes_nothing() {
     let run = run(Some("test"), |_| {});
-    assert!(!run.home.join(".zcode/cli/debug").exists());
-    assert!(!run.home.join(".zcode/cli/rollout").exists());
+    assert!(!run.home.join(".nibi/cli/debug").exists());
+    assert!(!run.home.join(".nibi/cli/rollout").exists());
 }

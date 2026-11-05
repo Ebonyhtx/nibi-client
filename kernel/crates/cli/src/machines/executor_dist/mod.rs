@@ -34,7 +34,7 @@ const MAX_TARBALL: usize = 256 * 1024 * 1024;
 const CHUNK_IDLE: Duration = Duration::from_secs(30);
 
 /// 下载来源的注册表（§26.7）：release 构建总是官方注册表；debug 构建的版本 npm 上没有，只在给了只给测试的假注册表
-/// （`_ZCODE_ASSUME_NPM_REGISTRY`）时下载。`declarations` 是本次构建是否接受测试声明（release 忽略）。
+/// （`_NIBI_ASSUME_NPM_REGISTRY`）时下载。`declarations` 是本次构建是否接受测试声明（release 忽略）。
 pub(crate) fn registry(declarations: TestDeclarations, assumed: Option<String>) -> Option<String> {
     match declarations {
         TestDeclarations::Ignored => Some(npm::REGISTRY.to_owned()),

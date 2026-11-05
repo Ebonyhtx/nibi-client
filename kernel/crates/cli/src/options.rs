@@ -62,17 +62,17 @@ pub(crate) fn is_sandbox_one(snapshot: &[(String, String)]) -> bool {
 }
 
 /// 任务工具的显式开关：
-/// `ZCODE_ENABLE_TASKS` 为假时关闭（优先）；`ZCODE_ENABLE_TODO_TOOLS` 为真时打开（
+/// `NIBI_ENABLE_TASKS` 为假时关闭（优先）；`NIBI_ENABLE_TODO_TOOLS` 为真时打开（
 /// opt-in）；都没有时 None，按模型决定（`rust_cli_agents::task_tools_enabled`，agents.md §7）。
 ///
-/// 环境变量的名字（修复线 F42，config.md §2.5）：本文件读的变量都是 `ZCODE_*`。
+/// 环境变量的名字（修复线 F42，config.md §2.5）：本文件读的变量都是 `NIBI_*`。
 ///
 /// 缺陷修复（R4 F6）：原来入口不读这两个变量，opt-in 恒为假，默认模型下 TaskCreate 报
 /// No such tool。
 pub(crate) fn task_tools(snapshot: &[(String, String)]) -> Option<bool> {
-    if falsy(snapshot, "ZCODE_ENABLE_TASKS") {
+    if falsy(snapshot, "NIBI_ENABLE_TASKS") {
         Some(false)
-    } else if truthy(snapshot, "ZCODE_ENABLE_TODO_TOOLS") {
+    } else if truthy(snapshot, "NIBI_ENABLE_TODO_TOOLS") {
         Some(true)
     } else {
         None
@@ -86,7 +86,7 @@ pub(crate) async fn memory_dir(
     workspace: &WorkspaceRef,
     snapshot: &[(String, String)],
 ) -> Option<String> {
-    if truthy(snapshot, "ZCODE_DISABLE_AUTO_MEMORY") {
+    if truthy(snapshot, "NIBI_DISABLE_AUTO_MEMORY") {
         return None;
     }
     let project = rust_cli_memory::project_root(files, workspace).await;
@@ -96,7 +96,7 @@ pub(crate) async fn memory_dir(
     Some(format!("{}{MAIN_SEPARATOR}", dir.as_path().display()))
 }
 
-/// `ZCODE_AUTO_COMPACT_WINDOW`：`200k`、`1m`、`100`–`1000`（按千计）或 token 数。
+/// `NIBI_AUTO_COMPACT_WINDOW`：`200k`、`1m`、`100`–`1000`（按千计）或 token 数。
 fn window(value: &str) -> Option<u64> {
     let text = value.trim().to_ascii_lowercase();
     let number = |digits: &str| digits.replace(['_', ','], "").parse::<f64>().ok();
@@ -117,7 +117,7 @@ fn window(value: &str) -> Option<u64> {
 }
 
 /// `limits`：压缩的上限查询（平台层或显式覆盖的内置规则，修复线 F61：两种模式都接，compact.md §2）；
-/// `max_output_tokens` 是入口读一次的 `ZCODE_MAX_OUTPUT_TOKENS`（F58）。
+/// `max_output_tokens` 是入口读一次的 `NIBI_MAX_OUTPUT_TOKENS`（F58）。
 pub(crate) fn compact(
     snapshot: &[(String, String)],
     max_output_tokens: Option<u32>,
@@ -128,9 +128,9 @@ pub(crate) fn compact(
         // `DISABLE_COMPACT` 设了时“上下文快满”的提示不接“Run /compact”（compact.md §2.1）。
         compact_command: !truthy(snapshot, DISABLE_COMPACT),
         thresholds: CompactThresholds {
-            pct_override: var(snapshot, "ZCODE_AUTOCOMPACT_PCT_OVERRIDE")
+            pct_override: var(snapshot, "NIBI_AUTOCOMPACT_PCT_OVERRIDE")
                 .and_then(|value| value.parse().ok()),
-            window_override: var(snapshot, "ZCODE_AUTO_COMPACT_WINDOW").and_then(window),
+            window_override: var(snapshot, "NIBI_AUTO_COMPACT_WINDOW").and_then(window),
             // 摘要的输出预留也看输出上限（compact.md §2，F42）。
             max_output_tokens: max_output_tokens.map(u64::from),
         },
@@ -158,10 +158,10 @@ fn enabled(env: &[(String, String)], name: &str) -> bool {
     })
 }
 
-/// 只给测试用的声明（`_ZCODE_ASSUME_*`，model.md §6）是否生效：入口显式传入，单元测试两种都传。
+/// 只给测试用的声明（`_NIBI_ASSUME_*`，model.md §6）是否生效：入口显式传入，单元测试两种都传。
 ///
 /// 工作线 F52b（用户决定 2026-10-22）：只在 debug 构建读，release 构建完全不读、设了也没有作用。以前发布版也读，
-/// `_ZCODE_ASSUME_TOOL_SEARCH` 能在任何端点上强制打开 ToolSearch，违背“只在 z.ai / bigmodel 的端点开”。
+/// `_NIBI_ASSUME_TOOL_SEARCH` 能在任何端点上强制打开 ToolSearch，违背“只在 z.ai / bigmodel 的端点开”。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum TestDeclarations {
     Accepted,
@@ -180,35 +180,35 @@ impl TestDeclarations {
 /// 两个只给测试用的声明的取值（只对显式覆盖的端点生效，平台层的端点照常查方案表）。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Assumptions {
-    /// `_ZCODE_ASSUME_FIRST_PARTY_BASE_URL`：按 Anthropic 官方
+    /// `_NIBI_ASSUME_FIRST_PARTY_BASE_URL`：按 Anthropic 官方
     /// 端点查方案表与能力规则。测试连本地 fixture 时用它发第一方形状。
     pub first_party: bool,
-    /// `_ZCODE_ASSUME_TOOL_SEARCH`（工作线 F52）：当作支持延迟加载工具（`tool_reference`）的端点，用原生 ToolSearch。
+    /// `_NIBI_ASSUME_TOOL_SEARCH`（工作线 F52）：当作支持延迟加载工具（`tool_reference`）的端点，用原生 ToolSearch。
     /// 工作线 F89 起产品路径一律本地（tools-more.md §3.2.2），这是选到原生的唯一途径，原生的实现靠它保留测试；不声明时
     /// 是本地 ToolSearch（F84 时原生只给 z.ai / bigmodel 的端点；F84 以前不声明是不开）。不是给用户的开关。
     pub tool_search: bool,
-    /// `_ZCODE_ASSUME_MONITOR_OFF`（工作线 F83）：关掉 Monitor 与它带动的文字，等于对齐基准的开关关着
+    /// `_NIBI_ASSUME_MONITOR_OFF`（工作线 F83）：关掉 Monitor 与它带动的文字，等于对齐基准的开关关着
     /// （tools-more.md §19.1）。不是给用户的开关。
     pub monitor_off: bool,
-    /// `_ZCODE_ASSUME_LOOPBACK_EXECUTOR`（远端执行 R1，remote-exec.md §18.6）：本机的执行端口经 loopback 走子进程
+    /// `_NIBI_ASSUME_LOOPBACK_EXECUTOR`（远端执行 R1，remote-exec.md §18.6）：本机的执行端口经 loopback 走子进程
     /// `zcode executor --stdio`，验证远端实现与本机结果相同。不是给用户的开关。
     pub loopback: bool,
-    /// `_ZCODE_ASSUME_LOOPBACK_MACHINES`（远端执行 R3，remote-exec.md §20.10）：`machines.json` 里连着的机器经 loopback
+    /// `_NIBI_ASSUME_LOOPBACK_MACHINES`（远端执行 R3，remote-exec.md §20.10）：`machines.json` 里连着的机器经 loopback
     /// 连接（每台一个执行器子进程，工作目录是那台机器的工作目录），`-p` 也连。不是给用户的开关。
     pub loopback_machines: bool,
-    /// `_ZCODE_ASSUME_SSH_MACHINES`（远端执行 R3，remote-exec.md §20.10）：`-p` 也经 SSH 连 `machines.json` 里连着的机器
-    /// （同步连完再开始），`_ZCODE_ASSUME_SSH_CONFIG` / `_ZCODE_ASSUME_SSH_ARTIFACT` 用于这些机器。不是给用户的开关。
+    /// `_NIBI_ASSUME_SSH_MACHINES`（远端执行 R3，remote-exec.md §20.10）：`-p` 也经 SSH 连 `machines.json` 里连着的机器
+    /// （同步连完再开始），`_NIBI_ASSUME_SSH_CONFIG` / `_NIBI_ASSUME_SSH_ARTIFACT` 用于这些机器。不是给用户的开关。
     pub ssh_machines: bool,
 }
 
 /// 机器清单里的机器经 SSH 时，只给测试的 ssh 配置文件与上传用的产物（R3，remote-exec.md §20.10；只在 debug 构建读）。
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct MachineSsh {
-    /// `_ZCODE_ASSUME_SSH_CONFIG`。
+    /// `_NIBI_ASSUME_SSH_CONFIG`。
     pub config: Option<String>,
-    /// `_ZCODE_ASSUME_SSH_ARTIFACT`。
+    /// `_NIBI_ASSUME_SSH_ARTIFACT`。
     pub artifact: Option<String>,
-    /// `_ZCODE_ASSUME_NPM_REGISTRY`（F100，remote-exec.md §26.7）：执行器的 npm 来源换成这个假注册表的根（debug 构建的版本
+    /// `_NIBI_ASSUME_NPM_REGISTRY`（F100，remote-exec.md §26.7）：执行器的 npm 来源换成这个假注册表的根（debug 构建的版本
     /// npm 上没有，不给就不下载）。不是给用户的开关。
     pub npm_registry: Option<String>,
 }
@@ -223,13 +223,13 @@ pub(crate) fn machine_ssh(
     }
     let value = |name: &str| var(name).filter(|value| !value.trim().is_empty());
     MachineSsh {
-        config: value("_ZCODE_ASSUME_SSH_CONFIG"),
-        artifact: value("_ZCODE_ASSUME_SSH_ARTIFACT"),
-        npm_registry: value("_ZCODE_ASSUME_NPM_REGISTRY"),
+        config: value("_NIBI_ASSUME_SSH_CONFIG"),
+        artifact: value("_NIBI_ASSUME_SSH_ARTIFACT"),
+        npm_registry: value("_NIBI_ASSUME_NPM_REGISTRY"),
     }
 }
 
-/// `_ZCODE_ASSUME_BASE_URL`（修复线 F113，docs/specs/rust-cli/provider-errors.md D13）：查请求方案与厂商的错误码表时
+/// `_NIBI_ASSUME_BASE_URL`（修复线 F113，docs/specs/rust-cli/provider-errors.md D13）：查请求方案与厂商的错误码表时
 /// 把端点当成这个地址，请求仍发到真实地址（本地夹具走到智谱的方案与码表）。不是给用户的开关；`Ignored` 时不读。
 pub(crate) fn assumed_base_url(
     declarations: TestDeclarations,
@@ -238,18 +238,18 @@ pub(crate) fn assumed_base_url(
     if declarations == TestDeclarations::Ignored {
         return None;
     }
-    var("_ZCODE_ASSUME_BASE_URL").filter(|value| !value.trim().is_empty())
+    var("_NIBI_ASSUME_BASE_URL").filter(|value| !value.trim().is_empty())
 }
 
 /// 只给测试的 SSH 入口（远端执行 R2，remote-exec.md §19.11）：本机的执行端口换成经 SSH 连到 `destination` 的远端环境。
-/// 只在 debug 构建读（同 `_ZCODE_ASSUME_*`）；不是给用户的开关（机器清单与 `/machines` 在 R3 / R4）。
+/// 只在 debug 构建读（同 `_NIBI_ASSUME_*`）；不是给用户的开关（机器清单与 `/machines` 在 R3 / R4）。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct SshAssumption {
-    /// `_ZCODE_ASSUME_SSH_EXECUTOR`：SSH 目标。
+    /// `_NIBI_ASSUME_SSH_EXECUTOR`：SSH 目标。
     pub destination: String,
-    /// `_ZCODE_ASSUME_SSH_CONFIG`：给 ssh 的 `-F <文件>`。
+    /// `_NIBI_ASSUME_SSH_CONFIG`：给 ssh 的 `-F <文件>`。
     pub config: Option<String>,
-    /// `_ZCODE_ASSUME_SSH_ARTIFACT`：上传用的 Linux 产物（架构从 ELF 头读）。
+    /// `_NIBI_ASSUME_SSH_ARTIFACT`：上传用的 Linux 产物（架构从 ELF 头读）。
     pub artifact: Option<String>,
 }
 
@@ -263,9 +263,9 @@ pub(crate) fn ssh_assumption(
     }
     let value = |name: &str| var(name).filter(|value| !value.trim().is_empty());
     Some(SshAssumption {
-        destination: value("_ZCODE_ASSUME_SSH_EXECUTOR")?,
-        config: value("_ZCODE_ASSUME_SSH_CONFIG"),
-        artifact: value("_ZCODE_ASSUME_SSH_ARTIFACT"),
+        destination: value("_NIBI_ASSUME_SSH_EXECUTOR")?,
+        config: value("_NIBI_ASSUME_SSH_CONFIG"),
+        artifact: value("_NIBI_ASSUME_SSH_ARTIFACT"),
     })
 }
 
@@ -285,12 +285,12 @@ pub(crate) fn assumptions(
     match declarations {
         TestDeclarations::Ignored => Assumptions::default(),
         TestDeclarations::Accepted => Assumptions {
-            first_party: declared("_ZCODE_ASSUME_FIRST_PARTY_BASE_URL"),
-            tool_search: declared("_ZCODE_ASSUME_TOOL_SEARCH"),
-            monitor_off: declared("_ZCODE_ASSUME_MONITOR_OFF"),
-            loopback: declared("_ZCODE_ASSUME_LOOPBACK_EXECUTOR"),
-            loopback_machines: declared("_ZCODE_ASSUME_LOOPBACK_MACHINES"),
-            ssh_machines: declared("_ZCODE_ASSUME_SSH_MACHINES"),
+            first_party: declared("_NIBI_ASSUME_FIRST_PARTY_BASE_URL"),
+            tool_search: declared("_NIBI_ASSUME_TOOL_SEARCH"),
+            monitor_off: declared("_NIBI_ASSUME_MONITOR_OFF"),
+            loopback: declared("_NIBI_ASSUME_LOOPBACK_EXECUTOR"),
+            loopback_machines: declared("_NIBI_ASSUME_LOOPBACK_MACHINES"),
+            ssh_machines: declared("_NIBI_ASSUME_SSH_MACHINES"),
         },
     }
 }
@@ -298,9 +298,9 @@ pub(crate) fn assumptions(
 /// 流空闲看门狗（docs/specs/rust-cli/stall-visibility.md §2.2）：
 /// 事件级上限只能调大到不少于 300 s；字节级可单独设，夹在 [10 s, 30 min]，没设时按端点。
 pub(crate) fn stream_idle(snapshot: &[(String, String)]) -> StreamIdle {
-    let requested = millis(snapshot, "ZCODE_STREAM_IDLE_TIMEOUT_MS");
+    let requested = millis(snapshot, "NIBI_STREAM_IDLE_TIMEOUT_MS");
     let event_limit = requested.map_or(EVENT_IDLE_FLOOR, |limit| limit.max(EVENT_IDLE_FLOOR));
-    let bytes = match millis(snapshot, "ZCODE_BYTE_STREAM_IDLE_TIMEOUT_MS") {
+    let bytes = match millis(snapshot, "NIBI_BYTE_STREAM_IDLE_TIMEOUT_MS") {
         Some(limit) => ByteIdle::Fixed(limit),
         None if requested.is_some() => ByteIdle::Fixed(event_limit),
         None => ByteIdle::Endpoint,
@@ -310,8 +310,8 @@ pub(crate) fn stream_idle(snapshot: &[(String, String)]) -> StreamIdle {
         ByteIdle::Endpoint => ByteIdle::Endpoint,
     };
     StreamIdle {
-        events: enabled(snapshot, "ZCODE_ENABLE_STREAM_WATCHDOG").then_some(event_limit),
-        bytes: enabled(snapshot, "ZCODE_ENABLE_BYTE_WATCHDOG").then_some(bytes),
+        events: enabled(snapshot, "NIBI_ENABLE_STREAM_WATCHDOG").then_some(event_limit),
+        bytes: enabled(snapshot, "NIBI_ENABLE_BYTE_WATCHDOG").then_some(bytes),
         stall_notice: STALL_NOTICE,
     }
 }

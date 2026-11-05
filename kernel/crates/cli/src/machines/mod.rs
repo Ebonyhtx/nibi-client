@@ -2,7 +2,7 @@
 //! `Machine`）连，就绪时把连接包成 `env-remote` 放进注册表，重连失败或断开时拿走。
 //!
 //! 端点（`Endpoint`）由这里按测试变量选：产品路径是 ssh-connect（ssh 目标就是清单里的 `ssh`）；只给测试的 loopback（debug
-//! 构建、`_ZCODE_ASSUME_LOOPBACK_MACHINES`）是每台机器一个 `zcode executor --stdio --standalone` 子进程，工作目录是那台机器的
+//! 构建、`_NIBI_ASSUME_LOOPBACK_MACHINES`）是每台机器一个 `zcode executor --stdio --standalone` 子进程，工作目录是那台机器的
 //! 工作目录。TUI 在后台连（不挡启动）；`-p` 只在测试变量下连，而且同步连完。
 
 mod endpoint;

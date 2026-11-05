@@ -127,7 +127,7 @@ export async function startAgent(
   const data = join(root, "agent-data");
   await mkdir(data, { recursive: true });
   // Rust 没有 NIBI_PERSONAL_PROVIDER_CONFIG_FILE 的等价环境变量：把夹具的 personal provider
-  // 配置放到它读的 `~/.nibi/v2/provider_config.json`（HOME/ZCODE_DATA_BASE_DIR 都指到 data）。
+  // 配置放到它读的 `~/.nibi/v2/provider_config.json`（HOME/NIBI_DATA_BASE_DIR 都指到 data）。
   if (rustBin && providerEnv.NIBI_PERSONAL_PROVIDER_CONFIG_FILE) {
     const configDir = join(data, ".nibi", "v2");
     await mkdir(configDir, { recursive: true });
@@ -146,25 +146,8 @@ export async function startAgent(
       NIBI_STORAGE_DIR: data,
       LANG: "en_US.UTF-8",
       ...(process.env.RUST_LOG ? { RUST_LOG: process.env.RUST_LOG } : {}),
-      // Rust 仍按 ZCODE_* 读隔离根；用户根是 ~/.nibi，必须把 HOME 也指到夹具数据根。
-      ...(rustBin
-        ? {
-            HOME: data,
-            USERPROFILE: data,
-            ZCODE_DATA_BASE_DIR: data,
-            ZCODE_STORAGE_DIR: data,
-            // Host 在 spawn 边界把 NIBI_SESSION_DB* 映射成同名 ZCODE_*（buildRustKernelStorageEnv）：
-            // 会话库落在同一个文件，数据库断言与两个内核的历史才不会分叉。
-            ZCODE_SESSION_DB: join(data, "session.sqlite"),
-            // 采样/模型夹具给的是 Node 的 NIBI_* 内置 provider 文件；Rust 读 ZCODE_*。
-            ...(providerEnv.NIBI_BUILTIN_PROVIDER_CONFIG_FILE
-              ? {
-                  ZCODE_BUILTIN_PROVIDER_CONFIG_FILE:
-                    providerEnv.NIBI_BUILTIN_PROVIDER_CONFIG_FILE,
-                }
-              : {}),
-          }
-        : {}),
+      // 两个内核读同一组 NIBI_* 隔离根；Rust 的 `~` 展开仍要 HOME/USERPROFILE 指到夹具数据根。
+      ...(rustBin ? { HOME: data, USERPROFILE: data } : {}),
       ...providerEnv,
     },
     stdio: ["pipe", "pipe", "pipe"],

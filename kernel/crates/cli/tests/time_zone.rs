@@ -86,10 +86,10 @@ fn run(tz: &str, offset_minutes: i64) -> (String, String, [String; 2]) {
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
         .env("TZ", tz)
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &server)
-        .env("ZCODE_API_KEY", "test-key-time-zone")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &server)
+        .env("NIBI_API_KEY", "test-key-time-zone")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -111,7 +111,7 @@ fn run(tz: &str, offset_minutes: i64) -> (String, String, [String; 2]) {
         .and_then(|rest| rest.get(..10))
         .unwrap()
         .to_owned();
-    let log = home.join(".zcode/rust-cli/log");
+    let log = home.join(".nibi/rust-cli/log");
     let files: Vec<String> = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())

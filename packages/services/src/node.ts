@@ -500,7 +500,6 @@ import { initializeRuntimeProcessEnv } from "./runtime-tools/runtimeCommandEnv.j
 import {
   buildAgentEndpointOriginEnv,
   buildAgentRuntimeEnv,
-  buildRustKernelStorageEnv,
 } from "./runtime-tools/agentProxyEnv.js";
 import { ensureAppCaCert } from "./runtime-tools/appCaCert.js";
 import { buildHelperOpenArgs, isCuaLocalDevelopmentRuntime } from "@nibi/cua/broker/server";
@@ -2297,8 +2296,6 @@ export function createLocalServices(options: {
           noProxy: effectiveNoProxy,
           caCertPath: settings.httpProxyCaCertPath,
         }),
-        // NIBI 隔离根 → Rust 内核的 ZCODE_* 别名：插件配置/已安装清单/会话库/凭据同根。
-        ...buildRustKernelStorageEnv(process.env),
         // 把 host 解析出的权威 origin（含 settings 覆盖）下发给 agent，否则 agent 侧只按
         // env 推导，test env + 自定义端点时两侧信任判定的输入分叉、官方 MCP 整体 fail closed。
         ...buildAgentEndpointOriginEnv(await resolveCurrentZCodeEndpointOrigin()),

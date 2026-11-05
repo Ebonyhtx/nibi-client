@@ -1,5 +1,5 @@
 //! 本机跨会话通信的组装（docs/specs/rust-cli/cross-session.md §2）：登记目录取 `StoragePaths::peers`，socket 路径太长时
-//! 退回本用户私有的临时目录；过期时长读 `ZCODE_USER_DIALOG_TIMEOUT_MS`（入口是唯一读环境的地方）；`-p` 的
+//! 退回本用户私有的临时目录；过期时长读 `NIBI_USER_DIALOG_TIMEOUT_MS`（入口是唯一读环境的地方）；`-p` 的
 //! 回执不开回合（passive）。
 
 use std::path::Path;
@@ -19,9 +19,9 @@ pub(crate) struct Peers {
     scope: TaskScope,
 }
 
-/// `ZCODE_USER_DIALOG_TIMEOUT_MS`（毫秒）；没有或不是数字时缺省 300000。
+/// `NIBI_USER_DIALOG_TIMEOUT_MS`（毫秒）；没有或不是数字时缺省 300000。
 pub(crate) fn hold_timeout(env: &[(String, String)]) -> u64 {
-    rust_cli_base::secret::env_var(env, "ZCODE_USER_DIALOG_TIMEOUT_MS")
+    rust_cli_base::secret::env_var(env, "NIBI_USER_DIALOG_TIMEOUT_MS")
         .and_then(|value| value.trim().parse::<u64>().ok())
         .unwrap_or(DEFAULT_HOLD_TIMEOUT_MS)
 }

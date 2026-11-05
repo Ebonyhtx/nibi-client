@@ -1,6 +1,6 @@
 //! 不走代理的规则（docs/specs/rust-cli/config.md §2.4）。两种写法按来源分开，各自照原实现：
 //!
-//! - [`NoProxy::Node`]：Node 版 zcode 的 `ZCODE_NO_PROXY`（`apps/zcode-cli/packages/adapters/src/network/
+//! - [`NoProxy::Node`]：Node 版 zcode 的 `NIBI_NO_PROXY`（`apps/zcode-cli/packages/adapters/src/network/
 //!   http-config.ts` 的 `shouldBypassProxy`、`parseNoProxyToken`、`matchesNoProxyHost`）。
 //! - [`NoProxy::Standard`]：标准的 `no_proxy` / `NO_PROXY`。合并两个变量是入口的事，这里收合并后的值。
 //!
@@ -16,7 +16,7 @@ pub enum NoProxy {
     /// 全部走代理。
     #[default]
     None,
-    /// `ZCODE_NO_PROXY` 的值（Node 的规则）。
+    /// `NIBI_NO_PROXY` 的值（Node 的规则）。
     Node(String),
     /// 合并后的 `no_proxy` / `NO_PROXY`（标准规则）。
     Standard(String),

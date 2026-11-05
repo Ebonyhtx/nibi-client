@@ -68,8 +68,8 @@ impl Accel {
             2.0
         } else {
             let fallback = if fast { 3.0 } else { 1.0 };
-            // `ZCODE_SCROLL_SPEED`（修复线 F42 改名，config.md §2.5）。
-            get("ZCODE_SCROLL_SPEED")
+            // `NIBI_SCROLL_SPEED`（修复线 F42 改名，config.md §2.5）。
+            get("NIBI_SCROLL_SPEED")
                 .and_then(|v| v.trim().parse::<f64>().ok())
                 .filter(|v| *v > 0.0)
                 .map_or(fallback, |v| v.min(20.0))

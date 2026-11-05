@@ -31,7 +31,7 @@ const PROTECTED: &[&str] = &[
 ];
 
 /// 保留的前缀：本产品的变量与改变进程加载方式的变量。
-const RESERVED_PREFIXES: &[&str] = &["ZCODE_", "_ZCODE_", "LD_", "DYLD_", "BASH_FUNC_"];
+const RESERVED_PREFIXES: &[&str] = &["NIBI_", "_NIBI_", "LD_", "DYLD_", "BASH_FUNC_"];
 
 /// 上限（合并之后的整组）。
 const MAX_VARS: usize = 64;

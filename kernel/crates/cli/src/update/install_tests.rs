@@ -12,7 +12,7 @@ fn no_marker_is_an_unknown_install() {
     assert_eq!(Install::detect(&env(&[])), None);
     // 只有包名、没有标记：仍是未知安装（本地构建被别的进程带上包名也不检查）。
     assert_eq!(
-        Install::detect(&env(&[("ZCODE_MANAGED_PACKAGE", "@scope/zcode")])),
+        Install::detect(&env(&[("NIBI_MANAGED_PACKAGE", "@scope/zcode")])),
         None
     );
 }
@@ -21,24 +21,24 @@ fn no_marker_is_an_unknown_install() {
 fn the_markers_follow_the_codex_precedence() {
     let with = |markers: &[&str]| {
         let mut pairs: Vec<(&str, &str)> = markers.iter().map(|name| (*name, "1")).collect();
-        pairs.push(("ZCODE_MANAGED_PACKAGE", "@scope/zcode"));
+        pairs.push(("NIBI_MANAGED_PACKAGE", "@scope/zcode"));
         Install::detect(&env(&pairs)).map(|install| install.manager)
     };
-    assert_eq!(with(&["ZCODE_MANAGED_BY_NPM"]), Some(Manager::Npm));
-    assert_eq!(with(&["ZCODE_MANAGED_BY_PNPM"]), Some(Manager::Pnpm));
-    assert_eq!(with(&["ZCODE_MANAGED_BY_BUN"]), Some(Manager::Bun));
+    assert_eq!(with(&["NIBI_MANAGED_BY_NPM"]), Some(Manager::Npm));
+    assert_eq!(with(&["NIBI_MANAGED_BY_PNPM"]), Some(Manager::Pnpm));
+    assert_eq!(with(&["NIBI_MANAGED_BY_BUN"]), Some(Manager::Bun));
     // Codex：pnpm 先于 npm，npm 先于 bun；只看有没有设，值可以是空串。
     assert_eq!(
-        with(&["ZCODE_MANAGED_BY_NPM", "ZCODE_MANAGED_BY_PNPM"]),
+        with(&["NIBI_MANAGED_BY_NPM", "NIBI_MANAGED_BY_PNPM"]),
         Some(Manager::Pnpm)
     );
     assert_eq!(
-        with(&["ZCODE_MANAGED_BY_BUN", "ZCODE_MANAGED_BY_NPM"]),
+        with(&["NIBI_MANAGED_BY_BUN", "NIBI_MANAGED_BY_NPM"]),
         Some(Manager::Npm)
     );
     let empty = Install::detect(&env(&[
-        ("ZCODE_MANAGED_BY_NPM", ""),
-        ("ZCODE_MANAGED_PACKAGE", "zcode"),
+        ("NIBI_MANAGED_BY_NPM", ""),
+        ("NIBI_MANAGED_PACKAGE", "zcode"),
     ]));
     assert_eq!(empty.map(|install| install.manager), Some(Manager::Npm));
 }
@@ -46,10 +46,10 @@ fn the_markers_follow_the_codex_precedence() {
 #[test]
 fn the_package_names_come_from_the_launcher_and_are_checked() {
     let install = Install::detect(&env(&[
-        ("ZCODE_MANAGED_BY_NPM", "1"),
-        ("ZCODE_MANAGED_PACKAGE", "@scope/zcode"),
+        ("NIBI_MANAGED_BY_NPM", "1"),
+        ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
         (
-            "ZCODE_MANAGED_PLATFORM_PACKAGE",
+            "NIBI_MANAGED_PLATFORM_PACKAGE",
             "@scope/zcode-darwin-arm64",
         ),
     ]))
@@ -61,8 +61,8 @@ fn the_package_names_come_from_the_launcher_and_are_checked() {
     );
     // 没有平台包名时只核对入口包。
     let entry_only = Install::detect(&env(&[
-        ("ZCODE_MANAGED_BY_NPM", "1"),
-        ("ZCODE_MANAGED_PACKAGE", "zcode"),
+        ("NIBI_MANAGED_BY_NPM", "1"),
+        ("NIBI_MANAGED_PACKAGE", "zcode"),
     ]))
     .unwrap();
     assert_eq!(entry_only.platform_package, None);
@@ -73,12 +73,12 @@ fn the_package_names_come_from_the_launcher_and_are_checked() {
         (Some("zcode; rm -rf /"), None),
         (Some("@scope/zcode"), Some("../zcode")),
     ] {
-        let mut pairs = vec![("ZCODE_MANAGED_BY_NPM", "1")];
+        let mut pairs = vec![("NIBI_MANAGED_BY_NPM", "1")];
         if let Some(package) = package {
-            pairs.push(("ZCODE_MANAGED_PACKAGE", package));
+            pairs.push(("NIBI_MANAGED_PACKAGE", package));
         }
         if let Some(platform) = platform {
-            pairs.push(("ZCODE_MANAGED_PLATFORM_PACKAGE", platform));
+            pairs.push(("NIBI_MANAGED_PLATFORM_PACKAGE", platform));
         }
         assert_eq!(
             Install::detect(&env(&pairs)),

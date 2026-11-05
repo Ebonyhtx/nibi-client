@@ -1,4 +1,4 @@
-//! 只给测试的 SSH 入口（docs/specs/rust-cli/remote-exec.md §19.11）：debug 构建设了 `_ZCODE_ASSUME_SSH_EXECUTOR` 时，本机的
+//! 只给测试的 SSH 入口（docs/specs/rust-cli/remote-exec.md §19.11）：debug 构建设了 `_NIBI_ASSUME_SSH_EXECUTOR` 时，本机的
 //! 执行端口（`MachineEnv` 的 8 个端口）换成经 SSH 连到那个目标的远端环境。组装同 loopback：MCP、Git、取网页仍是本机；
 //! 工作区仍是本机的路径（远端的工作目录在 R3），所以只用于用绝对路径的测试。
 //!

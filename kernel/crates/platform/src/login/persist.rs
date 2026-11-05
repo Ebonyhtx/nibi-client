@@ -14,7 +14,7 @@ use crate::account::{self, CodingPlanProvider};
 use crate::credentials::{CredentialError, CredentialStore, Credentials, PRIVATE_WRITE};
 use crate::token::Family;
 
-/// `SHARED_ZCODE_CREDENTIAL_KEYS`：退出时全部删除。
+/// `SHARED_NIBI_CREDENTIAL_KEYS`：退出时全部删除。
 const SHARED_KEYS: [&str; 8] = [
     "oauth:active_provider",
     "oauth:bigmodel:access_token",

@@ -32,10 +32,10 @@ fn zcode(fixture: &sse::Fixture, args: &[&str], stdin: Option<&str>) -> Output {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(if stdin.is_some() {
             Stdio::piped()
         } else {
@@ -126,8 +126,8 @@ fn terminal_bench_command_line_streams_events() {
     let init = &events[0];
     assert!(init["session_id"].as_str().unwrap().starts_with("sess_"));
     assert_eq!(init["model"], "claude-opus-5-5");
-    // key 来自 `ZCODE_API_KEY`（修复线 F42，config.md §2.5）。
-    assert_eq!(init["apiKeySource"], "ZCODE_API_KEY");
+    // key 来自 `NIBI_API_KEY`（修复线 F42，config.md §2.5）。
+    assert_eq!(init["apiKeySource"], "NIBI_API_KEY");
     assert!(
         init["tools"]
             .as_array()

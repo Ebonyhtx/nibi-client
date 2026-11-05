@@ -193,13 +193,6 @@ function resolveMcpServerConfig(server: unknown, context: VariableContext): McpS
         NIBI_PROJECT_DIR: context.workingDirectory,
         CLAUDE_PLUGIN_DATA: context.dataPath,
         CLAUDE_PLUGIN_ROOT: context.loaded.rootPath,
-        // 插件协议的旧名别名：市场上已发布的插件清单里写的是 ${ZCODE_PLUGIN_ROOT} /
-        // ${ZCODE_PROJECT_DIR} / ${ZCODE_PLUGIN_DATA}，那是**包格式**不是实例配置，
-        // 单方面改名会让所有存量插件装完即坏。这里只做「新名为主、旧名并存」的输出，
-        // 不从这里读任何 ZCODE_* 变量。
-        ZCODE_PLUGIN_DATA: context.dataPath,
-        ZCODE_PLUGIN_ROOT: context.loaded.rootPath,
-        ZCODE_PROJECT_DIR: context.workingDirectory,
         ...(isRecord(server.env) ? server.env : {}),
       },
       context,
@@ -334,16 +327,12 @@ function resolveTemplate(
     switch (name) {
       case "CLAUDE_PLUGIN_ROOT":
       case "NIBI_PLUGIN_ROOT":
-      // 旧名别名：存量插件清单里仍写 ${ZCODE_PLUGIN_ROOT}（包格式，不随宿主改名）。
-      case "ZCODE_PLUGIN_ROOT":
         return context.loaded.rootPath;
       case "CLAUDE_PLUGIN_DATA":
       case "NIBI_PLUGIN_DATA":
-      case "ZCODE_PLUGIN_DATA":
         return context.dataPath;
       case "CLAUDE_PROJECT_DIR":
       case "NIBI_PROJECT_DIR":
-      case "ZCODE_PROJECT_DIR":
         return context.workingDirectory;
       case "CLAUDE_CODE_SESSION_ID":
       case "CLAUDE_SESSION_ID":

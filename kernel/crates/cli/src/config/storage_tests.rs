@@ -38,13 +38,13 @@ fn the_storage_dir_follows_the_layers_and_the_environment() {
     };
     assert_eq!(dir(&layers(&user, &[]), &[]).as_deref(), Some("~/u"));
     assert_eq!(dir(&layers(&user, &projects), &[]).as_deref(), Some("p"));
-    let set = env(&[("ZCODE_STORAGE_DIR", "/srv/zcode")]);
+    let set = env(&[("NIBI_STORAGE_DIR", "/srv/zcode")]);
     assert_eq!(
         dir(&layers(&user, &projects), &set).as_deref(),
         Some("/srv/zcode")
     );
     // Node 的 merge 跳过空值：空的环境变量不覆盖配置文件。
-    let blank = env(&[("ZCODE_STORAGE_DIR", "")]);
+    let blank = env(&[("NIBI_STORAGE_DIR", "")]);
     assert_eq!(dir(&layers(&user, &projects), &blank).as_deref(), Some("p"));
     let empty = Map::new();
     assert_eq!(dir(&layers(&empty, &[]), &[]), None);
@@ -64,16 +64,16 @@ fn the_session_db_path_follows_the_layers_and_the_last_env_name() {
     );
     // 两个环境变量都有时，环境里后出现的覆盖（Node 按 `Object.entries(process.env)` 的顺序）。
     let both = env(&[
-        ("ZCODE_SESSION_DB_PATH", "/a.sqlite"),
-        ("ZCODE_SESSION_DB", "/b.sqlite"),
+        ("NIBI_SESSION_DB_PATH", "/a.sqlite"),
+        ("NIBI_SESSION_DB", "/b.sqlite"),
     ]);
     assert_eq!(
         db(&layers(&user, &projects), &both).as_deref(),
         Some("/b.sqlite")
     );
     let reversed = env(&[
-        ("ZCODE_SESSION_DB", "/b.sqlite"),
-        ("ZCODE_SESSION_DB_PATH", "/a.sqlite"),
+        ("NIBI_SESSION_DB", "/b.sqlite"),
+        ("NIBI_SESSION_DB_PATH", "/a.sqlite"),
     ]);
     assert_eq!(
         db(&layers(&user, &projects), &reversed).as_deref(),

@@ -27,14 +27,14 @@ fn zcode(home: &Path, args: &[&str], stdin: &str, server: Option<&str>) -> Outpu
         .keep_system()
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_CREDENTIAL_SECRET", "test-secret")
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_CREDENTIAL_SECRET", "test-secret")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if let Some(url) = server {
         command
-            .env("ZCODE_BASE_URL", url)
+            .env("NIBI_BASE_URL", url)
             .env("BIGMODEL_API_BASE_URL", url);
     }
     let mut child = command.spawn().unwrap();

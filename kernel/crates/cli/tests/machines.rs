@@ -1,5 +1,5 @@
 //! 远端机器的会话级真实进程测试（docs/specs/rust-cli/remote-exec.md §20.11）：`zcode -p` 连本地 SSE 夹具，debug 构建的
-//! `_ZCODE_ASSUME_LOOPBACK_MACHINES` 把 `machines.json` 里连着的 dev-a 经 loopback 连上（一个执行器子进程，工作目录与
+//! `_NIBI_ASSUME_LOOPBACK_MACHINES` 把 `machines.json` 里连着的 dev-a 经 loopback 连上（一个执行器子进程，工作目录与
 //! 本机不同）。模型（剧本）调用带 `machine` 的工具，结果回到本机。
 #![cfg(unix)]
 #![allow(
@@ -29,22 +29,22 @@ fn sandbox() -> Sandbox {
     let (home, work, remote) = (base.join("home"), base.join("work"), base.join("remote"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&remote).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/rust-cli")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/rust-cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     std::fs::write(work.join("notes.txt"), "local notes\n").unwrap();
     std::fs::write(remote.join("notes.txt"), "remote notes\n").unwrap();
     let machines = json!({"version": 1, "machines": [
         {"name": "dev-a", "ssh": "dev-a", "workingDirectory": remote.display().to_string(), "connected": true}
     ]});
     std::fs::write(
-        home.join(".zcode/rust-cli/machines.json"),
+        home.join(".nibi/rust-cli/machines.json"),
         machines.to_string(),
     )
     .unwrap();
     let hooks = json!({"hooks": {"enabled": true, "events": {"PreToolUse": [{"matcher": "Bash|Read", "hooks": [
         {"type": "command", "command": format!("cat >> {}", base.join("hooks.jsonl").display())}
     ]}]}}});
-    std::fs::write(home.join(".zcode/cli/config.json"), hooks.to_string()).unwrap();
+    std::fs::write(home.join(".nibi/cli/config.json"), hooks.to_string()).unwrap();
     Sandbox {
         _dir: dir,
         home,
@@ -62,16 +62,16 @@ fn run(sandbox: &Sandbox, fixture: &sse::Fixture, machines: bool) -> Output {
         .env_clear()
         .env("HOME", &sandbox.home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &sandbox.home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
-        .env("ZCODE_RUNTIME_ENV", "test")
+        .env("NIBI_DATA_BASE_DIR", &sandbox.home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
+        .env("NIBI_RUNTIME_ENV", "test")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if machines {
-        command.env("_ZCODE_ASSUME_LOOPBACK_MACHINES", "1");
+        command.env("_NIBI_ASSUME_LOOPBACK_MACHINES", "1");
     }
     let output = command.output().unwrap();
     assert!(

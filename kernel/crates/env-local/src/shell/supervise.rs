@@ -150,7 +150,7 @@ pub(crate) async fn spawn(
         &plan.bash,
         plan.prelude.as_deref(),
     );
-    let tag = format!("ZCODE_SBX_{}", request.task);
+    let tag = format!("NIBI_SBX_{}", request.task);
     let launch = sandbox::launch(
         request.sandbox.as_ref(),
         backend,

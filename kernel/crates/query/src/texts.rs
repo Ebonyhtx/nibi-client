@@ -40,11 +40,11 @@ pub(crate) const MALFORMED_TOOL_USE_EXHAUSTED: &str =
 pub(crate) const THINKING_ONLY_NUDGE: &str = "[Your previous response had no visible output. Please continue and produce a user-visible response.]";
 
 /// 输出上限续写用尽（`stop_reason: max_tokens` 的错误消息）。变量名是本工程
-/// 读的 `ZCODE_MAX_OUTPUT_TOKENS`（修复线 F42，config.md §2.5）；主语写成
+/// 读的 `NIBI_MAX_OUTPUT_TOKENS`（修复线 F42，config.md §2.5）；主语写成
 /// `The model's response`（修复线 F51b，用户决定 2026-10-22，query.md §1）。
 pub(crate) fn output_limit_exhausted(max_tokens: u32) -> String {
     format!(
-        "API Error: The model's response exceeded the {max_tokens} output token maximum. To configure this behavior, set the ZCODE_MAX_OUTPUT_TOKENS environment variable."
+        "API Error: The model's response exceeded the {max_tokens} output token maximum. To configure this behavior, set the NIBI_MAX_OUTPUT_TOKENS environment variable."
     )
 }
 

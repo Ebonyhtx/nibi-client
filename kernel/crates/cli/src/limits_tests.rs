@@ -46,10 +46,10 @@ fn surrounding_whitespace_is_the_javascript_trim_set() {
     assert_eq!(js_int("\u{85}1e4"), None);
 }
 
-/// `ZCODE_MAX_OUTPUT_TOKENS`：正整数才算；旧名字不读。
+/// `NIBI_MAX_OUTPUT_TOKENS`：正整数才算。
 #[test]
-fn the_output_limit_reads_the_zcode_name() {
-    let read = |value: &str| max_output_tokens(&env(&[("ZCODE_MAX_OUTPUT_TOKENS", value)]));
+fn the_output_limit_reads_the_nibi_name() {
+    let read = |value: &str| max_output_tokens(&env(&[("NIBI_MAX_OUTPUT_TOKENS", value)]));
     assert_eq!(max_output_tokens(&[]), None);
     assert_eq!(read(""), None);
     assert_eq!(read("4096"), Some(4096));
@@ -94,7 +94,7 @@ fn bash_timeouts_read_both_variables() {
     // 输出上限由入口读一次传进来（F58），这里不再读变量。
     let all = limits(
         &env(&[
-            ("ZCODE_MAX_OUTPUT_TOKENS", "1"),
+            ("NIBI_MAX_OUTPUT_TOKENS", "1"),
             ("MAX_THINKING_TOKENS", "0"),
             ("BASH_DEFAULT_TIMEOUT_MS", "5000"),
         ]),

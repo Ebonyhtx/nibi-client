@@ -22,8 +22,8 @@ use serde_json::{Value, json};
 use system_env::KeepSystem as _;
 
 const DEADLINE: Duration = Duration::from_secs(60);
-/// 找 Git Bash 要的变量（`PATH` 里的 git，或显式的 `ZCODE_GIT_BASH_PATH`），从测试进程带过去。
-const GIT_BASH_VARS: &[&str] = &["PATH", "ZCODE_GIT_BASH_PATH"];
+/// 找 Git Bash 要的变量（`PATH` 里的 git，或显式的 `NIBI_GIT_BASH_PATH`），从测试进程带过去。
+const GIT_BASH_VARS: &[&str] = &["PATH", "NIBI_GIT_BASH_PATH"];
 
 /// 临时的 HOME 与工作区（工作区有 `.git`，是项目根）。
 struct Sandbox {
@@ -38,7 +38,7 @@ fn sandbox() -> Sandbox {
     let base = dir.path().to_path_buf();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode").join("cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi").join("cli")).unwrap();
     Sandbox {
         _dir: dir,
         base,
@@ -51,7 +51,7 @@ impl Sandbox {
     /// 用户级配置（Node 配置文件的形状，config.md §2）。
     fn config(&self, value: &Value) {
         std::fs::write(
-            self.home.join(".zcode").join("cli").join("config.json"),
+            self.home.join(".nibi").join("cli").join("config.json"),
             value.to_string(),
         )
         .unwrap();
@@ -67,7 +67,7 @@ impl Sandbox {
             .keep_system()
             .env("HOME", &self.home)
             .env("USERPROFILE", &self.home)
-            .env("ZCODE_DATA_BASE_DIR", &self.home)
+            .env("NIBI_DATA_BASE_DIR", &self.home)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -78,9 +78,9 @@ impl Sandbox {
         }
         if let Some(url) = model {
             command
-                .env("ZCODE_MODEL_BASE_URL", url)
-                .env("ZCODE_API_KEY", "test-key")
-                .env("ZCODE_MODEL", "claude-opus-5-5");
+                .env("NIBI_MODEL_BASE_URL", url)
+                .env("NIBI_API_KEY", "test-key")
+                .env("NIBI_MODEL", "claude-opus-5-5");
         }
         command
     }
@@ -136,7 +136,7 @@ fn the_bash_tool_runs_through_git_bash() {
         sse::text_reply("done"),
     ]);
     let output = sandbox
-        .zcode(
+        .nibi(
             &["-p", "go", "--permission-mode", "bypassPermissions"],
             Some(&fixture.url),
         )
@@ -167,7 +167,7 @@ fn a_command_hook_runs_through_git_bash() {
     );
     let fixture = sse::serve(vec![sse::text_reply("done")]);
     let output = sandbox
-        .zcode(
+        .nibi(
             &["-p", "hello hook", "--permission-mode", "bypassPermissions"],
             Some(&fixture.url),
         )
@@ -226,7 +226,7 @@ fn a_user_interrupt_during_print_mode_exits_with_zero() {
         sse::text_reply("done"),
     ]);
     let mut child = sandbox
-        .zcode(
+        .nibi(
             &["-p", "go", "--permission-mode", "bypassPermissions"],
             Some(&fixture.url),
         )
@@ -243,7 +243,7 @@ fn a_user_interrupt_during_print_mode_exits_with_zero() {
         status.is_some()
     });
     assert_eq!(status.unwrap().code(), Some(0));
-    let log = sandbox.home.join(".zcode").join("rust-cli").join("log");
+    let log = sandbox.home.join(".nibi").join("rust-cli").join("log");
     let lines: String = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
@@ -268,12 +268,12 @@ fn the_update_is_handed_to_the_launcher() {
     )
     .unwrap();
     let markers = [
-        ("ZCODE_MANAGED_BY_NPM", "1"),
-        ("ZCODE_MANAGED_PACKAGE", "@scope/zcode"),
-        ("ZCODE_MANAGED_PLATFORM_PACKAGE", "@scope/zcode-win32-x64"),
+        ("NIBI_MANAGED_BY_NPM", "1"),
+        ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
+        ("NIBI_MANAGED_PLATFORM_PACKAGE", "@scope/zcode-win32-x64"),
     ];
     let run = |extra: &[(&str, &str)]| -> Output {
-        let mut command = sandbox.zcode(&["update"], None);
+        let mut command = sandbox.nibi(&["update"], None);
         command
             .env("PATH", &bin)
             .envs(markers)
@@ -289,7 +289,7 @@ fn the_update_is_handed_to_the_launcher() {
     assert!(output.stdout.is_empty(), "{output:?}");
     let handoff = sandbox.base.join("zcode-update-handoff.json");
     let handoff_text = handoff.display().to_string();
-    let output = run(&[("ZCODE_MANAGED_UPDATE_HANDOFF", &handoff_text)]);
+    let output = run(&[("NIBI_MANAGED_UPDATE_HANDOFF", &handoff_text)]);
     assert_eq!(output.status.code(), Some(0), "{output:?}");
     assert!(
         output.stdout.is_empty() && output.stderr.is_empty(),

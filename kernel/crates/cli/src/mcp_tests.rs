@@ -268,17 +268,17 @@ fn the_startup_wait_follows_the_variables() {
     assert_eq!(wait("0"), 5_000);
     assert_eq!(wait("-3"), 5_000);
     assert_eq!(wait("99999999999"), 2_147_483_647);
-    // prewait：ZCODE_MCP_STARTUP_WAIT_MS > 显式 --mcp-config 的 MCP_TIMEOUT > 2000。
+    // prewait：NIBI_MCP_STARTUP_WAIT_MS > 显式 --mcp-config 的 MCP_TIMEOUT > 2000。
     let prewait = |pairs: &[(&str, &str)], explicit: bool| {
         startup(&vars(pairs), (explicit, &McpFlags::default()), 4_000, &[]).prewait_ms
     };
     assert_eq!(prewait(&[], false), 2_000);
     assert_eq!(prewait(&[], true), 4_000);
-    assert_eq!(prewait(&[("ZCODE_MCP_STARTUP_WAIT_MS", "750")], true), 750);
-    assert_eq!(prewait(&[("ZCODE_MCP_STARTUP_WAIT_MS", "0")], true), 0);
+    assert_eq!(prewait(&[("NIBI_MCP_STARTUP_WAIT_MS", "750")], true), 750);
+    assert_eq!(prewait(&[("NIBI_MCP_STARTUP_WAIT_MS", "0")], true), 0);
     // 负数不合法（`int({min: 0})`）：当作没设。
     assert_eq!(
-        prewait(&[("ZCODE_MCP_STARTUP_WAIT_MS", "-1")], false),
+        prewait(&[("NIBI_MCP_STARTUP_WAIT_MS", "-1")], false),
         2_000
     );
     // allow 规则点名的服务器。
@@ -298,8 +298,8 @@ fn streaming_input_lifts_the_prewait() {
     };
     assert!(!startup(&[], (false, &streaming), 30_000, &[]).wait_for_deferrable);
     assert!(startup(&[], (true, &streaming), 30_000, &[]).wait_for_deferrable);
-    // 设了启动等待（`ZCODE_MCP_STARTUP_WAIT_MS`）就不 lifted。
-    let waited = vars(&[("ZCODE_MCP_STARTUP_WAIT_MS", "500")]);
+    // 设了启动等待（`NIBI_MCP_STARTUP_WAIT_MS`）就不 lifted。
+    let waited = vars(&[("NIBI_MCP_STARTUP_WAIT_MS", "500")]);
     assert!(startup(&waited, (false, &streaming), 30_000, &[]).wait_for_deferrable);
     let no_search = McpFlags {
         tool_search: false,

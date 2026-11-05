@@ -94,14 +94,14 @@ pub enum TrustRoots {
     Platform,
     /// 内置与平台根证书加上这些（`NODE_EXTRA_CA_CERTS`）。
     Extra(CaBundle),
-    /// 只信任这些（`ZCODE_AGENT_CA_CERT`，Node 的 `ca` 替换根证书，不含内置的）。一个都没有时所有 HTTPS 请求都在
+    /// 只信任这些（`NIBI_AGENT_CA_CERT`，Node 的 `ca` 替换根证书，不含内置的）。一个都没有时所有 HTTPS 请求都在
     /// 证书校验时失败（Node 相同）。
     Only(CaBundle),
 }
 
 impl TrustRoots {
     /// 合并规则（config.md §2.4）：内置的证书在前，`NODE_EXTRA_CA_CERTS` 接在后面，都作为平台校验器的附加信任锚；
-    /// `ZCODE_AGENT_CA_CERT` 替换全部。
+    /// `NIBI_AGENT_CA_CERT` 替换全部。
     ///
     /// 缺陷修复（F44）：以前 `Platform` / `Extra` 不带内置的。没有 ca-certificates 的 Linux 镜像里平台校验器一张
     /// 证书都没有，构造失败（`No CA certificates were loaded from the system`），`zcode` 启动即退出；带着 Mozilla

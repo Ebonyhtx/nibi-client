@@ -35,7 +35,7 @@ pub struct RequestHeaders {
 /// 来源头的输入：入口从环境变量与系统读出（cli `request_headers.rs`）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct SourceFacts {
-    /// 版本：设了 `ZCODE_APP_VERSION` 时是它的原值（空值也算设了），否则本工程的版本。
+    /// 版本：设了 `NIBI_APP_VERSION` 时是它的原值（空值也算设了），否则本工程的版本。
     pub version: String,
     /// ZCode 服务的 origin（`http-referer`）。
     pub endpoint_origin: String,

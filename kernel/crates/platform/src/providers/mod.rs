@@ -1,7 +1,7 @@
 //! Provider registry（docs/specs/rust-cli/platform.md §3）：内置 + 个人配置 + 账号 overlay → 模型目录与
 //! 端点模板。
 //!
-//! 来源与 Node 独立 CLI 相同：内置配置是随包的一份（或 `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE`），个人配置是
+//! 来源与 Node 独立 CLI 相同：内置配置是随包的一份（或 `NIBI_BUILTIN_PROVIDER_CONFIG_FILE`），个人配置是
 //! `~/.zcode/v2/provider_config.json`，账号 overlay 由 `credentials.json`、个人订阅与团队列表、权益算出（`account.rs`、
 //! `personal/`、`team/`，工作线 F47、F49、F50）；团队 provider 的模型按可用的团队项目平铺（`catalog.rs`，platform.md
 //! §9.3）。

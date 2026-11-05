@@ -189,7 +189,7 @@ pub(crate) async fn add_dirs(place: &Place<'_>, raw: &[String]) -> AddedDirs {
 
 /// bypass 模式在 root 下的限制（cli-args.md §5.2）：初始模式
 /// 是 bypassPermissions（来自 `--permission-mode`、持久模式或配置）、进程是 root（Unix 的 uid 0）、`IS_SANDBOX` 不是
-/// `1`、`ZCODE_BUBBLEWRAP`（config.md §2.5）不为真时拒绝启动。
+/// `1`、`NIBI_BUBBLEWRAP`（config.md §2.5）不为真时拒绝启动。
 /// 工作线 F63：本工程没有 `--dangerously-skip-permissions`，文字写模式名（`bypassPermissions` 与本工程的 `yolo`），不写参数名。
 pub(crate) fn refuse_root_bypass(
     bypass: bool,
@@ -198,7 +198,7 @@ pub(crate) fn refuse_root_bypass(
 ) -> Result<(), Fatal> {
     let var = |name: &str| rust_cli_base::secret::env_var(env, name);
     let sandbox = crate::options::is_sandbox_one(env);
-    let bubblewrap = var("ZCODE_BUBBLEWRAP").is_some_and(|value| {
+    let bubblewrap = var("NIBI_BUBBLEWRAP").is_some_and(|value| {
         matches!(
             value.trim().to_ascii_lowercase().as_str(),
             "1" | "true" | "yes" | "on"

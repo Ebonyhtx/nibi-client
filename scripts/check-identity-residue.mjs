@@ -52,8 +52,8 @@ const ARTIFACT_ROOTS = [
 ];
 
 /**
- * 允许残留的 token：**插件包格式与线协议**，改了会断已发布插件或已上线协议。
- * 这是「向插件子进程输出别名」的唯一来源，宿主从不从这些旧名读配置。
+ * 允许残留的 token：**插件包格式**（`.zcode-plugin/` 目录名与清单路径常量）。改了会断已发布插件。
+ * 环境变量别名已全部删除：宿主只输出 NIBI_*，也不再从旧名读配置。
  */
 const ALLOWED_ZCODE_ENV = new Set([
   // 插件包格式的两个兼容常量：`.zcode-plugin/` 目录名与它的清单路径。
@@ -61,12 +61,6 @@ const ALLOWED_ZCODE_ENV = new Set([
   "ZCODE_PLUGIN_MANIFEST_DIR",
   "ZCODE_MANIFEST_PATH",
   "ZCODE_MANIFEST_PATH2",
-  "ZCODE_PLUGIN_ROOT",
-  "ZCODE_PLUGIN_DATA",
-  "ZCODE_PROJECT_DIR",
-  "ZCODE_WORKSPACE_ROOT",
-  "ZCODE_PLUGIN_ID",
-  "ZCODE_CUA_PLUGIN_ROOT",
 ]);
 
 /** 允许残留的 `.zcode*` 字面量：包格式、上游域名、深链 URL、插件桥别名。 */

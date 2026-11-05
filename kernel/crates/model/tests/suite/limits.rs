@@ -1,4 +1,4 @@
-//! `ZCODE_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：模型端口把每个请求的 `max_tokens` 压到不超过它；没设时
+//! `NIBI_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：模型端口把每个请求的 `max_tokens` 压到不超过它；没设时
 //! 原样发。请求交给 Provider 补丁的上限随取端点交给端点来源（工作线 F95，model.md §9）。
 
 #![allow(

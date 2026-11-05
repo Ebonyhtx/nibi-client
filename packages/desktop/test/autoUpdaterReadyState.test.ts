@@ -715,7 +715,7 @@ describe("autoUpdater ready state sync", () => {
       resolveUpdateFeedSourceFromStartupConfig({
         argv: [
           "ZCode",
-          "--zcode-update-feed-url",
+          "--nibi-update-feed-url",
           "https://arg.example.test/api/v1/releases/electron/manifest",
         ],
         env: {
@@ -729,7 +729,7 @@ describe("autoUpdater ready state sync", () => {
       resolveUpdateFeedSourceFromStartupConfig({
         argv: [
           "ZCode",
-          "--zcode-update-feed-url=https://equals.example.test/api/v1/releases/electron/manifest",
+          "--nibi-update-feed-url=https://equals.example.test/api/v1/releases/electron/manifest",
         ],
         env: {},
       }),

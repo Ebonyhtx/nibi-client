@@ -48,7 +48,7 @@ impl<'de> Deserialize<'de> for RedactedString {
     }
 }
 
-/// 入口捕获的进程环境快照（README §4：cli 读一次，往下传）。值里常有凭据（`ZCODE_API_KEY` 等）。
+/// 入口捕获的进程环境快照（README §4：cli 读一次，往下传）。值里常有凭据（`NIBI_API_KEY` 等）。
 ///
 /// 缺陷修复 R2-13：原来是明文的 `Vec<(String, String)>`，放在 `derive(Debug)` 的配置里，`{:?}` 会打出所有值。
 /// 现在 `Debug` 只列变量名；按名字读值经 [`get`](Self::get)，按顺序遍历经 `Deref` 到切片（白名单投影等）。

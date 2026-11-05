@@ -1,7 +1,7 @@
 //! 内嵌搜索工具的 prelude（docs/specs/rust-cli/embedded-search.md §8，工作线 F53）：每条 Bash 工具命令前定义
 //! `find` / `grep` / `rg` 三个 shell 函数，转给本进程的二进制（按 argv0 分派到内嵌的 bfs / ugrep / rg）。
 //!
-//! 函数的原文见 embedded-search.md §8.2：本进程路径的变量是 `ZCODE_EXECPATH`，局部变量名用 _zc_ 前缀，回退路径
+//! 函数的原文见 embedded-search.md §8.2：本进程路径的变量是 `NIBI_EXECPATH`，局部变量名用 _zc_ 前缀，回退路径
 //! 是本进程的路径。本工程不加载会话开始时生成的 shell
 //! 快照（shell-permissions.md D1），每条命令前直接加这一段。
 
@@ -13,14 +13,14 @@ use rust_cli_kernel_api::env_path::git_bash_spelling;
 /// 内嵌的搜索工具（入口给出，cli 的 `shell.rs`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmbeddedSearch {
-    /// 本进程的二进制（绝对路径）：每条命令的 `ZCODE_EXECPATH`，也是函数里的回退路径。
+    /// 本进程的二进制（绝对路径）：每条命令的 `NIBI_EXECPATH`，也是函数里的回退路径。
     pub executable: PathBuf,
     /// 启动参数没有点名 Glob / Grep 时为真，定义 `find` / `grep`；为假时只有 `rg`。
     pub find_and_grep: bool,
 }
 
-/// 每条命令的环境里本进程二进制的变量名（本工程的 `ZCODE_*` 名字，F42）。
-pub(crate) const EXECPATH: &str = "ZCODE_EXECPATH";
+/// 每条命令的环境里本进程二进制的变量名（本工程的 `NIBI_*` 名字，F42）。
+pub(crate) const EXECPATH: &str = "NIBI_EXECPATH";
 
 /// grep 的缺省参数（`-G --ignore-files --hidden -I` 加版本控制目录）。
 const GREP_DEFAULTS: [&str; 10] = [

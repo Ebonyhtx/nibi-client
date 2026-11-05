@@ -69,7 +69,7 @@ pub(crate) fn dispatch() -> Option<ExitCode> {
     })
 }
 
-/// 本进程二进制的绝对路径（embedded-search.md §4）：Bash 的 prelude 用它（`ZCODE_EXECPATH` 与函数里的回退路径）。
+/// 本进程二进制的绝对路径（embedded-search.md §4）：Bash 的 prelude 用它（`NIBI_EXECPATH` 与函数里的回退路径）。
 /// 符号链接解析成真实文件（npm 的启动器、`~/.local/bin` 的链接）；取不到时 None（Bash 里用系统的命令）。
 #[expect(
     clippy::disallowed_methods,

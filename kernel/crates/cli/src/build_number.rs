@@ -17,7 +17,7 @@ pub const COUNTER_FILE: &str = "build-number";
 pub const SENTINEL: &str = ".zcode-build-number-sentinel";
 
 /// 正式发版（NIBI-rs 的 CI）给的版本：只校验，不加 1、不写文件。
-pub const RELEASE_ENV: &str = "ZCODE_RELEASE_VERSION";
+pub const RELEASE_ENV: &str = "NIBI_RELEASE_VERSION";
 
 /// cargo 给 build script 的输入（version.md §3）。
 pub struct Inputs<'a> {
@@ -29,7 +29,7 @@ pub struct Inputs<'a> {
     pub package_version: &'a str,
     pub major: &'a str,
     pub minor: &'a str,
-    /// `ZCODE_RELEASE_VERSION`；没设时为 `None`。
+    /// `NIBI_RELEASE_VERSION`；没设时为 `None`。
     pub publish: Option<&'a str>,
 }
 
@@ -70,7 +70,7 @@ pub fn directives(inputs: &Inputs) -> Result<Vec<String>, String> {
 }
 
 fn version_directive(version: &str) -> String {
-    format!("rustc-env=ZCODE_BUILD_VERSION={version}")
+    format!("rustc-env=NIBI_BUILD_VERSION={version}")
 }
 
 /// 计数文件的位置：cli 目录往上两级（workspace 目录），与 target 目录无关（version.md §2）。

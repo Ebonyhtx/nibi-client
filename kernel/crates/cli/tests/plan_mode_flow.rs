@@ -70,9 +70,9 @@ async fn run(dir: &Path) -> (Arc<ScriptedModel>, String) {
     let home = dir.join("home");
     std::fs::create_dir_all(&work).unwrap();
     std::fs::create_dir_all(&home).unwrap();
-    // Node 的位置：`<工作区>/.zcode/plans/plan-<会话>.md`（tools-more.md §2.2）。
+    // Node 的位置：`<工作区>/.nibi/plans/plan-<会话>.md`（tools-more.md §2.2）。
     let plan = work
-        .join(".zcode/plans")
+        .join(".nibi/plans")
         .join(format!("plan-{SESSION}.md"))
         .to_string_lossy()
         .into_owned();

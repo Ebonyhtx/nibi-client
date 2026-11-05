@@ -24,29 +24,29 @@ fn the_variable_names_keep_their_spelling() {
     use super::vars::*;
     assert_eq!(
         [
-            ZCODE_PLUGIN_ROOT,
+            NIBI_PLUGIN_ROOT,
             CLAUDE_PLUGIN_ROOT,
-            ZCODE_PROJECT_DIR,
+            NIBI_PROJECT_DIR,
             CLAUDE_PROJECT_DIR
         ],
         [
-            "ZCODE_PLUGIN_ROOT",
+            "NIBI_PLUGIN_ROOT",
             "CLAUDE_PLUGIN_ROOT",
-            "ZCODE_PROJECT_DIR",
+            "NIBI_PROJECT_DIR",
             "CLAUDE_PROJECT_DIR"
         ]
     );
     assert_eq!(
-        [ZCODE_SESSION_ID, CLAUDE_SESSION_ID, CLAUDE_CODE_SESSION_ID],
+        [NIBI_SESSION_ID, CLAUDE_SESSION_ID, CLAUDE_CODE_SESSION_ID],
         [
-            "ZCODE_SESSION_ID",
+            "NIBI_SESSION_ID",
             "CLAUDE_SESSION_ID",
             "CLAUDE_CODE_SESSION_ID"
         ]
     );
     assert_eq!(
-        [ZCODE_SKILL_DIR, CLAUDE_SKILL_DIR],
-        ["ZCODE_SKILL_DIR", "CLAUDE_SKILL_DIR"]
+        [NIBI_SKILL_DIR, CLAUDE_SKILL_DIR],
+        ["NIBI_SKILL_DIR", "CLAUDE_SKILL_DIR"]
     );
     assert_eq!(placeholder(CLAUDE_PLUGIN_ROOT), "${CLAUDE_PLUGIN_ROOT}");
 }

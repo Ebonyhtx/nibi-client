@@ -14,10 +14,10 @@ const PLATFORM: &str = "/@scope%2fzcode-darwin-arm64";
 
 fn marked() -> Vec<(String, String)> {
     [
-        ("ZCODE_MANAGED_BY_NPM", "1"),
-        ("ZCODE_MANAGED_PACKAGE", "@scope/zcode"),
+        ("NIBI_MANAGED_BY_NPM", "1"),
+        ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
         (
-            "ZCODE_MANAGED_PLATFORM_PACKAGE",
+            "NIBI_MANAGED_PLATFORM_PACKAGE",
             "@scope/zcode-darwin-arm64",
         ),
     ]
@@ -99,7 +99,7 @@ async fn without_a_marker_nothing_is_read_or_fetched() {
     assert!(!updates.refreshed().await);
     // 只有包名、没有标记：同样不检查。
     let half = vec![(
-        "ZCODE_MANAGED_PACKAGE".to_owned(),
+        "NIBI_MANAGED_PACKAGE".to_owned(),
         "@scope/zcode".to_owned(),
     )];
     let mut updates = start(&half, true, &cache, &server.url).await;

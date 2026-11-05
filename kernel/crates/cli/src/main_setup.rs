@@ -72,7 +72,7 @@ pub(super) fn platform(
         clock,
         origins,
     };
-    // `ZCODE_MAX_OUTPUT_TOKENS`：Provider 配置的 `maxOutputTokens.map` 用 min(配置的 max, 它)（cli-args.md §9.1，F42）。
+    // `NIBI_MAX_OUTPUT_TOKENS`：Provider 配置的 `maxOutputTokens.map` 用 min(配置的 max, 它)（cli-args.md §9.1，F42）。
     Ok(Platform::new(paths, &secret, services).with_max_output_tokens(startup.max_output_tokens))
 }
 

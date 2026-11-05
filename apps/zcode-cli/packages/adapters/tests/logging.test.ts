@@ -258,7 +258,7 @@ describe("Node logging adapter", () => {
     }
   });
 
-  it("cleans nibi and legacy zcode JSONL logs older than the retention window", async () => {
+  it("cleans nibi JSONL logs older than the retention window", async () => {
     const logDir = await mkdtemp(join(tmpdir(), "nibi-log-retention-"));
 
     try {
@@ -267,7 +267,6 @@ describe("Node logging adapter", () => {
         writeFile(join(logDir, "nibi-2026-05-02.jsonl"), "cutoff\n"),
         writeFile(join(logDir, "nibi-2026-05-08.jsonl"), "today\n"),
         writeFile(join(logDir, "nibi-2026-04-30.txt"), "other\n"),
-        writeFile(join(logDir, "zcode-2026-04-28.jsonl"), "legacy\n"),
         writeFile(join(logDir, "other-2026-04-30.jsonl"), "other\n"),
       ]);
 
@@ -284,15 +283,12 @@ describe("Node logging adapter", () => {
       ]);
       expect(result).toMatchObject({
         cutoffDate: "2026-05-02",
+        deletedFiles: ["nibi-2026-05-01.jsonl"],
         failedFiles: [],
         retentionDays: 7,
-        scannedFiles: 4,
+        scannedFiles: 3,
         status: "completed",
       });
-      expect([...result.deletedFiles].sort()).toEqual([
-        "nibi-2026-05-01.jsonl",
-        "zcode-2026-04-28.jsonl",
-      ]);
     } finally {
       await rm(logDir, { recursive: true, force: true });
     }

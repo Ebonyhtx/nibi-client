@@ -99,11 +99,11 @@ fn anchors_add_the_bundled_roots_unless_replaced() {
     assert_eq!(merged.last(), extra.certificates.first());
 
     let Anchors::Only(only) = TrustRoots::Only(extra.clone()).anchors() else {
-        panic!("ZCODE_AGENT_CA_CERT keeps the system store");
+        panic!("NIBI_AGENT_CA_CERT keeps the system store");
     };
     assert_eq!(only, extra.certificates);
     let Anchors::Only(none) = TrustRoots::Only(CaBundle::default()).anchors() else {
-        panic!("an empty ZCODE_AGENT_CA_CERT keeps the system store");
+        panic!("an empty NIBI_AGENT_CA_CERT keeps the system store");
     };
     assert!(none.is_empty());
 }

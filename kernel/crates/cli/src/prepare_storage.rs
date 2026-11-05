@@ -54,14 +54,14 @@ pub(crate) fn dispatch() -> ExitCode {
     let startup = match crate::capture() {
         Ok(startup) => startup,
         Err(error) => {
-            crate::output::eprint_line(&format!("zcode: {error:#}"));
+            crate::output::eprint_line(&format!("nibi: {error:#}"));
             return ExitCode::FAILURE;
         }
     };
     match run(startup) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
-            crate::output::eprint_line(&format!("zcode: {error:#}"));
+            crate::output::eprint_line(&format!("nibi: {error:#}"));
             ExitCode::FAILURE
         }
     }

@@ -1,4 +1,4 @@
-//! 入口的覆盖（修复线 F42，query.md §1.5、cli-args.md §9.1、§9.2）：`ZCODE_MAX_OUTPUT_TOKENS` 与 `MAX_THINKING_TOKENS`
+//! 入口的覆盖（修复线 F42，query.md §1.5、cli-args.md §9.1、§9.2）：`NIBI_MAX_OUTPUT_TOKENS` 与 `MAX_THINKING_TOKENS`
 //! 怎样改主请求。
 
 use std::sync::Arc;
@@ -98,7 +98,7 @@ fn the_exhausted_output_limit_names_zcode_max_output_tokens() {
     let text = crate::texts::output_limit_exhausted(4096);
     assert!(
         text.ends_with(
-            "exceeded the 4096 output token maximum. To configure this behavior, set the ZCODE_MAX_OUTPUT_TOKENS environment variable."
+            "exceeded the 4096 output token maximum. To configure this behavior, set the NIBI_MAX_OUTPUT_TOKENS environment variable."
         ),
         "{text}"
     );

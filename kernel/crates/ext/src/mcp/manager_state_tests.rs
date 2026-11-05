@@ -182,7 +182,7 @@ async fn blocking_start_up_waits_for_every_server_up_to_the_connect_timeout() {
 
 #[tokio::test(start_paused = true)]
 async fn servers_named_by_allow_rules_get_at_least_two_seconds() {
-    // prewait 截止 500 ms（ZCODE_MCP_STARTUP_WAIT_MS）：点名的服务器再等到 2000。
+    // prewait 截止 500 ms（NIBI_MCP_STARTUP_WAIT_MS）：点名的服务器再等到 2000。
     let startup = McpStartup {
         prewait_ms: 500,
         required: ["slow".to_owned()].into(),

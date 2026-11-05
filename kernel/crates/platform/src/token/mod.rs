@@ -100,7 +100,7 @@ pub struct AccountOrigins {
     pub zai_api: String,
     /// BigModel 项目接口（`https://bigmodel.cn`）。
     pub bigmodel_api: String,
-    /// BigModel 团队套餐的管理页（App `buildBigModelCodingPlanTeamManageUrl({ ZCODE_ENV })`：只看 `ZCODE_ENV`，不跟随
+    /// BigModel 团队套餐的管理页（App `buildBigModelCodingPlanTeamManageUrl({ NIBI_ENV })`：只看 `NIBI_ENV`，不跟随
     /// 地址的覆盖变量，F58）。z.ai 的管理页 App 写死，见 `team::manage_url`。
     pub bigmodel_team_plans: String,
     /// 签发项目令牌时的 `clientVersion`。

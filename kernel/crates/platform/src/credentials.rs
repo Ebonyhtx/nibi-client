@@ -5,7 +5,7 @@
 //! 共享凭据 `credentials.json`（docs/specs/rust-cli/platform.md §5.1）。
 //!
 //! 与 Node Host、Node CLI 共用：值用 AES-256-GCM 加密成 `enc:v1:<iv>.<tag>.<ciphertext>`（无填充 base64url），
-//! 密钥是 `sha256(secret)`，secret 是 `ZCODE_CREDENTIAL_SECRET`，没有时是
+//! 密钥是 `sha256(secret)`，secret 是 `NIBI_CREDENTIAL_SECRET`，没有时是
 //! `zcode-credential-fallback:<platform>:<homedir>:<username>`（Node `resolveCredentialSecret`）。
 //! 不缓存文件内容：每次读取都以磁盘为准。写入在与 Node 同形的目录锁内读改写（[`CredentialStore::mutate`]）。
 
@@ -58,7 +58,7 @@ pub enum CredentialError {
 /// 生成凭据密钥的材料（入口在启动时读好传入）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CredentialSecret {
-    /// `ZCODE_CREDENTIAL_SECRET`（已去掉首尾空白，空值视为没有）。
+    /// `NIBI_CREDENTIAL_SECRET`（已去掉首尾空白，空值视为没有）。
     pub explicit: Option<RedactedString>,
     /// Node `os.platform()`：darwin / linux / win32。
     pub platform: String,

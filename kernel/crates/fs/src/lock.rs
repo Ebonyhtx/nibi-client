@@ -20,8 +20,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use reclaim::{InstanceObserver, Removal, is_owner_entry, list_dir, remove_abandoned};
 
-/// 与 Node `ZCODE_FILE_LOCK_TIMEOUT_ERROR_CODE` 对应，出现在超时错误的文本开头。
-pub const FILE_LOCK_TIMEOUT_CODE: &str = "ZCODE_FILE_LOCK_TIMEOUT";
+/// 与 Node `NIBI_FILE_LOCK_TIMEOUT_ERROR_CODE` 对应，出现在超时错误的文本开头。
+pub const FILE_LOCK_TIMEOUT_CODE: &str = "NIBI_FILE_LOCK_TIMEOUT";
 
 /// 等待与回收的参数。默认值与 Node `privateFilePersistence.ts` 相同。
 #[derive(Debug, Clone)]

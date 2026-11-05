@@ -1,5 +1,5 @@
 //! 会话库与存储根的位置（修复线 F2，docs/specs/rust-cli/config.md §2.3）：真实的 `zcode -p`，临时 home 与本地假的
-//! Anthropic 端点。库按 Node 的顺序解析（`ZCODE_SESSION_DB_PATH` / `ZCODE_SESSION_DB` 覆盖配置文件的
+//! Anthropic 端点。库按 Node 的顺序解析（`NIBI_SESSION_DB_PATH` / `NIBI_SESSION_DB` 覆盖配置文件的
 //! `storage.sessionDbPath`），存储根跟随 `storage.dir`（自动记忆目录建在它下面）；缺省位置不再出现库。
 #![allow(
     clippy::disallowed_methods,
@@ -65,10 +65,10 @@ fn run(home: &Path, work: &Path, extra: &[(&str, &Path)]) {
         .env("HOME", home)
         .env("USERPROFILE", home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_MODEL_BASE_URL", model_server())
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5");
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_MODEL_BASE_URL", model_server())
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5");
     for (name, value) in extra {
         command.env(name, value);
     }
@@ -91,12 +91,12 @@ fn the_session_db_and_the_storage_root_follow_node_settings() {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     let config = serde_json::json!({"storage": {
         "dir": base.join("store"),
         "sessionDbPath": base.join("config.sqlite"),
     }});
-    std::fs::write(home.join(".zcode/cli/config.json"), config.to_string()).unwrap();
+    std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
     // 配置文件的 `storage.sessionDbPath`。
     run(&home, &work, &[]);
     assert!(base.join("config.sqlite").exists());
@@ -104,16 +104,16 @@ fn the_session_db_and_the_storage_root_follow_node_settings() {
     run(
         &home,
         &work,
-        &[("ZCODE_SESSION_DB_PATH", &base.join("env.sqlite"))],
+        &[("NIBI_SESSION_DB_PATH", &base.join("env.sqlite"))],
     );
     assert!(base.join("env.sqlite").exists());
     run(
         &home,
         &work,
-        &[("ZCODE_SESSION_DB", &base.join("short.sqlite"))],
+        &[("NIBI_SESSION_DB", &base.join("short.sqlite"))],
     );
     assert!(base.join("short.sqlite").exists());
-    assert!(!home.join(".zcode/cli/db/db.sqlite").exists());
+    assert!(!home.join(".nibi/cli/db/db.sqlite").exists());
     // `storage.dir` 是存储根：自动记忆目录在它下面（`<storage.dir>/projects/<项目>/memory`）。
     let projects: Vec<_> = std::fs::read_dir(base.join("store/projects"))
         .unwrap()
@@ -121,5 +121,5 @@ fn the_session_db_and_the_storage_root_follow_node_settings() {
         .collect();
     assert_eq!(projects.len(), 1, "{projects:?}");
     assert!(projects[0].join("memory").is_dir());
-    assert!(!home.join(".zcode/projects").exists());
+    assert!(!home.join(".nibi/projects").exists());
 }

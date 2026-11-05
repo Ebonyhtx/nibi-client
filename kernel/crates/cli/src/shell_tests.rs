@@ -147,29 +147,29 @@ const CASES: &[Case] = &[
         expected: Some("/opt/homebrew/bin/bash"),
     },
     Case {
-        name: "ZCODE_SHELL 能执行：盖过 SHELL",
-        env: &[("ZCODE_SHELL", "/opt/tools/zsh"), ("SHELL", "/bin/bash")],
+        name: "NIBI_SHELL 能执行：盖过 SHELL",
+        env: &[("NIBI_SHELL", "/opt/tools/zsh"), ("SHELL", "/bin/bash")],
         executable: &["/opt/tools/zsh", "/bin/bash"],
         which: &[],
         expected: Some("/opt/tools/zsh"),
     },
     Case {
-        name: "ZCODE_SHELL 不是 bash / zsh：不用，接着找",
-        env: &[("ZCODE_SHELL", "/usr/bin/fish"), ("SHELL", "/bin/bash")],
+        name: "NIBI_SHELL 不是 bash / zsh：不用，接着找",
+        env: &[("NIBI_SHELL", "/usr/bin/fish"), ("SHELL", "/bin/bash")],
         executable: &["/usr/bin/fish", "/bin/bash"],
         which: &[],
         expected: Some("/bin/bash"),
     },
     Case {
-        name: "ZCODE_SHELL 指向不存在的 bash：不用，接着找",
-        env: &[("ZCODE_SHELL", "/missing/bash"), ("SHELL", "/bin/zsh")],
+        name: "NIBI_SHELL 指向不存在的 bash：不用，接着找",
+        env: &[("NIBI_SHELL", "/missing/bash"), ("SHELL", "/bin/zsh")],
         executable: &["/bin/zsh"],
         which: &[],
         expected: Some("/bin/zsh"),
     },
     Case {
-        name: "空的 ZCODE_SHELL 与 SHELL 等于没有",
-        env: &[("ZCODE_SHELL", ""), ("SHELL", "")],
+        name: "空的 NIBI_SHELL 与 SHELL 等于没有",
+        env: &[("NIBI_SHELL", ""), ("SHELL", "")],
         executable: &["/bin/bash", "/bin/zsh"],
         which: &[],
         expected: Some("/bin/zsh"),
@@ -228,7 +228,7 @@ async fn the_candidates_are_probed_in_order() {
     );
 }
 
-/// Git Bash 的一行：说明、`ZCODE_GIT_BASH_PATH`、存在的文件、`which` 的结果、期望。
+/// Git Bash 的一行：说明、`NIBI_GIT_BASH_PATH`、存在的文件、`which` 的结果、期望。
 type GitCase = (
     &'static str,
     Option<&'static str>,
@@ -243,7 +243,7 @@ fn git_bash_is_found_in_the_fixed_places() {
     const X86: &str = r"C:\Program Files (x86)\Git\bin\bash.exe";
     let cases: &[GitCase] = &[
         (
-            "ZCODE_GIT_BASH_PATH 是存在的 bash.exe",
+            "NIBI_GIT_BASH_PATH 是存在的 bash.exe",
             Some(r"D:\tools\Git\bin\bash.exe"),
             &[r"D:\tools\Git\bin\bash.exe", DEFAULT],
             &[],
@@ -257,14 +257,14 @@ fn git_bash_is_found_in_the_fixed_places() {
             Some(r"D:\msys\usr\bin\SH.EXE"),
         ),
         (
-            "ZCODE_GIT_BASH_PATH 不是 bash / sh：不用，接着找",
+            "NIBI_GIT_BASH_PATH 不是 bash / sh：不用，接着找",
             Some(r"D:\tools\python.exe"),
             &[r"D:\tools\python.exe", DEFAULT],
             &[],
             Some(DEFAULT),
         ),
         (
-            "ZCODE_GIT_BASH_PATH 不存在：接着找",
+            "NIBI_GIT_BASH_PATH 不存在：接着找",
             Some(r"D:\missing\bash.exe"),
             &[X86],
             &[],
@@ -307,17 +307,17 @@ async fn windows_uses_git_bash_as_the_shell_and_zcode_shell_still_wins() {
         bash(&env(&[("SHELL", "/usr/bin/zsh")]), true, &host).await,
         Some(PathBuf::from(git))
     );
-    // ZCODE_SHELL 仍然在最前。
+    // NIBI_SHELL 仍然在最前。
     let custom = r"D:\msys\usr\bin\bash.exe";
     host.executable.insert(custom);
     assert_eq!(
-        bash(&env(&[("ZCODE_SHELL", custom)]), true, &host).await,
+        bash(&env(&[("NIBI_SHELL", custom)]), true, &host).await,
         Some(PathBuf::from(custom))
     );
-    // 没有 Git Bash：Bash 工具不可用，ZCODE_SHELL 也不看。
+    // 没有 Git Bash：Bash 工具不可用，NIBI_SHELL 也不看。
     let host = Fake::new(&[custom], &[]);
     assert_eq!(
-        bash(&env(&[("ZCODE_SHELL", custom)]), true, &host).await,
+        bash(&env(&[("NIBI_SHELL", custom)]), true, &host).await,
         None
     );
 }

@@ -33,7 +33,7 @@ fn run(program: &Path, args: &[&str], cwd: &Path, home: &Path, extra: &[(&str, &
         .env_clear()
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .env("ZCODE_DATA_BASE_DIR", home)
+        .env("NIBI_DATA_BASE_DIR", home)
         .env("PATH", "/usr/bin:/bin")
         .env("LC_ALL", "C")
         .stdin(Stdio::null())

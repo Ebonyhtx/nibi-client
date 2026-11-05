@@ -15,7 +15,7 @@ const DEFAULT_BASELINE: u64 = 32_000;
 const SUMMARY_LIMIT: u64 = 20_000;
 
 /// 交给补丁的输出上限（`RequestOptions.provider_max_output_tokens`）：`min(基线, 窗口 − 估算 − 1000)`，余量不是正数或窗口
-/// 未知（0）时是基线。基线是配置的上限（没有时 32000）与 `ZCODE_MAX_OUTPUT_TOKENS`（`env`）的较小值，摘要请求再与 20000
+/// 未知（0）时是基线。基线是配置的上限（没有时 32000）与 `NIBI_MAX_OUTPUT_TOKENS`（`env`）的较小值，摘要请求再与 20000
 /// 取小。模型端口答不出能力时不给。`estimate` 是这一步活动历史的上下文 token（kernel-api `context_tokens`）。
 pub(crate) fn provider_output_limit(
     capabilities: Option<&ModelCapabilities>,

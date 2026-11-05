@@ -79,8 +79,8 @@ pub struct CompactPorts {
     pub generation: Generation,
 }
 
-/// 入口从设置与环境变量构造（自动压缩的设置、`DISABLE_COMPACT`；`ZCODE_AUTOCOMPACT_PCT_OVERRIDE`、
-/// `ZCODE_AUTO_COMPACT_WINDOW`、`ZCODE_MAX_OUTPUT_TOKENS`，修复线 F42）。
+/// 入口从设置与环境变量构造（自动压缩的设置、`DISABLE_COMPACT`；`NIBI_AUTOCOMPACT_PCT_OVERRIDE`、
+/// `NIBI_AUTO_COMPACT_WINDOW`、`NIBI_MAX_OUTPUT_TOKENS`，修复线 F42）。
 #[derive(Clone)]
 pub struct CompactConfig {
     /// 自动压缩（含反应式）打开。手动 `/compact` 不受它影响。

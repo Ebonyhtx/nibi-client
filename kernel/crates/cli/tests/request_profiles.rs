@@ -1,12 +1,12 @@
-//! 修复线 F23（docs/specs/rust-cli/model.md §3.2、§6、§11）：真实 `zcode -p` 经显式覆盖（`ZCODE_MODEL_BASE_URL`）连本地
+//! 修复线 F23（docs/specs/rust-cli/model.md §3.2、§6、§11）：真实 `zcode -p` 经显式覆盖（`NIBI_MODEL_BASE_URL`）连本地
 //! 夹具。夹具不是 Anthropic 官方 API，落到“其他 Anthropic 兼容”：第三方形状的 system、没有官方专有项，WebSearch
 //! 不发（内置规则只对 `api.anthropic.com/v1` 上匹配 `.*claude-.*` 的模型打开 `supportsNativeWebSearch`）。只给测试用的
-//! `_ZCODE_ASSUME_FIRST_PARTY_BASE_URL=1` 让同一个夹具按 Anthropic 官方处理。
+//! `_NIBI_ASSUME_FIRST_PARTY_BASE_URL=1` 让同一个夹具按 Anthropic 官方处理。
 //!
 //! 工作线 F52（tools-more.md §3.2、model.md §3.3、platform.md §10）：每个请求带 `metadata.user_id`，设备身份与 App / Node
 //! 共用 `telemetry-state.json`。工作线 F84（tools-more.md §3.2，推翻 F52 的“其他的不开”）：ToolSearch 所有端点都开——
 //! z.ai / bigmodel 的端点原生（`defer_loading`、占位工具、`advanced-tool-use`），网关与官方地址本地（都不带）；只给测试用
-//! 的 `_ZCODE_ASSUME_TOOL_SEARCH=1` 让夹具按原生处理。
+//! 的 `_NIBI_ASSUME_TOOL_SEARCH=1` 让夹具按原生处理。
 #![allow(
     clippy::disallowed_methods,
     clippy::unwrap_used,
@@ -60,7 +60,7 @@ impl Sandbox {
             .env("HOME", &self.home)
             .env("USERPROFILE", &self.home)
             .env("PATH", "/usr/bin:/bin")
-            .env("ZCODE_DATA_BASE_DIR", &self.home)
+            .env("NIBI_DATA_BASE_DIR", &self.home)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -83,9 +83,9 @@ impl Sandbox {
 /// 显式覆盖连夹具：`flags` 是只给测试用的声明。
 fn first_request(flags: &[&str]) -> (Value, Option<String>) {
     let mut vars = vec![
-        ("ZCODE_MODEL_BASE_URL", "<fixture>"),
-        ("ZCODE_API_KEY", "test-key"),
-        ("ZCODE_MODEL", "claude-opus-5-5"),
+        ("NIBI_MODEL_BASE_URL", "<fixture>"),
+        ("NIBI_API_KEY", "test-key"),
+        ("NIBI_MODEL", "claude-opus-5-5"),
     ];
     vars.extend(flags.iter().map(|flag| (*flag, "1")));
     Sandbox::new().first_request(&vars, &[])
@@ -168,8 +168,8 @@ async fn a_local_gateway_gets_the_third_party_shape() {
 )]
 async fn the_test_declaration_gets_the_first_party_shape() {
     let (body, beta) = first_request(&[
-        "_ZCODE_ASSUME_FIRST_PARTY_BASE_URL",
-        "_ZCODE_ASSUME_TOOL_SEARCH",
+        "_NIBI_ASSUME_FIRST_PARTY_BASE_URL",
+        "_NIBI_ASSUME_TOOL_SEARCH",
     ]);
     let system = body["system"].as_array().unwrap();
     assert_eq!(system.len(), 3, "{system:?}");
@@ -180,7 +180,7 @@ async fn the_test_declaration_gets_the_first_party_shape() {
     assert!(offers_web_search(&body));
     assert_eq!(tool_search(&body, beta.as_deref()), Search::Native);
     // 官方地址本身是本地 ToolSearch（工作线 F84；F52 时不开），测试声明让它按原生发。
-    let (body, beta) = first_request(&["_ZCODE_ASSUME_FIRST_PARTY_BASE_URL"]);
+    let (body, beta) = first_request(&["_NIBI_ASSUME_FIRST_PARTY_BASE_URL"]);
     assert_eq!(tool_search(&body, beta.as_deref()), Search::Local);
     assert!(offers_web_search(&body));
 }
@@ -192,8 +192,8 @@ async fn the_test_declaration_gets_the_first_party_shape() {
 #[tokio::test]
 async fn a_release_build_ignores_the_test_declarations() {
     let (body, beta) = first_request(&[
-        "_ZCODE_ASSUME_FIRST_PARTY_BASE_URL",
-        "_ZCODE_ASSUME_TOOL_SEARCH",
+        "_NIBI_ASSUME_FIRST_PARTY_BASE_URL",
+        "_NIBI_ASSUME_TOOL_SEARCH",
     ]);
     assert_eq!(tool_search(&body, beta.as_deref()), Search::Local, "{body}");
     // 同 debug 下的网关形状：对话中间的 system 消息带来的 `mid-conversation-system`（工作线 F64）。
@@ -241,7 +241,7 @@ async fn a_custom_gateway_provider_gets_local_tool_search() {
         .env("HOME", &sandbox.home)
         .env("USERPROFILE", &sandbox.home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &sandbox.home)
+        .env("NIBI_DATA_BASE_DIR", &sandbox.home)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -283,10 +283,10 @@ async fn a_tool_loaded_on_a_gateway_is_sent_as_a_plain_definition() {
         .env("HOME", &sandbox.home)
         .env("USERPROFILE", &sandbox.home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &sandbox.home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &sandbox.home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -360,9 +360,9 @@ async fn enable_tool_search_decides_whether_tool_search_is_on() {
     let run = |value: &str| {
         Sandbox::new().first_request(
             &[
-                ("ZCODE_MODEL_BASE_URL", "<fixture>"),
-                ("ZCODE_API_KEY", "test-key"),
-                ("ZCODE_MODEL", "claude-opus-5-5"),
+                ("NIBI_MODEL_BASE_URL", "<fixture>"),
+                ("NIBI_API_KEY", "test-key"),
+                ("NIBI_MODEL", "claude-opus-5-5"),
                 ("ENABLE_TOOL_SEARCH", value),
             ],
             &[],
@@ -391,9 +391,9 @@ async fn the_request_carries_the_shared_device_id_and_the_session() {
     let state = r#"{"lastDailyActiveDate":"2026-10-21","deviceMid":"7f1431f0-53e8-41c1-9cf9-22d11aa51d6a"}"#;
     std::fs::write(sandbox.telemetry_state(), state).unwrap();
     let vars = [
-        ("ZCODE_MODEL_BASE_URL", "<fixture>"),
-        ("ZCODE_API_KEY", "test-key"),
-        ("ZCODE_MODEL", "claude-opus-5-5"),
+        ("NIBI_MODEL_BASE_URL", "<fixture>"),
+        ("NIBI_API_KEY", "test-key"),
+        ("NIBI_MODEL", "claude-opus-5-5"),
     ];
     let (body, _) = sandbox.first_request(&vars, &["--session-id", SESSION]);
     assert_eq!(
@@ -418,9 +418,9 @@ async fn the_first_run_writes_the_device_id_it_sends() {
     )
     .unwrap();
     let vars = [
-        ("ZCODE_MODEL_BASE_URL", "<fixture>"),
-        ("ZCODE_API_KEY", "test-key"),
-        ("ZCODE_MODEL", "claude-opus-5-5"),
+        ("NIBI_MODEL_BASE_URL", "<fixture>"),
+        ("NIBI_API_KEY", "test-key"),
+        ("NIBI_MODEL", "claude-opus-5-5"),
     ];
     let (body, _) = sandbox.first_request(&vars, &[]);
     let user: Value = serde_json::from_str(body["metadata"]["user_id"].as_str().unwrap()).unwrap();

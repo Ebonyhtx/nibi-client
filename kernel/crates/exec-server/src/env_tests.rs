@@ -250,8 +250,8 @@ async fn protected_bad_and_oversized_variables_are_refused() {
             "BASH_FUNC_x%%",
         ),
         (
-            update(EnvMode::Merge, &[("_ZCODE_ASSUME_X", Some("1"))]),
-            "_ZCODE_ASSUME_X",
+            update(EnvMode::Merge, &[("_NIBI_ASSUME_X", Some("1"))]),
+            "_NIBI_ASSUME_X",
         ),
         (update(EnvMode::Merge, &[("1BAD", Some("1"))]), "1BAD"),
         (update(EnvMode::Merge, &[("A=B", Some("1"))]), "A=B"),

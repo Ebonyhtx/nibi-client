@@ -34,8 +34,8 @@ export async function runStoragePreparePhase({ bin, binArgs, isNode, home, dotDi
           NIBI_SESSION_DB_PATH: dbPath,
         }
       : {
-          ZCODE_DATA_BASE_DIR: caseHome,
-          ZCODE_SESSION_DB_PATH: dbPath,
+          NIBI_DATA_BASE_DIR: caseHome,
+          NIBI_SESSION_DB_PATH: dbPath,
         }),
   });
   const expectedDatabaseId = (dbPath) =>

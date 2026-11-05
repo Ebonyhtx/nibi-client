@@ -97,14 +97,14 @@ pub struct Platform {
     personal_config: StoragePath,
     /// 旧 CLI 用户文件 `~/.zcode/cli/config.json`：个人配置不存在时 Node 从它导入（修复线 F2）。
     legacy_config: StoragePath,
-    /// `ZCODE_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：`maxOutputTokens.map` 取它与配置的较小值。
+    /// `NIBI_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：`maxOutputTokens.map` 取它与配置的较小值。
     max_output_tokens: Option<u64>,
     /// 注入的账号凭据来源（缺口 G8）：有时账号模型的凭据向它要，没有时自己算（TUI、`-p`）。
     header_source: Option<Arc<dyn header_source::HeaderSource>>,
 }
 
 impl Platform {
-    /// `paths` 已按入口读到的 `ZCODE_DATA_BASE_DIR`、`ZCODE_BUILTIN_PROVIDER_CONFIG_FILE` 调整过；`secret` 是
+    /// `paths` 已按入口读到的 `NIBI_DATA_BASE_DIR`、`NIBI_BUILTIN_PROVIDER_CONFIG_FILE` 调整过；`secret` 是
     /// 凭据密钥的材料；`services` 给账号服务（项目令牌、登录）用。
     pub fn new(paths: &StoragePaths, secret: &CredentialSecret, services: AccountServices) -> Self {
         let credentials = CredentialStore::new(paths.credentials(), secret);
@@ -153,7 +153,7 @@ impl Platform {
         self
     }
 
-    /// 入口读到的 `ZCODE_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：每个模型的 `maxOutputTokens.map` 用
+    /// 入口读到的 `NIBI_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：每个模型的 `maxOutputTokens.map` 用
     /// min(配置的 max, 它) 求值（model.md §9）。
     #[must_use]
     pub fn with_max_output_tokens(mut self, limit: Option<u32>) -> Self {
@@ -162,7 +162,7 @@ impl Platform {
     }
 
     /// 个人 Provider 配置 `defaultModelSelection` 的模型 ID（与 Node 同一个文件与字段，经同一次解析）：显式覆盖
-    /// （`ZCODE_API_KEY`）没给模型时用它（model.md §6，用户决定 2026-10-20，修复线 F42）。
+    /// （`NIBI_API_KEY`）没给模型时用它（model.md §6，用户决定 2026-10-20，修复线 F42）。
     pub async fn configured_default_model(&self) -> Option<String> {
         self.registry
             .current()
@@ -284,7 +284,7 @@ impl ModelEndpoints for Platform {
     }
 
     /// 修 bug（工作线 F95，platform.md §3.3、tools-more.md §5 表后）：以前 `maxOutputTokens` 补丁的输入只是配置的上限
-    /// （与 `ZCODE_MAX_OUTPUT_TOKENS` 取小），目录模型上 WebSearch 旁路请求自己的 `min(4096, 上限)` 被改写成配置的上限
+    /// （与 `NIBI_MAX_OUTPUT_TOKENS` 取小），目录模型上 WebSearch 旁路请求自己的 `min(4096, 上限)` 被改写成配置的上限
     /// （GLM-5.3-Flash 发 128000）；Node 的 option map 以请求自己的上限为输入，发 4096。现在请求交来的上限也参与取小。
     async fn endpoint_with_output_limit(
         &self,

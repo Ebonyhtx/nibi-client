@@ -261,7 +261,7 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
         official_manifest("image-search", ""),
         (
             format!("{CACHE}/{OFFICIAL}/image-search/1.0.0/.mcp.json"),
-            r#"{"mcpServers": {"image_search": {"type": "http", "url": "${ZCODE_BASE_URL}/mcp", "auth": {"type": "zcode_official", "provider": "jwt_token"}}}}"#.to_owned(),
+            r#"{"mcpServers": {"image_search": {"type": "http", "url": "${NIBI_BASE_URL}/mcp", "auth": {"type": "zcode_official", "provider": "jwt_token"}}}}"#.to_owned(),
         ),
         official_manifest("visualize", ""),
         official_manifest("android-emulator", host_mcp),

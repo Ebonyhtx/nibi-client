@@ -4,7 +4,7 @@ use super::*;
 
 #[test]
 fn the_startup_wait_variable_wins_then_an_explicit_config_then_two_seconds() {
-    // ZCODE_MCP_STARTUP_WAIT_MS 优先，0 也算（不等）。
+    // NIBI_MCP_STARTUP_WAIT_MS 优先，0 也算（不等）。
     assert_eq!(prewait_ms(Some(750), true, 30_000), 750);
     assert_eq!(prewait_ms(Some(0), false, 30_000), 0);
     // 没设时：显式给了 `--mcp-config` 的服务器用 MCP_TIMEOUT。
@@ -48,7 +48,7 @@ fn a_server_segment_stops_at_the_first_double_underscore() {
 }
 
 /// `firstTurnHold`（headless.md §6，修复线 F39）：只有 stream-json 输入、能用工具搜索、没有显式
-/// `--mcp-config`、没有设 `ZCODE_MCP_STARTUP_WAIT_MS`（原名不读）时是 `lifted`（不等可延迟的服务器）。
+/// `--mcp-config`、没有设 `NIBI_MCP_STARTUP_WAIT_MS`（原名不读）时是 `lifted`（不等可延迟的服务器）。
 #[test]
 fn only_streaming_input_with_tool_search_lifts_the_wait() {
     assert!(!wait_for_deferrable(true, true, false, None));

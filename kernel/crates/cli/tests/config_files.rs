@@ -65,10 +65,10 @@ fn zcode(home: &Path, work: &Path, args: &[&str], server: &str) -> Output {
         .env("HOME", home)
         .env("USERPROFILE", home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_MODEL_BASE_URL", server)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_MODEL_BASE_URL", server)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -94,14 +94,14 @@ fn untrusted_project_hooks_are_skipped_until_granted() {
     std::fs::create_dir_all(work.join(".git")).unwrap();
     // 用户级 hook 不需要审核；项目级 hook 要先授权。两个都在 UserPromptSubmit 时写一个标记文件。
     write(
-        &home.join(".zcode/cli/config.json"),
+        &home.join(".nibi/cli/config.json"),
         r#"{"hooks": {"enabled": true, "events": {"UserPromptSubmit": [{"hooks": [
-            {"type": "command", "command": "echo user > \"$ZCODE_PROJECT_DIR/user.marker\""}]}]}}}"#,
+            {"type": "command", "command": "echo user > \"$NIBI_PROJECT_DIR/user.marker\""}]}]}}}"#,
     );
     write(
-        &work.join(".zcode/config.json"),
+        &work.join(".nibi/config.json"),
         r#"{"hooks": {"events": {"UserPromptSubmit": [{"hooks": [
-            {"type": "process", "command": "/usr/bin/touch", "args": ["${ZCODE_PROJECT_DIR}/project.marker"]}]}]}}}"#,
+            {"type": "process", "command": "/usr/bin/touch", "args": ["${NIBI_PROJECT_DIR}/project.marker"]}]}]}}}"#,
     );
     let server = model_server();
 
@@ -147,7 +147,7 @@ fn untrusted_project_hooks_are_skipped_until_granted() {
     assert!(grant.status.success(), "{}", text(&grant.stderr));
     assert!(text(&grant.stdout).contains("state: workspace_hooks_trusted_persistent"));
     assert!(
-        home.join(".zcode/security/workspace-hook-trust-v1.json")
+        home.join(".nibi/security/workspace-hook-trust-v1.json")
             .exists()
     );
 
@@ -199,7 +199,7 @@ async fn the_project_mode_sits_between_the_command_line_and_the_config() {
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     write(
-        &home.join(".zcode/cli/config.json"),
+        &home.join(".nibi/cli/config.json"),
         r#"{"permission": {"mode": "yolo"}}"#,
     );
     let server = model_server();

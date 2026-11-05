@@ -171,7 +171,7 @@ async fn settings_are_json_text_or_a_file() {
     );
 }
 
-/// root 下的 bypass（cli-args.md §5.2）：`IS_SANDBOX=1` 或 `ZCODE_BUBBLEWRAP` 为真时放行。文字写模式名，不写已删掉的
+/// root 下的 bypass（cli-args.md §5.2）：`IS_SANDBOX=1` 或 `NIBI_BUBBLEWRAP` 为真时放行。文字写模式名，不写已删掉的
 /// `--dangerously-skip-permissions`（工作线 F63）。
 #[test]
 fn bypass_as_root_needs_a_declared_sandbox() {
@@ -189,8 +189,8 @@ fn bypass_as_root_needs_a_declared_sandbox() {
     assert!(refuse_root_bypass(true, Some(0), &env(&[("IS_SANDBOX", "1")])).is_ok());
     // 只认 `1`（`IS_SANDBOX !== "1"` 时拒绝）。
     assert!(refuse_root_bypass(true, Some(0), &env(&[("IS_SANDBOX", "true")])).is_err());
-    assert!(refuse_root_bypass(true, Some(0), &env(&[("ZCODE_BUBBLEWRAP", "yes")])).is_ok());
-    assert!(refuse_root_bypass(true, Some(0), &env(&[("ZCODE_BUBBLEWRAP", "0")])).is_err());
+    assert!(refuse_root_bypass(true, Some(0), &env(&[("NIBI_BUBBLEWRAP", "yes")])).is_ok());
+    assert!(refuse_root_bypass(true, Some(0), &env(&[("NIBI_BUBBLEWRAP", "0")])).is_err());
     assert!(refuse_root_bypass(true, Some(501), &env(&[])).is_ok());
     assert!(refuse_root_bypass(false, Some(0), &env(&[])).is_ok());
     // Windows 没有 uid。

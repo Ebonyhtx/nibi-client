@@ -2,7 +2,7 @@
 //! 规则与信任的根证书，交给 net 的 `Egress`。CA 文件经 rust-cli-fs 读。
 //!
 //! 修复（审查 R2-2）：以前入口一直用 `NetworkPolicy::default`，不读任何代理与 CA，企业网络连不上（子进程却经
-//! 白名单拿到 `HTTPS_PROXY`）。现在 Node 版 zcode 的 `ZCODE_*` 变量逐项优先（Node 的语义），没有时读标准变量。
+//! 白名单拿到 `HTTPS_PROXY`）。现在 Node 版 zcode 的 `NIBI_*` 变量逐项优先（Node 的语义），没有时读标准变量。
 
 use std::fmt;
 use std::io;
@@ -14,7 +14,7 @@ use rust_cli_base::secret::EnvSnapshot;
 use rust_cli_net::{CaBundle, NetworkPolicy, NoProxy, TrustRoots};
 
 /// Node 版 zcode 的根证书变量（读值、报错与日志都用这个名字，F55：以前写了三次）。
-const AGENT_CA_CERT: &str = "ZCODE_AGENT_CA_CERT";
+const AGENT_CA_CERT: &str = "NIBI_AGENT_CA_CERT";
 
 /// 按这个顺序取第一个非空的代理变量。
 const STANDARD_PROXY: [&str; 4] = ["https_proxy", "HTTPS_PROXY", "http_proxy", "HTTP_PROXY"];
@@ -73,9 +73,9 @@ fn var<'a>(env: &'a EnvSnapshot, name: &str) -> Option<&'a str> {
     env.get(name)
 }
 
-/// 代理地址：`ZCODE_HTTP_PROXY`（Node 的写法）有效时用它，否则取第一个非空的标准变量。
+/// 代理地址：`NIBI_HTTP_PROXY`（Node 的写法）有效时用它，否则取第一个非空的标准变量。
 pub(crate) fn proxy(env: &EnvSnapshot) -> Result<Option<String>, InvalidProxy> {
-    if let Some(url) = var(env, "ZCODE_HTTP_PROXY").and_then(node_proxy_url) {
+    if let Some(url) = var(env, "NIBI_HTTP_PROXY").and_then(node_proxy_url) {
         return Ok(Some(url));
     }
     let Some((source, value)) = STANDARD_PROXY.iter().find_map(|name| {
@@ -119,9 +119,9 @@ fn has_scheme(value: &str) -> bool {
         && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
 }
 
-/// 不走代理的规则：`ZCODE_NO_PROXY`（去空白后非空）优先，否则是合并后的 `no_proxy` / `NO_PROXY`。
+/// 不走代理的规则：`NIBI_NO_PROXY`（去空白后非空）优先，否则是合并后的 `no_proxy` / `NO_PROXY`。
 pub(crate) fn no_proxy(env: &EnvSnapshot) -> NoProxy {
-    if let Some(value) = var(env, "ZCODE_NO_PROXY")
+    if let Some(value) = var(env, "NIBI_NO_PROXY")
         .map(trim)
         .filter(|value| !value.is_empty())
     {
@@ -148,7 +148,7 @@ pub(crate) fn no_proxy(env: &EnvSnapshot) -> NoProxy {
 /// CA 文件的来源；值是变量里写的路径（报错与警告里原样显示）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum CaSource {
-    /// `ZCODE_AGENT_CA_CERT`（去空白后非空）：替换平台根证书。
+    /// `NIBI_AGENT_CA_CERT`（去空白后非空）：替换平台根证书。
     Agent(String),
     /// `NODE_EXTRA_CA_CERTS`（非空）：加在平台根证书上。
     Extra(String),
@@ -166,7 +166,7 @@ pub(crate) fn ca_source(env: &EnvSnapshot) -> Option<CaSource> {
         .map(|path| CaSource::Extra(path.to_owned()))
 }
 
-/// `ZCODE_AGENT_CA_CERT`：读不出时报错退出（config.md D14）；没有可用证书时照常，所有 HTTPS 请求都在证书
+/// `NIBI_AGENT_CA_CERT`：读不出时报错退出（config.md D14）；没有可用证书时照常，所有 HTTPS 请求都在证书
 /// 校验时失败（Node 的 `ca` 相同），运行日志记一条警告。
 async fn agent_roots(value: String, cwd: &Path) -> Result<TrustRoots> {
     let bytes = read(&cwd.join(&value))

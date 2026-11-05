@@ -10,10 +10,10 @@
 //! - 自动记忆目录：`<storage.dir>/projects/<sanitizePath(项目)>/memory`
 //!   （根换成 zcode 的存储根，docs/specs/rust-cli/context.md §2）。
 //!
-//! 配置分层与 `ZCODE_*` 环境变量覆盖由配置层先算好，这里只接收结果。
+//! 配置分层与 `NIBI_*` 环境变量覆盖由配置层先算好，这里只接收结果。
 //!
 //! 账号与 Provider 的配置（docs/specs/rust-cli/platform.md §2）与 Node CLI、App 共用：
-//! - 配置根 `<dataBaseDir>/.zcode/v2`，`dataBaseDir` 默认 home，入口读 `ZCODE_DATA_BASE_DIR` 后经
+//! - 配置根 `<dataBaseDir>/.zcode/v2`，`dataBaseDir` 默认 home，入口读 `NIBI_DATA_BASE_DIR` 后经
 //!   [`StoragePaths::with_data_base_dir`] 覆盖（Node `resolveSharedNIBICredentialsPath`）；
 //! - 其下 `provider_config.json`（个人 Provider 配置）、`credentials.json`（加密凭据）、
 //!   `runtime/provider/`（内置 Provider 配置的缓存）、`telemetry-state.json`（设备身份 `deviceMid`，F52）；
@@ -85,7 +85,7 @@ const MODEL_IO_ROLLOUT_DIR: &str = "rollout";
 
 /// 用户根（`<home>/.zcode`）下的位置；`rest` 为空时是用户根本身（Node `DEFAULT_BASE_DIR`、Host 的 `~/.zcode`）。
 ///
-/// 本机存储里用户根只在这里计算：会话库与存储根的缺省值、配置根 `.zcode/v2`（`home` 换成 `ZCODE_DATA_BASE_DIR`
+/// 本机存储里用户根只在这里计算：会话库与存储根的缺省值、配置根 `.zcode/v2`（`home` 换成 `NIBI_DATA_BASE_DIR`
 /// 时也是）、用户级配置、信任记录的缺省根、TUI `/memory` 的用户规则文件都由它推出（F55）。以后要让用户根可配置，
 /// 只改这里，缺省值不变。
 ///
@@ -169,7 +169,7 @@ impl StoragePaths {
         }
     }
 
-    /// 显式给出的内置 Provider 配置文件（`ZCODE_BUILTIN_PROVIDER_CONFIG_FILE`，绝对路径）；没有时用随包配置。
+    /// 显式给出的内置 Provider 配置文件（`NIBI_BUILTIN_PROVIDER_CONFIG_FILE`，绝对路径）；没有时用随包配置。
     pub fn with_builtin_provider_config(mut self, file: &Path) -> Self {
         self.builtin_provider_config = Some(StoragePath(file.to_path_buf()));
         self
@@ -180,7 +180,7 @@ impl StoragePaths {
         self.builtin_provider_config.as_ref()
     }
 
-    /// 账号与 Provider 配置的根改到 `<base>/.zcode/v2`（`ZCODE_DATA_BASE_DIR`）；`base` 是绝对路径。
+    /// 账号与 Provider 配置的根改到 `<base>/.zcode/v2`（`NIBI_DATA_BASE_DIR`）；`base` 是绝对路径。
     pub fn with_data_base_dir(mut self, base: &Path) -> Self {
         self.config = StoragePath(user_path(base, CONFIG_ROOT));
         self
@@ -250,7 +250,7 @@ impl StoragePaths {
 impl StoragePaths {
     /// Node CLI 的用户级配置 `<storage.dir>/cli/config.json`（与 Node、App 共用）。
     ///
-    /// `storage.dir` 缺省是用户根 `~/.nibi`；隔离运行时经 `ZCODE_STORAGE_DIR` 覆盖时，
+    /// `storage.dir` 缺省是用户根 `~/.nibi`；隔离运行时经 `NIBI_STORAGE_DIR` 覆盖时，
     /// 这里必须跟着同一个根走，否则 Rust 读真实用户配置、Host 写隔离配置，插件启停
     /// 与用户设置两边看不见同一份文件。
     pub fn cli_config(&self) -> StoragePath {

@@ -13,7 +13,7 @@ const DEFAULT_SHELL_EXPANSION_OUTPUT_BYTES = 128 * 1024;
 const INLINE_SHELL_PATTERN = /!`([^`]*)`/gu;
 const FENCED_SHELL_PATTERN = /```!\s*\r?\n?([\s\S]*?)```/gu;
 const SHELL_CONTEXT_VARIABLE_PATTERN =
-  /\$\{(CLAUDE_CODE_SESSION_ID|CLAUDE_PLUGIN_DATA|CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_SESSION_ID|CLAUDE_SKILL_DIR|NIBI_PLUGIN_DATA|NIBI_PLUGIN_ROOT|NIBI_PROJECT_DIR|NIBI_SESSION_ID|NIBI_SKILL_DIR|ZCODE_PLUGIN_DATA|ZCODE_PLUGIN_ROOT|ZCODE_PROJECT_DIR)\}/gu;
+  /\$\{(CLAUDE_CODE_SESSION_ID|CLAUDE_PLUGIN_DATA|CLAUDE_PLUGIN_ROOT|CLAUDE_PROJECT_DIR|CLAUDE_SESSION_ID|CLAUDE_SKILL_DIR|NIBI_PLUGIN_DATA|NIBI_PLUGIN_ROOT|NIBI_PROJECT_DIR|NIBI_SESSION_ID|NIBI_SKILL_DIR)\}/gu;
 
 interface ShellExpansionMatch {
   command: string;
@@ -177,9 +177,6 @@ function createShellExpansionEnv(input: {
     set.NIBI_PLUGIN_ID = input.plugin.id;
     set.NIBI_PLUGIN_NAME = input.plugin.name;
     set.NIBI_PLUGIN_ROOT = input.plugin.rootPath;
-    // 旧名别名：命令/钩子的 shell 片段里可能仍写 ${ZCODE_PLUGIN_ROOT} 等（包格式，不随宿主改名）。
-    set.ZCODE_PLUGIN_DATA = input.plugin.dataPath;
-    set.ZCODE_PLUGIN_ROOT = input.plugin.rootPath;
   }
   return Object.keys(set).length > 0 ? { set } : undefined;
 }
@@ -213,9 +210,7 @@ function assertShellExpansionContextAvailable(input: {
       (name === "CLAUDE_PLUGIN_DATA" ||
         name === "CLAUDE_PLUGIN_ROOT" ||
         name === "NIBI_PLUGIN_DATA" ||
-        name === "NIBI_PLUGIN_ROOT" ||
-        name === "ZCODE_PLUGIN_DATA" ||
-        name === "ZCODE_PLUGIN_ROOT")
+        name === "NIBI_PLUGIN_ROOT")
     ) {
       throw new Error(
         `Custom command /${input.command.metadata.name} variable requires a plugin context: ${name}`,

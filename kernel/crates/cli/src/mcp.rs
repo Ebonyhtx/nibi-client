@@ -142,7 +142,7 @@ fn startup(
     allowed: &[String],
 ) -> McpStartup {
     // 启动等待的截止（config.md §2.5）。
-    let startup_wait = var(snapshot, "ZCODE_MCP_STARTUP_WAIT_MS")
+    let startup_wait = var(snapshot, "NIBI_MCP_STARTUP_WAIT_MS")
         .and_then(env_int)
         .and_then(|value| u64::try_from(value).ok())
         .map(|value| value.min(MAX_MS));

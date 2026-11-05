@@ -74,7 +74,7 @@ async fn sends_stdin_env_and_collects_separate_streams() {
     let io = request.hook.unwrap();
     assert_eq!(io.stdin, "{\"hook_event_name\":\"Stop\"}\n");
     // 名字按 Node（`createPluginEnvOverlay`，两套都给，修复线 F42，config.md §2.5.1）。
-    for name in ["ZCODE_PROJECT_DIR", "CLAUDE_PROJECT_DIR"] {
+    for name in ["NIBI_PROJECT_DIR", "CLAUDE_PROJECT_DIR"] {
         assert_eq!(
             io.env.get(name).map(String::as_str),
             Some("/Users/dev/project"),
@@ -82,7 +82,7 @@ async fn sends_stdin_env_and_collects_separate_streams() {
         );
     }
     for name in [
-        "ZCODE_SESSION_ID",
+        "NIBI_SESSION_ID",
         "CLAUDE_SESSION_ID",
         "CLAUDE_CODE_SESSION_ID",
     ] {
@@ -100,7 +100,7 @@ async fn sends_stdin_env_and_collects_separate_streams() {
 fn exec_form_expands_the_session_id() {
     let exec = CommandHook {
         args: Some(vec![
-            "${ZCODE_SESSION_ID}".to_owned(),
+            "${NIBI_SESSION_ID}".to_owned(),
             "${CLAUDE_SESSION_ID}:${CLAUDE_CODE_SESSION_ID}".to_owned(),
         ]),
         ..hook("log")
@@ -112,7 +112,7 @@ fn exec_form_expands_the_session_id() {
     // 没有会话时原样留下。
     assert_eq!(
         command_line(&exec, "/w", None),
-        "'log' '${ZCODE_SESSION_ID}' '${CLAUDE_SESSION_ID}:${CLAUDE_CODE_SESSION_ID}'"
+        "'log' '${NIBI_SESSION_ID}' '${CLAUDE_SESSION_ID}:${CLAUDE_CODE_SESSION_ID}'"
     );
 }
 
@@ -171,8 +171,8 @@ fn exec_form_quotes_each_part() {
         r"'node' '/w/a b.js' 'it'\''s'"
     );
     assert_eq!(
-        command_line(&hook("echo $ZCODE_PROJECT_DIR"), "/w", None),
-        "echo $ZCODE_PROJECT_DIR"
+        command_line(&hook("echo $NIBI_PROJECT_DIR"), "/w", None),
+        "echo $NIBI_PROJECT_DIR"
     );
     assert_eq!(
         task_id(&OperationId::new("op_1")),
@@ -190,7 +190,7 @@ async fn plugin_hooks_see_their_root() {
     let root = "/Users/dev/plugins/kit";
     let shell = CommandHook {
         plugin_root: Some(root.to_owned()),
-        ..hook("${CLAUDE_PLUGIN_ROOT}/a.sh ${ZCODE_PLUGIN_ROOT}")
+        ..hook("${CLAUDE_PLUGIN_ROOT}/a.sh ${NIBI_PLUGIN_ROOT}")
     };
     assert_eq!(
         command_line(&shell, "/w", None),
@@ -210,7 +210,7 @@ async fn plugin_hooks_see_their_root() {
     )]);
     run_with(&env, &shell, 5_000, CancellationToken::new()).await;
     let io = env.started().remove(0).1.hook.unwrap();
-    for name in ["CLAUDE_PLUGIN_ROOT", "ZCODE_PLUGIN_ROOT"] {
+    for name in ["CLAUDE_PLUGIN_ROOT", "NIBI_PLUGIN_ROOT"] {
         assert_eq!(io.env.get(name).map(String::as_str), Some(root), "{name}");
     }
 }

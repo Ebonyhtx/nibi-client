@@ -56,7 +56,7 @@ pub struct ShellConfig {
     /// 启动时捕获的进程环境，按白名单投影给用户命令（`environ::project`）。`Debug` 只列变量名。
     pub env: EnvSnapshot,
     /// 内嵌的 rg / bfs / ugrep（docs/specs/rust-cli/embedded-search.md §8，F53）：有值时 Bash 工具的每条命令前加定义
-    /// `find` / `grep` / `rg` 函数的 prelude，环境里设 `ZCODE_EXECPATH`；hook 命令不加。None 时与以前相同。
+    /// `find` / `grep` / `rg` 函数的 prelude，环境里设 `NIBI_EXECPATH`；hook 命令不加。None 时与以前相同。
     pub embedded: Option<EmbeddedSearch>,
 }
 

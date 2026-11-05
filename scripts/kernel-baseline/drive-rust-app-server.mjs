@@ -658,10 +658,10 @@ const child = spawn(bin, binArgs, {
           NIBI_ENDPOINT_ORIGIN: "http://127.0.0.1:9",
         }
       : {
-          ZCODE_DATA_BASE_DIR: home,
-          ZCODE_STORAGE_DIR: join(home, dotDir),
-          // 与 Node 分支同一个死端点：Rust 现在也按 NIBI 名解析服务地址（NIBI 优先、ZCODE 回退），
-          // 不能让对拍进程默认打到真实的 api.nibistudio.top。
+          NIBI_DATA_BASE_DIR: home,
+          NIBI_STORAGE_DIR: join(home, dotDir),
+          // 与 Node 分支同一个死端点：Rust 同样只按 NIBI 名解析服务地址，不能让对拍进程默认
+          // 打到真实的 api.nibistudio.top。
           NIBI_ENDPOINT_ORIGIN: "http://127.0.0.1:9",
           // DWF sidecar（路线 C）：设置后 Rust 内核才会注入引擎；没设时三条命令回 capabilityUnsupported。
           ...(process.env.NIBI_DWF_ENGINE_CMD

@@ -214,7 +214,7 @@ fn option_maps_become_request_patches() {
     );
 }
 
-/// `ZCODE_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：`maxOutputTokens.map` 用它与配置的 max 的较小值；协议
+/// `NIBI_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：`maxOutputTokens.map` 用它与配置的 max 的较小值；协议
 /// 自己的字段名不变（Anthropic `max_tokens`、Chat `max_completion_tokens`）。
 #[test]
 fn the_output_limit_caps_the_max_output_tokens_patch() {

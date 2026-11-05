@@ -2,7 +2,7 @@
 //!
 //! 输入 JSON 加换行写进
 //! stdin，stdout 与 stderr 分开收集。给 hook 的变量按 Node（`createPluginEnvOverlay`）两套名字都给：项目目录
-//! `ZCODE_PROJECT_DIR` / `CLAUDE_PROJECT_DIR`、会话 ID（修复线 F42，config.md §2.5.1）。
+//! `NIBI_PROJECT_DIR` / `CLAUDE_PROJECT_DIR`、会话 ID（修复线 F42，config.md §2.5.1）。
 //! 进程、超时与进程树回收都在执行环境里；这里只发请求、读事件。取消是一条消息，发出后继续等终态。
 
 use std::collections::BTreeMap;
@@ -23,10 +23,10 @@ use crate::config::{CommandHook, HookShell};
 use crate::result::Raw;
 
 /// 项目目录的环境变量名（两套名字都给，同 Node）。
-const PROJECT_DIR_VARS: [&str; 2] = [vars::ZCODE_PROJECT_DIR, vars::CLAUDE_PROJECT_DIR];
+const PROJECT_DIR_VARS: [&str; 2] = [vars::NIBI_PROJECT_DIR, vars::CLAUDE_PROJECT_DIR];
 /// 会话 ID 的环境变量名（Node `createPluginEnvOverlay` 的三个名字）。
 const SESSION_ID_VARS: [&str; 3] = [
-    vars::ZCODE_SESSION_ID,
+    vars::NIBI_SESSION_ID,
     vars::CLAUDE_SESSION_ID,
     vars::CLAUDE_CODE_SESSION_ID,
 ];
@@ -76,8 +76,8 @@ fn single_quote(text: &str) -> String {
     format!("'{}'", text.replace('\'', r"'\''"))
 }
 
-/// 插件目录的环境变量（`CLAUDE_PLUGIN_ROOT` 与 `ZCODE_PLUGIN_ROOT` 两套名字都给，与 ext 的 MCP 配置变量相同）。
-const PLUGIN_ROOT_VARS: [&str; 2] = [vars::CLAUDE_PLUGIN_ROOT, vars::ZCODE_PLUGIN_ROOT];
+/// 插件目录的环境变量（`CLAUDE_PLUGIN_ROOT` 与 `NIBI_PLUGIN_ROOT` 两套名字都给，与 ext 的 MCP 配置变量相同）。
+const PLUGIN_ROOT_VARS: [&str; 2] = [vars::CLAUDE_PLUGIN_ROOT, vars::NIBI_PLUGIN_ROOT];
 
 /// 插件的 hook：命令里的插件目录变量先换成插件目录。
 fn plugin_expand(text: &str, hook: &CommandHook) -> String {
@@ -118,7 +118,7 @@ pub(crate) fn command_line(hook: &CommandHook, project_dir: &str, session: Optio
 
 /// hook 进程额外的环境变量：项目目录与会话 ID（两套名字，按 Node）；插件的 hook 另有插件目录。
 ///
-/// 修复线 F42：以前只有 `ZCODE_PROJECT_DIR`，插件读 `$CLAUDE_PROJECT_DIR` 时是空的；Node 两套都给。
+/// 修复线 F42：以前只有 `NIBI_PROJECT_DIR`，插件读 `$CLAUDE_PROJECT_DIR` 时是空的；Node 两套都给。
 fn hook_env(
     hook: &CommandHook,
     project_dir: &str,

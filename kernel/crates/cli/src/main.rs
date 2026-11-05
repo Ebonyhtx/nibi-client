@@ -90,7 +90,7 @@ static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 /// 本工程的版本：唯一来源，由 build.rs 在编译期给出（release 第三位是编译次数，debug 是 Cargo.toml 的版本，
 /// docs/specs/rust-cli/version.md）。运行时显式传给 TUI、会话库、MCP 握手与账号服务，其他 crate 不读包版本。
-const VERSION: &str = env!("ZCODE_BUILD_VERSION");
+const VERSION: &str = env!("NIBI_BUILD_VERSION");
 /// 本机执行环境的 ID。
 const LOCAL_ENVIRONMENT: &str = "local";
 
@@ -106,14 +106,14 @@ struct Startup {
     /// 系统时区（time-zone.md §1）：启动时读一次。
     zone: Arc<dyn rust_cli_node_store::TimeZone>,
     user_name: String,
-    /// `ZCODE_DATA_BASE_DIR`：账号与 Provider 配置的根（Node 相同）。
+    /// `NIBI_DATA_BASE_DIR`：账号与 Provider 配置的根（Node 相同）。
     data_base_dir: Option<String>,
-    /// `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE`：显式的内置 Provider 配置。
+    /// `NIBI_BUILTIN_PROVIDER_CONFIG_FILE`：显式的内置 Provider 配置。
     builtin_provider_config: Option<String>,
-    /// `ZCODE_CREDENTIAL_SECRET`。
+    /// `NIBI_CREDENTIAL_SECRET`。
     credential_secret: Option<RedactedString>,
     explicit: models::Override,
-    /// `ZCODE_MAX_OUTPUT_TOKENS` 的有效值：入口读一次，模型端口、平台层、压缩与内核的缺省共用（F58）。
+    /// `NIBI_MAX_OUTPUT_TOKENS` 的有效值：入口读一次，模型端口、平台层、压缩与内核的缺省共用（F58）。
     max_output_tokens: Option<u32>,
     /// 进程的 uid（Unix；bypass 模式的 root 检查，cli-args.md §5.2）。Windows 没有。
     uid: Option<u32>,
@@ -175,14 +175,14 @@ fn capture() -> Result<Startup> {
     let max_output_tokens = limits::max_output_tokens(&env);
     Ok(Startup {
         user_name: user_name_with(os),
-        data_base_dir: non_empty(var("ZCODE_DATA_BASE_DIR")),
-        builtin_provider_config: non_empty(var("ZCODE_BUILTIN_PROVIDER_CONFIG_FILE")),
-        credential_secret: non_empty(var("ZCODE_CREDENTIAL_SECRET")).map(RedactedString::new),
-        // 显式覆盖的名字（修复线 F42，config.md §2.5）：只读 `ZCODE_*`；端点不叫 `ZCODE_BASE_URL`（它是 Node 的 NIBI 服务地址）。
+        data_base_dir: non_empty(var("NIBI_DATA_BASE_DIR")),
+        builtin_provider_config: non_empty(var("NIBI_BUILTIN_PROVIDER_CONFIG_FILE")),
+        credential_secret: non_empty(var("NIBI_CREDENTIAL_SECRET")).map(RedactedString::new),
+        // 显式覆盖的名字（修复线 F42，config.md §2.5）：只读 `NIBI_*`；端点不叫 `NIBI_BASE_URL`（它是 Node 的 NIBI 服务地址）。
         explicit: models::Override {
-            base_url: var("ZCODE_MODEL_BASE_URL"),
-            api_key: var("ZCODE_API_KEY").map(RedactedString::new),
-            model: non_empty(var("ZCODE_MODEL")),
+            base_url: var("NIBI_MODEL_BASE_URL"),
+            api_key: var("NIBI_API_KEY").map(RedactedString::new),
+            model: non_empty(var("NIBI_MODEL")),
             // 测试声明只在 debug 构建读（工作线 F52b，model.md §6）。
             assume: options::assumptions(options::TestDeclarations::BUILD, var),
             ssh: options::ssh_assumption(options::TestDeclarations::BUILD, var),
@@ -322,7 +322,7 @@ async fn session(
         egress.clone(),
         clock.clone(),
     )?);
-    // 显式覆盖（ZCODE_API_KEY）时没有模型目录：`/model 名称` 直接换模型（tui.md §6）。
+    // 显式覆盖（NIBI_API_KEY）时没有模型目录：`/model 名称` 直接换模型（tui.md §6）。
     let explicit = startup
         .explicit
         .api_key
@@ -452,7 +452,7 @@ async fn session(
         .with_stream_idle(options::stream_idle(&startup.env))
         // `IS_SANDBOX`（非空即真）：连续过载时照常重试（cli-args.md §9）。
         .with_overload_retries_in_sandbox(options::is_sandbox(&startup.env))
-        // `ZCODE_MAX_OUTPUT_TOKENS`：每个请求的 `max_tokens` 不超过它（cli-args.md §9.1，F42）。
+        // `NIBI_MAX_OUTPUT_TOKENS`：每个请求的 `max_tokens` 不超过它（cli-args.md §9.1，F42）。
         .with_max_output_tokens(startup.max_output_tokens)
         .with_request_headers(headers.map_err(anyhow::Error::msg)?);
     // 模型轨迹（工作线 F91，model-io.md §3）：目录跟随合并后的 `storage.dir`，全量保留读 App 的设置。
@@ -605,9 +605,9 @@ async fn session(
                     clock: clock.clone(),
                 }),
                 version: VERSION.to_owned(),
-                // system/init 的 `apiKeySource`（headless.md §3.3）：key 来自哪个变量（本工程读 `ZCODE_API_KEY`，
+                // system/init 的 `apiKeySource`（headless.md §3.3）：key 来自哪个变量（本工程读 `NIBI_API_KEY`，
                 // config.md §2.5）。
-                api_key_source: if explicit { "ZCODE_API_KEY" } else { "none" }.to_owned(),
+                api_key_source: if explicit { "NIBI_API_KEY" } else { "none" }.to_owned(),
             };
             let options = PrintOptions {
                 prompt: prompt.unwrap_or_default(),
@@ -786,7 +786,7 @@ fn main() -> ExitCode {
     {
         Ok(runtime) => runtime,
         Err(error) => {
-            eprint_line(&format!("zcode: cannot start the async runtime: {error}"));
+            eprint_line(&format!("nibi: cannot start the async runtime: {error}"));
             return ExitCode::FAILURE;
         }
     };
@@ -814,7 +814,7 @@ fn main() -> ExitCode {
             } else if let Some(input) = error.downcast_ref::<rust_cli_headless::InputError>() {
                 eprint_line(&input.0);
             } else {
-                eprint_line(&format!("zcode: {error:#}"));
+                eprint_line(&format!("nibi: {error:#}"));
             }
             ExitCode::FAILURE
         }

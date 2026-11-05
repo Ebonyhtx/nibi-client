@@ -40,7 +40,7 @@ impl Default for McpStartup {
     }
 }
 
-/// prewait 截止（`deadlineMs`，没有时用缺省）：设了 `ZCODE_MCP_STARTUP_WAIT_MS` 用它；
+/// prewait 截止（`deadlineMs`，没有时用缺省）：设了 `NIBI_MCP_STARTUP_WAIT_MS` 用它；
 /// 否则显式给了 `--mcp-config` 的服务器时用 `MCP_TIMEOUT`；否则 2000。
 pub fn prewait_ms(startup_wait_ms: Option<u64>, explicit: bool, mcp_timeout_ms: u64) -> u64 {
     match startup_wait_ms {
@@ -51,7 +51,7 @@ pub fn prewait_ms(startup_wait_ms: Option<u64>, explicit: bool, mcp_timeout_ms: 
 }
 
 /// ② 等不等可延迟的服务器（`firstTurnHold`）：stream-json 输入、能用工具搜索、没有显式 `--mcp-config`、
-/// 没有设 `ZCODE_MCP_STARTUP_WAIT_MS` 时是 `lifted`，不等（headless.md §6）。单次 `-p "…"` 是 `single_shot`，等。
+/// 没有设 `NIBI_MCP_STARTUP_WAIT_MS` 时是 `lifted`，不等（headless.md §6）。单次 `-p "…"` 是 `single_shot`，等。
 pub fn wait_for_deferrable(
     streaming_input: bool,
     tool_search: bool,

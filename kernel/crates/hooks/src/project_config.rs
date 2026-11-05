@@ -15,7 +15,7 @@ use rust_cli_kernel_api::machine::Files;
 use rust_cli_platform::ConfigFile;
 
 /// 每一层的 `zcode.json`（F55：以前写了 3 次；F58 起名字在 base，policy 的敏感文件表也用它）。
-const ZCODE_JSON: &str = PROJECT_CONFIG_FILE;
+const NIBI_JSON: &str = PROJECT_CONFIG_FILE;
 /// 每一层 `.nibi/` 下的配置文件名。
 const CONFIG_JSON: &str = "config.json";
 /// 种类的名字 `.nibi/config.json`（进 digest）：与 Node `WorkspaceHookConfigFileKind` 同字面。
@@ -32,7 +32,7 @@ pub enum ProjectKind {
 impl ProjectKind {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::ZcodeJson => ZCODE_JSON,
+            Self::ZcodeJson => NIBI_JSON,
             Self::DotProjectConfig => DOT_PROJECT_CONFIG,
         }
     }
@@ -114,7 +114,7 @@ pub fn project_file(
     file: ConfigFile,
 ) -> ProjectFile {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(&path);
-    let kind = if name == ZCODE_JSON {
+    let kind = if name == NIBI_JSON {
         ProjectKind::ZcodeJson
     } else {
         ProjectKind::DotProjectConfig
@@ -135,7 +135,7 @@ pub async fn discover(files: &dyn Files, workspace: &WorkspaceRef) -> Vec<Projec
     let mut files = Vec::new();
     for level in reader.levels().await {
         for path in [
-            join(&level, ZCODE_JSON),
+            join(&level, NIBI_JSON),
             join(&join(&level, PROJECT_DOT_DIR), CONFIG_JSON),
         ] {
             if !reader.exists(&path).await {

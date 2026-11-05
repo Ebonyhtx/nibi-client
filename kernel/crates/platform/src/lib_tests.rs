@@ -115,7 +115,7 @@ async fn api_key_providers_resolve_with_headers_and_patches() {
 }
 
 /// 请求交来的输出上限进 `maxOutputTokens` 补丁的输入（工作线 F95，platform.md §3.3）：取配置的 max、
-/// `ZCODE_MAX_OUTPUT_TOKENS` 与它三者的最小值；不给时照旧是配置的 max（custom-chat 是 8192）。
+/// `NIBI_MAX_OUTPUT_TOKENS` 与它三者的最小值；不给时照旧是配置的 max（custom-chat 是 8192）。
 #[tokio::test]
 async fn the_request_output_limit_feeds_the_max_output_tokens_patch() {
     let dir = tempfile::tempdir().unwrap();

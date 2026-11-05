@@ -209,7 +209,7 @@ async fn no_room_left_keeps_the_baseline() {
     assert_eq!(got, Some(1));
 }
 
-/// `ZCODE_MAX_OUTPUT_TOKENS=32000`：基线是它与配置的上限的较小值；余量更小时取余量。
+/// `NIBI_MAX_OUTPUT_TOKENS=32000`：基线是它与配置的上限的较小值；余量更小时取余量。
 #[tokio::test]
 async fn the_environment_limit_lowers_the_baseline() {
     let got = budget(

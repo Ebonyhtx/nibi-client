@@ -25,7 +25,7 @@ fn env() -> Arc<MemoryEnvironment> {
             )
             .with_file(
                 &format!("{CWD}/.nibi/skills/vars/SKILL.md"),
-                "${ZCODE_PROJECT_DIR} ${CLAUDE_SESSION_ID}\n",
+                "${NIBI_PROJECT_DIR} ${CLAUDE_SESSION_ID}\n",
             ),
     )
 }

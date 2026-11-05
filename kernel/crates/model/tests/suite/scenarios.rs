@@ -256,7 +256,7 @@ async fn assert_cancelled_soon(
 
 #[tokio::test]
 async fn an_unconfigured_model_reports_authentication() {
-    let model = ProviderModel::unconfigured("ZCODE_API_KEY is not set");
+    let model = ProviderModel::unconfigured("NIBI_API_KEY is not set");
     let events: Vec<_> = model
         .stream(
             request("hi", QuerySource::MainThread),
@@ -267,7 +267,7 @@ async fn an_unconfigured_model_reports_authentication() {
     assert_eq!(
         events,
         vec![Err(ModelError::Authentication {
-            message: "ZCODE_API_KEY is not set".to_owned()
+            message: "NIBI_API_KEY is not set".to_owned()
         })]
     );
 }

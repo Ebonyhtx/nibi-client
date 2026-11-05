@@ -33,7 +33,7 @@ fn run(program: &Path, flag: &str, home: &Path) -> Output {
         .keep_system()
         .env("HOME", home)
         .env("USERPROFILE", home)
-        .env("ZCODE_DATA_BASE_DIR", home)
+        .env("NIBI_DATA_BASE_DIR", home)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -51,7 +51,7 @@ fn the_built_executable_is_zcode_rs() {
 
 #[test]
 fn copies_named_zcode_rs_or_zcode_start_normally() {
-    let version = env!("ZCODE_BUILD_VERSION");
+    let version = env!("NIBI_BUILD_VERSION");
     // 放在产物旁边：同一个卷上复制更快（APFS 上是克隆）。
     let dir = tempfile::tempdir_in(Path::new(BUILT).parent().unwrap()).unwrap();
     for name in ["zcode-rs", "zcode"] {

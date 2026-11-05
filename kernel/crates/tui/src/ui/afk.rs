@@ -10,11 +10,11 @@ const COUNTDOWN_MS: u64 = 20_000;
 /// 检查的间隔。
 const TICK: Duration = Duration::from_secs(1);
 
-/// 入口给出的超时：配置的 `askUserQuestionTimeout` 或环境变量 `ZCODE_AFK_TIMEOUT_MS`（环境变量压过配置）。
+/// 入口给出的超时：配置的 `askUserQuestionTimeout` 或环境变量 `NIBI_AFK_TIMEOUT_MS`（环境变量压过配置）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuestionTimeout {
     pub timeout_ms: u64,
-    /// 剩下的时间不超过它时显示倒计时（`ZCODE_AFK_COUNTDOWN_MS`，缺省 20 s，不超过超时）。
+    /// 剩下的时间不超过它时显示倒计时（`NIBI_AFK_COUNTDOWN_MS`，缺省 20 s，不超过超时）。
     pub countdown_ms: u64,
 }
 

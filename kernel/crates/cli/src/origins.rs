@@ -2,8 +2,8 @@
 //!
 //! - NIBI 服务（CLI OAuth 登录与模型请求的 `http-referer`）：`resolveRuntimeZCodeEndpointOrigin`——`NIBI_ENV=test`
 //!   时是测试环境；`NIBI_BASE_URL`、`NIBI_ENDPOINT_ORIGIN`、分环境的 `NIBI_PRODUCTION_BASE_URL` /
-//!   `NIBI_TEST_BASE_URL` 依次覆盖；API 根是 `<origin>/api/v1`。旧名 `ZCODE_*` 只在没有任何 NIBI 变量时回退
-//!   （独立 CLI 的历史脚本；Host 在 spawn 边界只下发 NIBI 名，见 `agentProxyEnv.ts`）。
+//!   `NIBI_TEST_BASE_URL` 依次覆盖；API 根是 `<origin>/api/v1`。只认 NIBI 名，不读任何旧品牌变量
+//!   （残留的旧变量会把流量指到别处）。
 //! - BigModel：`resolveBigModelApiOrigin`——`BIGMODEL_API_BASE_URL`，其次分环境的
 //!   `BIGMODEL_PRODUCTION_API_BASE_URL` / `BIGMODEL_TEST_API_BASE_URL`。
 //! - Z.ai 业务与项目接口：App 的 `resolveZaiBusinessBaseUrl`——`ZAI_BUSINESS_BASE_URL`，其次分环境的
@@ -33,12 +33,9 @@ fn origin(name: &str, value: &str) -> Result<String, String> {
     Ok(url.origin().ascii_serialization())
 }
 
-/// Node `resolveRuntimeZCodeEnv`：`NIBI_ENV`（去掉首尾空白）不分大小写等于 `test` 时是测试环境；旧名
-/// `ZCODE_ENV` 只在 `NIBI_ENV` 没设时回退。`env` 同下。
+/// Node `resolveRuntimeZCodeEnv`：`NIBI_ENV`（去掉首尾空白）不分大小写等于 `test` 时是测试环境。`env` 同下。
 pub(crate) fn is_test(env: &impl Fn(&str) -> Option<String>) -> bool {
-    env("NIBI_ENV")
-        .or_else(|| env("ZCODE_ENV"))
-        .is_some_and(|value| value.trim().eq_ignore_ascii_case("test"))
+    env("NIBI_ENV").is_some_and(|value| value.trim().eq_ignore_ascii_case("test"))
 }
 
 /// 第一个有值的变量（名字与值）。
@@ -52,8 +49,7 @@ fn first(
 }
 
 /// NIBI 服务的 origin（Node `resolveRuntimeZCodeEndpointOrigin`）：CLI 登录的地址与模型请求的 `http-referer`（工作线
-/// F64，model.md §2.4）共用这一个。名字顺序：NIBI 的四个变量按 Node 的优先级在前，旧名 `ZCODE_*` 整体作为回退
-/// （只在没有 NIBI 变量时生效）。`env` 同下。
+/// F64，model.md §2.4）共用这一个。`env` 同下。
 pub(crate) fn nibi_origin(env: &impl Fn(&str) -> Option<String>) -> Result<String, String> {
     let test = is_test(env);
     Ok(
@@ -66,13 +62,6 @@ pub(crate) fn nibi_origin(env: &impl Fn(&str) -> Option<String>) -> Result<Strin
                     "NIBI_TEST_BASE_URL"
                 } else {
                     "NIBI_PRODUCTION_BASE_URL"
-                },
-                "ZCODE_BASE_URL",
-                "ZCODE_ENDPOINT_ORIGIN",
-                if test {
-                    "ZCODE_TEST_BASE_URL"
-                } else {
-                    "ZCODE_PRODUCTION_BASE_URL"
                 },
             ],
         ) {
@@ -115,7 +104,7 @@ pub(crate) fn account_origins(
         None if test => ZAI_TEST_API.to_owned(),
         None => ZAI_API.to_owned(),
     };
-    // 团队套餐的管理页只看环境（App 传进去的只有 `ZCODE_ENV`，F58）。
+    // 团队套餐的管理页只看环境（App 传进去的只有 `NIBI_ENV`，F58）。
     let team_plans_origin = if test {
         BIGMODEL_TEST_ORIGIN
     } else {

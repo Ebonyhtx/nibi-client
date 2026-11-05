@@ -19,9 +19,9 @@ async fn an_invoked_skill_comes_back_after_compaction() {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(work.join(".zcode/skills/deploy")).unwrap();
+    std::fs::create_dir_all(work.join(".nibi/skills/deploy")).unwrap();
     std::fs::write(
-        work.join(".zcode/skills/deploy/SKILL.md"),
+        work.join(".nibi/skills/deploy/SKILL.md"),
         "---\ndescription: Deploy the service\n---\nRun the deploy checklist.\n",
     )
     .unwrap();
@@ -45,10 +45,10 @@ async fn an_invoked_skill_comes_back_after_compaction() {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "glm-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "glm-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

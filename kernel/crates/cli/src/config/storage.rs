@@ -1,7 +1,7 @@
 //! 会话库与存储根的位置（修复线 F2，docs/specs/rust-cli/config.md §2.3）：Node `createConfig` 的
 //! `storage.sessionDbPath` 与 `storage.dir`，按用户级 → 项目级 → 环境变量的顺序，后者覆盖前者（Node
-//! `ConfigStore.merge` 跳过空值）。环境变量取入口捕获的进程环境快照：`ZCODE_STORAGE_DIR`、
-//! `ZCODE_SESSION_DB_PATH` 与 `ZCODE_SESSION_DB`（两个都有时按环境里的先后，后出现的覆盖，Node `parseEnvConfig`
+//! `ConfigStore.merge` 跳过空值）。环境变量取入口捕获的进程环境快照：`NIBI_STORAGE_DIR`、
+//! `NIBI_SESSION_DB_PATH` 与 `NIBI_SESSION_DB`（两个都有时按环境里的先后，后出现的覆盖，Node `parseEnvConfig`
 //! 按 `Object.entries(process.env)` 的顺序）。以前入口不读这些值，库与产物目录总在缺省位置。
 
 use rust_cli_paths::StorageSettings;
@@ -18,12 +18,12 @@ pub(crate) struct StorageLayers {
 impl StorageLayers {
     pub(crate) fn from_layers(layers: &[Layer<'_>], process_env: &[(String, String)]) -> Self {
         Self {
-            dir: merged(layers, process_env, "dir", &["ZCODE_STORAGE_DIR"]),
+            dir: merged(layers, process_env, "dir", &["NIBI_STORAGE_DIR"]),
             session_db_path: merged(
                 layers,
                 process_env,
                 "sessionDbPath",
-                &["ZCODE_SESSION_DB_PATH", "ZCODE_SESSION_DB"],
+                &["NIBI_SESSION_DB_PATH", "NIBI_SESSION_DB"],
             ),
         }
     }

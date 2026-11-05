@@ -1,7 +1,7 @@
 //! 修复线 F61（docs/specs/rust-cli/compact.md §2、model.md §11、context-usage.md §4）：压缩窗口与输出上限只从模型配置取。
 //! 真实 `zcode -p` 连本地 SSE 夹具，两种模型来源都看：
 //!
-//! - 显式覆盖（`ZCODE_API_KEY` + `ZCODE_MODEL_BASE_URL` + `ZCODE_MODEL`，跑分用）：窗口与输出上限按内置配置的通用规则，
+//! - 显式覆盖（`NIBI_API_KEY` + `NIBI_MODEL_BASE_URL` + `NIBI_MODEL`，跑分用）：窗口与输出上限按内置配置的通用规则，
 //!   与能力同一份规则。glm-5.3 是 `contextWindow: 1000000`、`maxOutputTokens.max: 128000`。
 //! - Provider 配置（平台层的目录）：自定义 provider 上的 glm-4.5，内置规则给 `contextWindow: 131072`。
 //!
@@ -100,7 +100,7 @@ impl Sandbox {
             .env("HOME", &self.home)
             .env("USERPROFILE", &self.home)
             .env("PATH", "/usr/bin:/bin")
-            .env("ZCODE_DATA_BASE_DIR", &self.home)
+            .env("NIBI_DATA_BASE_DIR", &self.home)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -132,9 +132,9 @@ impl Sandbox {
 
 fn explicit(url: &str, model: &str) -> Vec<(String, String)> {
     vec![
-        ("ZCODE_MODEL_BASE_URL".to_owned(), url.to_owned()),
-        ("ZCODE_API_KEY".to_owned(), "test-key".to_owned()),
-        ("ZCODE_MODEL".to_owned(), model.to_owned()),
+        ("NIBI_MODEL_BASE_URL".to_owned(), url.to_owned()),
+        ("NIBI_API_KEY".to_owned(), "test-key".to_owned()),
+        ("NIBI_MODEL".to_owned(), model.to_owned()),
     ]
 }
 
@@ -221,13 +221,13 @@ async fn an_explicit_carded_model_keeps_its_window() {
     assert_eq!(autocompact_buffer(&output.stdout), "33k");
 }
 
-/// 回归：`ZCODE_AUTO_COMPACT_WINDOW` 照旧盖过配置的窗口（`min(窗口, 覆盖值)`）。
+/// 回归：`NIBI_AUTO_COMPACT_WINDOW` 照旧盖过配置的窗口（`min(窗口, 覆盖值)`）。
 #[tokio::test]
 async fn the_window_override_still_applies() {
     let sandbox = Sandbox::new();
     let fixture = sse::serve(Vec::new());
     let mut vars = explicit(&fixture.url, "glm-5.3");
-    vars.push(("ZCODE_AUTO_COMPACT_WINDOW".to_owned(), "300000".to_owned()));
+    vars.push(("NIBI_AUTO_COMPACT_WINDOW".to_owned(), "300000".to_owned()));
     let output = sandbox.run("/context", &borrowed(&vars), &[]);
     assert_eq!(context_window(&output.stdout), "300k");
 }

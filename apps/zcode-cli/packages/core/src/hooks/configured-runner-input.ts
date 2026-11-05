@@ -93,9 +93,6 @@ export function createPluginEnvOverlay(
       NIBI_PLUGIN_ID: plugin.id,
       NIBI_PLUGIN_NAME: plugin.name,
       NIBI_PLUGIN_ROOT: plugin.rootPath,
-      // 旧名别名：已发布的插件钩子脚本里可能仍读 ZCODE_PLUGIN_ROOT / ZCODE_PLUGIN_DATA。
-      ZCODE_PLUGIN_DATA: plugin.dataPath,
-      ZCODE_PLUGIN_ROOT: plugin.rootPath,
     },
   };
 }

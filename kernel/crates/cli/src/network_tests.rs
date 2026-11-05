@@ -15,18 +15,18 @@ fn proxy_of(vars: &[(&str, &str)]) -> Option<String> {
 fn the_zcode_proxy_wins_and_takes_the_node_shape() {
     // 去空白，没有 scheme 时补 `http://`。
     assert_eq!(
-        proxy_of(&[("ZCODE_HTTP_PROXY", " 127.0.0.1:8080 ")]),
+        proxy_of(&[("NIBI_HTTP_PROXY", " 127.0.0.1:8080 ")]),
         Some("http://127.0.0.1:8080/".to_owned())
     );
     assert_eq!(
-        proxy_of(&[("ZCODE_HTTP_PROXY", "socks5://proxy.example:1080")]),
+        proxy_of(&[("NIBI_HTTP_PROXY", "socks5://proxy.example:1080")]),
         Some("socks5://proxy.example:1080".to_owned())
     );
     // 有效时不读标准变量，它们格式不对也不报错。
     assert_eq!(
         proxy_of(&[
             ("HTTPS_PROXY", "proxy.example.com:8080"),
-            ("ZCODE_HTTP_PROXY", "http://zcode.example:3128"),
+            ("NIBI_HTTP_PROXY", "http://zcode.example:3128"),
         ]),
         Some("http://zcode.example:3128/".to_owned())
     );
@@ -37,13 +37,13 @@ fn an_unusable_zcode_proxy_counts_as_unset() {
     for value in ["", "   ", "http://exa mple:1"] {
         assert_eq!(
             proxy_of(&[
-                ("ZCODE_HTTP_PROXY", value),
+                ("NIBI_HTTP_PROXY", value),
                 ("HTTPS_PROXY", "http://standard.example:8080"),
             ]),
             Some("http://standard.example:8080/".to_owned()),
             "{value:?}"
         );
-        assert_eq!(proxy_of(&[("ZCODE_HTTP_PROXY", value)]), None, "{value:?}");
+        assert_eq!(proxy_of(&[("NIBI_HTTP_PROXY", value)]), None, "{value:?}");
     }
 }
 
@@ -99,14 +99,14 @@ fn no_proxy_prefers_zcode_then_merges_the_standard_pair() {
     let of = |vars: &[(&str, &str)]| no_proxy(&env(vars));
     assert_eq!(
         of(&[
-            ("ZCODE_NO_PROXY", " a.test,b.test "),
+            ("NIBI_NO_PROXY", " a.test,b.test "),
             ("NO_PROXY", "c.test")
         ]),
         NoProxy::Node("a.test,b.test".to_owned())
     );
     // 去空白后为空等于没有。
     assert_eq!(
-        of(&[("ZCODE_NO_PROXY", "  "), ("NO_PROXY", "c.test")]),
+        of(&[("NIBI_NO_PROXY", "  "), ("NO_PROXY", "c.test")]),
         NoProxy::Standard("c.test".to_owned())
     );
     // 合并：任一个是 `*` 时为 `*`；都非空且不同时拼起来；否则取非空的那个。
@@ -136,14 +136,14 @@ fn ca_sources_prefer_the_agent_file() {
     assert_eq!(
         of(&[
             ("NODE_EXTRA_CA_CERTS", "/x.pem"),
-            ("ZCODE_AGENT_CA_CERT", " ca.pem ")
+            ("NIBI_AGENT_CA_CERT", " ca.pem ")
         ]),
         Some(CaSource::Agent("ca.pem".to_owned()))
     );
     assert_eq!(
         of(&[
             ("NODE_EXTRA_CA_CERTS", "/x.pem"),
-            ("ZCODE_AGENT_CA_CERT", "  ")
+            ("NIBI_AGENT_CA_CERT", "  ")
         ]),
         Some(CaSource::Extra("/x.pem".to_owned()))
     );
@@ -175,25 +175,25 @@ async fn the_agent_file_replaces_the_roots() {
         ("junk.pem", "not a certificate\n".to_owned()),
     ];
     // 相对路径相对 cwd。
-    let network = network_in(&files, &[("ZCODE_AGENT_CA_CERT", "ca.pem")])
+    let network = network_in(&files, &[("NIBI_AGENT_CA_CERT", "ca.pem")])
         .await
         .unwrap();
     assert!(matches!(&network.policy.roots, TrustRoots::Only(bundle) if bundle.len() == 1));
     assert!(network.warnings.is_empty());
     // 没有可用证书：照常，HTTPS 在证书校验时失败（Node 相同），不写 stderr。
-    let network = network_in(&files, &[("ZCODE_AGENT_CA_CERT", "junk.pem")])
+    let network = network_in(&files, &[("NIBI_AGENT_CA_CERT", "junk.pem")])
         .await
         .unwrap();
     assert!(matches!(&network.policy.roots, TrustRoots::Only(bundle) if bundle.is_empty()));
     assert!(network.warnings.is_empty());
     // 读不出：报错（config.md D14）。
-    let error = network_in(&files, &[("ZCODE_AGENT_CA_CERT", "missing.pem")])
+    let error = network_in(&files, &[("NIBI_AGENT_CA_CERT", "missing.pem")])
         .await
         .err()
         .unwrap();
     assert_eq!(
         error.to_string(),
-        "ZCODE_AGENT_CA_CERT: cannot read missing.pem: No such file or directory"
+        "NIBI_AGENT_CA_CERT: cannot read missing.pem: No such file or directory"
     );
 }
 

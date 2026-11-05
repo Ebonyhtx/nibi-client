@@ -54,7 +54,7 @@ impl Workspace {
 }
 
 fn version_directive(version: &str) -> String {
-    format!("rustc-env=ZCODE_BUILD_VERSION={version}")
+    format!("rustc-env=NIBI_BUILD_VERSION={version}")
 }
 
 #[test]

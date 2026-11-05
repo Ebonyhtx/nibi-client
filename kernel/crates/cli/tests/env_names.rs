@@ -1,6 +1,6 @@
 //! 环境变量的名字与跑分用的三个开关（修复线 F42，docs/specs/rust-cli/config.md §2.5、cli-args.md §9）的真实进程：
-//! 临时 home 与工作区、本地假的 Anthropic 端点（记下请求体）。覆盖显式覆盖只认 `ZCODE_*`、Anthropic SDK 的变量不生效、
-//! 有 key 没有模型时取个人 Provider 配置的 `defaultModelSelection`、`ZCODE_MAX_OUTPUT_TOKENS`、`MAX_THINKING_TOKENS`
+//! 临时 home 与工作区、本地假的 Anthropic 端点（记下请求体）。覆盖显式覆盖只认 `NIBI_*`、Anthropic SDK 的变量不生效、
+//! 有 key 没有模型时取个人 Provider 配置的 `defaultModelSelection`、`NIBI_MAX_OUTPUT_TOKENS`、`MAX_THINKING_TOKENS`
 //! 与 `BASH_*_TIMEOUT_MS`。
 #![allow(
     clippy::disallowed_methods,
@@ -90,7 +90,7 @@ impl Server {
     }
 }
 
-/// 临时 home 与工作区；`ZCODE_DATA_BASE_DIR` 指向 home（个人 Provider 配置在 `<home>/.nibi/v2`）。
+/// 临时 home 与工作区；`NIBI_DATA_BASE_DIR` 指向 home（个人 Provider 配置在 `<home>/.nibi/v2`）。
 struct Sandbox {
     _dir: tempfile::TempDir,
     home: PathBuf,
@@ -140,7 +140,7 @@ impl Sandbox {
             .env("HOME", &self.home)
             .env("USERPROFILE", &self.home)
             .env("PATH", "/usr/bin:/bin")
-            .env("ZCODE_DATA_BASE_DIR", &self.home)
+            .env("NIBI_DATA_BASE_DIR", &self.home)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -159,16 +159,16 @@ fn text(output: &Output) -> String {
     )
 }
 
-/// 显式覆盖的三个变量是 `ZCODE_API_KEY` / `ZCODE_MODEL_BASE_URL` / `ZCODE_MODEL`（config.md §2.5）。
+/// 显式覆盖的三个变量是 `NIBI_API_KEY` / `NIBI_MODEL_BASE_URL` / `NIBI_MODEL`（config.md §2.5）。
 #[test]
 fn the_zcode_names_configure_the_explicit_endpoint() {
     let sandbox = Sandbox::new();
     let server = Server::start();
     let output = sandbox.run(
         &[
-            ("ZCODE_API_KEY", "test-key"),
-            ("ZCODE_MODEL_BASE_URL", &server.url),
-            ("ZCODE_MODEL", "claude-opus-5-5"),
+            ("NIBI_API_KEY", "test-key"),
+            ("NIBI_MODEL_BASE_URL", &server.url),
+            ("NIBI_MODEL", "claude-opus-5-5"),
         ],
         &[],
     );
@@ -195,7 +195,7 @@ fn anthropic_sdk_variables_are_not_read() {
     assert!(!output.status.success(), "{}", text(&output));
     assert!(server.all().is_empty(), "{:?}", server.all());
     let shown = text(&output);
-    assert!(shown.contains("set ZCODE_API_KEY"), "{shown}");
+    assert!(shown.contains("set NIBI_API_KEY"), "{shown}");
     assert!(!shown.contains("ANTHROPIC"), "{shown}");
 }
 
@@ -206,24 +206,24 @@ fn an_api_key_without_a_model_uses_the_default_model_selection() {
     let sandbox = Sandbox::new();
     let server = Server::start();
     let vars = [
-        ("ZCODE_API_KEY", "test-key"),
-        ("ZCODE_MODEL_BASE_URL", server.url.as_str()),
+        ("NIBI_API_KEY", "test-key"),
+        ("NIBI_MODEL_BASE_URL", server.url.as_str()),
     ];
     let output = sandbox.run(&vars, &[]);
     assert!(!output.status.success(), "{}", text(&output));
     assert!(server.all().is_empty());
     let shown = text(&output);
     assert!(
-        shown.contains("ZCODE_API_KEY is set: pass --model or set ZCODE_MODEL"),
+        shown.contains("NIBI_API_KEY is set: pass --model or set NIBI_MODEL"),
         "{shown}"
     );
     sandbox.default_model_selection("glm-test");
     let output = sandbox.run(&vars, &[]);
     assert!(output.status.success(), "{}", text(&output));
     assert_eq!(server.requests()[0]["model"], "glm-test");
-    // `ZCODE_MODEL` 与 `--model` 优先。
+    // `NIBI_MODEL` 与 `--model` 优先。
     let mut with_model = vars.to_vec();
-    with_model.push(("ZCODE_MODEL", "from-env"));
+    with_model.push(("NIBI_MODEL", "from-env"));
     let output = sandbox.run(&with_model, &[]);
     assert!(output.status.success(), "{}", text(&output));
     assert_eq!(server.requests().last().unwrap()["model"], "from-env");
@@ -241,9 +241,9 @@ fn zcode_max_output_tokens_sets_the_output_limit() {
     let max_tokens = |model: &str, var: (&str, &str)| {
         let output = sandbox.run(
             &[
-                ("ZCODE_API_KEY", "test-key"),
-                ("ZCODE_MODEL_BASE_URL", &server.url),
-                ("ZCODE_MODEL", model),
+                ("NIBI_API_KEY", "test-key"),
+                ("NIBI_MODEL_BASE_URL", &server.url),
+                ("NIBI_MODEL", model),
                 var,
             ],
             &[],
@@ -252,21 +252,21 @@ fn zcode_max_output_tokens_sets_the_output_limit() {
         server.requests().last().unwrap()["max_tokens"].clone()
     };
     let opus = "claude-opus-5-5";
-    assert_eq!(max_tokens(opus, ("ZCODE_MAX_OUTPUT_TOKENS", "4096")), 4096);
+    assert_eq!(max_tokens(opus, ("NIBI_MAX_OUTPUT_TOKENS", "4096")), 4096);
     assert_eq!(
-        max_tokens(opus, ("ZCODE_MAX_OUTPUT_TOKENS", "1e6")),
+        max_tokens(opus, ("NIBI_MAX_OUTPUT_TOKENS", "1e6")),
         128_000
     );
     let glm = "glm-test";
     assert_eq!(
-        max_tokens(glm, ("ZCODE_MAX_OUTPUT_TOKENS", "64,000")),
+        max_tokens(glm, ("NIBI_MAX_OUTPUT_TOKENS", "64,000")),
         64_000
     );
     assert_eq!(
-        max_tokens(glm, ("ZCODE_MAX_OUTPUT_TOKENS", "999999")),
+        max_tokens(glm, ("NIBI_MAX_OUTPUT_TOKENS", "999999")),
         128_000
     );
-    assert_eq!(max_tokens(glm, ("ZCODE_MAX_OUTPUT_TOKENS", "lots")), 32_000);
+    assert_eq!(max_tokens(glm, ("NIBI_MAX_OUTPUT_TOKENS", "lots")), 32_000);
 }
 
 /// `MAX_THINKING_TOKENS`（cli-args.md §9.2）：0 时 claude-opus-5-5 不发 thinking 与 clear_thinking；大于 0 时照旧。
@@ -282,10 +282,10 @@ fn max_thinking_tokens_zero_turns_thinking_off() {
     let body = |value: &str| {
         let output = sandbox.run(
             &[
-                ("ZCODE_API_KEY", "test-key"),
-                ("ZCODE_MODEL_BASE_URL", &server.url),
-                ("ZCODE_MODEL", "claude-opus-5-5"),
-                ("_ZCODE_ASSUME_FIRST_PARTY_BASE_URL", "1"),
+                ("NIBI_API_KEY", "test-key"),
+                ("NIBI_MODEL_BASE_URL", &server.url),
+                ("NIBI_MODEL", "claude-opus-5-5"),
+                ("_NIBI_ASSUME_FIRST_PARTY_BASE_URL", "1"),
                 ("MAX_THINKING_TOKENS", value),
             ],
             &[],
@@ -309,9 +309,9 @@ fn bash_timeouts_change_the_tool_text() {
     let server = Server::start();
     let output = sandbox.run(
         &[
-            ("ZCODE_API_KEY", "test-key"),
-            ("ZCODE_MODEL_BASE_URL", &server.url),
-            ("ZCODE_MODEL", "claude-opus-5-5"),
+            ("NIBI_API_KEY", "test-key"),
+            ("NIBI_MODEL_BASE_URL", &server.url),
+            ("NIBI_MODEL", "claude-opus-5-5"),
             ("BASH_DEFAULT_TIMEOUT_MS", "900000"),
             ("BASH_MAX_TIMEOUT_MS", "8000000"),
         ],
@@ -349,7 +349,7 @@ fn bash_timeouts_change_the_tool_text() {
     );
 }
 
-/// 记忆段的开关（`ZCODE_DISABLE_AUTO_MEMORY`）：为真时关掉记忆段，为假时不关。
+/// 记忆段的开关（`NIBI_DISABLE_AUTO_MEMORY`）：为真时关掉记忆段，为假时不关。
 #[test]
 fn the_auto_memory_switch_takes_effect() {
     let sandbox = Sandbox::new();
@@ -357,9 +357,9 @@ fn the_auto_memory_switch_takes_effect() {
     let system = |var: (&str, &str)| {
         let output = sandbox.run(
             &[
-                ("ZCODE_API_KEY", "test-key"),
-                ("ZCODE_MODEL_BASE_URL", &server.url),
-                ("ZCODE_MODEL", "claude-opus-5-5"),
+                ("NIBI_API_KEY", "test-key"),
+                ("NIBI_MODEL_BASE_URL", &server.url),
+                ("NIBI_MODEL", "claude-opus-5-5"),
                 var,
             ],
             &[],
@@ -368,6 +368,6 @@ fn the_auto_memory_switch_takes_effect() {
         server.requests().last().unwrap()["system"].to_string()
     };
     const MEMORY: &str = "You have a persistent file-based memory at";
-    assert!(!system(("ZCODE_DISABLE_AUTO_MEMORY", "1")).contains(MEMORY));
-    assert!(system(("ZCODE_DISABLE_AUTO_MEMORY", "0")).contains(MEMORY));
+    assert!(!system(("NIBI_DISABLE_AUTO_MEMORY", "1")).contains(MEMORY));
+    assert!(system(("NIBI_DISABLE_AUTO_MEMORY", "0")).contains(MEMORY));
 }

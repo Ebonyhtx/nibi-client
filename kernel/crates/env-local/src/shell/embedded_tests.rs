@@ -14,7 +14,7 @@ fn search(path: &str, find_and_grep: bool) -> EmbeddedSearch {
 const RG: &str = r#"# Check for rg availability
 if ! hash rg 2>/dev/null && ! typeset -f rg >/dev/null 2>&1; then
   function rg {
-  local _zc_bin="${ZCODE_EXECPATH:-}"
+  local _zc_bin="${NIBI_EXECPATH:-}"
   [[ -x $_zc_bin ]] || _zc_bin='/opt/Z Code/zcode'
   if [[ ! -x $_zc_bin ]]; then command rg ${1+"$@"}; return; fi
   if [[ -n ${ZSH_VERSION:-} ]]; then
@@ -31,7 +31,7 @@ const FIND_GREP: &str = r#"# Shadow find/grep with embedded bfs/ugrep
 unalias find 2>/dev/null || true
 unalias grep 2>/dev/null || true
 function find {
-  local _zc_bin="${ZCODE_EXECPATH:-}"
+  local _zc_bin="${NIBI_EXECPATH:-}"
   [[ -x $_zc_bin ]] || _zc_bin='/opt/Z Code/zcode'
   if [[ ! -x $_zc_bin ]]; then command find ${1+"$@"}; return; fi
   if [[ -n ${ZSH_VERSION:-} ]]; then
@@ -47,7 +47,7 @@ function grep {
   for _zc_a in ${1+"$@"}; do
     case "$_zc_a" in -*-filter*|-*-pager*|-*-view*|-*-format-open*|-*-config*|---*|-@*|-*-save-config*|-[Zz]*|-[!-]*[Zz]*|--null|--null-data) command grep ${1+"$@"}; return ;; esac
   done
-  local _zc_bin="${ZCODE_EXECPATH:-}"
+  local _zc_bin="${NIBI_EXECPATH:-}"
   [[ -x $_zc_bin ]] || _zc_bin='/opt/Z Code/zcode'
   if [[ ! -x $_zc_bin ]]; then command grep ${1+"$@"}; return; fi
   if [[ -n ${ZSH_VERSION:-} ]]; then

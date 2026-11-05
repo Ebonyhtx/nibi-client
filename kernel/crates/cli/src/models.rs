@@ -1,8 +1,8 @@
 //! 模型的组装（docs/specs/rust-cli/model.md §6、platform.md §1）：显式覆盖或平台层。
 //!
-//! - `ZCODE_API_KEY` 非空：显式覆盖（本地对照测试依赖它），Anthropic 端点 `ZCODE_MODEL_BASE_URL`
-//!   （空白时官方 API），模型依次取 `--model`、`ZCODE_MODEL`、个人 Provider 配置的 `defaultModelSelection`。
-//!   名字都是 `ZCODE_*`（修复线 F42，config.md §2.5），Anthropic SDK 的 `ANTHROPIC_*` 不读。
+//! - `NIBI_API_KEY` 非空：显式覆盖（本地对照测试依赖它），Anthropic 端点 `NIBI_MODEL_BASE_URL`
+//!   （空白时官方 API），模型依次取 `--model`、`NIBI_MODEL`、个人 Provider 配置的 `defaultModelSelection`。
+//!   名字都是 `NIBI_*`（修复线 F42，config.md §2.5），Anthropic SDK 的 `ANTHROPIC_*` 不读。
 //! - 否则：平台层的 Provider registry。`--model` 是 `<provider>/<model>` 或目录里的模型 ID（取第一个
 //!   匹配），没有时用目录的默认选择。
 //!
@@ -35,7 +35,7 @@ pub(crate) struct Override {
     pub assume: Assumptions,
     /// 只给测试的 SSH 入口（remote-exec.md §19.11，只在 debug 构建读）。
     pub ssh: Option<crate::options::SshAssumption>,
-    /// `_ZCODE_ASSUME_BASE_URL`（修复线 F113，provider-errors.md D13，只在 debug 构建读）：查请求方案与厂商的错误码表时
+    /// `_NIBI_ASSUME_BASE_URL`（修复线 F113，provider-errors.md D13，只在 debug 构建读）：查请求方案与厂商的错误码表时
     /// 把端点当成这个地址；显式覆盖与平台层的端点都生效。
     pub assumed_base_url: Option<String>,
 }
@@ -51,8 +51,8 @@ pub(crate) fn rule_base_url(base_url: &str) -> String {
 }
 
 /// 显式覆盖的能力与压缩上限（修复线 F23、F61，model.md §6、§11，compact.md §2）：内置配置的通用规则，同一份规则与
-/// 规则地址，按选择里的模型算（`/model` 可以换）。`assume`：两个测试声明（`_ZCODE_ASSUME_FIRST_PARTY_BASE_URL`、
-/// `_ZCODE_ASSUME_TOOL_SEARCH`）。
+/// 规则地址，按选择里的模型算（`/model` 可以换）。`assume`：两个测试声明（`_NIBI_ASSUME_FIRST_PARTY_BASE_URL`、
+/// `_NIBI_ASSUME_TOOL_SEARCH`）。
 fn explicit_rules(
     rules: SiteRules,
     base_url: &str,
@@ -114,7 +114,7 @@ pub(crate) fn pick(catalog: &ModelCatalog, flag: Option<&str>) -> Result<ModelSe
         return catalog.default.clone().ok_or_else(|| {
             format!(
                 "no model provider configured: add one to ~/{DOT_DIR}/v2/provider_config.json, \
-                 log in with the NIBI app, or set ZCODE_API_KEY"
+                 log in with the NIBI app, or set NIBI_API_KEY"
             )
         });
     };
@@ -148,7 +148,7 @@ pub(crate) fn pick(catalog: &ModelCatalog, flag: Option<&str>) -> Result<ModelSe
     }
 }
 
-/// 显式覆盖的模型（model.md §6，用户决定 2026-10-20）：`--model` → `ZCODE_MODEL` → 个人 Provider 配置的
+/// 显式覆盖的模型（model.md §6，用户决定 2026-10-20）：`--model` → `NIBI_MODEL` → 个人 Provider 配置的
 /// `defaultModelSelection.modelId`（与 Node 同一个文件与字段）。都没有时报错提示 `--model`。
 ///
 /// 修复线 F42：以前没有模型就报错；用户决定用 zcode 配置里的缺省，不写死缺省模型。
@@ -159,7 +159,7 @@ pub(crate) fn explicit_model(
 ) -> Result<String, String> {
     flag.or(env)
         .or(configured)
-        .ok_or_else(|| "ZCODE_API_KEY is set: pass --model or set ZCODE_MODEL".to_owned())
+        .ok_or_else(|| "NIBI_API_KEY is set: pass --model or set NIBI_MODEL".to_owned())
 }
 
 /// `--effort` 写进新会话的选择（cli-args.md §1.4）。`catalog` 是平台层的模型目录（显式覆盖没有目录）：有目录时按这个

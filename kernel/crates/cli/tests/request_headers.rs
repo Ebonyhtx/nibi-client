@@ -51,10 +51,10 @@ fn run(vars: &[(&str, &str)]) -> Vec<sse::Headers> {
         .env_clear()
         .env("HOME", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -135,8 +135,8 @@ fn a_real_request_carries_the_node_headers() {
     assert_ne!(get(first, "x-request-id"), get(second, "x-request-id"));
 }
 
-/// `NIBI_APP_VERSION` 设了就用它（Node 的 `??`：空值也算设了，版本写 `unknown`、不发版本头）；旧名
-/// `ZCODE_APP_VERSION` 只在没设 NIBI 名时回退；没设 `LANG` 时是 `en-US`。
+/// `NIBI_APP_VERSION` 设了就用它（Node 的 `??`：空值也算设了，版本写 `unknown`、不发版本头）；没设
+/// `LANG` 时是 `en-US`。
 #[test]
 fn the_app_version_variable_comes_first() {
     let requests = run(&[("NIBI_APP_VERSION", "9.9.9"), ("TZ", "UTC")]);
@@ -150,8 +150,4 @@ fn the_app_version_variable_comes_first() {
     let requests = run(&[("NIBI_APP_VERSION", "")]);
     assert_eq!(get(&requests[0], "user-agent"), Some("NIBI/unknown"));
     assert_eq!(get(&requests[0], "x-zcode-app-version"), None);
-    // 旧名回退：只设旧名时仍按它发（独立 CLI 的历史脚本）。
-    let requests = run(&[("ZCODE_APP_VERSION", "8.8.8")]);
-    assert_eq!(get(&requests[0], "user-agent"), Some("NIBI/8.8.8"));
-    assert_eq!(get(&requests[0], "x-zcode-app-version"), Some("8.8.8"));
 }

@@ -24,7 +24,7 @@ const OVERRIDE_MAX: u64 = 1_000_000;
 /// 窗口从哪里来。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WindowSource {
-    /// 配置的窗口覆盖（`ZCODE_AUTO_COMPACT_WINDOW`）。
+    /// 配置的窗口覆盖（`NIBI_AUTO_COMPACT_WINDOW`）。
     Override,
     /// 卡片认识、窗口 ≥ 1M 的模型。
     ModelDefault,
@@ -72,11 +72,11 @@ impl ModelFacts {
 /// 阈值的配置（入口从设置与环境变量取值）。
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Thresholds {
-    /// `ZCODE_AUTOCOMPACT_PCT_OVERRIDE`：(0, 100] 之外的值无效。
+    /// `NIBI_AUTOCOMPACT_PCT_OVERRIDE`：(0, 100] 之外的值无效。
     pub pct_override: Option<f64>,
-    /// `ZCODE_AUTO_COMPACT_WINDOW`。
+    /// `NIBI_AUTO_COMPACT_WINDOW`。
     pub window_override: Option<u64>,
-    /// `ZCODE_MAX_OUTPUT_TOKENS`（修复线 F42）：模型的输出上限先与它取小，再算摘要的
+    /// `NIBI_MAX_OUTPUT_TOKENS`（修复线 F42）：模型的输出上限先与它取小，再算摘要的
     /// 预留（模型的输出上限已含这个变量）。
     pub max_output_tokens: Option<u64>,
 }
@@ -106,7 +106,7 @@ pub fn window(facts: &ModelFacts, thresholds: &Thresholds) -> Window {
     }
 }
 
-/// 摘要输出的预留（模型的输出上限与预留上限取小）：设了 `ZCODE_MAX_OUTPUT_TOKENS` 时输出上限先取小（F42）。
+/// 摘要输出的预留（模型的输出上限与预留上限取小）：设了 `NIBI_MAX_OUTPUT_TOKENS` 时输出上限先取小（F42）。
 fn reserve(facts: &ModelFacts, thresholds: &Thresholds) -> u64 {
     let max_output = thresholds
         .max_output_tokens

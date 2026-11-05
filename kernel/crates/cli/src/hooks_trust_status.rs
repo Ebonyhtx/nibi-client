@@ -140,13 +140,13 @@ fn human(status: &Status, action: Action) -> String {
         let workspace = quote(&status.identity);
         lines.push("Pretrust exact declarations with:".to_owned());
         lines.push(format!(
-            "  zcode hooks trust grant --workspace {workspace} --hook-digest <sha256>"
+            "  nibi hooks trust grant --workspace {workspace} --hook-digest <sha256>"
         ));
         lines.push(
             "Or trust every currently enabled declaration in this exact bundle with:".to_owned(),
         );
         lines.push(format!(
-            "  zcode hooks trust grant --workspace {workspace} --all-current --bundle-digest {bundle}"
+            "  nibi hooks trust grant --workspace {workspace} --all-current --bundle-digest {bundle}"
         ));
     }
     if status.reason == "workspace_hooks_trust_store_corrupt" {

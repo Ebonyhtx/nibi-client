@@ -87,7 +87,7 @@ pub struct EndpointContext {
     pub session: Option<crate::ids::SessionId>,
 }
 
-/// 按选择解析端点。实现方是平台层；测试与显式覆盖（`ZCODE_MODEL_BASE_URL` / `ZCODE_API_KEY`）
+/// 按选择解析端点。实现方是平台层；测试与显式覆盖（`NIBI_MODEL_BASE_URL` / `NIBI_API_KEY`）
 /// 用固定端点。
 #[async_trait]
 pub trait ModelEndpoints: Send + Sync {

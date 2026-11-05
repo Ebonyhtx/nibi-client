@@ -99,7 +99,7 @@ pub struct Defaults {
     /// 启动参数点名了 Glob 或 Grep：有 Bash 时也暴露这两个工具
     /// （tools-files.md §1.1）。
     pub search_tools: bool,
-    /// 任务工具的显式开关（入口读 `ZCODE_ENABLE_TODO_TOOLS` / `ZCODE_ENABLE_TASKS`，
+    /// 任务工具的显式开关（入口读 `NIBI_ENABLE_TODO_TOOLS` / `NIBI_ENABLE_TASKS`，
     /// 修复线 F42）：Some(true) 打开，Some(false) 关闭，None 按默认模型（agents.md §7）。
     pub task_tools: Option<bool>,
     /// 入口按环境变量给的上限（cli-args.md §9，修复线 F42）。
@@ -115,7 +115,7 @@ pub struct Limits {
     pub request: RequestLimits,
     /// Bash 工具（模型的调用与 bash 模式）的缺省与最大超时。
     pub bash: BashTimeouts,
-    /// `ZCODE_FORK_SUBAGENT`（对照实现有同义的开关，修复线 L-A，agents.md §8.1.1）：Some(true) 打开 fork
+    /// `NIBI_FORK_SUBAGENT`（对照实现有同义的开关，修复线 L-A，agents.md §8.1.1）：Some(true) 打开 fork
     /// 子代理（`-p` 也开），Some(false) 关掉，None 按形态（交互会话开，`-p` 关）。
     pub fork_subagent: Option<bool>,
 }

@@ -34,9 +34,9 @@ fn file_stem(path: &str) -> &str {
 fn substitute(text: &str, root: &str, project_dir: &str) -> String {
     [
         (vars::CLAUDE_PLUGIN_ROOT, root),
-        (vars::ZCODE_PLUGIN_ROOT, root),
+        (vars::NIBI_PLUGIN_ROOT, root),
         (vars::CLAUDE_PROJECT_DIR, project_dir),
-        (vars::ZCODE_PROJECT_DIR, project_dir),
+        (vars::NIBI_PROJECT_DIR, project_dir),
     ]
     .iter()
     .fold(text.to_owned(), |text, (name, value)| {

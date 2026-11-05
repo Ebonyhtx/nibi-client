@@ -23,13 +23,13 @@ fn env(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         .collect()
 }
 
-/// 名字按修复线 F42 换成 `ZCODE_*`（config.md §2.5），旧名字不再读。
+/// 名字按修复线 F42 换成 `NIBI_*`（config.md §2.5），旧名字不再读。
 #[test]
 fn compaction_follows_the_zcode_variables() {
     let config = compact(
         &env(&[
-            ("ZCODE_AUTOCOMPACT_PCT_OVERRIDE", "50"),
-            ("ZCODE_AUTO_COMPACT_WINDOW", "200k"),
+            ("NIBI_AUTOCOMPACT_PCT_OVERRIDE", "50"),
+            ("NIBI_AUTO_COMPACT_WINDOW", "200k"),
         ]),
         None,
         none(),
@@ -49,18 +49,18 @@ fn compaction_follows_the_zcode_variables() {
     assert_eq!(window("auto"), None);
 }
 
-/// `ZCODE_MAX_OUTPUT_TOKENS` 也给压缩的摘要预留（compact.md §2，F42）。修复线 F58：
+/// `NIBI_MAX_OUTPUT_TOKENS` 也给压缩的摘要预留（compact.md §2，F42）。修复线 F58：
 /// 值由入口读一次传进来（`Startup.max_output_tokens`），这里不再自己读环境变量（以前同一个变量读 4 次，无效值的
 /// 警告写 4 次）。
 #[test]
 fn compaction_takes_the_output_limit_read_once_by_the_entry() {
     let config = compact(
-        &env(&[("ZCODE_MAX_OUTPUT_TOKENS", "lots")]),
+        &env(&[("NIBI_MAX_OUTPUT_TOKENS", "lots")]),
         Some(8000),
         none(),
     );
     assert_eq!(config.thresholds.max_output_tokens, Some(8000));
-    let unset = compact(&env(&[("ZCODE_MAX_OUTPUT_TOKENS", "8000")]), None, none());
+    let unset = compact(&env(&[("NIBI_MAX_OUTPUT_TOKENS", "8000")]), None, none());
     assert_eq!(unset.thresholds.max_output_tokens, None);
 }
 
@@ -71,15 +71,15 @@ fn stream_idle_follows_the_zcode_variables() {
     // 缺省：两个看门狗都开，事件级 300 s，字节级按端点。
     assert_eq!(stream_idle(&env(&[])), StreamIdle::default());
     // 事件级只能调大；设了它时字节级也用它。
-    let low = stream_idle(&env(&[("ZCODE_STREAM_IDLE_TIMEOUT_MS", "1000")]));
+    let low = stream_idle(&env(&[("NIBI_STREAM_IDLE_TIMEOUT_MS", "1000")]));
     assert_eq!(low.events, Some(secs(300)));
     assert_eq!(low.bytes, Some(ByteIdle::Fixed(secs(300))));
-    let high = stream_idle(&env(&[("ZCODE_STREAM_IDLE_TIMEOUT_MS", "600000ms")]));
+    let high = stream_idle(&env(&[("NIBI_STREAM_IDLE_TIMEOUT_MS", "600000ms")]));
     assert_eq!(high.events, Some(secs(600)));
     assert_eq!(high.bytes, Some(ByteIdle::Fixed(secs(600))));
     // 字节级单独设，夹在 [10 s, 30 min]。
     let bytes =
-        |value: &str| stream_idle(&env(&[("ZCODE_BYTE_STREAM_IDLE_TIMEOUT_MS", value)])).bytes;
+        |value: &str| stream_idle(&env(&[("NIBI_BYTE_STREAM_IDLE_TIMEOUT_MS", value)])).bytes;
     assert_eq!(bytes("10000"), Some(ByteIdle::Fixed(secs(10))));
     assert_eq!(bytes("2000"), Some(ByteIdle::Fixed(secs(10))));
     assert_eq!(bytes("99999999"), Some(ByteIdle::Fixed(secs(1800))));
@@ -87,36 +87,36 @@ fn stream_idle_follows_the_zcode_variables() {
     assert_eq!(bytes("soon"), Some(ByteIdle::Endpoint));
     // 关掉。
     let off = stream_idle(&env(&[
-        ("ZCODE_ENABLE_STREAM_WATCHDOG", "false"),
-        ("ZCODE_ENABLE_BYTE_WATCHDOG", "0"),
+        ("NIBI_ENABLE_STREAM_WATCHDOG", "false"),
+        ("NIBI_ENABLE_BYTE_WATCHDOG", "0"),
     ]));
     assert_eq!((off.events, off.bytes), (None, None));
-    let on = stream_idle(&env(&[("ZCODE_ENABLE_STREAM_WATCHDOG", "1")]));
+    let on = stream_idle(&env(&[("NIBI_ENABLE_STREAM_WATCHDOG", "1")]));
     assert_eq!(on.events, Some(secs(300)));
 }
 
-/// 任务工具的开关（R4 F6）：`ZCODE_ENABLE_TODO_TOOLS` 打开，
-/// `ZCODE_ENABLE_TASKS=false` 关闭且优先；都没有时按模型。
+/// 任务工具的开关（R4 F6）：`NIBI_ENABLE_TODO_TOOLS` 打开，
+/// `NIBI_ENABLE_TASKS=false` 关闭且优先；都没有时按模型。
 #[test]
 fn task_tools_follow_the_zcode_variables() {
     assert_eq!(task_tools(&env(&[])), None);
     assert_eq!(
-        task_tools(&env(&[("ZCODE_ENABLE_TODO_TOOLS", "1")])),
+        task_tools(&env(&[("NIBI_ENABLE_TODO_TOOLS", "1")])),
         Some(true)
     );
-    assert_eq!(task_tools(&env(&[("ZCODE_ENABLE_TODO_TOOLS", "0")])), None);
+    assert_eq!(task_tools(&env(&[("NIBI_ENABLE_TODO_TOOLS", "0")])), None);
     assert_eq!(
-        task_tools(&env(&[("ZCODE_ENABLE_TASKS", "false")])),
+        task_tools(&env(&[("NIBI_ENABLE_TASKS", "false")])),
         Some(false)
     );
     assert_eq!(
         task_tools(&env(&[
-            ("ZCODE_ENABLE_TODO_TOOLS", "true"),
-            ("ZCODE_ENABLE_TASKS", "0"),
+            ("NIBI_ENABLE_TODO_TOOLS", "true"),
+            ("NIBI_ENABLE_TASKS", "0"),
         ])),
         Some(false)
     );
-    assert_eq!(task_tools(&env(&[("ZCODE_ENABLE_TASKS", "1")])), None);
+    assert_eq!(task_tools(&env(&[("NIBI_ENABLE_TASKS", "1")])), None);
 }
 
 /// 两个只给测试用的声明（model.md §6）：接受时按真值读。
@@ -130,18 +130,18 @@ fn accepted_declarations_are_truthy_test_variables() {
     };
     assert_eq!(read(&[]), Assumptions::default());
     let both = read(&[
-        ("_ZCODE_ASSUME_FIRST_PARTY_BASE_URL", "1"),
-        ("_ZCODE_ASSUME_TOOL_SEARCH", "TRUE"),
+        ("_NIBI_ASSUME_FIRST_PARTY_BASE_URL", "1"),
+        ("_NIBI_ASSUME_TOOL_SEARCH", "TRUE"),
     ]);
     assert!(both.first_party && both.tool_search, "{both:?}");
-    let first_party = read(&[("_ZCODE_ASSUME_FIRST_PARTY_BASE_URL", "yes")]);
+    let first_party = read(&[("_NIBI_ASSUME_FIRST_PARTY_BASE_URL", "yes")]);
     assert!(first_party.first_party && !first_party.tool_search);
-    let tool_search = read(&[("_ZCODE_ASSUME_TOOL_SEARCH", "on")]);
+    let tool_search = read(&[("_NIBI_ASSUME_TOOL_SEARCH", "on")]);
     assert!(!tool_search.first_party && tool_search.tool_search);
     assert_eq!(
         read(&[
-            ("_ZCODE_ASSUME_FIRST_PARTY_BASE_URL", "0"),
-            ("_ZCODE_ASSUME_TOOL_SEARCH", "false"),
+            ("_NIBI_ASSUME_FIRST_PARTY_BASE_URL", "0"),
+            ("_NIBI_ASSUME_TOOL_SEARCH", "false"),
         ]),
         Assumptions::default()
     );
@@ -151,7 +151,7 @@ fn accepted_declarations_are_truthy_test_variables() {
 #[test]
 fn the_assumed_base_url_is_a_test_declaration() {
     let snapshot = env(&[(
-        "_ZCODE_ASSUME_BASE_URL",
+        "_NIBI_ASSUME_BASE_URL",
         "https://open.bigmodel.cn/api/anthropic",
     )]);
     assert_eq!(
@@ -160,7 +160,7 @@ fn the_assumed_base_url_is_a_test_declaration() {
         }),
         Some("https://open.bigmodel.cn/api/anthropic".to_owned())
     );
-    let blank = env(&[("_ZCODE_ASSUME_BASE_URL", "  ")]);
+    let blank = env(&[("_NIBI_ASSUME_BASE_URL", "  ")]);
     assert_eq!(
         assumed_base_url(TestDeclarations::Accepted, |name| {
             var(&blank, name).map(str::to_owned)
@@ -235,12 +235,12 @@ fn monitor_is_on_unless_declared_off() {
     assert!(monitor(plain, true));
     assert_eq!(monitor(plain, false), !cfg!(windows));
     let off = read(
-        &[("_ZCODE_ASSUME_MONITOR_OFF", "1")],
+        &[("_NIBI_ASSUME_MONITOR_OFF", "1")],
         TestDeclarations::Accepted,
     );
     assert!(off.monitor_off && !monitor(off, true));
     let release = read(
-        &[("_ZCODE_ASSUME_MONITOR_OFF", "1")],
+        &[("_NIBI_ASSUME_MONITOR_OFF", "1")],
         TestDeclarations::Ignored,
     );
     assert!(monitor(release, true));
@@ -254,10 +254,10 @@ fn the_loopback_declaration_is_read_only_when_declarations_are_accepted() {
         assumptions(declarations, |name| var(&snapshot, name).map(str::to_owned))
     };
     assert!(!read(&[], TestDeclarations::Accepted).loopback);
-    let declared = [("_ZCODE_ASSUME_LOOPBACK_EXECUTOR", "1")];
+    let declared = [("_NIBI_ASSUME_LOOPBACK_EXECUTOR", "1")];
     assert!(read(&declared, TestDeclarations::Accepted).loopback);
     assert!(!read(&declared, TestDeclarations::Ignored).loopback);
-    let off = [("_ZCODE_ASSUME_LOOPBACK_EXECUTOR", "0")];
+    let off = [("_NIBI_ASSUME_LOOPBACK_EXECUTOR", "0")];
     assert!(!read(&off, TestDeclarations::Accepted).loopback);
 }
 
@@ -269,19 +269,19 @@ fn the_loopback_machines_declaration_is_read_only_when_declarations_are_accepted
         assumptions(declarations, |name| var(&snapshot, name).map(str::to_owned))
     };
     assert!(!read(&[], TestDeclarations::Accepted).loopback_machines);
-    let declared = [("_ZCODE_ASSUME_LOOPBACK_MACHINES", "1")];
+    let declared = [("_NIBI_ASSUME_LOOPBACK_MACHINES", "1")];
     assert!(read(&declared, TestDeclarations::Accepted).loopback_machines);
     assert!(!read(&declared, TestDeclarations::Ignored).loopback_machines);
     // 两个 loopback 声明互不影响。
     assert!(!read(&declared, TestDeclarations::Accepted).loopback);
-    let ssh = [("_ZCODE_ASSUME_SSH_MACHINES", "1")];
+    let ssh = [("_NIBI_ASSUME_SSH_MACHINES", "1")];
     assert!(read(&ssh, TestDeclarations::Accepted).ssh_machines);
     assert!(!read(&ssh, TestDeclarations::Ignored).ssh_machines);
-    // 机器经 SSH 时的测试配置：不要求 `_ZCODE_ASSUME_SSH_EXECUTOR`；release 构建什么都不读。
+    // 机器经 SSH 时的测试配置：不要求 `_NIBI_ASSUME_SSH_EXECUTOR`；release 构建什么都不读。
     // F100（remote-exec.md §26.7）：执行器的假注册表也只在 debug 构建读。
     let vars = env(&[
-        ("_ZCODE_ASSUME_SSH_CONFIG", "/tmp/ssh_config"),
-        ("_ZCODE_ASSUME_NPM_REGISTRY", "http://127.0.0.1:9"),
+        ("_NIBI_ASSUME_SSH_CONFIG", "/tmp/ssh_config"),
+        ("_NIBI_ASSUME_NPM_REGISTRY", "http://127.0.0.1:9"),
     ]);
     assert_eq!(
         machine_ssh(TestDeclarations::Accepted, |name| var(&vars, name)
@@ -304,9 +304,9 @@ fn the_loopback_machines_declaration_is_read_only_when_declarations_are_accepted
 #[test]
 fn the_ssh_entry_is_read_only_when_declarations_are_accepted() {
     let vars = [
-        ("_ZCODE_ASSUME_SSH_EXECUTOR", "test-host"),
-        ("_ZCODE_ASSUME_SSH_CONFIG", "/tmp/ssh_config"),
-        ("_ZCODE_ASSUME_SSH_ARTIFACT", ""),
+        ("_NIBI_ASSUME_SSH_EXECUTOR", "test-host"),
+        ("_NIBI_ASSUME_SSH_CONFIG", "/tmp/ssh_config"),
+        ("_NIBI_ASSUME_SSH_ARTIFACT", ""),
     ];
     let lookup = |name: &str| {
         vars.iter()

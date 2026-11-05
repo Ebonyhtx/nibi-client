@@ -101,7 +101,7 @@ async fn read_returns_persisted_tool_and_hook_output_from_the_real_store() {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     // 600 行、每行约 60 字符：Grep 的结果超过 20000 字符（落盘），全文约 9000 token（整读不超限）。
     let big: String = (1..=600)
         .map(|i| format!("foo line {i} {}\n", "x".repeat(40)))
@@ -112,7 +112,7 @@ async fn read_returns_persisted_tool_and_hook_output_from_the_real_store() {
     let config = json!({"hooks": {"enabled": true, "events": {
         "SessionStart": [{"hooks": [{"type": "command", "command": hook}]}],
     }}});
-    std::fs::write(home.join(".zcode/cli/config.json"), config.to_string()).unwrap();
+    std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
 
     let grep = json!({
         "pattern": "foo",
@@ -153,9 +153,9 @@ async fn read_returns_persisted_tool_and_hook_output_from_the_real_store() {
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
         .env("SHELL", "/bin/bash")
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

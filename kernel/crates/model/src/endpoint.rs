@@ -1,7 +1,7 @@
 //! 端点的来源与 URL 规则（docs/specs/rust-cli/model.md §1、§6）。
 //!
 //! 模型端口每次请求经 [`ModelEndpoints`] 取一次端点：平台层按 Provider registry 与账号给出；显式覆盖
-//! （`ZCODE_MODEL_BASE_URL` / `ZCODE_API_KEY`，修复线 F42）与测试用这里的 [`FixedEndpoint`]。
+//! （`NIBI_MODEL_BASE_URL` / `NIBI_API_KEY`，修复线 F42）与测试用这里的 [`FixedEndpoint`]。
 
 use async_trait::async_trait;
 use rust_cli_base::secret::RedactedString;
@@ -12,7 +12,7 @@ use rust_cli_kernel_api::provider::{
     Credential, ModelCapabilities, ModelEndpoint, ModelEndpoints, WireProtocol,
 };
 
-/// 显式给出的 Anthropic 端点（入口从 `ZCODE_MODEL_BASE_URL` / `ZCODE_API_KEY` 构造）。
+/// 显式给出的 Anthropic 端点（入口从 `NIBI_MODEL_BASE_URL` / `NIBI_API_KEY` 构造）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AnthropicEndpoint {
     pub base_url: String,

@@ -94,7 +94,7 @@ strings! {
     help_title: "Slash commands", "斜杠命令";
     help_not_implemented: "(not implemented)", "（未实现）";
     current: "current", "当前";
-    no_models: "No model is configured. Add a provider or set ZCODE_API_KEY.", "没有可用的模型。先添加供应商，或设置 ZCODE_API_KEY。";
+    no_models: "No model is configured. Add a provider or set NIBI_API_KEY.", "没有可用的模型。先添加供应商，或设置 NIBI_API_KEY。";
     copied: "Copied the last reply", "已复制最后一条回复";
     nothing_to_copy: "Nothing to copy yet", "还没有可复制的回复";
     image: "Image", "图片";

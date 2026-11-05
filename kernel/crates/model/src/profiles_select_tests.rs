@@ -121,7 +121,7 @@ fn each_endpoint_lands_on_its_profile() {
 }
 
 /// 智谱的端点只有一个判定（修复线 F58，README §4.1）：主机是 z.ai / bigmodel.cn 或子域名（同 ToolSearch 与 Node 的
-/// `resolveModelProviderFamilyIdByBaseURL`）。以前方案表只认三种精确地址：`bigmodel.cn`（`ZCODE_ENV=test` 的
+/// `resolveModelProviderFamilyIdByBaseURL`）。以前方案表只认三种精确地址：`bigmodel.cn`（`NIBI_ENV=test` 的
 /// BigModel）开了 ToolSearch，请求却按第三方形状发。
 #[test]
 fn every_zhipu_endpoint_shares_the_tool_search_rule() {

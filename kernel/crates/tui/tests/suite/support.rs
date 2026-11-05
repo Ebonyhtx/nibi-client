@@ -159,7 +159,7 @@ pub struct Setup {
     pub os: rust_cli_tui::Os,
     /// 启动时的权限模式（`--permission-mode`、项目持久模式）；缺省 default（mode_picker.rs 用 acceptEdits）。
     pub mode: PermissionMode,
-    /// `ZCODE_FORK_SUBAGENT`（修复线 L-A）：缺省按交互会话打开 fork（Agent 全部在后台）；前台子代理的测试设 Some(false)。
+    /// `NIBI_FORK_SUBAGENT`（修复线 L-A）：缺省按交互会话打开 fork（Agent 全部在后台）；前台子代理的测试设 Some(false)。
     pub fork_subagent: Option<bool>,
     /// 终端分辨得出增强按键（修复线 F104，tui-input.md §11.1.1）：真实终端取键盘增强的查询结论；缺省否。
     pub keyboard_enhanced: bool,

@@ -143,7 +143,7 @@ async fn only_trusted_enabled_declarations_run_and_the_rest_are_pending() {
         format!(
             "Workspace Hooks skipped: workspace_hooks_pending_trust\nworkspace: /Users/dev/repo\n\
              bundle: {bundle}\npending digest: {}\n\
-             Review with: zcode hooks trust review --workspace \"/Users/dev/repo\"\n",
+             Review with: nibi hooks trust review --workspace \"/Users/dev/repo\"\n",
             pending.digests[0]
         )
     );

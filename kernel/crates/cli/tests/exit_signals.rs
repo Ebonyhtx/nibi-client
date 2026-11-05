@@ -51,13 +51,13 @@ fn run_and_signal(signal: &str) -> Option<i32> {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     let ended = base.join("SESSION_END");
     // Node 配置文件的形状（config.md §2）：`hooks.enabled` 与 `hooks.events`。
     let config = serde_json::json!({"hooks": {"enabled": true, "events": {"SessionEnd": [{"hooks": [
         {"type": "command", "command": format!("echo end > {}", ended.display())}
     ]}]}}});
-    std::fs::write(home.join(".zcode/cli/config.json"), config.to_string()).unwrap();
+    std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
     let pid_file = base.join("SLEEP_PID");
     let bash = serde_json::json!({
         "command": format!("sh -c 'echo $$ > {}; exec sleep 30'", pid_file.display()),
@@ -75,10 +75,10 @@ fn run_and_signal(signal: &str) -> Option<i32> {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -105,7 +105,7 @@ fn run_and_signal(signal: &str) -> Option<i32> {
     }
     assert!(!left, "sleep {sleep_pid} outlived zcode after SIG{signal}");
     assert!(ended.exists(), "SessionEnd did not run after SIG{signal}");
-    let log = home.join(".zcode/rust-cli/log");
+    let log = home.join(".nibi/rust-cli/log");
     let text: String = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())
@@ -141,13 +141,13 @@ fn signal_during_the_prompt_hook(signal: &str) -> (Option<i32>, String) {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     let pid_file = base.join("HOOK_PID");
     let hook = format!("echo $$ > {}; exec sleep 30", pid_file.display());
     let config = serde_json::json!({"hooks": {"enabled": true, "events": {"UserPromptSubmit": [{"hooks": [
         {"type": "command", "command": hook}
     ]}]}}});
-    std::fs::write(home.join(".zcode/cli/config.json"), config.to_string()).unwrap();
+    std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
     let fixture = sse::serve(vec![sse::text_reply("never sent")]);
     let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
         .args(["-p", "gap prompt", "--permission-mode", "bypassPermissions"])
@@ -156,10 +156,10 @@ fn signal_during_the_prompt_hook(signal: &str) -> (Option<i32>, String) {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -278,10 +278,10 @@ fn stream_json_and_signal(signal: &str) -> (Option<i32>, String) {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &fixture.url)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &fixture.url)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())

@@ -48,7 +48,7 @@ fn start_command_round_trips_with_every_option() {
         }),
         hook: Some(HookIo {
             stdin: "{\"hook_event_name\":\"PreToolUse\"}\n".to_owned(),
-            env: [("ZCODE_PROJECT_DIR".to_owned(), "/w".to_owned())].into(),
+            env: [("NIBI_PROJECT_DIR".to_owned(), "/w".to_owned())].into(),
         }),
         on_timeout: Some(TimeoutBackground {
             command: BackgroundCommand {

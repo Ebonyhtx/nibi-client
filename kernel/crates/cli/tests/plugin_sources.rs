@@ -71,10 +71,10 @@ fn zcode(home: &Path, work: &Path, args: &[&str], server: &str) -> Output {
         .env("HOME", home)
         .env("USERPROFILE", home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", home)
-        .env("ZCODE_MODEL_BASE_URL", server)
-        .env("ZCODE_API_KEY", "test-key")
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", home)
+        .env("NIBI_MODEL_BASE_URL", server)
+        .env("NIBI_API_KEY", "test-key")
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -97,7 +97,7 @@ fn plugin(dir: &Path, name: &str, skill: &str, marker: &str) {
         &format!("---\ndescription: The {skill} skill\n---\nBody\n"),
     );
     let hook = serde_json::json!({"hooks": {"UserPromptSubmit": [{"hooks": [
-        {"type": "command", "command": format!("touch \"$ZCODE_PROJECT_DIR/{marker}\"")}
+        {"type": "command", "command": format!("touch \"$NIBI_PROJECT_DIR/{marker}\"")}
     ]}]}});
     write(&dir.join("hooks/hooks.json"), &hook.to_string());
 }
@@ -108,7 +108,7 @@ fn plugins_come_from_the_node_config_and_installed_plugins() {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    let storage = home.join(".zcode/cli/plugins");
+    let storage = home.join(".nibi/cli/plugins");
 
     // 配置 `plugins.dirs` 的插件缺省启用；已安装插件要 `enabledPlugins` 打开。
     plugin(&base.join("cfgkit"), "cfg-kit", "cfg-hello", "cfg.marker");
@@ -151,7 +151,7 @@ fn plugins_come_from_the_node_config_and_installed_plugins() {
         .to_string(),
     );
     write(
-        &home.join(".zcode/cli/config.json"),
+        &home.join(".nibi/cli/config.json"),
         &serde_json::json!({"plugins": {
             "dirs": [base.join("cfgkit").to_string_lossy()],
             "enabledPlugins": {"kit@market": true}

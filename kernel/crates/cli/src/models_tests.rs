@@ -87,7 +87,7 @@ fn the_model_flag_picks_from_the_catalog() {
     assert!(missing.contains("p2/gpt-5.4"), "{missing}");
     // 提示里是本工程读的名字（config.md §2.5），不提 Anthropic SDK 的变量。
     let none = pick(&ModelCatalog::default(), None).unwrap_err();
-    assert!(none.contains("set ZCODE_API_KEY"), "{none}");
+    assert!(none.contains("set NIBI_API_KEY"), "{none}");
     assert!(!none.contains("ANTHROPIC"), "{none}");
 }
 
@@ -140,7 +140,7 @@ fn the_model_flag_names_the_team() {
     );
 }
 
-/// 显式覆盖的模型（model.md §6，用户决定 2026-10-20，修复线 F42）：`--model` → `ZCODE_MODEL` → 个人 Provider 配置的
+/// 显式覆盖的模型（model.md §6，用户决定 2026-10-20，修复线 F42）：`--model` → `NIBI_MODEL` → 个人 Provider 配置的
 /// `defaultModelSelection.modelId`；都没有时报错提示 `--model`，没有写死的缺省模型。
 #[test]
 fn the_explicit_model_falls_back_to_the_default_model_selection() {
@@ -156,7 +156,7 @@ fn the_explicit_model_falls_back_to_the_default_model_selection() {
     assert_eq!(pick(None, None, Some("c")).unwrap(), "c");
     assert_eq!(
         pick(None, None, None).unwrap_err(),
-        "ZCODE_API_KEY is set: pass --model or set ZCODE_MODEL"
+        "NIBI_API_KEY is set: pass --model or set NIBI_MODEL"
     );
 }
 

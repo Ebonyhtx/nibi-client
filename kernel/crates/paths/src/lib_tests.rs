@@ -124,7 +124,7 @@ fn account_and_provider_files_follow_node() {
         paths.settings().as_path(),
         Path::new("/home/dev/.nibi/v2/setting.json")
     );
-    // ZCODE_DATA_BASE_DIR 只移动账号与 Provider 配置，设置文件仍在 home 下。
+    // NIBI_DATA_BASE_DIR 只移动账号与 Provider 配置，设置文件仍在 home 下。
     let moved = paths.with_data_base_dir(Path::new("/data"));
     assert_eq!(
         moved.credentials().as_path(),
@@ -339,7 +339,7 @@ fn the_model_io_directory_follows_the_node_cli() {
 }
 
 /// 设备身份的文件与锁（工作线 F52，platform.md §10）：与 Node CLI `resolveCliTelemetryStateFile` 相同，跟随
-/// `ZCODE_DATA_BASE_DIR`。
+/// `NIBI_DATA_BASE_DIR`。
 #[test]
 fn the_telemetry_state_follows_the_data_base_dir() {
     let paths = resolve(None, None);

@@ -24,7 +24,7 @@ fn transport(egress: Option<Arc<Egress>>) -> (LocalMcpTransport, tempfile::TempD
     let dir = tempfile::tempdir().unwrap();
     let env = vec![
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
-        ("ZCODE_API_KEY".to_owned(), "secret".to_owned()),
+        ("NIBI_API_KEY".to_owned(), "secret".to_owned()),
     ];
     (
         LocalMcpTransport::new(dir.path().join("ledger"), env.into(), egress),
@@ -88,7 +88,7 @@ async fn stdio_round_trips_lines_and_closes() {
 #[tokio::test]
 async fn stdio_projects_the_environment_and_reports_exit() {
     let (transport, dir) = transport(None);
-    let script = r#"printf '{"key":"%s","api":"%s"}\nnot json\n' "$TOKEN" "$ZCODE_API_KEY""#;
+    let script = r#"printf '{"key":"%s","api":"%s"}\nnot json\n' "$TOKEN" "$NIBI_API_KEY""#;
     let id = transport
         .connect(
             &workspace(dir.path().to_str().unwrap()),

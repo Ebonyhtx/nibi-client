@@ -154,11 +154,11 @@ async fn outputs_live_in_a_private_directory() {
 #[test]
 fn shell_config_debug_hides_the_environment_values() {
     let config = ShellConfig {
-        env: vec![("ZCODE_API_KEY".to_owned(), "sk-secret-value".to_owned())].into(),
+        env: vec![("NIBI_API_KEY".to_owned(), "sk-secret-value".to_owned())].into(),
         ..ShellConfig::default()
     };
     let shown = format!("{config:?}");
-    assert!(shown.contains("ZCODE_API_KEY"), "{shown}");
+    assert!(shown.contains("NIBI_API_KEY"), "{shown}");
     assert!(!shown.contains("sk-secret-value"), "{shown}");
 }
 

@@ -13,7 +13,7 @@ use serde_json::Value;
 
 use super::{Manifest, Plugin, Plugins, Reader};
 
-/// Node `ZCODE_OFFICIAL_PLUGIN_MARKETPLACE`（定义在 base，F55）。
+/// Node `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`（定义在 base，F55）。
 const OFFICIAL: &str = rust_cli_base::names::OFFICIAL_MARKETPLACE;
 /// Node `DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS`（`official-plugin-definitions.ts` 里标了 `defaultEnabled`
 /// 的插件，与 `packages/shared/src/plugin-marketplaces.ts` 一致），都在官方市场。
@@ -32,7 +32,7 @@ const DEFAULT_ENABLED: [&str; 11] = [
 ];
 /// 能力来自 Node 宿主注入的 `node_repl` MCP 的官方插件（Node `hostMcpServerNames` 与宿主本身）。
 const NODE_REPL: [&str; 3] = ["node-repl-host", "browser-use", "computer-use"];
-/// Node `ZCODE_PLUGIN_HOST_COMMAND`：播种缓存时改写进 MCP 的启动参数。
+/// Node `NIBI_PLUGIN_HOST_COMMAND`：播种缓存时改写进 MCP 的启动参数。
 const PLUGIN_HOST_ARG: &str = "__zcode-plugin-host";
 /// 需要 App 内联视图宿主的官方插件（Node `filterVisualizeSkillRoots`）。
 const VIEW_HOST: &str = "visualize";

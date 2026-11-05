@@ -196,10 +196,10 @@ fn http_policies_concatenate_across_sources() {
 #[test]
 fn debug_output_lists_variable_names_only() {
     let config = HooksConfig {
-        env: vec![("ZCODE_API_KEY".to_owned(), "sk-secret-value".to_owned())].into(),
+        env: vec![("NIBI_API_KEY".to_owned(), "sk-secret-value".to_owned())].into(),
         ..HooksConfig::default()
     };
     let shown = format!("{config:?}");
-    assert!(shown.contains("ZCODE_API_KEY"), "{shown}");
+    assert!(shown.contains("NIBI_API_KEY"), "{shown}");
     assert!(!shown.contains("sk-secret-value"), "{shown}");
 }

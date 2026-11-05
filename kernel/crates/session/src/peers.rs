@@ -30,7 +30,7 @@ pub(crate) const PEER_SOURCE: &str = "cross-session";
 #[derive(Clone)]
 pub struct PeerDeps {
     pub port: Arc<dyn PeerMessaging>,
-    /// 扣住的消息多久过期（入口读 `ZCODE_USER_DIALOG_TIMEOUT_MS`，缺省 300000 ms）。
+    /// 扣住的消息多久过期（入口读 `NIBI_USER_DIALOG_TIMEOUT_MS`，缺省 300000 ms）。
     pub hold_timeout_ms: u64,
     /// 回执在空闲时开回合（交互式，优先级 `later`）；`-p` 为 false，只在工具边界并入（passive）。
     pub receipts_wake: bool,

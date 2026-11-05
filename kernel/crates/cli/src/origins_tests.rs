@@ -73,30 +73,35 @@ fn environment_overrides_follow_node() {
     assert!(origins(&[("NIBI_BASE_URL", "ftp://example.com")]).is_err());
 }
 
-/// 环境档与端点：NIBI 名优先，旧名 `ZCODE_*` 只在整个 NIBI 缺失时回退（Host 只下发 NIBI 名）。
+/// 端点变量按 Node 的优先级取第一个；测试档不看生产变量。
 #[test]
-fn nibi_names_win_and_the_legacy_names_still_work() {
-    let both = origins(&[("NIBI_ENV", "production"), ("ZCODE_ENV", "test")]).unwrap();
-    assert_eq!(both.zcode_api, "https://api.nibistudio.top/api/v1");
+fn the_endpoint_variables_follow_node_precedence() {
     let both = origins(&[
-        ("NIBI_BASE_URL", "https://nibi.example.com"),
-        ("ZCODE_BASE_URL", "https://legacy.example.com"),
-        ("ZCODE_ENDPOINT_ORIGIN", "https://legacy-2.example.com"),
+        ("NIBI_ENDPOINT_ORIGIN", "https://origin.example.com"),
+        ("NIBI_BASE_URL", "https://base.example.com"),
     ])
     .unwrap();
-    assert_eq!(both.zcode_api, "https://nibi.example.com/api/v1");
-    // 没有任何 NIBI 变量时旧名照旧生效。
-    let legacy = origins(&[
-        ("ZCODE_ENV", "test"),
-        ("ZCODE_TEST_BASE_URL", "https://legacy-test.example.com/x"),
+    assert_eq!(both.zcode_api, "https://base.example.com/api/v1");
+    let scoped = origins(&[
+        ("NIBI_ENV", "test"),
+        ("NIBI_TEST_BASE_URL", "https://test.example.com/x"),
     ])
     .unwrap();
-    assert_eq!(legacy.zcode_api, "https://legacy-test.example.com/api/v1");
-    assert!(origins(&[("ZCODE_BASE_URL", "ftp://example.com")]).is_err());
+    assert_eq!(scoped.zcode_api, "https://test.example.com/api/v1");
+    let production_ignored = origins(&[
+        ("NIBI_ENV", "test"),
+        ("NIBI_PRODUCTION_BASE_URL", "https://prod.example.com"),
+    ])
+    .unwrap();
+    assert_eq!(
+        production_ignored.zcode_api,
+        "https://zcode.z.ai/api/v1"
+    );
+    assert!(origins(&[("NIBI_BASE_URL", "ftp://example.com")]).is_err());
 }
 
-/// 团队套餐的管理页照 App（修复线 F58）：z.ai 写死（App 没有测试环境的变体）；BigModel 只看 `ZCODE_ENV`
-/// （App `buildBigModelCodingPlanTeamManageUrl({ ZCODE_ENV })`），不跟随 `BIGMODEL_*` 的覆盖。以前 BigModel 的链接
+/// 团队套餐的管理页照 App（修复线 F58）：z.ai 写死（App 没有测试环境的变体）；BigModel 只看 `NIBI_ENV`
+/// （App `buildBigModelCodingPlanTeamManageUrl({ NIBI_ENV })`），不跟随 `BIGMODEL_*` 的覆盖。以前 BigModel 的链接
 /// 从账号地址拼，设了覆盖变量时跟着变。
 #[test]
 fn team_manage_pages_follow_the_app() {

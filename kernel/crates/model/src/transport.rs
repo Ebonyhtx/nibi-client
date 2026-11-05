@@ -95,7 +95,7 @@ pub(crate) struct Route {
     pub assume_base_url: Option<String>,
     /// 设了 `IS_SANDBOX`（cli-args.md §9）：连续过载时不报 `Repeated 529 Overloaded errors`，照常重试。
     pub sandbox: bool,
-    /// `ZCODE_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：每个请求的 `max_tokens` 不超过它。
+    /// `NIBI_MAX_OUTPUT_TOKENS`（cli-args.md §9.1，修复线 F42）：每个请求的 `max_tokens` 不超过它。
     pub max_output_tokens: Option<u32>,
     /// 设备身份的来源（工作线 F52）：`metadata.user_id` 的 `device_id`。
     pub device: Option<crate::metadata::DeviceIdSource>,

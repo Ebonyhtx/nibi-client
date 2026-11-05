@@ -1,5 +1,5 @@
 //! 运行日志的真实进程（docs/specs/rust-cli/logging.md §7）：临时 home 与本地假的 Anthropic 端点，`zcode -p`
-//! 跑一次后，`<home>/.zcode/rust-cli/log/` 下有当天的 JSONL 文件，生命周期事件都在，且不含提示词与密钥。
+//! 跑一次后，`<home>/.nibi/rust-cli/log/` 下有当天的 JSONL 文件，生命周期事件都在，且不含提示词与密钥。
 #![allow(
     clippy::disallowed_methods,
     clippy::unwrap_used,
@@ -73,10 +73,10 @@ fn a_print_run_writes_info_lines_to_the_daily_log() {
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
-        .env("ZCODE_DATA_BASE_DIR", &home)
-        .env("ZCODE_MODEL_BASE_URL", &server)
-        .env("ZCODE_API_KEY", KEY)
-        .env("ZCODE_MODEL", "claude-opus-5-5")
+        .env("NIBI_DATA_BASE_DIR", &home)
+        .env("NIBI_MODEL_BASE_URL", &server)
+        .env("NIBI_API_KEY", KEY)
+        .env("NIBI_MODEL", "claude-opus-5-5")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -88,7 +88,7 @@ fn a_print_run_writes_info_lines_to_the_daily_log() {
     // 日志只写文件，不写终端。
     assert!(!stderr.contains("process.start"), "{stderr}");
 
-    let log = home.join(".zcode/rust-cli/log");
+    let log = home.join(".nibi/rust-cli/log");
     let files: Vec<_> = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| entry.unwrap().path())

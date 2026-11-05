@@ -17,7 +17,7 @@ use serde_json::Value;
 
 use super::merge::Layer;
 
-/// Node `ZCODE_INLINE_PLUGIN_MARKETPLACE` 与 `ZCODE_OFFICIAL_PLUGIN_MARKETPLACE`。
+/// Node `NIBI_INLINE_PLUGIN_MARKETPLACE` 与 `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`。
 const INLINE: &str = "inline";
 const OFFICIAL: &str = rust_cli_base::names::OFFICIAL_MARKETPLACE;
 

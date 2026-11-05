@@ -17,7 +17,7 @@ fn text(value: &Value) -> Option<String> {
     value.as_str().map(str::to_owned)
 }
 
-/// 来源头：版本的来源（`ZCODE_APP_VERSION` 优先，空值也算）、服务地址、发布通道、不可打印的值与平台，结果（名字转小写、
+/// 来源头：版本的来源（`NIBI_APP_VERSION` 优先，空值也算）、服务地址、发布通道、不可打印的值与平台，结果（名字转小写、
 /// 键序）与 Node 相同。
 #[test]
 fn source_headers_match_node() {

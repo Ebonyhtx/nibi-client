@@ -10,7 +10,7 @@ use crate::test_support::{facts, workspace};
 async fn manifest_components_and_mcp_servers() {
     let root = "/Users/dev/plugins/kit";
     let env = MemoryEnvironment::new(facts())
-        .with_file(&format!("{root}/.claude-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${CLAUDE_PLUGIN_ROOT}/bin/db", "args": ["--root", "${ZCODE_PLUGIN_ROOT}"]}}}"#)
+        .with_file(&format!("{root}/.claude-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${CLAUDE_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}"]}}}"#)
         .with_file(&format!("{root}/skills/deploy/SKILL.md"), "---\ndescription: Deploy\n---\n")
         .with_file(&format!("{root}/extra/lint/SKILL.md"), "---\ndescription: Lint\n---\n")
         .with_file(&format!("{root}/agents/reviewer.md"), "---\nname: reviewer\n---\n")
@@ -96,9 +96,9 @@ async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
     let project = workspace().root.as_str().to_owned();
     for (name, value) in [
         ("CLAUDE_PLUGIN_ROOT", root),
-        ("ZCODE_PLUGIN_ROOT", root),
+        ("NIBI_PLUGIN_ROOT", root),
         ("CLAUDE_PROJECT_DIR", project.as_str()),
-        ("ZCODE_PROJECT_DIR", project.as_str()),
+        ("NIBI_PROJECT_DIR", project.as_str()),
     ] {
         assert_eq!(env.get(name).map(String::as_str), Some(value), "{name}");
     }
@@ -125,5 +125,5 @@ async fn configured_env_wins_over_the_provided_variables() {
     };
     assert_eq!(env["CLAUDE_PROJECT_DIR"], "/elsewhere");
     assert_eq!(env["TOKEN"], "x");
-    assert_eq!(env["ZCODE_PLUGIN_ROOT"], root);
+    assert_eq!(env["NIBI_PLUGIN_ROOT"], root);
 }

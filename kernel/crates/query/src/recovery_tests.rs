@@ -47,7 +47,7 @@ fn the_output_limit_is_resumed_three_times_then_fails() {
         guards.decide(&cut, &QuerySource::MainThread, 128_000),
         Outcome::Failed {
             // 修复线 F51b（query.md §1）：主语是 the model。
-            message: "API Error: The model's response exceeded the 128000 output token maximum. To configure this behavior, set the ZCODE_MAX_OUTPUT_TOKENS environment variable.".to_owned()
+            message: "API Error: The model's response exceeded the 128000 output token maximum. To configure this behavior, set the NIBI_MAX_OUTPUT_TOKENS environment variable.".to_owned()
         }
     );
     // 工具轮之后重新计数。

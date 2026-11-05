@@ -50,7 +50,7 @@ fn zcode(home: &Path, args: &[&str], vars: &[(&str, &str)]) -> Output {
                 .unwrap(),
         )
         .env("FAKE_LOG", home.join("calls.log"))
-        .env("ZCODE_DATA_BASE_DIR", home)
+        .env("NIBI_DATA_BASE_DIR", home)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -69,10 +69,10 @@ fn text(bytes: &[u8]) -> String {
 }
 
 const NPM: [(&str, &str); 3] = [
-    ("ZCODE_MANAGED_BY_NPM", "1"),
-    ("ZCODE_MANAGED_PACKAGE", "@scope/zcode"),
+    ("NIBI_MANAGED_BY_NPM", "1"),
+    ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
     (
-        "ZCODE_MANAGED_PLATFORM_PACKAGE",
+        "NIBI_MANAGED_PLATFORM_PACKAGE",
         "@scope/zcode-darwin-arm64",
     ),
 ];
@@ -105,16 +105,16 @@ fn without_a_marker_the_update_command_asks_for_a_manual_update() {
 #[test]
 fn the_update_command_runs_the_package_manager_of_the_launcher() {
     for (marker, expected) in [
-        ("ZCODE_MANAGED_BY_NPM", "npm install -g @scope/zcode"),
-        ("ZCODE_MANAGED_BY_PNPM", "pnpm add -g @scope/zcode"),
-        ("ZCODE_MANAGED_BY_BUN", "bun install -g @scope/zcode"),
+        ("NIBI_MANAGED_BY_NPM", "npm install -g @scope/zcode"),
+        ("NIBI_MANAGED_BY_PNPM", "pnpm add -g @scope/zcode"),
+        ("NIBI_MANAGED_BY_BUN", "bun install -g @scope/zcode"),
     ] {
         let home = tempfile::tempdir().unwrap();
         fake_managers(&home.path().join("bin"));
         let output = zcode(
             home.path(),
             &["update"],
-            &[(marker, "1"), ("ZCODE_MANAGED_PACKAGE", "@scope/zcode")],
+            &[(marker, "1"), ("NIBI_MANAGED_PACKAGE", "@scope/zcode")],
         );
         assert_eq!(output.status.code(), Some(0), "{output:?}");
         assert_eq!(calls(home.path()), format!("{expected}\n"));
@@ -189,7 +189,7 @@ fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     let handoff = home.path().join("zcode-update-handoff.json");
     let handoff_text = handoff.display().to_string();
     let mut vars = NPM.to_vec();
-    vars.push(("ZCODE_MANAGED_UPDATE_HANDOFF", &handoff_text));
+    vars.push(("NIBI_MANAGED_UPDATE_HANDOFF", &handoff_text));
     let output = zcode(home.path(), &["update"], &vars);
     assert_eq!(output.status.code(), Some(0), "{output:?}");
     assert!(output.stdout.is_empty(), "{output:?}");
@@ -204,7 +204,7 @@ fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     let output = zcode(
         home.path(),
         &["update"],
-        &[("ZCODE_MANAGED_UPDATE_HANDOFF", &handoff_text)],
+        &[("NIBI_MANAGED_UPDATE_HANDOFF", &handoff_text)],
     );
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
@@ -216,7 +216,7 @@ fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     let missing = home.path().join("missing").join("handoff.json");
     let missing_text = missing.display().to_string();
     let mut vars = NPM.to_vec();
-    vars.push(("ZCODE_MANAGED_UPDATE_HANDOFF", &missing_text));
+    vars.push(("NIBI_MANAGED_UPDATE_HANDOFF", &missing_text));
     let output = zcode(home.path(), &["update"], &vars);
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert!(text(&output.stderr).starts_with("Error: "), "{output:?}");

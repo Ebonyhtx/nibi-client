@@ -62,10 +62,10 @@ fn cursor_floods_and_the_scroll_speed_variable_overrides_the_base() {
     // 洪泛：间隔大于 40 ms 时 基数 × 3，否则基数。
     assert_eq!(cursor.rows_at(1, 1000.0), 3);
     assert_eq!(cursor.rows_at(1, 1010.0), 1);
-    // 名字是 `ZCODE_SCROLL_SPEED`（config.md §2.5）；上限 20。
-    let mut fast = Accel::new(&vars(&[("ZCODE_SCROLL_SPEED", "5")]), false);
+    // 名字是 `NIBI_SCROLL_SPEED`（config.md §2.5）；上限 20。
+    let mut fast = Accel::new(&vars(&[("NIBI_SCROLL_SPEED", "5")]), false);
     assert_eq!(fast.rows_at(1, 1000.0), 5);
-    let mut capped = Accel::new(&vars(&[("ZCODE_SCROLL_SPEED", "50")]), false);
+    let mut capped = Accel::new(&vars(&[("NIBI_SCROLL_SPEED", "50")]), false);
     assert_eq!(capped.rows_at(1, 1000.0), 20);
     let mut jetbrains = Accel::new(&vars(&[("TERMINAL_EMULATOR", "JetBrains-JediTerm")]), false);
     assert_eq!(jetbrains.rows_at(1, 1000.0), 2);

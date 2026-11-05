@@ -32,13 +32,13 @@ fn serde_round_trips_the_raw_value() {
 fn env_snapshot_debug_lists_names_only() {
     let snapshot = EnvSnapshot::from(vec![
         ("PATH".to_owned(), "/bin".to_owned()),
-        ("ZCODE_API_KEY".to_owned(), "sk-secret".to_owned()),
+        ("NIBI_API_KEY".to_owned(), "sk-secret".to_owned()),
     ]);
     assert_eq!(
         format!("{snapshot:?}"),
-        r#"EnvSnapshot(["PATH", "ZCODE_API_KEY"])"#
+        r#"EnvSnapshot(["PATH", "NIBI_API_KEY"])"#
     );
-    assert_eq!(snapshot.get("ZCODE_API_KEY"), Some("sk-secret"));
+    assert_eq!(snapshot.get("NIBI_API_KEY"), Some("sk-secret"));
     assert_eq!(snapshot.get("HOME"), None);
     assert_eq!(snapshot.len(), 2);
 }
