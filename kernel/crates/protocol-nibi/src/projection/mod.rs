@@ -114,9 +114,12 @@ pub struct Projection {
 
 /// `subagents` 状态键的当前值。
 ///
-/// 事实源是内核的 `SessionHandle::subagents()`（agents 的在跑子代理表，TUI 一直用它），不是事件流：
-/// 内核没有 `KernelEvent::Subagent` 的生产者，所以这里靠查询 + 变化通知（`subagent_changes()`）刷新，
-/// 与 Node 用 `SubagentSpawned/Stopped` 事件维护的结果同形。
+/// 事实源是内核的 `SessionHandle::subagents()`（agents 的在跑子代理表，TUI 一直用它），**不是**事件流。
+///
+/// `KernelEvent::Subagent` 从 `36492d5a` 起确实有生产者了（`AgentSignal::Subagent` → 会话 actor），
+/// 但那条事件只带 `agent`/`child`/`parentToolUse`/`phase`——没有界面要的 `subagentType`、标题、
+/// 用时、等待状态。所以这里仍然按查询面投影，再用 `subagent_changes()` 决定何时重取：
+/// 事件那条链是给 `v4/telemetry/event` 的 `subagent.lifecycle` 事实用的，两者各取所需。
 #[derive(Debug, Clone, PartialEq, Default)]
 struct SubagentsState {
     revision: u64,

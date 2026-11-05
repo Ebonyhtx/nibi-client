@@ -1,8 +1,10 @@
 //! 快照 `subagents` 键（Host `subagentProjectionStateSchema`）：把内核的子代理表投影成界面要的形状。
 //!
 //! 事实源是 `SessionHandle::subagents()`（`crates/agents` 的 `views::entries`，TUI 的输入框列表一直用它），
-//! 不是事件流：内核没有 `KernelEvent::Subagent` 的生产者。Node 那边由 `SubagentSpawned/Stopped` 事件维护
-//! 同一个状态键，这里改成查询 + `subagent_changes()` 通知刷新，投影结果同形。
+//! 不是事件流。`KernelEvent::Subagent` 从 `36492d5a` 起有生产者了，但那条事件只带
+//! `agent`/`child`/`parentToolUse`/`phase`，没有界面要的 `subagentType`、标题、用时与等待状态；
+//! 所以这里按查询面投影，用 `subagent_changes()` 决定何时重取。事件那条链服务的是
+//! `v4/telemetry/event` 的 `subagent.lifecycle` 事实。
 
 use nibi_kernel_api::panels::{SubagentEntry, SubagentStatus};
 use serde_json::{Value, json};
