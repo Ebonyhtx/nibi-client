@@ -170,12 +170,12 @@ export async function listAgentProcessIdentities(
     );
 }
 
-/** Host 进程行（`zcode-host-*`），按 pid 升序 */
+/** Host 进程行（`nibi-host-*`），按 pid 升序 */
 export async function listHostProcessIdentities(): Promise<AgentProcessIdentity[]> {
   const snapshot = await readResourceUsageSnapshot();
   if (!snapshot) return [];
   return snapshot.processes
-    .filter((process) => process.name.startsWith("zcode-host-"))
+    .filter((process) => process.name.startsWith("nibi-host-"))
     .map((process) => ({ pid: process.pid, name: process.name }))
     .sort((left, right) => left.pid - right.pid);
 }

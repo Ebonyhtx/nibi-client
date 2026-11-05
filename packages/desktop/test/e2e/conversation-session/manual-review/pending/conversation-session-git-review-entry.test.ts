@@ -66,7 +66,7 @@ describe("SP13：status panel Git Changes 打开变更审阅", () => {
       const readHostKb = () =>
         electron.app
           .getAppMetrics()
-          .filter((metric) => metric.name?.startsWith("zcode-host"))
+          .filter((metric) => metric.name?.startsWith("nibi-host"))
           .reduce((total, metric) => total + metric.memory.workingSetSize, 0);
       const baseline = readHostKb();
       if (!baseline) throw new Error("没有找到待采样的真实 Host 进程");

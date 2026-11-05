@@ -97,7 +97,7 @@ describe("资源管理器", () => {
     const snapshot = await readResourceUsageSnapshot();
     expect(snapshot).not.toBeNull();
     expect(snapshot!.processes.some((process) => process.name === "zcode-main")).toBe(true);
-    expect(snapshot!.processes.some((process) => process.name.startsWith("zcode-host-"))).toBe(
+    expect(snapshot!.processes.some((process) => process.name.startsWith("nibi-host-"))).toBe(
       true,
     );
     // 所有进程行的 CPU 都是整机口径，总和不能超过 100%。

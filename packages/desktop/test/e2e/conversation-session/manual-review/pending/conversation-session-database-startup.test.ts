@@ -204,7 +204,7 @@ describe("global database migration startup gate", () => {
       const pid = await browser.electron.execute((electron) => {
         const hosts = electron.app
           .getAppMetrics()
-          .filter((metric) => metric.name?.startsWith("zcode-host"));
+          .filter((metric) => metric.name?.startsWith("nibi-host"));
         if (hosts.length !== 1) throw new Error("此隔离用例必须只有一个窗口 Host");
         const pid = hosts[0]!.pid;
         process.kill(pid, "SIGKILL");

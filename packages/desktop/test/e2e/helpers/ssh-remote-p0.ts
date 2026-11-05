@@ -926,7 +926,8 @@ export async function readHostProcesses(): Promise<Array<{ name: string; pid: nu
       hosts = await browser.electron.execute((electron) =>
         electron.app
           .getAppMetrics()
-          .filter((metric) => metric.name?.startsWith("zcode-host-"))
+          // 进程名前缀与 process-names 的 NIBI_PROCESS_PREFIX 一致（`nibi-host-*`）。
+          .filter((metric) => metric.name?.startsWith("nibi-host-"))
           .map((metric) => ({ name: metric.name!, pid: metric.pid }))
           .sort((a, b) => a.pid - b.pid),
       );

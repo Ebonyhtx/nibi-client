@@ -363,7 +363,7 @@ describe("desktop e2e process cleanup", () => {
     const runCommand = vi.fn(async () =>
       [
         "10 1 ZCode E2E",
-        "11 10 zcode-host-local-1",
+        "11 10 nibi-host-local-1",
         "12 11 zcode-cli",
         "13 12 zcode-browser-use-mcp",
         "20 1 unrelated",
@@ -377,7 +377,7 @@ describe("desktop e2e process cleanup", () => {
 
     expect(collectProcessTreeByRootPids(processes, [10])).toEqual([
       { command: "ZCode E2E", pid: 10, ppid: 1 },
-      { command: "zcode-host-local-1", pid: 11, ppid: 10 },
+      { command: "nibi-host-local-1", pid: 11, ppid: 10 },
       { command: "zcode-cli", pid: 12, ppid: 11 },
       { command: "zcode-browser-use-mcp", pid: 13, ppid: 12 },
     ]);

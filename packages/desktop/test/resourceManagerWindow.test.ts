@@ -87,7 +87,7 @@ describe("resourceManagerWindow", () => {
       createMetric(mainPid, "Browser", 1.2, 1024),
       createMetric(gpuPid, "GPU", 0.4, 2048),
       createMetric(rendererPid, "Tab", 18.8, 4096),
-      createMetric(hostPid, "Utility", 0.2, 512, "zcode-host-local-1"),
+      createMetric(hostPid, "Utility", 0.2, 512, "nibi-host-local-1"),
       createMetric(utilityPid, "Utility", 0.1, 256, "network-service"),
       createMetric(guestPid, "Tab", 3, 8192),
     ]);
