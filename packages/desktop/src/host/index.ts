@@ -1045,20 +1045,30 @@ function createReportingRemoteZCodeTaskService<T extends object>(
       timestamp: Date.now(),
     });
 
-    // 写路径（send/stop/交互回执）已收敛 v4 命令面；本镜像属**读路径**——
-    // taskRealtimePort → 手机 relay → 手机端
-    // zcodeSessionStore 的整条消费链词表都是 ZCodeStreamEvent。两个方案的评估结论：
-    // a) relay 直接转发 v4 帧、手机端消费 v4 store（正解）：需要重做 relay stream-op
-    //    协议 + 手机端 store；
-    // b) 帧→ZCodeStreamEvent 薄映射：等价复刻 adapter mapSessionEvent，
-    //    否决。
-    // 结论：本镜像保持 legacy 源不动。
-    const dynamicStreamEvent = Reflect.get(target, "onDynamicStreamEvent");
+    // 写路径（send/stop/交互回执）已收敛 v4 命令面；本镜像属**读路径**：
+    // taskRealtimePort → taskRealtimeBus → 订阅该 workspace 的**另一台 Host**（observer/relay_owner）。
+    //
+    // 订阅必须走 `onDynamicTaskEvent`：它会在 legacy `session/subscribe` 返回 -32601 时激活
+    // v4 帧投影；`onDynamicStreamEvent` 只读本地 emitter，永远不会触发那次激活，Rust 内核下
+    // 镜像因此收不到任何事件。`deliveryKind: "replayable"` 让首帧带上运行中回合的现状。
+    //
+    // 注意 1：手机远控不走这里。手机端经 Relay V2 的 RPC 隧道直接收发 v4 协议帧
+    // （subscribeConversation / row.appended / pendingInteractions 都在手机端 bundle 里）。
+    // 注意 2：目前没有任何调用方给 createReportingRemoteZCodeTaskService 传
+    // `taskRealtimePort`，所以 mirrorRemotePrompt 在函数入口就返回——这段是 Host 间镜像的
+    // 预留路径，不是活链。改它不会影响线上行为，别据此推断手机端被修过。
+    const dynamicTaskEvent = Reflect.get(target, "onDynamicTaskEvent");
     const streamDisposable =
-      typeof dynamicStreamEvent === "function"
-        ? dynamicStreamEvent.call(
+      typeof dynamicTaskEvent === "function"
+        ? dynamicTaskEvent.call(
             target,
-            params.taskId,
+            {
+              workspacePath: meta.workspacePath,
+              workspaceIdentity: meta.workspaceIdentity,
+              taskId: params.taskId,
+              // observer 是跨 Host 的镜像订阅：首帧要能补上运行中回合的现状。
+              deliveryKind: "replayable",
+            },
           )((event: ZCodeStreamEvent) => {
             if (isRemoteMirrorableStreamEvent(event)) {
               taskRealtimePort.publishStreamOp(mirrorTarget, {
