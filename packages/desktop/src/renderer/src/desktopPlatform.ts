@@ -49,7 +49,6 @@ export function createDesktopPlatform(options: {
     listSSHConfigAliases: () => window.nibi.listSSHConfigAliases(),
     loadMcpFromUserDirectory: (payload) => window.nibi.loadMcpFromUserDirectory(payload),
     saveMcpToUserDirectory: (payload) => window.nibi.saveMcpToUserDirectory(payload),
-    migrateLegacyCommonMcp: (payload) => window.nibi.migrateLegacyCommonMcp(payload),
     openExternal: (url) => window.nibi.openExternal(url),
     openFeedback: () => window.nibi.executeDesktopCommand(DesktopCommandIds.OpenFeedback),
     openCommunity: () => window.nibi.executeDesktopCommand(DesktopCommandIds.OpenCommunity),

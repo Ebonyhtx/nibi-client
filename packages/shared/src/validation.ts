@@ -215,7 +215,6 @@ export const webRemoteControlPlatformMethodSchema = z.enum([
   "listSSHConfigAliases",
   "loadMcpFromUserDirectory",
   "saveMcpToUserDirectory",
-  "migrateLegacyCommonMcp",
 ]);
 
 const webRemoteControlAppPayloadSchemas = [

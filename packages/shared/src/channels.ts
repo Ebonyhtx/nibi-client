@@ -4,8 +4,6 @@ import type {
   ResourceUsageSnapshot,
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
-  MigrateLegacyCommonMcpRequest,
-  MigrateLegacyCommonMcpResult,
   SaveCliMcpToUserDirectoryRequest,
 } from "./index.js";
 import type { OAuthStateRegistration } from "./oauth.js";
@@ -500,7 +498,6 @@ export const PlatformChannels = {
   /** Renderer → Main：同步标题栏亮暗色，用于原生窗口控制按钮配色 */
   SetTitleBarTheme: "nibi:set-title-bar-theme",
   /** Renderer → Main：迁移旧版 Common MCP 配置 */
-  MigrateLegacyCommonMcp: "nibi:migrate-legacy-common-mcp",
   /** Renderer → Main：获取当前设备的稳定标识符（deviceMid） */
   GetDeviceId: "nibi:get-device-id",
 } as const;
@@ -873,10 +870,6 @@ export interface PlatformChannelMap {
   [PlatformChannels.SaveMcpToUserDirectory]: {
     request: SaveCliMcpToUserDirectoryRequest;
     response: { success: boolean; error?: string };
-  };
-  [PlatformChannels.MigrateLegacyCommonMcp]: {
-    request: MigrateLegacyCommonMcpRequest;
-    response: MigrateLegacyCommonMcpResult;
   };
   [PlatformChannels.Log]: {
     request: { level: "info" | "warn" | "error"; args: unknown[] };

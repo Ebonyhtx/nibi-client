@@ -16,7 +16,6 @@ import {
   type ApplicationIconRequest,
   type Locale,
   type LoadCliMcpFromUserDirectoryRequest,
-  type MigrateLegacyCommonMcpRequest,
   type OpenInEditorOptions,
   type SaveCliMcpToUserDirectoryRequest,
   type CreateTempTextAttachmentRequest,
@@ -53,7 +52,6 @@ import {
 } from "./desktopBrowserViewIpc.js";
 import {
   loadCliMcpFromUserDirectory,
-  migrateLegacyCommonMcp,
   saveCliMcpToUserDirectory,
 } from "./mcpUserDirectory/index.js";
 import { createTempTextAttachment } from "./tempTextAttachment.js";
@@ -234,13 +232,6 @@ export function registerPlatformIpcHandlers(options: {
         options.logger.warn("[mcp-user-directory] save failed", message);
         return { success: false, error: message };
       }
-    },
-  );
-
-  ipcMain.handle(
-    PlatformChannels.MigrateLegacyCommonMcp,
-    async (_event, payload?: MigrateLegacyCommonMcpRequest) => {
-      return migrateLegacyCommonMcp(payload);
     },
   );
 

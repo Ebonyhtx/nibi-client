@@ -4,7 +4,7 @@ import {
   setMcpStorePlatform,
   useMcpStore,
 } from "@/store/mcpStore.js";
-import { DEFAULT_MCP_CONFIG, MCP_CONFIG_KEY } from "@/store/mcpStoreHelpers.js";
+import { DEFAULT_MCP_CONFIG } from "@/store/mcpStoreHelpers.js";
 import { logger } from "@/logger.js";
 
 function createLocalStorageStub(initial: Record<string, string> = {}) {
@@ -283,48 +283,30 @@ describe("mcpStore", () => {
     warn.mockRestore();
   });
 
-  it("本地 workspace 即使存在目录服务也保留 platform 迁移 legacy common MCP", async () => {
+  it("本地 workspace 优先走 platform 目录，不读任何旧版 localStorage 配置", async () => {
     vi.stubGlobal("window", {});
+    // 旧版键即使存在也不能被读取：NIBI 不与上游客户端共享 MCP 配置。
     vi.stubGlobal(
       "localStorage",
       createLocalStorageStub({
-        [MCP_CONFIG_KEY]: JSON.stringify({
-          mcp: {
-            mcpServers: {
-              legacyHttp: {
-                type: "http",
-                url: "https://legacy.example.test/mcp",
-              },
-            },
-          },
+        "zcode-mcp-config": JSON.stringify({
+          mcp: { mcpServers: { legacyHttp: { type: "http", url: "https://legacy.example.test/mcp" } } },
         }),
       }),
     );
-    const platformLoad = vi
-      .fn()
-      .mockResolvedValueOnce({ servers: [] })
-      .mockResolvedValueOnce({
-        servers: [
-          {
-            source: "zcodeagentmcp" as const,
-            scope: "user" as const,
-            name: "legacyHttp",
-            config: {
-              type: "http" as const,
-              url: "https://legacy.example.test/mcp",
-            },
-          },
-        ],
-      });
+    const platformLoad = vi.fn(async () => ({
+      servers: [
+        {
+          source: "zcodeagentmcp" as const,
+          scope: "user" as const,
+          name: "platform-http",
+          config: { type: "http" as const, url: "https://platform.example.test/mcp" },
+        },
+      ],
+    }));
     const platformSave = vi.fn(async () => ({ success: true }));
     setMcpStorePlatform({
       loadMcpFromUserDirectory: platformLoad,
-      migrateLegacyCommonMcp: vi.fn(async () => ({
-        importedCount: 0,
-        servers: {},
-        skippedCount: 0,
-        totalCount: 0,
-      })),
       saveMcpToUserDirectory: platformSave,
     });
     const directoryService = {
@@ -348,18 +330,8 @@ describe("mcpStore", () => {
 
     expect(directoryService.loadMcpFromUserDirectory).not.toHaveBeenCalled();
     expect(platformLoad).toHaveBeenCalledWith({ workspacePath: "/local/workspace" });
-    expect(platformSave).toHaveBeenCalledWith({
-      action: "upsert",
-      source: "zcodeagentmcp",
-      name: "legacyHttp",
-      config: {
-        type: "http",
-        url: "https://legacy.example.test/mcp",
-      },
-    });
-    expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual([
-      "legacyHttp",
-    ]);
+    // legacyHttp 只存在于旧版 localStorage，不得出现在结果里。
+    expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual(["platform-http"]);
   });
 
   it("批量合并只更新 ZCode Agent MCP 行且清理 changed", () => {

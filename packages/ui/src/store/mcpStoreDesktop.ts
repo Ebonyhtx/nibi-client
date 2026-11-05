@@ -1,8 +1,6 @@
 import type {
   IPlatformService,
   LoadCliMcpFromUserDirectoryRequest,
-  MigrateLegacyCommonMcpRequest,
-  MigrateLegacyCommonMcpResult,
   NativeMcpServerRecord,
   SaveCliMcpToUserDirectoryRequest,
 } from "@nibi/shared";
@@ -11,20 +9,13 @@ import { logger } from "@/logger.js";
 
 export type McpPlatformService = Pick<
   IPlatformService,
-  "loadMcpFromUserDirectory" | "saveMcpToUserDirectory" | "migrateLegacyCommonMcp"
+  "loadMcpFromUserDirectory" | "saveMcpToUserDirectory"
 >;
 
 export type McpDirectoryService = Pick<
   IMcpSyncService,
   "loadMcpFromUserDirectory" | "saveMcpToUserDirectory"
 >;
-
-export interface MigrateLegacyResult {
-  totalCount: number;
-  importedCount: number;
-  skippedCount: number;
-  sourcePath?: string;
-}
 
 export async function persistCliMcpToUserDirectory(
   platform: McpPlatformService | null,
@@ -49,17 +40,6 @@ export async function persistCliMcpToUserDirectory(
   return true;
 }
 
-async function fetchLegacyCommonMcp(
-  platform: McpPlatformService | null,
-  payload?: MigrateLegacyCommonMcpRequest,
-): Promise<MigrateLegacyCommonMcpResult> {
-  if (!platform?.migrateLegacyCommonMcp) {
-    return { servers: {}, totalCount: 0, importedCount: 0, skippedCount: 0 };
-  }
-
-  return platform.migrateLegacyCommonMcp(payload ?? {});
-}
-
 export async function fetchNativeMcpServers(
   platform: McpPlatformService | null,
   payload?: LoadCliMcpFromUserDirectoryRequest,
@@ -76,21 +56,3 @@ export async function fetchNativeMcpServers(
   return result.servers ?? [];
 }
 
-export async function peekLegacyCommonMcpCount(
-  platform: McpPlatformService | null,
-): Promise<number> {
-  try {
-    const result = await fetchLegacyCommonMcp(platform);
-    const count = result.totalCount || Object.keys(result.servers ?? {}).length;
-    return count;
-  } catch {
-    return 0;
-  }
-}
-
-export async function migrateLegacyCommonMcpFromDesktop(
-  platform: McpPlatformService | null,
-  payload?: MigrateLegacyCommonMcpRequest,
-): Promise<MigrateLegacyCommonMcpResult> {
-  return fetchLegacyCommonMcp(platform, payload);
-}

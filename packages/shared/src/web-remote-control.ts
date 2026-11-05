@@ -14,8 +14,6 @@ import type {
 import type {
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
-  MigrateLegacyCommonMcpRequest,
-  MigrateLegacyCommonMcpResult,
   SaveCliMcpToUserDirectoryRequest,
 } from "./mcp.js";
 import type { ZCodeProvider } from "./zcode-task-types-core.js";
@@ -336,7 +334,6 @@ export interface WebRemoteControlPlatformMethodArgsMap {
   createTempTextAttachment: CreateTempTextAttachmentRequest;
   loadMcpFromUserDirectory: LoadCliMcpFromUserDirectoryRequest | undefined;
   saveMcpToUserDirectory: SaveCliMcpToUserDirectoryRequest;
-  migrateLegacyCommonMcp: MigrateLegacyCommonMcpRequest | undefined;
 }
 
 export interface WebRemoteControlPlatformMethodResultMap {
@@ -347,7 +344,6 @@ export interface WebRemoteControlPlatformMethodResultMap {
   createTempTextAttachment: CreateTempTextAttachmentResult;
   loadMcpFromUserDirectory: LoadCliMcpFromUserDirectoryResult;
   saveMcpToUserDirectory: { success: boolean; error?: string };
-  migrateLegacyCommonMcp: MigrateLegacyCommonMcpResult;
 }
 
 export type WebRemoteControlPlatformMethod = keyof WebRemoteControlPlatformMethodResultMap;

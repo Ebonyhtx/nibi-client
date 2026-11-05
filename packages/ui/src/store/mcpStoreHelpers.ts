@@ -6,9 +6,7 @@ import type {
   ZCodeMcpServer,
 } from "@nibi/shared";
 
-export const MCP_CONFIG_KEY = "zcode-mcp-config";
-export const MCP_ENABLED_STATES_KEY = "zcode-mcp-enabled-states";
-export const MCP_DELETED_PRELOAD_KEY = "zcode-mcp-deleted-preload";
+export const MCP_DELETED_PRELOAD_KEY = "nibi-mcp-deleted-preload";
 
 export const DEFAULT_MCP_CONFIG: McpConfig = {
   mcp: { mcpServers: {} },
@@ -42,22 +40,6 @@ export function safeWriteJson(key: string, value: unknown): void {
 
 export function loadPersistedConfig(): McpConfig {
   return { ...DEFAULT_MCP_CONFIG };
-}
-
-export function readLegacyCommonMcpServers(): Record<string, McpServerConfig> {
-  const saved = safeReadJson<Record<string, unknown>>(MCP_CONFIG_KEY, {});
-  const legacyServers = (saved.mcp as { mcpServers?: Record<string, McpServerConfig> } | undefined)?.mcpServers;
-  return legacyServers && typeof legacyServers === "object" ? legacyServers : {};
-}
-
-export function clearLegacyCommonMcpServers(): void {
-  try {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(MCP_CONFIG_KEY);
-    }
-  } catch {
-    // ignore storage errors
-  }
 }
 
 function toScopeKey(projectPath?: string): string {

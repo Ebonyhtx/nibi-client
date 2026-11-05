@@ -61,8 +61,6 @@ import type {
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
   SaveCliMcpToUserDirectoryRequest,
-  MigrateLegacyCommonMcpRequest,
-  MigrateLegacyCommonMcpResult,
   LocalTtftBatch,
   RemoteSessionReconnectedEvent,
   WindowControlsOverlayMetrics,
@@ -412,10 +410,6 @@ declare global {
       saveMcpToUserDirectory(
         payload: SaveCliMcpToUserDirectoryRequest,
       ): Promise<{ success: boolean; error?: string }>;
-      /** MCP：迁移旧的公共配置 */
-      migrateLegacyCommonMcp(
-        payload?: MigrateLegacyCommonMcpRequest,
-      ): Promise<MigrateLegacyCommonMcpResult>;
       /** 长文本粘贴落盘成本地附件 */
       createTempTextAttachment(
         payload: CreateTempTextAttachmentRequest,

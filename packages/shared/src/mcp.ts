@@ -94,21 +94,6 @@ export interface LoadCliMcpFromUserDirectoryResult {
   servers: NativeMcpServerRecord[];
 }
 
-export interface MigrateLegacyCommonMcpRequest {
-  legacyStorageDir?: string;
-}
-
-export interface MigrateLegacyCommonMcpResult {
-  servers: Record<string, McpServerConfig>;
-  sourcePath?: string;
-  /** 旧数据中发现的 MCP 配置总数 */
-  totalCount: number;
-  /** 成功导入的数量 */
-  importedCount: number;
-  /** 因已存在而跳过的数量 */
-  skippedCount: number;
-}
-
 export interface McpConfig {
   mcp: {
     mcpServers: Record<string, McpServerConfig>;

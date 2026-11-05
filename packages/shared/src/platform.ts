@@ -9,8 +9,6 @@ import type { PluginSandboxPlatformPort } from "./mcp-apps/contract.js";
 import type {
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
-  MigrateLegacyCommonMcpRequest,
-  MigrateLegacyCommonMcpResult,
   SaveCliMcpToUserDirectoryRequest,
 } from "./mcp.js";
 import type { OAuthStateRegistration } from "./oauth.js";
@@ -829,9 +827,6 @@ export interface IPlatformService {
   ): Promise<{ success: boolean; error?: string }>;
 
   /** 迁移旧版 Common MCP 配置；仅宿主环境可执行，手机远控通过 desktop attachment 转发。 */
-  migrateLegacyCommonMcp?(
-    payload?: MigrateLegacyCommonMcpRequest,
-  ): Promise<MigrateLegacyCommonMcpResult>;
 
   /** 打开外部 URL（用于 OAuth 跳转浏览器） */
   openExternal(url: string): void;
