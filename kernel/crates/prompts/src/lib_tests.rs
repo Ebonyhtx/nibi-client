@@ -7,10 +7,10 @@ fn every_registered_file_parses() {
 
 #[test]
 fn texts_use_the_product_names() {
-    // cron 工具里指产品的地方写 ZCode（tools-more.md §10.2）。
+    // cron 工具里指产品的地方写 NIBI（tools-more.md §10.2）。
     let cron = tool("CronCreate").unwrap();
     let text = format!("{}{}", cron.description, cron.input_schema);
-    for phrase in ["this ZCode session", "when ZCode exits"] {
+    for phrase in ["this NIBI session", "when NIBI exits"] {
         assert!(text.contains(phrase), "{phrase}");
     }
     let read = tool("Read").unwrap();
@@ -46,7 +46,7 @@ fn templates_render_once_and_keep_unknown_variables() {
 fn the_identity_is_the_zcode_sentence() {
     assert_eq!(
         texts::identity(),
-        "You are ZCode, an interactive coding agent."
+        "You are NIBI, an interactive coding agent."
     );
 }
 

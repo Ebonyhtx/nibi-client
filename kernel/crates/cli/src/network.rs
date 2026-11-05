@@ -35,7 +35,7 @@ impl fmt::Display for InvalidProxy {
             formatter,
             "Invalid proxy URL in {source}: \"{value}\" cannot be parsed as a URL.\n\
              Proxy settings must be a complete URL including the scheme, e.g. \"http://proxy.example.com:8080\".\n\
-             Fix or unset {source} and restart ZCode."
+             Fix or unset {source} and restart NIBI."
         )
     }
 }

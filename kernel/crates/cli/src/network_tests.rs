@@ -74,7 +74,7 @@ fn an_invalid_standard_proxy_is_a_startup_error() {
         error.to_string(),
         "Invalid proxy URL in HTTPS_PROXY: \"proxy.example.com:8080\" cannot be parsed as a URL.\n\
          Proxy settings must be a complete URL including the scheme, e.g. \"http://proxy.example.com:8080\".\n\
-         Fix or unset HTTPS_PROXY and restart ZCode."
+         Fix or unset HTTPS_PROXY and restart NIBI."
     );
     // 变量名是取到值的那个；值去掉控制字符。前面的变量是空的也不算。
     let error = proxy(&env(&[

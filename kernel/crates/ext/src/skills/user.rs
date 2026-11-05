@@ -149,7 +149,7 @@ impl UserCommands for SkillCommands {
             return local(
                 format!("/{}", skill.name),
                 format!(
-                    "This skill can only be invoked by ZCode, not directly by users. Ask ZCode to use the \"{}\" skill for you.",
+                    "This skill can only be invoked by NIBI, not directly by users. Ask NIBI to use the \"{}\" skill for you.",
                     skill.name
                 ),
             );

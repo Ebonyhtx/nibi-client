@@ -206,7 +206,7 @@ async fn a_conflicting_file_rejects_the_whole_rewind() {
     let ack = built.session.send(envelope("r1", command)).await;
     assert!(
         matches!(&ack, Ack::Rejected { reason }
-        if reason == "Cannot restore code: /work/a.txt was changed after ZCode edited it"),
+        if reason == "Cannot restore code: /work/a.txt was changed after NIBI edited it"),
         "{ack:?}"
     );
     assert_eq!(

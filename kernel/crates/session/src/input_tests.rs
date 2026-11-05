@@ -177,7 +177,7 @@ async fn an_interrupted_bash_command_does_not_query() {
     assert_eq!(texts.len(), 3, "{texts:?}");
     assert!(
         texts[0]
-            .starts_with("user:<local-command-caveat>The command below was run directly in ZCode")
+            .starts_with("user:<local-command-caveat>The command below was run directly in NIBI")
     );
     assert_eq!(texts[1], "user:<bash-input>slow</bash-input>");
     assert_eq!(texts[2], "user:[Request interrupted by user]");

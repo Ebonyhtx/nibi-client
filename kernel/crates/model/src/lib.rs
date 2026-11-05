@@ -109,7 +109,7 @@ impl ProviderModel {
     }
 
     /// 模型请求的来源头与每请求头的 ID（工作线 F64，model.md §2.4）：入口给来源头（[`source_headers`]，含
-    /// `user-agent: ZCode/<版本>`）、每个进程一个的 trace ID 与 `x-request-id` 的来源。没有时这两层都不发（测试）。
+    /// `user-agent: NIBI/<版本>`）、每个进程一个的 trace ID 与 `x-request-id` 的来源。没有时这两层都不发（测试）。
     #[must_use]
     pub fn with_request_headers(mut self, headers: RequestHeaders) -> Self {
         if let Ok(route) = &mut self.route {

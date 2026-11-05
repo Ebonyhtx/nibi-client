@@ -1154,7 +1154,7 @@ pub(super) fn settlement_of(status: &str, failure_json: Option<&str>) -> Settlem
     }
 }
 
-/// 中枢运行历史页的一行（`workflows/runs` 的 `ZCodeSavedWorkflowRun` 的取数面）。
+/// 中枢运行历史页的一行（`workflows/runs` 的 `NIBISavedWorkflowRun` 的取数面）。
 pub struct HubRunRow {
     pub run_id: String,
     pub name: Option<String>,

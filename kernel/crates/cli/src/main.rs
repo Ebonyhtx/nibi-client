@@ -178,7 +178,7 @@ fn capture() -> Result<Startup> {
         data_base_dir: non_empty(var("ZCODE_DATA_BASE_DIR")),
         builtin_provider_config: non_empty(var("ZCODE_BUILTIN_PROVIDER_CONFIG_FILE")),
         credential_secret: non_empty(var("ZCODE_CREDENTIAL_SECRET")).map(RedactedString::new),
-        // 显式覆盖的名字（修复线 F42，config.md §2.5）：只读 `ZCODE_*`；端点不叫 `ZCODE_BASE_URL`（它是 Node 的 ZCode 服务地址）。
+        // 显式覆盖的名字（修复线 F42，config.md §2.5）：只读 `ZCODE_*`；端点不叫 `ZCODE_BASE_URL`（它是 Node 的 NIBI 服务地址）。
         explicit: models::Override {
             base_url: var("ZCODE_MODEL_BASE_URL"),
             api_key: var("ZCODE_API_KEY").map(RedactedString::new),

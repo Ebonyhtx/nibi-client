@@ -175,12 +175,12 @@ mod agents {
         let child = &model.subagent.requests()[0];
         assert_eq!(
             child.system[0].text,
-            "You are ZCode, an interactive coding agent."
+            "You are NIBI, an interactive coding agent."
         );
         assert!(
             child.system[1]
                 .text
-                .starts_with("You are an agent for ZCode. Given the user's message")
+                .starts_with("You are an agent for NIBI. Given the user's message")
         );
         assert!(
             child.system[1]

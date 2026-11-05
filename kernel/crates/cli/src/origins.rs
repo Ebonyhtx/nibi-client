@@ -1,6 +1,6 @@
 //! 账号服务的地址（docs/specs/rust-cli/platform.md §5.4、§5.6）：按 Node 的环境变量规则解析。
 //!
-//! - ZCode 服务（CLI OAuth 登录）：`resolveRuntimeZCodeEndpointOrigin`——`ZCODE_ENV=test` 时是测试环境；
+//! - NIBI 服务（CLI OAuth 登录）：`resolveRuntimeNIBIEndpointOrigin`——`ZCODE_ENV=test` 时是测试环境；
 //!   `ZCODE_BASE_URL`、`ZCODE_ENDPOINT_ORIGIN`、分环境的 `ZCODE_PRODUCTION_BASE_URL` / `ZCODE_TEST_BASE_URL`
 //!   依次覆盖；API 根是 `<origin>/api/v1`。
 //! - BigModel：`resolveBigModelApiOrigin`——`BIGMODEL_API_BASE_URL`，其次分环境的
@@ -19,7 +19,7 @@ const BIGMODEL_TEST_ORIGIN: &str = "https://bigmodel.cn";
 const ZAI_API: &str = "https://api.z.ai";
 const ZAI_TEST_API: &str = "https://api.z.ai";
 
-/// Node `normalizeZCodeEndpointOrigin`：http(s) URL 的 origin。
+/// Node `normalizeNIBIEndpointOrigin`：http(s) URL 的 origin。
 fn origin(name: &str, value: &str) -> Result<String, String> {
     let invalid = || format!("{name} must be an http(s) URL, got {value}");
     let url = url::Url::parse(value.trim()).map_err(|_| invalid())?;
@@ -29,7 +29,7 @@ fn origin(name: &str, value: &str) -> Result<String, String> {
     Ok(url.origin().ascii_serialization())
 }
 
-/// Node `resolveRuntimeZCodeEnv`：`ZCODE_ENV`（去掉首尾空白）不分大小写等于 `test` 时是测试环境。`env` 同下。
+/// Node `resolveRuntimeNIBIEnv`：`ZCODE_ENV`（去掉首尾空白）不分大小写等于 `test` 时是测试环境。`env` 同下。
 pub(crate) fn is_test(env: &impl Fn(&str) -> Option<String>) -> bool {
     env("ZCODE_ENV").is_some_and(|value| value.eq_ignore_ascii_case("test"))
 }
@@ -44,7 +44,7 @@ fn first(
         .find_map(|name| env(name).map(|value| (*name, value)))
 }
 
-/// ZCode 服务的 origin（Node `resolveRuntimeZCodeEndpointOrigin`）：CLI 登录的地址与模型请求的 `http-referer`（工作线
+/// NIBI 服务的 origin（Node `resolveRuntimeNIBIEndpointOrigin`）：CLI 登录的地址与模型请求的 `http-referer`（工作线
 /// F64，model.md §2.4）共用这一个。`env` 同下。
 pub(crate) fn zcode_origin(env: &impl Fn(&str) -> Option<String>) -> Result<String, String> {
     let test = is_test(env);

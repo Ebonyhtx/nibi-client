@@ -1,4 +1,4 @@
-//! 智谱（z.ai、bigmodel.cn，含 ZCode 套餐网关）的业务码与结束原因（docs/specs/rust-cli/provider-errors.md §5.3，修复线 F113）。
+//! 智谱（z.ai、bigmodel.cn，含 NIBI 套餐网关）的业务码与结束原因（docs/specs/rust-cli/provider-errors.md §5.3，修复线 F113）。
 //!
 //! 规则（D1 暂定）：码在表里就按表，不看 HTTP 状态；表外的码有 HTTP 状态时交给协议层；在 HTTP 200 的流里（没有状态）
 //! 时是参数错误、不重试。码只认纯数字（`"code":"success"` 之类不算）。含义标“未核实”的码先按表收，以真实样本为准。
@@ -45,7 +45,7 @@ const CODES: [(&str, Class); 42] = [
     ("1321", Class::QuotaExhausted),
     ("2056", Class::QuotaExhausted),
     ("20097", Class::QuotaExhausted),
-    // ZCode 套餐网关的码。
+    // NIBI 套餐网关的码。
     ("1005", Class::QuotaExhausted),
     ("1006", Class::AuthRejected),
     ("2007", Class::ServerError),

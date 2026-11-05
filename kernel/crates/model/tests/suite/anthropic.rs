@@ -27,7 +27,7 @@ async fn the_wire_request_has_the_first_party_shape() {
         .with_assumed_first_party();
     let mut request = request("hello", QuerySource::MainThread);
     request.system = vec![SystemBlock {
-        text: "You are ZCode.".to_owned(),
+        text: "You are NIBI.".to_owned(),
         cache_control: Some(CacheControl {
             kind: "ephemeral".to_owned(),
             ttl: None,
@@ -87,7 +87,7 @@ async fn the_wire_request_has_the_first_party_shape() {
         concat!(
             r#"{"model":"claude-sonnet-4-5","messages":[{"role":"user","content":[{"type":"text","text":"hello"}]},"#,
             r##"{"role":"system","content":[{"type":"text","text":"# Environment"}]}],"##,
-            r#""system":[{"type":"text","text":"You are ZCode.","cache_control":{"type":"ephemeral"}}],"#,
+            r#""system":[{"type":"text","text":"You are NIBI.","cache_control":{"type":"ephemeral"}}],"#,
             r#""tools":[],"metadata":{"user_id":"{\"session_id\":\"s\"}"},"max_tokens":1024,"#,
             r#""thinking":{"type":"adaptive","display":"updates"},"#,
             r#""context_management":{"edits":[{"type":"clear_thinking_20251015","keep":"all"}]},"#,

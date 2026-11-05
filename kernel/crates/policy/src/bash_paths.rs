@@ -374,7 +374,7 @@ pub fn check(invocation: &Invocation, compound_has_cd: bool, inputs: &Inputs<'_>
         if matches!(name, "mv" | "cp") && argv.iter().skip(1).any(|arg| arg.starts_with('-')) {
             return asked(
                 format!(
-                    "{name} with flags requires manual approval to ensure path safety. For security, ZCode cannot automatically validate {name} commands that use flags, as some flags like --target-directory=PATH can bypass path validation."
+                    "{name} with flags requires manual approval to ensure path safety. For security, NIBI cannot automatically validate {name} commands that use flags, as some flags like --target-directory=PATH can bypass path validation."
                 ),
                 false,
             );

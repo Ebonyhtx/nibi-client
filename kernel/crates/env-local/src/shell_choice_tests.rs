@@ -119,7 +119,7 @@ async fn without_a_shell_commands_fail_with_the_fixed_text() {
     assert_eq!(
         error,
         EnvError::Io {
-            message: "No suitable shell found. ZCode requires a Posix shell environment. Please ensure you have a valid shell installed and the SHELL environment variable set.".to_owned(),
+            message: "No suitable shell found. NIBI requires a Posix shell environment. Please ensure you have a valid shell installed and the SHELL environment variable set.".to_owned(),
         }
     );
     // hook 命令不受影响（仍用 /bin/bash）。

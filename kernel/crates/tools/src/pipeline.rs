@@ -240,7 +240,7 @@ impl Pipeline {
             }
             PermissionDecision::Passthrough => {
                 let message = format!(
-                    "ZCode requested permissions to use {}, but you haven't granted it yet.",
+                    "NIBI requested permissions to use {}, but you haven't granted it yet.",
                     tool.name()
                 );
                 self.ask_for(tool, schema, input, message, &[], call).await

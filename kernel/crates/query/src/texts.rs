@@ -54,10 +54,10 @@ pub(crate) const CONTEXT_WINDOW_EXHAUSTED: &str =
     "API Error: The model has reached its context window limit.";
 
 /// 工具边界并入的插话（human 来源的格式，
-/// 工作中收到消息的前缀在前；产品名按替换表换成 ZCode），外面包 `<system-reminder>`。
+/// 工作中收到消息的前缀在前；产品名按替换表换成 NIBI），外面包 `<system-reminder>`。
 pub(crate) fn queued_prompt(prompt: &str) -> String {
     reminder::wrap(&format!(
-        "The user sent a new message while you were working:\n{prompt}\n\nThis is how ZCode surfaces messages the user sends mid-turn \u{2014} within the running turn, often alongside the next tool result, rather than as a separate conversation turn. Address the message above as you continue this turn."
+        "The user sent a new message while you were working:\n{prompt}\n\nThis is how NIBI surfaces messages the user sends mid-turn \u{2014} within the running turn, often alongside the next tool result, rather than as a separate conversation turn. Address the message above as you continue this turn."
     ))
 }
 

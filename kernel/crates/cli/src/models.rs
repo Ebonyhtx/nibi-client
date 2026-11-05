@@ -114,7 +114,7 @@ pub(crate) fn pick(catalog: &ModelCatalog, flag: Option<&str>) -> Result<ModelSe
         return catalog.default.clone().ok_or_else(|| {
             format!(
                 "no model provider configured: add one to ~/{DOT_DIR}/v2/provider_config.json, \
-                 log in with the ZCode app, or set ZCODE_API_KEY"
+                 log in with the NIBI app, or set ZCODE_API_KEY"
             )
         });
     };

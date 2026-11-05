@@ -133,7 +133,7 @@ async fn missed_one_shot_tasks_are_asked_about_first() {
     let fires = board.take_due(&me()).await;
     assert_eq!(fires[0].job, MISSED_JOB);
     assert!(fires[0].prompt.starts_with(
-        "The following one-shot scheduled task was missed while ZCode was not running. It has already been removed from .nibi/scheduled_tasks.json."
+        "The following one-shot scheduled task was missed while NIBI was not running. It has already been removed from .nibi/scheduled_tasks.json."
     ));
     assert!(fires[0].prompt.ends_with(
         "[Every day at 9:00 AM, created 10/16/2026, 4:07:30 AM]\n```\nprompt aaaa0001\n```"

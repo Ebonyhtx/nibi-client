@@ -178,7 +178,7 @@ fn index_profile_drops_reasoning_and_tools() {
 #[test]
 fn snapshot_carries_the_host_required_sections() {
     let snapshot = snapshot(&view(), Profile::Full, &Times::new(), &Media::new());
-    assert_eq!(snapshot["protocol"]["name"], "ZCode Protocol");
+    assert_eq!(snapshot["protocol"]["name"], "NIBI Protocol");
     assert_eq!(snapshot["session"]["sessionId"], "sess_1");
     assert_eq!(snapshot["session"]["sessionKind"], "interactive");
     assert_eq!(snapshot["session"]["mode"], "build");

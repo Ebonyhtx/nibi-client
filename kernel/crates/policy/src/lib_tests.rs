@@ -137,7 +137,7 @@ fn ask_message(decision: &PermissionDecision) -> &str {
     }
 }
 
-const TOUCH_INSIDE: &str = "touch in '/w/x' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there.";
+const TOUCH_INSIDE: &str = "touch in '/w/x' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there.";
 
 #[tokio::test]
 async fn default_mode_allows_read_only_and_asks_for_the_rest() {
@@ -177,7 +177,7 @@ async fn whole_tool_rules_come_first_and_last() {
     let asked = PolicyGate::new(rules(&[(RuleBehavior::Ask, "Bash")]));
     assert_eq!(
         ask_message(&bash(&asked, PermissionMode::Guarded, "echo hi").await),
-        "ZCode requested permissions to use Bash, but you haven't granted it yet."
+        "NIBI requested permissions to use Bash, but you haven't granted it yet."
     );
     // 工作线 F76（用户决定）：yolo 下 ask 规则也放行（以前询问）。
     assert_eq!(
@@ -239,7 +239,7 @@ async fn accept_edits_only_covers_the_working_directories() {
             )
             .await
         ),
-        "ZCode requested permissions to read from /etc/hosts, but you haven't granted it yet."
+        "NIBI requested permissions to read from /etc/hosts, but you haven't granted it yet."
     );
     assert_eq!(
         decide(

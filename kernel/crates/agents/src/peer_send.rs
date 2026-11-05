@@ -244,7 +244,7 @@ fn ambiguous(to: &str, candidates: &[(PeerRecord, String)], core: &Core) -> Stri
         .iter()
         .map(|(peer, reference)| {
             format!(
-                "  {} [{reference}] — ZCode session, on this machine, active {} ago",
+                "  {} [{reference}] — NIBI session, on this machine, active {} ago",
                 peer.name,
                 ago(now.saturating_sub(peer.started_at_ms))
             )

@@ -29,7 +29,7 @@ fn kind(mode: PermissionMode, entries: &[(RuleBehavior, &str)], command: &str) -
 
 fn mkdir(name: &str) -> String {
     format!(
-        "ask: mkdir in '/w/{name}' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: mkdir in '/w/{name}' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     )
 }
 

@@ -50,7 +50,7 @@ async fn guarded_asks_before_writing_sensitive_files() {
     for path in SENSITIVE {
         assert_eq!(
             ask_message(&write(&gate, PermissionMode::Guarded, path).await),
-            format!("ZCode requested permissions to edit {path} which is a sensitive file."),
+            format!("NIBI requested permissions to edit {path} which is a sensitive file."),
             "{path}"
         );
     }
@@ -67,7 +67,7 @@ async fn other_modes_still_ask_for_sensitive_files_even_with_an_allow_rule() {
     for mode in [PermissionMode::Default, PermissionMode::AcceptEdits] {
         assert_eq!(
             ask_message(&write(&gate, mode, "/w/.git/config").await),
-            "ZCode requested permissions to edit /w/.git/config which is a sensitive file.",
+            "NIBI requested permissions to edit /w/.git/config which is a sensitive file.",
             "{mode:?}"
         );
     }
@@ -88,7 +88,7 @@ async fn yolo_keeps_deny_rules_on_sensitive_files_but_not_ask_rules() {
     // guarded：ask 规则排在敏感文件之前，询问的文字是 ask 规则的。
     assert_eq!(
         ask_message(&write(&gate, PermissionMode::Guarded, "/w/.bashrc").await),
-        "ZCode requested permissions to write to /w/.bashrc, but you haven't granted it yet."
+        "NIBI requested permissions to write to /w/.bashrc, but you haven't granted it yet."
     );
 }
 

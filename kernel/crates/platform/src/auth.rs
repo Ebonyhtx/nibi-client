@@ -227,7 +227,7 @@ impl TeamAccess {
         let identity = profile_id(credentials, family)?;
         let token = credentials.present(account::oauth_key(family.as_str()))?;
         let jwt = credentials.present(account::ZCODE_JWT_KEY);
-        // BigModel /api/biz 只接受登录 access token，不能用旧版本误存的 ZCode JWT（App 相同）。
+        // BigModel /api/biz 只接受登录 access token，不能用旧版本误存的 NIBI JWT（App 相同）。
         if family == Family::Bigmodel && jwt.as_ref() == Some(&token) {
             return None;
         }

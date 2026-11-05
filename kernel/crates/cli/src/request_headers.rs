@@ -17,7 +17,7 @@ pub(crate) struct Host {
 }
 
 /// 入口用：读系统、算来源头，配上 `NodeIds` 的 trace ID 与 `x-request-id`。`var` 是快照里的原值（设了但为空时是
-/// `Some("")`）；版本是本工程的 `VERSION`。ZCode 服务的地址无效时报错（启动失败，Node 建 App 时同样抛错）。
+/// `Some("")`）；版本是本工程的 `VERSION`。NIBI 服务的地址无效时报错（启动失败，Node 建 App 时同样抛错）。
 pub(crate) fn request_headers(
     var: &dyn Fn(&str) -> Option<String>,
     version: &str,

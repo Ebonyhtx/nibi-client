@@ -11,7 +11,7 @@ use crate::openai_lower::tests::{conversation, message, text};
 fn a_conversation_encodes_in_the_node_order() {
     let mut request = request(conversation());
     request.system = vec![SystemBlock {
-        text: "You are ZCode.".to_owned(),
+        text: "You are NIBI.".to_owned(),
         cache_control: None,
     }];
     request.tools = vec![ToolDefinition {
@@ -25,7 +25,7 @@ fn a_conversation_encodes_in_the_node_order() {
         body,
         concat!(
             r#"{"model":"qwen3.8-max","stream":true,"store":false,"include":["reasoning.encrypted_content"],"max_output_tokens":32000,"input":["#,
-            r#"{"role":"system","content":"You are ZCode."},"#,
+            r#"{"role":"system","content":"You are NIBI."},"#,
             r#"{"role":"user","content":[{"type":"input_text","text":"<system-reminder>ctx</system-reminder>"},{"type":"input_text","text":"read a.png"},{"type":"input_text","text":"<system-reminder>\n# Environment\n</system-reminder>"}]},"#,
             r#"{"type":"function_call","call_id":"toolu_1","name":"Read","arguments":"{\"file_path\":\"a.png\"}"},"#,
             r#"{"type":"function_call_output","call_id":"toolu_1","output":"line 1\nline 2"},"#,

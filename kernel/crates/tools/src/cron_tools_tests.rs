@@ -136,7 +136,7 @@ async fn create_reports_the_job_and_lists_it() {
     .await;
     assert_eq!(
         text,
-        "Scheduled recurring job 1a2b3c4d (Every 5 minutes). Session-only (not written to disk, dies when ZCode exits). Auto-expires after 7 days. Use CronDelete to cancel sooner."
+        "Scheduled recurring job 1a2b3c4d (Every 5 minutes). Session-only (not written to disk, dies when NIBI exits). Auto-expires after 7 days. Use CronDelete to cancel sooner."
     );
     let text = call(
         &create,
@@ -146,7 +146,7 @@ async fn create_reports_the_job_and_lists_it() {
     .await;
     assert_eq!(
         text,
-        "Scheduled one-shot task ffffffff (Weekdays at 9:00 AM). Session-only (not written to disk, dies when ZCode exits). It will fire once then auto-delete."
+        "Scheduled one-shot task ffffffff (Weekdays at 9:00 AM). Session-only (not written to disk, dies when NIBI exits). It will fire once then auto-delete."
     );
     let list = call(
         &tool(&board, LIST),

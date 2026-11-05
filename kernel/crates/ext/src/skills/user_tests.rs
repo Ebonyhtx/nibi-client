@@ -67,7 +67,7 @@ async fn expand(text: &str) -> Expansion {
         .await
 }
 
-const CAVEAT: &str = "<local-command-caveat>The command below was run directly in ZCode, not sent to you as a request, and its output goes straight to the user. It's recorded here as context for later messages.</local-command-caveat>";
+const CAVEAT: &str = "<local-command-caveat>The command below was run directly in NIBI, not sent to you as a request, and its output goes straight to the user. It's recorded here as context for later messages.</local-command-caveat>";
 
 #[tokio::test]
 async fn k6_greet_expands_to_tags_and_the_body() {
@@ -154,7 +154,7 @@ async fn not_user_invocable_answers_locally_without_a_query() {
                 input("/inner"),
                 meta(
                     LOCAL_COMMAND_SOURCE,
-                    "This skill can only be invoked by ZCode, not directly by users. Ask ZCode to use the \"inner\" skill for you.",
+                    "This skill can only be invoked by NIBI, not directly by users. Ask NIBI to use the \"inner\" skill for you.",
                 ),
             ],
             query: false,

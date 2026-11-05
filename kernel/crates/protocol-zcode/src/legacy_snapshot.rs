@@ -496,7 +496,7 @@ pub(crate) fn snapshot(
     }
 
     let mut snapshot = json!({
-        "protocol": {"name": "ZCode Protocol", "version": 1},
+        "protocol": {"name": "NIBI Protocol", "version": 1},
         "session": {
             "createdAt": at,
             "mode": mode,

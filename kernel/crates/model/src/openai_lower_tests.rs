@@ -94,7 +94,7 @@ pub(crate) fn conversation() -> Vec<ApiMessage> {
 fn messages_lower_to_protocol_neutral_items() {
     let system = vec![
         SystemBlock {
-            text: "You are ZCode.".to_owned(),
+            text: "You are NIBI.".to_owned(),
             cache_control: None,
         },
         SystemBlock {
@@ -108,7 +108,7 @@ fn messages_lower_to_protocol_neutral_items() {
     assert_eq!(
         lowered,
         vec![
-            Item::System("You are ZCode.\n\nBe brief.".to_owned()),
+            Item::System("You are NIBI.\n\nBe brief.".to_owned()),
             Item::User(vec![
                 Part::Text("<system-reminder>ctx</system-reminder>".to_owned()),
                 Part::Text("read a.png".to_owned()),

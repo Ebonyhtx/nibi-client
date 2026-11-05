@@ -20,7 +20,7 @@ fn read_tool() -> ToolDefinition {
 fn a_conversation_encodes_in_the_node_order() {
     let mut request = request(conversation());
     request.system = vec![SystemBlock {
-        text: "You are ZCode.".to_owned(),
+        text: "You are NIBI.".to_owned(),
         cache_control: None,
     }];
     request.tools = vec![read_tool()];
@@ -36,7 +36,7 @@ fn a_conversation_encodes_in_the_node_order() {
         body,
         concat!(
             r#"{"model":"glm-5","messages":["#,
-            r#"{"role":"system","content":"You are ZCode."},"#,
+            r#"{"role":"system","content":"You are NIBI."},"#,
             r#"{"role":"user","content":[{"type":"text","text":"<system-reminder>ctx</system-reminder>"},{"type":"text","text":"read a.png"},{"type":"text","text":"<system-reminder>\n# Environment\n</system-reminder>"}]},"#,
             r#"{"role":"assistant","content":null,"reasoning_content":"need the file","tool_calls":[{"id":"toolu_1","type":"function","function":{"name":"Read","arguments":"{\"file_path\":\"a.png\"}"}}]},"#,
             r#"{"role":"tool","tool_call_id":"toolu_1","content":"line 1\nline 2"},"#,

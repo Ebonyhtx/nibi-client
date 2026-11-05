@@ -284,7 +284,7 @@ fn the_update_is_handed_to_the_launcher() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: Cannot update ZCode while it is running on Windows. Please run `npm install -g @scope/zcode` after it exits.\n"
+        "Error: Cannot update NIBI while it is running on Windows. Please run `npm install -g @scope/zcode` after it exits.\n"
     );
     assert!(output.stdout.is_empty(), "{output:?}");
     let handoff = sandbox.base.join("zcode-update-handoff.json");

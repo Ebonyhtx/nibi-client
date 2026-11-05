@@ -87,7 +87,7 @@ fn without_a_marker_the_update_command_asks_for_a_manual_update() {
         assert_eq!(output.status.code(), Some(1), "{output:?}");
         assert_eq!(
             text(&output.stderr),
-            "Error: Could not detect the ZCode installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode\n"
+            "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode\n"
         );
         assert!(output.stdout.is_empty(), "{output:?}");
     }
@@ -122,7 +122,7 @@ fn the_update_command_runs_the_package_manager_of_the_launcher() {
         assert_eq!(
             text(&output.stdout),
             format!(
-                "\nUpdating ZCode via `{expected}`...\nfake {program} output\n\n🎉 Update ran successfully! Please restart ZCode.\n"
+                "\nUpdating NIBI via `{expected}`...\nfake {program} output\n\n🎉 Update ran successfully! Please restart NIBI.\n"
             )
         );
         assert!(output.stderr.is_empty(), "{output:?}");
@@ -144,7 +144,7 @@ fn a_failed_update_reports_the_status_and_exits_with_one() {
     );
     assert_eq!(
         text(&output.stdout),
-        "\nUpdating ZCode via `npm install -g @scope/zcode`...\nfake npm output\n"
+        "\nUpdating NIBI via `npm install -g @scope/zcode`...\nfake npm output\n"
     );
 }
 
@@ -156,7 +156,7 @@ fn the_update_command_has_commander_help_and_errors() {
     assert_eq!(help.status.code(), Some(0), "{help:?}");
     assert_eq!(
         text(&help.stdout),
-        "Usage: zcode update|upgrade [options]\n\nUpdate ZCode to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
+        "Usage: zcode update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
     );
     for (args, expected) in [
         (vec!["update", "--yes"], "error: unknown option '--yes'\n"),
@@ -174,7 +174,7 @@ fn the_update_command_has_commander_help_and_errors() {
     let page = zcode(home.path(), &["--help"], &[]);
     assert!(
         text(&page.stdout).contains(
-            "  update|upgrade                        Update ZCode to the latest version\n"
+            "  update|upgrade                        Update NIBI to the latest version\n"
         ),
         "{page:?}"
     );
@@ -209,7 +209,7 @@ fn with_a_handoff_the_update_command_writes_latest_and_runs_nothing() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: Could not detect the ZCode installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode\n"
+        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode\n"
     );
     assert!(!handoff.exists());
     // 交接文件的目录不存在：报系统错误、退出码 1，不起包管理器。

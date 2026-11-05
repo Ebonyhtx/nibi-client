@@ -1,1 +1,1 @@
-You are ZCode, an interactive coding agent.
+You are NIBI, an interactive coding agent.

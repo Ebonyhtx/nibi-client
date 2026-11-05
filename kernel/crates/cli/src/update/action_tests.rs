@@ -69,7 +69,7 @@ async fn the_package_manager_gets_the_codex_arguments_and_the_result_is_printed(
         assert_eq!(
             String::from_utf8(out).unwrap(),
             format!(
-                "\nUpdating ZCode via `{line}`...\n\n🎉 Update ran successfully! Please restart ZCode.\n"
+                "\nUpdating NIBI via `{line}`...\n\n🎉 Update ran successfully! Please restart NIBI.\n"
             )
         );
     }
@@ -97,7 +97,7 @@ async fn a_failing_package_manager_is_an_error_with_its_status() {
     // 开头的那句已经打印，没有成功的那句。
     assert_eq!(
         String::from_utf8(out).unwrap(),
-        "\nUpdating ZCode via `npm install -g @scope/zcode`...\n"
+        "\nUpdating NIBI via `npm install -g @scope/zcode`...\n"
     );
 }
 
@@ -181,7 +181,7 @@ async fn windows_without_a_handoff_only_names_the_command() {
         assert_eq!(
             error.to_string(),
             format!(
-                "Error: Cannot update ZCode while it is running on Windows. Please run `{line}` after it exits."
+                "Error: Cannot update NIBI while it is running on Windows. Please run `{line}` after it exits."
             )
         );
         assert!(out.is_empty());

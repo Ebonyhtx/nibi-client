@@ -1,6 +1,6 @@
 //! 定时任务的提示文本（docs/specs/rust-cli/tools-more.md §16.4、§17.2）。
 //!
-//! 文字逐字固定：错过任务的提示里产品名按 cron 文字的决定写成 ZCode、路径取产品目录 `.nibi`；ScheduleWakeup 的
+//! 文字逐字固定：错过任务的提示里产品名按 cron 文字的决定写成 NIBI、路径取产品目录 `.nibi`；ScheduleWakeup 的
 //! 结果按 brief 模式关、不预先报告状态的写法。
 
 use rust_cli_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
@@ -42,7 +42,7 @@ pub(crate) fn missed(tasks: &[StoredCronTask], offset: &dyn Fn(u64) -> i32) -> S
     let plural = tasks.len() > 1;
     let pick = |many: &'static str, one: &'static str| if plural { many } else { one };
     let header = format!(
-        "The following one-shot scheduled task{} missed while ZCode was not running. {} already been removed from {DOT_DIR}/{SCHEDULED_TASKS_FILE}.\n\nDo NOT execute {} yet. First use the AskUserQuestion tool to ask whether to run {} now. Only execute if the user confirms.",
+        "The following one-shot scheduled task{} missed while NIBI was not running. {} already been removed from {DOT_DIR}/{SCHEDULED_TASKS_FILE}.\n\nDo NOT execute {} yet. First use the AskUserQuestion tool to ask whether to run {} now. Only execute if the user confirms.",
         pick("s were", " was"),
         pick("They have", "It has"),
         pick("these prompts", "this prompt"),

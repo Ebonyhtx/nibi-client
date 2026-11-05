@@ -76,7 +76,7 @@ pub fn node_arch() -> &'static str {
     }
 }
 
-/// 命令为什么结束（Node `ZCodeToolExecResource["exitKind"]`）。
+/// 命令为什么结束（Node `NIBIToolExecResource["exitKind"]`）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ToolExitKind {

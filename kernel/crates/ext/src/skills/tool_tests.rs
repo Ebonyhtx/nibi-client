@@ -194,7 +194,7 @@ async fn the_k1_dont_ask_run_asks_for_greet_and_admits_plain() {
     };
     assert!(
         message.starts_with(
-            "Permission to use Skill has been denied because ZCode is running in don't ask mode."
+            "Permission to use Skill has been denied because NIBI is running in don't ask mode."
         ),
         "{message}"
     );

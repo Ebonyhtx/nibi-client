@@ -72,7 +72,7 @@ async fn a_denied_command_in_a_shell_script_asks_in_guarded_but_not_in_yolo() {
     for command in ["sh -c 'rm -f x'", "bash -lc 'echo hi; rm -f x'"] {
         assert_eq!(
             ask_message(&bash(&gate, PermissionMode::Guarded, command).await),
-            "A permission rule denies a command inside this shell -c script, so ZCode could not check it for dangerous removals. Approving runs the whole script, including that command.",
+            "A permission rule denies a command inside this shell -c script, so NIBI could not check it for dangerous removals. Approving runs the whole script, including that command.",
             "{command:?}"
         );
         assert_eq!(

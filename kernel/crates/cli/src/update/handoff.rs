@@ -55,7 +55,7 @@ pub(crate) async fn write(path: &Path, version: &str) -> std::io::Result<()> {
 /// Windows 上没有交接变量时的报错：`command_line` 是安装命令（update.md §2）。
 pub(crate) fn manual(command_line: &str) -> String {
     format!(
-        "Error: Cannot update ZCode while it is running on Windows. Please run `{command_line}` after it exits."
+        "Error: Cannot update NIBI while it is running on Windows. Please run `{command_line}` after it exits."
     )
 }
 

@@ -1,6 +1,6 @@
 //! 前端使用的内核会话 API（docs/specs/rust-cli/README.md §3、§7）。
 //!
-//! TUI 与 headless 只经这里驱动内核；第二阶段的 ZCode Protocol 前端也一样。事件覆盖 spec §7
+//! TUI 与 headless 只经这里驱动内核；第二阶段的 NIBI Protocol 前端也一样。事件覆盖 spec §7
 //! 列出的 V4 适配层输入，每个事件带会话内单调递增的 seq，并能从持久事实重建（§6 规则 13）。
 
 use std::collections::HashMap;

@@ -3,7 +3,7 @@
 //! 入口 crate 捕获一次进程环境，这里按白名单挑出要交给用户命令的变量：shell 与终端、语言区域、
 //! 路径与临时目录、代理、SSH agent、常见工具链目录。账号与模型的凭据（`ZCODE_API_KEY` 等）不在
 //! 白名单里，不会进入用户命令。另外固定设置 `GIT_EDITOR=true`（git 不打开交互编辑器）与 `ZCODE=1`
-//! （子进程据此知道自己在 ZCode 里运行）。
+//! （子进程据此知道自己在 NIBI 里运行）。
 
 use std::collections::BTreeMap;
 

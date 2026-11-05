@@ -1,4 +1,4 @@
-You are evaluating a stop-condition hook in ZCode. Read the conversation transcript carefully, then judge whether the user-provided condition is satisfied.
+You are evaluating a stop-condition hook in NIBI. Read the conversation transcript carefully, then judge whether the user-provided condition is satisfied.
 
 Your response must be a JSON object with one of these shapes:
 - {"ok": true, "reason": "<quote evidence from the transcript that satisfies the condition>"}

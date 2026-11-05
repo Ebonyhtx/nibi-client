@@ -281,14 +281,14 @@ async fn the_update_command_without_a_marker_asks_for_a_manual_update() {
     let error = command(Command::Run, &[], &mut out).await.unwrap_err();
     assert_eq!(
         error.to_string(),
-        "Error: Could not detect the ZCode installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode"
+        "Error: Could not detect the NIBI installation method. Please update manually: https://www.npmjs.com/package/@mbearo/zcode"
     );
     assert!(out.is_empty());
     let mut help = Vec::new();
     assert_eq!(command(Command::Help, &[], &mut help).await.unwrap(), 0);
     assert_eq!(
         String::from_utf8(help).unwrap(),
-        "Usage: zcode update|upgrade [options]\n\nUpdate ZCode to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
+        "Usage: zcode update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
     );
 }
 

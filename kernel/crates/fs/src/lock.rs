@@ -108,7 +108,7 @@ fn timeout_error(lock_dir: &Path, waited: Duration) -> io::Error {
     io::Error::new(
         ErrorKind::TimedOut,
         format!(
-            "{FILE_LOCK_TIMEOUT_CODE}: Timed out after {}ms waiting for the ZCode file lock: {}",
+            "{FILE_LOCK_TIMEOUT_CODE}: Timed out after {}ms waiting for the NIBI file lock: {}",
             waited.as_millis(),
             lock_dir.display()
         ),
@@ -250,7 +250,7 @@ async fn try_create(
     {
         return Err(io::Error::new(
             ErrorKind::AlreadyExists,
-            "ZCode file lock ownership changed during acquire",
+            "NIBI file lock ownership changed during acquire",
         ));
     }
     Ok(())

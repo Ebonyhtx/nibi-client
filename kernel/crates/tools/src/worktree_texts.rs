@@ -47,7 +47,7 @@ pub(crate) fn entered(verb: &str, path: &str, branch: Option<&str>, note: &str) 
 
 pub(crate) fn not_owner(path: &str, original: &str) -> String {
     format!(
-        "This session is not the owner of the worktree at {path} \u{2014} it either entered a pre-existing worktree via EnterWorktree({{path}}) or resumed into a checkout whose liveness lock another running ZCode session still holds \u{2014} so this tool will not remove it. Use action: \"keep\" to return to {original}. If no other session is using it, remove it yourself with `git worktree remove`; while a live session's lock is present, git will refuse and name the owner."
+        "This session is not the owner of the worktree at {path} \u{2014} it either entered a pre-existing worktree via EnterWorktree({{path}}) or resumed into a checkout whose liveness lock another running NIBI session still holds \u{2014} so this tool will not remove it. Use action: \"keep\" to return to {original}. If no other session is using it, remove it yourself with `git worktree remove`; while a live session's lock is present, git will refuse and name the owner."
     )
 }
 

@@ -26,7 +26,7 @@ pub struct Attribution {
 }
 
 impl Default for Attribution {
-    /// ZCode 的署名（用户决定，见 context.md §4.6）。
+    /// NIBI 的署名（用户决定，见 context.md §4.6）。
     fn default() -> Self {
         Self {
             commit: Some(rust_cli_prompts::texts::attribution_commit_value().to_owned()),

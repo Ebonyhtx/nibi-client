@@ -34,7 +34,7 @@ pub(crate) enum Mode {
     Production,
 }
 
-/// `ZCODE_RUNTIME_ENV`（去首尾空白、不分大小写，Node `normalizeZCodeRuntimeEnv`）；其他值或没有时按构建。
+/// `ZCODE_RUNTIME_ENV`（去首尾空白、不分大小写，Node `normalizeNIBIRuntimeEnv`）；其他值或没有时按构建。
 pub(crate) fn mode(value: Option<&str>, debug_build: bool) -> Mode {
     match value
         .map(|value| value.trim().to_ascii_lowercase())

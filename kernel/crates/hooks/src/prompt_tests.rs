@@ -82,7 +82,7 @@ async fn sends_the_evaluation_request() {
     assert!(
         request.system[1]
             .text
-            .starts_with("You are evaluating a hook condition in ZCode.")
+            .starts_with("You are evaluating a hook condition in NIBI.")
     );
     assert!(
         request
@@ -229,7 +229,7 @@ async fn the_stop_condition_reads_the_transcript() {
     assert!(
         request.system[1]
             .text
-            .starts_with("You are evaluating a stop-condition hook in ZCode.")
+            .starts_with("You are evaluating a stop-condition hook in NIBI.")
     );
     // 对话记录在前，断点只留在最后一个块上。
     assert_eq!(request.messages.len(), 3);

@@ -85,7 +85,7 @@ async fn session_asks_reach_the_actor_and_can_be_answered() {
                     tool_use: ToolUseId::new("toolu_ui"),
                     tool: "mcp__panel__echo".to_owned(),
                     input: json!({}),
-                    message: "ZCode requested permissions to use mcp__panel__echo".to_owned(),
+                    message: "NIBI requested permissions to use mcp__panel__echo".to_owned(),
                     suggestions: Vec::new(),
                     asked_by: None,
                     machine: None,

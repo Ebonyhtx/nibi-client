@@ -131,7 +131,7 @@ fn a_full_request_has_the_fixed_field_order() {
             cache_control: None,
         },
         SystemBlock {
-            text: "You are ZCode.".to_owned(),
+            text: "You are NIBI.".to_owned(),
             cache_control: cache(Some("5m"), Some("global")),
         },
     ];
@@ -165,7 +165,7 @@ fn a_full_request_has_the_fixed_field_order() {
         r#"{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBO"}}],"is_error":true},"#,
         r#"{"type":"text","text":"next","cache_control":{"type":"ephemeral"}}]}],"#,
         r#""system":[{"type":"text","text":"billing header"},"#,
-        r#"{"type":"text","text":"You are ZCode.","cache_control":{"type":"ephemeral","ttl":"5m","scope":"global"}}],"#,
+        r#"{"type":"text","text":"You are NIBI.","cache_control":{"type":"ephemeral","ttl":"5m","scope":"global"}}],"#,
         r#""tools":[{"name":"Read","description":"Reads a file.","input_schema":{"type":"object","properties":{"file_path":{"type":"string"}}}},"#,
         r#"{"name":"Bash","description":"Runs a command.","input_schema":{"type":"object"},"cache_control":{"type":"ephemeral"}}],"#,
         r#""tool_choice":{"type":"auto"},"max_tokens":32000,"#,

@@ -43,7 +43,7 @@ pub(crate) async fn save_default_model(
 const LOGIN_TIMEOUT_MS: u64 = 5 * 60 * 1000;
 const MIN_POLL_INTERVAL_MS: u64 = 1_000;
 
-/// 登录失败。文案与 Node `ZCodeCliLoginError` / `CliOAuthError` 相同。
+/// 登录失败。文案与 Node `NIBICliLoginError` / `CliOAuthError` 相同。
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum LoginError {
     #[error("Authorization timed out. Please retry login.")]
@@ -62,18 +62,18 @@ pub enum LoginError {
     #[error("Login succeeded but writing credentials failed.")]
     CredentialWrite(String),
     /// 个人配置写入失败；`configure_api_key` 时 Node 不包装，原因直接给出。
-    #[error("Login succeeded but updating ZCode config failed.")]
+    #[error("Login succeeded but updating NIBI config failed.")]
     ConfigUpdate(String),
     #[error("API key must not be empty.")]
     EmptyApiKey,
     /// 个人配置还不存在，旧 CLI 用户文件有 Node 要导入的 provider 或默认模型：不建文件，留给 Node 导入
     /// （修复线 F2，platform.md §2.4）。
     #[error(
-        "{file} does not exist yet and {legacy} has providers that ZCode imports when it creates it; start the Node CLI or the App once, then try again."
+        "{file} does not exist yet and {legacy} has providers that NIBI imports when it creates it; start the Node CLI or the App once, then try again."
     )]
     LegacyImportPending { file: String, legacy: String },
     /// 内置配置没有给这个 family 声明唯一的个人 Coding Plan provider。
-    #[error("ZCode Built-in Config 必须为 {0} 声明唯一 Individual Coding Plan Provider")]
+    #[error("NIBI Built-in Config 必须为 {0} 声明唯一 Individual Coding Plan Provider")]
     NoProvider(&'static str),
     /// 凭据文件读不出或损坏（退出、手工 key）。
     #[error("{0}")]
@@ -253,7 +253,7 @@ impl Platform {
         }
     }
 
-    /// CLI OAuth 登录的第一步：向 ZCode 服务要授权地址。
+    /// CLI OAuth 登录的第一步：向 NIBI 服务要授权地址。
     pub async fn begin_login(&self, family: Family) -> Result<PendingLogin<'_>, LoginError> {
         let provider = self.coding_plan(family).await?;
         let client = OAuthClient {
@@ -312,7 +312,7 @@ impl Platform {
         })
     }
 
-    /// 退出 Coding Plan 账号（Node `logoutZCodeCli`）。返回凭据文件的位置。
+    /// 退出 Coding Plan 账号（Node `logoutNIBICli`）。返回凭据文件的位置。
     pub async fn logout(&self) -> Result<StoragePath, LoginError> {
         let builtin = self
             .registry

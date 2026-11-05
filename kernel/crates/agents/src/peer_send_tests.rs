@@ -94,7 +94,7 @@ async fn the_listing_has_this_session_and_the_peer_rows() {
     // 没有同伴：自己那一段加“没有可达的 agent”。
     let alone = with_peers(Arc::new(FakePeers::default()));
     let listed = text(&alone.call("sess_b", "ListAgents", json!({})).await);
-    assert!(listed.ends_with("\n\nNo reachable agents — no other ZCode session is running on this machine right now (peer messaging itself is available; a session appears here once it is started)."));
+    assert!(listed.ends_with("\n\nNo reachable agents — no other NIBI session is running on this machine right now (peer messaging itself is available; a session appears here once it is started)."));
 }
 
 #[tokio::test]
@@ -114,7 +114,7 @@ async fn sending_by_name_wraps_the_message_in_an_envelope() {
     assert!(!output.is_error);
     assert_eq!(
         text(&output),
-        "“say hello” → work-6d (another ZCode session on this machine; in that session's inbox, not yet read by its ZCode — a [Cross-session delivery notice] follows if that session holds it (usually a different permission mode) or refuses it)"
+        "“say hello” → work-6d (another NIBI session on this machine; in that session's inbox, not yet read by its NIBI — a [Cross-session delivery notice] follows if that session holds it (usually a different permission mode) or refuses it)"
     );
     let sent = fake.sent.lock().unwrap().clone();
     assert_eq!(sent.len(), 1);
@@ -148,7 +148,7 @@ async fn two_peers_with_one_name_need_the_ref() {
     let output = harness
         .call("sess_b", "SendMessage", json!({"to": to, "message": "hi"}))
         .await;
-    assert!(text(&output).contains(" → work-6d (another ZCode session"));
+    assert!(text(&output).contains(" → work-6d (another NIBI session"));
     assert_eq!(fake.sent.lock().unwrap()[0].to.socket(), "/peers/101.sock");
 }
 

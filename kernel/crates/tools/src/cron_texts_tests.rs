@@ -42,7 +42,7 @@ fn missed_notice_is_verbatim() {
     let one = missed(&[task("a", "remind me", 1_792_231_650_000)], &UTC);
     assert_eq!(
         one,
-        "The following one-shot scheduled task was missed while ZCode was not running. It has already been removed from .nibi/scheduled_tasks.json.\n\nDo NOT execute this prompt yet. First use the AskUserQuestion tool to ask whether to run it now. Only execute if the user confirms.\n\n[Every day at 2:30 PM, created 10/17/2026, 10:07:30 AM]\n```\nremind me\n```"
+        "The following one-shot scheduled task was missed while NIBI was not running. It has already been removed from .nibi/scheduled_tasks.json.\n\nDo NOT execute this prompt yet. First use the AskUserQuestion tool to ask whether to run it now. Only execute if the user confirms.\n\n[Every day at 2:30 PM, created 10/17/2026, 10:07:30 AM]\n```\nremind me\n```"
     );
     let two = missed(
         &[
@@ -51,7 +51,7 @@ fn missed_notice_is_verbatim() {
         ],
         &UTC,
     );
-    assert!(two.starts_with("The following one-shot scheduled tasks were missed while ZCode was not running. They have already been removed"));
+    assert!(two.starts_with("The following one-shot scheduled tasks were missed while NIBI was not running. They have already been removed"));
     assert!(two.contains("Do NOT execute these prompts yet. First use the AskUserQuestion tool to ask whether to run each one now."));
     assert!(two.contains("\n`````\nrun ````x````\n`````\n\n[Every day at 2:30 PM"));
 }

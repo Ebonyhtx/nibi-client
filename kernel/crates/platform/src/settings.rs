@@ -36,7 +36,7 @@ impl Settings {
         }
     }
 
-    /// 设置页的 ZCode 端点覆盖 `zcodeEndpointOrigin`（去掉首尾空白，空值视为没有）。
+    /// 设置页的 NIBI 端点覆盖 `zcodeEndpointOrigin`（去掉首尾空白，空值视为没有）。
     pub async fn zcode_endpoint_origin(&self) -> Option<String> {
         self.read()
             .await

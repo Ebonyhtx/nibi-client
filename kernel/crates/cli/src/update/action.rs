@@ -54,7 +54,7 @@ pub(crate) async fn execute(
 async fn run_here(install: &Install, env: &[(String, String)], out: &mut dyn Write) -> Result<u8> {
     let line = install.command_line();
     // 终端已经关掉时写不进去也照常执行（与恢复提示相同，写失败不 panic）。
-    let _ = writeln!(out, "\nUpdating ZCode via `{line}`...");
+    let _ = writeln!(out, "\nUpdating NIBI via `{line}`...");
     let _ = out.flush();
     let mut command = rust_cli_proc::command(install.program());
     command
@@ -68,7 +68,7 @@ async fn run_here(install: &Install, env: &[(String, String)], out: &mut dyn Wri
     if !status.success() {
         return Err(Fatal(format!("Error: `{line}` failed with status {status}")).into());
     }
-    let _ = writeln!(out, "\n🎉 Update ran successfully! Please restart ZCode.");
+    let _ = writeln!(out, "\n🎉 Update ran successfully! Please restart NIBI.");
     let _ = out.flush();
     Ok(0)
 }

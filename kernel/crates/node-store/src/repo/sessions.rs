@@ -202,7 +202,7 @@ pub fn update(conn: &Connection, input: &Update, now: i64) -> rusqlite::Result<u
 /// `/resume` 与 `-c` 的会话列表：本目录的顶层会话加 fork 出的会话（`task_type = 'fork'`），排序同
 /// Node `listSessions`（`order by time_updated desc, id desc`）。
 ///
-/// fork 也作为普通会话列出；Node `listZCodeSessions`（`roots: true`）不列 fork，而 Node 的条件只能
+/// fork 也作为普通会话列出；Node `listNIBISessions`（`roots: true`）不列 fork，而 Node 的条件只能
 /// 并列（`roots` 与 `taskTypes` 是“且”），所以这条查询是本工程的。子代理子会话（`subagent_child`）与
 /// App 的 selection side chat 有 `parent_id` 又不是 fork，不列（docs/specs/rust-cli/session-lifecycle.md
 /// §6.2）。

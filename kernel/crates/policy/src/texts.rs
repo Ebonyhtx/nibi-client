@@ -1,5 +1,5 @@
 //! 判决链给模型与用户看的固定文本（docs/specs/rust-cli/prompts.md 规则 4：短提示语暂放在各 crate
-//! 的 texts 模块）。文字逐字固定，测试按字面比较。询问的四句（`ZCode requested permissions …`）说产品名 ZCode，
+//! 的 texts 模块）。文字逐字固定，测试按字面比较。询问的四句（`NIBI requested permissions …`）说产品名 NIBI，
 //! 与执行管线里没有规则时的说法一致（修复线 F51b，shell-permissions.md §4.8）。
 
 use rust_cli_kernel_api::permission::RuleSource;
@@ -17,7 +17,7 @@ pub fn denial_workaround() -> String {
 /// dontAsk 模式把询问换成拒绝。
 pub fn dont_ask_rejected(tool: &str) -> String {
     format!(
-        "Permission to use {tool} has been denied because ZCode is running in don't ask mode. {}",
+        "Permission to use {tool} has been denied because NIBI is running in don't ask mode. {}",
         denial_workaround()
     )
 }
@@ -78,7 +78,7 @@ fn plural(count: usize, one: &str, many: &str) -> String {
 pub fn request_message(tool: &str, reason: Option<&Reason>) -> String {
     match reason {
         None => {
-            format!("ZCode requested permissions to use {tool}, but you haven't granted it yet.")
+            format!("NIBI requested permissions to use {tool}, but you haven't granted it yet.")
         }
         Some(Reason::Rule(rule, source)) => format!(
             "Permission rule '{rule}' from {} requires approval for this {tool} command",
@@ -104,7 +104,7 @@ pub const CLASSIFIER_UNAVAILABLE: &str = "Auto mode could not evaluate this acti
 /// 分类器拦下（带结尾的说明）。
 pub fn classifier_blocked(reason: &str) -> String {
     format!(
-        "Permission for this action was denied by the ZCode auto mode classifier. Reason: {reason}. If you have other tasks that don't depend on this action, continue working on those. {WORKAROUND}If you believe this capability is essential to complete the user's request, first try a safer method. Get as much of the rest of the task done as you can, then STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+        "Permission for this action was denied by the NIBI auto mode classifier. Reason: {reason}. If you have other tasks that don't depend on this action, continue working on those. {WORKAROUND}If you believe this capability is essential to complete the user's request, first try a safer method. Get as much of the rest of the task done as you can, then STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
     )
 }
 
@@ -126,7 +126,7 @@ pub fn directories(dirs: &[String]) -> String {
 /// 工作目录里的写入也要批准。
 pub fn write_inside(subject: &str, dirs: &str) -> String {
     format!(
-        "{subject} needs approval. The path is inside the working directories for this session ({dirs}), and ZCode asks before a shell command creates, changes or removes files there."
+        "{subject} needs approval. The path is inside the working directories for this session ({dirs}), and NIBI asks before a shell command creates, changes or removes files there."
     )
 }
 
@@ -140,7 +140,7 @@ pub fn write_outside(subject: &str, dirs: &str) -> String {
 /// 读工作目录以外的路径。`action` 是命令的动作说明。
 pub fn read_outside(command: &str, path: &str, action: &str, dirs: &str) -> String {
     format!(
-        "{command} in '{path}' was blocked. For security, ZCode may only {action} the allowed working directories for this session: {dirs}."
+        "{command} in '{path}' was blocked. For security, NIBI may only {action} the allowed working directories for this session: {dirs}."
     )
 }
 
@@ -176,20 +176,20 @@ pub fn input_unresolved(target: &str) -> String {
 /// 输入重定向读工作目录以外的文件（§4.5.8，工作线 F85）。
 pub fn input_outside(path: &str, dirs: &str) -> String {
     format!(
-        "Input redirection from '{path}' was blocked. For security, ZCode may only read files in the allowed working directories for this session: {dirs}."
+        "Input redirection from '{path}' was blocked. For security, NIBI may only read files in the allowed working directories for this session: {dirs}."
     )
 }
 
 /// 复合命令里有 cd 又有写入。
-pub const CD_WITH_WRITE: &str = "Commands that change directories and perform write operations require explicit approval to ensure paths are evaluated correctly. For security, ZCode cannot automatically determine the final working directory when 'cd' is used in compound commands.";
+pub const CD_WITH_WRITE: &str = "Commands that change directories and perform write operations require explicit approval to ensure paths are evaluated correctly. For security, NIBI cannot automatically determine the final working directory when 'cd' is used in compound commands.";
 
 /// 文件工具的读写询问与拒绝。
 pub fn file_read_request(path: &str) -> String {
-    format!("ZCode requested permissions to read from {path}, but you haven't granted it yet.")
+    format!("NIBI requested permissions to read from {path}, but you haven't granted it yet.")
 }
 
 pub fn file_write_request(path: &str) -> String {
-    format!("ZCode requested permissions to write to {path}, but you haven't granted it yet.")
+    format!("NIBI requested permissions to write to {path}, but you haven't granted it yet.")
 }
 
 /// plan 模式下的写入。
@@ -198,7 +198,7 @@ pub fn file_plan_mode(path: &str) -> String {
 }
 
 pub fn file_sensitive(path: &str) -> String {
-    format!("ZCode requested permissions to edit {path} which is a sensitive file.")
+    format!("NIBI requested permissions to edit {path} which is a sensitive file.")
 }
 
 pub fn file_read_denied(path: &str) -> String {

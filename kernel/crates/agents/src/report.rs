@@ -131,7 +131,7 @@ impl Ending {
         }
     }
 
-    /// `<summary>` 里描述之后的部分。停止者写产品名 `ZCode`（与 Cron 文字相同，agents.md §5）。
+    /// `<summary>` 里描述之后的部分。停止者写产品名 `NIBI`（与 Cron 文字相同，agents.md §5）。
     fn summary(self, error: Option<&str>) -> String {
         match self {
             Self::Completed => "finished".to_owned(),
@@ -141,7 +141,7 @@ impl Ending {
                     .filter(|error| !error.is_empty())
                     .unwrap_or("Unknown error")
             ),
-            Self::Killed => "was stopped by ZCode".to_owned(),
+            Self::Killed => "was stopped by NIBI".to_owned(),
             Self::KilledParked => "was stopped by user".to_owned(),
         }
     }

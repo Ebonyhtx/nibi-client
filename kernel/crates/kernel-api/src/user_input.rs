@@ -98,7 +98,7 @@ pub fn bash_output(run: &BashRun) -> Option<String> {
 
 /// 中断时排在输入之前的 caveat（固定的文字）；meta 消息，来源是
 /// [`crate::user_command::LOCAL_COMMAND_CAVEAT_SOURCE`]。
-pub const BASH_CAVEAT: &str = "<local-command-caveat>The command below was run directly in ZCode, not sent to you as a request, and its output goes straight to the user. It's recorded here as context for later messages.</local-command-caveat>";
+pub const BASH_CAVEAT: &str = "<local-command-caveat>The command below was run directly in NIBI, not sent to you as a request, and its output goes straight to the user. It's recorded here as context for later messages.</local-command-caveat>";
 
 fn tag<'a>(text: &'a str, name: &str) -> Option<&'a str> {
     let open = format!("<{name}>");

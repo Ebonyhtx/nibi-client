@@ -138,7 +138,7 @@ fn a_leading_cd_into_the_workspace_moves_the_later_parts() {
     assert_eq!(verdict("cd /w/sub && cat b.txt"), "allow");
     assert_eq!(
         verdict("cd ./sub && touch zz9"),
-        "ask: touch in '/w/sub/zz9' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: touch in '/w/sub/zz9' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     );
     assert_eq!(
         verdict_in(PermissionMode::AcceptEdits, &RULES, "cd ./sub && touch zz9"),
@@ -158,7 +158,7 @@ fn a_leading_cd_into_the_workspace_moves_the_later_parts() {
 /// `cd <会话当前目录>` 那一段不算 cd，也不检查。
 #[test]
 fn a_cd_to_the_current_directory_is_dropped() {
-    let inside = "ask: touch in '/w/zz8' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there.";
+    let inside = "ask: touch in '/w/zz8' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there.";
     assert_eq!(verdict("cd /w && touch zz8"), inside);
     assert_eq!(verdict("echo hi && cd /w && touch zz8"), inside);
 }
@@ -184,11 +184,11 @@ fn input_redirections_are_checked() {
     );
     assert_eq!(
         verdict("cat < /tmp/x"),
-        "ask: Input redirection from '/tmp/x' was blocked. For security, ZCode may only read files in the allowed working directories for this session: '/w'."
+        "ask: Input redirection from '/tmp/x' was blocked. For security, NIBI may only read files in the allowed working directories for this session: '/w'."
     );
     assert_eq!(
         verdict("cat < ~/x"),
-        "ask: Input redirection from '/home/dev/x' was blocked. For security, ZCode may only read files in the allowed working directories for this session: '/w'."
+        "ask: Input redirection from '/home/dev/x' was blocked. For security, NIBI may only read files in the allowed working directories for this session: '/w'."
     );
     assert_eq!(
         verdict("cat < *.txt"),

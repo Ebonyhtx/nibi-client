@@ -284,7 +284,7 @@ pub(crate) fn request_auth(
     let unavailable = |message: String| ModelError::Authentication { message };
     if mode != INDIVIDUAL_CODING_PLAN {
         return Err(unavailable(format!(
-            "account provider {provider} ({mode}) is not available without the ZCode app"
+            "account provider {provider} ({mode}) is not available without the NIBI app"
         )));
     }
     if manual(credentials, provider) {

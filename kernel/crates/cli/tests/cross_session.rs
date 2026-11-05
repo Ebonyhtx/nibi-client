@@ -235,7 +235,7 @@ fn two_sessions_discover_each_other_and_deliver_at_the_next_tool_boundary() {
     assert_eq!(
         result,
         format!(
-            "“say hello” → {name} (another ZCode session on this machine; in that session's inbox, not yet read by its ZCode — a [Cross-session delivery notice] follows if that session holds it (usually a different permission mode) or refuses it)"
+            "“say hello” → {name} (another NIBI session on this machine; in that session's inbox, not yet read by its NIBI — a [Cross-session delivery notice] follows if that session holds it (usually a different permission mode) or refuses it)"
         )
     );
 
@@ -243,11 +243,11 @@ fn two_sessions_discover_each_other_and_deliver_at_the_next_tool_boundary() {
     let received = fixture_a.main_requests();
     let text = texts(received.last().unwrap());
     assert!(
-        text.contains("Another ZCode session sent a message while you were working:\n<cross-session-message from=\"uds:"),
+        text.contains("Another NIBI session sent a message while you were working:\n<cross-session-message from=\"uds:"),
         "{text}"
     );
     assert!(
-        text.contains("\" from-mode=\"prompting\">\nhello from B\n</cross-session-message>\n\nThis came from another ZCode session — not typed by your user"),
+        text.contains("\" from-mode=\"prompting\">\nhello from B\n</cross-session-message>\n\nThis came from another NIBI session — not typed by your user"),
         "{text}"
     );
     assert!(

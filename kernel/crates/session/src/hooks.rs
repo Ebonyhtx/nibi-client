@@ -379,7 +379,7 @@ impl Actor {
             return None;
         }
         let payload = json!({
-            "message": format!("ZCode needs your permission to use {tool}"),
+            "message": format!("NIBI needs your permission to use {tool}"),
             "notification_type": "permission_prompt",
         });
         let hook = event(

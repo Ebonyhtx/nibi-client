@@ -16,7 +16,7 @@ pub const COUNTER_FILE: &str = "build-number";
 /// 编译因此每次都重跑 build script、计数加 1；不写任何 `rerun-if-*` 时 cargo 只在包内文件变化时重跑。
 pub const SENTINEL: &str = ".zcode-build-number-sentinel";
 
-/// 正式发版（ZCode-rs 的 CI）给的版本：只校验，不加 1、不写文件。
+/// 正式发版（NIBI-rs 的 CI）给的版本：只校验，不加 1、不写文件。
 pub const RELEASE_ENV: &str = "ZCODE_RELEASE_VERSION";
 
 /// cargo 给 build script 的输入（version.md §3）。

@@ -202,7 +202,7 @@ async fn a_conflict_on_one_machine_rejects_the_whole_rewind() {
         .await;
     assert!(
         matches!(&ack, Ack::Rejected { reason }
-            if reason == "dev-a: Cannot restore code: /home/dev/proj/b.txt was changed after ZCode edited it"),
+            if reason == "dev-a: Cannot restore code: /home/dev/proj/b.txt was changed after NIBI edited it"),
         "{ack:?}"
     );
     // 本机的文件也不动；本机已经 prepare 的 token 释放了。

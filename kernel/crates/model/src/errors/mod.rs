@@ -32,7 +32,7 @@ pub(crate) enum Vendor {
     /// 没有厂商层：只按协议与通用规则。
     #[default]
     Generic,
-    /// 智谱的端点（含 ZCode 套餐网关）。
+    /// 智谱的端点（含 NIBI 套餐网关）。
     Zhipu,
 }
 

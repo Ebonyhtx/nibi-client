@@ -68,7 +68,7 @@ fn created(at: u64, n: u32, cron: &str, prompt: &str, text: &str) -> [Message; 2
     ]
 }
 
-const SESSION_ONLY: &str = "Session-only (not written to disk, dies when ZCode exits)";
+const SESSION_ONLY: &str = "Session-only (not written to disk, dies when NIBI exits)";
 
 fn recurring(id: &str) -> String {
     format!(

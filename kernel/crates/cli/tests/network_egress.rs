@@ -202,7 +202,7 @@ fn an_invalid_standard_proxy_stops_before_any_request() {
         concat!(
             "Invalid proxy URL in HTTPS_PROXY: \"proxy.example.com:8080\" cannot be parsed as a URL.\n",
             "Proxy settings must be a complete URL including the scheme, e.g. \"http://proxy.example.com:8080\".\n",
-            "Fix or unset HTTPS_PROXY and restart ZCode.\n",
+            "Fix or unset HTTPS_PROXY and restart NIBI.\n",
         )
     );
     assert_eq!(text(&output.stdout), "");

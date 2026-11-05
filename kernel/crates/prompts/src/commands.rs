@@ -43,7 +43,7 @@ mod tests {
             super::init().starts_with("Please analyze this codebase and create a AGENTS.md file")
         );
         assert!(super::init().ends_with(
-            "This file provides guidance to ZCode when working with code in this repository.\n```"
+            "This file provides guidance to NIBI when working with code in this repository.\n```"
         ));
         assert!(super::security_review().contains("!`git diff origin/HEAD...`"));
         assert!(super::security_review_not_git("/w").contains("(`/w`) is not one."));

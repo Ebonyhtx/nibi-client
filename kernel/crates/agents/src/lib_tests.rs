@@ -56,7 +56,7 @@ async fn a_foreground_agent_runs_in_a_child_session_and_hands_back_its_report() 
     assert!(
         seen[0].system[1]
             .text
-            .starts_with("You are an agent for ZCode.")
+            .starts_with("You are an agent for NIBI.")
     );
     assert_eq!(
         seen[0].request.source,
@@ -197,7 +197,7 @@ async fn task_stop_kills_a_running_agent_and_send_message_resumes_a_finished_one
     assert!(
         notice
             .text
-            .contains("<summary>Agent \"Long job\" was stopped by ZCode</summary>")
+            .contains("<summary>Agent \"Long job\" was stopped by NIBI</summary>")
     );
     let again = harness
         .call("sess_parent", "TaskStop", json!({"task_id": "agent_1"}))

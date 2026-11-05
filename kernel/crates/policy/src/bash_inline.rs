@@ -33,8 +33,8 @@ const WRAPPERS: [&str; 35] = [
     "watch", "flock", "chroot", "script",
 ];
 
-const DENIED_INSIDE: &str = "A permission rule denies a command inside this shell -c script, so ZCode could not check it for dangerous removals. Approving runs the whole script, including that command.";
-const UNCHECKED: &str = "This command passes a shell -c script that runs rm, and ZCode could not check the script for dangerous removals. Approve only if you have read the script.";
+const DENIED_INSIDE: &str = "A permission rule denies a command inside this shell -c script, so NIBI could not check it for dangerous removals. Approving runs the whole script, including that command.";
+const UNCHECKED: &str = "This command passes a shell -c script that runs rm, and NIBI could not check the script for dangerous removals. Approve only if you have read the script.";
 
 /// 一个 shell 命令的脚本：原文，与能拿去判决的文字（检查不了时 None）。
 struct Script {

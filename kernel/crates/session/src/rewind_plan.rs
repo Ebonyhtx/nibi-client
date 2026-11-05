@@ -126,7 +126,7 @@ pub(crate) fn plan(artifacts: &[Artifact]) -> Result<Vec<RestoreFile>, String> {
 
 /// 冲突的原因（每个文件一行）。
 pub(crate) fn conflict(path: &str) -> String {
-    format!("Cannot restore code: {path} was changed after ZCode edited it")
+    format!("Cannot restore code: {path} was changed after NIBI edited it")
 }
 
 /// 一组写入合起来的改动（每个路径：最早的写入前 → 最后的写入后），按路径排序。

@@ -32,11 +32,11 @@ fn writes_inside_the_working_directory_ask_with_the_fixed_text() {
     // touch asked.txt（default 模式）。
     assert_eq!(
         default("touch asked.txt"),
-        "ask: touch in '/w/asked.txt' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: touch in '/w/asked.txt' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     );
     assert_eq!(
         default("echo hi > out.txt"),
-        "ask: Output redirection to '/w/out.txt' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: Output redirection to '/w/out.txt' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     );
 }
 
@@ -113,7 +113,7 @@ fn compound_asks_list_the_parts_that_need_approval() {
 fn reads_outside_the_working_directories_ask() {
     assert_eq!(
         default("cat /etc/hosts"),
-        "ask: cat in '/etc/hosts' was blocked. For security, ZCode may only concatenate files from the allowed working directories for this session: '/w'."
+        "ask: cat in '/etc/hosts' was blocked. For security, NIBI may only concatenate files from the allowed working directories for this session: '/w'."
     );
     // 命令输出目录不必询问。
     assert_eq!(

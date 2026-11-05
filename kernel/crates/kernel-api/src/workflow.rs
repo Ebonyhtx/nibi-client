@@ -693,7 +693,7 @@ pub struct WorkflowFillTargetHole {
 /// 才调），工具在调用时读槽；缺席即「本会话不能补全」。
 pub type WorkflowEngineSlot = Arc<std::sync::Mutex<Option<Arc<dyn WorkflowEngine>>>>;
 
-/// `workflows/runs`（NIBI 协议中枢）的一行（Node `ZCodeSavedWorkflowRun` 的取数面）：按
+/// `workflows/runs`（NIBI 协议中枢）的一行（Node `NIBISavedWorkflowRun` 的取数面）：按
 /// `dwf_run.name` 归属到工作流的运行历史。可选键缺席即「没有」（老行 / 无产物），不发空串。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

@@ -144,7 +144,7 @@ async fn an_accepted_message_opens_an_idle_turn_with_the_idle_wrap() {
     let users = user_texts(&view.messages);
     assert_eq!(users.len(), 1);
     assert_eq!(users[0].0, "cross-session");
-    assert!(users[0].1.starts_with("Another ZCode session sent a message:\n<cross-session-message from=\"uds:/peers/9.sock\" from-name=\"work-b-7f\" from-mode=\"prompting\">\nhello from B\n</cross-session-message>"));
+    assert!(users[0].1.starts_with("Another NIBI session sent a message:\n<cross-session-message from=\"uds:/peers/9.sock\" from-name=\"work-b-7f\" from-mode=\"prompting\">\nhello from B\n</cross-session-message>"));
     // 先提交再 ack；主会话已绑定。
     assert_eq!(*lock(&port.acked), [1]);
     assert_eq!(*lock(&port.bound), ["sess_1"]);

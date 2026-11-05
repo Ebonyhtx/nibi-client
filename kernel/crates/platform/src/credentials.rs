@@ -45,13 +45,13 @@ pub enum CredentialError {
     /// 解密失败（原因文案与 Node 相同：`凭据解密失败：<原因>`）。
     #[error("凭据解密失败：{0}")]
     Decrypt(&'static str),
-    #[error("ZCode credentials are corrupt: {0}")]
+    #[error("NIBI credentials are corrupt: {0}")]
     Corrupt(String),
-    #[error("unable to read ZCode credentials: {0}")]
+    #[error("unable to read NIBI credentials: {0}")]
     Io(String),
     #[error("cannot encrypt the credential: {0}")]
     Encrypt(&'static str),
-    #[error("unable to write ZCode credentials: {0}")]
+    #[error("unable to write NIBI credentials: {0}")]
     Write(String),
 }
 

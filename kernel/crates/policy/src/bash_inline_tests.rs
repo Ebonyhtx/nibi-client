@@ -12,8 +12,8 @@ const RULES: [(RuleBehavior, &str); 4] = [
     (RuleBehavior::Deny, "Edit(//etc/**)"),
     (RuleBehavior::Deny, "Bash(mv a b)"),
 ];
-const DENIED_INSIDE: &str = "ask: A permission rule denies a command inside this shell -c script, so ZCode could not check it for dangerous removals. Approving runs the whole script, including that command.";
-const UNCHECKED: &str = "ask: This command passes a shell -c script that runs rm, and ZCode could not check the script for dangerous removals. Approve only if you have read the script.";
+const DENIED_INSIDE: &str = "ask: A permission rule denies a command inside this shell -c script, so NIBI could not check it for dangerous removals. Approving runs the whole script, including that command.";
+const UNCHECKED: &str = "ask: This command passes a shell -c script that runs rm, and NIBI could not check the script for dangerous removals. Approve only if you have read the script.";
 const APPROVAL: &str = "passthrough: This command requires approval";
 
 fn verdict_in(mode: PermissionMode, rules: &[(RuleBehavior, &str)], command: &str) -> String {

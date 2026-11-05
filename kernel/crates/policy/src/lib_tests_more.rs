@@ -101,7 +101,7 @@ async fn the_tools_own_decision_goes_through_the_chain() {
                 .decide(&unknown, &json!({}), &context(PermissionMode::Default))
                 .await
         ),
-        "ZCode requested permissions to use Other, but you haven't granted it yet."
+        "NIBI requested permissions to use Other, but you haven't granted it yet."
     );
     gate.replace_rules(rules(&[(RuleBehavior::Deny, "Other")]));
     assert_eq!(
@@ -238,8 +238,8 @@ async fn a_scoped_session_uses_its_own_rules_instead_of_the_project_ones() {
     );
 }
 
-/// 修复线 F51b（shell-permissions.md §4.8）：询问的四句说 ZCode，与执行管线里没有规则时的
-/// `ZCode requested permissions to use …` 一致。
+/// 修复线 F51b（shell-permissions.md §4.8）：询问的四句说 NIBI，与执行管线里没有规则时的
+/// `NIBI requested permissions to use …` 一致。
 #[test]
 fn the_ask_texts_name_zcode() {
     let texts = [
@@ -250,7 +250,7 @@ fn the_ask_texts_name_zcode() {
     ];
     for text in &texts {
         assert!(
-            text.starts_with("ZCode requested permissions to "),
+            text.starts_with("NIBI requested permissions to "),
             "{text}"
         );
     }

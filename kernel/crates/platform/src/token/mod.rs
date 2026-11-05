@@ -94,7 +94,7 @@ pub enum TokenError {
 /// 不带末尾的 `/`。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AccountOrigins {
-    /// ZCode 服务的 API 根（`<origin>/api/v1`）：CLI OAuth 登录。
+    /// NIBI 服务的 API 根（`<origin>/api/v1`）：CLI OAuth 登录。
     pub zcode_api: String,
     /// Z.ai 业务与项目接口（`https://api.z.ai`）。
     pub zai_api: String,

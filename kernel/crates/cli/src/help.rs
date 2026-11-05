@@ -18,7 +18,7 @@ const fn item(term: &'static str, description: &'static str) -> HelpItem {
 
 const USAGE: &str = "zcode [options] [command] [prompt]";
 const DESCRIPTION: &str =
-    "ZCode - starts an interactive session by default, use -p/--print for non-interactive output";
+    "NIBI - starts an interactive session by default, use -p/--print for non-interactive output";
 
 const ARGUMENTS: &[HelpItem] = &[item("prompt", "Your prompt")];
 
@@ -84,7 +84,7 @@ pub(crate) const OPTIONS: &[HelpItem] = &[
     ),
     item(
         "-p, --print",
-        "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when ZCode is run in non-interactive mode (via -p). Only use this in directories you trust.",
+        "Print response and exit (useful for pipes). Note: The workspace trust dialog is skipped when NIBI is run in non-interactive mode (via -p). Only use this in directories you trust.",
     ),
     item(
         "-r, --resume [value]",
@@ -122,7 +122,7 @@ pub(crate) const COMMANDS: &[HelpItem] = &[
         "Log in to a Coding Plan account (zai, bigmodel, or <family>-coding-plan-api-key to read an API key from stdin)",
     ),
     item("logout", "Log out from Coding Plan accounts"),
-    item("update|upgrade", "Update ZCode to the latest version"),
+    item("update|upgrade", "Update NIBI to the latest version"),
 ];
 
 /// commander 的项缩进、名字一栏的上限、名字与说明的间隔、说明一栏的最小宽度、另起一行时的缩进增量。

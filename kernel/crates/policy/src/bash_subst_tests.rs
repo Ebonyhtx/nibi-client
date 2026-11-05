@@ -64,11 +64,11 @@ fn commands_hidden_in_expansions_are_too_complex() {
 fn a_quoted_substitution_is_checked_as_its_own_subcommand() {
     assert_eq!(
         echo_allowed("echo \"made: $(mkdir zz6)\""),
-        "ask: mkdir in '/w/zz6' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: mkdir in '/w/zz6' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     );
     assert_eq!(
         echo_allowed("echo \"before `mkdir zz5` after\""),
-        "ask: mkdir in '/w/zz5' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: mkdir in '/w/zz5' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     );
     // 替换里的命令是只读的：两边都放行。
     assert_eq!(
@@ -78,7 +78,7 @@ fn a_quoted_substitution_is_checked_as_its_own_subcommand() {
     // 嵌套：每一层都要放行。
     assert_eq!(
         echo_allowed("echo \"a $(echo \"b $(mkdir zz13)\")\""),
-        "ask: mkdir in '/w/zz13' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there."
+        "ask: mkdir in '/w/zz13' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there."
     );
 }
 
@@ -140,7 +140,7 @@ fn only_an_exact_rule_covers_a_too_complex_command() {
     // 整条命令的前缀 ask 规则：询问的文字是通用的那一句。
     assert_eq!(
         verdict(&[(RuleBehavior::Ask, "Bash(echo:*)")], "echo $(date)"),
-        "ask: ZCode requested permissions to use Bash, but you haven't granted it yet."
+        "ask: NIBI requested permissions to use Bash, but you haven't granted it yet."
     );
 }
 

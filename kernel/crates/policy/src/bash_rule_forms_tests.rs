@@ -7,7 +7,7 @@ use super::*;
 use crate::test_support::{message, run};
 
 const RM: [(RuleBehavior, &str); 1] = [(RuleBehavior::Deny, "Bash(rm:*)")];
-const RM_INSIDE: &str = "ask: rm in '/w/x' needs approval. The path is inside the working directories for this session ('/w'), and ZCode asks before a shell command creates, changes or removes files there.";
+const RM_INSIDE: &str = "ask: rm in '/w/x' needs approval. The path is inside the working directories for this session ('/w'), and NIBI asks before a shell command creates, changes or removes files there.";
 
 fn verdict(rules: &[(RuleBehavior, &str)], command: &str) -> String {
     run(PermissionMode::Default, rules, |inputs| {

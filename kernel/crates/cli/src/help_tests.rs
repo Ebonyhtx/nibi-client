@@ -64,7 +64,7 @@ fn wrapping_keeps_words_and_drops_the_leading_space_of_a_new_line() {
 fn the_page_has_the_sections_in_order_and_ends_with_one_newline() {
     let page = render(DEFAULT_WIDTH);
     assert!(page.starts_with(
-        "Usage: zcode [options] [command] [prompt]\n\nZCode - starts an interactive session by default, use -p/--print for\nnon-interactive output\n\nArguments:\n  prompt                                Your prompt\n\nOptions:\n"
+        "Usage: zcode [options] [command] [prompt]\n\nNIBI - starts an interactive session by default, use -p/--print for\nnon-interactive output\n\nArguments:\n  prompt                                Your prompt\n\nOptions:\n"
     ));
     let options = page.find("\nOptions:\n").unwrap();
     let commands = page.find("\nCommands:\n").unwrap();
@@ -77,7 +77,7 @@ fn the_page_has_the_sections_in_order_and_ends_with_one_newline() {
     );
     assert!(
         page.ends_with(
-            "  update|upgrade                        Update ZCode to the latest version\n"
+            "  update|upgrade                        Update NIBI to the latest version\n"
         )
     );
     assert!(!page.ends_with("\n\n"));

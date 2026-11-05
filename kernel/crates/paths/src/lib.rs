@@ -14,7 +14,7 @@
 //!
 //! 账号与 Provider 的配置（docs/specs/rust-cli/platform.md §2）与 Node CLI、App 共用：
 //! - 配置根 `<dataBaseDir>/.zcode/v2`，`dataBaseDir` 默认 home，入口读 `ZCODE_DATA_BASE_DIR` 后经
-//!   [`StoragePaths::with_data_base_dir`] 覆盖（Node `resolveSharedZCodeCredentialsPath`）；
+//!   [`StoragePaths::with_data_base_dir`] 覆盖（Node `resolveSharedNIBICredentialsPath`）；
 //! - 其下 `provider_config.json`（个人 Provider 配置）、`credentials.json`（加密凭据）、
 //!   `runtime/provider/`（内置 Provider 配置的缓存）、`telemetry-state.json`（设备身份 `deviceMid`，F52）；
 //! - 设置文件固定在 `<home>/.zcode/v2/setting.json`（Host `SettingStore`），不跟随 `dataBaseDir`。

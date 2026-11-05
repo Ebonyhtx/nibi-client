@@ -78,7 +78,7 @@ async fn the_context_is_announced_once_in_a_git_repository() {
         text,
         format!(
             "As you answer the user's questions, you can use the following context:\n# gitStatus\n{git}\n\n\
-             ZCode attached this context automatically; it isn't part of the user's message. It describes the user's own account and workspace, so they don't need it reported back."
+             NIBI attached this context automatically; it isn't part of the user's message. It describes the user's own account and workspace, so they don't need it reported back."
         )
     );
     assert_eq!(data, json!({"context": {"gitStatus": git}}));

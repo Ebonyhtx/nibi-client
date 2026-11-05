@@ -59,6 +59,6 @@ async fn the_handoff_is_written_atomically_into_an_existing_directory() {
 fn windows_without_a_handoff_names_the_command_to_run() {
     assert_eq!(
         manual("npm install -g @scope/zcode"),
-        "Error: Cannot update ZCode while it is running on Windows. Please run `npm install -g @scope/zcode` after it exits."
+        "Error: Cannot update NIBI while it is running on Windows. Please run `npm install -g @scope/zcode` after it exits."
     );
 }

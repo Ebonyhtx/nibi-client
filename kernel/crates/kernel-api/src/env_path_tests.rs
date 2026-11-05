@@ -196,8 +196,8 @@ fn names_joins_and_extensions() {
     );
     assert_eq!(P.join("/w/", &["./skills/x"]), "/w/skills/x");
     assert_eq!(
-        W.join(r"C:\ProgramData\ZCode", &["AGENTS.md"]),
-        r"C:\ProgramData\ZCode\AGENTS.md"
+        W.join(r"C:\ProgramData\NIBI", &["AGENTS.md"]),
+        r"C:\ProgramData\NIBI\AGENTS.md"
     );
     assert_eq!(W.join(r"C:\", &["a"]), r"C:\a");
     assert_eq!(

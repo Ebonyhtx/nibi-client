@@ -672,7 +672,7 @@ impl Tool for AppTool {
         } else {
             PermissionDecision::Ask {
                 message: format!(
-                    "ZCode requested permissions to use {}, provided by {}",
+                    "NIBI requested permissions to use {}, provided by {}",
                     self.model_name, self.plugin_id
                 ),
                 suggestions: Vec::new(),

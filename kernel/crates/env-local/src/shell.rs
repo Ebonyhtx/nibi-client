@@ -61,7 +61,7 @@ pub struct ShellConfig {
 }
 
 /// 入口找不到 shell 时 Bash 工具命令的错误（docs/specs/rust-cli/shell-permissions.md §2.1）。Unix 上是固定的原文，
-/// 产品名写 `ZCode`（修复线 F51，用户决定 2026-10-22：发给模型的文字里只用本产品的说法；F44 时逐字保留）；
+/// 产品名写 `NIBI`（修复线 F51，用户决定 2026-10-22：发给模型的文字里只用本产品的说法；F44 时逐字保留）；
 /// Windows 上是没有 Git Bash（那里不提供 Bash 工具）。
 ///
 /// 缺陷修复（F44）：以前 Unix 上固定 `/bin/bash`，没有它的镜像里命令启动失败，只有 `No such file or directory`。
@@ -72,7 +72,7 @@ fn no_shell() -> EnvError {
         };
     }
     EnvError::Io {
-        message: "No suitable shell found. ZCode requires a Posix shell environment. Please ensure you have a valid shell installed and the SHELL environment variable set.".to_owned(),
+        message: "No suitable shell found. NIBI requires a Posix shell environment. Please ensure you have a valid shell installed and the SHELL environment variable set.".to_owned(),
     }
 }
 

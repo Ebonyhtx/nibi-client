@@ -21,7 +21,7 @@ fn reads_inside_are_allowed_and_outside_ask() {
     assert_eq!(
         verdict(PermissionMode::Default, &[], Access::Read, "/etc/hosts"),
         Check::ask(
-            "ZCode requested permissions to read from /etc/hosts, but you haven't granted it yet."
+            "NIBI requested permissions to read from /etc/hosts, but you haven't granted it yet."
         )
     );
     assert_eq!(
@@ -49,7 +49,7 @@ fn writes_need_accept_edits_inside_and_always_ask_for_sensitive_paths() {
     assert_eq!(
         verdict(PermissionMode::Default, &[], Access::Write, "src/a.rs"),
         Check::ask(
-            "ZCode requested permissions to write to /w/src/a.rs, but you haven't granted it yet."
+            "NIBI requested permissions to write to /w/src/a.rs, but you haven't granted it yet."
         )
     );
     assert_eq!(
@@ -69,7 +69,7 @@ fn writes_need_accept_edits_inside_and_always_ask_for_sensitive_paths() {
         ),
         Check::Ask {
             message:
-                "ZCode requested permissions to edit /w/.git/config which is a sensitive file."
+                "NIBI requested permissions to edit /w/.git/config which is a sensitive file."
                     .to_owned(),
             kind: AskKind::Safety,
             suggestions: Vec::new(),
@@ -107,7 +107,7 @@ fn the_project_config_is_a_sensitive_file() {
             "zcode.json"
         ),
         Check::Ask {
-            message: "ZCode requested permissions to edit /w/zcode.json which is a sensitive file."
+            message: "NIBI requested permissions to edit /w/zcode.json which is a sensitive file."
                 .to_owned(),
             kind: AskKind::Safety,
             suggestions: Vec::new(),
@@ -135,7 +135,7 @@ fn file_paths_are_resolved_like_the_tools_resolve_them() {
     assert_eq!(
         verdict(PermissionMode::Default, &[], Access::Read, " /etc/hosts\n"),
         Check::ask(
-            "ZCode requested permissions to read from /etc/hosts, but you haven't granted it yet."
+            "NIBI requested permissions to read from /etc/hosts, but you haven't granted it yet."
         )
     );
     // 规则按 NFC 的路径匹配：分解形式的 `é` 也命中按合成形式写的 deny 规则。

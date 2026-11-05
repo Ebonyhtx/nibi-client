@@ -51,7 +51,7 @@ fn a_custom_prompt_replaces_the_default_sections() {
     assert_eq!(blocks.len(), 2);
     assert_eq!(
         blocks[0].text,
-        "You are ZCode, an interactive coding agent."
+        "You are NIBI, an interactive coding agent."
     );
     assert_eq!(
         blocks[1].text,
@@ -82,7 +82,7 @@ fn print_mode_has_three_blocks_with_their_cache_breakpoints() {
     assert_eq!(blocks.len(), 3);
     assert_eq!(
         blocks[0].text,
-        "You are ZCode, an interactive coding agent."
+        "You are NIBI, an interactive coding agent."
     );
     assert!(blocks[0].cache_control.is_none());
     let global = blocks[1].cache_control.as_ref().unwrap();

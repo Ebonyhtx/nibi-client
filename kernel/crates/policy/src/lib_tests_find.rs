@@ -7,7 +7,7 @@ use super::*;
 
 fn search_blocked(path: &str) -> String {
     format!(
-        "find in '{path}' was blocked. For security, ZCode may only search files in the allowed working directories for this session: '/w'."
+        "find in '{path}' was blocked. For security, NIBI may only search files in the allowed working directories for this session: '/w'."
     )
 }
 

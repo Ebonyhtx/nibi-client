@@ -38,7 +38,7 @@ fn a_gap_between_writes_is_a_conflict() {
     let artifacts = [write("/a", Some("v0"), "v1"), write("/a", Some("vX"), "v2")];
     assert_eq!(
         plan(&artifacts).unwrap_err(),
-        "Cannot restore code: /a was changed after ZCode edited it"
+        "Cannot restore code: /a was changed after NIBI edited it"
     );
 }
 

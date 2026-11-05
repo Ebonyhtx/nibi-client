@@ -42,7 +42,7 @@ impl Platform {
         matches!(self, Self::MacosAarch64 | Self::MacosX86_64)
     }
 
-    /// npm 平台包的 id（ZCode-rs 的 `platforms.json`，§28.2）：`darwin-x64` 没有发布，只用来写错误。
+    /// npm 平台包的 id（NIBI-rs 的 `platforms.json`，§28.2）：`darwin-x64` 没有发布，只用来写错误。
     pub fn package_id(self) -> &'static str {
         match self {
             Self::LinuxX86_64 => "linux-x64-gnu",
