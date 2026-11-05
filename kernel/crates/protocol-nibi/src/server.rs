@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
+use futures_util::StreamExt;
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{EnvironmentId, SessionId};
 use nibi_kernel_api::model::ModelSelection;
@@ -155,7 +156,44 @@ impl Server {
         }
         // 会话第一次打开：按当前快照上报工作区钩子的提示条（Node 在 activate 时上报 admission）。
         self.announce_hook_admission(session, live.sink.clone()).await;
+        // 子代理目录：`subagents` 键的事实源是内核的在跑子代理表，不是事件流（内核没有
+        // `KernelEvent::Subagent` 的生产者）。首帧之前播种一次，之后跟着 agents 的变化通知刷新。
+        self.seed_subagents(&live).await;
+        self.watch_subagents(&live);
         Ok(live)
+    }
+
+    /// 冷播种 `subagents` 键。取不到只让这一项为空，不拦打开（与其它冷播种同一纪律）。
+    async fn seed_subagents(&self, live: &Arc<Bridged<Live>>) {
+        match live.handle.subagents().await {
+            Ok(entries) => live.sink.publish_subagents(&entries).await,
+            Err(error) => tracing::debug!(%error, "the subagent directory is unavailable"),
+        }
+    }
+
+    /// 跟着 agents 的变化通知刷新 `subagents` 键。
+    ///
+    /// 不能只挂在事件窗口上：后台子代理结束时父会话可能正空闲，没有事件就没有窗口到期，
+    /// 目录会停在旧值。`subagent_changes()` 正是为此存在的信号（TUI 的 L30 列表也用它）。
+    /// 刷新走会话泵（`live.run`），与事件帧同序。
+    fn watch_subagents(&self, live: &Arc<Bridged<Live>>) {
+        let mut changes = live.handle.subagent_changes();
+        let handle = live.handle.clone();
+        let controller = Arc::downgrade(live);
+        self.spawner.spawn("subagent-directory", async move {
+            // 流结束（会话关了）就收尾。
+            while changes.next().await.is_some() {
+                // 泵已丢弃（会话关了或 Host 不再订阅）时没有接收方，直接收尾。
+                let Some(live) = controller.upgrade() else {
+                    return;
+                };
+                let Ok(entries) = handle.subagents().await else {
+                    continue;
+                };
+                let sink = live.sink.clone();
+                live.run(Box::pin(async move { sink.publish_subagents(&entries).await }));
+            }
+        });
     }
 
     /// 提示条只算一次；评审 / 授权 / 撤销由命令处理刷新。
@@ -168,6 +206,17 @@ impl Server {
         if first {
             crate::hook_review::refresh_session_admission(self, &live).await;
         }
+    }
+
+    /// `session/debug` 的当前快照。会话没打开时回空快照（UI 显示空态，不报错）。
+    fn debug_snapshot(&self, params: &Value) -> Value {
+        let session = params["sessionId"].as_str().unwrap_or_default();
+        self.bridge
+            .get(&SessionId::new(session))
+            .map_or_else(
+                || crate::session_debug::DebugRecorder::default().snapshot(session),
+                |live| live.sink.debug_snapshot(),
+            )
     }
 
     fn preferences(&self) -> std::sync::MutexGuard<'_, Preferences> {
@@ -347,6 +396,14 @@ impl Server {
                 .map(Reply::new),
             "session/read" => crate::legacy::read(self, &params).await.map(Reply::new),
             "session/close" => reply(self.close_session(&params).await),
+            // 子代理目录的旧查询入口（Host 的 `SubagentDirectorySidePane`）：与快照的 `subagents`
+            // 键同一事实源，另给已结束项的分页明细。
+            "session/subagents" => crate::subagents_rpc::list(self, &params)
+                .await
+                .map(Reply::new),
+            // 开发者工具的调试面（Host 的 `DeveloperToolsPane`）：网络面来自模型请求状态事实，
+            // 轮次面来自结束回合的用量。
+            "session/debug" => reply(self.debug_snapshot(&params)),
             "v4/conversation/subscribe" => crate::subscribe::subscribe(self, &params).await,
             "v4/conversation/unsubscribe" => crate::subscribe::unsubscribe(self, &params).await,
             "v4/conversation/resync" => crate::subscribe::resync(self, &params).await,

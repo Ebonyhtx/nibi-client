@@ -17,6 +17,8 @@ doctest = false
 async-trait.workspace = true
 # wire v3 的分片（dataBase64）。
 base64.workspace = true
+# 子代理目录跟着 agents 的变化通知刷新（`subagent_changes()` 是 BoxStream）。
+futures-util.workspace = true
 nibi-kernel-base.workspace = true
 nibi-kernel-api.workspace = true
 # 网络捕获挂在出口的观察者上（141 审计 §9 F3，`process/networkCapture`）。

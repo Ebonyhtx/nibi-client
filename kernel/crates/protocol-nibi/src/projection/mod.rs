@@ -8,6 +8,7 @@ mod cold;
 mod files;
 mod rows;
 pub mod state;
+mod subagents;
 mod workflow_runs;
 
 use std::collections::HashMap;
@@ -105,7 +106,50 @@ pub struct Projection {
     /// DWF 引擎 run 的实时运行态（快照的 `workflowRuns` 键）：一条 `run/event` 推进一格，
     /// run 卡、状态与 Stop 都从这里读（Node `workflowRuns` 投影的同名状态键）。
     workflow_runs: WorkflowRunsState,
+    /// 子代理目录（快照的 `subagents` 键）：`SessionHandle::subagents()` 的投影，`revision` 只在
+    /// 语义变了时加一（与 Node `materializeSubagentProjection` 同一判据）。
+    subagents: SubagentsState,
     created_at: u64,
+}
+
+/// `subagents` 状态键的当前值。
+///
+/// 事实源是内核的 `SessionHandle::subagents()`（agents 的在跑子代理表，TUI 一直用它），不是事件流：
+/// 内核没有 `KernelEvent::Subagent` 的生产者，所以这里靠查询 + 变化通知（`subagent_changes()`）刷新，
+/// 与 Node 用 `SubagentSpawned/Stopped` 事件维护的结果同形。
+#[derive(Debug, Clone, PartialEq, Default)]
+struct SubagentsState {
+    revision: u64,
+    value: Value,
+}
+
+impl SubagentsState {
+    /// 空状态（没有子代理）：`revision` 从 0 起，renderer 用 0 区分「还没建立权威态」。
+    fn empty() -> Self {
+        Self {
+            revision: 0,
+            value: json!({"revision": 0, "childSessionIds": [], "running": [], "endedTotal": 0}),
+        }
+    }
+
+    /// 换成新的子代理表：语义没变时返回 None（不发帧）。
+    fn set(&mut self, entries: &[nibi_kernel_api::panels::SubagentEntry], now: u64) -> Option<Value> {
+        let (child_session_ids, running, ended_total) = subagents::semantic(entries, now);
+        if json!(child_session_ids) == self.value["childSessionIds"]
+            && json!(running) == self.value["running"]
+            && json!(ended_total) == self.value["endedTotal"]
+        {
+            return None;
+        }
+        self.revision += 1;
+        self.value = json!({
+            "revision": self.revision,
+            "childSessionIds": child_session_ids,
+            "running": running,
+            "endedTotal": ended_total,
+        });
+        Some(json!({"op": "state.updated", "patch": {"subagents": self.value}}))
+    }
 }
 
 pub(crate) fn text_of(content: &[ContentBlock]) -> String {
@@ -183,6 +227,7 @@ impl Projection {
             compact_marker: None,
             pending_model_change: None,
             workflow_runs: WorkflowRunsState::default(),
+            subagents: SubagentsState::empty(),
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -340,6 +385,15 @@ impl Projection {
         }
         self.shared_context_import = value.clone();
         Some(json!({"op": "state.updated", "patch": {"sharedContextImport": value}}))
+    }
+
+    /// 换上新的子代理表（`SessionHandle::subagents()` 的结果）。语义没变时返回 None。
+    pub fn set_subagents(
+        &mut self,
+        entries: &[nibi_kernel_api::panels::SubagentEntry],
+        now: u64,
+    ) -> Option<Value> {
+        self.subagents.set(entries, now)
     }
 
     fn base(
@@ -959,7 +1013,7 @@ impl Projection {
             "pendingInteractions": self.pending,
             "pendingCommands": [],
             "backgroundWorks": [],
-            "subagents": {"revision": 0, "childSessionIds": [], "running": [], "endedTotal": 0},
+            "subagents": self.subagents.value,
             "goal": null,
             "plan": null,
             "workspaceHookAdmission": self.hook_admission,

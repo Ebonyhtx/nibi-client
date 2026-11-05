@@ -25,7 +25,9 @@ mod plugin_ui;
 mod projection;
 mod row_target;
 mod server;
+mod session_debug;
 mod subscribe;
+mod subagents_rpc;
 pub mod telemetry;
 mod attachment_rpc;
 mod attachment_upload;
@@ -195,3 +197,7 @@ where
 #[cfg(test)]
 #[path = "lib_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "subagents_debug_tests.rs"]
+mod subagents_debug_tests;

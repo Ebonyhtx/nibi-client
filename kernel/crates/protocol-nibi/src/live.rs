@@ -29,6 +29,8 @@ struct State {
     summaries: bool,
     /// `v4/telemetry/event` 的事实派生（141 审计 §9 第 5 项余项）。
     telemetry: crate::conversation_telemetry::ConversationTelemetry,
+    /// `session/debug` 的累积（开发者工具的网络面与轮次面）。
+    debug: crate::session_debug::DebugRecorder,
     /// 待发的通知（方法名 + 载荷；在 `flush` 里一次发完，与逻辑帧同序；流式增量不逐条 await）。
     pending_facts: Vec<(String, Value)>,
 }
@@ -72,6 +74,7 @@ impl Live {
                 telemetry: crate::conversation_telemetry::ConversationTelemetry::new(
                     view.meta.id.as_str(),
                 ),
+                debug: crate::session_debug::DebugRecorder::default(),
                 pending_facts: Vec::new(),
             }),
             context,
@@ -433,6 +436,38 @@ impl Live {
         };
         self.write(outgoing).await;
     }
+
+    /// 刷新快照的 `subagents` 键（`SessionHandle::subagents()` 的结果）。语义没变时不发帧。
+    /// 在会话的泵任务里调用，与事件帧同序。
+    pub async fn publish_subagents(&self, entries: &[nibi_kernel_api::panels::SubagentEntry]) {
+        let now = self.context.now();
+        let outgoing = {
+            let mut state = self.state();
+            let Some(delta) = state.projection.set_subagents(entries, now) else {
+                return;
+            };
+            state.log.record(vec![delta]);
+            self.collect(&mut state)
+        };
+        self.write(outgoing).await;
+    }
+
+    /// `session/debug` 的当前快照（Host `sessionDebugSnapshotSchema`）。
+    pub fn debug_snapshot(&self) -> Value {
+        self.state().debug.snapshot(&self.session)
+    }
+
+    /// 快照的 `subagents` 键当前值（测试断言投影用；线上只经快照与增量出去）。
+    #[cfg(test)]
+    pub fn snapshot_for_test(&self) -> Value {
+        self.state().projection.snapshot(0, "test")["subagents"].clone()
+    }
+
+    /// 直接喂一条内核事件（测试用：不经过会话 actor 的事件流）。
+    #[cfg(test)]
+    pub async fn event_for_test(&self, event: nibi_kernel_api::session_api::SequencedEvent) {
+        <Self as nibi_kernel_protocol_core::sessions::SessionSink>::event(self, event).await;
+    }
 }
 
 #[async_trait]
@@ -456,6 +491,16 @@ impl SessionSink for Live {
                     .pending_facts
                     .push((crate::local_ttft::METHOD.to_owned(), payload));
             }
+        }
+        // `session/debug` 的两个面（网络面吃状态事实，轮次面吃结束的回合）。
+        match &event.event {
+            nibi_kernel_api::session_api::KernelEvent::ModelRequestStatus { status } => {
+                state.debug.observe_status(status, now);
+            }
+            nibi_kernel_api::session_api::KernelEvent::TurnFinished { usage, .. } => {
+                state.debug.observe_turn(usage.as_ref(), now);
+            }
+            _ => {}
         }
     }
 
