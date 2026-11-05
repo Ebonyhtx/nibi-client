@@ -4445,7 +4445,8 @@ export const config: WebdriverIO.Config = {
     NIBI_E2E_ARTIFACT_DIR: e2eReporter.artifactDir,
     NIBI_E2E_DEFER_APP_DATA_CLEANUP: "1",
     NIBI_E2E_RUN_ID: E2E_RUN_ID,
-    NIBI_ENV: "test",
+    // 真账号验收（人工复核、显式开关）：账号 API / license 同步走生产；其余用例保持测试环境。
+    NIBI_ENV: process.env.NIBI_E2E_LIVE_PRODUCTION === "1" ? "production" : "test",
     // 修复原因：普通 E2E 的 NIBI_ENV=test 会把配置接口路由到测试域；
     // 请求安全 capture 与独立 live-team 显式覆盖生产控制面，其他用例保持原行为。
     ...getE2EProviderEndpointEnv(configuredE2ESpecs, e2eProviderPresetName, upstreamE2EHttpMode),

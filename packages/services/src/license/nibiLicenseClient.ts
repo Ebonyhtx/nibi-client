@@ -159,8 +159,14 @@ export async function refreshLicense(
         plugins: opts.plugins,
       },
     });
-  } catch {
-    // 网络失败：保持原判定（grace 里照用），什么都不写
+  } catch (error) {
+    // 网络失败：保持原判定（grace 里照用），什么都不写。日志保留原因：以前整条静默，
+    // “登录后 license 不落盘”只能靠猜（代理、CA、端点都可能是原因）。
+    console.warn(
+      "[nibiLicense] license check request failed:",
+      `${opts.apiBaseUrl}/licenses/check`,
+      error instanceof Error ? error.message : String(error),
+    );
     return decide(opts, cached.token, cached.snapshot, now);
   }
 

@@ -1291,8 +1291,14 @@ export function createLocalServices(options: {
       }
       // 登录写入 NIBI 令牌后立刻换一份设备 license；退出时清掉本地凭证。
       if (key === "oauth:nibi:access_token") {
-        void nibiLicenseSyncRef.current?.sync(true).catch(() => {
-          // 网络/服务端失败按"暂不同步"处理；下次启动会再试。
+        void nibiLicenseSyncRef.current?.sync(true).catch((error: unknown) => {
+          // 网络/服务端失败按"暂不同步"处理（下次启动会再试），但必须留下可诊断的原因：
+          // 以前这里静默吞掉，登录后 license 不落盘时没有任何线索。
+          console.warn(
+            formatLogPrefix("nibiLicense", process.pid),
+            "license sync after login failed:",
+            error instanceof Error ? error.message : String(error),
+          );
         });
       }
       // 登录/换账号都会重写 user_info：先清掉旧 license 再强同步，
@@ -1301,7 +1307,13 @@ export function createLocalServices(options: {
         void (async () => {
           await nibiLicenseSyncRef.current?.clear();
           await nibiLicenseSyncRef.current?.sync(true);
-        })().catch(() => {});
+        })().catch((error: unknown) => {
+          console.warn(
+            formatLogPrefix("nibiLicense", process.pid),
+            "license resync after account change failed:",
+            error instanceof Error ? error.message : String(error),
+          );
+        });
       }
       if (key === "oauth:active_provider" && operation === "delete") {
         void nibiLicenseSyncRef.current?.clear().catch(() => {});
