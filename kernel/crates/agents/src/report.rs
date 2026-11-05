@@ -2,12 +2,10 @@
 //! 文本都在 `prompts/agents/`，这里只拼接。
 
 use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Usage};
-use rust_cli_kernel_api::model::{CacheControl, SystemBlock};
+use rust_cli_kernel_api::model::{CacheControl, ModelSelection, SystemBlock};
 use rust_cli_prompts::agents as texts;
+use rust_cli_prompts::models;
 use rust_cli_prompts::texts::{self as context_texts, render};
-
-/// `<total_tokens>` 的预算（padded-countdown 的默认值；与 context 的主线程相同）。
-const TOTAL_TOKENS_BUDGET: &str = "15000000";
 
 /// 子代理没有输出时的报告。
 pub(crate) const EMPTY_REPORT: &str = "(Subagent completed but returned no output.)";
@@ -24,11 +22,13 @@ fn ephemeral(text: String) -> SystemBlock {
 }
 
 /// 子代理的 system prompt（`system[1..]`）：身份句；agent 提示词、来自父 agent
-/// 的消息说明、Notes 与 `<total_tokens>`，空行连接。
-pub(crate) fn system(prompt: &str) -> Vec<SystemBlock> {
+/// 的消息说明、Notes 与 `<total_tokens>`，空行连接。预算与主线程同一个来源（模型卡片；
+/// 生效能力由每步的 context 提醒给出，这里只写起始值）。
+pub(crate) fn system(prompt: &str, selection: &ModelSelection) -> Vec<SystemBlock> {
+    let budget = models::context_window(&selection.model, None);
     let tokens = render(
         context_texts::total_tokens(),
-        &[("tokens", TOTAL_TOKENS_BUDGET)],
+        &[("tokens", &budget.to_string())],
     );
     let body = [prompt, texts::authority(), texts::notes(), &tokens]
         .into_iter()

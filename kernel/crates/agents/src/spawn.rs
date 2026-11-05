@@ -339,7 +339,7 @@ async fn run_loop(
             }),
             Arc::new(SubagentContext {
                 inner: core.ports.context.clone(),
-                system: report::system(&agent.definition.prompt),
+                system: report::system(&agent.definition.prompt, &agent.selection),
             }),
         )
     };

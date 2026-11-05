@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 
 use crate::config::Attribution;
 use crate::render::attachments;
-use crate::system::{TOTAL_TOKENS_BUDGET, total_tokens};
+use crate::system::total_tokens;
 
 pub(crate) const MODEL: &str = "model";
 pub(crate) const DATE: &str = "date";
@@ -62,22 +62,22 @@ pub(crate) fn date(history: &[Message], today: &str) -> Option<(String, Value)> 
 }
 
 /// 剩余 token（padded-countdown）：每条人类输入重新锚定，之后按上下文的增长扣减，只减不增。
-/// 不用会话内的计数器，从历史重算：resume 后结果相同。
-pub(crate) fn tokens_left(history: &[Message]) -> u64 {
+/// 不用会话内的计数器，从历史重算：resume 后结果相同。预算见 [`crate::system::token_budget`]。
+pub(crate) fn tokens_left(history: &[Message], budget: u64) -> u64 {
     let anchor_at = history.iter().rposition(
         |message| matches!(message, Message::User(user) if user.origin == UserOrigin::Human),
     );
     let Some(anchor_at) = anchor_at else {
-        return TOTAL_TOKENS_BUDGET;
+        return budget;
     };
-    tokens_left_since(history, anchor_at)
+    tokens_left_since(history, budget, anchor_at)
 }
 
 /// 从 `anchor_at` 起按上下文的增长扣减，只减不增。
 ///
 /// 跨压缩（工作线 F82，context.md 的 `total_tokens_reminder`）：压缩边界把它之前那段最后一次响应占用的上下文
 /// “滚进”累计，之后的上下文是累计加边界之后最近一次响应的。以前只看边界之后的历史，压缩之后剩余 token 回到满额。
-fn tokens_left_since(history: &[Message], anchor_at: usize) -> u64 {
+fn tokens_left_since(history: &[Message], budget: u64, anchor_at: usize) -> u64 {
     let total = |usage: &rust_cli_kernel_api::message::Usage| {
         usage.input_tokens
             + usage.cache_creation_input_tokens
@@ -107,7 +107,7 @@ fn tokens_left_since(history: &[Message], anchor_at: usize) -> u64 {
             _ => {}
         }
     }
-    TOTAL_TOKENS_BUDGET.saturating_sub(used)
+    budget.saturating_sub(used)
 }
 
 /// 这一步是否宣布剩余 token：最后一条非 attachment 消息是人类输入或工具结果时（普通的用户输入，
@@ -162,15 +162,15 @@ pub(crate) fn inputs_due(history: &[Message]) -> bool {
 }
 
 /// 剩余 token 提醒的文本（是否宣布见 [`tokens_due`]）。
-pub(crate) fn tokens(history: &[Message]) -> (String, Value) {
-    (total_tokens(tokens_left(history)), Value::Null)
+pub(crate) fn tokens(history: &[Message], budget: u64) -> (String, Value) {
+    (total_tokens(tokens_left(history, budget)), Value::Null)
 }
 
 /// 子代理的剩余 token 提醒（修复线 F16，agents.md §4.3）：不重新锚定。只在主线程的人类输入那一步
 /// 重新锚定，子代理的计数器（按 agentId）从它第一次提醒起只看历次响应占用的上下文，取最大值；
 /// SendMessage 续跑的消息不让它从头算。
-pub(crate) fn subagent_tokens(history: &[Message]) -> (String, Value) {
-    (total_tokens(tokens_left_since(history, 0)), Value::Null)
+pub(crate) fn subagent_tokens(history: &[Message], budget: u64) -> (String, Value) {
+    (total_tokens(tokens_left_since(history, budget, 0)), Value::Null)
 }
 
 /// 署名提醒：内容与上次宣布的不同才发。第一次宣布要求有署名，且模型能用 Bash 提交

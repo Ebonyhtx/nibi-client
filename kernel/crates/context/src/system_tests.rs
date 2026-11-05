@@ -15,6 +15,7 @@ fn facts<'a>(tool_names: &'a [String], surface: Surface) -> PromptFacts<'a> {
         output_style: None,
         custom: None,
         append: None,
+        token_budget: 15_000_000,
     }
 }
 

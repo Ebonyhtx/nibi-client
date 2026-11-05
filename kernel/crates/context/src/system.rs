@@ -21,8 +21,16 @@ pub(crate) const SKILL_TOOL: &str = "Skill";
 pub(crate) const AGENT_TOOL: &str = "Agent";
 pub(crate) const BASH_TOOL: &str = "Bash";
 
-/// `<total_tokens>` 的预算（padded-countdown 模式的默认值）。
-pub(crate) const TOTAL_TOKENS_BUDGET: u64 = 15_000_000;
+/// `<total_tokens>` 的预算：模型这一步的生效上下文窗口（Provider 配置），答不出时按模型卡片，
+/// 再没有时用卡片模块的默认窗口（与自动压缩同一个回退）。以前是 15,000,000 的 padded 常量——
+/// 对 128k/200k 的模型等于给模型一个假数字。
+pub(crate) fn token_budget(request: &ContextRequest) -> u64 {
+    request
+        .capabilities
+        .map(|capabilities| capabilities.context_window)
+        .filter(|window| *window > 0)
+        .unwrap_or_else(|| models::context_window(&request.selection.model, None))
+}
 
 /// 组装 system prompt 所需的事实。
 pub(crate) struct PromptFacts<'a> {
@@ -38,6 +46,8 @@ pub(crate) struct PromptFacts<'a> {
     pub custom: Option<&'a str>,
     /// `--append-system-prompt` 的文字。
     pub append: Option<&'a str>,
+    /// `<total_tokens>` 的起始预算（[`token_budget`]）。
+    pub token_budget: u64,
 }
 
 fn cache(scope: Option<&str>) -> Option<CacheControl> {
@@ -115,7 +125,7 @@ fn session_sections(facts: &PromptFacts<'_>) -> Vec<String> {
     // 没有环境段（修复线 F51，context.md §6）。`/context` 的计数用同一个列表。
     sections.push(texts::context_management().to_owned());
     sections.push(texts::act_dont_rederive().to_owned());
-    sections.push(total_tokens(TOTAL_TOKENS_BUDGET));
+    sections.push(total_tokens(facts.token_budget));
     sections
 }
 

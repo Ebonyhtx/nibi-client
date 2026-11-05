@@ -47,6 +47,7 @@ impl PromptAssembler {
             output_style: self.config.output_style.as_ref(),
             custom: self.config.custom_system_prompt.as_deref(),
             append: self.config.append_system_prompt.as_deref(),
+            token_budget: crate::system::token_budget(request),
         };
         let mut analysis = Analysis {
             sections: sections(&facts),

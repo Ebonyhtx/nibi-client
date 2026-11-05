@@ -235,7 +235,7 @@ async fn each_tool_round_announces_the_agent_listing_once_and_the_tokens_left() 
     assert!(
         first[1]
             .text
-            .contains("<total_tokens>14999987 tokens left</total_tokens>")
+            .contains("<total_tokens>999987 tokens left</total_tokens>")
     );
     history.extend(first.into_iter().map(Message::Attachment));
     let built = assembler.build(request.clone(), &history).await.unwrap();
@@ -278,7 +278,7 @@ async fn a_resumed_subagent_keeps_counting_the_tokens_left_from_its_start() {
     assert!(
         tokens
             .text
-            .contains("<total_tokens>14999870 tokens left</total_tokens>")
+            .contains("<total_tokens>999870 tokens left</total_tokens>")
     );
 }
 

@@ -143,7 +143,7 @@ describe("v4 M4 门禁：resolveInteraction 收口权限请求", () => {
         "toolu_v4_permission_deny_feedback",
       );
       expect(deniedResult?.isError).toBe(true);
-      expect(deniedResult?.content).toBe(
+      expect(withoutTokenReminder(deniedResult?.content)).toBe(
         V4_PERMISSION_DENY_BASE_CONTENT +
           " To tell you how to proceed, the user said:\n" +
           V4_PERMISSION_DENY_FEEDBACK,
@@ -167,11 +167,23 @@ describe("v4 M4 门禁：resolveInteraction 收口权限请求", () => {
       "toolu_v4_permission_deny_blank",
     );
     expect(deniedResult?.isError).toBe(true);
-    expect(deniedResult?.content).toBe(V4_PERMISSION_DENY_BASE_CONTENT);
+    expect(withoutTokenReminder(deniedResult?.content)).toBe(V4_PERMISSION_DENY_BASE_CONTENT);
     expect(deniedResult?.content).not.toContain("To tell you how to proceed");
     await expectFileMissing(V4_PERMISSION_DENY_BLANK_OUTPUT_PATH);
   });
 });
+
+/**
+ * Rust 内核把模型的 token 预算提醒（`<total_tokens>`，预算来自模型窗口）折叠进最后一条 tool_result，
+ * Node 没有这个提醒；它不属于拒绝文案。只剥掉末尾这一块，拒绝文案本身仍逐字节比较。
+ * 提醒的数值与倒数是 context 单测的范围（`the_token_reminder_budget_is_the_model_window`）。
+ */
+function withoutTokenReminder(content: string | undefined): string | undefined {
+  return content?.replace(
+    /\n*<system-reminder>\s*<total_tokens>\d+ tokens left<\/total_tokens>\s*<\/system-reminder>\s*$/u,
+    "",
+  );
+}
 
 async function expectFileExists(path: string) {
   const exists = await access(path)

@@ -48,6 +48,51 @@ fn assembler() -> PromptAssembler {
     )
 }
 
+/// 剩余 token 的预算来自模型这一步的生效窗口（以前是 15,000,000 的 padded 常量，对 128k/200k 的模型是假数字）。
+#[tokio::test]
+async fn the_token_reminder_budget_is_the_model_window() {
+    let mut constrained = request(QuerySource::MainThread);
+    constrained.capabilities = Some(rust_cli_kernel_api::provider::ModelCapabilities {
+        context_window: 128_000,
+        ..Default::default()
+    });
+    let turn = assembler()
+        .turn_attachments(constrained, &prompt())
+        .await
+        .unwrap();
+    let tokens = turn
+        .iter()
+        .find(|item| item.source == "total_tokens_reminder")
+        .unwrap();
+    assert!(
+        tokens
+            .text
+            .contains("<total_tokens>128000 tokens left</total_tokens>"),
+        "{}",
+        tokens.text
+    );
+
+    // 能力答不出时按模型卡片；卡片也没有时用卡片模块的默认窗口（与自动压缩同一个回退）。
+    let mut unknown = request(QuerySource::MainThread);
+    unknown.selection.model = "unknown-model".to_owned();
+    let expected = rust_cli_prompts::models::context_window("unknown-model", None);
+    let turn = assembler()
+        .turn_attachments(unknown, &prompt())
+        .await
+        .unwrap();
+    let tokens = turn
+        .iter()
+        .find(|item| item.source == "total_tokens_reminder")
+        .unwrap();
+    assert!(
+        tokens
+            .text
+            .contains(&format!("<total_tokens>{expected} tokens left</total_tokens>")),
+        "{}",
+        tokens.text
+    );
+}
+
 /// 回合从一条人类输入开始。
 fn prompt() -> Vec<Message> {
     vec![Message::User(rust_cli_kernel_api::message::UserMessage {
@@ -217,9 +262,6 @@ async fn the_tokens_left_do_not_reset_at_a_compaction() {
         .find(|item| item.source == "total_tokens_reminder")
         .unwrap();
     // 压缩前的 990,016（990,000 + 16）滚进累计，加上压缩之后这一轮的 10 + 16。
-    assert!(
-        tokens.text.contains("14009958 tokens left"),
-        "{}",
-        tokens.text
-    );
+    // claude-opus-5-5 的卡片窗口是 1,000,000 → 1,000,000 - 990,042 = 9,958；没有跨压缩累计时会剩 999,974。
+    assert!(tokens.text.contains("9958 tokens left"), "{}", tokens.text);
 }

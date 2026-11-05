@@ -185,7 +185,7 @@ mod agents {
         assert!(
             child.system[1]
                 .text
-                .ends_with("<total_tokens>15000000 tokens left</total_tokens>")
+                .ends_with("<total_tokens>200000 tokens left</total_tokens>")
         );
         let tools: Vec<&str> = child.tools.iter().map(|tool| tool.name.as_str()).collect();
         assert!(

@@ -76,14 +76,13 @@ fn the_date_is_told_once_and_again_when_it_changes() {
 
 #[test]
 fn tokens_left_reset_at_each_prompt_and_only_go_down() {
-    assert_eq!(tokens_left(&[]), TOTAL_TOKENS_BUDGET);
-    assert_eq!(
-        tokens_left(&[answer(500, 10), human()]),
-        TOTAL_TOKENS_BUDGET
-    );
+    // 这里只钉倒数的算术；预算从模型窗口来（system::token_budget），测试用一个固定的大数。
+    const BUDGET: u64 = 15_000_000;
+    assert_eq!(tokens_left(&[], BUDGET), BUDGET);
+    assert_eq!(tokens_left(&[answer(500, 10), human()], BUDGET), BUDGET);
     let history = [human(), answer(1_000, 100), answer(900, 50)];
     // 锚点前没有响应（0）；两步的上下文分别是 1100 与 950，取最大的增长。
-    assert_eq!(tokens_left(&history), TOTAL_TOKENS_BUDGET - 1_100);
+    assert_eq!(tokens_left(&history, BUDGET), BUDGET - 1_100);
 }
 
 #[test]

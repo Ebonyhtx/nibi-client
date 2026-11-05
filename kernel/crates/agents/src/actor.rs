@@ -550,7 +550,7 @@ impl Agents {
         });
         let context: Arc<dyn ContextBuilder> = Arc::new(SubagentContext {
             inner: core.ports.context.clone(),
-            system: crate::report::system(&definition.prompt),
+            system: crate::report::system(&definition.prompt, &profile.selection),
         });
         let runner = core.ports.queries.runner(tools, context);
         tracing::debug!(event = "dwf.actor.loop", child = profile.child.as_str());
