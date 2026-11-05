@@ -147,6 +147,16 @@ pub(crate) async fn create(
         mailbox: Vec::new(),
     };
     core.live.insert(agent.clone());
+    // 子代理开始：告诉顶层会话（会话 actor 把它写成 `KernelEvent::Subagent`，
+    // `v4/telemetry/event` 的 `subagent.lifecycle` 事实从那里来）。
+    // 在 `insert` 之后发：收到信号的一方去读目录时，表里已经有它。
+    core.hub.subagent_lifecycle(
+        &agent.root,
+        agent.agent.clone(),
+        agent.child.clone(),
+        agent.tool_use.clone(),
+        nibi_kernel_api::agents::SubagentLifecyclePhase::Spawned,
+    );
     let messages = with_prefix(&agent, vec![first]);
     Ok((agent, Opening { messages, turn }))
 }

@@ -351,8 +351,13 @@ async fn a_live_monitor_parks_the_subagent_until_it_ends() {
             output_limit: None,
         }))
         .unwrap();
-    let Some(AgentSignal::Notice(own)) = root.next().await else {
-        panic!("expected the agent's own notice");
+    // 信号流里先有子代理的生命周期信号，按类型取自己的通知。
+    let own = loop {
+        match root.next().await {
+            Some(AgentSignal::Notice(own)) => break own,
+            Some(_) => continue,
+            None => panic!("expected the agent's own notice"),
+        }
     };
     assert_eq!(own.agent, agent);
     assert!(!harness.agents.core.monitors.owns(&agent));

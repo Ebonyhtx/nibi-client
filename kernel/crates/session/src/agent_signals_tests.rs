@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 use nibi_kernel_api::agents::{AgentNotice, AgentSignal, AgentSignals};
-use nibi_kernel_api::ids::{AgentId, ShellTaskId};
+use nibi_kernel_api::ids::{AgentId, ShellTaskId, ToolUseId};
 use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
 use nibi_kernel_api::testing::{local_services, machine};
 use serde_json::json;
@@ -163,4 +163,144 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
         matches!(notices[0], Message::User(user) if matches!(user.content.as_slice(), [ContentBlock::Text { text }] if text.contains("agent done")))
     );
     assert!(view.background.is_empty());
+}
+
+/// 子代理的生命周期信号 → `KernelEvent::Subagent`。
+///
+/// 这是 `v4/telemetry/event` 的 `subagent.lifecycle` 事实的唯一来源：那条映射代码一直在，但在接上
+/// 这个生产者之前，运行期一次都没触发过（内核里没有任何地方发 `KernelEvent::Subagent`）。
+#[tokio::test]
+async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
+    let scope = TaskScope::root("test", |_| {});
+    let (sender, receiver) = mpsc::unbounded_channel();
+    let signals = Arc::new(FakeSignals {
+        receiver: Mutex::new(Some(receiver)),
+        acked: Mutex::default(),
+        background: Mutex::default(),
+    });
+    let store = Arc::new(MemoryStore::default());
+    store.create(meta()).await.unwrap();
+    let ids = Arc::new(SequentialIds::default());
+    let model = Arc::new(ScriptedModel::new(vec![text_response(&["noted"])]));
+    let env = Arc::new(UnusedEnvironment);
+    let runner = Arc::new(QueryLoop::new(QueryParts {
+        model,
+        context: Arc::new(FixedContext(Vec::new())),
+        tools: Arc::new(NoTools),
+        executor: Arc::new(FailingExecutor),
+        compactor: Arc::new(NeverCompact),
+        hooks: Arc::new(NoHooks),
+        ids: ids.clone(),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+        machines: nibi_kernel_api::testing::environments(env.clone()),
+        machine: machine(env.clone()),
+        local: local_services(env),
+        artifacts: store.clone(),
+        generation: Generation::new("g1"),
+        non_interactive: false,
+        limits: nibi_kernel_query::RequestLimits::default(),
+    }));
+    let env = Arc::new(UnusedEnvironment);
+    let session = Session::spawn(
+        SessionDeps {
+            agents: signals.clone(),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
+            store,
+            ids,
+            runner,
+            compactor: Arc::new(nibi_kernel_api::testing::NeverCompact),
+            machines: nibi_kernel_api::testing::environments(env.clone()),
+            machine: machine(env.clone()),
+            local: local_services(env),
+            max_turns: None,
+            hooks: Arc::new(nibi_kernel_api::testing::NoHooks),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
+            artifacts: Arc::new(nibi_kernel_api::testing::MemoryArtifacts::default()),
+            clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+            generation: nibi_kernel_api::ids::Generation::new("g1"),
+            spawner: scope.spawner(),
+            closing: scope.spawner(),
+            titles: None,
+            side_model: Arc::new(nibi_kernel_api::testing::ScriptedModel::new(Vec::new())),
+            released: Arc::new(crate::NothingToRelease),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
+            peers: crate::PeerDeps::off(),
+            detached: None,
+            blocked: None,
+        },
+        SessionState {
+            meta: meta(),
+            messages: Vec::new(),
+            earlier: Vec::new(),
+            selection: selection(),
+            mode: PermissionMode::Default.into(),
+            checkpoints: Vec::new(),
+            start: nibi_kernel_api::session_api::StartSource::Startup,
+            turn: None,
+            last_turn_failed: false,
+            launches: Vec::new(),
+            model_turns: Vec::new(),
+            draft: false,
+        },
+        Opened::Loaded,
+    );
+    let mut events = session.subscribe(Some(0));
+    for (tool_use, phase) in [
+        (
+            Some(ToolUseId::new("toolu_1")),
+            nibi_kernel_api::agents::SubagentLifecyclePhase::Spawned,
+        ),
+        (None, nibi_kernel_api::agents::SubagentLifecyclePhase::Done),
+    ] {
+        sender
+            .send(AgentSignal::Subagent {
+                agent: AgentId::new("agent_1"),
+                child: SessionId::new("sess_child"),
+                tool_use,
+                phase,
+            })
+            .unwrap();
+    }
+    // 收到两条 Subagent 事件为止（其余事件不关心）。
+    let mut spawned = Vec::new();
+    while spawned.len() < 2 {
+        let event = tokio::time::timeout(std::time::Duration::from_secs(5), events.next())
+            .await
+            .expect("the session event stream stalled")
+            .expect("the session event stream ended");
+        if let KernelEvent::Subagent {
+            agent,
+            phase,
+            child,
+            parent_tool_use,
+        } = event.event
+        {
+            spawned.push((
+                agent.as_str().to_owned(),
+                phase,
+                child.as_str().to_owned(),
+                parent_tool_use.as_str().to_owned(),
+            ));
+        }
+    }
+    assert_eq!(
+        spawned[0],
+        (
+            "agent_1".to_owned(),
+            nibi_kernel_api::session_api::SubagentPhase::Spawned,
+            "sess_child".to_owned(),
+            "toolu_1".to_owned()
+        )
+    );
+    assert_eq!(
+        spawned[1],
+        (
+            "agent_1".to_owned(),
+            nibi_kernel_api::session_api::SubagentPhase::Done,
+            "sess_child".to_owned(),
+            // 续跑没有对应工具调用：用它自己的 agent id 占位，不发明一个工具调用。
+            "agent_1".to_owned()
+        )
+    );
 }

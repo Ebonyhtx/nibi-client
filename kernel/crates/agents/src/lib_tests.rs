@@ -12,6 +12,21 @@ use tokio::sync::Notify;
 
 use crate::test_support::{harness, text};
 
+/// 取下一条通知，跳过子代理的生命周期信号。
+///
+/// 信号流里现在还有 `AgentSignal::Subagent`（`v4/telemetry/event` 的 `subagent.lifecycle`
+/// 事实来源）：子代理每开始/结束一次就多一条。这些测试断言的是「通知」这一路，按类型跳过。
+async fn next_notice(
+    stream: &mut futures_util::stream::BoxStream<'static, AgentSignal>,
+) -> nibi_kernel_api::agents::AgentNotice {
+    while let Some(signal) = stream.next().await {
+        if let AgentSignal::Notice(notice) = signal {
+            return notice;
+        }
+    }
+    panic!("expected a notice");
+}
+
 #[tokio::test]
 async fn a_foreground_agent_runs_in_a_child_session_and_hands_back_its_report() {
     let harness = harness(None);
@@ -146,9 +161,7 @@ async fn a_background_agent_notifies_its_parent_once_it_finishes() {
         ["Bash", "Read", "SendMessage", "TaskStop"]
     );
     gate.notify_one();
-    let Some(AgentSignal::Notice(notice)) = stream.next().await else {
-        panic!("expected a notice");
-    };
+    let notice = next_notice(&mut stream).await;
     assert_eq!(notice.status, "completed");
     assert!(
         notice
@@ -190,9 +203,7 @@ async fn task_stop_kills_a_running_agent_and_send_message_resumes_a_finished_one
         stopped,
         r#"{"message":"Successfully stopped task: agent_1 (Long job)","task_id":"agent_1","task_type":"local_agent","command":"Long job"}"#
     );
-    let Some(AgentSignal::Notice(notice)) = stream.next().await else {
-        panic!("expected a notice");
-    };
+    let notice = next_notice(&mut stream).await;
     assert_eq!(notice.status, "killed");
     assert!(
         notice
@@ -238,9 +249,8 @@ async fn task_stop_kills_a_running_agent_and_send_message_resumes_a_finished_one
     let seen = harness.started(2).await;
     assert_eq!(seen[1].request.messages.len(), 2);
     gate.notify_one();
-    assert!(
-        matches!(stream.next().await, Some(AgentSignal::Notice(notice)) if notice.status == "completed")
-    );
+    let done = next_notice(&mut stream).await;
+    assert_eq!(done.status, "completed");
 }
 
 #[tokio::test]
@@ -259,8 +269,13 @@ async fn task_tools_write_the_root_list_and_signal_the_root_session() {
             .await,
     );
     assert_eq!(created, "Task #1 created successfully: Write tests");
-    let Some(AgentSignal::TasksChanged { tasks }) = stream.next().await else {
-        panic!("expected tasks");
+    // 信号流里先有子代理的生命周期信号（它也有 `TasksChanged` 之外的项），按类型取下一条清单。
+    let tasks = loop {
+        match stream.next().await {
+            Some(AgentSignal::TasksChanged { tasks }) => break tasks,
+            Some(_) => continue,
+            None => panic!("expected tasks"),
+        }
     };
     assert_eq!(tasks[0]["subject"], "Write tests");
     assert_eq!(harness.tasks.load(&root).await.unwrap().tasks.len(), 1);
@@ -287,7 +302,7 @@ async fn child_batches_name_the_prompt_of_their_run() {
     harness
         .call("sess_parent", "TaskStop", json!({"task_id": "agent_1"}))
         .await;
-    assert!(matches!(stream.next().await, Some(AgentSignal::Notice(_))));
+    let _stopped = next_notice(&mut stream).await;
     harness
         .call(
             "sess_parent",
@@ -297,7 +312,7 @@ async fn child_batches_name_the_prompt_of_their_run() {
         .await;
     harness.started(2).await;
     gate.notify_one();
-    assert!(matches!(stream.next().await, Some(AgentSignal::Notice(_))));
+    let _done = next_notice(&mut stream).await;
     let prompts: Vec<_> = harness
         .store
         .facts(&child)

@@ -353,8 +353,13 @@ async fn the_user_stops_a_background_agent_through_the_same_path() {
         stopped.as_deref(),
         Ok("Successfully stopped task: agent_1 (Wait for me)")
     );
-    let Some(AgentSignal::Notice(notice)) = stream.next().await else {
-        panic!("expected a notice");
+    // 信号流里先有子代理的生命周期信号，按类型取下一条通知。
+    let notice = loop {
+        match stream.next().await {
+            Some(AgentSignal::Notice(notice)) => break notice,
+            Some(_) => continue,
+            None => panic!("expected a notice"),
+        }
     };
     assert_eq!(notice.status, "killed");
     let again = signals.stop_task(&parent, "agent_1", operation()).await;

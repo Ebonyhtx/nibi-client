@@ -46,8 +46,13 @@ async fn a_subagent_command_notice_goes_to_the_subagent_then_to_the_top_level() 
     }
     assert_eq!(env.acked(), [1]);
     gates.release(&session);
-    let Some(AgentSignal::Notice(own)) = root.next().await else {
-        panic!("expected the agent's own notice");
+    // 信号流里先有子代理的生命周期信号，按类型取自己的通知。
+    let own = loop {
+        match root.next().await {
+            Some(AgentSignal::Notice(own)) => break own,
+            Some(_) => continue,
+            None => panic!("expected the agent's own notice"),
+        }
     };
     assert_eq!(own.agent.as_str(), id);
     let absorbed = harness.absorbed.lock().unwrap().clone();
@@ -61,8 +66,12 @@ async fn a_subagent_command_notice_goes_to_the_subagent_then_to_the_top_level() 
     assert!(absorbed[0].1.contains("<task-id>b1</task-id>"));
     // 子代理已结束：之后的命令通知送顶层会话。
     env.finish(shell_notice(2, "b2"));
-    let Some(AgentSignal::Notice(late)) = root.next().await else {
-        panic!("expected the command notice at the top level");
+    let late = loop {
+        match root.next().await {
+            Some(AgentSignal::Notice(late)) => break late,
+            Some(_) => continue,
+            None => panic!("expected the command notice at the top level"),
+        }
     };
     assert_eq!(late.agent.as_str(), "b2");
     assert!(late.text.contains("<task-id>b2</task-id>"));

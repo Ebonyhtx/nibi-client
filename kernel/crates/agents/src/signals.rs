@@ -30,6 +30,9 @@ struct Channel {
     pending: Vec<(u64, AgentNotice)>,
     /// 最新的任务清单与它的到达顺序。
     tasks: Option<(u64, Value)>,
+    /// 还没交出的生命周期信号（按到达顺序）。它不是可重建的快照，也不是要 ack 的通知：
+    /// 会话 actor 一收到就写进事件流，所以这里只排到交出为止。
+    lifecycle: Vec<(u64, AgentSignal)>,
 }
 
 impl Channel {
@@ -74,7 +77,7 @@ fn lock(inner: &Inner) -> MutexGuard<'_, HashMap<SessionId, Channel>> {
         .unwrap_or_else(PoisonError::into_inner)
 }
 
-/// 下一个要交出的信号：通知与任务清单里到达顺序最小、还没交出的一个。
+/// 下一个要交出的信号：通知、任务清单与生命周期里到达顺序最小、还没交出的一个。
 fn next_signal(channel: &Channel, cursor: &Cursor) -> Option<(u64, AgentSignal)> {
     let notice = channel
         .pending
@@ -89,10 +92,15 @@ fn next_signal(channel: &Channel, cursor: &Cursor) -> Option<(u64, AgentSignal)>
             let tasks = tasks.clone();
             (*order, AgentSignal::TasksChanged { tasks })
         });
-    match (notice, tasks) {
-        (Some(notice), Some(tasks)) => Some(if notice.0 < tasks.0 { notice } else { tasks }),
-        (one, other) => one.or(other),
-    }
+    let lifecycle = channel
+        .lifecycle
+        .iter()
+        .find(|(order, _)| *order > cursor.delivered)
+        .map(|(order, signal)| (*order, signal.clone()));
+    [notice, tasks, lifecycle]
+        .into_iter()
+        .flatten()
+        .min_by_key(|(order, _)| *order)
 }
 
 async fn next(mut cursor: Cursor) -> Option<(AgentSignal, Cursor)> {
@@ -104,6 +112,11 @@ async fn next(mut cursor: Cursor) -> Option<(AgentSignal, Cursor)> {
             .and_then(|channel| next_signal(channel, &cursor));
         if let Some((order, signal)) = found {
             cursor.delivered = order;
+            // 生命周期信号交出即不再需要（不是可重建快照，也不需要 ack）：与游标一起清掉，
+            // 否则长会话里每次 spawn/done 都留一条。
+            if let Some(channel) = lock(&cursor.inner).get_mut(&cursor.session) {
+                channel.lifecycle.retain(|(order, _)| *order > cursor.delivered);
+            }
             return Some((signal, cursor));
         }
         // 发送方在 `Inner` 里，订阅流持有它，所以不会关闭。
@@ -175,6 +188,37 @@ impl Hub {
             channel.tasks = Some((order, tasks));
         }
         self.wake();
+    }
+
+    /// 记一条子代理生命周期信号（spawned / done）。它不可重建，排进队列直到交出。
+    pub(crate) fn lifecycle(&self, session: &SessionId, signal: AgentSignal) {
+        {
+            let mut channels = self.channels();
+            let channel = channels.entry(session.clone()).or_default();
+            let order = channel.order();
+            channel.lifecycle.push((order, signal));
+        }
+        self.wake();
+    }
+
+    /// 一个子代理开始或结束：通知顶层会话（`KernelEvent::Subagent` 的来源）。
+    pub(crate) fn subagent_lifecycle(
+        &self,
+        session: &SessionId,
+        agent: AgentId,
+        child: SessionId,
+        tool_use: Option<nibi_kernel_api::ids::ToolUseId>,
+        phase: nibi_kernel_api::agents::SubagentLifecyclePhase,
+    ) {
+        self.lifecycle(
+            session,
+            AgentSignal::Subagent {
+                agent,
+                child,
+                tool_use,
+                phase,
+            },
+        );
     }
 
     pub(crate) fn ack(&self, session: &SessionId, seq: u64) {

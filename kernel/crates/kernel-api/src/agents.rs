@@ -72,6 +72,30 @@ pub enum AgentSignal {
     TasksChanged {
         tasks: Value,
     },
+    /// 一个子代理开始或结束（`KernelEvent::Subagent` 的来源）。
+    ///
+    /// 会话 actor 用它写进会话事件流，`v4/telemetry/event` 的 `subagent.lifecycle` 事实与
+    /// 投影的行都从那里来。以前这条信号不存在，`KernelEvent::Subagent` 也就从没有生产者——
+    /// `subagent.lifecycle` 的映射代码一直在，运行期一次都没触发过。
+    ///
+    /// 发给顶层会话（`root`），与后台通知同一个收件人：子代理的启用点只关心「这个会话里有谁在跑」。
+    Subagent {
+        agent: AgentId,
+        child: SessionId,
+        /// 启动它的 Agent 调用；续跑（SendMessage）之后没有对应调用，那时可能缺席。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        tool_use: Option<ToolUseId>,
+        phase: SubagentLifecyclePhase,
+    },
+}
+
+/// 子代理生命周期信号的阶段（与 `KernelEvent::Subagent` 的 `SubagentPhase` 同义，放在这里是因为
+/// agents → 会话 actor 的信号面不能反向依赖会话的事件类型）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubagentLifecyclePhase {
+    Spawned,
+    Done,
 }
 
 #[async_trait]

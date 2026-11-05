@@ -6,7 +6,7 @@
 
 use nibi_kernel_api::agents::{AgentNotice, AgentSignal};
 use nibi_kernel_api::ids::ShellTaskId;
-use nibi_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::session_api::{KernelEvent, SubagentPhase};
 
 use crate::actor::Actor;
 use crate::lane::Waiting;
@@ -19,6 +19,32 @@ impl Actor {
         match signal {
             AgentSignal::TasksChanged { tasks } => {
                 self.log.append(KernelEvent::TasksChanged { tasks });
+            }
+            // 子代理开始 / 结束：写进会话事件流。`v4/telemetry/event` 的
+            // `subagent.lifecycle` 事实与（将来）投影的子代理行都从这条来。
+            AgentSignal::Subagent {
+                agent,
+                child,
+                tool_use,
+                phase,
+            } => {
+                // 续跑（SendMessage）没有对应调用，`parent_tool_use` 又必填：用它自己的 agent id
+                // 占位，如实说明「这次运行不是某次工具调用开的」，不发明一个工具调用。
+                let parent_tool_use = tool_use
+                    .unwrap_or_else(|| nibi_kernel_api::ids::ToolUseId::new(agent.as_str()));
+                self.log.append(KernelEvent::Subagent {
+                    agent,
+                    phase: match phase {
+                        nibi_kernel_api::agents::SubagentLifecyclePhase::Spawned => {
+                            SubagentPhase::Spawned
+                        }
+                        nibi_kernel_api::agents::SubagentLifecyclePhase::Done => {
+                            SubagentPhase::Done
+                        }
+                    },
+                    child,
+                    parent_tool_use,
+                });
             }
             AgentSignal::Notice(notice) => self.on_agent_notice(notice).await,
         }

@@ -166,6 +166,15 @@ pub(crate) fn settle(core: &Core, id: &AgentId, finished: &Finished) -> Settle {
         if let Some(slot) = agents.get_mut(id) {
             slot.state = AgentState::Finished(finished.ending);
         }
+        // 子代理结束（不是停放：停放还会被唤醒续跑，那时会再发一次 spawned）。
+        // 在锁内记信号，与上面「已结束」的写入同一次可见。
+        core.hub.subagent_lifecycle(
+            &entry.root,
+            entry.agent.clone(),
+            entry.child.clone(),
+            entry.tool_use.clone(),
+            nibi_kernel_api::agents::SubagentLifecyclePhase::Done,
+        );
         let mut wakes = Vec::new();
         if entry.background {
             let notice = notice_of(&entry, finished.ending, &finished.report, error.as_deref());
