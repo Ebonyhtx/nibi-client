@@ -58,6 +58,7 @@
 |---|---|---|---|
 | 2026-10-29 | 0.1.66 → 0.1.67（130 文件 +8,605/−1,300） | 整体 pin；未逐项改造 | npm 产物可验证、编译全绿；协议/迁移/目标表/信任根/审计门禁零变化；F111–F114 是 NIBI 要继承的消费域修复 |
 | 2026-10-30 | `schema/inbound.json` 的 commands/CAS 段与 `workspace/updateOffPeakToolPolicy` 方法；`server.rs` 的 offPeak 处理器 | **删除** | NIBI 已删 offPeak；命令契约改由 `nibi_commands`（NIBI zod 生成物）承接，上游 35 个命令（含 NIBI 不存在的 `setHighspeedMetrics`）不再进入校验路径 |
+| 2026-11-05 | 季度 diff：`6d349ed4` → 上游 `main`（4 个提交，npm 0.1.67→0.1.82）。实质变更只有 `55bb6f18`（从源仓 `cfd5eaf2da` 同步，54 文件）与 `e08687d6`（launcher 文档措辞）；其余是 release 提交 | **不吸收** | 逐文件看过：54 个文件里 28 个 TUI、16 个 CLI（update 文案/缓存），安全域只有 `base/redact.rs`、`net/timeout.rs`、`paths/lib.rs` 的**注释**改动（去掉 Codex/来源措辞），`ext` 只改测试；**零行为、零安全修复**。`node-store` / `kernel-api` / `model` / `protocol-zcode` / `tools` / `policy` 无改动，迁移账本仍 0001–0024 |
 
 ## 6. Step 2 第一切片（2026-10-30）
 
