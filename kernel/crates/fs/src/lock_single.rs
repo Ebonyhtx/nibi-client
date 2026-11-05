@@ -156,8 +156,9 @@ where
             Ok(()) => break,
             Err(error) if error.kind() == ErrorKind::AlreadyExists => denied = 0,
             // Windows 上锁文件处于“删除挂起”（持有者刚释放）时 `create_new` 报 PermissionDenied，
-            // 等它消失就好；连续几次仍然拒绝说明是真的没有权限，按原错误报出。
-            Err(error) if error.kind() == ErrorKind::PermissionDenied && denied < 4 => {
+            // 等它消失就好。并行测试负载下这个窗口能到几百毫秒（4 × 10ms 不够）；放宽到约 1s 再
+            // 认定是真的没有权限，仍然有界，且早于默认 5s 的获取期限。
+            Err(error) if error.kind() == ErrorKind::PermissionDenied && denied < 100 => {
                 denied += 1;
             }
             Err(error) => return Err(error),
