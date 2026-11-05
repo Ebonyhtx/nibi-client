@@ -63,9 +63,16 @@ describe("会话区 AskUserQuestion 键盘导航 E2E", () => {
     );
     await browser.keys("ArrowUp");
     await expectCustomInputFocused();
-    const input = await $('[data-elicitation-dialog-body="true"] textarea');
     // 长答案必须真的换行并在五行内滚动；仅断言 CSS class 无法发现布局失效。
-    await input.setValue("自动换行的自定义回答 wrapped answer ".repeat(240));
+    //
+    // 用原生 setter 一次写入，不用 `setValue`：后者逐字符键入 6000+ 字符，
+    // WebDriver 的 element/value 命令会超时（实测 60s 不够），而这条用例要验的是布局
+    // （自动换行、五行上限、内部滚动），不是打字速度。原生 setter + input 事件是
+    // React 受控 textarea 的常规注入方式，值照常进 state。
+    await setTextareaValue(
+      '[data-elicitation-dialog-body="true"] textarea',
+      "自动换行的自定义回答 wrapped answer ".repeat(240),
+    );
     const layout = await browser.execute(() => {
       const textarea = document.querySelector<HTMLTextAreaElement>(
         '[data-elicitation-dialog-body="true"] textarea',
@@ -179,8 +186,31 @@ async function focusCustomInputAndSetValue(value: string) {
     timeoutMsg: "AskUserQuestion 自定义回答输入框没有出现",
   });
   await input.click();
-  await input.setValue(value);
+  await setTextareaValue('[data-elicitation-dialog-body="true"] textarea', value);
   await expectCustomInputValue(value);
+}
+
+/**
+ * 一次性把值写进受控 textarea 并触发 React 的 onChange。
+ *
+ * 不用 `element.setValue`：它逐字符键入，长文本会让 WebDriver 的 element/value 命令超时。
+ * 原生 value setter 绕开 React 对 `value` 属性的劫持，再派发 input 事件让受控组件更新 state。
+ */
+async function setTextareaValue(selector: string, value: string) {
+  await browser.execute(
+    (target: string, text: string) => {
+      const textarea = document.querySelector<HTMLTextAreaElement>(target);
+      if (!textarea) throw new Error(`textarea not found: ${target}`);
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLTextAreaElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(textarea, text);
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    },
+    selector,
+    value,
+  );
 }
 
 async function expectCustomInputValue(value: string) {
