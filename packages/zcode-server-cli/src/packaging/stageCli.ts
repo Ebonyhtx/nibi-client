@@ -15,6 +15,7 @@ import {
 } from "../runtime/manifest.js";
 import { stageRelease } from "./stage.js";
 import { resolveNodeDistBase } from "./nodeDistMirror.js";
+import { expectedSha256, sha256File } from "./nodeDistIntegrity.js";
 
 const log = (...args: unknown[]): void => console.log("[stage]", ...args);
 
@@ -96,12 +97,20 @@ async function ensureNodeBinary(repoRoot: string, target: ServerTarget): Promise
   }
 
   const archiveName = `node-${nodeVersion}-${nodeTarget}.${isWindows ? "zip" : "tar.xz"}`;
-  const url = `${resolveNodeDistBase()}/${nodeVersion}/${archiveName}`;
+  const distBase = resolveNodeDistBase();
+  const url = `${distBase}/${nodeVersion}/${archiveName}`;
   log(`download node runtime: ${url}`);
+  const expected = await expectedSha256(distBase, nodeVersion, archiveName);
   const tempDir = await mkdtemp(join(tmpdir(), "zcode-server-node-"));
   try {
     const archivePath = join(tempDir, archiveName);
     await downloadFile(url, archivePath);
+    const actual = await sha256File(archivePath);
+    if (actual !== expected) {
+      throw new Error(
+        `Checksum mismatch for ${archiveName}: expected ${expected}, received ${actual}`,
+      );
+    }
     await mkdir(cacheDir, { recursive: true });
     if (isWindows) {
       await runCommand(
