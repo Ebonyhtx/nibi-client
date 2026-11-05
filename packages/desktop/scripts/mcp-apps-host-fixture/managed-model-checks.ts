@@ -31,7 +31,14 @@ export async function checkModel(
     );
   async function begin(key: string) {
     const after = env.agent.notifications.history.length;
-    env.model.plans.push({ key, delayed: true });
+    // 模型侧不要 hold（要真的发出 app 工具调用，随后才有权限询问、认领与页面执行）；页面侧的调用
+    // 用 `arguments.delayed` 挂住，取消/放行的检查才有可中止的等待点。两件事在计划对象里分开：
+    // `delayed` 管模型响应，`arguments` 是工具入参。
+    env.model.plans.push({
+      key,
+      delayed: false,
+      arguments: { key, delayed: true },
+    });
     const ack = await command("sendText", {
       text: `fixture ${key}`,
       modelSelection: env.model.selection,

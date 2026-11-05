@@ -188,28 +188,30 @@ const modes =
         ? ["sampling"]
         : process.argv.includes("--rows-only")
           ? ["rows"]
-          : process.argv.includes("--managed-only")
-            ? ["interaction", "managed", "managed-empty"]
-            : process.argv.includes("--chain-only") ||
-                process.argv.includes("--chain-core-only")
-              ? ["chain"]
-              : process.argv.includes("--retention-only")
-                ? ["retention"]
-                : process.argv.includes("--storage-only")
-                  ? ["write", "read", "empty"]
-                  : [
-                      "write",
-                      "read",
-                      "empty",
-                      "chain",
-                      "interaction",
-                      "managed",
-                      "managed-empty",
-                      "retention",
-                      "rows",
-                      "sampling",
-                      "background",
-                    ];
+          : process.argv.includes("--managed-checks-only")
+            ? ["managed"]
+            : process.argv.includes("--managed-only")
+              ? ["interaction", "managed", "managed-empty"]
+              : process.argv.includes("--chain-only") ||
+                  process.argv.includes("--chain-core-only")
+                ? ["chain"]
+                : process.argv.includes("--retention-only")
+                  ? ["retention"]
+                  : process.argv.includes("--storage-only")
+                    ? ["write", "read", "empty"]
+                    : [
+                        "write",
+                        "read",
+                        "empty",
+                        "chain",
+                        "interaction",
+                        "managed",
+                        "managed-empty",
+                        "retention",
+                        "rows",
+                        "sampling",
+                        "background",
+                      ];
 for (const mode of modes) {
   await new Promise((accept, reject) => {
     const env = { ...process.env };

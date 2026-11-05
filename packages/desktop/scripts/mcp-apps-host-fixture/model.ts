@@ -29,10 +29,41 @@ export async function startModel(root: string, cli: string) {
       .map((message: any) => String(message.content ?? ""))
       .join("\n");
     if (
-      !body.stream &&
       /naming a coding session|session title|short title/i.test(titlePrompt) &&
       !Array.isArray(body.tools)
     ) {
+      // 两个内核的标题请求不总是同一形态：Node 走非流式，Rust 的标题生成走流式。两种都要单独回，
+      // 否则标题请求会吃掉 plans 队首（后面的 app 工具探针就永远等不到工具调用）。
+      if (body.stream) {
+        res.writeHead(200, { "Content-Type": "text/event-stream" });
+        res.write(
+          `data: ${JSON.stringify({
+            id: "sampling-fixture-title",
+            object: "chat.completion.chunk",
+            created: 1,
+            model,
+            choices: [
+              {
+                index: 0,
+                delta: { role: "assistant", content: "Fixture title" },
+                finish_reason: null,
+              },
+            ],
+          })}\n\n`,
+        );
+        res.write(
+          `data: ${JSON.stringify({
+            id: "sampling-fixture-title",
+            object: "chat.completion.chunk",
+            created: 1,
+            model,
+            choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+            usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+          })}\n\n`,
+        );
+        res.end("data: [DONE]\n\n");
+        return;
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(
         JSON.stringify({

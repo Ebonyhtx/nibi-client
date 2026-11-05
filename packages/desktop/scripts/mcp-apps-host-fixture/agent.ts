@@ -64,7 +64,13 @@ export async function startAgent(
   let subscribedSession: string | null = null;
   let v4Revision = 0;
   const seenV4Permissions = new Set<string>();
-  const acceptPendingInteractions = (pending: unknown) => {
+  const acceptPendingInteractions = (pending: unknown, topic?: unknown) => {
+    // 交互属于帧的会话主题，不是“最后订阅的那个”：第二个窗口（权限检查）订阅后，主窗口的
+    // 询问若沿用全局 subscribedSession，应答会打到已销毁的会话上。
+    const topicSession =
+      typeof topic === "string" && topic.startsWith("conversation/")
+        ? topic.slice("conversation/".length)
+        : undefined;
     for (const item of Array.isArray(pending) ? pending : []) {
       const interactionId = item?.interactionId;
       if (typeof interactionId !== "string" || !interactionId || item.kind !== "permission") continue;
@@ -76,8 +82,15 @@ export async function startAgent(
           input: item.payload?.detail,
           toolName: item.payload?.toolName,
           summary: item.payload?.summary,
+          // 与 legacy 反向请求同形的选项表（allowOnce/allowAlways/deny，Node 另有 allow_project）：
+          // 检查按 optionId 找“项目级放行”，两个内核走同一条判断。
+          options: item.payload?.options,
         },
-        v4: { sessionId: subscribedSession ?? "", interactionId, baseRevision: v4Revision },
+        v4: {
+          sessionId: topicSession ?? subscribedSession ?? "",
+          interactionId,
+          baseRevision: v4Revision,
+        },
       });
     }
   };
@@ -181,13 +194,13 @@ export async function startAgent(
     if (!payload) return;
     if (payload.kind === "snapshot") {
       v4Revision = payload.snapshot?.revision ?? v4Revision;
-      acceptPendingInteractions(payload.snapshot?.pendingInteractions);
+      acceptPendingInteractions(payload.snapshot?.pendingInteractions, event.params?.topic);
     } else if (payload.kind === "deltas") {
       for (const delta of payload.deltas ?? []) {
         if (delta?.op !== "state.updated" || !delta.patch) continue;
         if (Number.isFinite(delta.patch.revision)) v4Revision = delta.patch.revision;
         if (Array.isArray(delta.patch.pendingInteractions)) {
-          acceptPendingInteractions(delta.patch.pendingInteractions);
+          acceptPendingInteractions(delta.patch.pendingInteractions, event.params?.topic);
         }
       }
     }
@@ -275,6 +288,28 @@ export async function startAgent(
         return;
       }
       client.respond(request.id, { decision });
+    },
+    /// 按选项作答（检查里要“项目级放行”而不是 allowOnce）：legacy 回原 response，v4 回 optionId。
+    respondOption: async (request: any, optionId: string) => {
+      const option = request?.params?.options?.find(
+        (candidate: any) => candidate.optionId === optionId,
+      );
+      if (!option) throw new Error(`permission option ${optionId} is not offered`);
+      if (request?.v4) {
+        await call("v4/command", {
+          commandId: randomUUID(),
+          clientId: "fixture",
+          sessionId: request.v4.sessionId,
+          type: "resolveInteraction",
+          payload: {
+            interactionId: request.v4.interactionId,
+            answer: { optionId },
+          },
+          issuedAt: Date.now(),
+        });
+        return;
+      }
+      client.respond(request.id, option.response);
     },
     release: (source: string, key: string) =>
       sockets.get(source)!.write(JSON.stringify({ type: "release", key }) + "\n"),

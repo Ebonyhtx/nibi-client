@@ -42,15 +42,18 @@ export async function checkLate(
       .evalPage(win, "window.callTool('project-stale')")
       .catch((error) => ({ error: String(error) }));
     const pending = await env.agent.approvals.wait((r) => r.params.input?.key === "project-stale");
-    const project = pending.params.options.find(
-      (option: any) => option.optionId === "allow_project",
+    const options = pending.params.options ?? [];
+    // Node 的“项目级放行”是 allow_project，Rust 的同一语义是 allowAlways（suggestions 由内核记账）。
+    const project = options.find(
+      (option: any) => option.optionId === "allow_project" || option.optionId === "allowAlways",
     );
-    assert.ok(project?.response.permissionUpdates?.length);
+    assert.ok(project, JSON.stringify(options));
+    if (!pending.v4) assert.ok(project.response.permissionUpdates?.length);
     const offset = env.events.history.length;
     await ui("window.retryManaged()");
     await env.events.wait((e) => e.type === "phase" && e.phase === "running", offset);
     await env.evalPage(win, "window.fixtureReady");
-    await env.agent.client.respond(pending.id, project.response);
+    await env.agent.respondOption(pending, project.optionId);
     assert.ok((await oldCall).error);
     const next = env.evalPage(win, "window.callTool('project-replacement')");
     const nextPermission = await env.agent.approvals.wait(
