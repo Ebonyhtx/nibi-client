@@ -222,40 +222,77 @@ impl Projection {
         self.append(tool_key(tool_use), row, out);
     }
 
-    /// 登记一个询问（只有权限询问进 pendingInteractions，P1）。返回它所属的工具调用。
+    /// 登记一个询问（权限、提问与计划审批都进 pendingInteractions）。返回它所属的工具调用。
     pub(super) fn ask(
         &mut self,
         interaction: &str,
         request: &InteractionRequest,
         now: u64,
     ) -> Option<String> {
-        let InteractionRequest::Permission {
-            tool_use,
-            tool,
-            input,
-            message,
-            ..
-        } = request
-        else {
-            return None;
-        };
+        let tool_use = request.tool_use();
         let anchor = self.row_id(&tool_key(tool_use.as_str()));
-        self.pending.push(json!({
-            "interactionId": interaction,
-            "kind": "permission",
-            "anchorRowId": anchor,
-            "createdAt": now,
-            "payload": {
+        let entry = match request {
+            InteractionRequest::Permission {
+                tool, input, message, ..
+            } => json!({
+                "interactionId": interaction,
                 "kind": "permission",
-                "toolCallId": tool_use.as_str(),
-                "toolName": tool,
-                "summary": message,
-                "detail": input,
-                "freeText": true,
-                "fullAccessOption": state::full_access_option(),
-                "options": state::permission_options(),
-            },
-        }));
+                "anchorRowId": anchor,
+                "createdAt": now,
+                "payload": {
+                    "kind": "permission",
+                    "toolCallId": tool_use.as_str(),
+                    "toolName": tool,
+                    "summary": message,
+                    "detail": input,
+                    "freeText": true,
+                    "fullAccessOption": state::full_access_option(),
+                    "options": state::permission_options(),
+                },
+            }),
+            // AskUserQuestion：Node 把它的等待态投影成 userInput（结构化 questions），不是
+            // 允许/拒绝弹窗（product-projection `createPendingInteractionFromPermissionEvent`）。
+            InteractionRequest::Question { questions, .. } => json!({
+                "interactionId": interaction,
+                "kind": "userInput",
+                "anchorRowId": anchor,
+                "createdAt": now,
+                "payload": {
+                    "kind": "userInput",
+                    "prompt": state::ASK_QUESTION_PROMPT,
+                    "freeText": true,
+                    "toolCallId": tool_use.as_str(),
+                    "toolName": state::ASK_USER_QUESTION_TOOL,
+                    "input": {"questions": questions},
+                    "schema": {"toolName": state::ASK_USER_QUESTION_TOOL},
+                    "questions": state::question_payloads(questions),
+                },
+            }),
+            // ExitPlanMode：Node 复用 userInput 通道承载审批（`schema.interaction = plan_approval`）。
+            InteractionRequest::PlanApproval { plan, .. } => {
+                let questions = state::plan_approval_questions();
+                json!({
+                    "interactionId": interaction,
+                    "kind": "userInput",
+                    "anchorRowId": anchor,
+                    "createdAt": now,
+                    "payload": {
+                        "kind": "userInput",
+                        "prompt": state::EXIT_PLAN_MODE_REASON,
+                        "freeText": true,
+                        "toolCallId": tool_use.as_str(),
+                        "toolName": state::EXIT_PLAN_MODE_TOOL,
+                        "input": {"plan": plan},
+                        "schema": {
+                            "interaction": "plan_approval",
+                            "toolName": state::EXIT_PLAN_MODE_TOOL,
+                        },
+                        "questions": questions,
+                    },
+                })
+            }
+        };
+        self.pending.push(entry);
         Some(tool_use.as_str().to_owned())
     }
 

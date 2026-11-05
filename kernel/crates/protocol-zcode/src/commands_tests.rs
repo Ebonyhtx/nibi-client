@@ -393,3 +393,97 @@ fn workflow_faults_carry_the_node_reason_code() {
             .is_some_and(|message| message.contains("amendWorkflowRunSettings"))
     );
 }
+
+/// AskUserQuestion 的 v4 应答 → 内核回答：Host 的 `action/content` 直接映射多题 answers；
+/// 旧单题路径落到第一题；decline/cancel 是不回答。
+#[test]
+fn question_answers_map_the_host_action_and_content() {
+    let questions = json!([
+        {"question": "Which color?", "header": "Color",
+            "options": [{"label": "Blue"}, {"label": "Green"}]},
+        {"question": "Which size?", "header": "Size",
+            "options": [{"label": "S"}, {"label": "L"}]},
+    ]);
+    let answered = question_answer(
+        &json!({
+            "action": "accept",
+            "content": {
+                "answers": {"Which color?": "Blue", "Which size?": "L"},
+                "annotations": {"Which color?": {"notes": "prefers blue"}},
+                "response": "all set",
+            },
+        }),
+        &questions,
+    );
+    let QuestionAnswer::Answered {
+        answers,
+        annotations,
+        response,
+        ..
+    } = answered
+    else {
+        panic!("expected an answered question");
+    };
+    assert_eq!(answers.get("Which color?").map(String::as_str), Some("Blue"));
+    assert_eq!(answers.get("Which size?").map(String::as_str), Some("L"));
+    assert_eq!(
+        annotations
+            .get("Which color?")
+            .and_then(|annotation| annotation.notes.as_deref()),
+        Some("prefers blue")
+    );
+    assert_eq!(response.as_deref(), Some("all set"));
+
+    // 旧单题路径：content.answer / freeText 落到第一题。
+    let single = question_answer(
+        &json!({"action": "accept", "content": {"answer": "Green"}}),
+        &questions,
+    );
+    let QuestionAnswer::Answered { answers, .. } = single else {
+        panic!("expected an answered question");
+    };
+    assert_eq!(answers.get("Which color?").map(String::as_str), Some("Green"));
+
+    for action in ["decline", "cancel"] {
+        assert_eq!(
+            question_answer(&json!({"action": action}), &questions),
+            QuestionAnswer::Declined
+        );
+    }
+}
+
+/// ExitPlanMode 的 v4 应答 → 内核回答：allowOnce / content.answer=approve 是批准，其余文字是
+/// “继续计划”的反馈，decline/cancel 是不批准。
+#[test]
+fn plan_approval_answers_map_the_host_action_and_content() {
+    assert_eq!(
+        plan_approval_answer(
+            &json!({"action": "accept", "content": {"answer": "approve"}}),
+            PermissionMode::Default
+        ),
+        PlanApprovalAnswer::Approve {
+            mode: PermissionMode::Default
+        }
+    );
+    assert_eq!(
+        plan_approval_answer(&json!({"optionId": "allowOnce"}), PermissionMode::Default),
+        PlanApprovalAnswer::Approve {
+            mode: PermissionMode::Default
+        }
+    );
+    assert_eq!(
+        plan_approval_answer(
+            &json!({"action": "accept", "content": {"answer": "add a test first"}}),
+            PermissionMode::Default
+        ),
+        PlanApprovalAnswer::KeepPlanning {
+            feedback: Some("add a test first".to_owned())
+        }
+    );
+    for action in ["decline", "cancel"] {
+        assert_eq!(
+            plan_approval_answer(&json!({"action": action}), PermissionMode::Default),
+            PlanApprovalAnswer::KeepPlanning { feedback: None }
+        );
+    }
+}

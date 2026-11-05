@@ -920,3 +920,79 @@ fn the_context_window_display_prefers_the_raw_window() {
         serde_json::json!(128_000)
     );
 }
+
+/// AskUserQuestion 与 ExitPlanMode 也进 pendingInteractions：Node 把两者投影成 `userInput`
+/// （结构化 questions / `schema.interaction = plan_approval`），不是允许/拒绝弹窗。
+#[test]
+fn questions_and_plan_approval_project_user_input_pendings() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    let questions = json!([{
+        "question": "Which color?",
+        "header": "Color",
+        "options": [
+            {"label": "Blue", "description": "Use blue."},
+            {"label": "Green"}
+        ],
+    }]);
+    let question_tool = ToolUseId::new("toolu_q");
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: question_tool.clone(),
+        name: "AskUserQuestion".into(),
+        input: json!({"questions": questions}),
+    });
+    let asked = feed.apply(KernelEvent::InteractionAsked {
+        interaction: InteractionId::new("int_q"),
+        request: InteractionRequest::Question {
+            tool_use: question_tool,
+            questions: questions.clone(),
+        },
+    });
+    assert_eq!(asked[0]["row"]["status"], "pendingApproval");
+    let pending = &asked[1]["patch"]["pendingInteractions"][0];
+    assert_eq!(pending["kind"], "userInput");
+    assert_eq!(pending["payload"]["kind"], "userInput");
+    assert_eq!(pending["payload"]["toolName"], "AskUserQuestion");
+    assert_eq!(pending["payload"]["schema"]["toolName"], "AskUserQuestion");
+    assert_eq!(pending["payload"]["questions"][0]["question"], "Which color?");
+    // 模型输入没有 value：投影按 Node 的规则补成 label。
+    assert_eq!(pending["payload"]["questions"][0]["options"][0]["value"], "Blue");
+    assert_eq!(
+        pending["payload"]["questions"][0]["options"][0]["description"],
+        "Use blue."
+    );
+    assert_eq!(pending["payload"]["questions"][0]["options"][1]["value"], "Green");
+    assert_eq!(feed.projection.pending_permissions(), 1);
+    feed.apply(KernelEvent::InteractionResolved {
+        interaction: InteractionId::new("int_q"),
+    });
+    assert_eq!(feed.projection.pending_permissions(), 0);
+
+    let plan_tool = ToolUseId::new("toolu_p");
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: plan_tool.clone(),
+        name: "ExitPlanMode".into(),
+        input: json!({}),
+    });
+    let asked = feed.apply(KernelEvent::InteractionAsked {
+        interaction: InteractionId::new("int_p"),
+        request: InteractionRequest::PlanApproval {
+            tool_use: plan_tool,
+            plan: "# plan".into(),
+        },
+    });
+    let pending = &asked[1]["patch"]["pendingInteractions"][0];
+    assert_eq!(pending["kind"], "userInput");
+    assert_eq!(pending["payload"]["toolName"], "ExitPlanMode");
+    assert_eq!(pending["payload"]["schema"]["interaction"], "plan_approval");
+    assert_eq!(pending["payload"]["questions"][0]["header"], "Plan");
+    assert_eq!(pending["payload"]["questions"][0]["options"][0]["value"], "approve");
+    assert_eq!(feed.projection.pending_permissions(), 1);
+}

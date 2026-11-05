@@ -3,7 +3,9 @@
 use rust_cli_kernel_api::attachment::AttachmentSource;
 use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
 use rust_cli_kernel_api::ids::{CommandId, InteractionId, SessionId};
-use rust_cli_kernel_api::interaction::PermissionAnswer;
+use rust_cli_kernel_api::interaction::{
+    PermissionAnswer, PlanApprovalAnswer, QuestionAnnotation, QuestionAnswer,
+};
 use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
 use rust_cli_kernel_api::model::ModelSelection;
 use rust_cli_kernel_api::orchestration::InteractionRequest;
@@ -872,6 +874,81 @@ async fn send_text(
     }
 }
 
+/// v4 的提问应答 → 内核的 `QuestionAnswer`（Node `v4AnswerToUserInputResponse` 的镜像）：
+/// `action: accept` 的 `content` 带多题 `answers`/`annotations`；旧单题路径读 `content.answer`
+/// 或 `freeText`。decline/cancel 都是“不回答”。
+fn question_answer(answer: &Value, questions: &Value) -> QuestionAnswer {
+    if matches!(answer["action"].as_str(), Some("decline" | "cancel")) {
+        return QuestionAnswer::Declined;
+    }
+    let content = &answer["content"];
+    let mut answers = std::collections::BTreeMap::new();
+    if let Some(entries) = content["answers"].as_object() {
+        for (question, value) in entries {
+            if let Some(text) = value.as_str() {
+                answers.insert(question.clone(), text.to_owned());
+            }
+        }
+    }
+    // 旧单题路径（V4UserInputDialog 的 freeText / 旧客户端的 content.answer）：落到第一题。
+    if answers.is_empty()
+        && let Some(text) = content["answer"]
+            .as_str()
+            .or_else(|| answer["freeText"].as_str())
+            .map(str::trim)
+            .filter(|text| !text.is_empty())
+        && let Some(question) = questions
+            .as_array()
+            .and_then(|list| list.first())
+            .and_then(|question| question["question"].as_str())
+    {
+        answers.insert(question.to_owned(), text.to_owned());
+    }
+    let annotations: std::collections::BTreeMap<String, QuestionAnnotation> =
+        serde_json::from_value(content["annotations"].clone()).unwrap_or_default();
+    QuestionAnswer::Answered {
+        answers,
+        annotations,
+        response: content["response"].as_str().map(str::to_owned),
+        follow_up: content["followUp"].as_bool() == Some(true),
+        afk_timeout_ms: content["afkTimeoutMs"].as_u64(),
+    }
+}
+
+/// v4 的计划审批应答 → 内核的 `PlanApprovalAnswer`（Node `v4AnswerToPlanApprovalResponse` 与
+/// `planApprovalResponseToBrokerResult` 的镜像）：批准 = `content.answer == "approve"`（Host 的
+/// Approve 选项）或 allowOnce；其余文字是“继续计划”的反馈；decline/cancel 是不批准。
+/// `mode` 只作记录（修复线 F20：批准只关掉 plan，权限模式不变）。
+fn plan_approval_answer(answer: &Value, mode: PermissionMode) -> PlanApprovalAnswer {
+    if matches!(answer["action"].as_str(), Some("decline" | "cancel")) {
+        return PlanApprovalAnswer::KeepPlanning { feedback: None };
+    }
+    if matches!(
+        answer["optionId"].as_str(),
+        Some("allowOnce" | "allowAlways")
+    ) {
+        return PlanApprovalAnswer::Approve { mode };
+    }
+    let content = &answer["content"];
+    let text = content["answer"]
+        .as_str()
+        .or_else(|| {
+            content["answers"]
+                .as_object()
+                .and_then(|answers| answers.values().find_map(Value::as_str))
+        })
+        .or_else(|| answer["freeText"].as_str())
+        .map(str::trim)
+        .filter(|text| !text.is_empty());
+    match text {
+        Some(text) if text.eq_ignore_ascii_case("approve") => PlanApprovalAnswer::Approve { mode },
+        Some(text) => PlanApprovalAnswer::KeepPlanning {
+            feedback: Some(text.to_owned()),
+        },
+        None => PlanApprovalAnswer::KeepPlanning { feedback: None },
+    }
+}
+
 async fn resolve(
     handle: &dyn SessionHandle,
     live: &crate::live::Live,
@@ -880,19 +957,15 @@ async fn resolve(
 ) -> Ack {
     let payload = &envelope.payload;
     let interaction = payload["interactionId"].as_str().unwrap_or_default();
-    let option = payload["answer"]["optionId"].as_str();
+    let answer = &payload["answer"];
+    let option = answer["optionId"].as_str();
     let pending = handle.view().await.ok().and_then(|view| {
         view.pending
             .into_iter()
             .find(|(id, _)| id.as_str() == interaction)
-            .map(|(_, request)| request)
+            .map(|(_, request)| (request, view.mode))
     });
-    let Some(InteractionRequest::Permission {
-        suggestions,
-        tool_use: tool,
-        ..
-    }) = pending
-    else {
+    let Some((request, session_mode)) = pending else {
         return Ack::refused(
             &envelope.command_id,
             Status::Noop,
@@ -901,38 +974,55 @@ async fn resolve(
             revision,
         );
     };
-    // “完全访问”：先把会话切到 yolo（之后不再询问），再放行这一次。
-    if option == Some("fullAccess") {
-        send(
-            handle,
-            &format!("{}:mode", envelope.command_id),
-            Command::SetMode {
-                mode: PermissionMode::BypassPermissions,
-            },
-        )
-        .await;
-    }
-    let answer = match option {
-        Some("allowOnce" | "fullAccess") => PermissionAnswer::Allow {
-            remember: Vec::new(),
-        },
-        Some("allowAlways") => PermissionAnswer::Allow {
-            remember: suggestions,
-        },
-        _ => PermissionAnswer::Deny {
-            feedback: payload["answer"]["freeText"]
-                .as_str()
-                .map(str::trim)
-                .filter(|text| !text.is_empty())
-                .map(str::to_owned),
-        },
+    let resolved = match &request {
+        InteractionRequest::Permission {
+            suggestions, tool_use, ..
+        } => {
+            // “完全访问”：先把会话切到 yolo（之后不再询问），再放行这一次。
+            if option == Some("fullAccess") {
+                send(
+                    handle,
+                    &format!("{}:mode", envelope.command_id),
+                    Command::SetMode {
+                        mode: PermissionMode::BypassPermissions,
+                    },
+                )
+                .await;
+            }
+            let answer = match option {
+                Some("allowOnce" | "fullAccess") => PermissionAnswer::Allow {
+                    remember: Vec::new(),
+                },
+                Some("allowAlways") => PermissionAnswer::Allow {
+                    remember: suggestions.clone(),
+                },
+                _ => PermissionAnswer::Deny {
+                    feedback: answer["freeText"]
+                        .as_str()
+                        .map(str::trim)
+                        .filter(|text| !text.is_empty())
+                        .map(str::to_owned),
+                },
+            };
+            if let PermissionAnswer::Deny { .. } = &answer {
+                live.deny(tool_use);
+            }
+            serde_json::to_value(answer).unwrap_or(Value::Null)
+        }
+        // AskUserQuestion：v4 的 action/content（Host 的 ElicitationDialog）映射回内核的回答形状。
+        InteractionRequest::Question { questions, .. } => {
+            serde_json::to_value(question_answer(answer, questions)).unwrap_or(Value::Null)
+        }
+        // ExitPlanMode：action=accept + content.answer=approve（或 allowOnce）为批准，其余文字为
+        // “继续计划”的反馈。
+        InteractionRequest::PlanApproval { .. } => {
+            serde_json::to_value(plan_approval_answer(answer, session_mode))
+                .unwrap_or(Value::Null)
+        }
     };
-    if let PermissionAnswer::Deny { .. } = &answer {
-        live.deny(&tool);
-    }
     let command = Command::ResolveInteraction {
         interaction: InteractionId::new(interaction),
-        answer: serde_json::to_value(answer).unwrap_or(Value::Null),
+        answer: resolved,
     };
     // 与 Node 相同：ACK 不带 result（答案已经进了会话，投影随事件更新）。
     match send(handle, &envelope.command_id, command).await {

@@ -221,3 +221,75 @@ pub fn full_access_option() -> Value {
     json!({"optionId": "fullAccess", "label": "Full access", "kind": "custom",
         "response": {"decision": "deny", "reason": "Full access requires V4 approval"}})
 }
+
+/// AskUserQuestion 的 userInput 投影里 `prompt` 的文案（Node `core/tool/handlers/ask-user-question.ts`
+/// 的 permission reason；界面以结构化 `questions` 为主，这里与 Node 逐字一致）。
+pub const ASK_QUESTION_PROMPT: &str =
+    "AskUserQuestion pauses execution to collect answers from the user";
+
+/// ExitPlanMode 的 userInput 投影里 `prompt` 的文案（Node 的 permission reason）。
+pub const EXIT_PLAN_MODE_REASON: &str =
+    "ExitPlanMode changes session mode after user plan approval";
+
+pub const ASK_USER_QUESTION_TOOL: &str = "AskUserQuestion";
+pub const EXIT_PLAN_MODE_TOOL: &str = "ExitPlanMode";
+
+/// 提问的结构化载荷（Node `normalizeAskUserQuestionPayloadQuestion`）：每个选项补上 `value`
+/// （模型输入没有这个字段，缺省等于 label），`multiSelect` 只在为真时写出。
+pub fn question_payloads(questions: &Value) -> Value {
+    Value::Array(
+        questions
+            .as_array()
+            .map(|list| {
+                list.iter()
+                    .filter_map(|question| {
+                        let text = question["question"].as_str()?;
+                        let header = question["header"].as_str().unwrap_or(text);
+                        let options: Vec<Value> = question["options"]
+                            .as_array()
+                            .map(|options| {
+                                options
+                                    .iter()
+                                    .filter_map(|option| {
+                                        let label = option["label"].as_str()?;
+                                        let mut out = serde_json::Map::new();
+                                        out.insert("value".into(), json!(label));
+                                        out.insert("label".into(), json!(label));
+                                        if let Some(description) = option["description"].as_str() {
+                                            out.insert("description".into(), json!(description));
+                                        }
+                                        if let Some(preview) = option["preview"].as_str() {
+                                            out.insert("preview".into(), json!(preview));
+                                        }
+                                        Some(Value::Object(out))
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+                        let mut out = serde_json::Map::new();
+                        out.insert("question".into(), json!(text));
+                        out.insert("header".into(), json!(header));
+                        out.insert("options".into(), Value::Array(options));
+                        if question["multiSelect"].as_bool() == Some(true) {
+                            out.insert("multiSelect".into(), json!(true));
+                        }
+                        Some(Value::Object(out))
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
+    )
+}
+
+/// 计划审批的结构化载荷（Node `createExitPlanModeApprovalQuestion`）：一道“Approve”题。
+pub fn plan_approval_questions() -> Value {
+    json!([{
+        "question": EXIT_PLAN_MODE_REASON,
+        "header": "Plan",
+        "options": [{
+            "value": "approve",
+            "label": "Approve",
+            "description": "Exit plan mode and start implementation.",
+        }],
+    }])
+}

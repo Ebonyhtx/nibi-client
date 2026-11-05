@@ -31,7 +31,7 @@ const binArgs = isNode
 // Rust 内核的用户根从 2026-10-29 起与 Node 共用 `~/.nibi`（nibi-platform `DOT_DIR`），
 // 驱动脚本曾按旧 `.zcode` 落 provider_config.json，导致会话拿不到模型、整条对拍超时。
 const dotDir = ".nibi";
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare,permission")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare,permission,question,planApproval")
   .split("=")[1]
   .split(",");
 // 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
@@ -120,6 +120,11 @@ const ESCALATE_TEXT = "escalate this turn";
 const ESCALATE_ANSWER = "drive escalation answer";
 // 非 yolo 的权限交互探针（P0-1 收尾）：默认模式下让模型写一个文件，走 v4 的权限询问。
 const PERMISSION_TEXT = "ask permission for the probe";
+// 提问交互探针：向用户问一道结构化选择题，走 v4 的 userInput 询问。
+const QUESTION_TEXT = "ask the user a question";
+const QUESTION_ANSWER = "Blue";
+// 计划审批探针：plan 模式下交 ExitPlanMode，走 v4 的 plan_approval userInput 询问。
+const PLAN_TEXT = "show me the plan";
 let escalationRaised = false;
 let escalationResolved = false;
 let escalationAnswered = false;
@@ -329,6 +334,86 @@ const server = createServer((req, res) => {
                         file_path: join(workspace, "permission-probe.txt"),
                         content: "permission probe\n",
                       }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    // 提问探针：让模型问一道结构化选择题（v4 userInput 询问）。
+    if (toolResult === null && lastUserText.includes(QUESTION_TEXT)) {
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_question_1",
+                    type: "function",
+                    function: {
+                      name: "AskUserQuestion",
+                      arguments: JSON.stringify({
+                        questions: [
+                          {
+                            question: "Which color should the probe use?",
+                            header: "Color",
+                            options: [
+                              { label: "Blue", description: "Use blue." },
+                              { label: "Green", description: "Use green." },
+                            ],
+                            multiSelect: false,
+                          },
+                        ],
+                      }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    // 计划审批探针：plan 模式下交 ExitPlanMode（v4 plan_approval 询问）。
+    if (toolResult === null && lastUserText.includes(PLAN_TEXT)) {
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_plan_1",
+                    type: "function",
+                    function: {
+                      name: "ExitPlanMode",
+                      arguments: JSON.stringify({ plan: "# plan\n\n1. do the thing" }),
                     },
                   },
                 ],
@@ -3481,6 +3566,184 @@ try {
     );
     if (checks.permissionResolveStatus !== "accepted") {
       throw new Error(`resolveInteraction ${checks.permissionResolveStatus}`);
+    }
+  }
+
+  // 提问交互（v4 userInput）：AskUserQuestion 的等待态必须以结构化 questions 出现在
+  // pendingInteractions；驱动按 Host 的 `{action:"accept", content:{answers}}` 作答，工具拿到答案。
+  if (phases.includes("question")) {
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000c0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: {
+          workspaceId: workspace,
+          config: { mode: "default" },
+          firstInput: { text: "question probe seed" },
+        },
+        issuedAt: Date.now(),
+      }),
+      "createSession(question)",
+    );
+    const questionSession = created.result?.sessionId;
+    if (!questionSession) throw new Error("createSession(question) returned no sessionId");
+    const topic = `conversation/${questionSession}`;
+    await send("v4/conversation/subscribe", {
+      topic,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    const turn = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000c1",
+        clientId: "drive",
+        sessionId: questionSession,
+        type: "sendText",
+        payload: { text: QUESTION_TEXT },
+        issuedAt: Date.now(),
+      }),
+      "sendText(question)",
+    );
+    if (turn.status !== "accepted") {
+      throw new Error(`sendText(question) ${turn.status}/${turn.reasonCode}`);
+    }
+    const prompt = await waitFor(
+      () =>
+        buildState(topic).pendingInteractions.find(
+          (pending) => pending.payload?.kind === "userInput",
+        ),
+      "question interaction",
+      60_000,
+    );
+    checks.questionPromptKind = prompt.payload.kind;
+    checks.questionPromptTool = prompt.payload.toolName ?? null;
+    checks.questionSchemaTool = prompt.payload.schema?.toolName ?? null;
+    checks.questionCount = (prompt.payload.questions ?? []).length;
+    checks.questionOptionLabels = (prompt.payload.questions?.[0]?.options ?? [])
+      .map((option) => option.label)
+      .join(",");
+    const questionText = prompt.payload.questions?.[0]?.question;
+    if (!questionText) throw new Error("question interaction carries no question text");
+    const seen = TOOL_RESULTS.length;
+    const resolved = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000c2",
+        clientId: "drive",
+        sessionId: questionSession,
+        type: "resolveInteraction",
+        payload: {
+          interactionId: prompt.interactionId,
+          answer: { action: "accept", content: { answers: { [questionText]: QUESTION_ANSWER } } },
+        },
+        issuedAt: Date.now(),
+      }),
+      "resolveInteraction(question)",
+    );
+    checks.questionResolveStatus = resolved.status;
+    await waitFor(
+      () =>
+        TOOL_RESULTS.slice(seen).some((text) => text.includes(QUESTION_ANSWER))
+          ? true
+          : undefined,
+      "question answer reaches the tool result",
+      60_000,
+    );
+    checks.questionAnswered = true;
+    console.log(
+      `question: kind=${checks.questionPromptKind} tool=${checks.questionPromptTool} labels=${checks.questionOptionLabels} resolve=${checks.questionResolveStatus} answered=${checks.questionAnswered}`,
+    );
+    if (checks.questionResolveStatus !== "accepted") {
+      throw new Error(`resolveInteraction(question) ${checks.questionResolveStatus}`);
+    }
+  }
+
+  // 计划审批（v4 plan_approval）：plan 模式下 ExitPlanMode 的等待态进 pendingInteractions，
+  // Host 用 `{action:"accept", content:{answer:"approve"}}` 批准，工具返回批准文案、plan 关掉。
+  if (phases.includes("planApproval")) {
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000d0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: {
+          workspaceId: workspace,
+          config: { mode: "plan" },
+          firstInput: { text: "plan probe seed" },
+        },
+        issuedAt: Date.now(),
+      }),
+      "createSession(plan)",
+    );
+    const planSession = created.result?.sessionId;
+    if (!planSession) throw new Error("createSession(plan) returned no sessionId");
+    const topic = `conversation/${planSession}`;
+    await send("v4/conversation/subscribe", {
+      topic,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    const turn = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000d1",
+        clientId: "drive",
+        sessionId: planSession,
+        type: "sendText",
+        payload: { text: PLAN_TEXT },
+        issuedAt: Date.now(),
+      }),
+      "sendText(plan)",
+    );
+    if (turn.status !== "accepted") {
+      throw new Error(`sendText(plan) ${turn.status}/${turn.reasonCode}`);
+    }
+    const prompt = await waitFor(
+      () =>
+        buildState(topic).pendingInteractions.find(
+          (pending) => pending.payload?.schema?.interaction === "plan_approval",
+        ),
+      "plan approval interaction",
+      60_000,
+    );
+    checks.planPromptKind = prompt.payload.kind;
+    checks.planPromptTool = prompt.payload.toolName ?? null;
+    checks.planSchemaInteraction = prompt.payload.schema?.interaction ?? null;
+    checks.planHeader = prompt.payload.questions?.[0]?.header ?? null;
+    checks.planOptionValue = prompt.payload.questions?.[0]?.options?.[0]?.value ?? null;
+    const seen = TOOL_RESULTS.length;
+    const resolved = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000d2",
+        clientId: "drive",
+        sessionId: planSession,
+        type: "resolveInteraction",
+        payload: {
+          interactionId: prompt.interactionId,
+          answer: { action: "accept", content: { answer: "approve" } },
+        },
+        issuedAt: Date.now(),
+      }),
+      "resolveInteraction(plan)",
+    );
+    checks.planResolveStatus = resolved.status;
+    await waitFor(
+      () =>
+        TOOL_RESULTS.slice(seen).some((text) => /approved/iu.test(text))
+          ? true
+          : undefined,
+      "plan approval reaches the tool result",
+      60_000,
+    );
+    checks.planApproved = true;
+    console.log(
+      `plan approval: kind=${checks.planPromptKind} tool=${checks.planPromptTool} schema=${checks.planSchemaInteraction} header=${checks.planHeader} resolve=${checks.planResolveStatus} approved=${checks.planApproved}`,
+    );
+    if (checks.planResolveStatus !== "accepted") {
+      throw new Error(`resolveInteraction(plan) ${checks.planResolveStatus}`);
     }
   }
 
