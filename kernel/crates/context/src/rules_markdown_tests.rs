@@ -25,7 +25,7 @@ fn comments_in_code_inline_or_unclosed_are_kept() {
 fn includes_are_found_in_text_only() {
     let text = "\
 See @./docs/a.md and @b.md#section.
-Home @~/notes/x.md, absolute @/etc/zcode/c.md.
+Home @~/notes/x.md, absolute @/etc/nibi/c.md.
 Escaped @dir/with\\ space.md
 `@code.md` and @@twice.md and email dev@example.com.
 
@@ -44,7 +44,7 @@ Escaped @dir/with\\ space.md
             "b.md",
             // 标点紧跟时算进路径。
             "~/notes/x.md,",
-            "/etc/zcode/c.md.",
+            "/etc/nibi/c.md.",
             "dir/with space.md",
             "after-comment.md",
         ]

@@ -31,7 +31,7 @@ fn the_first_announcement_lists_every_file_with_its_label() {
         file("/Users/dev/.nibi/AGENTS.md", Kind::User, "user rules\n"),
         file("/w/AGENTS.md", Kind::Project, "\nproject rules\n\n"),
         file("/w/AGENTS.local.md", Kind::Local, "local"),
-        file("/etc/zcode/AGENTS.md", Kind::Managed, "managed"),
+        file("/etc/nibi/AGENTS.md", Kind::Managed, "managed"),
     ];
     let (text, data) = announce(&[], &files, Reason::SessionStart).unwrap();
     assert_eq!(
@@ -41,7 +41,7 @@ fn the_first_announcement_lists_every_file_with_its_label() {
              Contents of /Users/dev/.nibi/AGENTS.md (user's private global instructions for all projects):\n\nuser rules\n\n\
              Contents of /w/AGENTS.md (project instructions, checked into the codebase):\n\nproject rules\n\n\
              Contents of /w/AGENTS.local.md (user's private project instructions, not checked in):\n\nlocal\n\n\
-             Contents of /etc/zcode/AGENTS.md (organization-managed policy instructions):\n\nmanaged"
+             Contents of /etc/nibi/AGENTS.md (organization-managed policy instructions):\n\nmanaged"
         )
     );
     assert_eq!(
@@ -50,7 +50,7 @@ fn the_first_announcement_lists_every_file_with_its_label() {
             {"path": "/Users/dev/.nibi/AGENTS.md", "type": "User", "content": "user rules"},
             {"path": "/w/AGENTS.md", "type": "Project", "content": "project rules"},
             {"path": "/w/AGENTS.local.md", "type": "Local", "content": "local"},
-            {"path": "/etc/zcode/AGENTS.md", "type": "Managed", "content": "managed"},
+            {"path": "/etc/nibi/AGENTS.md", "type": "Managed", "content": "managed"},
         ]})
     );
     // 没有规则文件时不发。

@@ -44,9 +44,9 @@ fn summary(files: &[RuleFile]) -> Vec<(&str, Kind)> {
 #[tokio::test]
 async fn startup_loads_the_rules_in_priority_order() {
     let env = MemoryEnvironment::new(facts("/Users/dev/w"))
-        .with_file("/Library/Application Support/ZCode/AGENTS.md", "managed")
+        .with_file("/Library/Application Support/NIBI/AGENTS.md", "managed")
         .with_file(
-            "/Library/Application Support/ZCode/.nibi/rules/m.md",
+            "/Library/Application Support/NIBI/.nibi/rules/m.md",
             "managed rule",
         )
         .with_file("/Users/dev/.nibi/AGENTS.md", "user")
@@ -69,11 +69,11 @@ async fn startup_loads_the_rules_in_priority_order() {
         summary(&files),
         [
             (
-                "/Library/Application Support/ZCode/AGENTS.md",
+                "/Library/Application Support/NIBI/AGENTS.md",
                 Kind::Managed
             ),
             (
-                "/Library/Application Support/ZCode/.nibi/rules/m.md",
+                "/Library/Application Support/NIBI/.nibi/rules/m.md",
                 Kind::Managed
             ),
             ("/Users/dev/.nibi/AGENTS.md", Kind::User),
@@ -87,7 +87,7 @@ async fn startup_loads_the_rules_in_priority_order() {
             ("/Users/dev/w/AGENTS.local.md", Kind::Local),
         ]
     );
-    // Linux 的系统目录是 /etc/zcode。
+    // Linux 的系统目录是 /etc/nibi。
     let linux = scope(&env, &ws).startup("linux").await;
     assert_eq!(linux[0].path, "/Users/dev/.nibi/AGENTS.md");
 }

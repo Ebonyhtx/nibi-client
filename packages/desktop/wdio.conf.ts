@@ -1390,7 +1390,9 @@ async function startCodingPlanTeamMockIfNeeded(specs: string[] = []) {
       writeJson(response, {
         code: 0,
         data: {
-          authorize_url: `https://bigmodel.cn/login?appId=zcode&redirect=${encodeURIComponent("https://zcode.z.ai/api/v1/oauth/cli/callback/bigmodel")}&state=${SUBAGENT_CODING_PLAN_OAUTH_STATE}`,
+          // 这个 mock 扮演的是**我们自己服务端**的 `/api/v1/oauth/cli/init` 响应，回调地址
+          // 因此必须是我们的域名（不是上游 zcode.z.ai）。
+          authorize_url: `https://bigmodel.cn/login?appId=zcode&redirect=${encodeURIComponent("https://api.nibistudio.top/api/v1/oauth/cli/callback/bigmodel")}&state=${SUBAGENT_CODING_PLAN_OAUTH_STATE}`,
           expires_at: Math.floor(Date.now() / 1000) + 300,
           flow_id: SUBAGENT_CODING_PLAN_OAUTH_FLOW_ID,
           poll_interval_sec: 30,

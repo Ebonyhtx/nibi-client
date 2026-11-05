@@ -105,7 +105,7 @@ async fn sources_are_ordered_and_the_first_name_wins() {
         skill_file(&format!("{CWD}/.agents/skills"), "Zed", "project agents"),
         skill_file("/Users/dev/.nibi/skills/not-a-skill.md", "x", "ignored"),
         skill_file(
-            "/Library/Application Support/ZCode/.nibi/skills",
+            "/Library/Application Support/NIBI/.nibi/skills",
             "managed",
             "managed",
         ),

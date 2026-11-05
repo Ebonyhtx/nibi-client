@@ -17,7 +17,10 @@ export const BIGMODEL_OAUTH_PROVIDER_CONFIG: Omit<OAuthProviderRuntimeConfig, "a
   enabled: true,
   order: 0,
   authorizeUrl: "https://bigmodel.cn/login",
-  tokenUrl: "https://zcode.z.ai/api/v1/oauth/token",
+  // 占位值，**不是**可用端点：`createBigModelProviderRuntimeConfig` 总会用
+  // `buildZCodeApiUrlFromEnv` 覆盖它（默认 `api.nibistudio.top`）。这里刻意不写上游
+  // `zcode.z.ai`——静态常量被直接使用时不能把凭据发到别的产品。
+  tokenUrl: "",
   userinfoUrl: buildBigModelApiUrl({ NIBI_ENV: "production" }, BIGMODEL_USERINFO_PATH),
   appId: "zcode",
   redirectUri: "nibi://oauth/callback",

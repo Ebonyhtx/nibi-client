@@ -97,13 +97,18 @@ pub mod vars {
     }
 }
 
-/// managed 规则与 skill 所在的系统目录（按 Node 的平台名）：macOS `/Library/Application Support/ZCode`、
-/// Windows `C:\ProgramData\ZCode`、其余 `/etc/zcode`（README §2；context 的规则文件与 ext 的 skill 共用）。
+/// managed 规则与 skill 所在的系统目录（按 Node 的平台名）：macOS `/Library/Application Support/NIBI`、
+/// Windows `C:\ProgramData\NIBI`、其余 `/etc/nibi`（context 的规则文件与 ext 的 skill 共用）。
+///
+/// 这里必须是**本产品**的目录，不能是上游 ZCode 的（`/Library/Application Support/ZCode`、
+/// `C:\ProgramData\ZCode`、`/etc/zcode`）。那是机器级共享目录：同一台机器上装了上游 ZCode 时，
+/// 读它就是把别的产品的规则与技能读进 NIBI 的会话——属于跨产品数据泄露，不是品牌问题。
+/// NIBI 没有发布、没有存量安装，也就没有需要从这个目录继承的东西。
 pub fn managed_dir(platform: &str) -> &'static str {
     match platform {
-        "darwin" => "/Library/Application Support/ZCode",
-        "win32" => r"C:\ProgramData\ZCode",
-        _ => "/etc/zcode",
+        "darwin" => "/Library/Application Support/NIBI",
+        "win32" => r"C:\ProgramData\NIBI",
+        _ => "/etc/nibi",
     }
 }
 
