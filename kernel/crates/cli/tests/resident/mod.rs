@@ -75,7 +75,7 @@ impl Home {
     }
 
     pub fn exec_dir(&self) -> PathBuf {
-        self.home.path().join(".nibi/rust-cli/exec")
+        self.home.path().join(".nibi/nibi-kernel/exec")
     }
 
     pub fn workspace(&self) -> WorkspaceRef {

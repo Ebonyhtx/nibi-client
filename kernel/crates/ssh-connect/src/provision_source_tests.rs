@@ -72,14 +72,14 @@ pub(crate) const RUNS: &str = "[ \"$1 $2\" = 'executor status' ] && exit 3\nexit
 pub(crate) fn installed(remote: &Remote) -> PathBuf {
     remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs")
+        .join(".nibi/nibi-kernel/exec/bin/0.2.0/nibi-rs")
 }
 
 /// 远端已有一个协议相同的旧版本（例如 npm 装的）。
 pub(crate) fn older_candidate(remote: &Remote) -> PathBuf {
     let older = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.1.9/nibi-rs");
+        .join(".nibi/nibi-kernel/exec/bin/0.1.9/nibi-rs");
     std::fs::create_dir_all(older.parent().unwrap()).unwrap();
     std::fs::write(
         &older,

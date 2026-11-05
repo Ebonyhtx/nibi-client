@@ -44,7 +44,7 @@ fn every_execution_state_reads_back_from_the_state_it_writes() {
             assert_eq!(written.plan, plan);
             assert!(matches(mode, &written), "{mode:?}");
             assert_eq!(from_entry_name(entry_name(mode)), Some(mode));
-            // 有 `rust-cli/permission_mode` 时原样读回；dontAsk 在 Node 里就是 build，单靠执行状态读回 default。
+            // 有 `nibi-kernel/permission_mode` 时原样读回；dontAsk 在 Node 里就是 build，单靠执行状态读回 default。
             assert_eq!(read(&written, Some(mode)), state_, "{mode:?}");
             let expected = if mode == PermissionMode::DontAsk {
                 PermissionMode::Default

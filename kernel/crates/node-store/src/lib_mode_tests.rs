@@ -39,10 +39,10 @@ async fn execution(t: &TestStore, state: ExecutionState) -> (Option<PermissionMo
 }
 
 fn named(t: &TestStore) -> Vec<Vec<Value>> {
-    t.rows("select data from session_entry where type = 'rust-cli/permission_mode'")
+    t.rows("select data from session_entry where type = 'nibi-kernel/permission_mode'")
 }
 
-/// 修复线 F20：执行状态整体写入（权限模式 × plan），会话行在 plan 开时是 `plan`，`rust-cli/permission_mode` 只记
+/// 修复线 F20：执行状态整体写入（权限模式 × plan），会话行在 plan 开时是 `plan`，`nibi-kernel/permission_mode` 只记
 /// 权限模式；读回不变。
 #[tokio::test]
 async fn execution_states_write_the_node_records_and_read_back() {
@@ -77,7 +77,7 @@ async fn execution_states_write_the_node_records_and_read_back() {
         );
         assert_eq!(named(&t), vec![vec![Value::from(entry)]], "{state:?}");
     }
-    // 旧的单值 plan 只打开 plan，不改权限模式与 `rust-cli/permission_mode`。
+    // 旧的单值 plan 只打开 plan，不改权限模式与 `nibi-kernel/permission_mode`。
     assert_eq!(
         mode(&t, PermissionMode::Plan).await,
         Some(PermissionMode::Plan)
@@ -97,7 +97,7 @@ fn node_state(t: &TestStore) -> Vec<Vec<Value>> {
 }
 
 /// spec §5：default → build、acceptEdits → edit、plan → plan（Node 执行状态保留模式、打开 plan）、
-/// bypassPermissions → yolo、auto → auto；dontAsk 记为 build，靠 `rust-cli/permission_mode` 读回。
+/// bypassPermissions → yolo、auto → auto；dontAsk 记为 build，靠 `nibi-kernel/permission_mode` 读回。
 #[tokio::test]
 async fn modes_map_to_node_execution_states_and_read_back() {
     let t = TestStore::new();
@@ -144,7 +144,7 @@ async fn modes_map_to_node_execution_states_and_read_back() {
     }
 }
 
-/// Node 续写时改了执行状态：`rust-cli/permission_mode` 过期，以 Node 为准。
+/// Node 续写时改了执行状态：`nibi-kernel/permission_mode` 过期，以 Node 为准。
 #[tokio::test]
 async fn a_mode_changed_by_node_wins_over_the_rust_cli_entry() {
     let t = TestStore::new();
@@ -178,7 +178,7 @@ async fn a_mode_changed_by_node_wins_over_the_rust_cli_entry() {
     // 只有会话行 `mode: plan` 的旧会话（没有执行状态）：plan 开、build。
     t.connection()
         .execute(
-            "delete from session_entry where type in ('runtime/execution_state', 'rust-cli/permission_mode')",
+            "delete from session_entry where type in ('runtime/execution_state', 'nibi-kernel/permission_mode')",
             [],
         )
         .unwrap();
@@ -242,7 +242,7 @@ async fn a_revert_cursor_selects_the_active_branch() {
     assert_eq!(parent[0][0], Value::from("msg_5_u3"));
 }
 
-/// `Entry` 写成 `rust-cli/<kind>` 前缀的 session_entry，不推进会话活动时间。
+/// `Entry` 写成 `nibi-kernel/<kind>` 前缀的 session_entry，不推进会话活动时间。
 #[tokio::test]
 async fn rust_cli_entries_are_prefixed_and_do_not_touch_the_session() {
     let t = TestStore::new();
@@ -258,13 +258,13 @@ async fn rust_cli_entries_are_prefixed_and_do_not_touch_the_session() {
         .await
         .unwrap();
     let rows = t.rows(
-        "select id, type, time_created, data from session_entry where type = 'rust-cli/tasks'",
+        "select id, type, time_created, data from session_entry where type = 'nibi-kernel/tasks'",
     );
     assert_eq!(
         rows,
         vec![vec![
-            Value::from("sess_1:rust-cli/tasks:list"),
-            Value::from("rust-cli/tasks"),
+            Value::from("sess_1:nibi-kernel/tasks:list"),
+            Value::from("nibi-kernel/tasks"),
             Value::from(9000),
             Value::from(r#"{"b":1,"a":[1,2.5]}"#),
         ]]

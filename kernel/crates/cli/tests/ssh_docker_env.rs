@@ -178,7 +178,7 @@ async fn a_reconnect_refreshes_ssh_auth_sock_and_a_revoked_key_fails_at_once() {
     );
 
     // 收尾：停掉容器里的常驻执行器（容器随后删掉）。
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
+    let installed = format!("/root/.nibi/nibi-kernel/exec/bin/{VERSION}/nibi-rs");
     let (ok, out, err) = docker(&["exec", &sshd.name, &installed, "executor", "stop"]);
     assert!(ok, "{out}{err}");
     drop(remote);

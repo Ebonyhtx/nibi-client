@@ -210,13 +210,13 @@ async fn the_grant_list_is_cut_after_eight_and_counts_in_the_singular() {
         grants: Some(Grants {
             count: 10,
             rules: (1..=10).map(|n| format!("Tool{n}")).collect(),
-            sources: vec!["nibi.json".to_owned(), ".zcode/config.json".to_owned()],
+            sources: vec!["nibi.json".to_owned(), ".nibi/config.json".to_owned()],
         }),
         ..prompt()
     };
     let (_, screen, _) = run(&many, Lang::En, vec![key(KeyCode::Esc)]).await;
     assert!(
-        screen.contains("pre-approves 10 tool permissions in nibi.json and .zcode/config.json:"),
+        screen.contains("pre-approves 10 tool permissions in nibi.json and .nibi/config.json:"),
         "{screen}"
     );
     assert!(

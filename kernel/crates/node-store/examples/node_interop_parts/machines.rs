@@ -2,7 +2,7 @@
 //!
 //! `machines-write <storage-dir>`：会话 actor 的写法——机器清单提醒（`remote_machines`）；一条回复里 Bash 在 dev-a 上
 //! 跑（输入带 `machine`）、Write 在 dev-a 上改文件（输入带 `machine`）、Write 在本机改文件；工具结果与两个 checkpoint
-//! 同一批（本机的写成 Node 的 `runtime/workspace_checkpoint`，远端的写成 `rust-cli/remote_checkpoint`）；再一条文字回复。
+//! 同一批（本机的写成 Node 的 `runtime/workspace_checkpoint`，远端的写成 `nibi-kernel/remote_checkpoint`）；再一条文字回复。
 //! 输出会话 id、回复、提醒与两个 checkpoint 的 id。
 use nibi_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
 

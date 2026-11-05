@@ -78,7 +78,7 @@ fn executor(remote: &Remote, name: &str, version: &str, protocol: u32) -> PathBu
 fn bin(remote: &Remote, version: &str) -> PathBuf {
     remote
         .home()
-        .join(format!(".zcode/rust-cli/exec/bin/{version}/nibi-rs"))
+        .join(format!(".nibi/nibi-kernel/exec/bin/{version}/nibi-rs"))
 }
 
 /// 远端 `bin/` 下所有的文件（相对路径）。
@@ -96,7 +96,7 @@ fn remote_files(remote: &Remote) -> Vec<String> {
             }
         }
     }
-    let base = remote.home().join(".zcode/rust-cli/exec/bin");
+    let base = remote.home().join(".nibi/nibi-kernel/exec/bin");
     let mut out = Vec::new();
     walk(&base, &base, &mut out);
     out.sort();

@@ -243,7 +243,7 @@ fn a_user_interrupt_during_print_mode_exits_with_zero() {
         status.is_some()
     });
     assert_eq!(status.unwrap().code(), Some(0));
-    let log = sandbox.home.join(".nibi").join("rust-cli").join("log");
+    let log = sandbox.home.join(".nibi").join("nibi-kernel").join("log");
     let lines: String = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())

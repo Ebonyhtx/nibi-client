@@ -1,7 +1,7 @@
 //! 配置文件的组装（docs/specs/rust-cli/config.md）。
 //!
-//! hooks、权限规则、MCP、插件都读 Node CLI 与 App 共用的配置文件：用户级 `~/.zcode/cli/config.json`（经
-//! platform，本机存储）与项目级每层的 `nibi.json`、`.zcode/config.json`（经执行环境，工作区文件）。
+//! hooks、权限规则、MCP、插件都读 Node CLI 与 App 共用的配置文件：用户级 `~/.nibi/cli/config.json`（经
+//! platform，本机存储）与项目级每层的 `nibi.json`、`.nibi/config.json`（经执行环境，工作区文件）。
 //! 结果是一份带版本的快照，交给内核时整份替换（config.md §3）。项目级 hooks 先经信任（`trust`）；插件的
 //! 候选目录在同一次组装里从本机存储的插件清单得出（`plugins`，config.md §2.1）。
 

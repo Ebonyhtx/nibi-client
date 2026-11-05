@@ -2,7 +2,7 @@
 //! 端点模板。
 //!
 //! 来源与 Node 独立 CLI 相同：内置配置是随包的一份（或 `NIBI_BUILTIN_PROVIDER_CONFIG_FILE`），个人配置是
-//! `~/.zcode/v2/provider_config.json`，账号 overlay 由 `credentials.json`、个人订阅与团队列表、权益算出（`account.rs`、
+//! `~/.nibi/v2/provider_config.json`，账号 overlay 由 `credentials.json`、个人订阅与团队列表、权益算出（`account.rs`、
 //! `personal/`、`team/`，工作线 F47、F49、F50）；团队 provider 的模型按可用的团队项目平铺（`catalog.rs`，platform.md
 //! §9.3）。
 //!
@@ -47,7 +47,7 @@ const MAX_CONFIG_BYTES: usize = 8 * 1024 * 1024;
 /// 随包的内置 Provider 配置：上游 vendor 的副本（随 vendor 升级走）。分家后仓库的
 /// `config/provider/nibi-builtin.json` 是 Node 侧构建期的源、形状不同，两者不再互为副本
 /// （原「副本一致」测试据实改写；内核该带哪份归品牌审计裁决）。文件名仍是上游名。
-pub(crate) const BUNDLED_BUILTIN: &str = include_lf!("../../assets/zcode-builtin.json");
+pub(crate) const BUNDLED_BUILTIN: &str = include_lf!("../../assets/nibi-builtin.json");
 /// 个人配置不存在时的内容（Node 同样按空配置处理）。
 const EMPTY_PERSONAL: &[u8] = br#"{"schemaVersion":1,"config":{}}"#;
 

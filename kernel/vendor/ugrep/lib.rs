@@ -1,4 +1,4 @@
-//! ugrep 7.8.4 作为库（docs/specs/rust-cli/embedded-search.md §7）：zcode 以 `ugrep` 的名字启动时调用 [`main`]。
+//! ugrep 7.8.4 作为库（docs/specs/rust-cli/embedded-search.md §7）：NIBI 以 `ugrep` 的名字启动时调用 [`main`]。
 //! ugrep 的 `main()`（Windows 是 `wmain()`）编译时改名（build.rs 的 `-Dmain=…`），`shim.cpp` 给它一个 C 链接的入口；
 //! 源码不改。
 

@@ -106,7 +106,7 @@ fn package_names_follow_the_npm_rules() {
         "@scope/",
         "@/zcode",
         "Zcode",
-        ".zcode",
+        ".nibi",
         "_zcode",
         "zcode/x",
         "@scope/zcode/x",

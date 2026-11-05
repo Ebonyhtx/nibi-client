@@ -1,4 +1,4 @@
-//! bfs 4.1.4（带 Oniguruma 6.9.10）作为库（docs/specs/rust-cli/embedded-search.md §6）：zcode 以 `bfs` 的名字启动时
+//! bfs 4.1.4（带 Oniguruma 6.9.10）作为库（docs/specs/rust-cli/embedded-search.md §6）：NIBI 以 `bfs` 的名字启动时
 //! 调用 [`main`]。bfs 的 `main()` 编译时改名为 `nibi_kernel_bfs_main`（build.rs 的 `-Dmain=…`），源码不改。只在 Unix 上有。
 
 #[cfg(unix)]

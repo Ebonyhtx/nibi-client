@@ -9,9 +9,9 @@ fn hooks(value: serde_json::Value) -> NodeHooks {
 
 fn source<'a>(hooks: &'a NodeHooks, order: usize) -> DigestSource<'a> {
     DigestSource {
-        relative_path: ".zcode/config.json".to_owned(),
+        relative_path: ".nibi/config.json".to_owned(),
         discovery_order: order,
-        kind: ".zcode/config.json",
+        kind: ".nibi/config.json",
         explicit: false,
         editable: true,
         hooks,

@@ -1,5 +1,5 @@
 //! 会话的团队项目（node-store.md §4 的 `ModelSelected`、§5 第 5 条，工作线 F49）：Node 的选择 schema 是 strict，
-//! 团队项目另存在 `rust-cli/model_connection`，冷读取时与 `runtime/model_selection` 对得上才用。
+//! 团队项目另存在 `nibi-kernel/model_connection`，冷读取时与 `runtime/model_selection` 对得上才用。
 
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::model::{ModelConnection, ModelSelection};
@@ -59,8 +59,8 @@ async fn the_team_project_is_kept_beside_the_node_selection() {
         data,
         json!({"modelSelection": {"providerId": TEAM, "modelId": "GLM-5.3", "options": {"reasoningLevel": "high"}}})
     );
-    let side = entry_rows(&t, "rust-cli/model_connection");
-    assert_eq!(side[0][0], json!("ses_team:rust-cli/model_connection"));
+    let side = entry_rows(&t, "nibi-kernel/model_connection");
+    assert_eq!(side[0][0], json!("ses_team:nibi-kernel/model_connection"));
     let data: Value = serde_json::from_str(side[0][1].as_str().unwrap()).unwrap();
     assert_eq!(
         data,
@@ -70,7 +70,7 @@ async fn the_team_project_is_kept_beside_the_node_selection() {
     assert_eq!(loaded(&t, "ses_team").await, team_selection("p-t"));
     // 换团队项目：同一条 entry 改写。
     select(&t, "ses_team", team_selection("p-u")).await;
-    assert_eq!(entry_rows(&t, "rust-cli/model_connection").len(), 1);
+    assert_eq!(entry_rows(&t, "nibi-kernel/model_connection").len(), 1);
     assert_eq!(loaded(&t, "ses_team").await, team_selection("p-u"));
 }
 
@@ -82,7 +82,7 @@ async fn selections_without_a_team_write_nothing_extra() {
     plain.provider = "account:bigmodel-individual-coding-plan".to_owned();
     plain.connection = None;
     select(&t, "ses_plain", plain.clone()).await;
-    assert!(entry_rows(&t, "rust-cli/model_connection").is_empty());
+    assert!(entry_rows(&t, "nibi-kernel/model_connection").is_empty());
     assert_eq!(loaded(&t, "ses_plain").await, plain);
 }
 
@@ -125,9 +125,9 @@ async fn a_broken_record_is_ignored() {
         json!({"providerId": TEAM, "modelId": "GLM-5.3", "connection": "p-t"}),
     ] {
         let entry = Entry {
-            id: "ses_bad:rust-cli/model_connection".to_owned(),
+            id: "ses_bad:nibi-kernel/model_connection".to_owned(),
             session_id: "ses_bad".to_owned(),
-            kind: "rust-cli/model_connection".to_owned(),
+            kind: "nibi-kernel/model_connection".to_owned(),
             time_created: 1,
             time_updated: 2,
             data,

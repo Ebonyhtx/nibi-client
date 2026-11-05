@@ -129,7 +129,7 @@ fn prepare(home: &Path, url: &str, family: &str) -> std::path::PathBuf {
         .unwrap()
         .to_owned();
     std::fs::write(v2.join("credentials.json"), file).unwrap();
-    let bundled = include_str!("../../platform/assets/zcode-builtin.json");
+    let bundled = include_str!("../../platform/assets/nibi-builtin.json");
     let mut builtin: Value = serde_json::from_str(bundled).unwrap();
     let provider = format!("account:{family}-individual-coding-plan");
     for rule in builtin["config"]["providerConfigRules"]["providerRules"]

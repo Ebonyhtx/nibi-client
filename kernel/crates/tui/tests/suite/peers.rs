@@ -39,7 +39,7 @@ impl FakePort {
 
     /// 发送方是 bypass、本会话是 default（prompting）：扣住。
     fn push_held(&self) {
-        let from = PeerAddress::from_socket("/Users/dev/.zcode/rust-cli/peers/9.sock");
+        let from = PeerAddress::from_socket("/Users/dev/.nibi/nibi-kernel/peers/9.sock");
         let text = envelope(
             &from,
             Some("work-b-7f"),
@@ -136,7 +136,7 @@ async fn a_held_message_asks_for_approval_and_is_delivered() {
             );
             assert!(
                 screen.contains(
-                    "uds:/Users/dev/.zcode/rust-cli/peers/9.sock (peer claims name: work-b-7f)"
+                    "uds:/Users/dev/.nibi/nibi-kernel/peers/9.sock (peer claims name: work-b-7f)"
                 ),
                 "{screen}"
             );

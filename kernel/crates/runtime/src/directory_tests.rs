@@ -139,7 +139,7 @@ async fn the_session_moves_and_gets_the_note_with_the_new_rules() {
     assert_eq!(
         note.origin,
         UserOrigin::Meta {
-            source: "rust-cli/cd".to_owned(),
+            source: "nibi-kernel/cd".to_owned(),
             origin_meta: None,
         }
     );
@@ -210,7 +210,7 @@ fn cd_notes(messages: &[Message]) -> usize {
     messages
         .iter()
         .filter(|message| {
-            matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { origin_meta: None, source: "rust-cli/cd".to_owned() })
+            matches!(message, Message::User(user) if user.origin == UserOrigin::Meta { origin_meta: None, source: "nibi-kernel/cd".to_owned() })
         })
         .count()
 }
@@ -265,7 +265,7 @@ async fn the_session_records_each_cd_like_the_reference() {
         [
             LOCAL_COMMAND_INPUT_SOURCE,
             LOCAL_COMMAND_OUTPUT_SOURCE,
-            "rust-cli/cd",
+            "nibi-kernel/cd",
             LOCAL_COMMAND_CAVEAT_SOURCE,
             LOCAL_COMMAND_INPUT_SOURCE,
             LOCAL_COMMAND_OUTPUT_SOURCE,

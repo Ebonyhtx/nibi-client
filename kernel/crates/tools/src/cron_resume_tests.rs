@@ -115,7 +115,7 @@ async fn resume_rebuilds_session_tasks_from_the_history() {
         4,
         "*/5 * * * *",
         "durable",
-        "Scheduled recurring job 4d5e6f70 (Every 5 minutes). Persisted to .zcode/scheduled_tasks.json. Auto-expires after 7 days. Use CronDelete to cancel sooner.",
+        "Scheduled recurring job 4d5e6f70 (Every 5 minutes). Persisted to .nibi/scheduled_tasks.json. Auto-expires after 7 days. Use CronDelete to cancel sooner.",
     ));
     history.extend(created(
         earlier,

@@ -50,7 +50,7 @@ async fn an_ssh_machine_is_provisioned_used_and_survives_a_dropped_link() {
     };
     let sshd = Sshd::start();
     sshd.wait_ready().await;
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
+    let installed = format!("/root/.nibi/nibi-kernel/exec/bin/{VERSION}/nibi-rs");
 
     // 1. 部署：上传、远端 sha256 与本机相同、权限只给本用户；第二次不再上传。
     let provisioner = SshProvisioner::new(sshd.target(), wanted(), vec![artifact.clone()]);
@@ -292,7 +292,7 @@ async fn a_listed_machine_runs_bash_and_read_in_the_container() {
     let work = tempfile::tempdir().unwrap();
     let work_path = std::fs::canonicalize(work.path()).unwrap();
     let home = tempfile::tempdir().unwrap();
-    let list = home.path().join(".nibi/rust-cli/machines.json");
+    let list = home.path().join(".nibi/nibi-kernel/machines.json");
     std::fs::create_dir_all(list.parent().unwrap()).unwrap();
     std::fs::write(
         &list,
@@ -372,7 +372,7 @@ async fn a_listed_machine_runs_bash_and_read_in_the_container() {
     assert!(read.contains("from the container"), "{read}");
 
     // 收尾：停掉容器里的常驻执行器（容器随后删掉）。
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
+    let installed = format!("/root/.nibi/nibi-kernel/exec/bin/{VERSION}/nibi-rs");
     let (ok, out, err) = sshd.ssh(&format!("{installed} executor stop"));
     assert!(ok, "{out}{err}");
 }
@@ -399,7 +399,7 @@ async fn a_bound_mcp_server_runs_in_the_container() {
     let work = tempfile::tempdir().unwrap();
     let work_path = std::fs::canonicalize(work.path()).unwrap();
     let home = tempfile::tempdir().unwrap();
-    let nibi_kernel_cli = home.path().join(".nibi/rust-cli");
+    let nibi_kernel_cli = home.path().join(".nibi/nibi-kernel");
     std::fs::create_dir_all(&nibi_kernel_cli).unwrap();
     std::fs::create_dir_all(home.path().join(".nibi/cli")).unwrap();
     let machines = serde_json::json!({"version": 1, "machines": [
@@ -470,7 +470,7 @@ async fn a_bound_mcp_server_runs_in_the_container() {
     );
 
     // 收尾：停掉容器里的常驻执行器（它起的服务器随之结束；容器随后删掉）。
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
+    let installed = format!("/root/.nibi/nibi-kernel/exec/bin/{VERSION}/nibi-rs");
     let (ok, out, err) = sshd.ssh(&format!("{installed} executor stop"));
     assert!(ok, "{out}{err}");
 }

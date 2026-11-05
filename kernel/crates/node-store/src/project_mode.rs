@@ -2,7 +2,7 @@
 //! `getProjectPermissionMode` / `saveProjectPermissionMode`。
 //!
 //! 值存在 `local_setting(scope='project', scope_id=<projectId>, namespace='permission', key='mode')`，
-//! 是 `{"mode": <Node 模式>}`。本工程写入时另带内核的模式名（`rust-cli/permission_mode`），用来
+//! 是 `{"mode": <Node 模式>}`。本工程写入时另带内核的模式名（`nibi-kernel/permission_mode`），用来
 //! 区分 default 与 dontAsk；它只在与 `mode` 一致时有效，Node 整份改写后自然消失。
 
 use rusqlite::{Connection, OptionalExtension, params};

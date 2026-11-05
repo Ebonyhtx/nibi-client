@@ -545,7 +545,7 @@ pub fn failure_text(lang: Lang, name: &str, failure: &MachineFailure) -> String 
     }
 }
 
-/// 本机缓存里放执行器的位置（F103，remote-exec.md §27.7）：`~/.nibi/rust-cli/exec/dist/<版本>/<target>/nibi-rs`。
+/// 本机缓存里放执行器的位置（F103，remote-exec.md §27.7）：`~/.nibi/nibi-kernel/exec/dist/<版本>/<target>/nibi-rs`。
 fn cached_executor(version: &str, target: &str) -> String {
     use nibi_kernel_base::names::{DOT_DIR, EXECUTOR_HOME, UNIX_EXECUTABLE};
     format!("~/{DOT_DIR}/{EXECUTOR_HOME}/dist/{version}/{target}/{UNIX_EXECUTABLE}")

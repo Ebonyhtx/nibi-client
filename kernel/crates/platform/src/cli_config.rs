@@ -1,4 +1,4 @@
-//! Node CLI 的用户级配置 `~/.zcode/cli/config.json`（docs/specs/rust-cli/config.md §1）。
+//! Node CLI 的用户级配置 `~/.nibi/cli/config.json`（docs/specs/rust-cli/config.md §1）。
 //!
 //! 读：只负责读文件并判断是不是 JSON 对象；`permission`、`hooks`、`mcp` 各段由入口层交给各能力 crate
 //! 的解析器。文件可以没有；读不出或不是对象时整份忽略（Node `config_file_invalid`）。

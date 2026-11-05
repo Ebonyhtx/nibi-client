@@ -100,7 +100,7 @@ async fn the_skills_page_scrolls() {
     });
     for index in 0..30 {
         env = env.with_file(
-            &format!("/Users/dev/project/.zcode/skills/skill-{index:02}/SKILL.md"),
+            &format!("/Users/dev/project/.nibi/skills/skill-{index:02}/SKILL.md"),
             &format!("---\ndescription: Skill number {index}\n---\nBody.\n"),
         );
     }

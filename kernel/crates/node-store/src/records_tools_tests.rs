@@ -358,7 +358,7 @@ async fn a_tool_turn_is_stored_like_node_byte_for_byte() {
         ("part", parts),
         (
             "session_entry",
-            t.rows("select * from session_entry where type not like 'rust-cli/%' order by id"),
+            t.rows("select * from session_entry where type not like 'nibi-kernel/%' order by id"),
         ),
     ];
     for (name, mut rows) in tables {

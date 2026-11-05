@@ -1,9 +1,9 @@
-//! 编译期的版本号（docs/specs/rust-cli/version.md）：计数文件 `packages/rust-cli/build-number` 的读写、版本的
+//! 编译期的版本号（docs/specs/rust-cli/version.md）：计数文件 `kernel/build-number` 的读写、版本的
 //! 拼接与校验、给 cargo 的指令。`build.rs` 用 `#[path]` 引入它，只负责读环境变量与打印指令；cli 的单测也引入它
 //! （`main.rs` 的 `cfg(test)` 模块），用临时目录与注入的路径测试。
 //!
 //! F54 起计数只来自仓库里提交的文件（用户决定：本地编译与正式发布共用一个号段）；L33 的
-//! `<target 目录>/zcode-build-number` 不再读写。这里的文件读写是编译期行为，不是 `zcode` 运行时的 IO
+//! `<target 目录>/nibi-build-number` 不再读写。这里的文件读写是编译期行为，不是内核运行时的 IO
 //! （version.md §3），clippy 的禁令只在读写计数文件的函数上局部放开。
 
 use std::io::ErrorKind;
@@ -14,7 +14,7 @@ pub const COUNTER_FILE: &str = "build-number";
 
 /// 永远不创建的哨兵文件（相对 cli 目录）。cargo 把不存在的 `rerun-if-changed` 路径当作“已变化”，本地 release
 /// 编译因此每次都重跑 build script、计数加 1；不写任何 `rerun-if-*` 时 cargo 只在包内文件变化时重跑。
-pub const SENTINEL: &str = ".zcode-build-number-sentinel";
+pub const SENTINEL: &str = ".nibi-build-number-sentinel";
 
 /// 正式发版（NIBI-rs 的 CI）给的版本：只校验，不加 1、不写文件。
 pub const RELEASE_ENV: &str = "NIBI_RELEASE_VERSION";

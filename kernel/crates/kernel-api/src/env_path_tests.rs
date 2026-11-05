@@ -191,8 +191,8 @@ fn names_joins_and_extensions() {
         assert_eq!(style.file_name(input), name, "{style:?} {input}");
     }
     assert_eq!(
-        P.join("/Users/dev/w", &[".zcode", "rules"]),
-        "/Users/dev/w/.zcode/rules"
+        P.join("/Users/dev/w", &[".nibi", "rules"]),
+        "/Users/dev/w/.nibi/rules"
     );
     assert_eq!(P.join("/w/", &["./skills/x"]), "/w/skills/x");
     assert_eq!(

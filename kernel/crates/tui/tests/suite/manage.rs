@@ -366,7 +366,7 @@ impl nibi_kernel_tui::Preferences for Saved {
         let result = if self.fail {
             Err("disk full".to_owned())
         } else {
-            Ok("/Users/dev/.zcode/cli/config.json".to_owned())
+            Ok("/Users/dev/.nibi/cli/config.json".to_owned())
         };
         Box::pin(async move { result })
     }
@@ -379,7 +379,7 @@ impl nibi_kernel_tui::Preferences for Saved {
         let result = if self.fail {
             Err("disk full".to_owned())
         } else {
-            Ok("/Users/dev/.zcode/v2/provider_config.json".to_owned())
+            Ok("/Users/dev/.nibi/v2/provider_config.json".to_owned())
         };
         Box::pin(async move { result })
     }

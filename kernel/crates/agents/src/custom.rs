@@ -1,4 +1,4 @@
-//! 自定义 agent：`~/.zcode/agents/*.md`（用户）与从 cwd 向上到 git 根每层的 `.zcode/agents/*.md`
+//! 自定义 agent：`~/.nibi/agents/*.md`（用户）与从 cwd 向上到 git 根每层的 `.nibi/agents/*.md`
 //! （项目），经执行环境读取（docs/specs/rust-cli/agents.md §3）。
 
 use nibi_kernel_base::names::{AGENTS_DIR, DOT_DIR};
@@ -69,7 +69,7 @@ impl Reader<'_> {
         found
     }
 
-    /// cwd 向上到 git 根（含）或 home（不含）的 `.zcode/agents`，离 cwd 远的在前。遍历在 kernel-api（F58：以前
+    /// cwd 向上到 git 根（含）或 home（不含）的 `.nibi/agents`，离 cwd 远的在前。遍历在 kernel-api（F58：以前
     /// 这里与 ext 各写一份）；`.git` 只认目录与文件（缺陷修复：以前任何种类都算，FIFO 等会让遍历提前停下）。
     async fn project_dirs(&self, facts: &EnvFacts) -> Vec<String> {
         let home = facts.home.as_ref().map(EnvPath::as_str);

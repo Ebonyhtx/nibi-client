@@ -34,7 +34,7 @@ fn sandbox(bindings: Value) -> Sandbox {
     let (home, work, remote) = (base.join("home"), base.join("work"), base.join("remote"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&remote).unwrap();
-    std::fs::create_dir_all(home.join(".nibi/rust-cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/nibi-kernel")).unwrap();
     std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     std::fs::write(work.join("notes.txt"), "local notes\n").unwrap();
     std::fs::write(remote.join("notes.txt"), "remote notes\n").unwrap();
@@ -42,12 +42,12 @@ fn sandbox(bindings: Value) -> Sandbox {
         {"name": "dev-a", "ssh": "dev-a", "workingDirectory": remote.display().to_string(), "connected": true}
     ]});
     std::fs::write(
-        home.join(".nibi/rust-cli/machines.json"),
+        home.join(".nibi/nibi-kernel/machines.json"),
         machines.to_string(),
     )
     .unwrap();
     std::fs::write(
-        home.join(".nibi/rust-cli/mcp-machines.json"),
+        home.join(".nibi/nibi-kernel/mcp-machines.json"),
         json!({"version": 1, "servers": bindings}).to_string(),
     )
     .unwrap();
@@ -159,7 +159,7 @@ fn gone(pid: &str) -> bool {
 }
 
 fn run_log(home: &Path) -> String {
-    let log = home.join(".nibi/rust-cli/log");
+    let log = home.join(".nibi/nibi-kernel/log");
     std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap_or_default())

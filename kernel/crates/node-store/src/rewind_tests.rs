@@ -241,8 +241,8 @@ async fn checkpoint_sequences_follow_the_stored_node_events() {
     );
 }
 
-/// 远端机器上的 checkpoint（R3，remote-exec.md §20.9）：写成本工程的 `rust-cli/remote_checkpoint`（Node 的类型里没有它），
-/// 冷读取带回机器名；它的回退写 `rust-cli/remote_file_rewind`，不动 Node 的记录，本机同一回合的 checkpoint 仍可回退。
+/// 远端机器上的 checkpoint（R3，remote-exec.md §20.9）：写成本工程的 `nibi-kernel/remote_checkpoint`（Node 的类型里没有它），
+/// 冷读取带回机器名；它的回退写 `nibi-kernel/remote_file_rewind`，不动 Node 的记录，本机同一回合的 checkpoint 仍可回退。
 #[tokio::test]
 async fn remote_checkpoints_use_rust_cli_entries() {
     let t = TestStore::new();
@@ -269,9 +269,9 @@ async fn remote_checkpoints_use_rust_cli_entries() {
             .unwrap()
     };
     assert_eq!(count("runtime/workspace_checkpoint"), 1);
-    assert_eq!(count("rust-cli/remote_checkpoint"), 1);
+    assert_eq!(count("nibi-kernel/remote_checkpoint"), 1);
     let rows =
-        t.rows("select id, data from session_entry where type = 'rust-cli/remote_checkpoint'");
+        t.rows("select id, data from session_entry where type = 'nibi-kernel/remote_checkpoint'");
     let data: Value = serde_json::from_str(rows[0][1].as_str().unwrap()).unwrap();
     assert_eq!(data["rustCli"]["machine"], "dev-a");
     // 序号在本工程的记录之间单独算。
@@ -280,7 +280,7 @@ async fn remote_checkpoints_use_rust_cli_entries() {
         rows[0][0]
             .as_str()
             .unwrap()
-            .starts_with("rust-cli-remote-checkpoint:")
+            .starts_with("nibi-kernel-remote-checkpoint:")
     );
     let loaded = t.store.load(&sid()).await.unwrap();
     assert_eq!(loaded.checkpoints, [local.clone(), remote.clone()]);
@@ -294,7 +294,7 @@ async fn remote_checkpoints_use_rust_cli_entries() {
         .await
         .unwrap();
     assert_eq!(count("runtime/workspace_file_rewind"), 0);
-    assert_eq!(count("rust-cli/remote_file_rewind"), 1);
+    assert_eq!(count("nibi-kernel/remote_file_rewind"), 1);
     let loaded = t.store.load(&sid()).await.unwrap();
     assert_eq!(loaded.checkpoints, [local]);
 }

@@ -2,7 +2,7 @@
 //!
 //! 取值是 `--permission-mode` 的模式加上 Node 的 guarded。落库时映射到 Node 已有的模式值：default → build、
 //! acceptEdits → edit、bypassPermissions → yolo、guarded → guarded、auto → auto；dontAsk 记为 build 并另写一条
-//! `rust-cli/` entry（映射在会话存储适配器里做）。plan 是独立开关（[`ExecutionState`]，修复线 F20）。
+//! `nibi-kernel/` entry（映射在会话存储适配器里做）。plan 是独立开关（[`ExecutionState`]，修复线 F20）。
 
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +23,7 @@ pub enum PermissionMode {
 }
 
 /// 模式的名字只定义在这里（修复线 F58，README §4.1）：Node 名（会话行、配置、`/mode`）与命令行名（命令行、agent 的
-/// frontmatter、stream-json、`rust-cli/permission_mode` entry）。各入口收的集合不同，照各自的来源再过滤。
+/// frontmatter、stream-json、`nibi-kernel/permission_mode` entry）。各入口收的集合不同，照各自的来源再过滤。
 impl PermissionMode {
     /// 命令行的名字（serde 的写法）；guarded 是本工程的 `guarded`。
     pub fn cli_name(self) -> &'static str {
@@ -184,9 +184,9 @@ pub enum PermissionDecision {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum RuleSource {
-    /// 用户配置（`~/.zcode` 下的配置文件，`permission.allowedTools` 等）。
+    /// 用户配置（`~/.nibi` 下的配置文件，`permission.allowedTools` 等）。
     UserSettings,
-    /// 项目配置（工作区 `.zcode` 下的配置文件）。
+    /// 项目配置（工作区 `.nibi` 下的配置文件）。
     ProjectSettings,
     /// 本机的项目规则集（Node `local_setting` 的 `permission/ruleset`，“总是允许”写到这里）。
     LocalSettings,

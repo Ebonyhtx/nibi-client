@@ -257,7 +257,7 @@ async fn later_commits_leave_the_node_records_as_they_were() {
         .collect();
     assert_eq!(statuses, ["running", "completed", "pending"]);
     assert!(
-        t.rows("select id from session_entry where type = 'rust-cli/operation_result'")
+        t.rows("select id from session_entry where type = 'nibi-kernel/operation_result'")
             .is_empty()
     );
     let again = t.store.load(&sid()).await.unwrap();

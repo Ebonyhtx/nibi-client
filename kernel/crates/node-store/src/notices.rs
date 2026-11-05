@@ -28,12 +28,12 @@ pub const RUST_CLI: &str = "rustCli";
 const INTERRUPT_SOURCE: &str = "interrupt";
 
 /// bash 模式输出消息的 `metadata.source`（本工程的来源名，加前缀不与 Node 的提醒表重名）。
-const BASH_OUTPUT_SOURCE: &str = "rust-cli/bash_output";
+const BASH_OUTPUT_SOURCE: &str = "nibi-kernel/bash_output";
 
-/// 与 Node 提醒表（`system-reminder/source.ts`）重名、语义不同的 attachment 来源：存成 `rust-cli/<来源>`，
+/// 与 Node 提醒表（`system-reminder/source.ts`）重名、语义不同的 attachment 来源：存成 `nibi-kernel/<来源>`，
 /// 冷读取去掉前缀。修复线 F2：Node 把同名的当成自己的提醒（`plan_mode_exit` 在 Node 是只在运行时的提醒）。
 const RENAMED_SOURCES: [&str; 1] = [nibi_kernel_api::plan::EXIT_SOURCE];
-const RENAMED_PREFIX: &str = "rust-cli/";
+const RENAMED_PREFIX: &str = "nibi-kernel/";
 
 const ATTACHMENT: &str = "attachment";
 const META: &str = "meta";

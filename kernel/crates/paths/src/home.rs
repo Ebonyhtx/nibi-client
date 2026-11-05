@@ -51,7 +51,7 @@ pub(crate) fn home_for(
     windows_profile: impl FnOnce() -> Option<PathBuf>,
 ) -> io::Result<PathBuf> {
     // B4 缺陷修复：旧实现在 HOME 为空、USERPROFILE 未设置时返回空 PathBuf，之后的
-    // `home.join(".zcode")` 变成相对路径，数据落到当前工作目录下。现在空值视为未设置，
+    // `home.join(".nibi")` 变成相对路径，数据落到当前工作目录下。现在空值视为未设置，
     // 再退回系统；仍拿不到就报错，由调用方让启动失败。
     // F57 缺陷修复：以前所有平台都是 `HOME` → `USERPROFILE`。Windows 上设了 `HOME`（Git Bash、MSYS2 常设）时，
     // 会话库、配置根与 `~` 落在 `HOME` 下，Node 落在 `USERPROFILE` 下；凭据密钥另按 Node 取，两个 home 不一致。

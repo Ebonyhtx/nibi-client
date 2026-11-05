@@ -155,7 +155,7 @@ impl ExitPlanModeTool {
 }
 
 /// 计划文件的位置（§2.2）：kernel-api 的 `PlanFiles`，与计划模式 attachment、判决链同一来源。
-/// Node 的位置 `<工作区>/.zcode/plans/plan-<会话>.md`；会话 ID 净化后为空时报错（Node 同样报错）。
+/// Node 的位置 `<工作区>/.nibi/plans/plan-<会话>.md`；会话 ID 净化后为空时报错（Node 同样报错）。
 pub(crate) async fn plan_file(context: &ToolUseContext) -> Result<String, ToolError> {
     let facts = context
         .machine

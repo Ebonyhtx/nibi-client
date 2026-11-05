@@ -282,7 +282,7 @@ pub(super) async fn fresh_session_id(
     Ok(id)
 }
 
-/// 设备身份的来源（platform.md §10，工作线 F52）：`<dataBaseDir>/.zcode/v2/telemetry-state.json` 的 `deviceMid`，与 App、
+/// 设备身份的来源（platform.md §10，工作线 F52）：`<dataBaseDir>/.nibi/v2/telemetry-state.json` 的 `deviceMid`，与 App、
 /// Node CLI 共用；新值由同一个 `NodeIds` 生成（README §4 的 ID 入口）。第一次请求时才解析，之后进程内同一个值。
 pub(super) fn device_id(paths: &StoragePaths, ids: Arc<NodeIds>) -> nibi_kernel_model::DeviceIdSource {
     use futures_util::FutureExt as _;

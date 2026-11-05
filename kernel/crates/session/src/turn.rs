@@ -23,7 +23,7 @@ use crate::sink::SinkRequest;
 
 /// 主循环提交请求的缓冲；满了时主循环等待，不丢请求。人类输入的 Bash 与 hook 的回合任务用同一个值（F55）。
 pub(crate) const SINK_REQUESTS: usize = 256;
-/// 待回答交互在存储里的 entry 种类（node-store 映射成 `rust-cli/<kind>`）。
+/// 待回答交互在存储里的 entry 种类（node-store 映射成 `nibi-kernel/<kind>`）。
 const PENDING_INTERACTION: &str = "pending_interaction";
 const INTERACTION_RESOLVED: &str = "interaction_resolved";
 

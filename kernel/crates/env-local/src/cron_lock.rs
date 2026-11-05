@@ -1,4 +1,4 @@
-//! 定时任务的调度锁 `.zcode/scheduled_tasks.lock`（docs/specs/rust-cli/tools-more.md §16.4）。
+//! 定时任务的调度锁 `.nibi/scheduled_tasks.lock`（docs/specs/rust-cli/tools-more.md §16.4）。
 //!
 //! `O_EXCL` 创建即持锁。已存在时：持有者是自己就持锁（PID 变了改写成本进程）；PID 存活且启动时间相同或
 //! 未知就让给它；否则（坏文件、PID 不在、启动时间不同）删除后再 `O_EXCL` 一次。存活只看 PID 与启动时间。

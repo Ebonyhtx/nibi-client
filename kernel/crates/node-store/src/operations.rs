@@ -1,8 +1,8 @@
 //! 操作意图与待回答的交互（docs/specs/rust-cli/node-store.md §4.7，README §6 规则 3、5、9）。
 //!
-//! - `OperationIntent` → `rust-cli/operation_intent` entry（`{operationId, fingerprint}`，fingerprint 存摘要）。同一个
+//! - `OperationIntent` → `nibi-kernel/operation_intent` entry（`{operationId, fingerprint}`，fingerprint 存摘要）。同一个
 //!   operationId 再次登记时，fingerprint 相同不变，不同则拒绝。
-//! - 工具结果落库时，fingerprint 对得上的最早一个未结意图写一条 `rust-cli/operation_result` entry。
+//! - 工具结果落库时，fingerprint 对得上的最早一个未结意图写一条 `nibi-kernel/operation_result` entry。
 //! - 冷读取：没有结果的意图 → `open_operations`；没有 `interaction_resolved` 的
 //!   `pending_interaction`（会话 actor 经 `Fact::Entry` 写的两种 entry）→ `pending_interactions`。
 use std::collections::HashSet;
@@ -18,12 +18,12 @@ use crate::facts::{Commit, save_entry};
 use crate::repo::entries;
 use crate::{OrStorage, records, storage};
 
-const INTENT: &str = "rust-cli/operation_intent";
-const RESULT: &str = "rust-cli/operation_result";
+const INTENT: &str = "nibi-kernel/operation_intent";
+const RESULT: &str = "nibi-kernel/operation_result";
 /// 会话 actor 的交互 entry（session `turn.rs` 的 `PENDING_INTERACTION` / `INTERACTION_RESOLVED`，
-/// 经 `Fact::Entry` 加上 `rust-cli/` 前缀）。
-const PENDING_INTERACTION: &str = "rust-cli/pending_interaction";
-const INTERACTION_RESOLVED: &str = "rust-cli/interaction_resolved";
+/// 经 `Fact::Entry` 加上 `nibi-kernel/` 前缀）。
+const PENDING_INTERACTION: &str = "nibi-kernel/pending_interaction";
+const INTERACTION_RESOLVED: &str = "nibi-kernel/interaction_resolved";
 
 /// `Fact::Entry` 的 entry id：`<会话>:<type>:<id>`。
 fn entry_id(session: &str, kind: &str, id: &str) -> String {
@@ -31,7 +31,7 @@ fn entry_id(session: &str, kind: &str, id: &str) -> String {
 }
 
 /// 存下的 fingerprint 是摘要（修复线 F6，审查 R5-12）：以前存执行器给的整份 `{"tool", "input"}` JSON，Write 的全文在
-/// tool part 与意图里各存一份，落库与读回都要多处理一遍。Node 不读这两种 entry（`rust-cli/` 前缀）。
+/// tool part 与意图里各存一份，落库与读回都要多处理一遍。Node 不读这两种 entry（`nibi-kernel/` 前缀）。
 const DIGEST: &str = "sha256:";
 
 /// `sha256:` + `JSON.stringify({tool, input: toRecordInput(input)})` 的摘要。tool part 的 `state.input` 读回后再
@@ -92,10 +92,10 @@ pub fn record_intent(
 fn open_intents(conn: &Connection, session: &str) -> anyhow::Result<Vec<OpenOperation>> {
     let mut query = conn.prepare_cached(
         "select i.data from session_entry i
-      where i.session_id = ?1 and i.type = 'rust-cli/operation_intent'
+      where i.session_id = ?1 and i.type = 'nibi-kernel/operation_intent'
         and not exists (select 1 from session_entry r
-          where r.id = ?1 || ':rust-cli/operation_result:'
-            || substr(i.id, length(?1 || ':rust-cli/operation_intent:') + 1))
+          where r.id = ?1 || ':nibi-kernel/operation_result:'
+            || substr(i.id, length(?1 || ':nibi-kernel/operation_intent:') + 1))
       order by i.time_created, i.rowid",
     )?;
     let rows = query
@@ -176,14 +176,14 @@ pub fn pending_interactions(
     Ok(out)
 }
 
-/// 一种 `rust-cli/<kind>` entry 的全部记录（`SessionStore::entries`，docs/specs/rust-cli/cross-session.md §2.2）：
-/// `(id, data)`，id 去掉 `<会话>:rust-cli/<kind>:` 前缀，按写入顺序。
+/// 一种 `nibi-kernel/<kind>` entry 的全部记录（`SessionStore::entries`，docs/specs/rust-cli/cross-session.md §2.2）：
+/// `(id, data)`，id 去掉 `<会话>:nibi-kernel/<kind>:` 前缀，按写入顺序。
 pub fn kind_entries(
     conn: &Connection,
     session: &str,
     kind: &str,
 ) -> Result<Vec<(String, Value)>, StoreError> {
-    let kind = format!("rust-cli/{kind}");
+    let kind = format!("nibi-kernel/{kind}");
     let prefix = format!("{session}:{kind}:");
     Ok(entries::list(conn, session, Some(&kind))
         .storage()?

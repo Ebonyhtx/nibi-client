@@ -9,7 +9,7 @@ use super::*;
 use crate::test_support::{facts, workspace};
 
 const OFFICIAL: &str = "nibi-official";
-const CACHE: &str = "/Users/dev/.zcode/cli/plugins/cache";
+const CACHE: &str = "/Users/dev/.nibi/cli/plugins/cache";
 
 fn manifest(dir: &str, body: &str) -> (String, String) {
     (format!("{dir}/.nibi-plugin/plugin.json"), body.to_owned())

@@ -330,14 +330,14 @@ fn progress_reports_the_node_sequence() {
 /// Node 的 databaseId：路径的 sha256 十六进制（与 `createHash("sha256").update(dbPath)` 一致）。
 #[test]
 fn the_database_id_matches_node() {
-    let path = Path::new("C:\\Users\\dev\\.zcode\\cli\\db\\db.sqlite");
+    let path = Path::new("C:\\Users\\dev\\.nibi\\cli\\db\\db.sqlite");
     assert_eq!(
         session_database_id(path),
-        "9e8c79c27312770d1359036d8695b327cc4e25139da10763d1d27d8b5b87ed13"
+        "bd5335bada9ac0927e417b4ca7b0255b2b7475760ae91f8642fc85a21039bf9c"
     );
     // Node 的 dbPath 是 `path.resolve` 的产物：Windows 上混用分隔符归一成 `\`（同一个库同一个 ID）。
     assert_eq!(
-        session_database_id(Path::new("C:\\Users\\dev\\.zcode/cli/db/db.sqlite")),
+        session_database_id(Path::new("C:\\Users\\dev\\.nibi/cli/db/db.sqlite")),
         session_database_id(path)
     );
 }

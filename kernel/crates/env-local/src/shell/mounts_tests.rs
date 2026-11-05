@@ -7,13 +7,13 @@ use super::*;
 fn cleanup_waits_for_the_last_sandbox() {
     let mut mounts = Mounts::default();
     mounts.enter(vec![PathBuf::from("/w/.vscode")]);
-    mounts.enter(vec![PathBuf::from("/w/.zcode")]);
+    mounts.enter(vec![PathBuf::from("/w/.nibi")]);
     assert!(mounts.leave().is_empty());
     let mut created = mounts.leave();
     created.sort();
     assert_eq!(
         created,
-        [PathBuf::from("/w/.vscode"), PathBuf::from("/w/.zcode")]
+        [PathBuf::from("/w/.nibi"), PathBuf::from("/w/.vscode")]
     );
     assert!(mounts.leave().is_empty());
 }
@@ -23,7 +23,7 @@ async fn only_empty_files_are_removed() {
     let dir = tempfile::tempdir().unwrap();
     let empty = dir.path().join(".vscode");
     let written = dir.path().join(".bashrc");
-    let folder = dir.path().join(".zcode");
+    let folder = dir.path().join(".nibi");
     std::fs::write(&empty, "").unwrap();
     std::fs::write(&written, "x").unwrap();
     std::fs::create_dir(&folder).unwrap();

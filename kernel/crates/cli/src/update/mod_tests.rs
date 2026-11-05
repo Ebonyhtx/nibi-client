@@ -88,7 +88,7 @@ fn expected(latest: &str) -> UpdateInfo {
 #[tokio::test]
 async fn without_a_marker_nothing_is_read_or_fetched() {
     let dir = tempfile::tempdir().unwrap();
-    let cache = dir.path().join("rust-cli").join("version.json");
+    let cache = dir.path().join("nibi-kernel").join("version.json");
     let server = registry("0.1.47");
     // 缓存里有更新的版本也不弹：没有标记就不读它。
     write_cache(&cache, "0.1.47", NOW_MS - 30 * HOUR_MS, None);
@@ -132,7 +132,7 @@ async fn the_switch_and_source_builds_turn_the_check_off() {
 #[tokio::test]
 async fn a_missing_cache_is_refreshed_in_the_background_for_the_next_start() {
     let dir = tempfile::tempdir().unwrap();
-    let cache = dir.path().join("rust-cli").join("version.json");
+    let cache = dir.path().join("nibi-kernel").join("version.json");
     let server = registry("0.1.47");
     let mut updates = start(&marked(), true, &cache, &server.url).await;
     assert_eq!(updates.prompt(), None);

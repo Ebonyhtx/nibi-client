@@ -1,6 +1,6 @@
 //! 工作区信任的记录（docs/specs/rust-cli/workspace-trust.md §2.3、node-store.md §4.9）。
 //!
-//! 一行 `local_setting(scope='directory', scope_id=<规范化后的路径>, namespace='rust-cli/workspace-trust',
+//! 一行 `local_setting(scope='directory', scope_id=<规范化后的路径>, namespace='nibi-kernel/workspace-trust',
 //! key='trust_dialog')`，值 `{"hasTrustDialogAccepted":true}`。Node 只按 `(scope, scope_id, namespace, key)`
 //! 精确读 `permission` 命名空间，读不到这些行；表结构不变。
 
@@ -12,7 +12,7 @@ use serde_json::Value;
 use crate::OrStorage;
 
 const SCOPE: &str = "directory";
-const NAMESPACE: &str = "rust-cli/workspace-trust";
+const NAMESPACE: &str = "nibi-kernel/workspace-trust";
 const KEY: &str = "trust_dialog";
 const VALUE: &str = r#"{"hasTrustDialogAccepted":true}"#;
 

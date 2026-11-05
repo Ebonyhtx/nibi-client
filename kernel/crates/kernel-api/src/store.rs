@@ -96,7 +96,7 @@ pub enum Fact {
         operation: OperationId,
         fingerprint: String,
     },
-    /// 本工程独有的状态，映射成带 `rust-cli/` 前缀的 session_entry（Node 忽略未知类型）。
+    /// 本工程独有的状态，映射成带 `nibi-kernel/` 前缀的 session_entry（Node 忽略未知类型）。
     Entry {
         kind: String,
         id: String,
@@ -558,7 +558,7 @@ pub trait SessionStore: Send + Sync {
         })
     }
 
-    /// 这个会话里某一种 `rust-cli/<kind>` entry 的全部记录，按写入顺序：`(id, data)`（跨会话的入站与回执在
+    /// 这个会话里某一种 `nibi-kernel/<kind>` entry 的全部记录，按写入顺序：`(id, data)`（跨会话的入站与回执在
     /// 重开会话时恢复，docs/specs/rust-cli/cross-session.md §2.2，F28）。只读；不支持的实现返回空。
     async fn entries(
         &self,

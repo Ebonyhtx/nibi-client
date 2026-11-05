@@ -1,7 +1,7 @@
 //! 压缩的落库与冷读取（docs/specs/rust-cli/compact.md §6）。
 //!
 //! 内核的边界（`System(CompactBoundary)`）与摘要（`User(CompactSummary)`）在同一批事实里先后到达：
-//! - 边界先存成 `rust-cli/compact_boundary` entry（只供同一事务里的摘要取用，Node 忽略）；
+//! - 边界先存成 `nibi-kernel/compact_boundary` entry（只供同一事务里的摘要取用，Node 忽略）；
 //! - 摘要按 Node `persistCompactSummary`（`compact-persistence.ts`）写成带 `summary` 的 user 消息，
 //!   part 是一个 synthetic text 与一个 `compaction`，`compactBoundary` 只写 Node strict schema
 //!   （`contracts/src/compact/index.ts`）里的字段。
@@ -25,8 +25,8 @@ use crate::records::{self, AGENT};
 use crate::repo::{messages, sessions};
 use crate::{OrStorage, state, storage};
 
-/// entry 种类（不带 `rust-cli/` 前缀的部分）。
-const BOUNDARY_ENTRY: &str = "rust-cli/compact_boundary";
+/// entry 种类（不带 `nibi-kernel/` 前缀的部分）。
+const BOUNDARY_ENTRY: &str = "nibi-kernel/compact_boundary";
 
 /// `compaction` part 的 `metadata.rustCli` 里记压缩前已加载的工具的键（compact.md §3.5）。
 const DISCOVERED_KEY: &str = "preCompactDiscoveredTools";

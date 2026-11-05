@@ -1,6 +1,6 @@
 // 语义复制自 apps/zcode-cli/packages/bootstrap/src/app/legacy-cli-personal-provider-config-importer.ts 与
 // legacy-cli-model-config.ts 的判定部分（修复线 F2）。
-//! 旧 CLI 用户文件 `~/.zcode/cli/config.json` 里有没有 Node 要导入的 provider 或默认模型。
+//! 旧 CLI 用户文件 `~/.nibi/cli/config.json` 里有没有 Node 要导入的 provider 或默认模型。
 //!
 //! Node 在个人 Provider 配置 `provider_config.json` 不存在时、第一次读或写之前导入旧文件的 provider 与 `model`
 //! （`NodePersonalProviderConfigRepository` 的 `importLegacy`），文件一旦存在就不再导入。本工程不实现这份导入

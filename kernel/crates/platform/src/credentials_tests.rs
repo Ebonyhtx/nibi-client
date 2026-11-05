@@ -145,7 +145,7 @@ async fn writes_are_encrypted_pretty_printed_and_private() {
         let mode = std::fs::metadata(&file).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
     }
-    let lock = dir.path().join(".zcode/v2/credentials.json.lock");
+    let lock = dir.path().join(".nibi/v2/credentials.json.lock");
     // 锁目录已释放（还在的话读目录会报错）。
     assert!(matches!(nibi_kernel_fs::read_optional(&lock).await, Ok(None)));
 }

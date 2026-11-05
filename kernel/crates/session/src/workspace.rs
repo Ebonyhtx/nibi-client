@@ -115,7 +115,7 @@ impl Actor {
         accepted()
     }
 
-    /// 给模型的说明（来源 `rust-cli/cd` 的 meta 用户消息），先提交再进历史、发事件；`record` 的消息排在它前面、同一批。
+    /// 给模型的说明（来源 `nibi-kernel/cd` 的 meta 用户消息），先提交再进历史、发事件；`record` 的消息排在它前面、同一批。
     async fn commit_note(
         &mut self,
         command: CommandId,
@@ -178,7 +178,7 @@ impl Actor {
 }
 
 /// `/cd` 的说明消息的来源标签。
-pub(crate) const NOTE_SOURCE: &str = "rust-cli/cd";
+pub(crate) const NOTE_SOURCE: &str = "nibi-kernel/cd";
 
 /// 回合进行中改目录的拒绝文字。
 const BUSY: &str = "A turn is in progress — the working directory can only change while the session is idle. Wait for the turn to finish (or interrupt it), then retry.";

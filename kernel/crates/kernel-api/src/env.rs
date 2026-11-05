@@ -94,7 +94,7 @@ pub struct EnvFacts {
     /// 除 cwd 外允许访问的工作目录。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub additional_directories: Vec<EnvPath>,
-    /// 执行侧用户的 home；用户级规则文件 `~/.zcode/AGENTS.md` 由它定位。
+    /// 执行侧用户的 home；用户级规则文件 `~/.nibi/AGENTS.md` 由它定位。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub home: Option<EnvPath>,
 }

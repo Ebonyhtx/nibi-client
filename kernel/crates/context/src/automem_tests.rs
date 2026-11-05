@@ -12,7 +12,7 @@ use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 
 use crate::{ContextConfig, ContextPorts, NoListings, PromptAssembler, Surface};
 
-const MEMORY: &str = "/Users/dev/.zcode/projects/-Users-dev-w/memory";
+const MEMORY: &str = "/Users/dev/.nibi/projects/-Users-dev-w/memory";
 
 fn facts() -> EnvFacts {
     EnvFacts {

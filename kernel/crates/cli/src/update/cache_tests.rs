@@ -118,7 +118,7 @@ fn the_cache_is_refreshed_after_twenty_hours() {
 #[tokio::test]
 async fn refreshing_keeps_the_dismissed_version_and_writes_atomically() {
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("rust-cli").join("version.json");
+    let path = dir.path().join("nibi-kernel").join("version.json");
     // 目录不存在时创建。
     record_latest(&path, "0.1.47", NOW_MS).await.unwrap();
     assert_eq!(read(&path).await, Some(info("0.1.47", NOW_MS as i64, None)));

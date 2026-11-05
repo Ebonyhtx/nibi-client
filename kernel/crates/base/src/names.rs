@@ -1,17 +1,17 @@
 //! 产品目录与文件的名字：同一个名字只定义一处（docs/specs/rust-cli/README.md §4.1，工作线 F55）。
 //!
 //! 名字放在 base：内核 crate（context、tools、agents、ext、policy、kernel-api）与 prompts 不能依赖 paths
-//! （README §3.1 规则 1），而所有 crate 都能依赖 base。本机存储里用户根 `~/.zcode` 的位置只在 paths 的
-//! `user_path` 计算；执行环境里的路径（项目的 `<目录>/.zcode`、执行环境 home 下的 `~/.zcode`、managed 目录）
+//! （README §3.1 规则 1），而所有 crate 都能依赖 base。本机存储里用户根 `~/.nibi` 的位置只在 paths 的
+//! `user_path` 计算；执行环境里的路径（项目的 `<目录>/.nibi`、执行环境 home 下的 `~/.nibi`、managed 目录）
 //! 由各能力按执行环境的路径写法拼，名字都取这里。
 //!
 //! 边界脚本（`scripts/rust-cli/boundaries`，`SINGLE_DEFINITIONS`）拒绝本文件以外的产品代码在字符串字面量里
-//! 写 `.zcode` 路径段。
+//! 写 `.nibi` 路径段。
 
 /// 产品目录名 `.nibi`，给 `concat!` 拼 `const` 用（`const` 里不能用 [`DOT_DIR`]）；别处写 [`DOT_DIR`]。
 ///
 /// NIBI 的品牌化收口（计划 §4.5）：Rust 内核与 Node CLI/App 共用同一个用户根
-/// `~/.nibi`。此前是 `.zcode`，会让插件存储、用户配置与凭据在默认安装下分叉。
+/// `~/.nibi`，插件存储、用户配置与凭据不会再分叉。
 #[macro_export]
 macro_rules! dot_dir {
     () => {
@@ -22,12 +22,11 @@ macro_rules! dot_dir {
 /// 项目级配置目录名：NIBI 的 Node CLI / App / 协议前端都读 `<工作区>/.nibi/config.json`。
 ///
 /// 与 [`DOT_DIR`] 分开：`DOT_DIR` 是本内核自己的存储与用户根目录（由 `NIBI_DATA_BASE_DIR` 等注入），
-/// 项目级配置必须与 NIBI 的其它实现共读同一个文件。实测（2026-10-30）：`nibi.json` 的 5 组变体两边
-/// bundleDigest 全一致，只有带 `.zcode/config.json` 或 `.nibi/config.json` 时才分叉——Rust 读前者、
-/// NIBI 读后者，等于同一份项目配置两边看见的不是同一个文件。品牌化收口时再把 `DOT_DIR` 一并统一。
+/// 项目级配置必须与 NIBI 的其它实现共读同一个文件。早期两套实现各读一个目录，同一份项目配置在
+/// 两边看见的不是同一个文件；现已统一为 `.nibi/config.json`。
 pub const PROJECT_DOT_DIR: &str = ".nibi";
 
-/// 产品目录名：用户根 `~/.zcode`、项目的 `<目录>/.zcode`、managed 目录下的 `.zcode`。
+/// 产品目录名：用户根 `~/.nibi`、项目的 `<目录>/.nibi`、managed 目录下的 `.nibi`。
 pub const DOT_DIR: &str = dot_dir!();
 
 /// 规则文件。
@@ -40,22 +39,22 @@ pub const LOCAL_RULES_FILE: &str = "AGENTS.local.md";
 /// `config/files.rs`），写入它要确认（policy 的敏感文件，F58）。
 pub const PROJECT_CONFIG_FILE: &str = "nibi.json";
 
-/// 项目里 `.zcode/` 下的 worktree 目录：EnterWorktree 在这里建（env-local），权限判定认它（tools）。
+/// 项目里 `.nibi/` 下的 worktree 目录：EnterWorktree 在这里建（env-local），权限判定认它（tools）。
 pub const WORKTREES_DIR: &str = "worktrees";
 
-/// 项目里 `.zcode/` 下的自定义子代理目录：子代理从这里加载（agents），sandbox 禁止写它（env-local）。
+/// 项目里 `.nibi/` 下的自定义子代理目录：子代理从这里加载（agents），sandbox 禁止写它（env-local）。
 pub const AGENTS_DIR: &str = "agents";
 
-/// 项目里 `.zcode/` 下的定时任务文件：env-local 读写，工具的结果文字提到它。
+/// 项目里 `.nibi/` 下的定时任务文件：env-local 读写，工具的结果文字提到它。
 pub const SCHEDULED_TASKS_FILE: &str = "scheduled_tasks.json";
 
 /// Node 的官方插件市场名（`NIBI_OFFICIAL_PLUGIN_MARKETPLACE`）：插件 id 的后半、缓存与分片的目录名。platform 的
 /// 已安装清单、ext 的插件选择、入口合并 `plugins` 段都用它（F55：以前三处各写一份）。
 pub const OFFICIAL_MARKETPLACE: &str = "nibi-official";
 
-/// 执行器的目录（docs/specs/rust-cli/remote-exec.md §19.4）：用户根下的 `rust-cli/exec`。本机的位置由 paths 的
+/// 执行器的目录（docs/specs/rust-cli/remote-exec.md §19.4）：用户根下的 `nibi-kernel/exec`。本机的位置由 paths 的
 /// `StoragePaths::executor()` 算；远端的位置由 ssh-connect 按远端的 home 拼（远端只用这个目录，不碰 `cli/`）。
-pub const EXECUTOR_HOME: &str = "rust-cli/exec";
+pub const EXECUTOR_HOME: &str = "nibi-kernel/exec";
 
 /// Unix 上的可执行文件名（cli-args.md §13）：上传到远端的执行器、远端探测的候选都是这个名字。
 pub const UNIX_EXECUTABLE: &str = "nibi-rs";

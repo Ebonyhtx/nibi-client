@@ -378,7 +378,7 @@ fn workspace_changes_replace_the_view_workspace() {
     let mut feed = Feed::new();
     assert_eq!(feed.view.workspace().root.as_str(), "/Users/dev/project");
     let mut moved = crate::view::test_workspace();
-    moved.root = nibi_kernel_api::env::EnvPath::new("/Users/dev/project/.zcode/worktrees/a");
+    moved.root = nibi_kernel_api::env::EnvPath::new("/Users/dev/project/.nibi/worktrees/a");
     feed.push(KernelEvent::WorkspaceChanged {
         workspace: moved.clone(),
     });

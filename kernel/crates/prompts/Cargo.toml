@@ -14,7 +14,7 @@ workspace = true
 doctest = false
 
 [dependencies]
-# 编入文本的换行断言 `include_lf!`（修复线 F56，docs/specs/rust-cli/prompts.md「换行」）；产品目录名 `.zcode`
+# 编入文本的换行断言 `include_lf!`（修复线 F56，docs/specs/rust-cli/prompts.md「换行」）；产品目录名 `.nibi`
 # （loop.md 的位置，README §4.1，F55）。
 nibi-kernel-base.workspace = true
 serde = { workspace = true, features = ["derive"] }

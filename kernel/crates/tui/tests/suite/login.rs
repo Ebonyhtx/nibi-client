@@ -13,8 +13,8 @@ use tokio::sync::oneshot;
 use super::support::{GatedModel, Setup, with_ui};
 
 const URL: &str = "https://chat.example.com/oauth?flow=1";
-const CREDENTIALS: &str = "/Users/dev/.zcode/v2/credentials.json";
-const CONFIG: &str = "/Users/dev/.zcode/v2/provider_config.json";
+const CREDENTIALS: &str = "/Users/dev/.nibi/v2/credentials.json";
+const CONFIG: &str = "/Users/dev/.nibi/v2/provider_config.json";
 
 /// 账号服务的替身：浏览器授权等测试放行（`complete`）或取消；记下收到的 key。
 #[derive(Default)]

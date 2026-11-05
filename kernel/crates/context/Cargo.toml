@@ -15,7 +15,7 @@ doctest = false
 
 [dependencies]
 async-trait.workspace = true
-# 产品目录与文件的名字（`.zcode`、`AGENTS.md`，README §4.1，F55）。
+# 产品目录与文件的名字（`.nibi`、`AGENTS.md`，README §4.1，F55）。
 nibi-kernel-base.workspace = true
 # 规则文件的 frontmatter、@include 与条件规则的 glob（context.md §11）。
 regex.workspace = true

@@ -28,7 +28,7 @@ const PREAMBLE: &str = "Codebase and user instructions are shown below. Be sure 
 #[test]
 fn the_first_announcement_lists_every_file_with_its_label() {
     let files = [
-        file("/Users/dev/.zcode/AGENTS.md", Kind::User, "user rules\n"),
+        file("/Users/dev/.nibi/AGENTS.md", Kind::User, "user rules\n"),
         file("/w/AGENTS.md", Kind::Project, "\nproject rules\n\n"),
         file("/w/AGENTS.local.md", Kind::Local, "local"),
         file("/etc/zcode/AGENTS.md", Kind::Managed, "managed"),
@@ -38,7 +38,7 @@ fn the_first_announcement_lists_every_file_with_its_label() {
         text,
         format!(
             "{PREAMBLE}\n\n\
-             Contents of /Users/dev/.zcode/AGENTS.md (user's private global instructions for all projects):\n\nuser rules\n\n\
+             Contents of /Users/dev/.nibi/AGENTS.md (user's private global instructions for all projects):\n\nuser rules\n\n\
              Contents of /w/AGENTS.md (project instructions, checked into the codebase):\n\nproject rules\n\n\
              Contents of /w/AGENTS.local.md (user's private project instructions, not checked in):\n\nlocal\n\n\
              Contents of /etc/zcode/AGENTS.md (organization-managed policy instructions):\n\nmanaged"
@@ -47,7 +47,7 @@ fn the_first_announcement_lists_every_file_with_its_label() {
     assert_eq!(
         data,
         json!({"files": [
-            {"path": "/Users/dev/.zcode/AGENTS.md", "type": "User", "content": "user rules"},
+            {"path": "/Users/dev/.nibi/AGENTS.md", "type": "User", "content": "user rules"},
             {"path": "/w/AGENTS.md", "type": "Project", "content": "project rules"},
             {"path": "/w/AGENTS.local.md", "type": "Local", "content": "local"},
             {"path": "/etc/zcode/AGENTS.md", "type": "Managed", "content": "managed"},
@@ -70,14 +70,14 @@ fn later_announcements_carry_only_the_differences() {
 
     let second = [
         file("/w/AGENTS.md", Kind::Project, "v2"),
-        file("/w/.zcode/AGENTS.md", Kind::Project, "new"),
+        file("/w/.nibi/AGENTS.md", Kind::Project, "new"),
     ];
     let (text, data) = announce(&history, &second, Reason::SessionStart).unwrap();
     assert_eq!(
         text,
         "Instruction files were re-read when this session started; these differ from their earlier copies \u{2014} each replaces its earlier copy, and the instructions preamble above still applies:\n\n\
          Contents of /w/AGENTS.md (project instructions, checked into the codebase):\n\nv2\n\n\
-         Contents of /w/.zcode/AGENTS.md (project instructions, checked into the codebase):\n\nnew\n\n\
+         Contents of /w/.nibi/AGENTS.md (project instructions, checked into the codebase):\n\nnew\n\n\
          Instructions no longer present: /w/AGENTS.local.md"
     );
     assert_eq!(
@@ -85,7 +85,7 @@ fn later_announcements_carry_only_the_differences() {
         json!({
             "files": [
                 {"path": "/w/AGENTS.md", "type": "Project", "content": "v2"},
-                {"path": "/w/.zcode/AGENTS.md", "type": "Project", "content": "new"},
+                {"path": "/w/.nibi/AGENTS.md", "type": "Project", "content": "new"},
             ],
             "removed": ["/w/AGENTS.local.md"],
             "changed": true,
@@ -100,7 +100,7 @@ fn later_announcements_carry_only_the_differences() {
     let known = announced(&history).unwrap();
     assert_eq!(
         known.iter().map(|f| f.path.as_str()).collect::<Vec<_>>(),
-        ["/w/AGENTS.md", "/w/.zcode/AGENTS.md"]
+        ["/w/AGENTS.md", "/w/.nibi/AGENTS.md"]
     );
 }
 

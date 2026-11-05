@@ -25,7 +25,7 @@ pub const DELETE: &str = "CronDelete";
 pub const LIST: &str = "CronList";
 
 /// CronCreate 结果的两种说明之一（另一种 `Persisted to
-/// .zcode/scheduled_tasks.json` 在结果里用共用的名字拼）。产品名按替换规则换成 NIBI（2026-10-18 用户确认、2026-11-05 品牌化批次统一，
+/// .nibi/scheduled_tasks.json` 在结果里用共用的名字拼）。产品名按替换规则换成 NIBI（2026-10-18 用户确认、2026-11-05 品牌化批次统一，
 /// tools-more.md §10.2），路径取产品目录 `.nibi`，其余逐字。
 const SESSION_ONLY: &str = "Session-only (not written to disk, dies when NIBI exits)";
 /// 循环任务的有效天数（有效期 / 1 天）。

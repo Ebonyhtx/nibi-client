@@ -142,7 +142,7 @@ fn prepare(home: &Path, url: &str) -> std::path::PathBuf {
         "providerFamilyConnectionSelections": {"bigmodel": {"kind": "individual-coding-plan"}},
     });
     std::fs::write(v2.join("setting.json"), settings.to_string()).unwrap();
-    let bundled = include_str!("../../platform/assets/zcode-builtin.json");
+    let bundled = include_str!("../../platform/assets/nibi-builtin.json");
     let mut builtin: Value = serde_json::from_str(bundled).unwrap();
     for rule in builtin["config"]["providerConfigRules"]["providerRules"]
         .as_array_mut()

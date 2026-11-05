@@ -163,7 +163,7 @@ fn registry_for(id: &str, version: &str, tarball: Vec<u8>) -> (Registry, String,
 
 /// 机器清单：dev-a 经 ssh 连 `HOST`，工作目录 `/srv/proj`。
 fn machine_list(home: &Path) {
-    let list = home.join(".nibi/rust-cli/machines.json");
+    let list = home.join(".nibi/nibi-kernel/machines.json");
     std::fs::create_dir_all(list.parent().unwrap()).unwrap();
     std::fs::write(
         &list,
@@ -257,7 +257,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     assert!(result.contains("12."), "debian_version: {result}");
     assert_eq!(registry.seen(), [packument, tarball_path]);
     let cached: PathBuf = home.path().join(format!(
-        ".nibi/rust-cli/exec/dist/{VERSION}/{target}/nibi-rs"
+        ".nibi/nibi-kernel/exec/dist/{VERSION}/{target}/nibi-rs"
     ));
     assert_eq!(
         std::fs::read(&cached).unwrap(),
@@ -265,7 +265,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
     );
     assert_eq!(mode(&cached), 0o755);
     assert_eq!(mode(cached.parent().unwrap()), 0o700);
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{VERSION}/nibi-rs");
+    let installed = format!("/root/.nibi/nibi-kernel/exec/bin/{VERSION}/nibi-rs");
     let (_, remote_sum, _) = sshd.ssh(&format!("sha256sum {installed}"));
     let (_, local_sum, _) = run("shasum", &["-a", "256", &artifact.to_string_lossy()]);
     assert_eq!(
@@ -275,7 +275,7 @@ async fn a_glibc_machine_downloads_the_executor_from_the_registry() {
 
     // 2. 远端的执行器停掉、删掉，再连一次：用本机缓存重新上传，不再下载。
     let (ok, out, err) = sshd.ssh(&format!(
-        "{installed} executor stop && rm -rf /root/.nibi/rust-cli/exec/bin"
+        "{installed} executor stop && rm -rf /root/.nibi/nibi-kernel/exec/bin"
     ));
     assert!(ok, "{out}{err}");
     let (output, requests) = print_run(&sshd, home.path(), &work_path, &registry.url);
@@ -328,7 +328,7 @@ async fn a_musl_machine_is_refused_before_downloading() {
         "no model request before the machine connects"
     );
     assert!(registry.seen().is_empty(), "{:?}", registry.seen());
-    assert!(!home.path().join(".nibi/rust-cli/exec/dist").exists());
+    assert!(!home.path().join(".nibi/nibi-kernel/exec/dist").exists());
 }
 
 /// 注册表的 latest（F103）：比本机的 debug 版本旧，本机的版本不在注册表里。
@@ -386,15 +386,15 @@ async fn a_local_build_falls_back_to_the_latest_on_the_registry() {
         [packument.clone(), packument, tarball_path]
     );
     // 按实际版本缓存与上传。
-    let dist = home.path().join(".nibi/rust-cli/exec/dist");
+    let dist = home.path().join(".nibi/nibi-kernel/exec/dist");
     assert_eq!(
         std::fs::read(dist.join(format!("{LATEST}/{target}/nibi-rs"))).unwrap(),
         std::fs::read(&artifact).unwrap()
     );
     assert!(!dist.join(VERSION).exists());
-    let installed = format!("/root/.nibi/rust-cli/exec/bin/{LATEST}/nibi-rs");
+    let installed = format!("/root/.nibi/nibi-kernel/exec/bin/{LATEST}/nibi-rs");
     let (ok, listing, err) =
-        sshd.ssh("ls -A /root/.nibi/rust-cli/exec/bin /root/.nibi/rust-cli/exec/bin/*");
+        sshd.ssh("ls -A /root/.nibi/nibi-kernel/exec/bin /root/.nibi/nibi-kernel/exec/bin/*");
     assert!(ok, "{err}");
     assert_eq!(
         listing

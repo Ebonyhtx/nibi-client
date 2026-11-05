@@ -1,6 +1,6 @@
 //! 持久定时任务的存储端口（docs/specs/rust-cli/tools-more.md §16）。
 //!
-//! 唯一事实源是项目根下的 `.zcode/scheduled_tasks.json`；cron 能力（tools 的 `CronBoard`）持有它在本进程
+//! 唯一事实源是项目根下的 `.nibi/scheduled_tasks.json`；cron 能力（tools 的 `CronBoard`）持有它在本进程
 //! 的投影。文件与锁都在执行环境里：本地实现是 env-local 的 `LocalCronStore`，第二阶段在 App 下整体换成
 //! App 的实现（`automation/*`），每种环境只装一个。读改写是一次端口操作，在执行侧原子完成；创建者进程的
 //! PID 与启动时间只在执行侧出现，读出的每项只给出判定结果（[`CronCreator`]）。

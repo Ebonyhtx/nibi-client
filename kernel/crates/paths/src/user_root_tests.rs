@@ -1,4 +1,6 @@
-//! 用户根收拢（F55）前后的等价性：每个存储位置与收拢前的写法逐字节相同（比较 `OsStr`，不是 `Path` 的组件）。
+//! 用户根收拢（F55）前后的等价性：除本工程专用数据目录外，每个存储位置与收拢前的写法逐字节相同
+//! （比较 `OsStr`，不是 `Path` 的组件）。本工程专用目录在 crate 改名时换成 `nibi-kernel/`
+//! （NIBI 未发布，不做旧名迁移）。
 //!
 //! 右边是收拢前 `lib.rs` 的原式（`home.join(".nibi/v2")` 这样整段接上的，与 `.join(".nibi").join(…)` 分开接的，
 //! 在 Windows 上分隔符不同，这里按原样写）。macOS / Linux 上两种写法的结果相同；Windows 上的形状见文件末尾的
@@ -27,7 +29,7 @@ fn homes() -> Vec<PathBuf> {
 }
 
 #[test]
-fn default_storage_locations_are_byte_identical_to_the_old_formulas() {
+fn default_storage_locations_match_the_current_formulas() {
     let base = Path::new("/work/repo");
     for home in homes() {
         let paths = StoragePaths::resolve(&StorageSettings::default(), &home, base);
@@ -49,14 +51,14 @@ fn default_storage_locations_are_byte_identical_to_the_old_formulas() {
             os(paths.task_list("s1").as_path()),
             os(&root.join("tasks").join("s1.json"))
         );
-        assert_eq!(os(paths.logs().as_path()), os(&root.join("rust-cli/log")));
+        assert_eq!(os(paths.logs().as_path()), os(&root.join("nibi-kernel/log")));
         assert_eq!(
             os(paths.peers().as_path()),
-            os(&root.join("rust-cli/peers"))
+            os(&root.join("nibi-kernel/peers"))
         );
         assert_eq!(
             os(paths.update_cache().as_path()),
-            os(&root.join("rust-cli/version.json"))
+            os(&root.join("nibi-kernel/version.json"))
         );
         assert_eq!(os(paths.nibi_config().as_path()), os(&config));
         assert_eq!(
@@ -109,7 +111,7 @@ fn default_storage_locations_are_byte_identical_to_the_old_formulas() {
 }
 
 #[test]
-fn configured_locations_are_byte_identical_to_the_old_formulas() {
+fn configured_locations_match_the_current_formulas() {
     let base = Path::new("/work/repo");
     let home = Path::new("/Users/dev");
     let settings = StorageSettings {
@@ -126,7 +128,7 @@ fn configured_locations_are_byte_identical_to_the_old_formulas() {
         os(paths.artifacts().as_path()),
         os(&root.join("cli/artifacts"))
     );
-    assert_eq!(os(paths.logs().as_path()), os(&root.join("rust-cli/log")));
+    assert_eq!(os(paths.logs().as_path()), os(&root.join("nibi-kernel/log")));
     // `NIBI_DATA_BASE_DIR` 只换账号与 Provider 的配置根，设置文件仍在 home 下。
     let data = Path::new("/srv/data");
     let moved = paths.clone().with_data_base_dir(data);
@@ -192,7 +194,7 @@ fn unix_defaults_spell_the_documented_strings() {
         text(&paths.provider_config()),
         "/Users/dev/.nibi/v2/provider_config.json"
     );
-    assert_eq!(text(&paths.logs()), "/Users/dev/.nibi/rust-cli/log");
+    assert_eq!(text(&paths.logs()), "/Users/dev/.nibi/nibi-kernel/log");
     assert_eq!(
         user_path(Path::new("/Users/dev"), "").to_string_lossy(),
         "/Users/dev/.nibi"
@@ -229,7 +231,7 @@ fn windows_defaults_keep_their_current_shape() {
         text(&paths.provider_config()),
         r"C:\Users\dev\.nibi/v2\provider_config.json"
     );
-    assert_eq!(text(&paths.logs()), r"C:\Users\dev\.nibi\rust-cli/log");
+    assert_eq!(text(&paths.logs()), r"C:\Users\dev\.nibi\nibi-kernel/log");
     assert_eq!(
         user_path(Path::new(r"C:\Users\dev"), "v2").to_string_lossy(),
         r"C:\Users\dev\.nibi/v2"

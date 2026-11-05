@@ -1,4 +1,4 @@
-//! TUI 的输入历史（docs/specs/rust-cli/tui.md，与 Host TUI 共用 `<dataBaseDir>/.zcode/v2/tui/history.jsonl`）：
+//! TUI 的输入历史（docs/specs/rust-cli/tui.md，与 Host TUI 共用 `<dataBaseDir>/.nibi/v2/tui/history.jsonl`）：
 //! 每行 `{"workspace", "text", "at"}`。启动时读本工作区最近 [`LOAD`] 条；发送时交给唯一的写者，按发送顺序
 //! 追加（同一个文件只有一个写者，不需要加锁）。
 

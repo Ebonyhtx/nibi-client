@@ -21,11 +21,11 @@ fn with_skills() -> Setup {
         home: Some(EnvPath::new("/Users/dev")),
     })
     .with_file(
-        "/Users/dev/project/.zcode/skills/review/SKILL.md",
+        "/Users/dev/project/.nibi/skills/review/SKILL.md",
         &skill("review"),
     )
     .with_file(
-        "/Users/dev/project/.zcode/skills/deploy/SKILL.md",
+        "/Users/dev/project/.nibi/skills/deploy/SKILL.md",
         &skill("deploy"),
     );
     Setup {

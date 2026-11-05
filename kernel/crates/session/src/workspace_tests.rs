@@ -142,7 +142,7 @@ impl Tool for DirTool {
         let text = if self.0 == "Switch" {
             match context
                 .interactions
-                .set_workspace(&context.session, EnvPath::new("/work/.zcode/worktrees/a"))
+                .set_workspace(&context.session, EnvPath::new("/work/.nibi/worktrees/a"))
                 .await
             {
                 Ok(()) => "switched".to_owned(),
@@ -204,9 +204,9 @@ async fn run(refuse: bool) -> (Vec<String>, Vec<String>, String) {
 #[tokio::test]
 async fn a_workspace_change_applies_to_the_next_tool_call_in_the_same_turn() {
     let (results, cwd, root) = run(false).await;
-    assert_eq!(results, ["switched", "/work/.zcode/worktrees/a"]);
-    assert_eq!(cwd, ["/work/.zcode/worktrees/a"]);
-    assert_eq!(root, "/work/.zcode/worktrees/a");
+    assert_eq!(results, ["switched", "/work/.nibi/worktrees/a"]);
+    assert_eq!(cwd, ["/work/.nibi/worktrees/a"]);
+    assert_eq!(root, "/work/.nibi/worktrees/a");
 }
 
 #[tokio::test]
@@ -290,7 +290,7 @@ async fn set_workspace_moves_an_idle_session_and_commits_the_note() {
     assert_eq!(
         note.origin,
         UserOrigin::Meta {
-            source: "rust-cli/cd".to_owned(),
+            source: "nibi-kernel/cd".to_owned(),
             origin_meta: None,
         }
     );
@@ -330,7 +330,7 @@ async fn a_workspace_change_is_announced_to_the_front_end() {
             _ => None,
         })
         .collect();
-    assert_eq!(changed, ["/work/.zcode/worktrees/a"]);
+    assert_eq!(changed, ["/work/.nibi/worktrees/a"]);
 }
 
 /// 规则文件来源的替身：新目录有一条规则。

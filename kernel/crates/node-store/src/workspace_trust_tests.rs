@@ -21,7 +21,7 @@ async fn trust_is_one_local_setting_row_per_directory() {
         vec![vec![
             "directory".into(),
             "/Users/dev/work".into(),
-            "rust-cli/workspace-trust".into(),
+            "nibi-kernel/workspace-trust".into(),
             "trust_dialog".into(),
             r#"{"hasTrustDialogAccepted":true}"#.into(),
             serde_json::Value::from(1),
@@ -83,7 +83,7 @@ async fn a_row_without_the_flag_does_not_count() {
     ] {
         test.connection()
             .execute(
-                "insert into local_setting values ('directory', '/w', 'rust-cli/workspace-trust', 'trust_dialog', ?, 1, 1, 1)
+                "insert into local_setting values ('directory', '/w', 'nibi-kernel/workspace-trust', 'trust_dialog', ?, 1, 1, 1)
                  on conflict(scope, scope_id, namespace, key) do update set value = excluded.value",
                 rusqlite::params![value],
             )
@@ -97,7 +97,7 @@ async fn a_row_without_the_flag_does_not_count() {
     // 别的命名空间、作用域或键的行不算（例如 Node 的 permission 行）。
     test.connection()
         .execute(
-            "insert into local_setting values ('project', '/x', 'rust-cli/workspace-trust', 'trust_dialog', '{\"hasTrustDialogAccepted\":true}', 1, 1, 1),
+            "insert into local_setting values ('project', '/x', 'nibi-kernel/workspace-trust', 'trust_dialog', '{\"hasTrustDialogAccepted\":true}', 1, 1, 1),
                                               ('directory', '/y', 'permission', 'trust_dialog', '{\"hasTrustDialogAccepted\":true}', 1, 1, 1)",
             [],
         )

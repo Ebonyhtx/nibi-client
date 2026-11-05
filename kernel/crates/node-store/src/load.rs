@@ -200,7 +200,7 @@ fn kernel_selection(selection: &Value) -> ModelSelection {
     }
 }
 
-/// 团队项目（工作线 F49，node-store.md §5 第 5 条）：`rust-cli/model_connection` 的 `providerId` / `modelId` 与 Node 的
+/// 团队项目（工作线 F49，node-store.md §5 第 5 条）：`nibi-kernel/model_connection` 的 `providerId` / `modelId` 与 Node 的
 /// 选择相同才用（Node 或 App 之后换过模型时不套用）；三个 ID 都要是去空白后非空的字符串。
 fn with_connection(
     conn: &Connection,
@@ -231,7 +231,7 @@ fn with_connection(
     Ok(selection)
 }
 
-/// Node 执行状态对应的权限模式与 plan 开关（修复线 F20）；`rust-cli/permission_mode` 记的模式与执行状态一致时用它
+/// Node 执行状态对应的权限模式与 plan 开关（修复线 F20）；`nibi-kernel/permission_mode` 记的模式与执行状态一致时用它
 /// （区分 default 与 dontAsk），Node 续写改过模式后以 Node 为准。
 fn execution_state(
     conn: &Connection,

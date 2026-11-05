@@ -89,7 +89,7 @@ const fn other(name: &'static str, protocol: WireProtocol) -> Profile {
 
 /// 方案表（model.md §3.2 的表，顺序即优先级）。
 ///
-/// 修复线 F58：智谱的端点以前是三种精确地址（照 zcode-builtin.json 的站点规则），与 ToolSearch 的域名规则不一致；
+/// 修复线 F58：智谱的端点以前是三种精确地址（照 nibi-builtin.json 的站点规则），与 ToolSearch 的域名规则不一致；
 /// 现在用同一个判定（主机是 z.ai / bigmodel.cn 或子域名，Node / App 的 `resolveModelProviderFamilyIdByBaseURL`）。
 pub(crate) static PROFILES: [Profile; 6] = [
     official(

@@ -198,7 +198,7 @@ impl Scope<'_> {
             out.extend(plain);
             out.extend(self.matching(conditional, &dir, target));
         }
-        // 从根的下一层到工作区根：各层 `.zcode/rules` 里命中的条件规则。
+        // 从根的下一层到工作区根：各层 `.nibi/rules` 里命中的条件规则。
         for dir in style.ancestors(&self.cwd) {
             if self.outside_worktree(&dir, worktree) {
                 continue;

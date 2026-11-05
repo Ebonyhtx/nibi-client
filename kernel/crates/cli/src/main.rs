@@ -332,7 +332,7 @@ async fn session(
         let directory: Arc<dyn ModelDirectory> = platform.clone();
         directory
     });
-    // TUI 的输入历史在 `<dataBaseDir>/.zcode/v2`，不随 `storage.*`。
+    // TUI 的输入历史在 `<dataBaseDir>/.nibi/v2`，不随 `storage.*`。
     let history = History::new(&paths);
     // TUI 的 `/login` `/logout` 与模型端口共用同一个平台层（tui.md §7.2）。
     let account = platform.clone();
@@ -562,7 +562,7 @@ async fn session(
     )
     .await;
     extensions.peers = peers.deps.clone();
-    // 持久定时任务：启动工作区（项目根）下的 `.zcode/scheduled_tasks.json`（tools-more.md §16）。
+    // 持久定时任务：启动工作区（项目根）下的 `.nibi/scheduled_tasks.json`（tools-more.md §16）。
     extensions.cron_store = Some(Arc::new(LocalCronStore::new(
         &workspace.root,
         clock.clone(),

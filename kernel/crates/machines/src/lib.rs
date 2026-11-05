@@ -10,7 +10,7 @@
 //!      └── disconnect ────┴───（任何状态 disconnect 都回到 Unconnected）
 //! ```
 //!
-//! - [`list`]：机器清单 `~/.zcode/rust-cli/machines.json`（R3）：名字、ssh 目标、工作目录、上次是否连着；
+//! - [`list`]：机器清单 `~/.nibi/nibi-kernel/machines.json`（R3）：名字、ssh 目标、工作目录、上次是否连着；
 //! - [`state`]：状态、事件与错误都是纯数据，转移是一个纯函数；
 //! - [`machine`]：驱动——跑部署与握手，订阅 exec-client 的连接状态，把状态发到一个 `watch`。每个转移都由一个事件触发，
 //!   不按超时改状态。

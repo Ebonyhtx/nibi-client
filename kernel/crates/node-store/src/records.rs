@@ -86,9 +86,9 @@ pub fn model_selection_entry(session: &str, now: u64, selection: Value) -> Value
 
 /// 选择的团队项目（工作线 F49，docs/specs/rust-cli/node-store.md §4）：Node 的 `modelSelectionSchema` 是 strict，
 /// 团队项目不能放进 `runtime/model_selection`，另存这一条；冷读取时 `providerId` / `modelId` 对得上才用。
-pub const MODEL_CONNECTION_ENTRY: &str = "rust-cli/model_connection";
+pub const MODEL_CONNECTION_ENTRY: &str = "nibi-kernel/model_connection";
 
-/// `rust-cli/model_connection` 这条 entry；选择不带团队项目时没有。
+/// `nibi-kernel/model_connection` 这条 entry；选择不带团队项目时没有。
 pub fn model_connection_entry(
     session: &str,
     now: u64,

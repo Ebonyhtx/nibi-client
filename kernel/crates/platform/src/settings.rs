@@ -1,7 +1,7 @@
 // 读取语义复制自 apps/zcode-host/crates/settings/src/settings/mod.rs（1f0bfd1b71）的 `get`：文件不存在或
 // 不是对象时按空设置处理。改动：只读不写（写入、迁移与 schema 补全仍由 App 负责），文件经 nibi-kernel-fs 读取，
 // 解析失败不重试（Host 为并发写入重试 3 次；CLI 读到半截文件时按空设置处理，下次读取再看）。
-//! App 设置 `~/.zcode/v2/setting.json` 的只读视图（docs/specs/rust-cli/platform.md §6）。App 的连接选择不读
+//! App 设置 `~/.nibi/v2/setting.json` 的只读视图（docs/specs/rust-cli/platform.md §6）。App 的连接选择不读
 //! （工作线 F49：所有可用的套餐平铺进目录，不跟随 App 的当前连接，§9）。
 
 use nibi_kernel_paths::StoragePath;

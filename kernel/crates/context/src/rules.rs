@@ -14,7 +14,7 @@ use nibi_kernel_api::machine::Files;
 use crate::rules_frontmatter;
 use crate::rules_markdown;
 
-/// `.zcode/` 下的规则目录：managed、用户与每一层项目都有（F55：以前在两个文件里写了 8 次）。
+/// `.nibi/` 下的规则目录：managed、用户与每一层项目都有（F55：以前在两个文件里写了 8 次）。
 pub(crate) const RULES_DIR: &str = "rules";
 
 /// @include 的最大深度。

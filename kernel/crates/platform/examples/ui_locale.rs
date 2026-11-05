@@ -1,7 +1,7 @@
 //! 界面语言配置的互操作辅助程序（docs/specs/rust-cli/tui.md §7.1），由
 //! `scripts/rust-cli/node-interop-check.mjs` 调用：
 //!
-//! - `write <home> <locale>`：用 `write_ui_locale` 写 `<home>/.zcode/cli/config.json` 的 `ui.locale`，输出文件路径；
+//! - `write <home> <locale>`：用 `write_ui_locale` 写 `<home>/.nibi/cli/config.json` 的 `ui.locale`，输出文件路径；
 //! - `read <home>`：读同一个文件，输出 `{"locale": <值或 null>}`（与入口合并用户级配置时相同的解析）。
 use std::path::Path;
 

@@ -10,7 +10,7 @@ use tokio::sync::oneshot;
 
 use super::support::{GatedModel, Setup, with_ui};
 
-const CONFIG: &str = "/Users/dev/.zcode/cli/config.json";
+const CONFIG: &str = "/Users/dev/.nibi/cli/config.json";
 
 /// 记录每次写回；`gate` 为真时每次写回等测试放行（测在途期间的输入）。
 #[derive(Default)]
@@ -110,7 +110,7 @@ async fn switching_writes_first_and_then_changes_the_language() {
 async fn a_failed_write_keeps_the_language() {
     let model = GatedModel::scripted(vec![text_response(&["ok"])]);
     let store = Arc::new(Store {
-        fail: Some("Unable to write config file: /Users/dev/.zcode/cli/config.json"),
+        fail: Some("Unable to write config file: /Users/dev/.nibi/cli/config.json"),
         ..Store::default()
     });
     with_ui(model, setup(&store, None), |mut ui| async move {

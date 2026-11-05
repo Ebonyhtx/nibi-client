@@ -1,4 +1,4 @@
-//! `.zcode/scheduled_tasks.json` 的解析与写出（docs/specs/rust-cli/tools-more.md §16.1）。
+//! `.nibi/scheduled_tasks.json` 的解析与写出（docs/specs/rust-cli/tools-more.md §16.1）。
 //!
 //! 文件形状 `{"tasks": [...]}`，`JSON.stringify(_, null, 2)` 加换行。读时跳过字段类型不对的项（只记
 //! debug 日志）；cron 表达式是否合法由内核判断（D30）。

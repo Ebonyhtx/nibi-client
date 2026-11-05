@@ -72,7 +72,7 @@ fn a_tool_whose_name_is_too_long_is_not_sent_to_the_model() {
     assert!(!names.contains(&"mcp__names__lookup"), "{names:?}");
     assert!(!text.contains(&long), "{names:?}");
     // 运行日志（开发构建写 warn）：每个名字一行，带服务器、工具名与长度。
-    let log = home.join(".nibi/rust-cli/log");
+    let log = home.join(".nibi/nibi-kernel/log");
     let file = std::fs::read_dir(&log)
         .unwrap()
         .next()

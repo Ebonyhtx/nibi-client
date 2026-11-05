@@ -6,7 +6,7 @@
 //! - `CheckpointsRestored` → 每个受影响的回合一条 `runtime/workspace_file_rewind`
 //!   （Node `persistWorkspaceFileRewindEntry`，`reason = file_summary_rewind`）。
 //! - 远端机器上的 checkpoint（R3，docs/specs/rust-cli/remote-exec.md §17.1、§20.9）：同样的形状，类型换成本工程的
-//!   `rust-cli/remote_checkpoint` 与 `rust-cli/remote_file_rewind`，`rustCli` 里多 `machine`。Node / App 按类型查询，看不到
+//!   `nibi-kernel/remote_checkpoint` 与 `nibi-kernel/remote_file_rewind`，`rustCli` 里多 `machine`。Node / App 按类型查询，看不到
 //!   它们，App 回退不会把远端文件的内容写到本机的同名路径；序号在这两种记录之间单独算。
 use std::borrow::Cow;
 
@@ -26,8 +26,8 @@ use crate::{OrStorage, records, storage};
 pub const CHECKPOINT_ENTRY: &str = "runtime/workspace_checkpoint";
 pub const FILE_REWIND_ENTRY: &str = "runtime/workspace_file_rewind";
 /// 远端机器上的 checkpoint 与文件回退（R3）。
-pub const REMOTE_CHECKPOINT_ENTRY: &str = "rust-cli/remote_checkpoint";
-pub const REMOTE_FILE_REWIND_ENTRY: &str = "rust-cli/remote_file_rewind";
+pub const REMOTE_CHECKPOINT_ENTRY: &str = "nibi-kernel/remote_checkpoint";
+pub const REMOTE_FILE_REWIND_ENTRY: &str = "nibi-kernel/remote_file_rewind";
 
 /// 一种记录：Node 的（本机）或本工程的（远端机器）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -101,7 +101,7 @@ pub fn revert(ctx: &Commit<'_>, cursor: &RevertCursor) -> Result<Value, StoreErr
 
 /// 工作区事件的序号（Node `sequenceNumber`，Node 恢复时按它排序、App 按它取增量）：本会话已持久化的
 /// checkpoint 与文件回退记录（Node 与本工程写的）里的最大值加一。同一事务里先写的记录立刻可见，所以同一批的
-/// 几个 checkpoint 依次加一。修复线 F2：以前用本工程的提交序号（`rust-cli/commit`），与 Node 的事件序号不是一个
+/// 几个 checkpoint 依次加一。修复线 F2：以前用本工程的提交序号（`nibi-kernel/commit`），与 Node 的事件序号不是一个
 /// 空间：混写时顺序错、会重复，同一批的几个 checkpoint 序号也相同。
 fn sequence(ctx: &Commit<'_>, kind: Kind) -> Result<u64, StoreError> {
     let max: Option<i64> = ctx
@@ -173,7 +173,7 @@ pub fn checkpoint(ctx: &Commit<'_>, checkpoint: &WorkspaceCheckpoint) -> Result<
     let event = data["eventId"].as_str().unwrap_or_default().to_owned();
     let id = match kind {
         Kind::Node => format!("workspace-checkpoint:{event}"),
-        Kind::Remote => format!("rust-cli-remote-checkpoint:{event}"),
+        Kind::Remote => format!("nibi-kernel-remote-checkpoint:{event}"),
     };
     let entry = records::entry(id, ctx.session, kind.checkpoint(), ctx.now, data, true);
     save_entry(ctx, &entry)
@@ -214,7 +214,7 @@ fn restored_of(ctx: &Commit<'_>, ids: &[String], kind: Kind) -> Result<(), Store
         let data = persisted(ctx, payload, prompt, kind)?;
         let id = match kind {
             Kind::Node => format!("workspace-file-rewind:{rewind}"),
-            Kind::Remote => format!("rust-cli-remote-file-rewind:{rewind}"),
+            Kind::Remote => format!("nibi-kernel-remote-file-rewind:{rewind}"),
         };
         let entry = records::entry(id, ctx.session, kind.file_rewind(), ctx.now, data, true);
         save_entry(ctx, &entry)?;

@@ -14,7 +14,7 @@ use super::{PluginSkillRoot, Skill, SkillCatalog, SkillShell, SkillSource};
 /// SKILL.md 的大小上限（1e6 字节），超过时跳过。
 const MAX_SKILL_BYTES: u64 = 1_000_000;
 
-/// 每个根目录下的 skill 目录（`<根>/.zcode/skills`、`<根>/.agents/skills`）。
+/// 每个根目录下的 skill 目录（`<根>/.nibi/skills`、`<根>/.agents/skills`）。
 const SKILLS_DIR: &str = "skills";
 
 /// 一个根目录与它的来源。
@@ -24,7 +24,7 @@ struct Root {
 }
 
 fn base_roots(style: PathStyle, base: &str, source: &SkillSource) -> [Root; 2] {
-    // `.zcode` 与 `.agents` 合并，同级 `.zcode` 在前（Node `skillRootsForBase`）。
+    // `.nibi` 与 `.agents` 合并，同级 `.nibi` 在前（Node `skillRootsForBase`）。
     [DOT_DIR, ".agents"].map(|dot| Root {
         dir: style.join(base, &[dot, SKILLS_DIR]),
         source: source.clone(),

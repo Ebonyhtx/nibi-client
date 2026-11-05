@@ -207,7 +207,7 @@ async fn a_user_invoked_skill_is_checked_by_its_body() {
         ),
         user(
             "s",
-            "Base directory for this skill: /w/.zcode/skills/greet\n\nUltrathink, then greet Ada.",
+            "Base directory for this skill: /w/.nibi/skills/greet\n\nUltrathink, then greet Ada.",
             UserOrigin::Meta {
                 source: "skill".to_owned(),
                 origin_meta: None,

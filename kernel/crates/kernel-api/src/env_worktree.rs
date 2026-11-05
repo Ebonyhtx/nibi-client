@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::env::EnvPath;
 
-/// 新建或续用一个 worktree（mutate）：`cwd` 所在主仓库根下 `.zcode/worktrees/<flat>`，分支
+/// 新建或续用一个 worktree（mutate）：`cwd` 所在主仓库根下 `.nibi/worktrees/<flat>`，分支
 /// `worktree-<flat>`（`flat` 是 `name` 把 `/` 换成 `+`）。名字已由内核校验。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorktreeCreate {

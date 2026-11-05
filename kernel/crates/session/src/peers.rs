@@ -1,6 +1,6 @@
 //! 跨会话的入站、扣住、解决与回执（docs/specs/rust-cli/cross-session.md §2.4）。
 //!
-//! 会话 actor 是收到的消息与回执的唯一 owner：每一条先提交 `rust-cli/peer_*` entry 再 ack 适配器（适配器这时才回复
+//! 会话 actor 是收到的消息与回执的唯一 owner：每一条先提交 `nibi-kernel/peer_*` entry 再 ack 适配器（适配器这时才回复
 //! 对方，README §6 规则 9）。接收的消息与回执进 next 通道（lane.rs），运行中在工具边界并入、空闲时开回合；扣住的
 //! 消息在 `held` 表里，到期时刻是数据，`select!` 里睡到最早的到期时刻、醒来后按注入的时钟判断（cron 的唤醒同理）。
 
@@ -19,7 +19,7 @@ use serde_json::{Value, json};
 use crate::actor::Actor;
 use crate::lane::{Lane, Waiting};
 
-/// 收到的消息、扣住的解决与回执的 entry 种类（node-store 映射成 `rust-cli/<kind>`）。
+/// 收到的消息、扣住的解决与回执的 entry 种类（node-store 映射成 `nibi-kernel/<kind>`）。
 pub(crate) const MESSAGE_ENTRY: &str = "peer_message";
 pub(crate) const RESOLVED_ENTRY: &str = "peer_resolved";
 pub(crate) const RECEIPT_ENTRY: &str = "peer_receipt";

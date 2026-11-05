@@ -13,9 +13,9 @@ use crate::repo::entries;
 use crate::repo::sessions::SessionRow;
 
 /// 本工程记录内核模式名的 entry（dontAsk 在 Node 里没有对应值）。
-pub const PERMISSION_MODE_ENTRY: &str = "rust-cli/permission_mode";
+pub const PERMISSION_MODE_ENTRY: &str = "nibi-kernel/permission_mode";
 /// 提交回执的序号 entry。
-pub const COMMIT_ENTRY: &str = "rust-cli/commit";
+pub const COMMIT_ENTRY: &str = "nibi-kernel/commit";
 
 /// 最后一条 entry 的 data。
 pub fn last_entry(conn: &Connection, session: &str, kind: &str) -> anyhow::Result<Option<Value>> {

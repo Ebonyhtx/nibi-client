@@ -178,7 +178,7 @@ async fn bash_and_skill_inputs_store_the_typed_text() {
         .map(|data| serde_json::from_str(data.as_str().unwrap()).unwrap())
         .collect();
     assert_eq!(messages[1]["synthetic"], true);
-    assert_eq!(messages[1]["metadata"]["source"], "rust-cli/bash_output");
+    assert_eq!(messages[1]["metadata"]["source"], "nibi-kernel/bash_output");
     assert_eq!(
         messages[1]["anchor"]["turnId"],
         messages[0]["anchor"]["turnId"]
@@ -213,7 +213,7 @@ async fn bash_and_skill_inputs_store_the_typed_text() {
     );
 }
 
-/// `plan_mode_exit` 与 Node 提醒表重名：存成 `rust-cli/plan_mode_exit`，冷读取还原原来的来源。
+/// `plan_mode_exit` 与 Node 提醒表重名：存成 `nibi-kernel/plan_mode_exit`，冷读取还原原来的来源。
 #[tokio::test]
 async fn plan_mode_exit_is_stored_under_a_prefixed_source() {
     let t = TestStore::new();
@@ -238,7 +238,7 @@ async fn plan_mode_exit_is_stored_under_a_prefixed_source() {
             &t,
             "select json_extract(data, '$.metadata.source') from message where id = 'msg_x1'"
         ),
-        vec![json!("rust-cli/plan_mode_exit")]
+        vec![json!("nibi-kernel/plan_mode_exit")]
     );
     let loaded = t.store.load(&SessionId::new("sess_1")).await.unwrap();
     let Message::Attachment(read) = &loaded.messages[1] else {
@@ -286,7 +286,7 @@ async fn a_node_group_session_keeps_rules_and_mode_in_the_session_row() {
     assert_eq!(
         rows_of(&t, "select permission from session where id = 'sess_1'"),
         vec![json!(
-            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Read"},{"toolName":"Bash","ruleContent":"npm test:*"}],"rust-cli/permission_mode":"acceptEdits"}"#
+            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Read"},{"toolName":"Bash","ruleContent":"npm test:*"}],"nibi-kernel/permission_mode":"acceptEdits"}"#
         )]
     );
     assert_eq!(
@@ -361,7 +361,7 @@ async fn set_session_permission_creates_the_scope_later_grants_use() {
     assert_eq!(
         rows_of(&t, "select permission from session where id = 'sess_1'"),
         vec![json!(
-            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Bash","ruleContent":"npm test:*"}],"rust-cli/permission_mode":"acceptEdits"}"#
+            r#"{"version":1,"scope":"session","mode":"edit","allow":[{"toolName":"Bash","ruleContent":"npm test:*"}],"nibi-kernel/permission_mode":"acceptEdits"}"#
         )]
     );
     assert_eq!(rows_of(&t, "select count(*) from local_setting"), vec![json!(0)]);

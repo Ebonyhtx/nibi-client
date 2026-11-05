@@ -123,7 +123,7 @@ fn macos_remotes_go_through_the_same_table() {
     let running = macos(
         "arm64",
         vec![(
-            "/Users/dev/.zcode/rust-cli/exec/bin/0.2.0/nibi-rs",
+            "/Users/dev/.nibi/nibi-kernel/exec/bin/0.2.0/nibi-rs",
             report("0.2.0", 1, Some(resident("0.2.0", 1, true))),
         )],
     );

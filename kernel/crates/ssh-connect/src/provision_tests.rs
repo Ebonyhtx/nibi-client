@@ -133,7 +133,7 @@ async fn the_executor_is_uploaded_verified_and_used() {
     let provisioned = provisioner.provision().await.unwrap();
     let installed = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs");
+        .join(".nibi/nibi-kernel/exec/bin/0.2.0/nibi-rs");
     assert_eq!(
         provisioned,
         Provisioned {
@@ -143,7 +143,7 @@ async fn the_executor_is_uploaded_verified_and_used() {
     );
     assert_eq!(std::fs::read(&installed).unwrap(), bytes);
     assert_eq!(mode(&installed), 0o700);
-    assert_eq!(mode(&remote.home().join(".zcode/rust-cli/exec")), 0o700);
+    assert_eq!(mode(&remote.home().join(".nibi/nibi-kernel/exec")), 0o700);
     // 没有留下临时文件。
     let left: Vec<_> = std::fs::read_dir(installed.parent().unwrap())
         .unwrap()
@@ -157,7 +157,7 @@ async fn an_installed_executor_of_the_same_version_is_used_without_uploading() {
     let remote = Remote::new();
     let installed = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs");
+        .join(".nibi/nibi-kernel/exec/bin/0.2.0/nibi-rs");
     std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
     std::fs::write(
         &installed,
@@ -276,7 +276,7 @@ fn the_rejection_rules_follow_the_ssh_messages() {
         "executor exited (exit status: 255): Received disconnect from 10.0.0.2 port 22:2: Too many authentication failures\n",
         "executor exited (exit status: 255): Host key verification failed.\n",
         "executor exited (exit status: 255): @@@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @@@\n",
-        "executor exited (exit status: 127): sh: /root/.zcode/rust-cli/exec/bin/x/nibi-rs: not found\n",
+        "executor exited (exit status: 127): sh: /root/.nibi/nibi-kernel/exec/bin/x/nibi-rs: not found\n",
         "executor exited (exit status: 126): sh: /root/x/nibi-rs: Permission denied\n",
     ] {
         assert!(rejected(message), "{message}");
@@ -315,7 +315,7 @@ async fn uploading_reports_its_size_first() {
     let remote = Remote::new();
     let installed = remote
         .home()
-        .join(".zcode/rust-cli/exec/bin/0.2.0/nibi-rs");
+        .join(".nibi/nibi-kernel/exec/bin/0.2.0/nibi-rs");
     std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
     std::fs::write(
         &installed,

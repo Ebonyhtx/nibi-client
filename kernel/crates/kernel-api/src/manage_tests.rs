@@ -180,7 +180,7 @@ fn directory_changes_round_trip() {
 #[test]
 fn plan_files_round_trip() {
     let file = PlanFile {
-        path: "/Users/dev/project/.zcode/plans/plan-ses_1.md".to_owned(),
+        path: "/Users/dev/project/.nibi/plans/plan-ses_1.md".to_owned(),
         exists: true,
     };
     let json = serde_json::to_value(&file).unwrap();

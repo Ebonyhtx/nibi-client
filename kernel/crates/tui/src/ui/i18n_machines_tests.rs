@@ -185,10 +185,10 @@ fn a_latest_with_another_protocol_names_both_versions_and_the_way_out() {
     };
     assert_eq!(
         failure_text(Lang::En, "dev-a", &failure),
-        "This NIBI (0.1.64, protocol 1) isn't on npm, and the latest executor on npm, NIBI 0.1.63, speaks protocol 2, so there's no executor for dev-a. Connect again after a new version is published, or put a NIBI 0.1.64 executor at ~/.nibi/rust-cli/exec/dist/0.1.64/aarch64-unknown-linux-gnu/nibi-rs on this computer."
+        "This NIBI (0.1.64, protocol 1) isn't on npm, and the latest executor on npm, NIBI 0.1.63, speaks protocol 2, so there's no executor for dev-a. Connect again after a new version is published, or put a NIBI 0.1.64 executor at ~/.nibi/nibi-kernel/exec/dist/0.1.64/aarch64-unknown-linux-gnu/nibi-rs on this computer."
     );
     assert_eq!(
         failure_text(Lang::Zh, "dev-a", &failure),
-        "本机的 NIBI 0.1.64（协议 1）不在 npm 上，npm 上最新的执行器 NIBI 0.1.63 是协议 2，dev-a 没有能用的执行器。请在发布新版之后再连，或者把 NIBI 0.1.64 的执行器放到本机的 ~/.nibi/rust-cli/exec/dist/0.1.64/aarch64-unknown-linux-gnu/nibi-rs。"
+        "本机的 NIBI 0.1.64（协议 1）不在 npm 上，npm 上最新的执行器 NIBI 0.1.63 是协议 2，dev-a 没有能用的执行器。请在发布新版之后再连，或者把 NIBI 0.1.64 的执行器放到本机的 ~/.nibi/nibi-kernel/exec/dist/0.1.64/aarch64-unknown-linux-gnu/nibi-rs。"
     );
 }

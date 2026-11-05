@@ -166,7 +166,7 @@ async fn only_the_tasks_file_counts_and_reminders_coalesce() {
 #[tokio::test]
 async fn a_missing_directory_is_created_before_watching() {
     let root = tempfile::tempdir().unwrap();
-    let dir = root.path().join(".zcode");
+    let dir = root.path().join(".nibi");
     let fake = Fake::default();
     let mut changes = changes_with(dir.clone(), fake.source());
     assert!(fake.lock().is_empty() && !dir.exists());
@@ -184,7 +184,7 @@ async fn a_directory_that_cannot_be_created_ends_the_stream() {
     let file = root.path().join("file");
     std::fs::write(&file, b"x").unwrap();
     let fake = Fake::default();
-    let mut changes = changes_with(file.join(".zcode"), fake.source());
+    let mut changes = changes_with(file.join(".nibi"), fake.source());
     assert_eq!(next(&mut changes).await, None);
     assert!(fake.lock().is_empty());
 }

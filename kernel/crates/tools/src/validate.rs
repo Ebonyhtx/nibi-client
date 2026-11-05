@@ -1,7 +1,7 @@
-//! 工具输入校验：JSON Schema 子集，报错格式见 spec rust-cli/tools.md。
+//! 工具输入校验：JSON Schema 子集，报错格式见 spec nibi-kernel/tools.md。
 //!
 //! 能归类的三种问题：缺少必填参数、多出的参数（`additionalProperties: false`）、
-//! 类型不符。其余问题（enum、范围等）没有统一格式，用 `"<path>: <说明>"` 列出（spec rust-cli/tools.md）。
+//! 类型不符。其余问题（enum、范围等）没有统一格式，用 `"<path>: <说明>"` 列出（spec nibi-kernel/tools.md）。
 
 use serde_json::{Map, Value};
 

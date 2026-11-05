@@ -4,7 +4,7 @@
 //! - [`TaskScope`] / [`owned`] / [`catch_panic`]：任务归属与 panic 转错误（原 zcode-async）。
 //! - [`secret::RedactedString`]、[`redact::redact_secrets`]：秘密值与按值脱敏（原 zcode-kit）。
 //! - [`js`]：与 JavaScript 语义一致的字符串、`JSON.stringify`、`toISOString`（原 zcode-kit）。
-//! - [`names`]：产品目录与文件的名字（`.zcode`、`AGENTS.md` 等），同一个名字只定义一处（F55）。
+//! - [`names`]：产品目录与文件的名字（`.nibi`、`AGENTS.md` 等），同一个名字只定义一处（F55）。
 //! - [`random`]：随机数的入口（`RandomState` 的种子，F58）。
 //! - [`glob`]、[`path`]、[`reminder`]、[`log_text`]：几个 crate 共用的小函数，只定义一处（F58，README §4.1）。
 //!

@@ -56,7 +56,7 @@ fn tool_call_output_round_trips() {
         new_messages: vec![Message::User(UserMessage {
             id: MessageId::new("msg_skill"),
             content: vec![ContentBlock::Text {
-                text: "Base directory for this skill: /w/.zcode/skills/greet".to_owned(),
+                text: "Base directory for this skill: /w/.nibi/skills/greet".to_owned(),
             }],
             origin: UserOrigin::Meta {
                 source: "skill".to_owned(),
@@ -150,7 +150,7 @@ fn cron_and_worktree_dtos_round_trip() {
     });
     for created in [
         WorktreeCreated::Ready {
-            path: EnvPath::new("/Users/dev/repo/.zcode/worktrees/user+feature"),
+            path: EnvPath::new("/Users/dev/repo/.nibi/worktrees/user+feature"),
             branch: "worktree-user+feature".to_owned(),
             head_commit: Some("abc123".to_owned()),
             existed: false,
@@ -170,7 +170,7 @@ fn cron_and_worktree_dtos_round_trip() {
         }],
     });
     round_trip(&WorktreeInspect {
-        path: EnvPath::new("/Users/dev/repo/.zcode/worktrees/a"),
+        path: EnvPath::new("/Users/dev/repo/.nibi/worktrees/a"),
         base: None,
     });
     round_trip(&WorktreeChanges {
@@ -178,7 +178,7 @@ fn cron_and_worktree_dtos_round_trip() {
         commits: 1,
     });
     round_trip(&WorktreeRemove {
-        path: EnvPath::new("/Users/dev/repo/.zcode/worktrees/a"),
+        path: EnvPath::new("/Users/dev/repo/.nibi/worktrees/a"),
         branch: Some("worktree-a".to_owned()),
     });
 }

@@ -1,4 +1,4 @@
-//! 持久定时任务存储的本地实现（docs/specs/rust-cli/tools-more.md §16.2）：`<项目根>/.zcode/` 下的
+//! 持久定时任务存储的本地实现（docs/specs/rust-cli/tools-more.md §16.2）：`<项目根>/.nibi/` 下的
 //! `scheduled_tasks.json`（读、读改写、监听）与 `scheduled_tasks.lock`（调度锁）。
 //!
 //! 创建者进程的 PID 与启动时间只在这里出现：写入时补上本进程的，读出时换成判定结果（[`CronCreator`]），
@@ -19,7 +19,7 @@ use tokio::sync::OnceCell;
 
 use crate::cron_file::{self, FileTask};
 
-/// 定时任务的文件在 `<项目>/.zcode/` 下（名字取 base，F55；cron_watch 按同一个文件名过滤事件）。
+/// 定时任务的文件在 `<项目>/.nibi/` 下（名字取 base，F55；cron_watch 按同一个文件名过滤事件）。
 const DIR: &str = nibi_kernel_base::names::DOT_DIR;
 pub(crate) const TASKS_FILE: &str = nibi_kernel_base::names::SCHEDULED_TASKS_FILE;
 const LOCK_FILE: &str = "scheduled_tasks.lock";

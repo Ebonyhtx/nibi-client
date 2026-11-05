@@ -27,7 +27,7 @@ const PROTECTED_FILES: &[&str] = &[
     ".ripgreprc",
     ".mcp.json",
 ];
-/// 工作目录里始终禁止写的目录（产品目录是 `.zcode`）。`const` 里只能用
+/// 工作目录里始终禁止写的目录（产品目录是 `.nibi`）。`const` 里只能用
 /// `dot_dir!()`；`agents` 与子代理目录 `names::AGENTS_DIR` 相同，测试核对（F55）。
 const PROTECTED_DIRS: &[&str] = &[
     ".vscode",
@@ -212,7 +212,7 @@ fn first_missing(path: &Path) -> Option<&Path> {
 /// Linux：保护表在 bwrap 里的绑定（deny-write 路径的处理）。
 ///
 /// 缺陷修复 R2-16：原来 bwrap 没有 macOS 那张保护表，工作目录可写时 sandbox 里的命令能改 `.git/hooks`、
-/// `.bashrc`、`.zcode/commands` 等。现在只处理落在可写路径里的项（根是只读绑定，其余本来就写不了，bwrap
+/// `.bashrc`、`.nibi/commands` 等。现在只处理落在可写路径里的项（根是只读绑定，其余本来就写不了，bwrap
 /// 也建不出挂载点）：存在的只读绑定自身；不存在的在第一个不存在的那一级绑定 `/dev/null`，命令建不出它
 /// （缺的是上级目录时改绑一个空目录的做法见 shell-permissions.md D4）；那一级的上级是文件
 /// （git worktree 的 `.git`）时跳过。bwrap 不支持通配，`**` 的嵌套位置不做（D4）。返回参数与 bwrap 会在宿主上

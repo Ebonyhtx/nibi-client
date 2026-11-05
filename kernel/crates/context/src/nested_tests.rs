@@ -122,7 +122,7 @@ fn announced_rules(files: &[RuleFile]) -> Message {
 async fn directory_rules_are_announced_once_per_file() {
     let env = MemoryEnvironment::new(facts())
         .with_file("/w/src/AGENTS.md", "src rules\n")
-        .with_file("/w/src/.zcode/AGENTS.md", "same as announced")
+        .with_file("/w/src/.nibi/AGENTS.md", "same as announced")
         .with_file("/w/src/ui/AGENTS.md", "ui rules");
     let ws = workspace();
     let scope = Scope {
@@ -132,9 +132,9 @@ async fn directory_rules_are_announced_once_per_file() {
         cwd: "/w".to_owned(),
         home: Some("/Users/dev".to_owned()),
     };
-    // 当前规则里有 `.zcode/AGENTS.md`，并且已经以同样的内容宣布过。
+    // 当前规则里有 `.nibi/AGENTS.md`，并且已经以同样的内容宣布过。
     let files = [RuleFile {
-        path: "/w/src/.zcode/AGENTS.md".to_owned(),
+        path: "/w/src/.nibi/AGENTS.md".to_owned(),
         kind: crate::rules::Kind::Project,
         content: "same as announced".to_owned(),
         globs: None,

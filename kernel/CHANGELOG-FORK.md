@@ -1080,10 +1080,11 @@ run 还欠着决定」——落 Rust。
   `rust-cli-<name>` → `nibi-kernel-<name>`，`rust-cli-kernel-api` → `nibi-kernel-api`，
   入口 crate `rust-cli` → `nibi-kernel-cli`；可执行名仍是 `nibi-rs`（不变）。
   `nibi-platform`（NIBI 自有平台层）保持原名，避免与上游 platform 语义混淆。
-- **class ③ 数据键刻意保留旧名**：`rust-cli/` 开头的会话行标记（`rust-cli/bash_output`、
-  `rust-cli/permission_mode` 等）、`~/.nibi/rust-cli/` 下的日志/peers/machines/更新缓存、
-  以及远端执行器的 `~/.nibi/rust-cli/exec`。它们是已落盘的数据格式与远端安装位，
-  不是 crate 名；改名会搬空日志/机器清单并让既有远端执行器失效，需单独迁移波次。
+- **数据键同一批硬切**：`rust-cli/` 开头的会话行标记（bash_output、permission_mode、
+  operation_intent 等）、`~/.nibi/rust-cli/` 下的日志/peers/machines/更新缓存、远端执行器的
+  `~/.nibi/rust-cli/exec` 全部改为 `nibi-kernel/`。NIBI 未发布、没有存量用户和远端机器，
+  不保留旧名读取，也不做迁移；旧的 `rust-cli` 目录若在开发机上存在，直接删除即可。
+  项目级 `.zcode/` 路径与 `zcode-builtin.json` 资产同批改为 `.nibi/` / `nibi-builtin.json`。
 - `--version` 的括号随 crate 名变为 `nibi <ver> (nibi-kernel-cli)`。
 - 门禁：`cargo check --workspace --all-targets` 通过；`cargo test --workspace --lib`
   全绿；`cargo test -p nibi-kernel-cli --bins` 309 通过 / 9 个既有 Windows-only 失败。

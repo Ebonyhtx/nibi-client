@@ -105,7 +105,7 @@ fn run_and_signal(signal: &str) -> Option<i32> {
     }
     assert!(!left, "sleep {sleep_pid} outlived zcode after SIG{signal}");
     assert!(ended.exists(), "SessionEnd did not run after SIG{signal}");
-    let log = home.join(".nibi/rust-cli/log");
+    let log = home.join(".nibi/nibi-kernel/log");
     let text: String = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| std::fs::read_to_string(entry.unwrap().path()).unwrap())

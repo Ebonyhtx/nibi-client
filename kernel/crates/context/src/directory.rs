@@ -1,5 +1,5 @@
 //! `/cd` 的规则文件（docs/specs/rust-cli/tui-manage.md §7.1）：从文件系统根到新目录的每一层，依次 Project 文件、
-//! Local 文件、`.zcode/rules` 的无条件规则；
+//! Local 文件、`.nibi/rules` 的无条件规则；
 //! 已经在 `instructions` 里宣布过的路径不再列。结果用 `instructions` 的格式。
 
 use nibi_kernel_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE};

@@ -1,6 +1,6 @@
 //! 前端记录（缺口 G2，docs/specs/rust-cli/app-protocol.md §5.2、README §5 的例外）：前端给的不透明记录原样写成
 //! `session_entry`（`type = kind`、`id = key`，同 key 覆盖，不推进会话的活动时间）。这里不认识任何 kind；
-//! 不加 `rust-cli/` 前缀，因为写的是前端与 Node 共用的记录类型（例如 App 协议的命令事实）。
+//! 不加 `nibi-kernel/` 前缀，因为写的是前端与 Node 共用的记录类型（例如 App 协议的命令事实）。
 use rusqlite::Connection;
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::store::{FrontendRecord, StoreError};

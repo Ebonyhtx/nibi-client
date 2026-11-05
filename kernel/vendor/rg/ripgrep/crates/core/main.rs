@@ -35,11 +35,11 @@ mod search;
 //
 // Moreover, we only do this on 64-bit systems since jemalloc doesn't support
 // i686.
-// rust-cli：全局分配器由 zcode 的入口设置（musl 上是 mimalloc），这里不再设
+// nibi-kernel-cli：全局分配器由 NIBI 的入口设置（musl 上是 mimalloc），这里不再设
 // （docs/specs/rust-cli/embedded-search.md §5）。
 
 /// Then, as it was, then again it will be.
-// rust-cli：作为库的入口，由 zcode 按 argv0 分派时调用。
+// nibi-kernel-cli：作为库的入口，由 NIBI 按 argv0 分派时调用。
 pub fn main() -> ExitCode {
     match run(flags::parse()) {
         Ok(code) => code,

@@ -1,5 +1,5 @@
 //! 运行日志的真实进程（docs/specs/rust-cli/logging.md §7）：临时 home 与本地假的 Anthropic 端点，`zcode -p`
-//! 跑一次后，`<home>/.nibi/rust-cli/log/` 下有当天的 JSONL 文件，生命周期事件都在，且不含提示词与密钥。
+//! 跑一次后，`<home>/.nibi/nibi-kernel/log/` 下有当天的 JSONL 文件，生命周期事件都在，且不含提示词与密钥。
 #![allow(
     clippy::disallowed_methods,
     clippy::unwrap_used,
@@ -88,7 +88,7 @@ fn a_print_run_writes_info_lines_to_the_daily_log() {
     // 日志只写文件，不写终端。
     assert!(!stderr.contains("process.start"), "{stderr}");
 
-    let log = home.join(".nibi/rust-cli/log");
+    let log = home.join(".nibi/nibi-kernel/log");
     let files: Vec<_> = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| entry.unwrap().path())

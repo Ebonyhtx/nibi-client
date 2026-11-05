@@ -58,8 +58,8 @@ fn setup(editor: Arc<FakeEditor>) -> Setup {
             memory_files: vec![
                 file(
                     "User memory",
-                    "~/.zcode/AGENTS.md",
-                    "/Users/dev/.zcode/AGENTS.md",
+                    "~/.nibi/AGENTS.md",
+                    "/Users/dev/.nibi/AGENTS.md",
                 ),
                 file(
                     "Project memory",

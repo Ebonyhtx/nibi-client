@@ -159,7 +159,7 @@ fn problems_keep_their_kind() {
         assert_eq!(problem(error), wanted);
     }
     let file = problem(FleetError::List(MachinesError::Write {
-        path: "/home/dev/.zcode/rust-cli/machines.json".to_owned(),
+        path: "/home/dev/.nibi/nibi-kernel/machines.json".to_owned(),
         message: "read-only".to_owned(),
     }));
     assert!(

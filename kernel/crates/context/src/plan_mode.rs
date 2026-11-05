@@ -127,7 +127,7 @@ fn exit_text(path: &str, exists: bool) -> String {
 }
 
 impl PromptAssembler {
-    /// 本会话的计划文件（`<工作区>/.zcode/plans/plan-<会话>.md`，子代理是子会话的文件）与它是否存在；
+    /// 本会话的计划文件（`<工作区>/.nibi/plans/plan-<会话>.md`，子代理是子会话的文件）与它是否存在；
     /// 执行环境答不出路径风格时为 None（不发计划模式 attachment）。
     async fn plan_file(&self, request: &ContextRequest) -> Option<(EnvPath, bool)> {
         let facts = match self.ports.info.path_facts(&request.workspace).await {

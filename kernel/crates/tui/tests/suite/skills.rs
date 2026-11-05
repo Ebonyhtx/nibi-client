@@ -22,8 +22,8 @@ fn setup() -> Setup {
         additional_directories: Vec::new(),
         home: Some(EnvPath::new("/Users/dev")),
     })
-    .with_file("/Users/dev/project/.zcode/skills/greet/SKILL.md", GREET)
-    .with_file("/Users/dev/project/.zcode/skills/inner/SKILL.md", INNER);
+    .with_file("/Users/dev/project/.nibi/skills/greet/SKILL.md", GREET)
+    .with_file("/Users/dev/project/.nibi/skills/inner/SKILL.md", INNER);
     Setup {
         environments: environments(Arc::new(env)),
         ..Setup::default()

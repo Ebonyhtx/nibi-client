@@ -1,7 +1,7 @@
 //! 互操作的第二十七段：fork 子代理的子会话（修复线 L-A，docs/specs/rust-cli/node-store.md §4.8.1、agents.md §8.1.3）。
 //!
 //! `fork-agent-write <storage-dir>`：父会话一轮输入与一条 fork 的 Agent 调用（结果是“已启动”、关联到子会话）；子会话照
-//! agents 的写法：模型、模式、`rust-cli/fork_parent`、directive（第一条输入）、子代理的回答。继承的前缀不写进子会话。
+//! agents 的写法：模型、模式、`nibi-kernel/fork_parent`、directive（第一条输入）、子代理的回答。继承的前缀不写进子会话。
 //! 输出两个会话的 id 与 directive。
 use super::*;
 

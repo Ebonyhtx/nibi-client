@@ -201,7 +201,7 @@ pub(crate) fn apply(ctx: &Commit<'_>, fact: &Fact) -> Result<(), StoreError> {
             if kind.is_empty() || data.is_null() {
                 return Err(storage("a nibi-kernel-cli entry needs a kind and non-null data"));
             }
-            let kind = format!("rust-cli/{kind}");
+            let kind = format!("nibi-kernel/{kind}");
             let entry = records::entry(
                 format!("{}:{kind}:{id}", ctx.session),
                 ctx.session,
@@ -277,7 +277,7 @@ pub fn node_selection(selection: &ModelSelection) -> Value {
 }
 
 /// 旧的单值模式（子代理的子会话、测试）：按 Node `resolveExecutionState` 换成执行状态再写；`plan` 只打开 plan，
-/// 不改 `rust-cli/permission_mode`（它只记权限模式）。
+/// 不改 `nibi-kernel/permission_mode`（它只记权限模式）。
 fn change_mode(ctx: &Commit<'_>, mode: PermissionMode) -> Result<(), StoreError> {
     let row = sessions::get(ctx.conn, ctx.session)
         .storage()?
@@ -302,7 +302,7 @@ fn write_execution(
 }
 
 /// 三条记录（node-store.md §4.3）：会话行 `permission.mode`（plan 开时是 `plan`，Node 旧值的写法）、Node 恢复时
-/// 优先读的 `runtime/execution_state`、记权限模式名的 `rust-cli/permission_mode`（dontAsk 在 Node 里没有对应值；
+/// 优先读的 `runtime/execution_state`、记权限模式名的 `nibi-kernel/permission_mode`（dontAsk 在 Node 里没有对应值；
 /// `named` 为空时不写）。
 fn write(
     ctx: &Commit<'_>,
@@ -364,7 +364,7 @@ fn last_outcome(ctx: &Commit<'_>, status: CallStatus) -> Result<(), StoreError> 
     Ok(())
 }
 
-/// 回执序号：每个会话一条 `rust-cli/commit` entry，每次提交加一（与事实在同一事务里）。
+/// 回执序号：每个会话一条 `nibi-kernel/commit` entry，每次提交加一（与事实在同一事务里）。
 pub(crate) fn next_sequence(ctx: &Commit<'_>) -> Result<u64, StoreError> {
     let previous = state::last_entry(ctx.conn, ctx.session, COMMIT_ENTRY)
         .storage()?

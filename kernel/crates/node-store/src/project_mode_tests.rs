@@ -63,23 +63,23 @@ async fn the_kernel_mode_name_is_used_only_when_it_agrees() {
     assert_eq!(read(&test).await, None);
     node_writes(
         &test,
-        r#"{"mode":"build","rust-cli/permission_mode":"dontAsk"}"#,
+        r#"{"mode":"build","nibi-kernel/permission_mode":"dontAsk"}"#,
     );
     assert_eq!(read(&test).await, Some(PermissionMode::DontAsk));
     // 名字与 Node 的值不一致（例如别的写入只改了 mode）：按 Node 的值读。
     node_writes(
         &test,
-        r#"{"mode":"edit","rust-cli/permission_mode":"dontAsk"}"#,
+        r#"{"mode":"edit","nibi-kernel/permission_mode":"dontAsk"}"#,
     );
     assert_eq!(read(&test).await, Some(PermissionMode::AcceptEdits));
     node_writes(
         &test,
-        r#"{"mode":"guarded","rust-cli/permission_mode":"bypassPermissions"}"#,
+        r#"{"mode":"guarded","nibi-kernel/permission_mode":"bypassPermissions"}"#,
     );
     assert_eq!(read(&test).await, Some(PermissionMode::Guarded));
     node_writes(
         &test,
-        r#"{"mode":"guarded","rust-cli/permission_mode":"guarded"}"#,
+        r#"{"mode":"guarded","nibi-kernel/permission_mode":"guarded"}"#,
     );
     assert_eq!(read(&test).await, Some(PermissionMode::Guarded));
 }
@@ -107,7 +107,7 @@ async fn project_mode_set_upserts_the_node_row() {
     );
     assert_eq!(
         rows[0][4],
-        r#"{"mode":"edit","rust-cli/permission_mode":"acceptEdits"}"#
+        r#"{"mode":"edit","nibi-kernel/permission_mode":"acceptEdits"}"#
     );
     assert_eq!(rows[0][5], 1);
     assert_eq!(read(&test).await, Some(PermissionMode::AcceptEdits));
@@ -121,7 +121,7 @@ async fn project_mode_set_upserts_the_node_row() {
     assert_eq!(
         rows[0],
         [
-            r#"{"mode":"build","rust-cli/permission_mode":"dontAsk"}"#.into(),
+            r#"{"mode":"build","nibi-kernel/permission_mode":"dontAsk"}"#.into(),
             serde_json::Value::from(1000),
             serde_json::Value::from(2000)
         ]

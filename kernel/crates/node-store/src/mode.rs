@@ -25,7 +25,7 @@ impl Default for Execution {
     }
 }
 
-/// 会话行 `permission.mode` 的取值（spec §5 的映射；dontAsk 记为 build，另有 `rust-cli/` entry）。
+/// 会话行 `permission.mode` 的取值（spec §5 的映射；dontAsk 记为 build，另有 `nibi-kernel/` entry）。
 pub fn permission_value(mode: PermissionMode) -> &'static str {
     mode.node_name()
 }
@@ -77,13 +77,13 @@ pub fn from_node(state: &Execution) -> ExecutionState {
     }
 }
 
-/// 权限模式 `mode` 写入后，执行状态的 `mode` 就是 `state.mode`：用来判断 `rust-cli/permission_mode` entry 是否仍然
+/// 权限模式 `mode` 写入后，执行状态的 `mode` 就是 `state.mode`：用来判断 `nibi-kernel/permission_mode` entry 是否仍然
 /// 有效（Node 续写时改了模式，entry 就过期了）。plan 开关另记，不参与比较；旧行里记的 `plan` 不算权限模式。
 pub fn matches(mode: PermissionMode, state: &Execution) -> bool {
     mode != PermissionMode::Plan && state.mode == permission_value(mode)
 }
 
-/// 读回的执行状态：`rust-cli/permission_mode` 与执行状态一致时用它定权限模式（区分 default 与 dontAsk）。
+/// 读回的执行状态：`nibi-kernel/permission_mode` 与执行状态一致时用它定权限模式（区分 default 与 dontAsk）。
 pub fn read(state: &Execution, named: Option<PermissionMode>) -> ExecutionState {
     let base = from_node(state);
     match named.filter(|named| matches(*named, state)) {
@@ -92,7 +92,7 @@ pub fn read(state: &Execution, named: Option<PermissionMode>) -> ExecutionState 
     }
 }
 
-/// 内核的模式名（`rust-cli/permission_mode` entry 的 `data.mode`）。
+/// 内核的模式名（`nibi-kernel/permission_mode` entry 的 `data.mode`）。
 pub fn entry_name(mode: PermissionMode) -> &'static str {
     mode.cli_name()
 }

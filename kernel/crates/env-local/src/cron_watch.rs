@@ -1,6 +1,6 @@
-//! `.zcode/scheduled_tasks.json` 的监听（docs/specs/rust-cli/tools-more.md §16.2）。
+//! `.nibi/scheduled_tasks.json` 的监听（docs/specs/rust-cli/tools-more.md §16.2）。
 //!
-//! 监听 `.zcode/` 目录（不递归），只关心名字是 `scheduled_tasks.json` 的事件：原子写是“临时文件 + rename”，
+//! 监听 `.nibi/` 目录（不递归），只关心名字是 `scheduled_tasks.json` 的事件：原子写是“临时文件 + rename”，
 //! 临时文件的事件滤掉。notify 的回调在它自己的线程里，经容量 1 的通道交给流：已有一项没取时丢弃新的
 //! （它只是“重读一次”的提醒）。目录不在时先建好（抢锁时同样会建它）。
 //!
@@ -98,7 +98,7 @@ impl Stream for Changes {
     }
 }
 
-/// `dir`（`<项目根>/.zcode`）里任务文件的变化：监听建好时先产出一项（重读），之后每次变化产出一项；监听建不起来时
+/// `dir`（`<项目根>/.nibi`）里任务文件的变化：监听建好时先产出一项（重读），之后每次变化产出一项；监听建不起来时
 /// 流直接结束。第一次取流时才开始建监听。
 pub(crate) fn changes(dir: PathBuf) -> BoxStream<'static, ()> {
     changes_with(dir, system)

@@ -4,8 +4,8 @@
 //! 本机存储，它们经执行端口（kernel-api `machine`）访问，类型是 `EnvPath`，不能用 [`StoragePath`] 表示。
 //!
 //! 规则与 Node CLI 相同（docs/specs/rust-m11-node-storage.md §2.1）：
-//! - 会话库默认 `~/.zcode/cli/db/db.sqlite`，`storage.sessionDbPath` 覆盖；
-//! - 产物根目录是 `<storage.dir>/cli/artifacts`，`storage.dir` 默认 `~/.zcode`；
+//! - 会话库默认 `~/.nibi/cli/db/db.sqlite`，`storage.sessionDbPath` 覆盖；
+//! - 产物根目录是 `<storage.dir>/cli/artifacts`，`storage.dir` 默认 `~/.nibi`；
 //! - 只展开 `~` 与 `~/…`，其余相对路径相对调用方给的基准目录；
 //! - 自动记忆目录：`<storage.dir>/projects/<sanitizePath(项目)>/memory`
 //!   （根换成 zcode 的存储根，docs/specs/rust-cli/context.md §2）。
@@ -13,16 +13,16 @@
 //! 配置分层与 `NIBI_*` 环境变量覆盖由配置层先算好，这里只接收结果。
 //!
 //! 账号与 Provider 的配置（docs/specs/rust-cli/platform.md §2）与 Node CLI、App 共用：
-//! - 配置根 `<dataBaseDir>/.zcode/v2`，`dataBaseDir` 默认 home，入口读 `NIBI_DATA_BASE_DIR` 后经
+//! - 配置根 `<dataBaseDir>/.nibi/v2`，`dataBaseDir` 默认 home，入口读 `NIBI_DATA_BASE_DIR` 后经
 //!   [`StoragePaths::with_data_base_dir`] 覆盖（Node `resolveSharedNIBICredentialsPath`）；
 //! - 其下 `provider_config.json`（个人 Provider 配置）、`credentials.json`（加密凭据）、
 //!   `runtime/provider/`（内置 Provider 配置的缓存）、`telemetry-state.json`（设备身份 `deviceMid`，F52）；
-//! - 设置文件固定在 `<home>/.zcode/v2/setting.json`（Host `SettingStore`），不跟随 `dataBaseDir`。
+//! - 设置文件固定在 `<home>/.nibi/v2/setting.json`（Host `SettingStore`），不跟随 `dataBaseDir`。
 //!
 //! Node CLI 的用户级配置与项目 hooks 的信任记录（docs/specs/rust-cli/config.md §1、§4.2）：
-//! - 用户级配置固定在 `<home>/.zcode/cli/config.json`，不跟随 `storage.dir`；
+//! - 用户级配置固定在 `<home>/.nibi/cli/config.json`，不跟随 `storage.dir`；
 //! - 信任记录在 `<存储根>/security/workspace-hook-trust-v1.json`，存储根是用户级配置的 `storage.dir`
-//!   （相对路径相对 home，不随 cwd 漂移），没有时 `<home>/.zcode`。
+//!   （相对路径相对 home，不随 cwd 漂移），没有时 `<home>/.nibi`。
 //!
 //! Node 的插件存储（docs/specs/rust-cli/ext.md §4.1）：`<storage.dir>/cli/plugins`（`installed_plugins.json`、
 //! `cache/`、`marketplaces/`）；`storage.dir` 是合并后的值，相对路径相对调用方给的基准目录。
@@ -33,7 +33,7 @@ use std::path::{Path, PathBuf};
 
 pub use home::{expand_home, home_dir_with, user_name_with};
 
-/// 产品目录名（`.zcode`）。名字定义在 base（内核 crate 也要用，它们不能依赖 paths，README §3.1）；用户根的位置
+/// 产品目录名（`.nibi`）。名字定义在 base（内核 crate 也要用，它们不能依赖 paths，README §3.1）；用户根的位置
 /// 只在 [`user_path`] 计算。
 pub use nibi_kernel_base::names::DOT_DIR;
 
@@ -44,11 +44,10 @@ macro_rules! cli_dir {
     };
 }
 /// 本工程专用的数据子目录（日志、跨会话登记、自动更新的缓存）。
-/// 名字是 class ③ 数据键：与 `rust-cli/` 行标记一样保持旧名，避免把既有日志/机器清单/
-/// 远端执行器安装目录搬空；crate 名（`nibi-kernel-*`）与它是两回事。
+/// NIBI 未发布、没有存量用户/远端机器：直接用新名字，不做旧名的兼容或迁移。
 macro_rules! project_dir {
     () => {
-        "rust-cli"
+        "nibi-kernel"
     };
 }
 
@@ -72,7 +71,7 @@ const MACHINES_FILE: &str = concat!(project_dir!(), "/machines.json");
 const MCP_MACHINES_FILE: &str = concat!(project_dir!(), "/mcp-machines.json");
 /// 规整后目录名的上限（UTF-16 码元）。
 const MAX_SANITIZED_LENGTH: usize = 200;
-/// `<dataBaseDir>` 的用户根下的配置根（`.zcode/v2`）。
+/// `<dataBaseDir>` 的用户根下的配置根（`.nibi/v2`）。
 const CONFIG_ROOT: &str = "v2";
 /// 用户根下 Node CLI 的用户级配置（`DEFAULT_BASE_DIR` + `DEFAULT_CONFIG_FILE`）。
 const CLI_CONFIG: &str = concat!(cli_dir!(), "/config.json");
@@ -85,14 +84,14 @@ const PLUGINS_DIR: &str = "plugins";
 const MODEL_IO_DEBUG_DIR: &str = "debug";
 const MODEL_IO_ROLLOUT_DIR: &str = "rollout";
 
-/// 用户根（`<home>/.zcode`）下的位置；`rest` 为空时是用户根本身（Node `DEFAULT_BASE_DIR`、Host 的 `~/.zcode`）。
+/// 用户根（`<home>/.nibi`）下的位置；`rest` 为空时是用户根本身（Node `DEFAULT_BASE_DIR`、Host 的 `~/.nibi`）。
 ///
-/// 本机存储里用户根只在这里计算：会话库与存储根的缺省值、配置根 `.zcode/v2`（`home` 换成 `NIBI_DATA_BASE_DIR`
+/// 本机存储里用户根只在这里计算：会话库与存储根的缺省值、配置根 `.nibi/v2`（`home` 换成 `NIBI_DATA_BASE_DIR`
 /// 时也是）、用户级配置、信任记录的缺省根、TUI `/memory` 的用户规则文件都由它推出（F55）。以后要让用户根可配置，
 /// 只改这里，缺省值不变。
 ///
-/// 拼法保持收拢前的样子：`rest`（用 `/` 写）整段接在 `<home>/` 后面，即 `home.join(".zcode/<rest>")`；所以 Windows
-/// 上是 `C:\Users\x\.zcode/cli/db/db.sqlite` 这样的混用分隔符（另案处理，docs/specs/rust-cli/config.md §2.3）。
+/// 拼法保持收拢前的样子：`rest`（用 `/` 写）整段接在 `<home>/` 后面，即 `home.join(".nibi/<rest>")`；所以 Windows
+/// 上是 `C:\Users\x\.nibi/cli/db/db.sqlite` 这样的混用分隔符（另案处理，docs/specs/rust-cli/config.md §2.3）。
 pub fn user_path(home: &Path, rest: &str) -> PathBuf {
     if rest.is_empty() {
         home.join(DOT_DIR)
@@ -142,7 +141,7 @@ pub struct StoragePaths {
 impl StoragePaths {
     /// `home` 用于展开 `~`；`base` 是相对路径的基准目录（由入口 crate 给出）。
     pub fn resolve(settings: &StorageSettings<'_>, home: &Path, base: &Path) -> Self {
-        // 缺省值是用户根下的位置（收拢前写成 `~/.zcode/…` 再展开，结果相同）；配置的值展开 `~`、相对 `base`。
+        // 缺省值是用户根下的位置（收拢前写成 `~/.nibi/…` 再展开，结果相同）；配置的值展开 `~`、相对 `base`。
         let resolve = |value: Option<&str>, default: &str| match value {
             Some(value) => base.join(expand_home(value, home)),
             None => base.join(user_path(home, default)),
@@ -150,7 +149,7 @@ impl StoragePaths {
         let root = resolve(settings.storage_dir, "");
         // Node `deriveSessionDbPath`：sessionDbPath 没显式给时跟 storage.dir 走（`<storage.dir>/cli/db/db.sqlite`），
         // 否则隔离/换存储根的运行会打开真实用户根下的库。storage.dir 也没有时保持收拢前的字节形状
-        // （`user_path(home, DEFAULT_SESSION_DB)`，Windows 上 `.zcode` 后是 `/`，F55 等价性用例按 OsStr 比较）。
+        // （`user_path(home, DEFAULT_SESSION_DB)`，Windows 上 `.nibi` 后是 `/`，F55 等价性用例按 OsStr 比较）。
         let database = match (settings.session_db_path, settings.storage_dir) {
             (Some(value), _) => StoragePath(base.join(expand_home(value, home))),
             (None, Some(_)) => StoragePath(root.join(DEFAULT_SESSION_DB)),
@@ -182,7 +181,7 @@ impl StoragePaths {
         self.builtin_provider_config.as_ref()
     }
 
-    /// 账号与 Provider 配置的根改到 `<base>/.zcode/v2`（`NIBI_DATA_BASE_DIR`）；`base` 是绝对路径。
+    /// 账号与 Provider 配置的根改到 `<base>/.nibi/v2`（`NIBI_DATA_BASE_DIR`）；`base` 是绝对路径。
     pub fn with_data_base_dir(mut self, base: &Path) -> Self {
         self.config = StoragePath(user_path(base, CONFIG_ROOT));
         self
@@ -219,8 +218,8 @@ impl StoragePaths {
         self.config.join("runtime").join("provider")
     }
 
-    /// App 的设置文件 `~/.zcode/v2/setting.json`。
-    /// TUI 的输入历史（与 Host TUI 相同：`<dataBaseDir>/.zcode/v2/tui/history.jsonl`）。
+    /// App 的设置文件 `~/.nibi/v2/setting.json`。
+    /// TUI 的输入历史（与 Host TUI 相同：`<dataBaseDir>/.nibi/v2/tui/history.jsonl`）。
     pub fn tui_history(&self) -> StoragePath {
         self.config.join("tui").join("history.jsonl")
     }
@@ -277,7 +276,7 @@ impl StoragePaths {
     }
 
     /// Node 的插件存储根（`getPluginStorageRoot(getCliStorageRoot(resolvePath(storage.dir)))`）：
-    /// `storage_dir` 是合并后的 `storage.dir`（空白视为没有，缺省 `~/.zcode`），`~/` 展开到 home，其余相对
+    /// `storage_dir` 是合并后的 `storage.dir`（空白视为没有，缺省 `~/.nibi`），`~/` 展开到 home，其余相对
     /// 路径相对 `base`（Node `resolve` 相对进程 cwd）；末段已是 `cli` 时不再加一层。
     pub fn plugin_storage(&self, storage_dir: Option<&str>, base: &Path) -> StoragePath {
         StoragePath(self.cli_storage_root(storage_dir, base).join(PLUGINS_DIR))
@@ -300,7 +299,7 @@ impl StoragePaths {
         StoragePath(self.cli_storage_root(storage_dir, base).join(dir))
     }
 
-    /// Node `getCliStorageRoot(resolvePath(storage.dir))`：`storage_dir` 空白视为没有（缺省 `~/.zcode`），`~/` 展开到
+    /// Node `getCliStorageRoot(resolvePath(storage.dir))`：`storage_dir` 空白视为没有（缺省 `~/.nibi`），`~/` 展开到
     /// home，其余相对路径相对 `base`；末段已是 `cli` 时不再加一层。
     fn cli_storage_root(&self, storage_dir: Option<&str>, base: &Path) -> PathBuf {
         let root = match storage_dir.map(str::trim).filter(|dir| !dir.is_empty()) {
@@ -320,18 +319,18 @@ impl StoragePaths {
         self.root.join(TASKS_DIR).join(format!("{session}.json"))
     }
 
-    /// 运行日志目录 `<storage.dir>/rust-cli/log`（docs/specs/rust-cli/logging.md §1）。
+    /// 运行日志目录 `<storage.dir>/nibi-kernel/log`（docs/specs/rust-cli/logging.md §1）。
     pub fn logs(&self) -> StoragePath {
         self.root.join(LOG_DIR)
     }
 
-    /// 跨会话的登记目录 `<storage.dir>/rust-cli/peers`：每个进程一份 `<pid>.json` 与它的 `<pid>.sock`
+    /// 跨会话的登记目录 `<storage.dir>/nibi-kernel/peers`：每个进程一份 `<pid>.json` 与它的 `<pid>.sock`
     /// （docs/specs/rust-cli/cross-session.md §2.2，F28）。
     pub fn peers(&self) -> StoragePath {
         self.root.join(PEERS_DIR)
     }
 
-    /// 执行器的目录 `~/.zcode/rust-cli/exec/`（docs/specs/rust-cli/remote-exec.md §19.4）：在用户根下，不跟
+    /// 执行器的目录 `~/.nibi/nibi-kernel/exec/`（docs/specs/rust-cli/remote-exec.md §19.4）：在用户根下，不跟
     /// `storage.dir` 走（执行器模式不读配置；远端也按同一个位置找）。
     pub fn executor(&self) -> ExecutorPaths {
         ExecutorPaths {
@@ -339,19 +338,19 @@ impl StoragePaths {
         }
     }
 
-    /// 自动更新的缓存 `<storage.dir>/rust-cli/version.json`：最近一次核对的最新版本、核对时刻与不再提醒的版本
+    /// 自动更新的缓存 `<storage.dir>/nibi-kernel/version.json`：最近一次核对的最新版本、核对时刻与不再提醒的版本
     /// （docs/specs/rust-cli/update.md §4，F48）。
     pub fn update_cache(&self) -> StoragePath {
         self.root.join(UPDATE_CACHE)
     }
 
-    /// 远端机器的清单 `~/.zcode/rust-cli/machines.json`（docs/specs/rust-cli/remote-exec.md §20.3.1）：用户根下，不随
+    /// 远端机器的清单 `~/.nibi/nibi-kernel/machines.json`（docs/specs/rust-cli/remote-exec.md §20.3.1）：用户根下，不随
     /// `storage.dir`（机器是用户级的配置，不是会话数据）。
     pub fn machines(&self) -> StoragePath {
         StoragePath(user_path(&self.home, MACHINES_FILE))
     }
 
-    /// MCP 服务器绑定到远端机器的旁路文件 `~/.zcode/rust-cli/mcp-machines.json`（docs/specs/rust-cli/remote-exec.md
+    /// MCP 服务器绑定到远端机器的旁路文件 `~/.nibi/nibi-kernel/mcp-machines.json`（docs/specs/rust-cli/remote-exec.md
     /// §22.2）：用户根下，不随 `storage.dir`（同 [`StoragePaths::machines`]）。
     pub fn mcp_machines(&self) -> StoragePath {
         StoragePath(user_path(&self.home, MCP_MACHINES_FILE))

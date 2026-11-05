@@ -166,11 +166,11 @@ fn task_lists_live_under_the_storage_root() {
 fn run_logs_live_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).logs().as_path(),
-        Path::new("/home/dev/.nibi/rust-cli/log")
+        Path::new("/home/dev/.nibi/nibi-kernel/log")
     );
     assert_eq!(
         resolve(None, Some("data")).logs().as_path(),
-        Path::new("/work/repo/data/rust-cli/log")
+        Path::new("/work/repo/data/nibi-kernel/log")
     );
 }
 
@@ -178,7 +178,7 @@ fn run_logs_live_under_the_storage_root() {
 fn the_peer_registry_lives_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).peers().as_path(),
-        Path::new("/home/dev/.nibi/rust-cli/peers")
+        Path::new("/home/dev/.nibi/nibi-kernel/peers")
     );
 }
 
@@ -187,11 +187,11 @@ fn the_peer_registry_lives_under_the_storage_root() {
 fn the_update_cache_lives_under_the_storage_root() {
     assert_eq!(
         resolve(None, None).update_cache().as_path(),
-        Path::new("/home/dev/.nibi/rust-cli/version.json")
+        Path::new("/home/dev/.nibi/nibi-kernel/version.json")
     );
     assert_eq!(
         resolve(None, Some("data")).update_cache().as_path(),
-        Path::new("/work/repo/data/rust-cli/version.json")
+        Path::new("/work/repo/data/nibi-kernel/version.json")
     );
 }
 
@@ -201,12 +201,12 @@ fn the_machine_list_lives_under_the_user_root() {
     for storage in [None, Some("data")] {
         assert_eq!(
             resolve(None, storage).machines().as_path(),
-            Path::new("/home/dev/.nibi/rust-cli/machines.json")
+            Path::new("/home/dev/.nibi/nibi-kernel/machines.json")
         );
         // MCP 服务器的机器绑定（R5，remote-exec.md §22.2）：同样在用户根下。
         assert_eq!(
             resolve(None, storage).mcp_machines().as_path(),
-            Path::new("/home/dev/.nibi/rust-cli/mcp-machines.json")
+            Path::new("/home/dev/.nibi/nibi-kernel/mcp-machines.json")
         );
     }
 }
@@ -221,36 +221,36 @@ fn the_executor_lives_under_the_user_root() {
         let at = |path: StoragePath| path.as_path().to_path_buf();
         assert_eq!(
             executor.dir().as_path(),
-            Path::new("/home/dev/.nibi/rust-cli/exec")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec")
         );
         assert_eq!(
             at(executor.socket()),
-            Path::new("/home/dev/.nibi/rust-cli/exec/executor.sock")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec/executor.sock")
         );
         assert_eq!(
             at(executor.lock()),
-            Path::new("/home/dev/.nibi/rust-cli/exec/executor.lock")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec/executor.lock")
         );
         assert_eq!(
             at(executor.spawn_lock()),
-            Path::new("/home/dev/.nibi/rust-cli/exec/spawn.lock")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec/spawn.lock")
         );
         assert_eq!(
             at(executor.ledger()),
-            Path::new("/home/dev/.nibi/rust-cli/exec/ledger")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec/ledger")
         );
         assert_eq!(
             at(executor.logs()),
-            Path::new("/home/dev/.nibi/rust-cli/exec/log")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec/log")
         );
         assert_eq!(
             at(executor.binary("0.1.0")),
-            Path::new("/home/dev/.nibi/rust-cli/exec/bin/0.1.0/nibi-rs")
+            Path::new("/home/dev/.nibi/nibi-kernel/exec/bin/0.1.0/nibi-rs")
         );
         assert_eq!(
             at(executor.artifact("0.1.0", "x86_64-unknown-linux-musl")),
             Path::new(
-                "/home/dev/.nibi/rust-cli/exec/dist/0.1.0/x86_64-unknown-linux-musl/nibi-rs"
+                "/home/dev/.nibi/nibi-kernel/exec/dist/0.1.0/x86_64-unknown-linux-musl/nibi-rs"
             )
         );
     }

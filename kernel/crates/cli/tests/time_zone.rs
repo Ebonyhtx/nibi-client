@@ -111,7 +111,7 @@ fn run(tz: &str, offset_minutes: i64) -> (String, String, [String; 2]) {
         .and_then(|rest| rest.get(..10))
         .unwrap()
         .to_owned();
-    let log = home.join(".nibi/rust-cli/log");
+    let log = home.join(".nibi/nibi-kernel/log");
     let files: Vec<String> = std::fs::read_dir(&log)
         .unwrap()
         .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())

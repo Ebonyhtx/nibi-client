@@ -29,7 +29,7 @@ fn sandbox() -> Sandbox {
     let (home, work, remote) = (base.join("home"), base.join("work"), base.join("remote"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&remote).unwrap();
-    std::fs::create_dir_all(home.join(".nibi/rust-cli")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/nibi-kernel")).unwrap();
     std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
     std::fs::write(work.join("notes.txt"), "local notes\n").unwrap();
     std::fs::write(remote.join("notes.txt"), "remote notes\n").unwrap();
@@ -37,7 +37,7 @@ fn sandbox() -> Sandbox {
         {"name": "dev-a", "ssh": "dev-a", "workingDirectory": remote.display().to_string(), "connected": true}
     ]});
     std::fs::write(
-        home.join(".nibi/rust-cli/machines.json"),
+        home.join(".nibi/nibi-kernel/machines.json"),
         machines.to_string(),
     )
     .unwrap();

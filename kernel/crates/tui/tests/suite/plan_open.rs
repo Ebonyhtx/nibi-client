@@ -28,7 +28,7 @@ impl Editor for Opened {
     }
 }
 
-const PLAN: &str = "/Users/dev/project/.zcode/plans/plan-sess_1.md";
+const PLAN: &str = "/Users/dev/project/.nibi/plans/plan-sess_1.md";
 
 fn env() -> Arc<MemoryEnvironment> {
     Arc::new(MemoryEnvironment::new(EnvFacts {

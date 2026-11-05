@@ -1,7 +1,7 @@
 //! 界面偏好的互操作辅助程序（docs/specs/rust-cli/tui-manage.md §2），由 `scripts/rust-cli/node-interop-check.mjs`
 //! 调用：
 //!
-//! - `theme-write <home> <theme>` / `theme-read <home>`：`~/.zcode/cli/config.json` 的 `ui.theme`；
+//! - `theme-write <home> <theme>` / `theme-read <home>`：`~/.nibi/cli/config.json` 的 `ui.theme`；
 //! - `mcp-write <home> <名字> <true|false>`：用户级配置里 `mcp.servers.<名字>.enabled`（`/mcp enable/disable`）；
 //! - `model-write <home> <provider> <model> [<档位>]` / `model-read <home>`：个人 Provider 配置的
 //!   `defaultModelSelection`（读法与 platform 的 `default_selection` 相同：`providerId`、`modelId`、

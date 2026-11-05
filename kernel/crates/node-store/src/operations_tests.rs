@@ -115,20 +115,20 @@ async fn intents_without_results_are_open_after_a_cold_load() {
         vec![open("op_1", "Read", &a), open("op_4", "Bash", &bash)]
     );
     let row = t.rows(
-        "select id, type, data from session_entry where type like 'rust-cli/operation_%'
+        "select id, type, data from session_entry where type like 'nibi-kernel/operation_%'
          order by rowid limit 1",
     );
     let data = json!({"operationId": "op_1", "fingerprint": digest("Read", &a)});
     assert_eq!(
         row,
         vec![vec![
-            Value::from("sess_1:rust-cli/operation_intent:op_1"),
-            Value::from("rust-cli/operation_intent"),
+            Value::from("sess_1:nibi-kernel/operation_intent:op_1"),
+            Value::from("nibi-kernel/operation_intent"),
             Value::from(stringify(&data)),
         ]]
     );
     let settled = t.rows(
-        "select data from session_entry where type = 'rust-cli/operation_result' order by rowid",
+        "select data from session_entry where type = 'nibi-kernel/operation_result' order by rowid",
     );
     let result = json!({"operationId": "op_2", "toolUseId": "toolu_2", "status": "completed"});
     assert_eq!(settled[0], vec![Value::from(stringify(&result))]);
@@ -213,9 +213,9 @@ fn legacy(t: &TestStore, operation: &str, fingerprint: &str) {
     t.connection()
         .execute(
             "insert into session_entry (id, session_id, type, time_created, time_updated, data)
-             values (?1, 'sess_1', 'rust-cli/operation_intent', 1, 1, ?2)",
+             values (?1, 'sess_1', 'nibi-kernel/operation_intent', 1, 1, ?2)",
             [
-                format!("sess_1:rust-cli/operation_intent:{operation}"),
+                format!("sess_1:nibi-kernel/operation_intent:{operation}"),
                 stringify(&data),
             ],
         )
@@ -267,7 +267,7 @@ async fn an_intent_stores_a_digest_of_its_input() {
         .commit(&sid(), batch(None, vec![intent("op_1", "Write", &input)]))
         .await
         .unwrap();
-    let rows = t.rows("select data from session_entry where type = 'rust-cli/operation_intent'");
+    let rows = t.rows("select data from session_entry where type = 'nibi-kernel/operation_intent'");
     let data: Value = serde_json::from_str(rows[0][0].as_str().unwrap()).unwrap();
     assert_eq!(data["fingerprint"], digest("Write", &input));
     assert!(rows[0][0].as_str().unwrap().len() < 200);

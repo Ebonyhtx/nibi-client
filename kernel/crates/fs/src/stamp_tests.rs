@@ -45,11 +45,11 @@ async fn stamp_changes_when_the_file_appears_grows_or_disappears() {
 #[tokio::test]
 async fn rename_over_with_same_size_and_mtime_changes_the_stamp() {
     let directory = tempfile::tempdir().unwrap();
-    let file = directory.path().join("zcode-builtin.json");
+    let file = directory.path().join("nibi-builtin.json");
     std::fs::write(&file, "{\"revision\":1}").unwrap();
     let modified = std::fs::metadata(&file).unwrap().modified().unwrap();
     let before = FileStamp::of(&file).await;
-    let temp = directory.path().join(".zcode-builtin.json.tmp");
+    let temp = directory.path().join(".nibi-builtin.json.tmp");
     std::fs::write(&temp, "{\"revision\":2}").unwrap();
     set_modified(&temp, modified);
     std::fs::rename(&temp, &file).unwrap();

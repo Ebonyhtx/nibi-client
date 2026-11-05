@@ -131,7 +131,7 @@ fn zcode(sandbox: &Sandbox, cwd: &Path, url: &str, args: &[&str], extra: &[(&str
 }
 
 fn registry(home: &Path) -> PathBuf {
-    home.join(".nibi").join("rust-cli").join("peers")
+    home.join(".nibi").join("nibi-kernel").join("peers")
 }
 
 /// 等到登记目录里有 `count` 份登记（进程启动、绑定收件箱之后写）。
@@ -411,7 +411,7 @@ fn with_latest<T>(
     })
 }
 
-/// A 的会话库里这个工作区最新的会话的某种 `rust-cli/<kind>` entry（只读）。
+/// A 的会话库里这个工作区最新的会话的某种 `nibi-kernel/<kind>` entry（只读）。
 fn entries(sandbox: &Sandbox, kind: &str) -> Vec<(String, Value)> {
     use nibi_kernel_api::store::SessionStore;
     with_latest(sandbox, async |store, session| {

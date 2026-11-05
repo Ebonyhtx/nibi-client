@@ -1,6 +1,6 @@
 // 改写自 apps/zcode-host/crates/tui/src/ui/mouse.rs（feat/rs 79b6691c55）：去掉子代理、任务面板、后台任务、
 // 背景标志的目标；点击网址不打开浏览器（tui 不起进程，docs/specs/rust-cli/tui.md §9）。
-//! 鼠标（docs/specs/rust-tui.md §8.7、rust-cli/tui-select.md §2、§3）：每一帧绘制时记下可点击区域（[`Hits`]），
+//! 鼠标（docs/specs/rust-tui.md §8.7、nibi-kernel/tui-select.md §2、§3）：每一帧绘制时记下可点击区域（[`Hits`]），
 //! 鼠标事件只按上一帧的这份记录处理。transcript 的选区两端按（块的键，块内第几行，列）记录，追加新内容时不漂移；
 //! 全屏视图（独立页面、详细视图、会话面板、`/usage`）的选区按屏幕坐标记（[`ScreenSelection`]）。选中的文字在绘制时
 //! 算出，复制前先重画一次，保证拿到的是松开鼠标那一刻的选区。输入框的选区存在编辑区里（字节范围），这里只记拖动

@@ -7,7 +7,7 @@ use super::*;
 
 fn list() -> (tempfile::TempDir, MachineList) {
     let dir = tempfile::tempdir().unwrap();
-    let list = MachineList::at(&dir.path().join("rust-cli/machines.json"));
+    let list = MachineList::at(&dir.path().join("nibi-kernel/machines.json"));
     (dir, list)
 }
 
@@ -27,7 +27,7 @@ async fn machines_round_trip_and_keep_unknown_fields() {
         .await
         .unwrap();
     list.set_connected("dev-a", true).await.unwrap();
-    let path = dir.path().join("rust-cli/machines.json");
+    let path = dir.path().join("nibi-kernel/machines.json");
     let written: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
     assert_eq!(
@@ -78,7 +78,7 @@ async fn names_are_checked() {
 #[tokio::test]
 async fn a_broken_file_is_an_error_and_is_not_rewritten() {
     let (dir, list) = list();
-    let path = dir.path().join("rust-cli/machines.json");
+    let path = dir.path().join("nibi-kernel/machines.json");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(&path, "{not json").unwrap();
     assert!(matches!(

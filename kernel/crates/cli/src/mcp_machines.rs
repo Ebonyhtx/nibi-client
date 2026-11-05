@@ -1,5 +1,5 @@
 //! MCP 服务器绑定到远端机器（docs/specs/rust-cli/remote-exec.md §22.2）：nibi-kernel-cli 自己的旁路文件
-//! `~/.zcode/rust-cli/mcp-machines.json`。
+//! `~/.nibi/nibi-kernel/mcp-machines.json`。
 //!
 //! 为什么不写进共用的配置文件：App 设置页编辑一个服务器时按表单重新拼出整个服务器（丢掉 `machine`），Node CLI 的
 //! strict 校验对多出的字段报 `config_mcp_server_invalid` 并跳过这个服务器（§22.2 的核对）。只读，用户手写。

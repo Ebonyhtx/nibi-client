@@ -262,7 +262,7 @@ async fn a_failing_fact_rolls_back_the_whole_batch() {
     );
     assert!(t.rows("select * from message").is_empty());
     assert!(t.rows("select * from part").is_empty());
-    let intents = "select id from session_entry where type = 'rust-cli/operation_intent'";
+    let intents = "select id from session_entry where type = 'nibi-kernel/operation_intent'";
     assert!(t.rows(intents).is_empty());
     let title = t.rows("select title, title_source from session");
     assert_eq!(title, vec![vec![Value::from(""), Value::from("default")]]);

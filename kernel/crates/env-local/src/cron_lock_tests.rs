@@ -9,7 +9,7 @@ fn me() -> Identity {
 }
 
 fn path(dir: &tempfile::TempDir) -> std::path::PathBuf {
-    dir.path().join(".zcode").join("scheduled_tasks.lock")
+    dir.path().join(".nibi").join("scheduled_tasks.lock")
 }
 
 async fn written(path: &Path) -> LockRecord {

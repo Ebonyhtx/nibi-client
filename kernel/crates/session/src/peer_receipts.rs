@@ -1,4 +1,4 @@
-//! 发送方收到的回执（docs/specs/rust-cli/cross-session.md §1.9、§2.4）：先提交 `rust-cli/peer_receipt` 再 ack；同一种状态
+//! 发送方收到的回执（docs/specs/rust-cli/cross-session.md §1.9、§2.4）：先提交 `nibi-kernel/peer_receipt` 再 ack；同一种状态
 //! 在最后一条到达后 500 ms 内的合成一条，到点（按时钟）才交给 next 通道，所以刚发出就回来的
 //! held 不会挤进 SendMessage 自己的工具边界。交出时每种状态一条，顺序是 held、
 //! denied、expired、delivered、refused。

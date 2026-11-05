@@ -14,7 +14,7 @@ fn hooks_are_listed_by_source_event_and_matcher() {
     }}));
     let plugin = PluginHooks {
         plugin: "lint".to_owned(),
-        root: "/Users/dev/.zcode/plugins/lint".to_owned(),
+        root: "/Users/dev/.nibi/plugins/lint".to_owned(),
         settings: HooksSettings::from_json(&json!({"hooks": {
             "SessionStart": [{"hooks": [{"type": "command", "command": "lint --init"}]}],
         }}))
