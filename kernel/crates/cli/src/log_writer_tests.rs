@@ -10,7 +10,7 @@ use super::*;
 use crate::log::Item;
 
 fn read(dir: &Path, date: &str) -> String {
-    std::fs::read_to_string(dir.join(format!("zcode-{date}.jsonl"))).unwrap_or_default()
+    std::fs::read_to_string(dir.join(format!("nibi-{date}.jsonl"))).unwrap_or_default()
 }
 
 fn names(dir: &Path) -> Vec<String> {
@@ -56,7 +56,7 @@ async fn the_daily_cap_writes_one_notice_and_drops_the_rest() {
 #[tokio::test]
 async fn an_existing_file_counts_toward_the_cap() {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("zcode-2026-10-18.jsonl"), "0123456789\n").unwrap();
+    std::fs::write(dir.path().join("nibi-2026-10-18.jsonl"), "0123456789\n").unwrap();
     let mut files = DailyFiles::new(dir.path().to_path_buf(), 10);
     files.append("2026-10-18", 0, b"x\n").await;
     files.append("2026-10-18", 0, b"y\n").await;
@@ -68,10 +68,13 @@ async fn an_existing_file_counts_toward_the_cap() {
 async fn files_older_than_seven_days_are_removed_when_a_day_opens() {
     let dir = tempfile::tempdir().unwrap();
     for name in [
-        "zcode-2026-10-01.jsonl",
-        "zcode-2026-10-10.jsonl",
-        "zcode-2026-10-11.jsonl",
-        "zcode-2026-10-17.jsonl",
+        "nibi-2026-10-01.jsonl",
+        "nibi-2026-10-10.jsonl",
+        "nibi-2026-10-11.jsonl",
+        "nibi-2026-10-17.jsonl",
+        "nibi-notes.jsonl",
+        // 旧名：升级后也要按同一天回收，否则会永远留在磁盘上。
+        "zcode-2026-10-02.jsonl",
         "zcode-notes.jsonl",
         "other.txt",
     ] {
@@ -82,10 +85,11 @@ async fn files_older_than_seven_days_are_removed_when_a_day_opens() {
     assert_eq!(
         names(dir.path()),
         [
+            "nibi-2026-10-11.jsonl",
+            "nibi-2026-10-17.jsonl",
+            "nibi-2026-10-18.jsonl",
+            "nibi-notes.jsonl",
             "other.txt",
-            "zcode-2026-10-11.jsonl",
-            "zcode-2026-10-17.jsonl",
-            "zcode-2026-10-18.jsonl",
             "zcode-notes.jsonl"
         ]
     );

@@ -11,8 +11,11 @@ use tokio::sync::mpsc;
 
 use crate::log::{Item, notice};
 
-/// 日志文件名 `zcode-<日期>.jsonl` 的前后缀（写与按日期清理共用，F55：以前各写一份）。
-const FILE_PREFIX: &str = "zcode-";
+/// 日志文件名 `nibi-<日期>.jsonl` 的前后缀（写与按日期清理共用，F55：以前各写一份）。名字与 Node
+/// （`adapters/src/logging/index.ts`）一致。
+const FILE_PREFIX: &str = "nibi-";
+/// 旧版本写的文件名前缀：保留期清理也回收它们，升级后不留下永远不被清理的文件。
+const LEGACY_FILE_PREFIX: &str = "zcode-";
 const FILE_SUFFIX: &str = ".jsonl";
 /// 保留天数（Node `LOG_RETENTION_DAYS`）。
 const RETENTION_DAYS: i64 = 7;
@@ -94,16 +97,17 @@ async fn open(dir: &Path, date: &str, cap: u64) -> Day {
     }
 }
 
-/// 删掉日期早于 `cutoff` 的 `zcode-YYYY-MM-DD.jsonl`；名字不符合的文件不动（Node `cleanupLogRetention`）。
+/// 删掉日期早于 `cutoff` 的 `nibi-YYYY-MM-DD.jsonl` 与旧名 `zcode-YYYY-MM-DD.jsonl`；名字不符合的文件
+/// 不动（Node `cleanupLogRetention`）。
 async fn prune(dir: &Path, cutoff: &str) {
     let Ok(names) = rust_cli_fs::file_names(dir).await else {
         return;
     };
     for name in names {
-        let Some(date) = name
-            .strip_prefix(FILE_PREFIX)
-            .and_then(|rest| rest.strip_suffix(FILE_SUFFIX))
-        else {
+        let Some(date) = [FILE_PREFIX, LEGACY_FILE_PREFIX].iter().find_map(|prefix| {
+            name.strip_prefix(prefix)
+                .and_then(|rest| rest.strip_suffix(FILE_SUFFIX))
+        }) else {
             continue;
         };
         if parse_date(date).is_some() && date < cutoff {

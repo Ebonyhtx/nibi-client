@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 打包产物的内核冒烟：对给定 zcode-rs 二进制跑 `--prepare-storage` 握手。
+ * 打包产物的内核冒烟：对给定内核二进制（打包位次是 `nibi-rs`）跑 `--prepare-storage` 握手。
  *
  * 握手形状照抄桌面宿主的实现（packages/desktop/src/host/database-startup/
  * storagePreparationProcesses.ts 的 runStorageHandshakeLines）：
@@ -9,7 +9,7 @@
  *   → 成功退出。phase:"failed" 或 30s 首帧超时 = 失败。
  *
  * 隔离纪律与 kernel-baseline 同一条：五个根变量全改，绝不写真实 ~/.nibi。
- * 用法：node scripts/desktop-package/smoke-prepare-storage.mjs <path-to-zcode-rs>
+ * 用法：node scripts/desktop-package/smoke-prepare-storage.mjs <path-to-kernel-binary>
  * 退出码 0 = 冒烟通过；非 0 = 失败原因在 stderr。
  */
 import { spawn } from "node:child_process";
@@ -21,7 +21,7 @@ import process from "node:process";
 
 const binary = resolve(process.argv[2] ?? "");
 if (!binary) {
-  console.error("usage: node smoke-prepare-storage.mjs <path-to-zcode-rs>");
+  console.error("usage: node smoke-prepare-storage.mjs <path-to-kernel-binary>");
   process.exit(2);
 }
 

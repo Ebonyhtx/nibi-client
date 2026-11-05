@@ -6,7 +6,9 @@ import type { Logger } from "@nibi/contracts";
 export const LOG_RETENTION_DAYS = 7;
 export const LOG_CLEANUP_STARTUP_DELAY_MS = 60_000;
 
-const LOG_FILE_NAME_PATTERN = /^zcode-(\d{4})-(\d{2})-(\d{2})\.jsonl$/;
+// 当前写的是 `nibi-YYYY-MM-DD.jsonl`（logging/index.ts）；旧版本写的 `zcode-*` 也按同一天回收，
+// 否则升级后旧文件会永远留在磁盘上。
+const LOG_FILE_NAME_PATTERN = /^(?:nibi|zcode)-(\d{4})-(\d{2})-(\d{2})\.jsonl$/;
 const MIN_RETENTION_DAYS = 1;
 
 export interface LogRetentionCleanupOptions {

@@ -453,24 +453,31 @@ export function resolveKernelSelection(value: string | undefined): "node" | "rus
 /**
  * Rust app-server 的位次：显式 env（开发/灰度）→ 打包 `resources/rust-kernel`（尚未随包附带）→
  * 仓库 `kernel/target`（debug 优先，其次 release）。找不到就回落到 node 链路。
+ *
+ * 文件名两代都认：新打包/构建是 `nibi-rs`；旧包（以及 Cargo 的 `[[bin]]` 名）仍是 `zcode-rs`。
  */
 function findRustAgentBinary(): string | null {
   const explicit = process.env.NIBI_RUST_AGENT_SERVER_COMMAND?.trim();
   if (explicit) {
     return explicit;
   }
-  const executable = process.platform === "win32" ? "zcode-rs.exe" : "zcode-rs";
+  const executables =
+    process.platform === "win32" ? ["nibi-rs.exe", "zcode-rs.exe"] : ["nibi-rs", "zcode-rs"];
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (resourcesPath) {
-    const packaged = join(resourcesPath, "rust-kernel", executable);
-    if (existsSync(packaged)) {
-      return packaged;
+    for (const executable of executables) {
+      const packaged = join(resourcesPath, "rust-kernel", executable);
+      if (existsSync(packaged)) {
+        return packaged;
+      }
     }
   }
-  for (const profile of ["debug", "release"]) {
-    const found = findUpward(join("kernel", "target", profile, executable));
-    if (found) {
-      return found;
+  for (const executable of executables) {
+    for (const profile of ["debug", "release"]) {
+      const found = findUpward(join("kernel", "target", profile, executable));
+      if (found) {
+        return found;
+      }
     }
   }
   return null;

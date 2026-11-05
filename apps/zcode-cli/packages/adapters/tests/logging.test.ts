@@ -258,15 +258,16 @@ describe("Node logging adapter", () => {
     }
   });
 
-  it("cleans only zcode JSONL logs older than the retention window", async () => {
-    const logDir = await mkdtemp(join(tmpdir(), "zcode-log-retention-"));
+  it("cleans nibi and legacy zcode JSONL logs older than the retention window", async () => {
+    const logDir = await mkdtemp(join(tmpdir(), "nibi-log-retention-"));
 
     try {
       await Promise.all([
-        writeFile(join(logDir, "zcode-2026-05-01.jsonl"), "old\n"),
-        writeFile(join(logDir, "zcode-2026-05-02.jsonl"), "cutoff\n"),
-        writeFile(join(logDir, "zcode-2026-05-08.jsonl"), "today\n"),
-        writeFile(join(logDir, "zcode-2026-04-30.txt"), "other\n"),
+        writeFile(join(logDir, "nibi-2026-05-01.jsonl"), "old\n"),
+        writeFile(join(logDir, "nibi-2026-05-02.jsonl"), "cutoff\n"),
+        writeFile(join(logDir, "nibi-2026-05-08.jsonl"), "today\n"),
+        writeFile(join(logDir, "nibi-2026-04-30.txt"), "other\n"),
+        writeFile(join(logDir, "zcode-2026-04-28.jsonl"), "legacy\n"),
         writeFile(join(logDir, "other-2026-04-30.jsonl"), "other\n"),
       ]);
 
@@ -276,19 +277,22 @@ describe("Node logging adapter", () => {
       });
 
       await expect(readdir(logDir).then((files) => files.sort())).resolves.toEqual([
+        "nibi-2026-04-30.txt",
+        "nibi-2026-05-02.jsonl",
+        "nibi-2026-05-08.jsonl",
         "other-2026-04-30.jsonl",
-        "zcode-2026-04-30.txt",
-        "zcode-2026-05-02.jsonl",
-        "zcode-2026-05-08.jsonl",
       ]);
       expect(result).toMatchObject({
         cutoffDate: "2026-05-02",
-        deletedFiles: ["zcode-2026-05-01.jsonl"],
         failedFiles: [],
         retentionDays: 7,
-        scannedFiles: 3,
+        scannedFiles: 4,
         status: "completed",
       });
+      expect([...result.deletedFiles].sort()).toEqual([
+        "nibi-2026-05-01.jsonl",
+        "zcode-2026-04-28.jsonl",
+      ]);
     } finally {
       await rm(logDir, { recursive: true, force: true });
     }

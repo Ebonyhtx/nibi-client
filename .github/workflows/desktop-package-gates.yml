@@ -50,17 +50,17 @@ jobs:
           - os: ubuntu-latest
             bundle-os: linux
             bundle-arch: x64
-            kernel-exe: zcode-rs
+            kernel-exe: nibi-rs
             resource-dir: packages/desktop/dist/linux-unpacked/resources
           - os: windows-latest
             bundle-os: win
             bundle-arch: x64
-            kernel-exe: zcode-rs.exe
+            kernel-exe: nibi-rs.exe
             resource-dir: packages/desktop/dist/win-unpacked/resources
           - os: macos-latest
             bundle-os: mac
             bundle-arch: arm64
-            kernel-exe: zcode-rs
+            kernel-exe: nibi-rs
             resource-dir: packages/desktop/dist/mac-arm64/NIBI.app/Contents/Resources
     env:
       TURBO_TELEMETRY_DISABLED: "1"

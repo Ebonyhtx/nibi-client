@@ -67,7 +67,7 @@ const shouldPackageComputerUseHelper = isRealComputerUseProducerInstalled({ desk
 // Rust 内核二进制（灰度轨，可选资产）：prepare:rust-kernel 暂存进 .staging/rust-kernel 时才
 // 随包发布（<resources>/rust-kernel/<executable>，进程管理器的打包位次）。NIBI_KERNEL 默认
 // node——没暂存就整字段缺席，运行时回退 node 链路，打包结果与切流前逐字节相同。
-const rustKernelExecutable = targetPlatform.os === "win32" ? "zcode-rs.exe" : "zcode-rs";
+const rustKernelExecutable = targetPlatform.os === "win32" ? "nibi-rs.exe" : "nibi-rs";
 const shouldPackageRustKernel = existsSync(
   resolve(workspaceRoot, ".staging", "rust-kernel", rustKernelExecutable),
 );
