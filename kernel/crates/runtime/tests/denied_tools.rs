@@ -9,23 +9,23 @@ mod denied_tools {
 
     use futures_util::StreamExt;
     use futures_util::stream::BoxStream;
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-    use rust_cli_kernel_api::model::{
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+    use nibi_kernel_api::model::{
         ModelError, ModelEvent, ModelPort, ModelRequest, QuerySource,
     };
-    use rust_cli_kernel_api::permission::{
+    use nibi_kernel_api::permission::{
         PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
     };
-    use rust_cli_kernel_api::session_api::{
+    use nibi_kernel_api::session_api::{
         Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, TurnOutcome,
     };
-    use rust_cli_kernel_api::testing::{
+    use nibi_kernel_api::testing::{
         FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
         selection, text_response, tool_use_response,
     };
-    use rust_cli_policy::rules::parse_rule;
-    use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+    use nibi_kernel_policy::rules::parse_rule;
+    use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
     use serde_json::json;
     use tokio_util::sync::CancellationToken;
 

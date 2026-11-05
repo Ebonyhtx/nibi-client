@@ -5,13 +5,13 @@
 use std::sync::Arc;
 
 use futures_util::stream::{FuturesUnordered, StreamExt};
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::hooks::{HookContext, HookEventName, HookHttp};
-use rust_cli_kernel_api::ids::{Generation, OwnerEpoch, SessionId};
-use rust_cli_kernel_api::machine::{Commands, Shell};
-use rust_cli_kernel_api::model::{ModelPort, ModelSelection, small_fast_model};
-use rust_cli_kernel_api::store::ArtifactStore;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::hooks::{HookContext, HookEventName, HookHttp};
+use nibi_kernel_api::ids::{Generation, OwnerEpoch, SessionId};
+use nibi_kernel_api::machine::{Commands, Shell};
+use nibi_kernel_api::model::{ModelPort, ModelSelection, small_fast_model};
+use nibi_kernel_api::store::ArtifactStore;
 use tokio_util::sync::CancellationToken;
 
 use crate::command::{self, CommandRun};

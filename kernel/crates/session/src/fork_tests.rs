@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{Message, UserOrigin};
-use rust_cli_kernel_api::session_api::{Ack, Command, SessionHandle};
-use rust_cli_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{Message, UserOrigin};
+use nibi_kernel_api::session_api::{Ack, Command, SessionHandle};
+use nibi_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 
 use crate::test_support::{Setup, envelope, finished, submit, until};
 
@@ -64,9 +64,9 @@ async fn a_fork_of_an_untitled_session_is_named_like_node() {
 /// 续写时补的 assistant（session-lifecycle.md §6.3.1）：复制到新会话时不带它（新会话打开时再补）。
 #[test]
 fn the_resume_reply_is_not_copied() {
-    use rust_cli_kernel_api::ids::MessageId;
-    use rust_cli_kernel_api::message::{ContentBlock, UserMessage};
-    use rust_cli_kernel_api::testing::SequentialIds;
+    use nibi_kernel_api::ids::MessageId;
+    use nibi_kernel_api::message::{ContentBlock, UserMessage};
+    use nibi_kernel_api::testing::SequentialIds;
     let input = |id: &str| {
         Message::User(UserMessage {
             id: MessageId::new(id),

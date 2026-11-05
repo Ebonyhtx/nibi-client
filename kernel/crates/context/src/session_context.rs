@@ -2,11 +2,11 @@
 //!
 //! git 的原始值由执行环境给（`Git::git_status`），文本在这里渲染。
 
-use rust_cli_kernel_api::env::{EnvFacts, WorkspaceRef};
-use rust_cli_kernel_api::env_git::{GitSnapshot, GitStatus, GitStatusRequest};
-use rust_cli_kernel_api::local_services::Git;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::env::{EnvFacts, WorkspaceRef};
+use nibi_kernel_api::env_git::{GitSnapshot, GitStatus, GitStatusRequest};
+use nibi_kernel_api::local_services::Git;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_prompts::texts::{self, render};
 use serde_json::{Value, json};
 
 use crate::render::attachments;

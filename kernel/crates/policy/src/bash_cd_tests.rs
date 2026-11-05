@@ -1,7 +1,7 @@
 //! cd 之后的路径与输入重定向（shell-permissions.md §4.5.7、§4.5.8，工作线 F85）：cd 的目标带进后面各段的路径判断，
 //! 路径 deny 规则不因 cd 失效；首个 cd 指向工作目录里时后面各段按它解析；输入重定向的目标也查。文字逐字比较。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use super::*;
 use crate::test_support::{message, run};

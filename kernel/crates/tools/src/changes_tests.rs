@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, FileVersion, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::testing::MemoryEnvironment;
-use rust_cli_kernel_api::tool::{ChangedFile, ChangedFiles};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, FileVersion, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::tool::{ChangedFile, ChangedFiles};
 
 use super::FileChanges;
 use crate::file_state::{Baseline, FileState, ReadFileState};

@@ -5,9 +5,9 @@
 //! 只认模型选择、账号的类别与模式、发请求的会话与被拒的凭据。
 
 use async_trait::async_trait;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::model::{ModelError, ModelSelection};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::model::{ModelError, ModelSelection};
 
 /// 向来源要凭据的一次请求。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,7 +18,7 @@ pub struct HeaderRequest {
     pub account_type: String,
     /// 账号的模式（Provider 配置的 `access.mode`）。
     pub mode: String,
-    /// 发请求的会话（[`rust_cli_kernel_api::provider::EndpointContext::session`]）；没有时来源可以拒绝。
+    /// 发请求的会话（[`nibi_kernel_api::provider::EndpointContext::session`]）；没有时来源可以拒绝。
     pub session: Option<SessionId>,
     /// 刚被模型服务拒绝（401）的凭据的 sha256（小写十六进制）；第一次请求为 None。
     pub rejected_fingerprint: Option<String>,

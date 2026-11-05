@@ -2,9 +2,9 @@
 
 use std::time::Duration;
 
-use rust_cli_kernel_api::model::{ModelError, ModelRequest};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint};
-use rust_cli_net::{HeaderValue, HttpRequest, header};
+use nibi_kernel_api::model::{ModelError, ModelRequest};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint};
+use nibi_kernel_net::{HeaderValue, HttpRequest, header};
 
 use crate::anthropic_stream::AnthropicStream;
 use crate::endpoint::anthropic_messages_url;
@@ -19,7 +19,7 @@ pub(crate) const API_VERSION: &str = "2023-06-01";
 pub(crate) const VERSION_HEADER: &str = "anthropic-version";
 pub(crate) const BETA_HEADER: &str = "anthropic-beta";
 /// 等待响应头的时限：SDK 默认 timeout；值在 net 的单次超时表（F58）。
-pub(crate) const HEADER_TIMEOUT: Duration = rust_cli_net::timeout::MODEL;
+pub(crate) const HEADER_TIMEOUT: Duration = nibi_kernel_net::timeout::MODEL;
 
 pub(crate) struct Anthropic;
 

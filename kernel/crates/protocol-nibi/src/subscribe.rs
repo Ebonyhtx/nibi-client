@@ -4,12 +4,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::{CommandId, SessionId};
-use rust_cli_kernel_api::session_api::{Command, CommandEnvelope};
-use rust_cli_kernel_api::store::SessionFilter;
-use rust_cli_protocol_core::connection::Reply;
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::{CommandId, SessionId};
+use nibi_kernel_api::session_api::{Command, CommandEnvelope};
+use nibi_kernel_api::store::SessionFilter;
+use nibi_kernel_protocol_core::connection::Reply;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
 
 use crate::index::{CONFIG_PREFIX, INDEX_PREFIX, Summary};
@@ -17,7 +17,7 @@ use crate::live::{CONVERSATION_PREFIX, Live};
 use crate::projection::state::Phase;
 use crate::server::{Server, kernel_error};
 use crate::wire::Purpose;
-use rust_cli_protocol_core::sessions::Bridged;
+use nibi_kernel_protocol_core::sessions::Bridged;
 
 /// 存储里一个工作区的会话 → 会话列表的行。
 async fn stored_rows(server: &Server, workspace: &str) -> Vec<Value> {
@@ -90,7 +90,7 @@ async fn apply_resume_hints(server: &Server, live: &Arc<Bridged<Live>>, params: 
         id: CommandId::new(format!("subscribe:{}:thought", live.handle.id().as_str())),
         command: Command::SetModel { selection },
     };
-    if let rust_cli_kernel_api::session_api::Ack::Rejected { reason } =
+    if let nibi_kernel_api::session_api::Ack::Rejected { reason } =
         live.handle.send(envelope).await
     {
         tracing::warn!(
@@ -287,7 +287,7 @@ fn start_on_pump(
     live: Arc<Bridged<Live>>,
     subscription: String,
     purpose: Purpose,
-) -> rust_cli_protocol_core::connection::After {
+) -> nibi_kernel_protocol_core::connection::After {
     Box::new(move || {
         let sink = live.sink.clone();
         live.run(Box::pin(

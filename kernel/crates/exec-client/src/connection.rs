@@ -15,14 +15,14 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use bytes::Bytes;
-use rust_cli_base::owned;
-use rust_cli_exec_transport::{Connector, FrameSink, FrameSource};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::envelope::{
+use nibi_kernel_base::owned;
+use nibi_kernel_exec_transport::{Connector, FrameSink, FrameSource};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::envelope::{
     Beat, Close, EventHeader, ReplyHeader, ReplyResult, RequestHeader, StreamItem,
 };
-use rust_cli_exec_wire::frame::{Frame, Kind, Reassembler, Received, Splitter};
-use rust_cli_exec_wire::handshake::{Capabilities, Hello, PROTOCOL, Refuse, Welcome};
+use nibi_kernel_exec_wire::frame::{Frame, Kind, Reassembler, Received, Splitter};
+use nibi_kernel_exec_wire::handshake::{Capabilities, Hello, PROTOCOL, Refuse, Welcome};
 use tokio::sync::mpsc;
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
@@ -31,9 +31,9 @@ use crate::state::{Control, Pending, Shared, Waiter, fail};
 use crate::{Answer, ClientError, ConnectionState, Reconnect, StreamEvent};
 
 /// 传输的错误 → 客户端的错误：目标拒绝（`Rejected`，再连也一样）单独一种，其余都是连不上（F96，remote-exec.md §23.4）。
-fn link_error(error: rust_cli_exec_transport::LinkError) -> ClientError {
+fn link_error(error: nibi_kernel_exec_transport::LinkError) -> ClientError {
     match error {
-        rust_cli_exec_transport::LinkError::Rejected(message) => ClientError::Rejected(message),
+        nibi_kernel_exec_transport::LinkError::Rejected(message) => ClientError::Rejected(message),
         other => ClientError::Connect(other.to_string()),
     }
 }

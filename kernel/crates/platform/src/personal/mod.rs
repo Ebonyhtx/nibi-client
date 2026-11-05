@@ -17,8 +17,8 @@ mod check;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_net::Egress;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_net::Egress;
 use tokio::sync::OnceCell;
 
 use crate::credentials::CredentialStore;

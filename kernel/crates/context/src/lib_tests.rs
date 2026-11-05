@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{FixedClock, SequentialIds, UnusedEnvironment};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{FixedClock, SequentialIds, UnusedEnvironment};
 
 use super::*;
 
@@ -52,7 +52,7 @@ fn assembler() -> PromptAssembler {
 #[tokio::test]
 async fn the_token_reminder_budget_is_the_model_window() {
     let mut constrained = request(QuerySource::MainThread);
-    constrained.capabilities = Some(rust_cli_kernel_api::provider::ModelCapabilities {
+    constrained.capabilities = Some(nibi_kernel_api::provider::ModelCapabilities {
         context_window: 128_000,
         ..Default::default()
     });
@@ -75,7 +75,7 @@ async fn the_token_reminder_budget_is_the_model_window() {
     // 能力答不出时按模型卡片；卡片也没有时用卡片模块的默认窗口（与自动压缩同一个回退）。
     let mut unknown = request(QuerySource::MainThread);
     unknown.selection.model = "unknown-model".to_owned();
-    let expected = rust_cli_prompts::models::context_window("unknown-model", None);
+    let expected = nibi_kernel_prompts::models::context_window("unknown-model", None);
     let turn = assembler()
         .turn_attachments(unknown, &prompt())
         .await
@@ -95,12 +95,12 @@ async fn the_token_reminder_budget_is_the_model_window() {
 
 /// 回合从一条人类输入开始。
 fn prompt() -> Vec<Message> {
-    vec![Message::User(rust_cli_kernel_api::message::UserMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new("msg_u"),
-        content: vec![rust_cli_kernel_api::message::ContentBlock::Text {
+    vec![Message::User(nibi_kernel_api::message::UserMessage {
+        id: nibi_kernel_api::ids::MessageId::new("msg_u"),
+        content: vec![nibi_kernel_api::message::ContentBlock::Text {
             text: "hi".to_owned(),
         }],
-        origin: rust_cli_kernel_api::message::UserOrigin::Human,
+        origin: nibi_kernel_api::message::UserOrigin::Human,
     })]
 }
 
@@ -197,8 +197,8 @@ async fn the_main_thread_step_splits_turn_attachments_from_announcements() {
 /// 以前只看边界之后的历史，压缩之后回到满额。
 #[tokio::test]
 async fn the_tokens_left_do_not_reset_at_a_compaction() {
-    use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-    use rust_cli_kernel_api::message::{
+    use nibi_kernel_api::ids::{MessageId, ToolUseId};
+    use nibi_kernel_api::message::{
         AssistantMessage, CompactBoundary, CompactTrigger, ContentBlock, ToolResultContent, Usage,
         UserMessage, UserOrigin,
     };

@@ -2,11 +2,11 @@
 //! 记一条带原因的 warn。现场：库跑过开发分支的迁移，`model_usage` 没有 `variant` 列。
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, UserMessage, UserOrigin};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{ContentBlock, Message, StopReason, UserMessage, UserOrigin};
+use nibi_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::{Value, json};
 use tracing::field::Field;
 use tracing::span::{Attributes, Id, Record};
@@ -159,7 +159,7 @@ async fn a_tool_usage_row_that_cannot_be_written_keeps_the_result() {
         id: MessageId::new("msg_r1"),
         content: vec![ContentBlock::ToolResult {
             tool_use_id: ToolUseId::new("toolu_1"),
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: "alpha".into(),
             }],
             is_error: false,

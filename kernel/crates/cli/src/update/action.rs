@@ -56,7 +56,7 @@ async fn run_here(install: &Install, env: &[(String, String)], out: &mut dyn Wri
     // 终端已经关掉时写不进去也照常执行（与恢复提示相同，写失败不 panic）。
     let _ = writeln!(out, "\nUpdating NIBI via `{line}`...");
     let _ = out.flush();
-    let mut command = rust_cli_proc::command(install.program());
+    let mut command = nibi_kernel_proc::command(install.program());
     command
         .args(install.args())
         .env_clear()

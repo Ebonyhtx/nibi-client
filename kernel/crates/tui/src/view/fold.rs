@@ -1,10 +1,10 @@
 //! 事件 → 行（docs/specs/rust-cli/tui.md §4.2）。冷加载（[`SessionView`]）与实时事件走同一套处理。
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::ExecutionState;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView, TurnOutcome};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::ExecutionState;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView, TurnOutcome};
 use serde_json::Value;
 
 use super::{Body, Fire, Marker, Row, Segment, ToolRow, ToolStatus, Transcript, TurnState};
@@ -185,7 +185,7 @@ impl Transcript {
                 max_tokens,
                 window_tokens,
             } => {
-                self.occupancy = Some(rust_cli_kernel_api::compaction::ContextOccupancy {
+                self.occupancy = Some(nibi_kernel_api::compaction::ContextOccupancy {
                     used_tokens,
                     max_tokens,
                     window_tokens,

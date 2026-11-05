@@ -3,16 +3,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::listing::{ListingSource, Listings};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::listing::{ListingSource, Listings};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{ContextBuilder, ContextRequest, OrchestrationError};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{FixedClock, SequentialIds, UnusedEnvironment};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{ContextBuilder, ContextRequest, OrchestrationError};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{FixedClock, SequentialIds, UnusedEnvironment};
 
 use super::has_ultrathink;
 use crate::{ContextConfig, ContextPorts, PromptAssembler, Surface};

@@ -13,7 +13,7 @@ fn limits(events: u64, bytes: u64) -> Limits {
 #[test]
 fn the_default_byte_limit_depends_on_the_endpoint() {
     use crate::profiles::select;
-    use rust_cli_kernel_api::provider::WireProtocol;
+    use nibi_kernel_api::provider::WireProtocol;
     let idle = StreamIdle::default();
     let profile = |base_url: &str, model: &str| {
         select(WireProtocol::AnthropicMessages, base_url, model).byte_idle

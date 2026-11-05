@@ -21,28 +21,28 @@ mod test_support;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_base::Spawner;
+use nibi_kernel_base::Spawner;
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::machine::{EnvInfo, Files};
-use rust_cli_kernel_api::mcp::McpTransport;
-use rust_cli_kernel_api::mcp_state::{McpConnections, WAIT_FOR_MCP_SERVERS};
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::machine::{EnvInfo, Files};
+use nibi_kernel_api::mcp::McpTransport;
+use nibi_kernel_api::mcp_state::{McpConnections, WAIT_FOR_MCP_SERVERS};
+use nibi_kernel_api::mcp_ui::{
     McpResourceContent, McpResourcePage, McpResourceTemplatePage, McpUiCallToolRequest,
     McpUiCancelCallRequest, McpUiError, McpUiInstanceRequest, McpUiListRequest, McpUiReadRequest,
     McpUiSubscriptionRequest, visible_to_app,
 };
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::orchestration::{
     ContextRequest, OrchestrationError, ToolRegistry, ToolSnapshot,
 };
-use rust_cli_kernel_api::tool::Tool;
-use rust_cli_policy::PolicyGate;
+use nibi_kernel_api::tool::Tool;
+use nibi_kernel_policy::PolicyGate;
 
 pub use mcp::{McpManager, McpScope, McpServer, McpServers, McpSettings};
 pub use mcp::{McpTelemetry, McpTelemetrySetup, McpTelemetrySlot};
@@ -68,7 +68,7 @@ pub struct ExtPorts {
     pub mcp: Arc<dyn McpTransport>,
     /// 远端机器的注册表（R5，remote-exec.md §22.6）：绑定到远端机器的 MCP 服务器从这里取那台机器的管道；None 时
     /// （只给测试的组装）它们都连不上。
-    pub machines: Option<Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>>,
+    pub machines: Option<Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>>,
     /// MCP 的连接任务在这里启动。
     pub spawner: Spawner,
     /// MCP 等待的截止时刻（ext.md §3.3.1、§3.8）。
@@ -78,11 +78,11 @@ pub struct ExtPorts {
     pub mcp_telemetry: Option<mcp::McpTelemetrySetup>,
     /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量）：入口接给协议层；None 时什么都不发。
     pub mcp_ui_events: Option<
-        tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>,
+        tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>,
     >,
     /// 回合外的一次模型请求（MCP Apps 采样）：runtime 用会话当前的模型选择实现；None 时
     /// `mcp/uiSampling` 如实报不支持（TUI、测试）。
-    pub sampling: Option<Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort>>,
+    pub sampling: Option<Arc<dyn nibi_kernel_api::mcp_ui::McpUiSamplingPort>>,
 }
 
 /// 入口层给出的配置快照。
@@ -115,7 +115,7 @@ pub struct Ext {
     app_tools: Arc<mcp::AppToolRegistry>,
     /// 采样的额度与终态账本；`sampling` 是模型请求的出口（runtime 注入）。
     sampling_calls: Arc<mcp::SamplingCalls>,
-    sampling: Option<Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort>>,
+    sampling: Option<Arc<dyn nibi_kernel_api::mcp_ui::McpUiSamplingPort>>,
     registry: Arc<ExtRegistry>,
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
@@ -191,7 +191,7 @@ impl Ext {
         });
         // MCP Apps 的凭证账本：进程级一个实例标识（Node 每个 agent 进程一个 `McpUiInstances`）。
         let app_instances = Arc::new(mcp::McpAppInstances::new(
-            rust_cli_kernel_api::process_table::uuid_v4(),
+            nibi_kernel_api::process_table::uuid_v4(),
         ));
         let sampling_calls = Arc::new(mcp::SamplingCalls::new());
         // 实例关闭 → `pluginUi.instanceClosed`（页面卸载）。凭证先移除、再取消令牌，这个回调在
@@ -199,9 +199,9 @@ impl Ext {
         if let Some(events) = ports.mcp_ui_events.clone() {
             let sampling_calls = sampling_calls.clone();
             app_instances.set_on_closed(std::sync::Arc::new(move |binding, lease| {
-                use rust_cli_kernel_api::mcp_ui::{McpUiEvent, McpUiSubscriber};
+                use nibi_kernel_api::mcp_ui::{McpUiEvent, McpUiSubscriber};
                 sampling_calls.clear_instance(&lease.token);
-                let plugin_id = rust_cli_kernel_api::mcp_telemetry::plugin_name(
+                let plugin_id = nibi_kernel_api::mcp_telemetry::plugin_name(
                     &binding.server,
                     binding.server.starts_with("plugin:"),
                 )
@@ -271,7 +271,7 @@ impl Ext {
     }
 
     /// 用户调用 skill 的展开与斜杠补全（ext.md §2.7）。
-    pub fn user_commands(&self) -> Arc<dyn rust_cli_kernel_api::user_command::UserCommands> {
+    pub fn user_commands(&self) -> Arc<dyn nibi_kernel_api::user_command::UserCommands> {
         self.commands.clone()
     }
 
@@ -281,8 +281,8 @@ impl Ext {
 
     /// 全部仍在运行的 MCP 子进程（`process/childProcesses`）：进程级配置、会话级连接与状态页的连接都算，
     /// 同一 manager 被多个会话继承时只列一次。
-    pub fn mcp_child_processes(&self) -> Vec<rust_cli_kernel_api::mcp_state::McpChildProcess> {
-        use rust_cli_kernel_api::mcp_state::McpConnections;
+    pub fn mcp_child_processes(&self) -> Vec<nibi_kernel_api::mcp_state::McpChildProcess> {
+        use nibi_kernel_api::mcp_state::McpConnections;
         let mut all = self.mcp.processes();
         for manager in self.session_mcp.managers() {
             all.extend(manager.processes());
@@ -294,8 +294,8 @@ impl Ext {
     }
 
     /// 五分钟资源采样的目标（`process/mcpResourceSamples`）：与上面同一份清单，另带遥测身份。
-    pub fn mcp_resource_targets(&self) -> Vec<rust_cli_kernel_api::process_table::McpResourceTarget> {
-        use rust_cli_kernel_api::mcp_state::McpConnections;
+    pub fn mcp_resource_targets(&self) -> Vec<nibi_kernel_api::process_table::McpResourceTarget> {
+        use nibi_kernel_api::mcp_state::McpConnections;
         let mut all = self.mcp.resource_targets();
         for manager in self.session_mcp.managers() {
             all.extend(manager.resource_targets());
@@ -310,8 +310,8 @@ impl Ext {
     /// 状态页的连接与会话级/进程级的连接都不混（Node 的 mcp/list 专用进程同语义）。
     pub async fn mcp_list(
         &self,
-        request: rust_cli_kernel_api::mcp_status::McpListRequest,
-    ) -> Vec<rust_cli_kernel_api::mcp_status::McpServerStatus> {
+        request: nibi_kernel_api::mcp_status::McpListRequest,
+    ) -> Vec<nibi_kernel_api::mcp_status::McpServerStatus> {
         self.status_mcp.list(request).await
     }
 
@@ -329,8 +329,8 @@ impl Ext {
     /// 已有凭证的校验路径仍然是同步拒绝（`mcp_ui_validate`）。
     pub async fn mcp_ui_open(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiOpenRequest,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpAppInstance, rust_cli_kernel_api::mcp_ui::McpUiError>
+        request: nibi_kernel_api::mcp_ui::McpUiOpenRequest,
+    ) -> Result<nibi_kernel_api::mcp_ui::McpAppInstance, nibi_kernel_api::mcp_ui::McpUiError>
     {
         let manager = self.mcp_for_session(&request.scope.session);
         if manager.app_connection(&request.scope.server_name).is_none() {
@@ -339,14 +339,14 @@ impl Ext {
             manager
                 .wait(
                     MCP_UI_OPEN_WAIT_MS,
-                    &move |view: &rust_cli_kernel_api::mcp_state::McpView| {
+                    &move |view: &nibi_kernel_api::mcp_state::McpView| {
                         !view
                             .servers
                             .iter()
                             .any(|row| {
                                 row.name == server
                                     && row.state
-                                        == rust_cli_kernel_api::manage::McpServerState::Pending
+                                        == nibi_kernel_api::manage::McpServerState::Pending
                             })
                     },
                 )
@@ -354,7 +354,7 @@ impl Ext {
         }
         let connection = manager
             .app_connection(&request.scope.server_name)
-            .ok_or_else(rust_cli_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
+            .ok_or_else(nibi_kernel_api::mcp_ui::McpUiError::app_unavailable)?;
         Ok(self.app_instances.open(request, connection))
     }
 
@@ -567,8 +567,8 @@ impl Ext {
     /// `mcp/uiRegisterAppTools`：登记一个页面实例的工具（同作用域的新代际替换旧代际），返回曝光部分。
     pub async fn mcp_ui_register_app_tools(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiRegisterAppToolsRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpUiAppToolRegistration>, McpUiError> {
+        request: nibi_kernel_api::mcp_ui::McpUiRegisterAppToolsRequest,
+    ) -> Result<Vec<nibi_kernel_api::mcp_ui::McpUiAppToolRegistration>, McpUiError> {
         self.check_instance(&request.instance).await?;
         check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
         let session = request.instance.scope.session.clone();
@@ -578,7 +578,7 @@ impl Ext {
     /// `mcp/uiUnregisterAppTools`：收回实例的工具（页面卸载时的尽力收尾）。
     pub fn mcp_ui_unregister_app_tools(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiUnregisterAppToolsRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiUnregisterAppToolsRequest,
     ) -> Result<usize, McpUiError> {
         check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
         Ok(self.app_tools.unregister(
@@ -591,7 +591,7 @@ impl Ext {
     /// `mcp/uiClaimAppToolCall`：渲染端认领一次待执行调用。
     pub async fn mcp_ui_claim_app_tool_call(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiClaimAppToolCallRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiClaimAppToolCallRequest,
     ) -> Result<bool, McpUiError> {
         self.check_instance(&request.instance).await?;
         check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
@@ -606,7 +606,7 @@ impl Ext {
     /// `mcp/uiResolveAppToolCall`：页面执行完回传结果或错误。
     pub async fn mcp_ui_resolve_app_tool_call(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiResolveAppToolCallRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiResolveAppToolCallRequest,
     ) -> Result<bool, McpUiError> {
         self.check_instance(&request.instance).await?;
         check_app_tool_binding(&request.instance, &request.scope_id, request.generation)?;
@@ -635,9 +635,9 @@ impl Ext {
     /// `mcp/uiSampling`：页面请求宿主模型采样一次（60 秒、并发与操作账本在 [`SamplingCalls`]）。
     pub async fn mcp_ui_sampling(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiSamplingRequest,
-        selection: Option<rust_cli_kernel_api::model::ModelSelection>,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpUiSamplingResult, McpUiError> {
+        request: nibi_kernel_api::mcp_ui::McpUiSamplingRequest,
+        selection: Option<nibi_kernel_api::model::ModelSelection>,
+    ) -> Result<nibi_kernel_api::mcp_ui::McpUiSamplingResult, McpUiError> {
         self.check_instance(&request.instance).await?;
         let Some(port) = self.sampling.clone() else {
             return Err(McpUiError::unsupported(
@@ -649,7 +649,7 @@ impl Ext {
         let Some((instance_cancel, retain)) = self.app_instances.retain(&lease.token) else {
             return Err(McpUiError::not_authorized());
         };
-        let input = rust_cli_kernel_api::mcp_ui::McpUiSamplingInput {
+        let input = nibi_kernel_api::mcp_ui::McpUiSamplingInput {
             messages: request.messages.clone(),
             system_prompt: request.system_prompt.clone(),
             max_tokens: request.max_tokens,
@@ -677,7 +677,7 @@ impl Ext {
     /// `mcp/uiCancelSampling`：取消进行中的采样；没有时 `false`（幂等）。
     pub async fn mcp_ui_cancel_sampling(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
     ) -> Result<bool, McpUiError> {
         self.check_instance(&request.instance).await?;
         self.sampling_calls
@@ -690,7 +690,7 @@ impl Ext {
         &self,
         session: &SessionId,
         workspace: &WorkspaceRef,
-        servers: Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer>,
+        servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer>,
     ) {
         self.session_mcp.start(session, workspace, servers);
     }
@@ -986,7 +986,7 @@ impl ListingSource for ExtListings {
         &self,
         request: &ContextRequest,
         history: &[Message],
-    ) -> Result<Vec<rust_cli_kernel_api::listing::InvokedSkill>, OrchestrationError> {
+    ) -> Result<Vec<nibi_kernel_api::listing::InvokedSkill>, OrchestrationError> {
         Ok(self
             .skills
             .invoked_for(Some(&request.session), &request.workspace, history)

@@ -1,8 +1,8 @@
 //! 队列编辑（NIBI queue 命令组）：编辑、删除、重排、自动排空、立刻发送。
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::session_api::{Command, Delivery, KernelEvent};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::session_api::{Command, Delivery, KernelEvent};
 
 use super::tests::{answer, asked, asking_session, until_finished};
 use super::*;
@@ -59,7 +59,7 @@ async fn queued_items_can_be_edited_reordered_and_deleted() {
             },
         ))
         .await;
-    assert!(matches!(ack, rust_cli_kernel_api::session_api::Ack::Accepted { .. }));
+    assert!(matches!(ack, nibi_kernel_api::session_api::Ack::Accepted { .. }));
     assert_eq!(view_queue(&session).await, ["second edited", "third"]);
 
     // 重排：把 c3 移到 c2 之前。
@@ -85,7 +85,7 @@ async fn queued_items_can_be_edited_reordered_and_deleted() {
         .await;
     assert!(matches!(
         missing,
-        rust_cli_kernel_api::session_api::Ack::Rejected { .. }
+        nibi_kernel_api::session_api::Ack::Rejected { .. }
     ));
 
     // 删除。
@@ -153,7 +153,7 @@ async fn send_queued_now_preempts_the_running_turn() {
             },
         ))
         .await;
-    assert!(matches!(ack, rust_cli_kernel_api::session_api::Ack::Accepted { .. }));
+    assert!(matches!(ack, nibi_kernel_api::session_api::Ack::Accepted { .. }));
     // 抢占的回合收尾后，被提升的输入开新回合（脚本模型的第二条回复），队列清空。
     let seen = until_finished(&mut events, 2).await;
     assert!(seen.iter().any(|event| matches!(

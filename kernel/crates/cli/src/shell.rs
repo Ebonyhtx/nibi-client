@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_env_local::{EmbeddedSearch, ShellConfig};
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_env_local::{EmbeddedSearch, ShellConfig};
 
 /// 固定的候选目录。
 const SHELL_DIRS: [&str; 4] = ["/bin", "/usr/bin", "/usr/local/bin", "/opt/homebrew/bin"];
@@ -25,7 +25,7 @@ const DEFAULT_PATHEXT: &str = ".COM;.EXE;.BAT;.CMD";
 
 /// 进程环境快照里的一个变量。
 fn lookup<'a>(env: &'a [(String, String)], name: &str) -> Option<&'a str> {
-    rust_cli_base::secret::env_var(env, name).filter(|value| !value.is_empty())
+    nibi_kernel_base::secret::env_var(env, name).filter(|value| !value.is_empty())
 }
 
 /// 找 shell 要问的本机事实；测试换成表（shell_tests.rs）。
@@ -262,7 +262,7 @@ impl Host for System {
             None if Path::new(path).is_absolute() => return false,
             _ => {}
         }
-        let mut command = rust_cli_proc::command(path);
+        let mut command = nibi_kernel_proc::command(path);
         command
             .arg("--version")
             .env_clear()
@@ -320,7 +320,7 @@ fn bwrap(env: &[(String, String)]) -> Option<PathBuf> {
 /// `find_and_grep`：启动参数没有点名 Glob / Grep（embedded-search.md §8.1）。取不到本进程二进制的路径
 /// 时没有内嵌的搜索工具（Bash 里用系统的 find / grep / rg）。
 pub(crate) async fn config(env: EnvSnapshot, temp: &Path, find_and_grep: bool) -> ShellConfig {
-    let root = rust_cli_proc::private::user_dir(temp);
+    let root = nibi_kernel_proc::private::user_dir(temp);
     let windows = cfg!(windows);
     let (git_bash, shell) = resolve(&env, windows, &System::new(&env, windows)).await;
     let env = shell_snapshot(env, git_bash.as_deref());

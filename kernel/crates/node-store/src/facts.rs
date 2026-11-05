@@ -3,11 +3,11 @@
 use std::cell::RefCell;
 
 use rusqlite::{Connection, TransactionBehavior};
-use rust_cli_kernel_api::ids::{CommandId, OwnerEpoch, SessionId};
-use rust_cli_kernel_api::metering::CallStatus;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{CommitReceipt, Fact, FactBatch, StoreError, TurnAnchor};
+use nibi_kernel_api::ids::{CommandId, OwnerEpoch, SessionId};
+use nibi_kernel_api::metering::CallStatus;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{CommitReceipt, Fact, FactBatch, StoreError, TurnAnchor};
 use serde_json::{Value, json};
 
 use crate::ids::NodeIds;
@@ -199,7 +199,7 @@ pub(crate) fn apply(ctx: &Commit<'_>, fact: &Fact) -> Result<(), StoreError> {
         } => crate::operations::record_intent(ctx, operation, fingerprint),
         Fact::Entry { kind, id, data } => {
             if kind.is_empty() || data.is_null() {
-                return Err(storage("a rust-cli entry needs a kind and non-null data"));
+                return Err(storage("a nibi-kernel-cli entry needs a kind and non-null data"));
             }
             let kind = format!("rust-cli/{kind}");
             let entry = records::entry(
@@ -293,7 +293,7 @@ fn change_mode(ctx: &Commit<'_>, mode: PermissionMode) -> Result<(), StoreError>
 /// 执行状态（修复线 F20）：权限模式 × plan 开关整体写入。
 fn write_execution(
     ctx: &Commit<'_>,
-    state: rust_cli_kernel_api::permission::ExecutionState,
+    state: nibi_kernel_api::permission::ExecutionState,
 ) -> Result<(), StoreError> {
     let row = sessions::get(ctx.conn, ctx.session)
         .storage()?

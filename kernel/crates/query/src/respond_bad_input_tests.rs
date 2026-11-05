@@ -3,15 +3,15 @@
 //! assistant 消息与两次调用的计量都提交，接着发下一次请求。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{
     ContentBlock, Message, StopReason, ToolResultContent, Usage, UserOrigin,
 };
-use rust_cli_kernel_api::metering::{CallStatus, Metered};
-use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelEvent};
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::metering::{CallStatus, Metered};
+use nibi_kernel_api::model::{BlockDelta, ModelError, ModelEvent};
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response};
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 use tokio::sync::Notify;
 

@@ -17,10 +17,10 @@ use std::sync::{Arc, Mutex, PoisonError};
 use serde_json::json;
 use tokio::sync::oneshot;
 
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::{SessionStore, StoreError};
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::{SessionStore, StoreError};
+use nibi_kernel_api::workflow::{
     WorkflowEscalation, WorkflowEscalationOutcome, WorkflowEscalationRequest, WorkflowEventJournal,
     WorkflowNotices, WorkflowQuestion, WorkflowQuestionResolved, WorkflowQuestions,
     WorkflowRunDetail, WorkflowRunIntrospection, WorkflowRunPendingQuestion,

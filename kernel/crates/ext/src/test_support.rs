@@ -7,9 +7,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpError, McpTransport, McpTransportEvent,
 };
 use serde_json::{Value, json};
@@ -288,18 +288,18 @@ impl McpTransport for FakeMcp {
 }
 
 /// 一次工具调用的上下文（替身端口）。
-pub(crate) fn tool_context<E: rust_cli_kernel_api::testing::AllPorts + 'static>(
+pub(crate) fn tool_context<E: nibi_kernel_api::testing::AllPorts + 'static>(
     env: Arc<E>,
-    mode: rust_cli_kernel_api::permission::PermissionMode,
-) -> rust_cli_kernel_api::tool::ToolUseContext {
-    use rust_cli_kernel_api::env::{OperationContext, Origin};
-    use rust_cli_kernel_api::ids::{
+    mode: nibi_kernel_api::permission::PermissionMode,
+) -> nibi_kernel_api::tool::ToolUseContext {
+    use nibi_kernel_api::env::{OperationContext, Origin};
+    use nibi_kernel_api::ids::{
         Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
     };
-    use rust_cli_kernel_api::testing::{MemoryStore, RecordingSink, local_services, machine};
+    use nibi_kernel_api::testing::{MemoryStore, RecordingSink, local_services, machine};
     let session = SessionId::new("sess_1");
     let run = RunId::new("run_1");
-    rust_cli_kernel_api::tool::ToolUseContext {
+    nibi_kernel_api::tool::ToolUseContext {
         session: session.clone(),
         run: run.clone(),
         tool_use: ToolUseId::new("toolu_1"),
@@ -328,7 +328,7 @@ pub(crate) struct EchoBash {
 }
 
 #[async_trait]
-impl rust_cli_kernel_api::tool::Tool for EchoBash {
+impl nibi_kernel_api::tool::Tool for EchoBash {
     fn name(&self) -> &str {
         "Bash"
     }
@@ -337,20 +337,20 @@ impl rust_cli_kernel_api::tool::Tool for EchoBash {
         json!({"type": "object"})
     }
 
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         "bash".to_owned()
     }
 
     async fn call(
         &self,
         input: Value,
-        context: rust_cli_kernel_api::tool::ToolUseContext,
-        _progress: mpsc::Sender<rust_cli_kernel_api::tool::ToolProgress>,
-    ) -> Result<rust_cli_kernel_api::tool::ToolOutput, rust_cli_kernel_api::tool::ToolError> {
+        context: nibi_kernel_api::tool::ToolUseContext,
+        _progress: mpsc::Sender<nibi_kernel_api::tool::ToolProgress>,
+    ) -> Result<nibi_kernel_api::tool::ToolOutput, nibi_kernel_api::tool::ToolError> {
         let command = input["command"].as_str().unwrap_or_default().to_owned();
         lock(&self.commands).push((command.clone(), context.operation.operation.to_string()));
-        Ok(rust_cli_kernel_api::tool::ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+        Ok(nibi_kernel_api::tool::ToolOutput {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: format!("out:{command}"),
             }],
             is_error: command.contains("fail"),

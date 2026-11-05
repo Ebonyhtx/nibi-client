@@ -9,7 +9,7 @@
 
 use std::sync::atomic::Ordering;
 
-use rust_cli_exec_transport::{ProvisionError, ProvisionStep};
+use nibi_kernel_exec_transport::{ProvisionError, ProvisionStep};
 
 use crate::SshProvisioner;
 use crate::artifact::Platform;

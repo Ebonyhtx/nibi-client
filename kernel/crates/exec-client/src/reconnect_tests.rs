@@ -4,13 +4,13 @@
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_exec_transport::fault::Faults;
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::files::{PutFile, WritePrecondition};
-use rust_cli_exec_wire::envelope::{ReplyResult, StreamItem};
-use rust_cli_exec_wire::handshake::Capabilities;
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
+use nibi_kernel_exec_transport::fault::Faults;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::files::{PutFile, WritePrecondition};
+use nibi_kernel_exec_wire::envelope::{ReplyResult, StreamItem};
+use nibi_kernel_exec_wire::handshake::Capabilities;
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
 
 use crate::test_support::{Peer, network_with, reconnecting, welcome, workspace};
 use crate::{ClientError, ConnectionState, ExecClient, Reconnect, backoff};
@@ -25,16 +25,16 @@ fn stat() -> Request {
 fn put() -> Request {
     Request::PutFile {
         workspace: workspace(),
-        context: rust_cli_exec_wire::dto::core::OperationContext {
+        context: nibi_kernel_exec_wire::dto::core::OperationContext {
             environment: "local".to_owned(),
             generation: "g".to_owned(),
             owner_epoch: 1,
             operation: "op_put".to_owned(),
-            origin: rust_cli_exec_wire::dto::core::Origin::User { session: None },
+            origin: nibi_kernel_exec_wire::dto::core::Origin::User { session: None },
         },
         request: PutFile {
             path: "/w/a".to_owned(),
-            bytes: rust_cli_exec_wire::Blob { at: 0, len: 0 },
+            bytes: nibi_kernel_exec_wire::Blob { at: 0, len: 0 },
             precondition: WritePrecondition::Any,
             create_parents: false,
         },
@@ -51,7 +51,7 @@ fn notices() -> Request {
 #[tokio::test]
 async fn a_silent_executor_is_detected_and_the_call_is_resent_with_the_same_id() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let (header, _) = first.request().await;
@@ -80,14 +80,14 @@ async fn a_silent_executor_is_detected_and_the_call_is_resent_with_the_same_id()
 async fn a_stream_resumes_after_the_last_received_seq_on_the_same_executor() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let (header, _) = first.request().await;
         assert_eq!(header.resume_after, None);
         for seq in [1, 2] {
             let item = StreamItem::Error {
-                error: rust_cli_exec_wire::envelope::WireError::Io {
+                error: nibi_kernel_exec_wire::envelope::WireError::Io {
                     message: format!("item {seq}"),
                 },
             };
@@ -121,7 +121,7 @@ async fn a_stream_resumes_after_the_last_received_seq_on_the_same_executor() {
 async fn after_the_executor_restarts_sent_mutations_are_interrupted_and_reads_are_resent() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let (a, _) = first.request().await;
@@ -157,7 +157,7 @@ async fn after_the_executor_restarts_sent_mutations_are_interrupted_and_reads_ar
 #[tokio::test]
 async fn when_reconnecting_fails_pending_and_later_calls_end_disconnected() {
     let (connector, listener) = network_with(vec![Faults::new().cut_after_sent(2)]);
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let _ = first.try_frame().await;
@@ -208,7 +208,7 @@ async fn the_connection_state_follows_the_link() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
     let (cut, cut_rx) = tokio::sync::oneshot::channel::<()>();
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let _ = cut_rx.await;
@@ -272,7 +272,7 @@ async fn after_a_restart_with_the_same_ledger_mutations_are_resent() {
         welcome.ledger = Some("ledger-1".to_owned());
         welcome
     };
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake_with(with_ledger("exec-1")).await;
         let (sent, _) = first.request().await;
@@ -281,15 +281,15 @@ async fn after_a_restart_with_the_same_ledger_mutations_are_resent() {
         second.handshake_with(with_ledger("exec-2")).await;
         let (again, _) = second.request().await;
         assert_eq!((again.call, again.request), (sent.call, put()));
-        let header = rust_cli_exec_wire::envelope::ReplyHeader {
+        let header = nibi_kernel_exec_wire::envelope::ReplyHeader {
             call: again.call,
-            result: ReplyResult::Err(rust_cli_exec_wire::envelope::WireError::Interrupted {
+            result: ReplyResult::Err(nibi_kernel_exec_wire::envelope::WireError::Interrupted {
                 message: "files.put_file did not finish before the executor restarted".to_owned(),
             }),
         };
         second
             .send(
-                rust_cli_exec_wire::frame::Kind::Reply,
+                nibi_kernel_exec_wire::frame::Kind::Reply,
                 &header,
                 &Body::empty(),
             )
@@ -305,7 +305,7 @@ async fn after_a_restart_with_the_same_ledger_mutations_are_resent() {
     assert!(
         matches!(
             answer.error(),
-            Some(rust_cli_exec_wire::envelope::WireError::Interrupted { .. })
+            Some(nibi_kernel_exec_wire::envelope::WireError::Interrupted { .. })
         ),
         "{answer:?}"
     );
@@ -337,14 +337,14 @@ impl Flaky {
 }
 
 #[async_trait::async_trait]
-impl rust_cli_exec_transport::Connector for Flaky {
+impl nibi_kernel_exec_transport::Connector for Flaky {
     async fn connect(
         &self,
-    ) -> Result<Box<dyn rust_cli_exec_transport::Link>, rust_cli_exec_transport::LinkError> {
+    ) -> Result<Box<dyn nibi_kernel_exec_transport::Link>, nibi_kernel_exec_transport::LinkError> {
         use std::sync::atomic::Ordering;
         self.connects.fetch_add(1, Ordering::SeqCst);
         if let Some(message) = self.reject.lock().unwrap().clone() {
-            return Err(rust_cli_exec_transport::LinkError::Rejected(message));
+            return Err(nibi_kernel_exec_transport::LinkError::Rejected(message));
         }
         let failing = self
             .fails
@@ -354,7 +354,7 @@ impl rust_cli_exec_transport::Connector for Flaky {
         if failing.is_ok() {
             // 像真的连接那样花一点时间（“正在连”的状态看得到）。
             tokio::time::sleep(Duration::from_millis(5)).await;
-            return Err(rust_cli_exec_transport::LinkError::Connect(
+            return Err(nibi_kernel_exec_transport::LinkError::Connect(
                 "the network is down".to_owned(),
             ));
         }
@@ -382,7 +382,7 @@ async fn endless_reconnecting_keeps_trying_past_twelve_attempts() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
     let flaky = Flaky::new(connector);
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let mut second = Peer::accept(&listener).await;
@@ -420,7 +420,7 @@ async fn reconnecting_states_carry_the_next_retry_and_the_last_reason() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
     let flaky = Flaky::new(connector);
-    let _server = rust_cli_base::owned(async move {
+    let _server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         while first.try_frame().await.is_some() {}
@@ -475,7 +475,7 @@ async fn a_rejected_reconnect_closes_the_client_at_once() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
     let flaky = Flaky::new(connector);
-    let _server = rust_cli_base::owned(async move {
+    let _server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         while first.try_frame().await.is_some() {}
@@ -511,7 +511,7 @@ async fn closing_tells_unsent_calls_from_sent_ones() {
     let switches = connector.clone();
     let flaky = Flaky::new(connector);
     let (sent, sent_rx) = tokio::sync::oneshot::channel::<()>();
-    let _server = rust_cli_base::owned(async move {
+    let _server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let _ = first.request().await;
@@ -523,7 +523,7 @@ async fn closing_tells_unsent_calls_from_sent_ones() {
         .unwrap();
     let written = {
         let client = client.clone();
-        rust_cli_base::owned(async move { client.call(put(), Body::empty()).await })
+        nibi_kernel_base::owned(async move { client.call(put(), Body::empty()).await })
     };
     sent_rx.await.unwrap();
     // 执行器那头收到了第一个调用；之后断开、再也连不上。
@@ -541,7 +541,7 @@ async fn closing_tells_unsent_calls_from_sent_ones() {
     .unwrap();
     let unsent = {
         let client = client.clone();
-        rust_cli_base::owned(async move { client.call(stat(), Body::empty()).await })
+        nibi_kernel_base::owned(async move { client.call(stat(), Body::empty()).await })
     };
     tokio::time::sleep(Duration::from_millis(20)).await;
     client.close().await;
@@ -563,7 +563,7 @@ async fn retrying_now_skips_the_rest_of_the_backoff() {
     let (connector, listener) = network_with(Vec::new());
     let switches = connector.clone();
     let flaky = Flaky::new(connector);
-    let _server = rust_cli_base::owned(async move {
+    let _server = nibi_kernel_base::owned(async move {
         let mut first = Peer::accept(&listener).await;
         first.handshake("exec-1", Capabilities::ports()).await;
         let mut second = Peer::accept(&listener).await;

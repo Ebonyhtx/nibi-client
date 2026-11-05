@@ -1,7 +1,7 @@
 //! 任务清单：文件是事实源，写后投影到 `todo` 表（Node `updateTodos` 的写法）。
-use rust_cli_kernel_api::agents::{TaskList, TaskListStore, TaskRecord, TaskStatus};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::SessionStore;
+use nibi_kernel_api::agents::{TaskList, TaskListStore, TaskRecord, TaskStatus};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::SessionStore;
 use serde_json::json;
 
 use crate::tests::{TestStore, meta};
@@ -48,7 +48,7 @@ async fn saving_writes_the_file_and_projects_the_todo_rows() {
         list
     );
     let file = test.dir.path().join("tasks/sess_1.json");
-    let bytes = rust_cli_fs::read_optional(&file).await.unwrap().unwrap();
+    let bytes = nibi_kernel_fs::read_optional(&file).await.unwrap().unwrap();
     let saved: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(saved["highWaterMark"], 10);
     // 按 ID 的数值升序投影；priority 是占位；会话的 time_updated 跟着前移。

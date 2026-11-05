@@ -1,9 +1,9 @@
 //! `/context` 的上下文分析（docs/specs/rust-cli/context-usage.md §2、§3）：system prompt 的段落、规则文件、
 //! skill 清单行与 MCP instructions。用与 `build` 相同的事实与清单；只读，不进规则缓存。
 
-use rust_cli_kernel_api::listing::ListingEntry;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::orchestration::{ContextRequest, OrchestrationError};
+use nibi_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::orchestration::{ContextRequest, OrchestrationError};
 
 use crate::render::since_boundary;
 use crate::system::{PromptFacts, sections};

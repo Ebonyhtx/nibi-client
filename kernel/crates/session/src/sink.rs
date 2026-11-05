@@ -4,16 +4,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::message::{CompactTrigger, Message};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::message::{CompactTrigger, Message};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::{
     Absorbed, InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, QueryEvent,
     RunSink,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::plan::PlanModeFlags;
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::plan::PlanModeFlags;
+use nibi_kernel_api::store::StoreError;
 use tokio::sync::{mpsc, oneshot};
 
 pub(crate) enum SinkRequest {
@@ -33,7 +33,7 @@ pub(crate) enum SinkRequest {
     },
     /// 工具被取消：撤回它还没回答的询问（与 `Ask` 走同一个通道，所以总排在它的 `Ask` 之后）。
     CancelAsk {
-        tool_use: rust_cli_kernel_api::ids::ToolUseId,
+        tool_use: nibi_kernel_api::ids::ToolUseId,
     },
     /// 工具边界领取插话与通知（不出队，query.md §4.1、§5）。
     ClaimSteering {
@@ -41,13 +41,13 @@ pub(crate) enum SinkRequest {
     },
     /// 插话的结局：出队或留下。
     SettleSteering {
-        fates: Vec<(rust_cli_kernel_api::ids::CommandId, crate::steering::Fate)>,
+        fates: Vec<(nibi_kernel_api::ids::CommandId, crate::steering::Fate)>,
         reply: oneshot::Sender<()>,
     },
     /// 一条消息（可以没有）与它的计量一个事务（docs/specs/rust-cli/usage.md §2.5）。
     Metered {
         message: Option<Message>,
-        metered: Box<rust_cli_kernel_api::metering::Metered>,
+        metered: Box<nibi_kernel_api::metering::Metered>,
         reply: oneshot::Sender<Result<(), StoreError>>,
     },
     /// 一组消息一个事务（压缩的边界、摘要与附件）。
@@ -79,12 +79,12 @@ pub(crate) enum SinkRequest {
     Title(String),
     /// 工具请求修改工作目录（docs/specs/rust-cli/tools-more.md §11.4）。
     SetWorkspace {
-        root: rust_cli_kernel_api::env::EnvPath,
+        root: nibi_kernel_api::env::EnvPath,
         reply: oneshot::Sender<Result<(), OrchestrationError>>,
     },
     /// 主循环读当前的工作目录。
     Workspace {
-        reply: oneshot::Sender<rust_cli_kernel_api::env::WorkspaceRef>,
+        reply: oneshot::Sender<nibi_kernel_api::env::WorkspaceRef>,
     },
     /// 工具与 hook 读会话当前的主模型（小模型槽位的输入，docs/specs/rust-cli/model.md §6.1）。
     Selection {
@@ -96,7 +96,7 @@ pub(crate) enum SinkRequest {
     },
     /// Monitor 工具起好的 monitor 交给 actor（工作线 F83，tools-more.md §19.6）。
     ArmMonitor {
-        monitor: rust_cli_kernel_api::monitor::MonitorArmed,
+        monitor: nibi_kernel_api::monitor::MonitorArmed,
         reply: oneshot::Sender<Result<(), OrchestrationError>>,
     },
     /// 主循环读会话的目标条件（docs/specs/rust-cli/goal.md §4）。
@@ -106,7 +106,7 @@ pub(crate) enum SinkRequest {
     /// 主循环报告目标的判定：actor 提交反馈与 `goal_status`，回复已提交的消息（goal.md §3）。
     GoalChecked {
         condition: String,
-        verdict: rust_cli_kernel_api::hooks::StopVerdict,
+        verdict: nibi_kernel_api::hooks::StopVerdict,
         reply: oneshot::Sender<Result<Vec<Message>, StoreError>>,
     },
 }
@@ -116,7 +116,7 @@ pub(crate) struct ActorSink {
     /// 会话的请求通道（弱引用）：会话级的询问入口经它（`Interactions::lasting`），不让 actor 因此不退出。
     pub(crate) asks: mpsc::WeakSender<crate::actor::Request>,
     /// 会话自己的 ID 与会话关闭之后的询问入口（agents.md §4.1.2，工作线 F72）：会话级的询问入口带上它们。
-    pub(crate) session: rust_cli_kernel_api::ids::SessionId,
+    pub(crate) session: nibi_kernel_api::ids::SessionId,
     pub(crate) detached: Option<Arc<crate::detached::DetachedAsks>>,
 }
 
@@ -166,7 +166,7 @@ impl Interactions for ActorSink {
     async fn cancel_ask(
         &self,
         _session: &SessionId,
-        tool_use: &rust_cli_kernel_api::ids::ToolUseId,
+        tool_use: &nibi_kernel_api::ids::ToolUseId,
     ) {
         let request = SinkRequest::CancelAsk {
             tool_use: tool_use.clone(),
@@ -210,7 +210,7 @@ impl Interactions for ActorSink {
     async fn set_workspace(
         &self,
         _session: &SessionId,
-        root: rust_cli_kernel_api::env::EnvPath,
+        root: nibi_kernel_api::env::EnvPath,
     ) -> Result<(), OrchestrationError> {
         let gone = || OrchestrationError::Failed {
             message: "the session is closed".to_owned(),
@@ -227,7 +227,7 @@ impl Interactions for ActorSink {
     async fn arm_monitor(
         &self,
         _session: &SessionId,
-        monitor: rust_cli_kernel_api::monitor::MonitorArmed,
+        monitor: nibi_kernel_api::monitor::MonitorArmed,
     ) -> Result<(), OrchestrationError> {
         let gone = || OrchestrationError::Failed {
             message: "the session is closed".to_owned(),
@@ -318,7 +318,7 @@ impl Interactions for SessionAsks {
     async fn cancel_ask(
         &self,
         _session: &SessionId,
-        tool_use: &rust_cli_kernel_api::ids::ToolUseId,
+        tool_use: &nibi_kernel_api::ids::ToolUseId,
     ) {
         // 会话已关闭时，关闭已经取消了全部待回答的交互；询问可能已转到进程级的入口。
         if let Some(requests) = self.requests.upgrade() {
@@ -369,7 +369,7 @@ impl RunSink for ActorSink {
     async fn commit_metered(
         &self,
         message: Option<Message>,
-        metered: rust_cli_kernel_api::metering::Metered,
+        metered: nibi_kernel_api::metering::Metered,
     ) -> Result<(), StoreError> {
         self.call(|reply| SinkRequest::Metered {
             message,
@@ -407,7 +407,7 @@ impl RunSink for ActorSink {
         answer.await.ok()
     }
 
-    async fn current_workspace(&self) -> Option<rust_cli_kernel_api::env::WorkspaceRef> {
+    async fn current_workspace(&self) -> Option<nibi_kernel_api::env::WorkspaceRef> {
         let (reply, answer) = oneshot::channel();
         self.sender
             .send(SinkRequest::Workspace { reply })
@@ -425,7 +425,7 @@ impl RunSink for ActorSink {
     async fn goal_checked(
         &self,
         condition: String,
-        verdict: rust_cli_kernel_api::hooks::StopVerdict,
+        verdict: nibi_kernel_api::hooks::StopVerdict,
     ) -> Result<Vec<Message>, StoreError> {
         self.call(|reply| SinkRequest::GoalChecked {
             condition,

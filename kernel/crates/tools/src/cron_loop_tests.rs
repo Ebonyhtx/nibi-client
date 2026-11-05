@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use rust_cli_kernel_api::cron::CronSignals;
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::cron::CronSignals;
+use nibi_kernel_api::ids::SessionId;
 
 use super::*;
 use crate::cron_board::tests::TokioClock;

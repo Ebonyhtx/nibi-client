@@ -1,9 +1,9 @@
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::ids::{ArtifactId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, ModelSelection, QuerySource, RequestOptions,
 };
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef};
 use serde_json::json;
 
 use super::*;
@@ -16,7 +16,7 @@ pub(crate) fn profile(first_party: bool) -> &'static crate::profiles::Profile {
         "http://127.0.0.1:9"
     };
     crate::profiles::select(
-        rust_cli_kernel_api::provider::WireProtocol::AnthropicMessages,
+        nibi_kernel_api::provider::WireProtocol::AnthropicMessages,
         base_url,
         "claude-opus-5-5",
     )
@@ -402,7 +402,7 @@ fn server_tools_follow_the_tool_list_and_their_blocks_replay() {
         ],
         output_config: None,
     }]);
-    request.options.server_tools = vec![rust_cli_kernel_api::model::ServerTool::WebSearch {
+    request.options.server_tools = vec![nibi_kernel_api::model::ServerTool::WebSearch {
         allowed_domains: None,
         blocked_domains: Some(vec!["example.org".to_owned()]),
         max_uses: 8,

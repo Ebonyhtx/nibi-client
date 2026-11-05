@@ -1,8 +1,8 @@
 //! 发请求前的阻塞线（compact.md §2.2）：什么时候拦、拦下时的文字。
 
-use rust_cli_kernel_api::message::Usage;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::Compactor;
+use nibi_kernel_api::message::Usage;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::Compactor;
 
 use super::text;
 use crate::test_support::{ScriptedRunner, human, no_tools, ports, reply};
@@ -67,7 +67,7 @@ fn selection(model: &str) -> ModelSelection {
     }
 }
 
-fn history(input_tokens: u64) -> Vec<rust_cli_kernel_api::message::Message> {
+fn history(input_tokens: u64) -> Vec<nibi_kernel_api::message::Message> {
     let usage = Usage {
         input_tokens,
         ..Usage::default()

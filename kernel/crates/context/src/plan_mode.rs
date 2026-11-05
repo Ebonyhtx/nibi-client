@@ -7,13 +7,13 @@
 //! 或历史（§13.4）。context 不改标志：actor 提交这里产生的 reentry /
 //! exit 时清掉对应的标志。
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{FileKind, StatFile};
-use rust_cli_kernel_api::message::{AttachmentMessage, Message, UserOrigin};
-use rust_cli_kernel_api::orchestration::ContextRequest;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::plan::{self, PlanFiles, PlanModeFlags};
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{FileKind, StatFile};
+use nibi_kernel_api::message::{AttachmentMessage, Message, UserOrigin};
+use nibi_kernel_api::orchestration::ContextRequest;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::plan::{self, PlanFiles, PlanModeFlags};
+use nibi_kernel_prompts::texts::{self, render};
 use serde_json::{Value, json};
 
 use crate::PromptAssembler;

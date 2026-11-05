@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::agents::AgentSignal;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::testing::{NoticeEnvironment, shell_notice};
+use nibi_kernel_api::agents::AgentSignal;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::testing::{NoticeEnvironment, shell_notice};
 use serde_json::json;
 
 use crate::test_support::{Gates, held_with_env, text};

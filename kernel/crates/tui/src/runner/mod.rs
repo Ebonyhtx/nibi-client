@@ -29,15 +29,15 @@ use futures_util::stream::{self, BoxStream, FuturesUnordered, Stream, StreamExt}
 use ratatui::Terminal;
 use ratatui::backend::Backend;
 use ratatui::buffer::Buffer;
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::ModelDirectory;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::ModelDirectory;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, EndReason, Kernel, SequencedEvent, SessionHandle, StartSource,
 };
-use rust_cli_platform::Recorder;
+use nibi_kernel_platform::Recorder;
 
 use crate::ui::app::App;
 use crate::ui::palette::Palette;
@@ -146,7 +146,7 @@ struct Loop<'a, B: Backend> {
     session: Option<Arc<dyn SessionHandle>>,
     events: BoxStream<'static, SequencedEvent>,
     /// 父会话关闭之后旧会话的询问（内核进程级的入口，agents.md §4.1.2，工作线 F72）。
-    detached: BoxStream<'static, rust_cli_kernel_api::orchestration::DetachedEvent>,
+    detached: BoxStream<'static, nibi_kernel_api::orchestration::DetachedEvent>,
     pending: FuturesUnordered<futures_util::future::BoxFuture<'static, Done>>,
     dirty: bool,
     /// 画完下一帧后复制选区（`true` 时复制后清掉选区）。
@@ -176,7 +176,7 @@ struct Loop<'a, B: Backend> {
     machine_changes: BoxStream<'static, ()>,
     /// 还没有会话时（启动后、`/clear` 之后）完成的本地命令的记录：建会话后、第一条输入之前按顺序发出（修复线 L-A，
     /// tui-manage.md §11.3；新会话草稿的一部分）。
-    pending_records: Vec<rust_cli_kernel_api::user_command::LocalCommandRecord>,
+    pending_records: Vec<nibi_kernel_api::user_command::LocalCommandRecord>,
 }
 
 /// 跑事件循环直到退出；返回退出时的会话与还没跑的 SessionEnd（[`Exit`]）。真实终端与测试（`TestBackend`）走同一个循环。
@@ -433,43 +433,43 @@ impl<B: Backend> Loop<'_, B> {
         };
         let rewritten = matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::HistoryRewritten { .. }
+            nibi_kernel_api::session_api::KernelEvent::HistoryRewritten { .. }
         );
         let finished = matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::TurnFinished { .. }
+            nibi_kernel_api::session_api::KernelEvent::TurnFinished { .. }
         );
         let interrupted = matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::TurnFinished {
-                outcome: rust_cli_kernel_api::session_api::TurnOutcome::Interrupted,
+            nibi_kernel_api::session_api::KernelEvent::TurnFinished {
+                outcome: nibi_kernel_api::session_api::TurnOutcome::Interrupted,
                 ..
             }
         );
         // 回合里可能新建或改了 skill 文件：回合结束后重取 skill 命令（tui.md §6）。
         if matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::TurnFinished { .. }
+            nibi_kernel_api::session_api::KernelEvent::TurnFinished { .. }
         ) {
             self.fetch_commands();
         }
         let now = Instant::now();
         let tasks = matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::TasksChanged { .. }
+            nibi_kernel_api::session_api::KernelEvent::TasksChanged { .. }
         );
         let background = manage::touches_background(&event.event);
         // footer 的请求统计（F27）：请求完成（带消息的在 assistant 提交时，没有消息的在回合结束时）后重查用量表；
         // 流式增量不触发。
         let request_done = matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::MessageDone {
-                message: rust_cli_kernel_api::message::Message::Assistant(_)
-            } | rust_cli_kernel_api::session_api::KernelEvent::TurnFinished { .. }
+            nibi_kernel_api::session_api::KernelEvent::MessageDone {
+                message: nibi_kernel_api::message::Message::Assistant(_)
+            } | nibi_kernel_api::session_api::KernelEvent::TurnFinished { .. }
         );
         let moved = matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::WorkspaceChanged { .. }
+            nibi_kernel_api::session_api::KernelEvent::WorkspaceChanged { .. }
         );
         let wall = self.now_ms();
         self.app.view.apply(event, wall);
@@ -528,7 +528,7 @@ impl<B: Backend> Loop<'_, B> {
     }
 
     /// 旧会话询问的变化（工作线 F72）；流结束（内核没有这个入口）之后不再等它。
-    fn on_detached(&mut self, event: Option<rust_cli_kernel_api::orchestration::DetachedEvent>) {
+    fn on_detached(&mut self, event: Option<nibi_kernel_api::orchestration::DetachedEvent>) {
         let Some(event) = event else {
             self.detached = stream::pending().boxed();
             return;
@@ -566,8 +566,8 @@ impl<B: Backend> Loop<'_, B> {
             && self.app.pending().is_none()
             && self.app.overlay.is_none()
             && !self.app.background.iter().any(|entry| {
-                entry.kind == rust_cli_kernel_api::manage::BackgroundKind::Agent
-                    && entry.status == rust_cli_kernel_api::env_shell::BackgroundStatus::Running
+                entry.kind == nibi_kernel_api::manage::BackgroundKind::Agent
+                    && entry.status == nibi_kernel_api::env_shell::BackgroundStatus::Running
             });
         let Some(due) = self
             .app

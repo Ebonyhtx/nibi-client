@@ -5,10 +5,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use rust_cli_kernel_api::env_git::marks_git_root;
+use nibi_kernel_api::env_git::marks_git_root;
 
 /// Node `process.platform` 的写法（定义在 base，F55）。
-pub(crate) use rust_cli_base::js::node_platform as platform;
+pub(crate) use nibi_kernel_base::js::node_platform as platform;
 
 /// shell 名：`$SHELL` 含 zsh 为 `zsh`，含 bash 为 `bash`，否则原样，没有为 `unknown`；
 /// Windows 上没有 Git Bash（Bash 工具不可用）时为 `PowerShell`。
@@ -50,7 +50,7 @@ pub(crate) async fn os_version(env: &[(String, String)]) -> String {
     if cfg!(windows) {
         return String::new();
     }
-    let mut command = rust_cli_proc::command("uname");
+    let mut command = nibi_kernel_proc::command("uname");
     command
         .arg("-sr")
         .env_clear()

@@ -4,7 +4,7 @@
 # vendor/sources.json 生成，config/ 的 Unix 三份由 scripts/rust-cli/vendor/ugrep-config.mjs 用 ugrep 的 configure 生成，
 # 都不手改。
 [package]
-name = "rust-cli-vendor-ugrep"
+name = "nibi-kernel-vendor-ugrep"
 version = "7.8.4"
 edition = "2024"
 license = "BSD-3-Clause AND MIT AND Zlib AND bzip2-1.0.6 AND BSD-3-Clause"

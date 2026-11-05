@@ -2,12 +2,12 @@
 //! 按模型累计的用量。都是内核事件的投影，随视图一起丢弃与重建；这里不保存内核以外的事实。
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::agents::{TaskRecord, TaskStatus};
-use rust_cli_kernel_api::ids::{ToolUseId, TurnId};
-use rust_cli_kernel_api::message::Usage;
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::QueryEvent;
-use rust_cli_kernel_api::session_api::FileChange;
+use nibi_kernel_api::agents::{TaskRecord, TaskStatus};
+use nibi_kernel_api::ids::{ToolUseId, TurnId};
+use nibi_kernel_api::message::Usage;
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::QueryEvent;
+use nibi_kernel_api::session_api::FileChange;
 use serde_json::Value;
 
 use super::{Notice, ToolStatus, Transcript};

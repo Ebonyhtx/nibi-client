@@ -2,9 +2,9 @@
 
 use std::time::{Duration, UNIX_EPOCH};
 
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::provider::WireProtocol;
-use rust_cli_net::ResponseHeaders;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::provider::WireProtocol;
+use nibi_kernel_net::ResponseHeaders;
 
 use crate::errors::{Class, ERROR_MESSAGE_LIMIT as MESSAGE_LIMIT, Vendor, Verdict};
 

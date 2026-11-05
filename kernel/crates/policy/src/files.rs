@@ -5,9 +5,9 @@
 //! plan 模式询问 → acceptEdits 下工作目录里放行 → allow 规则 → 询问。
 //! 读规则的工具名是 `Read`，写规则是 `Edit`（Write、NotebookEdit 共用）。
 
-use rust_cli_base::names::DOT_DIR;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_base::names::DOT_DIR;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 use serde_json::Value;
 
 use crate::check::{AskKind, Check, Inputs};
@@ -56,7 +56,7 @@ const SENSITIVE_FILES: &[&str] = &[
     ".mcp.json",
     // 项目配置 `nibi.json`（带 MCP 服务器与 hooks）。修复线 F58：以前是机械替换出来的
     // `.nibi.json`（zcode 没有这个文件），真正的项目配置不在表里；用户级配置在 `~/.nibi/` 下，目录规则已覆盖。
-    rust_cli_base::names::PROJECT_CONFIG_FILE,
+    nibi_kernel_base::names::PROJECT_CONFIG_FILE,
 ];
 
 fn sensitive(path: &str, windows: bool) -> bool {

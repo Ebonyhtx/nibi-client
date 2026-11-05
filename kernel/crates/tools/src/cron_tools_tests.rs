@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::OperationId;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::testing::{FixedClock, ScriptedInteractions};
-use rust_cli_kernel_api::tool::{PromptContext, Tool, ToolUseContext, Validation};
+use nibi_kernel_api::ids::OperationId;
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::testing::{FixedClock, ScriptedInteractions};
+use nibi_kernel_api::tool::{PromptContext, Tool, ToolUseContext, Validation};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::ids::SessionId;
 
 use super::*;
 use crate::test_more::{Ctx, output_text};
@@ -228,7 +228,7 @@ fn prompts_are_truncated_by_display_width() {
 /// 删除时从文件删（tools-more.md §16.6）。
 #[tokio::test]
 async fn durable_jobs_go_to_the_file() {
-    let store = Arc::new(rust_cli_kernel_api::testing::MemoryCronStore::default());
+    let store = Arc::new(nibi_kernel_api::testing::MemoryCronStore::default());
     let board = CronBoard::new(Arc::new(FixedClock(NOW)), Some(store.clone()));
     let create = tool(&board, CREATE);
     let ctx = || {

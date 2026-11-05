@@ -5,8 +5,8 @@
 //! 精确读 `permission` 命名空间，读不到这些行；表结构不变。
 
 use rusqlite::{Connection, params, params_from_iter};
-use rust_cli_kernel_api::store::StoreError;
-use rust_cli_kernel_api::workspace_trust::TrustKey;
+use nibi_kernel_api::store::StoreError;
+use nibi_kernel_api::workspace_trust::TrustKey;
 use serde_json::Value;
 
 use crate::OrStorage;

@@ -11,7 +11,7 @@
 //! 目录是普通 DTO，可以序列化。
 
 use async_trait::async_trait;
-use rust_cli_base::secret::RedactedString;
+use nibi_kernel_base::secret::RedactedString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 

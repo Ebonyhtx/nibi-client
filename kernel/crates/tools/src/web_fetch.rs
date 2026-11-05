@@ -6,13 +6,13 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::env_web::FetchUrl;
-use rust_cli_kernel_api::model::{ModelPort, ModelSelection};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::env_web::FetchUrl;
+use nibi_kernel_api::model::{ModelPort, ModelSelection};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
-use rust_cli_policy::web_preapproved::{host_path, preapproved};
+use nibi_kernel_policy::web_preapproved::{host_path, preapproved};
 use serde_json::Value;
 use tokio::sync::mpsc;
 use url::Url;

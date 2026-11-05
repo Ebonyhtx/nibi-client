@@ -8,13 +8,13 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::ids::{InteractionId, OwnerEpoch, SessionId, ToolUseId};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::ids::{InteractionId, OwnerEpoch, SessionId, ToolUseId};
+use nibi_kernel_api::orchestration::{
     DetachedAsk, DetachedEvent, InteractionAnswer, InteractionRequest, OrchestrationError,
 };
-use rust_cli_kernel_api::session_api::KernelError;
-use rust_cli_kernel_api::store::{FactBatch, SessionStore};
+use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_api::store::{FactBatch, SessionStore};
 use serde_json::Value;
 use tokio::sync::{mpsc, oneshot};
 

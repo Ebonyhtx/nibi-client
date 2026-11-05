@@ -2,7 +2,7 @@
 //!
 //! 两轮对话后手动压缩：保留尾段是最后一轮的工具调用与结果（尾段以工具结果结尾，Node 记录里映射成
 //! 它的 assistant 行），边界、摘要与文件附件一个事务提交；压缩之后再问答一轮。
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     CompactBoundary, CompactTrigger, PreservedSegment, SystemMessage,
 };
 

@@ -6,21 +6,21 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookOutcome};
-use rust_cli_kernel_api::ids::{CommandId, MessageId};
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookOutcome};
+use nibi_kernel_api::ids::{CommandId, MessageId};
 // 权限询问多久没回答才发 Notification（6000 ms）：只定义在 kernel-api，TUI 的终端通知用同一个值（F58：
 // 以前这里与 tui 各写一份）。
-use rust_cli_kernel_api::interaction::NOTIFY_AFTER as PERMISSION_NOTIFY_DELAY;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::interaction::NOTIFY_AFTER as PERMISSION_NOTIFY_DELAY;
+use nibi_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{InteractionRequest, QueryRequest, QueryStop, RunSink};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{InteractionRequest, QueryRequest, QueryStop, RunSink};
+use nibi_kernel_api::session_api::{
     Delivery, EndReason, KernelEvent, QueuedInput, StartSource,
 };
-use rust_cli_kernel_api::store::{Fact, SessionMeta};
+use nibi_kernel_api::store::{Fact, SessionMeta};
 use serde_json::{Map, Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::{CancellationToken, DropGuard};

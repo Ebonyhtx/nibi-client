@@ -9,8 +9,8 @@
 //!
 //! 读不到就返回 `None`：上层这一拍跳过，不用 0 冒充（Node 的 `toRoundedUnit` 同一姿态）。
 
-use rust_cli_kernel_api::process_metrics::{ProcessMetrics, ProcessUsage};
-use rust_cli_kernel_api::process_table::{node_arch, node_platform};
+use nibi_kernel_api::process_metrics::{ProcessMetrics, ProcessUsage};
+use nibi_kernel_api::process_table::{node_arch, node_platform};
 
 /// 本机实现。
 pub struct LocalProcessMetrics {

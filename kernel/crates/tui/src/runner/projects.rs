@@ -3,11 +3,11 @@
 //! 过时的（`FuturesUnordered` 里回执的先后不定），不用超时。
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::panels::ProjectSessions;
-use rust_cli_kernel_api::session_api::{KernelError, SessionView, StartSource};
-use rust_cli_kernel_api::store::{SessionOrder, SessionQuery};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::panels::ProjectSessions;
+use nibi_kernel_api::session_api::{KernelError, SessionView, StartSource};
+use nibi_kernel_api::store::{SessionOrder, SessionQuery};
 
 use super::Loop;
 use super::session::Done;

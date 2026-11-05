@@ -1,4 +1,4 @@
-# rust-cli：Rust 写的 zcode CLI（docs/specs/rust-cli/README.md）。
+# nibi-kernel-cli：NIBI 的 Rust 内核（可执行名 nibi-rs；规格历史路径 docs/specs/rust-cli/）。
 # 自包含：不 path 依赖本目录以外的 crate；从仓库其他位置复制的代码在文件头注明来源。
 # crate 之间的依赖方向由 scripts/rust-cli/check-boundaries.mjs 的 ALLOWED 表约束。
 [workspace]
@@ -94,30 +94,30 @@ unwrap_used = "deny"
 [workspace.dependencies]
 # 只列出已使用的依赖（cargo-shear 会拒绝未使用的 workspace 依赖）。
 anyhow = "1"
-# rust-cli-net 的出口策略快照（R4）：热替换时整份发布，读的一方不必等。
+# nibi-kernel-net 的出口策略快照（R4）：热替换时整份发布，读的一方不必等。
 arc-swap = "1"
 async-trait = "0.1"
-# rust-cli-platform：credentials.json 的 base64url（Node `Buffer` 的 base64url，无填充）。
+# nibi-kernel-platform：credentials.json 的 base64url（Node `Buffer` 的 base64url，无填充）。
 base64 = "0.23"
 bytes = "1"
-# rust-cli-tui：终端输入流（event-stream）；与 ratatui 0.30 的 crossterm 后端同版本。
+# nibi-kernel-tui：终端输入流（event-stream）；与 ratatui 0.30 的 crossterm 后端同版本。
 crossterm = { version = "0.29", features = ["event-stream"] }
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
-# rust-cli（cli）：解开执行器的 npm 平台包（gzip，remote-exec.md §26.4）。Cargo.lock 里本来就有（syntect 用它，同样的
+# nibi-kernel-cli（cli）：解开执行器的 npm 平台包（gzip，remote-exec.md §26.4）。Cargo.lock 里本来就有（syntect 用它，同样的
 # 缺省特性 rust_backend），不引入新包。
 flate2 = "1"
 # Retry-After 的 HTTP-date 形式。
 httpdate = "1"
-# rust-cli-tui：markdown 解析（复制来的组件层，docs/specs/rust-cli/tui.md §3）。
+# nibi-kernel-tui：markdown 解析（复制来的组件层，docs/specs/rust-cli/tui.md §3）。
 pulldown-cmark = { version = "0.13", default-features = false }
-# rust-cli-tui：全屏终端界面。
+# nibi-kernel-tui：全屏终端界面。
 ratatui = "0.30"
-# rust-cli-tui：unix 上探测终端背景色（OSC 11）时的 poll / read。
+# nibi-kernel-tui：unix 上探测终端背景色（OSC 11）时的 poll / read。
 rustix = { version = "1", features = ["event"] }
-# rust-cli-tui：代码块、diff 与命令的高亮（主题来自 two-face）。
+# nibi-kernel-tui：代码块、diff 与命令的高亮（主题来自 two-face）。
 syntect = { version = "5.3", default-features = false, features = ["parsing", "default-syntaxes", "default-themes", "regex-fancy"] }
 two-face = { version = "0.5", default-features = false, features = ["syntect-fancy"] }
-# rust-cli-tui：搜索按字素匹配（docs/specs/rust-cli/tui-input.md §2.3.3，F114）；Cargo.lock 里本来就有（ratatui 用它）。
+# nibi-kernel-tui：搜索按字素匹配（docs/specs/rust-cli/tui-input.md §2.3.3，F114）；Cargo.lock 里本来就有（ratatui 用它）。
 unicode-segmentation = "1.13"
 unicode-width = "0.2"
 # kernel-api `env_path::nfc`：工具路径参数的 NFC（docs/specs/rust-cli/tools-files.md §3.2）。
@@ -130,27 +130,27 @@ grep-searcher = "0.1"
 # 目录遍历、忽略规则与 rg 的 --glob / --type 语义（env-local 的 Glob / Grep）。
 ignore = "0.4"
 libc = "0.2"
-# rust-cli（cli）：Linux musl 版的全局分配器（docs/specs/rust-cli/linux.md §8.3，工作线 F44）。只在 `*-linux-musl`
+# nibi-kernel-cli（cli）：Linux musl 版的全局分配器（docs/specs/rust-cli/linux.md §8.3，工作线 F44）。只在 `*-linux-musl`
 # 进依赖图；不打开 override（C 代码仍用 musl 的 malloc）。
 mimalloc = { version = "0.1.52", default-features = false }
 # env-local：持久定时任务文件的监听（.zcode/scheduled_tasks.json，docs/specs/rust-cli/tools-more.md §16.2）。
 notify = "8"
 regex = "1"
-# rust-cli-platform：Provider 规则的 matcher 是 JS RegExp 语法（look-around），与 Host / Node 相同用 ECMAScript 语义。
+# nibi-kernel-platform：Provider 规则的 matcher 是 JS RegExp 语法（look-around），与 Host / Node 相同用 ECMAScript 语义。
 regress = "0.12"
-# rust-cli-platform：credentials.json 的 AES-256-GCM（与 rustls 共用同一个 ring）。
+# nibi-kernel-platform：credentials.json 的 AES-256-GCM（与 rustls 共用同一个 ring）。
 ring = "0.17"
-# 只在 rust-cli-net。与 apps/zcode-cli-rust 同为 0.13；关闭 system-proxy（默认特性），代理只按显式配置。
+# 只在 nibi-kernel-net。与 apps/zcode-cli-rust 同为 0.13；关闭 system-proxy（默认特性），代理只按显式配置。
 # rustls-no-provider 不自带算法，统一用 ring（与 rustls 的 ring 特性配套）。
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "socks"] }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
-# 只在 rust-cli-net：内置的 Mozilla 根证书（docs/specs/rust-cli/config.md §2.4，工作线 F44）。Cargo.lock 里本来就有
+# 只在 nibi-kernel-net：内置的 Mozilla 根证书（docs/specs/rust-cli/config.md §2.4，工作线 F44）。Cargo.lock 里本来就有
 # （rustls-platform-verifier 在 wasm 上用它），不引入新包。
 webpki-root-certs = "1"
 # 只有 node-store 使用（spec §4：rusqlite 只在 sqlite / node-store）；bundled 自带 SQLite，不依赖系统库。
 rusqlite = { version = "0.37", features = ["bundled"] }
 serde = { version = "1", default-features = false, features = ["std"] }
-# preserve_order：JS 的 JSON 文本按插入顺序输出键（rust_cli_base::js::json），Node 记录逐字节一致依赖它。
+# preserve_order：JS 的 JSON 文本按插入顺序输出键（nibi_kernel_base::js::json），Node 记录逐字节一致依赖它。
 serde_json = { version = "1", features = ["preserve_order"] }
 # Node 迁移校验和 sha256(sql.trim())。
 sha2 = "0.10"
@@ -158,7 +158,7 @@ tempfile = "3"
 # 只在测试：真实进程测试里现生成 CA 与服务器证书（docs/specs/rust-cli/config.md §5，F21）；与 rustls 共用 ring。
 rcgen = { version = "0.14.10", default-features = false, features = ["crypto", "pem", "ring"] }
 thiserror = "2"
-# rust-cli-platform：Provider 配置的 baseUrl 校验（与 Host 相同用 WHATWG URL 解析）。
+# nibi-kernel-platform：Provider 配置的 baseUrl 校验（与 Host 相同用 WHATWG URL 解析）。
 url = "2"
 uuid = { version = "1", features = ["v4"] }
 # 只打开不做 IO 的特性。做 IO 的特性（fs、process、io-std、net）由用到的 crate 自己声明，
@@ -176,7 +176,7 @@ tokio = { version = "1", features = [
 tokio-util = { version = "0.7", default-features = false }
 # 只用门面宏；订阅者由入口 crate 安装。
 tracing = { version = "0.1", default-features = false, features = ["std"] }
-# rust-cli-proc 的 Job Object；cli 的系统时区与系统版本（`RtlGetVersion`，修复线 F65）。
+# nibi-kernel-proc 的 Job Object；cli 的系统时区与系统版本（`RtlGetVersion`，修复线 F65）。
 windows-sys = { version = "0.61", features = [
   "Wdk_System_SystemServices",
   "Win32_Foundation",
@@ -188,42 +188,42 @@ windows-sys = { version = "0.61", features = [
   "Win32_System_Time",
 ] }
 
-rust-cli-base = { path = "crates/base" }
-rust-cli-paths = { path = "crates/paths" }
-rust-cli-net = { path = "crates/net" }
-rust-cli-fs = { path = "crates/fs" }
-rust-cli-platform = { path = "crates/platform" }
+nibi-kernel-base = { path = "crates/base" }
+nibi-kernel-paths = { path = "crates/paths" }
+nibi-kernel-net = { path = "crates/net" }
+nibi-kernel-fs = { path = "crates/fs" }
+nibi-kernel-platform = { path = "crates/platform" }
 nibi-platform = { path = "crates/nibi-platform" }
-rust-cli-proc = { path = "crates/proc" }
-rust-cli-prompts = { path = "crates/prompts" }
-rust-cli-kernel-api = { path = "crates/kernel-api" }
-rust-cli-node-store = { path = "crates/node-store" }
-rust-cli-model = { path = "crates/model" }
-rust-cli-env-local = { path = "crates/env-local" }
-rust-cli-exec-wire = { path = "crates/exec-wire" }
-rust-cli-exec-transport = { path = "crates/exec-transport" }
-rust-cli-exec-client = { path = "crates/exec-client" }
-rust-cli-exec-server = { path = "crates/exec-server" }
-rust-cli-env-remote = { path = "crates/env-remote" }
-rust-cli-executor-host = { path = "crates/executor-host" }
-rust-cli-machines = { path = "crates/machines" }
-rust-cli-ssh-connect = { path = "crates/ssh-connect" }
-rust-cli-peers = { path = "crates/peers" }
-rust-cli-policy = { path = "crates/policy" }
-rust-cli-hooks = { path = "crates/hooks" }
-rust-cli-context = { path = "crates/context" }
-rust-cli-tools = { path = "crates/tools" }
-rust-cli-compact = { path = "crates/compact" }
-rust-cli-agents = { path = "crates/agents" }
-rust-cli-ext = { path = "crates/ext" }
-rust-cli-memory = { path = "crates/memory" }
-rust-cli-query = { path = "crates/query" }
-rust-cli-session = { path = "crates/session" }
-rust-cli-runtime = { path = "crates/runtime" }
-rust-cli-tui = { path = "crates/tui" }
-rust-cli-headless = { path = "crates/headless" }
-rust-cli-protocol-core = { path = "crates/protocol-core" }
-rust-cli-protocol-nibi = { path = "crates/protocol-nibi" }
+nibi-kernel-proc = { path = "crates/proc" }
+nibi-kernel-prompts = { path = "crates/prompts" }
+nibi-kernel-api = { path = "crates/kernel-api" }
+nibi-kernel-node-store = { path = "crates/node-store" }
+nibi-kernel-model = { path = "crates/model" }
+nibi-kernel-env-local = { path = "crates/env-local" }
+nibi-kernel-exec-wire = { path = "crates/exec-wire" }
+nibi-kernel-exec-transport = { path = "crates/exec-transport" }
+nibi-kernel-exec-client = { path = "crates/exec-client" }
+nibi-kernel-exec-server = { path = "crates/exec-server" }
+nibi-kernel-env-remote = { path = "crates/env-remote" }
+nibi-kernel-executor-host = { path = "crates/executor-host" }
+nibi-kernel-machines = { path = "crates/machines" }
+nibi-kernel-ssh-connect = { path = "crates/ssh-connect" }
+nibi-kernel-peers = { path = "crates/peers" }
+nibi-kernel-policy = { path = "crates/policy" }
+nibi-kernel-hooks = { path = "crates/hooks" }
+nibi-kernel-context = { path = "crates/context" }
+nibi-kernel-tools = { path = "crates/tools" }
+nibi-kernel-compact = { path = "crates/compact" }
+nibi-kernel-agents = { path = "crates/agents" }
+nibi-kernel-ext = { path = "crates/ext" }
+nibi-kernel-memory = { path = "crates/memory" }
+nibi-kernel-query = { path = "crates/query" }
+nibi-kernel-session = { path = "crates/session" }
+nibi-kernel-runtime = { path = "crates/runtime" }
+nibi-kernel-tui = { path = "crates/tui" }
+nibi-kernel-headless = { path = "crates/headless" }
+nibi-kernel-protocol-core = { path = "crates/protocol-core" }
+nibi-kernel-protocol-nibi = { path = "crates/protocol-nibi" }
 
 [profile.release]
 lto = "thin"

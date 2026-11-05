@@ -7,18 +7,18 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::ids::{MessageId, RunId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::ids::{MessageId, RunId, SessionId};
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelError, ModelEvent, ModelNotice, ModelPort,
     ModelRequest, ModelSelection, ModelStreamItem, QuerySource, RequestOptions, SystemBlock,
     small_fast_model,
 };
-use rust_cli_kernel_api::provider::ModelDirectory;
-use rust_cli_prompts::texts::render;
-use rust_cli_prompts::title;
+use nibi_kernel_api::provider::ModelDirectory;
+use nibi_kernel_prompts::texts::render;
+use nibi_kernel_prompts::title;
 use tokio_util::sync::CancellationToken;
 
 use crate::title_parse::{clean_title, normalize_input};
@@ -28,7 +28,7 @@ const TIMEOUT: Duration = Duration::from_secs(60);
 /// Node `AUXILIARY_MAX_OUTPUT_TOKENS`。
 const AUXILIARY_MAX_OUTPUT_TOKENS: u64 = 5_000;
 /// 请求来源（`querySource`；名字只在 kernel-api 定义一处，用量表与请求头写成 Node 的 `session_title`，工作线 F71）。
-const QUERY_SOURCE: &str = rust_cli_kernel_api::model::SIDE_SESSION_TITLE;
+const QUERY_SOURCE: &str = nibi_kernel_api::model::SIDE_SESSION_TITLE;
 
 /// 标题生成用的模型端口与模型目录（交互形态的会话才有，`-p` 不生成，titles.md §2）。
 #[derive(Clone)]

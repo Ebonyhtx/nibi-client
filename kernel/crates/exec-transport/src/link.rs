@@ -140,9 +140,9 @@ pub enum ProvisionError {
     /// `protocol` 是本机的，`latest` / `latest_protocol` 是 latest 的，`target` 是本机缓存的 gnu 目录名（提示用）。
     #[error(
         "this zcode {version} (protocol {protocol}) is not on npm, and the latest executor on npm, {latest}, speaks protocol {latest_protocol}; connect again after a new version is published, or put a zcode {version} executor at ~/{dot}/{exec}/dist/{version}/{target}/{bin}",
-        dot = rust_cli_base::names::DOT_DIR,
-        exec = rust_cli_base::names::EXECUTOR_HOME,
-        bin = rust_cli_base::names::UNIX_EXECUTABLE
+        dot = nibi_kernel_base::names::DOT_DIR,
+        exec = nibi_kernel_base::names::EXECUTOR_HOME,
+        bin = nibi_kernel_base::names::UNIX_EXECUTABLE
     )]
     LatestIncompatible {
         version: String,

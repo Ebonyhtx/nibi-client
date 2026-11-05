@@ -1,8 +1,8 @@
 //! 输入 JSON 的字段与键序（spec §3.1）。
 
-use rust_cli_kernel_api::hooks::{HookContext, HookEventName};
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::hooks::{HookContext, HookEventName};
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::permission::PermissionMode;
 use serde_json::json;
 
 use super::*;

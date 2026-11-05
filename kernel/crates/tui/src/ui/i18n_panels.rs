@@ -22,10 +22,10 @@ pub fn waiting(lang: Lang) -> &'static str {
 /// 还要等多久。
 pub fn activity(
     lang: Lang,
-    activity: &rust_cli_kernel_api::panels::SubagentActivity,
+    activity: &nibi_kernel_api::panels::SubagentActivity,
     left_ms: u64,
 ) -> (String, bool) {
-    use rust_cli_kernel_api::panels::SubagentActivity;
+    use nibi_kernel_api::panels::SubagentActivity;
     let left = super::retry_status::countdown(left_ms);
     match activity {
         // 修复线 F26（用户决定）：不显示“思考中”；修复线 F62（用户决定）：不显示工具名（原来是 ` · <工具名>`，Explore

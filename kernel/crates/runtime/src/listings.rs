@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::listing::{InvokedSkill, ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::orchestration::{ContextRequest, OrchestrationError};
+use nibi_kernel_api::listing::{InvokedSkill, ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::orchestration::{ContextRequest, OrchestrationError};
 
 pub(crate) struct CombinedListings(pub(crate) Vec<Arc<dyn ListingSource>>);
 

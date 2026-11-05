@@ -3,11 +3,11 @@
 //! 性能修复（修复线 F6，审查 R5-6）：以前先把整个请求建成 `serde_json::Value`（每个块一个 IndexMap），再按
 //! JS 规则写出、最后整棵释放；消息是请求体的大头（长会话里几 MB），这三步约占每步客户端 CPU 的五分之一。
 //! 现在直接写：字段顺序与以前建对象的插入顺序相同，字符串、数字与工具输入（`Value`）用
-//! `rust_cli_base::js::json` 的同一套写法，所以字节不变（`anthropic_request_bytes_tests.rs` 拿旧写法逐字节比）。
+//! `nibi_kernel_base::js::json` 的同一套写法，所以字节不变（`anthropic_request_bytes_tests.rs` 拿旧写法逐字节比）。
 
-use rust_cli_base::js::json::{write, write_str};
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
-use rust_cli_kernel_api::model::{ApiContent, ApiMessage, ApiRole, CacheControl, ModelError};
+use nibi_kernel_base::js::json::{write, write_str};
+use nibi_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
+use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole, CacheControl, ModelError};
 
 /// `[消息…]`。
 pub(crate) fn messages(out: &mut String, messages: &[ApiMessage]) -> Result<(), ModelError> {

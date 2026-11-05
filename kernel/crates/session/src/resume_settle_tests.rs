@@ -2,14 +2,14 @@
 //! 排在已有结果之后，随第一批带消息的提交落库；更早的、没有结果的 tool_use 只去掉这些块，文字留着。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::{MessageId, OwnerEpoch, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, OwnerEpoch, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ApiMessage, ApiRole};
-use rust_cli_kernel_api::session_api::{Ack, Command, SessionHandle};
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore};
-use rust_cli_kernel_api::testing::{MemoryStore, ScriptedModel, text_response};
+use nibi_kernel_api::model::{ApiMessage, ApiRole};
+use nibi_kernel_api::session_api::{Ack, Command, SessionHandle};
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore};
+use nibi_kernel_api::testing::{MemoryStore, ScriptedModel, text_response};
 use serde_json::json;
 
 use crate::Opened;

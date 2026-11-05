@@ -3,7 +3,7 @@
 //!
 //! `prompts/monitor/` 下的文件手工维护（来源写在 spec §19 各节），文字逐字固定。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 use crate::texts::render;
 use crate::trim;

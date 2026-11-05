@@ -5,7 +5,7 @@
 //! `workspace-hook-config.ts`（`resolveWorkspaceHookRuntimeRoot`、门的计算）。digest 是
 //! `sha256(JSON.stringify(数组))`，JSON 文本按 JS 的规则生成。只遍历 Node 的 7 个事件。
 
-use rust_cli_base::js::json::stringify;
+use nibi_kernel_base::js::json::stringify;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -13,12 +13,12 @@ use crate::node_config::{
     DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_TIMEOUT_MS, NODE_EVENTS, NodeHook, NodeHookKind, NodeHooks,
     NodeShell,
 };
-use rust_cli_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::hooks::HookEventName;
 
 /// Node `WORKSPACE_HOOK_DIGEST_SCHEMA_VERSION`。
 const SCHEMA_VERSION: u64 = 1;
 
-/// `sha256(JSON.stringify(value))`，JSON 文本按 JS 的规则生成（`rust_cli_base::js::json`：数字是 JS 的
+/// `sha256(JSON.stringify(value))`，JSON 文本按 JS 的规则生成（`nibi_kernel_base::js::json`：数字是 JS 的
 /// 最短形式，整数不带小数点）。
 fn sha256(value: &Value) -> String {
     let digest = Sha256::digest(stringify(value).as_bytes());

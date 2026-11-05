@@ -8,10 +8,10 @@
 //! 只实现 lean 变体：当前模型族都走 lean，非 lean 的完整段落
 //! （intro / system / doing tasks / actions / tools / tone）未覆盖，登记在 context.md §8。
 
-use rust_cli_kernel_api::model::{CacheControl, SystemBlock};
-use rust_cli_kernel_api::orchestration::ContextRequest;
-use rust_cli_prompts::models;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::model::{CacheControl, SystemBlock};
+use nibi_kernel_api::orchestration::ContextRequest;
+use nibi_kernel_prompts::models;
+use nibi_kernel_prompts::texts::{self, render};
 
 use crate::config::{OutputStyle, Surface};
 use crate::render::{Bullet, bullets};

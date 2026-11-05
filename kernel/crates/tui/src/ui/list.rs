@@ -9,7 +9,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use unicode_width::UnicodeWidthStr;
 
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::PermissionMode;
 
 use super::i18n::Lang;
 use super::key_hint;

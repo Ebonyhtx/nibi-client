@@ -7,9 +7,9 @@ use std::sync::Arc;
 
 use regex::Regex;
 // 补充句里最多列出的服务器数（30）：只定义在 kernel-api（F58：以前这里与 context 各写一份）。
-use rust_cli_kernel_api::mcp_state::PENDING_LISTED as LISTED;
-use rust_cli_kernel_api::mcp_state::{McpConnections, McpView, normalize_name};
-use rust_cli_kernel_api::tool::{Tool, ToolError, ToolUseContext};
+use nibi_kernel_api::mcp_state::PENDING_LISTED as LISTED;
+use nibi_kernel_api::mcp_state::{McpConnections, McpView, normalize_name};
+use nibi_kernel_api::tool::{Tool, ToolError, ToolUseContext};
 
 /// 最多等多久（5000 ms）。
 const WAIT_MS: u64 = 5_000;

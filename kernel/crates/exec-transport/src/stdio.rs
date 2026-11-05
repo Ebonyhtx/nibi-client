@@ -48,7 +48,7 @@ impl StdioConnector {
 #[async_trait]
 impl Connector for StdioConnector {
     async fn connect(&self) -> Result<Box<dyn Link>, LinkError> {
-        let mut command = rust_cli_proc::command(&self.command.program);
+        let mut command = nibi_kernel_proc::command(&self.command.program);
         command
             .args(&self.command.args)
             .env_clear()
@@ -71,7 +71,7 @@ impl Connector for StdioConnector {
         else {
             return Err(LinkError::Connect("child pipes are missing".to_owned()));
         };
-        let stderr = rust_cli_base::owned(forward_stderr(stderr));
+        let stderr = nibi_kernel_base::owned(forward_stderr(stderr));
         let inner = stream_link(stdout, stdin, self.describe(), self.max_frame);
         Ok(Box::new(ChildLink {
             sink: inner.sink,
@@ -126,7 +126,7 @@ impl Link for ChildLink {
 struct ChildSource {
     inner: Box<dyn FrameSource>,
     /// 子进程与转发它 stderr 的任务；收尾时取走。
-    child: Option<(tokio::process::Child, rust_cli_base::OwnedTask<String>)>,
+    child: Option<(tokio::process::Child, nibi_kernel_base::OwnedTask<String>)>,
 }
 
 #[async_trait]

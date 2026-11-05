@@ -9,9 +9,9 @@
 //! 修复（工作线 F85）：以前后面各段总按会话的当前目录解析，`Read(//etc/**)` 下 `cd /etc && cat hosts` 只问 cd，guarded 与
 //! yolo 下读到 `/etc/hosts`。
 
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_path::git_bash_spelling;
-use rust_cli_kernel_api::permission::RuleBehavior;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_path::git_bash_spelling;
+use nibi_kernel_api::permission::RuleBehavior;
 
 use crate::bash_paths;
 use crate::check::{Check, Inputs};

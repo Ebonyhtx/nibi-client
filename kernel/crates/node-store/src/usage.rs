@@ -2,10 +2,10 @@
 //!
 //! 轮次与父消息取批次的回合锚点（`Commit::current_user`，同 assistant 记录）；trace、执行模式与会话类型从库里读
 //! （`state`）；provider、模型与档位取请求时的快照。写过用量行的批次最后按 Node 的保留期删旧行（`facts::commit`）。
-use rust_cli_kernel_api::message::Usage;
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::store::{Fact, StoreError};
+use nibi_kernel_api::message::Usage;
+use nibi_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::store::{Fact, StoreError};
 
 use crate::append::finish_reason;
 use crate::facts::Commit;

@@ -4,12 +4,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::peers::{
     InboundPeerMessage, PeerAddress, PeerReceipt, PeerSignal, ReceiptStatus,
 };
-use rust_cli_net::uds::{UdsListener, UdsStream};
+use nibi_kernel_net::uds::{UdsListener, UdsStream};
 
 use crate::frames::{Frame, Reply, line};
 use crate::inbox::Inbox;

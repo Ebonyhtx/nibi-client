@@ -4,7 +4,7 @@
 //! 只是条数。描述与 schema 在 `prompts/tools/`。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};
@@ -93,8 +93,8 @@ impl Tool for ReportFindingsTool {
 mod tests {
     use std::sync::Arc;
 
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::testing::ScriptedInteractions;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::testing::ScriptedInteractions;
 
     use super::*;
     use crate::test_more::{Ctx, output_text};

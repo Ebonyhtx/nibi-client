@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-paths"
-description = "The single place that resolves local storage locations for rust-cli"
+name = "nibi-kernel-paths"
+description = "The single place that resolves local storage locations for nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,7 +15,7 @@ doctest = false
 
 [dependencies]
 # `sanitizePath` 的哈希后缀用 base 的 `toString(36)`（全工程唯一的实现，F7）。
-rust-cli-base.workspace = true
+nibi-kernel-base.workspace = true
 
 [target.'cfg(unix)'.dependencies]
 libc.workspace = true

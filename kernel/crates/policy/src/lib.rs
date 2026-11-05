@@ -44,15 +44,15 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError, RwLock};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::orchestration::PermissionGate;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::orchestration::PermissionGate;
+use nibi_kernel_api::permission::{
     PermissionDecision, PermissionMode, PermissionRule, PermissionRules, ToolPolicy,
 };
-use rust_cli_kernel_api::plan::PlanFiles;
-use rust_cli_kernel_api::session_api::DynamicWorkflowGate;
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
+use nibi_kernel_api::plan::PlanFiles;
+use nibi_kernel_api::session_api::DynamicWorkflowGate;
+use nibi_kernel_api::tool::{Tool, ToolUseContext};
 use serde_json::Value;
 
 pub use parse::{Analysis, Invocation, analyze, is_permission_safe};
@@ -87,7 +87,7 @@ pub struct PolicyGate {
     rules: RwLock<Arc<PermissionRules>>,
     /// Node 群协作会话（`permission.scope = session`）自己的规则集：判决时代替快照里的本机项目规则集
     /// （LocalSettings）。会话 actor 打开这种会话时由 runtime 放进来（修复线 F2）。
-    scoped: Mutex<HashMap<SessionId, Vec<rust_cli_kernel_api::permission::SourcedRule>>>,
+    scoped: Mutex<HashMap<SessionId, Vec<nibi_kernel_api::permission::SourcedRule>>>,
     /// 会话级的工具清单（NIBI `createSession.toolAllowlist/toolDenylist`）：工具清单与查找先按它过滤，
     /// 判决链再按规则判。会话关闭时随 `release` 清掉。
     tool_policies: Mutex<HashMap<SessionId, ToolPolicy>>,
@@ -101,7 +101,7 @@ pub struct PolicyGate {
     options: PolicyOptions,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：判决时按会话取，
     /// 与进程级 `--add-dir` 一起进路径根的允许范围（远端机器不带过去，同下）。
-    directories: Option<Arc<rust_cli_kernel_api::session_paths::SessionDirectories>>,
+    directories: Option<Arc<nibi_kernel_api::session_paths::SessionDirectories>>,
 }
 
 impl Default for PolicyGate {
@@ -140,7 +140,7 @@ impl PolicyGate {
     #[must_use]
     pub fn with_session_directories(
         mut self,
-        directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+        directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
     ) -> Self {
         self.directories = Some(directories);
         self
@@ -168,7 +168,7 @@ impl PolicyGate {
     pub fn scope(
         &self,
         session: &SessionId,
-        rules: &rust_cli_kernel_api::permission::ProjectRules,
+        rules: &nibi_kernel_api::permission::ProjectRules,
     ) {
         self.scoped
             .lock()
@@ -259,7 +259,7 @@ impl PolicyGate {
         };
         let mut rules = (*base).clone();
         rules.rules.retain(|rule| {
-            rule.source != rust_cli_kernel_api::permission::RuleSource::LocalSettings
+            rule.source != nibi_kernel_api::permission::RuleSource::LocalSettings
         });
         rules.rules.extend(scoped);
         Arc::new(rules)

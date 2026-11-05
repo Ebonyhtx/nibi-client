@@ -21,24 +21,24 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     CommandId, EnvironmentId, MessageId, OperationId, OwnerEpoch, SessionId, ToolUseId, TraceId,
 };
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     ATTACHMENT_BLOCKS, AssistantMessage, AttachmentMessage, ContentBlock, ImageSource, Message,
     StopReason, ToolResultContent, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{
     Fact, FactBatch, RevertCursor, SessionFilter, SessionKind, SessionMeta, SessionStore,
     TurnAnchor,
 };
-use rust_cli_node_store::{LOCAL_ENVIRONMENT, NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_node_store::{LOCAL_ENVIRONMENT, NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 use serde_json::{Value, json};
 
 const WORKSPACE: &str = "/w/interop";
@@ -70,7 +70,7 @@ mod usage;
 
 fn store(dir: &str) -> Result<NodeStore> {
     let root = Path::new(dir);
-    let db = root.join(rust_cli_paths::DEFAULT_SESSION_DB);
+    let db = root.join(nibi_kernel_paths::DEFAULT_SESSION_DB);
     let paths = StoragePaths::resolve(
         &StorageSettings {
             session_db_path: Some(db.to_str().context("storage dir is not UTF-8")?),
@@ -188,14 +188,14 @@ async fn write(dir: &str) -> Result<()> {
     store
         .commit(
             &first,
-            batch(Some("cmd_1"), vec![user(&u1, "Hello from rust-cli")]),
+            batch(Some("cmd_1"), vec![user(&u1, "Hello from nibi-kernel-cli")]),
         )
         .await?;
     let thinking = ContentBlock::Thinking {
         thinking: "Thinking it over".into(),
         signature: Some("sig-interop".into()),
     };
-    let answer = vec![thinking, text("Hi! "), text("I am rust-cli.")];
+    let answer = vec![thinking, text("Hi! "), text("I am nibi-kernel-cli.")];
     store
         .commit(
             &first,

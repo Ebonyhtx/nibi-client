@@ -14,8 +14,8 @@
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL, StopReason,
     ToolResultContent, Usage, UserMessage, UserOrigin,
 };
@@ -153,7 +153,7 @@ fn user(record: &WithParts) -> Option<Message> {
         })
         .collect();
     let has_content = content.iter().any(|block| match block {
-        ContentBlock::Text { text } => !rust_cli_base::js::string::trim(text).is_empty(),
+        ContentBlock::Text { text } => !nibi_kernel_base::js::string::trim(text).is_empty(),
         _ => true,
     });
     if !has_content {

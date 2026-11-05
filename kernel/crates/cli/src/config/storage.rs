@@ -4,7 +4,7 @@
 //! `NIBI_SESSION_DB_PATH` 与 `NIBI_SESSION_DB`（两个都有时按环境里的先后，后出现的覆盖，Node `parseEnvConfig`
 //! 按 `Object.entries(process.env)` 的顺序）。以前入口不读这些值，库与产物目录总在缺省位置。
 
-use rust_cli_paths::StorageSettings;
+use nibi_kernel_paths::StorageSettings;
 
 use super::merge::Layer;
 

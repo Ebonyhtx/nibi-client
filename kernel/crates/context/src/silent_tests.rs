@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{AttachmentMessage, ToolResultContent, UserMessage};
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{AttachmentMessage, ToolResultContent, UserMessage};
 
 use super::*;
 

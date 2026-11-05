@@ -5,24 +5,24 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, Generation, SessionId, TraceId};
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::{ExecutionState, PermissionMode};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, Generation, SessionId, TraceId};
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, Delivery, KernelEvent, SessionHandle, StartSource,
 };
-use rust_cli_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_api::testing::{
     DirectExecutor, FixedClock, FixedContext, ListTools, MemoryArtifacts, MemoryStore,
     NeverCompact, NoHooks, ScriptedModel, SequentialIds, UnusedEnvironment, local_services,
     machine, selection, text_response, tool_use_response,
 };
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
-use rust_cli_query::{QueryLoop, QueryParts};
+use nibi_kernel_query::{QueryLoop, QueryParts};
 use serde_json::{Value, json};
 
 use crate::{Opened, Session, SessionDeps, SessionState};
@@ -100,40 +100,40 @@ fn spawn(
         compactor: Arc::new(NeverCompact),
         hooks: Arc::new(NoHooks),
         ids: ids.clone(),
-        clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-        machines: rust_cli_kernel_api::testing::environments(env.clone()),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+        machines: nibi_kernel_api::testing::environments(env.clone()),
         machine: machine(env.clone()),
         local: local_services(env),
         artifacts: store.clone(),
         generation: Generation::new("g1"),
         non_interactive: false,
-        limits: rust_cli_query::RequestLimits::default(),
+        limits: nibi_kernel_query::RequestLimits::default(),
     }));
     let env = Arc::new(UnusedEnvironment);
     Session::spawn(
         SessionDeps {
-            agents: Arc::new(rust_cli_kernel_api::agents::NoAgentSignals),
-            cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
+            agents: Arc::new(nibi_kernel_api::agents::NoAgentSignals),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
             store: store.clone(),
             ids,
             runner,
             compactor: Arc::new(NeverCompact),
-            machines: rust_cli_kernel_api::testing::environments(env.clone()),
+            machines: nibi_kernel_api::testing::environments(env.clone()),
             machine: machine(env.clone()),
             local: local_services(env),
             max_turns: None,
             hooks: Arc::new(NoHooks),
-            commands: Arc::new(rust_cli_kernel_api::user_command::NoUserCommands),
-            inputs: Arc::new(rust_cli_kernel_api::user_input::NoUserInputs),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
             artifacts: Arc::new(MemoryArtifacts::default()),
             clock: Arc::new(FixedClock(0)),
             generation: Generation::new("g1"),
             spawner: scope.spawner(),
             closing: scope.spawner(),
             titles: None,
-            side_model: Arc::new(rust_cli_kernel_api::testing::ScriptedModel::new(Vec::new())),
+            side_model: Arc::new(nibi_kernel_api::testing::ScriptedModel::new(Vec::new())),
             released: Arc::new(crate::NothingToRelease),
-            directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
@@ -245,7 +245,7 @@ async fn user_mode_switches_write_the_project_mode() {
             })
             .await;
         assert!(
-            matches!(ack, rust_cli_kernel_api::session_api::Ack::Accepted { .. }),
+            matches!(ack, nibi_kernel_api::session_api::Ack::Accepted { .. }),
             "{ack:?}"
         );
     }
@@ -257,7 +257,7 @@ async fn user_mode_switches_write_the_project_mode() {
         .await;
     assert!(matches!(
         ack,
-        rust_cli_kernel_api::session_api::Ack::Accepted { .. }
+        nibi_kernel_api::session_api::Ack::Accepted { .. }
     ));
     let facts: Vec<Fact> = store
         .facts(&SessionId::new("sess_1"))

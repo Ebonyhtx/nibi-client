@@ -4,17 +4,17 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::compaction::prompt_too_long_gap;
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, Usage};
-use rust_cli_kernel_api::model::{ModelError, QuerySource};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::compaction::prompt_too_long_gap;
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::message::{ContentBlock, Message, Usage};
+use nibi_kernel_api::model::{ModelError, QuerySource};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, QueryError,
     QueryEvent, QueryRequest, QueryStop, RunSink, ToolExecutor,
 };
-use rust_cli_kernel_api::store::StoreError;
-use rust_cli_kernel_api::tool::{Tool, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::store::StoreError;
+use nibi_kernel_api::tool::{Tool, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::Value;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -35,7 +35,7 @@ impl ToolExecutor for DenyTools {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> ToolOutput {
         ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: DENIED.to_owned(),
             }],
             is_error: true,
@@ -144,7 +144,7 @@ fn summary_of(messages: &[Message]) -> Option<(String, Option<Usage>)> {
 }
 
 pub(crate) async fn run(
-    runner: &dyn rust_cli_kernel_api::orchestration::QueryRunner,
+    runner: &dyn nibi_kernel_api::orchestration::QueryRunner,
     mut request: QueryRequest,
     cancel: &CancellationToken,
 ) -> Attempt {

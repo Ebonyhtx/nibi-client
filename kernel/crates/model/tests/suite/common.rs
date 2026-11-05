@@ -9,15 +9,15 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest,
     ModelSelection, QuerySource, RequestOptions,
 };
-use rust_cli_model::{AnthropicEndpoint, ProviderModel, RetryPolicy};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_model::{AnthropicEndpoint, ProviderModel, RetryPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 

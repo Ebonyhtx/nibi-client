@@ -1,6 +1,6 @@
 // 复制自 apps/zcode-cli-rust/crates/bash/src/tables.rs（07ab266d4b）；不 panic，失败时按不放行处理。
 //! Read-only policy tables exported from Node (`bash-readonly-policy-*.ts`).
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},

@@ -9,8 +9,8 @@ mod git;
 mod options;
 mod word;
 
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::permission::PermissionMode;
 use serde_json::Value;
 
 use options::{COMMAND_SCAN, Hit, Scan, Table, enabled, parse, settle, unwrap};

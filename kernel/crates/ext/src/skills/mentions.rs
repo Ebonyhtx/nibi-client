@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::env::WorkspaceRef;
 
 use super::SkillCatalog;
 
@@ -65,7 +65,7 @@ impl SkillCatalog {
     /// 会话级版本：插件根随会话快照。
     pub async fn mentions_for(
         &self,
-        session: Option<&rust_cli_kernel_api::ids::SessionId>,
+        session: Option<&nibi_kernel_api::ids::SessionId>,
         workspace: &WorkspaceRef,
         input: &str,
     ) -> Vec<String> {

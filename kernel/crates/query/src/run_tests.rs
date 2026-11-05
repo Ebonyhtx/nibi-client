@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, Generation, MessageId, RunId, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, Generation, MessageId, RunId, SessionId};
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ApiRole, ModelError, ModelPort, QuerySource, SystemBlock};
-use rust_cli_kernel_api::orchestration::{QueryError, QueryEvent, QueryRequest, QueryStop};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::model::{ApiRole, ModelError, ModelPort, QuerySource, SystemBlock};
+use nibi_kernel_api::orchestration::{QueryError, QueryEvent, QueryRequest, QueryStop};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{
     DirectExecutor, FixedContext, ListTools, MemoryStore, NeverCompact, NoHooks, RecordingSink,
     ScriptedModel, SequentialIds, UnusedEnvironment, local_services, machine, selection,
     text_response, tool_use_response,
 };
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 
 use crate::{QueryParts, RunScope};
@@ -32,9 +32,9 @@ pub(crate) fn parts(model: Arc<dyn ModelPort>, tools: Vec<Arc<dyn Tool>>) -> Que
         compactor: Arc::new(NeverCompact),
         hooks: Arc::new(NoHooks),
         ids: Arc::new(SequentialIds::default()),
-        clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
         machine: machine(env.clone()),
-        machines: rust_cli_kernel_api::testing::environments(env.clone()),
+        machines: nibi_kernel_api::testing::environments(env.clone()),
         local: local_services(env),
         artifacts: Arc::new(MemoryStore::default()),
         generation: Generation::new("g1"),
@@ -261,25 +261,25 @@ struct RetriesOnce(ScriptedModel);
 impl ModelPort for RetriesOnce {
     fn stream(
         &self,
-        request: rust_cli_kernel_api::model::ModelRequest,
+        request: nibi_kernel_api::model::ModelRequest,
         cancel: tokio_util::sync::CancellationToken,
     ) -> futures_util::stream::BoxStream<
         'static,
-        Result<rust_cli_kernel_api::model::ModelEvent, ModelError>,
+        Result<nibi_kernel_api::model::ModelEvent, ModelError>,
     > {
         self.0.stream(request, cancel)
     }
 
     fn stream_with_notices(
         &self,
-        request: rust_cli_kernel_api::model::ModelRequest,
+        request: nibi_kernel_api::model::ModelRequest,
         cancel: tokio_util::sync::CancellationToken,
     ) -> futures_util::stream::BoxStream<
         'static,
-        Result<rust_cli_kernel_api::model::ModelStreamItem, ModelError>,
+        Result<nibi_kernel_api::model::ModelStreamItem, ModelError>,
     > {
         use futures_util::StreamExt;
-        use rust_cli_kernel_api::model::{ModelNotice, ModelStreamItem};
+        use nibi_kernel_api::model::{ModelNotice, ModelStreamItem};
         let notice = ModelStreamItem::Notice(ModelNotice::Retrying {
             attempt: 1,
             max_retries: 10,
@@ -328,7 +328,7 @@ async fn a_retry_notice_is_not_part_of_the_reply() {
         matches!(
             events.first(),
             Some(QueryEvent::ModelNotice {
-                notice: rust_cli_kernel_api::model::ModelNotice::Retrying {
+                notice: nibi_kernel_api::model::ModelNotice::Retrying {
                     attempt: 1,
                     delay_ms: 500,
                     ..

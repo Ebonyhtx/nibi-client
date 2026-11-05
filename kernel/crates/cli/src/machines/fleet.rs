@@ -8,12 +8,12 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
-use rust_cli_base::{Spawner, Task};
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::ExecClient;
-use rust_cli_exec_wire::handshake::Welcome;
-use rust_cli_kernel_api::mcp::McpConnect;
-use rust_cli_machines::{
+use nibi_kernel_base::{Spawner, Task};
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::ExecClient;
+use nibi_kernel_exec_wire::handshake::Welcome;
+use nibi_kernel_api::mcp::McpConnect;
+use nibi_kernel_machines::{
     Machine, MachineEntry, MachineError, MachineList, MachineState, MachinesError,
 };
 use tokio::sync::watch;

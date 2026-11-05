@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::mcp_ui::{
     McpAppConnection, McpAppInstance, McpUiInstanceRequest, McpUiOpenRequest, McpUiScope,
 };
 

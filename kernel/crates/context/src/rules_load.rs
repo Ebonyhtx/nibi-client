@@ -1,11 +1,11 @@
 //! 规则文件的两种加载（context.md §11.1、§11.6）：会话开始时的全部无条件规则，
 //! 与某个被触及文件的子目录规则和命中的条件规则。
 
-use rust_cli_base::glob::Globs;
-use rust_cli_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE, managed_dir};
-use rust_cli_kernel_api::env_files::FileKind;
-use rust_cli_kernel_api::env_git::{gitdir_pointer, marks_git_root};
-use rust_cli_memory::entrypoint::ENTRYPOINT;
+use nibi_kernel_base::glob::Globs;
+use nibi_kernel_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE, managed_dir};
+use nibi_kernel_api::env_files::FileKind;
+use nibi_kernel_api::env_git::{gitdir_pointer, marks_git_root};
+use nibi_kernel_memory::entrypoint::ENTRYPOINT;
 
 use crate::rules::{Kind, RULES_DIR, RuleFile, Scope, Walk, unconditional};
 
@@ -116,7 +116,7 @@ impl Scope<'_> {
         let style = self.style;
         let path = style.join(dir.trim_end_matches(['/', '\\']), &[ENTRYPOINT]);
         let raw = self.read(&path).await?;
-        let content = rust_cli_memory::entrypoint::truncate(&raw);
+        let content = nibi_kernel_memory::entrypoint::truncate(&raw);
         (!content.is_empty()).then_some(RuleFile {
             path,
             kind: Kind::AutoMem,

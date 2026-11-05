@@ -1,8 +1,8 @@
 //! 冷读取的“当前轮以错误结束”（session-lifecycle.md §6.3.1）：按当前轮输入的 `turn_usage.status`。
 
-use rust_cli_kernel_api::ids::{CommandId, MessageId, OwnerEpoch, SessionId, TurnId};
-use rust_cli_kernel_api::metering::CallStatus;
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore, TurnAnchor};
+use nibi_kernel_api::ids::{CommandId, MessageId, OwnerEpoch, SessionId, TurnId};
+use nibi_kernel_api::metering::CallStatus;
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore, TurnAnchor};
 
 use crate::tests::{TestStore, started, user};
 

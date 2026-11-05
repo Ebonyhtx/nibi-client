@@ -3,12 +3,12 @@
 
 use std::collections::HashSet;
 
-use rust_cli_hooks::config::HooksSettings;
-use rust_cli_hooks::node_config::{NODE_EVENTS, NodeHooks};
-use rust_cli_hooks::workspace_digest::{Bundle, DigestEntry, DigestSource, RuntimeRoot};
-use rust_cli_hooks::{HookSource, workspace_digest};
-use rust_cli_paths::StoragePaths;
-use rust_cli_platform::{HookTrustStore, TrustLoad};
+use nibi_kernel_hooks::config::HooksSettings;
+use nibi_kernel_hooks::node_config::{NODE_EVENTS, NodeHooks};
+use nibi_kernel_hooks::workspace_digest::{Bundle, DigestEntry, DigestSource, RuntimeRoot};
+use nibi_kernel_hooks::{HookSource, workspace_digest};
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_platform::{HookTrustStore, TrustLoad};
 use serde_json::{Map, Value};
 
 use super::files::{ProjectFile, relative};
@@ -112,7 +112,7 @@ impl WorkspaceHooks {
 
     /// 已信任且启用的声明，按来源 → 事件 → matcher 分组成 hooks 快照的来源（`HookSource::Project`）。
     pub(crate) fn admitted(&self) -> Vec<(HookSource, HooksSettings)> {
-        rust_cli_hooks::hook_review::admitted(self.entries(), self.root, &self.trusted())
+        nibi_kernel_hooks::hook_review::admitted(self.entries(), self.root, &self.trusted())
             .into_iter()
             .map(|settings| (HookSource::Project, settings))
             .collect()

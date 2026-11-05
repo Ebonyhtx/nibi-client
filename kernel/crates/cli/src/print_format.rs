@@ -1,6 +1,6 @@
 //! `-p` 的格式参数（docs/specs/rust-cli/headless.md §1）：取值与报错文字（退出码 1）。
 
-use rust_cli_headless::{InputFormat, OutputFormat, PrintFormat};
+use nibi_kernel_headless::{InputFormat, OutputFormat, PrintFormat};
 
 /// 格式类参数：`--output-format`、`--input-format`、`--verbose`、`--include-partial-messages`。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]

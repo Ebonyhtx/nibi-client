@@ -5,10 +5,10 @@
 //! 会话目录是 `sanitizePathSegment(sessionId)`，artifact id 是 `tool-result-<uuid>`，文件名
 //! `<前缀>-<artifactId><扩展名>` 含 artifact id，Node 按 id 子串找到文件；扩展名决定 Node 按文本
 //! 还是 base64 读回。前缀是用途（Node 用 toolCallId，内核的 put 没有它）。
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-use rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME;
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, StoreError};
-use rust_cli_paths::StoragePath;
+use nibi_kernel_api::ids::{ArtifactId, SessionId};
+use nibi_kernel_api::persisted_output::ARTIFACT_SCHEME;
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, StoreError};
+use nibi_kernel_paths::StoragePath;
 
 use crate::storage;
 
@@ -143,7 +143,7 @@ pub async fn find(
         return Ok(None);
     }
     let dir = root.join(&directory);
-    let names = rust_cli_fs::file_names(dir.as_path())
+    let names = nibi_kernel_fs::file_names(dir.as_path())
         .await
         .map_err(storage)?;
     let tail = format!("-{}", segment(id.as_str()));
@@ -153,7 +153,7 @@ pub async fn find(
     }) else {
         return Ok(None);
     };
-    let Some(size) = rust_cli_fs::file_len(dir.join(name).as_path())
+    let Some(size) = nibi_kernel_fs::file_len(dir.join(name).as_path())
         .await
         .map_err(storage)?
     else {

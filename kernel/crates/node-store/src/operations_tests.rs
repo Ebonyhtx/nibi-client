@@ -1,12 +1,12 @@
 //! 操作意图与待回答的交互（spec node-store.md §4.7）。意图存 fingerprint 的摘要，旧记录存的整份 JSON 照旧判同 / 判异
 //! （修复线 F6，审查 R5-12）。
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::ids::{InteractionId, MessageId, OperationId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::ids::{InteractionId, MessageId, OperationId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::store::{
     Fact, OpenOperation, PendingInteraction, SessionStore, StoreError,
 };
 use serde_json::{Value, json};

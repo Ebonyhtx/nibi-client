@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::{EnvironmentId, Generation, OwnerEpoch, SessionId};
+use nibi_kernel_api::ids::{EnvironmentId, Generation, OwnerEpoch, SessionId};
 
 use super::*;
 use crate::test_support::{Script, ScriptedEnv, script, workspace};
@@ -26,7 +26,7 @@ fn context(operation: &str) -> OperationContext {
         generation: Generation::new("g1"),
         owner_epoch: OwnerEpoch::LOCAL,
         operation: OperationId::new(operation),
-        origin: rust_cli_kernel_api::env::Origin::User {
+        origin: nibi_kernel_api::env::Origin::User {
             session: Some(SessionId::new("sess_1")),
         },
     }

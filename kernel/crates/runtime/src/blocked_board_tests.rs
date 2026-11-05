@@ -5,13 +5,13 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::{
     CommitReceipt, FactBatch, LoadedSession, SessionFilter, SessionMeta, SessionStore,
     SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::testing::FixedClock;
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::testing::FixedClock;
+use nibi_kernel_api::workflow::{
     DynamicWorkflowRun, WorkflowEngine, WorkflowEngineError, WorkflowEscalation as _,
     WorkflowFillTarget, WorkflowFillTargetHole, WorkflowNotices, WorkflowRunActor,
     WorkflowRunDetail, WorkflowRunHealth, WorkflowRunHole, WorkflowRunNodeCounts,
@@ -148,9 +148,9 @@ impl WorkflowEngine for FakeEngine {
 
     async fn start_saved(
         &self,
-        _parent: &rust_cli_kernel_api::ids::SessionId,
-        _request: rust_cli_kernel_api::workflow::WorkflowStart,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, WorkflowEngineError> {
+        _parent: &nibi_kernel_api::ids::SessionId,
+        _request: nibi_kernel_api::workflow::WorkflowStart,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, WorkflowEngineError> {
         Err(not_found())
     }
 
@@ -158,14 +158,14 @@ impl WorkflowEngine for FakeEngine {
         &self,
         _run_id: &str,
         _name: Option<&str>,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, WorkflowEngineError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, WorkflowEngineError> {
         Err(not_found())
     }
 
     async fn amend(
         &self,
-        _request: rust_cli_kernel_api::workflow::WorkflowAmend,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, WorkflowEngineError> {
+        _request: nibi_kernel_api::workflow::WorkflowAmend,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, WorkflowEngineError> {
         Err(not_found())
     }
 
@@ -175,11 +175,11 @@ impl WorkflowEngine for FakeEngine {
 
     async fn fill_hole(
         &self,
-        _session: &rust_cli_kernel_api::ids::SessionId,
+        _session: &nibi_kernel_api::ids::SessionId,
         _run_id: &str,
         _hole_id: &str,
         _body: &str,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowFillOutcome, WorkflowEngineError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowFillOutcome, WorkflowEngineError> {
         Err(not_found())
     }
 
@@ -376,10 +376,10 @@ fn board(
     escalations: Arc<WorkflowEscalations>,
     delays: Vec<u64>,
 ) -> (Arc<WorkflowBlockedBoard>, Arc<Recording>, TaskHandleGuard) {
-    let engine_slot: rust_cli_tools::WorkflowEngineSlot = Arc::new(std::sync::Mutex::new(
+    let engine_slot: nibi_kernel_tools::WorkflowEngineSlot = Arc::new(std::sync::Mutex::new(
         engine.map(|engine| engine as Arc<dyn WorkflowEngine>),
     ));
-    let scope = std::boxed::Box::leak(Box::new(rust_cli_base::TaskScope::root(
+    let scope = std::boxed::Box::leak(Box::new(nibi_kernel_base::TaskScope::root(
         "blocked-board-test",
         |_| {},
     )));
@@ -405,7 +405,7 @@ fn park_question(escalations: &Arc<WorkflowEscalations>, run_id: &str) {
     let run_id = run_id.to_owned();
     tokio::spawn(async move {
         let _ = port
-            .escalate(rust_cli_kernel_api::workflow::WorkflowEscalationRequest {
+            .escalate(nibi_kernel_api::workflow::WorkflowEscalationRequest {
                 parent: SESSION.to_owned(),
                 run_id,
                 actor: "worker#1@1".to_owned(),

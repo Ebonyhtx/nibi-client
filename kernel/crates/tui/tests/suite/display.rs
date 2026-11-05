@@ -1,13 +1,13 @@
 //! 消息区的显示（docs/specs/rust-cli/tui-display.md §2）：前台子代理的进度与 Done 行、后台子代理与 footer 的
 //! pill、Background 面板（`/tasks`）的停止、任务清单与 ctrl+t。内核是 LocalKernel（agents 的 Agent、TaskCreate 工具）。
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use serde_json::json;
 
 use super::support::{GatedModel, Setup, finish, request_text, send, with_ui};
 
 /// 子代理的请求（system 里有子代理的权限句）。
-fn is_subagent(request: &rust_cli_kernel_api::model::ModelRequest) -> bool {
+fn is_subagent(request: &nibi_kernel_api::model::ModelRequest) -> bool {
     request.system.iter().any(|block| {
         block
             .text

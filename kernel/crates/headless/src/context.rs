@@ -5,10 +5,10 @@ use std::fmt::Write as _;
 use std::sync::Arc;
 
 use anyhow::Result;
-use rust_cli_kernel_api::context_usage::{
+use nibi_kernel_api::context_usage::{
     ContextUsage, ContextUsageQuery, format_estimate, format_tokens,
 };
-use rust_cli_kernel_api::session_api::{EndReason, Kernel};
+use nibi_kernel_api::session_api::{EndReason, Kernel};
 
 use crate::{PrintOptions, existing_session};
 

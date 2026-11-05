@@ -4,8 +4,8 @@
 //! 也跑：规则文件、会话上下文、日期只在这次请求的消息里还没有时宣布。压缩裁掉开头时它们随第一组被裁掉，
 //! 摘要请求就重新带上它们（例如 `Today's date is …`）。
 
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::orchestration::ContextRequest;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::orchestration::ContextRequest;
 
 use crate::render::{attachments, since_boundary};
 use crate::{PromptAssembler, announce, instructions, session_context};

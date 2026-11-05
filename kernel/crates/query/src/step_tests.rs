@@ -5,16 +5,16 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::McpView;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::model::{ModelRequest, ModelSelection, QuerySource, SystemBlock};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::McpView;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::model::{ModelRequest, ModelSelection, QuerySource, SystemBlock};
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError, ToolRegistry,
 };
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 
 use crate::mcp_support_tests::{FakeConnections, McpRegistry, server};

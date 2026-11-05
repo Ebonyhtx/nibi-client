@@ -1,7 +1,7 @@
 //! L28 的斜杠命令（docs/specs/rust-cli/tui-display.md §3、§4）：解析参数，本地能完成的直接完成（`/skills`、
 //! `/mode`、`/copy N`、`/theme`），要问内核的交给 runner（[`Manage`]；`/usage` 见 `usage.rs`）。`/agents` 已按用户
 //! 决定删除（§3.2，L33），走未知命令。
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::PermissionMode;
 
 use super::app::{Action, App, Local, Overlay};
 use super::i18n::Lang;
@@ -55,10 +55,10 @@ impl App {
                 });
                 // 对照实现记这一句（缺省显示，加固定说明；修复线 L-A，tui-manage.md §11.2）。
                 self.records
-                    .push(rust_cli_kernel_api::user_command::LocalCommandRecord {
+                    .push(nibi_kernel_api::user_command::LocalCommandRecord {
                         name: "cd".to_owned(),
                         args: String::new(),
-                        output: rust_cli_kernel_api::user_command::LocalCommandOutput::Stdout(
+                        output: nibi_kernel_api::user_command::LocalCommandOutput::Stdout(
                             "Usage: /cd <path>".to_owned(),
                         ),
                         caveat: true,

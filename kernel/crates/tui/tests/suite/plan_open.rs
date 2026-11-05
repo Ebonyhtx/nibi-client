@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, environments, text_response};
-use rust_cli_tui::{Editor, Services};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
+use nibi_kernel_tui::{Editor, Services};
 
 use super::support::{GatedModel, Setup, with_ui};
 

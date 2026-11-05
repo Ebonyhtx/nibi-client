@@ -26,11 +26,11 @@ use std::time::{Duration, Instant};
 use std::collections::{BTreeMap, HashMap};
 
 use futures_util::future::{join, join_all};
-use rust_cli_base::include_lf;
-use rust_cli_fs::{ChangeGate, FileStamp};
-use rust_cli_kernel_api::model::ModelConnection;
-use rust_cli_kernel_api::provider::CatalogConnection;
-use rust_cli_paths::StoragePath;
+use nibi_kernel_base::include_lf;
+use nibi_kernel_fs::{ChangeGate, FileStamp};
+use nibi_kernel_api::model::ModelConnection;
+use nibi_kernel_api::provider::CatalogConnection;
+use nibi_kernel_paths::StoragePath;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -141,7 +141,7 @@ impl Registry {
         if lock(&self.published).current.signature == signature {
             return lock(&self.published).current.clone();
         }
-        let snapshot = match rust_cli_base::blocking(move || parse(&inputs)).await {
+        let snapshot = match nibi_kernel_base::blocking(move || parse(&inputs)).await {
             Ok(Ok(snapshot)) => snapshot,
             Ok(Err(error)) => {
                 tracing::warn!(%error, "invalid provider configuration");
@@ -181,7 +181,7 @@ impl Registry {
     async fn read_builtin(&self) -> Result<Vec<u8>, String> {
         Ok(match &self.builtin {
             None => BUNDLED_BUILTIN.as_bytes().to_vec(),
-            Some(file) => rust_cli_fs::read_optional(file.as_path())
+            Some(file) => nibi_kernel_fs::read_optional(file.as_path())
                 .await
                 .map_err(|error| format!("builtin provider config: {error}"))?
                 .ok_or_else(|| {
@@ -195,7 +195,7 @@ impl Registry {
 
     async fn read(&self) -> Result<Inputs, String> {
         let builtin = self.read_builtin().await?;
-        let personal = rust_cli_fs::read_optional(self.personal.as_path())
+        let personal = nibi_kernel_fs::read_optional(self.personal.as_path())
             .await
             .map_err(|error| format!("personal provider config: {error}"))?
             .unwrap_or_else(|| EMPTY_PERSONAL.to_vec());

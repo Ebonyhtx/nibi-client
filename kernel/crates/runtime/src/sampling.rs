@@ -8,18 +8,18 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::ids::{OwnerEpoch, SessionId};
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::ids::{OwnerEpoch, SessionId};
+use nibi_kernel_api::mcp_ui::{
     McpUiSamplingInput, McpUiSamplingPort, McpUiSamplingResult, SAMPLING_CANCELLED,
 };
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, StopReason, Usage};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::message::{ContentBlock, ImageSource, StopReason, Usage};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelError, ModelEvent, ModelNotice, ModelPort,
     ModelRequest, ModelSelection, ModelStreamItem, QuerySource, RequestOptions, SystemBlock,
 };
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore};
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore};
 use tokio_util::sync::CancellationToken;
 
 use crate::table::OpenSessions;
@@ -167,10 +167,10 @@ impl McpUiSamplingPort for KernelSampling {
                 .iter()
                 .map(|block| ApiContent {
                     block: match block {
-                        rust_cli_kernel_api::mcp_ui::McpUiSamplingContent::Text { text } => {
+                        nibi_kernel_api::mcp_ui::McpUiSamplingContent::Text { text } => {
                             ContentBlock::Text { text: text.clone() }
                         }
-                        rust_cli_kernel_api::mcp_ui::McpUiSamplingContent::Image {
+                        nibi_kernel_api::mcp_ui::McpUiSamplingContent::Image {
                             mime_type,
                             data,
                         } => ContentBlock::Image {

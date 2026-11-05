@@ -1,12 +1,12 @@
 //! 配置的组装（config.md §2、§3）：临时 HOME 里的用户级配置，内存执行环境里的项目文件。
 #![allow(clippy::disallowed_methods, reason = "测试准备临时 HOME 里的配置文件")]
 
-use rust_cli_hooks::config::HookCommand;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::hooks::HookEventName;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::permission::PermissionRule;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_hooks::config::HookCommand;
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::testing::MemoryEnvironment;
 use serde_json::json;
 
 use super::*;
@@ -177,13 +177,13 @@ async fn rules_are_combined_with_local_settings_and_the_command_line() {
 /// 持久模式（Node `options.runtimeConfig.mode ?? persistedMode ?? config.permission.mode`）。
 #[tokio::test]
 async fn the_initial_mode_follows_the_node_order() {
-    use rust_cli_kernel_api::testing::MemoryStore;
+    use nibi_kernel_api::testing::MemoryStore;
     let dir = tempfile::tempdir().unwrap();
     let paths = StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
-    let store = rust_cli_node_store::NodeStore::new(
+    let store = nibi_kernel_node_store::NodeStore::new(
         paths,
-        std::sync::Arc::new(rust_cli_node_store::NodeIds::new(std::sync::Arc::new(
-            rust_cli_node_store::SystemClock::utc(),
+        std::sync::Arc::new(nibi_kernel_node_store::NodeIds::new(std::sync::Arc::new(
+            nibi_kernel_node_store::SystemClock::utc(),
         ))),
     );
     let workspace = WorkspaceRef {
@@ -201,20 +201,20 @@ async fn the_initial_mode_follows_the_node_order() {
         PermissionMode::Default
     );
     // 有持久模式：盖过配置，命令行又盖过它。
-    let meta = rust_cli_kernel_api::store::SessionMeta {
-        id: rust_cli_kernel_api::ids::SessionId::new("sess_mode"),
-        kind: rust_cli_kernel_api::store::SessionKind::Interactive,
+    let meta = nibi_kernel_api::store::SessionMeta {
+        id: nibi_kernel_api::ids::SessionId::new("sess_mode"),
+        kind: nibi_kernel_api::store::SessionKind::Interactive,
         parent: None,
         workspace: workspace.clone(),
         title: String::new(),
-        trace: rust_cli_kernel_api::ids::TraceId::new("sess_mode"),
+        trace: nibi_kernel_api::ids::TraceId::new("sess_mode"),
         created_at_ms: 0,
     };
     store.create(meta.clone()).await.unwrap();
-    let batch = rust_cli_kernel_api::store::FactBatch {
-        owner_epoch: rust_cli_kernel_api::ids::OwnerEpoch::LOCAL,
+    let batch = nibi_kernel_api::store::FactBatch {
+        owner_epoch: nibi_kernel_api::ids::OwnerEpoch::LOCAL,
         command: None,
-        facts: vec![rust_cli_kernel_api::store::Fact::ProjectModeSet {
+        facts: vec![nibi_kernel_api::store::Fact::ProjectModeSet {
             mode: PermissionMode::AcceptEdits,
         }],
         turn: None,

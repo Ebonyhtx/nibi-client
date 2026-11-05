@@ -5,7 +5,7 @@
  *     node scripts/kernel-baseline/check-dwf-engine.mjs
  *
  * Rust 侧需要 `NIBI_DWF_ENGINE_CMD`（没有它三条 DWF 命令回 capabilityUnsupported）；Node 侧忽略它。
- * 前提：`cargo build -p rust-cli` 与 `pnpm --filter @nibi/cli build`。
+ * 前提：`cargo build -p nibi-kernel-cli` 与 `pnpm --filter @nibi/cli build`。
  */
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";

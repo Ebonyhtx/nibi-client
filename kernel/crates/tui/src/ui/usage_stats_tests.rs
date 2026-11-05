@@ -1,6 +1,6 @@
 //! Stats 标签页的派生值与排版（usage.md §5）。
 use ratatui::text::Line;
-use rust_cli_kernel_api::metering::{ActivityDay, ActivityRange, ActivityStats, ModelTokens};
+use nibi_kernel_api::metering::{ActivityDay, ActivityRange, ActivityStats, ModelTokens};
 
 use super::*;
 use crate::ui::palette::{ColorLevel, Palette};

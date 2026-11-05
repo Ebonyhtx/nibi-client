@@ -7,17 +7,17 @@ use std::path::MAIN_SEPARATOR;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::provider::ModelLimits;
-use rust_cli_model::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::provider::ModelLimits;
+use nibi_kernel_model::{
     BYTE_IDLE_MAX, BYTE_IDLE_MIN, ByteIdle, EVENT_IDLE_FLOOR, STALL_NOTICE, StreamIdle,
 };
-use rust_cli_paths::StoragePaths;
-use rust_cli_runtime::{CompactConfig, CompactThresholds};
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_runtime::{CompactConfig, CompactThresholds};
 
 fn var<'a>(env: &'a [(String, String)], name: &str) -> Option<&'a str> {
-    rust_cli_base::secret::env_var(env, name)
+    nibi_kernel_base::secret::env_var(env, name)
         .map(str::trim)
         .filter(|value| !value.is_empty())
 }
@@ -52,18 +52,18 @@ const IS_SANDBOX: &str = "IS_SANDBOX";
 /// 过载时一直重试：`IS_SANDBOX` 有非空的值（值是字符串，JS 里非空字符串
 /// 都是真，`"0"` 也是）。
 pub(crate) fn is_sandbox(snapshot: &[(String, String)]) -> bool {
-    rust_cli_base::secret::env_var(snapshot, IS_SANDBOX).is_some_and(|value| !value.is_empty())
+    nibi_kernel_base::secret::env_var(snapshot, IS_SANDBOX).is_some_and(|value| !value.is_empty())
 }
 
 /// root 下允许 bypass 模式（cli-args.md §5.2）：`IS_SANDBOX` 等于 `1`（不等于时拒绝，
 /// `flags::refuse_root_bypass`）。
 pub(crate) fn is_sandbox_one(snapshot: &[(String, String)]) -> bool {
-    rust_cli_base::secret::env_var(snapshot, IS_SANDBOX) == Some("1")
+    nibi_kernel_base::secret::env_var(snapshot, IS_SANDBOX) == Some("1")
 }
 
 /// 任务工具的显式开关：
 /// `NIBI_ENABLE_TASKS` 为假时关闭（优先）；`NIBI_ENABLE_TODO_TOOLS` 为真时打开（
-/// opt-in）；都没有时 None，按模型决定（`rust_cli_agents::task_tools_enabled`，agents.md §7）。
+/// opt-in）；都没有时 None，按模型决定（`nibi_kernel_agents::task_tools_enabled`，agents.md §7）。
 ///
 /// 环境变量的名字（修复线 F42，config.md §2.5）：本文件读的变量都是 `NIBI_*`。
 ///
@@ -89,10 +89,10 @@ pub(crate) async fn memory_dir(
     if truthy(snapshot, "NIBI_DISABLE_AUTO_MEMORY") {
         return None;
     }
-    let project = rust_cli_memory::project_root(files, workspace).await;
+    let project = nibi_kernel_memory::project_root(files, workspace).await;
     let dir = paths.memory_dir(project.as_str());
     // 建不了目录时不打开记忆段（提示词会说目录已存在）。
-    rust_cli_fs::create_dir_all(dir.as_path()).await.ok()?;
+    nibi_kernel_fs::create_dir_all(dir.as_path()).await.ok()?;
     Some(format!("{}{MAIN_SEPARATOR}", dir.as_path().display()))
 }
 

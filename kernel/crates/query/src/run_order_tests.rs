@@ -2,10 +2,10 @@
 //! `keeps_order` 为真时按注册表的顺序（子代理按点名的清单排），否则按名字排序。旧代码总是排序。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::orchestration::{QueryStop, ToolRegistry};
-use rust_cli_kernel_api::testing::{FakeTool, ListTools, ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::orchestration::{QueryStop, ToolRegistry};
+use nibi_kernel_api::testing::{FakeTool, ListTools, ScriptedModel, text_response};
+use nibi_kernel_api::tool::Tool;
 
 use crate::run::tests::{parts, request, scope};
 

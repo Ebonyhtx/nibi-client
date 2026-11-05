@@ -3,12 +3,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::McpConnections;
-use rust_cli_kernel_api::mcp_telemetry::McpTelemetryEvent;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::McpConnections;
+use nibi_kernel_api::mcp_telemetry::McpTelemetryEvent;
 use serde_json::json;
 
 use super::McpManager;
@@ -77,7 +77,7 @@ async fn a_session_scoped_server_reports_start_startup_and_crash() {
     let view = manager
         .wait(
             5_000,
-            &|view: &rust_cli_kernel_api::mcp_state::McpView| {
+            &|view: &nibi_kernel_api::mcp_state::McpView| {
                 view.servers
                     .iter()
                     .all(|server| server.state != McpServerState::Pending)
@@ -174,7 +174,7 @@ async fn a_deliberate_close_is_not_a_crash() {
     manager
         .wait(
             5_000,
-            &|view: &rust_cli_kernel_api::mcp_state::McpView| {
+            &|view: &nibi_kernel_api::mcp_state::McpView| {
                 view.servers
                     .iter()
                     .all(|server| server.state != McpServerState::Pending)
@@ -226,7 +226,7 @@ async fn a_transport_without_a_process_reports_nothing() {
     manager
         .wait(
             5_000,
-            &|view: &rust_cli_kernel_api::mcp_state::McpView| {
+            &|view: &nibi_kernel_api::mcp_state::McpView| {
                 view.servers
                     .iter()
                     .all(|server| server.state != McpServerState::Pending)

@@ -2,13 +2,13 @@
 //! 模型侧的历史；请求、rewind 的可选输入只看模型侧的历史。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AssistantMessage, CompactBoundary, CompactTrigger, ContentBlock, Message, StopReason,
     SystemMessage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 
 use crate::Opened;
 use crate::test_support::{Setup, finished, submit, until};

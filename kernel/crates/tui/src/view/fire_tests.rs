@@ -1,9 +1,9 @@
 //! 定时任务的触发行与 `/loop` 的折叠（tools-more.md §18.3）。
-use rust_cli_kernel_api::cron::{CronFireKind, LoopFold};
-use rust_cli_kernel_api::ids::TurnId;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, TurnOutcome};
+use nibi_kernel_api::cron::{CronFireKind, LoopFold};
+use nibi_kernel_api::ids::TurnId;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, TurnOutcome};
 
 use super::*;
 

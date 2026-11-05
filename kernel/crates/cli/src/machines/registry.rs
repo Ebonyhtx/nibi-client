@@ -14,11 +14,11 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use futures_util::future::BoxFuture;
 use futures_util::stream::BoxStream;
 use futures_util::{FutureExt, StreamExt};
-use rust_cli_exec_client::ConnectionState;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, MachineSet, RemoteMachine};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_exec_client::ConnectionState;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, MachineSet, RemoteMachine};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
 use tokio::sync::watch;
 
 struct Connected {

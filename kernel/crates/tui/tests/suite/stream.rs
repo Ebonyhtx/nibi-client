@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use ratatui::buffer::Buffer;
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, finish, send, with_ui};
 

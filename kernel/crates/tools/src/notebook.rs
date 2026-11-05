@@ -1,6 +1,6 @@
 //! Jupyter notebook 的解析、给模型看的渲染与单元格编辑（tools-files.md §1）。
 
-use rust_cli_kernel_api::message::{ImageSource, ToolResultContent};
+use nibi_kernel_api::message::{ImageSource, ToolResultContent};
 use serde_json::{Map, Value, json};
 
 use crate::texts;

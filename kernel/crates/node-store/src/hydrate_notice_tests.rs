@@ -3,7 +3,7 @@
 
 use std::borrow::Cow;
 
-use rust_cli_kernel_api::message::{Message, UserOrigin};
+use nibi_kernel_api::message::{Message, UserOrigin};
 use serde_json::{Value, json};
 
 use crate::hydrate::hydrate;
@@ -46,7 +46,7 @@ fn notice_text(message: &Message) -> String {
     user.content
         .iter()
         .filter_map(|block| match block {
-            rust_cli_kernel_api::message::ContentBlock::Text { text } => Some(text.clone()),
+            nibi_kernel_api::message::ContentBlock::Text { text } => Some(text.clone()),
             _ => None,
         })
         .collect()

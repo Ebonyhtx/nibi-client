@@ -1,10 +1,10 @@
 //! 发请求前：assistant 的块顺序（tool_use 移到末尾）与工具结果的配对兜底
 //! （docs/specs/rust-cli/query.md §1.7、§1.8，context.md §3 第 11、12 条）。
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ApiMessage, ApiRole};
+use nibi_kernel_api::model::{ApiMessage, ApiRole};
 use serde_json::json;
 
 use super::*;

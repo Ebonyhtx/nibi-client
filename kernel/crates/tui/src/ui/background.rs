@@ -6,9 +6,9 @@ use std::time::Instant;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::env_shell::BackgroundStatus;
-use rust_cli_kernel_api::manage::{BackgroundEntry, BackgroundKind};
-use rust_cli_kernel_api::panels::{ShellDetail, ShellOutput, SubagentEntry, SubagentStatus};
+use nibi_kernel_api::env_shell::BackgroundStatus;
+use nibi_kernel_api::manage::{BackgroundEntry, BackgroundKind};
+use nibi_kernel_api::panels::{ShellDetail, ShellOutput, SubagentEntry, SubagentStatus};
 use unicode_width::UnicodeWidthStr;
 
 use super::agents::{Focus, stoppable};

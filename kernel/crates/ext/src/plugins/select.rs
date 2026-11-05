@@ -6,15 +6,15 @@
 
 use std::collections::{BTreeMap, HashSet};
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::FileKind;
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::FileKind;
+use nibi_kernel_api::machine::Files;
 use serde_json::Value;
 
 use super::{Manifest, Plugin, Plugins, Reader};
 
 /// Node `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`（定义在 base，F55）。
-const OFFICIAL: &str = rust_cli_base::names::OFFICIAL_MARKETPLACE;
+const OFFICIAL: &str = nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
 /// Node `DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS`（`official-plugin-definitions.ts` 里标了 `defaultEnabled`
 /// 的插件，与 `packages/shared/src/plugin-marketplaces.ts` 一致），都在官方市场。
 const DEFAULT_ENABLED: [&str; 11] = [

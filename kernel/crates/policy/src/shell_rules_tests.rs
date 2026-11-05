@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::permission::RuleBehavior;
+use nibi_kernel_api::permission::RuleBehavior;
 
 use super::*;
 

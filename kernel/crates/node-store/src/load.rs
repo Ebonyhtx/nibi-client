@@ -4,15 +4,15 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use rusqlite::Connection;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId};
-use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
-use rust_cli_kernel_api::permission::ExecutionState;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId};
+use nibi_kernel_api::model::{ModelConnection, ModelSelection};
+use nibi_kernel_api::permission::ExecutionState;
+use nibi_kernel_api::store::{
     LoadedSession, MessageTime, SessionKind, SessionLaunchTurn, SessionMeta, SessionModelTurn,
     SessionSummary, TurnAnchor,
 };
-use rust_cli_kernel_api::store::{SessionFilter, StoreError};
+use nibi_kernel_api::store::{SessionFilter, StoreError};
 use serde_json::Value;
 
 use crate::branch::{Branch, active_messages, earlier_messages};
@@ -223,7 +223,7 @@ fn with_connection(
                 &connection.project_id,
             ]
             .iter()
-            .all(|id| !rust_cli_base::js::string::trim(id).is_empty())
+            .all(|id| !nibi_kernel_base::js::string::trim(id).is_empty())
         });
     if matches {
         selection.connection = connection.map(Box::new);

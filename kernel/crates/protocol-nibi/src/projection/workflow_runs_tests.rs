@@ -1,12 +1,12 @@
 //! `workflowRuns` 归约的纯函数测试：引擎事件 → run 卡/详情的实时状态。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView};
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
-use rust_cli_kernel_api::testing::selection;
-use rust_cli_kernel_api::workflow::{WorkflowRunProgress, WorkflowRunSummaryRow};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView};
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_api::testing::selection;
+use nibi_kernel_api::workflow::{WorkflowRunProgress, WorkflowRunSummaryRow};
 use serde_json::{Value, json};
 
 use super::WorkflowRunsState;

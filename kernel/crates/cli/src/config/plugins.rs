@@ -7,10 +7,10 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use rust_cli_ext::plugins::{PluginCandidate, PluginOrigin, PluginSources};
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_paths::StoragePath;
-use rust_cli_platform::plugin_inventory::{
+use nibi_kernel_ext::plugins::{PluginCandidate, PluginOrigin, PluginSources};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_paths::StoragePath;
+use nibi_kernel_platform::plugin_inventory::{
     installed_plugins, installed_root, official_plugin_roots,
 };
 use serde_json::Value;
@@ -19,7 +19,7 @@ use super::merge::Layer;
 
 /// Node `NIBI_INLINE_PLUGIN_MARKETPLACE` 与 `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`。
 const INLINE: &str = "inline";
-const OFFICIAL: &str = rust_cli_base::names::OFFICIAL_MARKETPLACE;
+const OFFICIAL: &str = nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
 
 /// 合并后的 `plugins` 段。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,7 +117,7 @@ pub(crate) fn merge(layers: &[Layer<'_>], warnings: &mut Vec<String>) -> PluginS
 ///
 /// 化简用 base 的 `path::normalize`（F58：以前这里自己写了一份）。
 pub(crate) fn resolve_dir(root: &str, dir: &str) -> String {
-    rust_cli_base::path::normalize(&Path::new(root).join(dir))
+    nibi_kernel_base::path::normalize(&Path::new(root).join(dir))
         .to_string_lossy()
         .into_owned()
 }
@@ -129,7 +129,7 @@ pub(crate) async fn sources(
     section: PluginSection,
     root: &str,
     storage: &StoragePath,
-    paid_license: Option<rust_cli_ext::plugins::PaidLicense>,
+    paid_license: Option<nibi_kernel_ext::plugins::PaidLicense>,
 ) -> PluginSources {
     let mut candidates = Vec::new();
     let mut paid_installed_ids = Vec::new();

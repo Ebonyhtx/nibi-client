@@ -2,10 +2,10 @@
 //! 里的名字，这条会话没有时是 null），头里别的字段原样保留；别的帧原样。
 
 use bytes::Bytes;
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::admin::{AdminAction, AdminRequest};
-use rust_cli_exec_wire::frame::{Decoded, Frame, Kind, decode};
-use rust_cli_exec_wire::handshake::Hello;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::admin::{AdminAction, AdminRequest};
+use nibi_kernel_exec_wire::frame::{Decoded, Frame, Kind, decode};
+use nibi_kernel_exec_wire::handshake::Hello;
 use serde_json::json;
 
 use super::{session_env, with_session_env};

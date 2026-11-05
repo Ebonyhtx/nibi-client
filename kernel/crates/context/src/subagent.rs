@@ -9,9 +9,9 @@
 //!
 //! 各段的增量逻辑与主线程相同，只看子会话自己的历史。
 
-use rust_cli_kernel_api::listing::Listings;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::orchestration::ContextRequest;
+use nibi_kernel_api::listing::Listings;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::orchestration::ContextRequest;
 
 use crate::system::SKILL_TOOL;
 use crate::{PromptAssembler, announce, environment, listings};

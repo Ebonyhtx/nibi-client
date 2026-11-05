@@ -10,11 +10,11 @@
 //! 计划模式的两个会话标志也在这里（docs/specs/rust-cli/context.md §13.4）：改状态成功后按判决用的（旧, 新）
 //! 模式更新，提交 `plan_mode_reentry` / `plan_mode_exit` 后清掉对应的标志。
 
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::permission::{ExecutionState, PermissionMode};
-use rust_cli_kernel_api::session_api::KernelEvent;
-use rust_cli_kernel_api::store::Fact;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
+use nibi_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::store::Fact;
 
 use crate::actor::Actor;
 

@@ -5,16 +5,16 @@
 //!   从活动历史恢复；
 //! - 判定（§4）：主循环报告评估结果，这里提交反馈与 `goal_status`。
 
-use rust_cli_kernel_api::goal::{self, ActiveGoal, GoalStatus, GoalView};
-use rust_cli_kernel_api::hooks::StopVerdict;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::session_api::Ack;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::goal::{self, ActiveGoal, GoalStatus, GoalView};
+use nibi_kernel_api::hooks::StopVerdict;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::session_api::Ack;
+use nibi_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::StoreError;
-use rust_cli_kernel_api::user_command::{self, LOCAL_COMMAND_SOURCE};
-use rust_cli_prompts::texts::render;
+use nibi_kernel_api::store::StoreError;
+use nibi_kernel_api::user_command::{self, LOCAL_COMMAND_SOURCE};
+use nibi_kernel_prompts::texts::render;
 
 use crate::actor::{Actor, rejected};
 use crate::slash::Inputs;
@@ -326,7 +326,7 @@ impl Actor {
                 stdout(&format!("Goal set: {args}")),
                 self.meta(
                     goal::PROMPT_SOURCE,
-                    render(rust_cli_prompts::goal::set_prompt(), &[("condition", args)]),
+                    render(nibi_kernel_prompts::goal::set_prompt(), &[("condition", args)]),
                 ),
             ],
             query: true,

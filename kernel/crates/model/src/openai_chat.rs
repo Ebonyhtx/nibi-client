@@ -10,10 +10,10 @@
 //! 之后合并 Provider 的 option map 补丁（推理参数、`max_completion_tokens` 等）。补丁给出
 //! `max_completion_tokens` 时去掉默认的 `max_tokens`，两者不同时发送（同一预算只发一次）。
 
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::model::{ModelError, ModelRequest, ToolChoice, ToolDefinition};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint};
-use rust_cli_net::{HeaderValue, HttpRequest, header};
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::model::{ModelError, ModelRequest, ToolChoice, ToolDefinition};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint};
+use nibi_kernel_net::{HeaderValue, HttpRequest, header};
 use serde_json::{Map, Value, json};
 
 use crate::anthropic::HEADER_TIMEOUT;

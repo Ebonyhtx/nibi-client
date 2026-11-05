@@ -3,9 +3,9 @@
     reason = "测试直接检查 artifacts 目录与会话库文件"
 )]
 //! 模式映射、分支切点与 artifact 的端口行为。
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::permission::{ExecutionState, PermissionMode};
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
+use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactStore, Fact, RevertCursor, SessionStore, StoreError,
 };
 use serde_json::{Value, json};
@@ -318,7 +318,7 @@ async fn artifacts_round_trip_in_the_node_artifact_directory() {
         Err(StoreError::Storage { .. })
     ));
     let mut missing = artifact;
-    missing.id = rust_cli_kernel_api::ids::ArtifactId::new("tool-result-missing");
+    missing.id = nibi_kernel_api::ids::ArtifactId::new("tool-result-missing");
     assert!(t.store.get(&missing).await.is_err());
 }
 

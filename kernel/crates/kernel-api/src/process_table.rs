@@ -254,7 +254,7 @@ impl McpResourceSampler {
     pub fn new(platform: &str, arch: &str, logical_cpu_count: u32, total_memory_gb: u64) -> Self {
         Self {
             // 进程级随机标识：稳定、不含 pid（隐私红线与 `process/resourceSample` 同一口径）。
-            instance_token: format!("{:016x}", rust_cli_base::random::u64()),
+            instance_token: format!("{:016x}", nibi_kernel_base::random::u64()),
             platform: platform.to_owned(),
             arch: arch.to_owned(),
             logical_cpu_count: logical_cpu_count.max(1),
@@ -355,8 +355,8 @@ impl McpResourceSampler {
 /// 随机的 UUID 形状（Node `randomUUID()` 的去重标识；v4 变体）。
 pub fn uuid_v4() -> String {
     let mut bytes = [0_u8; 16];
-    bytes[..8].copy_from_slice(&rust_cli_base::random::u64().to_be_bytes());
-    bytes[8..].copy_from_slice(&rust_cli_base::random::u64().to_be_bytes());
+    bytes[..8].copy_from_slice(&nibi_kernel_base::random::u64().to_be_bytes());
+    bytes[8..].copy_from_slice(&nibi_kernel_base::random::u64().to_be_bytes());
     let hex: String = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
     // 8-4-4-4-12；第三段首字符固定 4（版本），第四段首字符 a（变体 10xx）。
     format!(

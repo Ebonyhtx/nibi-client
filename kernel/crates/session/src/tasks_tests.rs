@@ -5,24 +5,24 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::agents::{AgentSignal, AgentSignals};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::agents::{AgentSignal, AgentSignals};
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::{ReadText, TextRead, TextSlice};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_files::{ReadText, TextRead, TextSlice};
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStatus, BackgroundTask, ShellState,
 };
-use rust_cli_kernel_api::ids::{AgentId, OperationId, SessionId, ShellTaskId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{AgentId, OperationId, SessionId, ShellTaskId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::manage::{BackgroundEntry, BackgroundKind};
-use rust_cli_kernel_api::panels::{ShellOutput, SubagentEntry, TasksSnapshot};
-use rust_cli_kernel_api::session_api::{Ack, Command, SessionHandle};
-use rust_cli_kernel_api::testing::ScriptedModel;
+use nibi_kernel_api::manage::{BackgroundEntry, BackgroundKind};
+use nibi_kernel_api::panels::{ShellOutput, SubagentEntry, TasksSnapshot};
+use nibi_kernel_api::session_api::{Ack, Command, SessionHandle};
+use nibi_kernel_api::testing::ScriptedModel;
 
 use crate::test_support::{Setup, envelope};
 
@@ -113,7 +113,7 @@ impl Files for Shells {
                 total_bytes: 0,
                 read_bytes: 0,
                 mtime_ms: 0,
-                version: rust_cli_kernel_api::env::FileVersion::new("v1"),
+                version: nibi_kernel_api::env::FileVersion::new("v1"),
             }));
         }
         let content = (1..=45)
@@ -127,7 +127,7 @@ impl Files for Shells {
             total_bytes: 0,
             read_bytes: 0,
             mtime_ms: 0,
-            version: rust_cli_kernel_api::env::FileVersion::new("v1"),
+            version: nibi_kernel_api::env::FileVersion::new("v1"),
         }))
     }
 }
@@ -209,13 +209,13 @@ impl Background for Shells {
         &self,
         task: BackgroundTask,
         max_bytes: u64,
-    ) -> Result<Option<rust_cli_kernel_api::env_shell::BackgroundOutputTail>, EnvError> {
+    ) -> Result<Option<nibi_kernel_api::env_shell::BackgroundOutputTail>, EnvError> {
         if !task.task.as_str().starts_with(self.prefix) {
             return Ok(None);
         }
         let text = format!("tail of {}", task.task);
         assert_eq!(max_bytes, 8_192);
-        Ok(Some(rust_cli_kernel_api::env_shell::BackgroundOutputTail {
+        Ok(Some(nibi_kernel_api::env_shell::BackgroundOutputTail {
             bytes: text.into_bytes(),
             total_bytes: 100,
             truncated: true,
@@ -464,7 +464,7 @@ async fn the_line_count_of_an_output_that_ends_with_a_newline_matches_the_lines(
 /// 任务 ID 依次问本机与远端，在哪台找到就读那台的输出文件。
 #[tokio::test]
 async fn remote_background_commands_are_listed_with_their_machine() {
-    use rust_cli_kernel_api::testing::TestMachines;
+    use nibi_kernel_api::testing::TestMachines;
     let machines = TestMachines::new(std::sync::Arc::new(Shells::LOCAL));
     machines.connect("dev-a", std::sync::Arc::new(Shells::REMOTE), "/srv/proj");
     let mut setup = Setup::new(std::sync::Arc::new(ScriptedModel::new(Vec::new())));
@@ -511,7 +511,7 @@ async fn remote_background_commands_are_listed_with_their_machine() {
 async fn a_reconnecting_machine_shows_its_last_entries_without_waiting() {
     use std::sync::atomic::{AtomicBool, Ordering};
 
-    use rust_cli_kernel_api::testing::TestMachines;
+    use nibi_kernel_api::testing::TestMachines;
     static HANG: AtomicBool = AtomicBool::new(false);
     let machines = TestMachines::new(std::sync::Arc::new(Shells::LOCAL));
     let remote = Shells {
@@ -589,7 +589,7 @@ async fn a_reconnecting_machine_shows_its_last_entries_without_waiting() {
 async fn closing_does_not_wait_for_a_reconnecting_machine() {
     use std::sync::atomic::{AtomicBool, Ordering};
 
-    use rust_cli_kernel_api::testing::TestMachines;
+    use nibi_kernel_api::testing::TestMachines;
     static HANG: AtomicBool = AtomicBool::new(false);
     let machines = TestMachines::new(std::sync::Arc::new(Shells::LOCAL));
     let remote = Shells {
@@ -607,7 +607,7 @@ async fn closing_does_not_wait_for_a_reconnecting_machine() {
         std::time::Duration::from_secs(5),
         built
             .session
-            .close(rust_cli_kernel_api::session_api::EndReason::Other),
+            .close(nibi_kernel_api::session_api::EndReason::Other),
     )
     .await
     .expect("closing does not wait for a reconnecting machine");

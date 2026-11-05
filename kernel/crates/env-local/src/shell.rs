@@ -1,7 +1,7 @@
 //! 本机 shell 命令（docs/specs/rust-cli/shell-permissions.md §2）。
 //!
 //! 每条命令一个 [`Running`] 记录，按 operationId 登记（同一个 ID、同样的参数重放时不再执行，
-//! 参数不同时拒绝）。进程经 `rust-cli-proc` 的账本启动：Unix 上自成会话与进程组，Windows 上放进
+//! 参数不同时拒绝）。进程经 `nibi-kernel-proc` 的账本启动：Unix 上自成会话与进程组，Windows 上放进
 //! 自己的 Job，取消、超时与结束时整棵树一起回收。stdout 与 stderr 写进同一个输出文件（合并的
 //! fd），[`watch`] 从文件按游标读。监督任务在执行环境自己的任务作用域里运行，后台命令
 //! 因此不随工具调用结束；它的终态作为 [`ShellNotice`] 记在会话里，ack 之前一直保留。
@@ -23,16 +23,16 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use futures_util::stream::BoxStream;
-use rust_cli_base::TaskScope;
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvPath, OperationContext, Origin, Outcome, StartCommand, WorkspaceRef,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundKind, BackgroundStop, BackgroundTask, CwdScope, ShellKind, ShellNotice, ShellState,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
-use rust_cli_proc::ledger::Ledger;
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
+use nibi_kernel_proc::ledger::Ledger;
 use tokio::sync::watch as signal;
 use tokio_util::sync::CancellationToken;
 
@@ -43,9 +43,9 @@ pub(crate) use sandbox::Backend;
 #[derive(Debug, Clone, Default)]
 pub struct ShellConfig {
     /// 输出文件与 cwd 文件的根目录：`<scratch>/<会话>/tasks/<任务>.output`。必须是本用户私有的目录
-    /// （每次启动命令前经 `rust_cli_proc::private::ensure` 核对）；入口给的是 `<tmp>/zcode-<uid>`。
+    /// （每次启动命令前经 `nibi_kernel_proc::private::ensure` 核对）；入口给的是 `<tmp>/zcode-<uid>`。
     pub scratch: PathBuf,
-    /// 进程树账本目录（`rust-cli-proc`，同样核对）；所在进程被强杀后，下一次启动时清扫。入口给的与
+    /// 进程树账本目录（`nibi-kernel-proc`，同样核对）；所在进程被强杀后，下一次启动时清扫。入口给的与
     /// `scratch` 相同。
     pub ledger: PathBuf,
     /// 跑 Bash 工具命令的 shell（入口找的 bash 或 zsh，shell-permissions.md §2.5；字段名沿用）。
@@ -153,9 +153,9 @@ pub(crate) struct Running {
     /// 前台命令到了超时、已转到后台（`StartCommand::on_timeout`，shell-permissions.md §1.2.1）。
     pub backgrounded: signal::Sender<bool>,
     /// 前台命令被要求转到后台的原因（修复线 L-A，tui-input.md §11）：监督任务据此转、看输出的一方据此说明原因。
-    pub moved_by: signal::Sender<Option<rust_cli_kernel_api::env::BackgroundReason>>,
+    pub moved_by: signal::Sender<Option<nibi_kernel_api::env::BackgroundReason>>,
     /// 这条命令的任务 ID（转后台的回答）与它能不能转（只有给了 `on_timeout` 的前台 Bash 能转，hook 命令不能）。
-    pub task: rust_cli_kernel_api::ids::ShellTaskId,
+    pub task: nibi_kernel_api::ids::ShellTaskId,
     pub movable: bool,
     /// 开始的时刻（Shell 详情的 Runtime，docs/specs/rust-cli/tui-panels.md §3.3）。
     pub started: std::time::Instant,
@@ -209,7 +209,7 @@ pub(crate) struct Shells {
     limit: OutputLimit,
     /// Bash 命令的资源事实（`process/toolExecResource`，141 审计 §9 F3）：入口接上协议层的通知任务；
     /// None 时不做采样（TUI、测试与嵌入）。
-    telemetry: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::process_table::ToolExecResource>>,
+    telemetry: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::process_table::ToolExecResource>>,
 }
 
 fn session_of(context: &OperationContext) -> SessionId {
@@ -258,7 +258,7 @@ impl Shells {
     /// 接上 Bash 资源事实的出口（`process/toolExecResource`）。入口在协议 server 建好之前接。
     pub(crate) fn set_telemetry(
         &mut self,
-        sink: tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::process_table::ToolExecResource>,
+        sink: tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::process_table::ToolExecResource>,
     ) {
         self.telemetry = Some(sink);
     }
@@ -289,7 +289,7 @@ impl Shells {
         &self,
         context: OperationContext,
         request: StartCommand,
-        web: Option<Arc<rust_cli_net::Egress>>,
+        web: Option<Arc<nibi_kernel_net::Egress>>,
     ) -> Result<(), EnvError> {
         let fingerprint = serde_json::to_string(&request).map_err(|error| EnvError::Io {
             message: error.to_string(),
@@ -330,7 +330,7 @@ impl Shells {
         };
         // 缺陷修复 R2-1：输出文件所在的根目录先核对是本用户私有的（0700、属主是本 uid、不是符号链接），
         // 不是时命令报错、不启动；原来直接在共享临时目录里按默认权限建。
-        rust_cli_proc::private::ensure(&self.config.scratch)
+        nibi_kernel_proc::private::ensure(&self.config.scratch)
             .await
             .map_err(|error| EnvError::Io {
                 message: error.to_string(),
@@ -439,11 +439,11 @@ impl Shells {
         &self,
         context: OperationContext,
         request: StartCommand,
-        socket: rust_cli_kernel_api::env_shell::MonitorSocket,
+        socket: nibi_kernel_api::env_shell::MonitorSocket,
         plan: supervise::Plan,
         session: SessionId,
         fingerprint: String,
-        web: Option<Arc<rust_cli_net::Egress>>,
+        web: Option<Arc<nibi_kernel_net::Egress>>,
     ) -> Result<(), EnvError> {
         let running = Arc::new(Running {
             fingerprint,

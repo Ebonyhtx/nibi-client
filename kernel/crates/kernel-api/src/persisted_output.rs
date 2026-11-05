@@ -4,7 +4,7 @@
 //! [`ArtifactStore`] 落盘（README §6 规则 10），交给模型的是位置、原大小与前 2000 个 UTF-16 码元。位置不是
 //! 本机路径，而是 `nibi-artifact://<会话>/<artifact>`（云端也能用，Read 能读）。
 
-use rust_cli_base::js::string::{utf16_len, utf16_prefix};
+use nibi_kernel_base::js::string::{utf16_len, utf16_prefix};
 
 use crate::ids::SessionId;
 use crate::store::{ArtifactPurpose, ArtifactStore, StoreError};

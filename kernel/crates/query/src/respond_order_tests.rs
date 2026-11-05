@@ -3,12 +3,12 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
-use rust_cli_kernel_api::orchestration::{QueryEvent, QueryStop};
-use rust_cli_kernel_api::testing::{FakeTool, RecordingSink, text_response};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::orchestration::{QueryEvent, QueryStop};
+use nibi_kernel_api::testing::{FakeTool, RecordingSink, text_response};
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;

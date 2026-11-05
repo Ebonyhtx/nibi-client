@@ -3,9 +3,9 @@
 //! 前台命令正常结束后认出单纯读文件的命令（`cat`、`nl`、`bat`、`head`、`tail`、`sed -n`、单文件的 `grep` / `rg`），
 //! 从执行环境读一次文件写进 readFileState：内容取文件本身，不取命令输出。已经有记录的文件不覆盖。
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{FileKind, ReadText, TextRead};
-use rust_cli_kernel_api::tool::ToolUseContext;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{FileKind, ReadText, TextRead};
+use nibi_kernel_api::tool::ToolUseContext;
 
 use crate::common::{cwd, resolve_input_stable, stat};
 use crate::file_state::{Baseline, FileState, ReadFileState};
@@ -285,7 +285,7 @@ pub(crate) fn recognize(command: &str) -> Vec<ReadCommand> {
     if command.contains(['|', '<', '>']) {
         return Vec::new();
     }
-    let analysis = rust_cli_policy::analyze(command);
+    let analysis = nibi_kernel_policy::analyze(command);
     if analysis.has_parse_errors || analysis.has_unsupported_syntax || analysis.commands.is_empty()
     {
         return Vec::new();

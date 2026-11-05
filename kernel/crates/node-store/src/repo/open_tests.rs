@@ -309,16 +309,16 @@ fn progress_reports_the_node_sequence() {
 
     // 损坏库：failed 帧带分类码（corrupt），且之前没有 ready。
     let corrupt = b"this is not a database";
-    let options = rust_cli_fs::WriteOptions {
-        mode: rust_cli_fs::FileMode::Default,
-        temp_name: rust_cli_fs::TempName::Hidden,
-        parent: rust_cli_fs::ParentDir::Create,
+    let options = nibi_kernel_fs::WriteOptions {
+        mode: nibi_kernel_fs::FileMode::Default,
+        temp_name: nibi_kernel_fs::TempName::Hidden,
+        parent: nibi_kernel_fs::ParentDir::Create,
         rename_retry: &[],
     };
     tokio::runtime::Builder::new_current_thread()
         .build()
         .unwrap()
-        .block_on(rust_cli_fs::atomic_write(&path, &corrupt[..], options))
+        .block_on(nibi_kernel_fs::atomic_write(&path, &corrupt[..], options))
         .unwrap();
     let error = open_with_progress(&path, Duration::from_millis(300), 7, &report).unwrap_err();
     assert_eq!(error.code, "corrupt");

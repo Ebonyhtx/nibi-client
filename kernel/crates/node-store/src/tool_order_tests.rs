@@ -1,12 +1,12 @@
 //! 工具结果的位置键（docs/specs/rust-cli/node-store.md §4.6，工作线 F81 R2）：结算时记下会话里最后一行，冷读取把
 //! 结果插回那一行之后。
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, StopReason, ToolResultContent,
     UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{Fact, SessionFork, SessionStore};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{Fact, SessionFork, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, selection, started, text, user};

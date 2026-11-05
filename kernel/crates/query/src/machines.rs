@@ -3,11 +3,11 @@
 //! 只在有远端机器连上时加；没有时工具定义逐字节不变。缺省机器：主线程是本机；子代理是派生时 Agent 的 `machine`
 //! （`RunSink::default_machine`），它断开时是一台“没连上”的机器（调用报错，不落回本机）。
 
-use rust_cli_kernel_api::env_registry::{LOCAL_MACHINE, MachineSet};
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::machine_param::{AGENT_TOOL, choices, takes_machine, with_machine};
-use rust_cli_kernel_api::model::ToolDefinition;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::env_registry::{LOCAL_MACHINE, MachineSet};
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::machine_param::{AGENT_TOOL, choices, takes_machine, with_machine};
+use nibi_kernel_api::model::ToolDefinition;
+use nibi_kernel_prompts::texts::{self, render};
 
 use crate::RunScope;
 

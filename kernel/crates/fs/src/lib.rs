@@ -144,7 +144,7 @@ pub async fn atomic_write(path: &Path, bytes: &[u8], options: WriteOptions) -> i
     // flush 才会返回，直接 sync_all 会把它吞掉。
     let staged = {
         let (directory, temp, bytes) = (directory.clone(), temp.clone(), bytes.to_vec());
-        rust_cli_base::blocking(move || {
+        nibi_kernel_base::blocking(move || {
             stage(&directory, &temp, &bytes, options.mode, options.parent)
         })
         .await
@@ -233,7 +233,7 @@ fn retryable(error: &io::Error) -> bool {
 /// 目录 fsync，失败不改变写入结果。Windows 没有对应操作。
 async fn sync_directory(directory: PathBuf) {
     if cfg!(unix) {
-        let _ = rust_cli_base::blocking(move || std::fs::File::open(directory)?.sync_all()).await;
+        let _ = nibi_kernel_base::blocking(move || std::fs::File::open(directory)?.sync_all()).await;
     }
 }
 
@@ -244,7 +244,7 @@ async fn sync_directory(directory: PathBuf) {
 fn temp_name(name: &OsStr, style: TempName) -> OsString {
     // 进程内计数器保证同一进程的并发写互不冲突；RandomState 的随机种子区分 pid 复用后的进程。
     static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let mut hasher = rust_cli_base::random::hasher();
+    let mut hasher = nibi_kernel_base::random::hasher();
     hasher.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -276,7 +276,7 @@ pub async fn create_dir_all(path: &Path) -> io::Result<()> {
 /// 0o700})` 后 `chmod(dir, 0o700)`，信任记录的 `security/`，config.md §4.2）。Windows 上同 [`create_dir_all`]。
 pub async fn create_private_dir_all(path: &Path) -> io::Result<()> {
     let path = path.to_path_buf();
-    rust_cli_base::blocking(move || {
+    nibi_kernel_base::blocking(move || {
         let mut builder = std::fs::DirBuilder::new();
         builder.recursive(true);
         #[cfg(unix)]

@@ -5,8 +5,8 @@ use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Map, Value, json};
@@ -61,13 +61,13 @@ fn with_server(resource: Value, server: &str) -> Value {
 }
 
 fn prompt_schema(name: &str) -> Value {
-    rust_cli_prompts::tool(name)
+    nibi_kernel_prompts::tool(name)
         .map(|prompt| prompt.input_schema.clone())
         .unwrap_or(Value::Null)
 }
 
 fn prompt_description(name: &str) -> String {
-    rust_cli_prompts::tool(name)
+    nibi_kernel_prompts::tool(name)
         .map(|prompt| prompt.description.clone())
         .unwrap_or_default()
 }

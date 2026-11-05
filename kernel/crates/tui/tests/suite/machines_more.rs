@@ -2,7 +2,7 @@
 //! `/machines connect`）与第一次连接的分步，真实的事件循环与机器服务的替身（`machines.rs` 的 `FakeMachines`）。旧代码没有
 //! `r`，`/machines connect` 对重连中的机器回“已经连着”，连接中只写 `connecting`，这些测试都失败。
 use crossterm::event::KeyCode;
-use rust_cli_tui::machines::{ConnectStep, MachineStatus};
+use nibi_kernel_tui::machines::{ConnectStep, MachineStatus};
 
 use super::machines::{FakeMachines, idle, ready, row, setup_with, waiting};
 use super::support::with_ui;

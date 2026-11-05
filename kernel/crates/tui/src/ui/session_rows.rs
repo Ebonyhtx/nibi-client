@@ -1,7 +1,7 @@
 //! ← 项目页与 `/resume` 页共用的会话行（修复线 F29，docs/specs/rust-cli/tui-panels.md §2、tui-manage.md §10）：
 //! 内核快照（`ProjectSession`）到界面行的换算、标题、搜索匹配、时间与路径的写法。只有纯计算。
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::panels::{ProjectSession, SessionActivity};
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::panels::{ProjectSession, SessionActivity};
 use unicode_width::UnicodeWidthStr;
 
 use super::i18n::Lang;
@@ -80,10 +80,10 @@ pub fn user_text(message: &Message) -> Option<String> {
     let text = texts.join("\n");
     // 用户调用 skill 的输入：放回输入框的是用户输入的样子（`/<名字> <参数>`，ext.md §2.7）；bash 模式的输入
     // 放回成 `!命令`，输入框据此回到 bash 模式（tui-input.md §2.1）。
-    if let Some(command) = rust_cli_kernel_api::user_input::display(&text) {
+    if let Some(command) = nibi_kernel_api::user_input::display(&text) {
         return Some(format!("!{}", command.trim_start_matches("! ")));
     }
-    Some(rust_cli_kernel_api::user_command::display(&text).unwrap_or(text))
+    Some(nibi_kernel_api::user_command::display(&text).unwrap_or(text))
 }
 
 /// 相对时间（Codex `format_relative_time`）：`now`、`42s ago`、`35m ago`、`2h ago`、`1d ago`。
@@ -127,7 +127,7 @@ pub fn timestamp(at_ms: u64, offset_minutes: i32) -> String {
     let seconds = (local / 1000) % 86_400;
     format!(
         "{} {:02}:{:02}:{:02}",
-        rust_cli_kernel_api::clock::civil_date(local),
+        nibi_kernel_api::clock::civil_date(local),
         seconds / 3600,
         seconds / 60 % 60,
         seconds % 60

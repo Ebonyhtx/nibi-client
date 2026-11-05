@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::mcp_ui::{McpAppInstance, McpUiError, McpUiEvent, visible_to_app};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp_ui::{McpAppInstance, McpUiError, McpUiEvent, visible_to_app};
 use serde_json::json;
 
 use super::*;
@@ -122,7 +122,7 @@ async fn the_app_connection_tracks_identity_and_generation() {
 
     // 换工作区也换身份。
     let mut elsewhere = workspace();
-    elsewhere.root = rust_cli_kernel_api::env::EnvPath::new("/Users/dev/other");
+    elsewhere.root = nibi_kernel_api::env::EnvPath::new("/Users/dev/other");
     manager.reconcile(elsewhere, vec![stdio("files")]);
     manager.wait_ready().await;
     assert_ne!(

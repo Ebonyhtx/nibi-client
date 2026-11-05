@@ -75,7 +75,7 @@ fn http_url(url: &str) -> Result<String, WsError> {
 fn random_bytes<const N: usize>() -> [u8; N] {
     let mut bytes = [0_u8; N];
     for chunk in bytes.chunks_mut(8) {
-        let value = rust_cli_base::random::u64().to_le_bytes();
+        let value = nibi_kernel_base::random::u64().to_le_bytes();
         chunk.copy_from_slice(&value[..chunk.len()]);
     }
     bytes

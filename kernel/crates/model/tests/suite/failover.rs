@@ -9,13 +9,13 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::{
     ModelError, ModelNotice, ModelPort, ModelSelection, ModelStreamItem, QuerySource,
 };
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, ModelEndpoints, WireProtocol};
-use rust_cli_model::ProviderModel;
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, ModelEndpoints, WireProtocol};
+use nibi_kernel_model::ProviderModel;
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

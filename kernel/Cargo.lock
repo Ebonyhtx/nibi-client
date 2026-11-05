@@ -1555,6 +1555,703 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "743fb55ba31b18fb1ecef6bdc9aa2743314978ac084044301a7eee33fb99a20d"
 
 [[package]]
+name = "nibi-kernel-agents"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-prompts",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-api"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "icu_normalizer",
+ "nibi-kernel-base",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "nibi-kernel-base"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "nibi-kernel-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.23.1",
+ "bytes",
+ "flate2",
+ "futures-util",
+ "libc",
+ "mimalloc",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-context",
+ "nibi-kernel-env-local",
+ "nibi-kernel-env-remote",
+ "nibi-kernel-exec-client",
+ "nibi-kernel-exec-server",
+ "nibi-kernel-exec-transport",
+ "nibi-kernel-exec-wire",
+ "nibi-kernel-executor-host",
+ "nibi-kernel-ext",
+ "nibi-kernel-fs",
+ "nibi-kernel-headless",
+ "nibi-kernel-hooks",
+ "nibi-kernel-machines",
+ "nibi-kernel-memory",
+ "nibi-kernel-model",
+ "nibi-kernel-net",
+ "nibi-kernel-node-store",
+ "nibi-kernel-paths",
+ "nibi-kernel-peers",
+ "nibi-kernel-platform",
+ "nibi-kernel-policy",
+ "nibi-kernel-proc",
+ "nibi-kernel-prompts",
+ "nibi-kernel-protocol-core",
+ "nibi-kernel-protocol-nibi",
+ "nibi-kernel-query",
+ "nibi-kernel-runtime",
+ "nibi-kernel-ssh-connect",
+ "nibi-kernel-tools",
+ "nibi-kernel-tui",
+ "nibi-kernel-vendor-bfs",
+ "nibi-kernel-vendor-rg",
+ "nibi-kernel-vendor-ugrep",
+ "nibi-platform",
+ "rcgen",
+ "rustls",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nibi-kernel-compact"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "nibi-kernel-api",
+ "nibi-kernel-prompts",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "unicode-width",
+]
+
+[[package]]
+name = "nibi-kernel-context"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-memory",
+ "nibi-kernel-prompts",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-env-local"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "grep-matcher",
+ "grep-regex",
+ "grep-searcher",
+ "ignore",
+ "libc",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-fs",
+ "nibi-kernel-net",
+ "nibi-kernel-proc",
+ "notify",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nibi-kernel-env-remote"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-exec-client",
+ "nibi-kernel-exec-wire",
+ "nibi-kernel-prompts",
+ "serde_json",
+]
+
+[[package]]
+name = "nibi-kernel-exec-client"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "nibi-kernel-base",
+ "nibi-kernel-exec-transport",
+ "nibi-kernel-exec-wire",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-exec-server"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-exec-transport",
+ "nibi-kernel-exec-wire",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-exec-transport"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "nibi-kernel-base",
+ "nibi-kernel-proc",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-exec-wire"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "nibi-kernel-base",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "nibi-kernel-executor-host"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.23.1",
+ "bytes",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-env-local",
+ "nibi-kernel-env-remote",
+ "nibi-kernel-exec-client",
+ "nibi-kernel-exec-server",
+ "nibi-kernel-exec-transport",
+ "nibi-kernel-exec-wire",
+ "nibi-kernel-fs",
+ "nibi-kernel-net",
+ "nibi-kernel-paths",
+ "nibi-kernel-proc",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-ext"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-policy",
+ "nibi-kernel-prompts",
+ "nibi-platform",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-fs"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "nibi-kernel-base",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nibi-kernel-headless"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-runtime",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "nibi-kernel-hooks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-platform",
+ "nibi-kernel-prompts",
+ "regress",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-machines"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "nibi-kernel-base",
+ "nibi-kernel-exec-client",
+ "nibi-kernel-exec-transport",
+ "nibi-kernel-exec-wire",
+ "nibi-kernel-fs",
+ "nibi-kernel-paths",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-memory"
+version = "0.1.0"
+dependencies = [
+ "nibi-kernel-api",
+ "tokio",
+]
+
+[[package]]
+name = "nibi-kernel-model"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-net",
+ "regress",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-net"
+version = "0.1.0"
+dependencies = [
+ "arc-swap",
+ "base64 0.23.1",
+ "bytes",
+ "httpdate",
+ "nibi-kernel-base",
+ "rcgen",
+ "reqwest",
+ "rustls",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "webpki-root-certs",
+]
+
+[[package]]
+name = "nibi-kernel-node-store"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-fs",
+ "nibi-kernel-paths",
+ "rusqlite",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "nibi-kernel-paths"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "nibi-kernel-base",
+]
+
+[[package]]
+name = "nibi-kernel-peers"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-fs",
+ "nibi-kernel-net",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-platform"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.23.1",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-fs",
+ "nibi-kernel-net",
+ "nibi-kernel-paths",
+ "regress",
+ "ring",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "nibi-kernel-policy"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
+name = "nibi-kernel-proc"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures-util",
+ "libc",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nibi-kernel-prompts"
+version = "0.1.0"
+dependencies = [
+ "nibi-kernel-base",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "nibi-kernel-protocol-core"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-protocol-nibi"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.23.1",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-net",
+ "nibi-kernel-platform",
+ "nibi-kernel-protocol-core",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-query"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-prompts",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-runtime"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "base64 0.23.1",
+ "futures-util",
+ "nibi-kernel-agents",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-compact",
+ "nibi-kernel-context",
+ "nibi-kernel-env-local",
+ "nibi-kernel-ext",
+ "nibi-kernel-fs",
+ "nibi-kernel-hooks",
+ "nibi-kernel-policy",
+ "nibi-kernel-prompts",
+ "nibi-kernel-query",
+ "nibi-kernel-session",
+ "nibi-kernel-tools",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-session"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-prompts",
+ "nibi-kernel-query",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-ssh-connect"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "nibi-kernel-base",
+ "nibi-kernel-exec-transport",
+ "nibi-kernel-fs",
+ "nibi-kernel-proc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "nibi-kernel-tools"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-policy",
+ "nibi-kernel-prompts",
+ "regex",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "unicode-width",
+ "url",
+]
+
+[[package]]
+name = "nibi-kernel-tui"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.23.1",
+ "crossterm",
+ "futures-util",
+ "nibi-kernel-api",
+ "nibi-kernel-base",
+ "nibi-kernel-platform",
+ "nibi-kernel-prompts",
+ "nibi-kernel-runtime",
+ "pulldown-cmark",
+ "ratatui",
+ "rustix",
+ "serde",
+ "serde_json",
+ "syntect",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "two-face",
+ "unicode-segmentation",
+ "unicode-width",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "nibi-kernel-vendor-bfs"
+version = "4.1.4"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
+name = "nibi-kernel-vendor-rg"
+version = "15.2.0"
+dependencies = [
+ "anyhow",
+ "bstr",
+ "grep",
+ "ignore",
+ "lexopt",
+ "log",
+ "serde_json",
+ "termcolor",
+ "textwrap",
+]
+
+[[package]]
+name = "nibi-kernel-vendor-ugrep"
+version = "7.8.4"
+dependencies = [
+ "bzip2-sys",
+ "cc",
+ "libc",
+ "libz-sys",
+ "pcre2-sys",
+ "zstd-sys",
+]
+
+[[package]]
 name = "nibi-platform"
 version = "0.1.0"
 dependencies = [
@@ -2223,703 +2920,6 @@ dependencies = [
  "hashlink",
  "libsqlite3-sys",
  "smallvec",
-]
-
-[[package]]
-name = "rust-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.23.1",
- "bytes",
- "flate2",
- "futures-util",
- "libc",
- "mimalloc",
- "nibi-platform",
- "rcgen",
- "rust-cli-base",
- "rust-cli-context",
- "rust-cli-env-local",
- "rust-cli-env-remote",
- "rust-cli-exec-client",
- "rust-cli-exec-server",
- "rust-cli-exec-transport",
- "rust-cli-exec-wire",
- "rust-cli-executor-host",
- "rust-cli-ext",
- "rust-cli-fs",
- "rust-cli-headless",
- "rust-cli-hooks",
- "rust-cli-kernel-api",
- "rust-cli-machines",
- "rust-cli-memory",
- "rust-cli-model",
- "rust-cli-net",
- "rust-cli-node-store",
- "rust-cli-paths",
- "rust-cli-peers",
- "rust-cli-platform",
- "rust-cli-policy",
- "rust-cli-proc",
- "rust-cli-prompts",
- "rust-cli-protocol-core",
- "rust-cli-protocol-nibi",
- "rust-cli-query",
- "rust-cli-runtime",
- "rust-cli-ssh-connect",
- "rust-cli-tools",
- "rust-cli-tui",
- "rust-cli-vendor-bfs",
- "rust-cli-vendor-rg",
- "rust-cli-vendor-ugrep",
- "rustls",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "rust-cli-agents"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-prompts",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-base"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "regex",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "url",
-]
-
-[[package]]
-name = "rust-cli-compact"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rust-cli-kernel-api",
- "rust-cli-prompts",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "unicode-width",
-]
-
-[[package]]
-name = "rust-cli-context"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "regex",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-memory",
- "rust-cli-prompts",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-env-local"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "grep-matcher",
- "grep-regex",
- "grep-searcher",
- "ignore",
- "libc",
- "notify",
- "rust-cli-base",
- "rust-cli-fs",
- "rust-cli-kernel-api",
- "rust-cli-net",
- "rust-cli-proc",
- "serde_json",
- "tempfile",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "rust-cli-env-remote"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "rust-cli-exec-client",
- "rust-cli-exec-wire",
- "rust-cli-kernel-api",
- "rust-cli-prompts",
- "serde_json",
-]
-
-[[package]]
-name = "rust-cli-exec-client"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "futures-util",
- "rust-cli-base",
- "rust-cli-exec-transport",
- "rust-cli-exec-wire",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-exec-server"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "futures-util",
- "rust-cli-base",
- "rust-cli-exec-transport",
- "rust-cli-exec-wire",
- "rust-cli-kernel-api",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-exec-transport"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "rust-cli-base",
- "rust-cli-proc",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-exec-wire"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "rust-cli-base",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "rust-cli-executor-host"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.23.1",
- "bytes",
- "futures-util",
- "rust-cli-base",
- "rust-cli-env-local",
- "rust-cli-env-remote",
- "rust-cli-exec-client",
- "rust-cli-exec-server",
- "rust-cli-exec-transport",
- "rust-cli-exec-wire",
- "rust-cli-fs",
- "rust-cli-kernel-api",
- "rust-cli-net",
- "rust-cli-paths",
- "rust-cli-proc",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-ext"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "nibi-platform",
- "regex",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-policy",
- "rust-cli-prompts",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-fs"
-version = "0.1.0"
-dependencies = [
- "libc",
- "rust-cli-base",
- "serde_json",
- "tempfile",
- "tokio",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "rust-cli-headless"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures-util",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-runtime",
- "serde_json",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
-name = "rust-cli-hooks"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "regress",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-platform",
- "rust-cli-prompts",
- "serde_json",
- "sha2",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-kernel-api"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "icu_normalizer",
- "rust-cli-base",
- "serde",
- "serde_json",
- "sha2",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "url",
-]
-
-[[package]]
-name = "rust-cli-machines"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "rust-cli-base",
- "rust-cli-exec-client",
- "rust-cli-exec-transport",
- "rust-cli-exec-wire",
- "rust-cli-fs",
- "rust-cli-paths",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-memory"
-version = "0.1.0"
-dependencies = [
- "rust-cli-kernel-api",
- "tokio",
-]
-
-[[package]]
-name = "rust-cli-model"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "regress",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-net",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-net"
-version = "0.1.0"
-dependencies = [
- "arc-swap",
- "base64 0.23.1",
- "bytes",
- "httpdate",
- "rcgen",
- "reqwest",
- "rust-cli-base",
- "rustls",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
- "webpki-root-certs",
-]
-
-[[package]]
-name = "rust-cli-node-store"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "rusqlite",
- "rust-cli-base",
- "rust-cli-fs",
- "rust-cli-kernel-api",
- "rust-cli-paths",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "rust-cli-paths"
-version = "0.1.0"
-dependencies = [
- "libc",
- "rust-cli-base",
-]
-
-[[package]]
-name = "rust-cli-peers"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "rust-cli-base",
- "rust-cli-fs",
- "rust-cli-kernel-api",
- "rust-cli-net",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-platform"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.23.1",
- "futures-util",
- "regress",
- "ring",
- "rust-cli-base",
- "rust-cli-fs",
- "rust-cli-kernel-api",
- "rust-cli-net",
- "rust-cli-paths",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tokio-util",
- "tracing",
- "url",
-]
-
-[[package]]
-name = "rust-cli-policy"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "regex",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "url",
-]
-
-[[package]]
-name = "rust-cli-proc"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures-util",
- "libc",
- "tempfile",
- "tokio",
- "tracing",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "rust-cli-prompts"
-version = "0.1.0"
-dependencies = [
- "rust-cli-base",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "rust-cli-protocol-core"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "regex",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-protocol-nibi"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.23.1",
- "futures-util",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-net",
- "rust-cli-platform",
- "rust-cli-protocol-core",
- "serde",
- "serde_json",
- "sha2",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-query"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-prompts",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-runtime"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "base64 0.23.1",
- "futures-util",
- "rust-cli-agents",
- "rust-cli-base",
- "rust-cli-compact",
- "rust-cli-context",
- "rust-cli-env-local",
- "rust-cli-ext",
- "rust-cli-fs",
- "rust-cli-hooks",
- "rust-cli-kernel-api",
- "rust-cli-policy",
- "rust-cli-prompts",
- "rust-cli-query",
- "rust-cli-session",
- "rust-cli-tools",
- "serde_json",
- "tempfile",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-session"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-prompts",
- "rust-cli-query",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-ssh-connect"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "rust-cli-base",
- "rust-cli-exec-transport",
- "rust-cli-fs",
- "rust-cli-proc",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tracing",
-]
-
-[[package]]
-name = "rust-cli-tools"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures-util",
- "regex",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-policy",
- "rust-cli-prompts",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
- "unicode-width",
- "url",
-]
-
-[[package]]
-name = "rust-cli-tui"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.23.1",
- "crossterm",
- "futures-util",
- "pulldown-cmark",
- "ratatui",
- "rust-cli-base",
- "rust-cli-kernel-api",
- "rust-cli-platform",
- "rust-cli-prompts",
- "rust-cli-runtime",
- "rustix",
- "serde",
- "serde_json",
- "syntect",
- "tokio",
- "tokio-util",
- "tracing",
- "two-face",
- "unicode-segmentation",
- "unicode-width",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "rust-cli-vendor-bfs"
-version = "4.1.4"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
-name = "rust-cli-vendor-rg"
-version = "15.2.0"
-dependencies = [
- "anyhow",
- "bstr",
- "grep",
- "ignore",
- "lexopt",
- "log",
- "serde_json",
- "termcolor",
- "textwrap",
-]
-
-[[package]]
-name = "rust-cli-vendor-ugrep"
-version = "7.8.4"
-dependencies = [
- "bzip2-sys",
- "cc",
- "libc",
- "libz-sys",
- "pcre2-sys",
- "zstd-sys",
 ]
 
 [[package]]

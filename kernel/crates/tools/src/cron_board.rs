@@ -10,10 +10,10 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::cron::{CronFire, CronFireKind, CronSignals};
-use rust_cli_kernel_api::cron_store::{CronStore, StoredCronTask};
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::cron::{CronFire, CronFireKind, CronSignals};
+use nibi_kernel_api::cron_store::{CronStore, StoredCronTask};
+use nibi_kernel_api::ids::SessionId;
 use tokio::sync::watch;
 
 use crate::cron_expr::{self, RECURRING_MAX_AGE_MS};

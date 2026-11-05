@@ -8,9 +8,9 @@ use std::collections::{HashMap, VecDeque};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::env::{EnvError, WritePrecondition};
-use rust_cli_kernel_api::env_files::{FileWritten, PutFile};
-use rust_cli_kernel_api::ids::OperationId;
+use nibi_kernel_api::env::{EnvError, WritePrecondition};
+use nibi_kernel_api::env_files::{FileWritten, PutFile};
+use nibi_kernel_api::ids::OperationId;
 
 const CAPACITY: usize = 1024;
 

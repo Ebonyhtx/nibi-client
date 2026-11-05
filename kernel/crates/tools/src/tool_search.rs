@@ -14,17 +14,17 @@ use std::sync::{Arc, OnceLock, Weak};
 
 use async_trait::async_trait;
 use regex::Regex;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::mcp_state::McpConnections;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{ContextRequest, OrchestrationError, ToolRegistry};
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::mcp_state::McpConnections;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{ContextRequest, OrchestrationError, ToolRegistry};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
-use rust_cli_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred};
-use rust_cli_prompts::models::ToolSearchSetting;
+use nibi_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred};
+use nibi_kernel_prompts::models::ToolSearchSetting;
 use serde_json::Value;
 use tokio::sync::mpsc;
 

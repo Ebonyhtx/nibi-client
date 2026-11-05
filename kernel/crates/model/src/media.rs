@@ -6,9 +6,9 @@
 //! document 块（Read 整读 PDF 的结果，修复线 F24：在支持 PDF 的模型上读过、之后换了模型）。只改这次请求：会话历史
 //! 不变，换回支持的模型后照常发送。三种协议共用，在按协议编码之前调用（transport 的 `resolve`；工作线 F93 删掉计数请求之前 count_tokens 另调一次）。
 
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
-use rust_cli_kernel_api::model::ApiMessage;
-use rust_cli_kernel_api::provider::ModelEndpoint;
+use nibi_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
+use nibi_kernel_api::model::ApiMessage;
+use nibi_kernel_api::provider::ModelEndpoint;
 
 /// Node 的占位文字：`[Attached <mime>]` 加一行说明；`kind` 是 Node 的 `image input` / `PDF input`。
 fn placeholder(source: &ImageSource, kind: &str) -> String {
@@ -62,12 +62,12 @@ pub(crate) fn project(messages: &mut [ApiMessage], endpoint: &ModelEndpoint) {
 
 #[cfg(test)]
 mod tests {
-    use rust_cli_base::secret::RedactedString;
-    use rust_cli_kernel_api::ids::ToolUseId;
-    use rust_cli_kernel_api::model::{
+    use nibi_kernel_base::secret::RedactedString;
+    use nibi_kernel_api::ids::ToolUseId;
+    use nibi_kernel_api::model::{
         ApiContent, ApiRole, ModelRequest, ModelSelection, QuerySource, RequestOptions,
     };
-    use rust_cli_kernel_api::provider::{Credential, WireProtocol};
+    use nibi_kernel_api::provider::{Credential, WireProtocol};
 
     use super::*;
 

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use base64::Engine;
 use bytes::Bytes;
-use rust_cli_exec_server::CallKey;
+use nibi_kernel_exec_server::CallKey;
 use serde::{Deserialize, Serialize};
 
 /// 一条记录。

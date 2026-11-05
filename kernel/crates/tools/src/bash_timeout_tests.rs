@@ -1,7 +1,7 @@
 //! 前台命令超时转到后台（docs/specs/rust-cli/shell-permissions.md §1.2.1）：哪些命令请执行环境转、转后台之后的期限、
 //! 结果的原文。
 
-use rust_cli_kernel_api::env_shell::{BackgroundCommand, TimeoutBackground};
+use nibi_kernel_api::env_shell::{BackgroundCommand, TimeoutBackground};
 
 use super::*;
 

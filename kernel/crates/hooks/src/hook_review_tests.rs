@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::project_config::{ProjectFile, ProjectKind};
-use rust_cli_platform::ConfigFile;
+use nibi_kernel_platform::ConfigFile;
 use serde_json::json;
 
 fn project_file(path: &str, order: usize, hooks: serde_json::Value) -> ProjectFile {

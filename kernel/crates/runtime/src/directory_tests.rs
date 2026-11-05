@@ -1,12 +1,12 @@
 //! `/cd` 的路径检查与换目录（tui-manage.md §7）。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{CreateSession, Kernel};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvFacts, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{CreateSession, Kernel};
+use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection,
 };
@@ -58,7 +58,7 @@ fn workspace() -> WorkspaceRef {
     }
 }
 
-fn request(path: &str, session: Option<rust_cli_kernel_api::ids::SessionId>) -> ChangeDirectory {
+fn request(path: &str, session: Option<nibi_kernel_api::ids::SessionId>) -> ChangeDirectory {
     ChangeDirectory {
         workspace: workspace(),
         session,
@@ -235,7 +235,7 @@ fn metas(messages: &[Message]) -> Vec<(String, String)> {
 /// 不加固定说明；失败与已在这里加固定说明，路径是粗体。
 #[tokio::test]
 async fn the_session_records_each_cd_like_the_reference() {
-    use rust_cli_kernel_api::user_command::{
+    use nibi_kernel_api::user_command::{
         LOCAL_COMMAND_CAVEAT_SOURCE, LOCAL_COMMAND_INPUT_SOURCE, LOCAL_COMMAND_OUTPUT_SOURCE,
     };
     let (kernel, _env) = kernel();
@@ -288,9 +288,9 @@ async fn the_session_records_each_cd_like_the_reference() {
 /// `/plan open` 的计划文件（tui-manage.md §8）：与 ExitPlanMode 同一个位置，空文件不算有计划。
 #[tokio::test]
 async fn the_plan_file_is_the_node_location() {
-    use rust_cli_kernel_api::manage::PlanFileQuery;
+    use nibi_kernel_api::manage::PlanFileQuery;
     let (kernel, env) = kernel();
-    let session = rust_cli_kernel_api::ids::SessionId::new("ses_1");
+    let session = nibi_kernel_api::ids::SessionId::new("ses_1");
     let query = PlanFileQuery {
         workspace: workspace(),
         session: session.clone(),

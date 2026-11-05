@@ -7,15 +7,15 @@
 use std::sync::Arc;
 
 use anyhow::{Result, bail};
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{CommandId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::{CommandId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, CreateSession, EndReason, Kernel, KernelError, SessionHandle,
     StartSource,
 };
-use rust_cli_kernel_api::store::SessionFilter;
+use nibi_kernel_api::store::SessionFilter;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite};
 use tokio_util::sync::CancellationToken;
 

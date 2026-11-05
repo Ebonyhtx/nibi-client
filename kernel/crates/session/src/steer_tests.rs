@@ -58,7 +58,7 @@ async fn a_slash_command_is_not_absorbed_mid_turn() {
     let messages = session.view().await.unwrap().messages;
     assert!(messages.iter().any(|message| matches!(
         message,
-        Message::User(user) if user.origin == rust_cli_kernel_api::message::UserOrigin::Human
+        Message::User(user) if user.origin == nibi_kernel_api::message::UserOrigin::Human
             && format!("{:?}", user.content).contains("/greet Ada")
     )));
 }
@@ -67,9 +67,9 @@ mod user_prompt_submit {
     //! 插话在并入点跑 UserPromptSubmit（query.md §4.1）：并入时 hook 消息跟在 `queued_command` 之后；
     //! 阻塞的丢弃；`prevent_continuation` 的留到回合结束后，作为独立回合且不再跑 hook。
 
-    use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome};
-    use rust_cli_kernel_api::ids::MessageId;
-    use rust_cli_kernel_api::message::AttachmentMessage;
+    use nibi_kernel_api::hooks::{HookEventName, HookOutcome};
+    use nibi_kernel_api::ids::MessageId;
+    use nibi_kernel_api::message::AttachmentMessage;
 
     use super::*;
     use crate::test_support::ScriptedHooks;
@@ -156,7 +156,7 @@ mod user_prompt_submit {
             .iter()
             .position(|event| {
                 matches!(event, KernelEvent::SystemNotice { level, text }
-                    if *level == rust_cli_kernel_api::session_api::NoticeLevel::Warning && text == warning)
+                    if *level == nibi_kernel_api::session_api::NoticeLevel::Warning && text == warning)
             })
             .expect("a warning for the blocked steer");
         let reply = seen

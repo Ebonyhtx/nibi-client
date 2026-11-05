@@ -1,7 +1,7 @@
 //! `/fork` 的选择器（docs/specs/rust-cli/session-lifecycle.md §6.5.3，工作线 F75）：列出会话里可选的用户输入
 //! （与 `/rewind` 同一份，内核给出），每条一行、带序号，旧的在上、焦点在最新的一条；选中即分叉，没有第二步。
 //! 选择器与分叉后的提示都随界面语言（工作线 F78）。
-use rust_cli_kernel_api::ids::MessageId;
+use nibi_kernel_api::ids::MessageId;
 use serde_json::Value;
 
 use super::app::{Action, App, Overlay};

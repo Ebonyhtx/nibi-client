@@ -11,12 +11,12 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use futures_util::FutureExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_model::{DeviceIdSource, FixedEndpoint, ProviderModel};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_model::{DeviceIdSource, FixedEndpoint, ProviderModel};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 
 use super::common::{clock, collect, fast_retry, request, text_response};
@@ -184,7 +184,7 @@ async fn an_explicit_user_id_wins_and_no_source_writes_nothing() {
     assert_eq!(bodies[1].get("metadata"), None);
 }
 
-fn request_with_session() -> rust_cli_kernel_api::model::ModelRequest {
+fn request_with_session() -> nibi_kernel_api::model::ModelRequest {
     let mut request = request("hi", QuerySource::Side("title".to_owned()));
     request.options.session_id = Some(SessionId::new(SESSION));
     request

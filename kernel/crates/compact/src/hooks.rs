@@ -1,7 +1,7 @@
 //! 压缩的 PreCompact / PostCompact hooks（docs/specs/rust-cli/hooks.md §7、compact.md §7）。
 
-use rust_cli_kernel_api::message::{CompactTrigger, Message};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::{CompactTrigger, Message};
+use nibi_kernel_api::orchestration::{
     CompactRequest, HookContext, HookEvent, HookEventName, HookRunner,
 };
 use serde_json::json;

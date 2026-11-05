@@ -1,8 +1,8 @@
 //! 完整消息的折叠（docs/specs/rust-cli/tui.md §4.2）：`MessageDone` 与冷加载的消息；assistant 消息替换
 //! 流式的响应段。
-use rust_cli_kernel_api::goal;
-use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
-use rust_cli_kernel_api::{user_command, user_input};
+use nibi_kernel_api::goal;
+use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
+use nibi_kernel_api::{user_command, user_input};
 use serde_json::Value;
 
 use super::result_text;
@@ -36,14 +36,14 @@ fn peer_row(text: &str) -> Option<PeerRow> {
     }
     let body = PEER_HEADS.iter().find_map(|head| text.strip_prefix(head))?;
     let end = body.find("\n</cross-session-message>")? + "\n</cross-session-message>".len();
-    let envelope = rust_cli_kernel_api::peers::parse_envelope(&body[..end])?;
+    let envelope = nibi_kernel_api::peers::parse_envelope(&body[..end])?;
     // 名字：`from-name`，没有时是 socket 文件名，再没有时是 `peer`。
     let name = envelope
         .from_name
         .clone()
         .or_else(|| {
             let from = envelope.from.as_deref()?;
-            let socket = rust_cli_kernel_api::peers::PeerAddress::parse(from)?.socket();
+            let socket = nibi_kernel_api::peers::PeerAddress::parse(from)?.socket();
             let file = socket
                 .rsplit(['/', '\\'])
                 .next()?

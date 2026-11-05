@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-agents"
-description = "Subagents, background agents, task notifications and task lists of rust-cli"
+name = "nibi-kernel-agents"
+description = "Subagents, background agents, task notifications and task lists of nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -20,9 +20,9 @@ parity = []
 [dependencies]
 async-trait.workspace = true
 futures-util.workspace = true
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
-rust-cli-prompts.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
+nibi-kernel-prompts.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros", "sync"] }
@@ -30,5 +30,5 @@ tokio-util.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-rust-cli-kernel-api = { workspace = true, features = ["testing"] }
+nibi-kernel-api = { workspace = true, features = ["testing"] }
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "time"] }

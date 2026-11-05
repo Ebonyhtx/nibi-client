@@ -7,8 +7,8 @@
 //! 外层按模式改写询问：dontAsk 拒绝；auto（与开启自动语义的 plan）先走 acceptEdits 快速放行
 //! （只在 auto），再交给分类器；没有人能回答时（`avoid_prompts`）询问直接按拒绝处理。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::{
     PermissionDecision, PermissionMode, PermissionRule, RuleBehavior,
 };
 use serde_json::Value;

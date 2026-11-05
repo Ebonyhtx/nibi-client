@@ -8,9 +8,9 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::{McpView, servers_for_tool};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::{McpView, servers_for_tool};
+use nibi_kernel_api::tool::Tool;
 use tokio_util::sync::CancellationToken;
 
 use crate::RunScope;

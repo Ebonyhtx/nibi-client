@@ -3,8 +3,8 @@
 
 use std::time::Duration;
 
-use rust_cli_kernel_api::model::{ModelError, ModelNotice};
-use rust_cli_net::retry::jitter;
+use nibi_kernel_api::model::{ModelError, ModelNotice};
+use nibi_kernel_net::retry::jitter;
 
 use super::{
     Connect, FailurePlan, MAX_OVERLOADED_BEFORE_FALLBACK, REPEATED_OVERLOAD, RetryPlan, millis,

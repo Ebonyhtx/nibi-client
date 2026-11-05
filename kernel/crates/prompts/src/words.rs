@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 use serde::Deserialize;
 
 /// 形容词、动词、名词三张表（按这个顺序拼成 `形容词-动词-名词`）。

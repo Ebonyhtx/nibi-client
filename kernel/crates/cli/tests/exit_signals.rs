@@ -28,7 +28,7 @@ fn wait_for(what: &str, mut check: impl FnMut() -> bool) {
 }
 
 fn kill(signal: &str, pid: u32) -> bool {
-    rust_cli_proc::std_command("kill")
+    nibi_kernel_proc::std_command("kill")
         .args([format!("-{signal}"), pid.to_string()])
         .stderr(Stdio::null())
         .status()
@@ -68,7 +68,7 @@ fn run_and_signal(signal: &str) -> Option<i32> {
         sse::tools_reply(&[sse::tool_block(0, "toolu_sleep", "Bash", &bash)]),
         sse::text_reply("done"),
     ]);
-    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let mut child = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()
@@ -149,7 +149,7 @@ fn signal_during_the_prompt_hook(signal: &str) -> (Option<i32>, String) {
     ]}]}}});
     std::fs::write(home.join(".nibi/cli/config.json"), config.to_string()).unwrap();
     let fixture = sse::serve(vec![sse::text_reply("never sent")]);
-    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let mut child = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "gap prompt", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()
@@ -193,24 +193,24 @@ fn signal_during_the_prompt_hook(signal: &str) -> (Option<i32>, String) {
 
 /// 库里（Node 的 db.sqlite，经 NodeStore 冷读取）这个工作区唯一会话的消息（JSON）；没有会话时为空。
 fn stored_messages(home: &std::path::Path, work: &std::path::Path) -> String {
-    use rust_cli_kernel_api::store::SessionStore;
-    let paths = rust_cli_paths::StoragePaths::resolve(
-        &rust_cli_paths::StorageSettings::default(),
+    use nibi_kernel_api::store::SessionStore;
+    let paths = nibi_kernel_paths::StoragePaths::resolve(
+        &nibi_kernel_paths::StorageSettings::default(),
         home,
         work,
     );
-    let ids = rust_cli_node_store::NodeIds::new(std::sync::Arc::new(
-        rust_cli_node_store::SystemClock::utc(),
+    let ids = nibi_kernel_node_store::NodeIds::new(std::sync::Arc::new(
+        nibi_kernel_node_store::SystemClock::utc(),
     ));
-    let store = rust_cli_node_store::NodeStore::new(paths, std::sync::Arc::new(ids));
+    let store = nibi_kernel_node_store::NodeStore::new(paths, std::sync::Arc::new(ids));
     let runtime = tokio::runtime::Builder::new_current_thread()
         .build()
         .unwrap();
     runtime.block_on(async {
-        let filter = rust_cli_kernel_api::store::SessionFilter {
-            workspace: rust_cli_kernel_api::env::WorkspaceRef {
-                environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-                root: rust_cli_kernel_api::env::EnvPath::new(work.to_string_lossy()),
+        let filter = nibi_kernel_api::store::SessionFilter {
+            workspace: nibi_kernel_api::env::WorkspaceRef {
+                environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+                root: nibi_kernel_api::env::EnvPath::new(work.to_string_lossy()),
             },
             limit: 1,
         };
@@ -263,7 +263,7 @@ fn stream_json_and_signal(signal: &str) -> (Option<i32>, String) {
         "Bash",
         &bash,
     )])]);
-    let child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let child = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args([
             "-p",
             "go",

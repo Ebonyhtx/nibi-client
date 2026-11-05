@@ -1,8 +1,8 @@
 // 改写自 apps/zcode-host/crates/tui/src/ui/cells/cells_tests.rs（feat/rs 79b6691c55）：行换成 `view::Row`。
 use std::time::Duration;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::permission::PermissionMode;
 use serde_json::{Value, json};
 
 use super::*;
@@ -134,7 +134,7 @@ fn system_notices_show_every_line() {
     let rows = [row(
         1,
         Body::Notice {
-            level: rust_cli_kernel_api::session_api::NoticeLevel::Warning,
+            level: nibi_kernel_api::session_api::NoticeLevel::Warning,
             text: "UserPromptSubmit operation blocked by hook:\nno\n\nOriginal prompt: also b"
                 .into(),
         },
@@ -246,7 +246,7 @@ fn fire_rows_use_the_fixed_text_in_both_languages() {
     );
     let fire = crate::view::Fire {
         at: "Oct 18 3:04pm".into(),
-        kind: rust_cli_kernel_api::cron::CronFireKind::Task,
+        kind: nibi_kernel_api::cron::CronFireKind::Task,
         fold: None,
     };
     assert_eq!(

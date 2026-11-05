@@ -7,8 +7,8 @@
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rust_cli_exec_wire::dto::env::{EnvMode, EnvVars};
-use rust_cli_kernel_api::env_command::EnvOverrides;
+use nibi_kernel_exec_wire::dto::env::{EnvMode, EnvVars};
+use nibi_kernel_api::env_command::EnvOverrides;
 
 /// 不能改的名字：登录与 shell 的基本变量，以及 env-local 自己设的。
 const PROTECTED: &[&str] = &[

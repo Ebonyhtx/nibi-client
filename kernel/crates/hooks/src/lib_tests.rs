@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::hooks::{HookContext, HookEventName};
-use rust_cli_kernel_api::ids::RunId;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::hooks::{HookContext, HookEventName};
+use nibi_kernel_api::ids::RunId;
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
 use serde_json::{Value, json};
 
 use super::*;
@@ -48,7 +48,7 @@ async fn pre_tool_use_runs_matching_hooks_with_the_input_on_stdin() {
     );
     let (operation, _) = &env.started()[0];
     assert!(
-        matches!(&operation.origin, rust_cli_kernel_api::env::Origin::Agent { run, .. } if run.as_str() == "run_1")
+        matches!(&operation.origin, nibi_kernel_api::env::Origin::Agent { run, .. } if run.as_str() == "run_1")
     );
     // 不匹配的工具不运行。
     pre.payload = json!({"tool_name": "Read", "tool_input": {}, "tool_use_id": "toolu_2"});

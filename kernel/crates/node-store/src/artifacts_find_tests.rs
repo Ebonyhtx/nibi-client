@@ -4,8 +4,8 @@
     clippy::disallowed_methods,
     reason = "测试直接写 Node 命名的产物文件（模拟 Node 进程）"
 )]
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, ArtifactStore};
+use nibi_kernel_api::ids::{ArtifactId, SessionId};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, ArtifactStore};
 
 use crate::tests::TestStore;
 

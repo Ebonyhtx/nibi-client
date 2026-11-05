@@ -9,7 +9,7 @@
 
 // JS `String.prototype.trim`（比 Rust 的空白多 U+FEFF、少 U+0085）：唯一定义在 base（F58：以前这里写了一份
 // `js_trim`，测试核对两种写法逐个 char 相同）。
-use rust_cli_base::js::string::trim as js_trim;
+use nibi_kernel_base::js::string::trim as js_trim;
 
 use crate::ids::ToolUseId;
 use crate::message::{ContentBlock, ToolResultContent};

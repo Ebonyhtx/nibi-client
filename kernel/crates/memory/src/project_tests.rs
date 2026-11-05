@@ -1,6 +1,6 @@
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::project_root;
 

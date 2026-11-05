@@ -15,10 +15,10 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::env::FileVersion;
-use rust_cli_kernel_api::env_registry::LOCAL_MACHINE;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::tool::ReadFileStates;
+use nibi_kernel_api::env::FileVersion;
+use nibi_kernel_api::env_registry::LOCAL_MACHINE;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::tool::ReadFileStates;
 
 const MAX_ENTRIES: usize = 100;
 const MAX_BYTES: usize = 25 * 1024 * 1024;

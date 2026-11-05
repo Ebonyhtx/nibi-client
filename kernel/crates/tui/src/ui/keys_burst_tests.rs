@@ -3,9 +3,9 @@
 use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::Delivery;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::Delivery;
+use nibi_kernel_api::testing::selection;
 
 use super::super::app::{Action, App, Overlay};
 use super::super::composer::InputMode;

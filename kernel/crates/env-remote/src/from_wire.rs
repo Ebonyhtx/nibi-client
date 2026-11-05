@@ -1,27 +1,27 @@
 //! 线上的结果 → kernel-api 的类型（客户端的换算）。字节字段从二进制段取；越界是 `io` 错误。
 
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::command as wc;
-use rust_cli_exec_wire::dto::core as w;
-use rust_cli_exec_wire::dto::files as wf;
-use rust_cli_exec_wire::dto::rewind as wr;
-use rust_cli_exec_wire::dto::shell as ws;
-use rust_cli_exec_wire::envelope::WireError;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::command as wc;
+use nibi_kernel_exec_wire::dto::core as w;
+use nibi_kernel_exec_wire::dto::files as wf;
+use nibi_kernel_exec_wire::dto::rewind as wr;
+use nibi_kernel_exec_wire::dto::shell as ws;
+use nibi_kernel_exec_wire::envelope::WireError;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, FileVersion, Outcome, OutputStream,
 };
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env_files::{
     DirEntry, FileKind, FileStat, FileWritten, GlobMatches, GrepCount, GrepFileHit, GrepFileLines,
     GrepLine, GrepLineKind, GrepOutcome, GrepSubmatch, PathFacts, PathStyle, TextRead, TextSlice,
 };
-use rust_cli_kernel_api::env_pdf::PdfRender;
-use rust_cli_kernel_api::env_rewind::{
+use nibi_kernel_api::env_pdf::PdfRender;
+use nibi_kernel_api::env_rewind::{
     RestoreAction, RestoredFile, RewindConflict, RewindPlan, RewindStatus,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundKind, BackgroundStatus, BackgroundStop, ShellNotice, ShellState,
 };
-use rust_cli_kernel_api::ids::{OperationId, ShellTaskId, ToolUseId};
+use nibi_kernel_api::ids::{OperationId, ShellTaskId, ToolUseId};
 
 /// 线上的错误 → `EnvError`：七种一一对应；协议自己的两种是 `Io`。
 pub(crate) fn error(error: WireError) -> EnvError {
@@ -45,7 +45,7 @@ fn path(path: String) -> EnvPath {
     EnvPath::new(path)
 }
 
-fn bytes(body: &Body, blob: &rust_cli_exec_wire::Blob) -> Result<Vec<u8>, EnvError> {
+fn bytes(body: &Body, blob: &nibi_kernel_exec_wire::Blob) -> Result<Vec<u8>, EnvError> {
     body.to_vec(blob).map_err(error)
 }
 

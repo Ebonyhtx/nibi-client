@@ -1,7 +1,7 @@
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId};
-use rust_cli_kernel_api::message::AttachmentMessage;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, UnusedEnvironment};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::{EnvironmentId, MessageId};
+use nibi_kernel_api::message::AttachmentMessage;
+use nibi_kernel_api::testing::{MemoryEnvironment, UnusedEnvironment};
 
 use super::*;
 

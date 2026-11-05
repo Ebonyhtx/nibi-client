@@ -12,12 +12,12 @@ use std::ffi::{OsString, c_int};
 
 #[cfg(unix)]
 unsafe extern "C" {
-    fn rust_cli_ugrep_main(argc: c_int, argv: *const *const std::ffi::c_char) -> c_int;
+    fn nibi_kernel_ugrep_main(argc: c_int, argv: *const *const std::ffi::c_char) -> c_int;
 }
 
 #[cfg(windows)]
 unsafe extern "C" {
-    fn rust_cli_ugrep_wmain(argc: c_int, wargv: *const *const u16) -> c_int;
+    fn nibi_kernel_ugrep_wmain(argc: c_int, wargv: *const *const u16) -> c_int;
 }
 
 /// 跑 ugrep：`args` 是 argv[0] 之后的参数；argv[0] 换成 `ugrep`（ugrep 按 argv[0] 决定是不是 `ug`，`ug` 会读配置文件）。
@@ -45,7 +45,7 @@ pub fn main(args: impl IntoIterator<Item = OsString>) -> i32 {
         libc::signal(libc::SIGPIPE, libc::SIG_DFL);
     }
     // SAFETY: argv 是 argc 个以 NUL 结尾的字符串加一个空指针，`owned` 在调用期间一直有效；ugrep 不写也不保留它们。
-    unsafe { rust_cli_ugrep_main(argc, argv.as_ptr()) }
+    unsafe { nibi_kernel_ugrep_main(argc, argv.as_ptr()) }
 }
 
 /// Windows：参数按 UTF-16 原文交给 ugrep 的 `wmain`（它自己转成 UTF-8）；argv[0] 换成 `ugrep`。
@@ -61,5 +61,5 @@ pub fn main(args: impl IntoIterator<Item = OsString>) -> i32 {
         return 2;
     };
     // SAFETY: wargv 是 argc 个以 0 结尾的 UTF-16 字符串加一个空指针，`owned` 在调用期间一直有效。
-    unsafe { rust_cli_ugrep_wmain(argc, wargv.as_ptr()) }
+    unsafe { nibi_kernel_ugrep_wmain(argc, wargv.as_ptr()) }
 }

@@ -14,8 +14,8 @@ use std::path::Path;
 use std::process::{Output, Stdio};
 use system_env::KeepSystem as _;
 
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::workspace_trust::TrustKey;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::workspace_trust::TrustKey;
 
 const REPLY: &str = concat!(
     "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"type\":\"message\",",
@@ -59,7 +59,7 @@ fn model_server() -> String {
 }
 
 fn zcode(home: &Path, work: &Path, args: &[&str], server: &str) -> Output {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(args)
         .current_dir(work)
@@ -84,11 +84,11 @@ fn text(bytes: &[u8]) -> String {
 
 /// 这台机器的会话库里，工作区与它的父目录有没有信任记录（与入口相同的存储位置）。
 async fn trusted(home: &Path, work: &Path) -> Option<TrustKey> {
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), home, work);
-    let store = rust_cli_node_store::NodeStore::new(
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), home, work);
+    let store = nibi_kernel_node_store::NodeStore::new(
         paths,
-        std::sync::Arc::new(rust_cli_node_store::NodeIds::new(std::sync::Arc::new(
-            rust_cli_node_store::SystemClock::utc(),
+        std::sync::Arc::new(nibi_kernel_node_store::NodeIds::new(std::sync::Arc::new(
+            nibi_kernel_node_store::SystemClock::utc(),
         ))),
     );
     let keys = [work, work.parent().unwrap()].map(|dir| TrustKey::new(dir.to_string_lossy()));

@@ -2,11 +2,11 @@
 //! 上边线右侧用同色底色标出描述；占位文字写 `@类型`，并写明只读。回到主会话后恢复原样。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::panels::SubagentStatus;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::panels::SubagentStatus;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent};
+use nibi_kernel_api::testing::selection;
 use unicode_width::UnicodeWidthStr;
 
 use super::*;

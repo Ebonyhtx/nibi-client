@@ -7,7 +7,7 @@
 use std::borrow::Cow;
 
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
-use rust_cli_kernel_api::store::{Fact, ForkReceipt, SessionFork, StoreError};
+use nibi_kernel_api::store::{Fact, ForkReceipt, SessionFork, StoreError};
 use serde_json::{Value, json};
 
 use crate::branch::{Branch, select_branch};
@@ -59,7 +59,7 @@ fn parent(conn: &Connection, id: &str) -> Result<Parent, StoreError> {
     .optional()
     .storage()?
     .ok_or_else(|| StoreError::NotFound {
-        session: rust_cli_kernel_api::ids::SessionId::new(id),
+        session: nibi_kernel_api::ids::SessionId::new(id),
     })
 }
 
@@ -167,7 +167,7 @@ pub(crate) fn fork(
     let parent = parent(&tx, fork.parent.as_str())?;
     let created = i64::try_from(fork.created_at_ms).unwrap_or(i64::MAX);
     let title = if parent.title.is_empty() {
-        rust_cli_kernel_api::title::UNTITLED
+        nibi_kernel_api::title::UNTITLED
     } else {
         parent.title.as_str()
     };
@@ -187,7 +187,7 @@ pub(crate) fn fork(
             &format!(
                 "{}-fork-{}",
                 slugify(&parent.slug),
-                rust_cli_base::js::base36(fork.created_at_ms)
+                nibi_kernel_base::js::base36(fork.created_at_ms)
             ),
             120,
         ),
@@ -215,7 +215,7 @@ pub(crate) fn fork(
             selection: fork.selection.clone(),
         },
     )?;
-    let state = rust_cli_kernel_api::permission::ExecutionState::from_parts(fork.mode, fork.plan);
+    let state = nibi_kernel_api::permission::ExecutionState::from_parts(fork.mode, fork.plan);
     facts::apply(&ctx, &Fact::ExecutionChanged { state })?;
     // fork 源分支：只应用 `session.revert`，不按压缩边界截断（Node `forkSourceMessagesForSession`）。
     let records = messages::messages(&tx, fork.parent.as_str()).storage()?;

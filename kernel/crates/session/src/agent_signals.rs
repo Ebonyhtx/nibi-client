@@ -4,9 +4,9 @@
 //! 所以输入、后台命令通知与子代理通知只有一个 owner。两种通知进同一条 next 通道（[`crate::lane`]），
 //! 按到达顺序在工具边界并入或开回合；提交之后才 ack（至少一次，重复的按对话里同文本的消息去掉）。
 
-use rust_cli_kernel_api::agents::{AgentNotice, AgentSignal};
-use rust_cli_kernel_api::ids::ShellTaskId;
-use rust_cli_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::agents::{AgentNotice, AgentSignal};
+use nibi_kernel_api::ids::ShellTaskId;
+use nibi_kernel_api::session_api::KernelEvent;
 
 use crate::actor::Actor;
 use crate::lane::Waiting;

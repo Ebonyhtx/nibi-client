@@ -1,6 +1,6 @@
 //! Read 的检查与格式化：二进制 / 设备文件判定、行号、token 估算、图片类型。
 
-use rust_cli_kernel_api::tool::ToolError;
+use nibi_kernel_api::tool::ToolError;
 
 use crate::common::failed;
 use crate::texts;
@@ -10,7 +10,7 @@ pub(crate) const MAX_BYTES: u64 = 262_144;
 /// 一次读取允许的最大 token 数。
 const MAX_TOKENS: u64 = 25_000;
 /// 图片原样内联的上限（字节）：kernel-api 的一个常量，TUI 的粘贴也用它（F58）。
-pub(crate) const MAX_IMAGE_BYTES: usize = rust_cli_kernel_api::image::MAX_IMAGE_BYTES;
+pub(crate) const MAX_IMAGE_BYTES: usize = nibi_kernel_api::image::MAX_IMAGE_BYTES;
 
 /// 读出来就是二进制、不能当文本读的扩展名。
 const BINARY: &[&str] = &[
@@ -24,7 +24,7 @@ const BINARY: &[&str] = &[
     ".db", ".mdb", ".idx", ".psd", ".ai", ".eps", ".sketch", ".fig", ".xd", ".blend", ".3ds",
     ".max", ".swf", ".fla", ".lockb", ".dat", ".data",
 ];
-pub(crate) const IMAGES: &[&str] = &rust_cli_kernel_api::image::IMAGE_EXTENSIONS;
+pub(crate) const IMAGES: &[&str] = &nibi_kernel_api::image::IMAGE_EXTENSIONS;
 /// 会阻塞或无限输出的设备文件。
 const DEVICES: &[&str] = &[
     "/dev/zero",
@@ -113,7 +113,7 @@ pub(crate) fn check_tokens(content: &str, extension: &str) -> Result<(), ToolErr
 /// 文件头的格式（kernel-api `image::media_type`）。修复线 F58：以前自己判断，`GIF8` 开头就算 GIF、不足 4 字节
 /// 也认，与 TUI 的判断不同。
 pub(crate) fn image_type(bytes: &[u8]) -> Option<&'static str> {
-    rust_cli_kernel_api::image::media_type(bytes)
+    nibi_kernel_api::image::media_type(bytes)
 }
 
 #[cfg(test)]

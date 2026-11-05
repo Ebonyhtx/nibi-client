@@ -56,7 +56,7 @@ fn model_server() -> String {
 }
 
 fn zcode(home: &Path, work: &Path, args: &[&str], server: &str) -> Output {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(args)
         .current_dir(work)
@@ -161,13 +161,13 @@ fn untrusted_project_hooks_are_skipped_until_granted() {
 async fn latest_mode(
     home: &Path,
     work: &Path,
-) -> Option<rust_cli_kernel_api::permission::PermissionMode> {
-    use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), home, work);
-    let store = rust_cli_node_store::NodeStore::new(
+) -> Option<nibi_kernel_api::permission::PermissionMode> {
+    use nibi_kernel_api::store::{SessionFilter, SessionStore};
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), home, work);
+    let store = nibi_kernel_node_store::NodeStore::new(
         paths,
-        std::sync::Arc::new(rust_cli_node_store::NodeIds::new(std::sync::Arc::new(
-            rust_cli_node_store::SystemClock::utc(),
+        std::sync::Arc::new(nibi_kernel_node_store::NodeIds::new(std::sync::Arc::new(
+            nibi_kernel_node_store::SystemClock::utc(),
         ))),
     );
     let filter = SessionFilter {
@@ -178,13 +178,13 @@ async fn latest_mode(
     let loaded = store.load(&latest.id).await.unwrap();
     // 判决用的模式（修复线 F20：plan 是开关，`--permission-mode plan` 是 plan 开、default）。
     let mode = loaded.mode?;
-    Some(rust_cli_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan).effective())
+    Some(nibi_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan).effective())
 }
 
-fn workspace(work: &Path) -> rust_cli_kernel_api::env::WorkspaceRef {
-    rust_cli_kernel_api::env::WorkspaceRef {
-        environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-        root: rust_cli_kernel_api::env::EnvPath::new(work.to_string_lossy()),
+fn workspace(work: &Path) -> nibi_kernel_api::env::WorkspaceRef {
+    nibi_kernel_api::env::WorkspaceRef {
+        environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+        root: nibi_kernel_api::env::EnvPath::new(work.to_string_lossy()),
     }
 }
 
@@ -192,8 +192,8 @@ fn workspace(work: &Path) -> rust_cli_kernel_api::env::WorkspaceRef {
 /// 又盖过它。持久模式由 node-store 写进库里（与用户在 TUI 里切换模式时同一个事实）。
 #[tokio::test]
 async fn the_project_mode_sits_between_the_command_line_and_the_config() {
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::store::{Fact, FactBatch, SessionFilter, SessionStore};
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::store::{Fact, FactBatch, SessionFilter, SessionStore};
     let dir = tempfile::tempdir().unwrap();
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
@@ -213,11 +213,11 @@ async fn the_project_mode_sits_between_the_command_line_and_the_config() {
         Some(PermissionMode::BypassPermissions)
     );
     // 像用户切换到 acceptEdits 那样写持久模式。
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), &home, &work);
-    let store = rust_cli_node_store::NodeStore::new(
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), &home, &work);
+    let store = nibi_kernel_node_store::NodeStore::new(
         paths,
-        std::sync::Arc::new(rust_cli_node_store::NodeIds::new(std::sync::Arc::new(
-            rust_cli_node_store::SystemClock::utc(),
+        std::sync::Arc::new(nibi_kernel_node_store::NodeIds::new(std::sync::Arc::new(
+            nibi_kernel_node_store::SystemClock::utc(),
         ))),
     );
     let filter = SessionFilter {
@@ -226,7 +226,7 @@ async fn the_project_mode_sits_between_the_command_line_and_the_config() {
     };
     let session = store.list(filter).await.unwrap().remove(0).id;
     let batch = FactBatch {
-        owner_epoch: rust_cli_kernel_api::ids::OwnerEpoch::LOCAL,
+        owner_epoch: nibi_kernel_api::ids::OwnerEpoch::LOCAL,
         command: None,
         facts: vec![Fact::ProjectModeSet {
             mode: PermissionMode::AcceptEdits,

@@ -1,7 +1,7 @@
 //! 标题请求的形状与辅助选项（titles.md §3）。
 use async_trait::async_trait;
-use rust_cli_kernel_api::provider::{CatalogModel, ModelCatalog, WireProtocol};
-use rust_cli_kernel_api::testing::{FixedClock, ScriptedModel, selection, text_response};
+use nibi_kernel_api::provider::{CatalogModel, ModelCatalog, WireProtocol};
+use nibi_kernel_api::testing::{FixedClock, ScriptedModel, selection, text_response};
 
 use super::*;
 

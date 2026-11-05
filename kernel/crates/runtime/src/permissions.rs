@@ -6,21 +6,21 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::orchestration::PermissionGate;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::orchestration::PermissionGate;
+use nibi_kernel_api::permission::{
     PermissionDecision, PermissionRule, PermissionRules, PermissionRulesChange,
     PermissionRulesQuery, ProjectRules, RuleChange, RuleSource, SourcedRule,
 };
-use rust_cli_kernel_api::session_api::KernelError;
-use rust_cli_kernel_api::store::{ProjectRulesChange, SessionStore, StoreError};
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
-use rust_cli_policy::PolicyGate;
+use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_api::store::{ProjectRulesChange, SessionStore, StoreError};
+use nibi_kernel_api::tool::{Tool, ToolUseContext};
+use nibi_kernel_policy::PolicyGate;
 use serde_json::Value;
 
-pub use rust_cli_policy::rules::{format_rule, parse_rule};
+pub use nibi_kernel_policy::rules::{format_rule, parse_rule};
 // Bash 询问框“不再询问”一行的种子与文字（shell-permissions.md §4.10，工作线 F72）：tui 不依赖 policy。
-pub use rust_cli_policy::{bash_rule_label, bash_rule_seed};
+pub use nibi_kernel_policy::{bash_rule_label, bash_rule_seed};
 
 fn kernel_error(error: StoreError) -> KernelError {
     match error {
@@ -128,7 +128,7 @@ impl PermissionGate for SharedRules {
     /// 取过一次）。
     async fn session_rules_committed(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
+        session: &nibi_kernel_api::ids::SessionId,
         _workspace: &WorkspaceRef,
     ) {
         match self.store.session_rules(session).await {

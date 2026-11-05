@@ -5,9 +5,9 @@ use futures_util::stream;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::style::Color;
-use rust_cli_tui::trust::{Grants, TrustAnswer, TrustPrompt, drive};
-use rust_cli_tui::ui::i18n::Lang;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_tui::trust::{Grants, TrustAnswer, TrustPrompt, drive};
+use nibi_kernel_tui::ui::i18n::Lang;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::text_of;
 

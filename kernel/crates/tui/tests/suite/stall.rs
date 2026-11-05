@@ -5,10 +5,10 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelNotice, ModelPort, ModelRequest, ModelStreamItem,
 };
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use serde_json::json;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -182,8 +182,8 @@ async fn a_foreground_agent_shows_its_retry_under_the_agent_row() {
 /// 推理块的开头与一段推理增量。
 /// 接在 [`thinking`] 之后：结束 thinking 块，再给一段文字并结束这次回复。
 fn finish_with_text(sender: &mpsc::UnboundedSender<Item>, text: &str) {
-    use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-    use rust_cli_kernel_api::model::BlockDelta;
+    use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+    use nibi_kernel_api::model::BlockDelta;
     events(
         sender,
         vec![
@@ -209,15 +209,15 @@ fn finish_with_text(sender: &mpsc::UnboundedSender<Item>, text: &str) {
 }
 
 fn thinking(sender: &mpsc::UnboundedSender<Item>, text: &str) {
-    use rust_cli_kernel_api::message::ContentBlock;
-    use rust_cli_kernel_api::model::BlockDelta;
+    use nibi_kernel_api::message::ContentBlock;
+    use nibi_kernel_api::model::BlockDelta;
     events(
         sender,
         vec![
             Ok(ModelEvent::MessageStart {
                 id: "msg_child".to_owned(),
                 model: "scripted".to_owned(),
-                usage: rust_cli_kernel_api::message::Usage::default(),
+                usage: nibi_kernel_api::message::Usage::default(),
             }),
             Ok(ModelEvent::BlockStart {
                 index: 0,

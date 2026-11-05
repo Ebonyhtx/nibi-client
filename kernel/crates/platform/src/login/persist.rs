@@ -4,8 +4,8 @@
 //! 登录与退出写的两个文件（platform.md §5.6）：`credentials.json`（目录锁内读改写，§5.5）与个人配置
 //! `provider_config.json` 的 `defaultModelSelection`。
 
-use rust_cli_fs::LockOptions;
-use rust_cli_paths::StoragePath;
+use nibi_kernel_fs::LockOptions;
+use nibi_kernel_paths::StoragePath;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 
@@ -148,10 +148,10 @@ pub(crate) async fn save_default_selection(
 ) -> Result<(), LoginError> {
     let path = file.as_path();
     let failed = |reason: String| LoginError::ConfigUpdate(reason);
-    rust_cli_fs::with_file_lock(path, &LockOptions::default(), async || {
-        let mut config = match rust_cli_fs::read_optional(path).await {
+    nibi_kernel_fs::with_file_lock(path, &LockOptions::default(), async || {
+        let mut config = match nibi_kernel_fs::read_optional(path).await {
             Ok(None) => {
-                let old = rust_cli_fs::read_optional(legacy.as_path())
+                let old = nibi_kernel_fs::read_optional(legacy.as_path())
                     .await
                     .ok()
                     .flatten();
@@ -189,7 +189,7 @@ pub(crate) async fn save_default_selection(
         }
         body.insert("defaultModelSelection".to_owned(), Value::Object(selection));
         let text = crate::cli_config::node_pretty(&config);
-        rust_cli_fs::atomic_write(path, text.as_bytes(), PRIVATE_WRITE)
+        nibi_kernel_fs::atomic_write(path, text.as_bytes(), PRIVATE_WRITE)
             .await
             .map_err(|error| failed(format!("{}: {error}", path.display())))
     })

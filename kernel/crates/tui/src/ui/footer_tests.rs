@@ -1,9 +1,9 @@
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::metering::{OutputSpeed, RequestStats};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::metering::{OutputSpeed, RequestStats};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent};
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::palette::{ColorLevel, Palette};
@@ -292,7 +292,7 @@ fn items_without_values_are_left_out() {
 #[test]
 fn the_speed_comes_from_the_session_not_the_usage_rows() {
     let stored = RequestStats {
-        last: Some(rust_cli_kernel_api::metering::LastRequest {
+        last: Some(nibi_kernel_api::metering::LastRequest {
             output_tokens: Some(120),
             duration_ms: Some(5_000),
             first_token_ms: Some(2_000),

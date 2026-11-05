@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_net::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_net::{
     CaBundle, Egress, HeaderValue, HttpRequest, NetError, NetworkPolicy, NoProxy, TrustRoots,
 };
 

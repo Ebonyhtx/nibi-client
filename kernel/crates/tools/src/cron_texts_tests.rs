@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::cron_store::{CronCreator, StoredCronTask};
+use nibi_kernel_api::cron_store::{CronCreator, StoredCronTask};
 
 use super::*;
 

@@ -11,11 +11,11 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
-use rust_cli_base::TaskScope;
-use rust_cli_context::PromptAssembler;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_policy::PolicyGate;
-use rust_cli_session::{Opened, Session, SessionDeps, SessionState};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_context::PromptAssembler;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_policy::PolicyGate;
+use nibi_kernel_session::{Opened, Session, SessionDeps, SessionState};
 use tokio_util::sync::CancellationToken;
 
 use crate::LocalKernel;
@@ -116,22 +116,22 @@ impl Drop for Loading<'_> {
 pub(crate) struct Closer {
     pub(crate) sessions: Weak<Mutex<HashMap<SessionId, Slot>>>,
     pub(crate) context: Arc<PromptAssembler>,
-    pub(crate) read_files: Arc<rust_cli_tools::ReadFileState>,
-    pub(crate) worktrees: Arc<rust_cli_tools::WorktreeBoard>,
+    pub(crate) read_files: Arc<nibi_kernel_tools::ReadFileState>,
+    pub(crate) worktrees: Arc<nibi_kernel_tools::WorktreeBoard>,
     pub(crate) gate: Arc<PolicyGate>,
     /// WaitForMcpServers 的 declared 按会话记，会话关闭时清掉（ext.md §3.8、D34）。
-    pub(crate) mcp: Arc<rust_cli_ext::McpManager>,
+    pub(crate) mcp: Arc<nibi_kernel_ext::McpManager>,
     /// 会话级的 MCP（NIBI `createSession.mcpServers`）：会话关闭时释放连接与连接任务。
-    pub(crate) ext: Arc<rust_cli_ext::Ext>,
+    pub(crate) ext: Arc<nibi_kernel_ext::Ext>,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：随会话释放。
-    pub(crate) directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    pub(crate) directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
     /// 会话级插件 hooks（NIBI 多会话）：随会话释放。
-    pub(crate) hooks: Arc<rust_cli_hooks::HookEngine>,
+    pub(crate) hooks: Arc<nibi_kernel_hooks::HookEngine>,
     /// 会话级插件 agents（NIBI 多会话）：随会话释放。
-    pub(crate) agents: Arc<rust_cli_agents::AgentCatalog>,
+    pub(crate) agents: Arc<nibi_kernel_agents::AgentCatalog>,
 }
 
-impl rust_cli_session::Released for Closer {
+impl nibi_kernel_session::Released for Closer {
     /// Open → Closing（早于 SessionEnd）：从这时起打开同一个会话都等它关完，不会拿到马上要退出的 actor。
     fn closing(&self, session: &SessionId) {
         let Some(sessions) = self.sessions.upgrade() else {

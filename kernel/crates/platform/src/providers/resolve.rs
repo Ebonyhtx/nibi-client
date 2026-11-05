@@ -210,7 +210,7 @@ fn overlay_rules(
 ) -> Value {
     // 修 bug（修复线 F23）：以前只去掉末尾的 `/` 就拿来匹配，大写的 host、`:443` 命中不了站点规则（z.ai 的
     // WebSearch 与对话中间的 system 因此丢失）。按 Node 先规范化；解析不了时站点规则都不命中（Node 同样跳过）。
-    let base_url = rust_cli_base::rule_url::normalize(base_url);
+    let base_url = nibi_kernel_base::rule_url::normalize(base_url);
     let mut effective = json!({});
     for entry in model_rules {
         let value = &entry.value;

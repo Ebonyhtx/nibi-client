@@ -2,9 +2,9 @@
 use std::time::Instant;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::agents::AgentList;

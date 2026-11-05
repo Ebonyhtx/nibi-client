@@ -1,11 +1,11 @@
 //! 模型身份、日期、剩余 token 与署名 attachment。
 
-use rust_cli_kernel_api::goal;
-use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::{user_command, user_input};
-use rust_cli_prompts::models;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::goal;
+use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::{user_command, user_input};
+use nibi_kernel_prompts::models;
+use nibi_kernel_prompts::texts::{self, render};
 use serde_json::{Value, json};
 
 use crate::config::Attribution;
@@ -78,7 +78,7 @@ pub(crate) fn tokens_left(history: &[Message], budget: u64) -> u64 {
 /// 跨压缩（工作线 F82，context.md 的 `total_tokens_reminder`）：压缩边界把它之前那段最后一次响应占用的上下文
 /// “滚进”累计，之后的上下文是累计加边界之后最近一次响应的。以前只看边界之后的历史，压缩之后剩余 token 回到满额。
 fn tokens_left_since(history: &[Message], budget: u64, anchor_at: usize) -> u64 {
-    let total = |usage: &rust_cli_kernel_api::message::Usage| {
+    let total = |usage: &nibi_kernel_api::message::Usage| {
         usage.input_tokens
             + usage.cache_creation_input_tokens
             + usage.cache_read_input_tokens

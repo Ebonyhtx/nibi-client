@@ -6,11 +6,11 @@
 //! 子代理关联（修复线 F2，node-store.md §4.6）走同一条路：Agent 工具的 display 带子会话时记下
 //! `Fact::SubagentLinked`，排在这条工具结果之后同批提交。
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::session_api::{FileChange, KernelEvent};
-use rust_cli_kernel_api::store::{Fact, WorkspaceCheckpoint};
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::session_api::{FileChange, KernelEvent};
+use nibi_kernel_api::store::{Fact, WorkspaceCheckpoint};
+use nibi_kernel_api::tool::ToolOutput;
 
 use crate::actor::Actor;
 
@@ -19,7 +19,7 @@ impl Actor {
     /// sink 用同一份）。
     pub(crate) fn unsettle(&mut self, tool_use: &ToolUseId, output: &ToolOutput) {
         self.unsettled.note(tool_use, output);
-        if let Some(link) = rust_cli_kernel_api::agents::subagent_link(tool_use, output) {
+        if let Some(link) = nibi_kernel_api::agents::subagent_link(tool_use, output) {
             self.links.insert(tool_use.clone(), link);
         }
     }

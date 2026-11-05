@@ -1,6 +1,6 @@
 //! `/permissions` 页面的界面状态与排版（tui-manage.md §1.2）。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::permission::{RuleBehavior, RuleChange, RuleSource, SourcedRule};
+use nibi_kernel_api::permission::{RuleBehavior, RuleChange, RuleSource, SourcedRule};
 
 use super::*;
 
@@ -8,7 +8,7 @@ fn rule(source: RuleSource, behavior: RuleBehavior, text: &str) -> SourcedRule {
     SourcedRule {
         source,
         behavior,
-        rule: rust_cli_runtime::parse_permission_rule(text),
+        rule: nibi_kernel_runtime::parse_permission_rule(text),
     }
 }
 

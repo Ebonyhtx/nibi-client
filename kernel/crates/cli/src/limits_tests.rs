@@ -109,7 +109,7 @@ fn bash_timeouts_read_both_variables() {
 /// 比较，N 夹到 0–100（0 开、100 关），读不出时是 10%。
 #[test]
 fn enable_tool_search_maps_to_the_setting() {
-    use rust_cli_prompts::models::ToolSearchSetting::{Auto, Off, On};
+    use nibi_kernel_prompts::models::ToolSearchSetting::{Auto, Off, On};
     let read = |value: &str| tool_search(&env(&[("ENABLE_TOOL_SEARCH", value)]));
     assert_eq!(tool_search(&env(&[])), On);
     for value in [

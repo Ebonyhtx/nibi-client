@@ -4,21 +4,21 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::PathFacts;
-use rust_cli_kernel_api::env_worktree::{
+use nibi_kernel_api::env_files::PathFacts;
+use nibi_kernel_api::env_worktree::{
     WorktreeChanges, WorktreeCreate, WorktreeCreated, WorktreeEntry, WorktreeInspect, WorktreeList,
     WorktreeRemove,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::local_services::{Fetch, Git as GitPort};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::local_services::{Fetch, Git as GitPort};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
 };
 

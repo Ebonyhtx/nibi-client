@@ -2,11 +2,11 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::ids::{InteractionId, SessionId, ToolUseId};
-use rust_cli_kernel_api::orchestration::{DetachedEvent, InteractionRequest};
-use rust_cli_kernel_api::permission::PermissionRule;
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::{MemoryStore, SequentialIds};
+use nibi_kernel_api::ids::{InteractionId, SessionId, ToolUseId};
+use nibi_kernel_api::orchestration::{DetachedEvent, InteractionRequest};
+use nibi_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::{MemoryStore, SequentialIds};
 use serde_json::json;
 
 use super::DetachedAsks;

@@ -2,25 +2,25 @@
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_exec_wire::BodyBuilder;
-use rust_cli_exec_wire::envelope::StreamItem;
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_exec_wire::BodyBuilder;
+use nibi_kernel_exec_wire::envelope::StreamItem;
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, FileVersion, OperationContext, Outcome,
     ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env_files::{
     DirEntry, FileList, FileStat, FileWritten, GlobFiles, GlobMatches, GrepOutcome, GrepSearch,
     ListDir, ListFiles, PathFacts, PutFile, ReadText, StatFile, StatMany, TextRead,
 };
-use rust_cli_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
-use rust_cli_kernel_api::env_rewind::{RewindPlan, RewindPrepare, RewindStatus};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
+use nibi_kernel_api::env_rewind::{RewindPlan, RewindPrepare, RewindStatus};
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStop, BackgroundTask, ShellNotice, ShellState,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
 
@@ -40,7 +40,7 @@ fn empty() -> BodyBuilder {
     BodyBuilder::new()
 }
 
-fn workspace(workspace: &WorkspaceRef) -> rust_cli_exec_wire::dto::core::Workspace {
+fn workspace(workspace: &WorkspaceRef) -> nibi_kernel_exec_wire::dto::core::Workspace {
     to::workspace(workspace)
 }
 

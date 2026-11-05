@@ -7,7 +7,7 @@
 
 use std::collections::{HashMap, VecDeque};
 
-use rust_cli_kernel_api::store::FrontendRecord;
+use nibi_kernel_api::store::FrontendRecord;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 

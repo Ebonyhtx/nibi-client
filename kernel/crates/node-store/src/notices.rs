@@ -6,12 +6,12 @@
 //! Node 读取时只看来源与文本：文本已带 `<system-reminder>` 包装、或来源不在它的提醒表里时，
 //! 原文作为 user 文本发给模型。attachment 的内容块（`data.blocks`，图片等）写成 text part 之后的
 //! text / file part（docs/specs/rust-cli/node-store.md §4.5）。
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     ATTACHMENT_BLOCKS, AttachmentMessage, ContentBlock, Message, ToolResultContent, UserMessage,
     UserOrigin,
 };
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::store::StoreError;
 use serde_json::{Value, json};
 
 use crate::OrStorage;
@@ -32,7 +32,7 @@ const BASH_OUTPUT_SOURCE: &str = "rust-cli/bash_output";
 
 /// 与 Node 提醒表（`system-reminder/source.ts`）重名、语义不同的 attachment 来源：存成 `rust-cli/<来源>`，
 /// 冷读取去掉前缀。修复线 F2：Node 把同名的当成自己的提醒（`plan_mode_exit` 在 Node 是只在运行时的提醒）。
-const RENAMED_SOURCES: [&str; 1] = [rust_cli_kernel_api::plan::EXIT_SOURCE];
+const RENAMED_SOURCES: [&str; 1] = [nibi_kernel_api::plan::EXIT_SOURCE];
 const RENAMED_PREFIX: &str = "rust-cli/";
 
 const ATTACHMENT: &str = "attachment";
@@ -45,14 +45,14 @@ const BASH_OUTPUT: &str = "bash_output";
 ///
 /// 判定在 kernel-api（`user_input::is_interrupt`）：会话 actor 按同一个判定换当前轮（§4，修复线 F6）。
 pub fn is_interrupt(user: &UserMessage) -> bool {
-    rust_cli_kernel_api::user_input::is_interrupt(user)
+    nibi_kernel_api::user_input::is_interrupt(user)
 }
 
 /// bash 模式的输出消息（`<bash-stdout>` / `<bash-stderr>`，kernel-api `user_input::bash_output`）。来源记为 Human，
 /// 但不是用户输入：Node 没有 bash 模式，按 Node 运行时合成消息存，不开新的真实输入轮次（修复线 F2，以前存成
 /// real_user，App 显示成带标签的用户气泡，并多出一轮）；冷读取还原成原来的 Human 消息，模型文本不变。
 pub fn is_bash_output(user: &UserMessage) -> bool {
-    rust_cli_kernel_api::user_input::is_bash_output(user)
+    nibi_kernel_api::user_input::is_bash_output(user)
 }
 
 pub fn append_attachment(
@@ -245,7 +245,7 @@ pub fn hydrate(record: &WithParts) -> Option<Message> {
         return Some(Message::Attachment(AttachmentMessage {
             id,
             source,
-            text: rust_cli_base::reminder::wrap(&text(first)),
+            text: nibi_kernel_base::reminder::wrap(&text(first)),
             data: Value::Null,
         }));
     }
@@ -303,7 +303,7 @@ fn attachment_blocks(record: &WithParts) -> Vec<ContentBlock> {
                     text: crate::tool_content::attached(&source),
                 },
                 ToolResultContent::ToolReference { tool_name } => ContentBlock::Text {
-                    text: rust_cli_kernel_api::message::tool_reference_text(&tool_name),
+                    text: nibi_kernel_api::message::tool_reference_text(&tool_name),
                 },
             }
         })

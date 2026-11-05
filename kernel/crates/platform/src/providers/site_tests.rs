@@ -1,6 +1,6 @@
 //! 修复线 F23：URL 规范化后命中 providerSiteRules；各官方站点得到的能力（platform.md §3.2 第 7 条、§3.3）。
 
-use rust_cli_kernel_api::provider::{ModelCapabilities, WireProtocol};
+use nibi_kernel_api::provider::{ModelCapabilities, WireProtocol};
 use serde_json::{Value, json};
 
 use super::SiteRules;
@@ -187,8 +187,8 @@ fn site_rules_give_the_compaction_limits() {
 }
 
 /// 不带团队项目的选择（按 provider 与模型找模板）。
-fn sel(provider: &str, model: &str) -> rust_cli_kernel_api::model::ModelSelection {
-    rust_cli_kernel_api::model::ModelSelection {
+fn sel(provider: &str, model: &str) -> nibi_kernel_api::model::ModelSelection {
+    nibi_kernel_api::model::ModelSelection {
         provider: provider.to_owned(),
         model: model.to_owned(),
         reasoning: None,

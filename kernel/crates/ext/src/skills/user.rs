@@ -6,9 +6,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_kernel_api::user_command::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_api::user_command::{
     ExpandedKind, ExpandedMessage, Expansion, LOCAL_COMMAND_CAVEAT_SOURCE, LOCAL_COMMAND_SOURCE,
     UserCommand, UserCommands, command_input, command_tags,
 };
@@ -17,7 +17,7 @@ use super::inline::Runner;
 use super::{SKILL_MESSAGE_SOURCE, Skill, SkillCatalog};
 
 /// 本地命令之前的 caveat（产品名替换，kernel-api 的定义，F55：以前这里另写了一份）。
-const CAVEAT: &str = rust_cli_kernel_api::user_input::BASH_CAVEAT;
+const CAVEAT: &str = nibi_kernel_api::user_input::BASH_CAVEAT;
 
 /// 用户可调用的 skill 命令。
 pub struct SkillCommands {
@@ -131,7 +131,7 @@ impl UserCommands for SkillCommands {
                     messages: vec![
                         input(text.to_owned()),
                         ExpandedMessage {
-                            text: rust_cli_prompts::reminder::wrap(&super::unknown::text(
+                            text: nibi_kernel_prompts::reminder::wrap(&super::unknown::text(
                                 name, &skills,
                             )),
                             kind: ExpandedKind::Attachment {

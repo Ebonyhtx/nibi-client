@@ -7,9 +7,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, Outcome};
-use rust_cli_kernel_api::env_shell::{BackgroundCommand, CwdScope, HookIo};
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::env::{CommandEvent, Outcome};
+use nibi_kernel_api::env_shell::{BackgroundCommand, CwdScope, HookIo};
+use nibi_kernel_api::ids::SessionId;
 
 use super::tests::{collect, context, fixture, request};
 use super::*;

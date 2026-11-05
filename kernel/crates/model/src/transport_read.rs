@@ -15,11 +15,11 @@ use std::collections::VecDeque;
 use std::future::Future;
 use std::time::Duration;
 
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::model::{
     BlockDelta, ModelError, ModelEvent, ModelNotice, ModelStreamItem,
 };
-use rust_cli_net::sse::SseDecoder;
-use rust_cli_net::{Bytes, HttpResponse, NetError};
+use nibi_kernel_net::sse::SseDecoder;
+use nibi_kernel_net::{Bytes, HttpResponse, NetError};
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
@@ -110,7 +110,7 @@ impl Read {
     }
 
     /// 这次响应正常读完（`model_request_completed`）。
-    pub(crate) fn completed_status(&self) -> rust_cli_kernel_api::model::ModelRequestStatus {
+    pub(crate) fn completed_status(&self) -> nibi_kernel_api::model::ModelRequestStatus {
         self.connect.completed_status()
     }
 
@@ -118,7 +118,7 @@ impl Read {
     pub(crate) fn failure_status(
         &self,
         error: &ModelError,
-    ) -> rust_cli_kernel_api::model::ModelRequestStatus {
+    ) -> nibi_kernel_api::model::ModelRequestStatus {
         self.connect.failure_status(error)
     }
 

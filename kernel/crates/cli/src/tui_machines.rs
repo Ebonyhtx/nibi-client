@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use futures_util::stream::{BoxStream, StreamExt};
-use rust_cli_machines::{MachineEntry, MachineError, MachineState, MachinesError};
-use rust_cli_tui::machines::{
+use nibi_kernel_machines::{MachineEntry, MachineError, MachineState, MachinesError};
+use nibi_kernel_tui::machines::{
     Changed, ConnectStep, ExecutorInfo, MachineFailure, MachineProblem, MachineRow, MachineStatus,
     Machines,
 };
@@ -69,8 +69,8 @@ fn failure(error: &MachineError) -> MachineFailure {
 
 /// 墙上时间（毫秒），与界面的时钟相同：把状态机里下一次重连的时刻换成界面能比的时间（F96）。
 fn wall_ms() -> u64 {
-    use rust_cli_kernel_api::clock::Clock;
-    rust_cli_node_store::SystemClock::utc().now_ms()
+    use nibi_kernel_api::clock::Clock;
+    nibi_kernel_node_store::SystemClock::utc().now_ms()
 }
 
 /// `now` 是（单调时钟，墙上时间）的同一时刻。
@@ -117,7 +117,7 @@ fn row(seen: Seen, now: (tokio::time::Instant, u64)) -> MachineRow {
         executor: seen.welcome.map(|welcome| ExecutorInfo {
             refreshes_env: welcome
                 .capabilities
-                .contains(rust_cli_exec_wire::handshake::Capability::Env),
+                .contains(nibi_kernel_exec_wire::handshake::Capability::Env),
             os: welcome.os,
             arch: welcome.arch,
             version: welcome.server_version,

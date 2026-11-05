@@ -12,14 +12,14 @@ mod workflow_runs;
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent, Usage};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::message::{ContentBlock, ToolResultContent, Usage};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     KernelEvent, QueuedInput, SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
     TurnOutcome,
 };
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::tool::ToolOutput;
 use serde_json::{Map, Value, json};
 
 use state::{ActiveWork, Followup, LastError, Phase};
@@ -326,7 +326,7 @@ impl Projection {
     /// 实时表已经在时不覆盖（返回 None）。
     pub fn seed_workflow_runs(
         &mut self,
-        rows: &[rust_cli_kernel_api::workflow::WorkflowRunSummaryRow],
+        rows: &[nibi_kernel_api::workflow::WorkflowRunSummaryRow],
     ) -> Option<Value> {
         self.workflow_runs
             .seed(rows)

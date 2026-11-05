@@ -3,18 +3,18 @@
 use std::sync::Arc;
 
 use futures_util::stream::{self, StreamExt};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{ModelEvent, ModelError, ModelPort, ModelRequest};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{CreateSession, Kernel};
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{ModelEvent, ModelError, ModelPort, ModelRequest};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{CreateSession, Kernel};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments, selection, text_response,
     tool_use_response,
 };
-use rust_cli_kernel_api::workflow::{WorkflowActorRequest, WorkflowActorSpec};
+use nibi_kernel_api::workflow::{WorkflowActorRequest, WorkflowActorSpec};
 use tokio_util::sync::CancellationToken;
 
 use super::*;
@@ -31,7 +31,7 @@ fn kernel(store: Arc<MemoryStore>, model: Arc<dyn ModelPort>) -> LocalKernel {
         Ports {
             model,
             environments: environments(Arc::new(
-                rust_cli_kernel_api::testing::UnusedEnvironment,
+                nibi_kernel_api::testing::UnusedEnvironment,
             )),
             store: store.clone(),
             artifacts: store,
@@ -116,8 +116,8 @@ async fn an_actor_turn_runs_through_the_kernel_and_returns_its_text() {
         .filter(|message| {
             matches!(
                 message,
-                rust_cli_kernel_api::message::Message::User(_)
-                    | rust_cli_kernel_api::message::Message::Assistant(_)
+                nibi_kernel_api::message::Message::User(_)
+                    | nibi_kernel_api::message::Message::Assistant(_)
             )
         })
         .count();

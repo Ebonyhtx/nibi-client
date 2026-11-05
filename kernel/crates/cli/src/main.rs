@@ -1,4 +1,4 @@
-//! `zcode`：rust-cli 的组装根（docs/specs/rust-cli/README.md §3）。
+//! `nibi`：nibi-kernel-cli 的组装根（docs/specs/rust-cli/README.md §3）。
 //!
 //! 只有这里读取进程环境与 cwd，读到的值显式传给下层。这里构造平台层（Provider registry、账号）与适配器
 //! （存储、执行环境、模型），交给 runtime 组装成内核，再按命令行进入 TUI 或 `-p`。
@@ -51,19 +51,19 @@ use anyhow::{Context, Result};
 
 use crate::args::{Invocation, Mode, cli_rules, names_search_tools, parse, version_line};
 use crate::output::{eprint_line, eprint_raw, help_width, print_line, print_raw, write_lossy};
-use rust_cli_base::TaskScope;
-use rust_cli_base::secret::{EnvSnapshot, RedactedString};
-use rust_cli_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
-use rust_cli_headless::PrintOptions;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::ModelDirectory;
-use rust_cli_net::Egress;
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings, expand_home, home_dir_with, user_name_with};
-use rust_cli_platform::{AccountServices, CredentialSecret, History, Platform, node_platform};
-use rust_cli_runtime::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_base::secret::{EnvSnapshot, RedactedString};
+use nibi_kernel_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
+use nibi_kernel_headless::PrintOptions;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::ModelDirectory;
+use nibi_kernel_net::Egress;
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings, expand_home, home_dir_with, user_name_with};
+use nibi_kernel_platform::{AccountServices, CredentialSecret, History, Platform, node_platform};
+use nibi_kernel_runtime::{
     ContextConfig, Defaults, ExtConfig, Extensions, LocalKernel, Ports, Surface, TitleModel,
 };
 
@@ -104,7 +104,7 @@ struct Startup {
     env: EnvSnapshot,
     temp: PathBuf,
     /// 系统时区（time-zone.md §1）：启动时读一次。
-    zone: Arc<dyn rust_cli_node_store::TimeZone>,
+    zone: Arc<dyn nibi_kernel_node_store::TimeZone>,
     user_name: String,
     /// `NIBI_DATA_BASE_DIR`：账号与 Provider 配置的根（Node 相同）。
     data_base_dir: Option<String>,
@@ -118,19 +118,19 @@ struct Startup {
     /// 进程的 uid（Unix；bypass 模式的 root 检查，cli-args.md §5.2）。Windows 没有。
     uid: Option<u32>,
     /// 运行的平台与 Windows 的系统版本（TUI 的按键规则与颜色级别，修复线 F65）。
-    os: rust_cli_tui::Os,
+    os: nibi_kernel_tui::Os,
 }
 
 /// 付费插件门禁的授权事实：从 NIBI v2 凭据读 token/device/state（与 Node 同一份文件）。
-pub(crate) fn read_paid_license(startup: &Startup) -> rust_cli_ext::plugins::PaidLicense {
+pub(crate) fn read_paid_license(startup: &Startup) -> nibi_kernel_ext::plugins::PaidLicense {
     read_paid_license_from(&startup.home, &startup.env)
 }
 
 /// 同 [`read_paid_license`]，给只持有 home/env 的调用方（会话级插件快照加载器）。
 pub(crate) fn read_paid_license_from(
     home: &std::path::Path,
-    env: &rust_cli_base::secret::EnvSnapshot,
-) -> rust_cli_ext::plugins::PaidLicense {
+    env: &nibi_kernel_base::secret::EnvSnapshot,
+) -> nibi_kernel_ext::plugins::PaidLicense {
     let paths = nibi_platform::paths::NibiPaths::resolve(home, |key| {
         env.get(key).map(str::to_owned)
     });
@@ -142,7 +142,7 @@ pub(crate) fn read_paid_license_from(
         .duration_since(std::time::UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or_default();
-    rust_cli_ext::plugins::PaidLicense {
+    nibi_kernel_ext::plugins::PaidLicense {
         token: credentials.token.unwrap_or_default(),
         device_id: credentials.device_id,
         refusal: credentials.refusal,
@@ -202,7 +202,7 @@ fn capture() -> Result<Startup> {
 /// 进程的真实 uid（同 `process.getuid()`，proc 的唯一实现，F55）。
 #[cfg(unix)]
 fn process_uid() -> Option<u32> {
-    Some(rust_cli_proc::private::uid())
+    Some(nibi_kernel_proc::private::uid())
 }
 
 #[cfg(not(unix))]
@@ -292,7 +292,7 @@ async fn session(
     // `-p` 的输入：prompt 参数与管道里的文字（cli-args.md §2.3）；TUI 不接受 prompt 参数（D8）。stream-json 输入时
     // stdin 是逐行的 user 消息（headless.md §4），不读成 prompt，prompt 参数忽略。
     let prompt = match mode {
-        Mode::Print if format.input == rust_cli_headless::InputFormat::StreamJson => {
+        Mode::Print if format.input == nibi_kernel_headless::InputFormat::StreamJson => {
             Some(prompt.unwrap_or_default())
         }
         Mode::Print => Some(stdin_prompt::print_prompt(prompt).await?),
@@ -414,7 +414,7 @@ async fn session(
     let updates = setup::updates(tui_mode, &startup, &config, &paths, (&egress, &clock)).await;
     let os = startup.os;
     let ask =
-        async |info| rust_cli_tui::update::ask(info, &vars, config.locale, config.theme, os).await;
+        async |info| nibi_kernel_tui::update::ask(info, &vars, config.locale, config.theme, os).await;
     if let Some(code) = update::offer(updates.as_ref(), ask, &stop, &startup.env).await? {
         return Ok(code);
     }
@@ -488,7 +488,7 @@ async fn session(
                 .and_then(|(source, rules)| workspace_trust::grants(source, rules)),
         };
         let (locale, theme) = (config.locale, config.theme);
-        let ask = async |prompt| rust_cli_tui::trust::ask(prompt, &vars, locale, theme, os).await;
+        let ask = async |prompt| nibi_kernel_tui::trust::ask(prompt, &vars, locale, theme, os).await;
         // 信任对话框期间收到退出信号：放弃对话框（它的终端守卫随之恢复终端），不建会话。
         let outcome = tokio::select! {
             outcome = workspace_trust::ensure(inputs, ask) => outcome?,
@@ -598,9 +598,9 @@ async fn session(
     }
     match mode {
         Mode::Print => {
-            let output = rust_cli_headless::Output {
+            let output = nibi_kernel_headless::Output {
                 format: format.print_format(),
-                stamps: Some(rust_cli_headless::Stamps {
+                stamps: Some(nibi_kernel_headless::Stamps {
                     ids: ids.clone(),
                     clock: clock.clone(),
                 }),
@@ -623,13 +623,13 @@ async fn session(
             };
             let stdout = &mut tokio::io::stdout();
             let printed = match format.input {
-                rust_cli_headless::InputFormat::Text => {
-                    rust_cli_headless::run(kernel, options, stdout).await
+                nibi_kernel_headless::InputFormat::Text => {
+                    nibi_kernel_headless::run(kernel, options, stdout).await
                 }
                 // stdin 每行一条 user 消息（headless.md §4）。
-                rust_cli_headless::InputFormat::StreamJson => {
+                nibi_kernel_headless::InputFormat::StreamJson => {
                     let input = tokio::io::BufReader::new(tokio::io::stdin());
-                    rust_cli_headless::run_stream(kernel, options, input, stdout).await
+                    nibi_kernel_headless::run_stream(kernel, options, input, stdout).await
                 }
             };
             peers.shutdown().await;
@@ -683,7 +683,7 @@ async fn session(
                 question_timeout: config.question_timeout,
                 machines: (machines.service(), mcp_machines),
             };
-            let exit = rust_cli_tui::run(kernel, tui::options(inputs, VERSION)).await;
+            let exit = nibi_kernel_tui::run(kernel, tui::options(inputs, VERSION)).await;
             // TUI 退出后入口全部释放：等写者写完剩下的；跨会话的登记与 socket 删掉。
             let _ = writer.await;
             peers.shutdown().await;
@@ -809,9 +809,9 @@ fn main() -> ExitCode {
             } else if let Some(fatal) = error.downcast_ref::<flags::Fatal>() {
                 eprint_line(&fatal.to_string());
             // json / stream-json 的最后一个 result 是错误：输出已写，只按退出码 1 结束（headless.md §5）。
-            } else if error.is::<rust_cli_headless::ResultIsError>() {
+            } else if error.is::<nibi_kernel_headless::ResultIsError>() {
                 // stream-json 输入的行错误：固定的文字，退出码 1（headless.md §4）。
-            } else if let Some(input) = error.downcast_ref::<rust_cli_headless::InputError>() {
+            } else if let Some(input) = error.downcast_ref::<nibi_kernel_headless::InputError>() {
                 eprint_line(&input.0);
             } else {
                 eprint_line(&format!("nibi: {error:#}"));

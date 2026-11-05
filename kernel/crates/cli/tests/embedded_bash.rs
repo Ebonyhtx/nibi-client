@@ -13,15 +13,15 @@
 use std::path::{Path, PathBuf};
 
 use futures_util::StreamExt;
-use rust_cli_env_local::{EmbeddedSearch, LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_env_local::{EmbeddedSearch, LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::{
     CommandEvent, EnvPath, OperationContext, Origin, StartCommand, WorkspaceRef,
 };
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ShellTaskId,
 };
-use rust_cli_kernel_api::machine::Commands;
+use nibi_kernel_api::machine::Commands;
 
 const ZCODE: &str = env!("CARGO_BIN_EXE_nibi-rs");
 

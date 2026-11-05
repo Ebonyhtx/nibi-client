@@ -7,22 +7,22 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::agents::AgentSignal;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::agents::AgentSignal;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome,
     OutputStream, ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundKind, BackgroundStatus, BackgroundStop, BackgroundTask, ShellNotice,
     ShellState,
 };
-use rust_cli_kernel_api::ids::{AgentId, OperationId, SessionId, ShellTaskId, ToolUseId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{AgentId, OperationId, SessionId, ShellTaskId, ToolUseId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::monitor::{MonitorArmed, MonitorSource};
-use rust_cli_kernel_api::testing::{NoticeEnvironment, shell_notice};
+use nibi_kernel_api::monitor::{MonitorArmed, MonitorSource};
+use nibi_kernel_api::testing::{NoticeEnvironment, shell_notice};
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -34,7 +34,7 @@ const ROOT: &str = "sess_parent";
 /// 走着的时钟（monitor 的批与到期按时钟算）。
 struct Ticking(tokio::time::Instant);
 
-impl rust_cli_kernel_api::clock::Clock for Ticking {
+impl nibi_kernel_api::clock::Clock for Ticking {
     fn now_ms(&self) -> u64 {
         1_000 + u64::try_from(self.0.elapsed().as_millis()).unwrap()
     }
@@ -43,7 +43,7 @@ impl rust_cli_kernel_api::clock::Clock for Ticking {
     }
 }
 
-fn held_ticking<E: rust_cli_kernel_api::testing::AllPorts + 'static>(
+fn held_ticking<E: nibi_kernel_api::testing::AllPorts + 'static>(
     gates: &Gates,
     keep_alive: bool,
     env: Arc<E>,

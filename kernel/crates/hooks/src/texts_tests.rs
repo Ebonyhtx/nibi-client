@@ -1,6 +1,6 @@
 //! 模型可见的文本（spec §4.4）。
 
-use rust_cli_kernel_api::testing::SequentialIds;
+use nibi_kernel_api::testing::SequentialIds;
 
 use super::*;
 

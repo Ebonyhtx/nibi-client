@@ -6,26 +6,26 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::stream::{BoxStream, StreamExt};
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::hooks::{HookEvent, HookEventName, HookOutcome, HookRunner};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, Generation, SessionId, TraceId};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::model::{ModelPort, SystemBlock};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::hooks::{HookEvent, HookEventName, HookOutcome, HookRunner};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, Generation, SessionId, TraceId};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::model::{ModelPort, SystemBlock};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, Delivery, KernelEvent, SequencedEvent, StartSource,
 };
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta, SessionStore, WorkspaceCheckpoint};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::store::{SessionKind, SessionMeta, SessionStore, WorkspaceCheckpoint};
+use nibi_kernel_api::testing::{
     AllPorts, DirectExecutor, FixedClock, FixedContext, ListTools, MemoryArtifacts,
     MemoryEnvironment, MemoryStore, NeverCompact, SequentialIds, local_services, machine,
     selection,
 };
-use rust_cli_kernel_api::tool::Tool;
-use rust_cli_query::{QueryLoop, QueryParts};
+use nibi_kernel_api::tool::Tool;
+use nibi_kernel_query::{QueryLoop, QueryParts};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -146,37 +146,37 @@ pub(crate) struct Setup {
     pub stored: bool,
     /// 草稿（`persistence: "deferred"`）：与 `stored = false` 搭配，第一条用户输入提交时才落库。
     pub draft: bool,
-    pub cron: Arc<dyn rust_cli_kernel_api::cron::CronSignals>,
+    pub cron: Arc<dyn nibi_kernel_api::cron::CronSignals>,
     /// 会话标题的生成（title_tests.rs）。
     pub titles: Option<crate::TitleModel>,
     /// actor 自己的旁路请求（rename_tests.rs）；缺省与主循环同一个模型。
     pub side_model: Option<Arc<dyn ModelPort>>,
     /// 缺省是只有一段 system 的 `FixedContext`。
-    pub context: Option<Arc<dyn rust_cli_kernel_api::orchestration::ContextBuilder>>,
+    pub context: Option<Arc<dyn nibi_kernel_api::orchestration::ContextBuilder>>,
     /// 斜杠命令的展开（slash_tests.rs）；缺省没有命令。
-    pub commands: Arc<dyn rust_cli_kernel_api::user_command::UserCommands>,
+    pub commands: Arc<dyn nibi_kernel_api::user_command::UserCommands>,
     /// `@` 提及与 bash 模式（tui-input.md §1.1、§2.2）；缺省没有。
-    pub inputs: Arc<dyn rust_cli_kernel_api::user_input::UserInputs>,
+    pub inputs: Arc<dyn nibi_kernel_api::user_input::UserInputs>,
     /// 子代理的信号（tasks_tests.rs）；缺省没有子代理。
-    pub agents: Arc<dyn rust_cli_kernel_api::agents::AgentSignals>,
+    pub agents: Arc<dyn nibi_kernel_api::agents::AgentSignals>,
     /// `/cd` 说明里新目录的规则文件（workspace_tests.rs）；缺省没有。
-    pub directory_rules: Arc<dyn rust_cli_kernel_api::orchestration::DirectoryRules>,
+    pub directory_rules: Arc<dyn nibi_kernel_api::orchestration::DirectoryRules>,
     /// 冷加载时的当前轮（turn_anchor_tests.rs）；缺省没有。
-    pub turn: Option<rust_cli_kernel_api::store::TurnAnchor>,
+    pub turn: Option<nibi_kernel_api::store::TurnAnchor>,
     /// 冷加载时当前轮以错误结束（resume_sentinel_tests.rs）；缺省否。
     pub last_turn_failed: bool,
     /// 工作流控制轮（launch_tests.rs）；缺省没有。
-    pub launches: Vec<rust_cli_kernel_api::store::SessionLaunchTurn>,
+    pub launches: Vec<nibi_kernel_api::store::SessionLaunchTurn>,
     /// 跨会话（peers_tests.rs）；缺省关闭。
     pub peers: crate::PeerDeps,
     /// 父会话关闭之后的询问入口（detached_tests.rs）；缺省没有。
     pub detached: Option<Arc<crate::DetachedAsks>>,
     /// 提醒钟的会话侧边（blocked 接线）；缺省没有。
-    pub blocked: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowBlockedEdges>>,
+    pub blocked: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowBlockedEdges>>,
     /// 共用的存储（重开会话的测试）；缺省每次新建。
     pub store: Option<Arc<MemoryStore>>,
     /// 执行环境的注册表（R3）；缺省只有本机（[`Setup::machine`] 与 [`Setup::local`]）。
-    pub machines: Option<Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>>,
+    pub machines: Option<Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>>,
     /// 会话的工作目录；缺省是 [`meta`] 的 `/work`（workspace_tests.rs 的 Windows 用例改它，F57）。
     pub root: &'static str,
 }
@@ -186,7 +186,7 @@ impl Setup {
         let env = env();
         Self {
             model,
-            hooks: Arc::new(rust_cli_kernel_api::testing::NoHooks),
+            hooks: Arc::new(nibi_kernel_api::testing::NoHooks),
             machine: machine(env.clone()),
             local: local_services(env),
             artifacts: Arc::new(MemoryArtifacts::default()),
@@ -198,14 +198,14 @@ impl Setup {
             start: StartSource::Startup,
             stored: true,
             draft: false,
-            cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
             titles: None,
             side_model: None,
             context: None,
-            commands: Arc::new(rust_cli_kernel_api::user_command::NoUserCommands),
-            inputs: Arc::new(rust_cli_kernel_api::user_input::NoUserInputs),
-            agents: Arc::new(rust_cli_kernel_api::agents::NoAgentSignals),
-            directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
+            agents: Arc::new(nibi_kernel_api::agents::NoAgentSignals),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),
@@ -236,7 +236,7 @@ impl Setup {
         let ids = Arc::new(SequentialIds::default());
         let side_model = self.side_model.unwrap_or_else(|| self.model.clone());
         let machines = self.machines.unwrap_or_else(|| {
-            Arc::new(rust_cli_kernel_api::env_registry::LocalRegistry::new(
+            Arc::new(nibi_kernel_api::env_registry::LocalRegistry::new(
                 self.machine.clone(),
                 self.local.clone(),
             ))
@@ -254,14 +254,14 @@ impl Setup {
             compactor: Arc::new(NeverCompact),
             hooks: self.hooks.clone(),
             ids: ids.clone(),
-            clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
+            clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
             machine: self.machine.clone(),
             machines: machines.clone(),
             local: self.local.clone(),
             artifacts: self.artifacts.clone(),
             generation: Generation::new("g1"),
             non_interactive: false,
-            limits: rust_cli_query::RequestLimits::default(),
+            limits: nibi_kernel_query::RequestLimits::default(),
         }));
         let session = Session::spawn(
             SessionDeps {
@@ -370,22 +370,22 @@ impl GatedModel {
 impl ModelPort for GatedModel {
     fn stream(
         &self,
-        _request: rust_cli_kernel_api::model::ModelRequest,
+        _request: nibi_kernel_api::model::ModelRequest,
         cancel: tokio_util::sync::CancellationToken,
     ) -> BoxStream<
         'static,
-        Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>,
+        Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>,
     > {
         use futures_util::stream;
         let gate = self.gate.clone();
         stream::once(async move {
             tokio::select! {
                 () = gate.notified() => None,
-                () = cancel.cancelled() => Some(Err(rust_cli_kernel_api::model::ModelError::Cancelled)),
+                () = cancel.cancelled() => Some(Err(nibi_kernel_api::model::ModelError::Cancelled)),
             }
         })
         .filter_map(|item| async move { item })
-        .chain(stream::iter(rust_cli_kernel_api::testing::text_response(&["ok"])))
+        .chain(stream::iter(nibi_kernel_api::testing::text_response(&["ok"])))
         .boxed()
     }
 }

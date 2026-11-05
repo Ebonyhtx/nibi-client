@@ -9,13 +9,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_base::names::{DOT_DIR, WORKTREES_DIR};
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_worktree::{WorktreeCreate, WorktreeCreated};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_base::names::{DOT_DIR, WORKTREES_DIR};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_worktree::{WorktreeCreate, WorktreeCreated};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;

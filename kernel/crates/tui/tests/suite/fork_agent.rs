@@ -3,8 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use tokio_util::sync::CancellationToken;
 
 use super::support::{Setup, request_text, with_ui};

@@ -4,12 +4,12 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::{McpConnections, McpServerView, McpView};
-use rust_cli_kernel_api::orchestration::ToolRegistry;
-use rust_cli_kernel_api::testing::ScriptedInteractions;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::{McpConnections, McpServerView, McpView};
+use nibi_kernel_api::orchestration::ToolRegistry;
+use nibi_kernel_api::testing::ScriptedInteractions;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};

@@ -2,9 +2,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::cron::CronSignals;
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::cron::CronSignals;
+use nibi_kernel_api::ids::SessionId;
 
 use super::*;
 

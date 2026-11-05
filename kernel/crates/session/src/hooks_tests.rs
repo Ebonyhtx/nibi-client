@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::hooks::{HookEventName, HookOutcome};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::session_api::{
     Command, EndReason, KernelEvent, SessionHandle, StartSource, TurnOutcome,
 };
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tokio::sync::Notify;
 
 use crate::test_support::{ScriptedHooks, Setup, envelope, finished, submit, until};
 
 fn meta_message(id: &str, text: &str) -> Message {
     Message::User(UserMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new(id),
+        id: nibi_kernel_api::ids::MessageId::new(id),
         content: vec![ContentBlock::Text { text: text.into() }],
         origin: UserOrigin::Meta {
             source: "hook_additional_context".into(),
@@ -221,7 +221,7 @@ async fn a_failed_commit_fails_the_turn_without_the_input() {
     let mut events = built.session.subscribe(Some(0));
     assert!(matches!(
         built.session.send(submit("c1", "hello")).await,
-        rust_cli_kernel_api::session_api::Ack::Accepted { .. }
+        nibi_kernel_api::session_api::Ack::Accepted { .. }
     ));
     let seen = until(&mut events, finished).await;
     assert!(matches!(
@@ -238,16 +238,16 @@ async fn a_failed_commit_fails_the_turn_without_the_input() {
 struct Phased;
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::orchestration::ContextBuilder for Phased {
+impl nibi_kernel_api::orchestration::ContextBuilder for Phased {
     async fn build(
         &self,
-        _request: rust_cli_kernel_api::orchestration::ContextRequest,
+        _request: nibi_kernel_api::orchestration::ContextRequest,
         _history: &[Message],
     ) -> Result<
-        rust_cli_kernel_api::orchestration::BuiltContext,
-        rust_cli_kernel_api::orchestration::OrchestrationError,
+        nibi_kernel_api::orchestration::BuiltContext,
+        nibi_kernel_api::orchestration::OrchestrationError,
     > {
-        Ok(rust_cli_kernel_api::orchestration::BuiltContext {
+        Ok(nibi_kernel_api::orchestration::BuiltContext {
             system: Vec::new(),
             user_context: Vec::new(),
             attachments: vec![attachment("msg_date", "date")],
@@ -256,19 +256,19 @@ impl rust_cli_kernel_api::orchestration::ContextBuilder for Phased {
 
     async fn turn_attachments(
         &self,
-        _request: rust_cli_kernel_api::orchestration::ContextRequest,
+        _request: nibi_kernel_api::orchestration::ContextRequest,
         _history: &[Message],
     ) -> Result<
-        Vec<rust_cli_kernel_api::message::AttachmentMessage>,
-        rust_cli_kernel_api::orchestration::OrchestrationError,
+        Vec<nibi_kernel_api::message::AttachmentMessage>,
+        nibi_kernel_api::orchestration::OrchestrationError,
     > {
         Ok(vec![attachment("msg_turn", "total_tokens_reminder")])
     }
 }
 
-fn attachment(id: &str, source: &str) -> rust_cli_kernel_api::message::AttachmentMessage {
-    rust_cli_kernel_api::message::AttachmentMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new(id),
+fn attachment(id: &str, source: &str) -> nibi_kernel_api::message::AttachmentMessage {
+    nibi_kernel_api::message::AttachmentMessage {
+        id: nibi_kernel_api::ids::MessageId::new(id),
         source: source.into(),
         text: format!("<system-reminder>\n{id}\n</system-reminder>"),
         data: serde_json::Value::Null,

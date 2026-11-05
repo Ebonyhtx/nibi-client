@@ -16,21 +16,21 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::ids::{CommandId, MessageId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::ids::{CommandId, MessageId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, EndReason, Kernel, KernelEvent, RewindScope, SessionHandle,
     TurnOutcome,
 };
-use rust_cli_kernel_api::testing::environments;
-use rust_cli_model::{AnthropicEndpoint, ProviderModel};
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_api::testing::environments;
+use nibi_kernel_model::{AnthropicEndpoint, ProviderModel};
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
 use serde_json::{Value, json};
 
 /// 等一个命令完成的上限：本地替身几毫秒就回复，超过说明卡住了，报错退出而不是挂住检查脚本。
@@ -38,7 +38,7 @@ const WAIT: Duration = Duration::from_secs(60);
 
 async fn kernel(dir: &str, base_url: Option<&str>) -> Result<LocalKernel> {
     let root = Path::new(dir);
-    let db = root.join(rust_cli_paths::DEFAULT_SESSION_DB);
+    let db = root.join(nibi_kernel_paths::DEFAULT_SESSION_DB);
     let paths = StoragePaths::resolve(
         &StorageSettings {
             session_db_path: Some(db.to_str().context("storage dir is not UTF-8")?),

@@ -8,10 +8,10 @@
 
 use std::collections::{BTreeMap, VecDeque};
 
-use rust_cli_kernel_api::message::{StopReason, Usage};
-use rust_cli_kernel_api::model::ModelEvent;
-use rust_cli_kernel_api::provider::WireProtocol;
-use rust_cli_net::sse::SseEvent;
+use nibi_kernel_api::message::{StopReason, Usage};
+use nibi_kernel_api::model::ModelEvent;
+use nibi_kernel_api::provider::WireProtocol;
+use nibi_kernel_net::sse::SseEvent;
 use serde_json::{Value, json};
 
 use crate::errors::{self, Finish, Vendor, Verdict};

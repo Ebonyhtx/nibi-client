@@ -1,12 +1,12 @@
 //! 测试用的规则与路径事实。
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{PathFacts, PathStyle};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{PathFacts, PathStyle};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::{
     PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
-use rust_cli_kernel_api::plan::PlanFiles;
+use nibi_kernel_api::plan::PlanFiles;
 
 use crate::check::{Check, Inputs};
 use crate::paths::PathContext;

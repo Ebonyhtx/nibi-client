@@ -3,13 +3,13 @@
 
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::Value;
 
 use super::config::{McpScope, McpServer};
 
 /// `${VAR}` 与 `${VAR:-默认}` 展开：规则只有一份，在 kernel-api（远端的执行器也用它，remote-exec.md §22.7）。
-pub use rust_cli_kernel_api::mcp_vars::expand_vars;
+pub use nibi_kernel_api::mcp_vars::expand_vars;
 
 fn strings(value: Option<&Value>) -> Vec<String> {
     value

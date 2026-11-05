@@ -7,7 +7,7 @@
 //! 写入”按那个子命令询问；有子 shell 时询问 shell operators；全部放行才放行（顶层有 `&` 时改成询问一次，guarded 不问）；
 //! 只有一个不放行且它是询问时按它询问；其余列出需要批准的部分。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use crate::bash_compound::{self, BACKGROUND, SHELL_OPERATORS, Split};
 use crate::bash_subst;

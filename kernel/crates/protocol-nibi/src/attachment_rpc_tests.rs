@@ -7,16 +7,16 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::attachment::{AttachmentPayload, StoredAttachment};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::attachment::{AttachmentPayload, StoredAttachment};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Kernel, KernelError, SessionHandle,
 };
-use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
-use rust_cli_protocol_core::connection::{self, Options, Service};
+use nibi_kernel_api::store::{SessionFilter, SessionSummary};
+use nibi_kernel_protocol_core::connection::{self, Options, Service};
 use serde_json::{Value, json};
 
 use super::authorize;
@@ -27,7 +27,7 @@ const NOW_MS: u64 = 1_760_000_000_000;
 
 struct FixedClock;
 
-impl rust_cli_kernel_api::clock::Clock for FixedClock {
+impl nibi_kernel_api::clock::Clock for FixedClock {
     fn now_ms(&self) -> u64 {
         NOW_MS
     }
@@ -79,7 +79,7 @@ impl Default for FakeKernel {
 impl Kernel for FakeKernel {
     async fn create_session(
         &self,
-        _request: rust_cli_kernel_api::session_api::CreateSession,
+        _request: nibi_kernel_api::session_api::CreateSession,
     ) -> Result<SessionId, KernelError> {
         Err(KernelError::Unsupported {
             what: "session creation".to_owned(),
@@ -129,8 +129,8 @@ impl Kernel for FakeKernel {
     async fn read_attachment(
         &self,
         session: &SessionId,
-        _workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-        source: rust_cli_kernel_api::attachment::AttachmentSource,
+        _workspace: &nibi_kernel_api::env::WorkspaceRef,
+        source: nibi_kernel_api::attachment::AttachmentSource,
         media_type: &str,
     ) -> Result<AttachmentPayload, KernelError> {
         if self.unsupported {
@@ -139,8 +139,8 @@ impl Kernel for FakeKernel {
             });
         }
         let reference = match source {
-            rust_cli_kernel_api::attachment::AttachmentSource::Artifact { uri } => uri,
-            rust_cli_kernel_api::attachment::AttachmentSource::Path { path } => path,
+            nibi_kernel_api::attachment::AttachmentSource::Artifact { uri } => uri,
+            nibi_kernel_api::attachment::AttachmentSource::Path { path } => path,
         };
         self.seen
             .reads
@@ -159,7 +159,7 @@ fn server(kernel: Arc<FakeKernel>) -> Arc<Server> {
     let scope = TaskScope::root("attachment-rpc-test", |_| {});
     let (out, _host_in) = tokio::io::duplex(1 << 16);
     let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
-    let clock: Arc<dyn rust_cli_kernel_api::clock::Clock> = Arc::new(FixedClock);
+    let clock: Arc<dyn nibi_kernel_api::clock::Clock> = Arc::new(FixedClock);
     let context = Arc::new(Context::new(peer, clock));
     Arc::new(Server::new(
         context,
@@ -207,7 +207,7 @@ async fn request_error(
     server: Arc<Server>,
     method: &str,
     params: Value,
-) -> rust_cli_protocol_core::rpc::RpcError {
+) -> nibi_kernel_protocol_core::rpc::RpcError {
     match Handler(server).request(method, params).await {
         Ok(_) => panic!("expected {method} to fail"),
         Err(error) => error,

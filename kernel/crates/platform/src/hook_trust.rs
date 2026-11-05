@@ -7,8 +7,8 @@
 
 use std::time::Duration;
 
-use rust_cli_kernel_api::hooks::NODE_EVENTS;
-use rust_cli_paths::StoragePath;
+use nibi_kernel_api::hooks::NODE_EVENTS;
+use nibi_kernel_paths::StoragePath;
 use serde_json::{Map, Value, json};
 
 /// `eventAtGrant` 只允许 Node 的 7 个事件：表只定义在 kernel-api，这里按名字比较（F58：以前另写了一份字符串表）。
@@ -17,7 +17,7 @@ fn node_event(name: &str) -> bool {
 }
 
 /// Node `DEFAULT_RENAME_RETRY_DELAYS_MS`（定义在 fs，F55）。
-const RENAME_RETRY: &[Duration] = rust_cli_fs::NODE_RENAME_RETRY;
+const RENAME_RETRY: &[Duration] = nibi_kernel_fs::NODE_RENAME_RETRY;
 
 /// 一条信任记录（Node `WorkspaceHookTrustRecord`，字段顺序即 schema 顺序）。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -266,7 +266,7 @@ impl HookTrustStore {
 
     /// 读当前记录（不加锁：写入是原子 rename，读到的总是完整的一版）。
     pub async fn load(&self) -> TrustLoad {
-        match rust_cli_fs::read_optional(self.file.as_path()).await {
+        match nibi_kernel_fs::read_optional(self.file.as_path()).await {
             Ok(None) => TrustLoad::Missing,
             Ok(Some(bytes)) => parse_store(&bytes).map_or(TrustLoad::Corrupt, TrustLoad::Records),
             Err(_) => TrustLoad::Corrupt,
@@ -319,12 +319,12 @@ impl HookTrustStore {
     ) -> Result<(), TrustError> {
         let file = self.file.as_path();
         if let Some(parent) = file.parent() {
-            rust_cli_fs::create_private_dir_all(parent).await?;
+            nibi_kernel_fs::create_private_dir_all(parent).await?;
         }
-        let options = rust_cli_fs::SingleLockOptions::default();
+        let options = nibi_kernel_fs::SingleLockOptions::default();
         let mut outcome = Ok(());
-        rust_cli_fs::with_single_file_lock(file, &options, async {
-            let current = match rust_cli_fs::read_optional(file).await? {
+        nibi_kernel_fs::with_single_file_lock(file, &options, async {
+            let current = match nibi_kernel_fs::read_optional(file).await? {
                 None => Vec::new(),
                 Some(bytes) => match parse_store(&bytes) {
                     Some(records) => records,
@@ -340,13 +340,13 @@ impl HookTrustStore {
                 "{}\n",
                 serde_json::to_string_pretty(&store).map_err(std::io::Error::other)?
             );
-            let write = rust_cli_fs::WriteOptions {
-                mode: rust_cli_fs::FileMode::Private,
-                temp_name: rust_cli_fs::TempName::Hidden,
-                parent: rust_cli_fs::ParentDir::Existing,
+            let write = nibi_kernel_fs::WriteOptions {
+                mode: nibi_kernel_fs::FileMode::Private,
+                temp_name: nibi_kernel_fs::TempName::Hidden,
+                parent: nibi_kernel_fs::ParentDir::Existing,
                 rename_retry: RENAME_RETRY,
             };
-            rust_cli_fs::atomic_write(file, text.as_bytes(), write).await
+            nibi_kernel_fs::atomic_write(file, text.as_bytes(), write).await
         })
         .await?;
         outcome
@@ -358,10 +358,10 @@ impl HookTrustStore {
 mod tests;
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
-    async fn load(&self, identity: &str) -> rust_cli_kernel_api::hook_review::HookTrustSnapshot {
+impl nibi_kernel_api::hook_review::HookTrust for HookTrustStore {
+    async fn load(&self, identity: &str) -> nibi_kernel_api::hook_review::HookTrustSnapshot {
         match HookTrustStore::load(self).await {
-            TrustLoad::Records(records) => rust_cli_kernel_api::hook_review::HookTrustSnapshot {
+            TrustLoad::Records(records) => nibi_kernel_api::hook_review::HookTrustSnapshot {
                 trusted: records
                     .iter()
                     .filter(|record| record.workspace_identity == identity)
@@ -369,8 +369,8 @@ impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
                     .collect(),
                 corrupt: false,
             },
-            TrustLoad::Missing => rust_cli_kernel_api::hook_review::HookTrustSnapshot::default(),
-            TrustLoad::Corrupt => rust_cli_kernel_api::hook_review::HookTrustSnapshot {
+            TrustLoad::Missing => nibi_kernel_api::hook_review::HookTrustSnapshot::default(),
+            TrustLoad::Corrupt => nibi_kernel_api::hook_review::HookTrustSnapshot {
                 corrupt: true,
                 ..Default::default()
             },
@@ -381,11 +381,11 @@ impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
     async fn grant(
         &self,
         identity: &str,
-        grants: Vec<rust_cli_kernel_api::hook_review::HookTrustGrant>,
+        grants: Vec<nibi_kernel_api::hook_review::HookTrustGrant>,
         now_ms: u64,
-    ) -> Result<usize, rust_cli_kernel_api::hook_review::HookTrustError> {
+    ) -> Result<usize, nibi_kernel_api::hook_review::HookTrustError> {
         let count = grants.len();
-        let granted_at = rust_cli_base::js::date::iso_timestamp(now_ms);
+        let granted_at = nibi_kernel_base::js::date::iso_timestamp(now_ms);
         let records: Vec<TrustRecord> = grants
             .into_iter()
             .map(|grant| TrustRecord {
@@ -408,9 +408,9 @@ impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
             .await
             .map_err(|error| match error {
                 TrustError::Corrupt => {
-                    rust_cli_kernel_api::hook_review::HookTrustError::Corrupt
+                    nibi_kernel_api::hook_review::HookTrustError::Corrupt
                 }
-                other => rust_cli_kernel_api::hook_review::HookTrustError::Failed {
+                other => nibi_kernel_api::hook_review::HookTrustError::Failed {
                     reason: other.to_string(),
                 },
             })?;
@@ -422,7 +422,7 @@ impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
         &self,
         identity: &str,
         digests: Option<&[String]>,
-    ) -> Result<usize, rust_cli_kernel_api::hook_review::HookTrustError> {
+    ) -> Result<usize, nibi_kernel_api::hook_review::HookTrustError> {
         let removed = match HookTrustStore::load(self).await {
             TrustLoad::Records(records) => records
                 .iter()
@@ -438,9 +438,9 @@ impl rust_cli_kernel_api::hook_review::HookTrust for HookTrustStore {
             .await
             .map_err(|error| match error {
                 TrustError::Corrupt => {
-                    rust_cli_kernel_api::hook_review::HookTrustError::Corrupt
+                    nibi_kernel_api::hook_review::HookTrustError::Corrupt
                 }
-                other => rust_cli_kernel_api::hook_review::HookTrustError::Failed {
+                other => nibi_kernel_api::hook_review::HookTrustError::Failed {
                     reason: other.to_string(),
                 },
             })?;

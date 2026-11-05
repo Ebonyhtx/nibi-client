@@ -89,7 +89,7 @@ pub(crate) fn now_ms() -> f64 {
 /// RandomState 的随机种子区分 pid 复用后的进程（与临时文件名同一做法）。
 fn random_base36() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let mut hasher = rust_cli_base::random::hasher();
+    let mut hasher = nibi_kernel_base::random::hasher();
     hasher.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
     let mut value = hasher.finish();
     let mut out = String::new();

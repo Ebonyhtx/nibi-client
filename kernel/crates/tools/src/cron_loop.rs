@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::ids::SessionId;
 
 use crate::cron_board::{CronBoard, Job, JobKind, State};
 use crate::cron_expr::{self, RECURRING_MAX_AGE_MS};

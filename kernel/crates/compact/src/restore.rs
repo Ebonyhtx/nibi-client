@@ -7,19 +7,19 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{OperationContext, Origin};
-use rust_cli_kernel_api::ids::{Generation, OwnerEpoch, ToolUseId};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::message::{AttachmentMessage, ContentBlock, Message, ToolResultContent};
-use rust_cli_kernel_api::orchestration::{CompactRequest, ToolRegistry};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::ArtifactStore;
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_prompts::compact as texts;
-use rust_cli_prompts::reminder;
-use rust_cli_prompts::texts::render;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{OperationContext, Origin};
+use nibi_kernel_api::ids::{Generation, OwnerEpoch, ToolUseId};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::message::{AttachmentMessage, ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::orchestration::{CompactRequest, ToolRegistry};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::ArtifactStore;
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_prompts::compact as texts;
+use nibi_kernel_prompts::reminder;
+use nibi_kernel_prompts::texts::render;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 

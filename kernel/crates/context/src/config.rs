@@ -29,8 +29,8 @@ impl Default for Attribution {
     /// NIBI 的署名（用户决定，见 context.md §4.6）。
     fn default() -> Self {
         Self {
-            commit: Some(rust_cli_prompts::texts::attribution_commit_value().to_owned()),
-            pr: Some(rust_cli_prompts::texts::attribution_pr_value().to_owned()),
+            commit: Some(nibi_kernel_prompts::texts::attribution_commit_value().to_owned()),
+            pr: Some(nibi_kernel_prompts::texts::attribution_pr_value().to_owned()),
         }
     }
 }

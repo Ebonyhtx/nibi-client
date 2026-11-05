@@ -1,12 +1,12 @@
 //! 内核会话 API 的本地实现（[`Kernel`]）：建会话、打开会话（冷加载）、列出会话。
 
 use super::*;
-use rust_cli_kernel_api::permission::ExecutionState;
+use nibi_kernel_api::permission::ExecutionState;
 
 /// 引擎的业务拒绝 → `KernelError::Failed`，消息以 Node 的 fault 前缀开头（协议层原样上行 reasonCode）。
 fn workflow_fault(
     prefix: &str,
-    error: rust_cli_kernel_api::workflow::WorkflowEngineError,
+    error: nibi_kernel_api::workflow::WorkflowEngineError,
 ) -> KernelError {
     let message = match error.message.filter(|message| !message.is_empty()) {
         Some(message) => format!("{prefix}{}: {message}", error.reason),
@@ -28,8 +28,8 @@ fn failed(error: &StoreError) -> KernelError {
 
 /// MCP Apps 的错误 → 内核错误：能力缺失是 `Unsupported`，其余（未授权、连接不可用、服务器错误）
 /// 都是 `Failed`，协议层按消息映射错误码。
-fn mcp_ui_error(error: rust_cli_kernel_api::mcp_ui::McpUiError) -> KernelError {
-    use rust_cli_kernel_api::mcp_ui::McpUiError;
+fn mcp_ui_error(error: nibi_kernel_api::mcp_ui::McpUiError) -> KernelError {
+    use nibi_kernel_api::mcp_ui::McpUiError;
     match error {
         McpUiError::Unsupported { server, operation } => KernelError::Unsupported {
             what: format!("MCP server \"{server}\" {operation}"),
@@ -46,7 +46,7 @@ fn tool_output_text(output: &ToolOutput) -> String {
         .content
         .iter()
         .find_map(|content| match content {
-            rust_cli_kernel_api::message::ToolResultContent::Text { text } => Some(text.clone()),
+            nibi_kernel_api::message::ToolResultContent::Text { text } => Some(text.clone()),
             _ => None,
         })
         .unwrap_or_else(|| "the tool call was rejected".to_owned())
@@ -139,7 +139,7 @@ impl LocalKernel {
     async fn apply_session_plugin_snapshot(
         &self,
         session: &SessionId,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
         parent: Option<&SessionId>,
     ) {
         let Some(loader) = &self.plugin_loader else {
@@ -169,12 +169,12 @@ impl LocalKernel {
         }
         // 会话自己要一套 MCP 连接时，进程级配置的服务器也要在场（Node 的 App runtimeConfig.mcp
         // 同时含 CLI 配置与插件服务器）。
-        let servers: Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer> = self
+        let servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer> = self
             .ext
             .base_mcp_servers()
             .into_iter()
             .chain(plugin_servers)
-            .map(|server| rust_cli_kernel_api::mcp_session::SessionMcpServer {
+            .map(|server| nibi_kernel_api::mcp_session::SessionMcpServer {
                 name: server.name,
                 transport: server.transport,
                 always_load: server.options.always_load,
@@ -193,14 +193,14 @@ impl Kernel for LocalKernel {
     }
 
     /// 后台通知中心（DWF run 的终态通知进父会话；升级提示同路）。
-    fn workflow_notices(&self) -> Option<std::sync::Arc<dyn rust_cli_kernel_api::workflow::WorkflowNotices>> {
+    fn workflow_notices(&self) -> Option<std::sync::Arc<dyn nibi_kernel_api::workflow::WorkflowNotices>> {
         Some(self.actors.clone())
     }
 
     /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（actor 的忙闲沿 + 引擎客户端的开集沿）。
     fn workflow_blocked(
         &self,
-    ) -> Option<std::sync::Arc<dyn rust_cli_kernel_api::workflow::WorkflowBlockedEdges>> {
+    ) -> Option<std::sync::Arc<dyn nibi_kernel_api::workflow::WorkflowBlockedEdges>> {
         Some(self.blocked.clone())
     }
 
@@ -208,8 +208,8 @@ impl Kernel for LocalKernel {
     /// 会话不在本进程（已关闭）时返回 false，引擎客户端只记日志。
     fn note_workflow_lifecycle(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-        fact: rust_cli_kernel_api::session_api::WorkflowLifecycleFact,
+        session: &nibi_kernel_api::ids::SessionId,
+        fact: nibi_kernel_api::session_api::WorkflowLifecycleFact,
     ) -> bool {
         let sessions = self
             .sessions
@@ -227,8 +227,8 @@ impl Kernel for LocalKernel {
     /// DWF 引擎的实时进度写进父会话事件流（快照 `workflowRuns` 的实时来源）。
     fn note_workflow_run_progress(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-        progress: rust_cli_kernel_api::workflow::WorkflowRunProgress,
+        session: &nibi_kernel_api::ids::SessionId,
+        progress: nibi_kernel_api::workflow::WorkflowRunProgress,
     ) -> bool {
         let sessions = self
             .sessions
@@ -255,11 +255,11 @@ impl Kernel for LocalKernel {
             let home = self
                 .machine
                 .info()
-                .facts(&rust_cli_kernel_api::env::WorkspaceRef {
-                    environment: rust_cli_kernel_api::ids::EnvironmentId::new(
-                        rust_cli_kernel_api::env_registry::LOCAL_MACHINE,
+                .facts(&nibi_kernel_api::env::WorkspaceRef {
+                    environment: nibi_kernel_api::ids::EnvironmentId::new(
+                        nibi_kernel_api::env_registry::LOCAL_MACHINE,
                     ),
-                    root: rust_cli_kernel_api::env::EnvPath::new(workspace_path.to_owned()),
+                    root: nibi_kernel_api::env::EnvPath::new(workspace_path.to_owned()),
                 })
                 .await
                 .ok()
@@ -382,7 +382,7 @@ impl Kernel for LocalKernel {
         cwd: Option<String>,
         name: Option<String>,
         limit: usize,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunPageRow>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowRunPageRow>, KernelError> {
         self.ports
         .store
         .workflow_runs_page(cwd, name, limit)
@@ -393,14 +393,14 @@ impl Kernel for LocalKernel {
     /// 旧会话的询问（agents.md §4.1.2，工作线 F72）。
     fn detached_asks(
         &self,
-    ) -> futures_util::stream::BoxStream<'static, rust_cli_kernel_api::orchestration::DetachedEvent>
+    ) -> futures_util::stream::BoxStream<'static, nibi_kernel_api::orchestration::DetachedEvent>
     {
         self.detached.subscribe()
     }
 
     async fn resolve_detached(
         &self,
-        interaction: &rust_cli_kernel_api::ids::InteractionId,
+        interaction: &nibi_kernel_api::ids::InteractionId,
         answer: serde_json::Value,
     ) -> Result<(), KernelError> {
         self.detached.resolve(interaction, answer).await
@@ -451,9 +451,9 @@ impl Kernel for LocalKernel {
         title: Option<String>,
         created_at_ms: Option<u64>,
         parent: Option<SessionId>,
-        history: Vec<rust_cli_kernel_api::session_api::ImportedMessage>,
+        history: Vec<nibi_kernel_api::session_api::ImportedMessage>,
     ) -> Result<SessionId, KernelError> {
-        use rust_cli_kernel_api::message::{
+        use nibi_kernel_api::message::{
             AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin,
         };
 
@@ -616,13 +616,13 @@ impl Kernel for LocalKernel {
     /// `/context`（context-usage.md §2）：有会话时按会话 actor 的当前视图（历史、模型、模式），只读。
     async fn context_usage(
         &self,
-        query: rust_cli_kernel_api::context_usage::ContextUsageQuery,
-    ) -> Result<rust_cli_kernel_api::context_usage::ContextUsage, KernelError> {
+        query: nibi_kernel_api::context_usage::ContextUsageQuery,
+    ) -> Result<nibi_kernel_api::context_usage::ContextUsage, KernelError> {
         let Some(session) = &query.session else {
             return self.usage.analyze(query, &[]).await;
         };
         let view = self.open_session(session).await?.view().await?;
-        let query = rust_cli_kernel_api::context_usage::ContextUsageQuery {
+        let query = nibi_kernel_api::context_usage::ContextUsageQuery {
             selection: view.selection,
             // 判决用的模式（plan 开时是 plan，修复线 F20）。
             mode: ExecutionState::from_parts(view.mode, view.plan).effective(),
@@ -634,9 +634,9 @@ impl Kernel for LocalKernel {
     /// `@` 补全的文件清单（tui-input.md §1.2）：执行环境从工作区根遍历（遵守忽略规则）。
     async fn workspace_files(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
     ) -> Result<Vec<String>, KernelError> {
-        let request = rust_cli_kernel_api::env_files::ListFiles {
+        let request = nibi_kernel_api::env_files::ListFiles {
             cwd: workspace.root.clone(),
         };
         self.machine
@@ -652,36 +652,36 @@ impl Kernel for LocalKernel {
     /// `-p` 的 stream-json 的 system/init：会话可用的工具、agent 与 skill（headless.md §3.3）。
     async fn session_catalog(
         &self,
-        query: rust_cli_kernel_api::catalog::CatalogQuery,
-    ) -> Result<rust_cli_kernel_api::catalog::SessionCatalog, KernelError> {
+        query: nibi_kernel_api::catalog::CatalogQuery,
+    ) -> Result<nibi_kernel_api::catalog::SessionCatalog, KernelError> {
         Ok(catalog::catalog(&self.usage, &query).await)
     }
 
     /// `/mcp`、`/status`：ext 的连接管理给出的状态（tui-display.md §3.4）。
-    async fn mcp_servers(&self) -> Vec<rust_cli_kernel_api::manage::McpServerInfo> {
+    async fn mcp_servers(&self) -> Vec<nibi_kernel_api::manage::McpServerInfo> {
         self.ext.mcp().server_infos()
     }
 
     /// `mcp/list`（141 审计 §9 第 6 项）：状态页专属的连接集合，与会话级/进程级的连接分开。
     async fn mcp_list(
         &self,
-        request: rust_cli_kernel_api::mcp_status::McpListRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_status::McpServerStatus>, KernelError> {
+        request: nibi_kernel_api::mcp_status::McpListRequest,
+    ) -> Result<Vec<nibi_kernel_api::mcp_status::McpServerStatus>, KernelError> {
         Ok(self.ext.mcp_list(request).await)
     }
 
     /// `mcp/uiOpenInstance`（141 审计 §9 第 6 项 F7）：页面实例凭证。
     async fn mcp_ui_open(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiOpenRequest,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpAppInstance, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiOpenRequest,
+    ) -> Result<nibi_kernel_api::mcp_ui::McpAppInstance, KernelError> {
         self.ext.mcp_ui_open(request).await.map_err(mcp_ui_error)
     }
 
     /// `mcp/uiCloseInstance`：`only_if_idle` 时只关没有进行中调用的实例。
     async fn mcp_ui_close(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiInstanceRequest,
         only_if_idle: bool,
     ) -> Result<bool, KernelError> {
         self.ext
@@ -693,7 +693,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiValidateInstance`：凭证、作用域与当前连接三者都对上才算有效。
     async fn mcp_ui_validate(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiInstanceRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiInstanceRequest,
     ) -> Result<(), KernelError> {
         self.ext.mcp_ui_validate(request).await.map_err(mcp_ui_error)
     }
@@ -701,16 +701,16 @@ impl Kernel for LocalKernel {
     /// `mcp/readResource`：宿主取页面 HTML（必须等于实例绑定的资源）。
     async fn mcp_ui_read_resource(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<nibi_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
         self.ext.mcp_ui_read_resource(request).await.map_err(mcp_ui_error)
     }
 
     /// `mcp/uiReadResource`：页面发起的资源读取。
     async fn mcp_ui_read_resource_for_ui(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiReadRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiReadRequest,
+    ) -> Result<Vec<nibi_kernel_api::mcp_ui::McpResourceContent>, KernelError> {
         self.ext
             .mcp_ui_read_resource_for_ui(request)
             .await
@@ -720,8 +720,8 @@ impl Kernel for LocalKernel {
     /// `mcp/uiListResources`：页面发起的 `resources/list`。
     async fn mcp_ui_list_resources(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourcePage, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiListRequest,
+    ) -> Result<nibi_kernel_api::mcp_ui::McpResourcePage, KernelError> {
         self.ext
             .mcp_ui_list_resources(request)
             .await
@@ -731,8 +731,8 @@ impl Kernel for LocalKernel {
     /// `mcp/uiListResourceTemplates`：页面发起的 `resources/templates/list`。
     async fn mcp_ui_list_resource_templates(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiListRequest,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpResourceTemplatePage, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiListRequest,
+    ) -> Result<nibi_kernel_api::mcp_ui::McpResourceTemplatePage, KernelError> {
         self.ext
             .mcp_ui_list_resource_templates(request)
             .await
@@ -742,7 +742,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiSubscribeResource`：页面订阅一个资源。
     async fn mcp_ui_subscribe(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiSubscriptionRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiSubscriptionRequest,
     ) -> Result<(), KernelError> {
         self.ext.mcp_ui_subscribe(request).await.map_err(mcp_ui_error)
     }
@@ -750,7 +750,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiUnsubscribeResource`：页面退订一个资源。
     async fn mcp_ui_unsubscribe(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiSubscriptionRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiSubscriptionRequest,
     ) -> Result<(), KernelError> {
         self.ext
             .mcp_ui_unsubscribe(request)
@@ -765,7 +765,7 @@ impl Kernel for LocalKernel {
     /// 结果也不落库：页面拿到的是 MCP 的原始 `CallToolResult`。
     async fn mcp_ui_call_tool(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiCallToolRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiCallToolRequest,
     ) -> Result<serde_json::Value, KernelError> {
         let session_id = request.instance.scope.session.clone();
         // Node 的 `requireSession`：只认本进程里打开着的会话（不冷加载存储）。
@@ -831,7 +831,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiCancelCall`：取消进行中的页面工具调用；没有时 `false`（幂等）。
     async fn mcp_ui_cancel_call(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiCancelCallRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiCancelCallRequest,
     ) -> Result<bool, KernelError> {
         let session_id = request.instance.scope.session.clone();
         if self.settled(&session_id).await.is_none() {
@@ -846,8 +846,8 @@ impl Kernel for LocalKernel {
     /// `mcp/uiRegisterAppTools`：登记页面实例的工具；模型工具表在下一步请求里看到它们。
     async fn mcp_ui_register_app_tools(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiRegisterAppToolsRequest,
-    ) -> Result<Vec<rust_cli_kernel_api::mcp_ui::McpUiAppToolRegistration>, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiRegisterAppToolsRequest,
+    ) -> Result<Vec<nibi_kernel_api::mcp_ui::McpUiAppToolRegistration>, KernelError> {
         let session = request.instance.scope.session.clone();
         if self.settled(&session).await.is_none() {
             return Err(KernelError::NotFound { session });
@@ -861,7 +861,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiUnregisterAppTools`：收回实例的工具。会话已经关闭时按幂等处理（`removed: 0`）。
     async fn mcp_ui_unregister_app_tools(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiUnregisterAppToolsRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiUnregisterAppToolsRequest,
     ) -> Result<usize, KernelError> {
         let session = request.instance.scope.session.clone();
         if self.settled(&session).await.is_none() {
@@ -875,7 +875,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiClaimAppToolCall`：渲染端认领待执行调用。
     async fn mcp_ui_claim_app_tool_call(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiClaimAppToolCallRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiClaimAppToolCallRequest,
     ) -> Result<bool, KernelError> {
         let session = request.instance.scope.session.clone();
         if self.settled(&session).await.is_none() {
@@ -890,7 +890,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiResolveAppToolCall`：页面回传执行结果或错误。
     async fn mcp_ui_resolve_app_tool_call(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiResolveAppToolCallRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiResolveAppToolCallRequest,
     ) -> Result<bool, KernelError> {
         let session = request.instance.scope.session.clone();
         if self.settled(&session).await.is_none() {
@@ -905,8 +905,8 @@ impl Kernel for LocalKernel {
     /// `mcp/uiSampling`：页面请求宿主模型采样一次（回合外的一次性模型请求）。
     async fn mcp_ui_sampling(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiSamplingRequest,
-    ) -> Result<rust_cli_kernel_api::mcp_ui::McpUiSamplingResult, KernelError> {
+        request: nibi_kernel_api::mcp_ui::McpUiSamplingRequest,
+    ) -> Result<nibi_kernel_api::mcp_ui::McpUiSamplingResult, KernelError> {
         let session_id = request.instance.scope.session.clone();
         let Some(session) = self.settled(&session_id).await else {
             return Err(KernelError::NotFound { session: session_id });
@@ -922,7 +922,7 @@ impl Kernel for LocalKernel {
     /// `mcp/uiCancelSampling`：取消进行中的采样；没有时 `false`（幂等）。
     async fn mcp_ui_cancel_sampling(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
     ) -> Result<bool, KernelError> {
         let session = request.instance.scope.session.clone();
         if self.settled(&session).await.is_none() {
@@ -938,8 +938,8 @@ impl Kernel for LocalKernel {
     async fn start_session_mcp(
         &self,
         session: &SessionId,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-        servers: Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer>,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer>,
     ) -> Result<(), KernelError> {
         self.ext.start_session_mcp(session, workspace, servers);
         Ok(())
@@ -957,7 +957,7 @@ impl Kernel for LocalKernel {
     async fn set_session_directories(
         &self,
         session: &SessionId,
-        directories: Vec<rust_cli_kernel_api::env::EnvPath>,
+        directories: Vec<nibi_kernel_api::env::EnvPath>,
     ) -> Result<(), KernelError> {
         self.directories.set(session, directories);
         Ok(())
@@ -995,8 +995,8 @@ impl Kernel for LocalKernel {
     /// 恢复的会话；键是工作区根，与 `create_session` 的 `WorkspaceRef` 对上。
     async fn update_dynamic_workflow_policy(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-        gate: rust_cli_kernel_api::session_api::DynamicWorkflowGate,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        gate: nibi_kernel_api::session_api::DynamicWorkflowGate,
     ) -> Result<(), KernelError> {
         self.dynamic_workflow
             .lock()
@@ -1010,7 +1010,7 @@ impl Kernel for LocalKernel {
     async fn set_session_dynamic_workflow(
         &self,
         session: &SessionId,
-        gate: rust_cli_kernel_api::session_api::DynamicWorkflowGate,
+        gate: nibi_kernel_api::session_api::DynamicWorkflowGate,
     ) -> Result<(), KernelError> {
         self.gate.set_dynamic_workflow(session, gate);
         Ok(())
@@ -1020,9 +1020,9 @@ impl Kernel for LocalKernel {
     async fn load_attachment(
         &self,
         session: &SessionId,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-        source: rust_cli_kernel_api::attachment::AttachmentSource,
-    ) -> Result<rust_cli_kernel_api::attachment::LoadedAttachment, KernelError> {
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        source: nibi_kernel_api::attachment::AttachmentSource,
+    ) -> Result<nibi_kernel_api::attachment::LoadedAttachment, KernelError> {
         self.attachment_content(session, workspace, source).await
     }
 
@@ -1033,7 +1033,7 @@ impl Kernel for LocalKernel {
         _file_name: &str,
         media_type: &str,
         bytes: Vec<u8>,
-    ) -> Result<rust_cli_kernel_api::attachment::StoredAttachment, KernelError> {
+    ) -> Result<nibi_kernel_api::attachment::StoredAttachment, KernelError> {
         self.store_attachment_content(session, media_type, bytes)
             .await
     }
@@ -1042,36 +1042,36 @@ impl Kernel for LocalKernel {
     async fn read_attachment(
         &self,
         session: &SessionId,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-        source: rust_cli_kernel_api::attachment::AttachmentSource,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        source: nibi_kernel_api::attachment::AttachmentSource,
         media_type: &str,
-    ) -> Result<rust_cli_kernel_api::attachment::AttachmentPayload, KernelError> {
+    ) -> Result<nibi_kernel_api::attachment::AttachmentPayload, KernelError> {
         self.read_attachment_content(session, workspace, source, media_type)
             .await
     }
 
     /// `process/childProcesses`：仍在运行的 MCP 子进程（pid 与归属）。
-    async fn mcp_child_processes(&self) -> Vec<rust_cli_kernel_api::mcp_state::McpChildProcess> {
+    async fn mcp_child_processes(&self) -> Vec<nibi_kernel_api::mcp_state::McpChildProcess> {
         // 进程级配置与会话级连接都算（NIBI 的桌面会话走会话级），同一 manager 被继承时只列一次。
         self.ext.mcp_child_processes()
     }
 
-    async fn mcp_resource_targets(&self) -> Vec<rust_cli_kernel_api::process_table::McpResourceTarget> {
+    async fn mcp_resource_targets(&self) -> Vec<nibi_kernel_api::process_table::McpResourceTarget> {
         self.ext.mcp_resource_targets()
     }
 
     /// NIBI `requestWorkspaceHookReview` 的数据来源：工作区钩子当前的信任快照（只读）。
     async fn workspace_hook_review(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-    ) -> Result<rust_cli_kernel_api::hook_review::WorkspaceHookReview, KernelError> {
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Result<nibi_kernel_api::hook_review::WorkspaceHookReview, KernelError> {
         self.hook_review_snapshot(workspace).await
     }
 
     /// NIBI `respondWorkspaceHookReview`：按评审项授权持久信任，返回写入条数。
     async fn grant_workspace_hooks(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
         review_item_ids: &[String],
     ) -> Result<usize, KernelError> {
         self.grant_hooks(workspace, review_item_ids).await
@@ -1080,7 +1080,7 @@ impl Kernel for LocalKernel {
     /// NIBI `revokeWorkspaceHookTrust`：按声明摘要撤销持久信任，返回撤掉的条数。
     async fn revoke_workspace_hooks(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
         declaration_digests: &[String],
     ) -> Result<usize, KernelError> {
         self.revoke_hooks(workspace, declaration_digests).await
@@ -1089,7 +1089,7 @@ impl Kernel for LocalKernel {
     /// NIBI `toggleWorkspaceHookReviewItem`：在可编辑的项目配置里改一条钩子的 `enabled`。
     async fn set_workspace_hook_enabled(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
         review_item_id: &str,
         enabled: bool,
     ) -> Result<(), KernelError> {
@@ -1100,7 +1100,7 @@ impl Kernel for LocalKernel {
     async fn shared_context_import(
         &self,
         session: &SessionId,
-    ) -> Result<Option<rust_cli_kernel_api::shared_context::SharedContextImportState>, KernelError>
+    ) -> Result<Option<nibi_kernel_api::shared_context::SharedContextImportState>, KernelError>
     {
         self.shared_context_state(session).await
     }
@@ -1110,7 +1110,7 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         context_id: &str,
-    ) -> Result<Option<rust_cli_kernel_api::shared_context::SharedContextImportState>, KernelError>
+    ) -> Result<Option<nibi_kernel_api::shared_context::SharedContextImportState>, KernelError>
     {
         self.discard_import(session, context_id).await
     }
@@ -1119,7 +1119,7 @@ impl Kernel for LocalKernel {
     async fn dynamic_workflow_runs(
         &self,
         session: &SessionId,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::DynamicWorkflowRun>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::DynamicWorkflowRun>, KernelError> {
         self.ports
             .store
             .workflow_runs(session)
@@ -1132,7 +1132,7 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         limit: usize,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunSummaryRow>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowRunSummaryRow>, KernelError> {
         self.ports
             .store
             .workflow_run_summaries(session, limit)
@@ -1145,8 +1145,8 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         run_id: &str,
-        query: rust_cli_kernel_api::workflow::WorkflowRunEventQuery,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunEventPage, KernelError> {
+        query: nibi_kernel_api::workflow::WorkflowRunEventQuery,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunEventPage, KernelError> {
         self.ports
             .store
             .workflow_run_events(session, run_id, query)
@@ -1159,7 +1159,7 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         run_id: &str,
-    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunArtifactDetail>>, KernelError>
+    ) -> Result<Option<Vec<nibi_kernel_api::workflow::WorkflowRunArtifactDetail>>, KernelError>
     {
         self.ports
             .store
@@ -1173,8 +1173,8 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         run_id: &str,
-        query: rust_cli_kernel_api::workflow::WorkflowRunArtifactItemQuery,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunArtifactItemPage, KernelError> {
+        query: nibi_kernel_api::workflow::WorkflowRunArtifactItemQuery,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunArtifactItemPage, KernelError> {
         self.ports
             .store
             .workflow_run_artifact_items(session, run_id, query)
@@ -1202,7 +1202,7 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         run_id: &str,
-    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunWorkspaceNode>>, KernelError>
+    ) -> Result<Option<Vec<nibi_kernel_api::workflow::WorkflowRunWorkspaceNode>>, KernelError>
     {
         self.ports
             .store
@@ -1219,7 +1219,7 @@ impl Kernel for LocalKernel {
         site_id: &str,
         ordinal: u64,
         max_bytes: u64,
-    ) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunNodeResult>, KernelError> {
+    ) -> Result<Option<nibi_kernel_api::workflow::WorkflowRunNodeResult>, KernelError> {
         self.ports
             .store
             .workflow_run_node_result(session, run_id, site_id, ordinal, max_bytes)
@@ -1231,8 +1231,8 @@ impl Kernel for LocalKernel {
     /// 时区偏移在协议层（它才拿得到请求里的 `timeZone`）。
     async fn app_usage(
         &self,
-        query: rust_cli_kernel_api::usage::AppUsageQuery,
-    ) -> Result<rust_cli_kernel_api::usage::AppUsage, KernelError> {
+        query: nibi_kernel_api::usage::AppUsageQuery,
+    ) -> Result<nibi_kernel_api::usage::AppUsage, KernelError> {
         self.ports
             .store
             .app_usage(query)
@@ -1244,7 +1244,7 @@ impl Kernel for LocalKernel {
     async fn session_usage(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::usage::SessionUsage, KernelError> {
+    ) -> Result<nibi_kernel_api::usage::SessionUsage, KernelError> {
         self.ports
             .store
             .session_usage(session)
@@ -1256,15 +1256,15 @@ impl Kernel for LocalKernel {
     async fn start_saved_workflow(
         &self,
         parent: &SessionId,
-        request: rust_cli_kernel_api::workflow::WorkflowStart,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, KernelError> {
+        request: nibi_kernel_api::workflow::WorkflowStart,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, KernelError> {
         let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
             what: "dynamic workflow engine".to_owned(),
         })?;
         engine
             .start_saved(parent, request)
             .await
-            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::SAVED_WORKFLOW_START_REJECTED, error))
+            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::SAVED_WORKFLOW_START_REJECTED, error))
     }
 
     /// NIBI `resumeWorkflowRun`。
@@ -1272,14 +1272,14 @@ impl Kernel for LocalKernel {
         &self,
         run_id: &str,
         name: Option<&str>,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, KernelError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, KernelError> {
         let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
             what: "dynamic workflow engine".to_owned(),
         })?;
         engine
             .resume(run_id, name)
             .await
-            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
+            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
     }
 
     /// `cancelBackgroundWork` 落到 DWF run 上：`workId ≡ runId`。
@@ -1290,29 +1290,29 @@ impl Kernel for LocalKernel {
         engine
             .cancel(run_id)
             .await
-            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
+            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::WORKFLOW_RUN_RESUME_REJECTED, error))
     }
 
     /// NIBI `amendWorkflowRunSettings`。
     async fn amend_workflow_run(
         &self,
-        request: rust_cli_kernel_api::workflow::WorkflowAmend,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunStarted, KernelError> {
+        request: nibi_kernel_api::workflow::WorkflowAmend,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunStarted, KernelError> {
         let engine = self.workflow_engine.as_ref().ok_or_else(|| KernelError::Unsupported {
             what: "dynamic workflow engine".to_owned(),
         })?;
         engine
             .amend(request)
             .await
-            .map_err(|error| workflow_fault(rust_cli_kernel_api::workflow::WORKFLOW_RUN_SETTINGS_REJECTED, error))
+            .map_err(|error| workflow_fault(nibi_kernel_api::workflow::WORKFLOW_RUN_SETTINGS_REJECTED, error))
     }
 
     /// 一轮 DWF actor（路线 C：引擎 sidecar 通过它跑 actor 的模型轮）。
     async fn run_workflow_actor(
         &self,
-        request: rust_cli_kernel_api::workflow::WorkflowActorRequest,
+        request: nibi_kernel_api::workflow::WorkflowActorRequest,
         cancel: Option<tokio_util::sync::CancellationToken>,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowActorTurn, KernelError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowActorTurn, KernelError> {
         let spec = request.actor;
         // actor 子会话直接经存储建、不经过内核的会话启动路径：继承父会话此刻的动态工作流门，
         // 与 Node 子代理的结构性继承同一条（Host 关灰度时 actor 也看不到三件套）。
@@ -1324,14 +1324,14 @@ impl Kernel for LocalKernel {
                 .set_dynamic_workflow(&SessionId::new(spec.child.clone()), gate);
         }
         let root = spec.workspace.unwrap_or_default();
-        let profile = rust_cli_agents::ActorProfile {
+        let profile = nibi_kernel_agents::ActorProfile {
             parent: SessionId::new(spec.parent),
             child: SessionId::new(spec.child),
-            workspace: rust_cli_kernel_api::env::WorkspaceRef {
-                environment: rust_cli_kernel_api::ids::EnvironmentId::new(
-                    rust_cli_kernel_api::env_registry::LOCAL_MACHINE,
+            workspace: nibi_kernel_api::env::WorkspaceRef {
+                environment: nibi_kernel_api::ids::EnvironmentId::new(
+                    nibi_kernel_api::env_registry::LOCAL_MACHINE,
                 ),
-                root: rust_cli_kernel_api::env::EnvPath::new(root),
+                root: nibi_kernel_api::env::EnvPath::new(root),
             },
             selection: spec.selection.unwrap_or_else(|| self.defaults.selection.clone()),
             mode: spec.mode.unwrap_or(self.defaults.mode),
@@ -1365,7 +1365,7 @@ impl Kernel for LocalKernel {
             .map_err(|error| KernelError::Failed {
                 message: error.to_string(),
             })?;
-        Ok(rust_cli_kernel_api::workflow::WorkflowActorTurn {
+        Ok(nibi_kernel_api::workflow::WorkflowActorTurn {
             child: outcome.child.as_str().to_owned(),
             text: outcome.text,
             tokens: outcome.tokens,
@@ -1383,7 +1383,7 @@ impl Kernel for LocalKernel {
         session: &SessionId,
         qid: &str,
         answer: &str,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowQuestionResolved, KernelError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowQuestionResolved, KernelError> {
         Ok(self.escalations.resolve_question(session, qid, answer).await)
     }
 
@@ -1391,15 +1391,15 @@ impl Kernel for LocalKernel {
     async fn pending_workflow_questions(
         &self,
         session: &SessionId,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowQuestion>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowQuestion>, KernelError> {
         Ok(self.escalations.pending(session))
     }
 
     /// `/plan open`：计划文件的位置（与 ExitPlanMode 同一个来源）与它有没有内容（tui-manage.md §8）。
     async fn plan_file(
         &self,
-        query: rust_cli_kernel_api::manage::PlanFileQuery,
-    ) -> Result<rust_cli_kernel_api::manage::PlanFile, KernelError> {
+        query: nibi_kernel_api::manage::PlanFileQuery,
+    ) -> Result<nibi_kernel_api::manage::PlanFile, KernelError> {
         directory::plan_file(
             self.machine.info().as_ref(),
             self.machine.files().as_ref(),
@@ -1411,16 +1411,16 @@ impl Kernel for LocalKernel {
     /// `/cd <path>`：检查路径，有会话时经会话 actor 换工作目录（tui-manage.md §7.1）。
     async fn change_directory(
         &self,
-        request: rust_cli_kernel_api::manage::ChangeDirectory,
-    ) -> Result<rust_cli_kernel_api::manage::DirectoryChanged, KernelError> {
+        request: nibi_kernel_api::manage::ChangeDirectory,
+    ) -> Result<nibi_kernel_api::manage::DirectoryChanged, KernelError> {
         directory::change(self, request).await
     }
 
     /// `/mcp reconnect|enable|disable`：经 ext 的连接管理（tui-manage.md §6.1）。
     async fn mcp_control(
         &self,
-        control: rust_cli_kernel_api::manage::McpControl,
-    ) -> Result<Vec<rust_cli_kernel_api::manage::McpServerInfo>, KernelError> {
+        control: nibi_kernel_api::manage::McpControl,
+    ) -> Result<Vec<nibi_kernel_api::manage::McpServerInfo>, KernelError> {
         Ok(self
             .ext
             .mcp()
@@ -1432,7 +1432,7 @@ impl Kernel for LocalKernel {
     async fn session_metering(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::metering::SessionMetering, KernelError> {
+    ) -> Result<nibi_kernel_api::metering::SessionMetering, KernelError> {
         self.ports
             .store
             .metering(session)
@@ -1444,7 +1444,7 @@ impl Kernel for LocalKernel {
     async fn request_stats(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::metering::RequestStats, KernelError> {
+    ) -> Result<nibi_kernel_api::metering::RequestStats, KernelError> {
         self.ports
             .store
             .request_stats(session)
@@ -1455,10 +1455,10 @@ impl Kernel for LocalKernel {
     /// 活动统计（usage.md §5）：今天与本地日的偏移取自注入的时钟，聚合在存储。
     async fn activity(
         &self,
-        range: rust_cli_kernel_api::metering::ActivityRange,
-    ) -> Result<rust_cli_kernel_api::metering::ActivityStats, KernelError> {
+        range: nibi_kernel_api::metering::ActivityRange,
+    ) -> Result<nibi_kernel_api::metering::ActivityStats, KernelError> {
         let clock = &self.ports.clock;
-        let query = rust_cli_kernel_api::metering::ActivityQuery {
+        let query = nibi_kernel_api::metering::ActivityQuery {
             range,
             today: clock.today(),
             utc_offset_minutes: clock.utc_offset_minutes(clock.now_ms()),
@@ -1474,15 +1474,15 @@ impl Kernel for LocalKernel {
     async fn workspace_sessions(
         &self,
         filter: SessionFilter,
-    ) -> Result<Vec<rust_cli_kernel_api::panels::WorkspaceSession>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::panels::WorkspaceSession>, KernelError> {
         self.overview(filter).await
     }
 
     /// ← 项目页与 `/resume` 页（修复线 F29，tui-panels.md §2.1）。
     async fn project_sessions(
         &self,
-        query: rust_cli_kernel_api::store::SessionQuery,
-    ) -> Result<rust_cli_kernel_api::panels::ProjectSessions, KernelError> {
+        query: nibi_kernel_api::store::SessionQuery,
+    ) -> Result<nibi_kernel_api::panels::ProjectSessions, KernelError> {
         self.projects(query).await
     }
 
@@ -1497,7 +1497,7 @@ impl Kernel for LocalKernel {
     async fn session_snapshot(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::session_api::SessionView, KernelError> {
+    ) -> Result<nibi_kernel_api::session_api::SessionView, KernelError> {
         self.snapshot(session).await
     }
 
@@ -1507,8 +1507,8 @@ impl Kernel for LocalKernel {
         session: &SessionId,
     ) -> Result<
         std::collections::HashMap<
-            rust_cli_kernel_api::ids::MessageId,
-            rust_cli_kernel_api::store::MessageTime,
+            nibi_kernel_api::ids::MessageId,
+            nibi_kernel_api::store::MessageTime,
         >,
         KernelError,
     > {
@@ -1522,7 +1522,7 @@ impl Kernel for LocalKernel {
     async fn set_session_tool_policy(
         &self,
         session: &SessionId,
-        policy: rust_cli_kernel_api::permission::ToolPolicy,
+        policy: nibi_kernel_api::permission::ToolPolicy,
     ) -> Result<(), KernelError> {
         self.gate.set_tool_policy(session, policy);
         Ok(())
@@ -1532,7 +1532,7 @@ impl Kernel for LocalKernel {
     async fn put_session_record(
         &self,
         session: &SessionId,
-        record: rust_cli_kernel_api::store::FrontendRecord,
+        record: nibi_kernel_api::store::FrontendRecord,
     ) -> Result<(), KernelError> {
         // 草稿（`persistence: "deferred"`）的外部活动：写前端记录（含 `v4/command_fact`）前先把会话行
         // 落下。Node 的 v4 admission 也在写 `session_input` 前持久化主记录——否则记录没有主行，首条
@@ -1556,7 +1556,7 @@ impl Kernel for LocalKernel {
         &self,
         session: &SessionId,
         kind: &str,
-    ) -> Result<Vec<rust_cli_kernel_api::store::FrontendRecord>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::store::FrontendRecord>, KernelError> {
         self.ports
             .store
             .records(session, kind)
@@ -1568,16 +1568,16 @@ impl Kernel for LocalKernel {
     }
 
     /// `/hooks`：hooks 引擎当前快照里的配置（tui-display.md §3.5）。
-    async fn hooks(&self) -> Vec<rust_cli_kernel_api::manage::HookEntry> {
+    async fn hooks(&self) -> Vec<nibi_kernel_api::manage::HookEntry> {
         self.hooks.entries()
     }
 
     /// `/diff` 的未提交改动：执行环境里 git 的原始输出（tui-manage.md §4.1）。
     async fn uncommitted_diff(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-    ) -> Result<rust_cli_kernel_api::env_git::GitDiff, KernelError> {
-        let request = rust_cli_kernel_api::env_git::GitDiffRequest {
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Result<nibi_kernel_api::env_git::GitDiff, KernelError> {
+        let request = nibi_kernel_api::env_git::GitDiffRequest {
             cwd: workspace.root.clone(),
         };
         self.local
@@ -1592,7 +1592,7 @@ impl Kernel for LocalKernel {
     /// `/export <文件名>`：经执行环境写文件（tui-manage.md §3）。
     async fn write_export(
         &self,
-        file: rust_cli_kernel_api::manage::ExportFile,
+        file: nibi_kernel_api::manage::ExportFile,
     ) -> Result<String, KernelError> {
         export::write(
             self.machine.info().as_ref(),
@@ -1607,24 +1607,24 @@ impl Kernel for LocalKernel {
     /// `/permissions` 的列表（tui-manage.md §1.1）。
     async fn permission_rules(
         &self,
-        query: rust_cli_kernel_api::permission::PermissionRulesQuery,
-    ) -> Result<Vec<rust_cli_kernel_api::permission::SourcedRule>, KernelError> {
+        query: nibi_kernel_api::permission::PermissionRulesQuery,
+    ) -> Result<Vec<nibi_kernel_api::permission::SourcedRule>, KernelError> {
         permissions::listing(&self.gate, self.ports.store.as_ref(), &query).await
     }
 
     /// `/permissions` 的修改：落库后换上新快照（tui-manage.md §1.1）。
     async fn change_permission_rules(
         &self,
-        change: rust_cli_kernel_api::permission::PermissionRulesChange,
-    ) -> Result<Vec<rust_cli_kernel_api::permission::SourcedRule>, KernelError> {
+        change: nibi_kernel_api::permission::PermissionRulesChange,
+    ) -> Result<Vec<nibi_kernel_api::permission::SourcedRule>, KernelError> {
         permissions::change(&self.gate, self.ports.store.as_ref(), change).await
     }
 
     /// TUI 的斜杠补全：ext 给出的可调用 skill（ext.md §2.7）。
     async fn user_commands(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
-    ) -> Vec<rust_cli_kernel_api::user_command::UserCommand> {
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Vec<nibi_kernel_api::user_command::UserCommand> {
         self.ext.user_commands().commands(workspace).await
     }
 }
@@ -1643,7 +1643,7 @@ fn saved_workflow_dir(home: Option<String>, workspace_path: &str, scope: &str) -
 
 /// sidecar 的失败 → 内核错误（`reason` 兜底、`message` 在场时优先——中枢读/写两面的同一条映射）。
 fn workflow_engine_failure(
-    error: rust_cli_kernel_api::workflow::WorkflowEngineError,
+    error: nibi_kernel_api::workflow::WorkflowEngineError,
 ) -> KernelError {
     KernelError::Failed {
         message: match error.message {

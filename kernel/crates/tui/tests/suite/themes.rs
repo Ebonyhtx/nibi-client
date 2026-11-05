@@ -1,8 +1,8 @@
 //! 深浅主题与中英文（docs/specs/rust-cli/tui.md §7）：配色按终端背景派生，文字按 `LANG`。
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::style::Color;
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, with_ui};
 

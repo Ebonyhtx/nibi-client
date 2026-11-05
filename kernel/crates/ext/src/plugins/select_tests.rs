@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::*;
 use crate::test_support::{facts, workspace};

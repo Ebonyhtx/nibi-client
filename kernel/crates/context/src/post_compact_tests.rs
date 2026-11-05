@@ -3,15 +3,15 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::compaction::PostCompactContext;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::compaction::PostCompactContext;
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId};
+use nibi_kernel_api::message::{
     CompactBoundary, CompactTrigger, ContentBlock, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 use serde_json::json;
 
 use super::*;

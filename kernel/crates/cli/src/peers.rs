@@ -5,12 +5,12 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::peers::DEFAULT_HOLD_TIMEOUT_MS;
-use rust_cli_paths::StoragePaths;
-use rust_cli_peers::{LocalPeers, PeerConfig};
-use rust_cli_runtime::PeerDeps;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::peers::DEFAULT_HOLD_TIMEOUT_MS;
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_peers::{LocalPeers, PeerConfig};
+use nibi_kernel_runtime::PeerDeps;
 
 /// 进程级的跨会话：端口、交给会话的配置与它自己的任务作用域（收件箱、写登记）。
 pub(crate) struct Peers {
@@ -21,7 +21,7 @@ pub(crate) struct Peers {
 
 /// `NIBI_USER_DIALOG_TIMEOUT_MS`（毫秒）；没有或不是数字时缺省 300000。
 pub(crate) fn hold_timeout(env: &[(String, String)]) -> u64 {
-    rust_cli_base::secret::env_var(env, "NIBI_USER_DIALOG_TIMEOUT_MS")
+    nibi_kernel_base::secret::env_var(env, "NIBI_USER_DIALOG_TIMEOUT_MS")
         .and_then(|value| value.trim().parse::<u64>().ok())
         .unwrap_or(DEFAULT_HOLD_TIMEOUT_MS)
 }
@@ -42,8 +42,8 @@ pub(crate) async fn start(startup: Startup<'_>, clock: Arc<dyn Clock>, ids: Arc<
     // socket 路径太长时依次退回：TMPDIR 与 /tmp 下本用户私有的目录（proc 建好并核对属主）。
     let mut fallback_sockets = Vec::new();
     for temp in [startup.temp, Path::new("/tmp")] {
-        let dir = rust_cli_proc::private::user_dir(temp);
-        if cfg!(unix) && rust_cli_proc::private::ensure(&dir).await.is_ok() {
+        let dir = nibi_kernel_proc::private::user_dir(temp);
+        if cfg!(unix) && nibi_kernel_proc::private::ensure(&dir).await.is_ok() {
             fallback_sockets.push(dir.join("peers"));
         }
     }

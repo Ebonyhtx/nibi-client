@@ -23,11 +23,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_kernel_api::env::{EnvFacts, FileVersion, WorkspaceRef};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::listing::ListingEntry;
-use rust_cli_kernel_api::machine::{EnvInfo, Files};
-use rust_cli_kernel_api::message::Message;
+use nibi_kernel_api::env::{EnvFacts, FileVersion, WorkspaceRef};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::machine::{EnvInfo, Files};
+use nibi_kernel_api::message::Message;
 
 pub use invoked::INVOKED_SKILLS_SOURCE;
 pub use tool::{SKILL_MESSAGE_SOURCE, SkillTool};
@@ -35,9 +35,9 @@ pub use user::SkillCommands;
 
 /// `!` 命令的执行者：注册表里的 Bash 工具、判决链与 ID（ext.md §2.5）。
 pub(crate) fn runner(
-    bash: Arc<dyn rust_cli_kernel_api::tool::Tool>,
-    gate: Arc<rust_cli_policy::PolicyGate>,
-    ids: Arc<dyn rust_cli_kernel_api::clock::Ids>,
+    bash: Arc<dyn nibi_kernel_api::tool::Tool>,
+    gate: Arc<nibi_kernel_policy::PolicyGate>,
+    ids: Arc<dyn nibi_kernel_api::clock::Ids>,
 ) -> inline::Runner {
     inline::Runner { bash, gate, ids }
 }
@@ -263,7 +263,7 @@ impl SkillCatalog {
         &self,
         workspace: &WorkspaceRef,
         history: &[Message],
-    ) -> Vec<rust_cli_kernel_api::listing::InvokedSkill> {
+    ) -> Vec<nibi_kernel_api::listing::InvokedSkill> {
         self.invoked_for(None, workspace, history).await
     }
 
@@ -272,7 +272,7 @@ impl SkillCatalog {
         session: Option<&SessionId>,
         workspace: &WorkspaceRef,
         history: &[Message],
-    ) -> Vec<rust_cli_kernel_api::listing::InvokedSkill> {
+    ) -> Vec<nibi_kernel_api::listing::InvokedSkill> {
         invoked::invoked(
             self,
             workspace,
@@ -344,8 +344,8 @@ impl SkillCatalog {
             .filter(|skill| paths::active(skill, &touched))
             .cloned()
             .collect();
-        let window = rust_cli_prompts::models::card(model).map(|card| card.context_window);
-        let chars = rust_cli_prompts::models::chars_per_token(model);
+        let window = nibi_kernel_prompts::models::card(model).map(|card| card.context_window);
+        let chars = nibi_kernel_prompts::models::chars_per_token(model);
         listing::entries(&visible, &skills, listing::budget(window, chars))
     }
 }

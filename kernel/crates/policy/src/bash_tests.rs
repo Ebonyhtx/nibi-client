@@ -1,6 +1,6 @@
 //! Bash 检查：只读放行、规则、路径、复合命令；询问文本逐字比较。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use super::*;
 use crate::test_support::{message, run};

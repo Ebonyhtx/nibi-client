@@ -84,7 +84,7 @@ pub(super) async fn run(dir: &Path) {
 /// 普通文件（`DirEntry::metadata` 不跟符号链接）。
 #[expect(
     clippy::disallowed_methods,
-    reason = "进程账本是 rust-cli-proc 的持久状态，在本用户私有的临时目录里（private::ensure 核对）"
+    reason = "进程账本是 nibi-kernel-proc 的持久状态，在本用户私有的临时目录里（private::ensure 核对）"
 )]
 async fn list(dir: &Path) -> io::Result<Vec<String>> {
     use std::os::unix::fs::MetadataExt;

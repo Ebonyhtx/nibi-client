@@ -3,8 +3,8 @@
 //! 文件 skill：`Base directory for this skill: <目录>` 加正文，参数替换、变量、`!` 内联命令；内置 skill 是
 //! 生成的提示（tools-more.md §17.1）。
 
-use rust_cli_base::names::vars;
-use rust_cli_kernel_api::tool::ToolUseContext;
+use nibi_kernel_base::names::vars;
+use nibi_kernel_api::tool::ToolUseContext;
 
 use super::inline::Runner;
 use super::{Skill, SkillCatalog, SkillSource, args, builtin};
@@ -49,7 +49,7 @@ pub(crate) async fn render(
         }
         // 在 git 仓库里的 `/security-review`：正文的 `!` 命令照 skill 的规则执行。
         if skill.name == builtin::SECURITY_REVIEW {
-            let content = rust_cli_prompts::commands::security_review().to_owned();
+            let content = nibi_kernel_prompts::commands::security_review().to_owned();
             return match runner {
                 Some(runner) => runner.expand(content, &skill.allowed_tools, context).await,
                 None => Ok(content),

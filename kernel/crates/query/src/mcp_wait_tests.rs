@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
 use serde_json::json;
 
 use crate::mcp_support_tests::{FakeConnections, McpRegistry, TokioClock, server};
@@ -64,7 +64,7 @@ async fn run(
     }
 }
 
-fn lookup() -> Arc<dyn rust_cli_kernel_api::tool::Tool> {
+fn lookup() -> Arc<dyn nibi_kernel_api::tool::Tool> {
     Arc::new(FakeTool::new(TOOL, true, "value for alpha"))
 }
 

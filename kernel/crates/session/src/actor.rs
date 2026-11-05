@@ -5,24 +5,24 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use rust_cli_base::Task;
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::agents::AgentSignal;
-use rust_cli_kernel_api::checkpoint::PendingCheckpoints;
-use rust_cli_kernel_api::hooks::HookOutcome;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_base::Task;
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::agents::AgentSignal;
+use nibi_kernel_api::checkpoint::PendingCheckpoints;
+use nibi_kernel_api::hooks::HookOutcome;
+use nibi_kernel_api::ids::{
     CommandId, InteractionId, MessageId, OwnerEpoch, RunId, ToolUseId, TurnId,
 };
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, OrchestrationError, QueryError, QueryStop,
 };
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, Delivery, KernelEvent, QueuedInput, SessionView,
     TurnExecutionKind, TurnOutcome,
 };
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::store::{
     Fact, FactBatch, SessionLaunchTurn, SessionMeta, TurnAnchor, WorkspaceCheckpoint,
 };
 use tokio::sync::{mpsc, oneshot};
@@ -54,26 +54,26 @@ pub(crate) enum Request {
     /// 给定消息集合选中这一轮的 checkpoint（文件变更明细与回退预览）；空集合是全部。
     Checkpoints {
         messages: Vec<MessageId>,
-        reply: oneshot::Sender<Vec<rust_cli_kernel_api::store::WorkspaceCheckpoint>>,
+        reply: oneshot::Sender<Vec<nibi_kernel_api::store::WorkspaceCheckpoint>>,
     },
     Goal {
-        reply: oneshot::Sender<rust_cli_kernel_api::goal::GoalView>,
+        reply: oneshot::Sender<nibi_kernel_api::goal::GoalView>,
     },
     /// 回合外的工具授权要的会话当前状态：权限模式与工作目录（MCP Apps 的页面调用）。
     TurnContext {
         reply: oneshot::Sender<(
-            rust_cli_kernel_api::permission::PermissionMode,
-            rust_cli_kernel_api::env::WorkspaceRef,
+            nibi_kernel_api::permission::PermissionMode,
+            nibi_kernel_api::env::WorkspaceRef,
         )>,
     },
     /// 回合外的模型请求（MCP Apps 采样）要的当前模型选择。
     Selection {
-        reply: oneshot::Sender<rust_cli_kernel_api::model::ModelSelection>,
+        reply: oneshot::Sender<nibi_kernel_api::model::ModelSelection>,
     },
     /// 回合外模型请求（MCP Apps 采样）的用量行：与主回合的用量走同一个 `Fact::ModelCalled`
     /// （Node 在 `sample-model.ts` 的 `finally` 里写 `model_usage`）。单独一批，不产生会话消息。
     RecordUsage {
-        call: Box<rust_cli_kernel_api::metering::ModelCall>,
+        call: Box<nibi_kernel_api::metering::ModelCall>,
         reply: oneshot::Sender<Result<(), String>>,
     },
     /// 关闭会话（`SessionHandle::close`）：中止前台工作，等它收尾后回复并退出（spec §3.3）。`reason` 是中止在跑的
@@ -107,7 +107,7 @@ pub(crate) enum AskScope {
 
 /// 不属于回合的后台工作（SessionStart、代码回退）的结果，回到 actor 后才提交（spec §2）。
 pub(crate) enum JobDone {
-    Startup(Box<rust_cli_kernel_api::hooks::HookOutcome>),
+    Startup(Box<nibi_kernel_api::hooks::HookOutcome>),
     Rewind(Box<crate::rewind::Finished>),
     RestoreFiles(Box<crate::rewind::FinishedFiles>),
 }
@@ -146,20 +146,20 @@ pub(crate) struct Running {
 enum Next {
     Request(Request),
     Sink(Option<SinkRequest>),
-    Notice(rust_cli_kernel_api::machine_notices::MachineNotice),
+    Notice(nibi_kernel_api::machine_notices::MachineNotice),
     Agent(AgentSignal),
     Cron,
-    Job(Result<JobDone, rust_cli_base::TaskError>),
+    Job(Result<JobDone, nibi_kernel_base::TaskError>),
     Title(crate::title::TitleDone),
-    Name(Result<Option<String>, rust_cli_base::TaskError>),
+    Name(Result<Option<String>, nibi_kernel_base::TaskError>),
     /// 跨会话的入站（消息或回执，cross-session.md §2.4）。
-    Peer(rust_cli_kernel_api::peers::PeerSignal),
+    Peer(nibi_kernel_api::peers::PeerSignal),
     /// 扣住的消息里最早的到期时刻到了（醒来后按时钟判断）。
     PeerDeadline,
     /// Monitor 的输出事件与截止时刻（工作线 F83，monitors.rs）。
     Monitor(
-        rust_cli_kernel_api::ids::ShellTaskId,
-        Result<rust_cli_kernel_api::env::CommandEvent, rust_cli_kernel_api::env::EnvError>,
+        nibi_kernel_api::ids::ShellTaskId,
+        Result<nibi_kernel_api::env::CommandEvent, nibi_kernel_api::env::EnvError>,
     ),
     MonitorDue,
 }
@@ -173,7 +173,7 @@ async fn sink_request(running: &mut Option<Running>) -> Option<SinkRequest> {
 }
 
 /// 后台工作的结果；没有时一直等。
-async fn job_done(job: &mut Option<Job>) -> Result<JobDone, rust_cli_base::TaskError> {
+async fn job_done(job: &mut Option<Job>) -> Result<JobDone, nibi_kernel_base::TaskError> {
     match job {
         Some(job) => (&mut job.task).await,
         None => std::future::pending().await,
@@ -190,15 +190,15 @@ pub(crate) struct Actor {
     pub(crate) earlier: Vec<Message>,
     pub(crate) selection: ModelSelection,
     /// 执行状态：权限模式 × plan 开关（修复线 F20，shell-permissions.md §4.6）。判决用的模式是 [`Self::mode`]。
-    pub(crate) execution: rust_cli_kernel_api::permission::ExecutionState,
+    pub(crate) execution: nibi_kernel_api::permission::ExecutionState,
     /// 计划模式的两个会话标志（已退出计划模式、待发退出提示）：与 `mode` 同一个
     /// owner，改模式时更新，提交 reentry / exit 时清掉；不持久化（context.md §13.4）。
-    pub(crate) plan_flags: rust_cli_kernel_api::plan::PlanModeFlags,
+    pub(crate) plan_flags: nibi_kernel_api::plan::PlanModeFlags,
     pub(crate) queue: VecDeque<QueuedInput>,
     /// next 通道：插话输入与两种后台通知的到达顺序（优先级 `next`，lane.rs）。
     pub(crate) lane: VecDeque<crate::lane::Lane>,
     /// 已从任务表取走、还没开回合的定时任务（排在通道与 `Queue` 输入之后）。
-    pub(crate) cron_fires: VecDeque<rust_cli_kernel_api::cron::CronFire>,
+    pub(crate) cron_fires: VecDeque<nibi_kernel_api::cron::CronFire>,
     pub(crate) pending: Vec<Pending>,
     pub(crate) running: Option<Running>,
     pub(crate) job: Option<Job>,
@@ -226,7 +226,7 @@ pub(crate) struct Actor {
     /// `/goal` 的目标（goal.rs）：提交 `goal_status` 后才改，冷加载从活动历史恢复。
     pub(crate) goal: crate::goal::Goals,
     /// 回合或压缩在跑时到达的本地命令记录（修复线 L-A，local_record.rs）：收尾后按到达顺序提交。
-    pub(crate) held_records: Vec<rust_cli_kernel_api::user_command::LocalCommandRecord>,
+    pub(crate) held_records: Vec<nibi_kernel_api::user_command::LocalCommandRecord>,
     /// 回合在跑时到达的工作流控制轮（NIBI 中枢/「配置」，launch.md「The settings turn」）：
     /// 收尾后按到达顺序落（与 Node 的 runtime 命令队列同一条时机——先于新 run 的通知）。
     pub(crate) pending_launch: VecDeque<LaunchTurn>,
@@ -235,7 +235,7 @@ pub(crate) struct Actor {
     pub(crate) launches: Vec<SessionLaunchTurn>,
     /// 每轮输入的模型选择（冷加载的 `LoadedSession.model_turns` + 本进程提交的用户输入）：
     /// `view()` 带给冷投影补模型切换分隔线。锁不跨 await（与 `turn` 同一写法）。
-    pub(crate) model_turns: std::sync::Mutex<Vec<rust_cli_kernel_api::store::SessionModelTurn>>,
+    pub(crate) model_turns: std::sync::Mutex<Vec<nibi_kernel_api::store::SessionModelTurn>>,
     seen: HashSet<CommandId>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行。期间的提交只改
     /// 内存；第一条用户输入（[`opens_turn`]）提交时 [`Self::promote`] 写会话行与初始事实，之后照常落库。
@@ -243,7 +243,7 @@ pub(crate) struct Actor {
     draft: Arc<AtomicBool>,
     /// 草稿期间用户改过的项目权限模式（`Fact::ProjectModeSet`）：提升会话时与初始事实一起提交，
     /// 否则这次切换会随着草稿一起丢掉。
-    pending_project_mode: std::sync::Mutex<Option<rust_cli_kernel_api::permission::PermissionMode>>,
+    pending_project_mode: std::sync::Mutex<Option<nibi_kernel_api::permission::PermissionMode>>,
     /// 当前轮（开启它的真实用户输入与轮次 ID）：随每个批次交给存储（node-store.md §4，修复线 F6）；冷加载时取
     /// `LoadedSession.turn`。只在 `commit` 里改，锁不跨 await。
     turn: std::sync::Mutex<Option<TurnAnchor>>,
@@ -259,12 +259,12 @@ pub(crate) struct Actor {
     agent_stream: AgentStream,
     cron_stream: CronStream,
     /// 跨会话的入站流与状态（peers.rs）。
-    peer_stream: crate::watched::Watched<rust_cli_kernel_api::peers::PeerSignal>,
+    peer_stream: crate::watched::Watched<nibi_kernel_api::peers::PeerSignal>,
     pub(crate) peers: crate::peers::PeerState,
     /// Monitor 的切行、批、限流与终态的合成（工作线 F83，monitors.rs）：只在 actor 里。
     pub(crate) monitors: crate::monitors::Monitors,
     /// 最近一个完成的主回合请求的输出速度（footer 的 TPS，修复线 F105）：只在内存，冷打开时为空。
-    pub(crate) output_speed: Option<rust_cli_kernel_api::metering::OutputSpeed>,
+    pub(crate) output_speed: Option<nibi_kernel_api::metering::OutputSpeed>,
     /// 自己的请求通道（弱引用）：交给回合的输出端，给出会话级的询问入口；不让 actor 因此不退出。
     asks: mpsc::WeakSender<Request>,
 }
@@ -286,7 +286,7 @@ fn promotes(facts: &[Fact]) -> bool {
     facts.iter().any(|fact| match fact {
         Fact::MessageAppended {
             message: Message::User(user),
-        } => rust_cli_kernel_api::user_input::opens_turn(user),
+        } => nibi_kernel_api::user_input::opens_turn(user),
         _ => false,
     })
 }
@@ -310,7 +310,7 @@ impl Actor {
         draft: Arc<AtomicBool>,
     ) -> Self {
         // 本机与连上的远端机器的通知（R3，remote-exec.md §20.7.2）。
-        let stream = Notices::new(rust_cli_kernel_api::machine_notices::all_shell_notices(
+        let stream = Notices::new(nibi_kernel_api::machine_notices::all_shell_notices(
             deps.machines.clone(),
             state.meta.id.clone(),
         ));
@@ -438,9 +438,9 @@ impl Actor {
             // 登记里的 busy / idle 只看 actor 自己的状态，变化时才写（cross-session.md §2.1）。
             let busy_now = self.busy();
             let status = if busy_now {
-                rust_cli_kernel_api::peers::PeerStatus::Busy
+                nibi_kernel_api::peers::PeerStatus::Busy
             } else {
-                rust_cli_kernel_api::peers::PeerStatus::Idle
+                nibi_kernel_api::peers::PeerStatus::Idle
             };
             self.peer_status(status).await;
             // 提醒钟的忙闲沿跟着同一条裁决走（变化时才调；已在段里时钟自己 no-op）。
@@ -820,7 +820,7 @@ impl Actor {
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
             turns.extend(recorded.into_iter().map(|message| {
-                rust_cli_kernel_api::store::SessionModelTurn {
+                nibi_kernel_api::store::SessionModelTurn {
                     message,
                     selection: self.selection.clone(),
                 }
@@ -983,7 +983,7 @@ impl Actor {
             .clone()
     }
 
-    async fn on_job(&mut self, done: Result<JobDone, rust_cli_base::TaskError>) {
+    async fn on_job(&mut self, done: Result<JobDone, nibi_kernel_base::TaskError>) {
         self.job = None;
         match done {
             Ok(JobDone::Startup(outcome)) => self.finish_startup(*outcome).await,

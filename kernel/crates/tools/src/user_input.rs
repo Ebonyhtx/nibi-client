@@ -5,14 +5,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile};
-use rust_cli_kernel_api::env_files::{FileKind, ListDir};
-use rust_cli_kernel_api::env_path;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{PermissionGate, ToolRegistry};
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{Tool, ToolProgress, ToolUseContext};
-use rust_cli_kernel_api::user_input::{BashRun, InputAttachment, UserInputs};
+use nibi_kernel_api::env::{EnvPath, ReadFile};
+use nibi_kernel_api::env_files::{FileKind, ListDir};
+use nibi_kernel_api::env_path;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{PermissionGate, ToolRegistry};
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{Tool, ToolProgress, ToolUseContext};
+use nibi_kernel_api::user_input::{BashRun, InputAttachment, UserInputs};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 

@@ -20,9 +20,9 @@
 //! | `persist` | 超过 10000 字符的输出落盘（经 ArtifactStore） |
 //! | `texts` | 模型可见的文本 |
 //!
-//! [`HookHttp`]: rust_cli_kernel_api::hooks::HookHttp
-//! [`ModelPort`]: rust_cli_kernel_api::model::ModelPort
-//! [`ArtifactStore`]: rust_cli_kernel_api::store::ArtifactStore
+//! [`HookHttp`]: nibi_kernel_api::hooks::HookHttp
+//! [`ModelPort`]: nibi_kernel_api::model::ModelPort
+//! [`ArtifactStore`]: nibi_kernel_api::store::ArtifactStore
 
 mod command;
 pub mod config;
@@ -54,11 +54,11 @@ use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::hooks::{
+use nibi_kernel_api::hooks::{
     HookEvent, HookEventName, HookOutcome, HookRunner, StopCondition, StopVerdict,
 };
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::model::small_fast_model;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::model::small_fast_model;
 use tokio_util::sync::CancellationToken;
 
 pub use config::{HookSource, HooksConfig, HooksSettings};

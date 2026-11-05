@@ -92,7 +92,7 @@ pub fn should_retry(headers: &ResponseHeaders) -> Option<bool> {
 ///
 /// 随机源是 base 的 `random`（README §4 的“随机”类别，F58）。
 pub fn jitter() -> f64 {
-    let bits = rust_cli_base::random::u64();
+    let bits = nibi_kernel_base::random::u64();
     (bits >> 11) as f64 / (1u64 << 53) as f64
 }
 

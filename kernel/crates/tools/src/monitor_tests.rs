@@ -4,24 +4,24 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Origin, Outcome,
     ReadFile, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::{BackgroundStop, ShellState};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env_shell::{BackgroundStop, ShellState};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryStore, local_services, machine};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryStore, local_services, machine};
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

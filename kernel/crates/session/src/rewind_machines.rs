@@ -4,13 +4,13 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{OperationContext, WorkspaceRef};
-use rust_cli_kernel_api::env_rewind::{
+use nibi_kernel_api::env::{OperationContext, WorkspaceRef};
+use nibi_kernel_api::env_rewind::{
     RestoreFile, RestoredFile, RewindPlan, RewindPrepare, RewindStatus,
 };
-use rust_cli_kernel_api::ids::OperationId;
-use rust_cli_kernel_api::machine::Checkpoints;
-use rust_cli_kernel_api::store::{ArtifactStore, WorkspaceCheckpoint};
+use nibi_kernel_api::ids::OperationId;
+use nibi_kernel_api::machine::Checkpoints;
+use nibi_kernel_api::store::{ArtifactStore, WorkspaceCheckpoint};
 
 use crate::rewind_plan::{self, Artifact};
 
@@ -63,7 +63,7 @@ async fn read(
     serde_json::from_slice(&bytes).map_err(|error| error.to_string())
 }
 
-fn conflicts(files: &[rust_cli_kernel_api::env_rewind::RewindConflict]) -> String {
+fn conflicts(files: &[nibi_kernel_api::env_rewind::RewindConflict]) -> String {
     files
         .iter()
         .map(|f| rewind_plan::conflict(f.path.as_str()))

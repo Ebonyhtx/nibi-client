@@ -11,28 +11,28 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_hooks::{HookEngine, HookPorts, HookSource, HooksConfig, HooksSettings};
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookRunner};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_hooks::{HookEngine, HookPorts, HookSource, HooksConfig, HooksSettings};
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookRunner};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, InteractionId, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::message::{Message, ToolResultContent};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::{Message, ToolResultContent};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, ToolExecution,
     ToolExecutor,
 };
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::permission::{
     PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     MemoryArtifacts, MemoryStore, RoundTripEnv, SequentialIds, local_services, machine,
 };
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_policy::PolicyGate;
-use rust_cli_policy::rules::parse_rule;
-use rust_cli_tools::{BashTool, Pipeline};
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_policy::PolicyGate;
+use nibi_kernel_policy::rules::parse_rule;
+use nibi_kernel_tools::{BashTool, Pipeline};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;

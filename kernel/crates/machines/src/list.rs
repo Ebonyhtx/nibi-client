@@ -5,8 +5,8 @@
 
 use std::path::{Path, PathBuf};
 
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
-use rust_cli_paths::StoragePath;
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_paths::StoragePath;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -115,7 +115,7 @@ impl MachineList {
     }
 
     async fn read(&self) -> Result<File, MachinesError> {
-        let bytes = rust_cli_fs::read_optional(&self.path)
+        let bytes = nibi_kernel_fs::read_optional(&self.path)
             .await
             .map_err(|error| MachinesError::Read {
                 path: self.shown(),
@@ -146,7 +146,7 @@ impl MachineList {
                 message: error.to_string(),
             })?;
         text.push('\n');
-        rust_cli_fs::atomic_write(&self.path, text.as_bytes(), WRITE)
+        nibi_kernel_fs::atomic_write(&self.path, text.as_bytes(), WRITE)
             .await
             .map_err(|error| MachinesError::Write {
                 path: self.shown(),

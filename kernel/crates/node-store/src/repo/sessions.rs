@@ -4,7 +4,7 @@
 //! 与复制来源的差异：只保留本 crate 用到的列与操作；`createSession` 的 insert 列与 Node 当前
 //! 源码一致（不再列出 `time_archived`）。
 use rusqlite::{Connection, OptionalExtension, Row, params, types::Value as Sql};
-use rust_cli_base::js::json::encode;
+use nibi_kernel_base::js::json::encode;
 use serde_json::Value;
 
 /// 存储形态的 Node `SessionInfo`（本 crate 读取的列）。

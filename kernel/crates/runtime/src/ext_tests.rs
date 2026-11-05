@@ -4,14 +4,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_ext::{Plugin, PluginAgentFile as ExtAgentFile, Plugins};
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_ext::{Plugin, PluginAgentFile as ExtAgentFile, Plugins};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection, text_response,
 };
@@ -19,8 +19,8 @@ use serde_json::json;
 
 use super::*;
 use crate::{CompactConfig, ContextConfig, Defaults, LocalKernel, Ports, Surface};
-use rust_cli_agents::MemoryTaskLists;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_agents::MemoryTaskLists;
+use nibi_kernel_api::permission::PermissionMode;
 
 const KIT: &str = "/Users/dev/plugins/kit";
 
@@ -50,7 +50,7 @@ fn plugin_parts_carry_the_plugin_name_and_root() {
     let (agents, hooks) = plugin_parts(&plugins);
     assert_eq!(
         agents,
-        [rust_cli_agents::PluginAgentFile {
+        [nibi_kernel_agents::PluginAgentFile {
             plugin: "kit".to_owned(),
             root: KIT.to_owned(),
             path: format!("{KIT}/agents/team/lead.md"),
@@ -107,7 +107,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             },
             plugin_loader: None,
             cron_store: None,
-            peers: rust_cli_session::PeerDeps::off(),
+            peers: nibi_kernel_session::PeerDeps::off(),
             streaming_input: false,
             monitor: false,
             mcp_telemetry: None,

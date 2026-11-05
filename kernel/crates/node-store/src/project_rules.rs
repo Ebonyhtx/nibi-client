@@ -11,9 +11,9 @@
 //! 项目规则集。以前续写这样的会话时规则写进项目、读的也是项目的。
 
 use rusqlite::{Connection, OptionalExtension, params};
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::permission::{PermissionRule, ProjectRules, RuleBehavior};
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::permission::{PermissionRule, ProjectRules, RuleBehavior};
+use nibi_kernel_api::store::StoreError;
 use serde_json::{Map, Value, json};
 
 use crate::facts::Commit;
@@ -202,7 +202,7 @@ pub(crate) fn change(
     conn: &mut Connection,
     project: &str,
     now: u64,
-    change: &rust_cli_kernel_api::store::ProjectRulesChange,
+    change: &nibi_kernel_api::store::ProjectRulesChange,
 ) -> Result<ProjectRules, StoreError> {
     let tx = conn
         .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)

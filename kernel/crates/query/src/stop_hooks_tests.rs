@@ -4,12 +4,12 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::hooks::{HookEvent, HookEventName, HookOutcome, HookRunner};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::orchestration::QueryStop;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::hooks::{HookEvent, HookEventName, HookOutcome, HookRunner};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::orchestration::QueryStop;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

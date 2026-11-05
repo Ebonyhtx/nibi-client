@@ -3,16 +3,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{
     MemoryStore, ScriptedInteractions, UnusedEnvironment, local_services, machine,
 };
-use rust_cli_kernel_api::tool::{Tool, ToolError, ToolUseContext};
-use rust_cli_kernel_api::workflow::{WorkflowQuestionResolved, WorkflowQuestions};
+use nibi_kernel_api::tool::{Tool, ToolError, ToolUseContext};
+use nibi_kernel_api::workflow::{WorkflowQuestionResolved, WorkflowQuestions};
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 
@@ -80,7 +80,7 @@ async fn an_accepted_answer_is_projected_as_a_confirmation() {
         .unwrap();
     assert!(!output.is_error);
     let text = match &output.content[0] {
-        rust_cli_kernel_api::message::ToolResultContent::Text { text } => text.clone(),
+        nibi_kernel_api::message::ToolResultContent::Text { text } => text.clone(),
         other => panic!("unexpected content: {other:?}"),
     };
     assert!(text.contains("Answer delivered for question dwfq-01234567-1"), "{text}");
@@ -107,7 +107,7 @@ async fn a_rejected_answer_passes_the_registry_message_through_as_an_error() {
         .unwrap();
     assert!(output.is_error);
     let text = match &output.content[0] {
-        rust_cli_kernel_api::message::ToolResultContent::Text { text } => text.clone(),
+        nibi_kernel_api::message::ToolResultContent::Text { text } => text.clone(),
         other => panic!("unexpected content: {other:?}"),
     };
     assert_eq!(text, message);

@@ -1,10 +1,10 @@
 //! `Checkpoints`：prepare 全部通过才登记；apply 写回 / 删除、按 token 重放；冲突与 prepare 之后的改动补偿回去。
 
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::env_rewind::{
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::env_rewind::{
     RestoreAction, RestoreFile, RewindPlan, RewindPrepare, RewindStatus, content_hash,
 };
-use rust_cli_kernel_api::ids::OperationId;
+use nibi_kernel_api::ids::OperationId;
 
 use crate::contract;
 use crate::support::{Kind, context, env_path, machine, workspace};

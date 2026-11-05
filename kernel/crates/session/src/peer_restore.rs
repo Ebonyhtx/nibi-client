@@ -3,8 +3,8 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::peers::{
     HeldPeerMessage, HoldCause, PeerReceipt, ReceiptStatus, parse_envelope,
 };
 
@@ -121,7 +121,7 @@ pub(crate) async fn restore(actor: &mut Actor) {
             status,
             recipient,
         };
-        let phrase = rust_cli_prompts::peers::receipt_phrase(status.as_str()).unwrap_or_default();
+        let phrase = nibi_kernel_prompts::peers::receipt_phrase(status.as_str()).unwrap_or_default();
         let shown = seen
             .iter()
             .any(|known| known.contains(&receipt.msg_id) && known.contains(phrase));

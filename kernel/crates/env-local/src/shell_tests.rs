@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, EnvPath, OperationContext, Origin, StartCommand};
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{CommandEvent, EnvPath, OperationContext, Origin, StartCommand};
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ShellTaskId,
 };
 

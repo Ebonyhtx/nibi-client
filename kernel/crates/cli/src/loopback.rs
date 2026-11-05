@@ -7,14 +7,14 @@
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use rust_cli_env_local::{LocalEnvironment, LocalMcpTransport};
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient};
-use rust_cli_exec_transport::stdio::{ChildCommand, StdioConnector};
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, LocalRegistry};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_env_local::{LocalEnvironment, LocalMcpTransport};
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient};
+use nibi_kernel_exec_transport::stdio::{ChildCommand, StdioConnector};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, LocalRegistry};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
 
 use crate::executor::child_args;
 use crate::executor_run::this_executable;
@@ -39,7 +39,7 @@ pub(super) async fn environments(
         cwd: Some(startup.cwd.clone()),
         kill_on_drop: false,
     };
-    let instance = format!("{:016x}", rust_cli_base::random::u64());
+    let instance = format!("{:016x}", nibi_kernel_base::random::u64());
     let client = ExecClient::connect(
         Arc::new(StdioConnector::new(command)),
         ClientOptions::new(super::VERSION, instance),

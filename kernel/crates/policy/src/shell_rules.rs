@@ -8,7 +8,7 @@
 use std::collections::HashSet;
 
 use regex::Regex;
-use rust_cli_kernel_api::permission::RuleBehavior;
+use nibi_kernel_api::permission::RuleBehavior;
 
 use crate::shell_strip::strip_all_assignments;
 pub use crate::shell_strip::strip_safe_wrappers;

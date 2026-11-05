@@ -352,13 +352,13 @@ fn resume_without_an_id_picks_and_fork_session_needs_a_target() {
 
 #[test]
 fn the_version_line_names_the_product_and_the_build() {
-    assert_eq!(version_line("0.1.7"), "nibi 0.1.7 (rust-cli)");
+    assert_eq!(version_line("0.1.7"), "nibi 0.1.7 (nibi-kernel-cli)");
 }
 
 /// 格式参数（headless.md §1，修复线 F39）：两种写法、布尔参数、choices 与组合的报错（文字固定）。
 #[test]
 fn format_flags_parse_and_check() {
-    use rust_cli_headless::{InputFormat, OutputFormat};
+    use nibi_kernel_headless::{InputFormat, OutputFormat};
     let format = |values: &[&str]| parse(&args(values)).unwrap().format;
     let streaming = format(&["--verbose", "--output-format", "stream-json", "-p", "hi"]);
     assert_eq!(streaming.output, OutputFormat::StreamJson);

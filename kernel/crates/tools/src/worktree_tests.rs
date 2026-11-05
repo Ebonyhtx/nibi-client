@@ -2,9 +2,9 @@
 
 use std::sync::{Arc, PoisonError};
 
-use rust_cli_kernel_api::env_worktree::WorktreeChanges;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext, Validation};
+use nibi_kernel_api::env_worktree::WorktreeChanges;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{Tool, ToolUseContext, Validation};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -274,9 +274,9 @@ async fn entering_existing_worktrees() {
 #[test]
 fn enter_worktree_does_not_mention_subagent_isolation() {
     let fixture = Fixture::new(Git::new());
-    let prompt = rust_cli_kernel_api::tool::PromptContext {
+    let prompt = nibi_kernel_api::tool::PromptContext {
         tool_names: Vec::new(),
-        mode: rust_cli_kernel_api::permission::PermissionMode::Default,
+        mode: nibi_kernel_api::permission::PermissionMode::Default,
     };
     let description = fixture.tool("EnterWorktree").description(&prompt);
     assert!(!description.contains("subagent isolation"), "{description}");

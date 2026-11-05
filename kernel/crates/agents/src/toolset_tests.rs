@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::orchestration::ToolRegistry;
-use rust_cli_kernel_api::testing::{FakeTool, ListTools};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::orchestration::ToolRegistry;
+use nibi_kernel_api::testing::{FakeTool, ListTools};
+use nibi_kernel_api::tool::Tool;
 
 use super::{FilteredTools, ToolRule};
 use crate::definitions::{EXPLORE, GENERAL_PURPOSE, builtins};

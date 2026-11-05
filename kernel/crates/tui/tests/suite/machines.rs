@@ -8,7 +8,7 @@ use crossterm::event::KeyCode;
 use futures_util::StreamExt;
 use futures_util::future::BoxFuture;
 use futures_util::stream::BoxStream;
-use rust_cli_tui::machines::{
+use nibi_kernel_tui::machines::{
     Changed, ExecutorInfo, MachineFailure, MachineProblem, MachineRow, MachineStatus, Machines,
 };
 use tokio::sync::watch;
@@ -538,7 +538,7 @@ async fn a_busy_incompatible_executor_says_how_to_upgrade() {
 
 /// 真实时间（毫秒）：界面的时钟（`WallClock`）同它。
 fn wall_ms() -> u64 {
-    use rust_cli_kernel_api::clock::Clock;
+    use nibi_kernel_api::clock::Clock;
     super::support::WallClock.now_ms()
 }
 

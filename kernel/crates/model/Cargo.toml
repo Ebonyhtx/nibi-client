@@ -1,5 +1,5 @@
 [package]
-name = "rust-cli-model"
+name = "nibi-kernel-model"
 description = "Model port: Anthropic-shaped requests encoded for each provider protocol"
 version.workspace = true
 edition.workspace = true
@@ -22,9 +22,9 @@ async-trait.workspace = true
 futures-util.workspace = true
 # 请求方案表的正则（JS RegExp 语义，同 Node 的 providerSiteRules，model.md §3.2）。
 regress.workspace = true
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
-rust-cli-net.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
+nibi-kernel-net.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tokio-util.workspace = true

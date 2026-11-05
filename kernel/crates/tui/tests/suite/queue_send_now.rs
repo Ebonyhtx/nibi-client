@@ -5,16 +5,16 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     BackgroundReason, CommandEvent, EnvError, EnvFacts, FileContent, OperationContext, Outcome,
     ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::testing::UnusedEnvironment;
+use nibi_kernel_api::testing::UnusedEnvironment;
 
 /// 记下每次 `background_foreground` 的原因（没有前台命令，转了 0 个）。
 #[derive(Default)]

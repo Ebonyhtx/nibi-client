@@ -4,15 +4,15 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WritePrecondition};
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, RewindScope, SessionHandle};
-use rust_cli_kernel_api::store::{ArtifactPurpose, Fact};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, ReadFile, WritePrecondition};
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::session_api::{Ack, Command, KernelEvent, RewindScope, SessionHandle};
+use nibi_kernel_api::store::{ArtifactPurpose, Fact};
+use nibi_kernel_api::testing::{
     MemoryEnvironment, NoticeEnvironment, ScriptedModel, TestMachines, shell_notice, text_response,
 };
-use rust_cli_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -30,7 +30,7 @@ impl Tool for WritingOnDevA {
     fn input_schema(&self) -> Value {
         json!({"type": "object"})
     }
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         "write on dev-a".into()
     }
     async fn call(
@@ -77,7 +77,7 @@ impl Tool for WritingOnDevA {
                 message: error.to_string(),
             })?;
         Ok(ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: "written".into(),
             }],
             is_error: false,
@@ -95,14 +95,14 @@ struct Two {
 }
 
 /// 一轮里本机写 /work/a.txt、dev-a 写 /home/dev/proj/b.txt。
-async fn wrote_on_two_machines() -> (Two, rust_cli_kernel_api::ids::MessageId) {
+async fn wrote_on_two_machines() -> (Two, nibi_kernel_api::ids::MessageId) {
     let model = Arc::new(ScriptedModel::new(vec![
-        rust_cli_kernel_api::testing::tool_use_response(
+        nibi_kernel_api::testing::tool_use_response(
             "toolu_1",
             "Write",
             &json!({"file_path": "/work/a.txt", "content": "new a\n"}),
         ),
-        rust_cli_kernel_api::testing::tool_use_response(
+        nibi_kernel_api::testing::tool_use_response(
             "toolu_2",
             "RemoteWrite",
             &json!({"file_path": "/home/dev/proj/b.txt", "content": "new b\n"}),
@@ -146,7 +146,7 @@ async fn released(env: &MemoryEnvironment, count: usize) {
     assert_eq!(env.rewinds_finished().len(), count);
 }
 
-fn rewind(target: &rust_cli_kernel_api::ids::MessageId) -> Command {
+fn rewind(target: &nibi_kernel_api::ids::MessageId) -> Command {
     Command::Rewind {
         target: target.clone(),
         scope: RewindScope::Both,
@@ -282,7 +282,7 @@ async fn a_notice_from_a_remote_machine_is_acknowledged_there() {
     // 关闭会话：远端机器也收到 close_session。
     built
         .session
-        .close(rust_cli_kernel_api::session_api::EndReason::Other)
+        .close(nibi_kernel_api::session_api::EndReason::Other)
         .await;
     assert_eq!(remote.closed().len(), 1);
     assert_eq!(local.closed().len(), 1);

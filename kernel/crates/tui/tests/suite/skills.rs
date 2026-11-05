@@ -4,8 +4,8 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, environments, text_response};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 
@@ -113,7 +113,7 @@ async fn a_model_only_skill_answers_locally_and_unknown_names_stay_local() {
 /// 空闲时 esc 取消本会话的 loop 唤醒（tools-more.md §18.1）：之后模型停止循环时没有可取消的唤醒。
 #[tokio::test(flavor = "multi_thread")]
 async fn esc_while_idle_cancels_the_pending_loop_wakeup() {
-    use rust_cli_kernel_api::testing::tool_use_response;
+    use nibi_kernel_api::testing::tool_use_response;
     let model = GatedModel::scripted(vec![
         tool_use_response(
             "toolu_1",

@@ -2,8 +2,8 @@
 //! actor 与压缩模块）在提交 assistant 与压缩结果之后发出 ContextNotice，footer 只在接近上限时
 //! 显示。替身模型不在模型卡片里：窗口来源是 `unknown-model`（不是 `auto`），显示 `N% until auto-compact`；
 //! 窗口 200,000、预留 20,000，有效窗口 180,000，阈值 167,000，提示线 147,000。
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
 
 use super::support::{GatedModel, Item, Setup, with_ui};
 

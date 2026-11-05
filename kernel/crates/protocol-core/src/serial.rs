@@ -2,7 +2,7 @@
 //! 的地方（同一个主题的首帧与增量）都经它，锁只在计算时短暂持有，写出时不持锁（本工程不许跨 `.await` 持锁）。
 
 use futures_util::future::BoxFuture;
-use rust_cli_base::{Spawner, Task};
+use nibi_kernel_base::{Spawner, Task};
 use tokio::sync::mpsc;
 
 /// 一件工作。

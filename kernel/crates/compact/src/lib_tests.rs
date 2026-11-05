@@ -1,6 +1,6 @@
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::message::{CompactTrigger, Usage};
-use rust_cli_kernel_api::orchestration::{AutoCompactOutcome, CompactTracking, Compactor};
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::message::{CompactTrigger, Usage};
+use nibi_kernel_api::orchestration::{AutoCompactOutcome, CompactTracking, Compactor};
 use tokio_util::sync::CancellationToken;
 
 use super::{CompactConfig, Compaction, Thresholds};
@@ -18,7 +18,7 @@ fn config() -> CompactConfig {
     }
 }
 
-fn history(input_tokens: u64) -> Vec<rust_cli_kernel_api::message::Message> {
+fn history(input_tokens: u64) -> Vec<nibi_kernel_api::message::Message> {
     vec![
         human("u1", "first"),
         reply("a1", "one", None),
@@ -144,7 +144,7 @@ async fn a_failed_compaction_counts_toward_the_breaker() {
 }
 
 /// 只有一个 API 轮：要摘要的部分（第一组）没有 assistant。
-fn one_round(input_tokens: u64) -> Vec<rust_cli_kernel_api::message::Message> {
+fn one_round(input_tokens: u64) -> Vec<nibi_kernel_api::message::Message> {
     vec![
         human("u1", "first"),
         reply(
@@ -268,7 +268,7 @@ fn the_context_usage_uses_the_same_tokens_and_window() {
     let (tokens, window) = usage(config()).unwrap();
     assert_eq!(window, 80_000);
     assert_eq!(
-        rust_cli_kernel_api::compaction::used_percent(tokens, window),
+        nibi_kernel_api::compaction::used_percent(tokens, window),
         75
     );
     assert_eq!(

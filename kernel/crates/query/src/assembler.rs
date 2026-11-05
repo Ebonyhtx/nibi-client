@@ -1,8 +1,8 @@
 //! 把模型流事件组装成一条 assistant 消息（在 `content_block_stop` 时产出完整块）。
 
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelEvent};
-use rust_cli_kernel_api::unparsed_input;
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::{BlockDelta, ModelError, ModelEvent};
+use nibi_kernel_api::unparsed_input;
 use serde_json::Value;
 
 /// 一个正在生成的块；tool_use 的输入在结束时才解析。

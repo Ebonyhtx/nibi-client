@@ -3,9 +3,9 @@
 
 use std::path::PathBuf;
 
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
 
 use crate::contract;
 use crate::support::{Kind, Machine, machine, workspace};

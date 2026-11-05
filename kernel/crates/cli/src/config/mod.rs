@@ -11,19 +11,19 @@ mod plugins;
 mod storage;
 pub(crate) mod trust;
 
-use rust_cli_ext::PluginSources;
-use rust_cli_ext::mcp::McpServer;
-use rust_cli_hooks::node_config::NodeHooks;
-use rust_cli_hooks::{HookSource, HooksConfig};
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::machine::Files as FilesPort;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_ext::PluginSources;
+use nibi_kernel_ext::mcp::McpServer;
+use nibi_kernel_hooks::node_config::NodeHooks;
+use nibi_kernel_hooks::{HookSource, HooksConfig};
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::machine::Files as FilesPort;
+use nibi_kernel_api::permission::{
     PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_paths::StoragePaths;
-use rust_cli_platform::{ConfigFile, read_cli_config};
-use rust_cli_policy::rules::parse_rule;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_platform::{ConfigFile, read_cli_config};
+use nibi_kernel_policy::rules::parse_rule;
 use serde_json::{Map, Value};
 
 use self::files::ProjectFile;
@@ -43,7 +43,7 @@ pub(crate) struct ConfigInputs<'a> {
     /// 优先级最高），命令行的单项参数仍在它之上。
     pub(crate) flag: Option<&'a Map<String, Value>>,
     /// 付费插件发现层门禁的授权事实（token/设备/refusal）。`None` 时付费件一律拒绝。
-    pub(crate) paid_license: Option<rust_cli_ext::plugins::PaidLicense>,
+    pub(crate) paid_license: Option<nibi_kernel_ext::plugins::PaidLicense>,
 }
 
 /// `--settings` 一层在警告里的名字。
@@ -70,9 +70,9 @@ pub(crate) struct ConfigSnapshot {
     /// 插件候选与启用设置（config.md §2.1、ext.md §4.1）。
     pub(crate) plugins: PluginSources,
     /// 界面语言 `ui.locale`（tui.md §7.1）。
-    pub(crate) locale: Option<rust_cli_platform::UiLocale>,
+    pub(crate) locale: Option<nibi_kernel_platform::UiLocale>,
     /// 主题 `ui.theme`（tui-manage.md §2.1）。
-    pub(crate) theme: Option<rust_cli_platform::UiTheme>,
+    pub(crate) theme: Option<nibi_kernel_platform::UiTheme>,
     /// 启动时检查新版本 `checkForUpdateOnStartup`（update.md §10，F48；缺省 true）。
     pub(crate) check_for_update: bool,
     /// 提问框的空闲超时 `askUserQuestionTimeout`（毫秒，tools-more.md §1.1，工作线 F72；缺省不计时）。
@@ -212,7 +212,7 @@ pub(crate) async fn user_storage_layer(
 
 /// 用户层 hooks 的原始 `NodeHooks`（工作区钩子评审的 digest 要它算默认超时与输出上限，
 /// config.md §4.1）：与启动组装读同一份文件。协议前端（app-server）在组装之后单独取一次。
-pub(crate) async fn user_hooks(paths: &rust_cli_paths::StoragePaths) -> NodeHooks {
+pub(crate) async fn user_hooks(paths: &nibi_kernel_paths::StoragePaths) -> NodeHooks {
     let user = read_cli_config(paths).await;
     user.object()
         .and_then(|object| object.get("hooks"))
@@ -224,7 +224,7 @@ pub(crate) async fn user_hooks(paths: &rust_cli_paths::StoragePaths) -> NodeHook
 ///
 /// 只读、不改进程级快照；app-server 每个 `session/create` 调一次。付费门禁的 license 也在这里
 /// 重新读，所以会员刷新后新会话能立刻生效（老会话保持原快照）。
-pub(crate) async fn plugin_snapshot(inputs: &ConfigInputs<'_>) -> rust_cli_ext::Plugins {
+pub(crate) async fn plugin_snapshot(inputs: &ConfigInputs<'_>) -> nibi_kernel_ext::Plugins {
     let Files {
         user_path,
         user,
@@ -263,7 +263,7 @@ pub(crate) async fn plugin_snapshot(inputs: &ConfigInputs<'_>) -> rust_cli_ext::
     for warning in warnings {
         tracing::warn!(warning, "plugin snapshot config");
     }
-    rust_cli_ext::plugins::load_all(inputs.files, inputs.workspace, &[], &sources)
+    nibi_kernel_ext::plugins::load_all(inputs.files, inputs.workspace, &[], &sources)
         .await
         .plugins
 }

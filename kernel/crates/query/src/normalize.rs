@@ -19,11 +19,11 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{AttachmentMessage, AttachmentRole, ContentBlock, Message};
-use rust_cli_kernel_api::model::{ApiContent, ApiMessage, ApiRole, CacheControl, TurnOutputConfig};
-use rust_cli_kernel_api::reminder_fold::{array_result, fold_into_tool_result};
-use rust_cli_prompts::reminder;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{AttachmentMessage, AttachmentRole, ContentBlock, Message};
+use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole, CacheControl, TurnOutputConfig};
+use nibi_kernel_api::reminder_fold::{array_result, fold_into_tool_result};
+use nibi_kernel_prompts::reminder;
 use serde_json::Value;
 
 /// normalize 的选项（随模型变化）。

@@ -2,8 +2,8 @@
 //! `session_entry`（`type = kind`、`id = key`，同 key 覆盖，不推进会话的活动时间）。这里不认识任何 kind；
 //! 不加 `rust-cli/` 前缀，因为写的是前端与 Node 共用的记录类型（例如 App 协议的命令事实）。
 use rusqlite::Connection;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::{FrontendRecord, StoreError};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::{FrontendRecord, StoreError};
 
 use crate::OrStorage;
 use crate::repo::{entries, sessions};

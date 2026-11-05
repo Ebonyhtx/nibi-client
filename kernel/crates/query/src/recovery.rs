@@ -3,8 +3,8 @@
 //!
 //! 这里只做判定，不做 IO：主循环按返回的 [`Outcome`] 提交消息、决定下一步。
 
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, StopReason};
-use rust_cli_kernel_api::model::{ModelError, QuerySource};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, StopReason};
+use nibi_kernel_api::model::{ModelError, QuerySource};
 
 use crate::texts;
 
@@ -194,7 +194,7 @@ impl Guards {
             // 修 bug（F113，用户决定 2026-10-29“内容拦截要显示给用户”）：以前落到下面的 `Completed`，静默按成功结束。
             // 响应照常提交，以错误结束，给原因文字；不重试（provider-errors.md D6 暂定）。
             Some(StopReason::Refusal) => Outcome::Failed {
-                message: rust_cli_kernel_api::model::CONTENT_BLOCKED.to_owned(),
+                message: nibi_kernel_api::model::CONTENT_BLOCKED.to_owned(),
             },
             // 能走到这里说明没有完整的 tool_use 块。
             Some(StopReason::ToolUse) => {

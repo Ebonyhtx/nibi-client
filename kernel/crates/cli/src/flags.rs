@@ -1,9 +1,9 @@
 //! 要读文件、看目录的参数（docs/specs/rust-cli/cli-args.md §4、§6、§7）：入口读完环境之后、建内核之前处理，
 //! 文件与目录都经执行环境端口（与 `--mcp-config` 相同）。报错的文字固定，写 stderr、退出码 1。
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{FileKind, PathStyle, StatFile};
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_api::env::{EnvError, EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{FileKind, PathStyle, StatFile};
+use nibi_kernel_api::machine::Files;
 
 use serde_json::{Map, Value};
 
@@ -196,7 +196,7 @@ pub(crate) fn refuse_root_bypass(
     uid: Option<u32>,
     env: &[(String, String)],
 ) -> Result<(), Fatal> {
-    let var = |name: &str| rust_cli_base::secret::env_var(env, name);
+    let var = |name: &str| nibi_kernel_base::secret::env_var(env, name);
     let sandbox = crate::options::is_sandbox_one(env);
     let bubblewrap = var("NIBI_BUBBLEWRAP").is_some_and(|value| {
         matches!(

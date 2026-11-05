@@ -1,7 +1,7 @@
 //! 项目文件的发现（config.md §1）。
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::*;
 

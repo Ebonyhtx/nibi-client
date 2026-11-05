@@ -1,16 +1,16 @@
 //! 事件 → 行的折叠（docs/specs/rust-cli/tui.md §4.2）。
-use rust_cli_kernel_api::ids::{CommandId, InteractionId, MessageId, ToolUseId, TurnId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{CommandId, InteractionId, MessageId, ToolUseId, TurnId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, ToolResultContent, UserMessage,
     UserOrigin,
 };
-use rust_cli_kernel_api::model::{BlockDelta, ModelSelection};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::model::{BlockDelta, ModelSelection};
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Delivery, KernelEvent, QueuedInput, SequencedEvent, TurnOutcome,
 };
-use rust_cli_kernel_api::tool::{ToolOutput, ToolProgress};
+use nibi_kernel_api::tool::{ToolOutput, ToolProgress};
 use serde_json::json;
 
 use super::*;
@@ -346,13 +346,13 @@ fn steered_input_leaves_the_queue_and_shows_as_a_user_row() {
 fn system_notices_become_notice_rows() {
     let mut feed = Feed::new();
     feed.push(started()).push(KernelEvent::SystemNotice {
-        level: rust_cli_kernel_api::session_api::NoticeLevel::Warning,
+        level: nibi_kernel_api::session_api::NoticeLevel::Warning,
         text: "blocked".into(),
     });
     assert_eq!(
         bodies(&feed.view)[1..],
         [Body::Notice {
-            level: rust_cli_kernel_api::session_api::NoticeLevel::Warning,
+            level: nibi_kernel_api::session_api::NoticeLevel::Warning,
             text: "blocked".into(),
         }]
     );
@@ -378,7 +378,7 @@ fn workspace_changes_replace_the_view_workspace() {
     let mut feed = Feed::new();
     assert_eq!(feed.view.workspace().root.as_str(), "/Users/dev/project");
     let mut moved = crate::view::test_workspace();
-    moved.root = rust_cli_kernel_api::env::EnvPath::new("/Users/dev/project/.zcode/worktrees/a");
+    moved.root = nibi_kernel_api::env::EnvPath::new("/Users/dev/project/.zcode/worktrees/a");
     feed.push(KernelEvent::WorkspaceChanged {
         workspace: moved.clone(),
     });

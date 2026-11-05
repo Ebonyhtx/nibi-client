@@ -6,13 +6,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::machine::{EnvInfo, Files};
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::model::SystemBlock;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::machine::{EnvInfo, Files};
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::model::SystemBlock;
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError,
 };
 

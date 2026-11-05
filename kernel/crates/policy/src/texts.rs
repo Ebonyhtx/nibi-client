@@ -2,7 +2,7 @@
 //! 的 texts 模块）。文字逐字固定，测试按字面比较。询问的四句（`NIBI requested permissions …`）说产品名 NIBI，
 //! 与执行管线里没有规则时的说法一致（修复线 F51b，shell-permissions.md §4.8）。
 
-use rust_cli_kernel_api::permission::RuleSource;
+use nibi_kernel_api::permission::RuleSource;
 
 /// 变通说明的正文，末尾带空格。
 const WORKAROUND: &str = "IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. ";

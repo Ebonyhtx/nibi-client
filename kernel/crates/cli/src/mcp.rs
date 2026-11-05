@@ -3,15 +3,15 @@
 //!
 //! `--mcp-config` 是 `mcpServers` 的形状（`${VAR}` 展开）；文件经执行环境端口读。
 
-use rust_cli_ext::mcp::{
+use nibi_kernel_ext::mcp::{
     DEFAULT_CONNECT_WAIT_MS, McpScope, McpServer, McpSettings, McpStartup, parse_servers_keeping,
     prewait_ms, required_servers, wait_for_deferrable,
 };
 
 use crate::mcp_machines::McpBindings;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::machine::Files;
 use serde_json::Value;
 
 /// 命令行的 MCP 参数。
@@ -28,7 +28,7 @@ pub(crate) struct McpFlags {
 }
 
 fn var<'a>(env: &'a [(String, String)], name: &str) -> Option<&'a str> {
-    rust_cli_base::secret::env_var(env, name)
+    nibi_kernel_base::secret::env_var(env, name)
 }
 
 fn number(env: &[(String, String)], name: &str) -> Option<u64> {
@@ -38,7 +38,7 @@ fn number(env: &[(String, String)], name: &str) -> Option<u64> {
 }
 
 /// 毫秒数的上限（`Math.min(_, 2147483647)`，JS 定时器的上限，定义在 base）。
-const MAX_MS: u64 = rust_cli_base::js::MAX_TIMER_MS;
+const MAX_MS: u64 = nibi_kernel_base::js::MAX_TIMER_MS;
 
 /// 整数环境变量的读法：去空白；科学计数法（结果须为整数）、千分位写法（`1,000`，分隔符一致）或 `parseInt` 的前导数字。不合法时
 /// None。

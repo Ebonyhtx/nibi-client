@@ -1,14 +1,14 @@
 //! 把一个请求交给注入的 `MachineEnv`（remote-exec.md §4：远端的执行逻辑就是 env-local 的同一份代码）。
 
 use futures_util::stream::{BoxStream, StreamExt};
-use rust_cli_exec_wire::envelope::{ReplyResult, StreamItem, WireError};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_exec_wire::{Body, BodyBuilder};
-use rust_cli_kernel_api::env::{ReadFile, WriteFile};
-use rust_cli_kernel_api::env_files::{ListDir, ListFiles, StatFile, StatMany};
-use rust_cli_kernel_api::env_pdf::PdfPageCount;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_exec_wire::envelope::{ReplyResult, StreamItem, WireError};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_exec_wire::{Body, BodyBuilder};
+use nibi_kernel_api::env::{ReadFile, WriteFile};
+use nibi_kernel_api::env_files::{ListDir, ListFiles, StatFile, StatMany};
+use nibi_kernel_api::env_pdf::PdfPageCount;
+use nibi_kernel_api::machine::MachineEnv;
 
 use crate::convert_in as input;
 use crate::convert_out as output;
@@ -18,7 +18,7 @@ pub(crate) async fn unary(
     machine: &MachineEnv,
     request: Request,
     body: &Body,
-    env: rust_cli_kernel_api::env_command::EnvOverrides,
+    env: nibi_kernel_api::env_command::EnvOverrides,
 ) -> (ReplyResult, Body) {
     let mut out = BodyBuilder::new();
     let result = match run(machine, request, body, env, &mut out).await {
@@ -33,7 +33,7 @@ async fn run(
     machine: &MachineEnv,
     request: Request,
     body: &Body,
-    env: rust_cli_kernel_api::env_command::EnvOverrides,
+    env: nibi_kernel_api::env_command::EnvOverrides,
     out: &mut BodyBuilder,
 ) -> Result<Reply, WireError> {
     let err = output::error;

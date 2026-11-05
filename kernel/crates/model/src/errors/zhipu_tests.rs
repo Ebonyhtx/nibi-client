@@ -2,10 +2,10 @@
 
 use std::time::SystemTime;
 
-use rust_cli_kernel_api::message::StopReason;
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::provider::WireProtocol;
-use rust_cli_net::ResponseHeaders;
+use nibi_kernel_api::message::StopReason;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::provider::WireProtocol;
+use nibi_kernel_net::ResponseHeaders;
 use serde_json::{Value, json};
 
 use crate::errors::{Class, Finish, Vendor, Verdict};

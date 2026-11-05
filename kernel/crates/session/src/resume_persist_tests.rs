@@ -2,13 +2,13 @@
 //! 提交写进存储，排在这一批最前面；只打开不续写时不写。会话里切过去时（`Command::StoreResumeSentinel`）马上单独写一批。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::{MessageId, OwnerEpoch, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, OwnerEpoch, SessionId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::session_api::{Ack, Command, EndReason, SessionHandle};
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore};
-use rust_cli_kernel_api::testing::{MemoryStore, ScriptedModel, text_response};
+use nibi_kernel_api::session_api::{Ack, Command, EndReason, SessionHandle};
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore};
+use nibi_kernel_api::testing::{MemoryStore, ScriptedModel, text_response};
 
 use crate::Opened;
 use crate::test_support::{Setup, envelope, finished, meta, submit, until};

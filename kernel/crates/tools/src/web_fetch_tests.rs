@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env_web::FetchedUrl;
-use rust_cli_kernel_api::model::{ApiRole, QuerySource};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env_web::FetchedUrl;
+use nibi_kernel_api::model::{ApiRole, QuerySource};
+use nibi_kernel_api::testing::{
     FixedClock, ScriptedInteractions, ScriptedModel, selection, text_response,
 };
-use rust_cli_kernel_api::tool::{Tool, ToolError, Validation};
+use nibi_kernel_api::tool::{Tool, ToolError, Validation};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -93,7 +93,7 @@ async fn html_is_converted_and_answered_by_the_side_model() {
     // 工作线 F52：带上工具所在的会话（`metadata.user_id` 的 `session_id`，model.md §3.3）。
     assert_eq!(
         request.options.session_id,
-        Some(rust_cli_kernel_api::ids::SessionId::new("sess_1"))
+        Some(nibi_kernel_api::ids::SessionId::new("sess_1"))
     );
     // 工作线 F64：工具所在的回合（每请求头的 `x-query-id`，model.md §2.4）。
     assert!(request.options.run.is_some());

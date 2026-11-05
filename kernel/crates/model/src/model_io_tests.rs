@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_net::HeaderValue;
-use rust_cli_net::sse::SseEvent;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_net::HeaderValue;
+use nibi_kernel_net::sse::SseEvent;
 use serde_json::json;
 
 use super::*;
@@ -169,7 +169,7 @@ fn the_recording_decoder_keeps_raw_events_and_finds_skipped_blocks() {
 /// 工作线 F93（model-io.md §4.2）：停止原因与用量换成 Node 的写法（`mapAnthropicStopReason`、`normalizeUsage`）。
 #[test]
 fn stop_reasons_and_usage_take_the_node_names() {
-    use rust_cli_kernel_api::message::{StopReason, Usage};
+    use nibi_kernel_api::message::{StopReason, Usage};
     let cases = [
         (StopReason::EndTurn, "stop"),
         (StopReason::StopSequence, "stop"),

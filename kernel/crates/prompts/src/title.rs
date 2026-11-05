@@ -3,7 +3,7 @@
 //!
 //! 文字逐字固定，没有产品名需要替换。user 提示是 `<session>…</session>` 加语言行。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 use serde::Deserialize;
 
 use crate::trim;

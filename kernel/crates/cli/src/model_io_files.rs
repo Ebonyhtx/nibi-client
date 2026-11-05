@@ -1,5 +1,5 @@
 //! 模型轨迹文件（docs/specs/rust-cli/model-io.md §3.2、§3.3）：文件名、轮转、容量与消息压缩，逐条照 Node
-//! `apps/zcode-cli/packages/adapters/src/model/runner-debug.ts`（两边共用目录与名额）。文件 IO 只经 `rust_cli_fs`；
+//! `apps/zcode-cli/packages/adapters/src/model/runner-debug.ts`（两边共用目录与名额）。文件 IO 只经 `nibi_kernel_fs`；
 //! 文件在不在、多大每次从磁盘读（另一个进程的轮转可能删掉本方的文件），压缩状态只在内存里。
 
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
 use serde_json::{Map, Value, json};
 
 use crate::model_io::Pending;
@@ -109,16 +109,16 @@ impl Files {
         full: bool,
         dropped: u64,
     ) -> io::Result<()> {
-        rust_cli_fs::create_dir_all(&self.dir).await?;
+        nibi_kernel_fs::create_dir_all(&self.dir).await?;
         if full {
             // 全量保留：不轮转、不重置、不压缩；仍更新压缩状态，关掉后可以接着只写新增的消息。
             let previous = None;
             let (line, state) = prepare(pending, previous, None, None, dropped).await?;
-            rust_cli_fs::append(path, line.as_bytes()).await?;
+            nibi_kernel_fs::append(path, line.as_bytes()).await?;
             self.states.insert(path.to_path_buf(), state);
             return Ok(());
         }
-        let existing = rust_cli_fs::file_len(path).await?;
+        let existing = nibi_kernel_fs::file_len(path).await?;
         if !self.development && existing.is_none() {
             self.rotate(MAX_FILES - 1).await;
         }
@@ -135,9 +135,9 @@ impl Files {
         };
         let (line, state) = prepare(pending, previous, Some(baseline), reset, dropped).await?;
         if reset.is_some() {
-            rust_cli_fs::atomic_write(path, line.as_bytes(), OVERWRITE).await?;
+            nibi_kernel_fs::atomic_write(path, line.as_bytes(), OVERWRITE).await?;
         } else {
-            rust_cli_fs::append(path, line.as_bytes()).await?;
+            nibi_kernel_fs::append(path, line.as_bytes()).await?;
         }
         self.states.insert(path.to_path_buf(), state);
         Ok(())
@@ -146,7 +146,7 @@ impl Files {
     /// 让目录里的 `model-io-*.jsonl` 不多于 `keep` 个：按修改时间从旧到新删（读不到时间的算最旧），删除失败的跳过
     /// （Node `rotateModelIOFiles`）。
     async fn rotate(&mut self, keep: usize) {
-        let Ok(names) = rust_cli_fs::file_names(&self.dir).await else {
+        let Ok(names) = nibi_kernel_fs::file_names(&self.dir).await else {
             return;
         };
         let names: Vec<String> = names
@@ -160,7 +160,7 @@ impl Files {
         let mut aged = Vec::with_capacity(names.len());
         for name in names {
             let path = self.dir.join(&name);
-            let modified = rust_cli_fs::file_modified(&path)
+            let modified = nibi_kernel_fs::file_modified(&path)
                 .await
                 .ok()
                 .flatten()
@@ -172,7 +172,7 @@ impl Files {
             if extra == 0 {
                 break;
             }
-            if rust_cli_fs::remove_optional(&path).await.is_ok() {
+            if nibi_kernel_fs::remove_optional(&path).await.is_ok() {
                 self.states.remove(&path);
                 extra -= 1;
             }
@@ -188,7 +188,7 @@ async fn prepare(
     reset: Option<(u64, u64)>,
     dropped: u64,
 ) -> io::Result<(String, State)> {
-    rust_cli_base::blocking(move || line(pending, previous.as_ref(), baseline, reset, dropped))
+    nibi_kernel_base::blocking(move || line(pending, previous.as_ref(), baseline, reset, dropped))
         .await
         .map_err(io::Error::other)
 }

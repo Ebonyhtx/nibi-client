@@ -3,12 +3,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::listing::{ListingSource, Listings};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{ContextRequest, OrchestrationError};
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::listing::{ListingSource, Listings};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{ContextRequest, OrchestrationError};
+use nibi_kernel_api::permission::PermissionMode;
 
 use super::CombinedListings;
 

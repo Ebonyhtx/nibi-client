@@ -2,9 +2,9 @@
 //! 一样核对大小），结果按读文件的规则给出。真实 NodeStore 上的读法见 cli 的 `artifact_read.rs`。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::testing::{MemoryArtifacts, ScriptedInteractions};
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::testing::{MemoryArtifacts, ScriptedInteractions};
+use nibi_kernel_api::tool::ToolOutput;
 
 use super::*;
 use crate::test_more::{Ctx, output_text};

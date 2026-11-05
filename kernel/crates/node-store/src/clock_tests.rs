@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::Clock;
+use nibi_kernel_api::clock::Clock;
 
 use super::*;
 

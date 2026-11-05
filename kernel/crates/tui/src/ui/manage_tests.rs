@@ -1,6 +1,6 @@
 //! 管理命令的文字（tui-display.md §2.3、§4.4、§4.9）。
-use rust_cli_kernel_api::env_shell::BackgroundStatus;
-use rust_cli_kernel_api::manage::{BackgroundEntry, BackgroundKind, McpServerInfo, McpServerState};
+use nibi_kernel_api::env_shell::BackgroundStatus;
+use nibi_kernel_api::manage::{BackgroundEntry, BackgroundKind, McpServerInfo, McpServerState};
 
 use super::*;
 
@@ -61,8 +61,8 @@ fn the_status_line_sums_up_mcp_servers() {
 /// 远端 MCP（R5，remote-exec.md §22.8）：`/mcp` 列表里绑定到远端机器的服务器名后面接 ` @机器`。
 #[test]
 fn the_mcp_list_names_the_machine_of_a_remote_server() {
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::testing::selection;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::testing::selection;
 
     use crate::ui::app::{App, Overlay};
     use crate::ui::palette::{ColorLevel, Palette};
@@ -145,8 +145,8 @@ fn there_is_no_pill_when_only_subagents_run() {
 /// F98（remote-exec.md §25.4.4，Docker 试用 L7）：`/mcp` 列表在中文界面用中文的状态词，机器没连上的原因写中文；英文不变。
 #[test]
 fn the_mcp_list_speaks_the_interface_language() {
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::testing::selection;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::testing::selection;
 
     use crate::ui::app::{App, Overlay};
     use crate::ui::palette::{ColorLevel, Palette};

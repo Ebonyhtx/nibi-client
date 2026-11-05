@@ -12,7 +12,7 @@ use rcgen::{
     BasicConstraints, CertificateParams, CertifiedIssuer, DnType, ExtendedKeyUsagePurpose, IsCa,
     KeyPair, KeyUsagePurpose,
 };
-use rust_cli_kernel_api::clock::civil_date;
+use nibi_kernel_api::clock::civil_date;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
 
 /// 一套证书：CA 的 PEM（交给 `NIBI_AGENT_CA_CERT` / `NODE_EXTRA_CA_CERTS`），以及它签的服务器证书与私钥

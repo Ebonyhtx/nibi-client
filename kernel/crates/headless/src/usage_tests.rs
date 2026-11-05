@@ -1,16 +1,16 @@
 //! `-p "/usage"`（usage.md §6）。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::Kernel;
-use rust_cli_kernel_api::store::SessionFilter;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::Kernel;
+use nibi_kernel_api::store::SessionFilter;
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
     selection, text_response,
 };
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
 
 use crate::{Output, PrintOptions, SessionTarget, run};
 

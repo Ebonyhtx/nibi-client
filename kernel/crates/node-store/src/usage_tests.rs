@@ -1,9 +1,9 @@
 //! 用量事实 → Node 用量表（usage.md §2）：逐列的取值、同批提交、轮次聚合、保留期。
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{StopReason, Usage};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
-use rust_cli_kernel_api::model::{ModelError, ModelSelection, QuerySource};
-use rust_cli_kernel_api::store::{Fact, SessionKind, SessionStore};
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{StopReason, Usage};
+use nibi_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
+use nibi_kernel_api::model::{ModelError, ModelSelection, QuerySource};
+use nibi_kernel_api::store::{Fact, SessionKind, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, meta, started, text, user};
@@ -214,7 +214,7 @@ async fn an_interrupted_or_too_long_request_sets_its_flags() {
 /// `web_fetch_processing`；Node 没有对应用途的旁路照原样。以前写的是本工程的名字。
 #[tokio::test]
 async fn side_requests_use_the_node_names() {
-    use rust_cli_kernel_api::model::{SIDE_SESSION_TITLE, SIDE_WEB_FETCH};
+    use nibi_kernel_api::model::{SIDE_SESSION_TITLE, SIDE_WEB_FETCH};
     let t = TestStore::new();
     started(&t, "sess_1").await;
     commit(&t, &sid(), vec![user("msg_u1", "hi")]).await;
@@ -372,7 +372,7 @@ async fn a_turn_aggregates_its_rows_and_keeps_the_earliest_start() {
 /// 自己的请求事件数，标题有自己的事件列表）。
 #[tokio::test]
 async fn title_rows_do_not_count_in_the_turn() {
-    use rust_cli_kernel_api::model::SIDE_SESSION_TITLE;
+    use nibi_kernel_api::model::SIDE_SESSION_TITLE;
     let t = TestStore::new();
     started(&t, "sess_1").await;
     commit(&t, &sid(), vec![user("msg_u1", "name this session please")]).await;

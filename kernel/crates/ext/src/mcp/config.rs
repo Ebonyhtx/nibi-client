@@ -2,7 +2,7 @@
 //!
 //! 入口层读配置文件、展开 `${VAR}`、按作用域合并，交给 ext 的只是这份快照。
 
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::McpTransportConfig;
 
 /// 配置作用域。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,7 +24,7 @@ pub struct McpServer {
     pub scope: McpScope,
     pub transport: McpTransportConfig,
     pub options: McpServerOptions,
-    /// 服务器绑定的远端机器（R5，remote-exec.md §22.2：入口按 rust-cli 的旁路文件设）；None 或 `local` 是本机。绑定到
+    /// 服务器绑定的远端机器（R5，remote-exec.md §22.2：入口按 nibi-kernel-cli 的旁路文件设）；None 或 `local` 是本机。绑定到
     /// 远端时 `transport` 是配置的原文（`${VAR}` 由那台机器的执行器展开，§22.7）。
     pub machine: Option<String>,
 }
@@ -84,7 +84,7 @@ impl Default for McpSettings {
 
 /// `[^a-zA-Z0-9_-]` 换成 `_`。规则只有
 /// 一份，在 kernel-api（ToolSearch 与直接调用时的等待也用它，F36）。
-pub use rust_cli_kernel_api::mcp_state::normalize_name;
+pub use nibi_kernel_api::mcp_state::normalize_name;
 
 /// `mcp__<server>__<tool>`。
 pub fn tool_name(server: &str, tool: &str) -> String {

@@ -2,17 +2,17 @@
 //!
 //! 每条消息先提交到存储，成功后才进入内存历史并发出事件；提交失败时中止本回合并以失败收尾。
 
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::hooks::HookOutcome;
-use rust_cli_kernel_api::ids::{CommandId, InteractionId, OperationId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::metering::{CallStatus, Metered, ModelCall, OutputSpeed};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::hooks::HookOutcome;
+use nibi_kernel_api::ids::{CommandId, InteractionId, OperationId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::metering::{CallStatus, Metered, ModelCall, OutputSpeed};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, OrchestrationError, QueryEvent, QueryRequest, QueryStop,
 };
-use rust_cli_kernel_api::session_api::{Ack, KernelEvent, TurnInputSource, TurnOutcome};
-use rust_cli_kernel_api::store::{Fact, StoreError};
+use nibi_kernel_api::session_api::{Ack, KernelEvent, TurnInputSource, TurnOutcome};
+use nibi_kernel_api::store::{Fact, StoreError};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
@@ -69,7 +69,7 @@ pub(crate) enum TurnInput {
     /// meta user 消息、只调一次模型（docs/specs/rust-cli/query.md §5，通知合并）。
     Notices(Vec<Waiting>),
     /// 到期的定时任务：prompt 原文作为 meta user 消息（docs/specs/rust-cli/tools-more.md §10.4）。
-    Cron(rust_cli_kernel_api::cron::CronFire),
+    Cron(nibi_kernel_api::cron::CronFire),
     /// 排队的 bash 模式命令（tui-input.md §2.2）。
     Bash { command: CommandId, line: String },
     /// 带内容块的人类输入（粘贴的图片，tui-input.md §3.2）。

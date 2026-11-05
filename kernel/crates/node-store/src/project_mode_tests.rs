@@ -1,8 +1,8 @@
 //! 本机项目的持久模式（docs/specs/rust-cli/config.md §2.2）：Node 的值与映射、本工程写出的记录。
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{Fact, SessionStore};
 
 use crate::tests::{TestStore, batch, meta};
 

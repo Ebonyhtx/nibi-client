@@ -1,5 +1,5 @@
 // 复制自 apps/zcode-host/crates/account/src/account/credential.rs（1f0bfd1b71）的 `CredentialCipher` 与读取
-// 部分。改动：文件经 rust-cli-fs 读写；密钥构造失败返回错误而不是 panic；密钥材料（平台、home、用户名）
+// 部分。改动：文件经 nibi-kernel-fs 读写；密钥构造失败返回错误而不是 panic；密钥材料（平台、home、用户名）
 // 由入口给出，不在这里读进程环境。写入取 Node `shared-credentials.ts` 的 `mutateRawCredentialRecord`
 // （33a9541140）：目录锁内读改写，原子写回（platform.md §5.5）。
 //! 共享凭据 `credentials.json`（docs/specs/rust-cli/platform.md §5.1）。
@@ -14,9 +14,9 @@ use base64::alphabet;
 use base64::engine::{DecodePaddingMode, GeneralPurpose, GeneralPurposeConfig};
 use ring::aead::{AES_256_GCM, Aad, LessSafeKey, NONCE_LEN, Nonce, UnboundKey};
 use ring::rand::{SecureRandom, SystemRandom};
-use rust_cli_base::secret::RedactedString;
-use rust_cli_fs::{FileMode, LockOptions, ParentDir, TempName, WriteOptions};
-use rust_cli_paths::StoragePath;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_fs::{FileMode, LockOptions, ParentDir, TempName, WriteOptions};
+use nibi_kernel_paths::StoragePath;
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 
@@ -28,7 +28,7 @@ pub(crate) const PRIVATE_WRITE: WriteOptions = WriteOptions {
     mode: FileMode::Private,
     temp_name: TempName::Hidden,
     parent: ParentDir::Create,
-    rename_retry: rust_cli_fs::NODE_RENAME_RETRY,
+    rename_retry: nibi_kernel_fs::NODE_RENAME_RETRY,
 };
 
 /// Node `Buffer.from(raw, "base64url")` 接受有无填充两种写法；输出始终无填充。
@@ -232,13 +232,13 @@ impl CredentialStore {
         change: impl FnOnce(&mut Credentials) -> Result<T, CredentialError>,
     ) -> Result<T, CredentialError> {
         let file = self.file.as_path();
-        rust_cli_fs::with_file_lock(file, &LockOptions::default(), async || {
+        nibi_kernel_fs::with_file_lock(file, &LockOptions::default(), async || {
             let mut credentials = self.read().await?;
             let result = change(&mut credentials)?;
             let mut text = serde_json::to_string_pretty(&credentials.record)
                 .map_err(|error| CredentialError::Write(error.to_string()))?;
             text.push('\n');
-            rust_cli_fs::atomic_write(file, text.as_bytes(), PRIVATE_WRITE)
+            nibi_kernel_fs::atomic_write(file, text.as_bytes(), PRIVATE_WRITE)
                 .await
                 .map_err(|error| CredentialError::Write(format!("{}: {error}", file.display())))?;
             Ok(result)
@@ -248,7 +248,7 @@ impl CredentialStore {
 
     /// 读整个文件。不存在时是空记录；不是“值全为字符串的对象”时报损坏（Node 拒绝把它当空 store）。
     pub async fn read(&self) -> Result<Credentials, CredentialError> {
-        let bytes = rust_cli_fs::read_optional(self.file.as_path())
+        let bytes = nibi_kernel_fs::read_optional(self.file.as_path())
             .await
             .map_err(|error| {
                 CredentialError::Io(format!("{}: {error}", self.file.as_path().display()))

@@ -1,7 +1,7 @@
 //! 互操作里第一段会话附带的本机设置：“总是允许”的项目规则集（docs/specs/rust-cli/shell-permissions.md
 //! §5）、项目的持久模式（config.md §2.2）与生成的会话标题（titles.md §4）；`rules` 命令读回规则集，
 //! `mode` / `mode-set` 读写持久模式，给 Node 一侧比对。
-use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
 
 use super::*;
 
@@ -52,7 +52,7 @@ pub(super) async fn rules_change(dir: &str, workspace: &str, change: &str) -> Re
         environment: EnvironmentId::new(LOCAL_ENVIRONMENT),
         root: EnvPath::new(workspace),
     };
-    let change: rust_cli_kernel_api::store::ProjectRulesChange = serde_json::from_str(change)?;
+    let change: nibi_kernel_api::store::ProjectRulesChange = serde_json::from_str(change)?;
     print(&serde_json::to_value(
         store(dir)?.change_project_rules(&workspace, change).await?,
     )?)
@@ -82,7 +82,7 @@ pub(super) async fn mode(command: &str, args: &[String]) -> Result<()> {
         }
         ("mode-exec", [dir, session, mode, plan]) => {
             let mode: PermissionMode = serde_json::from_value(json!(mode))?;
-            let state = rust_cli_kernel_api::permission::ExecutionState {
+            let state = nibi_kernel_api::permission::ExecutionState {
                 mode,
                 plan: plan == "true",
             };

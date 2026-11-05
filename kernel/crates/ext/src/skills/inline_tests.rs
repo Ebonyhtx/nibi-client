@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::permission::{
     PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
-use rust_cli_kernel_api::testing::{MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::testing::{MemoryEnvironment, SequentialIds};
 
 use super::*;
 use crate::test_support::{EchoBash, facts, tool_context};
@@ -42,7 +42,7 @@ fn runner(bash: Arc<EchoBash>, rules: &[(RuleBehavior, &str)]) -> Runner {
             .map(|(behavior, text)| SourcedRule {
                 source: RuleSource::CliArg,
                 behavior: *behavior,
-                rule: rust_cli_policy::rules::parse_rule(text),
+                rule: nibi_kernel_policy::rules::parse_rule(text),
             })
             .collect(),
         ..PermissionRules::default()

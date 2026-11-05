@@ -1,17 +1,17 @@
 //! `legacy_snapshot` 的形状：旧协议快照必须是 Host 严格 schema 能解析的 JSON，消息要保留
 //! 正文/思考/工具调用，index profile 只留正文。
 
-use rust_cli_kernel_api::compaction::{ContextNotice, ContextOccupancy};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId, TraceId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::compaction::{ContextNotice, ContextOccupancy};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId, TraceId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, ToolResultContent, Usage, UserMessage,
     UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::SessionView;
-use rust_cli_kernel_api::store::{MessageTime, SessionKind, SessionMeta};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::SessionView;
+use nibi_kernel_api::store::{MessageTime, SessionKind, SessionMeta};
 use serde_json::json;
 
 use super::*;
@@ -230,8 +230,8 @@ fn plan_mode_is_reported_as_plan() {
 /// （141 审计 §9 F5 的剩余项）；读不出的引用照旧不显示，不让整份快照失败。
 #[test]
 fn artifact_images_are_inlined_from_the_resolved_media() {
-    use rust_cli_kernel_api::ids::ArtifactId;
-    use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef};
+    use nibi_kernel_api::ids::ArtifactId;
+    use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef};
 
     let artifact = ArtifactRef {
         session: SessionId::new("sess_1"),
@@ -253,7 +253,7 @@ fn artifact_images_are_inlined_from_the_resolved_media() {
     }));
     let uri = format!(
         "{}{}/{}",
-        rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME,
+        nibi_kernel_api::persisted_output::ARTIFACT_SCHEME,
         "sess_1",
         "tool-result-1"
     );

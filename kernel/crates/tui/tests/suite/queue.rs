@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::env::BackgroundReason;
-use rust_cli_kernel_api::testing::{environments, text_response, tool_use_response};
+use nibi_kernel_api::env::BackgroundReason;
+use nibi_kernel_api::testing::{environments, text_response, tool_use_response};
 use serde_json::json;
 
 use super::queue_send_now::MovesEnv;
@@ -80,43 +80,43 @@ async fn ctrl_x_enter_while_running_also_joins_at_the_tool_boundary() {
 
 /// 建会话时停住的存储：`create` 等测试放行（R5-9）。
 struct SlowCreate {
-    inner: std::sync::Arc<rust_cli_kernel_api::testing::MemoryStore>,
+    inner: std::sync::Arc<nibi_kernel_api::testing::MemoryStore>,
     gate: std::sync::Arc<tokio::sync::Notify>,
 }
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::store::SessionStore for SlowCreate {
+impl nibi_kernel_api::store::SessionStore for SlowCreate {
     async fn create(
         &self,
-        meta: rust_cli_kernel_api::store::SessionMeta,
-    ) -> Result<(), rust_cli_kernel_api::store::StoreError> {
+        meta: nibi_kernel_api::store::SessionMeta,
+    ) -> Result<(), nibi_kernel_api::store::StoreError> {
         self.gate.notified().await;
         self.inner.create(meta).await
     }
 
     async fn commit(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-        batch: rust_cli_kernel_api::store::FactBatch,
-    ) -> Result<rust_cli_kernel_api::store::CommitReceipt, rust_cli_kernel_api::store::StoreError>
+        session: &nibi_kernel_api::ids::SessionId,
+        batch: nibi_kernel_api::store::FactBatch,
+    ) -> Result<nibi_kernel_api::store::CommitReceipt, nibi_kernel_api::store::StoreError>
     {
         self.inner.commit(session, batch).await
     }
 
     async fn load(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-    ) -> Result<rust_cli_kernel_api::store::LoadedSession, rust_cli_kernel_api::store::StoreError>
+        session: &nibi_kernel_api::ids::SessionId,
+    ) -> Result<nibi_kernel_api::store::LoadedSession, nibi_kernel_api::store::StoreError>
     {
         self.inner.load(session).await
     }
 
     async fn list(
         &self,
-        filter: rust_cli_kernel_api::store::SessionFilter,
+        filter: nibi_kernel_api::store::SessionFilter,
     ) -> Result<
-        Vec<rust_cli_kernel_api::store::SessionSummary>,
-        rust_cli_kernel_api::store::StoreError,
+        Vec<nibi_kernel_api::store::SessionSummary>,
+        nibi_kernel_api::store::StoreError,
     > {
         self.inner.list(filter).await
     }

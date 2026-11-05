@@ -1,14 +1,14 @@
 //! http hook 的出口（docs/specs/rust-cli/hooks.md §5.2）：kernel-api `HookHttp` 端口的本地实现，
-//! 请求经 `rust-cli-net` 的 [`Egress`] 发出。header 的插值与 URL 允许表由 hooks crate 处理；这里只发送，
+//! 请求经 `nibi-kernel-net` 的 [`Egress`] 发出。header 的插值与 URL 允许表由 hooks crate 处理；这里只发送，
 //! 超时覆盖整个请求。
 
 use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::hooks::{HookHttp, HookHttpError, HookHttpRequest, HookHttpResponse};
-use rust_cli_net::{Egress, HeaderValue, HttpRequest, NetError};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::hooks::{HookHttp, HookHttpError, HookHttpRequest, HookHttpResponse};
+use nibi_kernel_net::{Egress, HeaderValue, HttpRequest, NetError};
 use tokio_util::sync::CancellationToken;
 
 /// 响应体最多读这么多字节。

@@ -1,5 +1,5 @@
 [package]
-name = "rust-cli-env-local"
+name = "nibi-kernel-env-local"
 description = "Local execution environment: workspace files, search, processes, Git"
 version.workspace = true
 edition.workspace = true
@@ -22,13 +22,13 @@ grep-searcher.workspace = true
 ignore.workspace = true
 # 持久定时任务文件的监听（cron_watch.rs）。
 notify.workspace = true
-rust-cli-base.workspace = true
+nibi-kernel-base.workspace = true
 # 定时任务文件的原子写、锁文件里 PID 的存活判断（cron_store.rs、cron_lock.rs）。
-rust-cli-fs.workspace = true
-rust-cli-kernel-api.workspace = true
+nibi-kernel-fs.workspace = true
+nibi-kernel-api.workspace = true
 # http hook 的出口（hook_http.rs）。
-rust-cli-net.workspace = true
-rust-cli-proc.workspace = true
+nibi-kernel-net.workspace = true
+nibi-kernel-proc.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["fs", "io-util", "macros", "sync", "time"] }
 tokio-util.workspace = true

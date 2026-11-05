@@ -1,7 +1,7 @@
 use super::*;
 
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::TokenLimits;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::TokenLimits;
 
 /// 答不出的上限查询（这里只看环境变量）。
 struct NoLimits;

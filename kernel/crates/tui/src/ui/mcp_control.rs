@@ -1,7 +1,7 @@
 //! `/mcp reconnect|enable|disable [<server>|all]`（docs/specs/rust-cli/tui-manage.md §6.2）：先按打开时的服务器
 //! 快照判断（前置检查），要动的交给 runner（先写配置、再改连接），回执到了再按固定的句子提示。
 //! 这里没有业务状态：服务器的状态只来自内核的查询与回执。
-use rust_cli_kernel_api::manage::{McpAction, McpServerInfo, McpServerState};
+use nibi_kernel_api::manage::{McpAction, McpServerInfo, McpServerState};
 
 use super::i18n::Lang;
 

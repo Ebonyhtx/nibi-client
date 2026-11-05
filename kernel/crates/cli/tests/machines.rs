@@ -54,7 +54,7 @@ fn sandbox() -> Sandbox {
 }
 
 fn run(sandbox: &Sandbox, fixture: &sse::Fixture, machines: bool) -> Output {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         // 缺省模式：Edit 没读过就拒绝（bypass 时不要求先读）；只读的 Bash 与工作目录里的 Read 不用询问。
         .args(["-p", "go", "--permission-mode", "default"])

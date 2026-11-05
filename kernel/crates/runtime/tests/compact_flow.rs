@@ -8,20 +8,20 @@ mod flow {
     use std::time::Duration;
 
     use futures_util::StreamExt;
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-    use rust_cli_kernel_api::message::ContentBlock;
-    use rust_cli_kernel_api::model::{ModelRequest, QuerySource};
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::session_api::{
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+    use nibi_kernel_api::message::ContentBlock;
+    use nibi_kernel_api::model::{ModelRequest, QuerySource};
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::session_api::{
         Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, SessionHandle,
         TurnOutcome,
     };
-    use rust_cli_kernel_api::testing::{
+    use nibi_kernel_api::testing::{
         FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
         selection, text_response,
     };
-    use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+    use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
 
     fn texts(request: &ModelRequest) -> Vec<String> {
         request

@@ -1,7 +1,7 @@
 //! `--model` 的取值（cli-args.md §1.3，工作线 F49）。
 
-use rust_cli_kernel_api::model::ModelConnection;
-use rust_cli_kernel_api::provider::{CatalogConnection, CatalogModel, WireProtocol};
+use nibi_kernel_api::model::ModelConnection;
+use nibi_kernel_api::provider::{CatalogConnection, CatalogModel, WireProtocol};
 
 use super::{LookupError, is_entry, lookup, selection, written};
 

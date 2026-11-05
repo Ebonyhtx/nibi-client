@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
-use rust_cli_node_store::NodeIds;
-use rust_cli_tui::Editor;
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_node_store::NodeIds;
+use nibi_kernel_tui::Editor;
 
 const WRITE: WriteOptions = WriteOptions {
     mode: FileMode::Private,
@@ -40,7 +40,7 @@ pub(crate) struct ProcessEditor {
 }
 
 fn value(env: &[(String, String)], key: &str) -> Option<String> {
-    rust_cli_base::secret::env_var(env, key)
+    nibi_kernel_base::secret::env_var(env, key)
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
 }
@@ -54,7 +54,7 @@ impl ProcessEditor {
         Self {
             visual: value(env, "VISUAL"),
             editor: value(env, "EDITOR"),
-            temp_dir: rust_cli_proc::private::user_dir(temp),
+            temp_dir: nibi_kernel_proc::private::user_dir(temp),
             ids,
         }
     }
@@ -87,7 +87,7 @@ pub(crate) fn command_line(editor: &str, path: &Path) -> String {
     if cfg!(windows) {
         format!("{editor} \"{path}\"")
     } else {
-        format!("{editor} {}", rust_cli_proc::shell::single_quote(&path))
+        format!("{editor} {}", nibi_kernel_proc::shell::single_quote(&path))
     }
 }
 
@@ -102,7 +102,7 @@ fn display_name(editor: &str) -> String {
 
 /// 跑一次编辑器；找不到命令时返回 Ok(false)，让调用方试下一个。
 async fn launch(editor: &str, path: &Path) -> Result<bool, String> {
-    let status = rust_cli_proc::shell::script(&command_line(editor, path))
+    let status = nibi_kernel_proc::shell::script(&command_line(editor, path))
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
@@ -134,15 +134,15 @@ async fn edit_text(
     text: String,
 ) -> Result<String, String> {
     // 私有目录：没有时以 0700 建，属主不是自己或是符号链接时拒绝。
-    rust_cli_proc::private::ensure(&dir)
+    nibi_kernel_proc::private::ensure(&dir)
         .await
         .map_err(|error| error.to_string())?;
-    rust_cli_fs::atomic_write(&file, text.as_bytes(), WRITE)
+    nibi_kernel_fs::atomic_write(&file, text.as_bytes(), WRITE)
         .await
         .map_err(|error| error.to_string())?;
     let opened = open_with(candidates, &file).await;
-    let read = rust_cli_fs::read_optional(&file).await;
-    let _ = rust_cli_fs::remove_optional(&file).await;
+    let read = nibi_kernel_fs::read_optional(&file).await;
+    let _ = nibi_kernel_fs::remove_optional(&file).await;
     opened?;
     let bytes = read.map_err(|error| error.to_string())?.unwrap_or_default();
     Ok(String::from_utf8_lossy(&bytes).into_owned())
@@ -160,11 +160,11 @@ impl Editor for ProcessEditor {
         async move {
             let file = PathBuf::from(path);
             // 文件不存在时先建空文件。
-            let existing = rust_cli_fs::read_optional(&file)
+            let existing = nibi_kernel_fs::read_optional(&file)
                 .await
                 .map_err(|error| error.to_string())?;
             if existing.is_none() {
-                rust_cli_fs::atomic_write(&file, b"", WRITE)
+                nibi_kernel_fs::atomic_write(&file, b"", WRITE)
                     .await
                     .map_err(|error| error.to_string())?;
             }

@@ -6,8 +6,8 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_worktree::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_worktree::{
     WorktreeCreate, WorktreeCreated, WorktreeInspect, WorktreeRemove,
 };
 

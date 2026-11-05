@@ -2,21 +2,21 @@
 //! 改名、删除、只读快照。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-use rust_cli_kernel_api::panels::SessionActivity;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+use nibi_kernel_api::panels::SessionActivity;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelError,
 };
-use rust_cli_kernel_api::store::{SessionOrder, SessionQuery};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::store::{SessionOrder, SessionQuery};
+use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment,
     environments, selection, text_response,
 };
 
 use super::*;
 
-fn kernel<E: rust_cli_kernel_api::testing::AllPorts + 'static>(
+fn kernel<E: nibi_kernel_api::testing::AllPorts + 'static>(
     store: Arc<MemoryStore>,
     env: Arc<E>,
 ) -> LocalKernel {
@@ -71,7 +71,7 @@ fn all() -> SessionQuery {
 async fn sessions_of_every_project_carry_state_and_branch() {
     let store = Arc::new(MemoryStore::default());
     let env = Arc::new(
-        MemoryEnvironment::new(rust_cli_kernel_api::env::EnvFacts {
+        MemoryEnvironment::new(nibi_kernel_api::env::EnvFacts {
             cwd: EnvPath::new("/w/app"),
             platform: "darwin".to_owned(),
             os_version: String::new(),
@@ -114,7 +114,7 @@ async fn sessions_of_every_project_carry_state_and_branch() {
     while let Some(event) = futures_util::StreamExt::next(&mut events).await {
         if matches!(
             event.event,
-            rust_cli_kernel_api::session_api::KernelEvent::TurnFinished { .. }
+            nibi_kernel_api::session_api::KernelEvent::TurnFinished { .. }
         ) {
             break;
         }
@@ -167,7 +167,7 @@ async fn rename_goes_through_the_actor_when_open_and_delete_refuses_open_session
         .open_session(&closed)
         .await
         .unwrap()
-        .close(rust_cli_kernel_api::session_api::EndReason::Clear)
+        .close(nibi_kernel_api::session_api::EndReason::Clear)
         .await;
     kernel
         .rename_session(&open, "Open one".into())
@@ -205,7 +205,7 @@ async fn snapshots_do_not_open_sessions() {
         .open_session(&id)
         .await
         .unwrap()
-        .close(rust_cli_kernel_api::session_api::EndReason::Clear)
+        .close(nibi_kernel_api::session_api::EndReason::Clear)
         .await;
     assert!(!kernel.sessions().contains_key(&id));
     let view = kernel.session_snapshot(&id).await.unwrap();
@@ -226,7 +226,7 @@ async fn snapshots_do_not_open_sessions() {
 /// 读不到就没有分支）。
 #[tokio::test]
 async fn a_dot_git_that_is_neither_file_nor_directory_is_passed_over() {
-    let env = MemoryEnvironment::new(rust_cli_kernel_api::env::EnvFacts {
+    let env = MemoryEnvironment::new(nibi_kernel_api::env::EnvFacts {
         cwd: EnvPath::new("/w/app"),
         platform: "darwin".to_owned(),
         os_version: String::new(),

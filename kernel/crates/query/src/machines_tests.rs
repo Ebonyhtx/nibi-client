@@ -2,16 +2,16 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_registry::{MachineFacts, MachineSet, RemoteMachine};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::model::ToolDefinition;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_registry::{MachineFacts, MachineSet, RemoteMachine};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::model::ToolDefinition;
+use nibi_kernel_api::testing::{
     FakeTool, ScriptedModel, TestMachines, UnusedEnvironment, text_response,
 };
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::tool::Tool;
 use serde_json::{Value, json};
 
 use super::add_machine_param;
@@ -130,7 +130,7 @@ fn a_subagent_on_a_remote_machine_names_its_default() {
     );
 }
 
-fn schema_of<'a>(request: &'a rust_cli_kernel_api::model::ModelRequest, name: &str) -> &'a Value {
+fn schema_of<'a>(request: &'a nibi_kernel_api::model::ModelRequest, name: &str) -> &'a Value {
     &request
         .tools
         .iter()
@@ -174,17 +174,17 @@ async fn the_request_follows_the_registry_at_each_step() {
 struct SeenDefaults(std::sync::Mutex<Vec<Option<String>>>);
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::orchestration::ContextBuilder for SeenDefaults {
+impl nibi_kernel_api::orchestration::ContextBuilder for SeenDefaults {
     async fn build(
         &self,
-        request: rust_cli_kernel_api::orchestration::ContextRequest,
-        _history: &[rust_cli_kernel_api::message::Message],
+        request: nibi_kernel_api::orchestration::ContextRequest,
+        _history: &[nibi_kernel_api::message::Message],
     ) -> Result<
-        rust_cli_kernel_api::orchestration::BuiltContext,
-        rust_cli_kernel_api::orchestration::OrchestrationError,
+        nibi_kernel_api::orchestration::BuiltContext,
+        nibi_kernel_api::orchestration::OrchestrationError,
     > {
         self.0.lock().unwrap().push(request.default_machine);
-        Ok(rust_cli_kernel_api::orchestration::BuiltContext {
+        Ok(nibi_kernel_api::orchestration::BuiltContext {
             system: Vec::new(),
             user_context: Vec::new(),
             attachments: Vec::new(),
@@ -194,42 +194,42 @@ impl rust_cli_kernel_api::orchestration::ContextBuilder for SeenDefaults {
 
 /// 缺省机器在 `machine` 上的输出端（子代理派生时 Agent 的 `machine`）；其余交给记录的输出端。
 struct OnMachine(
-    Arc<rust_cli_kernel_api::testing::RecordingSink>,
+    Arc<nibi_kernel_api::testing::RecordingSink>,
     &'static str,
 );
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::orchestration::Interactions for OnMachine {
+impl nibi_kernel_api::orchestration::Interactions for OnMachine {
     async fn ask(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-        request: rust_cli_kernel_api::orchestration::InteractionRequest,
+        session: &nibi_kernel_api::ids::SessionId,
+        request: nibi_kernel_api::orchestration::InteractionRequest,
     ) -> Result<
-        rust_cli_kernel_api::orchestration::InteractionAnswer,
-        rust_cli_kernel_api::orchestration::OrchestrationError,
+        nibi_kernel_api::orchestration::InteractionAnswer,
+        nibi_kernel_api::orchestration::OrchestrationError,
     > {
         self.0.ask(session, request).await
     }
 }
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::orchestration::RunSink for OnMachine {
+impl nibi_kernel_api::orchestration::RunSink for OnMachine {
     async fn commit_message(
         &self,
-        message: rust_cli_kernel_api::message::Message,
-    ) -> Result<(), rust_cli_kernel_api::store::StoreError> {
+        message: nibi_kernel_api::message::Message,
+    ) -> Result<(), nibi_kernel_api::store::StoreError> {
         self.0.commit_message(message).await
     }
 
     async fn commit_intent(
         &self,
-        operation: rust_cli_kernel_api::ids::OperationId,
+        operation: nibi_kernel_api::ids::OperationId,
         fingerprint: String,
-    ) -> Result<(), rust_cli_kernel_api::store::StoreError> {
+    ) -> Result<(), nibi_kernel_api::store::StoreError> {
         self.0.commit_intent(operation, fingerprint).await
     }
 
-    async fn emit(&self, event: rust_cli_kernel_api::orchestration::QueryEvent) -> bool {
+    async fn emit(&self, event: nibi_kernel_api::orchestration::QueryEvent) -> bool {
         self.0.emit(event).await
     }
 

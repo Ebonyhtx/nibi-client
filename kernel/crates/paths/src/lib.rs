@@ -35,7 +35,7 @@ pub use home::{expand_home, home_dir_with, user_name_with};
 
 /// 产品目录名（`.zcode`）。名字定义在 base（内核 crate 也要用，它们不能依赖 paths，README §3.1）；用户根的位置
 /// 只在 [`user_path`] 计算。
-pub use rust_cli_base::names::DOT_DIR;
+pub use nibi_kernel_base::names::DOT_DIR;
 
 /// Node CLI 的存储子目录 `cli`（Node `getCliStorageRoot`）；下面的位置都从它拼（`concat!` 里不能用 `const`）。
 macro_rules! cli_dir {
@@ -43,8 +43,10 @@ macro_rules! cli_dir {
         "cli"
     };
 }
-/// 本工程专用的子目录 `rust-cli`（日志、跨会话登记、自动更新的缓存）。
-macro_rules! rust_cli_dir {
+/// 本工程专用的数据子目录（日志、跨会话登记、自动更新的缓存）。
+/// 名字是 class ③ 数据键：与 `rust-cli/` 行标记一样保持旧名，避免把既有日志/机器清单/
+/// 远端执行器安装目录搬空；crate 名（`nibi-kernel-*`）与它是两回事。
+macro_rules! project_dir {
     () => {
         "rust-cli"
     };
@@ -59,15 +61,15 @@ const MEMORY_DIR: &str = "memory";
 /// 任务清单（Task v2）目录（docs/specs/rust-cli/agents.md §7.2）。
 const TASKS_DIR: &str = "tasks";
 /// 本工程的运行日志目录（docs/specs/rust-cli/logging.md §1；Node CLI 的在 `cli/log`）。
-const LOG_DIR: &str = concat!(rust_cli_dir!(), "/log");
+const LOG_DIR: &str = concat!(project_dir!(), "/log");
 /// 跨会话的登记处与收件箱 socket（docs/specs/rust-cli/cross-session.md §2.2）。
-const PEERS_DIR: &str = concat!(rust_cli_dir!(), "/peers");
+const PEERS_DIR: &str = concat!(project_dir!(), "/peers");
 /// 自动更新的缓存（docs/specs/rust-cli/update.md §4，F48；Codex `version.json`）。
-const UPDATE_CACHE: &str = concat!(rust_cli_dir!(), "/version.json");
+const UPDATE_CACHE: &str = concat!(project_dir!(), "/version.json");
 /// 远端机器的清单（docs/specs/rust-cli/remote-exec.md §20.3.1）。
-const MACHINES_FILE: &str = concat!(rust_cli_dir!(), "/machines.json");
+const MACHINES_FILE: &str = concat!(project_dir!(), "/machines.json");
 /// MCP 服务器绑定到哪台机器（docs/specs/rust-cli/remote-exec.md §22.2）。
-const MCP_MACHINES_FILE: &str = concat!(rust_cli_dir!(), "/mcp-machines.json");
+const MCP_MACHINES_FILE: &str = concat!(project_dir!(), "/mcp-machines.json");
 /// 规整后目录名的上限（UTF-16 码元）。
 const MAX_SANITIZED_LENGTH: usize = 200;
 /// `<dataBaseDir>` 的用户根下的配置根（`.zcode/v2`）。
@@ -333,7 +335,7 @@ impl StoragePaths {
     /// `storage.dir` 走（执行器模式不读配置；远端也按同一个位置找）。
     pub fn executor(&self) -> ExecutorPaths {
         ExecutorPaths {
-            dir: StoragePath(user_path(&self.home, rust_cli_base::names::EXECUTOR_HOME)),
+            dir: StoragePath(user_path(&self.home, nibi_kernel_base::names::EXECUTOR_HOME)),
         }
     }
 
@@ -398,7 +400,7 @@ impl ExecutorPaths {
         self.dir
             .join("bin")
             .join(version)
-            .join(rust_cli_base::names::UNIX_EXECUTABLE)
+            .join(nibi_kernel_base::names::UNIX_EXECUTABLE)
     }
 
     /// 本机侧缓存的 Linux 产物 `dist/<版本>/<target>/nibi-rs`（上传用）。
@@ -407,7 +409,7 @@ impl ExecutorPaths {
             .join("dist")
             .join(version)
             .join(target)
-            .join(rust_cli_base::names::UNIX_EXECUTABLE)
+            .join(nibi_kernel_base::names::UNIX_EXECUTABLE)
     }
 }
 
@@ -432,7 +434,7 @@ pub fn sanitize_path(name: &str) -> String {
     format!(
         "{}-{}",
         &sanitized[..MAX_SANITIZED_LENGTH],
-        rust_cli_base::js::base36(u64::from(hash.unsigned_abs()))
+        nibi_kernel_base::js::base36(u64::from(hash.unsigned_abs()))
     )
 }
 

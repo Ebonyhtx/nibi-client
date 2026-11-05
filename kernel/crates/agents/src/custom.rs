@@ -1,12 +1,12 @@
 //! 自定义 agent：`~/.zcode/agents/*.md`（用户）与从 cwd 向上到 git 根每层的 `.zcode/agents/*.md`
 //! （项目），经执行环境读取（docs/specs/rust-cli/agents.md §3）。
 
-use rust_cli_base::names::{AGENTS_DIR, DOT_DIR};
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
-use rust_cli_kernel_api::env_git::project_levels;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_base::names::{AGENTS_DIR, DOT_DIR};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
+use nibi_kernel_api::env_git::project_levels;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::permission::PermissionMode;
 
 use crate::definitions::{AgentDefinition, AgentSource};
 use crate::frontmatter::{self, Value};

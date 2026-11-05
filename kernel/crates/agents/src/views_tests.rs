@@ -4,11 +4,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::panels::{SubagentStatus, TasksSnapshot};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::panels::{SubagentStatus, TasksSnapshot};
 use serde_json::json;
 use tokio::sync::Notify;
 
@@ -49,8 +49,8 @@ fn running(agent: &str, root: &str) -> crate::live::LiveAgent {
                 .unwrap(),
         ),
         workspace: crate::test_support::workspace(),
-        selection: rust_cli_kernel_api::testing::selection(),
-        mode: rust_cli_kernel_api::permission::PermissionMode::Default,
+        selection: nibi_kernel_api::testing::selection(),
+        mode: nibi_kernel_api::permission::PermissionMode::Default,
         background: true,
         asks: None,
         state: AgentState::Running {
@@ -281,11 +281,11 @@ async fn a_background_agent_is_listed_and_viewed_read_only() {
 /// 修复线 F26、F62：推理与工具调用都不是活动。
 #[test]
 fn the_current_activity_follows_the_child_events() {
-    use rust_cli_kernel_api::ids::ToolUseId;
-    use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelNotice};
-    use rust_cli_kernel_api::orchestration::QueryEvent;
-    use rust_cli_kernel_api::panels::SubagentActivity;
-    use rust_cli_kernel_api::tool::ToolOutput;
+    use nibi_kernel_api::ids::ToolUseId;
+    use nibi_kernel_api::model::{BlockDelta, ModelError, ModelNotice};
+    use nibi_kernel_api::orchestration::QueryEvent;
+    use nibi_kernel_api::panels::SubagentActivity;
+    use nibi_kernel_api::tool::ToolOutput;
 
     use crate::doing::Doing;
 
@@ -410,14 +410,14 @@ fn a_snapshot_takes_only_its_root_and_shares_definitions() {
 /// （查看时 footer 的 TPS）；失败的请求与子循环里的压缩请求不更新速度。修前 agents 不记速度，快照写死空。
 #[tokio::test]
 async fn a_completed_subagent_request_records_its_speed() {
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, TraceId};
-    use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, StopReason, Usage};
-    use rust_cli_kernel_api::metering::{CallStatus, Metered, ModelCall, OutputSpeed};
-    use rust_cli_kernel_api::model::QuerySource;
-    use rust_cli_kernel_api::orchestration::RunSink;
-    use rust_cli_kernel_api::store::{SessionKind, SessionMeta, SessionStore};
-    use rust_cli_kernel_api::testing::{MemoryStore, SequentialIds, selection};
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::{EnvironmentId, MessageId, TraceId};
+    use nibi_kernel_api::message::{AssistantMessage, ContentBlock, StopReason, Usage};
+    use nibi_kernel_api::metering::{CallStatus, Metered, ModelCall, OutputSpeed};
+    use nibi_kernel_api::model::QuerySource;
+    use nibi_kernel_api::orchestration::RunSink;
+    use nibi_kernel_api::store::{SessionKind, SessionMeta, SessionStore};
+    use nibi_kernel_api::testing::{MemoryStore, SequentialIds, selection};
 
     let live = Arc::new(Live::default());
     let agent = AgentId::new("agent_a");
@@ -524,8 +524,8 @@ async fn a_completed_subagent_request_records_its_speed() {
 /// 记的最近一个请求的速度。修前三项都写死空。
 #[tokio::test]
 async fn the_view_carries_the_subagents_context_and_speed() {
-    use rust_cli_kernel_api::compaction::{ContextNotice, ContextOccupancy};
-    use rust_cli_kernel_api::metering::OutputSpeed;
+    use nibi_kernel_api::compaction::{ContextNotice, ContextOccupancy};
+    use nibi_kernel_api::metering::OutputSpeed;
     let gate = Arc::new(Notify::new());
     let harness = harness(Some(gate.clone()));
     let parent = SessionId::new("sess_parent");

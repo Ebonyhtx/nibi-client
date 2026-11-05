@@ -1,11 +1,11 @@
 //! 冷加载、补发与会话属性的折叠（docs/specs/rust-cli/tui.md §4.1、§4.2）。
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView};
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView};
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
 
 use super::*;
 
@@ -143,12 +143,12 @@ fn a_cold_view_rebuilds_rows_with_tool_results() {
 #[test]
 fn the_resume_reply_is_not_shown() {
     let mut feed = Feed::new();
-    let sentinel = Message::Assistant(rust_cli_kernel_api::message::AssistantMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new("a0"),
+    let sentinel = Message::Assistant(nibi_kernel_api::message::AssistantMessage {
+        id: nibi_kernel_api::ids::MessageId::new("a0"),
         content: vec![ContentBlock::Text {
-            text: rust_cli_kernel_api::message::NO_RESPONSE_REQUESTED.into(),
+            text: nibi_kernel_api::message::NO_RESPONSE_REQUESTED.into(),
         }],
-        model: rust_cli_kernel_api::message::SYNTHETIC_MODEL.into(),
+        model: nibi_kernel_api::message::SYNTHETIC_MODEL.into(),
         stop_reason: None,
         usage: None,
     });

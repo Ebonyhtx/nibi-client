@@ -1,11 +1,11 @@
 //! 模型可见的 hook 文本（docs/specs/rust-cli/hooks.md §4.4）：attachment 渲染、Stop 反馈与
 //! `<system-reminder` 的转义。
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_prompts::reminder;
+use nibi_kernel_prompts::reminder;
 use serde_json::{Value, json};
 
 use crate::result::Blocking;

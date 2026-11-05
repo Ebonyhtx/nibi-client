@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-proc"
-description = "The single entry point for spawning and terminating child processes in rust-cli"
+name = "nibi-kernel-proc"
+description = "The single entry point for spawning and terminating child processes in nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

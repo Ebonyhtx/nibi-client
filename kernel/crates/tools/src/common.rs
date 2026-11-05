@@ -2,13 +2,13 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::env_files::{FileStat, ListDir, PathStyle, StatFile};
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::PermissionGate;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolUseContext, Validation};
-use rust_cli_kernel_api::{env_path, env_shell};
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::env_files::{FileStat, ListDir, PathStyle, StatFile};
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::PermissionGate;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolUseContext, Validation};
+use nibi_kernel_api::{env_path, env_shell};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
@@ -59,14 +59,14 @@ impl FileTools {
     }
 }
 
-/// 工具名、描述与 schema（来自 `rust-cli-prompts`；数据文件缺失时为空，由单测兜住）。
+/// 工具名、描述与 schema（来自 `nibi-kernel-prompts`；数据文件缺失时为空，由单测兜住）。
 pub(crate) struct Definition {
     pub description: String,
     pub schema: Value,
 }
 
 pub(crate) fn definition(name: &str) -> Definition {
-    rust_cli_prompts::tool(name).map_or_else(
+    nibi_kernel_prompts::tool(name).map_or_else(
         || Definition {
             description: String::new(),
             schema: json!({"type": "object"}),
@@ -354,10 +354,10 @@ pub(crate) fn escape_control(text: &str) -> String {
 }
 
 /// JS 字符串长度（UTF-16 码元数）：唯一定义在 base（F58：以前这里、kernel-api 与 policy 各写一份）。
-pub(crate) use rust_cli_base::js::string::utf16_len;
+pub(crate) use nibi_kernel_base::js::string::utf16_len;
 
 /// `formatBytes`（唯一实现在 kernel-api 的 `persisted_output`，与 `<persisted-output>` 共用）。
-pub(crate) use rust_cli_kernel_api::persisted_output::format_bytes;
+pub(crate) use nibi_kernel_api::persisted_output::format_bytes;
 
 #[cfg(test)]
 #[path = "common_tests.rs"]

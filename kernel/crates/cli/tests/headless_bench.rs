@@ -24,7 +24,7 @@ fn zcode(fixture: &sse::Fixture, args: &[&str], stdin: Option<&str>) -> Output {
     std::fs::create_dir_all(&work).unwrap();
     std::fs::create_dir_all(&home).unwrap();
     std::fs::write(work.join("a.txt"), "alpha\n").unwrap();
-    let mut child = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let mut child = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(args)
         .current_dir(&work)
         .env_clear()

@@ -3,8 +3,8 @@
 //! 输入之前；记录不在对话里显示。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::model::ModelRequest;
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::model::ModelRequest;
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 
@@ -40,8 +40,8 @@ fn in_order(request: &ModelRequest, pieces: &[String]) -> bool {
 struct LeveledDirectory;
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::provider::ModelDirectory for LeveledDirectory {
-    async fn catalog(&self) -> rust_cli_kernel_api::provider::ModelCatalog {
+impl nibi_kernel_api::provider::ModelDirectory for LeveledDirectory {
+    async fn catalog(&self) -> nibi_kernel_api::provider::ModelCatalog {
         leveled_catalog()
     }
 }
@@ -53,8 +53,8 @@ struct GatedDirectory {
 }
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::provider::ModelDirectory for GatedDirectory {
-    async fn catalog(&self) -> rust_cli_kernel_api::provider::ModelCatalog {
+impl nibi_kernel_api::provider::ModelDirectory for GatedDirectory {
+    async fn catalog(&self) -> nibi_kernel_api::provider::ModelCatalog {
         if self.first.swap(false, std::sync::atomic::Ordering::SeqCst) {
             self.gate.notified().await;
         }
@@ -62,19 +62,19 @@ impl rust_cli_kernel_api::provider::ModelDirectory for GatedDirectory {
     }
 }
 
-fn leveled_catalog() -> rust_cli_kernel_api::provider::ModelCatalog {
-    let model = |name: &str| rust_cli_kernel_api::provider::CatalogModel {
+fn leveled_catalog() -> nibi_kernel_api::provider::ModelCatalog {
+    let model = |name: &str| nibi_kernel_api::provider::CatalogModel {
         capabilities: Default::default(),
         provider: "fixture".into(),
         provider_name: "Fixture".into(),
         model: name.into(),
-        protocol: rust_cli_kernel_api::provider::WireProtocol::AnthropicMessages,
+        protocol: nibi_kernel_api::provider::WireProtocol::AnthropicMessages,
         reasoning_levels: vec!["low".into(), "high".into()],
         context_window: 200_000,
         max_output_tokens: 32_000,
         connection: None,
     };
-    rust_cli_kernel_api::provider::ModelCatalog {
+    nibi_kernel_api::provider::ModelCatalog {
         revision: 1,
         models: vec![model("scripted"), model("other-model")],
         default: None,

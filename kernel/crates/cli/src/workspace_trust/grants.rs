@@ -1,8 +1,8 @@
 //! 对话框里的项目授权（docs/specs/rust-cli/workspace-trust.md §2.4）：项目级配置文件里会生效的
 //! `permission.allowedTools`，排序、写成显示的形式、去掉控制字符、截断、去重。
 
-use rust_cli_policy::rules::{format_rule, parse_rule};
-use rust_cli_tui::trust::Grants;
+use nibi_kernel_policy::rules::{format_rule, parse_rule};
+use nibi_kernel_tui::trust::Grants;
 
 /// 排在前两组的工具：Bash、PowerShell、写文件的工具、WebFetch、WebSearch，以及 MCP 工具。
 const SPECIAL: [&str; 8] = [

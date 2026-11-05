@@ -6,8 +6,8 @@ use std::time::Duration;
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_env_local::{LocalEnvironment, LocalMcpTransport};
-use rust_cli_kernel_api::mcp::{McpConnect, McpTransportConfig, McpTransportEvent};
+use nibi_kernel_env_local::{LocalEnvironment, LocalMcpTransport};
+use nibi_kernel_api::mcp::{McpConnect, McpTransportConfig, McpTransportEvent};
 use serde_json::json;
 
 use crate::contract;

@@ -4,10 +4,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::agents::TaskList;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::agents::TaskList;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde::Deserialize;
@@ -102,12 +102,12 @@ impl Tool for TaskTool {
     }
 
     fn input_schema(&self) -> Value {
-        rust_cli_prompts::tool(self.kind.name())
+        nibi_kernel_prompts::tool(self.kind.name())
             .map_or(Value::Null, |prompt| prompt.input_schema.clone())
     }
 
     fn description(&self, _context: &PromptContext) -> String {
-        rust_cli_prompts::tool(self.kind.name())
+        nibi_kernel_prompts::tool(self.kind.name())
             .map_or_else(String::new, |prompt| prompt.description.clone())
     }
 

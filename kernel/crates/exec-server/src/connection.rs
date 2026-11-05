@@ -5,12 +5,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use bytes::Bytes;
-use rust_cli_base::owned;
-use rust_cli_exec_transport::{FrameSink, FrameSource, Link};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::envelope::{Ack, Beat, Close, RequestHeader};
-use rust_cli_exec_wire::frame::{Frame, Kind, Reassembler, Received, Splitter};
-use rust_cli_exec_wire::handshake::{HEARTBEAT_MS, Hello, PROTOCOL, Refuse, RefuseCode, Welcome};
+use nibi_kernel_base::owned;
+use nibi_kernel_exec_transport::{FrameSink, FrameSource, Link};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::envelope::{Ack, Beat, Close, RequestHeader};
+use nibi_kernel_exec_wire::frame::{Frame, Kind, Reassembler, Received, Splitter};
+use nibi_kernel_exec_wire::handshake::{HEARTBEAT_MS, Hello, PROTOCOL, Refuse, RefuseCode, Welcome};
 use tokio::sync::mpsc;
 
 use crate::calls;
@@ -119,10 +119,10 @@ pub(crate) async fn serve(inner: Arc<Inner>, link: Box<dyn Link>) -> Result<(), 
         && inner
             .config
             .capabilities
-            .contains(rust_cli_exec_wire::handshake::Capability::Env)
+            .contains(nibi_kernel_exec_wire::handshake::Capability::Env)
         && let Err(error) = inner.env.update(
             &instance,
-            rust_cli_exec_wire::dto::env::EnvMode::Merge,
+            nibi_kernel_exec_wire::dto::env::EnvMode::Merge,
             session,
             Vec::new(),
         )
@@ -140,12 +140,12 @@ pub(crate) async fn serve(inner: Arc<Inner>, link: Box<dyn Link>) -> Result<(), 
         home: config.home.clone(),
         shell: config.shell.clone(),
         capabilities: config.capabilities.clone(),
-        max_message: rust_cli_exec_wire::frame::MAX_MESSAGE,
+        max_message: nibi_kernel_exec_wire::frame::MAX_MESSAGE,
         ledger: inner.ledger.identity(),
     };
     // welcome 直接写（写任务还没起）：之后的回复与事件都排在它后面。
     let welcome = Frame::encode(Kind::Welcome, &welcome, &Body::empty()).map_err(|error| {
-        ServerError::Link(rust_cli_exec_transport::LinkError::Io(error.to_string()))
+        ServerError::Link(nibi_kernel_exec_transport::LinkError::Io(error.to_string()))
     })?;
     sink.send(welcome).await?;
     inner.connected(&instance);

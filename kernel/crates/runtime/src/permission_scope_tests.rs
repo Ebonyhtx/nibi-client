@@ -3,11 +3,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{CreateSession, Kernel};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{CreateSession, Kernel};
+use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection,
 };
@@ -77,7 +77,7 @@ async fn a_session_scoped_session_writes_its_permission_row() {
     );
     assert_eq!(
         store.session_rules(&session).await.expect("rules"),
-        Some(rust_cli_kernel_api::permission::ProjectRules::default())
+        Some(nibi_kernel_api::permission::ProjectRules::default())
     );
 
     // 不是 "session" 的作用域（协议 schema 只放行这一个值）不写行。

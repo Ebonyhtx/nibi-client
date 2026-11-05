@@ -3,14 +3,14 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{StopReason, Usage, UserMessage};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{StopReason, Usage, UserMessage};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelPort, ModelRequest, QuerySource, SIDE_SESSION_TITLE,
 };
-use rust_cli_kernel_api::session_api::{Command, SessionHandle};
-use rust_cli_kernel_api::testing::{MemoryStore, ScriptedModel, text_response};
+use nibi_kernel_api::session_api::{Command, SessionHandle};
+use nibi_kernel_api::testing::{MemoryStore, ScriptedModel, text_response};
 use tokio::sync::Notify;
 
 use super::*;
@@ -115,7 +115,7 @@ async fn the_first_input_title_comes_first_then_the_generated_title() {
     let facts = generated(
         &built
             .store
-            .facts(&rust_cli_kernel_api::ids::SessionId::new("sess_1")),
+            .facts(&nibi_kernel_api::ids::SessionId::new("sess_1")),
     );
     let [Fact::TitleGenerated { title, message }] = facts.as_slice() else {
         panic!("one generated title expected: {facts:?}");
@@ -227,7 +227,7 @@ async fn a_rename_before_the_title_arrives_wins() {
         .await;
     assert!(matches!(
         ack,
-        rust_cli_kernel_api::session_api::Ack::Accepted { .. }
+        nibi_kernel_api::session_api::Ack::Accepted { .. }
     ));
     until(&mut events, |event| titled(event, "Mine")).await;
     open.notify_one();
@@ -241,7 +241,7 @@ async fn a_rename_before_the_title_arrives_wins() {
     until_title_call(&built.store).await;
     let facts = built
         .store
-        .facts(&rust_cli_kernel_api::ids::SessionId::new("sess_1"));
+        .facts(&nibi_kernel_api::ids::SessionId::new("sess_1"));
     assert!(generated(&facts).is_empty());
     assert!(
         facts

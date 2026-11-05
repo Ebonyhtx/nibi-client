@@ -8,7 +8,7 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::hook_review::{
+use nibi_kernel_api::hook_review::{
     HookTrustState, WorkspaceHookItem, WorkspaceHookReview, WorkspaceHookSource,
 };
 
@@ -92,8 +92,8 @@ fn execution_mode(hook: &NodeHook) -> String {
 /// （Windows 上是 `\`），而 digest 里的 `sourceRelativePath` 始终是 `/`。
 fn display_path(root: &str, path: &str) -> String {
     let relative = relative(root, path);
-    if rust_cli_kernel_api::env_files::PathStyle::infer(root)
-        == rust_cli_kernel_api::env_files::PathStyle::Windows
+    if nibi_kernel_api::env_files::PathStyle::infer(root)
+        == nibi_kernel_api::env_files::PathStyle::Windows
     {
         relative.replace('/', "\\")
     } else {

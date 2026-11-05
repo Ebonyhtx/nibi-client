@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
+use nibi_kernel_api::message::{ContentBlock, ImageSource};
 
 use super::super::{Composer, InputMode};
 

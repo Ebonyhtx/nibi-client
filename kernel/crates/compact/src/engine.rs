@@ -3,18 +3,18 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::history;
+use nibi_kernel_api::message::{
     CompactBoundary, ContentBlock, Message, PreservedSegment, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::{
     CompactRequest, CompactResult, ContextRequest, QueryRequest,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::plan::PlanModeFlags;
-use rust_cli_kernel_api::tool_search;
-use rust_cli_prompts::compact as texts;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::plan::PlanModeFlags;
+use nibi_kernel_api::tool_search;
+use nibi_kernel_prompts::compact as texts;
 use tokio_util::sync::CancellationToken;
 
 use crate::fallback::{self, AllPlan};
@@ -84,7 +84,7 @@ impl Engine<'_> {
     ) -> Result<CompactResult, Failure> {
         let active = history::active(&request.messages);
         let refs: Vec<&Message> = active.iter().map(AsRef::as_ref).collect();
-        let pre_tokens = rust_cli_kernel_api::compaction::context_tokens(&refs);
+        let pre_tokens = nibi_kernel_api::compaction::context_tokens(&refs);
         let messages: Vec<&Message> = refs
             .iter()
             .copied()
@@ -160,7 +160,7 @@ impl Engine<'_> {
             messages,
             selection: request.selection.clone(),
             mode: request.mode.unwrap_or(PermissionMode::Default),
-            source: rust_cli_kernel_api::model::QuerySource::Compact,
+            source: nibi_kernel_api::model::QuerySource::Compact,
             max_turns: Some(1),
             prompt_hook_messages: Vec::new(),
         };

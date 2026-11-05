@@ -164,7 +164,7 @@ fn mach_cpus(head: &[u8]) -> Vec<u32> {
 
 /// 读文件开头的 [`HEAD`] 字节（认平台用，[`Platform::runs_image`]）。
 pub(crate) async fn image_head(path: &Path) -> Option<Vec<u8>> {
-    let mut file = rust_cli_fs::open_read(path).await.ok()?;
+    let mut file = nibi_kernel_fs::open_read(path).await.ok()?;
     let mut head = Vec::new();
     let mut buffer = [0u8; HEAD];
     while head.len() < HEAD {
@@ -193,7 +193,7 @@ pub(crate) async fn locate(candidates: &[PathBuf], platform: Platform) -> Option
 
 /// 文件的 sha256（十六进制，按块读）。
 pub(crate) async fn sha256(path: &Path) -> io::Result<String> {
-    let mut file = rust_cli_fs::open_read(path).await?;
+    let mut file = nibi_kernel_fs::open_read(path).await?;
     let mut hash = Sha256::new();
     let mut buffer = vec![0u8; 256 * 1024];
     loop {

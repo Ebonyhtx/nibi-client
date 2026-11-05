@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-session"
-description = "Session actor: the owner of a session's state in rust-cli"
+name = "nibi-kernel-session"
+description = "Session actor: the owner of a session's state in nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,11 +16,11 @@ doctest = false
 [dependencies]
 async-trait.workspace = true
 futures-util.workspace = true
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
 # 会话标题的提示词（docs/specs/rust-cli/titles.md §1）。
-rust-cli-prompts.workspace = true
-rust-cli-query.workspace = true
+nibi-kernel-prompts.workspace = true
+nibi-kernel-query.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["sync", "macros", "time"] }
@@ -28,5 +28,5 @@ tokio-util.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
-rust-cli-kernel-api = { workspace = true, features = ["testing"] }
+nibi-kernel-api = { workspace = true, features = ["testing"] }
 tokio = { workspace = true, features = ["macros", "rt", "time"] }

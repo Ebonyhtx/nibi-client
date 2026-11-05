@@ -5,7 +5,7 @@ use crate::test_support::write;
 #[tokio::test]
 async fn settings_are_read_from_disk_and_tolerate_bad_files() {
     let dir = tempfile::tempdir().unwrap();
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
     let settings = Settings::new(paths.settings().clone());
     assert!(settings.read().await.is_empty());
     let file = paths.settings().as_path().to_path_buf();
@@ -29,7 +29,7 @@ async fn settings_are_read_from_disk_and_tolerate_bad_files() {
 #[tokio::test]
 async fn the_full_model_io_retention_switch_is_read_each_time() {
     let dir = tempfile::tempdir().unwrap();
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
     let settings = Settings::new(paths.settings().clone());
     assert!(!settings.model_io_full_retention().await);
     let file = paths.settings().as_path().to_path_buf();

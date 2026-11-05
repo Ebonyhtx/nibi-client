@@ -5,11 +5,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, WorkspaceCheckpoint};
-use rust_cli_kernel_api::testing::{MemoryArtifacts, MemoryEnvironment, TestMachines};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, WorkspaceCheckpoint};
+use nibi_kernel_api::testing::{MemoryArtifacts, MemoryEnvironment, TestMachines};
 use serde_json::json;
 
 use super::*;
@@ -34,7 +34,7 @@ fn facts() -> EnvFacts {
 }
 
 fn artifact(tool: &str, path: &str, before: Option<&str>, after: &str) -> Vec<u8> {
-    let (hunks, _, _) = rust_cli_kernel_api::file_changes::structured_patch(
+    let (hunks, _, _) = nibi_kernel_api::file_changes::structured_patch(
         before.unwrap_or(""),
         after,
     );
@@ -213,7 +213,7 @@ async fn an_externally_modified_file_is_unsafe() {
     );
     // 文件没被预览改动。
     assert_eq!(
-        env.read_file(&workspace(), rust_cli_kernel_api::env::ReadFile { path: EnvPath::new("/work/a.txt") })
+        env.read_file(&workspace(), nibi_kernel_api::env::ReadFile { path: EnvPath::new("/work/a.txt") })
             .await
             .unwrap()
             .bytes,

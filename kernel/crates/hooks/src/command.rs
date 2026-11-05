@@ -8,16 +8,16 @@
 use std::collections::BTreeMap;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvPath, OperationContext, Origin, Outcome, OutputStream, StartCommand,
     WorkspaceRef,
 };
-use rust_cli_kernel_api::env_shell::{CwdScope, HookIo, ShellKind};
-use rust_cli_kernel_api::ids::{OperationId, ShellTaskId};
-use rust_cli_kernel_api::machine::Commands;
+use nibi_kernel_api::env_shell::{CwdScope, HookIo, ShellKind};
+use nibi_kernel_api::ids::{OperationId, ShellTaskId};
+use nibi_kernel_api::machine::Commands;
 use tokio_util::sync::CancellationToken;
 
-use rust_cli_base::names::vars;
+use nibi_kernel_base::names::vars;
 
 use crate::config::{CommandHook, HookShell};
 use crate::result::Raw;

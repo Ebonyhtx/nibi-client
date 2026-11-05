@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::message::Usage;
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::message::Usage;
 use serde_json::Value;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
@@ -79,7 +79,7 @@ impl<'w, W: AsyncWrite + Unpin> Printer<'w, W> {
     pub(crate) async fn emit(&mut self, event: Value) -> std::io::Result<()> {
         let format = self.output.format;
         if format.streams() {
-            let mut line = rust_cli_base::js::json::stringify(&event);
+            let mut line = nibi_kernel_base::js::json::stringify(&event);
             line.push('\n');
             self.out.write_all(line.as_bytes()).await?;
             self.out.flush().await?;
@@ -107,7 +107,7 @@ impl<'w, W: AsyncWrite + Unpin> Printer<'w, W> {
     pub(crate) fn stamp(&self) -> Stamp {
         Stamp {
             uuid: self.uuid(),
-            timestamp: rust_cli_base::js::iso_timestamp(self.now_ms()),
+            timestamp: nibi_kernel_base::js::iso_timestamp(self.now_ms()),
         }
     }
 
@@ -183,7 +183,7 @@ impl<'w, W: AsyncWrite + Unpin> Printer<'w, W> {
                         None => return Ok(()),
                     }
                 };
-                let mut line = rust_cli_base::js::json::stringify(&value);
+                let mut line = nibi_kernel_base::js::json::stringify(&value);
                 line.push('\n');
                 line
             }

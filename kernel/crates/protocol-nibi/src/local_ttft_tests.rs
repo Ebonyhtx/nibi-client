@@ -1,9 +1,9 @@
 //! `v4/telemetry/local-ttft` 的采集（141 审计 §9 第 5 项余项）：受理、执行、首个输出、终态。
 
-use rust_cli_kernel_api::ids::{CommandId, TurnId};
-use rust_cli_kernel_api::local_ttft::LocalTtftContext;
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::session_api::{KernelEvent, TurnOutcome};
+use nibi_kernel_api::ids::{CommandId, TurnId};
+use nibi_kernel_api::local_ttft::LocalTtftContext;
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::session_api::{KernelEvent, TurnOutcome};
 
 use super::*;
 
@@ -129,7 +129,7 @@ fn a_tool_before_any_text_is_the_first_output() {
     let mut events = recorder.event(
         "s1",
         &KernelEvent::ToolStarted {
-            tool_use: rust_cli_kernel_api::ids::ToolUseId::new("toolu_1"),
+            tool_use: nibi_kernel_api::ids::ToolUseId::new("toolu_1"),
             name: "Bash".to_owned(),
             input: serde_json::json!({}),
         },
@@ -169,7 +169,7 @@ fn stale_records_expire_and_capacity_is_bounded() {
 /// 重试是同一逻辑请求，不覆盖首次 `requestAt`；旁路请求（compact 等）不记。
 #[test]
 fn a_main_model_request_fills_request_at_and_identifiers() {
-    use rust_cli_kernel_api::model::{ModelRequestStatus, ModelRequestStatusKind};
+    use nibi_kernel_api::model::{ModelRequestStatus, ModelRequestStatusKind};
 
     let recorder = LocalTtftRecorder::new("cli-1".to_owned());
     recorder

@@ -1,7 +1,7 @@
 //! 文件工具给模型看的短文本（docs/specs/rust-cli/prompts.md 规则 4）。
 //!
 //! 文字逐字固定。工具描述与 schema 不在这里，在
-//! `rust-cli-prompts` 的数据文件里。
+//! `nibi-kernel-prompts` 的数据文件里。
 
 /// 当前目录说明的前缀。
 pub const CWD_NOTE: &str = "Note: your current working directory is";
@@ -151,7 +151,7 @@ pub fn notebook_index_missing(index: usize) -> String {
 /// 输入不是合法 JSON 时的 InputValidationError 正文（JSON 解析失败的分支）：原文取前 200 个 UTF-16 单元，
 /// `len` 是组装时记下的原文长度。
 pub fn unparsed_input(tool: &str, raw: &str, len: u64) -> String {
-    let sent = rust_cli_base::js::string::utf16_prefix(raw, 200);
+    let sent = nibi_kernel_base::js::string::utf16_prefix(raw, 200);
     format!(
         "{tool} was called with input that could not be parsed as JSON.\nYou sent (first {} of {len} bytes): {sent}\nCommon causes: unescaped backslashes in file paths (use / or \\\\), unescaped control characters, or truncated output. Retry with valid JSON.",
         sent.encode_utf16().count()

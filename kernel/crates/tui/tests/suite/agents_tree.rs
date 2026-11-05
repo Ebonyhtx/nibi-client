@@ -10,20 +10,20 @@ use std::time::Duration;
 use async_trait::async_trait;
 use crossterm::event::KeyCode;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStatus, BackgroundTask, ShellState,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::model::{ModelPort, ModelRequest, QuerySource};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::model::{ModelPort, ModelRequest, QuerySource};
+use nibi_kernel_api::testing::{
     MemoryStore, UnusedEnvironment, environments, text_response, tool_use_response,
 };
 use serde_json::json;

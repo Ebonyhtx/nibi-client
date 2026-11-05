@@ -7,7 +7,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use rust_cli_kernel_api::metering::{
+use nibi_kernel_api::metering::{
     ActivityRange, ActivityStats, SessionMetering, SessionSummary,
 };
 

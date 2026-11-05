@@ -10,10 +10,10 @@
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelNotice, ModelPort, ModelStreamItem, QuerySource,
 };
-use rust_cli_model::{ByteIdle, ProviderModel, StreamIdle};
+use nibi_kernel_model::{ByteIdle, ProviderModel, StreamIdle};
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

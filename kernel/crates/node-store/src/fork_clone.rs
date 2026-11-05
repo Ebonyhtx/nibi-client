@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use rusqlite::{OptionalExtension, params};
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::store::StoreError;
 use serde_json::{Map, Value, json};
 
 use crate::OrStorage;
@@ -295,17 +295,17 @@ pub(crate) fn fulfill_actor_seed(
     target: &str,
     source: &str,
     message_count: usize,
-) -> Result<rust_cli_kernel_api::workflow::SeedFulfillment, StoreError> {
+) -> Result<nibi_kernel_api::workflow::SeedFulfillment, StoreError> {
     let existing = messages::messages(conn, target).storage()?;
     if existing.len() >= message_count {
-        return Ok(rust_cli_kernel_api::workflow::SeedFulfillment::SkippedFilled);
+        return Ok(nibi_kernel_api::workflow::SeedFulfillment::SkippedFilled);
     }
     let only_seeds = existing
         .iter()
         .enumerate()
         .all(|(index, record)| record.id() == format!("msg_{target}-seed-{index}"));
     if !only_seeds {
-        return Ok(rust_cli_kernel_api::workflow::SeedFulfillment::SkippedLive);
+        return Ok(nibi_kernel_api::workflow::SeedFulfillment::SkippedLive);
     }
     let source_messages = messages::messages(conn, source).storage()?;
     if source_messages.len() < message_count {
@@ -333,7 +333,7 @@ pub(crate) fn fulfill_actor_seed(
             messages::save_part(conn, &cloned, now_ms as i64).storage()?;
         }
     }
-    Ok(rust_cli_kernel_api::workflow::SeedFulfillment::Copied(
+    Ok(nibi_kernel_api::workflow::SeedFulfillment::Copied(
         message_count as u64,
     ))
 }

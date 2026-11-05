@@ -21,24 +21,24 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-use rust_cli_kernel_api::model::{ModelPort, ModelSelection};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::{ModelDirectory, ModelEndpoints};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+use nibi_kernel_api::model::{ModelPort, ModelSelection};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::{ModelDirectory, ModelEndpoints};
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent,
 };
-use rust_cli_kernel_api::testing::environments;
-use rust_cli_model::{AnthropicEndpoint, FixedEndpoint, ProviderModel};
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_platform::{AccountOrigins, AccountServices, CredentialSecret, Platform};
-use rust_cli_runtime::{Defaults, LocalKernel, Ports, TitleModel};
+use nibi_kernel_api::testing::environments;
+use nibi_kernel_model::{AnthropicEndpoint, FixedEndpoint, ProviderModel};
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_platform::{AccountOrigins, AccountServices, CredentialSecret, Platform};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports, TitleModel};
 use serde_json::{Value, json};
 
 /// 夹具对旁路请求回的固定文字：生成的标题就是它（titles.md §3 的解析）。
@@ -191,7 +191,7 @@ async fn services(clock: Arc<dyn Clock>) -> (Arc<Egress>, AccountServices) {
 
 /// 夹具收到的标题请求（system 是标题提示词）。
 fn title_requests(fixture: &sse::Fixture) -> Vec<Value> {
-    let system = rust_cli_prompts::title::system();
+    let system = nibi_kernel_prompts::title::system();
     fixture
         .side_requests()
         .into_iter()
@@ -211,7 +211,7 @@ async fn a_catalog_title_request_sends_the_node_output_limit() {
     let (egress, services) = services(clock.clone()).await;
     let secret = CredentialSecret {
         explicit: Some(RedactedString::new("test-secret")),
-        platform: rust_cli_platform::node_platform().to_owned(),
+        platform: nibi_kernel_platform::node_platform().to_owned(),
         home: sandbox.home.to_string_lossy().into_owned(),
         username: "dev".to_owned(),
     };

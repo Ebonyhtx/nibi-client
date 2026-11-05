@@ -1,16 +1,16 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, QuestionAnswer,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
-use rust_cli_kernel_api::tool::ToolUseContext;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
+use nibi_kernel_api::tool::ToolUseContext;
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
@@ -104,7 +104,7 @@ async fn an_unreadable_answer_is_none() {
             request: InteractionRequest,
         ) -> Result<InteractionAnswer, OrchestrationError> {
             Ok(InteractionAnswer {
-                interaction: rust_cli_kernel_api::ids::InteractionId::new(
+                interaction: nibi_kernel_api::ids::InteractionId::new(
                     request.tool_use().as_str(),
                 ),
                 answer: Value::String("yes".to_owned()),

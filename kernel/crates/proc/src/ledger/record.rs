@@ -71,7 +71,7 @@ pub(super) async fn create(dir: &Path, name: &str) -> io::Result<PathBuf> {
 
 #[expect(
     clippy::disallowed_methods,
-    reason = "进程账本是 rust-cli-proc 的持久状态，在本用户私有的临时目录里（private::ensure 核对）"
+    reason = "进程账本是 nibi-kernel-proc 的持久状态，在本用户私有的临时目录里（private::ensure 核对）"
 )]
 async fn create_new(path: &Path) -> io::Result<()> {
     tokio::fs::OpenOptions::new()
@@ -85,7 +85,7 @@ async fn create_new(path: &Path) -> io::Result<()> {
 /// 删除记录；已经不存在（另一个清扫删掉了）时视为成功。
 #[expect(
     clippy::disallowed_methods,
-    reason = "进程账本是 rust-cli-proc 的持久状态，在本用户私有的临时目录里（private::ensure 核对）"
+    reason = "进程账本是 nibi-kernel-proc 的持久状态，在本用户私有的临时目录里（private::ensure 核对）"
 )]
 pub(super) async fn remove(path: &Path) -> io::Result<()> {
     match tokio::fs::remove_file(path).await {

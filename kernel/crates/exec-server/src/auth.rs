@@ -1,7 +1,7 @@
 //! 握手的鉴权（remote-exec.md §15.5、§18.6）：SSH 与 loopback 下连接本身已经是本用户，放行；云端换成校验令牌的实现。
 
 use async_trait::async_trait;
-use rust_cli_exec_wire::handshake::Hello;
+use nibi_kernel_exec_wire::handshake::Hello;
 
 /// 通过鉴权的一方。
 #[derive(Debug, Clone, PartialEq, Eq)]

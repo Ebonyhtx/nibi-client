@@ -7,14 +7,14 @@ use std::process::{ExitStatus, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath, Outcome, StartCommand};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_path::git_bash_spelling;
-use rust_cli_kernel_api::env_shell::{BackgroundKind, CwdScope, ShellNotice};
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_proc::ledger::{Containment, Isolation, Ledger, Purpose, Tracked};
-use rust_cli_proc::shell::single_quote;
-use rust_cli_proc::tree::Shutdown;
+use nibi_kernel_api::env::{EnvError, EnvPath, Outcome, StartCommand};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_path::git_bash_spelling;
+use nibi_kernel_api::env_shell::{BackgroundKind, CwdScope, ShellNotice};
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_proc::ledger::{Containment, Isolation, Ledger, Purpose, Tracked};
+use nibi_kernel_proc::shell::single_quote;
+use nibi_kernel_proc::tree::Shutdown;
 
 use super::sandbox::{self, Backend};
 use super::{Finish, OutputLimit, Running, Shared};
@@ -159,7 +159,7 @@ pub(crate) async fn spawn(
         &plan.cwd,
         &tag,
     )?;
-    let mut command = rust_cli_proc::command(&launch.program);
+    let mut command = nibi_kernel_proc::command(&launch.program);
     command
         .args(&launch.args)
         .current_dir(&plan.cwd)

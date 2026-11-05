@@ -3,7 +3,7 @@
 //! Stop / SubagentStop、UserPromptSubmit、SessionStart、PreCompact / PostCompact、SessionEnd 各有自己的
 //! 合并方式（见各函数）。
 
-use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome};
+use nibi_kernel_api::hooks::{HookEventName, HookOutcome};
 use serde_json::Value;
 
 use crate::fold::{Fold, notices};

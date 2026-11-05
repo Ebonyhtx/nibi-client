@@ -7,12 +7,12 @@ use std::sync::Arc;
 use crossterm::event::KeyCode;
 use ratatui::buffer::Buffer;
 use ratatui::style::Color;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::testing::{
     TestMachines, UnusedEnvironment, text_response, tool_use_response,
 };
-use rust_cli_tui::machines::{MachineFailure, MachineStatus};
-use rust_cli_tui::ui::palette::{ColorLevel, Palette, Rgb};
+use nibi_kernel_tui::machines::{MachineFailure, MachineStatus};
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette, Rgb};
 use serde_json::json;
 
 use super::machines::{FakeMachines, row, setup_with};

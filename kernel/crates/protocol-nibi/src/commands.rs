@@ -1,21 +1,21 @@
 //! 命令的处理（[`crate::inbox`] 的裁决与转交）：P1 的五个命令。
 
-use rust_cli_kernel_api::attachment::AttachmentSource;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, InteractionId, SessionId};
-use rust_cli_kernel_api::interaction::{
+use nibi_kernel_api::attachment::AttachmentSource;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, InteractionId, SessionId};
+use nibi_kernel_api::interaction::{
     PermissionAnswer, PlanApprovalAnswer, QuestionAnnotation, QuestionAnswer,
 };
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::message::{ContentBlock, ImageSource};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::{PermissionMode, PermissionRule};
+use nibi_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, KernelError, RewindScope,
     SessionHandle,
 };
-use rust_cli_kernel_api::store::SessionFilter;
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_api::store::SessionFilter;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Map, Value, json};
 
 use crate::inbound::Inbound;
@@ -74,7 +74,7 @@ fn attachment_source(reference: &Value) -> Option<(AttachmentSource, String)> {
         return None;
     }
     let reference = reference["ref"].as_str().unwrap_or_default().to_owned();
-    let source = if reference.starts_with(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME) {
+    let source = if reference.starts_with(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME) {
         AttachmentSource::Artifact { uri: reference }
     } else {
         AttachmentSource::Path { path: reference }
@@ -87,7 +87,7 @@ fn attachment_source(reference: &Value) -> Option<(AttachmentSource, String)> {
 /// 图片与 PDF：图片进 `Image` 块、PDF 进 `Document` 块（Node `filePartToContentBlock` 的同一分法）。
 /// 其他类型 fail-closed 拒绝并点名 mime，不静默丢掉内容。附件按 Node 的排法放在正文之前。
 async fn attachment_blocks(
-    kernel: &std::sync::Arc<dyn rust_cli_kernel_api::session_api::Kernel>,
+    kernel: &std::sync::Arc<dyn nibi_kernel_api::session_api::Kernel>,
     session: &SessionId,
     workspace: &WorkspaceRef,
     refs: &[Value],
@@ -140,11 +140,11 @@ fn with_text(text: String, mut blocks: Vec<ContentBlock>) -> Vec<ContentBlock> {
 /// `createSession.mcpServers` → 会话级的 MCP 服务器（NIBI `nibiProtocolMcpServerSchema` 的两种形态）。
 /// 形状已由契约层按同一 zod 生成的 schema 校验过，这里只做字段搬运；认不出的形态整条丢掉（不静默：
 /// 调用方在数量不等时 warn）。
-pub(crate) fn session_mcp_servers(payload: &Value) -> Vec<rust_cli_kernel_api::mcp_session::SessionMcpServer> {
+pub(crate) fn session_mcp_servers(payload: &Value) -> Vec<nibi_kernel_api::mcp_session::SessionMcpServer> {
     use std::collections::BTreeMap;
 
-    use rust_cli_kernel_api::mcp::McpTransportConfig;
-    use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
+    use nibi_kernel_api::mcp::McpTransportConfig;
+    use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 
     let entries = |value: &Value| -> BTreeMap<String, String> {
         value
@@ -261,15 +261,15 @@ fn cas_check_with_epoch(
 }
 
 /// Human 用户消息的可见文本；合成消息与 INTERRUPT_TEXTS 撤回补条返回空。
-fn user_text(message: &rust_cli_kernel_api::message::Message) -> String {
-    let rust_cli_kernel_api::message::Message::User(user) = message else {
+fn user_text(message: &nibi_kernel_api::message::Message) -> String {
+    let nibi_kernel_api::message::Message::User(user) = message else {
         return String::new();
     };
-    if user.origin != rust_cli_kernel_api::message::UserOrigin::Human {
+    if user.origin != nibi_kernel_api::message::UserOrigin::Human {
         return String::new();
     }
     let text = crate::projection::text_of(&user.content);
-    if rust_cli_kernel_api::user_input::INTERRUPT_TEXTS.contains(&text.as_str()) {
+    if nibi_kernel_api::user_input::INTERRUPT_TEXTS.contains(&text.as_str()) {
         return String::new();
     }
     text
@@ -278,7 +278,7 @@ fn user_text(message: &rust_cli_kernel_api::message::Message) -> String {
 /// `guard.latestQueryEditOnly`：editUserQuery 只许改最后一条 real user query——
 /// 历史编辑会回退 active branch。
 fn edit_target_guard(
-    messages: &[rust_cli_kernel_api::message::Message],
+    messages: &[nibi_kernel_api::message::Message],
     entity: &str,
 ) -> Result<(), String> {
     let latest = messages
@@ -431,7 +431,7 @@ pub async fn command(server: &Server, params: Value) -> Result<Value, RpcError> 
 /// 命令到达：renderer 带了 `ttft` 就建一条观察记录并发第一份快照。
 async fn observe_received(server: &Server, envelope: &Envelope) {
     let Some(context) = envelope.ttft.as_ref().and_then(|value| {
-        serde_json::from_value::<rust_cli_kernel_api::local_ttft::LocalTtftContext>(value.clone()).ok()
+        serde_json::from_value::<nibi_kernel_api::local_ttft::LocalTtftContext>(value.clone()).ok()
     }) else {
         return;
     };
@@ -703,7 +703,7 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
             .kernel
             .set_session_dynamic_workflow(
                 &id,
-                rust_cli_kernel_api::session_api::DynamicWorkflowGate::new(true, on_demand),
+                nibi_kernel_api::session_api::DynamicWorkflowGate::new(true, on_demand),
             )
             .await
         {
@@ -1071,7 +1071,7 @@ async fn resolve(
 async fn set_followup(
     server: &Server,
     handle: &dyn SessionHandle,
-    live: &std::sync::Arc<rust_cli_protocol_core::sessions::Bridged<crate::live::Live>>,
+    live: &std::sync::Arc<nibi_kernel_protocol_core::sessions::Bridged<crate::live::Live>>,
     envelope: &Envelope,
 ) -> Ack {
     let command = envelope.command_id.as_str();
@@ -1349,7 +1349,7 @@ struct RetryTarget {
 /// assistant 行 → 该轮 user 消息：视图里定位 assistant 消息，向前找最近的 user 消息。
 /// Node 的守护（`guard.latestAssistantRetryOnly`）：只许重试最后一轮 assistant 回复——
 /// 历史回复 retry 会回退 active branch，直接拒绝；合成消息（Attachment/System）跳过。
-fn retry_target(messages: &[rust_cli_kernel_api::message::Message]) -> Result<RetryTarget, String> {
+fn retry_target(messages: &[nibi_kernel_api::message::Message]) -> Result<RetryTarget, String> {
     // latest 守卫：最后一条消息必须是 assistant（有回复才能重试）。
     let position = messages
         .len()
@@ -1357,7 +1357,7 @@ fn retry_target(messages: &[rust_cli_kernel_api::message::Message]) -> Result<Re
         .ok_or("the conversation is empty")?;
     if !matches!(
         messages[position],
-        rust_cli_kernel_api::message::Message::Assistant(_)
+        nibi_kernel_api::message::Message::Assistant(_)
     ) {
         return Err(
             "guard.latestAssistantRetryOnly: retryTurn only retries the latest assistant reply"
@@ -1367,16 +1367,16 @@ fn retry_target(messages: &[rust_cli_kernel_api::message::Message]) -> Result<Re
     let user = messages[..position]
         .iter()
         .rev()
-        .find(|message| matches!(message, rust_cli_kernel_api::message::Message::User(_)))
+        .find(|message| matches!(message, nibi_kernel_api::message::Message::User(_)))
         .ok_or("no user input before the assistant reply")?;
-    let rust_cli_kernel_api::message::Message::User(user_message) = user else {
+    let nibi_kernel_api::message::Message::User(user_message) = user else {
         return Err("no user input before the assistant reply".to_owned());
     };
     let text = user_message
         .content
         .iter()
         .filter_map(|block| match block {
-            rust_cli_kernel_api::message::ContentBlock::Text { text } => Some(text.as_str()),
+            nibi_kernel_api::message::ContentBlock::Text { text } => Some(text.as_str()),
             _ => None,
         })
         .collect::<Vec<_>>()
@@ -1491,7 +1491,7 @@ async fn fork_assistant(
         handle,
         command,
         Command::Fork {
-            at: Some(rust_cli_kernel_api::ids::MessageId::new(message)),
+            at: Some(nibi_kernel_api::ids::MessageId::new(message)),
         },
     )
     .await
@@ -1573,7 +1573,7 @@ async fn retry_turn(
         handle,
         &format!("{command}:rewind"),
         Command::Rewind {
-            target: rust_cli_kernel_api::ids::MessageId::new(retry.user_message),
+            target: nibi_kernel_api::ids::MessageId::new(retry.user_message),
             scope: RewindScope::Conversation,
         },
     )
@@ -2094,7 +2094,7 @@ async fn set_assistant_feedback(
         // null = 取消反馈。
         None => None,
     };
-    let record = rust_cli_kernel_api::store::FrontendRecord {
+    let record = nibi_kernel_api::store::FrontendRecord {
         kind: "assistant_feedback".to_owned(),
         key: message.to_owned(),
         data: json!({"feedback": feedback}),
@@ -2212,7 +2212,7 @@ async fn apply_file_rewind(
         command,
         Command::RestoreFiles {
             messages,
-            turn: turn.map(rust_cli_kernel_api::ids::TurnId::new),
+            turn: turn.map(nibi_kernel_api::ids::TurnId::new),
         },
     )
     .await
@@ -2235,9 +2235,9 @@ async fn apply_file_rewind(
         KernelAck::Rejected { reason } => {
             let mut preview = preview;
             preview.can_apply = false;
-            preview.unsafe_files.push(rust_cli_kernel_api::file_changes::RewindUnsafeFile {
+            preview.unsafe_files.push(nibi_kernel_api::file_changes::RewindUnsafeFile {
                 path: "workspace".to_owned(),
-                reason: rust_cli_kernel_api::file_changes::RewindUnsafeReason::FileReadFailed,
+                reason: nibi_kernel_api::file_changes::RewindUnsafeReason::FileReadFailed,
                 operation_count: 1,
                 tool_names: Vec::new(),
                 current_hash: None,
@@ -2405,7 +2405,7 @@ async fn edit_user_query(
         handle,
         &format!("{command}:rewind"),
         Command::Rewind {
-            target: rust_cli_kernel_api::ids::MessageId::new(target.entity.clone()),
+            target: nibi_kernel_api::ids::MessageId::new(target.entity.clone()),
             scope,
         },
     )
@@ -2542,7 +2542,7 @@ async fn start_saved_workflow(
         Ok(session) => session,
         Err(ack) => return *ack,
     };
-    let request = rust_cli_kernel_api::workflow::WorkflowStart {
+    let request = nibi_kernel_api::workflow::WorkflowStart {
         name: envelope.payload["name"].as_str().unwrap_or_default().to_owned(),
         scope: envelope.payload["scope"].as_str().map(str::to_owned),
         args: envelope.payload.get("args").cloned().filter(|args| !args.is_null()),
@@ -2628,7 +2628,7 @@ async fn amend_workflow_run_settings(
     let max_concurrency = payload
         .get("maxConcurrency")
         .map(serde_json::Value::as_u64);
-    let request = rust_cli_kernel_api::workflow::WorkflowAmend {
+    let request = nibi_kernel_api::workflow::WorkflowAmend {
         run_id: payload["workId"].as_str().unwrap_or_default().to_owned(),
         subagent_model,
         max_concurrency,
@@ -2707,7 +2707,7 @@ async fn discard_shared_context(
             }
             Ack::accepted(command, revision, None)
         }
-        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { what }) => Ack::refused(
+        Err(nibi_kernel_api::session_api::KernelError::Unsupported { what }) => Ack::refused(
             command,
             Status::Failed,
             "proto.unsupportedCommand",

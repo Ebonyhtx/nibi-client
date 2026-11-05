@@ -2,7 +2,7 @@
 //!
 //! 第一轮 Write 改 a.txt：工具结果与 checkpoint 一个事务提交，artifact 是 Node 的
 //! `workspace_file_before_change`；第二轮之后回退到第二轮的输入（`session.revert`），活动分支只剩第一轮。
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
 
 use super::*;
 

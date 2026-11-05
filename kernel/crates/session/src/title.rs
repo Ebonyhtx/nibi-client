@@ -5,11 +5,11 @@
 //! （工作线 F73，usage.md §2.1.1），再提交 `TitleGenerated`（存储按 Node 的来源条件写）、改内存、发事件。用户改名
 //! （`Rename`）或 hook 改过标题后，候选标题丢弃（用量行照写）。
 
-use rust_cli_base::{Task, TaskError};
-use rust_cli_kernel_api::ids::{CommandId, MessageId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::session_api::{Ack, KernelEvent};
-use rust_cli_kernel_api::store::{Fact, SessionKind, TurnAnchor};
+use nibi_kernel_base::{Task, TaskError};
+use nibi_kernel_api::ids::{CommandId, MessageId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::session_api::{Ack, KernelEvent};
+use nibi_kernel_api::store::{Fact, SessionKind, TurnAnchor};
 use tokio_util::sync::CancellationToken;
 
 use crate::actor::{Actor, accepted, rejected};
@@ -90,8 +90,8 @@ fn human_text(message: &Message) -> Option<String> {
     // 用户调用 skill 的输入是命令标签：标题按用户输入的样子（`/<名字> <参数>`，ext.md §2.7）；bash 模式的输入
     // 写成 `! 命令`（首条提示同样还原，tui-input.md §2.2）。
     Some(
-        rust_cli_kernel_api::user_command::display(&text)
-            .or_else(|| rust_cli_kernel_api::user_input::display(&text))
+        nibi_kernel_api::user_command::display(&text)
+            .or_else(|| nibi_kernel_api::user_input::display(&text))
             .unwrap_or(text),
     )
 }
@@ -104,7 +104,7 @@ impl Actor {
         };
         if self.meta.title.is_empty() {
             // node-store 在同一事务里写了 first_input（Node `titleFromInput`），这里用同一个函数。
-            let title = rust_cli_kernel_api::title::from_input(&text);
+            let title = nibi_kernel_api::title::from_input(&text);
             self.meta.title.clone_from(&title);
             self.log.append(KernelEvent::TitleChanged { title });
         }

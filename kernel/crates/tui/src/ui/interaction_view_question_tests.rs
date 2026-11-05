@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::style::{Color, Modifier};
 use ratatui::text::Line;
-use rust_cli_kernel_api::ids::{InteractionId, ToolUseId};
+use nibi_kernel_api::ids::{InteractionId, ToolUseId};
 use serde_json::json;
 
 use super::super::View;
@@ -13,7 +13,7 @@ use crate::ui::interaction::Interaction;
 use crate::ui::keyboard::Typing;
 use crate::ui::palette::{ColorLevel, Palette};
 use crate::ui::text::plain;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::orchestration::InteractionRequest;
 
 const SUCCESS: Color = Color::Rgb(78, 186, 101);
 

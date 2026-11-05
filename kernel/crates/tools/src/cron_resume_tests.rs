@@ -1,8 +1,8 @@
 //! resume 复原会话任务（docs/specs/rust-cli/tools-more.md §18.2）。
 
-use rust_cli_kernel_api::cron::CronSignals;
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::cron::CronSignals;
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
 use serde_json::{Value, json};

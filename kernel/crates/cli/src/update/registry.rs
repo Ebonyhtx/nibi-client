@@ -2,7 +2,7 @@
 //! 平台包的这个版本在 npm 上能装（`dist.tarball` 与 `dist.integrity` 都有）。HTTP 只经 net 的 `Egress`。
 
 use anyhow::{Context, Result, anyhow, bail};
-use rust_cli_net::{Egress, HttpRequest};
+use nibi_kernel_net::{Egress, HttpRequest};
 use serde_json::Value;
 
 use super::install::Install;
@@ -94,9 +94,9 @@ pub(crate) fn ensure_dist(document: &Value, package: &str, version: &str) -> Res
 
 /// 取一个包的元数据（缩略的 install-v1 文档）。
 pub(crate) async fn fetch(egress: &Egress, url: &str) -> Result<Value> {
-    let mut request = HttpRequest::get(url).header(rust_cli_net::header::ACCEPT, ACCEPT);
+    let mut request = HttpRequest::get(url).header(nibi_kernel_net::header::ACCEPT, ACCEPT);
     // 修复线 F58：每个请求最多等 5 s 的响应头（net `timeout::NPM_REGISTRY`）；以前没有单次超时，后台检查可能一直挂着。
-    request.timeout = Some(rust_cli_net::timeout::NPM_REGISTRY);
+    request.timeout = Some(nibi_kernel_net::timeout::NPM_REGISTRY);
     let mut response = egress
         .send(request)
         .await

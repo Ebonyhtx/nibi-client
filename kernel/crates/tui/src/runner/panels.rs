@@ -3,9 +3,9 @@
 use futures_util::stream::{self, BoxStream};
 use futures_util::{FutureExt, StreamExt};
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::panels::{ShellDetail, SubagentEntry, TasksSnapshot};
-use rust_cli_kernel_api::session_api::{KernelError, SessionView};
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::panels::{ShellDetail, SubagentEntry, TasksSnapshot};
+use nibi_kernel_api::session_api::{KernelError, SessionView};
 
 use super::Loop;
 use super::session::Done;

@@ -20,10 +20,10 @@ use anyhow::{Context, Result, anyhow, bail};
 use async_trait::async_trait;
 use futures_util::FutureExt;
 use futures_util::future::{BoxFuture, Shared};
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
-use rust_cli_net::{Egress, HttpRequest};
-use rust_cli_paths::ExecutorPaths;
-use rust_cli_ssh_connect::{ArtifactSource, DownloadError, Platform};
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_net::{Egress, HttpRequest};
+use nibi_kernel_paths::ExecutorPaths;
+use nibi_kernel_ssh_connect::{ArtifactSource, DownloadError, Platform};
 
 use crate::options::TestDeclarations;
 use crate::update::registry as npm;
@@ -131,7 +131,7 @@ impl Fetcher {
 
     async fn cached(&self, version: &str, platform: Platform) -> Option<PathBuf> {
         let path = self.path(version, platform);
-        matches!(rust_cli_fs::file_len(&path).await, Ok(Some(_))).then_some(path)
+        matches!(nibi_kernel_fs::file_len(&path).await, Ok(Some(_))).then_some(path)
     }
 
     /// 下载、校验、原子写进缓存（§26.4）。别的进程或别的机器刚下载完时直接用缓存。
@@ -226,7 +226,7 @@ impl Fetcher {
             );
         }
         let owned = version.to_owned();
-        let binary = rust_cli_base::blocking(move || package::extract(&bytes, &owned, platform))
+        let binary = nibi_kernel_base::blocking(move || package::extract(&bytes, &owned, platform))
             .await
             .map_err(|error| anyhow!("{package} {version}: {error}"))?
             .map_err(|error| anyhow!("{package} {version}: {error}"))?;
@@ -234,7 +234,7 @@ impl Fetcher {
         let dir = path
             .parent()
             .ok_or_else(|| anyhow!("{} has no parent", path.display()))?;
-        rust_cli_fs::create_private_dir_all(dir)
+        nibi_kernel_fs::create_private_dir_all(dir)
             .await
             .with_context(|| format!("creating {}", dir.display()))?;
         let options = WriteOptions {
@@ -243,7 +243,7 @@ impl Fetcher {
             parent: ParentDir::Existing,
             rename_retry: &[],
         };
-        rust_cli_fs::atomic_write(&path, &binary, options)
+        nibi_kernel_fs::atomic_write(&path, &binary, options)
             .await
             .with_context(|| format!("writing {}", path.display()))?;
         Ok(path)
@@ -263,7 +263,7 @@ fn missing_or_failed(error: anyhow::Error, latest: Option<String>) -> DownloadEr
 /// GET 一个文件的全部内容：响应头最多等 `timeout::NPM_REGISTRY`，两块之间最多等 [`CHUNK_IDLE`]，最多 [`MAX_TARBALL`]。
 async fn get_bytes(egress: &Egress, url: &str) -> Result<Vec<u8>> {
     let mut request = HttpRequest::get(url);
-    request.timeout = Some(rust_cli_net::timeout::NPM_REGISTRY);
+    request.timeout = Some(nibi_kernel_net::timeout::NPM_REGISTRY);
     let mut response = egress
         .send(request)
         .await

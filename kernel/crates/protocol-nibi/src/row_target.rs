@@ -5,7 +5,7 @@
 //! 没换（`proto.staleTarget`），再按这一轮的行收集消息 id（userInput 的 entityId 与 assistant
 //! 行的 `assistantResponseId`），会话侧用它选 checkpoint 的 prompt / assistant。
 
-use rust_cli_kernel_api::ids::MessageId;
+use nibi_kernel_api::ids::MessageId;
 use serde_json::Value;
 
 use crate::live::Live;

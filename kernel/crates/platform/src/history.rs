@@ -2,7 +2,7 @@
 //! 每行 `{"workspace", "text", "at"}`。启动时读本工作区最近 [`LOAD`] 条；发送时交给唯一的写者，按发送顺序
 //! 追加（同一个文件只有一个写者，不需要加锁）。
 
-use rust_cli_paths::{StoragePath, StoragePaths};
+use nibi_kernel_paths::{StoragePath, StoragePaths};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -35,7 +35,7 @@ impl History {
 
     /// 这个工作区最近的历史，从旧到新；文件不存在、读不了或损坏的行都跳过。
     pub async fn load(&self, workspace: &str) -> Vec<String> {
-        let Ok(Some(bytes)) = rust_cli_fs::read_optional(self.path.as_path()).await else {
+        let Ok(Some(bytes)) = nibi_kernel_fs::read_optional(self.path.as_path()).await else {
             return Vec::new();
         };
         let text = String::from_utf8_lossy(&bytes);
@@ -60,7 +60,7 @@ impl History {
             while let Some((text, at)) = entries.recv().await {
                 let mut line = json!({"workspace": workspace, "text": text, "at": at}).to_string();
                 line.push('\n');
-                if let Err(error) = rust_cli_fs::append(self.path.as_path(), line.as_bytes()).await
+                if let Err(error) = nibi_kernel_fs::append(self.path.as_path(), line.as_bytes()).await
                 {
                     tracing::warn!(%error, "the input history could not be written");
                 }

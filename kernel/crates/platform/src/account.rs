@@ -18,11 +18,11 @@
 
 use std::collections::HashMap;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::ModelError;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::ModelError;
 use serde_json::{Map, Value, json};
 
-use rust_cli_base::js::string::trim as js_trim;
+use nibi_kernel_base::js::string::trim as js_trim;
 
 use crate::credentials::Credentials;
 use crate::personal::PersonalAccount;

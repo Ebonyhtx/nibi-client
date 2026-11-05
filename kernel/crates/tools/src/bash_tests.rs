@@ -4,24 +4,24 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, OperationContext, Origin, OutputStream,
     ReadFile, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::ShellState;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env_shell::ShellState;
+use nibi_kernel_api::ids::{
     AgentId, EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryStore, local_services, machine};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryStore, local_services, machine};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -375,7 +375,7 @@ fn definition_and_flags_come_from_the_prompts_and_the_read_only_check() {
     assert!(!tool.is_read_only(&json!({"command": "rm -rf x"})));
     assert_eq!(
         tool.interrupt_behavior(),
-        rust_cli_kernel_api::tool::InterruptBehavior::Block
+        nibi_kernel_api::tool::InterruptBehavior::Block
     );
 }
 
@@ -502,8 +502,8 @@ async fn bash_mode_splits_stdout_and_stderr() {
         ..Scripted::default()
     });
     let bash = BashTool::new().with_sandbox(SandboxPolicy {
-        filesystem: rust_cli_kernel_api::env_shell::FilesystemPolicy::default(),
-        network: rust_cli_kernel_api::env_shell::NetworkPolicy::default(),
+        filesystem: nibi_kernel_api::env_shell::FilesystemPolicy::default(),
+        network: nibi_kernel_api::env_shell::NetworkPolicy::default(),
         required: true,
     });
     let done = crate::bash_mode::run(
@@ -515,7 +515,7 @@ async fn bash_mode_splits_stdout_and_stderr() {
     .await;
     assert_eq!(
         done,
-        rust_cli_kernel_api::user_input::BashRun::Completed {
+        nibi_kernel_api::user_input::BashRun::Completed {
             stdout: "&lt;a&gt; &amp; b".to_owned(),
             stderr: String::new(),
         }
@@ -530,7 +530,7 @@ async fn bash_mode_splits_stdout_and_stderr() {
         crate::bash_mode::run(&bash, "ls nope", context(failing, None), progress.clone()).await;
     assert_eq!(
         failed,
-        rust_cli_kernel_api::user_input::BashRun::Completed {
+        nibi_kernel_api::user_input::BashRun::Completed {
             stdout: String::new(),
             stderr: "ls: nope: No such file\n".to_owned(),
         }
@@ -544,7 +544,7 @@ async fn bash_mode_splits_stdout_and_stderr() {
     let cancelled = crate::bash_mode::run(&bash, "sleep 9", ctx, progress).await;
     assert_eq!(
         cancelled,
-        rust_cli_kernel_api::user_input::BashRun::Interrupted
+        nibi_kernel_api::user_input::BashRun::Interrupted
     );
 }
 

@@ -110,7 +110,7 @@ pub(super) async fn probe(pid: i32) -> Probe {
 
 /// Linux：`/proc/<pid>/stat` 的启动 tick（开机以来），前面加开机标识，重启后不会与旧记录相符。
 // 缺陷修复（L21 三平台验收）：这两处读 /proc 只在 Linux 编译，macOS 上的 clippy 看不到；Linux 上
-// 被工作区的 `tokio::fs` 禁令（本机存储只经 rust-cli-fs）拦下，`check:rust-cli` 编译失败。
+// 被工作区的 `tokio::fs` 禁令（本机存储只经 nibi-kernel-fs）拦下，`check:nibi-kernel-cli` 编译失败。
 // /proc 是内核的进程信息伪文件，不是本机存储；按 README §3.2 在 proc crate 的具体函数上豁免。
 #[cfg(target_os = "linux")]
 #[expect(

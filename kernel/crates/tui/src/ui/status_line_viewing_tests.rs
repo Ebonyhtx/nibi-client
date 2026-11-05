@@ -2,12 +2,12 @@
 //! 子代理（列表快照的条目），主会话的状态行与重试行不画。
 use std::time::{Duration, Instant};
 
-use rust_cli_kernel_api::ids::{AgentId, SessionId, TurnId};
-use rust_cli_kernel_api::model::ModelNotice;
-use rust_cli_kernel_api::panels::{SubagentActivity, SubagentEntry, SubagentStatus};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::{AgentId, SessionId, TurnId};
+use nibi_kernel_api::model::ModelNotice;
+use nibi_kernel_api::panels::{SubagentActivity, SubagentEntry, SubagentStatus};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent};
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::agents::{AgentList, Viewing};

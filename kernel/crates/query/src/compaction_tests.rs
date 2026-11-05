@@ -2,18 +2,18 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AttachmentMessage, CompactBoundary, CompactTrigger, ContentBlock, Message, SystemMessage,
     UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ApiRole, ModelError, ModelSelection};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::model::{ApiRole, ModelError, ModelSelection};
+use nibi_kernel_api::orchestration::{
     AutoCompactOutcome, CompactRequest, CompactResult, CompactTracking, Compactor,
     OrchestrationError, QueryError, QueryStop,
 };
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tokio_util::sync::CancellationToken;
 
 use crate::run::tests::{parts, request, scope};
@@ -126,7 +126,7 @@ impl Compactor for FakeCompactor {
     }
 }
 
-fn texts(request: &rust_cli_kernel_api::model::ModelRequest) -> Vec<String> {
+fn texts(request: &nibi_kernel_api::model::ModelRequest) -> Vec<String> {
     request
         .messages
         .iter()

@@ -7,10 +7,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::hooks::{HookEvent, HookEventName, HookOutcome, HookRunner};
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::orchestration::{Absorbed, Steered};
-use rust_cli_kernel_api::session_api::{KernelEvent, NoticeLevel};
+use nibi_kernel_api::hooks::{HookEvent, HookEventName, HookOutcome, HookRunner};
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::orchestration::{Absorbed, Steered};
+use nibi_kernel_api::session_api::{KernelEvent, NoticeLevel};
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 

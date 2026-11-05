@@ -5,16 +5,16 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::checkpoint::PendingCheckpoints;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::ids::{AgentId, MessageId, OperationId, OwnerEpoch, SessionId};
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Message};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::checkpoint::PendingCheckpoints;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::ids::{AgentId, MessageId, OperationId, OwnerEpoch, SessionId};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionAnswer,
     PlanApprovalAnswer, QueryEvent, QuestionAnswer, RunSink,
 };
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore, StoreError, TurnAnchor};
-use rust_cli_kernel_api::tool::ToolProgress;
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore, StoreError, TurnAnchor};
+use nibi_kernel_api::tool::ToolProgress;
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -234,7 +234,7 @@ impl Interactions for ChildSink {
     async fn cancel_ask(
         &self,
         _session: &SessionId,
-        tool_use: &rust_cli_kernel_api::ids::ToolUseId,
+        tool_use: &nibi_kernel_api::ids::ToolUseId,
     ) {
         if let Some((session, asker)) = self.asker() {
             asker.cancel_ask(session, tool_use).await;
@@ -245,7 +245,7 @@ impl Interactions for ChildSink {
     async fn arm_monitor(
         &self,
         _session: &SessionId,
-        monitor: rust_cli_kernel_api::monitor::MonitorArmed,
+        monitor: nibi_kernel_api::monitor::MonitorArmed,
     ) -> Result<(), OrchestrationError> {
         match &self.core {
             Some(core) => crate::monitors::arm(core, &self.agent, monitor),
@@ -276,7 +276,7 @@ impl Interactions for ChildSink {
     async fn set_workspace(
         &self,
         _session: &SessionId,
-        root: rust_cli_kernel_api::env::EnvPath,
+        root: nibi_kernel_api::env::EnvPath,
     ) -> Result<(), OrchestrationError> {
         match &self.parent {
             Some(parent) => {
@@ -295,7 +295,7 @@ impl Interactions for ChildSink {
     async fn current_selection(
         &self,
         _session: &SessionId,
-    ) -> Option<rust_cli_kernel_api::model::ModelSelection> {
+    ) -> Option<nibi_kernel_api::model::ModelSelection> {
         let parent = self.parent.as_ref()?;
         parent.interactions.current_selection(&parent.session).await
     }
@@ -308,7 +308,7 @@ impl ChildSink {
         &self,
         message: Message,
         usage: Vec<Fact>,
-        speed: Option<rust_cli_kernel_api::metering::OutputSpeed>,
+        speed: Option<nibi_kernel_api::metering::OutputSpeed>,
     ) -> Result<(), StoreError> {
         // 工具结果与它的 checkpoint 在一个事务里提交（session-lifecycle.md §4.2）。子代理的提交不经
         // 会话 actor，所以在这里按同一份规则配对；以前这里不配对，子会话里的写入没有 checkpoint。
@@ -352,19 +352,19 @@ impl RunSink for ChildSink {
     async fn commit_metered(
         &self,
         message: Option<Message>,
-        metered: rust_cli_kernel_api::metering::Metered,
+        metered: nibi_kernel_api::metering::Metered,
     ) -> Result<(), StoreError> {
         let (fact, speed) = match metered {
-            rust_cli_kernel_api::metering::Metered::Model(call) => {
+            nibi_kernel_api::metering::Metered::Model(call) => {
                 let speed = matches!(
                     call.source,
-                    rust_cli_kernel_api::model::QuerySource::Subagent(_)
+                    nibi_kernel_api::model::QuerySource::Subagent(_)
                 )
-                .then(|| rust_cli_kernel_api::metering::OutputSpeed::of(&call))
+                .then(|| nibi_kernel_api::metering::OutputSpeed::of(&call))
                 .flatten();
                 (Fact::ModelCalled { call }, speed)
             }
-            rust_cli_kernel_api::metering::Metered::Tool(call) => (Fact::ToolCalled { call }, None),
+            nibi_kernel_api::metering::Metered::Tool(call) => (Fact::ToolCalled { call }, None),
         };
         match message {
             Some(message) => self.commit_with(message, vec![fact], speed).await,
@@ -415,7 +415,7 @@ impl RunSink for ChildSink {
         self.live
             .take_notices(&self.agent)
             .into_iter()
-            .map(|notice| rust_cli_prompts::agents::notification_wrap(&notice.envelope))
+            .map(|notice| nibi_kernel_prompts::agents::notification_wrap(&notice.envelope))
             .collect()
     }
 }

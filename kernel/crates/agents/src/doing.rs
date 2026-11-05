@@ -8,9 +8,9 @@
 //! 修复线 F62（用户决定）：也不再有“正在调用工具”。原来 `ToolStarted` 记成 `Tool{name}`，Explore 的 Bash 只跑几十
 //! 毫秒，列表行描述后面的 ` · Bash` 一闪而过；工具调用现在与增量相同：没有活动（`SubagentActivity::Tool` 同样保留不用）。
 
-use rust_cli_kernel_api::model::ModelNotice;
-use rust_cli_kernel_api::orchestration::QueryEvent;
-use rust_cli_kernel_api::panels::SubagentActivity;
+use nibi_kernel_api::model::ModelNotice;
+use nibi_kernel_api::orchestration::QueryEvent;
+use nibi_kernel_api::panels::SubagentActivity;
 
 /// 活动本身（不含时刻）。同一种活动的增量不算变化。
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -5,8 +5,8 @@
 //!
 //! 顺序按组装的先后（模型表 → 每轮表 → 请求期追加）；比较时排序，顺序不影响结果。
 
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
-use rust_cli_kernel_api::model::{ApiMessage, ApiRole, QuerySource};
+use nibi_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
+use nibi_kernel_api::model::{ApiMessage, ApiRole, QuerySource};
 use serde_json::Value;
 
 pub(crate) const INTERLEAVED_THINKING: &str = "interleaved-thinking-2025-05-14";

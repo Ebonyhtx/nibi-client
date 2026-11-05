@@ -2,12 +2,12 @@
 //! 结束、会话有目标时，与配置的 Stop hooks 一起评估目标条件。判定交给会话 actor（目标的唯一 owner）：
 //! actor 提交反馈与 `goal_status`、改目标，返回已提交的消息，这里并入主循环的历史。
 
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::hooks::{HookEvent, StopCondition, StopVerdict};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::model::{ApiMessage, ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::QueryError;
-use rust_cli_prompts::models;
+use nibi_kernel_api::history;
+use nibi_kernel_api::hooks::{HookEvent, StopCondition, StopVerdict};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::model::{ApiMessage, ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::QueryError;
+use nibi_kernel_prompts::models;
 
 use crate::RunScope;
 use crate::normalize::{NormalizeOptions, normalize};

@@ -2,15 +2,15 @@
 //! `context_tokens`）：目录模型请求的输出预算（docs/specs/rust-cli/query.md §1.11）用同一个函数，修复线 F108 从这里
 //! 搬过去。
 
-use rust_cli_kernel_api::compaction::message_tokens;
-use rust_cli_kernel_api::message::Message;
+use nibi_kernel_api::compaction::message_tokens;
+use nibi_kernel_api::message::Message;
 
 /// 图片与文档的估算值。
-pub use rust_cli_kernel_api::compaction::IMAGE_TOKENS;
+pub use nibi_kernel_api::compaction::IMAGE_TOKENS;
 
 /// 字符数 / 4，四舍五入；字符数按 UTF-16 码元（JS 的 `length`）。唯一定义在 kernel-api（压缩后带回的 skill 也用它）。
 pub(crate) fn rough(text: &str) -> u64 {
-    rust_cli_kernel_api::compaction::rough_tokens(text)
+    nibi_kernel_api::compaction::rough_tokens(text)
 }
 
 pub(crate) fn messages<'a>(items: impl IntoIterator<Item = &'a Message>) -> u64 {

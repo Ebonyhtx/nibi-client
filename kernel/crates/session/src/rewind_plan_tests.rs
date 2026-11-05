@@ -1,11 +1,11 @@
-use rust_cli_kernel_api::env_rewind::content_hash;
+use nibi_kernel_api::env_rewind::content_hash;
 
 use super::*;
 
 fn write(path: &str, before: Option<&str>, after: &str) -> Artifact {
     Artifact {
         tool_name: "Edit".into(),
-        files: vec![rust_cli_kernel_api::checkpoint::CheckpointFile {
+        files: vec![nibi_kernel_api::checkpoint::CheckpointFile {
             path: path.into(),
             existed_before: before.is_some(),
             before_content: before.map(str::to_owned),

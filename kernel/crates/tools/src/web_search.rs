@@ -6,13 +6,13 @@
 //! 作为错误交给模型。
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelEvent, ModelRequest, QuerySource,
     RequestOptions, ServerTool, SystemBlock,
 };
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionRule};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::permission::{PermissionDecision, PermissionRule};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde_json::{Value, json};
@@ -150,7 +150,7 @@ impl WebSearchTool {
         // 身份句在前、`tool_choice: auto`、max_tokens 取模型卡片。effort 照旧取卡片（F23 修正：没有卡片的模型不写选择的
         // 档位，`card_effort` 的注释）。
         let effort =
-            rust_cli_prompts::models::card_effort(&selection.model, selection.reasoning.as_deref());
+            nibi_kernel_prompts::models::card_effort(&selection.model, selection.reasoning.as_deref());
         let request = ModelRequest {
             selection,
             system: vec![SystemBlock {
@@ -286,7 +286,7 @@ impl Tool for WebSearchTool {
         _context: &ToolUseContext,
     ) -> PermissionDecision {
         PermissionDecision::Ask {
-            message: rust_cli_policy::texts::request_message(NAME, None),
+            message: nibi_kernel_policy::texts::request_message(NAME, None),
             suggestions: vec![PermissionRule {
                 tool: NAME.to_owned(),
                 content: None,

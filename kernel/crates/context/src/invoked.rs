@@ -3,10 +3,10 @@
 //! 最近调用的在前；保留尾段里已有带回它的附件时不带；每个正文最多 5000 token（超过时截断、接说明），合计
 //! 25000 token，放不下的跳过。
 
-use rust_cli_kernel_api::compaction::rough_tokens;
-use rust_cli_kernel_api::listing::InvokedSkill;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_prompts::{compact, texts};
+use nibi_kernel_api::compaction::rough_tokens;
+use nibi_kernel_api::listing::InvokedSkill;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_prompts::{compact, texts};
 use serde_json::{Value, json};
 
 /// 来源（attachment type）。

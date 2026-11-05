@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome, HookRunner};
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, ArtifactStore};
-use rust_cli_kernel_api::testing::{MemoryArtifacts, MemoryStore};
+use nibi_kernel_api::hooks::{HookEventName, HookOutcome, HookRunner};
+use nibi_kernel_api::ids::{ArtifactId, SessionId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, ArtifactStore};
+use nibi_kernel_api::testing::{MemoryArtifacts, MemoryStore};
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

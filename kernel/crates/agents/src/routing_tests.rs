@@ -4,10 +4,10 @@
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::agents::{AgentNotice, AgentSignal};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::store::SessionStore;
+use nibi_kernel_api::agents::{AgentNotice, AgentSignal};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::store::SessionStore;
 use serde_json::json;
 
 use crate::test_support::{Gates, Harness, held, text};

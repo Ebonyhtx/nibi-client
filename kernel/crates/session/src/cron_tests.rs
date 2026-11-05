@@ -7,11 +7,11 @@ use std::sync::{Arc, Mutex, PoisonError};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::cron::{CronFire, CronSignals};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::session_api::{KernelEvent, SessionHandle};
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::cron::{CronFire, CronSignals};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::session_api::{KernelEvent, SessionHandle};
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
 use serde_json::json;
 use tokio::sync::{Notify, mpsc};
 use tokio_stream_shim::ReceiverStream;
@@ -45,10 +45,10 @@ impl ScriptedCron {
     }
 
     fn due(&self, prompt: &str) {
-        self.due_as(prompt, rust_cli_kernel_api::cron::CronFireKind::Task);
+        self.due_as(prompt, nibi_kernel_api::cron::CronFireKind::Task);
     }
 
-    fn due_as(&self, prompt: &str, kind: rust_cli_kernel_api::cron::CronFireKind) {
+    fn due_as(&self, prompt: &str, kind: nibi_kernel_api::cron::CronFireKind) {
         self.due
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -201,7 +201,7 @@ async fn a_busy_session_runs_due_jobs_after_queued_input() {
 /// 用户中断取消 loop 唤醒（tools-more.md §18.1）：空闲时取消了才算接受；运行中先取消再中止回合。
 #[tokio::test]
 async fn an_interrupt_cancels_loop_wakeups_first() {
-    use rust_cli_kernel_api::session_api::{Ack, Command, TurnOutcome};
+    use nibi_kernel_api::session_api::{Ack, Command, TurnOutcome};
 
     use crate::test_support::envelope;
 
@@ -261,8 +261,8 @@ async fn an_interrupt_cancels_loop_wakeups_first() {
 /// 会话不调。
 #[tokio::test]
 async fn a_loaded_session_hands_its_history_to_the_task_table_first() {
-    use rust_cli_kernel_api::ids::MessageId;
-    use rust_cli_kernel_api::message::UserMessage;
+    use nibi_kernel_api::ids::MessageId;
+    use nibi_kernel_api::message::UserMessage;
 
     use crate::Opened;
 
@@ -296,7 +296,7 @@ async fn a_loaded_session_hands_its_history_to_the_task_table_first() {
 /// 折叠说明排在 prompt 之前进模型上下文；普通任务只有界面行；错过提示没有界面行。
 #[tokio::test]
 async fn fires_announce_themselves_and_quiet_loop_ticks_fold() {
-    use rust_cli_kernel_api::cron::{CronFireKind, LoopFold};
+    use nibi_kernel_api::cron::{CronFireKind, LoopFold};
 
     let model = Arc::new(ScriptedModel::new(vec![
         tool_use_response("toolu_1", "ScheduleWakeup", &json!({"noop": true})),

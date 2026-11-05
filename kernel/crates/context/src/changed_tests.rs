@@ -1,6 +1,6 @@
 //! 文件被改动的提醒文字。
 
-use rust_cli_kernel_api::tool::ChangedFile;
+use nibi_kernel_api::tool::ChangedFile;
 
 use super::render;
 

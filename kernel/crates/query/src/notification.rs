@@ -1,10 +1,10 @@
 //! 后台命令终态通知的文本（复制自 tools 的 `bash_output`，L4a 实现；移到这里是因为通知由会话
 //! actor 交给主循环，tools 不再需要它）。
 
-use rust_cli_kernel_api::env::Outcome;
-use rust_cli_kernel_api::env_shell::{BackgroundKind, ShellNotice, SocketEvent};
-use rust_cli_kernel_api::monitor_watch::Housekeeping;
-use rust_cli_prompts::monitor::{self, Ending};
+use nibi_kernel_api::env::Outcome;
+use nibi_kernel_api::env_shell::{BackgroundKind, ShellNotice, SocketEvent};
+use nibi_kernel_api::monitor_watch::Housekeeping;
+use nibi_kernel_prompts::monitor::{self, Ending};
 
 /// 通知里的 `<status>`：`completed`、`failed` 或 `killed`（会话的 `BackgroundWork` 事件也用它）。
 pub fn task_status(notice: &ShellNotice) -> &'static str {
@@ -19,7 +19,7 @@ pub fn task_status(notice: &ShellNotice) -> &'static str {
 /// 说明加信封，`<system-reminder>` 包装（docs/specs/rust-cli/query.md §5）。说明与包装与子代理的通知
 /// 同一份（prompts 的 `notification_preamble.txt`，修复线 F58：以前这里另写了一份同样的文字）。
 pub fn task_notification(notice: &ShellNotice) -> String {
-    rust_cli_prompts::agents::notification_wrap(&task_envelope(notice))
+    nibi_kernel_prompts::agents::notification_wrap(&task_envelope(notice))
 }
 
 /// 只有 `<task-notification>` 信封（不带说明与包装）：子代理收到的命令通知由 agents 与它派生的子代理的
@@ -97,7 +97,7 @@ pub fn monitor_notice_text(notice: &Housekeeping) -> String {
             seconds,
         } => monitor::too_much_output(*suppressed, *seconds),
         Housekeeping::Expired { timeout_ms, events } => monitor::expired(
-            &rust_cli_kernel_api::metering::format_duration_trimmed(*timeout_ms),
+            &nibi_kernel_api::metering::format_duration_trimmed(*timeout_ms),
             *events,
         ),
         Housekeeping::Socket(SocketEvent::Error { message }) => monitor::ws_error(message),

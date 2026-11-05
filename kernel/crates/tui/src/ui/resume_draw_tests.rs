@@ -10,8 +10,8 @@ use crate::ui::resume::{Confirm, CwdPrompt, ResumePage};
 use crate::ui::session_rows::SessionRow;
 
 mod shared {
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::testing::selection;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::testing::selection;
 
     use crate::ui::app::{App, Overlay};
     use crate::ui::i18n::Lang;

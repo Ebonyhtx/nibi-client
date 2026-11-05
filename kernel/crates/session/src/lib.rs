@@ -63,20 +63,20 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_base::{Spawner, Task};
-use rust_cli_kernel_api::agents::AgentSignals;
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::ids::{Generation, MessageId, SessionId};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::model::{ModelPort, ModelSelection};
-use rust_cli_kernel_api::orchestration::{Compactor, HookRunner, QueryRunner};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::{Spawner, Task};
+use nibi_kernel_api::agents::AgentSignals;
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::ids::{Generation, MessageId, SessionId};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::model::{ModelPort, ModelSelection};
+use nibi_kernel_api::orchestration::{Compactor, HookRunner, QueryRunner};
+use nibi_kernel_api::session_api::{
     Ack, CommandEnvelope, EndReason, KernelError, KernelEvent, RewindOption, SequencedEvent,
     SessionHandle, SessionView, StartSource,
 };
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::store::{
     ArtifactStore, SessionLaunchTurn, SessionMeta, SessionStore, WorkspaceCheckpoint,
 };
 use tokio::sync::{mpsc, oneshot};
@@ -105,19 +105,19 @@ pub struct SessionDeps {
     /// 只在本机的服务：斜杠命令的工具上下文要带它。
     pub local: LocalServices,
     /// 执行环境的注册表（R3，remote-exec.md §20.7）：远端机器上的后台通知、Monitor、代码回退与会话关闭经它找到那台机器。
-    pub machines: Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>,
+    pub machines: Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>,
     /// 每次提问最多几轮（`--max-turns`）。
     pub max_turns: Option<u32>,
     /// 子代理的信号：后台子代理的终态通知、任务清单变化（docs/specs/rust-cli/agents.md §5）。
     pub agents: Arc<dyn AgentSignals>,
     /// 会话内定时任务的唤醒与到期任务（docs/specs/rust-cli/tools-more.md §10.4）；`-p` 是 `NoCron`。
-    pub cron: Arc<dyn rust_cli_kernel_api::cron::CronSignals>,
+    pub cron: Arc<dyn nibi_kernel_api::cron::CronSignals>,
     /// 会话侧 hooks（UserPromptSubmit、SessionStart、SessionEnd、Notification）。
     pub hooks: Arc<dyn HookRunner>,
     /// 用户输入的斜杠命令（skill 的用户调用，docs/specs/rust-cli/ext.md §2.7）：回合任务先展开再跑 UPS。
-    pub commands: Arc<dyn rust_cli_kernel_api::user_command::UserCommands>,
+    pub commands: Arc<dyn nibi_kernel_api::user_command::UserCommands>,
     /// 用户输入的 `@` 提及与 bash 模式（docs/specs/rust-cli/tui-input.md §1.1、§2.2）：回合任务在斜杠展开之后调用。
-    pub inputs: Arc<dyn rust_cli_kernel_api::user_input::UserInputs>,
+    pub inputs: Arc<dyn nibi_kernel_api::user_input::UserInputs>,
     /// checkpoint 的 artifact（rewind 读回写入前后的内容）。
     pub artifacts: Arc<dyn ArtifactStore>,
     /// fork 出的会话的创建时间；会话标题请求的用量计时（工作线 F73）。
@@ -136,7 +136,7 @@ pub struct SessionDeps {
     /// 关闭之后由组装方释放的按会话状态（session-lifecycle.md §3.3）。
     pub released: Arc<dyn Released>,
     /// `/cd` 的说明里新目录的规则文件（tui-manage.md §7.1）：actor 用自己的活动历史调用。
-    pub directory_rules: Arc<dyn rust_cli_kernel_api::orchestration::DirectoryRules>,
+    pub directory_rules: Arc<dyn nibi_kernel_api::orchestration::DirectoryRules>,
     /// 本机跨会话通信（docs/specs/rust-cli/cross-session.md §2.4）。
     pub peers: PeerDeps,
     /// 父会话关闭之后旧会话的询问入口（进程级，agents.md §4.1.2，工作线 F72）；没有时那些询问按会话已关闭失败。
@@ -144,7 +144,7 @@ pub struct SessionDeps {
     /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（kernel-api `WorkflowBlockedEdges`，
     /// transcript-and-notifications.md「Reminding an idle main agent」）：actor 在忙闲转换处
     /// 调用，钟与宿主装配在 runtime。没有时（测试 / 嵌入）没有提醒链。
-    pub blocked: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowBlockedEdges>>,
+    pub blocked: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowBlockedEdges>>,
 }
 
 /// 会话关闭的收尾（docs/specs/rust-cli/session-lifecycle.md §3.3、§3.3.1）：每个会话的关闭任务各调用一次。
@@ -172,13 +172,13 @@ pub struct SessionState {
     pub earlier: Vec<Message>,
     pub selection: ModelSelection,
     /// 执行状态（权限模式 × plan 开关，修复线 F20）；旧的单值模式经 `From<PermissionMode>`（`Plan` 是 plan 开）。
-    pub mode: rust_cli_kernel_api::permission::ExecutionState,
+    pub mode: nibi_kernel_api::permission::ExecutionState,
     /// 还没有被代码回退撤销的 checkpoint（冷加载的 `LoadedSession.checkpoints`）。
     pub checkpoints: Vec<WorkspaceCheckpoint>,
     /// SessionStart hook 的来源（session-lifecycle.md §3.2）。
     pub start: StartSource,
     /// 当前轮（冷加载的 `LoadedSession.turn`；新建的会话没有）。
-    pub turn: Option<rust_cli_kernel_api::store::TurnAnchor>,
+    pub turn: Option<nibi_kernel_api::store::TurnAnchor>,
     /// 当前轮以错误结束（冷加载的 `LoadedSession.last_turn_failed`）：续写时不补 assistant（session-lifecycle.md
     /// §6.3.1）。
     pub last_turn_failed: bool,
@@ -187,7 +187,7 @@ pub struct SessionState {
     pub launches: Vec<SessionLaunchTurn>,
     /// 每轮输入的模型选择（冷加载的 `LoadedSession.model_turns`）：actor 在提交用户输入时追加，
     /// `view()` 带给冷投影（模型切换分隔线）。
-    pub model_turns: Vec<rust_cli_kernel_api::store::SessionModelTurn>,
+    pub model_turns: Vec<nibi_kernel_api::store::SessionModelTurn>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行，状态与消息只在
     /// 内存里；第一条用户输入提交时 actor 才写会话行与初始事实（`actor.rs` 的 `promote`）。
     pub draft: bool,
@@ -303,7 +303,7 @@ impl Session {
     /// 事实来源）：只广播、不落库、不动 revision（`log.rs` 的 `changes_state`）。
     pub fn note_workflow_lifecycle(
         &self,
-        fact: rust_cli_kernel_api::session_api::WorkflowLifecycleFact,
+        fact: nibi_kernel_api::session_api::WorkflowLifecycleFact,
     ) {
         self.log
             .append(KernelEvent::WorkflowLifecycle { fact });
@@ -313,7 +313,7 @@ impl Session {
     /// [`Self::note_workflow_lifecycle`] 同一条只广播、不落库的路径。
     pub fn note_workflow_run_progress(
         &self,
-        progress: rust_cli_kernel_api::workflow::WorkflowRunProgress,
+        progress: nibi_kernel_api::workflow::WorkflowRunProgress,
     ) {
         self.log
             .append(KernelEvent::WorkflowRunProgress { progress });
@@ -334,8 +334,8 @@ impl Session {
         &self,
     ) -> Result<
         (
-            rust_cli_kernel_api::permission::PermissionMode,
-            rust_cli_kernel_api::env::WorkspaceRef,
+            nibi_kernel_api::permission::PermissionMode,
+            nibi_kernel_api::env::WorkspaceRef,
         ),
         KernelError,
     > {
@@ -345,7 +345,7 @@ impl Session {
     /// 回合外的模型请求（MCP Apps 采样）要的当前模型选择：owner 是会话 actor。
     pub async fn out_of_turn_selection(
         &self,
-    ) -> Result<rust_cli_kernel_api::model::ModelSelection, KernelError> {
+    ) -> Result<nibi_kernel_api::model::ModelSelection, KernelError> {
         self.ask(|reply| Request::Selection { reply }).await
     }
 
@@ -354,7 +354,7 @@ impl Session {
     /// 否则用量行没有会话行可挂。
     pub async fn record_usage(
         &self,
-        call: rust_cli_kernel_api::metering::ModelCall,
+        call: nibi_kernel_api::metering::ModelCall,
     ) -> Result<(), KernelError> {
         self.persist_draft().await?;
         self.ask(|reply| Request::RecordUsage {
@@ -367,7 +367,7 @@ impl Session {
 
     /// 会话级的询问入口（`Interactions::lasting`）：回合外工具授权的审批链用它，
     /// 询问不随回合结束取消、只随会话关闭取消。
-    pub fn session_interactions(&self) -> Arc<dyn rust_cli_kernel_api::orchestration::Interactions> {
+    pub fn session_interactions(&self) -> Arc<dyn nibi_kernel_api::orchestration::Interactions> {
         Arc::new(crate::sink::SessionAsks {
             requests: self.requests.downgrade(),
             session: self.id.clone(),
@@ -437,7 +437,7 @@ impl SessionHandle for Session {
     /// 每轮的改动摘要：actor 给出 checkpoint，artifact 在调用方的任务里读（与 `rewind_options` 同一分工）。
     async fn file_change_summaries(
         &self,
-    ) -> Result<Vec<rust_cli_kernel_api::file_changes::TurnFileSummary>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::file_changes::TurnFileSummary>, KernelError> {
         let checkpoints = self.checkpoints(&[]).await?;
         let selected: Vec<&WorkspaceCheckpoint> = checkpoints.iter().collect();
         Ok(file_changes::summaries(self.deps.artifacts.as_ref(), &selected).await)
@@ -446,7 +446,7 @@ impl SessionHandle for Session {
     async fn file_changes(
         &self,
         messages: &[MessageId],
-    ) -> Result<rust_cli_kernel_api::file_changes::FileChangesReport, KernelError> {
+    ) -> Result<nibi_kernel_api::file_changes::FileChangesReport, KernelError> {
         let checkpoints = self.checkpoints(messages).await?;
         let selected: Vec<&WorkspaceCheckpoint> = checkpoints.iter().collect();
         file_changes::report(self.deps.artifacts.as_ref(), &selected)
@@ -457,7 +457,7 @@ impl SessionHandle for Session {
     async fn file_rewind_preview(
         &self,
         messages: &[MessageId],
-    ) -> Result<rust_cli_kernel_api::file_changes::RewindPreview, KernelError> {
+    ) -> Result<nibi_kernel_api::file_changes::RewindPreview, KernelError> {
         let checkpoints = self.checkpoints(messages).await?;
         let meta = self.ask(|reply| Request::Meta { reply }).await?;
         let selected: Vec<&WorkspaceCheckpoint> = checkpoints.iter().collect();
@@ -471,7 +471,7 @@ impl SessionHandle for Session {
         .await)
     }
 
-    async fn goal(&self) -> Result<rust_cli_kernel_api::goal::GoalView, KernelError> {
+    async fn goal(&self) -> Result<nibi_kernel_api::goal::GoalView, KernelError> {
         self.ask(|reply| Request::Goal { reply }).await
     }
 
@@ -479,7 +479,7 @@ impl SessionHandle for Session {
     /// （docs/specs/rust-cli/tui-display.md §3.1）。
     async fn background_tasks(
         &self,
-    ) -> Result<Vec<rust_cli_kernel_api::manage::BackgroundEntry>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::manage::BackgroundEntry>, KernelError> {
         let meta = self.ask(|reply| Request::Meta { reply }).await?;
         Ok(
             tasks::background_entries(&self.deps, &self.last_remote, &meta.workspace, &meta.id)
@@ -490,7 +490,7 @@ impl SessionHandle for Session {
     /// 子代理的事实在 agents 里（tui-panels.md §1）：不经 actor，直接转给它，按这个顶层会话过滤。
     async fn subagents(
         &self,
-    ) -> Result<Vec<rust_cli_kernel_api::panels::SubagentEntry>, KernelError> {
+    ) -> Result<Vec<nibi_kernel_api::panels::SubagentEntry>, KernelError> {
         Ok(self.deps.agents.subagents(&self.id).await)
     }
 
@@ -502,14 +502,14 @@ impl SessionHandle for Session {
     /// 任务里取，一次回执。
     async fn tasks_snapshot(
         &self,
-    ) -> Result<rust_cli_kernel_api::panels::TasksSnapshot, KernelError> {
+    ) -> Result<nibi_kernel_api::panels::TasksSnapshot, KernelError> {
         let meta = self.ask(|reply| Request::Meta { reply }).await?;
         Ok(tasks::snapshot(&self.deps, &self.last_remote, &meta.workspace, &meta.id).await)
     }
 
     async fn subagent_view(
         &self,
-        agent: &rust_cli_kernel_api::ids::AgentId,
+        agent: &nibi_kernel_api::ids::AgentId,
     ) -> Result<SessionView, KernelError> {
         self.deps.agents.subagent_view(&self.id, agent).await
     }
@@ -519,12 +519,12 @@ impl SessionHandle for Session {
         &self,
         task: &str,
         max_bytes: u64,
-    ) -> Result<Option<rust_cli_kernel_api::manage::BackgroundOutput>, KernelError> {
+    ) -> Result<Option<nibi_kernel_api::manage::BackgroundOutput>, KernelError> {
         let meta = self.ask(|reply| Request::Meta { reply }).await?;
         tasks::background_output(&self.deps, &meta.workspace, &meta.id, task, max_bytes)
             .await
             .map_err(|error| match error {
-                rust_cli_kernel_api::env::EnvError::Unsupported { what } => {
+                nibi_kernel_api::env::EnvError::Unsupported { what } => {
                     KernelError::Unsupported { what }
                 }
                 other => KernelError::Failed {
@@ -537,7 +537,7 @@ impl SessionHandle for Session {
     async fn shell_detail(
         &self,
         task: &str,
-    ) -> Result<Option<rust_cli_kernel_api::panels::ShellDetail>, KernelError> {
+    ) -> Result<Option<nibi_kernel_api::panels::ShellDetail>, KernelError> {
         let meta = self.ask(|reply| Request::Meta { reply }).await?;
         Ok(tasks::shell_detail(&self.deps, &meta.workspace, &meta.id, task).await)
     }

@@ -18,21 +18,21 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     CommandId, EnvironmentId, MessageId, OwnerEpoch, SessionId, TraceId,
 };
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{
     Fact, FactBatch, SessionFilter, SessionKind, SessionMeta, SessionStore,
 };
-use rust_cli_node_store::{LOCAL_ENVIRONMENT, NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_node_store::{LOCAL_ENVIRONMENT, NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 use serde_json::{Value, json};
 use tokio::runtime::Runtime;
 
@@ -40,7 +40,7 @@ const WORKSPACE: &str = "/w/race";
 
 fn store(dir: &str) -> Result<NodeStore> {
     let root = Path::new(dir);
-    let db = root.join(rust_cli_paths::DEFAULT_SESSION_DB);
+    let db = root.join(nibi_kernel_paths::DEFAULT_SESSION_DB);
     let paths = StoragePaths::resolve(
         &StorageSettings {
             session_db_path: Some(db.to_str().context("storage dir is not UTF-8")?),

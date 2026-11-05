@@ -3,15 +3,15 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_rewind::{RestoreFile, content_hash};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::FileChange;
-use rust_cli_kernel_api::store::WorkspaceCheckpoint;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_rewind::{RestoreFile, content_hash};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::session_api::FileChange;
+use nibi_kernel_api::store::WorkspaceCheckpoint;
 
 /// 中断文本（合成的消息）；这两条不是可选的 user 消息（kernel-api 的定义，F55）。
-const INTERRUPTS: [&str; 2] = rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
+const INTERRUPTS: [&str; 2] = nibi_kernel_api::user_input::INTERRUPT_TEXTS;
 /// 可选消息排除的非用户内容标签。
 const NOT_USER_TAGS: [&str; 7] = [
     "<local-command-stdout>",
@@ -82,7 +82,7 @@ pub(crate) fn checkpoints_from<'a>(
 }
 
 /// checkpoint artifact（读写形状在 kernel-api：文件变更聚合与回退预览用同一份）。
-pub(crate) use rust_cli_kernel_api::checkpoint::CheckpointArtifact as Artifact;
+pub(crate) use nibi_kernel_api::checkpoint::CheckpointArtifact as Artifact;
 
 /// 恢复计划：按写入的逆序、按路径模拟（Node `buildWorkspaceFileRewindPlan`）。每个路径期望磁盘上是
 /// 最后一次写入后的内容，恢复成最早一次写入前的内容；中间两次写入接不上（被别的方式改过）时报冲突。

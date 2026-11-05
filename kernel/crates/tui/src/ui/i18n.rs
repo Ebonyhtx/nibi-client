@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn every_permission_mode_has_a_label() {
-        use rust_cli_kernel_api::permission::PermissionMode;
+        use nibi_kernel_api::permission::PermissionMode;
         assert_eq!(
             mode_label(Lang::En, PermissionMode::Default),
             "Ask before changes"

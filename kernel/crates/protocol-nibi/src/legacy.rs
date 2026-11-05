@@ -2,8 +2,8 @@
 //! （`contentProfile: index`）。快照形状见 [`crate::legacy_snapshot`]；index 只带正文，去掉工具与
 //! 思考的大载荷。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::Value;
 
 use crate::legacy_snapshot::{self, Profile};

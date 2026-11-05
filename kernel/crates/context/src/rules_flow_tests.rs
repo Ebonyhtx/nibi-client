@@ -2,16 +2,16 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_git::{GitSnapshot, GitStatus};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_git::{GitSnapshot, GitStatus};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentRole, CompactBoundary, CompactTrigger, ContentBlock,
     ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 use serde_json::json;
 
 use super::*;
@@ -258,10 +258,10 @@ async fn a_shell_cd_announces_the_new_working_directory() {
     let mut history = vec![human()];
     step(&context, &mut history).await;
     history.push(Message::Assistant(
-        rust_cli_kernel_api::message::AssistantMessage {
+        nibi_kernel_api::message::AssistantMessage {
             id: MessageId::new("a1"),
             content: vec![ContentBlock::ToolUse {
-                id: rust_cli_kernel_api::ids::ToolUseId::new("t1"),
+                id: nibi_kernel_api::ids::ToolUseId::new("t1"),
                 name: "Bash".to_owned(),
                 input: serde_json::json!({"command": "cd sub"}),
             }],
@@ -273,7 +273,7 @@ async fn a_shell_cd_announces_the_new_working_directory() {
     history.push(Message::User(UserMessage {
         id: MessageId::new("r1"),
         content: vec![ContentBlock::ToolResult {
-            tool_use_id: rust_cli_kernel_api::ids::ToolUseId::new("t1"),
+            tool_use_id: nibi_kernel_api::ids::ToolUseId::new("t1"),
             content: Vec::new(),
             is_error: false,
         }],

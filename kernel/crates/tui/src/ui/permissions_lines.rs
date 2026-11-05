@@ -2,7 +2,7 @@
 //! NIBI），中文另配；规则文字与来源路径不翻译。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior, RuleSource};
+use nibi_kernel_api::permission::{PermissionRule, RuleBehavior, RuleSource};
 
 use super::i18n::Lang;
 use super::palette::Palette;
@@ -93,7 +93,7 @@ fn description(rule: &PermissionRule, lang: Lang) -> Option<(&'static str, Strin
 }
 
 fn rule_block(rule: &PermissionRule, lang: Lang, width: usize) -> Vec<Line<'static>> {
-    let text = rust_cli_runtime::format_permission_rule(rule);
+    let text = nibi_kernel_runtime::format_permission_rule(rule);
     let mut lines = vec![truncate_line(
         Line::from(Span::styled(format!("    {text}"), bold())),
         width,
@@ -188,7 +188,7 @@ pub fn lines(
         }
         Stage::Destination(text) => {
             let behavior = view.tab.behavior().map_or("allow", behavior_name);
-            let rule = rust_cli_runtime::parse_permission_rule(text);
+            let rule = nibi_kernel_runtime::parse_permission_rule(text);
             let mut lines = vec![
                 top(accent),
                 title(&add_title(lang, behavior)),
@@ -260,7 +260,7 @@ fn behavior_zh(behavior: &str) -> &'static str {
 }
 
 fn details(
-    rule: &rust_cli_kernel_api::permission::SourcedRule,
+    rule: &nibi_kernel_api::permission::SourcedRule,
     yes: bool,
     lang: Lang,
     palette: &Palette,

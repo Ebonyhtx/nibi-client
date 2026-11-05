@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use serde_json::json;
 
 use super::*;

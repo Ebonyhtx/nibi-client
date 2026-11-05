@@ -1,7 +1,7 @@
 //! 新增请求选项（工具标记、消息级 output_config）与 Provider 补丁的编码。
 
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{ApiContent, ApiMessage, ApiRole, ToolFlags, TurnOutputConfig};
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole, ToolFlags, TurnOutputConfig};
 use serde_json::json;
 
 use super::tests::request;
@@ -91,7 +91,7 @@ fn provider_patches_are_merged_last() {
 /// beta `structured-outputs-2025-12-15` 随 format 生成；没有 effort 时只有 format。
 #[test]
 fn output_format_goes_after_effort() {
-    use rust_cli_kernel_api::model::OutputFormat;
+    use nibi_kernel_api::model::OutputFormat;
     let schema = json!({"type": "object", "properties": {"name": {"type": "string"}}});
     let mut request = request(Vec::new());
     request.options.effort = Some("medium".to_owned());

@@ -7,8 +7,8 @@
 
 use std::fmt;
 
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::CatalogModel;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::CatalogModel;
 
 /// 找不到或说不清是哪一项。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,7 +100,7 @@ pub fn lookup<'a>(models: &'a [CatalogModel], name: &str) -> Result<&'a CatalogM
     else {
         return Err(LookupError::Missing);
     };
-    let team = rust_cli_base::js::string::trim(team);
+    let team = nibi_kernel_base::js::string::trim(team);
     let teams = || {
         models
             .iter()

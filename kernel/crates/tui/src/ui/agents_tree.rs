@@ -5,8 +5,8 @@
 //! 算出的纯函数，不另存状态。
 use std::collections::{HashMap, HashSet};
 
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::panels::{SubagentEntry, SubagentStatus};
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::panels::{SubagentEntry, SubagentStatus};
 
 /// 结束后还留在任务表里的时长。
 pub const KEEP_MS: u64 = 30_000;

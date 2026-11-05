@@ -1,6 +1,6 @@
 //! `-p "/context"` 的 markdown（context-usage.md §5.1）：逐字核对整张表（skill
 //! 只留本工程有的 `loop`）。
-use rust_cli_kernel_api::context_usage::{
+use nibi_kernel_api::context_usage::{
     CategoryKind, ContextUsage, MemoryFileUsage, SkillUsage, UsageCategory, WindowSource,
 };
 

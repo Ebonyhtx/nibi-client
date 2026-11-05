@@ -4,9 +4,9 @@
 use serde_json::json;
 
 use super::{SettingsTurnText, build_settings_message_text, launch_turn, settings_turn};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::Command;
-use rust_cli_kernel_api::workflow::{WorkflowLaunchTurn, WorkflowRunStarted, WorkflowSettingsTurn};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::Command;
+use nibi_kernel_api::workflow::{WorkflowLaunchTurn, WorkflowRunStarted, WorkflowSettingsTurn};
 
 fn amend(model: serde_json::Value, bound: serde_json::Value, predecessor: bool) -> serde_json::Value {
     let mut out = json!({"ceiling": 16});

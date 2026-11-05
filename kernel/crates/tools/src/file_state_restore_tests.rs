@@ -1,7 +1,7 @@
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId};
-use rust_cli_kernel_api::message::{AssistantMessage, UserMessage, UserOrigin};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, UnusedEnvironment};
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::ids::{EnvironmentId, MessageId};
+use nibi_kernel_api::message::{AssistantMessage, UserMessage, UserOrigin};
+use nibi_kernel_api::testing::{MemoryEnvironment, UnusedEnvironment};
 use serde_json::json;
 
 use super::*;

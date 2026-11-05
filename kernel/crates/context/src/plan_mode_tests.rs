@@ -3,14 +3,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{AgentId, EnvironmentId, MessageId, SessionId};
-use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::message::{AttachmentMessage, ContentBlock, UserMessage};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{ContextBuilder, ContextRequest, OrchestrationError};
-use rust_cli_kernel_api::plan::PlanModeFlags;
-use rust_cli_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{AgentId, EnvironmentId, MessageId, SessionId};
+use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::message::{AttachmentMessage, ContentBlock, UserMessage};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{ContextBuilder, ContextRequest, OrchestrationError};
+use nibi_kernel_api::plan::PlanModeFlags;
+use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 use serde_json::{Value, json};
 
 use super::*;
@@ -314,7 +314,7 @@ async fn the_plan_file_does_not_depend_on_the_home_directory() {
 /// 不是 plan 时没有。以前由压缩后下一步的上下文补发，当步的 attachment 改到工具轮之后产生后放进压缩附件。
 #[tokio::test]
 async fn compaction_attaches_a_full_plan_reminder_in_plan_mode() {
-    use rust_cli_kernel_api::compaction::PostCompactContext;
+    use nibi_kernel_api::compaction::PostCompactContext;
     let assembler = assembler(Some("/Users/dev"), Some(PLAN));
     let restored = assembler
         .post_compact(request(PermissionMode::Plan, None), &[])

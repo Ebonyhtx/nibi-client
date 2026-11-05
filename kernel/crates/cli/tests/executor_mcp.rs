@@ -18,8 +18,8 @@ use std::time::Duration;
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpTransport, McpTransportConfig, McpTransportEvent,
 };
 use serde_json::{Value, json};

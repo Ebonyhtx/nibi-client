@@ -7,8 +7,8 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_net::{Egress, HeaderValue, HttpRequest, HttpResponse, NetError, header};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_net::{Egress, HeaderValue, HttpRequest, HttpResponse, NetError, header};
 use serde_json::Value;
 
 /// 账号接口响应体的上限：项目令牌、团队与 OAuth 共用（F55：以前 oauth 另写了一份）。
@@ -104,7 +104,7 @@ impl Http {
         for (name, value) in extra {
             request = request.header(*name, *value);
         }
-        request.timeout = Some(rust_cli_net::timeout::ACCOUNT);
+        request.timeout = Some(nibi_kernel_net::timeout::ACCOUNT);
         let authorization = match auth {
             Auth::None => None,
             Auth::Raw(token) => Some(RedactedString::new(token.to_owned())),

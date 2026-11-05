@@ -6,12 +6,12 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_exec_transport::{Connector, LinkError, Provisioned, Provisioner};
-use rust_cli_exec_wire::handshake::PROTOCOL;
-use rust_cli_kernel_api::env::{OperationContext, Origin};
-use rust_cli_kernel_api::ids::{EnvironmentId, Generation, OperationId, OwnerEpoch, SessionId};
-use rust_cli_machines::Endpoint;
-use rust_cli_ssh_connect::{SshConnector, SshProvisioner, SshTarget, Wanted};
+use nibi_kernel_exec_transport::{Connector, LinkError, Provisioned, Provisioner};
+use nibi_kernel_exec_wire::handshake::PROTOCOL;
+use nibi_kernel_api::env::{OperationContext, Origin};
+use nibi_kernel_api::ids::{EnvironmentId, Generation, OperationId, OwnerEpoch, SessionId};
+use nibi_kernel_machines::Endpoint;
+use nibi_kernel_ssh_connect::{SshConnector, SshProvisioner, SshTarget, Wanted};
 
 /// F107（remote-exec.md §28.10）：本机就是 macOS 时的真实 SSH 夹具（不用 Docker）。
 #[cfg(unix)]
@@ -156,7 +156,7 @@ impl Sshd {
         let name = format!(
             "{prefix}-{}-{:x}",
             std::process::id(),
-            rust_cli_base::random::u64() & 0xffff_ffff
+            nibi_kernel_base::random::u64() & 0xffff_ffff
         );
         let mut sshd = Self {
             name,
@@ -422,7 +422,7 @@ pub fn artifact_or_skip() -> Option<PathBuf> {
             eprintln!(
                 "SSH Docker test skipped: {}",
                 reason.unwrap_or_else(|| {
-                    "NIBI_TEST_SSH_ARTIFACT is not set (run pnpm test:rust-cli)".to_owned()
+                    "NIBI_TEST_SSH_ARTIFACT is not set (run pnpm test:nibi-kernel-cli)".to_owned()
                 })
             );
             None

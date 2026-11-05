@@ -2,19 +2,19 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     AgentId, ArtifactId, EnvironmentId, MessageId, SessionId, ToolUseId, TraceId,
 };
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::orchestration::{QueryEvent, RunSink};
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::orchestration::{QueryEvent, RunSink};
+use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, SessionKind, SessionMeta, SessionStore,
 };
-use rust_cli_kernel_api::testing::{MemoryStore, SequentialIds};
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::testing::{MemoryStore, SequentialIds};
+use nibi_kernel_api::tool::ToolOutput;
 use serde_json::json;
 
 use super::ChildSink;
@@ -90,9 +90,9 @@ async fn subagent_writes_settle_checkpoints_in_the_child_session() {
 
 #[tokio::test]
 async fn subagent_calls_are_committed_with_their_messages_in_the_child_session() {
-    use rust_cli_kernel_api::message::AssistantMessage;
-    use rust_cli_kernel_api::metering::{CallStatus, Metered, ToolCall};
-    use rust_cli_kernel_api::store::Fact;
+    use nibi_kernel_api::message::AssistantMessage;
+    use nibi_kernel_api::metering::{CallStatus, Metered, ToolCall};
+    use nibi_kernel_api::store::Fact;
 
     let store = Arc::new(MemoryStore::default());
     let child = SessionId::new("sess_subagent_agent_2");

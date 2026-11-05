@@ -6,8 +6,8 @@
 //! 区分 default 与 dontAsk；它只在与 `mode` 一致时有效，Node 整份改写后自然消失。
 
 use rusqlite::{Connection, OptionalExtension, params};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::StoreError;
 use serde_json::{Map, Value};
 
 use crate::OrStorage;

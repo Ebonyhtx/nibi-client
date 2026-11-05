@@ -186,7 +186,7 @@ async fn yolo_never_asks() {
         allow()
     );
     // plan 开着：判决用的模式是 plan，危险删除照旧询问（plan 的询问交给分类器，不可用时拒绝）。
-    use rust_cli_kernel_api::permission::ExecutionState;
+    use nibi_kernel_api::permission::ExecutionState;
     let planning = ExecutionState::from(mode).with_plan(true).effective();
     assert_eq!(
         ask_message(&bash(&PolicyGate::default(), planning, "rm -rf *").await),

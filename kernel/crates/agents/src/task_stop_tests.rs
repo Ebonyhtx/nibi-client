@@ -7,17 +7,17 @@ use std::sync::{Arc, Mutex, PoisonError};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::agents::AgentSignal;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::agents::AgentSignal;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStatus, BackgroundStop, BackgroundTask,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
 use serde_json::json;
@@ -114,15 +114,15 @@ impl Shell for Shells {
         &self,
         workspace: &WorkspaceRef,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::env_shell::ShellState, EnvError> {
+    ) -> Result<nibi_kernel_api::env_shell::ShellState, EnvError> {
         let commands = self.commands.lock().unwrap_or_else(PoisonError::into_inner);
-        Ok(rust_cli_kernel_api::env_shell::ShellState {
+        Ok(nibi_kernel_api::env_shell::ShellState {
             cwd: workspace.root.clone(),
             outputs: None,
             background: commands
                 .keys()
                 .filter(|(owner, _)| owner == session.as_str())
-                .map(|(_, task)| rust_cli_kernel_api::ids::ShellTaskId::new(task.as_str()))
+                .map(|(_, task)| nibi_kernel_api::ids::ShellTaskId::new(task.as_str()))
                 .collect(),
         })
     }
@@ -340,11 +340,11 @@ async fn the_user_stops_a_background_agent_through_the_same_path() {
     assert_eq!(entries[0].id, "agent_1");
     assert_eq!(entries[0].description, "Wait for me");
     let operation = || OperationContext {
-        environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-        generation: rust_cli_kernel_api::ids::Generation::new("g1"),
-        owner_epoch: rust_cli_kernel_api::ids::OwnerEpoch::LOCAL,
+        environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+        generation: nibi_kernel_api::ids::Generation::new("g1"),
+        owner_epoch: nibi_kernel_api::ids::OwnerEpoch::LOCAL,
         operation: OperationId::new("op_user"),
-        origin: rust_cli_kernel_api::env::Origin::User {
+        origin: nibi_kernel_api::env::Origin::User {
             session: Some(parent.clone()),
         },
     };
@@ -380,8 +380,8 @@ async fn a_command_on_a_remote_machine_is_stopped_there() {
         "sleep 100",
         BackgroundStatus::Running,
     ));
-    let registry = rust_cli_kernel_api::testing::TestMachines::new(Arc::new(
-        rust_cli_kernel_api::testing::UnusedEnvironment,
+    let registry = nibi_kernel_api::testing::TestMachines::new(Arc::new(
+        nibi_kernel_api::testing::UnusedEnvironment,
     ));
     registry.connect("dev-a", remote.clone(), "/home/dev/proj");
     let harness = crate::test_support::with_machines(registry);
@@ -403,8 +403,8 @@ async fn stopping_a_remote_command_names_its_machine() {
         "sleep 100",
         BackgroundStatus::Running,
     ));
-    let registry = rust_cli_kernel_api::testing::TestMachines::new(Arc::new(
-        rust_cli_kernel_api::testing::UnusedEnvironment,
+    let registry = nibi_kernel_api::testing::TestMachines::new(Arc::new(
+        nibi_kernel_api::testing::UnusedEnvironment,
     ));
     registry.connect("dev-a", remote, "/home/dev/proj");
     let on_dev_a = crate::test_support::with_machines(registry);

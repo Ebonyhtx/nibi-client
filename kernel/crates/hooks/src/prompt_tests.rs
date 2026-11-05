@@ -1,8 +1,8 @@
 //! prompt hook（spec §5.3）与 `/goal` 的停止条件（goal.md §5）。
 
-use rust_cli_kernel_api::message::{Message, UserOrigin};
-use rust_cli_kernel_api::model::OutputFormat;
-use rust_cli_kernel_api::testing::{ScriptedModel, SequentialIds, selection, text_response};
+use nibi_kernel_api::message::{Message, UserOrigin};
+use nibi_kernel_api::model::OutputFormat;
+use nibi_kernel_api::testing::{ScriptedModel, SequentialIds, selection, text_response};
 use serde_json::json;
 
 use super::*;

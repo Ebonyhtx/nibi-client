@@ -1,10 +1,10 @@
 //! 冷投影：从会话视图（已提交的消息）重建行。没有事件的时间，行的时间取会话的创建时间；回合以真人输入为界。
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
+use nibi_kernel_api::session_api::{
     SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
 };
-use rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
+use nibi_kernel_api::user_input::INTERRUPT_TEXTS;
 
 use super::{Projection, state::Phase, tool_key};
 
@@ -23,7 +23,7 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
     let mut turns = 0u64;
     let mut interrupted = false;
     // 每轮用户输入时刻的模型选择：与上一轮不同才画 `modelChange` 分隔线（Node transcript hydration 同判据）。
-    let selections: std::collections::HashMap<&str, &rust_cli_kernel_api::model::ModelSelection> =
+    let selections: std::collections::HashMap<&str, &nibi_kernel_api::model::ModelSelection> =
         view.model_turns
             .iter()
             .map(|turn| (turn.message.as_str(), &turn.selection))
@@ -125,14 +125,14 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                         is_error,
                     } = block
                     {
-                        let output = rust_cli_kernel_api::tool::ToolOutput {
+                        let output = nibi_kernel_api::tool::ToolOutput {
                             content: content.clone(),
                             is_error: *is_error,
                             display: serde_json::Value::Null,
                         };
                         let event = SequencedEvent {
                             seq: 0,
-                            event: rust_cli_kernel_api::session_api::KernelEvent::ToolDone {
+                            event: nibi_kernel_api::session_api::KernelEvent::ToolDone {
                                 tool_use: tool_use_id.clone(),
                                 output,
                             },
@@ -168,9 +168,9 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
 /// 第一轮没有「上一轮」可比，不画（Node 的 source-less 情形不落行）。
 fn model_change(
     projection: &mut Projection,
-    selections: &std::collections::HashMap<&str, &rust_cli_kernel_api::model::ModelSelection>,
-    previous: &mut Option<rust_cli_kernel_api::model::ModelSelection>,
-    message: &rust_cli_kernel_api::ids::MessageId,
+    selections: &std::collections::HashMap<&str, &nibi_kernel_api::model::ModelSelection>,
+    previous: &mut Option<nibi_kernel_api::model::ModelSelection>,
+    message: &nibi_kernel_api::ids::MessageId,
     turn: &str,
     at: u64,
     out: &mut Vec<serde_json::Value>,
@@ -195,9 +195,9 @@ impl Projection {
             turn.execution_kind == Some(TurnExecutionKind::ControlOnly)
         });
         let outcome = if interrupted {
-            rust_cli_kernel_api::session_api::TurnOutcome::Interrupted
+            nibi_kernel_api::session_api::TurnOutcome::Interrupted
         } else {
-            rust_cli_kernel_api::session_api::TurnOutcome::Success
+            nibi_kernel_api::session_api::TurnOutcome::Success
         };
         self.finish_turn(&turn, &outcome, None, control_only, at, out);
     }

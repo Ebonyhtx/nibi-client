@@ -3,16 +3,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, InteractionId, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionGate,
 };
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode, RuleBehavior};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, MemoryStore, local_services, machine};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode, RuleBehavior};
+use nibi_kernel_api::testing::{MemoryEnvironment, MemoryStore, local_services, machine};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};

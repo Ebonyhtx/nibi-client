@@ -108,7 +108,7 @@ fn sandbox() -> Sandbox {
 }
 
 fn zcode(sandbox: &Sandbox, cwd: &Path, url: &str, args: &[&str], extra: &[(&str, &str)]) -> Child {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(args)
         .current_dir(cwd)
@@ -378,12 +378,12 @@ fn sending_after_the_peer_exits_reports_it_unreachable() {
 /// A 的会话库：这个工作区最新的会话。
 fn with_latest<T>(
     sandbox: &Sandbox,
-    work: impl AsyncFnOnce(&rust_cli_node_store::NodeStore, rust_cli_kernel_api::ids::SessionId) -> T,
+    work: impl AsyncFnOnce(&nibi_kernel_node_store::NodeStore, nibi_kernel_api::ids::SessionId) -> T,
 ) -> T {
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::EnvironmentId;
-    use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
-    use rust_cli_paths::{StoragePaths, StorageSettings};
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::EnvironmentId;
+    use nibi_kernel_api::store::{SessionFilter, SessionStore};
+    use nibi_kernel_paths::{StoragePaths, StorageSettings};
     use std::sync::Arc;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -392,9 +392,9 @@ fn with_latest<T>(
     runtime.block_on(async {
         let paths =
             StoragePaths::resolve(&StorageSettings::default(), &sandbox.home, &sandbox.home);
-        let clock = Arc::new(rust_cli_node_store::SystemClock::utc());
-        let ids = Arc::new(rust_cli_node_store::NodeIds::new(clock));
-        let store = rust_cli_node_store::NodeStore::new(paths, ids);
+        let clock = Arc::new(nibi_kernel_node_store::SystemClock::utc());
+        let ids = Arc::new(nibi_kernel_node_store::NodeIds::new(clock));
+        let store = nibi_kernel_node_store::NodeStore::new(paths, ids);
         let workspace = WorkspaceRef {
             environment: EnvironmentId::new("local"),
             root: EnvPath::new(sandbox.work.to_string_lossy()),
@@ -413,7 +413,7 @@ fn with_latest<T>(
 
 /// A 的会话库里这个工作区最新的会话的某种 `rust-cli/<kind>` entry（只读）。
 fn entries(sandbox: &Sandbox, kind: &str) -> Vec<(String, Value)> {
-    use rust_cli_kernel_api::store::SessionStore;
+    use nibi_kernel_api::store::SessionStore;
     with_latest(sandbox, async |store, session| {
         store.entries(&session, kind).await.unwrap()
     })
@@ -422,8 +422,8 @@ fn entries(sandbox: &Sandbox, kind: &str) -> Vec<(String, Value)> {
 /// 把扣住的消息的到期时刻改成收到的时刻：等价于“扣住的时长已经过去”。到期时刻是数据（cross-session.md §2.4），
 /// 测试这样拨时间，不靠真实时间的余量。
 fn expire_now(sandbox: &Sandbox, msg_id: &str, mut data: Value) {
-    use rust_cli_kernel_api::ids::OwnerEpoch;
-    use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore};
+    use nibi_kernel_api::ids::OwnerEpoch;
+    use nibi_kernel_api::store::{Fact, FactBatch, SessionStore};
     data["held"]["expiresAt"] = data["receivedAt"].clone();
     let fact = Fact::Entry {
         kind: "peer_message".to_owned(),

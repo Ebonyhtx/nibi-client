@@ -3,7 +3,7 @@
 //! - `manage-write <storage-dir>`：在 `/w/manage` 与 `/w/manage-other` 各写一个带首条输入的会话，输出会话 id；
 //! - `rename <storage-dir> <session> <title>`、`delete <storage-dir> <session>`：`SessionStore::rename` / `delete`；
 //! - `query <storage-dir> [<root>]`：`SessionStore::query_sessions`（按活动时间，上限 50），输出 `SessionPage`。
-use rust_cli_kernel_api::store::{SessionOrder, SessionQuery};
+use nibi_kernel_api::store::{SessionOrder, SessionQuery};
 
 use super::*;
 

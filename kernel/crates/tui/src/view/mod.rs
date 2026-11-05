@@ -10,13 +10,13 @@ mod notice;
 pub use extras::{Activity, AgentActivity, TurnChanges, task_counts};
 pub use notice::Notice;
 
-use rust_cli_kernel_api::compaction::{ContextNotice, ContextOccupancy};
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{InteractionId, ToolUseId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::{ExecutionState, PermissionMode};
-use rust_cli_kernel_api::session_api::{NoticeLevel, QueuedInput};
+use nibi_kernel_api::compaction::{ContextNotice, ContextOccupancy};
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::{InteractionId, ToolUseId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
+use nibi_kernel_api::session_api::{NoticeLevel, QueuedInput};
 use serde_json::Value;
 
 /// 回合的状态（回合行）。
@@ -111,7 +111,7 @@ pub enum Body {
         stderr: String,
     },
     /// `/goal` 的评估结果（`goal_status`，不含设定 / 清除的标记，goal.md §6.1）。
-    Goal(Box<rust_cli_kernel_api::goal::GoalStatus>),
+    Goal(Box<nibi_kernel_api::goal::GoalStatus>),
     /// 跨会话：并入或开回合的同伴消息与发送方收到的回执（docs/specs/rust-cli/cross-session.md §2.6）。
     Peer(Box<PeerRow>),
 }
@@ -129,8 +129,8 @@ pub enum PeerRow {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Fire {
     pub at: String,
-    pub kind: rust_cli_kernel_api::cron::CronFireKind,
-    pub fold: Option<rust_cli_kernel_api::cron::LoopFold>,
+    pub kind: nibi_kernel_api::cron::CronFireKind,
+    pub fold: Option<nibi_kernel_api::cron::LoopFold>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -184,7 +184,7 @@ pub struct Transcript {
     next_id: u64,
     pending: Vec<(InteractionId, InteractionRequest)>,
     /// 扣住、等批准的同伴消息（快照的 `peer_held` 与 `PeerHeldChanged`，cross-session.md §2.6）。
-    peer_held: Vec<rust_cli_kernel_api::peers::HeldPeerMessage>,
+    peer_held: Vec<nibi_kernel_api::peers::HeldPeerMessage>,
     queue: Vec<QueuedInput>,
     selection: ModelSelection,
     /// 执行状态：权限模式 × plan 开关（修复线 F20；`ModeChanged` / `PlanChanged` 各改一半）。
@@ -199,7 +199,7 @@ pub struct Transcript {
     occupancy: Option<ContextOccupancy>,
     /// 内核给出的最近一个完成的主回合请求的输出速度（`OutputSpeed` 事件与快照的 `output_speed`）：footer 的 TPS
     /// （tui-display.md §2.6，修复线 F105）。
-    speed: Option<rust_cli_kernel_api::metering::OutputSpeed>,
+    speed: Option<nibi_kernel_api::metering::OutputSpeed>,
     last_seq: u64,
     segment: Option<Segment>,
     /// 本回合流出的回复与推理字数（状态行的 `↓ N tokens`）。
@@ -291,7 +291,7 @@ impl Transcript {
 
     /// 第一个待处理的交互（同时只显示一个）。
     /// 第一条扣住的同伴消息（批准框显示它，cross-session.md §2.6）。
-    pub fn peer_held(&self) -> Option<&rust_cli_kernel_api::peers::HeldPeerMessage> {
+    pub fn peer_held(&self) -> Option<&nibi_kernel_api::peers::HeldPeerMessage> {
         self.peer_held.first()
     }
 
@@ -321,7 +321,7 @@ impl Transcript {
 
     /// footer 的 TPS（tui-display.md §2.6，修复线 F105）：会话 actor 记的最近一个完成的主回合请求的速度；本进程还没有
     /// 这样的请求（冷打开、切换会话之后）时为空。
-    pub fn output_speed(&self) -> Option<rust_cli_kernel_api::metering::OutputSpeed> {
+    pub fn output_speed(&self) -> Option<nibi_kernel_api::metering::OutputSpeed> {
         self.speed
     }
 
@@ -374,7 +374,7 @@ mod tests;
 #[cfg(test)]
 pub(crate) fn test_workspace() -> WorkspaceRef {
     WorkspaceRef {
-        environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-        root: rust_cli_kernel_api::env::EnvPath::new("/Users/dev/project"),
+        environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+        root: nibi_kernel_api::env::EnvPath::new("/Users/dev/project"),
     }
 }

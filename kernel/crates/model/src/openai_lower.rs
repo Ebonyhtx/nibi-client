@@ -12,11 +12,11 @@
 //! | assistant 的 thinking                   | 正文进 `reasoning`；签名与 redacted_thinking 丢弃                  |
 //! | 块上的 `cache_control`、消息级 `output_config` | 丢弃                                                        |
 
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::message::{
     ContentBlock, ImageSource, ToolResultContent, tool_reference_text,
 };
-use rust_cli_kernel_api::model::{ApiMessage, ApiRole, ModelError, SystemBlock};
+use nibi_kernel_api::model::{ApiMessage, ApiRole, ModelError, SystemBlock};
 
 /// 一个用户片段。
 #[derive(Debug, Clone, PartialEq)]
@@ -88,7 +88,7 @@ pub(crate) fn items(
                 reminders.extend(message.content.into_iter().filter_map(|content| {
                     match content.block {
                         ContentBlock::Text { text } => {
-                            Some(Part::Text(rust_cli_base::reminder::wrap(&text)))
+                            Some(Part::Text(nibi_kernel_base::reminder::wrap(&text)))
                         }
                         _ => None,
                     }

@@ -12,7 +12,7 @@ use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 
 use base64::Engine;
-use rust_cli_ssh_connect::Platform;
+use nibi_kernel_ssh_connect::Platform;
 use sha2::{Digest, Sha256, Sha512};
 
 type Routes = Arc<Mutex<Vec<(String, u16, Vec<u8>)>>>;

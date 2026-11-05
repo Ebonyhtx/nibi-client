@@ -20,10 +20,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
-use rust_cli_base::{Task, TaskScope};
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_net::Egress;
-use rust_cli_tui::update::{UpdateChoice, UpdateInfo};
+use nibi_kernel_base::{Task, TaskScope};
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_net::Egress;
+use nibi_kernel_tui::update::{UpdateChoice, UpdateInfo};
 
 use crate::flags::Fatal;
 pub(crate) use install::Install;

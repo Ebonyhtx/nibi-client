@@ -1,16 +1,16 @@
 //! 会话事件 → 埋点事实（141 审计 §9 第 5 项余项）：轮、流、工具、权限、子代理与压缩。
 
-use rust_cli_kernel_api::conversation_telemetry::ConversationTelemetryFact;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::conversation_telemetry::ConversationTelemetryFact;
+use nibi_kernel_api::ids::{
     AgentId, InteractionId, MessageId, SessionId, ToolUseId, TurnId,
 };
-use rust_cli_kernel_api::message::{CompactTrigger, ToolResultContent, Usage};
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::message::{CompactTrigger, ToolResultContent, Usage};
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::session_api::{
     KernelEvent, SequencedEvent, SubagentPhase, TurnExecutionKind, TurnInputSource, TurnOutcome,
 };
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::tool::ToolOutput;
 use serde_json::json;
 
 use super::*;
@@ -36,7 +36,7 @@ fn output(text: &str, is_error: bool) -> ToolOutput {
 fn turn_started() -> KernelEvent {
     KernelEvent::TurnStarted {
         turn: TurnId::new("t1"),
-        command: Some(rust_cli_kernel_api::ids::CommandId::new("c1")),
+        command: Some(nibi_kernel_api::ids::CommandId::new("c1")),
         execution_kind: Some(TurnExecutionKind::Agent),
         workflow_launch: None,
         input_source: None,

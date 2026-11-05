@@ -19,7 +19,7 @@ pub const TASK_TYPES: [&str; 7] = [
 fn trimmed(value: &Value) -> Option<String> {
     value
         .as_str()
-        .map(rust_cli_base::js::string::trim)
+        .map(nibi_kernel_base::js::string::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_owned)
 }

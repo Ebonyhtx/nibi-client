@@ -3,14 +3,14 @@
 //! `/compact` 作为一个回合运行：与主循环共用 [`Running`]，所以中断、排队与收尾都走同一条路径；
 //! 压缩任务经 [`ActorSink`] 把边界、摘要与附件交给 actor，在一个存储事务里提交。
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::compaction::{ContextNotice, ContextOccupancy};
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::message::{CompactTrigger, Message, SystemMessage};
-use rust_cli_kernel_api::orchestration::{CompactRequest, QueryStop, RunSink};
-use rust_cli_kernel_api::session_api::KernelEvent;
-use rust_cli_kernel_api::store::{Fact, StoreError};
-use rust_cli_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord, dim};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::compaction::{ContextNotice, ContextOccupancy};
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::message::{CompactTrigger, Message, SystemMessage};
+use nibi_kernel_api::orchestration::{CompactRequest, QueryStop, RunSink};
+use nibi_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::store::{Fact, StoreError};
+use nibi_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord, dim};
 use tokio::sync::mpsc;
 
 use crate::actor::{Actor, Running};
@@ -133,7 +133,7 @@ impl Actor {
             if let Some(running) = &mut self.running {
                 running
                     .abort
-                    .abort(rust_cli_kernel_api::abort::AbortReason::User);
+                    .abort(nibi_kernel_api::abort::AbortReason::User);
                 running.failure.get_or_insert_with(|| reason.clone());
             }
             return Err(StoreError::Storage { message: reason });

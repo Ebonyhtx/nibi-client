@@ -2,8 +2,8 @@
 
 use std::sync::{Arc, PoisonError};
 
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::testing::{TestMachines, UnusedEnvironment};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::testing::{TestMachines, UnusedEnvironment};
 use serde_json::json;
 
 use crate::test_support::with_machines;

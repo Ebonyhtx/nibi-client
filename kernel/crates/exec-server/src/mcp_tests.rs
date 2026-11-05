@@ -7,18 +7,18 @@ use std::time::Duration;
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::core::Workspace;
-use rust_cli_exec_wire::dto::mcp::{McpEvent, McpTransport as WireTransport};
-use rust_cli_exec_wire::envelope::{
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::core::Workspace;
+use nibi_kernel_exec_wire::dto::mcp::{McpEvent, McpTransport as WireTransport};
+use nibi_kernel_exec_wire::envelope::{
     Ack, EventHeader, ReplyResult, RequestHeader, StreamAck, StreamItem, WireError,
 };
-use rust_cli_exec_wire::frame::Kind;
-use rust_cli_exec_wire::handshake::{Capabilities, Hello};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_exec_wire::frame::Kind;
+use nibi_kernel_exec_wire::handshake::{Capabilities, Hello};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpError, McpTransport, McpTransportConfig, McpTransportEvent,
 };
 use serde_json::{Value, json};
@@ -224,7 +224,7 @@ async fn a_server_connects_takes_messages_and_streams_its_events() {
         let frame = client.frame().await.unwrap();
         match frame.kind {
             Kind::Reply => {
-                let header: rust_cli_exec_wire::envelope::ReplyHeader = frame.header().unwrap();
+                let header: nibi_kernel_exec_wire::envelope::ReplyHeader = frame.header().unwrap();
                 assert_eq!(header.call, 3);
                 assert_eq!(header.result, ReplyResult::Ok(Reply::McpSend));
                 got_reply = true;
@@ -408,7 +408,7 @@ async fn a_client_away_too_long_has_its_servers_closed() {
 async fn client_as(
     server: &crate::ExecServer,
     instance: &str,
-) -> (Client, rust_cli_base::OwnedTask<()>) {
+) -> (Client, nibi_kernel_base::OwnedTask<()>) {
     let (mut client, task) = connect(server);
     let hello = Hello {
         client_instance: instance.to_owned(),
@@ -524,7 +524,7 @@ async fn the_declared_set_closes_servers_that_are_no_longer_configured() {
         else {
             unreachable!()
         };
-        rust_cli_exec_wire::dto::mcp::McpDeclared { server, transport }
+        nibi_kernel_exec_wire::dto::mcp::McpDeclared { server, transport }
     };
     let declare = Request::McpDeclare {
         workspace: workspace(),

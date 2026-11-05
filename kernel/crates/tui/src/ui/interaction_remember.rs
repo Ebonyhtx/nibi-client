@@ -1,7 +1,7 @@
 //! 权限询问“不再询问”一行（docs/specs/rust-cli/shell-permissions.md §4.10、tui.md §5.2，工作线 F72）：Bash 有种子时
 //! 这一行是可编辑的前缀，记住的规则由它得出；没有种子时列出全部建议规则。
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::PermissionRule;
 
 use crate::ui::i18n::Lang;
 
@@ -22,7 +22,7 @@ pub(in crate::ui) fn seed(request: &InteractionRequest) -> Option<String> {
         return None;
     }
     let command = input["command"].as_str()?;
-    rust_cli_runtime::bash_rule_seed(command, suggestions)
+    nibi_kernel_runtime::bash_rule_seed(command, suggestions)
 }
 
 /// 种子（可能被用户改过）记住的规则：`*` 是整个 Bash，空的只允许这一次。
@@ -69,7 +69,7 @@ pub(in crate::ui) fn commands_label(
     let commands: Vec<&str> = suggestions
         .iter()
         .filter_map(|rule| rule.content.as_deref())
-        .map(rust_cli_runtime::bash_rule_label)
+        .map(nibi_kernel_runtime::bash_rule_label)
         .collect();
     let commands = listed(&commands, lang);
     match lang {

@@ -3,9 +3,9 @@
 //! 结果按完成顺序到达，逐个折叠（PreToolUse、PostToolUse、PostToolUseFailure、PermissionRequest 各一个
 //! 函数）；聚合规则（权限优先级、updatedInput）在结果循环里逐个合并。
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::hooks::HookOutcome;
-use rust_cli_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::hooks::HookOutcome;
+use nibi_kernel_api::permission::PermissionDecision;
 use serde_json::Value;
 
 use crate::result::{Behavior, HookResult, Outcome, PermissionRequestDecision};
@@ -25,7 +25,7 @@ impl Fold<'_> {
         &self,
         hook_name: &str,
         contexts: &[String],
-    ) -> Option<rust_cli_kernel_api::message::Message> {
+    ) -> Option<nibi_kernel_api::message::Message> {
         texts::additional_context(self.ids, hook_name, self.event, contexts)
     }
 }

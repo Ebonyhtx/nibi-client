@@ -11,9 +11,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::ids::{RunId, SessionId};
-use rust_cli_kernel_api::model::{ModelError, ModelPort, ModelRequest, QuerySource};
-use rust_cli_model::{
+use nibi_kernel_api::ids::{RunId, SessionId};
+use nibi_kernel_api::model::{ModelError, ModelPort, ModelRequest, QuerySource};
+use nibi_kernel_model::{
     ByteIdle, ModelIoRecord, ModelIoSink, ProviderModel, RequestHeaders, StreamIdle,
 };
 use serde_json::{Value, json};

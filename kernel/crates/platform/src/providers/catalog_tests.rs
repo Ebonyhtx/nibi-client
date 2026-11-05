@@ -259,8 +259,8 @@ fn the_configured_model_is_the_raw_default_model_selection() {
 }
 
 /// 不带团队项目的选择（按 provider 与模型找模板）。
-fn sel(provider: &str, model: &str) -> rust_cli_kernel_api::model::ModelSelection {
-    rust_cli_kernel_api::model::ModelSelection {
+fn sel(provider: &str, model: &str) -> nibi_kernel_api::model::ModelSelection {
+    nibi_kernel_api::model::ModelSelection {
         provider: provider.to_owned(),
         model: model.to_owned(),
         reasoning: None,

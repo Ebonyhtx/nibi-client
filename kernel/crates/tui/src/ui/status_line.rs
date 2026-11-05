@@ -231,7 +231,7 @@ pub fn status(app: &App, width: usize, clock: &Clock) -> Vec<Line<'static>> {
 fn viewed(app: &App, width: usize, clock: &Clock) -> Vec<Line<'static>> {
     let Some(entry) = app
         .viewed_entry()
-        .filter(|entry| entry.status == rust_cli_kernel_api::panels::SubagentStatus::Running)
+        .filter(|entry| entry.status == nibi_kernel_api::panels::SubagentStatus::Running)
     else {
         return Vec::new();
     };

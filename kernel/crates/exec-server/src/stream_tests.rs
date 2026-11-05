@@ -4,12 +4,12 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::envelope::{Ack, Close, EventHeader, RequestHeader, StreamAck, StreamItem};
-use rust_cli_exec_wire::frame::Kind;
-use rust_cli_exec_wire::handshake::STREAM_WINDOW;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::env::{CommandEvent, OutputStream};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::envelope::{Ack, Close, EventHeader, RequestHeader, StreamAck, StreamItem};
+use nibi_kernel_exec_wire::frame::Kind;
+use nibi_kernel_exec_wire::handshake::STREAM_WINDOW;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::env::{CommandEvent, OutputStream};
 use tokio::sync::mpsc;
 
 use crate::test_support::{Client, TestMachine, connect, server};

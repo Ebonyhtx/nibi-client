@@ -17,15 +17,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, Weak};
 
 use base64::Engine;
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{GlobFiles, GrepMode, GrepOutcome, GrepSearch};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::session_api::Kernel;
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactStore};
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{GlobFiles, GrepMode, GrepOutcome, GrepSearch};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::session_api::Kernel;
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactStore};
+use nibi_kernel_api::workflow::{
     WorkflowAmend, WorkflowEngine, WorkflowEngineError, WorkflowRunStarted, WorkflowStart,
 };
 use serde_json::{Value, json};
@@ -126,12 +126,12 @@ struct ActorHandle {
     prompt: String,
     label: String,
     /// amend-resume 的转录种子（消费过导入的 actor 才带；建会话时兑现）。
-    seed: Option<rust_cli_kernel_api::workflow::WorkflowActorSeed>,
+    seed: Option<nibi_kernel_api::workflow::WorkflowActorSeed>,
     /// persona 的有效名（`agent("poet")` 的 `"poet"`）；匿名 actor 缺席。
     name: Option<String>,
     /// run 级的子代理选型（`amendWorkflowSettings` 的 `subagentModel` / `run-launched`）；
     /// 缺席 = 内核默认（父会话的默认选型）。
-    selection: Option<rust_cli_kernel_api::model::ModelSelection>,
+    selection: Option<nibi_kernel_api::model::ModelSelection>,
 }
 
 /// 一次 run 的宿主侧状态。
@@ -180,7 +180,7 @@ impl RunState {
 /// 最后一个，Node `model-catalog-port` 的同一读法），模型没有档位就不带。Rust 目录只列可用的
 /// 模型，Node 的 `disabled` 档在这里落成 `not_found`。
 pub(crate) fn resolve_model_reference(
-    catalog: &rust_cli_kernel_api::provider::ModelCatalog,
+    catalog: &nibi_kernel_api::provider::ModelCatalog,
     text: &str,
 ) -> Result<String, String> {
     let trimmed = text.trim();
@@ -189,7 +189,7 @@ pub(crate) fn resolve_model_reference(
         None => (trimmed, None),
     };
     let qualified = reference.split_once('/');
-    let mut matches: Vec<&rust_cli_kernel_api::provider::CatalogModel> = catalog
+    let mut matches: Vec<&nibi_kernel_api::provider::CatalogModel> = catalog
         .models
         .iter()
         .filter(|entry| match qualified {
@@ -287,7 +287,7 @@ struct EngineShared {
     database: PathBuf,
     /// 模型目录（脚本点名模型的解析，launch.md「Models the script names」）：sidecar 报名字，
     /// 这里对着本机目录解成规范串绑定表。
-    models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
+    models: Arc<dyn nibi_kernel_api::provider::ModelDirectory>,
     /// 用户面产物的落盘面（`artifact/publish`，`ArtifactPurpose::Deliverable`）：sidecar 读文件/
     /// 验形状，这里只负责写进会话的 artifact store 并回 `nibi-artifact://` 引用。
     artifacts: Arc<dyn ArtifactStore>,
@@ -308,7 +308,7 @@ impl SidecarEngine {
         ids: Arc<dyn Ids>,
         machine: MachineEnv,
         database: PathBuf,
-        models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
+        models: Arc<dyn nibi_kernel_api::provider::ModelDirectory>,
         artifacts: Arc<dyn ArtifactStore>,
     ) -> Self {
         Self {
@@ -358,7 +358,7 @@ impl SidecarEngine {
         if let Some(process) = slot.as_ref() {
             return Ok(process.clone());
         }
-        let mut command = rust_cli_proc::command(&self.shared.command.command);
+        let mut command = nibi_kernel_proc::command(&self.shared.command.command);
         command.args(&self.shared.command.args);
         command.envs(self.shared.command.env.iter().map(|(k, v)| (k, v)));
         command.stdin(Stdio::piped());
@@ -406,8 +406,8 @@ impl SidecarEngine {
     /// 世界读取：`glob` / `read` / `grep`（其余 op 明确拒绝，脚本可 catch）。
     async fn world_read(&self, run: &RunState, op: &str, args: &[Value]) -> Result<Value, String> {
         let workspace = WorkspaceRef {
-            environment: rust_cli_kernel_api::ids::EnvironmentId::new(
-                rust_cli_kernel_api::env_registry::LOCAL_MACHINE,
+            environment: nibi_kernel_api::ids::EnvironmentId::new(
+                nibi_kernel_api::env_registry::LOCAL_MACHINE,
             ),
             root: EnvPath::new(run.cwd.clone()),
         };
@@ -481,7 +481,7 @@ impl SidecarEngine {
                 };
                 for file in files {
                     for line in file.lines {
-                        if line.kind != rust_cli_kernel_api::env_files::GrepLineKind::Match {
+                        if line.kind != nibi_kernel_api::env_files::GrepLineKind::Match {
                             continue;
                         }
                         hits.push(json!({
@@ -689,7 +689,7 @@ where
                 let label = name.clone().unwrap_or_else(|| site.clone());
                 // 本 run 的子代理选型（规范串在 sidecar 侧已解析成结构化选择）。
                 let selection = serde_json::from_value::<
-                    rust_cli_kernel_api::model::ModelSelection,
+                    nibi_kernel_api::model::ModelSelection,
                 >(params["model"].clone())
                 .ok();
                 let child = SessionId::new(format!(
@@ -699,7 +699,7 @@ where
                 // 种子按 (sourceSessionId, messageCount) 透传——兑现是宿主的事（node-store 的
                 // 种子复制，建会话时幂等）。
                 let seed = if params["seed"].is_object() {
-                    Some(rust_cli_kernel_api::workflow::WorkflowActorSeed {
+                    Some(nibi_kernel_api::workflow::WorkflowActorSeed {
                         source_session_id: params["seed"]["sourceSessionId"]
                             .as_str()
                             .unwrap_or_default()
@@ -731,9 +731,9 @@ where
                     .as_ref()
                     .and_then(Weak::upgrade);
                 if let Some(kernel) = kernel {
-                    let fact = rust_cli_kernel_api::session_api::WorkflowLifecycleFact {
+                    let fact = nibi_kernel_api::session_api::WorkflowLifecycleFact {
                         run_id: run_id.to_owned(),
-                        phase: rust_cli_kernel_api::session_api::WorkflowLifecyclePhase::ActorSpawned,
+                        phase: nibi_kernel_api::session_api::WorkflowLifecyclePhase::ActorSpawned,
                         tool_call_id: run.tool_call_id.clone(),
                         agent_id: Some(format!("{site}@{ordinal}")),
                         child_session_id: Some(child.as_str().to_owned()),
@@ -914,7 +914,7 @@ where
                     if let Some(object) = payload.as_object_mut() {
                         object.remove("type");
                     }
-                    let progress = rust_cli_kernel_api::workflow::WorkflowRunProgress {
+                    let progress = nibi_kernel_api::workflow::WorkflowRunProgress {
                         run_id: params["runId"].as_str().unwrap_or_default().to_owned(),
                         tool_call_id: run.tool_call_id.clone(),
                         sequence: run.next_event_sequence(),
@@ -1105,10 +1105,10 @@ where
                                 })
                             })
                         };
-                        let fact = rust_cli_kernel_api::session_api::WorkflowLifecycleFact {
+                        let fact = nibi_kernel_api::session_api::WorkflowLifecycleFact {
                             run_id: run_id.to_owned(),
                             phase:
-                                rust_cli_kernel_api::session_api::WorkflowLifecyclePhase::RunSettled,
+                                nibi_kernel_api::session_api::WorkflowLifecyclePhase::RunSettled,
                             tool_call_id: run.tool_call_id.clone(),
                             agent_id: None,
                             child_session_id: None,
@@ -1260,8 +1260,8 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
         if cancel.is_cancelled() {
             break;
         }
-        let request = rust_cli_kernel_api::workflow::WorkflowActorRequest {
-            actor: rust_cli_kernel_api::workflow::WorkflowActorSpec {
+        let request = nibi_kernel_api::workflow::WorkflowActorRequest {
+            actor: nibi_kernel_api::workflow::WorkflowActorSpec {
                 parent: run.parent.as_str().to_owned(),
                 child: actor.child.as_str().to_owned(),
                 workspace: Some(run.cwd.clone()),
@@ -1423,7 +1423,7 @@ impl WorkflowEngine for SidecarEngine {
         }
         // 启动轮材料（中枢直接启动）：解析 saved 定义的引擎原样转交，宿主写启动轮。
         let launch_turn = if reply["name"].as_str().is_some() {
-            Some(rust_cli_kernel_api::workflow::WorkflowLaunchTurn {
+            Some(nibi_kernel_api::workflow::WorkflowLaunchTurn {
                 name: reply["name"].as_str().unwrap_or_default().to_owned(),
                 scope: reply["scope"].as_str().unwrap_or_default().to_owned(),
                 path: reply["path"].as_str().map(str::to_owned),
@@ -1533,7 +1533,7 @@ impl WorkflowEngine for SidecarEngine {
             for (key, value) in settings {
                 amend.insert(key.clone(), value.clone());
             }
-            rust_cli_kernel_api::workflow::WorkflowSettingsTurn {
+            nibi_kernel_api::workflow::WorkflowSettingsTurn {
                 name: reply["name"].as_str().map(str::to_owned),
                 amend: Value::Object(amend),
             }
@@ -1713,7 +1713,7 @@ impl WorkflowEngine for SidecarEngine {
     async fn fill_target(
         &self,
         run_id: &str,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowFillTarget, WorkflowEngineError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowFillTarget, WorkflowEngineError> {
         let process = self.ensure_process().map_err(|error| {
             WorkflowEngineError::with_message("start_failed", error)
         })?;
@@ -1733,7 +1733,7 @@ impl WorkflowEngine for SidecarEngine {
                 reply["message"].as_str().unwrap_or("the run could not be read"),
             ));
         }
-        Ok(rust_cli_kernel_api::workflow::WorkflowFillTarget {
+        Ok(nibi_kernel_api::workflow::WorkflowFillTarget {
             name: reply["name"].as_str().map(str::to_owned),
             draft_path: reply["draftPath"].as_str().map(str::to_owned),
             status: reply["status"].as_str().unwrap_or("running").to_owned(),
@@ -1743,7 +1743,7 @@ impl WorkflowEngine for SidecarEngine {
                 .map(|holes| {
                     holes
                         .iter()
-                        .map(|hole| rust_cli_kernel_api::workflow::WorkflowFillTargetHole {
+                        .map(|hole| nibi_kernel_api::workflow::WorkflowFillTargetHole {
                             site_id: hole["siteId"].as_str().unwrap_or_default().to_owned(),
                             name: hole["name"].as_str().unwrap_or_default().to_owned(),
                             hole_type: hole["type"].as_str().unwrap_or("unknown").to_owned(),
@@ -1762,7 +1762,7 @@ impl WorkflowEngine for SidecarEngine {
         run_id: &str,
         hole_id: &str,
         body: &str,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowFillOutcome, WorkflowEngineError> {
+    ) -> Result<nibi_kernel_api::workflow::WorkflowFillOutcome, WorkflowEngineError> {
         let process = self.ensure_process().map_err(|error| {
             WorkflowEngineError::with_message("start_failed", error)
         })?;
@@ -1780,7 +1780,7 @@ impl WorkflowEngine for SidecarEngine {
             .await
             .map_err(|error| WorkflowEngineError::with_message("start_failed", error))?;
         if reply["ok"].as_bool() == Some(true) {
-            return Ok(rust_cli_kernel_api::workflow::WorkflowFillOutcome::Filled {
+            return Ok(nibi_kernel_api::workflow::WorkflowFillOutcome::Filled {
                 phases_added: reply["phasesAdded"]
                     .as_array()
                     .map(|names| {
@@ -1794,7 +1794,7 @@ impl WorkflowEngine for SidecarEngine {
                 script_text: reply["scriptText"].as_str().unwrap_or_default().to_owned(),
             });
         }
-        Ok(rust_cli_kernel_api::workflow::WorkflowFillOutcome::Refused {
+        Ok(nibi_kernel_api::workflow::WorkflowFillOutcome::Refused {
             reason: reply["reason"].as_str().unwrap_or("hole_not_waiting").to_owned(),
             message: reply["message"].as_str().unwrap_or_default().to_owned(),
             diagnostics: reply["diagnostics"]
@@ -1803,7 +1803,7 @@ impl WorkflowEngine for SidecarEngine {
                     diagnostics
                         .iter()
                         .map(|diagnostic| {
-                            rust_cli_kernel_api::workflow::WorkflowFillDiagnostic {
+                            nibi_kernel_api::workflow::WorkflowFillDiagnostic {
                                 line: diagnostic["line"].as_u64().unwrap_or_default(),
                                 column: diagnostic["column"].as_u64().unwrap_or_default(),
                                 message: diagnostic["message"]

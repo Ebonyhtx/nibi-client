@@ -3,12 +3,12 @@
 use std::path::{Path, PathBuf};
 
 // 按段化简 `.` 与 `..`（纯词法）：唯一定义在 base（F58：以前这里、cli 的插件目录与 platform 各写一份）。
-use rust_cli_base::path::normalize;
+use nibi_kernel_base::path::normalize;
 
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{PathStyle, StatFile};
-use rust_cli_kernel_api::env_git::{gitdir_pointer, has_git_marker};
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{PathStyle, StatFile};
+use nibi_kernel_api::env_git::{gitdir_pointer, has_git_marker};
+use nibi_kernel_api::machine::Files;
 
 use super::key::Key;
 

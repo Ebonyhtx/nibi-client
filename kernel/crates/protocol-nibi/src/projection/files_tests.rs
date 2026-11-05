@@ -1,12 +1,12 @@
 //! 轮头的文件摘要与撤销入口（141 审计 §9 第 2 项余项）。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::file_changes::TurnFileSummary;
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId};
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::{FileChange, KernelEvent, SequencedEvent, SessionView, TurnOutcome};
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::file_changes::TurnFileSummary;
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::session_api::{FileChange, KernelEvent, SequencedEvent, SessionView, TurnOutcome};
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_api::testing::selection;
 use serde_json::Value;
 
 use super::super::state::Followup;

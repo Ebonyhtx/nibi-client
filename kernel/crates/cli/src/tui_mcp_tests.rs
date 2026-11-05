@@ -4,9 +4,9 @@
     reason = "测试准备与读取临时目录里的用户级配置"
 )]
 
-use rust_cli_kernel_api::env::{EnvFacts, ReadFile};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::env::{EnvFacts, ReadFile};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::testing::{MemoryEnvironment, SequentialIds};
 
 use super::*;
 

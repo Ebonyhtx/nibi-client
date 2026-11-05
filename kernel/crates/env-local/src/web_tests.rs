@@ -1,7 +1,7 @@
 //! WebFetch 出口：经本地 HTTP 夹具核对一次 GET 的状态、header 与正文，重定向不跟随，正文超限报错。
 
-use rust_cli_kernel_api::env_web::FetchUrl;
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_api::env_web::FetchUrl;
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 

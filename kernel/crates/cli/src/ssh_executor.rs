@@ -10,17 +10,17 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use rust_cli_env_local::{LocalEnvironment, LocalMcpTransport};
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, Reconnect};
-use rust_cli_exec_transport::{Connector, LinkError, Provisioned, Provisioner};
-use rust_cli_exec_wire::handshake::PROTOCOL;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, LocalRegistry};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_machines::{Endpoint, Machine};
-use rust_cli_paths::{ExecutorPaths, StorageSettings};
-use rust_cli_ssh_connect::{
+use nibi_kernel_env_local::{LocalEnvironment, LocalMcpTransport};
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, Reconnect};
+use nibi_kernel_exec_transport::{Connector, LinkError, Provisioned, Provisioner};
+use nibi_kernel_exec_wire::handshake::PROTOCOL;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, LocalRegistry};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_machines::{Endpoint, Machine};
+use nibi_kernel_paths::{ExecutorPaths, StorageSettings};
+use nibi_kernel_ssh_connect::{
     ArtifactSource, Platform, SshConnector, SshProvisioner, SshTarget, Wanted,
 };
 
@@ -91,7 +91,7 @@ pub(super) async fn environments(
         (ssh.config.as_deref(), ssh.artifact.as_deref()),
         None,
     );
-    let instance = format!("{:016x}", rust_cli_base::random::u64());
+    let instance = format!("{:016x}", nibi_kernel_base::random::u64());
     let mut options = ClientOptions::new(super::VERSION, instance);
     options.reconnect = RECONNECT;
     let machine = Arc::new(Machine::new(endpoint, options));

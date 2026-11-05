@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 
@@ -146,16 +146,16 @@ async fn mode_without_arguments_opens_a_picker() {
 struct LeveledDirectory;
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::provider::ModelDirectory for LeveledDirectory {
-    async fn catalog(&self) -> rust_cli_kernel_api::provider::ModelCatalog {
-        rust_cli_kernel_api::provider::ModelCatalog {
+impl nibi_kernel_api::provider::ModelDirectory for LeveledDirectory {
+    async fn catalog(&self) -> nibi_kernel_api::provider::ModelCatalog {
+        nibi_kernel_api::provider::ModelCatalog {
             revision: 1,
-            models: vec![rust_cli_kernel_api::provider::CatalogModel {
+            models: vec![nibi_kernel_api::provider::CatalogModel {
                 capabilities: Default::default(),
                 provider: "fixture".into(),
                 provider_name: "Fixture".into(),
                 model: "scripted".into(),
-                protocol: rust_cli_kernel_api::provider::WireProtocol::AnthropicMessages,
+                protocol: nibi_kernel_api::provider::WireProtocol::AnthropicMessages,
                 reasoning_levels: vec!["low".into(), "high".into()],
                 context_window: 200_000,
                 max_output_tokens: 32_000,
@@ -303,12 +303,12 @@ async fn clear_with_a_name_renames_the_old_session() {
         ui.wait_for("Started a new session.").await;
         // 改名的回执不提示：等它落库后再结束（脚本结束时事件循环退出，在途的回执会被丢掉）。
         let id = seen.lock().unwrap().clone().unwrap_or_default();
-        let id = rust_cli_kernel_api::ids::SessionId::new(id);
+        let id = nibi_kernel_api::ids::SessionId::new(id);
         for _ in 0..200 {
             let renamed = facts_of
                 .facts(&id)
                 .iter()
-                .any(|fact| matches!(fact, rust_cli_kernel_api::store::Fact::TitleChanged { .. }));
+                .any(|fact| matches!(fact, nibi_kernel_api::store::Fact::TitleChanged { .. }));
             if renamed {
                 break;
             }
@@ -318,11 +318,11 @@ async fn clear_with_a_name_renames_the_old_session() {
     .await;
     let old = old.lock().unwrap().clone().expect("the session id");
     // 被离开的会话改名（tui-display.md §4.6）。
-    let facts = store.facts(&rust_cli_kernel_api::ids::SessionId::new(old));
+    let facts = store.facts(&nibi_kernel_api::ids::SessionId::new(old));
     assert!(
         facts.iter().any(|fact| matches!(
             fact,
-            rust_cli_kernel_api::store::Fact::TitleChanged { title } if title == "first try"
+            nibi_kernel_api::store::Fact::TitleChanged { title } if title == "first try"
         )),
         "{facts:#?}"
     );
@@ -353,14 +353,14 @@ async fn plan_with_a_description_enters_plan_mode_and_sends_it() {
 #[derive(Default)]
 struct Saved {
     themes: Mutex<Vec<&'static str>>,
-    models: Mutex<Vec<rust_cli_kernel_api::model::ModelSelection>>,
+    models: Mutex<Vec<nibi_kernel_api::model::ModelSelection>>,
     fail: bool,
 }
 
-impl rust_cli_tui::Preferences for Saved {
+impl nibi_kernel_tui::Preferences for Saved {
     fn save_theme(
         &self,
-        theme: rust_cli_tui::UiTheme,
+        theme: nibi_kernel_tui::UiTheme,
     ) -> futures_util::future::BoxFuture<'static, Result<String, String>> {
         self.themes.lock().unwrap().push(theme.as_str());
         let result = if self.fail {
@@ -373,7 +373,7 @@ impl rust_cli_tui::Preferences for Saved {
 
     fn save_default_model(
         &self,
-        selection: rust_cli_kernel_api::model::ModelSelection,
+        selection: nibi_kernel_api::model::ModelSelection,
     ) -> futures_util::future::BoxFuture<'static, Result<String, String>> {
         self.models.lock().unwrap().push(selection);
         let result = if self.fail {
@@ -385,7 +385,7 @@ impl rust_cli_tui::Preferences for Saved {
     }
 }
 
-fn with_preferences(saved: &Arc<Saved>, theme: Option<rust_cli_tui::UiTheme>) -> Setup {
+fn with_preferences(saved: &Arc<Saved>, theme: Option<nibi_kernel_tui::UiTheme>) -> Setup {
     let mut setup = Setup::default();
     setup.services.preferences = Some(saved.clone());
     setup.services.theme = theme;
@@ -424,7 +424,7 @@ async fn a_failed_theme_write_keeps_the_theme_and_the_configured_theme_is_curren
         fail: true,
         ..Saved::default()
     });
-    let setup = with_preferences(&saved, Some(rust_cli_tui::UiTheme::Dark));
+    let setup = with_preferences(&saved, Some(nibi_kernel_tui::UiTheme::Dark));
     with_ui(model, setup, |mut ui| async move {
         ui.wait_for("Ask before changes").await;
         ui.submit("/theme");

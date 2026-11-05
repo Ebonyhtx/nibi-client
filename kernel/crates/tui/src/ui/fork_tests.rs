@@ -1,8 +1,8 @@
 //! `/fork` 的选择器（session-lifecycle.md §6.5.3）：每条一行、带序号、焦点在最新的一条；选中即分叉。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::keyboard::Typing;

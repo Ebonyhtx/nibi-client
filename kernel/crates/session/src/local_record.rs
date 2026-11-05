@@ -3,12 +3,12 @@
 //!
 //! 时机（§11.3）：空闲时马上提交一批；回合或压缩在跑时留在这里，这次工作收尾、开下一个回合之前提交（`start_next`）。
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::{Ack, KernelEvent};
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::user_command::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::session_api::{Ack, KernelEvent};
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::user_command::{
     LOCAL_COMMAND_CAVEAT_SOURCE, LOCAL_COMMAND_INPUT_SOURCE, LOCAL_COMMAND_META_SOURCE,
     LOCAL_COMMAND_OUTPUT_SOURCE, LocalCommandRecord,
 };

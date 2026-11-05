@@ -5,13 +5,13 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::testing::UnusedEnvironment;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::testing::UnusedEnvironment;
 use serde_json::json;
 use tokio::sync::watch;
 
@@ -47,7 +47,7 @@ impl EnvironmentRegistry for Machines {
     fn local_machine(&self) -> MachineEnv {
         MachineEnv::new(
             Arc::new(UnusedEnvironment),
-            Arc::new(rust_cli_kernel_api::mcp::NoMcpTransport),
+            Arc::new(nibi_kernel_api::mcp::NoMcpTransport),
         )
     }
 
@@ -167,7 +167,7 @@ async fn a_server_bound_to_a_machine_that_is_not_connected_fails() {
             "browser-b".to_owned(),
             McpStatus::Failed {
                 reason: "Machine \"gpu-1\" is not connected.".to_owned(),
-                kind: rust_cli_kernel_api::mcp_status::McpFailureKind::RuntimeUnavailable,
+                kind: nibi_kernel_api::mcp_status::McpFailureKind::RuntimeUnavailable,
             }
         )]
     );
@@ -227,7 +227,7 @@ impl EnvironmentRegistry for Arriving {
     fn local_machine(&self) -> MachineEnv {
         MachineEnv::new(
             Arc::new(UnusedEnvironment),
-            Arc::new(rust_cli_kernel_api::mcp::NoMcpTransport),
+            Arc::new(nibi_kernel_api::mcp::NoMcpTransport),
         )
     }
 
@@ -235,8 +235,8 @@ impl EnvironmentRegistry for Arriving {
         LocalServices::new(Arc::new(UnusedEnvironment))
     }
 
-    fn machines(&self) -> rust_cli_kernel_api::env_registry::MachineSet {
-        use rust_cli_kernel_api::env_registry::{MachineFacts, MachineSet, RemoteMachine};
+    fn machines(&self) -> nibi_kernel_api::env_registry::MachineSet {
+        use nibi_kernel_api::env_registry::{MachineFacts, MachineSet, RemoteMachine};
         let here = *self.here.borrow();
         MachineSet {
             version: u64::from(here),
@@ -249,7 +249,7 @@ impl EnvironmentRegistry for Arriving {
                         arch: "aarch64".to_owned(),
                         shell: "/bin/bash".to_owned(),
                         home: None,
-                        path_style: rust_cli_kernel_api::env_files::PathStyle::Posix,
+                        path_style: nibi_kernel_api::env_files::PathStyle::Posix,
                     },
                 })
                 .into_iter()
@@ -307,7 +307,7 @@ async fn a_failed_bound_server_reconnects_when_its_machine_arrives() {
     manager.wait_ready().await;
     let failed = |machine: &str| McpStatus::Failed {
         reason: format!("Machine \"{machine}\" is not connected."),
-        kind: rust_cli_kernel_api::mcp_status::McpFailureKind::RuntimeUnavailable,
+        kind: nibi_kernel_api::mcp_status::McpFailureKind::RuntimeUnavailable,
     };
     assert_eq!(
         manager.status(),

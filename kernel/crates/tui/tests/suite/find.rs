@@ -3,9 +3,9 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::message::{ContentBlock, StopReason};
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::message::{ContentBlock, StopReason};
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use serde_json::json;
 
 use super::support::{GatedModel, Item, Setup, Ui, finish, with_ui};

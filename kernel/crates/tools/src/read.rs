@@ -5,12 +5,12 @@
 //! （不缩放）。PDF 与 `pages` 见 [`crate::read_pdf`]（tools-files.md §1.5）。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvError, EnvPath, ReadFile};
-use rust_cli_kernel_api::env_files::{ReadText, TextRead};
-use rust_cli_kernel_api::env_path;
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-use rust_cli_kernel_api::message::{ImageSource, ToolResultContent};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::{EnvError, EnvPath, ReadFile};
+use nibi_kernel_api::env_files::{ReadText, TextRead};
+use nibi_kernel_api::env_path;
+use nibi_kernel_api::ids::{ArtifactId, SessionId};
+use nibi_kernel_api::message::{ImageSource, ToolResultContent};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;
@@ -144,7 +144,7 @@ impl ReadTool {
             })
         })?;
         let cells = notebook::cells(&parsed);
-        let content = rust_cli_base::js::json::stringify(&Value::Array(cells.clone()));
+        let content = nibi_kernel_base::js::json::stringify(&Value::Array(cells.clone()));
         if content.len() as u64 > MAX_BYTES {
             return Err(failed(format!(
                 "Notebook content ({}) exceeds maximum allowed size ({}). Use Bash with jq to read specific portions:\n  cat <notebook_path> | jq '.cells[:20]' # First 20 cells\n  cat <notebook_path> | jq '.cells[100:120]' # Cells 100-120\n  cat <notebook_path> | jq '.cells | length' # Count total cells\n  cat <notebook_path> | jq '.cells[] | select(.cell_type==\"code\") | .source' # All code sources",

@@ -15,8 +15,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::agents::{AgentNotice, AgentSignal};
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::agents::{AgentNotice, AgentSignal};
+use nibi_kernel_api::ids::{AgentId, SessionId};
 use serde_json::Value;
 use tokio::sync::watch;
 

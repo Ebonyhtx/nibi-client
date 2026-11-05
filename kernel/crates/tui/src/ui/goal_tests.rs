@@ -1,5 +1,5 @@
 //! `/goal` 面板与 `goal_status` 行（goal.md §6）：三种面板、三种行、中英文。
-use rust_cli_kernel_api::goal::{ActiveGoal, GoalStatus, GoalView};
+use nibi_kernel_api::goal::{ActiveGoal, GoalStatus, GoalView};
 
 use super::*;
 use crate::ui::i18n::{EN, ZH};

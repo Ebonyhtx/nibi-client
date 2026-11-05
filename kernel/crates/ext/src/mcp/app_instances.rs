@@ -15,7 +15,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::mcp_ui::{
     McpAppConnection, McpAppInstance, McpUiError, McpUiInstanceRequest, McpUiOpenRequest,
 };
 use sha2::{Digest, Sha256};
@@ -144,7 +144,7 @@ impl McpAppInstances {
         let lease = McpAppInstance {
             runtime_id: self.runtime_id.clone(),
             generation,
-            token: rust_cli_kernel_api::process_table::uuid_v4(),
+            token: nibi_kernel_api::process_table::uuid_v4(),
             app_identity: app_identity(&binding, &source),
         };
         lock(&self.records).insert(

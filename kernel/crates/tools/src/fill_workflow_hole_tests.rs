@@ -6,7 +6,7 @@ use super::{
     compile_failure_text, describe_workflow_script_path, refusal_text, waiting_check,
     workflow_draft_slug,
 };
-use rust_cli_kernel_api::workflow::{WorkflowFillDiagnostic, WorkflowFillTarget, WorkflowFillTargetHole};
+use nibi_kernel_api::workflow::{WorkflowFillDiagnostic, WorkflowFillTarget, WorkflowFillTargetHole};
 
 #[test]
 fn slug_follows_the_node_rule() {

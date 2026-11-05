@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
 use serde_json::json;
 
 use super::*;
@@ -82,8 +82,8 @@ fn collaboration_mode_reuses_the_send_text_mapping() {
 
 #[test]
 fn retry_target_resolves_the_latest_turn_and_rejects_history() {
-    use rust_cli_kernel_api::ids::MessageId;
-    use rust_cli_kernel_api::message::{
+    use nibi_kernel_api::ids::MessageId;
+    use nibi_kernel_api::message::{
         AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin,
     };
 
@@ -132,7 +132,7 @@ fn retry_target_resolves_the_latest_turn_and_rejects_history() {
     );
 
     // 空会话。
-    let empty: Vec<rust_cli_kernel_api::message::Message> = vec![];
+    let empty: Vec<nibi_kernel_api::message::Message> = vec![];
     assert!(retry_target(&empty).is_err());
 
     // assistant 前没有 user 输入。
@@ -152,8 +152,8 @@ fn retry_target_resolves_the_latest_turn_and_rejects_history() {
 
 #[test]
 fn edit_target_guard_only_accepts_the_latest_real_query() {
-    use rust_cli_kernel_api::ids::MessageId;
-    use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+    use nibi_kernel_api::ids::MessageId;
+    use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 
     fn human(id: &str, text: &str) -> Message {
         Message::User(UserMessage {
@@ -165,7 +165,7 @@ fn edit_target_guard_only_accepts_the_latest_real_query() {
         })
     }
     fn assistant(id: &str) -> Message {
-        Message::Assistant(rust_cli_kernel_api::message::AssistantMessage {
+        Message::Assistant(nibi_kernel_api::message::AssistantMessage {
             id: MessageId::new(id),
             content: vec![],
             model: String::new(),
@@ -190,8 +190,8 @@ fn edit_target_guard_only_accepts_the_latest_real_query() {
 
 #[test]
 fn session_mcp_servers_maps_stdio_http_and_sse() {
-    use rust_cli_kernel_api::mcp::McpTransportConfig;
-    use rust_cli_kernel_api::mcp_session::McpIsolation;
+    use nibi_kernel_api::mcp::McpTransportConfig;
+    use nibi_kernel_api::mcp_session::McpIsolation;
 
     let servers = session_mcp_servers(&json!({
         "mcpServers": [

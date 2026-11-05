@@ -5,17 +5,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{AgentId, EnvironmentId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{AgentId, EnvironmentId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, CompactBoundary, CompactTrigger, ContentBlock, Message,
     SystemMessage, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{ContextBuilder, ContextRequest, OrchestrationError};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{ContextBuilder, ContextRequest, OrchestrationError};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 use serde_json::{Value, json};
 
 use super::*;
@@ -243,10 +243,10 @@ async fn the_first_step_announces_after_the_skill_listing_and_before_total_token
     assert_eq!(order[at - 1], "skill_listing", "{order:?}");
     assert_eq!(order[at + 1], "total_tokens_reminder", "{order:?}");
     let announced = &built.attachments[at];
-    assert_eq!(announced.text, rust_cli_prompts::reminder::wrap(STEER));
+    assert_eq!(announced.text, nibi_kernel_prompts::reminder::wrap(STEER));
     assert_eq!(
         announced.role(),
-        rust_cli_kernel_api::message::AttachmentRole::System
+        nibi_kernel_api::message::AttachmentRole::System
     );
     // 默认模式没有这一条。
     let plain = assembler

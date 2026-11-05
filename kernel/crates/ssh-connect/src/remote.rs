@@ -34,7 +34,7 @@ pub(crate) async fn run(
     limit: Option<Duration>,
 ) -> Result<Output, String> {
     let args = target.args(remote_command)?;
-    let mut command = rust_cli_proc::command(&target.program);
+    let mut command = nibi_kernel_proc::command(&target.program);
     command
         .args(&args)
         .env_clear()
@@ -51,7 +51,7 @@ pub(crate) async fn run(
     else {
         return Err("ssh pipes are missing".to_owned());
     };
-    let feed = rust_cli_base::owned(async move {
+    let feed = nibi_kernel_base::owned(async move {
         let copied = tokio::io::copy(&mut input, &mut stdin).await;
         let _ = stdin.shutdown().await;
         copied.map(|_| ()).map_err(|error| error.to_string())

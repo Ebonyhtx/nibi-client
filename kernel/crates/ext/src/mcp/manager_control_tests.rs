@@ -1,9 +1,9 @@
 //! `/mcp reconnect|enable|disable`（tui-manage.md §6.1）：重连换新连接，停用停掉任务，启用重新连上。
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::manage::{McpAction, McpServerState};
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::manage::{McpAction, McpServerState};
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::json;
 
 use super::super::McpSettings;

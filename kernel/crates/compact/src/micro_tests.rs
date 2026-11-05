@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
 use serde_json::json;

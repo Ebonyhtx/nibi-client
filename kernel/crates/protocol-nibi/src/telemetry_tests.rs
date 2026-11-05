@@ -4,9 +4,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::process_metrics::{ProcessMetrics, ProcessUsage};
-use rust_cli_protocol_core::connection::{self, Options};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::process_metrics::{ProcessMetrics, ProcessUsage};
+use nibi_kernel_protocol_core::connection::{self, Options};
 use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -53,7 +53,7 @@ impl ProcessMetrics for Advancing {
 /// 固定时钟（`Context` 只要 `now_ms` 与 `time_zone`）。
 struct TestClock;
 
-impl rust_cli_kernel_api::clock::Clock for TestClock {
+impl nibi_kernel_api::clock::Clock for TestClock {
     fn now_ms(&self) -> u64 {
         1_760_000_000_000
     }
@@ -65,7 +65,7 @@ impl rust_cli_kernel_api::clock::Clock for TestClock {
 
 /// 起一个假的 Host：写者那头读回来的帧。
 fn channel() -> (
-    rust_cli_protocol_core::connection::Peer,
+    nibi_kernel_protocol_core::connection::Peer,
     tokio::io::DuplexStream,
     TaskScope,
 ) {
@@ -198,12 +198,12 @@ async fn tool_exec_facts_become_notifications() {
     let context = Arc::new(Context::new(peer, Arc::new(TestClock)));
     let (sender, channel) = ToolExecChannel::channel();
     std::mem::drop(channel.forward(context, &scope.spawner()));
-    let fact = rust_cli_kernel_api::process_table::ToolExecResource {
+    let fact = nibi_kernel_api::process_table::ToolExecResource {
         completion_token: Some("00000000-0000-4000-a000-000000000000".to_owned()),
         platform: "linux".to_owned(),
         tool_name: "bash".to_owned(),
         duration_ms: 30_000,
-        exit_kind: rust_cli_kernel_api::process_table::ToolExitKind::Completed,
+        exit_kind: nibi_kernel_api::process_table::ToolExitKind::Completed,
         tree_rss_kb_peak: Some(2_048),
         tree_cpu_time_ms: Some(1_500),
         sample_count: 2,
@@ -235,9 +235,9 @@ async fn mcp_resource_samples_are_sent_to_the_host() {
     use std::collections::BTreeMap;
 
     use async_trait::async_trait;
-    use rust_cli_kernel_api::process_table::{McpResourceTarget, ProcessSample, ProcessSampler};
-    use rust_cli_kernel_api::session_api::{Kernel, KernelError, SessionHandle};
-    use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
+    use nibi_kernel_api::process_table::{McpResourceTarget, ProcessSample, ProcessSampler};
+    use nibi_kernel_api::session_api::{Kernel, KernelError, SessionHandle};
+    use nibi_kernel_api::store::{SessionFilter, SessionSummary};
 
     struct FakeKernel;
 
@@ -245,8 +245,8 @@ async fn mcp_resource_samples_are_sent_to_the_host() {
     impl Kernel for FakeKernel {
         async fn create_session(
             &self,
-            _request: rust_cli_kernel_api::session_api::CreateSession,
-        ) -> Result<rust_cli_kernel_api::ids::SessionId, KernelError> {
+            _request: nibi_kernel_api::session_api::CreateSession,
+        ) -> Result<nibi_kernel_api::ids::SessionId, KernelError> {
             Err(KernelError::Unsupported {
                 what: "session creation".to_owned(),
             })
@@ -261,7 +261,7 @@ async fn mcp_resource_samples_are_sent_to_the_host() {
 
         async fn open_session(
             &self,
-            _session: &rust_cli_kernel_api::ids::SessionId,
+            _session: &nibi_kernel_api::ids::SessionId,
         ) -> Result<Arc<dyn SessionHandle>, KernelError> {
             Err(KernelError::Unsupported {
                 what: "sessions".to_owned(),

@@ -7,9 +7,9 @@
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::session_api::{SequencedEvent, SessionView};
-use rust_cli_protocol_core::delivery::TopicLog;
-use rust_cli_protocol_core::sessions::SessionSink;
+use nibi_kernel_api::session_api::{SequencedEvent, SessionView};
+use nibi_kernel_protocol_core::delivery::TopicLog;
+use nibi_kernel_protocol_core::sessions::SessionSink;
 use serde_json::{Map, Value, json};
 
 use crate::context::Context;
@@ -141,7 +141,7 @@ impl Live {
     }
 
     /// 用户拒绝了这个工具调用：之后它的结果投成 cancelled（与 Node 相同）。
-    pub fn deny(&self, tool_use: &rust_cli_kernel_api::ids::ToolUseId) {
+    pub fn deny(&self, tool_use: &nibi_kernel_api::ids::ToolUseId) {
         self.state().projection.deny(tool_use.as_str());
     }
 
@@ -387,7 +387,7 @@ impl Live {
     /// `FileChanges` 事件。读不出 artifact 的回合由会话侧跳过，这里拿到的就是可用的那些。
     pub async fn set_file_summaries(
         &self,
-        summaries: &[rust_cli_kernel_api::file_changes::TurnFileSummary],
+        summaries: &[nibi_kernel_api::file_changes::TurnFileSummary],
     ) {
         let outgoing = {
             let mut state = self.state();
@@ -409,7 +409,7 @@ impl Live {
     /// 投影还没有 run 时写入头字段并发一条整键 `state.updated`，首帧快照同时带上它。
     pub async fn seed_workflow_runs(
         &self,
-        rows: &[rust_cli_kernel_api::workflow::WorkflowRunSummaryRow],
+        rows: &[nibi_kernel_api::workflow::WorkflowRunSummaryRow],
     ) {
         let outgoing = {
             let mut state = self.state();

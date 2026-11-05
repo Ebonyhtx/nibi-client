@@ -4,8 +4,8 @@
 //! Edit 分支：按 Edit 的 schema 解析，成功时重建成 `{replace_all, file_path, old_string, new_string}`。
 //! 其余工具不写回（例如 ToolSearch 的 `max_results`）。
 
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::orchestration::ToolRegistry;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::orchestration::ToolRegistry;
 use serde_json::{Value, json};
 
 /// Edit schema 的全部键（严格对象，`additionalProperties: false`）。

@@ -1,7 +1,7 @@
 //! 复合结构拆开逐段套规则（shell-permissions.md §4.5.4，工作线 F76）：后台 `&`、子 shell、if / while / for、`!`、
 //! `[[ … ]]`，以及拆不开的写法的理由。只有一段不放行而且它是询问时整条按它询问。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use super::*;
 use crate::test_support::{message, run};

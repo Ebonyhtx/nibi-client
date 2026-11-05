@@ -4,11 +4,11 @@
 //! 不改的：能力位缺失（`Unsupported`，`stat_many`、`mcp.declare` 的回退靠它）、执行器自己的错误（env-local 原样的
 //! `not found` 等，与本机相同）、协议错误。
 
-use rust_cli_exec_client::ClientError;
-use rust_cli_exec_wire::envelope::WireError;
-use rust_cli_exec_wire::op::Op;
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_prompts::texts;
+use nibi_kernel_exec_client::ClientError;
+use nibi_kernel_exec_wire::envelope::WireError;
+use nibi_kernel_exec_wire::op::Op;
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_prompts::texts;
 
 fn io(message: String) -> EnvError {
     EnvError::Io { message }
@@ -34,7 +34,7 @@ fn render(template: &str, machine: &str, op: Op, reason: &str) -> String {
         template,
         &[
             ("machine", machine),
-            ("action", rust_cli_prompts::remote::action(op.as_str())),
+            ("action", nibi_kernel_prompts::remote::action(op.as_str())),
             ("reason", reason),
         ],
     )

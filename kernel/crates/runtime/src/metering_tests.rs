@@ -1,13 +1,13 @@
 //! `/usage` 的查询经内核到存储（docs/specs/rust-cli/usage.md §4、§5）。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, OwnerEpoch, SessionId};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::session_api::{CreateSession, Kernel, KernelError};
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, OwnerEpoch, SessionId};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::session_api::{CreateSession, Kernel, KernelError};
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore};
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
     selection,
 };
@@ -99,7 +99,7 @@ async fn api_duration_comes_from_the_stored_calls() {
 
 #[tokio::test]
 async fn activity_asks_the_store_with_the_clock_day() {
-    use rust_cli_kernel_api::metering::{ActivityRange, ActivityStats};
+    use nibi_kernel_api::metering::{ActivityRange, ActivityStats};
     let store = Arc::new(MemoryStore::default());
     store.set_activity(
         ActivityRange::Week,
@@ -123,7 +123,7 @@ async fn activity_asks_the_store_with_the_clock_day() {
 /// 输入含缓存读写；最近一个是最后提交的）。
 #[tokio::test]
 async fn request_stats_come_from_the_stored_calls() {
-    use rust_cli_kernel_api::message::Usage;
+    use nibi_kernel_api::message::Usage;
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(store.clone());
     let session = kernel
@@ -187,9 +187,9 @@ async fn request_stats_come_from_the_stored_calls() {
 /// （子代理的行只写在子会话）；同一个子会话里的旁路请求与失败的请求照旧不算。修前只认主回合，子会话没有值。
 #[tokio::test]
 async fn a_child_session_counts_its_subagent_requests() {
-    use rust_cli_kernel_api::ids::TraceId;
-    use rust_cli_kernel_api::message::Usage;
-    use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
+    use nibi_kernel_api::ids::TraceId;
+    use nibi_kernel_api::message::Usage;
+    use nibi_kernel_api::store::{SessionKind, SessionMeta};
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(store.clone());
     let child = SessionId::new("sess_subagent_agent_1");

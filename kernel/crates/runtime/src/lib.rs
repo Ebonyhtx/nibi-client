@@ -33,35 +33,35 @@ use std::sync::Arc;
 use std::sync::{Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_agents::{AgentCatalog, Agents, AgentsConfig, AgentsPorts, MemoryTaskLists};
-use rust_cli_base::TaskScope;
-use rust_cli_compact::{CompactPorts, Compaction, DenyTools, Disabled};
-use rust_cli_context::{ContextPorts, PromptAssembler};
-use rust_cli_ext::{Ext, ExtPorts};
-use rust_cli_hooks::{HookEngine, HookPorts};
-use rust_cli_kernel_api::agents::{AgentSignals, TaskListStore};
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::{Generation, OwnerEpoch, SessionId, ToolUseId, TraceId};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::model::{ModelPort, ModelSelection};
-use rust_cli_kernel_api::orchestration::{Compactor, QueryRunner};
-use rust_cli_kernel_api::peers::ModeClass;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_agents::{AgentCatalog, Agents, AgentsConfig, AgentsPorts, MemoryTaskLists};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_compact::{CompactPorts, Compaction, DenyTools, Disabled};
+use nibi_kernel_context::{ContextPorts, PromptAssembler};
+use nibi_kernel_ext::{Ext, ExtPorts};
+use nibi_kernel_hooks::{HookEngine, HookPorts};
+use nibi_kernel_api::agents::{AgentSignals, TaskListStore};
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::{Generation, OwnerEpoch, SessionId, ToolUseId, TraceId};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::model::{ModelPort, ModelSelection};
+use nibi_kernel_api::orchestration::{Compactor, QueryRunner};
+use nibi_kernel_api::peers::ModeClass;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     CreateSession, DynamicWorkflowGate, Kernel, KernelError, SessionHandle, StartSource,
 };
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::store::{
     ArtifactStore, Fact, FactBatch, SessionFilter, SessionKind, SessionMeta, SessionStore,
     SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::tool::{ReadFileStates, ToolOutput, ToolUseContext};
-use rust_cli_policy::PolicyGate;
-use rust_cli_query::{QueryLoop, QueryParts};
-use rust_cli_session::{Opened, Session, SessionState};
-use rust_cli_tools::Pipeline;
+use nibi_kernel_api::tool::{ReadFileStates, ToolOutput, ToolUseContext};
+use nibi_kernel_policy::PolicyGate;
+use nibi_kernel_query::{QueryLoop, QueryParts};
+use nibi_kernel_session::{Opened, Session, SessionState};
+use nibi_kernel_tools::Pipeline;
 use table::{Closer, OpenSessions};
 
 pub use ext::{ExtConfig, Extensions, PluginSnapshotLoader};
@@ -69,13 +69,13 @@ pub use permissions::{
     bash_rule_label, bash_rule_seed, format_rule as format_permission_rule,
     parse_rule as parse_permission_rule,
 };
-pub use rust_cli_compact::{CompactConfig, Thresholds as CompactThresholds};
-pub use rust_cli_context::{Attribution, ContextConfig, OutputStyle, Surface};
+pub use nibi_kernel_compact::{CompactConfig, Thresholds as CompactThresholds};
+pub use nibi_kernel_context::{Attribution, ContextConfig, OutputStyle, Surface};
 // hooks 快照（`LocalKernel::replace_hooks` 的参数）：前端的测试组装它不必依赖 hooks crate（修复线 F37 的 TUI 测试）。
-pub use rust_cli_hooks::{HookSource, HooksConfig, HooksSettings};
-pub use rust_cli_query::{RequestLimits, ThinkingTokens};
-pub use rust_cli_session::{PeerDeps, TitleModel};
-pub use rust_cli_tools::BashTimeouts;
+pub use nibi_kernel_hooks::{HookSource, HooksConfig, HooksSettings};
+pub use nibi_kernel_query::{RequestLimits, ThinkingTokens};
+pub use nibi_kernel_session::{PeerDeps, TitleModel};
+pub use nibi_kernel_tools::BashTimeouts;
 
 /// 内核需要的全部端口。
 #[derive(Clone)]
@@ -130,7 +130,7 @@ struct SubagentPlugins {
     hooks: Arc<HookEngine>,
 }
 
-impl rust_cli_agents::SubagentPluginInheritance for SubagentPlugins {
+impl nibi_kernel_agents::SubagentPluginInheritance for SubagentPlugins {
     fn inherit(&self, parent: &SessionId, child: &SessionId) {
         self.ext
             .copy_session_skill_roots(parent, child.clone());
@@ -148,13 +148,13 @@ pub struct LocalKernel {
     defaults: Defaults,
     runner: Arc<dyn QueryRunner>,
     /// 工具执行管线（与主循环同一个实例）：回合外授权（MCP Apps 的页面调用）经它跑校验、hooks 与权限。
-    executor: Arc<dyn rust_cli_kernel_api::orchestration::ToolExecutor>,
+    executor: Arc<dyn nibi_kernel_api::orchestration::ToolExecutor>,
     /// 子代理的信号来源（后台子代理的通知、任务清单变化），交给每个会话 actor。
     agents: Arc<dyn AgentSignals>,
     /// 同一个 `Agents` 实例（DWF 的 actor 轮经它跑；信号与工具注册表都是这一份）。
-    actors: Arc<rust_cli_agents::Agents>,
+    actors: Arc<nibi_kernel_agents::Agents>,
     /// 定时任务的唤醒与到期任务（tools-more.md §10.4）；`-p` 不触发，是 `NoCron`。
-    cron: Arc<dyn rust_cli_kernel_api::cron::CronSignals>,
+    cron: Arc<dyn nibi_kernel_api::cron::CronSignals>,
     compactor: Arc<dyn Compactor>,
     gate: Arc<PolicyGate>,
     /// skill、MCP 与插件（docs/specs/rust-cli/ext.md）。
@@ -170,7 +170,7 @@ pub struct LocalKernel {
     /// `/context` 的分析（context-usage.md），与主循环共用同一批实例。
     usage: Arc<usage::UsageAnalyzer>,
     /// 用户输入的 `@` 提及与 bash 模式（tui-input.md §1.1、§2.2）：基础注册表里的 Read 与 Bash。
-    inputs: Arc<dyn rust_cli_kernel_api::user_input::UserInputs>,
+    inputs: Arc<dyn nibi_kernel_api::user_input::UserInputs>,
     generation: Generation,
     scope: TaskScope,
     /// 会话表（session-lifecycle.md §3.3.1）：每个会话归谁的唯一来源。
@@ -178,19 +178,19 @@ pub struct LocalKernel {
     /// 关闭时标成关闭中、释放按会话的表（[`Closer`]）。
     closer: Arc<Closer>,
     /// 本机跨会话通信（cross-session.md §2.4）：每个会话 actor 共用这一份端口。
-    peers: rust_cli_session::PeerDeps,
+    peers: nibi_kernel_session::PeerDeps,
     /// 父会话关闭之后旧会话的询问入口（进程级，agents.md §4.1.2，工作线 F72）：每个会话 actor 共用这一份。
-    detached: Arc<rust_cli_session::DetachedAsks>,
+    detached: Arc<nibi_kernel_session::DetachedAsks>,
     /// 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段读的同一份表。
-    directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
     /// 工作区钩子的信任库（NIBI 协议前端的钩子评审）：入口注入，没接的入口三个方法报 Unsupported。
-    hook_trust: Option<Arc<dyn rust_cli_kernel_api::hook_review::HookTrust>>,
+    hook_trust: Option<Arc<dyn nibi_kernel_api::hook_review::HookTrust>>,
     /// 用户层 hooks（评审 digest 的默认超时与输出上限来源，config.md §4.1）。
-    user_hooks: Arc<rust_cli_hooks::node_config::NodeHooks>,
+    user_hooks: Arc<nibi_kernel_hooks::node_config::NodeHooks>,
     /// DWF 引擎（路线 C 的 sidecar）：入口注入，没接的入口三个命令报 Unsupported。
-    workflow_engine: Option<Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>>,
+    workflow_engine: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowEngine>>,
     /// 同一引擎的工具面槽：注册表建好时引擎还没接上，`FillWorkflowHole` 在调用时读它。
-    workflow_engine_slot: rust_cli_tools::WorkflowEngineSlot,
+    workflow_engine_slot: nibi_kernel_tools::WorkflowEngineSlot,
     /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
     escalations: Arc<escalations::WorkflowEscalations>,
     /// 本进程在服务 Host 协议（`app-server` 入口置位）：Host 关闭灰度时**什么都不发**，所以「没有
@@ -198,7 +198,7 @@ pub struct LocalKernel {
     host_serving: bool,
     /// workspace 级的动态工作流策略（Node `appRuntimePreferences`）：Host 经
     /// `workspace/updateDynamicWorkflowPolicy` 同步；键是工作区根。只影响之后创建/恢复的会话。
-    dynamic_workflow: Mutex<HashMap<String, rust_cli_kernel_api::session_api::DynamicWorkflowGate>>,
+    dynamic_workflow: Mutex<HashMap<String, nibi_kernel_api::session_api::DynamicWorkflowGate>>,
     /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（blocked_board.md）：actor 的忙闲沿与
     /// 引擎客户端的开集沿都汇到这里，每个会话一尊钟。
     blocked: Arc<blocked_board::WorkflowBlockedBoard>,
@@ -260,7 +260,7 @@ impl LocalKernel {
         tasks: Arc<dyn TaskListStore>,
         extensions: Extensions,
     ) -> Self {
-        let scope = TaskScope::root("rust-cli", |panic| {
+        let scope = TaskScope::root("nibi-kernel-cli", |panic| {
             tracing::error!(scope = %panic.scope, task = panic.task, message = %panic.message, "task panicked");
         });
         // 本地执行环境的实例随进程变化（spec §6 规则 3）；hook 命令与工具共用同一个实例。ID 经注入的 Ids
@@ -286,19 +286,19 @@ impl LocalKernel {
         // 规则因此对两边都生效。规则快照由入口层接入配置后替换（shell-permissions.md §5）。
         // 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段共用一份。
         let session_directories = Arc::new(
-            rust_cli_kernel_api::session_paths::SessionDirectories::new(),
+            nibi_kernel_api::session_paths::SessionDirectories::new(),
         );
         let gate = Arc::new(
             PolicyGate::default().with_session_directories(session_directories.clone()),
         );
         // ToolSearch 与延迟工具清单看同一个主线程注册表，建好注册表后绑定（tools-more.md §3.4）；`ENABLE_TOOL_SEARCH` 为关时
         // ToolSearch 不启用（工作线 F89，§3.2.1）。
-        let catalog = Arc::new(rust_cli_tools::ToolCatalog::new(
+        let catalog = Arc::new(nibi_kernel_tools::ToolCatalog::new(
             defaults.limits.request.tool_search,
         ));
         // 会话内定时任务（L11b）：任务表在这里，触发由会话 actor 在空闲时取走。
         let cron =
-            rust_cli_tools::CronBoard::new(ports.clock.clone(), extensions.cron_store.clone());
+            nibi_kernel_tools::CronBoard::new(ports.clock.clone(), extensions.cron_store.clone());
         // DWF 升级问答的停驻表：主会话的 `ResolveWorkflowQuestion` 与 actor 的 `escalate`
         // 共用一份；通知通道在 `Agents` 建好之后接上（走后台子代理通知同一条路）。事件 journal
         // 用会话库（`dwf_event`，与引擎 sidecar 共写同一份 `db.sqlite`）。
@@ -312,20 +312,20 @@ impl LocalKernel {
         // 基础工具：文件与搜索（L3）、Bash（L4）、交互与 Web 工具（L11a）；Skill 与 MCP 工具由 ext
         // 加在后面（L9），Agent 等由 agents 再加（L7）。
         // Read 整读 PDF 前按会话当前模型的生效配置查 `supports_pdf`（tools-files.md §1.5，修复线 F24）。
-        let pdf_model = rust_cli_tools::SideModel {
+        let pdf_model = nibi_kernel_tools::SideModel {
             model: ports.model.clone(),
             selection: defaults.selection.clone(),
         };
-        let builtin = rust_cli_tools::builtin_with(gate.clone(), Some(pdf_model));
+        let builtin = nibi_kernel_tools::builtin_with(gate.clone(), Some(pdf_model));
         // 压缩时清空的 readFileState 与文件工具是同一份（compact.md §3.4）；关闭会话时也释放它（[`Closer`]）。
-        let read_files: Arc<rust_cli_tools::ReadFileState> =
+        let read_files: Arc<nibi_kernel_tools::ReadFileState> =
             builtin.file_state().cloned().unwrap_or_default();
         let file_states: Arc<dyn ReadFileStates> = read_files.clone();
-        let worktrees = Arc::new(rust_cli_tools::WorktreeBoard::default());
+        let worktrees = Arc::new(nibi_kernel_tools::WorktreeBoard::default());
         // DWF 工具面的引擎槽：入口的 `with_workflow_engine` 在注册表建好之后才调，工具在调用时读。
-        let workflow_engine_slot: rust_cli_tools::WorkflowEngineSlot =
+        let workflow_engine_slot: nibi_kernel_tools::WorkflowEngineSlot =
             Arc::new(std::sync::Mutex::new(None));
-        let base: Arc<dyn rust_cli_kernel_api::orchestration::ToolRegistry> = Arc::new(
+        let base: Arc<dyn nibi_kernel_api::orchestration::ToolRegistry> = Arc::new(
             builtin
                 .with_search_opt_in(defaults.search_tools)
                 // 后台命令的期限只在 `-p`（shell-permissions.md §1.1，修复线 F9）；启动时是 bypass 类别时
@@ -333,7 +333,7 @@ impl LocalKernel {
                 .with_leading(Arc::new({
                     // `BASH_*_TIMEOUT_MS` 的缺省与上限（cli-args.md §9.3，修复线 F42）；进程启动时是 bypass 类别时
                     // 去掉“不要用 cat”一行（修复线 F43，shell-permissions.md §4.9）。
-                    let bash = rust_cli_tools::BashTool::new()
+                    let bash = nibi_kernel_tools::BashTool::new()
                         .with_timeouts(defaults.limits.bash)
                         // 读文件的命令记进文件工具的同一份 readFileState（tools-files.md §4.2）。
                         .with_file_state(read_files.clone())
@@ -348,39 +348,39 @@ impl LocalKernel {
                         bash
                     }
                 }))
-                .with_tools(rust_cli_tools::interaction_tools(
+                .with_tools(nibi_kernel_tools::interaction_tools(
                     &catalog,
                     !non_interactive,
                 ))
-                .with_tools(rust_cli_tools::web_tools(
-                    rust_cli_tools::SideModel {
+                .with_tools(nibi_kernel_tools::web_tools(
+                    nibi_kernel_tools::SideModel {
                         model: ports.model.clone(),
                         selection: defaults.selection.clone(),
                     },
                     ports.clock.clone(),
                 ))
-                .with_tools(rust_cli_tools::cron_tools(&cron, extensions.monitor))
+                .with_tools(nibi_kernel_tools::cron_tools(&cron, extensions.monitor))
                 // `/loop` 动态模式的自定节奏（L17，tools-more.md §17.2）：默认注册、不延迟。
-                .with_tools(vec![Arc::new(rust_cli_tools::ScheduleWakeupTool::new(
+                .with_tools(vec![Arc::new(nibi_kernel_tools::ScheduleWakeupTool::new(
                     &cron,
                 ))])
                 // Monitor（工作线 F83，tools-more.md §19）：单次的 `-p` 上限 10 分钟，其余 30 分钟。
                 .with_tools(if extensions.monitor {
                     let session = !non_interactive || extensions.streaming_input;
                     vec![Arc::new(
-                        rust_cli_tools::MonitorTool::new().with_session_cap(session),
+                        nibi_kernel_tools::MonitorTool::new().with_session_cap(session),
                     )]
                 } else {
                     Vec::new()
                 })
-                .with_tools(vec![Arc::new(rust_cli_tools::ReportFindingsTool::new())])
+                .with_tools(vec![Arc::new(nibi_kernel_tools::ReportFindingsTool::new())])
                 // DWF 升级问答的答题入口（主会话；actor 的工具面里被藏起来）。
                 .with_tools(vec![Arc::new(
-                    rust_cli_tools::ResolveWorkflowQuestionTool::new(escalations.clone()),
+                    nibi_kernel_tools::ResolveWorkflowQuestionTool::new(escalations.clone()),
                 )])
                 // DWF run 详情（`GetWorkflowRun`）：journal 读面 ∪ 停驻注册表的活项——
                 // 升级通知与答题拒绝文案里引用的查询兜底。
-                .with_tools(vec![Arc::new(rust_cli_tools::GetWorkflowRunTool::new(
+                .with_tools(vec![Arc::new(nibi_kernel_tools::GetWorkflowRunTool::new(
                     Arc::new(escalations::WorkflowRunDetailReader {
                         store: ports.store.clone(),
                         escalations: escalations.clone(),
@@ -389,21 +389,21 @@ impl LocalKernel {
                 ))])
                 // DWF 留白补全（`FillWorkflowHole`）：引擎经槽取得（sidecar 在入口最后才接上；
                 // 缺席回「本会话不能补全」的同一条结构化失败）。
-                .with_tools(vec![Arc::new(rust_cli_tools::FillWorkflowHoleTool::new(
+                .with_tools(vec![Arc::new(nibi_kernel_tools::FillWorkflowHoleTool::new(
                     workflow_engine_slot.clone(),
                 ))])
-                .with_tools(rust_cli_tools::worktree_tools(&worktrees)),
+                .with_tools(nibi_kernel_tools::worktree_tools(&worktrees)),
         );
         // 用户输入的提及与 bash 模式用基础注册表里的 Read 与 Bash（与模型的调用共用 readFileState 与 shell 状态）。
-        let inputs: Arc<dyn rust_cli_kernel_api::user_input::UserInputs> = Arc::new(
-            rust_cli_tools::UserInputTools::new(base.as_ref(), gate.clone())
+        let inputs: Arc<dyn nibi_kernel_api::user_input::UserInputs> = Arc::new(
+            nibi_kernel_tools::UserInputTools::new(base.as_ref(), gate.clone())
                 .with_bash_timeouts(defaults.limits.bash),
         );
         // 会话表（session-lifecycle.md §3.3.1）：每个会话归谁的唯一来源。采样端口也要用它把回合外
         // 请求的用量行交给发起会话的 actor，所以在建端口之前就建好。
         let sessions = OpenSessions::default();
         // MCP Apps 采样：回合外的一次性模型请求用会话的缺省选择（页面不给模型选择）。
-        let sampling: Arc<dyn rust_cli_kernel_api::mcp_ui::McpUiSamplingPort> =
+        let sampling: Arc<dyn nibi_kernel_api::mcp_ui::McpUiSamplingPort> =
             Arc::new(sampling::KernelSampling::new(
                 ports.model.clone(),
                 defaults.selection.clone(),
@@ -458,7 +458,7 @@ impl LocalKernel {
         // 读过的文件在磁盘上被改动（tools-files.md §4.1）：与文件工具同一份 readFileState；远端机器上读过的文件每台每步
         // 一次批量 stat（R3，remote-exec.md §20.7.4）。
         .with_changed_files(Arc::new(
-            rust_cli_tools::FileChanges::new(read_files.clone(), machine.files().clone())
+            nibi_kernel_tools::FileChanges::new(read_files.clone(), machine.files().clone())
                 .with_machines(ports.environments.clone()),
         ))
         // 机器清单提醒（R3，remote-exec.md §20.5.3）。
@@ -484,7 +484,7 @@ impl LocalKernel {
             context: context.clone(),
             // 整个工具的 deny 规则从清单里去掉（tools-files.md §1.1.1，工作线 F69）：主线程、子代理、延迟清单与
             // 压缩摘要都从这一层往外取，规则用判决链当前的快照。
-            tools: Arc::new(rust_cli_tools::PolicyFiltered::new(
+            tools: Arc::new(nibi_kernel_tools::PolicyFiltered::new(
                 ext.registry(),
                 gate.clone(),
             )),
@@ -535,8 +535,8 @@ impl LocalKernel {
                 catalog: agent_catalog.clone(),
                 spawner: scope.spawner(),
                 shell_notice: agents::shell_notice,
-                monitor: rust_cli_agents::MonitorTexts {
-                    notice: rust_cli_query::monitor_notice_text,
+                monitor: nibi_kernel_agents::MonitorTexts {
+                    notice: nibi_kernel_query::monitor_notice_text,
                     end: agents::monitor_end,
                 },
                 peers: extensions.peers.port.clone(),
@@ -549,7 +549,7 @@ impl LocalKernel {
             parts.tools.clone(),
             AgentsConfig {
                 task_tools: defaults.task_tools.unwrap_or_else(|| {
-                    rust_cli_agents::task_tools_enabled(&defaults.selection.model, false)
+                    nibi_kernel_agents::task_tools_enabled(&defaults.selection.model, false)
                 }),
                 // 只有交互模式停放还有后台子代理的子代理（agents.md §5.1）。
                 keep_alive: !non_interactive,
@@ -612,7 +612,7 @@ impl LocalKernel {
         let generation = parts.generation.clone();
         let parts = QueryParts { tools, ..parts };
         let runner = agents.track(Arc::new(QueryLoop::new(parts)));
-        let detached = Arc::new(rust_cli_session::DetachedAsks::new(
+        let detached = Arc::new(nibi_kernel_session::DetachedAsks::new(
             ports.store.clone(),
             ports.ids.clone(),
         ));
@@ -626,7 +626,7 @@ impl LocalKernel {
             agents: agents.signals(),
             actors: agents.clone(),
             cron: if non_interactive {
-                Arc::new(rust_cli_kernel_api::cron::NoCron)
+                Arc::new(nibi_kernel_api::cron::NoCron)
             } else {
                 cron.signals()
             },
@@ -647,7 +647,7 @@ impl LocalKernel {
             detached,
             directories: session_directories,
             hook_trust: None,
-            user_hooks: Arc::new(rust_cli_hooks::node_config::NodeHooks::default()),
+            user_hooks: Arc::new(nibi_kernel_hooks::node_config::NodeHooks::default()),
             workflow_engine: None,
             workflow_engine_slot,
             escalations,
@@ -661,7 +661,7 @@ impl LocalKernel {
     /// `Unsupported`。
     pub fn with_workflow_engine(
         mut self,
-        engine: Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>,
+        engine: Arc<dyn nibi_kernel_api::workflow::WorkflowEngine>,
     ) -> Self {
         if let Ok(mut slot) = self.workflow_engine_slot.lock() {
             *slot = Some(engine.clone());
@@ -674,8 +674,8 @@ impl LocalKernel {
     /// [`Kernel::workspace_hook_review`] 三个方法保持 `Unsupported`。
     pub fn with_hook_review(
         mut self,
-        user_hooks: rust_cli_hooks::node_config::NodeHooks,
-        trust: Arc<dyn rust_cli_kernel_api::hook_review::HookTrust>,
+        user_hooks: nibi_kernel_hooks::node_config::NodeHooks,
+        trust: Arc<dyn nibi_kernel_api::hook_review::HookTrust>,
     ) -> Self {
         self.user_hooks = Arc::new(user_hooks);
         self.hook_trust = Some(trust);

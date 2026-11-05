@@ -10,12 +10,12 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp::McpTransport;
-use rust_cli_kernel_api::mcp_session::SessionMcpServer;
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp::McpTransport;
+use nibi_kernel_api::mcp_session::SessionMcpServer;
 
 use super::telemetry::{McpTelemetry, McpTelemetrySlot};
 use super::{McpManager, McpScope, McpServer, McpServerOptions, McpSettings};
@@ -39,7 +39,7 @@ pub(crate) struct SessionMcp {
     /// 进程遥测的出口（`process/mcpTelemetry`）：每个会话级 manager 装同一份，隔离口径是 `session`。
     telemetry: Option<Arc<McpTelemetry>>,
     /// MCP Apps 的事件出口（`pluginUi.*` 增量）：每个会话级 manager 装同一份。
-    ui_events: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
+    ui_events: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
     /// MCP Apps 的实例账本：连接断了时按（会话, 服务器）作废页面凭证。`Ext::new` 建好之后装上。
     app_instances: std::sync::OnceLock<Arc<super::McpAppInstances>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
@@ -52,7 +52,7 @@ impl SessionMcp {
         settings: McpSettings,
         clock: Arc<dyn Clock>,
         telemetry: Option<Arc<McpTelemetry>>,
-        ui_events: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
+        ui_events: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
     ) -> Self {
         Self {
             transport,

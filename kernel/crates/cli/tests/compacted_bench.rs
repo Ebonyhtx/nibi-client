@@ -1,7 +1,7 @@
 //! 压缩过的大会话冷打开的耗时（docs/specs/rust-cli/compact.md §5.1，工作线 F102 的测量）：几千条消息、三次压缩，
 //! 打开会话到拿到视图、视图折成 TUI 的行各用多久。只在手动运行时跑：
 //!
-//! `cargo test --release -p rust-cli --test compacted_bench -- --ignored --nocapture`
+//! `cargo test --release -p nibi-kernel-cli --test compacted_bench -- --ignored --nocapture`
 //!
 //! 设 `F102_BENCH_DIR=<目录>` 时会话库留在 `<目录>/home`、工作区是 `<目录>/work`（给 PTY 里量首屏的脚本用）。
 #![cfg(unix)]
@@ -17,8 +17,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use compacted::{Keep, SESSION};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::Kernel;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::Kernel;
 
 const TURNS: usize = 780;
 const RUNS: usize = 7;
@@ -62,11 +62,11 @@ async fn opening_a_large_compacted_session() {
         open.push(started.elapsed());
         shown = view.messages.len();
         let started = Instant::now();
-        let transcript = rust_cli_tui::view::Transcript::from_view(view, 0);
+        let transcript = nibi_kernel_tui::view::Transcript::from_view(view, 0);
         fold.push(started.elapsed());
         std::hint::black_box(&transcript);
         handle
-            .close(rust_cli_kernel_api::session_api::EndReason::Other)
+            .close(nibi_kernel_api::session_api::EndReason::Other)
             .await;
     }
     println!(

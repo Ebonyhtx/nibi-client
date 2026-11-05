@@ -6,13 +6,13 @@ use std::collections::HashSet;
 use std::sync::Weak;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::{
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::{
     McpConnections, McpServerView, McpView, WAIT_FOR_MCP_SERVERS, normalize_name,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::Value;
@@ -143,13 +143,13 @@ impl Tool for WaitForMcpServers {
     }
 
     fn input_schema(&self) -> Value {
-        rust_cli_prompts::tool(WAIT_FOR_MCP_SERVERS)
+        nibi_kernel_prompts::tool(WAIT_FOR_MCP_SERVERS)
             .map(|prompt| prompt.input_schema.clone())
             .unwrap_or(Value::Null)
     }
 
     fn description(&self, _context: &PromptContext) -> String {
-        rust_cli_prompts::tool(WAIT_FOR_MCP_SERVERS)
+        nibi_kernel_prompts::tool(WAIT_FOR_MCP_SERVERS)
             .map(|prompt| prompt.description.clone())
             .unwrap_or_default()
     }

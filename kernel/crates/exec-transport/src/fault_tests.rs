@@ -82,7 +82,7 @@ async fn the_switch_cuts_an_idle_link_in_both_directions() {
     let (left, switch) = inject(Box::new(left), Faults::new());
     let (_tx, mut rx) = left.split();
     let (_peer_tx, mut peer_rx) = Box::new(right).split();
-    let waiting = rust_cli_base::owned(async move { rx.recv().await });
+    let waiting = nibi_kernel_base::owned(async move { rx.recv().await });
     tokio::task::yield_now().await;
     switch.cut();
     assert_eq!(waiting.await.unwrap(), Err(LinkError::Closed));

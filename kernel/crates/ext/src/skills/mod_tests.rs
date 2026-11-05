@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::testing::MemoryEnvironment;
 use serde_json::json;
 
 use super::*;

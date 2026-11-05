@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 
 use super::{AccountOrigins, Family, ProjectTokens, TeamProject, TokenError, TokenRequest};

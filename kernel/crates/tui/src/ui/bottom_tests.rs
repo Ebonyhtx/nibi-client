@@ -1,10 +1,10 @@
 //! 排队的消息下面的立即发送提示（docs/specs/rust-cli/tui.md §5.1.1，修复线 F104）：原文、位置、键的选择与
 //! 不显示的情形。旧代码没有这一行，这些断言都失败。修复线 F105：整行一种次要色。
 use ratatui::style::Modifier;
-use rust_cli_kernel_api::ids::{CommandId, TurnId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::ids::{CommandId, TurnId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Delivery, KernelEvent, QueuedInput, SequencedEvent, TurnOutcome,
 };
 
@@ -207,11 +207,11 @@ fn the_key_is_not_shown_while_viewing_a_subagent() {
     let mut app = app(Lang::En);
     feed(&mut app, vec![started(), queued("also check the date")]);
     app.viewing = Some(crate::ui::agents::Viewing {
-        agent: rust_cli_kernel_api::ids::AgentId::new("a1"),
+        agent: nibi_kernel_api::ids::AgentId::new("a1"),
         kind: "explore".into(),
         description: "look around".into(),
         version: 0,
-        status: rust_cli_kernel_api::panels::SubagentStatus::Running,
+        status: nibi_kernel_api::panels::SubagentStatus::Running,
         view: Transcript::new(
             selection(),
             PermissionMode::Default,

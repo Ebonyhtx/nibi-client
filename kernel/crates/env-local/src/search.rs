@@ -17,8 +17,8 @@ use grep_searcher::{BinaryDetection, Searcher, SearcherBuilder, Sink, SinkContex
 use ignore::overrides::OverrideBuilder;
 use ignore::types::TypesBuilder;
 use ignore::{DirEntry, WalkBuilder};
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::env_files::{
     FileList, GlobFiles, GlobMatches, GrepCount, GrepFileHit, GrepFileLines, GrepLine,
     GrepLineKind, GrepMode, GrepOutcome, GrepSearch, GrepSubmatch, ListFiles, VCS_DIRS,
 };

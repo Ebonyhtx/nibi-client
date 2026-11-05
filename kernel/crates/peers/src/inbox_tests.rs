@@ -1,7 +1,7 @@
 //! 入站表：绑定前不交出、ack 后回复、解绑后交给下一个会话；回执只认发出去的消息（cross-session.md §2.1）。
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::peers::{InboundPeerMessage, PeerAddress, PeerSignal, ReceiptStatus};
+use nibi_kernel_api::peers::{InboundPeerMessage, PeerAddress, PeerSignal, ReceiptStatus};
 
 use super::*;
 

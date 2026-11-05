@@ -6,9 +6,9 @@
 //! compact 决定）。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::compaction::PostCompactContext;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::orchestration::{ContextRequest, OrchestrationError};
+use nibi_kernel_api::compaction::PostCompactContext;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::orchestration::{ContextRequest, OrchestrationError};
 
 use crate::system::AGENT_TOOL;
 use crate::{PromptAssembler, announce, environment, invoked, listings, mcp};

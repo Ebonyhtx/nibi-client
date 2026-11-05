@@ -3,9 +3,9 @@
 //! “这一步的输入”只在主线程、最后一条非 attachment 消息是这次输入时有：人类输入（不是命令标签、不是 bash
 //! 模式），或用户调用 skill 展开的正文。工具轮之后、通知与定时任务开的回合都没有。
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::{user_command, user_input};
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::{user_command, user_input};
+use nibi_kernel_prompts::texts::{self, render};
 use serde_json::{Value, json};
 
 pub(crate) const ULTRATHINK: &str = "ultrathink_effort";

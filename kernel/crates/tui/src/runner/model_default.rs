@@ -4,8 +4,8 @@
 //! （同一把目录锁）。写失败只警告，会话的模型不回退。
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::session_api::{Ack, Command};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::session_api::{Ack, Command};
 
 use super::Loop;
 use super::session::Done;

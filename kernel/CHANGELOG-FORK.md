@@ -1073,3 +1073,18 @@ run 还欠着决定」——落 Rust。
 - 尚未接线：Device Flow 的 HTTP 轮询循环、manifest/安装记录读取、把 `nibi-platform` 接进内核登录/插件加载路径（属阶段 2）。
 - 品牌化未开始（本阶段只做 vendoring 与安全门禁，避免和功能 PR 混批）。
 - 品牌化：本子树仍是上游 ZCode 品牌；按计划等所有功能 track 完成后再做 §4.11/§7.7 收口，本阶段只做 `kernel/` 引入与安全门禁。
+
+## 8. 2026-11-05 批次 6：crate 全树改名（`rust-cli-*` → `nibi-kernel-*`）
+
+- 36 个 workspace crate 与 3 个 vendored crate 的包名/标识符统一：
+  `rust-cli-<name>` → `nibi-kernel-<name>`，`rust-cli-kernel-api` → `nibi-kernel-api`，
+  入口 crate `rust-cli` → `nibi-kernel-cli`；可执行名仍是 `nibi-rs`（不变）。
+  `nibi-platform`（NIBI 自有平台层）保持原名，避免与上游 platform 语义混淆。
+- **class ③ 数据键刻意保留旧名**：`rust-cli/` 开头的会话行标记（`rust-cli/bash_output`、
+  `rust-cli/permission_mode` 等）、`~/.nibi/rust-cli/` 下的日志/peers/machines/更新缓存、
+  以及远端执行器的 `~/.nibi/rust-cli/exec`。它们是已落盘的数据格式与远端安装位，
+  不是 crate 名；改名会搬空日志/机器清单并让既有远端执行器失效，需单独迁移波次。
+- `--version` 的括号随 crate 名变为 `nibi <ver> (nibi-kernel-cli)`。
+- 门禁：`cargo check --workspace --all-targets` 通过；`cargo test --workspace --lib`
+  全绿；`cargo test -p nibi-kernel-cli --bins` 309 通过 / 9 个既有 Windows-only 失败。
+  历史 `docs/*-2026-*.md` 里的旧 crate 名是当时的发布记录，保留。

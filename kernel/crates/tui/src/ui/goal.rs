@@ -3,7 +3,7 @@
 //! 色（成功绿、失败红、其余 dim），深浅主题都可读。
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::goal::{GoalStatus, GoalView};
+use nibi_kernel_api::goal::{GoalStatus, GoalView};
 
 use super::cells::{BULLET, Ctx, bold, dim, red};
 use super::i18n::Lang;

@@ -1,14 +1,14 @@
 //! 后台命令的终态通知：空闲时开新回合；运行中在下一个工具边界并入（L18）；提交后才 ack；重复送达只
 //! ack（docs/specs/rust-cli/query.md §5）。
 
-use rust_cli_kernel_api::ids::{MessageId, ShellTaskId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::ids::{MessageId, ShellTaskId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::testing::{
     DirectExecutor, ListTools, NoticeEnvironment, local_services, machine, shell_notice,
     tool_use_response,
 };
-use rust_cli_kernel_api::tool::Tool;
-use rust_cli_query::task_notification;
+use nibi_kernel_api::tool::Tool;
+use nibi_kernel_query::task_notification;
 
 use super::*;
 
@@ -25,35 +25,35 @@ pub(super) async fn session(
         model,
         tools,
         messages,
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
+        Arc::new(nibi_kernel_api::testing::FixedClock(0)),
     )
     .await
 }
 
 /// 同 [`session`]，执行环境可以是任何替身（monitors_tests 用自己的）。
-pub(crate) async fn session_on<E: rust_cli_kernel_api::testing::AllPorts + 'static>(
+pub(crate) async fn session_on<E: nibi_kernel_api::testing::AllPorts + 'static>(
     scope: &TaskScope,
     env: Arc<E>,
     model: Arc<dyn ModelPort>,
     tools: Vec<Arc<dyn Tool>>,
     messages: Vec<Message>,
-    clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
 ) -> Session {
-    let registry = rust_cli_kernel_api::testing::environments(env.clone());
+    let registry = nibi_kernel_api::testing::environments(env.clone());
     session_on_machines(scope, (env, registry), model, tools, messages, clock).await
 }
 
 /// 同 [`session_on`]，另给执行环境的注册表（R3：远端机器上的 monitor 与通知）。
-pub(crate) async fn session_on_machines<E: rust_cli_kernel_api::testing::AllPorts + 'static>(
+pub(crate) async fn session_on_machines<E: nibi_kernel_api::testing::AllPorts + 'static>(
     scope: &TaskScope,
     (env, registry): (
         Arc<E>,
-        Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>,
+        Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>,
     ),
     model: Arc<dyn ModelPort>,
     tools: Vec<Arc<dyn Tool>>,
     messages: Vec<Message>,
-    clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
 ) -> Session {
     let store = Arc::new(MemoryStore::default());
     store.create(meta()).await.unwrap();
@@ -66,19 +66,19 @@ pub(crate) async fn session_on_machines<E: rust_cli_kernel_api::testing::AllPort
         compactor: Arc::new(NeverCompact),
         hooks: Arc::new(NoHooks),
         ids: ids.clone(),
-        clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
         machines: registry.clone(),
         machine: machine(env.clone()),
         local: local_services(env.clone()),
         artifacts: store.clone(),
         generation: Generation::new("g1"),
         non_interactive: false,
-        limits: rust_cli_query::RequestLimits::default(),
+        limits: nibi_kernel_query::RequestLimits::default(),
     }));
     Session::spawn(
         SessionDeps {
-            agents: Arc::new(rust_cli_kernel_api::agents::NoAgentSignals),
-            cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
+            agents: Arc::new(nibi_kernel_api::agents::NoAgentSignals),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
             store,
             ids,
             runner,
@@ -87,18 +87,18 @@ pub(crate) async fn session_on_machines<E: rust_cli_kernel_api::testing::AllPort
             machine: machine(env.clone()),
             local: local_services(env),
             max_turns: None,
-            hooks: Arc::new(rust_cli_kernel_api::testing::NoHooks),
-            commands: Arc::new(rust_cli_kernel_api::user_command::NoUserCommands),
-            inputs: Arc::new(rust_cli_kernel_api::user_input::NoUserInputs),
-            artifacts: Arc::new(rust_cli_kernel_api::testing::MemoryArtifacts::default()),
+            hooks: Arc::new(nibi_kernel_api::testing::NoHooks),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
+            artifacts: Arc::new(nibi_kernel_api::testing::MemoryArtifacts::default()),
             clock,
-            generation: rust_cli_kernel_api::ids::Generation::new("g1"),
+            generation: nibi_kernel_api::ids::Generation::new("g1"),
             spawner: scope.spawner(),
             closing: scope.spawner(),
             titles: None,
-            side_model: Arc::new(rust_cli_kernel_api::testing::ScriptedModel::new(Vec::new())),
+            side_model: Arc::new(nibi_kernel_api::testing::ScriptedModel::new(Vec::new())),
             released: Arc::new(crate::NothingToRelease),
-            directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
@@ -110,7 +110,7 @@ pub(crate) async fn session_on_machines<E: rust_cli_kernel_api::testing::AllPort
             selection: selection(),
             mode: PermissionMode::Default.into(),
             checkpoints: Vec::new(),
-            start: rust_cli_kernel_api::session_api::StartSource::Startup,
+            start: nibi_kernel_api::session_api::StartSource::Startup,
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),

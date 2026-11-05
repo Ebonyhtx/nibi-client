@@ -1,13 +1,13 @@
 //! 事实 → Node 记录逐字节比对：`fixtures/node-records.json` 由
 //! `scripts/rust-cli/node-store-fixtures.mjs` 用 Node 的真实代码在固定时钟与 uuid 下生成；
-//! 这里用 NodeStore 提交同一组事实，各表的行必须相同（rust-cli 自己的 `rust-cli/*` entry 除外）。
+//! 这里用 NodeStore 提交同一组事实，各表的行必须相同（nibi-kernel-cli 自己的 `rust-cli/*` entry 除外）。
 //! 两边的操作序列一一对应，改一边时同步改另一边。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::Value;
 
 use crate::tests::{TestStore, batch, meta, selection, text, user};

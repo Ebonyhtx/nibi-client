@@ -3,8 +3,8 @@
 //! 后台命令的登记只在这里的账本（会话的 `SessionShell`）里，是唯一事实源；内核不另记任务表。查与
 //! 停都在一把锁里完成：命令自己结束与被停止只按拿到锁的先后决定，不靠超时。
 
-use rust_cli_kernel_api::env::{EnvError, OperationContext};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env::{EnvError, OperationContext};
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStatus, BackgroundStop, BackgroundTask,
 };
 
@@ -48,7 +48,7 @@ impl Shells {
         &self,
         request: &BackgroundTask,
         max_bytes: u64,
-    ) -> Option<rust_cli_kernel_api::env_shell::BackgroundOutputTail> {
+    ) -> Option<nibi_kernel_api::env_shell::BackgroundOutputTail> {
         let operation = {
             let state = self.shared.state();
             let shell = state.sessions.get(&request.session)?;
@@ -69,11 +69,11 @@ impl Shells {
             state.commands.get(&operation)?.output.clone()
         };
         let (bytes, total_bytes) = read_tail(&output, max_bytes).await.ok()?;
-        Some(rust_cli_kernel_api::env_shell::BackgroundOutputTail {
+        Some(nibi_kernel_api::env_shell::BackgroundOutputTail {
             bytes,
             total_bytes,
             truncated: total_bytes > max_bytes,
-            path: rust_cli_kernel_api::env::EnvPath::new(output.to_string_lossy()),
+            path: nibi_kernel_api::env::EnvPath::new(output.to_string_lossy()),
         })
     }
 
@@ -131,9 +131,9 @@ impl Shells {
     /// 一方说明原因。已经在后台的、已结束的、不能转的（hook 命令）不动。同一把锁里判断，与命令自己结束只按先后。
     pub(crate) fn background_foreground(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-        reason: rust_cli_kernel_api::env::BackgroundReason,
-    ) -> Vec<rust_cli_kernel_api::ids::ShellTaskId> {
+        session: &nibi_kernel_api::ids::SessionId,
+        reason: nibi_kernel_api::env::BackgroundReason,
+    ) -> Vec<nibi_kernel_api::ids::ShellTaskId> {
         let state = self.shared.state();
         let background = state.sessions.get(session).map(|shell| &shell.background);
         state

@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::services::{CancellationToken, RedactedString};
-use rust_cli_tui::{Account, Authorize, Configured, Family, LoginFailure, Services};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::services::{CancellationToken, RedactedString};
+use nibi_kernel_tui::{Account, Authorize, Configured, Family, LoginFailure, Services};
 use tokio::sync::oneshot;
 
 use super::support::{GatedModel, Setup, with_ui};

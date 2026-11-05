@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::MemoryEnvironment;
 use serde_json::json;
 use tokio::sync::mpsc;
 

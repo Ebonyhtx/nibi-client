@@ -5,16 +5,16 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::{OwnedTask, TaskScope};
-use rust_cli_exec_client::ClientOptions;
-use rust_cli_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
-use rust_cli_exec_transport::memory::{MemoryConnector, network};
-use rust_cli_exec_transport::{
+use nibi_kernel_base::{OwnedTask, TaskScope};
+use nibi_kernel_exec_client::ClientOptions;
+use nibi_kernel_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
+use nibi_kernel_exec_transport::memory::{MemoryConnector, network};
+use nibi_kernel_exec_transport::{
     Connector, LinkError, ProvisionError, Provisioned, Provisioner, Ready,
 };
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::testing::{UnusedEnvironment, environments, machine};
-use rust_cli_machines::{
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::testing::{UnusedEnvironment, environments, machine};
+use nibi_kernel_machines::{
     Endpoint, Machine, MachineEntry, MachineError, MachineList, MachineState, MachinesError,
 };
 use tokio::sync::watch;
@@ -40,7 +40,7 @@ async fn remote(name: &str) -> Remote {
     )
     .await
     .unwrap();
-    let serving = rust_cli_base::owned(async move { server.serve(&listener).await });
+    let serving = nibi_kernel_base::owned(async move { server.serve(&listener).await });
     Remote {
         connector: Arc::new(connector),
         _serving: serving,

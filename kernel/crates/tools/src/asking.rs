@@ -1,7 +1,7 @@
 //! 工具里的用户询问（权限询问、AskUserQuestion、ExitPlanMode 共用，docs/specs/rust-cli/session-lifecycle.md §2）。
 
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::tool::ToolUseContext;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::tool::ToolUseContext;
 use serde::de::DeserializeOwned;
 
 /// 工具在等回答时被取消（询问已撤回）。

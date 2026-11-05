@@ -8,8 +8,8 @@
 //! `nonEmptyString` 的 trim 是转换的一部分，写面用它拼文件名）；journal 缺席（内核没接会话库）
 //! 回空页而不是错误——中枢据此显示「尚未运行」。
 
-use rust_cli_kernel_api::session_api::KernelError;
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{json, Value};
 
 use crate::server::Server;

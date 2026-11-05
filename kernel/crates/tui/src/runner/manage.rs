@@ -2,12 +2,12 @@
 //! 后台任务与子代理列表是同一份快照（修复线 F34），查询与回执在 `panels.rs`。
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::manage::McpServerInfo;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::manage::McpServerInfo;
+use nibi_kernel_api::permission::{
     PermissionRulesChange, PermissionRulesQuery, RuleChange, SourcedRule,
 };
-use rust_cli_kernel_api::provider::ModelCatalog;
-use rust_cli_kernel_api::session_api::{Ack, Command, Delivery, KernelError, KernelEvent};
+use nibi_kernel_api::provider::ModelCatalog;
+use nibi_kernel_api::session_api::{Ack, Command, Delivery, KernelError, KernelEvent};
 
 use super::Loop;
 use super::session::{Done, Sent};
@@ -28,7 +28,7 @@ pub(super) enum ManageDone {
     },
     Mcp(Vec<McpServerInfo>),
     Status(Vec<McpServerInfo>),
-    Hooks(Vec<rust_cli_kernel_api::manage::HookEntry>),
+    Hooks(Vec<nibi_kernel_api::manage::HookEntry>),
     /// `/plan 描述`：模式切换的回执到了之后才发输入（两条命令有先后）。
     Planned {
         ack: Ack,
@@ -44,7 +44,7 @@ pub(super) enum ManageDone {
     /// `/plan open` 的计划文件（tui-manage.md §8）；`entering` 是这次刚切到 plan。
     PlanFile {
         entering: bool,
-        file: Result<rust_cli_kernel_api::manage::PlanFile, KernelError>,
+        file: Result<nibi_kernel_api::manage::PlanFile, KernelError>,
     },
     /// 编辑器关掉了计划文件。
     PlanOpened {
@@ -55,7 +55,7 @@ pub(super) enum ManageDone {
     /// `/cd` 的结果与命令的参数（命令记录用，修复线 L-A）。
     DirectoryChanged {
         path: String,
-        result: Result<rust_cli_kernel_api::manage::DirectoryChanged, KernelError>,
+        result: Result<nibi_kernel_api::manage::DirectoryChanged, KernelError>,
     },
     /// `/mcp` 控制的前置快照（tui-manage.md §6.2）。
     McpPlanned {
@@ -69,7 +69,7 @@ pub(super) enum ManageDone {
         failed: Vec<(String, String)>,
     },
     /// `/diff` 的未提交改动（tui-manage.md §4）。
-    Diff(Result<rust_cli_kernel_api::env_git::GitDiff, KernelError>),
+    Diff(Result<nibi_kernel_api::env_git::GitDiff, KernelError>),
     /// `/export` 的写入回执（tui-manage.md §3）。
     Exported(Result<String, KernelError>),
     /// `ui.theme` 写回完成（tui-manage.md §2.1）。
@@ -227,7 +227,7 @@ impl<B: Backend> Loop<'_, B> {
                 match self.session.clone() {
                     Some(session) => {
                         let kernel = self.kernel.clone();
-                        let query = rust_cli_kernel_api::manage::PlanFileQuery {
+                        let query = nibi_kernel_api::manage::PlanFileQuery {
                             workspace: self.app.view.workspace().clone(),
                             session: session.id().clone(),
                         };
@@ -246,7 +246,7 @@ impl<B: Backend> Loop<'_, B> {
             }
             Manage::ChangeDirectory(path) => {
                 let kernel = self.kernel.clone();
-                let request = rust_cli_kernel_api::manage::ChangeDirectory {
+                let request = nibi_kernel_api::manage::ChangeDirectory {
                     workspace: self.app.view.workspace().clone(),
                     session: self.session.as_ref().map(|session| session.id().clone()),
                     path: path.clone(),
@@ -284,7 +284,7 @@ impl<B: Backend> Loop<'_, B> {
             Manage::Export(path) => {
                 let (text, _) = crate::ui::export::conversation_text(&self.app, self.now_ms());
                 let kernel = self.kernel.clone();
-                let file = rust_cli_kernel_api::manage::ExportFile {
+                let file = nibi_kernel_api::manage::ExportFile {
                     workspace: self.app.view.workspace().clone(),
                     path,
                     text,
@@ -389,7 +389,7 @@ impl<B: Backend> Loop<'_, B> {
                 let infos = if changed.is_empty() {
                     Ok(Vec::new())
                 } else {
-                    let control = rust_cli_kernel_api::manage::McpControl {
+                    let control = nibi_kernel_api::manage::McpControl {
                         action: run.action,
                         servers: changed,
                     };
@@ -474,7 +474,7 @@ impl<B: Backend> Loop<'_, B> {
                             &path,
                             format!(
                                 "Moved to {}",
-                                rust_cli_kernel_api::user_command::bold(&moved.display)
+                                nibi_kernel_api::user_command::bold(&moved.display)
                             ),
                             false,
                         ));

@@ -9,8 +9,8 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::{ModelConnection, ModelError};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::{ModelConnection, ModelError};
 use sha2::{Digest, Sha256};
 
 use crate::account::{self, OAuthLogin, RequestAuth, profile_id};
@@ -260,7 +260,7 @@ fn app_scope(
     token: &RedactedString,
     jwt: Option<&RedactedString>,
 ) -> String {
-    let text = rust_cli_base::js::json::stringify(&serde_json::json!([
+    let text = nibi_kernel_base::js::json::stringify(&serde_json::json!([
         family.as_str(),
         plan,
         team,

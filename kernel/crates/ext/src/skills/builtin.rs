@@ -7,10 +7,10 @@
 use std::sync::{Arc, OnceLock};
 
 use regex::Regex;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile};
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_prompts::loops::{self, LoopFile};
-use rust_cli_prompts::texts::render;
+use nibi_kernel_api::env::{EnvPath, ReadFile};
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_prompts::loops::{self, LoopFile};
+use nibi_kernel_prompts::texts::render;
 
 use super::{Skill, SkillCatalog, SkillShell, SkillSource};
 
@@ -99,7 +99,7 @@ pub(crate) async fn prompt_command(
     context: &ToolUseContext,
 ) -> Option<Result<String, String>> {
     match skill.name.as_str() {
-        INIT => Some(Ok(rust_cli_prompts::commands::init().to_owned())),
+        INIT => Some(Ok(nibi_kernel_prompts::commands::init().to_owned())),
         SECURITY_REVIEW => {
             let workspace = &context.workspace;
             let git = catalog
@@ -110,7 +110,7 @@ pub(crate) async fn prompt_command(
             if git {
                 return None;
             }
-            Some(Ok(rust_cli_prompts::commands::security_review_not_git(
+            Some(Ok(nibi_kernel_prompts::commands::security_review_not_git(
                 workspace.root.as_str(),
             )))
         }

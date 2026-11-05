@@ -65,32 +65,32 @@ fn invalid_input_is_left_alone() {
 fn only_edit_is_rewritten() {
     struct Named(&'static str);
     #[async_trait::async_trait]
-    impl rust_cli_kernel_api::tool::Tool for Named {
+    impl nibi_kernel_api::tool::Tool for Named {
         fn name(&self) -> &str {
             self.0
         }
         fn input_schema(&self) -> Value {
             json!({"type": "object", "properties": {"n": {"type": "number", "default": 5}}})
         }
-        fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+        fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
             String::new()
         }
         async fn call(
             &self,
             _input: Value,
-            _context: rust_cli_kernel_api::tool::ToolUseContext,
-            _progress: tokio::sync::mpsc::Sender<rust_cli_kernel_api::tool::ToolProgress>,
-        ) -> Result<rust_cli_kernel_api::tool::ToolOutput, rust_cli_kernel_api::tool::ToolError>
+            _context: nibi_kernel_api::tool::ToolUseContext,
+            _progress: tokio::sync::mpsc::Sender<nibi_kernel_api::tool::ToolProgress>,
+        ) -> Result<nibi_kernel_api::tool::ToolOutput, nibi_kernel_api::tool::ToolError>
         {
             unreachable!("not called")
         }
     }
-    let tools = rust_cli_kernel_api::testing::ListTools(vec![
+    let tools = nibi_kernel_api::testing::ListTools(vec![
         std::sync::Arc::new(Named("Edit")),
         std::sync::Arc::new(Named("ToolSearch")),
     ]);
     let block = |name: &str, input: Value| ContentBlock::ToolUse {
-        id: rust_cli_kernel_api::ids::ToolUseId::new("t"),
+        id: nibi_kernel_api::ids::ToolUseId::new("t"),
         name: name.to_owned(),
         input,
     };

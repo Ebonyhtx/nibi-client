@@ -5,8 +5,8 @@
 //! 取自 `prompts/tools/ScheduleWakeup.json`。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};

@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_protocol_core::connection::Peer;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_protocol_core::connection::Peer;
 use serde_json::{Value, json};
 
 use crate::wire::{self, Envelope, Purpose};
@@ -29,7 +29,7 @@ impl Context {
         let prefix = format!(
             "{:x}-{:x}",
             clock.now_ms(),
-            rust_cli_base::random::u64() & 0xffff_ffff
+            nibi_kernel_base::random::u64() & 0xffff_ffff
         );
         Self {
             peer,

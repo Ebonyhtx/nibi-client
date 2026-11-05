@@ -4,11 +4,11 @@
 //! （`NIBI_MODEL_BASE_URL` / `NIBI_API_KEY`，修复线 F42）与测试用这里的 [`FixedEndpoint`]。
 
 use async_trait::async_trait;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::{ModelError, ModelSelection};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::{ModelError, ModelSelection};
 use std::sync::Arc;
 
-use rust_cli_kernel_api::provider::{
+use nibi_kernel_api::provider::{
     Credential, ModelCapabilities, ModelEndpoint, ModelEndpoints, WireProtocol,
 };
 

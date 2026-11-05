@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome};
-use rust_cli_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::hooks::{HookEventName, HookOutcome};
+use nibi_kernel_api::permission::PermissionDecision;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 

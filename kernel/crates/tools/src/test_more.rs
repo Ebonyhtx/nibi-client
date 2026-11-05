@@ -3,21 +3,21 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     AgentId, EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::local_services::{Fetch, Git, LocalServices};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::local_services::{Fetch, Git, LocalServices};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, MachineEnv, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::Interactions;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::Interactions;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{
     AllPorts, MemoryStore, UnusedEnvironment, local_services, machine,
 };
-use rust_cli_kernel_api::tool::{ToolOutput, ToolUseContext};
+use nibi_kernel_api::tool::{ToolOutput, ToolUseContext};
 use tokio_util::sync::CancellationToken;
 
 pub(crate) struct Ctx {
@@ -95,7 +95,7 @@ pub(crate) struct TextEnv {
     pub(crate) home: String,
     pub(crate) files: std::sync::Mutex<Vec<(String, String)>>,
     /// `fetch_url` 的脚本：URL → 响应；记录收到的 URL。
-    pub(crate) pages: Vec<(String, rust_cli_kernel_api::env_web::FetchedUrl)>,
+    pub(crate) pages: Vec<(String, nibi_kernel_api::env_web::FetchedUrl)>,
     pub(crate) fetched: std::sync::Mutex<Vec<String>>,
 }
 
@@ -115,7 +115,7 @@ impl TextEnv {
     }
 
     /// 只回答 `fetch_url` 的执行环境。
-    pub(crate) fn web(pages: Vec<(&str, rust_cli_kernel_api::env_web::FetchedUrl)>) -> Self {
+    pub(crate) fn web(pages: Vec<(&str, nibi_kernel_api::env_web::FetchedUrl)>) -> Self {
         let mut env = Self::new(&[]);
         env.pages = pages
             .into_iter()
@@ -132,8 +132,8 @@ impl TextEnv {
     }
 }
 
-fn unsupported() -> rust_cli_kernel_api::env::EnvError {
-    rust_cli_kernel_api::env::EnvError::Unsupported {
+fn unsupported() -> nibi_kernel_api::env::EnvError {
+    nibi_kernel_api::env::EnvError::Unsupported {
         what: "test".to_owned(),
     }
 }
@@ -143,17 +143,17 @@ impl EnvInfo for TextEnv {
     async fn facts(
         &self,
         _workspace: &WorkspaceRef,
-    ) -> Result<rust_cli_kernel_api::env::EnvFacts, rust_cli_kernel_api::env::EnvError> {
+    ) -> Result<nibi_kernel_api::env::EnvFacts, nibi_kernel_api::env::EnvError> {
         Err(unsupported())
     }
 
     async fn path_facts(
         &self,
         _workspace: &WorkspaceRef,
-    ) -> Result<rust_cli_kernel_api::env_files::PathFacts, rust_cli_kernel_api::env::EnvError> {
-        Ok(rust_cli_kernel_api::env_files::PathFacts {
+    ) -> Result<nibi_kernel_api::env_files::PathFacts, nibi_kernel_api::env::EnvError> {
+        Ok(nibi_kernel_api::env_files::PathFacts {
             home: Some(EnvPath::new(self.home.clone())),
-            style: rust_cli_kernel_api::env_files::PathStyle::Posix,
+            style: nibi_kernel_api::env_files::PathStyle::Posix,
         })
     }
 }
@@ -163,8 +163,8 @@ impl Files for TextEnv {
     async fn read_file(
         &self,
         _workspace: &WorkspaceRef,
-        _request: rust_cli_kernel_api::env::ReadFile,
-    ) -> Result<rust_cli_kernel_api::env::FileContent, rust_cli_kernel_api::env::EnvError> {
+        _request: nibi_kernel_api::env::ReadFile,
+    ) -> Result<nibi_kernel_api::env::FileContent, nibi_kernel_api::env::EnvError> {
         Err(unsupported())
     }
 
@@ -172,36 +172,36 @@ impl Files for TextEnv {
         &self,
         _workspace: &WorkspaceRef,
         _context: OperationContext,
-        _request: rust_cli_kernel_api::env::WriteFile,
-    ) -> Result<rust_cli_kernel_api::env::WriteReceipt, rust_cli_kernel_api::env::EnvError> {
+        _request: nibi_kernel_api::env::WriteFile,
+    ) -> Result<nibi_kernel_api::env::WriteReceipt, nibi_kernel_api::env::EnvError> {
         Err(unsupported())
     }
 
     async fn read_text(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_files::ReadText,
-    ) -> Result<rust_cli_kernel_api::env_files::TextRead, rust_cli_kernel_api::env::EnvError> {
+        request: nibi_kernel_api::env_files::ReadText,
+    ) -> Result<nibi_kernel_api::env_files::TextRead, nibi_kernel_api::env::EnvError> {
         let files = self
             .files
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let Some((_, text)) = files.iter().find(|(path, _)| path == request.path.as_str()) else {
-            return Err(rust_cli_kernel_api::env::EnvError::NotFound {
+            return Err(nibi_kernel_api::env::EnvError::NotFound {
                 path: request.path.as_str().to_owned(),
             });
         };
         let lines = u64::try_from(text.lines().count()).unwrap_or(u64::MAX);
         let bytes = u64::try_from(text.len()).unwrap_or(u64::MAX);
-        Ok(rust_cli_kernel_api::env_files::TextRead::Text(
-            rust_cli_kernel_api::env_files::TextSlice {
+        Ok(nibi_kernel_api::env_files::TextRead::Text(
+            nibi_kernel_api::env_files::TextSlice {
                 content: text.clone(),
                 line_count: lines,
                 total_lines: lines,
                 total_bytes: bytes,
                 read_bytes: bytes,
                 mtime_ms: 0,
-                version: rust_cli_kernel_api::env::FileVersion::new("v1"),
+                version: nibi_kernel_api::env::FileVersion::new("v1"),
             },
         ))
     }
@@ -213,8 +213,8 @@ impl Commands for TextEnv {
         &self,
         _workspace: &WorkspaceRef,
         _context: OperationContext,
-        _request: rust_cli_kernel_api::env::StartCommand,
-    ) -> Result<(), rust_cli_kernel_api::env::EnvError> {
+        _request: nibi_kernel_api::env::StartCommand,
+    ) -> Result<(), nibi_kernel_api::env::EnvError> {
         Err(unsupported())
     }
 
@@ -224,7 +224,7 @@ impl Commands for TextEnv {
         _cursor: u64,
     ) -> futures_util::stream::BoxStream<
         'static,
-        Result<rust_cli_kernel_api::env::CommandEvent, rust_cli_kernel_api::env::EnvError>,
+        Result<nibi_kernel_api::env::CommandEvent, nibi_kernel_api::env::EnvError>,
     > {
         use futures_util::StreamExt;
         futures_util::stream::iter([Err(unsupported())]).boxed()
@@ -233,14 +233,14 @@ impl Commands for TextEnv {
     async fn cancel(
         &self,
         _operation: OperationId,
-    ) -> Result<(), rust_cli_kernel_api::env::EnvError> {
+    ) -> Result<(), nibi_kernel_api::env::EnvError> {
         Err(unsupported())
     }
 
     async fn operation_status(
         &self,
         _operation: OperationId,
-    ) -> Result<rust_cli_kernel_api::env::Outcome, rust_cli_kernel_api::env::EnvError> {
+    ) -> Result<nibi_kernel_api::env::Outcome, nibi_kernel_api::env::EnvError> {
         Err(unsupported())
     }
 
@@ -248,7 +248,7 @@ impl Commands for TextEnv {
         &self,
         _session: &SessionId,
         _forget: bool,
-    ) -> Result<(), rust_cli_kernel_api::env::EnvError> {
+    ) -> Result<(), nibi_kernel_api::env::EnvError> {
         Ok(())
     }
 }
@@ -258,8 +258,8 @@ impl Fetch for TextEnv {
     async fn fetch_url(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_web::FetchUrl,
-    ) -> Result<rust_cli_kernel_api::env_web::FetchedUrl, rust_cli_kernel_api::env::EnvError> {
+        request: nibi_kernel_api::env_web::FetchUrl,
+    ) -> Result<nibi_kernel_api::env_web::FetchedUrl, nibi_kernel_api::env::EnvError> {
         self.fetched
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)

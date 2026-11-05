@@ -10,9 +10,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::model::{ModelPort, ModelRequest};
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::ui::terminal::enter;
+use nibi_kernel_api::model::{ModelPort, ModelRequest};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::ui::terminal::enter;
 use tokio_util::sync::CancellationToken;
 
 use super::pty::{Pty, ROLE, interface, is_raw, shows};
@@ -128,7 +128,7 @@ async fn caught() {
     let logs = Arc::new(Mutex::new(Vec::new()));
     tracing::subscriber::set_global_default(Capture(logs.clone())).unwrap();
     let entered = enter().unwrap();
-    let task = rust_cli_base::owned(async {
+    let task = nibi_kernel_base::owned(async {
         if true {
             panic!("caught in a task");
         }

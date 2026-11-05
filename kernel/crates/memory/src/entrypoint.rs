@@ -3,7 +3,7 @@
 // 截断提示的大小写法与 `<persisted-output>` 是同一个函数（`formatBytes`）。
 // 缺陷修复（F58）：以前这里自己写了一份，一位小数用 Rust 的 `{:.1}`（平分时取偶，25856 码元得 `25.2KB`）；
 // JS `toFixed(1)` 平分时取大（`25.3KB`）。改用 kernel-api 的唯一实现。
-use rust_cli_kernel_api::persisted_output::format_bytes;
+use nibi_kernel_api::persisted_output::format_bytes;
 
 /// 索引文件名。
 pub const ENTRYPOINT: &str = "MEMORY.md";

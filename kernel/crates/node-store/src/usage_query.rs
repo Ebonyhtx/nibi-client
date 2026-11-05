@@ -1,17 +1,17 @@
 //! `/usage` 的两个只读查询（docs/specs/rust-cli/usage.md §4、§5.2）：都是聚合 SQL，不把消息或用量行整表读进
 //! 内存。会话的开始与时长、按天的消息数只扫 `message_session_time_created_id_idx`。
 use rusqlite::Connection;
-use rust_cli_kernel_api::clock::civil_date;
-use rust_cli_kernel_api::metering::{
+use nibi_kernel_api::clock::civil_date;
+use nibi_kernel_api::metering::{
     ActivityDay, ActivityQuery, ActivityRange, ActivityStats, ModelTokens, SessionMetering,
 };
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::store::StoreError;
 
 use crate::{OrStorage, storage};
 
 /// 一天的毫秒数：只定义在 base 的 `js::date::DAY_MS`（u64，F58：以前这里另写一份 i64）。SQL 文本与 i64 的日界
 /// 算术用这个局部的 i64 值，文本逐字不变。
-const DAY_MS: i64 = rust_cli_base::js::date::DAY_MS as i64;
+const DAY_MS: i64 = nibi_kernel_base::js::date::DAY_MS as i64;
 
 /// 会话及其子代理子会话（`parent_id` 递归）里成功请求的耗时之和（`Total duration (API)`）。
 pub(crate) const METERING: &str = "with recursive tree(id) as (
@@ -136,7 +136,7 @@ pub fn activity(conn: &Connection, query: &ActivityQuery) -> Result<ActivityStat
         .storage()?
         .map(|row| {
             row.map(|(day, messages)| ActivityDay {
-                date: civil_date(to_u64(day) * rust_cli_base::js::date::DAY_MS),
+                date: civil_date(to_u64(day) * nibi_kernel_base::js::date::DAY_MS),
                 messages: to_u64(messages),
             })
         })
@@ -188,9 +188,9 @@ pub fn activity(conn: &Connection, query: &ActivityQuery) -> Result<ActivityStat
 /// 应用级用量的四路聚合 + 汇总（Node `queryAppUsage` 的 SQL 逐字移植）。
 pub fn app_usage(
     conn: &Connection,
-    query: &rust_cli_kernel_api::usage::AppUsageQuery,
-) -> Result<rust_cli_kernel_api::usage::AppUsage, StoreError> {
-    use rust_cli_kernel_api::usage::{AppUsage, AppUsageDayModelRow, AppUsageDayRow, AppUsageModelRow, AppUsageToolRow};
+    query: &nibi_kernel_api::usage::AppUsageQuery,
+) -> Result<nibi_kernel_api::usage::AppUsage, StoreError> {
+    use nibi_kernel_api::usage::{AppUsage, AppUsageDayModelRow, AppUsageDayRow, AppUsageModelRow, AppUsageToolRow};
 
     let (since, until, offset) = (
         i64::try_from(query.since_ms).unwrap_or(i64::MAX),
@@ -446,8 +446,8 @@ pub fn app_usage(
 pub fn session_usage(
     conn: &Connection,
     session: &str,
-) -> Result<rust_cli_kernel_api::usage::SessionUsage, StoreError> {
-    use rust_cli_kernel_api::usage::SessionUsage;
+) -> Result<nibi_kernel_api::usage::SessionUsage, StoreError> {
+    use nibi_kernel_api::usage::SessionUsage;
     let rows = conn
         .prepare_cached(
             "select query_source, status, input_tokens, output_tokens, reasoning_tokens,

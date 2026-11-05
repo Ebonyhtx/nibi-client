@@ -2,8 +2,8 @@
 use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::ids::{InteractionId, ToolUseId};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::ids::{InteractionId, ToolUseId};
+use nibi_kernel_api::orchestration::InteractionRequest;
 use serde_json::{Value, json};
 
 use crate::ui::i18n::{EN, Lang};

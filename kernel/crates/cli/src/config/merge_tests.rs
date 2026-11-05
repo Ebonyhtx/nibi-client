@@ -1,5 +1,5 @@
 //! 三段配置的合并（config.md §2）。
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::json;
 
 use super::*;
@@ -139,7 +139,7 @@ fn the_ui_locale_is_taken_from_the_last_layer_with_a_valid_value() {
 /// `ui.theme`（tui-manage.md §2.1）：同 `ui.locale` 的按键覆盖，只认 Node 的三个值。
 #[test]
 fn the_ui_theme_is_taken_from_the_last_layer_with_a_valid_value() {
-    use rust_cli_platform::UiTheme;
+    use nibi_kernel_platform::UiTheme;
     let user = object(json!({"ui": {"theme": "light"}}));
     let projects = [
         object(json!({"ui": {"theme": "dark"}})),

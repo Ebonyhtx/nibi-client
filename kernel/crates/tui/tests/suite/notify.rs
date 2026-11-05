@@ -2,7 +2,7 @@
 use std::time::Duration;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use serde_json::json;
 
 use super::support::{GatedModel, Setup, Ui, with_ui};

@@ -6,23 +6,23 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::Duration;
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::listing::ListingEntry;
-use rust_cli_kernel_api::mcp::{McpTransport, McpTransportConfig};
-use rust_cli_kernel_api::mcp_status::{
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::mcp::{McpTransport, McpTransportConfig};
+use nibi_kernel_api::mcp_status::{
     McpFailureKind, McpProtocolEra, McpServerStatus, McpServerStatusKind,
 };
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::mcp_ui::{
     McpAppConnection, McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
     McpResourceSignal, McpResourceTemplate, McpResourceTemplatePage, McpUiError, McpUiEvent,
     McpUiSubscriber, tool_visibility, visible_to_model,
 };
-use rust_cli_kernel_api::mcp_telemetry::McpProcessIdentity;
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::mcp_telemetry::McpProcessIdentity;
+use nibi_kernel_api::tool::Tool;
 use serde_json::{Value, json};
 use tokio::sync::{Notify, watch};
 use tokio_util::sync::CancellationToken;
@@ -540,7 +540,7 @@ impl Inner {
             .servers()
             .get(server)
             .is_some_and(|server| server.config.scope == crate::McpScope::Plugin);
-        rust_cli_kernel_api::mcp_telemetry::plugin_name(server, plugin_scope)
+        nibi_kernel_api::mcp_telemetry::plugin_name(server, plugin_scope)
             .unwrap_or_else(|| server.to_owned())
     }
 
@@ -970,8 +970,8 @@ impl McpManager {
     }
 
     /// `/mcp` 与 `/status` 的快照（docs/specs/rust-cli/tui-display.md §3.4）：状态、失败原因、已连接时的工具数。
-    pub fn server_infos(&self) -> Vec<rust_cli_kernel_api::manage::McpServerInfo> {
-        use rust_cli_kernel_api::manage::{McpServerInfo, McpServerState};
+    pub fn server_infos(&self) -> Vec<nibi_kernel_api::manage::McpServerInfo> {
+        use nibi_kernel_api::manage::{McpServerInfo, McpServerState};
         self.0
             .servers()
             .values()
@@ -1337,7 +1337,7 @@ fn remote_machine(config: &McpServer) -> Option<String> {
     config
         .machine
         .clone()
-        .filter(|name| !name.is_empty() && name != rust_cli_kernel_api::env_registry::LOCAL_MACHINE)
+        .filter(|name| !name.is_empty() && name != nibi_kernel_api::env_registry::LOCAL_MACHINE)
 }
 
 /// 已连接、有 instructions 的服务器，按名字排序：`## <server>\n<instructions>`（ext.md §3.6）。
@@ -1450,7 +1450,7 @@ fn connection_identity(workspace: &WorkspaceRef, config: &McpServer) -> String {
     };
     let input = format!(
         "{}\u{1e}{}\u{1e}{}\u{1e}{fingerprint}\u{1e}{:?}\u{1e}{}",
-        rust_cli_kernel_api::process_table::node_platform(),
+        nibi_kernel_api::process_table::node_platform(),
         workspace.root.as_str(),
         config.name,
         config.options.timeout_ms,
@@ -1491,7 +1491,7 @@ mod state;
 ///
 /// 截取只定义在 base 的 `log_text::head`（F58：以前这里与 query 各写一份）。
 pub(crate) fn logged_reason(reason: &str) -> String {
-    rust_cli_base::log_text::head(reason)
+    nibi_kernel_base::log_text::head(reason)
 }
 
 #[cfg(test)]

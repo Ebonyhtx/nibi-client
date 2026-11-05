@@ -4,9 +4,9 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent};
-use rust_cli_kernel_api::model::{ApiContent, ApiMessage, ApiRole};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, ToolResultContent};
+use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole};
 
 use crate::texts;
 

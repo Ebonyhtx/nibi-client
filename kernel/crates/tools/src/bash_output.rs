@@ -1,9 +1,9 @@
 //! Bash 结果的文本（shell-permissions.md §1.3）。后台通知的文本在
-//! `rust_cli_query::task_notification`。
+//! `nibi_kernel_query::task_notification`。
 //!
 //! 逐字固定：成功、退出码、超时、超长输出、cwd 重置、空输出、后台。
 
-use rust_cli_kernel_api::ids::{OperationId, ShellTaskId};
+use nibi_kernel_api::ids::{OperationId, ShellTaskId};
 
 use crate::budget::{persisted_message, preview};
 
@@ -65,7 +65,7 @@ pub fn failure(exit_code: i32, output: &str) -> String {
 pub fn timed_out(timeout_ms: u64, output: &str) -> String {
     let notice = format!(
         "Command timed out after {}",
-        rust_cli_kernel_api::metering::format_duration(timeout_ms)
+        nibi_kernel_api::metering::format_duration(timeout_ms)
     );
     if output.is_empty() {
         notice
@@ -120,15 +120,15 @@ pub fn backgrounded(task: &ShellTaskId, output_file: &str) -> String {
 /// 前台命令被要求转到后台时的结果（修复线 L-A，tui-input.md §11.1、§11.2；对照实现的
 /// 两种说法）：用户按键时只有一句；低延迟投递时说明为什么转、怎样看输出。
 pub fn backgrounded_by(
-    reason: rust_cli_kernel_api::env::BackgroundReason,
+    reason: nibi_kernel_api::env::BackgroundReason,
     task: &ShellTaskId,
     output_file: &str,
 ) -> String {
     match reason {
-        rust_cli_kernel_api::env::BackgroundReason::User => format!(
+        nibi_kernel_api::env::BackgroundReason::User => format!(
             "Command was manually backgrounded by user with ID: {task}. Output is being written to: {output_file}."
         ),
-        rust_cli_kernel_api::env::BackgroundReason::DeliverMessage => format!(
+        nibi_kernel_api::env::BackgroundReason::DeliverMessage => format!(
             "Command was moved to the background (ID: {task}) so that a message that arrived while it was running can reach you; it was not interrupted. Output is being written to: {output_file}. You will be notified when it completes. To check interim output, use Read on that file path."
         ),
     }
@@ -147,7 +147,7 @@ pub fn moved_to_background(
         .map(|ms| {
             format!(
                 " If it is still running after {} in the background, it will be stopped and you will be notified.",
-                rust_cli_kernel_api::metering::format_duration_trimmed(ms)
+                nibi_kernel_api::metering::format_duration_trimmed(ms)
             )
         })
         .unwrap_or_default();

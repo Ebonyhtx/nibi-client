@@ -3,14 +3,14 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, OwnerEpoch, SessionId, TraceId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, OwnerEpoch, SessionId, TraceId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
-use rust_cli_kernel_api::testing::MemoryStore;
-use rust_cli_tui::trust::TrustPrompt;
+use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_api::testing::MemoryStore;
+use nibi_kernel_tui::trust::TrustPrompt;
 
 /// 一个预先放进库里的会话：首条输入与一条回复（`reply` 为空时没有回复：被中断的会话），给定的创建与活动时间（毫秒）。
 pub struct Seed {
@@ -85,7 +85,7 @@ pub struct Trust {
     pub accepted: Mutex<Vec<String>>,
 }
 
-impl rust_cli_tui::services::WorkspaceTrust for Trust {
+impl nibi_kernel_tui::services::WorkspaceTrust for Trust {
     fn check(&self, workspace: WorkspaceRef) -> BoxFuture<'static, Option<TrustPrompt>> {
         let root = workspace.root.as_str().to_owned();
         let ask = self.untrusted.contains(&root.as_str())
@@ -109,17 +109,17 @@ impl rust_cli_tui::services::WorkspaceTrust for Trust {
     }
 }
 
-pub fn services(trust: &Arc<Trust>) -> rust_cli_tui::Services {
-    rust_cli_tui::Services {
+pub fn services(trust: &Arc<Trust>) -> nibi_kernel_tui::Services {
+    nibi_kernel_tui::Services {
         trust: Some(trust.clone()),
-        ..rust_cli_tui::Services::default()
+        ..nibi_kernel_tui::Services::default()
     }
 }
 
 /// 有 `~/project` 与 `~/other` 两个目录的执行环境（`/export` 与 `/cd` 要它）。
-pub fn env() -> Arc<rust_cli_kernel_api::testing::MemoryEnvironment> {
+pub fn env() -> Arc<nibi_kernel_api::testing::MemoryEnvironment> {
     Arc::new(
-        rust_cli_kernel_api::testing::MemoryEnvironment::new(rust_cli_kernel_api::env::EnvFacts {
+        nibi_kernel_api::testing::MemoryEnvironment::new(nibi_kernel_api::env::EnvFacts {
             cwd: EnvPath::new("/Users/dev/project"),
             platform: "darwin".into(),
             os_version: "x".into(),

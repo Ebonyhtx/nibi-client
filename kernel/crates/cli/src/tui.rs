@@ -7,17 +7,17 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE};
-use rust_cli_headless::SessionTarget;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::ModelDirectory;
-use rust_cli_node_store::{NodeIds, SystemClock};
-use rust_cli_paths::StoragePaths;
-use rust_cli_platform::{Recorder, UiLocale, UiTheme};
-use rust_cli_tui::ui::afk::QuestionTimeout;
-use rust_cli_tui::{LocaleStore, MemoryFile, Options, Preferences, Services, Startup};
+use nibi_kernel_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE};
+use nibi_kernel_headless::SessionTarget;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::ModelDirectory;
+use nibi_kernel_node_store::{NodeIds, SystemClock};
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_platform::{Recorder, UiLocale, UiTheme};
+use nibi_kernel_tui::ui::afk::QuestionTimeout;
+use nibi_kernel_tui::{LocaleStore, MemoryFile, Options, Preferences, Services, Startup};
 
 /// TUI 用到的环境变量：色深、语言、终端种类（自动复制与键盘增强）。
 const VARS: &[&str] = &[
@@ -53,7 +53,7 @@ const VARS: &[&str] = &[
 
 /// 环境变量有非空的值。
 fn has(env: &[(String, String)], name: &str) -> bool {
-    rust_cli_base::secret::env_var(env, name).is_some_and(|value| !value.is_empty())
+    nibi_kernel_base::secret::env_var(env, name).is_some_and(|value| !value.is_empty())
 }
 
 pub(crate) fn vars(env: &[(String, String)]) -> BTreeMap<String, String> {
@@ -65,7 +65,7 @@ pub(crate) fn vars(env: &[(String, String)]) -> BTreeMap<String, String> {
 
 /// TUI 的机器服务与 MCP 服务器的机器标记（remote-exec.md §21.2、§22.8）。
 pub(crate) type MachineInputs = (
-    Option<Arc<dyn rust_cli_tui::machines::Machines>>,
+    Option<Arc<dyn nibi_kernel_tui::machines::Machines>>,
     Vec<(String, String)>,
 );
 
@@ -89,7 +89,7 @@ pub(crate) struct Inputs<'a> {
     pub theme: Option<UiTheme>,
     pub paths: StoragePaths,
     /// 平台层：TUI 的登录与退出（tui.md §7.2）。
-    pub account: Arc<rust_cli_platform::Platform>,
+    pub account: Arc<nibi_kernel_platform::Platform>,
     /// MCP 服务器的来源文件与写项目级文件的执行环境（tui-manage.md §6.1）。
     pub mcp: crate::tui_mcp::McpConfigFiles,
     /// 退出信号（session-lifecycle.md §3.5）。
@@ -98,11 +98,11 @@ pub(crate) struct Inputs<'a> {
     pub clock: Arc<SystemClock>,
     pub ids: Arc<NodeIds>,
     /// 应用内切到别的项目时的信任判定（workspace-trust.md §2.8）。
-    pub trust: Arc<dyn rust_cli_tui::services::WorkspaceTrust>,
+    pub trust: Arc<dyn nibi_kernel_tui::services::WorkspaceTrust>,
     /// npm 上有更新的版本时会话里的提示（update.md §7，F48）。
-    pub update: Option<rust_cli_tui::update::UpdateInfo>,
+    pub update: Option<nibi_kernel_tui::update::UpdateInfo>,
     /// 运行的平台（修复线 F65，tui-input.md §9）。
-    pub os: rust_cli_tui::Os,
+    pub os: nibi_kernel_tui::Os,
     /// 配置的 `askUserQuestionTimeout`（毫秒，tools-more.md §1.1，工作线 F72）。
     pub question_timeout: Option<u64>,
     /// 远端机器（remote-exec.md §21.2）：`/machines` 与机器状态行；绑定到远端机器的 MCP 服务器（服务器名，机器名；
@@ -119,7 +119,7 @@ impl LocaleStore for ConfigLocale {
     fn save(&self, locale: UiLocale) -> BoxFuture<'static, Result<String, String>> {
         let paths = self.paths.clone();
         async move {
-            rust_cli_platform::write_ui_locale(&paths, locale)
+            nibi_kernel_platform::write_ui_locale(&paths, locale)
                 .await
                 .map(|file| file.as_path().display().to_string())
                 .map_err(|error| error.to_string())
@@ -132,7 +132,7 @@ impl LocaleStore for ConfigLocale {
 /// Provider 配置（与 Node 同一个文件与字段）；`/mcp enable/disable` 写定义服务器的配置文件（§6.1）。
 struct ConfigPreferences {
     paths: StoragePaths,
-    platform: Arc<rust_cli_platform::Platform>,
+    platform: Arc<nibi_kernel_platform::Platform>,
     mcp: Arc<crate::tui_mcp::McpConfigFiles>,
 }
 
@@ -140,7 +140,7 @@ impl Preferences for ConfigPreferences {
     fn save_theme(&self, theme: UiTheme) -> BoxFuture<'static, Result<String, String>> {
         let paths = self.paths.clone();
         async move {
-            rust_cli_platform::write_ui_theme(&paths, theme)
+            nibi_kernel_platform::write_ui_theme(&paths, theme)
                 .await
                 .map(|file| file.as_path().display().to_string())
                 .map_err(|error| error.to_string())
@@ -177,7 +177,7 @@ pub(crate) fn memory_files(cwd: &Path, home: &Path) -> Vec<MemoryFile> {
         file(
             "User memory",
             &format!("~/{DOT_DIR}/{RULES_FILE}"),
-            rust_cli_paths::user_path(home, "").join(RULES_FILE),
+            nibi_kernel_paths::user_path(home, "").join(RULES_FILE),
         ),
         file(
             "Project memory",

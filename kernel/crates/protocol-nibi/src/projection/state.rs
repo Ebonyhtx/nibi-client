@@ -1,9 +1,9 @@
 //! 会话状态的 A 区字段（`snapshot.ts`）：control、availability、inputRouting、meta、config、usage、queue、
 //! pendingInteractions。每个函数给出整段的值（`state.updated` 是字段级整体替换，不深合并）。
 
-use rust_cli_kernel_api::message::Usage;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::message::Usage;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
 use serde_json::{Value, json};
 
 /// 会话的阶段（`sessionPhaseSchema`）。

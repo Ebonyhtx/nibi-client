@@ -7,9 +7,9 @@ use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::style::Color;
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 use serde_json::json;
 
 use super::*;

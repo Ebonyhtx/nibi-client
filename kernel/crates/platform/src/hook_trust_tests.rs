@@ -25,7 +25,7 @@ fn record(identity: &str, digest: &str, command: &str) -> TrustRecord {
 }
 
 fn store(dir: &std::path::Path) -> HookTrustStore {
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), dir, dir);
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), dir, dir);
     HookTrustStore::new(paths.hook_trust_store(None))
 }
 

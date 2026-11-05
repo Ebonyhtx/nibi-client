@@ -3,14 +3,14 @@
 use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, OwnerEpoch, SessionId, TraceId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, OwnerEpoch, SessionId, TraceId};
+use nibi_kernel_api::message::{
     AssistantMessage, CompactBoundary, CompactTrigger, ContentBlock, Message, PreservedSegment,
     StopReason, SystemMessage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
-use rust_cli_kernel_api::testing::{MemoryStore, text_response};
+use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_api::testing::{MemoryStore, text_response};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 
@@ -131,7 +131,7 @@ async fn resuming_a_compacted_session_shows_the_whole_history() {
         width: 100,
         height: 40,
         store,
-        startup: rust_cli_tui::Startup::Session(SESSION.to_owned()),
+        startup: nibi_kernel_tui::Startup::Session(SESSION.to_owned()),
         ..Setup::default()
     };
     with_ui(model, setup, |mut ui| async move {

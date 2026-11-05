@@ -7,11 +7,11 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, ToolResultContent, Usage};
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::provider::WireProtocol;
-use rust_cli_net::sse::SseEvent;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, StopReason, ToolResultContent, Usage};
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::provider::WireProtocol;
+use nibi_kernel_net::sse::SseEvent;
 use serde_json::{Map, Value};
 
 use crate::errors::{self, Finish, Vendor, Verdict};

@@ -4,13 +4,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::session_api::{Command, KernelEvent, SessionHandle, TurnOutcome};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_kernel_api::user_command::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::hooks::{HookEventName, HookOutcome};
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::session_api::{Command, KernelEvent, SessionHandle, TurnOutcome};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_api::user_command::{
     ExpandedKind, ExpandedMessage, Expansion, UserCommand, UserCommands, command_tags,
 };
 

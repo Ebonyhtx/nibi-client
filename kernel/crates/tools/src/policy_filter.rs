@@ -7,13 +7,13 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_state::McpConnections;
-use rust_cli_kernel_api::orchestration::{ToolRegistry, ToolSnapshot};
-use rust_cli_kernel_api::permission::{PermissionRules, RuleBehavior};
-use rust_cli_kernel_api::tool::Tool;
-use rust_cli_policy::PolicyGate;
-use rust_cli_policy::rules::Rules;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_state::McpConnections;
+use nibi_kernel_api::orchestration::{ToolRegistry, ToolSnapshot};
+use nibi_kernel_api::permission::{PermissionRules, RuleBehavior};
+use nibi_kernel_api::tool::Tool;
+use nibi_kernel_policy::PolicyGate;
+use nibi_kernel_policy::rules::Rules;
 
 use crate::registry::BASH;
 use crate::{glob, grep};
@@ -26,7 +26,7 @@ const SEARCH: [&str; 2] = [glob::NAME, grep::NAME];
 const DYNAMIC_WORKFLOW: [&str; 3] = [
     crate::fill_workflow_hole::FILL_WORKFLOW_HOLE_TOOL,
     crate::workflow_run_detail::GET_WORKFLOW_RUN_TOOL,
-    rust_cli_kernel_api::workflow::RESOLVE_WORKFLOW_QUESTION_TOOL,
+    nibi_kernel_api::workflow::RESOLVE_WORKFLOW_QUESTION_TOOL,
 ];
 
 /// 按规则快照过滤的注册表：包住基础工具与 MCP 工具，外层（Agent 等）经 [`ToolRegistry::hides`] 过滤自己的工具。

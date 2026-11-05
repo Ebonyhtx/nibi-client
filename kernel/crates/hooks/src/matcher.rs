@@ -3,9 +3,9 @@
 //! 步骤：match query 过滤 →
 //! 展开 → 按类型分组去重 → `if` 条件 → SessionStart / Setup 不跑 http hook。
 
-use rust_cli_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::hooks::HookEventName;
 // 旧工具名：与权限规则共用 kernel-api 的一张表（F58）。
-use rust_cli_kernel_api::tool::{LEGACY_TOOL_NAMES as LEGACY, canonical_tool_name};
+use nibi_kernel_api::tool::{LEGACY_TOOL_NAMES as LEGACY, canonical_tool_name};
 use serde_json::Value;
 
 use crate::config::{HookCommand, HookMatcher, HookShell};

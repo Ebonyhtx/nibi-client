@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
 use serde_json::json;
@@ -67,7 +67,7 @@ fn shape(messages: &[Message]) -> Vec<(String, Vec<String>)> {
                         content,
                     } => {
                         let interrupted = matches!(content.as_slice(),
-                            [rust_cli_kernel_api::message::ToolResultContent::Text { text }] if text == INTERRUPTED_CALL);
+                            [nibi_kernel_api::message::ToolResultContent::Text { text }] if text == INTERRUPTED_CALL);
                         format!(
                             "res:{tool_use_id}{}{}",
                             if *is_error { ":err" } else { "" },

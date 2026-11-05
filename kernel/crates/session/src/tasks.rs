@@ -10,14 +10,14 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, PoisonError};
 
-use rust_cli_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{ReadText, TextRead};
-use rust_cli_kernel_api::env_shell::{BackgroundStatus, BackgroundTask};
-use rust_cli_kernel_api::ids::{OwnerEpoch, SessionId};
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::manage::{BackgroundEntry, BackgroundKind, OUTPUT_TAIL_LINES};
-use rust_cli_kernel_api::panels::{SHELL_DETAIL_LINES, ShellDetail, ShellOutput, TasksSnapshot};
-use rust_cli_kernel_api::session_api::Ack;
+use nibi_kernel_api::env::{OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::env_files::{ReadText, TextRead};
+use nibi_kernel_api::env_shell::{BackgroundStatus, BackgroundTask};
+use nibi_kernel_api::ids::{OwnerEpoch, SessionId};
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::manage::{BackgroundEntry, BackgroundKind, OUTPUT_TAIL_LINES};
+use nibi_kernel_api::panels::{SHELL_DETAIL_LINES, ShellDetail, ShellOutput, TasksSnapshot};
+use nibi_kernel_api::session_api::Ack;
 use serde_json::json;
 
 use crate::SessionDeps;
@@ -199,11 +199,11 @@ async fn running_on(place: &Place, session: &SessionId, tail: bool) -> Vec<Backg
 
 /// 与执行环境的输出文件同名（`<outputs>/<任务>.output`）；Windows 也接受 `/`。
 fn output_path(
-    dir: &rust_cli_kernel_api::env::EnvPath,
+    dir: &nibi_kernel_api::env::EnvPath,
     task: &str,
-) -> rust_cli_kernel_api::env::EnvPath {
+) -> nibi_kernel_api::env::EnvPath {
     let base = dir.as_str().trim_end_matches(['/', '\\']);
-    rust_cli_kernel_api::env::EnvPath::new(format!("{base}/{task}.output"))
+    nibi_kernel_api::env::EnvPath::new(format!("{base}/{task}.output"))
 }
 
 /// 一个后台命令的输出尾窗（`v4/conversation/backgroundBashOutput`）：按本机、再按连上的远端机器
@@ -215,10 +215,10 @@ pub(crate) async fn background_output(
     session: &SessionId,
     task: &str,
     max_bytes: u64,
-) -> Result<Option<rust_cli_kernel_api::manage::BackgroundOutput>, rust_cli_kernel_api::env::EnvError> {
+) -> Result<Option<nibi_kernel_api::manage::BackgroundOutput>, nibi_kernel_api::env::EnvError> {
     let key = BackgroundTask {
         session: session.clone(),
-        task: rust_cli_kernel_api::ids::ShellTaskId::new(task),
+        task: nibi_kernel_api::ids::ShellTaskId::new(task),
     };
     for place in places(deps, workspace) {
         let info = place
@@ -237,7 +237,7 @@ pub(crate) async fn background_output(
             .background_output_tail(key, max_bytes)
             .await?
         {
-            Some(tail) => Ok(Some(rust_cli_kernel_api::manage::BackgroundOutput {
+            Some(tail) => Ok(Some(nibi_kernel_api::manage::BackgroundOutput {
                 work_id: task.to_owned(),
                 status: info.status,
                 output: String::from_utf8_lossy(&tail.bytes).into_owned(),
@@ -261,7 +261,7 @@ pub(crate) async fn shell_detail(
 ) -> Option<ShellDetail> {
     let key = BackgroundTask {
         session: session.clone(),
-        task: rust_cli_kernel_api::ids::ShellTaskId::new(task),
+        task: nibi_kernel_api::ids::ShellTaskId::new(task),
     };
     let mut found = None;
     for place in places(deps, workspace) {
@@ -306,7 +306,7 @@ pub(crate) async fn shell_detail(
 }
 
 /// 输出文件的末尾（最多 [`SHELL_DETAIL_LINES`] 行）与总行数；还没有文件时是空的，太大时不预览。
-async fn output_preview(place: &Place, path: &rust_cli_kernel_api::env::EnvPath) -> ShellOutput {
+async fn output_preview(place: &Place, path: &nibi_kernel_api::env::EnvPath) -> ShellOutput {
     let request = ReadText {
         path: path.clone(),
         start_line: 0,
@@ -336,7 +336,7 @@ async fn output_preview(place: &Place, path: &rust_cli_kernel_api::env::EnvPath)
             }
         }
         Ok(TextRead::TooLarge { size }) => ShellOutput::TooLarge { bytes: size },
-        Err(rust_cli_kernel_api::env::EnvError::NotFound { .. }) => ShellOutput::Tail {
+        Err(nibi_kernel_api::env::EnvError::NotFound { .. }) => ShellOutput::Tail {
             lines: Vec::new(),
             total: 0,
         },
@@ -344,7 +344,7 @@ async fn output_preview(place: &Place, path: &rust_cli_kernel_api::env::EnvPath)
     }
 }
 
-async fn output_tail(place: &Place, path: &rust_cli_kernel_api::env::EnvPath) -> Option<String> {
+async fn output_tail(place: &Place, path: &nibi_kernel_api::env::EnvPath) -> Option<String> {
     let request = ReadText {
         path: path.clone(),
         start_line: 0,

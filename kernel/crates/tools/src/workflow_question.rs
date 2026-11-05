@@ -9,10 +9,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::workflow::{
     RESOLVE_WORKFLOW_QUESTION_TOOL, WorkflowQuestionResolved, WorkflowQuestions,
 };
 use serde_json::{Value, json};
@@ -82,8 +82,8 @@ impl Tool for ResolveWorkflowQuestionTool {
         &self,
         _input: &Value,
         _context: &ToolUseContext,
-    ) -> rust_cli_kernel_api::permission::PermissionDecision {
-        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
             updated_input: None,
         }
     }
@@ -118,7 +118,7 @@ impl Tool for ResolveWorkflowQuestionTool {
         }
         match self.questions.resolve(&context.session, &qid, &answer).await {
             WorkflowQuestionResolved::Answered { qid } => Ok(ToolOutput {
-                content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+                content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                     text: format!(
                         "Answer delivered for question {qid}. The subagent that asked has resumed \
 its turn with your answer; the run keeps going as before."
@@ -128,7 +128,7 @@ its turn with your answer; the run keeps going as before."
                 display: json!({"ok": true, "qid": qid}),
             }),
             WorkflowQuestionResolved::Rejected { reason, message } => Ok(ToolOutput {
-                content: vec![rust_cli_kernel_api::message::ToolResultContent::Text { text: message }],
+                content: vec![nibi_kernel_api::message::ToolResultContent::Text { text: message }],
                 is_error: true,
                 display: json!({"ok": false, "reason": reason}),
             }),

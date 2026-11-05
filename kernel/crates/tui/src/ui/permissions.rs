@@ -2,8 +2,8 @@
 //! 规则来自内核的查询（[`PermissionsView::rules`] 是最后一次列表或修改的回执）；这里只有页面的界面状态。
 //! 修改经 [`Outcome::Change`] 交给 runner，回执到了才回到列表（同时只有一次修改在途）。
 use crossterm::event::{KeyCode, KeyEvent};
-use rust_cli_kernel_api::permission::{RuleBehavior, RuleChange, RuleSource, SourcedRule};
-use rust_cli_runtime::format_permission_rule;
+use nibi_kernel_api::permission::{RuleBehavior, RuleChange, RuleSource, SourcedRule};
+use nibi_kernel_runtime::format_permission_rule;
 
 use super::app::{Action, App, Overlay};
 use super::i18n::Lang;
@@ -295,7 +295,7 @@ impl PermissionsView {
         let text = match change {
             RuleChange::Add { rules, .. } => rules
                 .first()
-                .map(|text| format_permission_rule(&rust_cli_runtime::parse_permission_rule(text)))
+                .map(|text| format_permission_rule(&nibi_kernel_runtime::parse_permission_rule(text)))
                 .unwrap_or_default(),
             RuleChange::Remove { rule } => rule_text(rule),
         };

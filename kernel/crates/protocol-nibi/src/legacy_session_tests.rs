@@ -6,22 +6,22 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::goal::{ActiveGoal, GoalView};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::{PermissionMode, ToolPolicy};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::goal::{ActiveGoal, GoalView};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::{PermissionMode, ToolPolicy};
 use super::imported_history;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, CreateSession, Kernel, KernelError, SequencedEvent,
     SessionHandle, SessionView,
 };
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::store::{
     MessageTime, SessionFilter, SessionKind, SessionMeta, SessionSummary,
 };
-use rust_cli_protocol_core::connection::{self, Options, Service};
+use nibi_kernel_protocol_core::connection::{self, Options, Service};
 use serde_json::{Value, json};
 
 use crate::context::Context;
@@ -236,7 +236,7 @@ fn server(kernel: Arc<dyn Kernel>) -> Arc<Server> {
     let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
     let context = Arc::new(Context::new(
         peer,
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(5)),
+        Arc::new(nibi_kernel_api::testing::FixedClock(5)),
     ));
     Arc::new(Server::new(
         context,

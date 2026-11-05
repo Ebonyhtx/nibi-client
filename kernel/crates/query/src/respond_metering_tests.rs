@@ -3,14 +3,14 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::message::{Message, StopReason};
-use rust_cli_kernel_api::metering::{CallStatus, Metered, ModelCall, ToolCall};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::message::{Message, StopReason};
+use nibi_kernel_api::metering::{CallStatus, Metered, ModelCall, ToolCall};
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelNotice, ModelPort, ModelRequest, ModelStreamItem, QuerySource,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     FakeTool, RecordingSink, ScriptedModel, selection, text_response, tool_use_response,
 };
 use serde_json::json;
@@ -34,11 +34,11 @@ impl Clock for TickClock {
 
 async fn run(
     model: Arc<dyn ModelPort>,
-    tools: Vec<Arc<dyn rust_cli_kernel_api::tool::Tool>>,
+    tools: Vec<Arc<dyn nibi_kernel_api::tool::Tool>>,
 ) -> (
     Result<
-        rust_cli_kernel_api::orchestration::QueryStop,
-        rust_cli_kernel_api::orchestration::QueryError,
+        nibi_kernel_api::orchestration::QueryStop,
+        nibi_kernel_api::orchestration::QueryError,
     >,
     Arc<RecordingSink>,
 ) {
@@ -112,7 +112,7 @@ async fn a_tool_round_commits_the_tool_call_with_its_result() {
         tool_use_response("toolu_1", "Echo", &json!({})),
         text_response(&["done"]),
     ]));
-    let tool: Arc<dyn rust_cli_kernel_api::tool::Tool> =
+    let tool: Arc<dyn nibi_kernel_api::tool::Tool> =
         Arc::new(FakeTool::new("Echo", true, "héllo"));
     let (stop, sink) = run(model, vec![tool]).await;
     stop.unwrap();
@@ -126,7 +126,7 @@ async fn a_tool_round_commits_the_tool_call_with_its_result() {
     let result = sink
         .messages()
         .into_iter()
-        .find(|m| matches!(m, Message::User(u) if matches!(u.origin, rust_cli_kernel_api::message::UserOrigin::ToolResult { .. })))
+        .find(|m| matches!(m, Message::User(u) if matches!(u.origin, nibi_kernel_api::message::UserOrigin::ToolResult { .. })))
         .unwrap();
     assert_eq!(message.as_deref(), Some(result.id().as_str()));
     assert_eq!(call.tool_use.as_str(), "toolu_1");
@@ -146,7 +146,7 @@ async fn a_tool_only_reply_has_a_first_content_time() {
         tool_use_response("toolu_1", "Echo", &json!({"text": "hi"})),
         text_response(&["done"]),
     ]));
-    let tool: Arc<dyn rust_cli_kernel_api::tool::Tool> =
+    let tool: Arc<dyn nibi_kernel_api::tool::Tool> =
         Arc::new(FakeTool::new("Echo", true, "ok"));
     let (stop, sink) = run(model, vec![tool]).await;
     stop.unwrap();
@@ -168,8 +168,8 @@ async fn a_tool_only_reply_has_a_first_content_time() {
 /// 推理在前、文字在后：首个内容与首字都是推理的第一个非空增量；工具参数增量先到时只有首个内容。
 #[test]
 fn the_first_content_is_text_reasoning_or_tool_input() {
-    use rust_cli_kernel_api::message::ContentBlock;
-    use rust_cli_kernel_api::model::BlockDelta;
+    use nibi_kernel_api::message::ContentBlock;
+    use nibi_kernel_api::model::BlockDelta;
 
     use crate::respond::content_starts;
 
@@ -181,7 +181,7 @@ fn the_first_content_is_text_reasoning_or_tool_input() {
     assert!(!content_starts(&delta(BlockDelta::Signature("s".into()))));
     let block = |block| ModelEvent::BlockStart { index: 0, block };
     assert!(content_starts(&block(ContentBlock::ToolUse {
-        id: rust_cli_kernel_api::ids::ToolUseId::new("toolu_1"),
+        id: nibi_kernel_api::ids::ToolUseId::new("toolu_1"),
         name: "Echo".into(),
         input: json!({}),
     })));

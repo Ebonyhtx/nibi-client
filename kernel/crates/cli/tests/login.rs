@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 
 /// 在临时 home 里运行 `zcode <args>`，标准输入给 `stdin`。
 fn zcode(home: &Path, args: &[&str], stdin: &str, server: Option<&str>) -> Output {
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(args)
         .env_clear()

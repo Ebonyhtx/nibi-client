@@ -3,7 +3,7 @@
 //! check your network`。图标与前半用 error 色，后半 dim。主线程的状态行与前台子代理的 Agent 行共用。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::model::ModelNotice;
+use nibi_kernel_api::model::ModelNotice;
 use unicode_width::UnicodeWidthStr;
 
 use super::cells::duration;
@@ -119,12 +119,12 @@ pub fn spans(notice: &Notice, now_ms: u64, lang: Lang, width: usize) -> Vec<Span
 /// 被查看的子代理的重试与停顿（列表快照的 `activity`，修复线 F112，stall-visibility.md §4.3）：与主线程的重试行同一套
 /// 文字；`left_ms` 是快照里的剩余时长减去收到快照后经过的时间。别的活动没有重试行。
 pub fn activity_line(
-    activity: &rust_cli_kernel_api::panels::SubagentActivity,
+    activity: &nibi_kernel_api::panels::SubagentActivity,
     left_ms: u64,
     lang: Lang,
     width: usize,
 ) -> Option<Line<'static>> {
-    use rust_cli_kernel_api::panels::SubagentActivity;
+    use nibi_kernel_api::panels::SubagentActivity;
     let left = countdown(left_ms);
     let parts = match activity {
         SubagentActivity::Retrying {

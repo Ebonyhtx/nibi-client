@@ -4,7 +4,7 @@ use super::codecs::{MODEL_SELECTION_ENTRY, decode_entry_data};
 use super::sessions::touch;
 use anyhow::Result;
 use rusqlite::{Connection, params};
-use rust_cli_base::js::json::stringify;
+use nibi_kernel_base::js::json::stringify;
 use serde_json::{Value, json};
 
 /// Node `SessionEntryInfo`。

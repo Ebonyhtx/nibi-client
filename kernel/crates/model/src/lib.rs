@@ -2,7 +2,7 @@
 //!
 //! canonical 请求是 Anthropic Messages。每种线协议实现 `protocol::Protocol`：编码请求、写凭据 header、
 //! 解码 SSE、分类错误；取端点、连接、重试、取消与读流由 `transport` 统一处理。HTTP、SSE 与退避都经
-//! `rust-cli-net`。
+//! `nibi-kernel-net`。
 //!
 //! 每次请求先经 [`ModelEndpoints`] 取端点（平台层按 Provider registry 与账号解析，或显式覆盖的
 //! [`FixedEndpoint`]），再按端点的协议分派：anthropic-messages、openai-chat-completions、openai-responses。
@@ -42,12 +42,12 @@ use std::sync::Arc;
 
 use futures_util::future::{BoxFuture, FutureExt};
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection, ModelStreamItem,
 };
-use rust_cli_kernel_api::provider::{ModelCapabilities, ModelEndpoints};
-use rust_cli_net::Egress;
+use nibi_kernel_api::provider::{ModelCapabilities, ModelEndpoints};
+use nibi_kernel_net::Egress;
 use tokio_util::sync::CancellationToken;
 
 pub use endpoint::{AnthropicEndpoint, CapabilityRules, FixedEndpoint, anthropic_v1_base_url};
@@ -58,7 +58,7 @@ pub use metadata::DeviceIdSource;
 pub use model_io::{ModelIoRecord, ModelIoSink};
 pub use profiles::ANTHROPIC_OFFICIAL_BASE_URL;
 pub use request_headers::{RequestHeaders, RequestIdSource, SourceFacts, source_headers};
-pub use rust_cli_net::retry::RetryPolicy;
+pub use nibi_kernel_net::retry::RetryPolicy;
 
 use crate::transport::Route;
 

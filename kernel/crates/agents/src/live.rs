@@ -7,12 +7,12 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{AgentId, SessionId, ToolUseId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::{AgentId, SessionId, ToolUseId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
 
 use crate::definitions::AgentDefinition;
 use crate::doing::Doing;
@@ -77,7 +77,7 @@ pub(crate) struct LiveAgent {
     /// 列表显示用的记录（tui-panels.md §1.1）；由 `live::Live` 在每次改动后统一维护。
     pub(crate) shown: Shown,
     /// fork 子代理继承的前缀（修复线 L-A，agents.md §8.1.3）：不落库，续跑时拼在子会话的冷读取之前；别的子代理为 None。
-    pub(crate) fork_prefix: Option<Arc<Vec<rust_cli_kernel_api::message::Message>>>,
+    pub(crate) fork_prefix: Option<Arc<Vec<nibi_kernel_api::message::Message>>>,
 }
 
 /// 列表显示用的记录：启动顺序、这次运行的开始与结束时刻、等待中的交互、子会话的提交次数、当前活动。
@@ -92,7 +92,7 @@ pub(crate) struct Shown {
     pub(crate) doing: Option<(Doing, u64)>,
     /// 最近一个完成的子代理请求的输出速度（修复线 F112，tui-panels.md §1.7：查看它时 footer 的 TPS）：只在内存里，
     /// 与主会话的速度同一个口径（tui-display.md §2.6）。续跑与结束都不清掉。
-    pub(crate) speed: Option<rust_cli_kernel_api::metering::OutputSpeed>,
+    pub(crate) speed: Option<nibi_kernel_api::metering::OutputSpeed>,
 }
 
 impl LiveAgent {
@@ -214,7 +214,7 @@ impl Live {
     pub(crate) fn committed(
         &self,
         agent: &AgentId,
-        speed: Option<rust_cli_kernel_api::metering::OutputSpeed>,
+        speed: Option<nibi_kernel_api::metering::OutputSpeed>,
     ) {
         self.change(|agents| {
             if let Some(entry) = agents.get_mut(agent) {

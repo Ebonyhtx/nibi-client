@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::peers::{
     PeerAddress, PeerIdentity, PeerMessaging, PeerOutbound, PeerRecord, PeerSendError, PeerSignal,
     PeerStatus, ReceiptStatus, parse_envelope,
 };

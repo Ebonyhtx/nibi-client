@@ -7,18 +7,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, StopReason, ToolResultContent,
     UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError,
 };
 use serde_json::Value;
 
-use rust_cli_kernel_api::clock::Ids;
+use nibi_kernel_api::clock::Ids;
 
 use crate::definitions::{AgentDefinition, AgentSource};
 
@@ -73,7 +73,7 @@ pub(crate) fn prefix(
         content: vec![ContentBlock::ToolResult {
             tool_use_id: tool_use.clone(),
             content: vec![ToolResultContent::Text {
-                text: rust_cli_prompts::agents::fork_started().to_owned(),
+                text: nibi_kernel_prompts::agents::fork_started().to_owned(),
             }],
             is_error: false,
         }],

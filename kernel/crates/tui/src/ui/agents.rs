@@ -8,8 +8,8 @@ use std::time::Instant;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::panels::{SubagentActivity, SubagentEntry, SubagentStatus};
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::panels::{SubagentActivity, SubagentEntry, SubagentStatus};
 use unicode_width::UnicodeWidthStr;
 
 use super::agents_tree::{Forest, TreeRow};
@@ -48,7 +48,7 @@ pub struct Viewing {
     pub status: SubagentStatus,
     pub view: Transcript,
     /// 已折进 `view` 的消息 id（刷新时新快照以它们为前缀就只追加，tui-panels.md §1.6）。
-    pub messages: Vec<rust_cli_kernel_api::ids::MessageId>,
+    pub messages: Vec<nibi_kernel_api::ids::MessageId>,
     /// 载入时条目的 owner（原始的父代理）：它不在快照里了时改看 owner（tui-panels.md §1.6）。
     pub owner: Option<AgentId>,
 }

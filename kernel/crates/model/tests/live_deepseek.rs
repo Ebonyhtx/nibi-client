@@ -4,7 +4,7 @@
 //! 这是运营者手跑的测试（不进 CI）：先导出 key，再执行
 //!
 //! ```text
-//! NIBI_LIVE_DEEPSEEK_KEY=... cargo test -p rust-cli-model --test live_deepseek -- --ignored --nocapture
+//! NIBI_LIVE_DEEPSEEK_KEY=... cargo test -p nibi-kernel-model --test live_deepseek -- --ignored --nocapture
 //! ```
 //!
 //! 记录每次 HTTP 发送（请求条数、耗时、状态与错误分类），与内核侧矩阵
@@ -20,16 +20,16 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest,
     ModelSelection, ModelStreamItem, QuerySource, RequestOptions,
 };
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_model::{FixedEndpoint, ModelIoRecord, ModelIoSink, ProviderModel, RetryPolicy};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_model::{FixedEndpoint, ModelIoRecord, ModelIoSink, ProviderModel, RetryPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 

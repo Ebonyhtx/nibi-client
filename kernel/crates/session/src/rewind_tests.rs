@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WritePrecondition};
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, RewindScope, SessionHandle};
-use rust_cli_kernel_api::store::{ArtifactPurpose, Fact};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, ReadFile, WritePrecondition};
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::session_api::{Ack, Command, KernelEvent, RewindScope, SessionHandle};
+use nibi_kernel_api::store::{ArtifactPurpose, Fact};
+use nibi_kernel_api::testing::{
     MemoryEnvironment, ScriptedModel, text_response, tool_use_response,
 };
-use rust_cli_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -27,7 +27,7 @@ impl Tool for Writing {
     fn input_schema(&self) -> Value {
         json!({"type": "object"})
     }
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         "write".into()
     }
     async fn call(
@@ -74,7 +74,7 @@ impl Tool for Writing {
                 message: error.to_string(),
             })?;
         Ok(ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: "written".into(),
             }],
             is_error: false,
@@ -118,10 +118,10 @@ pub(crate) fn file(env: &MemoryEnvironment, path: &str) -> Option<String> {
 
 async fn env_read(
     env: &MemoryEnvironment,
-    workspace: rust_cli_kernel_api::env::WorkspaceRef,
+    workspace: nibi_kernel_api::env::WorkspaceRef,
     path: &str,
 ) -> Option<String> {
-    use rust_cli_kernel_api::machine::Files;
+    use nibi_kernel_api::machine::Files;
     let read = ReadFile {
         path: EnvPath::new(path),
     };
@@ -148,7 +148,7 @@ async fn checkpoints_are_committed_with_their_tool_results() {
     // 同一批：前一条事实就是工具结果。
     assert!(
         matches!(&facts[index - 1], Fact::MessageAppended { message: Message::User(user) }
-        if matches!(&user.origin, rust_cli_kernel_api::message::UserOrigin::ToolResult { assistant }
+        if matches!(&user.origin, nibi_kernel_api::message::UserOrigin::ToolResult { assistant }
             if *assistant == checkpoint.assistant))
     );
     let options = built.session.rewind_options().await.unwrap();

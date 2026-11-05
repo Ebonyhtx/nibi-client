@@ -1,6 +1,6 @@
 use futures_util::StreamExt;
-use rust_cli_kernel_api::agents::AgentSignal;
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::agents::AgentSignal;
+use nibi_kernel_api::ids::{AgentId, SessionId};
 use serde_json::json;
 
 use super::Hub;

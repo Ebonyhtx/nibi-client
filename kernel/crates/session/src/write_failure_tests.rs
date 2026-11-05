@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
-use rust_cli_kernel_api::session_api::{KernelEvent, SessionHandle, TurnOutcome};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::session_api::{KernelEvent, SessionHandle, TurnOutcome};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tracing::field::Field;
 use tracing::span::{Attributes, Id, Record};
 use tracing::{Event, Level, Metadata, Subscriber};

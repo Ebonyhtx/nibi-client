@@ -13,15 +13,15 @@ mod registry;
 use std::sync::{Arc, OnceLock};
 
 use anyhow::{Context, Result, anyhow};
-use rust_cli_base::TaskScope;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient};
-use rust_cli_exec_wire::dto::core::PathStyle as WirePathStyle;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, MachineFacts, RemoteMachine};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_machines::{MachineEntry, MachineList};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient};
+use nibi_kernel_exec_wire::dto::core::PathStyle as WirePathStyle;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, MachineFacts, RemoteMachine};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_machines::{MachineEntry, MachineList};
 
 pub(crate) use fleet::{Changed, Fleet, FleetError, Seen};
 pub(crate) use registry::MachineRegistry;
@@ -65,11 +65,11 @@ pub(crate) struct Start {
     /// 执行器子进程与 ssh 进程的环境（入口捕获的快照）。
     pub env: Vec<(String, String)>,
     /// 本机执行器目录（上传用的产物缓存，R2 §19.4）。
-    pub executor: rust_cli_paths::ExecutorPaths,
+    pub executor: nibi_kernel_paths::ExecutorPaths,
     /// 执行器的 npm 来源（F100，remote-exec.md §26.7）：所有机器共用一个（单飞靠它）；debug 构建没给假注册表时没有。
-    pub source: Option<Arc<dyn rust_cli_ssh_connect::ArtifactSource>>,
+    pub source: Option<Arc<dyn nibi_kernel_ssh_connect::ArtifactSource>>,
     /// 每台机器上期望的 MCP 服务器（R5，remote-exec.md §22.5）：入口在组装好 MCP 设置之后填。
-    pub mcp: std::collections::BTreeMap<String, Vec<rust_cli_kernel_api::mcp::McpConnect>>,
+    pub mcp: std::collections::BTreeMap<String, Vec<nibi_kernel_api::mcp::McpConnect>>,
     /// 绑定到远端机器的全部 MCP 服务器（服务器名，机器名；含停用的）：TUI 的工具行标出机器（§22.8）。
     pub mcp_marks: Vec<(String, String)>,
 }
@@ -77,9 +77,9 @@ pub(crate) struct Start {
 impl Start {
     /// 按形态与测试变量选：`surface` 是（TUI，`-p`）；`egress` 给执行器的 npm 来源（F100）。
     pub(crate) fn new(
-        paths: &rust_cli_paths::StoragePaths,
+        paths: &nibi_kernel_paths::StoragePaths,
         (tui, print): (bool, bool),
-        (startup, egress): (&super::Startup, &Arc<rust_cli_net::Egress>),
+        (startup, egress): (&super::Startup, &Arc<nibi_kernel_net::Egress>),
     ) -> Self {
         let assume = startup.explicit.assume;
         let ssh = crate::options::machine_ssh(crate::options::TestDeclarations::BUILD, |name| {
@@ -119,7 +119,7 @@ impl Start {
 
     /// 绑定到远端机器的 MCP 服务器：启用的按机器分组成期望集合（§22.5；停用的不算，执行器里还在跑的会被结束）；
     /// 启用的与停用的都给 TUI 标出机器（§22.8）。
-    pub(crate) fn with_mcp(mut self, config: &rust_cli_ext::ExtConfig) -> Self {
+    pub(crate) fn with_mcp(mut self, config: &nibi_kernel_ext::ExtConfig) -> Self {
         let all = config.mcp.servers.iter().chain(&config.mcp_disabled);
         self.mcp_marks = all
             .filter_map(|server| Some((server.name.clone(), server.machine.clone()?)))
@@ -127,7 +127,7 @@ impl Start {
         for server in &config.mcp.servers {
             if let Some(machine) = &server.machine {
                 self.mcp.entry(machine.clone()).or_default().push(
-                    rust_cli_kernel_api::mcp::McpConnect {
+                    nibi_kernel_api::mcp::McpConnect {
                         server: server.name.clone(),
                         transport: server.transport.clone(),
                         env: Default::default(),
@@ -151,7 +151,7 @@ impl Machines {
     }
 
     /// TUI 的机器服务（R4，§21.2）；`start` 之前或不连机器时没有。
-    pub(crate) fn service(&self) -> Option<Arc<dyn rust_cli_tui::machines::Machines>> {
+    pub(crate) fn service(&self) -> Option<Arc<dyn nibi_kernel_tui::machines::Machines>> {
         self.fleet
             .get()
             .map(|fleet| crate::tui_machines::service(fleet.clone()))
@@ -264,7 +264,7 @@ fn attach(registry: &MachineRegistry, entry: &MachineEntry, client: ExecClient) 
 
 /// 客户端的参数：SSH 照 R2 重连；loopback 不重连（执行器断开就是这台机器断开，§18.5）。
 fn options(connect: &Connect) -> ClientOptions {
-    let instance = format!("{:016x}", rust_cli_base::random::u64());
+    let instance = format!("{:016x}", nibi_kernel_base::random::u64());
     let mut options = ClientOptions::new(crate::VERSION, instance);
     if matches!(connect, Connect::Ssh { .. }) {
         options.reconnect = crate::ssh_executor::RECONNECT;

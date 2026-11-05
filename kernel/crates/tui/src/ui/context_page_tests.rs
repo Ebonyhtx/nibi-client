@@ -1,5 +1,5 @@
 //! `/context` 页面的明细与建议（tui-panels.md §4.2）：折叠、展开、建议的条件与排序。
-use rust_cli_kernel_api::context_usage::{
+use nibi_kernel_api::context_usage::{
     AgentUsage, CategoryKind, ContextUsage, McpToolUsage, MemoryFileUsage, SkillUsage,
     UsageCategory, WindowSource,
 };

@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::mcp_ui::{McpUiEvent, McpUiSubscriber};
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::mcp_ui::{McpUiEvent, McpUiSubscriber};
 use serde_json::{Value, json};
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -31,7 +31,7 @@ pub(crate) fn forward(
 }
 
 /// 事件 → （会话, 一条 `pluginUi.*` 增量）。
-fn split(event: McpUiEvent) -> (rust_cli_kernel_api::ids::SessionId, Value) {
+fn split(event: McpUiEvent) -> (nibi_kernel_api::ids::SessionId, Value) {
     match event {
         McpUiEvent::ResourceUpdated {
             session,

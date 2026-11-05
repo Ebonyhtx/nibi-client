@@ -4,16 +4,16 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{OperationContext, Origin};
-use rust_cli_kernel_api::ids::{OwnerEpoch, RunId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{OperationContext, Origin};
+use nibi_kernel_api::ids::{OwnerEpoch, RunId, ToolUseId};
+use nibi_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::orchestration::Interactions;
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_kernel_api::user_command::{ExpandedKind, Expansion, UserCommands};
+use nibi_kernel_api::orchestration::Interactions;
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_api::user_command::{ExpandedKind, Expansion, UserCommands};
 
 use crate::actor::Actor;
 
@@ -59,7 +59,7 @@ impl Actor {
     }
 }
 
-fn user(id: rust_cli_kernel_api::ids::MessageId, text: String, origin: UserOrigin) -> Message {
+fn user(id: nibi_kernel_api::ids::MessageId, text: String, origin: UserOrigin) -> Message {
     Message::User(UserMessage {
         id,
         content: vec![ContentBlock::Text { text }],

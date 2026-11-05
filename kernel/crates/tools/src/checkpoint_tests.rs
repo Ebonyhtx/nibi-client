@@ -34,19 +34,19 @@ fn a_created_file_adds_every_line_and_identical_text_has_no_hunk() {
 mod tools {
     use std::sync::Arc;
 
-    use rust_cli_kernel_api::env::{
+    use nibi_kernel_api::env::{
         EnvFacts, EnvPath, OperationContext, Origin, ReadFile, WorkspaceRef,
     };
-    use rust_cli_kernel_api::ids::{
+    use nibi_kernel_api::ids::{
         EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
     };
-    use rust_cli_kernel_api::machine::Files;
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::store::{ArtifactRef, ArtifactStore};
-    use rust_cli_kernel_api::testing::{
+    use nibi_kernel_api::machine::Files;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::store::{ArtifactRef, ArtifactStore};
+    use nibi_kernel_api::testing::{
         MemoryArtifacts, MemoryEnvironment, RecordingSink, local_services, machine,
     };
-    use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
+    use nibi_kernel_api::tool::{Tool, ToolUseContext};
     use serde_json::{Value, json};
     use tokio::sync::mpsc;
     use tokio_util::sync::CancellationToken;
@@ -111,7 +111,7 @@ mod tools {
     async fn writes_record_node_checkpoints_with_before_and_after_content() {
         let env = Arc::new(MemoryEnvironment::new(facts()));
         let artifacts = Arc::new(MemoryArtifacts::default());
-        let gate = Arc::new(rust_cli_policy::PolicyGate::default());
+        let gate = Arc::new(nibi_kernel_policy::PolicyGate::default());
         let tool = WriteTool::new(FileTools::new(Arc::new(ReadFileState::default()), gate));
         let input = json!({"file_path": "/work/a.txt", "content": "one\n"});
         let (progress, _) = mpsc::channel(4);

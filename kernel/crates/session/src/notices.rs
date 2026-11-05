@@ -4,10 +4,10 @@
 //! 输入队列只有一个 owner。通知进 next 通道（[`crate::lane`]）：运行中在下一个工具边界并入，空闲或
 //! 回合结束时开回合；提交之后才 ack（至少一次：重复的按对话里已有的同文本消息去掉）。
 
-use rust_cli_kernel_api::ids::ShellTaskId;
-use rust_cli_kernel_api::machine_notices::{self, MachineNotice};
-use rust_cli_kernel_api::session_api::KernelEvent;
-use rust_cli_query::task_status;
+use nibi_kernel_api::ids::ShellTaskId;
+use nibi_kernel_api::machine_notices::{self, MachineNotice};
+use nibi_kernel_api::session_api::KernelEvent;
+use nibi_kernel_query::task_status;
 
 use crate::actor::Actor;
 use crate::lane::Waiting;
@@ -15,7 +15,7 @@ use crate::watched::Watched;
 
 /// 通知开启的回合里，user 消息的来源（排队命令的 `task-notification` 模式）；常量在 kernel-api
 /// （冷投影按同一张表认通知轮）。
-pub(crate) use rust_cli_kernel_api::message::TASK_NOTIFICATION_SOURCE as NOTICE_SOURCE;
+pub(crate) use nibi_kernel_api::message::TASK_NOTIFICATION_SOURCE as NOTICE_SOURCE;
 
 /// 执行环境的通知流：本机与连上的远端机器合成一个流（R3，remote-exec.md §20.7.2），每条带机器名。某台机器不提供
 /// 通知或断开时，合成流丢掉那台的流、继续等其余的。
@@ -33,7 +33,7 @@ impl Actor {
             return;
         }
         // Monitor 的终态（工作线 F83）：在看的 monitor 等事件流也结束了再合成（monitors.rs）。
-        if notice.notice.kind == rust_cli_kernel_api::env_shell::BackgroundKind::Monitor
+        if notice.notice.kind == nibi_kernel_api::env_shell::BackgroundKind::Monitor
             && self.monitor_notice(&notice).await
         {
             return;

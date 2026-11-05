@@ -15,19 +15,19 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use rust_cli_base::TaskScope;
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::provider::ModelDirectory;
-use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::StorageSettings;
-use rust_cli_protocol_core::connection::{self, Options};
-use rust_cli_protocol_nibi::{Context, Defaults, HostHeaders, Startup};
-use rust_cli_runtime::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::provider::ModelDirectory;
+use nibi_kernel_api::store::{SessionFilter, SessionStore};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::StorageSettings;
+use nibi_kernel_protocol_core::connection::{self, Options};
+use nibi_kernel_protocol_nibi::{Context, Defaults, HostHeaders, Startup};
+use nibi_kernel_runtime::{
     ContextConfig, Defaults as KernelDefaults, LocalKernel, PluginSnapshotLoader, Ports, Surface,
     TitleModel,
 };
@@ -42,13 +42,13 @@ use crate::{
 struct SessionPluginLoader {
     home: PathBuf,
     env: EnvSnapshot,
-    paths: rust_cli_paths::StoragePaths,
+    paths: nibi_kernel_paths::StoragePaths,
     files: Arc<dyn Files>,
 }
 
 #[async_trait]
 impl PluginSnapshotLoader for SessionPluginLoader {
-    async fn load(&self, workspace: &WorkspaceRef) -> rust_cli_ext::Plugins {
+    async fn load(&self, workspace: &WorkspaceRef) -> nibi_kernel_ext::Plugins {
         let inputs = config::ConfigInputs {
             files: self.files.as_ref(),
             workspace,
@@ -147,7 +147,7 @@ pub(crate) fn dispatch(args: &[String]) -> Option<ExitCode> {
 /// 会话库的不透明 ID：Node `createHash("sha256").update(dbPath)` 的同一十六进制（同一个库总是
 /// 同一个 ID，不带路径；Host 按它归并迁移基线，两内核必须一致）。
 fn database_id(path: &std::path::Path) -> String {
-    rust_cli_node_store::session_database_id(path)
+    nibi_kernel_node_store::session_database_id(path)
 }
 
 async fn run(parsed: Parsed) -> Result<u8> {
@@ -207,10 +207,10 @@ async fn run(parsed: Parsed) -> Result<u8> {
 
 async fn serve(
     startup: crate::Startup,
-    paths: rust_cli_paths::StoragePaths,
+    paths: nibi_kernel_paths::StoragePaths,
     clock: Arc<SystemClock>,
     context: Arc<Context>,
-    spawner: rust_cli_base::Spawner,
+    spawner: nibi_kernel_base::Spawner,
     model_io: &model_io::ModelIo,
     stop: &crate::signals::Stop,
 ) -> Result<()> {
@@ -228,12 +228,12 @@ async fn serve(
     // Bash 命令的资源事实（`process/toolExecResource`，141 审计 §9 F3）：执行环境写这一头，
     // 协议 server 读另一头转发成通知。
     let (tool_telemetry, tool_exec_channel) =
-        rust_cli_protocol_nibi::telemetry::ToolExecChannel::channel();
+        nibi_kernel_protocol_nibi::telemetry::ToolExecChannel::channel();
     // MCP 进程的生命周期事件（`process/mcpTelemetry`）：ext 写这一头，协议 server 转发。
     let (mcp_telemetry, mcp_events) = tokio::sync::mpsc::unbounded_channel();
     // 本进程的读数（`process/resourceSample` 与 MCP 五分钟采样共用一份）。
-    let process_metrics: Arc<dyn rust_cli_kernel_api::process_metrics::ProcessMetrics> =
-        Arc::new(rust_cli_env_local::process_metrics::LocalProcessMetrics::new());
+    let process_metrics: Arc<dyn nibi_kernel_api::process_metrics::ProcessMetrics> =
+        Arc::new(nibi_kernel_env_local::process_metrics::LocalProcessMetrics::new());
     let monitor = options::monitor(startup.explicit.assume, shell.bash.is_some());
     let mcp_transport = Arc::new(LocalMcpTransport::new(
         shell.ledger.clone(),
@@ -362,7 +362,7 @@ async fn serve(
     }));
     extensions.monitor = monitor;
     // `mcpId` 的盐：桌面注入的设备标识；没有时 ext 退回进程级随机串（跨进程不可关联）。
-    extensions.mcp_telemetry = Some(rust_cli_ext::McpTelemetrySetup {
+    extensions.mcp_telemetry = Some(nibi_kernel_ext::McpTelemetrySetup {
         sink: mcp_telemetry,
         id_salt: startup
             .env
@@ -425,7 +425,7 @@ async fn serve(
         });
     let kernel = match &workflow_engine {
         Some(engine) => kernel.with_workflow_engine(
-            engine.clone() as Arc<dyn rust_cli_kernel_api::workflow::WorkflowEngine>
+            engine.clone() as Arc<dyn nibi_kernel_api::workflow::WorkflowEngine>
         ),
         None => kernel,
     };
@@ -434,7 +434,7 @@ async fn serve(
     // 默认超时与输出上限，信任记录落 `~/.nibi` 的共享信任库（与 Node CLI、App 同一份文件）。
     let kernel = kernel.with_hook_review(
         config::user_hooks(&paths).await,
-        Arc::new(rust_cli_platform::HookTrustStore::new(
+        Arc::new(nibi_kernel_platform::HookTrustStore::new(
             paths.hook_trust_store(config.storage.dir.as_deref()),
         )),
     );
@@ -445,7 +445,7 @@ async fn serve(
     let kernel = Arc::new(kernel);
     kernel.start_extensions().await;
     if let Some(engine) = workflow_engine {
-        engine.attach_kernel(kernel.clone() as Arc<dyn rust_cli_kernel_api::session_api::Kernel>);
+        engine.attach_kernel(kernel.clone() as Arc<dyn nibi_kernel_api::session_api::Kernel>);
     }
     state.ready().await;
     let defaults = Defaults {
@@ -456,31 +456,31 @@ async fn serve(
     let input = tokio::io::BufReader::new(tokio::io::stdin());
     // 进程资源遥测（`process/resourceSample`，141 审计 §9 F3）：桌面资源面板的 `cli_chat` 泳道读它。
     // 只量本进程——切到 Rust 内核后那个进程就是内核，Host 采不到。
-    let telemetry = rust_cli_protocol_nibi::telemetry::ResourceTelemetry::start(
+    let telemetry = nibi_kernel_protocol_nibi::telemetry::ResourceTelemetry::start(
         context.clone(),
         process_metrics.clone(),
         &spawner,
     );
     // 网络捕获（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）：Host 开关，
     // CLI 把出站请求的批次送回去。观察者装在本进程唯一的出口上，所以覆盖全部出站路径。
-    let capture = rust_cli_protocol_nibi::telemetry::Capture::new(context.clone(), &spawner);
+    let capture = nibi_kernel_protocol_nibi::telemetry::Capture::new(context.clone(), &spawner);
     egress.observe(capture.observer());
     // 读到 Host 关掉输入或收到退出信号时结束（Host 回收整棵进程树）。
     tokio::select! {
-        result = rust_cli_protocol_nibi::serve_with_capture(
+        result = nibi_kernel_protocol_nibi::serve_with_capture(
             input,
             context,
             kernel,
             defaults,
             spawner,
             Options::default(),
-            rust_cli_protocol_nibi::telemetry::TelemetryPorts {
+            nibi_kernel_protocol_nibi::telemetry::TelemetryPorts {
                 capture: Some(capture),
                 tool_exec: Some(tool_exec_channel),
                 mcp_events: Some(mcp_events),
                 mcp_ui_events: Some(mcp_ui_receiver),
-                mcp_resource: Some(rust_cli_protocol_nibi::telemetry::McpResourcePorts {
-                    sampler: Arc::new(rust_cli_env_local::process_sampler::LocalProcessSampler::new()),
+                mcp_resource: Some(nibi_kernel_protocol_nibi::telemetry::McpResourcePorts {
+                    sampler: Arc::new(nibi_kernel_env_local::process_sampler::LocalProcessSampler::new()),
                     metrics: process_metrics,
                 }),
             },

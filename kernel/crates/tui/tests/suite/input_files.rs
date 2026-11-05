@@ -4,8 +4,8 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, environments, text_response};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 
@@ -87,7 +87,7 @@ async fn esc_closes_the_file_list_and_unknown_queries_show_nothing() {
 /// `@` 图片（tui-input.md §1.3）：调用说明单独一条 user 消息，image 块另起一条，人类输入接在后面。
 #[tokio::test(flavor = "multi_thread")]
 async fn a_mentioned_image_reaches_the_model_as_an_image_block() {
-    use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
+    use nibi_kernel_api::message::{ContentBlock, ImageSource};
 
     let model = GatedModel::scripted(vec![text_response(&["a picture"])]);
     with_ui(model.clone(), setup(), |mut ui| async move {

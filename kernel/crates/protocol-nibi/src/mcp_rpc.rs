@@ -13,12 +13,12 @@
 //!   `2025-06-18`（`ext::mcp::connection::PROTOCOL_VERSION`）：要 `2026-07-28` 的服务器会在握手时
 //!   失败，按 `protocol_negotiation_failed` 报出来，而不是静默换成别的版本。
 
-use rust_cli_base::js::iso_timestamp;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
-use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_base::js::iso_timestamp;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
+use nibi_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
+use nibi_kernel_api::mcp_ui::{
     APP_TOOL_DESCRIPTION_MAX_CHARS, APP_TOOL_ERROR_MESSAGE_MAX_CHARS, APP_TOOL_NAME_MAX_CHARS,
     APP_TOOL_SCHEMA_MAX_BYTES, APP_TOOL_TITLE_MAX_CHARS, APP_TOOLS_MAX_PER_INSTANCE,
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourceTemplate,
@@ -32,8 +32,8 @@ use rust_cli_kernel_api::mcp_ui::{
     decoded_base64_len, json_bytes, mime_allowed_for_ui, tool_not_app_visible_message,
     tool_not_found_message,
 };
-use rust_cli_kernel_api::session_api::KernelError;
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Map, Value, json};
 
 use crate::server::{Server, kernel_error};

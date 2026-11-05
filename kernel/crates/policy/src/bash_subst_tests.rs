@@ -1,6 +1,6 @@
 //! 命令替换与进程替换（shell-permissions.md §4.5.2）：前缀 / 通配的 allow 规则盖不过替换里的命令。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use crate::bash::check;
 use crate::test_support::{message, run};

@@ -10,9 +10,9 @@
 use std::collections::BTreeMap;
 use std::process::Stdio;
 
-use rust_cli_kernel_api::mcp::{McpError, McpTransportEvent};
-use rust_cli_proc::ledger::{Containment, Isolation, Ledger, Purpose, Tracked};
-use rust_cli_proc::tree::Shutdown;
+use nibi_kernel_api::mcp::{McpError, McpTransportEvent};
+use nibi_kernel_proc::ledger::{Containment, Isolation, Ledger, Purpose, Tracked};
+use nibi_kernel_proc::tree::Shutdown;
 use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc;
@@ -61,7 +61,7 @@ pub(crate) struct Launch<'a> {
     pub args: &'a [String],
     pub env: &'a BTreeMap<String, String>,
     /// 执行器的服务端按客户端实例推来的变量（F96）：投影之后、配置的 `env` 之前。
-    pub overrides: &'a rust_cli_kernel_api::env_command::EnvOverrides,
+    pub overrides: &'a nibi_kernel_api::env_command::EnvOverrides,
     pub cwd: &'a str,
     /// 入口捕获的进程环境（按白名单投影）。
     pub snapshot: &'a [(String, String)],
@@ -70,7 +70,7 @@ pub(crate) struct Launch<'a> {
 /// 服务器进程的环境：快照的白名单投影，再加推来的变量（F96），最后是配置的 `env`（配置写明的优先）。
 pub(crate) fn child_env(
     snapshot: &[(String, String)],
-    overrides: &rust_cli_kernel_api::env_command::EnvOverrides,
+    overrides: &nibi_kernel_api::env_command::EnvOverrides,
     configured: &BTreeMap<String, String>,
 ) -> BTreeMap<String, String> {
     // 修复线 F58：`SHELL` 照快照继承（以前没设时写 `/bin/sh`，不该有这个缺省）。
@@ -95,9 +95,9 @@ pub(crate) async fn start(
     ledger: &Ledger,
     launch: Launch<'_>,
     events: EventSender,
-) -> Result<(std::sync::Arc<StdioLink>, rust_cli_base::OwnedTask<()>), McpError> {
+) -> Result<(std::sync::Arc<StdioLink>, nibi_kernel_base::OwnedTask<()>), McpError> {
     let env = child_env(launch.snapshot, launch.overrides, launch.env);
-    let mut command = rust_cli_proc::command(launch.command);
+    let mut command = nibi_kernel_proc::command(launch.command);
     command
         .args(launch.args)
         .current_dir(launch.cwd)
@@ -127,7 +127,7 @@ pub(crate) async fn start(
     let (outbox, inbox) = mpsc::channel(OUTBOX_CAPACITY);
     let closing = CancellationToken::new();
     let server = launch.server.to_owned();
-    let task = rust_cli_base::owned(run(Pipes {
+    let task = nibi_kernel_base::owned(run(Pipes {
         server,
         tracked,
         stdin,

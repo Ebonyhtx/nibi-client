@@ -5,8 +5,8 @@
 //! 的颜色（docs/specs/rust-cli/tui.md §7.4，修复线 F26，用户决定；原来都是 dim）。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::permission::PermissionMode;
 use unicode_width::UnicodeWidthStr;
 
 use super::app::App;

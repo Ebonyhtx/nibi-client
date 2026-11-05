@@ -253,7 +253,7 @@ pub enum HookHttpError {
     Failed { message: String },
 }
 
-/// http hook 的出口（执行 http hook 的网络部分）。实现方经 rust-cli-net 发出。
+/// http hook 的出口（执行 http hook 的网络部分）。实现方经 nibi-kernel-net 发出。
 #[async_trait]
 pub trait HookHttp: Send + Sync {
     async fn post(

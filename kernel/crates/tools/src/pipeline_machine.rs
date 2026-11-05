@@ -10,12 +10,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, LOCAL_MACHINE, MachineSet};
-use rust_cli_kernel_api::machine_param::{
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, LOCAL_MACHINE, MachineSet};
+use nibi_kernel_api::machine_param::{
     AGENT_TOOL, MACHINE, choices, named_in, take, takes_machine, with_machine,
 };
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_prompts::texts;
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_prompts::texts;
 use serde_json::Value;
 
 /// 一次调用的两份上下文：工具与判决链用路由后的；hooks 用会话的。

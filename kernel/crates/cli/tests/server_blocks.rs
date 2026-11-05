@@ -14,9 +14,9 @@ mod sse;
 use std::process::Stdio;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 use serde_json::{Value, json};
 
 /// 夹具的第一个主回复：GLM 在主回复里做了一次服务端调用。
@@ -81,7 +81,7 @@ async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
         reply_with_server_blocks(&notes.to_string_lossy()),
         sse::text_reply("done"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go"])
         .current_dir(&work)
         .env_clear()
@@ -132,10 +132,10 @@ async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
     let ids = NodeIds::new(Arc::new(SystemClock::utc()));
     let store = NodeStore::new(paths, Arc::new(ids));
     let listed = store
-        .list(rust_cli_kernel_api::store::SessionFilter {
-            workspace: rust_cli_kernel_api::env::WorkspaceRef {
-                environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-                root: rust_cli_kernel_api::env::EnvPath::new(work.to_string_lossy()),
+        .list(nibi_kernel_api::store::SessionFilter {
+            workspace: nibi_kernel_api::env::WorkspaceRef {
+                environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+                root: nibi_kernel_api::env::EnvPath::new(work.to_string_lossy()),
             },
             limit: 1,
         })

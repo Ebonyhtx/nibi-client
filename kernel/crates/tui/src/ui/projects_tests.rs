@@ -1,7 +1,7 @@
 //! ← 项目页的视图状态（F29，tui-panels.md §2）：分组与排序、筛选与搜索、组头的计数、焦点的移动、改名输入。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::i18n::Lang;

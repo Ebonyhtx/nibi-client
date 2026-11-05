@@ -4,10 +4,10 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use futures_util::StreamExt;
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::{CommandEvent, Outcome, StartCommand, WorkspaceRef};
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::{CommandEvent, Outcome, StartCommand, WorkspaceRef};
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
 
 use crate::support::{Kind, Machine, context, env_path, machine, workspace};
 

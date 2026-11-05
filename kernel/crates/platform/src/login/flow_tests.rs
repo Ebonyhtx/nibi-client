@@ -3,8 +3,8 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::provider::{Credential, ModelDirectory, ModelEndpoints};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::provider::{Credential, ModelDirectory, ModelEndpoints};
 use serde_json::{Value, json};
 
 use super::LoginError;

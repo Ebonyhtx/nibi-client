@@ -58,7 +58,7 @@ pub fn conversation_text(app: &App, now_ms: u64) -> (String, Option<String>) {
 fn timestamp(now_ms: u64, offset_minutes: i32) -> String {
     let utc = i64::try_from(now_ms).unwrap_or(i64::MAX);
     let local = u64::try_from(utc.saturating_add(i64::from(offset_minutes) * 60_000)).unwrap_or(0);
-    let date = rust_cli_kernel_api::clock::civil_date(local);
+    let date = nibi_kernel_api::clock::civil_date(local);
     let seconds = (local / 1000) % 86_400;
     format!(
         "{date}-{:02}{:02}{:02}",

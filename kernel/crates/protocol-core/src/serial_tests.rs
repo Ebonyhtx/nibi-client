@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rust_cli_base::TaskScope;
+use nibi_kernel_base::TaskScope;
 
 use super::*;
 

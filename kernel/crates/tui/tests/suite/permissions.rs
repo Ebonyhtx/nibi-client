@@ -2,10 +2,10 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::MemoryStore;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::MemoryStore;
 
 use super::support::{GatedModel, Setup, with_ui};
 

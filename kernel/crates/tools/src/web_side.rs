@@ -2,12 +2,12 @@
 //! 请求来源 `QuerySource::Side("web_fetch_apply")`；不带 system 段与工具。
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, ModelEvent, ModelRequest, QuerySource,
     RequestOptions, small_fast_model,
 };
-use rust_cli_kernel_api::tool::{ToolError, ToolUseContext};
+use nibi_kernel_api::tool::{ToolError, ToolUseContext};
 
 use crate::common::failed;
 use crate::web_fetch::{APPLY_LIMIT, SideModel};
@@ -61,7 +61,7 @@ pub(crate) async fn apply_prompt(
         temperature: None,
         betas: Vec::new(),
         // 名字只在 kernel-api 定义一处（用量表与请求头写成 Node 的 `web_fetch_processing`，工作线 F71）。
-        source: QuerySource::Side(rust_cli_kernel_api::model::SIDE_WEB_FETCH.to_owned()),
+        source: QuerySource::Side(nibi_kernel_api::model::SIDE_WEB_FETCH.to_owned()),
         // 工作线 F52：`metadata.user_id` 的 `session_id`（model.md §3.3）。
         options: RequestOptions {
             session_id: Some(context.session.clone()),

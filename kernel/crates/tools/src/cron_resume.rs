@@ -6,8 +6,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
 
 use crate::cron_board::{CronBoard, Job, JobKind};
 use crate::cron_expr::{self, RECURRING_MAX_AGE_MS};

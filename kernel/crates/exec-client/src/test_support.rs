@@ -5,17 +5,17 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_exec_transport::fault::{Faults, Switch, inject};
-use rust_cli_exec_transport::memory::{MemoryConnector, MemoryListener, network};
-use rust_cli_exec_transport::{Connector, FrameSink, FrameSource, Link, LinkError, Listener};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::core::{PathStyle, Workspace};
-use rust_cli_exec_wire::envelope::{
+use nibi_kernel_exec_transport::fault::{Faults, Switch, inject};
+use nibi_kernel_exec_transport::memory::{MemoryConnector, MemoryListener, network};
+use nibi_kernel_exec_transport::{Connector, FrameSink, FrameSource, Link, LinkError, Listener};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::core::{PathStyle, Workspace};
+use nibi_kernel_exec_wire::envelope::{
     EventHeader, ReplyHeader, ReplyResult, RequestHeader, StreamItem,
 };
-use rust_cli_exec_wire::frame::{Frame, Kind, Reassembler, Received};
-use rust_cli_exec_wire::handshake::{Capabilities, Hello, PROTOCOL, Welcome};
-use rust_cli_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::frame::{Frame, Kind, Reassembler, Received};
+use nibi_kernel_exec_wire::handshake::{Capabilities, Hello, PROTOCOL, Welcome};
+use nibi_kernel_exec_wire::reply::Reply;
 use serde::Serialize;
 
 use crate::{ClientOptions, Reconnect};
@@ -55,7 +55,7 @@ pub(crate) fn welcome(instance: &str, capabilities: Capabilities) -> Welcome {
         home: Some("/home/dev".to_owned()),
         shell: Some("bash".to_owned()),
         capabilities,
-        max_message: rust_cli_exec_wire::frame::MAX_MESSAGE,
+        max_message: nibi_kernel_exec_wire::frame::MAX_MESSAGE,
         ledger: None,
     }
 }

@@ -4,23 +4,23 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, MessageId, SessionId, TraceId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, MessageId, SessionId, TraceId};
+use nibi_kernel_api::message::{
     CompactBoundary, CompactTrigger, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::{
     CompactRequest, CompactResult, Compactor, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, KernelEvent, SessionHandle, TurnOutcome,
 };
-use rust_cli_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_api::testing::{
     MemoryStore, NeverCompact, ScriptedModel, SequentialIds, UnusedEnvironment, local_services,
     machine, selection,
 };
@@ -48,7 +48,7 @@ impl Compactor for FakeCompactor {
         let compacted = history.iter().any(|message| {
             matches!(
                 message,
-                Message::System(rust_cli_kernel_api::message::SystemMessage::CompactBoundary(_))
+                Message::System(nibi_kernel_api::message::SystemMessage::CompactBoundary(_))
             )
         });
         Some(if compacted {
@@ -120,22 +120,22 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
     let store = Arc::new(MemoryStore::default());
     store.create(meta()).await.unwrap();
     let env = Arc::new(UnusedEnvironment);
-    let runner = Arc::new(rust_cli_query::QueryLoop::new(rust_cli_query::QueryParts {
+    let runner = Arc::new(nibi_kernel_query::QueryLoop::new(nibi_kernel_query::QueryParts {
         model: Arc::new(ScriptedModel::new(Vec::new())),
-        context: Arc::new(rust_cli_kernel_api::testing::FixedContext(Vec::new())),
-        tools: Arc::new(rust_cli_kernel_api::testing::NoTools),
-        executor: Arc::new(rust_cli_kernel_api::testing::FailingExecutor),
+        context: Arc::new(nibi_kernel_api::testing::FixedContext(Vec::new())),
+        tools: Arc::new(nibi_kernel_api::testing::NoTools),
+        executor: Arc::new(nibi_kernel_api::testing::FailingExecutor),
         compactor: Arc::new(NeverCompact),
-        hooks: Arc::new(rust_cli_kernel_api::testing::NoHooks),
+        hooks: Arc::new(nibi_kernel_api::testing::NoHooks),
         ids: Arc::new(SequentialIds::default()),
-        clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-        machines: rust_cli_kernel_api::testing::environments(env.clone()),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+        machines: nibi_kernel_api::testing::environments(env.clone()),
         machine: machine(env.clone()),
         local: local_services(env),
         artifacts: store.clone(),
-        generation: rust_cli_kernel_api::ids::Generation::new("g"),
+        generation: nibi_kernel_api::ids::Generation::new("g"),
         non_interactive: false,
-        limits: rust_cli_query::RequestLimits::default(),
+        limits: nibi_kernel_query::RequestLimits::default(),
     }));
     let history = vec![Message::User(UserMessage {
         id: MessageId::new("msg_u"),
@@ -147,30 +147,30 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
     let env = Arc::new(UnusedEnvironment);
     let session = Session::spawn(
         SessionDeps {
-            agents: Arc::new(rust_cli_kernel_api::agents::NoAgentSignals),
-            cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
+            agents: Arc::new(nibi_kernel_api::agents::NoAgentSignals),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
             store: store.clone(),
             ids: Arc::new(SequentialIds::default()),
             runner,
             compactor: Arc::new(FakeCompactor {
                 fail: fail.map(str::to_owned),
             }),
-            machines: rust_cli_kernel_api::testing::environments(env.clone()),
+            machines: nibi_kernel_api::testing::environments(env.clone()),
             machine: machine(env.clone()),
             local: local_services(env),
             max_turns: None,
-            hooks: Arc::new(rust_cli_kernel_api::testing::NoHooks),
-            commands: Arc::new(rust_cli_kernel_api::user_command::NoUserCommands),
-            inputs: Arc::new(rust_cli_kernel_api::user_input::NoUserInputs),
-            artifacts: Arc::new(rust_cli_kernel_api::testing::MemoryArtifacts::default()),
-            clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-            generation: rust_cli_kernel_api::ids::Generation::new("g1"),
+            hooks: Arc::new(nibi_kernel_api::testing::NoHooks),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
+            artifacts: Arc::new(nibi_kernel_api::testing::MemoryArtifacts::default()),
+            clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+            generation: nibi_kernel_api::ids::Generation::new("g1"),
             spawner: scope.spawner(),
             closing: scope.spawner(),
             titles: None,
-            side_model: Arc::new(rust_cli_kernel_api::testing::ScriptedModel::new(Vec::new())),
+            side_model: Arc::new(nibi_kernel_api::testing::ScriptedModel::new(Vec::new())),
             released: Arc::new(crate::NothingToRelease),
-            directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
@@ -182,7 +182,7 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
             selection: selection(),
             mode: PermissionMode::Default.into(),
             checkpoints: Vec::new(),
-            start: rust_cli_kernel_api::session_api::StartSource::Startup,
+            start: nibi_kernel_api::session_api::StartSource::Startup,
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),
@@ -287,7 +287,7 @@ async fn compact_runs_as_a_turn_and_commits_one_batch() {
     assert_eq!(
         record_texts(&view.messages),
         [
-            rust_cli_kernel_api::user_input::BASH_CAVEAT.to_owned(),
+            nibi_kernel_api::user_input::BASH_CAVEAT.to_owned(),
             "<command-name>/compact</command-name>\n            <command-message>compact</command-message>\n            <command-args>focus</command-args>".to_owned(),
             "<local-command-stdout>\u{1b}[2mCompacted (ctrl+o to see full summary)\u{1b}[22m</local-command-stdout>".to_owned(),
         ]
@@ -300,10 +300,10 @@ fn record_texts(messages: &[Message]) -> Vec<String> {
         .iter()
         .filter_map(|message| match message {
             Message::User(user)
-                if matches!(&user.origin, rust_cli_kernel_api::message::UserOrigin::Meta { source, .. } if source.starts_with("local-command")) =>
+                if matches!(&user.origin, nibi_kernel_api::message::UserOrigin::Meta { source, .. } if source.starts_with("local-command")) =>
             {
                 match user.content.as_slice() {
-                    [rust_cli_kernel_api::message::ContentBlock::Text { text }] => Some(text.clone()),
+                    [nibi_kernel_api::message::ContentBlock::Text { text }] => Some(text.clone()),
                     _ => None,
                 }
             }
@@ -349,7 +349,7 @@ async fn the_view_carries_the_context_usage_and_notice() {
     // 消息数：冷加载的一条输入与补上的 assistant（session-lifecycle.md §6.3.1）。
     assert_eq!(
         view.context_usage,
-        Some(rust_cli_kernel_api::compaction::ContextOccupancy {
+        Some(nibi_kernel_api::compaction::ContextOccupancy {
             used_tokens: 2,
             max_tokens: 100,
             window_tokens: None

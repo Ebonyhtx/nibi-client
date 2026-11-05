@@ -10,7 +10,7 @@
 
 use std::sync::OnceLock;
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 use serde::Deserialize;
 
 /// 没有卡片的模型的缺省输出上限（32000）。主循环、prompt hook、`/rename` 都用它（修复线 F58：以前四处各写一份；

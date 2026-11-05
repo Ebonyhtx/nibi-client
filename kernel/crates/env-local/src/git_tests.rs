@@ -5,12 +5,12 @@
 
 use std::path::Path;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_git::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_git::{
     GitDiff, GitDiffRequest, GitSnapshot, GitStatus, GitStatusRequest,
 };
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::local_services::Git;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::local_services::Git;
 
 use crate::{LocalEnvironment, ShellConfig};
 
@@ -33,7 +33,7 @@ fn local(home: &Path) -> LocalEnvironment {
 
 /// 在 `dir` 里跑 git（固定作者与时间，提交哈希确定）。
 pub(crate) fn git(dir: &Path, home: &Path, args: &[&str]) {
-    let status = rust_cli_proc::std_command("git")
+    let status = nibi_kernel_proc::std_command("git")
         .args(args)
         .current_dir(dir)
         .env_clear()

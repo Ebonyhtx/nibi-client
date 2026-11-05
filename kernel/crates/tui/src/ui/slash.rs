@@ -1,8 +1,8 @@
 //! 斜杠命令的执行（docs/specs/rust-cli/tui.md §6）。命令表在 `commands.rs`；依赖其他工作线的命令只
 //! 提示“未实现”，不发命令。
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::CatalogModel;
-use rust_cli_platform::model_name::{self, LookupError};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::CatalogModel;
+use nibi_kernel_platform::model_name::{self, LookupError};
 
 use super::app::{Action, App, Local, Overlay};
 use super::commands::{self, COMMANDS};
@@ -57,7 +57,7 @@ impl App {
             "goal" if args.is_empty() => Some(Action::ShowGoal),
             "goal" => Some(Action::Submit {
                 text: text.trim().to_owned(),
-                delivery: rust_cli_kernel_api::session_api::Delivery::Queue,
+                delivery: nibi_kernel_api::session_api::Delivery::Queue,
             }),
             "locale" => self.locale_command(args),
             "login" => self.login_command(args),
@@ -156,10 +156,10 @@ impl App {
         let enabling = !self.view.plan();
         if enabling {
             self.records
-                .push(rust_cli_kernel_api::user_command::LocalCommandRecord {
+                .push(nibi_kernel_api::user_command::LocalCommandRecord {
                     name: "plan".to_owned(),
                     args: String::new(),
-                    output: rust_cli_kernel_api::user_command::LocalCommandOutput::Stdout(
+                    output: nibi_kernel_api::user_command::LocalCommandOutput::Stdout(
                         "Enabled plan mode".to_owned(),
                     ),
                     caveat: true,
@@ -175,7 +175,7 @@ impl App {
         if self.view.plan() {
             let plan = i18n::mode_label(
                 self.lang,
-                rust_cli_kernel_api::permission::PermissionMode::Plan,
+                nibi_kernel_api::permission::PermissionMode::Plan,
             );
             format!("{plan} · {mode}")
         } else {

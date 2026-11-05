@@ -5,14 +5,14 @@ use std::sync::Arc;
 
 use anyhow::{Result, bail};
 use futures_util::StreamExt;
-use rust_cli_kernel_api::catalog::CatalogQuery;
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::catalog::CatalogQuery;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::message::{
     ContentBlock, Message, StopReason, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::orchestration::PermissionAnswer;
-use rust_cli_kernel_api::panels::SubagentStatus;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::orchestration::PermissionAnswer;
+use nibi_kernel_api::panels::SubagentStatus;
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, Delivery, Kernel, KernelEvent, SessionHandle, TurnOutcome,
 };
 use tokio::io::AsyncWrite;
@@ -83,7 +83,7 @@ fn local_output(user: &UserMessage) -> Option<&str> {
 }
 
 /// 权限模式的名字；plan 开时是 `plan`（F20 的独立开关）。
-fn mode_name(view: &rust_cli_kernel_api::session_api::SessionView) -> String {
+fn mode_name(view: &nibi_kernel_api::session_api::SessionView) -> String {
     if view.plan {
         return "plan".to_owned();
     }
@@ -434,7 +434,7 @@ impl<W: AsyncWrite + Unpin> Driver<'_, '_, W> {
         // 阻塞线拦下的回合最后是一条合成的错误消息（停在 stop_sequence），不是上一条回复。
         let stop_reason = match kind {
             ResultKind::Blocked { .. } => {
-                Some(rust_cli_kernel_api::message::StopReason::StopSequence)
+                Some(nibi_kernel_api::message::StopReason::StopSequence)
             }
             _ => turn.stop_reason,
         };
@@ -461,6 +461,6 @@ impl<W: AsyncWrite + Unpin> Driver<'_, '_, W> {
 
 /// 发请求前的阻塞线拦下的回合（compact.md §2.2）：`Prompt is too long`，或接着压缩失败原因的写法。
 fn is_blocking_limit(message: &str) -> bool {
-    use rust_cli_kernel_api::compaction::PROMPT_TOO_LONG;
+    use nibi_kernel_api::compaction::PROMPT_TOO_LONG;
     message == PROMPT_TOO_LONG || message.starts_with(&format!("{PROMPT_TOO_LONG} \u{b7} "))
 }

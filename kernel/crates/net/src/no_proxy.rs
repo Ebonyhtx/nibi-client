@@ -8,7 +8,7 @@
 //! punycode，IPv6 带方括号（与 WHATWG `URL.hostname` 相同）；端口是缺省端口时 URL 里没有端口（同 WHATWG）。
 
 use reqwest::Url;
-use rust_cli_base::js::string::{is_space, trim};
+use nibi_kernel_base::js::string::{is_space, trim};
 
 /// 不走代理的规则。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

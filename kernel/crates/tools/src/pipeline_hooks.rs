@@ -3,11 +3,11 @@
 //! 事件的 payload 固定；PreToolUse 的决定与判决链的先后见 hooks.md §6。hook 的消息与停止请求随
 //! [`ToolExecution`] 交给主循环。
 
-use rust_cli_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookOutcome};
-use rust_cli_kernel_api::message::{Message, ToolResultContent};
-use rust_cli_kernel_api::orchestration::ToolExecution;
-use rust_cli_kernel_api::permission::PermissionRule;
-use rust_cli_kernel_api::tool::{ToolOutput, ToolUseContext};
+use nibi_kernel_api::hooks::{HookContext, HookEvent, HookEventName, HookOutcome};
+use nibi_kernel_api::message::{Message, ToolResultContent};
+use nibi_kernel_api::orchestration::ToolExecution;
+use nibi_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::tool::{ToolOutput, ToolUseContext};
 use serde_json::{Value, json};
 
 /// 一次调用里 hook 产生的消息（排在 tool_result 前后）。

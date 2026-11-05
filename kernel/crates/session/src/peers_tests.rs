@@ -5,15 +5,15 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::peers::{
     InboundPeerMessage, ModeClass, PeerAddress, PeerIdentity, PeerMessaging, PeerOutbound,
     PeerReceipt, PeerRecord, PeerSendError, PeerSignal, PeerStatus, ReceiptStatus, envelope,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Command, KernelEvent, SessionHandle};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{Command, KernelEvent, SessionHandle};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tokio::sync::mpsc;
 
 use crate::PeerDeps;
@@ -150,7 +150,7 @@ async fn an_accepted_message_opens_an_idle_turn_with_the_idle_wrap() {
     assert_eq!(*lock(&port.bound), ["sess_1"]);
     assert!(port.receipts().is_empty());
     let entries = built.store.facts(&SessionId::new("sess_1"));
-    assert!(entries.iter().any(|fact| matches!(fact, rust_cli_kernel_api::store::Fact::Entry { kind, id, .. } if kind == "peer_message" && id == "m1")));
+    assert!(entries.iter().any(|fact| matches!(fact, nibi_kernel_api::store::Fact::Entry { kind, id, .. } if kind == "peer_message" && id == "m1")));
 }
 
 #[tokio::test]
@@ -188,7 +188,7 @@ async fn a_mismatched_message_is_held_until_approved() {
         ))
         .await;
     assert!(
-        matches!(ack, rust_cli_kernel_api::session_api::Ack::Accepted { .. }),
+        matches!(ack, nibi_kernel_api::session_api::Ack::Accepted { .. }),
         "{ack:?}"
     );
     until(&mut events, finished).await;
@@ -217,7 +217,7 @@ async fn a_mismatched_message_is_held_until_approved() {
         .await;
     assert!(matches!(
         again,
-        rust_cli_kernel_api::session_api::Ack::Rejected { .. }
+        nibi_kernel_api::session_api::Ack::Rejected { .. }
     ));
 }
 
@@ -290,12 +290,12 @@ async fn denial_mode_changes_and_expiry_settle_held_messages() {
 #[tokio::test]
 async fn a_held_message_is_restored_when_the_session_reopens() {
     let port = FakePort::new();
-    let store = Arc::new(rust_cli_kernel_api::testing::MemoryStore::default());
+    let store = Arc::new(nibi_kernel_api::testing::MemoryStore::default());
     let mut setup = Setup::new(Arc::new(ScriptedModel::new(Vec::new())));
     setup.peers = deps(&port, 300_000, true);
     setup.store = Some(store.clone());
     {
-        use rust_cli_kernel_api::store::SessionStore;
+        use nibi_kernel_api::store::SessionStore;
         store.create(crate::test_support::meta()).await.unwrap();
     }
     let built = setup.build().await;
@@ -307,7 +307,7 @@ async fn a_held_message_is_restored_when_the_session_reopens() {
     .await;
     built
         .session
-        .close(rust_cli_kernel_api::session_api::EndReason::Other)
+        .close(nibi_kernel_api::session_api::EndReason::Other)
         .await;
     drop(built);
 

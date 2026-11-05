@@ -8,20 +8,20 @@
 //!
 //! **网络捕获**：Host 用 `process/networkCapture` 开/关（`{captureId}`，`null` 是关），CLI 把攒下的
 //! 请求批次经 `process/networkRequests` 送回去。攒批在 [`Capture`] 里，出站请求从
-//! [`Egress`](rust_cli_net::Egress) 的观察者进来自动记。
+//! [`Egress`](nibi_kernel_net::Egress) 的观察者进来自动记。
 
 use std::sync::{Arc, Weak};
 use std::time::Duration;
 
-use rust_cli_base::{Spawner, Task};
-use rust_cli_kernel_api::mcp_telemetry::McpTelemetryEvent;
-use rust_cli_kernel_api::mcp_ui::McpUiEvent;
-use rust_cli_kernel_api::process_metrics::ProcessMetrics;
-use rust_cli_kernel_api::process_table::{MCP_RESOURCE_SAMPLE_INTERVAL, McpResourceSampler, ProcessSampler};
-use rust_cli_kernel_api::session_api::Kernel;
-use rust_cli_kernel_api::network_capture::{CaptureState, NetworkCapture};
-use rust_cli_net::EgressObserver;
-use rust_cli_kernel_api::process_metrics::{ResourceSampler, RESOURCE_SAMPLE_INTERVAL};
+use nibi_kernel_base::{Spawner, Task};
+use nibi_kernel_api::mcp_telemetry::McpTelemetryEvent;
+use nibi_kernel_api::mcp_ui::McpUiEvent;
+use nibi_kernel_api::process_metrics::ProcessMetrics;
+use nibi_kernel_api::process_table::{MCP_RESOURCE_SAMPLE_INTERVAL, McpResourceSampler, ProcessSampler};
+use nibi_kernel_api::session_api::Kernel;
+use nibi_kernel_api::network_capture::{CaptureState, NetworkCapture};
+use nibi_kernel_net::EgressObserver;
+use nibi_kernel_api::process_metrics::{ResourceSampler, RESOURCE_SAMPLE_INTERVAL};
 
 use crate::context::Context;
 
@@ -146,14 +146,14 @@ pub fn start_mcp_resource_sampler_with_interval(
 /// 用通道而不是让执行环境直接发通知：执行环境不认识协议，也不该认识。
 pub struct ToolExecChannel {
     records: tokio::sync::mpsc::UnboundedReceiver<
-        rust_cli_kernel_api::process_table::ToolExecResource,
+        nibi_kernel_api::process_table::ToolExecResource,
     >,
 }
 
 impl ToolExecChannel {
     /// 一对（发送端交给 `LocalEnvironment::with_tool_telemetry`）。
     pub fn channel() -> (
-        tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::process_table::ToolExecResource>,
+        tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::process_table::ToolExecResource>,
         Self,
     ) {
         let (sender, records) = tokio::sync::mpsc::unbounded_channel();
@@ -263,7 +263,7 @@ impl Capture {
                 tokio::select! {
                     _ = capture.flush_pending.notified() => {}
                     _ = tokio::time::sleep(Duration::from_millis(
-                        rust_cli_kernel_api::network_capture::CAPTURE_FLUSH_MS,
+                        nibi_kernel_api::network_capture::CAPTURE_FLUSH_MS,
                     )) => {}
                 }
                 let batch = capture.state.with(CaptureState::take_batch);
@@ -301,7 +301,7 @@ struct CaptureObserver {
     state: Weak<NetworkCapture>,
     flush: Arc<tokio::sync::Notify>,
     /// 记录的 `timestamp` 取注入的时钟（与其余遥测同源）。
-    clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
 }
 
 impl EgressObserver for CaptureObserver {

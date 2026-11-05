@@ -7,13 +7,13 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, PoisonError};
 
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{ContentBlock, Message};
 use serde_json::Value;
 
 use super::{SOURCE, TRIGGERING};
 use crate::rules::Scope;
-use rust_cli_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_files::PathStyle;
 
 /// 全部会话的缓存。
 #[derive(Default)]

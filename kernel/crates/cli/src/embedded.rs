@@ -11,12 +11,12 @@ use std::process::ExitCode;
 /// 内置的工具。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Tool {
-    /// ripgrep 15.2.0（`rust-cli-vendor-rg`，embedded-search.md §5）。
+    /// ripgrep 15.2.0（`nibi-kernel-vendor-rg`，embedded-search.md §5）。
     Rg,
-    /// bfs 4.1.4 + Oniguruma 6.9.10（`rust-cli-vendor-bfs`，§6）。Windows 没有（§6.4）。
+    /// bfs 4.1.4 + Oniguruma 6.9.10（`nibi-kernel-vendor-bfs`，§6）。Windows 没有（§6.4）。
     #[cfg(unix)]
     Bfs,
-    /// ugrep 7.8.4（`rust-cli-vendor-ugrep`，§7）。
+    /// ugrep 7.8.4（`nibi-kernel-vendor-ugrep`，§7）。
     Ugrep,
 }
 
@@ -62,10 +62,10 @@ pub(crate) fn dispatch() -> Option<ExitCode> {
     }
     Some(match tool {
         // rg 自己读 `std::env::args_os()`（跳过 argv[0]）。
-        Tool::Rg => rust_cli_vendor_rg::main(),
+        Tool::Rg => nibi_kernel_vendor_rg::main(),
         #[cfg(unix)]
-        Tool::Bfs => exit_code(rust_cli_vendor_bfs::main(std::env::args_os().skip(1))),
-        Tool::Ugrep => exit_code(rust_cli_vendor_ugrep::main(std::env::args_os().skip(1))),
+        Tool::Bfs => exit_code(nibi_kernel_vendor_bfs::main(std::env::args_os().skip(1))),
+        Tool::Ugrep => exit_code(nibi_kernel_vendor_ugrep::main(std::env::args_os().skip(1))),
     })
 }
 

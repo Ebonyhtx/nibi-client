@@ -2,7 +2,7 @@ use super::*;
 
 fn ids() -> Arc<NodeIds> {
     Arc::new(NodeIds::new(Arc::new(
-        rust_cli_node_store::SystemClock::utc(),
+        nibi_kernel_node_store::SystemClock::utc(),
     )))
 }
 
@@ -19,7 +19,7 @@ fn env(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
 fn the_prompt_file_goes_to_the_private_temp_dir() {
     let temp = Path::new("/var/t");
     let editor = ProcessEditor::from_env(&env(&[("TMPDIR", "/elsewhere")]), temp, ids());
-    assert_eq!(editor.temp_dir, rust_cli_proc::private::user_dir(temp));
+    assert_eq!(editor.temp_dir, nibi_kernel_proc::private::user_dir(temp));
 }
 
 #[test]

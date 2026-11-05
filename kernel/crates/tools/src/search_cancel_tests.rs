@@ -5,20 +5,20 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env_files::{
     FileStat, GlobFiles, GlobMatches, GrepOutcome, GrepSearch, StatFile,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::testing::ScriptedInteractions;
-use rust_cli_kernel_api::tool::{Tool, ToolError};
+use nibi_kernel_api::testing::ScriptedInteractions;
+use nibi_kernel_api::tool::{Tool, ToolError};
 use serde_json::json;
 use tokio::sync::mpsc;
 

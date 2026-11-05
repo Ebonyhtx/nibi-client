@@ -7,7 +7,7 @@
 //! `project_token_request_failed`。
 
 use ring::rand::{SecureRandom, SystemRandom};
-use rust_cli_base::secret::RedactedString;
+use nibi_kernel_base::secret::RedactedString;
 use serde_json::{Value, json};
 
 use super::http::{Auth, Fault, Reply, success_code};
@@ -191,7 +191,7 @@ impl ProjectTokens {
         }
         let started = self.clock.now_ms();
         let body = json!({
-            "clientType": rust_cli_base::names::TOKEN_CLIENT_TYPE,
+            "clientType": nibi_kernel_base::names::TOKEN_CLIENT_TYPE,
             "clientVersion": self.origins.client_version
         });
         let reply = self

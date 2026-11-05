@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_net::{Egress, HeaderValue, HttpRequest, header};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_net::{Egress, HeaderValue, HttpRequest, header};
 use serde_json::{Map, Value, json};
 
 use crate::token::http::{MAX_RESPONSE_BYTES, read_limited};
@@ -150,8 +150,8 @@ impl OAuthClient {
             header::AUTHORIZATION,
             HeaderValue::Secret(header::bearer(poll_token)),
         );
-        request.timeout = Some(rust_cli_net::timeout::OAUTH);
-        let network = |error: rust_cli_net::NetError| OAuthError {
+        request.timeout = Some(nibi_kernel_net::timeout::OAUTH);
+        let network = |error: nibi_kernel_net::NetError| OAuthError {
             message: error.to_string(),
             status: None,
             network: true,

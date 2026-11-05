@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-pub use rust_cli_base::secret::RedactedString;
-pub use rust_cli_platform::{Family, UiLocale, UiTheme};
+pub use nibi_kernel_base::secret::RedactedString;
+pub use nibi_kernel_platform::{Family, UiLocale, UiTheme};
 use tokio::sync::oneshot;
 pub use tokio_util::sync::CancellationToken;
 
@@ -19,7 +19,7 @@ pub trait Preferences: Send + Sync {
     fn save_theme(&self, theme: UiTheme) -> BoxFuture<'static, Result<String, String>>;
     fn save_default_model(
         &self,
-        selection: rust_cli_kernel_api::model::ModelSelection,
+        selection: nibi_kernel_api::model::ModelSelection,
     ) -> BoxFuture<'static, Result<String, String>>;
 
     /// `/mcp enable/disable`（tui-manage.md §6.1）：把 `enabled` 写进定义这个服务器的配置文件。`Ok(None)`：它不在
@@ -151,10 +151,10 @@ pub trait WorkspaceTrust: Send + Sync {
     /// 已信任（直接或经父目录）时为 None；否则是要问的内容（不带项目授权的后备询问）。
     fn check(
         &self,
-        workspace: rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: nibi_kernel_api::env::WorkspaceRef,
     ) -> BoxFuture<'static, Option<crate::trust::TrustPrompt>>;
     /// 用户同意：写项目键的记录（home 只本进程有效）；写失败只记日志。
-    fn accept(&self, workspace: rust_cli_kernel_api::env::WorkspaceRef) -> BoxFuture<'static, ()>;
+    fn accept(&self, workspace: nibi_kernel_api::env::WorkspaceRef) -> BoxFuture<'static, ()>;
 }
 
 /// 入口给 TUI 的服务与配置值。

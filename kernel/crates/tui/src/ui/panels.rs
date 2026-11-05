@@ -1,5 +1,5 @@
 //! L30 面板（docs/specs/rust-cli/tui-panels.md）要 runner 去问内核的动作。
-use rust_cli_kernel_api::ids::AgentId;
+use nibi_kernel_api::ids::AgentId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Panel {

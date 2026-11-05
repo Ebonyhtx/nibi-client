@@ -5,12 +5,12 @@
 //! 冷加载都在原处；只打开不续写时不写。会话里切过去时（`/resume`、`/fork`）界面发 `Command::StoreResumeSentinel`，
 //! 马上单独写一批（`Actor::store_resume_sentinel`，工作线 F79）。
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL, StopReason,
     UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::user_input::is_interrupt;
+use nibi_kernel_api::user_input::is_interrupt;
 
 /// 本地命令记录里的一行属于哪一段：命令本身、输出、caveat。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

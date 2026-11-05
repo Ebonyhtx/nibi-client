@@ -4,9 +4,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::StatFile;
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::StatFile;
+use nibi_kernel_api::machine::Files;
 
 use super::Skill;
 use super::closest::closest;

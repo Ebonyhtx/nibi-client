@@ -3,9 +3,9 @@
 //! 唯一事实源是文件（经 [`CronStore`]）；投影只在本进程写完之后、监听产出变化时、工具要读时重读，重读是
 //! 幂等的。哪个会话触发哪个任务见 [`belongs`]。
 
-use rust_cli_kernel_api::cron::{CronFire, CronFireKind};
-use rust_cli_kernel_api::cron_store::{CronCreator, CronTasksChange, NewCronTask, StoredCronTask};
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::cron::{CronFire, CronFireKind};
+use nibi_kernel_api::cron_store::{CronCreator, CronTasksChange, NewCronTask, StoredCronTask};
+use nibi_kernel_api::ids::SessionId;
 
 use crate::cron_board::{CronBoard, State};
 use crate::cron_expr::{self, RECURRING_MAX_AGE_MS};

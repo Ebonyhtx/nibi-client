@@ -1,9 +1,9 @@
 // 改写自 apps/zcode-host/crates/tui/tests/suite/host_flow.rs（feat/rs 79b6691c55）：经 TUI 的事件循环走
 // 建会话 → 流式回复 → 中断（docs/specs/rust-cli/tui.md §4）。
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, send, with_ui};
 
@@ -55,7 +55,7 @@ async fn esc_interrupts_a_running_turn() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn ctrl_c_twice_exits_and_a_model_failure_shows_its_reason() {
-    let failure = vec![Err(rust_cli_kernel_api::model::ModelError::Overloaded {
+    let failure = vec![Err(nibi_kernel_api::model::ModelError::Overloaded {
         message: "busy right now".into(),
     })];
     let model = GatedModel::scripted(vec![failure]);
@@ -104,7 +104,7 @@ async fn thinking_folds_into_a_summary_and_ctrl_o_shows_it() {
         }),
         Ok(ModelEvent::BlockStop { index: 1 }),
         Ok(ModelEvent::MessageDelta {
-            stop_reason: Some(rust_cli_kernel_api::message::StopReason::EndTurn),
+            stop_reason: Some(nibi_kernel_api::message::StopReason::EndTurn),
             usage: Default::default(),
         }),
         Ok(ModelEvent::MessageStop),

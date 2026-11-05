@@ -1,16 +1,16 @@
 //! 投影的纯函数测试：合成的内核事件 → App 的行与状态。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     CommandId, EnvironmentId, InteractionId, MessageId, SessionId, ToolUseId, TraceId, TurnId,
 };
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     AssistantMessage, Message, UserMessage, UserOrigin, TASK_NOTIFICATION_SOURCE,
 };
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta};
+use nibi_kernel_api::testing::selection;
 use serde_json::json;
 
 use super::*;
@@ -275,7 +275,7 @@ fn a_permission_ask_marks_the_tool_and_lists_the_interaction() {
     assert_eq!(resolved[1]["patch"]["pendingInteractions"], json!([]));
     let done = feed.apply(KernelEvent::ToolDone {
         tool_use: tool,
-        output: rust_cli_kernel_api::tool::ToolOutput {
+        output: nibi_kernel_api::tool::ToolOutput {
             content: vec![ToolResultContent::Text { text: "ok".into() }],
             is_error: false,
             display: Value::Null,
@@ -423,7 +423,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
         items: vec![QueuedInput {
             command: CommandId::new("c1"),
             text: "hi".into(),
-            delivery: rust_cli_kernel_api::session_api::Delivery::Queue,
+            delivery: nibi_kernel_api::session_api::Delivery::Queue,
         }],
     });
     assert!(
@@ -447,7 +447,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
     feed.projection.deny("toolu_1");
     let done = feed.apply(KernelEvent::ToolDone {
         tool_use: ToolUseId::new("toolu_1"),
-        output: rust_cli_kernel_api::tool::ToolOutput {
+        output: nibi_kernel_api::tool::ToolOutput {
             content: vec![ToolResultContent::Text {
                 text: "denied".into(),
             }],
@@ -457,7 +457,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
     });
     assert_eq!(done[0]["row"]["status"], "cancelled");
     let marker = feed.apply(KernelEvent::MessageDone {
-        message: user("msg_i", rust_cli_kernel_api::user_input::INTERRUPT_TEXTS[0]),
+        message: user("msg_i", nibi_kernel_api::user_input::INTERRUPT_TEXTS[0]),
     });
     assert!(marker.iter().all(|delta| delta.get("row").is_none()));
 }
@@ -786,8 +786,8 @@ fn pick(
     provider: &str,
     model: &str,
     thought: Option<&str>,
-) -> rust_cli_kernel_api::model::ModelSelection {
-    rust_cli_kernel_api::model::ModelSelection {
+) -> nibi_kernel_api::model::ModelSelection {
+    nibi_kernel_api::model::ModelSelection {
         provider: provider.into(),
         model: model.into(),
         reasoning: thought.map(str::to_owned),
@@ -849,7 +849,7 @@ fn a_model_change_marks_the_next_turn_before_its_header() {
 /// 冷打开：每轮用户消息带着当时的选择，与上一轮不同才补分隔线（第一轮不画）。
 #[test]
 fn a_cold_open_restores_model_change_markers_from_message_selections() {
-    use rust_cli_kernel_api::store::SessionModelTurn;
+    use nibi_kernel_api::store::SessionModelTurn;
 
     let messages = vec![
         user("u1", "first"),
@@ -906,7 +906,7 @@ fn the_context_window_display_prefers_the_raw_window() {
     assert_eq!(usage["usedTokens"], 1_020);
     assert_eq!(usage["maxTokens"], 128_000);
 
-    use rust_cli_kernel_api::compaction::ContextOccupancy;
+    use nibi_kernel_api::compaction::ContextOccupancy;
     let mut cold = view(Vec::new());
     cold.context_usage = Some(ContextOccupancy {
         used_tokens: 1_020,

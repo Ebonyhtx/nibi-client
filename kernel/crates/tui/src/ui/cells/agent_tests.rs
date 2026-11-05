@@ -1,5 +1,5 @@
 //! Agent 工具行的排版（tui-display.md §2.1）。
-use rust_cli_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::ids::ToolUseId;
 use serde_json::{Value, json};
 
 use super::*;
@@ -126,7 +126,7 @@ fn finished_agents_show_done_or_backgrounded() {
 
 #[test]
 fn a_retrying_agent_shows_the_retry_line_after_its_activity() {
-    use rust_cli_kernel_api::model::{ModelError, ModelNotice};
+    use nibi_kernel_api::model::{ModelError, ModelNotice};
     let mut row = with_activity(vec![read("a", ToolStatus::Success)]);
     if let Body::Tool(tool) = &mut row.body {
         tool.activity.as_mut().unwrap().notice = Some(crate::view::Notice {

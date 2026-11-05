@@ -1,5 +1,5 @@
 //! 类别与算术（context-usage.md §4）：用一次真实运行的数字（fixture 回的计数）核对。
-use rust_cli_kernel_api::context_usage::CategoryKind;
+use nibi_kernel_api::context_usage::CategoryKind;
 
 use super::*;
 

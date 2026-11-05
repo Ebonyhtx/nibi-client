@@ -257,7 +257,7 @@ pub fn full_access(lang: Lang) -> &'static str {
 /// 回合的错误文字（compact.md §2.2）：到了阻塞线的 `Prompt is too long` 换成“上下文满了”的提示；带压缩失败原因的接上
 /// “用 /clear 重新开始”。其余原样。
 pub fn turn_error(lang: Lang, message: &str) -> String {
-    use rust_cli_kernel_api::compaction::PROMPT_TOO_LONG;
+    use nibi_kernel_api::compaction::PROMPT_TOO_LONG;
     if message == PROMPT_TOO_LONG {
         return match lang {
             Lang::En => "Context limit reached \u{b7} /compact or /clear to continue",

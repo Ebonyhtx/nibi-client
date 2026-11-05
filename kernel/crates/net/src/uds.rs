@@ -1,7 +1,7 @@
 //! 本机的 Unix 域套接字（跨会话的收件箱，docs/specs/rust-cli/cross-session.md §2.1）。
 //!
 //! 只做传输：监听、接受连接、按行读写（NDJSON），连接后写一行、读一行回复。帧的含义、登记与路由在适配器
-//! `rust-cli-peers`。socket 文件的权限由调用方经 `rust-cli-fs` 收紧（所在目录本来就是 0700）。
+//! `nibi-kernel-peers`。socket 文件的权限由调用方经 `nibi-kernel-fs` 收紧（所在目录本来就是 0700）。
 //! Windows 没有 tokio 的 Unix 域套接字：全部返回 `Unsupported`，跨会话在那里关闭（§5 D9）。
 
 use std::io;

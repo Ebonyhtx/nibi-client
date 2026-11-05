@@ -1,7 +1,7 @@
 //! fork 子代理的前缀与定义（修复线 L-A，agents.md §8.1.2）。
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent, UserOrigin};
-use rust_cli_kernel_api::testing::SequentialIds;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent, UserOrigin};
+use nibi_kernel_api::testing::SequentialIds;
 use serde_json::json;
 
 use super::*;
@@ -58,7 +58,7 @@ fn the_prefix_is_the_history_the_call_and_the_started_result() {
 
 #[test]
 fn the_directive_follows_the_boilerplate() {
-    let text = rust_cli_prompts::agents::fork_directive("Read a.txt.");
+    let text = nibi_kernel_prompts::agents::fork_directive("Read a.txt.");
     assert!(
         text.starts_with("<fork-boilerplate>\nYou are a worker fork."),
         "{text}"

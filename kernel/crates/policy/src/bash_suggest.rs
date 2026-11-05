@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::permission::PermissionRule;
 
 use crate::check::{AskKind, Check};
 use crate::parse::{Analysis, Operator};

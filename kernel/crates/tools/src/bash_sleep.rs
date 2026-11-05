@@ -3,8 +3,8 @@
 use std::sync::LazyLock;
 
 use regex::Regex;
-use rust_cli_base::js::json::js_double;
-use rust_cli_base::js::string::trim;
+use nibi_kernel_base::js::json::js_double;
+use nibi_kernel_base::js::string::trim;
 
 /// 拦下的最短秒数。
 const BLOCK_FROM: f64 = 25.0;
@@ -19,7 +19,7 @@ fn command_texts(command: &str) -> Vec<String> {
     if command.is_empty() {
         return Vec::new();
     }
-    let analysis = rust_cli_policy::analyze(command);
+    let analysis = nibi_kernel_policy::analyze(command);
     if analysis.has_parse_errors {
         return vec![command.to_owned()];
     }

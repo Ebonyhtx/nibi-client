@@ -32,8 +32,8 @@ fn short_or_later_sleeps_pass() {
 /// Monitor 开着时 Bash 的描述多一句（MO0 实测，`-p` 与交互会话都加在 “No `&` needed.” 之后），前台长 `sleep` 拦下。
 #[tokio::test]
 async fn the_bash_tool_follows_the_monitor_switch() {
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::tool::{PromptContext, Tool, Validation};
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::tool::{PromptContext, Tool, Validation};
     use serde_json::json;
 
     let prompt = PromptContext {
@@ -58,7 +58,7 @@ async fn the_bash_tool_follows_the_monitor_switch() {
             .contains("Foreground `sleep`")
     );
     let context = crate::test_more::Ctx::new(std::sync::Arc::new(
-        rust_cli_kernel_api::testing::ScriptedInteractions::default(),
+        nibi_kernel_api::testing::ScriptedInteractions::default(),
     ))
     .build();
     let blocked = print

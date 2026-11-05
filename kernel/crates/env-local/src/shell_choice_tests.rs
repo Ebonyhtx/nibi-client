@@ -5,8 +5,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use rust_cli_kernel_api::env::{EnvError, StartCommand};
-use rust_cli_kernel_api::env_shell::{CwdScope, HookIo};
+use nibi_kernel_api::env::{EnvError, StartCommand};
+use nibi_kernel_api::env_shell::{CwdScope, HookIo};
 
 use super::tests::{Fixture, collect, context, fixture, request};
 use super::*;

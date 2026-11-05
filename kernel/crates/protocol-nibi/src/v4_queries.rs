@@ -18,14 +18,14 @@
 //!
 //! usage 两条**不经会话**：`v4/usage/stats` 是应用级聚合（任意已连接的工作区都能答），
 //! `v4/conversation/usage` 才按 `sessionId` 取。时区不在内核里解析——请求给的是 IANA 名，而
-//! 内核没有时区库；偏移取自注入的 [`Clock`](rust_cli_kernel_api::clock::Clock)（入口按系统时区
+//! 内核没有时区库；偏移取自注入的 [`Clock`](nibi_kernel_api::clock::Clock)（入口按系统时区
 //! 建的那一个），请求里显式的 `timeZone` 因此在 Rust 内核下按本机时区归桶。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::workflow::{
     WorkflowRunArtifactItemQuery, WorkflowRunEventQuery, WorkflowRunSummaryRow,
 };
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
 
 use crate::server::{SESSION_UNAVAILABLE, Server};
@@ -289,7 +289,7 @@ pub(crate) async fn file_changes(server: &Server, params: &Value) -> Result<Valu
     let messages = crate::row_target::message_ids(&live.sink, &target).map_err(RpcError::internal)?;
     let report = match live.handle.file_changes(&messages).await {
         Ok(report) => report,
-        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+        Err(nibi_kernel_api::session_api::KernelError::Unsupported { .. }) => {
             return Err(RpcError::internal("fault.fileChanges.unsupported"));
         }
         Err(error) => return Err(crate::server::kernel_error(&error)),
@@ -322,7 +322,7 @@ pub(crate) async fn file_rewind_preview(
         crate::row_target::rewind_message_ids(&live.sink, &target).map_err(RpcError::internal)?;
     let preview = match live.handle.file_rewind_preview(&messages).await {
         Ok(preview) => preview,
-        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+        Err(nibi_kernel_api::session_api::KernelError::Unsupported { .. }) => {
             return Err(RpcError::internal("fault.fileRewindPreview.unsupported"));
         }
         Err(error) => return Err(crate::server::kernel_error(&error)),
@@ -331,11 +331,11 @@ pub(crate) async fn file_rewind_preview(
 }
 
 /// 后台命令的状态换成 Host 的六值词表。///
-/// 内核的 [`BackgroundStatus`](rust_cli_kernel_api::env_shell::BackgroundStatus) 只有四个值：
+/// 内核的 [`BackgroundStatus`](nibi_kernel_api::env_shell::BackgroundStatus) 只有四个值：
 /// `timed_out` 与 `spawn_error` 分不出来——超时结束在账本里就是 `Failed`，起不来的命令根本没有
 /// 记录（回 `unavailable`）。如实映射，不猜。
-fn background_status_name(status: rust_cli_kernel_api::env_shell::BackgroundStatus) -> &'static str {
-    use rust_cli_kernel_api::env_shell::BackgroundStatus;
+fn background_status_name(status: nibi_kernel_api::env_shell::BackgroundStatus) -> &'static str {
+    use nibi_kernel_api::env_shell::BackgroundStatus;
     match status {
         BackgroundStatus::Running => "running",
         BackgroundStatus::Completed => "completed",
@@ -360,7 +360,7 @@ pub(crate) async fn background_bash_output(
     let live = match server.live(&SessionId::new(session)).await {
         Ok(live) => live,
         // 会话不存在：Node 的同一读取也只是「没有这个任务」。
-        Err(rust_cli_kernel_api::session_api::KernelError::NotFound { .. }) => {
+        Err(nibi_kernel_api::session_api::KernelError::NotFound { .. }) => {
             return Ok(json!({"kind": "unavailable", "workId": work_id}));
         }
         Err(error) => return Err(crate::server::kernel_error(&error)),
@@ -379,7 +379,7 @@ pub(crate) async fn background_bash_output(
             "outputPath": output.output_path,
         })),
         Ok(None) => Ok(json!({"kind": "unavailable", "workId": work_id})),
-        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+        Err(nibi_kernel_api::session_api::KernelError::Unsupported { .. }) => {
             Ok(json!({"kind": "unsupported", "workId": work_id}))
         }
         Err(error) => Ok(json!({
@@ -551,7 +551,7 @@ pub(crate) async fn workflow_run_artifacts(
 
 /// 一个版本 → 协议形状。**`uri` 刻意不出现**：schema 的注释写着「只给 CLI 侧用，模型与
 /// renderer 都读不了它」——它是 store 的内部地址，出了这一层就是一条越权的读路径。
-fn version_json(version: &rust_cli_kernel_api::workflow::WorkflowRunArtifactVersion) -> Value {
+fn version_json(version: &nibi_kernel_api::workflow::WorkflowRunArtifactVersion) -> Value {
     let mut value = json!({
         "version": version.version,
         "publishedAt": version.published_at,
@@ -915,7 +915,7 @@ pub(crate) async fn usage_stats(server: &Server, params: &Value) -> Result<Value
     };
     let usage = match server
         .kernel
-        .app_usage(rust_cli_kernel_api::usage::AppUsageQuery {
+        .app_usage(nibi_kernel_api::usage::AppUsageQuery {
             since_ms: since,
             until_ms: until,
             tz_offset_ms,
@@ -924,7 +924,7 @@ pub(crate) async fn usage_stats(server: &Server, params: &Value) -> Result<Value
     {
         Ok(usage) => usage,
         // 存储不支持（TUI / 内存）：空快照而不是错误——UI 显示空态。
-        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+        Err(nibi_kernel_api::session_api::KernelError::Unsupported { .. }) => {
             Default::default()
         }
         Err(error) => return Err(crate::server::kernel_error(&error)),
@@ -952,11 +952,11 @@ pub(crate) async fn conversation_usage(server: &Server, params: &Value) -> Resul
         .await
     {
         Ok(usage) => usage,
-        Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => {
+        Err(nibi_kernel_api::session_api::KernelError::Unsupported { .. }) => {
             Default::default()
         }
         // 会话不存在：与其它会话方法同一条错误码（`sessionUnavailable`），Host 据此换会话。
-        Err(error @ rust_cli_kernel_api::session_api::KernelError::NotFound { .. }) => {
+        Err(error @ nibi_kernel_api::session_api::KernelError::NotFound { .. }) => {
             return Err(RpcError::new(
                 SESSION_UNAVAILABLE,
                 format!(
@@ -996,7 +996,7 @@ fn build_usage_snapshot(
     tz_offset_ms: i64,
     until: u64,
     since: u64,
-    usage: &rust_cli_kernel_api::usage::AppUsage,
+    usage: &nibi_kernel_api::usage::AppUsage,
 ) -> Value {
     let end_day = day_index(until, tz_offset_ms);
     let start_day = if range == "all" {
@@ -1252,7 +1252,7 @@ fn day_index(at_ms: u64, tz_offset_ms: i64) -> i64 {
 /// 分量即本地日期）。
 fn civil_date_of_day(day: i64) -> String {
     let at = day.saturating_mul(86_400_000).max(0) as u64;
-    rust_cli_kernel_api::clock::civil_date(at)
+    nibi_kernel_api::clock::civil_date(at)
 }
 
 #[cfg(test)]

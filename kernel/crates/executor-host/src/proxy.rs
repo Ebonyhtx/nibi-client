@@ -17,14 +17,14 @@ use std::path::PathBuf;
 use std::process::Stdio;
 
 use bytes::Bytes;
-use rust_cli_exec_transport::stream::stream_link;
-use rust_cli_exec_transport::{Link, MAX_FRAME};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::admin::{AdminAction, AdminOutcome};
-use rust_cli_exec_wire::dto::env::EnvVars;
-use rust_cli_exec_wire::frame::{Decoded, Frame, Kind, decode};
-use rust_cli_exec_wire::handshake::{Refuse, RefuseCode};
-use rust_cli_paths::ExecutorPaths;
+use nibi_kernel_exec_transport::stream::stream_link;
+use nibi_kernel_exec_transport::{Link, MAX_FRAME};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::admin::{AdminAction, AdminOutcome};
+use nibi_kernel_exec_wire::dto::env::EnvVars;
+use nibi_kernel_exec_wire::frame::{Decoded, Frame, Kind, decode};
+use nibi_kernel_exec_wire::handshake::{Refuse, RefuseCode};
+use nibi_kernel_paths::ExecutorPaths;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 
 use crate::admin;
@@ -139,7 +139,7 @@ where
         return Err(error);
     }
     let socket = config.paths.socket();
-    let halves = rust_cli_net::uds::connect_raw(socket.as_path())
+    let halves = nibi_kernel_net::uds::connect_raw(socket.as_path())
         .await
         .map_err(|error| ProxyError::Io(format!("connecting to the executor: {error}")))?;
     tracing::info!(target: "executor_host::proxy", "proxy connected");
@@ -185,11 +185,11 @@ mod tests;
 
 async fn ensure(config: &ProxyConfig) -> Result<(), ProxyError> {
     let io = |what: &str, error: &dyn std::fmt::Display| ProxyError::Io(format!("{what}: {error}"));
-    rust_cli_fs::create_private_dir_all(config.paths.dir().as_path())
+    nibi_kernel_fs::create_private_dir_all(config.paths.dir().as_path())
         .await
         .map_err(|e| io("creating the executor directory", &e))?;
     // 同一时刻只有一个代理在判断与拉起；拉起的常驻进程写出就绪行之后才放开。
-    let _guard = rust_cli_fs::lock_exclusive(config.paths.spawn_lock().as_path())
+    let _guard = nibi_kernel_fs::lock_exclusive(config.paths.spawn_lock().as_path())
         .await
         .map_err(|e| io("taking the spawn lock", &e))?;
     let socket = config.paths.socket();
@@ -237,7 +237,7 @@ async fn ensure(config: &ProxyConfig) -> Result<(), ProxyError> {
 
 /// 拉起常驻进程，读它的就绪行：`ready` → true；`busy`（另一个常驻进程拿着锁）→ false；其余是错误。
 async fn spawn(daemon: &DaemonCommand) -> Result<bool, ProxyError> {
-    let mut command = rust_cli_proc::command(&daemon.program);
+    let mut command = nibi_kernel_proc::command(&daemon.program);
     command
         .args(&daemon.args)
         .env_clear()
@@ -248,7 +248,7 @@ async fn spawn(daemon: &DaemonCommand) -> Result<bool, ProxyError> {
     if let Some(cwd) = &daemon.cwd {
         command.current_dir(cwd);
     }
-    let mut child = rust_cli_proc::daemon::spawn(&mut command)
+    let mut child = nibi_kernel_proc::daemon::spawn(&mut command)
         .map_err(|error| ProxyError::Start(format!("{}: {error}", daemon.program.display())))?;
     let Some(stdout) = child.stdout.take() else {
         return Err(ProxyError::Start("the daemon has no stdout".to_owned()));

@@ -6,10 +6,10 @@
 
 use std::collections::VecDeque;
 
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelRequest};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_net::sse::SseEvent;
-use rust_cli_net::{HeaderValue, HttpRequest};
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelRequest};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_net::sse::SseEvent;
+use nibi_kernel_net::{HeaderValue, HttpRequest};
 
 use crate::anthropic::Anthropic;
 use crate::errors::{Vendor, Verdict};
@@ -57,8 +57,8 @@ pub(crate) fn bearer(credential: &Credential) -> Vec<(String, HeaderValue)> {
     match credential {
         Credential::None => Vec::new(),
         Credential::ApiKey(key) => vec![(
-            rust_cli_net::header::AUTHORIZATION.to_owned(),
-            HeaderValue::Secret(rust_cli_net::header::bearer(key.expose())),
+            nibi_kernel_net::header::AUTHORIZATION.to_owned(),
+            HeaderValue::Secret(nibi_kernel_net::header::bearer(key.expose())),
         )],
     }
 }

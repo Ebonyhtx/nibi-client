@@ -1,8 +1,8 @@
 //! 危险删除（shell-permissions.md §4.5.3）：删除工作目录、它的上级、关键目录，以及静态看不出目标的删除都要询问，
 //! 询问的性质是 bypass 也问、allow 规则盖不过。文字逐字比较。
 
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use crate::bash::check;
 use crate::check::{AskKind, Check};

@@ -2,10 +2,10 @@
 //!
 //! 有效窗口、自动压缩的阈值、容量级别与窗口的来源。
 
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::TokenLimits;
-use rust_cli_prompts::models;
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::TokenLimits;
+use nibi_kernel_prompts::models;
 
 /// 摘要输出的预留上限。
 const SUMMARY_OUTPUT_RESERVE: u64 = 20_000;
@@ -215,7 +215,7 @@ pub fn notice(
     if window(facts, thresholds).source == WindowSource::Auto {
         // 与 footer 的 ctx 同一个式子（kernel-api `used_percent`，F27）。
         ContextNotice::Used {
-            percent: rust_cli_kernel_api::compaction::used_percent(tokens, effective),
+            percent: nibi_kernel_api::compaction::used_percent(tokens, effective),
         }
     } else {
         ContextNotice::UntilAutoCompact { percent: left }

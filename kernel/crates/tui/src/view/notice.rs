@@ -1,7 +1,7 @@
 //! 模型请求的重试与停顿通知（docs/specs/rust-cli/stall-visibility.md §3.2）：内核事件 `ModelNotice`（主线程）
 //! 与子循环事件 `QueryEvent::ModelNotice`（前台子代理的 Agent 行）的投影。只记最后一条通知与前端收到它的时刻；
 //! 倒计时只用于显示，不参与状态判断。
-use rust_cli_kernel_api::model::ModelNotice;
+use nibi_kernel_api::model::ModelNotice;
 
 use super::Transcript;
 

@@ -3,12 +3,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::TaskScope;
-use rust_cli_exec_transport::Connector;
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::handshake::{STREAM_WINDOW, Welcome};
-use rust_cli_exec_wire::op::Op;
-use rust_cli_exec_wire::request::Request;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_exec_transport::Connector;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::handshake::{STREAM_WINDOW, Welcome};
+use nibi_kernel_exec_wire::op::Op;
+use nibi_kernel_exec_wire::request::Request;
 use tokio::sync::{mpsc, oneshot, watch};
 
 use crate::connection::{Queues, connect_once, connected, supervise};

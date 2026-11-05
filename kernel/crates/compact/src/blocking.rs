@@ -1,7 +1,7 @@
 //! 发请求前的阻塞线（docs/specs/rust-cli/compact.md §2.2）：到了阻塞线、又不交给上下文超限之后的压缩时，这一步不发
 //! 请求，回合以错误结束。错误文字带上这一步自动压缩失败的原因。
 
-use rust_cli_kernel_api::compaction::PROMPT_TOO_LONG;
+use nibi_kernel_api::compaction::PROMPT_TOO_LONG;
 use unicode_width::UnicodeWidthStr;
 
 /// 失败原因的显示宽度上限。

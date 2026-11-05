@@ -3,10 +3,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::json;
 
 use super::*;

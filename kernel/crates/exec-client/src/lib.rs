@@ -14,11 +14,11 @@ mod stream;
 
 use std::time::Duration;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::envelope::{ReplyResult, StreamItem, WireError};
-use rust_cli_exec_wire::frame::FrameError;
-use rust_cli_exec_wire::handshake::RefuseCode;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::envelope::{ReplyResult, StreamItem, WireError};
+use nibi_kernel_exec_wire::frame::FrameError;
+use nibi_kernel_exec_wire::handshake::RefuseCode;
 
 pub use client::ExecClient;
 pub use connection::backoff;
@@ -76,7 +76,7 @@ impl ClientOptions {
                 delay: Duration::from_millis(500),
                 max_delay: Duration::from_secs(15),
             },
-            part_size: rust_cli_exec_wire::frame::PART_SIZE,
+            part_size: nibi_kernel_exec_wire::frame::PART_SIZE,
         }
     }
 }

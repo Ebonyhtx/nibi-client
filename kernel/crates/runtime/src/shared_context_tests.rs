@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::Kernel;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::Kernel;
+use nibi_kernel_api::store::{
     FrontendRecord, SessionKind, SessionMeta, SessionStore,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments, selection,
 };
 
@@ -20,7 +20,7 @@ fn kernel(store: Arc<MemoryStore>) -> LocalKernel {
         Ports {
             model: Arc::new(ScriptedModel::new(Vec::new())),
             environments: environments(Arc::new(
-                rust_cli_kernel_api::testing::UnusedEnvironment,
+                nibi_kernel_api::testing::UnusedEnvironment,
             )),
             store: store.clone(),
             artifacts: store,

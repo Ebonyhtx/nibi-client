@@ -8,7 +8,7 @@ pub(crate) fn help_width() -> usize {
     if !std::io::stdout().is_terminal() {
         return help::DEFAULT_WIDTH;
     }
-    rust_cli_tui::terminal_columns().map_or(help::DEFAULT_WIDTH, usize::from)
+    nibi_kernel_tui::terminal_columns().map_or(help::DEFAULT_WIDTH, usize::from)
 }
 
 /// 写一行，写不进去时丢掉（终端已经关掉）。

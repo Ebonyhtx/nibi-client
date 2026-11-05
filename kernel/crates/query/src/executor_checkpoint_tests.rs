@@ -3,11 +3,11 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{QueryEvent, QueryStop};
-use rust_cli_kernel_api::testing::ScriptedModel;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{QueryEvent, QueryStop};
+use nibi_kernel_api::testing::ScriptedModel;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};

@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::{StopReason, Usage};
-use rust_cli_kernel_api::model::ModelEvent;
-use rust_cli_kernel_api::testing::{ScriptedInteractions, ScriptedModel, selection};
-use rust_cli_kernel_api::tool::{Tool, Validation};
+use nibi_kernel_api::message::{StopReason, Usage};
+use nibi_kernel_api::model::ModelEvent;
+use nibi_kernel_api::testing::{ScriptedInteractions, ScriptedModel, selection};
+use nibi_kernel_api::tool::{Tool, Validation};
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -14,7 +14,7 @@ fn start(index: usize, block: ContentBlock) -> ModelEvent {
     ModelEvent::BlockStart { index, block }
 }
 
-fn search_response() -> Vec<Result<ModelEvent, rust_cli_kernel_api::model::ModelError>> {
+fn search_response() -> Vec<Result<ModelEvent, nibi_kernel_api::model::ModelError>> {
     vec![
         Ok(ModelEvent::MessageStart {
             id: "msg_1".to_owned(),
@@ -87,7 +87,7 @@ async fn a_side_request_with_the_server_tool_becomes_the_result() {
     // 工作线 F52：带上工具所在的会话（`metadata.user_id` 的 `session_id`，model.md §3.3）。
     assert_eq!(
         request.options.session_id,
-        Some(rust_cli_kernel_api::ids::SessionId::new("sess_1"))
+        Some(nibi_kernel_api::ids::SessionId::new("sess_1"))
     );
     // 工作线 F64：工具所在的回合（每请求头的 `x-query-id`，model.md §2.4）。
     assert!(request.options.run.is_some());
@@ -183,25 +183,25 @@ async fn validation_and_permissions_follow_the_spec() {
 }
 
 /// 会话 actor 给出当前主模型的交互替身（`/model` 切换之后）。
-struct Switched(rust_cli_kernel_api::model::ModelSelection);
+struct Switched(nibi_kernel_api::model::ModelSelection);
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::orchestration::Interactions for Switched {
+impl nibi_kernel_api::orchestration::Interactions for Switched {
     async fn ask(
         &self,
-        _session: &rust_cli_kernel_api::ids::SessionId,
-        _request: rust_cli_kernel_api::orchestration::InteractionRequest,
+        _session: &nibi_kernel_api::ids::SessionId,
+        _request: nibi_kernel_api::orchestration::InteractionRequest,
     ) -> Result<
-        rust_cli_kernel_api::orchestration::InteractionAnswer,
-        rust_cli_kernel_api::orchestration::OrchestrationError,
+        nibi_kernel_api::orchestration::InteractionAnswer,
+        nibi_kernel_api::orchestration::OrchestrationError,
     > {
         unreachable!("WebSearch does not ask")
     }
 
     async fn current_selection(
         &self,
-        _session: &rust_cli_kernel_api::ids::SessionId,
-    ) -> Option<rust_cli_kernel_api::model::ModelSelection> {
+        _session: &nibi_kernel_api::ids::SessionId,
+    ) -> Option<nibi_kernel_api::model::ModelSelection> {
         Some(self.0.clone())
     }
 }
@@ -215,7 +215,7 @@ async fn the_side_request_uses_the_current_main_model() {
         model: model.clone(),
         selection: selection(),
     });
-    let current = rust_cli_kernel_api::model::ModelSelection {
+    let current = nibi_kernel_api::model::ModelSelection {
         provider: "fixture".to_owned(),
         model: "switched".to_owned(),
         reasoning: Some("high".to_owned()),
@@ -236,7 +236,7 @@ async fn the_side_request_takes_the_effort_from_the_model_card() {
     let model = Arc::new(ScriptedModel::new(vec![search_response()]));
     let tool = WebSearchTool::new(SideModel {
         model: model.clone(),
-        selection: rust_cli_kernel_api::model::ModelSelection {
+        selection: nibi_kernel_api::model::ModelSelection {
             provider: "anthropic".to_owned(),
             model: "claude-opus-5-5".to_owned(),
             reasoning: None,
@@ -265,10 +265,10 @@ async fn web_search_needs_the_native_web_search_capability() {
     assert!(tool.needs_native_web_search());
     let fetch = crate::web_fetch::WebFetchTool::new(
         None,
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
+        Arc::new(nibi_kernel_api::testing::FixedClock(0)),
     );
     assert!(!fetch.needs_native_web_search());
-    let current = rust_cli_kernel_api::model::ModelSelection {
+    let current = nibi_kernel_api::model::ModelSelection {
         provider: "fixture".to_owned(),
         model: "switched".to_owned(),
         reasoning: Some("high".to_owned()),
@@ -289,29 +289,29 @@ struct Capable {
     max_output_tokens: Option<u64>,
 }
 
-impl rust_cli_kernel_api::model::ModelPort for Capable {
+impl nibi_kernel_api::model::ModelPort for Capable {
     fn stream(
         &self,
         request: ModelRequest,
         cancel: tokio_util::sync::CancellationToken,
     ) -> futures_util::stream::BoxStream<
         'static,
-        Result<ModelEvent, rust_cli_kernel_api::model::ModelError>,
+        Result<ModelEvent, nibi_kernel_api::model::ModelError>,
     > {
         self.scripted.stream(request, cancel)
     }
 
     fn capabilities(
         &self,
-        _selection: &rust_cli_kernel_api::model::ModelSelection,
+        _selection: &nibi_kernel_api::model::ModelSelection,
     ) -> futures_util::future::BoxFuture<
         'static,
-        Option<rust_cli_kernel_api::provider::ModelCapabilities>,
+        Option<nibi_kernel_api::provider::ModelCapabilities>,
     > {
         let (web_search, max_output_tokens) = (self.web_search, self.max_output_tokens);
         Box::pin(async move {
             web_search.map(|supports_native_web_search| {
-                rust_cli_kernel_api::provider::ModelCapabilities {
+                nibi_kernel_api::provider::ModelCapabilities {
                     supports_native_web_search,
                     max_output_tokens,
                     ..Default::default()

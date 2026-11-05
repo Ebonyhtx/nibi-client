@@ -21,8 +21,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_node_store::{NodeIds, OpenProgress, StartupError, SystemClock};
-use rust_cli_paths::StorageSettings;
+use nibi_kernel_node_store::{NodeIds, OpenProgress, StartupError, SystemClock};
+use nibi_kernel_paths::StorageSettings;
 use serde_json::{Map, Value, json};
 
 use crate::config;
@@ -210,7 +210,7 @@ fn run(startup: crate::Startup) -> anyhow::Result<()> {
         Err(error) => {
             let fresh = States::new(
                 ids.uuid(),
-                rust_cli_node_store::session_database_id(&db_path),
+                nibi_kernel_node_store::session_database_id(&db_path),
                 ids.now_ms(),
                 ids.clone(),
             );
@@ -220,7 +220,7 @@ fn run(startup: crate::Startup) -> anyhow::Result<()> {
         }
     };
     // reuse 只由同一次 Host 准备的成功路径授予：不打开连接，但 storagePrepared 照发（Node 同）。
-    let database = rust_cli_node_store::session_database_id(&db_path);
+    let database = nibi_kernel_node_store::session_database_id(&db_path);
     let started = ids.now_ms();
     let result = if reuse {
         Ok(())
@@ -276,7 +276,7 @@ fn prepare(
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty());
     let created = match directory {
-        Some(directory) => runtime.block_on(rust_cli_fs::create_dir_all(directory)),
+        Some(directory) => runtime.block_on(nibi_kernel_fs::create_dir_all(directory)),
         None => Ok(()),
     };
     if let Err(error) = created {
@@ -293,9 +293,9 @@ fn prepare(
     }
     let writer = states;
     let report = move |progress: &OpenProgress| writer.send_progress(progress);
-    match rust_cli_node_store::open_with_progress(
+    match nibi_kernel_node_store::open_with_progress(
         db_path,
-        rust_cli_node_store::MIGRATION_LOCK_WAIT,
+        nibi_kernel_node_store::MIGRATION_LOCK_WAIT,
         ids.now_ms(),
         &report,
     ) {

@@ -39,22 +39,22 @@ mod task_reminder;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::agents::TaskReader;
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::listing::{ListingEntry, ListingSource, Listings};
-use rust_cli_kernel_api::local_services::Git;
-use rust_cli_kernel_api::machine::{EnvInfo, Files, Shell};
-use rust_cli_kernel_api::message::{AttachmentMessage, Message, SystemMessage};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::agents::TaskReader;
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
+use nibi_kernel_api::local_services::Git;
+use nibi_kernel_api::machine::{EnvInfo, Files, Shell};
+use nibi_kernel_api::message::{AttachmentMessage, Message, SystemMessage};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError,
 };
-use rust_cli_kernel_api::tool::ChangedFiles;
-use rust_cli_prompts::{models, reminder};
+use nibi_kernel_api::tool::ChangedFiles;
+use nibi_kernel_prompts::{models, reminder};
 use serde_json::Value;
 
 pub use analysis::{Analysis, MemoryFile};
@@ -106,7 +106,7 @@ pub struct PromptAssembler {
     /// 连上的远端机器（R3，remote-exec.md §20.5.3）：机器清单提醒读它的快照；没有时不提醒。
     machines: Option<Arc<dyn EnvironmentRegistry>>,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：环境段按会话列出。
-    directories: Option<Arc<rust_cli_kernel_api::session_paths::SessionDirectories>>,
+    directories: Option<Arc<nibi_kernel_api::session_paths::SessionDirectories>>,
 }
 
 /// 当步 attachment 属于哪个循环（docs/specs/rust-cli/agents.md §4.3）。
@@ -134,7 +134,7 @@ fn last_boundary(history: &[Message]) -> Option<MessageId> {
 
 impl PromptAssembler {
     /// 会话关闭（session-lifecycle.md §3.3）：释放这个会话的规则文件缓存。
-    pub fn session_closed(&self, session: &rust_cli_kernel_api::ids::SessionId) {
+    pub fn session_closed(&self, session: &nibi_kernel_api::ids::SessionId) {
         self.rules.forget(session);
         self.nested.forget(session);
     }
@@ -156,7 +156,7 @@ impl PromptAssembler {
     #[must_use]
     pub fn with_session_directories(
         mut self,
-        directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+        directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
     ) -> Self {
         self.directories = Some(directories);
         self

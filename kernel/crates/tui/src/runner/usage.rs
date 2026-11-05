@@ -4,8 +4,8 @@
 use futures_util::FutureExt;
 use futures_util::future::join;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::metering::{ActivityRange, ActivityStats, RequestStats, SessionMetering};
-use rust_cli_kernel_api::session_api::KernelError;
+use nibi_kernel_api::metering::{ActivityRange, ActivityStats, RequestStats, SessionMetering};
+use nibi_kernel_api::session_api::KernelError;
 
 use super::Loop;
 use super::session::Done;

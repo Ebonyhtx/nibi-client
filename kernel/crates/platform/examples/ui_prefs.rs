@@ -12,12 +12,12 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_platform::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_platform::{
     AccountOrigins, AccountServices, CredentialSecret, Platform, UiTheme, read_cli_config,
     save_default_model, write_mcp_enabled, write_ui_theme,
 };
@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
         }
         ["model-read", home] => {
             let file = paths(home).provider_config();
-            let bytes = rust_cli_fs::read_optional(file.as_path())
+            let bytes = nibi_kernel_fs::read_optional(file.as_path())
                 .await?
                 .context("no provider config")?;
             let value: Value = serde_json::from_slice(&bytes)?;

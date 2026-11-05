@@ -6,20 +6,20 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::{QueryRequest, QueryStop, RunSink};
-use rust_cli_kernel_api::session_api::{Delivery, KernelEvent, QueuedInput};
-use rust_cli_kernel_api::user_command::LOCAL_COMMAND_CAVEAT_SOURCE;
-use rust_cli_kernel_api::user_input::{BASH_CAVEAT, bash_input, bash_output};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::{QueryRequest, QueryStop, RunSink};
+use nibi_kernel_api::session_api::{Delivery, KernelEvent, QueuedInput};
+use nibi_kernel_api::user_command::LOCAL_COMMAND_CAVEAT_SOURCE;
+use nibi_kernel_api::user_input::{BASH_CAVEAT, bash_input, bash_output};
 use tokio::sync::mpsc;
 
 use crate::actor::{Actor, Running};
 
 /// 中断后的人类消息（工具外的那一条，kernel-api 的定义，F55）。
-const INTERRUPTED: &str = rust_cli_kernel_api::user_input::INTERRUPT_TEXTS[0];
+const INTERRUPTED: &str = nibi_kernel_api::user_input::INTERRUPT_TEXTS[0];
 // 主循环提交请求的缓冲（与人类输入的回合相同，F55）。
 use crate::turn::SINK_REQUESTS;
 
@@ -31,7 +31,7 @@ pub(crate) enum QueuedKind {
     Content(Vec<ContentBlock>),
 }
 
-fn user(id: rust_cli_kernel_api::ids::MessageId, text: String, origin: UserOrigin) -> Message {
+fn user(id: nibi_kernel_api::ids::MessageId, text: String, origin: UserOrigin) -> Message {
     Message::User(UserMessage {
         id,
         content: vec![ContentBlock::Text { text }],

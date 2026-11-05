@@ -1,15 +1,15 @@
 //! 不带参数的 `/rename` 的文本处理与请求（docs/specs/rust-cli/titles.md §8.3–§8.5）：对话文本、JSON 解析与
 //! 名字的清理。
 
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::history;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, ModelRequest, ModelSelection, OutputFormat, QuerySource,
     RequestOptions, SystemBlock,
 };
-use rust_cli_prompts::texts::{identity, render};
-use rust_cli_prompts::{models, title};
+use nibi_kernel_prompts::texts::{identity, render};
+use nibi_kernel_prompts::{models, title};
 use serde_json::Value;
 
 /// 请求来源（`querySource`）。
@@ -19,7 +19,7 @@ const TAIL_UNITS: usize = 1000;
 /// 名字最多这么多个码点。
 const MAX_NAME_CHARS: usize = 200;
 /// 模型卡片里没有的模型用的输出上限（与主循环 `query::run` 相同，prompts 的一个常量，F58）。
-const DEFAULT_MAX_TOKENS: u32 = rust_cli_prompts::models::UNKNOWN_MAX_OUTPUT_TOKENS;
+const DEFAULT_MAX_TOKENS: u32 = nibi_kernel_prompts::models::UNKNOWN_MAX_OUTPUT_TOKENS;
 /// 活动历史里的对话文本：user（去掉 meta）与 assistant 的 text 块，`\n` 连接，只留末尾 1000 个 UTF-16 码元。
 pub(crate) fn conversation(messages: &[Message]) -> String {
     let mut parts = Vec::new();

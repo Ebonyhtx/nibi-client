@@ -4,14 +4,14 @@ use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::hook_review::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::hook_review::{
     HookTrust, HookTrustError, HookTrustGrant, HookTrustSnapshot, HookTrustState,
 };
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Kernel, KernelError};
-use rust_cli_kernel_api::testing::{FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{Kernel, KernelError};
+use nibi_kernel_api::testing::{FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments};
 
 use super::*;
 
@@ -84,7 +84,7 @@ impl HookTrust for MemoryTrust {
 
 fn kernel(trust: Option<Arc<MemoryTrust>>, home: &std::path::Path) -> LocalKernel {
     let store = Arc::new(MemoryStore::default());
-    let env = Arc::new(rust_cli_env_local::LocalEnvironment::new(Some(
+    let env = Arc::new(nibi_kernel_env_local::LocalEnvironment::new(Some(
         home.to_path_buf(),
     )));
     let kernel = LocalKernel::new(
@@ -97,7 +97,7 @@ fn kernel(trust: Option<Arc<MemoryTrust>>, home: &std::path::Path) -> LocalKerne
             ids: Arc::new(SequentialIds::default()),
         },
         Defaults {
-            selection: rust_cli_kernel_api::testing::selection(),
+            selection: nibi_kernel_api::testing::selection(),
             mode: PermissionMode::Default,
             max_turns: None,
             search_tools: false,
@@ -107,7 +107,7 @@ fn kernel(trust: Option<Arc<MemoryTrust>>, home: &std::path::Path) -> LocalKerne
     );
     match trust {
         Some(trust) => kernel.with_hook_review(
-            rust_cli_hooks::node_config::NodeHooks::default(),
+            nibi_kernel_hooks::node_config::NodeHooks::default(),
             trust,
         ),
         None => kernel,
@@ -118,8 +118,8 @@ fn kernel(trust: Option<Arc<MemoryTrust>>, home: &std::path::Path) -> LocalKerne
 async fn workspace_with_hooks() -> (tempfile::TempDir, WorkspaceRef) {
     let dir = tempfile::tempdir().unwrap();
     let dot = dir.path().join(".nibi");
-    rust_cli_fs::create_dir_all(&dot).await.unwrap();
-    rust_cli_fs::atomic_write(
+    nibi_kernel_fs::create_dir_all(&dot).await.unwrap();
+    nibi_kernel_fs::atomic_write(
         &dot.join("config.json"),
         serde_json::json!({
             "hooks": {
@@ -137,10 +137,10 @@ async fn workspace_with_hooks() -> (tempfile::TempDir, WorkspaceRef) {
         })
         .to_string()
         .as_bytes(),
-        rust_cli_fs::WriteOptions {
-            mode: rust_cli_fs::FileMode::Default,
-            temp_name: rust_cli_fs::TempName::Visible,
-            parent: rust_cli_fs::ParentDir::Create,
+        nibi_kernel_fs::WriteOptions {
+            mode: nibi_kernel_fs::FileMode::Default,
+            temp_name: nibi_kernel_fs::TempName::Visible,
+            parent: nibi_kernel_fs::ParentDir::Create,
             rename_retry: &[],
         },
     )
@@ -232,7 +232,7 @@ async fn toggling_rewrites_only_the_enabled_field_of_the_editable_config() {
         .await
         .unwrap();
     let path = dir.path().join(".nibi").join("config.json");
-    let bytes = rust_cli_fs::read_optional(&path).await.unwrap().unwrap();
+    let bytes = nibi_kernel_fs::read_optional(&path).await.unwrap().unwrap();
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     // 只改了第一条的 enabled；第二条没有这个字段（不凭空补）。
     assert_eq!(

@@ -2,13 +2,13 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::mcp_ui::{
     McpAppInstance, McpUiAppToolAnnotations, McpUiAppToolDescriptor, McpUiInstanceRequest,
     McpUiRegisterAppToolsRequest, McpUiScope,
 };
-use rust_cli_kernel_api::testing::SequentialIds;
+use nibi_kernel_api::testing::SequentialIds;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
@@ -323,16 +323,16 @@ async fn clearing_a_session_settles_everything() {
 #[test]
 fn model_names_are_sanitized_and_read_only_tools_are_marked() {
     assert_eq!(
-        rust_cli_kernel_api::mcp_ui::app_tool_model_name("plugin:tk:panel", "do/it"),
+        nibi_kernel_api::mcp_ui::app_tool_model_name("plugin:tk:panel", "do/it"),
         "app__plugin_tk_panel__do_it"
     );
     assert_eq!(
-        rust_cli_kernel_api::mcp_ui::sanitize_app_tool_model_part("a//b"),
+        nibi_kernel_api::mcp_ui::sanitize_app_tool_model_part("a//b"),
         "a_b"
     );
     // 与 Node 同一条清洗规则：`!` → `_` 后合并仍是单个 `_`。
     assert_eq!(
-        rust_cli_kernel_api::mcp_ui::sanitize_app_tool_model_part("!!!"),
+        nibi_kernel_api::mcp_ui::sanitize_app_tool_model_part("!!!"),
         "_"
     );
     let (registry, _events) = registry();

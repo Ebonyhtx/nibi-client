@@ -165,7 +165,7 @@ fn other_names_are_zcode() {
         let output = run(&program, &["--version"], home.path(), home.path(), &[]);
         assert_eq!(
             stdout(&output),
-            format!("nibi {version} (rust-cli)\n"),
+            format!("nibi {version} (nibi-kernel-cli)\n"),
             "{name}: {output:?}"
         );
     }
@@ -176,5 +176,5 @@ fn other_names_are_zcode() {
         home.path(),
         &[("ARGV0", "zcode")],
     );
-    assert_eq!(stdout(&output), format!("nibi {version} (rust-cli)\n"));
+    assert_eq!(stdout(&output), format!("nibi {version} (nibi-kernel-cli)\n"));
 }

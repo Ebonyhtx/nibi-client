@@ -4,7 +4,7 @@
 //! 跑（输入带 `machine`）、Write 在 dev-a 上改文件（输入带 `machine`）、Write 在本机改文件；工具结果与两个 checkpoint
 //! 同一批（本机的写成 Node 的 `runtime/workspace_checkpoint`，远端的写成 `rust-cli/remote_checkpoint`）；再一条文字回复。
 //! 输出会话 id、回复、提醒与两个 checkpoint 的 id。
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
 
 use super::*;
 
@@ -16,7 +16,7 @@ async fn artifact(
     store: &NodeStore,
     id: &SessionId,
     (call, path, machine): (&str, &str, Option<&str>),
-) -> Result<rust_cli_kernel_api::store::ArtifactRef> {
+) -> Result<nibi_kernel_api::store::ArtifactRef> {
     let mut artifact = json!({
         "createdAt": "2026-10-24T00:00:00.000Z",
         "files": [{"afterContent": "new\n", "afterContentLength": 4, "beforeContent": null,

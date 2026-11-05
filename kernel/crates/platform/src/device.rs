@@ -10,8 +10,8 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
 
-use rust_cli_fs::{ParentDir, PidLockOptions, TempName, WriteOptions};
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_fs::{ParentDir, PidLockOptions, TempName, WriteOptions};
+use nibi_kernel_paths::StoragePaths;
 use serde_json::{Map, Value};
 use tokio::sync::OnceCell;
 
@@ -77,7 +77,7 @@ impl DeviceMid {
         if let Some(value) = device_mid(&read_state(&self.state).await) {
             return Ok(value);
         }
-        rust_cli_fs::with_pid_lock(&self.lock, &self.lock_options, async {
+        nibi_kernel_fs::with_pid_lock(&self.lock, &self.lock_options, async {
             let mut state = read_state(&self.state).await;
             // 别的进程在我们等锁时写好了：用它，不写。
             if let Some(value) = device_mid(&state) {
@@ -86,7 +86,7 @@ impl DeviceMid {
             let value = self.generated().to_owned();
             state.insert("deviceMid".to_owned(), Value::String(value.clone()));
             let text = crate::cli_config::node_pretty(&Value::Object(state));
-            rust_cli_fs::atomic_write(&self.state, text.as_bytes(), WRITE).await?;
+            nibi_kernel_fs::atomic_write(&self.state, text.as_bytes(), WRITE).await?;
             Ok(value)
         })
         .await
@@ -95,7 +95,7 @@ impl DeviceMid {
 
 /// Node `writeTelemetryState`：同目录 `.telemetry-state.json.<pid>.<ms>.<rand>.tmp` 再 rename，目录不存在时创建。
 const WRITE: WriteOptions = WriteOptions {
-    mode: rust_cli_fs::FileMode::Default,
+    mode: nibi_kernel_fs::FileMode::Default,
     temp_name: TempName::Hidden,
     parent: ParentDir::Create,
     rename_retry: &[],
@@ -103,7 +103,7 @@ const WRITE: WriteOptions = WriteOptions {
 
 /// Node `readTelemetryState`：读不出、不是 JSON、顶层不是对象时是空对象。
 async fn read_state(path: &std::path::Path) -> Map<String, Value> {
-    let Ok(Some(bytes)) = rust_cli_fs::read_optional(path).await else {
+    let Ok(Some(bytes)) = nibi_kernel_fs::read_optional(path).await else {
         return Map::new();
     };
     match serde_json::from_slice::<Value>(&bytes) {

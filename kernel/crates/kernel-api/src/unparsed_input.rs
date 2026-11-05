@@ -4,7 +4,7 @@
 //! 单元与总长度；执行管线在 schema 校验之前认出它，给模型 JSON 解析失败的 InputValidationError。
 //! 回放给模型的 tool_use 输入就是这个对象。
 
-use rust_cli_base::js::string::utf16_prefix;
+use nibi_kernel_base::js::string::utf16_prefix;
 use serde_json::{Value, json};
 
 /// 标记对象唯一的键。

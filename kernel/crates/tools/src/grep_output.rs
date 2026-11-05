@@ -1,6 +1,6 @@
 //! Grep 的参数拼装与结果排版（rg 参数、行格式、分页与分页说明）。
 
-use rust_cli_kernel_api::env_files::{GrepFileLines, GrepLineKind, VCS_DIRS};
+use nibi_kernel_api::env_files::{GrepFileLines, GrepLineKind, VCS_DIRS};
 
 use crate::common::utf16_len;
 

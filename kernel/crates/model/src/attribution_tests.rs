@@ -1,13 +1,13 @@
 //! 每请求头的取值（工作线 F64，model.md §2.4 的第二张表与用途表）。
 
-use rust_cli_kernel_api::ids::{AgentId, RunId, SessionId};
-use rust_cli_kernel_api::model::{ModelRequest, QuerySource, RequestOptions};
+use nibi_kernel_api::ids::{AgentId, RunId, SessionId};
+use nibi_kernel_api::model::{ModelRequest, QuerySource, RequestOptions};
 
 use super::*;
 
 fn request(source: QuerySource, options: RequestOptions) -> ModelRequest {
     ModelRequest {
-        selection: rust_cli_kernel_api::model::ModelSelection {
+        selection: nibi_kernel_api::model::ModelSelection {
             provider: "p".to_owned(),
             model: "m".to_owned(),
             reasoning: None,

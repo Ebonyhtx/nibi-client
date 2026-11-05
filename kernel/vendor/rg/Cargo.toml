@@ -3,7 +3,7 @@
 # ripgrep/ 下的文件由 scripts/rust-cli/vendor/fetch.mjs 按 vendor/sources.json 生成，不手改。
 # 依赖与上游 Cargo.toml 相同（去掉只在 musl 上用的 tikv-jemallocator），版本由 workspace 的 Cargo.lock 决定。
 [package]
-name = "rust-cli-vendor-rg"
+name = "nibi-kernel-vendor-rg"
 # `rg --version` 用 CARGO_PKG_VERSION：与上游版本相同。
 version = "15.2.0"
 edition = "2024"

@@ -11,9 +11,9 @@
 
 use std::collections::HashMap;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::{ModelError, ModelSelection};
-use rust_cli_kernel_api::provider::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::{ModelError, ModelSelection};
+use nibi_kernel_api::provider::{
     CatalogConnection, CatalogModel, ModelCapabilities, TokenLimits, WireProtocol,
 };
 use serde_json::Value;

@@ -4,7 +4,7 @@
 use std::collections::VecDeque;
 use std::time::Duration;
 
-use rust_cli_kernel_api::provider::WireProtocol;
+use nibi_kernel_api::provider::WireProtocol;
 
 use super::*;
 use crate::errors::{Class, Vendor};

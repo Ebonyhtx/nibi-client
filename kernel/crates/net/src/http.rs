@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use reqwest::header::{HeaderMap, HeaderName};
-use rust_cli_base::secret::RedactedString;
+use nibi_kernel_base::secret::RedactedString;
 
 use crate::NetError;
 

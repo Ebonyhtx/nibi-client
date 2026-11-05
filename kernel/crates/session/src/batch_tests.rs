@@ -3,10 +3,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::model::{ApiContent, ApiRole};
-use rust_cli_kernel_api::session_api::{Command, Delivery, KernelEvent, SessionHandle};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::model::{ApiContent, ApiRole};
+use nibi_kernel_api::session_api::{Command, Delivery, KernelEvent, SessionHandle};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 
 use crate::test_support::{GatedModel, Setup, envelope, finished, until};
 
@@ -14,7 +14,7 @@ fn queued(
     id: &str,
     text: &str,
     delivery: Delivery,
-) -> rust_cli_kernel_api::session_api::CommandEnvelope {
+) -> nibi_kernel_api::session_api::CommandEnvelope {
     envelope(
         id,
         Command::Submit {
@@ -26,7 +26,7 @@ fn queued(
 }
 
 /// 一个请求最后一条 user 消息里的文字块。
-fn last_user_texts(request: &rust_cli_kernel_api::model::ModelRequest) -> Vec<String> {
+fn last_user_texts(request: &nibi_kernel_api::model::ModelRequest) -> Vec<String> {
     let user = request
         .messages
         .iter()
@@ -64,14 +64,14 @@ struct FirstGated {
     rest: ScriptedModel,
 }
 
-impl rust_cli_kernel_api::model::ModelPort for FirstGated {
+impl nibi_kernel_api::model::ModelPort for FirstGated {
     fn stream(
         &self,
-        request: rust_cli_kernel_api::model::ModelRequest,
+        request: nibi_kernel_api::model::ModelRequest,
         cancel: tokio_util::sync::CancellationToken,
     ) -> futures_util::stream::BoxStream<
         'static,
-        Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>,
+        Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>,
     > {
         if self.first.swap(false, std::sync::atomic::Ordering::SeqCst) {
             return self.gated.stream(request, cancel);

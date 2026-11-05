@@ -8,7 +8,7 @@
 use std::path::PathBuf;
 
 // Windows 路径的 Git Bash 写法：F57 起只在 kernel-api 一处（以前这里有一份 `git_bash_path`）。
-use rust_cli_kernel_api::env_path::git_bash_spelling;
+use nibi_kernel_api::env_path::git_bash_spelling;
 
 /// 内嵌的搜索工具（入口给出，cli 的 `shell.rs`）。
 #[derive(Debug, Clone, PartialEq, Eq)]

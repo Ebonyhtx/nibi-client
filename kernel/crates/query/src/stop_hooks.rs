@@ -1,10 +1,10 @@
 //! Stop / SubagentStop hooks（docs/specs/rust-cli/hooks.md §7）：回合要正常结束时运行。hooks crate 已把要提交的文本渲染成消息，这里只提交并
 //! 决定继续还是结束。
 
-use rust_cli_kernel_api::hooks::{HookContext, HookEvent, HookEventName};
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::QueryError;
+use nibi_kernel_api::hooks::{HookContext, HookEvent, HookEventName};
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::QueryError;
 use serde_json::{Map, Value, json};
 
 use crate::RunScope;

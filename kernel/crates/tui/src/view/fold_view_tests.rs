@@ -1,11 +1,11 @@
 //! 只读查看的追加刷新（tui-panels.md §1.4，修复线 F6，审查 R5-11）：在任意位置切开，先建前半再追加后半，行的内容与
 //! 运行状态都与对整份快照重建相同。
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::SessionView;
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId, TraceId};
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::SessionView;
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
 
 use super::*;
 
@@ -109,8 +109,8 @@ fn a_changed_view_field_needs_a_rebuild() {
 /// 的值（它们随每次提交变，不算“视图字段变了”，不整体重建）。修前追加只折消息，三项停在第一份快照的值。
 #[test]
 fn appending_takes_the_new_context_and_speed() {
-    use rust_cli_kernel_api::compaction::{ContextNotice, ContextOccupancy};
-    use rust_cli_kernel_api::metering::OutputSpeed;
+    use nibi_kernel_api::compaction::{ContextNotice, ContextOccupancy};
+    use nibi_kernel_api::metering::OutputSpeed;
     let all = history();
     let mut view = Transcript::from_view(snapshot(all[..2].to_vec(), true), 1);
     assert_eq!(view.context_usage(), None);

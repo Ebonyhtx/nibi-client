@@ -3,7 +3,7 @@
 //! 测试默认跳过；由 `scripts/kernel-baseline/run-node-store-interop.mjs` 用
 //! `NIBI_INTEROP_DB` / `NIBI_INTEROP_HOME` 指向一份隔离数据根后执行：
 //!
-//!   cargo test -p rust-cli-node-store --test nibi_interop -- --nocapture
+//!   cargo test -p nibi-kernel-node-store --test nibi_interop -- --nocapture
 //!
 //! 断言：
 //! 1. 迁移账本仍是 Node 的 0001–0024（数量与 checksum 由 node-store 打开时自行校验）；
@@ -13,11 +13,11 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::store::{SessionFilter, SessionStore};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 
 /// Node 账本 id 形如 `0001_base_session_store`；取前四位的数字。
 fn migration_number(id: &str) -> i64 {

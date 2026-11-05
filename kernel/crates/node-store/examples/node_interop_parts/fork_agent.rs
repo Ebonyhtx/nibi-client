@@ -93,7 +93,7 @@ pub(super) async fn write(dir: &str) -> Result<()> {
         result(&a1, "toolu_fork", vec![said(launched)], false),
         Fact::SubagentLinked {
             tool_use: ToolUseId::new("toolu_fork"),
-            agent: rust_cli_kernel_api::ids::AgentId::new(agent.as_str()),
+            agent: nibi_kernel_api::ids::AgentId::new(agent.as_str()),
             child: child.clone(),
             agent_type: "fork".into(),
         },

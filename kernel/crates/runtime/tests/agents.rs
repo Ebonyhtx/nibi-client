@@ -9,23 +9,23 @@ mod agents {
 
     use futures_util::StreamExt;
     use futures_util::stream::BoxStream;
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, SessionId};
-    use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
-    use rust_cli_kernel_api::model::{
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::{CommandId, EnvironmentId, SessionId};
+    use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+    use nibi_kernel_api::model::{
         ModelError, ModelEvent, ModelPort, ModelRequest, QuerySource,
     };
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::session_api::{
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::session_api::{
         Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, SessionHandle,
         TurnOutcome,
     };
-    use rust_cli_kernel_api::store::SessionStore;
-    use rust_cli_kernel_api::testing::{
+    use nibi_kernel_api::store::SessionStore;
+    use nibi_kernel_api::testing::{
         FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
         selection, text_response, tool_use_response,
     };
-    use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+    use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
     use serde_json::json;
     use tokio_util::sync::CancellationToken;
 
@@ -96,7 +96,7 @@ mod agents {
                 search_tools: false,
                 task_tools: None,
                 // 前台子代理只在 fork 关着时有（`NIBI_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
-                limits: rust_cli_runtime::Limits {
+                limits: nibi_kernel_runtime::Limits {
                     fork_subagent: Some(false),
                     ..Default::default()
                 },
@@ -202,7 +202,7 @@ mod agents {
         );
         // 子会话落库：parent_id 指向父会话，里面有 prompt 与子代理的回复。
         let children: Vec<SessionId> = store
-            .list(rust_cli_kernel_api::store::SessionFilter {
+            .list(nibi_kernel_api::store::SessionFilter {
                 workspace: workspace(),
                 limit: 10,
             })
@@ -218,7 +218,7 @@ mod agents {
             .facts(session.id())
             .into_iter()
             .filter_map(|fact| match fact {
-                rust_cli_kernel_api::store::Fact::SubagentLinked {
+                nibi_kernel_api::store::Fact::SubagentLinked {
                     tool_use,
                     child,
                     agent_type,
@@ -308,7 +308,7 @@ mod agents {
         // 一次性子代理（Explore）的结果没有 agentId 尾注：关联照样落库（修复线 F2）。
         assert!(store.facts(session.id()).iter().any(|fact| matches!(
             fact,
-            rust_cli_kernel_api::store::Fact::SubagentLinked { agent_type, .. } if agent_type == "Explore"
+            nibi_kernel_api::store::Fact::SubagentLinked { agent_type, .. } if agent_type == "Explore"
         )));
         let last = format!("{:?}", main[2].messages.last().unwrap());
         assert!(last.contains("<task-notification>"), "{last}");

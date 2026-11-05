@@ -4,7 +4,7 @@
 //! `scripts/rust-cli/prompts/system.mjs` 生成并 `--check`，其余手工维护。
 //! 模板变量写成 `{{name}}`，用 [`render`] 填入。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 use crate::trim;
 

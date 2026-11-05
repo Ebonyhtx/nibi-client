@@ -4,7 +4,7 @@
 //! `transcript_path`、`cwd`、`permission_mode`、`agent_id`、`agent_type`，之后是 `hook_event_name`
 //! 与调用方给出的事件字段（键序保持）。
 
-use rust_cli_kernel_api::hooks::HookEvent;
+use nibi_kernel_api::hooks::HookEvent;
 use serde_json::{Map, Value};
 
 /// 组装输入 JSON。`cwd` 由引擎解析好（`context.cwd`、会话 shell cwd 或工作区根）。

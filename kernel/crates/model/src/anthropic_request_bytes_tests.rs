@@ -1,9 +1,9 @@
 //! 请求编码的字节对照（修复线 F6，审查 R5-6）：消息改成从类型化消息直接写出之后，请求体与 beta 必须与旧写法
 //! （先建 `serde_json::Value` 再 `JSON.stringify`）逐字节相同。`reference` 是旧写法的原样副本，只用作对照。
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, CacheControl, ContextEdit, ModelRequest, ThinkingConfig,
     TurnOutputConfig,
 };
@@ -14,8 +14,8 @@ use super::tests::request;
 /// 旧写法（修复线 F6 之前的 `anthropic_request::body_value` 与 `anthropic_betas::betas`）。
 #[allow(clippy::needless_pass_by_value)]
 mod reference {
-    use rust_cli_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
-    use rust_cli_kernel_api::model::{
+    use nibi_kernel_api::message::{ContentBlock, ImageSource, ToolResultContent};
+    use nibi_kernel_api::model::{
         ApiContent, ApiMessage, ApiRole, CacheControl, ModelError, ModelRequest,
     };
     use serde_json::{Map, Value};
@@ -568,7 +568,7 @@ fn the_body_and_betas_match_the_value_encoder_byte_for_byte() {
             let explicit = std::mem::take(&mut old.betas);
             let value = reference::body_value(old, first_party, &patches).unwrap();
             let expected_betas = reference::betas(&value, &explicit);
-            let expected = rust_cli_base::js::json::stringify(&value);
+            let expected = nibi_kernel_base::js::json::stringify(&value);
             let encoded = super::encode(
                 request.clone(),
                 super::tests::profile(first_party),
@@ -590,10 +590,10 @@ fn the_body_and_betas_match_the_value_encoder_byte_for_byte() {
 fn unmaterialized_images_fail_the_same_way() {
     let artifact = ImageSource::Artifact {
         media_type: "image/png".to_owned(),
-        artifact: rust_cli_kernel_api::store::ArtifactRef {
-            session: rust_cli_kernel_api::ids::SessionId::new("sess_1"),
-            id: rust_cli_kernel_api::ids::ArtifactId::new("a.png"),
-            purpose: rust_cli_kernel_api::store::ArtifactPurpose::Media,
+        artifact: nibi_kernel_api::store::ArtifactRef {
+            session: nibi_kernel_api::ids::SessionId::new("sess_1"),
+            id: nibi_kernel_api::ids::ArtifactId::new("a.png"),
+            purpose: nibi_kernel_api::store::ArtifactPurpose::Media,
             media_type: "image/png".to_owned(),
             size: 1,
         },

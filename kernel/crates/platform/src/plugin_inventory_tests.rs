@@ -1,7 +1,7 @@
 //! Node 已安装插件与官方内置缓存的清单（docs/specs/rust-cli/ext.md §4.1、§4.2）。
 use std::path::{Path, PathBuf};
 
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_paths::StoragePaths;
 
 use super::*;
 use crate::test_support::write;

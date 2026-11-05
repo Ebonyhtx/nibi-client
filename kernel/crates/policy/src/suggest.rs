@@ -4,8 +4,8 @@
 //! 修复（D9）：以前取前两个词、第二个词不像子命令时退到第一个词，`git -C /repo status` 建议成过宽的
 //! `git:*`；现在第二个词不像子命令就给精确规则，前缀规则写成 `<前缀> *`。
 
-use rust_cli_base::js::string::is_space;
-use rust_cli_kernel_api::permission::PermissionRule;
+use nibi_kernel_base::js::string::is_space;
+use nibi_kernel_api::permission::PermissionRule;
 
 use crate::safe_env;
 

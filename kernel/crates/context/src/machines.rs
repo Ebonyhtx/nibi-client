@@ -3,9 +3,9 @@
 //! 只在有变化时发：最近一次压缩边界之后的上一条提醒存着快照（`data.machines`），与注册表现在的快照比。没有远端机器、
 //! 也没发过时什么都不发（没有机器时完全不变）。不改 system prompt。
 
-use rust_cli_kernel_api::env_registry::MachineSet;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::env_registry::MachineSet;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_prompts::texts::{self, render};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 

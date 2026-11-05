@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 pub use crate::env_command::{BackgroundReason, CommandEvent, OutputStream, StartCommand};
 use crate::ids::{EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId};
 
-/// 执行环境里的路径。与本机存储路径（`rust_cli_paths::StoragePath`）是不同的类型。
+/// 执行环境里的路径。与本机存储路径（`nibi_kernel_paths::StoragePath`）是不同的类型。
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct EnvPath(String);

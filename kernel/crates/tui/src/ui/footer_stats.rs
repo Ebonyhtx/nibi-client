@@ -3,8 +3,8 @@
 //! 用量与输出速度（`view::Transcript::context_usage`、`output_speed`）；这里只排文字，没有值的项不出现。
 //! 修复线 F105：TPS 原来也取用量表（最近一行），只有工具调用的请求没有值；现在取 actor 在内存里记的速度。
 use ratatui::text::Span;
-use rust_cli_kernel_api::compaction::ContextOccupancy;
-use rust_cli_kernel_api::metering::RequestStats;
+use nibi_kernel_api::compaction::ContextOccupancy;
+use nibi_kernel_api::metering::RequestStats;
 
 use super::app::App;
 use super::i18n::Lang;

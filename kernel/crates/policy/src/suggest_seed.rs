@@ -3,7 +3,7 @@
 //! 修复（D9）：以前这一行直接记住判决链的建议（取前两个词，`git -C /repo status` 记成 `git:*`）；现在按询问框
 //! 自己的规则：复合命令用唯一的那条建议，否则简单前缀、第一个词或整条命令，再按规格细化。
 
-use rust_cli_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::permission::PermissionRule;
 
 use crate::suggest::{first_word_prefix, simple_prefix, starts_with_wrapper};
 

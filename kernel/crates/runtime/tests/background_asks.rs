@@ -8,23 +8,23 @@ mod background_asks {
     use std::time::Duration;
 
     use futures_util::stream::{self, BoxStream, StreamExt};
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, InteractionId};
-    use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent};
-    use rust_cli_kernel_api::model::{
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::{CommandId, EnvironmentId, InteractionId};
+    use nibi_kernel_api::message::{ContentBlock, ToolResultContent};
+    use nibi_kernel_api::model::{
         ModelError, ModelEvent, ModelPort, ModelRequest, QuerySource,
     };
-    use rust_cli_kernel_api::orchestration::InteractionRequest;
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::session_api::{
+    use nibi_kernel_api::orchestration::InteractionRequest;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::session_api::{
         Ack, Command, CommandEnvelope, CreateSession, Delivery, EndReason, Kernel, KernelEvent,
         SequencedEvent, SessionHandle,
     };
-    use rust_cli_kernel_api::testing::{
+    use nibi_kernel_api::testing::{
         FixedClock, MemoryStore, SequentialIds, UnusedEnvironment, environments, selection,
         text_response, tool_use_response,
     };
-    use rust_cli_runtime::{ContextConfig, Defaults, LocalKernel, Ports, Surface};
+    use nibi_kernel_runtime::{ContextConfig, Defaults, LocalKernel, Ports, Surface};
     use serde_json::{Value, json};
     use tokio::sync::watch;
     use tokio_util::sync::CancellationToken;

@@ -1,10 +1,10 @@
 //! `/cd` 的规则文件（tui-manage.md §7.1）。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId};
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId};
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 use serde_json::json;
 
 use crate::{ContextConfig, ContextPorts, NoListings, PromptAssembler, Surface};

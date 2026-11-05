@@ -1,5 +1,5 @@
 //! L28 命令的解析（tui-display.md §4.1、§4.3）。
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::PermissionMode;
 
 use super::*;
 

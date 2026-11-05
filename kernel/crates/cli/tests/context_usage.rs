@@ -21,7 +21,7 @@ async fn context_sends_no_count_tokens_request() {
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(home.join(".nibi/v2")).unwrap();
     let fixture = sse::serve(Vec::new());
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "/context"])
         .current_dir(&work)
         .env_clear()

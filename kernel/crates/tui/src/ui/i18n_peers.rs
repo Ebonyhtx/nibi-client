@@ -1,6 +1,6 @@
 //! 跨会话的界面文字（docs/specs/rust-cli/cross-session.md §2.6）：中文与英文。英文照批准框与
 //! 回执警告行的原文，产品名换成 NIBI。
-use rust_cli_kernel_api::peers::HoldCause;
+use nibi_kernel_api::peers::HoldCause;
 
 use super::i18n::Lang;
 

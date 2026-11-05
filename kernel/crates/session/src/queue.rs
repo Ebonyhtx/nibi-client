@@ -5,9 +5,9 @@
 //! `setAutoDrain` 的"立刻开"例外，它们按 `sendQueuedNow` 的语义走同一条开回合路径。命令 ID 就是
 //! 协议里的 `queueItemId`（协议层在投影里加了 `queue_` 前缀，处理器剥掉）。
 
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::session_api::QueuedInput;
-use rust_cli_kernel_api::message::ContentBlock;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::session_api::QueuedInput;
+use nibi_kernel_api::message::ContentBlock;
 
 use crate::actor::{Actor, accepted, rejected};
 use crate::bash::QueuedKind;
@@ -17,7 +17,7 @@ use crate::turn::TurnInput;
 impl Actor {
     /// NIBI `editQueueItem`：同 id 原地更新正文（种类与位置不变）。不在队列里时拒绝（调用方按 noop）。
     /// 带内容块的输入改写文字块；bash 模式的输入改写命令原文。
-    pub(crate) fn edit_queued(&mut self, item: CommandId, text: String) -> rust_cli_kernel_api::session_api::Ack {
+    pub(crate) fn edit_queued(&mut self, item: CommandId, text: String) -> nibi_kernel_api::session_api::Ack {
         let Some(index) = self.queue.iter().position(|input| input.command == item) else {
             return rejected(format!("queue item {item} is no longer queued"));
         };
@@ -45,7 +45,7 @@ impl Actor {
     }
 
     /// NIBI `deleteQueueItem`：从队列、通道与种类表里移除。不在队列里时拒绝。
-    pub(crate) fn delete_queued(&mut self, item: CommandId) -> rust_cli_kernel_api::session_api::Ack {
+    pub(crate) fn delete_queued(&mut self, item: CommandId) -> nibi_kernel_api::session_api::Ack {
         if !self.queue.iter().any(|input| input.command == item) {
             return rejected(format!("queue item {item} is no longer queued"));
         }
@@ -61,7 +61,7 @@ impl Actor {
         &mut self,
         item: CommandId,
         before: Option<CommandId>,
-    ) -> rust_cli_kernel_api::session_api::Ack {
+    ) -> nibi_kernel_api::session_api::Ack {
         if before.as_ref() == Some(&item) {
             return accepted();
         }
@@ -94,7 +94,7 @@ impl Actor {
     pub(crate) async fn set_auto_drain(
         &mut self,
         enabled: bool,
-    ) -> rust_cli_kernel_api::session_api::Ack {
+    ) -> nibi_kernel_api::session_api::Ack {
         self.auto_drain = enabled;
         if enabled && !self.busy() {
             self.start_next().await;
@@ -107,7 +107,7 @@ impl Actor {
     pub(crate) async fn send_queued_now(
         &mut self,
         item: CommandId,
-    ) -> rust_cli_kernel_api::session_api::Ack {
+    ) -> nibi_kernel_api::session_api::Ack {
         let Some(index) = self.queue.iter().position(|input| input.command == item) else {
             return rejected(format!("queue item {item} is no longer queued"));
         };

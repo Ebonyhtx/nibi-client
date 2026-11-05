@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, SequentialIds};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -30,7 +30,7 @@ async fn launch(env: MemoryEnvironment, args: &str) -> String {
     let input = json!({"skill": "loop", "args": args});
     assert_eq!(
         tool.validate_input(&input, &context).await,
-        rust_cli_kernel_api::tool::Validation::Ok
+        nibi_kernel_api::tool::Validation::Ok
     );
     let result = tool
         .call_with_messages(input, context, progress)
@@ -83,7 +83,7 @@ async fn empty_and_interval_only_inputs_use_the_defaults() {
 #[tokio::test]
 async fn the_loop_file_path_is_joined_like_the_other_dot_dirs() {
     let mut odd = facts();
-    odd.home = Some(rust_cli_kernel_api::env::EnvPath::new("/Users/x/../dev/"));
+    odd.home = Some(nibi_kernel_api::env::EnvPath::new("/Users/x/../dev/"));
     let env =
         MemoryEnvironment::new(odd).with_file(&format!("{HOME}/.nibi/loop.md"), "- home task\n");
     let file = launch(env, "").await;
@@ -141,7 +141,7 @@ async fn the_builtin_needs_permission() {
     assert_eq!(
         tool.check_permissions(&json!({"skill": "loop"}), &context)
             .await,
-        rust_cli_kernel_api::permission::PermissionDecision::Passthrough
+        nibi_kernel_api::permission::PermissionDecision::Passthrough
     );
 }
 

@@ -1,6 +1,6 @@
 //! Bash 结果文本（期望值逐字固定）。
 
-use rust_cli_kernel_api::ids::{OperationId, ShellTaskId};
+use nibi_kernel_api::ids::{OperationId, ShellTaskId};
 
 use super::*;
 
@@ -85,7 +85,7 @@ fn background_texts_are_verbatim() {
 /// 修复线 L-A（tui-input.md §11）：被要求转后台时的两种说法（对照实现的原文）。
 #[test]
 fn a_requested_move_explains_why() {
-    use rust_cli_kernel_api::env::BackgroundReason;
+    use nibi_kernel_api::env::BackgroundReason;
     let task = ShellTaskId::new("b1");
     assert_eq!(
         backgrounded_by(BackgroundReason::User, &task, "/tmp/b1.output"),

@@ -1,7 +1,7 @@
 //! `zcode hooks trust`（config.md §4.3）：参数、状态、grant / revoke 与 Node 的文本。
 #![allow(clippy::disallowed_methods, reason = "测试读回写出的信任记录")]
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::*;
 

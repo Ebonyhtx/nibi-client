@@ -12,18 +12,18 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-use rust_cli_kernel_api::checkpoint::CheckpointArtifact;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_rewind::content_hash;
-use rust_cli_kernel_api::file_changes::{
+use nibi_kernel_api::checkpoint::CheckpointArtifact;
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_rewind::content_hash;
+use nibi_kernel_api::file_changes::{
     DiffHunk, FileChangeItem, FileChangesReport, RewindAction, RewindIgnoredFile, RewindPreview,
     RewindSafeFile, RewindUnsafeFile, RewindUnsafeReason, TurnFileSummary, bash_ignored,
     patch_stats, structured_patch,
 };
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::store::{ArtifactStore, WorkspaceCheckpoint};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::store::{ArtifactStore, WorkspaceCheckpoint};
 
 
 /// 给定消息集合选中这一轮的 checkpoint：prompt（开启这一轮的 user 消息）或 assistant（工具所在
@@ -244,7 +244,7 @@ async fn current(access: &Access, path: &str) -> Current {
             Ok(text) => Current::Known(Some(text)),
             Err(error) => Current::Failed(error.to_string()),
         },
-        Err(rust_cli_kernel_api::env::EnvError::NotFound { .. }) => Current::Known(None),
+        Err(nibi_kernel_api::env::EnvError::NotFound { .. }) => Current::Known(None),
         Err(error) => Current::Failed(error.to_string()),
     }
 }
@@ -320,7 +320,7 @@ pub(crate) async fn preview(
     store: &dyn ArtifactStore,
     local_files: &std::sync::Arc<dyn Files>,
     workspace: &WorkspaceRef,
-    machines: &dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry,
+    machines: &dyn nibi_kernel_api::env_registry::EnvironmentRegistry,
     checkpoints: &[&WorkspaceCheckpoint],
 ) -> RewindPreview {
     if checkpoints.is_empty() {

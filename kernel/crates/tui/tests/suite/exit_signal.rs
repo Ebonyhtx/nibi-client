@@ -4,10 +4,10 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::testing::{MemoryStore, NoticeEnvironment, environments};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::testing::{MemoryStore, NoticeEnvironment, environments};
 use tokio_util::sync::CancellationToken;
 
 use super::support::{GatedModel, Setup, send, with_ui, with_ui_exit};

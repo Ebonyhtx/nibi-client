@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::Value;
 
 use super::subscription;

@@ -5,8 +5,8 @@
 //! part 的占位文本（docs/specs/rust-cli/node-store.md §5、§7）。Node 给未结束调用补的中断结果，本工程在同一位置补同样的
 //! 结果（Node 的文字，§4.6，工作线 F86、F88），直接比。
 use rusqlite::Connection;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{
     ContentBlock, ImageSource, Message, ToolResultContent, UserOrigin,
 };
 use serde_json::{Value, json};
@@ -272,6 +272,6 @@ fn the_active_branch_applies_the_revert_cursor_and_the_compaction_boundary() {
     ));
     assert_eq!(
         loaded.mode,
-        Some(rust_cli_kernel_api::permission::PermissionMode::Default)
+        Some(nibi_kernel_api::permission::PermissionMode::Default)
     );
 }

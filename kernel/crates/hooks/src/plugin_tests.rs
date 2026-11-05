@@ -1,6 +1,6 @@
 //! 插件的 hooks（hooks.md §2.2 第 5–7 条）。
 
-use rust_cli_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::hooks::HookEventName;
 use serde_json::{Value, json};
 
 use super::*;

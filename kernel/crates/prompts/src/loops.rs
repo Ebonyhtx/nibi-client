@@ -6,7 +6,7 @@
 //! 短提醒与自主说明。没有产品名需要替换。
 //! 模板变量用 [`crate::texts::render`] 填入。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 use crate::trim;
 
@@ -110,7 +110,7 @@ pub fn loop_file_paths(
     home: Option<&str>,
     join: impl Fn(&str, &[&str]) -> String,
 ) -> Vec<String> {
-    let file = |base: &str| join(base, &[rust_cli_base::names::DOT_DIR, "loop.md"]);
+    let file = |base: &str| join(base, &[nibi_kernel_base::names::DOT_DIR, "loop.md"]);
     std::iter::once(file(root)).chain(home.map(file)).collect()
 }
 

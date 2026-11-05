@@ -1,7 +1,7 @@
 //! 快捷键（docs/specs/rust-cli/tui-input.md §5）：ctrl+enter 低延迟投递（不中断，修复线 L-A）、
 //! ctrl+l 清空输入、ctrl+s 暂存与发送后放回、meta+p 打开模型选择、`/help` 的快捷键一节。
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, finish, request_text, send, with_ui};
 

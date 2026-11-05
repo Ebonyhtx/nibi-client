@@ -8,7 +8,7 @@
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rust_cli_kernel_api::clock::{Clock, civil_date};
+use nibi_kernel_api::clock::{Clock, civil_date};
 
 /// 时区规则：入口读系统时区后实现，内核只经 [`Clock`] 用它。
 pub trait TimeZone: Send + Sync {

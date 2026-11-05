@@ -16,8 +16,8 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use compacted::{Keep, SESSION};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::SessionStore;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::SessionStore;
 use serde_json::Value;
 
 /// 两种最后一次压缩：保留段以正文结尾、以工具结果结尾。前面还有两次压缩（其中一次没有保留段）。
@@ -149,7 +149,7 @@ async fn the_first_request_after_resuming_is_unchanged() {
     for (name, keep) in SHAPES {
         let sandbox = seeded(&keep).await;
         let fixture = sse::serve(vec![sse::text_reply("resumed answer")]);
-        let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+        let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
             .args(["-p", "--resume", SESSION, "next question"])
             .current_dir(&sandbox.work)
             .env_clear()
@@ -179,8 +179,8 @@ async fn the_first_request_after_resuming_is_unchanged() {
 }
 
 /// 视图里人类输入的文字，按顺序。
-fn inputs(messages: &[rust_cli_kernel_api::message::Message]) -> Vec<String> {
-    use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
+fn inputs(messages: &[nibi_kernel_api::message::Message]) -> Vec<String> {
+    use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
     messages
         .iter()
         .filter_map(|message| match message {
@@ -197,8 +197,8 @@ fn inputs(messages: &[rust_cli_kernel_api::message::Message]) -> Vec<String> {
 /// rewind 只能选最后一个压缩点之后的输入。修 bug（工作线 F102）：以前视图只有最后一个压缩点之后的消息。
 #[tokio::test(flavor = "multi_thread")]
 async fn the_view_after_opening_has_the_whole_history() {
-    use rust_cli_kernel_api::message::{Message, SystemMessage};
-    use rust_cli_kernel_api::session_api::{EndReason, Kernel};
+    use nibi_kernel_api::message::{Message, SystemMessage};
+    use nibi_kernel_api::session_api::{EndReason, Kernel};
 
     for (name, keep) in SHAPES {
         let sandbox = seeded(&keep).await;
@@ -221,7 +221,7 @@ async fn the_view_after_opening_has_the_whole_history() {
         // 模型侧：视图上取活动历史，与冷读取给模型侧的消息相同。
         let store = compacted::store(&sandbox.home);
         let loaded = store.load(&SessionId::new(SESSION)).await.unwrap();
-        let active: Vec<Message> = rust_cli_kernel_api::history::active(&view.messages)
+        let active: Vec<Message> = nibi_kernel_api::history::active(&view.messages)
             .into_iter()
             .map(std::borrow::Cow::into_owned)
             .collect();

@@ -2,8 +2,8 @@
 //! AltGr 的字符（crossterm 报成 Ctrl+Alt）进输入框；alt+小键盘码（只在松开事件里）进输入框；没有括号粘贴时，很快的
 //! 一串按键合并成一次粘贴，换行不发送。注入 Unix 时同样的按键照旧。
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::{Os, WindowsRelease};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::{Os, WindowsRelease};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::{CompactTrigger, Message, UserOrigin};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::testing::{FakeTool, ListTools};
+use nibi_kernel_api::message::{CompactTrigger, Message, UserOrigin};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::testing::{FakeTool, ListTools};
 use tokio_util::sync::CancellationToken;
 
 use super::{Engine, Failure};

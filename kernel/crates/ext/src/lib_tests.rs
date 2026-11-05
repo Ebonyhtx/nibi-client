@@ -2,12 +2,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{ListTools, MemoryEnvironment, SequentialIds};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{ListTools, MemoryEnvironment, SequentialIds};
 use serde_json::json;
 
 use super::*;
@@ -175,7 +175,7 @@ async fn the_wait_tool_follows_pending_servers_and_the_declared_session() {
     // 清单来源：有快照时用快照里的 instructions，没有时取现在的。
     let listings = ext.listings();
     let mut stale = request();
-    stale.mcp = Some(rust_cli_kernel_api::mcp_state::McpView::default());
+    stale.mcp = Some(nibi_kernel_api::mcp_state::McpView::default());
     assert!(listings.mcp_instructions(&stale).await.unwrap().is_empty());
     let mut fresh = request();
     fresh.mcp = declared.mcp;

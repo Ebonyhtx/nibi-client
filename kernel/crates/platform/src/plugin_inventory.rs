@@ -1,6 +1,6 @@
 //! Node 已安装插件与官方内置插件缓存的只读清单（docs/specs/rust-cli/ext.md §4.1、§4.2）。
 //!
-//! 都在插件存储根（`StoragePaths::plugin_storage`）下，是本机存储，经 rust-cli-fs 读：
+//! 都在插件存储根（`StoragePaths::plugin_storage`）下，是本机存储，经 nibi-kernel-fs 读：
 //! - `installed_plugins.json`：数组格式（`plugins` 是数组，Node 写的）与对象格式（`plugins` 是以 id 为键的对象）都认
 //!   （Node `normalizeInstalledPluginsState`）；
 //! - `marketplaces/nibi-official/bundled-marketplace.json`：Node 播种的内置插件分片，条目的
@@ -13,12 +13,12 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 // 按字面化简 `.` 与 `..`（Node `resolve` 的规范化；不访问文件系统）：唯一定义在 base（F58）。
-use rust_cli_base::path::normalize;
-use rust_cli_paths::StoragePath;
+use nibi_kernel_base::path::normalize;
+use nibi_kernel_paths::StoragePath;
 use serde_json::{Map, Value};
 
 const INSTALLED_PLUGINS: &str = "installed_plugins.json";
-use rust_cli_base::names::OFFICIAL_MARKETPLACE;
+use nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
 /// 存储根下的插件缓存目录（Node `cache/`；F55：以前写了三次）。
 const CACHE_DIR: &str = "cache";
 const BUNDLED_PARTITION: &str = "bundled-marketplace.json";
@@ -41,7 +41,7 @@ pub struct InstalledPlugin {
 
 /// 读 JSON 对象；文件不存在、读不出或不是对象时为 None（Node `readJsonFileSync` 返回 undefined）。
 async fn read_object(path: &Path) -> Option<Map<String, Value>> {
-    match rust_cli_fs::read_optional(path).await {
+    match nibi_kernel_fs::read_optional(path).await {
         Ok(Some(bytes)) => match serde_json::from_slice(&bytes) {
             Ok(Value::Object(object)) => Some(object),
             _ => None,
@@ -202,7 +202,7 @@ pub async fn official_plugin_roots(root: &StoragePath) -> Vec<PathBuf> {
 
 /// 子目录名；目录不存在时为空，其余错误记警告后为空（Node `plugin_root_not_found` 诊断）。
 async fn subdirectories(dir: &Path) -> Vec<String> {
-    match rust_cli_fs::subdirectories(dir).await {
+    match nibi_kernel_fs::subdirectories(dir).await {
         Ok(names) => names,
         Err(error) if error.kind() == ErrorKind::NotFound => Vec::new(),
         Err(error) => {

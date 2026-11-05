@@ -2,13 +2,13 @@
 //! F88）：本工程写 pending tool part 时就带 `metadata.rustCli` 标记；没有标记的未结调用是 Node 写的，冷读取在内存里补
 //! Node 的中断结果（Node 的文字，按声明顺序夹在已有结果中间），不写库，每次冷读取都在同一位置补；有标记的照旧没有结果
 //! （由会话续写时补并落库）。
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, CompactBoundary, CompactTrigger, ContentBlock, Message,
     NO_RESPONSE_REQUESTED, PreservedSegment, SYNTHETIC_MODEL, StopReason, SystemMessage,
     ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, started, text, user};

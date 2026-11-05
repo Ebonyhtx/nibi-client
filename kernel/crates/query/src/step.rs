@@ -7,14 +7,14 @@
 //! 缺陷修复（F36）：原来附件读一次注册表、每次请求再读一次。两次之间连上的 MCP 服务器，工具先进请求，
 //! `mcp_instructions_delta` 晚一个工具轮。
 //!
-//! [`ToolRegistry::snapshot`]: rust_cli_kernel_api::orchestration::ToolRegistry::snapshot
+//! [`ToolRegistry::snapshot`]: nibi_kernel_api::orchestration::ToolRegistry::snapshot
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::mcp_state::{McpView, WAIT_FOR_MCP_SERVERS};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::tool::Tool;
-use rust_cli_kernel_api::tool_search::TOOL_SEARCH;
+use nibi_kernel_api::mcp_state::{McpView, WAIT_FOR_MCP_SERVERS};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::tool::Tool;
+use nibi_kernel_api::tool_search::TOOL_SEARCH;
 
 use crate::RunScope;
 

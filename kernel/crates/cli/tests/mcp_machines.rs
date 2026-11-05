@@ -69,7 +69,7 @@ fn sandbox(bindings: Value) -> Sandbox {
 }
 
 fn run(sandbox: &Sandbox, fixture: &sse::Fixture) -> Output {
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&sandbox.work)
         .env_clear()

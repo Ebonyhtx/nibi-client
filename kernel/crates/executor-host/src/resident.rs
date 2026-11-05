@@ -10,20 +10,20 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use rust_cli_base::TaskScope;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_exec_server::{AllowAll, ExecServer, ServerConfig};
-use rust_cli_exec_transport::stream::stream_link;
-use rust_cli_exec_transport::{FrameSink, FrameSource, Link, LinkError, MAX_FRAME};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::admin::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_exec_server::{AllowAll, ExecServer, ServerConfig};
+use nibi_kernel_exec_transport::stream::stream_link;
+use nibi_kernel_exec_transport::{FrameSink, FrameSource, Link, LinkError, MAX_FRAME};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::admin::{
     AdminAction, AdminOutcome, AdminReply, AdminRequest, ExecutorStatus,
 };
-use rust_cli_exec_wire::frame::{Decoded, Frame, Kind, decode};
-use rust_cli_exec_wire::handshake::PROTOCOL;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_paths::ExecutorPaths;
+use nibi_kernel_exec_wire::frame::{Decoded, Frame, Kind, decode};
+use nibi_kernel_exec_wire::handshake::PROTOCOL;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_paths::ExecutorPaths;
 use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 
@@ -44,7 +44,7 @@ pub struct ResidentConfig {
     pub ledger_sweep: Duration,
     /// MCP 服务器的管道（R5，remote-exec.md §22.5）：env-local 的 `LocalMcpTransport`（打开 `${VAR}` 展开），与 Bash
     /// 同一份进程树账本与环境。
-    pub mcp: Arc<dyn rust_cli_kernel_api::mcp::McpTransport>,
+    pub mcp: Arc<dyn nibi_kernel_api::mcp::McpTransport>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -150,8 +150,8 @@ impl Shared {
 
 /// 起来了的常驻执行器（拿着锁、在监听）。
 pub struct Resident {
-    _lock: rust_cli_fs::ExclusiveLock,
-    listener: rust_cli_net::uds::UdsListener,
+    _lock: nibi_kernel_fs::ExclusiveLock,
+    listener: nibi_kernel_net::uds::UdsListener,
     socket: PathBuf,
     ledger: Arc<FileLedger>,
     sweep: Duration,
@@ -169,10 +169,10 @@ impl Resident {
             StartError::Failed(format!("{what}: {error}"))
         };
         let dir = config.paths.dir().as_path();
-        rust_cli_fs::create_private_dir_all(dir)
+        nibi_kernel_fs::create_private_dir_all(dir)
             .await
             .map_err(|e| failed("creating the executor directory", &e))?;
-        let lock = rust_cli_fs::try_lock_exclusive(config.paths.lock().as_path())
+        let lock = nibi_kernel_fs::try_lock_exclusive(config.paths.lock().as_path())
             .await
             .map_err(|e| failed("taking the executor lock", &e))?
             .ok_or(StartError::AlreadyRunning)?;
@@ -192,12 +192,12 @@ impl Resident {
             .await
             .map_err(|e| failed("starting the executor", &e))?;
         // 拿着锁：路径上的旧文件只可能是上次留下的。
-        rust_cli_fs::remove_optional(&socket)
+        nibi_kernel_fs::remove_optional(&socket)
             .await
             .map_err(|e| failed("removing the old socket", &e))?;
-        let listener = rust_cli_net::uds::UdsListener::bind(&socket)
+        let listener = nibi_kernel_net::uds::UdsListener::bind(&socket)
             .map_err(|e| failed(&format!("listening on {}", socket.display()), &e))?;
-        rust_cli_fs::restrict_to_owner(&socket)
+        nibi_kernel_fs::restrict_to_owner(&socket)
             .await
             .map_err(|e| failed("restricting the socket", &e))?;
         tracing::info!(target: "executor_host", socket = %socket.display(), instance = %server.instance(), "resident executor listening");
@@ -264,7 +264,7 @@ impl Resident {
         // net 的 `UdsListener` 是不持有资源的占位（那里拿不到监听），clippy 的 `drop_non_drop` 报错；
         // 改用 `close` 写明“关闭监听”这个原意，两个平台一样。
         listener.close();
-        if let Err(error) = rust_cli_fs::remove_optional(&socket).await {
+        if let Err(error) = nibi_kernel_fs::remove_optional(&socket).await {
             tracing::warn!(target: "executor_host", %error, "removing the socket failed");
         }
         // 断开连接、结束服务端的任务；执行环境随最后一个引用释放（按 env-local 的规则结束还在跑的命令）。

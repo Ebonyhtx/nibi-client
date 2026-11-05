@@ -10,11 +10,11 @@
 //! - `compat-scope <storage-dir> <session>`：在 Node 群协作会话（`permission.scope = session`）里按“总是允许”、
 //!   用户改模式写入，输出本工程读到的会话规则与项目规则；
 //! - `task-load <storage-dir> <session>` / `task-add <storage-dir> <session> <subject>`：任务清单的读与追加。
-use rust_cli_kernel_api::agents::{TaskListStore, TaskRecord, TaskStatus};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior};
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
+use nibi_kernel_api::agents::{TaskListStore, TaskRecord, TaskStatus};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactStore, WorkspaceCheckpoint};
 
 use super::*;
 
@@ -247,7 +247,7 @@ async fn subagent(store: &NodeStore) -> Result<(SessionId, SessionId)> {
 fn link(agent: &str, child: &SessionId) -> Vec<Fact> {
     vec![Fact::SubagentLinked {
         tool_use: ToolUseId::new("toolu_agent"),
-        agent: rust_cli_kernel_api::ids::AgentId::new(agent),
+        agent: nibi_kernel_api::ids::AgentId::new(agent),
         child: child.clone(),
         agent_type: "Explore".into(),
     }]

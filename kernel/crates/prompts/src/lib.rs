@@ -4,7 +4,7 @@
 //! `packages/rust-cli/prompts/` 下的数据文件，由 `scripts/rust-cli/prompts/extract.mjs` 生成并
 //! 用 `--check` 检查漂移。这里在编译时嵌入这些文件，运行时没有 IO。代码里不手写这些文本。
 //!
-//! 编入一律用 `rust_cli_base::include_lf!`（修复线 F56，`docs/specs/rust-cli/prompts.md`「换行」）：以前用
+//! 编入一律用 `nibi_kernel_base::include_lf!`（修复线 F56，`docs/specs/rust-cli/prompts.md`「换行」）：以前用
 //! `include_str!`，Windows 检出成 CRLF 时发给模型的文本带 `\r`；现在文本含 `\r` 就编译失败。
 //!
 //! | 模块 | 内容 |
@@ -39,7 +39,7 @@ pub use words::{SlugWords, slug_words};
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 use serde::Deserialize;
 use serde_json::Value;
 

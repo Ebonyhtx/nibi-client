@@ -3,7 +3,7 @@
 //! 只套内置配置的通用规则（modelRules → modelApiRules → providerSiteRules）；模板与 provider 精确规则要 provider，
 //! 不适用。URL 同样先规范化（`resolve::site_config`）。
 
-use rust_cli_kernel_api::provider::{ModelCapabilities, TokenLimits, WireProtocol};
+use nibi_kernel_api::provider::{ModelCapabilities, TokenLimits, WireProtocol};
 use serde_json::Value;
 
 use super::catalog::capabilities;

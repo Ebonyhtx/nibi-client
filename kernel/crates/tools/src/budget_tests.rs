@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::ArtifactId;
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, StoreError};
+use nibi_kernel_api::ids::ArtifactId;
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, StoreError};
 
 use super::*;
 

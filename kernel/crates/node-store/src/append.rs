@@ -2,11 +2,11 @@
 //!
 //! 记录模板与 Node 逐字节一致（`records`）；Node 记录里内核消息没有的字段（父消息、轮次、
 //! provider、模式、目录）从库里读（`state`）。
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, Message, StopReason, SystemMessage, UserMessage,
     UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, StoreError};
+use nibi_kernel_api::store::{Fact, StoreError};
 use serde_json::{Value, json};
 
 use crate::facts::{Commit, unsupported};
@@ -202,7 +202,7 @@ pub fn finish_reason(reason: StopReason) -> &'static str {
 
 /// Anthropic `usage` → Node 归一化用量（AI SDK：输入含缓存读写，`total` = 输入 + 输出）→
 /// `toTokenUsageInfo`。没有用量时是 Node `emptyTokenUsageInfo`。
-fn tokens(usage: Option<&rust_cli_kernel_api::message::Usage>) -> Value {
+fn tokens(usage: Option<&nibi_kernel_api::message::Usage>) -> Value {
     let Some(usage) = usage else {
         return records::tokens(None);
     };
@@ -354,7 +354,7 @@ fn append_assistant(ctx: &Commit<'_>, assistant: &AssistantMessage) -> Result<()
 
 /// 命令标签还原成用户输入（kernel-api `user_command::display`），其余原样。
 fn display_input(text: &str) -> String {
-    rust_cli_kernel_api::user_command::display(text)
-        .or_else(|| rust_cli_kernel_api::user_input::display(text))
+    nibi_kernel_api::user_command::display(text)
+        .or_else(|| nibi_kernel_api::user_input::display(text))
         .unwrap_or_else(|| text.to_owned())
 }

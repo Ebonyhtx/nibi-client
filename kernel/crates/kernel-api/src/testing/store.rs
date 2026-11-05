@@ -454,7 +454,7 @@ impl SessionStore for MemoryStore {
         let notice = Message::Attachment(AttachmentMessage {
             id: MessageId::new(format!("msg_fork_notice_{}", fork.child)),
             source: "fork".to_owned(),
-            text: rust_cli_base::reminder::wrap(&format!(
+            text: nibi_kernel_base::reminder::wrap(&format!(
                 "This session was forked from {}.",
                 parent.id
             )),

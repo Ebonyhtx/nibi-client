@@ -6,10 +6,10 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvError, EnvPath, ReadFile, WritePrecondition};
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::env_path;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::{EnvError, EnvPath, ReadFile, WritePrecondition};
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::env_path;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;

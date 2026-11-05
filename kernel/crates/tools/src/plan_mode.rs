@@ -5,12 +5,12 @@
 //! plan 后就是进入前的值（Node `exitPlanMode` 只设 `planEnabled: false`）。计划文件经执行环境端口读（§2.2）。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{ReadText, TextRead};
-use rust_cli_kernel_api::orchestration::{InteractionRequest, PlanApprovalAnswer};
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::plan::PlanFiles;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{ReadText, TextRead};
+use nibi_kernel_api::orchestration::{InteractionRequest, PlanApprovalAnswer};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::plan::PlanFiles;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde_json::Value;

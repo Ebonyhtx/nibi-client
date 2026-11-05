@@ -11,7 +11,7 @@
 //!   `https://api.z.ai`）。工作线 F47：z.ai 的 token 与团队都照 App，以前按 Node 的换证 adapter 固定
 //!   `https://api.z.ai`（生产缺省相同）。
 
-use rust_cli_platform::AccountOrigins;
+use nibi_kernel_platform::AccountOrigins;
 
 /// NIBI 的正式服务（Node `DEFAULT_NIBI_ENDPOINT_ORIGIN`，`packages/shared/src/zcodeEndpoint.ts`）。
 const NIBI_ORIGIN: &str = "https://api.nibistudio.top";

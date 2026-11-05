@@ -50,7 +50,7 @@ mod tests {
             ],
         );
         assert_eq!(
-            rust_cli_base::js::json::stringify(&body),
+            nibi_kernel_base::js::json::stringify(&body),
             r#"{"model":"m","thinking":{"type":"enabled"},"max_tokens":128000,"reasoning_effort":"high"}"#
         );
     }

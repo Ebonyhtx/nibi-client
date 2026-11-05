@@ -38,7 +38,7 @@ pub struct MachinesView {
 /// 工具输入里的远端机器（`machine` 不是 `local` 时）。
 pub fn machine_of(input: &Value) -> Option<&str> {
     input.get("machine").and_then(Value::as_str).filter(|name| {
-        !name.is_empty() && *name != rust_cli_kernel_api::env_registry::LOCAL_MACHINE
+        !name.is_empty() && *name != nibi_kernel_api::env_registry::LOCAL_MACHINE
     })
 }
 

@@ -1,6 +1,6 @@
 //! 官方账号模型的 overlay 与请求期凭据（platform.md §5），键名与 Node 独立 CLI 相同。
 
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_paths::StoragePaths;
 use serde_json::json;
 
 use super::*;
@@ -228,7 +228,7 @@ async fn request_credentials_follow_the_login_source() {
 /// 明文写进临时目录的 credentials.json（Node 也接受没有 `enc:v1:` 前缀的旧值），再读回来。
 async fn plain_credentials(record: &[(&str, &str)]) -> (tempfile::TempDir, Credentials) {
     let dir = tempfile::tempdir().unwrap();
-    let paths = rust_cli_paths::StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
+    let paths = nibi_kernel_paths::StoragePaths::resolve(&Default::default(), dir.path(), dir.path());
     let object: Map<String, Value> = record
         .iter()
         .map(|(key, value)| ((*key).to_owned(), json!(value)))

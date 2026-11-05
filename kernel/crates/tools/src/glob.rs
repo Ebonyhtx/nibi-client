@@ -4,9 +4,9 @@
 //! 路径相对工作目录。默认配置下不暴露这个工具（tools-files.md §1.1）。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{FileKind, GlobFiles, PathStyle};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{FileKind, GlobFiles, PathStyle};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde::Deserialize;

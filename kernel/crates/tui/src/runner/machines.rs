@@ -56,7 +56,7 @@ impl<B: Backend> Loop<'_, B> {
             .iter()
             .map(|(server, machine)| {
                 (
-                    rust_cli_kernel_api::mcp_state::normalize_name(server),
+                    nibi_kernel_api::mcp_state::normalize_name(server),
                     machine.clone(),
                 )
             })

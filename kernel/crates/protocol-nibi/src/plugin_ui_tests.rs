@@ -1,7 +1,7 @@
 //! `pluginUi.*` 增量的形状（141 审计 §9 第 6 项）：与 Host `conversationDeltaSchema` 的四个 op 一致。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_ui::{McpAppInstance, McpUiEvent, McpUiSubscriber};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_ui::{McpAppInstance, McpUiEvent, McpUiSubscriber};
 
 use super::*;
 

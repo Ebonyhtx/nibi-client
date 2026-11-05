@@ -3,10 +3,10 @@
 use std::time::Instant;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::ids::{InteractionId, SessionId, ToolUseId};
-use rust_cli_kernel_api::orchestration::{DetachedAsk, DetachedEvent, InteractionRequest};
-use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::{InteractionId, SessionId, ToolUseId};
+use nibi_kernel_api::orchestration::{DetachedAsk, DetachedEvent, InteractionRequest};
+use nibi_kernel_api::permission::{PermissionMode, PermissionRule};
+use nibi_kernel_api::testing::selection;
 use serde_json::json;
 
 use super::*;

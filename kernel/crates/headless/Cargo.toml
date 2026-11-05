@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-headless"
-description = "Print mode and stream-json of rust-cli"
+name = "nibi-kernel-headless"
+description = "Print mode and stream-json of nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,14 +17,14 @@ doctest = false
 anyhow.workspace = true
 futures-util.workspace = true
 # 事件的 `toISOString` 与 JS 的 JSON 文本（headless.md §3）。
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros"] }
 # 入口的退出信号（session-lifecycle.md §3.5）。
 tokio-util.workspace = true
 
 [dev-dependencies]
-rust-cli-kernel-api = { workspace = true, features = ["testing"] }
-rust-cli-runtime.workspace = true
+nibi-kernel-api = { workspace = true, features = ["testing"] }
+nibi-kernel-runtime.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }

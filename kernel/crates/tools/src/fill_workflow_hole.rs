@@ -15,12 +15,12 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WritePrecondition};
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::{EnvPath, ReadFile, WritePrecondition};
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
-use rust_cli_kernel_api::workflow::{WorkflowEngine, WorkflowEngineSlot, WorkflowFillOutcome};
+use nibi_kernel_api::workflow::{WorkflowEngine, WorkflowEngineSlot, WorkflowFillOutcome};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -136,7 +136,7 @@ hole is still waiting. Report it to the user rather than rewriting the body."
 /// 诊断行：`{path}:L{line}:C{column} {message}`，锚到**它落在的文件**——函数体内的按 fill 文件的
 /// 行，函数体外的（如 9005 的另一处在父脚本里）按 run 草稿的行与路径，因为那才是它指着的代码。
 fn format_fill_diagnostic_lines(
-    diagnostics: &[rust_cli_kernel_api::workflow::WorkflowFillDiagnostic],
+    diagnostics: &[nibi_kernel_api::workflow::WorkflowFillDiagnostic],
     fill_file: Option<&str>,
     draft_file: Option<&str>,
 ) -> Vec<String> {
@@ -159,7 +159,7 @@ fn format_fill_diagnostic_lines(
 fn compile_failure_text(
     run_id: &str,
     hole_id: &str,
-    diagnostics: &[rust_cli_kernel_api::workflow::WorkflowFillDiagnostic],
+    diagnostics: &[nibi_kernel_api::workflow::WorkflowFillDiagnostic],
     fill_file: Option<(&str, bool)>,
     draft_file: Option<&str>,
 ) -> String {
@@ -290,7 +290,7 @@ fn relative_parts<'a>(
 
 /// 确认前的等待判定（Node findWaitingHole 同一棵树，逐条文案）。返回 `Some` 即拒绝。
 fn waiting_check(
-    target: &rust_cli_kernel_api::workflow::WorkflowFillTarget,
+    target: &nibi_kernel_api::workflow::WorkflowFillTarget,
     run_id: &str,
     hole_id: &str,
 ) -> Option<String> {
@@ -405,8 +405,8 @@ impl Tool for FillWorkflowHoleTool {
         &self,
         _input: &Value,
         _context: &ToolUseContext,
-    ) -> rust_cli_kernel_api::permission::PermissionDecision {
-        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
             updated_input: None,
         }
     }
@@ -601,7 +601,7 @@ wait for the run or poll it with TaskOutput; you will be notified when it comple
                     fill["line"] = json!(line);
                 }
                 Ok(ToolOutput {
-                    content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+                    content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                         text: response.clone(),
                     }],
                     is_error: false,
@@ -647,7 +647,7 @@ wait for the run or poll it with TaskOutput; you will be notified when it comple
                         fill["line"] = json!(line);
                     }
                     return Ok(ToolOutput {
-                        content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+                        content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                             text: response.clone(),
                         }],
                         is_error: false,
@@ -694,7 +694,7 @@ impl FillWorkflowHoleTool {
     /// 一次内联重提铸新文件，绝不在模型背后覆盖。写不成回 `None`（尽力而为，与草稿同规）。
     async fn write_fill_file(
         &self,
-        target: &rust_cli_kernel_api::workflow::WorkflowFillTarget,
+        target: &nibi_kernel_api::workflow::WorkflowFillTarget,
         hole_name: &str,
         body: &str,
         cwd: &str,
@@ -743,7 +743,7 @@ impl FillWorkflowHoleTool {
                 .await;
             match written {
                 Ok(_) => return Some(candidate),
-                Err(rust_cli_kernel_api::env::EnvError::PreconditionFailed { .. }) => continue,
+                Err(nibi_kernel_api::env::EnvError::PreconditionFailed { .. }) => continue,
                 Err(_) => return None,
             }
         }
@@ -754,7 +754,7 @@ impl FillWorkflowHoleTool {
 /// 失败的工具结果（文本判别键在 message 前缀；数值只是 Node 码表里的日志位）。
 fn failed_output(text: &str, reason: &str, code: u32) -> ToolOutput {
     ToolOutput {
-        content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+        content: vec![nibi_kernel_api::message::ToolResultContent::Text {
             text: text.to_owned(),
         }],
         is_error: true,

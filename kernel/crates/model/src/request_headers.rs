@@ -10,9 +10,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::rule_url::is_openrouter_endpoint;
-use rust_cli_kernel_api::provider::{ModelEndpoint, WireProtocol};
-use rust_cli_net::{HeaderValue, HttpRequest, header};
+use nibi_kernel_base::rule_url::is_openrouter_endpoint;
+use nibi_kernel_api::provider::{ModelEndpoint, WireProtocol};
+use nibi_kernel_net::{HeaderValue, HttpRequest, header};
 
 use crate::anthropic::BETA_HEADER;
 use crate::attribution::{self, Origin};
@@ -150,7 +150,7 @@ fn merge_betas(headers: &mut Vec<(String, HeaderValue)>, name: &str, configured:
         }
     }
     let value = if betas.is_empty() {
-        HeaderValue::Secret(rust_cli_base::secret::RedactedString::new(configured))
+        HeaderValue::Secret(nibi_kernel_base::secret::RedactedString::new(configured))
     } else {
         HeaderValue::Plain(betas.join(","))
     };

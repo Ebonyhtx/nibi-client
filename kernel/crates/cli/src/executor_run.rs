@@ -4,18 +4,18 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use rust_cli_env_local::{LocalEnvironment, LocalMcpTransport};
-use rust_cli_exec_server::ServerConfig;
-use rust_cli_exec_wire::admin::ExecutorStatus;
-use rust_cli_exec_wire::handshake::PROTOCOL;
-use rust_cli_executor_host::admin::{self, Stopped};
-use rust_cli_executor_host::file_ledger::Retention;
-use rust_cli_executor_host::proxy::{self, DaemonCommand, ProxyConfig};
-use rust_cli_executor_host::resident::{Resident, ResidentConfig, StartError};
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_node_store::SystemClock;
-use rust_cli_paths::{ExecutorPaths, StorageSettings};
+use nibi_kernel_env_local::{LocalEnvironment, LocalMcpTransport};
+use nibi_kernel_exec_server::ServerConfig;
+use nibi_kernel_exec_wire::admin::ExecutorStatus;
+use nibi_kernel_exec_wire::handshake::PROTOCOL;
+use nibi_kernel_executor_host::admin::{self, Stopped};
+use nibi_kernel_executor_host::file_ledger::Retention;
+use nibi_kernel_executor_host::proxy::{self, DaemonCommand, ProxyConfig};
+use nibi_kernel_executor_host::resident::{Resident, ResidentConfig, StartError};
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_node_store::SystemClock;
+use nibi_kernel_paths::{ExecutorPaths, StorageSettings};
 
 use crate::executor::ExecutorCommand;
 use crate::output::{eprint_line, print_line, write_lossy};
@@ -106,7 +106,7 @@ fn server_config(startup: &super::Startup, shell: Option<String>) -> ServerConfi
     config.home = Some(startup.home.to_string_lossy().into_owned());
     config.shell = shell;
     // R5 的执行器也提供 MCP 的管道（remote-exec.md §22.4）；F96 起另有环境变量推送（§23.5）。
-    config.capabilities = rust_cli_exec_wire::handshake::Capabilities::executor();
+    config.capabilities = nibi_kernel_exec_wire::handshake::Capabilities::executor();
     config
 }
 
@@ -234,7 +234,7 @@ async fn proxy() -> Result<()> {
         },
         // 这条 ssh 会话的环境（远端执行 F96，remote-exec.md §23.5）：代理自己的环境就是这条会话在远端的环境。
         session_env: proxy::session_env(|name| {
-            rust_cli_base::secret::env_var(&startup.env, name).map(str::to_owned)
+            nibi_kernel_base::secret::env_var(&startup.env, name).map(str::to_owned)
         }),
     };
     let result = proxy::proxy(tokio::io::stdin(), tokio::io::stdout(), config)
@@ -254,7 +254,7 @@ async fn standalone(add_dirs: Vec<String>, find_and_grep: bool) -> Result<()> {
         let Executing { env, mcp, shell } =
             local_environment(&startup, &add_dirs, find_and_grep).await?;
         let machine = MachineEnv::new(Arc::new(env), mcp);
-        rust_cli_executor_host::serve_stdio(
+        nibi_kernel_executor_host::serve_stdio(
             tokio::io::stdin(),
             tokio::io::stdout(),
             machine,

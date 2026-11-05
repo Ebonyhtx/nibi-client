@@ -4,9 +4,9 @@
 //! 默认配置下不暴露这个工具（tools-files.md §1.1）。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{FileKind, GrepMode, GrepOutcome, GrepSearch};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{FileKind, GrepMode, GrepOutcome, GrepSearch};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;
@@ -102,7 +102,7 @@ impl Tool for GrepTool {
                 } else {
                     ""
                 };
-                let shown = rust_cli_base::js::json::js_double(value);
+                let shown = nibi_kernel_base::js::json::js_double(value);
                 return invalid(format!(
                     "{name} must be a whole number of 0 or more, got {shown}.{hint}"
                 ));

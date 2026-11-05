@@ -1,8 +1,8 @@
 use super::*;
 
 fn assistant(text: &str) -> Message {
-    Message::Assistant(rust_cli_kernel_api::message::AssistantMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new("a"),
+    Message::Assistant(nibi_kernel_api::message::AssistantMessage {
+        id: nibi_kernel_api::ids::MessageId::new("a"),
         content: vec![ContentBlock::Text {
             text: text.to_owned(),
         }],

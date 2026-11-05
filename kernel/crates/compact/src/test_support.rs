@@ -3,23 +3,23 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::compaction::PostCompactContext;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, Generation, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::compaction::PostCompactContext;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, Generation, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, CompactTrigger, ContentBlock, Message, ToolResultContent,
     Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ModelError, ModelSelection};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::model::{ModelError, ModelSelection};
+use nibi_kernel_api::orchestration::{
     CompactRequest, ContextRequest, OrchestrationError, QueryError, QueryRequest, QueryRunner,
     QueryStop, RunSink, ToolRegistry,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     ListTools, MemoryStore, NoHooks, SequentialIds, UnusedEnvironment, local_services, machine,
 };
-use rust_cli_kernel_api::tool::ReadFileStates;
+use nibi_kernel_api::tool::ReadFileStates;
 use serde_json::json;
 
 use crate::CompactPorts;

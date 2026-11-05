@@ -6,12 +6,12 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::listing::InvokedSkill;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::listing::InvokedSkill;
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::user_command;
+use nibi_kernel_api::user_command;
 
 use super::{SKILL_MESSAGE_SOURCE, SkillCatalog, SkillSource};
 

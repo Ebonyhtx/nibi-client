@@ -1,7 +1,7 @@
 //! App 协议的前端（docs/specs/rust-cli/app-protocol.md §3.4）：Host 经 stdio 驱动的 V4 方法、命令、三种主题与 Host
 //! 还在调用的旧方法。与 tui、headless 同层：只经内核的会话 API 与平台层，协议的机制在 protocol-core。
 //!
-//! 入口（cli 的 `app-server --stdio`）的顺序：[`connection::start`](rust_cli_protocol_core::connection::start) 起写者，
+//! 入口（cli 的 `app-server --stdio`）的顺序：[`connection::start`](nibi_kernel_protocol_core::connection::start) 起写者，
 //! [`Context::new`]；马上 [`Startup::checking`]（Host 要求 30 s 内有首帧）；用 [`HostHeaders`] 组装平台层与内核；
 //! [`Startup::ready`] 或 [`Startup::failed`]；最后 [`serve`] 读到 Host 关掉输入。
 
@@ -35,9 +35,9 @@ mod workflow_settings_turn;
 
 use std::sync::Arc;
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::session_api::Kernel;
-use rust_cli_protocol_core::connection::{self, Options, Peer};
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::session_api::Kernel;
+use nibi_kernel_protocol_core::connection::{self, Options, Peer};
 use serde_json::json;
 use tokio::io::AsyncBufRead;
 

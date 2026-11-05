@@ -2,15 +2,15 @@
 //!
 //! 命令见 tools-more.md §11.2、§11.3（新建或续用、`git worktree list --porcelain`、未保存的工作、删除）；目录与
 //! 分支名在 zcode 的 `.zcode/worktrees/`。git 经
-//! `rust-cli-proc` 启动，环境是白名单投影加 `GIT_TERMINAL_PROMPT=0`。
+//! `nibi-kernel-proc` 启动，环境是白名单投影加 `GIT_TERMINAL_PROMPT=0`。
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use rust_cli_base::names::{DOT_DIR, WORKTREES_DIR};
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::env_worktree::{
+use nibi_kernel_base::names::{DOT_DIR, WORKTREES_DIR};
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::env_worktree::{
     WorktreeChanges, WorktreeCreate, WorktreeCreated, WorktreeEntry, WorktreeInspect, WorktreeList,
     WorktreeRemove,
 };
@@ -39,7 +39,7 @@ impl Git {
     }
 
     async fn run(&self, cwd: &Path, args: &[&str]) -> Output {
-        let mut command = rust_cli_proc::command("git");
+        let mut command = nibi_kernel_proc::command("git");
         command
             .args(NO_HOOKS)
             .args(args)

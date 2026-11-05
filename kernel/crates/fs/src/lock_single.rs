@@ -43,7 +43,7 @@ impl Default for SingleLockOptions {
 )]
 fn token() -> String {
     use std::hash::Hasher;
-    let mut hasher = rust_cli_base::random::hasher();
+    let mut hasher = nibi_kernel_base::random::hasher();
     hasher.write_u128(
         SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)

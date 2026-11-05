@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use bytes::Bytes;
-use rust_cli_exec_server::{Begun, CallKey, CallKind, ExecLedger};
-use rust_cli_kernel_api::clock::Clock;
+use nibi_kernel_exec_server::{Begun, CallKey, CallKind, ExecLedger};
+use nibi_kernel_api::clock::Clock;
 
 use super::{FileLedger, Retention};
 
@@ -178,15 +178,15 @@ async fn a_half_written_last_line_is_dropped() {
         .unwrap();
     drop(ledger);
     let journal = dir.path().join("journal");
-    let mut text = rust_cli_fs::read_optional(&journal).await.unwrap().unwrap();
+    let mut text = nibi_kernel_fs::read_optional(&journal).await.unwrap().unwrap();
     text.extend_from_slice(b"{\"t\":\"b\",\"i\":\"client-1\",\"c\":2,\"f\":\"fp");
-    rust_cli_fs::atomic_write(
+    nibi_kernel_fs::atomic_write(
         &journal,
         &text,
-        rust_cli_fs::WriteOptions {
-            mode: rust_cli_fs::FileMode::Private,
-            temp_name: rust_cli_fs::TempName::Hidden,
-            parent: rust_cli_fs::ParentDir::Existing,
+        nibi_kernel_fs::WriteOptions {
+            mode: nibi_kernel_fs::FileMode::Private,
+            temp_name: nibi_kernel_fs::TempName::Hidden,
+            parent: nibi_kernel_fs::ParentDir::Existing,
             rename_retry: &[],
         },
     )

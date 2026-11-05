@@ -2,8 +2,8 @@
 //! 聚合（主会话的主回合、子会话的子代理请求，F112）。每次都从行聚合，不缓存；两条查询都按 `session_id` 走
 //! `model_usage_session_turn_idx`。
 use rusqlite::{Connection, OptionalExtension};
-use rust_cli_kernel_api::metering::{LastRequest, RequestStats};
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::metering::{LastRequest, RequestStats};
+use nibi_kernel_api::store::StoreError;
 
 use crate::OrStorage;
 

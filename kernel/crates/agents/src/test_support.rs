@@ -3,29 +3,29 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::agents::{SubagentQueries, TaskListStore};
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::agents::{SubagentQueries, TaskListStore};
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Message, StopReason, Usage};
-use rust_cli_kernel_api::model::{QuerySource, SystemBlock};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message, StopReason, Usage};
+use nibi_kernel_api::model::{QuerySource, SystemBlock};
+use nibi_kernel_api::orchestration::{
     ContextBuilder, ContextRequest, QueryError, QueryRequest, QueryRunner, QueryStop, RunSink,
     ToolRegistry,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::{
     AllPorts, FakeTool, FixedClock, FixedContext, ListTools, MemoryStore, RecordingSink,
     SequentialIds, UnusedEnvironment, local_services, machine, selection,
 };
-use rust_cli_kernel_api::tool::{Tool, ToolOutput, ToolUseContext, Validation};
+use nibi_kernel_api::tool::{Tool, ToolOutput, ToolUseContext, Validation};
 use serde_json::Value;
 use tokio::sync::{Notify, mpsc};
 use tokio_util::sync::CancellationToken;
@@ -100,7 +100,7 @@ impl SubagentQueries for FakeQueries {
 
 pub(crate) fn report_message(text: &str) -> Message {
     Message::Assistant(AssistantMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new("msg_report"),
+        id: nibi_kernel_api::ids::MessageId::new("msg_report"),
         content: vec![ContentBlock::Text {
             text: text.to_owned(),
         }],
@@ -283,7 +283,7 @@ pub(crate) struct ContextFake {
 }
 
 impl ContextFake {
-    fn ask(&self, selection: &rust_cli_kernel_api::model::ModelSelection) {
+    fn ask(&self, selection: &nibi_kernel_api::model::ModelSelection) {
         self.asked
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -292,11 +292,11 @@ impl ContextFake {
 }
 
 #[async_trait]
-impl rust_cli_kernel_api::compaction::Compactor for ContextFake {
+impl nibi_kernel_api::compaction::Compactor for ContextFake {
     fn should_auto_compact(
         &self,
         _history: &[Message],
-        _selection: &rust_cli_kernel_api::model::ModelSelection,
+        _selection: &nibi_kernel_api::model::ModelSelection,
     ) -> bool {
         false
     }
@@ -304,7 +304,7 @@ impl rust_cli_kernel_api::compaction::Compactor for ContextFake {
     fn context_usage(
         &self,
         history: &[Message],
-        selection: &rust_cli_kernel_api::model::ModelSelection,
+        selection: &nibi_kernel_api::model::ModelSelection,
     ) -> Option<(u64, u64)> {
         self.ask(selection);
         Some((history.len() as u64 * 1_000, 10_000))
@@ -313,23 +313,23 @@ impl rust_cli_kernel_api::compaction::Compactor for ContextFake {
     fn context_notice(
         &self,
         history: &[Message],
-        _selection: &rust_cli_kernel_api::model::ModelSelection,
-    ) -> Option<rust_cli_kernel_api::compaction::ContextNotice> {
-        Some(rust_cli_kernel_api::compaction::ContextNotice::Used {
+        _selection: &nibi_kernel_api::model::ModelSelection,
+    ) -> Option<nibi_kernel_api::compaction::ContextNotice> {
+        Some(nibi_kernel_api::compaction::ContextNotice::Used {
             percent: history.len() as u64,
         })
     }
 
     async fn compact(
         &self,
-        _request: rust_cli_kernel_api::compaction::CompactRequest,
+        _request: nibi_kernel_api::compaction::CompactRequest,
         _cancel: CancellationToken,
     ) -> Result<
-        rust_cli_kernel_api::compaction::CompactResult,
-        rust_cli_kernel_api::orchestration::OrchestrationError,
+        nibi_kernel_api::compaction::CompactResult,
+        nibi_kernel_api::orchestration::OrchestrationError,
     > {
         Err(
-            rust_cli_kernel_api::orchestration::OrchestrationError::Unsupported {
+            nibi_kernel_api::orchestration::OrchestrationError::Unsupported {
                 what: "compact".to_owned(),
             },
         )
@@ -345,12 +345,12 @@ pub(crate) fn harness(gate: Option<Arc<Notify>>) -> Harness {
     )
 }
 
-fn no_peers() -> Arc<dyn rust_cli_kernel_api::peers::PeerMessaging> {
-    Arc::new(rust_cli_kernel_api::peers::NoPeers)
+fn no_peers() -> Arc<dyn nibi_kernel_api::peers::PeerMessaging> {
+    Arc::new(nibi_kernel_api::peers::NoPeers)
 }
 
 /// 同伴会话换成 `peers`（cross-session.md §1.3、§1.4）。
-pub(crate) fn with_peers(peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>) -> Harness {
+pub(crate) fn with_peers(peers: Arc<dyn nibi_kernel_api::peers::PeerMessaging>) -> Harness {
     built(None, true, machine(Arc::new(UnusedEnvironment)), peers)
 }
 
@@ -413,7 +413,7 @@ fn built(
     gate: Option<Gate>,
     keep_alive: bool,
     machine: MachineEnv,
-    peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>,
+    peers: Arc<dyn nibi_kernel_api::peers::PeerMessaging>,
 ) -> Harness {
     built_with(
         gate,
@@ -430,7 +430,7 @@ pub(crate) fn held_with_clock<E: AllPorts + 'static>(
     gates: &Gates,
     keep_alive: bool,
     env: Arc<E>,
-    clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
 ) -> Harness {
     built_with(
         Some(Gate::PerSession(gates.clone())),
@@ -444,7 +444,7 @@ pub(crate) fn held_with_clock<E: AllPorts + 'static>(
 
 /// 同 [`harness`]，另给执行环境的注册表（R3：远端机器上的 TaskStop、子代理的缺省机器）。
 pub(crate) fn with_machines(
-    machines: Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>,
+    machines: Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>,
 ) -> Harness {
     let local = machines.local_machine();
     built_full(
@@ -462,9 +462,9 @@ fn built_with(
     gate: Option<Gate>,
     keep_alive: bool,
     machine_env: MachineEnv,
-    peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>,
+    peers: Arc<dyn nibi_kernel_api::peers::PeerMessaging>,
     hidden: &'static [&'static str],
-    clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
 ) -> Harness {
     built_full(gate, keep_alive, machine_env, peers, hidden, clock, None)
 }
@@ -473,10 +473,10 @@ fn built_full(
     gate: Option<Gate>,
     keep_alive: bool,
     machine_env: MachineEnv,
-    peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>,
+    peers: Arc<dyn nibi_kernel_api::peers::PeerMessaging>,
     hidden: &'static [&'static str],
-    clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
-    machines: Option<Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
+    machines: Option<Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>>,
 ) -> Harness {
     let scope = TaskScope::root("agents-test", |_| {});
     let store = Arc::new(MemoryStore::default());
@@ -493,16 +493,16 @@ fn built_full(
         .collect();
     let compactor = Arc::new(ContextFake::default());
     let ports = AgentsPorts {
-        directories: Arc::new(rust_cli_kernel_api::session_paths::SessionDirectories::new()),
+        directories: Arc::new(nibi_kernel_api::session_paths::SessionDirectories::new()),
         plugins: None,
         store: store.clone(),
         ids: Arc::new(SequentialIds::default()),
         clock,
         compactor: compactor.clone(),
         machines: machines.unwrap_or_else(|| {
-            Arc::new(rust_cli_kernel_api::env_registry::LocalRegistry::new(
+            Arc::new(nibi_kernel_api::env_registry::LocalRegistry::new(
                 machine_env.clone(),
-                rust_cli_kernel_api::testing::local_services(Arc::new(UnusedEnvironment)),
+                nibi_kernel_api::testing::local_services(Arc::new(UnusedEnvironment)),
             ))
         }),
         machine: machine_env,
@@ -575,13 +575,13 @@ impl Harness {
         let runner = self.agents.track(Arc::new(parent));
         let session = SessionId::new(session);
         self.store
-            .create(rust_cli_kernel_api::store::SessionMeta {
+            .create(nibi_kernel_api::store::SessionMeta {
                 id: session.clone(),
-                kind: rust_cli_kernel_api::store::SessionKind::Interactive,
+                kind: nibi_kernel_api::store::SessionKind::Interactive,
                 parent: None,
                 workspace: workspace(),
                 title: String::new(),
-                trace: rust_cli_kernel_api::ids::TraceId::new(session.as_str()),
+                trace: nibi_kernel_api::ids::TraceId::new(session.as_str()),
                 created_at_ms: 0,
             })
             .await
@@ -590,7 +590,7 @@ impl Harness {
         let agent = session
             .as_str()
             .strip_prefix("sess_subagent_")
-            .map(rust_cli_kernel_api::ids::AgentId::new);
+            .map(nibi_kernel_api::ids::AgentId::new);
         let request = QueryRequest {
             session,
             run: RunId::new(format!("run_parent_{tool}")),
@@ -636,7 +636,7 @@ impl Harness {
 
 pub(crate) fn text(output: &ToolOutput) -> String {
     match output.content.as_slice() {
-        [rust_cli_kernel_api::message::ToolResultContent::Text { text }] => text.clone(),
+        [nibi_kernel_api::message::ToolResultContent::Text { text }] => text.clone(),
         other => panic!("unexpected content {other:?}"),
     }
 }

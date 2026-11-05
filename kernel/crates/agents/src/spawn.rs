@@ -2,15 +2,15 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::env_shell;
-use rust_cli_kernel_api::ids::{AgentId, OwnerEpoch, SessionId, TraceId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::metering::CallStatus;
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{QueryError, QueryRequest, QueryStop, ToolRegistry};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::env_shell;
+use nibi_kernel_api::ids::{AgentId, OwnerEpoch, SessionId, TraceId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::metering::CallStatus;
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{QueryError, QueryRequest, QueryStop, ToolRegistry};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{
     Fact, FactBatch, SessionKind, SessionMeta, StoreError, TurnAnchor,
 };
 use tokio_util::sync::CancellationToken;
@@ -323,7 +323,7 @@ async fn run_loop(
     // fork：主线程的整份注册表与主线程的 system（同对照实现，修复线 L-A，agents.md §8.1.2）。
     let (tools, context): (
         Arc<dyn ToolRegistry>,
-        Arc<dyn rust_cli_kernel_api::orchestration::ContextBuilder>,
+        Arc<dyn nibi_kernel_api::orchestration::ContextBuilder>,
     ) = if agent.fork_prefix.is_some() {
         (
             registry,
@@ -359,7 +359,7 @@ async fn run_loop(
         max_turns: agent.definition.max_turns,
         prompt_hook_messages: Vec::new(),
     };
-    let run = rust_cli_kernel_api::orchestration::QueryRunner::run(
+    let run = nibi_kernel_api::orchestration::QueryRunner::run(
         &runner,
         request,
         sink.clone(),

@@ -1,7 +1,7 @@
 //! shell -c 脚本（shell-permissions.md §4.5.9，工作线 F85 追加，用户决定 2026-10-24）：脚本里有被 deny 的 rm 一类命令、
 //! 检查不了而又跑 rm、或里面是危险删除时，按危险删除一类询问（guarded 也问，yolo 不问）。文字逐字比较。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use super::*;
 use crate::test_support::{message, run};

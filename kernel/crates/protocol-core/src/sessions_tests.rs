@@ -1,10 +1,10 @@
 use std::sync::Mutex as StdMutex;
 
 use futures_util::stream::{self, BoxStream};
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::session_api::{Ack, CommandEnvelope, CreateSession, KernelEvent};
-use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::session_api::{Ack, CommandEnvelope, CreateSession, KernelEvent};
+use nibi_kernel_api::store::{SessionFilter, SessionSummary};
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 
@@ -116,21 +116,21 @@ impl SessionSink for Recorder {
 
 fn view(last_seq: u64) -> SessionView {
     SessionView {
-        meta: rust_cli_kernel_api::store::SessionMeta {
+        meta: nibi_kernel_api::store::SessionMeta {
             id: SessionId::new("s1"),
-            kind: rust_cli_kernel_api::store::SessionKind::Interactive,
+            kind: nibi_kernel_api::store::SessionKind::Interactive,
             parent: None,
-            workspace: rust_cli_kernel_api::env::WorkspaceRef {
-                environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-                root: rust_cli_kernel_api::env::EnvPath::new("/w"),
+            workspace: nibi_kernel_api::env::WorkspaceRef {
+                environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+                root: nibi_kernel_api::env::EnvPath::new("/w"),
             },
             title: String::new(),
-            trace: rust_cli_kernel_api::ids::TraceId::new("trace"),
+            trace: nibi_kernel_api::ids::TraceId::new("trace"),
             created_at_ms: 0,
         },
         messages: Vec::new(),
         selection: selection(),
-        mode: rust_cli_kernel_api::permission::PermissionMode::Default,
+        mode: nibi_kernel_api::permission::PermissionMode::Default,
         plan: false,
         pending: Vec::new(),
         queue: Vec::new(),

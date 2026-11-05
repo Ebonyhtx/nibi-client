@@ -2,14 +2,14 @@
 use std::sync::Arc;
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelPort, ModelRequest, OutputFormat, QuerySource,
 };
-use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, SessionHandle};
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{ScriptedModel, selection, text_response};
+use nibi_kernel_api::session_api::{Ack, Command, KernelEvent, SessionHandle};
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{ScriptedModel, selection, text_response};
 use serde_json::json;
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
@@ -71,8 +71,8 @@ async fn the_model_names_the_session() {
     assert_eq!(
         system,
         [
-            rust_cli_prompts::texts::identity(),
-            rust_cli_prompts::title::rename_system()
+            nibi_kernel_prompts::texts::identity(),
+            nibi_kernel_prompts::title::rename_system()
         ]
     );
     assert_eq!(

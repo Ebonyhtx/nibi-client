@@ -1,7 +1,7 @@
 //! “全部摘要”（docs/specs/rust-cli/compact.md §3.1）：最后的手段。全部摘要的切分、按候选选裁头的差、
 //! 从头裁、检查摘要部分。
 
-use rust_cli_kernel_api::message::Message;
+use nibi_kernel_api::message::Message;
 
 use crate::engine::Failure;
 use crate::{groups, tokens};

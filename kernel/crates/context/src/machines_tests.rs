@@ -1,10 +1,10 @@
 //! 机器清单提醒的时机与文字（remote-exec.md §20.5.3）。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_registry::{MachineFacts, MachineSet, RemoteMachine};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId};
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_registry::{MachineFacts, MachineSet, RemoteMachine};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId};
+use nibi_kernel_api::message::{AttachmentMessage, Message};
 
 use super::*;
 

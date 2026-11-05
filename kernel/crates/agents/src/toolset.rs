@@ -5,10 +5,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_state::McpConnections;
-use rust_cli_kernel_api::orchestration::{ToolRegistry, ToolSnapshot};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_state::McpConnections;
+use nibi_kernel_api::orchestration::{ToolRegistry, ToolSnapshot};
+use nibi_kernel_api::tool::Tool;
 
 use crate::definitions::AgentDefinition;
 

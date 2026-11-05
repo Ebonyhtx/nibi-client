@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, environments, text_response};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
 

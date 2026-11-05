@@ -4,7 +4,7 @@
 //!
 //! 与复制来源的差异：Node 已把 `zcode_database_identity` 迁移改号为 `0024_session_database_identity`
 //! （SQL 与校验和不变），这里随 Node；`previous_ids` 对应 Node 的 `previousIds`。
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 use sha2::{Digest, Sha256};
 
 pub struct Migration {
@@ -68,7 +68,7 @@ pub const MIGRATIONS: [Migration; 24] = [
 pub fn checksum(sql: &str) -> String {
     format!(
         "{:x}",
-        Sha256::digest(rust_cli_base::js::string::trim(sql).as_bytes())
+        Sha256::digest(nibi_kernel_base::js::string::trim(sql).as_bytes())
     )
 }
 

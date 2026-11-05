@@ -6,7 +6,7 @@
 //! 300 秒；刷新点提前 120 秒。临时故障时，已知有效期且没过期的旧 JWT 继续用，5 秒后再试。
 
 use base64::Engine;
-use rust_cli_base::secret::RedactedString;
+use nibi_kernel_base::secret::RedactedString;
 use serde_json::{Value, json};
 
 use super::http::{Auth, Fault, Reply, success_code};

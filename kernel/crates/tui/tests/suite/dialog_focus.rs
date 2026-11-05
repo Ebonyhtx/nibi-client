@@ -7,11 +7,11 @@ use std::sync::Arc;
 use crossterm::event::KeyCode;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::testing::{
     MemoryEnvironment, environments, text_response, tool_use_response,
 };
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 use serde_json::json;
 
 use super::support::{GatedModel, Setup, Ui, request_text, with_ui};

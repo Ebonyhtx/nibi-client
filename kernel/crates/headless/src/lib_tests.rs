@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::SessionFilter;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::SessionFilter;
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, NoticeEnvironment, ScriptedModel, SequentialIds, UnusedEnvironment,
     environments, selection, shell_notice, text_response, tool_use_response,
 };
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
 use tokio_util::sync::CancellationToken;
 
 use super::*;
@@ -426,16 +426,16 @@ async fn agents_is_no_longer_a_local_command() {
 /// 一直不结束的响应：开头的文字之后不再有事件，直到被取消；被请求时通知测试。
 struct Stalled(Arc<tokio::sync::Notify>);
 
-impl rust_cli_kernel_api::model::ModelPort for Stalled {
+impl nibi_kernel_api::model::ModelPort for Stalled {
     fn stream(
         &self,
-        _request: rust_cli_kernel_api::model::ModelRequest,
+        _request: nibi_kernel_api::model::ModelRequest,
         cancel: CancellationToken,
     ) -> futures_util::stream::BoxStream<
         'static,
-        Result<rust_cli_kernel_api::model::ModelEvent, ModelError>,
+        Result<nibi_kernel_api::model::ModelEvent, ModelError>,
     > {
-        use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
+        use nibi_kernel_api::model::{BlockDelta, ModelEvent};
         self.0.notify_one();
         let head = vec![
             Ok(ModelEvent::MessageStart {

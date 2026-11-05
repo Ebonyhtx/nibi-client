@@ -39,7 +39,7 @@ fn sandbox() -> Sandbox {
 }
 
 fn spawn(sandbox: &Sandbox, fixture: &sse::Fixture, args: &[&str]) -> Child {
-    rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(args)
         .args(["--permission-mode", "bypassPermissions"])
         .current_dir(&sandbox.work)

@@ -65,7 +65,7 @@ fn a_print_run_writes_info_lines_to_the_daily_log() {
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&home).unwrap();
     let server = model_server();
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", PROMPT])
         .current_dir(&work)
         .env_clear()

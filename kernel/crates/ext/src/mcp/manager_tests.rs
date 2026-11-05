@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::tool::ToolOutput;
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -104,7 +104,7 @@ async fn connects_lists_and_calls_tools() {
                 "broken".to_owned(),
                 McpStatus::Failed {
                     reason: "spawn failed".to_owned(),
-                    kind: rust_cli_kernel_api::mcp_status::McpFailureKind::ProcessStartFailed,
+                    kind: nibi_kernel_api::mcp_status::McpFailureKind::ProcessStartFailed,
                 }
             ),
             ("files".to_owned(), McpStatus::Connected),
@@ -114,12 +114,12 @@ async fn connects_lists_and_calls_tools() {
     let infos = manager.server_infos();
     assert_eq!(
         infos[0].state,
-        rust_cli_kernel_api::manage::McpServerState::Failed
+        nibi_kernel_api::manage::McpServerState::Failed
     );
     assert_eq!(infos[0].reason.as_deref(), Some("spawn failed"));
     assert_eq!(
         infos[1].state,
-        rust_cli_kernel_api::manage::McpServerState::Connected
+        nibi_kernel_api::manage::McpServerState::Connected
     );
     // 服务器自己的两个工具；三个资源工具是公共的，不算在某个服务器上。
     assert_eq!(infos[1].tools, 2);
@@ -299,7 +299,7 @@ async fn remote_servers_reconnect_after_closing() {
 /// D35，两个键见 `tool_tests.rs`）外都延迟，资源工具按 `shouldDefer` 延迟并带 `searchHint` 与旧名。
 #[tokio::test]
 async fn mcp_tools_are_deferred_unless_always_load() {
-    use rust_cli_kernel_api::tool_search::is_deferred;
+    use nibi_kernel_api::tool_search::is_deferred;
     let fake = Arc::new(FakeMcp::default().with("files", files_server()));
     let scope = TaskScope::root("test", |_| {});
     let manager = manager(fake, &scope);
@@ -385,7 +385,7 @@ async fn node_options_apply_per_server() {
             "silent".to_owned(),
             McpStatus::Failed {
                 reason: "MCP server \"silent\" connection timed out after 50ms".to_owned(),
-                kind: rust_cli_kernel_api::mcp_status::McpFailureKind::ConnectionTimeout,
+                kind: nibi_kernel_api::mcp_status::McpFailureKind::ConnectionTimeout,
             }
         )),
         "{status:?}"

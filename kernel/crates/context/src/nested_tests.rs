@@ -1,10 +1,10 @@
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::*;
 

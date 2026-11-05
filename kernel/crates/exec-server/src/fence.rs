@@ -1,8 +1,8 @@
 //! 工作目录围栏（remote-exec.md §18.6）：只许请求里的路径落在给定的根目录里。路径按字面规范化（`.`、`..`、重复的
 //! 分隔符），不解析符号链接。R1 的执行器不设围栏（同一个用户，Bash 本来就能访问一切）；云端多租户时打开。
 
-use rust_cli_exec_wire::envelope::WireError;
-use rust_cli_exec_wire::request::Request;
+use nibi_kernel_exec_wire::envelope::WireError;
+use nibi_kernel_exec_wire::request::Request;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Fence {
@@ -101,7 +101,7 @@ fn paths(request: &Request) -> Vec<&str> {
             ..
         } => {
             let mut paths = vec![workspace.root.as_str()];
-            if let rust_cli_exec_wire::dto::mcp::McpTransport::Stdio { cwd: Some(cwd), .. } =
+            if let nibi_kernel_exec_wire::dto::mcp::McpTransport::Stdio { cwd: Some(cwd), .. } =
                 transport
                 && normalize(cwd).is_some()
             {

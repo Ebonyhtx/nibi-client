@@ -4,8 +4,8 @@
 //!
 //! 修改：F52 到 F84 按端点算，z.ai / bigmodel.cn 域名下的 Anthropic 端点为真（原生），其余为假。
 
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::WireProtocol;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::WireProtocol;
 use serde_json::{Value, json};
 
 use crate::providers::BUNDLED_BUILTIN;

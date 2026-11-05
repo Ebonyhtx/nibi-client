@@ -1,4 +1,4 @@
-//! 按游标读命令输出（[`rust_cli_kernel_api::machine::Commands::watch_command`]）。
+//! 按游标读命令输出（[`nibi_kernel_api::machine::Commands::watch_command`]）。
 //!
 //! 先发 `Started`（输出文件），再从 `cursor` 起读文件：有新字节就发 `Output`；命令结束后把剩下的
 //! 读完再发 `Finished`。命令还在跑、文件暂时没有新内容时，等终态变化或 50 ms 后再读——输出由
@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{CommandEvent, EnvError, EnvPath, OutputStream};
+use nibi_kernel_api::env::{CommandEvent, EnvError, EnvPath, OutputStream};
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 
 use super::Running;

@@ -3,11 +3,11 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, LOCAL_MACHINE};
-use rust_cli_kernel_api::mcp::{McpConnect, McpError, McpTransport, McpTransportConfig};
-use rust_cli_kernel_api::mcp_status::McpFailureKind;
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, LOCAL_MACHINE};
+use nibi_kernel_api::mcp::{McpConnect, McpError, McpTransport, McpTransportConfig};
+use nibi_kernel_api::mcp_status::McpFailureKind;
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
@@ -83,7 +83,7 @@ impl Pipe<'_> {
         };
         found
             .map(|(machine, workspace)| (machine.mcp().clone(), workspace))
-            .ok_or_else(|| rust_cli_kernel_api::machine::not_connected(name))
+            .ok_or_else(|| nibi_kernel_api::machine::not_connected(name))
     }
 }
 
@@ -139,7 +139,7 @@ pub(crate) async fn open(
         let params = json!({
             "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {"roots": {}},
-            "clientInfo": {"name": rust_cli_base::names::MCP_CLIENT_NAME, "version": client_version},
+            "clientInfo": {"name": nibi_kernel_base::names::MCP_CLIENT_NAME, "version": client_version},
         });
         let never = CancellationToken::new();
         let result = match client.request("initialize", params, timeout, &never).await {

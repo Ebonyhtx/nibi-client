@@ -1,7 +1,7 @@
 //! bash 模式（用户在输入框里输入 `!命令`，docs/specs/rust-cli/tui-input.md §2.2）：经 Bash 工具执行，结果拼成
 //! `<bash-stdout>` / `<bash-stderr>` 两段。
-use rust_cli_kernel_api::tool::{ToolError, ToolProgress, ToolUseContext};
-use rust_cli_kernel_api::user_input::{BashRun, escape_xml};
+use nibi_kernel_api::tool::{ToolError, ToolProgress, ToolUseContext};
+use nibi_kernel_api::user_input::{BashRun, escape_xml};
 use tokio::sync::mpsc;
 
 use crate::bash::{BashTool, Ran};

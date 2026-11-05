@@ -7,13 +7,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvError, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{ReadText, StatFile, StatMany, TextRead};
-use rust_cli_kernel_api::env_path;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::tool::{ChangedFile, ChangedFiles};
+use nibi_kernel_api::env::{EnvError, EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::{ReadText, StatFile, StatMany, TextRead};
+use nibi_kernel_api::env_path;
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::tool::{ChangedFile, ChangedFiles};
 
 use crate::common::utf16_len;
 use crate::file_state::{Baseline, FileKey, FileState, ReadFileState};
@@ -144,7 +144,7 @@ impl FileChanges {
         (session, workspace, files): (&SessionId, &WorkspaceRef, &dyn Files),
         key: &FileKey,
         entry: FileState,
-        version: rust_cli_kernel_api::env::FileVersion,
+        version: nibi_kernel_api::env::FileVersion,
     ) -> Option<ChangedFile> {
         if matches!(&entry.baseline, Baseline::Version(recorded) if *recorded == version) {
             return None;

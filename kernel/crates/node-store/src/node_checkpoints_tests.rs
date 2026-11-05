@@ -5,8 +5,8 @@
     clippy::disallowed_methods,
     reason = "测试直接写 Node 命名的产物文件（模拟 Node 进程）"
 )]
-use rust_cli_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, ArtifactStore, SessionStore, WorkspaceCheckpoint,
 };
 use serde_json::json;

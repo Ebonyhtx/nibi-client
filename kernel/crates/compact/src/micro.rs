@@ -6,8 +6,8 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
 
 use crate::tokens;
 

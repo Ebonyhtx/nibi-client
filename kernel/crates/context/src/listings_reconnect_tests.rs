@@ -1,8 +1,8 @@
 //! 延迟工具的撤回与重新可用（docs/specs/rust-cli/context.md §4.3）：MCP 服务器断开与重连的文字。
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::listing::ListingEntry;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
 use serde_json::{Value, json};
 
 use super::*;

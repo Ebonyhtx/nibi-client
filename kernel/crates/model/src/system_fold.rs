@@ -9,10 +9,10 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{ApiContent, ApiMessage, ApiRole, ModelRequest};
-use rust_cli_kernel_api::reminder_fold::{array_result, fold_into_tool_result};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole, ModelRequest};
+use nibi_kernel_api::reminder_fold::{array_result, fold_into_tool_result};
 
 pub(crate) fn fold(request: &mut ModelRequest) {
     if !request
@@ -32,7 +32,7 @@ pub(crate) fn fold(request: &mut ModelRequest) {
             message.role = ApiRole::User;
             for content in &mut message.content {
                 if let ContentBlock::Text { text } = &mut content.block {
-                    *text = rust_cli_base::reminder::wrap(text);
+                    *text = nibi_kernel_base::reminder::wrap(text);
                 }
             }
         }
@@ -98,8 +98,8 @@ fn merge(last: &mut ApiMessage, next: Vec<ApiContent>) {
 
 #[cfg(test)]
 mod tests {
-    use rust_cli_kernel_api::ids::ToolUseId;
-    use rust_cli_kernel_api::model::{QuerySource, RequestOptions, TurnOutputConfig};
+    use nibi_kernel_api::ids::ToolUseId;
+    use nibi_kernel_api::model::{QuerySource, RequestOptions, TurnOutputConfig};
 
     use super::*;
 
@@ -118,7 +118,7 @@ mod tests {
 
     fn request(messages: Vec<ApiMessage>) -> ModelRequest {
         ModelRequest {
-            selection: rust_cli_kernel_api::model::ModelSelection {
+            selection: nibi_kernel_api::model::ModelSelection {
                 provider: "p".to_owned(),
                 model: "m".to_owned(),
                 reasoning: None,
@@ -217,7 +217,7 @@ mod tests {
             content: vec![ApiContent {
                 block: ContentBlock::ToolResult {
                     tool_use_id: tool_use,
-                    content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+                    content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                         text: "ok\n".to_owned(),
                     }],
                     is_error: false,
@@ -227,7 +227,7 @@ mod tests {
             output_config: None,
         };
         let mut note = text(ApiRole::System, "note");
-        note.content[0].cache_control = Some(rust_cli_kernel_api::model::CacheControl {
+        note.content[0].cache_control = Some(nibi_kernel_api::model::CacheControl {
             kind: "ephemeral".to_owned(),
             ttl: None,
             scope: None,
@@ -243,7 +243,7 @@ mod tests {
         };
         assert_eq!(
             content,
-            &[rust_cli_kernel_api::message::ToolResultContent::Text {
+            &[nibi_kernel_api::message::ToolResultContent::Text {
                 text: "ok\n\n<system-reminder>\nnote\n</system-reminder>".to_owned()
             }]
         );

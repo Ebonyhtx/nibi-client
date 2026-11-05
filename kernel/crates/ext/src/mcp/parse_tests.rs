@@ -1,6 +1,6 @@
 //! MCP 配置的解析、`${VAR}` 展开与作用域合并（ext.md §3.1）。
 
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::json;
 
 use super::*;

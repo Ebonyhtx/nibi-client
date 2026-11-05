@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_net::{HeaderValue, HttpRequest};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_net::{HeaderValue, HttpRequest};
 
 use super::*;
 use crate::anthropic::Anthropic;

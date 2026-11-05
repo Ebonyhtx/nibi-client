@@ -9,7 +9,7 @@
 use std::sync::OnceLock;
 use std::time::Duration;
 
-use rust_cli_kernel_api::provider::WireProtocol;
+use nibi_kernel_api::provider::WireProtocol;
 
 use crate::errors::Vendor;
 
@@ -137,7 +137,7 @@ fn compiled() -> &'static [(Option<regress::Regex>, Option<regress::Regex>)] {
 /// 这次请求的方案：`base_url` 先按 Node 规范化（解析不了时只有不看 baseUrl 的方案能命中），`model` 是端点给的
 /// 模型 ID。
 pub(crate) fn select(protocol: WireProtocol, base_url: &str, model: &str) -> &'static Profile {
-    let url = rust_cli_base::rule_url::normalize(base_url);
+    let url = nibi_kernel_base::rule_url::normalize(base_url);
     let hit = |regex: &Option<regress::Regex>, subject: Option<&str>| {
         regex
             .as_ref()
@@ -148,7 +148,7 @@ pub(crate) fn select(protocol: WireProtocol, base_url: &str, model: &str) -> &'s
         .zip(compiled())
         .find(|(profile, (url_regex, model_regex))| {
             let endpoint = match profile.endpoint {
-                Endpoint::Zhipu => rust_cli_base::rule_url::is_zhipu_endpoint(base_url),
+                Endpoint::Zhipu => nibi_kernel_base::rule_url::is_zhipu_endpoint(base_url),
                 Endpoint::Any | Endpoint::Pattern(_) => hit(url_regex, url.as_deref()),
             };
             profile.protocol == protocol && endpoint && hit(model_regex, Some(model))
@@ -161,10 +161,10 @@ pub(crate) fn select(protocol: WireProtocol, base_url: &str, model: &str) -> &'s
 /// 经网关：兼容端点的 base URL 既不是 Anthropic 官方（`anthropic-official` 的端点正则）也不是智谱（model.md §3.1 的
 /// “兼容端点”，工作线 F71）。只看 base URL，不看模型。
 pub(crate) fn is_gateway(base_url: &str) -> bool {
-    if rust_cli_base::rule_url::is_zhipu_endpoint(base_url) {
+    if nibi_kernel_base::rule_url::is_zhipu_endpoint(base_url) {
         return false;
     }
-    let url = rust_cli_base::rule_url::normalize(base_url);
+    let url = nibi_kernel_base::rule_url::normalize(base_url);
     let official = PROFILES
         .iter()
         .zip(compiled())
@@ -183,7 +183,7 @@ pub(crate) fn vendor(base_url: &str) -> Vendor {
     let zhipu = PROFILES
         .iter()
         .any(|profile| matches!(profile.endpoint, Endpoint::Zhipu))
-        && rust_cli_base::rule_url::is_zhipu_endpoint(base_url);
+        && nibi_kernel_base::rule_url::is_zhipu_endpoint(base_url);
     if zhipu {
         Vendor::Zhipu
     } else {

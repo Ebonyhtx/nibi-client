@@ -4,15 +4,15 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::mcp::{McpTransportConfig};
-use rust_cli_kernel_api::mcp_session::McpIsolation;
-use rust_cli_kernel_api::mcp_status::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::mcp::{McpTransportConfig};
+use nibi_kernel_api::mcp_session::McpIsolation;
+use nibi_kernel_api::mcp_status::{
     McpFailureKind, McpListRequest, McpProtocolEra, McpServerStatus, McpServerStatusKind,
     McpTransportKind,
 };
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::mcp_ui::{
     McpAppInstance, McpResourceContent, McpResourceDescriptor, McpResourcePage,
     McpResourceTemplate, McpResourceTemplatePage, McpUiAppToolRegistration, McpUiCallToolRequest,
     McpUiCancelCallRequest, McpUiClaimAppToolCallRequest, McpUiInstanceRequest, McpUiListRequest,
@@ -20,10 +20,10 @@ use rust_cli_kernel_api::mcp_ui::{
     McpUiSamplingRequest, McpUiSamplingResult, McpUiSubscriptionRequest,
     McpUiUnregisterAppToolsRequest, tool_not_found_message,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{CreateSession, Kernel, KernelError};
-use rust_cli_protocol_core::connection::{self, Options, Service};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{CreateSession, Kernel, KernelError};
+use nibi_kernel_protocol_core::connection::{self, Options, Service};
 use serde_json::{Value, json};
 
 use crate::context::Context;
@@ -79,7 +79,7 @@ enum UiCall {
     ClaimAppTool(McpUiClaimAppToolCallRequest),
     ResolveAppTool(McpUiResolveAppToolCallRequest),
     Sample(McpUiSamplingRequest),
-    CancelSampling(rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest),
+    CancelSampling(nibi_kernel_api::mcp_ui::McpUiCancelSamplingRequest),
 }
 
 impl FakeKernel {
@@ -102,15 +102,15 @@ impl Kernel for FakeKernel {
 
     async fn list_sessions(
         &self,
-        _filter: rust_cli_kernel_api::store::SessionFilter,
-    ) -> Result<Vec<rust_cli_kernel_api::store::SessionSummary>, KernelError> {
+        _filter: nibi_kernel_api::store::SessionFilter,
+    ) -> Result<Vec<nibi_kernel_api::store::SessionSummary>, KernelError> {
         Ok(Vec::new())
     }
 
     async fn open_session(
         &self,
         _session: &SessionId,
-    ) -> Result<Arc<dyn rust_cli_kernel_api::session_api::SessionHandle>, KernelError> {
+    ) -> Result<Arc<dyn nibi_kernel_api::session_api::SessionHandle>, KernelError> {
         Err(KernelError::NotFound {
             session: SessionId::new("unused"),
         })
@@ -253,7 +253,7 @@ impl Kernel for FakeKernel {
 
     async fn mcp_ui_cancel_sampling(
         &self,
-        request: rust_cli_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
+        request: nibi_kernel_api::mcp_ui::McpUiCancelSamplingRequest,
     ) -> Result<bool, KernelError> {
         self.record(UiCall::CancelSampling(request))?;
         Ok(self.accepted)
@@ -273,8 +273,8 @@ fn server(kernel: Arc<FakeKernel>) -> Arc<Server> {
     let scope = TaskScope::root("mcp-list-test", |_| {});
     let (out, _host_in) = tokio::io::duplex(1 << 16);
     let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
-    let clock: Arc<dyn rust_cli_kernel_api::clock::Clock> =
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(1_760_000_000_000));
+    let clock: Arc<dyn nibi_kernel_api::clock::Clock> =
+        Arc::new(nibi_kernel_api::testing::FixedClock(1_760_000_000_000));
     let context = Arc::new(Context::new(peer, clock));
     Arc::new(Server::new(
         context,
@@ -302,7 +302,7 @@ async fn call(server: Arc<Server>, params: Value) -> Value {
         .result
 }
 
-async fn call_error(server: Arc<Server>, params: Value) -> rust_cli_protocol_core::rpc::RpcError {
+async fn call_error(server: Arc<Server>, params: Value) -> nibi_kernel_protocol_core::rpc::RpcError {
     match Handler(server).request("mcp/list", params).await {
         Ok(_) => panic!("expected mcp/list to fail"),
         Err(error) => error,
@@ -560,7 +560,7 @@ async fn call_error_named(
     server: Arc<Server>,
     method: &str,
     params: Value,
-) -> rust_cli_protocol_core::rpc::RpcError {
+) -> nibi_kernel_protocol_core::rpc::RpcError {
     match Handler(server).request(method, params).await {
         Ok(_) => panic!("expected {method} to fail"),
         Err(error) => error,
@@ -752,7 +752,7 @@ async fn page_reads_are_bounded() {
         contents: vec![McpResourceContent {
             uri: "ui://big".to_owned(),
             mime_type: Some("text/plain".to_owned()),
-            text: Some("x".repeat(rust_cli_kernel_api::mcp_ui::UI_READ_MAX_BYTES + 1)),
+            text: Some("x".repeat(nibi_kernel_api::mcp_ui::UI_READ_MAX_BYTES + 1)),
             blob: None,
             meta: None,
         }],
@@ -951,7 +951,7 @@ async fn tool_access_failures_are_invalid_params_with_a_reason() {
     for (message, reason) in [
         (tool_not_found_message(server_name, "missing"), "tool_not_found"),
         (
-            rust_cli_kernel_api::mcp_ui::tool_not_app_visible_message(server_name, "secret"),
+            nibi_kernel_api::mcp_ui::tool_not_app_visible_message(server_name, "secret"),
             "tool_not_app_visible",
         ),
     ] {
@@ -1182,7 +1182,7 @@ async fn sampling_maps_the_request_and_returns_the_host_result() {
     assert_eq!(request.messages[0].content.len(), 2);
     assert!(matches!(
         &request.messages[0].content[1],
-        rust_cli_kernel_api::mcp_ui::McpUiSamplingContent::Image { mime_type, .. }
+        nibi_kernel_api::mcp_ui::McpUiSamplingContent::Image { mime_type, .. }
             if mime_type == "image/png"
     ));
     assert_eq!(request.messages[1].role, "assistant");
@@ -1221,11 +1221,11 @@ async fn sampling_requests_are_validated_like_zod() {
 #[tokio::test]
 async fn sampling_failures_map_to_the_node_codes() {
     for (message, code) in [
-        (rust_cli_kernel_api::mcp_ui::SAMPLING_BUSY, -32000),
-        (rust_cli_kernel_api::mcp_ui::SAMPLING_CANCELLED, -32000),
-        (rust_cli_kernel_api::mcp_ui::SAMPLING_TIMED_OUT, -32000),
-        (rust_cli_kernel_api::mcp_ui::SAMPLING_LIMIT, -32000),
-        (rust_cli_kernel_api::mcp_ui::SAMPLING_DUPLICATE, -32602),
+        (nibi_kernel_api::mcp_ui::SAMPLING_BUSY, -32000),
+        (nibi_kernel_api::mcp_ui::SAMPLING_CANCELLED, -32000),
+        (nibi_kernel_api::mcp_ui::SAMPLING_TIMED_OUT, -32000),
+        (nibi_kernel_api::mcp_ui::SAMPLING_LIMIT, -32000),
+        (nibi_kernel_api::mcp_ui::SAMPLING_DUPLICATE, -32602),
     ] {
         let kernel = FakeKernel {
             fail: Some(KernelError::Failed {

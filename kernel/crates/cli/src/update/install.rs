@@ -34,7 +34,7 @@ pub(crate) struct Install {
 impl Install {
     /// 从入口的环境快照判定。没有标记、入口包名缺失或不合法、平台包名不合法时为 None（未知安装）。
     pub(crate) fn detect(env: &[(String, String)]) -> Option<Self> {
-        let lookup = |name: &str| rust_cli_base::secret::env_var(env, name);
+        let lookup = |name: &str| nibi_kernel_base::secret::env_var(env, name);
         let manager = MARKERS
             .iter()
             .find(|(name, _)| lookup(name).is_some())

@@ -4,9 +4,9 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use rust_cli_base::{Task, TaskScope};
-use rust_cli_exec_client::{ClientError, ClientOptions, ConnectionState, ExecClient};
-use rust_cli_exec_transport::{Connector, LinkError, ProvisionStep, Provisioned, Provisioner};
+use nibi_kernel_base::{Task, TaskScope};
+use nibi_kernel_exec_client::{ClientError, ClientOptions, ConnectionState, ExecClient};
+use nibi_kernel_exec_transport::{Connector, LinkError, ProvisionStep, Provisioned, Provisioner};
 use tokio::sync::watch;
 
 use crate::state::{MachineError, MachineEvent, MachineState, Retry, Welcomed, transition};

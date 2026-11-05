@@ -5,9 +5,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::js::{node_arch, node_platform};
-use rust_cli_model::{RequestHeaders, SourceFacts};
-use rust_cli_node_store::NodeIds;
+use nibi_kernel_base::js::{node_arch, node_platform};
+use nibi_kernel_model::{RequestHeaders, SourceFacts};
+use nibi_kernel_node_store::NodeIds;
 
 /// 系统给的两项：`os.release()` 与 `/etc/localtime` 的链接目标（Unix）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -26,7 +26,7 @@ pub(crate) fn request_headers(
     let facts = facts(var, version, &host())?;
     let trace_id = ids.uuid();
     Ok(RequestHeaders {
-        source: rust_cli_model::source_headers(&facts),
+        source: nibi_kernel_model::source_headers(&facts),
         trace_id,
         request_id: Arc::new(move || ids.uuid()),
     })

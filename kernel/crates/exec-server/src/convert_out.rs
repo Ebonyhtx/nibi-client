@@ -1,22 +1,22 @@
 //! kernel-api 的结果 → 线上的类型（服务端的换算）。字节字段追加到二进制段。
 
-use rust_cli_exec_wire::BodyBuilder;
-use rust_cli_exec_wire::dto::command as wc;
-use rust_cli_exec_wire::dto::core as w;
-use rust_cli_exec_wire::dto::files as wf;
-use rust_cli_exec_wire::dto::rewind as wr;
-use rust_cli_exec_wire::dto::shell as ws;
-use rust_cli_exec_wire::envelope::WireError;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_exec_wire::BodyBuilder;
+use nibi_kernel_exec_wire::dto::command as wc;
+use nibi_kernel_exec_wire::dto::core as w;
+use nibi_kernel_exec_wire::dto::files as wf;
+use nibi_kernel_exec_wire::dto::rewind as wr;
+use nibi_kernel_exec_wire::dto::shell as ws;
+use nibi_kernel_exec_wire::envelope::WireError;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, Outcome, OutputStream,
 };
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env_files::{
     DirEntry, FileKind, FileStat, FileWritten, GlobMatches, GrepLineKind, GrepOutcome, PathFacts,
     PathStyle, TextRead,
 };
-use rust_cli_kernel_api::env_pdf::PdfRender;
-use rust_cli_kernel_api::env_rewind::{RestoreAction, RewindConflict, RewindPlan, RewindStatus};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_pdf::PdfRender;
+use nibi_kernel_api::env_rewind::{RestoreAction, RewindConflict, RewindPlan, RewindStatus};
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundKind, BackgroundStatus, BackgroundStop, ShellNotice, ShellState,
 };
 

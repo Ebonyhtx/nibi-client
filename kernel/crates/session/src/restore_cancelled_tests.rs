@@ -5,12 +5,12 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, Usage};
-use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest};
-use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, SessionHandle, TurnOutcome};
-use rust_cli_kernel_api::store::{Fact, SessionStore};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, Usage};
+use nibi_kernel_api::model::{BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::session_api::{Ack, Command, KernelEvent, SessionHandle, TurnOutcome};
+use nibi_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -259,7 +259,7 @@ async fn an_interrupted_bash_command_is_restored() {
     let mut events = built.session.subscribe(Some(0));
     let bash = Command::Bash {
         command: "slow".to_owned(),
-        delivery: rust_cli_kernel_api::session_api::Delivery::Queue,
+        delivery: nibi_kernel_api::session_api::Delivery::Queue,
     };
     built.session.send(envelope("c1", bash)).await;
     until(&mut events, |event| {

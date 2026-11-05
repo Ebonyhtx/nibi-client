@@ -3,7 +3,7 @@
 
 /// JS `\s` 与 `String.prototype.trim` 的空白（Rust 的 `char::is_whitespace` 没有 U+FEFF、多了 U+0085，不能用）
 /// 与 JS 的字符串长度：唯一定义在 base（F58：以前这里与 `parse/js.rs` 各写一份）。
-pub(crate) use rust_cli_base::js::string::{is_space, utf16_len};
+pub(crate) use nibi_kernel_base::js::string::{is_space, utf16_len};
 
 /// `/^\d+$/` (JS `\d` is ASCII only).
 pub(crate) fn is_digits(s: &str) -> bool {
@@ -72,7 +72,7 @@ pub(crate) fn regex(source: &str) -> Option<regex::Regex> {
 
 #[cfg(test)]
 mod tests {
-    use rust_cli_base::js::string::trim;
+    use nibi_kernel_base::js::string::trim;
 
     use super::*;
 

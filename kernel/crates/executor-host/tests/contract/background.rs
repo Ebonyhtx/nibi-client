@@ -6,14 +6,14 @@
 use std::time::{Duration, Instant};
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvPath, Outcome, OutputStream, StartCommand,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundCommand, BackgroundInfo, BackgroundKind, BackgroundStatus, BackgroundStop,
     BackgroundTask, CwdScope, ShellNotice, TimeoutBackground,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ShellTaskId, ToolUseId};
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId, ToolUseId};
 
 use crate::contract;
 use crate::shell_support::{Shell, exit_of, shell};

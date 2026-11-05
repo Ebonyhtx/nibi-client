@@ -7,11 +7,11 @@
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelRequest, QuerySource};
-use rust_cli_kernel_api::provider::{ModelEndpoint, WireProtocol};
-use rust_cli_net::sse::SseEvent;
-use rust_cli_net::{HttpRequest, Method, ResponseHeaders};
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelRequest, QuerySource};
+use nibi_kernel_api::provider::{ModelEndpoint, WireProtocol};
+use nibi_kernel_net::sse::SseEvent;
+use nibi_kernel_net::{HttpRequest, Method, ResponseHeaders};
 use serde_json::Value;
 
 use crate::attribution::REQUEST_ID;
@@ -82,8 +82,8 @@ impl Trail {
             .rev()
             .find(|(name, _)| name.eq_ignore_ascii_case(REQUEST_ID))
             .and_then(|(_, value)| match value {
-                rust_cli_net::HeaderValue::Plain(value) => Some(value.clone()),
-                rust_cli_net::HeaderValue::Secret(_) => None,
+                nibi_kernel_net::HeaderValue::Plain(value) => Some(value.clone()),
+                nibi_kernel_net::HeaderValue::Secret(_) => None,
             })
             .unwrap_or_default();
         let started_ms = self.clock.now_ms();

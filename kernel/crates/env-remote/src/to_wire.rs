@@ -1,19 +1,19 @@
 //! kernel-api 的请求参数 → 线上的类型（客户端的换算，remote-exec.md §15.1 原则 3：只在这里与 `exec-server`）。
 //! 字节字段追加到二进制段。
 
-use rust_cli_exec_wire::BodyBuilder;
-use rust_cli_exec_wire::dto::command as wc;
-use rust_cli_exec_wire::dto::core as w;
-use rust_cli_exec_wire::dto::files as wf;
-use rust_cli_exec_wire::dto::rewind as wr;
-use rust_cli_exec_wire::dto::shell as ws;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_exec_wire::BodyBuilder;
+use nibi_kernel_exec_wire::dto::command as wc;
+use nibi_kernel_exec_wire::dto::core as w;
+use nibi_kernel_exec_wire::dto::files as wf;
+use nibi_kernel_exec_wire::dto::rewind as wr;
+use nibi_kernel_exec_wire::dto::shell as ws;
+use nibi_kernel_api::env::{
     OperationContext, Origin, StartCommand, WorkspaceRef, WritePrecondition,
 };
-use rust_cli_kernel_api::env_files::{GlobFiles, GrepMode, GrepSearch, PutFile, ReadText};
-use rust_cli_kernel_api::env_pdf::RenderPdfPages;
-use rust_cli_kernel_api::env_rewind::RewindPrepare;
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_files::{GlobFiles, GrepMode, GrepSearch, PutFile, ReadText};
+use nibi_kernel_api::env_pdf::RenderPdfPages;
+use nibi_kernel_api::env_rewind::RewindPrepare;
+use nibi_kernel_api::env_shell::{
     BackgroundCommand, BackgroundKind, BackgroundTask, CwdScope, NetworkPolicy, SandboxPolicy,
     ShellKind,
 };
@@ -110,7 +110,7 @@ fn background_command(command: BackgroundCommand) -> wc::BackgroundCommand {
 }
 
 fn sandbox(policy: SandboxPolicy) -> wc::SandboxPolicy {
-    let paths = |list: Vec<rust_cli_kernel_api::env::EnvPath>| {
+    let paths = |list: Vec<nibi_kernel_api::env::EnvPath>| {
         list.into_iter()
             .map(|path| path.as_str().to_owned())
             .collect()

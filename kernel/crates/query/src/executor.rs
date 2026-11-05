@@ -11,16 +11,16 @@ use std::sync::atomic::AtomicU64;
 
 use futures_util::future::{BoxFuture, FutureExt, join};
 use futures_util::stream::{FuturesUnordered, StreamExt};
-use rust_cli_kernel_api::abort::AbortReason;
-use rust_cli_kernel_api::checkpoint::DISPLAY_KEY;
-use rust_cli_kernel_api::env::{OperationContext, Origin};
-use rust_cli_kernel_api::ids::{MessageId, OwnerEpoch, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::AbortReason;
+use nibi_kernel_api::checkpoint::DISPLAY_KEY;
+use nibi_kernel_api::env::{OperationContext, Origin};
+use nibi_kernel_api::ids::{MessageId, OwnerEpoch, ToolUseId};
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::metering::{CallStatus, ToolCall};
-use rust_cli_kernel_api::orchestration::{QueryEvent, ToolExecution};
-use rust_cli_kernel_api::tool::{InterruptBehavior, Tool, ToolOutput, ToolUseContext};
+use nibi_kernel_api::metering::{CallStatus, ToolCall};
+use nibi_kernel_api::orchestration::{QueryEvent, ToolExecution};
+use nibi_kernel_api::tool::{InterruptBehavior, Tool, ToolOutput, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -386,7 +386,7 @@ fn log_finished(scope: &RunScope, tracked: &Tracked, output: &ToolOutput, call: 
         .iter()
         .find_map(|part| match part {
             // 截取只定义在 base 的 `log_text::head`（F58：以前这里与 ext 各写一份）。
-            ToolResultContent::Text { text } => Some(rust_cli_base::log_text::head(text)),
+            ToolResultContent::Text { text } => Some(nibi_kernel_base::log_text::head(text)),
             _ => None,
         })
         .unwrap_or_default();

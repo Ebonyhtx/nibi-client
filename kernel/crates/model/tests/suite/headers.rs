@@ -8,12 +8,12 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::ids::{AgentId, RunId, SessionId};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_model::{FixedEndpoint, ProviderModel, RequestHeaders, SourceFacts, source_headers};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::ids::{AgentId, RunId, SessionId};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_model::{FixedEndpoint, ProviderModel, RequestHeaders, SourceFacts, source_headers};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 
 use super::common::{clock, collect, fast_retry, request, text_response};
 use super::fixture::{Captured, Fixture, Reply};
@@ -115,8 +115,8 @@ async fn provider_headers_go_between_the_source_and_the_request_headers() {
     let model = model(endpoint(server.url(), &configured), 0).await;
     let mut main = request("hi", QuerySource::MainThread);
     main.options.session_id = Some(SessionId::new("sess_s1"));
-    main.messages.push(rust_cli_kernel_api::model::ApiMessage {
-        role: rust_cli_kernel_api::model::ApiRole::System,
+    main.messages.push(nibi_kernel_api::model::ApiMessage {
+        role: nibi_kernel_api::model::ApiRole::System,
         content: main.messages[0].content.clone(),
         output_config: None,
     });

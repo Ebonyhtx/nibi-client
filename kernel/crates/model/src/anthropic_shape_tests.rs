@@ -1,10 +1,10 @@
 //! 按方案改写请求（model.md §3.2）：第三方 system 的形状；专有项的去留。与对照数据逐字节比较的用例在
 //! `anthropic_shape_parity_tests.rs`（docs/specs/rust-cli/export.md §5）。
 
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::model::{
     CacheControl, ContextEdit, ModelRequest, SystemBlock, ThinkingConfig, TurnOutputConfig,
 };
-use rust_cli_kernel_api::provider::WireProtocol;
+use nibi_kernel_api::provider::WireProtocol;
 
 use super::*;
 use crate::anthropic_request::tests::request;
@@ -67,8 +67,8 @@ fn a_system_without_the_global_section_stays() {
 
 /// 卡片模型的主循环请求：卡片字段齐全。
 fn carded() -> ModelRequest {
-    let mut request = request(vec![rust_cli_kernel_api::model::ApiMessage {
-        role: rust_cli_kernel_api::model::ApiRole::User,
+    let mut request = request(vec![nibi_kernel_api::model::ApiMessage {
+        role: nibi_kernel_api::model::ApiRole::User,
         content: Vec::new(),
         output_config: None,
     }]);

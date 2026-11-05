@@ -4,7 +4,7 @@
 //! 不各算各的。纯字符串运算，不做 IO：路径风格（与旧布局的 home）由调用方经 `EnvInfo::path_facts`
 //! 取，工作区根取调用方手里的 `WorkspaceRef.root`。
 
-use rust_cli_base::names::DOT_DIR;
+use nibi_kernel_base::names::DOT_DIR;
 use serde::{Deserialize, Serialize};
 
 use crate::env::EnvPath;

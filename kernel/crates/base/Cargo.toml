@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-base"
-description = "Task supervision, secrets, redaction and JavaScript-semantics text helpers for rust-cli"
+name = "nibi-kernel-base"
+description = "Task supervision, secrets, redaction and JavaScript-semantics text helpers for nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

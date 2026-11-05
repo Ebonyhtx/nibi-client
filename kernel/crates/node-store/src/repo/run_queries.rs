@@ -19,7 +19,7 @@
 
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension, params};
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::workflow::{
     WorkflowRunArtifactDetail, WorkflowRunArtifactItem, WorkflowRunArtifactItemPage,
     WorkflowRunArtifactItemQuery, WorkflowRunArtifactVersion, WorkflowRunEventPage,
     WorkflowRunEventQuery, WorkflowRunEventRow, WorkflowRunNodeResult, WorkflowRunSummaryRow,
@@ -485,7 +485,7 @@ pub fn artifact_items(
             let mut out = serde_json::Map::new();
             for path in paths {
                 if let Some(value) =
-                    rust_cli_kernel_api::workflow::read_workflow_artifact_field(item, path)
+                    nibi_kernel_api::workflow::read_workflow_artifact_field(item, path)
                 {
                     out.insert(
                         path.clone(),
@@ -594,7 +594,7 @@ pub fn workspace_nodes(
             input_json.and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok());
         let error = error_json.and_then(|text| {
             let value = serde_json::from_str::<serde_json::Value>(&text).ok()?;
-            Some(rust_cli_kernel_api::workflow::WorkflowRunError {
+            Some(nibi_kernel_api::workflow::WorkflowRunError {
                 code: value["code"].as_str()?.to_owned(),
                 message: clip_message(value["message"].as_str()?),
             })
@@ -684,7 +684,7 @@ pub fn node_result(
     };
     let error = error_json.and_then(|text| {
         let value = serde_json::from_str::<serde_json::Value>(&text).ok()?;
-        Some(rust_cli_kernel_api::workflow::WorkflowRunError {
+        Some(nibi_kernel_api::workflow::WorkflowRunError {
             code: value["code"].as_str()?.to_owned(),
             message: clip_message(value["message"].as_str()?),
         })

@@ -3,12 +3,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::model::{ApiContent, ApiRole};
-use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, SessionHandle};
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
-use rust_cli_kernel_api::user_command::{
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::model::{ApiContent, ApiRole};
+use nibi_kernel_api::session_api::{Ack, Command, KernelEvent, SessionHandle};
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::user_command::{
     LOCAL_COMMAND_CAVEAT_SOURCE, LOCAL_COMMAND_INPUT_SOURCE, LOCAL_COMMAND_META_SOURCE,
     LOCAL_COMMAND_OUTPUT_SOURCE, LocalCommandOutput, LocalCommandRecord,
 };
@@ -40,7 +40,7 @@ fn sources(messages: &[Message]) -> Vec<String> {
 }
 
 /// 请求里最后一条 user 消息的文字块。
-fn last_user_texts(request: &rust_cli_kernel_api::model::ModelRequest) -> Vec<String> {
+fn last_user_texts(request: &nibi_kernel_api::model::ModelRequest) -> Vec<String> {
     let user = request
         .messages
         .iter()

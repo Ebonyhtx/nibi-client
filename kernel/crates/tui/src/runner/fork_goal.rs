@@ -2,9 +2,9 @@
 //! actor 的快照，结果作为 [`Done::ForkGoal`] 回到事件循环。
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::goal::GoalView;
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::session_api::{Command, KernelError, StartSource};
+use nibi_kernel_api::goal::GoalView;
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::session_api::{Command, KernelError, StartSource};
 use serde_json::Value;
 
 use super::Loop;

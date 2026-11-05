@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::TokenLimits;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::TokenLimits;
 
 use super::*;
 

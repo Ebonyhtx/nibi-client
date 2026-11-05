@@ -1,10 +1,10 @@
 //! L28 的投影（docs/specs/rust-cli/tui-display.md §2）：任务清单的快照、子代理活动、每回合改动、用量。
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId, TurnId};
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Message, Usage};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{FileChange, KernelEvent, SequencedEvent};
-use rust_cli_kernel_api::tool::{ToolOutput, ToolProgress};
+use nibi_kernel_api::ids::{MessageId, ToolUseId, TurnId};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message, Usage};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{FileChange, KernelEvent, SequencedEvent};
+use nibi_kernel_api::tool::{ToolOutput, ToolProgress};
 use serde_json::json;
 
 use super::*;

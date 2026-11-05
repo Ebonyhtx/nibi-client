@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use rust_cli_base::redact::redact_secrets;
+use nibi_kernel_base::redact::redact_secrets;
 
 /// 一次出口操作失败的原因。上层按类型决定是否重试，不解析文本。
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]

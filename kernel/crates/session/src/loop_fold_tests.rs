@@ -1,7 +1,7 @@
 //! noop 折叠的判定与文字（tools-more.md §18.3）。
 
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, SystemMessage, ToolResultContent,
     UserMessage, UserOrigin,
 };

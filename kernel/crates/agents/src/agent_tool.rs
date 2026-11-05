@@ -4,9 +4,9 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;
@@ -51,7 +51,7 @@ fn with_display(mut output: ToolOutput, entry: &LiveAgent, mut display: Value) -
     display["agentId"] = entry.agent.as_str().into();
     display["childSessionId"] = entry.child.as_str().into();
     display["agentType"] = entry.definition.agent_type.as_str().into();
-    output.display = serde_json::json!({ (rust_cli_kernel_api::agents::DISPLAY_KEY): display });
+    output.display = serde_json::json!({ (nibi_kernel_api::agents::DISPLAY_KEY): display });
     output
 }
 
@@ -115,11 +115,11 @@ impl Tool for AgentTool {
     fn input_schema(&self) -> Value {
         // fork 打开时用对照实现的 fork 写法：没有 `run_in_background`（修复线 L-A，agents.md §8.1.1）。
         if self.core.fork
-            && let Some(fork) = rust_cli_prompts::agents::fork_tool()
+            && let Some(fork) = nibi_kernel_prompts::agents::fork_tool()
         {
             return fork.input_schema.clone();
         }
-        rust_cli_prompts::tool(NAME).map_or(Value::Null, |prompt| prompt.input_schema.clone())
+        nibi_kernel_prompts::tool(NAME).map_or(Value::Null, |prompt| prompt.input_schema.clone())
     }
 
     /// Agent 的 schema 是宽松对象（agents.md §2，修复线 F51）：schema 外的键（例如删掉的 `model`，F51b 删掉的
@@ -130,11 +130,11 @@ impl Tool for AgentTool {
 
     fn description(&self, _context: &PromptContext) -> String {
         if self.core.fork
-            && let Some(fork) = rust_cli_prompts::agents::fork_tool()
+            && let Some(fork) = nibi_kernel_prompts::agents::fork_tool()
         {
             return fork.description.clone();
         }
-        rust_cli_prompts::tool(NAME).map_or_else(String::new, |prompt| prompt.description.clone())
+        nibi_kernel_prompts::tool(NAME).map_or_else(String::new, |prompt| prompt.description.clone())
     }
 
     /// 权限交给子代理自己的工具，Agent 本身算只读。
@@ -261,7 +261,7 @@ impl Tool for AgentTool {
             fork_prefix: inherited.map(Arc::new),
         };
         let first = if fork {
-            rust_cli_prompts::agents::fork_directive(&input.prompt)
+            nibi_kernel_prompts::agents::fork_directive(&input.prompt)
         } else {
             input.prompt.clone()
         };

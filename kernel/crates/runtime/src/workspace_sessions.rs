@@ -4,9 +4,9 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::panels::{SessionActivity, WorkspaceSession};
-use rust_cli_kernel_api::session_api::{SessionHandle, SessionView};
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::panels::{SessionActivity, WorkspaceSession};
+use nibi_kernel_api::session_api::{SessionHandle, SessionView};
 
 use super::*;
 

@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::message::Message;
+use nibi_kernel_api::message::Message;
 
 use super::{candidates, render_file};
 use crate::test_support::tool_round;

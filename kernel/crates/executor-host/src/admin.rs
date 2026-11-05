@@ -5,14 +5,14 @@ use std::io;
 use std::path::Path;
 use std::time::Duration;
 
-use rust_cli_exec_transport::MAX_FRAME;
-use rust_cli_exec_transport::stream::stream_link;
-use rust_cli_exec_transport::{FrameSink, FrameSource, Link};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::admin::{
+use nibi_kernel_exec_transport::MAX_FRAME;
+use nibi_kernel_exec_transport::stream::stream_link;
+use nibi_kernel_exec_transport::{FrameSink, FrameSource, Link};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::admin::{
     AdminAction, AdminOutcome, AdminReply, AdminRequest, ExecutorStatus,
 };
-use rust_cli_exec_wire::frame::{Decoded, Frame, Kind, decode};
+use nibi_kernel_exec_wire::frame::{Decoded, Frame, Kind, decode};
 
 /// 等回复的上限：常驻执行器收到就回。超过时当作它卡住了（这是存活探测，不用来同步状态）。
 const ANSWER: Duration = Duration::from_secs(10);
@@ -40,7 +40,7 @@ pub fn check_socket_path(socket: &Path) -> io::Result<()> {
 /// 留下的 socket 文件）是 `Err`。
 pub async fn request(socket: &Path, action: AdminAction) -> io::Result<Option<AdminReply>> {
     check_socket_path(socket)?;
-    let halves = rust_cli_net::uds::connect_raw(socket).await?;
+    let halves = nibi_kernel_net::uds::connect_raw(socket).await?;
     let link = stream_link(halves.read, halves.write, "executor", MAX_FRAME);
     let (mut sink, mut source): (Box<dyn FrameSink>, Box<dyn FrameSource>) = Box::new(link).split();
     let frame = Frame::encode(Kind::Admin, &AdminRequest { action }, &Body::empty())
@@ -119,6 +119,6 @@ pub async fn stop(socket: &Path, lock: &Path, if_idle: bool) -> io::Result<Stopp
 
 /// 等单实例锁被放开（常驻进程退出时系统放开）。
 pub async fn wait_released(lock: &Path) -> io::Result<()> {
-    drop(rust_cli_fs::lock_exclusive(lock).await?);
+    drop(nibi_kernel_fs::lock_exclusive(lock).await?);
     Ok(())
 }

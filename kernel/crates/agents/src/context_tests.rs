@@ -3,15 +3,15 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId};
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::model::{QuerySource, SystemBlock};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId};
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::model::{QuerySource, SystemBlock};
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 use serde_json::Value;
 
 use super::SubagentContext;

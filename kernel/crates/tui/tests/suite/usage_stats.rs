@@ -2,8 +2,8 @@
 //! 范围、Usage 标签页，深浅主题与中英文。
 use crossterm::event::KeyCode;
 use ratatui::style::Color;
-use rust_cli_kernel_api::metering::{ActivityDay, ActivityRange, ActivityStats, ModelTokens};
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::metering::{ActivityDay, ActivityRange, ActivityStats, ModelTokens};
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, with_ui};
 

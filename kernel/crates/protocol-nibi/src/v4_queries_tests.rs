@@ -8,25 +8,25 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     DynamicWorkflowGate, Kernel, KernelError, SessionHandle,
 };
-use rust_cli_kernel_api::store::{SessionFilter, SessionSummary};
-use rust_cli_kernel_api::usage::{
+use nibi_kernel_api::store::{SessionFilter, SessionSummary};
+use nibi_kernel_api::usage::{
     AppUsage, AppUsageDayModelRow, AppUsageDayRow, AppUsageModelRow, AppUsageQuery,
     AppUsageToolRow, SessionUsage,
 };
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::workflow::{
     WorkflowRunArtifactDetail, WorkflowRunArtifactItem, WorkflowRunArtifactItemPage,
     WorkflowRunArtifactItemQuery, WorkflowRunArtifactVersion, WorkflowRunEventPage,
     WorkflowRunEventQuery, WorkflowRunEventRow, WorkflowRunNodeResult, WorkflowRunSummaryRow,
     WorkflowRunWorkspaceNode, WorkflowRunWorkspaceSummary,
 };
-use rust_cli_protocol_core::connection::{self, Options, Service};
+use nibi_kernel_protocol_core::connection::{self, Options, Service};
 use serde_json::{Value, json};
 
 use crate::context::Context;
@@ -39,7 +39,7 @@ use crate::server::{Defaults, Handler, Server};
 /// `1760000000000` = 2025-10-09T08:53:20Z，本地（UTC+8）是同一天的 16:53。
 struct ShanghaiClock;
 
-impl rust_cli_kernel_api::clock::Clock for ShanghaiClock {
+impl nibi_kernel_api::clock::Clock for ShanghaiClock {
     fn now_ms(&self) -> u64 {
         NOW_MS
     }
@@ -93,7 +93,7 @@ struct FakeKernel {
 impl Kernel for FakeKernel {
     async fn create_session(
         &self,
-        _request: rust_cli_kernel_api::session_api::CreateSession,
+        _request: nibi_kernel_api::session_api::CreateSession,
     ) -> Result<SessionId, KernelError> {
         Err(KernelError::Unsupported {
             what: "session creation".to_owned(),
@@ -103,7 +103,7 @@ impl Kernel for FakeKernel {
     /// workspace 级动态工作流策略：记下落库值（协议层只负责转发与回执）。
     async fn update_dynamic_workflow_policy(
         &self,
-        workspace: &rust_cli_kernel_api::env::WorkspaceRef,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
         gate: DynamicWorkflowGate,
     ) -> Result<(), KernelError> {
         self.seen
@@ -410,7 +410,7 @@ fn server(kernel: Arc<FakeKernel>) -> Arc<Server> {
     let (out, _host_in) = tokio::io::duplex(1 << 16);
     let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
     // 固定时钟：`now = 1_760_000_000_000`（2025-10-09T08:53:20Z），偏移 +480 分钟（UTC+8）。
-    let clock: Arc<dyn rust_cli_kernel_api::clock::Clock> = Arc::new(ShanghaiClock);
+    let clock: Arc<dyn nibi_kernel_api::clock::Clock> = Arc::new(ShanghaiClock);
     let context = Arc::new(Context::new(peer, clock));
     Arc::new(Server::new(
         context,
@@ -430,7 +430,7 @@ async fn request_error(
     server: Arc<Server>,
     method: &str,
     params: Value,
-) -> rust_cli_protocol_core::rpc::RpcError {
+) -> nibi_kernel_protocol_core::rpc::RpcError {
     match Handler(server).request(method, params).await {
         Ok(_) => panic!("expected {method} to fail"),
         Err(error) => error,
@@ -701,7 +701,7 @@ async fn unknown_runs_get_empty_lists_rather_than_errors() {
     impl Kernel for Empty {
         async fn create_session(
             &self,
-            _request: rust_cli_kernel_api::session_api::CreateSession,
+            _request: nibi_kernel_api::session_api::CreateSession,
         ) -> Result<SessionId, KernelError> {
             Err(KernelError::Unsupported {
                 what: "session creation".to_owned(),
@@ -729,7 +729,7 @@ async fn unknown_runs_get_empty_lists_rather_than_errors() {
     let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
     let context = Arc::new(Context::new(
         peer,
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(5)),
+        Arc::new(nibi_kernel_api::testing::FixedClock(5)),
     ));
     let server = Arc::new(Server::new(
         context,

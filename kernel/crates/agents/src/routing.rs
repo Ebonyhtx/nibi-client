@@ -7,11 +7,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::{AgentId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::UserOrigin;
-use rust_cli_kernel_api::orchestration::QueryError;
-use rust_cli_prompts::agents as texts;
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::{AgentId, SessionId, ToolUseId};
+use nibi_kernel_api::message::UserOrigin;
+use nibi_kernel_api::orchestration::QueryError;
+use nibi_kernel_prompts::agents as texts;
 
 use crate::Core;
 use crate::live::{AgentState, Agents, LiveAgent, Mail, Notice};
@@ -263,7 +263,7 @@ pub(crate) async fn wake(core: &Arc<Core>, wakes: Vec<Wake>) {
             // 续跑时按来自父代理的消息包一层说明（`The coordinator sent a message while you were
             // working:` …），作为 user 消息。
             Resume::Message(text) => (
-                rust_cli_prompts::texts::render(texts::stranded_message(), &[("message", &text)]),
+                nibi_kernel_prompts::texts::render(texts::stranded_message(), &[("message", &text)]),
                 UserOrigin::Human,
             ),
         };

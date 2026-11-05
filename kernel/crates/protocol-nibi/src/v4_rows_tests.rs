@@ -5,17 +5,17 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId, TraceId};
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, ToolUseId, TraceId};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Ack as KernelAck, CommandEnvelope, Kernel, KernelError, SessionHandle, SessionView,
 };
-use rust_cli_kernel_api::store::{SessionFilter, SessionKind, SessionMeta, SessionSummary};
-use rust_cli_protocol_core::connection::{self, Options, Service};
+use nibi_kernel_api::store::{SessionFilter, SessionKind, SessionMeta, SessionSummary};
+use nibi_kernel_protocol_core::connection::{self, Options, Service};
 use serde_json::{Value, json};
 
 use crate::context::Context;
@@ -124,7 +124,7 @@ impl SessionHandle for FakeHandle {
         }
     }
 
-    fn subscribe(&self, _after: Option<u64>) -> BoxStream<'static, rust_cli_kernel_api::session_api::SequencedEvent> {
+    fn subscribe(&self, _after: Option<u64>) -> BoxStream<'static, nibi_kernel_api::session_api::SequencedEvent> {
         stream::empty().boxed()
     }
 
@@ -136,20 +136,20 @@ impl SessionHandle for FakeHandle {
         &self,
         task: &str,
         max_bytes: u64,
-    ) -> Result<Option<rust_cli_kernel_api::manage::BackgroundOutput>, KernelError> {
+    ) -> Result<Option<nibi_kernel_api::manage::BackgroundOutput>, KernelError> {
         assert_eq!(max_bytes, 8_192, "the protocol layer passes the Host bound");
         match task {
-            "work_ok" => Ok(Some(rust_cli_kernel_api::manage::BackgroundOutput {
+            "work_ok" => Ok(Some(nibi_kernel_api::manage::BackgroundOutput {
                 work_id: task.to_owned(),
-                status: rust_cli_kernel_api::env_shell::BackgroundStatus::Completed,
+                status: nibi_kernel_api::env_shell::BackgroundStatus::Completed,
                 output: "done
 ".to_owned(),
                 truncated: true,
                 output_path: "/work/tasks/work_ok.output".to_owned(),
             })),
-            "work_killed" => Ok(Some(rust_cli_kernel_api::manage::BackgroundOutput {
+            "work_killed" => Ok(Some(nibi_kernel_api::manage::BackgroundOutput {
                 work_id: task.to_owned(),
-                status: rust_cli_kernel_api::env_shell::BackgroundStatus::Killed,
+                status: nibi_kernel_api::env_shell::BackgroundStatus::Killed,
                 output: String::new(),
                 truncated: false,
                 output_path: "/work/tasks/work_killed.output".to_owned(),
@@ -166,8 +166,8 @@ impl SessionHandle for FakeHandle {
 
     async fn file_change_summaries(
         &self,
-    ) -> Result<Vec<rust_cli_kernel_api::file_changes::TurnFileSummary>, KernelError> {
-        Ok(vec![rust_cli_kernel_api::file_changes::TurnFileSummary {
+    ) -> Result<Vec<nibi_kernel_api::file_changes::TurnFileSummary>, KernelError> {
+        Ok(vec![nibi_kernel_api::file_changes::TurnFileSummary {
             prompt: MessageId::new("u1"),
             files: 2,
             additions: 5,
@@ -178,17 +178,17 @@ impl SessionHandle for FakeHandle {
     async fn file_changes(
         &self,
         messages: &[MessageId],
-    ) -> Result<rust_cli_kernel_api::file_changes::FileChangesReport, KernelError> {
+    ) -> Result<nibi_kernel_api::file_changes::FileChangesReport, KernelError> {
         assert_eq!(
             messages.iter().map(MessageId::as_str).collect::<Vec<_>>(),
             ["u1", "a1", "a2", "a3"],
             "the protocol layer resolves the turn's message ids"
         );
-        Ok(rust_cli_kernel_api::file_changes::FileChangesReport {
+        Ok(nibi_kernel_api::file_changes::FileChangesReport {
             files: 1,
             additions: 5,
             deletions: 1,
-            items: vec![rust_cli_kernel_api::file_changes::FileChangeItem {
+            items: vec![nibi_kernel_api::file_changes::FileChangeItem {
                 path: "/work/a.txt".to_owned(),
                 additions: 5,
                 deletions: 1,
@@ -202,12 +202,12 @@ impl SessionHandle for FakeHandle {
     async fn file_rewind_preview(
         &self,
         messages: &[MessageId],
-    ) -> Result<rust_cli_kernel_api::file_changes::RewindPreview, KernelError> {
+    ) -> Result<nibi_kernel_api::file_changes::RewindPreview, KernelError> {
         assert_eq!(messages.len(), 4);
-        Ok(rust_cli_kernel_api::file_changes::RewindPreview {
+        Ok(nibi_kernel_api::file_changes::RewindPreview {
             can_apply: true,
-            safe_files: vec![rust_cli_kernel_api::file_changes::RewindSafeFile {
-                action: rust_cli_kernel_api::file_changes::RewindAction::Restore,
+            safe_files: vec![nibi_kernel_api::file_changes::RewindSafeFile {
+                action: nibi_kernel_api::file_changes::RewindAction::Restore,
                 operation_count: 1,
                 path: "/work/a.txt".to_owned(),
                 tool_names: vec!["Edit".to_owned()],
@@ -226,7 +226,7 @@ struct FakeKernel {
 impl Kernel for FakeKernel {
     async fn create_session(
         &self,
-        _request: rust_cli_kernel_api::session_api::CreateSession,
+        _request: nibi_kernel_api::session_api::CreateSession,
     ) -> Result<SessionId, KernelError> {
         Err(KernelError::Unsupported {
             what: "session creation".to_owned(),
@@ -256,7 +256,7 @@ fn server(id: &str) -> Arc<Server> {
     let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
     let context = Arc::new(Context::new(
         peer,
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(5)),
+        Arc::new(nibi_kernel_api::testing::FixedClock(5)),
     ));
     Arc::new(Server::new(
         context,
@@ -296,9 +296,9 @@ async fn turn_header(server: &Arc<Server>, session: &str) -> (Value, u64, String
 
 /// 失败的分支取错误（`Reply` 没有 Debug，不能用 `expect_err`）。
 fn expect_error<T>(
-    result: Result<T, rust_cli_protocol_core::rpc::RpcError>,
+    result: Result<T, nibi_kernel_protocol_core::rpc::RpcError>,
     what: &str,
-) -> rust_cli_protocol_core::rpc::RpcError {
+) -> nibi_kernel_protocol_core::rpc::RpcError {
     match result {
         Ok(_) => panic!("{what}"),
         Err(error) => error,

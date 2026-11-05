@@ -3,9 +3,9 @@
 //! 压缩边界之后第一次、或平台 / shell / 系统版本变了时发整块；否则只在 cwd、git、附加目录变化时
 //! 发 `# Environment update`。快照存在 attachment 的 `data.snapshot` 里，resume 后据此算增量。
 
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_prompts::texts::{self, render};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 

@@ -6,12 +6,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolCallOutput, ToolError, ToolOutput, ToolProgress, ToolUseContext,
     Validation,
 };
@@ -81,13 +81,13 @@ impl Tool for SkillTool {
     }
 
     fn input_schema(&self) -> Value {
-        rust_cli_prompts::tool(NAME)
+        nibi_kernel_prompts::tool(NAME)
             .map(|prompt| prompt.input_schema.clone())
             .unwrap_or(Value::Null)
     }
 
     fn description(&self, _context: &PromptContext) -> String {
-        rust_cli_prompts::tool(NAME)
+        nibi_kernel_prompts::tool(NAME)
             .map(|prompt| prompt.description.clone())
             .unwrap_or_default()
     }

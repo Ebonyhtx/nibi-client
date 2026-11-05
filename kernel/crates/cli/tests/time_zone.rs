@@ -17,7 +17,7 @@ use std::process::Stdio;
 use std::sync::mpsc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rust_cli_kernel_api::clock::civil_date;
+use nibi_kernel_api::clock::civil_date;
 
 const REPLY: &str = concat!(
     "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_1\",\"type\":\"message\",",
@@ -78,7 +78,7 @@ fn run(tz: &str, offset_minutes: i64) -> (String, String, [String; 2]) {
     std::fs::create_dir_all(&home).unwrap();
     let (server, bodies) = model_server();
     let before = local_date(offset_minutes);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "what day is it"])
         .current_dir(&work)
         .env_clear()

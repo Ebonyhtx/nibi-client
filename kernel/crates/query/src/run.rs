@@ -7,23 +7,23 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::AbortReason;
-use rust_cli_kernel_api::compaction::context_tokens;
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::AbortReason;
+use nibi_kernel_api::compaction::context_tokens;
+use nibi_kernel_api::history;
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::metering::{Metered, ModelCall};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::metering::{Metered, ModelCall};
+use nibi_kernel_api::model::{
     ContextEdit, ModelError, ModelRequest, ModelSelection, QuerySource, RequestOptions,
     ThinkingConfig,
 };
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::orchestration::{
     Absorbed, ContextRequest, OrchestrationError, QueryError, QueryRequest, QueryStop,
 };
-use rust_cli_kernel_api::provider::ModelCapabilities;
-use rust_cli_kernel_api::tool::PromptContext;
-use rust_cli_prompts::models;
+use nibi_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::tool::PromptContext;
+use nibi_kernel_prompts::models;
 use serde_json::json;
 
 use crate::RunScope;
@@ -305,7 +305,7 @@ pub(crate) async fn run(
     // WaitForMcpServers）。中止时立刻退出等待。
     if let Some(mcp) = scope.parts.tools.session_mcp(&scope.session) {
         const SESSION_MCP_WAIT_MS: u64 = 15_000;
-        let ready = |view: &rust_cli_kernel_api::mcp_state::McpView| view.pending().is_empty();
+        let ready = |view: &nibi_kernel_api::mcp_state::McpView| view.pending().is_empty();
         tokio::select! {
             _ = mcp.wait(SESSION_MCP_WAIT_MS, &ready) => {}
             () = scope.abort.aborted() => {}

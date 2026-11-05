@@ -1,8 +1,8 @@
 // segment 的用例复制自 apps/zcode-cli-rust/crates/state/src/node/artifacts.rs（feat/rs 79b6691c55）。
 use std::path::Path;
 
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_api::ids::{ArtifactId, SessionId};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 
 use super::*;
 

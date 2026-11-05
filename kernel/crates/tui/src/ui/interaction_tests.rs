@@ -2,7 +2,7 @@
 use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::ids::{InteractionId, ToolUseId};
+use nibi_kernel_api::ids::{InteractionId, ToolUseId};
 use serde_json::{Value, json};
 
 use super::*;
@@ -200,7 +200,7 @@ fn bash_ask(command: &str, suggestions: &[&str]) -> InteractionRequest {
         message: "This command requires approval".into(),
         suggestions: suggestions
             .iter()
-            .map(|content| rust_cli_kernel_api::permission::PermissionRule {
+            .map(|content| nibi_kernel_api::permission::PermissionRule {
                 tool: "Bash".into(),
                 content: Some((*content).into()),
             })

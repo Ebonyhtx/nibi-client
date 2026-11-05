@@ -1,13 +1,13 @@
 //! `mcp_instructions_delta`（docs/specs/rust-cli/ext.md §3.6）：已连接的 MCP 服务器给出的 instructions，
 //! 只宣布新增、内容变化与断开的服务器。来源是 [`ListingSource::mcp_instructions`]（ext 提供）。
 //!
-//! [`ListingSource::mcp_instructions`]: rust_cli_kernel_api::listing::ListingSource::mcp_instructions
+//! [`ListingSource::mcp_instructions`]: nibi_kernel_api::listing::ListingSource::mcp_instructions
 
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::listing::ListingEntry;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_prompts::texts::{self, render};
 use serde_json::{Value, json};
 
 use crate::render::attachments;

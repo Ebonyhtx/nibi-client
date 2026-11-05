@@ -2,8 +2,8 @@
 //! 消息类的块：用户消息、回复、推理、时间线标记、错误与启动头。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::NoticeLevel;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::NoticeLevel;
 
 use super::{BULLET, Ctx, bold, dim, red, words};
 use crate::ui::i18n::Lang;
@@ -83,7 +83,7 @@ pub fn marker(marker: Marker, ctx: &Ctx<'_>) -> Vec<Line<'static>> {
 
 /// 定时任务的触发行：时间线标记 `✻ …`（dim，tools-more.md §18.3）。
 pub fn fire(fire: &crate::view::Fire, ctx: &Ctx<'_>) -> Vec<Line<'static>> {
-    let wakeup = fire.kind == rust_cli_kernel_api::cron::CronFireKind::Loop;
+    let wakeup = fire.kind == nibi_kernel_api::cron::CronFireKind::Loop;
     let fold = fire
         .fold
         .as_ref()

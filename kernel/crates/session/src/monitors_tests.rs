@@ -6,23 +6,23 @@ use std::sync::Mutex;
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome,
     OutputStream, ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundKind, BackgroundStatus, BackgroundStop, BackgroundTask, ShellNotice,
     ShellState,
 };
-use rust_cli_kernel_api::ids::{OperationId, ShellTaskId, ToolUseId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, ShellTaskId, ToolUseId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::monitor::{MonitorArmed, MonitorSource};
-use rust_cli_kernel_api::testing::{NoticeEnvironment, shell_notice, tool_use_response};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::monitor::{MonitorArmed, MonitorSource};
+use nibi_kernel_api::testing::{NoticeEnvironment, shell_notice, tool_use_response};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};
@@ -127,7 +127,7 @@ impl Commands for MonitorEnv {
 
     async fn close_session(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
+        session: &nibi_kernel_api::ids::SessionId,
         forget: bool,
     ) -> Result<(), EnvError> {
         self.notices.close_session(session, forget).await
@@ -139,7 +139,7 @@ impl Shell for MonitorEnv {
     async fn shell_state(
         &self,
         workspace: &WorkspaceRef,
-        session: &rust_cli_kernel_api::ids::SessionId,
+        session: &nibi_kernel_api::ids::SessionId,
     ) -> Result<ShellState, EnvError> {
         let mut state = self.notices.shell_state(workspace, session).await?;
         state.background.extend(lock(&self.running).iter().cloned());
@@ -148,7 +148,7 @@ impl Shell for MonitorEnv {
 
     fn shell_notices(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
+        session: &nibi_kernel_api::ids::SessionId,
         after: u64,
     ) -> BoxStream<'static, Result<ShellNotice, EnvError>> {
         self.notices.shell_notices(session, after)
@@ -156,7 +156,7 @@ impl Shell for MonitorEnv {
 
     async fn ack_shell_notice(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
+        session: &nibi_kernel_api::ids::SessionId,
         seq: u64,
     ) -> Result<(), EnvError> {
         self.notices.ack_shell_notice(session, seq).await
@@ -207,7 +207,7 @@ impl Fetch for MonitorEnv {}
 /// 走着的时钟（monitor 的批与到期按时钟算）。
 struct Ticking(tokio::time::Instant);
 
-impl rust_cli_kernel_api::clock::Clock for Ticking {
+impl nibi_kernel_api::clock::Clock for Ticking {
     fn now_ms(&self) -> u64 {
         1_000_000 + u64::try_from(self.0.elapsed().as_millis()).unwrap()
     }
@@ -257,8 +257,8 @@ impl Tool for ArmTool {
             .map_err(|error| ToolError::Failed {
                 message: error.to_string(),
             })?;
-        Ok(rust_cli_kernel_api::tool::ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+        Ok(nibi_kernel_api::tool::ToolOutput {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: "armed".to_owned(),
             }],
             is_error: false,
@@ -269,7 +269,7 @@ impl Tool for ArmTool {
 
 fn arm(
     timeout_ms: u64,
-) -> Vec<Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>> {
+) -> Vec<Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>> {
     tool_use_response(
         "toolu_1",
         "Arm",
@@ -424,7 +424,7 @@ async fn expiry_reports_and_stops_the_command() {
 #[tokio::test]
 async fn a_notice_without_a_watch_uses_the_monitor_summary() {
     let notice = monitor_notice(0);
-    let text = rust_cli_query::task_notification(&notice);
+    let text = nibi_kernel_query::task_notification(&notice);
     assert!(
         text.contains("<summary>Monitor \"errors &lt;log&gt;\" ended without producing output (exit 0)</summary>\n</task-notification>"),
         "{text}"
@@ -433,7 +433,7 @@ async fn a_notice_without_a_watch_uses_the_monitor_summary() {
 }
 
 fn arm_socket()
--> Vec<Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>> {
+-> Vec<Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>> {
     tool_use_response(
         "toolu_1",
         "Arm",
@@ -512,7 +512,7 @@ async fn a_monitor_on_a_remote_machine_reads_and_acks_there() {
     let local = Arc::new(MonitorEnv::default());
     let remote = Arc::new(MonitorEnv::default());
     let output_events = remote.command("op_m", "b1");
-    let registry = rust_cli_kernel_api::testing::TestMachines::new(local.clone());
+    let registry = nibi_kernel_api::testing::TestMachines::new(local.clone());
     registry.connect("dev-a", remote.clone(), "/home/dev/proj");
     let model = Arc::new(ScriptedModel::new(vec![
         tool_use_response(

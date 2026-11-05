@@ -2,12 +2,12 @@
 //! （`apps/zcode-cli/packages/cli/src/hooks-trust-command.ts`、`bootstrap/src/workspace-hook-trust-cli.ts`），
 //! 文本与错误逐字取 Node。信任记录与 Node CLI、App 共用。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_paths::StoragePaths;
-use rust_cli_platform::{TrustLoad, TrustRecord};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_platform::{TrustLoad, TrustRecord};
 use serde_json::json;
 
 use crate::config::trust::WorkspaceHooks;
@@ -222,7 +222,7 @@ fn records(
         .map(|entry| TrustRecord {
             workspace_identity: hooks.identity.clone(),
             hook_declaration_digest: entry.digest.clone(),
-            granted_at: rust_cli_base::js::iso_timestamp(context.now_ms),
+            granted_at: nibi_kernel_base::js::iso_timestamp(context.now_ms),
             last_used_at: None,
             bundle_digest_at_grant: bundle.clone(),
             event_at_grant: entry.event.as_str().to_owned(),

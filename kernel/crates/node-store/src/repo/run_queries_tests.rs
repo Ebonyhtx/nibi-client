@@ -6,7 +6,7 @@
 //! 用假件测不到它们。
 
 use super::*;
-use rust_cli_kernel_api::workflow::{WorkflowRunArtifactItemQuery, WorkflowRunEventQuery};
+use nibi_kernel_api::workflow::{WorkflowRunArtifactItemQuery, WorkflowRunEventQuery};
 
 fn database() -> (tempfile::TempDir, Connection) {
     let dir = tempfile::tempdir().unwrap();
@@ -753,7 +753,7 @@ fn artifact_field_paths_follow_the_shared_rule() {
         "nulled": null,
     });
     let read =
-        |path: &str| rust_cli_kernel_api::workflow::read_workflow_artifact_field(&item, path);
+        |path: &str| nibi_kernel_api::workflow::read_workflow_artifact_field(&item, path);
     assert_eq!(read("timing.after"), Some(serde_json::json!(7)));
     assert_eq!(read("rounds.1.ms"), Some(serde_json::json!(2)));
     assert_eq!(read("timing"), Some(serde_json::json!({"after": 7})));

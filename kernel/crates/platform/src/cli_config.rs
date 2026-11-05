@@ -8,8 +8,8 @@
 
 use std::io;
 
-use rust_cli_fs::LockOptions;
-use rust_cli_paths::{StoragePath, StoragePaths};
+use nibi_kernel_fs::LockOptions;
+use nibi_kernel_paths::{StoragePath, StoragePaths};
 use serde_json::{Map, Value};
 
 use crate::credentials::PRIVATE_WRITE;
@@ -124,7 +124,7 @@ impl ConfigFile {
 /// 读用户级配置（每次都以磁盘为准，不缓存）。
 pub async fn read_cli_config(paths: &StoragePaths) -> ConfigFile {
     let file = paths.cli_config();
-    match rust_cli_fs::read_optional(file.as_path()).await {
+    match nibi_kernel_fs::read_optional(file.as_path()).await {
         Ok(Some(bytes)) => ConfigFile::parse(&bytes),
         Ok(None) => ConfigFile::Missing,
         Err(error) => ConfigFile::Invalid {
@@ -147,15 +147,15 @@ async fn update_cli_config(
     let file = paths.cli_config();
     let path = file.as_path();
     let shown = path.display().to_string();
-    let written = rust_cli_fs::with_file_lock(path, &LockOptions::default(), async || {
-        let Ok(bytes) = rust_cli_fs::read_optional(path).await else {
+    let written = nibi_kernel_fs::with_file_lock(path, &LockOptions::default(), async || {
+        let Ok(bytes) = nibi_kernel_fs::read_optional(path).await else {
             return Ok(Err(ConfigWriteError::Read(shown.clone())));
         };
         let text = match edit(bytes.as_deref(), &shown) {
             Ok(text) => text,
             Err(error) => return Ok(Err(error)),
         };
-        let written = rust_cli_fs::atomic_write(path, text.as_bytes(), PRIVATE_WRITE).await;
+        let written = nibi_kernel_fs::atomic_write(path, text.as_bytes(), PRIVATE_WRITE).await;
         Ok::<_, io::Error>(written.map_err(|_| ConfigWriteError::Write(shown.clone())))
     })
     .await;
@@ -262,7 +262,7 @@ pub async fn write_mcp_enabled(
 
 /// `JSON.stringify(value, null, 2)`：先按 JS 规则得到紧凑文本（键序、数字写法），再缩进。
 pub(crate) fn node_pretty(value: &Value) -> String {
-    let compact = rust_cli_base::js::json::stringify(value);
+    let compact = nibi_kernel_base::js::json::stringify(value);
     serde_json::from_str::<Value>(&compact)
         .and_then(|value| serde_json::to_string_pretty(&value))
         .unwrap_or(compact)

@@ -3,8 +3,8 @@
 
 use std::path::Path;
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::session_api::{FileChange, RewindOption, RewindScope};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::session_api::{FileChange, RewindOption, RewindScope};
 
 use super::app::{Action, App, Overlay};
 use super::list::{Item, ListView, Purpose, SEP};

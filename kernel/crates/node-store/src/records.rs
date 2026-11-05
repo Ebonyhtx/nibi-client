@@ -4,7 +4,7 @@
 //! 逐字节一致（docs/specs/rust-m11-node-storage.md §2.3）。纯函数，没有 IO。
 //!
 //! 与复制来源的差异：只保留文本回合用到的模板（工具 part、shell 快照等之后按需加入）。
-use rust_cli_kernel_api::model::ModelSelection;
+use nibi_kernel_api::model::ModelSelection;
 use serde_json::{Map, Value, json};
 
 pub const AGENT: &str = "zcode-agent";
@@ -13,7 +13,7 @@ pub const EXECUTION_STATE_ENTRY: &str = "runtime/execution_state";
 
 /// Node `titleFromInput`（唯一定义在 kernel-api，会话 actor 用同一个函数更新内存里的标题）。
 pub fn title_from_input(input: &str) -> String {
-    rust_cli_kernel_api::title::from_input(input)
+    nibi_kernel_api::title::from_input(input)
 }
 
 /// Node `toTokenUsageInfo`，输入是 Node 归一化后的用量（`inputTokens` 等）。

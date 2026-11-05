@@ -9,8 +9,8 @@ use std::future::Future;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_ui::{
     McpUiError, SAMPLING_CANCELLED, SAMPLING_MAX_OPERATIONS, SAMPLING_MAX_PER_AGENT,
     SAMPLING_MAX_PER_SESSION, SAMPLING_TIMEOUT_MS,
 };

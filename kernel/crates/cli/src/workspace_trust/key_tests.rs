@@ -1,5 +1,5 @@
 //! 信任记录的键（docs/specs/rust-cli/workspace-trust.md §2.2）。
-use rust_cli_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_files::PathStyle;
 
 use super::*;
 

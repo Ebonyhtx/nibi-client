@@ -1,7 +1,7 @@
 //! 压缩前已加载的工具记在边界上（docs/specs/rust-cli/compact.md §3.5）。
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     CompactBoundary, CompactTrigger, ContentBlock, Message, SystemMessage, ToolResultContent,
 };
 use tokio_util::sync::CancellationToken;

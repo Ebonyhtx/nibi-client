@@ -6,7 +6,7 @@
 //! [`Unavailable`]：判决链按“分类器不可用”的分支拦下动作。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::ids::SessionId;
 use serde_json::Value;
 
 /// 交给分类器的动作。

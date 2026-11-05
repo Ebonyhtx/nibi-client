@@ -22,7 +22,7 @@
     reason = "辅助函数不在 #[test] 函数里，clippy 的测试放行不覆盖它；失败即测试失败"
 )]
 
-use rust_cli_kernel_api::model::{ModelError, QuerySource};
+use nibi_kernel_api::model::{ModelError, QuerySource};
 use serde_json::json;
 
 use super::common::{collect, fast_retry, model_at, request, text_response};
@@ -83,7 +83,7 @@ async fn openai_quota_is_not_retried() {
         );
     let server = Fixture::start(vec![reply]).await;
     let model = openai::model(openai::endpoint(
-        rust_cli_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
+        nibi_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
         server.url(),
     ))
     .await;
@@ -106,7 +106,7 @@ async fn openai_stream_quota_is_not_retried() {
     );
     let server = Fixture::start(vec![reply]).await;
     let model = openai::model(openai::endpoint(
-        rust_cli_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
+        nibi_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
         server.url(),
     ))
     .await;
@@ -128,7 +128,7 @@ async fn openai_content_filter_is_not_retried() {
     );
     let server = Fixture::start(vec![reply]).await;
     let model = openai::model(openai::endpoint(
-        rust_cli_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
+        nibi_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
         server.url(),
     ))
     .await;
@@ -218,7 +218,7 @@ async fn openai_authentication_is_not_retried() {
     );
     let server = Fixture::start(vec![reply]).await;
     let model = openai::model(openai::endpoint(
-        rust_cli_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
+        nibi_kernel_api::provider::WireProtocol::OpenAiChatCompletions,
         server.url(),
     ))
     .await;

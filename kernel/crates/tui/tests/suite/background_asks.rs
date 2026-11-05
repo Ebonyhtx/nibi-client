@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 
 use crossterm::event::KeyCode;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::model::{ModelPort, ModelRequest, QuerySource};
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::model::{ModelPort, ModelRequest, QuerySource};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use serde_json::json;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;

@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::model::{ModelRequest, ModelSelection, QuerySource};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::model::{ModelRequest, ModelSelection, QuerySource};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 
 use super::tests::{parts, request, scope};
 use crate::{RequestLimits, ThinkingTokens};

@@ -120,7 +120,7 @@ impl Sandbox {
         stdin: Option<&str>,
         vars: &[(&str, &str)],
     ) -> Output {
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+        let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(args)
             .current_dir(&self.work)

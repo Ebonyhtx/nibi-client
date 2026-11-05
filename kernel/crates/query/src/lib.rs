@@ -44,12 +44,12 @@ pub use notification::{
 /// 修改（工作线 F93，用户决定 2026-10-24）：`/context` 只用本地估算、不发 count_tokens，F89 为计数请求加的 ToolSearch
 /// 参数（历史里的 `tool_reference` 先经主请求的降级函数，端点才认）随之删掉。
 pub fn api_messages<'a>(
-    messages: impl IntoIterator<Item = &'a rust_cli_kernel_api::message::Message>,
+    messages: impl IntoIterator<Item = &'a nibi_kernel_api::message::Message>,
     model: &str,
     configured: Option<bool>,
-) -> Vec<rust_cli_kernel_api::model::ApiMessage> {
+) -> Vec<nibi_kernel_api::model::ApiMessage> {
     let options = normalize::NormalizeOptions {
-        system_turns: rust_cli_prompts::models::mid_conversation_system(model, configured),
+        system_turns: nibi_kernel_prompts::models::mid_conversation_system(model, configured),
         turn_effort: None,
         // 缓存断点与主循环相同（摘要请求才前移一条，compact.md）。
         skip_cache_write: false,
@@ -60,21 +60,21 @@ pub fn api_messages<'a>(
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::{AgentId, Generation, RunId, SessionId};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::model::ModelPort;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::{AgentId, Generation, RunId, SessionId};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::model::ModelPort;
+use nibi_kernel_api::orchestration::{
     Compactor, ContextBuilder, HookRunner, QueryError, QueryRequest, QueryRunner, QueryStop,
     RunSink, ToolExecutor, ToolRegistry,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::plan::PlanModeFlags;
-use rust_cli_kernel_api::store::ArtifactStore;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::plan::PlanModeFlags;
+use nibi_kernel_api::store::ArtifactStore;
 
 /// 主循环用到的能力，由 runtime 注入。
 #[derive(Clone)]
@@ -87,7 +87,7 @@ pub struct QueryParts {
     pub hooks: Arc<dyn HookRunner>,
     pub ids: Arc<dyn Ids>,
     /// 模型请求与工具调用的计时（docs/specs/rust-cli/usage.md §1）：计时只在这里读时钟。
-    pub clock: Arc<dyn rust_cli_kernel_api::clock::Clock>,
+    pub clock: Arc<dyn nibi_kernel_api::clock::Clock>,
     /// 工具调用执行所在的机器（R0 只有本机；R3 起按调用的 `machine` 换，remote-exec.md §15.8.1）。
     pub machine: MachineEnv,
     /// 执行环境的注册表（R3，remote-exec.md §20.5、§20.6）：连上的远端机器决定工具定义里的 `machine` 参数；子代理的

@@ -18,9 +18,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use futures_util::future::join_all;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::ModelConnection;
-use rust_cli_net::Egress;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::ModelConnection;
+use nibi_kernel_net::Egress;
 use tokio::sync::OnceCell;
 
 pub(crate) use check::successful_data;

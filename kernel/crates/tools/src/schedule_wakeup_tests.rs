@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::OperationId;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::testing::{FixedClock, ScriptedInteractions};
-use rust_cli_kernel_api::tool::{PromptContext, Tool, ToolError, ToolUseContext};
+use nibi_kernel_api::ids::OperationId;
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::testing::{FixedClock, ScriptedInteractions};
+use nibi_kernel_api::tool::{PromptContext, Tool, ToolError, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 

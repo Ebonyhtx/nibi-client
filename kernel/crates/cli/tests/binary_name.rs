@@ -27,7 +27,7 @@ fn copy_as(dir: &Path, name: &str) -> PathBuf {
 }
 
 fn run(program: &Path, flag: &str, home: &Path) -> Output {
-    rust_cli_proc::std_command(program)
+    nibi_kernel_proc::std_command(program)
         .arg(flag)
         .env_clear()
         .keep_system()
@@ -62,7 +62,7 @@ fn copies_named_zcode_rs_or_zcode_start_normally() {
         assert!(output.status.success(), "{name}: {output:?}");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout),
-            format!("nibi {version} (rust-cli)\n"),
+            format!("nibi {version} (nibi-kernel-cli)\n"),
             "{name}"
         );
 

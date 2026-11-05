@@ -1,19 +1,19 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, InteractionId, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::orchestration::{
     HookEvent, HookEventName, HookOutcome, HookRunner, InteractionAnswer, InteractionRequest,
     Interactions, OrchestrationError, PermissionAnswer, PermissionGate,
 };
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::testing::{
     FakeTool, MemoryStore, UnusedEnvironment, local_services, machine,
 };
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
+use nibi_kernel_api::tool::{Tool, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -197,7 +197,7 @@ async fn invalid_input_is_rejected_before_any_hook() {
         fn input_schema(&self) -> Value {
             json!({"type": "object", "properties": {"file_path": {"type": "string"}}, "required": ["file_path"]})
         }
-        fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+        fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
             String::new()
         }
         async fn call(
@@ -301,7 +301,7 @@ impl PermissionGate for Remembering {
 async fn always_allow_answers_tell_the_gate_to_reload_the_workspace_rules() {
     let gate = Arc::new(Remembering::default());
     let pipeline = Pipeline::new(gate.clone(), Arc::new(RecordingHooks::default()));
-    let rule = rust_cli_kernel_api::permission::PermissionRule {
+    let rule = nibi_kernel_api::permission::PermissionRule {
         tool: "Bash".to_owned(),
         content: Some("npm test:*".to_owned()),
     };
@@ -355,7 +355,7 @@ impl Interactions for Asked {
 /// 判决链的建议规则进入询问，前端据此提供"不再询问"（tui.md §5.2）。
 #[tokio::test]
 async fn the_ask_carries_the_suggested_rules() {
-    let rule = rust_cli_kernel_api::permission::PermissionRule {
+    let rule = nibi_kernel_api::permission::PermissionRule {
         tool: "Bash".to_owned(),
         content: Some("npm test:*".to_owned()),
     };
@@ -399,7 +399,7 @@ impl Tool for KeyedTool {
         })
     }
 
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         "keyed".to_owned()
     }
 
@@ -421,8 +421,8 @@ impl Tool for KeyedTool {
         &self,
         input: Value,
         _context: ToolUseContext,
-        _progress: mpsc::Sender<rust_cli_kernel_api::tool::ToolProgress>,
-    ) -> Result<ToolOutput, rust_cli_kernel_api::tool::ToolError> {
+        _progress: mpsc::Sender<nibi_kernel_api::tool::ToolProgress>,
+    ) -> Result<ToolOutput, nibi_kernel_api::tool::ToolError> {
         *self.seen.lock().unwrap() = Some(input);
         Ok(ToolOutput {
             content: vec![ToolResultContent::Text {
@@ -486,7 +486,7 @@ async fn subagent_denials_use_the_subagent_text() {
         let mut context = context(PermissionAnswer::Deny {
             feedback: feedback.map(str::to_owned),
         });
-        context.agent = Some(rust_cli_kernel_api::ids::AgentId::new("agent_1"));
+        context.agent = Some(nibi_kernel_api::ids::AgentId::new("agent_1"));
         context
     };
     let call = |context: ToolUseContext| {
@@ -519,7 +519,7 @@ async fn subagent_denials_use_the_subagent_text() {
     assert_eq!(text(&main), REJECT_MESSAGE);
     // 没有人能回答时仍是询问本身的文字（子代理也一样）。
     let mut unavailable = context(PermissionAnswer::Unavailable);
-    unavailable.agent = Some(rust_cli_kernel_api::ids::AgentId::new("agent_1"));
+    unavailable.agent = Some(nibi_kernel_api::ids::AgentId::new("agent_1"));
     assert_eq!(text(&call(unavailable).await), "run it?");
 }
 
@@ -543,7 +543,7 @@ async fn background_agents_without_prompts_get_the_denial_text() {
         text(&output),
         format!(
             "Permission to use Bash has been denied. {}",
-            rust_cli_policy::texts::denial_workaround()
+            nibi_kernel_policy::texts::denial_workaround()
         )
     );
     assert!(

@@ -10,12 +10,12 @@
 //!
 //! 冷读取：带 `summary` 且有 `compactBoundary` 的 user 消息还原成边界 + 摘要；Node 自己写的同样能读。
 use rusqlite::{OptionalExtension, params};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     CompactBoundary, CompactTrigger, ContentBlock, Message, PreservedSegment, SystemMessage,
     UserMessage,
 };
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::store::StoreError;
 use serde_json::{Value, json};
 
 use crate::facts::{Commit, save_entry};

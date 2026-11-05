@@ -3,8 +3,8 @@
 
 use std::collections::BTreeSet;
 
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock};
-use rust_cli_kernel_api::model::BlockDelta;
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock};
+use nibi_kernel_api::model::BlockDelta;
 use serde_json::{Value, json};
 
 /// 一次响应里已经写出的流事件。

@@ -36,7 +36,7 @@ pub fn selection(conn: &Connection, session: &str) -> anyhow::Result<Option<Valu
     let text = |key: &str| {
         data[key]
             .as_str()
-            .map(rust_cli_base::js::string::trim)
+            .map(nibi_kernel_base::js::string::trim)
             .filter(|s| !s.is_empty())
             .map(str::to_owned)
     };

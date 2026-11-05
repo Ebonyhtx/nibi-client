@@ -5,11 +5,11 @@
 //! `.nibi/scheduled_tasks.json`（§16）；计数、删除校验与列出每次重读文件。
 
 use async_trait::async_trait;
-use rust_cli_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
-use rust_cli_kernel_api::cron_store::NewCronTask;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
+use nibi_kernel_api::cron_store::NewCronTask;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;
@@ -75,7 +75,7 @@ pub fn cron_tools(board: &CronBoard, monitor: bool) -> Vec<std::sync::Arc<dyn To
             ANCHOR,
             &format!(
                 "{}\n\n{ANCHOR}",
-                rust_cli_prompts::monitor::cron_create_section()
+                nibi_kernel_prompts::monitor::cron_create_section()
             ),
             1,
         );

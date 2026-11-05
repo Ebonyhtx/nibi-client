@@ -2,11 +2,11 @@
 //! 对话框用替身（记下收到的提示、给出预设的回答）。
 use std::sync::Mutex;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, MemoryStore};
-use rust_cli_kernel_api::workspace_trust::TrustKey;
-use rust_cli_tui::trust::{Grants, TrustAnswer, TrustPrompt};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::testing::{MemoryEnvironment, MemoryStore};
+use nibi_kernel_api::workspace_trust::TrustKey;
+use nibi_kernel_tui::trust::{Grants, TrustAnswer, TrustPrompt};
 
 use super::*;
 

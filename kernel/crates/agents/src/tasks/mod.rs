@@ -9,13 +9,13 @@ mod tools;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_base::Spawner;
+use nibi_kernel_base::Spawner;
 use tokio::sync::{mpsc, oneshot};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::agents::{TaskList, TaskListStore};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::agents::{TaskList, TaskListStore};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::StoreError;
 pub(crate) use tools::tools;
 
 /// 这些旧模型默认打开任务工具。
@@ -41,7 +41,7 @@ const LEGACY_MODELS: &[&str] = &[
 pub fn task_tools_enabled(model: &str, opt_in: bool) -> bool {
     let canonical = model.split_once('[').map_or(model, |(id, _)| id);
     opt_in
-        || rust_cli_prompts::models::card(canonical).is_none()
+        || nibi_kernel_prompts::models::card(canonical).is_none()
         || LEGACY_MODELS
             .iter()
             .any(|legacy| canonical.starts_with(legacy))

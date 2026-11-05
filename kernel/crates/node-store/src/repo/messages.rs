@@ -7,7 +7,7 @@ use super::codecs::{decode_message, decode_part, legacy_user_model, part_created
 use super::sessions::touch;
 use anyhow::{Context, Result, bail};
 use rusqlite::{Connection, OptionalExtension, params};
-use rust_cli_base::js::json::stringify;
+use nibi_kernel_base::js::json::stringify;
 use serde_json::{Map, Value};
 use std::sync::LazyLock;
 

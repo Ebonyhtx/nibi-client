@@ -7,7 +7,7 @@
 
 use std::path::PathBuf;
 
-use rust_cli_base::secret::EnvSnapshot;
+use nibi_kernel_base::secret::EnvSnapshot;
 
 /// Node `os.tmpdir()`：Unix 是 `TMPDIR` → `TMP` → `TEMP` → `/tmp`（空值跳过），长度大于 1 时去掉一个末尾的 `/`；
 /// Windows 是 `TEMP` → `TMP` → `(SystemRoot || windir) + "\temp"`，去掉末尾的 `\`（前一个字符是 `:` 时不去）。

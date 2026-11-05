@@ -1,13 +1,13 @@
-//! 测试夹具：经 rust-cli-fs 写临时目录里的文件（不直接用 std::fs，与 §4 的 IO 规则一致）；账号服务的
+//! 测试夹具：经 nibi-kernel-fs 写临时目录里的文件（不直接用 std::fs，与 §4 的 IO 规则一致）；账号服务的
 //! 替身（时钟、指向不可达地址的出口）。
 
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_net::{Egress, NetworkPolicy};
 
 use crate::{AccountOrigins, AccountServices};
 
@@ -42,14 +42,14 @@ pub(crate) async fn write(path: &Path, bytes: impl AsRef<[u8]>) {
         parent: ParentDir::Create,
         rename_retry: &[],
     };
-    rust_cli_fs::atomic_write(path, bytes.as_ref(), options)
+    nibi_kernel_fs::atomic_write(path, bytes.as_ref(), options)
         .await
         .unwrap();
 }
 
 /// 读文本文件；不存在时为空。
 pub(crate) async fn read_text(path: &Path) -> Option<String> {
-    rust_cli_fs::read_optional(path)
+    nibi_kernel_fs::read_optional(path)
         .await
         .unwrap()
         .map(|bytes| String::from_utf8(bytes).unwrap())

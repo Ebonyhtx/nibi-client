@@ -2,15 +2,15 @@
 //! `BASH_DEFAULT_TIMEOUT_MS` / `BASH_MAX_TIMEOUT_MS`，工作线 F89 加 `ENABLE_TOOL_SEARCH`（tools-more.md §3.2.1）。值按 JS 风格
 //! 的整数读法（`js_int`）。
 
-use rust_cli_prompts::models::ToolSearchSetting;
-use rust_cli_runtime::{BashTimeouts, Limits, RequestLimits, ThinkingTokens};
+use nibi_kernel_prompts::models::ToolSearchSetting;
+use nibi_kernel_runtime::{BashTimeouts, Limits, RequestLimits, ThinkingTokens};
 
 /// 科学计数法只认 32 个 UTF-16 码元以内的值。
 const SHORT: usize = 32;
 
 /// 环境变量的原值（不去空白）；JS 的 `process.env.X` 为空串时是假值，与没设相同。
 fn raw<'a>(env: &'a [(String, String)], name: &str) -> Option<&'a str> {
-    rust_cli_base::secret::env_var(env, name).filter(|value| !value.is_empty())
+    nibi_kernel_base::secret::env_var(env, name).filter(|value| !value.is_empty())
 }
 
 /// JS `parseInt(text, 10)`：可选的正负号，之后开头的十进制数字；没有数字时是 NaN（None）。
@@ -73,7 +73,7 @@ fn grouped(text: &str) -> Option<String> {
 /// 是 NaN），千分位写法去掉分隔符后 `parseInt`；否则 `parseInt`。None 是 NaN。
 pub(crate) fn js_int(text: &str) -> Option<f64> {
     // 修复线 F58：以前用自己的 `js_trim`（Rust 空白 + U+FEFF），会去掉 JS 不去的 U+0085；改用 base 唯一的 JS trim。
-    let text = rust_cli_base::js::string::trim(text);
+    let text = nibi_kernel_base::js::string::trim(text);
     if text.encode_utf16().count() <= SHORT {
         if is_scientific(text) {
             let value: f64 = text.parse().ok()?;
@@ -153,7 +153,7 @@ pub(crate) fn tool_search(env: &[(String, String)]) -> ToolSearchSetting {
             percent: AUTO_PERCENT,
         };
     }
-    match rust_cli_base::js::string::trim(value)
+    match nibi_kernel_base::js::string::trim(value)
         .to_lowercase()
         .as_str()
     {
@@ -189,7 +189,7 @@ pub(crate) fn limits(env: &[(String, String)], max_output_tokens: Option<u32>) -
 /// 别的值与没设都按形态。
 pub(crate) fn fork_subagent(env: &[(String, String)]) -> Option<bool> {
     let value = raw(env, "NIBI_FORK_SUBAGENT")?;
-    match rust_cli_base::js::string::trim(value)
+    match nibi_kernel_base::js::string::trim(value)
         .to_lowercase()
         .as_str()
     {

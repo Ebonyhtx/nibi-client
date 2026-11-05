@@ -1,5 +1,5 @@
 //! bfs 4.1.4（带 Oniguruma 6.9.10）作为库（docs/specs/rust-cli/embedded-search.md §6）：zcode 以 `bfs` 的名字启动时
-//! 调用 [`main`]。bfs 的 `main()` 编译时改名为 `rust_cli_bfs_main`（build.rs 的 `-Dmain=…`），源码不改。只在 Unix 上有。
+//! 调用 [`main`]。bfs 的 `main()` 编译时改名为 `nibi_kernel_bfs_main`（build.rs 的 `-Dmain=…`），源码不改。只在 Unix 上有。
 
 #[cfg(unix)]
 mod unix {
@@ -7,7 +7,7 @@ mod unix {
     use std::os::unix::ffi::OsStringExt;
 
     unsafe extern "C" {
-        fn rust_cli_bfs_main(argc: c_int, argv: *mut *mut c_char) -> c_int;
+        fn nibi_kernel_bfs_main(argc: c_int, argv: *mut *mut c_char) -> c_int;
     }
 
     /// 跑 bfs：`args` 是 argv[0] 之后的参数；argv[0] 换成 `bfs`（报错的前缀与 `exec -a bfs` 相同）。返回退出码。
@@ -32,7 +32,7 @@ mod unix {
         }
         // SAFETY: argv 是 argc 个以 NUL 结尾的字符串加一个空指针，`owned` 在调用期间一直有效；bfs 只改指针数组里的
         // 项（模糊匹配的提示），不写字符串本身，不在返回后保留指针。
-        unsafe { rust_cli_bfs_main(argc, argv.as_mut_ptr()) }
+        unsafe { nibi_kernel_bfs_main(argc, argv.as_mut_ptr()) }
     }
 }
 

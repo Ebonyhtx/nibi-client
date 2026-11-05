@@ -1,7 +1,7 @@
 //! 会话类事件与“外部”路径的合并（spec §7）。
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::testing::SequentialIds;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::testing::SequentialIds;
 use serde_json::json;
 
 use super::*;

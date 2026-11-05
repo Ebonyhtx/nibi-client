@@ -2,7 +2,7 @@
 //! 提问的按键：多于一题时有标签页与确认页。选项之后是 `Other` 行（直接输入）；单选题选中即到下一题，
 //! 多选题空格或数字勾选；←/→ 或 tab 切换标签页；esc 拒绝回答。
 use crossterm::event::{KeyCode, KeyEvent};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::orchestration::InteractionRequest;
 use serde_json::Value;
 
 use super::{Interaction, Question, questions};

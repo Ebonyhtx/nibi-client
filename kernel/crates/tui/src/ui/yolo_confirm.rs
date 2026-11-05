@@ -7,7 +7,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::PermissionMode;
 use unicode_width::UnicodeWidthStr;
 
 use super::app::{Action, App, Overlay};

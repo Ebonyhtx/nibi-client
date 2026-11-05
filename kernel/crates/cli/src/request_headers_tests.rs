@@ -35,7 +35,7 @@ fn source_headers_match_node() {
         facts.time_zone = text(&case["timeZone"]);
         facts.platform = text(&case["platform"]).unwrap();
         facts.arch = text(&case["arch"]).unwrap();
-        let ours = rust_cli_model::source_headers(&facts);
+        let ours = nibi_kernel_model::source_headers(&facts);
         let node: Vec<(String, String)> = case["headers"]
             .as_array()
             .unwrap()
@@ -124,8 +124,8 @@ fn the_version_and_the_service_address() {
 #[test]
 fn the_host_and_the_ids() {
     assert!(host().os_release.is_some_and(|release| !release.is_empty()));
-    let clock: Arc<dyn rust_cli_kernel_api::clock::Clock> =
-        Arc::new(rust_cli_node_store::SystemClock::utc());
+    let clock: Arc<dyn nibi_kernel_api::clock::Clock> =
+        Arc::new(nibi_kernel_node_store::SystemClock::utc());
     let ids = Arc::new(NodeIds::new(clock));
     let none = |_: &str| None;
     let headers = request_headers(&none, "0.1.52", ids).unwrap();

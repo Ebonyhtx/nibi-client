@@ -1,7 +1,7 @@
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::{load, parse};
 use crate::definitions::AgentSource;
@@ -120,8 +120,8 @@ async fn a_dot_git_that_is_neither_file_nor_directory_does_not_stop_the_walk() {
 
 #[tokio::test]
 async fn the_project_walk_stops_below_home_or_at_the_git_root() {
-    use rust_cli_kernel_api::env_files::PathStyle;
-    use rust_cli_kernel_api::env_git::project_levels;
+    use nibi_kernel_api::env_files::PathStyle;
+    use nibi_kernel_api::env_git::project_levels;
     let ws = workspace("/Users/dev/a/b");
     let walk = async |env: &MemoryEnvironment| {
         project_levels(

@@ -2,7 +2,7 @@
 //!
 //! 与 Node 的 `conversation-telemetry-facts.ts` 同源同向：从会话事件流派生埋点事实，只带 id、
 //! 状态与白名单里的性能字段。10 个 kind 的契约形状见
-//! [`rust_cli_kernel_api::conversation_telemetry`]；模型请求状态来自传输层的 `ModelRequestStatus`
+//! [`nibi_kernel_api::conversation_telemetry`]；模型请求状态来自传输层的 `ModelRequestStatus`
 //! 事件，工作流归属来自 DWF 引擎写进父会话的 `WorkflowLifecycle` 事件。
 //!
 //! 有状态：首个流块的标记、工具开始的时刻、当前轮的命令归因、权限询问的工具关联、Agent 工具
@@ -10,14 +10,14 @@
 
 use std::collections::{HashMap, HashSet};
 
-use rust_cli_kernel_api::conversation_telemetry::{
+use nibi_kernel_api::conversation_telemetry::{
     ConversationTelemetryFact, TelemetryFactBase,
 };
-use rust_cli_kernel_api::ids::InteractionId;
-use rust_cli_kernel_api::message::CompactTrigger;
-use rust_cli_kernel_api::model::{BlockDelta, ModelRequestStatusKind};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::ids::InteractionId;
+use nibi_kernel_api::message::CompactTrigger;
+use nibi_kernel_api::model::{BlockDelta, ModelRequestStatusKind};
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::session_api::{
     KernelEvent, SequencedEvent, SubagentPhase, TurnExecutionKind, TurnInputSource, TurnOutcome,
     WorkflowLifecyclePhase,
 };
@@ -485,12 +485,12 @@ fn trigger_name(trigger: CompactTrigger) -> &'static str {
 }
 
 /// 工具错误的文案（Host `errorMessage`，只给一句话，不带输入）。
-fn tool_error_text(output: &rust_cli_kernel_api::tool::ToolOutput) -> String {
+fn tool_error_text(output: &nibi_kernel_api::tool::ToolOutput) -> String {
     output
         .content
         .iter()
         .find_map(|block| match block {
-            rust_cli_kernel_api::message::ToolResultContent::Text { text } => {
+            nibi_kernel_api::message::ToolResultContent::Text { text } => {
                 Some(text.trim().to_owned())
             }
             _ => None,

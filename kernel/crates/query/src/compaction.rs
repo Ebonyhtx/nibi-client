@@ -2,10 +2,10 @@
 //! 模型返回上下文超限后的反应式压缩。判定与压缩都在压缩器（[`Compactor`]）里，这里只负责调用、
 //! 把边界、摘要与附件在一个事务里提交，并放进本次运行的历史。
 
-use rust_cli_kernel_api::compaction::prompt_too_long_gap;
-use rust_cli_kernel_api::message::{CompactTrigger, Message};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::compaction::prompt_too_long_gap;
+use nibi_kernel_api::message::{CompactTrigger, Message};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{
     AutoCompactOutcome, CompactRequest, CompactResult, CompactTracking, Compactor, QueryError,
     QueryStop,
 };
@@ -60,7 +60,7 @@ async fn commit(
         restored,
     } = result;
     let mut messages = vec![
-        Message::System(rust_cli_kernel_api::message::SystemMessage::CompactBoundary(boundary)),
+        Message::System(nibi_kernel_api::message::SystemMessage::CompactBoundary(boundary)),
         Message::User(summary),
     ];
     messages.extend(restored);

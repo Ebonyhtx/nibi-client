@@ -3,16 +3,16 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, InteractionId, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::RuleBehavior;
-use rust_cli_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
-use rust_cli_kernel_api::tool::{ToolError, ToolOutput, ToolProgress};
+use nibi_kernel_api::permission::RuleBehavior;
+use nibi_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
+use nibi_kernel_api::tool::{ToolError, ToolOutput, ToolProgress};
 use serde_json::json;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -49,7 +49,7 @@ impl Tool for Named {
     fn input_schema(&self) -> Value {
         json!({"type": "object"})
     }
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         String::new()
     }
     async fn check_permissions(

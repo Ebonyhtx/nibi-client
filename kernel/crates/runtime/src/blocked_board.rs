@@ -21,10 +21,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::workflow::{WorkflowBlockedEdges, WorkflowEngineSlot, WorkflowNotices};
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::workflow::{WorkflowBlockedEdges, WorkflowEngineSlot, WorkflowNotices};
 use tokio_util::sync::CancellationToken;
 
 use crate::blocked::{
@@ -69,7 +69,7 @@ struct BoardShared {
     /// DWF 引擎槽（sidecar 在入口最后才接上；留白的等待态与草稿路径到点现读）。
     engine: WorkflowEngineSlot,
     clock: Arc<dyn Clock>,
-    spawner: rust_cli_base::Spawner,
+    spawner: nibi_kernel_base::Spawner,
     /// 两次提醒的空闲档（测试注入更短的档；生产是 [`WORKFLOW_BLOCKED_REMINDER_DELAYS_MS`]）。
     delays: Vec<u64>,
 }
@@ -349,7 +349,7 @@ impl WorkflowBlockedBoard {
         escalations: Arc<WorkflowEscalations>,
         engine: WorkflowEngineSlot,
         clock: Arc<dyn Clock>,
-        spawner: rust_cli_base::Spawner,
+        spawner: nibi_kernel_base::Spawner,
     ) -> Self {
         Self::with_delays(
             store,
@@ -367,7 +367,7 @@ impl WorkflowBlockedBoard {
         escalations: Arc<WorkflowEscalations>,
         engine: WorkflowEngineSlot,
         clock: Arc<dyn Clock>,
-        spawner: rust_cli_base::Spawner,
+        spawner: nibi_kernel_base::Spawner,
         delays: Vec<u64>,
     ) -> Self {
         Self {

@@ -1,7 +1,7 @@
 //! `/export` 的路径解析与写入（tui-manage.md §3.1）。
-use rust_cli_kernel_api::env::{EnvFacts, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::env::{EnvFacts, ReadFile, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::testing::{MemoryEnvironment, SequentialIds};
 
 use super::*;
 

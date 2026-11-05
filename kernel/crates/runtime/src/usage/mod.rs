@@ -7,25 +7,25 @@ mod counts;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use rust_cli_agents::{AgentCatalog, AgentSource};
-use rust_cli_compact::CompactConfig;
-use rust_cli_compact::window::{WindowSource as Source, context_buffer, window};
-use rust_cli_context::PromptAssembler;
-use rust_cli_ext::skills::{SkillCatalog, SkillSource};
-use rust_cli_kernel_api::context_usage::{
+use nibi_kernel_agents::{AgentCatalog, AgentSource};
+use nibi_kernel_compact::CompactConfig;
+use nibi_kernel_compact::window::{WindowSource as Source, context_buffer, window};
+use nibi_kernel_context::PromptAssembler;
+use nibi_kernel_ext::skills::{SkillCatalog, SkillSource};
+use nibi_kernel_api::context_usage::{
     AgentUsage, ContextUsage, ContextUsageQuery, MemoryFileUsage, SkillUsage, WindowSource,
 };
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_state::WAIT_FOR_MCP_SERVERS;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::model::{ModelPort, QuerySource, ToolDefinition};
-use rust_cli_kernel_api::orchestration::{ContextRequest, ToolRegistry};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::KernelError;
-use rust_cli_kernel_api::tool::{PromptContext, Tool};
-use rust_cli_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred, loaded};
-use rust_cli_prompts::models::{self, ToolSearchSetting};
+use nibi_kernel_api::history;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_state::WAIT_FOR_MCP_SERVERS;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::model::{ModelPort, QuerySource, ToolDefinition};
+use nibi_kernel_api::orchestration::{ContextRequest, ToolRegistry};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_api::tool::{PromptContext, Tool};
+use nibi_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred, loaded};
+use nibi_kernel_prompts::models::{self, ToolSearchSetting};
 
 use self::arith::{McpTool, Measured, Messages};
 use self::counts::{Counter, TOOL_OVERHEAD, rough};
@@ -70,7 +70,7 @@ fn definitions(group: &[&Arc<dyn Tool>], mode: PermissionMode) -> Vec<ToolDefini
 }
 
 /// 与主循环 `wire_tools` 相同的规则：名字排序、内置在前；延迟加载开启时没被引用的延迟工具单独计。`supported` 是这一步
-/// ToolSearch 开着（`rust_cli_query::step_tool_search` 不是关，与主循环同一个判定；原生与本地的计数相同，本地只是不发占位工具
+/// ToolSearch 开着（`nibi_kernel_query::step_tool_search` 不是关，与主循环同一个判定；原生与本地的计数相同，本地只是不发占位工具
 /// 与标记）。
 fn wire(
     tools: &[Arc<dyn Tool>],
@@ -181,7 +181,7 @@ impl UsageAnalyzer {
             tool_names: tool_names.clone(),
             mode: query.mode,
         };
-        let step = rust_cli_query::step_tool_search(
+        let step = nibi_kernel_query::step_tool_search(
             &tools,
             &prompt,
             (self.tool_search, &model, capabilities.as_ref()),
@@ -230,7 +230,7 @@ impl UsageAnalyzer {
             .iter()
             .map(|entry| entry.line.as_str())
             .collect();
-        let anchor = rust_cli_compact::measured(&active);
+        let anchor = nibi_kernel_compact::measured(&active);
         // 各部分的本地估算，顺序：a、b、c、d、e、g、h、i（context-usage.md §3）。修改（工作线 F93，用户决定 2026-10-24）：
         // 以前并发发 count_tokens（另有只用于对齐基准统计的 Skill 一项 f），失败时才估算；现在不发模型请求。
         let mcp_definitions: Vec<ToolDefinition> =
@@ -263,7 +263,7 @@ impl UsageAnalyzer {
                     if found.source == "instructions" || found.source == "mcp_instructions_delta")
             });
             let configured = capabilities.map(|found| found.supports_mid_conversation_system);
-            counter.count(&rust_cli_query::api_messages(kept, &model, configured), &[])
+            counter.count(&nibi_kernel_query::api_messages(kept, &model, configured), &[])
         });
         // 与自动压缩、footer 同一个来源（compact.md §2，修复线 F61：以前这里读目录，显式覆盖下没有目录，按 200,000）。
         let facts = self.compact.facts(&query.selection);

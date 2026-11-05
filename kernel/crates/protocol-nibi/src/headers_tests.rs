@@ -2,12 +2,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::testing::FixedClock;
-use rust_cli_protocol_core::connection::{self, Options, Reply, Service};
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::testing::FixedClock;
+use nibi_kernel_protocol_core::connection::{self, Options, Reply, Service};
+use nibi_kernel_protocol_core::rpc::RpcError;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, duplex};
 
 use super::*;

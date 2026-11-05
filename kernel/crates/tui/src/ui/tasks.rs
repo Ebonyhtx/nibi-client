@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::agents::{TaskRecord, TaskStatus};
+use nibi_kernel_api::agents::{TaskRecord, TaskStatus};
 
 use super::app::App;
 use super::i18n::Lang;

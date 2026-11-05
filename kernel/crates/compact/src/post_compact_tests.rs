@@ -4,14 +4,14 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::compaction::PostCompactContext;
-use rust_cli_kernel_api::ids::{AgentId, MessageId};
-use rust_cli_kernel_api::message::{AttachmentMessage, CompactTrigger, Message};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::compaction::PostCompactContext;
+use nibi_kernel_api::ids::{AgentId, MessageId};
+use nibi_kernel_api::message::{AttachmentMessage, CompactTrigger, Message};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::{
     ContextRequest, HookEvent, HookEventName, HookOutcome, HookRunner, OrchestrationError,
 };
-use rust_cli_kernel_api::testing::{FakeTool, ListTools};
+use nibi_kernel_api::testing::{FakeTool, ListTools};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 

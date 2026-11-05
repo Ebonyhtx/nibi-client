@@ -4,15 +4,15 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::message::{ UserOrigin,ContentBlock, Message, ToolResultContent};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::message::{ UserOrigin,ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, QueryEvent, QueryStop,
     RunSink,
 };
-use rust_cli_kernel_api::store::StoreError;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::store::StoreError;
+use nibi_kernel_api::testing::{
     RecordingSink, ScriptedModel, text_response, tool_use_response,
 };
 use serde_json::json;

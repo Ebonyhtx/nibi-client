@@ -28,7 +28,7 @@ impl LocalEnvironment {
 
     /// 启用 WebFetch 的网络出口（docs/specs/rust-cli/tools-more.md §4）。
     #[must_use]
-    pub fn with_web(mut self, egress: std::sync::Arc<rust_cli_net::Egress>) -> Self {
+    pub fn with_web(mut self, egress: std::sync::Arc<nibi_kernel_net::Egress>) -> Self {
         self.web = Some(egress);
         self
     }
@@ -48,7 +48,7 @@ impl LocalEnvironment {
     pub fn with_tool_telemetry(
         mut self,
         sink: tokio::sync::mpsc::UnboundedSender<
-            rust_cli_kernel_api::process_table::ToolExecResource,
+            nibi_kernel_api::process_table::ToolExecResource,
         >,
     ) -> Self {
         if let Some(shells) = self.shells.as_mut() {

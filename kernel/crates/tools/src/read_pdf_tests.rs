@@ -8,24 +8,24 @@ use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::future::BoxFuture;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::{DirEntry, FileStat, ListDir, PathFacts, StatFile};
-use rust_cli_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
-use rust_cli_kernel_api::env_shell::ShellState;
-use rust_cli_kernel_api::ids::OperationId;
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::env_files::{DirEntry, FileStat, ListDir, PathFacts, StatFile};
+use nibi_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
+use nibi_kernel_api::env_shell::ShellState;
+use nibi_kernel_api::ids::OperationId;
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::message::ImageSource;
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection};
-use rust_cli_kernel_api::orchestration::PermissionGate;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionRule};
-use rust_cli_kernel_api::provider::ModelCapabilities;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, ScriptedInteractions};
+use nibi_kernel_api::message::ImageSource;
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection};
+use nibi_kernel_api::orchestration::PermissionGate;
+use nibi_kernel_api::permission::{PermissionDecision, PermissionRule};
+use nibi_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::testing::{MemoryEnvironment, ScriptedInteractions};
 use tokio_util::sync::CancellationToken;
 
 use super::*;
@@ -107,7 +107,7 @@ impl Files for PdfEnv {
     async fn read_file(
         &self,
         workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env::ReadFile,
+        request: nibi_kernel_api::env::ReadFile,
     ) -> Result<FileContent, EnvError> {
         self.inner.read_file(workspace, request).await
     }
@@ -140,8 +140,8 @@ impl Files for PdfEnv {
     async fn read_text(
         &self,
         workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_files::ReadText,
-    ) -> Result<rust_cli_kernel_api::env_files::TextRead, EnvError> {
+        request: nibi_kernel_api::env_files::ReadText,
+    ) -> Result<nibi_kernel_api::env_files::TextRead, EnvError> {
         self.inner.read_text(workspace, request).await
     }
 }
@@ -264,7 +264,7 @@ fn tool() -> ReadTool {
 fn tool_on(pdf: Option<bool>) -> ReadTool {
     ReadTool::new(files().with_model(SideModel {
         model: Arc::new(Capable(pdf)),
-        selection: rust_cli_kernel_api::testing::selection(),
+        selection: nibi_kernel_api::testing::selection(),
     }))
 }
 

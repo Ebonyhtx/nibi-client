@@ -3,10 +3,10 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, MutexGuard};
 
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::envelope::{Ack, StreamAck};
-use rust_cli_exec_wire::handshake::Welcome;
-use rust_cli_exec_wire::request::Request;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::envelope::{Ack, StreamAck};
+use nibi_kernel_exec_wire::handshake::Welcome;
+use nibi_kernel_exec_wire::request::Request;
 use tokio::sync::{Notify, mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 

@@ -220,7 +220,7 @@ async fn dropping_the_walk_future_cancels_the_blocking_work() {
         let _ = stopped.send(());
         Ok(())
     });
-    let task = rust_cli_base::owned(walk);
+    let task = nibi_kernel_base::owned(walk);
     on_start.recv_timeout(Duration::from_secs(5)).unwrap();
     drop(task);
     // 期限只用于让失败的测试结束。

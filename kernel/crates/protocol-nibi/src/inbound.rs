@@ -5,8 +5,8 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use rust_cli_protocol_core::rpc::RpcError;
-use rust_cli_protocol_core::schema::Node;
+use nibi_kernel_protocol_core::rpc::RpcError;
+use nibi_kernel_protocol_core::schema::Node;
 use serde_json::Value;
 
 const INBOUND: &str = include_str!("../schema/inbound.json");

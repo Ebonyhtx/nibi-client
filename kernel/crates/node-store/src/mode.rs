@@ -3,7 +3,7 @@
 //! Node 的执行状态是 `{mode, planEnabled}`，`mode` 只能是 build / edit / yolo / guarded / auto，
 //! plan 是独立的开关；会话行的 `permission.mode` 还接受 `plan`。修复线 F20 起内核也是两个值
 //! （`ExecutionState`），这里一一对应；guarded 读写都是 guarded（以前读成 bypassPermissions）。
-use rust_cli_kernel_api::permission::{ExecutionState, PermissionMode};
+use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
 use serde_json::Value;
 
 /// Node `executionPermissionModeSchema`。

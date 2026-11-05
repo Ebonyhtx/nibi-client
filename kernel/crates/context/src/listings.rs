@@ -2,17 +2,17 @@
 //! `agent_listing_delta`、`skill_listing`）。
 //!
 //! 已宣布的集合从压缩边界之后的 attachment 的 `data` 累计（加上 added、去掉 removed；skill 看全部历史），
-//! 与这一步的清单比较，只发增量。清单内容由 [`rust_cli_kernel_api::listing::ListingSource`] 提供。
+//! 与这一步的清单比较，只发增量。清单内容由 [`nibi_kernel_api::listing::ListingSource`] 提供。
 
 use std::collections::BTreeSet;
 
-use rust_cli_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::listing::ListingEntry;
 // 连接中的服务器名最多列几个（30）：只定义在 kernel-api（F58：以前这里与 tools 的 ToolSearch 各写一份）。
-use rust_cli_kernel_api::mcp_state::PENDING_LISTED;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::orchestration::ContextRequest;
-use rust_cli_kernel_api::tool_search::{TOOL_SEARCH, compare_names};
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::mcp_state::PENDING_LISTED;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::orchestration::ContextRequest;
+use nibi_kernel_api::tool_search::{TOOL_SEARCH, compare_names};
+use nibi_kernel_prompts::texts::{self, render};
 use serde_json::{Value, json};
 
 use crate::render::attachments;

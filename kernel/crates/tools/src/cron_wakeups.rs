@@ -9,8 +9,8 @@ use std::time::Duration;
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::cron::{CronFire, CronSignals};
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::cron::{CronFire, CronSignals};
+use nibi_kernel_api::ids::SessionId;
 use tokio::sync::watch;
 
 use crate::cron_board::CronBoard;
@@ -203,7 +203,7 @@ impl CronSignals for CronBoard {
     }
 
     /// resume：从活动历史复原 CronCreate 建的会话任务（tools-more.md §18.2）。
-    async fn resume(&self, session: &SessionId, history: &[rust_cli_kernel_api::message::Message]) {
+    async fn resume(&self, session: &SessionId, history: &[nibi_kernel_api::message::Message]) {
         self.restore(session, history);
     }
 }

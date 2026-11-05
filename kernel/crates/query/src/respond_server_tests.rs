@@ -3,13 +3,13 @@
 //! 回合不失败：回复去掉服务端块后提交（文字与 tool_use），工具照常执行，下一次请求里也没有服务端块。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, ToolResultContent, Usage};
-use rust_cli_kernel_api::metering::{CallStatus, Metered};
-use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelEvent};
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, Message, StopReason, ToolResultContent, Usage};
+use nibi_kernel_api::metering::{CallStatus, Metered};
+use nibi_kernel_api::model::{BlockDelta, ModelError, ModelEvent};
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response};
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 
 use crate::run::tests::{parts, request, scope};
@@ -143,7 +143,7 @@ async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
     assert_eq!(requests.len(), 2);
     let second = &requests[1];
     for message in &second.messages {
-        if message.role == rust_cli_kernel_api::model::ApiRole::Assistant {
+        if message.role == nibi_kernel_api::model::ApiRole::Assistant {
             assert!(
                 !message
                     .content

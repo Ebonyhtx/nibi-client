@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::permission::{PermissionRules, RuleBehavior, RuleSource, SourcedRule};
-use rust_cli_kernel_api::testing::FakeTool;
-use rust_cli_policy::rules::parse_rule;
+use nibi_kernel_api::permission::{PermissionRules, RuleBehavior, RuleSource, SourcedRule};
+use nibi_kernel_api::testing::FakeTool;
+use nibi_kernel_policy::rules::parse_rule;
 
 use super::*;
 use crate::registry::BuiltinTools;
@@ -105,14 +105,14 @@ fn replaced_rules_apply_on_the_next_listing() {
     gate.replace_rules(rules(&["Edit"]));
     assert!(tools.find("Edit").is_none());
     assert!(!names(&tools.tools()).contains(&"Edit"));
-    let snapshot = tools.snapshot(&rust_cli_kernel_api::ids::SessionId::new("s"));
+    let snapshot = tools.snapshot(&nibi_kernel_api::ids::SessionId::new("s"));
     assert!(!names(&snapshot.tools).contains(&"Edit"));
 }
 
 /// 会话级 toolDenylist 只影响这个会话的清单与查找；另一个会话不变。
 #[test]
 fn a_session_denylist_hides_tools_only_for_that_session() {
-    use rust_cli_kernel_api::permission::ToolPolicy;
+    use nibi_kernel_api::permission::ToolPolicy;
 
     let (tools, gate) = registry(&[]);
     let session = SessionId::new("sess_1");
@@ -136,7 +136,7 @@ fn a_session_denylist_hides_tools_only_for_that_session() {
 /// 会话级 toolAllowlist 只留名单里的工具（搜索补回也受它约束）。
 #[test]
 fn a_session_allowlist_keeps_only_the_named_tools() {
-    use rust_cli_kernel_api::permission::ToolPolicy;
+    use nibi_kernel_api::permission::ToolPolicy;
 
     let (tools, gate) = registry(&[]);
     let session = SessionId::new("sess_1");
@@ -157,7 +157,7 @@ fn a_session_allowlist_keeps_only_the_named_tools() {
 /// 清单不受影响，重新打开后恢复。
 #[test]
 fn a_closed_dynamic_workflow_gate_hides_the_three_tools_for_that_session() {
-    use rust_cli_kernel_api::session_api::DynamicWorkflowGate;
+    use nibi_kernel_api::session_api::DynamicWorkflowGate;
 
     let wf = [
         "FillWorkflowHole",

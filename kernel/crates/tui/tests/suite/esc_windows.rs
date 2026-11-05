@@ -6,12 +6,12 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::{
     CommitReceipt, Fact, FactBatch, LoadedSession, SessionFilter, SessionMeta, SessionStore,
     SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::testing::{MemoryStore, text_response};
+use nibi_kernel_api::testing::{MemoryStore, text_response};
 use tokio::sync::Notify;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};

@@ -7,11 +7,11 @@
 
 mod select;
 
-use rust_cli_base::names::vars;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_base::names::vars;
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::Value;
 
 use crate::mcp::{McpScope, McpServer, parse_servers};

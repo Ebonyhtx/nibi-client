@@ -1,12 +1,12 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, Usage};
-use rust_cli_kernel_api::model::{ModelError, ModelEvent};
-use rust_cli_kernel_api::orchestration::QueryStop;
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::message::{ContentBlock, Message, StopReason, Usage};
+use nibi_kernel_api::model::{ModelError, ModelEvent};
+use nibi_kernel_api::orchestration::QueryStop;
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response};
+use nibi_kernel_api::tool::Tool;
 use serde_json::{Value, json};
 use tokio::sync::Notify;
 
@@ -28,14 +28,14 @@ pub(crate) fn tool_uses(calls: &[(&str, &str, Value)]) -> Vec<Result<ModelEvent,
             Ok(ModelEvent::BlockStart {
                 index,
                 block: ContentBlock::ToolUse {
-                    id: rust_cli_kernel_api::ids::ToolUseId::new(*id),
+                    id: nibi_kernel_api::ids::ToolUseId::new(*id),
                     name: (*name).to_owned(),
                     input: json!({}),
                 },
             }),
             Ok(ModelEvent::BlockDelta {
                 index,
-                delta: rust_cli_kernel_api::model::BlockDelta::InputJson(input.to_string()),
+                delta: nibi_kernel_api::model::BlockDelta::InputJson(input.to_string()),
             }),
             Ok(ModelEvent::BlockStop { index }),
         ]);

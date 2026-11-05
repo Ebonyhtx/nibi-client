@@ -13,14 +13,14 @@ fn path(dir: &tempfile::TempDir) -> std::path::PathBuf {
 }
 
 async fn written(path: &Path) -> LockRecord {
-    let bytes = rust_cli_fs::read_optional(path).await.unwrap().unwrap();
+    let bytes = nibi_kernel_fs::read_optional(path).await.unwrap().unwrap();
     LockRecord::parse(&String::from_utf8(bytes).unwrap()).unwrap()
 }
 
 /// 退出了的子进程的 PID（短时间内不会被复用）。
 #[cfg(unix)]
 async fn dead_pid() -> u32 {
-    let mut child = rust_cli_proc::command("true").spawn().unwrap();
+    let mut child = nibi_kernel_proc::command("true").spawn().unwrap();
     let pid = child.id().unwrap();
     child.wait().await.unwrap();
     pid
@@ -68,7 +68,7 @@ async fn exclusive_create_and_live_holders() {
     };
     let mut held = written(&lock).await;
     held.proc_start = None;
-    rust_cli_fs::atomic_write(
+    nibi_kernel_fs::atomic_write(
         &lock,
         held.render().as_bytes(),
         crate::cron_store::write_options(),
@@ -116,7 +116,7 @@ async fn stale_locks_are_recovered() {
         proc_start: Some("Thu Jan  1 00:00:00 1970".to_owned()),
         acquired_at: 3,
     };
-    rust_cli_fs::atomic_write(
+    nibi_kernel_fs::atomic_write(
         &lock,
         reused.render().as_bytes(),
         crate::cron_store::write_options(),
@@ -126,7 +126,7 @@ async fn stale_locks_are_recovered() {
     assert!(acquire(&lock, "sess_b", &me(), 4).await.unwrap());
     assert_eq!(written(&lock).await.holder, "sess_b");
 
-    rust_cli_fs::atomic_write(&lock, b"not json", crate::cron_store::write_options())
+    nibi_kernel_fs::atomic_write(&lock, b"not json", crate::cron_store::write_options())
         .await
         .unwrap();
     assert!(acquire(&lock, "sess_c", &me(), 5).await.unwrap());
@@ -141,6 +141,6 @@ async fn release_only_removes_our_own_lock() {
     release(&lock, "sess_b").await.unwrap();
     assert_eq!(written(&lock).await.holder, "sess_a");
     release(&lock, "sess_a").await.unwrap();
-    assert_eq!(rust_cli_fs::read_optional(&lock).await.unwrap(), None);
+    assert_eq!(nibi_kernel_fs::read_optional(&lock).await.unwrap(), None);
     release(&lock, "sess_a").await.unwrap();
 }

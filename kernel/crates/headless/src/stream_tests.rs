@@ -3,14 +3,14 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
     selection, text_response, tool_use_response,
 };
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
@@ -327,7 +327,7 @@ async fn stream_input_runs_one_turn_per_line() {
     assert_eq!(events[0]["session_id"], events[3]["session_id"]);
     // 一个会话（一行一次 `create_session` 的话会有两个）。
     let sessions = kernel
-        .list_sessions(rust_cli_kernel_api::store::SessionFilter {
+        .list_sessions(nibi_kernel_api::store::SessionFilter {
             workspace: options("", OutputFormat::StreamJson, true).workspace,
             limit: 10,
         })

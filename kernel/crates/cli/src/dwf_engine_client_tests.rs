@@ -2,8 +2,8 @@
 //! 脚本点名模型的目录解析（launch.md「`subagent_model` resolves by specificity」）。
 
 use super::{SidecarCommand, resolve_model_reference};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::{CatalogModel, ModelCatalog, WireProtocol};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::{CatalogModel, ModelCatalog, WireProtocol};
 
 fn catalog(entries: &[(&str, &str, &[&str])], default: Option<(&str, &str)>) -> ModelCatalog {
     ModelCatalog {

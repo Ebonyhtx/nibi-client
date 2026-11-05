@@ -5,9 +5,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::Result;
-use rust_cli_kernel_api::catalog::CatalogQuery;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::Kernel;
+use nibi_kernel_api::catalog::CatalogQuery;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::Kernel;
 use tokio::io::AsyncWrite;
 
 use crate::printer::Printer;
@@ -34,7 +34,7 @@ pub(crate) fn session_id(options: &PrintOptions) -> String {
 }
 
 /// 权限模式的名字。
-pub(crate) fn mode_name(mode: rust_cli_kernel_api::permission::PermissionMode) -> String {
+pub(crate) fn mode_name(mode: nibi_kernel_api::permission::PermissionMode) -> String {
     match serde_json::to_value(mode) {
         Ok(serde_json::Value::String(name)) => name,
         _ => "default".to_owned(),

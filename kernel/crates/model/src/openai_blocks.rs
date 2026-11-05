@@ -10,9 +10,9 @@
 
 use std::collections::VecDeque;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
 use serde_json::{Map, Value};
 
 use crate::errors::Verdict;

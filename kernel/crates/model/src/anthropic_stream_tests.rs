@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::model::ModelError;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::model::ModelError;
 use serde_json::json;
 
 use super::*;

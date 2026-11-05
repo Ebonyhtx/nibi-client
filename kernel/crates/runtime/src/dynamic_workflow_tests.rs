@@ -4,13 +4,13 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     CreateSession, DynamicWorkflowGate, EndReason, Kernel,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection,
 };
@@ -75,7 +75,7 @@ async fn create(kernel: &LocalKernel, id: &str) -> SessionId {
 /// 会话工具表（`session_catalog` 与发给模型的快照同一条规则）。
 async fn catalog_tools(kernel: &LocalKernel, session: &SessionId) -> Vec<String> {
     kernel
-        .session_catalog(rust_cli_kernel_api::catalog::CatalogQuery {
+        .session_catalog(nibi_kernel_api::catalog::CatalogQuery {
             session: session.clone(),
             workspace: workspace(),
             selection: selection(),

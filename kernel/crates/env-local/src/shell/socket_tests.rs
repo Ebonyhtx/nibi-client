@@ -6,12 +6,12 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, OutputStream};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env::{CommandEvent, OutputStream};
+use nibi_kernel_api::env_shell::{
     BackgroundCommand, BackgroundKind, BackgroundTask, CwdScope, MonitorSocket,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 
 use crate::shell::tests::{context, fixture, request};
 
@@ -55,10 +55,10 @@ fn serve(hold: bool) -> String {
 
 /// 测试里另算一次 accept（net 的实现是 crate 内部的）：经 net 的握手校验通过即说明一致，这里直接借用服务端的写法。
 fn accept(key: &str) -> String {
-    rust_cli_net::websocket::accept_for_tests(key)
+    nibi_kernel_net::websocket::accept_for_tests(key)
 }
 
-fn socket_request(url: &str, root: &std::path::Path) -> rust_cli_kernel_api::env::StartCommand {
+fn socket_request(url: &str, root: &std::path::Path) -> nibi_kernel_api::env::StartCommand {
     let mut start = request(url, root, CwdScope::Pinned);
     start.timeout_ms = None;
     start.background = Some(BackgroundCommand {
@@ -205,7 +205,7 @@ async fn a_stopped_socket_writes_no_lifecycle_and_no_notice() {
         .unwrap();
     assert!(matches!(
         stop,
-        rust_cli_kernel_api::env_shell::BackgroundStop::Stopped { .. }
+        nibi_kernel_api::env_shell::BackgroundStop::Stopped { .. }
     ));
     let (_, stderr, finished) = drain(&fixture, "op_ws").await;
     assert_eq!(stderr, "");

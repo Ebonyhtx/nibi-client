@@ -6,9 +6,9 @@
 //! 本工程命名的文件时也按同样的读法找。
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, StoreError, WorkspaceCheckpoint};
-use rust_cli_paths::StoragePath;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, StoreError, WorkspaceCheckpoint};
+use nibi_kernel_paths::StoragePath;
 
 use crate::artifacts::{media_type, segment};
 use crate::rewind::{Active, NodeCheckpoint};
@@ -44,13 +44,13 @@ async fn node_checkpoint(
     let directory = segment(node.session.as_str());
     let dir = root.join(&directory);
     if !directories.contains_key(&directory) {
-        let names = rust_cli_fs::file_names(dir.as_path())
+        let names = nibi_kernel_fs::file_names(dir.as_path())
             .await
             .unwrap_or_default();
         directories.insert(directory.clone(), names);
     }
     let name = find(directories.get(&directory)?, node.artifact.as_str())?.clone();
-    let size = rust_cli_fs::file_len(dir.join(&name).as_path())
+    let size = nibi_kernel_fs::file_len(dir.join(&name).as_path())
         .await
         .ok()??;
     // 文件名里 `-<artifactId>` 之前是 Node 处理过的 toolCallId（本工程用它作这个 checkpoint 的调用 id）。
@@ -79,13 +79,13 @@ pub async fn read_node_named(
     artifact: &ArtifactRef,
 ) -> Result<Option<Vec<u8>>, StoreError> {
     let dir = root.join(segment(artifact.session.as_str()));
-    let names = rust_cli_fs::file_names(dir.as_path())
+    let names = nibi_kernel_fs::file_names(dir.as_path())
         .await
         .map_err(storage)?;
     let Some(name) = find(&names, artifact.id.as_str()) else {
         return Ok(None);
     };
-    rust_cli_fs::read_optional(dir.join(name).as_path())
+    nibi_kernel_fs::read_optional(dir.join(name).as_path())
         .await
         .map_err(storage)
 }

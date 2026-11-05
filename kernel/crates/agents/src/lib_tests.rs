@@ -3,10 +3,10 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::agents::{AgentSignal, TaskListStore};
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::agents::{AgentSignal, TaskListStore};
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::json;
 use tokio::sync::Notify;
 
@@ -82,7 +82,7 @@ async fn a_foreground_agent_runs_in_a_child_session_and_hands_back_its_report() 
     assert!(matches!(
         facts.last(),
         Some(Fact::TurnEnded {
-            status: rust_cli_kernel_api::metering::CallStatus::Completed
+            status: nibi_kernel_api::metering::CallStatus::Completed
         })
     ));
     assert!(
@@ -103,7 +103,7 @@ async fn explore_is_one_shot_and_unknown_types_are_rejected() {
     let tool = harness.agents.registry().find("Agent").unwrap();
     let context = crate::test_support::tool_context(
         &SessionId::new("s"),
-        &rust_cli_kernel_api::ids::RunId::new("r"),
+        &nibi_kernel_api::ids::RunId::new("r"),
     );
     let verdict = tool
         .validate_input(
@@ -113,7 +113,7 @@ async fn explore_is_one_shot_and_unknown_types_are_rejected() {
         .await;
     assert_eq!(
         verdict,
-        rust_cli_kernel_api::tool::Validation::Invalid {
+        nibi_kernel_api::tool::Validation::Invalid {
             message:
                 "Agent type 'nope' not found. Available agents: general-purpose, Explore, Plan"
                     .to_owned(),
@@ -304,8 +304,8 @@ async fn child_batches_name_the_prompt_of_their_run() {
         .into_iter()
         .filter_map(|fact| match fact {
             Fact::MessageAppended {
-                message: rust_cli_kernel_api::message::Message::User(user),
-            } if rust_cli_kernel_api::user_input::opens_turn(&user) => Some(user.id),
+                message: nibi_kernel_api::message::Message::User(user),
+            } if nibi_kernel_api::user_input::opens_turn(&user) => Some(user.id),
             _ => None,
         })
         .collect();
@@ -360,9 +360,9 @@ async fn the_agent_tool_has_no_isolation_and_no_sdk_wording() {
     let tool = harness.agents.registry().find("Agent").unwrap();
     let schema = tool.input_schema();
     assert!(schema["properties"].get("isolation").is_none(), "{schema}");
-    let prompt = rust_cli_kernel_api::tool::PromptContext {
+    let prompt = nibi_kernel_api::tool::PromptContext {
         tool_names: Vec::new(),
-        mode: rust_cli_kernel_api::permission::PermissionMode::Default,
+        mode: nibi_kernel_api::permission::PermissionMode::Default,
     };
     let description = tool.description(&prompt);
     assert!(!description.contains("isolation"), "{description}");
@@ -373,7 +373,7 @@ async fn the_agent_tool_has_no_isolation_and_no_sdk_wording() {
     );
     let context = crate::test_support::tool_context(
         &SessionId::new("s"),
-        &rust_cli_kernel_api::ids::RunId::new("r"),
+        &nibi_kernel_api::ids::RunId::new("r"),
     );
     let verdict = tool
         .validate_input(
@@ -381,7 +381,7 @@ async fn the_agent_tool_has_no_isolation_and_no_sdk_wording() {
             &context,
         )
         .await;
-    assert_eq!(verdict, rust_cli_kernel_api::tool::Validation::Ok);
+    assert_eq!(verdict, nibi_kernel_api::tool::Validation::Ok);
 }
 
 /// 工作线 F69（tools-files.md §1.1.1）：基础注册表说某个名字要藏起来（整个工具的 deny 规则）时，本 crate 的工具同样

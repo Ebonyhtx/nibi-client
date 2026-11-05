@@ -4,7 +4,7 @@
 //! `set_prompt`、`stop_system`、`stop_condition`、`stop_schema` 由 `scripts/rust-cli/prompts/goal.mjs` 生成
 //! （`--check` 检查漂移）；`prompt_system`（非 Stop 事件的 system）手工维护。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 use crate::trim;
 

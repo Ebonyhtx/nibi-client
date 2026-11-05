@@ -9,7 +9,7 @@
 //! `[✔]` 与单选的已选项是成功色。焦点在“其他”行时 [`Interaction::cursor`] 给出终端光标的位置。
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::orchestration::InteractionRequest;
 
 use super::{At, Rows, View, bold, checkbox, dim, frame, input, input_row, prefix};
 use crate::ui::i18n::Lang;

@@ -1,8 +1,8 @@
 //! 压缩后带回调用过的 skill：文字、保留尾段里已有时、截断与合计。
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::listing::InvokedSkill;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::listing::InvokedSkill;
+use nibi_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
 use serde_json::json;

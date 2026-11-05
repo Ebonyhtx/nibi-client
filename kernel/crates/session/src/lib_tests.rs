@@ -2,21 +2,21 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     CommandId, EnvironmentId, Generation, InteractionId, SessionId, TraceId,
 };
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Command, Delivery, KernelEvent, StartSource, TurnOutcome};
-use rust_cli_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{Command, Delivery, KernelEvent, StartSource, TurnOutcome};
+use nibi_kernel_api::store::{Fact, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_api::testing::{
     FailingExecutor, FixedClock, FixedContext, MemoryArtifacts, MemoryStore, NeverCompact, NoHooks,
     NoTools, ScriptedModel, SequentialIds, UnusedEnvironment, local_services, machine, selection,
     text_response,
 };
-use rust_cli_query::{QueryLoop, QueryParts};
+use nibi_kernel_query::{QueryLoop, QueryParts};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 
@@ -182,7 +182,7 @@ async fn input_while_running_is_queued_and_interrupt_cancels_the_turn() {
 pub(super) struct AskingTool;
 
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::tool::Tool for AskingTool {
+impl nibi_kernel_api::tool::Tool for AskingTool {
     fn name(&self) -> &str {
         "AskUserQuestion"
     }
@@ -191,31 +191,31 @@ impl rust_cli_kernel_api::tool::Tool for AskingTool {
         serde_json::json!({"type": "object"})
     }
 
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         String::new()
     }
 
     async fn call(
         &self,
         input: serde_json::Value,
-        context: rust_cli_kernel_api::tool::ToolUseContext,
-        _progress: tokio::sync::mpsc::Sender<rust_cli_kernel_api::tool::ToolProgress>,
-    ) -> Result<rust_cli_kernel_api::tool::ToolOutput, rust_cli_kernel_api::tool::ToolError> {
+        context: nibi_kernel_api::tool::ToolUseContext,
+        _progress: tokio::sync::mpsc::Sender<nibi_kernel_api::tool::ToolProgress>,
+    ) -> Result<nibi_kernel_api::tool::ToolOutput, nibi_kernel_api::tool::ToolError> {
         let answer = context
             .interactions
             .ask(
                 &context.session,
-                rust_cli_kernel_api::orchestration::InteractionRequest::Question {
+                nibi_kernel_api::orchestration::InteractionRequest::Question {
                     tool_use: context.tool_use.clone(),
                     questions: input,
                 },
             )
             .await
-            .map_err(|error| rust_cli_kernel_api::tool::ToolError::Failed {
+            .map_err(|error| nibi_kernel_api::tool::ToolError::Failed {
                 message: error.to_string(),
             })?;
-        Ok(rust_cli_kernel_api::tool::ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+        Ok(nibi_kernel_api::tool::ToolOutput {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: answer.answer.to_string(),
             }],
             is_error: false,
@@ -232,13 +232,13 @@ pub(crate) async fn asking_session(scope: &TaskScope) -> (Arc<MemoryStore>, Arc<
 /// 同 [`asking_session`]，会话侧用给定的 hooks（插话的 UserPromptSubmit，steer_tests.rs）。
 async fn asking_session_with(
     scope: &TaskScope,
-    hooks: Arc<dyn rust_cli_kernel_api::hooks::HookRunner>,
+    hooks: Arc<dyn nibi_kernel_api::hooks::HookRunner>,
 ) -> (Arc<MemoryStore>, Arc<ScriptedModel>, Session) {
     let store = Arc::new(MemoryStore::default());
     store.create(meta()).await.unwrap();
     let ids = Arc::new(SequentialIds::default());
     let model = Arc::new(ScriptedModel::new(vec![
-        rust_cli_kernel_api::testing::tool_use_response(
+        nibi_kernel_api::testing::tool_use_response(
             "toolu_1",
             "AskUserQuestion",
             &serde_json::json!({"question": "which?"}),
@@ -249,47 +249,47 @@ async fn asking_session_with(
     let runner = Arc::new(QueryLoop::new(QueryParts {
         model: model.clone(),
         context: Arc::new(FixedContext(Vec::new())),
-        tools: Arc::new(rust_cli_kernel_api::testing::ListTools(vec![Arc::new(
+        tools: Arc::new(nibi_kernel_api::testing::ListTools(vec![Arc::new(
             AskingTool,
         )])),
-        executor: Arc::new(rust_cli_kernel_api::testing::DirectExecutor),
+        executor: Arc::new(nibi_kernel_api::testing::DirectExecutor),
         compactor: Arc::new(NeverCompact),
         hooks: Arc::new(NoHooks),
         ids: ids.clone(),
-        clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-        machines: rust_cli_kernel_api::testing::environments(env.clone()),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+        machines: nibi_kernel_api::testing::environments(env.clone()),
         machine: machine(env.clone()),
         local: local_services(env),
         artifacts: store.clone(),
         generation: Generation::new("g1"),
         non_interactive: false,
-        limits: rust_cli_query::RequestLimits::default(),
+        limits: nibi_kernel_query::RequestLimits::default(),
     }));
     let env = Arc::new(UnusedEnvironment);
     let session = Session::spawn(
         SessionDeps {
-            agents: Arc::new(rust_cli_kernel_api::agents::NoAgentSignals),
-            cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
+            agents: Arc::new(nibi_kernel_api::agents::NoAgentSignals),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
             store: store.clone(),
             ids,
             runner,
             compactor: Arc::new(NeverCompact),
-            machines: rust_cli_kernel_api::testing::environments(env.clone()),
+            machines: nibi_kernel_api::testing::environments(env.clone()),
             machine: machine(env.clone()),
             local: local_services(env),
             max_turns: None,
             hooks,
-            commands: Arc::new(rust_cli_kernel_api::user_command::NoUserCommands),
-            inputs: Arc::new(rust_cli_kernel_api::user_input::NoUserInputs),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
             artifacts: Arc::new(MemoryArtifacts::default()),
             clock: Arc::new(FixedClock(0)),
             generation: Generation::new("g1"),
             spawner: scope.spawner(),
             closing: scope.spawner(),
             titles: None,
-            side_model: Arc::new(rust_cli_kernel_api::testing::ScriptedModel::new(Vec::new())),
+            side_model: Arc::new(nibi_kernel_api::testing::ScriptedModel::new(Vec::new())),
             released: Arc::new(crate::NothingToRelease),
-            directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,

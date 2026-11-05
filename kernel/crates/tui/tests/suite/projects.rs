@@ -3,9 +3,9 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::{MemoryStore, text_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::{MemoryStore, text_response};
 
 use super::sessions_seed::{Seed, Trust, seed, services};
 use super::support::{GatedModel, Setup, with_ui};

@@ -21,27 +21,27 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::compaction::context_tokens;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, SessionId};
-use rust_cli_kernel_api::message::{Message, SystemMessage};
-use rust_cli_kernel_api::model::{ModelPort, ModelSelection};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::{ModelEndpoints, ModelLimits};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::compaction::context_tokens;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::history;
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, SessionId};
+use nibi_kernel_api::message::{Message, SystemMessage};
+use nibi_kernel_api::model::{ModelPort, ModelSelection};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::{ModelEndpoints, ModelLimits};
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, TurnOutcome,
 };
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::environments;
-use rust_cli_model::ProviderModel;
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_platform::{AccountOrigins, AccountServices, CredentialSecret, Platform};
-use rust_cli_runtime::{CompactConfig, ContextConfig, Defaults, LocalKernel, Ports, Surface};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::environments;
+use nibi_kernel_model::ProviderModel;
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_platform::{AccountOrigins, AccountServices, CredentialSecret, Platform};
+use nibi_kernel_runtime::{CompactConfig, ContextConfig, Defaults, LocalKernel, Ports, Surface};
 use serde_json::{Value, json};
 
 /// 配置的窗口与输出上限（用户遇到的模型）。
@@ -137,7 +137,7 @@ impl Sandbox {
         };
         let secret = CredentialSecret {
             explicit: Some(RedactedString::new("test-secret")),
-            platform: rust_cli_platform::node_platform().to_owned(),
+            platform: nibi_kernel_platform::node_platform().to_owned(),
             home: self.home.to_string_lossy().into_owned(),
             username: "dev".to_owned(),
         };

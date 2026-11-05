@@ -10,9 +10,9 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env_shell::ShellNotice;
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::machine_notices::{self, all_shell_notices};
+use nibi_kernel_api::env_shell::ShellNotice;
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::machine_notices::{self, all_shell_notices};
 
 use crate::Core;
 use crate::live::{LiveAgent, Notice};
@@ -34,7 +34,7 @@ pub(crate) fn watch(core: &Arc<Core>, agent: &LiveAgent) {
             let mut notices = all_shell_notices(core.ports.machines.clone(), child.clone());
             while let Some(tagged) = notices.next().await {
                 // 在看的 monitor 的终态交给它的任务：合成带剩下的行的终态、送出之后由它 ack（agents.md §5.3）。
-                if tagged.notice.kind == rust_cli_kernel_api::env_shell::BackgroundKind::Monitor
+                if tagged.notice.kind == nibi_kernel_api::env_shell::BackgroundKind::Monitor
                     && core.monitors.take(&tagged.notice)
                 {
                     continue;

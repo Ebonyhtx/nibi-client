@@ -310,7 +310,7 @@ impl Runner<'_> {
             return Err(StartupError::new(
                 "backup_required",
                 format!(
-                    "SQLite session database {} needs migrations {} that rust-cli cannot back up yet; open it once with the Node CLI or App first",
+                    "SQLite session database {} needs migrations {} that nibi-kernel-cli cannot back up yet; open it once with the Node CLI or App first",
                     self.path,
                     ids.join(", ")
                 ),

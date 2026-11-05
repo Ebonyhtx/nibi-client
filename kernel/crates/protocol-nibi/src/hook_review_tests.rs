@@ -1,7 +1,7 @@
 //! 评审交互的形状（对着 NIBI 的 `workspaceHookReviewRequestPayloadSchema`）与 flow 的匹配规则。
 
 use super::*;
-use rust_cli_kernel_api::hook_review::{WorkspaceHookItem, WorkspaceHookSource};
+use nibi_kernel_api::hook_review::{WorkspaceHookItem, WorkspaceHookSource};
 
 fn item(id: &str, event: &str, state: HookTrustState, enabled: bool) -> WorkspaceHookItem {
     WorkspaceHookItem {

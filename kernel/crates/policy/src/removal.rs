@@ -9,7 +9,7 @@
 use std::sync::OnceLock;
 
 use regex::{Regex, RegexBuilder};
-use rust_cli_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_files::PathStyle;
 
 use crate::check::{AskKind, Check, Inputs};
 use crate::parse::{Invocation, WordText};

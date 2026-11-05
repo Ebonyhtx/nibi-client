@@ -7,12 +7,12 @@ use std::sync::{Arc, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::{McpChildProcess, McpConnections, McpServerView, McpView};
-use rust_cli_kernel_api::mcp_telemetry::{resolve_source, plugin_name as mcp_plugin_name};
-use rust_cli_kernel_api::process_table::McpResourceTarget;
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::{McpChildProcess, McpConnections, McpServerView, McpView};
+use nibi_kernel_api::mcp_telemetry::{resolve_source, plugin_name as mcp_plugin_name};
+use nibi_kernel_api::process_table::McpResourceTarget;
+use nibi_kernel_api::tool::Tool;
 
 use super::{Inner, McpManager, McpStatus, Server, instructions_of, tools_of};
 use crate::McpScope;

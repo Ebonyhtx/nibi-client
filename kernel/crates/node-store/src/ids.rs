@@ -10,9 +10,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::js::base36;
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_base::js::base36;
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::ids::{
     AgentId, CommandId, Generation, InteractionId, MessageId, OperationId, RunId, SessionId, TurnId,
 };
 

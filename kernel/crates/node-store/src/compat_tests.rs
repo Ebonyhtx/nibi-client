@@ -1,11 +1,11 @@
 //! 修复线 F2：与 Node 共用数据的记录形状（docs/specs/rust-cli/node-store.md §4.2、§4.5、§4.10）。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, Message, StopReason, UserOrigin,
 };
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, batch, started, text, user};
@@ -252,7 +252,7 @@ async fn plan_mode_exit_is_stored_under_a_prefixed_source() {
 /// 项目持久模式不动；`session_rules` 读出会话规则，其他会话为 None。
 #[tokio::test]
 async fn a_node_group_session_keeps_rules_and_mode_in_the_session_row() {
-    use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule, RuleBehavior};
+    use nibi_kernel_api::permission::{PermissionMode, PermissionRule, RuleBehavior};
     let t = TestStore::new();
     started(&t, "sess_1").await;
     started(&t, "sess_2").await;
@@ -324,7 +324,7 @@ async fn a_node_group_session_keeps_rules_and_mode_in_the_session_row() {
 /// “总是允许”与改模式都只落会话行（Node `updateSession({permission})` 之后的同一条路径）。
 #[tokio::test]
 async fn set_session_permission_creates_the_scope_later_grants_use() {
-    use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule, RuleBehavior};
+    use nibi_kernel_api::permission::{PermissionMode, PermissionRule, RuleBehavior};
     let t = TestStore::new();
     started(&t, "sess_1").await;
     let session = SessionId::new("sess_1");
@@ -379,8 +379,8 @@ async fn set_session_permission_creates_the_scope_later_grants_use() {
 /// 子代理调用的关联（`Fact::SubagentLinked`）写进 tool part 的 `state.metadata`（Node 子代理查询读它）。
 #[tokio::test]
 async fn a_subagent_link_lands_in_the_tool_part_state() {
-    use rust_cli_kernel_api::ids::{AgentId, ToolUseId};
-    use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent, UserMessage};
+    use nibi_kernel_api::ids::{AgentId, ToolUseId};
+    use nibi_kernel_api::message::{ContentBlock, ToolResultContent, UserMessage};
     let t = TestStore::new();
     started(&t, "sess_1").await;
     let call = Fact::MessageAppended {

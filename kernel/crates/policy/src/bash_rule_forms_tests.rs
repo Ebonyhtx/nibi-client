@@ -1,7 +1,7 @@
 //! deny / ask 规则的候选（shell-permissions.md §4.5.6，工作线 F85）：前缀赋值、argv 层的包装命令、命令名的引号、
 //! 重定向与多余的空白都挡不住 deny 规则；allow 规则只去掉安全的前缀赋值。文字逐字比较。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use super::*;
 use crate::test_support::{message, run};

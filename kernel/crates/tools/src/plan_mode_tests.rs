@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::orchestration::{InteractionRequest, PlanApprovalAnswer};
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::testing::ScriptedInteractions;
-use rust_cli_kernel_api::tool::{PromptContext, Tool, Validation};
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::orchestration::{InteractionRequest, PlanApprovalAnswer};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::testing::ScriptedInteractions;
+use nibi_kernel_api::tool::{PromptContext, Tool, Validation};
 use serde_json::json;
 use tokio::sync::mpsc;
 

@@ -1,6 +1,6 @@
 //! Skill 的内容规则（ext.md §2.4）。
 
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode, RuleBehavior};
 use serde_json::json;
 
 use super::*;

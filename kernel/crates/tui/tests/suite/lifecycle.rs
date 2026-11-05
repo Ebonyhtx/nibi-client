@@ -1,7 +1,7 @@
 //! 会话生命周期的界面（docs/specs/rust-cli/session-lifecycle.md §3.3.1、§5.4、§6.2）：esc 连按两次的 rewind
 //! 选择器、`/clear` 之后立刻 `/resume` 回旧会话。`/fork` 在 `fork.rs`。
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::testing::{environments, text_response};
+use nibi_kernel_api::testing::{environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
 
@@ -49,7 +49,7 @@ async fn double_esc_rewinds_the_conversation_and_restores_the_prompt() {
 /// `the session is closed`；现在打开等关闭走完再冷加载，旧会话照常重开。
 #[tokio::test(flavor = "multi_thread")]
 async fn resume_right_after_clear_reopens_the_old_session() {
-    use rust_cli_kernel_api::testing::ClosingEnvironment;
+    use nibi_kernel_api::testing::ClosingEnvironment;
     use std::sync::Arc;
 
     let model = GatedModel::scripted(vec![text_response(&["first"])]);

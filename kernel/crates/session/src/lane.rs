@@ -7,11 +7,11 @@
 //! 修正（L18）：以前通知只在回合结束后各开一个回合（按缺省优先级 `later`
 //! 理解），排在全部排队输入之后；通知应是 `next`，在下一个工具边界并入。
 
-use rust_cli_kernel_api::agents::AgentNotice;
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::machine_notices::MachineNotice;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_query::task_notification;
+use nibi_kernel_api::agents::AgentNotice;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::machine_notices::MachineNotice;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_query::task_notification;
 
 use crate::actor::Actor;
 use crate::notices::NOTICE_SOURCE;
@@ -184,7 +184,7 @@ impl Actor {
         let screening = self
             .deps
             .hooks
-            .has_hooks(rust_cli_kernel_api::hooks::HookEventName::UserPromptSubmit);
+            .has_hooks(nibi_kernel_api::hooks::HookEventName::UserPromptSubmit);
         let startup = command
             .as_str()
             .starts_with(crate::hooks::SESSION_START_INPUT);

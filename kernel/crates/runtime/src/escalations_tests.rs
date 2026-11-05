@@ -3,10 +3,10 @@
 
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::StoreError;
-use rust_cli_kernel_api::testing::FixedClock;
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::StoreError;
+use nibi_kernel_api::testing::FixedClock;
+use nibi_kernel_api::workflow::{
     WorkflowEscalation, WorkflowEscalationOutcome, WorkflowEscalationRequest, WorkflowEventJournal,
     WorkflowNotices, WorkflowQuestionResolved,
 };

@@ -4,11 +4,11 @@
 //! 落盘、只给 `<persisted-output>` 预览。改为在每个 hook 的结果折叠之前，按通道逐个经 kernel-api 的
 //! `persisted_output::persist`（与工具结果同一入口，ArtifactStore）处理；本 crate 不做 IO。
 
-use rust_cli_base::js::string::utf16_prefix;
-use rust_cli_kernel_api::hooks::HookEventName;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::persisted_output;
-use rust_cli_kernel_api::store::ArtifactStore;
+use nibi_kernel_base::js::string::utf16_prefix;
+use nibi_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::persisted_output;
+use nibi_kernel_api::store::ArtifactStore;
 
 use crate::result::HookResult;
 

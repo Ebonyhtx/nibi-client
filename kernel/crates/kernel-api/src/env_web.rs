@@ -1,7 +1,7 @@
 //! 执行环境端口里取网页的 DTO（WebFetch，docs/specs/rust-cli/tools-more.md §4）。
 //!
 //! 端口只做一次 GET，不跟随重定向：同主机的重定向跟随、跨主机的交还模型，这些判断属于工具语义，
-//! 在内核里做（§6 规则 2）。网络出口在本地实现里只经 rust-cli-net。
+//! 在内核里做（§6 规则 2）。网络出口在本地实现里只经 nibi-kernel-net。
 
 use serde::{Deserialize, Serialize};
 

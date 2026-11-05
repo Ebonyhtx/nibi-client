@@ -7,12 +7,12 @@ use std::sync::{Arc, OnceLock};
 
 use futures_util::future::join_all;
 use regex::Regex;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::OperationContext;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionRule};
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
-use rust_cli_policy::PolicyGate;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::OperationContext;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::{PermissionDecision, PermissionRule};
+use nibi_kernel_api::tool::{Tool, ToolUseContext};
+use nibi_kernel_policy::PolicyGate;
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -185,7 +185,7 @@ impl Runner {
         }
         let rules: Vec<PermissionRule> = allowed
             .iter()
-            .map(|rule| rust_cli_policy::rules::parse_rule(rule))
+            .map(|rule| nibi_kernel_policy::rules::parse_rule(rule))
             .collect();
         let outputs = join_all(
             commands

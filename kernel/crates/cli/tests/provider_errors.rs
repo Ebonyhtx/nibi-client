@@ -21,25 +21,25 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage};
-use rust_cli_kernel_api::model::{CONTENT_BLOCKED, ModelPort, ModelSelection};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::{ModelEndpoints, ModelLimits};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, SessionId};
+use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage};
+use nibi_kernel_api::model::{CONTENT_BLOCKED, ModelPort, ModelSelection};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::{ModelEndpoints, ModelLimits};
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, TurnOutcome,
 };
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::environments;
-use rust_cli_model::{ProviderModel, RetryPolicy};
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_platform::{AccountOrigins, AccountServices, CredentialSecret, Platform};
-use rust_cli_runtime::{CompactConfig, ContextConfig, Defaults, LocalKernel, Ports, Surface};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::environments;
+use nibi_kernel_model::{ProviderModel, RetryPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_platform::{AccountOrigins, AccountServices, CredentialSecret, Platform};
+use nibi_kernel_runtime::{CompactConfig, ContextConfig, Defaults, LocalKernel, Ports, Surface};
 use serde_json::{Value, json};
 
 /// 智谱 Anthropic 协议的地址（只用来查方案表与厂商，请求仍发到夹具）。
@@ -138,7 +138,7 @@ impl Sandbox {
         };
         let secret = CredentialSecret {
             explicit: Some(RedactedString::new("test-secret")),
-            platform: rust_cli_platform::node_platform().to_owned(),
+            platform: nibi_kernel_platform::node_platform().to_owned(),
             home: self.home.to_string_lossy().into_owned(),
             username: "dev".to_owned(),
         };
@@ -448,7 +448,7 @@ async fn openai_quota_and_content_filter() {
 fn print_mode_reads_the_assumed_base_url() {
     let sandbox = Sandbox::new();
     let fixture = sse::serve_with(vec![coded(429, "1308", "已达到套餐用量上限")]);
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "hi"])
         .current_dir(&sandbox.work)

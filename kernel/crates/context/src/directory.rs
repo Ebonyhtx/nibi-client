@@ -2,10 +2,10 @@
 //! Local 文件、`.zcode/rules` 的无条件规则；
 //! 已经在 `instructions` 里宣布过的路径不再列。结果用 `instructions` 的格式。
 
-use rust_cli_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE};
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::message::Message;
+use nibi_kernel_base::names::{DOT_DIR, LOCAL_RULES_FILE, RULES_FILE};
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::message::Message;
 
 use crate::PromptAssembler;
 use crate::instructions;
@@ -65,7 +65,7 @@ impl PromptAssembler {
 
 /// 会话 actor 判定 `/cd` 可以移动后，用自己的活动历史调用（F1，R1-3：不再把历史复制给 runtime）。
 #[async_trait::async_trait]
-impl rust_cli_kernel_api::orchestration::DirectoryRules for PromptAssembler {
+impl nibi_kernel_api::orchestration::DirectoryRules for PromptAssembler {
     async fn directory_rules(
         &self,
         workspace: &WorkspaceRef,

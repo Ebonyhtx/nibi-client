@@ -10,9 +10,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_paths::ExecutorPaths;
-use rust_cli_ssh_connect::{ArtifactSource, DownloadError, Platform};
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_paths::ExecutorPaths;
+use nibi_kernel_ssh_connect::{ArtifactSource, DownloadError, Platform};
 
 use super::NpmExecutors;
 use super::fake_npm_tests::{FakeNpm, build_json, image, package, sha256_hex, sri};
@@ -22,7 +22,7 @@ const PACKUMENT: &str = "/@nibi%2fcli-linux-x64-gnu";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 
 fn executor(home: &Path) -> ExecutorPaths {
-    rust_cli_paths::StoragePaths::resolve(&Default::default(), home, home).executor()
+    nibi_kernel_paths::StoragePaths::resolve(&Default::default(), home, home).executor()
 }
 
 fn cached_path(home: &Path, version: &str) -> PathBuf {

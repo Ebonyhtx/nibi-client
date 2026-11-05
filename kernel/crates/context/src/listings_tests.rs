@@ -1,6 +1,6 @@
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::listing::ListingEntry;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
 use serde_json::Value;
 
 use super::*;
@@ -123,11 +123,11 @@ fn more_than_thirty_connecting_servers_are_summarized() {
 fn request(
     model: &str,
     names: &[&str],
-    mcp: Option<rust_cli_kernel_api::mcp_state::McpView>,
+    mcp: Option<nibi_kernel_api::mcp_state::McpView>,
 ) -> ContextRequest {
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-    use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+    use nibi_kernel_api::model::{ModelSelection, QuerySource};
     ContextRequest {
         default_machine: None,
         capabilities: None,
@@ -138,7 +138,7 @@ fn request(
         },
         agent: None,
         source: QuerySource::MainThread,
-        mode: rust_cli_kernel_api::permission::PermissionMode::Default,
+        mode: nibi_kernel_api::permission::PermissionMode::Default,
         tool_names: names.iter().map(|name| (*name).to_owned()).collect(),
         selection: ModelSelection {
             provider: "anthropic".to_owned(),
@@ -153,8 +153,8 @@ fn request(
 
 #[test]
 fn connecting_servers_are_announced_only_with_tool_search_and_a_snapshot() {
-    use rust_cli_kernel_api::manage::McpServerState;
-    use rust_cli_kernel_api::mcp_state::{McpServerView, McpView};
+    use nibi_kernel_api::manage::McpServerState;
+    use nibi_kernel_api::mcp_state::{McpServerView, McpView};
     let view = McpView {
         servers: vec![
             McpServerView {

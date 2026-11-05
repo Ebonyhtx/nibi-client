@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::ids::SessionId;
 
 use super::*;
 
@@ -15,7 +15,7 @@ fn a_session_always_gets_the_same_slug() {
 
 #[test]
 fn slugs_are_three_words_from_the_lists() {
-    let words = rust_cli_prompts::slug_words();
+    let words = nibi_kernel_prompts::slug_words();
     let slug = session_slug(&SessionId::new("sess_subagent_agent_a1"));
     let parts: Vec<&str> = slug.split('-').collect();
     assert_eq!(parts.len(), 3, "{slug}");

@@ -1,8 +1,8 @@
 //! 转移表（remote-exec.md §19.10）：合法的每一条与不合法的组合。
 
-use rust_cli_exec_client::ClientError;
-use rust_cli_exec_transport::ProvisionError;
-use rust_cli_exec_wire::handshake::RefuseCode;
+use nibi_kernel_exec_client::ClientError;
+use nibi_kernel_exec_transport::ProvisionError;
+use nibi_kernel_exec_wire::handshake::RefuseCode;
 
 use crate::{MachineError, MachineEvent as E, MachineState as S, Retry, Welcomed, transition};
 

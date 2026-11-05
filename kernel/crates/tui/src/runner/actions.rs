@@ -6,9 +6,9 @@ use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEventKind};
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::Command;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::Command;
 
 use super::Loop;
 use super::session::Sent;
@@ -114,7 +114,7 @@ impl<B: Backend> Loop<'_, B> {
                 let text = content
                     .iter()
                     .find_map(|block| match block {
-                        rust_cli_kernel_api::message::ContentBlock::Text { text } => {
+                        nibi_kernel_api::message::ContentBlock::Text { text } => {
                             Some(text.clone())
                         }
                         _ => None,
@@ -149,7 +149,7 @@ impl<B: Backend> Loop<'_, B> {
             Action::BackgroundForeground => self.send(
                 Sent::Record,
                 Command::BackgroundForeground {
-                    reason: rust_cli_kernel_api::env::BackgroundReason::User,
+                    reason: nibi_kernel_api::env::BackgroundReason::User,
                 },
                 String::new(),
             ),
@@ -157,7 +157,7 @@ impl<B: Backend> Loop<'_, B> {
             Action::DeliverQueued => self.send(
                 Sent::Record,
                 Command::BackgroundForeground {
-                    reason: rust_cli_kernel_api::env::BackgroundReason::DeliverMessage,
+                    reason: nibi_kernel_api::env::BackgroundReason::DeliverMessage,
                 },
                 String::new(),
             ),
@@ -180,10 +180,10 @@ impl<B: Backend> Loop<'_, B> {
                 self.pending.push(
                     async move {
                         let ack = match kernel.resolve_detached(&interaction, answer).await {
-                            Ok(()) => rust_cli_kernel_api::session_api::Ack::Accepted {
+                            Ok(()) => nibi_kernel_api::session_api::Ack::Accepted {
                                 result: serde_json::Value::Null,
                             },
-                            Err(error) => rust_cli_kernel_api::session_api::Ack::Rejected {
+                            Err(error) => nibi_kernel_api::session_api::Ack::Rejected {
                                 reason: error.to_string(),
                             },
                         };
@@ -243,8 +243,8 @@ impl<B: Backend> Loop<'_, B> {
             } => self.rewind(target, scope, text),
             Action::OpenResume => self.open_resume(false),
             Action::Resume(id) => self.switch(
-                rust_cli_kernel_api::ids::SessionId::new(id),
-                rust_cli_kernel_api::session_api::StartSource::Resume,
+                nibi_kernel_api::ids::SessionId::new(id),
+                nibi_kernel_api::session_api::StartSource::Resume,
                 None,
                 true,
             ),
@@ -334,14 +334,14 @@ impl<B: Backend> Loop<'_, B> {
     /// 同 `/clear`；给了工作区（← 项目页的 `n`，tui-panels.md §2.4）时新会话的草稿换到那里，提示写上路径。
     pub(super) fn clear_into(
         &mut self,
-        workspace: Option<(rust_cli_kernel_api::env::WorkspaceRef, String)>,
+        workspace: Option<(nibi_kernel_api::env::WorkspaceRef, String)>,
     ) -> Result<()> {
         if self.app.running() {
             self.send(Sent::Interrupt, Command::Interrupt, String::new());
         }
         // SessionEnd(clear)；下一次发送建的会话 SessionStart 来源是 clear。
-        self.leave(rust_cli_kernel_api::session_api::EndReason::Clear);
-        self.next_start = rust_cli_kernel_api::session_api::StartSource::Clear;
+        self.leave(nibi_kernel_api::session_api::EndReason::Clear);
+        self.next_start = nibi_kernel_api::session_api::StartSource::Clear;
         self.app.reset();
         self.cache.clear();
         self.terminal

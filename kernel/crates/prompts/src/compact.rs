@@ -3,7 +3,7 @@
 //! 文字逐字固定，没有产品名需要替换。模板变量用
 //! [`crate::texts::render`] 填入。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 use crate::trim;
 

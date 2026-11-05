@@ -11,7 +11,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::net::TcpListener;
 use std::sync::{Arc, Mutex};
 
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 
 /// 收到的请求：路径与 `accept` 头。

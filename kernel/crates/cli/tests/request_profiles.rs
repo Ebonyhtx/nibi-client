@@ -50,7 +50,7 @@ impl Sandbox {
     /// 跑一次 `zcode -p hi`（不继承父进程的环境），返回第一个主请求的请求体与 `anthropic-beta`。
     fn first_request(&self, vars: &[(&str, &str)], args: &[&str]) -> (Value, Option<String>) {
         let fixture = sse::serve(vec![sse::text_reply("hello")]);
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+        let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(["-p", "hi"])
             .args(args)
@@ -187,7 +187,7 @@ async fn the_test_declaration_gets_the_first_party_shape() {
 
 /// 工作线 F52b（model.md §6，用户决定 2026-10-22）：release 构建不读两个测试声明，设了也按网关发——第三方形状、本地
 /// ToolSearch（没有 `defer_loading` 与 `advanced-tool-use`，发布版不留在网关上发原生的后门；F84 之前是不开）。只在 release 下编译：在 packages/rust-cli 下
-/// `cargo test --release --locked -p rust-cli --test request_profiles`；debug 下的对照是上一项。
+/// `cargo test --release --locked -p nibi-kernel-cli --test request_profiles`；debug 下的对照是上一项。
 #[cfg(not(debug_assertions))]
 #[tokio::test]
 async fn a_release_build_ignores_the_test_declarations() {
@@ -232,7 +232,7 @@ async fn a_custom_gateway_provider_gets_local_tool_search() {
     let fixture = sse::serve(vec![sse::text_reply("hello")]);
     let text = config.to_string().replace(fixture_url, &fixture.url);
     std::fs::write(sandbox.home.join(".nibi/v2/provider_config.json"), text).unwrap();
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     let output = command
         .args(["-p", "hi", "--model", "personal:gateway/claude-opus-5-5"])
         .current_dir(&sandbox.work)
@@ -274,7 +274,7 @@ async fn a_tool_loaded_on_a_gateway_is_sent_as_a_plain_definition() {
         )]),
         sse::text_reply("done"),
     ]);
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     let output = command
         .args(["-p", "load it"])
         .current_dir(&sandbox.work)

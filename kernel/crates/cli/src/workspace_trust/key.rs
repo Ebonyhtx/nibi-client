@@ -3,8 +3,8 @@
 //! Posix 不改大小写、不改 `\`；Windows 去掉 `\\?\` 前缀、`\` 换成 `/`、整串转小写（路径不分大小写，盘符的大小写
 //! 常随 shell 变）。按段去掉 `.` 与空段、`..` 回退一段；根是 `/`、`c:/` 或 `//server/share`。
 
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::workspace_trust::TrustKey;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::workspace_trust::TrustKey;
 
 /// 规范化后的路径：根与各段。
 #[derive(Debug, Clone, PartialEq, Eq)]

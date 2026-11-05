@@ -11,31 +11,31 @@ mod interactions {
     use async_trait::async_trait;
     use futures_util::StreamExt;
     use futures_util::stream::BoxStream;
-    use rust_cli_kernel_api::env::{
+    use nibi_kernel_api::env::{
         CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome,
         ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
     };
-    use rust_cli_kernel_api::ids::{
+    use nibi_kernel_api::ids::{
         CommandId, EnvironmentId, InteractionId, OperationId, SessionId,
     };
-    use rust_cli_kernel_api::local_services::{Fetch, Git};
-    use rust_cli_kernel_api::machine::{
+    use nibi_kernel_api::local_services::{Fetch, Git};
+    use nibi_kernel_api::machine::{
         Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
     };
-    use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, Usage};
-    use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest};
-    use rust_cli_kernel_api::orchestration::InteractionRequest;
-    use rust_cli_kernel_api::permission::PermissionMode;
-    use rust_cli_kernel_api::session_api::{
+    use nibi_kernel_api::message::{ContentBlock, Message, StopReason, Usage};
+    use nibi_kernel_api::model::{BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest};
+    use nibi_kernel_api::orchestration::InteractionRequest;
+    use nibi_kernel_api::permission::PermissionMode;
+    use nibi_kernel_api::session_api::{
         Ack, Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent,
         SequencedEvent, SessionHandle,
     };
-    use rust_cli_kernel_api::store::Fact;
-    use rust_cli_kernel_api::testing::{
+    use nibi_kernel_api::store::Fact;
+    use nibi_kernel_api::testing::{
         FixedClock, MemoryStore, SequentialIds, environments, selection, text_response,
         tool_use_response,
     };
-    use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+    use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
     use serde_json::{Value, json};
     use tokio::sync::Notify;
     use tokio_util::sync::CancellationToken;
@@ -201,7 +201,7 @@ mod interactions {
         }
     }
 
-    fn kernel<E: rust_cli_kernel_api::testing::AllPorts + 'static>(
+    fn kernel<E: nibi_kernel_api::testing::AllPorts + 'static>(
         model: Arc<dyn ModelPort>,
         env: Arc<E>,
         store: Arc<MemoryStore>,
@@ -385,7 +385,7 @@ mod interactions {
         ]));
         let kernel = kernel(
             model,
-            Arc::new(rust_cli_kernel_api::testing::UnusedEnvironment),
+            Arc::new(nibi_kernel_api::testing::UnusedEnvironment),
             store.clone(),
         );
         let first = open(&kernel).await;

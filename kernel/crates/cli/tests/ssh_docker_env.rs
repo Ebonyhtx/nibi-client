@@ -21,14 +21,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ConnectionState, Reconnect};
-use rust_cli_kernel_api::env::{CommandEvent, EnvPath, StartCommand, WorkspaceRef};
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{EnvironmentId, OperationId, ShellTaskId};
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_machines::{Machine, MachineError, MachineState};
-use rust_cli_ssh_connect::{SshProvisioner, SshTarget};
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ConnectionState, Reconnect};
+use nibi_kernel_api::env::{CommandEvent, EnvPath, StartCommand, WorkspaceRef};
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{EnvironmentId, OperationId, ShellTaskId};
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_machines::{Machine, MachineError, MachineState};
+use nibi_kernel_ssh_connect::{SshProvisioner, SshTarget};
 use sshd::{Agent, Sshd, TestEndpoint, VERSION, artifact_or_skip, context, docker, wanted};
 
 /// 在 `/tmp` 下跑一条命令，取它的输出（等到终态）。
@@ -129,7 +129,7 @@ async fn a_reconnect_refreshes_ssh_auth_sock_and_a_revoked_key_fails_at_once() {
             .welcome()
             .unwrap()
             .capabilities
-            .contains(rust_cli_exec_wire::handshake::Capability::Env)
+            .contains(nibi_kernel_exec_wire::handshake::Capability::Env)
     );
     let remote = Arc::new(RemoteEnvironment::new(client.clone()).with_name("dev-a")).machine();
 

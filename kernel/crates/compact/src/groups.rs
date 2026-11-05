@@ -2,7 +2,7 @@
 //!
 //! 按 API 轮分组、全部摘要的切分、摘要部分要有实质内容、PTL 后多保留几组、从头裁。
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
 
 use crate::tokens;
 

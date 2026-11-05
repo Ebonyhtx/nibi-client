@@ -9,7 +9,7 @@
 //! 底色条盖住输入、看不到光标。
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::orchestration::InteractionRequest;
 use serde_json::Value;
 
 use super::cells::{self, Ctx};
@@ -258,7 +258,7 @@ impl Interaction {
     fn always_label(
         &self,
         tool: &str,
-        suggestions: &[rust_cli_kernel_api::permission::PermissionRule],
+        suggestions: &[nibi_kernel_api::permission::PermissionRule],
         view: &View<'_>,
     ) -> Option<String> {
         if suggestions.is_empty() {

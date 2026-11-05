@@ -2,7 +2,7 @@
 //!
 //! 形状对齐 NIBI 的 `workspaceHookReviewTrustStateSchema` 与 `workspace-hook-review.ts` 的 items：
 //! 一条钩子一条 `reviewItemId`（`workspace-hook-<source>-<event>-<matcher>-<hook>`）+ 它的声明摘要。
-//! 信任记录按**声明摘要**存（`rust_cli_platform::HookTrustStore`），不是按工作区路径——路径级信任是
+//! 信任记录按**声明摘要**存（`nibi_kernel_platform::HookTrustStore`），不是按工作区路径——路径级信任是
 //! 另一件事（工作区信任提示）。
 //!
 //! 内核只给"快照 + 授权 + 撤销"三个动作；评审流（`reviewFlowId`/`generation`/交互）在协议前端。

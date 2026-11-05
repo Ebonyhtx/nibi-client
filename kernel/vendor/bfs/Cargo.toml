@@ -3,7 +3,7 @@
 # bfs/、oniguruma/ 下的文件由 scripts/rust-cli/vendor/fetch.mjs 按 vendor/sources.json 生成，config/ 由
 # scripts/rust-cli/vendor/bfs-config.mjs 用 bfs 的 configure 生成，都不手改。只在 Unix 目标编译（Windows 没有 bfs，§6.4）。
 [package]
-name = "rust-cli-vendor-bfs"
+name = "nibi-kernel-vendor-bfs"
 version = "4.1.4"
 edition = "2024"
 license = "0BSD AND BSD-2-Clause"

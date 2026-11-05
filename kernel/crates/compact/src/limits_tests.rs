@@ -7,11 +7,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::message::{CompactTrigger, Message, Usage};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::{AutoCompactOutcome, CompactTracking, Compactor};
-use rust_cli_kernel_api::provider::{ModelLimits, TokenLimits};
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::message::{CompactTrigger, Message, Usage};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::{AutoCompactOutcome, CompactTracking, Compactor};
+use nibi_kernel_api::provider::{ModelLimits, TokenLimits};
 use tokio_util::sync::CancellationToken;
 
 use super::{CompactConfig, Compaction, Thresholds};

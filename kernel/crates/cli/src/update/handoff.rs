@@ -7,7 +7,7 @@
 
 use std::path::{Path, PathBuf};
 
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
 
 /// 交接变量：启动器给的交接文件的路径（只在 Windows 上设，每次启动一个新路径）。
 pub(crate) const VARIABLE: &str = "NIBI_MANAGED_UPDATE_HANDOFF";
@@ -27,7 +27,7 @@ pub(crate) enum Route {
 
 /// 按入口的环境快照选做法：有交接变量（非空）时交接，不论平台（Unix 的启动器不设它，所以 macOS / Linux 不变）。
 pub(crate) fn route(env: &[(String, String)], windows: bool) -> Route {
-    match rust_cli_base::secret::env_var(env, VARIABLE).filter(|path| !path.is_empty()) {
+    match nibi_kernel_base::secret::env_var(env, VARIABLE).filter(|path| !path.is_empty()) {
         Some(path) => Route::Handoff(PathBuf::from(path)),
         None if windows => Route::Manual,
         None => Route::Run,
@@ -49,7 +49,7 @@ pub(crate) async fn write(path: &Path, version: &str) -> std::io::Result<()> {
         parent: ParentDir::Existing,
         rename_retry: &[],
     };
-    rust_cli_fs::atomic_write(path, render(version).as_bytes(), options).await
+    nibi_kernel_fs::atomic_write(path, render(version).as_bytes(), options).await
 }
 
 /// Windows 上没有交接变量时的报错：`command_line` 是安装命令（update.md §2）。

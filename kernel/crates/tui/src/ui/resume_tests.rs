@@ -1,8 +1,8 @@
 //! `/resume` 页的按键（F29，tui-manage.md §10.4–§10.6）：直接打字搜索、焦点到头停住、工具栏的焦点与切换、预览与
 //! 全屏对话的请求、改名、删除确认（数字只移到删除）、当前会话的限制、别的目录先选目录、启动形态的 ctrl+c。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::i18n::Lang;

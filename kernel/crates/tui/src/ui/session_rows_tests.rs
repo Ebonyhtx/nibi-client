@@ -1,8 +1,8 @@
 //! 两页共用的会话行（F29）：标题、搜索、时间与路径的写法。
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::panels::ProjectSession;
-use rust_cli_kernel_api::store::SessionRecord;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::panels::ProjectSession;
+use nibi_kernel_api::store::SessionRecord;
 
 use super::*;
 

@@ -1,4 +1,4 @@
-//! 会话附件的读写（[`Kernel::load_attachment`](rust_cli_kernel_api::session_api::Kernel::load_attachment) /
+//! 会话附件的读写（[`Kernel::load_attachment`](nibi_kernel_api::session_api::Kernel::load_attachment) /
 //! [`Kernel::store_attachment`] / [`Kernel::read_attachment`]）：`nibi-artifact://` 经会话的 artifact
 //! 存储，路径经会话所在机器的文件端口。
 //!
@@ -8,14 +8,14 @@
 //! 写入侧照 Node 的同一形态（`data:<mime>;base64,…` 文本，`text/plain` 的内容类型），因为桌面切回 Node
 //! 内核后还要按那条路径读回同一批 artifact——两边必须写同一种东西。
 
-use rust_cli_kernel_api::attachment::{
+use nibi_kernel_api::attachment::{
     AttachmentPayload, AttachmentSource, LoadedAttachment, StoredAttachment,
 };
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{FileKind, StatFile};
-use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-use rust_cli_kernel_api::session_api::KernelError;
-use rust_cli_kernel_api::store::{ArtifactPurpose, StoreError};
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{FileKind, StatFile};
+use nibi_kernel_api::ids::{ArtifactId, SessionId};
+use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_api::store::{ArtifactPurpose, StoreError};
 
 use super::*;
 
@@ -190,10 +190,10 @@ fn store_error(error: StoreError) -> KernelError {
 }
 
 /// `nibi-artifact://<会话>/<artifact>`（百分号编码，与 Node 的 `encodeURIComponent` 同形）。
-fn artifact_uri(artifact: &rust_cli_kernel_api::store::ArtifactRef) -> String {
+fn artifact_uri(artifact: &nibi_kernel_api::store::ArtifactRef) -> String {
     format!(
         "{}{}/{}",
-        rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME,
+        nibi_kernel_api::persisted_output::ARTIFACT_SCHEME,
         encode_component(artifact.session.as_str()),
         encode_component(artifact.id.as_str())
     )
@@ -214,7 +214,7 @@ fn encode_component(value: &str) -> String {
 
 /// `nibi-artifact://<会话>/<artifact>` 的两段（百分号解码）。形状不对时为 None。
 fn parse_artifact_uri(uri: &str) -> Option<(String, String)> {
-    let rest = uri.strip_prefix(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
+    let rest = uri.strip_prefix(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
     let (owner, id) = rest.split_once('/')?;
     if owner.is_empty() || id.is_empty() || id.contains('/') {
         return None;

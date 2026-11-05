@@ -11,14 +11,14 @@ use std::process::{Child, Command, ExitStatus, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::model::ModelPort;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::model::ModelPort;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{
     MemoryStore, SequentialIds, UnusedEnvironment, environments, selection,
 };
-use rust_cli_tui::Options;
+use nibi_kernel_tui::Options;
 use rustix::termios::{LocalModes, Winsize, tcgetattr};
 use tokio_util::sync::CancellationToken;
 
@@ -198,7 +198,7 @@ pub async fn interface(model: Arc<dyn ModelPort>) {
         environments(Arc::new(UnusedEnvironment)),
         Arc::new(MemoryStore::default()),
         None,
-        rust_cli_runtime::PeerDeps::off(),
+        nibi_kernel_runtime::PeerDeps::off(),
         None,
         None,
     );
@@ -215,13 +215,13 @@ pub async fn interface(model: Arc<dyn ModelPort>) {
         version: "0.1.0".into(),
         vars: BTreeMap::from([("LANG".to_owned(), "en_US.UTF-8".to_owned())]),
         models: None,
-        startup: rust_cli_tui::Startup::New,
+        startup: nibi_kernel_tui::Startup::New,
         fork: false,
-        services: rust_cli_tui::Services::default(),
+        services: nibi_kernel_tui::Services::default(),
         stop: CancellationToken::new(),
         clock: Arc::new(WallClock),
         ids: Arc::new(SequentialIds::default()),
-        os: rust_cli_tui::Os::Unix,
+        os: nibi_kernel_tui::Os::Unix,
     };
-    rust_cli_tui::run(kernel, options).await.unwrap();
+    nibi_kernel_tui::run(kernel, options).await.unwrap();
 }

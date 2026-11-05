@@ -8,11 +8,11 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_exec_client::{ClientOptions, ExecClient, Reconnect};
-use rust_cli_exec_transport::stream::stream_link;
-use rust_cli_exec_transport::{Connector, Link, LinkError, MAX_FRAME};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient, Reconnect};
+use nibi_kernel_exec_transport::stream::stream_link;
+use nibi_kernel_exec_transport::{Connector, Link, LinkError, MAX_FRAME};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
 use serde_json::Value;
 
 pub const BIN: &str = env!("CARGO_BIN_EXE_nibi-rs");

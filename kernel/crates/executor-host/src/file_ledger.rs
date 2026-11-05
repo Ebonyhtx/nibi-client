@@ -14,9 +14,9 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use rust_cli_base::OwnedTask;
-use rust_cli_exec_server::{Begun, CallKey, CallKind, ExecLedger, LedgerError, MemoryLedger};
-use rust_cli_kernel_api::clock::Clock;
+use nibi_kernel_base::OwnedTask;
+use nibi_kernel_exec_server::{Begun, CallKey, CallKind, ExecLedger, LedgerError, MemoryLedger};
+use nibi_kernel_api::clock::Clock;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::journal::{Entry, Record, State, Tag, apply, records_of, replay};
@@ -92,11 +92,11 @@ fn closed() -> LedgerError {
     LedgerError("the ledger writer has stopped".to_owned())
 }
 
-fn private() -> rust_cli_fs::WriteOptions {
-    rust_cli_fs::WriteOptions {
-        mode: rust_cli_fs::FileMode::Private,
-        temp_name: rust_cli_fs::TempName::Hidden,
-        parent: rust_cli_fs::ParentDir::Existing,
+fn private() -> nibi_kernel_fs::WriteOptions {
+    nibi_kernel_fs::WriteOptions {
+        mode: nibi_kernel_fs::FileMode::Private,
+        temp_name: nibi_kernel_fs::TempName::Hidden,
+        parent: nibi_kernel_fs::ParentDir::Existing,
         rename_retry: &[],
     }
 }
@@ -108,12 +108,12 @@ impl FileLedger {
         clock: Arc<dyn Clock>,
         retention: Retention,
     ) -> Result<Self, LedgerError> {
-        rust_cli_fs::create_private_dir_all(dir)
+        nibi_kernel_fs::create_private_dir_all(dir)
             .await
             .map_err(|e| error("creating the ledger directory", &e))?;
         let identity = identity(&dir.join(IDENTITY)).await?;
         let path = dir.join(JOURNAL);
-        let text = rust_cli_fs::read_optional(&path)
+        let text = nibi_kernel_fs::read_optional(&path)
             .await
             .map_err(|e| error("reading the ledger", &e))?
             .unwrap_or_default();
@@ -134,7 +134,7 @@ impl FileLedger {
             identity,
             memory: MemoryLedger::default(),
             mailbox,
-            _writer: rust_cli_base::owned(journal.serve(inbox)),
+            _writer: nibi_kernel_base::owned(journal.serve(inbox)),
         })
     }
 
@@ -192,7 +192,7 @@ impl Journal {
 
     async fn append(&mut self, record: Record) -> Result<(), LedgerError> {
         let line = record.line();
-        rust_cli_fs::append(&self.path, line.as_bytes())
+        nibi_kernel_fs::append(&self.path, line.as_bytes())
             .await
             .map_err(|e| error("writing the ledger", &e))?;
         self.bytes += line.len() as u64;
@@ -307,7 +307,7 @@ impl Journal {
                 text.push_str(&record.line());
             }
         }
-        rust_cli_fs::atomic_write(&self.path, text.as_bytes(), private())
+        nibi_kernel_fs::atomic_write(&self.path, text.as_bytes(), private())
             .await
             .map_err(|e| error("compacting the ledger", &e))?;
         tracing::info!(target: "executor_host::ledger", before = self.bytes, after = text.len(), "ledger compacted");
@@ -318,7 +318,7 @@ impl Journal {
 
 /// 账本的身份：第一次建账本时生成，之后不变（§19.8）。
 async fn identity(path: &Path) -> Result<String, LedgerError> {
-    if let Some(bytes) = rust_cli_fs::read_optional(path)
+    if let Some(bytes) = nibi_kernel_fs::read_optional(path)
         .await
         .map_err(|e| error("reading the ledger identity", &e))?
     {
@@ -329,10 +329,10 @@ async fn identity(path: &Path) -> Result<String, LedgerError> {
     }
     let fresh = format!(
         "{:016x}{:016x}",
-        rust_cli_base::random::u64(),
-        rust_cli_base::random::u64()
+        nibi_kernel_base::random::u64(),
+        nibi_kernel_base::random::u64()
     );
-    rust_cli_fs::atomic_write(path, fresh.as_bytes(), private())
+    nibi_kernel_fs::atomic_write(path, fresh.as_bytes(), private())
         .await
         .map_err(|e| error("writing the ledger identity", &e))?;
     Ok(fresh)

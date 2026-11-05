@@ -2,8 +2,8 @@
 
 use std::time::Duration;
 
-use rust_cli_machines::{MachineEntry, MachineError, MachineState, MachinesError, Welcomed};
-use rust_cli_tui::machines::{ConnectStep, MachineFailure, MachineProblem, MachineStatus};
+use nibi_kernel_machines::{MachineEntry, MachineError, MachineState, MachinesError, Welcomed};
+use nibi_kernel_tui::machines::{ConnectStep, MachineFailure, MachineProblem, MachineStatus};
 
 use super::{problem, row};
 use crate::machines::{FleetError, Seen};
@@ -196,8 +196,8 @@ fn a_waiting_reconnect_shows_the_next_attempt_and_its_wall_time() {
 /// F98（remote-exec.md §25.4.3）：握手报告的 home 交给 TUI（清单没写工作目录时，询问框的“不再询问”写它）。
 #[test]
 fn the_remote_home_reaches_the_tui() {
-    use rust_cli_exec_wire::dto::core::PathStyle;
-    use rust_cli_exec_wire::handshake::{Capabilities, PROTOCOL, Welcome};
+    use nibi_kernel_exec_wire::dto::core::PathStyle;
+    use nibi_kernel_exec_wire::handshake::{Capabilities, PROTOCOL, Welcome};
     let seen = Seen {
         entry: MachineEntry::new("dev-a", "dev-a", None),
         state: MachineState::Ready(welcomed()),
@@ -212,7 +212,7 @@ fn the_remote_home_reaches_the_tui() {
             home: Some("/home/dev".to_owned()),
             shell: None,
             capabilities: Capabilities::ports(),
-            max_message: rust_cli_exec_wire::frame::MAX_MESSAGE,
+            max_message: nibi_kernel_exec_wire::frame::MAX_MESSAGE,
             ledger: None,
         }),
     };

@@ -6,9 +6,9 @@
 
 use std::sync::PoisonError;
 
-use rust_cli_kernel_api::abort::AbortReason;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::{EndReason, KernelError};
+use nibi_kernel_api::abort::AbortReason;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::{EndReason, KernelError};
 use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::{CancellationToken, DropGuard};
 

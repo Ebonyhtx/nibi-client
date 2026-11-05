@@ -4,17 +4,17 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_exec_client::{ClientOptions, Reconnect};
-use rust_cli_exec_transport::fault::{Faults, Switch, inject};
-use rust_cli_exec_transport::memory::{MemoryConnector, MemoryListener, network};
-use rust_cli_exec_transport::{
+use nibi_kernel_exec_client::{ClientOptions, Reconnect};
+use nibi_kernel_exec_transport::fault::{Faults, Switch, inject};
+use nibi_kernel_exec_transport::memory::{MemoryConnector, MemoryListener, network};
+use nibi_kernel_exec_transport::{
     Connector, Link, LinkError, Listener, ProvisionError, Provisioned, Provisioner,
 };
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::core::PathStyle;
-use rust_cli_exec_wire::envelope::Beat;
-use rust_cli_exec_wire::frame::{Frame, Kind, Reassembler, Received};
-use rust_cli_exec_wire::handshake::{Capabilities, PROTOCOL, Refuse, RefuseCode, Welcome};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::core::PathStyle;
+use nibi_kernel_exec_wire::envelope::Beat;
+use nibi_kernel_exec_wire::frame::{Frame, Kind, Reassembler, Received};
+use nibi_kernel_exec_wire::handshake::{Capabilities, PROTOCOL, Refuse, RefuseCode, Welcome};
 use tokio::sync::watch;
 
 use crate::{Endpoint, Machine, MachineError, MachineState};
@@ -97,13 +97,13 @@ fn welcome(instance: &str) -> Welcome {
         home: None,
         shell: None,
         capabilities: Capabilities::ports(),
-        max_message: rust_cli_exec_wire::frame::MAX_MESSAGE,
+        max_message: nibi_kernel_exec_wire::frame::MAX_MESSAGE,
         ledger: None,
     }
 }
 
 /// 假执行器：每条连接收 hello、回 welcome（或拒绝），然后读到连接结束。
-fn serve(listener: MemoryListener, refuse: bool) -> rust_cli_base::OwnedTask<()> {
+fn serve(listener: MemoryListener, refuse: bool) -> nibi_kernel_base::OwnedTask<()> {
     serve_recording(listener, refuse, Arc::default())
 }
 
@@ -112,18 +112,18 @@ fn serve_recording(
     listener: MemoryListener,
     refuse: bool,
     instances: Arc<Mutex<Vec<String>>>,
-) -> rust_cli_base::OwnedTask<()> {
-    rust_cli_base::owned(async move {
+) -> nibi_kernel_base::OwnedTask<()> {
+    nibi_kernel_base::owned(async move {
         // 每条连接一个任务，随服务端的任务一起结束。
         let mut connections = Vec::new();
         while let Ok(link) = listener.accept().await {
             let (mut sink, mut source) = link.split();
             let instances = instances.clone();
-            connections.push(rust_cli_base::owned(async move {
+            connections.push(nibi_kernel_base::owned(async move {
                 let mut reassembler = Reassembler::default();
                 if let Ok(Some(bytes)) = source.recv().await
                     && let Ok(Received::Frame(frame)) = reassembler.push(bytes)
-                    && let Ok(hello) = frame.header::<rust_cli_exec_wire::handshake::Hello>()
+                    && let Ok(hello) = frame.header::<nibi_kernel_exec_wire::handshake::Hello>()
                 {
                     instances.lock().unwrap().push(hello.client_instance);
                 }
@@ -357,7 +357,7 @@ async fn every_new_client_has_its_own_instance() {
 /// 部署时依次报告这些步（F98 上传、F100 下载），每步之后等测试放行。
 struct Uploads(
     Arc<tokio::sync::Notify>,
-    Vec<rust_cli_exec_transport::ProvisionStep>,
+    Vec<nibi_kernel_exec_transport::ProvisionStep>,
 );
 
 #[async_trait]
@@ -368,7 +368,7 @@ impl Provisioner for Uploads {
 
     async fn provision_reporting(
         &self,
-        progress: &(dyn Fn(rust_cli_exec_transport::ProvisionStep) + Send + Sync),
+        progress: &(dyn Fn(nibi_kernel_exec_transport::ProvisionStep) + Send + Sync),
     ) -> Result<Provisioned, ProvisionError> {
         for step in &self.1 {
             progress(step.clone());
@@ -407,7 +407,7 @@ async fn the_upload_shows_as_its_own_state() {
     let endpoint = Arc::new(UploadingEndpoint {
         uploads: Uploads(
             release.clone(),
-            vec![rust_cli_exec_transport::ProvisionStep::Uploading { bytes: 93_323_264 }],
+            vec![nibi_kernel_exec_transport::ProvisionStep::Uploading { bytes: 93_323_264 }],
         ),
         connector: Arc::new(Cuttable {
             inner: Mutex::new(Arc::new(connector)),
@@ -421,7 +421,7 @@ async fn the_upload_shows_as_its_own_state() {
     ));
     assert!(!machine.retry_now(), "nothing to retry before connecting");
     let mut states = machine.states();
-    let connecting = rust_cli_base::owned({
+    let connecting = nibi_kernel_base::owned({
         let machine = machine.clone();
         async move { machine.connect().await.map(drop) }
     });
@@ -442,7 +442,7 @@ async fn the_upload_shows_as_its_own_state() {
 /// F100（remote-exec.md §26.6）：本机缓存里没有执行器时，第一次连接先是“下载”，再是“上传”，之后握手、就绪。
 #[tokio::test]
 async fn the_download_shows_as_its_own_state_before_the_upload() {
-    use rust_cli_exec_transport::ProvisionStep;
+    use nibi_kernel_exec_transport::ProvisionStep;
     let (connector, listener) = network("machine");
     let _server = serve(listener, false);
     let release = Arc::new(tokio::sync::Notify::new());
@@ -465,7 +465,7 @@ async fn the_download_shows_as_its_own_state_before_the_upload() {
         ClientOptions::new("test", "client-1"),
     ));
     let mut states = machine.states();
-    let connecting = rust_cli_base::owned({
+    let connecting = nibi_kernel_base::owned({
         let machine = machine.clone();
         async move { machine.connect().await.map(drop) }
     });

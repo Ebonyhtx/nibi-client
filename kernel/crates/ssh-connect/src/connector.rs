@@ -7,8 +7,8 @@
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use rust_cli_exec_transport::stdio::{ChildCommand, StdioConnector};
-use rust_cli_exec_transport::{Connector, FrameSink, FrameSource, Link, LinkError, Provisioned};
+use nibi_kernel_exec_transport::stdio::{ChildCommand, StdioConnector};
+use nibi_kernel_exec_transport::{Connector, FrameSink, FrameSource, Link, LinkError, Provisioned};
 
 use crate::target::{SshTarget, quote};
 

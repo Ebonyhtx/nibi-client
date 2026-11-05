@@ -1,8 +1,8 @@
 //! 模型请求状态与工作流归属的埋点事实（141 审计 §9 第 5 项的最后两支）。
 
-use rust_cli_kernel_api::conversation_telemetry::ConversationTelemetryFact;
-use rust_cli_kernel_api::model::{ModelRequestStatus, ModelRequestStatusKind};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::conversation_telemetry::ConversationTelemetryFact;
+use nibi_kernel_api::model::{ModelRequestStatus, ModelRequestStatusKind};
+use nibi_kernel_api::session_api::{
     KernelEvent, SequencedEvent, TurnExecutionKind, WorkflowLifecycleFact, WorkflowLifecyclePhase,
 };
 
@@ -18,8 +18,8 @@ fn event(seq: u64, event: KernelEvent) -> SequencedEvent {
 
 fn turn_started() -> KernelEvent {
     KernelEvent::TurnStarted {
-        turn: rust_cli_kernel_api::ids::TurnId::new("t1"),
-        command: Some(rust_cli_kernel_api::ids::CommandId::new("c1")),
+        turn: nibi_kernel_api::ids::TurnId::new("t1"),
+        command: Some(nibi_kernel_api::ids::CommandId::new("c1")),
         execution_kind: Some(TurnExecutionKind::Agent),
         workflow_launch: None,
         input_source: None,

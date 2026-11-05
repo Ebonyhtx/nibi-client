@@ -1,7 +1,7 @@
 //! 任务清单的排版（tui-display.md §2.2）：标题、图标、阻塞、截断的顺序与隐藏的汇总。
 use std::time::{Duration, Instant};
 
-use rust_cli_kernel_api::agents::{TaskRecord, TaskStatus};
+use nibi_kernel_api::agents::{TaskRecord, TaskStatus};
 
 use super::*;
 

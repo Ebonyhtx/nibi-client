@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoints};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::provider::{Credential, ModelEndpoints};
 use serde_json::{Value, json};
 
 use crate::fake_server_tests::{Account, BIGMODEL, Harness, Reply, Server, ZAI, selection};

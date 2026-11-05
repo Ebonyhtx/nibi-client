@@ -7,7 +7,7 @@
 //! 3. F103（§27）：本机的版本不在注册表里，注册表只有 latest `0.0.9`：debian 里走完 404 → latest → 上传到 `bin/0.0.9/` →
 //!    试跑核对协议 → 握手 → `Bash{machine}`。
 //!
-//! 包是把 `test:rust-cli` 交叉编译的 musl 静态 debug 产物（`NIBI_TEST_SSH_ARTIFACT`）照 npm 平台包的样子打成
+//! 包是把 `test:nibi-kernel-cli` 交叉编译的 musl 静态 debug 产物（`NIBI_TEST_SSH_ARTIFACT`）照 npm 平台包的样子打成
 //! `@nibi/cli-linux-<arch>-gnu@<版本>`（静态产物在 glibc 的系统上照样能跑）。没有 Docker 或没有产物时跳过并写明
 //! 原因。容器与镜像用完删掉（名字带各自修复线的前缀）。
 #![cfg(unix)]

@@ -3,9 +3,9 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::{AgentId, MessageId};
-use rust_cli_kernel_api::message::{AttachmentMessage, CompactTrigger, Message};
-use rust_cli_kernel_api::orchestration::{HookEvent, HookEventName, HookOutcome, HookRunner};
+use nibi_kernel_api::ids::{AgentId, MessageId};
+use nibi_kernel_api::message::{AttachmentMessage, CompactTrigger, Message};
+use nibi_kernel_api::orchestration::{HookEvent, HookEventName, HookOutcome, HookRunner};
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 

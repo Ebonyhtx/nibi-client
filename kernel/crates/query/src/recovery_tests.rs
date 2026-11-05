@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::model::ModelError;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::model::ModelError;
 
 use super::*;
 

@@ -1,10 +1,10 @@
 //! 重试与停顿通知的投影（stall-visibility.md §3.2）：替换、清除与倒计时。
-use rust_cli_kernel_api::ids::{ToolUseId, TurnId};
-use rust_cli_kernel_api::model::{BlockDelta, ModelError, ModelNotice, ModelSelection};
-use rust_cli_kernel_api::orchestration::QueryEvent;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, TurnOutcome};
-use rust_cli_kernel_api::tool::ToolProgress;
+use nibi_kernel_api::ids::{ToolUseId, TurnId};
+use nibi_kernel_api::model::{BlockDelta, ModelError, ModelNotice, ModelSelection};
+use nibi_kernel_api::orchestration::QueryEvent;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, TurnOutcome};
+use nibi_kernel_api::tool::ToolProgress;
 use serde_json::json;
 
 use super::*;

@@ -3,10 +3,10 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{MemoryStore, text_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{MemoryStore, text_response};
 
 use super::sessions_seed::{Seed, seed};
 use super::support::{GatedModel, Setup, with_ui};
@@ -90,7 +90,7 @@ async fn resuming_inside_the_session_stores_the_reply_at_once() {
 #[tokio::test(flavor = "multi_thread")]
 async fn opening_at_startup_waits_for_the_first_input() {
     let (store, mut setup) = setup().await;
-    setup.startup = rust_cli_tui::Startup::Session("sess_cut".to_owned());
+    setup.startup = nibi_kernel_tui::Startup::Session("sess_cut".to_owned());
     let check = store.clone();
     let model = GatedModel::scripted(vec![text_response(&["next reply"])]);
     with_ui(model, setup, |mut ui| async move {
@@ -114,7 +114,7 @@ async fn opening_at_startup_waits_for_the_first_input() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_startup_page_waits_for_the_first_input() {
     let (store, mut setup) = setup().await;
-    setup.startup = rust_cli_tui::Startup::Pick;
+    setup.startup = nibi_kernel_tui::Startup::Pick;
     let check = store.clone();
     with_ui(
         GatedModel::scripted(Vec::new()),

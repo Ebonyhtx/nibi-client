@@ -102,11 +102,11 @@ fn over_budget_keeps_names_and_restores_descriptions_in_order() {
 /// 30000 个字符；旧模型与没有模型时是 4。
 #[test]
 fn the_budget_follows_the_models_chars_per_token() {
-    let opus = rust_cli_prompts::models::chars_per_token("claude-opus-5-5");
+    let opus = nibi_kernel_prompts::models::chars_per_token("claude-opus-5-5");
     assert_eq!(budget(Some(1_000_000), opus), 30_000);
     assert_eq!(budget(Some(1_000_000), 4), 40_000);
     assert_eq!(
-        budget(None, rust_cli_prompts::models::chars_per_token("")),
+        budget(None, nibi_kernel_prompts::models::chars_per_token("")),
         8_000
     );
 }

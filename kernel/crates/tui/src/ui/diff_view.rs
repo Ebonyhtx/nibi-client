@@ -1,7 +1,7 @@
 //! `/diff`（docs/specs/rust-cli/tui-manage.md §4）：当前未提交的改动与每回合的改动。未提交改动是打开时向内核
 //! 现取的 git 原始输出（解析只为显示）；回合改动来自视图的 `turn_changes`。这里只有页面的界面状态。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::env_git::GitDiff;
+use nibi_kernel_api::env_git::GitDiff;
 
 use super::app::{Action, App, Overlay};
 use super::i18n::Lang;

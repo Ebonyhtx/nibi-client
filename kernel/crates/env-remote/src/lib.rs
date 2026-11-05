@@ -13,13 +13,13 @@ mod to_wire;
 use std::sync::Arc;
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_exec_client::{ClientStream, ExecClient};
-use rust_cli_exec_wire::envelope::{ReplyResult, StreamItem};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_exec_wire::{Body, BodyBuilder};
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_exec_client::{ClientStream, ExecClient};
+use nibi_kernel_exec_wire::envelope::{ReplyResult, StreamItem};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_exec_wire::{Body, BodyBuilder};
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_api::machine::MachineEnv;
 
 /// 一台远端机器：一条到执行器的连接实现全部 8 个端口。
 pub struct RemoteEnvironment {
@@ -32,7 +32,7 @@ impl RemoteEnvironment {
     pub fn new(client: ExecClient) -> Self {
         Self {
             client,
-            name: rust_cli_kernel_api::env_registry::LOCAL_MACHINE.to_owned(),
+            name: nibi_kernel_api::env_registry::LOCAL_MACHINE.to_owned(),
         }
     }
 
@@ -56,8 +56,8 @@ impl RemoteEnvironment {
     /// 例如云端的秘密注入）。执行器没报告 `env` 时是 `Unsupported`；不合规则时是执行器的说明（`io`）。
     pub async fn update_env(
         &self,
-        mode: rust_cli_exec_wire::dto::env::EnvMode,
-        vars: rust_cli_exec_wire::dto::env::EnvVars,
+        mode: nibi_kernel_exec_wire::dto::env::EnvMode,
+        vars: nibi_kernel_exec_wire::dto::env::EnvVars,
         injected: Vec<String>,
     ) -> Result<(), EnvError> {
         let request = Request::EnvUpdate {

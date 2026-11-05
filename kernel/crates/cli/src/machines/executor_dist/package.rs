@@ -4,7 +4,7 @@
 use std::io::Read;
 
 use base64::Engine;
-use rust_cli_ssh_connect::Platform;
+use nibi_kernel_ssh_connect::Platform;
 use serde_json::Value;
 use sha2::{Digest, Sha256, Sha512};
 

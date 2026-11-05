@@ -4,15 +4,15 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::goal::GoalStatus;
-use rust_cli_kernel_api::hooks::{HookEvent, HookOutcome, HookRunner, StopCondition, StopVerdict};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::goal::GoalStatus;
+use nibi_kernel_api::hooks::{HookEvent, HookOutcome, HookRunner, StopCondition, StopVerdict};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
-use rust_cli_kernel_api::user_command::command_input;
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::user_command::command_input;
 use tokio_util::sync::CancellationToken;
 
 use super::*;
@@ -41,7 +41,7 @@ impl HookRunner for Evaluator {
         HookOutcome::default()
     }
 
-    fn has_hooks(&self, _event: rust_cli_kernel_api::hooks::HookEventName) -> bool {
+    fn has_hooks(&self, _event: nibi_kernel_api::hooks::HookEventName) -> bool {
         false
     }
 

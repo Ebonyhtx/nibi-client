@@ -8,7 +8,7 @@
 //! 5. 远端 MCP（§22.10）：绑定到 dev-a 的 stdio 服务器（仓库里的 bash 夹具，复制进容器）由容器里的执行器起，工具的结果
 //!    来自容器里的文件与命令，`${HOME}` 是容器里的。
 //!
-//! Linux 产物由 `test:rust-cli`（scripts/rust-cli/test.mjs）交叉编译后经 `NIBI_TEST_SSH_ARTIFACT` 交进来；没有 Docker 或没有
+//! Linux 产物由 `test:nibi-kernel-cli`（scripts/rust-cli/test.mjs）交叉编译后经 `NIBI_TEST_SSH_ARTIFACT` 交进来；没有 Docker 或没有
 //! 产物时跳过并写明原因（`NIBI_TEST_SSH_SKIP`）。容器与镜像用完删掉。
 #![cfg(unix)]
 #![allow(
@@ -27,17 +27,17 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, Reconnect};
-use rust_cli_exec_transport::Provisioner;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, Reconnect};
+use nibi_kernel_exec_transport::Provisioner;
+use nibi_kernel_api::env::{
     CommandEvent, EnvPath, ReadFile, StartCommand, WorkspaceRef, WritePrecondition,
 };
-use rust_cli_kernel_api::env_files::{GrepMode, GrepOutcome, GrepSearch, PutFile};
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{EnvironmentId, OperationId, ShellTaskId};
-use rust_cli_machines::{Machine, MachineState};
-use rust_cli_ssh_connect::SshProvisioner;
+use nibi_kernel_api::env_files::{GrepMode, GrepOutcome, GrepSearch, PutFile};
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{EnvironmentId, OperationId, ShellTaskId};
+use nibi_kernel_machines::{Machine, MachineState};
+use nibi_kernel_ssh_connect::SshProvisioner;
 use serde_json::Value;
 use sshd::{
     BIN, HOST, Sshd, TestEndpoint, VERSION, artifact_or_skip, context, docker, run, wanted,
@@ -150,7 +150,7 @@ async fn an_ssh_machine_is_provisioned_used_and_survives_a_dropped_link() {
     let recorder = {
         let mut states = machine.states();
         let recorded = recorded.clone();
-        rust_cli_base::owned(async move {
+        nibi_kernel_base::owned(async move {
             while states.changed().await.is_ok() {
                 let state = states.borrow_and_update().clone();
                 recorded.lock().unwrap().push(state);
@@ -216,7 +216,7 @@ async fn an_ssh_machine_is_provisioned_used_and_survives_a_dropped_link() {
     );
     assert!(matches!(
         &*client.states().borrow(),
-        rust_cli_exec_client::ConnectionState::Connected { epoch, .. } if *epoch >= 2
+        nibi_kernel_exec_client::ConnectionState::Connected { epoch, .. } if *epoch >= 2
     ));
     let MachineState::Ready(after) = machine.state() else {
         panic!("not ready again: {seen:?}");
@@ -399,16 +399,16 @@ async fn a_bound_mcp_server_runs_in_the_container() {
     let work = tempfile::tempdir().unwrap();
     let work_path = std::fs::canonicalize(work.path()).unwrap();
     let home = tempfile::tempdir().unwrap();
-    let rust_cli = home.path().join(".nibi/rust-cli");
-    std::fs::create_dir_all(&rust_cli).unwrap();
+    let nibi_kernel_cli = home.path().join(".nibi/rust-cli");
+    std::fs::create_dir_all(&nibi_kernel_cli).unwrap();
     std::fs::create_dir_all(home.path().join(".nibi/cli")).unwrap();
     let machines = serde_json::json!({"version": 1, "machines": [
         {"name": "dev-a", "ssh": HOST, "workingDirectory": "/srv/proj", "connected": true}
     ]});
-    std::fs::write(rust_cli.join("machines.json"), machines.to_string()).unwrap();
+    std::fs::write(nibi_kernel_cli.join("machines.json"), machines.to_string()).unwrap();
     let bindings =
         serde_json::json!({"version": 1, "servers": {"browser-a": {"machine": "dev-a"}}});
-    std::fs::write(rust_cli.join("mcp-machines.json"), bindings.to_string()).unwrap();
+    std::fs::write(nibi_kernel_cli.join("mcp-machines.json"), bindings.to_string()).unwrap();
     let config = serde_json::json!({"mcp": {"servers": {"browser-a": {
         "type": "stdio",
         "command": "/bin/bash",

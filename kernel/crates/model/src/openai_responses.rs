@@ -9,10 +9,10 @@
 //! `store: false`（不在服务端留存）；`include: ["reasoning.encrypted_content"]` 与 Node 一致。system 提示是
 //! `input` 的第一项，推理模型（o1 / o3 / o4-mini / gpt-5，`gpt-5-chat` 除外）用 `developer` 角色。
 
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::model::{ModelError, ModelRequest, ToolChoice, ToolDefinition};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint};
-use rust_cli_net::{HeaderValue, HttpRequest, header};
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::model::{ModelError, ModelRequest, ToolChoice, ToolDefinition};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint};
+use nibi_kernel_net::{HeaderValue, HttpRequest, header};
 use serde_json::{Map, Value, json};
 
 use crate::anthropic::HEADER_TIMEOUT;

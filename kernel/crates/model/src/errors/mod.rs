@@ -2,7 +2,7 @@
 //!
 //! 第 1 层：按端点选厂商（`profiles::vendor`），厂商层先认自己的码与结束原因，认不出再交给协议层（Anthropic / OpenAI 的
 //! 正文形状），最后是通用规则（词表、配额、媒体、状态码表）。输出中性的 [`Verdict`]：分类交给第 2 层（[`dispose`]）决定
-//! 处置，`ModelError` 交给调用方。厂商码与厂商专有的字符串只在这一层（`check:rust-cli` 的解耦检测）。
+//! 处置，`ModelError` 交给调用方。厂商码与厂商专有的字符串只在这一层（`check:nibi-kernel-cli` 的解耦检测）。
 //!
 //! 四种到达形式各有一个入口：响应头之前的失败 [`classify_response`]、流里的错误块 [`classify_stream_error`]、结束原因
 //! [`classify_finish`]、传输错误 [`classify_transport`]。都是纯函数，没有 IO。
@@ -15,12 +15,12 @@ mod zhipu;
 
 use std::time::{Duration, SystemTime};
 
-use rust_cli_base::redact::redact_secrets;
-use rust_cli_kernel_api::message::StopReason;
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::provider::WireProtocol;
-use rust_cli_net::retry::{retry_after, should_retry};
-use rust_cli_net::{NetError, ResponseHeaders};
+use nibi_kernel_base::redact::redact_secrets;
+use nibi_kernel_api::message::StopReason;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::provider::WireProtocol;
+use nibi_kernel_net::retry::{retry_after, should_retry};
+use nibi_kernel_net::{NetError, ResponseHeaders};
 use serde_json::Value;
 
 /// 错误正文里给出的消息最多保留这么多字符（各协议与厂商相同，F55：以前各写一份）。

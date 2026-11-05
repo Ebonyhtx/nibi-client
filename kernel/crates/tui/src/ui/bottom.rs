@@ -29,7 +29,7 @@ pub fn queue(app: &App, width: usize) -> Vec<Line<'static>> {
     let after_turn = app.after_turn.iter().map(|(label, _)| label.clone());
     for text in queued.chain(held).chain(after_turn) {
         // 排队的 bash 模式输入写成 `! 命令`（tui-input.md §2.1）。
-        let shown = rust_cli_kernel_api::user_input::display(&text);
+        let shown = nibi_kernel_api::user_input::display(&text);
         let text = shown.as_deref().unwrap_or(&text);
         let mut item = wrap_text(
             text.trim(),
@@ -65,9 +65,9 @@ pub fn queue(app: &App, width: usize) -> Vec<Line<'static>> {
 }
 
 /// 留下的输入命令要显示的文字（bash 模式写成 `! 命令`）。
-fn held_text(command: &rust_cli_kernel_api::session_api::Command) -> Option<String> {
-    use rust_cli_kernel_api::message::ContentBlock;
-    use rust_cli_kernel_api::session_api::Command;
+fn held_text(command: &nibi_kernel_api::session_api::Command) -> Option<String> {
+    use nibi_kernel_api::message::ContentBlock;
+    use nibi_kernel_api::session_api::Command;
     match command {
         Command::Submit { text, .. } => Some(text.clone()),
         Command::Bash { command, .. } => Some(format!("! {command}")),

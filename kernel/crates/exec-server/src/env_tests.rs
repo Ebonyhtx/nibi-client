@@ -4,16 +4,16 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::command::{CwdScope, ShellKind, StartCommand};
-use rust_cli_exec_wire::dto::core::{OperationContext, Origin};
-use rust_cli_exec_wire::dto::env::{EnvMode, EnvVars};
-use rust_cli_exec_wire::envelope::{ReplyResult, WireError};
-use rust_cli_exec_wire::frame::Kind;
-use rust_cli_exec_wire::handshake::{Capabilities, Hello};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::env_command::EnvOverrides;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::command::{CwdScope, ShellKind, StartCommand};
+use nibi_kernel_exec_wire::dto::core::{OperationContext, Origin};
+use nibi_kernel_exec_wire::dto::env::{EnvMode, EnvVars};
+use nibi_kernel_exec_wire::envelope::{ReplyResult, WireError};
+use nibi_kernel_exec_wire::frame::Kind;
+use nibi_kernel_exec_wire::handshake::{Capabilities, Hello};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::env_command::EnvOverrides;
 
 use crate::MemoryLedger;
 use crate::test_support::{Client, TestMachine, config, connect, hello, server_with, workspace};

@@ -10,8 +10,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
-use rust_cli_fs::PidLockOptions;
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_fs::PidLockOptions;
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 
 use super::DeviceMid;
 

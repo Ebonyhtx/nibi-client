@@ -5,16 +5,16 @@ use std::sync::Arc;
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::context_usage::{ContextUsageQuery, UsageCategory};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::ModelCapabilities;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::context_usage::{ContextUsageQuery, UsageCategory};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
     text_response,
 };
@@ -91,7 +91,7 @@ fn counting(responses: Vec<Vec<Result<ModelEvent, ModelError>>>) -> Arc<Counting
     })
 }
 
-fn query(session: Option<rust_cli_kernel_api::ids::SessionId>) -> ContextUsageQuery {
+fn query(session: Option<nibi_kernel_api::ids::SessionId>) -> ContextUsageQuery {
     ContextUsageQuery {
         session,
         workspace: workspace(),

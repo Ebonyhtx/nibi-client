@@ -8,12 +8,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::message::StopReason;
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, QuerySource};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_model::{FixedEndpoint, ProviderModel};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::message::StopReason;
+use nibi_kernel_api::model::{ModelError, ModelEvent, QuerySource};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_model::{FixedEndpoint, ProviderModel};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 
 use super::common::{clock, collect, fast_retry, message_start, model_at, request, text_response};

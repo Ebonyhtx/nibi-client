@@ -2,8 +2,8 @@
 //! 对话里显示命令、`Goal set` 与评估结果，不带参数时打开目标面板。深浅主题、中英文。
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 

@@ -7,12 +7,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::workflow::{
     WorkflowRunArtifact, WorkflowRunDetail, WorkflowRunIntrospection, WorkflowRunSubagentAsk,
     WorkflowRunSubagentView,
 };
@@ -113,8 +113,8 @@ impl Tool for GetWorkflowRunTool {
         &self,
         _input: &Value,
         _context: &ToolUseContext,
-    ) -> rust_cli_kernel_api::permission::PermissionDecision {
-        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
             updated_input: None,
         }
     }
@@ -138,7 +138,7 @@ impl Tool for GetWorkflowRunTool {
         }
         let detail = match self.introspection.run_detail(&context.session, &run_id).await {
             Ok(detail) => detail,
-            Err(rust_cli_kernel_api::store::StoreError::Unsupported { .. }) => {
+            Err(nibi_kernel_api::store::StoreError::Unsupported { .. }) => {
                 return Ok(unavailable_output());
             }
             Err(error) => {
@@ -730,7 +730,7 @@ fn pending_question_blocks(detail: &WorkflowRunDetail, now: u64) -> Vec<String> 
             let who = question.actor_name.as_deref().unwrap_or(&question.actor);
             let asked = format_relative_age(now, Some(question.asked_at))
                 .map_or_else(
-                    || format!("asked at {}", rust_cli_base::js::date::iso_timestamp(question.asked_at)),
+                    || format!("asked at {}", nibi_kernel_base::js::date::iso_timestamp(question.asked_at)),
                     |age| format!("asked {age}"),
                 );
             let mut lines = vec![
@@ -930,8 +930,8 @@ fn format_duration(ms: u64) -> String {
 /// ISO 时刻与相对年龄；年龄不可知时只显示 ISO 时刻。
 fn format_instant(now: u64, at: u64) -> String {
     match format_relative_age(now, Some(at)) {
-        Some(age) => format!("{} ({age})", rust_cli_base::js::date::iso_timestamp(at)),
-        None => rust_cli_base::js::date::iso_timestamp(at),
+        Some(age) => format!("{} ({age})", nibi_kernel_base::js::date::iso_timestamp(at)),
+        None => nibi_kernel_base::js::date::iso_timestamp(at),
     }
 }
 

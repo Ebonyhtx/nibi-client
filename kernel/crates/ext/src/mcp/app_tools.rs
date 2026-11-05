@@ -12,16 +12,16 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_ui::{
     APP_TOOL_ARGUMENTS_MAX_BYTES, APP_TOOL_CALL_TIMEOUT_MS, APP_TOOL_CLAIM_TIMEOUT_MS,
     APP_TOOL_RESULT_MAX_BYTES, McpAppInstance, McpUiAppToolDescriptor, McpUiAppToolRegistration,
     McpUiEvent, McpUiRegisterAppToolsRequest, McpUiSubscriber, app_tool_model_name, json_bytes,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Map, Value, json};

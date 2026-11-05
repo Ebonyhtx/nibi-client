@@ -18,10 +18,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::hook_review::{HookTrustState, WorkspaceHookReview};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::KernelError;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::hook_review::{HookTrustState, WorkspaceHookReview};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::KernelError;
 use serde_json::{Value, json};
 
 use crate::inbox::{Ack, Envelope, Status};

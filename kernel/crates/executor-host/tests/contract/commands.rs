@@ -7,9 +7,9 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, EnvError, EnvPath, Outcome, OutputStream};
-use rust_cli_kernel_api::env_shell::{CwdScope, HookIo};
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::env::{CommandEvent, EnvError, EnvPath, Outcome, OutputStream};
+use nibi_kernel_api::env_shell::{CwdScope, HookIo};
+use nibi_kernel_api::ids::{OperationId, SessionId};
 
 use crate::contract;
 use crate::shell_support::{exit_of, shell};

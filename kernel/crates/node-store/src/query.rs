@@ -4,9 +4,9 @@
 //! `workspace_id is null`、没删除，`order by time_updated desc, id desc`），可以不限目录；改名照 Node
 //! `setCustomSessionTitle`，删除照 Node `softDeleteSession`。
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::{
     SessionOrder, SessionPage, SessionQuery, SessionRecord, StoreError,
 };
 

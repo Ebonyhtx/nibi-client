@@ -6,10 +6,10 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
 use ratatui::style::Color;
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
-use rust_cli_tui::{Clipboard, CopyRoute, ImageBytes};
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_tui::{Clipboard, CopyRoute, ImageBytes};
 
 use super::support::{GatedModel, Setup, row_of, squash, with_ui};
 

@@ -1,4 +1,4 @@
-//! MCP 服务器绑定到远端机器（docs/specs/rust-cli/remote-exec.md §22.2）：rust-cli 自己的旁路文件
+//! MCP 服务器绑定到远端机器（docs/specs/rust-cli/remote-exec.md §22.2）：nibi-kernel-cli 自己的旁路文件
 //! `~/.zcode/rust-cli/mcp-machines.json`。
 //!
 //! 为什么不写进共用的配置文件：App 设置页编辑一个服务器时按表单重新拼出整个服务器（丢掉 `machine`），Node CLI 的
@@ -6,10 +6,10 @@
 
 use std::collections::BTreeMap;
 
-use rust_cli_ext::mcp::McpServer;
-use rust_cli_kernel_api::env::{EnvError, EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_registry::LOCAL_MACHINE;
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_ext::mcp::McpServer;
+use nibi_kernel_api::env::{EnvError, EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_registry::LOCAL_MACHINE;
+use nibi_kernel_api::machine::Files;
 use serde_json::Value;
 
 /// 服务器名 → 远端机器名（`local` 与空串不记：就是本机）。

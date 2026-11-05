@@ -5,8 +5,8 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, Ui, row_of, with_ui};
 

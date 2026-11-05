@@ -19,22 +19,22 @@ use std::time::Duration;
 
 use futures_util::stream::{self, BoxStream};
 use futures_util::{FutureExt, StreamExt};
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, ToolUseId};
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, ToolUseId};
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::{
     BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest, QuerySource,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, SequencedEvent,
 };
-use rust_cli_kernel_api::testing::{ScriptedModel, environments, selection, text_response};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
-use rust_cli_tui::view::{Body, Transcript};
+use nibi_kernel_api::testing::{ScriptedModel, environments, selection, text_response};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_tui::view::{Body, Transcript};
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
@@ -241,7 +241,7 @@ fn kernel(home: PathBuf, scratch: PathBuf, release: oneshot::Receiver<()>) -> Lo
             search_tools: false,
             task_tools: None,
             // 前台子代理只在 fork 关着时有（`NIBI_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
-            limits: rust_cli_runtime::Limits {
+            limits: nibi_kernel_runtime::Limits {
                 fork_subagent: Some(false),
                 ..Default::default()
             },
@@ -277,7 +277,7 @@ fn bodies(transcript: &Transcript) -> Vec<Body> {
 /// 一个时点的比较：在线订阅方到 `last` 为止折叠出的画面，与从 0 补发、从中途各处续上的画面逐行相同；返回补发的
 /// 事件数。
 fn compare(
-    handle: &Arc<dyn rust_cli_kernel_api::session_api::SessionHandle>,
+    handle: &Arc<dyn nibi_kernel_api::session_api::SessionHandle>,
     workspace: &WorkspaceRef,
     online: &[SequencedEvent],
     last: u64,

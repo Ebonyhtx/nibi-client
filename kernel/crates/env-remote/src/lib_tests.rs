@@ -1,16 +1,16 @@
 //! 客户端侧的换算：错误一一对应、字节字段从二进制段取、越界是 `io` 错误。端口的行为由 executor-host 的合同测试覆盖
 //! （同一套测试对本机与 loopback 远端各跑一遍）。
 
-use rust_cli_exec_client::ClientError;
-use rust_cli_exec_wire::BodyBuilder;
-use rust_cli_exec_wire::dto::command as wc;
-use rust_cli_exec_wire::dto::core as w;
-use rust_cli_exec_wire::dto::files as wf;
-use rust_cli_exec_wire::envelope::WireError;
-use rust_cli_kernel_api::env::{CommandEvent, EnvError, Outcome};
-use rust_cli_kernel_api::env_files::TextRead;
-use rust_cli_kernel_api::env_pdf::PdfRender;
-use rust_cli_kernel_api::ids::OperationId;
+use nibi_kernel_exec_client::ClientError;
+use nibi_kernel_exec_wire::BodyBuilder;
+use nibi_kernel_exec_wire::dto::command as wc;
+use nibi_kernel_exec_wire::dto::core as w;
+use nibi_kernel_exec_wire::dto::files as wf;
+use nibi_kernel_exec_wire::envelope::WireError;
+use nibi_kernel_api::env::{CommandEvent, EnvError, Outcome};
+use nibi_kernel_api::env_files::TextRead;
+use nibi_kernel_api::env_pdf::PdfRender;
+use nibi_kernel_api::ids::OperationId;
 
 use crate::from_wire::{command_event, error, pdf_render, text_read};
 
@@ -130,7 +130,7 @@ fn byte_fields_come_from_the_body() {
     ));
     let outside = wc::CommandEvent::Output {
         stream: wc::OutputStream::Stdout,
-        data: rust_cli_exec_wire::Blob { at: 1000, len: 1 },
+        data: nibi_kernel_exec_wire::Blob { at: 1000, len: 1 },
         cursor: 4,
     };
     assert!(matches!(
@@ -162,7 +162,7 @@ fn byte_fields_come_from_the_body() {
 /// 工具能懂的说法；能力位缺失、执行器自己的错误照旧。
 #[test]
 fn remote_failures_say_whether_the_call_ran_and_what_to_do() {
-    use rust_cli_exec_wire::op::Op;
+    use nibi_kernel_exec_wire::op::Op;
 
     use crate::failure;
     let io = |error: EnvError| match error {
@@ -233,7 +233,7 @@ fn remote_failures_say_whether_the_call_ran_and_what_to_do() {
             "dev-a",
             Op::Stat,
             ClientError::Refused {
-                code: rust_cli_exec_wire::handshake::RefuseCode::Protocol,
+                code: nibi_kernel_exec_wire::handshake::RefuseCode::Protocol,
                 message: "protocol 2".to_owned()
             }
         ))

@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-use rust_cli_kernel_api::model::{ModelConnection, ModelError, ModelSelection};
-use rust_cli_kernel_api::provider::{
+use nibi_kernel_api::model::{ModelConnection, ModelError, ModelSelection};
+use nibi_kernel_api::provider::{
     CatalogModel, Credential, ModelDirectory, ModelEndpoint, ModelEndpoints,
 };
 use serde_json::{Value, json};

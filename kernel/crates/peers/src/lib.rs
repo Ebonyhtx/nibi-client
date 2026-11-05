@@ -2,7 +2,7 @@
 //!
 //! 进程级的事实在这里：自己的名字与地址、登记（`<peers>/<pid>.json`）、收件箱 socket、绑定的主会话、还没 ack 的入站、
 //! 发出去还没终态的 msg_id。会话级的事实（收到的消息、扣住、解决、回执）只在会话 actor，先提交再 ack。
-//! IO：登记文件经 `rust-cli-fs`，socket 经 `rust-cli-net::uds`；路径由入口从 `StoragePaths::peers` 给出。
+//! IO：登记文件经 `nibi-kernel-fs`，socket 经 `nibi-kernel-net::uds`；路径由入口从 `StoragePaths::peers` 给出。
 
 mod frames;
 mod inbox;
@@ -14,10 +14,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_base::{Spawner, Task};
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_base::{Spawner, Task};
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::peers::{
     PeerAddress, PeerIdentity, PeerMessaging, PeerOutbound, PeerRecord, PeerSendError, PeerSignal,
     PeerStatus, ReceiptStatus, name_prefix,
 };
@@ -45,7 +45,7 @@ pub struct PeerConfig {
     pub spawner: Spawner,
 }
 
-/// 本机实现；绑定失败或平台不支持时整体关闭（同 [`rust_cli_kernel_api::peers::NoPeers`]）。
+/// 本机实现；绑定失败或平台不支持时整体关闭（同 [`nibi_kernel_api::peers::NoPeers`]）。
 pub struct LocalPeers {
     live: Option<Arc<Live>>,
 }
@@ -80,7 +80,7 @@ impl LocalPeers {
 
     /// 建登记目录、绑定收件箱、写登记、开服务与写登记的任务。任何一步失败都记日志并关闭跨会话。
     pub async fn start(config: PeerConfig) -> Self {
-        if !rust_cli_net::uds::supported() {
+        if !nibi_kernel_net::uds::supported() {
             return Self::off();
         }
         match Self::bind(config).await {
@@ -95,7 +95,7 @@ impl LocalPeers {
     }
 
     async fn bind(config: PeerConfig) -> std::io::Result<Live> {
-        rust_cli_fs::create_private_dir_all(&config.registry).await?;
+        nibi_kernel_fs::create_private_dir_all(&config.registry).await?;
         let socket = socket_path(&config).ok_or_else(|| {
             std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
@@ -103,12 +103,12 @@ impl LocalPeers {
             )
         })?;
         if let Some(parent) = socket.parent() {
-            rust_cli_fs::create_private_dir_all(parent).await?;
+            nibi_kernel_fs::create_private_dir_all(parent).await?;
         }
         // 同一个 pid 的旧 socket 只可能属于已经退出的进程。
-        rust_cli_fs::remove_optional(&socket).await?;
-        let listener = rust_cli_net::uds::UdsListener::bind(&socket)?;
-        rust_cli_fs::restrict_to_owner(&socket).await?;
+        nibi_kernel_fs::remove_optional(&socket).await?;
+        let listener = nibi_kernel_net::uds::UdsListener::bind(&socket)?;
+        nibi_kernel_fs::restrict_to_owner(&socket).await?;
         let socket_text = socket.to_string_lossy().into_owned();
         let directory = Path::new(&config.cwd)
             .file_name()
@@ -269,7 +269,7 @@ impl PeerMessaging for LocalPeers {
             priority: Some("next".to_owned()),
         };
         let socket = PathBuf::from(message.to.socket());
-        let result = match rust_cli_net::uds::request(&socket, &line(&frame)).await {
+        let result = match nibi_kernel_net::uds::request(&socket, &line(&frame)).await {
             Ok(Some(reply)) => match serde_json::from_str::<Reply>(&reply) {
                 Ok(Reply::Accepted) => Ok(()),
                 Ok(Reply::Refused { reason }) => Err(PeerSendError::Refused { reason }),
@@ -297,7 +297,7 @@ impl PeerMessaging for LocalPeers {
         let text = line(&frame);
         live.spawner.spawn("peer-receipt", async move {
             let socket = PathBuf::from(to.socket());
-            if let Err(error) = rust_cli_net::uds::request(&socket, &text).await {
+            if let Err(error) = nibi_kernel_net::uds::request(&socket, &text).await {
                 // 对方已退出：回执丢掉。
                 tracing::debug!(%error, to = %to.as_str(), "a cross-session receipt was not delivered");
             }

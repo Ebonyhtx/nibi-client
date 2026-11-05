@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, EndReason, Kernel, KernelError, RewindScope, SessionHandle,
     SessionView, StartSource,
 };
-use rust_cli_kernel_api::store::SessionFilter;
+use nibi_kernel_api::store::SessionFilter;
 
 use super::session::{Done, Sent};
 use super::{Loop, idle};
@@ -51,7 +51,7 @@ async fn open(
     let mut handle = kernel.open_session_as(&id, source).await?;
     if let Some(command) = fork {
         let ack = handle.send(command).await;
-        let rust_cli_kernel_api::session_api::Ack::Accepted { result } = ack else {
+        let nibi_kernel_api::session_api::Ack::Accepted { result } = ack else {
             return Err(KernelError::Failed {
                 message: format!("{ack:?}"),
             });

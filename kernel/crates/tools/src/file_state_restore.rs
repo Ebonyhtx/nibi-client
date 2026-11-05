@@ -13,13 +13,13 @@
 use std::collections::HashMap;
 
 use regex::Regex;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_registry::LOCAL_MACHINE;
-use rust_cli_kernel_api::ids::{SessionId, ToolUseId};
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::machine_param::named_in;
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_registry::LOCAL_MACHINE;
+use nibi_kernel_api::ids::{SessionId, ToolUseId};
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::machine_param::named_in;
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
 use serde_json::Value;
 
 use crate::encoding::{decode, normalize};

@@ -6,9 +6,9 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use rust_cli_exec_wire::handshake::Welcome;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_exec_wire::{Body, BodyBuilder};
+use nibi_kernel_exec_wire::handshake::Welcome;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_exec_wire::{Body, BodyBuilder};
 use tokio::sync::Notify;
 
 use crate::test_support::{TestMachine, config, connect, server_with, write};

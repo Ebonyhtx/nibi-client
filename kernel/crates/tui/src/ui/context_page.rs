@@ -2,7 +2,7 @@
 //! 方格图之后是明细（默认折叠，`/context all` 展开）与建议。数据都来自内核的 [`ContextUsage`]，不另算。
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::context_usage::{ContextUsage, format_estimate, format_tokens};
+use nibi_kernel_api::context_usage::{ContextUsage, format_estimate, format_tokens};
 
 use super::cells::{self, Ctx};
 use super::i18n::Lang;

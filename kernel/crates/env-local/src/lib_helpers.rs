@@ -2,8 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::ids::OperationId;
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::ids::OperationId;
 use tokio_util::sync::CancellationToken;
 
 pub(crate) fn unknown_operation(operation: &OperationId) -> EnvError {
@@ -28,7 +28,7 @@ where
     T: Send + 'static,
     F: FnOnce() -> Result<T, EnvError> + Send + 'static,
 {
-    rust_cli_base::blocking(work)
+    nibi_kernel_base::blocking(work)
         .await
         .map_err(|error| EnvError::Io {
             message: error.to_string(),

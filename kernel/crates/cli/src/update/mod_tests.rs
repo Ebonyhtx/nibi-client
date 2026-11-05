@@ -1,7 +1,7 @@
 #![allow(clippy::disallowed_methods, reason = "测试：临时目录、读回缓存文件")]
 use std::path::Path;
 
-use rust_cli_kernel_api::testing::FixedClock;
+use nibi_kernel_api::testing::FixedClock;
 
 use super::fake_registry_tests::{FakeRegistry, egress, package};
 use super::*;

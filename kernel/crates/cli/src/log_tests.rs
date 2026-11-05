@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 
-use rust_cli_base::js::iso_timestamp;
-use rust_cli_kernel_api::testing::FixedClock;
+use nibi_kernel_base::js::iso_timestamp;
+use nibi_kernel_api::testing::FixedClock;
 use serde_json::Value;
 
 use super::*;

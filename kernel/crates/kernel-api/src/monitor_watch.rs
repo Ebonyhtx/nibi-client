@@ -6,7 +6,7 @@
 //! [`Watch::expire`]，事件流结束调 [`Watch::finish`]。说明是结构化的 [`Housekeeping`]，文字由调用方按 prompts 给出。
 //! 时刻是注入的时钟给的毫秒数（README §4：内核不用单调时钟的类型），由调用方传入，所以测试不用等。
 
-use rust_cli_base::js::string::{trim, utf16_len, utf16_prefix};
+use nibi_kernel_base::js::string::{trim, utf16_len, utf16_prefix};
 
 use crate::env_shell::SocketEvent;
 use crate::monitor::MonitorArmed;
@@ -34,7 +34,7 @@ pub enum Emit {
     Notice(Housekeeping),
 }
 
-/// 说明的种类（文字见 `rust_cli_prompts::monitor`）。
+/// 说明的种类（文字见 `nibi_kernel_prompts::monitor`）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Housekeeping {
     /// 压下之后第一次拿到令牌：压下的批数。

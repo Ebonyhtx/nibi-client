@@ -1,6 +1,6 @@
 //! match query、matcher、去重与 `if` 条件（spec §3.3）。
 
-use rust_cli_kernel_api::hooks::HookEventName as E;
+use nibi_kernel_api::hooks::HookEventName as E;
 use serde_json::json;
 
 use super::*;

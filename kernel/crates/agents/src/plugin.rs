@@ -6,9 +6,9 @@
 
 use std::collections::BTreeMap;
 
-use rust_cli_base::names::vars;
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_base::names::vars;
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::machine::Files;
 
 use crate::definitions::{AgentDefinition, AgentSource};
 use crate::frontmatter::{self, Value};

@@ -1,7 +1,7 @@
 //! canonical → OpenAI 公共降级（model.md §10）。
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::model::{ApiContent, CacheControl};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::model::{ApiContent, CacheControl};
 use serde_json::json;
 
 use super::*;
@@ -166,8 +166,8 @@ fn a_trailing_system_message_becomes_a_final_user_turn() {
 
 #[test]
 fn unmaterialized_images_are_rejected() {
-    use rust_cli_kernel_api::ids::{ArtifactId, SessionId};
-    use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef};
+    use nibi_kernel_api::ids::{ArtifactId, SessionId};
+    use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef};
     let artifact = ImageSource::Artifact {
         media_type: "image/png".to_owned(),
         artifact: ArtifactRef {

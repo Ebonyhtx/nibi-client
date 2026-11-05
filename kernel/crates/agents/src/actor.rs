@@ -8,23 +8,23 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{AgentId, SessionId, TraceId};
-use rust_cli_kernel_api::message::UserOrigin;
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{ContextBuilder, QueryRequest, ToolRegistry};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::{AgentId, SessionId, TraceId};
+use nibi_kernel_api::message::UserOrigin;
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{ContextBuilder, QueryRequest, ToolRegistry};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{
     Fact, SessionKind, SessionMeta, StoreError, TurnAnchor,
 };
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::workflow::{
     ESCALATE_TOOL, RESOLVE_WORKFLOW_QUESTION_TOOL, WorkflowEscalation, WorkflowEscalationOutcome,
     WorkflowEscalationRequest,
 };
 use tokio_util::sync::CancellationToken;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::tool::{PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::tool::{PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 
@@ -55,7 +55,7 @@ pub struct ActorProfile {
     /// typed ask 的 `result` 形状（JSON Schema）：Some 时给 actor 注册 `submit_result` 工具。
     pub submit_schema: Option<Value>,
     /// amend-resume 的转录种子：`first` 建会话时兑现（复制源前缀，幂等），缺席即无导入。
-    pub seed: Option<rust_cli_kernel_api::workflow::WorkflowActorSeed>,
+    pub seed: Option<nibi_kernel_api::workflow::WorkflowActorSeed>,
     /// 本 run 的 id（升级问答的路由身份）。
     pub run_id: String,
     /// actor 的结构化引用 `site@ordinal`。
@@ -170,8 +170,8 @@ impl Tool for SubmitResultTool {
         &self,
         _input: &Value,
         _context: &ToolUseContext,
-    ) -> rust_cli_kernel_api::permission::PermissionDecision {
-        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
             updated_input: None,
         }
     }
@@ -189,7 +189,7 @@ impl Tool for SubmitResultTool {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(result);
         Ok(ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text {
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text {
                 text: "submitted".to_owned(),
             }],
             is_error: false,
@@ -268,8 +268,8 @@ impl Tool for EscalateTool {
         &self,
         _input: &Value,
         _context: &ToolUseContext,
-    ) -> rust_cli_kernel_api::permission::PermissionDecision {
-        rust_cli_kernel_api::permission::PermissionDecision::Allow {
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
             updated_input: None,
         }
     }
@@ -317,7 +317,7 @@ impl Tool for EscalateTool {
             ),
         };
         Ok(ToolOutput {
-            content: vec![rust_cli_kernel_api::message::ToolResultContent::Text { text }],
+            content: vec![nibi_kernel_api::message::ToolResultContent::Text { text }],
             is_error: false,
             display,
         })
@@ -353,7 +353,7 @@ impl ToolRegistry for ActorTools {
         self.inner.find(name)
     }
 
-    fn find_for(&self, session: &rust_cli_kernel_api::ids::SessionId, name: &str) -> Option<Arc<dyn Tool>> {
+    fn find_for(&self, session: &nibi_kernel_api::ids::SessionId, name: &str) -> Option<Arc<dyn Tool>> {
         if name == "submit_result" {
             return self.submit.clone().map(|tool| tool as Arc<dyn Tool>);
         }
@@ -365,8 +365,8 @@ impl ToolRegistry for ActorTools {
 
     fn snapshot(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-    ) -> rust_cli_kernel_api::orchestration::ToolSnapshot {
+        session: &nibi_kernel_api::ids::SessionId,
+    ) -> nibi_kernel_api::orchestration::ToolSnapshot {
         let mut snapshot = self.inner.snapshot(session);
         if let Some(submit) = &self.submit {
             snapshot.tools.push(submit.clone());
@@ -377,28 +377,28 @@ impl ToolRegistry for ActorTools {
         snapshot
     }
 
-    fn mcp(&self) -> Option<Arc<dyn rust_cli_kernel_api::mcp_state::McpConnections>> {
+    fn mcp(&self) -> Option<Arc<dyn nibi_kernel_api::mcp_state::McpConnections>> {
         self.inner.mcp()
     }
 
     fn mcp_for(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-    ) -> Option<Arc<dyn rust_cli_kernel_api::mcp_state::McpConnections>> {
+        session: &nibi_kernel_api::ids::SessionId,
+    ) -> Option<Arc<dyn nibi_kernel_api::mcp_state::McpConnections>> {
         self.inner.mcp_for(session)
     }
 
     fn session_mcp(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-    ) -> Option<Arc<dyn rust_cli_kernel_api::mcp_state::McpConnections>> {
+        session: &nibi_kernel_api::ids::SessionId,
+    ) -> Option<Arc<dyn nibi_kernel_api::mcp_state::McpConnections>> {
         self.inner.session_mcp(session)
     }
 
     fn inherit_session_mcp(
         &self,
-        parent: &rust_cli_kernel_api::ids::SessionId,
-        child: &rust_cli_kernel_api::ids::SessionId,
+        parent: &nibi_kernel_api::ids::SessionId,
+        child: &nibi_kernel_api::ids::SessionId,
     ) {
         self.inner.inherit_session_mcp(parent, child);
     }
@@ -430,7 +430,7 @@ async fn open(
     profile: &ActorProfile,
     message: &str,
     first: bool,
-) -> Result<(Vec<rust_cli_kernel_api::message::Message>, Option<TurnAnchor>), ActorError> {
+) -> Result<(Vec<nibi_kernel_api::message::Message>, Option<TurnAnchor>), ActorError> {
     let user = crate::spawn::user(core, message, UserOrigin::Human);
     tracing::debug!(event = "dwf.actor.open", child = profile.child.as_str(), first);
     if first {
@@ -569,7 +569,7 @@ impl Agents {
             )
             .with_turn(turn),
         );
-        let abort = rust_cli_kernel_api::abort::Abort::new();
+        let abort = nibi_kernel_api::abort::Abort::new();
         let request = QueryRequest {
             session: profile.child.clone(),
             run: core.ports.ids.run(),
@@ -589,7 +589,7 @@ impl Agents {
             Some(cancel) => tokio::select! {
                 result = &mut run => result,
                 () = cancel.cancelled() => {
-                    abort.abort(rust_cli_kernel_api::abort::AbortReason::User);
+                    abort.abort(nibi_kernel_api::abort::AbortReason::User);
                     run.await
                 }
             },
@@ -598,17 +598,17 @@ impl Agents {
         let (last, tool_uses) = sink.outcome();
         let mut text = crate::report::final_text(last.as_ref());
         let (stopped, error) = match result {
-            Ok(rust_cli_kernel_api::orchestration::QueryStop::Aborted) => ("aborted", None),
-            Ok(rust_cli_kernel_api::orchestration::QueryStop::ApiError { message }
-            | rust_cli_kernel_api::orchestration::QueryStop::Blocked { message }) => {
+            Ok(nibi_kernel_api::orchestration::QueryStop::Aborted) => ("aborted", None),
+            Ok(nibi_kernel_api::orchestration::QueryStop::ApiError { message }
+            | nibi_kernel_api::orchestration::QueryStop::Blocked { message }) => {
                 if text.is_empty() {
                     text = message;
                 }
                 ("completed", None)
             }
             Ok(
-                rust_cli_kernel_api::orchestration::QueryStop::Completed
-                | rust_cli_kernel_api::orchestration::QueryStop::MaxTurns,
+                nibi_kernel_api::orchestration::QueryStop::Completed
+                | nibi_kernel_api::orchestration::QueryStop::MaxTurns,
             ) => ("completed", None),
             Err(error) => ("failed", Some(error.to_string())),
         };

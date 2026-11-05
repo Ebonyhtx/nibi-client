@@ -1,7 +1,7 @@
 //! 任务清单的改动与结果文字（agents.md §6）：不读对照数据的用例。按剧本重放的在 `edit_parity_tests.rs`
 //! （docs/specs/rust-cli/export.md §5）。
 
-use rust_cli_kernel_api::agents::TaskList;
+use nibi_kernel_api::agents::TaskList;
 use serde_json::json;
 
 use super::{create, list_text, update};

@@ -1,9 +1,9 @@
 //! `plugins` 段、插件存储根与插件候选（config.md §2.1、ext.md §4.1）。
 #![allow(clippy::disallowed_methods, reason = "测试准备临时目录里的插件清单")]
 
-use rust_cli_ext::plugins::PluginOrigin;
-use rust_cli_kernel_api::permission::RuleSource;
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_ext::plugins::PluginOrigin;
+use nibi_kernel_api::permission::RuleSource;
+use nibi_kernel_paths::StoragePaths;
 use serde_json::{Map, Value, json};
 
 use super::*;
@@ -159,8 +159,8 @@ async fn candidates_follow_the_node_order() {
 
 async fn sources_of(
     section: PluginSection,
-    root: &rust_cli_paths::StoragePath,
-) -> rust_cli_ext::plugins::PluginSources {
+    root: &nibi_kernel_paths::StoragePath,
+) -> nibi_kernel_ext::plugins::PluginSources {
     sources(section, "/Users/dev/repo", root, None).await
 }
 

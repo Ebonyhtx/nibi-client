@@ -16,7 +16,7 @@ use std::process::Stdio;
 
 use serde_json::{Value, json};
 
-/// 测试进程的 PATH 里的 node（`pnpm test:rust-cli` 由 node 启动，PATH 里一定有）。
+/// 测试进程的 PATH 里的 node（`pnpm test:nibi-kernel-cli` 由 node 启动，PATH 里一定有）。
 fn node() -> PathBuf {
     let path = std::env::var_os("PATH").unwrap_or_default();
     std::env::split_paths(&path)
@@ -36,7 +36,7 @@ fn a_tool_whose_name_is_too_long_is_not_sent_to_the_model() {
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/mcp-long-names.mjs");
     let config = json!({"mcpServers": {"names": {"command": node(), "args": [server]}}});
     let fixture = sse::serve(vec![sse::text_reply("done")]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "hi", "--strict-mcp-config", "--mcp-config"])
         .arg(config.to_string())
         .current_dir(&work)

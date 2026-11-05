@@ -6,14 +6,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection};
-use rust_cli_kernel_api::provider::ModelCapabilities;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection};
+use nibi_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
-use rust_cli_prompts::models::ToolSearchSetting;
+use nibi_kernel_prompts::models::ToolSearchSetting;
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -279,7 +279,7 @@ async fn the_request_names_the_session_that_sends_it() {
     let request = first_request(glm(), None).await;
     assert_eq!(
         request.options.session_id,
-        Some(rust_cli_kernel_api::ids::SessionId::new("sess_1"))
+        Some(nibi_kernel_api::ids::SessionId::new("sess_1"))
     );
     // 工作线 F64（model.md §2.4）：这次运行（回合）给每请求头的 `x-query-id`；主线程没有子代理。
     assert!(request.options.run.is_some());

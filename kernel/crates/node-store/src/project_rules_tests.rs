@@ -1,8 +1,8 @@
 //! 本机项目规则集的读与“总是允许”的写（shell-permissions.md §5）。
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior};
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
+use nibi_kernel_api::store::{Fact, SessionStore};
 
 use crate::tests::{TestStore, batch, meta};
 
@@ -148,7 +148,7 @@ async fn an_unreadable_ruleset_is_not_overwritten() {
 /// `/permissions` 的加与删（tui-manage.md §1.1）：不需要会话，键序与去重同 Node，删掉后留空数组。
 #[tokio::test]
 async fn permissions_changes_add_and_remove_in_one_transaction() {
-    use rust_cli_kernel_api::store::ProjectRulesChange;
+    use nibi_kernel_api::store::ProjectRulesChange;
     let test = TestStore::new();
     // 先经存储打开库（建库与迁移）。
     test.store.project_rules(&workspace()).await.unwrap();

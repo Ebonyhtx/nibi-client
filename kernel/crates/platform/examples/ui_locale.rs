@@ -6,8 +6,8 @@
 use std::path::Path;
 
 use anyhow::{Context, Result, bail};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_platform::{UiLocale, read_cli_config, write_ui_locale};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_platform::{UiLocale, read_cli_config, write_ui_locale};
 use serde_json::{Value, json};
 
 #[tokio::main(flavor = "current_thread")]

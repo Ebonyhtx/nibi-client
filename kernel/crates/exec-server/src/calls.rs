@@ -6,14 +6,14 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use futures_util::StreamExt;
-use rust_cli_base::Task;
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::envelope::{
+use nibi_kernel_base::Task;
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::envelope::{
     Ack, EventHeader, ReplyHeader, ReplyResult, RequestHeader, StreamItem, WireError,
 };
-use rust_cli_exec_wire::frame::{Frame, Kind};
-use rust_cli_exec_wire::handshake::{Capability, STREAM_WINDOW};
-use rust_cli_exec_wire::request::Request;
+use nibi_kernel_exec_wire::frame::{Frame, Kind};
+use nibi_kernel_exec_wire::handshake::{Capability, STREAM_WINDOW};
+use nibi_kernel_exec_wire::request::Request;
 use sha2::{Digest, Sha256};
 use tokio::sync::Notify;
 
@@ -111,14 +111,14 @@ pub(crate) async fn request(inner: &Arc<Inner>, instance: &str, header: RequestH
     match begun {
         Begun::New if op.is_stream() => open_stream(inner, key, request),
         // 环境变量推送（F96，remote-exec.md §23.5）：在读循环里当场生效，之后读到的请求都看得到它。
-        Begun::New if op == rust_cli_exec_wire::op::Op::EnvUpdate => {
+        Begun::New if op == nibi_kernel_exec_wire::op::Op::EnvUpdate => {
             let result = match request {
                 Request::EnvUpdate {
                     mode,
                     vars,
                     injected,
                 } => match inner.env.update(instance, mode, vars, injected) {
-                    Ok(()) => ReplyResult::Ok(rust_cli_exec_wire::reply::Reply::EnvUpdate),
+                    Ok(()) => ReplyResult::Ok(nibi_kernel_exec_wire::reply::Reply::EnvUpdate),
                     Err(message) => ReplyResult::Err(WireError::BadRequest { message }),
                 },
                 _ => ReplyResult::Err(WireError::BadRequest {
@@ -135,7 +135,7 @@ pub(crate) async fn request(inner: &Arc<Inner>, instance: &str, header: RequestH
             // 起进程的请求带上这个客户端实例推来的环境变量：在读到请求的这一刻取（F96，与 `env.update` 的先后一致）。
             let env = if matches!(
                 op,
-                rust_cli_exec_wire::op::Op::StartCommand | rust_cli_exec_wire::op::Op::McpConnect
+                nibi_kernel_exec_wire::op::Op::StartCommand | nibi_kernel_exec_wire::op::Op::McpConnect
             ) {
                 inner.env.overrides(instance)
             } else {

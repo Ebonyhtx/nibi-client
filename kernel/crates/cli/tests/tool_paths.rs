@@ -12,22 +12,22 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     ArtifactId, EnvironmentId, Generation, InteractionId, OperationId, OwnerEpoch, RunId,
     SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionGate,
     ToolExecutor, ToolRegistry,
 };
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, ArtifactStore, StoreError};
-use rust_cli_kernel_api::testing::{NoHooks, RoundTripEnv, local_services, machine};
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
-use rust_cli_tools::{BuiltinTools, Pipeline};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, ArtifactStore, StoreError};
+use nibi_kernel_api::testing::{NoHooks, RoundTripEnv, local_services, machine};
+use nibi_kernel_api::tool::{Tool, ToolUseContext};
+use nibi_kernel_tools::{BuiltinTools, Pipeline};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -146,7 +146,7 @@ impl Bench {
         Self {
             _dir: dir,
             root,
-            tools: rust_cli_tools::builtin(gate.clone()).with_search_opt_in(true),
+            tools: nibi_kernel_tools::builtin(gate.clone()).with_search_opt_in(true),
             pipeline: Pipeline::new(gate, Arc::new(NoHooks)),
             env: Arc::new(RoundTripEnv(Arc::new(LocalEnvironment::new(None)))),
             artifacts: Arc::new(Artifacts::default()),

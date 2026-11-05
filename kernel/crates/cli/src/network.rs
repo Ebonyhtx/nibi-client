@@ -1,5 +1,5 @@
 //! 网络出口的来源（docs/specs/rust-cli/config.md §2.4，修复线 F21）：入口从环境快照算出代理地址、不走代理的
-//! 规则与信任的根证书，交给 net 的 `Egress`。CA 文件经 rust-cli-fs 读。
+//! 规则与信任的根证书，交给 net 的 `Egress`。CA 文件经 nibi-kernel-fs 读。
 //!
 //! 修复（审查 R2-2）：以前入口一直用 `NetworkPolicy::default`，不读任何代理与 CA，企业网络连不上（子进程却经
 //! 白名单拿到 `HTTPS_PROXY`）。现在 Node 版 zcode 的 `NIBI_*` 变量逐项优先（Node 的语义），没有时读标准变量。
@@ -9,9 +9,9 @@ use std::io;
 use std::path::Path;
 
 use anyhow::{Result, anyhow};
-use rust_cli_base::js::string::trim;
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_net::{CaBundle, NetworkPolicy, NoProxy, TrustRoots};
+use nibi_kernel_base::js::string::trim;
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_net::{CaBundle, NetworkPolicy, NoProxy, TrustRoots};
 
 /// Node 版 zcode 的根证书变量（读值、报错与日志都用这个名字，F55：以前写了三次）。
 const AGENT_CA_CERT: &str = "NIBI_AGENT_CA_CERT";
@@ -211,7 +211,7 @@ fn warning(path: &str, reason: &str) -> String {
 
 /// 读 CA 文件。失败时给系统的说明（Node 与 Bun 写的就是它，不带 Rust 的 ` (os error N)`）。
 async fn read(path: &Path) -> Result<Vec<u8>, String> {
-    match rust_cli_fs::read_optional(path).await {
+    match nibi_kernel_fs::read_optional(path).await {
         Ok(Some(bytes)) => Ok(bytes),
         Ok(None) => Err("No such file or directory".to_owned()),
         Err(error) => Err(os_message(&error)),

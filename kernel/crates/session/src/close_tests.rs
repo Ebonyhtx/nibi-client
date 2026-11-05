@@ -1,8 +1,8 @@
 //! 会话关闭（docs/specs/rust-cli/session-lifecycle.md §3.3）：actor 中止前台工作后退出，释放执行环境里的会话；
 //! 关闭之后到达的后台通知不再开回合，留在执行环境里（不 ack），会话重新打开时送达。
 
-use rust_cli_kernel_api::session_api::EndReason;
-use rust_cli_kernel_api::testing::{NoticeEnvironment, shell_notice};
+use nibi_kernel_api::session_api::EndReason;
+use nibi_kernel_api::testing::{NoticeEnvironment, shell_notice};
 
 use super::*;
 
@@ -73,13 +73,13 @@ impl ModelPort for HangingModel {
     }
 }
 
-fn user_texts(messages: &[rust_cli_kernel_api::message::Message]) -> Vec<String> {
+fn user_texts(messages: &[nibi_kernel_api::message::Message]) -> Vec<String> {
     messages
         .iter()
         .filter_map(|message| match message {
-            rust_cli_kernel_api::message::Message::User(user) => {
+            nibi_kernel_api::message::Message::User(user) => {
                 user.content.iter().find_map(|block| match block {
-                    rust_cli_kernel_api::message::ContentBlock::Text { text } => Some(text.clone()),
+                    nibi_kernel_api::message::ContentBlock::Text { text } => Some(text.clone()),
                     _ => None,
                 })
             }

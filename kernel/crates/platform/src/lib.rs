@@ -10,7 +10,7 @@
 //! 另给入口登录与退出（[`Platform::begin_login`]、[`Platform::configure_api_key`]、[`Platform::logout`]）。
 //!
 //! Provider 配置的格式与语义复制自 Host（`apps/zcode-host/crates/providers`）与 Node 独立 CLI，读写同一份
-//! `~/.zcode/v2`；文件经 `rust-cli-fs`（写入持与 Node 同形的目录锁），网络经 `rust-cli-net`，路径由
+//! `~/.zcode/v2`；文件经 `nibi-kernel-fs`（写入持与 Node 同形的目录锁），网络经 `nibi-kernel-net`，路径由
 //! `StoragePaths` 解析，不读进程环境（入口读好后传入）。
 
 mod account;
@@ -38,16 +38,16 @@ mod token;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::model::{ModelError, ModelSelection};
-use rust_cli_kernel_api::provider::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::model::{ModelError, ModelSelection};
+use nibi_kernel_api::provider::{
     Credential, EndpointContext, ModelCapabilities, ModelCatalog, ModelDirectory, ModelEndpoint,
     ModelEndpoints, ModelLimits, TokenLimits, WireProtocol,
 };
-use rust_cli_net::Egress;
-use rust_cli_net::header;
-use rust_cli_paths::{StoragePath, StoragePaths};
+use nibi_kernel_net::Egress;
+use nibi_kernel_net::header;
+use nibi_kernel_paths::{StoragePath, StoragePaths};
 
 pub use cli_config::{
     ConfigFile, ConfigWriteError, UiLocale, UiTheme, mcp_enabled_text, read_cli_config,
@@ -59,7 +59,7 @@ pub use history::{History, Recorder};
 pub use hook_trust::{HookTrustStore, TrustError, TrustLoad, TrustRecord};
 pub use login::{LoginError, LoginOutcome, PendingLogin, SetupOutcome};
 /// Node 的平台名（定义在 base，F55）；入口经 platform 取用，路径不变。
-pub use rust_cli_base::js::node_platform;
+pub use nibi_kernel_base::js::node_platform;
 pub use settings::Settings;
 pub use token::{AccountOrigins, Family, TokenError};
 

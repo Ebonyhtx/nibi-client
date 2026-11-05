@@ -1,6 +1,6 @@
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
 use serde_json::Value;
 
 use super::*;

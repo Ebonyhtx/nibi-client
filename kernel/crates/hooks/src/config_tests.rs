@@ -1,6 +1,6 @@
 //! 设置解析与来源合并（spec §2）。
 
-use rust_cli_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::hooks::HookEventName;
 use serde_json::json;
 
 use super::*;

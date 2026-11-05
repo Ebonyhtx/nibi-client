@@ -8,9 +8,9 @@
 //! 远端机器上的写入（R3，remote-exec.md §20.7.5、§20.9）：artifact 与 `display.checkpoint` 多一个 `machine`；会话 actor 把它
 //! 存成本工程的记录（Node / App 看不到，不会把远端文件的内容写到本机的同名路径）。
 
-use rust_cli_base::js::iso_timestamp;
-use rust_cli_kernel_api::store::ArtifactPurpose;
-use rust_cli_kernel_api::tool::ToolUseContext;
+use nibi_kernel_base::js::iso_timestamp;
+use nibi_kernel_api::store::ArtifactPurpose;
+use nibi_kernel_api::tool::ToolUseContext;
 use serde_json::{Value, json};
 
 /// 一次写入：路径、写入前的字节（文件不存在时 None）、写入后的字节、写入后的 mtime。
@@ -83,10 +83,10 @@ pub(crate) async fn record(context: &ToolUseContext, change: Change<'_>) -> Opti
 /// 去掉公共前后缀后的一个 hunk（带 3 行上下文）；返回 hunk 列表与增删行数。
 /// 不是最小 diff：Node / App 有 `afterContent` 时按前后内容重算统计（spec §4.1）。
 ///
-/// 算法在 [`rust_cli_kernel_api::file_changes`]（会话侧的文件变更聚合与回退预览用同一份）。
+/// 算法在 [`nibi_kernel_api::file_changes`]（会话侧的文件变更聚合与回退预览用同一份）。
 pub(crate) fn structured_patch(before: &str, after: &str) -> (Vec<Value>, usize, usize) {
     let (hunks, additions, deletions) =
-        rust_cli_kernel_api::file_changes::structured_patch(before, after);
+        nibi_kernel_api::file_changes::structured_patch(before, after);
     let hunks = hunks
         .into_iter()
         .map(|hunk| serde_json::to_value(hunk).unwrap_or(Value::Null))

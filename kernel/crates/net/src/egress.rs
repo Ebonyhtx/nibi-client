@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 use arc_swap::ArcSwap;
 use reqwest::header::HeaderMap;
-use rust_cli_base::redact::redact_secrets;
+use nibi_kernel_base::redact::redact_secrets;
 
 use crate::http::header_pair;
 use crate::roots::{Anchors, certificates};
@@ -49,7 +49,7 @@ struct Snapshot {
 impl Snapshot {
     /// 读取平台根证书、解析 CA 可能阻塞，放到阻塞线程池里做。
     async fn build(policy: NetworkPolicy, generation: u64) -> Result<Self, NetError> {
-        rust_cli_base::blocking(move || {
+        nibi_kernel_base::blocking(move || {
             let headers = policy_headers(&policy)?;
             let client = client(&policy)?;
             Ok(Self {
@@ -214,7 +214,7 @@ fn client(policy: &NetworkPolicy) -> Result<reqwest::Client, NetError> {
 /// 的 Linux 镜像，平台校验器在那里只剩附加锚，egress_tests.rs）。
 #[expect(
     clippy::disallowed_methods,
-    reason = "rust-cli-net 是 HTTP 客户端的唯一构造点（docs/specs/rust-cli/README.md §4）"
+    reason = "nibi-kernel-net 是 HTTP 客户端的唯一构造点（docs/specs/rust-cli/README.md §4）"
 )]
 fn build_client(policy: &NetworkPolicy, platform: bool) -> Result<reqwest::Client, NetError> {
     // rustls-no-provider 不自带算法：统一装 ring。进程里已装过时返回 Err，忽略即可。

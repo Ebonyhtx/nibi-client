@@ -5,10 +5,10 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::cron::{CronFireKind, LoopFold};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, SystemMessage, UserMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::cron::{CronFireKind, LoopFold};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserMessage, UserOrigin};
+use nibi_kernel_api::session_api::KernelEvent;
 
 use crate::actor::Actor;
 use crate::cron::CRON_SOURCE;
@@ -45,9 +45,9 @@ fn is_cron_prompt(message: &Message) -> bool {
         if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == CRON_SOURCE))
 }
 
-fn denied(content: &[rust_cli_kernel_api::message::ToolResultContent]) -> bool {
+fn denied(content: &[nibi_kernel_api::message::ToolResultContent]) -> bool {
     content.iter().any(|item| match item {
-        rust_cli_kernel_api::message::ToolResultContent::Text { text } => {
+        nibi_kernel_api::message::ToolResultContent::Text { text } => {
             DENIALS.iter().any(|denial| text.starts_with(denial))
         }
         _ => false,

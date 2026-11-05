@@ -130,7 +130,7 @@ impl Sandbox {
 
     /// `zcode -p hi`，只带 `vars` 与最少的系统变量（不继承父进程的环境）。
     fn run(&self, vars: &[(&str, &str)], extra: &[&str]) -> Output {
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+        let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(["-p", "hi"])
             .args(extra)

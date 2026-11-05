@@ -1,9 +1,9 @@
 //! 远端机器上的调用（remote-exec.md §20.8）：相对路径规则按那台机器的工作目录，本机的附加目录不带过去，只读判定看那台
 //! 机器的路径风格。
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::machine::MachineEnv;
 
 use super::*;
 use crate::readonly::is_read_only_on;
@@ -13,7 +13,7 @@ fn remote(mode: PermissionMode) -> ToolUseContext {
     let mut context = context(mode);
     context.machine = MachineEnv::new(
         Arc::new(UnusedEnvironment),
-        Arc::new(rust_cli_kernel_api::mcp::NoMcpTransport),
+        Arc::new(nibi_kernel_api::mcp::NoMcpTransport),
     )
     .named("dev-a");
     context.workspace = WorkspaceRef {
@@ -75,8 +75,8 @@ fn the_read_only_check_uses_the_machine_path_style() {
 
 #[tokio::test]
 async fn session_additional_directories_are_allowed_per_session() {
-    use rust_cli_kernel_api::ids::SessionId;
-    use rust_cli_kernel_api::session_paths::SessionDirectories;
+    use nibi_kernel_api::ids::SessionId;
+    use nibi_kernel_api::session_paths::SessionDirectories;
 
     let directories = Arc::new(SessionDirectories::new());
     let gate = PolicyGate::new(rules(&[])).with_session_directories(directories.clone());

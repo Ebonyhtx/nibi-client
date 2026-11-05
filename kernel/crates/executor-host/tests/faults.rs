@@ -15,23 +15,23 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient, Reconnect};
-use rust_cli_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
-use rust_cli_exec_transport::fault::{Faults, Matcher, Switch, inject};
-use rust_cli_exec_transport::memory::{MemoryConnector, MemoryListener, network};
-use rust_cli_exec_transport::{Connector, Link, LinkError, Listener};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient, Reconnect};
+use nibi_kernel_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
+use nibi_kernel_exec_transport::fault::{Faults, Matcher, Switch, inject};
+use nibi_kernel_exec_transport::memory::{MemoryConnector, MemoryListener, network};
+use nibi_kernel_exec_transport::{Connector, Link, LinkError, Listener};
+use nibi_kernel_api::env::{
     CommandEvent, EnvPath, OperationContext, Origin, StartCommand, WorkspaceRef, WriteFile,
     WritePrecondition,
 };
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, SessionId, ShellTaskId,
 };
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::mcp::NoMcpTransport;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::mcp::NoMcpTransport;
 
 /// 帧的类型字节（exec-wire 的表）：回复 0x11、事件 0x12、ack 0x13。
 fn kind(code: u8) -> Matcher {
@@ -80,7 +80,7 @@ struct Setup {
     switches: Arc<Mutex<Vec<Switch>>>,
     ledger: Arc<MemoryLedger>,
     _server: ExecServer,
-    _serving: rust_cli_base::OwnedTask<()>,
+    _serving: nibi_kernel_base::OwnedTask<()>,
 }
 
 async fn setup(server_faults: Vec<Faults>, client_faults: Faults) -> Setup {
@@ -114,7 +114,7 @@ async fn setup(server_faults: Vec<Faults>, client_faults: Faults) -> Setup {
     };
     let serving = {
         let server = server.clone();
-        rust_cli_base::owned(async move { server.serve(&listener).await })
+        nibi_kernel_base::owned(async move { server.serve(&listener).await })
     };
     let mut options = ClientOptions::new("faults", "client-1");
     options.heartbeat = Duration::from_millis(500);
@@ -204,7 +204,7 @@ async fn a_reply_lost_in_flight_is_fetched_after_reconnecting() {
     let files = setup.machine.files().clone();
     let ws = workspace(&setup.root);
     let call =
-        rust_cli_base::owned(async move { files.write_file(&ws, context("op_w"), write).await });
+        nibi_kernel_base::owned(async move { files.write_file(&ws, context("op_w"), write).await });
     // 写已经做了、回复丢在路上：切断连接，客户端重连后按同一个调用 ID 取回。
     for _ in 0..200 {
         if path.exists() {

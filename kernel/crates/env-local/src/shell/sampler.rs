@@ -14,8 +14,8 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::Outcome;
-use rust_cli_kernel_api::process_table::{BashResourceSampler, ToolExecResource, ToolExitKind};
+use nibi_kernel_api::env::Outcome;
+use nibi_kernel_api::process_table::{BashResourceSampler, ToolExecResource, ToolExitKind};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::Running;
@@ -56,10 +56,10 @@ pub(crate) async fn watch(pid: u32, running: Arc<Running>, sink: UnboundedSender
                     continue;
                 }
                 // 采样失败只丢这一拍（`None` 与空样本都算一次尝试）。
-                if let Some(samples) = rust_cli_proc::resources::sample_process_group(pid).await {
-                    let samples: Vec<rust_cli_kernel_api::process_table::ProcessSample> = samples
+                if let Some(samples) = nibi_kernel_proc::resources::sample_process_group(pid).await {
+                    let samples: Vec<nibi_kernel_api::process_table::ProcessSample> = samples
                         .into_iter()
-                        .map(|sample| rust_cli_kernel_api::process_table::ProcessSample {
+                        .map(|sample| nibi_kernel_api::process_table::ProcessSample {
                             pid: sample.pid,
                             rss_kb: sample.rss_kb,
                             cpu_time_ms: sample.cpu_time_ms,

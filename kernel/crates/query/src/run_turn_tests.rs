@@ -5,15 +5,15 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::{Abort, AbortReason};
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::model::{ModelSelection, SystemBlock};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::{Abort, AbortReason};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::model::{ModelSelection, SystemBlock};
+use nibi_kernel_api::orchestration::{
     AutoCompactOutcome, BuiltContext, CompactRequest, CompactResult, CompactTracking, Compactor,
     ContextBuilder, ContextRequest, OrchestrationError, QueryStop,
 };
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::testing::{ScriptedModel, text_response, tool_use_response};
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 

@@ -11,8 +11,8 @@
 use std::borrow::Cow;
 
 use rusqlite::Connection;
-use rust_cli_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::store::{ArtifactRef, RevertCursor, StoreError, WorkspaceCheckpoint};
+use nibi_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::store::{ArtifactRef, RevertCursor, StoreError, WorkspaceCheckpoint};
 use serde_json::{Value, json};
 
 use crate::branch::{Branch, select_branch};
@@ -308,7 +308,7 @@ fn stored(conn: &Connection, session: &str, kind: Kind) -> Result<Vec<Stored>, S
 
 /// Node `parseArtifactUri`：`nibi-artifact://<encodeURIComponent(会话)>/<encodeURIComponent(artifact)>`。
 fn parse_uri(uri: &str) -> Option<(String, String)> {
-    let rest = uri.strip_prefix(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
+    let rest = uri.strip_prefix(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
     let (session, artifact) = rest.split_once('/')?;
     let (session, artifact) = (decode(session)?, decode(artifact.trim_start_matches('/'))?);
     (!session.is_empty() && !artifact.is_empty()).then_some((session, artifact))

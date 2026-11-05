@@ -4,15 +4,15 @@
 //! `watch_command` 按游标读输出直到终态。前台命令在本次调用里等结果；后台命令拿到输出文件就返回，
 //! 终态以通知送达。超时默认 2 分钟、前台最多 10 分钟，后台默认 10 分钟、最多 2 小时。主线程的 cwd
 //! 在调用之间延续（越出工作区时重置），子代理固定在当前 cwd。中断：调用被取消时向执行环境发取消，
-//! 等到终态再返回 `Cancelled`。权限由判决链（`rust-cli-policy`）判，工具自身不做检查。
+//! 等到终态再返回 `Cancelled`。权限由判决链（`nibi-kernel-policy`）判，工具自身不做检查。
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, EnvPath, Outcome, StartCommand};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env::{CommandEvent, EnvPath, Outcome, StartCommand};
+use nibi_kernel_api::env_shell::{
     self, BackgroundCommand, CwdScope, SandboxPolicy, ShellKind, TimeoutBackground,
 };
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde::Deserialize;
@@ -63,7 +63,7 @@ struct Input {
 
 /// 最后一个子命令的命令名（退出码解释用）。
 fn last_command(command: &str) -> String {
-    let analysis = rust_cli_policy::analyze(command);
+    let analysis = nibi_kernel_policy::analyze(command);
     analysis
         .commands
         .last()
@@ -75,7 +75,7 @@ fn last_command(command: &str) -> String {
 /// 前台命令到了超时能不能转到后台（shell-permissions.md §1.2.1）：第一个子命令的第一个词不是 `sleep` 就能；拆不出
 /// 子命令时也能。
 fn moves_on_timeout(command: &str) -> bool {
-    let analysis = rust_cli_policy::analyze(command);
+    let analysis = nibi_kernel_policy::analyze(command);
     let Some(first) = analysis.commands.first() else {
         return true;
     };
@@ -122,7 +122,7 @@ impl BashTool {
             const ANCHOR: &str = "No `&` needed.";
             self.definition.description = self.definition.description.replacen(
                 ANCHOR,
-                &format!("{ANCHOR}{}", rust_cli_prompts::monitor::bash_sentence()),
+                &format!("{ANCHOR}{}", nibi_kernel_prompts::monitor::bash_sentence()),
                 1,
             );
         }
@@ -344,7 +344,7 @@ impl Tool for BashTool {
         input
             .get("command")
             .and_then(Value::as_str)
-            .is_some_and(|command| rust_cli_policy::readonly::is_read_only(command, false))
+            .is_some_and(|command| nibi_kernel_policy::readonly::is_read_only(command, false))
     }
 
     fn is_concurrency_safe(&self, input: &Value) -> bool {
@@ -359,8 +359,8 @@ impl Tool for BashTool {
         &self,
         input: &Value,
         _context: &ToolUseContext,
-    ) -> rust_cli_kernel_api::tool::Validation {
-        use rust_cli_kernel_api::tool::Validation;
+    ) -> nibi_kernel_api::tool::Validation {
+        use nibi_kernel_api::tool::Validation;
         if !self.monitor || input.get("run_in_background").and_then(Value::as_bool) == Some(true) {
             return Validation::Ok;
         }
@@ -370,7 +370,7 @@ impl Tool for BashTool {
             .unwrap_or_default();
         match crate::bash_sleep::blocked(command) {
             Some(what) => Validation::Invalid {
-                message: rust_cli_prompts::monitor::bash_blocked(&what),
+                message: nibi_kernel_prompts::monitor::bash_blocked(&what),
                 error_code: Some(10),
             },
             None => Validation::Ok,
@@ -586,8 +586,8 @@ fn file_on_machine(text: String, context: &ToolUseContext) -> String {
     if context.machine.is_local() {
         return text;
     }
-    let note = rust_cli_prompts::texts::render(
-        rust_cli_prompts::texts::remote_output_file(),
+    let note = nibi_kernel_prompts::texts::render(
+        nibi_kernel_prompts::texts::remote_output_file(),
         &[("machine", context.machine.name())],
     );
     format!("{text}\n{note}")
@@ -597,7 +597,7 @@ fn file_on_machine(text: String, context: &ToolUseContext) -> String {
 /// 解析不了时按 `&&`、`||`、`;`、`|`、换行粗拆。
 fn changes_directory(command: &str) -> bool {
     const NAMES: [&str; 4] = ["cd", "pushd", "popd", "chdir"];
-    let analysis = rust_cli_policy::analyze(command);
+    let analysis = nibi_kernel_policy::analyze(command);
     let parts: Vec<String> = if analysis.has_parse_errors
         || analysis.has_unsupported_syntax
         || analysis.commands.is_empty()
@@ -614,7 +614,7 @@ fn changes_directory(command: &str) -> bool {
             .collect()
     };
     parts.iter().any(|part| {
-        rust_cli_policy::shell_rules::strip_safe_wrappers(part)
+        nibi_kernel_policy::shell_rules::strip_safe_wrappers(part)
             .split_whitespace()
             .next()
             .is_some_and(|word| NAMES.contains(&word))

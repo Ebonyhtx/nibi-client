@@ -2,7 +2,7 @@
 //!
 //! 行只在视图里：内核不落库，重新取快照后没有（D43）。折叠时收起上一个 loop 触发行到末尾的行（隐藏
 //! 上一个 tick）。
-use rust_cli_kernel_api::cron::CronFireKind;
+use nibi_kernel_api::cron::CronFireKind;
 
 use super::{Body, Fire, Transcript};
 

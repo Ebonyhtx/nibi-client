@@ -1,7 +1,7 @@
 //! 输入能力的动作（docs/specs/rust-cli/tui-input.md）：各种输入的发送、立即发送、粘贴图片。
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::session_api::Command;
+use nibi_kernel_api::session_api::Command;
 
 use super::Loop;
 use super::session::{Done, Sent};
@@ -36,13 +36,13 @@ impl<B: Backend> Loop<'_, B> {
             _ => return self.submit(command),
         };
         let moved = Command::BackgroundForeground {
-            reason: rust_cli_kernel_api::env::BackgroundReason::DeliverMessage,
+            reason: nibi_kernel_api::env::BackgroundReason::DeliverMessage,
         };
         let (queued, moved) = (self.envelope(command), self.envelope(moved));
         self.pending.push(
             async move {
                 let ack = session.send(queued).await;
-                if matches!(ack, rust_cli_kernel_api::session_api::Ack::Accepted { .. }) {
+                if matches!(ack, nibi_kernel_api::session_api::Ack::Accepted { .. }) {
                     let _ = session.send(moved).await;
                 }
                 Done::Ack {

@@ -3,7 +3,7 @@
 
 /// `String.prototype.trim` 使用的空白集合（WhiteSpace 加 LineTerminator：含 U+FEFF，不含 U+0085）与 JS
 /// `string.length`：唯一定义在 base（F58：以前这里与 `readonly/js.rs` 各写一份）。
-pub(crate) use rust_cli_base::js::string::{is_space, utf16_len};
+pub(crate) use nibi_kernel_base::js::string::{is_space, utf16_len};
 
 /// JS `trim()` 作用在字节串上；字节串可能在多字节字符中间被截断（unbash 在未闭合结构里
 /// 按码元切片），此时按有损解码处理，只影响动态单词的文本，不影响安全判定。

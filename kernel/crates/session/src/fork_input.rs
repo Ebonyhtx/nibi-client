@@ -3,10 +3,10 @@
 //! 可选的输入与 `/rewind` 相同（`rewind_plan::selectable`）。新会话带到这一轮为止：复制到这一轮最后一条 assistant，
 //! 由存储一次写完（`SessionStore::fork`）；文件不动。
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::session_api::Ack;
-use rust_cli_kernel_api::store::SessionFork;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::session_api::Ack;
+use nibi_kernel_api::store::SessionFork;
 use serde_json::json;
 
 use crate::actor::{Actor, rejected};
@@ -79,7 +79,7 @@ impl Actor {
     /// 不动文件与队列；忙时拒绝（Node 会切到当前回合起点，Rust 先要求空闲）。
     pub(crate) async fn create_selection_side_session(
         &self,
-        selection: Option<rust_cli_kernel_api::model::ModelSelection>,
+        selection: Option<nibi_kernel_api::model::ModelSelection>,
     ) -> Ack {
         if self.busy() {
             return rejected("a turn is running; start the side chat after it finishes");
@@ -88,7 +88,7 @@ impl Actor {
             return rejected("the conversation is empty");
         };
         let child = self.deps.ids.session();
-        let fork = rust_cli_kernel_api::store::SessionFork {
+        let fork = nibi_kernel_api::store::SessionFork {
             parent: self.meta.id.clone(),
             child: child.clone(),
             created_at_ms: self.deps.clock.now_ms(),

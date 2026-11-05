@@ -1,9 +1,9 @@
 //! 会话 actor 持有当前轮并随每个批次交给存储（node-store.md §4，修复线 F6，审查 R5-3）。
-use rust_cli_kernel_api::ids::{MessageId, TurnId};
-use rust_cli_kernel_api::message::{Message, UserOrigin};
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::store::TurnAnchor;
-use rust_cli_kernel_api::testing::{NoticeEnvironment, ScriptedModel, shell_notice, text_response};
+use nibi_kernel_api::ids::{MessageId, TurnId};
+use nibi_kernel_api::message::{Message, UserOrigin};
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::store::TurnAnchor;
+use nibi_kernel_api::testing::{NoticeEnvironment, ScriptedModel, shell_notice, text_response};
 
 use super::*;
 use crate::Opened;

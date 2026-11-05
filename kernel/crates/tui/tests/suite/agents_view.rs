@@ -3,7 +3,7 @@
 use crossterm::event::KeyCode;
 use ratatui::buffer::Buffer;
 use ratatui::style::Color;
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_api::testing::{text_response, tool_use_response};
 use serde_json::json;
 
 use super::support::{GatedModel, Setup, Ui, finish, row_of, send, with_ui};

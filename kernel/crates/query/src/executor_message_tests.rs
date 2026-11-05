@@ -4,12 +4,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::orchestration::{QueryStop, ToolExecution, ToolExecutor};
-use rust_cli_kernel_api::testing::{DirectExecutor, FakeTool, ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::{Tool, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::orchestration::{QueryStop, ToolExecution, ToolExecutor};
+use nibi_kernel_api::testing::{DirectExecutor, FakeTool, ScriptedModel, text_response};
+use nibi_kernel_api::tool::{Tool, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 

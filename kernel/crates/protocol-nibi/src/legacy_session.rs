@@ -3,14 +3,14 @@
 //! 方法不能回 `-32601`；这里把参数映射到已收的 v4 语义（`CreateSession` / `Command`），响应
 //! 统一用 [`crate::legacy_snapshot`] 的旧快照形状。
 
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::ToolPolicy;
-use rust_cli_kernel_api::session_api::ImportedMessage;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::ToolPolicy;
+use nibi_kernel_api::session_api::ImportedMessage;
+use nibi_kernel_api::session_api::{
     Ack as KernelAck, Command, CreateSession, Delivery, KernelError, SessionHandle, SessionView,
 };
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
 
 use crate::commands;
@@ -46,7 +46,7 @@ fn check_revision(view: &SessionView, params: &Value) -> Result<(), RpcError> {
 async fn open(
     server: &Server,
     session: &SessionId,
-) -> Result<std::sync::Arc<rust_cli_protocol_core::sessions::Bridged<crate::live::Live>>, RpcError>
+) -> Result<std::sync::Arc<nibi_kernel_protocol_core::sessions::Bridged<crate::live::Live>>, RpcError>
 {
     server
         .live(session)
@@ -175,7 +175,7 @@ async fn apply_dynamic_workflow(server: &Server, session: &SessionId, params: &V
         .kernel
         .set_session_dynamic_workflow(
             session,
-            rust_cli_kernel_api::session_api::DynamicWorkflowGate::new(true, on_demand),
+            nibi_kernel_api::session_api::DynamicWorkflowGate::new(true, on_demand),
         )
         .await
     {
@@ -454,7 +454,7 @@ pub async fn compact(server: &Server, params: &Value) -> Result<Value, RpcError>
     }))
 }
 
-fn goal_summary(view: &rust_cli_kernel_api::goal::GoalView) -> String {
+fn goal_summary(view: &nibi_kernel_api::goal::GoalView) -> String {
     if let Some(active) = &view.active {
         return format!("Goal active\nObjective: {}", active.condition);
     }
@@ -488,7 +488,7 @@ pub async fn goal(server: &Server, params: &Value) -> Result<Value, RpcError> {
     let (response, started_turn) = match action {
         "show" => match live.handle.goal().await {
             Ok(goal) => (goal_summary(&goal), false),
-            Err(rust_cli_kernel_api::session_api::KernelError::Unsupported { .. }) => (
+            Err(nibi_kernel_api::session_api::KernelError::Unsupported { .. }) => (
                 "Goal management is not available in this client.".to_owned(),
                 false,
             ),

@@ -1,7 +1,7 @@
 //! 热更新（platform.md §3.4）：文件不变时沿用快照，个人配置或凭据变化后版本加一。
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_paths::StoragePaths;
 
 use super::*;
 use crate::credentials::CredentialSecret;
@@ -70,7 +70,7 @@ async fn revisions_change_only_with_the_files() {
     assert_eq!(models(&third)[0], format!("{provider}/GLM-5.3"));
 
     // 个人配置删除后回到空配置。
-    rust_cli_fs::atomic_write(paths.provider_config().as_path(), b"not json", WRITE)
+    nibi_kernel_fs::atomic_write(paths.provider_config().as_path(), b"not json", WRITE)
         .await
         .unwrap();
     let broken = registry.current().await;
@@ -78,10 +78,10 @@ async fn revisions_change_only_with_the_files() {
     assert!(broken.snapshot.templates.is_empty());
 }
 
-const WRITE: rust_cli_fs::WriteOptions = rust_cli_fs::WriteOptions {
-    mode: rust_cli_fs::FileMode::Default,
-    temp_name: rust_cli_fs::TempName::Hidden,
-    parent: rust_cli_fs::ParentDir::Create,
+const WRITE: nibi_kernel_fs::WriteOptions = nibi_kernel_fs::WriteOptions {
+    mode: nibi_kernel_fs::FileMode::Default,
+    temp_name: nibi_kernel_fs::TempName::Hidden,
+    parent: nibi_kernel_fs::ParentDir::Create,
     rename_retry: &[],
 };
 

@@ -6,8 +6,8 @@ use std::collections::BTreeSet;
 use std::sync::{Arc, PoisonError};
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::manage::{McpAction, McpServerInfo};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::manage::{McpAction, McpServerInfo};
 use tokio_util::sync::CancellationToken;
 
 use super::{McpManager, McpServer, McpStatus, Server};

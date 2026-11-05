@@ -7,13 +7,13 @@ use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId, TurnId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId, TurnId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, TurnOutcome};
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, TurnOutcome};
+use nibi_kernel_api::tool::ToolOutput;
 use serde_json::json;
 
 use super::tests::{app, ctrl, key, typed};

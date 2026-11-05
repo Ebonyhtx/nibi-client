@@ -8,9 +8,9 @@
 use std::collections::HashSet;
 
 use rusqlite::{Connection, OptionalExtension};
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::ids::{InteractionId, OperationId};
-use rust_cli_kernel_api::store::{OpenOperation, PendingInteraction, StoreError};
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::ids::{InteractionId, OperationId};
+use nibi_kernel_api::store::{OpenOperation, PendingInteraction, StoreError};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 

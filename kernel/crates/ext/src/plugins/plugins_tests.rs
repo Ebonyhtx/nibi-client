@@ -1,7 +1,7 @@
 //! 插件目录与 manifest（ext.md §4）。
 
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::*;
 use crate::test_support::{facts, workspace};

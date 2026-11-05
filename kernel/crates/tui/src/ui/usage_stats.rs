@@ -3,9 +3,9 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 // 一天的毫秒数只定义在 base（F58：以前这里与 node-store 各写一份）。
-use rust_cli_base::js::date::DAY_MS;
-use rust_cli_kernel_api::clock::civil_date;
-use rust_cli_kernel_api::metering::{
+use nibi_kernel_base::js::date::DAY_MS;
+use nibi_kernel_api::clock::civil_date;
+use nibi_kernel_api::metering::{
     ActivityDay, ActivityRange, ActivityStats, ModelTokens, format_duration, format_number,
 };
 use unicode_width::UnicodeWidthStr;

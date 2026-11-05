@@ -6,12 +6,12 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::manage::McpServerState;
-use rust_cli_kernel_api::mcp_state::{McpConnections, McpServerView, McpView};
-use rust_cli_kernel_api::orchestration::{ToolRegistry, ToolSnapshot};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::manage::McpServerState;
+use nibi_kernel_api::mcp_state::{McpConnections, McpServerView, McpView};
+use nibi_kernel_api::orchestration::{ToolRegistry, ToolSnapshot};
+use nibi_kernel_api::tool::Tool;
 use tokio::sync::watch;
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {

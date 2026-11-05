@@ -6,9 +6,9 @@
 use std::collections::{BTreeMap, HashSet};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::orchestration::{InteractionRequest, QuestionAnnotation, QuestionAnswer};
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::orchestration::{InteractionRequest, QuestionAnnotation, QuestionAnswer};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde_json::Value;

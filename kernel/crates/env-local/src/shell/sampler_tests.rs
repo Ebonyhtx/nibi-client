@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::Outcome;
+use nibi_kernel_api::env::Outcome;
 
 use super::*;
 use crate::shell::{Finish, Running};
@@ -53,7 +53,7 @@ fn running() -> Arc<Running> {
     use tokio::sync::watch as signal;
     Arc::new(Running {
         fingerprint: "fp".to_owned(),
-        session: rust_cli_kernel_api::ids::SessionId::new("s"),
+        session: nibi_kernel_api::ids::SessionId::new("s"),
         command: "sleep 1".to_owned(),
         output: std::path::PathBuf::from("/tmp/out"),
         errors: None,
@@ -62,7 +62,7 @@ fn running() -> Arc<Running> {
         finished: signal::channel(None).0,
         backgrounded: signal::channel(false).0,
         moved_by: signal::channel(None).0,
-        task: rust_cli_kernel_api::ids::ShellTaskId::new("t"),
+        task: nibi_kernel_api::ids::ShellTaskId::new("t"),
         movable: false,
         started: std::time::Instant::now(),
     })

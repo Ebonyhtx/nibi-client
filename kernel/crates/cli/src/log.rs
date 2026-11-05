@@ -7,10 +7,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rust_cli_base::TaskScope;
-use rust_cli_base::js::iso_timestamp;
-use rust_cli_base::redact::redact_secrets;
-use rust_cli_kernel_api::clock::Clock;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_base::js::iso_timestamp;
+use nibi_kernel_base::redact::redact_secrets;
+use nibi_kernel_api::clock::Clock;
 use serde_json::{Map, Value};
 use tokio::sync::{mpsc, oneshot};
 use tracing::field::{Field, Visit};

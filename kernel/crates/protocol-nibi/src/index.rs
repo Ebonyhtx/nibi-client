@@ -6,11 +6,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use rust_cli_protocol_core::delivery::TopicLog;
+use nibi_kernel_protocol_core::delivery::TopicLog;
 use serde_json::{Value, json};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rust_cli_protocol_core::serial::Serial;
+use nibi_kernel_protocol_core::serial::Serial;
 
 use crate::context::Context;
 use crate::projection::state::Phase;
@@ -88,7 +88,7 @@ pub struct Topics {
 }
 
 impl Topics {
-    pub fn new(context: Arc<Context>, spawner: &rust_cli_base::Spawner) -> Self {
+    pub fn new(context: Arc<Context>, spawner: &nibi_kernel_base::Spawner) -> Self {
         Self {
             context,
             published: Mutex::new(HashMap::new()),

@@ -1,9 +1,9 @@
 //! MCP 设置的组装（ext.md §3.1）：配置文件的服务器加 `--mcp-config`、`--strict-mcp-config` 与环境变量。
 
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::mcp::McpTransportConfig;
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::*;
 

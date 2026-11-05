@@ -3,10 +3,10 @@
 //! 工作线 F89，tools-more.md §3.2.1）。
 //! 值的读法在入口（cli `limits.rs`），这里只按这一步的模型算请求参数。
 
-use rust_cli_prompts::models::{ModelCard, ToolSearchSetting};
+use nibi_kernel_prompts::models::{ModelCard, ToolSearchSetting};
 
 /// 没有卡片的模型的输出上限的缺省与上限。
-pub(crate) const UNKNOWN_DEFAULT: u32 = rust_cli_prompts::models::UNKNOWN_MAX_OUTPUT_TOKENS;
+pub(crate) const UNKNOWN_DEFAULT: u32 = nibi_kernel_prompts::models::UNKNOWN_MAX_OUTPUT_TOKENS;
 const UNKNOWN_UPPER: u32 = 128_000;
 
 /// `MAX_THINKING_TOKENS` 的三种结果（启动时的 thinking 配置）。

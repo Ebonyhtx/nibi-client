@@ -1,8 +1,8 @@
 //! 任务提醒：轮数怎么数、文字。
 
-use rust_cli_kernel_api::agents::{TaskRecord, TaskStatus};
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{AssistantMessage, AttachmentMessage, ContentBlock, Message};
+use nibi_kernel_api::agents::{TaskRecord, TaskStatus};
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{AssistantMessage, AttachmentMessage, ContentBlock, Message};
 use serde_json::Value;
 
 use super::{SOURCE, due, render};

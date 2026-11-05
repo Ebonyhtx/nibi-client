@@ -3,15 +3,15 @@
 use std::sync::Arc;
 
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{StopReason, Usage};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent, SequencedEvent, SessionHandle};
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{ScriptedModel, selection};
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{StopReason, Usage};
+use nibi_kernel_api::metering::{CallStatus, ModelCall};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{Ack, Command, KernelEvent, SequencedEvent, SessionHandle};
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{ScriptedModel, selection};
 use serde_json::json;
 
 use crate::test_support::{Setup, envelope, until};
@@ -119,7 +119,7 @@ async fn session_asks_reach_the_actor_and_can_be_answered() {
 /// 不落库、不动状态 revision，前端按普通事件收到。
 #[tokio::test]
 async fn workflow_lifecycle_is_appended_to_the_session_events() {
-    use rust_cli_kernel_api::session_api::{WorkflowLifecycleFact, WorkflowLifecyclePhase};
+    use nibi_kernel_api::session_api::{WorkflowLifecycleFact, WorkflowLifecyclePhase};
 
     let built = Setup::new(Arc::new(ScriptedModel::new(Vec::new())))
         .build()

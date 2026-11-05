@@ -1,6 +1,6 @@
 //! 初始 token 差（compact.md §3.1）：播种保留的组数，全部摘要时按它裁头。
 
-use rust_cli_kernel_api::message::{CompactTrigger, Message, UserOrigin};
+use nibi_kernel_api::message::{CompactTrigger, Message, UserOrigin};
 use tokio_util::sync::CancellationToken;
 
 use super::Engine;
@@ -19,7 +19,7 @@ fn c2_history() -> Vec<Message> {
     history
 }
 
-fn reactive(gap: Option<u64>) -> rust_cli_kernel_api::orchestration::CompactRequest {
+fn reactive(gap: Option<u64>) -> nibi_kernel_api::orchestration::CompactRequest {
     let mut request = request(c2_history(), CompactTrigger::Reactive);
     request.initial_token_gap = gap;
     request

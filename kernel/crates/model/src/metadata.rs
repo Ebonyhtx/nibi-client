@@ -33,9 +33,9 @@ pub(crate) fn external_session(session: &str) -> &str {
 /// `metadata.user_id` 的文本。`session` 是发请求的会话 ID（Node 的写法）；没有时 `session_id` 是空字符串。
 pub(crate) fn user_id(device_id: &str, session: Option<&str>) -> String {
     let mut out = String::from("{\"device_id\":");
-    rust_cli_base::js::json::write_str(&mut out, device_id);
+    nibi_kernel_base::js::json::write_str(&mut out, device_id);
     out.push_str(",\"account_uuid\":\"\",\"session_id\":");
-    rust_cli_base::js::json::write_str(&mut out, session.map_or("", external_session));
+    nibi_kernel_base::js::json::write_str(&mut out, session.map_or("", external_session));
     out.push('}');
     out
 }

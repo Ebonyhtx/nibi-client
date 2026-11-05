@@ -6,7 +6,7 @@
 //! 约定：结果去掉末尾的分隔符（根除外），即
 //! `path.resolve` 的输出形式。
 
-use rust_cli_base::js::string::{is_space, trim};
+use nibi_kernel_base::js::string::{is_space, trim};
 
 use crate::env_files::PathStyle;
 

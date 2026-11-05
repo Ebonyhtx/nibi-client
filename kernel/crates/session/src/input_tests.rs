@@ -4,19 +4,19 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
-use rust_cli_kernel_api::tool::{ToolProgress, ToolUseContext};
-use rust_cli_kernel_api::user_input::{BashRun, InputAttachment, UserInputs};
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::tool::{ToolProgress, ToolUseContext};
+use nibi_kernel_api::user_input::{BashRun, InputAttachment, UserInputs};
 use serde_json::json;
 use tokio::sync::mpsc;
 
-use rust_cli_kernel_api::session_api::{Command, Delivery, KernelEvent, TurnOutcome};
+use nibi_kernel_api::session_api::{Command, Delivery, KernelEvent, TurnOutcome};
 
 use crate::test_support::{Setup, envelope, finished, submit, until};
 
-fn bash(id: &str, line: &str) -> rust_cli_kernel_api::session_api::CommandEnvelope {
+fn bash(id: &str, line: &str) -> nibi_kernel_api::session_api::CommandEnvelope {
     envelope(
         id,
         Command::Bash {
@@ -225,7 +225,7 @@ async fn bash_while_running_waits_for_the_turn_to_end() {
 #[tokio::test]
 async fn submitted_content_keeps_its_images_and_queues_while_running() {
     let image = ContentBlock::Image {
-        source: rust_cli_kernel_api::message::ImageSource::Base64 {
+        source: nibi_kernel_api::message::ImageSource::Base64 {
             media_type: "image/png".into(),
             data: "iVBORw0KGgo=".into(),
         },
@@ -261,7 +261,7 @@ async fn submitted_content_keeps_its_images_and_queues_while_running() {
         .await;
     assert!(matches!(
         ack,
-        rust_cli_kernel_api::session_api::Ack::Accepted { .. }
+        nibi_kernel_api::session_api::Ack::Accepted { .. }
     ));
     built.session.send(envelope("i1", Command::Interrupt)).await;
     until(&mut events, finished).await;

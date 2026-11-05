@@ -1,7 +1,7 @@
 //! 计划模式 attachment 的节奏：`due` 按模式、会话标志与历史决定发什么（context.md §13.2、§13.4）。
 
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::plan::PlanModeFlags;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::plan::PlanModeFlags;
 
 use super::tests::{human, humans, marker};
 use super::{Due, EXIT, PLAN_MODE, REENTRY, due};

@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::hooks::HookEventName;
 
 use crate::config::{HookMatcher, HookSource, HooksConfig, HooksSettings};
 use crate::plugin::PluginHooks;

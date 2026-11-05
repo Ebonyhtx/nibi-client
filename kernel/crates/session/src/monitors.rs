@@ -11,15 +11,15 @@ use std::sync::{Mutex, PoisonError};
 
 use futures_util::StreamExt;
 use futures_util::stream::{BoxStream, SelectAll};
-use rust_cli_kernel_api::env::{CommandEvent, EnvError, OperationContext, Origin, OutputStream};
-use rust_cli_kernel_api::env_shell::BackgroundTask;
-use rust_cli_kernel_api::ids::{OwnerEpoch, ShellTaskId};
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::machine_notices::MachineNotice;
-use rust_cli_kernel_api::monitor::{MonitorArmed, MonitorSource};
-use rust_cli_kernel_api::monitor_watch::{Emit, Step, Watch};
-use rust_cli_kernel_api::orchestration::OrchestrationError;
-use rust_cli_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::env::{CommandEvent, EnvError, OperationContext, Origin, OutputStream};
+use nibi_kernel_api::env_shell::BackgroundTask;
+use nibi_kernel_api::ids::{OwnerEpoch, ShellTaskId};
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::machine_notices::MachineNotice;
+use nibi_kernel_api::monitor::{MonitorArmed, MonitorSource};
+use nibi_kernel_api::monitor_watch::{Emit, Step, Watch};
+use nibi_kernel_api::orchestration::OrchestrationError;
+use nibi_kernel_api::session_api::KernelEvent;
 
 use crate::actor::Actor;
 use crate::lane::{Lane, Waiting};
@@ -95,9 +95,9 @@ pub(crate) async fn deadline(at: Option<u64>, now_ms: u64) {
 fn emit_text(armed: &MonitorArmed, emit: &Emit) -> String {
     let body = match emit {
         Emit::Event(body) => body.clone(),
-        Emit::Notice(notice) => rust_cli_query::monitor_notice_text(notice),
+        Emit::Notice(notice) => nibi_kernel_query::monitor_notice_text(notice),
     };
-    rust_cli_prompts::agents::notification_wrap(&rust_cli_prompts::monitor::event_envelope(
+    nibi_kernel_prompts::agents::notification_wrap(&nibi_kernel_prompts::monitor::event_envelope(
         armed.task.as_str(),
         &armed.description,
         &body,
@@ -127,7 +127,7 @@ impl Actor {
         }
     }
 
-    /// Monitor 工具起好的 monitor（[`rust_cli_kernel_api::orchestration::Interactions::arm_monitor`]）。
+    /// Monitor 工具起好的 monitor（[`nibi_kernel_api::orchestration::Interactions::arm_monitor`]）。
     pub(crate) fn arm_monitor(&mut self, armed: MonitorArmed) -> Result<(), OrchestrationError> {
         if self.closing.is_some() {
             return Err(OrchestrationError::Failed {
@@ -332,12 +332,12 @@ impl Actor {
                     emit,
                 ))));
         }
-        let text = rust_cli_prompts::agents::notification_wrap(&rust_cli_query::monitor_envelope(
+        let text = nibi_kernel_prompts::agents::notification_wrap(&nibi_kernel_query::monitor_envelope(
             &notice.notice,
             events.as_deref(),
         ));
         let work = notice.notice.task.to_string();
-        let status = rust_cli_query::task_status(&notice.notice).to_owned();
+        let status = nibi_kernel_query::task_status(&notice.notice).to_owned();
         if self
             .enqueue_notice(Waiting::MonitorEnd {
                 notice: Box::new(notice),

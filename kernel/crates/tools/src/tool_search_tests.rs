@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::listing::ListingSource;
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::orchestration::{ContextRequest, ToolRegistry};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{ListTools, ScriptedInteractions};
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::listing::ListingSource;
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::orchestration::{ContextRequest, ToolRegistry};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{ListTools, ScriptedInteractions};
+use nibi_kernel_api::tool::Tool;
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -122,7 +122,7 @@ async fn the_listing_names_deferred_tools_only_when_tool_search_is_on() {
 /// 启用（自动的门槛在主循环里按这一步判断）。
 #[test]
 fn the_setting_enables_the_tool_search_tool() {
-    use rust_cli_prompts::models::ToolSearchSetting;
+    use nibi_kernel_prompts::models::ToolSearchSetting;
     for (setting, enabled) in [
         (ToolSearchSetting::On, true),
         (ToolSearchSetting::Auto { percent: 10 }, true),
@@ -156,7 +156,7 @@ impl Tool for Named {
     fn input_schema(&self) -> serde_json::Value {
         json!({"type": "object"})
     }
-    fn description(&self, _context: &rust_cli_kernel_api::tool::PromptContext) -> String {
+    fn description(&self, _context: &nibi_kernel_api::tool::PromptContext) -> String {
         String::new()
     }
     fn should_defer(&self) -> bool {
@@ -168,10 +168,10 @@ impl Tool for Named {
     async fn call(
         &self,
         _input: serde_json::Value,
-        _context: rust_cli_kernel_api::tool::ToolUseContext,
-        _progress: mpsc::Sender<rust_cli_kernel_api::tool::ToolProgress>,
-    ) -> Result<rust_cli_kernel_api::tool::ToolOutput, rust_cli_kernel_api::tool::ToolError> {
-        Err(rust_cli_kernel_api::tool::ToolError::Unsupported {
+        _context: nibi_kernel_api::tool::ToolUseContext,
+        _progress: mpsc::Sender<nibi_kernel_api::tool::ToolProgress>,
+    ) -> Result<nibi_kernel_api::tool::ToolOutput, nibi_kernel_api::tool::ToolError> {
+        Err(nibi_kernel_api::tool::ToolError::Unsupported {
             what: self.name.to_owned(),
         })
     }
@@ -235,6 +235,6 @@ async fn an_unbound_catalog_fails_instead_of_finding_nothing() {
         .await;
     assert!(matches!(
         searched,
-        Err(rust_cli_kernel_api::tool::ToolError::Failed { .. })
+        Err(nibi_kernel_api::tool::ToolError::Failed { .. })
     ));
 }

@@ -3,7 +3,7 @@
 //! 模式，查询、计数与当前匹配的高亮写到终端，esc 退出；括号粘贴进来的 `//` 不切模式。
 //!
 //! 终端只重画变了的格子：断言只看某个时刻之后的输出（`Pty::mark`），等的是这一步新画出来的字。
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::testing::text_response;
 
 use super::pty::{Pty, ROLE, interface, shows};
 use super::support::GatedModel;

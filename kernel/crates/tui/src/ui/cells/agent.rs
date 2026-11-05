@@ -30,7 +30,7 @@ fn display_name(input: &Value) -> String {
 
 /// 数字与时长的写法：唯一定义在 kernel-api `metering`（F58：以前这里各写了
 /// 一份；秒的取整原来是 f64 的 `round`，kernel-api 是整数的 `+ 500`，测试核对两者在 0–59999 上相同）。
-pub(crate) use rust_cli_kernel_api::metering::{
+pub(crate) use nibi_kernel_api::metering::{
     format_duration as duration, format_number as compact_number,
 };
 

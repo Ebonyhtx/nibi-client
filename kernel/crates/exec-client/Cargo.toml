@@ -1,5 +1,5 @@
 [package]
-name = "rust-cli-exec-client"
+name = "nibi-kernel-exec-client"
 description = "Session layer of the remote executor client: handshake, calls, streams with seq and ack, reconnect"
 version.workspace = true
 edition.workspace = true
@@ -17,9 +17,9 @@ doctest = false
 bytes.workspace = true
 futures-util.workspace = true
 # 连接的任务经 base 的 TaskScope 启动（README §3.1）；凭据是 RedactedString。
-rust-cli-base.workspace = true
-rust-cli-exec-transport.workspace = true
-rust-cli-exec-wire.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-exec-transport.workspace = true
+nibi-kernel-exec-wire.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["macros", "sync", "time"] }
 tokio-util.workspace = true

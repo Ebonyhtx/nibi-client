@@ -6,9 +6,9 @@
 use std::sync::Arc;
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_kernel_api::env_shell::ShellNotice;
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_api::env_shell::ShellNotice;
+use nibi_kernel_api::ids::SessionId;
 
 use super::Shared;
 

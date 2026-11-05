@@ -8,7 +8,7 @@
 
 use std::sync::{Arc, OnceLock};
 
-use rust_cli_base::TaskScope;
+use nibi_kernel_base::TaskScope;
 use tokio_util::sync::CancellationToken;
 
 /// 收到的第一个退出信号：名字与对应的退出码。

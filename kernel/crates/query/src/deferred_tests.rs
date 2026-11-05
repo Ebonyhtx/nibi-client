@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{ContentBlock, ToolResultContent, UserMessage, UserOrigin};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::tool::{ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{ContentBlock, ToolResultContent, UserMessage, UserOrigin};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::tool::{ToolError, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::Value;
 use tokio::sync::mpsc;
 
-use rust_cli_prompts::models::ToolSearchMode;
+use nibi_kernel_prompts::models::ToolSearchMode;
 
 use super::*;
 
@@ -239,7 +239,7 @@ fn referenced_results_get_the_tool_loaded_note_and_unavailable_ones_are_dropped(
 /// 模型不用再加载一次。
 #[test]
 fn tools_loaded_before_compaction_stay_on_the_wire() {
-    use rust_cli_kernel_api::message::{CompactBoundary, CompactTrigger, SystemMessage};
+    use nibi_kernel_api::message::{CompactBoundary, CompactTrigger, SystemMessage};
     let boundary = Message::System(SystemMessage::CompactBoundary(CompactBoundary {
         id: MessageId::new("b1"),
         trigger: CompactTrigger::Auto,
@@ -284,7 +284,7 @@ fn local_tool_search_sends_loaded_tools_as_plain_definitions() {
     assert!(wire.flags.is_empty(), "{:?}", wire.flags);
     assert_eq!(wire.mode, ToolSearchMode::Local);
 
-    use rust_cli_kernel_api::message::{CompactBoundary, CompactTrigger, SystemMessage};
+    use nibi_kernel_api::message::{CompactBoundary, CompactTrigger, SystemMessage};
     let boundary = Message::System(SystemMessage::CompactBoundary(CompactBoundary {
         id: MessageId::new("b1"),
         trigger: CompactTrigger::Auto,

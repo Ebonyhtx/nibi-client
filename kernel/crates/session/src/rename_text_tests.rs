@@ -1,10 +1,10 @@
 //! 不带参数的 `/rename` 的文本处理（titles.md §8.3–§8.5）：对话文本、JSON 解析、
 //! 名字的清理与请求的形状。
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ModelSelection, OutputFormat, QuerySource};
+use nibi_kernel_api::model::{ModelSelection, OutputFormat, QuerySource};
 
 use super::*;
 
@@ -155,8 +155,8 @@ fn the_rename_request_has_the_expected_shape() {
     assert_eq!(
         system,
         [
-            rust_cli_prompts::texts::identity(),
-            rust_cli_prompts::title::rename_system()
+            nibi_kernel_prompts::texts::identity(),
+            nibi_kernel_prompts::title::rename_system()
         ]
     );
     assert_eq!(request.messages.len(), 1);

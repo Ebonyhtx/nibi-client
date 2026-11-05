@@ -8,12 +8,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::message::{ContentBlock, StopReason};
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, QuerySource, ToolDefinition};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_model::{FixedEndpoint, ProviderModel};
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::message::{ContentBlock, StopReason};
+use nibi_kernel_api::model::{ModelError, ModelEvent, QuerySource, ToolDefinition};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_model::{FixedEndpoint, ProviderModel};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::json;
 
 use super::common::{assemble, clock, collect, fast_retry, request};
@@ -102,7 +102,7 @@ async fn chat_completions_stream_text_and_tool_calls() {
                 text: "Reading.".to_owned(),
             },
             ContentBlock::ToolUse {
-                id: rust_cli_kernel_api::ids::ToolUseId::new("call_1"),
+                id: nibi_kernel_api::ids::ToolUseId::new("call_1"),
                 name: "Read".to_owned(),
                 input: json!({"file_path": "a.rs"}),
             },
@@ -215,8 +215,8 @@ async fn a_chat_stream_without_done_is_a_protocol_error() {
 /// 模型不支持图片（model.md §10.5）：发出的请求里图片换成 Node 的占位文字；支持时照常是 `image_url`。
 #[tokio::test]
 async fn text_only_models_get_image_placeholders() {
-    use rust_cli_kernel_api::message::ImageSource;
-    use rust_cli_kernel_api::model::ApiContent;
+    use nibi_kernel_api::message::ImageSource;
+    use nibi_kernel_api::model::ApiContent;
 
     let done = || {
         sse(

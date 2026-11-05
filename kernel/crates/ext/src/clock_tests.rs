@@ -15,7 +15,7 @@ impl TokioClock {
     }
 }
 
-impl rust_cli_kernel_api::clock::Clock for TokioClock {
+impl nibi_kernel_api::clock::Clock for TokioClock {
     fn now_ms(&self) -> u64 {
         1_000_000 + u64::try_from(self.start.elapsed().as_millis()).unwrap_or(u64::MAX)
     }

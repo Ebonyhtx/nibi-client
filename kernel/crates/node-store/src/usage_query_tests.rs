@@ -1,11 +1,11 @@
 //! `/usage` 的两个查询（usage.md §4、§5.2）：会话树的 API 时长、活动统计的聚合与范围、只扫索引。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::Usage;
-use rust_cli_kernel_api::metering::{
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::Usage;
+use nibi_kernel_api::metering::{
     ActivityDay, ActivityQuery, ActivityRange, CallStatus, ModelCall, ModelTokens,
 };
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::store::{Fact, SessionKind, SessionStore};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::store::{Fact, SessionKind, SessionStore};
 
 use super::{days_sql, sessions_sql};
 use crate::tests::{TestStore, batch, meta, started, user};
@@ -312,7 +312,7 @@ fn the_message_queries_only_scan_the_covering_index() {
 /// `[since, until]` 的行、按模型与工具分组、三张表按本地日归桶。
 #[tokio::test]
 async fn app_usage_aggregates_across_sessions_by_day() {
-    use rust_cli_kernel_api::usage::AppUsageQuery;
+    use nibi_kernel_api::usage::AppUsageQuery;
     let t = TestStore::new();
     started(&t, "sess_u1").await;
     started(&t, "sess_u2").await;
@@ -420,7 +420,7 @@ async fn session_usage_accounts_input_side_incrementally_per_source() {
     // 空会话是零值（不是错误）。
     started(&t, "sess_empty_usage").await;
     let empty = super::session_usage(&t.connection(), "sess_empty_usage").unwrap();
-    assert_eq!(empty, rust_cli_kernel_api::usage::SessionUsage::default());
+    assert_eq!(empty, nibi_kernel_api::usage::SessionUsage::default());
 }
 
 #[test]

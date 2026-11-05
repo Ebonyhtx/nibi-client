@@ -2,7 +2,7 @@
 //!
 //! Node 侧是 `createNodeNetworkCapture`（`packages/shared/src/node/networkCapture.ts`）：订阅 undici 与
 //! `http` 的请求创建事件，攒够 250 ms 或 100 条就发一批。Rust 这边所有出站请求都经
-//! [`Egress::send`](rust_cli_net::Egress::send)，所以在那一处挂钩就够——不必像 Node 那样订阅两套
+//! [`Egress::send`](nibi_kernel_net::Egress::send)，所以在那一处挂钩就够——不必像 Node 那样订阅两套
 //! 客户端事件。
 //!
 //! 三条与 Node 相同的规则：

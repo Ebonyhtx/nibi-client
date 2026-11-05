@@ -6,9 +6,9 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_prompts::texts::{self, render};
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_prompts::texts::{self, render};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 

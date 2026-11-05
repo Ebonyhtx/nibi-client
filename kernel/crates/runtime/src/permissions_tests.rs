@@ -1,11 +1,11 @@
 //! `/permissions` 的列表组成与修改后的快照（tui-manage.md §1.1、§1.4）。
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
 use std::sync::Arc;
 
-use rust_cli_kernel_api::orchestration::PermissionGate;
-use rust_cli_kernel_api::permission::RuleBehavior;
-use rust_cli_kernel_api::testing::MemoryStore;
+use nibi_kernel_api::orchestration::PermissionGate;
+use nibi_kernel_api::permission::RuleBehavior;
+use nibi_kernel_api::testing::MemoryStore;
 
 use super::*;
 

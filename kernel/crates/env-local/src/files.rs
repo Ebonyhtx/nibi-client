@@ -1,14 +1,14 @@
 //! 工作区文件：元数据、目录、读取与条件写（docs/specs/rust-cli/tools-files.md §3）。
 //!
-//! 都是阻塞调用，由调用方放进 `rust_cli_base::blocking`。写入是原地写：保留 inode、权限、硬链接，
+//! 都是阻塞调用，由调用方放进 `nibi_kernel_base::blocking`。写入是原地写：保留 inode、权限、硬链接，
 //! 写穿符号链接；写完 fsync 并核对大小。
 
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::Path;
 
-use rust_cli_kernel_api::env::{EnvError, FileContent, WritePrecondition};
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env::{EnvError, FileContent, WritePrecondition};
+use nibi_kernel_api::env_files::{
     DirEntry, FileKind, FileStat, FileWritten, PutFile, ReadText, TextRead, TextSlice,
 };
 

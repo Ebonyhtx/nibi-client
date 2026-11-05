@@ -1,6 +1,6 @@
 //! OpenAI Chat Completions 请求体（model.md §10.1）。
 
-use rust_cli_kernel_api::model::{ApiRole, SystemBlock, ThinkingConfig};
+use nibi_kernel_api::model::{ApiRole, SystemBlock, ThinkingConfig};
 use serde_json::json;
 
 use super::*;
@@ -94,7 +94,7 @@ fn provider_patches_set_reasoning_and_the_completion_budget() {
 #[test]
 fn server_tools_are_unsupported_on_openai() {
     let mut request = request(vec![message(ApiRole::User, vec![text("hi")])]);
-    request.options.server_tools = vec![rust_cli_kernel_api::model::ServerTool::WebSearch {
+    request.options.server_tools = vec![nibi_kernel_api::model::ServerTool::WebSearch {
         allowed_domains: None,
         blocked_domains: None,
         max_uses: 8,

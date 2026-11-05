@@ -85,7 +85,7 @@ fn limited_reads_count_as_full_only_when_the_file_ended_early() {
 /// 压缩时的清空（compact.md §3.4，先取出再清空）：返回清空前的路径，最近用过的在前；别的会话不动。
 #[test]
 fn clearing_for_compaction_returns_the_paths_most_recent_first() {
-    use rust_cli_kernel_api::tool::ReadFileStates;
+    use nibi_kernel_api::tool::ReadFileStates;
     let store = ReadFileState::default();
     let (a, b) = (SessionId::new("a"), SessionId::new("b"));
     store.set(&a, "/w/old", state("o", "v"));

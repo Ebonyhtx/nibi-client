@@ -1,6 +1,6 @@
 //! 子代理的模型选择（工作线 F49）：团队项目跟父运行。
 
-use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
+use nibi_kernel_api::model::{ModelConnection, ModelSelection};
 
 use super::selection;
 

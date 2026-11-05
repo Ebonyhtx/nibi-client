@@ -1,9 +1,9 @@
 //! MCP 传输的本地实现（docs/specs/rust-cli/ext.md §3.2）：kernel-api `McpTransport` 端口。
 //!
-//! - stdio：经 `rust-cli-proc` 的账本启动服务器进程，一行一条 JSON-RPC 消息；
-//! - streamable HTTP 与 SSE：经 `rust-cli-net` 的 [`Egress`]。
+//! - stdio：经 `nibi-kernel-proc` 的账本启动服务器进程，一行一条 JSON-RPC 消息；
+//! - streamable HTTP 与 SSE：经 `nibi-kernel-net` 的 [`Egress`]。
 //!
-//! 每条连接一个由句柄拥有的任务（`rust_cli_base::owned`），任务拥有进程或 HTTP 流；连接从表里移除
+//! 每条连接一个由句柄拥有的任务（`nibi_kernel_base::owned`），任务拥有进程或 HTTP 流；连接从表里移除
 //! 或传输被释放时任务随之中止（进程树随 `Tracked` 释放而结束）。
 //!
 //! 通道都有界（docs/specs/rust-cli/ext.md §3.2“通道与溢出”，审查 R1-18）：服务器发来的事件最多排
@@ -21,13 +21,13 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpError, McpTransport, McpTransportConfig, McpTransportEvent,
 };
-use rust_cli_net::Egress;
-use rust_cli_proc::ledger::Ledger;
+use nibi_kernel_net::Egress;
+use nibi_kernel_proc::ledger::Ledger;
 use serde_json::Value;
 use tokio::sync::mpsc;
 
@@ -43,7 +43,7 @@ pub(crate) type EventSender = mpsc::Sender<McpTransportEvent>;
 pub(crate) struct Connection {
     outbox: Outbox,
     events: Option<mpsc::Receiver<McpTransportEvent>>,
-    task: rust_cli_base::OwnedTask<()>,
+    task: nibi_kernel_base::OwnedTask<()>,
 }
 
 /// 发消息：stdio 交给连接任务写 stdin；HTTP 由连接自己发请求。
@@ -93,10 +93,10 @@ impl LocalMcpTransport {
         }
         let lookup = |name: &str| match request.env.get(name) {
             Some(pushed) => pushed.clone(),
-            None => rust_cli_base::secret::env_var(&self.env, name).map(str::to_owned),
+            None => nibi_kernel_base::secret::env_var(&self.env, name).map(str::to_owned),
         };
         let (transport, missing) =
-            rust_cli_kernel_api::mcp_vars::expand_transport_vars(&request.transport, &lookup);
+            nibi_kernel_api::mcp_vars::expand_transport_vars(&request.transport, &lookup);
         if !missing.is_empty() {
             tracing::warn!(server = %request.server, ?missing, "MCP server: missing environment variables");
         }

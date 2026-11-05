@@ -4,17 +4,17 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{AttachmentMessage, Message, ToolResultContent};
-use rust_cli_kernel_api::model::SystemBlock;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{AttachmentMessage, Message, ToolResultContent};
+use nibi_kernel_api::model::SystemBlock;
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::plan::{EXIT_SOURCE, PlanModeFlags, REENTRY_SOURCE};
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response, tool_use_response};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::plan::{EXIT_SOURCE, PlanModeFlags, REENTRY_SOURCE};
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::testing::{ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};

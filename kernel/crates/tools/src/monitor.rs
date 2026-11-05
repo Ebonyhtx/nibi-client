@@ -7,15 +7,15 @@
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, StartCommand};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env::{CommandEvent, StartCommand};
+use nibi_kernel_api::env_shell::{
     self, BackgroundCommand, BackgroundKind, BackgroundTask, CwdScope, MonitorSocket,
     SandboxPolicy, ShellKind,
 };
-use rust_cli_kernel_api::ids::{OperationId, ShellTaskId};
-use rust_cli_kernel_api::monitor::{MonitorArmed, MonitorSource};
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::ids::{OperationId, ShellTaskId};
+use nibi_kernel_api::monitor::{MonitorArmed, MonitorSource};
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde_json::Value;
@@ -174,11 +174,11 @@ impl Tool for MonitorTool {
         };
         if let Some(host) = monitor_input::private_host(&ws.url) {
             return PermissionDecision::Deny {
-                message: rust_cli_prompts::monitor::ws_private(&host),
+                message: nibi_kernel_prompts::monitor::ws_private(&host),
             };
         }
         PermissionDecision::Ask {
-            message: rust_cli_prompts::monitor::ws_ask(
+            message: nibi_kernel_prompts::monitor::ws_ask(
                 &ws.url,
                 ws.protocols.as_deref().unwrap_or_default(),
             ),
@@ -260,7 +260,7 @@ impl Tool for MonitorTool {
             } else {
                 MonitorSource::Command
             },
-            output: rust_cli_kernel_api::env::EnvPath::new(output),
+            output: nibi_kernel_api::env::EnvPath::new(output),
         };
         if let Err(error) = context
             .interactions
@@ -281,8 +281,8 @@ impl Tool for MonitorTool {
                 message: error.to_string(),
             });
         }
-        let duration = rust_cli_kernel_api::metering::format_duration_trimmed(timeout_ms);
-        Ok(text(rust_cli_prompts::monitor::started(
+        let duration = nibi_kernel_api::metering::format_duration_trimmed(timeout_ms);
+        Ok(text(nibi_kernel_prompts::monitor::started(
             task.as_str(),
             &duration,
         )))

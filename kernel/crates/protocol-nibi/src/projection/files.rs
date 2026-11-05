@@ -4,8 +4,8 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::file_changes::TurnFileSummary;
-use rust_cli_kernel_api::session_api::FileChange;
+use nibi_kernel_api::file_changes::TurnFileSummary;
+use nibi_kernel_api::session_api::FileChange;
 use serde_json::{Map, Value, json};
 
 use super::{Projection, turn_key};

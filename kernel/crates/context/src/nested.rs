@@ -6,11 +6,11 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::env::EnvFacts;
-use rust_cli_kernel_api::env_shell;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::machine::Shell;
-use rust_cli_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_api::env::EnvFacts;
+use nibi_kernel_api::env_shell;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::machine::Shell;
+use nibi_kernel_api::message::{ContentBlock, Message};
 use serde_json::{Value, json};
 
 use crate::instructions::{self, Announced};

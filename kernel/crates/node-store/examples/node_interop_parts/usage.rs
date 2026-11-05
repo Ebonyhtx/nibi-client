@@ -8,10 +8,10 @@
 //! - `activity <storage-dir> <all|week|month> <today> <offset-minutes>`：`SessionStore::activity` 的结果；
 //! - `request-stats <storage-dir> <session>`：`SessionStore::request_stats` 的结果与它给出的 TPS、命中率（footer 的
 //!   请求统计，usage.md §4.1，修复线 F27）。
-use rust_cli_kernel_api::metering::{
+use nibi_kernel_api::metering::{
     ActivityQuery, ActivityRange, CallStatus, ModelCall, ToolCall,
 };
-use rust_cli_kernel_api::model::{QuerySource, SIDE_SESSION_TITLE};
+use nibi_kernel_api::model::{QuerySource, SIDE_SESSION_TITLE};
 
 use super::*;
 

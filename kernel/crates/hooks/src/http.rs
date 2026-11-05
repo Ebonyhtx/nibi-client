@@ -1,7 +1,7 @@
 //! http hook（docs/specs/rust-cli/hooks.md §5.2）：执行的语义部分，网络经
 //! [`HookHttp`] 端口。
 
-use rust_cli_kernel_api::hooks::{HookHttp, HookHttpError, HookHttpRequest};
+use nibi_kernel_api::hooks::{HookHttp, HookHttpError, HookHttpRequest};
 use tokio_util::sync::CancellationToken;
 
 use crate::config::HttpHook;
@@ -44,7 +44,7 @@ pub(crate) fn interpolate(value: &str, allowed: &[String], env: &[(String, Strin
             tracing::warn!(name, "hook header env var is not in allowedEnvVars");
             return String::new();
         }
-        rust_cli_base::secret::env_var(env, name)
+        nibi_kernel_base::secret::env_var(env, name)
             .map(str::to_owned)
             .unwrap_or_default()
     };

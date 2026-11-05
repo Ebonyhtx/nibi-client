@@ -7,7 +7,7 @@ const DEFAULT_MS: u64 = 120_000;
 const MAX_MS: u64 = 600_000;
 const BACKGROUND_DEFAULT_MS: u64 = 600_000;
 const BACKGROUND_MAX_MS: u64 = 7_200_000;
-const TIMER_LIMIT_MS: u64 = rust_cli_base::js::MAX_TIMER_MS;
+const TIMER_LIMIT_MS: u64 = nibi_kernel_base::js::MAX_TIMER_MS;
 /// stream-json 输入时后台命令的缺省期限的下限（headless.md §6.1）。
 const STREAMING_BACKGROUND_DEFAULT_MS: u64 = 1_800_000;
 

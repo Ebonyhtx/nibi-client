@@ -5,10 +5,10 @@
 //! `*`、`?` 不跨目录；匹配到目录时它下面的一切都算匹配。
 
 use regex::{Regex, RegexBuilder};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_path::git_bash_spelling;
-use rust_cli_kernel_api::permission::RuleBehavior;
-use rust_cli_kernel_api::plan::PlanFiles;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_path::git_bash_spelling;
+use nibi_kernel_api::permission::RuleBehavior;
+use nibi_kernel_api::plan::PlanFiles;
 
 /// 一次判决里解析路径所需的事实。
 #[derive(Debug, Clone, PartialEq, Eq)]

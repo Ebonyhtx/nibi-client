@@ -1,7 +1,7 @@
 //! 工具类事件的合并（spec §4.3、§6）。
 
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::testing::SequentialIds;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::testing::SequentialIds;
 use serde_json::json;
 
 use super::*;

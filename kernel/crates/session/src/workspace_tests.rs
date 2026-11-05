@@ -5,21 +5,21 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent};
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent};
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::testing::{
     MemoryEnvironment, ScriptedModel, text_response, tool_use_response,
 };
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};
@@ -221,14 +221,14 @@ async fn a_refused_shell_cwd_keeps_the_old_workspace() {
 /// 放行之前一直不结束的模型（让回合停在进行中）。
 struct Held(Arc<tokio::sync::Notify>);
 
-impl rust_cli_kernel_api::model::ModelPort for Held {
+impl nibi_kernel_api::model::ModelPort for Held {
     fn stream(
         &self,
-        _request: rust_cli_kernel_api::model::ModelRequest,
+        _request: nibi_kernel_api::model::ModelRequest,
         _cancel: tokio_util::sync::CancellationToken,
     ) -> BoxStream<
         'static,
-        Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>,
+        Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>,
     > {
         use futures_util::StreamExt;
         let gate = self.0.clone();
@@ -242,8 +242,8 @@ impl rust_cli_kernel_api::model::ModelPort for Held {
 /// `/cd`（tui-manage.md §7.1）：空闲时换目录并提交说明；进行中的回合里拒绝。
 #[tokio::test]
 async fn set_workspace_moves_an_idle_session_and_commits_the_note() {
-    use rust_cli_kernel_api::message::UserOrigin;
-    use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent};
+    use nibi_kernel_api::message::UserOrigin;
+    use nibi_kernel_api::session_api::{Ack, Command, KernelEvent};
 
     use crate::test_support::envelope;
 
@@ -305,7 +305,7 @@ async fn set_workspace_moves_an_idle_session_and_commits_the_note() {
 /// `WorkspaceChanged`，前端只从事件与快照取。
 #[tokio::test]
 async fn a_workspace_change_is_announced_to_the_front_end() {
-    use rust_cli_kernel_api::session_api::KernelEvent;
+    use nibi_kernel_api::session_api::KernelEvent;
 
     let model = Arc::new(ScriptedModel::new(vec![
         tool_use_response("toolu_1", "Switch", &json!({})),
@@ -337,7 +337,7 @@ async fn a_workspace_change_is_announced_to_the_front_end() {
 struct OneRule;
 
 #[async_trait]
-impl rust_cli_kernel_api::orchestration::DirectoryRules for OneRule {
+impl nibi_kernel_api::orchestration::DirectoryRules for OneRule {
     async fn directory_rules(
         &self,
         workspace: &WorkspaceRef,
@@ -355,8 +355,8 @@ impl rust_cli_kernel_api::orchestration::DirectoryRules for OneRule {
 /// 说明加新目录的规则文件（用 actor 自己的历史，不复制给调用方）；运行中按固定的文字拒绝。
 #[tokio::test]
 async fn change_directory_is_judged_by_the_actor() {
-    use rust_cli_kernel_api::manage::DirectoryOutcome;
-    use rust_cli_kernel_api::session_api::{Ack, Command, KernelEvent};
+    use nibi_kernel_api::manage::DirectoryOutcome;
+    use nibi_kernel_api::session_api::{Ack, Command, KernelEvent};
 
     use crate::test_support::envelope;
 
@@ -440,8 +440,8 @@ async fn change_directory_is_judged_by_the_actor() {
 /// 都再来一遍），POSIX 上 `/work/` 也是。
 #[tokio::test]
 async fn the_same_directory_is_judged_by_its_path_key() {
-    use rust_cli_kernel_api::manage::DirectoryOutcome;
-    use rust_cli_kernel_api::session_api::{Ack, Command};
+    use nibi_kernel_api::manage::DirectoryOutcome;
+    use nibi_kernel_api::session_api::{Ack, Command};
 
     use crate::test_support::envelope;
 
@@ -474,8 +474,8 @@ async fn the_same_directory_is_judged_by_its_path_key() {
 /// 也转。
 #[tokio::test]
 async fn delivering_moves_the_foreground_only_while_an_input_waits() {
-    use rust_cli_kernel_api::env::BackgroundReason;
-    use rust_cli_kernel_api::session_api::{Command, Delivery, KernelEvent};
+    use nibi_kernel_api::env::BackgroundReason;
+    use nibi_kernel_api::session_api::{Command, Delivery, KernelEvent};
 
     use crate::test_support::{GatedModel, envelope};
 

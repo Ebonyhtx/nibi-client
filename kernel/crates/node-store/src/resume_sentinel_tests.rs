@@ -1,10 +1,10 @@
 //! 续写占位（`No response requested.`，docs/specs/rust-cli/node-store.md §4.2.1，工作线 F77）：写成 Node 只给模型看的
 //! assistant（App 不显示），冷读取还原成占位；文字相同的普通回复照常是回复。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL, StopReason,
 };
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, started, text, user};

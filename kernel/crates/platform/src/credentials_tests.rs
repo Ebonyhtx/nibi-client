@@ -70,7 +70,7 @@ fn the_explicit_secret_wins_and_is_trimmed() {
 }
 
 fn storage(dir: &std::path::Path) -> StoragePath {
-    rust_cli_paths::StoragePaths::resolve(&Default::default(), dir, dir).credentials()
+    nibi_kernel_paths::StoragePaths::resolve(&Default::default(), dir, dir).credentials()
 }
 
 #[tokio::test]
@@ -147,7 +147,7 @@ async fn writes_are_encrypted_pretty_printed_and_private() {
     }
     let lock = dir.path().join(".zcode/v2/credentials.json.lock");
     // 锁目录已释放（还在的话读目录会报错）。
-    assert!(matches!(rust_cli_fs::read_optional(&lock).await, Ok(None)));
+    assert!(matches!(nibi_kernel_fs::read_optional(&lock).await, Ok(None)));
 }
 
 #[tokio::test]

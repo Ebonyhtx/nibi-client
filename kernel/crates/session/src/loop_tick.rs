@@ -4,9 +4,9 @@
 //! loop.md 改了）发全文，之后发短提醒。状态只在 actor 里，不持久化；主线程压缩边界提交后清空（压缩后的
 //! 清理）。
 
-use rust_cli_kernel_api::env::{EnvPath, ReadFile};
-use rust_cli_prompts::loops::{self, LoopFile};
-use rust_cli_prompts::texts::render;
+use nibi_kernel_api::env::{EnvPath, ReadFile};
+use nibi_kernel_prompts::loops::{self, LoopFile};
+use nibi_kernel_prompts::texts::render;
 
 use crate::actor::Actor;
 

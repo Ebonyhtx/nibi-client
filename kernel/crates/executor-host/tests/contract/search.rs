@@ -4,9 +4,9 @@ use std::fs::File;
 use std::path::Path;
 use std::time::{Duration, UNIX_EPOCH};
 
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::env_files::{
     GlobFiles, GrepLineKind, GrepMode, GrepOutcome, GrepSearch, ListFiles,
 };
 

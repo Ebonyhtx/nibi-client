@@ -1,12 +1,12 @@
 //! 行的增量（[`Projection`] 的一部分，从 mod.rs 拆出：800 行上限）：流式正文与思考、落定的消息、工具调用行与权限询问。
 
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     CompactBoundary, CompactTrigger, ContentBlock, Message, SystemMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::session_api::TurnOutcome;
-use rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::session_api::TurnOutcome;
+use nibi_kernel_api::user_input::INTERRUPT_TEXTS;
 use serde_json::{Value, json};
 
 use super::{Projection, block_key, state, text_of, tool_key};
@@ -158,7 +158,7 @@ impl Projection {
         response: u32,
         index: usize,
         text: &str,
-        assistant: &rust_cli_kernel_api::message::AssistantMessage,
+        assistant: &nibi_kernel_api::message::AssistantMessage,
         now: u64,
         seq: u64,
         out: &mut Vec<Value>,

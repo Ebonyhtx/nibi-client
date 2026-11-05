@@ -3,7 +3,7 @@
 //!
 //! 外部程序是 poppler-utils 的 `pdfinfo` 与 `pdftoppm`（命令见 tools-files.md §1.5）：文件内容经 stdin 交给它们
 //! （参数是 `-`，Windows 的长路径与非 ASCII 路径因此不影响
-//! poppler）。进程经 `rust-cli-proc` 启动，环境是白名单投影（同 git），超时或调用方丢下 future 时 `kill_on_drop`
+//! poppler）。进程经 `nibi-kernel-proc` 启动，环境是白名单投影（同 git），超时或调用方丢下 future 时 `kill_on_drop`
 //! 结束它。程序名由操作系统按 PATH 查找（Windows 上补 `.exe`）。端口只给原始结果，报错文字在内核的 tools 里拼。
 
 use std::collections::BTreeMap;
@@ -14,8 +14,8 @@ use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_kernel_api::env_pdf::{PdfRender, RenderPdfPages};
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_api::env_pdf::{PdfRender, RenderPdfPages};
 use tokio::io::AsyncWriteExt;
 
 use crate::helpers::run;
@@ -44,7 +44,7 @@ async fn execute(
     env: &BTreeMap<String, String>,
     timeout: Duration,
 ) -> io::Result<Ran> {
-    let mut command = rust_cli_proc::command(program);
+    let mut command = nibi_kernel_proc::command(program);
     command
         .args(args)
         .env_clear()
@@ -91,7 +91,7 @@ async fn read_input(path: &Path) -> Result<Vec<u8>, EnvError> {
 fn pages_line(stdout: &str) -> Option<u64> {
     stdout.lines().find_map(|line| {
         let rest = line.strip_prefix("Pages:")?;
-        let digits = rest.trim_start_matches(rust_cli_base::js::string::is_space);
+        let digits = rest.trim_start_matches(nibi_kernel_base::js::string::is_space);
         if digits.len() == rest.len() {
             return None;
         }
@@ -186,7 +186,7 @@ fn read_pages(dir: &Path) -> Result<Vec<Vec<u8>>, EnvError> {
 
 impl OutputDir {
     async fn create(scratch: &Path) -> Result<Self, EnvError> {
-        rust_cli_proc::private::ensure(scratch)
+        nibi_kernel_proc::private::ensure(scratch)
             .await
             .map_err(|error| io_error(scratch, &error))?;
         let base = scratch.join("pdf");

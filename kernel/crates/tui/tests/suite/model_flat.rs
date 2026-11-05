@@ -4,11 +4,11 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
-use rust_cli_kernel_api::provider::{
+use nibi_kernel_api::model::{ModelConnection, ModelSelection};
+use nibi_kernel_api::provider::{
     CatalogConnection, CatalogModel, ModelCatalog, ModelDirectory, WireProtocol,
 };
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, with_ui};
 

@@ -10,12 +10,12 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::env::{EnvError, WritePrecondition};
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::env_rewind::{
+use nibi_kernel_api::env::{EnvError, WritePrecondition};
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::env_rewind::{
     RestoreAction, RestoreFile, RestoredFile, RewindConflict, RewindStatus, content_hash,
 };
-use rust_cli_kernel_api::ids::OperationId;
+use nibi_kernel_api::ids::OperationId;
 
 use crate::files;
 use crate::meta::{display, io_error};
@@ -110,7 +110,7 @@ fn set(path: &Path, bytes: Option<&[u8]>) -> Result<(), EnvError> {
     match bytes {
         Some(bytes) => {
             let request = PutFile {
-                path: rust_cli_kernel_api::env::EnvPath::new(display(path)),
+                path: nibi_kernel_api::env::EnvPath::new(display(path)),
                 bytes: bytes.to_vec(),
                 precondition: WritePrecondition::Any,
                 create_parents: true,

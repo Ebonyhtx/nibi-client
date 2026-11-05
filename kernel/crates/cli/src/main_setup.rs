@@ -1,10 +1,10 @@
 //! 入口的组装步骤：平台层、账号命令与扩展（从 main.rs 拆出）。
 
 use super::*;
-use rust_cli_kernel_api::clock::Clock as _;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, LocalRegistry};
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::{Files, MachineEnv};
+use nibi_kernel_api::clock::Clock as _;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, LocalRegistry};
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::{Files, MachineEnv};
 
 /// 进程环境（`zcode update` 与启动快照共用，F48）。
 #[expect(
@@ -165,12 +165,12 @@ pub(super) async fn extensions(
     workspace: &WorkspaceRef,
     startup: (&[(String, String)], &std::path::Path, &std::path::Path),
     (flags, allowed): (&mcp::McpFlags, &[String]),
-    (plugin_dirs, bindings): (&[String], &rust_cli_paths::StoragePath),
+    (plugin_dirs, bindings): (&[String], &nibi_kernel_paths::StoragePath),
     config: &config::ConfigSnapshot,
 ) -> Extensions {
     let mut extensions = Extensions::none();
     let (env, cwd, home) = startup;
-    // MCP 服务器绑定到哪台机器（R5，remote-exec.md §22.2）：rust-cli 自己的旁路文件，经本机的端口读。
+    // MCP 服务器绑定到哪台机器（R5，remote-exec.md §22.2）：nibi-kernel-cli 自己的旁路文件，经本机的端口读。
     let path = bindings.as_path().to_string_lossy();
     let bindings = &crate::mcp_machines::McpBindings::load(files, workspace, &path).await;
     let settings = mcp::settings(
@@ -235,7 +235,7 @@ pub(super) async fn resolve_flags(
     workspace: &WorkspaceRef,
     inputs: FlagInputs<'_>,
 ) -> Result<ResolvedFlags> {
-    use rust_cli_kernel_api::env_files::PathStyle;
+    use nibi_kernel_api::env_files::PathStyle;
     let probe = LocalEnvironment::new(Some(startup.home.clone()));
     let cwd = startup.cwd.to_string_lossy();
     let home = startup.home.to_string_lossy();
@@ -273,9 +273,9 @@ pub(super) async fn resolve_flags(
 pub(super) async fn fresh_session_id(
     store: &NodeStore,
     uuid: &str,
-) -> Result<rust_cli_kernel_api::ids::SessionId> {
-    use rust_cli_kernel_api::store::SessionStore as _;
-    let id = rust_cli_kernel_api::ids::SessionId::new(format!("sess_{uuid}"));
+) -> Result<nibi_kernel_api::ids::SessionId> {
+    use nibi_kernel_api::store::SessionStore as _;
+    let id = nibi_kernel_api::ids::SessionId::new(format!("sess_{uuid}"));
     if store.load(&id).await.is_ok() {
         return Err(flags::Fatal(format!("Error: Session ID {uuid} is already in use.")).into());
     }
@@ -284,9 +284,9 @@ pub(super) async fn fresh_session_id(
 
 /// 设备身份的来源（platform.md §10，工作线 F52）：`<dataBaseDir>/.zcode/v2/telemetry-state.json` 的 `deviceMid`，与 App、
 /// Node CLI 共用；新值由同一个 `NodeIds` 生成（README §4 的 ID 入口）。第一次请求时才解析，之后进程内同一个值。
-pub(super) fn device_id(paths: &StoragePaths, ids: Arc<NodeIds>) -> rust_cli_model::DeviceIdSource {
+pub(super) fn device_id(paths: &StoragePaths, ids: Arc<NodeIds>) -> nibi_kernel_model::DeviceIdSource {
     use futures_util::FutureExt as _;
-    let device = Arc::new(rust_cli_platform::DeviceMid::new(
+    let device = Arc::new(nibi_kernel_platform::DeviceMid::new(
         paths,
         Arc::new(move || ids.uuid()),
     ));

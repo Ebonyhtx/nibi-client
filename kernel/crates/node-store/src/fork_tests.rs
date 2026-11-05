@@ -1,9 +1,9 @@
 //! Node `/fork` 的新会话（session-lifecycle.md §6.5.2、node-store.md §4.8）：会话行、复制的范围、提示与时间线、
 //! 冷读取、找不到目标时整批回滚。
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{Fact, RevertCursor, SessionFork, SessionStore};
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{Fact, RevertCursor, SessionFork, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, selection, started, text, user};
@@ -256,7 +256,7 @@ async fn the_goal_state_is_copied_with_its_verifications() {
 /// 工具调用与结果，所以结果都在；排在回答之后的中断标记不复制；提示是分叉对话的正文。
 #[tokio::test]
 async fn a_fork_through_the_last_answer_of_a_tool_turn_keeps_its_tool_results() {
-    use rust_cli_kernel_api::message::{
+    use nibi_kernel_api::message::{
         AssistantMessage, ContentBlock, StopReason, ToolResultContent, UserMessage, UserOrigin,
     };
     let t = TestStore::new();
@@ -296,7 +296,7 @@ async fn a_fork_through_the_last_answer_of_a_tool_turn_keeps_its_tool_results() 
         assistant("msg_4_a2", vec![text("read it")], None),
         user(
             "msg_5_i1",
-            rust_cli_kernel_api::user_input::INTERRUPT_TEXTS[0],
+            nibi_kernel_api::user_input::INTERRUPT_TEXTS[0],
         ),
         user("msg_6_u2", "second"),
     ] {

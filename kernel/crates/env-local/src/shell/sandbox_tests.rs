@@ -2,8 +2,8 @@
 
 use std::path::Path;
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::env_shell::{FilesystemPolicy, NetworkPolicy, SandboxPolicy};
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::env_shell::{FilesystemPolicy, NetworkPolicy, SandboxPolicy};
 
 use super::*;
 
@@ -173,7 +173,7 @@ fn macos_sandbox_blocks_writes_outside_the_allowed_roots() {
         "T",
     )
     .unwrap();
-    let status = rust_cli_proc::std_command(&launch.program)
+    let status = nibi_kernel_proc::std_command(&launch.program)
         .args(&launch.args)
         .stderr(std::process::Stdio::null())
         .status()
@@ -314,7 +314,7 @@ fn bwrap_skips_paths_under_a_git_file() {
 #[test]
 fn the_protected_directories_keep_their_names() {
     // F55：名字取 base 的定义；值是固定的目录表（产品目录是 `.nibi`）。
-    use rust_cli_base::names::{AGENTS_DIR, DOT_DIR};
+    use nibi_kernel_base::names::{AGENTS_DIR, DOT_DIR};
     assert_eq!(
         PROTECTED_DIRS,
         [".vscode", ".idea", ".nibi/commands", ".nibi/agents"]

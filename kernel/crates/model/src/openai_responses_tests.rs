@@ -1,6 +1,6 @@
 //! OpenAI Responses 请求体（model.md §10.2）。
 
-use rust_cli_kernel_api::model::{ApiRole, SystemBlock};
+use nibi_kernel_api::model::{ApiRole, SystemBlock};
 use serde_json::json;
 
 use super::*;

@@ -72,7 +72,7 @@ const NAMES: &[&str] = &[
 const PREFIXES: &[&str] = &["LC_", "XDG_"];
 
 fn allowed(name: &str) -> bool {
-    let matches = |known: &str| rust_cli_base::secret::same_env_name(name, known, cfg!(windows));
+    let matches = |known: &str| nibi_kernel_base::secret::same_env_name(name, known, cfg!(windows));
     NAMES.iter().any(|known| matches(known))
         || PREFIXES.iter().any(|prefix| name.starts_with(prefix))
 }
@@ -81,7 +81,7 @@ fn allowed(name: &str) -> bool {
 /// 换成它，环境段、git 等子进程、MCP stdio 都读这里。以前 env-local 三处各读一次，没设时 git 写空串、
 /// MCP 写 `/bin/sh`；应只有 `SHELL` 一个值，子进程继承它，没有缺省。
 pub(crate) fn shell_variable(snapshot: &[(String, String)]) -> Option<&str> {
-    rust_cli_base::secret::env_var(snapshot, "SHELL").filter(|value| !value.is_empty())
+    nibi_kernel_base::secret::env_var(snapshot, "SHELL").filter(|value| !value.is_empty())
 }
 
 /// 用户命令的完整环境：白名单里的变量加上固定设置。`shell` 是实际执行命令的 shell（Bash 命令与 hook 命令写它）；
@@ -107,7 +107,7 @@ pub(crate) fn project(
 /// 拒绝，这里不再查。
 pub(crate) fn apply(
     env: &mut BTreeMap<String, String>,
-    overrides: &rust_cli_kernel_api::env_command::EnvOverrides,
+    overrides: &nibi_kernel_api::env_command::EnvOverrides,
 ) {
     for (name, value) in overrides {
         match value {

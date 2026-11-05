@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{RunId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::{RunId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::{
     QueryError, QueryRequest, QueryRunner, QueryStop, RunSink,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::PermissionMode;
 
 /// 一次运行的事实（取自它的 [`QueryRequest`]）。
 #[derive(Debug, Clone, PartialEq, Eq)]

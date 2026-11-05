@@ -12,8 +12,8 @@ use crate::services::{
 };
 use crate::ui::app::Local;
 use crate::ui::i18n;
-use rust_cli_kernel_api::context_usage::{ContextUsage, ContextUsageQuery};
-use rust_cli_kernel_api::session_api::KernelError;
+use nibi_kernel_api::context_usage::{ContextUsage, ContextUsageQuery};
+use nibi_kernel_api::session_api::KernelError;
 
 /// 服务操作的结果。
 pub(crate) enum ServiceDone {

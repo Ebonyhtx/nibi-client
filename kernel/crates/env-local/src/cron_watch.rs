@@ -119,12 +119,12 @@ where
     });
     let (stop, stopped) = std_mpsc::channel();
     let start = async move {
-        if let Err(error) = rust_cli_fs::create_dir_all(&dir).await {
+        if let Err(error) = nibi_kernel_fs::create_dir_all(&dir).await {
             tracing::warn!(%error, dir = %dir.display(), "cannot create the scheduled task directory");
             return;
         }
         // 线程持有监听直到流被丢掉；这里等它只为在登记失败时结束流（结果在通道上体现）。
-        let _ = rust_cli_base::blocking(move || hold(&dir, source, handler, ready, stopped)).await;
+        let _ = nibi_kernel_base::blocking(move || hold(&dir, source, handler, ready, stopped)).await;
     }
     .boxed();
     Changes {

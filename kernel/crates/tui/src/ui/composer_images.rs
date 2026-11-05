@@ -2,7 +2,7 @@
 //! 粘贴文字共用一个计数）放进草稿，光标处插入 `[Image #N]`；发送时输入框里还在的占位文字对应的图片按编号排在
 //! 文字块之后。
 use base64::Engine;
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
+use nibi_kernel_api::message::{ContentBlock, ImageSource};
 
 use super::{Composer, InputMode};
 
@@ -16,12 +16,12 @@ pub struct Pasted {
 }
 
 /// 发给模型的图片上限（base64 之前，与 Read 的图片上限相同；不缩放，D10）：kernel-api 的一个常量（F58）。
-pub const MAX_IMAGE_BYTES: usize = rust_cli_kernel_api::image::MAX_IMAGE_BYTES;
+pub const MAX_IMAGE_BYTES: usize = nibi_kernel_api::image::MAX_IMAGE_BYTES;
 
 /// 按文件头认图片格式（png、jpeg、gif、webp）；不是图片时为 None。与 Read 同一个判断（kernel-api
 /// `image::media_type`）。修复线 F58：以前这里要完整的 8 字节 PNG 签名，Read 只看 4 字节。
 pub fn media_type(bytes: &[u8]) -> Option<&'static str> {
-    rust_cli_kernel_api::image::media_type(bytes)
+    nibi_kernel_api::image::media_type(bytes)
 }
 
 /// 粘贴的文字是一个图片文件的路径时（拖文件进终端）给出路径：去掉首尾空白与引号、
@@ -36,7 +36,7 @@ pub fn image_path(text: &str) -> Option<String> {
         .unwrap_or(trimmed)
         .replace("\\ ", " ");
     let lower = path.to_ascii_lowercase();
-    rust_cli_kernel_api::image::IMAGE_EXTENSIONS
+    nibi_kernel_api::image::IMAGE_EXTENSIONS
         .iter()
         .any(|extension| lower.ends_with(extension))
         .then_some(path)

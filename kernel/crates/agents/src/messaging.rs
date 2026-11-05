@@ -5,10 +5,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::ids::AgentId;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::ids::AgentId;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde::Deserialize;
@@ -112,7 +112,7 @@ impl Messaging {
             );
             return Ok(text_output(text, false));
         }
-        let origin = rust_cli_kernel_api::message::UserOrigin::Human;
+        let origin = nibi_kernel_api::message::UserOrigin::Human;
         let opening = match spawn::resume(&self.core, &agent, &input.message, origin).await {
             Ok(opening) => opening,
             Err(error) => {
@@ -156,12 +156,12 @@ impl Tool for Messaging {
     }
 
     fn input_schema(&self) -> Value {
-        rust_cli_prompts::tool(self.kind.name())
+        nibi_kernel_prompts::tool(self.kind.name())
             .map_or(Value::Null, |prompt| prompt.input_schema.clone())
     }
 
     fn description(&self, _context: &PromptContext) -> String {
-        rust_cli_prompts::tool(self.kind.name())
+        nibi_kernel_prompts::tool(self.kind.name())
             .map_or_else(String::new, |prompt| prompt.description.clone())
     }
 

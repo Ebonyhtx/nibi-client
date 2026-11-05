@@ -9,9 +9,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::mcp::{McpConnectionId, McpTransport, McpTransportEvent};
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::mcp::{McpConnectionId, McpTransport, McpTransportEvent};
 
 use super::notices::{self, NoticeReceiver, NoticeSender};
 use serde_json::{Value, json};

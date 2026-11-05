@@ -7,10 +7,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::testing::text_response;
 use serde_json::json;
 
 use super::support::{GatedModel, Item, Setup, finish, send, with_ui};
@@ -25,7 +25,7 @@ impl ManualClock {
     }
 }
 
-impl rust_cli_kernel_api::clock::Clock for ManualClock {
+impl nibi_kernel_api::clock::Clock for ManualClock {
     fn now_ms(&self) -> u64 {
         self.0.load(Ordering::SeqCst)
     }

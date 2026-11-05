@@ -3,12 +3,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::{AgentId, MessageId, SessionId};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::{AgentId, MessageId, SessionId};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
 };
-use rust_cli_kernel_api::testing::{MemoryStore, SequentialIds};
+use nibi_kernel_api::testing::{MemoryStore, SequentialIds};
 use tokio::sync::mpsc;
 
 use super::*;
@@ -46,7 +46,7 @@ impl Interactions for Root {
     async fn cancel_ask(
         &self,
         session: &SessionId,
-        tool_use: &rust_cli_kernel_api::ids::ToolUseId,
+        tool_use: &nibi_kernel_api::ids::ToolUseId,
     ) {
         self.0
             .lock()
@@ -84,7 +84,7 @@ async fn foreground_children_forward_to_the_parent_session() {
         .unwrap_or_else(|error| panic!("{error}"));
     // 被取消的询问撤回也转给父会话（R1-5）。
     child
-        .cancel_ask(&own, &rust_cli_kernel_api::ids::ToolUseId::new("toolu_1"))
+        .cancel_ask(&own, &nibi_kernel_api::ids::ToolUseId::new("toolu_1"))
         .await;
     assert_eq!(
         *root.0.lock().unwrap_or_else(PoisonError::into_inner),

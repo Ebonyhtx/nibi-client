@@ -2,10 +2,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::cron::CronSignals;
-use rust_cli_kernel_api::cron_store::{CronCreator, CronTasksChange, StoredCronTask};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::testing::MemoryCronStore;
+use nibi_kernel_api::cron::CronSignals;
+use nibi_kernel_api::cron_store::{CronCreator, CronTasksChange, StoredCronTask};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::testing::MemoryCronStore;
 
 use super::*;
 use crate::cron_board::tests::TokioClock;

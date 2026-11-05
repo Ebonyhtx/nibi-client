@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::testing::MemoryEnvironment;
+use nibi_kernel_api::testing::MemoryEnvironment;
 
 use super::tokens;
 use crate::skills::SkillCatalog;

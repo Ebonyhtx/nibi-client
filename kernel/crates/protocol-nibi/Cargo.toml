@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-protocol-nibi"
-description = "The App protocol front end of rust-cli (V4 methods, commands, topics and the legacy methods the Host still calls)"
+name = "nibi-kernel-protocol-nibi"
+description = "The App protocol front end of nibi-kernel-cli (V4 methods, commands, topics and the legacy methods the Host still calls)"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,13 +17,13 @@ doctest = false
 async-trait.workspace = true
 # wire v3 的分片（dataBase64）。
 base64.workspace = true
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
 # 网络捕获挂在出口的观察者上（141 审计 §9 F3，`process/networkCapture`）。
-rust-cli-net.workspace = true
+nibi-kernel-net.workspace = true
 # 账号模型的每请求鉴权来源（G8，HeaderSource）。
-rust-cli-platform.workspace = true
-rust-cli-protocol-core.workspace = true
+nibi-kernel-platform.workspace = true
+nibi-kernel-protocol-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 # 附件事务 commit 的 sha256 校验（Host `createHash("sha256")` 同算法）。
@@ -33,5 +33,5 @@ tracing.workspace = true
 
 [dev-dependencies]
 futures-util.workspace = true
-rust-cli-kernel-api = { workspace = true, features = ["testing"] }
+nibi-kernel-api = { workspace = true, features = ["testing"] }
 tokio = { workspace = true, features = ["io-util", "macros", "rt", "time"] }

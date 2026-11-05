@@ -16,7 +16,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use rust_cli_ssh_connect::SshTarget;
+use nibi_kernel_ssh_connect::SshTarget;
 
 /// ssh 配置里的目标名。
 pub const HOST: &str = "f107-mac";
@@ -69,7 +69,7 @@ impl LocalSshd {
         let dir = PathBuf::from(format!(
             "/tmp/f107-nibi-rs-sshd-{}-{:x}",
             std::process::id(),
-            rust_cli_base::random::u64() & 0xffff
+            nibi_kernel_base::random::u64() & 0xffff
         ));
         std::fs::create_dir_all(dir.join("home")).map_err(|error| error.to_string())?;
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))

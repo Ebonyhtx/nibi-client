@@ -3,18 +3,18 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use rust_cli_base::OwnedTask;
-use rust_cli_env_local::LocalEnvironment;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient};
-use rust_cli_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
-use rust_cli_exec_transport::memory::network;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_base::OwnedTask;
+use nibi_kernel_env_local::LocalEnvironment;
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient};
+use nibi_kernel_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
+use nibi_kernel_exec_transport::memory::network;
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId,
 };
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::mcp::NoMcpTransport;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::mcp::NoMcpTransport;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -45,7 +45,7 @@ pub async fn machine(kind: Kind, local: LocalEnvironment) -> Machine {
 pub async fn machine_with_mcp(
     kind: Kind,
     local: LocalEnvironment,
-    mcp: Arc<dyn rust_cli_kernel_api::mcp::McpTransport>,
+    mcp: Arc<dyn nibi_kernel_api::mcp::McpTransport>,
 ) -> Machine {
     let local = MachineEnv::new(Arc::new(local), mcp);
     match kind {
@@ -56,7 +56,7 @@ pub async fn machine_with_mcp(
         Kind::Loopback => {
             let mut config =
                 ServerConfig::new("contract", std::env::consts::OS, std::env::consts::ARCH);
-            config.capabilities = rust_cli_exec_wire::handshake::Capabilities::executor();
+            config.capabilities = nibi_kernel_exec_wire::handshake::Capabilities::executor();
             let server = ExecServer::start(
                 local,
                 Arc::new(MemoryLedger::default()),
@@ -68,7 +68,7 @@ pub async fn machine_with_mcp(
             let (connector, listener) = network("contract");
             let serving = {
                 let server = server.clone();
-                rust_cli_base::owned(async move { server.serve(&listener).await })
+                nibi_kernel_base::owned(async move { server.serve(&listener).await })
             };
             let client = ExecClient::connect(
                 Arc::new(connector),

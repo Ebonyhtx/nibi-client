@@ -1,7 +1,7 @@
 //! 会话管理（修复线 F29，docs/specs/rust-cli/node-store.md §5.1）：App 任务列表的口径、排序、首条输入、改名与软删除。
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::store::{
     SessionKind, SessionOrder, SessionQuery, SessionStore, StoreError,
 };
 use serde_json::json;
@@ -46,7 +46,7 @@ async fn seeded() -> TestStore {
     test
 }
 
-fn ids(page: &rust_cli_kernel_api::store::SessionPage) -> Vec<&str> {
+fn ids(page: &nibi_kernel_api::store::SessionPage) -> Vec<&str> {
     page.sessions.iter().map(|s| s.id.as_str()).collect()
 }
 

@@ -1,6 +1,6 @@
 //! 新会话的缺省选择（`/effort` 与登录，tui-manage.md §2.2）：只换 `defaultModelSelection`，其余原样。
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_paths::StoragePaths;
 
 use crate::test_support::{read_text, write};
 
@@ -102,7 +102,7 @@ async fn a_team_default_keeps_only_the_node_fields() {
         provider: "account:bigmodel-team-coding-plan".to_owned(),
         model: "GLM-5.3".to_owned(),
         reasoning: Some("high".to_owned()),
-        connection: Some(Box::new(rust_cli_kernel_api::model::ModelConnection {
+        connection: Some(Box::new(nibi_kernel_api::model::ModelConnection {
             product_id: "prod-1".to_owned(),
             organization_id: "org-t".to_owned(),
             project_id: "p-t".to_owned(),

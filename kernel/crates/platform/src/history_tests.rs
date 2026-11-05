@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 
 use super::*;
 
@@ -43,7 +43,7 @@ async fn only_the_last_entries_are_loaded_and_bad_lines_are_skipped() {
             "{{\"workspace\":\"/a\",\"text\":\"t{index}\",\"at\":{index}}}\n"
         ));
     }
-    rust_cli_fs::append(paths.tui_history().as_path(), text.as_bytes())
+    nibi_kernel_fs::append(paths.tui_history().as_path(), text.as_bytes())
         .await
         .unwrap();
     let loaded = History::new(&paths).load("/a").await;

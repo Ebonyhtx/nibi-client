@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::mcp_ui::{McpUiSamplingContent, McpUiSamplingInput, McpUiSamplingMessage};
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource};
-use rust_cli_kernel_api::model::{ApiRole, ModelPort};
-use rust_cli_kernel_api::testing::{ScriptedModel, selection, text_response};
+use nibi_kernel_api::mcp_ui::{McpUiSamplingContent, McpUiSamplingInput, McpUiSamplingMessage};
+use nibi_kernel_api::message::{ContentBlock, ImageSource};
+use nibi_kernel_api::model::{ApiRole, ModelPort};
+use nibi_kernel_api::testing::{ScriptedModel, selection, text_response};
 
 use super::*;
 
@@ -18,10 +18,10 @@ async fn sampling_builds_a_one_shot_request_and_returns_the_text() {
     let sampling = KernelSampling::new(
         port,
         selection(),
-        Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-        Arc::new(rust_cli_kernel_api::testing::SequentialIds::default()),
+        Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+        Arc::new(nibi_kernel_api::testing::SequentialIds::default()),
         OpenSessions::default(),
-        Arc::new(rust_cli_kernel_api::testing::MemoryStore::default()),
+        Arc::new(nibi_kernel_api::testing::MemoryStore::default()),
     );
     let result = sampling
         .sample(

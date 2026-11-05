@@ -8,11 +8,11 @@
 //! ```
 //!
 //! 带 `?` 的字段为空时省略（规则见各字段的注释）。值按 JavaScript
-//! `JSON.stringify` 输出（`rust_cli_base::js::json`），与 Node 发出的字节一致。`betas` 不进请求体，
+//! `JSON.stringify` 输出（`nibi_kernel_base::js::json`），与 Node 发出的字节一致。`betas` 不进请求体，
 //! 走 `anthropic-beta` header（`anthropic_betas`）。Provider 的 option map 补丁最后合并（`patch`）。
 
-use rust_cli_base::js::json::{self, stringify};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_base::js::json::{self, stringify};
+use nibi_kernel_api::model::{
     CacheControl, ContextEdit, ModelError, ModelRequest, ServerTool, SystemBlock, ThinkingConfig,
     ToolChoice, ToolDefinition, ToolFlags,
 };

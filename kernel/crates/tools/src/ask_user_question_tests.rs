@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::orchestration::{InteractionRequest, QuestionAnswer};
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionMode};
-use rust_cli_kernel_api::testing::ScriptedInteractions;
-use rust_cli_kernel_api::tool::{Tool, Validation};
+use nibi_kernel_api::orchestration::{InteractionRequest, QuestionAnswer};
+use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
+use nibi_kernel_api::testing::ScriptedInteractions;
+use nibi_kernel_api::tool::{Tool, Validation};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 

@@ -1,8 +1,8 @@
 //! 本地命令的记录（修复线 L-A，docs/specs/rust-cli/tui-manage.md §11）：命令完成时组成记录，有会话时交给会话 actor
 //! （`Command::RecordLocalCommand`），还没有会话时留在新会话的草稿里，建会话后、第一条输入之前按顺序发出。
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::session_api::Command;
-use rust_cli_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord};
+use nibi_kernel_api::session_api::Command;
+use nibi_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord};
 
 use super::Loop;
 use super::session::Sent;

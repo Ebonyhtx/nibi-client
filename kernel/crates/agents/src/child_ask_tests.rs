@@ -4,11 +4,11 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::ids::{AgentId, InteractionId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::ids::{AgentId, InteractionId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionAnswer,
 };
-use rust_cli_kernel_api::testing::{MemoryStore, SequentialIds};
+use nibi_kernel_api::testing::{MemoryStore, SequentialIds};
 use serde_json::json;
 use tokio::sync::mpsc;
 

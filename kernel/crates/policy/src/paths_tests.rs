@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::permission::RuleBehavior::{Allow, Ask, Deny};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::permission::RuleBehavior::{Allow, Ask, Deny};
 
 use super::*;
 use crate::test_support::paths;

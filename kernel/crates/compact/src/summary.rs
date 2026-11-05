@@ -2,8 +2,8 @@
 //!
 //! 提示（arm `control`）、摘要格式化、摘要消息、有保留尾段时的说明。
 
-use rust_cli_prompts::compact as texts;
-use rust_cli_prompts::texts::render;
+use nibi_kernel_prompts::compact as texts;
+use nibi_kernel_prompts::texts::render;
 
 /// 摘要提示（arm `control`）。
 pub(crate) fn prompt(instructions: Option<&str>) -> String {

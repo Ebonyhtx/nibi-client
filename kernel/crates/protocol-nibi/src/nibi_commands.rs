@@ -17,7 +17,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
-use rust_cli_protocol_core::schema::Node;
+use nibi_kernel_protocol_core::schema::Node;
 use serde_json::Value;
 
 const NIBI_COMMANDS: &str = include_str!("../schema/nibi-commands.json");

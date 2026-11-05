@@ -83,7 +83,7 @@ async fn allow_rules_do_not_skip_the_guarded_question_but_deny_rules_win() {
 /// 写入照 plan 走分类器（不可用时拒绝），危险命令不走 guarded 的询问（Node `!planEnabled && …`）。
 #[tokio::test]
 async fn plan_overrides_yolo_and_guarded() {
-    use rust_cli_kernel_api::permission::ExecutionState;
+    use nibi_kernel_api::permission::ExecutionState;
     let gate = PolicyGate::default();
     for mode in [PermissionMode::BypassPermissions, PermissionMode::Guarded] {
         let state = ExecutionState::from(mode).with_plan(true);

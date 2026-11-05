@@ -1,9 +1,9 @@
 //! 回退游标与 checkpoint 的 Node 记录（spec session-lifecycle.md §4.2、§5.3）。
-use rust_cli_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, Fact, RevertCursor, SessionStore, WorkspaceCheckpoint,
 };
 use serde_json::{Value, json};

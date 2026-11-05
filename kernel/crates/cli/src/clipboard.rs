@@ -8,7 +8,7 @@ use std::process::Stdio;
 use base64::Engine;
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_tui::{Clipboard, CopyRoute, ImageBytes};
+use nibi_kernel_tui::{Clipboard, CopyRoute, ImageBytes};
 use tokio::io::AsyncWriteExt;
 
 /// PowerShell：剪贴板里有图片时打印 PNG 的 base64，没有时退出码 1（`Get-Clipboard -Format Image`）。
@@ -74,7 +74,7 @@ pub(crate) fn writers(clipboard: &SystemClipboard) -> Vec<Vec<(&'static str, Vec
 
 /// 起一个命令，把 `text` 写进它的标准输入，等它结束（最多 2 s）。命令起不来（没装）时为 None，否则是它是否成功。
 async fn feed(program: &str, args: &[&str], text: &str) -> Option<bool> {
-    let mut child = rust_cli_proc::command(program)
+    let mut child = nibi_kernel_proc::command(program)
         .args(args)
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
@@ -172,7 +172,7 @@ pub(crate) fn parse_osascript(output: &[u8]) -> Option<Vec<u8>> {
 
 /// 跑一个命令，成功时给出标准输出（没装、失败都是 None）。
 async fn run(program: &str, args: &[&str]) -> Option<Vec<u8>> {
-    let output = rust_cli_proc::command(program)
+    let output = nibi_kernel_proc::command(program)
         .args(args)
         .stdin(Stdio::null())
         .stderr(Stdio::null())
@@ -191,7 +191,7 @@ async fn read(reader: &Reader) -> Option<Vec<u8>> {
         Reader::Bytes(program, args) => {
             let out = run(program, args).await?;
             // 文件头判断（kernel-api `image::media_type`，与 Read、TUI 的粘贴同一个判断，F58）。
-            (rust_cli_kernel_api::image::media_type(&out) == Some("image/png")).then_some(out)
+            (nibi_kernel_api::image::media_type(&out) == Some("image/png")).then_some(out)
         }
         Reader::PowerShell => {
             let out = run("powershell", &["-NoProfile", "-Command", POWERSHELL]).await?;
@@ -232,7 +232,7 @@ impl Clipboard for SystemClipboard {
 
     fn image_file(&self, path: String) -> BoxFuture<'static, Result<Option<ImageBytes>, String>> {
         async move {
-            let bytes = rust_cli_fs::read_optional(&PathBuf::from(path))
+            let bytes = nibi_kernel_fs::read_optional(&PathBuf::from(path))
                 .await
                 .map_err(|error| error.to_string())?;
             Ok(bytes.map(|bytes| ImageBytes { bytes }))

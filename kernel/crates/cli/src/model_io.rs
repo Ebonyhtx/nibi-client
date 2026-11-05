@@ -1,18 +1,18 @@
 //! 模型轨迹的写者（docs/specs/rust-cli/model-io.md §3.1、§6）：模式、有界队列与唯一的写者任务。
 //!
 //! model 的记录点只交记录（[`ModelIoSink::record`] 只做 `try_send`）；这里的写者在自己的任务里转成 JSON、压缩、轮转、
-//! 写盘（`rust_cli_fs`），不阻塞主循环与流式。写失败只吞掉（Node 相同：诊断不能打断执行路径）。
+//! 写盘（`nibi_kernel_fs`），不阻塞主循环与流式。写失败只吞掉（Node 相同：诊断不能打断执行路径）。
 
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use futures_util::future::{BoxFuture, FutureExt};
-use rust_cli_base::TaskScope;
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_model::{ModelIoRecord, ModelIoSink, ProviderModel};
-use rust_cli_paths::StoragePaths;
-use rust_cli_platform::Settings;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_model::{ModelIoRecord, ModelIoSink, ProviderModel};
+use nibi_kernel_paths::StoragePaths;
+use nibi_kernel_platform::Settings;
 use serde_json::{Map, Value};
 use tokio::sync::{mpsc, oneshot};
 

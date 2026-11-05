@@ -4,17 +4,17 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::hooks::{HookEvent, HookOutcome, HookRunner, StopCondition, StopVerdict};
-use rust_cli_kernel_api::ids::{AgentId, InteractionId, MessageId, OperationId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::model::{ApiRole, QuerySource};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::hooks::{HookEvent, HookOutcome, HookRunner, StopCondition, StopVerdict};
+use nibi_kernel_api::ids::{AgentId, InteractionId, MessageId, OperationId, SessionId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::model::{ApiRole, QuerySource};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, QueryEvent, QueryStop,
     RunSink,
 };
-use rust_cli_kernel_api::store::StoreError;
-use rust_cli_kernel_api::testing::{RecordingSink, ScriptedModel, text_response};
+use nibi_kernel_api::store::StoreError;
+use nibi_kernel_api::testing::{RecordingSink, ScriptedModel, text_response};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 

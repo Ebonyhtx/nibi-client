@@ -7,14 +7,14 @@ use std::sync::Arc;
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{
     CommitReceipt, Fact, FactBatch, LoadedSession, SessionFilter, SessionMeta, SessionStore,
     SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::testing::{MemoryStore, text_response};
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::testing::{MemoryStore, text_response};
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, Ui, row_of, with_ui};
 
@@ -312,7 +312,7 @@ async fn starting_or_resuming_in_full_access_does_not_ask() {
     // `--resume <id>`：启动参数是缺省模式，会话读回来是完全访问。
     let setup = Setup {
         session_store: Some(Arc::new(ModeOnLoad(store.clone()))),
-        startup: rust_cli_tui::Startup::Session(session.clone()),
+        startup: nibi_kernel_tui::Startup::Session(session.clone()),
         ..Setup::default()
     };
     with_ui(

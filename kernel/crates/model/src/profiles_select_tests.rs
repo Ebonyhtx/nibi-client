@@ -1,6 +1,6 @@
 //! 方案表的命中（model.md §3.2）。
 
-use rust_cli_kernel_api::provider::WireProtocol;
+use nibi_kernel_api::provider::WireProtocol;
 
 use super::*;
 

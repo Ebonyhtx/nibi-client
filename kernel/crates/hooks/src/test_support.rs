@@ -6,21 +6,21 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome,
     OutputStream, ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_shell::ShellState;
-use rust_cli_kernel_api::hooks::{
+use nibi_kernel_api::env_shell::ShellState;
+use nibi_kernel_api::hooks::{
     HookContext, HookEvent, HookEventName, HookHttp, HookHttpError, HookHttpRequest,
     HookHttpResponse,
 };
-use rust_cli_kernel_api::ids::{EnvironmentId, Generation, OperationId, SessionId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{EnvironmentId, Generation, OperationId, SessionId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::testing::{MemoryArtifacts, SequentialIds};
+use nibi_kernel_api::testing::{MemoryArtifacts, SequentialIds};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 

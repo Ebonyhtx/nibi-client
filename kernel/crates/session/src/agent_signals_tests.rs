@@ -4,10 +4,10 @@
 use std::sync::Mutex;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::agents::{AgentNotice, AgentSignal, AgentSignals};
-use rust_cli_kernel_api::ids::{AgentId, ShellTaskId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::testing::{local_services, machine};
+use nibi_kernel_api::agents::{AgentNotice, AgentSignal, AgentSignals};
+use nibi_kernel_api::ids::{AgentId, ShellTaskId};
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::testing::{local_services, machine};
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -72,40 +72,40 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
         compactor: Arc::new(NeverCompact),
         hooks: Arc::new(NoHooks),
         ids: ids.clone(),
-        clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-        machines: rust_cli_kernel_api::testing::environments(env.clone()),
+        clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+        machines: nibi_kernel_api::testing::environments(env.clone()),
         machine: machine(env.clone()),
         local: local_services(env),
         artifacts: store.clone(),
         generation: Generation::new("g1"),
         non_interactive: false,
-        limits: rust_cli_query::RequestLimits::default(),
+        limits: nibi_kernel_query::RequestLimits::default(),
     }));
     let env = Arc::new(UnusedEnvironment);
     let session = Session::spawn(
         SessionDeps {
             agents: signals.clone(),
-            cron: Arc::new(rust_cli_kernel_api::cron::NoCron),
+            cron: Arc::new(nibi_kernel_api::cron::NoCron),
             store,
             ids,
             runner,
-            compactor: Arc::new(rust_cli_kernel_api::testing::NeverCompact),
-            machines: rust_cli_kernel_api::testing::environments(env.clone()),
+            compactor: Arc::new(nibi_kernel_api::testing::NeverCompact),
+            machines: nibi_kernel_api::testing::environments(env.clone()),
             machine: machine(env.clone()),
             local: local_services(env),
             max_turns: None,
-            hooks: Arc::new(rust_cli_kernel_api::testing::NoHooks),
-            commands: Arc::new(rust_cli_kernel_api::user_command::NoUserCommands),
-            inputs: Arc::new(rust_cli_kernel_api::user_input::NoUserInputs),
-            artifacts: Arc::new(rust_cli_kernel_api::testing::MemoryArtifacts::default()),
-            clock: Arc::new(rust_cli_kernel_api::testing::FixedClock(0)),
-            generation: rust_cli_kernel_api::ids::Generation::new("g1"),
+            hooks: Arc::new(nibi_kernel_api::testing::NoHooks),
+            commands: Arc::new(nibi_kernel_api::user_command::NoUserCommands),
+            inputs: Arc::new(nibi_kernel_api::user_input::NoUserInputs),
+            artifacts: Arc::new(nibi_kernel_api::testing::MemoryArtifacts::default()),
+            clock: Arc::new(nibi_kernel_api::testing::FixedClock(0)),
+            generation: nibi_kernel_api::ids::Generation::new("g1"),
             spawner: scope.spawner(),
             closing: scope.spawner(),
             titles: None,
-            side_model: Arc::new(rust_cli_kernel_api::testing::ScriptedModel::new(Vec::new())),
+            side_model: Arc::new(nibi_kernel_api::testing::ScriptedModel::new(Vec::new())),
             released: Arc::new(crate::NothingToRelease),
-            directory_rules: Arc::new(rust_cli_kernel_api::orchestration::NoDirectoryRules),
+            directory_rules: Arc::new(nibi_kernel_api::orchestration::NoDirectoryRules),
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
@@ -117,7 +117,7 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
             selection: selection(),
             mode: PermissionMode::Default.into(),
             checkpoints: Vec::new(),
-            start: rust_cli_kernel_api::session_api::StartSource::Startup,
+            start: nibi_kernel_api::session_api::StartSource::Startup,
             turn: None,
             last_turn_failed: false,
             launches: Vec::new(),

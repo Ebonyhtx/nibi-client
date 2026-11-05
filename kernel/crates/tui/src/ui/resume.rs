@@ -4,9 +4,9 @@
 use std::collections::HashMap;
 
 use crossterm::event::{KeyCode, KeyEvent};
-use rust_cli_kernel_api::panels::ProjectSessions;
-use rust_cli_kernel_api::session_api::SessionView;
-use rust_cli_kernel_api::store::SessionOrder;
+use nibi_kernel_api::panels::ProjectSessions;
+use nibi_kernel_api::session_api::SessionView;
+use nibi_kernel_api::store::SessionOrder;
 
 use super::app::{Action, App, Overlay};
 use super::i18n_projects as words;
@@ -130,7 +130,7 @@ impl ResumePage {
 
 /// 一条快照里最近几条有文字的对话：人类输入（界面原文）与助手回复。
 pub fn preview_items(view: &SessionView) -> Vec<(bool, String)> {
-    use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
+    use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
     let text = |content: &[ContentBlock]| {
         content
             .iter()

@@ -5,14 +5,14 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{EndReason, Kernel, KernelError};
-use rust_cli_protocol_core::connection::{Reply, Service};
-use rust_cli_protocol_core::rpc::RpcError;
-use rust_cli_protocol_core::sessions::{Bridged, SessionBridge};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{EndReason, Kernel, KernelError};
+use nibi_kernel_protocol_core::connection::{Reply, Service};
+use nibi_kernel_protocol_core::rpc::RpcError;
+use nibi_kernel_protocol_core::sessions::{Bridged, SessionBridge};
 use serde_json::{Value, json};
 
 use crate::context::Context;
@@ -52,7 +52,7 @@ pub struct Server {
     /// 已经上报过提示条的会话（第一次打开时算一次，之后由评审 / 授权 / 撤销刷新）。
     hook_admissions: Mutex<HashSet<SessionId>>,
     /// 评审截止的计时任务挂在它上面（任务跟着进程的作用域走）。
-    pub(crate) spawner: rust_cli_base::Spawner,
+    pub(crate) spawner: nibi_kernel_base::Spawner,
     pub(crate) defaults: Defaults,
     /// 本进程的实例标识（时钟探测的 `clock.instanceId`）。
     pub(crate) instance: String,
@@ -81,7 +81,7 @@ impl Server {
     pub fn new(
         context: Arc<Context>,
         kernel: Arc<dyn Kernel>,
-        spawner: rust_cli_base::Spawner,
+        spawner: nibi_kernel_base::Spawner,
         defaults: Defaults,
         capture: Option<Arc<crate::telemetry::Capture>>,
     ) -> Self {
@@ -300,7 +300,7 @@ impl Server {
                     .kernel
                     .update_dynamic_workflow_policy(
                         &self.workspace(path),
-                        rust_cli_kernel_api::session_api::DynamicWorkflowGate::new(enabled, on_demand),
+                        nibi_kernel_api::session_api::DynamicWorkflowGate::new(enabled, on_demand),
                     )
                     .await
                 {

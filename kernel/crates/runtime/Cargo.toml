@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-runtime"
-description = "Assembles the rust-cli kernel from its capability crates"
+name = "nibi-kernel-runtime"
+description = "Assembles the nibi-kernel-cli kernel from its capability crates"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -22,19 +22,19 @@ async-trait.workspace = true
 # /context 的计数并发发出（`join!`）、按请求内容缓存（docs/specs/rust-cli/context-usage.md §3）。
 futures-util = { workspace = true, features = ["async-await", "async-await-macro"] }
 serde_json.workspace = true
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
-rust-cli-agents.workspace = true
-rust-cli-compact.workspace = true
-rust-cli-context.workspace = true
-rust-cli-ext.workspace = true
-rust-cli-hooks.workspace = true
-rust-cli-policy.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
+nibi-kernel-agents.workspace = true
+nibi-kernel-compact.workspace = true
+nibi-kernel-context.workspace = true
+nibi-kernel-ext.workspace = true
+nibi-kernel-hooks.workspace = true
+nibi-kernel-policy.workspace = true
 # /context 的延迟加载规则看模型卡片（docs/specs/rust-cli/context-usage.md §3）。
-rust-cli-prompts.workspace = true
-rust-cli-query.workspace = true
-rust-cli-session.workspace = true
-rust-cli-tools.workspace = true
+nibi-kernel-prompts.workspace = true
+nibi-kernel-query.workspace = true
+nibi-kernel-session.workspace = true
+nibi-kernel-tools.workspace = true
 tracing.workspace = true
 # 附件的 data URL（Node `writePromptAttachment` 同形，写入侧也要编码）。
 base64.workspace = true
@@ -44,10 +44,10 @@ tokio-util.workspace = true
 
 [dev-dependencies]
 futures-util.workspace = true
-rust-cli-kernel-api = { workspace = true, features = ["testing"] }
-# 钩子评审的测试用真实文件系统（工作区里的 `.nibi/config.json`）；本机写盘只经 rust-cli-fs。
-rust-cli-env-local.workspace = true
-rust-cli-fs.workspace = true
+nibi-kernel-api = { workspace = true, features = ["testing"] }
+# 钩子评审的测试用真实文件系统（工作区里的 `.nibi/config.json`）；本机写盘只经 nibi-kernel-fs。
+nibi-kernel-env-local.workspace = true
+nibi-kernel-fs.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
 # 暂停时钟（blocked_board_tests 的提醒档走虚拟毫秒，F17 的先例——watchdog 同款）。

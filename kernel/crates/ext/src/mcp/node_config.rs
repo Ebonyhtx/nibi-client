@@ -7,7 +7,7 @@
 
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::McpTransportConfig;
 use serde_json::{Map, Value};
 
 use super::config::{McpScope, McpServer, McpServerOptions};

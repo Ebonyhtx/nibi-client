@@ -2,9 +2,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::testing::FixedClock;
-use rust_cli_protocol_core::connection::{self, Options};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::testing::FixedClock;
+use nibi_kernel_protocol_core::connection::{self, Options};
 use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, BufReader, duplex};
 

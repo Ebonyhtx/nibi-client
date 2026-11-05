@@ -2,8 +2,8 @@
 //! 与运行中的 `/clear`、`/resume` 等回合结束再执行（tui.md §6；排进队列、不中断）。
 use anyhow::Result;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, Message};
-use rust_cli_kernel_api::session_api::Command;
+use nibi_kernel_api::message::{ContentBlock, ImageSource, Message};
+use nibi_kernel_api::session_api::Command;
 use serde_json::Value;
 
 use super::Loop;

@@ -2,15 +2,15 @@
 //! 发到哪个渠道（只看终端给出的事实）、写出什么转义序列。计时与“上一次按键”都是界面状态，不同步任何业务状态。
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::ids::InteractionId;
-use rust_cli_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::ids::InteractionId;
+use nibi_kernel_api::orchestration::InteractionRequest;
 use tokio::time::{Duration, Instant};
 
 use super::i18n::Lang;
 
 /// 待处理交互的提醒间隔：只定义在
 /// kernel-api，权限询问的 Notification hook 用同一个值（F58：以前这里与 session 各写一份）。
-pub use rust_cli_kernel_api::interaction::NOTIFY_AFTER as DIALOG_AFTER;
+pub use nibi_kernel_api::interaction::NOTIFY_AFTER as DIALOG_AFTER;
 /// 空闲提醒的缺省门槛。
 pub const IDLE_AFTER: Duration = Duration::from_secs(60);
 /// 通知的标题。

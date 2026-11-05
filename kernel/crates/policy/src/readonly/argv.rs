@@ -3,7 +3,7 @@
 //! (`bash-readonly-policy-argv*.ts`).
 use super::{callbacks, callbacks_net, flags::argv_allowed, js, tables::tables};
 use crate::parse::Invocation;
-use rust_cli_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_files::PathStyle;
 
 /// find 的写操作表。工作线 F53：Node 的表
 /// 少 bfs 的 `-rm`（等同 `-delete`）；find 换成内嵌的 bfs 之后 `find . -rm` 会删文件，以前却算只读。

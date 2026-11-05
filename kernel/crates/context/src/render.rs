@@ -1,6 +1,6 @@
 //! 渲染用的小工具（列表与转义）。
 
-use rust_cli_kernel_api::message::{AttachmentMessage, Message, SystemMessage};
+use nibi_kernel_api::message::{AttachmentMessage, Message, SystemMessage};
 
 /// 一行文本或一组子项（字符串是 ` - x`，数组的每项是 `  - x`）。
 pub(crate) enum Bullet {

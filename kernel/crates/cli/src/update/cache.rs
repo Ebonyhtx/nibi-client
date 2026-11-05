@@ -4,8 +4,8 @@
 use std::io;
 use std::path::Path;
 
-use rust_cli_base::js::iso_timestamp;
-use rust_cli_fs::{FileMode, ParentDir, TempName, WriteOptions};
+use nibi_kernel_base::js::iso_timestamp;
+use nibi_kernel_fs::{FileMode, ParentDir, TempName, WriteOptions};
 use serde_json::{Value, json};
 
 /// 缓存过了多久要刷新（Codex：20 小时）。
@@ -67,7 +67,7 @@ fn options() -> WriteOptions {
 
 /// 读缓存；文件不存在、读不出或内容不对时为 None（读错误记日志）。
 pub(crate) async fn read(path: &Path) -> Option<VersionInfo> {
-    match rust_cli_fs::read_optional(path).await {
+    match nibi_kernel_fs::read_optional(path).await {
         Ok(Some(bytes)) => VersionInfo::parse(&bytes),
         Ok(None) => None,
         Err(error) => {
@@ -78,7 +78,7 @@ pub(crate) async fn read(path: &Path) -> Option<VersionInfo> {
 }
 
 async fn write(path: &Path, info: &VersionInfo) -> io::Result<()> {
-    rust_cli_fs::atomic_write(path, info.render().as_bytes(), options()).await
+    nibi_kernel_fs::atomic_write(path, info.render().as_bytes(), options()).await
 }
 
 /// 刷新得到的最新版本：先重读文件，保留其中的 `dismissed_version`（Codex `check_for_update`）。

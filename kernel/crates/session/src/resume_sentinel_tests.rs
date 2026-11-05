@@ -1,7 +1,7 @@
 //! 续写时补 `No response requested.`（session-lifecycle.md §6.3.1）：哪些结尾补、补在哪。
 
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, CompactBoundary, CompactTrigger, ContentBlock, Message,
     SystemMessage, ToolResultContent, UserMessage, UserOrigin,
 };

@@ -12,11 +12,11 @@ use std::collections::HashMap;
 use std::sync::{Mutex, PoisonError};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::ids::{ToolUseId, TurnId};
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::QueryEvent;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent};
-use rust_cli_kernel_api::tool::ToolProgress;
+use nibi_kernel_api::ids::{ToolUseId, TurnId};
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::QueryEvent;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent};
+use nibi_kernel_api::tool::ToolProgress;
 use serde_json::{Value, json};
 use tokio::sync::broadcast;
 

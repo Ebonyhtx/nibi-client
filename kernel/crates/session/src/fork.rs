@@ -5,18 +5,18 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::ids::{CommandId, MessageId, OwnerEpoch};
-use rust_cli_kernel_api::message::{Message, SystemMessage, UserOrigin};
-use rust_cli_kernel_api::session_api::Ack;
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta};
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::ids::{CommandId, MessageId, OwnerEpoch};
+use nibi_kernel_api::message::{Message, SystemMessage, UserOrigin};
+use nibi_kernel_api::session_api::Ack;
+use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta};
 use serde_json::Value;
 
 use crate::actor::{Actor, rejected};
 
 /// Node `titleFromInput` 对空输入的标题。Node 在首条输入时才建会话行，所以原会话标题不会为空；本工程
 /// 建会话时就有行，还没有人类输入时标题为空，取同一个缺省值。
-const UNTITLED: &str = rust_cli_kernel_api::title::UNTITLED;
+const UNTITLED: &str = nibi_kernel_api::title::UNTITLED;
 
 /// Node `buildForkedSessionInput` 的标题：`Fork of <原会话标题>`，原样拼接（2026-10-18 用户确认，
 /// 取代 `/branch` 的 `<第一条输入> (Branch)`，docs/specs/rust-cli/session-lifecycle.md §6.1）。

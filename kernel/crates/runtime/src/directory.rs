@@ -1,13 +1,13 @@
 //! `/cd <path>`（docs/specs/rust-cli/tui-manage.md §7.1）：解析与检查路径，有会话时经会话 actor
 //! 判定、换工作目录并提交说明（`Command::ChangeDirectory`，工作目录的唯一 owner 是 actor）。
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::env_files::{FileKind, PathStyle, StatFile};
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::machine::{EnvInfo, Files, Shell};
-use rust_cli_kernel_api::manage::{ChangeDirectory, DirectoryChanged, DirectoryOutcome};
-use rust_cli_kernel_api::session_api::{Ack, Command, CommandEnvelope, KernelError};
-use rust_cli_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord, bold};
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::env_files::{FileKind, PathStyle, StatFile};
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::machine::{EnvInfo, Files, Shell};
+use nibi_kernel_api::manage::{ChangeDirectory, DirectoryChanged, DirectoryOutcome};
+use nibi_kernel_api::session_api::{Ack, Command, CommandEnvelope, KernelError};
+use nibi_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord, bold};
 
 use crate::LocalKernel;
 
@@ -115,7 +115,7 @@ async fn target(
 /// （tui-manage.md D25）。
 async fn refuse(kernel: &LocalKernel, request: &ChangeDirectory, refused: Refused) -> KernelError {
     if let Some(session) = &request.session {
-        use rust_cli_kernel_api::session_api::Kernel;
+        use nibi_kernel_api::session_api::Kernel;
         if let Ok(handle) = kernel.open_session(session).await {
             let envelope = CommandEnvelope {
                 id: CommandId::new(format!("cmd_cd_record_{}", kernel.ports.ids.operation())),
@@ -163,7 +163,7 @@ pub(crate) async fn change(
             display: shown,
         });
     };
-    use rust_cli_kernel_api::session_api::Kernel;
+    use nibi_kernel_api::session_api::Kernel;
     let handle = kernel.open_session(session).await?;
     // 命令 ID 只要在会话里唯一：取注入的 Ids 给的操作 ID。
     let envelope = CommandEnvelope {
@@ -216,13 +216,13 @@ pub(crate) async fn change(
 pub(crate) async fn plan_file(
     info: &dyn EnvInfo,
     files: &dyn Files,
-    query: &rust_cli_kernel_api::manage::PlanFileQuery,
-) -> Result<rust_cli_kernel_api::manage::PlanFile, KernelError> {
+    query: &nibi_kernel_api::manage::PlanFileQuery,
+) -> Result<nibi_kernel_api::manage::PlanFile, KernelError> {
     let facts = info
         .path_facts(&query.workspace)
         .await
         .map_err(|error| failed(error.to_string()))?;
-    let plans = rust_cli_kernel_api::plan::PlanFiles::in_workspace(
+    let plans = nibi_kernel_api::plan::PlanFiles::in_workspace(
         &facts,
         &query.workspace.root,
         &query.session,
@@ -233,7 +233,7 @@ pub(crate) async fn plan_file(
         files.stat(&query.workspace, StatFile { path: path.clone() }).await,
         Ok(Some(stat)) if stat.kind == FileKind::File && stat.size > 0
     );
-    Ok(rust_cli_kernel_api::manage::PlanFile {
+    Ok(nibi_kernel_api::manage::PlanFile {
         path: path.as_str().to_owned(),
         exists,
     })

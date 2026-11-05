@@ -4,7 +4,7 @@
 //! 上下文超长认与 Anthropic 一侧共用的词表（model.md §5.1.1，修复线 F108，不看状态码）；过载认 529 与过载码；其余交给
 //! 通用规则（配额、拦截、太大、状态码）。能否重试不在这里定（`dispose`，修复线 F113）。
 
-use rust_cli_kernel_api::model::ModelError;
+use nibi_kernel_api::model::ModelError;
 use serde_json::Value;
 
 use super::{Class, Shape, Verdict, by_status, message_text, vocab};

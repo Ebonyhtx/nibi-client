@@ -6,7 +6,7 @@
 //! - `POST {authOrigin}/oauth/v2/token`，form `client_id`+`device_code`+`grant_type`；
 //! - `GET {authOrigin}/oidc/v1/userinfo`，Bearer access token。
 //!
-//! 本模块只做请求形状与响应解析；HTTP 与轮询循环由调用方（后续接入 `rust-cli-net`）负责。
+//! 本模块只做请求形状与响应解析；HTTP 与轮询循环由调用方（后续接入 `nibi-kernel-net`）负责。
 //! 这样 Device Flow 的字段/错误码可以在零网络单测里锁死。
 
 use serde::{Deserialize, Serialize};

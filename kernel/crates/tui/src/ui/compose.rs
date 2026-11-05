@@ -6,7 +6,7 @@
 use std::time::Instant;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::PermissionMode;
 
 use super::app::{Action, App, Overlay};
 use super::notice::{self, Armed};
@@ -308,7 +308,7 @@ impl App {
     /// 当时判定不了的命令现在重新提交（tui.md §6），返回它的动作。
     pub fn commands_arrived(
         &mut self,
-        commands: Vec<rust_cli_kernel_api::user_command::UserCommand>,
+        commands: Vec<nibi_kernel_api::user_command::UserCommand>,
     ) -> Option<Action> {
         self.composer.skills = commands;
         self.composer.skills_loaded = true;
@@ -380,7 +380,7 @@ impl App {
             );
         }
         if !images.is_empty() {
-            let mut content = vec![rust_cli_kernel_api::message::ContentBlock::Text { text }];
+            let mut content = vec![nibi_kernel_api::message::ContentBlock::Text { text }];
             content.extend(images);
             return Some(Action::SubmitContent { content, delivery });
         }

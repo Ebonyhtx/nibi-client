@@ -4,8 +4,8 @@
 use std::io::{IsTerminal, Write};
 use std::process::Stdio;
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_platform::{Family, LoginError, Platform};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_platform::{Family, LoginError, Platform};
 use tokio::io::AsyncBufReadExt;
 
 const USAGE: &str = "Usage: nibi login [zai|bigmodel] [--no-browser]\n       nibi login <zai|bigmodel>-coding-plan-api-key   (reads the API key from stdin)";
@@ -264,7 +264,7 @@ pub(crate) fn browser_command(os: Os, url: &str) -> (&'static str, Vec<&str>) {
 /// 用系统的打开方式打开授权地址（Node `openUrlInBrowser`）：启动成功即算打开，不等它结束。
 pub(crate) fn open_browser(url: &str) -> Result<(), String> {
     let (program, args) = browser_command(Os::current(), url);
-    rust_cli_proc::command(program)
+    nibi_kernel_proc::command(program)
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

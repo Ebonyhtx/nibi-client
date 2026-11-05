@@ -6,12 +6,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::OperationContext;
-use rust_cli_kernel_api::env_shell::{BackgroundStatus, BackgroundStop, BackgroundTask};
-use rust_cli_kernel_api::ids::{AgentId, OperationId, SessionId, ShellTaskId};
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::permission::PermissionDecision;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::OperationContext;
+use nibi_kernel_api::env_shell::{BackgroundStatus, BackgroundStop, BackgroundTask};
+use nibi_kernel_api::ids::{AgentId, OperationId, SessionId, ShellTaskId};
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::permission::PermissionDecision;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::{Deserialize, Serialize};
@@ -349,11 +349,11 @@ impl Tool for TaskStopTool {
     }
 
     fn input_schema(&self) -> Value {
-        rust_cli_prompts::tool(NAME).map_or(Value::Null, |prompt| prompt.input_schema.clone())
+        nibi_kernel_prompts::tool(NAME).map_or(Value::Null, |prompt| prompt.input_schema.clone())
     }
 
     fn description(&self, _context: &PromptContext) -> String {
-        rust_cli_prompts::tool(NAME).map_or_else(String::new, |prompt| prompt.description.clone())
+        nibi_kernel_prompts::tool(NAME).map_or_else(String::new, |prompt| prompt.description.clone())
     }
 
     fn is_read_only(&self, _input: &Value) -> bool {

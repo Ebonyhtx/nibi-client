@@ -2,9 +2,9 @@
 //!
 //! 输入是按优先级排好的层（用户级在前，项目级自根向工作区根），都已是 JSON 对象；这里不做 IO。
 
-use rust_cli_ext::mcp::{McpScope, McpServer, parse_node_servers};
-use rust_cli_kernel_api::permission::{PermissionMode, RuleSource};
-use rust_cli_platform::UiLocale;
+use nibi_kernel_ext::mcp::{McpScope, McpServer, parse_node_servers};
+use nibi_kernel_api::permission::{PermissionMode, RuleSource};
+use nibi_kernel_platform::UiLocale;
 use serde_json::{Map, Value};
 
 /// 一层配置：来源与对象。
@@ -91,13 +91,13 @@ pub(crate) fn locale(layers: &[Layer<'_>], warnings: &mut Vec<String>) -> Option
 pub(crate) fn theme(
     layers: &[Layer<'_>],
     warnings: &mut Vec<String>,
-) -> Option<rust_cli_platform::UiTheme> {
+) -> Option<nibi_kernel_platform::UiTheme> {
     let mut merged = None;
     for layer in layers {
         let Some(value) = layer.object.get("ui").and_then(|ui| ui.get("theme")) else {
             continue;
         };
-        match value.as_str().and_then(rust_cli_platform::UiTheme::parse) {
+        match value.as_str().and_then(nibi_kernel_platform::UiTheme::parse) {
             Some(theme) => merged = Some(theme),
             None => warnings.push(format!("{}: unknown ui.theme {value}", layer.path)),
         }

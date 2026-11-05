@@ -4,9 +4,9 @@
 //! 编辑，结果里注明文件另有改动。匹配允许弯引号与 `\uXXXX` 两种写法（[`crate::edit_match`]）。
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvError, EnvPath, FileVersion, ReadFile, WritePrecondition};
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::env::{EnvError, EnvPath, FileVersion, ReadFile, WritePrecondition};
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
 use serde::Deserialize;

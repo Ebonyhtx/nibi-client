@@ -4,7 +4,7 @@
 //! `escalation-raised` / `escalation-resolved`——两内核的 journal 因此是同一份词汇表。
 use anyhow::Result;
 use rusqlite::{Connection, OptionalExtension, params};
-use rust_cli_kernel_api::workflow::DynamicWorkflowRun;
+use nibi_kernel_api::workflow::DynamicWorkflowRun;
 
 /// 一个会话发起的 run（按 `time_created` 升序，与 Node 的 run 列表一致）。
 pub fn list(conn: &Connection, session: &str) -> Result<Vec<DynamicWorkflowRun>> {
@@ -535,7 +535,7 @@ pub(crate) struct RosterInput<'a> {
     /// 花名册的 ask 进度（`node-progress` 的归约）。
     pub(crate) progress: &'a std::collections::HashMap<String, AskProgress>,
     pub(crate) actors: &'a [ActorRow],
-    pub(crate) pending_questions: &'a [rust_cli_kernel_api::workflow::WorkflowRunPendingQuestion],
+    pub(crate) pending_questions: &'a [nibi_kernel_api::workflow::WorkflowRunPendingQuestion],
 }
 
 /// 一次 ask 的进度读数（`node-progress` 的字段；turn/toolCalls 缺席 = 不知道，0 = 零）。
@@ -543,18 +543,18 @@ pub(crate) struct RosterInput<'a> {
 pub struct AskProgress {
     pub turn: Option<u64>,
     pub tool_calls: Option<u64>,
-    pub last_tool: Option<rust_cli_kernel_api::workflow::WorkflowRunSubagentLastTool>,
+    pub last_tool: Option<nibi_kernel_api::workflow::WorkflowRunSubagentLastTool>,
     pub instructions_head: Option<String>,
 }
 
 fn roster_of(
     detail: &RosterInput<'_>,
 ) -> (
-    Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunPhaseView>>,
-    Vec<rust_cli_kernel_api::workflow::WorkflowRunSubagentView>,
-    rust_cli_kernel_api::workflow::WorkflowRunHealth,
+    Option<Vec<nibi_kernel_api::workflow::WorkflowRunPhaseView>>,
+    Vec<nibi_kernel_api::workflow::WorkflowRunSubagentView>,
+    nibi_kernel_api::workflow::WorkflowRunHealth,
 ) {
-    use rust_cli_kernel_api::workflow as api;
+    use nibi_kernel_api::workflow as api;
     let index = detail.index;
     let terminal = is_terminal_status(detail.status);
     // —— 阶段表：声明序 + 进过未声明的（按首次进入序）；两处都空 → 整字段缺席。——
@@ -950,7 +950,7 @@ pub struct ArtifactRow {
     pub primary: bool,
 }
 
-impl From<ArtifactRow> for rust_cli_kernel_api::workflow::WorkflowRunArtifact {
+impl From<ArtifactRow> for nibi_kernel_api::workflow::WorkflowRunArtifact {
     fn from(artifact: ArtifactRow) -> Self {
         Self {
             id: artifact.id,
@@ -1239,8 +1239,8 @@ pub fn run_detail(
     conn: &Connection,
     session: &str,
     run_id: &str,
-) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunDetail>> {
-    use rust_cli_kernel_api::workflow as api;
+) -> Result<Option<nibi_kernel_api::workflow::WorkflowRunDetail>> {
+    use nibi_kernel_api::workflow as api;
     let Some(row) = run_row(conn, run_id)? else {
         return Ok(None);
     };

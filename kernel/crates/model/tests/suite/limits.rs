@@ -9,10 +9,10 @@
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::model::{ModelError, ModelSelection, QuerySource};
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, ModelEndpoints, WireProtocol};
-use rust_cli_model::ProviderModel;
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_api::model::{ModelError, ModelSelection, QuerySource};
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, ModelEndpoints, WireProtocol};
+use nibi_kernel_model::ProviderModel;
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 
 use super::common::{clock, collect, fast_retry, model_at, request, text_response};

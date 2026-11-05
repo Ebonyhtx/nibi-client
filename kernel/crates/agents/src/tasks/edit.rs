@@ -1,7 +1,7 @@
 //! 任务清单的修改与文本（各工具的 `call` 与结果文本，结果文本逐字照写）。
 //! 纯函数，不做 IO。
 
-use rust_cli_kernel_api::agents::{TaskList, TaskRecord, TaskStatus};
+use nibi_kernel_api::agents::{TaskList, TaskRecord, TaskStatus};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 

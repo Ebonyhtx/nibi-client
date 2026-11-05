@@ -5,17 +5,17 @@ use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::compaction::rough_tokens;
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::compaction::rough_tokens;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::model::{
     ModelError, ModelEvent, ModelPort, ModelRequest, ModelSelection, QuerySource,
 };
-use rust_cli_kernel_api::provider::ModelCapabilities;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tokio_util::sync::CancellationToken;
 
 use super::tests::{parts, request, scope};

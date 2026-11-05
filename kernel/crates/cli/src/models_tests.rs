@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::provider::{CatalogModel, WireProtocol};
+use nibi_kernel_api::provider::{CatalogModel, WireProtocol};
 
 use super::*;
 
@@ -95,8 +95,8 @@ fn the_model_flag_picks_from_the_catalog() {
 /// 的团队也写出来。
 #[test]
 fn the_model_flag_names_the_team() {
-    use rust_cli_kernel_api::model::ModelConnection;
-    use rust_cli_kernel_api::provider::CatalogConnection;
+    use nibi_kernel_api::model::ModelConnection;
+    use nibi_kernel_api::provider::CatalogConnection;
     let team = |project: &str, name: &str| {
         let mut entry = entry("t", "glm");
         entry.connection = Some(CatalogConnection {

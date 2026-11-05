@@ -1,6 +1,6 @@
 //! npm 平台包的纯计算部分（remote-exec.md §26.4）：integrity 的几种写法、tar 的 ustar 前缀与 pax 的 `path`、截断与缺项。
 
-use rust_cli_ssh_connect::Platform;
+use nibi_kernel_ssh_connect::Platform;
 
 use super::super::fake_npm_tests::{build_json, gzip, header, image, sha256_hex, sri, tar};
 use super::{extract, integrity_matches};

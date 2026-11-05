@@ -4,10 +4,10 @@
 //! 里收唤醒，只在空闲时取走到期任务（任务只在 REPL 空闲时触发，以优先级 `later` 排队）。
 //! 忙时收到的唤醒直接忽略：回合结束时 `start_next` 会再取。
 
-use rust_cli_kernel_api::cron::CronFire;
+use nibi_kernel_api::cron::CronFire;
 
-use rust_cli_kernel_api::abort::AbortReason;
-use rust_cli_kernel_api::session_api::Ack;
+use nibi_kernel_api::abort::AbortReason;
+use nibi_kernel_api::session_api::Ack;
 
 use crate::actor::{Actor, accepted, rejected};
 

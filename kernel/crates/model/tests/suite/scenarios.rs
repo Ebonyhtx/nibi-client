@@ -3,8 +3,8 @@
 use std::time::{Duration, Instant};
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, QuerySource};
-use rust_cli_model::ProviderModel;
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, QuerySource};
+use nibi_kernel_model::ProviderModel;
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

@@ -1,5 +1,5 @@
 //! 终端通知的渠道、序列与计时（tui-manage.md §5）。时间用注入的 `Instant`，不睡眠。
-use rust_cli_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::ids::ToolUseId;
 use serde_json::json;
 
 use super::*;

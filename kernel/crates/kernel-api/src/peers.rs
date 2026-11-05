@@ -1,10 +1,10 @@
 //! 本机跨会话通信的端口与公共类型（docs/specs/rust-cli/cross-session.md §2.3）。
 //!
-//! - [`PeerMessaging`]：进程级端口。本机实现（适配器 `rust-cli-peers`）管登记、收件箱 socket 与回执的发送；
+//! - [`PeerMessaging`]：进程级端口。本机实现（适配器 `nibi-kernel-peers`）管登记、收件箱 socket 与回执的发送；
 //!   会话级的事实（收到的消息、扣住、解决、回执）只在会话 actor，先提交再 [`PeerMessaging::ack`]
 //!   （README §6 规则 9）。
 //! - 地址、`[ref]`、名字的规整与信封（`<cross-session-message …>`）的纯函数（cross-session.md §1）。给模型看的
-//!   文字在 `rust-cli-prompts` 的 `peers` 模块。
+//!   文字在 `nibi-kernel-prompts` 的 `peers` 模块。
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
@@ -434,7 +434,7 @@ pub enum PeerSendError {
     Failed { message: String },
 }
 
-/// 进程级的跨会话端口（本机实现见适配器 `rust-cli-peers`）。
+/// 进程级的跨会话端口（本机实现见适配器 `nibi-kernel-peers`）。
 #[async_trait]
 pub trait PeerMessaging: Send + Sync {
     /// 本进程的名字与地址；跨会话关闭（绑定失败、不支持的平台）时为 None。

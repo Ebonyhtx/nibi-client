@@ -2,7 +2,7 @@
 //! 事件流（`dwf_event`）的追加与升级问答重放也在本文件（`append_event` / `pending_questions`）。
 
 use super::*;
-use rust_cli_kernel_api::workflow::DynamicWorkflowRun;
+use nibi_kernel_api::workflow::DynamicWorkflowRun;
 
 fn insert(conn: &Connection, id: &str, session: &str, status: &str, created: i64) {
     conn.execute(

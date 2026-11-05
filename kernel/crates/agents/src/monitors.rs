@@ -10,23 +10,23 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{CommandEvent, OperationContext, Origin, OutputStream};
-use rust_cli_kernel_api::env_shell::{BackgroundTask, ShellNotice};
-use rust_cli_kernel_api::ids::{AgentId, OwnerEpoch, ShellTaskId};
-use rust_cli_kernel_api::monitor::{MonitorArmed, MonitorSource};
-use rust_cli_kernel_api::monitor_watch::{Emit, Step, Watch};
-use rust_cli_kernel_api::orchestration::OrchestrationError;
+use nibi_kernel_api::env::{CommandEvent, OperationContext, Origin, OutputStream};
+use nibi_kernel_api::env_shell::{BackgroundTask, ShellNotice};
+use nibi_kernel_api::ids::{AgentId, OwnerEpoch, ShellTaskId};
+use nibi_kernel_api::monitor::{MonitorArmed, MonitorSource};
+use nibi_kernel_api::monitor_watch::{Emit, Step, Watch};
+use nibi_kernel_api::orchestration::OrchestrationError;
 use tokio::sync::oneshot;
 
 use crate::Core;
 use crate::live::{LiveAgent, Notice};
 use crate::routing;
 
-/// Monitor 的文字（runtime 给 `rust_cli_query` 的实现；agents 不依赖 query，同 `AgentsPorts::shell_notice`）。
+/// Monitor 的文字（runtime 给 `nibi_kernel_query` 的实现；agents 不依赖 query，同 `AgentsPorts::shell_notice`）。
 #[derive(Clone, Copy)]
 pub struct MonitorTexts {
     /// 说明的文字。
-    pub notice: fn(&rust_cli_kernel_api::monitor_watch::Housekeeping) -> String,
+    pub notice: fn(&nibi_kernel_api::monitor_watch::Housekeeping) -> String,
     /// 终态通知的信封（带剩下的行）与 `<status>`。
     pub end: fn(&ShellNotice, Option<&str>) -> (&'static str, String),
 }
@@ -101,7 +101,7 @@ fn text(core: &Core, armed: &MonitorArmed, emit: &Emit) -> String {
         Emit::Event(body) => body.clone(),
         Emit::Notice(notice) => (core.ports.monitor.notice)(notice),
     };
-    rust_cli_prompts::monitor::event_envelope(armed.task.as_str(), &armed.description, &body)
+    nibi_kernel_prompts::monitor::event_envelope(armed.task.as_str(), &armed.description, &body)
 }
 
 /// 送给子代理（§5.1 的路由）。
@@ -138,7 +138,7 @@ async fn stop(core: &Core, live: &LiveAgent, armed: &MonitorArmed) {
     let context = OperationContext {
         environment: live.workspace.environment.clone(),
         // 停止只按操作 ID 重放（README §6 规则 3）；agents 没有执行环境的 generation，写一个固定值。
-        generation: rust_cli_kernel_api::ids::Generation::new("subagent-monitor"),
+        generation: nibi_kernel_api::ids::Generation::new("subagent-monitor"),
         owner_epoch: OwnerEpoch::LOCAL,
         operation: core.ports.ids.operation(),
         origin: Origin::User {

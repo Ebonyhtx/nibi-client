@@ -1,6 +1,6 @@
 //! 编 bfs 4.1.4 与 Oniguruma 6.9.10（docs/specs/rust-cli/embedded-search.md §6.2）。不跑 configure、不联网：
 //! bfs 的 `gen/config.h` 按目标族取 `config/<族>.h`（scripts/rust-cli/vendor/bfs-config.mjs 生成），`version.i` 等字符串
-//! 与 Oniguruma 的 `config.h` 在这里写进 OUT_DIR。bfs 的 `main()` 改名为 `rust_cli_bfs_main`，由 lib.rs 调用。
+//! 与 Oniguruma 的 `config.h` 在这里写进 OUT_DIR。bfs 的 `main()` 改名为 `nibi_kernel_bfs_main`，由 lib.rs 调用。
 
 use std::env;
 use std::fs;
@@ -106,7 +106,7 @@ fn main() {
         ("linux", "gnu") => "linux-gnu",
         ("linux", "musl") => "linux-musl",
         (os, target_env) => panic!(
-            "rust-cli-vendor-bfs：没有 {os}-{target_env} 的 config.h；先用 scripts/rust-cli/vendor/bfs-config.mjs 生成（embedded-search.md §6.2）"
+            "nibi-kernel-vendor-bfs：没有 {os}-{target_env} 的 config.h；先用 scripts/rust-cli/vendor/bfs-config.mjs 生成（embedded-search.md §6.2）"
         ),
     };
     let out = PathBuf::from(var("OUT_DIR"));
@@ -135,7 +135,7 @@ fn main() {
         .include(&onig_config)
         .include(&onig_src)
         .files(ONIG_SOURCES.iter().map(|file| onig_src.join(file)));
-    remap(&mut onig, &here, "rust-cli-vendor-bfs");
+    remap(&mut onig, &here, "nibi-kernel-vendor-bfs");
     remap(&mut onig, &out, "out");
 
     // bfs：config.h 与 `version.c` 引用的几段字符串。编译器与参数的几行只是 `bfs --version` 的显示。
@@ -151,11 +151,11 @@ fn main() {
         .include(&onig_src)
         .define("NDEBUG", None)
         // bfs 的 `main()` 改名，由 lib.rs 调用（源码里别处的 `main` 只在注释里）。
-        .define("main", "rust_cli_bfs_main")
+        .define("main", "nibi_kernel_bfs_main")
         .flag("-include")
         .flag(prelude.to_str().expect("prelude.h 的路径是 UTF-8"))
         .flag("-pthread");
-    remap(&mut bfs, &here, "rust-cli-vendor-bfs");
+    remap(&mut bfs, &here, "nibi-kernel-vendor-bfs");
     remap(&mut bfs, &out, "out");
     // bfs 的 configure 依次试 C23、C2x、C17（build/flags/std.c）。
     for std in ["-std=c23", "-std=c2x", "-std=c17"] {
@@ -192,6 +192,6 @@ fn main() {
     sources.sort();
     bfs.files(sources);
     // 链接顺序：bfs 引用 Oniguruma，先给 bfs。
-    bfs.compile("rust_cli_bfs");
-    onig.compile("rust_cli_onig");
+    bfs.compile("nibi_kernel_bfs");
+    onig.compile("nibi_kernel_onig");
 }

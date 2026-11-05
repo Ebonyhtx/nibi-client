@@ -4,11 +4,11 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::machine::{EnvInfo, Files};
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::workspace_trust::TrustKey;
-use rust_cli_tui::trust::TrustPrompt;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::machine::{EnvInfo, Files};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::workspace_trust::TrustKey;
+use nibi_kernel_tui::trust::TrustPrompt;
 
 use super::{Decision, Inputs, decide, record};
 
@@ -37,7 +37,7 @@ impl InAppTrust {
     }
 }
 
-impl rust_cli_tui::services::WorkspaceTrust for InAppTrust {
+impl nibi_kernel_tui::services::WorkspaceTrust for InAppTrust {
     fn check(&self, workspace: WorkspaceRef) -> BoxFuture<'static, Option<TrustPrompt>> {
         let this = Self {
             info: self.info.clone(),

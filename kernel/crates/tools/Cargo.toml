@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-tools"
-description = "Tool registry, execution pipeline and built-in tools of rust-cli"
+name = "nibi-kernel-tools"
+description = "Tool registry, execution pipeline and built-in tools of nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,10 +17,10 @@ doctest = false
 async-trait.workspace = true
 futures-util.workspace = true
 regex.workspace = true
-rust-cli-base.workspace = true
-rust-cli-kernel-api.workspace = true
-rust-cli-policy.workspace = true
-rust-cli-prompts.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-api.workspace = true
+nibi-kernel-policy.workspace = true
+nibi-kernel-prompts.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["sync", "time"] }
@@ -31,6 +31,6 @@ unicode-width.workspace = true
 url.workspace = true
 
 [dev-dependencies]
-rust-cli-kernel-api = { workspace = true, features = ["testing"] }
+nibi-kernel-api = { workspace = true, features = ["testing"] }
 tokio = { workspace = true, features = ["macros", "rt", "test-util"] }
 tokio-util.workspace = true

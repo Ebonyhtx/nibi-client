@@ -7,11 +7,11 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, Outcome};
-use rust_cli_kernel_api::env_shell::{MonitorSocket, ShellNotice, SocketEvent};
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_net::Egress;
-use rust_cli_net::websocket::{WsError, WsFrame};
+use nibi_kernel_api::env::{EnvPath, Outcome};
+use nibi_kernel_api::env_shell::{MonitorSocket, ShellNotice, SocketEvent};
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_net::Egress;
+use nibi_kernel_net::websocket::{WsError, WsFrame};
 use tokio::io::AsyncWriteExt;
 
 use super::supervise::Plan;
@@ -22,7 +22,7 @@ pub(crate) struct SocketJob {
     pub operation: OperationId,
     pub session: SessionId,
     pub plan: Plan,
-    pub request: rust_cli_kernel_api::env::StartCommand,
+    pub request: nibi_kernel_api::env::StartCommand,
     pub socket: MonitorSocket,
     pub running: Arc<Running>,
     pub egress: Option<Arc<Egress>>,

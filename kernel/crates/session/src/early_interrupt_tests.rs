@@ -7,18 +7,18 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::hooks::{HookEventName, HookOutcome};
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::{AttachmentMessage, ContentBlock, Message};
-use rust_cli_kernel_api::metering::CallStatus;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::hooks::{HookEventName, HookOutcome};
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::{AttachmentMessage, ContentBlock, Message};
+use nibi_kernel_api::metering::CallStatus;
+use nibi_kernel_api::orchestration::{
     BuiltContext, ContextBuilder, ContextRequest, OrchestrationError,
 };
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::session_api::{
     Command, EndReason, KernelEvent, SessionHandle, TurnOutcome,
 };
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 use tokio::sync::Notify;
 
 use crate::test_support::{ScriptedHooks, Setup, envelope, finished, submit, until};

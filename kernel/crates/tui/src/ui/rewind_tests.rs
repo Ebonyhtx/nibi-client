@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::session_api::FileChange;
+use nibi_kernel_api::session_api::FileChange;
 
 use super::*;
 
@@ -55,7 +55,7 @@ fn remote_files_name_their_machine() {
         "The code will be restored +1 -1 in dev-a:README.md."
     );
     let entry = |files: Vec<FileChange>, message: &str| Entry {
-        option: rust_cli_kernel_api::session_api::RewindOption {
+        option: nibi_kernel_api::session_api::RewindOption {
             message: MessageId::new(message),
             files,
             code: true,

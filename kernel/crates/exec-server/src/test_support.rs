@@ -6,23 +6,23 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_exec_transport::memory::{MemoryLink, pair};
-use rust_cli_exec_transport::{FrameSink, FrameSource, Link};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::core::{OperationContext, Origin, Workspace};
-use rust_cli_exec_wire::envelope::{ReplyHeader, RequestHeader};
-use rust_cli_exec_wire::frame::{Frame, Kind, Reassembler, Received};
-use rust_cli_exec_wire::handshake::{Capabilities, Hello, PROTOCOL};
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_exec_transport::memory::{MemoryLink, pair};
+use nibi_kernel_exec_transport::{FrameSink, FrameSource, Link};
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::core::{OperationContext, Origin, Workspace};
+use nibi_kernel_exec_wire::envelope::{ReplyHeader, RequestHeader};
+use nibi_kernel_exec_wire::frame::{Frame, Kind, Reassembler, Received};
+use nibi_kernel_exec_wire::handshake::{Capabilities, Hello, PROTOCOL};
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, FileContent, FileVersion, OperationContext as Ctx, Outcome,
     ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, MachineEnv, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::mcp::NoMcpTransport;
+use nibi_kernel_api::mcp::NoMcpTransport;
 use serde::Serialize;
 use tokio::sync::{Notify, mpsc};
 
@@ -35,7 +35,7 @@ pub(crate) struct TestMachine {
     pub writes: AtomicUsize,
     pub gate: Option<Arc<Notify>>,
     pub events: Mutex<Option<mpsc::UnboundedReceiver<Result<CommandEvent, EnvError>>>>,
-    pub started: Mutex<Vec<rust_cli_kernel_api::env_command::EnvOverrides>>,
+    pub started: Mutex<Vec<nibi_kernel_api::env_command::EnvOverrides>>,
 }
 
 #[async_trait]
@@ -147,7 +147,7 @@ pub(crate) async fn server_with(
 /// 同 [`server_with`]，MCP 的管道用给的传输（R5）。
 pub(crate) async fn server_with_mcp(
     machine: Arc<TestMachine>,
-    mcp: Arc<dyn rust_cli_kernel_api::mcp::McpTransport>,
+    mcp: Arc<dyn nibi_kernel_api::mcp::McpTransport>,
     ledger: Arc<dyn ExecLedger>,
     config: ServerConfig,
 ) -> ExecServer {
@@ -163,10 +163,10 @@ pub(crate) async fn server(machine: Arc<TestMachine>) -> (ExecServer, Arc<Memory
 }
 
 /// 连上服务端：返回客户端这一头与服务这条连接的任务。
-pub(crate) fn connect(server: &ExecServer) -> (Client, rust_cli_base::OwnedTask<()>) {
+pub(crate) fn connect(server: &ExecServer) -> (Client, nibi_kernel_base::OwnedTask<()>) {
     let (client, served): (MemoryLink, MemoryLink) = pair("exec");
     let server = server.clone();
-    let task = rust_cli_base::owned(async move {
+    let task = nibi_kernel_base::owned(async move {
         let _ = server.serve_link(Box::new(served)).await;
     });
     let (sink, source) = Box::new(client).split();
@@ -202,7 +202,7 @@ pub(crate) fn workspace() -> Workspace {
 
 pub(crate) fn write(
     path: &str,
-    body: &mut rust_cli_exec_wire::BodyBuilder,
+    body: &mut nibi_kernel_exec_wire::BodyBuilder,
     data: &[u8],
 ) -> Request {
     Request::WriteFile {
@@ -216,7 +216,7 @@ pub(crate) fn write(
         },
         path: path.to_owned(),
         bytes: body.push(data),
-        precondition: rust_cli_exec_wire::dto::files::WritePrecondition::Any,
+        precondition: nibi_kernel_exec_wire::dto::files::WritePrecondition::Any,
     }
 }
 

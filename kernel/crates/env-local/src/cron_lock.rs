@@ -64,7 +64,7 @@ async fn create_exclusive(path: &Path, body: &str) -> io::Result<bool> {
         Err(error) if error.kind() == ErrorKind::AlreadyExists => return Ok(false),
         Err(error) if error.kind() == ErrorKind::NotFound => {
             if let Some(parent) = path.parent() {
-                rust_cli_fs::create_dir_all(parent).await?;
+                nibi_kernel_fs::create_dir_all(parent).await?;
             }
             match open().await {
                 Ok(file) => file,
@@ -80,7 +80,7 @@ async fn create_exclusive(path: &Path, body: &str) -> io::Result<bool> {
 }
 
 async fn read(path: &Path) -> io::Result<Option<LockRecord>> {
-    let bytes = rust_cli_fs::read_optional(path).await?;
+    let bytes = nibi_kernel_fs::read_optional(path).await?;
     Ok(bytes.and_then(|bytes| LockRecord::parse(&String::from_utf8_lossy(&bytes))))
 }
 
@@ -94,13 +94,13 @@ async fn remove(path: &Path) {
 
 /// PID 存活，且启动时间相同或任一方未知。
 async fn held_by_live_process(record: &LockRecord) -> bool {
-    if !rust_cli_fs::process_alive(record.pid) {
+    if !nibi_kernel_fs::process_alive(record.pid) {
         return false;
     }
     let Some(recorded) = &record.proc_start else {
         return true;
     };
-    match rust_cli_proc::process_started(record.pid).await {
+    match nibi_kernel_proc::process_started(record.pid).await {
         Some(current) => &current == recorded,
         None => true,
     }
@@ -129,7 +129,7 @@ pub(crate) async fn acquire(
         if existing.holder == holder {
             // resume 后会话 ID 不变、进程换了：改写成本进程，别的会话才看得到活着的 PID。
             if existing.pid != me.pid {
-                rust_cli_fs::atomic_write(
+                nibi_kernel_fs::atomic_write(
                     path,
                     body.as_bytes(),
                     crate::cron_store::write_options(),

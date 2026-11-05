@@ -2,15 +2,15 @@
 //!
 //! 命令见 context.md §12：
 //! 各命令并发执行，非零退出时该项输出为空（`preserveOutputOnError: false`），stdout 去掉首尾空白。
-//! 进程经 `rust-cli-proc` 启动，环境是白名单投影加上受限的 git 变量。
+//! 进程经 `nibi-kernel-proc` 启动，环境是白名单投影加上受限的 git 变量。
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_kernel_api::env_git::{GitDiff, GitSnapshot, GitStatus};
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_api::env_git::{GitDiff, GitSnapshot, GitStatus};
 
 use crate::host::git_root;
 
@@ -66,7 +66,7 @@ struct Git {
 impl Git {
     /// 跑一条 git 命令：成功时为 stdout（去首尾空白），否则为 None。
     async fn run(&self, args: &[&str]) -> Option<String> {
-        let mut command = rust_cli_proc::command("git");
+        let mut command = nibi_kernel_proc::command("git");
         command
             .args(args)
             .current_dir(&self.cwd)
@@ -133,7 +133,7 @@ pub(crate) async fn status(
     projected: BTreeMap<String, String>,
 ) -> Result<GitStatus, EnvError> {
     let start = cwd.to_path_buf();
-    let root = rust_cli_base::blocking(move || git_root(&start))
+    let root = nibi_kernel_base::blocking(move || git_root(&start))
         .await
         .map_err(|error| EnvError::Io {
             message: error.to_string(),
@@ -173,7 +173,7 @@ pub(crate) async fn diff(
     projected: BTreeMap<String, String>,
 ) -> Result<GitDiff, EnvError> {
     let start = cwd.to_path_buf();
-    let root = rust_cli_base::blocking(move || git_root(&start))
+    let root = nibi_kernel_base::blocking(move || git_root(&start))
         .await
         .map_err(|error| EnvError::Io {
             message: error.to_string(),

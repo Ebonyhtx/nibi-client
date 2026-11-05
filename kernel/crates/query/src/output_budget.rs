@@ -4,8 +4,8 @@
 //! 不看输入；输入 671,008 时请求的总量超过窗口，端点回 400。现在按窗口余量算出上限交给补丁（补丁以它与配置的上限的
 //! 较小值为输入，写出的就是它）。请求体自己的 `max_tokens` 不动：显式覆盖的端点没有补丁，卡片模型的请求逐字节不变。
 
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::provider::ModelCapabilities;
 
 /// 窗口余量里给估算误差留的 token。
 const MARGIN: u64 = 1_000;

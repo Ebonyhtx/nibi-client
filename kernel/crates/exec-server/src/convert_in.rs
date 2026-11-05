@@ -1,24 +1,24 @@
 //! 线上的请求参数 → kernel-api 的类型（服务端的换算，remote-exec.md §15.1 原则 3：只在这里与 `env-remote`）。
 //! 字节字段从二进制段取；越界是 `bad_request`。
 
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::command as wc;
-use rust_cli_exec_wire::dto::core as w;
-use rust_cli_exec_wire::dto::files as wf;
-use rust_cli_exec_wire::dto::rewind as wr;
-use rust_cli_exec_wire::dto::shell as ws;
-use rust_cli_exec_wire::envelope::WireError;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::command as wc;
+use nibi_kernel_exec_wire::dto::core as w;
+use nibi_kernel_exec_wire::dto::files as wf;
+use nibi_kernel_exec_wire::dto::rewind as wr;
+use nibi_kernel_exec_wire::dto::shell as ws;
+use nibi_kernel_exec_wire::envelope::WireError;
+use nibi_kernel_api::env::{
     EnvPath, FileVersion, OperationContext, Origin, StartCommand, WorkspaceRef, WritePrecondition,
 };
-use rust_cli_kernel_api::env_files::{GlobFiles, GrepMode, GrepSearch, PutFile, ReadText};
-use rust_cli_kernel_api::env_pdf::RenderPdfPages;
-use rust_cli_kernel_api::env_rewind::{RestoreFile, RewindPrepare};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_files::{GlobFiles, GrepMode, GrepSearch, PutFile, ReadText};
+use nibi_kernel_api::env_pdf::RenderPdfPages;
+use nibi_kernel_api::env_rewind::{RestoreFile, RewindPrepare};
+use nibi_kernel_api::env_shell::{
     BackgroundCommand, BackgroundKind, BackgroundTask, CwdScope, FilesystemPolicy, HookIo,
     MonitorSocket, NetworkPolicy, SandboxPolicy, ShellKind, TimeoutBackground,
 };
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ShellTaskId, ToolUseId,
 };
 

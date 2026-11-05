@@ -4,7 +4,7 @@
 //! 名字用小写：发送时按 `http::HeaderName` 规范化成小写（reqwest 没开 title case），写法不影响线上的字节。只在内核
 //! crate 里组装的请求（hook 的 HTTP、WebFetch）不能依赖 net，那里也写小写（F58，README §4.1）。
 
-use rust_cli_base::secret::RedactedString;
+use nibi_kernel_base::secret::RedactedString;
 
 pub const ACCEPT: &str = "accept";
 pub const AUTHORIZATION: &str = "authorization";

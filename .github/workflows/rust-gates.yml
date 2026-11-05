@@ -79,8 +79,8 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin
           cargo check --locked \
-            -p rust-cli-proc -p rust-cli-fs -p rust-cli-policy \
-            -p rust-cli-session -p rust-cli-ext \
+            -p nibi-kernel-proc -p nibi-kernel-fs -p nibi-kernel-policy \
+            -p nibi-kernel-session -p nibi-kernel-ext \
             --target aarch64-apple-darwin
       - name: nibi-platform tests
         working-directory: kernel

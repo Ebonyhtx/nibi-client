@@ -24,14 +24,14 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::model::{
     ModelError, ModelNotice, ModelRequest, ModelRequestStatus, ModelRequestStatusKind,
     ModelSelection, ModelStreamItem, QuerySource,
 };
-use rust_cli_kernel_api::provider::{EndpointContext, ModelEndpoint, ModelEndpoints, WireProtocol};
-use rust_cli_net::retry::RetryPolicy;
-use rust_cli_net::{Egress, HttpRequest};
+use nibi_kernel_api::provider::{EndpointContext, ModelEndpoint, ModelEndpoints, WireProtocol};
+use nibi_kernel_net::retry::RetryPolicy;
+use nibi_kernel_net::{Egress, HttpRequest};
 use tokio_util::sync::CancellationToken;
 
 use crate::attribution::Origin;
@@ -370,7 +370,7 @@ impl Start {
                 .options
                 .session_id
                 .as_ref()
-                .map(rust_cli_kernel_api::ids::SessionId::as_str);
+                .map(nibi_kernel_api::ids::SessionId::as_str);
             request.options.user_id = Some(crate::metadata::user_id(&device_id, session));
         }
         let protocol = protocol::for_wire(endpoint.protocol);

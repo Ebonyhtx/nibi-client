@@ -3,15 +3,15 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::ids::{MessageId, OwnerEpoch, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, OwnerEpoch, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
-use rust_cli_kernel_api::session_api::{Ack, Command, CommandEnvelope, SessionHandle};
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore};
-use rust_cli_kernel_api::testing::{MemoryStore, ScriptedModel, text_response, tool_use_response};
-use rust_cli_kernel_api::user_input::INTERRUPT_TEXTS;
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::session_api::{Ack, Command, CommandEnvelope, SessionHandle};
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore};
+use nibi_kernel_api::testing::{MemoryStore, ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::user_input::INTERRUPT_TEXTS;
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

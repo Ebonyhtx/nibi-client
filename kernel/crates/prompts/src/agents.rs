@@ -5,7 +5,7 @@
 //! （`plan.txt`）；fork 子代理的三个文件（`fork_directive.txt`、`fork_started.txt`、`fork_tool.json`，修复线 L-A）取自 TUI
 //! 基线，手工维护。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 use crate::texts::render;
 use crate::trim;

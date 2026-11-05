@@ -4,13 +4,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_agents::PluginAgentFile;
-use rust_cli_ext::Plugins;
-use rust_cli_hooks::PluginHooks;
-use rust_cli_kernel_api::cron_store::CronStore;
-use rust_cli_kernel_api::env::WorkspaceRef;
+use nibi_kernel_agents::PluginAgentFile;
+use nibi_kernel_ext::Plugins;
+use nibi_kernel_hooks::PluginHooks;
+use nibi_kernel_api::cron_store::CronStore;
+use nibi_kernel_api::env::WorkspaceRef;
 
-pub use rust_cli_ext::ExtConfig;
+pub use nibi_kernel_ext::ExtConfig;
 
 /// 会话创建时的插件快照来源（NIBI 一个 app-server 承载多个会话）。
 ///
@@ -33,7 +33,7 @@ pub struct Extensions {
     /// 持久任务（测试、嵌入）。`-p` 也给：CronCreate `durable: true` 照常写文件，只是不调度。
     pub cron_store: Option<Arc<dyn CronStore>>,
     /// 本机跨会话通信（docs/specs/rust-cli/cross-session.md §2.4）：入口给本地的 `LocalPeers`；缺省关闭。
-    pub peers: rust_cli_session::PeerDeps,
+    pub peers: nibi_kernel_session::PeerDeps,
     /// `-p` 的输入是 stream-json（不是单次的 print 会话，headless.md §6.1，修复线 F39）：Bash 后台命令的
     /// 缺省期限是 1800000。
     pub streaming_input: bool,
@@ -42,10 +42,10 @@ pub struct Extensions {
     pub monitor: bool,
     /// MCP 进程遥测的出口（`process/mcpTelemetry`，141 审计 §9 F3）：入口在协议 server 建好之前接上；
     /// None 时（TUI、嵌入、测试）什么都不发。
-    pub mcp_telemetry: Option<rust_cli_ext::McpTelemetrySetup>,
+    pub mcp_telemetry: Option<nibi_kernel_ext::McpTelemetrySetup>,
     /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量，141 审计 §9 第 6 项）：入口把另一头交给协议层；
     /// None 时（TUI、嵌入、测试）什么都不发。
-    pub mcp_ui: Option<tokio::sync::mpsc::UnboundedSender<rust_cli_kernel_api::mcp_ui::McpUiEvent>>,
+    pub mcp_ui: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
 }
 
 impl Extensions {
@@ -55,7 +55,7 @@ impl Extensions {
             config: ExtConfig::default(),
             plugin_loader: None,
             cron_store: None,
-            peers: rust_cli_session::PeerDeps::off(),
+            peers: nibi_kernel_session::PeerDeps::off(),
             streaming_input: false,
             monitor: false,
             mcp_telemetry: None,

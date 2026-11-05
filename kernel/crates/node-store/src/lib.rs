@@ -6,7 +6,7 @@
 //! 形状的消息（活动分支、压缩边界）。
 //!
 //! 并发：每个进程一个连接，首次使用时打开并补齐迁移；所有数据库访问都在阻塞线程里串行执行
-//! （`rust_cli_base::blocking`），不在 async 线程上做同步 IO。
+//! （`nibi_kernel_base::blocking`），不在 async 线程上做同步 IO。
 mod append;
 mod artifacts;
 mod branch;
@@ -47,16 +47,16 @@ use async_trait::async_trait;
 use rusqlite::Connection;
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::{ArtifactId, MessageId, SessionId};
-use rust_cli_kernel_api::permission::{PermissionMode, ProjectRules};
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::{ArtifactId, MessageId, SessionId};
+use nibi_kernel_api::permission::{PermissionMode, ProjectRules};
+use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, ArtifactStore, CommitReceipt, FactBatch, ForkReceipt,
     LoadedSession, MessageTime, SessionFilter, SessionFork, SessionKind, SessionMeta, SessionPage,
     SessionQuery, SessionStore, SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::workspace_trust::TrustKey;
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_api::workspace_trust::TrustKey;
+use nibi_kernel_paths::StoragePaths;
 use serde_json::{Value, json};
 
 pub use artifacts::uri as artifact_uri;
@@ -122,18 +122,18 @@ impl NodeStore {
         let connection = self.connection.clone();
         let ids = self.ids.clone();
         let path = self.paths.database().as_path().to_path_buf();
-        // 缺陷修复 R2-8：目录原来在阻塞线程里直接用 std::fs 建，豁免理由“rust-cli-fs 没有建目录的函数”已经
+        // 缺陷修复 R2-8：目录原来在阻塞线程里直接用 std::fs 建，豁免理由“nibi-kernel-fs 没有建目录的函数”已经
         // 过时；现在经 fs 的唯一入口，打开连接之前建一次。
         if !self.database_dir.load(Ordering::Acquire) {
             if let Some(parent) = path
                 .parent()
                 .filter(|parent| !parent.as_os_str().is_empty())
             {
-                rust_cli_fs::create_dir_all(parent).await.map_err(storage)?;
+                nibi_kernel_fs::create_dir_all(parent).await.map_err(storage)?;
             }
             self.database_dir.store(true, Ordering::Release);
         }
-        rust_cli_base::blocking(move || {
+        nibi_kernel_base::blocking(move || {
             // 上一次在持锁时 panic：rusqlite 的事务在展开时已回滚，连接仍可用。
             let mut slot = connection.lock().unwrap_or_else(PoisonError::into_inner);
             let conn = match &mut *slot {
@@ -317,7 +317,7 @@ impl SessionStore for NodeStore {
     async fn change_project_rules(
         &self,
         workspace: &WorkspaceRef,
-        change: rust_cli_kernel_api::store::ProjectRulesChange,
+        change: nibi_kernel_api::store::ProjectRulesChange,
     ) -> Result<ProjectRules, StoreError> {
         let project = ids::project_id(workspace.root.as_str());
         self.with_db(move |conn, ids| project_rules::change(conn, &project, ids.now_ms(), &change))
@@ -338,7 +338,7 @@ impl SessionStore for NodeStore {
     async fn metering(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::metering::SessionMetering, StoreError> {
+    ) -> Result<nibi_kernel_api::metering::SessionMetering, StoreError> {
         let session = session.clone();
         self.with_db(move |conn, _| {
             facts::live_session(conn, &session)?;
@@ -351,7 +351,7 @@ impl SessionStore for NodeStore {
     async fn request_stats(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::metering::RequestStats, StoreError> {
+    ) -> Result<nibi_kernel_api::metering::RequestStats, StoreError> {
         let session = session.clone();
         self.with_db(move |conn, _| {
             facts::live_session(conn, &session)?;
@@ -363,8 +363,8 @@ impl SessionStore for NodeStore {
     /// 活动统计的原始聚合（usage.md §5.2）。
     async fn activity(
         &self,
-        query: rust_cli_kernel_api::metering::ActivityQuery,
-    ) -> Result<rust_cli_kernel_api::metering::ActivityStats, StoreError> {
+        query: nibi_kernel_api::metering::ActivityQuery,
+    ) -> Result<nibi_kernel_api::metering::ActivityStats, StoreError> {
         self.with_db(move |conn, _| usage_query::activity(conn, &query))
             .await
     }
@@ -394,7 +394,7 @@ impl SessionStore for NodeStore {
     async fn put_record(
         &self,
         session: &SessionId,
-        record: &rust_cli_kernel_api::store::FrontendRecord,
+        record: &nibi_kernel_api::store::FrontendRecord,
     ) -> Result<(), StoreError> {
         let (session, record) = (session.as_str().to_owned(), record.clone());
         self.with_db(move |conn, ids| frontend_records::put(conn, &session, &record, ids.now_ms()))
@@ -405,7 +405,7 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         kind: &str,
-    ) -> Result<Vec<rust_cli_kernel_api::store::FrontendRecord>, StoreError> {
+    ) -> Result<Vec<nibi_kernel_api::store::FrontendRecord>, StoreError> {
         let (session, kind) = (session.as_str().to_owned(), kind.to_owned());
         self.with_db(move |conn, _| frontend_records::list(conn, &session, &kind))
             .await
@@ -415,7 +415,7 @@ impl SessionStore for NodeStore {
     async fn workflow_runs(
         &self,
         session: &SessionId,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::DynamicWorkflowRun>, StoreError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::DynamicWorkflowRun>, StoreError> {
         let session = session.as_str().to_owned();
         self.with_db(move |conn, _| repo::dwf::list(conn, &session).map_err(storage))
             .await
@@ -427,7 +427,7 @@ impl SessionStore for NodeStore {
         target: &SessionId,
         source: &SessionId,
         message_count: u64,
-    ) -> Result<rust_cli_kernel_api::workflow::SeedFulfillment, StoreError> {
+    ) -> Result<nibi_kernel_api::workflow::SeedFulfillment, StoreError> {
         let work = (
             target.as_str().to_owned(),
             source.as_str().to_owned(),
@@ -455,13 +455,13 @@ impl SessionStore for NodeStore {
         cwd: Option<String>,
         name: Option<String>,
         limit: usize,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunPageRow>, StoreError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowRunPageRow>, StoreError> {
         self.with_db(move |conn, _| {
             repo::dwf::list_runs_hub(conn, cwd.as_deref(), name.as_deref(), limit)
                 .map_err(storage)
                 .map(|rows| {
                     rows.into_iter()
-                        .map(|row| rust_cli_kernel_api::workflow::WorkflowRunPageRow {
+                        .map(|row| nibi_kernel_api::workflow::WorkflowRunPageRow {
                             artifacts: if row.artifacts.is_empty() {
                                 None
                             } else {
@@ -469,7 +469,7 @@ impl SessionStore for NodeStore {
                                     row.artifacts
                                         .into_iter()
                                         .take(8)
-                                        .map(rust_cli_kernel_api::workflow::WorkflowRunArtifact::from)
+                                        .map(nibi_kernel_api::workflow::WorkflowRunArtifact::from)
                                         .collect(),
                                 )
                             },
@@ -517,7 +517,7 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         run_id: &str,
-    ) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunDetail>, StoreError> {
+    ) -> Result<Option<nibi_kernel_api::workflow::WorkflowRunDetail>, StoreError> {
         let work = (session.as_str().to_owned(), run_id.to_owned());
         self.with_db(move |conn, _| {
             repo::dwf::run_detail(conn, &work.0, &work.1).map_err(storage)
@@ -541,7 +541,7 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         limit: usize,
-    ) -> Result<Vec<rust_cli_kernel_api::workflow::WorkflowRunSummaryRow>, StoreError> {
+    ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowRunSummaryRow>, StoreError> {
         let session = session.as_str().to_owned();
         self.with_db(move |conn, _| {
             repo::run_queries::summaries(conn, &session, limit).map_err(storage)
@@ -553,8 +553,8 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         run_id: &str,
-        query: rust_cli_kernel_api::workflow::WorkflowRunEventQuery,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunEventPage, StoreError> {
+        query: nibi_kernel_api::workflow::WorkflowRunEventQuery,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunEventPage, StoreError> {
         let work = (session.as_str().to_owned(), run_id.to_owned());
         self.with_db(move |conn, _| {
             repo::run_queries::events(conn, &work.0, &work.1, query).map_err(storage)
@@ -566,7 +566,7 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         run_id: &str,
-    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunArtifactDetail>>, StoreError>
+    ) -> Result<Option<Vec<nibi_kernel_api::workflow::WorkflowRunArtifactDetail>>, StoreError>
     {
         let work = (session.as_str().to_owned(), run_id.to_owned());
         self.with_db(move |conn, _| {
@@ -579,8 +579,8 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         run_id: &str,
-        query: rust_cli_kernel_api::workflow::WorkflowRunArtifactItemQuery,
-    ) -> Result<rust_cli_kernel_api::workflow::WorkflowRunArtifactItemPage, StoreError> {
+        query: nibi_kernel_api::workflow::WorkflowRunArtifactItemQuery,
+    ) -> Result<nibi_kernel_api::workflow::WorkflowRunArtifactItemPage, StoreError> {
         let work = (session.as_str().to_owned(), run_id.to_owned());
         self.with_db(move |conn, _| {
             repo::run_queries::artifact_items(conn, &work.0, &work.1, &query).map_err(storage)
@@ -634,7 +634,7 @@ impl SessionStore for NodeStore {
         &self,
         session: &SessionId,
         run_id: &str,
-    ) -> Result<Option<Vec<rust_cli_kernel_api::workflow::WorkflowRunWorkspaceNode>>, StoreError>
+    ) -> Result<Option<Vec<nibi_kernel_api::workflow::WorkflowRunWorkspaceNode>>, StoreError>
     {
         let work = (session.as_str().to_owned(), run_id.to_owned());
         self.with_db(move |conn, _| {
@@ -650,7 +650,7 @@ impl SessionStore for NodeStore {
         site_id: &str,
         ordinal: u64,
         max_bytes: u64,
-    ) -> Result<Option<rust_cli_kernel_api::workflow::WorkflowRunNodeResult>, StoreError> {
+    ) -> Result<Option<nibi_kernel_api::workflow::WorkflowRunNodeResult>, StoreError> {
         let work = (
             session.as_str().to_owned(),
             run_id.to_owned(),
@@ -665,8 +665,8 @@ impl SessionStore for NodeStore {
 
     async fn app_usage(
         &self,
-        query: rust_cli_kernel_api::usage::AppUsageQuery,
-    ) -> Result<rust_cli_kernel_api::usage::AppUsage, StoreError> {
+        query: nibi_kernel_api::usage::AppUsageQuery,
+    ) -> Result<nibi_kernel_api::usage::AppUsage, StoreError> {
         self.with_db(move |conn, _| usage_query::app_usage(conn, &query))
             .await
     }
@@ -674,7 +674,7 @@ impl SessionStore for NodeStore {
     async fn session_usage(
         &self,
         session: &SessionId,
-    ) -> Result<rust_cli_kernel_api::usage::SessionUsage, StoreError> {
+    ) -> Result<nibi_kernel_api::usage::SessionUsage, StoreError> {
         let session = session.as_str().to_owned();
         self.with_db(move |conn, _| usage_query::session_usage(conn, &session))
             .await
@@ -687,7 +687,7 @@ impl SessionStore for NodeStore {
 /// 交给 [`ArtifactStore::find`]。分开写是因为两处的上层语义不同（附件要 mime 与解码后的字节，
 /// 产物读面要原始字节与行上的 contentType），而共用一个函数会把两套错误语义拧在一起。
 fn parse_artifact_uri(uri: &str) -> Option<(String, String)> {
-    let rest = uri.strip_prefix(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
+    let rest = uri.strip_prefix(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
     let (owner, id) = rest.split_once('/')?;
     if owner.is_empty() || id.is_empty() || id.contains('/') {
         return None;
@@ -729,14 +729,14 @@ impl ArtifactStore for NodeStore {
             size: u64::try_from(bytes.len()).unwrap_or(u64::MAX),
         };
         let path = artifacts::path(self.paths.artifacts(), &artifact);
-        let options = rust_cli_fs::WriteOptions {
-            mode: rust_cli_fs::FileMode::Default,
-            temp_name: rust_cli_fs::TempName::Hidden,
-            parent: rust_cli_fs::ParentDir::Create,
+        let options = nibi_kernel_fs::WriteOptions {
+            mode: nibi_kernel_fs::FileMode::Default,
+            temp_name: nibi_kernel_fs::TempName::Hidden,
+            parent: nibi_kernel_fs::ParentDir::Create,
             rename_retry: &[],
         };
         // 临时文件写完、fsync、rename 之后才返回引用：拿到引用的一方读到的一定是完整内容。
-        rust_cli_fs::atomic_write(path.as_path(), &bytes, options)
+        nibi_kernel_fs::atomic_write(path.as_path(), &bytes, options)
             .await
             .map_err(storage)?;
         Ok(artifact)
@@ -746,9 +746,9 @@ impl ArtifactStore for NodeStore {
         let path: PathBuf = artifacts::path(self.paths.artifacts(), artifact)
             .as_path()
             .to_path_buf();
-        // 缺陷修复 R2-8：原来在阻塞线程里直接 std::fs::read，豁免理由“rust-cli-fs 还没有读文件的函数”已经
+        // 缺陷修复 R2-8：原来在阻塞线程里直接 std::fs::read，豁免理由“nibi-kernel-fs 还没有读文件的函数”已经
         // 过时；现在经 fs 的 `read_optional`。
-        let bytes = match rust_cli_fs::read_optional(&path).await.map_err(storage)? {
+        let bytes = match nibi_kernel_fs::read_optional(&path).await.map_err(storage)? {
             Some(bytes) => Some(bytes),
             // Node 写的产物（checkpoint，修复线 F12）用 Node 的文件名：按 Node 的读法找含 artifact id 的文件。
             None => node_checkpoints::read_node_named(self.paths.artifacts(), artifact).await?,

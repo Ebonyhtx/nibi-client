@@ -1,10 +1,10 @@
 //! 合成 user 消息：attachment、meta、用户中断（spec node-store.md §4.5）。
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::{
     AttachmentMessage, ContentBlock, Message, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, SessionStore, StoreError};
+use nibi_kernel_api::store::{Fact, SessionStore, StoreError};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, started, text, user};
@@ -176,7 +176,7 @@ async fn meta_messages_with_images_are_refused() {
     let t = TestStore::new();
     started(&t, "sess_1").await;
     let image = ContentBlock::Image {
-        source: rust_cli_kernel_api::message::ImageSource::Base64 {
+        source: nibi_kernel_api::message::ImageSource::Base64 {
             media_type: "image/png".into(),
             data: "AA==".into(),
         },

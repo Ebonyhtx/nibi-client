@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use rust_cli_base::secret::RedactedString;
+use nibi_kernel_base::secret::RedactedString;
 use serde::{Deserialize, Serialize};
 
 use crate::dto::core::PathStyle;

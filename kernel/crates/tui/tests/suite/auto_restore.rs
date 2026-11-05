@@ -10,12 +10,12 @@ use std::time::Duration;
 use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{MemoryStore, text_response};
-use rust_cli_tui::{Clipboard, ImageBytes, Services};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{MemoryStore, text_response};
+use nibi_kernel_tui::{Clipboard, ImageBytes, Services};
 
 use super::support::{GatedModel, Item, Setup, finish, request_text, send, with_ui};
 
@@ -24,9 +24,9 @@ const PNG: &[u8] = b"\x89PNG\r\n\x1a\n0000IHDR";
 
 /// 存储里的会话（内存存储不看筛选条件）。
 async fn sessions(store: &MemoryStore) -> Vec<SessionId> {
-    use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-    use rust_cli_kernel_api::ids::EnvironmentId;
-    use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
+    use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+    use nibi_kernel_api::ids::EnvironmentId;
+    use nibi_kernel_api::store::{SessionFilter, SessionStore};
     let filter = SessionFilter {
         workspace: WorkspaceRef {
             environment: EnvironmentId::new("local"),

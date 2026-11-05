@@ -9,13 +9,13 @@
 //! 加上每个结果消息一条 `origin = ToolResult` 的 user 消息，按提交顺序；位置由 hydrate 按位置键放。没有标记的（Node 写的）
 //! 未结调用在内存里补 Node 的中断结果，不写库（[`results`]，工作线 F86、F88）。
 use rusqlite::OptionalExtension;
-use rust_cli_base::js::json::stringify;
-use rust_cli_base::js::string::trim;
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_base::js::string::trim;
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, StoreError};
+use nibi_kernel_api::store::{Fact, StoreError};
 use serde_json::{Value, json};
 
 use crate::facts::{Commit, unsupported};

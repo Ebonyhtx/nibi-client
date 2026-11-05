@@ -16,7 +16,7 @@
 //! 本模块不读全局 env；调用方把 `NIBI_CREDENTIAL_SECRET` 通过闭包传入。
 
 // 凭据与钥匙是几十字节的同步小文件 IO；付费插件发现门禁也是同步路径。
-// 异步化/目录锁要等内核接线时再按 rust-cli-fs 的口径统一做，先在这里局部豁免。
+// 异步化/目录锁要等内核接线时再按 nibi-kernel-fs 的口径统一做，先在这里局部豁免。
 #![expect(
     clippy::disallowed_methods,
     reason = "credential/key files are tiny synchronous IO on the sync gate path"

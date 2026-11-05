@@ -1,12 +1,12 @@
 //! 行级动作（141 审计 §9「行级 actions 的剩余缺口」）：edit / retry / fork / rewind 的入口闸。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, InteractionId, MessageId, SessionId, ToolUseId, TraceId, TurnId};
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::session_api::{FileChange, KernelEvent, SequencedEvent, SessionView, TurnOutcome};
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, InteractionId, MessageId, SessionId, ToolUseId, TraceId, TurnId};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::session_api::{FileChange, KernelEvent, SequencedEvent, SessionView, TurnOutcome};
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_api::testing::selection;
 use serde_json::Value;
 
 use super::super::state::Followup;

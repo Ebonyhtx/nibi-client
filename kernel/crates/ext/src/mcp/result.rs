@@ -1,6 +1,6 @@
 //! MCP 工具结果的转换与截断（docs/specs/rust-cli/ext.md §3.5）。
 
-use rust_cli_kernel_api::message::{ImageSource, ToolResultContent};
+use nibi_kernel_api::message::{ImageSource, ToolResultContent};
 use serde_json::Value;
 
 /// 图片按多少 token 估算。

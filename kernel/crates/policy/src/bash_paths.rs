@@ -5,7 +5,7 @@
 //! 路径都要询问，询问文本逐字固定（`texts.rs`）。复合命令里有 `cd` 又有写入时一律询问；有 `cd` 又按相对路径读、
 //! 配置了 Read deny 规则时询问（§4.5.7）。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use crate::check::{AskKind, Check, Inputs};
 use crate::files::{Access, path_rule};

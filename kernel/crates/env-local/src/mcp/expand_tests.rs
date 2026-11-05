@@ -5,8 +5,8 @@
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::EnvironmentId;
 use serde_json::json;
 
 use super::*;

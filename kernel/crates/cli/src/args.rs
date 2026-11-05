@@ -4,12 +4,12 @@
 //! 这里只做与 IO 无关的解析与校验（commander 里抛的错误：缺值、取值不合法、未知选项）；要读文件或看目录
 //! 的校验（`--system-prompt-file`、`--settings`、`--add-dir`）在入口读完环境之后做（`flags.rs`）。
 
-use rust_cli_headless::SessionTarget;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_headless::SessionTarget;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::{
     PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
-use rust_cli_policy::rules::parse_rule;
+use nibi_kernel_policy::rules::parse_rule;
 
 use crate::commander::{Arity, OptionSpec, split, suggestion};
 use crate::mcp::McpFlags;
@@ -333,7 +333,7 @@ enum Stop {
 pub(crate) fn cli_rules(
     allowed: &[String],
     disallowed: &[String],
-    add_dirs: Vec<rust_cli_kernel_api::env::EnvPath>,
+    add_dirs: Vec<nibi_kernel_api::env::EnvPath>,
 ) -> PermissionRules {
     let sourced = |behavior: RuleBehavior| {
         move |text: &String| SourcedRule {
@@ -402,7 +402,7 @@ fn split_tools(value: &str) -> Vec<String> {
 
 /// `nibi --version` 的输出行（docs/specs/rust-cli/version.md §5）。
 pub(crate) fn version_line(version: &str) -> String {
-    format!("nibi {version} (rust-cli)")
+    format!("nibi {version} (nibi-kernel-cli)")
 }
 
 /// JS `Number(text)`：去掉首尾空白；空串是 0；十进制（可带符号、小数、指数）、`Infinity`、`0x` / `0o` / `0b`。
@@ -618,7 +618,7 @@ fn finish(
     // 格式参数的组合（headless.md §1.1 第 2–4 条）；stream-json 输入时 `-p` 的 MCP prewait 可能是 `lifted`（§6.2）。
     print_format::check(invocation.format, print)?;
     invocation.mcp.streaming_input =
-        invocation.format.input == rust_cli_headless::InputFormat::StreamJson;
+        invocation.format.input == nibi_kernel_headless::InputFormat::StreamJson;
     match (continued, resume) {
         (true, Some(_)) => {
             return Err("--continue and --resume cannot be used together".to_owned());

@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
 
 use super::*;
 use crate::test_support::rules;
@@ -61,7 +61,7 @@ fn lookups_split_whole_tool_and_content_rules() {
     let found = rules.whole_tool("Edit", RuleBehavior::Allow).unwrap();
     assert_eq!(
         found.source,
-        rust_cli_kernel_api::permission::RuleSource::Session
+        nibi_kernel_api::permission::RuleSource::Session
     );
     assert_eq!(rules.contents("Bash", RuleBehavior::Allow)[0].0, "ls:*");
 }

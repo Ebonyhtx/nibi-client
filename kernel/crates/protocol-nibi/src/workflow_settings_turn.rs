@@ -7,9 +7,9 @@
 //! 「成功后的记录失败只记日志」的规矩。真正落会话的是会话 actor 的 `Command::WorkflowLaunch`
 //! （排队时机、存储编码在那一侧）。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::Command;
-use rust_cli_kernel_api::workflow::{WorkflowLaunchTurn, WorkflowRunStarted};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::Command;
+use nibi_kernel_api::workflow::{WorkflowLaunchTurn, WorkflowRunStarted};
 use serde_json::{Value, json};
 
 /// 中枢直接启动要发的启动轮：`(Command::WorkflowLaunch, 会话)`；引擎没给材料（非 saved 路径）

@@ -5,19 +5,19 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::hooks::{HookEvent, HookOutcome};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::hooks::{HookEvent, HookOutcome};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, InteractionId, MessageId, OperationId, OwnerEpoch, RunId, SessionId,
     ToolUseId,
 };
-use rust_cli_kernel_api::message::{AttachmentMessage, Message};
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::{AttachmentMessage, Message};
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError,
 };
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
-use rust_cli_kernel_api::tool::PromptContext;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
+use nibi_kernel_api::tool::PromptContext;
 use serde_json::json;
 use tokio_util::sync::CancellationToken;
 

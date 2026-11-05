@@ -7,14 +7,14 @@
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::{self, BoxStream};
-use rust_cli_exec_client::ClientError;
-use rust_cli_exec_wire::BodyBuilder;
-use rust_cli_exec_wire::dto::mcp as wm;
-use rust_cli_exec_wire::envelope::{ReplyResult, StreamItem, WireError};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_exec_client::ClientError;
+use nibi_kernel_exec_wire::BodyBuilder;
+use nibi_kernel_exec_wire::dto::mcp as wm;
+use nibi_kernel_exec_wire::envelope::{ReplyResult, StreamItem, WireError};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpError, McpTransport, McpTransportConfig, McpTransportEvent,
 };
 

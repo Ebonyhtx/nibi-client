@@ -8,17 +8,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_base::js::string::utf16_prefix;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_base::js::string::utf16_prefix;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{
     HookEventName, HookRunner, InteractionRequest, PermissionAnswer, PermissionGate, ToolExecution,
     ToolExecutor,
 };
-use rust_cli_kernel_api::permission::{PermissionDecision, PermissionRule};
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::permission::{PermissionDecision, PermissionRule};
+use nibi_kernel_api::tool::{
     Tool, ToolCallOutput, ToolError, ToolOutput, ToolProgress, ToolUseContext, Validation,
 };
-use rust_cli_kernel_api::unparsed_input;
+use nibi_kernel_api::unparsed_input;
 use serde_json::Value;
 use tokio::sync::mpsc;
 
@@ -28,10 +28,10 @@ use crate::pipeline_machine::{Machines, Routed, tag};
 use crate::texts;
 use crate::validate::{strip_unknown, validate};
 
-pub(crate) const REJECT_MESSAGE: &str = rust_cli_kernel_api::tool::REJECT_MESSAGE;
+pub(crate) const REJECT_MESSAGE: &str = nibi_kernel_api::tool::REJECT_MESSAGE;
 pub(crate) const REJECT_WITH_REASON: &str = "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed. To tell you how to proceed, the user said:\n";
 /// 工具使用被中断时的文字（kernel-api 的定义，F55）。
-const INTERRUPT_FOR_TOOL_USE: &str = rust_cli_kernel_api::user_input::INTERRUPT_TEXTS[1];
+const INTERRUPT_FOR_TOOL_USE: &str = nibi_kernel_api::user_input::INTERRUPT_TEXTS[1];
 const NO_OUTPUT: &str = "Command failed with no output";
 /// `formatError` 超过这个长度（UTF-16 单元）时保留首尾各一半。
 const ERROR_LIMIT: usize = 10_000;
@@ -117,7 +117,7 @@ impl Pipeline {
     #[must_use]
     pub fn with_machines(
         mut self,
-        registry: Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>,
+        registry: Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>,
     ) -> Self {
         self.machines = Machines::new(registry);
         self
@@ -193,7 +193,7 @@ impl Pipeline {
             // 修 bug（工作线 F69）：`-p` 的后台子代理以前也给询问本身的文本；它所在的上下文不能询问，PermissionRequest
             // hooks（上面已跑）没有结论时给“不能询问”的拒绝文字（agents.md §4.1.1）。
             Some(PermissionAnswer::NoPrompts) => Err(error(
-                rust_cli_policy::texts::prompts_unavailable(tool.name()),
+                nibi_kernel_policy::texts::prompts_unavailable(tool.name()),
             )),
             Some(PermissionAnswer::Deny { .. }) | None => Err(error(rejection(context, None))),
         }

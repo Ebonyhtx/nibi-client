@@ -1,4 +1,4 @@
-use rust_cli_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::permission::PermissionRule;
 
 use super::*;
 

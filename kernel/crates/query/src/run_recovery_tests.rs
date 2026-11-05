@@ -2,13 +2,13 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::abort::Abort;
-use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, UserOrigin};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::abort::Abort;
+use nibi_kernel_api::message::{ContentBlock, Message, StopReason, UserOrigin};
+use nibi_kernel_api::model::{
     ApiRole, BlockDelta, ModelError, ModelEvent, ModelRequest, QuerySource,
 };
-use rust_cli_kernel_api::orchestration::QueryStop;
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::orchestration::QueryStop;
+use nibi_kernel_api::testing::{ScriptedModel, text_response, tool_use_response};
 use serde_json::json;
 
 use super::tests::{parts, request, scope};

@@ -4,10 +4,10 @@
 
 use std::sync::Arc;
 
-use rust_cli_net::{Egress, NetworkPolicy};
+use nibi_kernel_net::{Egress, NetworkPolicy};
 use serde_json::{Value, json};
 
-use rust_cli_kernel_api::model::ModelConnection;
+use nibi_kernel_api::model::ModelConnection;
 
 use super::check::{Detail, detail, verify};
 use super::list::customer_info;

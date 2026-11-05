@@ -1,9 +1,9 @@
 //! 会话的团队项目（node-store.md §4 的 `ModelSelected`、§5 第 5 条，工作线 F49）：Node 的选择 schema 是 strict，
 //! 团队项目另存在 `rust-cli/model_connection`，冷读取时与 `runtime/model_selection` 对得上才用。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::model::{ModelConnection, ModelSelection};
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::model::{ModelConnection, ModelSelection};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::{Value, json};
 
 use crate::repo::entries::{self, Entry};
@@ -91,7 +91,7 @@ async fn a_model_changed_by_node_drops_the_team_project() {
     let t = TestStore::new();
     t.store.create(meta("ses_node", "/w", "")).await.unwrap();
     select(&t, "ses_node", team_selection("p-t")).await;
-    // Node 续写时换了模型（Node `persistRuntimeModelSelection`，不碰 rust-cli 的 entry）。
+    // Node 续写时换了模型（Node `persistRuntimeModelSelection`，不碰 nibi-kernel-cli 的 entry）。
     let node_write = |model: &str| Entry {
         id: "ses_node:runtime-model-selection".to_owned(),
         session_id: "ses_node".to_owned(),

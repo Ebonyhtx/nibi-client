@@ -1,7 +1,7 @@
 //! 正常路径：线上的请求形状、SSE 的任意切分、tool 输入拼接、thinking 与 signature。
 
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, CacheControl, ContextEdit, ModelEvent, QuerySource,
     RequestOptions, SystemBlock, ThinkingConfig,
 };
@@ -97,7 +97,7 @@ async fn the_wire_request_has_the_first_party_shape() {
 }
 
 /// 带 `scope: global` 的缓存断点（system 静态段、工具、消息块各一个）与一个工具。
-fn scoped_request() -> rust_cli_kernel_api::model::ModelRequest {
+fn scoped_request() -> nibi_kernel_api::model::ModelRequest {
     let global = || {
         Some(CacheControl {
             kind: "ephemeral".to_owned(),
@@ -110,7 +110,7 @@ fn scoped_request() -> rust_cli_kernel_api::model::ModelRequest {
         text: "static".to_owned(),
         cache_control: global(),
     }];
-    request.tools = vec![rust_cli_kernel_api::model::ToolDefinition {
+    request.tools = vec![nibi_kernel_api::model::ToolDefinition {
         name: "Read".to_owned(),
         description: "Read a file".to_owned(),
         input_schema: json!({"type": "object"}),
@@ -284,7 +284,7 @@ async fn tool_input_fragments_join_into_the_input() {
     assert_eq!(
         blocks[1],
         ContentBlock::ToolUse {
-            id: rust_cli_kernel_api::ids::ToolUseId::new("toolu_01"),
+            id: nibi_kernel_api::ids::ToolUseId::new("toolu_01"),
             name: "Bash".to_owned(),
             input,
         }

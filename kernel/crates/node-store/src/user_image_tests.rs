@@ -1,8 +1,8 @@
 //! 人类输入里的图片（docs/specs/rust-cli/tui-input.md §3.2）：写成 Node `file` part（data URL），冷读取按 part
 //! 顺序还原成 image 块。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::{ContentBlock, ImageSource, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::{ContentBlock, ImageSource, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::Value;
 
 use crate::tests::{TestStore, batch, started};
@@ -103,7 +103,7 @@ async fn pasted_pdfs_round_trip_as_node_file_parts() {
 /// part（文字块是 synthetic text part，图片是 Node `file` part），`rustCli.data` 不重复存；冷读取按 part 顺序还原。
 #[tokio::test]
 async fn attachment_blocks_round_trip_as_parts_after_the_text() {
-    use rust_cli_kernel_api::message::{ATTACHMENT_BLOCKS, AttachmentMessage};
+    use nibi_kernel_api::message::{ATTACHMENT_BLOCKS, AttachmentMessage};
     use serde_json::json;
 
     let t = TestStore::new();

@@ -1,6 +1,6 @@
 //! 会话标题的三种来源（titles.md §4）：首条输入、生成（按 Node 的来源条件）、改名。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::json;
 
 use crate::tests::{TestStore, batch, meta, user};
@@ -73,7 +73,7 @@ async fn a_command_input_titles_the_session_as_typed() {
         .create(meta("sess_title", "/w", ""))
         .await
         .unwrap();
-    let tags = rust_cli_kernel_api::user_command::command_tags("greet", "Ada");
+    let tags = nibi_kernel_api::user_command::command_tags("greet", "Ada");
     test.store
         .commit(&session, batch(None, vec![user("msg_1", &tags)]))
         .await

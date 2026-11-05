@@ -1,8 +1,8 @@
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
+use nibi_kernel_api::model::ModelSelection;
 use serde_json::Value;
 
 use super::*;
@@ -109,8 +109,8 @@ fn attribution_is_announced_once_and_when_it_is_turned_off() {
 /// 没有新输入；投递开启的回合、恢复重试与 Stop hook 续写都不经过这条路径）。
 #[test]
 fn tokens_are_due_after_human_input_and_tool_results_only() {
-    use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-    use rust_cli_kernel_api::message::{
+    use nibi_kernel_api::ids::{MessageId, ToolUseId};
+    use nibi_kernel_api::message::{
         AttachmentMessage, ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
     };
     let user = |origin: UserOrigin| {
@@ -153,7 +153,7 @@ fn tokens_are_due_after_human_input_and_tool_results_only() {
     let command = Message::User(UserMessage {
         id: MessageId::new("c"),
         content: vec![ContentBlock::Text {
-            text: rust_cli_kernel_api::user_command::command_tags("greet", "Ada"),
+            text: nibi_kernel_api::user_command::command_tags("greet", "Ada"),
         }],
         origin: UserOrigin::Human,
     });

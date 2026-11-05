@@ -8,17 +8,17 @@
 //! 落盘位置不是本机路径，而是 `nibi-artifact://<会话>/<artifact>`
 //! （云端也能用）；Read 能读这种地址（tools-files.md §5）。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::persisted_output;
-use rust_cli_kernel_api::store::ArtifactStore;
-use rust_cli_kernel_api::tool::ToolOutput;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::persisted_output;
+use nibi_kernel_api::store::ArtifactStore;
+use nibi_kernel_api::tool::ToolOutput;
 use serde_json::{Value, json};
 
 use crate::common::utf16_len;
 
-pub use rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME;
-pub(crate) use rust_cli_kernel_api::persisted_output::{message as persisted_message, preview};
+pub use nibi_kernel_api::persisted_output::ARTIFACT_SCHEME;
+pub(crate) use nibi_kernel_api::persisted_output::{message as persisted_message, preview};
 
 /// 所有工具共用的上限。
 const DEFAULT_MAX_CHARS: usize = 50_000;

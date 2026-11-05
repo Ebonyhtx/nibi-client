@@ -1,14 +1,14 @@
 //! `/export <文件名>` 的写入（docs/specs/rust-cli/tui-manage.md §3）：前端渲染好会话文字，内核解析路径
 //! （没有扩展名时加 `.txt`，相对路径相对工作区根，`~` 展开到 home），经执行环境写文件。
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WritePrecondition};
-use rust_cli_kernel_api::env_files::{PathStyle, PutFile};
-use rust_cli_kernel_api::env_path;
-use rust_cli_kernel_api::ids::{Generation, OwnerEpoch};
-use rust_cli_kernel_api::machine::{EnvInfo, Files};
-use rust_cli_kernel_api::manage::ExportFile;
-use rust_cli_kernel_api::session_api::KernelError;
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WritePrecondition};
+use nibi_kernel_api::env_files::{PathStyle, PutFile};
+use nibi_kernel_api::env_path;
+use nibi_kernel_api::ids::{Generation, OwnerEpoch};
+use nibi_kernel_api::machine::{EnvInfo, Files};
+use nibi_kernel_api::manage::ExportFile;
+use nibi_kernel_api::session_api::KernelError;
 
 /// 写入的绝对路径。
 pub(crate) fn target(input: &str, root: &EnvPath, home: Option<&EnvPath>) -> String {

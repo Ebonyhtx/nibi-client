@@ -2,10 +2,10 @@
 //! `/export` 写到新目录；各种错误按固定的文字。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, environments, text_response};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 

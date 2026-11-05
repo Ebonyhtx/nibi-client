@@ -2,13 +2,13 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, KernelEvent, TurnOutcome,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     FixedClock, MemoryStore, ScriptedModel, SequentialIds, UnusedEnvironment, environments,
     selection, text_response,
 };
@@ -45,7 +45,7 @@ fn workspace() -> WorkspaceRef {
 
 #[tokio::test]
 async fn imported_history_is_persisted_with_title_and_created_at() {
-    use rust_cli_kernel_api::session_api::ImportedMessage;
+    use nibi_kernel_api::session_api::ImportedMessage;
 
     let store = Arc::new(MemoryStore::default());
     let first = kernel(
@@ -92,7 +92,7 @@ async fn imported_history_is_persisted_with_title_and_created_at() {
 async fn a_session_can_be_created_below_a_parent() {
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(store, Arc::new(ScriptedModel::new(Vec::new())));
-    let parent = rust_cli_kernel_api::ids::SessionId::new("sess_parent");
+    let parent = nibi_kernel_api::ids::SessionId::new("sess_parent");
     let id = kernel
         .create_session_with_parent(
             CreateSession {
@@ -112,7 +112,7 @@ async fn a_session_can_be_created_below_a_parent() {
 
 #[tokio::test]
 async fn a_deferred_session_is_not_listed_until_the_first_input() {
-    use rust_cli_kernel_api::store::{SessionFilter, SessionStore};
+    use nibi_kernel_api::store::{SessionFilter, SessionStore};
 
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(
@@ -201,7 +201,7 @@ async fn a_deferred_session_is_not_listed_until_the_first_input() {
 
 #[tokio::test]
 async fn a_frontend_record_persists_a_draft() {
-    use rust_cli_kernel_api::store::{FrontendRecord, SessionStore};
+    use nibi_kernel_api::store::{FrontendRecord, SessionStore};
 
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(store.clone(), Arc::new(ScriptedModel::new(Vec::new())));
@@ -319,7 +319,7 @@ async fn a_created_session_runs_a_turn_and_reloads_after_restart() {
 /// SessionStart(resume)，按会话的表也不释放。关闭之后它离开内核，再打开是新的 actor。
 #[tokio::test]
 async fn a_closed_session_leaves_the_kernel_and_reopens_with_a_new_actor() {
-    use rust_cli_kernel_api::session_api::{EndReason, StartSource};
+    use nibi_kernel_api::session_api::{EndReason, StartSource};
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(store, Arc::new(ScriptedModel::new(Vec::new())));
     let id = kernel

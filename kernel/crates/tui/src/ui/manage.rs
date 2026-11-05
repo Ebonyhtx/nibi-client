@@ -1,9 +1,9 @@
 //! 管理命令的界面部分（docs/specs/rust-cli/tui-display.md §2.3、§3、§4）：打开页面与列表、生成提示文字。
 //! 数据来自内核（runner 取回后交给这里）；这里不保存业务状态，只有页面与列表的界面状态。
-use rust_cli_kernel_api::env_shell::BackgroundStatus;
-use rust_cli_kernel_api::manage::{BackgroundEntry, BackgroundKind, McpServerInfo, McpServerState};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::CatalogModel;
+use nibi_kernel_api::env_shell::BackgroundStatus;
+use nibi_kernel_api::manage::{BackgroundEntry, BackgroundKind, McpServerInfo, McpServerState};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::CatalogModel;
 
 use super::app::{Action, App, Local, Overlay};
 use super::i18n::Lang;
@@ -30,7 +30,7 @@ pub enum Manage {
     Usage { stats: bool },
     /// Stats 标签页按 `r` 换到这个范围：`seq` 是页面的请求序号，回执按它丢旧。
     UsageRange {
-        range: rust_cli_kernel_api::metering::ActivityRange,
+        range: nibi_kernel_api::metering::ActivityRange,
         seq: u64,
     },
     /// `/theme` 换了调色板：清掉排版缓存并重画。
@@ -40,7 +40,7 @@ pub enum Manage {
     /// `/permissions`：取规则列表后打开页面（tui-manage.md §1）。
     Permissions,
     /// `/permissions` 里的一次修改。
-    ChangeRule(rust_cli_kernel_api::permission::RuleChange),
+    ChangeRule(nibi_kernel_api::permission::RuleChange),
     /// `/plan open`（tui-manage.md §8）。
     PlanOpen,
     /// `/cd <path>`（tui-manage.md §7）：参数原文。
@@ -59,7 +59,7 @@ pub enum Manage {
     SetTheme(crate::services::UiTheme),
     /// `/effort` 换档位：先 `SetModel`，再存成新会话的缺省（tui-manage.md §2.2）。`level` 为 None 是 auto。
     EffortChosen {
-        selection: rust_cli_kernel_api::model::ModelSelection,
+        selection: nibi_kernel_api::model::ModelSelection,
         level: Option<String>,
         /// 命令的参数（命令记录用，修复线 L-A）。
         args: String,
@@ -242,10 +242,10 @@ impl App {
             },
         };
         self.records
-            .push(rust_cli_kernel_api::user_command::LocalCommandRecord {
+            .push(nibi_kernel_api::user_command::LocalCommandRecord {
                 name: "effort".to_owned(),
                 args: args.to_owned(),
-                output: rust_cli_kernel_api::user_command::LocalCommandOutput::Stdout(text.clone()),
+                output: nibi_kernel_api::user_command::LocalCommandOutput::Stdout(text.clone()),
                 caveat: true,
                 meta: Vec::new(),
             });
@@ -297,7 +297,7 @@ impl App {
 
 impl App {
     /// `/hooks`：只读页面，每条 hook 一行（事件与 matcher、显示文本、来源与类型，tui-display.md §3.5）。
-    pub fn open_hooks(&mut self, entries: &[rust_cli_kernel_api::manage::HookEntry]) {
+    pub fn open_hooks(&mut self, entries: &[nibi_kernel_api::manage::HookEntry]) {
         let rows = entries
             .iter()
             .map(|entry| {

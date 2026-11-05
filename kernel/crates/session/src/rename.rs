@@ -3,11 +3,11 @@
 //! 同一时间只有一个起名任务；起名期间有新的改名（`Rename` 或 hook）时不写，回执 `superseded` 的文本。
 
 use futures_util::StreamExt;
-use rust_cli_base::{Task, TaskError};
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent, small_fast_model};
-use rust_cli_kernel_api::session_api::Ack;
+use nibi_kernel_base::{Task, TaskError};
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{BlockDelta, ModelEvent, small_fast_model};
+use nibi_kernel_api::session_api::Ack;
 use serde_json::json;
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;

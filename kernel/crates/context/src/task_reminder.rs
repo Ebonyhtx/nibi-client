@@ -3,9 +3,9 @@
 //! 轮数按 assistant 的块数（不算 thinking）：从最近一次 TaskCreate / TaskUpdate 调用之后、最近一次提醒之后各数一遍，
 //! 两个都到了 [`TURNS`] 才提醒。任务清单由 agents 给出（kernel-api `TaskReader`）。
 
-use rust_cli_kernel_api::agents::TaskRecord;
-use rust_cli_kernel_api::message::{ContentBlock, Message};
-use rust_cli_prompts::texts;
+use nibi_kernel_api::agents::TaskRecord;
+use nibi_kernel_api::message::{ContentBlock, Message};
+use nibi_kernel_prompts::texts;
 use serde_json::{Value, json};
 
 /// 来源（attachment type）。

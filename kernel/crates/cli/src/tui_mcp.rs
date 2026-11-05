@@ -5,14 +5,14 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::env::{
     EnvPath, OperationContext, Origin, ReadFile, WorkspaceRef, WritePrecondition,
 };
-use rust_cli_kernel_api::env_files::PutFile;
-use rust_cli_kernel_api::ids::{Generation, OwnerEpoch};
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_api::env_files::PutFile;
+use nibi_kernel_api::ids::{Generation, OwnerEpoch};
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_paths::StoragePaths;
 
 use crate::config::merge::McpOrigin;
 
@@ -36,7 +36,7 @@ impl McpConfigFiles {
             return Ok(None);
         };
         if origin.user {
-            return rust_cli_platform::write_mcp_enabled(paths, server, enabled)
+            return nibi_kernel_platform::write_mcp_enabled(paths, server, enabled)
                 .await
                 .map(|file| Some(file.as_path().display().to_string()))
                 .map_err(|error| error.to_string());
@@ -48,7 +48,7 @@ impl McpConfigFiles {
             .await
             .map_err(|error| error.to_string())?;
         let text =
-            rust_cli_platform::mcp_enabled_text(Some(&read.bytes), &origin.path, server, enabled)
+            nibi_kernel_platform::mcp_enabled_text(Some(&read.bytes), &origin.path, server, enabled)
                 .map_err(|error| error.to_string())?;
         let context = OperationContext {
             environment: self.workspace.environment.clone(),

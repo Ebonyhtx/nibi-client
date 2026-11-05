@@ -3,16 +3,16 @@
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_exec_transport::fault::Faults;
-use rust_cli_exec_wire::dto::command::{CommandEvent, OutputStream};
-use rust_cli_exec_wire::dto::core::Outcome;
-use rust_cli_exec_wire::dto::files::FileStat;
-use rust_cli_exec_wire::envelope::{Ack, Beat, Close, ReplyResult, StreamAck, StreamItem};
-use rust_cli_exec_wire::frame::{Kind, Reassembler, Received};
-use rust_cli_exec_wire::handshake::{Capabilities, Capability, Refuse, RefuseCode};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_exec_wire::{Body, BodyBuilder};
+use nibi_kernel_exec_transport::fault::Faults;
+use nibi_kernel_exec_wire::dto::command::{CommandEvent, OutputStream};
+use nibi_kernel_exec_wire::dto::core::Outcome;
+use nibi_kernel_exec_wire::dto::files::FileStat;
+use nibi_kernel_exec_wire::envelope::{Ack, Beat, Close, ReplyResult, StreamAck, StreamItem};
+use nibi_kernel_exec_wire::frame::{Kind, Reassembler, Received};
+use nibi_kernel_exec_wire::handshake::{Capabilities, Capability, Refuse, RefuseCode};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_exec_wire::{Body, BodyBuilder};
 
 use crate::test_support::{Peer, network_with, options, welcome, workspace};
 use crate::{ClientError, ExecClient};
@@ -59,7 +59,7 @@ async fn acked_through(peer: &mut Peer, call: u64, seq: u64) {
 #[tokio::test]
 async fn a_call_is_answered_and_its_reply_is_acked() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         let hello = peer.handshake("exec-1", Capabilities::ports()).await;
         assert_eq!(hello.epoch, 1);
@@ -71,7 +71,7 @@ async fn a_call_is_answered_and_its_reply_is_acked() {
         assert_eq!(header.request, stat());
         assert_eq!(header.resume_after, None);
         let found = FileStat {
-            kind: rust_cli_exec_wire::dto::files::FileKind::File,
+            kind: nibi_kernel_exec_wire::dto::files::FileKind::File,
             size: 1,
             mtime_ms: 2,
             version: "v".to_owned(),
@@ -100,7 +100,7 @@ async fn a_call_is_answered_and_its_reply_is_acked() {
 #[tokio::test]
 async fn a_refused_handshake_and_another_major_version_fail_to_connect() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.next(Kind::Hello).await;
         let refuse = Refuse {
@@ -133,7 +133,7 @@ async fn a_refused_handshake_and_another_major_version_fail_to_connect() {
 #[tokio::test]
 async fn a_port_the_executor_does_not_report_is_unsupported_without_a_frame() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::of([Capability::Files]))
             .await;
@@ -161,7 +161,7 @@ async fn a_port_the_executor_does_not_report_is_unsupported_without_a_frame() {
 #[tokio::test]
 async fn stream_items_arrive_in_seq_order_without_duplicates_and_are_acked() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::ports()).await;
         let (header, _) = peer.request().await;
@@ -201,7 +201,7 @@ async fn stream_items_arrive_in_seq_order_without_duplicates_and_are_acked() {
 #[tokio::test]
 async fn dropping_a_stream_before_its_end_closes_it_on_the_executor() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::ports()).await;
         let (header, _) = peer.request().await;
@@ -220,11 +220,11 @@ async fn dropping_a_stream_before_its_end_closes_it_on_the_executor() {
 #[tokio::test]
 async fn an_error_item_ends_the_stream_after_it_is_delivered() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::ports()).await;
         let (header, _) = peer.request().await;
-        let error = rust_cli_exec_wire::envelope::WireError::Unsupported {
+        let error = nibi_kernel_exec_wire::envelope::WireError::Unsupported {
             what: "shell_notices".to_owned(),
         };
         peer.event(header.call, 1, StreamItem::Error { error }, &Body::empty())
@@ -254,7 +254,7 @@ async fn an_error_item_ends_the_stream_after_it_is_delivered() {
 #[tokio::test]
 async fn the_client_answers_pings() {
     let (connector, listener) = network_with(vec![Faults::new()]);
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::ports()).await;
         peer.send(Kind::Ping, &Beat { nonce: 7 }, &Body::empty())
@@ -274,7 +274,7 @@ async fn the_first_ping_measures_the_round_trip() {
     let (pinged, ping_seen) = tokio::sync::oneshot::channel();
     let (stray_sent, stray_done) = tokio::sync::oneshot::channel();
     let (answer, answered) = tokio::sync::oneshot::channel::<()>();
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::ports()).await;
         let ping: Beat = peer.next(Kind::Ping).await.header().unwrap();
@@ -325,7 +325,7 @@ async fn the_first_ping_measures_the_round_trip() {
 #[tokio::test]
 async fn large_messages_are_sent_in_parts() {
     let (connector, listener) = network_with(Vec::new());
-    let server = rust_cli_base::owned(async move {
+    let server = nibi_kernel_base::owned(async move {
         let mut peer = Peer::accept(&listener).await;
         peer.handshake("exec-1", Capabilities::ports()).await;
         // 大消息到了这里是一片一片的：用一个新的拼装器从原始的片里拼回。
@@ -343,7 +343,7 @@ async fn large_messages_are_sent_in_parts() {
             }
         };
         assert!(parts >= 5, "{parts} parts");
-        let header: rust_cli_exec_wire::envelope::RequestHeader = frame.header().unwrap();
+        let header: nibi_kernel_exec_wire::envelope::RequestHeader = frame.header().unwrap();
         let Request::WriteFile { bytes, .. } = header.request else {
             panic!("not a write");
         };
@@ -364,16 +364,16 @@ async fn large_messages_are_sent_in_parts() {
     let bytes = body.push(&[9u8; 5000]);
     let write = Request::WriteFile {
         workspace: workspace(),
-        context: rust_cli_exec_wire::dto::core::OperationContext {
+        context: nibi_kernel_exec_wire::dto::core::OperationContext {
             environment: "local".to_owned(),
             generation: "g".to_owned(),
             owner_epoch: 1,
             operation: "op_9".to_owned(),
-            origin: rust_cli_exec_wire::dto::core::Origin::User { session: None },
+            origin: nibi_kernel_exec_wire::dto::core::Origin::User { session: None },
         },
         path: "/w/big".to_owned(),
         bytes,
-        precondition: rust_cli_exec_wire::dto::files::WritePrecondition::Any,
+        precondition: nibi_kernel_exec_wire::dto::files::WritePrecondition::Any,
     };
     let answer = tokio::time::timeout(Duration::from_secs(5), client.call(write, body.finish()))
         .await

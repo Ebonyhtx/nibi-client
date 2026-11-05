@@ -7,8 +7,8 @@
 //!
 //! 读取：有合法 layout 时按它重建块；否则 completed 读 `output`，error 读 `metadata.modelContent`
 //! （没有时读 `error`），与 Node `hydrateMessageHistoryFromSession` 相同。
-use rust_cli_kernel_api::message::{ImageSource, ToolResultContent, tool_reference_text};
-use rust_cli_kernel_api::store::ArtifactRef;
+use nibi_kernel_api::message::{ImageSource, ToolResultContent, tool_reference_text};
+use nibi_kernel_api::store::ArtifactRef;
 use serde_json::{Value, json};
 
 use crate::artifacts;

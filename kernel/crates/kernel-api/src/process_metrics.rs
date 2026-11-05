@@ -140,7 +140,7 @@ impl ResourceSampler {
     fn token(&mut self) -> String {
         self.instance_token
             .get_or_insert_with(|| {
-                let value = rust_cli_base::random::u64();
+                let value = nibi_kernel_base::random::u64();
                 format!("{value:016x}")
             })
             .clone()

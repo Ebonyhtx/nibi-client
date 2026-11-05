@@ -6,9 +6,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_platform::header_source::{HeaderRequest, HeaderSource, SuppliedAuth};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_platform::header_source::{HeaderRequest, HeaderSource, SuppliedAuth};
 use serde_json::{Value, json};
 
 use crate::context::Context;

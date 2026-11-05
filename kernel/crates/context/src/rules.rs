@@ -6,10 +6,10 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::env::{EnvError, EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
-use rust_cli_kernel_api::env_path::{extension, is_unc};
-use rust_cli_kernel_api::machine::Files;
+use nibi_kernel_api::env::{EnvError, EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
+use nibi_kernel_api::env_path::{extension, is_unc};
+use nibi_kernel_api::machine::Files;
 
 use crate::rules_frontmatter;
 use crate::rules_markdown;

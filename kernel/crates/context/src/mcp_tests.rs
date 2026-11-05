@@ -1,7 +1,7 @@
 //! `mcp_instructions_delta` 的增量与文本（ext.md §3.6）；新增一段的全文是固定的。
 
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::AttachmentMessage;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::AttachmentMessage;
 
 use super::*;
 

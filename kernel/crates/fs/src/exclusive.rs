@@ -27,7 +27,7 @@ fn open(path: &Path) -> io::Result<std::fs::File> {
 /// 试着拿锁；别人拿着时为 `None`。父目录要已经存在。
 pub async fn try_lock_exclusive(path: &Path) -> io::Result<Option<ExclusiveLock>> {
     let path = path.to_path_buf();
-    rust_cli_base::blocking(move || {
+    nibi_kernel_base::blocking(move || {
         let file = open(&path)?;
         match file.try_lock() {
             Ok(()) => Ok(Some(ExclusiveLock { _file: file })),
@@ -42,7 +42,7 @@ pub async fn try_lock_exclusive(path: &Path) -> io::Result<Option<ExclusiveLock>
 /// 拿锁；别人拿着时等它放开（不轮询：在阻塞线程上等系统的锁）。父目录要已经存在。
 pub async fn lock_exclusive(path: &Path) -> io::Result<ExclusiveLock> {
     let path = path.to_path_buf();
-    rust_cli_base::blocking(move || {
+    nibi_kernel_base::blocking(move || {
         let file = open(&path)?;
         file.lock()?;
         Ok(ExclusiveLock { _file: file })

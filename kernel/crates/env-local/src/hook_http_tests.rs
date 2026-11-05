@@ -47,7 +47,7 @@ async fn serve(reply: &'static str, hang: bool) -> (String, tokio::task::JoinHan
 
 async fn egress() -> Arc<Egress> {
     Arc::new(
-        Egress::new(rust_cli_net::NetworkPolicy::default())
+        Egress::new(nibi_kernel_net::NetworkPolicy::default())
             .await
             .unwrap(),
     )

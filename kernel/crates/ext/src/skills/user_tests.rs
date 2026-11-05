@@ -2,14 +2,14 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, SequentialIds};
-use rust_cli_kernel_api::user_command::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryEnvironment, SequentialIds};
+use nibi_kernel_api::user_command::{
     ExpandedKind, ExpandedMessage, Expansion, LOCAL_COMMAND_CAVEAT_SOURCE, LOCAL_COMMAND_SOURCE,
     UserCommands,
 };
-use rust_cli_policy::PolicyGate;
+use nibi_kernel_policy::PolicyGate;
 
 use super::*;
 use crate::skills::runner;

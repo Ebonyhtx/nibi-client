@@ -22,7 +22,7 @@ async fn a_waiter_gets_the_lock_when_it_is_released() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("x.lock");
     let held = lock_exclusive(&path).await.unwrap();
-    let waiting = rust_cli_base::owned({
+    let waiting = nibi_kernel_base::owned({
         let path = path.clone();
         async move { lock_exclusive(&path).await.map(|_| ()) }
     });

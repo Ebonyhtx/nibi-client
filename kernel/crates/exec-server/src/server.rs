@@ -6,12 +6,12 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use bytes::Bytes;
-use rust_cli_base::{Spawner, TaskScope};
-use rust_cli_exec_transport::{Link, LinkError, Listener};
-use rust_cli_exec_wire::dto::core::PathStyle;
-use rust_cli_exec_wire::frame::PART_SIZE;
-use rust_cli_exec_wire::handshake::Capabilities;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_base::{Spawner, TaskScope};
+use nibi_kernel_exec_transport::{Link, LinkError, Listener};
+use nibi_kernel_exec_wire::dto::core::PathStyle;
+use nibi_kernel_exec_wire::frame::PART_SIZE;
+use nibi_kernel_exec_wire::handshake::Capabilities;
+use nibi_kernel_api::machine::MachineEnv;
 use tokio::sync::mpsc;
 use tokio::time::Instant;
 
@@ -228,7 +228,7 @@ impl ExecServer {
             ledger,
             auth,
             config,
-            instance: format!("{:016x}", rust_cli_base::random::u64()),
+            instance: format!("{:016x}", nibi_kernel_base::random::u64()),
             routes: Mutex::new(HashMap::new()),
             streams: Mutex::new(HashMap::new()),
             running: Arc::new(AtomicU64::new(0)),

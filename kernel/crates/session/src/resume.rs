@@ -14,9 +14,9 @@
 
 use std::collections::HashSet;
 
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-pub(crate) use rust_cli_kernel_api::message::INTERRUPTED_CALL;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+pub(crate) use nibi_kernel_api::message::INTERRUPTED_CALL;
+use nibi_kernel_api::message::{
     ContentBlock, Message, ToolResultContent, UserMessage, UserOrigin,
 };
 

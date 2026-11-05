@@ -3,12 +3,12 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{OperationContext, Origin};
-use rust_cli_kernel_api::env_rewind::RestoreAction;
-use rust_cli_kernel_api::ids::{CommandId, MessageId, OperationId, OwnerEpoch, TurnId};
-use rust_cli_kernel_api::machine::{Checkpoints, not_connected};
-use rust_cli_kernel_api::session_api::{Ack, KernelEvent, RewindOption, RewindScope};
-use rust_cli_kernel_api::store::{ArtifactStore, Fact, RevertCursor, WorkspaceCheckpoint};
+use nibi_kernel_api::env::{OperationContext, Origin};
+use nibi_kernel_api::env_rewind::RestoreAction;
+use nibi_kernel_api::ids::{CommandId, MessageId, OperationId, OwnerEpoch, TurnId};
+use nibi_kernel_api::machine::{Checkpoints, not_connected};
+use nibi_kernel_api::session_api::{Ack, KernelEvent, RewindOption, RewindScope};
+use nibi_kernel_api::store::{ArtifactStore, Fact, RevertCursor, WorkspaceCheckpoint};
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
@@ -78,7 +78,7 @@ pub(crate) async fn options(store: &dyn ArtifactStore, snapshot: Snapshot) -> Ve
             .flat_map(|(machine, artifacts)| {
                 rewind_plan::changes(&artifacts)
                     .into_iter()
-                    .map(move |change| rust_cli_kernel_api::session_api::FileChange {
+                    .map(move |change| nibi_kernel_api::session_api::FileChange {
                         machine: machine.clone(),
                         ..change
                     })

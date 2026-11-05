@@ -3,9 +3,9 @@
 
 use std::collections::BTreeMap;
 
-use rust_cli_kernel_api::catalog::SessionCatalog;
-use rust_cli_kernel_api::manage::{McpServerInfo, McpServerState};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::catalog::SessionCatalog;
+use nibi_kernel_api::manage::{McpServerInfo, McpServerState};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, StopReason, ToolResultContent, Usage, UserMessage,
     UserOrigin,
 };

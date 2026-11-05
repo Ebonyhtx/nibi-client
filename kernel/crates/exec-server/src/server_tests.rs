@@ -7,12 +7,12 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use rust_cli_exec_wire::envelope::{Ack, Beat, ReplyResult, WireError};
-use rust_cli_exec_wire::frame::Kind;
-use rust_cli_exec_wire::handshake::{Capabilities, Capability, Hello, Refuse, RefuseCode, Welcome};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_exec_wire::{Body, BodyBuilder};
+use nibi_kernel_exec_wire::envelope::{Ack, Beat, ReplyResult, WireError};
+use nibi_kernel_exec_wire::frame::Kind;
+use nibi_kernel_exec_wire::handshake::{Capabilities, Capability, Hello, Refuse, RefuseCode, Welcome};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_exec_wire::{Body, BodyBuilder};
 use tokio::sync::Notify;
 
 use crate::test_support::{
@@ -67,9 +67,9 @@ impl Authenticator for Deny {
 
 #[tokio::test]
 async fn an_authenticator_can_refuse_and_an_older_epoch_is_stale() {
-    let machine = rust_cli_kernel_api::machine::MachineEnv::new(
+    let machine = nibi_kernel_api::machine::MachineEnv::new(
         Arc::new(TestMachine::default()),
-        Arc::new(rust_cli_kernel_api::mcp::NoMcpTransport),
+        Arc::new(nibi_kernel_api::mcp::NoMcpTransport),
     );
     let denied = ExecServer::start(
         machine,

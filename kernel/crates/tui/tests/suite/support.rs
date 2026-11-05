@@ -15,19 +15,19 @@ use futures_util::stream::{self, BoxStream, StreamExt};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::provider::{CatalogModel, ModelCatalog, ModelDirectory, WireProtocol};
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::model::{ModelError, ModelEvent, ModelPort, ModelRequest};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::provider::{CatalogModel, ModelCatalog, ModelDirectory, WireProtocol};
+use nibi_kernel_api::testing::{
     FixedClock, MemoryArtifacts, MemoryStore, SequentialIds, UnusedEnvironment, environments,
     selection,
 };
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
-use rust_cli_tui::{Options, Screen, drive};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_tui::{Options, Screen, drive};
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 
@@ -130,11 +130,11 @@ pub struct Setup {
     pub lang: &'static str,
     pub palette: Palette,
     /// 入口注入的服务（界面语言的配置值与写回，tui.md §7.1）。
-    pub services: rust_cli_tui::Services,
+    pub services: nibi_kernel_tui::Services,
     /// 执行环境的注册表；缺省本机是不能用的替身（没有 skill，skills.rs 换成内存文件系统）。
     pub environments: Arc<dyn EnvironmentRegistry>,
     /// Artifact 存储；缺省是不支持 artifact 的会话存储（`/fork` 的测试换成内存 artifact，记 checkpoint）。
-    pub artifacts: Option<Arc<dyn rust_cli_kernel_api::store::ArtifactStore>>,
+    pub artifacts: Option<Arc<dyn nibi_kernel_api::store::ArtifactStore>>,
     /// 会话存储；测试要查提交的事实时自己传入（manage.rs）。
     pub store: Arc<MemoryStore>,
     /// `LANG` 之外的终端变量（例如 `TERM_PROGRAM`，notify.rs）。
@@ -144,19 +144,19 @@ pub struct Setup {
     /// 入口的退出信号（R5-2）。给了时脚本结束后输入也不结束：事件循环只能经这个信号退出（exit_signal.rs）。
     pub stop: Option<CancellationToken>,
     /// 换掉内核用的会话存储（queue.rs 用它让建会话停住）；缺省直接用 `store`。
-    pub session_store: Option<Arc<dyn rust_cli_kernel_api::store::SessionStore>>,
+    pub session_store: Option<Arc<dyn nibi_kernel_api::store::SessionStore>>,
     /// 打开后画帧失败（终端关掉了，dead_terminal.rs）。
     pub hang: Arc<std::sync::atomic::AtomicBool>,
     /// 跨会话的端口（peers.rs）；缺省关闭。
-    pub peers: rust_cli_runtime::PeerDeps,
+    pub peers: nibi_kernel_runtime::PeerDeps,
     /// 内核的时钟（请求的计时，footer_stats.rs 拨动它）；缺省固定在 0。
-    pub clock: Option<Arc<dyn rust_cli_kernel_api::clock::Clock>>,
+    pub clock: Option<Arc<dyn nibi_kernel_api::clock::Clock>>,
     /// hooks 快照（early_interrupt.rs 的 UserPromptSubmit）；缺省没有 hook。
-    pub hooks: Option<rust_cli_runtime::HooksConfig>,
+    pub hooks: Option<nibi_kernel_runtime::HooksConfig>,
     /// 启动时打开的会话（`--resume`，update.rs）；缺省新会话。
-    pub startup: rust_cli_tui::Startup,
+    pub startup: nibi_kernel_tui::Startup,
     /// 运行的平台（修复线 F65）：注入 Windows 时按 Windows 的按键规则（tui-input.md §9）；缺省 Unix。
-    pub os: rust_cli_tui::Os,
+    pub os: nibi_kernel_tui::Os,
     /// 启动时的权限模式（`--permission-mode`、项目持久模式）；缺省 default（mode_picker.rs 用 acceptEdits）。
     pub mode: PermissionMode,
     /// `NIBI_FORK_SUBAGENT`（修复线 L-A）：缺省按交互会话打开 fork（Agent 全部在后台）；前台子代理的测试设 Some(false)。
@@ -172,7 +172,7 @@ impl Default for Setup {
             height: 24,
             lang: "en_US.UTF-8",
             palette: Palette::new(ColorLevel::TrueColor, Some((0, 0, 0))),
-            services: rust_cli_tui::Services::default(),
+            services: nibi_kernel_tui::Services::default(),
             environments: environments(Arc::new(UnusedEnvironment)),
             artifacts: None,
             store: Arc::new(MemoryStore::default()),
@@ -181,11 +181,11 @@ impl Default for Setup {
             stop: None,
             session_store: None,
             hang: Arc::default(),
-            peers: rust_cli_runtime::PeerDeps::off(),
+            peers: nibi_kernel_runtime::PeerDeps::off(),
             clock: None,
             hooks: None,
-            startup: rust_cli_tui::Startup::New,
-            os: rust_cli_tui::Os::Unix,
+            startup: nibi_kernel_tui::Startup::New,
+            os: nibi_kernel_tui::Os::Unix,
             mode: PermissionMode::Default,
             fork_subagent: None,
             keyboard_enhanced: false,
@@ -410,10 +410,10 @@ impl Ui {
 pub fn kernel(
     model: Arc<dyn ModelPort>,
     environments: Arc<dyn EnvironmentRegistry>,
-    store: Arc<dyn rust_cli_kernel_api::store::SessionStore>,
-    artifacts: Option<Arc<dyn rust_cli_kernel_api::store::ArtifactStore>>,
-    peers: rust_cli_runtime::PeerDeps,
-    clock: Option<Arc<dyn rust_cli_kernel_api::clock::Clock>>,
+    store: Arc<dyn nibi_kernel_api::store::SessionStore>,
+    artifacts: Option<Arc<dyn nibi_kernel_api::store::ArtifactStore>>,
+    peers: nibi_kernel_runtime::PeerDeps,
+    clock: Option<Arc<dyn nibi_kernel_api::clock::Clock>>,
     fork_subagent: Option<bool>,
 ) -> Arc<LocalKernel> {
     Arc::new(LocalKernel::with_context_and_extensions(
@@ -432,15 +432,15 @@ pub fn kernel(
             max_turns: None,
             search_tools: false,
             task_tools: None,
-            limits: rust_cli_runtime::Limits {
+            limits: nibi_kernel_runtime::Limits {
                 fork_subagent,
                 ..Default::default()
             },
         },
-        rust_cli_runtime::ContextConfig::new(rust_cli_runtime::Surface::Interactive),
-        rust_cli_runtime::Extensions {
+        nibi_kernel_runtime::ContextConfig::new(nibi_kernel_runtime::Surface::Interactive),
+        nibi_kernel_runtime::Extensions {
             peers,
-            ..rust_cli_runtime::Extensions::none()
+            ..nibi_kernel_runtime::Extensions::none()
         },
     ))
 }
@@ -461,7 +461,7 @@ pub async fn with_ui_exit<F, Fut>(
     model: Arc<dyn ModelPort>,
     setup: Setup,
     script: F,
-) -> rust_cli_tui::Exit
+) -> nibi_kernel_tui::Exit
 where
     F: FnOnce(Ui) -> Fut,
     Fut: Future<Output = ()>,
@@ -558,7 +558,7 @@ where
 /// 真实时间的时钟（界面的相对时间与输入历史；只在测试里直接读系统时间）。
 pub struct WallClock;
 
-impl rust_cli_kernel_api::clock::Clock for WallClock {
+impl nibi_kernel_api::clock::Clock for WallClock {
     #[expect(clippy::disallowed_methods, reason = "测试的界面时钟用真实时间")]
     fn now_ms(&self) -> u64 {
         std::time::SystemTime::now()

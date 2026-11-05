@@ -3,7 +3,7 @@
 //! `tool-order-write <storage-dir>`：一条回复里三个调用。两个 Read 的结果按交出顺序提交（second 先），各自后面跟一条
 //! PostToolUse 的附加上下文（system 角色的 attachment）；Bash 没有结果时进程被杀，续写时补的中断结果、续写占位与新
 //! 输入同一批（会话 actor 的写法）；新输入有回答。输出会话 id、回复与两段附加上下文的消息 id。
-use rust_cli_kernel_api::message::{INTERRUPTED_CALL, NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL};
+use nibi_kernel_api::message::{INTERRUPTED_CALL, NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL};
 
 use super::*;
 

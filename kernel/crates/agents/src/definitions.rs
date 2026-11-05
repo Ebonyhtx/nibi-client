@@ -3,8 +3,8 @@
 //! 内置 agent 有 general-purpose、Explore、Plan；清单行与工具说明见 `tools_description`。
 //! 只描述别的产品功能的内置 agent 不提供。
 
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_prompts::agents as texts;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_prompts::agents as texts;
 
 pub(crate) const GENERAL_PURPOSE: &str = "general-purpose";
 pub(crate) const EXPLORE: &str = "Explore";

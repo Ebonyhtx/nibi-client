@@ -1,6 +1,6 @@
 //! “总是允许”的事实（shell-permissions.md §5）。
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::permission::PermissionRule;
 use serde_json::json;
 
 use super::*;

@@ -5,12 +5,12 @@
 
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::env_shell::BackgroundStatus;
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::manage::{BackgroundEntry, BackgroundKind};
-use rust_cli_kernel_api::panels::{SubagentEntry, SubagentStatus, TasksSnapshot};
-use rust_cli_kernel_api::session_api::{KernelError, SessionView};
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::env_shell::BackgroundStatus;
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::manage::{BackgroundEntry, BackgroundKind};
+use nibi_kernel_api::panels::{SubagentEntry, SubagentStatus, TasksSnapshot};
+use nibi_kernel_api::session_api::{KernelError, SessionView};
+use nibi_kernel_api::store::StoreError;
 
 use crate::Core;
 use crate::live::{AgentState, Live, LiveAgent};
@@ -126,7 +126,7 @@ pub(crate) async fn view(
     // 执行状态（修复线 F20）：库里有就用库里的权限模式与 plan 开关；没有时用子代理运行的单值模式。
     let execution = match loaded.mode {
         Some(mode) => {
-            rust_cli_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan)
+            nibi_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan)
         }
         None => found.mode.into(),
     };
@@ -138,7 +138,7 @@ pub(crate) async fn view(
         compactor
             .context_usage(&loaded.messages, &selection)
             .map(
-                |(used_tokens, max_tokens)| rust_cli_kernel_api::compaction::ContextOccupancy {
+                |(used_tokens, max_tokens)| nibi_kernel_api::compaction::ContextOccupancy {
                     used_tokens,
                     max_tokens,
                     window_tokens: compactor.window_tokens(&selection),

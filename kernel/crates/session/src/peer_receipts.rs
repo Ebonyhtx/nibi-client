@@ -3,8 +3,8 @@
 //! held 不会挤进 SendMessage 自己的工具边界。交出时每种状态一条，顺序是 held、
 //! denied、expired、delivered、refused。
 
-use rust_cli_kernel_api::peers::{PeerReceipt, ReceiptStatus};
-use rust_cli_kernel_api::store::Fact;
+use nibi_kernel_api::peers::{PeerReceipt, ReceiptStatus};
+use nibi_kernel_api::store::Fact;
 use serde_json::json;
 
 use crate::actor::Actor;
@@ -27,9 +27,9 @@ const ORDER: [ReceiptStatus; 5] = [
 fn group_text(status: ReceiptStatus, receipts: &[&PeerReceipt]) -> String {
     let recipients: Vec<&str> = receipts.iter().map(|r| r.recipient.as_str()).collect();
     let msg_ids: Vec<&str> = receipts.iter().map(|r| r.msg_id.as_str()).collect();
-    let body = rust_cli_prompts::peers::receipt(status.as_str(), &recipients, &msg_ids)
+    let body = nibi_kernel_prompts::peers::receipt(status.as_str(), &recipients, &msg_ids)
         .unwrap_or_default();
-    rust_cli_prompts::peers::non_user(&body)
+    nibi_kernel_prompts::peers::non_user(&body)
 }
 
 impl Actor {

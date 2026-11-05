@@ -109,7 +109,7 @@ impl Actor {
     /// 修复（R1-5）：以前工具被取消时只丢掉等回答的 future，这里的待回答交互要到回合结束才清——对话框一直显示，
     /// 用户之后的回答还会被接受、提交“总是允许”。现在工具取消时发来这条消息：从待回答里去掉、记为取消、通知前端
     /// 关闭对话框；之后到达的回答找不到它，被拒绝（`resolve`），不提交规则。
-    pub(crate) async fn cancel_ask(&mut self, tool_use: &rust_cli_kernel_api::ids::ToolUseId) {
+    pub(crate) async fn cancel_ask(&mut self, tool_use: &nibi_kernel_api::ids::ToolUseId) {
         let Some(position) = self
             .pending
             .iter()

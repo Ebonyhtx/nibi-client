@@ -10,19 +10,19 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, MessageId, OwnerEpoch, SessionId, ToolUseId, TraceId,
 };
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, CompactBoundary, CompactTrigger, ContentBlock, Message,
     PreservedSegment, StopReason, SystemMessage, ToolResultContent, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 use serde_json::json;
 
 /// 会话 ID。
@@ -198,7 +198,7 @@ pub async fn seed(store: &NodeStore, root: &Path, turns: usize, after: &[(usize,
             kind: SessionKind::Interactive,
             parent: None,
             workspace: WorkspaceRef {
-                environment: EnvironmentId::new(rust_cli_node_store::LOCAL_ENVIRONMENT),
+                environment: EnvironmentId::new(nibi_kernel_node_store::LOCAL_ENVIRONMENT),
                 root: EnvPath::new(root.to_str().unwrap()),
             },
             title: "Compacted work".to_owned(),
@@ -269,10 +269,10 @@ pub async fn seed(store: &NodeStore, root: &Path, turns: usize, after: &[(usize,
 }
 
 /// 入口同样的部件组成的内核（NodeStore、LocalEnvironment、指向不可达地址的 Anthropic 端点）：打开会话、取视图不调模型。
-pub async fn kernel(home: &Path, root: &Path) -> rust_cli_runtime::LocalKernel {
-    use rust_cli_base::secret::RedactedString;
-    use rust_cli_model::{AnthropicEndpoint, ProviderModel};
-    use rust_cli_net::{Egress, NetworkPolicy};
+pub async fn kernel(home: &Path, root: &Path) -> nibi_kernel_runtime::LocalKernel {
+    use nibi_kernel_base::secret::RedactedString;
+    use nibi_kernel_model::{AnthropicEndpoint, ProviderModel};
+    use nibi_kernel_net::{Egress, NetworkPolicy};
 
     let clock = Arc::new(SystemClock::utc());
     let ids = Arc::new(NodeIds::new(clock.clone()));
@@ -290,17 +290,17 @@ pub async fn kernel(home: &Path, root: &Path) -> rust_cli_runtime::LocalKernel {
         base_url: "http://127.0.0.1:9".to_owned(),
         api_key: RedactedString::new("sk-test"),
     };
-    let ports = rust_cli_runtime::Ports {
+    let ports = nibi_kernel_runtime::Ports {
         model: Arc::new(ProviderModel::anthropic(egress, endpoint, clock.clone())),
-        environments: rust_cli_kernel_api::testing::environments(Arc::new(
-            rust_cli_env_local::LocalEnvironment::new(Some(root.to_path_buf())),
+        environments: nibi_kernel_api::testing::environments(Arc::new(
+            nibi_kernel_env_local::LocalEnvironment::new(Some(root.to_path_buf())),
         )),
         store: store.clone(),
         artifacts: store,
         clock,
         ids,
     };
-    let defaults = rust_cli_runtime::Defaults {
+    let defaults = nibi_kernel_runtime::Defaults {
         selection: ModelSelection {
             provider: String::new(),
             model: String::new(),
@@ -313,5 +313,5 @@ pub async fn kernel(home: &Path, root: &Path) -> rust_cli_runtime::LocalKernel {
         task_tools: None,
         limits: Default::default(),
     };
-    rust_cli_runtime::LocalKernel::new(ports, defaults)
+    nibi_kernel_runtime::LocalKernel::new(ports, defaults)
 }

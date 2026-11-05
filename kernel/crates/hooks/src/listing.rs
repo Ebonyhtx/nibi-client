@@ -1,6 +1,6 @@
 //! `/hooks` 的只读快照（docs/specs/rust-cli/tui-display.md §3.5，工作线 L28）：设置快照与插件的 hooks，按来源的
 //! 合并顺序（User → Project → Local → Policy → 插件）、来源内按事件与 matcher 的书写顺序列出。
-use rust_cli_kernel_api::manage::HookEntry;
+use nibi_kernel_api::manage::HookEntry;
 
 use crate::config::{HookCommand, HookSource, HooksSettings};
 use crate::{HookEngine, PluginHooks};

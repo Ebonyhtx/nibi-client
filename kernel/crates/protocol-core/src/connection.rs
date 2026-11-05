@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
-use rust_cli_base::{Spawner, Task};
+use nibi_kernel_base::{Spawner, Task};
 use serde_json::Value;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncWrite, AsyncWriteExt};
 use tokio::sync::{mpsc, oneshot};

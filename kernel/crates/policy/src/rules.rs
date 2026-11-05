@@ -4,7 +4,7 @@
 //! `Tool(*)` 等同于整个工具。旧工具名按别名表换成新名。MCP 规则 `mcp__server`
 //! 与 `mcp__server__*` 匹配这个服务器的所有工具。
 
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::permission::{
     PermissionRule, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
 
@@ -14,7 +14,7 @@ use rust_cli_kernel_api::permission::{
 fn canonical(name: &str) -> &str {
     match name {
         "AgentOutputTool" | "BashOutputTool" => "TaskOutput",
-        other => rust_cli_kernel_api::tool::canonical_tool_name(other),
+        other => nibi_kernel_api::tool::canonical_tool_name(other),
     }
 }
 
@@ -166,7 +166,7 @@ impl<'a> Rules<'a> {
             .collect()
     }
 
-    pub fn additional_directories(&self) -> &'a [rust_cli_kernel_api::env::EnvPath] {
+    pub fn additional_directories(&self) -> &'a [nibi_kernel_api::env::EnvPath] {
         &self.base.additional_directories
     }
 }

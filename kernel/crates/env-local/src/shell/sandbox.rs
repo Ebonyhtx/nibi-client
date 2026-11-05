@@ -8,9 +8,9 @@
 
 use std::path::{Path, PathBuf};
 
-use rust_cli_base::include_lf;
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_kernel_api::env_shell::{NetworkPolicy, SandboxPolicy};
+use nibi_kernel_base::include_lf;
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_api::env_shell::{NetworkPolicy, SandboxPolicy};
 
 /// profile 的基段（`; Network` 之前的部分），`{log_tag}` 是占位符。
 const MACOS_BASE: &str = include_lf!("macos-base.sb");
@@ -32,8 +32,8 @@ const PROTECTED_FILES: &[&str] = &[
 const PROTECTED_DIRS: &[&str] = &[
     ".vscode",
     ".idea",
-    concat!(rust_cli_base::dot_dir!(), "/commands"),
-    concat!(rust_cli_base::dot_dir!(), "/agents"),
+    concat!(nibi_kernel_base::dot_dir!(), "/commands"),
+    concat!(nibi_kernel_base::dot_dir!(), "/agents"),
 ];
 
 /// 可用的后端。

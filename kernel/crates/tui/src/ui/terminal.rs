@@ -109,7 +109,7 @@ fn install_panic_log() {
         std::panic::set_hook(Box::new(move |info| {
             let at = info.location().map(ToString::to_string).unwrap_or_default();
             let message = info.payload_as_str().unwrap_or("Box<dyn Any>");
-            let head = rust_cli_base::log_text::head(message);
+            let head = nibi_kernel_base::log_text::head(message);
             tracing::error!(event = "process.panic", location = %at, error = %head, "a thread panicked");
             let active = ACTIVE.load(Ordering::Acquire);
             if active == 0 {
@@ -121,7 +121,7 @@ fn install_panic_log() {
                 _ => String::new(),
             };
             // 本线程已经记着一条：它还在展开，这次是展开中又 panic，std 随后 abort、等不到 `Guard`，照以前恢复再写。
-            if let Some(first) = rust_cli_base::note_panic(format!("panicked at {at}:\n{message}\n{trace}")) {
+            if let Some(first) = nibi_kernel_base::note_panic(format!("panicked at {at}:\n{message}\n{trace}")) {
                 ACTIVE.store(0, Ordering::Release);
                 restore(active == 2);
                 let _ = std::io::stderr().write_all(first.as_bytes());
@@ -156,7 +156,7 @@ impl Drop for Guard {
         restore(self.enhanced);
         // 导致退出的 panic 展开到这里：终端已经恢复，把 hook 记下的文字写到 stderr（tui.md §7.9）。
         if std::thread::panicking()
-            && let Some(text) = rust_cli_base::take_panic_note()
+            && let Some(text) = nibi_kernel_base::take_panic_note()
         {
             let _ = std::io::stderr().write_all(text.as_bytes());
         }

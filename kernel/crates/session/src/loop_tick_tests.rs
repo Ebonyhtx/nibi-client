@@ -6,11 +6,11 @@ use std::sync::{Arc, Mutex, PoisonError};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::cron::{CronFire, CronSignals};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::session_api::{EndReason, SessionHandle};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, ScriptedModel, text_response};
+use nibi_kernel_api::cron::{CronFire, CronSignals};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::session_api::{EndReason, SessionHandle};
+use nibi_kernel_api::testing::{MemoryEnvironment, ScriptedModel, text_response};
 
 use super::*;
 use crate::test_support::{Setup, env, finished, until};
@@ -123,7 +123,7 @@ async fn a_fired_sentinel_becomes_the_loop_md_tasks() {
         .push_back(CronFire {
             job: "1a2b3c4d".to_owned(),
             prompt: "<<loop.md>>".to_owned(),
-            kind: rust_cli_kernel_api::cron::CronFireKind::Loop,
+            kind: nibi_kernel_api::cron::CronFireKind::Loop,
         });
     let environment: Arc<MemoryEnvironment> = Arc::new(
         Arc::try_unwrap(env())

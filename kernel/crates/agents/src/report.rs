@@ -1,11 +1,11 @@
 //! 给模型看的子代理文本：system prompt、前台结果、后台启动结果、完成通知（agents.md §2、§4.3、§5）。
 //! 文本都在 `prompts/agents/`，这里只拼接。
 
-use rust_cli_kernel_api::message::{AssistantMessage, ContentBlock, Usage};
-use rust_cli_kernel_api::model::{CacheControl, ModelSelection, SystemBlock};
-use rust_cli_prompts::agents as texts;
-use rust_cli_prompts::models;
-use rust_cli_prompts::texts::{self as context_texts, render};
+use nibi_kernel_api::message::{AssistantMessage, ContentBlock, Usage};
+use nibi_kernel_api::model::{CacheControl, ModelSelection, SystemBlock};
+use nibi_kernel_prompts::agents as texts;
+use nibi_kernel_prompts::models;
+use nibi_kernel_prompts::texts::{self as context_texts, render};
 
 /// 子代理没有输出时的报告。
 pub(crate) const EMPTY_REPORT: &str = "(Subagent completed but returned no output.)";

@@ -1,11 +1,11 @@
 use std::sync::Mutex;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::permission::PermissionRule;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, ScriptedInteractions};
-use rust_cli_kernel_api::tool::{PromptContext, ToolError, ToolOutput};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::permission::PermissionRule;
+use nibi_kernel_api::testing::{MemoryEnvironment, ScriptedInteractions};
+use nibi_kernel_api::tool::{PromptContext, ToolError, ToolOutput};
 
 use super::*;
 use crate::test_more::Ctx;

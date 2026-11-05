@@ -1,10 +1,10 @@
 //! next 通道（docs/specs/rust-cli/query.md §5，L18）：后台通知在下一个工具边界并入当前回合，与插话按
 //! 到达顺序交错；回合结束后连续的通知合成一个回合，排在 `Queue` 输入之前；提交之后才 ack。
 
-use rust_cli_kernel_api::message::{Message, UserOrigin};
-use rust_cli_kernel_api::testing::{NoticeEnvironment, shell_notice, tool_use_response};
-use rust_cli_kernel_api::tool::Tool;
-use rust_cli_query::task_notification;
+use nibi_kernel_api::message::{Message, UserOrigin};
+use nibi_kernel_api::testing::{NoticeEnvironment, shell_notice, tool_use_response};
+use nibi_kernel_api::tool::Tool;
+use nibi_kernel_query::task_notification;
 
 use super::notice::{notices_in, session};
 use super::*;
@@ -194,8 +194,8 @@ async fn a_notice_already_absorbed_is_only_acked_when_it_comes_again() {
     let scope = TaskScope::root("test", |_| {});
     let env = Arc::new(NoticeEnvironment::default());
     let text = task_notification(&shell_notice(1, "b1"));
-    let delivered = Message::Attachment(rust_cli_kernel_api::message::AttachmentMessage {
-        id: rust_cli_kernel_api::ids::MessageId::new("msg_absorbed"),
+    let delivered = Message::Attachment(nibi_kernel_api::message::AttachmentMessage {
+        id: nibi_kernel_api::ids::MessageId::new("msg_absorbed"),
         source: "queued_command".to_owned(),
         text: text.clone(),
         data: serde_json::json!({"prompt": text, "commandMode": "task-notification"}),

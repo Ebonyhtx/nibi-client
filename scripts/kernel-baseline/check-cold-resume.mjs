@@ -9,7 +9,7 @@
  *      `resumeThoughtLevel`，再发一条输入：必须产生**新的**模型请求，且环境段里有恢复时新加的目录
  *      （只出现在 subscribe 参数里，只能来自冷恢复提示）。
  *
- * 前提：`cargo build -p rust-cli` 产出 `kernel/target/debug/nibi-rs.exe`，
+ * 前提：`cargo build -p nibi-kernel-cli` 产出 `kernel/target/debug/nibi-rs.exe`，
  * 且 `apps/zcode-cli/packages/cli/dist/nibi.cjs` 已构建。
  */
 import { spawn } from "node:child_process";

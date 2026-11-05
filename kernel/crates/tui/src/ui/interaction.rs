@@ -6,11 +6,11 @@ use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 
 use crossterm::event::{KeyCode, KeyEvent};
-use rust_cli_kernel_api::ids::InteractionId;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::ids::InteractionId;
+use nibi_kernel_api::orchestration::{
     InteractionRequest, PermissionAnswer, PlanApprovalAnswer, QuestionAnnotation, QuestionAnswer,
 };
-use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule};
+use nibi_kernel_api::permission::{PermissionMode, PermissionRule};
 use serde_json::Value;
 
 use super::keyboard::Typing;

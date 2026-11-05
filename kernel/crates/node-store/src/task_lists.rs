@@ -1,6 +1,6 @@
 //! 任务清单（Task v2）的本地存储（docs/specs/rust-cli/agents.md §7.2）。
 //!
-//! 文件 `<storage.dir>/tasks/<session>.json` 是唯一事实源，经 rust-cli-fs 原子替换；写成功后把清单
+//! 文件 `<storage.dir>/tasks/<session>.json` 是唯一事实源，经 nibi-kernel-fs 原子替换；写成功后把清单
 //! 投影到 Node 的 `todo` 表供 App 显示（写法同 Node `updateTodos`：`begin immediate`、先删后插、
 //! `touchSession`）。投影可以从文件重建，失败不影响文件。
 //!
@@ -10,9 +10,9 @@
 
 use async_trait::async_trait;
 use rusqlite::{Connection, params};
-use rust_cli_kernel_api::agents::{TaskList, TaskListStore, TaskRecord, TaskStatus};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::store::StoreError;
+use nibi_kernel_api::agents::{TaskList, TaskListStore, TaskRecord, TaskStatus};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::store::StoreError;
 
 use crate::{NodeStore, OrStorage, storage};
 
@@ -126,7 +126,7 @@ pub(crate) fn project(
 impl TaskListStore for NodeStore {
     async fn load(&self, session: &SessionId) -> Result<TaskList, StoreError> {
         let path = self.paths.task_list(session.as_str());
-        match rust_cli_fs::read_optional(path.as_path()).await {
+        match nibi_kernel_fs::read_optional(path.as_path()).await {
             Ok(Some(bytes)) => serde_json::from_slice(&bytes).map_err(storage),
             Ok(None) => {
                 let session = session.as_str().to_owned();
@@ -140,13 +140,13 @@ impl TaskListStore for NodeStore {
         let path = self.paths.task_list(session.as_str());
         let mut bytes = serde_json::to_vec_pretty(list).map_err(storage)?;
         bytes.push(b'\n');
-        let options = rust_cli_fs::WriteOptions {
-            mode: rust_cli_fs::FileMode::Default,
-            temp_name: rust_cli_fs::TempName::Hidden,
-            parent: rust_cli_fs::ParentDir::Create,
+        let options = nibi_kernel_fs::WriteOptions {
+            mode: nibi_kernel_fs::FileMode::Default,
+            temp_name: nibi_kernel_fs::TempName::Hidden,
+            parent: nibi_kernel_fs::ParentDir::Create,
             rename_retry: &[],
         };
-        rust_cli_fs::atomic_write(path.as_path(), &bytes, options)
+        nibi_kernel_fs::atomic_write(path.as_path(), &bytes, options)
             .await
             .map_err(storage)?;
         let rows = rows(list);

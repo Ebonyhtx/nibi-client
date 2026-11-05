@@ -6,20 +6,20 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use async_trait::async_trait;
 use crossterm::event::KeyCode;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, FileVersion, OperationContext, Outcome,
     ReadFile, StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::{ReadText, TextRead, TextSlice};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_files::{ReadText, TextRead, TextSlice};
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStatus, BackgroundStop, BackgroundTask, ShellState,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
-use rust_cli_kernel_api::testing::{environments, text_response};
+use nibi_kernel_api::testing::{environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
 

@@ -1,10 +1,10 @@
 //! 压缩边界与摘要的记录形状、冷读取（docs/specs/rust-cli/compact.md §6）。
-use rust_cli_kernel_api::ids::{MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, CompactBoundary, CompactTrigger, ContentBlock, Message,
     PreservedSegment, StopReason, SystemMessage, ToolResultContent, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::store::{Fact, SessionStore};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, started, text, user};
@@ -229,7 +229,7 @@ async fn an_earlier_compaction_is_shown_and_a_rewind_past_the_last_one_clears_it
         ["msg_u1", "msg_a1", "msg_b1", "msg_s1", "msg_u2", "msg_a2"]
     );
     // 回退到 u2（第二次压缩之前）：kept 由存储按库算，内核给的只是游标。
-    let cursor = rust_cli_kernel_api::store::RevertCursor {
+    let cursor = nibi_kernel_api::store::RevertCursor {
         target: MessageId::new("msg_u2"),
         kept: Vec::new(),
         cut_after: MessageId::new("msg_u3"),

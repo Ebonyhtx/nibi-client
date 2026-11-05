@@ -16,11 +16,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::mcp::McpTransport;
-use rust_cli_kernel_api::mcp_session::SessionMcpServer;
-use rust_cli_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::mcp::McpTransport;
+use nibi_kernel_api::mcp_session::SessionMcpServer;
+use nibi_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
 
 use super::telemetry::{McpTelemetry, McpTelemetrySlot};
 use super::{McpManager, McpScope, McpServer, McpServerOptions, McpSettings};

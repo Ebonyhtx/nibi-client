@@ -16,10 +16,10 @@ pub mod resident;
 
 use std::sync::Arc;
 
-use rust_cli_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig, ServerError};
-use rust_cli_exec_transport::MAX_FRAME;
-use rust_cli_exec_transport::stream::stream_link;
-use rust_cli_kernel_api::machine::MachineEnv;
+use nibi_kernel_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig, ServerError};
+use nibi_kernel_exec_transport::MAX_FRAME;
+use nibi_kernel_exec_transport::stream::stream_link;
+use nibi_kernel_api::machine::MachineEnv;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 /// 在一对字节流（执行器进程的 stdin / stdout）上服务一条连接，直到它结束。

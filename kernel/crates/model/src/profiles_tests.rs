@@ -3,15 +3,15 @@
 //! 卡片模型（claude-opus-5-5）带 query 按卡片写的卡片字段；没有卡片的模型（GLM、deepseek）不带（query 修 bug 之后，没有卡片
 //! 不写 thinking / effort / context_management）。补丁是内置配置的 option map 在这个档位上的结果。
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, CacheControl, ContextEdit, ModelRequest, ModelSelection,
     QuerySource, RequestOptions, SystemBlock, ThinkingConfig, ToolDefinition, ToolFlags,
     TurnOutputConfig,
 };
-use rust_cli_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
-use rust_cli_net::HeaderValue;
+use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+use nibi_kernel_net::HeaderValue;
 use serde_json::{Value, json};
 
 use crate::protocol::for_wire;
@@ -359,9 +359,9 @@ fn a_gateway_request_has_none_of_the_card_fields() {
 /// `structured-outputs`（工作线 F71 起这一项只在 Anthropic 官方与智谱的端点上发，经网关不发）。
 #[test]
 fn a_gateway_sends_the_betas_node_sends() {
-    use rust_cli_kernel_api::ids::ToolUseId;
-    use rust_cli_kernel_api::message::{ImageSource, ToolResultContent};
-    use rust_cli_kernel_api::model::ServerTool;
+    use nibi_kernel_api::ids::ToolUseId;
+    use nibi_kernel_api::message::{ImageSource, ToolResultContent};
+    use nibi_kernel_api::model::ServerTool;
     let gateway = |model: &str| {
         endpoint(
             WireProtocol::AnthropicMessages,
@@ -464,7 +464,7 @@ fn a_gateway_sends_the_betas_node_sends() {
 /// 不带这个 beta。
 #[test]
 fn the_official_endpoint_sends_the_node_web_search_tool() {
-    use rust_cli_kernel_api::model::ServerTool;
+    use nibi_kernel_api::model::ServerTool;
     let mut request = main_request("claude-opus-5-5", true);
     request.tools.clear();
     request.options.tool_flags.clear();

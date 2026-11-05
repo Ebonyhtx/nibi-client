@@ -1,12 +1,12 @@
 //! `anthropic-beta` 的生成条件（model.md §3.1）：每个 beta 只在请求用到对应特性时出现。
 
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, CacheControl, ContextEdit, SystemBlock, ThinkingConfig, ToolFlags,
     TurnOutputConfig,
 };
 
-use rust_cli_kernel_api::model::{ApiRole, ModelRequest};
+use nibi_kernel_api::model::{ApiRole, ModelRequest};
 
 use super::*;
 use crate::anthropic_request::tests::{profile, request};
@@ -19,8 +19,8 @@ fn names(request: &ModelRequest, first_party: bool) -> Vec<String> {
         .betas
 }
 
-fn tool(name: &str) -> rust_cli_kernel_api::model::ToolDefinition {
-    rust_cli_kernel_api::model::ToolDefinition {
+fn tool(name: &str) -> nibi_kernel_api::model::ToolDefinition {
+    nibi_kernel_api::model::ToolDefinition {
         name: name.to_owned(),
         description: String::new(),
         input_schema: serde_json::json!({"type": "object"}),

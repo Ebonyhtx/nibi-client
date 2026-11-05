@@ -7,10 +7,10 @@
 //! 两个模型条件按常量处理：本工程总用 lean 提示词与 opus 5.5 的写法，bashFirst 的开关为真，steer 是
 //! `relaxed`。
 
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::peers::ModeClass;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_prompts::texts;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::peers::ModeClass;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_prompts::texts;
 use serde_json::{Value, json};
 
 pub(crate) const SOURCE: &str = "auto_mode";

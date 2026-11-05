@@ -4,9 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::{CatalogModel, ModelCatalog, ModelDirectory, WireProtocol};
-use rust_cli_kernel_api::testing::text_response;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::{CatalogModel, ModelCatalog, ModelDirectory, WireProtocol};
+use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, with_ui};
 
@@ -42,10 +42,10 @@ struct Saved {
     fail: bool,
 }
 
-impl rust_cli_tui::Preferences for Saved {
+impl nibi_kernel_tui::Preferences for Saved {
     fn save_theme(
         &self,
-        _theme: rust_cli_tui::UiTheme,
+        _theme: nibi_kernel_tui::UiTheme,
     ) -> BoxFuture<'static, Result<String, String>> {
         Box::pin(async { Ok(String::new()) })
     }

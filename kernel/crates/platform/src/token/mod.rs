@@ -20,9 +20,9 @@ pub(crate) mod location;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_net::Egress;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_net::Egress;
 use sha2::{Digest, Sha256};
 use tokio::sync::OnceCell;
 

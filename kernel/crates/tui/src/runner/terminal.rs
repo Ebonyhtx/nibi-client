@@ -9,7 +9,7 @@ use std::task::{Context, Poll, Waker};
 use anyhow::{Result, bail};
 use crossterm::event::{Event, EventStream};
 use futures_util::{Stream, StreamExt};
-use rust_cli_kernel_api::session_api::Kernel;
+use nibi_kernel_api::session_api::Kernel;
 
 use super::{Options, Screen, drive};
 use crate::ui::console::Console;

@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_tui::{Editor, MemoryFile, Services};
+use nibi_kernel_tui::{Editor, MemoryFile, Services};
 
 use super::support::{GatedModel, Setup, with_ui};
 
@@ -124,7 +124,7 @@ async fn crlf_from_the_editor_reaches_the_model_as_plain_newlines() {
         crlf: true,
         ..FakeEditor::default()
     });
-    let model = GatedModel::scripted(vec![rust_cli_kernel_api::testing::text_response(&[
+    let model = GatedModel::scripted(vec![nibi_kernel_api::testing::text_response(&[
         "noted",
     ])]);
     with_ui(model.clone(), setup(editor), |mut ui| async move {

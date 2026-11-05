@@ -1,9 +1,9 @@
 //! footer 的请求统计（usage.md §4.1，修复线 F27）：只看本会话完成的主回合请求；Node 形状的行按 Node 的口径读。
-use rust_cli_kernel_api::ids::{MessageId, SessionId};
-use rust_cli_kernel_api::message::Usage;
-use rust_cli_kernel_api::metering::{CallStatus, LastRequest, ModelCall, RequestStats};
-use rust_cli_kernel_api::model::{ModelSelection, QuerySource};
-use rust_cli_kernel_api::store::{Fact, SessionStore, StoreError};
+use nibi_kernel_api::ids::{MessageId, SessionId};
+use nibi_kernel_api::message::Usage;
+use nibi_kernel_api::metering::{CallStatus, LastRequest, ModelCall, RequestStats};
+use nibi_kernel_api::model::{ModelSelection, QuerySource};
+use nibi_kernel_api::store::{Fact, SessionStore, StoreError};
 
 use crate::tests::{TestStore, batch, started};
 

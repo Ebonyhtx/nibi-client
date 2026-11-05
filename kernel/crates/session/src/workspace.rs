@@ -6,14 +6,14 @@
 //!
 //! 不落库：resume 回到会话创建时的目录（tools-more.md D23）。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::ids::CommandId;
-use rust_cli_kernel_api::manage::DirectoryOutcome;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
-use rust_cli_kernel_api::orchestration::OrchestrationError;
-use rust_cli_kernel_api::session_api::{Ack, KernelEvent};
-use rust_cli_kernel_api::user_command::LocalCommandRecord;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::ids::CommandId;
+use nibi_kernel_api::manage::DirectoryOutcome;
+use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::orchestration::OrchestrationError;
+use nibi_kernel_api::session_api::{Ack, KernelEvent};
+use nibi_kernel_api::user_command::LocalCommandRecord;
 
 use crate::actor::{Actor, accepted, rejected};
 
@@ -68,7 +68,7 @@ impl Actor {
                 root: root.clone(),
             };
             // 说明文字与新目录的规则文件之间空一行。
-            let mut note = rust_cli_prompts::commands::cd_moved(root.as_str());
+            let mut note = nibi_kernel_prompts::commands::cd_moved(root.as_str());
             if let Some(rules) = self
                 .deps
                 .directory_rules
@@ -146,7 +146,7 @@ impl Actor {
     /// 才开始的命令。是否还有插话只看 actor 自己的通道（唯一来源）。
     pub(crate) async fn background_foreground(
         &self,
-        reason: rust_cli_kernel_api::env::BackgroundReason,
+        reason: nibi_kernel_api::env::BackgroundReason,
     ) -> Ack {
         if self.running.is_none() {
             return accepted();
@@ -155,7 +155,7 @@ impl Actor {
             .lane
             .iter()
             .any(|lane| matches!(lane, crate::lane::Lane::Input(_)));
-        if reason == rust_cli_kernel_api::env::BackgroundReason::DeliverMessage && !waiting {
+        if reason == nibi_kernel_api::env::BackgroundReason::DeliverMessage && !waiting {
             return accepted();
         }
         let moved = match self

@@ -9,7 +9,7 @@
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-use rust_cli_exec_transport::{Connector, LinkError, ProvisionError, Provisioned, Provisioner};
+use nibi_kernel_exec_transport::{Connector, LinkError, ProvisionError, Provisioned, Provisioner};
 
 use crate::{SshConnector, SshProvisioner, SshTarget, Wanted};
 
@@ -297,7 +297,7 @@ fn the_rejection_rules_follow_the_ssh_messages() {
 /// 不报。旧代码没有部署的进度。
 #[tokio::test]
 async fn uploading_reports_its_size_first() {
-    use rust_cli_exec_transport::ProvisionStep;
+    use nibi_kernel_exec_transport::ProvisionStep;
     let seen = std::sync::Mutex::new(Vec::new());
     let record = |step: ProvisionStep| seen.lock().unwrap().push(step);
     let remote = Remote::new();

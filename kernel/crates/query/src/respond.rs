@@ -4,15 +4,15 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::abort::AbortReason;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::abort::AbortReason;
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, Usage, UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::metering::{CallStatus, Metered, ModelCall};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::metering::{CallStatus, Metered, ModelCall};
+use nibi_kernel_api::model::{
     BlockDelta, ModelError, ModelEvent, ModelNotice, ModelRequest, ModelStreamItem,
 };
-use rust_cli_kernel_api::orchestration::{QueryError, QueryEvent};
+use nibi_kernel_api::orchestration::{QueryError, QueryEvent};
 
 use crate::RunScope;
 use crate::assembler::Assembler;
@@ -92,9 +92,9 @@ fn hand_out(scope: &RunScope, batch: &mut ToolBatch, handed: &mut Vec<Ready>) {
 /// 一次请求的计时（usage.md §1）：请求前、第一个非空的文本或推理增量、流结束各读一次注入的时钟。
 /// 选择与来源是请求时的快照（运行中切换模型不影响这一行）。
 struct Timing {
-    message: rust_cli_kernel_api::ids::MessageId,
-    source: rust_cli_kernel_api::model::QuerySource,
-    selection: rust_cli_kernel_api::model::ModelSelection,
+    message: nibi_kernel_api::ids::MessageId,
+    source: nibi_kernel_api::model::QuerySource,
+    selection: nibi_kernel_api::model::ModelSelection,
     started: u64,
     first_token: Option<u64>,
     /// 首个内容（footer 的 TPS，修复线 F105，tui-display.md §2.6）：只在内存，不写进用量表。
@@ -131,7 +131,7 @@ pub(crate) fn content_starts(event: &ModelEvent) -> bool {
 
 impl Timing {
     /// 记下首字与首个内容；两者落在同一个事件上时只读一次时钟。
-    fn observe(&mut self, event: &ModelEvent, clock: &dyn rust_cli_kernel_api::clock::Clock) {
+    fn observe(&mut self, event: &ModelEvent, clock: &dyn nibi_kernel_api::clock::Clock) {
         let token = self.first_token.is_none() && token_starts(event);
         let content = self.first_content.is_none() && content_starts(event);
         if token || content {
@@ -231,7 +231,7 @@ pub(crate) async fn respond(
     tracing::info!(
         event = "model.request.start",
         session = %scope.session,
-        agent = scope.agent.as_ref().map(rust_cli_kernel_api::ids::AgentId::as_str),
+        agent = scope.agent.as_ref().map(nibi_kernel_api::ids::AgentId::as_str),
         source = ?request.source,
         model = %model,
         response,

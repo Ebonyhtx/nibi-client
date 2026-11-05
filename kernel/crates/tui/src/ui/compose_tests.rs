@@ -1,8 +1,8 @@
 //! 发送输入（docs/specs/rust-cli/tui.md §6）：skill 清单还没到时提交的命令。
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::Delivery;
-use rust_cli_kernel_api::testing::selection;
-use rust_cli_kernel_api::user_command::UserCommand;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::Delivery;
+use nibi_kernel_api::testing::selection;
+use nibi_kernel_api::user_command::UserCommand;
 
 use super::super::app::{Action, App, Local};
 use crate::ui::i18n::Lang;
@@ -85,8 +85,8 @@ mod send_now {
     use std::time::Instant;
 
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use rust_cli_kernel_api::ids::{CommandId, TurnId};
-    use rust_cli_kernel_api::session_api::{Delivery, KernelEvent, QueuedInput, SequencedEvent};
+    use nibi_kernel_api::ids::{CommandId, TurnId};
+    use nibi_kernel_api::session_api::{Delivery, KernelEvent, QueuedInput, SequencedEvent};
 
     use super::{Action, App, app};
 

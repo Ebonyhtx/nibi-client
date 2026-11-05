@@ -1,8 +1,8 @@
 //! 先建后接的压缩器（R1-13）：没接上时报错，接上后每个方法都转发。
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{EnvironmentId, SessionId};
-use rust_cli_kernel_api::message::CompactTrigger;
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::message::CompactTrigger;
 
 use super::*;
 

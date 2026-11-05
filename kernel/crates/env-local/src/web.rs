@@ -1,12 +1,12 @@
 //! WebFetch 的出口（docs/specs/rust-cli/tools-more.md §4）：`Fetch::fetch_url` 的本地实现，请求经
-//! `rust-cli-net` 的 [`Egress`] 发出。只做一次 GET：重定向与错误状态原样交回，由内核的工具判断。
+//! `nibi-kernel-net` 的 [`Egress`] 发出。只做一次 GET：重定向与错误状态原样交回，由内核的工具判断。
 //! 时限覆盖整个请求（含读正文）。
 
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::EnvError;
-use rust_cli_kernel_api::env_web::{FetchUrl, FetchedUrl};
-use rust_cli_net::{Egress, HttpRequest, NetError};
+use nibi_kernel_api::env::EnvError;
+use nibi_kernel_api::env_web::{FetchUrl, FetchedUrl};
+use nibi_kernel_net::{Egress, HttpRequest, NetError};
 
 fn io(error: &NetError) -> EnvError {
     EnvError::Io {
@@ -21,9 +21,9 @@ async fn send(egress: &Egress, request: FetchUrl) -> Result<FetchedUrl, EnvError
     }
     let mut response = egress.send(http).await.map_err(|error| io(&error))?;
     let header = |name: &str| response.headers().get(name).map(str::to_owned);
-    let content_type = header(rust_cli_net::header::CONTENT_TYPE).unwrap_or_default();
+    let content_type = header(nibi_kernel_net::header::CONTENT_TYPE).unwrap_or_default();
     let location = header("location");
-    let retry_after = header(rust_cli_net::header::RETRY_AFTER);
+    let retry_after = header(nibi_kernel_net::header::RETRY_AFTER);
     let status = response.status();
     let limit = usize::try_from(request.max_bytes).unwrap_or(usize::MAX);
     let mut body = Vec::new();

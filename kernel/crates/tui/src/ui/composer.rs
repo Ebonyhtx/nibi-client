@@ -54,7 +54,7 @@ pub struct Composer {
     pub search: Option<(String, Option<usize>)>,
     pub popup: Option<Popup>,
     /// 内核给出的 skill 命令（`Kernel::user_commands`，runner 在启动时与回合结束时取，tui.md §6）。
-    pub skills: Vec<rust_cli_kernel_api::user_command::UserCommand>,
+    pub skills: Vec<nibi_kernel_api::user_command::UserCommand>,
     /// 清单至少到过一次（启动时异步取，tui.md §6）；之前提交的命令先留着（`App::held_command`）。
     pub skills_loaded: bool,
     /// `@` 补全的索引与候选（tui-input.md §1.2）。

@@ -3,16 +3,16 @@
 //! 返回主会话后恢复。
 use std::time::Instant;
 
-use rust_cli_kernel_api::compaction::{ContextNotice, ContextOccupancy};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{AgentId, EnvironmentId, SessionId, TraceId};
-use rust_cli_kernel_api::metering::{OutputSpeed, RequestStats};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::panels::{SubagentEntry, SubagentStatus};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView};
-use rust_cli_kernel_api::store::{SessionKind, SessionMeta};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::compaction::{ContextNotice, ContextOccupancy};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{AgentId, EnvironmentId, SessionId, TraceId};
+use nibi_kernel_api::metering::{OutputSpeed, RequestStats};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::panels::{SubagentEntry, SubagentStatus};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView};
+use nibi_kernel_api::store::{SessionKind, SessionMeta};
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::ui::agents::{AgentList, Viewing};
@@ -79,7 +79,7 @@ fn main_app(lang: Lang) -> App {
             workflow_launch: None,
             input_source: None,
             origin_meta: None,
-            turn: rust_cli_kernel_api::ids::TurnId::new("turn_1"),
+            turn: nibi_kernel_api::ids::TurnId::new("turn_1"),
             command: None,
         },
     );
@@ -284,11 +284,11 @@ fn the_context_notice_is_the_subagents() {
 fn the_left_side_follows_the_subagent_without_main_hints() {
     let mut app = main_app(Lang::En);
     // 主会话有一个在跑的 shell（pill）。
-    app.background = vec![rust_cli_kernel_api::manage::BackgroundEntry {
+    app.background = vec![nibi_kernel_api::manage::BackgroundEntry {
         id: "bash_1".into(),
-        kind: rust_cli_kernel_api::manage::BackgroundKind::Shell,
+        kind: nibi_kernel_api::manage::BackgroundKind::Shell,
         description: "npm run dev".into(),
-        status: rust_cli_kernel_api::env_shell::BackgroundStatus::Running,
+        status: nibi_kernel_api::env_shell::BackgroundStatus::Running,
         output: None,
         machine: None,
         reconnecting: false,
@@ -321,8 +321,8 @@ fn the_left_side_follows_the_subagent_without_main_hints() {
         &mut app,
         5,
         KernelEvent::TurnFinished {
-            turn: rust_cli_kernel_api::ids::TurnId::new("turn_1"),
-            outcome: rust_cli_kernel_api::session_api::TurnOutcome::Success,
+            turn: nibi_kernel_api::ids::TurnId::new("turn_1"),
+            outcome: nibi_kernel_api::session_api::TurnOutcome::Success,
             usage: None,
         },
     );

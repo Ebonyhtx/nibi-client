@@ -5,7 +5,7 @@
 //! 是会话侧的 ID），所以不用缓存、不用持久化，也就没有第二份状态：同一会话（含 resume、子代理经
 //! `owner_session`）总是同一个词组，换了会话 ID 就是新词组，结果与随机生成、按会话缓存的规则一致。
 
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::ids::SessionId;
 
 /// FNV-1a 64 位：跨平台、跨版本稳定（不用 std 的随机种子哈希）。
 fn fnv1a(text: &str) -> u64 {
@@ -16,7 +16,7 @@ fn fnv1a(text: &str) -> u64 {
 
 /// 会话的词组 `形容词-动词-名词`：哈希依次对三张表的个数取余并整除，得到三个下标。
 pub(crate) fn session_slug(session: &SessionId) -> String {
-    let words = rust_cli_prompts::slug_words();
+    let words = nibi_kernel_prompts::slug_words();
     let mut hash = fnv1a(session.as_str());
     let mut pick = |list: &[String]| {
         let len = u64::try_from(list.len().max(1)).unwrap_or(1);

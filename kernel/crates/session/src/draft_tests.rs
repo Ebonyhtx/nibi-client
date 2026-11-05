@@ -3,15 +3,15 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Ack, Command, EndReason, KernelEvent, SessionHandle, TurnOutcome,
 };
-use rust_cli_kernel_api::store::{Fact, SessionStore};
-use rust_cli_kernel_api::testing::{ScriptedModel, text_response};
+use nibi_kernel_api::store::{Fact, SessionStore};
+use nibi_kernel_api::testing::{ScriptedModel, text_response};
 
 use crate::test_support::{Setup, envelope, submit, until};
 
@@ -76,7 +76,7 @@ async fn a_draft_is_stored_when_the_first_input_is_committed() {
         Message::User(user)
             if user.content.iter().any(|block| matches!(
                 block,
-                rust_cli_kernel_api::message::ContentBlock::Text { text } if text == "hello"
+                nibi_kernel_api::message::ContentBlock::Text { text } if text == "hello"
             ))
     )));
     let facts = built.store.facts(&id);

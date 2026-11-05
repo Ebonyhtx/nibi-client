@@ -1,7 +1,7 @@
 //! 状态、事件、错误与转移（remote-exec.md §19.10）。纯数据、纯函数。
 
-use rust_cli_exec_client::ClientError;
-use rust_cli_exec_transport::ProvisionError;
+use nibi_kernel_exec_client::ClientError;
+use nibi_kernel_exec_transport::ProvisionError;
 
 /// 握手完成时执行器报告的事实（`welcome` 里 R4 的状态行要的部分）。
 #[derive(Debug, Clone, PartialEq, Eq)]

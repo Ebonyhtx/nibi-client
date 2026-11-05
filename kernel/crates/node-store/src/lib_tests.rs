@@ -1,18 +1,18 @@
 //! 端口行为：创建、提交、冷读取、列表、事务原子性、模式与切点、artifact。
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{
     CommandId, EnvironmentId, MessageId, OperationId, OwnerEpoch, TraceId,
 };
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, Message, StopReason, SystemMessage, Usage, UserMessage,
     UserOrigin,
 };
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_paths::StorageSettings;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_paths::StorageSettings;
 use serde_json::Value;
 
 use super::*;
@@ -36,7 +36,7 @@ impl FixedSource {
     }
 }
 
-impl rust_cli_kernel_api::clock::Clock for FixedSource {
+impl nibi_kernel_api::clock::Clock for FixedSource {
     fn now_ms(&self) -> u64 {
         self.now.load(Ordering::SeqCst)
     }

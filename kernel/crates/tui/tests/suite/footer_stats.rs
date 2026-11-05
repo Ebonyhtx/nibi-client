@@ -7,16 +7,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::ids::{SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::metering::RequestStats;
-use rust_cli_kernel_api::model::{BlockDelta, ModelEvent};
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::ids::{SessionId, ToolUseId};
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::metering::RequestStats;
+use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+use nibi_kernel_api::store::{
     CommitReceipt, FactBatch, LoadedSession, SessionFilter, SessionMeta, SessionPage, SessionQuery,
     SessionStore, SessionSummary, StoreError,
 };
-use rust_cli_kernel_api::testing::MemoryStore;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::testing::MemoryStore;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 use tokio::sync::watch;
 
 use super::support::{GatedModel, Item, Setup, finish, send, with_ui};
@@ -31,7 +31,7 @@ impl ManualClock {
     }
 }
 
-impl rust_cli_kernel_api::clock::Clock for ManualClock {
+impl nibi_kernel_api::clock::Clock for ManualClock {
     fn now_ms(&self) -> u64 {
         self.0.load(Ordering::SeqCst)
     }
@@ -318,7 +318,7 @@ async fn chinese_and_light_themes_show_the_same_items() {
 /// 速度的具体数值随读时钟的次数变，这里只看有没有。
 struct TickClock(AtomicU64);
 
-impl rust_cli_kernel_api::clock::Clock for TickClock {
+impl nibi_kernel_api::clock::Clock for TickClock {
     fn now_ms(&self) -> u64 {
         self.0.fetch_add(1, Ordering::SeqCst)
     }

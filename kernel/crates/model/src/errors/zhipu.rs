@@ -2,10 +2,10 @@
 //!
 //! 规则（D1 暂定）：码在表里就按表，不看 HTTP 状态；表外的码有 HTTP 状态时交给协议层；在 HTTP 200 的流里（没有状态）
 //! 时是参数错误、不重试。码只认纯数字（`"code":"success"` 之类不算）。含义标“未核实”的码先按表收，以真实样本为准。
-//! 厂商专有的码与字符串只在这个文件（`check:rust-cli` 的解耦检测）。
+//! 厂商专有的码与字符串只在这个文件（`check:nibi-kernel-cli` 的解耦检测）。
 
-use rust_cli_kernel_api::message::StopReason;
-use rust_cli_kernel_api::model::ModelError;
+use nibi_kernel_api::message::StopReason;
+use nibi_kernel_api::model::ModelError;
 use serde_json::Value;
 
 use super::{Class, Finish, Shape, Verdict, error_of, message_text};

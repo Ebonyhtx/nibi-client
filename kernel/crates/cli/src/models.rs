@@ -10,19 +10,19 @@
 
 use std::sync::Arc;
 
-use rust_cli_base::names::DOT_DIR;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::provider::{
+use nibi_kernel_base::names::DOT_DIR;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::provider::{
     ModelCatalog, ModelDirectory, ModelLimits, TokenLimits, WireProtocol,
 };
-use rust_cli_model::{
+use nibi_kernel_model::{
     AnthropicEndpoint, CapabilityRules, DeviceIdSource, FixedEndpoint, ProviderModel,
 };
-use rust_cli_net::Egress;
-use rust_cli_platform::model_name::{self, LookupError};
-use rust_cli_platform::{Platform, SiteRules};
+use nibi_kernel_net::Egress;
+use nibi_kernel_platform::model_name::{self, LookupError};
+use nibi_kernel_platform::{Platform, SiteRules};
 
 use crate::options::Assumptions;
 
@@ -41,13 +41,13 @@ pub(crate) struct Override {
 }
 
 /// Node 配置里 Anthropic 官方 API 的写法（能力规则按它匹配，model.md §6；与请求方案共用 model 的定义，F55）。
-const OFFICIAL_RULE_URL: &str = rust_cli_model::ANTHROPIC_OFFICIAL_BASE_URL;
+const OFFICIAL_RULE_URL: &str = nibi_kernel_model::ANTHROPIC_OFFICIAL_BASE_URL;
 
 /// 显式覆盖的 base URL 在能力规则里的写法：按 SDK 补 `/v1`（Node 的 Anthropic provider 写带 `/v1` 的地址，例如
 /// 官方 API 的站点规则是 `https://api.anthropic.com/v1`），规范化在规则里做。规则与请求地址相同（model 的
 /// `anthropic_v1_base_url`，F55）。
 pub(crate) fn rule_base_url(base_url: &str) -> String {
-    rust_cli_model::anthropic_v1_base_url(base_url)
+    nibi_kernel_model::anthropic_v1_base_url(base_url)
 }
 
 /// 显式覆盖的能力与压缩上限（修复线 F23、F61，model.md §6、§11，compact.md §2）：内置配置的通用规则，同一份规则与

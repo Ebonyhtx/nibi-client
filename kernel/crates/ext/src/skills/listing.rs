@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::listing::ListingEntry;
+use nibi_kernel_api::listing::ListingEntry;
 
 use super::Skill;
 use super::names::valid_display;
@@ -15,7 +15,7 @@ const DEFAULT_CONTEXT_TOKENS: u64 = 200_000;
 const BUDGET_PERCENT: u64 = 1;
 
 /// 清单的字符预算：窗口 × 每 token 字符数 × 0.01。每 token 字符数按模型
-/// （`rust_cli_prompts::models::chars_per_token`）：修 bug（F10，context-usage.md D5）：以前一律按 4，
+/// （`nibi_kernel_prompts::models::chars_per_token`）：修 bug（F10，context-usage.md D5）：以前一律按 4，
 /// 除 14 个旧模型以外（claude-opus-5-5、GLM 等）应按 3。
 pub(crate) fn budget(context_window: Option<u64>, chars_per_token: u64) -> usize {
     let tokens = context_window.unwrap_or(DEFAULT_CONTEXT_TOKENS);

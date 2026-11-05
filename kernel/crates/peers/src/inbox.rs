@@ -6,8 +6,8 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use futures_util::stream::{self, BoxStream};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::peers::{PeerAddress, PeerSignal, ReceiptStatus};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::peers::{PeerAddress, PeerSignal, ReceiptStatus};
 use tokio::sync::{oneshot, watch};
 
 /// 发出去还没终态的消息最多记几条。

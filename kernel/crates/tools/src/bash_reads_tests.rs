@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath};
-use rust_cli_kernel_api::testing::{MemoryEnvironment, ScriptedInteractions};
+use nibi_kernel_api::env::{EnvFacts, EnvPath};
+use nibi_kernel_api::testing::{MemoryEnvironment, ScriptedInteractions};
 
 use super::{Range, ReadCommand, recognize, record, shape};
 use crate::file_state::ReadFileState;

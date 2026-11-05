@@ -9,20 +9,20 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_hooks::{HookSource, HooksConfig, HooksSettings};
-use rust_cli_kernel_api::env::{EnvPath, FileVersion, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId};
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_hooks::{HookSource, HooksConfig, HooksSettings};
+use nibi_kernel_api::env::{EnvPath, FileVersion, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId};
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, EndReason, KernelEvent, StartSource,
 };
-use rust_cli_kernel_api::store::{
+use nibi_kernel_api::store::{
     CommitReceipt, FactBatch, LoadedSession, SessionFilter, SessionStore, SessionSummary,
 };
-use rust_cli_kernel_api::testing::{
+use nibi_kernel_api::testing::{
     ClosingEnvironment, FixedClock, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection, text_response,
 };
-use rust_cli_tools::file_state::{Baseline, FileState};
+use nibi_kernel_tools::file_state::{Baseline, FileState};
 use tokio::sync::watch;
 
 use super::*;

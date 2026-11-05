@@ -2,11 +2,11 @@
 
 use std::path::{Path, PathBuf};
 
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::{
     EnvError, EnvPath, FileVersion, ReadFile, WriteFile, WritePrecondition,
 };
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env_files::{
     FileKind, ListDir, PutFile, ReadText, StatFile, StatMany, TextRead,
 };
 

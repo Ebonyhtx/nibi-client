@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::agents::{TaskList, TaskListStore};
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::agents::{TaskList, TaskListStore};
+use nibi_kernel_api::ids::SessionId;
 
 use super::{MemoryTaskLists, TaskBoard, task_tools_enabled};
 

@@ -11,17 +11,17 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::cron_store::{CronCreator, CronStore, CronTasksChange, StoredCronTask};
-use rust_cli_kernel_api::env::{EnvError, EnvPath};
-use rust_cli_kernel_api::ids::SessionId;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::cron_store::{CronCreator, CronStore, CronTasksChange, StoredCronTask};
+use nibi_kernel_api::env::{EnvError, EnvPath};
+use nibi_kernel_api::ids::SessionId;
 use tokio::sync::OnceCell;
 
 use crate::cron_file::{self, FileTask};
 
 /// 定时任务的文件在 `<项目>/.zcode/` 下（名字取 base，F55；cron_watch 按同一个文件名过滤事件）。
-const DIR: &str = rust_cli_base::names::DOT_DIR;
-pub(crate) const TASKS_FILE: &str = rust_cli_base::names::SCHEDULED_TASKS_FILE;
+const DIR: &str = nibi_kernel_base::names::DOT_DIR;
+pub(crate) const TASKS_FILE: &str = nibi_kernel_base::names::SCHEDULED_TASKS_FILE;
 const LOCK_FILE: &str = "scheduled_tasks.lock";
 
 /// 本进程的身份（锁文件与任务的 `createdByPid` / `createdByProcStart`）。
@@ -30,11 +30,11 @@ pub(crate) struct Identity {
     pub(crate) started: Option<String>,
 }
 
-pub(crate) fn write_options() -> rust_cli_fs::WriteOptions {
-    rust_cli_fs::WriteOptions {
-        mode: rust_cli_fs::FileMode::Default,
-        temp_name: rust_cli_fs::TempName::Hidden,
-        parent: rust_cli_fs::ParentDir::Create,
+pub(crate) fn write_options() -> nibi_kernel_fs::WriteOptions {
+    nibi_kernel_fs::WriteOptions {
+        mode: nibi_kernel_fs::FileMode::Default,
+        temp_name: nibi_kernel_fs::TempName::Hidden,
+        parent: nibi_kernel_fs::ParentDir::Create,
         rename_retry: &[],
     }
 }
@@ -88,7 +88,7 @@ impl LocalCronStore {
                 let pid = std::process::id();
                 Identity {
                     pid,
-                    started: rust_cli_proc::process_started(pid).await,
+                    started: nibi_kernel_proc::process_started(pid).await,
                 }
             })
             .await
@@ -96,7 +96,7 @@ impl LocalCronStore {
 
     async fn read(&self) -> Result<Vec<FileTask>, EnvError> {
         let path = self.dir.join(TASKS_FILE);
-        let bytes = rust_cli_fs::read_optional(&path)
+        let bytes = nibi_kernel_fs::read_optional(&path)
             .await
             .map_err(|error| env_error(&error))?;
         Ok(bytes.map_or_else(Vec::new, |bytes| {
@@ -106,7 +106,7 @@ impl LocalCronStore {
 
     async fn write(&self, tasks: &[FileTask]) -> Result<(), EnvError> {
         let path = self.dir.join(TASKS_FILE);
-        rust_cli_fs::atomic_write(&path, cron_file::render(tasks).as_bytes(), write_options())
+        nibi_kernel_fs::atomic_write(&path, cron_file::render(tasks).as_bytes(), write_options())
             .await
             .map_err(|error| env_error(&error))
     }
@@ -131,7 +131,7 @@ impl LocalCronStore {
                 (None, _) => CronCreator::Running,
             };
         }
-        if !rust_cli_fs::process_alive(pid) {
+        if !nibi_kernel_fs::process_alive(pid) {
             return CronCreator::Gone;
         }
         let Some(recorded) = &task.created_by_proc_start else {
@@ -140,7 +140,7 @@ impl LocalCronStore {
         let current = match starts.get(&pid) {
             Some(current) => current.clone(),
             None => {
-                let current = rust_cli_proc::process_started(pid).await;
+                let current = nibi_kernel_proc::process_started(pid).await;
                 starts.insert(pid, current.clone());
                 current
             }

@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::testing::{text_response, tool_use_response};
-use rust_cli_tui::ui::afk::QuestionTimeout;
+use nibi_kernel_api::testing::{text_response, tool_use_response};
+use nibi_kernel_tui::ui::afk::QuestionTimeout;
 use serde_json::{Value, json};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
@@ -79,9 +79,9 @@ async fn notes_on_a_previewed_option_reach_the_model() {
 async fn an_idle_question_continues_with_what_was_selected() {
     let model = asking(vec![color(), layout()]);
     let setup = Setup {
-        services: rust_cli_tui::Services {
+        services: nibi_kernel_tui::Services {
             question_timeout: QuestionTimeout::new(None, Some(2_000), None),
-            ..rust_cli_tui::Services::default()
+            ..nibi_kernel_tui::Services::default()
         },
         ..roomy()
     };

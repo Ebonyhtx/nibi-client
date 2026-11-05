@@ -4,8 +4,8 @@
 //! 请求体只编码一次，发请求的一方（会话、回合、子代理、来源）在编码前取出成 [`Origin`]；每次发送（含重试）再配上新的
 //! `x-request-id` 算出这一组头。
 
-use rust_cli_base::rule_url::is_opencode_go_endpoint;
-use rust_cli_kernel_api::model::ModelRequest;
+use nibi_kernel_base::rule_url::is_opencode_go_endpoint;
+use nibi_kernel_api::model::ModelRequest;
 
 use crate::metadata::{external_session, strip_prefixes};
 

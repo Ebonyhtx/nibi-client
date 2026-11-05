@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rust_cli_kernel_api::testing::FakeTool;
+use nibi_kernel_api::testing::FakeTool;
 
 use super::*;
 

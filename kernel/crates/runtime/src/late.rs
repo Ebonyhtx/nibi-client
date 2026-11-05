@@ -10,12 +10,12 @@
 use std::sync::{Arc, OnceLock};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::compaction::{
+use nibi_kernel_api::compaction::{
     AutoCompactOutcome, CompactRequest, CompactResult, CompactTracking, Compactor,
 };
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::OrchestrationError;
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::OrchestrationError;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Default)]

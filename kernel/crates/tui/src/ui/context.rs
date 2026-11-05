@@ -2,7 +2,7 @@
 //! 是独立页面，tui-panels.md §4）。数据是内核给出的 [`ContextUsage`]；这里只排版。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::context_usage::{
+use nibi_kernel_api::context_usage::{
     CategoryKind, ContextUsage, UsageCategory, format_tokens,
 };
 

@@ -1,11 +1,11 @@
 //! 工具调用与结果 ↔ Node tool part（spec node-store.md §4.6）。
-use rust_cli_base::js::json::stringify;
-use rust_cli_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_base::js::json::stringify;
+use nibi_kernel_api::ids::{ArtifactId, MessageId, SessionId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, Message, StopReason, ToolResultContent,
     UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::store::{ArtifactPurpose, ArtifactRef, Fact, SessionStore, StoreError};
+use nibi_kernel_api::store::{ArtifactPurpose, ArtifactRef, Fact, SessionStore, StoreError};
 use serde_json::{Value, json};
 
 use crate::tests::{TestStore, assistant, batch, started, text, user};
@@ -409,12 +409,12 @@ async fn the_tool_start_is_the_executor_start_from_the_same_batch() {
         ),
     ];
     commit_each(&t, &facts).await;
-    let metered = rust_cli_kernel_api::metering::ToolCall {
+    let metered = nibi_kernel_api::metering::ToolCall {
         tool_use: ToolUseId::new("toolu_1"),
         name: "Read".into(),
         started_at_ms: 1004,
         completed_at_ms: 1005,
-        status: rust_cli_kernel_api::metering::CallStatus::Completed,
+        status: nibi_kernel_api::metering::CallStatus::Completed,
         output_bytes: 1,
     };
     let first = result("msg_rx_r1", "msg_rv_a1", "toolu_1", vec![said("a")], false);

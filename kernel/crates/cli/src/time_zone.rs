@@ -4,11 +4,11 @@
 //! 用 `GetDynamicTimeZoneInformation` 与 `SystemTimeToTzSpecificLocalTimeEx`。偏移按每个时刻求，夏令时与
 //! JS `Date` 的本地取值一致。`TZ` 是 UTC 写法时三个平台都直接按 UTC（测试与 CI 用它）。
 //!
-//! [`SystemClock`]: rust_cli_node_store::SystemClock
+//! [`SystemClock`]: nibi_kernel_node_store::SystemClock
 
 use std::sync::Arc;
 
-use rust_cli_node_store::{FixedOffset, TimeZone};
+use nibi_kernel_node_store::{FixedOffset, TimeZone};
 
 /// 按 `TZ` 与系统设置给出时区。
 pub(crate) fn system(tz: Option<&str>) -> Arc<dyn TimeZone> {
@@ -57,7 +57,7 @@ mod platform {
     use std::mem::MaybeUninit;
     use std::sync::Arc;
 
-    use rust_cli_node_store::TimeZone;
+    use nibi_kernel_node_store::TimeZone;
 
     /// libc 的本地时区（`TZ` 或 `/etc/localtime`）。
     struct LibcZone {
@@ -104,7 +104,7 @@ mod platform {
 mod platform {
     use std::sync::Arc;
 
-    use rust_cli_node_store::{FixedOffset, TimeZone};
+    use nibi_kernel_node_store::{FixedOffset, TimeZone};
     use windows_sys::Win32::Foundation::{FILETIME, SYSTEMTIME};
     use windows_sys::Win32::System::Time::{
         DYNAMIC_TIME_ZONE_INFORMATION, FileTimeToSystemTime, GetDynamicTimeZoneInformation,
@@ -179,7 +179,7 @@ mod platform {
 mod platform {
     use std::sync::Arc;
 
-    use rust_cli_node_store::{FixedOffset, TimeZone};
+    use nibi_kernel_node_store::{FixedOffset, TimeZone};
 
     pub(super) fn load(_name: Option<String>) -> Arc<dyn TimeZone> {
         Arc::new(FixedOffset::utc())

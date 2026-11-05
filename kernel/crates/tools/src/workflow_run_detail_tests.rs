@@ -2,7 +2,7 @@
 //! `generatedAt` 的一把尺）。
 
 use super::*;
-use rust_cli_kernel_api::workflow::{
+use nibi_kernel_api::workflow::{
     WorkflowRunHealth, WorkflowRunPhaseView, WorkflowRunSubagentAsk, WorkflowRunSubagentLastTool,
     WorkflowRunSubagentView,
 };
@@ -20,7 +20,7 @@ fn detail(status: &str) -> WorkflowRunDetail {
         created_at: 1_000,
         updated_at: 61_000,
         spent_tokens: 0,
-        nodes: rust_cli_kernel_api::workflow::WorkflowRunNodeCounts {
+        nodes: nibi_kernel_api::workflow::WorkflowRunNodeCounts {
             observed: 5,
             running: 0,
             completed: 5,
@@ -163,7 +163,7 @@ fn parked_and_waiting_and_executing_cells_diverge() {
     let mut waiting = subagent("waiting");
     waiting.steps_settled = 0;
     waiting.tokens = 0;
-    waiting.wait = Some(rust_cli_kernel_api::workflow::WorkflowRunSubagentWait {
+    waiting.wait = Some(nibi_kernel_api::workflow::WorkflowRunSubagentWait {
         cause: "backoff".to_owned(),
         reason: Some("rate limited".to_owned()),
         retry_after_ms: Some(90_000),
@@ -199,7 +199,7 @@ fn artifacts_render_as_notification_lines_with_the_deliverable_first() {
     let mut detail = detail("completed");
     // 顺序是存储归并层的（primary 带头）；格式器保序渲染。
     detail.artifacts = Some(vec![
-        rust_cli_kernel_api::workflow::WorkflowRunArtifact {
+        nibi_kernel_api::workflow::WorkflowRunArtifact {
             id: "summary".to_owned(),
             kind: "markdown".to_owned(),
             title: Some("Summary".to_owned()),
@@ -209,7 +209,7 @@ fn artifacts_render_as_notification_lines_with_the_deliverable_first() {
             item_count: 0,
             primary: Some(true),
         },
-        rust_cli_kernel_api::workflow::WorkflowRunArtifact {
+        nibi_kernel_api::workflow::WorkflowRunArtifact {
             id: "board".to_owned(),
             kind: "metrics".to_owned(),
             title: Some("Numbers".to_owned()),
@@ -255,7 +255,7 @@ fn identity_blocks_carry_the_run_level_settings_and_script_models() {
 #[test]
 fn hole_blocks_route_to_fill_workflow_hole_only_when_waiting() {
     let mut detail = detail("running");
-    detail.holes = Some(vec![rust_cli_kernel_api::workflow::WorkflowRunHole {
+    detail.holes = Some(vec![nibi_kernel_api::workflow::WorkflowRunHole {
         site_id: "hole#21b40fca".to_owned(),
         ordinal: 1,
         name: "fill the verdict".to_owned(),

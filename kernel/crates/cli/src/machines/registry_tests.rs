@@ -3,13 +3,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_files::PathStyle;
-use rust_cli_kernel_api::env_registry::{EnvironmentRegistry, MachineFacts, RemoteMachine};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::testing::{UnusedEnvironment, environments, machine};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_registry::{EnvironmentRegistry, MachineFacts, RemoteMachine};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::testing::{UnusedEnvironment, environments, machine};
 
-use rust_cli_exec_client::ConnectionState;
+use nibi_kernel_exec_client::ConnectionState;
 use tokio::sync::watch;
 
 use super::MachineRegistry;

@@ -90,7 +90,7 @@ impl Sandbox {
 
     /// 跑一次 `zcode -p <prompt>`（不继承父进程的环境）。
     fn run(&self, prompt: &str, vars: &[(&str, &str)], args: &[&str]) -> Output {
-        let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+        let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
         command
             .args(["-p", prompt])
             .args(args)

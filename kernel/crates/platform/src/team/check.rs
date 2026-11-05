@@ -6,7 +6,7 @@
 //! 工作线 F49：customerInfo 由这一轮的团队列表一起取（`list::fetch`），各项目共用一份（D-F49-1）；订阅详情各项目
 //! 同时发出。判定表与 F47 相同。
 
-use rust_cli_kernel_api::model::ModelConnection;
+use nibi_kernel_api::model::ModelConnection;
 use serde_json::Value;
 
 use super::list::Customer;
@@ -90,7 +90,7 @@ fn find_team_project(
     let text = |value: &Value| -> Result<Option<String>, Availability> {
         match value {
             Value::Null => Ok(None),
-            Value::String(text) => Ok(Some(rust_cli_base::js::string::trim(text).to_owned())),
+            Value::String(text) => Ok(Some(nibi_kernel_base::js::string::trim(text).to_owned())),
             _ => Err(Availability::Unknown),
         }
     };
@@ -115,14 +115,14 @@ fn find_team_project(
                 Value::Null => String::new(),
                 Value::String(kind) => kind.clone(),
                 Value::Number(number) => {
-                    rust_cli_base::js::json::js_double(number.as_f64().unwrap_or(f64::NAN))
+                    nibi_kernel_base::js::json::js_double(number.as_f64().unwrap_or(f64::NAN))
                 }
                 Value::Bool(flag) => flag.to_string(),
                 // `String(对象)` 不会是 "2"（数组的写法不考虑）。
                 Value::Array(_) | Value::Object(_) => String::new(),
             };
             if text(&project["projectId"])?.as_deref() == Some(team.project_id.as_str())
-                && rust_cli_base::js::string::trim(&kind) == "2"
+                && nibi_kernel_base::js::string::trim(&kind) == "2"
                 && !organization_id.is_empty()
             {
                 return Ok(Some(organization_id));

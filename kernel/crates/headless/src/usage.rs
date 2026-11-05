@@ -5,9 +5,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::Result;
-use rust_cli_kernel_api::message::{Message, Usage};
-use rust_cli_kernel_api::metering::SessionSummary;
-use rust_cli_kernel_api::session_api::{EndReason, Kernel};
+use nibi_kernel_api::message::{Message, Usage};
+use nibi_kernel_api::metering::SessionSummary;
+use nibi_kernel_api::session_api::{EndReason, Kernel};
 
 use crate::{PrintOptions, existing_session};
 

@@ -6,12 +6,12 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use rust_cli_base::js::iso_timestamp;
-use rust_cli_base::redact::redact_secrets;
-use rust_cli_kernel_api::message::{StopReason, Usage};
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_kernel_api::provider::WireProtocol;
-use rust_cli_net::{Bytes, HeaderValue};
+use nibi_kernel_base::js::iso_timestamp;
+use nibi_kernel_base::redact::redact_secrets;
+use nibi_kernel_api::message::{StopReason, Usage};
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_api::provider::WireProtocol;
+use nibi_kernel_net::{Bytes, HeaderValue};
 use serde_json::{Map, Value, json};
 
 use crate::model_io_reply::{self, Reply};

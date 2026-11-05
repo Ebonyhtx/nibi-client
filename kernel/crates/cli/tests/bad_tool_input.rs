@@ -13,9 +13,9 @@ mod sse;
 use std::process::Stdio;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_node_store::{NodeIds, NodeStore, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
 use serde_json::Value;
 
 /// 请求里 tool_result 的 (tool_use_id, 文本)。
@@ -61,7 +61,7 @@ async fn a_tool_input_that_is_not_json_becomes_an_input_validation_error() {
         ]),
         sse::text_reply("after tools"),
     ]);
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .args(["-p", "go", "--permission-mode", "bypassPermissions"])
         .current_dir(&work)
         .env_clear()
@@ -115,10 +115,10 @@ async fn a_tool_input_that_is_not_json_becomes_an_input_validation_error() {
     let ids = NodeIds::new(Arc::new(SystemClock::utc()));
     let store = NodeStore::new(paths, Arc::new(ids));
     let listed = store
-        .list(rust_cli_kernel_api::store::SessionFilter {
-            workspace: rust_cli_kernel_api::env::WorkspaceRef {
-                environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
-                root: rust_cli_kernel_api::env::EnvPath::new(work.to_string_lossy()),
+        .list(nibi_kernel_api::store::SessionFilter {
+            workspace: nibi_kernel_api::env::WorkspaceRef {
+                environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
+                root: nibi_kernel_api::env::EnvPath::new(work.to_string_lossy()),
             },
             limit: 1,
         })

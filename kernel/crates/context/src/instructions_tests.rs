@@ -1,5 +1,5 @@
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::message::AttachmentMessage;
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::message::AttachmentMessage;
 
 use super::*;
 use crate::rules::Kind;

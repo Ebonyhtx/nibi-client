@@ -5,7 +5,7 @@
 //! - `open`：占位单独一批（会话里切过去就写，工作线 F79），之后不再写（切过去就退出）。
 //!
 //! 输出会话 id 与占位的消息 id。
-use rust_cli_kernel_api::message::{NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL};
+use nibi_kernel_api::message::{NO_RESPONSE_REQUESTED, SYNTHETIC_MODEL};
 
 use super::*;
 

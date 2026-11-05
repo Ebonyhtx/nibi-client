@@ -2,8 +2,8 @@
 //! 会话按工作目录分组。数据是内核 `project_sessions` 的快照（打开时取一次）；这里只有分组、筛选、搜索、改名输入与焦点，
 //! 排版在 `projects_draw.rs`。打开、新建、改名经 [`Request`] 交给 runner。
 use crossterm::event::{KeyCode, KeyEvent};
-use rust_cli_kernel_api::panels::{ProjectSessions, SessionActivity};
-use rust_cli_kernel_api::store::SessionOrder;
+use nibi_kernel_api::panels::{ProjectSessions, SessionActivity};
+use nibi_kernel_api::store::SessionOrder;
 
 use super::app::{Action, App, Overlay};
 use super::i18n_projects as words;

@@ -38,16 +38,16 @@ use std::sync::{Arc, Weak};
 
 use async_trait::async_trait;
 use futures_util::stream::BoxStream;
-use rust_cli_base::Spawner;
-use rust_cli_kernel_api::agents::{AgentSignal, AgentSignals, SubagentQueries, TaskListStore};
-use rust_cli_kernel_api::clock::{Clock, Ids};
-use rust_cli_kernel_api::env_shell::ShellNotice;
-use rust_cli_kernel_api::ids::{AgentId, SessionId};
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::mcp_state::McpConnections;
-use rust_cli_kernel_api::orchestration::{ContextBuilder, QueryRunner, ToolRegistry, ToolSnapshot};
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_base::Spawner;
+use nibi_kernel_api::agents::{AgentSignal, AgentSignals, SubagentQueries, TaskListStore};
+use nibi_kernel_api::clock::{Clock, Ids};
+use nibi_kernel_api::env_shell::ShellNotice;
+use nibi_kernel_api::ids::{AgentId, SessionId};
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::mcp_state::McpConnections;
+use nibi_kernel_api::orchestration::{ContextBuilder, QueryRunner, ToolRegistry, ToolSnapshot};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::tool::Tool;
 
 pub use actor::{ActorError, ActorProfile, ActorTurnOutcome};
 pub use agent_tool::AgentTool;
@@ -71,26 +71,26 @@ pub struct AgentsPorts {
     /// 子会话所在的机器：后台命令的通知、monitor、shell 当前目录、TaskStop（R0 只有本机，remote-exec.md §15.8.1）。
     pub machine: MachineEnv,
     /// 执行环境的注册表（R3，remote-exec.md §20.6、§20.7.2）：远端机器上的后台通知、monitor 与 TaskStop 经它找到那台机器。
-    pub machines: Arc<dyn rust_cli_kernel_api::env_registry::EnvironmentRegistry>,
+    pub machines: Arc<dyn nibi_kernel_api::env_registry::EnvironmentRegistry>,
     pub tasks: Arc<dyn TaskListStore>,
     pub queries: Arc<dyn SubagentQueries>,
     /// 主线程的上下文组装；子代理的 attachment 也由它按 `QuerySource::Subagent` 产生。
     pub context: Arc<dyn ContextBuilder>,
     /// 主循环与子循环共用的压缩器（修复线 F112）：只读查看的快照用它算子代理的 ctx 与上下文提示（tui-panels.md §1.7）。
-    pub compactor: Arc<dyn rust_cli_kernel_api::compaction::Compactor>,
+    pub compactor: Arc<dyn nibi_kernel_api::compaction::Compactor>,
     /// agent 类型的来源；与 context 的 agent 清单是同一个实例（插件 agent 由 runtime 设置）。
     pub catalog: Arc<AgentCatalog>,
     /// 后台子代理在这里启动。
     pub spawner: Spawner,
-    /// 后台命令通知的 `(<status>, <task-notification> 信封)`（runtime 给 `rust_cli_query` 的实现；agents
+    /// 后台命令通知的 `(<status>, <task-notification> 信封)`（runtime 给 `nibi_kernel_query` 的实现；agents
     /// 不依赖 query）：子代理里的命令通知送给它（agents.md §5.2，L18）。
     pub shell_notice: fn(&ShellNotice) -> (&'static str, String),
-    /// 子代理里 Monitor 的文字（同上，runtime 给 `rust_cli_query` 的实现，agents.md §5.3，工作线 F83）。
+    /// 子代理里 Monitor 的文字（同上，runtime 给 `nibi_kernel_query` 的实现，agents.md §5.3，工作线 F83）。
     pub monitor: MonitorTexts,
     /// 本机的同伴会话（ListAgents 的同伴段、SendMessage 发给同伴；docs/specs/rust-cli/cross-session.md）。
-    pub peers: Arc<dyn rust_cli_kernel_api::peers::PeerMessaging>,
+    pub peers: Arc<dyn nibi_kernel_api::peers::PeerMessaging>,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：子代理继承父会话的条目。
-    pub directories: Arc<rust_cli_kernel_api::session_paths::SessionDirectories>,
+    pub directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
     /// 子代理会话继承父会话的插件快照（skills/hooks/agents 根）：Node 的子代理 app 与父共用插件。
     /// 没接时为空（测试夹具）；运行时的实现见 runtime 的 `SubagentPlugins`。
     pub plugins: Option<Arc<dyn SubagentPluginInheritance>>,
@@ -323,7 +323,7 @@ impl Agents {
     }
 
     /// 任务提醒读的任务清单（agents.md §7.4）：子会话读顶层会话的清单。
-    pub fn task_reader(&self) -> Arc<dyn rust_cli_kernel_api::agents::TaskReader> {
+    pub fn task_reader(&self) -> Arc<dyn nibi_kernel_api::agents::TaskReader> {
         Arc::new(TaskLists(self.core.clone()))
     }
 
@@ -346,13 +346,13 @@ impl Agents {
             session,
             AgentId::new("workflow"),
             status,
-            rust_cli_base::reminder::wrap(&text),
+            nibi_kernel_base::reminder::wrap(&text),
             origin_meta,
         )
     }
 }
 
-impl rust_cli_kernel_api::workflow::WorkflowNotices for Agents {
+impl nibi_kernel_api::workflow::WorkflowNotices for Agents {
     fn notify(&self, session: &SessionId, text: String) {
         let _ = self.notify_with(session, "escalation", text, None);
     }
@@ -370,8 +370,8 @@ impl rust_cli_kernel_api::workflow::WorkflowNotices for Agents {
 struct TaskLists(Arc<Core>);
 
 #[async_trait]
-impl rust_cli_kernel_api::agents::TaskReader for TaskLists {
-    async fn tasks(&self, session: &SessionId) -> Vec<rust_cli_kernel_api::agents::TaskRecord> {
+impl nibi_kernel_api::agents::TaskReader for TaskLists {
+    async fn tasks(&self, session: &SessionId) -> Vec<nibi_kernel_api::agents::TaskRecord> {
         let list = self.0.live.root_of(session);
         let mut tasks = match self.0.board.read(&list).await {
             Ok(list) => list.tasks,
@@ -428,7 +428,7 @@ impl AgentSignals for Signals {
     async fn background_entries(
         &self,
         session: &SessionId,
-    ) -> Vec<rust_cli_kernel_api::manage::BackgroundEntry> {
+    ) -> Vec<nibi_kernel_api::manage::BackgroundEntry> {
         self.0
             .live
             .background_in(session)
@@ -442,7 +442,7 @@ impl AgentSignals for Signals {
         &self,
         session: &SessionId,
         task: &str,
-        operation: rust_cli_kernel_api::env::OperationContext,
+        operation: nibi_kernel_api::env::OperationContext,
     ) -> Result<String, String> {
         let tool = task_stop::TaskStopTool {
             core: self.0.clone(),
@@ -463,7 +463,7 @@ impl AgentSignals for Signals {
     async fn subagents(
         &self,
         session: &SessionId,
-    ) -> Vec<rust_cli_kernel_api::panels::SubagentEntry> {
+    ) -> Vec<nibi_kernel_api::panels::SubagentEntry> {
         views::entries(&self.0.live, session)
     }
 
@@ -475,7 +475,7 @@ impl AgentSignals for Signals {
     async fn tasks_snapshot(
         &self,
         session: &SessionId,
-    ) -> rust_cli_kernel_api::panels::TasksSnapshot {
+    ) -> nibi_kernel_api::panels::TasksSnapshot {
         views::tasks(&self.0.live, session)
     }
 
@@ -485,8 +485,8 @@ impl AgentSignals for Signals {
         session: &SessionId,
         agent: &AgentId,
     ) -> Result<
-        rust_cli_kernel_api::session_api::SessionView,
-        rust_cli_kernel_api::session_api::KernelError,
+        nibi_kernel_api::session_api::SessionView,
+        nibi_kernel_api::session_api::KernelError,
     > {
         views::view(&self.0, session, agent).await
     }

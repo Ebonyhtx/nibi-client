@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-node-store"
-description = "Session store and artifacts on the Node CLI db.sqlite for rust-cli"
+name = "nibi-kernel-node-store"
+description = "Session store and artifacts on the Node CLI db.sqlite for nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,10 +17,10 @@ doctest = false
 anyhow.workspace = true
 async-trait.workspace = true
 rusqlite.workspace = true
-rust-cli-base.workspace = true
-rust-cli-fs.workspace = true
-rust-cli-kernel-api.workspace = true
-rust-cli-paths.workspace = true
+nibi-kernel-base.workspace = true
+nibi-kernel-fs.workspace = true
+nibi-kernel-api.workspace = true
+nibi-kernel-paths.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 tracing.workspace = true

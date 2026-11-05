@@ -1,14 +1,14 @@
 //! 主循环里给模型看的固定文本。
 //! L2 的 prompts 数据加载就绪后迁到 `prompts/`。
 
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_prompts::reminder;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_prompts::reminder;
 
 /// 中断文本（kernel-api 的定义，F55：以前各 crate 各写一份）。
-pub(crate) const INTERRUPT_MESSAGE: &str = rust_cli_kernel_api::user_input::INTERRUPT_TEXTS[0];
+pub(crate) const INTERRUPT_MESSAGE: &str = nibi_kernel_api::user_input::INTERRUPT_TEXTS[0];
 pub(crate) const INTERRUPT_MESSAGE_FOR_TOOL_USE: &str =
-    rust_cli_kernel_api::user_input::INTERRUPT_TEXTS[1];
-pub(crate) const REJECT_MESSAGE: &str = rust_cli_kernel_api::tool::REJECT_MESSAGE;
+    nibi_kernel_api::user_input::INTERRUPT_TEXTS[1];
+pub(crate) const REJECT_MESSAGE: &str = nibi_kernel_api::tool::REJECT_MESSAGE;
 
 pub(crate) fn no_such_tool(name: &str) -> String {
     format!("<tool_use_error>Error: No such tool available: {name}</tool_use_error>")
@@ -24,7 +24,7 @@ pub(crate) const ORPHANED_TOOL_RESULT: &str =
     "[Orphaned tool result removed due to conversation resume]";
 pub(crate) const TOOL_USE_REMOVED: &str = "[Tool use removed]";
 pub(crate) const TOOL_USE_INTERRUPTED: &str = "[Tool use interrupted]";
-pub(crate) const NO_CONTENT: &str = rust_cli_kernel_api::message::NO_CONTENT;
+pub(crate) const NO_CONTENT: &str = nibi_kernel_api::message::NO_CONTENT;
 
 /// 输出上限续写的提示。
 pub(crate) const OUTPUT_LIMIT_NUDGE: &str = "Output token limit hit. Resume directly \u{2014} no apology, no recap of what you were doing. Pick up mid-thought if that is where the cut happened. Break remaining work into smaller pieces.";

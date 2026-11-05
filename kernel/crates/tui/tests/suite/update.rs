@@ -6,10 +6,10 @@ use futures_util::stream;
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::style::{Color, Modifier};
-use rust_cli_kernel_api::testing::MemoryStore;
-use rust_cli_tui::ui::i18n::Lang;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
-use rust_cli_tui::update::{UpdateChoice, UpdateInfo, drive};
+use nibi_kernel_api::testing::MemoryStore;
+use nibi_kernel_tui::ui::i18n::Lang;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_tui::update::{UpdateChoice, UpdateInfo, drive};
 
 use super::sessions_seed::{Seed, seed};
 use super::support::{GatedModel, Setup, text_of, with_ui};
@@ -292,7 +292,7 @@ async fn the_notice_survives_resuming_a_session_at_startup() {
     )
     .await;
     let mut setup = update_setup("en_US.UTF-8", Some(store));
-    setup.startup = rust_cli_tui::Startup::Session("sess_resumed".to_owned());
+    setup.startup = nibi_kernel_tui::Startup::Session("sess_resumed".to_owned());
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup, |mut ui| async move {
         let screen = ui.wait_for("earlier answer").await;

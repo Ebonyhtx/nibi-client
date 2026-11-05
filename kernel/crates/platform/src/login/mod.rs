@@ -13,8 +13,8 @@ mod persist;
 use std::time::Duration;
 
 use ring::rand::{SecureRandom, SystemRandom};
-use rust_cli_base::secret::RedactedString;
-use rust_cli_paths::StoragePath;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_paths::StoragePath;
 use serde_json::{Map, Value, json};
 use tokio_util::sync::CancellationToken;
 
@@ -26,8 +26,8 @@ pub(crate) use persist::identity_from_secret;
 
 /// `/effort` 的缺省保存（tui-manage.md §2.2）：与登录写同一个字段，`auto`（没有档位）时不带 `options`。
 pub(crate) async fn save_default_model(
-    (file, legacy): (&rust_cli_paths::StoragePath, &rust_cli_paths::StoragePath),
-    selection: &rust_cli_kernel_api::model::ModelSelection,
+    (file, legacy): (&nibi_kernel_paths::StoragePath, &nibi_kernel_paths::StoragePath),
+    selection: &nibi_kernel_api::model::ModelSelection,
 ) -> Result<String, String> {
     persist::save_default_selection(
         (file, legacy),
@@ -347,7 +347,7 @@ fn app_login_writes(
             ("zcodejwttoken", token),
             (
                 "oauth:zai:user_info",
-                Some(rust_cli_base::js::json::stringify(&Value::Object(
+                Some(nibi_kernel_base::js::json::stringify(&Value::Object(
                     ready.raw_user.clone(),
                 ))),
             ),
@@ -362,7 +362,7 @@ fn app_login_writes(
             ("zcodejwttoken", token),
             (
                 "oauth:bigmodel:user_info",
-                Some(rust_cli_base::js::json::stringify(&app_profile(ready))),
+                Some(nibi_kernel_base::js::json::stringify(&app_profile(ready))),
             ),
             ("oauth:active_provider", Some("bigmodel".to_owned())),
         ],
@@ -379,7 +379,7 @@ fn app_profile(ready: &oauth::Ready) -> Value {
             .raw_user
             .get(name)
             .and_then(Value::as_str)
-            .map(rust_cli_base::js::string::trim)
+            .map(nibi_kernel_base::js::string::trim)
             .filter(|text| !text.is_empty())
     };
     let username = trimmed("name")

@@ -1,8 +1,8 @@
 // 复制自 apps/zcode-host/crates/tui/src/ui/i18n.rs（feat/rs 79b6691c55），按 400 行上限拆出；权限模式
 // 的名称换成内核的模式（docs/specs/rust-cli/tui.md §7）。
 //! 带参数的界面文字。
-use rust_cli_kernel_api::compaction::ContextNotice;
-use rust_cli_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::compaction::ContextNotice;
+use nibi_kernel_api::permission::PermissionMode;
 
 use super::Lang;
 
@@ -113,8 +113,8 @@ pub fn unknown_model(lang: Lang, name: &str) -> String {
 }
 
 /// `/model 名称` 说不清是哪个团队项目（docs/specs/rust-cli/cli-args.md §1.3，工作线 F49）：要写 `[<团队>]`。
-pub fn ambiguous_model(lang: Lang, error: &rust_cli_platform::model_name::LookupError) -> String {
-    use rust_cli_platform::model_name::LookupError;
+pub fn ambiguous_model(lang: Lang, error: &nibi_kernel_platform::model_name::LookupError) -> String {
+    use nibi_kernel_platform::model_name::LookupError;
     match (lang, error) {
         (Lang::Zh, LookupError::SeveralTeams { name, choices }) => {
             format!(

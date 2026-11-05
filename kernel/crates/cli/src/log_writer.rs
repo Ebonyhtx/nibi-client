@@ -1,11 +1,11 @@
 //! 日志的唯一写者（docs/specs/rust-cli/logging.md §1、§6）：按天选文件、每天的上限、7 天保留。
-//! 文件 IO 经 `rust_cli_fs`；写失败只吞掉（日志不能打断执行路径，Node 相同）。
+//! 文件 IO 经 `nibi_kernel_fs`；写失败只吞掉（日志不能打断执行路径，Node 相同）。
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rust_cli_kernel_api::clock::{Clock, civil_date};
+use nibi_kernel_api::clock::{Clock, civil_date};
 use serde_json::{Map, Value};
 use tokio::sync::mpsc;
 
@@ -57,7 +57,7 @@ impl DailyFiles {
         }
         let length = bytes.len() as u64;
         if day.size + length <= self.cap {
-            if rust_cli_fs::append(&day.path, bytes).await.is_ok() {
+            if nibi_kernel_fs::append(&day.path, bytes).await.is_ok() {
                 day.size += length;
             }
             return;
@@ -72,14 +72,14 @@ impl DailyFiles {
             context,
         );
         line.push('\n');
-        let _ = rust_cli_fs::append(&day.path, line.as_bytes()).await;
+        let _ = nibi_kernel_fs::append(&day.path, line.as_bytes()).await;
     }
 }
 
 /// 打开某一天：读已有文件的大小（续写同一天的文件），并删掉超过保留期的文件。
 async fn open(dir: &Path, date: &str, cap: u64) -> Day {
     let path = dir.join(format!("{FILE_PREFIX}{date}{FILE_SUFFIX}"));
-    let size = rust_cli_fs::file_len(&path)
+    let size = nibi_kernel_fs::file_len(&path)
         .await
         .ok()
         .flatten()
@@ -97,7 +97,7 @@ async fn open(dir: &Path, date: &str, cap: u64) -> Day {
 
 /// 删掉日期早于 `cutoff` 的 `nibi-YYYY-MM-DD.jsonl`；名字不符合的文件不动（Node `cleanupLogRetention`）。
 async fn prune(dir: &Path, cutoff: &str) {
-    let Ok(names) = rust_cli_fs::file_names(dir).await else {
+    let Ok(names) = nibi_kernel_fs::file_names(dir).await else {
         return;
     };
     for name in names {
@@ -108,7 +108,7 @@ async fn prune(dir: &Path, cutoff: &str) {
             continue;
         };
         if parse_date(date).is_some() && date < cutoff {
-            let _ = rust_cli_fs::remove_optional(&dir.join(&name)).await;
+            let _ = nibi_kernel_fs::remove_optional(&dir.join(&name)).await;
         }
     }
 }

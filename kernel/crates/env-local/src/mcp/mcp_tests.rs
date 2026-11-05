@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::EnvPath;
-use rust_cli_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::env::EnvPath;
+use nibi_kernel_api::ids::EnvironmentId;
 use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
@@ -222,7 +222,7 @@ fn reply(status: &str, headers: &str, body: &str) -> String {
 
 async fn egress() -> Arc<Egress> {
     Arc::new(
-        Egress::new(rust_cli_net::NetworkPolicy::default())
+        Egress::new(nibi_kernel_net::NetworkPolicy::default())
             .await
             .unwrap(),
     )

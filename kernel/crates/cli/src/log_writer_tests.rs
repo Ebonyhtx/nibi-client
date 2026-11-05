@@ -2,7 +2,7 @@
 
 use std::sync::atomic::AtomicU64;
 
-use rust_cli_kernel_api::testing::FixedClock;
+use nibi_kernel_api::testing::FixedClock;
 use serde_json::Value;
 use tokio::sync::oneshot;
 

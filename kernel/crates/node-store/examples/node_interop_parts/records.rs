@@ -2,7 +2,7 @@
 //!
 //! `records-write <storage-dir>`：一轮问答，之后一批本地命令的记录（固定说明、命令输入、输出、meta），再一轮问答。
 //! 记录是会话 actor 写的 meta user 消息（来源 `local-command-*`）。输出会话 id 与四条记录的消息 id。
-use rust_cli_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord};
+use nibi_kernel_api::user_command::{LocalCommandOutput, LocalCommandRecord};
 
 use super::*;
 

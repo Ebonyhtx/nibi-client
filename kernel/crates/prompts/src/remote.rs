@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 const ACTIONS: &str = include_lf!("../../../prompts/remote/actions.json");
 

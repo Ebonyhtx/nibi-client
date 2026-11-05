@@ -6,12 +6,12 @@
 
 use std::future::Future;
 
-use rust_cli_base::js::string::is_space;
-use rust_cli_kernel_api::env::{EnvError, EnvPath, ReadFile};
-use rust_cli_kernel_api::env_files::{FileKind, FileStat};
-use rust_cli_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
-use rust_cli_kernel_api::message::{ImageSource, ToolResultContent};
-use rust_cli_kernel_api::tool::{ToolError, ToolOutput, ToolUseContext, Validation};
+use nibi_kernel_base::js::string::is_space;
+use nibi_kernel_api::env::{EnvError, EnvPath, ReadFile};
+use nibi_kernel_api::env_files::{FileKind, FileStat};
+use nibi_kernel_api::env_pdf::{PdfPageCount, PdfRender, RenderPdfPages};
+use nibi_kernel_api::message::{ImageSource, ToolResultContent};
+use nibi_kernel_api::tool::{ToolError, ToolOutput, ToolUseContext, Validation};
 use serde_json::json;
 
 use crate::common::{env_failure, failed, format_bytes, missing_file, stat};
@@ -46,7 +46,7 @@ fn digits(text: &str) -> usize {
 
 /// 页码：trim 后匹配 `^(\d{1,9})(?:\s*(-)\s*(\d{1,9})?)?$`，起始页 ≥ 1，结束页 ≥ 起始页。
 fn parse(pages: &str) -> Option<PageRange> {
-    let text = rust_cli_base::js::string::trim(pages);
+    let text = nibi_kernel_base::js::string::trim(pages);
     let head = digits(text);
     if head == 0 || head > 9 {
         return None;

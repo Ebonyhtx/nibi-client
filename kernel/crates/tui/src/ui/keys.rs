@@ -5,7 +5,7 @@
 use std::time::Instant;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::model::ModelSelection;
+use nibi_kernel_api::model::ModelSelection;
 
 use super::app::{Action, App, Overlay};
 use super::composer::Popup;

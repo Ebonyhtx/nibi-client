@@ -2,9 +2,9 @@
 //! attachment 的文字；读文件在 `user_input.rs`。
 
 // `<system-reminder>` 包装只定义在 base（F58：以前这里手写一份）。
-use rust_cli_base::reminder::wrap;
-use rust_cli_kernel_api::message::{ATTACHMENT_BLOCKS, ContentBlock, ToolResultContent};
-use rust_cli_kernel_api::user_input::InputAttachment;
+use nibi_kernel_base::reminder::wrap;
+use nibi_kernel_api::message::{ATTACHMENT_BLOCKS, ContentBlock, ToolResultContent};
+use nibi_kernel_api::user_input::InputAttachment;
 use serde_json::{Value, json};
 
 /// JS `\w`（不带 `u` 标志时只认 ASCII）。
@@ -207,7 +207,7 @@ fn blocks_json(content: &[ToolResultContent]) -> String {
             }
         })
         .collect();
-    rust_cli_base::js::json::stringify(&Value::Array(blocks))
+    nibi_kernel_base::js::json::stringify(&Value::Array(blocks))
 }
 
 /// notebook 的 `file` attachment（docs/specs/rust-cli/tui-input.md §1.3）：结果里有图片时，

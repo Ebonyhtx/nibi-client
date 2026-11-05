@@ -4,10 +4,10 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_platform::{Family, LoginError, Platform};
-use rust_cli_tui::services::CancellationToken;
-use rust_cli_tui::{Account, Authorize, Configured, LoginFailure};
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_platform::{Family, LoginError, Platform};
+use nibi_kernel_tui::services::CancellationToken;
+use nibi_kernel_tui::{Account, Authorize, Configured, LoginFailure};
 use tokio::sync::oneshot;
 
 pub(crate) struct PlatformAccount {

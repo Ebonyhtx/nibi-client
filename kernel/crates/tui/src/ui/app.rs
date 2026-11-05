@@ -5,10 +5,10 @@
 use std::collections::HashSet;
 use std::time::Instant;
 
-use rust_cli_kernel_api::ids::{InteractionId, MessageId};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{Delivery, RewindScope};
+use nibi_kernel_api::ids::{InteractionId, MessageId};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{Delivery, RewindScope};
 use serde_json::Value;
 
 use super::composer::Composer;
@@ -29,7 +29,7 @@ pub enum Action {
     },
     /// 带图片的输入（tui-input.md §3）：文字块在前，图片在后。
     SubmitContent {
-        content: Vec<rust_cli_kernel_api::message::ContentBlock>,
+        content: Vec<nibi_kernel_api::message::ContentBlock>,
         delivery: Delivery,
     },
     /// ctrl+g、ctrl+x ctrl+e：用外部编辑器编辑输入（tui-input.md §4.1）。
@@ -151,7 +151,7 @@ pub enum Local {
     /// `/context [all]` 的独立页面（context-usage.md §5.2、tui-panels.md §4）；`all` 时展开明细。装箱：比其他
     /// 变体大得多。
     Context {
-        usage: Box<rust_cli_kernel_api::context_usage::ContextUsage>,
+        usage: Box<nibi_kernel_api::context_usage::ContextUsage>,
         all: bool,
     },
     /// `/goal` 面板（goal.md §6.2）。
@@ -225,9 +225,9 @@ pub struct App {
     /// 正在创建会话（第一次发送）。
     pub creating: bool,
     /// 创建期间的发送（tui.md §4.1）：会话打开、第一条发出后按顺序发给内核；显示在排队的输入后面。
-    pub held: Vec<rust_cli_kernel_api::session_api::Command>,
+    pub held: Vec<nibi_kernel_api::session_api::Command>,
     /// 界面层完成的本地命令的记录（`/effort`、`/plan` 等，修复线 L-A，tui-manage.md §11）：runner 每轮取走。
-    pub records: Vec<rust_cli_kernel_api::user_command::LocalCommandRecord>,
+    pub records: Vec<nibi_kernel_api::user_command::LocalCommandRecord>,
     /// 运行中的 `/clear`、`/resume`（修复线 F38，tui.md §6；排进队列、不中断）：（显示的文字，动作），回合结束、
     /// 内核队列空了之后按顺序执行；显示在排队的输入后面。
     pub after_turn: Vec<(String, Action)>,
@@ -238,7 +238,7 @@ pub struct App {
     /// 当前待处理交互的选择状态；交互本身在视图里（旧会话的询问在 `detached` 里）。
     pub interaction: Option<Interaction>,
     /// 父会话关闭之后旧会话的询问（按到达顺序，agents.md §4.1.2，工作线 F72）：内核的 `detached_asks` 的投影。
-    pub detached: Vec<rust_cli_kernel_api::orchestration::DetachedAsk>,
+    pub detached: Vec<nibi_kernel_api::orchestration::DetachedAsk>,
     /// 同伴消息批准框的焦点（0 拒绝，1 投递）；扣住的消息本身在视图里（cross-session.md §2.6）。
     pub peer_choice: usize,
     pub local: Vec<LocalCell>,
@@ -290,11 +290,11 @@ pub struct App {
     /// 任务清单的界面状态（ctrl+t，tui-display.md §2.2）。
     pub tasks: super::tasks::TaskPanel,
     /// 后台任务的最新快照（与 `agents` 同一份快照、同一个回执，runner 按请求序号写入，tui-display.md §2.3，修复线 F34）。
-    pub background: Vec<rust_cli_kernel_api::manage::BackgroundEntry>,
+    pub background: Vec<nibi_kernel_api::manage::BackgroundEntry>,
     /// footer 的请求统计（TPS 与缓存命中率）的最后一份回执（runner 按请求序号写入，tui-display.md §2.6，F27）。
     pub request_stats: super::footer_stats::FooterStats,
     /// `/tasks` 列表的条目（打开时的快照；停止后按新快照刷新）。
-    pub task_list: Vec<rust_cli_kernel_api::manage::BackgroundEntry>,
+    pub task_list: Vec<nibi_kernel_api::manage::BackgroundEntry>,
     /// 主题的当前值（配置的 `ui.theme` 或 `/theme` 选的，tui-manage.md §2.1）与启动时探测到的终端背景
     /// （`auto` 用它）。
     pub theme: crate::services::UiTheme,
@@ -332,14 +332,14 @@ pub struct App {
 
 /// 待处理交互：（ID，请求）。
 pub type Pending<'a> = (
-    &'a rust_cli_kernel_api::ids::InteractionId,
-    &'a rust_cli_kernel_api::orchestration::InteractionRequest,
+    &'a nibi_kernel_api::ids::InteractionId,
+    &'a nibi_kernel_api::orchestration::InteractionRequest,
 );
 
 /// [`App::pending`] 的实现：只借视图与旧会话的询问两个字段（调用方同时要改 `App` 的别的字段）。
 pub fn pending_of<'a>(
     view: &'a Transcript,
-    detached: &'a [rust_cli_kernel_api::orchestration::DetachedAsk],
+    detached: &'a [nibi_kernel_api::orchestration::DetachedAsk],
 ) -> Option<Pending<'a>> {
     view.pending()
         .map(|(id, request)| (id, request))
@@ -452,7 +452,7 @@ impl App {
         // 背景标志只在点击后的约 2 秒里按动画节拍重画，停住后不再定时重画（tui.md §7.3）。查看在跑的子代理时状态行的
         // spinner 是它的（F112），主会话空闲时也按动画节拍重画。
         let viewed_running = self.viewed_entry().is_some_and(|entry| {
-            entry.status == rust_cli_kernel_api::panels::SubagentStatus::Running
+            entry.status == nibi_kernel_api::panels::SubagentStatus::Running
         });
         self.running()
             || viewed_running
@@ -480,7 +480,7 @@ impl App {
     }
 
     /// 这个交互是旧会话的询问时，那个会话的标题。
-    pub fn detached_title(&self, id: &rust_cli_kernel_api::ids::InteractionId) -> Option<&str> {
+    pub fn detached_title(&self, id: &nibi_kernel_api::ids::InteractionId) -> Option<&str> {
         self.detached
             .iter()
             .find(|ask| ask.interaction == *id)
@@ -488,8 +488,8 @@ impl App {
     }
 
     /// 旧会话询问的变化（工作线 F72）。
-    pub fn detached_changed(&mut self, event: rust_cli_kernel_api::orchestration::DetachedEvent) {
-        use rust_cli_kernel_api::orchestration::DetachedEvent;
+    pub fn detached_changed(&mut self, event: nibi_kernel_api::orchestration::DetachedEvent) {
+        use nibi_kernel_api::orchestration::DetachedEvent;
         match event {
             DetachedEvent::Asked { ask } => self.detached.push(*ask),
             DetachedEvent::Resolved { interaction } => {
@@ -510,7 +510,7 @@ impl App {
             ui.workspace = self.workspace().to_owned();
             // 远端执行 F98（remote-exec.md §25.4.3，Docker 试用 L4、L5）：远端的调用，“不再询问”写那台机器的工作目录（以前
             // 写本机的工作区）；MCP 工具的机器来自服务器的绑定（以前询问框不写机器）。
-            if let rust_cli_kernel_api::orchestration::InteractionRequest::Permission {
+            if let nibi_kernel_api::orchestration::InteractionRequest::Permission {
                 tool,
                 input,
                 machine,
@@ -570,13 +570,13 @@ impl App {
 
     /// footer 的命中率查谁（F112）：查看时是被查看的子代理的子会话（取自列表快照的条目），否则是主会话；没有会话、或
     /// 被查看的条目不在快照里时不查。
-    pub fn stats_session(&self) -> Option<rust_cli_kernel_api::ids::SessionId> {
+    pub fn stats_session(&self) -> Option<nibi_kernel_api::ids::SessionId> {
         match &self.viewing {
             Some(_) => self.viewed_entry().map(|entry| entry.child.clone()),
             None => self
                 .session
                 .as_deref()
-                .map(rust_cli_kernel_api::ids::SessionId::new),
+                .map(nibi_kernel_api::ids::SessionId::new),
         }
     }
 

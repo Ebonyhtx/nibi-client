@@ -2,8 +2,8 @@
 
 use std::future::pending;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_ui::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_ui::{
     SAMPLING_CANCELLED, SAMPLING_DUPLICATE, SAMPLING_LIMIT, SAMPLING_MAX_OPERATIONS,
     SAMPLING_MAX_PER_SESSION, SAMPLING_TIMED_OUT,
 };

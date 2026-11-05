@@ -5,8 +5,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use rust_cli_kernel_api::env::Outcome;
-use rust_cli_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env::Outcome;
+use nibi_kernel_api::env_files::PathStyle;
 
 use super::*;
 

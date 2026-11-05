@@ -1,9 +1,9 @@
-use rust_cli_kernel_api::ids::{MessageId, ToolUseId};
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::ids::{MessageId, ToolUseId};
+use nibi_kernel_api::message::{
     AssistantMessage, AttachmentMessage, ContentBlock, Message, SystemMessage, ToolResultContent,
     UserMessage, UserOrigin,
 };
-use rust_cli_kernel_api::model::ApiRole;
+use nibi_kernel_api::model::ApiRole;
 use serde_json::Value;
 
 use super::*;
@@ -320,7 +320,7 @@ fn a_summary_request_marks_the_message_before_the_last() {
 
 fn image() -> ContentBlock {
     ContentBlock::Image {
-        source: rust_cli_kernel_api::message::ImageSource::Base64 {
+        source: nibi_kernel_api::message::ImageSource::Base64 {
             media_type: "image/png".to_owned(),
             data: "iVBORw0KGgo=".to_owned(),
         },
@@ -335,7 +335,7 @@ fn media(id: &str, call: &str, blocks: Vec<ContentBlock>) -> Message {
         text: reminder::wrap(call),
         data: serde_json::json!({
             "filename": "/w/x",
-            rust_cli_kernel_api::message::ATTACHMENT_BLOCKS: blocks,
+            nibi_kernel_api::message::ATTACHMENT_BLOCKS: blocks,
         }),
     })
 }

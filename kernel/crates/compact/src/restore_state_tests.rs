@@ -3,9 +3,9 @@
 use std::sync::{Arc, PoisonError};
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::message::{CompactTrigger, Message, ToolResultContent};
-use rust_cli_kernel_api::testing::ListTools;
-use rust_cli_kernel_api::tool::{
+use nibi_kernel_api::message::{CompactTrigger, Message, ToolResultContent};
+use nibi_kernel_api::testing::ListTools;
+use nibi_kernel_api::tool::{
     PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext,
 };
 use serde_json::{Value, json};

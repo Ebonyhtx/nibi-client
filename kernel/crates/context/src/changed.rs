@@ -1,8 +1,8 @@
 //! `edited_text_file` attachment（docs/specs/rust-cli/tools-files.md §4.1）：读过的文件在磁盘上被改动。改动由
 //! readFileState 的 owner 查出（kernel-api `ChangedFiles`），这里只渲染。每个文件一条。
 
-use rust_cli_kernel_api::tool::ChangedFile;
-use rust_cli_prompts::texts;
+use nibi_kernel_api::tool::ChangedFile;
+use nibi_kernel_prompts::texts;
 use serde_json::{Value, json};
 
 /// 来源（attachment type）。

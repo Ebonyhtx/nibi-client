@@ -3,14 +3,14 @@
 
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{FileKind, StatFile};
-use rust_cli_kernel_api::env_git::{gitdir_pointer, marks_git_root};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::panels::{ProjectSession, ProjectSessions};
-use rust_cli_kernel_api::session_api::{Command, CommandEnvelope, SessionView};
-use rust_cli_kernel_api::store::{SessionQuery, SessionRecord};
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{FileKind, StatFile};
+use nibi_kernel_api::env_git::{gitdir_pointer, marks_git_root};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::panels::{ProjectSession, ProjectSessions};
+use nibi_kernel_api::session_api::{Command, CommandEnvelope, SessionView};
+use nibi_kernel_api::store::{SessionQuery, SessionRecord};
 
 use super::workspace_sessions::{activity, last_reply};
 use super::*;
@@ -249,7 +249,7 @@ impl LocalKernel {
                 command: Command::Rename { title },
             };
             return match open.send(envelope).await {
-                rust_cli_kernel_api::session_api::Ack::Rejected { reason } => {
+                nibi_kernel_api::session_api::Ack::Rejected { reason } => {
                     Err(KernelError::Failed { message: reason })
                 }
                 _ => Ok(()),
@@ -280,7 +280,7 @@ impl LocalKernel {
         let loaded = self.ports.store.load(session).await.map_err(failed)?;
         let execution = loaded.mode.map_or_else(
             || self.defaults.mode.into(),
-            |mode| rust_cli_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan),
+            |mode| nibi_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan),
         );
         Ok(SessionView {
             meta: loaded.meta,

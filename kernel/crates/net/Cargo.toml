@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-net"
-description = "The single network egress of rust-cli"
+name = "nibi-kernel-net"
+description = "The single network egress of nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -20,7 +20,7 @@ base64.workspace = true
 bytes.workspace = true
 httpdate.workspace = true
 reqwest.workspace = true
-rust-cli-base.workspace = true
+nibi-kernel-base.workspace = true
 rustls.workspace = true
 thiserror.workspace = true
 # 跨会话的收件箱：Unix 域套接字（docs/specs/rust-cli/cross-session.md §2.1，F28）。

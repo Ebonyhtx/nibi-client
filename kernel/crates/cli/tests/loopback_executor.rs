@@ -13,16 +13,16 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient};
-use rust_cli_exec_transport::stdio::{ChildCommand, StdioConnector};
-use rust_cli_exec_wire::handshake::Capabilities;
-use rust_cli_kernel_api::env::{
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient};
+use nibi_kernel_exec_transport::stdio::{ChildCommand, StdioConnector};
+use nibi_kernel_exec_wire::handshake::Capabilities;
+use nibi_kernel_api::env::{
     CommandEvent, EnvPath, OperationContext, Origin, ReadFile, StartCommand, WorkspaceRef,
     WriteFile, WritePrecondition,
 };
-use rust_cli_kernel_api::env_shell::{BackgroundCommand, CwdScope};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env_shell::{BackgroundCommand, CwdScope};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, SessionId, ShellTaskId,
 };
 
@@ -200,7 +200,7 @@ async fn the_executor_serves_the_ports_over_stdio_and_exits_when_closed() {
     // F96（remote-exec.md §23.5）：推一组变量，之后起的命令看得到；保护的名字被拒绝。
     remote
         .update_env(
-            rust_cli_exec_wire::dto::env::EnvMode::Merge,
+            nibi_kernel_exec_wire::dto::env::EnvMode::Merge,
             [("F96_MARK".to_owned(), Some("pushed".to_owned()))].into(),
             Vec::new(),
         )
@@ -208,13 +208,13 @@ async fn the_executor_serves_the_ports_over_stdio_and_exits_when_closed() {
         .unwrap();
     let refused = remote
         .update_env(
-            rust_cli_exec_wire::dto::env::EnvMode::Merge,
+            nibi_kernel_exec_wire::dto::env::EnvMode::Merge,
             [("PATH".to_owned(), Some("/evil".to_owned()))].into(),
             Vec::new(),
         )
         .await;
     assert!(
-        matches!(&refused, Err(rust_cli_kernel_api::env::EnvError::Io { message }) if message.contains("PATH")),
+        matches!(&refused, Err(nibi_kernel_api::env::EnvError::Io { message }) if message.contains("PATH")),
         "{refused:?}"
     );
     let marked = command(&root, "bloop3", r#"printf '%s' "$F96_MARK""#);

@@ -7,16 +7,16 @@
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::hooks::StopVerdict;
-use rust_cli_kernel_api::ids::{AgentId, RunId, SessionId};
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::hooks::StopVerdict;
+use nibi_kernel_api::ids::{AgentId, RunId, SessionId};
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{
     ApiContent, ApiMessage, ApiRole, BlockDelta, CacheControl, ModelEvent, ModelPort, ModelRequest,
     ModelSelection, OutputFormat, QuerySource, RequestOptions, SystemBlock,
 };
-use rust_cli_prompts::texts::{identity, render};
-use rust_cli_prompts::{goal, models};
+use nibi_kernel_prompts::texts::{identity, render};
+use nibi_kernel_prompts::{goal, models};
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 
@@ -28,7 +28,7 @@ use crate::texts;
 pub(crate) const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 /// 没有模型卡片时的输出上限：同主循环的缺省（prompt hook 不传上限，按模型的缺省）。修复线 F58：
 /// 以前注释写“与旁路请求相同”（旁路是 8192），值一直是 32000；现在取 prompts 的一个常量。
-const DEFAULT_MAX_TOKENS: u32 = rust_cli_prompts::models::UNKNOWN_MAX_OUTPUT_TOKENS;
+const DEFAULT_MAX_TOKENS: u32 = nibi_kernel_prompts::models::UNKNOWN_MAX_OUTPUT_TOKENS;
 /// 对话记录里已有同一条件的反馈时，条件截到的长度。
 const REPEATED_PROMPT_CHARS: usize = 500;
 

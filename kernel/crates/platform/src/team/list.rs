@@ -7,7 +7,7 @@
 //! 照 App 在 JSON 上做（补全是对象展开，显示名回退到产品上的组织名，这些细节都跟着对象走）；App 在哪里抛
 //! TypeError、读取失败，这里就是 unknown。App 列出时预建团队 key、按 `apiKeyStatus` 筛，本工程不预建（D-F49-2）。
 
-use rust_cli_kernel_api::model::ModelConnection;
+use nibi_kernel_api::model::ModelConnection;
 use serde_json::{Map, Value};
 
 use super::{Availability, Reason};
@@ -77,7 +77,7 @@ fn unwrap_envelope(payload: &Value) -> Option<&Value> {
 fn trimmed(value: &Value) -> Result<String, TypeError> {
     match value {
         Value::Null => Ok(String::new()),
-        Value::String(text) => Ok(rust_cli_base::js::string::trim(text).to_owned()),
+        Value::String(text) => Ok(nibi_kernel_base::js::string::trim(text).to_owned()),
         _ => Err(TypeError),
     }
 }
@@ -110,12 +110,12 @@ fn project_type(value: &Value) -> String {
         Value::Null => String::new(),
         Value::String(text) => text.clone(),
         Value::Number(number) => {
-            rust_cli_base::js::json::js_double(number.as_f64().unwrap_or(f64::NAN))
+            nibi_kernel_base::js::json::js_double(number.as_f64().unwrap_or(f64::NAN))
         }
         Value::Bool(flag) => flag.to_string(),
         Value::Array(_) | Value::Object(_) => String::new(),
     };
-    rust_cli_base::js::string::trim(&text).to_owned()
+    nibi_kernel_base::js::string::trim(&text).to_owned()
 }
 
 fn plans(payload: &Value, customer: &Customer) -> Result<Vec<TeamPlan>, TypeError> {
@@ -259,7 +259,7 @@ fn project(products: &[Value]) -> Result<Vec<TeamPlan>, TypeError> {
         let Value::String(product_id) = &product["productId"] else {
             return Err(TypeError);
         };
-        let product_id = rust_cli_base::js::string::trim(product_id);
+        let product_id = nibi_kernel_base::js::string::trim(product_id);
         if product_id.is_empty() {
             continue;
         }

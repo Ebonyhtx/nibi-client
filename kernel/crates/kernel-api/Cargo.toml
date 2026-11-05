@@ -1,6 +1,6 @@
 [package]
-name = "rust-cli-kernel-api"
-description = "Ports and shared types of the rust-cli kernel"
+name = "nibi-kernel-api"
+description = "Ports and shared types of the nibi-kernel-cli kernel"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -18,7 +18,7 @@ async-trait.workspace = true
 futures-util.workspace = true
 # 工具路径参数的 NFC（env_path::nfc，tools-files.md §3.2）。
 icu_normalizer.workspace = true
-rust-cli-base.workspace = true
+nibi-kernel-base.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 # 网络捕获的 URL 脱敏（network_capture.rs，141 审计 F3）。

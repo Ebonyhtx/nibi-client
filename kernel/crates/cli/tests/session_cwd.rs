@@ -15,24 +15,24 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, InteractionId, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
 };
-use rust_cli_kernel_api::message::ToolResultContent;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::message::ToolResultContent;
+use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionGate,
     ToolExecutor, ToolRegistry,
 };
-use rust_cli_kernel_api::permission::{
+use nibi_kernel_api::permission::{
     PermissionMode, PermissionRules, RuleBehavior, RuleSource, SourcedRule,
 };
-use rust_cli_kernel_api::testing::{MemoryStore, NoHooks, RoundTripEnv, local_services, machine};
-use rust_cli_kernel_api::tool::{Tool, ToolUseContext};
-use rust_cli_policy::PolicyGate;
-use rust_cli_policy::rules::parse_rule;
-use rust_cli_tools::{BashTool, BuiltinTools, Pipeline};
+use nibi_kernel_api::testing::{MemoryStore, NoHooks, RoundTripEnv, local_services, machine};
+use nibi_kernel_api::tool::{Tool, ToolUseContext};
+use nibi_kernel_policy::PolicyGate;
+use nibi_kernel_policy::rules::parse_rule;
+use nibi_kernel_tools::{BashTool, BuiltinTools, Pipeline};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -107,7 +107,7 @@ impl Bench {
         Self {
             _dir: dir,
             root,
-            tools: rust_cli_tools::builtin(gate.clone()).with_search_opt_in(true),
+            tools: nibi_kernel_tools::builtin(gate.clone()).with_search_opt_in(true),
             bash: Arc::new(BashTool::new()),
             pipeline: Pipeline::new(gate, Arc::new(NoHooks)),
             env: Arc::new(RoundTripEnv(Arc::new(local))),

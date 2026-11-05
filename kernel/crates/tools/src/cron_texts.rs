@@ -3,8 +3,8 @@
 //! 文字逐字固定：错过任务的提示里产品名按 cron 文字的决定写成 NIBI、路径取产品目录 `.nibi`；ScheduleWakeup 的
 //! 结果按 brief 模式关、不预先报告状态的写法。
 
-use rust_cli_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
-use rust_cli_kernel_api::cron_store::StoredCronTask;
+use nibi_kernel_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
+use nibi_kernel_api::cron_store::StoredCronTask;
 
 use crate::cron_expr;
 

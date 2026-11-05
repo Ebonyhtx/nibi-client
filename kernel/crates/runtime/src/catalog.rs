@@ -2,9 +2,9 @@
 //! `-p` 的 stream-json 写 `system/init` 时用。工具的取舍与主循环的工具快照同一规则（query `step.rs` 的 `refresh`），
 //! 顺序：内置按名字（`localeCompare`），MCP 在后。
 
-use rust_cli_kernel_api::catalog::{CatalogQuery, SessionCatalog};
-use rust_cli_kernel_api::mcp_state::WAIT_FOR_MCP_SERVERS;
-use rust_cli_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred};
+use nibi_kernel_api::catalog::{CatalogQuery, SessionCatalog};
+use nibi_kernel_api::mcp_state::WAIT_FOR_MCP_SERVERS;
+use nibi_kernel_api::tool_search::{TOOL_SEARCH, compare_names, is_deferred};
 
 use crate::usage::UsageAnalyzer;
 

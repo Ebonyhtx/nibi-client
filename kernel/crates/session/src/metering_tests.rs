@@ -2,12 +2,12 @@
 //! `TurnEnded`。
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{Message, UserOrigin};
-use rust_cli_kernel_api::metering::CallStatus;
-use rust_cli_kernel_api::session_api::SessionHandle;
-use rust_cli_kernel_api::store::Fact;
-use rust_cli_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{Message, UserOrigin};
+use nibi_kernel_api::metering::CallStatus;
+use nibi_kernel_api::session_api::SessionHandle;
+use nibi_kernel_api::store::Fact;
+use nibi_kernel_api::testing::{FakeTool, ScriptedModel, text_response, tool_use_response};
 use serde_json::json;
 
 use crate::test_support::{Setup, finished, submit, until};
@@ -98,11 +98,11 @@ async fn a_text_turn_ends_with_one_turn_fact() {
 /// 把响应的 `MessageDelta` 换成带输出 token 的用量。
 fn with_output(
     mut events: Vec<
-        Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>,
+        Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>,
     >,
     output: u64,
-) -> Vec<Result<rust_cli_kernel_api::model::ModelEvent, rust_cli_kernel_api::model::ModelError>> {
-    use rust_cli_kernel_api::model::ModelEvent;
+) -> Vec<Result<nibi_kernel_api::model::ModelEvent, nibi_kernel_api::model::ModelError>> {
+    use nibi_kernel_api::model::ModelEvent;
     for event in &mut events {
         if let Ok(ModelEvent::MessageDelta { usage, .. }) = event {
             usage.output_tokens = output;
@@ -115,8 +115,8 @@ fn with_output(
 /// 快照（`SessionView.output_speed`）带它；只有工具调用的请求也有（首个内容是 tool_use 块开始）。旧代码没有这个事件。
 #[tokio::test]
 async fn completed_main_requests_report_their_output_speed() {
-    use rust_cli_kernel_api::metering::OutputSpeed;
-    use rust_cli_kernel_api::session_api::KernelEvent;
+    use nibi_kernel_api::metering::OutputSpeed;
+    use nibi_kernel_api::session_api::KernelEvent;
 
     let model = Arc::new(ScriptedModel::new(vec![
         with_output(tool_use_response("toolu_1", "Echo", &json!({})), 7),
@@ -162,11 +162,11 @@ async fn completed_main_requests_report_their_output_speed() {
 /// 只有完成的主回合请求更新速度：中断、失败、子代理、旁路与压缩请求都不更新。
 #[test]
 fn only_completed_main_requests_have_an_output_speed() {
-    use rust_cli_kernel_api::ids::MessageId;
-    use rust_cli_kernel_api::message::Usage;
-    use rust_cli_kernel_api::metering::{ModelCall, OutputSpeed};
-    use rust_cli_kernel_api::model::QuerySource;
-    use rust_cli_kernel_api::testing::selection;
+    use nibi_kernel_api::ids::MessageId;
+    use nibi_kernel_api::message::Usage;
+    use nibi_kernel_api::metering::{ModelCall, OutputSpeed};
+    use nibi_kernel_api::model::QuerySource;
+    use nibi_kernel_api::testing::selection;
 
     use crate::turn::output_speed;
 

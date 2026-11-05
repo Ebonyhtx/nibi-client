@@ -3,7 +3,7 @@
 //! query 与 context 只产生一种形状（第一方形状，卡片模型带卡片字段）。一方原样发出；“其他 Anthropic 兼容”
 //! 在编码前改成第三方 system 形状、去掉 `scope`，并去掉一方专有项，贴近 Node 在同一端点上的请求。
 
-use rust_cli_kernel_api::model::{CacheControl, ModelRequest, SystemBlock};
+use nibi_kernel_api::model::{CacheControl, ModelRequest, SystemBlock};
 
 use crate::profiles::{Profile, SystemShape};
 

@@ -1,13 +1,13 @@
 //! 批次的回合锚点（node-store.md §4，修复线 F6，审查 R5-3）：锚点给出的当前轮优先，写进库的列与按库推导时相同。
 use std::collections::HashMap;
 
-use rust_cli_kernel_api::ids::{CommandId, MessageId, OwnerEpoch, SessionId, ToolUseId, TurnId};
-use rust_cli_kernel_api::message::{ContentBlock, Message, StopReason, ToolResultContent, Usage};
-use rust_cli_kernel_api::message::{UserMessage, UserOrigin};
-use rust_cli_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::store::{Fact, FactBatch, SessionStore, TurnAnchor};
-use rust_cli_kernel_api::user_input::{INTERRUPT_TEXTS, bash_input};
+use nibi_kernel_api::ids::{CommandId, MessageId, OwnerEpoch, SessionId, ToolUseId, TurnId};
+use nibi_kernel_api::message::{ContentBlock, Message, StopReason, ToolResultContent, Usage};
+use nibi_kernel_api::message::{UserMessage, UserOrigin};
+use nibi_kernel_api::metering::{CallStatus, ModelCall, ToolCall};
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::store::{Fact, FactBatch, SessionStore, TurnAnchor};
+use nibi_kernel_api::user_input::{INTERRUPT_TEXTS, bash_input};
 use serde_json::Value;
 
 use crate::tests::{TestStore, assistant, selection, started, text, user};

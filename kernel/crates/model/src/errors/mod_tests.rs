@@ -1,8 +1,8 @@
 //! 分类器的入口：结束原因的通用表、传输错误、选厂商之后的路由。
 
-use rust_cli_kernel_api::message::StopReason;
-use rust_cli_kernel_api::model::ModelError;
-use rust_cli_net::NetError;
+use nibi_kernel_api::message::StopReason;
+use nibi_kernel_api::model::ModelError;
+use nibi_kernel_net::NetError;
 
 use super::*;
 

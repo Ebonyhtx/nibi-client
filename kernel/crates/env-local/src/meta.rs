@@ -5,8 +5,8 @@ use std::io;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rust_cli_kernel_api::env::{EnvError, FileVersion};
-use rust_cli_kernel_api::env_files::FileKind;
+use nibi_kernel_api::env::{EnvError, FileVersion};
+use nibi_kernel_api::env_files::FileKind;
 
 pub(crate) fn kind(metadata: &Metadata) -> FileKind {
     if metadata.is_file() {

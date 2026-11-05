@@ -16,17 +16,17 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient};
-use rust_cli_exec_transport::stream::stream_link;
-use rust_cli_exec_transport::{Connector, Link, LinkError, MAX_FRAME};
-use rust_cli_executor_host::proxy::{self, DaemonCommand, ProxyConfig};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient};
+use nibi_kernel_exec_transport::stream::stream_link;
+use nibi_kernel_exec_transport::{Connector, Link, LinkError, MAX_FRAME};
+use nibi_kernel_executor_host::proxy::{self, DaemonCommand, ProxyConfig};
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvPath, OperationContext, Origin, StartCommand, WriteFile,
     WritePrecondition,
 };
-use rust_cli_kernel_api::env_shell::CwdScope;
-use rust_cli_kernel_api::ids::{
+use nibi_kernel_api::env_shell::CwdScope;
+use nibi_kernel_api::ids::{
     EnvironmentId, Generation, OperationId, OwnerEpoch, SessionId, ShellTaskId,
 };
 use serde_json::Value;
@@ -237,7 +237,7 @@ async fn the_status_report_is_what_the_probe_reads() {
     let home = Home::new();
     let parse = |line: &str| {
         let output = format!("os Linux\narch x86_64\nhome /h\ncandidate {BIN}\t{line}\n");
-        rust_cli_ssh_connect::Probe::parse(&output).unwrap()
+        nibi_kernel_ssh_connect::Probe::parse(&output).unwrap()
     };
     let (_, idle, _) = home.run(&["executor", "status", "--json"]);
     let probe = parse(idle.trim());
@@ -262,7 +262,7 @@ async fn the_status_report_is_what_the_probe_reads() {
 struct OtherVersion {
     env: Vec<(String, String)>,
     work: PathBuf,
-    paths: rust_cli_paths::ExecutorPaths,
+    paths: nibi_kernel_paths::ExecutorPaths,
     version: String,
 }
 
@@ -272,7 +272,7 @@ impl OtherVersion {
         Arc::new(Self {
             env: home.env(),
             work: home.work.clone(),
-            paths: rust_cli_paths::StoragePaths::resolve(&Default::default(), root, root)
+            paths: nibi_kernel_paths::StoragePaths::resolve(&Default::default(), root, root)
                 .executor(),
             version: version.to_owned(),
         })
@@ -287,7 +287,7 @@ impl Connector for OtherVersion {
         let config = ProxyConfig {
             paths: self.paths.clone(),
             version: self.version.clone(),
-            protocol: rust_cli_exec_wire::handshake::PROTOCOL,
+            protocol: nibi_kernel_exec_wire::handshake::PROTOCOL,
             daemon: DaemonCommand {
                 program: PathBuf::from(BIN),
                 args: vec!["executor".to_owned(), "--daemon".to_owned()],

@@ -3,7 +3,7 @@
 //! 会话视图的 `peer_held`；这里只排版。
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use rust_cli_kernel_api::peers::HeldPeerMessage;
+use nibi_kernel_api::peers::HeldPeerMessage;
 
 use super::i18n_peers as words;
 use super::interaction_view::{View, bold, dashed, dim, hint, named, option};

@@ -2,10 +2,10 @@
 use std::sync::Arc;
 
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, environments, text_response};
+use nibi_kernel_api::env::{EnvFacts, EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
 

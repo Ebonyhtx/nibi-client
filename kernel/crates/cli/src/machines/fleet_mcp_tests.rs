@@ -8,21 +8,21 @@ use std::sync::{Arc, Mutex};
 use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
-use rust_cli_base::{OwnedTask, TaskScope};
-use rust_cli_env_remote::RemoteEnvironment;
-use rust_cli_exec_client::{ClientOptions, ExecClient};
-use rust_cli_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
-use rust_cli_exec_transport::memory::{MemoryConnector, network};
-use rust_cli_exec_transport::{Connector, LinkError, Provisioned, Provisioner, Ready};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::env_registry::EnvironmentRegistry;
-use rust_cli_kernel_api::ids::EnvironmentId;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_base::{OwnedTask, TaskScope};
+use nibi_kernel_env_remote::RemoteEnvironment;
+use nibi_kernel_exec_client::{ClientOptions, ExecClient};
+use nibi_kernel_exec_server::{AllowAll, ExecServer, MemoryLedger, ServerConfig};
+use nibi_kernel_exec_transport::memory::{MemoryConnector, network};
+use nibi_kernel_exec_transport::{Connector, LinkError, Provisioned, Provisioner, Ready};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::env_registry::EnvironmentRegistry;
+use nibi_kernel_api::ids::EnvironmentId;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpError, McpTransport, McpTransportConfig, McpTransportEvent,
 };
-use rust_cli_kernel_api::testing::{UnusedEnvironment, environments};
-use rust_cli_machines::{Endpoint, Machine, MachineEntry, MachineList};
+use nibi_kernel_api::testing::{UnusedEnvironment, environments};
+use nibi_kernel_machines::{Endpoint, Machine, MachineEntry, MachineList};
 
 use super::Fleet;
 use crate::machines::MachineRegistry;
@@ -110,7 +110,7 @@ async fn executor(mcp: Arc<Recording>) -> (Arc<MemoryConnector>, OwnedTask<()>) 
     let (connector, listener) = network("dev");
     let mut config = ServerConfig::new("0.1.60-test", "linux", "aarch64");
     config.home = Some("/home/dev".to_owned());
-    config.capabilities = rust_cli_exec_wire::handshake::Capabilities::ports_and_mcp();
+    config.capabilities = nibi_kernel_exec_wire::handshake::Capabilities::ports_and_mcp();
     let server = ExecServer::start(
         MachineEnv::new(Arc::new(UnusedEnvironment), mcp),
         Arc::new(MemoryLedger::default()),
@@ -119,7 +119,7 @@ async fn executor(mcp: Arc<Recording>) -> (Arc<MemoryConnector>, OwnedTask<()>) 
     )
     .await
     .unwrap();
-    let serving = rust_cli_base::owned(async move { server.serve(&listener).await });
+    let serving = nibi_kernel_base::owned(async move { server.serve(&listener).await });
     (Arc::new(connector), serving)
 }
 

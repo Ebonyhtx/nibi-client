@@ -1,8 +1,8 @@
 //! OpenAI Chat Completions 流解码（model.md §10.3）。
 
-use rust_cli_kernel_api::ids::ToolUseId;
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{BlockDelta, ModelError};
+use nibi_kernel_api::ids::ToolUseId;
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{BlockDelta, ModelError};
 use serde_json::{Map, json};
 
 use super::*;

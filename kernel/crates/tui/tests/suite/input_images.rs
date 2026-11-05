@@ -7,8 +7,8 @@ use base64::Engine;
 use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::{Clipboard, ImageBytes, Services};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::{Clipboard, ImageBytes, Services};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 

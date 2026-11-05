@@ -3,13 +3,13 @@
 //! 文字已套产品名替换表。
 //! 发送经 kernel-api 的 [`PeerMessaging`] 端口，本 crate 不做 IO。
 
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_api::peers::{
     ModeClass, PeerAddress, PeerOutbound, PeerRecord, PeerSendError, envelope, name_key,
     shortest_refs, split_reference,
 };
-use rust_cli_kernel_api::tool::ToolUseContext;
-use rust_cli_prompts::peers as texts;
-use rust_cli_prompts::texts::render;
+use nibi_kernel_api::tool::ToolUseContext;
+use nibi_kernel_prompts::peers as texts;
+use nibi_kernel_prompts::texts::render;
 
 use crate::Core;
 

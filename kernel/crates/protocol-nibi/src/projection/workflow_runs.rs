@@ -12,7 +12,7 @@
 //! 归约保持纯函数：无时钟、无 I/O。序号取信封上的到达序（单调），真实 journal sequence 在
 //! sidecar 的 journal 里，详情页按它分页。
 
-use rust_cli_kernel_api::workflow::{WorkflowRunProgress, WorkflowRunSummaryRow};
+use nibi_kernel_api::workflow::{WorkflowRunProgress, WorkflowRunSummaryRow};
 use serde::Serialize;
 use serde_json::Value;
 

@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::{LocaleStore, Services, UiLocale};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::{LocaleStore, Services, UiLocale};
 use tokio::sync::oneshot;
 
 use super::support::{GatedModel, Setup, with_ui};

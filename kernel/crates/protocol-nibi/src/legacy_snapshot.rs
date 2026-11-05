@@ -2,7 +2,7 @@
 //!
 //! 形状对齐 `zcodeSessionStateSnapshotSchema`（packages/shared/src/nibi-protocol）：Host 会按严格
 //! schema 解析，缺字段不是“少显示一点”，而是整个响应被拒。逐条消息时间由
-//! [`Kernel::session_message_times`](rust_cli_kernel_api::session_api::Kernel::session_message_times)
+//! [`Kernel::session_message_times`](nibi_kernel_api::session_api::Kernel::session_message_times)
 //! 从存储注入（node-store 的 `time_created/time_updated`），取不到时回退到会话创建时间；成本 UI
 //! 不显示，仍为 0。消息顺序同时由数组保证，不单靠时间戳排序。
 //!
@@ -17,16 +17,16 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::attachment::AttachmentSource;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{
+use nibi_kernel_api::attachment::AttachmentSource;
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, ImageSource, Message, ToolResultContent, Usage, UserMessage,
     UserOrigin,
 };
-use rust_cli_kernel_api::ids::MessageId;
-use rust_cli_kernel_api::session_api::{Kernel, SessionView};
-use rust_cli_kernel_api::store::{MessageTime, SessionKind};
+use nibi_kernel_api::ids::MessageId;
+use nibi_kernel_api::session_api::{Kernel, SessionView};
+use nibi_kernel_api::store::{MessageTime, SessionKind};
 use serde_json::{Value, json};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,10 +118,10 @@ pub(crate) async fn resolve_media(
 }
 
 /// `nibi-artifact://<会话>/<artifact>`（与内核 `ArtifactRef` 的写侧同形）。
-fn artifact_uri(artifact: &rust_cli_kernel_api::store::ArtifactRef) -> String {
+fn artifact_uri(artifact: &nibi_kernel_api::store::ArtifactRef) -> String {
     format!(
         "{}{}/{}",
-        rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME,
+        nibi_kernel_api::persisted_output::ARTIFACT_SCHEME,
         encode_component(artifact.session.as_str()),
         encode_component(artifact.id.as_str())
     )
@@ -185,7 +185,7 @@ fn assistant_info(
     info
 }
 
-fn model_value(selection: &rust_cli_kernel_api::model::ModelSelection) -> Value {
+fn model_value(selection: &nibi_kernel_api::model::ModelSelection) -> Value {
     let mut value = json!({
         "providerId": &selection.provider,
         "modelId": &selection.model,

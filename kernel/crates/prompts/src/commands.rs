@@ -1,7 +1,7 @@
 //! 本地斜杠命令的固定文字（docs/specs/rust-cli/tui-display.md §3）。L28 的 `/agents` 说明已随命令删除
 //!（用户决定，tui-display.md §3.2，L33）。
 
-use rust_cli_base::include_lf;
+use nibi_kernel_base::include_lf;
 
 /// `/cd` 给模型的说明（docs/specs/rust-cli/tui-manage.md §7.1，包进
 /// `<system-reminder>`）；`dir` 是新目录。不提项目设置、MCP、skill 与环境变量。

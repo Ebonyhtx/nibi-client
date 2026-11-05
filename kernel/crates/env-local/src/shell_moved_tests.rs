@@ -3,9 +3,9 @@
 //! 夹具在 shell_tests.rs（需要 `/bin/bash`，Windows 上跳过）。
 #![cfg(unix)]
 use futures_util::StreamExt;
-use rust_cli_kernel_api::env::{BackgroundReason, CommandEvent};
-use rust_cli_kernel_api::env_shell::{BackgroundCommand, CwdScope, TimeoutBackground};
-use rust_cli_kernel_api::ids::{OperationId, SessionId, ToolUseId};
+use nibi_kernel_api::env::{BackgroundReason, CommandEvent};
+use nibi_kernel_api::env_shell::{BackgroundCommand, CwdScope, TimeoutBackground};
+use nibi_kernel_api::ids::{OperationId, SessionId, ToolUseId};
 
 use super::tests::{context, fixture, request};
 

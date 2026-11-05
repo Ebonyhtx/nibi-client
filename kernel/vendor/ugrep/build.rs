@@ -113,7 +113,7 @@ fn base(here: &Path, out: &Path, includes: &[PathBuf], cpp: bool) -> cc::Build {
     if cpp {
         build.std("c++17");
     }
-    remap(&mut build, here, "rust-cli-vendor-ugrep");
+    remap(&mut build, here, "nibi-kernel-vendor-ugrep");
     remap(&mut build, out, "out");
     build
 }
@@ -139,7 +139,7 @@ fn static_libstdcxx(build: &cc::Build) -> Option<PathBuf> {
         .filter(|dir| path.is_absolute() && path.is_file() && !dir.as_os_str().is_empty());
     let Some(dir) = dir else {
         panic!(
-            "rust-cli-vendor-ugrep：找不到 libstdc++.a（{} -print-file-name=libstdc++.a 给的是 {}）；装上 libstdc++ 的静态库（Debian / Ubuntu 的 libstdc++-*-dev）",
+            "nibi-kernel-vendor-ugrep：找不到 libstdc++.a（{} -print-file-name=libstdc++.a 给的是 {}）；装上 libstdc++ 的静态库（Debian / Ubuntu 的 libstdc++-*-dev）",
             compiler.path().display(),
             path.display()
         );
@@ -165,7 +165,7 @@ fn main() {
         ("linux", "musl") => "linux-musl",
         ("windows", "msvc") => "windows",
         (os, target_env) => panic!(
-            "rust-cli-vendor-ugrep：没有 {os}-{target_env} 的 config.h；Unix 先用 scripts/rust-cli/vendor/ugrep-config.mjs 生成（embedded-search.md §7.2）"
+            "nibi-kernel-vendor-ugrep：没有 {os}-{target_env} 的 config.h；Unix 先用 scripts/rust-cli/vendor/ugrep-config.mjs 生成（embedded-search.md §7.2）"
         ),
     };
     let out = PathBuf::from(var("OUT_DIR"));
@@ -233,12 +233,12 @@ fn main() {
     let mut wide: Vec<(cc::Build, &str)> = Vec::new();
     if x86 {
         for (files, gnu, msvc, name) in [
-            (REFLEX_AVX2, "-mavx2", "/arch:AVX2", "rust_cli_reflex_avx2"),
+            (REFLEX_AVX2, "-mavx2", "/arch:AVX2", "nibi_kernel_reflex_avx2"),
             (
                 REFLEX_AVX512BW,
                 "-mavx512bw",
                 "/arch:AVX512",
-                "rust_cli_reflex_avx512bw",
+                "nibi_kernel_reflex_avx512bw",
             ),
         ] {
             let mut build = base(&here, &out, &includes, true);
@@ -263,8 +263,8 @@ fn main() {
         .define("PLATFORM", platform.as_str())
         .define("GREP_PATH", "\"/usr/local/share/ugrep/patterns\"")
         // 改名，由 shim.cpp 调用（embedded-search.md §7.3）。
-        .define("main", "rust_cli_ugrep_main_cpp")
-        .define("wmain", "rust_cli_ugrep_wmain_cpp")
+        .define("main", "nibi_kernel_ugrep_main_cpp")
+        .define("wmain", "nibi_kernel_ugrep_wmain_cpp")
         .files(sources(&upstream.join("src"), UGREP))
         .file(here.join("shim.cpp"));
 
@@ -298,14 +298,14 @@ fn main() {
         }
     }
     // 链接顺序：引用别人的在前（静态库按顺序解析）。
-    ugrep.compile("rust_cli_ugrep");
-    zopen.compile("rust_cli_ugrep_zopen");
-    reflex.compile("rust_cli_reflex");
+    ugrep.compile("nibi_kernel_ugrep");
+    zopen.compile("nibi_kernel_ugrep_zopen");
+    reflex.compile("nibi_kernel_reflex");
     for (build, name) in wide {
         build.compile(name);
     }
-    viiz.compile("rust_cli_viiz");
-    brotli_dec.compile("rust_cli_brotli_dec");
+    viiz.compile("nibi_kernel_viiz");
+    brotli_dec.compile("nibi_kernel_brotli_dec");
     if let Some(dir) = libstdcxx {
         println!("cargo:rustc-link-search=native={}", dir.display());
         println!("cargo:rustc-link-lib=static=stdc++");

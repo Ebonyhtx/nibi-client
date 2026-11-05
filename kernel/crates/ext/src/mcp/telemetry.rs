@@ -1,7 +1,7 @@
 //! MCP 进程遥测的出口（141 审计 §9 F3，`process/mcpTelemetry`）。
 //!
 //! 三类事件（`process_start` / `process_crash` / `session_startup`）在这里成形：身份（`mcpId`）用
-//! [`rust_cli_kernel_api::mcp_telemetry`] 的编码，事件经通道交给协议层（另一头是
+//! [`nibi_kernel_api::mcp_telemetry`] 的编码，事件经通道交给协议层（另一头是
 //! `process/mcpTelemetry` 通知）。没有通道时（TUI、测试）什么都不做。
 //!
 //! `memory` 那类事件不产生：五分钟资源采样（`process/mcpResourceSamples`）已经取代它，Node 的
@@ -12,11 +12,11 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::mcp_telemetry::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::mcp_telemetry::{
     McpProcessIdentity, McpTelemetryEvent, mcp_id, resolve_source,
 };
-use rust_cli_kernel_api::process_table::{node_arch, node_platform};
+use nibi_kernel_api::process_table::{node_arch, node_platform};
 use tokio::sync::mpsc::UnboundedSender;
 
 /// 一个 manager 的遥测出口：通道 + 加盐用的设备标识（`NIBI_TELEMETRY_DEVICE_MID`）。
@@ -30,7 +30,7 @@ impl McpTelemetry {
     /// `salt` 为空时退回进程级随机串：同一进程内稳定，跨进程不可关联（Node 退回 `traceId` 的同一姿态）。
     pub fn new(sink: UnboundedSender<McpTelemetryEvent>, salt: String) -> Arc<Self> {
         let salt = if salt.trim().is_empty() {
-            format!("{:016x}{:016x}", rust_cli_base::random::u64(), rust_cli_base::random::u64())
+            format!("{:016x}{:016x}", nibi_kernel_base::random::u64(), nibi_kernel_base::random::u64())
         } else {
             salt
         };
@@ -47,7 +47,7 @@ impl McpTelemetry {
         let source = resolve_source(server_name, plugin_scope);
         McpProcessIdentity {
             mcp_id: mcp_id(server_name, source, &self.salt),
-            instance_id: rust_cli_kernel_api::process_table::uuid_v4(),
+            instance_id: nibi_kernel_api::process_table::uuid_v4(),
             started_at_ms,
         }
     }

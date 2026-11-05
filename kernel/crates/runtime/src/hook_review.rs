@@ -1,7 +1,7 @@
 //! 工作区钩子评审的内核侧（NIBI `requestWorkspaceHookReview` / `respondWorkspaceHookReview` /
 //! `revokeWorkspaceHookTrust`）。
 //!
-//! 判定在 `rust_cli_hooks::hook_review`（纯函数，digest 与 Node 逐字节一致）；这里只把三样东西接起来：
+//! 判定在 `nibi_kernel_hooks::hook_review`（纯函数，digest 与 Node 逐字节一致）；这里只把三样东西接起来：
 //! 工作区的项目文件（经执行环境发现，config.md §1）、入口注入的用户层 hooks（默认超时与输出上限）、
 //! 入口注入的信任库（`~/.nibi` 的位置由 `StoragePaths` 决定，内核不碰存储根）。
 //!
@@ -11,8 +11,8 @@
 use std::collections::{BTreeSet, HashSet};
 
 use super::*;
-use rust_cli_kernel_api::env::WorkspaceRef;
-use rust_cli_kernel_api::hook_review::{
+use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_api::hook_review::{
     HookTrust, HookTrustError, HookTrustGrant, WorkspaceHookReview,
 };
 
@@ -40,11 +40,11 @@ impl LocalKernel {
     ) -> Result<WorkspaceHookReview, KernelError> {
         let trust = self.hook_trust()?;
         let files =
-            rust_cli_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
         let identity = workspace.root.as_str();
         let loaded = trust.load(identity).await;
         let trusted: HashSet<String> = loaded.trusted.into_iter().collect();
-        Ok(rust_cli_hooks::hook_review::review(
+        Ok(nibi_kernel_hooks::hook_review::review(
             identity,
             &files,
             self.user_hooks.as_ref(),
@@ -111,11 +111,11 @@ impl LocalKernel {
     async fn refresh_admitted_hooks(&self, workspace: &WorkspaceRef) -> Result<(), KernelError> {
         let trust = self.hook_trust()?;
         let files =
-            rust_cli_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
         let identity = workspace.root.as_str();
         let loaded = trust.load(identity).await;
         let trusted: HashSet<String> = loaded.trusted.into_iter().collect();
-        let settings = rust_cli_hooks::hook_review::admitted_for(
+        let settings = nibi_kernel_hooks::hook_review::admitted_for(
             identity,
             &files,
             self.user_hooks.as_ref(),
@@ -149,18 +149,18 @@ impl LocalKernel {
             .cloned()
             .ok_or_else(mismatch)?;
         if !item.editable
-            || item.source_path != rust_cli_hooks::project_config::DOT_PROJECT_CONFIG
+            || item.source_path != nibi_kernel_hooks::project_config::DOT_PROJECT_CONFIG
         {
             return Err(mismatch());
         }
         let files =
-            rust_cli_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
+            nibi_kernel_hooks::project_config::discover(self.machine.files().as_ref(), workspace).await;
         let file = files
             .iter()
             .find(|file| {
                 file.editable
-                    && file.kind == rust_cli_hooks::project_config::ProjectKind::DotProjectConfig
-                    && rust_cli_hooks::project_config::relative(workspace.root.as_str(), &file.path)
+                    && file.kind == nibi_kernel_hooks::project_config::ProjectKind::DotProjectConfig
+                    && nibi_kernel_hooks::project_config::relative(workspace.root.as_str(), &file.path)
                         == item.source_path
             })
             .ok_or_else(mismatch)?;
@@ -169,8 +169,8 @@ impl LocalKernel {
             .files()
             .read_file(
                 workspace,
-                rust_cli_kernel_api::env::ReadFile {
-                    path: rust_cli_kernel_api::env::EnvPath::new(file.path.clone()),
+                nibi_kernel_api::env::ReadFile {
+                    path: nibi_kernel_api::env::EnvPath::new(file.path.clone()),
                 },
             )
             .await
@@ -182,7 +182,7 @@ impl LocalKernel {
                 message: format!("workspace_hooks_config_unreadable: {error}"),
             })?;
         // 守卫：磁盘上的声明与评审时看到的是同一条（命令与 matcher 都要对上）。
-        let (hooks, _) = rust_cli_hooks::node_config::NodeHooks::from_json(&value["hooks"]);
+        let (hooks, _) = nibi_kernel_hooks::node_config::NodeHooks::from_json(&value["hooks"]);
         let current = hooks
             .events
             .iter()
@@ -211,22 +211,22 @@ impl LocalKernel {
                 message: format!("workspace_hooks_config_write_failed: {error}"),
             })?
         );
-        let context = rust_cli_kernel_api::env::OperationContext {
+        let context = nibi_kernel_api::env::OperationContext {
             environment: workspace.environment.clone(),
             generation: self.generation.clone(),
             owner_epoch: OwnerEpoch::LOCAL,
             operation: self.ports.ids.operation(),
-            origin: rust_cli_kernel_api::env::Origin::User { session: None },
+            origin: nibi_kernel_api::env::Origin::User { session: None },
         };
         self.machine
             .files()
             .put_file(
                 workspace,
                 context,
-                rust_cli_kernel_api::env_files::PutFile {
-                    path: rust_cli_kernel_api::env::EnvPath::new(file.path.clone()),
+                nibi_kernel_api::env_files::PutFile {
+                    path: nibi_kernel_api::env::EnvPath::new(file.path.clone()),
                     bytes: text.into_bytes(),
-                    precondition: rust_cli_kernel_api::env::WritePrecondition::Any,
+                    precondition: nibi_kernel_api::env::WritePrecondition::Any,
                     create_parents: false,
                 },
             )

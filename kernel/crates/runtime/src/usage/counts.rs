@@ -3,13 +3,13 @@
 //! 修改（工作线 F93，用户决定 2026-10-24）：以前经模型端口的 count_tokens 计数，失败或不支持时才本地估算，成功的
 //! 结果按请求内容缓存；现在一律本地估算（计数失败时的同一套，D13），计数、缓存与只为计数服务的会话字段一起删掉。
 
-use rust_cli_kernel_api::message::ContentBlock;
-use rust_cli_kernel_api::model::{ApiContent, ApiMessage, ApiRole, ToolDefinition};
+use nibi_kernel_api::message::ContentBlock;
+use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole, ToolDefinition};
 
 /// 每次计数附带的工具开销：只有工具的那几项减去它才是工具本身。
 pub(crate) const TOOL_OVERHEAD: u64 = 500;
 
-/// 一次 `/context` 的估算器：每 token 字符数按模型（`rust_cli_prompts::models::chars_per_token`）。
+/// 一次 `/context` 的估算器：每 token 字符数按模型（`nibi_kernel_prompts::models::chars_per_token`）。
 pub(crate) struct Counter {
     pub(crate) per_token: u64,
 }
@@ -44,7 +44,7 @@ fn estimate(messages: &[ApiMessage], tools: &[ToolDefinition], per: u64) -> u64 
         .map(|content| match &content.block {
             ContentBlock::Text { text } => rough(text, per),
             // 每张图的估计与压缩共用（2000，F55）。
-            ContentBlock::Image { .. } => rust_cli_compact::IMAGE_TOKENS,
+            ContentBlock::Image { .. } => nibi_kernel_compact::IMAGE_TOKENS,
             other => rough(&serde_json::to_string(other).unwrap_or_default(), per),
         })
         .sum();

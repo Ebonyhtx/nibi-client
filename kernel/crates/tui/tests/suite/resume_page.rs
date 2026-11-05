@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyModifiers};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::testing::{MemoryStore, environments, text_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::testing::{MemoryStore, environments, text_response};
 
 use super::sessions_seed::{Seed, seed};
 use super::support::{GatedModel, Setup, Ui, with_ui};

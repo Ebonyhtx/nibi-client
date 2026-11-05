@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use rust_cli_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::session_api::KernelEvent;
 
 use super::*;
 
@@ -32,10 +32,10 @@ async fn subscribing_without_a_position_starts_at_the_next_event() {
 }
 
 use futures_util::FutureExt;
-use rust_cli_kernel_api::ids::{ToolUseId, TurnId};
-use rust_cli_kernel_api::model::BlockDelta;
-use rust_cli_kernel_api::orchestration::QueryEvent;
-use rust_cli_kernel_api::tool::{ToolOutput, ToolProgress};
+use nibi_kernel_api::ids::{ToolUseId, TurnId};
+use nibi_kernel_api::model::BlockDelta;
+use nibi_kernel_api::orchestration::QueryEvent;
+use nibi_kernel_api::tool::{ToolOutput, ToolProgress};
 use serde_json::json;
 
 fn delta(response: u32, index: usize, text: &str) -> KernelEvent {

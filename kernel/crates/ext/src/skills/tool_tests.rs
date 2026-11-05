@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::{MemoryEnvironment, SequentialIds};
-use rust_cli_policy::PolicyGate;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::{MemoryEnvironment, SequentialIds};
+use nibi_kernel_policy::PolicyGate;
 use serde_json::json;
 
 use super::*;
@@ -185,7 +185,7 @@ async fn the_k1_dont_ask_run_asks_for_greet_and_admits_plain() {
     let tool = tool(env.clone());
     let context = tool_context(env, PermissionMode::DontAsk);
     let gate = PolicyGate::default();
-    use rust_cli_kernel_api::orchestration::PermissionGate;
+    use nibi_kernel_api::orchestration::PermissionGate;
     let greet = gate
         .decide(&tool, &json!({"skill": "greet", "args": "Ada"}), &context)
         .await;

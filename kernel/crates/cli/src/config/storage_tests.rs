@@ -1,5 +1,5 @@
 //! `storage.dir` 与 `storage.sessionDbPath` 的层级（Node `createConfig` + `parseEnvConfig`）。
-use rust_cli_kernel_api::permission::RuleSource;
+use nibi_kernel_api::permission::RuleSource;
 use serde_json::{Map, Value, json};
 
 use super::*;

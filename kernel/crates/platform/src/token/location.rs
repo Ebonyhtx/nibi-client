@@ -4,8 +4,8 @@
 //!
 //! 解析一次后加密存进 `credentials.json`（键 [`storage_key`]），之后的进程直接读；签发回 404 时删掉。
 
-use rust_cli_base::js::json::js_double;
-use rust_cli_base::js::string::trim as js_trim;
+use nibi_kernel_base::js::json::js_double;
+use nibi_kernel_base::js::string::trim as js_trim;
 use serde_json::{Value, json};
 
 use super::TokenError;
@@ -105,7 +105,7 @@ fn team_json(team: Option<&TeamProject>) -> Value {
 /// 进程内缓存与单飞的范围：`JSON [账号, 团队 | null, 选择]`（App 的 `locationKey`）。
 pub(crate) fn scope_key(account: &str, team: Option<&TeamProject>) -> String {
     let selection = team.map_or(json!(PERSONAL_SELECTION), |_| Value::Null);
-    rust_cli_base::js::json::stringify(&json!([account, team_json(team), selection]))
+    nibi_kernel_base::js::json::stringify(&json!([account, team_json(team), selection]))
 }
 
 /// `project-key-location:v1:` + `encodeURIComponent(JSON [origin, family, 账号, 团队 | null, 1, 选择])`：个人是
@@ -128,7 +128,7 @@ pub(crate) fn storage_key(
     ]);
     format!(
         "project-key-location:v1:{}",
-        encode_uri_component(&rust_cli_base::js::json::stringify(&scope))
+        encode_uri_component(&nibi_kernel_base::js::json::stringify(&scope))
     )
 }
 

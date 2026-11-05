@@ -2,7 +2,7 @@
 //! （原文，不去首尾空白）；有管道时是那一段（管道符之间，去掉 `>` / `>>` 重定向）；管道里的输出重定向被拒绝时保留
 //! 路径那一句。规则与路径的拒绝都一样。
 
-use rust_cli_kernel_api::permission::{PermissionMode, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionMode, RuleBehavior};
 
 use super::*;
 use crate::test_support::{message, run};

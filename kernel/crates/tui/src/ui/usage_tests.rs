@@ -1,8 +1,8 @@
 //! `/usage` 页面（usage.md §4、§5）：会话部分、标签页与范围查询的序号。
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rust_cli_kernel_api::metering::{ActivityRange, ActivityStats, SessionMetering};
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::metering::{ActivityRange, ActivityStats, SessionMetering};
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::testing::selection;
 
 use super::{StatsView, UsageTab, UsageView};
 use crate::ui::app::{Action, App, Overlay};

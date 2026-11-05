@@ -4,8 +4,8 @@
 //! `usage`，形状照 Node 的 `runner-debug.ts`。原料由包住解码器的 Tape 在请求路径上收（只把增量接到各自的块上）；拼参数
 //! JSON、换算停止原因与用量在写者线程上做（[`Reply::write`]）。
 
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, Usage};
-use rust_cli_kernel_api::model::BlockDelta;
+use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+use nibi_kernel_api::model::BlockDelta;
 use serde_json::{Map, Value, json};
 
 /// 一个块收到的内容。

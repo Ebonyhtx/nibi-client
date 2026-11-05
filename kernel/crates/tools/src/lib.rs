@@ -83,9 +83,9 @@ mod write;
 
 use std::sync::Arc;
 
-use rust_cli_kernel_api::clock::Clock;
-use rust_cli_kernel_api::orchestration::PermissionGate;
-use rust_cli_kernel_api::tool::Tool;
+use nibi_kernel_api::clock::Clock;
+use nibi_kernel_api::orchestration::PermissionGate;
+use nibi_kernel_api::tool::Tool;
 
 pub use ask_user_question::AskUserQuestionTool;
 pub use bash::{BashTimeouts, BashTool};
@@ -112,7 +112,7 @@ pub use user_input::UserInputTools;
 pub use web_fetch::{SideModel, WebFetchTool};
 pub use web_search::WebSearchTool;
 pub use fill_workflow_hole::FillWorkflowHoleTool;
-pub use rust_cli_kernel_api::workflow::WorkflowEngineSlot;
+pub use nibi_kernel_api::workflow::WorkflowEngineSlot;
 pub use workflow_question::ResolveWorkflowQuestionTool;
 pub use workflow_run_detail::GetWorkflowRunTool;
 pub use worktree::{WorktreeBoard, worktree_tools};

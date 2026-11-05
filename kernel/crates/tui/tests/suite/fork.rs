@@ -2,10 +2,10 @@
 //! 选中一条后切到新会话，新会话带到这一轮为止；文件不动；带参数时忽略参数（F78）；文字随界面语言（F78）；
 //! `/branch` 是未知命令。
 use crossterm::event::KeyCode;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::message::{ContentBlock, Message, UserOrigin};
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::{environments, text_response};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::{ContentBlock, Message, UserOrigin};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::{environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
 
@@ -75,9 +75,9 @@ async fn fork_lists_the_inputs_and_keeps_the_chosen_turn() {
 /// 写过文件的一轮分叉之后文件不动（要回退文件用 `/rewind`）；只有一条输入时直接 enter。
 #[tokio::test(flavor = "multi_thread")]
 async fn fork_leaves_the_files_as_they_are() {
-    use rust_cli_kernel_api::env::{EnvFacts, EnvPath, ReadFile};
-    use rust_cli_kernel_api::machine::Files;
-    use rust_cli_kernel_api::testing::{MemoryArtifacts, MemoryEnvironment, tool_use_response};
+    use nibi_kernel_api::env::{EnvFacts, EnvPath, ReadFile};
+    use nibi_kernel_api::machine::Files;
+    use nibi_kernel_api::testing::{MemoryArtifacts, MemoryEnvironment, tool_use_response};
     use std::sync::Arc;
 
     let model = GatedModel::scripted(vec![
@@ -119,8 +119,8 @@ async fn fork_leaves_the_files_as_they_are() {
         assert!(screen.contains("written"), "{screen}");
     })
     .await;
-    let workspace = rust_cli_kernel_api::env::WorkspaceRef {
-        environment: rust_cli_kernel_api::ids::EnvironmentId::new("local"),
+    let workspace = nibi_kernel_api::env::WorkspaceRef {
+        environment: nibi_kernel_api::ids::EnvironmentId::new("local"),
         root: EnvPath::new("/Users/dev/project"),
     };
     let read = env

@@ -12,7 +12,7 @@ use super::{
 use crate::ui::markdown;
 use crate::ui::text::{truncate, truncate_line, wrap};
 use crate::view::{ToolRow, ToolStatus};
-use rust_cli_kernel_api::mcp_state::WAIT_FOR_MCP_SERVERS;
+use nibi_kernel_api::mcp_state::WAIT_FOR_MCP_SERVERS;
 
 /// 紧凑模式下输出保留开头的行数。
 const HEAD: usize = 3;
@@ -30,7 +30,7 @@ fn args_summary(args: &Value) -> String {
         Value::Object(map) => map
             .iter()
             .filter(|(key, _)| {
-                !(key.as_str() == rust_cli_kernel_api::machine_param::MACHINE
+                !(key.as_str() == nibi_kernel_api::machine_param::MACHINE
                     && crate::ui::machines::machine_of(args).is_some())
             })
             .map(|(key, value)| format!("{key}: {value}"))
@@ -67,7 +67,7 @@ pub(super) fn head_parts(tool: &ToolRow, ctx: &Ctx<'_>) -> (String, Option<Strin
             .map(|path| shown_path(path, tool, ctx))
     };
     // R5-1：输入不是合法 JSON（标记对象）时参数位置写固定的说明，不按工具解析参数。
-    if let Some(unparsed) = rust_cli_kernel_api::unparsed_input::parse(args) {
+    if let Some(unparsed) = nibi_kernel_api::unparsed_input::parse(args) {
         let text = format!("input JSON failed to parse \u{2014} {} bytes", unparsed.len);
         return (name.to_owned(), Some(text), "");
     }

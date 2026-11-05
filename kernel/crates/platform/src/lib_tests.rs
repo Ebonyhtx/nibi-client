@@ -227,7 +227,7 @@ async fn an_injected_header_source_supplies_account_credentials() {
     .await;
     let select = selection(ZAI, "GLM-5.3", Some("high"));
     let context = EndpointContext {
-        session: Some(rust_cli_kernel_api::ids::SessionId::new("session_1")),
+        session: Some(nibi_kernel_api::ids::SessionId::new("session_1")),
     };
     let first = platform
         .endpoint_in(&select, None, None, &context)
@@ -304,7 +304,7 @@ async fn limits_come_from_the_published_snapshot() {
         })
     );
     let mut teamed = chat.clone();
-    teamed.connection = Some(Box::new(rust_cli_kernel_api::model::ModelConnection {
+    teamed.connection = Some(Box::new(nibi_kernel_api::model::ModelConnection {
         product_id: "prod".to_owned(),
         organization_id: "org".to_owned(),
         project_id: "proj".to_owned(),

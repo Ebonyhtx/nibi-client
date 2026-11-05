@@ -14,9 +14,9 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
-use rust_cli_base::{Spawner, Task};
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_base::{Spawner, Task};
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::session_api::{
     Kernel, KernelError, SequencedEvent, SessionHandle, SessionView,
 };
 use tokio::sync::mpsc;

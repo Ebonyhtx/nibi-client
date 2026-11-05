@@ -9,8 +9,8 @@
 //! `sharedContextStatus`；Rust 的消息模型没有这条元数据，恢复时的排除规则在 Rust 侧本来就不生效）。
 
 use super::*;
-use rust_cli_kernel_api::shared_context::SharedContextImportState;
-use rust_cli_kernel_api::store::FrontendRecord;
+use nibi_kernel_api::shared_context::SharedContextImportState;
+use nibi_kernel_api::store::FrontendRecord;
 use serde_json::Value;
 
 /// Node `session_entry.type`。

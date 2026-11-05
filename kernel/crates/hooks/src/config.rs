@@ -3,9 +3,9 @@
 //! 结构是设置文件的 `hooks` 段（含 `args` 与 `continueOnBlock` 两个字段）。这里只解析入口层读好的 JSON，
 //! 不做 IO；坏项跳过并给出警告（D1）。
 
-use rust_cli_base::secret::EnvSnapshot;
-use rust_cli_kernel_api::hooks::HookEventName;
-use rust_cli_kernel_api::model::ModelSelection;
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_api::hooks::HookEventName;
+use nibi_kernel_api::model::ModelSelection;
 use serde_json::{Map, Value};
 
 /// 设置来自哪里（setting source）。按合并顺序列出（排序即合并顺序）。

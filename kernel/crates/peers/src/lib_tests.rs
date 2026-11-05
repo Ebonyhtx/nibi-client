@@ -4,11 +4,11 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-use rust_cli_base::TaskScope;
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_api::peers::{
     ModeClass, PeerMessaging, PeerOutbound, PeerSignal, ReceiptStatus, envelope,
 };
-use rust_cli_kernel_api::testing::{FixedClock, SequentialIds};
+use nibi_kernel_api::testing::{FixedClock, SequentialIds};
 
 use super::*;
 

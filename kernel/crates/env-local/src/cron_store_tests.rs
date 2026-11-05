@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use rust_cli_kernel_api::cron_store::NewCronTask;
+use nibi_kernel_api::cron_store::NewCronTask;
 
 use super::*;
 
@@ -33,7 +33,7 @@ fn new_task(id: &str, session: &str) -> NewCronTask {
 }
 
 async fn file(dir: &tempfile::TempDir) -> Vec<FileTask> {
-    let bytes = rust_cli_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
+    let bytes = nibi_kernel_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
         .await
         .unwrap()
         .unwrap_or_default();
@@ -98,7 +98,7 @@ async fn remove_and_mark_fired_rewrite_the_file() {
         ("a1", Some(99))
     );
     // 没有匹配：文件不动（监听不会收到事件）。
-    let before = rust_cli_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
+    let before = nibi_kernel_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
         .await
         .unwrap();
     store
@@ -107,7 +107,7 @@ async fn remove_and_mark_fired_rewrite_the_file() {
         })
         .await
         .unwrap();
-    let after = rust_cli_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
+    let after = nibi_kernel_fs::read_optional(&dir.path().join(".nibi/scheduled_tasks.json"))
         .await
         .unwrap();
     assert_eq!(before, after);
@@ -199,7 +199,7 @@ async fn creators_projects_and_claim() {
 async fn changes_follow_writes_to_the_tasks_file() {
     let dir = tempfile::tempdir().unwrap();
     let store = store(&dir);
-    rust_cli_fs::create_dir_all(&dir.path().join(".nibi"))
+    nibi_kernel_fs::create_dir_all(&dir.path().join(".nibi"))
         .await
         .unwrap();
     let mut changes = store.changes();
@@ -224,7 +224,7 @@ async fn changes_follow_writes_to_the_tasks_file() {
         .await
         .is_ok()
     {}
-    rust_cli_fs::atomic_write(
+    nibi_kernel_fs::atomic_write(
         &dir.path().join(".nibi/other.json"),
         b"{}",
         write_options(),
@@ -237,7 +237,7 @@ async fn changes_follow_writes_to_the_tasks_file() {
             .is_err(),
         "unrelated files do not count"
     );
-    rust_cli_fs::atomic_write(
+    nibi_kernel_fs::atomic_write(
         &dir.path().join(".nibi/scheduled_tasks.json"),
         b"{\"tasks\": []}\n",
         write_options(),

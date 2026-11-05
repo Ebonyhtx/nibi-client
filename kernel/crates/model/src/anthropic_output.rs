@@ -2,7 +2,7 @@
 //! 也是这个顺序）。`format` 是 structured output 的格式
 //! （docs/specs/rust-cli/titles.md §8.4），beta 由 `anthropic_betas` 按请求体生成。
 
-use rust_cli_kernel_api::model::OutputFormat;
+use nibi_kernel_api::model::OutputFormat;
 use serde_json::{Map, Value};
 
 /// 两项都没有时为 None（不写 `output_config`）。

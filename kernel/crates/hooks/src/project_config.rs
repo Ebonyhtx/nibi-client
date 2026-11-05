@@ -7,12 +7,12 @@
 //! 从那一层到工作区根，每层依次 `nibi.json`、`.nibi/config.json`；一路都没有 `.git` 时只看工作区根。
 //! 存在的文件按顺序编号（读坏的文件也占序号，Node 的 `discoveryOrder`）。
 
-use rust_cli_base::names::{PROJECT_CONFIG_FILE, PROJECT_DOT_DIR};
-use rust_cli_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
-use rust_cli_kernel_api::env_files::{PathStyle, StatFile};
-use rust_cli_kernel_api::env_git::has_git_marker;
-use rust_cli_kernel_api::machine::Files;
-use rust_cli_platform::ConfigFile;
+use nibi_kernel_base::names::{PROJECT_CONFIG_FILE, PROJECT_DOT_DIR};
+use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
+use nibi_kernel_api::env_files::{PathStyle, StatFile};
+use nibi_kernel_api::env_git::has_git_marker;
+use nibi_kernel_api::machine::Files;
+use nibi_kernel_platform::ConfigFile;
 
 /// 每一层的 `nibi.json`（F55：以前写了 3 次；F58 起名字在 base，policy 的敏感文件表也用它）。
 const NIBI_JSON: &str = PROJECT_CONFIG_FILE;

@@ -194,7 +194,7 @@ async fn check_rules_reports_only_the_gates_hooks_cannot_bypass() {
 /// 别的会话不变。
 #[tokio::test]
 async fn a_scoped_session_uses_its_own_rules_instead_of_the_project_ones() {
-    use rust_cli_kernel_api::permission::{ProjectRules, RuleBehavior, RuleSource};
+    use nibi_kernel_api::permission::{ProjectRules, RuleBehavior, RuleSource};
     let mut base = PermissionRules::default();
     base.rules.extend(
         ProjectRules {

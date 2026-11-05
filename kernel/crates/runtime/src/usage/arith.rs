@@ -1,7 +1,7 @@
 //! `/context` 的类别与算术（docs/specs/rust-cli/context-usage.md §4）：输入是已经计好的数，
 //! 不做 IO、不发请求。
 
-use rust_cli_kernel_api::context_usage::{
+use nibi_kernel_api::context_usage::{
     AgentUsage, CategoryKind, ContextUsage, McpToolUsage, MemoryFileUsage, SkillUsage,
     UsageCategory, WindowSource,
 };

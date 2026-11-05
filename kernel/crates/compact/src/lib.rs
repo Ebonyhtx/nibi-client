@@ -29,21 +29,21 @@ pub use window::Thresholds;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rust_cli_kernel_api::clock::Ids;
-use rust_cli_kernel_api::compaction::{ContextNotice, PostCompactContext};
-use rust_cli_kernel_api::history;
-use rust_cli_kernel_api::ids::Generation;
-use rust_cli_kernel_api::local_services::LocalServices;
-use rust_cli_kernel_api::machine::MachineEnv;
-use rust_cli_kernel_api::message::{CompactTrigger, Message};
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_kernel_api::orchestration::{
+use nibi_kernel_api::clock::Ids;
+use nibi_kernel_api::compaction::{ContextNotice, PostCompactContext};
+use nibi_kernel_api::history;
+use nibi_kernel_api::ids::Generation;
+use nibi_kernel_api::local_services::LocalServices;
+use nibi_kernel_api::machine::MachineEnv;
+use nibi_kernel_api::message::{CompactTrigger, Message};
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::{
     AutoCompactOutcome, CompactRequest, CompactResult, CompactTracking, Compactor, HookRunner,
     OrchestrationError, QueryRunner, ToolRegistry,
 };
-use rust_cli_kernel_api::provider::ModelLimits;
-use rust_cli_kernel_api::store::ArtifactStore;
-use rust_cli_kernel_api::tool::ReadFileStates;
+use nibi_kernel_api::provider::ModelLimits;
+use nibi_kernel_api::store::ArtifactStore;
+use nibi_kernel_api::tool::ReadFileStates;
 use tokio_util::sync::CancellationToken;
 
 use crate::engine::{Engine, Failure};
@@ -138,7 +138,7 @@ impl Compaction {
     fn tokens(history: &[Message]) -> u64 {
         let active = history::active(history);
         let refs: Vec<&Message> = active.iter().map(AsRef::as_ref).collect();
-        rust_cli_kernel_api::compaction::context_tokens(&refs)
+        nibi_kernel_api::compaction::context_tokens(&refs)
     }
 
     async fn run(

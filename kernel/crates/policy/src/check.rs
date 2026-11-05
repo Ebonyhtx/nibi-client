@@ -1,6 +1,6 @@
 //! 工具专属检查的结果与输入。
 
-use rust_cli_kernel_api::permission::{PermissionMode, PermissionRule};
+use nibi_kernel_api::permission::{PermissionMode, PermissionRule};
 
 use crate::paths::PathContext;
 use crate::rules::Rules;

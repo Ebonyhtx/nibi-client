@@ -18,13 +18,13 @@ use std::task::{Context, Poll};
 
 use futures_util::StreamExt;
 use futures_util::stream::{BoxStream, Stream};
-use rust_cli_exec_wire::Body;
-use rust_cli_exec_wire::dto::core::Workspace;
-use rust_cli_exec_wire::dto::mcp as wm;
-use rust_cli_exec_wire::envelope::{StreamItem, WireError};
-use rust_cli_exec_wire::reply::Reply;
-use rust_cli_exec_wire::request::Request;
-use rust_cli_kernel_api::mcp::{
+use nibi_kernel_exec_wire::Body;
+use nibi_kernel_exec_wire::dto::core::Workspace;
+use nibi_kernel_exec_wire::dto::mcp as wm;
+use nibi_kernel_exec_wire::envelope::{StreamItem, WireError};
+use nibi_kernel_exec_wire::reply::Reply;
+use nibi_kernel_exec_wire::request::Request;
+use nibi_kernel_api::mcp::{
     McpConnect, McpConnectionId, McpError, McpTransportConfig, McpTransportEvent,
 };
 use sha2::{Digest, Sha256};
@@ -219,7 +219,7 @@ async fn connect(
     instance: &str,
     (workspace, server): (Workspace, String),
     config: wm::McpTransport,
-    env: rust_cli_kernel_api::env_command::EnvOverrides,
+    env: nibi_kernel_api::env_command::EnvOverrides,
 ) -> Result<Reply, WireError> {
     let wanted = fingerprint(&server, &workspace, &config);
     let online = online(inner);
@@ -331,7 +331,7 @@ pub(crate) async fn unary(
     inner: &Inner,
     instance: &str,
     request: Request,
-    env: rust_cli_kernel_api::env_command::EnvOverrides,
+    env: nibi_kernel_api::env_command::EnvOverrides,
 ) -> Result<Reply, WireError> {
     match request {
         Request::McpConnect {

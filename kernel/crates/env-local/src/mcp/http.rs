@@ -1,5 +1,5 @@
 //! streamable HTTP 与 SSE 传输（docs/specs/rust-cli/ext.md §3.2；MCP SDK `StreamableHTTPClientTransport`、
-//! `SSEClientTransport`），请求经 `rust-cli-net` 的 [`Egress`]。
+//! `SSEClientTransport`），请求经 `nibi-kernel-net` 的 [`Egress`]。
 //!
 //! - streamable HTTP：每条消息一个 POST；响应是 JSON 或 SSE 流（流在后台任务里读）；记下
 //!   `mcp-session-id`；`notifications/initialized` 发出后开一个 GET SSE 流收服务器消息（405 时不开）；
@@ -15,12 +15,12 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use rust_cli_base::OwnedTask;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::mcp::{McpError, McpTransportEvent};
-use rust_cli_net::header::{ACCEPT, CONTENT_TYPE, EVENT_STREAM, JSON};
-use rust_cli_net::sse::SseDecoder;
-use rust_cli_net::{Egress, HeaderValue, HttpRequest, HttpResponse};
+use nibi_kernel_base::OwnedTask;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::mcp::{McpError, McpTransportEvent};
+use nibi_kernel_net::header::{ACCEPT, CONTENT_TYPE, EVENT_STREAM, JSON};
+use nibi_kernel_net::sse::SseDecoder;
+use nibi_kernel_net::{Egress, HeaderValue, HttpRequest, HttpResponse};
 use serde_json::Value;
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
@@ -136,7 +136,7 @@ impl HttpLink {
     /// 在后台按顺序送出这些事件（通道满时等，不卡住 `send` 的调用方）。
     fn deliver(&self, batch: Vec<McpTransportEvent>) {
         let events = self.events.clone();
-        self.keep(rust_cli_base::owned(async move {
+        self.keep(nibi_kernel_base::owned(async move {
             for event in batch {
                 if events.send(event).await.is_err() {
                     return;
@@ -151,7 +151,7 @@ impl HttpLink {
         match self.egress.send(request).await {
             Ok(response) if response.is_success() => {
                 let events = self.events.clone();
-                self.keep(rust_cli_base::owned(async move {
+                self.keep(nibi_kernel_base::owned(async move {
                     if let Err(error) = read_sse(response, events, None).await {
                         tracing::debug!(error, "MCP listener stream ended");
                     }
@@ -216,7 +216,7 @@ impl HttpLink {
             .to_ascii_lowercase();
         if content_type.starts_with(EVENT_STREAM) {
             let events = self.events.clone();
-            self.keep(rust_cli_base::owned(async move {
+            self.keep(nibi_kernel_base::owned(async move {
                 if let Err(error) = read_sse(response, events, None).await {
                     tracing::debug!(error, "MCP response stream ended early");
                 }
@@ -274,7 +274,7 @@ pub(crate) fn streamable(
         readers: Mutex::default(),
         closed: closed.clone(),
     });
-    (link, rust_cli_base::owned(until_closed(closed, events)))
+    (link, nibi_kernel_base::owned(until_closed(closed, events)))
 }
 
 /// SSE：GET 事件流，等 `endpoint` 事件；连接任务读这个流直到结束。
@@ -298,7 +298,7 @@ pub(crate) async fn sse(
     let closed = CancellationToken::new();
     let stream_events = events.clone();
     let stop = closed.clone();
-    let task = rust_cli_base::owned(async move {
+    let task = nibi_kernel_base::owned(async move {
         let reason = tokio::select! {
             read = read_sse(response, stream_events.clone(), Some(endpoint)) => {
                 Some(read.err().unwrap_or_else(|| "MCP SSE stream ended".to_owned()))

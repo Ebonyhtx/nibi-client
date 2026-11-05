@@ -25,12 +25,12 @@ fn is_uuid(value: &str) -> bool {
 }
 
 fn version() -> String {
-    let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
+    let output = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"))
         .arg("--version")
         .env_clear()
         .output()
         .unwrap();
-    // `zcode <版本> (rust-cli)`。
+    // `zcode <版本> (nibi-kernel-cli)`。
     let text = String::from_utf8(output.stdout).unwrap();
     text.split_whitespace().nth(1).unwrap().to_owned()
 }
@@ -44,7 +44,7 @@ fn run(vars: &[(&str, &str)]) -> Vec<sse::Headers> {
     std::fs::create_dir_all(&home).unwrap();
     let read = sse::tool_block(0, "toolu_1", "Read", r#"{"file_path":"/nonexistent-f64"}"#);
     let fixture = sse::serve(vec![sse::tools_reply(&[read]), sse::text_reply("done")]);
-    let mut command = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
+    let mut command = nibi_kernel_proc::std_command(env!("CARGO_BIN_EXE_nibi-rs"));
     command
         .args(["-p", "hi", "--session-id", SESSION])
         .current_dir(&work)
@@ -92,8 +92,8 @@ fn a_real_request_carries_the_node_headers() {
     let version = version();
     let platform = format!(
         "{}-{}",
-        rust_cli_base::js::node_platform(),
-        rust_cli_base::js::node_arch()
+        nibi_kernel_base::js::node_platform(),
+        nibi_kernel_base::js::node_arch()
     );
     let category = if cfg!(target_os = "macos") {
         "macos"

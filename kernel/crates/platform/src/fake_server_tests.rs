@@ -11,10 +11,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use base64::Engine;
-use rust_cli_base::secret::RedactedString;
-use rust_cli_kernel_api::model::ModelSelection;
-use rust_cli_net::{Egress, NetworkPolicy};
-use rust_cli_paths::StoragePaths;
+use nibi_kernel_base::secret::RedactedString;
+use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_net::{Egress, NetworkPolicy};
+use nibi_kernel_paths::StoragePaths;
 use serde_json::{Value, json};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};

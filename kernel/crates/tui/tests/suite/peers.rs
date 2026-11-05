@@ -6,13 +6,13 @@ use async_trait::async_trait;
 use crossterm::event::KeyCode;
 use futures_util::stream::BoxStream;
 use ratatui::style::Color;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::peers::{
     InboundPeerMessage, ModeClass, PeerAddress, PeerIdentity, PeerMessaging, PeerOutbound,
     PeerRecord, PeerSendError, PeerSignal, PeerStatus, ReceiptStatus, envelope,
 };
-use rust_cli_kernel_api::testing::text_response;
-use rust_cli_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_api::testing::text_response;
+use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 use tokio::sync::mpsc;
 
 use super::support::{GatedModel, Setup, with_ui};
@@ -92,7 +92,7 @@ fn setup(port: &Arc<FakePort>, lang: &'static str, background: (u8, u8, u8)) -> 
         lang,
         height: 32,
         palette: Palette::new(ColorLevel::TrueColor, Some(background)),
-        peers: rust_cli_runtime::PeerDeps {
+        peers: nibi_kernel_runtime::PeerDeps {
             port: port.clone(),
             hold_timeout_ms: 300_000,
             receipts_wake: true,

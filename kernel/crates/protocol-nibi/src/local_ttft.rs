@@ -13,8 +13,8 @@
 
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use rust_cli_kernel_api::local_ttft::{LocalTtftContext, LocalTtftFacts};
-use rust_cli_kernel_api::session_api::{KernelEvent, TurnOutcome};
+use nibi_kernel_api::local_ttft::{LocalTtftContext, LocalTtftFacts};
+use nibi_kernel_api::session_api::{KernelEvent, TurnOutcome};
 
 /// 通知方法名（Host `V4_NOTIFICATIONS.localTtftFacts`）。
 pub const METHOD: &str = "v4/telemetry/local-ttft";
@@ -150,8 +150,8 @@ impl LocalTtftRecorder {
             }
             KernelEvent::StreamDelta { turn, delta, .. } => {
                 let kind = match delta {
-                    rust_cli_kernel_api::model::BlockDelta::Text(_) => "text",
-                    rust_cli_kernel_api::model::BlockDelta::Thinking(_) => "reasoning",
+                    nibi_kernel_api::model::BlockDelta::Text(_) => "text",
+                    nibi_kernel_api::model::BlockDelta::Thinking(_) => "reasoning",
                     _ => return out,
                 };
                 if let Some(record) = records.iter_mut().find(|record| {
@@ -181,7 +181,7 @@ impl LocalTtftRecorder {
             KernelEvent::ModelRequestStatus { status } => {
                 // 首次主回合请求：补 `requestAt` 与请求标识（Node 在请求开始时记这一段）。
                 if status.kind
-                    != rust_cli_kernel_api::model::ModelRequestStatusKind::ModelRequestStarted
+                    != nibi_kernel_api::model::ModelRequestStatusKind::ModelRequestStarted
                     || status.query_source.as_deref() != Some("main_turn")
                 {
                     return out;

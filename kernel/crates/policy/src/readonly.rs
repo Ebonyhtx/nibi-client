@@ -17,7 +17,7 @@ pub(crate) use argv::strip_wrappers;
 pub use git::invokes_git;
 
 use crate::parse::{Analysis, analyze, is_permission_safe};
-use rust_cli_kernel_api::env_files::PathStyle;
+use nibi_kernel_api::env_files::PathStyle;
 
 /// Node `isRuntimeReadOnlyBashCommand`：每个子命令都只读，且没有改目录的 git、没有动态内容。
 /// `git_unsafe` 为 true 时（工作目录里的 git 配置不可信）含 git 的命令一律不算只读。按本机构建平台的路径风格。

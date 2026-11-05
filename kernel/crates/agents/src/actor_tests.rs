@@ -1,10 +1,10 @@
 //! actor 轮：persona → system 第一段、工具面按 allow/deny 过滤、子会话续跑；不进 agents 面板。
 
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_kernel_api::model::QuerySource;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::store::{SessionKind, SessionStore};
-use rust_cli_kernel_api::testing::selection;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::model::QuerySource;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::store::{SessionKind, SessionStore};
+use nibi_kernel_api::testing::selection;
 
 use super::*;
 use crate::test_support::{harness, workspace};

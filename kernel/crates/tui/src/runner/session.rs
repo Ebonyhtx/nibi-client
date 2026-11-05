@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use futures_util::FutureExt;
 use ratatui::backend::Backend;
-use rust_cli_kernel_api::provider::ModelCatalog;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::provider::ModelCatalog;
+use nibi_kernel_api::session_api::{
     Ack, Command, CommandEnvelope, CreateSession, KernelError, SessionHandle, SessionView,
     StartSource,
 };
@@ -73,7 +73,7 @@ pub(super) enum Done {
     /// 入口注入的服务（界面语言等，`services.rs`）。
     Service(super::services::ServiceDone),
     /// 内核给出的 skill 命令（斜杠补全与发送前的判断，tui.md §6）。
-    Commands(Vec<rust_cli_kernel_api::user_command::UserCommand>),
+    Commands(Vec<nibi_kernel_api::user_command::UserCommand>),
     /// `@` 补全的文件清单（tui-input.md §1.2）；取失败时为 None（保留旧索引）。
     Files(Option<Vec<String>>),
     /// 剪贴板里的图片（tui-input.md §3.1）。
@@ -128,7 +128,7 @@ fn path_separator(root: &str) -> char {
 
 /// 命令 ID 经注入的 Ids（F7，审查 R2-11：以前直接 `Uuid::new_v4`；本机实现仍是不带前缀的 uuid）。
 pub(super) fn envelope(
-    ids: &dyn rust_cli_kernel_api::clock::Ids,
+    ids: &dyn nibi_kernel_api::clock::Ids,
     command: Command,
 ) -> CommandEnvelope {
     CommandEnvelope {
@@ -198,7 +198,7 @@ impl<B: Backend> Loop<'_, B> {
             match pick {
                 Some(model) => {
                     let provider = self.app.view.selection().provider.clone();
-                    let selection = rust_cli_kernel_api::model::ModelSelection {
+                    let selection = nibi_kernel_api::model::ModelSelection {
                         provider,
                         model: model.clone(),
                         reasoning: None,
@@ -311,7 +311,7 @@ impl<B: Backend> Loop<'_, B> {
                         format!("Session renamed to: {label}"),
                         false,
                     );
-                    record.meta = vec![rust_cli_prompts::commands::rename_named(&label)];
+                    record.meta = vec![nibi_kernel_prompts::commands::rename_named(&label)];
                     self.record_command(record);
                 }
                 Ack::Accepted { result } if sent == Sent::Fork => self.forked(&result),
@@ -377,7 +377,7 @@ impl<B: Backend> Loop<'_, B> {
                 None => self.app.open_models(&catalog.models),
                 Some(name) => match crate::ui::resolve_model(&catalog.models, &name) {
                     Ok(selection) => self.choose_model(selection, Some(name)),
-                    Err(rust_cli_platform::model_name::LookupError::Missing) => {
+                    Err(nibi_kernel_platform::model_name::LookupError::Missing) => {
                         self.app.info(i18n::unknown_model(lang, &name))
                     }
                     Err(error) => self.app.info(i18n::ambiguous_model(lang, &error)),

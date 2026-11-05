@@ -25,25 +25,25 @@ use std::time::Duration;
 
 use futures_util::StreamExt;
 use futures_util::stream::{self, BoxStream};
-use rust_cli_env_local::{LocalEnvironment, ShellConfig};
-use rust_cli_kernel_api::env::{EnvPath, WorkspaceRef};
-use rust_cli_kernel_api::ids::{CommandId, EnvironmentId, ToolUseId};
-use rust_cli_kernel_api::message::Message;
-use rust_cli_kernel_api::message::{ContentBlock, StopReason, ToolResultContent, Usage};
-use rust_cli_kernel_api::model::{
+use nibi_kernel_env_local::{LocalEnvironment, ShellConfig};
+use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
+use nibi_kernel_api::ids::{CommandId, EnvironmentId, ToolUseId};
+use nibi_kernel_api::message::Message;
+use nibi_kernel_api::message::{ContentBlock, StopReason, ToolResultContent, Usage};
+use nibi_kernel_api::model::{
     BlockDelta, ModelError, ModelEvent, ModelPort, ModelRequest, QuerySource,
 };
-use rust_cli_kernel_api::orchestration::InteractionRequest;
-use rust_cli_kernel_api::permission::PermissionMode;
-use rust_cli_kernel_api::session_api::{
+use nibi_kernel_api::orchestration::InteractionRequest;
+use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::session_api::{
     Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelEvent, SessionHandle,
 };
-use rust_cli_kernel_api::store::SessionStore;
-use rust_cli_kernel_api::testing::{ScriptedModel, environments, selection, text_response};
-use rust_cli_node_store::NodeStore;
-use rust_cli_node_store::{NodeIds, SystemClock};
-use rust_cli_paths::{StoragePaths, StorageSettings};
-use rust_cli_runtime::{Defaults, LocalKernel, Ports};
+use nibi_kernel_api::store::SessionStore;
+use nibi_kernel_api::testing::{ScriptedModel, environments, selection, text_response};
+use nibi_kernel_node_store::NodeStore;
+use nibi_kernel_node_store::{NodeIds, SystemClock};
+use nibi_kernel_paths::{StoragePaths, StorageSettings};
+use nibi_kernel_runtime::{Defaults, LocalKernel, Ports};
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
 
@@ -224,7 +224,7 @@ fn harness(workspace_parent: Option<&Path>, a_stall_at: Option<usize>) -> Harnes
             search_tools: false,
             task_tools: None,
             // 前台子代理只在 fork 关着时有（`NIBI_FORK_SUBAGENT=0`，修复线 L-A，agents.md §8.1.1）。
-            limits: rust_cli_runtime::Limits {
+            limits: nibi_kernel_runtime::Limits {
                 fork_subagent: Some(false),
                 ..Default::default()
             },

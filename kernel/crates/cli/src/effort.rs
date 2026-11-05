@@ -3,7 +3,7 @@
 //! 档位在解析时就定，不认识的值不报错：写一行警告、按缺省档位继续。会话的档位是 `ModelSelection.reasoning`，
 //! `--effort` 是它的初值；会话里的 `/effort` 之后照旧换它。
 
-use rust_cli_kernel_api::model::ModelSelection;
+use nibi_kernel_api::model::ModelSelection;
 
 /// 认的档位，按从低到高（警告与帮助里的顺序）。
 pub(crate) const LEVELS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];

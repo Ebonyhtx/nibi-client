@@ -16,9 +16,9 @@
 //! 拒绝一律是结构化的 `fault.attachment.*`（Host 的 `NIBI_ATTACHMENT_FAULT_CODES`）：share 预检按
 //! 码分类，靠错误文本匹配会在包装、本地化之后立刻失效。
 
-use rust_cli_kernel_api::attachment::AttachmentSource;
-use rust_cli_kernel_api::ids::SessionId;
-use rust_cli_protocol_core::rpc::RpcError;
+use nibi_kernel_api::attachment::AttachmentSource;
+use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
 
 use crate::attachment_upload::{
@@ -214,10 +214,10 @@ pub(crate) async fn commit(server: &Server, params: &Value) -> Result<Value, Rpc
                 .uploads
                 .with(|table| table.fail(&connection, &session, &upload));
             return Err(match error {
-                rust_cli_kernel_api::session_api::KernelError::Unsupported { .. } => {
+                nibi_kernel_api::session_api::KernelError::Unsupported { .. } => {
                     fault("fault.attachment.putUnsupported")
                 }
-                rust_cli_kernel_api::session_api::KernelError::NotFound { .. } => RpcError::new(
+                nibi_kernel_api::session_api::KernelError::NotFound { .. } => RpcError::new(
                     SESSION_UNAVAILABLE,
                     format!("Session unavailable: {session}"),
                 ),
@@ -344,7 +344,7 @@ fn authorized_row(
 }
 
 fn attachment_source(reference: &str) -> AttachmentSource {
-    if reference.starts_with(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME) {
+    if reference.starts_with(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME) {
         AttachmentSource::Artifact {
             uri: reference.to_owned(),
         }
@@ -361,7 +361,7 @@ async fn payload(
     session: &str,
     authorized: &Authorized,
     workspace: &str,
-) -> Result<rust_cli_kernel_api::attachment::AttachmentPayload, RpcError> {
+) -> Result<nibi_kernel_api::attachment::AttachmentPayload, RpcError> {
     server
         .kernel
         .read_attachment(
@@ -372,10 +372,10 @@ async fn payload(
         )
         .await
         .map_err(|error| match error {
-            rust_cli_kernel_api::session_api::KernelError::Unsupported { .. } => {
+            nibi_kernel_api::session_api::KernelError::Unsupported { .. } => {
                 fault("fault.attachment.readUnsupported")
             }
-            rust_cli_kernel_api::session_api::KernelError::NotFound { .. } => {
+            nibi_kernel_api::session_api::KernelError::NotFound { .. } => {
                 fault("fault.attachment.shareStatNotFound")
             }
             other => RpcError::internal(other.to_string()),

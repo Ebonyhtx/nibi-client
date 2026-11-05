@@ -3,7 +3,7 @@
 //! Skill 工具对只有安全字段的 skill 自己返回 `Allow`（[`deny_first`] 仍先查 deny 规则）；其余返回
 //! `Passthrough`，由 [`check`] 按规则放行、拒绝或给出询问。
 
-use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior};
+use nibi_kernel_api::permission::{PermissionRule, RuleBehavior};
 use serde_json::Value;
 
 use crate::check::{AskKind, Check, Inputs};

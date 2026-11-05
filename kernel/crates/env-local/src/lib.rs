@@ -4,7 +4,7 @@
 //!
 //! 工作区文件（版本回执、条件写、apply_patch）、搜索（ignore + grep-searcher，rg 语义）、进程（shell、
 //! 后台任务账本、sandbox）、Git、环境事实、规则文件、MCP 传输、插件安装、回退事务。本机文件经
-//! 这里访问；进程经 `rust-cli-proc`；网络经 `rust-cli-net`。
+//! 这里访问；进程经 `nibi-kernel-proc`；网络经 `nibi-kernel-net`。
 //!
 //! 已实现：文件与搜索（工作线 L3，docs/specs/rust-cli/tools-files.md §3）；shell 命令、后台通知与
 //! sandbox（工作线 L4，docs/specs/rust-cli/shell-permissions.md §2）；环境事实与 git 状态（工作线 L2，
@@ -41,25 +41,25 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use futures_util::stream::{self, BoxStream, StreamExt};
-use rust_cli_kernel_api::env::{
+use nibi_kernel_api::env::{
     CommandEvent, EnvError, EnvFacts, EnvPath, FileContent, OperationContext, Outcome, ReadFile,
     StartCommand, WorkspaceRef, WriteFile, WriteReceipt,
 };
-use rust_cli_kernel_api::env_files::{
+use nibi_kernel_api::env_files::{
     DirEntry, FileStat, FileWritten, GlobFiles, GlobMatches, GrepOutcome, GrepSearch, ListDir,
     PathFacts, PathStyle, PutFile, ReadText, StatFile, TextRead,
 };
-use rust_cli_kernel_api::env_git::{GitStatus, GitStatusRequest};
-use rust_cli_kernel_api::env_rewind::{RewindPlan, RewindPrepare, RewindStatus};
-use rust_cli_kernel_api::env_shell::{
+use nibi_kernel_api::env_git::{GitStatus, GitStatusRequest};
+use nibi_kernel_api::env_rewind::{RewindPlan, RewindPrepare, RewindStatus};
+use nibi_kernel_api::env_shell::{
     BackgroundInfo, BackgroundStop, BackgroundTask, ShellNotice, ShellState,
 };
-use rust_cli_kernel_api::env_worktree::{
+use nibi_kernel_api::env_worktree::{
     WorktreeChanges, WorktreeCreate, WorktreeCreated, WorktreeInspect, WorktreeList, WorktreeRemove,
 };
-use rust_cli_kernel_api::ids::{OperationId, SessionId};
-use rust_cli_kernel_api::local_services::{Fetch, Git};
-use rust_cli_kernel_api::machine::{
+use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::local_services::{Fetch, Git};
+use nibi_kernel_api::machine::{
     Background, Checkpoints, Commands, EnvInfo, Files, Pdf, Search, Shell,
 };
 
@@ -90,13 +90,13 @@ pub struct LocalEnvironment {
     /// shell 命令；没有配置时命令类操作返回 `Unsupported`。
     shells: Option<Shells>,
     /// 入口 crate 捕获的进程环境（随 shell 配置给出）：环境事实的 `$SHELL`、git 与 uname 的环境。
-    snapshot: rust_cli_base::secret::EnvSnapshot,
+    snapshot: nibi_kernel_base::secret::EnvSnapshot,
     /// Bash 工具能用（Windows 上要有 Git Bash）；决定环境事实里的 Shell。
     bash: bool,
     /// 系统版本只取一次（进程内不变）。
     os_version: tokio::sync::OnceCell<String>,
     /// WebFetch 的网络出口；没有配置时 `fetch_url` 返回 `Unsupported`。
-    web: Option<std::sync::Arc<rust_cli_net::Egress>>,
+    web: Option<std::sync::Arc<nibi_kernel_net::Egress>>,
     /// pdftoppm 是否可用（可用的结论只查一次，tools-files.md §1.5）。
     poppler: pdf::Poppler,
     /// `--add-dir` 的目录（入口已解析成绝对路径并检查过，cli-args.md §6）：环境事实的附加工作目录。
@@ -228,8 +228,8 @@ impl Search for LocalEnvironment {
     async fn list_files(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_files::ListFiles,
-    ) -> Result<rust_cli_kernel_api::env_files::FileList, EnvError> {
+        request: nibi_kernel_api::env_files::ListFiles,
+    ) -> Result<nibi_kernel_api::env_files::FileList, EnvError> {
         run_walk(move |stop| search::list_files(&request, stop)).await
     }
 
@@ -357,9 +357,9 @@ impl Background for LocalEnvironment {
 
     async fn background_foreground(
         &self,
-        session: &rust_cli_kernel_api::ids::SessionId,
-        reason: rust_cli_kernel_api::env::BackgroundReason,
-    ) -> Result<Vec<rust_cli_kernel_api::ids::ShellTaskId>, EnvError> {
+        session: &nibi_kernel_api::ids::SessionId,
+        reason: nibi_kernel_api::env::BackgroundReason,
+    ) -> Result<Vec<nibi_kernel_api::ids::ShellTaskId>, EnvError> {
         Ok(self.shells()?.background_foreground(session, reason))
     }
 
@@ -367,7 +367,7 @@ impl Background for LocalEnvironment {
         &self,
         request: BackgroundTask,
         max_bytes: u64,
-    ) -> Result<Option<rust_cli_kernel_api::env_shell::BackgroundOutputTail>, EnvError> {
+    ) -> Result<Option<nibi_kernel_api::env_shell::BackgroundOutputTail>, EnvError> {
         Ok(self.shells()?.background_output(&request, max_bytes).await)
     }
 }
@@ -421,7 +421,7 @@ impl Pdf for LocalEnvironment {
     async fn pdf_page_count(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_pdf::PdfPageCount,
+        request: nibi_kernel_api::env_pdf::PdfPageCount,
     ) -> Result<Option<u64>, EnvError> {
         pdf::page_count(&path(&request.path), &self.git_env()).await
     }
@@ -430,8 +430,8 @@ impl Pdf for LocalEnvironment {
     async fn render_pdf_pages(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_pdf::RenderPdfPages,
-    ) -> Result<rust_cli_kernel_api::env_pdf::PdfRender, EnvError> {
+        request: nibi_kernel_api::env_pdf::RenderPdfPages,
+    ) -> Result<nibi_kernel_api::env_pdf::PdfRender, EnvError> {
         let scratch = self.shells()?.scratch().to_path_buf();
         let env = self.git_env();
         let source = path(&request.path);
@@ -452,8 +452,8 @@ impl Git for LocalEnvironment {
     async fn git_diff(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_git::GitDiffRequest,
-    ) -> Result<rust_cli_kernel_api::env_git::GitDiff, EnvError> {
+        request: nibi_kernel_api::env_git::GitDiffRequest,
+    ) -> Result<nibi_kernel_api::env_git::GitDiff, EnvError> {
         git::diff(&path(&request.cwd), self.git_env()).await
     }
 
@@ -490,8 +490,8 @@ impl Fetch for LocalEnvironment {
     async fn fetch_url(
         &self,
         _workspace: &WorkspaceRef,
-        request: rust_cli_kernel_api::env_web::FetchUrl,
-    ) -> Result<rust_cli_kernel_api::env_web::FetchedUrl, EnvError> {
+        request: nibi_kernel_api::env_web::FetchUrl,
+    ) -> Result<nibi_kernel_api::env_web::FetchedUrl, EnvError> {
         let egress = self.web.as_ref().ok_or_else(|| unsupported("web fetch"))?;
         web::fetch(egress, request).await
     }

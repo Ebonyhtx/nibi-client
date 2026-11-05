@@ -10,8 +10,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rust_cli_base::names::UNIX_EXECUTABLE;
-use rust_cli_exec_transport::{ProvisionError, ProvisionStep, Provisioned, Provisioner};
+use nibi_kernel_base::names::UNIX_EXECUTABLE;
+use nibi_kernel_exec_transport::{ProvisionError, ProvisionStep, Provisioned, Provisioner};
 
 use crate::artifact::{Platform, locate, sha256};
 use crate::choose::{Plan, Wanted, choose};
@@ -161,11 +161,11 @@ impl SshProvisioner {
             Trial::Run => command.push_str(" check"),
             Trial::Protocol(_) => command.push_str(&format!(" check {}", self.wanted.protocol)),
         }
-        let file = rust_cli_fs::open_read(artifact)
+        let file = nibi_kernel_fs::open_read(artifact)
             .await
             .map_err(|error| ProvisionError::Upload(format!("{}: {error}", artifact.display())))?;
         // 上传之前报大小（F98，remote-exec.md §25.4.2：状态行写“上传执行器（N MB）”）。
-        let bytes = rust_cli_fs::file_len(artifact)
+        let bytes = nibi_kernel_fs::file_len(artifact)
             .await
             .ok()
             .flatten()

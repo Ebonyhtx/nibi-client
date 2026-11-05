@@ -8,12 +8,12 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-use rust_cli_kernel_api::peers::{
+use nibi_kernel_api::peers::{
     HELD_LIMIT, HeldPeerMessage, HoldCause, InboundPeerMessage, ModeClass, PeerAddress,
     PeerMessaging, PeerReceipt, PeerSignal, PeerStatus, ReceiptStatus, gate, parse_envelope,
 };
-use rust_cli_kernel_api::session_api::KernelEvent;
-use rust_cli_kernel_api::store::{Fact, SessionKind};
+use nibi_kernel_api::session_api::KernelEvent;
+use nibi_kernel_api::store::{Fact, SessionKind};
 use serde_json::{Value, json};
 
 use crate::actor::Actor;
@@ -40,8 +40,8 @@ impl PeerDeps {
     /// 跨会话关闭（测试、子代理之外的嵌入）。
     pub fn off() -> Self {
         Self {
-            port: Arc::new(rust_cli_kernel_api::peers::NoPeers),
-            hold_timeout_ms: rust_cli_kernel_api::peers::DEFAULT_HOLD_TIMEOUT_MS,
+            port: Arc::new(nibi_kernel_api::peers::NoPeers),
+            hold_timeout_ms: nibi_kernel_api::peers::DEFAULT_HOLD_TIMEOUT_MS,
             receipts_wake: true,
         }
     }
@@ -71,7 +71,7 @@ impl PeerItem {
     /// 工具边界并入的文字（回执两种场合相同）。
     pub(crate) fn text(&self) -> String {
         match self {
-            Self::Message { envelope, .. } => rust_cli_prompts::peers::wrap(envelope, true),
+            Self::Message { envelope, .. } => nibi_kernel_prompts::peers::wrap(envelope, true),
             Self::Receipt { text, .. } => text.clone(),
         }
     }
@@ -79,7 +79,7 @@ impl PeerItem {
     /// 空闲时开回合的文字。
     pub(crate) fn turn_text(&self) -> String {
         match self {
-            Self::Message { envelope, .. } => rust_cli_prompts::peers::wrap(envelope, false),
+            Self::Message { envelope, .. } => nibi_kernel_prompts::peers::wrap(envelope, false),
             Self::Receipt { text, .. } => text.clone(),
         }
     }

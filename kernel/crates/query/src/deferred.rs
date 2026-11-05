@@ -9,14 +9,14 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use rust_cli_kernel_api::message::{ContentBlock, Message, ToolResultContent, tool_reference_text};
-use rust_cli_kernel_api::model::{ToolDefinition, ToolFlags};
-use rust_cli_kernel_api::provider::ModelCapabilities;
-use rust_cli_kernel_api::tool::{PromptContext, Tool};
-use rust_cli_kernel_api::tool_search::{
+use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent, tool_reference_text};
+use nibi_kernel_api::model::{ToolDefinition, ToolFlags};
+use nibi_kernel_api::provider::ModelCapabilities;
+use nibi_kernel_api::tool::{PromptContext, Tool};
+use nibi_kernel_api::tool_search::{
     PLACEHOLDER, PLACEHOLDER_DESCRIPTION, TOOL_SEARCH, compare_names, is_deferred, loaded,
 };
-use rust_cli_prompts::models::{self, ToolSearchMode, ToolSearchSetting};
+use nibi_kernel_prompts::models::{self, ToolSearchMode, ToolSearchSetting};
 use serde_json::json;
 
 pub(crate) struct WireTools {
