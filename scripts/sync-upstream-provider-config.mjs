@@ -4,9 +4,9 @@
 // 背景：
 // - 客户端运行时读两跳端点（`/api/v1/client/configs` → 签名 release），按 revision 更新；
 //   这里生成的是**随包源** `config/provider/nibi-builtin*.json`，也是发布到服务端的同一份内容。
-// - NIBI 只保留一份 Provider 模板白名单（当前随包文件里的 templateId 集合）。上游新增的模板
-//   不会自动进入；用 `--add-template` 显式加入，或在 dry-run 里看 `new upstream templates`。
-// - 上游的付费套餐模板（coding plan / token plan 等）不在白名单里，因此不会被带进来。
+// - 除上游 **ZAI/BigModel 的会员套餐**（Coding Plan / Start / 闲置 / 高速卡）外，模板、模型、
+//   站点规则全部跟随上游；不维护 NIBI 自己的模板白名单或逐模型启停。
+// - 上游 `zcode.z.ai` 套餐站点规则不导入（NIBI 没有这些套餐）。
 //
 // 用法：
 //   node scripts/sync-upstream-provider-config.mjs --from <release.json|https://...>        # dry-run
@@ -36,12 +36,6 @@ function parseArgs(argv) {
         break;
       case "--revision":
         args.revision = Number(argv[++index]);
-        break;
-      case "--add-template":
-        args.addTemplates.push(argv[++index]);
-        break;
-      case "--all-templates":
-        args.allTemplates = true;
         break;
       case "--proxy":
         args.proxy = argv[++index];
@@ -102,49 +96,45 @@ function deepEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-/**
- * 以上游 release 为内容源，保留 NIBI 的模板白名单，产出两份随包配置。
- * `currentTest` 里相对 `currentProd` 多出的 providerSiteRules（测试专用站点规则）会被保留。
- */
-export function buildSyncedConfigs({ upstream, currentProd, currentTest, revision, allow = [], allTemplates = false }) {
-  const currentTemplates = currentProd.config.providerConfigRules?.templateRules ?? [];
-  const allowed = new Set(allTemplates ? templateIds(upstream) : templateIds(currentProd));
-  for (const id of allow) {
-    if (!templateIds(upstream).includes(id)) throw new Error(`--add-template ${id}: not present upstream`);
-    allowed.add(id);
-  }
+/** 上游 ZAI/BigModel 的会员套餐（Coding Plan / Start / 闲置 / 高速卡）不进入 NIBI。 */
+function isZhipuMembershipRule(rule) {
+  const access = rule?.config?.access;
+  return access?.type === "zhipu-account" || access?.type === "zhipu-coding-plan-api-key";
+}
 
+function isZhipuMembershipProvider(providerId) {
+  return typeof providerId === "string" && /^account:(?:zai|bigmodel)-/u.test(providerId);
+}
+
+function isUpstreamZcodeSiteRule(rule) {
+  return typeof rule?.baseUrlMatch === "string" && /zcode/iu.test(rule.baseUrlMatch);
+}
+
+/**
+ * 以上游 release 为内容源：除 ZAI/BigModel 会员套餐外，模板、模型、站点规则全部跟随上游。
+ * 不再维护 NIBI 自己的模板白名单或逐模型启停；`currentTest` 里测试专属的
+ * providerSiteRules 仍会保留（那是测试夹具，不是产品清单）。
+ */
+export function buildSyncedConfigs({ upstream, currentProd, currentTest, revision }) {
   const upstreamTemplates = upstream.config.providerConfigRules?.templateRules ?? [];
-  const templates = upstreamTemplates.filter((rule) => allowed.has(rule.templateId));
+  const templates = upstreamTemplates.filter(
+    (rule) => !isZhipuMembershipRule(rule) && !/^account:(?:zai|bigmodel)-/u.test(rule.templateId ?? ""),
+  );
+  const excludedTemplates = upstreamTemplates.filter((rule) => !templates.includes(rule));
   const keptIds = new Set(templates.map((rule) => rule.templateId));
-  const upstreamTemplateModelRules = (upstream.config.modelConfigRules?.templateModelRules ?? []).filter(
-    (rule) => keptIds.has(rule.templateId),
+
+  const upstreamModelRules = upstream.config.modelConfigRules ?? {};
+  const templateModelRules = (upstreamModelRules.templateModelRules ?? []).filter((rule) =>
+    keptIds.has(rule.templateId),
   );
-  // NIBI 的显式启停是 fork 决定（例：把上游默认关闭的模型打开），必须覆盖上游。
-  // 只保留仍在新模板 builtinModelIds 里的覆盖，避免给已下线的模型留死规则。
-  const modelIdsByTemplate = new Map(
-    templates.map((template) => [
-      template.templateId,
-      new Set(template.config?.builtinModelIds ?? []),
-    ]),
+  const siteRules = (upstreamModelRules.providerSiteRules ?? []).filter(
+    (rule) => !isUpstreamZcodeSiteRule(rule),
   );
-  const currentOverrides = new Map(
-    (currentProd.config.modelConfigRules?.templateModelRules ?? [])
-      .filter(
-        (rule) =>
-          keptIds.has(rule.templateId) && modelIdsByTemplate.get(rule.templateId)?.has(rule.modelId),
-      )
-      .map((rule) => [`${rule.templateId}\u0000${rule.modelId}`, rule]),
+  const builtinProviderModelRules = (upstreamModelRules.builtinProviderModelRules ?? []).filter(
+    (rule) => !isZhipuMembershipProvider(rule.providerId),
   );
-  const mergedTemplateModelRules = new Map(
-    upstreamTemplateModelRules.map((rule) => [`${rule.templateId}\u0000${rule.modelId}`, rule]),
-  );
-  for (const [key, rule] of currentOverrides) mergedTemplateModelRules.set(key, rule);
 
   // Node 运行时合成 providerRules（随包源里是空数组）。
-  // providerSiteRules / builtinProviderModelRules 保留 NIBI 的裁剪结果：
-  // 上游多出来的是 zcode.z.ai 套餐站点与 account:zai-* 套餐规则，不能带进来。
-  const currentModelRules = currentProd.config.modelConfigRules ?? {};
   const config = {
     ...upstream.config,
     providerConfigRules: {
@@ -152,14 +142,15 @@ export function buildSyncedConfigs({ upstream, currentProd, currentTest, revisio
       providerRules: [],
     },
     modelConfigRules: {
-      ...upstream.config.modelConfigRules,
-      providerSiteRules: currentModelRules.providerSiteRules ?? [],
-      templateModelRules: [...mergedTemplateModelRules.values()],
-      builtinProviderModelRules: currentModelRules.builtinProviderModelRules ?? [],
+      ...upstreamModelRules,
+      providerSiteRules: siteRules,
+      templateModelRules,
+      builtinProviderModelRules,
     },
   };
 
-  const prodSiteRules = currentModelRules.providerSiteRules ?? [];
+  // 测试档相对生产档多出的站点规则（测试夹具）继续保留。
+  const prodSiteRules = currentProd.config.modelConfigRules?.providerSiteRules ?? [];
   const testSiteRules = currentTest.config.modelConfigRules?.providerSiteRules ?? [];
   const testOnlySiteRules = testSiteRules.filter(
     (rule) => !prodSiteRules.some((existing) => deepEqual(existing, rule)),
@@ -169,10 +160,7 @@ export function buildSyncedConfigs({ upstream, currentProd, currentTest, revisio
         ...config,
         modelConfigRules: {
           ...config.modelConfigRules,
-          providerSiteRules: [
-            ...(config.modelConfigRules.providerSiteRules ?? []),
-            ...testOnlySiteRules,
-          ],
+          providerSiteRules: [...(config.modelConfigRules.providerSiteRules ?? []), ...testOnlySiteRules],
         },
       }
     : config;
@@ -181,18 +169,32 @@ export function buildSyncedConfigs({ upstream, currentProd, currentTest, revisio
   if (!Number.isInteger(nextRevision) || nextRevision < 1) {
     throw new Error(`invalid revision ${JSON.stringify(nextRevision)}`);
   }
+
+  // NIBI 过去对个别模型的启停覆盖会被上游覆盖；报告出来，不静默丢弃。
+  const currentOverrides = new Map(
+    (currentProd.config.modelConfigRules?.templateModelRules ?? []).map((rule) => [
+      `${rule.templateId}\u0000${rule.modelId}`,
+      rule,
+    ]),
+  );
+  const upstreamByKey = new Map(
+    templateModelRules.map((rule) => [`${rule.templateId}\u0000${rule.modelId}`, rule]),
+  );
+  const droppedOverrides = [...currentOverrides.entries()]
+    .filter(([key, rule]) => keptIds.has(rule.templateId) && !deepEqual(rule, upstreamByKey.get(key)))
+    .map(([, rule]) => rule);
+
   return {
     prod: { schemaVersion: 1, revision: nextRevision, config },
     test: { schemaVersion: 1, revision: nextRevision, config: testConfig },
     upstreamRevision: upstream.revision,
     templates: {
       kept: [...keptIds],
-      // 上游有、NIBI 白名单没有的模板（含已决定不做的套餐模板）。
-      notInAllowlist: templateIds(upstream).filter((id) => !allowed.has(id)),
+      excluded: excludedTemplates.map((rule) => rule.templateId),
       // NIBI 当前随包、上游已移除的模板：同步会把它们删掉，dry-run 必须先看到。
       missingUpstream: templateIds(currentProd).filter((id) => !templateIds(upstream).includes(id)),
     },
-    overridesPreserved: currentOverrides.size,
+    overridesDropped: droppedOverrides.length,
     modelChanges: [...keptIds].flatMap((id) => {
       const before = modelIds(currentProd, id);
       const after = modelIds(upstream, id);
@@ -226,8 +228,6 @@ async function main() {
     currentProd,
     currentTest,
     revision: args.revision,
-    allow: args.addTemplates,
-    allTemplates: args.allTemplates === true,
   });
   await validateRelease(result.prod);
   await validateRelease(result.test);
@@ -239,9 +239,9 @@ async function main() {
         upstreamRevision: result.upstreamRevision,
         nextRevision: result.prod.revision,
         templatesKept: result.templates.kept.length,
-        upstreamTemplatesNotInAllowlist: result.templates.notInAllowlist,
+        templatesExcluded: result.templates.excluded,
         currentTemplatesMissingUpstream: result.templates.missingUpstream,
-        overridesPreserved: result.overridesPreserved,
+        nibiOverridesDropped: result.overridesDropped,
         modelChanges: result.modelChanges,
         wrote: args.write === true,
       },

@@ -78,7 +78,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
       }
     },
   );
-  it("按当前官方证据声明各厂商主推模型和关键静态属性", async () => {
+  it("每个模板的成员都能解析出完整模型事实", async () => {
     const source = new NodeZCodeBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
@@ -86,134 +86,26 @@ describe("ZCode Built-in Provider Config 完整性", () => {
 
     try {
       const snapshot = await source.read();
-      expect(
-        snapshot.providerTemplates?.get("moonshot-kimi")?.config.builtinModelIds.slice(0, 3),
-      ).toEqual(["kimi-k3", "kimi-k2.7-code", "kimi-k2.6"]);
-      expect(
-        snapshot.providerTemplates?.get("minimax")?.config.builtinModelIds.slice(0, 3),
-      ).toEqual(["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed"]);
-      for (const providerId of ["qwen-alibaba-model-studio-cn", "qwen-alibaba-model-studio-intl"]) {
-        expect(
-          snapshot.providerTemplates?.get(providerId)?.config.builtinModelIds.slice(0, 2),
-        ).toEqual(["qwen3.8-max", "qwen3.8-flash"]);
+      let members = 0;
+      for (const [templateId, template] of snapshot.providerTemplates?.entries() ?? []) {
+        const modelIds = template.config.builtinModelIds ?? [];
+        expect(modelIds.length, `${templateId} 必须有成员`).toBeGreaterThan(0);
+        for (const modelId of modelIds) {
+          const model = snapshot.models.resolve({
+            providerId: "test",
+            templateId,
+            modelId,
+            apiType: template.config.api?.type,
+            baseUrl: template.config.api?.baseUrl,
+          });
+          expect(
+            model.validateComplete(["templates", templateId, "models", modelId]),
+          ).toEqual([]);
+          expect(model.properties?.contextWindow, `${templateId}/${modelId}`).toBeGreaterThan(0);
+          members += 1;
+        }
       }
-      expect(snapshot.providerTemplates?.get("openai")?.config.builtinModelIds.slice(0, 4)).toEqual(
-        ["gpt-6-astra", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
-      );
-
-      const resolve = (
-        providerId: string,
-        modelId: string,
-        apiType: "anthropic-messages" | "openai-chat-completions" | "openai-responses",
-        baseUrl: string,
-      ) => snapshot.models.resolve({ providerId, modelId, apiType, baseUrl });
-
-      const qwen38 = resolve(
-        "qwen-alibaba-model-studio-intl",
-        "qwen3.8-flash",
-        "openai-chat-completions",
-        "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-      );
-      expect(qwen38.properties?.toJSON()).toMatchObject({
-        contextWindow: 1_000_000,
-        inputFormat: {
-          supportsText: true,
-          supportsImage: true,
-          supportsVideo: true,
-          supportsAudio: false,
-          supportsPdf: false,
-        },
-        supportsToolCall: true,
-        supportsJsonSchemaOutput: true,
-      });
-      expect(qwen38.optionSpecs?.maxOutputTokens).toMatchObject({
-        max: 131_072,
-      });
-
-      const mimo = resolve(
-        "xiaomi-mimo",
-        "mimo-v2.5",
-        "anthropic-messages",
-        "https://api.xiaomimimo.com/anthropic",
-      );
-      expect(mimo.properties?.inputFormat.toJSON()).toMatchObject({
-        supportsImage: true,
-        supportsVideo: true,
-        supportsAudio: true,
-      });
-
-      const kimiCode = resolve(
-        "moonshot-kimi",
-        "kimi-k2.7-code",
-        "anthropic-messages",
-        "https://api.moonshot.cn/anthropic",
-      );
-      expect(kimiCode.properties?.contextWindow).toBe(262_144);
-      expect(kimiCode.properties?.inputFormat.toJSON()).toMatchObject({
-        supportsText: true,
-        supportsImage: true,
-        supportsVideo: true,
-      });
-
-      const kimiK3 = resolve(
-        "moonshot-kimi",
-        "kimi-k3",
-        "anthropic-messages",
-        "https://api.moonshot.cn/anthropic",
-      );
-      expect(kimiK3.properties?.toJSON()).toMatchObject({
-        contextWindow: 1_048_576,
-        inputFormat: {
-          supportsText: true,
-          supportsImage: true,
-          supportsVideo: true,
-        },
-      });
-
-      const kimiK3Compact = resolve(
-        "moonshot-kimi",
-        "k3-256k",
-        "anthropic-messages",
-        "https://api.kimi.com/coding/",
-      );
-      expect(kimiK3Compact.properties?.toJSON()).toMatchObject({
-        contextWindow: 262_144,
-        inputFormat: {
-          supportsText: true,
-          supportsImage: true,
-          supportsVideo: false,
-        },
-      });
-
-      const minimax = resolve(
-        "minimax",
-        "MiniMax-M2.7",
-        "anthropic-messages",
-        "https://api.minimaxi.com/anthropic",
-      );
-      expect(minimax.properties?.toJSON()).toMatchObject({
-        contextWindow: 204_800,
-        inputFormat: {
-          supportsText: true,
-          supportsImage: false,
-          supportsVideo: false,
-        },
-      });
-
-      const minimaxM3 = resolve(
-        "minimax",
-        "MiniMax-M3",
-        "anthropic-messages",
-        "https://api.minimaxi.com/anthropic",
-      );
-      expect(minimaxM3.properties?.toJSON()).toMatchObject({
-        contextWindow: 1_000_000,
-        inputFormat: {
-          supportsText: true,
-          supportsImage: true,
-          supportsVideo: true,
-        },
-      });
+      expect(members).toBeGreaterThan(0);
     } finally {
       source.dispose();
     }
@@ -312,7 +204,7 @@ describe("ZCode Built-in Provider Config 完整性", () => {
     }
   });
 
-  it("每个 Provider 的默认 enabled 模型形成成员前缀，历史或 alias 型号默认关闭", async () => {
+  it("每个 Built-in 成员都有显式 enabled 声明", async () => {
     const source = new NodeZCodeBuiltinProviderConfigSource({
       bundledFilePath: nibiBuiltinProviderConfigFilePath,
       watch: false,
@@ -335,34 +227,14 @@ describe("ZCode Built-in Provider Config 完整性", () => {
                 ],
           ),
       );
-
-      const memberships = [
-        ...snapshot.providers.entries(),
-        ...(snapshot.providerTemplates
-          ?.entries()
-          .map(([id, template]) => [id, template.config] as const) ?? []),
-      ];
-      for (const [ownerId, owner] of memberships) {
-        const states = (owner.builtinModelIds ?? []).map((modelId) => {
-          const enabled = exactEnabled.get(`${ownerId}\0${modelId}`);
-          expect(enabled, `${ownerId}/${modelId} 必须显式声明 Built-in 默认 enabled`).toBeTypeOf(
-            "boolean",
-          );
-          return enabled!;
-        });
-        const firstDisabled = states.indexOf(false);
-        if (firstDisabled >= 0) {
+      for (const [templateId, template] of snapshot.providerTemplates?.entries() ?? []) {
+        for (const modelId of template.config.builtinModelIds ?? []) {
           expect(
-            states.slice(firstDisabled).every((enabled) => !enabled),
-            `${ownerId} 的 enabled 成员必须在 disabled 成员之前`,
-          ).toBe(true);
+            exactEnabled.get(`${templateId}\0${modelId}`),
+            `${templateId}/${modelId} 必须显式声明 Built-in 默认 enabled`,
+          ).toBeTypeOf("boolean");
         }
       }
-
-      expect(exactEnabled.get("openai\0gpt-5.6")).toBe(false);
-      expect(exactEnabled.get("openai\0gpt-5.6-sol")).toBe(true);
-      expect(exactEnabled.get("minimax\0MiniMax-M3")).toBe(true);
-      expect(exactEnabled.get("xai\0grok-4.3")).toBe(false);
     } finally {
       source.dispose();
     }
@@ -377,27 +249,11 @@ describe("ZCode Built-in Provider Config 完整性", () => {
     try {
       const snapshot = await source.read();
       expect(snapshot.providers.keys()).toEqual([]);
-      expect(snapshot.providerTemplates?.keys()).toEqual([
-        "zai-standard-api",
-        "bigmodel-standard-api",
-        "moonshot-kimi",
-        "minimax",
-        "deepseek",
-        "qwen-alibaba-model-studio-cn",
-        "qwen-alibaba-model-studio-intl",
-        "xiaomi-mimo",
-        "xiaomi-mimo-token-plan",
-        "openai",
-        "anthropic",
-        "xai",
-        "openrouter",
-        "opencode-go-chat",
-        "opencode-go-messages",
-        "opencode-go-responses",
-        "opencode-zen-responses",
-        "opencode-zen-messages",
-        "opencode-zen-chat",
-      ]);
+      // 模板集合跟随上游（ZAI/BigModel 会员套餐模板在同步时被排除）；只钉基础身份。
+      expect(snapshot.providerTemplates?.has("zai-standard-api")).toBe(true);
+      expect(snapshot.providerTemplates?.has("bigmodel-standard-api")).toBe(true);
+      expect(snapshot.providerTemplates?.has("zai-api")).toBe(false);
+      expect(snapshot.providerTemplates?.has("bigmodel-api")).toBe(false);
       for (const [templateId, template] of snapshot.providerTemplates?.entries() ?? []) {
         expect(
           template.templateNameMap["zh-CN"]?.trim(),
@@ -434,18 +290,6 @@ describe("ZCode Built-in Provider Config 完整性", () => {
       });
 
       expect(snapshot.providerTemplates?.get("openai")?.config.toJSON()).toMatchObject({
-        builtinModelIds: [
-          "gpt-6-astra",
-          "gpt-5.6-sol",
-          "gpt-5.6-terra",
-          "gpt-5.6-luna",
-          "gpt-5.6",
-          "gpt-5.4",
-          "gpt-5.4-pro",
-          "gpt-5.4-mini",
-          "gpt-5.4-nano",
-          "gpt-5.3-codex",
-        ],
         access: {
           type: "api-key",
           apiKeyManagementUrl: "https://platform.openai.com/api-keys",
@@ -453,13 +297,6 @@ describe("ZCode Built-in Provider Config 完整性", () => {
         api: { type: "openai-responses", baseUrl: "https://api.openai.com/v1" },
       });
       expect(snapshot.providerTemplates?.get("anthropic")?.config.toJSON()).toMatchObject({
-        builtinModelIds: [
-          "claude-fable-5-1",
-          "claude-fable-5",
-          "claude-opus-5",
-          "claude-sonnet-5",
-          "claude-haiku-4-5-20251001",
-        ],
         access: {
           type: "api-key",
           apiKeyManagementUrl: "https://console.anthropic.com/settings/keys",
@@ -467,7 +304,6 @@ describe("ZCode Built-in Provider Config 完整性", () => {
         api: { type: "anthropic-messages", baseUrl: "https://api.anthropic.com/v1" },
       });
       expect(snapshot.providerTemplates?.get("xai")?.config.toJSON()).toMatchObject({
-        builtinModelIds: ["grok-4.6", "grok-build-0.1", "grok-4.3"],
         access: {
           type: "api-key",
           apiKeyManagementUrl: "https://console.x.ai",
@@ -802,28 +638,11 @@ describe("ZCode Built-in Provider Config 完整性", () => {
       });
 
       expect(resolution.issues).toEqual([]);
-      expect(resolution.registryProviders.map(({ providerId }) => providerId)).toEqual([
-        "template:zai-standard-api",
-        "template:bigmodel-standard-api",
-        "template:moonshot-kimi",
-        "template:minimax",
-        "template:deepseek",
-        "template:qwen-alibaba-model-studio-cn",
-        "template:qwen-alibaba-model-studio-intl",
-        "template:xiaomi-mimo",
-        "template:xiaomi-mimo-token-plan",
-        "template:openai",
-        "template:anthropic",
-        "template:xai",
-        "template:openrouter",
-        "template:opencode-go-chat",
-        "template:opencode-go-messages",
-        "template:opencode-go-responses",
-        "template:opencode-zen-responses",
-        "template:opencode-zen-messages",
-        "template:opencode-zen-chat",
-      ]);
-
+      expect(
+        resolution.registryProviders.map(({ providerId }) => providerId).sort(),
+      ).toEqual(
+        [...(snapshot.providerTemplates?.keys() ?? [])].map((id) => `template:${id}`).sort(),
+      );
       for (const provider of resolution.registryProviders) {
         expect(
           provider.models.map(({ modelId }) => modelId),

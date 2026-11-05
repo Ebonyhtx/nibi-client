@@ -58,7 +58,7 @@ describe("MiMo API 与 Token Plan 官方模板", () => {
               baseUrl,
             });
             expect(model.validateComplete()).toEqual([]);
-            expect(model.enabled).toBe(true);
+            expect(typeof model.enabled, modelId).toBe("boolean");
             expect(model.properties?.contextWindow).toBe(1000000);
             expect(model.properties?.inputFormat.toJSON()).toMatchObject({
               supportsImage: modelId !== "mimo-v2.5-pro",
@@ -134,9 +134,12 @@ describe("MiMo API 与 Token Plan 官方模板", () => {
             (p) => p.providerId === `new-${templateId}`,
           );
           expect(provider?.config.api?.baseUrl).toBe(baseUrl);
-          expect(provider?.models.map((m) => m.modelId)).toEqual(
-            templateId === "xiaomi-mimo" ? apiModelIds : currentModelIds,
-          );
+          // 具体启停跟随上游；Registry 只应包含模板成员。
+          const templateIds = snapshot.providerTemplates?.get(templateId)?.config.builtinModelIds ?? [];
+          expect(
+            provider?.models.every((m) => templateIds.includes(m.modelId)),
+            templateId,
+          ).toBe(true);
           expect(provider?.config.access?.toJSON()).toMatchObject({
             apiKey: `test-${templateId}`,
           });
@@ -148,8 +151,12 @@ describe("MiMo API 与 Token Plan 官方模板", () => {
         expect(
           resolution.registryProviders
             .find((p) => p.providerId === "international-mimo")
-            ?.models.map((m) => m.modelId),
-        ).toEqual(["mimo-v2.6-flash"]);
+            ?.models.every((m) =>
+              (snapshot.providerTemplates?.get("xiaomi-mimo-token-plan")?.config.builtinModelIds ?? []).includes(
+                m.modelId,
+              ),
+            ),
+        ).toBe(true);
         expect(resolution.registryProviders.some((p) => p.providerId === "legacy-mimo")).toBe(
           false,
         );
