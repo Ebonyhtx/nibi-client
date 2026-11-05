@@ -146,6 +146,12 @@ export async function refreshLicense(
   }
   if (!headers) return before;
 
+  // 登录后换证是异步的：没有这一行时“license 没落盘”只能靠猜（登录成功、会员有效，
+  // 但缓存键不存在）。只打结果与端点，不打任何令牌。
+  console.log("[nibiLicense] check requested", `${opts.apiBaseUrl}/licenses/check`, {
+    withLicenseHeader: licenseUsable,
+    deviceBound: Boolean(cached.token),
+  });
   let res: LicenseHttpResponse;
   try {
     res = await opts.request({
@@ -181,6 +187,12 @@ export async function refreshLicense(
     license?: { token?: string; expiresAt?: string | null; plan?: string | null } | null;
     membership?: { status?: string; expiresAt?: string | null; plan?: string | null } | null;
   };
+  console.log("[nibiLicense] check response", {
+    status: res.status,
+    authorized: body.authorized ?? null,
+    hasLicenseToken: Boolean(body.license?.token),
+    reason: body.reason ?? null,
+  });
 
   if (res.status === 200 && body.authorized === true && body.license?.token) {
     const snapshot = snapshotFromResponse({

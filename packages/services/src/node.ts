@@ -1291,6 +1291,7 @@ export function createLocalServices(options: {
       }
       // 登录写入 NIBI 令牌后立刻换一份设备 license；退出时清掉本地凭证。
       if (key === "oauth:nibi:access_token") {
+        console.log(formatLogPrefix("nibiLicense", process.pid), "access token saved, syncing license");
         void nibiLicenseSyncRef.current?.sync(true).catch((error: unknown) => {
           // 网络/服务端失败按"暂不同步"处理（下次启动会再试），但必须留下可诊断的原因：
           // 以前这里静默吞掉，登录后 license 不落盘时没有任何线索。
