@@ -29,7 +29,7 @@ use crate::flags::Fatal;
 pub(crate) use install::Install;
 
 /// `zcode update` 的帮助（commander 12 的子命令形式；说明是 Codex 的，update.md §9）。
-const HELP: &str = "Usage: zcode update|upgrade [options]
+const HELP: &str = "Usage: nibi update|upgrade [options]
 
 Update NIBI to the latest version
 

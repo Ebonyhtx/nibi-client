@@ -220,7 +220,7 @@ fn waiting_interrupted_and_failed_tools() {
         text(&[cancelled], false),
         [
             b("Edit(a.rs)"),
-            "  ⎿  Interrupted · What should ZCode do instead?".into()
+            "  ⎿  Interrupted · What should NIBI do instead?".into()
         ]
     );
     let failed = with(
@@ -253,7 +253,7 @@ fn questions_and_plans_show_their_outcome() {
     );
     assert_eq!(
         text(std::slice::from_ref(&approved), false),
-        [b("User approved ZCode's plan")]
+        [b("User approved NIBI's plan")]
     );
     assert!(
         text(&[approved], true)
@@ -266,7 +266,7 @@ fn questions_and_plans_show_their_outcome() {
         ToolStatus::Cancelled,
         json!({"plan": "x"}),
     );
-    assert_eq!(text(&[rejected], false), [b("User rejected ZCode's plan")]);
+    assert_eq!(text(&[rejected], false), [b("User rejected NIBI's plan")]);
 }
 
 #[test]

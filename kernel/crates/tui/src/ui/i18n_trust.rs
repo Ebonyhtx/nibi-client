@@ -1,5 +1,5 @@
 //! 工作区信任对话框的文字（docs/specs/rust-cli/workspace-trust.md §2.4）：英文照原文
-//! （产品名换成 ZCode），另配中文。
+//! （产品名换成 NIBI），另配中文。
 use super::i18n::Lang;
 
 pub fn title(lang: Lang) -> &'static str {
@@ -22,8 +22,8 @@ pub fn safety_check(lang: Lang) -> &'static str {
 
 pub fn abilities(lang: Lang) -> &'static str {
     match lang {
-        Lang::En => "ZCode'll be able to read, edit, and execute files here.",
-        Lang::Zh => "ZCode 将可以读取、编辑和执行这里的文件。",
+        Lang::En => "NIBI'll be able to read, edit, and execute files here.",
+        Lang::Zh => "NIBI 将可以读取、编辑和执行这里的文件。",
     }
 }
 

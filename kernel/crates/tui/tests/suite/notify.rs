@@ -35,7 +35,7 @@ async fn a_waiting_permission_and_an_idle_prompt_notify_iterm2() {
         tokio::time::sleep(Duration::from_secs(5)).await;
         assert!(sent(&ui).is_empty());
         tokio::time::sleep(Duration::from_secs(2)).await;
-        assert_eq!(sent(&ui), ["\x1b]9;\n\nZCode needs your permission\x07"]);
+        assert_eq!(sent(&ui), ["\x1b]9;\n\nNIBI needs your permission\x07"]);
         ui.key(KeyCode::Esc);
         ui.wait_for("file step done").await;
         // 回合结束 60 s 后空闲提醒（之间没有按键）。
@@ -44,7 +44,7 @@ async fn a_waiting_permission_and_an_idle_prompt_notify_iterm2() {
         tokio::time::sleep(Duration::from_secs(2)).await;
         assert_eq!(
             sent(&ui).last().map(String::as_str),
-            Some("\x1b]9;\n\nZCode is waiting for your input\x07")
+            Some("\x1b]9;\n\nNIBI is waiting for your input\x07")
         );
     })
     .await;
@@ -77,7 +77,7 @@ async fn no_channel_and_keys_hold_the_notification() {
         tokio::time::sleep(Duration::from_secs(6)).await;
         assert_eq!(
             sent(&ui),
-            ["\x1b]777;notify;ZCode;ZCode needs your permission\x07"]
+            ["\x1b]777;notify;NIBI;NIBI needs your permission\x07"]
         );
         ui.key(KeyCode::Esc);
         ui.wait_for("file step done").await;

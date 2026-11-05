@@ -400,9 +400,9 @@ fn split_tools(value: &str) -> Vec<String> {
     tools
 }
 
-/// `zcode --version` 的输出行（docs/specs/rust-cli/version.md §5）。
+/// `nibi --version` 的输出行（docs/specs/rust-cli/version.md §5）。
 pub(crate) fn version_line(version: &str) -> String {
-    format!("zcode {version} (rust-cli)")
+    format!("nibi {version} (rust-cli)")
 }
 
 /// JS `Number(text)`：去掉首尾空白；空串是 0；十进制（可带符号、小数、指数）、`Infinity`、`0x` / `0o` / `0b`。
@@ -627,7 +627,7 @@ fn finish(
         (false, Some(Some(id))) => invocation.target = SessionTarget::Resume(SessionId::new(id)),
         // `--resume` 不带值时打开会话选择器（只有 TUI 有）；`-p` 里要 ID。
         (false, Some(None)) if print => {
-            return Err("Error: --resume requires a valid session ID or session title when used with --print. Usage: zcode -p --resume <session-id|title>".to_owned());
+            return Err("Error: --resume requires a valid session ID or session title when used with --print. Usage: nibi -p --resume <session-id|title>".to_owned());
         }
         (false, Some(None)) => invocation.resume_pick = true,
         (false, None) => {}

@@ -73,7 +73,7 @@ pub fn local_lines(local: &Local, ctx: &Ctx<'_>) -> Vec<Line<'static>> {
                 .max()
                 .unwrap_or(0);
             let mut lines = vec![Line::from(vec![
-                Span::styled("ZCode", cells::bold()),
+                Span::styled("NIBI", cells::bold()),
                 Span::styled(format!(" v{}", ctx.version), dim),
             ])];
             lines.push(Line::default());

@@ -288,7 +288,7 @@ async fn the_update_command_without_a_marker_asks_for_a_manual_update() {
     assert_eq!(command(Command::Help, &[], &mut help).await.unwrap(), 0);
     assert_eq!(
         String::from_utf8(help).unwrap(),
-        "Usage: zcode update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
+        "Usage: nibi update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
     );
 }
 

@@ -19,7 +19,7 @@ async fn context_sends_no_count_tokens_request() {
     let base = std::fs::canonicalize(dir.path()).unwrap();
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
-    std::fs::create_dir_all(home.join(".zcode/v2")).unwrap();
+    std::fs::create_dir_all(home.join(".nibi/v2")).unwrap();
     let fixture = sse::serve(Vec::new());
     let output = rust_cli_proc::std_command(env!("CARGO_BIN_EXE_zcode-rs"))
         .args(["-p", "/context"])

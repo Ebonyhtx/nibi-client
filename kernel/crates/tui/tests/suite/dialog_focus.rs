@@ -146,9 +146,9 @@ async fn the_permission_ask_has_no_bar_and_shows_the_cursor_while_typing() {
             assert_eq!(ui.cursor(), None);
             // tab 补充意见：这一行变成输入，光标停在占位文字的第一个字上。
             ui.key(KeyCode::Tab);
-            let screen = ui.wait_for("tell ZCode what to do differently").await;
+            let screen = ui.wait_for("tell NIBI what to do differently").await;
             let buffer = frame(&ui);
-            let (x, y) = find(&buffer, "tell ZCode").unwrap();
+            let (x, y) = find(&buffer, "tell NIBI").unwrap();
             assert_no_fill(&buffer, y);
             assert_eq!(ui.cursor(), Some((x, y)), "{screen}");
             // 输入之后光标在文字末尾。
@@ -186,9 +186,9 @@ async fn the_plan_approval_has_no_bar_and_shows_the_cursor_on_keep_planning() {
             assert_eq!(ui.cursor(), None);
             // 第 2 行直接是输入：聚焦时光标在占位文字上，输入后在文字末尾。
             ui.key(KeyCode::Down);
-            ui.wait_for("Tell ZCode what to change").await;
+            ui.wait_for("Tell NIBI what to change").await;
             let buffer = frame(&ui);
-            let (x, y) = find(&buffer, "Tell ZCode what to change").unwrap();
+            let (x, y) = find(&buffer, "Tell NIBI what to change").unwrap();
             assert_no_fill(&buffer, y);
             assert_eq!(buffer[(x - 5, y)].symbol(), "❯");
             assert_eq!(ui.cursor(), Some((x, y)));
@@ -230,7 +230,7 @@ async fn long_feedback_wraps_and_the_cursor_follows() {
         ui.wait_for("Do you want to proceed?").await;
         ui.settle().await;
         ui.key(KeyCode::Tab);
-        ui.wait_for("tell ZCode").await;
+        ui.wait_for("tell NIBI").await;
         ui.type_text("alpha beta gamma delta epsilon zeta eta");
         ui.wait_for("zeta eta").await;
         let buffer = frame(&ui);

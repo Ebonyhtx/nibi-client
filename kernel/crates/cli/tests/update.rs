@@ -156,7 +156,7 @@ fn the_update_command_has_commander_help_and_errors() {
     assert_eq!(help.status.code(), Some(0), "{help:?}");
     assert_eq!(
         text(&help.stdout),
-        "Usage: zcode update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
+        "Usage: nibi update|upgrade [options]\n\nUpdate NIBI to the latest version\n\nOptions:\n  -h, --help  Display help for command\n"
     );
     for (args, expected) in [
         (vec!["update", "--yes"], "error: unknown option '--yes'\n"),

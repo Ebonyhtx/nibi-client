@@ -20,8 +20,8 @@ pub fn more_lines(lang: Lang, count: usize) -> String {
 
 pub fn interrupted(lang: Lang) -> String {
     match lang {
-        Lang::En => "Interrupted · What should ZCode do instead?",
-        Lang::Zh => "已中断 · 希望 ZCode 改做什么？",
+        Lang::En => "Interrupted · What should NIBI do instead?",
+        Lang::Zh => "已中断 · 希望 NIBI 改做什么？",
     }
     .to_owned()
 }
@@ -205,10 +205,10 @@ pub fn wrote(lang: Lang, count: u64, path: &str) -> Counted {
 
 pub fn plan(lang: Lang, approved: bool) -> &'static str {
     match (lang, approved) {
-        (Lang::En, true) => "User approved ZCode's plan",
-        (Lang::En, false) => "User rejected ZCode's plan",
-        (Lang::Zh, true) => "已同意 ZCode 的计划",
-        (Lang::Zh, false) => "未同意 ZCode 的计划",
+        (Lang::En, true) => "User approved NIBI's plan",
+        (Lang::En, false) => "User rejected NIBI's plan",
+        (Lang::Zh, true) => "已同意 NIBI 的计划",
+        (Lang::Zh, false) => "未同意 NIBI 的计划",
     }
 }
 
@@ -226,14 +226,14 @@ pub fn compacting(lang: Lang) -> &'static str {
     }
 }
 
-/// 定时任务的触发行（`Running scheduled task (…)` 与 `ZCode resuming /loop wakeup (…)`，
+/// 定时任务的触发行（`Running scheduled task (…)` 与 `NIBI resuming /loop wakeup (…)`，
 /// tools-more.md §18.3）。`fold` 是（连续次数、开始时间）。
 pub fn fire(lang: Lang, at: &str, wakeup: bool, fold: Option<(u32, &str)>) -> String {
     let head = match (lang, wakeup) {
         (Lang::En, false) => format!("Running scheduled task ({at})"),
-        (Lang::En, true) => format!("ZCode resuming /loop wakeup ({at})"),
+        (Lang::En, true) => format!("NIBI resuming /loop wakeup ({at})"),
         (Lang::Zh, false) => format!("正在运行定时任务（{at}）"),
-        (Lang::Zh, true) => format!("ZCode 恢复 /loop 唤醒（{at}）"),
+        (Lang::Zh, true) => format!("NIBI 恢复 /loop 唤醒（{at}）"),
     };
     let Some((streak, since)) = fold else {
         return head;

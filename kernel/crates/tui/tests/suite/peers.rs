@@ -131,7 +131,7 @@ async fn a_held_message_asks_for_approval_and_is_delivered() {
             probe.push_held();
             let screen = ui.wait_for("Held message from another session").await;
             assert!(
-                screen.contains("Another ZCode session sent a message: from"),
+                screen.contains("Another NIBI session sent a message: from"),
                 "{screen}"
             );
             assert!(
@@ -156,7 +156,7 @@ async fn a_held_message_asks_for_approval_and_is_delivered() {
                 "{screen}"
             );
             assert!(
-                screen.contains("2. Deliver this message to ZCode"),
+                screen.contains("2. Deliver this message to NIBI"),
                 "{screen}"
             );
             ui.key(KeyCode::Down);
@@ -180,7 +180,7 @@ async fn a_held_message_asks_for_approval_and_is_delivered() {
     let last = super::support::request_text(requests.last().unwrap());
     // `request_text` 是请求体的 JSON：换行写作 `\n`。
     assert!(
-        last.contains(r"Another ZCode session sent a message:\n<cross-session-message"),
+        last.contains(r"Another NIBI session sent a message:\n<cross-session-message"),
         "{last}"
     );
     let dark = found.lock().unwrap().unwrap();
@@ -223,7 +223,7 @@ async fn the_chinese_dialog_denies_with_escape() {
             ui.wait_for("第一句").await;
             probe.push_held();
             let screen = ui.wait_for("来自其他会话的消息已扣住").await;
-            assert!(screen.contains("另一个 ZCode 会话发来消息"), "{screen}");
+            assert!(screen.contains("另一个 NIBI 会话发来消息"), "{screen}");
             assert!(
                 screen.contains("发送方会话的权限模式类别与本会话不同"),
                 "{screen}"
@@ -232,7 +232,7 @@ async fn the_chinese_dialog_denies_with_escape() {
                 screen.contains("1. 拒绝——丢弃，并告诉发送方被拒绝"),
                 "{screen}"
             );
-            assert!(screen.contains("2. 把这条消息交给 ZCode"), "{screen}");
+            assert!(screen.contains("2. 把这条消息交给 NIBI"), "{screen}");
             ui.key(KeyCode::Esc);
             ui.wait("the dialog to close", |s| {
                 !s.contains("来自其他会话的消息已扣住")

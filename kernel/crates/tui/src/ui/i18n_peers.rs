@@ -1,5 +1,5 @@
 //! 跨会话的界面文字（docs/specs/rust-cli/cross-session.md §2.6）：中文与英文。英文照批准框与
-//! 回执警告行的原文，产品名换成 ZCode。
+//! 回执警告行的原文，产品名换成 NIBI。
 use rust_cli_kernel_api::peers::HoldCause;
 
 use super::i18n::Lang;
@@ -25,14 +25,14 @@ pub fn from(lang: Lang, address: &str, name: Option<&str>) -> String {
     match (lang, name) {
         (Lang::En, Some(name)) => {
             format!(
-                "Another ZCode session sent a message: from {address} (peer claims name: {name})"
+                "Another NIBI session sent a message: from {address} (peer claims name: {name})"
             )
         }
-        (Lang::En, None) => format!("Another ZCode session sent a message: from {address}"),
+        (Lang::En, None) => format!("Another NIBI session sent a message: from {address}"),
         (Lang::Zh, Some(name)) => {
-            format!("另一个 ZCode 会话发来消息：来自 {address}（对方自称 {name}）")
+            format!("另一个 NIBI 会话发来消息：来自 {address}（对方自称 {name}）")
         }
-        (Lang::Zh, None) => format!("另一个 ZCode 会话发来消息：来自 {address}"),
+        (Lang::Zh, None) => format!("另一个 NIBI 会话发来消息：来自 {address}"),
     }
 }
 
@@ -71,8 +71,8 @@ pub fn options(lang: Lang) -> [&'static str; 2] {
         ),
         pick(
             lang,
-            "Deliver this message to ZCode",
-            "把这条消息交给 ZCode",
+            "Deliver this message to NIBI",
+            "把这条消息交给 NIBI",
         ),
     ]
 }
@@ -99,8 +99,8 @@ pub fn receipt(lang: Lang, status: &str) -> &'static str {
     match status {
         "held" => pick(
             lang,
-            "Cross-session message held by the receiving session. ZCode in that session hasn't seen it.",
-            "跨会话消息被对方会话扣住，对方的 ZCode 还没有看到。",
+            "Cross-session message held by the receiving session. NIBI in that session hasn't seen it.",
+            "跨会话消息被对方会话扣住，对方的 NIBI 还没有看到。",
         ),
         "denied" => pick(
             lang,

@@ -234,7 +234,7 @@ async fn the_notice_box_sits_under_the_session_header() {
             let screen = ui.wait_for("Update available!").await;
             let lines: Vec<&str> = screen.lines().map(str::trim_end).collect();
             let top = line_of(&screen, "╭");
-            assert!(line_of(&screen, "ZCode v0.1.0") < top, "{screen}");
+            assert!(line_of(&screen, "NIBI v0.1.0") < top, "{screen}");
             assert_eq!(
                 &lines[top..top + 7],
                 [

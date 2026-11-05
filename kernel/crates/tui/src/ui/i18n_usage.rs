@@ -1,4 +1,4 @@
-//! `/usage` 页面的文字（docs/specs/rust-cli/usage.md §4、§5）：英文照原文（产品名换成 ZCode），
+//! `/usage` 页面的文字（docs/specs/rust-cli/usage.md §4、§5）：英文照原文（产品名换成 NIBI），
 //! 中文按同样的结构。
 use super::i18n::Lang;
 
@@ -52,8 +52,8 @@ const EN: UsageStrings = UsageStrings {
     current_streak: "Current streak:",
     less: "Less",
     more: "More",
-    empty: "No stats available yet. Start using ZCode!",
-    loading: "Loading your ZCode stats\u{2026}",
+    empty: "No stats available yet. Start using NIBI!",
+    loading: "Loading your NIBI stats\u{2026}",
     no_models: "No model usage data available",
     usage_hint: "{tab} to switch tabs",
     stats_hint: "{tab} to switch tabs \u{b7} {\u{2190}/\u{2192}} to switch views \u{b7} {r} to cycle dates \u{b7} {esc} to close",
@@ -80,8 +80,8 @@ const ZH: UsageStrings = UsageStrings {
     current_streak: "当前连续：",
     less: "少",
     more: "多",
-    empty: "还没有统计数据。开始使用 ZCode 吧！",
-    loading: "正在读取 ZCode 的统计\u{2026}",
+    empty: "还没有统计数据。开始使用 NIBI 吧！",
+    loading: "正在读取 NIBI 的统计\u{2026}",
     no_models: "没有模型用量数据",
     usage_hint: "{tab} 切换标签页",
     stats_hint: "{tab} 切换标签页 \u{b7} {\u{2190}/\u{2192}} 切换视图 \u{b7} {r} 切换日期范围 \u{b7} {esc} 关闭",

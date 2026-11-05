@@ -16,7 +16,7 @@ const fn item(term: &'static str, description: &'static str) -> HelpItem {
     HelpItem { term, description }
 }
 
-const USAGE: &str = "zcode [options] [command] [prompt]";
+const USAGE: &str = "nibi [options] [command] [prompt]";
 const DESCRIPTION: &str =
     "NIBI - starts an interactive session by default, use -p/--print for non-interactive output";
 

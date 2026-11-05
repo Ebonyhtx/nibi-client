@@ -40,7 +40,7 @@ impl Sandbox {
         let base = std::fs::canonicalize(dir.path()).unwrap();
         let (home, work) = (base.join("home"), base.join("work"));
         std::fs::create_dir_all(work.join(".git")).unwrap();
-        std::fs::create_dir_all(home.join(".zcode/v2")).unwrap();
+        std::fs::create_dir_all(home.join(".nibi/v2")).unwrap();
         std::fs::write(work.join("a.txt"), "alpha\n").unwrap();
         Self {
             _dir: dir,
@@ -82,7 +82,7 @@ impl Sandbox {
             }
         });
         std::fs::write(
-            self.home.join(".zcode/v2/provider_config.json"),
+            self.home.join(".nibi/v2/provider_config.json"),
             config.to_string(),
         )
         .unwrap();

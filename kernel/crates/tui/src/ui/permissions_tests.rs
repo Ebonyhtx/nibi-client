@@ -53,7 +53,7 @@ fn tabs_list_rules_sorted_with_the_add_entry_first() {
     let mut view = view();
     let screen = text(&view);
     assert!(screen.contains("Permissions:  Allow"), "{screen}");
-    assert!(screen.contains("ZCode won't ask before using allowed tools."));
+    assert!(screen.contains("NIBI won't ask before using allowed tools."));
     let add = screen.find("› Add a new rule…").unwrap();
     let bash = screen.find("Bash(git status:*)").unwrap();
     let read = screen.find("    read").unwrap();
@@ -61,7 +61,7 @@ fn tabs_list_rules_sorted_with_the_add_entry_first() {
     key(&mut view, KeyCode::Right);
     key(&mut view, KeyCode::Right);
     let screen = text(&view);
-    assert!(screen.contains("ZCode will always reject requests to use denied tools."));
+    assert!(screen.contains("NIBI will always reject requests to use denied tools."));
     assert!(screen.contains("WebFetch"));
     key(&mut view, KeyCode::Right);
     let screen = text(&view);

@@ -122,7 +122,7 @@ fn server(subscription: &'static str) -> (String, Seen) {
 
 /// 临时 home：App 写的凭据文件原文（只有 App 的键）；内置配置里这个 family 的个人 provider 指向假服务。
 fn prepare(home: &Path, url: &str, family: &str) -> std::path::PathBuf {
-    let v2 = home.join(".zcode/v2");
+    let v2 = home.join(".nibi/v2");
     std::fs::create_dir_all(&v2).unwrap();
     let file = golden()["logins"][family]["loginFile"]
         .as_str()
@@ -214,7 +214,7 @@ fn print_mode_uses_the_individual_plan_from_the_app_login() {
         assert_eq!(model.2.as_deref(), Some("Bearer pat-1"), "{family}");
         // 项目位置的键与 App 同一算法：账号是 App 写的 user_info 的 profile id。
         let raw: Value = serde_json::from_str(
-            &std::fs::read_to_string(home.join(".zcode/v2/credentials.json")).unwrap(),
+            &std::fs::read_to_string(home.join(".nibi/v2/credentials.json")).unwrap(),
         )
         .unwrap();
         let locations: Vec<String> = raw

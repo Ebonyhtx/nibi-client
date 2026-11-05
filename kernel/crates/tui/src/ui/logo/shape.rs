@@ -8,7 +8,7 @@ pub(super) const GRID: usize = 128;
 pub(super) const EXTENT: f64 = 1.0;
 pub(super) const STEP: f64 = EXTENT * 2.0 / (GRID - 1) as f64;
 
-/// `ZCodeAboutLogo.tsx` 的 Z 标志：上横、斜杠、下横，viewBox 0 0 256 218。
+/// `ZCodeAboutLogo.tsx`（上游文件）的 Z 标志：上横、斜杠、下横，viewBox 0 0 256 218。
 const Z_PATHS: [&str; 3] = [
     "M134.4 0.130152L116.48 25.6022C113.665 29.5699 109.054 32.0019 104.064 32.0019H6.3999V0C6.3999 0.130149 134.4 0.130152 134.4 0.130152Z",
     "M256 0.130127L102.401 217.732H0L153.599 0.130127H256Z",

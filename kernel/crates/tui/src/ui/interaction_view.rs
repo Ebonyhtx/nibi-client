@@ -401,9 +401,9 @@ impl Interaction {
             // 输入意见时 No 行就是输入框；写意见时（`typing`，焦点一定在这一行）显示光标。
             if index == last && (self.typing || !self.text.is_empty()) {
                 let placeholder = if zh {
-                    "告诉 ZCode 该怎么做"
+                    "告诉 NIBI 该怎么做"
                 } else {
-                    "tell ZCode what to do differently"
+                    "tell NIBI what to do differently"
                 };
                 let content = input(&self.text, placeholder);
                 let first = prefix(focused, index + 1, view);

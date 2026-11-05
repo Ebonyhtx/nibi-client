@@ -30,7 +30,7 @@ async fn rules_are_added_and_deleted_in_the_project_ruleset() {
         ui.submit("/permissions");
         let page = ui.wait_for("Permissions:").await;
         assert!(
-            page.contains("ZCode won't ask before using allowed tools."),
+            page.contains("NIBI won't ask before using allowed tools."),
             "{page}"
         );
         assert!(page.contains("› Add a new rule…"), "{page}");

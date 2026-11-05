@@ -102,7 +102,7 @@ async fn a_model_only_skill_answers_locally_and_unknown_names_stay_local() {
             crossterm::event::KeyModifiers::CONTROL,
         );
         ui.submit("/inner");
-        ui.wait_for("This skill can only be invoked by ZCode").await;
+        ui.wait_for("This skill can only be invoked by NIBI").await;
         ui.submit("/nope");
         ui.wait_for("'/nope'").await;
     })

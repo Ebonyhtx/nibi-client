@@ -12,8 +12,8 @@ use crate::view::{Body, Marker, PeerRow, Row, ToolRow, ToolStatus, Transcript};
 const PEER_SOURCE: &str = "cross-session";
 /// 同伴消息给模型的包装的第一行（工具边界与空闲两种，`prompts/peers/wrap_*.txt`）。
 const PEER_HEADS: [&str; 2] = [
-    "Another ZCode session sent a message while you were working:\n",
-    "Another ZCode session sent a message:\n",
+    "Another NIBI session sent a message while you were working:\n",
+    "Another NIBI session sent a message:\n",
 ];
 /// 回执的开头（`prompts/peers/non_user_prefix.txt` 与 `receipt_*.txt`）。
 const RECEIPT_HEAD: &str =

@@ -1,5 +1,5 @@
 //! 自动更新的文字（docs/specs/rust-cli/update.md §6.1、§7）：英文是 Codex 的原文（`update_prompt.rs`、
-//! `history_cell/notices.rs`，产品名换成 ZCode），另配中文。
+//! `history_cell/notices.rs`，产品名换成 NIBI），另配中文。
 use super::i18n::Lang;
 
 pub fn title(lang: Lang) -> &'static str {

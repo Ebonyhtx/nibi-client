@@ -90,7 +90,7 @@ impl Server {
     }
 }
 
-/// 临时 home 与工作区；`ZCODE_DATA_BASE_DIR` 指向 home（个人 Provider 配置在 `<home>/.zcode/v2`）。
+/// 临时 home 与工作区；`ZCODE_DATA_BASE_DIR` 指向 home（个人 Provider 配置在 `<home>/.nibi/v2`）。
 struct Sandbox {
     _dir: tempfile::TempDir,
     home: PathBuf,
@@ -113,7 +113,7 @@ impl Sandbox {
 
     /// 个人 Provider 配置里只有新会话的缺省选择（Node `saveConfiguredDefault` 写的形状）。
     fn default_model_selection(&self, model: &str) {
-        let dir = self.home.join(".zcode/v2");
+        let dir = self.home.join(".nibi/v2");
         std::fs::create_dir_all(&dir).unwrap();
         let config = serde_json::json!({
             "schemaVersion": 1,

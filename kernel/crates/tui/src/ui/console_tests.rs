@@ -23,13 +23,13 @@ fn mintty_is_refused_with_the_way_out() {
     assert_eq!(
         Console::Mintty.refusal(&EN),
         Some(
-            "This terminal (mintty, the Git Bash window) cannot run ZCode: its keys do not reach Windows programs. Use Windows Terminal, or run `winpty zcode.cmd`."
+            "This terminal (mintty, the Git Bash window) cannot run NIBI: its keys do not reach Windows programs. Use Windows Terminal, or run `winpty nibi.cmd`."
         )
     );
     assert_eq!(
         Console::Mintty.refusal(&ZH),
         Some(
-            "这个终端（mintty，即 Git Bash 的窗口）不能运行 ZCode：按键到不了 Windows 程序。请用 Windows Terminal，或者运行 `winpty zcode.cmd`。"
+            "这个终端（mintty，即 Git Bash 的窗口）不能运行 NIBI：按键到不了 Windows 程序。请用 Windows Terminal，或者运行 `winpty nibi.cmd`。"
         )
     );
 }

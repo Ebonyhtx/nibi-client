@@ -42,11 +42,11 @@ fn sequences_match_each_channel() {
     );
     assert_eq!(
         sequence(Channel::Ghostty, "hi", &none, 7),
-        "\x1b]777;notify;ZCode;hi\x07"
+        "\x1b]777;notify;NIBI;hi\x07"
     );
     assert_eq!(
         sequence(Channel::Kitty, "hi", &none, 7),
-        "\x1b]99;i=7:d=0:p=title;ZCode\x1b\\\x1b]99;i=7:p=body;hi\x1b\\\x1b]99;i=7:d=1:a=focus;\x1b\\"
+        "\x1b]99;i=7:d=0:p=title;NIBI\x1b\\\x1b]99;i=7:p=body;hi\x1b\\\x1b]99;i=7:d=1:a=focus;\x1b\\"
     );
     assert_eq!(
         sequence(Channel::ITerm2, "hi", &vars(&[("TMUX", "/tmp/t")]), 7),
@@ -85,7 +85,7 @@ fn a_dialog_notifies_after_six_quiet_seconds_once() {
     let due = notify
         .due(start + DIALOG_AFTER * 2, false, Lang::En)
         .unwrap();
-    assert_eq!(due.message, "ZCode needs your permission");
+    assert_eq!(due.message, "NIBI needs your permission");
     assert_eq!(due.kind, "permission_prompt");
     assert_eq!(notify.next_due(), None);
     // 同一个交互不再提醒；交互没了就停。
@@ -109,7 +109,7 @@ fn idle_waits_sixty_seconds_after_a_turn_and_for_quiet() {
     let later = start + IDLE_AFTER + DIALOG_AFTER;
     assert_eq!(notify.next_due(), Some(later));
     let due = notify.due(later, true, Lang::Zh).unwrap();
-    assert_eq!(due.message, "ZCode 正在等你输入");
+    assert_eq!(due.message, "NIBI 正在等你输入");
     assert_eq!(due.kind, "idle_prompt");
     assert_eq!(notify.next_due(), None);
     // 结束之后按过键：这次不提醒。

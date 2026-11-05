@@ -126,7 +126,7 @@ fn server(status: &'static str) -> (String, Seen) {
 /// 个人套餐不可用（工作线 F50 照 App，platform.md §5.7）；App 在 `setting.json` 里选了个人套餐（本工程不读）；内置配置
 /// 里团队 provider 的地址指向假服务。
 fn prepare(home: &Path, url: &str) -> std::path::PathBuf {
-    let v2 = home.join(".zcode/v2");
+    let v2 = home.join(".nibi/v2");
     std::fs::create_dir_all(&v2).unwrap();
     // 明文值（Node 也接受没有 `enc:v1:` 前缀的旧值）。
     let credentials = json!({

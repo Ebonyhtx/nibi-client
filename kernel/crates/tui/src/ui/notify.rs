@@ -14,7 +14,7 @@ pub use rust_cli_kernel_api::interaction::NOTIFY_AFTER as DIALOG_AFTER;
 /// 空闲提醒的缺省门槛。
 pub const IDLE_AFTER: Duration = Duration::from_secs(60);
 /// 通知的标题。
-const TITLE: &str = "ZCode";
+const TITLE: &str = "NIBI";
 
 /// 能选到的渠道。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,21 +85,21 @@ pub struct Due {
 
 fn dialog_text(request: &InteractionRequest, lang: Lang) -> &'static str {
     match (lang, request) {
-        (Lang::En, InteractionRequest::Permission { .. }) => "ZCode needs your permission",
+        (Lang::En, InteractionRequest::Permission { .. }) => "NIBI needs your permission",
         (Lang::En, InteractionRequest::PlanApproval { .. }) => {
-            "ZCode needs your approval for the plan"
+            "NIBI needs your approval for the plan"
         }
-        (Lang::En, InteractionRequest::Question { .. }) => "ZCode needs your input",
-        (Lang::Zh, InteractionRequest::Permission { .. }) => "ZCode 需要你的许可",
-        (Lang::Zh, InteractionRequest::PlanApproval { .. }) => "ZCode 需要你批准计划",
-        (Lang::Zh, InteractionRequest::Question { .. }) => "ZCode 需要你的输入",
+        (Lang::En, InteractionRequest::Question { .. }) => "NIBI needs your input",
+        (Lang::Zh, InteractionRequest::Permission { .. }) => "NIBI 需要你的许可",
+        (Lang::Zh, InteractionRequest::PlanApproval { .. }) => "NIBI 需要你批准计划",
+        (Lang::Zh, InteractionRequest::Question { .. }) => "NIBI 需要你的输入",
     }
 }
 
 fn idle_text(lang: Lang) -> &'static str {
     match lang {
-        Lang::En => "ZCode is waiting for your input",
-        Lang::Zh => "ZCode 正在等你输入",
+        Lang::En => "NIBI is waiting for your input",
+        Lang::Zh => "NIBI 正在等你输入",
     }
 }
 

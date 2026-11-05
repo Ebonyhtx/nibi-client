@@ -65,7 +65,7 @@ fn login_arguments_follow_node() {
     ] {
         assert_eq!(parse(&args(bad)), Some(Err(USAGE.to_owned())), "{bad}");
     }
-    assert!(USAGE.starts_with("Usage: zcode login [zai|bigmodel] [--no-browser]"));
+    assert!(USAGE.starts_with("Usage: nibi login [zai|bigmodel] [--no-browser]"));
 }
 
 /// 缺陷 R2-15：Windows 原来用 `cmd /c start "" <url>`，地址没有经过 cmd 的转义：OAuth 地址里的 `&` 被

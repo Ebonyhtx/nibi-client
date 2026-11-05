@@ -94,7 +94,7 @@ pub enum Body {
     Error(String),
     /// 本地命令的输出（`user-invocable: false` 的提示、展开失败的 stderr；dim 的 `⎿` 行，ext.md §2.7）。
     Output(String),
-    /// 定时任务的触发行（`Running scheduled task`、`ZCode resuming /loop wakeup`，tools-more.md §18.3）。
+    /// 定时任务的触发行（`Running scheduled task`、`NIBI resuming /loop wakeup`，tools-more.md §18.3）。
     Fire(Box<Fire>),
     /// 只供显示的系统提示（`SystemNotice`，L18：插话被 UserPromptSubmit 阻塞）。
     Notice {

@@ -1,7 +1,7 @@
-//! 可执行文件名与命令名（docs/specs/rust-cli/cli-args.md §13，工作线 F59）：cargo 产出的可执行文件是 `zcode-rs`，
-//! 用户敲的命令是 `zcode`（npm 包的 bin 名）。把产物复制成这两个名字（Windows 带 `.exe`；`zcode.exe` 也是 Windows
-//! 平台包里的名字，工作线 F71）都走正常入口：argv0 分派
-//! 只认 rg / bfs / ugrep；帮助与版本里的程序名固定是 `zcode`，不看 argv[0]。临时 HOME，不读真实配置。
+//! 可执行文件名与命令名（docs/specs/rust-cli/cli-args.md §13，工作线 F59）：cargo 产出的可执行文件是 `zcode-rs`
+//! （Cargo `[[bin]]` 名，打包位次是 `nibi-rs`），用户敲的命令是 `nibi`（npm 包的 bin 名）。把产物复制成这些名字
+//! （Windows 带 `.exe`）都走正常入口：argv0 分派只认 rg / bfs / ugrep；帮助与版本里的程序名固定是 `nibi`，
+//! 不看 argv[0]。临时 HOME，不读真实配置。
 #![allow(
     clippy::disallowed_methods,
     reason = "测试复制二进制、检查临时 HOME 里有没有写出文件"
@@ -62,16 +62,16 @@ fn copies_named_zcode_rs_or_zcode_start_normally() {
         assert!(output.status.success(), "{name}: {output:?}");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout),
-            format!("zcode {version} (rust-cli)\n"),
+            format!("nibi {version} (rust-cli)\n"),
             "{name}"
         );
 
-        // 帮助里的程序名是命令名 `zcode`，与可执行文件叫什么无关。
+        // 帮助里的程序名是命令名 `nibi`，与可执行文件叫什么无关。
         let help = run(&program, "--help", home.path());
         assert!(help.status.success(), "{name}: {help:?}");
         assert_eq!(
             String::from_utf8_lossy(&help.stdout).lines().next(),
-            Some("Usage: zcode [options] [command] [prompt]"),
+            Some("Usage: nibi [options] [command] [prompt]"),
             "{name}"
         );
 

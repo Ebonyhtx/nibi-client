@@ -12,7 +12,7 @@ async fn a_first_message_creates_the_session_and_streams_the_reply() {
     let model = GatedModel::scripted(vec![text_response(&["hel", "lo\n", "world"])]);
     let session = with_ui(model.clone(), Setup::default(), |mut ui| async move {
         let start = ui.wait_for("Ask before changes").await;
-        assert!(start.contains("ZCode v0.1.0"), "{start}");
+        assert!(start.contains("NIBI v0.1.0"), "{start}");
         assert!(start.contains("scripted · ~/project"), "{start}");
         assert!(start.contains("Try \""), "{start}");
         ui.submit("hi there");
@@ -45,7 +45,7 @@ async fn esc_interrupts_a_running_turn() {
         assert!(running.contains("tokens"), "status line: {running}");
         ui.key(KeyCode::Esc);
         let screen = ui
-            .wait_for("Interrupted · What should ZCode do instead?")
+            .wait_for("Interrupted · What should NIBI do instead?")
             .await;
         assert!(!screen.contains("esc to interrupt"), "{screen}");
         drop(sender);

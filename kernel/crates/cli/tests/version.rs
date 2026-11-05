@@ -1,5 +1,5 @@
-//! `zcode --version` / `-v` / `-V` 的真实进程（docs/specs/rust-cli/version.md §8）：临时 HOME，不读任何真实
-//! 配置；输出 `zcode <版本> (rust-cli)`，版本来自 build.rs 给的 `ZCODE_BUILD_VERSION`（与二进制同一次编译）。
+//! `nibi --version` / `-v` / `-V` 的真实进程（docs/specs/rust-cli/version.md §8）：临时 HOME，不读任何真实
+//! 配置；输出 `nibi <版本> (rust-cli)`，版本来自 build.rs 给的 `ZCODE_BUILD_VERSION`（与二进制同一次编译）。
 #![allow(
     clippy::disallowed_methods,
     reason = "测试检查临时 HOME 里有没有写出文件，release 下读仓库里的计数文件"
@@ -38,7 +38,7 @@ fn every_version_flag_prints_the_build_version() {
         assert!(output.status.success(), "{flag}: {output:?}");
         assert_eq!(
             String::from_utf8_lossy(&output.stdout),
-            format!("zcode {version} (rust-cli)\n"),
+            format!("nibi {version} (rust-cli)\n"),
             "{flag}"
         );
         assert!(output.stderr.is_empty(), "{flag}: {output:?}");

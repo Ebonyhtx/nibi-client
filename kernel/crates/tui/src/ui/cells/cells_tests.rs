@@ -158,7 +158,7 @@ fn interrupted_turns_end_with_a_hint() {
     ];
     assert_eq!(
         text(&rows, false),
-        ["❯ go", "  ⎿  Interrupted · What should ZCode do instead?"]
+        ["❯ go", "  ⎿  Interrupted · What should NIBI do instead?"]
     );
 }
 
@@ -173,9 +173,9 @@ fn the_startup_header_names_the_model_and_directory() {
     };
     assert_eq!(
         lines(PermissionMode::Default, "glm-5"),
-        ["ZCode v1.0.0", "glm-5 · ~/w"]
+        ["NIBI v1.0.0", "glm-5 · ~/w"]
     );
-    assert_eq!(lines(PermissionMode::Default, ""), ["ZCode v1.0.0", "~/w"]);
+    assert_eq!(lines(PermissionMode::Default, ""), ["NIBI v1.0.0", "~/w"]);
     assert_eq!(
         lines(PermissionMode::BypassPermissions, "m")[2],
         "permissions: Full access"
@@ -221,7 +221,7 @@ fn a_streaming_reply_hides_its_unfinished_last_line() {
     );
 }
 
-/// 定时任务的触发行（tools-more.md §18.3）：英文原文（产品名换成 ZCode）与中文。
+/// 定时任务的触发行（tools-more.md §18.3）：英文原文（产品名换成 NIBI）与中文。
 #[test]
 fn fire_rows_use_the_fixed_text_in_both_languages() {
     assert_eq!(
@@ -230,19 +230,19 @@ fn fire_rows_use_the_fixed_text_in_both_languages() {
     );
     assert_eq!(
         words::fire(Lang::En, "Oct 18 3:04pm", true, None),
-        "ZCode resuming /loop wakeup (Oct 18 3:04pm)"
+        "NIBI resuming /loop wakeup (Oct 18 3:04pm)"
     );
     assert_eq!(
         words::fire(Lang::En, "Oct 18 3:04pm", true, Some((1, "Oct 18 2:44pm"))),
-        "ZCode resuming /loop wakeup (Oct 18 3:04pm) \u{b7} 1 no-op tick since Oct 18 2:44pm"
+        "NIBI resuming /loop wakeup (Oct 18 3:04pm) \u{b7} 1 no-op tick since Oct 18 2:44pm"
     );
     assert_eq!(
         words::fire(Lang::En, "Oct 18 3:04pm", true, Some((3, "Oct 18 2:44pm"))),
-        "ZCode resuming /loop wakeup (Oct 18 3:04pm) \u{b7} 3 no-op ticks since Oct 18 2:44pm"
+        "NIBI resuming /loop wakeup (Oct 18 3:04pm) \u{b7} 3 no-op ticks since Oct 18 2:44pm"
     );
     assert_eq!(
         words::fire(Lang::Zh, "Oct 18 3:04pm", true, Some((2, "Oct 18 2:44pm"))),
-        "ZCode 恢复 /loop 唤醒（Oct 18 3:04pm） \u{b7} 自 Oct 18 2:44pm 起连续 2 次无动作"
+        "NIBI 恢复 /loop 唤醒（Oct 18 3:04pm） \u{b7} 自 Oct 18 2:44pm 起连续 2 次无动作"
     );
     let fire = crate::view::Fire {
         at: "Oct 18 3:04pm".into(),

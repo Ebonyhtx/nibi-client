@@ -247,7 +247,7 @@ fn continue_and_resume_pick_the_session() {
     // `-r` 不带 ID 在 TUI 里打开选择器（见下一个测试），`-p` 里报错（固定的文字）。
     assert_eq!(
         parse(&args(&["-p", "hi", "-r"])).unwrap_err(),
-        "Error: --resume requires a valid session ID or session title when used with --print. Usage: zcode -p --resume <session-id|title>"
+        "Error: --resume requires a valid session ID or session title when used with --print. Usage: nibi -p --resume <session-id|title>"
     );
     assert!(parse(&args(&["-c", "-r", "sess_1", "-p", "hi"])).is_err());
 }
@@ -352,7 +352,7 @@ fn resume_without_an_id_picks_and_fork_session_needs_a_target() {
 
 #[test]
 fn the_version_line_names_the_product_and_the_build() {
-    assert_eq!(version_line("0.1.7"), "zcode 0.1.7 (rust-cli)");
+    assert_eq!(version_line("0.1.7"), "nibi 0.1.7 (rust-cli)");
 }
 
 /// 格式参数（headless.md §1，修复线 F39）：两种写法、布尔参数、choices 与组合的报错（文字固定）。

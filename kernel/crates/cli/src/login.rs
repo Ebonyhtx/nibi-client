@@ -8,7 +8,7 @@ use rust_cli_base::secret::RedactedString;
 use rust_cli_platform::{Family, LoginError, Platform};
 use tokio::io::AsyncBufReadExt;
 
-const USAGE: &str = "Usage: zcode login [zai|bigmodel] [--no-browser]\n       zcode login <zai|bigmodel>-coding-plan-api-key   (reads the API key from stdin)";
+const USAGE: &str = "Usage: nibi login [zai|bigmodel] [--no-browser]\n       nibi login <zai|bigmodel>-coding-plan-api-key   (reads the API key from stdin)";
 const JSON_FLAG: &str = "--json";
 
 #[derive(Debug, PartialEq, Eq)]

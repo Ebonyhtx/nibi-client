@@ -8,7 +8,7 @@ use rust_cli_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
 
-const CAVEAT: &str = "<local-command-caveat>The command below was run directly in ZCode";
+const CAVEAT: &str = "<local-command-caveat>The command below was run directly in NIBI";
 
 fn idle(screen: &str, text: &str) -> bool {
     screen.contains(text) && !screen.contains("esc to interrupt")

@@ -150,7 +150,7 @@ async fn an_empty_library_says_there_are_no_stats_yet() {
     };
     with_ui(model, setup, |mut ui| async move {
         ui.submit("/stats");
-        ui.wait_for("No stats available yet. Start using ZCode!")
+        ui.wait_for("No stats available yet. Start using NIBI!")
             .await;
     })
     .await;

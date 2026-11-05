@@ -75,7 +75,7 @@ async fn the_dialog_shows_the_folder_and_the_fixed_text() {
         // 100 列下在固定的词处换行（workspace-trust.md §2.4）。
         "well-known open source project, or work from your team). If not, take a moment to review what's in",
         "this folder first.",
-        "ZCode'll be able to read, edit, and execute files here.",
+        "NIBI'll be able to read, edit, and execute files here.",
         "› No, exit",
         "Yes, I trust this folder",
         "Enter to confirm · Esc to cancel",
@@ -249,7 +249,7 @@ async fn the_dialog_speaks_chinese() {
     for text in [
         "访问工作区：",
         "快速安全检查：这是你自己创建或信任的项目吗？",
-        "ZCode 将可以读取、编辑和执行这里的文件。",
+        "NIBI 将可以读取、编辑和执行这里的文件。",
         "› 否，退出",
         "是，我信任此文件夹",
         "再按一次 Ctrl-C 退出",

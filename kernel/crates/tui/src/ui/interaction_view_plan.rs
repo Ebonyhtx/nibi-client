@@ -25,9 +25,9 @@ impl Interaction {
         lines.push(Line::from(format!(
             "  {}",
             if zh {
-                "ZCode 的计划："
+                "NIBI 的计划："
             } else {
-                "Here is ZCode's plan:"
+                "Here is NIBI's plan:"
             }
         )));
         lines.push(dashed(view.width));
@@ -73,9 +73,9 @@ impl Interaction {
             // 焦点在“继续计划”时这一行就是输入，显示光标（工作线 F76，tui.md §7.7）。
             if index == last && focused {
                 let placeholder = if zh {
-                    "告诉 ZCode 要改什么"
+                    "告诉 NIBI 要改什么"
                 } else {
-                    "Tell ZCode what to change"
+                    "Tell NIBI what to change"
                 };
                 let first = prefix(true, index + 1, view);
                 let content = input(&self.text, placeholder);

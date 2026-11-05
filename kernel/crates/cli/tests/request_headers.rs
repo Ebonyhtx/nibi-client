@@ -79,7 +79,7 @@ fn get<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a str> {
     found.first().map(|(_, value)| value.as_str())
 }
 
-/// 来源头的值来自环境与系统；`user-agent` 的版本与 `zcode --version` 相同；一个回合的两个请求共用 trace、回合与会话，
+/// 来源头的值来自环境与系统；`user-agent` 的版本与 `nibi --version` 相同；一个回合的两个请求共用 trace、回合与会话，
 /// `x-request-id` 每个请求一个。
 #[test]
 fn a_real_request_carries_the_node_headers() {

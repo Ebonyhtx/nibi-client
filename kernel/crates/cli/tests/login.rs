@@ -54,7 +54,7 @@ fn text(bytes: &[u8]) -> String {
 #[test]
 fn api_key_login_and_logout() {
     let home = tempfile::tempdir().unwrap();
-    let config = home.path().join(".zcode/v2");
+    let config = home.path().join(".nibi/v2");
     let output = zcode(
         home.path(),
         &["login", "zai-coding-plan-api-key"],
@@ -104,7 +104,7 @@ fn usage_errors_follow_node() {
     let output = zcode(home.path(), &["login", "other"], "", None);
     assert_eq!(output.status.code(), Some(1));
     assert!(
-        text(&output.stderr).starts_with("Error: Usage: zcode login [zai|bigmodel] [--no-browser]")
+        text(&output.stderr).starts_with("Error: Usage: nibi login [zai|bigmodel] [--no-browser]")
     );
     let output = zcode(
         home.path(),
@@ -172,7 +172,7 @@ fn oauth_login_without_a_browser() {
     let url = format!("http://{}", listener.local_addr().unwrap());
     std::thread::spawn(move || serve(listener));
     let home = tempfile::tempdir().unwrap();
-    let config = home.path().join(".zcode/v2");
+    let config = home.path().join(".nibi/v2");
     let output = zcode(
         home.path(),
         &["login", "bigmodel", "--no-browser"],
@@ -201,7 +201,7 @@ fn json_output_follows_node() {
     let url = format!("http://{}", listener.local_addr().unwrap());
     std::thread::spawn(move || serve(listener));
     let home = tempfile::tempdir().unwrap();
-    let config = home.path().join(".zcode/v2");
+    let config = home.path().join(".nibi/v2");
     let output = zcode(
         home.path(),
         &["login", "bigmodel", "--no-browser", "--json"],
@@ -247,5 +247,5 @@ fn json_output_follows_node() {
         None,
     );
     assert_eq!(output.status.code(), Some(1));
-    assert!(text(&output.stderr).starts_with("Error: Usage: zcode login"));
+    assert!(text(&output.stderr).starts_with("Error: Usage: nibi login"));
 }

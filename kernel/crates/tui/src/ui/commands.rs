@@ -1,6 +1,6 @@
 // 改写自 apps/zcode-host/crates/tui/src/ui/commands.rs（feat/rs 79b6691c55）。
 //! 斜杠命令（docs/specs/rust-cli/tui.md §6）：名称、别名与说明固定，产品名换成
-//! ZCode。依赖其他工作线的命令也列出来，执行时提示“未实现”。内置提示词命令（`/init`、`/security-review`，修复线 L-A）
+//! NIBI。依赖其他工作线的命令也列出来，执行时提示“未实现”。内置提示词命令（`/init`、`/security-review`，修复线 L-A）
 //! 是内核给出的 skill 命令，不在这张表里。
 use rust_cli_kernel_api::user_command::UserCommand;
 
@@ -61,15 +61,15 @@ macro_rules! commands {
 commands! {
     "help", true, "Show help and available commands", "显示帮助与可用命令";
     "clear", true, "Start a new session with empty context; previous session stays on disk (resumable with /resume)", "开始一个上下文为空的新会话；之前的会话留在磁盘上（可用 /resume 恢复）";
-    "model", true, "Set the AI model for ZCode", "设置 ZCode 使用的模型";
+    "model", true, "Set the AI model for NIBI", "设置 NIBI 使用的模型";
     "plan", true, "Enable plan mode or view the current session plan", "打开计划模式或查看当前会话的计划";
-    "status", true, "Show ZCode status including version, model and session", "查看 ZCode 状态：版本、模型与会话";
-    "copy", true, "Copy ZCode's last response to clipboard (or /copy N for the Nth-latest)", "复制 ZCode 的最后一条回复（/copy N 复制倒数第 N 条）";
+    "status", true, "Show NIBI status including version, model and session", "查看 NIBI 状态：版本、模型与会话";
+    "copy", true, "Copy NIBI's last response to clipboard (or /copy N for the Nth-latest)", "复制 NIBI 的最后一条回复（/copy N 复制倒数第 N 条）";
     "compact", true, "Free up context by summarizing the conversation so far", "总结目前的对话，腾出上下文";
     "resume", true, "Resume a previous conversation", "恢复之前的会话";
     "rewind", true, "Restore the code and/or conversation to a previous point", "把代码或对话恢复到之前的位置";
     "rename", true, "Rename the current conversation", "重命名当前会话";
-    "goal", true, "Set a goal ZCode checks before stopping", "设置 ZCode 停止前要检查的目标";
+    "goal", true, "Set a goal NIBI checks before stopping", "设置 NIBI 停止前要检查的目标";
     "fork", true, "Fork the conversation after one of your messages into a new session", "从某条输入之后分出新会话";
     "export", true, "Export the current conversation to a file or clipboard", "把当前会话导出到文件或剪贴板";
     "memory", true, "Edit AGENTS.md files and memory settings", "编辑 AGENTS.md 与记忆设置";

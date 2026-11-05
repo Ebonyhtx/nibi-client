@@ -189,7 +189,7 @@ pub fn error_lines(message: &str, ctx: &Ctx<'_>) -> Vec<Line<'static>> {
     lines
 }
 
-/// 启动头：`ZCode v版本`；下一行 `模型 · 目录`（目录太长时从左侧省略）。模型名与目录用 `model` / `path` 的颜色
+/// 启动头：`NIBI v版本`；下一行 `模型 · 目录`（目录太长时从左侧省略）。模型名与目录用 `model` / `path` 的颜色
 /// （Codex 状态栏的配色，tui.md §7.4，修复线 F26；原来整行 dim）。权限模式为 bypassPermissions 时再加一行
 /// `permissions: Full access`（红色）。
 pub fn header(mode: PermissionMode, model: &str, ctx: &Ctx<'_>) -> Vec<Line<'static>> {
@@ -221,7 +221,7 @@ pub fn header(mode: PermissionMode, model: &str, ctx: &Ctx<'_>) -> Vec<Line<'sta
     let mut lines = vec![
         truncate_line(
             Line::from(vec![
-                Span::styled("ZCode", bold()),
+                Span::styled("NIBI", bold()),
                 Span::styled(format!(" v{}", ctx.version), dim()),
             ]),
             ctx.width,

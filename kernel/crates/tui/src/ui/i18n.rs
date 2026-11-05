@@ -76,8 +76,8 @@ macro_rules! strings {
 strings! {
     requires_terminal: "TUI requires an interactive terminal.", "TUI 需要交互式终端。";
     // Git Bash 的 mintty（tui-input.md §9.6，工作线 F71）。
-    mintty_unsupported: "This terminal (mintty, the Git Bash window) cannot run ZCode: its keys do not reach Windows programs. Use Windows Terminal, or run `winpty zcode.cmd`.", "这个终端（mintty，即 Git Bash 的窗口）不能运行 ZCode：按键到不了 Windows 程序。请用 Windows Terminal，或者运行 `winpty zcode.cmd`。";
-    placeholder: "Ask ZCode to do anything", "让 ZCode 做点什么";
+    mintty_unsupported: "This terminal (mintty, the Git Bash window) cannot run NIBI: its keys do not reach Windows programs. Use Windows Terminal, or run `winpty nibi.cmd`.", "这个终端（mintty，即 Git Bash 的窗口）不能运行 NIBI：按键到不了 Windows 程序。请用 Windows Terminal，或者运行 `winpty nibi.cmd`。";
+    placeholder: "Ask NIBI to do anything", "让 NIBI 做点什么";
     placeholder_queued: "Queued messages will be sent automatically", "排队的消息会自动发出";
     interrupt_hint: "{esc} to interrupt", "{esc} 中断";
     for_shortcuts: "{?} for shortcuts", "{?} 查看快捷键";
@@ -110,7 +110,7 @@ strings! {
     starting_session: "Starting the session…", "正在开始会话…";
     plan_on: "Plan mode on", "已打开计划模式";
     plan_off: "Plan mode off", "已关闭计划模式";
-    interrupted: "Interrupted · What should ZCode do instead?", "已中断 · 要 ZCode 改做什么？";
+    interrupted: "Interrupted · What should NIBI do instead?", "已中断 · 要 NIBI 改做什么？";
     no_changes: "No changes", "没有改动";
     // 登录视图（tui.md §7.2，Node `tui.loginSetup` 的中英文）。
     login_title: "Set Up Coding Plan", "配置 Coding Plan";

@@ -1,5 +1,5 @@
 //! `/permissions` 的排版与文字（docs/specs/rust-cli/tui-manage.md §1.2）：英文照原文（产品名换成
-//! ZCode），中文另配；规则文字与来源路径不翻译。
+//! NIBI），中文另配；规则文字与来源路径不翻译。
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use rust_cli_kernel_api::permission::{PermissionRule, RuleBehavior, RuleSource};
@@ -35,16 +35,16 @@ fn tab_name(tab: Tab, lang: Lang) -> &'static str {
 /// 每个标签页的说明。
 fn tab_note(tab: Tab, lang: Lang) -> &'static str {
     match (lang, tab) {
-        (Lang::En, Tab::Allow) => "ZCode won't ask before using allowed tools.",
-        (Lang::En, Tab::Ask) => "ZCode will always ask for confirmation before using these tools.",
-        (Lang::En, Tab::Deny) => "ZCode will always reject requests to use denied tools.",
+        (Lang::En, Tab::Allow) => "NIBI won't ask before using allowed tools.",
+        (Lang::En, Tab::Ask) => "NIBI will always ask for confirmation before using these tools.",
+        (Lang::En, Tab::Deny) => "NIBI will always reject requests to use denied tools.",
         (Lang::En, Tab::Workspace) => {
-            "ZCode can read files in the workspace, and make edits when auto-accept edits is on."
+            "NIBI can read files in the workspace, and make edits when auto-accept edits is on."
         }
-        (Lang::Zh, Tab::Allow) => "ZCode 使用允许的工具前不再询问。",
-        (Lang::Zh, Tab::Ask) => "ZCode 使用这些工具前总是先确认。",
-        (Lang::Zh, Tab::Deny) => "ZCode 总是拒绝使用被拒绝的工具。",
-        (Lang::Zh, Tab::Workspace) => "ZCode 可以读取工作区里的文件；打开自动接受编辑时可以修改。",
+        (Lang::Zh, Tab::Allow) => "NIBI 使用允许的工具前不再询问。",
+        (Lang::Zh, Tab::Ask) => "NIBI 使用这些工具前总是先确认。",
+        (Lang::Zh, Tab::Deny) => "NIBI 总是拒绝使用被拒绝的工具。",
+        (Lang::Zh, Tab::Workspace) => "NIBI 可以读取工作区里的文件；打开自动接受编辑时可以修改。",
     }
 }
 

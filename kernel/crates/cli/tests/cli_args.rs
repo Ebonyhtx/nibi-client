@@ -191,7 +191,7 @@ fn help_prints_the_page_and_exits_zero() {
         assert!(output.status.success(), "{args:?}: {output:?}");
         let page = text(&output.stdout);
         assert!(
-            page.starts_with("Usage: zcode [options] [command] [prompt]\n"),
+            page.starts_with("Usage: nibi [options] [command] [prompt]\n"),
             "{page}"
         );
         assert!(page.contains(

@@ -299,7 +299,7 @@ fn answers(tool: &ToolRow) -> Vec<(String, String)> {
         .collect()
 }
 
-/// ExitPlanMode 结束后：`⏺ User approved ZCode's plan` / `rejected`；详细模式下面是计划全文。
+/// ExitPlanMode 结束后：`⏺ User approved NIBI's plan` / `rejected`；详细模式下面是计划全文。
 fn plan(tool: &ToolRow, ctx: &Ctx<'_>) -> Vec<Line<'static>> {
     let approved = tool.status == ToolStatus::Success;
     let mut lines = vec![Line::from(vec![
