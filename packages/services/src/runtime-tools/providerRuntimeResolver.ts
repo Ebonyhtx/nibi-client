@@ -5,8 +5,6 @@ import { NIBI_AGENT_RUNTIME, sanitizeZCodeRuntimeEnvInPlace } from "@nibi/shared
 import { getDataBaseDir, getProviderWorkspaceConfigDir } from "../paths.js";
 import { buildRuntimeProcessEnvPatch } from "./runtimeCommandEnv.js";
 
-const NIBI_AGENT_WORKDIR_ENV = "NIBI_AGENT_WORKDIR";
-
 /** 返回 provider + workspace 在应用内的专属配置目录路径 */
 export function resolveProviderConfigDir(
   _legacyProvider: string,
@@ -165,93 +163,4 @@ export function findZCodeAgentRuntimeNodeBundle(): string | null {
     ...legacyRoots.map((root) => (root ? resolvePath(root, ...resourceSegments) : null)),
   ];
   return resolveExistingPath(candidates);
-}
-
-/** 根据 provider 查找对应 binary 路径 */
-export function findBinary(provider: string): string | null {
-  if (provider !== "glm") {
-    return null;
-  }
-  // GLM 开发态：NIBI_AGENT_WORKDIR 或相邻目录发现，返回源码入口路径作为 "binary"
-  const devEntry = findGlmDevEntry();
-  if (devEntry) {
-    return devEntry.agentPath;
-  }
-  return findZCodeAgentRuntimeBinary();
-}
-
-/**
- * GLM 开发态源码入口发现。
- * 优先读取 NIBI_AGENT_WORKDIR。
- * 未设置时在 cwd 相邻目录查找 zcode-cli / glm。
- */
-interface GlmDevEntry {
-  workdir: string;
-  entryArg: string;
-  agentPath: string;
-}
-
-function resolveGlmDevEntry(workdir: string): GlmDevEntry | null {
-  const candidates = [
-    ["packages", "cli", "src", "main.ts"],
-    ["src", "cli.ts"],
-  ];
-  for (const segments of candidates) {
-    const agentPath = resolvePath(workdir, ...segments);
-    if (existsSync(agentPath)) {
-      return {
-        workdir,
-        entryArg: segments.join("/"),
-        agentPath,
-      };
-    }
-  }
-  return null;
-}
-
-function findGlmDevEntry(): GlmDevEntry | null {
-  const workdir = process.env[NIBI_AGENT_WORKDIR_ENV];
-  if (workdir) {
-    const entry = resolveGlmDevEntry(workdir);
-    if (entry) {
-      return entry;
-    }
-  }
-  // Bugfix: desktop dev 进程的 cwd 是 packages/desktop，旧逻辑只查 cwd 的父级，
-  // 会误找 packages/zcode-cli，而不是仓库旁边的 ../zcode-cli。这里先向上定位仓库根，
-  // 再按“仓库相邻目录”发现本地 GLM 源码，同时保留 cwd 相邻目录作为非 monorepo 兜底。
-  const repoRoot = findWorkspaceRoot(process.cwd());
-  const anchorDirs = [repoRoot, process.cwd()].filter((anchor): anchor is string =>
-    Boolean(anchor),
-  );
-  const candidates = ["zcode-cli", "glm", "cc-refactor"];
-  const seen = new Set<string>();
-  for (const anchorDir of anchorDirs) {
-    for (const name of candidates) {
-      const candidate = resolvePath(anchorDir, "..", name);
-      if (seen.has(candidate)) {
-        continue;
-      }
-      seen.add(candidate);
-      const entry = resolveGlmDevEntry(candidate);
-      if (entry) {
-        return entry;
-      }
-    }
-  }
-  return null;
-}
-
-function findWorkspaceRoot(startDir: string): string | null {
-  let current = resolvePath(startDir);
-  while (true) {
-    if (existsSync(resolvePath(current, "pnpm-workspace.yaml"))) {
-      return current;
-    }
-    const parent = dirname(current);
-    if (parent === current) {
-      return null;
-    }
-    current = parent;
-  }
 }

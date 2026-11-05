@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildCleanEnv,
   resolveProviderConfigDir,
-  findBinary,
 } from "../src/runtime-tools/providerRuntimeResolver.js";
 import { setDataBaseDir } from "../src/paths.js";
 
@@ -16,121 +15,6 @@ function restoreEnv(name: string, value: string | undefined): void {
     process.env[name] = value;
   }
 }
-
-describe("providerRuntimeResolver glm workdir discovery", () => {
-  const originalCwd = process.cwd();
-  const originalZCodeAgentWorkdir = process.env.NIBI_AGENT_WORKDIR;
-  const originalGlmBinaryPath = process.env.GLM_BINARY_PATH;
-  const originalHome = process.env.HOME;
-  const createdDirs: string[] = [];
-
-  afterEach(() => {
-    process.chdir(originalCwd);
-    restoreEnv("NIBI_AGENT_WORKDIR", originalZCodeAgentWorkdir);
-    restoreEnv("GLM_BINARY_PATH", originalGlmBinaryPath);
-    restoreEnv("HOME", originalHome);
-
-    for (const dir of createdDirs.splice(0).reverse()) {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  it("会在当前仓库旁边自动发现 zcode-cli 作为 glm 工作目录", () => {
-    delete process.env.NIBI_AGENT_WORKDIR;
-
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-glm-workdir-"));
-    createdDirs.push(sandboxRoot);
-
-    const appRepoDir = join(sandboxRoot, "z-code-2");
-    const glmRepoDir = join(sandboxRoot, "zcode-cli");
-    mkdirSync(appRepoDir, { recursive: true });
-    mkdirSync(join(glmRepoDir, "packages", "cli", "src"), { recursive: true });
-    writeFileSync(join(glmRepoDir, "packages", "cli", "src", "main.ts"), "console.log('glm');\n");
-
-    process.chdir(appRepoDir);
-
-    expect(realpathSync(findBinary("glm")!)).toBe(
-      realpathSync(join(glmRepoDir, "packages", "cli", "src", "main.ts")),
-    );
-  });
-
-  it("desktop dev cwd 在 packages/desktop 时仍会发现仓库相邻的 zcode-cli", () => {
-    delete process.env.NIBI_AGENT_WORKDIR;
-
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-glm-desktop-cwd-"));
-    createdDirs.push(sandboxRoot);
-
-    const appRepoDir = join(sandboxRoot, "z-code-3");
-    const desktopDir = join(appRepoDir, "packages", "desktop");
-    const glmRepoDir = join(sandboxRoot, "zcode-cli");
-    mkdirSync(desktopDir, { recursive: true });
-    mkdirSync(join(glmRepoDir, "packages", "cli", "src"), { recursive: true });
-    writeFileSync(join(appRepoDir, "pnpm-workspace.yaml"), "packages:\n  - packages/*\n");
-    writeFileSync(join(glmRepoDir, "packages", "cli", "src", "main.ts"), "console.log('glm');\n");
-
-    process.chdir(desktopDir);
-
-    expect(realpathSync(findBinary("glm")!)).toBe(
-      realpathSync(join(glmRepoDir, "packages", "cli", "src", "main.ts")),
-    );
-  });
-
-  it("zcode-cli 源码入口会作为 glm dev binary 被发现", () => {
-    delete process.env.NIBI_AGENT_WORKDIR;
-
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-glm-src-cli-"));
-    createdDirs.push(sandboxRoot);
-
-    const appRepoDir = join(sandboxRoot, "z-code");
-    const glmRepoDir = join(sandboxRoot, "zcode-cli");
-    mkdirSync(appRepoDir, { recursive: true });
-    mkdirSync(join(glmRepoDir, "src"), { recursive: true });
-    writeFileSync(join(glmRepoDir, "src", "cli.ts"), "console.log('glm');\n");
-
-    process.chdir(appRepoDir);
-
-    expect(realpathSync(findBinary("glm")!)).toBe(realpathSync(join(glmRepoDir, "src", "cli.ts")));
-  });
-
-  it("无源码仓库时会回退到准备好的 zcode-agent 二进制", () => {
-    delete process.env.NIBI_AGENT_WORKDIR;
-    delete process.env.GLM_BINARY_PATH;
-
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-glm-binary-"));
-    createdDirs.push(sandboxRoot);
-    // Keep the fallback test hermetic: a developer may already have a valid
-    // ~/.nibi/server/agents runtime, which intentionally outranks repository
-    // bundled resources in production.
-    process.env.HOME = sandboxRoot;
-
-    const appRepoDir = join(sandboxRoot, "z-code-2");
-    // Bugfix: GLM 生产态二进制名会按平台解析，Windows 下实际查找的是 zcode-agent.exe。
-    // 之前测试固定写成无后缀文件，导致 findBinary("glm") 返回 null，
-    // 最终被 realpathSync(null) 表现成对 ...\\null 的 lstat，掩盖了真实原因。
-    const binaryName = process.platform === "win32" ? "zcode-agent.exe" : "zcode-agent";
-    const binaryPath = join(appRepoDir, "bundled-resources", "glm", binaryName);
-    mkdirSync(join(appRepoDir, "bundled-resources", "glm"), { recursive: true });
-    writeFileSync(binaryPath, "binary\n");
-
-    process.chdir(appRepoDir);
-
-    expect(realpathSync(findBinary("glm")!)).toBe(realpathSync(binaryPath));
-  });
-
-  it("NIBI_AGENT_WORKDIR 可显式指定 zcode-cli 源码入口", () => {
-    const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-agent-workdir-priority-"));
-    createdDirs.push(sandboxRoot);
-
-    const workdir = join(sandboxRoot, "zcode-cli");
-    mkdirSync(join(workdir, "packages", "cli", "src"), { recursive: true });
-    writeFileSync(join(workdir, "packages", "cli", "src", "main.ts"), "console.log('new');\n");
-    process.env.NIBI_AGENT_WORKDIR = workdir;
-
-    expect(realpathSync(findBinary("glm")!)).toBe(
-      realpathSync(join(workdir, "packages", "cli", "src", "main.ts")),
-    );
-  });
-});
 
 describe("providerRuntimeResolver workspace config dir identity", () => {
   const originalHome = process.env.HOME;
@@ -173,13 +57,6 @@ describe("providerRuntimeResolver clean env", () => {
     for (const dir of createdDirs.splice(0).reverse()) {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
-
-  it("非 GLM provider 不再解析三方 bundled runtime", () => {
-    expect(findBinary("claude")).toBeNull();
-    expect(findBinary("codex")).toBeNull();
-    expect(findBinary("gemini")).toBeNull();
-    expect(findBinary("opencode")).toBeNull();
   });
 
   it("glm clean env 会把 HOME 切到 dataBaseDir，保证 session 读写目录一致", () => {

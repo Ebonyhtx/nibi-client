@@ -113,13 +113,19 @@ function collectWindowsForbiddenAppInstallDirs(
   const programFilesX86 = readEnvValue(env, "ProgramFiles(x86)");
   const programW6432 = readEnvValue(env, "ProgramW6432");
   const localAppData = readEnvValue(env, "LOCALAPPDATA");
+  // 黑名单是"数据目录不许设在程序安装目录里"。它列的是**本产品**的安装位次
+  // （productName = `NIBI` / `NIBI Preview`），不能列上游 ZCode 的——那既拦不住自己，
+  // 又让 NIBI 去关心一个与自己无关的目录。
+  const installDirNames = ["NIBI", "NIBI Preview"] as const;
   const candidates = [
     options.appInstallDir,
     readEnvValue(env, NIBI_WINDOWS_APP_INSTALL_DIR_ENV),
-    programFiles ? win32.join(programFiles, "ZCode") : null,
-    programFilesX86 ? win32.join(programFilesX86, "ZCode") : null,
-    programW6432 ? win32.join(programW6432, "ZCode") : null,
-    localAppData ? win32.join(localAppData, "Programs", "ZCode") : null,
+    ...installDirNames.flatMap((name) => [
+      programFiles ? win32.join(programFiles, name) : null,
+      programFilesX86 ? win32.join(programFilesX86, name) : null,
+      programW6432 ? win32.join(programW6432, name) : null,
+      localAppData ? win32.join(localAppData, "Programs", name) : null,
+    ]),
   ];
   const seen = new Set<string>();
   const result: string[] = [];
