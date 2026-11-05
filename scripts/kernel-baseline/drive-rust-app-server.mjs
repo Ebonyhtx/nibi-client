@@ -31,7 +31,7 @@ const binArgs = isNode
 // Rust 内核的用户根从 2026-10-29 起与 Node 共用 `~/.nibi`（nibi-platform `DOT_DIR`），
 // 驱动脚本曾按旧 `.zcode` 落 provider_config.json，导致会话拿不到模型、整条对拍超时。
 const dotDir = ".nibi";
-const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare,permission,question,planApproval")
+const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare,permission,question,planApproval,permissionScope")
   .split("=")[1]
   .split(",");
 // 冷恢复模式：`--resume=<sessionId>` 配上 `--home=<上一次的隔离目录>`，起一个新进程只做
@@ -3745,6 +3745,111 @@ try {
     if (checks.planResolveStatus !== "accepted") {
       throw new Error(`resolveInteraction(plan) ${checks.planResolveStatus}`);
     }
+  }
+
+  // 群协作会话（createSession.permissionScope: "session"）：双内核的会话行 permission 与
+  // “改模式只写会话行、不动工作区缺省”逐字段一致（P0-3 的剩余验收）。
+  if (phases.includes("permissionScope")) {
+    const readProjectMode = () => {
+      const db = new DatabaseSync(journalDbPath);
+      try {
+        const row = db
+          .prepare(
+            "select value from local_setting where scope = 'project' and namespace = 'permission' and key = 'mode'",
+          )
+          .get();
+        return row?.value ?? null;
+      } finally {
+        db.close();
+      }
+    };
+    const readPermission = (id) => {
+      const db = new DatabaseSync(journalDbPath);
+      try {
+        const row = db.prepare("select permission from session where id = ?").get(id);
+        if (!row?.permission) return null;
+        return JSON.parse(row.permission);
+      } finally {
+        db.close();
+      }
+    };
+    const beforeProjectMode = readProjectMode();
+    const created = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-0000000000e0",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: {
+          workspaceId: workspace,
+          permissionScope: "session",
+          config: { mode: "default" },
+        },
+        issuedAt: Date.now(),
+      }),
+      "createSession(permissionScope)",
+    );
+    const scopedSession = created.result?.sessionId;
+    if (!scopedSession) throw new Error("createSession(permissionScope) returned no sessionId");
+    const topic = `conversation/${scopedSession}`;
+    await send("v4/conversation/subscribe", {
+      topic,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    const permission = await waitFor(
+      () => readPermission(scopedSession) ?? undefined,
+      "scoped session permission row",
+      30_000,
+    );
+    checks.permissionScopeRow =
+      `${permission.version}:${permission.scope}:${permission.mode}`;
+    // 订阅的 snapshot 到了才有 revision/logEpoch；CAS 的 epoch 必须是字符串。
+    await waitFor(
+      () => (buildState(topic).logEpoch ? true : undefined),
+      "scoped session state",
+      30_000,
+    );
+    // 改模式：CAS 带这个会话的 revision/epoch；stale 重试。
+    let switched;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const state = buildState(topic);
+      if (state.logEpoch === null) {
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        continue;
+      }
+      switched = ack(
+        await send("v4/command", {
+          commandId: `0197d3f0-0000-7000-8000-0000000000e${attempt + 1}`,
+          clientId: "drive",
+          sessionId: scopedSession,
+          baseRevision: state.revision,
+          baseLogEpoch: state.logEpoch,
+          type: "switchCollaborationMode",
+          payload: { mode: "edit" },
+          issuedAt: Date.now(),
+        }),
+        "switchCollaborationMode(permissionScope)",
+      );
+      if (switched.status !== "stale" && switched.status !== "duplicate") break;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    checks.permissionScopeSwitchStatus = switched?.status ?? null;
+    const persisted = await waitFor(
+      () => {
+        const row = readPermission(scopedSession);
+        return row?.mode === "edit" ? row : undefined;
+      },
+      "scoped mode persisted",
+      30_000,
+    );
+    checks.permissionScopedMode = persisted.mode;
+    checks.permissionScopedProjectModeUnchanged =
+      readProjectMode() === beforeProjectMode;
+    console.log(
+      `permissionScope: row=${checks.permissionScopeRow} switch=${checks.permissionScopeSwitchStatus} mode=${checks.permissionScopedMode} project-untouched=${checks.permissionScopedProjectModeUnchanged}`,
+    );
   }
 
   console.log(`RESULT:${JSON.stringify({

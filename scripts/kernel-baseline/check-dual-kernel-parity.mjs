@@ -75,6 +75,11 @@ const REQUIRED = [
   "planOptionValue",
   "planResolveStatus",
   "planApproved",
+  // permissionScope: "session" 的会话行与“改模式只写会话行”。
+  "permissionScopeRow",
+  "permissionScopeSwitchStatus",
+  "permissionScopedMode",
+  "permissionScopedProjectModeUnchanged",
   "attachmentStatus",
   "attachmentCode",
   "attachmentRowRefs",
