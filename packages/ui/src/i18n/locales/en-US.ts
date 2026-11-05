@@ -2104,6 +2104,11 @@ const enUS: Record<string, string> = {
   "titleBar.menu.help.resourceManager": "Resource manager",
   "titleBar.menu.help.toggleNIBIStdioTap": "Capture agent stdio traffic",
   "titleBar.menu.help.clearAllData": "Clear all data",
+  "titleBar.menu.help.zcodeEndpoint": "Service endpoint (test builds only)",
+  "titleBar.menu.help.zcodeEndpoint.production": "Production endpoint",
+  "titleBar.menu.help.zcodeEndpoint.test": "Test endpoint",
+  "titleBar.menu.help.zcodeEndpoint.custom": "Custom endpoint…",
+  "titleBar.menu.help.zcodeEndpoint.reset": "Clear custom endpoint",
 
   // Directory browser
   "directoryBrowser.errorUnavailable":

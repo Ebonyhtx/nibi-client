@@ -39,7 +39,7 @@ it("默认无捕获；窗口拥有权限及启停，新 Host 继承，关窗清�
       type: "network-capture",
       control: { captureId: id },
     });
-    expect(state.partitions.mock.calls.flat()).not.toContain("persist:zcode-embedded-browser");
+    expect(state.partitions.mock.calls.flat()).not.toContain("persist:nibi-embedded-browser");
     const late = { postMessage: vi.fn() } as unknown as UtilityProcess;
     capture.configureNetworkCaptureHost(late);
     expect(late.postMessage).toHaveBeenCalledWith({

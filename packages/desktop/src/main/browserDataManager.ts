@@ -30,7 +30,7 @@ import type { LinuxChromePasswordStore } from "./chromeInstallationCandidates.js
 import type { WindowsChromeAppBoundKeyReader } from "./windowsChromeAppBoundKey.js";
 import { clearEmbeddedBrowserSitePermissions } from "./embeddedBrowserSitePermissions.js";
 
-export const EMBEDDED_BROWSER_PARTITION = "persist:zcode-embedded-browser";
+export const EMBEDDED_BROWSER_PARTITION = "persist:nibi-embedded-browser";
 const CACHE_STORAGE_TYPES: Electron.ClearStorageDataOptions["storages"] = [
   "shadercache",
   "serviceworkers",

@@ -162,7 +162,7 @@ export function createBrowserControlMainBridge(deps: {
       "BrowserRecordingAPI.cancel": true,
     },
     metadata: {
-      provider: "zcode-desktop-iab",
+      provider: "nibi-desktop-iab",
     },
   };
 

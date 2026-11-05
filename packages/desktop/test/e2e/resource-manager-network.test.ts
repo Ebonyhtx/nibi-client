@@ -55,7 +55,7 @@ describe("资源管理器网络", () => {
       const externalResult = await browser.electron.execute(async (electron, origin) => {
         return (
           await electron.session
-            .fromPartition("persist:zcode-embedded-browser")
+            .fromPartition("persist:nibi-embedded-browser")
             .fetch(`${origin}/excluded-external-page`)
         ).text();
       }, url);

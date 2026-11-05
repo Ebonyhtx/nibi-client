@@ -1946,6 +1946,11 @@ const zhCN: Record<string, string> = {
   "titleBar.menu.help.resourceManager": "资源管理器",
   "titleBar.menu.help.toggleNIBIStdioTap": "抓取 Agent stdio 通信",
   "titleBar.menu.help.clearAllData": "清除所有数据",
+  "titleBar.menu.help.zcodeEndpoint": "服务端点（仅测试构建）",
+  "titleBar.menu.help.zcodeEndpoint.production": "生产端点",
+  "titleBar.menu.help.zcodeEndpoint.test": "测试端点",
+  "titleBar.menu.help.zcodeEndpoint.custom": "自定义端点…",
+  "titleBar.menu.help.zcodeEndpoint.reset": "清除自定义端点",
 
   // 目录浏览
   "directoryBrowser.errorUnavailable":
