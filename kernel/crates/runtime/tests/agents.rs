@@ -139,6 +139,71 @@ mod agents {
         (kernel, session)
     }
 
+    /// 同 [`run`]，但把这一路收到的事件也交出来（断言子代理的生命周期事件用）。
+    async fn run_collecting(
+        model: Arc<Routed>,
+        store: Arc<MemoryStore>,
+        turns: usize,
+    ) -> (LocalKernel, Arc<dyn SessionHandle>, Vec<KernelEvent>) {
+        let kernel = LocalKernel::new(
+            Ports {
+                model,
+                environments: environments(Arc::new(UnusedEnvironment)),
+                store: store.clone(),
+                artifacts: store,
+                clock: Arc::new(FixedClock(1_000)),
+                ids: Arc::new(SequentialIds::default()),
+            },
+            Defaults {
+                selection: selection(),
+                mode: PermissionMode::DontAsk,
+                max_turns: None,
+                search_tools: false,
+                task_tools: None,
+                limits: nibi_kernel_runtime::Limits {
+                    fork_subagent: Some(false),
+                    ..Default::default()
+                },
+            },
+        );
+        let id = kernel
+            .create_session(CreateSession {
+                id: None,
+                workspace: workspace(),
+                selection: selection(),
+                mode: PermissionMode::DontAsk,
+                plan: false,
+            })
+            .await
+            .unwrap();
+        let session = kernel.open_session(&id).await.unwrap();
+        let mut events = session.subscribe(Some(0));
+        session
+            .send(CommandEnvelope {
+                id: CommandId::new("c1"),
+                command: Command::Submit {
+                    text: "Run the scripted agent checks.".to_owned(),
+                    attachments: Vec::new(),
+                    delivery: Delivery::Queue,
+                },
+            })
+            .await;
+        let mut seen = Vec::new();
+        let mut finished = 0;
+        while finished < turns {
+            let event = tokio::time::timeout(Duration::from_secs(5), events.next())
+                .await
+                .unwrap()
+                .unwrap();
+            if let KernelEvent::TurnFinished { outcome, .. } = &event.event {
+                assert_eq!(*outcome, TurnOutcome::Success);
+                finished += 1;
+            }
+            seen.push(event.event);
+        }
+        (kernel, session, seen)
+    }
+
     fn tool_result_text(request: &ModelRequest) -> String {
         request
             .messages
@@ -318,5 +383,54 @@ mod agents {
         );
         let view = session.view().await.unwrap();
         assert!(!view.running && view.background.is_empty());
+    }
+
+    /// 子代理的生命周期事件真的进了会话事件流。
+    ///
+    /// 这是 `v4/telemetry/event` 的 `subagent.lifecycle` 事实的唯一来源。以前内核里没有任何地方
+    /// 发 `KernelEvent::Subagent`，那条映射代码在运行期一次都没触发过；这条测试盯的就是「真实跑一个
+    /// 子代理之后事件流里有没有它」。
+    #[tokio::test]
+    async fn a_foreground_agent_emits_subagent_lifecycle_events() {
+        let model = Arc::new(Routed {
+            main: ScriptedModel::new(vec![
+                tool_use_response(
+                    "toolu_1",
+                    "Agent",
+                    &json!({"description": "Say hello", "prompt": "Say hello from the subagent.", "subagent_type": "general-purpose", "run_in_background": false}),
+                ),
+                text_response(&["Agent checks done."]),
+            ]),
+            subagent: ScriptedModel::new(vec![text_response(&["Hello from the subagent."])]),
+            hold: None,
+        });
+        let store = Arc::new(MemoryStore::default());
+        let (_kernel, _session, seen) = run_collecting(model, store, 1).await;
+        let lifecycle: Vec<_> = seen
+            .iter()
+            .filter_map(|event| match event {
+                KernelEvent::Subagent {
+                    agent,
+                    phase,
+                    child,
+                    parent_tool_use,
+                } => Some((
+                    agent.as_str().to_owned(),
+                    *phase,
+                    child.as_str().to_owned(),
+                    parent_tool_use.as_str().to_owned(),
+                )),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(lifecycle.len(), 2, "{lifecycle:?}");
+        let (agent, phase, child, tool_use) = &lifecycle[0];
+        assert_eq!(phase, &nibi_kernel_api::session_api::SubagentPhase::Spawned);
+        assert!(child.starts_with("sess_subagent_"), "{child}");
+        assert_eq!(tool_use, "toolu_1");
+        let (done_agent, done_phase, done_child, _) = &lifecycle[1];
+        assert_eq!(done_agent, agent);
+        assert_eq!(done_child, child);
+        assert_eq!(done_phase, &nibi_kernel_api::session_api::SubagentPhase::Done);
     }
 }
