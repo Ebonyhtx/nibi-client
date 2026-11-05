@@ -15,12 +15,42 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "bodyIncludes": ["Generate a concise title", "E2E_V4_PERMISSION_WRITE"]
+        "bodyIncludes": [
+          "Generate a concise title",
+          "E2E_V4_PERMISSION_WRITE"
+        ]
       },
       "response": {
         "statusCode": 200,
         "text": {
           "id": "v4-permission-title",
+          "inputTokens": 64,
+          "outputTokens": 8,
+          "text": "{\"title\":\"V4 Permission E2E\"}"
+        }
+      }
+    },
+    {
+      "id": "v4-permission-title-rust",
+      "description": "E2E_V4_PERMISSION_WRITE 首发在 Rust 内核上触发的标题请求（Rust 的标题提示词是 \"You are naming a coding session\"，与 Node 的 \"Generate a concise title\" 不同）。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "You are naming a coding session",
+          "E2E_V4_PERMISSION_WRITE"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "v4-permission-title-rust",
           "inputTokens": 64,
           "outputTokens": 8,
           "text": "{\"title\":\"V4 Permission E2E\"}"
@@ -39,9 +69,16 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "lastUserMessageIncludes": ["E2E_V4_PERMISSION_WRITE"],
-        "bodyIncludes": ["E2E_V4_PERMISSION_WRITE"],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "lastUserMessageIncludes": [
+          "E2E_V4_PERMISSION_WRITE"
+        ],
+        "bodyIncludes": [
+          "E2E_V4_PERMISSION_WRITE"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -67,8 +104,14 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "bodyIncludes": ["E2E_V4_PERMISSION_WRITE", "toolu_v4_permission_write"],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "bodyIncludes": [
+          "E2E_V4_PERMISSION_WRITE",
+          "toolu_v4_permission_write"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -92,12 +135,42 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "bodyIncludes": ["Generate a concise title", "E2E_V4_PERMISSION_ALLOW_FEEDBACK"]
+        "bodyIncludes": [
+          "Generate a concise title",
+          "E2E_V4_PERMISSION_ALLOW_FEEDBACK"
+        ]
       },
       "response": {
         "statusCode": 200,
         "text": {
           "id": "v4-permission-allow-feedback-title",
+          "inputTokens": 64,
+          "outputTokens": 8,
+          "text": "{\"title\":\"V4 Permission Allow Feedback E2E\"}"
+        }
+      }
+    },
+    {
+      "id": "v4-permission-allow-feedback-title-rust",
+      "description": "E2E_V4_PERMISSION_ALLOW_FEEDBACK 首发在 Rust 内核上触发的标题请求（Rust 的标题提示词是 \"You are naming a coding session\"，与 Node 的 \"Generate a concise title\" 不同）。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "You are naming a coding session",
+          "E2E_V4_PERMISSION_ALLOW_FEEDBACK"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "v4-permission-allow-feedback-title-rust",
           "inputTokens": 64,
           "outputTokens": 8,
           "text": "{\"title\":\"V4 Permission Allow Feedback E2E\"}"
@@ -117,9 +190,16 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "lastUserMessageIncludes": ["E2E_V4_PERMISSION_ALLOW_FEEDBACK"],
-        "bodyIncludes": ["E2E_V4_PERMISSION_ALLOW_FEEDBACK"],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "lastUserMessageIncludes": [
+          "E2E_V4_PERMISSION_ALLOW_FEEDBACK"
+        ],
+        "bodyIncludes": [
+          "E2E_V4_PERMISSION_ALLOW_FEEDBACK"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -145,7 +225,10 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "bodyIncludes": ["E2E_V4_PERMISSION_ALLOW_FEEDBACK", "toolu_v4_permission_allow_feedback"],
+        "bodyIncludes": [
+          "E2E_V4_PERMISSION_ALLOW_FEEDBACK",
+          "toolu_v4_permission_allow_feedback"
+        ],
         "bodyExcludes": [
           "Generate a concise title",
           "CRITICAL: Respond with TEXT ONLY",
@@ -174,12 +257,42 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "bodyIncludes": ["Generate a concise title", "E2E_V4_PERMISSION_DENY_FEEDBACK"]
+        "bodyIncludes": [
+          "Generate a concise title",
+          "E2E_V4_PERMISSION_DENY_FEEDBACK"
+        ]
       },
       "response": {
         "statusCode": 200,
         "text": {
           "id": "v4-permission-deny-title",
+          "inputTokens": 64,
+          "outputTokens": 8,
+          "text": "{\"title\":\"V4 Permission Deny E2E\"}"
+        }
+      }
+    },
+    {
+      "id": "v4-permission-deny-title-rust",
+      "description": "E2E_V4_PERMISSION_DENY_FEEDBACK 首发在 Rust 内核上触发的标题请求（Rust 的标题提示词是 \"You are naming a coding session\"，与 Node 的 \"Generate a concise title\" 不同）。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "You are naming a coding session",
+          "E2E_V4_PERMISSION_DENY_FEEDBACK"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "v4-permission-deny-title-rust",
           "inputTokens": 64,
           "outputTokens": 8,
           "text": "{\"title\":\"V4 Permission Deny E2E\"}"
@@ -199,9 +312,17 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "lastUserMessageIncludes": ["E2E_V4_PERMISSION_DENY_FEEDBACK"],
-        "bodyIncludes": ["E2E_V4_PERMISSION_DENY_FEEDBACK"],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY", "toolu_v4_permission_deny_feedback"]
+        "lastUserMessageIncludes": [
+          "E2E_V4_PERMISSION_DENY_FEEDBACK"
+        ],
+        "bodyIncludes": [
+          "E2E_V4_PERMISSION_DENY_FEEDBACK"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY",
+          "toolu_v4_permission_deny_feedback"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -234,7 +355,10 @@
           "To tell you how to proceed, the user said:",
           "Do not write the file"
         ],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
@@ -258,12 +382,42 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "bodyIncludes": ["Generate a concise title", "E2E_V4_PERMISSION_DENY_BLANK"]
+        "bodyIncludes": [
+          "Generate a concise title",
+          "E2E_V4_PERMISSION_DENY_BLANK"
+        ]
       },
       "response": {
         "statusCode": 200,
         "text": {
           "id": "v4-permission-deny-blank-title",
+          "inputTokens": 64,
+          "outputTokens": 8,
+          "text": "{\"title\":\"V4 Permission Blank Deny E2E\"}"
+        }
+      }
+    },
+    {
+      "id": "v4-permission-deny-blank-title-rust",
+      "description": "E2E_V4_PERMISSION_DENY_BLANK 首发在 Rust 内核上触发的标题请求（Rust 的标题提示词是 \"You are naming a coding session\"，与 Node 的 \"Generate a concise title\" 不同）。",
+      "metadata": {
+        "kind": "common",
+        "timingPolicy": "fast-text",
+        "source": "synthetic",
+        "syntheticReason": "Rust 内核的标题 sidecar 用自有提示词；没有这条时请求会落到同 marker 的主响应（toolUse），把标题回合弄坏并让后续用例抖动。"
+      },
+      "match": {
+        "method": "POST",
+        "pathIncludes": "/messages",
+        "bodyIncludes": [
+          "You are naming a coding session",
+          "E2E_V4_PERMISSION_DENY_BLANK"
+        ]
+      },
+      "response": {
+        "statusCode": 200,
+        "text": {
+          "id": "v4-permission-deny-blank-title-rust",
           "inputTokens": 64,
           "outputTokens": 8,
           "text": "{\"title\":\"V4 Permission Blank Deny E2E\"}"
@@ -283,9 +437,16 @@
       "match": {
         "method": "POST",
         "pathIncludes": "/messages",
-        "lastUserMessageIncludes": ["E2E_V4_PERMISSION_DENY_BLANK"],
-        "bodyIncludes": ["E2E_V4_PERMISSION_DENY_BLANK"],
-        "bodyExcludes": ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"]
+        "lastUserMessageIncludes": [
+          "E2E_V4_PERMISSION_DENY_BLANK"
+        ],
+        "bodyIncludes": [
+          "E2E_V4_PERMISSION_DENY_BLANK"
+        ],
+        "bodyExcludes": [
+          "Generate a concise title",
+          "CRITICAL: Respond with TEXT ONLY"
+        ]
       },
       "response": {
         "statusCode": 200,
