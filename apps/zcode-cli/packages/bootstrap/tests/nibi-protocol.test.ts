@@ -3226,7 +3226,7 @@ describe("NibiProtocolAgentServer", () => {
         params: { workspace },
       }),
     );
-    expect(created.protocol).toEqual({ name: "ZCode Protocol", version: 1 });
+    expect(created.protocol).toEqual({ name: "NIBI Protocol", version: 1 });
     expect(created.session.workspace.workspaceKey).toBe(workspace.workspaceKey);
 
     const read = zcodeSessionStateSnapshotSchema.parse(

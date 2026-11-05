@@ -414,7 +414,7 @@ function snapshotWith(
     });
   }
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId,
       workspace: { workspacePath, workspaceKey: workspacePath },

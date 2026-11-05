@@ -53,7 +53,7 @@ function createSessionSnapshot(params: {
   thoughtLevel?: string;
 }) {
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId: "sess_1",
       workspace: {
@@ -357,7 +357,7 @@ describe("createZCodeAgentService provider registry", () => {
               if (method === nibiProtocolMethods.initialize) {
                 return {
                   available: true,
-                  protocolName: "ZCode Protocol",
+                  protocolName: "NIBI Protocol",
                   protocolVersion: 1,
                   workspaceKey: "/workspace/app",
                 };

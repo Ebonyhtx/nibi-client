@@ -105,7 +105,7 @@ function makeSnapshot(params: {
   };
   const model = params.model ?? { providerId: "glm", modelId: "glm-4.6" };
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId: params.sessionId,
       workspace,
@@ -262,7 +262,7 @@ function createAgentMock() {
     initialize: vi.fn(async (params) => ({
       available: true,
       workspaceKey: params.workspaceIdentity ?? params.workspacePath,
-      protocolName: "ZCode Protocol",
+      protocolName: "NIBI Protocol",
       protocolVersion: 1,
       transportKind: "stdio",
     })),

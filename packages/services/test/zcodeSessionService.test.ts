@@ -390,7 +390,7 @@ describe("createZCodeSessionService", () => {
       initialize: vi.fn(async () => ({
         available: true,
         workspaceKey: "remote:ssh:dev:/workspace/app",
-        protocolName: "ZCode Protocol",
+        protocolName: "NIBI Protocol",
         protocolVersion: 1,
         transportKind: "stdio",
       })),
@@ -732,7 +732,7 @@ describe("createZCodeSessionService", () => {
 
   it("syncs resume model override into the task index", async () => {
     const snapshot = {
-      protocol: { name: "ZCode Protocol", version: 1 },
+      protocol: { name: "NIBI Protocol", version: 1 },
       session: {
         sessionId: "session-1",
         mode: "build",
@@ -780,7 +780,7 @@ describe("createZCodeSessionService", () => {
   it("replays requested thought level before broadcasting resume snapshot", async () => {
     const makeSnapshot = (thoughtLevel: string) =>
       ({
-        protocol: { name: "ZCode Protocol", version: 1 },
+        protocol: { name: "NIBI Protocol", version: 1 },
         session: {
           sessionId: "session-1",
           mode: "build",
@@ -845,7 +845,7 @@ describe("createZCodeSessionService", () => {
 
   it("skips resume thought replay when the restored model does not support the requested level", async () => {
     const snapshot = {
-      protocol: { name: "ZCode Protocol", version: 1 },
+      protocol: { name: "NIBI Protocol", version: 1 },
       session: {
         sessionId: "session-1",
         mode: "build",
@@ -914,7 +914,7 @@ describe("createZCodeSessionService", () => {
 
   it("updates only task model when resume snapshot broadcast is disabled", async () => {
     const snapshot = {
-      protocol: { name: "ZCode Protocol", version: 1 },
+      protocol: { name: "NIBI Protocol", version: 1 },
       session: {
         sessionId: "session-1",
         mode: "build",

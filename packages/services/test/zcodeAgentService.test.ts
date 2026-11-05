@@ -332,7 +332,7 @@ function workspaceState(workspace) {
 }
 function snapshot(workspace, sessionId = "sess_shell_settings") {
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId,
       workspace,
@@ -462,7 +462,7 @@ function workspaceState(workspace) {
 function snapshot(workspace) {
   const sessionId = "sess_runtime_preferences";
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId,
       workspace,
@@ -538,7 +538,7 @@ let buf = "";
 function send(obj) { process.stdout.write(JSON.stringify(obj) + "\\n"); }
 function createSnapshot(sessionId) {
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId,
       workspace: {
@@ -610,7 +610,7 @@ let currentWorkspace = null;
 function send(obj) { process.stdout.write(JSON.stringify(obj) + "\\n"); }
 function createSnapshot(workspace, thoughtLevel) {
   return {
-    protocol: { name: "ZCode Protocol", version: 1 },
+    protocol: { name: "NIBI Protocol", version: 1 },
     session: {
       sessionId: "sess_compat",
       workspace,
@@ -1543,7 +1543,7 @@ describe("createZCodeAgentService", () => {
     ).resolves.toMatchObject({
       available: false,
       workspaceKey: "remote:ssh:dev:/workspace/app",
-      protocolName: "ZCode Protocol",
+      protocolName: "NIBI Protocol",
       protocolVersion: 1,
     });
   });
@@ -1570,7 +1570,7 @@ describe("createZCodeAgentService", () => {
     ).resolves.toMatchObject({
       available: true,
       workspaceKey: workspacePath,
-      protocolName: "ZCode Protocol",
+      protocolName: "NIBI Protocol",
       protocolVersion: 1,
       transportKind: "stdio",
     });

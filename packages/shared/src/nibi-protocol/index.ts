@@ -122,7 +122,7 @@ export {
   type SessionsIndexReconcileResult,
 } from "../nibi-protocol-v4/sessions-index.js";
 
-export const NIBI_PROTOCOL_NAME = "ZCode Protocol" as const;
+export const NIBI_PROTOCOL_NAME = "NIBI Protocol" as const;
 export const NIBI_PROTOCOL_VERSION = 1 as const;
 // V4 wire 与 legacy 主协议并存；禁止为了 V4 physical framing 改写 legacy 版本。
 export const NIBI_PROTOCOL_V4_WIRE_VERSION = 3 as const;
