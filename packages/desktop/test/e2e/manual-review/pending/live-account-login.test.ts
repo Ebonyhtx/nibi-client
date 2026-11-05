@@ -27,7 +27,6 @@ const USER_INFO_KEY = "oauth:nibi:user_info";
 const LICENSE_KEY = "nibi:license:token";
 const DEVICE_KEY = "nibi:device:id";
 
-type ShellMock = Awaited<ReturnType<typeof browser.electron.mock>>;
 
 async function credentialKeys(): Promise<string[]> {
   try {
@@ -60,7 +59,9 @@ async function openLogin(): Promise<ChainablePromiseElement> {
   return button;
 }
 
-async function loginAs(openExternal: ShellMock, account: "a" | "b", name: string): Promise<void> {
+async function loginAs(account: "a" | "b", name: string): Promise<void> {
+  // 每次登录前重新装 mock：登出后的 reloadSession 会丢掉上一个 WebDriver 会话里的 mock。
+  const openExternal = await browser.electron.mock("shell", "openExternal");
   const button = await openLogin();
   await openExternal.mockClear();
   await button.click();
@@ -142,9 +143,8 @@ async function logout(): Promise<void> {
 describe("live NIBI account (real server, manual)", () => {
   it("logs in member A, switches to guest B, and back to A", async () => {
     await skipOccupationOnboardingIfPresent();
-    const openExternal = await browser.electron.mock("shell", "openExternal");
 
-    await loginAs(openExternal, "a", "E2E Member");
+    await loginAs("a", "E2E Member");
     await waitForKey(USER_INFO_KEY, true, 30_000);
     await waitForKey(DEVICE_KEY, true, 30_000);
     // 诊断：license 同步是异步且吞错的；把凭据键（不含值）打到日志里。
@@ -158,13 +158,13 @@ describe("live NIBI account (real server, manual)", () => {
     }
 
     await logout();
-    await loginAs(openExternal, "b", "E2E Guest");
+    await loginAs("b", "E2E Guest");
     await waitForKey(USER_INFO_KEY, true, 30_000);
     await waitForKey(DEVICE_KEY, true, 30_000);
     await waitForKey(LICENSE_KEY, false, 60_000);
 
     await logout();
-    await loginAs(openExternal, "a", "E2E Member");
+    await loginAs("a", "E2E Member");
     await waitForKey(USER_INFO_KEY, true, 30_000);
   });
 });
