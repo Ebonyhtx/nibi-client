@@ -363,7 +363,8 @@ const remoteConnectionProgressContext = createRemoteConnectionProgressContext({
 });
 
 function writeHostLog(level: HostLogLevel, ...args: unknown[]): void {
-  const prefix = formatLogPrefix("zcode-host", process.pid);
+  // 前缀与进程名同一套品牌（process-names 用 `nibi` 前缀；日志不能还是 zcode）。
+  const prefix = formatLogPrefix("nibi-host", process.pid);
   const consoleFn =
     level === "error" ? rawConsole.error : level === "warn" ? rawConsole.warn : rawConsole.log;
   consoleFn(prefix, ...args);

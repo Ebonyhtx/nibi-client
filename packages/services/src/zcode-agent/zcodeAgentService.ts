@@ -5406,7 +5406,7 @@ export function createZCodeAgentService(
               // 内核没有这个旧方法：订阅方仍可用 v4 conversation 帧自建投影
               // （zcodeTaskServiceAdapter → taskStreamFromV4）；没有订阅方时就是纯本地事件。
               console.warn(
-                formatLogPrefix("zcode-agent", process.pid),
+                formatLogPrefix("nibi-agent", process.pid),
                 "内核未实现旧 session/subscribe，task/bot 实时投影改用 v4 帧（无 v4 订阅方时降级为本地事件）",
                 {
                   sessionId: params.sessionId,
@@ -5421,7 +5421,7 @@ export function createZCodeAgentService(
             if (attempt >= SESSION_SUBSCRIBE_MAX_ATTEMPTS - 1) {
               // 彻底失败时打 warn 让问题可观测，而不是无声失效。
               console.warn(
-                formatLogPrefix("zcode-agent", process.pid),
+                formatLogPrefix("nibi-agent", process.pid),
                 "session 订阅建立失败，已达最大重试次数，放弃",
                 {
                   sessionId: params.sessionId,

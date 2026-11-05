@@ -176,7 +176,7 @@ describe("attributeHostProcessTree", () => {
     const samples = new Map<number, ProcessResourceSample>([
       sample(1, 0, "launchd"),
       sample(50, 1, "/Applications/ZCode.app/Contents/MacOS/ZCode"),
-      sample(60, 50, "zcode-host"),
+      sample(60, 50, "nibi-host"),
       sample(70, 60, "/usr/bin/zsh"), // 终端 shell
       sample(100, 60, "/Applications/ZCode.app/Contents/MacOS/ZCode", 5, 2048), // agent
       sample(110, 100, "/usr/local/bin/pnpm"), // agent 工具子进程
@@ -228,7 +228,7 @@ describe("attributeHostProcessTree", () => {
 
   it("CLI 映射缺失时 Agent 全部后代都归 cli；不在 Host 子树下的 Agent 也补进来", () => {
     const samples = new Map<number, ProcessResourceSample>([
-      sample(60, 1, "zcode-host"),
+      sample(60, 1, "nibi-host"),
       sample(100, 1, "node"), // ppid 已被重排
       sample(101, 100, "mcp-server"),
     ]);
