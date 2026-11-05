@@ -30,13 +30,15 @@ fn file_stem(path: &str) -> &str {
     name.strip_suffix(".md").unwrap_or(name)
 }
 
-/// 插件目录与项目目录变量（两套名字都认，与 ext 的 MCP 配置相同）。
+/// 插件目录与项目目录变量（NIBI/CLAUDE 两套名字都认；另带上游 ZCODE 别名，只给插件用）。
 fn substitute(text: &str, root: &str, project_dir: &str) -> String {
     [
         (vars::CLAUDE_PLUGIN_ROOT, root),
         (vars::NIBI_PLUGIN_ROOT, root),
+        (vars::ZCODE_PLUGIN_ROOT, root),
         (vars::CLAUDE_PROJECT_DIR, project_dir),
         (vars::NIBI_PROJECT_DIR, project_dir),
+        (vars::ZCODE_PROJECT_DIR, project_dir),
     ]
     .iter()
     .fold(text.to_owned(), |text, (name, value)| {

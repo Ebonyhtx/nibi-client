@@ -82,6 +82,16 @@ pub mod vars {
     pub const NIBI_SKILL_DIR: &str = "NIBI_SKILL_DIR";
     pub const CLAUDE_SKILL_DIR: &str = "CLAUDE_SKILL_DIR";
 
+    /// 插件 ABI 兼容层（只给移植过来的上游 ZCode 插件用）：这些旧名只**输出**给插件/hook 子进程与
+    /// 插件清单的 `${…}` 模板解析；宿主自己的配置读取从不使用它们。边界与清单见私有仓
+    /// `step9b-brand-inventory-2026-11-05.md` §0.6。
+    pub const ZCODE_PLUGIN_ROOT: &str = "ZCODE_PLUGIN_ROOT";
+    pub const ZCODE_PROJECT_DIR: &str = "ZCODE_PROJECT_DIR";
+    pub const ZCODE_SESSION_ID: &str = "ZCODE_SESSION_ID";
+    pub const ZCODE_SKILL_DIR: &str = "ZCODE_SKILL_DIR";
+    /// Node 的插件 MCP 环境还提供数据目录；Rust 按 ext.md D13 不提供。
+    pub const ZCODE_PLUGIN_DATA: &str = "ZCODE_PLUGIN_DATA";
+
     /// 文本里的引用写法 `${NAME}`。
     pub fn placeholder(name: &str) -> String {
         format!("${{{name}}}")

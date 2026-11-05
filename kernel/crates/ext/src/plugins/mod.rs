@@ -228,13 +228,19 @@ impl Reader<'_> {
     fn mcp_servers(plugin: &str, dir: &str, project: &str, tables: &[Value]) -> Vec<McpServer> {
         let root = dir.to_owned();
         let lookup = move |name: &str| {
-            matches!(name, vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT).then(|| root.clone())
+            matches!(
+                name,
+                vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT | vars::ZCODE_PLUGIN_ROOT
+            )
+            .then(|| root.clone())
         };
         let provided = [
             (vars::CLAUDE_PLUGIN_ROOT, dir),
             (vars::NIBI_PLUGIN_ROOT, dir),
+            (vars::ZCODE_PLUGIN_ROOT, dir),
             (vars::CLAUDE_PROJECT_DIR, project),
             (vars::NIBI_PROJECT_DIR, project),
+            (vars::ZCODE_PROJECT_DIR, project),
         ];
         let mut servers = Vec::new();
         for table in tables {

@@ -10,7 +10,7 @@ use crate::test_support::{facts, workspace};
 async fn manifest_components_and_mcp_servers() {
     let root = "/Users/dev/plugins/kit";
     let env = MemoryEnvironment::new(facts())
-        .with_file(&format!("{root}/.claude-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${CLAUDE_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}"]}}}"#)
+        .with_file(&format!("{root}/.claude-plugin/plugin.json"), r#"{"name": "toolkit", "skills": "./extra", "agents": ["./agents/reviewer.md", "./more.md"], "hooks": {"Stop": []}, "mcpServers": {"db": {"command": "${CLAUDE_PLUGIN_ROOT}/bin/db", "args": ["--root", "${NIBI_PLUGIN_ROOT}", "${ZCODE_PLUGIN_ROOT}"]}}}"#)
         .with_file(&format!("{root}/skills/deploy/SKILL.md"), "---\ndescription: Deploy\n---\n")
         .with_file(&format!("{root}/extra/lint/SKILL.md"), "---\ndescription: Lint\n---\n")
         .with_file(&format!("{root}/agents/reviewer.md"), "---\nname: reviewer\n---\n")
@@ -69,7 +69,14 @@ async fn manifest_components_and_mcp_servers() {
         panic!("db is stdio");
     };
     assert_eq!(command, &format!("{root}/bin/db"));
-    assert_eq!(args, &["--root".to_owned(), root.to_owned()]);
+    assert_eq!(
+        args,
+        &[
+            "--root".to_owned(),
+            root.to_owned(),
+            root.to_owned()
+        ]
+    );
     assert_eq!(plugins.0[1].name, "bare");
     plugin_stdio_servers_get_the_node_variables(kit, root).await;
     let roots: Vec<String> = plugins
@@ -88,7 +95,7 @@ async fn manifest_components_and_mcp_servers() {
 }
 
 /// 插件的 stdio MCP 服务器的环境（修复线 F42，config.md §2.5.1）：按 Node（`adapters/src/plugins/mcp.ts`）给插件目录与
-/// 项目目录，两套名字；HTTP 服务器没有环境。
+/// 项目目录，NIBI/CLAUDE/上游 ZCODE 三套名字；HTTP 服务器没有环境。
 async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
     let McpTransportConfig::Stdio { env, .. } = &kit.mcp_servers[1].transport else {
         panic!("db is stdio");
@@ -97,8 +104,10 @@ async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
     for (name, value) in [
         ("CLAUDE_PLUGIN_ROOT", root),
         ("NIBI_PLUGIN_ROOT", root),
+        ("ZCODE_PLUGIN_ROOT", root),
         ("CLAUDE_PROJECT_DIR", project.as_str()),
         ("NIBI_PROJECT_DIR", project.as_str()),
+        ("ZCODE_PROJECT_DIR", project.as_str()),
     ] {
         assert_eq!(env.get(name).map(String::as_str), Some(value), "{name}");
     }
@@ -126,4 +135,6 @@ async fn configured_env_wins_over_the_provided_variables() {
     assert_eq!(env["CLAUDE_PROJECT_DIR"], "/elsewhere");
     assert_eq!(env["TOKEN"], "x");
     assert_eq!(env["NIBI_PLUGIN_ROOT"], root);
+    // 插件 ABI 兼容层：上游插件读的旧名也在，且同样可被 manifest env 覆盖。
+    assert_eq!(env["ZCODE_PLUGIN_ROOT"], root);
 }

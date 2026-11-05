@@ -23,7 +23,7 @@ fn file(path: &str, namespace: &[&str]) -> PluginAgentFile {
 
 #[test]
 fn names_descriptions_and_variables_follow_the_plugin_rules() {
-    let raw = "---\nname: lead\nwhen_to_use: Leads the team.\ntools: Read\npermissionMode: bypassPermissions\nmaxTurns: 3\n---\nRun ${CLAUDE_PLUGIN_ROOT}/bin/x in ${NIBI_PROJECT_DIR}.\n";
+    let raw = "---\nname: lead\nwhen_to_use: Leads the team.\ntools: Read\npermissionMode: bypassPermissions\nmaxTurns: 3\n---\nRun ${CLAUDE_PLUGIN_ROOT}/bin/x in ${NIBI_PROJECT_DIR} (${ZCODE_PROJECT_DIR}).\n";
     let agent = parse(
         raw,
         &file("agents/team/lead.md", &["team"]),
@@ -38,7 +38,7 @@ fn names_descriptions_and_variables_follow_the_plugin_rules() {
     assert_eq!(agent.max_turns, Some(3));
     assert_eq!(
         agent.prompt,
-        "Run /Users/dev/plugins/kit/bin/x in /Users/dev/repo."
+        "Run /Users/dev/plugins/kit/bin/x in /Users/dev/repo (/Users/dev/repo)."
     );
     // 没有 frontmatter：名字取文件名，描述用缺省句。
     let bare = parse(
