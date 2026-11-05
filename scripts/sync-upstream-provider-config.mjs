@@ -16,8 +16,8 @@
 //   node scripts/sync-upstream-provider-config.mjs --from ... --write --rust   # 同时更新 Rust 随包
 //   node scripts/sync-upstream-provider-config.mjs --from <client/configs 端点> --proxy http://127.0.0.1:7897
 //
-// 加 `--rust` 会同时写 `kernel/crates/platform/assets/nibi-builtin.json`：它与 Node 源同模板/
-// 同模型规则，但保留上游 providerRules（独立 Rust 的 Z.ai/BigModel 账号登录路径）。
+// 加 `--rust` 会同时写 `kernel/crates/platform/assets/nibi-builtin.json`：与 Node 源同模板/
+// 同模型规则；providerRules 清空（不保留上游会员套餐账号登录）。
 
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -205,18 +205,16 @@ export function buildSyncedConfigs({ upstream, currentProd, currentTest, revisio
 }
 
 /**
- * Rust 独立 CLI/TUI 的随包配置：与 Node 源同源，但保留上游的 `providerRules`——
- * 那是 Z.ai/BigModel 的 **provider 账号登录** 路径（不是 NIBI 会员），独立 Rust 需要它。
- * Node 源里 providerRules 由运行时合成，所以是空数组；两份的模板与模型规则一致。
+ * Rust 独立 CLI/TUI 的随包配置：与 Node 源同源。`providerRules` 为空——Rust 不保留
+ * 上游会员/账号套餐登录（Coding Plan / Start / off-peak / highspeed）；用户走 *-api 模板
+ * 自备 API Key。Node 源的 providerRules 也由运行时合成、随包为空，两份模板与模型规则一致。
  */
 export function buildRustConfig({ upstream, revision }) {
   const upstreamModelRules = upstream.config.modelConfigRules ?? {};
-  // 独立 Rust 保留 provider 账号登录（App 登录镜像）：只留直连 api.z.ai / open.bigmodel.cn
-  // 的个人/团队套餐；走上游 zcode.z.ai 网关的 start/off-peak/highspeed 套餐不进 NIBI。
-  const providerRules = (upstream.config.providerConfigRules?.providerRules ?? []).filter(
-    (rule) => !isUpstreamZcodeSiteRule({ baseUrlMatch: rule?.config?.api?.baseUrl ?? "" }),
-  );
-  const providerIds = new Set(providerRules.map((rule) => rule.providerId));
+  // Rust 不保留任何上游会员/账号套餐登录（`zhipu-account`）：这些规则是
+  // Coding Plan / Start / off-peak / highspeed 的账号级套餐，不是普通 provider 模板。
+  // Rust 与 Node 一样只通过 *-api 模板走用户自备 API Key。
+  const providerRules = [];
   return {
     schemaVersion: 1,
     revision,
@@ -231,9 +229,7 @@ export function buildRustConfig({ upstream, revision }) {
         providerSiteRules: (upstreamModelRules.providerSiteRules ?? []).filter(
           (rule) => !isUpstreamZcodeSiteRule(rule),
         ),
-        builtinProviderModelRules: (upstreamModelRules.builtinProviderModelRules ?? []).filter(
-          (rule) => providerIds.has(rule.providerId),
-        ),
+        builtinProviderModelRules: [],
       },
     },
   };

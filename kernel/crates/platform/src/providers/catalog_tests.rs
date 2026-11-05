@@ -33,7 +33,11 @@ fn layer(builtin: &Value, entitled: &str) -> AccountLayer {
 }
 
 fn fixture_snapshot() -> Snapshot {
-    let builtin: Value = serde_json::from_str(BUNDLED_BUILTIN).unwrap();
+    // 账号 provider 的规则只存在于测试夹具；随包资产已移除上游会员套餐登录。
+    let builtin: Value = serde_json::from_str(include_str!(
+        "../../tests/fixtures/account-plan-builtin.json"
+    ))
+    .unwrap();
     let personal: Value = serde_json::from_str(PERSONAL).unwrap();
     let account = layer(&builtin, ENTITLED);
     snapshot(
@@ -66,17 +70,15 @@ fn executable_models_match_the_node_registry() {
 
 #[test]
 fn the_bundled_builtin_parses_and_keeps_the_upstream_shape() {
-    // 分家后（v4.0.0）上游的「随包副本 == 仓库 config/provider 那份」前提不再成立：仓库的
-    // `nibi-builtin.json` 是 Node 侧构建期的源（providerRules 在 Node 运行时另行合成，形状
-    // 不同），内核随 vendor 携带上游副本、随 vendor 升级走——两者不再互为副本。这里只校验
-    // 随包副本自身可解析、形状未漂移；「内核该带哪份内置 Provider」归品牌审计裁决。
+    // 随包配置与 Node 源同源（模板/模型规则跟随上游），但 `providerRules` 为空：
+    // Rust 不保留上游会员套餐账号登录。这里只校验自身可解析、模板未丢。
     let bundled: Value = serde_json::from_str(BUNDLED_BUILTIN).unwrap();
     assert_eq!(bundled["schemaVersion"], 1);
     assert!(
-        bundled["config"]["providerConfigRules"]["providerRules"]
+        bundled["config"]["providerConfigRules"]["templateRules"]
             .as_array()
             .is_some_and(|rules| !rules.is_empty()),
-        "the bundled copy carries upstream provider rules"
+        "the bundled copy carries the upstream provider templates"
     );
 }
 

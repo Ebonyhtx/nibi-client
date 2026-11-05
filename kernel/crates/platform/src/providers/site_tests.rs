@@ -92,6 +92,14 @@ fn the_catalog_entry_carries_the_capabilities() {
     assert!(entry.capabilities.supports_mid_conversation_system);
 }
 
+/// 账号 provider 只存在于测试夹具里；随包资产不再带上游会员套餐规则。
+fn account_builtin() -> Value {
+    serde_json::from_str(include_str!(
+        "../../tests/fixtures/account-plan-builtin.json"
+    ))
+    .unwrap()
+}
+
 fn site(protocol: WireProtocol, base_url: &str, model: &str) -> ModelCapabilities {
     SiteRules::new(&builtin()).capabilities(protocol, base_url, model)
 }
@@ -190,7 +198,7 @@ fn sel(provider: &str, model: &str) -> nibi_kernel_api::model::ModelSelection {
 /// start plan 有原生 WebSearch，off-peak 没有；输出上限 128000，推理档位 low / high / max。期望值取自 Node 的解析。
 #[test]
 fn glm_5_3_flash_follows_the_node_rules() {
-    let resolved = resolve(&builtin(), &json!({}), None);
+    let resolved = resolve(&account_builtin()["config"], &json!({}), None);
     let effective = |provider_id: &str| {
         let provider = resolved
             .providers

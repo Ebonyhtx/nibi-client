@@ -19,7 +19,13 @@ fn secret() -> CredentialSecret {
 }
 
 async fn platform(dir: &std::path::Path) -> (Platform, StoragePaths) {
-    let paths = StoragePaths::resolve(&Default::default(), dir, dir);
+    // 账号 provider 的规则只存在于测试夹具；随包资产已移除上游会员套餐登录。
+    let paths = StoragePaths::resolve(&Default::default(), dir, dir).with_builtin_provider_config(
+        std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/account-plan-builtin.json"
+        )),
+    );
     write(paths.provider_config().as_path(), PERSONAL).await;
     let services = crate::test_support::offline_services().await;
     (Platform::new(&paths, &secret(), services), paths)

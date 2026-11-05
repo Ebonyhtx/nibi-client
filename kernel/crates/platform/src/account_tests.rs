@@ -5,7 +5,6 @@ use serde_json::json;
 
 use super::*;
 use crate::credentials::{Cipher, CredentialSecret, CredentialStore};
-use crate::providers::BUNDLED_BUILTIN;
 use crate::test_support::write;
 
 const ZAI: &str = "account:zai-individual-coding-plan";
@@ -47,7 +46,12 @@ async fn credentials(record: &[(&str, &str)]) -> (tempfile::TempDir, Credentials
 }
 
 fn builtin() -> Value {
-    serde_json::from_str::<Value>(BUNDLED_BUILTIN).unwrap()["config"].clone()
+    // 随包资产已不带上游会员套餐规则；账号层测试用夹具（与平台 Harness 一致）。
+    serde_json::from_str::<Value>(include_str!(
+        "../tests/fixtures/account-plan-builtin.json"
+    ))
+    .unwrap()["config"]
+        .clone()
 }
 
 /// 没有可用团队项目时的 overlay；`subscribed` 是个人订阅查询给出 entitled 的 provider（`personal/`，§5.7）。

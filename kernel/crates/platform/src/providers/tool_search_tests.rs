@@ -8,13 +8,17 @@ use nibi_kernel_api::model::ModelSelection;
 use nibi_kernel_api::provider::WireProtocol;
 use serde_json::{Value, json};
 
-use crate::providers::BUNDLED_BUILTIN;
 use crate::providers::catalog::snapshot;
 use crate::providers::resolve::resolve;
 use crate::providers::site::SiteRules;
 
 fn builtin() -> Value {
-    serde_json::from_str::<Value>(BUNDLED_BUILTIN).unwrap()["config"].clone()
+    // 账号 provider 只存在于测试夹具里；随包资产不再带上游会员套餐规则。
+    serde_json::from_str::<Value>(include_str!(
+        "../../tests/fixtures/account-plan-builtin.json"
+    ))
+    .unwrap()["config"]
+        .clone()
 }
 
 /// 个人配置里一个 API key 的 provider。

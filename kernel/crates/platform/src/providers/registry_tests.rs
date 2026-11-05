@@ -10,7 +10,13 @@ use crate::test_support::write;
 const PERSONAL: &str = include_str!("../../tests/fixtures/personal.json");
 
 async fn registry(dir: &std::path::Path) -> (Registry, StoragePaths) {
-    let paths = StoragePaths::resolve(&Default::default(), dir, dir);
+    // 账号 provider 的规则只存在于测试夹具；随包资产已移除上游会员套餐登录。
+    let paths = StoragePaths::resolve(&Default::default(), dir, dir).with_builtin_provider_config(
+        std::path::Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/account-plan-builtin.json"
+        )),
+    );
     let secret = CredentialSecret {
         explicit: Some(RedactedString::new("s")),
         platform: "linux".to_owned(),
@@ -19,7 +25,7 @@ async fn registry(dir: &std::path::Path) -> (Registry, StoragePaths) {
     };
     let credentials = CredentialStore::new(paths.credentials(), &secret);
     let registry = Registry::new(
-        None,
+        paths.builtin_provider_config().cloned(),
         paths.provider_config(),
         credentials.clone(),
         crate::test_support::offline_account(credentials).await,

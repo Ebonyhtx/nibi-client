@@ -6,6 +6,7 @@
     reason = "测试直接搭本地 HTTP 夹具（docs/specs/rust-cli/README.md §4）"
 )]
 
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -236,6 +237,11 @@ impl Harness {
         clock: Arc<FixedClock>,
         secret: &CredentialSecret,
     ) -> Platform {
+        // 账号/个人/团队测试用带账号套餐规则的夹具；随包资产本身已移除上游会员套餐登录。
+        let paths = &paths.clone().with_builtin_provider_config(Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/account-plan-builtin.json"
+        )));
         let services = AccountServices {
             egress: Arc::new(Egress::new(NetworkPolicy::default()).await.unwrap()),
             clock,
