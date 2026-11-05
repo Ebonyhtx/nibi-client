@@ -37,7 +37,7 @@ export async function expectedSha256(
   }
   for (const line of (await response.text()).split(/\r?\n/u)) {
     const [hash, name] = line.trim().split(/\s+/u);
-    if (name === artifact) return hash;
+    if (hash && name === artifact) return hash;
   }
   throw new Error(`Could not find ${artifact} in Node.js SHASUMS256.txt (${url})`);
 }
