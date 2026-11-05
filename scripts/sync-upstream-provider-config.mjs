@@ -4,8 +4,9 @@
 // 背景：
 // - 客户端运行时读两跳端点（`/api/v1/client/configs` → 签名 release），按 revision 更新；
 //   这里生成的是**随包源** `config/provider/nibi-builtin*.json`，也是发布到服务端的同一份内容。
-// - 除上游 **ZAI/BigModel 的会员套餐**（Coding Plan / Start / 闲置 / 高速卡）外，模板、模型、
-//   站点规则全部跟随上游；不维护 NIBI 自己的模板白名单或逐模型启停。
+// - 模板、模型、站点规则全部跟随上游；不维护 NIBI 自己的模板白名单或逐模型启停。
+//   ZAI/BigModel 的 Coding Plan 模板保留为普通第三方模板；会员/账号套餐（providerRules、
+//   builtinProviderModelRules）不进入 NIBI。
 // - 上游 `zcode.z.ai` 套餐站点规则不导入（NIBI 没有这些套餐）。
 //
 // 用法：
@@ -96,12 +97,6 @@ function deepEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-/** 上游 ZAI/BigModel 的会员套餐（Coding Plan / Start / 闲置 / 高速卡）不进入 NIBI。 */
-function isZhipuMembershipRule(rule) {
-  const access = rule?.config?.access;
-  return access?.type === "zhipu-account" || access?.type === "zhipu-coding-plan-api-key";
-}
-
 function isZhipuMembershipProvider(providerId) {
   return typeof providerId === "string" && /^account:(?:zai|bigmodel)-/u.test(providerId);
 }
@@ -117,10 +112,10 @@ function isUpstreamZcodeSiteRule(rule) {
  */
 export function buildSyncedConfigs({ upstream, currentProd, currentTest, revision }) {
   const upstreamTemplates = upstream.config.providerConfigRules?.templateRules ?? [];
-  const templates = upstreamTemplates.filter(
-    (rule) => !isZhipuMembershipRule(rule) && !/^account:(?:zai|bigmodel)-/u.test(rule.templateId ?? ""),
-  );
-  const excludedTemplates = upstreamTemplates.filter((rule) => !templates.includes(rule));
+  // 模板全部保留：ZAI/BigModel 的 Coding Plan 模板也只是「用户自备 API Key」的普通第三方模板，
+  // 与 Kimi Code / Qwen 套餐同级；会员/账号套餐语义只在 providerRules 与 builtin 规则里。
+  const templates = upstreamTemplates;
+  const excludedTemplates = [];
   const keptIds = new Set(templates.map((rule) => rule.templateId));
 
   const upstreamModelRules = upstream.config.modelConfigRules ?? {};

@@ -34,10 +34,10 @@ export {
 } from "./model-provider-section/utils.js";
 
 /**
- * 已下线的上游账号/套餐 provider 不再参与模型供应商设置。
+ * 只隐藏「账号/会员」型 provider。Coding Plan 是用户自备 API Key 的普通第三方模板，保持可见。
  * 标准 API Key 供应商（api-key / 自定义 endpoint）保持原样。
  */
-const HIDDEN_PROVIDER_ACCESS_TYPES = new Set(["zhipu-account", "zhipu-coding-plan-api-key"]);
+const HIDDEN_PROVIDER_ACCESS_TYPES = new Set(["zhipu-account"]);
 
 function isVisibleModelProvider(provider: ProviderSettingsFormProvider): boolean {
   return !HIDDEN_PROVIDER_ACCESS_TYPES.has(provider.config.access?.type ?? "");

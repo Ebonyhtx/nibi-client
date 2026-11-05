@@ -1,9 +1,34 @@
 {
   "schemaVersion": 1,
-  "revision": 35,
+  "revision": 36,
   "config": {
     "providerConfigRules": {
       "templateRules": [
+        {
+          "templateId": "zai-api",
+          "templateNameMap": {
+            "zh-CN": "Z.ai Coding Plan",
+            "en-US": "Z.ai Coding Plan"
+          },
+          "config": {
+            "access": {
+              "type": "zhipu-coding-plan-api-key",
+              "apiKeyManagementUrl": "https://z.ai/manage-apikey/apikey-list"
+            },
+            "api": {
+              "type": "anthropic-messages",
+              "baseUrl": "https://api.z.ai/api/anthropic"
+            },
+            "builtinModelIds": [
+              "GLM-5.3",
+              "GLM-5.3-Flash"
+            ],
+            "logo": {
+              "type": "builtin",
+              "key": "zai"
+            }
+          }
+        },
         {
           "templateId": "zai-standard-api",
           "templateNameMap": {
@@ -49,6 +74,31 @@
             "logo": {
               "type": "builtin",
               "key": "zai"
+            }
+          }
+        },
+        {
+          "templateId": "bigmodel-api",
+          "templateNameMap": {
+            "zh-CN": "BigModel Coding Plan",
+            "en-US": "BigModel Coding Plan"
+          },
+          "config": {
+            "access": {
+              "type": "zhipu-coding-plan-api-key",
+              "apiKeyManagementUrl": "https://bigmodel.cn/coding-plan/personal/overview"
+            },
+            "api": {
+              "type": "anthropic-messages",
+              "baseUrl": "https://open.bigmodel.cn/api/anthropic"
+            },
+            "builtinModelIds": [
+              "GLM-5.3",
+              "GLM-5.3-Flash"
+            ],
+            "logo": {
+              "type": "builtin",
+              "key": "bigmodel"
             }
           }
         },
@@ -4922,6 +4972,48 @@
           "modelId": "grok-4.6",
           "config": {
             "enabled": false
+          }
+        },
+        {
+          "modelId": "GLM-5-Turbo",
+          "templateId": "zai-api",
+          "config": {
+            "enabled": false
+          }
+        },
+        {
+          "modelId": "GLM-5-Turbo",
+          "templateId": "bigmodel-api",
+          "config": {
+            "enabled": false
+          }
+        },
+        {
+          "modelId": "GLM-5.3",
+          "templateId": "zai-api",
+          "config": {
+            "enabled": true
+          }
+        },
+        {
+          "modelId": "GLM-5.3-Flash",
+          "templateId": "zai-api",
+          "config": {
+            "enabled": true
+          }
+        },
+        {
+          "modelId": "GLM-5.3",
+          "templateId": "bigmodel-api",
+          "config": {
+            "enabled": true
+          }
+        },
+        {
+          "modelId": "GLM-5.3-Flash",
+          "templateId": "bigmodel-api",
+          "config": {
+            "enabled": true
           }
         },
         {

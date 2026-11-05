@@ -252,8 +252,9 @@ describe("ZCode Built-in Provider Config 完整性", () => {
       // 模板集合跟随上游（ZAI/BigModel 会员套餐模板在同步时被排除）；只钉基础身份。
       expect(snapshot.providerTemplates?.has("zai-standard-api")).toBe(true);
       expect(snapshot.providerTemplates?.has("bigmodel-standard-api")).toBe(true);
-      expect(snapshot.providerTemplates?.has("zai-api")).toBe(false);
-      expect(snapshot.providerTemplates?.has("bigmodel-api")).toBe(false);
+      // Coding Plan 模板按普通第三方模板保留（用户自备 API Key，不接 NIBI 会员）。
+      expect(snapshot.providerTemplates?.has("zai-api")).toBe(true);
+      expect(snapshot.providerTemplates?.has("bigmodel-api")).toBe(true);
       for (const [templateId, template] of snapshot.providerTemplates?.entries() ?? []) {
         expect(
           template.templateNameMap["zh-CN"]?.trim(),

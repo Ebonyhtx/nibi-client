@@ -90,9 +90,15 @@ test("follows upstream except ZAI/BigModel membership plans", () => {
 
   assert.equal(result.prod.revision, 35);
   assert.equal(result.test.revision, 35);
-  // 上游模板全收，只有 ZAI/BigModel 的 coding-plan API-key 模板被排除。
-  assert.deepEqual(result.templates.kept.sort(), ["alpha", "gamma", "kimi-code-cn"]);
-  assert.deepEqual(result.templates.excluded.sort(), ["bigmodel-api", "zai-api"]);
+  // 上游模板全收：ZAI/BigModel 的 Coding Plan 模板也作为普通第三方模板保留。
+  assert.deepEqual(result.templates.kept.sort(), [
+    "alpha",
+    "bigmodel-api",
+    "gamma",
+    "kimi-code-cn",
+    "zai-api",
+  ]);
+  assert.deepEqual(result.templates.excluded, []);
   // 模型启停跟随上游：NIBI 原先把 m1 打开，这次改回上游的关闭。
   const alpha = result.prod.config.modelConfigRules.templateModelRules.filter(
     (rule) => rule.templateId === "alpha",
