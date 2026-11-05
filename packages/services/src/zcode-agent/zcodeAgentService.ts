@@ -5403,10 +5403,11 @@ export function createZCodeAgentService(
               return;
             }
             if (isProtocolMethodNotFound(error)) {
-              // 内核没有这个旧方法：bot/task 的实时投影降级为本地事件（v4 会话帧不受影响）。
+              // 内核没有这个旧方法：订阅方仍可用 v4 conversation 帧自建投影
+              // （zcodeTaskServiceAdapter → taskStreamFromV4）；没有订阅方时就是纯本地事件。
               console.warn(
                 formatLogPrefix("zcode-agent", process.pid),
-                "内核未实现旧 session/subscribe，task/bot 实时投影降级为本地事件",
+                "内核未实现旧 session/subscribe，task/bot 实时投影改用 v4 帧（无 v4 订阅方时降级为本地事件）",
                 {
                   sessionId: params.sessionId,
                   workspaceKey: resolveWorkspaceKey(params),
@@ -5414,6 +5415,7 @@ export function createZCodeAgentService(
                 },
               );
               releaseBufferedLiveEvents();
+              params.onLegacyStreamUnavailable?.();
               return;
             }
             if (attempt >= SESSION_SUBSCRIBE_MAX_ATTEMPTS - 1) {

@@ -391,6 +391,14 @@ export interface ZCodeAgentSessionSubscribeParams extends ZCodeAgentSessionTarge
     mode: "background-summary";
     intervalMs?: number;
   };
+  /**
+   * 内核没有实现旧 `session/subscribe`（-32601）时回调一次。
+   *
+   * 只有读路径迁移中的消费者用：Rust 内核不投影 legacy `session/event`，
+   * 投影源改为 v4 conversation 帧（`taskStreamFromV4`）。Node 内核订阅成功，
+   * 这个回调永远不会触发，所以不会出现双流。
+   */
+  onLegacyStreamUnavailable?: () => void;
 }
 
 // ── v4 conversation 通道（竖切）──

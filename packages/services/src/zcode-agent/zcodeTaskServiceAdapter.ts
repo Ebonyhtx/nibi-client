@@ -4,6 +4,7 @@ import {
   readBotGroupRuntimeSnapshot,
   waitBotGroupExecutionEnd,
 } from "#src/zcode-agent/groupRuntimeSnapshot.js";
+import { V4TaskStreamSink } from "./taskStreamFromV4.js";
 import { uploadBotGroupAttachments } from "./groupAttachmentUpload.js";
 /* oxlint-disable eslint(max-lines) -- 迁移期需要在一个门面里集中维护旧 task projection 到 ZCode session 的协议适配。 */
 import { createHash, randomUUID } from "node:crypto";
@@ -270,6 +271,8 @@ export function createZCodeTaskServiceAdapter(
   const errorEmitter = new Emitter<ZCodeError>();
   const taskEmitters = new Map<string, Emitter<ZCodeStreamEvent>>();
   const globalTaskEmitters = new Map<string, Emitter<ZCodeStreamEvent>>();
+  // 内核没有旧 session/subscribe 时（Rust）的读路径投影源；按 task 共享一个 v4 订阅。
+  const v4TaskStreamSinks = new Map<string, V4TaskStreamSink>();
   const taskTargets = new Map<string, TaskTarget>();
   const topicAdmission = createBotTopicAdmission();
   const runtimeCommands = new Map<string, ZCodeTaskRuntimeCommand[]>();
@@ -1039,6 +1042,25 @@ export function createZCodeTaskServiceAdapter(
     return emitter;
   }
 
+  /** 每 task 一个 v4 读路径投影；只有 legacy 订阅不可用时才真正建立 v4 订阅。 */
+  function getV4TaskStreamSink(target: TaskTarget): V4TaskStreamSink {
+    const key = taskKey(target);
+    let sink = v4TaskStreamSinks.get(key);
+    if (!sink) {
+      sink = new V4TaskStreamSink({
+        agent: options.zcodeAgentService,
+        target: {
+          workspacePath: target.workspacePath,
+          workspaceIdentity: target.workspaceIdentity,
+          sessionId: target.taskId,
+        },
+        warn: (message, error) => logger.warn(undefined, message, error),
+      });
+      v4TaskStreamSinks.set(key, sink);
+    }
+    return sink;
+  }
+
   function emitTaskEvent(params: TaskTarget, event: ZCodeStreamEvent): void {
     getTaskEmitter(params).fire(event);
     getGlobalTaskEmitter(params.taskId).fire(event);
@@ -1699,6 +1721,8 @@ export function createZCodeTaskServiceAdapter(
     taskIndexTerminalDisposable.dispose();
     taskIndexReadyDisposable.dispose();
     taskIndexRepo.close();
+    for (const sink of v4TaskStreamSinks.values()) sink.dispose();
+    v4TaskStreamSinks.clear();
     for (const emitter of taskEmitters.values()) emitter.dispose();
     for (const emitter of globalTaskEmitters.values()) emitter.dispose();
     errorEmitter.dispose();
@@ -3128,16 +3152,26 @@ export function createZCodeTaskServiceAdapter(
         // 协议 + 手机 store + bots 投影整波重做（且 ui/store 本波由并行 agent 主修，避让）。
         // 死期改判 = replayable 读路径 v4 store 波次（波次 3），与 host/index.ts 镜像、
         // mapStateUpdated/mapServiceEvent、agentService.onDynamicSessionEvent 同批摘除。
+        // Rust 内核没有旧 `session/subscribe`：同一个 sink 换成 v4 conversation 帧投影，
+        // 只在 -32601 回调时 activate（Node 成功订阅时它永不启动，不会双流）。
+        const v4Sink = getV4TaskStreamSink(target);
+        const v4Disposable = v4Sink.addListener(listener);
         const upstreamDisposable = options.zcodeAgentService.onDynamicSessionEvent({
           workspacePath: params.workspacePath,
           workspaceIdentity: params.workspaceIdentity,
           sessionId: params.taskId,
           deliveryKind: toZCodeDeliveryKind(params.deliveryKind),
           includeSnapshot: params.deliveryKind === "replayable",
+          onLegacyStreamUnavailable: () => v4Sink.activate(),
         })((event) => mapServiceEvent(target, event));
         return {
           dispose() {
             upstreamDisposable.dispose();
+            v4Disposable();
+            if (v4Sink.listenerCount === 0) {
+              v4TaskStreamSinks.delete(taskKey(target));
+              v4Sink.dispose();
+            }
             localDisposable.dispose();
           },
         };
