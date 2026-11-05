@@ -243,7 +243,7 @@ async fn the_effective_project_allow_list_feeds_the_trust_dialog() {
     assert_eq!(snapshot.project_allow, None);
     let files = [
         (
-            "/Users/dev/repo/zcode.json",
+            "/Users/dev/repo/nibi.json",
             json!({"permission": {"allowedTools": ["Bash(ls:*)"]}}),
         ),
         (
@@ -255,7 +255,7 @@ async fn the_effective_project_allow_list_feeds_the_trust_dialog() {
     let mut snapshot = assemble_with(Some(user), &files).await;
     assert_eq!(
         snapshot.project_allow,
-        Some(("zcode.json".to_owned(), vec!["Bash(ls:*)".to_owned()]))
+        Some(("nibi.json".to_owned(), vec!["Bash(ls:*)".to_owned()]))
     );
     snapshot.without_project_grants();
     let left: Vec<_> = snapshot

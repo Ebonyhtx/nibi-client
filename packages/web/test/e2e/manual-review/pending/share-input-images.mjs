@@ -25,7 +25,7 @@ const artifacts = [
   producer_product_turn_id: base.productTurnId,
   artifact_version: 1,
   state: "current",
-  ref: `zcode-artifact://share/${id}`,
+  ref: `nibi-artifact://share/${id}`,
   artifact_type: mime.startsWith("image/") ? "image" : "text",
   display_name: name,
   extension: name.split(".").at(-1),
@@ -61,11 +61,11 @@ const preview = {
       origin: "realUser",
       text: "这个图里面是啥内容",
       attachments: input.map(([id, fileName, mime]) => ({
-        ref: `zcode-artifact://share/${id}`,
+        ref: `nibi-artifact://share/${id}`,
         fileName,
         mime,
         bytes: png.length,
-        ...(id === "image-1" ? { previewRef: "zcode-artifact://share/thumb-1" } : {}),
+        ...(id === "image-1" ? { previewRef: "nibi-artifact://share/thumb-1" } : {}),
       })),
     },
     {

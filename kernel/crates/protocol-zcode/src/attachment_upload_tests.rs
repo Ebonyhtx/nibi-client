@@ -118,13 +118,13 @@ fn finishing_turns_the_upload_into_a_committed_reference() {
     table.begin(&request, 0).unwrap();
     table.chunk("connection-1", "s1", "upload-1", 0, b"abcdef".to_vec(), 0).unwrap();
     table.take_ready("connection-1", "s1", "upload-1", 0).unwrap();
-    table.finish("connection-1", "s1", "upload-1", "zcode-artifact://s1/a1", 0);
+    table.finish("connection-1", "s1", "upload-1", "nibi-artifact://s1/a1", 0);
     // 再 begin 回 committed + 同一个 ref（Host 的 committed 表）。
     assert_eq!(
         table.begin(&request, 0).unwrap(),
         BeginState::Committed {
             next_chunk: 1,
-            reference: "zcode-artifact://s1/a1".to_owned()
+            reference: "nibi-artifact://s1/a1".to_owned()
         }
     );
 }

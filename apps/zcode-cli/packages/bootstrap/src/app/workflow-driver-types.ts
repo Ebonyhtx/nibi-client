@@ -128,7 +128,7 @@ export interface AgentRuntimeWorkflowDriverDeps {
   artifactStore?: ToolArtifactStorePort;
   /**
    * 本 run 的父会话 id，**只有产物发布用它**：store 的写入按会话作用域记账
-   * （`zcode-artifact://<session>/<id>`），这个作用域就是父会话。
+   * （`nibi-artifact://<session>/<id>`），这个作用域就是父会话。
    *
    * 与 `artifactStore` 成对出现（生产装配由 run service 同时给出，两者都来自同一个 app
    * 会话）；只给一半时发布同样以 `ArtifactStoreUnavailable` 大声失败，见

@@ -42,7 +42,7 @@ describe("resolveMessageStreamdownMode", () => {
   it("invalidates memoized artifact images when their session or reader changes", () => {
     const readAttachment = vi.fn();
     const base = {
-      children: "![CUA](zcode-artifact://session-1/shot)",
+      children: "![CUA](nibi-artifact://session-1/shot)",
       sessionId: "session-1",
       readAttachment,
     };
@@ -568,14 +568,14 @@ describe("resolveMessageStreamdownMode", () => {
               mediaType: "image/png",
             }),
           },
-          "![CUA](zcode-artifact://session-1/shot)",
+          "![CUA](nibi-artifact://session-1/shot)",
         ),
       ),
     );
 
     expect(html).toContain('data-markdown-local-image="loading"');
     expect(html).not.toContain("Image blocked");
-    expect(html).not.toContain("zcode-artifact://");
+    expect(html).not.toContain("nibi-artifact://");
   });
 
   it("keeps paired currency dollars as text", () => {

@@ -166,7 +166,7 @@ async fn checkpoints_use_node_entries_and_restores_hide_their_turns() {
     );
     assert_eq!(rows.len(), 2);
     let data: Value = serde_json::from_str(rows[0][1].as_str().unwrap()).unwrap();
-    let uri = "zcode-artifact://sess_1/tool-result-checkpoint_a";
+    let uri = "nibi-artifact://sess_1/tool-result-checkpoint_a";
     assert_eq!(
         data["payload"],
         json!({"checkpointId": "checkpoint_a", "messageId": "msg_1_u1",
@@ -205,7 +205,7 @@ async fn checkpoints_use_node_entries_and_restores_hide_their_turns() {
     assert_eq!(payload["targetCheckpointId"], "checkpoint_b");
     assert_eq!(
         payload["restoredSnapshotRef"],
-        "zcode-artifact://sess_1/tool-result-checkpoint_b"
+        "nibi-artifact://sess_1/tool-result-checkpoint_b"
     );
     let loaded = t.store.load(&sid()).await.unwrap();
     assert_eq!(loaded.checkpoints, [first]);

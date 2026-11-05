@@ -318,7 +318,7 @@ function hasUnsafeShareString(value: unknown): boolean {
 }
 
 function hasUnsupportedArtifactReference(value: unknown): boolean {
-  if (typeof value === "string") return /^zcode-artifact:\/\//iu.test(value);
+  if (typeof value === "string") return /^nibi-artifact:\/\//iu.test(value);
   if (Array.isArray(value)) return value.some(hasUnsupportedArtifactReference);
   if (!value || typeof value !== "object") return false;
   return Object.entries(value as Record<string, unknown>).some(([key, entry]) =>

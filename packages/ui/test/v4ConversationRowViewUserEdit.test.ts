@@ -423,7 +423,7 @@ describe("ConversationRowView reasoning summary", () => {
     const row = userInputRow({
       attachments: [
         {
-          ref: "zcode-artifact://history",
+          ref: "nibi-artifact://history",
           fileName: "topic-history.txt",
           mime: "text/plain",
           bytes: 30,
@@ -449,7 +449,7 @@ describe("ConversationRowView reasoning summary", () => {
       await (props.onOpen as () => Promise<void>)();
     });
     expect(readAttachment).toHaveBeenCalledWith(
-      expect.objectContaining({ sessionId: "session-1", ref: "zcode-artifact://history" }),
+      expect.objectContaining({ sessionId: "session-1", ref: "nibi-artifact://history" }),
     );
     await act(async () => root.unmount());
   });

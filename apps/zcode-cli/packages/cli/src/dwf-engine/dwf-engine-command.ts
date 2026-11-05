@@ -1026,7 +1026,7 @@ class RemoteDriver {
   /**
    * 用户面产物发布（`artifact.markdown` / `artifact.file`）：形状、路径越界与字节读取在这一侧
    * （与 Node `executeArtifactPublish` 同一套判据），字节交给 Rust 的 artifact store
-   * （`ArtifactPurpose::Deliverable`），回执由 store 给出 `zcode-artifact://` 引用。
+   * （`ArtifactPurpose::Deliverable`），回执由 store 给出 `nibi-artifact://` 引用。
    */
   async executeArtifactPublish(request: ArtifactPublishRequest): Promise<ArtifactVersionRecord> {
     assertArtifactId(request);

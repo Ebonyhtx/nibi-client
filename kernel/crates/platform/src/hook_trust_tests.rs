@@ -126,7 +126,7 @@ async fn invalid_files_fail_closed_and_are_not_overwritten() {
     let minimal = json!({"schemaVersion": 1, "records": [{
         "workspaceIdentity": "/w", "hookDeclarationDigest": A, "digestAlgorithm": "sha256",
         "decision": "trusted", "grantedAt": "2026-10-17T08:00:00Z", "eventAtGrant": "Stop",
-        "displayCommandAtGrant": "x", "sourcePathAtGrant": "zcode.json"
+        "displayCommandAtGrant": "x", "sourcePathAtGrant": "nibi.json"
     }]});
     write(&file, &minimal.to_string()).await;
     assert_eq!(store.load().await.trusted("/w"), [A]);

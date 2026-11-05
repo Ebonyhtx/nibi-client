@@ -309,7 +309,7 @@ async fn artifacts_round_trip_in_the_node_artifact_directory() {
     assert_eq!(t.store.get(&artifact).await.unwrap(), bytes);
     assert_eq!(
         crate::artifact_uri(&artifact),
-        "zcode-artifact://sess%2F1/tool-result-00000000-0000-4000-8000-000000000001"
+        "nibi-artifact://sess%2F1/tool-result-00000000-0000-4000-8000-000000000001"
     );
     let mut truncated = artifact.clone();
     truncated.size = 3;

@@ -54,7 +54,7 @@ impl ReadTool {
     }
 }
 
-/// 落盘的大结果（`zcode-artifact://<会话>/<artifact>`，见 [`budget`]；tools-files.md §1.4）：按读文件的规则
+/// 落盘的大结果（`nibi-artifact://<会话>/<artifact>`，见 [`budget`]；tools-files.md §1.4）：按读文件的规则
 /// 给结果（256KB 与 25000 token 的上限、行号、offset 越界的提示），不进 readFileState。
 ///
 /// 缺陷修复（F18）：以前在这里自己造引用（`size: 0`、`ToolOutput`、`text/plain`），生产的 NodeStore `get` 核对

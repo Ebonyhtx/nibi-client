@@ -7,7 +7,7 @@
 ```text
 个人 provider、模型选择 → ~/.nibi/v2/provider_config.json
 运行、权限、MCP、Hook、插件 → ~/.nibi/cli/config.json
-项目运行设置 → <project>/zcode.json、<project>/.nibi/config.json
+项目运行设置 → <project>/nibi.json、<project>/.nibi/config.json
 账号登录凭据 → 凭据存储，不作为普通模型配置公开
 ```
 

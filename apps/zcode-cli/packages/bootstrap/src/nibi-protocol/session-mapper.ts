@@ -152,7 +152,7 @@ async function hydrateSnapshotFilePartUrl(
   app: Pick<ZCodeApp, "readToolResultArtifact">,
   part: ReturnType<typeof mapMessageWithParts>["parts"][number],
 ) {
-  // 历史图片附件持久化后只剩 zcode-artifact:// 引用，UI/手机端不能直接渲染。
+  // 历史图片附件持久化后只剩 nibi-artifact:// 引用，UI/手机端不能直接渲染。
   // snapshot 出协议前在 agent 侧回填 data URL，避免把本地 artifact 目录读法泄漏给前端。
   if (part.type !== "file" || !isImageMime(part.mime) || isUsableDataUrl(part.url)) {
     return part;
@@ -180,7 +180,7 @@ function snapshotFilePartArtifactUri(
   const metadataArtifactUri =
     typeof part.metadata?.artifactUri === "string" ? part.metadata.artifactUri : undefined;
   const artifactUri = metadataArtifactUri ?? part.url;
-  return artifactUri.startsWith("zcode-artifact://") ? artifactUri : undefined;
+  return artifactUri.startsWith("nibi-artifact://") ? artifactUri : undefined;
 }
 
 function dataUrlFromSnapshotArtifact(

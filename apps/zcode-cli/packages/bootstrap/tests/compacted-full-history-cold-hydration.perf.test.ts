@@ -391,7 +391,7 @@ function ticketCheckpoints(): SessionEvent[] {
         messageId,
         targetMessageId: messageId,
         scope: "workspace",
-        snapshotRef: `zcode-artifact://${SESSION_ID}/perf03-checkpoint-${index}`,
+        snapshotRef: `nibi-artifact://${SESSION_ID}/perf03-checkpoint-${index}`,
         fileCount: 1,
       },
     };

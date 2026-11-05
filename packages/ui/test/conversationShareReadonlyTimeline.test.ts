@@ -88,7 +88,7 @@ const buildArtifactRow = (rowId: number, artifactVersionId: string) => ({
   mimeType: "application/pdf",
   sizeBytes: 172_974,
   sha256: "a".repeat(64),
-  ref: `zcode-artifact://share/${artifactVersionId}`,
+  ref: `nibi-artifact://share/${artifactVersionId}`,
   state: "current" as const,
 });
 
@@ -119,8 +119,8 @@ describe("ConversationShareReadonlyTimeline", () => {
         ...rows[1],
         attachments: [
           {
-            ref: "zcode-artifact://share/share-input-text-1",
-            previewRef: "zcode-artifact://share/share-input-text-1",
+            ref: "nibi-artifact://share/share-input-text-1",
+            previewRef: "nibi-artifact://share/share-input-text-1",
             fileName: "pasted-text.txt",
             mime: "text/plain",
             bytes: 245_760,
@@ -338,7 +338,7 @@ describe("ConversationShareReadonlyTimeline", () => {
         mimeType: "application/pdf",
         sizeBytes: 172_974,
         sha256: "a".repeat(64),
-        ref: "zcode-artifact://share/artifact-1",
+        ref: "nibi-artifact://share/artifact-1",
         state: "current" as const,
       },
     ];
@@ -375,7 +375,7 @@ describe("ConversationShareReadonlyTimeline", () => {
         mimeType: "application/pdf",
         sizeBytes: 172_974,
         sha256: "a".repeat(64),
-        ref: "zcode-artifact://share/artifact-1",
+        ref: "nibi-artifact://share/artifact-1",
         state: "current" as const,
       },
     ];
@@ -453,7 +453,7 @@ describe("ConversationShareReadonlyTimeline", () => {
         mimeType: "application/pdf",
         sizeBytes: 172_974,
         sha256: "a".repeat(64),
-        ref: "zcode-artifact://share/artifact-1",
+        ref: "nibi-artifact://share/artifact-1",
         state: "current" as const,
       },
     ];

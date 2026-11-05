@@ -428,10 +428,10 @@ describe("session history hydrator", () => {
     const sessionID = createSessionId("hydrate-tool-video-attachment");
     const userID = createMessageId("user-tool-video-attachment");
     const assistantID = createMessageId("assistant-tool-video-attachment");
-    const imageArtifactUri = "zcode-artifact://hydrate-tool-video-attachment/image-1";
-    const videoArtifactUri = "zcode-artifact://hydrate-tool-video-attachment/video-1";
-    const pdfArtifactUri = "zcode-artifact://hydrate-tool-video-attachment/pdf-1";
-    const audioArtifactUri = "zcode-artifact://hydrate-tool-video-attachment/audio-1";
+    const imageArtifactUri = "nibi-artifact://hydrate-tool-video-attachment/image-1";
+    const videoArtifactUri = "nibi-artifact://hydrate-tool-video-attachment/video-1";
+    const pdfArtifactUri = "nibi-artifact://hydrate-tool-video-attachment/pdf-1";
+    const audioArtifactUri = "nibi-artifact://hydrate-tool-video-attachment/audio-1";
     const imageDataUrl = "data:image/png;base64,aW1hZ2U=";
     const videoDataUrl = "data:video/mp4;base64,dmlkZW8=";
     const pdfDataUrl = "data:application/pdf;base64,cGRm";
@@ -1715,7 +1715,7 @@ describe("session history hydrator", () => {
     const sessionID = createSessionId("hydrate-video-order");
     const userID = createMessageId("user-video-order");
     const dataUrl = "data:video/mp4;base64,dmlkZW8=";
-    const artifactUri = "zcode-artifact://hydrate-video-order/attachment-1";
+    const artifactUri = "nibi-artifact://hydrate-video-order/attachment-1";
     const derivedPath = "/tmp/zcode-video-cache/hydrated-video.mp4";
     const artifactStore = createMemoryArtifactStore(
       { [artifactUri]: dataUrl },
@@ -2146,7 +2146,7 @@ describe("session history hydrator", () => {
     const userID = createMessageId("user-image-artifact");
     const imagePartID = createPartId("user-image-artifact");
     const history = new MessageHistoryImpl();
-    const artifactUri = "zcode-artifact://hydrate-image-artifact/attachment-1";
+    const artifactUri = "nibi-artifact://hydrate-image-artifact/attachment-1";
     const derivedPath = "/tmp/zcode-image-cache/hydrated-screen.png";
     const artifactStore = createMemoryArtifactStore(
       {
@@ -2265,7 +2265,7 @@ describe("session history hydrator", () => {
       const sessionID = createSessionId(`hydrate-${type}-artifact-over-local-path`);
       const messageID = createMessageId(`user-${type}-artifact-over-local-path`);
       const partID = createPartId(`part-${type}-artifact-over-local-path`);
-      const artifactUri = `zcode-artifact://hydrate-${type}-artifact/attachment-1`;
+      const artifactUri = `nibi-artifact://hydrate-${type}-artifact/attachment-1`;
       const stalePath = `/workspace/deleted-${type}`;
       const artifactStore = createMemoryArtifactStore(
         { [artifactUri]: dataUrl },

@@ -187,7 +187,7 @@ function defaultArtifactPublish(request: ArtifactPublishRequest): ArtifactVersio
     version: request.version,
     contentType: request.op === "markdown" ? "text/markdown" : "application/octet-stream",
     bytes: (request.content ?? request.path ?? "").length,
-    uri: `zcode-artifact://auto/${request.id}/${request.version}`,
+    uri: `nibi-artifact://auto/${request.id}/${request.version}`,
     ...(request.path === undefined ? {} : { sourcePath: request.path }),
     publishedAt: 1,
   };

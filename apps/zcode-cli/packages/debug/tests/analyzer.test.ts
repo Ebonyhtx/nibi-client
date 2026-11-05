@@ -58,7 +58,7 @@ describe("debug analyzer", () => {
     const logDir = join(root, "logs");
     await mkdir(logDir);
     const eventPath = join(root, "events.jsonl");
-    await writeFile(join(logDir, "zcode.jsonl"), "", "utf8");
+    await writeFile(join(logDir, "nibi.jsonl"), "", "utf8");
     const events = [
       {
         id: "evt-turn-start",
@@ -184,7 +184,7 @@ describe("debug analyzer", () => {
     const logDir = join(root, "logs");
     await mkdir(logDir);
     await writeFile(
-      join(logDir, "zcode.jsonl"),
+      join(logDir, "nibi.jsonl"),
       `${[
         {
           timestamp: "2026-05-04T01:00:00.100Z",
@@ -346,7 +346,7 @@ describe("debug analyzer", () => {
     );
 
     await writeFile(
-      join(logDir, "zcode.jsonl"),
+      join(logDir, "nibi.jsonl"),
       `${JSON.stringify({
         timestamp: "2026-05-04T01:00:00.100Z",
         level: "debug",
@@ -506,7 +506,7 @@ async function createFixture(options: { includeBadLine?: boolean } = {}) {
   const logDir = join(root, "logs");
   await mkdir(logDir);
   const eventPath = join(root, "events.jsonl");
-  const logPath = join(logDir, "zcode.jsonl");
+  const logPath = join(logDir, "nibi.jsonl");
   const systemPrompt = [
     "You are ZCode.",
     "",
@@ -622,7 +622,7 @@ async function createProjectFixture() {
     `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
     "utf8",
   );
-  await writeFile(join(logDir, "zcode.jsonl"), "", "utf8");
+  await writeFile(join(logDir, "nibi.jsonl"), "", "utf8");
 
   const db = new DatabaseSync(dbPath);
   try {

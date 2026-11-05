@@ -38,7 +38,7 @@ fn grants() -> Grants {
         ]
         .map(str::to_owned)
         .to_vec(),
-        sources: vec!["zcode.json".to_owned()],
+        sources: vec!["nibi.json".to_owned()],
     }
 }
 
@@ -183,7 +183,7 @@ async fn the_backstop_lists_the_project_grants_and_continues_without_them() {
     let (answer, screen, _) = run(&backstop, Lang::En, vec![key(KeyCode::Esc)]).await;
     assert_eq!(answer, TrustAnswer::WithoutGrants);
     for text in [
-        "⚠ This folder pre-approves 4 tool permissions in zcode.json:",
+        "⚠ This folder pre-approves 4 tool permissions in nibi.json:",
         "  mcp__x__y, Bash(ls:*), WebFetch(domain:example.com), and Read",
         "These will apply without asking. Only proceed if you trust this configuration.",
         "› No, continue without these permissions",
@@ -210,13 +210,13 @@ async fn the_grant_list_is_cut_after_eight_and_counts_in_the_singular() {
         grants: Some(Grants {
             count: 10,
             rules: (1..=10).map(|n| format!("Tool{n}")).collect(),
-            sources: vec!["zcode.json".to_owned(), ".zcode/config.json".to_owned()],
+            sources: vec!["nibi.json".to_owned(), ".zcode/config.json".to_owned()],
         }),
         ..prompt()
     };
     let (_, screen, _) = run(&many, Lang::En, vec![key(KeyCode::Esc)]).await;
     assert!(
-        screen.contains("pre-approves 10 tool permissions in zcode.json and .zcode/config.json:"),
+        screen.contains("pre-approves 10 tool permissions in nibi.json and .zcode/config.json:"),
         "{screen}"
     );
     assert!(
@@ -227,13 +227,13 @@ async fn the_grant_list_is_cut_after_eight_and_counts_in_the_singular() {
         grants: Some(Grants {
             count: 1,
             rules: vec!["Bash".to_owned()],
-            sources: vec!["zcode.json".to_owned()],
+            sources: vec!["nibi.json".to_owned()],
         }),
         ..prompt()
     };
     let (_, screen, _) = run(&one, Lang::En, vec![key(KeyCode::Esc)]).await;
     assert!(
-        screen.contains("pre-approves 1 tool permission in zcode.json:"),
+        screen.contains("pre-approves 1 tool permission in nibi.json:"),
         "{screen}"
     );
 }
@@ -258,7 +258,7 @@ async fn the_dialog_speaks_chinese() {
     }
     let (_, screen, _) = run(&backstop, Lang::Zh, vec![key(KeyCode::Esc)]).await;
     for text in [
-        "⚠ 此文件夹在 zcode.json 中预先批准了 4 项工具权限：",
+        "⚠ 此文件夹在 nibi.json 中预先批准了 4 项工具权限：",
         "这些权限会直接生效，不再询问。只有信任这份配置时才继续。",
         "› 否，不带这些权限继续",
         "Enter 确认 · Esc 取消",

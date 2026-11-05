@@ -6,7 +6,7 @@
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-0",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 2500.0,
+        "resolvedTimeoutMs": 2500,
         "configuredEnabled": true,
         "editable": true,
         "hookDeclarationDigest": "6b3d9ca096d8ad4b82dfb6e58d4f6919c41738de8b9761e524334b8106a109a3"
@@ -14,7 +14,7 @@
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-1",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 60000.0,
+        "resolvedTimeoutMs": 60000,
         "configuredEnabled": true,
         "editable": true,
         "hookDeclarationDigest": "ec0cd0620f4af4b126452fc52f0ac1621681e4da4c326ea1a29c0f28d0ae6dbe"
@@ -22,7 +22,7 @@
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-2",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 60000.0,
+        "resolvedTimeoutMs": 60000,
         "configuredEnabled": false,
         "editable": true,
         "hookDeclarationDigest": "d1a330168577ea3988c2867e76de916379ae6b070951a272ccad8479067d64bb"
@@ -30,7 +30,7 @@
       {
         "reviewItemId": "workspace-hook-0-Stop-0-0",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 60000.0,
+        "resolvedTimeoutMs": 60000,
         "configuredEnabled": true,
         "editable": true,
         "hookDeclarationDigest": "feeb780fa502a5b4da1012a0229cf9c4d0f5761f8f583458cc2dc13ca85132de"
@@ -39,53 +39,53 @@
   },
   {
     "name": "ancestor files, user root and source switches",
-    "bundleDigest": "7f49a2537b7fd10d0a41d2df74249909af8556c59c89ff03d7de0f6c8123c025",
+    "bundleDigest": "b1db3b3205f079c1681f240e3c956b8e65c4eb0a1a5eb39eabe8fb3e5bcc0e2d",
     "hooks": [
       {
         "reviewItemId": "workspace-hook-0-UserPromptSubmit-0-0",
-        "sourceRelativePath": "../zcode.json",
-        "resolvedTimeoutMs": 1501.0,
+        "sourceRelativePath": "../nibi.json",
+        "resolvedTimeoutMs": 1501,
         "configuredEnabled": true,
         "editable": false,
-        "hookDeclarationDigest": "c8fe484b526910ec47dfbd74943e46c865f7c3be831b96960eb29f6aaf1a7eca"
+        "hookDeclarationDigest": "3aa409916aac54b2bca921cbf487ea21e300d7ab21bebdffb4f62e59ec707dc4"
       },
       {
         "reviewItemId": "workspace-hook-2-SessionStart-0-0",
-        "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 1000.0,
+        "sourceRelativePath": "nibi.json",
+        "resolvedTimeoutMs": 1000,
         "configuredEnabled": false,
         "editable": false,
-        "hookDeclarationDigest": "546d48ac182955194f7fca2cf96995182cbea0d800d8b7669b2a9dffea00763a"
+        "hookDeclarationDigest": "daf5763dd990cede6ba2caaf6fa4d4709bc750d28039f4532bb89ce537c40ead"
       },
       {
         "reviewItemId": "workspace-hook-2-PostToolUseFailure-0-0",
-        "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 1501.0,
+        "sourceRelativePath": "nibi.json",
+        "resolvedTimeoutMs": 1501,
         "configuredEnabled": false,
         "editable": false,
-        "hookDeclarationDigest": "d9cb8f049fef12c8c2cc2051fa2df3fcf65fc9f74e9aa5d477027ccb59df2640"
+        "hookDeclarationDigest": "29cd8e09e1f5a50fb639f09e9cc3ebbe4734dcf74e531adf5a4bb1e1a1ff922c"
       }
     ]
   },
   {
     "name": "runtime root disabled",
-    "bundleDigest": "14b8b62696e885d1de7a076f8908bf8a151d1222bf0383933187272e66d76989",
+    "bundleDigest": "ec7ddd2c9abbb1f29da9a2128f814cec86da636400b1994c8ff2a3bf7c167ce5",
     "hooks": [
       {
         "reviewItemId": "workspace-hook-0-PermissionRequest-0-0",
-        "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 45000.0,
+        "sourceRelativePath": "nibi.json",
+        "resolvedTimeoutMs": 45000,
         "configuredEnabled": false,
         "editable": false,
-        "hookDeclarationDigest": "03e9d175f0a51368aee939a725eee692ed9bca1e3eceb552971f41af0cdc6d2e"
+        "hookDeclarationDigest": "92892b81861c12b89c9cb3a46f2a377edb625d65c9a8e543a435f48704175164"
       },
       {
         "reviewItemId": "workspace-hook-0-PostToolUse-0-0",
-        "sourceRelativePath": "zcode.json",
-        "resolvedTimeoutMs": 45000.0,
+        "sourceRelativePath": "nibi.json",
+        "resolvedTimeoutMs": 45000,
         "configuredEnabled": false,
         "editable": false,
-        "hookDeclarationDigest": "df5fd4531e9c3f4b3326cf2c644b4d5c03bcd33fb1e1ba011aaee73455f868bd"
+        "hookDeclarationDigest": "954180ae0f4f0ecef857211a853d81b8b50a93de02c326899e315f398d4ed7d2"
       }
     ]
   },
@@ -96,7 +96,7 @@
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-0",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 60000.0,
+        "resolvedTimeoutMs": 60000,
         "configuredEnabled": true,
         "editable": true,
         "hookDeclarationDigest": "15216755f4fd5207c1c599cb57d3ac4e95a3d7dc582eb5d24e62dc90d9eb60a3"
@@ -104,7 +104,7 @@
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-1",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 60000.0,
+        "resolvedTimeoutMs": 60000,
         "configuredEnabled": true,
         "editable": true,
         "hookDeclarationDigest": "8186a65bf19fe6f892e1a8a0e1cd429c3c10eb81b6956482fc9a072ad3fb97e7"
@@ -112,7 +112,7 @@
       {
         "reviewItemId": "workspace-hook-0-PreToolUse-0-2",
         "sourceRelativePath": ".nibi/config.json",
-        "resolvedTimeoutMs": 60000.0,
+        "resolvedTimeoutMs": 60000,
         "configuredEnabled": true,
         "editable": true,
         "hookDeclarationDigest": "21530e3838df0d105c14104b4d4ea2403ed69d5585b4afb59122aece6569c395"

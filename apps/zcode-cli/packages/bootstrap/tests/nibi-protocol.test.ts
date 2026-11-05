@@ -788,7 +788,7 @@ describe("NibiProtocolAgentServer", () => {
 
   it("hydrates image artifact file parts when building session snapshots", async () => {
     const sessionId = "sess_image_artifact" as SessionId;
-    const artifactUri = "zcode-artifact://sess_image_artifact/tool-result-image";
+    const artifactUri = "nibi-artifact://sess_image_artifact/tool-result-image";
     const app = createFakeApp(
       { sessionId },
       {
@@ -1325,7 +1325,7 @@ describe("NibiProtocolAgentServer", () => {
   });
 
   it("routes attachment begin/chunk/commit/abort without a full-data RPC", async () => {
-    const writePromptAttachment = vi.fn(async () => ({ ref: "zcode-artifact://upload/server" }));
+    const writePromptAttachment = vi.fn(async () => ({ ref: "nibi-artifact://upload/server" }));
     const server = new NibiProtocolAgentServer({
       createZCodeApp: (options) => createFakeApp(options, { writePromptAttachment }),
       cwd: workspace.workspacePath,
@@ -1369,14 +1369,14 @@ describe("NibiProtocolAgentServer", () => {
         method: V4_METHODS.attachmentCommit,
         params: common,
       }),
-    ).resolves.toEqual({ ref: "zcode-artifact://upload/server" });
+    ).resolves.toEqual({ ref: "nibi-artifact://upload/server" });
     await expect(
       requestResult(server, {
         id: "attachment-commit-retry",
         method: V4_METHODS.attachmentCommit,
         params: common,
       }),
-    ).resolves.toEqual({ ref: "zcode-artifact://upload/server" });
+    ).resolves.toEqual({ ref: "nibi-artifact://upload/server" });
     await expect(
       requestResult(server, {
         id: "attachment-abort",
@@ -1630,7 +1630,7 @@ describe("NibiProtocolAgentServer", () => {
       await mkdir(join(pluginRoot, ".zcode-plugin"), { recursive: true });
       await mkdir(workspacePath, { recursive: true });
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           plugins: {
             dirs: [pluginRoot],
@@ -1712,7 +1712,7 @@ describe("NibiProtocolAgentServer", () => {
       await mkdir(join(root, ".git"));
       await mkdir(workspacePath, { recursive: true });
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           mcp: {
             servers: {

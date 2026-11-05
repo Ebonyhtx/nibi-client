@@ -15,7 +15,7 @@ Goal: reduce any MCP problem to a single concrete file-field edit. A person insp
 |---|---|---|
 | User | `~/.nibi/cli/config.json` | `mcp.servers` |
 | User (fallback) | `~/.agents/mcp.json` | `mcpServers` (used only if `~/.nibi/cli/config.json` has no MCP servers) |
-| Workspace | `<repo>/.nibi/config.json` or `<repo>/zcode.json` (every directory from the repository root down to the working directory is read) | `mcp.servers` |
+| Workspace | `<repo>/.nibi/config.json` or `<repo>/nibi.json` (every directory from the repository root down to the working directory is read) | `mcp.servers` |
 | Workspace (fallback) | `<repo>/.agents/mcp.json` | `mcpServers` (used only if the workspace `.nibi` has no MCP servers) |
 | Plugin | `<pluginRoot>/.mcp.json` or the manifest's `mcpServers` field | Keys are namespaced as `plugin:<plugin>:<server>` |
 
@@ -89,7 +89,7 @@ Canonical examples:
 
 1. Confirm MCP is enabled (it is by default).
 2. Open **Settings → MCP** and read the status: `disabled` → pitfall 10; `failed (<error>)` → read the inline error and go to step 4; **not listed at all** → step 3. (`untrusted` should no longer appear for a normally configured server.)
-3. Verify the configuration is loaded and valid: check the JSON validity of `~/.nibi/cli/config.json` and `<repo>/.nibi/config.json` (and `zcode.json`) — pitfall 9. A server that is in the file but not listed failed schema validation (pitfall 5 — look for unknown keys, wrong `type`, or a missing `command`/`url`); a server defined only in `.agents/mcp.json` but not appearing points to the fallback shadowing or wrong-key issue (pitfall 12).
+3. Verify the configuration is loaded and valid: check the JSON validity of `~/.nibi/cli/config.json` and `<repo>/.nibi/config.json` (and `nibi.json`) — pitfall 9. A server that is in the file but not listed failed schema validation (pitfall 5 — look for unknown keys, wrong `type`, or a missing `command`/`url`); a server defined only in `.agents/mcp.json` but not appearing points to the fallback shadowing or wrong-key issue (pitfall 12).
 4. Diagnose a `failed` server: `ENOENT` → pitfall 2; `timed out` → pitfall 7; `Connection closed` → pitfall 8; an http/sse network error → check proxy/CA, URL reachability, and `headers`.
 5. If **Settings → MCP** or service logs show `mcpServerCount` / server names but the model request has no `mcp__...` tools, check startup logs for `mcp.startup.completed` and `mcp.tools.registered`. If `toolCount=0` with failed statuses, inspect the config field names first (`env` vs `environment`, string `command` vs array `command`) before treating it as a model-selection issue.
 6. If edits have no effect → pitfall 6 (user overrides workspace) or pitfall 11 (desktop-managed list).

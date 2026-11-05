@@ -44,8 +44,8 @@ export function formatSharedContextV1(
       case "userInput":
         {
           const attachmentLines = (row.attachments ?? []).flatMap((attachment) => {
-            const artifactId = attachment.ref.startsWith("zcode-artifact://share/")
-              ? attachment.ref.slice("zcode-artifact://share/".length)
+            const artifactId = attachment.ref.startsWith("nibi-artifact://share/")
+              ? attachment.ref.slice("nibi-artifact://share/".length)
               : "";
             const installed = paths.get(artifactId);
             return installed

@@ -9,7 +9,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("MessageResponse artifact session changes", () => {
   it("releases the old image and reads through the new session context", async () => {
-    const ref = "zcode-artifact://session-a/cua-shot";
+    const ref = "nibi-artifact://session-a/cua-shot";
     const markdown = `![shot](${ref})`;
     const readSessionA = vi.fn().mockResolvedValue({
       bytes: new Uint8Array([1]),

@@ -148,7 +148,7 @@ R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用�
 ## 6.2 会话附件回放（图片，2026-10-30）
 
 Host 在 `sendText` / `createSession.firstInput` / `editUserQuery` 里给的是 `AttachmentRef` 引用
-（`zcode-artifact://<session>/<artifact>` 或本机绝对路径），不是内容。此前 Rust 协议前端把附件当
+（`nibi-artifact://<session>/<artifact>` 或本机绝对路径），不是内容。此前 Rust 协议前端把附件当
 不支持的字段（createSession 点名 warn、editUserQuery fail-closed 拒绝），图片内容会丢。
 
 实现：

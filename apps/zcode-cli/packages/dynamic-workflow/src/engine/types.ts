@@ -195,7 +195,7 @@ export interface ArtifactVersionRecord {
   contentType?: string;
   /** 内容成员的字节数。 */
   bytes?: number;
-  /** store 返回的 `zcode-artifact://…`（内容成员）。 */
+  /** store 返回的 `nibi-artifact://…`（内容成员）。 */
   uri?: string;
   /** 工作区相对的原路径（`file` 才有，作出处与「在工作区显示」）。 */
   sourcePath?: string;

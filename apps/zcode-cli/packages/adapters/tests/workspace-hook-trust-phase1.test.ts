@@ -49,7 +49,7 @@ describe("workspace hook trust phase 1 discovery", () => {
     const root = await createWorkspace();
     try {
       await writeJson(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         projectHooks({ type: "command", command: "echo ancestor", async: true }),
       );
       await writeJson(
@@ -75,7 +75,7 @@ describe("workspace hook trust phase 1 discovery", () => {
       expect(
         snapshot?.sourceFiles.map((source) => [source.configFileKind, source.editable]),
       ).toEqual([
-        ["zcode.json", false],
+        ["nibi.json", false],
         [".nibi/config.json", true],
       ]);
       expect(snapshot?.hooks).toHaveLength(2);
@@ -290,7 +290,7 @@ describe("workspace hook trust phase 1 discovery", () => {
     try {
       await mkdir(child, { recursive: true });
       await writeJson(
-        join(parent, "zcode.json"),
+        join(parent, "nibi.json"),
         projectHooks({ type: "command", command: "echo parent" }),
       );
       await writeJson(

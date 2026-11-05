@@ -39,13 +39,13 @@ describe("workspace hook Settings/Runtime discovery alignment", () => {
     expect(grantWorkspaceHookTrust).toHaveBeenCalledWith(target);
   });
 
-  it("Settings 使用权威 snapshot，祖先/zcode.json 只读且 compatibility rows 不进入 snapshot", async () => {
+  it("Settings 使用权威 snapshot，祖先/nibi.json 只读且 compatibility rows 不进入 snapshot", async () => {
     const home = makeRoot();
     const repo = join(makeRoot(), "repo");
     const workspace = join(repo, "packages", "app");
     mkdirSync(join(repo, ".git"), { recursive: true });
     mkdirSync(workspace, { recursive: true });
-    writeJson(join(repo, "zcode.json"), {
+    writeJson(join(repo, "nibi.json"), {
       hooks: {
         enabled: true,
         events: {
@@ -103,7 +103,7 @@ describe("workspace hook Settings/Runtime discovery alignment", () => {
     const savedCurrent = JSON.parse(readFileSync(join(workspace, ".nibi", "config.json"), "utf8"));
     expect(savedCurrent.hooks.events.SessionStart).toHaveLength(1);
     expect(savedCurrent.hooks.events.Stop).toBeUndefined();
-    expect(readFileSync(join(repo, "zcode.json"), "utf8")).toContain("echo zcode-json");
+    expect(readFileSync(join(repo, "nibi.json"), "utf8")).toContain("echo zcode-json");
   });
 
   it("Settings 只读 discovery 叠加 exact persistent Trust record", async () => {

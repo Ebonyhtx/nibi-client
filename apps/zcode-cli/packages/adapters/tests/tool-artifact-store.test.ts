@@ -33,7 +33,7 @@ describe("Node tool artifact store", () => {
         retention: "session",
       });
 
-      expect(result.uri).toContain("zcode-artifact://");
+      expect(result.uri).toContain("nibi-artifact://");
       expect(result.path).toBeDefined();
       expect(result.bytes).toBe(Buffer.byteLength("large output", "utf8"));
       await expect(readFile(result.path!, "utf8")).resolves.toBe("large output");

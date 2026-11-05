@@ -57,7 +57,7 @@ interface ArtifactPublishDeps {
   readonly artifactStore?: ToolArtifactStorePort;
   /**
    * store 写入的会话作用域 = 本 run 的**父会话**。与 `artifactStore`
-   * 成对出现：store 的每次写入都按会话记账（`zcode-artifact://<session>/<id>`），没有会话 id
+   * 成对出现：store 的每次写入都按会话记账（`nibi-artifact://<session>/<id>`），没有会话 id
    * 就写不出一条日后读得回来的记录。两者都在场才算装配了发布能力，缺一即
    * `ArtifactStoreUnavailable`（缺 store 是「这个装配没有存储」，缺 id 是接线错误——两者对
    * 脚本是同一件事：这次发布做不了，且必须大声）。

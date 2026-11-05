@@ -158,7 +158,7 @@ function attachmentRefFromFilePart(part: FilePart): AttachmentRef {
 
 function durableArtifactUriFromFilePart(part: FilePart): string | undefined {
   const artifactUri = part.metadata?.artifactUri ?? part.url;
-  return artifactUri.startsWith("zcode-artifact://") ? artifactUri : undefined;
+  return artifactUri.startsWith("nibi-artifact://") ? artifactUri : undefined;
 }
 
 function isImageMime(mime: string): boolean {

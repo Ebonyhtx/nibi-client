@@ -108,7 +108,7 @@ describe("workspace Hook atomic mutation", () => {
   it("拒绝 snapshot 中非当前 .zcode/config.json 或非 editable declaration，且不写文件", async () => {
     const workspace = makeRoot();
     const configPath = join(workspace, ".nibi", "config.json");
-    const ancestorPath = join(workspace, "zcode.json");
+    const ancestorPath = join(workspace, "nibi.json");
     const config = {
       hooks: {
         enabled: true,

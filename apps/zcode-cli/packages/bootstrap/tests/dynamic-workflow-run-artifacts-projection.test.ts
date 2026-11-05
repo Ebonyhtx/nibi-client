@@ -92,7 +92,7 @@ describe("artifactsOf — journal 行 → 端口的 artifacts", () => {
       contentType: "text/plain",
       sourcePath: "out/audit.txt",
       bytes: 10,
-      uri: "zcode-artifact://one",
+      uri: "nibi-artifact://one",
       publishedAt: 1,
     });
     putArtifact(journal, "run-versions", 2, {
@@ -103,7 +103,7 @@ describe("artifactsOf — journal 行 → 端口的 artifacts", () => {
       contentType: "application/pdf",
       sourcePath: "out/audit.pdf",
       bytes: 4_096,
-      uri: "zcode-artifact://two",
+      uri: "nibi-artifact://two",
       publishedAt: 2,
     });
 
@@ -118,7 +118,7 @@ describe("artifactsOf — journal 行 → 端口的 artifacts", () => {
     // 版本历史完整保留、升序；字节与 uri 只挂在版本项上。
     expect(audit.versions.map((version) => version.version)).toEqual([1, 2]);
     expect(audit.versions[1]?.bytes).toBe(4_096);
-    expect(audit.versions[0]?.uri).toBe("zcode-artifact://one");
+    expect(audit.versions[0]?.uri).toBe("nibi-artifact://one");
     // 内容产物恒 0 条。
     expect(audit.itemCount).toBe(0);
   });

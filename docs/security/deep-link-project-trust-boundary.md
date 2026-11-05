@@ -7,7 +7,7 @@
 ## 背景
 
 ZCode Desktop 支持 `zcode://workspace/open?path=...` 打开本地工作区，也会在项目发现范围内读取
-`zcode.json`、`.nibi/config.json` 的 Hook 声明，以及 `.nibi/agents/*.md` 的 subagent profile。
+`nibi.json`、`.nibi/config.json` 的 Hook 声明，以及 `.nibi/agents/*.md` 的 subagent profile。
 外部 deep link、repository 文件和远端 workspace 都不属于用户级可信配置：确认“打开目录”不等于确认
 “执行目录中的代码”。
 
@@ -25,7 +25,7 @@ ZCode Desktop 支持 `zcode://workspace/open?path=...` 打开本地工作区，�
 - deep link 传入的 workspace path 必须在任何 filesystem probe 前拒绝 UNC / 网络路径。
 - deep link 打开本地目录前必须有用户确认；用户取消时不得缓存或投递 workspace path。
 - deep-link 确认只授权打开路径，不建立 Workspace Hook Trust。
-- 项目级 `zcode.json` 与 `.nibi/config.json` Hook 声明视为未信任代码，默认不能进入可执行路径。
+- 项目级 `nibi.json` 与 `.nibi/config.json` Hook 声明视为未信任代码，默认不能进入可执行路径。
 - discovery 只生成 immutable `WorkspaceHookBundleSnapshot`；Runtime admission 必须在 Hook lifecycle 和进程启动前完成。
 - 持久 Trust 只按 `workspaceIdentity + hookDeclarationDigest` 命中；bundle digest 用于保证审核和执行快照一致。
 - Trust 只能由受信任 Host 的 `设置 → 钩子 → 工作区` 审核，或显式 `zcode hooks trust` 命令建立；repository、环境变量和普通 permission answer 都不能授权。

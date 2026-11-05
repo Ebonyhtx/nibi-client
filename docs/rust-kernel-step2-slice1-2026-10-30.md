@@ -247,7 +247,7 @@ plan 开、default。联调里这正是 MCP 工具被权限询问拦住的原因
 ## 6.9 第十一步：会话附件回放（图片，2026-10-30）
 
 **缺口**：Host 的 `sendText` / `createSession.firstInput` / `editUserQuery` 带 `AttachmentRef`
-（`zcode-artifact://<session>/<artifact>` 或本机路径）而不是内容；Rust 之前不消费，图片内容丢。
+（`nibi-artifact://<session>/<artifact>` 或本机路径）而不是内容；Rust 之前不消费，图片内容丢。
 
 **实现**（与 Node 的引用模型对读）：
 

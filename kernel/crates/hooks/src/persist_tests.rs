@@ -53,7 +53,7 @@ fn texts(outcome: &HookOutcome) -> Vec<String> {
 /// 落盘提示的整段文字（位置是第 `n` 个落盘的 artifact）。
 fn persisted(n: usize, size: &str, preview: &str, more: bool) -> String {
     format!(
-        "<persisted-output>\nOutput too large ({size}). Full output saved to: zcode-artifact://sess_1/tool-result-{n}\n\nPreview (first 2KB):\n{preview}{}</persisted-output>",
+        "<persisted-output>\nOutput too large ({size}). Full output saved to: nibi-artifact://sess_1/tool-result-{n}\n\nPreview (first 2KB):\n{preview}{}</persisted-output>",
         if more { "\n...\n" } else { "\n" }
     )
 }

@@ -1,5 +1,5 @@
 //! Artifact 文件：`<storage.dir>/cli/artifacts/<会话目录>/`，URI 为
-//! `zcode-artifact://<sessionId>/<artifactId>`（docs/specs/rust-m11-node-storage.md §2.1）。
+//! `nibi-artifact://<sessionId>/<artifactId>`（docs/specs/rust-m11-node-storage.md §2.1）。
 //!
 //! 命名沿用 Node `NodeToolArtifactStore`（复制来源 `apps/zcode-cli-rust/crates/state/src/node/artifacts.rs`）：
 //! 会话目录是 `sanitizePathSegment(sessionId)`，artifact id 是 `tool-result-<uuid>`，文件名

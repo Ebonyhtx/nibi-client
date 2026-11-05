@@ -87,7 +87,7 @@ export async function readInlineAttachmentContent(
   if (attachment.content.startsWith("data:")) {
     return { dataUrl: attachment.content };
   }
-  if (!attachment.content.startsWith("zcode-artifact://") || !options.artifactStore) {
+  if (!attachment.content.startsWith("nibi-artifact://") || !options.artifactStore) {
     return undefined;
   }
   try {

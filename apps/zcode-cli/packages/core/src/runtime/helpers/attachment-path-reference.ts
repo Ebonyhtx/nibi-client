@@ -74,7 +74,7 @@ export function resolvedPathReferenceAttachment(
 }
 
 export function isDataOrArtifactUrl(content: string): boolean {
-  return content.startsWith("data:") || content.startsWith("zcode-artifact://");
+  return content.startsWith("data:") || content.startsWith("nibi-artifact://");
 }
 
 export function isTextLikePath(path: string): boolean {

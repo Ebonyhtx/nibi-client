@@ -123,7 +123,7 @@ const conversationShareArtifactDescriptorFields = {
   producer_product_turn_id: z.string().trim().min(1),
   artifact_version: z.number().int().positive(),
   state: z.literal("current"),
-  ref: z.string().regex(/^zcode-artifact:\/\/share\/[A-Za-z0-9._~-]+$/u),
+  ref: z.string().regex(/^nibi-artifact:\/\/share\/[A-Za-z0-9._~-]+$/u),
   artifact_type: conversationArtifactTypeSchema,
   display_name: z.string().trim().min(1),
   original_path: z.string().min(1).optional(),

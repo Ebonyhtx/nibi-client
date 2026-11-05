@@ -64,7 +64,7 @@ function isPathProjectableUserMedia(
   return (
     (block.type === "image" || block.type === "video" || isPdfBlock(block)) &&
     ((block.source?.kind === "inline" &&
-      block.source.uri?.startsWith("zcode-artifact://") === true) ||
+      block.source.uri?.startsWith("nibi-artifact://") === true) ||
       (block.source?.kind === "local_file" && Boolean(block.source.path)))
   );
 }
@@ -78,7 +78,7 @@ async function resolveMediaAttachmentPath(
   if (source.kind === "local_file" && source.path) return source.path;
 
   const uri = source.uri;
-  if (!uri?.startsWith("zcode-artifact://") || !artifactStore?.ensureMediaAttachmentPath) {
+  if (!uri?.startsWith("nibi-artifact://") || !artifactStore?.ensureMediaAttachmentPath) {
     throw mediaAttachmentMaterializationError(mediaType, source.placeholder ?? uri ?? source.id);
   }
   try {

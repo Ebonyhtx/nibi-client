@@ -63,8 +63,8 @@ fn preview_keeps_short_text_and_cuts_long_text() {
 #[test]
 fn message_is_the_persisted_output_text() {
     assert_eq!(
-        message("zcode-artifact://s/a", 10_001, "head", true),
-        "<persisted-output>\nOutput too large (9.8KB). Full output saved to: zcode-artifact://s/a\n\nPreview (first 2KB):\nhead\n...\n</persisted-output>"
+        message("nibi-artifact://s/a", 10_001, "head", true),
+        "<persisted-output>\nOutput too large (9.8KB). Full output saved to: nibi-artifact://s/a\n\nPreview (first 2KB):\nhead\n...\n</persisted-output>"
     );
     assert_eq!(
         message("/tmp/out", 1_500, "all", false),
@@ -91,7 +91,7 @@ async fn persist_stores_the_whole_text_and_returns_the_preview() {
     assert_eq!(
         text,
         message(
-            "zcode-artifact://sess_1/tool-result-1",
+            "nibi-artifact://sess_1/tool-result-1",
             10_001,
             &"z".repeat(PREVIEW_UNITS),
             true

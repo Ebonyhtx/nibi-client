@@ -1981,7 +1981,7 @@ describe("ZCode plugins", () => {
       );
       await writeTestFile(userConfigPath, JSON.stringify({ plugins: { dirs: [pluginRoot] } }));
       await writeTestFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           mcp: {
             servers: { keep: { type: "http", url: "https://example.test" } },
@@ -2005,7 +2005,7 @@ describe("ZCode plugins", () => {
       expect(JSON.parse(await readFile(workspaceConfigPath, "utf8"))).toEqual({
         plugins: { enabledPlugins: { [pluginId]: true } },
       });
-      expect(JSON.parse(await readFile(join(root, "zcode.json"), "utf8"))).toEqual({
+      expect(JSON.parse(await readFile(join(root, "nibi.json"), "utf8"))).toEqual({
         mcp: {
           servers: { keep: { type: "http", url: "https://example.test" } },
         },

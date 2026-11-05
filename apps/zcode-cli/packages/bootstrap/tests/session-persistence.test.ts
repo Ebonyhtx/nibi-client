@@ -94,8 +94,8 @@ describe("session persistence", () => {
         mime: "video/mp4",
       });
 
-      expect(imageAttachment.ref).toMatch(/^zcode-artifact:\/\//u);
-      expect(videoAttachment.ref).toMatch(/^zcode-artifact:\/\//u);
+      expect(imageAttachment.ref).toMatch(/^nibi-artifact:\/\//u);
+      expect(videoAttachment.ref).toMatch(/^nibi-artifact:\/\//u);
       await vi.waitFor(() => expect(primeSpy).toHaveBeenCalledTimes(2));
       expect(primeSpy).toHaveBeenNthCalledWith(1, {
         bytes,
@@ -2098,7 +2098,7 @@ describe("session persistence", () => {
       const storedPromptHistory = await store.recallPreviousInputHistory({
         projectID: testProjectIdFromDirectory(tempRoot),
       });
-      expect(storedPromptHistory?.attachments?.[0]?.content).toMatch(/^zcode-artifact:\/\//);
+      expect(storedPromptHistory?.attachments?.[0]?.content).toMatch(/^nibi-artifact:\/\//);
       expect(storedPromptHistory?.attachments?.[0]?.content).not.toContain("base64");
 
       await app.sendInput("queued through app", { delivery: "auto" });

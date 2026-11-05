@@ -125,20 +125,20 @@ async fn bad_or_unknown_locations_are_errors() {
     let other = location.replace("sess_1", "sess_2");
     for (location, wanted) in [
         (
-            "zcode-artifact://sess_1".to_owned(),
+            "nibi-artifact://sess_1".to_owned(),
             "Invalid artifact location",
         ),
         (
-            "zcode-artifact://sess_1/".to_owned(),
+            "nibi-artifact://sess_1/".to_owned(),
             "Invalid artifact location",
         ),
         // 第一个 `/` 之后都是 id（地址不按路径规范化，F14）：存储里没有这个 id。
         (
-            "zcode-artifact://sess_1/a/b".to_owned(),
+            "nibi-artifact://sess_1/a/b".to_owned(),
             "artifact not found",
         ),
         (
-            "zcode-artifact://sess_1/tool-result-9".to_owned(),
+            "nibi-artifact://sess_1/tool-result-9".to_owned(),
             "artifact not found",
         ),
         (other, "artifact not found"),

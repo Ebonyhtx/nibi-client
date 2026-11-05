@@ -450,7 +450,7 @@ describe("Hooks settings page", () => {
     expect(html).not.toMatch(/role="switch"[^>]*disabled=""/u);
   });
 
-  // P3 回归：editable=false 的上游/祖先 zcode.json Hook 是只读工作区 Hook，必须留在
+  // P3 回归：editable=false 的上游/祖先 nibi.json Hook 是只读工作区 Hook，必须留在
   // Installed 分组走行内 Trust，而不是进 Legacy 显示必然失败的 Import。
   it("readonly zcode workspace hook stays in installed section with trust, not legacy import", () => {
     const readOnlyHook: Hook = {

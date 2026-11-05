@@ -1173,8 +1173,8 @@ describe("ConversationShareService", () => {
     expect(userInput).toMatchObject({
       attachments: [
         expect.objectContaining({
-          ref: "zcode-artifact://share/share-input-artifact-1",
-          previewRef: "zcode-artifact://share/share-input-artifact-1",
+          ref: "nibi-artifact://share/share-input-artifact-1",
+          previewRef: "nibi-artifact://share/share-input-artifact-1",
         }),
       ],
     });
@@ -1767,7 +1767,7 @@ describe("ConversationShareService", () => {
     );
     expect(confirmRequests.at(-1)?.projection.rows.at(-1)).toMatchObject({
       kind: "artifact",
-      ref: "zcode-artifact://share/share-artifact-1",
+      ref: "nibi-artifact://share/share-artifact-1",
     });
   });
 
@@ -1973,7 +1973,7 @@ describe("ConversationShareService", () => {
   it.each([
     ["data:text/plain;base64,YQ==", "unsafe_structure"],
     ["file:///tmp/report.html", "unsafe_structure"],
-    ["zcode-artifact://share/report", "artifact_protocol_not_ready"],
+    ["nibi-artifact://share/report", "artifact_protocol_not_ready"],
   ] as const)("rejects unsupported local reference %s", async (text, kind) => {
     const rows = completedRows();
     rows[1] = { ...rows[1], kind: "assistantText", text, state: "complete" };

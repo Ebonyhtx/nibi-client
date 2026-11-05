@@ -232,7 +232,7 @@ impl StoragePaths {
         &self.database
     }
 
-    /// 产物根目录；每个会话一个子目录（`zcode-artifact://<sessionId>/<artifactId>`）。
+    /// 产物根目录；每个会话一个子目录（`nibi-artifact://<sessionId>/<artifactId>`）。
     pub fn artifacts(&self) -> &StoragePath {
         &self.artifacts
     }

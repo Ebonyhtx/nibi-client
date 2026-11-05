@@ -55,7 +55,7 @@ async fn results_over_the_threshold_are_persisted_with_a_preview() {
     let long = vec![line.as_str(); 300].join("\n");
     let persisted = apply(output(&long), "Grep", Some(20_000), &session, &Store).await;
     let text = first(&persisted);
-    assert!(text.starts_with("<persisted-output>\nOutput too large (29.3KB). Full output saved to: zcode-artifact://sess_1/art_1\n\nPreview (first 2KB):\n"));
+    assert!(text.starts_with("<persisted-output>\nOutput too large (29.3KB). Full output saved to: nibi-artifact://sess_1/art_1\n\nPreview (first 2KB):\n"));
     assert!(text.ends_with("\n...\n</persisted-output>"));
     let short = apply(output("small"), "Grep", Some(20_000), &session, &Store).await;
     assert_eq!(first(&short), "small");

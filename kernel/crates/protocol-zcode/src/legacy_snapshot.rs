@@ -10,7 +10,7 @@
 //! `Profile::Full` 出正文、思考、工具调用与结果（`session/messages` 与其它快照）。
 //!
 //! 历史里的图片与 PDF 有两种落法：内联 base64（`ImageSource::Base64`，直接写进 part 的 `url`），
-//! 或 artifact 引用（`ImageSource::Artifact`，Node 把大图外置成 `zcode-artifact://`）。旧协议没有
+//! 或 artifact 引用（`ImageSource::Artifact`，Node 把大图外置成 `nibi-artifact://`）。旧协议没有
 //! artifact 路由，所以引用要先由调用方经 [`resolve_media`] 读回内容、拼成 data URL 再进快照——
 //! 否则历史图片在桌面里是空白（141 审计 §9 F5 的剩余项）。
 
@@ -117,7 +117,7 @@ pub(crate) async fn resolve_media(
     media
 }
 
-/// `zcode-artifact://<会话>/<artifact>`（与内核 `ArtifactRef` 的写侧同形）。
+/// `nibi-artifact://<会话>/<artifact>`（与内核 `ArtifactRef` 的写侧同形）。
 fn artifact_uri(artifact: &rust_cli_kernel_api::store::ArtifactRef) -> String {
     format!(
         "{}{}/{}",

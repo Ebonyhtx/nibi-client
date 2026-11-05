@@ -177,7 +177,7 @@ export class FakeDriver implements WorkflowDriver {
       version: request.version,
       contentType: request.op === "markdown" ? "text/markdown" : "application/pdf",
       bytes: (request.content ?? request.path ?? "").length,
-      uri: `zcode-artifact://fake/${request.id}/${request.version}`,
+      uri: `nibi-artifact://fake/${request.id}/${request.version}`,
       ...(request.path === undefined ? {} : { sourcePath: request.path }),
       ...(titleOf(request.opts) === undefined ? {} : { title: titleOf(request.opts) }),
       publishedAt: 1,

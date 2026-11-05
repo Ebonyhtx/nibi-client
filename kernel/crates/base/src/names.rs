@@ -22,7 +22,7 @@ macro_rules! dot_dir {
 /// 项目级配置目录名：NIBI 的 Node CLI / App / 协议前端都读 `<工作区>/.nibi/config.json`。
 ///
 /// 与 [`DOT_DIR`] 分开：`DOT_DIR` 是本内核自己的存储与用户根目录（由 `NIBI_DATA_BASE_DIR` 等注入），
-/// 项目级配置必须与 NIBI 的其它实现共读同一个文件。实测（2026-10-30）：`zcode.json` 的 5 组变体两边
+/// 项目级配置必须与 NIBI 的其它实现共读同一个文件。实测（2026-10-30）：`nibi.json` 的 5 组变体两边
 /// bundleDigest 全一致，只有带 `.zcode/config.json` 或 `.nibi/config.json` 时才分叉——Rust 读前者、
 /// NIBI 读后者，等于同一份项目配置两边看见的不是同一个文件。品牌化收口时再把 `DOT_DIR` 一并统一。
 pub const PROJECT_DOT_DIR: &str = ".nibi";
@@ -36,9 +36,9 @@ pub const RULES_FILE: &str = "AGENTS.md";
 /// 本地私有的规则文件。
 pub const LOCAL_RULES_FILE: &str = "AGENTS.local.md";
 
-/// 项目根与各层目录下的项目配置（Node 的 `zcode.json`，带 MCP 服务器、hooks 与权限）：入口读它（cli
+/// 项目根与各层目录下的项目配置（Node 的 `nibi.json`，带 MCP 服务器、hooks 与权限）：入口读它（cli
 /// `config/files.rs`），写入它要确认（policy 的敏感文件，F58）。
-pub const PROJECT_CONFIG_FILE: &str = "zcode.json";
+pub const PROJECT_CONFIG_FILE: &str = "nibi.json";
 
 /// 项目里 `.zcode/` 下的 worktree 目录：EnterWorktree 在这里建（env-local），权限判定认它（tools）。
 pub const WORKTREES_DIR: &str = "worktrees";

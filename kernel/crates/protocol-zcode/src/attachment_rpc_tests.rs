@@ -120,7 +120,7 @@ impl Kernel for FakeKernel {
             bytes.clone(),
         ));
         Ok(StoredAttachment {
-            uri: format!("zcode-artifact://{}/tool-result-1", session.as_str()),
+            uri: format!("nibi-artifact://{}/tool-result-1", session.as_str()),
             media_type: media_type.to_owned(),
             bytes: bytes.len() as u64,
         })
@@ -253,7 +253,7 @@ async fn a_full_upload_lands_the_declared_bytes() {
         )
         .await
         .unwrap();
-    assert_eq!(reply.result, json!({"ref": "zcode-artifact://s1/tool-result-1"}));
+    assert_eq!(reply.result, json!({"ref": "nibi-artifact://s1/tool-result-1"}));
     let stored = seen.stored.lock().unwrap().clone();
     assert_eq!(stored.len(), 1);
     assert_eq!(stored[0].0, "shot.png");
@@ -267,7 +267,7 @@ async fn a_full_upload_lands_the_declared_bytes() {
         )
         .await
         .unwrap();
-    assert_eq!(reply.result, json!({"ref": "zcode-artifact://s1/tool-result-1"}));
+    assert_eq!(reply.result, json!({"ref": "nibi-artifact://s1/tool-result-1"}));
     assert_eq!(seen.stored.lock().unwrap().len(), 1);
 }
 
@@ -414,7 +414,7 @@ async fn read_requires_target_and_index_together() {
     let error = request_error(
         server,
         "v4/attachment/read",
-        json!({"sessionId": "s1", "ref": "zcode-artifact://s1/a", "offset": 0, "limit": 16,
+        json!({"sessionId": "s1", "ref": "nibi-artifact://s1/a", "offset": 0, "limit": 16,
             "target": {"rowId": 1, "entityId": "e"}}),
     )
     .await;
@@ -428,7 +428,7 @@ async fn read_limit_is_bounded() {
     let error = request_error(
         server,
         "v4/attachment/read",
-        json!({"sessionId": "s1", "ref": "zcode-artifact://s1/a", "offset": 0,
+        json!({"sessionId": "s1", "ref": "nibi-artifact://s1/a", "offset": 0,
             "limit": 512 * 1024 + 1}),
     )
     .await;
@@ -443,7 +443,7 @@ async fn share_reads_require_a_row_target() {
         ("v4/conversation/attachmentRead", json!({"offset": 0, "limit": 16})),
         ("v4/conversation/attachmentStat", json!({})),
     ] {
-        let mut params = json!({"sessionId": "s1", "ref": "zcode-artifact://s1/a"});
+        let mut params = json!({"sessionId": "s1", "ref": "nibi-artifact://s1/a"});
         for (key, value) in extra.as_object().unwrap() {
             params[key] = value.clone();
         }
@@ -460,14 +460,14 @@ async fn preview_source_validates_the_client_mode() {
     let error = request_error(
         server.clone(),
         "v4/attachment/previewSource",
-        json!({"sessionId": "s1", "ref": "zcode-artifact://s1/a", "clientMode": "bogus"}),
+        json!({"sessionId": "s1", "ref": "nibi-artifact://s1/a", "clientMode": "bogus"}),
     )
     .await;
     assert_eq!(error.code, -32602);
     let error = request_error(
         server,
         "v4/attachment/previewSource",
-        json!({"sessionId": "s1", "ref": "zcode-artifact://s1/a",
+        json!({"sessionId": "s1", "ref": "nibi-artifact://s1/a",
             "clientMode": "desktop-continuous"}),
     )
     .await;
@@ -495,14 +495,14 @@ fn attachment(reference: &str, mime: &str) -> Value {
 /// 三条都对：行是 userInput、序号在 attachments 里、ref 对得上。
 #[test]
 fn the_authorization_chain_accepts_a_matching_row() {
-    let rows = vec![user_row(json!([attachment("zcode-artifact://s1/a1", "image/png")]))];
+    let rows = vec![user_row(json!([attachment("nibi-artifact://s1/a1", "image/png")]))];
     let params = json!({
-        "ref": "zcode-artifact://s1/a1",
+        "ref": "nibi-artifact://s1/a1",
         "target": {"rowId": 7, "entityId": "msg_u1"},
         "attachmentIndex": 0,
     });
     let authorized = authorize(&rows, params.as_object().unwrap()).expect("authorized");
-    assert_eq!(authorized.reference, "zcode-artifact://s1/a1");
+    assert_eq!(authorized.reference, "nibi-artifact://s1/a1");
     assert_eq!(authorized.media_type, "image/png");
 }
 
@@ -510,9 +510,9 @@ fn the_authorization_chain_accepts_a_matching_row() {
 #[test]
 fn the_authorization_chain_rejects_each_mismatch() {
     let rows = vec![
-        user_row(json!([attachment("zcode-artifact://s1/a1", "image/png")])),
+        user_row(json!([attachment("nibi-artifact://s1/a1", "image/png")])),
         {
-            let mut row = user_row(json!([attachment("zcode-artifact://s1/a2", "image/png")]));
+            let mut row = user_row(json!([attachment("nibi-artifact://s1/a2", "image/png")]));
             row.insert("rowId".into(), json!(8));
             row.insert("kind".into(), json!("assistantText"));
             row
@@ -525,19 +525,19 @@ fn the_authorization_chain_rejects_each_mismatch() {
         );
     };
     // entityId 对不上。
-    refuse(json!({"ref": "zcode-artifact://s1/a1",
+    refuse(json!({"ref": "nibi-artifact://s1/a1",
         "target": {"rowId": 7, "entityId": "other"}, "attachmentIndex": 0}));
     // 序号越界。
-    refuse(json!({"ref": "zcode-artifact://s1/a1",
+    refuse(json!({"ref": "nibi-artifact://s1/a1",
         "target": {"rowId": 7, "entityId": "msg_u1"}, "attachmentIndex": 3}));
     // ref 对不上。
-    refuse(json!({"ref": "zcode-artifact://s1/other",
+    refuse(json!({"ref": "nibi-artifact://s1/other",
         "target": {"rowId": 7, "entityId": "msg_u1"}, "attachmentIndex": 0}));
     // 行不是 userInput。
-    refuse(json!({"ref": "zcode-artifact://s1/a2",
+    refuse(json!({"ref": "nibi-artifact://s1/a2",
         "target": {"rowId": 8, "entityId": "msg_u1"}, "attachmentIndex": 0}));
     // 行不存在。
-    refuse(json!({"ref": "zcode-artifact://s1/a1",
+    refuse(json!({"ref": "nibi-artifact://s1/a1",
         "target": {"rowId": 99, "entityId": "msg_u1"}, "attachmentIndex": 0}));
 }
 
@@ -545,10 +545,10 @@ fn the_authorization_chain_rejects_each_mismatch() {
 #[test]
 fn the_authorization_chain_rejects_unpreviewable_types() {
     let rows = vec![user_row(json!([
-        attachment("zcode-artifact://s1/bin", "application/octet-stream")
+        attachment("nibi-artifact://s1/bin", "application/octet-stream")
     ]))];
     let params = json!({
-        "ref": "zcode-artifact://s1/bin",
+        "ref": "nibi-artifact://s1/bin",
         "target": {"rowId": 7, "entityId": "msg_u1"},
         "attachmentIndex": 0,
     });
@@ -558,14 +558,14 @@ fn the_authorization_chain_rejects_unpreviewable_types() {
 /// 没有 target 的老 renderer：只认投影里出现过的引用；有 previewRef 时只授权那个 durable 引用。
 #[test]
 fn legacy_reads_authorize_only_the_durable_reference() {
-    let mut with_preview = attachment("zcode-artifact://s1/a1", "image/png");
-    with_preview["previewRef"] = json!("zcode-artifact://s1/preview");
+    let mut with_preview = attachment("nibi-artifact://s1/a1", "image/png");
+    with_preview["previewRef"] = json!("nibi-artifact://s1/preview");
     let rows = vec![user_row(json!([with_preview]))];
     // durable 引用：放行。
-    let params = json!({"ref": "zcode-artifact://s1/preview"});
+    let params = json!({"ref": "nibi-artifact://s1/preview"});
     assert!(authorize(&rows, params.as_object().unwrap()).is_some());
     // 原始路径：不放行（previewRef 存在时它可能已经变了）。
-    let params = json!({"ref": "zcode-artifact://s1/a1"});
+    let params = json!({"ref": "nibi-artifact://s1/a1"});
     assert!(authorize(&rows, params.as_object().unwrap()).is_none());
     // 投影里没有的引用：不放行。
     let params = json!({"ref": "/etc/passwd"});
@@ -581,12 +581,12 @@ fn text_attachments_are_previewable_only_for_material_kinds() {
         (Some("inline"), false),
         (None, false),
     ] {
-        let mut item = attachment("zcode-artifact://s1/t", "text/plain");
+        let mut item = attachment("nibi-artifact://s1/t", "text/plain");
         if let Some(kind) = kind {
             item["sourceKind"] = json!(kind);
         }
         let rows = vec![user_row(json!([item]))];
-        let params = json!({"ref": "zcode-artifact://s1/t"});
+        let params = json!({"ref": "nibi-artifact://s1/t"});
         assert_eq!(
             authorize(&rows, params.as_object().unwrap()).is_some(),
             allowed,

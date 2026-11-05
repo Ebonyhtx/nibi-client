@@ -541,7 +541,7 @@ async function discoverInputAttachments(options: {
         });
         const sourceRef = `input:${row.rowId}:${attachmentIndex}`;
         const artifactId = `share-input-artifact-${++artifactIndex}`;
-        const ref = `zcode-artifact://share/${artifactId}`;
+        const ref = `nibi-artifact://share/${artifactId}`;
         const sha256 = createHash("sha256").update(materialized.bytes).digest("hex");
         artifacts.push({
           sourceRef,

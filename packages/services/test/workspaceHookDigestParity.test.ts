@@ -58,7 +58,7 @@ describe("workspace hook dual builder digest parity (D17)", () => {
     writeJson(join(home, ".nibi", "cli", "config.json"), {
       hooks: { enabled: true, timeoutMs: 30_000 },
     });
-    writeJson(join(workspace, "zcode.json"), {
+    writeJson(join(workspace, "nibi.json"), {
       hooks: {
         enabled: true,
         events: {

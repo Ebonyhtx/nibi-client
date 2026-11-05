@@ -66,7 +66,7 @@ describe("tool result media persistence", () => {
     const contents = new Map<string, string>();
     const artifactStore: ToolArtifactStorePort = {
       async writeToolResultArtifact(request) {
-        const uri = `zcode-artifact://pdf-page-${contents.size + 1}`;
+        const uri = `nibi-artifact://pdf-page-${contents.size + 1}`;
         contents.set(uri, request.content);
         return {
           id: `pdf-page-${contents.size}`,

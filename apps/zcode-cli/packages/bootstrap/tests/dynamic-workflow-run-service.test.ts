@@ -2605,7 +2605,7 @@ describe("dynamic workflow run service — 产物存储的接线", () => {
           writes.push(request);
           return {
             id: "artifact-1",
-            uri: "zcode-artifact://harness/artifact-1",
+            uri: "nibi-artifact://harness/artifact-1",
             bytes: Buffer.byteLength(request.content, "utf8"),
             contentType: request.contentType ?? "text/plain",
             createdAt: new Date(0),
@@ -2686,7 +2686,7 @@ describe("dynamic workflow run service — 用户面产物的读面", () => {
       store: {
         writeToolResultArtifact: async (request) => {
           next += 1;
-          const uri = `zcode-artifact://harness/artifact-${next}`;
+          const uri = `nibi-artifact://harness/artifact-${next}`;
           bytesByUri.set(uri, new TextEncoder().encode(request.content));
           return {
             id: `artifact-${next}`,
@@ -2827,7 +2827,7 @@ describe("dynamic workflow run service — 用户面产物的读面", () => {
     const textOnly: ToolArtifactStorePort = {
       writeToolResultArtifact: async (request) => ({
         id: "a1",
-        uri: "zcode-artifact://harness/a1",
+        uri: "nibi-artifact://harness/a1",
         bytes: Buffer.byteLength(request.content, "utf8"),
         contentType: request.contentType ?? "text/plain",
         createdAt: new Date(0),
@@ -4652,7 +4652,7 @@ describe("dynamic workflow run service — getRunDetail 组合", () => {
     return {
       writeToolResultArtifact: async (request) => ({
         id: "artifact-1",
-        uri: "zcode-artifact://harness/artifact-1",
+        uri: "nibi-artifact://harness/artifact-1",
         bytes: Buffer.byteLength(request.content, "utf8"),
         contentType: request.contentType ?? "text/plain",
         createdAt: new Date(0),
@@ -5583,7 +5583,7 @@ describe("dynamic workflow run service — replayProgressForSession（冷回放�
         next += 1;
         return {
           id: `artifact-${next}`,
-          uri: `zcode-artifact://replay/artifact-${next}`,
+          uri: `nibi-artifact://replay/artifact-${next}`,
           bytes: Buffer.byteLength(request.content, "utf8"),
           contentType: request.contentType ?? "text/plain",
           createdAt: new Date(0),

@@ -68,7 +68,7 @@ const artifacts = [1, 2].map((index) => ({
   producer_product_turn_id: base.productTurnId,
   artifact_version: 1,
   state: "current",
-  ref: `zcode-artifact://share/share-artifact-${index}`,
+  ref: `nibi-artifact://share/share-artifact-${index}`,
   artifact_type: "text",
   display_name: `report-${index}.md`,
   extension: "md",

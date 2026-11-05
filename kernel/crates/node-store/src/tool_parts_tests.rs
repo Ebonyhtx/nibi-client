@@ -137,7 +137,7 @@ async fn tool_calls_and_results_read_back_as_kernel_messages() {
 }
 
 /// 结果里的图片照 Node 的媒体规则存：`state.attachments` 里的 file part 加 `modelContentLayout`。
-/// 内联图片是 data URL，Artifact 引用是 `zcode-artifact://`。
+/// 内联图片是 data URL，Artifact 引用是 `nibi-artifact://`。
 #[tokio::test]
 async fn images_and_artifacts_in_results_round_trip() {
     let t = TestStore::new();
@@ -198,7 +198,7 @@ async fn images_and_artifacts_in_results_round_trip() {
             Value::from("two images\n\n[Attached image/png]\n\n[Attached image/png]"),
             Value::from(stringify(&layout)),
             Value::from("data:image/png;base64,iVBO"),
-            Value::from("zcode-artifact://sess_1/tool-result-1"),
+            Value::from("nibi-artifact://sess_1/tool-result-1"),
         ]]
     );
 }

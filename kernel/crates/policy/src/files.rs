@@ -54,8 +54,8 @@ const SENSITIVE_FILES: &[&str] = &[
     ".profile",
     ".ripgreprc",
     ".mcp.json",
-    // 项目配置 `zcode.json`（带 MCP 服务器与 hooks）。修复线 F58：以前是机械替换出来的
-    // `.zcode.json`（zcode 没有这个文件），真正的项目配置不在表里；用户级配置在 `~/.nibi/` 下，目录规则已覆盖。
+    // 项目配置 `nibi.json`（带 MCP 服务器与 hooks）。修复线 F58：以前是机械替换出来的
+    // `.nibi.json`（zcode 没有这个文件），真正的项目配置不在表里；用户级配置在 `~/.nibi/` 下，目录规则已覆盖。
     rust_cli_base::names::PROJECT_CONFIG_FILE,
 ];
 

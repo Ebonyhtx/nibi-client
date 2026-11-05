@@ -890,7 +890,7 @@ describe("buildConversationTurnRenderUnits", () => {
       mimeType: "application/pdf",
       sizeBytes: 10,
       sha256: "a".repeat(64),
-      ref: "zcode-artifact://share/artifact-1",
+      ref: "nibi-artifact://share/artifact-1",
       state: "current" as const,
     };
     const [unit] = buildConversationTurnRenderUnits([

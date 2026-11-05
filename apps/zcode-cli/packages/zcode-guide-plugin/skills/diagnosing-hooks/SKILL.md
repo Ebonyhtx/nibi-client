@@ -11,7 +11,7 @@ Goal: reduce any hook problem to a single concrete fix.
 
 ## 1. Configuration sources and merging
 
-- **Configuration-file hooks**: the top-level `hooks` key in `~/.nibi/cli/config.json` (or the workspace `<repo>/.nibi/config.json` / `zcode.json`), shaped as `{ enabled?, timeoutMs?, maxOutputBytes?, events: { <Event>: [ { matcher?, hooks: [...] } ] } }`. **These are disabled by default — configuration-file hooks must set `hooks.enabled: true` to run.**
+- **Configuration-file hooks**: the top-level `hooks` key in `~/.nibi/cli/config.json` (or the workspace `<repo>/.nibi/config.json` / `nibi.json`), shaped as `{ enabled?, timeoutMs?, maxOutputBytes?, events: { <Event>: [ { matcher?, hooks: [...] } ] } }`. **These are disabled by default — configuration-file hooks must set `hooks.enabled: true` to run.**
 - **Plugin hooks**: each plugin's `hooks/hooks.json` (or its manifest `hooks` field). Plugin matchers are appended after configuration matchers. **When any plugin contributes a hook, the hook runner is enabled automatically.**
 - Non-plugin (user or workspace) configuration hooks have no trust gate; with `enabled: true` they run unconditionally.
 

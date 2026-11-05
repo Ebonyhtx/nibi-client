@@ -61,7 +61,7 @@ pub struct DigestSource<'a> {
     /// 相对工作区根的路径（`/` 分隔，为空时取文件名）。
     pub relative_path: String,
     pub discovery_order: usize,
-    /// `zcode.json`、`.zcode/config.json` 或 `explicit`。
+    /// `nibi.json`、`.zcode/config.json` 或 `explicit`。
     pub kind: &'static str,
     pub explicit: bool,
     pub editable: bool,

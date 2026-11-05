@@ -126,13 +126,13 @@ describe("v4 chunked attachment protocol", () => {
         uploadId: "upload-1",
         state: "committed",
         nextChunkIndex: 2,
-        ref: "zcode-artifact://one",
+        ref: "nibi-artifact://one",
       }),
     ).toEqual({
       uploadId: "upload-1",
       state: "committed",
       nextChunkIndex: 2,
-      ref: "zcode-artifact://one",
+      ref: "nibi-artifact://one",
     });
     const terminal = {
       connectionId: "connection-1",

@@ -27,7 +27,7 @@ fn placeholder(media_type: &str) -> String {
 }
 
 /// 一张图片或一个文件附件 → Node `FilePart`（键序同 Node）。内联图片的 url 是 data URL（Node 没有
-/// artifact store 时的写法）；Artifact 引用的 url 是 `zcode-artifact://`，引用本身记在 `metadata.rustCli`。
+/// artifact store 时的写法）；Artifact 引用的 url 是 `nibi-artifact://`，引用本身记在 `metadata.rustCli`。
 /// `name` 是文件附件的展示名（Node `file` part 的 `filename`），图片没有。
 pub(crate) fn file_part(
     id: String,

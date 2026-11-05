@@ -63,7 +63,7 @@
     },
     "sources": [
       {
-        "path": "/Users/dev/repo/zcode.json",
+        "path": "/Users/dev/repo/nibi.json",
         "discoveryOrder": 0,
         "hooks": {
           "timeoutMs": 1500.5,
@@ -88,7 +88,7 @@
         "hooks": {}
       },
       {
-        "path": "/Users/dev/repo/app/zcode.json",
+        "path": "/Users/dev/repo/app/nibi.json",
         "discoveryOrder": 3,
         "hooks": {
           "enabled": false,
@@ -128,7 +128,7 @@
     },
     "sources": [
       {
-        "path": "/Users/dev/repo/zcode.json",
+        "path": "/Users/dev/repo/nibi.json",
         "discoveryOrder": 0,
         "hooks": {
           "events": {

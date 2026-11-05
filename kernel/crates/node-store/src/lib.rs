@@ -681,7 +681,7 @@ impl SessionStore for NodeStore {
     }
 }
 
-/// `zcode-artifact://<会话>/<artifact>` 的两段（百分号解码）。形状不对时为 None。
+/// `nibi-artifact://<会话>/<artifact>` 的两段（百分号解码）。形状不对时为 None。
 ///
 /// 与 runtime 的同名私有函数逐字同义：那一份给附件读取用（它会解 data URL），这一份只取两段
 /// 交给 [`ArtifactStore::find`]。分开写是因为两处的上层语义不同（附件要 mime 与解码后的字节，

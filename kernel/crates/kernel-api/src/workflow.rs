@@ -807,7 +807,7 @@ pub struct WorkflowRunArtifactVersion {
     pub content_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bytes: Option<u64>,
-    /// store 的 `zcode-artifact://…`。**只给 CLI 侧用**——模型与 renderer 都读不了它，
+    /// store 的 `nibi-artifact://…`。**只给 CLI 侧用**——模型与 renderer 都读不了它，
     /// 协议层必须把它剥掉（[`WorkflowRunArtifactVersion::public`]）。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uri: Option<String>,

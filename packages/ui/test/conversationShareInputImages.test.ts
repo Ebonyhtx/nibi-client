@@ -24,14 +24,14 @@ const rows: ConversationRow[] = [
     text: "Describe this image",
     attachments: [
       {
-        ref: "zcode-artifact://share/image-1",
-        previewRef: "zcode-artifact://share/thumb-1",
+        ref: "nibi-artifact://share/image-1",
+        previewRef: "nibi-artifact://share/thumb-1",
         fileName: "photo.png",
         mime: "image/png",
         bytes: 120,
       },
       {
-        ref: "zcode-artifact://share/text-1",
+        ref: "nibi-artifact://share/text-1",
         fileName: "notes.txt",
         mime: "text/plain",
         bytes: 20,

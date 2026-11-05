@@ -46,7 +46,7 @@ function makeApp(overrides: Record<string, unknown> = {}) {
     readTarget: vi.fn().mockResolvedValue(null),
     updateTargetStatus: vi.fn().mockResolvedValue(null),
     readToolResultArtifact: vi.fn().mockResolvedValue({
-      uri: "zcode-artifact://a1",
+      uri: "nibi-artifact://a1",
       content: "data:text/plain;base64,aGVsbG8gd29ybGQ=", // "hello world"
       contentType: "text/plain",
       bytes: 11,
@@ -105,7 +105,7 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
     const app = makeApp();
     const mapped = await mapAttachmentRefsToTurnAttachments(app as never, [
       {
-        ref: "zcode-artifact://history",
+        ref: "nibi-artifact://history",
         fileName: "topic-history.txt",
         mime: "text/plain",
         bytes: 12,
@@ -115,7 +115,7 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
     expect(mapped).toEqual([
       expect.objectContaining({
         type: "file",
-        content: "zcode-artifact://history",
+        content: "nibi-artifact://history",
         sourceKind: "topic-history",
       }),
     ]);
@@ -165,19 +165,19 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
   it("PDF artifact URI ref 保留 durable URI，禁止按文本解码", async () => {
     const app = makeApp({
       readToolResultArtifact: vi.fn().mockResolvedValue({
-        uri: "zcode-artifact://pdf-1",
+        uri: "nibi-artifact://pdf-1",
         content: "data:application/pdf;base64,JVBERi0xLjQK",
         contentType: "text/plain",
         bytes: 9,
       }),
     }) as unknown as V4SessionRecordView["app"];
     const mapped = await mapAttachmentRefsToTurnAttachments(app, [
-      { ref: "zcode-artifact://pdf-1", fileName: "report.pdf", mime: "application/pdf", bytes: 9 },
+      { ref: "nibi-artifact://pdf-1", fileName: "report.pdf", mime: "application/pdf", bytes: 9 },
     ]);
 
     expect(mapped).toEqual([
       {
-        content: "zcode-artifact://pdf-1",
+        content: "nibi-artifact://pdf-1",
         path: "report.pdf",
         type: "pdf",
         filename: "report.pdf",
@@ -191,12 +191,12 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
   it("图片/视频 artifact URI ref：content 携带 URI（core 解析链读回，不在命令层内联）", async () => {
     const app = makeApp() as unknown as V4SessionRecordView["app"];
     const mapped = await mapAttachmentRefsToTurnAttachments(app, [
-      { ref: "zcode-artifact://img-1", fileName: "shot.png", mime: "image/png", bytes: 42 },
-      { ref: "zcode-artifact://video-1", fileName: "demo.mp4", mime: "video/mp4", bytes: 84 },
+      { ref: "nibi-artifact://img-1", fileName: "shot.png", mime: "image/png", bytes: 42 },
+      { ref: "nibi-artifact://video-1", fileName: "demo.mp4", mime: "video/mp4", bytes: 84 },
     ]);
     expect(mapped).toEqual([
       {
-        content: "zcode-artifact://img-1",
+        content: "nibi-artifact://img-1",
         path: "shot.png",
         type: "image",
         filename: "shot.png",
@@ -204,7 +204,7 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
         sizeBytes: 42,
       },
       {
-        content: "zcode-artifact://video-1",
+        content: "nibi-artifact://video-1",
         path: "demo.mp4",
         type: "video",
         filename: "demo.mp4",
@@ -218,9 +218,9 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
     const rawApp = makeApp();
     const mapped = await mapAttachmentRefsToTurnAttachments(
       rawApp as unknown as V4SessionRecordView["app"],
-      [{ ref: "zcode-artifact://a1", fileName: "paste.txt", mime: "text/plain", bytes: 11 }],
+      [{ ref: "nibi-artifact://a1", fileName: "paste.txt", mime: "text/plain", bytes: 11 }],
     );
-    expect(rawApp.readToolResultArtifact).toHaveBeenCalledWith("zcode-artifact://a1");
+    expect(rawApp.readToolResultArtifact).toHaveBeenCalledWith("nibi-artifact://a1");
     expect(mapped?.[0]).toMatchObject({
       content: "hello world",
       path: "paste.txt",
@@ -235,7 +235,7 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
     const app = rawApp as unknown as V4SessionRecordView["app"];
     const oversized = await mapAttachmentRefsToTurnAttachments(app, [
       {
-        ref: "zcode-artifact://big",
+        ref: "nibi-artifact://big",
         fileName: "big.txt",
         mime: "text/plain",
         bytes: 65 * 1024,
@@ -248,7 +248,7 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
       sizeBytes: 65 * 1024,
     });
     const unreadable = await mapAttachmentRefsToTurnAttachments(app, [
-      { ref: "zcode-artifact://a1", fileName: "gone.txt", mime: "text/plain", bytes: 4 },
+      { ref: "nibi-artifact://a1", fileName: "gone.txt", mime: "text/plain", bytes: 4 },
     ]);
     expect(unreadable?.[0]).toEqual({
       type: "file",
@@ -262,7 +262,7 @@ describe("attachment-refs 映射（AttachmentRef → TurnAttachment）", () => {
     const app = makeApp() as unknown as V4SessionRecordView["app"];
     expect(await mapAttachmentRefsToTurnAttachments(app, undefined)).toBeUndefined();
     expect(await mapAttachmentRefsToTurnAttachments(app, [])).toBeUndefined();
-    expect(isUriAttachmentRef("zcode-artifact://x")).toBe(true);
+    expect(isUriAttachmentRef("nibi-artifact://x")).toBe(true);
     expect(isUriAttachmentRef("/tmp/a.png")).toBe(false);
     // Windows 盘符路径（C:\...）没有 //，不得误判为 URI。
     expect(isUriAttachmentRef("C:\\Users\\a.png")).toBe(false);
@@ -485,7 +485,7 @@ describe("gateway v4 chunked attachment transaction", () => {
 
   it("begin/chunk/commit 原子寄存，begin/commit retry 返回同一进度/ref", async () => {
     const bytes = Buffer.from("hello attachment");
-    const put = vi.fn().mockResolvedValue({ ref: "zcode-artifact://p1" });
+    const put = vi.fn().mockResolvedValue({ ref: "nibi-artifact://p1" });
     const gateway = makeGateway({ putSessionAttachment: put });
     await expect(gateway.attachmentBegin(begin(bytes))).resolves.toEqual({
       uploadId: "upload-1",
@@ -511,7 +511,7 @@ describe("gateway v4 chunked attachment transaction", () => {
       uploadId: "upload-1",
       sessionId: "s1",
     });
-    expect(result).toEqual({ ref: "zcode-artifact://p1" });
+    expect(result).toEqual({ ref: "nibi-artifact://p1" });
     await expect(
       gateway.attachmentCommit({
         connectionId: "connection-1",
@@ -523,7 +523,7 @@ describe("gateway v4 chunked attachment transaction", () => {
       uploadId: "upload-1",
       state: "committed",
       nextChunkIndex: 1,
-      ref: "zcode-artifact://p1",
+      ref: "nibi-artifact://p1",
     });
     expect(put).toHaveBeenCalledTimes(1);
     expect(put).toHaveBeenCalledWith("s1", {
@@ -550,7 +550,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   it("duplicate identical no-op；future/conflicting duplicate 与错误 checksum 明确失败", async () => {
     const bytes = Buffer.from("abcdef");
     const gateway = makeGateway({
-      putSessionAttachment: vi.fn().mockResolvedValue({ ref: "zcode-artifact://p1" }),
+      putSessionAttachment: vi.fn().mockResolvedValue({ ref: "nibi-artifact://p1" }),
     });
     await gateway.attachmentBegin(begin(bytes, { totalChunks: 2 }));
     const first = Buffer.from("abc");
@@ -583,7 +583,7 @@ describe("gateway v4 chunked attachment transaction", () => {
         uploadId: "upload-1",
         sessionId: "s1",
       }),
-    ).resolves.toEqual({ ref: "zcode-artifact://p1" });
+    ).resolves.toEqual({ ref: "nibi-artifact://p1" });
 
     const wrong = makeGateway({ putSessionAttachment: vi.fn() });
     await wrong.attachmentBegin(
@@ -605,7 +605,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   });
 
   it("empty upload 可直接 commit；missing/abort/connection close/session close 清 staging", async () => {
-    const put = vi.fn().mockResolvedValue({ ref: "zcode-artifact://empty" });
+    const put = vi.fn().mockResolvedValue({ ref: "nibi-artifact://empty" });
     const gateway = makeGateway({ putSessionAttachment: put });
     await gateway.attachmentBegin(begin(new Uint8Array()));
     await expect(
@@ -614,7 +614,7 @@ describe("gateway v4 chunked attachment transaction", () => {
         uploadId: "upload-1",
         sessionId: "s1",
       }),
-    ).resolves.toEqual({ ref: "zcode-artifact://empty" });
+    ).resolves.toEqual({ ref: "nibi-artifact://empty" });
 
     const bytes = Buffer.from("pending");
     await gateway.attachmentBegin(begin(bytes, { uploadId: "abort-me" }));
@@ -722,7 +722,7 @@ describe("gateway v4 chunked attachment transaction", () => {
     async (sourceKind) => {
       const bytes = Buffer.from("Sender: 群成员 | open_id: ou_member\n原文第二行");
       const attachment = {
-        ref: "zcode-artifact://history",
+        ref: "nibi-artifact://history",
         fileName: "history.txt",
         mime: "text/plain",
         bytes: bytes.length,
@@ -760,7 +760,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   it("legacy ref-only 读取在 durable previewRef 存在时不回退原始路径", async () => {
     const attachment = {
       ...pathRef,
-      previewRef: "zcode-artifact://preview-image",
+      previewRef: "nibi-artifact://preview-image",
     };
     const bytes = Buffer.from("persisted-image");
     const read = vi.fn().mockResolvedValue({ bytes, mediaType: "image/png" });
@@ -798,7 +798,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   });
 
   it("只授权当前 session 助手 Markdown 中真实出现的图片 artifact", async () => {
-    const ref = "zcode-artifact://s1/cua-shot";
+    const ref = "nibi-artifact://s1/cua-shot";
     const read = vi.fn().mockResolvedValue({
       bytes: Buffer.from("cua-image"),
       mediaType: "image/png",
@@ -816,7 +816,7 @@ describe("gateway v4 chunked attachment transaction", () => {
     await expect(
       gateway.attachmentRead({
         sessionId: "s1",
-        ref: "zcode-artifact://s1/not-in-markdown",
+        ref: "nibi-artifact://s1/not-in-markdown",
         offset: 0,
         limit: 100,
       }),
@@ -833,7 +833,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   it("已发送视频按 row 身份和附件序号授权，并把持久消息锚点交给宿主", async () => {
     const video = {
       ref: "/tmp/demo.mov",
-      previewRef: "zcode-artifact://preview-video",
+      previewRef: "nibi-artifact://preview-video",
       fileName: "demo.mov",
       mime: "video/quicktime",
       bytes: 8,
@@ -894,7 +894,7 @@ describe("gateway v4 chunked attachment transaction", () => {
 
   it("已发送 PDF 按 row 身份授权并通过 chunk 读取", async () => {
     const pdf = {
-      ref: "zcode-artifact://preview-pdf",
+      ref: "nibi-artifact://preview-pdf",
       fileName: "report.pdf",
       mime: "application/pdf; charset=binary",
       bytes: 13,
@@ -942,7 +942,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   it("Desktop local sent video reuses exact authorization before returning a local source", async () => {
     const video = {
       ref: "/tmp/demo.mov",
-      previewRef: "zcode-artifact://preview-video",
+      previewRef: "nibi-artifact://preview-video",
       fileName: "demo.mov",
       mime: "video/quicktime",
       bytes: 8,
@@ -1020,7 +1020,7 @@ describe("gateway v4 chunked attachment transaction", () => {
   });
 
   it("拒绝助手 Markdown 引用其他 session 的 artifact", async () => {
-    const foreignRef = "zcode-artifact://s2/cua-shot";
+    const foreignRef = "nibi-artifact://s2/cua-shot";
     const read = vi.fn().mockResolvedValue({
       bytes: Buffer.from("foreign-cua-image"),
       mediaType: "image/png",
@@ -1053,7 +1053,7 @@ describe("gateway v4 chunked attachment transaction", () => {
       mediaType: "video/mp4",
     }));
     const gateway = makeGateway({ readSessionAttachment: read });
-    ingestAttachmentRow(gateway, [{ ...video, previewRef: "zcode-artifact://first" }]);
+    ingestAttachmentRow(gateway, [{ ...video, previewRef: "nibi-artifact://first" }]);
     gateway.ingest("s1", {
       id: "preview-turn-complete",
       sessionId: "s1",
@@ -1083,7 +1083,7 @@ describe("gateway v4 chunked attachment transaction", () => {
         input: "preview again",
         messageId: "message-preview-2",
         intent: {
-          attachmentRefs: [{ ...video, previewRef: "zcode-artifact://second" }],
+          attachmentRefs: [{ ...video, previewRef: "nibi-artifact://second" }],
         },
       },
     } as GatewayEvent);
@@ -1123,7 +1123,7 @@ describe("gateway v4 chunked attachment transaction", () => {
 
   it("app restart 冷恢复先恢复 session/persisted row，再授权 previewRef", async () => {
     type GatewayEvent = Parameters<ConversationV4Gateway["ingest"]>[1];
-    const attachment = { ...pathRef, previewRef: "zcode-artifact://preview-cold" };
+    const attachment = { ...pathRef, previewRef: "nibi-artifact://preview-cold" };
     const persistedEvents = [
       {
         id: "cold-session-created",

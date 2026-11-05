@@ -1188,7 +1188,7 @@ describe("config adapters", () => {
   it("reports invalid discovered project config diagnostics", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-project-config-"));
     const logDir = join(root, "log");
-    const projectConfigPath = join(root, "zcode.json");
+    const projectConfigPath = join(root, "nibi.json");
 
     try {
       await mkdir(join(root, ".git"));
@@ -1241,7 +1241,7 @@ describe("config adapters", () => {
       await mkdir(join(root, ".git"));
       await mkdir(cwd, { recursive: true });
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           mcp: {
             servers: {
@@ -1263,7 +1263,7 @@ describe("config adapters", () => {
       });
 
       expect(result.sources.project.loaded).toBe(true);
-      expect(result.sources.project.paths).toEqual([join(root, "zcode.json")]);
+      expect(result.sources.project.paths).toEqual([join(root, "nibi.json")]);
       expect(result.sources.project.mcpServerNames).toEqual(["project"]);
       expect(result.config.mcp.servers.project).toMatchObject({
         type: "stdio",
@@ -1284,7 +1284,7 @@ describe("config adapters", () => {
       await mkdir(join(root, ".git"));
       await mkdir(cwdConfigDir, { recursive: true });
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           mcp: {
             servers: {
@@ -1317,7 +1317,7 @@ describe("config adapters", () => {
       });
 
       expect(result.sources.project.paths).toEqual([
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         join(cwdConfigDir, "config.json"),
       ]);
       expect(result.config.mcp.servers.project).toMatchObject({
@@ -1338,7 +1338,7 @@ describe("config adapters", () => {
       await mkdir(join(root, ".git"));
       await mkdir(join(root, "home"), { recursive: true });
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           mcp: {
             servers: {
@@ -1409,7 +1409,7 @@ describe("config adapters", () => {
       await mkdir(join(root, ".git"), { recursive: true });
       await mkdir(cwd, { recursive: true });
       await writeFile(
-        join(parent, "zcode.json"),
+        join(parent, "nibi.json"),
         JSON.stringify({
           mcp: {
             servers: {
@@ -1441,7 +1441,7 @@ describe("config adapters", () => {
     try {
       await mkdir(join(root, ".git"));
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           features: {
             mcp: true,
@@ -1525,7 +1525,7 @@ describe("config adapters", () => {
       await mkdir(join(root, ".git"));
       await mkdir(join(root, ".nibi"), { recursive: true });
       await writeFile(
-        join(root, "zcode.json"),
+        join(root, "nibi.json"),
         JSON.stringify({
           hooks: {
             enabled: true,
@@ -1569,7 +1569,7 @@ describe("config adapters", () => {
           (diagnostic) => diagnostic.code === "config_project_hooks_pending_trust",
         ),
       ).toHaveLength(2);
-      for (const configPath of [join(root, "zcode.json"), join(root, ".nibi", "config.json")]) {
+      for (const configPath of [join(root, "nibi.json"), join(root, ".nibi", "config.json")]) {
         expect(result.sources.project.diagnostics).toContainEqual(
           expect.objectContaining({
             code: "config_project_hooks_pending_trust",

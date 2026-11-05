@@ -5,7 +5,7 @@
 //! `(<工具名> completed with no output)`。含图片的结果不落盘。落盘与预览只经 kernel-api 的
 //! [`persisted_output`]（hook 的大输出走同一入口，hooks.md §4.5）。
 //!
-//! 落盘位置不是本机路径，而是 `zcode-artifact://<会话>/<artifact>`
+//! 落盘位置不是本机路径，而是 `nibi-artifact://<会话>/<artifact>`
 //! （云端也能用）；Read 能读这种地址（tools-files.md §5）。
 
 use rust_cli_kernel_api::ids::SessionId;

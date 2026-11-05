@@ -113,10 +113,10 @@ pub trait Kernel {
 
 两边的 CLI 都有 `hooks trust status --json`，所以最便宜的对照组是"同一份 fixture + 两个 CLI"。已做：
 
-- fixture：`<ws>/zcode.json` 与 `<ws>/.zcode/config.json`、`<ws>/.nibi/config.json`，内容
+- fixture：`<ws>/nibi.json` 与 `<ws>/.zcode/config.json`、`<ws>/.nibi/config.json`，内容
   `{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"echo pre"}]}],
   "Stop":[{"hooks":[{"type":"command","command":"echo stop"}]}]}}`；两边都用隔离 HOME 跑。
-- Node：**能发现文件但拒绝内容** —— `.nibi/config.json` 与 `zcode.json` 都回
+- Node：**能发现文件但拒绝内容** —— `.nibi/config.json` 与 `nibi.json` 都回
   `"Unable to read Workspace Hook config: <path>"`（说明文件名/发现路径成立，是文档形状不对）。
 - Rust：同一 fixture 回 `workspace_hooks_not_applicable`（既没有把它当候选，也没有报解析错）。
 
@@ -133,7 +133,7 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 |---|---|---|---|
 | `reviewItemId` | `workspace-hook-0-PreToolUse-0-0` / `…-Stop-0-0` | 同 | ✅ |
 | 单据摘要 `hookDeclarationDigest` | `607f038e…e543b7` / `f3975076…81deba` | 同 | ✅ **逐字节一致** |
-| `displayCommand` / `sourcePath` / `matcher` / `configuredEnabled` | `echo pre` / `zcode.json` / `Bash` / true | 同 | ✅ |
+| `displayCommand` / `sourcePath` / `matcher` / `configuredEnabled` | `echo pre` / `nibi.json` / `Bash` / true | 同 | ✅ |
 | `reasonCode` | `workspace_hooks_pending_trust` | 同 | ✅ |
 | **`bundleDigest`** | `22826b59…7cc6d0` | `98101c0a…4c67e4` | ❌ **不同** |
 
@@ -175,9 +175,9 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 
 | fixture | Node | Rust | 结论 |
 |---|---|---|---|
-| 只有 `zcode.json`（5 种变体：无/`enabled:true`/`timeoutMs`/两者/`enabled:false`） | 全部 | 全部 | **5/5 MATCH** |
-| `zcode.json` + 旧形状 `.zcode/config.json` | `22826b59`（**不理** `.zcode`） | `98101c0a`（**读** `.zcode`） | DIFF |
-| `zcode.json` + `.nibi/config.json` | `39b48f8f`（**读** `.nibi`） | `22826b59`（**不理** `.nibi`） | DIFF |
+| 只有 `nibi.json`（5 种变体：无/`enabled:true`/`timeoutMs`/两者/`enabled:false`） | 全部 | 全部 | **5/5 MATCH** |
+| `nibi.json` + 旧形状 `.zcode/config.json` | `22826b59`（**不理** `.zcode`） | `98101c0a`（**读** `.zcode`） | DIFF |
+| `nibi.json` + `.nibi/config.json` | `39b48f8f`（**读** `.nibi`） | `22826b59`（**不理** `.nibi`） | DIFF |
 
 **结论**：摘要算法、payload 结构、可选值编码、四个布尔语义**全部一致**；差异只有一个——
 **项目级配置目录名**。Node/NIBI 读 `<工作区>/.nibi/config.json`，Rust 内核读 `<工作区>/.zcode/config.json`
@@ -199,7 +199,7 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
   `ZCODE_DATA_BASE_DIR` 等注入，品牌化收口时再统一）；
 - 项目配置发现与 digest 的 kind 改用 `.nibi/config.json`；`.zcode/config.json` 不再被 Rust 读取（与 Node 一致）；
 - 重算 `crates/cli/tests/fixtures/workspace-hooks-golden.json`（4 个用例）并同步 fixtures 路径；
-- 实测（同一 fixture、两个 CLI）：`zcode.json` only → MATCH；`+ .nibi/config.json` → **MATCH**（改前 DIFF）；
+- 实测（同一 fixture、两个 CLI）：`nibi.json` only → MATCH；`+ .nibi/config.json` → **MATCH**（改前 DIFF）；
   `+ 旧 .zcode/config.json` → MATCH（两边都忽略，改前 Rust 会读）。
 - 回归面：`cargo test -p rust-cli` 的失败集合与改动前**完全一致**（9 个环境相关既有失败：plugins 2 /
   network 3 / workspace_trust 4），没有新增失败；clippy `-D warnings` 与 `cargo check --workspace` 全绿。

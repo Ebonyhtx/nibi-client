@@ -37,7 +37,7 @@ fn env() -> MemoryEnvironment {
             r#"{"mcpServers": {"old": {"command": "x"}}}"#,
         )
         .with_file(
-            "/Users/dev/.zcode.json",
+            "/Users/dev/.nibi.json",
             r#"{"mcpServers": {"old-user": {"command": "x"}}}"#,
         )
 }

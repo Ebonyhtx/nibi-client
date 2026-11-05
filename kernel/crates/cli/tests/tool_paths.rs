@@ -314,7 +314,7 @@ async fn a_path_that_ends_in_white_space_once_resolved_is_refused() {
     assert!(error && !text.contains("ends in white space"), "{text}");
 }
 
-/// 落盘的大结果（`zcode-artifact://<会话>/<artifact>`，tools-files.md D5）不是执行环境的路径：Read 的校验与读取
+/// 落盘的大结果（`nibi-artifact://<会话>/<artifact>`，tools-files.md D5）不是执行环境的路径：Read 的校验与读取
 /// 都不经路径规范化，地址原样交给 ArtifactStore（以 `.`、空白结尾的 ID 也不按“解析后以空白结尾”拒绝）。
 #[tokio::test]
 async fn artifact_addresses_are_not_normalized_as_paths() {
@@ -327,7 +327,7 @@ async fn artifact_addresses_are_not_normalized_as_paths() {
             .lock()
             .unwrap()
             .insert(id.to_owned(), b"first\nsecond\n".to_vec());
-        let address = format!("zcode-artifact://{session}/{id}");
+        let address = format!("nibi-artifact://{session}/{id}");
         let (text, error) = bench
             .call("Read", json!({ "file_path": address, "limit": 1 }))
             .await;

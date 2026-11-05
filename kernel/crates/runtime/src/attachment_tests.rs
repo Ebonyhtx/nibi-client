@@ -33,17 +33,17 @@ fn plain_bytes_and_unknown_shapes_keep_their_content() {
 #[test]
 fn artifact_uris_parse_and_decode_percent_escapes() {
     assert_eq!(
-        parse_artifact_uri("zcode-artifact://sess_a/tool-result-1"),
+        parse_artifact_uri("nibi-artifact://sess_a/tool-result-1"),
         Some(("sess_a".to_owned(), "tool-result-1".to_owned()))
     );
     // encodeURIComponent 的转义（会话 id 可能含空格等）。
     assert_eq!(
-        parse_artifact_uri("zcode-artifact://sess%20a/tool-result-1"),
+        parse_artifact_uri("nibi-artifact://sess%20a/tool-result-1"),
         Some(("sess a".to_owned(), "tool-result-1".to_owned()))
     );
     assert_eq!(parse_artifact_uri("https://example.invalid/x"), None);
-    assert_eq!(parse_artifact_uri("zcode-artifact://only-owner"), None);
-    assert_eq!(parse_artifact_uri("zcode-artifact://a/b/c"), None);
+    assert_eq!(parse_artifact_uri("nibi-artifact://only-owner"), None);
+    assert_eq!(parse_artifact_uri("nibi-artifact://a/b/c"), None);
 }
 
 #[test]

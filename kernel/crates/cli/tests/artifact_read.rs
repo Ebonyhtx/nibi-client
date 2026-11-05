@@ -1,5 +1,5 @@
 //! 修复线 F18 的真实进程（docs/specs/rust-cli/tools-files.md §1.4）：`zcode -p` 用真实的 NodeStore 落盘，
-//! 模型再用 Read 读预览里的 `zcode-artifact://` 位置。
+//! 模型再用 Read 读预览里的 `nibi-artifact://` 位置。
 //!
 //! - SessionStart hook 的纯文本 stdout 超过 10000 字符，落盘（hooks.md §4.5）；
 //! - 第一个请求的回复是 Grep，结果超过 20000 字符，落盘（tools-files.md D5）；
@@ -173,7 +173,7 @@ async fn read_returns_persisted_tool_and_hook_output_from_the_real_store() {
         texts(&requests[1]).join("\n---\n")
     );
     assert!(
-        found.iter().all(|at| at.starts_with("zcode-artifact://")),
+        found.iter().all(|at| at.starts_with("nibi-artifact://")),
         "{found:?}"
     );
     assert_eq!(requests.len(), 3, "{stderr}");

@@ -71,7 +71,7 @@ function createFixture(
     async (request, writeOptions) => {
       if (writeOptions?.signal?.aborted) throw writeOptions.signal.reason;
       if (injectFailure && options.failure === "media") throw failure;
-      const uri = `zcode-artifact://settlement/${artifacts.size}`;
+      const uri = `nibi-artifact://settlement/${artifacts.size}`;
       artifacts.set(uri, request.content);
       return {
         id: uri,

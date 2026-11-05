@@ -7,7 +7,7 @@ export function createTestImageArtifactStore(): ToolArtifactStorePort {
     async writeToolResultArtifact(request) {
       artifactIndex++;
       const id = `test-image-${artifactIndex}`;
-      const uri = `zcode-artifact://${encodeURIComponent(request.sessionId)}/${id}`;
+      const uri = `nibi-artifact://${encodeURIComponent(request.sessionId)}/${id}`;
       const contentType = request.contentType ?? "text/plain";
       artifacts.set(uri, { content: request.content, contentType });
       return {

@@ -23,7 +23,7 @@ function begin(bytes: Uint8Array, uploadId = "upload-1", totalChunks = 1) {
 describe("AttachmentUploadRegistry hard bounds", () => {
   it("20MiB exactly 以 40 个 512KiB chunk 原子 commit", async () => {
     const bytes = new Uint8Array(PROTOCOL_V4_LIMITS.attachmentMaxBytes);
-    const put = vi.fn(async () => ({ ref: "zcode-artifact://exact-20mib" }));
+    const put = vi.fn(async () => ({ ref: "nibi-artifact://exact-20mib" }));
     const registry = new AttachmentUploadRegistry({ now: () => 0, putSessionAttachment: put });
     const chunkBytes = PROTOCOL_V4_LIMITS.attachmentChunkMaxBytes;
     const totalChunks = bytes.byteLength / chunkBytes;
@@ -44,7 +44,7 @@ describe("AttachmentUploadRegistry hard bounds", () => {
         sessionId: "session-1",
         uploadId: "exact-20mib",
       }),
-    ).resolves.toEqual({ ref: "zcode-artifact://exact-20mib" });
+    ).resolves.toEqual({ ref: "nibi-artifact://exact-20mib" });
     expect(put).toHaveBeenCalledTimes(1);
     expect(put.mock.calls[0][1].bytes.byteLength).toBe(PROTOCOL_V4_LIMITS.attachmentMaxBytes);
   });
@@ -178,10 +178,10 @@ describe("AttachmentUploadRegistry hard bounds", () => {
     const first = registry.commit(terminal);
     const second = registry.commit(terminal);
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1));
-    resolvePut({ ref: "zcode-artifact://single" });
+    resolvePut({ ref: "nibi-artifact://single" });
     await expect(Promise.all([first, second])).resolves.toEqual([
-      { ref: "zcode-artifact://single" },
-      { ref: "zcode-artifact://single" },
+      { ref: "nibi-artifact://single" },
+      { ref: "nibi-artifact://single" },
     ]);
   });
 });

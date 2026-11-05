@@ -456,8 +456,8 @@ describe("GetWorkflowRun handler — published artifacts", () => {
     version: 2,
     itemCount: 0,
     versions: [
-      { version: 1, publishedAt: 1, bytes: 10, uri: "zcode-artifact://one" },
-      { version: 2, publishedAt: 2, bytes: 4_096, uri: "zcode-artifact://two" },
+      { version: 1, publishedAt: 1, bytes: 10, uri: "nibi-artifact://one" },
+      { version: 2, publishedAt: 2, bytes: 4_096, uri: "nibi-artifact://two" },
     ],
   };
   const PERF = {

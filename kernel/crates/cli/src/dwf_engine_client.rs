@@ -289,7 +289,7 @@ struct EngineShared {
     /// 这里对着本机目录解成规范串绑定表。
     models: Arc<dyn rust_cli_kernel_api::provider::ModelDirectory>,
     /// 用户面产物的落盘面（`artifact/publish`，`ArtifactPurpose::Deliverable`）：sidecar 读文件/
-    /// 验形状，这里只负责写进会话的 artifact store 并回 `zcode-artifact://` 引用。
+    /// 验形状，这里只负责写进会话的 artifact store 并回 `nibi-artifact://` 引用。
     artifacts: Arc<dyn ArtifactStore>,
     kernel: Mutex<Option<Weak<dyn Kernel>>>,
     process: Mutex<Option<Arc<Process>>>,
@@ -520,7 +520,7 @@ fn relative_path(cwd: &str, path: &str) -> String {
 ///
 /// 分工与 Node 的 `executeArtifactPublish` 同一条线：sidecar 做**读取侧**（id/opts 形状、工作区
 /// 越界、realpath、cap+1 字节探测），宿主只做**落盘侧**（`ArtifactPurpose::Deliverable` 的
-/// `ArtifactStore::put`）并回 `zcode-artifact://` 引用。拒绝是结构化 `{ok:false, code, message}`，
+/// `ArtifactStore::put`）并回 `nibi-artifact://` 引用。拒绝是结构化 `{ok:false, code, message}`，
 /// sidecar 原样抛成可被脚本 catch 的 `WorkflowError`。
 async fn publish_artifact(shared: &EngineShared, params: &Value) -> Value {
     const MAX_FILE_BYTES: usize = 20 * 1024 * 1024;
@@ -614,7 +614,7 @@ async fn publish_artifact(shared: &EngineShared, params: &Value) -> Value {
         "contentType": content_type,
         "bytes": reference.size,
         "uri": format!(
-            "zcode-artifact://{}/{}",
+            "nibi-artifact://{}/{}",
             reference.session.as_str(),
             reference.id.as_str()
         ),

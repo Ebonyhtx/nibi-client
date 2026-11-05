@@ -969,7 +969,7 @@ describe("zcodeSessionProjection", () => {
               },
               mime: "application/pdf; charset=binary",
               type: "file",
-              url: "zcode-artifact://sess_1/pdf-1",
+              url: "nibi-artifact://sess_1/pdf-1",
             } satisfies ZCodeMessagePart,
           ],
         },

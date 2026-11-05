@@ -2332,7 +2332,7 @@ describe("SessionPane Plan picker action", () => {
         ackFor(envelope, { status: "accepted" }),
       );
       const attachments = [
-        { ref: "zcode-artifact://a", fileName: "a.txt", mime: "text/plain", bytes: 1 },
+        { ref: "nibi-artifact://a", fileName: "a.txt", mime: "text/plain", bytes: 1 },
       ];
       const root = await renderPane();
       await act(async () => {

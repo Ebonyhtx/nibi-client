@@ -267,7 +267,7 @@ describe("node_repl browser injection", () => {
         writes.push(request.content);
         return {
           id: "browser-shot",
-          uri: "zcode-artifact://bs3/browser-shot",
+          uri: "nibi-artifact://bs3/browser-shot",
           path: "/tmp/browser-shot.png",
           bytes: request.content.byteLength,
           contentType: request.contentType,

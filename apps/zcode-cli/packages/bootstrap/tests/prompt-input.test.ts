@@ -6,7 +6,7 @@ describe("projectInputHistoryAttachments", () => {
     expect(
       projectInputHistoryAttachments([
         {
-          content: "zcode-artifact://session/image",
+          content: "nibi-artifact://session/image",
           path: "[image #1]",
           type: "image",
         },
@@ -27,7 +27,7 @@ describe("projectInputHistoryAttachments", () => {
       ]),
     ).toEqual([
       {
-        content: "zcode-artifact://session/image",
+        content: "nibi-artifact://session/image",
         path: "[image #1]",
         type: "image",
       },

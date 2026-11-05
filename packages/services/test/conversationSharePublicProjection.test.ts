@@ -161,7 +161,7 @@ describe("conversation share public projection", () => {
       kind: "artifact",
       artifactVersionId: "share-artifact-1",
       logicalArtifactKey: "share-artifact-key-1",
-      ref: "zcode-artifact://share/share-artifact-1",
+      ref: "nibi-artifact://share/share-artifact-1",
       productTurnId: "share-product-turn-1",
     });
     expect(result.artifacts).toEqual([
@@ -173,7 +173,7 @@ describe("conversation share public projection", () => {
           producer_product_turn_id: "share-product-turn-1",
           artifact_version: 1,
           state: "current",
-          ref: "zcode-artifact://share/share-artifact-1",
+          ref: "nibi-artifact://share/share-artifact-1",
           artifact_type: "pdf",
           display_name: "report.pdf",
           extension: "pdf",
@@ -294,8 +294,8 @@ describe("conversation share public projection", () => {
       kind: "userInput",
       attachments: [
         {
-          ref: "zcode-artifact://share/share-input-artifact-1",
-          previewRef: "zcode-artifact://share/share-input-artifact-1",
+          ref: "nibi-artifact://share/share-input-artifact-1",
+          previewRef: "nibi-artifact://share/share-input-artifact-1",
           fileName: "pasted-text.txt",
           mime: "text/plain",
           bytes: 10,
@@ -305,7 +305,7 @@ describe("conversation share public projection", () => {
     const result = build(rows);
     expect(result.rows.find((row) => row.kind === "userInput")).toMatchObject({
       attachments: [
-        expect.objectContaining({ ref: "zcode-artifact://share/share-input-artifact-1" }),
+        expect.objectContaining({ ref: "nibi-artifact://share/share-input-artifact-1" }),
       ],
     });
   });
@@ -313,7 +313,7 @@ describe("conversation share public projection", () => {
   it.each([
     ["data:text/plain;base64,YQ==", "unsafe_structure"],
     ["file:///tmp/report.html", "unsafe_structure"],
-    ["zcode-artifact://share/report", "artifact_protocol_not_ready"],
+    ["nibi-artifact://share/report", "artifact_protocol_not_ready"],
   ] as const)("rejects unsupported local reference %s", (text, kind) => {
     const rows = rowsWithCompletedSubagent();
     rows[4] = {

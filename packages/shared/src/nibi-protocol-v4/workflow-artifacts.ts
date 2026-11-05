@@ -109,7 +109,7 @@ export const workflowRunArtifactVersionSchema = z
     contentType: z.string().min(1).max(128).optional(),
     /** 该版本在 store 里的字节数（内容成员才有）。 */
     bytes: z.number().int().nonnegative().optional(),
-    /** store 的 `zcode-artifact://…`；**只给 CLI 侧用**，模型与 renderer 都读不了它。 */
+    /** store 的 `nibi-artifact://…`；**只给 CLI 侧用**，模型与 renderer 都读不了它。 */
     uri: z.string().min(1).max(512).optional(),
     /** 工作区相对的原路径（`file` 才有）——卡片的「在工作区显示」按它定位。 */
     sourcePath: z.string().min(1).max(1024).optional(),

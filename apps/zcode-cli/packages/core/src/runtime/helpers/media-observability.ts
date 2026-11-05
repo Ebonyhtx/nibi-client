@@ -178,7 +178,7 @@ function base64PayloadBytes(dataUrl: string): number {
 
 function classifyAttachmentUrl(url: string): "artifact" | "data-url" | "empty" | "reference" {
   if (url.length === 0) return "empty";
-  if (url.startsWith("zcode-artifact://")) return "artifact";
+  if (url.startsWith("nibi-artifact://")) return "artifact";
   if (url.startsWith("data:")) return "data-url";
   return "reference";
 }

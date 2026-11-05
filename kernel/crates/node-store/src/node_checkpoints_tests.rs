@@ -18,7 +18,7 @@ const ARTIFACT: &str = "tool-result-0b7ea269-b8a7-4850-acf4-7830e6ba7548";
 /// Node `persistWorkspaceCheckpointEntry` 的一条记录（另一条连接写，模拟 Node 进程），与 Node
 /// `NodeToolArtifactStore` 命名的产物文件 `<toolCallId>-<artifactId>.json`。
 fn node_checkpoint(t: &TestStore, sequence: u64, file: Option<&str>) {
-    let uri = format!("zcode-artifact://sess_1/{ARTIFACT}");
+    let uri = format!("nibi-artifact://sess_1/{ARTIFACT}");
     let data = json!({
         "eventId": "evt_node",
         "payload": {
@@ -96,7 +96,7 @@ async fn node_checkpoints_without_a_file_or_already_rewound_are_left_out() {
         "eventId": "evt_rewind",
         "payload": {"rewindId": "rewind_node", "scope": "workspace", "strategy": "active_chain",
                     "targetMessageId": "msg_u1", "targetCheckpointId": "checkpoint_node",
-                    "restoredSnapshotRef": format!("zcode-artifact://sess_1/{ARTIFACT}"),
+                    "restoredSnapshotRef": format!("nibi-artifact://sess_1/{ARTIFACT}"),
                     "reason": "file_summary_rewind"},
         "sequenceNumber": 32,
         "traceId": "trace_node",

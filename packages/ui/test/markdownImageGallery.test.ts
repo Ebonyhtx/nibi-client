@@ -15,7 +15,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("artifact-backed Markdown images", () => {
   it("reads an authorized session artifact instead of passing its custom URI to img", async () => {
-    const ref = "zcode-artifact://session-1/cua-shot";
+    const ref = "nibi-artifact://session-1/cua-shot";
     const rewritten = rewriteMarkdownArtifactImageSources(`![shot](${ref})`);
     const src = rewritten.match(/!\[shot\]\(([^)]+)\)/u)?.[1] ?? "";
     const readAttachment = vi.fn().mockResolvedValue({
@@ -42,7 +42,7 @@ describe("artifact-backed Markdown images", () => {
       expect(rendered.container.querySelector("img")?.getAttribute("src")).toBe("blob:cua-shot"),
     );
     expect(readAttachment).toHaveBeenCalledWith({ sessionId: "session-1", ref });
-    expect(rendered.container.innerHTML).not.toContain("zcode-artifact://");
+    expect(rendered.container.innerHTML).not.toContain("nibi-artifact://");
     rendered.unmount();
     expect(revoke).toHaveBeenCalledWith("blob:cua-shot");
   });

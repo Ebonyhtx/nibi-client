@@ -40,7 +40,7 @@ fn grants() -> Grants {
     Grants {
         count: 1,
         rules: vec!["Bash".to_owned()],
-        sources: vec!["zcode.json".to_owned()],
+        sources: vec!["nibi.json".to_owned()],
     }
 }
 

@@ -2756,7 +2756,7 @@
           "sess_rich",
           1010,
           1010,
-          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"metadata\":{\"conversationInputIntent\":{\"sourceCommandId\":\"cmd_u1\",\"queueItemId\":\"queue_u1\",\"clientId\":\"client-1\",\"kind\":\"sendText\",\"text\":\"Plan it\",\"attachments\":[{\"ref\":\"zcode-artifact://s/a1\",\"fileName\":\"a.png\",\"mime\":\"image/png\",\"bytes\":5}],\"delivery\":{\"requested\":\"startNow\",\"admitted\":\"startNow\"},\"order\":{\"admissionSeq\":1},\"steer\":{\"state\":\"notRequested\"},\"dispatch\":{\"state\":\"drained\"},\"admittedAt\":1,\"provenance\":{\"sourceCommandId\":\"root_cmd\"}},\"epilogueStart\":4},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"metadata\":{\"conversationInputIntent\":{\"sourceCommandId\":\"cmd_u1\",\"queueItemId\":\"queue_u1\",\"clientId\":\"client-1\",\"kind\":\"sendText\",\"text\":\"Plan it\",\"attachments\":[{\"ref\":\"nibi-artifact://s/a1\",\"fileName\":\"a.png\",\"mime\":\"image/png\",\"bytes\":5}],\"delivery\":{\"requested\":\"startNow\",\"admitted\":\"startNow\"},\"order\":{\"admissionSeq\":1},\"steer\":{\"state\":\"notRequested\"},\"dispatch\":{\"state\":\"drained\"},\"admittedAt\":1,\"provenance\":{\"sourceCommandId\":\"root_cmd\"}},\"epilogueStart\":4},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           0
         ],
         [
@@ -3388,7 +3388,7 @@
             "admittedDelivery": "startNow",
             "attachmentRefs": [
               {
-                "ref": "zcode-artifact://s/a1",
+                "ref": "nibi-artifact://s/a1",
                 "fileName": "a.png",
                 "mime": "image/png",
                 "bytes": 5
@@ -4215,7 +4215,7 @@
         "epilogueStart": 4,
         "attachments": [
           {
-            "ref": "zcode-artifact://s/a1",
+            "ref": "nibi-artifact://s/a1",
             "fileName": "a.png",
             "mime": "image/png",
             "bytes": 5

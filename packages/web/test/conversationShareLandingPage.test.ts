@@ -90,8 +90,8 @@ describe("ConversationShareLandingPage", () => {
   });
 
   it("counts only artifact rows and excludes user input attachment manifests", () => {
-    const inputRef = "zcode-artifact://share/input-1";
-    const resultRef = "zcode-artifact://share/result-1";
+    const inputRef = "nibi-artifact://share/input-1";
+    const resultRef = "nibi-artifact://share/result-1";
     const mixedPreview: ConversationSharePreview = {
       ...preview,
       rows: [
@@ -184,7 +184,7 @@ describe("ConversationShareLandingPage", () => {
           kind: "userInput" as const,
           attachments: [
             {
-              ref: "zcode-artifact://share/input-only",
+              ref: "nibi-artifact://share/input-only",
               fileName: "input.txt",
               mime: "text/plain",
               bytes: 5,
@@ -200,7 +200,7 @@ describe("ConversationShareLandingPage", () => {
           producer_product_turn_id: "share-product-turn-1",
           artifact_version: 1 as const,
           state: "current" as const,
-          ref: "zcode-artifact://share/input-only",
+          ref: "nibi-artifact://share/input-only",
           artifact_type: "text" as const,
           display_name: "input.txt",
           extension: "txt",

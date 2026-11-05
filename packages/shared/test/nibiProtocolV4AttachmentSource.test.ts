@@ -28,7 +28,7 @@ describe("V4 attachment source across row transport", () => {
     "preserves %s on the executed user row",
     (sourceKind) => {
       const attachment = {
-        ref: "zcode-artifact://history",
+        ref: "nibi-artifact://history",
         fileName: "history.txt",
         mime: "text/plain",
         bytes: 84,

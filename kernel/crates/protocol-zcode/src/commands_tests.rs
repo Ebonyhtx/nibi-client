@@ -305,7 +305,7 @@ fn first_input_execution_overrides_config_mode() {
 
 #[test]
 fn attachment_source_maps_images_and_pdfs_and_rejects_other_types() {
-    let image = json!({"ref": "zcode-artifact://sess_a/tool-result-1", "fileName": "a.png", "mime": "image/png", "bytes": 12});
+    let image = json!({"ref": "nibi-artifact://sess_a/tool-result-1", "fileName": "a.png", "mime": "image/png", "bytes": 12});
     let (source, media) = attachment_source(&image).unwrap();
     assert_eq!(media, "image/png");
     assert!(matches!(source, AttachmentSource::Artifact { .. }));
@@ -315,7 +315,7 @@ fn attachment_source_maps_images_and_pdfs_and_rejects_other_types() {
     assert_eq!(media, "image/jpeg");
     assert!(matches!(source, AttachmentSource::Path { .. }));
     // PDF 也受理（走 document 块）；mime 参数被剥掉。
-    let pdf = json!({"ref": "zcode-artifact://sess_a/tool-result-2", "fileName": "a.pdf", "mime": "application/pdf", "bytes": 12});
+    let pdf = json!({"ref": "nibi-artifact://sess_a/tool-result-2", "fileName": "a.pdf", "mime": "application/pdf", "bytes": 12});
     let (source, media) = attachment_source(&pdf).unwrap();
     assert_eq!(media, "application/pdf");
     assert!(matches!(source, AttachmentSource::Artifact { .. }));

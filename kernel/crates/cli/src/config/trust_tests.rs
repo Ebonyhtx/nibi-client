@@ -87,7 +87,7 @@ fn record(identity: &str, digest: &str) -> TrustRecord {
         bundle_digest_at_grant: None,
         event_at_grant: "PreToolUse".to_owned(),
         display_command_at_grant: "x".to_owned(),
-        source_path_at_grant: "zcode.json".to_owned(),
+        source_path_at_grant: "nibi.json".to_owned(),
         source_discovery_order_at_grant: None,
         matcher_at_grant: None,
         matcher_index_at_grant: None,
@@ -108,7 +108,7 @@ async fn only_trusted_enabled_declarations_run_and_the_rest_are_pending() {
         ]}],
         "Notification": [{"hooks": [{"type": "command", "command": "notification-only.sh"}]}]
     }});
-    let files = vec![file_with(root, "/Users/dev/repo/zcode.json", 0, &hooks)];
+    let files = vec![file_with(root, "/Users/dev/repo/nibi.json", 0, &hooks)];
     let mut warnings = Vec::new();
     let first = WorkspaceHooks::inspect(root, None, &files, &paths, &mut warnings).await;
     assert_eq!(warnings.len(), 1, "{warnings:?}");

@@ -257,7 +257,7 @@ type Registered = (
 
 const A1_STEP_FINISH: &str = "part_s2_00000000-0000-4000-8000-000000000007";
 const NODE_ARTIFACT: &str =
-    "zcode-artifact://sess_tools/tool-result-00000000-0000-4000-8000-000000000901";
+    "nibi-artifact://sess_tools/tool-result-00000000-0000-4000-8000-000000000901";
 
 /// node-store.md §7 已登记的差异。比较前把本工程的行在这些位置换成 Node 的值：每一处先断言本工程写的
 /// 是登记的值，换完后整行逐字节比对，登记以外的任何不同都让测试失败。

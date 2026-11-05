@@ -96,7 +96,7 @@ fn writes_need_accept_edits_inside_and_always_ask_for_sensitive_paths() {
 }
 
 /// 敏感文件表用 zcode 的文件名（修复线 F58，README §4.1）：项目配置是
-/// `zcode.json`（带 MCP 服务器与 hooks），zcode 没有 `.zcode.json`。以前表里是机械替换出来的 `.zcode.json`。
+/// `nibi.json`（带 MCP 服务器与 hooks），zcode 没有 `.nibi.json`。以前表里是机械替换出来的 `.nibi.json`。
 #[test]
 fn the_project_config_is_a_sensitive_file() {
     assert_eq!(
@@ -104,10 +104,10 @@ fn the_project_config_is_a_sensitive_file() {
             PermissionMode::AcceptEdits,
             &[],
             Access::Write,
-            "zcode.json"
+            "nibi.json"
         ),
         Check::Ask {
-            message: "NIBI requested permissions to edit /w/zcode.json which is a sensitive file."
+            message: "NIBI requested permissions to edit /w/nibi.json which is a sensitive file."
                 .to_owned(),
             kind: AskKind::Safety,
             suggestions: Vec::new(),
@@ -118,7 +118,7 @@ fn the_project_config_is_a_sensitive_file() {
             PermissionMode::AcceptEdits,
             &[],
             Access::Write,
-            ".zcode.json"
+            ".nibi.json"
         ),
         Check::Allow
     );

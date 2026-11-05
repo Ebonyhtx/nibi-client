@@ -65,7 +65,7 @@ function visitStrings(value: unknown, visitor: (value: string) => void): void {
 }
 
 function assertSafeString(value: string): void {
-  if (/^zcode-artifact:\/\//iu.test(value)) {
+  if (/^nibi-artifact:\/\//iu.test(value)) {
     throwProjectionError(
       "artifact_protocol_not_ready",
       "Artifact references must be represented by formal conversation artifact rows",
@@ -95,7 +95,7 @@ function projectToolDisplay(row: ToolCallRow) {
 }
 
 function isPublicArtifactRef(value: string): boolean {
-  return /^zcode-artifact:\/\/share\/[A-Za-z0-9._~-]+$/u.test(value);
+  return /^nibi-artifact:\/\/share\/[A-Za-z0-9._~-]+$/u.test(value);
 }
 
 function assertTerminalAndSafe(rows: ConversationRow[]): void {
@@ -406,7 +406,7 @@ function projectRow(row: ConversationRow, index: number, ids: PublicIdMaps): Con
         mimeType: row.mimeType,
         sizeBytes: row.sizeBytes,
         sha256: row.sha256,
-        ref: `zcode-artifact://share/${artifactVersionId}`,
+        ref: `nibi-artifact://share/${artifactVersionId}`,
         state: row.state,
       };
     }
@@ -566,7 +566,7 @@ export function assertConversationSharePublicProjection(input: {
     } else if (row.kind === "artifact") {
       if (
         !PUBLIC_ARTIFACT_ID.test(row.artifactVersionId) ||
-        row.ref !== `zcode-artifact://share/${row.artifactVersionId}`
+        row.ref !== `nibi-artifact://share/${row.artifactVersionId}`
       ) {
         throwProjectionError(
           "invalid_conversation",

@@ -79,7 +79,7 @@ export class NodeToolArtifactStore implements ToolArtifactStorePort {
 
     return {
       id: artifactId,
-      uri: `zcode-artifact://${encodeURIComponent(request.sessionId)}/${encodeURIComponent(artifactId)}`,
+      uri: `nibi-artifact://${encodeURIComponent(request.sessionId)}/${encodeURIComponent(artifactId)}`,
       path,
       bytes: Buffer.byteLength(request.content, "utf8"),
       contentType,
@@ -113,7 +113,7 @@ export class NodeToolArtifactStore implements ToolArtifactStorePort {
 
     return {
       id: artifactId,
-      uri: `zcode-artifact://${encodeURIComponent(request.sessionId)}/${encodeURIComponent(artifactId)}`,
+      uri: `nibi-artifact://${encodeURIComponent(request.sessionId)}/${encodeURIComponent(artifactId)}`,
       path,
       bytes: content.byteLength,
       contentType: request.contentType,
@@ -483,7 +483,7 @@ function parseArtifactUri(uri: string): { artifactId: string; sessionId: string 
     });
   }
 
-  if (parsed.protocol !== "zcode-artifact:") {
+  if (parsed.protocol !== "nibi-artifact:") {
     throw new Error(`Unsupported tool artifact URI: ${uri}`);
   }
 

@@ -816,7 +816,7 @@ pub enum ArtifactPurpose {
     Deliverable,
 }
 
-/// Artifact 引用（Node `zcode-artifact://<sessionId>/<artifactId>`）。
+/// Artifact 引用（Node `nibi-artifact://<sessionId>/<artifactId>`）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactRef {
     pub session: SessionId,
@@ -840,7 +840,7 @@ pub trait ArtifactStore: Send + Sync {
     async fn get(&self, artifact: &ArtifactRef) -> Result<Vec<u8>, StoreError>;
 
     /// 按会话与 artifact id 找回完整引用（修复线 F18，docs/specs/rust-cli/tools-files.md §1.4）。模型交回的落盘
-    /// 位置 `zcode-artifact://<会话>/<artifact>` 只有这两项；大小、用途与类型由实现方从自己的记录取，内核不凭空
+    /// 位置 `nibi-artifact://<会话>/<artifact>` 只有这两项；大小、用途与类型由实现方从自己的记录取，内核不凭空
     /// 造引用。读内容仍经 [`Self::get`]（照常核对大小）。找不到时为 `None`。不支持的实现返回 `Unsupported`。
     async fn find(
         &self,

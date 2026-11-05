@@ -28,7 +28,7 @@ export function registerArtifactCases(factory: () => JournalStorePort): void {
       description: "59 页 typst 排版",
       contentType: "application/pdf",
       bytes: 1_234_567,
-      uri: "zcode-artifact://ses_parent/abc123",
+      uri: "nibi-artifact://ses_parent/abc123",
       sourcePath: "out/book.pdf",
       publishedAt: 1_725_000_000_000,
       primary: true,

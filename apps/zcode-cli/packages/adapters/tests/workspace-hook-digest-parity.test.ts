@@ -56,7 +56,7 @@ describe("workspace hook Settings/Runtime dual builder digest parity (D17 runtim
     await mkdir(join(workspace, ".git"));
     const userConfigPath = join(home, ".nibi", "cli", "config.json");
     await writeJson(userConfigPath, { hooks: { enabled: true, timeoutMs: 30_000 } });
-    await writeJson(join(workspace, "zcode.json"), {
+    await writeJson(join(workspace, "nibi.json"), {
       hooks: {
         enabled: true,
         events: {
@@ -167,7 +167,7 @@ describe("workspace hook Settings/Runtime dual builder digest parity (D17 runtim
   it("explicit path 与 auto-discovery 指向同一文件时只生成一个 source", async () => {
     const workspace = makeRoot();
     await mkdir(join(workspace, ".git"));
-    const configPath = join(workspace, "zcode.json");
+    const configPath = join(workspace, "nibi.json");
     await writeJson(configPath, {
       hooks: {
         enabled: true,
@@ -207,7 +207,7 @@ describe("workspace hook Settings/Runtime dual builder digest parity (D17 runtim
   it("损坏候选仍占 discoveryOrder，后续 source 的 Runtime/Settings digest 不错位", async () => {
     const workspace = makeRoot();
     await mkdir(join(workspace, ".git"));
-    await writeFile(join(workspace, "zcode.json"), "{broken", "utf8");
+    await writeFile(join(workspace, "nibi.json"), "{broken", "utf8");
     await writeJson(join(workspace, ".nibi", "config.json"), {
       hooks: {
         enabled: true,

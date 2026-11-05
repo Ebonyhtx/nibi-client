@@ -53,6 +53,6 @@ fn names_follow_node_tool_artifacts() {
             ArtifactPurpose::Checkpoint,
             "application/json"
         )),
-        "zcode-artifact://sess%201%2F%C3%A9/tool-result-u"
+        "nibi-artifact://sess%201%2F%C3%A9/tool-result-u"
     );
 }

@@ -228,7 +228,7 @@ export const toolCallRowSchema = z.object({
 export type ToolCallRow = z.infer<typeof toolCallRowSchema>;
 
 // 分享结果物是会话正式投影的一部分；ref 在本地投影中是受 Host 授权的读取引用，
-// 公开分享投影必须将其替换为 zcode-artifact://share/:id，禁止透传本地路径。
+// 公开分享投影必须将其替换为 nibi-artifact://share/:id，禁止透传本地路径。
 export const conversationArtifactTypeSchema = z.enum([
   "pdf",
   "pptx",

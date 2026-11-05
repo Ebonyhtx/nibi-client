@@ -9,7 +9,7 @@ fn rules(texts: &[&str]) -> Vec<String> {
 fn rules_are_sorted_and_written_in_display_form() {
     // 期望的顺序：`mcp__x__y, Bash(ls:*), WebFetch(domain:example.com), and Read`。
     let grants = grants(
-        "zcode.json",
+        "nibi.json",
         &rules(&[
             "Bash(ls:*)",
             "Read",
@@ -28,7 +28,7 @@ fn rules_are_sorted_and_written_in_display_form() {
         ]
     );
     assert_eq!(grants.count, 4);
-    assert_eq!(grants.sources, ["zcode.json"]);
+    assert_eq!(grants.sources, ["nibi.json"]);
     // 四组：特殊工具整条、特殊工具带内容、其他整条、其他带内容；组内保持原顺序。
     let grants = grants_of(&["Grep(x)", "Read", "Edit(src/**)", "Write", "Glob"]);
     assert_eq!(
@@ -55,5 +55,5 @@ fn rules_are_cleaned_truncated_and_deduplicated_but_counted_raw() {
 
 #[test]
 fn an_empty_list_has_no_grants() {
-    assert_eq!(grants("zcode.json", &[]), None);
+    assert_eq!(grants("nibi.json", &[]), None);
 }

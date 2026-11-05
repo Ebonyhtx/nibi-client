@@ -92,7 +92,7 @@ fn insert_event(conn: &Connection, run: &str, sequence: i64, kind: &str, payload
 
 fn artifact_record(id: &str, kind: &str, version: u64, extra: &str) -> String {
     format!(
-        r#"{{"id":"{id}","kind":"{kind}","version":{version},"contentType":"text/markdown","bytes":12,"uri":"zcode-artifact://sess_1/{id}-{version}","publishedAt":{}{extra}}}"#,
+        r#"{{"id":"{id}","kind":"{kind}","version":{version},"contentType":"text/markdown","bytes":12,"uri":"nibi-artifact://sess_1/{id}-{version}","publishedAt":{}{extra}}}"#,
         1_000 + version
     )
 }
@@ -399,7 +399,7 @@ fn artifacts_merge_versions_and_put_the_deliverable_first() {
         "completed",
         None,
         Some(
-            &r#"{"id":"report","kind":"file","version":2,"title":"v2","uri":"zcode-artifact://sess_1/report-2","publishedAt":1002}"#,
+            &r#"{"id":"report","kind":"file","version":2,"title":"v2","uri":"nibi-artifact://sess_1/report-2","publishedAt":1002}"#,
         ),
         None,
         Some("report"),
@@ -587,7 +587,7 @@ fn artifact_version_uri_only_answers_for_completed_versions_with_a_uri() {
     let (uri, content_type) = artifact_version_uri(&conn, "sess_1", "run_a", "doc", 1)
         .unwrap()
         .unwrap();
-    assert_eq!(uri, "zcode-artifact://sess_1/doc-1");
+    assert_eq!(uri, "nibi-artifact://sess_1/doc-1");
     assert_eq!(content_type.as_deref(), Some("text/markdown"));
     // 第 2 版没有 uri（块看板 / 老行的形态）→ 不放行。
     assert_eq!(

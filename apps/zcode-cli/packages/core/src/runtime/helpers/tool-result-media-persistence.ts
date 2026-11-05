@@ -45,7 +45,7 @@ export async function persistToolResultMediaAttachments(input: {
 
   const attachments: FilePart[] = [];
   for (const [index, block] of projection.mediaBlocks.entries()) {
-    const existingArtifactUri = block.source?.uri?.startsWith("zcode-artifact://")
+    const existingArtifactUri = block.source?.uri?.startsWith("nibi-artifact://")
       ? block.source.uri
       : undefined;
     // 已完成工具的媒体属于结果收尾；继承本轮 Stop 信号会中断保存并丢失冷恢复内容。

@@ -306,7 +306,7 @@ fn stored(conn: &Connection, session: &str, kind: Kind) -> Result<Vec<Stored>, S
     Ok(out)
 }
 
-/// Node `parseArtifactUri`：`zcode-artifact://<encodeURIComponent(会话)>/<encodeURIComponent(artifact)>`。
+/// Node `parseArtifactUri`：`nibi-artifact://<encodeURIComponent(会话)>/<encodeURIComponent(artifact)>`。
 fn parse_uri(uri: &str) -> Option<(String, String)> {
     let rest = uri.strip_prefix(rust_cli_kernel_api::persisted_output::ARTIFACT_SCHEME)?;
     let (session, artifact) = rest.split_once('/')?;

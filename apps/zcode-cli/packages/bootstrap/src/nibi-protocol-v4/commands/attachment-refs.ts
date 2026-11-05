@@ -1,7 +1,7 @@
 // 附件命令面：AttachmentRef（引用模型）→ core TurnAttachment 的协议边界映射。
 //
 // ref 的两种形态（与投影侧 buildUserInputRow 的「本地路径 / artifact URI」注释对偶）：
-// 1. URI ref（zcode-artifact:// 等带 scheme:/）——经 attachment chunk transaction 寄存的内容引用：
+// 1. URI ref（nibi-artifact:// 等带 scheme:/）——经 attachment chunk transaction 寄存的内容引用：
 //    - 图片：content 直接携带 URI，core 的 attachment-artifacts 解析链在模型请求时
 //      读回 data URL（与 externalizePromptAttachments 的产物同形，不在这里内联解码，
 //      避免大图在命令层放大内存）。

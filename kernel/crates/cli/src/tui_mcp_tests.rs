@@ -45,7 +45,7 @@ fn env() -> Arc<MemoryEnvironment> {
             home: Some(EnvPath::new("/Users/dev")),
         })
         .with_file(
-            "/Users/dev/project/zcode.json",
+            "/Users/dev/project/nibi.json",
             r#"{"mcp":{"servers":{"repo":{"command":"r"}}}}"#,
         ),
     )
@@ -62,7 +62,7 @@ async fn user_and_project_servers_go_to_their_own_files() {
     let files = files(
         &[
             ("docs", "user", true),
-            ("repo", "/Users/dev/project/zcode.json", false),
+            ("repo", "/Users/dev/project/nibi.json", false),
         ],
         env.clone(),
     );
@@ -74,12 +74,12 @@ async fn user_and_project_servers_go_to_their_own_files() {
             .contains("\"enabled\": false")
     );
     let written = files.save(&paths, "repo", false).await.unwrap();
-    assert_eq!(written.as_deref(), Some("/Users/dev/project/zcode.json"));
+    assert_eq!(written.as_deref(), Some("/Users/dev/project/nibi.json"));
     let project = env
         .read_file(
             &files.workspace,
             ReadFile {
-                path: EnvPath::new("/Users/dev/project/zcode.json"),
+                path: EnvPath::new("/Users/dev/project/nibi.json"),
             },
         )
         .await

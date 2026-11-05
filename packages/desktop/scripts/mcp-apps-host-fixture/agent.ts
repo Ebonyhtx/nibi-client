@@ -368,7 +368,7 @@ export async function startAgent(
         }),
       );
       await writeFile(
-        join(workspacePath, "zcode.json"),
+        join(workspacePath, "nibi.json"),
         JSON.stringify({ plugins: { dirs: [pluginRoot] } }),
       );
       const workspace = { workspacePath, workspaceKey: workspacePath };

@@ -74,7 +74,7 @@ describe("publishArtifact — 内容成员", () => {
     expect(node?.status).toBe("completed");
     expect(node?.artifactId).toBe("book");
     expect((node?.result as ArtifactVersionRecord | undefined)?.uri).toBe(
-      "zcode-artifact://fake/book/1",
+      "nibi-artifact://fake/book/1",
     );
     expect(published(driver).map((r) => [r.id, r.version])).toEqual([["book", 1]]);
   });

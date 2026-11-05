@@ -62,7 +62,7 @@ describe("model request media observability", () => {
         },
         metadata: { recoverability: "provider_ready", storageKind: "inline" },
         mime: "video/mp4",
-        url: "zcode-artifact://session/video-1",
+        url: "nibi-artifact://session/video-1",
       },
     ]);
 

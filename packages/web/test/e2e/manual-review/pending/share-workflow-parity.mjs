@@ -37,7 +37,7 @@ async function fixturePreview() {
         producer_product_turn_id: "share-product-turn-1",
         artifact_version: 1,
         state: "current",
-        ref: `zcode-artifact://share/${artifact.resource_id}`,
+        ref: `nibi-artifact://share/${artifact.resource_id}`,
         artifact_type: "text",
         display_name: `${artifact.title}.md`,
         extension: "md",

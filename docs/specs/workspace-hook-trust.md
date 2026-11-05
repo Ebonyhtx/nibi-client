@@ -15,7 +15,7 @@
 | 状态      | 已实施；当前交互为 persistent-only + soft-gate，静态与自动化检查完成，最终真实 Desktop 人工验收由产品方执行                                                                                                         |
 | 日期      | 2026-08-07                                                                                                                                                                                                          |
 | 适用范围  | ZCode CLI Runtime、ZCode Protocol v4、Desktop/Web UI、Remote Workspace、Headless CLI                                                                                                                                |
-| 主要对象  | workspace/project 级 `zcode.json` 与 `.nibi/config.json` Hooks                                                                                                                                                     |
+| 主要对象  | workspace/project 级 `nibi.json` 与 `.nibi/config.json` Hooks                                                                                                                                                     |
 | 安全基线  | 默认拒绝、显式授权、声明变化按条失效、策略拒绝优先                                                                                                                                                                  |
 | 关联文档  | `docs/security/deep-link-project-trust-boundary.md`；`docs/web-remote-control/web-remote-control-architecture.md`；`docs/web-remote-control/task-realtime-sync.md`；`docs/web-remote-control-task-command-queue.md` |
 | 交互方案  | `设置 → 钩子 → 工作区` 内完成审核；不使用任务页独立 Trust Dialog                                                                                                                                                    |
@@ -102,7 +102,7 @@ effectiveRunnable  本次上下文中是否实际允许执行
 在 Git worktree 内，项目配置从当前目录向 worktree root 发现：
 
 ```text
-<dir>/zcode.json
+<dir>/nibi.json
 <dir>/.nibi/config.json
 ```
 
@@ -131,7 +131,7 @@ V4 composer 会提前创建 draft session，但 draft prewarm 不执行 Hook。
 
 ### 3.1 Workspace Hook / Project Hook
 
-来源于 workspace 项目配置发现范围内 `zcode.json`、`.nibi/config.json` 或显式 `projectConfigPath` 的 Hook。
+来源于 workspace 项目配置发现范围内 `nibi.json`、`.nibi/config.json` 或显式 `projectConfigPath` 的 Hook。
 
 本文统一称为 **Workspace Hook**；代码来源枚举建议使用 `project`，以保持与现有 `ConfigScope.Project` 一致。
 
@@ -723,7 +723,7 @@ effectiveRunnable =
   AND workspace security revision has been validated
 ```
 
-对于祖先目录、`zcode.json`、显式 projectConfigPath 或其他 settings service 不能安全回写的 project Hook，`editable=false`。`.agents/settings.json`、`.claude/settings.json` 等 compatibility rows 保持 disabled/read-only，但不进入 Runtime Trust snapshot。
+对于祖先目录、`nibi.json`、显式 projectConfigPath 或其他 settings service 不能安全回写的 project Hook，`editable=false`。`.agents/settings.json`、`.claude/settings.json` 等 compatibility rows 保持 disabled/read-only，但不进入 Runtime Trust snapshot。
 
 ### 10.4 状态转换
 
@@ -759,7 +759,7 @@ interface WorkspaceHookBundleSnapshot {
     canonicalPath: string;
     baseDir: string;
     discoveryOrder: number;
-    configFileKind: "zcode.json" | ".nibi/config.json" | "explicit";
+    configFileKind: "nibi.json" | ".nibi/config.json" | "explicit";
     explicitProjectConfig: boolean;
     editable: boolean;
     hooksRoot: {
@@ -1525,7 +1525,7 @@ Trust”以及按钮/开关展示，不得形成第二套安全语义：
 | Config    | Runtime enabled / Source enabled / Hook enabled / Read-only source      |
 | Trust     | Pending persistent Trust / Trusted persistent / Policy denied / Changed |
 | Effective | 仅用于锁定开关，不渲染“将运行/不会运行”徽章                             |
-| Source    | `zcode.json`、`.nibi/config.json`、user、plugin、internal              |
+| Source    | `nibi.json`、`.nibi/config.json`、user、plugin、internal              |
 
 若当前没有 task/session，Hooks service 可通过只读 Agent control plane 使用同一 discovery resolver
 获取静态 snapshot；点击 Trust 时必须再由 Agent 重验 identity、bundle 与 declaration digest，
@@ -1950,7 +1950,7 @@ apps/zcode-cli/packages/core/src/hooks/workspace-hook-admission.ts
 - 删除独立 settings review panel、批量选择与状态徽章；
 - 未信任行只在有效运行开关左侧显示逐条 `信任`；无 session 时走 workspace Agent pretrust RPC；
 - 未信任开关显示关闭且锁定，不改写原始配置；信任成功后按真实 configured 状态恢复；
-- 祖先 `zcode.json`、上游 `.nibi/config.json`、显式 projectConfigPath 等不可安全回写来源显示只读 toggle 与 `Open source config`；
+- 祖先 `nibi.json`、上游 `.nibi/config.json`、显式 projectConfigPath 等不可安全回写来源显示只读 toggle 与 `Open source config`；
 - `.agents/.claude` compatibility rows 保持 disabled/read-only，且不进入 Trust snapshot；
 - draft pending/invalidation、policy deny、execution status 和 provenance；
 - Desktop 与手机 Web 均实现响应式审核 UI，复用现有设置页 design tokens，避免独立视觉系统。
@@ -2115,7 +2115,7 @@ HookRunBlocked
 | CFG13 | 仅 configured gates 变化                                | declaration digest 不变，bundle digest 变化                                          |
 | CFG14 | Settings `hooks.enabled` 缺省                           | 与 Runtime `enabled !== false` 的权威 resolver 一致                                  |
 | CFG15 | root 与 cwd 多配置文件                                  | source 顺序、provenance 与 digest 稳定                                               |
-| CFG16 | 祖先 `zcode.json` / 上游 `.nibi/config.json`           | 进入 snapshot；Settings row `editable=false`                                         |
+| CFG16 | 祖先 `nibi.json` / 上游 `.nibi/config.json`           | 进入 snapshot；Settings row `editable=false`                                         |
 | CFG17 | `.claude/.agents` compatibility Hook                    | disabled/read-only，不进入 Trust snapshot/pending count                              |
 | CFG18 | 非 Git workspace                                        | 只扫描 cwd，不纳入父目录                                                             |
 | CFG19 | JSON 空白/key 排列变化                                  | digest 不变                                                                          |
@@ -2309,13 +2309,13 @@ Phase 0 安全结论：
 已完成：
 
 - 新增 Node-only `@nibi/shared/workspace-hook-discovery` subpath，CLI Adapter 与 Settings Service 共用配置路径发现、Hook schema、configured gate、timeout/max-output 归一与 digest/snapshot builder；主 `@nibi/shared` browser-safe 入口不导出 Node-only 实现；
-- 自动发现继续遵循现有 root-to-cwd 语义，支持 `zcode.json`、`.nibi/config.json` 与末尾追加的显式 `projectConfigPath`；非 Git workspace 只扫描 cwd，不自行扩大父目录发现范围；
+- 自动发现继续遵循现有 root-to-cwd 语义，支持 `nibi.json`、`.nibi/config.json` 与末尾追加的显式 `projectConfigPath`；非 Git workspace 只扫描 cwd，不自行扩大父目录发现范围；
 - `loadProjectConfigFile()` 将合法 project Hook 声明保存在独立 `hookCandidate` 通道，并产生 `config_project_hooks_pending_trust`；`normalizeProjectConfig()` 继续从 executable patch 剥离 `hooks`，candidate 不进入 `mergeConfigs()`、configured runner 或 callback construction；
 - 实现 versioned `hookDeclarationDigest` 与 `bundleDigest`：declaration digest 覆盖 source identity/order、event、matcher/order、command/process args、command async/shell、resolved timeout 与 max output；`statusMessage`、unknown passthrough 和 configured gates 不进入 declaration digest；configured gates 与 source root 原始值进入 bundle digest；
 - snapshot 通过 contracts schema 二次校验并深冻结；JSON 空白与 key 排列不影响 digest，`timeout`/`timeoutMs` 经相同 resolver 归一后语义等价；
 - configured gate 固化为 `sourceRootEnabled = source.enabled !== false`、`declarationEnabled = hook.enabled !== false`、`runtimeHooksEnabled = merged hooks.enabled === true`，三者共同决定 `configuredEnabled`；仅 gate 变化保持 declaration digest 不变并改变 bundle digest；
 - Core configured runner 复用同一 `resolveWorkspaceHookTimeoutMs()` 与 `resolveWorkspaceHookMaxOutputBytes()`，避免 Trust canonicalization 和真实 runner 的数值边界分叉；
-- Settings `loadHooks()` 返回同一 canonical `workspaceHookSnapshot`，Hook row 暴露 `configuredState`、`workspaceHook` 与 `editable`；只有当前 workspace 的 `.nibi/config.json` 可编辑，ancestor config、`zcode.json` 和显式配置只读；
+- Settings `loadHooks()` 返回同一 canonical `workspaceHookSnapshot`，Hook row 暴露 `configuredState`、`workspaceHook` 与 `editable`；只有当前 workspace 的 `.nibi/config.json` 可编辑，ancestor config、`nibi.json` 和显式配置只读；
 - `.agents/.claude` compatibility rows 保持 disabled/read-only，不进入 Trust snapshot、bundle digest 或 pending 数量；保存设置时只写 user config 与当前 workspace `.nibi/config.json`，不会把只读 ancestor/project 声明复制到当前文件；
 - 新增 `.nibi/config.json` 原子 mutation primitive：同目录 temp file 写入、`fsync`、`close` 后 atomic rename；rename 前失败时保留原文件并清理 temp file；
 - 本地 Phase 1 identity 暂沿用现有 `workspaceIdentity?.trim() || workspacePath` 语义，并明确不调用 `realpath`。

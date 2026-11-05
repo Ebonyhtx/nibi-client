@@ -7805,9 +7805,9 @@ describe("AgentRuntime tool loop", () => {
             type: "file",
             mime: "video/mp4",
             filename: "clip.mp4",
-            url: "zcode-artifact://test/artifact-1",
+            url: "nibi-artifact://test/artifact-1",
             metadata: {
-              artifactUri: "zcode-artifact://test/artifact-1",
+              artifactUri: "nibi-artifact://test/artifact-1",
               recoverability: "provider_ready",
               sizeBytes: 10,
               storageKind: "artifact",
@@ -10601,10 +10601,10 @@ describe("AgentRuntime tool loop", () => {
       scope: RewindScope.Workspace,
     });
     expect(checkpointEvents[0]?.payload).toMatchObject({
-      diffRef: "zcode-artifact://test/artifact-1",
+      diffRef: "nibi-artifact://test/artifact-1",
       fileCount: 1,
       scope: RewindScope.Workspace,
-      snapshotRef: "zcode-artifact://test/artifact-1",
+      snapshotRef: "nibi-artifact://test/artifact-1",
     });
     const checkpointPayload = checkpointEvents[0]!.payload as {
       messageId?: string;
@@ -10921,7 +10921,7 @@ describe("AgentRuntime tool loop", () => {
           data: expect.objectContaining({
             payload: expect.objectContaining({
               scope: RewindScope.Workspace,
-              snapshotRef: "zcode-artifact://test/artifact-1",
+              snapshotRef: "nibi-artifact://test/artifact-1",
             }),
           }),
         }),
@@ -11716,7 +11716,7 @@ describe("AgentRuntime tool loop", () => {
     ]);
 
     const laterCheckpointUri = fixture.artifactStore.requests
-      .map((_, index) => `zcode-artifact://test/artifact-${index + 1}`)
+      .map((_, index) => `nibi-artifact://test/artifact-${index + 1}`)
       .at(-1)!;
     fixture.artifactStore.contents.delete(laterCheckpointUri);
     const sessionCountBefore = fixture.sessionStore.sessions.size;
@@ -13412,7 +13412,7 @@ class RecordingArtifactStore implements ToolArtifactStorePort {
   async writeToolResultArtifact(request: ToolArtifactWriteRequest) {
     this.requests.push(request);
     const id = `artifact-${this.requests.length}`;
-    const uri = `zcode-artifact://test/${id}`;
+    const uri = `nibi-artifact://test/${id}`;
     this.contents.set(uri, {
       content: request.content,
       contentType: request.contentType ?? "application/json",

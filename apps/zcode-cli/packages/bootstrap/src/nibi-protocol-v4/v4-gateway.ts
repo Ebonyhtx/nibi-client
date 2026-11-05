@@ -567,7 +567,7 @@ function defaultLogEpoch(): string {
 }
 
 function artifactRefBelongsToSession(ref: string, sessionId: string): boolean {
-  return ref.startsWith(`zcode-artifact://${encodeURIComponent(sessionId)}/`);
+  return ref.startsWith(`nibi-artifact://${encodeURIComponent(sessionId)}/`);
 }
 
 /** 附件在文件系统层「确定不存在」的错误码集合。 */

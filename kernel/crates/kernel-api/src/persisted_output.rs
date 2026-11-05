@@ -2,7 +2,7 @@
 //!
 //! 工具结果与 hook 输出共用同一套落盘与预览，两边都只经 [`persist`]：全文经
 //! [`ArtifactStore`] 落盘（README §6 规则 10），交给模型的是位置、原大小与前 2000 个 UTF-16 码元。位置不是
-//! 本机路径，而是 `zcode-artifact://<会话>/<artifact>`（云端也能用，Read 能读）。
+//! 本机路径，而是 `nibi-artifact://<会话>/<artifact>`（云端也能用，Read 能读）。
 
 use rust_cli_base::js::string::{utf16_len, utf16_prefix};
 
@@ -10,7 +10,7 @@ use crate::ids::SessionId;
 use crate::store::{ArtifactPurpose, ArtifactStore, StoreError};
 
 /// 落盘位置的前缀。
-pub const ARTIFACT_SCHEME: &str = "zcode-artifact://";
+pub const ARTIFACT_SCHEME: &str = "nibi-artifact://";
 /// 预览的开头与结尾。
 pub const OPEN: &str = "<persisted-output>";
 pub const CLOSE: &str = "</persisted-output>";
