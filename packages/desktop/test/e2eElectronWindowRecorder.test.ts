@@ -125,16 +125,24 @@ describe("Electron window recorder", () => {
   it("bounds a custom encoder that never settles", async () => {
     const tempDir = await mkdtemp(join(tmpdir(), "zcode-electron-recorder-"));
     tempDirs.push(tempDir);
+    const startedAt = Date.now();
     const session = await startElectronWindowRecording({
       captureFrame: async () => Buffer.from("fake-png-frame"),
       encodeTimeoutMs: 30,
       encodeVideo: () => new Promise<void>(() => undefined),
       frameIntervalMs: 60_000,
       outputPath: join(tempDir, "electron-repro.webm"),
-      stopTimeoutMs: 100,
+      // 这条用例判的是**编码预算**。整个 stop 路径外面还有一层总预算
+      // （`runWithTimeout(..., stopTimeoutMs, "Electron window recording stop")`），
+      // 以前这里给 100ms：慢机器上任意一次调度抖动超过 70ms，先响的就是外层预算，
+      // 报错变成 "recording stop timed out"，用例偶发失败——失败的是机器，不是行为。
+      // 外层预算自己的行为由下一条用例专门判，所以这里把它抬到不会再抢先的值。
+      stopTimeoutMs: 5 * 60_000,
     });
 
     await expect(session.stop()).rejects.toThrow("video encoding timed out after 30ms");
+    // 顺带证明响的是 30ms 那条，而不是外层预算"最终也会超时"。
+    expect(Date.now() - startedAt).toBeLessThan(30_000);
   });
 
   it("bounds the complete stop path even while tail recording", async () => {

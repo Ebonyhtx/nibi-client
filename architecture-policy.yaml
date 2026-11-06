@@ -792,15 +792,12 @@ exceptions:
   - id: project-location-cache-recovery-existing-edit
     rule: unmanaged-new-file
     paths:
-      - packages/shared/src/project-access-token-client.ts
-      - packages/services/src/model-provider/accountProjectTokenClient.ts
       - packages/services/src/credential/credentialService.ts
     reason: 已有项目 Token 与凭据存储增加派生缓存的局部恢复端口；保持原有 owner 和共享文件锁，不接管全目录。
   - id: test-ids-subpath-import-unmanaged-edit
     rule: unmanaged-new-file
     paths:
       - packages/ui/src/browser-use/EmbeddedBrowserPermissionPrompts.tsx
-      - packages/ui/src/hooks/useStartPlanRecommendation.ts
       - packages/ui/src/settings/DynamicWorkflowModeSetting.tsx
     reason: 已准入的存量文件只把 TID 导入从 @nibi/shared 根入口改为 @nibi/shared/test-ids 子路径（根入口不再导出 test-ids，以收窄受影响单测范围）；行为与模块边界不变，接管 ui 目录不在本次范围内。
   - id: connection-log-secret-token-unmanaged-edit
@@ -915,7 +912,6 @@ exceptions:
       - packages/ui/src/chat-input-toolbar/ComposerTriggerTransition.tsx
       - packages/ui/src/hooks/useComposerConnectionSwitch.ts
       - packages/ui/src/lib/composerPlanGroups.ts
-      - packages/ui/src/lib/providerFamilyConnectionTransition.ts
       - packages/ui/src/prompt-editor/useComposerToolbarFit.ts
     reason: Composer model, provider and toolbar files reached staging without the MR architecture gate running; adopting the packages/ui composer toolbar needs a separate module boundary refactor.
   - id: provider-endpoint-routing-unmanaged-edit
@@ -987,7 +983,6 @@ exceptions:
       - packages/shared/src/node/nibiContentMirror.ts
       - packages/shared/src/node/nibiContentSignature.ts
       - packages/desktop/src/preload/membershipWebview.ts
-      - packages/ui/src/settings/NibiMembershipBanner.tsx
       - packages/ui/src/settings/NibiMembershipDialog.tsx
     reason: 会员购买、许可校验、内容镜像与协议传输是 NIBI 替换上游套餐后的自有实现，落在上游 unmanaged 大包的既有目录里，与同目录上游文件共用分层，不引入新模块边界。
   - id: nibi-fork-desktop-shell
