@@ -65,7 +65,7 @@ describe("e2ecase.md 回归", () => {
   it("工作区头像菜单点击使用统计应打开设置页用量分区", async () => {
     await waitForDefaultWorkspaceReady(30000);
 
-    await openUsageStatsFromProfileMenu();
+    await openUsageStatsFromSidebar();
     await $(sel(TID_SETTINGS_PAGE)).waitForDisplayed({ timeout: 15000 });
     await expectSettingsSectionActive("usage");
 
@@ -82,7 +82,7 @@ describe("e2ecase.md 回归", () => {
     await selectSettingsSection("general");
     await expectSettingsSectionActive("general");
 
-    await openUsageStatsFromProfileMenu();
+    await openUsageStatsFromSidebar();
     await $(sel(TID_SETTINGS_PAGE)).waitForDisplayed({ timeout: 15000 });
     await expect($(sel(TID_SETTINGS_PAGE))).toBeDisplayed();
     await expectSettingsSectionActive("usage");
@@ -233,14 +233,21 @@ async function openSettingsPage() {
   await $(sel(TID_SETTINGS_PAGE)).waitForDisplayed({ timeout: 15000 });
 }
 
-async function openUsageStatsFromProfileMenu() {
+/**
+ * 点开设置页的用量分区。
+ *
+ * 先打开头像下拉菜单，再点里面的用量入口（`DropdownMenuItem` 就在这个下拉里）。
+ * 这条用例以前不可能通过，不是因为流程错了，而是常量里写的 test id 在产物里不存在
+ * （`sidebar-coding-plan-usage-button`；真实 id 是 `sidebar-usage-open-stats-button`）。
+ */
+async function openUsageStatsFromSidebar() {
   await clickVisibleTestIdByDom(TID_LOGIN_TRIGGER, {
     timeout: 15000,
     timeoutMsg: "没有找到可见的头像菜单入口",
   });
   await clickVisibleTestIdByDom(TID_SIDEBAR_CODING_PLAN_USAGE_BUTTON, {
     timeout: 15000,
-    timeoutMsg: "头像菜单没有出现可见的使用统计入口",
+    timeoutMsg: "头像菜单没有出现可见的用量统计入口",
   });
 }
 
