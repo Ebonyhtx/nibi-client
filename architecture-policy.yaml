@@ -1029,6 +1029,15 @@ exceptions:
       - packages/ui/src/settings/nibiMembershipState.ts
       - packages/ui/src/settings/useNibiMembership.ts
     reason: 会员阶段判定与状态 hook 是左下角账户菜单、插件市场付费门禁共用的同一份纯逻辑；放在 ui/settings 既有目录，只依赖 @nibi/services 的只读状态类型，不新增跨层依赖。接管整个 ui 包不在本次范围内。
+  - id: persisted-prefs-store-unmanaged-file
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/lib/nibiStorage.ts
+    reason: >-
+      `ui` 模块是 managed:false 的遗留区（roots 覆盖整个 packages/ui/src），
+      所以新文件必须单独登记。这个文件是渲染层唯一的偏好写入口（前缀白名单 + 版本迁移），
+      放在 lib/ 下是为了和 browserEnvironment 等既有存储工具同层。path-exact，不开整个目录。
+
   - id: rust-migration-unmanaged-files
     rule: unmanaged-new-file
     paths:
