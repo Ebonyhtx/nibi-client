@@ -2,7 +2,7 @@
   "name": "@nibi/cli",
   "version": "0.1.0",
   "private": true,
-  "description": "Main CLI application for zcode",
+  "description": "NIBI CLI and TUI",
   "bin": {
     "nibi": "./dist/nibi.cjs"
   },
