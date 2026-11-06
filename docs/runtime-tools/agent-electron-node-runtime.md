@@ -2,7 +2,7 @@
 
 ## 核心思路
 
-ZCode Agent 以前每个平台都内置一份独立的原生二进制 `zcode-agent`（SEA：官方 Node + `zcode.cjs` + TUI 资源 + 官方插件），单平台 ~180MB，里面**自带一份 Node**。
+ZCode Agent 以前每个平台都内置一份独立的原生二进制（改名前的旧名是 `zcode-agent`，现在叫 `nibi-agent`；SEA：官方 Node + `zcode.cjs` + TUI 资源 + 官方插件），单平台 ~180MB，里面**自带一份 Node**。
 
 但无论桌面还是远端，运行 agent 的环境里**本来就已经有一份 Node**：
 

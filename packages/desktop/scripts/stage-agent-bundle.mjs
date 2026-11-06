@@ -26,7 +26,8 @@ export function resolveAgentBundlePaths({ repoRoot, platformKey }) {
 /**
  * 干净重建 glm 目录再拷贝。清空是刻意的：electron-builder 整目录拷贝
  * bundled-agents/<平台>/glm → resources/glm，本地工作树里上一次构建残留的原生二进制
- * （zcode-agent / zcode-acp 等）和旧 meta 会被一并打进安装包（CI 干净检出不会有，本地会）。
+ * （改名前的 `zcode-agent`、上游的 `zcode-acp` 等）和旧 meta 会被一并打进安装包（CI 干净检出
+ * 不会有，本地会）。
  */
 export function stageAgentBundle({ repoRoot, platformKey, log = console.log }) {
   const { cliBundlePath, glmDir, stagedBundlePath, stagedMetaPath } = resolveAgentBundlePaths({

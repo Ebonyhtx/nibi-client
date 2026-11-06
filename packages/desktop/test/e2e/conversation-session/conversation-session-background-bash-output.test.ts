@@ -213,7 +213,7 @@ describe("后台 Bash 实时输出详情", () => {
         ).join("\n");
         // 成功日志曾随每秒轮询持续落盘；先确认真实 RPC 日志存在，再验证该查询被 debug 门控。
         expect(logs).toContain("[rpc:call]");
-        expect(logs).not.toContain("[rpc:call] zcode-agent.backgroundBashOutputV4 OK");
+        expect(logs).not.toContain("[rpc:call] nibi-agent.backgroundBashOutputV4 OK");
       }
     });
   }

@@ -105,13 +105,13 @@ export const ServiceChannels = {
   /** 跨窗口广播 */
   Broadcast: "broadcast",
   /** ZCode task wrapper 服务 */
-  ZCodeTask: "zcode-task",
+  ZCodeTask: "nibi-task",
   /** 窗口 Host 聚合 workspace/task 投影与列表写路由 */
   WindowController: "window-controller",
   /** ZCode Protocol agent 服务 */
-  ZCodeAgent: "zcode-agent",
+  ZCodeAgent: "nibi-agent",
   /** ZCode session 应用服务 */
-  ZCodeSession: "zcode-session",
+  ZCodeSession: "nibi-session",
   Project: "project",
   TaskGroups: "task-groups",
   RemoteProjects: "remote-projects",

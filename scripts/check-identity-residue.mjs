@@ -120,13 +120,13 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
  *
  * 尚未清完、因此暂不列入的（列在这里是为了别忘，不是因为可以接受）：
  *
- * - `zcode-agent` 的**其它三处**用法（会话库里的 agent 值已经改成 `nibi-agent`，这三处是不同契约）：
- *   1. IPC 频道值（`packages/shared/src/channels.ts` 的 `ZCodeAgent`）——Host 与 CLI 的握手名；
- *   2. 反馈工单的 `framework` 值（`packages/shared/src/feedback.ts`）——**服务端可能按枚举校验**，
+ * - `zcode-agent` / `zcode-session` / `zcode-task` 的**残余用法**（频道值、原生可执行文件名、
+ *   会话库 agent 值都已经改成 NIBI，剩下的是另一类东西）：
+ *   1. 反馈工单的 `framework` 值（`packages/shared/src/feedback.ts`）——**服务端可能按枚举校验**，
  *      必须先确认服务端接受新值再改；
- *   3. 原生 agent 可执行文件名（`packages/shared/src/zcode-agent-runtime.ts`、`scripts/download-glm.*`）
- *      ——与下载/解包流程同批改。
- *   这三处都在产物里，泛词 `zcode-agent` 会让判据假红，所以逐条清完再登记。
+ *   2. 服务日志标签（`createServiceLogger("zcode-agent")`、`[zcode-task-service] …`）与
+ *      测试里的临时目录前缀——只影响日志/临时路径，改名要连带改断言日志文本的用例。
+ *   这几类都在产物里，泛词 `zcode-agent` 会让判据假红，所以逐条清完再登记。
  * - `/* zcode-workflow` 元数据块标记：已保存工作流文件的格式契约，改名要迁就存量文件。
  */
 const FORBIDDEN_IDENTITY_TOKENS = [

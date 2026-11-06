@@ -33,7 +33,7 @@ export const NIBI_AGENT_RUNTIME: ZCodeAgentRuntimeDescriptor = {
   nativeConfigFileName: "config.json",
   missingBinaryMessage:
     "[NIBI Agent] glm binary 未找到，请设置 NIBI_AGENT_WORKDIR、GLM_BINARY_PATH 或先准备 GLM 运行时资源",
-  resolveEntrySegments: (platform) => [resolvePlatformBinaryName("zcode-agent", platform)],
+  resolveEntrySegments: (platform) => [resolvePlatformBinaryName("nibi-agent", platform)],
   nodeBundleEntryFile: "nibi.cjs",
   resolveNodeBundleSegments() {
     return [this.nodeBundleEntryFile];

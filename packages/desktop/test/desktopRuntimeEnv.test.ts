@@ -39,7 +39,7 @@ vi.mock("@nibi/shared", () => ({
     nativeConfigFileName: "config.json",
     missingBinaryMessage: "[ZCode Agent] missing test binary",
     resolveEntrySegments: (platform: string) => [
-      platform === "win32" ? "zcode-agent.exe" : "zcode-agent",
+      platform === "win32" ? "nibi-agent.exe" : "nibi-agent",
     ],
   },
   NIBI_ENV: "test",
@@ -733,9 +733,9 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-desktop-runtime-env-"));
     createdDirs.push(sandboxRoot);
     const platformKey = `${process.platform}-${process.arch}`;
-    const bundledBinaryName = process.platform === "win32" ? "zcode-agent.exe" : "zcode-agent";
+    const bundledBinaryName = process.platform === "win32" ? "nibi-agent.exe" : "nibi-agent";
     const bundledPath = join(sandboxRoot, "bundled-agents", platformKey, "glm", bundledBinaryName);
-    const localGlmPath = join(sandboxRoot, "local", "zcode-agent");
+    const localGlmPath = join(sandboxRoot, "local", "nibi-agent");
     mkdirSync(join(sandboxRoot, "bundled-agents", platformKey, "glm"), {
       recursive: true,
     });

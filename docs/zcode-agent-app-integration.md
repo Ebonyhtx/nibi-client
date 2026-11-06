@@ -111,7 +111,7 @@ search runtime）。历史 `resourcePackages.selectedPackageIds` 只兼容读取
   预编译归档，旧 `prepare:rg` 不再作为独立维护入口暴露。
 - `pnpm dev:desktop` 的本地 runtime 自检只补齐当前平台的 native-search 工具集和必需平台 helper：
   macOS/Linux 的工具集为 `bfs`、`ugrep`、`ripgrep`，Windows x64/arm64 为 `ugrep`、`ripgrep`；自检不再
-  检查或下载 `glm/zcode-agent`。开发态 Agent 由 `dev-desktop-env.mjs` 在 `pre-dev` 后调用
+  检查或下载 `glm/nibi-agent`（改名前的旧名是 `zcode-agent`）。开发态 Agent 由 `dev-desktop-env.mjs` 在 `pre-dev` 后调用
   `build-desktop-agent-cli.mjs` 构建，运行时优先使用 workspace 内的 `dist/zcode.cjs`。
 - 桌面安装包携带 `resources/glm/zcode.cjs`、`resources/tools/ugrep` 与 `resources/tools/ripgrep`；
   macOS/Linux 另携带 `resources/tools/bfs`。

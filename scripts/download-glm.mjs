@@ -200,7 +200,7 @@ export async function main() {
       ? localOutputDir
       : remoteOutputDir;
 
-  const binaryName = platform === "win32" ? "zcode-agent.exe" : "zcode-agent";
+  const binaryName = platform === "win32" ? "nibi-agent.exe" : "nibi-agent";
   const binaryPath = path.join(outputDir, binaryName);
 
   const baseUrl = resolveGlmDownloadBaseUrl();

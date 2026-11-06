@@ -3,14 +3,14 @@ import { resolveRpcLogLevel } from "../src/host/rpcLogLevel.js";
 
 describe("host RPC 日志级别映射", () => {
   it("后台 Bash 成功轮询仅记 debug，失败仍记 warn", () => {
-    expect(resolveRpcLogLevel("[rpc:call] zcode-agent.backgroundBashOutputV4 OK (1.5ms)")).toBe(
+    expect(resolveRpcLogLevel("[rpc:call] nibi-agent.backgroundBashOutputV4 OK (1.5ms)")).toBe(
       "debug",
     );
-    expect(resolveRpcLogLevel("[rpc:call] zcode-agent.backgroundBashOutputV4 FAIL (1.5ms)")).toBe(
+    expect(resolveRpcLogLevel("[rpc:call] nibi-agent.backgroundBashOutputV4 FAIL (1.5ms)")).toBe(
       "warn",
     );
     expect(
-      resolveRpcLogLevel("[rpc:call] zcode-agent.otherBackgroundBashOutputV4 OK (1.5ms)"),
+      resolveRpcLogLevel("[rpc:call] nibi-agent.otherBackgroundBashOutputV4 OK (1.5ms)"),
     ).toBe("info");
   });
 
@@ -29,7 +29,7 @@ describe("host RPC 日志级别映射", () => {
 
     expect(
       resolveRpcLogLevel(
-        "[rpc:call] zcode-session.getWorkspaceRuntimeIdentity FAIL (12.0ms)",
+        "[rpc:call] nibi-session.getWorkspaceRuntimeIdentity FAIL (12.0ms)",
         error,
       ),
     ).toBe("info");

@@ -15,7 +15,7 @@ function makeServices(id: string): IServiceAccessor {
     systemService: { id, service: "system" },
     terminalService: { id, service: "terminal" },
     promptAttachmentTransferService: { id, service: "prompt-attachment-transfer" },
-    zcodeAgentService: { id, service: "zcode-agent" },
+    zcodeAgentService: { id, service: "nibi-agent" },
     zcodeTaskService: { id, service: "zcode-task" },
     zcodeSessionService: { id, service: "zcode-session" },
     conversationShareService: { id, service: "conversation-share" },

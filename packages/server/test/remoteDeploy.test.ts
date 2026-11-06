@@ -40,7 +40,7 @@ const retiredProtocolPrefix = `${"a"}${"cp"}`;
 const retiredProxyRuntimeId = `${retiredProtocolPrefix}-proxy-runtime`;
 // 远端 ZCode Agent bundle 文件名（与 REMOTE_AGENT_BUNDLE_NAME 保持一致）。
 const REMOTE_AGENT_BUNDLE_FILE_NAME = "nibi.cjs";
-const REMOTE_AGENT_WRAPPER_FILE_NAME = "zcode-agent";
+const REMOTE_AGENT_WRAPPER_FILE_NAME = "nibi-agent";
 const BROWSER_USE_REQUIRED_RELATIVE_PATHS = [
   // node_repl 宿主已抽成 @nibi/node-repl-host，browser-use 不再产出 dist/mcp/server.js。
   "browser-use-plugin/docs/api.json",
@@ -111,7 +111,7 @@ const LEGACY_REMOTE_TEST_AGENT_RUNTIME: Record<
     binaryKind: "native-binary",
     bundledResourceDir: "glm",
     version: NIBI_AGENT_RUNTIME.version,
-    resolveEntrySegments: (platform) => [resolveTestPlatformBinaryName("zcode-agent", platform)],
+    resolveEntrySegments: (platform) => [resolveTestPlatformBinaryName("nibi-agent", platform)],
   },
 };
 
@@ -517,7 +517,7 @@ function createFullyDeployedRemoteFiles(platformKey: RemotePlatformKey): Record<
         ] = "claude native binary";
       }
     } else if (provider === "glm") {
-      // ZCode Agent 远端部署后：wrapper（zcode-agent）+ 编译产物 bundle（nibi.cjs）。
+      // ZCode Agent 远端部署后：wrapper（nibi-agent）+ 编译产物 bundle（nibi.cjs）。
       const entrySegments = runtime.resolveEntrySegments(platform);
       const wrapperName = entrySegments[entrySegments.length - 1];
       if (wrapperName) {
@@ -1404,7 +1404,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     ]);
     expect(
       backend.uploads.some(
-        (upload) => upload.remotePath === "~/.nibi/server/agents/glm/zcode-agent.new",
+        (upload) => upload.remotePath === "~/.nibi/server/agents/glm/nibi-agent.new",
       ),
     ).toBe(false);
 
@@ -1926,7 +1926,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     expect(devBundleUpload?.localPath.endsWith(DEV_CLI_BUNDLE_TEST_SUFFIX)).toBe(true);
     expect(
       backend.commands.some(
-        (command) => command.includes("zcode-agent.new") && command.includes("nibi.cjs"),
+        (command) => command.includes("nibi-agent.new") && command.includes("nibi.cjs"),
       ),
     ).toBe(true);
     expect(backend.commands.some((command) => command.includes(".dev-version"))).toBe(true);
@@ -1987,7 +1987,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         {
           "~/.nibi/server/agents/glm/.version": `${NIBI_AGENT_RUNTIME.version}\n`,
           "~/.nibi/server/agents/glm/.dev-version": `${devVersion}\n`,
-          "~/.nibi/server/agents/glm/zcode-agent": "dev wrapper",
+          "~/.nibi/server/agents/glm/nibi-agent": "dev wrapper",
           "~/.nibi/server/agents/glm/nibi.cjs": bundleMatches
             ? "console.log('same dev zcode agent');\n"
             : "old published bundle without PAT support",
@@ -3681,7 +3681,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
 
     const remoteFiles = createFullyDeployedRemoteFiles("linux-arm64");
     addMatchingGlmAndServerArtifactIdentities(remoteFiles, manifest, "linux-arm64");
-    delete remoteFiles["~/.nibi/server/agents/glm/zcode-agent"];
+    delete remoteFiles["~/.nibi/server/agents/glm/nibi-agent"];
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const backend = new FakeRemoteBackend(remoteFiles);

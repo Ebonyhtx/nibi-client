@@ -307,7 +307,7 @@ describe("resolveDefaultZCodeAgentCommand", () => {
   it.each(desktopSurfaceArgsCases)(
     "Desktop surface 归一化 $name 时不吞掉无关参数",
     ({ input, expected }) => {
-      process.env.NIBI_AGENT_SERVER_COMMAND = "zcode-agent";
+      process.env.NIBI_AGENT_SERVER_COMMAND = "nibi-agent";
       process.env.NIBI_AGENT_SERVER_ARGS_JSON = JSON.stringify(input);
 
       const command = resolveDefaultZCodeAgentCommand({
@@ -317,7 +317,7 @@ describe("resolveDefaultZCodeAgentCommand", () => {
       });
 
       expect(command).toMatchObject({
-        command: "zcode-agent",
+        command: "nibi-agent",
         args: expected,
       });
     },
@@ -336,7 +336,7 @@ describe("resolveDefaultZCodeAgentCommand", () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), "zcode-agent-deployed-binary-"));
     createdDirs.push(sandboxRoot);
 
-    const binaryPath = join(sandboxRoot, "zcode-agent");
+    const binaryPath = join(sandboxRoot, "nibi-agent");
     writeFileSync(binaryPath, "#!/bin/sh\necho zcode-agent\n");
 
     process.env[NIBI_AGENT_RUNTIME.binaryEnvVar] = binaryPath;
@@ -1518,7 +1518,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
 
     const wrapped = wrapZCodeAgentCommandWithStdioTapDevProxy(
       {
-        command: "zcode-agent",
+        command: "nibi-agent",
         args: ["app-server", "--stdio"],
         cwd: "/repo/workspace",
         env: { CUSTOM_ENV: "1" },
@@ -1535,7 +1535,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         "--log-dir",
         join(sandboxRoot, ".nibi", "v2", "dev", "stdio-traffic"),
         "--",
-        "zcode-agent",
+        "nibi-agent",
         "app-server",
         "--stdio",
       ],
@@ -1557,7 +1557,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
       writeFileSync(tapScript, "#!/usr/bin/env node\n");
       process.chdir(sandboxRoot);
       process.env[NIBI_RUNTIME_ENV_KEY] = "development";
-      process.env.NIBI_AGENT_SERVER_COMMAND = "zcode-agent";
+      process.env.NIBI_AGENT_SERVER_COMMAND = "nibi-agent";
       process.env.NIBI_AGENT_SERVER_ARGS_JSON = JSON.stringify(input);
       setDataBaseDir(sandboxRoot);
       setZCodeStdioTapDevEnabled(true);
@@ -1576,7 +1576,7 @@ require("node:readline").createInterface({ input: process.stdin }).on("line", li
         "--log-dir",
         join(sandboxRoot, ".nibi", "v2", "dev", "stdio-traffic"),
         "--",
-        "zcode-agent",
+        "nibi-agent",
         ...expected,
       ]);
     },

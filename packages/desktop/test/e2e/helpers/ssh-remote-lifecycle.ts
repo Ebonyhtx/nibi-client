@@ -583,7 +583,7 @@ export async function listRemoteAgentProcesses(
   // 进程口径按 spawnArgs 定位:workspace agent 恒以 `app-server --stdio` 拉起,
   // 与实现形态无关 —— 旧 dev 态是 `node nibi.cjs app-server`,3.12+ release 下
   // 优先用 glm 原生二进制(bundledResourceDir "glm", resolveEntrySegments
-  // ["zcode-agent"]),只有缺二进制时才回落 node+nibi.cjs(server-cli.js 的
+  // ["nibi-agent"]),只有缺二进制时才回落 node+nibi.cjs(server-cli.js 的
   // NIBI_AGENT_RUNTIME)。server daemon 跑 `serve --supervisor`(3.12 实测口径,早期写作
   // `serve --daemon`),都不含 `app-server --stdio`,不会被误匹配。
   const result = await runSSHCommand(

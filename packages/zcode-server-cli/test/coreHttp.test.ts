@@ -494,7 +494,7 @@ describe("standalone Server Core ingress", () => {
     });
     try {
       const direct = await host.client
-        .getChannel("zcode-agent")
+        .getChannel("nibi-agent")
         .call("conversationRowsRangeV4", [input]);
       await expect(
         host.client.getChannel("conversation-share").call("preflight", [input]),

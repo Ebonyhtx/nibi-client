@@ -59,7 +59,7 @@ describe("remote asset cache Windows directory commit", () => {
       await mkdir(join(sourceRoot, "glm", platformArch), { recursive: true });
       await writeFile(join(sourceRoot, "server", "nibi-server.cjs"), "server", "utf8");
       await writeFile(join(sourceRoot, "node", platformArch, "node"), "node", "utf8");
-      await writeFile(join(sourceRoot, "glm", platformArch, "zcode-agent"), "glm", "utf8");
+      await writeFile(join(sourceRoot, "glm", platformArch, "nibi-agent"), "glm", "utf8");
 
       const components = [
         {
@@ -177,7 +177,7 @@ describe("remote asset cache Windows directory commit", () => {
       );
       expect(failedRenameTargets).toHaveLength(1);
       await expect(
-        readFile(join(releaseDir, "glm", platformArch, "zcode-agent"), "utf8"),
+        readFile(join(releaseDir, "glm", platformArch, "nibi-agent"), "utf8"),
       ).resolves.toBe("glm");
     } finally {
       await rm(rootDir, { force: true, recursive: true });

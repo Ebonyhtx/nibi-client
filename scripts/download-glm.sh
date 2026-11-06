@@ -50,9 +50,9 @@ else
   OUTPUT_DIR="$REPO_ROOT/packages/desktop/mock-cdn/releases/$(node -p "require('$REPO_ROOT/package.json').version")/glm/$PLATFORM_KEY"
 fi
 
-BINARY_NAME="zcode-agent"
+BINARY_NAME="nibi-agent"
 if [ "$PLATFORM" = "win32" ]; then
-  BINARY_NAME="zcode-agent.exe"
+  BINARY_NAME="nibi-agent.exe"
 fi
 
 # Bugfix: GLM 二进制按 zcode-cli 版本发布，默认下载目录必须跟随 shared runtime 里的 glm.version。

@@ -164,7 +164,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     const captured = createCapturingServer();
     const server = new SourceServerWorkspaceIdentityChannelServer(captured.server, mapper);
     const events = new Emitter<unknown>();
-    server.registerChannel("zcode-agent", {
+    server.registerChannel("nibi-agent", {
       async call() {
         return undefined;
       },
@@ -173,7 +173,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
       },
     });
 
-    const channel = captured.channels.get("zcode-agent")!;
+    const channel = captured.channels.get("nibi-agent")!;
     const outputAssembler = new TopicWireFrameAssembler(sessionsIndexTopicFrameSchema);
     const outputEvents: ReturnType<typeof outputAssembler.accept> = [];
     const subscription = channel.listen("core", "onDynamicSessionsIndexFrame", [
@@ -248,7 +248,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     const captured = createCapturingServer();
     const server = new SourceServerWorkspaceIdentityChannelServer(captured.server, mapper);
     const events = new Emitter<unknown>();
-    server.registerChannel("zcode-agent", {
+    server.registerChannel("nibi-agent", {
       async call() {
         return undefined;
       },
@@ -260,7 +260,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     const outputAssembler = new TopicWireFrameAssembler(sessionsIndexTopicFrameSchema);
     const outputEvents: ReturnType<typeof outputAssembler.accept> = [];
     const subscription = captured.channels
-      .get("zcode-agent")!
+      .get("nibi-agent")!
       .listen(
         "core",
         "onDynamicSessionsIndexFrame",
@@ -340,7 +340,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     const captured = createCapturingServer();
     const server = new SourceServerWorkspaceIdentityChannelServer(captured.server, mapper);
     const events = new Emitter<unknown>();
-    server.registerChannel("zcode-agent", {
+    server.registerChannel("nibi-agent", {
       async call() {
         return undefined;
       },
@@ -383,7 +383,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     const outputAssembler = new TopicWireFrameAssembler(conversationTopicFrameSchema);
     const outputEvents: ReturnType<typeof outputAssembler.accept> = [];
     const subscription = captured.channels
-      .get("zcode-agent")!
+      .get("nibi-agent")!
       .listen(
         "core",
         "onDynamicConversationFrame",
@@ -424,7 +424,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     const captured = createCapturingServer();
     const server = new SourceServerWorkspaceIdentityChannelServer(captured.server, mapper);
     const events = new Emitter<unknown>();
-    server.registerChannel("zcode-agent", {
+    server.registerChannel("nibi-agent", {
       async call() {
         return undefined;
       },
@@ -434,7 +434,7 @@ describe("SourceServerWorkspaceIdentityChannelServer", () => {
     });
     const received: unknown[] = [];
     const subscription = captured.channels
-      .get("zcode-agent")!
+      .get("nibi-agent")!
       .listen(
         "core",
         "onDynamicSessionsIndexFrame",
