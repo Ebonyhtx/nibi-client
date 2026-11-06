@@ -1,10 +1,32 @@
-import { BrowserWindow, clipboard, type WebContents } from "electron";
+import { BrowserWindow, clipboard, nativeImage, type WebContents } from "electron";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
 import type { PluginSandboxHandle } from "@nibi/shared/mcp-apps";
 import { checkPreviewCorners } from "./preview-corner-checks.js";
 import { checkUnifiedStyles } from "./style-checks.js";
+
+/**
+ * 剪贴板里有没有 PNG。
+ *
+ * Electron 44 移除了 `clipboard.readImage()`（剪贴板重构为 W3C 异步 API，与
+ * `pluginSandbox/host.ts` 里 `writeImage` → `write` 是同一次改动）。旧写法一直没被发现，
+ * 是因为本文件不在任何 tsconfig 的 include 里——接进构建那天才会炸。
+ */
+async function clipboardHasImage(): Promise<boolean> {
+  const items = await clipboard.read();
+  return items.some((item) => item.types.includes("image/png"));
+}
+
+/** 剪贴板里 PNG 的像素尺寸；新 API 只给 Blob，尺寸要自己解。 */
+async function clipboardImageSize(): Promise<{ width: number; height: number }> {
+  for (const item of await clipboard.read()) {
+    if (!item.types.includes("image/png")) continue;
+    const blob = await item.getType("image/png");
+    return nativeImage.createFromBuffer(Buffer.from(await blob.arrayBuffer())).getSize();
+  }
+  throw new Error("clipboard has no image/png item");
+}
 
 export async function checkCopyButton(win: BrowserWindow, preview = false) {
   if (preview) await checkPreviewCorners(win);
@@ -30,7 +52,7 @@ export async function checkCopyButton(win: BrowserWindow, preview = false) {
       };
       requestAnimationFrame(tick);
     })`);
-    assert.equal(clipboard.readImage().isEmpty(), false);
+    assert.equal(await clipboardHasImage(), true);
     assert.deepEqual(await buttonState(), initial);
   }
 }
@@ -42,12 +64,12 @@ export async function checkCapture(
   root: string,
 ) {
   await win.webContents.executeJavaScript("window.copy()");
-  assert.equal(clipboard.readImage().isEmpty(), false);
+  assert.equal(await clipboardHasImage(), true);
   const fullImage = await guest.capturePage();
   const viewport = await win.webContents.executeJavaScript(
     "document.querySelector('webview').getBoundingClientRect().toJSON()",
   );
-  const copiedSize = clipboard.readImage().getSize();
+  const copiedSize = await clipboardImageSize();
   assert.equal(
     copiedSize.width,
     Math.floor(((viewport.width - 5) * fullImage.getSize().width) / viewport.width) -

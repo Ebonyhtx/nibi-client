@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "jsx": "react-jsx",
+    "lib": [
+      "es2024",
+      "dom",
+      "dom.iterable"
+    ],
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@nibi/*": [
+        "../../packages/*/src/index.ts"
+      ],
+      "@desktop/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "scripts/gen-ui-fixture/presentation-checks.ts",
+    "scripts/gen-ui-fixture/preview-corner-checks.ts",
+    "scripts/gen-ui-fixture/style-checks.ts"
+  ]
+}
