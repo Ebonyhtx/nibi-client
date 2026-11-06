@@ -19,7 +19,12 @@ on:
     paths:
       - "packages/**"
       - "kernel/**"
+      - "apps/**"
       - "pnpm-lock.yaml"
+      # 镜像与运行脚本变了同样要跑：这套用例的失败大多来自它们，而不是测试代码。
+      - "Dockerfile.desktop-e2e"
+      - ".dockerignore"
+      - "scripts/test-desktop-e2e-container.sh"
       - ".github/workflows/desktop-e2e.yml"
   workflow_dispatch:
     inputs:

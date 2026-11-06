@@ -94,6 +94,21 @@ RUN --mount=type=cache,id=zcode-desktop-e2e-pnpm-store,target=/pnpm/store \
     pnpm config set store-dir "${PNPM_STORE_DIR}" && \
     pnpm install --frozen-lockfile
 
+# Electron 二进制必须烘进镜像：测试期是 replay-isolated（`--network none`），
+# 跑的时候再下载必然失败（`install.js` fetch failed）。
+#
+# 不能指望 `pnpm install` 一定装好：构建缓存复用 pnpm store 时，依赖的 postinstall
+# 不一定会重跑，`node_modules/electron/dist` 就可能是空的。这一层缺了一直没被发现，
+# 因为这套 e2e 从没在干净环境里跑过（CI 运行次数是 0）。
+#
+# 构建期（有网络）补齐，并断言产物真的在——缺了就让构建失败，别留到运行阶段才炸。
+RUN if [ ! -x node_modules/electron/dist/electron ]; then \
+      echo "[desktop-e2e] electron binary missing after install; fetching at build time"; \
+      node node_modules/electron/install.js; \
+    fi && \
+    test -x node_modules/electron/dist/electron && \
+    echo "[desktop-e2e] electron binary ready: $(node -p 'require("./node_modules/electron/package.json").version')"
+
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends xauth && \
     rm -rf /var/lib/apt/lists/*
