@@ -3739,7 +3739,7 @@ describe("ZCode legacy task compat task index", () => {
     ]);
   });
 
-  it("does not include zero ZCode Protocol context usage in task snapshots", async () => {
+  it("does not include zero NIBI Protocol context usage in task snapshots", async () => {
     const { service } = createService();
     const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
 
@@ -4532,7 +4532,7 @@ describe("ZCode legacy task compat task index", () => {
     });
   });
 
-  it("maps ZCode Protocol context projection events to legacy usage_update", async () => {
+  it("maps NIBI Protocol context projection events to legacy usage_update", async () => {
     const { eventEmitter, service } = createService();
     const task = await service.createTask({ workspacePath: "/repo", provider: "glm" });
     const received: ZCodeStreamEvent[] = [];

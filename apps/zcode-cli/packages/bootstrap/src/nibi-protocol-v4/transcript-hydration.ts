@@ -50,7 +50,7 @@ import { HYDRATION_TRACE_ID } from "./projection-state.js";
 
 const SUBAGENT_TOOL_NAMES = new Set(["Agent", "Task", "subagent"]);
 const LEGACY_MODEL_REQUEST_CANCELLED_MESSAGE = "Model request was cancelled.";
-const LEGACY_PROTOCOL_SESSION_STOPPED_MESSAGE = "ZCode Protocol session stopped";
+const LEGACY_PROTOCOL_SESSION_STOPPED_MESSAGE = "NIBI Protocol session stopped";
 const PERSISTED_CANCELLATION_CODES = new Set<string>([
   CoreErrorType.TurnCancelled,
   ModelErrorCode.ModelRequestCancelled,

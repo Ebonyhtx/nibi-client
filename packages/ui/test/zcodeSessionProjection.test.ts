@@ -2225,7 +2225,7 @@ describe("zcodeSessionProjection", () => {
     });
   });
 
-  it("maps ZCode Protocol context projection updates to legacy usage_update events", () => {
+  it("maps NIBI Protocol context projection updates to legacy usage_update events", () => {
     expect(
       zcodeSessionEventToZCodeStreamEvents({
         event: {
@@ -4031,7 +4031,7 @@ describe("zcodeSessionProjection", () => {
     });
   });
 
-  it("maps nested ZCode Protocol projection context usage", () => {
+  it("maps nested NIBI Protocol projection context usage", () => {
     expect(
       zcodeSessionEventToZCodeStreamEvents({
         event: {

@@ -37,7 +37,7 @@ export async function cleanupProtocolRuntime(options: {
         }),
       ]);
     } catch (error) {
-      options.logger.warn(`ZCode Protocol ${resource} shutdown failed`, {
+      options.logger.warn(`NIBI Protocol ${resource} shutdown failed`, {
         errorType: error instanceof Error ? error.name : typeof error,
         event: `nibi_protocol.${resource}.shutdown.failed`,
         module: "bootstrap.nibi_protocol",

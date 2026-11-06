@@ -659,7 +659,7 @@ describe("transcript→event 合成", () => {
       name: "legacy protocol session stop",
       error: {
         name: "Error",
-        data: { message: "ZCode Protocol session stopped" },
+        data: { message: "NIBI Protocol session stopped" },
       },
     },
   ])("cold $name restores interrupted completion instead of TurnError", ({ error }) => {

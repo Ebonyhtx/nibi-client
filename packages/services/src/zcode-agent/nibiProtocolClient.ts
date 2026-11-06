@@ -66,7 +66,7 @@ export class NibiProtocolRequestTimeoutError extends Error {
     readonly requestId: NibiProtocolRequestId,
     readonly timeoutMs: number,
   ) {
-    super(`ZCode Protocol request timed out: ${method}`);
+    super(`NIBI Protocol request timed out: ${method}`);
     this.name = "NibiProtocolRequestTimeoutError";
   }
 }
@@ -89,7 +89,7 @@ export class NibiProtocolClient implements IDisposable {
    * client 是否已 dispose（进程被回收/transport 关闭后为 true）。
    * 调用方（如 getClient 复用 active entry）必须在复用前检查此标记，
    * 避免对一个已被 processManager 回收但尚未触发 onClose 的 client 发请求，
-   * 否则会立即抛 "ZCode Protocol client is disposed"。
+   * 否则会立即抛 "NIBI Protocol client is disposed"。
    */
   get isDisposed(): boolean {
     return this.disposed;
@@ -367,7 +367,7 @@ export class NibiProtocolClient implements IDisposable {
       pending.reject(
         error instanceof Error
           ? error
-          : new Error(`ZCode Protocol response parse failed: ${pending.method}`),
+          : new Error(`NIBI Protocol response parse failed: ${pending.method}`),
       );
     }
   }
@@ -413,7 +413,7 @@ export class NibiProtocolClient implements IDisposable {
   }
 
   private disposeLocalResources(): void {
-    this.rejectAll(new Error("ZCode Protocol client disposed"));
+    this.rejectAll(new Error("NIBI Protocol client disposed"));
     for (const disposable of this.disposables) {
       disposable.dispose();
     }
@@ -428,7 +428,7 @@ export class NibiProtocolClient implements IDisposable {
 
   private assertNotDisposed(): void {
     if (this.disposed) {
-      throw new Error("ZCode Protocol client is disposed");
+      throw new Error("NIBI Protocol client is disposed");
     }
   }
 }

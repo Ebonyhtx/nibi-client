@@ -107,7 +107,7 @@ export async function runNibiProtocolAgent(
     },
     startupStartedAt,
   );
-  startupTimer.start("ZCode Protocol agent startup started", {
+  startupTimer.start("NIBI Protocol agent startup started", {
     context: { version: options.version },
     event: "nibi_protocol.startup.started",
     stage: "start",
@@ -319,7 +319,7 @@ export async function runNibiProtocolAgent(
       (message) => connection.send(message),
       logger,
     );
-    startupTimer.complete("ZCode Protocol agent startup completed", {
+    startupTimer.complete("NIBI Protocol agent startup completed", {
       event: "nibi_protocol.startup.completed",
       stage: "total",
     });
@@ -329,7 +329,7 @@ export async function runNibiProtocolAgent(
     options.lifecycle?.requestShutdown(
       error instanceof Error ? error : new Error("Protocol runtime failed", { cause: error }),
     );
-    startupTimer.fail("ZCode Protocol agent startup failed", error, {
+    startupTimer.fail("NIBI Protocol agent startup failed", error, {
       event: "nibi_protocol.startup.failed",
       stage: "total",
     });
@@ -348,7 +348,7 @@ export async function runNibiProtocolAgent(
       sessionStore,
       providerRegistryRuntime,
     });
-    logger.info("ZCode Protocol agent shutdown completed", {
+    logger.info("NIBI Protocol agent shutdown completed", {
       ...traceContextToLogContext(traceContext),
       event: "nibi_protocol.shutdown.completed",
       module: "bootstrap.nibi_protocol",

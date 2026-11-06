@@ -168,7 +168,7 @@ function frameAtCompletePhysicalBytes(targetBytes: number): ConversationTopicFra
   return frame;
 }
 
-describe("ZCode Protocol V4 wire v3", () => {
+describe("NIBI Protocol V4 wire v3", () => {
   it("硬切 V4 wire/hello 到 v3，但不改变 legacy 主协议版本", () => {
     expect(V4_WIRE_PROTOCOL_VERSION).toBe(3);
     expect(NIBI_PROTOCOL_V4_WIRE_VERSION).toBe(3);

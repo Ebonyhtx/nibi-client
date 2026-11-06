@@ -155,7 +155,7 @@ export class NibiProtocolNdjsonConnection {
   };
 
   private readonly onAbort = (): void => {
-    this.notifyTransportClosed(new Error("ZCode Protocol runtime stopping"));
+    this.notifyTransportClosed(new Error("NIBI Protocol runtime stopping"));
     this.finish();
   };
 
@@ -269,7 +269,7 @@ export class NibiProtocolNdjsonConnection {
     try {
       decoded = JSON.parse(line);
     } catch (error) {
-      this.options.logger?.warn("ZCode Protocol JSON parse failed", {
+      this.options.logger?.warn("NIBI Protocol JSON parse failed", {
         error: error instanceof Error ? error.message : String(error),
         event: "nibi_protocol.parse.failed",
         module: "bootstrap.nibi_protocol",
@@ -281,7 +281,7 @@ export class NibiProtocolNdjsonConnection {
 
     const parsed = nibiProtocolMessageSchema.safeParse(decoded);
     if (!parsed.success) {
-      this.sendError("invalid-message", -32600, "Invalid ZCode Protocol message", {
+      this.sendError("invalid-message", -32600, "Invalid NIBI Protocol message", {
         issues: parsed.error.issues,
       });
       return null;

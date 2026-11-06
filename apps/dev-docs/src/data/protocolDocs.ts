@@ -796,7 +796,7 @@ export const structures: StructureDoc[] = [
     fields: [
       {
         name: "protocol",
-        type: "{ name: 'ZCode Protocol'; version: 1 }",
+        type: "{ name: 'NIBI Protocol'; version: 1 }",
         required: "required",
         meaning: "协议名和版本，客户端据此确定 schema。",
         owner: "agent server",

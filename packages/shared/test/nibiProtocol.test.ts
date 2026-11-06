@@ -73,7 +73,7 @@ const modelProperties = {
   outputFormat: { supportsText: true },
 };
 
-describe("ZCode Protocol", () => {
+describe("NIBI Protocol", () => {
   it("模型格式能力只接受完整的嵌套 properties 契约", () => {
     const properties = {
       inputFormat: {

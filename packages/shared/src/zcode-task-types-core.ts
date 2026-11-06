@@ -789,7 +789,7 @@ export interface ZCodeTaskTokenUsageDelta {
   traceId: TraceId;
   inputId?: InputId;
   queryId?: QueryId;
-  /** 稳定去重键，通常来自 ZCode Protocol eventId。 */
+  /** 稳定去重键，通常来自 NIBI Protocol eventId。 */
   eventKey: string;
   eventId?: string;
   querySource?: string;
@@ -1004,7 +1004,7 @@ export interface ZCodeSessionRuntimeSnapshot {
   activeTurnKind?: ZCodeSessionActiveTurnKind;
   /** Agent API 网络重试是运行态提示，只随 snapshot 恢复，不写入 session JSON。 */
   apiRetry?: ZCodeApiRetryStatus | null;
-  /** ZCode Protocol projection 中的上下文窗口用量，用于恢复旧 task UI 的右下角 context meter。 */
+  /** NIBI Protocol projection 中的上下文窗口用量，用于恢复旧 task UI 的右下角 context meter。 */
   contextUsage?: {
     used: number;
     size: number;

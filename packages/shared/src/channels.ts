@@ -108,7 +108,7 @@ export const ServiceChannels = {
   ZCodeTask: "nibi-task",
   /** 窗口 Host 聚合 workspace/task 投影与列表写路由 */
   WindowController: "window-controller",
-  /** ZCode Protocol agent 服务 */
+  /** NIBI Protocol agent 服务 */
   ZCodeAgent: "nibi-agent",
   /** ZCode session 应用服务 */
   ZCodeSession: "nibi-session",

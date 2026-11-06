@@ -1328,7 +1328,7 @@ export function createZCodeTaskServiceAdapter(
       }
       logger.warn(
         undefined,
-        `ZCode Protocol session 缺失，已按 legacy task snapshot 恢复 taskId=${params.taskId}`,
+        `NIBI Protocol session 缺失，已按 legacy task snapshot 恢复 taskId=${params.taskId}`,
         error,
       );
       return { kind: "legacy", snapshot: legacySnapshot };
@@ -2954,7 +2954,7 @@ export function createZCodeTaskServiceAdapter(
 
     async getTaskTokenUsage(params): Promise<ZCodeTaskTokenUsageResult> {
       // 摘要面板需要展示 task 的累计模型消耗，不能复用 usage_update 的 context window。
-      // 这里通过 ZCode Protocol 读 agent SQLite 的 model_usage 聚合，保持桌面和远控同一事实源。
+      // 这里通过 NIBI Protocol 读 agent SQLite 的 model_usage 聚合，保持桌面和远控同一事实源。
       return options.zcodeAgentService.getTaskTokenUsage({
         workspacePath: params.workspacePath,
         workspaceIdentity: params.workspaceIdentity,
@@ -3144,7 +3144,7 @@ export function createZCodeTaskServiceAdapter(
         const localDisposable = getTaskEmitter(target).event(listener);
         if (legacySnapshotTaskKeys.has(taskKey(target))) {
           // Bugfix: legacy ACP task 没有 zcode-cli sqlite session，恢复后只能作为只读历史。
-          // 若继续向 ZCode Protocol 建 desktop-continuous/replayable 订阅，会反复触发
+          // 若继续向 NIBI Protocol 建 desktop-continuous/replayable 订阅，会反复触发
           // Session is not active 并刷爆日志；本地 emitter 已足够承接 rename/archive 等元数据事件。
           return localDisposable;
         }
@@ -3798,7 +3798,7 @@ function mapToolPart(
 ): ZCodePersistedToolCall {
   const state = part.state;
   const taskNotification = backgroundTaskNotifications?.get(part.callId);
-  // ZCode Protocol 的 part.callId 是实时流和终态 snapshot 共同的工具身份。
+  // NIBI Protocol 的 part.callId 是实时流和终态 snapshot 共同的工具身份。
   // 以前只保存 metadata 会丢掉 toolCallId，手机 replayable 里 result-only 临时工具就无法被终态快照覆盖。
   const raw = attachZCodeBackgroundTaskNotificationToRaw(
     attachToolCallIdToRaw("metadata" in state ? (state.metadata ?? state) : state, part.callId),
@@ -4004,7 +4004,7 @@ function mapSessionEvent(
   const inputId = stringValue(payload.inputId);
   const queryId = stringValue(payload.queryId);
   // 兼容层对外的 traceId 语义是“一次用户输入到本轮回复结束”的轮次标识。
-  // ZCode Protocol runtime trace 只在事件没有 inputId 时兜底，避免同一轮 chunk/tool/complete 被拆成不同 trace。
+  // NIBI Protocol runtime trace 只在事件没有 inputId 时兜底，避免同一轮 chunk/tool/complete 被拆成不同 trace。
   const eventInputId = inputId ?? activePromptInputId;
   const traceId = eventInputId ?? protocolTraceId;
   if (eventInputId && eventInputId !== protocolTraceId) {
@@ -4736,7 +4736,7 @@ function mapToolUpdated(
   }
   if ("result" in payload) {
     const result = asRecord(payload.result);
-    // ZCode Protocol 的 ToolCallResult 只有 toolCallId/result，不再重复带 toolName。
+    // NIBI Protocol 的 ToolCallResult 只有 toolCallId/result，不再重复带 toolName。
     // 去掉 ZCode Agent 后如果不记住前序 ToolCallScheduled 的 TodoWrite 名称，result 里的 todos
     // 就只能当普通字符串输出，无法继续投射成顶部 todo/plan 事件。
     const toolName = rememberedToolName;
@@ -4904,7 +4904,7 @@ function isSubagentDispatchToolName(toolName: string | undefined): boolean {
 }
 
 function parentToolUseIdFromToolPayload(payload: Record<string, unknown>): string | null {
-  // ZCode Protocol 发送的父级字段叫 parentToolCallId；
+  // NIBI Protocol 发送的父级字段叫 parentToolCallId；
   // UI stream 模型统一消费 parentToolUseId，必须在服务投影层完成一次性归一。
   return (
     stringValue(payload.parentToolUseId) ??
@@ -5653,7 +5653,7 @@ function contextUsageFromPayload(payload: Record<string, unknown>): ContextUsage
   if (size === undefined || size <= 0) {
     return null;
   }
-  // ZCode Protocol 的 session.updated 里 contextUsed/contextWindow 是 projection 事实源；
+  // NIBI Protocol 的 session.updated 里 contextUsed/contextWindow 是 projection 事实源；
   // 旧 task stream 只认识 usage_update，adapter 不转换就会让右下角 context meter 永远拿不到数据。
   // used=0 只表示初始化或异常兜底，不能渲染成可用的 context meter。
   if (used === undefined || used <= 0) {

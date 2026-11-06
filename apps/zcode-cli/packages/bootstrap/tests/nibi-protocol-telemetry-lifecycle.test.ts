@@ -131,7 +131,7 @@ vi.mock("@nibi/telemetry", async (importOriginal) => ({
 
 import { runNibiProtocolAgent } from "../src/nibi-protocol-entrypoint.js";
 
-describe("ZCode Protocol telemetry lifecycle", () => {
+describe("NIBI Protocol telemetry lifecycle", () => {
   afterEach(() => {
     vi.clearAllMocks();
     telemetryMocks.emitMcpOnStart = false;

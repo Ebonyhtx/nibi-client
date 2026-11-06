@@ -149,7 +149,7 @@ export function parseModelPickerValue(value: string): ModelSelection {
   const customModel = decodeCustomModelValue(value);
   if (customModel?.providerId && customModel.modelName) {
     // UI 自定义模型值是展示态 custom:provider:model，
-    // ZCode Protocol 必须收到严格的 providerId/modelId 结构。
+    // NIBI Protocol 必须收到严格的 providerId/modelId 结构。
     return {
       providerId: customModel.providerId,
       modelId: customModel.modelName,
@@ -264,7 +264,7 @@ function resolveSettingsThoughtLevelCurrentValue(
     thoughtLevel.defaultLevel && thoughtLevelValues.has(thoughtLevel.defaultLevel)
       ? thoughtLevel.defaultLevel
       : undefined;
-  // ZCode Protocol 的 defaultLevel 是模型事实，current 为空时表示用户尚未显式修改。
+  // NIBI Protocol 的 defaultLevel 是模型事实，current 为空时表示用户尚未显式修改。
   // 实时模型状态事件也要投影默认值，否则工具栏会拿到空 currentValue，出现没有档位被选中的 UI。
   return currentThoughtLevel ?? defaultThoughtLevel ?? thoughtLevel.available[0]?.value;
 }
@@ -1770,7 +1770,7 @@ function mapToolPart(
 ): ZCodePersistedToolCall {
   const state = part.state;
   const taskNotification = backgroundTaskNotifications?.get(part.callId);
-  // 修复原因：ZCode Protocol 的 part.callId 是实时流和终态 snapshot 共同的工具身份。
+  // 修复原因：NIBI Protocol 的 part.callId 是实时流和终态 snapshot 共同的工具身份。
   // 以前只保存 metadata 会丢掉 toolCallId，手机 replayable 里 result-only 临时工具就无法被终态快照覆盖。
   const raw = attachZCodeBackgroundTaskNotificationToRaw(
     attachToolCallIdToRaw("metadata" in state ? (state.metadata ?? state) : state, part.callId),
@@ -3181,7 +3181,7 @@ function contextUsageFromPayload(payload: Record<string, unknown>): ContextUsage
   if (size === undefined || size <= 0) {
     return null;
   }
-  // Bugfix: ZCode Protocol session.updated 承载的是 projection 事实源；
+  // Bugfix: NIBI Protocol session.updated 承载的是 projection 事实源；
   // 旧 task UI 只认识 usage_update，必须在迁移桥里把 contextUsed/contextWindow 显式转出来。
   // used=0 只表示初始化或异常兜底，不能渲染成可用的 context meter。
   if (used === undefined || used <= 0) {

@@ -4068,7 +4068,7 @@ describe("NibiProtocolAgentServer", () => {
       expect(logs).toContainEqual(
         expect.objectContaining({
           level: "warn",
-          message: "ZCode Protocol runtime preferences request timed out",
+          message: "NIBI Protocol runtime preferences request timed out",
           context: expect.objectContaining({
             errorCode: -32022,
             scope: "runtime-materialization",
@@ -4205,7 +4205,7 @@ describe("NibiProtocolAgentServer", () => {
 
     expect(stopActiveForegroundExecution).toHaveBeenCalledOnce();
     expect(stopActiveForegroundExecution).toHaveBeenCalledWith({
-      reason: "ZCode Protocol owner disconnected",
+      reason: "NIBI Protocol owner disconnected",
     });
     expect(activeAbortController.signal.aborted).toBe(true);
     expect(activeAbortController.signal.reason).toBe(disconnectError);
@@ -6418,7 +6418,7 @@ describe("NibiProtocolAgentServer", () => {
     );
 
     await vi.waitFor(() => {
-      expect(abortReasons).toContain("ZCode Protocol goal paused");
+      expect(abortReasons).toContain("NIBI Protocol goal paused");
     });
     expect(target?.status).toBe("paused");
     expect(pauseResult).toMatchObject({
@@ -6538,7 +6538,7 @@ describe("NibiProtocolAgentServer", () => {
     });
 
     await vi.waitFor(() => {
-      expect(abortReasons).toContain("ZCode Protocol session stopped");
+      expect(abortReasons).toContain("NIBI Protocol session stopped");
     });
     expect(goalResult.startedTurn).toBe(true);
     expect(target?.status).toBe("paused");

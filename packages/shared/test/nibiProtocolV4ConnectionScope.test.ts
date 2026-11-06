@@ -13,7 +13,7 @@ import {
   v4WorkspaceConfigSubscribeResultSchema,
 } from "../src/nibi-protocol-v4/index.js";
 
-describe("ZCode Protocol V4 trusted connection scope", () => {
+describe("NIBI Protocol V4 trusted connection scope", () => {
   it("connection flow RPC 只接受 trusted connectionId 与三态控制", () => {
     expect(V4_METHODS.connectionFlow).toBe("v4/connection/flow");
     for (const state of ["saturated", "drained", "closed"] as const) {

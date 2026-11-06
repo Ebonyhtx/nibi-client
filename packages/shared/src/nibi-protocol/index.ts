@@ -18,9 +18,9 @@ import {
 import { mcpAppsSamplingParamsSchema, mcpAppsSamplingResultSchema } from "../mcp-apps/sampling.js";
 import { mcpAppInstanceSchema } from "../mcp-apps/instance.js";
 export { conversationQuoteSchema, conversationQuotesSchema } from "../conversationSelection.js";
-/* oxlint-disable eslint(max-lines) -- ZCode Protocol schema 需要单文件导出，方便 app 与 agent 共享同一份协议契约。 */
+/* oxlint-disable eslint(max-lines) -- NIBI Protocol schema 需要单文件导出，方便 app 与 agent 共享同一份协议契约。 */
 // ── 旧协议删除边界──────────────────────
-// 剩余 ~257 个导出：旧 ZCode Protocol 方法契约、请求/响应/事件 schema、
+// 剩余 ~257 个导出：旧 NIBI Protocol 方法契约、请求/响应/事件 schema、
 // session/workspace state snapshot 投影等（承重类型已迁 nibi-protocol-legacy-types.ts）。
 // 已连根删除的死词（词表+schema+两侧实现）：session/steer、session/rewind、
 // session/rewindCascade、session/previewFileRewind、session/applyFileRewind、
@@ -4066,7 +4066,7 @@ export const nibiProtocolMethods = {
   // @deprecated：host 消费已清零（zcodeAgentService 改走 v4/usage/stats）。
   // 仅剩 CLI server 的 wire 兼容 case；随旧词整体删除时一并移除。
   usageStats: "usage/stats",
-  // ZCode Protocol 对 agent 只暴露 session-first 方法；task 是 UI 投影概念，不能泄露进协议方法名。
+  // NIBI Protocol 对 agent 只暴露 session-first 方法；task 是 UI 投影概念，不能泄露进协议方法名。
   // @deprecated：host 已改走 v4/conversation/usage；后续与 usage/stats 一并移除。
   sessionUsage: "session/usage",
   // 资源管理器：CLI 回报其 MCP 子进程 pid 与插件归属（纯内存，无 I/O），采样在 Host 侧完成。

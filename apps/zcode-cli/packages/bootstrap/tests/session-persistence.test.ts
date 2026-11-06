@@ -1383,7 +1383,7 @@ describe("session persistence", () => {
     }
   });
 
-  it("blocks ZCode Protocol startup on database migration before protocol connection", async () => {
+  it("blocks NIBI Protocol startup on database migration before protocol connection", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "nibi-protocol-migration-gate-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const db = new DatabaseSync(dbPath);
@@ -1422,7 +1422,7 @@ describe("session persistence", () => {
     }
   });
 
-  it("schedules log retention cleanup after ZCode Protocol startup completes", async () => {
+  it("schedules log retention cleanup after NIBI Protocol startup completes", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "nibi-protocol-log-retention-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const output = createMemoryWritable();
@@ -1458,7 +1458,7 @@ describe("session persistence", () => {
     }
   });
 
-  it("routes AI SDK warnings away from ZCode Protocol stdout", async () => {
+  it("routes AI SDK warnings away from NIBI Protocol stdout", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "nibi-protocol-ai-sdk-warning-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const logDir = join(tempRoot, "log");

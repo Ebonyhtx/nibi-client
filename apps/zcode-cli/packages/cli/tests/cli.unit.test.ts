@@ -5823,7 +5823,7 @@ test("rejects force MCS outside prompt, target, or TUI commands", async () => {
   assert.equal(ctx.stdout.output(), "");
 });
 
-test("dispatches app-server stdio command to the ZCode Protocol runner without production dotenv", async () => {
+test("dispatches app-server stdio command to the NIBI Protocol runner without production dotenv", async () => {
   const ctx = createContext(["app-server", "--stdio"]);
   let called = false;
   let dotenvCalls = 0;

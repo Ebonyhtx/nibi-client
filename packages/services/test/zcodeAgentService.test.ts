@@ -60,7 +60,7 @@ function createReadyZCodeAgentService(options?: Parameters<typeof createZCodeAge
   });
 }
 
-// 一个最小的 ZCode Protocol stdio fake agent：
+// 一个最小的 NIBI Protocol stdio fake agent：
 // 第一次收到 session/subscribe 返回错误（模拟 "Session is not active" 之类的瞬时失败），
 // 第二次返回成功并带一条 session.titleUpdated 事件。用来验证订阅建立失败后会重试。
 const FLAKY_SUBSCRIBE_FAKE_AGENT = `

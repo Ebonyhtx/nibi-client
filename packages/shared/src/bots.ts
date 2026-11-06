@@ -725,7 +725,7 @@ export const botCurrentOptionsSchema = z
     mode: z.string().min(1).optional(),
     sandboxMode: z.string().min(1).optional(),
     approvalPolicy: z.string().min(1).optional(),
-    // 兼容旧 bot-config.json；CLI provider 现在统一由 ZCode Protocol 侧配置决定。
+    // 兼容旧 bot-config.json；CLI provider 现在统一由 NIBI Protocol 侧配置决定。
     cli: legacyBotAgentProviderSchema.optional(),
   })
   .strict();

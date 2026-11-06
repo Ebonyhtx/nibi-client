@@ -1133,7 +1133,7 @@ describe("useDraftSessionPrewarm workspace owner", () => {
         if (type === "createSession") {
           createCount += 1;
           // 首次撞上 Helper ready 触发的回收（client disposed），重试时回收已结束。
-          if (createCount === 1) throw new Error("ZCode Protocol client disposed");
+          if (createCount === 1) throw new Error("NIBI Protocol client disposed");
           return acceptedCreateAck(`draft-${createCount}`);
         }
         return NOOP_ACK;
@@ -1177,7 +1177,7 @@ describe("useDraftSessionPrewarm workspace owner", () => {
         sessionId: string | null,
       ): Promise<CommandAck> => {
         calls.push({ type, sessionId });
-        if (type === "createSession") throw new Error("ZCode Protocol client disposed");
+        if (type === "createSession") throw new Error("NIBI Protocol client disposed");
         return NOOP_ACK;
       },
     );

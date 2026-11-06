@@ -1055,7 +1055,7 @@ function prepareZCodeAgentServer() {
 
   // Bugfix: e2e 还在找仓库外的旧原生 zcode-agent binary，并调用已经删除的
   // `build:agent-exe`。当前桌面端统一通过 zcode-cli 的 app-server JS bundle
-  // 暴露 ZCode Protocol，这里复用正式开发入口的构建脚本，之后由 bundled resolver
+  // 暴露 NIBI Protocol，这里复用正式开发入口的构建脚本，之后由 bundled resolver
   // 选择已校验的 bundle，保留存储准备能力和正式桌面启动契约。
   execFileSync(process.execPath, [BUILD_DESKTOP_AGENT_SCRIPT], {
     cwd: REPO_ROOT,

@@ -75,8 +75,8 @@ function isRuntimeRecycleError(error: unknown): boolean {
     // 冷订阅可能亲自拉起新 runtime；restart 令在途 ACK 失效后仍须有界重订，不能停在 error。
     message.includes("fault.subscription.runtimeRestarted") ||
     message.includes("NIBI agent transport closed") ||
-    message.includes("ZCode Protocol client disposed") ||
-    message.includes("ZCode Protocol client is disposed") ||
+    message.includes("NIBI Protocol client disposed") ||
+    message.includes("NIBI Protocol client is disposed") ||
     message.includes("NIBI Agent runtime is not running")
   );
 }

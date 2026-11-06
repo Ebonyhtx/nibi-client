@@ -170,7 +170,7 @@ export interface NibiProtocolAgentServerContext {
 
 /** server → client 请求失败的协议错误码；server.ts 抛出，适配层按码翻译，不在业务逻辑中散落字面量。 */
 export const PROTOCOL_CLIENT_REQUEST_ERROR_CODES = {
-  /** 没有 ZCode Protocol client 挂载，无法投递请求。 */
+  /** 没有 NIBI Protocol client 挂载，无法投递请求。 */
   noClientAttached: -32020,
   /** 请求在收到应答前被取消。 */
   cancelled: -32021,
@@ -329,7 +329,7 @@ export function requireSession(
   if (!record) {
     // 诊断：readSession 只读取活跃 runtime；记录缺失时要区分“冷会话尚未恢复”和“ID 已失效”，
     // 不能只留下相同的错误文本，否则无法判断 UI 是读早了还是 task index 带来了脏引用。
-    context.logger?.warn("ZCode Protocol session runtime missing", {
+    context.logger?.warn("NIBI Protocol session runtime missing", {
       activeSessionCount: context.sessions.size,
       event: "nibi_protocol.session.require_missing",
       hasSessionStore: Boolean(context.deps.sessionStore),

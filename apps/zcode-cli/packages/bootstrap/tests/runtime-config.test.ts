@@ -321,7 +321,7 @@ describe("resolveAppRuntimeConfig", () => {
   });
 
   it("projects explicit session tool filters into the runtime tool surface", () => {
-    // Explicit filters come from ZCode Protocol session/create or the headless CLI
+    // Explicit filters come from NIBI Protocol session/create or the headless CLI
     // flags; they are the only inputs that shape the provider-visible tool surface.
     const configResult = createConfig({
       cliOverrides: {

@@ -112,13 +112,13 @@ export async function openStartupNibiProtocolSessionStore(
   startupTimer: StartupTimer,
 ): Promise<SqliteSessionStore> {
   const dbPath = getSessionDbPath(configResult);
-  startupTimer.start("ZCode Protocol SQLite migration started", {
+  startupTimer.start("NIBI Protocol SQLite migration started", {
     context: { dbPath },
     event: "nibi_protocol.startup.sqlite_migration.started",
     stage: "migrate_session_db",
   });
   const store = await SqliteSessionStore.openStartup({ dbPath });
-  startupTimer.mark("ZCode Protocol SQLite migration completed", {
+  startupTimer.mark("NIBI Protocol SQLite migration completed", {
     context: { dbPath },
     event: "nibi_protocol.startup.sqlite_migration.completed",
     stage: "migrate_session_db",
