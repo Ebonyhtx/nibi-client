@@ -105,9 +105,14 @@ pub fn config_schema_version(object: &Map<String, Value>) -> u64 {
 
 /// 写入前补上当前 `schemaVersion`（已有则覆盖成当前版本）。
 ///
-/// **只给我们自己的文件盖章**：用户级 `~/.nibi/config.json`、`installed_plugins.json`。
-/// 项目里的 `nibi.json` 是用户自己写、可能提交进仓库的文件，往里加 Rust 的版本字段会污染
-/// 用户的仓库；那边只读不盖（读取本来就容忍缺失）。
+/// **当前没有任何写入路径调用它**，这是刻意的：
+///
+/// 1. 与 Node 共写的用户级配置一直保持「写出的文字逐字节相同」这个不变量，加一个字段就破了，
+///    而这些测试正是靠它防回归。
+/// 2. 版本字段目前没有消费者——没有破坏性改动就没有要迁移的东西。等第一次真的要改字段时
+///    再盖章，那一刻本来就随迁移逻辑一起发，读取侧把缺失当 0 也天然兼容（见 ADR 0005）。
+///
+/// 保留这个函数是为了那时有现成的写法，避免有人绕过规则自己拼。
 pub fn stamp_config_schema_version(object: &mut Map<String, Value>) {
     object.insert(
         "schemaVersion".to_owned(),
@@ -226,7 +231,6 @@ async fn write_ui_value(
             Some(Err(_)) => return Err(ConfigWriteError::Parse(shown.to_owned())),
         };
         patch_ui(&mut object, key, value);
-        stamp_config_schema_version(&mut object);
         let mut text = node_pretty(&Value::Object(object));
         text.push('\n');
         Ok(text)

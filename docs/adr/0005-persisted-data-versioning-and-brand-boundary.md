@@ -45,11 +45,17 @@ NIBI 与上游 ZCode 可能装在同一台机器上。两者的持久化数据�
 | 数据 | 版本标记 |
 | --- | --- |
 | 渲染层偏好 | `nibi:prefs` 的 `version` 字段（`NIBI_PREFS_VERSION`） |
-| 用户级 `~/.nibi/cli/config.json` | 顶层 `schemaVersion`（写时盖章，`CONFIG_SCHEMA_VERSION`） |
+| 用户级 `~/.nibi/cli/config.json` | 顶层 `schemaVersion`（**当前不写**，见下方说明） |
 | 项目 `nibi.json` | **不盖章**：用户自己写、可能提交进仓库的文件，加我们的版本字段等于污染用户仓库；只读、容忍缺失 |
 | `.nibi/config.json` | 同上 |
 | 已装插件清单 `installed_plugins.json` | 顶层 `schemaVersion` |
 | 会话库设置 | `local_setting.schema_version` 列（已有） |
+
+**当前不盖章的理由**：这份文件与 Node 共写，一直保持"写出的文字逐字节相同"这个不变量
+（`cli_config` 的测试靠它防回归）。版本字段目前没有消费者——没有破坏性改动就没有要迁移的东西。
+所以现在只保留读取助手（`config_schema_version`，缺失当 0）与写入助手
+（`stamp_config_schema_version`，暂无人调用），等第一次真的要改字段时再盖章：那一刻迁移逻辑
+本来就一起发，读取侧把缺失当 0 天然兼容。
 
 读取规则统一为：**缺字段 = 版本 0（版本化之前），按最老格式读，读完升级并回写当前版本**；
 **版本高于当前 = 更新版本写的文件，只读我们认识的字段，不降级、不丢弃未知字段、不回写**。

@@ -240,9 +240,10 @@ async fn concurrent_writes_keep_each_other() {
     }
 }
 
-/// `schemaVersion`：缺失视为 0（版本化之前的文件），写入时补成当前版本。
+/// `schemaVersion`：缺失视为 0（版本化之前的文件）；写入路径目前不盖章（见 ADR 0005），
+/// 但需要有现成的写法，等第一次破坏性改动时用。
 #[test]
-fn the_schema_version_defaults_to_zero_and_is_stamped_on_write() {
+fn the_schema_version_defaults_to_zero_and_stamps_when_asked() {
     let mut object = Map::new();
     assert_eq!(config_schema_version(&object), 0);
 
