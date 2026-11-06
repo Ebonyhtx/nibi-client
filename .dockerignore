@@ -25,6 +25,12 @@ kernel/target
 **/target/debug
 **/target/release
 
+# 桌面构建产物与 e2e 运行产物：镜像里由 Dockerfile 自己重建，不需要从宿主机拷进去。
+# `**/dist` 盖不住 `packages/desktop/out`（那个目录就叫 out）。
+packages/desktop/out
+packages/desktop/.e2e-artifacts
+**/dist-types
+
 dogfood-output
 docs/electron
 docs/webdriverio

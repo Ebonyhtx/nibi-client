@@ -15,6 +15,9 @@ ARG PNPM_VERSION=10.33.2
 # 空串是安全的：electron 的 install.js 走 @electron/get，`ELECTRON_MIRROR` 为空时按 falsy 回退官方源。
 ARG ELECTRON_MIRROR=""
 
+# `NIBI_E2E_SPEC` 与 `scripts/test-desktop-e2e-container.sh` 的 DEFAULT_E2E_SPEC 保持一致：
+# 只有经 replay-isolated 容器准入过的 spec 能在这里。**不要**放 `upstream-provider.test.ts`
+# ——它要真实上游地址与 API key，容器 `--network none` 永远满足不了。
 ENV CI=1 \
     HUSKY=0 \
     PNPM_HOME=/pnpm \
@@ -22,7 +25,7 @@ ENV CI=1 \
     XDG_CACHE_HOME=/workspace/.cache \
     WDIO_BROWSER_DRIVER_CACHE_DIR=/workspace/.cache/wdio-browser-drivers \
     NIBI_E2E_CONTAINER=1 \
-    NIBI_E2E_SPEC=./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/upstream-provider.test.ts \
+    NIBI_E2E_SPEC=./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts \
     ELECTRON_DISABLE_SECURITY_WARNINGS=1 \
     TURBO_TELEMETRY_DISABLED=1
 

@@ -2,6 +2,13 @@
 
 set -euo pipefail
 
+# Git Bash / MSYS 会把 `-e VAR=/workspace/...` 与 `-v host:/workspace/...` 里的容器侧路径
+# 改写成 Windows 路径（`C:/Program Files/Git/workspace/...`）。实测后果：Chromedriver 被装到
+# 数据卷**外面**、产物目录也变成 `packages/desktop/C:/Program Files/Git/...`，于是
+# replay-isolated（`--network none`）跑的时候找不到 driver，整轮直接失败。
+# 这个脚本的参数全是容器侧路径，关掉转换是唯一正确的做法；Linux / CI 上该变量无影响。
+export MSYS_NO_PATHCONV=1
+
 IMAGE_NAME="${IMAGE_NAME:-zcode-desktop-e2e-demo}"
 DOCKERFILE="${DOCKERFILE:-Dockerfile.desktop-e2e}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
@@ -9,7 +16,11 @@ PNPM_VERSION="${PNPM_VERSION:-10.33.2}"
 # `upstream-provider.test.ts` **不在**默认列表里：它要 capture 模式 + 真实上游地址
 # （`E2E_PROVIDER_BASE_URL`），而容器是 replay-isolated（`--network none`），永远满足不了。
 # 放进来只会每天早上都红一次，且红的不是产品问题。
-DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
+#
+# 2026-11-06 扩充的三个 spec 都有**单 spec 容器准入证据**（replay-isolated，3/3 文件、7 条用例
+# 全绿）：AUQ 键盘焦点的两条 + 会话/项目归属的一条。它们覆盖的正是切 Rust 内核时最容易断的
+# 两类链路（旧协议提问交互、`session/list` 的项目谱系），所以优先扩这两组。
+DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts"
 # 修复原因：formal/local replay 通过不等于 Docker admission；Assistant Preview Cards 的容器尝试
 # 停在镜像解析阶段，CDD01 则在 WDIO 内失败；两者都没有 replay-isolated 绿色证据。
 CONVERSATION_SESSION_VERIFIED_E2E_SPEC=""
