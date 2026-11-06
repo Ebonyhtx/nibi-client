@@ -30,14 +30,31 @@ function remainingWindowsCleanupMs(options: ProcessTreeTerminatorOptions): numbe
     : Math.max(options.windowsCleanupDeadlineAtMs - Date.now(), 0);
 }
 
+/**
+ * 查询超时也要跟着 `NIBI_PROCESS_TREE_CLEANUP_BUDGET_SCALE` 放大。
+ *
+ * 清理预算被放大到 4 倍以后，如果这里仍硬顶 2500ms，4 核 CI 上冷启 PowerShell + CIM
+ * 照样超时；查询一超时就返回空进程表，于是"进程已经杀掉、只是没观察到"被误报成残留
+ * （`runtime process tree cleanup incomplete`）。放大只影响等待，不改变残留判定语义。
+ *
+ * 直接读环境变量而不从 `zcode-agent` 引入，避免 `process/` ↔ `zcode-agent/` 的循环依赖。
+ */
+function windowsLookupTimeoutScale(): number {
+  const raw = process.env.NIBI_PROCESS_TREE_CLEANUP_BUDGET_SCALE?.trim();
+  if (!raw) return 1;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 8) : 1;
+}
+
 function boundedWindowsLookupTimeoutMs(
   defaultTimeoutMs: number,
   options: ProcessTreeTerminatorOptions,
 ): number {
+  const scaled = defaultTimeoutMs * windowsLookupTimeoutScale();
   const remainingMs = remainingWindowsCleanupMs(options);
   return remainingMs === undefined
-    ? defaultTimeoutMs
-    : Math.max(Math.min(defaultTimeoutMs, remainingMs), 0);
+    ? scaled
+    : Math.max(Math.min(scaled, remainingMs), 0);
 }
 
 async function awaitWindowsProcessListWithinDeadline(
