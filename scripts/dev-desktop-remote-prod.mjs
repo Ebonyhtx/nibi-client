@@ -7,6 +7,14 @@ function pathApiForPlatform(platform) {
   return platform === "win32" ? win32 : posix;
 }
 
+/**
+ * 复用**我们自己的**正式版缓存：打包态 NIBI 的 userData 目录名就是 `NIBI`
+ * （见 `packages/desktop/src/main/desktopRuntimeEnv.ts` 的 production 应用名），
+ * `dev:desktop:remote-prod` 读它才不会重复下载同一批远端资产。
+ *
+ * 这里原先指向上游的 `ZCode/`：同机装了上游产品时，等于拿**别的产品**的缓存来跑我们的链路，
+ * 与"除插件外不得与上游有关系"直接冲突。显式 `NIBI_REMOTE_ASSET_CACHE_DIR` 仍可覆盖。
+ */
 export function resolveProductionRemoteAssetCacheDir(
   env = process.env,
   platform = process.platform,
@@ -14,16 +22,16 @@ export function resolveProductionRemoteAssetCacheDir(
 ) {
   const pathApi = pathApiForPlatform(platform);
   if (platform === "darwin") {
-    return pathApi.join(homeDir, "Library", "Application Support", "ZCode", "remote-assets-cache");
+    return pathApi.join(homeDir, "Library", "Application Support", "NIBI", "remote-assets-cache");
   }
 
   if (platform === "win32") {
     const appDataDir = env.APPDATA?.trim() || pathApi.join(homeDir, "AppData", "Roaming");
-    return pathApi.join(appDataDir, "ZCode", "remote-assets-cache");
+    return pathApi.join(appDataDir, "NIBI", "remote-assets-cache");
   }
 
   const configDir = env.XDG_CONFIG_HOME?.trim() || pathApi.join(homeDir, ".config");
-  return pathApi.join(configDir, "ZCode", "remote-assets-cache");
+  return pathApi.join(configDir, "NIBI", "remote-assets-cache");
 }
 
 export function buildDesktopRemoteProdEnv(
