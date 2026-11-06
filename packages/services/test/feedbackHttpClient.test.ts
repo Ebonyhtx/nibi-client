@@ -209,7 +209,7 @@ describe("FeedbackHttpClient", () => {
         os_category: "darwin",
         os_version: "23.1.0",
         build_commit_id: "abc123",
-        agent_framework: "zcode-agent",
+        agent_framework: "nibi-agent",
       });
       expect(body.environment).not.toHaveProperty("module");
 
@@ -235,7 +235,7 @@ describe("FeedbackHttpClient", () => {
       osPlatform: "darwin",
       osVersion: "23.1.0",
       osArch: "arm64",
-      agentFramework: "zcode-agent",
+      agentFramework: "nibi-agent",
     };
 
     const ticket = await makeClient().create({

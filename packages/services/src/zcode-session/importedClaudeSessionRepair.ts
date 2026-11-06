@@ -7,7 +7,7 @@ import type {
   ZCodeSessionResumeParams,
 } from "#src/zcode-session/zcodeSession.js";
 
-const logger = createServiceLogger("zcode-session-service");
+const logger = createServiceLogger("nibi-session-service");
 
 export async function repairEmptyImportedClaudeSessionSnapshot(params: {
   agentService: IZCodeAgentService;
@@ -28,7 +28,7 @@ export async function repairEmptyImportedClaudeSessionSnapshot(params: {
     onRepair: (history) => {
       logger.warn(
         undefined,
-        `[zcode-session-service] Claude 导入 session 历史异常，按 ${history.source} 回填 taskId=${params.target.sessionId}`,
+        `[nibi-session-service] Claude 导入 session 历史异常，按 ${history.source} 回填 taskId=${params.target.sessionId}`,
       );
     },
   });

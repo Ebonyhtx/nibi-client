@@ -148,7 +148,7 @@ async function copyRuntimePackageTree({ packageName, packageRoot, requireFrom, s
       if (!Object.hasOwn(packageJson.optionalDependencies ?? {}, dependencyName)) {
         throw error;
       }
-      console.warn(`[zcode] optional package ${dependencyName} is unavailable; skipping`);
+      console.warn(`[nibi] optional package ${dependencyName} is unavailable; skipping`);
     }
   }
 }
@@ -182,7 +182,7 @@ export async function patchNodePtyPrebuilds(packageRoot) {
     try {
       packageJsonPath = await resolvePackageJsonPath(requireFromServer, packageName);
     } catch {
-      console.warn(`[zcode] ${packageName} is unavailable; skipping node-pty prebuild patch`);
+      console.warn(`[nibi] ${packageName} is unavailable; skipping node-pty prebuild patch`);
       continue;
     }
     const sourcePrebuildRoot = resolve(dirname(packageJsonPath), "prebuilds");

@@ -79,7 +79,7 @@ export function loadFileConfig(filePath?: string, options: FileConfigOptions = {
     ? resolvePath(filePath)
     : join(
         // 默认用户配置跟着存储根走。写死 ~/.nibi/cli 会让隔离运行（TUI 调试、
-        // zcode-beta、显式存储根）去读写真实用户那份配置。
+        // NIBI_BETA=1、显式存储根）去读写真实用户那份配置。
         options.baseDir ? resolvePath(options.baseDir) : resolveCliRoot(),
         options.configFileName ?? DEFAULT_CONFIG_FILE,
       );

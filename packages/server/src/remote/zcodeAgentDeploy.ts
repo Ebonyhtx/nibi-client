@@ -126,7 +126,7 @@ async function shouldSkipZCodeAgentDeploy(params: {
   }
 
   params.loggers.log(
-    `[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 制品 SHA ${params.expectedArtifactSha256} 已部署，跳过`,
+    `[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 制品 SHA ${params.expectedArtifactSha256} 已部署，跳过`,
   );
   return true;
 }
@@ -159,15 +159,15 @@ export async function deployZCodeAgentRuntime(
   const runtime = NIBI_AGENT_RUNTIME;
   const componentId = provider;
   if (!isSelectedZCodeAgentComponent(componentId, options.selectedResourcePackageIds)) {
-    loggers.log(`[zcode-agent-deploy] ${provider}: 未选择资源包 ${componentId}，跳过检查和部署`);
+    loggers.log(`[nibi-agent-deploy] ${provider}: 未选择资源包 ${componentId}，跳过检查和部署`);
     return;
   }
 
-  // binaryName 指 wrapper 可执行文件名（如 zcode-agent / zcode-agent.exe）——
+  // binaryName 指 wrapper 可执行文件名（如 nibi-agent / nibi-agent.exe）——
   // 一个调用远端 node 执行 nibi.cjs 的壳脚本。
   const binaryName = runtime.resolveEntrySegments(env.platform).at(-1);
   if (!binaryName) {
-    loggers.logWarn(`[zcode-agent-deploy] ${provider}: 无法解析 agent 入口名称，跳过部署`);
+    loggers.logWarn(`[nibi-agent-deploy] ${provider}: 无法解析 agent 入口名称，跳过部署`);
     return;
   }
 
@@ -204,7 +204,7 @@ export async function deployZCodeAgentRuntime(
       (await options.installer.resolveComponentSha256?.(componentId)) ?? null;
   } catch (error) {
     loggers.logWarn(
-      `[zcode-agent-deploy] ${provider}: 读取 manifest SHA 失败，将重新部署: ${String(error)}`,
+      `[nibi-agent-deploy] ${provider}: 读取 manifest SHA 失败，将重新部署: ${String(error)}`,
     );
   }
 
@@ -226,7 +226,7 @@ export async function deployZCodeAgentRuntime(
     return;
   }
 
-  loggers.log(`[zcode-agent-deploy] ${provider}: 开始部署 v${runtime.version}...`);
+  loggers.log(`[nibi-agent-deploy] ${provider}: 开始部署 v${runtime.version}...`);
   // 缺少远端 plugin 只表示安装不完整，不等于 App 版本变化。
   // 同 App 版本修复 plugin 时应复用已校验的组件 cache；只有强制部署边界才重新下载制品。
   const forceRefreshRuntimeAsset = Boolean(options.force);
@@ -266,7 +266,7 @@ export async function deployZCodeAgentRuntime(
     // 2) packages 替换成功后再安装编译产物 nibi.cjs（跨平台同一份，glm 组件里就是它）。
     await installBundle();
   }
-  // 3) 写入 wrapper（即 resolver 期望的 zcode-agent），用远端已部署的 node 执行 nibi.cjs。
+  // 3) 写入 wrapper（即 resolver 期望的 nibi-agent），用远端已部署的 node 执行 nibi.cjs。
   await deployRemoteAgentWrapper({
     backend,
     content: buildRemoteAgentBundleWrapper(runtime.bundledResourceDir),
@@ -287,5 +287,5 @@ export async function deployZCodeAgentRuntime(
       platformArch: options.platformArch,
     });
   }
-  loggers.log(`[zcode-agent-deploy] ${provider}: 部署完成 v${runtime.version}`);
+  loggers.log(`[nibi-agent-deploy] ${provider}: 部署完成 v${runtime.version}`);
 }

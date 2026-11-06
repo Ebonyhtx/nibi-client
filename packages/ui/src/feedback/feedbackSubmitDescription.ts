@@ -42,7 +42,7 @@ export function buildDeveloperFacingDescription({
     `反馈类型: ${ticketType}`,
     `产品模块: ${ticketModule}`,
     `严重程度: ${ticketSeverity}`,
-    "Agent 框架: zcode-agent",
+    "Agent 框架: nibi-agent",
     `当前 Agent: ${FEEDBACK_NIBI_AGENT_LABEL}`,
     `当前模型型号: ${redactFeedbackText(modelContext.display || modelContext.model || notReported)}`,
     "处理方式: 用户提交轻量表单，客户端自动补齐上下文，后端可异步生成 AI 分析",

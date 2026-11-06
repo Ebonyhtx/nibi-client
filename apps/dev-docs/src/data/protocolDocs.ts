@@ -1232,7 +1232,7 @@ export const stdioTrafficFrames: StdioTrafficFrame[] = [
     sessionId: "sess_6b6a",
     summary: "agent stderr 只作为旁路观察，不进入协议解析",
     bytes: 118,
-    raw: "[zcode-agent] model provider ready provider=glm model=glm-4.7",
+    raw: "[nibi-agent] model provider ready provider=glm model=glm-4.7",
   },
   {
     id: "frame-007",

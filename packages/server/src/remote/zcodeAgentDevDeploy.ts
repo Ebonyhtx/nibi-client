@@ -129,7 +129,7 @@ async function hashDevelopmentOfficialPluginPackage(
 ): Promise<void> {
   const manifestPath = join(packageRoot, ".nibi-plugin", "plugin.json");
   if (!existsSync(manifestPath)) {
-    throw new Error(`[zcode-agent-deploy] missing official plugin manifest: ${manifestPath}`);
+    throw new Error(`[nibi-agent-deploy] missing official plugin manifest: ${manifestPath}`);
   }
   await assertDevelopmentOfficialPluginRequiredAssets(packageRoot, packageName);
 
@@ -184,7 +184,7 @@ async function assertDevelopmentOfficialPluginRequiredAssets(
       await access(requiredPath);
     } catch {
       throw new Error(
-        `[zcode-agent-deploy] missing official plugin required asset: ${requiredPath}`,
+        `[nibi-agent-deploy] missing official plugin required asset: ${requiredPath}`,
       );
     }
   }
@@ -271,12 +271,12 @@ async function shouldSkipDevelopmentZCodeAgentDeploy(params: {
     );
   } catch {
     params.loggers.logWarn(
-      `[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 远端 bundle SHA 不匹配或无法校验，重新上传`,
+      `[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 远端 bundle SHA 不匹配或无法校验，重新上传`,
     );
     return false;
   }
 
-  params.loggers.log(`[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态 nibi.cjs 未变化，跳过`);
+  params.loggers.log(`[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态 nibi.cjs 未变化，跳过`);
   return true;
 }
 
@@ -289,7 +289,7 @@ async function stageDevelopmentOfficialPluginPackages(params: {
     const sourceRoot = join(params.repoRoot, "apps", "zcode-cli", "packages", packageName);
     const manifestPath = join(sourceRoot, ".nibi-plugin", "plugin.json");
     if (!existsSync(manifestPath)) {
-      throw new Error(`[zcode-agent-deploy] missing official plugin manifest: ${manifestPath}`);
+      throw new Error(`[nibi-agent-deploy] missing official plugin manifest: ${manifestPath}`);
     }
     await assertDevelopmentOfficialPluginRequiredAssets(sourceRoot, packageName);
 
@@ -345,11 +345,11 @@ async function uploadDevelopmentOfficialPluginPackages(params: {
         await waitForClose(cleanupStream);
       } catch (error) {
         params.loggers.logWarn(
-          `[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 清理 owner staging 失败 (${ownerSuffix}): ${String(error)}`,
+          `[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 清理 owner staging 失败 (${ownerSuffix}): ${String(error)}`,
         );
       }
     };
-    params.loggers.log(`[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态上传官方插件资源`);
+    params.loggers.log(`[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态上传官方插件资源`);
     try {
       await params.backend.upload(archivePath, remoteArchivePath);
       await repairLegacyRemoteOfficialPluginDirectoryPermissions({
@@ -432,7 +432,7 @@ export async function deployDevelopmentZCodeAgentRuntime(
   // 本地修改 apps/zcode-cli 后，远端测试仍运行滞后的发布包。这里改为上传 dev 启动时刚构建的
   // dist/nibi.cjs，并用远端已部署的 node 包一层 wrapper 启动，保证 agent 仍运行在目标机器内。
   loggers.log(
-    `[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态上传本地 nibi.cjs ${devVersion.slice(0, 12)}`,
+    `[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态上传本地 nibi.cjs ${devVersion.slice(0, 12)}`,
   );
   const mkdirStream = await backend.exec(`mkdir -p ${quotePosixPathArg(params.remoteProviderDir)}`);
   await waitForClose(mkdirStream);
@@ -475,7 +475,7 @@ export async function deployDevelopmentZCodeAgentRuntime(
   }
   await waitForClose(markerStream);
   loggers.log(
-    `[zcode-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态部署完成 ${devVersion.slice(0, 12)}`,
+    `[nibi-agent-deploy] ${NIBI_AGENT_PROVIDER}: 开发态部署完成 ${devVersion.slice(0, 12)}`,
   );
   return true;
 }

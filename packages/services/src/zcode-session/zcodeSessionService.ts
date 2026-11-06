@@ -30,7 +30,7 @@ import { createZCodeDeferredDraftRegistry } from "#src/zcode-session/zcodeSessio
 import type { CuaProductMcpServerResolver } from "#src/cua-permission-broker/index.js";
 import type { CloudProjectMcpServerResolver } from "#src/cloud-project/cloudProjectMcpServerResolver.js";
 
-const logger = createServiceLogger("zcode-session-service");
+const logger = createServiceLogger("nibi-session-service");
 
 interface CreateZCodeSessionServiceOptions {
   agentService: IZCodeAgentService;
@@ -148,7 +148,7 @@ export function createZCodeSessionService({
     } catch (error) {
       logger.warn(
         undefined,
-        `[zcode-session-service] ${tag} syncSnapshotAndBroadcast 失败 taskId=${snapshot.session.sessionId}`,
+        `[nibi-session-service] ${tag} syncSnapshotAndBroadcast 失败 taskId=${snapshot.session.sessionId}`,
         error,
       );
     }
@@ -224,13 +224,13 @@ export function createZCodeSessionService({
       const startedAt = Date.now();
       const sessionTraceId = params.sessionTraceId ?? createSessionTraceId();
       const agentParams = await withResolvedMcpServers({ ...params, sessionTraceId });
-      logger.info(sessionTraceId, "[zcode-session-service] createSession 分配 session trace", {
+      logger.info(sessionTraceId, "[nibi-session-service] createSession 分配 session trace", {
         persistence: agentParams.persistence,
         workspaceIdentity: agentParams.workspaceIdentity,
         workspacePath: agentParams.workspacePath,
       });
       const snapshot = await agentService.createSession(agentParams);
-      logger.info(sessionTraceId, "[zcode-session-service] createSession agent 返回", {
+      logger.info(sessionTraceId, "[nibi-session-service] createSession agent 返回", {
         durationMs: Date.now() - startedAt,
         mcpServerCount: agentParams.mcpServers?.length ?? 0,
         persistence: agentParams.persistence,
@@ -264,7 +264,7 @@ export function createZCodeSessionService({
         // 语义化成 task_created（insert-active）需连同乐观插入去重一起改。
         broadcastReason: "task_meta_changed",
       });
-      logger.info(sessionTraceId, "[zcode-session-service] createSession task index 同步完成", {
+      logger.info(sessionTraceId, "[nibi-session-service] createSession task index 同步完成", {
         broadcastDurationMs: Date.now() - broadcastStartedAt,
         durationMs: Date.now() - startedAt,
         sessionId: snapshot.session.sessionId,
@@ -300,7 +300,7 @@ export function createZCodeSessionService({
           thoughtLevelOverride = undefined;
           logger.warn(
             undefined,
-            "[zcode-session-service] resumeSession 跳过不支持的 task 思考强度",
+            "[nibi-session-service] resumeSession 跳过不支持的 task 思考强度",
             {
               availableThoughtLevels: Array.from(
                 readSnapshotAvailableThoughtLevels(snapshot) ?? [],
@@ -315,7 +315,7 @@ export function createZCodeSessionService({
         }
       }
       if (thoughtLevelOverride && snapshot.settings.thoughtLevel.current !== thoughtLevelOverride) {
-        logger.info(undefined, "[zcode-session-service] resumeSession 重放 task 思考强度", {
+        logger.info(undefined, "[nibi-session-service] resumeSession 重放 task 思考强度", {
           requestedThoughtLevel: thoughtLevelOverride,
           sessionId: agentParams.sessionId,
           snapshotThoughtLevel: snapshot.settings.thoughtLevel.current ?? null,
@@ -367,7 +367,7 @@ export function createZCodeSessionService({
           modelOverride,
         );
       }
-      logger.info(undefined, "[zcode-session-service] resumeSession 历史恢复完成", {
+      logger.info(undefined, "[nibi-session-service] resumeSession 历史恢复完成", {
         agentDurationMs,
         broadcastDurationMs: shouldBroadcastSnapshot ? Date.now() - broadcastStartedAt : 0,
         broadcastSnapshot: shouldBroadcastSnapshot,
@@ -391,7 +391,7 @@ export function createZCodeSessionService({
         withApiRetryRuntime(await agentService.readSession(params)),
         params,
       );
-      logger.info(undefined, "[zcode-session-service] readSession 历史快照读取完成", {
+      logger.info(undefined, "[nibi-session-service] readSession 历史快照读取完成", {
         deliveryKind: params.deliveryKind,
         durationMs: Date.now() - startedAt,
         messageLimit: params.messageLimit ?? null,
@@ -420,7 +420,7 @@ export function createZCodeSessionService({
       // 手机 replayable 首发由 task facade 消费 deferred draft，需要在这里清除草稿标记
       // 并通知 task index 同步，避免桌面后续控制同一 task 时仍按 deferred 规则跳过同步。
       notifySyncer(params);
-      logger.info(undefined, "[zcode-session-service] deferred draft session 已提升为 task", {
+      logger.info(undefined, "[nibi-session-service] deferred draft session 已提升为 task", {
         sessionId: params.sessionId,
         workspaceIdentity: params.workspaceIdentity ?? null,
         workspacePath: params.workspacePath,
@@ -448,7 +448,7 @@ export function createZCodeSessionService({
         // 不能回退到无条件 close，否则可能关闭刚被其他客户端提升的 active task。
         logger.warn(
           undefined,
-          "[zcode-session-service] 条件关闭 deferred draft 失败，保留旧 session",
+          "[nibi-session-service] 条件关闭 deferred draft 失败，保留旧 session",
           {
             error: error instanceof Error ? error.message : String(error),
             sessionId: params.sessionId,

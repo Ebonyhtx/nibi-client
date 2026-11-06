@@ -19,7 +19,7 @@ export async function deployRemoteAgentWrapper(params: {
 }): Promise<void> {
   const remoteWrapperTempPath = `${params.remoteWrapperPath}.new`;
   if (isWslBackend(params.backend)) {
-    const localTempPath = join(tmpdir(), `zcode-agent-wrapper-${process.pid}-${Date.now()}.sh`);
+    const localTempPath = join(tmpdir(), `nibi-agent-wrapper-${process.pid}-${Date.now()}.sh`);
     try {
       // 历史原因：WSLBackend 曾以 `wsl.exe -- bash -lc <command>` 启动，默认 shell 会让多行
       // shell 参数里的 `$HOME`、`$runtime_root`、`$@` 提前展开，生成 `exec "/node" ...` 的坏 wrapper，

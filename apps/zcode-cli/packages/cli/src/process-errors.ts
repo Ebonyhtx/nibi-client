@@ -108,7 +108,7 @@ function writeProcessErrorDiagnostic(
     // 根因：进程存活时旧 stderr 只进 debug，Electron SDK 无法捕获子进程异常。
     // 增加单行结构化事件供 Host 立即转发，保留可读文本兼容旧 Host 和 crash tail。
     stderr.write(
-      `${NIBI_PROCESS_DIAGNOSTIC_PREFIX}${JSON.stringify(diagnostic)}\n[zcode] process error kind=${kind} origin=${origin}\n${detail}\n`,
+      `${NIBI_PROCESS_DIAGNOSTIC_PREFIX}${JSON.stringify(diagnostic)}\n[nibi] process error kind=${kind} origin=${origin}\n${detail}\n`,
     );
   } catch {
     // 诊断输出不能再次击穿进程级异常边界。

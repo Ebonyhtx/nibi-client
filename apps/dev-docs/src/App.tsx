@@ -370,7 +370,7 @@ function createLiveStdioTrafficFrame(sequence: number, timestamp: string): Stdio
       sessionId: "sess_6b6a",
       summary: "provider heartbeat",
       bytes: 96,
-      raw: `[zcode-agent] provider heartbeat seq=${eventSeq} status=streaming`,
+      raw: `[nibi-agent] provider heartbeat seq=${eventSeq} status=streaming`,
     };
   }
 

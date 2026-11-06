@@ -213,7 +213,7 @@ type ZCodeTerminalStreamEvent =
 
 const GLM_PROVIDER: ZCodeProvider = NIBI_AGENT_PROVIDER;
 const EMPTY_SLASH_COMMANDS: ZCodeSlashCommand[] = [];
-const logger = createServiceLogger("zcode-task-service");
+const logger = createServiceLogger("nibi-task-service");
 const ASK_USER_QUESTION_TOOL_NAME = "AskUserQuestion";
 const EXIT_PLAN_MODE_TOOL_NAME = "ExitPlanMode";
 const EXIT_PLAN_MODE_APPROVAL_QUESTION = "Review this implementation plan.";
@@ -1767,7 +1767,7 @@ export function createZCodeTaskServiceAdapter(
     },
 
     async checkCodexConnectivity(): Promise<ZCodeCodexConnectivityCheckResult> {
-      return { target: "zcode-agent", reachable: true };
+      return { target: "nibi-agent", reachable: true };
     },
 
     async createTask(params): Promise<ZCodeTaskCreateResult> {
@@ -2343,7 +2343,7 @@ export function createZCodeTaskServiceAdapter(
       if (params.inputId && mayStartContinuation) {
         activePromptInputIds.set(taskKey(target), params.inputId);
       }
-      logger.info(params.inputId, "[zcode-task-service] goalSession start", {
+      logger.info(params.inputId, "[nibi-task-service] goalSession start", {
         action: params.action,
         hasObjective: Boolean(params.objective?.trim()),
         mayStartContinuation,
@@ -2360,7 +2360,7 @@ export function createZCodeTaskServiceAdapter(
         objective: params.objective,
         expectedRevision: params.expectedRevision,
       });
-      logger.info(params.inputId, "[zcode-task-service] goalSession agent 返回", {
+      logger.info(params.inputId, "[nibi-task-service] goalSession agent 返回", {
         action: params.action,
         durationMs: Date.now() - startedAt,
         responseLength: result.response?.length ?? 0,
@@ -2374,7 +2374,7 @@ export function createZCodeTaskServiceAdapter(
       const meta = await syncTaskIndexSnapshot(result.snapshot);
       // goal 动作后的快照收敛同为状态同步，不涉及归属，避免全局 membership 重拉。
       emitWorkspaceTaskListChanged(target, meta, "task_status_changed");
-      logger.info(params.inputId, "[zcode-task-service] goalSession task index 同步完成", {
+      logger.info(params.inputId, "[nibi-task-service] goalSession task index 同步完成", {
         action: params.action,
         durationMs: Date.now() - startedAt,
         startedTurn: result.startedTurn,
@@ -2608,7 +2608,7 @@ export function createZCodeTaskServiceAdapter(
         const indexStartedAt = Date.now();
         const indexedMeta = (await taskIndexRepo.getTaskMeta(params)) ?? legacySnapshot.meta;
         const indexDurationMs = Date.now() - indexStartedAt;
-        logger.info(undefined, "[zcode-task-service] 历史快照读取完成", {
+        logger.info(undefined, "[nibi-task-service] 历史快照读取完成", {
           clientMode: params.clientMode ?? "unknown",
           durationMs: Date.now() - startedAt,
           indexDurationMs,
@@ -2636,7 +2636,7 @@ export function createZCodeTaskServiceAdapter(
       const indexStartedAt = Date.now();
       const indexedMeta = await syncTaskIndexSnapshot(snapshot);
       const indexDurationMs = Date.now() - indexStartedAt;
-      logger.info(undefined, "[zcode-task-service] 历史快照读取完成", {
+      logger.info(undefined, "[nibi-task-service] 历史快照读取完成", {
         clientMode: params.clientMode ?? "unknown",
         durationMs: Date.now() - startedAt,
         indexDurationMs,
@@ -2656,7 +2656,7 @@ export function createZCodeTaskServiceAdapter(
       const startedAt = Date.now();
       const snapshot = await service.getTaskSnapshot(params);
       if (!snapshot) {
-        logger.info(undefined, "[zcode-task-service] 历史快照 ETag 读取为空", {
+        logger.info(undefined, "[nibi-task-service] 历史快照 ETag 读取为空", {
           clientMode: params.clientMode ?? "unknown",
           durationMs: Date.now() - startedAt,
           messageLimit: params.messageLimit ?? null,
@@ -2670,7 +2670,7 @@ export function createZCodeTaskServiceAdapter(
       const etag = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
       const etagDurationMs = Date.now() - etagStartedAt;
       if (params.ifNoneMatch && params.ifNoneMatch === etag) {
-        logger.info(undefined, "[zcode-task-service] 历史快照 ETag 命中缓存", {
+        logger.info(undefined, "[nibi-task-service] 历史快照 ETag 命中缓存", {
           clientMode: params.clientMode ?? "unknown",
           durationMs: Date.now() - startedAt,
           etagDurationMs,
@@ -2682,7 +2682,7 @@ export function createZCodeTaskServiceAdapter(
         });
         return { snapshot: null, etag, notModified: true };
       }
-      logger.info(undefined, "[zcode-task-service] 历史快照 ETag 生成完成", {
+      logger.info(undefined, "[nibi-task-service] 历史快照 ETag 生成完成", {
         clientMode: params.clientMode ?? "unknown",
         durationMs: Date.now() - startedAt,
         etagDurationMs,

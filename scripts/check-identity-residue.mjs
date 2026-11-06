@@ -120,14 +120,13 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
  *
  * 尚未清完、因此暂不列入的（列在这里是为了别忘，不是因为可以接受）：
  *
- * - `zcode-agent` / `zcode-session` / `zcode-task` 的**残余用法**（频道值、原生可执行文件名、
- *   会话库 agent 值都已经改成 NIBI，剩下的是另一类东西）：
- *   1. 反馈工单的 `framework` 值（`packages/shared/src/feedback.ts`）——**服务端可能按枚举校验**，
- *      必须先确认服务端接受新值再改；
- *   2. 服务日志标签（`createServiceLogger("zcode-agent")`、`[zcode-task-service] …`）与
- *      测试里的临时目录前缀——只影响日志/临时路径，改名要连带改断言日志文本的用例。
- *   这几类都在产物里，泛词 `zcode-agent` 会让判据假红，所以逐条清完再登记。
- * - `/* zcode-workflow` 元数据块标记：已保存工作流文件的格式契约，改名要迁就存量文件。
+ * - **源码目录名** `packages/services/src/zcode-agent/`、`src/zcode-session/` 等：会出现在产物
+ *   sourcemap 的路径里，所以不能写泛化的 `zcode-agent` / `zcode-session`。改名要连带动 300+
+ *   处 import，属独立工程；**用户可见的值已全部清干净**（日志作用域、工单框架值、诊断标记、
+ *   探针标签都已登记在下面）。
+ * - `/* zcode-workflow` 已保存工作流文件的元数据块标记：文件格式契约，改名要迁就存量文件。
+ * - 日志正文里的 "ZCode agent …" 措辞：只影响日志文本，且 e2e 覆盖率工具按其中一条
+ *   （`ZCode agent process exited`）切片，改名要同批改那处解析。
  */
 const FORBIDDEN_IDENTITY_TOKENS = [
   { token: "X-ZCode-", reason: "请求头前缀（原来发往模型服务端与自家服务端做观测）" },
@@ -146,6 +145,20 @@ const FORBIDDEN_IDENTITY_TOKENS = [
   { token: "zcode-server-win32-", reason: "远端发布包名（win32-*）" },
   { token: "zcode-server:http", reason: "远端执行器的日志前缀" },
   { token: "zcode-server:stdio", reason: "远端执行器的日志前缀" },
+  // 2026-11-07 清掉的最后一批「值级」旧名。每条都是写进日志/工单/诊断的**字面量**，
+  // 而不是路径或注释，所以登记进来不会误伤 sourcemap。
+  { token: "[zcode-agent]", reason: "进程管理器的日志作用域前缀（现在 [nibi-agent]）" },
+  { token: "[zcode-task-service]", reason: "任务服务日志前缀（现在 [nibi-task-service]）" },
+  { token: "[zcode-session-service]", reason: "会话服务日志前缀（现在 [nibi-session-service]）" },
+  { token: "[zcode-agent-deploy]", reason: "远端部署日志前缀（现在 [nibi-agent-deploy]）" },
+  {
+    token: "[zcode-process-exception]",
+    reason: "子进程 stderr 结构化诊断帧前缀（现在 [nibi-process-exception]）",
+  },
+  {
+    token: "[zcode-agent-lifecycle-reported]",
+    reason: "生命周期日志标记，ARMS 崩溃遥测按它匹配（现在 [nibi-agent-lifecycle-reported]）",
+  },
 ];
 
 

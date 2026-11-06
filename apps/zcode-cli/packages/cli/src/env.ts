@@ -113,7 +113,7 @@ export function shouldLoadCliDotenvForProtocolServer(env: CliEnv): boolean {
 
 function applyCliRuntimeEnvDefaults(env: CliEnv, argv: readonly string[]): void {
   env[NIBI_RUNTIME_ENV_KEY] = resolveCliRuntimeEnv(env, argv);
-  applyBetaStorageDefault(env, argv);
+  applyBetaStorageDefault(env);
 }
 
 function resolveCliRuntimeEnv(env: CliEnv, argv: readonly string[]): ZCodeRuntimeEnv {
@@ -130,10 +130,11 @@ function resolveCliRuntimeEnv(env: CliEnv, argv: readonly string[]): ZCodeRuntim
     : "production";
 }
 
-function applyBetaStorageDefault(env: CliEnv, argv: readonly string[]): void {
+function applyBetaStorageDefault(env: CliEnv): void {
   if (env.NIBI_STORAGE_DIR?.trim()) return;
-  const explicitBeta = env.NIBI_BETA === "1" || env.NIBI_ENV === "beta";
-  const invokedAsBeta = argv.some((arg) => /(^|[/\\])zcode-beta(?:$|\.)/u.test(arg));
-  if (!explicitBeta && !invokedAsBeta) return;
+  // 只认显式开关。上游 CLI 还会按可执行文件名 `zcode-beta` 推断 beta 通道，
+  // 但我们的发行物只有一个 `nibi`（`package.json` 的 bin 只有它），那条分支永远走不到，
+  // 却会让任何人把二进制改名成上游名字就改变存储根。删掉，不留上游文件名能触发的真分支。
+  if (env.NIBI_BETA !== "1" && env.NIBI_ENV !== "beta") return;
   env.NIBI_STORAGE_DIR = join(homedir(), ".nibi-beta");
 }

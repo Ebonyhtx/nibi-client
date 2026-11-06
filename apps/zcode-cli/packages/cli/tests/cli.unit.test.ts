@@ -219,6 +219,13 @@ test("prepares beta CLI runtime env with beta storage root", () => {
   assert.equal(env.NIBI_STORAGE_DIR, join(homedir(), ".nibi-beta"));
 });
 
+test("上游 beta 文件名不再切换存储根", () => {
+  // 这条分支原来按 argv 里的 `zcode-beta` 推断 beta 通道，等于让上游文件名能改我们的存储根。
+  const env = prepareCliRuntimeEnv({}, ["/usr/bin/node", "/workspace/bin/zcode-beta"]);
+
+  assert.equal(env.NIBI_STORAGE_DIR, undefined);
+});
+
 test("preserves explicit storage root when beta mode is enabled", () => {
   const env = prepareCliRuntimeEnv(
     {
