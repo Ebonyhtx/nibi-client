@@ -49,7 +49,10 @@ jobs:
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             package-id: linux-arm64-gnu
-          - os: macos-14
+          # `macos-14` 已不可调度：用它的 job 会零 step 直接被取消（每次都 cancelled，
+          # 不报错也不失败，所以一直没人注意到 darwin 平台包从来没产出过）。改用
+          # `macos-latest`（arm64），与 target 一致，也与本仓其他 workflow 一致。
+          - os: macos-latest
             target: aarch64-apple-darwin
             package-id: darwin-arm64
     steps:
