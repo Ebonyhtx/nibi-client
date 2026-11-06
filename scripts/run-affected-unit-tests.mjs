@@ -47,7 +47,7 @@ export async function main(argv = process.argv.slice(2)) {
     const options = await parseArgs(argv);
     if (options.help) {
       console.log(
-        "用法：pnpm test:unit:affected [--scope worktree|push] [--base <commit>] [--files <files...>] [--dry-run] [--json]\n使用 Vitest 官方选择；全量选择跳过 UT 并成功退出，脏工作区 Push 和错误非零退出。0=通过/无选中测试/跳过全量，1=测试失败，2=阻止执行/脚本错误。",
+        "用法：pnpm test:unit:affected [--scope worktree|push] [--base <commit>] [--files <files...>] [--dry-run] [--json]\n使用 Vitest 官方选择；全量选择默认按失败处理（先跑 pnpm test:unit，再带 NIBI_AFFECTED_UT_ACK=full 放行），脏工作区 Push 与错误非零退出。0=通过/无选中测试/已承认跳过全量，1=测试失败或全量选择未确认，2=阻止执行/脚本错误。",
       );
       return 0;
     }
@@ -94,12 +94,31 @@ export async function main(argv = process.argv.slice(2)) {
       if (options.dryRun)
         for (const test of tests) console.log(`  ${test.project}/${test.pool}: ${test.path}`);
     }
-    // 全量选择不是测试失败；加载测试前跳过并成功退出，避免仅因不跑全量而阻止 Push。
+    // 全量选择 = 影响面裁剪失效：改动面覆盖了每一个规格，等于「不知道该跑什么」。
+    //
+    // 以前这里直接 `return 0` 并打印「不因此阻止 Push」。结果是**改动越大、这道闸越等于没有**：
+    // 一次跨包的品牌化改动让 1929 个规格全部入选，然后什么都没跑就放行了（实测过）。
+    // 现在默认按**失败**处理，把选择权交回给人：
+    //   - 真跑了全量：`pnpm test:unit`，然后带 `NIBI_AFFECTED_UT_ACK=full` 重试；
+    //   - 只是想过闸：必须显式给这个变量——那是一次有意识的承认，不是静默放行。
     if (all.length && all.every((spec) => selected.has(specKey(spec)))) {
-      console.warn(
-        `[affected] Vitest 官方选择了整个根 UT 套件（${all.length} 个规格），已跳过 UT（未执行测试），不因此阻止 Push。改动文件：${[...related].map((file) => relative(root, file)).join(", ")}`,
+      const acknowledged = (process.env.NIBI_AFFECTED_UT_ACK ?? "").trim().toLowerCase();
+      if (acknowledged === "full" || acknowledged === "1" || acknowledged === "true") {
+        console.warn(
+          `[affected] 影响面覆盖了全部 ${all.length} 个规格，已按 NIBI_AFFECTED_UT_ACK=${acknowledged} 放行——这一轮 UT 没有由本脚本执行。`,
+        );
+        return 0;
+      }
+      console.error(
+        `[affected] 改动面覆盖了全部 ${all.length} 个规格，按影响面裁剪失效：脚本不会替你跑全量，也不假装跑过。`,
       );
-      return 0;
+      console.error(
+        "[affected] 先跑 `pnpm test:unit`；确认通过后再带 `NIBI_AFFECTED_UT_ACK=full` 重跑本脚本放行。",
+      );
+      console.error(
+        `[affected] 改动文件：${[...related].map((file) => relative(root, file)).join(", ")}`,
+      );
+      return 1;
     }
     if (!specs.length || options.dryRun) return 0;
     await vitest.standalone();
