@@ -109,6 +109,15 @@ RUN if [ ! -x node_modules/electron/dist/electron ]; then \
     test -x node_modules/electron/dist/electron && \
     echo "[desktop-e2e] electron binary ready: $(node -p 'require("./node_modules/electron/package.json").version')"
 
+# 桌面宿主的 tsup 包里引用了 `@nibi/bootstrap/plugin-management`，而 bootstrap 的
+# `exports` 指向 `dist/plugin-management.js`——**构建产物**，不是源码。也就是说
+# `build:no-runtime-assets` 隐藏依赖 bootstrap 先被编译过；本地能过只是因为 dist 早就存在，
+# 干净环境（本镜像、CI）就会 `Could not resolve "@nibi/bootstrap/plugin-management"`。
+#
+# 这里按依赖顺序把 desktop 之前的所有 workspace 包编出来（`^...` = 只编依赖，不编自己），
+# 免得以后再有别的兄弟包以同样方式偷偷依赖构建产物。
+RUN pnpm exec turbo run build --filter="@nibi/desktop^..."
+
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends xauth && \
     rm -rf /var/lib/apt/lists/*
