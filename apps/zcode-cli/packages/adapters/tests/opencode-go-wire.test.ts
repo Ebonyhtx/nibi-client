@@ -59,7 +59,7 @@ describe("Todo149 OpenCode Go 正式 SDK 请求", () => {
     const execution = new AiSdkModelExecution(
       {
         env: {},
-        defaultHeaders: { "User-Agent": "ZCode/3.12.1", "X-ZCode-App-Version": "3.12.1" },
+        defaultHeaders: { "User-Agent": "ZCode/3.12.1", "X-NIBI-App-Version": "3.12.1" },
       },
       {
         transport: async (input, init) => {
@@ -112,7 +112,7 @@ describe("Todo149 OpenCode Go 正式 SDK 请求", () => {
       );
       expect(request.headers.get("authorization")).toBe("Bearer E2E_GO_FAKE_KEY");
       expect(request.headers.get("user-agent")).toContain("ZCode/3.12.1");
-      expect(request.headers.get("x-zcode-app-version")).toBe("3.12.1");
+      expect(request.headers.get("x-nibi-app-version")).toBe("3.12.1");
       expect(request.headers.get("x-session-id")).toBe("go-wire-session");
       expect(request.headers.get("x-opencode-session")).toBe("go-wire-session");
       expect(body.model).toBe(modelId);

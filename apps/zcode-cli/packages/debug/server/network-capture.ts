@@ -31,7 +31,7 @@ const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 4184;
 const DEFAULT_MAX_ENTRIES = 300;
 const HEADER_REDACTION_VALUE = "[redacted]";
-const traceHeaderNames = ["x-zcode-trace-id", "x-trace-id", "traceparent"];
+const traceHeaderNames = ["x-nibi-trace-id", "x-trace-id", "traceparent"];
 const redactedHeaderNames = new Set([
   ...requestSecuritySensitiveHeaders,
   "authorization",

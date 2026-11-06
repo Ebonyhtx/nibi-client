@@ -436,8 +436,8 @@ describe("createStreamTextOptions", () => {
       "x-query-id": "generate",
       "x-request-id": "req_generate",
       "x-session-id": "generate",
-      "x-zcode-session-type": "main",
-      "x-zcode-trace-id": "trace_generate",
+      "x-nibi-session-type": "main",
+      "x-nibi-trace-id": "trace_generate",
     });
   });
 
@@ -452,7 +452,7 @@ describe("createStreamTextOptions", () => {
           "X-Os-Category": "macos",
           "X-Os-Version": "25.0.0",
           "X-Platform": "darwin-arm64",
-          "x-zcode-session-type": "spoofed",
+          "x-nibi-session-type": "spoofed",
         },
         model: {} as ResolvedAiSdkModel["model"],
         providerId: "test",
@@ -476,8 +476,8 @@ describe("createStreamTextOptions", () => {
       "X-Platform": "darwin-arm64",
       "x-request-id": "req_platform",
       "x-session-id": "platform",
-      "x-zcode-session-type": "subagent",
-      "x-zcode-trace-id": "trace_platform",
+      "x-nibi-session-type": "subagent",
+      "x-nibi-trace-id": "trace_platform",
     });
   });
 
@@ -541,8 +541,8 @@ describe("createStreamTextOptions", () => {
       "x-query-id": "stream",
       "x-request-id": "req_stream",
       "x-session-id": "stream",
-      "x-zcode-session-type": "other",
-      "x-zcode-trace-id": "trace_stream",
+      "x-nibi-session-type": "other",
+      "x-nibi-trace-id": "trace_stream",
     });
   });
 

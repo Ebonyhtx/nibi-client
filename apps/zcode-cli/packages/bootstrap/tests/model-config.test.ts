@@ -35,7 +35,7 @@ describe("createRuntimeAiSdkModelExecutionConfig", () => {
     expect(config).toMatchObject({
       defaultHeaders: {
         "User-Agent": "NIBI/3.9.0",
-        "X-ZCode-App-Version": "3.9.0",
+        "X-NIBI-App-Version": "3.9.0",
         "X-Title": "NIBI@electron",
       },
       endpointRoutingPort,
@@ -64,7 +64,7 @@ describe("buildCliZCodeSourceHeaders", () => {
     ).toMatchObject({
       "User-Agent": "NIBI/3.9.0",
       "X-Title": "NIBI@cli",
-      "X-ZCode-App-Version": "3.9.0",
+      "X-NIBI-App-Version": "3.9.0",
     });
   });
 });

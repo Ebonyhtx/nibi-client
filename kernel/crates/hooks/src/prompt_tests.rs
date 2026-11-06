@@ -74,7 +74,7 @@ async fn sends_the_evaluation_request() {
         request.options.session_id,
         Some(SessionId::new("sess_hook"))
     );
-    // 工作线 F64：触发 hook 的回合与子代理（每请求头的 `x-query-id`、`x-zcode-session-type`，model.md §2.4）。
+    // 工作线 F64：触发 hook 的回合与子代理（每请求头的 `x-query-id`、`x-nibi-session-type`，model.md §2.4）。
     assert_eq!(request.options.run, Some(RunId::new("run_hook")));
     assert_eq!(request.options.agent, Some(AgentId::new("agent_hook")));
     assert_eq!(request.system.len(), 2);

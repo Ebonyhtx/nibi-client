@@ -30,12 +30,12 @@ fn source_headers_follow_node() {
     let expected = [
         ("http-referer", "https://api.nibistudio.top"),
         ("user-agent", "NIBI/0.1.52"),
-        ("x-zcode-app-version", "0.1.52"),
+        ("x-nibi-app-version", "0.1.52"),
         ("x-title", "NIBI@cli"),
         ("x-release-channel", "production"),
         ("x-client-language", "zh-CN"),
         ("x-client-timezone", "Asia/Shanghai"),
-        ("x-zcode-agent", "glm"),
+        ("x-nibi-agent", "glm"),
         ("x-platform", "linux-x64"),
         ("x-os-category", "linux"),
         ("x-os-version", "6.8.0"),
@@ -69,7 +69,7 @@ fn unprintable_values_follow_node() {
             value(&headers, "user-agent").as_deref(),
             Some("NIBI/unknown")
         );
-        assert_eq!(value(&headers, "x-zcode-app-version"), None, "{version:?}");
+        assert_eq!(value(&headers, "x-nibi-app-version"), None, "{version:?}");
         assert_eq!(
             value(&headers, "x-client-language").as_deref(),
             Some("unknown")
@@ -180,7 +180,7 @@ fn provider_headers_sit_between_the_source_and_the_request_headers() {
             ("X-Api-Key", "configured-key"),
             ("User-Agent", "ProbeUA/9"),
             ("ACCEPT", "*/*"),
-            ("x-zcode-query-source", "static"),
+            ("x-nibi-query-source", "static"),
             ("X-Session-Type", "kept"),
             ("X-ZCode-Session-Type", "static"),
             ("X-Request-Id", "static"),
@@ -199,9 +199,9 @@ fn provider_headers_sit_between_the_source_and_the_request_headers() {
     assert_eq!(find(&headers, "x-api-key"), Some("configured-key"));
     assert_eq!(find(&headers, "user-agent"), Some("ProbeUA/9"));
     assert_eq!(find(&headers, "accept"), Some("*/*"));
-    assert_eq!(find(&headers, "x-zcode-query-source"), None);
+    assert_eq!(find(&headers, "x-nibi-query-source"), None);
     assert_eq!(find(&headers, "x-session-type"), Some("kept"));
-    assert_eq!(find(&headers, "x-zcode-session-type"), Some("other"));
+    assert_eq!(find(&headers, "x-nibi-session-type"), Some("other"));
     assert_eq!(find(&headers, "x-request-id"), Some("q"));
     assert_eq!(find(&headers, "x-title"), Some("NIBI@cli"));
 }

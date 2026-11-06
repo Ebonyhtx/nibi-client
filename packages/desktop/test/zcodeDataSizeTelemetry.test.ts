@@ -42,7 +42,7 @@ describe("scanZCodeDataDirectory", () => {
   let rootPath = "";
 
   beforeEach(async () => {
-    rootPath = await mkdtemp(join(tmpdir(), "zcode-data-size-"));
+    rootPath = await mkdtemp(join(tmpdir(), "nibi-data-size-"));
   });
 
   afterEach(async () => {
@@ -380,7 +380,7 @@ describe("ZCode data size telemetry state", () => {
   let rootPath = "";
 
   beforeEach(async () => {
-    rootPath = await mkdtemp(join(tmpdir(), "zcode-data-size-state-"));
+    rootPath = await mkdtemp(join(tmpdir(), "nibi-data-size-state-"));
   });
 
   afterEach(async () => {

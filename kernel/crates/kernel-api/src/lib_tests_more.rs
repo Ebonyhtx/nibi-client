@@ -280,7 +280,7 @@ fn l19_facts_commands_and_options_round_trip() {
     assert_eq!(old.output_format, None);
 }
 
-/// F64：请求的回合与子代理（每请求头的 `x-query-id`、`x-zcode-session-type`，只新增）。
+/// F64：请求的回合与子代理（每请求头的 `x-query-id`、`x-nibi-session-type`，只新增）。
 #[test]
 fn f64_request_run_and_agent_round_trip() {
     use crate::ids::{AgentId, RunId};

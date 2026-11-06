@@ -10,11 +10,11 @@ use nibi_kernel_api::model::ModelRequest;
 use crate::metadata::{external_session, strip_prefixes};
 
 pub(crate) const REQUEST_ID: &str = "x-request-id";
-pub(crate) const SESSION_TYPE: &str = "x-zcode-session-type";
-pub(crate) const TRACE_ID: &str = "x-zcode-trace-id";
+pub(crate) const SESSION_TYPE: &str = "x-nibi-session-type";
+pub(crate) const TRACE_ID: &str = "x-nibi-trace-id";
 pub(crate) const QUERY_ID: &str = "x-query-id";
 /// 请求用途：Provider 配置里的同名头总是去掉（Node `withoutModelQuerySourceHeader`）。
-pub(crate) const QUERY_SOURCE: &str = "x-zcode-query-source";
+pub(crate) const QUERY_SOURCE: &str = "x-nibi-query-source";
 pub(crate) const SESSION_ID: &str = "x-session-id";
 pub(crate) const OPENCODE_SESSION: &str = "x-opencode-session";
 
@@ -30,7 +30,7 @@ pub(crate) struct Origin {
     query: Option<String>,
     /// 子代理发的请求。
     subagent: bool,
-    /// `x-zcode-query-source` 的值；不合格时为 None（Node 省略）。
+    /// `x-nibi-query-source` 的值；不合格时为 None（Node 省略）。
     source: Option<String>,
 }
 
@@ -54,7 +54,7 @@ impl Origin {
         }
     }
 
-    /// `x-zcode-session-type`：Node 按发请求的 runtime 分（`resolveModelRequestSessionTypeFromTaskType`）。
+    /// `x-nibi-session-type`：Node 按发请求的 runtime 分（`resolveModelRequestSessionTypeFromTaskType`）。
     fn session_type(&self) -> &'static str {
         if self.subagent {
             "subagent"

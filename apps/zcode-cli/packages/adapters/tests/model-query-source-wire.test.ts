@@ -3,7 +3,7 @@ import type { ModelNetworkStatusEvent, ModelRequestSessionType } from "@nibi/con
 import { TestAiSdkModelAdapter, TestProviderConfigFixture } from "./test-provider-config.js";
 import { executeAdapterGenerateText, executeAdapterStreamText } from "./test-adapter-model.js";
 
-const QUERY_SOURCE_HEADER = "x-zcode-query-source";
+const QUERY_SOURCE_HEADER = "x-nibi-query-source";
 const CAPTURE_ERROR = "query source captured";
 afterEach(() => vi.unstubAllGlobals());
 const providerKinds = ["anthropic", "openai", "openai-compatible"] as const;
@@ -28,7 +28,7 @@ describe.each(providerKinds)("%s query source HTTP header", (providerKind) => {
     }
     expect(
       requests.map((request) => [
-        request.headers.get("x-zcode-session-type"),
+        request.headers.get("x-nibi-session-type"),
         request.headers.get(QUERY_SOURCE_HEADER),
       ]),
     ).toEqual(sources.map((source) => ["side_chat", source]));
@@ -47,7 +47,7 @@ describe.each(providerKinds)("%s query source HTTP header", (providerKind) => {
     for (const request of requests) {
       const source = request.headers.get(QUERY_SOURCE_HEADER);
       expect(request.headers.get("x-session-id")).toBe(source);
-      expect(request.headers.get("x-zcode-session-type")).toBe("main");
+      expect(request.headers.get("x-nibi-session-type")).toBe("main");
       expect(request.headers.get("x-static-marker")).toBe("preserved");
       expect(await request.json()).not.toHaveProperty("querySource");
     }
@@ -74,8 +74,8 @@ describe.each(providerKinds)("%s query source HTTP header", (providerKind) => {
     const staticHeaders = {
       "X-Request-ID": "static-request",
       "X-Session-ID": "static-session",
-      "X-ZCode-Session-Type": "other",
-      "X-ZCode-Trace-ID": "static-trace",
+      "X-NIBI-Session-Type": "other",
+      "X-NIBI-Trace-ID": "static-trace",
     };
     const events: ModelNetworkStatusEvent[] = [];
     const { adapter, requests } = createCapture(providerKind, false, staticHeaders);
@@ -90,8 +90,8 @@ describe.each(providerKinds)("%s query source HTTP header", (providerKind) => {
       : {
           "X-Request-ID": started.requestId,
           "X-Session-ID": "compact",
-          "X-ZCode-Session-Type": "main",
-          "X-ZCode-Trace-ID": started.traceId,
+          "X-NIBI-Session-Type": "main",
+          "X-NIBI-Trace-ID": started.traceId,
         };
     for (const [name, value] of Object.entries(expectedHeaders)) {
       expect(requests[0]!.headers.get(name)).toBe(value);
@@ -135,14 +135,14 @@ function createCapture(
   vi.stubGlobal("fetch", transport);
   const registry = new TestProviderConfigFixture({
     env: {},
-    defaultHeaders: { "X-ZCode-Query-Source": "stale_default" },
+    defaultHeaders: { "X-NIBI-Query-Source": "stale_default" },
     providers: {
       fixture: {
         kind: providerKind,
         apiKey: "fake-key",
         baseURL: "https://provider.example.test/v1",
         headers: {
-          "x-zcode-query-source": "stale_provider",
+          "x-nibi-query-source": "stale_provider",
           "x-static-marker": "preserved",
           ...headers,
         },

@@ -878,8 +878,8 @@ describe("AiSdkModelAdapter", () => {
       "x-query-id": "generate",
       "x-request-id": "model_req_generate",
       "x-session-id": "generate",
-      "x-zcode-session-type": "main",
-      "x-zcode-trace-id": "trace_generate",
+      "x-nibi-session-type": "main",
+      "x-nibi-trace-id": "trace_generate",
     });
   });
 
@@ -2022,12 +2022,12 @@ describe("AiSdkModelAdapter", () => {
     });
     expect(captured[0]?.headers).toMatchObject({
       "x-request-id": "model_req_1",
-      "x-zcode-session-type": "main",
+      "x-nibi-session-type": "main",
     });
     expect(captured[1]?.headers).toMatchObject({
       "x-request-id": events[3].requestId,
-      "x-zcode-session-type": "main",
-      "x-zcode-trace-id": "trace_retry",
+      "x-nibi-session-type": "main",
+      "x-nibi-trace-id": "trace_retry",
     });
   });
 
@@ -3389,8 +3389,8 @@ describe("AiSdkModelAdapter", () => {
       "x-query-id": "stream",
       "x-request-id": "model_req_stream",
       "x-session-id": "stream",
-      "x-zcode-session-type": "subagent",
-      "x-zcode-trace-id": "trace_stream",
+      "x-nibi-session-type": "subagent",
+      "x-nibi-trace-id": "trace_stream",
     });
     expect(captured?.allowSystemInMessages).toBe(true);
     expect(events).toEqual([
@@ -3565,12 +3565,12 @@ describe("AiSdkModelAdapter", () => {
     });
     expect(captured[0]?.headers).toMatchObject({
       "x-request-id": "model_req_stream_retry",
-      "x-zcode-session-type": "subagent",
+      "x-nibi-session-type": "subagent",
     });
     expect(captured[1]?.headers).toMatchObject({
       "x-request-id": statusEvents[3].requestId,
-      "x-zcode-session-type": "subagent",
-      "x-zcode-trace-id": "trace_stream_retry",
+      "x-nibi-session-type": "subagent",
+      "x-nibi-trace-id": "trace_stream_retry",
     });
     expect(streamEvents).toEqual([
       { type: "start" },

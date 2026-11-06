@@ -165,7 +165,7 @@ pub struct RequestOptions {
     /// `x-query-id`（Node 的 query id）。没有回合的请求（`/rename` 起名）为 None。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub run: Option<crate::ids::RunId>,
-    /// 发这次请求的子代理（工作线 F64）：有值时 `x-zcode-session-type` 是 `subagent`（Node 按子 runtime 的任务类型）。
+    /// 发这次请求的子代理（工作线 F64）：有值时 `x-nibi-session-type` 是 `subagent`（Node 按子 runtime 的任务类型）。
     /// 子代理的主循环、压缩，以及子代理里的工具与 hook 发的旁路请求都带。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent: Option<crate::ids::AgentId>,
@@ -216,7 +216,7 @@ pub const SIDE_SESSION_TITLE: &str = "generate_session_title";
 pub const SIDE_WEB_FETCH: &str = "web_fetch_apply";
 
 impl QuerySource {
-    /// 写给 Node 的用途名（工作线 F71）：用量表的 `query_source`（usage.md §2.1）与请求头 `x-zcode-query-source`
+    /// 写给 Node 的用途名（工作线 F71）：用量表的 `query_source`（usage.md §2.1）与请求头 `x-nibi-query-source`
     /// （model.md §2.4）共用。Node 有对应用途的用 Node 的名字（`main_turn`、`subagent`、`compact`、`session_title`、
     /// `web_fetch_processing`），其余旁路请求用本工程的名字。
     pub fn node_name(&self) -> String {

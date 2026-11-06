@@ -15,11 +15,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -27,7 +27,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -51,11 +51,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -63,7 +63,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -92,11 +92,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -104,7 +104,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -129,11 +129,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -141,7 +141,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -169,11 +169,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -181,7 +181,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -205,11 +205,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -217,7 +217,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -246,11 +246,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -258,7 +258,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -283,11 +283,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -295,7 +295,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -324,11 +324,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -336,7 +336,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -361,11 +361,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -373,7 +373,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -402,11 +402,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -414,7 +414,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -439,11 +439,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -451,7 +451,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -480,11 +480,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -492,7 +492,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -517,11 +517,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -529,7 +529,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -558,11 +558,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -570,7 +570,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -595,11 +595,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -607,7 +607,7 @@
           "r1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -636,11 +636,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -669,11 +669,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -706,11 +706,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -739,11 +739,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -775,11 +775,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -787,7 +787,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -811,11 +811,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -823,7 +823,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -852,11 +852,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -864,7 +864,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -889,11 +889,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -901,7 +901,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -929,11 +929,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -941,7 +941,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -965,11 +965,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -977,7 +977,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -1006,11 +1006,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1018,7 +1018,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -1043,11 +1043,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1055,7 +1055,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -1084,11 +1084,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1096,7 +1096,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -1121,11 +1121,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1133,7 +1133,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -1162,11 +1162,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1174,7 +1174,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -1199,11 +1199,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1211,7 +1211,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -1240,11 +1240,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1252,7 +1252,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -1277,11 +1277,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1289,7 +1289,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -1318,11 +1318,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1330,7 +1330,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -1355,11 +1355,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1367,7 +1367,7 @@
           "r2"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -1396,11 +1396,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1429,11 +1429,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1466,11 +1466,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1499,11 +1499,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -1535,15 +1535,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -1567,15 +1567,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -1604,15 +1604,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -1637,15 +1637,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -1673,15 +1673,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -1705,15 +1705,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -1742,15 +1742,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -1775,15 +1775,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -1812,15 +1812,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -1845,15 +1845,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -1882,15 +1882,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -1915,15 +1915,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -1952,15 +1952,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -1985,15 +1985,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -2022,15 +2022,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -2055,15 +2055,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -2092,11 +2092,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2121,11 +2121,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2154,11 +2154,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2183,11 +2183,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "subagent"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2215,15 +2215,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -2247,15 +2247,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ],
         [
@@ -2284,15 +2284,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -2317,15 +2317,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ],
         [
@@ -2353,15 +2353,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -2385,15 +2385,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ],
         [
@@ -2422,15 +2422,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -2455,15 +2455,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ],
         [
@@ -2492,15 +2492,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -2525,15 +2525,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ],
         [
@@ -2562,15 +2562,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -2595,15 +2595,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ],
         [
@@ -2632,15 +2632,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -2665,15 +2665,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ],
         [
@@ -2702,15 +2702,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -2735,15 +2735,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ],
         [
@@ -2772,11 +2772,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2801,11 +2801,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2834,11 +2834,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2863,11 +2863,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "main"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
@@ -2895,15 +2895,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ]
       ]
@@ -2923,15 +2923,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "main_turn"
         ]
       ]
@@ -2952,15 +2952,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ]
       ]
@@ -2981,15 +2981,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "subagent"
         ]
       ]
@@ -3009,15 +3009,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ]
       ]
@@ -3037,15 +3037,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "compact"
         ]
       ]
@@ -3066,15 +3066,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ]
       ]
@@ -3095,15 +3095,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "session_title"
         ]
       ]
@@ -3124,15 +3124,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ]
       ]
@@ -3153,15 +3153,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_fetch_processing"
         ]
       ]
@@ -3182,15 +3182,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ]
       ]
@@ -3211,15 +3211,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "web_search_tool"
         ]
       ]
@@ -3240,15 +3240,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ]
       ]
@@ -3269,15 +3269,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "hook_prompt"
         ]
       ]
@@ -3298,15 +3298,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ]
       ]
@@ -3327,15 +3327,15 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ],
         [
-          "x-zcode-query-source",
+          "x-nibi-query-source",
           "rename_generate_name"
         ]
       ]
@@ -3356,11 +3356,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ]
       ]
@@ -3381,11 +3381,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ]
       ]
@@ -3406,11 +3406,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ]
       ]
@@ -3431,11 +3431,11 @@
           "req-1"
         ],
         [
-          "x-zcode-session-type",
+          "x-nibi-session-type",
           "other"
         ],
         [
-          "x-zcode-trace-id",
+          "x-nibi-trace-id",
           "trace-1"
         ]
       ]

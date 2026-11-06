@@ -50,7 +50,7 @@ it("adds every public header and re-reads authorization on retry and logout", as
     "User-Agent": "NIBI/1.2.3",
     "HTTP-Referer": "http://127.0.0.1:9",
     "X-Title": "NIBI@electron",
-    "X-ZCode-App-Version": "1.2.3",
+    "X-NIBI-App-Version": "1.2.3",
     "X-Platform": "darwin-arm64",
     "X-Release-Channel": "test",
     "X-Client-Language": "zh-CN",

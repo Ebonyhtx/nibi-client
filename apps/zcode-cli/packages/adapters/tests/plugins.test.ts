@@ -1866,7 +1866,7 @@ describe("NodePluginAdapter", () => {
     let originHeader: string | undefined;
     let targetHeader: string | undefined;
     const target = createServer((request, response) => {
-      targetHeader = request.headers["x-zcode-channel"] as string | undefined;
+      targetHeader = request.headers["x-nibi-channel"] as string | undefined;
       response.writeHead(200, {
         "content-length": String(zipBuffer.byteLength),
         "content-type": "application/zip",
@@ -1879,7 +1879,7 @@ describe("NodePluginAdapter", () => {
     try {
       const targetBaseUrl = await listenLoopbackServer(target);
       origin = createServer((request, response) => {
-        originHeader = request.headers["x-zcode-channel"] as string | undefined;
+        originHeader = request.headers["x-nibi-channel"] as string | undefined;
         response.writeHead(302, { location: `${targetBaseUrl}/plugin.zip` });
         response.end();
       });
@@ -1887,7 +1887,7 @@ describe("NodePluginAdapter", () => {
       vi.stubEnv(NIBI_NO_PROXY_ENV_KEY, "127.0.0.1");
 
       resolved = await resolveZipPluginSource({
-        headers: { "x-zcode-channel": "internal" },
+        headers: { "x-nibi-channel": "internal" },
         sha256: sha256Buffer(zipBuffer),
         url: `${originBaseUrl}/redirect.zip`,
       });

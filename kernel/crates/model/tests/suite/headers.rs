@@ -99,7 +99,7 @@ async fn the_provider_user_agent_replaces_ours() {
     );
 }
 
-/// 来源头照 Node 发；Provider 配置覆盖来源头与适配器的头（名字不分大小写），去掉配置里的 `x-zcode-query-source`，
+/// 来源头照 Node 发；Provider 配置覆盖来源头与适配器的头（名字不分大小写），去掉配置里的 `x-nibi-query-source`，
 /// 但不能覆盖每请求头；配置的 `anthropic-beta` 与算出的取并集。
 #[tokio::test]
 async fn provider_headers_go_between_the_source_and_the_request_headers() {
@@ -126,21 +126,21 @@ async fn provider_headers_go_between_the_source_and_the_request_headers() {
     for (name, value) in [
         ("http-referer", "https://api.nibistudio.top"),
         ("user-agent", "NIBI/0.1.52"),
-        ("x-zcode-app-version", "0.1.52"),
+        ("x-nibi-app-version", "0.1.52"),
         ("x-title", "Probe"),
         ("x-release-channel", "production"),
         ("x-client-language", "en-US"),
         ("x-client-timezone", "Asia/Shanghai"),
-        ("x-zcode-agent", "glm"),
+        ("x-nibi-agent", "glm"),
         ("x-platform", "darwin-arm64"),
         ("x-os-category", "macos"),
         ("x-os-version", "24.6.0"),
         ("accept", "application/x-probe"),
         ("x-probe", "p1"),
         ("x-request-id", "req-1"),
-        ("x-zcode-trace-id", "trace-1"),
-        ("x-zcode-query-source", "main_turn"),
-        ("x-zcode-session-type", "main"),
+        ("x-nibi-trace-id", "trace-1"),
+        ("x-nibi-query-source", "main_turn"),
+        ("x-nibi-session-type", "main"),
         ("x-session-id", "s1"),
         (
             "anthropic-beta",
@@ -169,10 +169,10 @@ async fn each_attempt_gets_a_new_request_id() {
         let request_id = format!("req-{}", index + 1);
         for (name, value) in [
             ("x-request-id", request_id.as_str()),
-            ("x-zcode-trace-id", "trace-1"),
+            ("x-nibi-trace-id", "trace-1"),
             ("x-query-id", "r1"),
-            ("x-zcode-query-source", "subagent"),
-            ("x-zcode-session-type", "subagent"),
+            ("x-nibi-query-source", "subagent"),
+            ("x-nibi-session-type", "subagent"),
             ("x-session-id", "a1"),
         ] {
             assert_eq!(single(captured, name), Some(value), "{index} {name}");
@@ -192,9 +192,9 @@ async fn side_requests_use_the_node_query_source() {
     assert!(events.iter().all(Result::is_ok), "{events:?}");
     let requests = server.requests();
     assert_eq!(
-        single(&requests[0], "x-zcode-query-source"),
+        single(&requests[0], "x-nibi-query-source"),
         Some("session_title")
     );
-    assert_eq!(single(&requests[0], "x-zcode-session-type"), Some("main"));
+    assert_eq!(single(&requests[0], "x-nibi-session-type"), Some("main"));
     assert_eq!(single(&requests[0], "x-query-id"), Some("r2"));
 }

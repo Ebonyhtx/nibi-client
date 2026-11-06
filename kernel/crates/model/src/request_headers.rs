@@ -26,7 +26,7 @@ pub type RequestIdSource = Arc<dyn Fn() -> String + Send + Sync>;
 pub struct RequestHeaders {
     /// 来源头：[`source_headers`] 的结果，进程启动时算一次。
     pub source: Vec<(String, String)>,
-    /// `x-zcode-trace-id`：每个进程一个。
+    /// `x-nibi-trace-id`：每个进程一个。
     pub trace_id: String,
     /// `x-request-id` 的来源：每次发送（含重试）调用一次。
     pub request_id: RequestIdSource,
@@ -89,14 +89,14 @@ pub fn source_headers(facts: &SourceFacts) -> Vec<(String, String)> {
         ),
     ];
     if let Some(version) = version {
-        out.push(("x-zcode-app-version", version.to_owned()));
+        out.push(("x-nibi-app-version", version.to_owned()));
     }
     out.extend([
         ("x-title", "NIBI@cli".to_owned()),
         ("x-release-channel", facts.release_channel.clone()),
         ("x-client-language", printable_or_unknown(&facts.locale)),
         ("x-client-timezone", printable_or_unknown(&facts.time_zone)),
-        ("x-zcode-agent", "glm".to_owned()),
+        ("x-nibi-agent", "glm".to_owned()),
     ]);
     if let (Some(platform), Some(arch)) = (printable(&facts.platform), printable(&facts.arch)) {
         out.push(("x-platform", format!("{platform}-{arch}")));

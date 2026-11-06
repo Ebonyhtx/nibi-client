@@ -47,7 +47,7 @@ describe("createProviderEndpointRoutingSourceHeaders", () => {
       "X-Platform": `${process.platform}-${readOsArch()}`,
       "X-Release-Channel": "test",
       "X-Title": "NIBI@electron",
-      "X-ZCode-App-Version": "1.2.3",
+      "X-NIBI-App-Version": "1.2.3",
     });
     expect(headers).not.toHaveProperty("Authorization");
   });

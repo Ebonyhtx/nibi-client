@@ -98,7 +98,7 @@ fn ephemeral() -> Option<CacheControl> {
 }
 
 /// 发请求的一方：hook 所在的会话（工作线 F52：`metadata.user_id` 的 `session_id`，model.md §3.3）、触发它的回合与
-/// 子代理（工作线 F64：每请求头的 `x-query-id`、`x-zcode-session-type`，model.md §2.4）。
+/// 子代理（工作线 F64：每请求头的 `x-query-id`、`x-nibi-session-type`，model.md §2.4）。
 #[derive(Clone, Copy)]
 pub(crate) struct Requester<'a> {
     pub session: &'a SessionId,

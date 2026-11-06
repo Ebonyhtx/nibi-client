@@ -36,7 +36,7 @@ export function createMarketingTouchService(options: {
       headers: {
         "X-Device-Mid": device,
         "X-Client-Language": localeSchema.parse(locale),
-        "X-ZCode-App-Version": options.appVersion,
+        "X-NIBI-App-Version": options.appVersion,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     };

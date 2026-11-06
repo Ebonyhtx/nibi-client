@@ -4,7 +4,7 @@ import { captureFeedbackScreenshotDraft } from "@/feedback/feedbackScreenshotDra
 
 const screenshot: WindowScreenshotResult = {
   dataBase64: "base64-image",
-  filename: "zcode-error-2026-06-17.png",
+  filename: "nibi-error-2026-06-17.png",
   contentType: "image/png",
   size: 12,
 };

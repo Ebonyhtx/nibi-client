@@ -1037,7 +1037,7 @@ function writeResponseChunk(response: ServerResponse, text: string | Buffer): Pr
 }
 
 /**
- * 请求用途头（`x-zcode-query-source`，两个内核都发）的标题生成值。
+ * 请求用途头（`x-nibi-query-source`，两个内核都发）的标题生成值。
  *
  * 夹具靠**提示词原文**排除标题请求是不稳的：Node 的标题提示词是
  * `Generate a concise title for this coding session.`，Rust 的是
@@ -1056,7 +1056,7 @@ function isSessionTitleRequest(record: E2ENetworkCaptureRecord): boolean {
     return false;
   }
   for (const [name, value] of Object.entries(headers)) {
-    if (name.toLowerCase() === "x-zcode-query-source" && value === SESSION_TITLE_QUERY_SOURCE) {
+    if (name.toLowerCase() === "x-nibi-query-source" && value === SESSION_TITLE_QUERY_SOURCE) {
       return true;
     }
   }

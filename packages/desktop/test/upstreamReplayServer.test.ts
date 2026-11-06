@@ -655,7 +655,7 @@ function requestTitlePrompt(
     body: JSON.stringify({
       messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
     }),
-    headers: { "content-type": "application/json", "x-zcode-query-source": "session_title" },
+    headers: { "content-type": "application/json", "x-nibi-query-source": "session_title" },
     method: "POST",
   });
 }
@@ -665,7 +665,7 @@ function requestTurn(server: UpstreamReplayServer) {
     body: JSON.stringify({
       messages: [{ role: "user", content: [{ type: "text", text: "E2E_TITLE_THIEF_TURN" }] }],
     }),
-    headers: { "content-type": "application/json", "x-zcode-query-source": "main_turn" },
+    headers: { "content-type": "application/json", "x-nibi-query-source": "main_turn" },
     method: "POST",
   });
 }

@@ -19,7 +19,7 @@ describe("network capture", () => {
     expect(
       extractAttribution(
         {
-          "x-zcode-trace-id": "trace-header",
+          "x-nibi-trace-id": "trace-header",
         },
         url,
       ),
@@ -114,7 +114,7 @@ async function requestThroughProxy(proxyPort: number, upstreamPort: number): Pro
         headers: {
           authorization: "Bearer secret",
           "content-type": "text/plain",
-          "x-zcode-trace-id": "trace-net",
+          "x-nibi-trace-id": "trace-net",
         },
       },
       (response) => {

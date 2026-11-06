@@ -284,7 +284,7 @@ function createDragPanelForSession(
 
 /** 生产走签名包内的 extraResources；dev 走 checkout 里的构建产物。 */
 function resolveWindowBoundsBinaryPath(): string {
-  const relative = join("macos-window-bounds", "zcode-window-bounds");
+  const relative = join("macos-window-bounds", "nibi-window-bounds");
   return app.isPackaged
     ? join(process.resourcesPath, relative)
     : join(import.meta.dirname, "..", "..", "resources", relative);

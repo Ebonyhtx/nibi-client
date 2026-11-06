@@ -472,7 +472,7 @@ describe("useComposerAttachments eager upload", () => {
         dataTransfer: {
           dropEffect: "none",
           items: [],
-          types: ["application/x-zcode-workspace-file"],
+          types: ["application/x-nibi-workspace-file"],
         },
         preventDefault,
       } as unknown as DragEvent<HTMLElement>),
@@ -483,7 +483,7 @@ describe("useComposerAttachments eager upload", () => {
       latestApi?.handleDropComposer({
         dataTransfer: {
           files: [],
-          types: ["application/x-zcode-workspace-file"],
+          types: ["application/x-nibi-workspace-file"],
         },
         preventDefault,
       } as unknown as DragEvent<HTMLElement>),

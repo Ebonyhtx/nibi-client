@@ -1,6 +1,6 @@
 import type { ProviderEndpointRoutingPort, TraceContext } from "@nibi/contracts";
 
-const TRACE_HEADER = "x-zcode-trace-id";
+const TRACE_HEADER = "x-nibi-trace-id";
 
 export type ProviderEndpointRoutingFetch = typeof globalThis.fetch;
 

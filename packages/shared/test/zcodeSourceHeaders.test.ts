@@ -23,7 +23,7 @@ describe("buildZCodeSourceHeadersFromContext", () => {
       ...NIBI_SOURCE_HEADERS,
       "HTTP-Referer": "https://zcode.z.ai",
       "User-Agent": "NIBI/2.14.0",
-      "X-ZCode-App-Version": "2.14.0",
+      "X-NIBI-App-Version": "2.14.0",
       "X-Title": "NIBI@cli",
       "X-Platform": "darwin-arm64",
       "X-Release-Channel": "test",
@@ -53,6 +53,6 @@ describe("buildZCodeSourceHeadersFromContext", () => {
       "X-Title": "NIBI@electron",
     });
     expect(headers).not.toHaveProperty("X-Device-Mid");
-    expect(headers).not.toHaveProperty("X-ZCode-App-Version");
+    expect(headers).not.toHaveProperty("X-NIBI-App-Version");
   });
 });

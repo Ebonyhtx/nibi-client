@@ -58,12 +58,12 @@ export function buildCliZCodeSourceHeaders(
   return {
     "HTTP-Referer": resolveRuntimeZCodeEndpointOrigin(env),
     "User-Agent": `NIBI/${appVersion ?? "unknown"}`,
-    ...(appVersion ? { "X-ZCode-App-Version": appVersion } : {}),
+    ...(appVersion ? { "X-NIBI-App-Version": appVersion } : {}),
     "X-Title": `NIBI@${sourceTitle}`,
     "X-Release-Channel": resolveRuntimeZCodeEnv(env),
     "X-Client-Language": locale ?? "unknown",
     "X-Client-Timezone": timezone ?? "unknown",
-    "X-ZCode-Agent": "glm",
+    "X-NIBI-Agent": "glm",
     ...createRuntimePlatformHeaders(),
   };
 }

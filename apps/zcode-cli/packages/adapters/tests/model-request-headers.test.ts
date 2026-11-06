@@ -6,11 +6,11 @@ import { createRegistryProviderConfig, parseProviderConfig } from "@nibi/provide
 
 describe("模型 Header 合并与绑定边界", () => {
   it("默认值、用户值、鉴权值依次覆盖，保留其他字段且不改变输入", () => {
-    const defaults = { "X-Title": "NIBI@cli", "X-ZCode-App-Version": "3.12.0" };
+    const defaults = { "X-Title": "NIBI@cli", "X-NIBI-App-Version": "3.12.0" };
     const personal = { "x-title": "User", authorization: "old" };
     const auth = { Authorization: "Bearer fresh", "X-Once": "once" };
     expect(mergeModelRequestHeaders(defaults, personal, auth)).toEqual({
-      "X-ZCode-App-Version": "3.12.0",
+      "X-NIBI-App-Version": "3.12.0",
       "x-title": "User",
       Authorization: "Bearer fresh",
       "X-Once": "once",
@@ -20,7 +20,7 @@ describe("模型 Header 合并与绑定边界", () => {
   });
 
   it("绑定后默认值/Provider 修改不影响旧 Model，鉴权只覆盖本次请求", async () => {
-    const defaults = { "X-Title": "NIBI@electron", "X-ZCode-App-Version": "3.12.0" };
+    const defaults = { "X-Title": "NIBI@electron", "X-NIBI-App-Version": "3.12.0" };
     const requests: Request[] = [];
     const execution = new AiSdkModelExecution(
       { defaultHeaders: defaults, env: {} },
@@ -62,7 +62,7 @@ describe("模型 Header 合并与绑定边界", () => {
         optionSpecs: { reasoningLevel: { map: "{}" }, maxOutputTokens: { map: "{}" } },
       });
     const old = bind("Personal");
-    defaults["X-ZCode-App-Version"] = "changed";
+    defaults["X-NIBI-App-Version"] = "changed";
     const next = bind("New Personal");
     const options = { reasoningLevel: "disabled", maxOutputTokens: 1024 };
     const resolved = [
@@ -80,7 +80,7 @@ describe("模型 Header 合并与绑定边界", () => {
       "Personal",
       "New Personal",
     ]);
-    expect(requests.map((r) => r.headers.get("x-zcode-app-version"))).toEqual([
+    expect(requests.map((r) => r.headers.get("x-nibi-app-version"))).toEqual([
       "3.12.0",
       "3.12.0",
       "3.12.0",

@@ -214,7 +214,7 @@ export function createZCodeDataSizeTelemetryScheduler(
       await dependencies.writeState(nextState);
       persistedState = nextState;
     } catch (error) {
-      dependencies.logger.warn("[zcode-data-size] failed to persist report state", error);
+      dependencies.logger.warn("[nibi-data-size] failed to persist report state", error);
     }
   }
 
@@ -236,7 +236,7 @@ export function createZCodeDataSizeTelemetryScheduler(
       await dependencies.writeState(restoredState);
       persistedState = previousState;
     } catch (error) {
-      dependencies.logger.warn("[zcode-data-size] failed to roll back report reservation", error);
+      dependencies.logger.warn("[nibi-data-size] failed to roll back report reservation", error);
     }
   }
 
@@ -287,7 +287,7 @@ export function createZCodeDataSizeTelemetryScheduler(
       await persistSuccess(reportedAt);
       idleWaitingSince = null;
       dependencies.logger.info(
-        `[zcode-data-size] reported status=${result.status} bytes=${result.bytes}`,
+        `[nibi-data-size] reported status=${result.status} bytes=${result.bytes}`,
       );
       schedule(
         timing.dailyIntervalMs +
@@ -303,7 +303,7 @@ export function createZCodeDataSizeTelemetryScheduler(
       }
       const aborted = abortController.signal.aborted || isAbortError(error);
       dependencies.logger.warn(
-        `[zcode-data-size] ${aborted ? "scan aborted" : "scan/report failed"}`,
+        `[nibi-data-size] ${aborted ? "scan aborted" : "scan/report failed"}`,
         error,
       );
       schedule(aborted ? timing.abortedRetryMs : timing.failureRetryMs);
@@ -340,7 +340,7 @@ export function createZCodeDataSizeTelemetryScheduler(
     } catch (error) {
       // Bug 根因：状态读取失败不等于没有历史状态；按首次启动继续采集会绕过持久化限流。
       // 无法确认配额时保持 fail-closed，并且只重试状态读取，不进入采集调度。
-      dependencies.logger.warn("[zcode-data-size] failed to read report state", error);
+      dependencies.logger.warn("[nibi-data-size] failed to read report state", error);
       schedule(timing.failureRetryMs, initializeFromPersistedState);
       return;
     }
@@ -431,7 +431,7 @@ export function registerDesktopZCodeDataSizeTelemetry(options: {
     writeState: (state) => writeZCodeDataSizeTelemetryState(options.stateFile, state),
   });
   void desktopScheduler.start().catch((error) => {
-    options.logger.warn("[zcode-data-size] scheduler start failed", error);
+    options.logger.warn("[nibi-data-size] scheduler start failed", error);
   });
 }
 

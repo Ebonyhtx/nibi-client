@@ -54,7 +54,7 @@ describe("NodeApiClient endpoint rewriting", () => {
     expect(zcodeHeaders.get("X-OpenRouter-Categories")).toBeNull();
     expect(zcodeHeaders.get("HTTP-Referer")).toBe("https://zcode.z.ai");
     expect(zcodeHeaders.get("X-App-Version")).toBeNull();
-    expect(zcodeHeaders.get("X-ZCode-App-Version")).toBeTruthy();
+    expect(zcodeHeaders.get("X-NIBI-App-Version")).toBeTruthy();
     expect(zcodeHeaders.get("X-Platform")).toBe(`${process.platform}-${process.arch}`);
     expect(zcodeHeaders.get("X-Release-Channel")).toBeTruthy();
     expect(zcodeHeaders.get("X-Client-Language")).toBeTruthy();
@@ -220,7 +220,7 @@ describe("NodeApiClient endpoint rewriting", () => {
       "X-Client-Timezone": "Asia/Shanghai",
       "X-Os-Category": "macos",
       "X-Os-Version": "Darwin 25.0.0",
-      "X-ZCode-App-Version": "2.14.0",
+      "X-NIBI-App-Version": "2.14.0",
     });
   });
 });

@@ -18,7 +18,7 @@ import WebSocket from "ws";
 import { dockerPlatformForTarget, resolveVerificationTarget } from "./verify-remote-ssh-target.mjs";
 import { assert, findFreePort, retry, run } from "./verify-remote-ssh-runtime.mjs";
 
-const HOST_CAPABILITY_HEADER = "x-zcode-rpc-host-capability";
+const HOST_CAPABILITY_HEADER = "x-nibi-rpc-host-capability";
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const argv = process.argv.slice(2);
 const keep = argv.includes("--keep");

@@ -1,4 +1,4 @@
-export const WORKBENCH_SESSION_DRAG_MIME = "application/x-zcode-session";
+export const WORKBENCH_SESSION_DRAG_MIME = "application/x-nibi-session";
 
 export interface WorkbenchSessionDragPayload {
   readonly kind: "zcode/session";

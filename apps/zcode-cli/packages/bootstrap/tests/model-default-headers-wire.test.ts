@@ -186,10 +186,10 @@ describe("模型请求默认 Header：Bootstrap → Adapter → 真实 SDK", () 
         expect(requests).toHaveLength(1);
         const headers = requests[0]!.headers;
         expect(headers.get("user-agent")).toContain(`NIBI/${CLIENT_VERSION}`);
-        expect(headers.get("x-zcode-app-version")).toBe(CLIENT_VERSION);
+        expect(headers.get("x-nibi-app-version")).toBe(CLIENT_VERSION);
         expect(headers.get("x-title")).toBe("NIBI@electron");
         expect(headers.get("http-referer")).toBe("https://api.nibistudio.top");
-        expect(headers.get("x-zcode-agent")).toBe("glm");
+        expect(headers.get("x-nibi-agent")).toBe("glm");
         expect(headers.get("x-release-channel")).toBe("production");
         for (const key of [
           "x-client-language",
@@ -259,7 +259,7 @@ describe("模型请求默认 Header：Bootstrap → Adapter → 真实 SDK", () 
     expect(requests[0]!.headers.get("user-agent")).toContain(
       `NIBI/${options.expected ?? "unknown"}`,
     );
-    expect(requests[0]!.headers.get("x-zcode-app-version")).toBe(options.expected ?? null);
+    expect(requests[0]!.headers.get("x-nibi-app-version")).toBe(options.expected ?? null);
     expect(requests[0]!.headers.get("x-title")).toBe(`NIBI@${options.sourceTitle}`);
   });
 
@@ -301,13 +301,13 @@ describe("模型请求默认 Header：Bootstrap → Adapter → 真实 SDK", () 
       ),
     );
     expect(requests).toHaveLength(1);
-    expect(requests[0]!.headers.get("x-zcode-app-version")).toBe(CLIENT_VERSION);
+    expect(requests[0]!.headers.get("x-nibi-app-version")).toBe(CLIENT_VERSION);
     // 标题用途不改变宿主会话分类；两个 Header 分别表达归属和用途。
-    expect(requests[0]!.headers.get("x-zcode-session-type")).toBe("main");
-    expect(requests[0]!.headers.get("x-zcode-query-source")).toBe("session_title");
+    expect(requests[0]!.headers.get("x-nibi-session-type")).toBe("main");
+    expect(requests[0]!.headers.get("x-nibi-query-source")).toBe("session_title");
     // 既有请求归因会去掉内部 sess_ 前缀；本次不改变服务端看到的会话身份格式。
     expect(requests[0]!.headers.get("x-session-id")).toBe("header-title-session");
-    expect(requests[0]!.headers.get("x-zcode-trace-id")).toBeTruthy();
+    expect(requests[0]!.headers.get("x-nibi-trace-id")).toBeTruthy();
     expect(JSON.stringify(await requests[0]!.json())).toContain(
       "This is a title-generation task, not a conversation.",
     );

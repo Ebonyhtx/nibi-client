@@ -33,7 +33,7 @@ describe("provider endpoint routing fetch", () => {
         Authorization: "Bearer secret",
         Host: "api.z.ai",
         "x-api-key": "provider-key",
-        "X-ZCode-Trace-Id": "trace-1",
+        "X-NIBI-Trace-Id": "trace-1",
       },
       method: "POST",
       signal: controller.signal,
@@ -73,7 +73,7 @@ describe("provider endpoint routing fetch", () => {
     await fetch(SOURCE_ZAI, {
       headers: {
         Authorization: "Bearer provider-key",
-        "X-ZCode-Trace-Id": "trace-authorization-only",
+        "X-NIBI-Trace-Id": "trace-authorization-only",
       },
     });
 
@@ -147,7 +147,7 @@ describe("provider endpoint routing fetch", () => {
       routingPort: {
         async resolve() {
           return {
-            headers: { "X-ZCode-Authorization": "Bearer current-jwt" },
+            headers: { "X-NIBI-Authorization": "Bearer current-jwt" },
             routed: true,
             url: TARGET,
           };
@@ -157,6 +157,6 @@ describe("provider endpoint routing fetch", () => {
 
     await fetch(input());
 
-    expect(captured?.headers.get("x-zcode-authorization")).toBe("Bearer current-jwt");
+    expect(captured?.headers.get("x-nibi-authorization")).toBe("Bearer current-jwt");
   });
 });

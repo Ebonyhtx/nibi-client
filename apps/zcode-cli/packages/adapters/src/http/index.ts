@@ -28,7 +28,7 @@ import {
 import { readIncomingResponse } from "../network/incoming-response.js";
 import { readResponseBody, type ResponseLike } from "./response-body.js";
 
-const TRACE_HEADER = "x-zcode-trace-id";
+const TRACE_HEADER = "x-nibi-trace-id";
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
 

@@ -40,7 +40,7 @@ describe("NodeHttpClientAdapter", () => {
       url: "https://example.com/page",
     });
     expect(init?.headers).toBeInstanceOf(Headers);
-    expect((init?.headers as Headers).get("x-zcode-trace-id")).toBe("trace-http");
+    expect((init?.headers as Headers).get("x-nibi-trace-id")).toBe("trace-http");
   });
 
   it("forwards POST request bodies", async () => {

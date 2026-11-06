@@ -1,5 +1,5 @@
 const MODEL_AUTH_HEADER_NAMES = new Set(["authorization", "x-api-key"]);
-export const MODEL_QUERY_SOURCE_HEADER = "x-zcode-query-source";
+export const MODEL_QUERY_SOURCE_HEADER = "x-nibi-query-source";
 
 /** 请求用途由调用上下文拥有，不能从 Provider 静态配置或 SDK 默认 header 继承。 */
 export function withoutModelQuerySourceHeader(

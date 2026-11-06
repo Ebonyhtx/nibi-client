@@ -268,7 +268,7 @@ export async function createMarketingTouchFixture() {
           headers: {
             deviceMid: req.headers["x-device-mid"],
             language: req.headers["x-client-language"],
-            appVersion: req.headers["x-zcode-app-version"],
+            appVersion: req.headers["x-nibi-app-version"],
             authenticated: Boolean(req.headers.authorization),
           },
         });

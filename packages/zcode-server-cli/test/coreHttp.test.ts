@@ -36,7 +36,7 @@ async function connectResourcePeer(base: string, onValidate: (args: unknown) => 
   const response = await fetch(`${base}/api/rpc-host-capability`, { method: "POST" });
   const { capability } = (await response.json()) as { capability: string };
   const socket = new WebSocket(`${base.replace("http:", "ws:")}/ws/host`, {
-    headers: { "x-zcode-rpc-host-capability": capability },
+    headers: { "x-nibi-rpc-host-capability": capability },
   });
   const data = new Emitter<VSBuffer>();
   const close = new Emitter<void>();
@@ -324,7 +324,7 @@ describe("standalone Server Core ingress", () => {
     );
     const capability = (await capabilityResponse.json()) as { capability: string };
     const socket = new WebSocket(`ws://${server.host}:${server.port}/ws/host`, {
-      headers: { "x-zcode-rpc-host-capability": capability.capability },
+      headers: { "x-nibi-rpc-host-capability": capability.capability },
     });
     await new Promise<void>((resolve, reject) => {
       socket.once("open", () => {
@@ -339,7 +339,7 @@ describe("standalone Server Core ingress", () => {
 
     // 一次性 ticket：同一 capability 重放必须被拒绝。
     const replayed = await fetch(`http://${server.host}:${server.port}/ws/host`, {
-      headers: { "x-zcode-rpc-host-capability": capability.capability },
+      headers: { "x-nibi-rpc-host-capability": capability.capability },
     });
     expect(replayed.status).toBe(401);
   });
@@ -442,7 +442,7 @@ describe("standalone Server Core ingress", () => {
     });
     const { capability } = (await capabilityResponse.json()) as { capability: string };
     const hostClient = await connectChannelClient(`ws://${server.host}:${server.port}/ws/host`, {
-      "x-zcode-rpc-host-capability": capability,
+      "x-nibi-rpc-host-capability": capability,
     });
     try {
       await expect(
@@ -490,7 +490,7 @@ describe("standalone Server Core ingress", () => {
     const response = await fetch(`${baseUrl}/api/rpc-host-capability`, { method: "POST" });
     const { capability } = (await response.json()) as { capability: string };
     const host = await connectChannelClient(`ws://${server.host}:${server.port}/ws/host`, {
-      "x-zcode-rpc-host-capability": capability,
+      "x-nibi-rpc-host-capability": capability,
     });
     try {
       const direct = await host.client
@@ -541,7 +541,7 @@ describe("standalone Server Core ingress", () => {
     expect(expiresAt).toBe(100);
     now = 101;
     const rejected = await fetch(`http://${server.host}:${server.port}/ws/host`, {
-      headers: { "x-zcode-rpc-host-capability": capability },
+      headers: { "x-nibi-rpc-host-capability": capability },
     });
     expect(rejected.status).toBe(401);
   });

@@ -9,7 +9,7 @@ import { createSettingsTestServices } from "./lib/settingsTestServices.js";
 const capturedHeaderHelp = vi.hoisted(() => {
   const screenshot = {
     dataBase64: "base64-image",
-    filename: "zcode-error-2026-06-17.png",
+    filename: "nibi-error-2026-06-17.png",
     contentType: "image/png",
     size: 12,
   };

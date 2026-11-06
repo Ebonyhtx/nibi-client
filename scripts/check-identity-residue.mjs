@@ -13,6 +13,13 @@
  * define 注入值、依赖包里的字面量、内联的第三方代码一起打进来；`skill` 文档、
  * 内置提示词、插件 manifest 也可能带着旧路径进去。只看源码的判据是假绿。
  *
+ * 三类判据：
+ *   1. `ZCODE_*` 环境变量与路径段 `.zcode`（原来的两条）；
+ *   2. 第三方 CDN 域名（A1/A2）；
+ *   3. 实例身份词：`X-ZCode-*` 请求头、`zcode-` kebab 的用户可见文件名/日志标签/进程名。
+ *      这一类原先完全漏掉——`zcode-server.cjs`、`zcode-data-size`、`zcode-window-bounds`
+ *      都过门禁。逐条枚举的理由见 [`FORBIDDEN_IDENTITY_TOKENS`]。
+ *
  * 允许清单写在下面，每条都要写清为什么不能改。新增白名单等于放宽判据，必须给理由。
  *
  * 用法：node scripts/check-identity-residue.mjs [repoRoot]
@@ -100,6 +107,29 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
   { host: "cdn.codegeex.cn", reason: "上游（智谱系）CDN，不得作为我们的下载源" },
   { host: "cdn-zcode.z.ai", reason: "上游 CDN，不得作为我们的下载源" },
   { host: "cdn.zcode-ai.com", reason: "上游 CDN，不得作为我们的下载源" },
+];
+
+/**
+ * 实例身份词（`zcode-` kebab / `X-ZCode-` 头 / 用户可见文件名）。
+ *
+ * 为什么单列、且**逐条枚举**而不是写 `/zcode-/`：泛正则会同时命中大量合法名字——
+ * 兼容用的插件包格式 `zcode-plugin`、移植过来的插件名（`zcode-guide` 等）、
+ * `packages/zcode-server-cli` 这个包名本身。判据一旦产噪声就没人看，等于空转。
+ * 所以这里只放「确属我们的实例身份、且当前源码里已经清干净」的词，
+ * 每加一条都要先把它清掉，否则门禁立刻红。
+ *
+ * 尚未清完、因此暂不列入的（列在这里是为了别忘，不是因为可以接受）：
+ * - `zcode-server*`：远端执行器 bundle 名与发布包名，与包名/CI 一起改。
+ * - `zcode-agent` / `zcode-workflow` / `zcode-expert`：写进会话库的 agent 值，
+ *   Node 与 Rust 两个内核共用一个数据契约，要两边同批改。
+ */
+const FORBIDDEN_IDENTITY_TOKENS = [
+  { token: "X-ZCode-", reason: "请求头前缀（原来发往模型服务端与自家服务端做观测）" },
+  { token: "x-zcode-", reason: "请求头前缀的小写形态" },
+  { token: "zcode-data-size", reason: "遥测日志标签，运营看日志时可见" },
+  { token: "zcode-window-bounds", reason: "进程名，任务管理器里可见" },
+  { token: "zcode-error-", reason: "用户可见的导出文件名前缀" },
+  { token: "zcode-save-file-", reason: "用户可见的保存文件名前缀" },
 ];
 
 
@@ -204,6 +234,13 @@ function findOffenders(line) {
     }
   }
 
+  // 实例身份词：`ZCODE_*` 与路径段 `.zcode` 之外的那一类（kebab、请求头、文件名）。
+  for (const { token, reason } of FORBIDDEN_IDENTITY_TOKENS) {
+    if (line.includes(token)) {
+      found.push({ token, kind: "identity", reason });
+    }
+  }
+
   return found;
 }
 
@@ -255,12 +292,14 @@ async function main() {
       const lines = text.split("\n");
       for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index];
-        // 预过滤必须把 A1/A2 的域名也算进来，否则含 `ZCODE_`/`.zcode` 之外的行
+        // 预过滤必须把 A1/A2 的域名与身份词都算进来，否则含 `ZCODE_`/`.zcode` 之外的行
         // 会被直接跳过 —— 将来把域名换成别的上游 CDN 时判据会假绿。
+        // （实测踩过：新加的 `X-ZCode-` 规则一开始就是这样被预过滤吞掉的，判据全绿但其实没查。）
         const interesting =
           line.includes("ZCODE_") ||
           line.includes(".zcode") ||
-          FORBIDDEN_THIRD_PARTY_HOSTS.some(({ host }) => line.includes(host));
+          FORBIDDEN_THIRD_PARTY_HOSTS.some(({ host }) => line.includes(host)) ||
+          FORBIDDEN_IDENTITY_TOKENS.some(({ token }) => line.includes(token));
         if (!interesting) continue;
         for (const offender of findOffenders(line)) {
           failures.push({

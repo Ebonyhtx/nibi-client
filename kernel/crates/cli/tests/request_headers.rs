@@ -104,22 +104,22 @@ fn a_real_request_carries_the_node_headers() {
         for (name, value) in [
             ("http-referer", "https://api.nibistudio.top"),
             ("user-agent", format!("NIBI/{version}").as_str()),
-            ("x-zcode-app-version", version.as_str()),
+            ("x-nibi-app-version", version.as_str()),
             ("x-title", "NIBI@cli"),
             ("x-release-channel", "test"),
             ("x-client-language", "zh-CN"),
             ("x-client-timezone", "Asia/Tokyo"),
-            ("x-zcode-agent", "glm"),
+            ("x-nibi-agent", "glm"),
             ("x-platform", platform.as_str()),
             ("x-os-category", category),
-            ("x-zcode-session-type", "main"),
-            ("x-zcode-query-source", "main_turn"),
+            ("x-nibi-session-type", "main"),
+            ("x-nibi-query-source", "main_turn"),
             ("x-session-id", SESSION),
         ] {
             assert_eq!(get(headers, name), Some(value), "{name}: {headers:?}");
         }
         assert!(get(headers, "x-os-version").is_some_and(|release| !release.is_empty()));
-        for name in ["x-request-id", "x-zcode-trace-id", "x-query-id"] {
+        for name in ["x-request-id", "x-nibi-trace-id", "x-query-id"] {
             assert!(
                 get(headers, name).is_some_and(is_uuid),
                 "{name}: {headers:?}"
@@ -129,7 +129,7 @@ fn a_real_request_carries_the_node_headers() {
     let [first, second] = requests.as_slice() else {
         unreachable!()
     };
-    for name in ["x-zcode-trace-id", "x-query-id"] {
+    for name in ["x-nibi-trace-id", "x-query-id"] {
         assert_eq!(get(first, name), get(second, name), "{name}");
     }
     assert_ne!(get(first, "x-request-id"), get(second, "x-request-id"));
@@ -142,12 +142,12 @@ fn the_app_version_variable_comes_first() {
     let requests = run(&[("NIBI_APP_VERSION", "9.9.9"), ("TZ", "UTC")]);
     let headers = &requests[0];
     assert_eq!(get(headers, "user-agent"), Some("NIBI/9.9.9"));
-    assert_eq!(get(headers, "x-zcode-app-version"), Some("9.9.9"));
+    assert_eq!(get(headers, "x-nibi-app-version"), Some("9.9.9"));
     assert_eq!(get(headers, "x-client-language"), Some("en-US"));
     assert_eq!(get(headers, "x-client-timezone"), Some("UTC"));
     assert_eq!(get(headers, "http-referer"), Some("https://api.nibistudio.top"));
     assert_eq!(get(headers, "x-release-channel"), Some("production"));
     let requests = run(&[("NIBI_APP_VERSION", "")]);
     assert_eq!(get(&requests[0], "user-agent"), Some("NIBI/unknown"));
-    assert_eq!(get(&requests[0], "x-zcode-app-version"), None);
+    assert_eq!(get(&requests[0], "x-nibi-app-version"), None);
 }

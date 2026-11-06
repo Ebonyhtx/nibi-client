@@ -21,7 +21,7 @@ export function createTelemetryReportFixture() {
       languageMatches: req.headers["x-client-language"] === body.client_language,
       timezoneMatches: req.headers["x-client-timezone"] === body.client_timezone,
       deviceMatches: Boolean(body.device_mid) && req.headers["x-device-mid"] === body.device_mid,
-      versionMatches: req.headers["x-zcode-app-version"] === body.app_version,
+      versionMatches: req.headers["x-nibi-app-version"] === body.app_version,
       osMatches:
         req.headers["x-os-category"] === body.device_os_category &&
         req.headers["x-os-version"] === body.device_os_version,

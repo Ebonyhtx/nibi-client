@@ -46,7 +46,7 @@ export function buildZCodeSourceHeadersFromContext(
     ...NIBI_SOURCE_HEADERS,
     "HTTP-Referer": endpointOrigin,
     "User-Agent": `NIBI/${appVersion ?? "unknown"}`,
-    ...(appVersion ? { "X-ZCode-App-Version": appVersion } : {}),
+    ...(appVersion ? { "X-NIBI-App-Version": appVersion } : {}),
     "X-Title": `NIBI@${sourceTitle}`,
     ...(platform && arch ? { "X-Platform": `${platform}-${arch}` } : {}),
     ...(releaseChannel ? { "X-Release-Channel": releaseChannel } : {}),

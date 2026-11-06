@@ -137,7 +137,7 @@ impl Route {
         Some((sink, self.clock.clone()))
     }
 
-    /// 进程的 trace ID（每请求头的 `x-zcode-trace-id`）。
+    /// 进程的 trace ID（每请求头的 `x-nibi-trace-id`）。
     pub(crate) fn trace(&self) -> Option<&str> {
         self.headers
             .as_deref()
