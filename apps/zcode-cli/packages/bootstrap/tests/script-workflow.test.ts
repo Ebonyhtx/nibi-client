@@ -68,7 +68,7 @@ describe("script workflow runtime", () => {
   });
 
   it("persists inline Workflow tool scripts under session storage before launch", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-tool-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-tool-"));
     const fileSystemPort = createNodeFileSystemAdapter();
     const traceContext = createRootTraceContext({
       sessionId: createSessionId("workflow-tool-inline"),
@@ -121,7 +121,7 @@ describe("script workflow runtime", () => {
   });
 
   it("resolves named Workflow tool scripts from project .zcode/workflows", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-name-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-name-"));
     const workflowDir = join(tempRoot, ".nibi", "workflows");
     const sourcePath = join(workflowDir, "review.workflow.js");
     await mkdir(workflowDir, { recursive: true });
@@ -171,7 +171,7 @@ describe("script workflow runtime", () => {
   });
 
   it("detaches background Workflow run from the launch abort signal after start", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-detach-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-detach-"));
     const fileSystemPort = createNodeFileSystemAdapter();
     const traceContext = createRootTraceContext({
       sessionId: createSessionId("workflow-tool-detach"),
@@ -245,7 +245,7 @@ describe("script workflow runtime", () => {
   });
 
   it("persists child sessions before linking workflow activities", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-child-session-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-child-session-"));
     const workflowDir = join(tempRoot, ".nibi", "workflows");
     const shellDir = join(tempRoot, "bin");
     const scriptPath = join(workflowDir, "child-session.workflow.js");
@@ -339,7 +339,7 @@ describe("script workflow runtime", () => {
   });
 
   it("Script Workflow 子 Runtime 继续使用进程 Registry 的 ModelFactory", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-provider-registry-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-provider-registry-"));
     const scriptPath = join(tempRoot, "registry.workflow.js");
     const store = await createSqliteSessionStore({ dbPath: ":memory:" });
     const createdModels: string[] = [];

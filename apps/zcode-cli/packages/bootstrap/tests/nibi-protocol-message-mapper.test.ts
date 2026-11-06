@@ -35,7 +35,7 @@ describe("zcode protocol message mapper", () => {
         modelId: "test-model" as ModelId,
         providerId: "test-provider" as ModelProviderId,
         mode: "build",
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         path: {
           cwd: "/tmp/zcode",
           root: "/tmp/zcode",
@@ -184,7 +184,7 @@ describe("zcode protocol message mapper", () => {
         modelId: "test-model" as ModelId,
         providerId: "test-provider" as ModelProviderId,
         mode: "build",
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         path: {
           cwd: "/tmp/zcode",
           root: "/tmp/zcode",

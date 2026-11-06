@@ -371,7 +371,7 @@ describe("LocalUploadAssetInstaller", () => {
   it("已取消连接不得开始写入远端 staging", async () => {
     const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-pre-cancel-test-"));
     await mkdir(join(releaseDir, "server"), { recursive: true });
-    await writeFile(join(releaseDir, "server", "zcode-server.cjs"), "server", "utf8");
+    await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
     const controller = new AbortController();
     controller.abort();
     const backend = new InstallerBackend();
@@ -397,8 +397,8 @@ describe("LocalUploadAssetInstaller", () => {
     await expect(
       installer.installFile({
         componentId: "server-bundle",
-        sourceRelativePath: "server/zcode-server.cjs",
-        remotePath: "~/.nibi/server/zcode-server.cjs",
+        sourceRelativePath: "server/nibi-server.cjs",
+        remotePath: "~/.nibi/server/nibi-server.cjs",
       }),
     ).rejects.toMatchObject({ name: "AbortError" });
 
@@ -413,8 +413,8 @@ describe("LocalUploadAssetInstaller", () => {
       const remoteDir = join(rootDir, "remote");
       await mkdir(join(releaseDir, "server"), { recursive: true });
       await mkdir(remoteDir, { recursive: true });
-      await writeFile(join(releaseDir, "server", "zcode-server.cjs"), "server", "utf8");
-      const targetPath = join(remoteDir, "zcode-server.cjs");
+      await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
+      const targetPath = join(remoteDir, "nibi-server.cjs");
       const stalePath = `${targetPath}.new-stale`;
       const freshPath = `${targetPath}.new-fresh`;
       await writeFile(targetPath, "final", "utf8");
@@ -436,7 +436,7 @@ describe("LocalUploadAssetInstaller", () => {
 
       await installer.installFile({
         componentId: "server-bundle",
-        sourceRelativePath: "server/zcode-server.cjs",
+        sourceRelativePath: "server/nibi-server.cjs",
         remotePath: toLocalShellPath(targetPath),
       });
       await execFileAsync(localShellCommand!, ["-c", backend.commands[0]!]);
@@ -452,7 +452,7 @@ describe("LocalUploadAssetInstaller", () => {
   it("文件上传取消后不再执行正式文件替换", async () => {
     const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-cancel-test-"));
     await mkdir(join(releaseDir, "server"), { recursive: true });
-    await writeFile(join(releaseDir, "server", "zcode-server.cjs"), "server", "utf8");
+    await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
     const controller = new AbortController();
     const backend = new InstallerBackend();
     let markUploadStarted!: () => void;
@@ -488,8 +488,8 @@ describe("LocalUploadAssetInstaller", () => {
 
     const installing = installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
     await uploadStarted;
     controller.abort();
@@ -582,7 +582,7 @@ describe("LocalUploadAssetInstaller", () => {
   it("uses a unique staging path for each uploaded file replacement", async () => {
     const releaseDir = await mkdtemp(join(tmpdir(), "zcode-installer-test-"));
     await mkdir(join(releaseDir, "server"), { recursive: true });
-    await writeFile(join(releaseDir, "server", "zcode-server.cjs"), "server", "utf8");
+    await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server", "utf8");
     const backend = new InstallerBackend();
     const installer = new LocalUploadAssetInstaller(
       backend,
@@ -592,12 +592,12 @@ describe("LocalUploadAssetInstaller", () => {
 
     await installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
 
     expect(backend.uploads[0]?.remotePath).toMatch(
-      /^~\/\.nibi\/server\/zcode-server\.cjs\.new-[\w-]+$/u,
+      /^~\/\.nibi\/server\/nibi-server\.cjs\.new-[\w-]+$/u,
     );
     expect(backend.commands.join("\n")).toContain(backend.uploads[0]!.remotePath.split("/").at(-1));
     expect(backend.commands[0]).not.toContain("find");
@@ -681,10 +681,10 @@ describe("LocalUploadAssetInstaller", () => {
     ).resolves.toBeNull();
 
     await mkdir(join(releaseDir, "server"), { recursive: true });
-    await writeFile(join(releaseDir, "server", "zcode-server.cjs"), "server");
+    await writeFile(join(releaseDir, "server", "nibi-server.cjs"), "server");
     await expect(
-      installer.tryResolveLocalPath(["server-bundle"], "server/zcode-server.cjs"),
-    ).resolves.toBe(join(releaseDir, "server", "zcode-server.cjs"));
+      installer.tryResolveLocalPath(["server-bundle"], "server/nibi-server.cjs"),
+    ).resolves.toBe(join(releaseDir, "server", "nibi-server.cjs"));
   });
 
   it("creates directory upload archives without relying on local system tar", async () => {
@@ -826,10 +826,10 @@ describe("RemoteDownloadAssetInstaller", () => {
     "远端 $stage 失败保留原始错误并清理，恢复后可重试（progress=$supportsProgress）",
     async ({ stage, diagnostic, supportsProgress }) => {
       const rootDir = await mkdtemp(join(tmpdir(), "zcode-installer-download-failure-"));
-      const sourcePath = join(rootDir, "zcode-server.cjs");
+      const sourcePath = join(rootDir, "nibi-server.cjs");
       const archivePath = join(rootDir, "component.tar.gz");
       await writeFile(sourcePath, "current server");
-      await createTarGzArchive(archivePath, [{ sourcePath, archivePath: "zcode-server.cjs" }]);
+      await createTarGzArchive(archivePath, [{ sourcePath, archivePath: "nibi-server.cjs" }]);
       const sha256 = createHash("sha256")
         .update(await readFile(archivePath))
         .digest("hex");
@@ -845,7 +845,7 @@ describe("RemoteDownloadAssetInstaller", () => {
             ? 'wget() { while [ "$1" != -O ]; do shift; done; shift; printf corrupt > "$1"; }'
             : 'tar() { echo "fixture extraction failed" >&2; return 2; }';
       const backend = new ShellInstallerBackend(rootDir, `${download}\n${failure}`);
-      const installedPath = join(rootDir, ".nibi/server/zcode-server.cjs");
+      const installedPath = join(rootDir, ".nibi/server/nibi-server.cjs");
       await mkdir(join(rootDir, ".nibi/server"), { recursive: true });
       await writeFile(installedPath, "previous server");
       const installer = new RemoteDownloadAssetInstaller(
@@ -867,8 +867,8 @@ describe("RemoteDownloadAssetInstaller", () => {
         await expect(
           installer.installFile({
             componentId: "server-bundle",
-            sourceRelativePath: "server/zcode-server.cjs",
-            remotePath: "~/.nibi/server/zcode-server.cjs",
+            sourceRelativePath: "server/nibi-server.cjs",
+            remotePath: "~/.nibi/server/nibi-server.cjs",
           }),
         ).rejects.toThrow(diagnostic);
         expect(backend.commands).toHaveLength(1);
@@ -882,8 +882,8 @@ describe("RemoteDownloadAssetInstaller", () => {
         backend.prelude = download;
         await installer.installFile({
           componentId: "server-bundle",
-          sourceRelativePath: "server/zcode-server.cjs",
-          remotePath: "~/.nibi/server/zcode-server.cjs",
+          sourceRelativePath: "server/nibi-server.cjs",
+          remotePath: "~/.nibi/server/nibi-server.cjs",
         });
         await expect(readFile(installedPath, "utf8")).resolves.toBe("current server");
         await expect(readdir(join(rootDir, ".nibi/server/asset-cache/staging"))).resolves.toEqual(
@@ -919,8 +919,8 @@ describe("RemoteDownloadAssetInstaller", () => {
     await expect(
       installer.installFile({
         componentId: "server-bundle",
-        sourceRelativePath: "server/zcode-server.cjs",
-        remotePath: "~/.nibi/server/zcode-server.cjs",
+        sourceRelativePath: "server/nibi-server.cjs",
+        remotePath: "~/.nibi/server/nibi-server.cjs",
       }),
     ).rejects.toMatchObject({ name: "AbortError" });
 
@@ -956,8 +956,8 @@ describe("RemoteDownloadAssetInstaller", () => {
     try {
       await installer.installFile({
         componentId: "server-bundle",
-        sourceRelativePath: "server/zcode-server.cjs",
-        remotePath: "~/.nibi/server/zcode-server.cjs",
+        sourceRelativePath: "server/nibi-server.cjs",
+        remotePath: "~/.nibi/server/nibi-server.cjs",
       });
 
       expect(directFetch).not.toHaveBeenCalled();
@@ -1002,8 +1002,8 @@ describe("RemoteDownloadAssetInstaller", () => {
 
     const installing = installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
     await headStarted;
     controller.abort();
@@ -1035,8 +1035,8 @@ describe("RemoteDownloadAssetInstaller", () => {
 
     await installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
 
     const command = backend.commands.join("\n");
@@ -1050,7 +1050,7 @@ describe("RemoteDownloadAssetInstaller", () => {
     );
     expect(command).toContain('kill "$lock_heartbeat_pid"');
     expect(command).toMatch(/\.new-[^\s']+/u);
-    expect(command).toMatch(/zcode-server\.cjs\.new-[\w-]+/u);
+    expect(command).toMatch(/nibi-server\.cjs\.new-[\w-]+/u);
     expect(command).toContain("curl -fL");
     expect(command).toContain("sha256sum");
     vi.unstubAllGlobals();
@@ -1079,8 +1079,8 @@ describe("RemoteDownloadAssetInstaller", () => {
 
     await installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
 
     expect(logs).toContain(
@@ -1106,8 +1106,8 @@ describe("RemoteDownloadAssetInstaller", () => {
 
     await installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
 
     expect(backend.commands.join("\n")).toContain("total=2097152");
@@ -1150,8 +1150,8 @@ describe("RemoteDownloadAssetInstaller", () => {
 
     await installer.installFile({
       componentId: "server-bundle",
-      sourceRelativePath: "server/zcode-server.cjs",
-      remotePath: "~/.nibi/server/zcode-server.cjs",
+      sourceRelativePath: "server/nibi-server.cjs",
+      remotePath: "~/.nibi/server/nibi-server.cjs",
     });
 
     const commands = backend.commands.join("\n");
@@ -1240,8 +1240,8 @@ describe("RemoteDownloadAssetInstaller", () => {
     await expect(
       installer.installFile({
         componentId: "server-bundle",
-        sourceRelativePath: "server/zcode-server.cjs",
-        remotePath: "~/.nibi/server/zcode-server.cjs",
+        sourceRelativePath: "server/nibi-server.cjs",
+        remotePath: "~/.nibi/server/nibi-server.cjs",
       }),
     ).rejects.toThrow("sha256 is invalid");
     vi.unstubAllGlobals();

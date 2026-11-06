@@ -399,7 +399,7 @@ function resolveDeployedZCodeAgentBinaryCommand(
   context: ZCodeAgentCommandResolverContext,
 ): ZCodeAgentCommand | null {
   // 旧 resolver 只识别 NIBI_AGENT_SERVER_COMMAND env 和 monorepo 源码树。
-  // SSH 远端把 zcode-server.cjs 单文件部署到 ~/.nibi/server/，宿主进程的 cwd 不在仓库内、
+  // SSH 远端把 nibi-server.cjs 单文件部署到 ~/.nibi/server/，宿主进程的 cwd 不在仓库内、
   // env 也不会被 ssh exec 继承，即使 zcode-agent 已经部署到 ~/.nibi/server/agents/glm/，
   // resolver 也找不到，第一次 getClient 就抛 "ZCode agent server command is not configured"。
   // 这里复用 findZCodeAgentRuntimeBinary 的候选链（含 GLM_BINARY_PATH env、

@@ -25,9 +25,9 @@ const keep = argv.includes("--keep");
 const verifySystemd = !argv.includes("--skip-systemd");
 const target = resolveVerificationTarget(readArg("--target"));
 const dockerPlatform = dockerPlatformForTarget(target);
-const releaseArchive = join(packageRoot, "dist-release", `zcode-server-${target}.tar.gz`);
-const containerName = `zcode-server-verify-${process.pid}`;
-const imageTag = "zcode-server-verify-sshd:ubuntu22";
+const releaseArchive = join(packageRoot, "dist-release", `nibi-server-${target}.tar.gz`);
+const containerName = `nibi-server-verify-${process.pid}`;
+const imageTag = "nibi-server-verify-sshd:ubuntu22";
 
 const log = (...args) => console.log("[verify-remote-ssh]", ...args);
 const cleanups = [];
@@ -48,7 +48,7 @@ async function main() {
   });
 
   // 一次性 ssh 密钥，容器仅信任本次运行生成的公钥。
-  const workDir = await mkdtemp(join(tmpdir(), "zcode-server-verify-"));
+  const workDir = await mkdtemp(join(tmpdir(), "nibi-server-verify-"));
   cleanups.push(() => rm(workDir, { force: true, recursive: true }));
   const keyPath = join(workDir, "id_ed25519");
   await run("ssh-keygen", ["-t", "ed25519", "-N", "", "-q", "-f", keyPath]);
@@ -139,12 +139,12 @@ async function main() {
     `${sshTargetHost}:/root/`,
   ]);
   await ssh(
-    `mkdir -p /root/zcode-bootstrap && tar -xzf /root/zcode-server-${target}.tar.gz -C /root/zcode-bootstrap --strip-components=1`,
+    `mkdir -p /root/zcode-bootstrap && tar -xzf /root/nibi-server-${target}.tar.gz -C /root/zcode-bootstrap --strip-components=1`,
   );
 
   log("install archive through bootstrap bin/zcode");
   const serverRoot = "/root/.nibi/server";
-  const remoteArchive = `/root/zcode-server-${target}.tar.gz`;
+  const remoteArchive = `/root/nibi-server-${target}.tar.gz`;
   const { stdout: installOutput } = await ssh(
     `/root/zcode-bootstrap/bin/zcode update --from-archive ${remoteArchive} --server-root ${serverRoot} --json`,
   );

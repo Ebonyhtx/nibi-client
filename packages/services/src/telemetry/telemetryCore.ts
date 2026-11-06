@@ -308,7 +308,7 @@ async function ensureDeviceMidInLockedState(
 /**
  * 确保 telemetry-state.json 里存在 deviceMid 并返回它。
  *
- * Bug 根因：远端 zcode-server 所在主机没有 Desktop main 进程，过去没有任何进程会在那里写
+ * Bug 根因：远端 nibi-server 所在主机没有 Desktop main 进程，过去没有任何进程会在那里写
  * telemetry-state.json；buildZCodeSourceHeaders() 又只读不生成，于是远端发往 ZCode endpoint 的
  * 请求永远缺 X-Device-Mid，billing/balance 被服务端拒绝为 parameter error，Start Plan 在远程
  * 工作区被判成未开通。这里把 telemetry 上报内部的 ensure 逻辑抽成独立入口，供远端 server 启动时

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import type { ServerLayout } from "./paths.js";
 
-const SERVER_INSTALL_OWNERSHIP_PRODUCT = "zcode-server";
+const SERVER_INSTALL_OWNERSHIP_PRODUCT = "nibi-server";
 const SERVER_INSTALL_OWNERSHIP_SCHEMA_VERSION = 1;
 
 const serverInstallOwnershipSchema = z

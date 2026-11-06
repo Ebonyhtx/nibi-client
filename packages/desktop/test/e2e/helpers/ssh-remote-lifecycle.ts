@@ -409,12 +409,13 @@ export async function reconnectRemoteProjectHost(
 export async function listRemoteZCodeServerPids(config: SSHConnectionConfig): Promise<number[]> {
   const result = await runSSHCommand(config, "ps -eo pid=,args=");
   if (result.code !== 0) {
-    throw new Error(`读取远端 zcode-server PID 失败: ${result.stderr}`);
+    throw new Error(`读取远端 nibi-server PID 失败: ${result.stderr}`);
   }
-  // 缺陷原因：这里原先匹配 `zcode-server.cjs`，而 3.12 的 release 布局早已把 daemon 换成
-  // <release>/runtime/server-cli.js serve --supervisor（工作进程是 server-core.js）。旧名字
-  // 在远端根本不存在，匹配结果恒为空数组，SSH-P0-LIFE-02 只会报 before=/current= 全空，
-  // 看不出是探测失效而不是产品没起 server（2026-09-15 服务器全量实测）。
+  // 缺陷原因：这里原先匹配当时的单文件 daemon bundle（现在叫 `nibi-server.cjs`），而 3.12 的
+  // release 布局早已把 daemon 换成 <release>/runtime/server-cli.js serve --supervisor
+  // （工作进程是 server-core.js）。旧名字在远端根本不存在，匹配结果恒为空数组，
+  // SSH-P0-LIFE-02 只会报 before=/current= 全空，看不出是探测失效而不是产品没起 server
+  // （2026-09-15 服务器全量实测）。
   // 只认 daemon 一个角色：core 由 daemon 拉起，若一并计入，「一次连接新增恰好一个」的
   // 合同就不成立了。
   return result.stdout
@@ -458,7 +459,7 @@ export async function stopOwnedSSHServer(
   const owned = currentPids.filter((pid) => !beforePids.includes(pid));
   if (owned.length !== 1) {
     throw new Error(
-      `${caseMarker}: 只允许终止本 case 新建的一个 zcode-server，before=${beforePids.join(",")}, current=${currentPids.join(",")}`,
+      `${caseMarker}: 只允许终止本 case 新建的一个 nibi-server，before=${beforePids.join(",")}, current=${currentPids.join(",")}`,
     );
   }
   const pid = owned[0]!;
@@ -469,7 +470,7 @@ export async function stopOwnedSSHServer(
   const corePids = await listRemoteServerCorePids(config, pid);
   const result = await runSSHCommand(config, `kill -TERM -- ${pid}`);
   if (result.code !== 0) {
-    throw new Error(`${caseMarker}: 终止远端 zcode-server ${pid} 失败: ${result.stderr}`);
+    throw new Error(`${caseMarker}: 终止远端 nibi-server ${pid} 失败: ${result.stderr}`);
   }
   if (corePids.length > 0) {
     await runSSHCommand(config, `kill -TERM -- ${corePids.join(" ")}`).catch(() => undefined);
@@ -484,7 +485,7 @@ export async function stopOwnedSSHServer(
     },
     {
       timeout: SSH_WORKSPACE_READY_TIMEOUT_MS,
-      timeoutMsg: `${caseMarker}: 远端 zcode-server ${pid}（core=${corePids.join(",") || "none"}）没有退出`,
+      timeoutMsg: `${caseMarker}: 远端 nibi-server ${pid}（core=${corePids.join(",") || "none"}）没有退出`,
     },
   );
   return pid;

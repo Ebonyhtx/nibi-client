@@ -41,6 +41,6 @@ async function main(): Promise<void> {
 }
 
 void main().catch((error: unknown) => {
-  console.error("[zcode-server:http] startup failed", error);
+  console.error("[nibi-server:http] startup failed", error);
   process.exitCode = 1;
 });

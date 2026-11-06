@@ -13,7 +13,7 @@ describe("Workflow 内显式 Subagent 的有效选择", () => {
   it.each(["yolo", "guarded"] as const)(
     "%s 的真实 Workflow child 调用 Agent 时继承公共解析端口",
     async (mode) => {
-      const root = await mkdtemp(join(tmpdir(), "zcode-workflow-selection-"));
+      const root = await mkdtemp(join(tmpdir(), "nibi-workflow-selection-"));
       const store = await createSqliteSessionStore({ dbPath: ":memory:" });
       const parent = {
         providerId: "parent",

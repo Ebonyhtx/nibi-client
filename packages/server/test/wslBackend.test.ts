@@ -181,7 +181,7 @@ describe("buildWslArgs", () => {
 
     await backend.disposeAndWait();
 
-    await expect(backend.exec("zcode-server")).rejects.toThrow("WSL backend 已释放");
+    await expect(backend.exec("nibi-server")).rejects.toThrow("WSL backend 已释放");
     expect(mocks.spawn).not.toHaveBeenCalled();
   });
 
@@ -196,7 +196,7 @@ describe("buildWslArgs", () => {
         }),
     );
 
-    const executing = backend.exec("zcode-server");
+    const executing = backend.exec("nibi-server");
     await vi.waitFor(() => expect(mocks.isWSLAvailable).toHaveBeenCalledTimes(2));
     await backend.disposeAndWait();
     resumeDiscovery(true);
@@ -215,7 +215,7 @@ describe("buildWslArgs", () => {
       });
       const backend = new WSLBackend({ kind: "wsl", distro: "Ubuntu-24.04" });
 
-      await backend.exec("zcode-server");
+      await backend.exec("nibi-server");
       vi.useFakeTimers();
       usingFakeTimers = true;
       const disposing = backend.disposeAndWait({ graceTimeoutMs: 300, killWaitTimeoutMs: 100 });
@@ -241,7 +241,7 @@ describe("buildWslArgs", () => {
     });
     const backend = new WSLBackend({ kind: "wsl", distro: "Ubuntu-24.04" });
 
-    await backend.exec("zcode-server");
+    await backend.exec("nibi-server");
     await backend.disposeAndWait({ graceTimeoutMs: 300, killWaitTimeoutMs: 100 });
 
     expect(child.kill).not.toHaveBeenCalled();

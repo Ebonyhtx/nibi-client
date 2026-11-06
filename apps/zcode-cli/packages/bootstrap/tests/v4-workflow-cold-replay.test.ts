@@ -31,7 +31,7 @@ import type {
 
 type TestSessionStore = Awaited<ReturnType<typeof createSqliteSessionStore>>;
 
-const WORKSPACE_PATH = "/tmp/zcode-workflow-cold-replay";
+const WORKSPACE_PATH = "/tmp/nibi-workflow-cold-replay";
 const PARENT_SESSION_ID = "sess_parent_replay" as SessionId;
 const CHILD_SESSION_ID = "sess_actor_replay" as SessionId;
 
@@ -164,7 +164,7 @@ describe("v4 冷物化 · dwf run 的冷回放", () => {
   let warnings: string[];
 
   beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-cold-replay-"));
+    tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-cold-replay-"));
     store = await createSqliteSessionStore({ dbPath: join(tempRoot, "sessions.db") });
     warnings = [];
   });

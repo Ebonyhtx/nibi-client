@@ -76,7 +76,7 @@
 - 严重度：P0
 - 置信度：已确认
 - 状态：待验证
-- 现象：新构建链只生成 `source-server-release.json` 和四个 `zcode-server-*.tar.gz`，正式 `release:validate` 仍要求 `manifest-*.json` 与 `components/**`。
+- 现象：新构建链只生成 `source-server-release.json` 和四个 `nibi-server-*.tar.gz`，正式 `release:validate` 仍要求 `manifest-*.json` 与 `components/**`。
 - 影响：干净发布目录会稳定失败；脏目录可能用旧产物通过校验，却没有验证本轮真正发布的 Source Server archive。
 - 证据：
   - [`.gitlab/ci/30-build.yml`](../../.gitlab/ci/30-build.yml) 的 `build:remote:assets` 只收集 descriptor 和四个 archive；
@@ -90,7 +90,7 @@
 - 状态：待验证
 - 修复提交：`feat/multi-device-remote-3-real-ssh-feature` 上包含本记录的提交（`fix(release): validate Source Server descriptor and archives`）
 - 根因：构建/上传两端已切换到 descriptor+archive 合同，`validateRemoteAssets()` 未同步，且 `build:remote:assets` 切换时删掉了共享目录旧产物清理。复现：用真实脚本对"6 平台 + descriptor + 4 archive"目录校验抛 `missing remote manifest: manifest-darwin-arm64.json`；目录残留旧 manifest 时把 archive 改坏、甚至删掉 descriptor 都能通过。
-- 修复：`validateRemoteAssets()` 改为 `validateSourceServerRelease()`，校验 descriptor 的 `schemaVersion`、版本、四个 target、`fileName`、`version`、`urls`（必须含指向 archive 的安全相对路径）、`sizeBytes`、`sha256` 与真实 archive，并 fail-closed 拒绝残留 `manifest-*.json` / `components/` 及未被引用的 `zcode-server-*.tar.gz`；`build:remote:assets` 在复制前清掉自己负责的根目录产物；`docs/desktop-ci-cd.md` validate 描述同步。
+- 修复：`validateRemoteAssets()` 改为 `validateSourceServerRelease()`，校验 descriptor 的 `schemaVersion`、版本、四个 target、`fileName`、`version`、`urls`（必须含指向 archive 的安全相对路径）、`sizeBytes`、`sha256` 与真实 archive，并 fail-closed 拒绝残留 `manifest-*.json` / `components/` 及未被引用的 `nibi-server-*.tar.gz`；`build:remote:assets` 在复制前清掉自己负责的根目录产物；`docs/desktop-ci-cd.md` validate 描述同步。
 - 自动化验证：`packages/desktop/test/validateReleaseArtifacts.test.ts` 重写为新布局（含 target 常量与 `@nibi/shared` 的 `SOURCE_SERVER_RELEASE_TARGETS` 对接断言）；`gitlabCiBuildGraph.test.ts` 新增“CI 收集 target 集合 == validator 期望集合、复制前有清理”断言。
 - 运行时验证：未在真实 tag / `ci*` 管道上运行，需下一次 `CI_RELEASE_BRANCH=1` 演练确认后关闭。
 - 剩余风险：`scripts/upload-oss.sh` 仍保留 `manifest-*.json` 特判分支（死代码，未清理）；validator 拒绝 legacy 残留后，若 runner 共享目录被人工放入旧文件会直接阻断 validate，需清理目录后重试。
@@ -410,7 +410,7 @@
 - 根因：删除 legacy 资产链时，“构建并断言官方插件 MCP runtime”的责任没有落到新 staging 链任何一环。
 - 修复：`scripts/build-desktop-agent-cli.mjs` 的 MCP runtime 清单补入 `@nibi/android-emulator-plugin` 与 `@nibi/ios-simulator-plugin`，该脚本是桌面与 Source Server staging 共用的唯一构建入口；`stage.ts` 复制每个插件后新增 `assertOfficialPluginRuntime`，manifest 缺失或 `mcpServers` 引用的 `${ZCODE_PLUGIN_ROOT}/...` 文件不存在即抛错。R2 spec 新增“官方插件 MCP runtime 不变量”条目。
 - 自动化验证：`packaging.test.ts` 新增 2 项 fail-closed 用例（缺 MCP 入口、缺 manifest），修复前失败、修复后通过；既有插件 staging 用例补断言 `dist/mcp/server.js` 被打包；`runtime-asset-scripts.test.ts` 清单断言同步。
-- 运行时验证：本地删除 `apps/zcode-cli/packages/{android-emulator,ios-simulator}-plugin/dist` 后执行 `pnpm --filter @nibi/server-cli stage --target linux-x64`，构建链实际重建两个插件，`zcode-server-linux-x64.tar.gz` 内四个 MCP 插件的 `runtime/packages/*/dist/mcp/server.js` 均存在，耗时约 1 分钟。未运行真实 CI `build:remote:assets`。
+- 运行时验证：本地删除 `apps/zcode-cli/packages/{android-emulator,ios-simulator}-plugin/dist` 后执行 `pnpm --filter @nibi/server-cli stage --target linux-x64`，构建链实际重建两个插件，`nibi-server-linux-x64.tar.gz` 内四个 MCP 插件的 `runtime/packages/*/dist/mcp/server.js` 均存在，耗时约 1 分钟。未运行真实 CI `build:remote:assets`。
 - 剩余风险：`stageRelease` 现在会对所有被复制的 `*-plugin` 目录做校验，若未来新增声明 mcpServers 却不在构建清单中的官方插件，staging 会显式失败而非静默残缺，这是预期行为。
 
 ### R3-ISSUE-023：恢复态手动连接成功不发 reconnect，Registry 停在 recovering

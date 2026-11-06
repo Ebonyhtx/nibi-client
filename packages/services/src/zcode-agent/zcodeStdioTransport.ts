@@ -303,7 +303,7 @@ export class ZCodeStdioTransport implements NibiProtocolTransport {
   private handleStreamError(stream: "stdin" | "stdout", error: Error): void {
     // 远端 WSL/SSH agent 秒退后，host 仍可能正在写入尚未完成的协议请求。
     // Node 的 stdin write 回调会 reject，但底层 Socket 还会额外触发 error 事件；若没有长期监听，
-    // zcode-server 会因未处理的 EPIPE 直接崩溃，UI 只能看到远端连接断开而不是协议请求失败。
+    // nibi-server 会因未处理的 EPIPE 直接崩溃，UI 只能看到远端连接断开而不是协议请求失败。
     // 这里把 stream error 视为 transport 已关闭，阻止后续继续向失效 agent 写入。
     this.fireClose({ reason: `${stream}_error: ${error.message}` });
   }

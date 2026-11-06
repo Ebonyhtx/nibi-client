@@ -18,7 +18,7 @@ const E2E_DIR = join(DESKTOP_TEST_DIR, "e2e");
 const SOURCE_EXTENSIONS = new Set([".js", ".json", ".mjs", ".ts", ".tsx"]);
 // 这条守卫约束的是「Desktop E2E 自己的 runtime 文件不许落在本机系统 /tmp」。
 // R3A-BLD-09 的被测对象恰好是远端主机的 /tmp（8MB noexec tmpfs），用例必须断言
-// 远端 mount 属性以及安装后 /tmp 无 zcode-server 残留，这里的 /tmp 不是本地 runtime 路径。
+// 远端 mount 属性以及安装后 /tmp 无 nibi-server 残留，这里的 /tmp 不是本地 runtime 路径。
 // 新增豁免必须像这样显式登记并说明理由，避免守卫被整体放宽。
 const REMOTE_TMP_ASSERTION_SOURCES = new Set([
   "conversation-session/manual-review/pending/conversation-session-r3-install-environment.test.ts",

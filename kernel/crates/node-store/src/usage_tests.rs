@@ -121,7 +121,7 @@ async fn a_model_call_is_a_node_model_usage_row_in_the_assistant_batch() {
             "provider_id": "anthropic",
             "model_id": "claude-opus-5-5",
             "variant": "max",
-            "agent": "zcode-agent",
+            "agent": "nibi-agent",
             "mode": "build",
             "task_type": "interactive",
             "status": "completed",

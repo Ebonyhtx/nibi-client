@@ -42,7 +42,7 @@ async function hydrate(parts: ToolPart[], nextParts?: ToolPart[]) {
       role: "assistant",
       parentID: createMessageId("user"),
       time: { created: 1 },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       mode: "build",
       path: { cwd: "/workspace", root: "/workspace" },
       cost: 0,

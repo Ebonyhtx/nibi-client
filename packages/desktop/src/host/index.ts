@@ -1083,7 +1083,7 @@ function createReportingRemoteZCodeTaskService<T extends object>(
     try {
       return await sendPrompt.call(target, params);
     } finally {
-      // 远端 zcode-server 没有 desktop realtime port；由窗口 Host 内的
+      // 远端 nibi-server 没有 desktop realtime port；由窗口 Host 内的
       // remote facade 接管 lease 和 stream mirror，确保 UI 能持续收到远端会话流。
       streamDisposable?.dispose();
       taskRealtimePort.releaseTaskRunLease(mirrorTarget);

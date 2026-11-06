@@ -24,7 +24,7 @@ const temporaryDirs: string[] = [];
 const macIt = process.platform === "darwin" ? it : it.skip;
 
 async function makeTempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-server-stage-test-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-server-stage-test-"));
   temporaryDirs.push(dir);
   return dir;
 }
@@ -241,7 +241,7 @@ describe("stageRelease", () => {
     });
 
     const releaseDir = staged.releaseDir;
-    expect(releaseDir.endsWith("zcode-server-linux-x64")).toBe(true);
+    expect(releaseDir.endsWith("nibi-server-linux-x64")).toBe(true);
 
     const launcher = await readFile(join(releaseDir, "bin", "zcode"), "utf8");
     expect(launcher).toContain('"$DIR/runtime/node"');
@@ -298,7 +298,7 @@ describe("stageRelease", () => {
       nodeVersion: string;
       entrypoints: { cli: string; core: string; agent: string };
     };
-    expect(manifest.product).toBe("zcode-server");
+    expect(manifest.product).toBe("nibi-server");
     expect(manifest.target).toBe("linux-x64");
     expect(manifest.appVersion).toBe("9.9.9-test");
     expect(manifest.nodeVersion).toBe("22.23.4");

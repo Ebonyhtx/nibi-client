@@ -2044,7 +2044,7 @@ describe("AgentRuntime manual compact", () => {
       modelID: "compact-test-model" as never,
       providerID: "compact-test-provider" as never,
       mode: "build",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       path: {
         cwd: "/tmp/zcode-runtime-compact-resume-interrupted",
         root: "/tmp/zcode-runtime-compact-resume-interrupted",
@@ -2165,7 +2165,7 @@ describe("AgentRuntime manual compact", () => {
       modelID: "compact-test-model" as never,
       providerID: "compact-test-provider" as never,
       mode: "build",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       path: {
         cwd: "/tmp/zcode-runtime-compact-resume-retrying",
         root: "/tmp/zcode-runtime-compact-resume-retrying",
@@ -2264,7 +2264,7 @@ describe("AgentRuntime manual compact", () => {
     const preservedMessageId = createMessageId("preserved-before-compact-anchor");
     const compactMessageId = createMessageId("compact-summary-anchor");
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: preservedMessageId,
       mode: "build",
       modelID: "compact-test-model" as never,
@@ -2302,7 +2302,7 @@ describe("AgentRuntime manual compact", () => {
       trigger: CompactTrigger.Auto,
     };
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: compactMessageId,
       mode: "build",
       modelID: "compact-test-model" as never,

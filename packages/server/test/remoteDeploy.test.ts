@@ -213,7 +213,7 @@ class FakeRemoteBackend implements IRemoteBackend {
       );
     }
 
-    const versionCommand = `"${"$HOME"}"'/.nibi/server/node' "${"$HOME"}"'/.nibi/server/zcode-server.cjs' --version`;
+    const versionCommand = `"${"$HOME"}"'/.nibi/server/node' "${"$HOME"}"'/.nibi/server/nibi-server.cjs' --version`;
     if (command === versionCommand) {
       const versionSource =
         this.serverVersions.length > 1
@@ -239,7 +239,7 @@ class FakeRemoteBackend implements IRemoteBackend {
     return (
       this.remoteFiles.has(remotePath) ||
       remotePath === "~/.nibi/server/node" ||
-      remotePath === "~/.nibi/server/zcode-server.cjs"
+      remotePath === "~/.nibi/server/nibi-server.cjs"
     );
   }
 
@@ -408,7 +408,7 @@ async function stageRemoteRuntimeRelease(
   await mkdir(serverDir, { recursive: true });
   await mkdir(nodePtyDir, { recursive: true });
   await writeFile(join(nodeDir, "node"), "node runtime", "utf8");
-  await writeFile(join(serverDir, "zcode-server.cjs"), "// remote server bundle\n", "utf8");
+  await writeFile(join(serverDir, "nibi-server.cjs"), "// remote server bundle\n", "utf8");
   await writeFile(join(nodePtyDir, "pty.node"), "node-pty prebuild", "utf8");
   if (options.platform === "darwin") {
     await writeFile(join(nodePtyDir, "spawn-helper"), "node-pty spawn helper", "utf8");
@@ -1279,7 +1279,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     );
 
     expect(deployed).toBe(true);
-    expect(hasUploadForStagingTarget(backend, "~/.nibi/server/zcode-server.cjs.new")).toBe(true);
+    expect(hasUploadForStagingTarget(backend, "~/.nibi/server/nibi-server.cjs.new")).toBe(true);
     expect(backend.commands.join("\n")).toContain("skill-sync");
     expect(backend.commands.join("\n")).toContain("mcp-sync");
     expect(backend.commands.join("\n")).toContain("plugin-sync");
@@ -2153,7 +2153,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       {
         commandPlans: [
           {
-            matcher: /command mv -f .*zcode-server\.cjs/,
+            matcher: /command mv -f .*nibi-server\.cjs/,
             exitCode: 23,
             stderrText: "mock mv failed",
           },
@@ -3103,7 +3103,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       expect(backend.uploads).toHaveLength(3);
       expect(backend.uploads.map((upload) => upload.remotePath)).toEqual(
         expect.arrayContaining([
-          expect.stringMatching(/^~\/.nibi\/server\/zcode-server\.cjs\.new-[\w-]+$/u),
+          expect.stringMatching(/^~\/.nibi\/server\/nibi-server\.cjs\.new-[\w-]+$/u),
           expect.stringMatching(/^~\/.nibi\/server\/agents\/glm\/nibi\.cjs\.new-[\w-]+$/u),
           expect.stringMatching(/^~\/.nibi\/server\/agents\/glm\/packages\.tar\.gz-[\w-]+$/u),
         ]),
@@ -3248,7 +3248,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       serverVersion: () => remoteServerVersion,
       commandPlans: [
         {
-          matcher: /command mv -f .*zcode-server\.cjs\.new.*zcode-server\.cjs/u,
+          matcher: /command mv -f .*nibi-server\.cjs\.new.*nibi-server\.cjs/u,
           exitCode: 0,
           onExec: () => {
             remoteServerVersion = NIBI_VERSION;
@@ -3293,7 +3293,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         command.includes("pendingRefreshAppVersion"),
       );
       const serverReplaceCommandIndex = firstAttemptCommands.findIndex(
-        (command) => command.includes("command mv -f ") && command.includes("zcode-server.cjs.new"),
+        (command) => command.includes("command mv -f ") && command.includes("nibi-server.cjs.new"),
       );
       expect(refreshPendingCommandIndex).toBeGreaterThanOrEqual(0);
       expect(serverReplaceCommandIndex).toBeGreaterThan(refreshPendingCommandIndex);
@@ -3453,7 +3453,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
           stdoutText: "download=curl\ntar=tar\nsha256=sha256sum\n",
         },
         {
-          matcher: /command mv -f .*zcode-server\.cjs\.new.*zcode-server\.cjs/u,
+          matcher: /command mv -f .*nibi-server\.cjs\.new.*nibi-server\.cjs/u,
           exitCode: 0,
           onExec: () => {
             remoteServerVersion = NIBI_VERSION;
@@ -4001,7 +4001,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
     await mkdir(legacyServerCacheDir, { recursive: true });
     await writeFile(join(legacyServerCacheDir, ".ready"), "ready\n", "utf8");
     await writeFile(
-      join(legacyServerCacheDir, "zcode-server.cjs"),
+      join(legacyServerCacheDir, "nibi-server.cjs"),
       "// stale semantic-version server cache\n",
       "utf8",
     );
@@ -4016,10 +4016,10 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
         { platform: "linux", arch: "arm64" },
         { remoteCdnBaseUrl: cdnServer.baseUrl, remoteCacheDir },
       );
-      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/zcode-server.cjs.new")).toBe(true);
+      expect(hasUploadForStagingTarget(backend, "~/.nibi/server/nibi-server.cjs.new")).toBe(true);
       const initialServerUpload = findUploadForStagingTarget(
         backend,
-        "~/.nibi/server/zcode-server.cjs.new",
+        "~/.nibi/server/nibi-server.cjs.new",
       );
       await expect(readFile(initialServerUpload?.localPath ?? "", "utf8")).resolves.not.toContain(
         "stale semantic-version server cache",
@@ -4032,7 +4032,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
       );
 
       await writeFile(
-        join(mockCdnDir, "releases", NIBI_VERSION, "server", "zcode-server.cjs"),
+        join(mockCdnDir, "releases", NIBI_VERSION, "server", "nibi-server.cjs"),
         "// server bundle republished under the same App version\n",
         "utf8",
       );
@@ -4049,7 +4049,7 @@ describe("deployServer legacy agent node-script bundle deployment", () => {
 
       const serverUpload = findUploadForStagingTarget(
         backend,
-        "~/.nibi/server/zcode-server.cjs.new",
+        "~/.nibi/server/nibi-server.cjs.new",
       );
       expect(serverUpload).toBeDefined();
       await expect(readFile(serverUpload?.localPath ?? "", "utf8")).resolves.toContain(

@@ -19,7 +19,7 @@ describe("Node workflow store", () => {
   });
 
   it("persists snapshots, events, graph records, artifacts, and index", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-store-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-store-"));
     const store = createNodeWorkflowStore({ rootDir: tempRoot });
     const snapshot: WorkflowRunSnapshot = {
       activities: [],
@@ -98,7 +98,7 @@ describe("Node workflow store", () => {
   });
 
   it("loads workflow definitions from the definitions directory", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-definitions-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-definitions-"));
     const definitionsDir = join(tempRoot, "definitions");
     await mkdir(definitionsDir, { recursive: true });
     await writeFile(
@@ -120,7 +120,7 @@ describe("Node workflow store", () => {
   });
 
   it("rejects malformed workflow definition files before runtime creation", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-definitions-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-definitions-"));
     const definitionsDir = join(tempRoot, "definitions");
     await mkdir(definitionsDir, { recursive: true });
     await writeFile(

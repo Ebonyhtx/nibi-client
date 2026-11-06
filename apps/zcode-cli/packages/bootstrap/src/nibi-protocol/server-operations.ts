@@ -1085,7 +1085,7 @@ async function persistImportedSessionHistory(params: {
           sessionID: params.sessionId,
           role: "user",
           time: { created: importedAt },
-          agent: "zcode-agent",
+          agent: "nibi-agent",
           // 合并新增分享导入时仍沿用旧 model 字段，既引用了失效变量，也会丢失未绑定语义。
           // 与普通导入共用结构化选择合同；导入不要求模型可执行。
           ...(currentModel ? { modelSelection: currentModel } : {}),
@@ -1185,7 +1185,7 @@ async function persistImportedSessionHistory(params: {
         sessionID: params.sessionId,
         role: "user",
         time: { created: timestamp },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         ...(currentModel ? { modelSelection: currentModel } : {}),
         metadata: { migrationSource: importedHistory.source },
       });
@@ -1199,7 +1199,7 @@ async function persistImportedSessionHistory(params: {
           lastUserMessageId ?? createMessageId(`${params.sessionId}_import_parent_${index}`),
         ...(currentModel ? { modelId, providerId } : {}),
         mode: params.record.app.getMode(),
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         path: {
           cwd: workspace.workspacePath,
           root: workspace.workspacePath,

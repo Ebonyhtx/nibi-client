@@ -46,7 +46,7 @@ export async function runServerCore(generation: number): Promise<void> {
       `当前构建未嵌入 ZCode Built-in Provider Config，且未设置 ${NIBI_BUILTIN_PROVIDER_CONFIG_FILE_ENV}`,
     );
   }
-  const sourceServerId = (await resolveCoreServerId()) ?? hostname() ?? "zcode-server";
+  const sourceServerId = (await resolveCoreServerId()) ?? hostname() ?? "nibi-server";
   const { services, workspaceIdentityMapper, migrationFailedPathCount } =
     await createServerHostServices({
       sourceServerId,

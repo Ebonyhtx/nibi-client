@@ -199,7 +199,7 @@ describe("session persistence", () => {
         sessionID: sessionId,
         role: "user",
         time: { created: Date.now() },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: { providerID: "custom-provider", modelID: "agent-model" },
       });
       await store.savePart({
@@ -323,7 +323,7 @@ describe("session persistence", () => {
         sessionID: sessionId,
         role: "user",
         time: { created: Date.now() },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: { providerID: "custom-provider", modelID: "agent-model" },
       });
       await store.savePart({

@@ -13,7 +13,7 @@ fn notice_record(source: &str, text: &str) -> WithParts {
     WithParts {
         info: json!({
             "id": "msg_notice", "sessionID": "s", "role": "user",
-            "time": {"created": 1}, "agent": "zcode-agent",
+            "time": {"created": 1}, "agent": "nibi-agent",
             "metadata": {
                 "source": source,
                 "inputPresentation": "task_notification",

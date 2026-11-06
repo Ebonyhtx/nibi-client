@@ -165,7 +165,7 @@ function userMessage(
       id: messageId,
       sessionID: sessionId,
       role: "user",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       time: { created: 1 },
     },
     parts: [
@@ -184,7 +184,7 @@ function assistantToolMessage(
       id: messageId,
       sessionID: sessionId,
       role: "assistant",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       time: { created: 2, completed: 3 },
       tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
     },

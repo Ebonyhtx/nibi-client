@@ -329,7 +329,7 @@ describe("session history rewind hydration", () => {
             role: "user",
             time: { created: 2 },
             summary: { body: "summary", diffs: [], title: "Compact summary" },
-            agent: "zcode-agent",
+            agent: "nibi-agent",
             model: { providerID, modelID },
           },
           parts: [
@@ -443,7 +443,7 @@ function userMessage(
       sessionID,
       role: "user",
       time: { created },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       model: { providerID, modelID },
     },
     parts: [
@@ -476,7 +476,7 @@ function assistantMessage(
       modelID,
       providerID,
       mode: "build",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       path: { cwd: "/tmp/project", root: "/tmp/project" },
       cost: 0,
       tokens,
@@ -524,7 +524,7 @@ function compactMessageWithPreservedSegment(input: {
       role: "user",
       time: { created: 2 },
       summary: { body: "summary", diffs: [], title: "Compact summary" },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       model: { providerID, modelID },
     },
     parts: [

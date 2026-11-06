@@ -248,7 +248,7 @@ Host / Agent 最大数量各为 1。RSS 首尾采样 1220 / 1211 MB；这只是�
 │                                                                    │
 │   replay provider ──SSH forwardIn(tunnel 用户)──► 容器内 127.0.0.1 │
 │   docker exec ─────────────────────────────────► 故障注入 / 探针   │
-│   mock-cdn/releases/<版本> ─── 本地下载或上传安装 zcode-server     │
+│   mock-cdn/releases/<版本> ─── 本地下载或上传安装 nibi-server     │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -460,7 +460,7 @@ provider/model/endpoint 正确。业务 401 退出、登录弹窗、SSH 协议�
 | WPL-011 "remote task header 没有更多菜单"                                | `d7b1d8a2a5` 把 header 上下文移进 `ControlHintTooltip`，`TID_WORKSPACE_PATH` 只剩 `aria-label`（显示名 + host，**不含绝对路径**），DOM `title` 消失 | 已补 `data-workspace-abs-path` 锚点并用 ui 单测锁住                                                                  |
 | WPL-011 "没有'同步 Plugin'入口"                                          | 菜单项文案是 `remote.syncPlugins`＝"同步插件"                                                                                                       | 菜单确实是开着的（`moreState:"open"`）                                                                               |
 | cancelretry "没有可用的返回按钮"                                         | 按钮文案是 `remote.backToConnection`＝"返回配置"                                                                                                    | 现场按钮排：收起／关闭／重试／返回配置／反馈／连接日志                                                               |
-| SSH-P0-LIFE-02 daemon 探测空列表                                         | daemon 早已是 `server-cli.js serve --supervisor` + `server-core.js`，旧正则找 `zcode-server.cjs`                                                    | 故障注入还要连 core 一起停，否则 core 继续服务、UI 不会断开                                                          |
+| SSH-P0-LIFE-02 daemon 探测空列表                                         | daemon 早已是 `server-cli.js serve --supervisor` + `server-core.js`，旧正则找的是当时的单文件 bundle（改名后叫 `nibi-server.cjs`）                                                    | 故障注入还要连 core 一起停，否则 core 继续服务、UI 不会断开                                                          |
 | serverfault "没有进入 disconnected 保留态"                               | 产品会**自愈**：拉起新 server、换新 `remoteSessionId`                                                                                               | 现场 `sessionsBeforeFault.A=9effdcc2…` → 读到 `9dcde31a…`，远端 `status.json` 是新 pid + `state:"ready"`             |
 | devicerow "设置页返回按钮没有出现"                                       | 设置页里的"连接"派发 `connect-device` + `effect:"open-conversation"`，成功后产品自己离开设置页                                                      | 前一步 online 判定在设置页缺失时回退到 `document.body`（侧栏组头也带 `data-remote-connection-status`），所以照样通过 |
 

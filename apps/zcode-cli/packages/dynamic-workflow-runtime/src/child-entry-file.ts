@@ -10,7 +10,7 @@
  *   - 文件**保留**不删（同一 runId 原位覆写），目录兼作每次 run 实际执行体的存档；
  *   - 目录里由本模块写一份 `.gitignore`（`*`），只在缺席时写一次，绝不碰项目自己的 `.gitignore`；
  *   - 项目目录写不进（只读 checkout、cwd 不存在、`.nibi` 是个普通文件…）→ 回落到
- *     `os.tmpdir()/zcode-workflow-runs/` 并经 `onWarning` 报一声，run 照常启动。回落也失败就抛，
+ *     `os.tmpdir()/nibi-workflow-runs/` 并经 `onWarning` 报一声，run 照常启动。回落也失败就抛，
  *     由 harness 归一成 failed 结算。
  */
 
@@ -49,7 +49,7 @@ export function workflowRunsDir(cwd: string): string {
 
 /** 回落目录（OS 临时目录下，跨项目共用）。 */
 export function fallbackWorkflowRunsDir(): string {
-  return join(tmpdir(), "zcode-workflow-runs");
+  return join(tmpdir(), "nibi-workflow-runs");
 }
 
 /** runId 安全字符集之外一律换成 `_`，杜绝路径分隔符之类混进文件名。 */

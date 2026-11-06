@@ -270,7 +270,7 @@ describe("AgentRuntime session persistence", () => {
     });
     const messageId = createMessageId("runtime-persistence-preloaded-user");
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: messageId,
       model: {
         modelID: "model-test",
@@ -484,7 +484,7 @@ describe("AgentRuntime session persistence", () => {
     });
     const assistantMessageId = createMessageId("assistant-historical-memory-index-read");
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       cost: 0,
       id: assistantMessageId,
       mode: "edit",
@@ -1302,7 +1302,7 @@ describe("AgentRuntime session persistence", () => {
     const rewindNoticeId = createMessageId("rewind-notice-before-compact");
     const compactId = createMessageId("compact-summary-after-rewind");
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: oldUserId,
       model: { modelID: "model-test", providerID: "provider-test" },
       role: "user",
@@ -1317,7 +1317,7 @@ describe("AgentRuntime session persistence", () => {
       type: "text",
     });
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: rewindNoticeId,
       model: { modelID: "model-test", providerID: "provider-test" },
       role: "user",
@@ -1332,7 +1332,7 @@ describe("AgentRuntime session persistence", () => {
       type: "text",
     });
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: compactId,
       model: { modelID: "model-test", providerID: "provider-test" },
       role: "user",
@@ -1414,7 +1414,7 @@ describe("AgentRuntime session persistence", () => {
     });
     const assistantMessageId = createMessageId("assistant-read-state-resume");
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       cost: 0,
       id: assistantMessageId,
       mode: "build",
@@ -1772,7 +1772,7 @@ describe("AgentRuntime session persistence", () => {
     });
     const assistantMessageId = createMessageId("assistant-edit-state-resume");
     await store.saveMessage({
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       cost: 0,
       id: assistantMessageId,
       mode: "build",

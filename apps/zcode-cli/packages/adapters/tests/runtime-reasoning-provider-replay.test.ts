@@ -263,7 +263,7 @@ async function seedHistory(input: {
     1,
     JSON.stringify({
       role: "user",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       time: { created: 1 },
       ...(legacy
         ? { model: { providerID: providerId, modelID: MODEL_ID, variant: "disabled" } }
@@ -284,7 +284,7 @@ async function seedHistory(input: {
         ? { providerID: providerId, modelID: MODEL_ID, variant: "disabled" }
         : { providerId, modelId: MODEL_ID, reasoningLevel: "disabled" }),
       mode: "build",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       path: { cwd: root, root },
       cost: 0,
       tokens: { input: 20, output: 5, reasoning: 2, cache: { read: 0, write: 0 } },

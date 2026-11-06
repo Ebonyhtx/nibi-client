@@ -319,10 +319,10 @@ describe("R3 Source Server contracts", () => {
         {
           target: "linux-x64",
           version: "3.8.1",
-          fileName: "zcode-server-linux-x64.tar.gz",
+          fileName: "nibi-server-linux-x64.tar.gz",
           sha256: "a".repeat(64),
           sizeBytes: 1024,
-          urls: ["zcode-server-linux-x64.tar.gz"],
+          urls: ["nibi-server-linux-x64.tar.gz"],
         },
       ],
     });

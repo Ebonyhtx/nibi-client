@@ -48,7 +48,7 @@ const remoteMcpEvent: ZCodeMcpTelemetryEvent = {
   unownedSeconds: 0,
 };
 
-/** 远端 workspace 的 service collection：Agent service 是远端 zcode-server 的 RPC 代理。 */
+/** 远端 workspace 的 service collection：Agent service 是远端 nibi-server 的 RPC 代理。 */
 function createRemoteWorkspaceServicesStub() {
   const samples = new Emitter<AgentLaneResourceSample>();
   const toolSamples = new Emitter<ZCodeToolExecResource>();

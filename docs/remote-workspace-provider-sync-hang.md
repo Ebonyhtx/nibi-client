@@ -40,7 +40,7 @@
 09:57:44.03   updateProviderRegistry 发出 ──► 远端已收到并开始处理
                 （[remote pid 561744] "为只读会话控制面启动 ZCode agent"、
                  "开始请求 workspace/updateProviderRegistry"、agent started）
-09:57:44.499  ✗ 连接关闭（stream.onClose 路径 = 远端 zcode-server 进程退出，
+09:57:44.499  ✗ 连接关闭（stream.onClose 路径 = 远端 nibi-server 进程退出，
               无 backend-disconnect 详情）──► 回包永不可达
               ├─ ChannelClient 不 reject 挂起请求 → updateProviderRegistry Promise 永久 pending
               ├─ syncTask 永久 pending，滞留在模块级 remoteWorkspaceAppGlobalSyncInFlight
@@ -74,13 +74,13 @@
 
 ### 2.4 未知（客户端侧无法闭合）
 
-远端 zcode-server 在启动后 ~1 秒退出的原因（历史记录同型："远程连接已断开 exitCode=0"）。需要远端机器 `~/.nibi/server` 日志或系统日志定性；这是触发器，不是根因。
+远端 nibi-server 在启动后 ~1 秒退出的原因（历史记录同型："远程连接已断开 exitCode=0"）。需要远端机器 `~/.nibi/server` 日志或系统日志定性；这是触发器，不是根因。
 
 ## 3. 根因分层
 
 | 层级                 | 定性                                                                                                                                             | 位置                                                                                                                                                                                                           |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 触发器               | 远端 zcode-server 启动后即退（环境/服务端，本修复不处理）                                                                                        | 203.0.113.10                                                                                                                                                                                                   |
+| 触发器               | 远端 nibi-server 启动后即退（环境/服务端，本修复不处理）                                                                                        | 203.0.113.10                                                                                                                                                                                                   |
 | **根因（设计缺陷）** | RPC 挂起请求在传输终结时永不 settle：`dispose()` 不 reject pending，`send` 失败静默吞掉，全链路无超时                                            | `packages/rpc/src/channelClient.ts:233-242`                                                                                                                                                                    |
 | 放大器               | 模块级 in-flight 缓存把"一次永久 pending"放大为"该 workspaceKey 的所有后续打开全部挂死"（跨连接、跨向导/重连入口）                               | `packages/ui/src/lib/remoteWorkspaceProviderSync.ts:68-76,245-248`                                                                                                                                             |
 | 清理盲区             | `unregisterRemoteWorkspaceSession` 只清理已 bind 的 workspaceKey；sync 先于 bind（选目录与重连两条流程皆然），死于 sync 中的 session 无 key 可清 | `packages/ui/src/store/remoteWorkspaceSessionStore.ts:133-148`；流程顺序见 `packages/ui/src/root/useRemoteWorkspaceHistory.ts:582-597`、`packages/ui/src/root/reconnectRemoteWorkspaceHistoryEntry.ts:161-182` |
@@ -148,7 +148,7 @@
 - 不加 RPC 超时（掩盖症状且与慢链路合法耗时冲突，违背"不堆兜底"准则）。
 - 不改 `@nibi/protocol`、持久化格式、host 换代/attachment 时序、向导 UI。
 - 不动手机 `web-remote-replayable` 链路：`webRemoteControlWorkspaceBridgeSession.ts` 注册的 bridge session 不注入 dispose → store 改动对其为 no-op；其"同 sessionId 晚到 dispose"防护（对象身份比对）与 store 的替换判定同构，互不干扰。
-- 服务端 zcode-server 早退：需用户提供远端日志另案处理；修复后该场景从"静默永挂"变为"可见失败 + 可重试"。
+- 服务端 nibi-server 早退：需用户提供远端日志另案处理；修复后该场景从"静默永挂"变为"可见失败 + 可重试"。
 
 ## 5. 验证方案（先写测试再实现）
 

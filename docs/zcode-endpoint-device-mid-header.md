@@ -11,7 +11,7 @@ App 层访问 ZCode endpoint（默认 `https://zcode.z.ai`，或当前 `ZCODE_BA
   app 服务层 `buildZCodeSourceHeaders()` 继续负责读取已有 `deviceMid` 后调用该共享规则。
 - 只读取已存在且可作为 HTTP header 输出的 `deviceMid`；读取失败或字段缺失时不在该函数里生成新设备 ID，避免改变设备 ID 生命周期。
 - 通用规则里 `X-Device-Mid` 是“有值才带”；需要设备维度关联的运行环境仍应在首次请求前确保 `deviceMid` 已落盘，不能依赖“可选头缺失也能成功”。
-- 设备 ID 的生成由各运行环境的生命周期所有者负责：Desktop main 在窗口创建前同步确保；远端 `zcode-server`（SSH/WSL/Docker 的 stdio entry）在握手完成、services 创建前调用 `ensureTelemetryDeviceMid()` 异步确保；独立 CLI 在首次模型请求时自行确保。三者读写同一个 `telemetry-state.json` 的 `deviceMid` 字段，并用同名 `telemetry-state.lock` 互斥。
+- 设备 ID 的生成由各运行环境的生命周期所有者负责：Desktop main 在窗口创建前同步确保；远端 `nibi-server`（SSH/WSL/Docker 的 stdio entry）在握手完成、services 创建前调用 `ensureTelemetryDeviceMid()` 异步确保；独立 CLI 在首次模型请求时自行确保。三者读写同一个 `telemetry-state.json` 的 `deviceMid` 字段，并用同名 `telemetry-state.lock` 互斥。
 - `NodeApiClient` 仍只负责在命中当前 ZCode endpoint 时注入 `buildZCodeSourceHeaders()` 返回的 headers，并保留调用方显式传入的同名 header。
 - ZCode CLI 的 provider endpoint routing 配置 GET 通过独立 bootstrap source-header provider
   异步读取同一 telemetry state，再调用共享组装规则；该读取不会进入模型 transport 或普通 tool HTTP 出口。
@@ -22,7 +22,7 @@ App 层访问 ZCode endpoint（默认 `https://zcode.z.ai`，或当前 `ZCODE_BA
 
 ## 远端 server 的设备身份
 
-远程工作区（SSH/WSL/Docker）里只有 `zcode-server` 与 Agent 进程，没有 Desktop main。远端 server 也需要同一设备身份做请求关联；远端主机上若没有任何进程写过 `telemetry-state.json`，首个请求就会缺头，无法与桌面端和其他 CLI 请求归到同一设备。
+远程工作区（SSH/WSL/Docker）里只有 `nibi-server` 与 Agent 进程，没有 Desktop main。远端 server 也需要同一设备身份做请求关联；远端主机上若没有任何进程写过 `telemetry-state.json`，首个请求就会缺头，无法与桌面端和其他 CLI 请求归到同一设备。
 
 ```text
 桌面端                                   远端主机

@@ -271,7 +271,7 @@ function createSharedContextImportBundle(params: {
         sessionID,
         role: "user",
         time: { created: now },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: {
           providerID: "glm" as ModelProviderId,
           modelID: "glm-5" as ModelId,
@@ -583,7 +583,7 @@ describe("SQLite session store", () => {
           time: {
             created: 1_700_000_000_000,
           },
-          agent: "zcode-agent",
+          agent: "nibi-agent",
           model: {
             providerID: "test-provider" as ModelProviderId,
             modelID: "test-model" as ModelId,
@@ -950,7 +950,7 @@ describe("SQLite session store", () => {
   });
 
   it("persists session task types and workflow runtime tables", async () => {
-    const tempRoot = await mkdtemp(join(tmpdir(), "zcode-workflow-session-task-type-"));
+    const tempRoot = await mkdtemp(join(tmpdir(), "nibi-workflow-session-task-type-"));
     const dbPath = join(tempRoot, "session.sqlite");
     const workflowSessionId = createSessionId("workflow-child-session");
     const interactiveSessionId = createSessionId("interactive-session");
@@ -1951,7 +1951,7 @@ describe("SQLite session store", () => {
         time: {
           created,
         },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: {
           providerID: "test-provider" as ModelProviderId,
           modelID: "test-model" as ModelId,
@@ -2002,7 +2002,7 @@ describe("SQLite session store", () => {
         modelID: "test-model" as ModelId,
         providerID: "test-provider" as ModelProviderId,
         mode: "build",
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         path: {
           cwd: tempRoot,
           root: tempRoot,
@@ -2090,7 +2090,7 @@ describe("SQLite session store", () => {
           sessionID,
           role: "user",
           time: { created: Date.now() },
-          agent: "zcode-agent",
+          agent: "nibi-agent",
           model: {
             providerID: "test-provider" as ModelProviderId,
             modelID: "test-model" as ModelId,
@@ -2145,7 +2145,7 @@ describe("SQLite session store", () => {
         sessionID,
         role: "user",
         time: { created: createdAt },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: {
           providerID: "test-provider" as ModelProviderId,
           modelID: "test-model" as ModelId,
@@ -3179,7 +3179,7 @@ describe("session input ledger (0016)", () => {
           sessionID,
           role: "user",
           time: { created: created + 10 },
-          agent: "zcode-agent",
+          agent: "nibi-agent",
           model: {
             providerID: "test-provider" as ModelProviderId,
             modelID: "test-model" as ModelId,

@@ -81,7 +81,7 @@ async function saveUserTextMessage(
     sessionID: sessionId,
     role: "user",
     time: { created },
-    agent: "zcode-agent",
+    agent: "nibi-agent",
     model: { providerID: "glm" as ModelProviderId, modelID: "glm-4-air" as ModelId },
     tools: {},
   });
@@ -112,7 +112,7 @@ async function saveAssistantTextMessage(
     providerID: "glm" as ModelProviderId,
     modelID: "glm-4-air" as ModelId,
     mode: "build",
-    agent: "zcode-agent",
+    agent: "nibi-agent",
     path: { cwd: WORKSPACE_PATH, root: WORKSPACE_PATH },
     cost: 0,
     tokens: { input: 1, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },

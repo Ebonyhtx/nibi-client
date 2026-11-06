@@ -27,8 +27,8 @@
 当前项目的通道包括：
 
 - `MessagePort`：Renderer 与 Window Host 之间的本地端口。
-- `stdio`：Host 与 `zcode-cli`，以及 `zcode-server` 与其 Agent 子进程之间的标准输入输出。
-- `WebSocket`：连接已存在的 `zcode-server`，或连接手机远控 Relay。
+- `stdio`：Host 与 `zcode-cli`，以及 `nibi-server` 与其 Agent 子进程之间的标准输入输出。
+- `WebSocket`：连接已存在的 `nibi-server`，或连接手机远控 Relay。
 - Electron IPC：Renderer 与 Main 之间的平台调用。
 - UtilityProcess `postMessage`：Main 与 Window Host 之间的进程控制消息。
 
@@ -51,7 +51,7 @@
 通用的 Service 调用协议，支持 `call`、`response`、`listen` 和事件通知。它主要用于：
 
 - Renderer ↔ Window Host；
-- Window Host ↔ 远程 `zcode-server`。
+- Window Host ↔ 远程 `nibi-server`。
 
 ### ZCode Protocol JSON envelope
 
@@ -134,8 +134,8 @@ Main 与 Host 之间传递的是进程和连接控制，例如：
 | Renderer → Main | 平台操作 | Electron IPC channel | Electron IPC |
 | Main → Host | Host 控制消息 | typed `{ type, ... }` | `postMessage` |
 | Host → 本地 CLI | V4、少量 legacy 操作 | ZCode Protocol JSON | stdio NDJSON |
-| Host → `zcode-server` | 远程 Service API，参数可携带 V4 | `@nibi/rpc` | SSH stdio 或 WebSocket |
-| `zcode-server` → 远端 CLI | V4、少量 legacy 操作 | ZCode Protocol JSON | stdio NDJSON |
+| Host → `nibi-server` | 远程 Service API，参数可携带 V4 | `@nibi/rpc` | SSH stdio 或 WebSocket |
+| `nibi-server` → 远端 CLI | V4、少量 legacy 操作 | ZCode Protocol JSON | stdio NDJSON |
 | 手机 → Relay → Main | 远控 Service/V4 调用 | relay envelope + `rpc-frame` | WebSocket |
 
 手机远控还会通过 shared-host attachment 进入已有 Window Host；Relay 和 Main 只负责鉴权、配对、心跳、frame 透传与 attachment 调度，不持有 conversation/task/stream 业务状态。
@@ -156,7 +156,7 @@ Window Host
   第 1 层：SSH stdio / WebSocket
         │
         ▼
-zcode-server
+nibi-server
   第 2 层：ZCode Protocol JSON，method = "v4/command"
   第 1 层：子进程 stdio
         │
@@ -172,7 +172,7 @@ V4 命令 = 具体业务意图，例如 sendText
 V4 调用 = 调用 Service API，把这条命令送到下一跳
 ```
 
-因此，截图中“Host → zcode-server：V4 调用”更准确的说法是：
+因此，截图中“Host → nibi-server：V4 调用”更准确的说法是：
 
 > **远程 Service RPC，参数中携带 V4 命令或 V4 查询。**
 
@@ -184,5 +184,5 @@ V4 调用 = 调用 Service API，把这条命令送到下一跳
 - [V4 command schema](../../packages/shared/src/nibi-protocol-v4/command.ts)
 - [V4 transport schema](../../packages/shared/src/nibi-protocol-v4/transport.ts)
 - [远程 RPC 连接](../../packages/server/src/remote/connect.ts)
-- [zcode-server stdio RPC server](../../packages/server/src/stdio.ts)
+- [nibi-server stdio RPC server](../../packages/server/src/stdio.ts)
 - [Agent ZCode Protocol client](../../packages/services/src/zcode-agent/nibiProtocolClient.ts)

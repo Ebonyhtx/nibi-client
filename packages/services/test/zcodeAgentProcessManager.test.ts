@@ -328,7 +328,7 @@ describe("resolveDefaultZCodeAgentCommand", () => {
     delete process.env.NIBI_AGENT_SERVER_ARGS_JSON;
     delete process.env.NIBI_AGENT_SERVER_CWD;
 
-    // Bugfix: SSH 远端把 zcode-server.cjs 部署到 ~/.nibi/server/，cwd 不在仓库内、
+    // Bugfix: SSH 远端把 nibi-server.cjs 部署到 ~/.nibi/server/，cwd 不在仓库内、
     // NIBI_AGENT_SERVER_COMMAND 也没设；旧 resolver 只识别 env 和 monorepo 源码树，
     // 即使 zcode-agent 已部署到 ~/.nibi/server/agents/glm/，resolver 也找不到。
     // 这里用 GLM_BINARY_PATH（=runtime.binaryEnvVar）模拟该部署场景，

@@ -37,7 +37,7 @@ describe("未绑定模型的 Session 历史恢复", () => {
           id: messageId,
           sessionID: sessionId,
           role: "user",
-          agent: "zcode-agent",
+          agent: "nibi-agent",
           time: { created: 1 },
           // 历史请求来源不能替当前未绑定的选择自动补模型。
           modelSelection: createTestModelSelection("retired-provider/old-model"),

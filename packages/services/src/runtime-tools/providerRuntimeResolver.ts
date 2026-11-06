@@ -119,7 +119,7 @@ export function findZCodeAgentRuntimeBinary(): string | null {
     return envPath;
   }
 
-  // import.meta.dirname 在打包后的 CJS bundle（zcode-server.cjs）中是 undefined，
+  // import.meta.dirname 在打包后的 CJS bundle（nibi-server.cjs）中是 undefined，
   // 直接传给 resolvePath 会报 "paths[0]" argument must be of type string。
   // 这里做空值保护，只有 import.meta.dirname 存在时才构建对应的候选路径。
   const moduleDir: string | undefined = import.meta.dirname;

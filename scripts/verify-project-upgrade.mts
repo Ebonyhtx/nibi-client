@@ -59,7 +59,7 @@ try {
       id: "body-message",
       sessionID: "body",
       role: "user",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       model: { providerID: "probe", modelID: "probe" },
       time: { created: 100 },
     });

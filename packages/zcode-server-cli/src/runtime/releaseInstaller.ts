@@ -21,8 +21,8 @@ async function flattenArchiveRoot(extractDir: string): Promise<void> {
   const entries = await readdir(extractDir, { withFileTypes: true });
   // macOS tar 可能额外写入 `._*` PAX/resource-fork 条目，不能因为这些旁路文件
   // 让唯一发行根目录识别失败，否则后续会误报 manifest.json 缺失。
-  const rootEntries = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("zcode-server-"));
-  if (rootEntries.length > 1) throw new Error("Release archive contains multiple zcode-server roots");
+  const rootEntries = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("nibi-server-"));
+  if (rootEntries.length > 1) throw new Error("Release archive contains multiple nibi-server roots");
   const rootEntry = rootEntries[0];
   if (!rootEntry) return;
   const nested = join(extractDir, rootEntry.name);

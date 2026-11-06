@@ -166,7 +166,7 @@ async function seedReadSessionContextSourceSession() {
     saveMessageRow(db, SOURCE_USER_MESSAGE_ID, now, now, {
       role: "user",
       time: { created: now },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       model: { providerID: PROVIDER_ID, modelID: MODEL_ID },
       metadata: { e2eCase: CASE_NAME },
     });
@@ -183,7 +183,7 @@ async function seedReadSessionContextSourceSession() {
       modelID: MODEL_ID,
       providerID: PROVIDER_ID,
       mode: "build",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       path: { cwd: DEFAULT_WORKSPACE, root: DEFAULT_WORKSPACE },
       cost: 0,
       tokens: {

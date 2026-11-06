@@ -1,9 +1,6 @@
 {
   "name": "@nibi/server-cli",
   "private": true,
-  "bin": {
-    "zcode": "./dist/server-cli.js"
-  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

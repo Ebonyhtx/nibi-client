@@ -31,7 +31,7 @@ function resolveReleaseAssetPaths(releaseDir: string): string[] {
   return [
     join(releaseDir, SOURCE_SERVER_RELEASE_DESCRIPTOR_FILE_NAME),
     ...SOURCE_SERVER_RELEASE_TARGETS.map((target) =>
-      join(releaseDir, `zcode-server-${target}.tar.gz`),
+      join(releaseDir, `nibi-server-${target}.tar.gz`),
     ),
   ];
 }

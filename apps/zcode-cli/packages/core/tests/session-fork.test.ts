@@ -52,7 +52,7 @@ function userMessage(id: MessageId, text: string, created: number): MessageWithP
       sessionID: SESSION_ID,
       role: "user",
       time: { created },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       modelSelection: {
         modelId: "glm-4-air" as never,
         providerId: "glm" as never,
@@ -78,7 +78,7 @@ function compactSummaryMessage(id: MessageId, created: number): MessageWithParts
       sessionID: SESSION_ID,
       role: "user",
       time: { created },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       modelSelection: {
         modelId: "glm-4-air" as never,
         providerId: "glm" as never,
@@ -127,7 +127,7 @@ function assistantMessage(
       role: "assistant",
       time: { created, completed: created + 1 },
       parentID: parentId,
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       cost: 0,
       mode: "build",
       modelId: "glm-4-air" as never,
@@ -247,7 +247,7 @@ describe("session fork history", () => {
     const runtime = {
       activeTurn: null,
       appendEvent: async (event: unknown) => parentEvents.push(event),
-      config: { agentName: "zcode-agent", mode: "build" },
+      config: { agentName: "nibi-agent", mode: "build" },
       createEvent: (_type: unknown, payload: Record<string, unknown>) => ({ payload }),
       getSessionModelSelection: () => ({
         modelId: "glm-4-air",
@@ -434,7 +434,7 @@ describe("session fork history", () => {
       const runtime = {
         activeTurn: null,
         appendEvent: async () => undefined,
-        config: { agentName: "zcode-agent", mode: "build" },
+        config: { agentName: "nibi-agent", mode: "build" },
         createEvent: () => ({ type: "session.forked" }),
         getSessionModelSelection: () => ({ modelId: "glm-4-air", providerId: "glm" }),
         rootTraceContext: { traceId: `trace_selection_side_chat_${status}` },
@@ -510,7 +510,7 @@ describe("session fork history", () => {
       parentSessionId: SESSION_ID,
     });
     const runtime = {
-      config: { agentName: "zcode-agent", mode: "build" },
+      config: { agentName: "nibi-agent", mode: "build" },
       getSessionModelSelection: () => ({ modelId: "glm-4-air", providerId: "glm" }),
       sessionId: SESSION_ID,
       workingDirectory: "/workspace",
@@ -640,7 +640,7 @@ describe("session fork history", () => {
     let legacyCreateCount = 0;
     const runtime = {
       appendEvent: async () => undefined,
-      config: { agentName: "zcode-agent", mode: "build" },
+      config: { agentName: "nibi-agent", mode: "build" },
       createEvent: (_type: unknown, payload: Record<string, unknown>) => ({ payload }),
       getSessionModelSelection: () => ({
         modelId: "glm-4-air",
@@ -952,7 +952,7 @@ describe("session fork history", () => {
     } as SessionInfo;
     const runtime = {
       appendEvent: async () => undefined,
-      config: { agentName: "zcode-agent", mode: "build" },
+      config: { agentName: "nibi-agent", mode: "build" },
       createEvent: () => ({ type: "session.forked" }),
       getSessionModelSelection: () => ({ modelId: "glm-4-air", providerId: "glm" }),
       rootTraceContext: { traceId: "trace-golden" },
@@ -1364,7 +1364,7 @@ describe("session fork history", () => {
       appendEvent: async () => {
         throw new Error("parent event store unavailable");
       },
-      config: { agentName: "zcode-agent", mode: "build" },
+      config: { agentName: "nibi-agent", mode: "build" },
       createEvent: () => ({ type: "session.forked" }),
       getSessionModelSelection: () => ({
         modelId: "glm-4-air",
@@ -1449,7 +1449,7 @@ describe("session fork history", () => {
     } as SessionInfo;
     const runtime = {
       appendEvent: async () => undefined,
-      config: { agentName: "zcode-agent", mode: "build" },
+      config: { agentName: "nibi-agent", mode: "build" },
       createEvent: (_type: unknown, payload: Record<string, unknown>) => {
         eventPayloads.push(payload);
         return { payload };

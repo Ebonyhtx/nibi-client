@@ -2,7 +2,7 @@
 
 本页定义 [Relay V2](../issues/web-remote-control-relay-v2/01-relay-v2-login-pairing.md) 的最终共享契约、连接行为与验收边界。桌面 device、手机 terminal 与 shared 均只使用 V2。
 
-契约依据：zcode-server `origin/staging` 提交 `5a947caea3a022b12b5d051ef25c807952feefa7` 的 `docs/remote-relay.md`、`internal/domain/relay_v2/proto.go`、`service.go` 和 `internal/interfaces/web/{dto,controller}/remote_v2.go`。HTTP 请求及 WebSocket 消息采用严格字段校验，禁止把 V1 字段意外发到 V2；HTTP 响应采用下述兼容性校验。服务端 Go JSON 解码本身可能忽略多余字段。
+契约依据：nibi-server `origin/staging` 提交 `5a947caea3a022b12b5d051ef25c807952feefa7` 的 `docs/remote-relay.md`、`internal/domain/relay_v2/proto.go`、`service.go` 和 `internal/interfaces/web/{dto,controller}/remote_v2.go`。HTTP 请求及 WebSocket 消息采用严格字段校验，禁止把 V1 字段意外发到 V2；HTTP 响应采用下述兼容性校验。服务端 Go JSON 解码本身可能忽略多余字段。
 
 ## HTTP 契约
 
@@ -612,7 +612,7 @@ Docker 镜像构建不在本轮验证范围。分享镜像验证本地 COPY 源�
 
 | 外部依赖                                                   | 归属         | 放行证据                                                                                                      |
 | ---------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------- |
-| 生产 zcode-server 部署 V2 HTTP/WS                          | 服务端维护方 | token 接口无 JWT 返回 401，合法账号完成设备注册与一次性 token 配对                                            |
+| 生产 nibi-server 部署 V2 HTTP/WS                          | 服务端维护方 | token 接口无 JWT 返回 401，合法账号完成设备注册与一次性 token 配对                                            |
 | `/api/v1/remote/ws2` 精确路由，同 MID 双端落同一实例       | 网关维护方   | 无 token 返回 401，同 MID 稳定配对，滚动后恢复                                                                |
 | `/remote/v4` 按 `app_version` 取 OSS index，资源按目录路由 | 网关维护方   | 两个版本加载各自资源，release-manifest 返回 JSON，不能是 SPA HTML                                             |
 | ZAI/BigModel OAuth 回调白名单                              | OAuth 提供方 | `https://zcode.z.ai/remote/v4` 与 `https://zcode.z.ai/remote/v4` 已登记，测试环境真实登录后回跳原 URL |

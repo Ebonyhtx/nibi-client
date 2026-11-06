@@ -29,7 +29,7 @@
 ## 当前释放生命周期
 
 WSL 使用 window-scoped pooled Remote Host：同一窗口、同一 normalized distro/user 的 logical workspace
-session 共享一个 Host、一个 `wsl.exe` server launcher 和一个 `zcode-server`。每个 session 仍保留独立
+session 共享一个 Host、一个 `wsl.exe` server launcher 和一个 `nibi-server`。每个 session 仍保留独立
 `remoteSessionId`、attachment 和 `workspaceKey`。最小化、隐藏到托盘、renderer reload、手机 `/remote`
 attachment 断开都不直接销毁 Host。
 
@@ -52,7 +52,7 @@ attachment 断开都不直接销毁 Host。
 ```
 
 释放过程禁止调用 `wsl --terminate` 或 `wsl --shutdown`。WSL distro 可能仍显示 Running，这是发行版级
-运行状态，不代表 ZCode 的 Host、`wsl.exe` 或远端 `zcode-server` 仍被持有。任何 fallback 只能作用于
+运行状态，不代表 ZCode 的 Host、`wsl.exe` 或远端 `nibi-server` 仍被持有。任何 fallback 只能作用于
 当前 backend 明确 spawn 的子进程，不能按进程名扫描或终止用户在同一 distro 中的其他任务。
 
 Main 的 Remote Host 集合包含 WSL/SSH shared Host、Docker/Server dedicated Host 和 Bot remote runtime。
@@ -230,7 +230,7 @@ WSL 有两种访问方式：
 - 小文件：`wsl.exe --exec cat` + stdin pipe
 - 大文件：考虑 `wsl.exe cp` 或直接写 `\\wsl$\Distro` 路径
 
-### 3. 部署 zcode-server
+### 3. 部署 nibi-server
 
 与 SSH 完全相同：
 ```bash

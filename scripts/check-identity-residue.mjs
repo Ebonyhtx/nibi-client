@@ -119,9 +119,15 @@ const FORBIDDEN_THIRD_PARTY_HOSTS = [
  * 每加一条都要先把它清掉，否则门禁立刻红。
  *
  * 尚未清完、因此暂不列入的（列在这里是为了别忘，不是因为可以接受）：
- * - `zcode-server*`：远端执行器 bundle 名与发布包名，与包名/CI 一起改。
- * - `zcode-agent` / `zcode-workflow` / `zcode-expert`：写进会话库的 agent 值，
- *   Node 与 Rust 两个内核共用一个数据契约，要两边同批改。
+ *
+ * - `zcode-agent` 的**其它三处**用法（会话库里的 agent 值已经改成 `nibi-agent`，这三处是不同契约）：
+ *   1. IPC 频道值（`packages/shared/src/channels.ts` 的 `ZCodeAgent`）——Host 与 CLI 的握手名；
+ *   2. 反馈工单的 `framework` 值（`packages/shared/src/feedback.ts`）——**服务端可能按枚举校验**，
+ *      必须先确认服务端接受新值再改；
+ *   3. 原生 agent 可执行文件名（`packages/shared/src/zcode-agent-runtime.ts`、`scripts/download-glm.*`）
+ *      ——与下载/解包流程同批改。
+ *   这三处都在产物里，泛词 `zcode-agent` 会让判据假红，所以逐条清完再登记。
+ * - `/* zcode-workflow` 元数据块标记：已保存工作流文件的格式契约，改名要迁就存量文件。
  */
 const FORBIDDEN_IDENTITY_TOKENS = [
   { token: "X-ZCode-", reason: "请求头前缀（原来发往模型服务端与自家服务端做观测）" },
@@ -130,6 +136,16 @@ const FORBIDDEN_IDENTITY_TOKENS = [
   { token: "zcode-window-bounds", reason: "进程名，任务管理器里可见" },
   { token: "zcode-error-", reason: "用户可见的导出文件名前缀" },
   { token: "zcode-save-file-", reason: "用户可见的保存文件名前缀" },
+  // 远端执行器（现在叫 `nibi-server.cjs` / `nibi-server-<target>.tar.gz`）。
+  // 不写泛化的 `zcode-server`：源码目录名 `packages/zcode-server-cli` 是上游沿用、刻意不改的，
+  // 它会出现在产物 sourcemap 的路径里，泛词会让判据天天假红。这里只钉运行时真会暴露的那几个。
+  { token: "zcode-server.cjs", reason: "远端执行器的 bundle 文件名（部署到远端 ~/.nibi/server/）" },
+  { token: "zcode-server.tar.gz", reason: "远端 bootstrap 归档名" },
+  { token: "zcode-server-linux-", reason: "远端发布包名（linux-x64 / linux-arm64）" },
+  { token: "zcode-server-darwin-", reason: "远端发布包名（darwin-x64 / darwin-arm64）" },
+  { token: "zcode-server-win32-", reason: "远端发布包名（win32-*）" },
+  { token: "zcode-server:http", reason: "远端执行器的日志前缀" },
+  { token: "zcode-server:stdio", reason: "远端执行器的日志前缀" },
 ];
 
 

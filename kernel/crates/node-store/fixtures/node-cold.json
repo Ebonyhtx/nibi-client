@@ -39,7 +39,7 @@
           "sess_basic",
           1010,
           1010,
-          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           0
         ],
         [
@@ -47,7 +47,7 @@
           "sess_basic",
           1020,
           1030,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
           1
         ],
         [
@@ -55,7 +55,7 @@
           "sess_basic",
           1040,
           1050,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1040,\"completed\":1050},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"historyRoundCount\":2,\"orderedMessageIds\":[\"u1\",\"a1\",\"a2\"],\"boundaryMessageId\":\"a2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1040,\"completed\":1050},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"historyRoundCount\":2,\"orderedMessageIds\":[\"u1\",\"a1\",\"a2\"],\"boundaryMessageId\":\"a2\"}}",
           2
         ],
         [
@@ -63,7 +63,7 @@
           "sess_basic",
           1060,
           1060,
-          "{\"role\":\"user\",\"time\":{\"created\":1060},\"agent\":\"zcode-agent\",\"metadata\":{\"runtimeMessage\":{\"source\":\"todo_reminder\"},\"source\":\"todo_reminder\",\"visibility\":\"model-only\"},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"todo_reminder\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"todo_reminder\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1060},\"agent\":\"nibi-agent\",\"metadata\":{\"runtimeMessage\":{\"source\":\"todo_reminder\"},\"source\":\"todo_reminder\",\"visibility\":\"model-only\"},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"todo_reminder\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"todo_reminder\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
           3
         ],
         [
@@ -71,7 +71,7 @@
           "sess_basic",
           1070,
           1070,
-          "{\"role\":\"user\",\"time\":{\"created\":1070},\"agent\":\"zcode-agent\",\"metadata\":{\"runtimeMessage\":{\"source\":\"legacy_synthetic\"},\"source\":\"background_task\",\"visibility\":\"model-only\"},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"background_task\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"background_task\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1070},\"agent\":\"nibi-agent\",\"metadata\":{\"runtimeMessage\":{\"source\":\"legacy_synthetic\"},\"source\":\"background_task\",\"visibility\":\"model-only\"},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"background_task\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"background_task\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
           4
         ],
         [
@@ -79,7 +79,7 @@
           "sess_basic",
           1080,
           1080,
-          "{\"role\":\"user\",\"time\":{\"created\":1080},\"agent\":\"zcode-agent\",\"metadata\":{\"runtimeMessage\":{\"source\":\"subagent\"},\"source\":\"subagent\",\"visibility\":\"model-only\"},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"subagent\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"subagent\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1080},\"agent\":\"nibi-agent\",\"metadata\":{\"runtimeMessage\":{\"source\":\"subagent\"},\"source\":\"subagent\",\"visibility\":\"model-only\"},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"subagent\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"subagent\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
           5
         ],
         [
@@ -87,7 +87,7 @@
           "sess_basic",
           1090,
           1090,
-          "{\"role\":\"user\",\"time\":{\"created\":1090},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"metadata\":{\"inputPresentation\":\"user_steer\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1090},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"metadata\":{\"inputPresentation\":\"user_steer\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           6
         ],
         [
@@ -95,7 +95,7 @@
           "sess_basic",
           1100,
           9000,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1100},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1100},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           7
         ],
         [
@@ -103,7 +103,7 @@
           "sess_basic",
           1110,
           1120,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1110,\"completed\":1120},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1110,\"completed\":1120},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           8
         ],
         [
@@ -111,7 +111,7 @@
           "sess_basic",
           1130,
           1140,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1130,\"completed\":1140},\"parentID\":\"u2\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":250,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1130,\"completed\":1140},\"parentID\":\"u2\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":250,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           9
         ],
         [
@@ -119,7 +119,7 @@
           "sess_basic",
           1150,
           1150,
-          "{\"role\":\"user\",\"time\":{\"created\":1150},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"source\":\"shared_context\",\"metadata\":{\"sharedContextStatus\":\"pending\",\"contextId\":\"ctx\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1150},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"source\":\"shared_context\",\"metadata\":{\"sharedContextStatus\":\"pending\",\"contextId\":\"ctx\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           10
         ]
       ],
@@ -1365,7 +1365,7 @@
           "sess_compacted",
           1010,
           1010,
-          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           0
         ],
         [
@@ -1373,7 +1373,7 @@
           "sess_compacted",
           1020,
           1030,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
           1
         ],
         [
@@ -1381,7 +1381,7 @@
           "sess_compacted",
           1040,
           1040,
-          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           2
         ],
         [
@@ -1389,7 +1389,7 @@
           "sess_compacted",
           1050,
           1060,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":900,\"output\":9,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":900,\"output\":9,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           3
         ],
         [
@@ -1397,7 +1397,7 @@
           "sess_compacted",
           1070,
           1080,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1070,\"completed\":1080},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"completed\",\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1070,\"completed\":1080},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"completed\",\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           4
         ],
         [
@@ -1405,7 +1405,7 @@
           "sess_compacted",
           1090,
           1090,
-          "{\"role\":\"user\",\"time\":{\"created\":1090},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"compact_summary\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"tools\":{\"Read\":true},\"summary\":{\"title\":\"Compact summary\",\"body\":\"This session is being continued from a previous conversation.\\n\\nSummary: fixed the parser.\",\"diffs\":[]},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1090},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"compact_summary\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"tools\":{\"Read\":true},\"summary\":{\"title\":\"Compact summary\",\"body\":\"This session is being continued from a previous conversation.\\n\\nSummary: fixed the parser.\",\"diffs\":[]},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           5
         ],
         [
@@ -1413,7 +1413,7 @@
           "sess_compacted",
           1100,
           1100,
-          "{\"role\":\"user\",\"time\":{\"created\":1100},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1100},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           6
         ],
         [
@@ -1421,7 +1421,7 @@
           "sess_compacted",
           1110,
           1120,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1110,\"completed\":1120},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1110,\"completed\":1120},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
           7
         ]
       ],
@@ -2174,7 +2174,7 @@
           "sess_rewound",
           1010,
           1010,
-          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           0
         ],
         [
@@ -2182,7 +2182,7 @@
           "sess_rewound",
           1020,
           1030,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
           1
         ],
         [
@@ -2190,7 +2190,7 @@
           "sess_rewound",
           1040,
           1040,
-          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           2
         ],
         [
@@ -2198,7 +2198,7 @@
           "sess_rewound",
           1050,
           1060,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           3
         ],
         [
@@ -2206,7 +2206,7 @@
           "sess_rewound",
           1070,
           1070,
-          "{\"role\":\"user\",\"time\":{\"created\":1070},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1070},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           4
         ],
         [
@@ -2214,7 +2214,7 @@
           "sess_rewound",
           1080,
           1090,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1080,\"completed\":1090},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1080,\"completed\":1090},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
           5
         ]
       ],
@@ -2756,7 +2756,7 @@
           "sess_rich",
           1010,
           1010,
-          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"metadata\":{\"conversationInputIntent\":{\"sourceCommandId\":\"cmd_u1\",\"queueItemId\":\"queue_u1\",\"clientId\":\"client-1\",\"kind\":\"sendText\",\"text\":\"Plan it\",\"attachments\":[{\"ref\":\"nibi-artifact://s/a1\",\"fileName\":\"a.png\",\"mime\":\"image/png\",\"bytes\":5}],\"delivery\":{\"requested\":\"startNow\",\"admitted\":\"startNow\"},\"order\":{\"admissionSeq\":1},\"steer\":{\"state\":\"notRequested\"},\"dispatch\":{\"state\":\"drained\"},\"admittedAt\":1,\"provenance\":{\"sourceCommandId\":\"root_cmd\"}},\"epilogueStart\":4},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"metadata\":{\"conversationInputIntent\":{\"sourceCommandId\":\"cmd_u1\",\"queueItemId\":\"queue_u1\",\"clientId\":\"client-1\",\"kind\":\"sendText\",\"text\":\"Plan it\",\"attachments\":[{\"ref\":\"nibi-artifact://s/a1\",\"fileName\":\"a.png\",\"mime\":\"image/png\",\"bytes\":5}],\"delivery\":{\"requested\":\"startNow\",\"admitted\":\"startNow\"},\"order\":{\"admissionSeq\":1},\"steer\":{\"state\":\"notRequested\"},\"dispatch\":{\"state\":\"drained\"},\"admittedAt\":1,\"provenance\":{\"sourceCommandId\":\"root_cmd\"}},\"epilogueStart\":4},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           0
         ],
         [
@@ -2764,7 +2764,7 @@
           "sess_rich",
           1020,
           1030,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
           1
         ],
         [
@@ -2772,7 +2772,7 @@
           "sess_rich",
           1040,
           1040,
-          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_g1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_g1\"},\"tools\":{\"Read\":true},\"metadata\":{\"turnSteerDelivery\":\"guide\",\"conversationInputIntent\":{\"sourceCommandId\":\"cmd_g1\",\"queueItemId\":\"queue_g1\",\"clientId\":\"client-1\",\"kind\":\"sendText\",\"text\":\"also check tests\",\"attachments\":[],\"delivery\":{\"requested\":\"startNow\",\"admitted\":\"startNow\"},\"order\":{\"admissionSeq\":1},\"steer\":{\"state\":\"notRequested\"},\"dispatch\":{\"state\":\"drained\"},\"admittedAt\":1}},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_g1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_g1\"},\"tools\":{\"Read\":true},\"metadata\":{\"turnSteerDelivery\":\"guide\",\"conversationInputIntent\":{\"sourceCommandId\":\"cmd_g1\",\"queueItemId\":\"queue_g1\",\"clientId\":\"client-1\",\"kind\":\"sendText\",\"text\":\"also check tests\",\"attachments\":[],\"delivery\":{\"requested\":\"startNow\",\"admitted\":\"startNow\"},\"order\":{\"admissionSeq\":1},\"steer\":{\"state\":\"notRequested\"},\"dispatch\":{\"state\":\"drained\"},\"admittedAt\":1}},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           2
         ],
         [
@@ -2780,7 +2780,7 @@
           "sess_rich",
           1050,
           1060,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"historyRoundCount\":3},\"metadata\":{\"assistantFeedback\":\"like\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"historyRoundCount\":3},\"metadata\":{\"assistantFeedback\":\"like\"}}",
           3
         ],
         [
@@ -2788,7 +2788,7 @@
           "sess_rich",
           1070,
           1080,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1070,\"completed\":1080},\"parentID\":\"a2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_a2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1070,\"completed\":1080},\"parentID\":\"a2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_a2\"}}",
           4
         ],
         [
@@ -2796,7 +2796,7 @@
           "sess_rich",
           1090,
           1100,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1090,\"completed\":1100},\"parentID\":\"a2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_a2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1090,\"completed\":1100},\"parentID\":\"a2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_a2\"}}",
           5
         ],
         [
@@ -2804,7 +2804,7 @@
           "sess_rich",
           1110,
           1110,
-          "{\"role\":\"user\",\"time\":{\"created\":1110},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"q\",\"modelId\":\"n\"},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"q\",\"modelID\":\"n\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1110},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"q\",\"modelId\":\"n\"},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"q\",\"modelID\":\"n\"}}",
           6
         ],
         [
@@ -2812,7 +2812,7 @@
           "sess_rich",
           1120,
           1130,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1120,\"completed\":1130},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"length\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1120,\"completed\":1130},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"length\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           7
         ],
         [
@@ -2820,7 +2820,7 @@
           "sess_rich",
           1140,
           1150,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1140,\"completed\":1150},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1140,\"completed\":1150},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           8
         ],
         [
@@ -2828,7 +2828,7 @@
           "sess_rich",
           1160,
           1160,
-          "{\"role\":\"user\",\"time\":{\"created\":1160},\"agent\":\"zcode-agent\",\"metadata\":{\"originMeta\":{\"backgroundSource\":\"subagent\",\"workId\":\"agent_1\",\"title\":\"Look around\"}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"background_task\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"background_task\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1160},\"agent\":\"nibi-agent\",\"metadata\":{\"originMeta\":{\"backgroundSource\":\"subagent\",\"workId\":\"agent_1\",\"title\":\"Look around\"}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"system_reminder\",\"source\":\"background_task\",\"uiVisibility\":\"hidden\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"hidden\"},\"source\":\"background_task\",\"synthetic\":true,\"visibility\":\"model-only\",\"model\":{}}",
           9
         ],
         [
@@ -2836,7 +2836,7 @@
           "sess_rich",
           1170,
           1180,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1170,\"completed\":1180},\"parentID\":\"bg\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_bg\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1170,\"completed\":1180},\"parentID\":\"bg\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_bg\"}}",
           10
         ]
       ],
@@ -4772,7 +4772,7 @@
           "sess_failures",
           1010,
           1010,
-          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1010},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u1\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           0
         ],
         [
@@ -4780,7 +4780,7 @@
           "sess_failures",
           1020,
           1030,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"error\":{\"name\":\"ProviderError\",\"data\":{\"message\":\"rate limited\",\"retryable\":true,\"attribution\":{\"source\":\"provider\"}}},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1020,\"completed\":1030},\"error\":{\"name\":\"ProviderError\",\"data\":{\"message\":\"rate limited\",\"retryable\":true,\"attribution\":{\"source\":\"provider\"}}},\"parentID\":\"u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u1\"}}",
           1
         ],
         [
@@ -4788,7 +4788,7 @@
           "sess_failures",
           1040,
           1040,
-          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1040},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u2\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           2
         ],
         [
@@ -4796,7 +4796,7 @@
           "sess_failures",
           1050,
           1060,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"error\":{\"name\":\"AbortError\",\"data\":{\"message\":\"stopped\"}},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1050,\"completed\":1060},\"error\":{\"name\":\"AbortError\",\"data\":{\"message\":\"stopped\"}},\"parentID\":\"u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u2\"}}",
           3
         ],
         [
@@ -4804,7 +4804,7 @@
           "sess_failures",
           1070,
           1070,
-          "{\"role\":\"user\",\"time\":{\"created\":1070},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1070},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u3\"},\"tools\":{\"Read\":true},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           4
         ],
         [
@@ -4812,7 +4812,7 @@
           "sess_failures",
           1080,
           1090,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1080,\"completed\":1090},\"error\":{\"name\":\"StreamRecoveryDiscarded\",\"data\":{\"message\":\"Partial assistant output was discarded before a streaming retry.\",\"retryNumber\":1}},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stream_recovery_discarded\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1080,\"completed\":1090},\"error\":{\"name\":\"StreamRecoveryDiscarded\",\"data\":{\"message\":\"Partial assistant output was discarded before a streaming retry.\",\"retryNumber\":1}},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stream_recovery_discarded\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
           5
         ],
         [
@@ -4820,7 +4820,7 @@
           "sess_failures",
           1100,
           1110,
-          "{\"role\":\"assistant\",\"time\":{\"created\":1100,\"completed\":1110},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
+          "{\"role\":\"assistant\",\"time\":{\"created\":1100,\"completed\":1110},\"parentID\":\"u3\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":100,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u3\"}}",
           6
         ],
         [
@@ -4828,7 +4828,7 @@
           "sess_failures",
           1120,
           1120,
-          "{\"role\":\"user\",\"time\":{\"created\":1120},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u4\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u4\"},\"tools\":{\"Read\":true},\"metadata\":{\"executionKind\":\"controlOnly\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1120},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_u4\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_u4\"},\"tools\":{\"Read\":true},\"metadata\":{\"executionKind\":\"controlOnly\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           7
         ],
         [
@@ -4836,7 +4836,7 @@
           "sess_failures",
           1130,
           1130,
-          "{\"role\":\"user\",\"time\":{\"created\":1130},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"fork_notice\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"tools\":{\"Read\":true},\"source\":\"fork\",\"synthetic\":true,\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+          "{\"role\":\"user\",\"time\":{\"created\":1130},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"fork_notice\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"tools\":{\"Read\":true},\"source\":\"fork\",\"synthetic\":true,\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
           8
         ]
       ],

@@ -136,7 +136,7 @@ function writeHistorySession(
 
     insertMessage(database, {
       data: {
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         content: history.userText,
         model: {
           modelID: history.modelId,
@@ -164,7 +164,7 @@ function writeHistorySession(
 
     insertMessage(database, {
       data: {
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         content: history.assistantText,
         cost: 0,
         finish: "stop",

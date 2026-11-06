@@ -14,7 +14,7 @@ export const supportedServerTargets = [
 export type ServerTarget = (typeof supportedServerTargets)[number];
 
 export interface ServerRuntimeManifest {
-  product: "zcode-server";
+  product: "nibi-server";
   target: ServerTarget;
   appVersion: string;
   nodeVersion: string;
@@ -33,7 +33,7 @@ export interface ServerRuntimeManifest {
 
 export const serverRuntimeManifestSchema = z
   .object({
-    product: z.literal("zcode-server"),
+    product: z.literal("nibi-server"),
     target: z.enum(supportedServerTargets),
     appVersion: z.string().min(1),
     nodeVersion: z.string().min(1),
@@ -71,7 +71,7 @@ export function createRuntimeManifest(
   extras: Pick<ServerRuntimeManifest, "tools" | "plugins" | "components"> = {},
 ): ServerRuntimeManifest {
   return {
-    product: "zcode-server",
+    product: "nibi-server",
     target,
     appVersion,
     nodeVersion: SERVER_RUNTIME_NODE_VERSION,

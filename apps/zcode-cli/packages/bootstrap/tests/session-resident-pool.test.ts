@@ -661,7 +661,7 @@ async function saveTextMessage(
     sessionID: sessionId,
     role,
     time: role === "assistant" ? { created, completed: created } : { created },
-    agent: "zcode-agent",
+    agent: "nibi-agent",
     ...(role === "assistant"
       ? {
           parentID: parentMessageId,

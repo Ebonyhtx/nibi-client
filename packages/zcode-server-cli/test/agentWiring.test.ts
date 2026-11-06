@@ -7,7 +7,7 @@ import { createReleaseAgentWiring, resolveBundledAgentWiring } from "../src/runt
 const temporaryDirs: string[] = [];
 
 async function makeTempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), "zcode-server-agent-wiring-"));
+  const dir = await mkdtemp(join(tmpdir(), "nibi-server-agent-wiring-"));
   temporaryDirs.push(dir);
   return dir;
 }

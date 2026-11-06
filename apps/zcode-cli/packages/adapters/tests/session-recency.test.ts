@@ -51,7 +51,7 @@ describe("SQLite session recency", () => {
         time: {
           created: 3_000,
         },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: {
           providerID: "test-provider" as ModelProviderId,
           modelID: "test-model" as ModelId,

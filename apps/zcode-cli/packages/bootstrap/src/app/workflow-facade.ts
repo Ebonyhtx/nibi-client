@@ -289,7 +289,7 @@ function createWorkflowChildRuntime(
       // 父 runtime 已解析的 shell 选择必须显式继承：闭包里的 runtimeConfig 是构造时的拷贝，
       // 拿不到它（原因见 inherited-shell-selection.ts）。
       ...inheritedShellSelection(deps.runtime),
-      agentName: options.workflowKind === "expert" ? "zcode-expert" : "zcode-workflow",
+      agentName: options.workflowKind === "expert" ? "nibi-expert" : "nibi-workflow",
       // workflow child 不在 Guarded 合同内；只隔离父任务模式，不继承审批。
       mode: "yolo",
       modelSelection: deps.runtime.getSessionModelSelection(),
@@ -354,7 +354,7 @@ function createWorkflowChildRuntime(
       // 客户端找不到的 session 上、response 永不回来。
       ...deps.runtime.createChildClientPorts({
         agentId: options.childSessionId,
-        agentType: options.workflowKind === "expert" ? "zcode-expert" : "zcode-workflow",
+        agentType: options.workflowKind === "expert" ? "nibi-expert" : "nibi-workflow",
         childSessionId: options.childSessionId,
         description: `${options.workflowKind} workflow agent`,
         ...(options.childTraceContext.turnId === undefined

@@ -39,7 +39,7 @@
         "sess_records",
         1002,
         1002,
-        "{\"role\":\"user\",\"time\":{\"created\":1002},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_1\"},\"tools\":{},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+        "{\"role\":\"user\",\"time\":{\"created\":1002},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_1\"},\"tools\":{},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
         0
       ],
       [
@@ -47,7 +47,7 @@
         "sess_records",
         1003,
         1010,
-        "{\"role\":\"assistant\",\"time\":{\"created\":1003,\"completed\":1010},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"edit\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":20,\"input\":15,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":2,\"write\":3}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":1003,\"completed\":1010},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"edit\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":20,\"input\":15,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":2,\"write\":3}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
         1
       ],
       [
@@ -55,7 +55,7 @@
         "sess_records",
         2000,
         2000,
-        "{\"role\":\"user\",\"time\":{\"created\":2000},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000008\",\"origin\":\"realUser\"},\"tools\":{},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+        "{\"role\":\"user\",\"time\":{\"created\":2000},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000008\",\"origin\":\"realUser\"},\"tools\":{},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
         2
       ],
       [
@@ -63,7 +63,7 @@
         "sess_records",
         2001,
         2005,
-        "{\"role\":\"assistant\",\"time\":{\"created\":2001,\"completed\":2005},\"parentID\":\"msg_1jk_u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"edit\",\"planEnabled\":true,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"length\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000008\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":2001,\"completed\":2005},\"parentID\":\"msg_1jk_u2\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"edit\",\"planEnabled\":true,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"length\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000008\"}}",
         3
       ]
     ],

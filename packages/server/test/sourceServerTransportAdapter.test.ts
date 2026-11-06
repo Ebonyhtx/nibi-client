@@ -309,19 +309,19 @@ function contract(name: string, target: RemoteTarget): void {
       await adapter.installOrUpdate(
         target,
         {
-          localArchivePath: "/tmp/zcode-server-linux-x64.tar.gz",
+          localArchivePath: "/tmp/nibi-server-linux-x64.tar.gz",
           target: "linux-x64",
           version: "3.8.0",
           sha256: "a".repeat(64),
           sizeBytes: 1024,
-          urls: ["https://cdn.example.test/zcode-server-linux-x64.tar.gz"],
+          urls: ["https://cdn.example.test/nibi-server-linux-x64.tar.gz"],
         },
         {},
         { force: true },
       );
       expect(backend.uploads).toHaveLength(1);
       expect(backend.uploads[0]?.remotePath).toMatch(
-        /^~\/\.nibi\/server\/\.bootstrap-[^/]+\/zcode-server\.tar\.gz$/u,
+        /^~\/\.nibi\/server\/\.bootstrap-[^/]+\/nibi-server\.tar\.gz$/u,
       );
       expect(backend.uploads[0]?.remotePath).not.toContain("/tmp/");
       const prepareCommand = backend.commands.find(
@@ -467,12 +467,12 @@ it("preserves a public archive update guard from CLI JSON", async () => {
     adapter.installOrUpdate(
       { kind: "docker", container: "busy" },
       {
-        localArchivePath: "/tmp/zcode-server-linux-x64.tar.gz",
+        localArchivePath: "/tmp/nibi-server-linux-x64.tar.gz",
         target: "linux-x64",
         version: "3.9.0",
         sha256: "b".repeat(64),
         sizeBytes: 2048,
-        urls: ["https://cdn.example.test/zcode-server-linux-x64.tar.gz"],
+        urls: ["https://cdn.example.test/nibi-server-linux-x64.tar.gz"],
       },
       {},
     ),
@@ -486,8 +486,8 @@ it("preserves a public archive update guard from CLI JSON", async () => {
   );
   expect(updateCommand).toMatch(/trap .* EXIT/u);
   expect(updateCommand).toContain(".bootstrap-");
-  expect(updateCommand).toContain("zcode-server.tar.gz");
-  expect(updateCommand).not.toContain("/tmp/zcode-server-bootstrap-");
+  expect(updateCommand).toContain("nibi-server.tar.gz");
+  expect(updateCommand).not.toContain("/tmp/nibi-server-bootstrap-");
   expect(updateCommand).toContain('"$HOME/.nibi/server"/.bootstrap-');
 });
 
@@ -508,7 +508,7 @@ it.each(targets)(
       adapter.installOrUpdate(
         target,
         {
-          localArchivePath: "/tmp/zcode-server-linux-x64.tar.gz",
+          localArchivePath: "/tmp/nibi-server-linux-x64.tar.gz",
           target: "linux-x64",
           version: "3.9.0",
           sha256: "b".repeat(64),
@@ -589,7 +589,7 @@ describe("SSH gateway that merges remote stderr into stdout", () => {
       adapter.installOrUpdate(
         target,
         {
-          localArchivePath: "/tmp/zcode-server-linux-x64.tar.gz",
+          localArchivePath: "/tmp/nibi-server-linux-x64.tar.gz",
           target: "linux-x64",
           version: "3.9.0",
           sha256: "b".repeat(64),
@@ -612,12 +612,12 @@ it("fails before uploading when the remote host cannot extract the archive", asy
     adapter.installOrUpdate(
       { kind: "ssh", host: "example.com", username: "alice" },
       {
-        localArchivePath: "/tmp/zcode-server-linux-x64.tar.gz",
+        localArchivePath: "/tmp/nibi-server-linux-x64.tar.gz",
         target: "linux-x64",
         version: "3.8.1",
         sha256: "d".repeat(64),
         sizeBytes: 4096,
-        urls: ["https://cdn.example.test/zcode-server-linux-x64.tar.gz"],
+        urls: ["https://cdn.example.test/nibi-server-linux-x64.tar.gz"],
       },
       {},
     ),
@@ -644,7 +644,7 @@ it("downloads and verifies the Source Server archive on the SSH target when requ
       version: "3.9.0",
       sha256: "c".repeat(64),
       sizeBytes: 4096,
-      urls: ["https://cdn.example.test/zcode-server-linux-x64.tar.gz"],
+      urls: ["https://cdn.example.test/nibi-server-linux-x64.tar.gz"],
     },
     { onLog },
   );
@@ -681,7 +681,7 @@ it("uploads an explicitly resolved local development archive despite the SSH dow
       version: "3.8.1",
       sha256: "d".repeat(64),
       sizeBytes: 4096,
-      urls: ["https://cdn.example.test/zcode-server-linux-x64.tar.gz"],
+      urls: ["https://cdn.example.test/nibi-server-linux-x64.tar.gz"],
     },
     {},
   );
@@ -690,7 +690,7 @@ it("uploads an explicitly resolved local development archive despite the SSH dow
     {
       localPath: "/tmp/current-development-source-server.tar.gz",
       remotePath: expect.stringMatching(
-        /^~\/\.nibi\/server\/\.bootstrap-[^/]+\/zcode-server\.tar\.gz$/u,
+        /^~\/\.nibi\/server\/\.bootstrap-[^/]+\/nibi-server\.tar\.gz$/u,
       ),
     },
   ]);

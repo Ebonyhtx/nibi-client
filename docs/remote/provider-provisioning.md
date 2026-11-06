@@ -225,7 +225,7 @@ Window Host
   ├─ 重新读取 Local Provider Provisioning Source
   └─ Remote Target RPC（SSH/WSL/Docker/Server）
        ↓
-Remote zcode-server
+Remote nibi-server
   ├─ Target Store 写入与回滚
   ├─ Remote ProviderRuntime refresh
   └─ Remote Host → Worker Account Config sync
@@ -271,7 +271,7 @@ Host execution admission
   `error` 不直接转抄到 Main 日志或 Renderer。
 
 - 首次连接的旧远端不支持 Provisioning capability 时返回 `unsupported`，不发送 Secret，也不发布 Remote Workspace ready。
-- HTTP `zcode-server` 只有在配置 `ZCODE_SERVER_AUTH_TOKEN` 后才开放受信 Desktop Host 的
+- HTTP `nibi-server` 只有在配置 `ZCODE_SERVER_AUTH_TOKEN` 后才开放受信 Desktop Host 的
   Provisioning target；未配置认证时保持“不支持”，避免把跨 Environment 凭据写入口暴露给匿名连接。
 - R3 Source Server Core（`packages/zcode-server-cli`，`serviceAuthorityMode: "standalone-server"`）
   **始终**注册 Provisioning target：R3 ingress token（`<serverRoot>/run/ingress-token`，0600）常在，

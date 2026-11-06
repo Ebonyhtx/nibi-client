@@ -58,7 +58,7 @@
         "time": {
           "created": 1100
         },
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "modelSelection": {
           "providerId": "p",
           "modelId": "m",
@@ -116,7 +116,7 @@
         "providerId": "p",
         "mode": "build",
         "planEnabled": false,
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "path": {
           "cwd": "/w",
           "root": "/w"
@@ -314,7 +314,7 @@
         "providerId": "p",
         "mode": "build",
         "planEnabled": false,
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "path": {
           "cwd": "/w",
           "root": "/w"
@@ -362,7 +362,7 @@
         "providerId": "p",
         "mode": "build",
         "planEnabled": false,
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "path": {
           "cwd": "/w",
           "root": "/w"
@@ -399,7 +399,7 @@
         "time": {
           "created": 1100
         },
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "modelSelection": {
           "providerId": "q",
           "modelId": "n"
@@ -427,7 +427,7 @@
         "parentID": "msg_tl",
         "mode": "build",
         "planEnabled": false,
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "path": {
           "cwd": "/w",
           "root": "/w"
@@ -509,7 +509,7 @@
         "time": {
           "created": 1330
         },
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "semantics": {
           "origin": "real_user",
           "kind": "user_prompt",
@@ -746,7 +746,7 @@
         "time": {
           "created": 1540
         },
-        "agent": "zcode-agent",
+        "agent": "nibi-agent",
         "semantics": {
           "origin": "real_user",
           "kind": "user_prompt",
@@ -1072,7 +1072,7 @@
         "sess_a",
         1100,
         1100,
-        "{\"role\":\"user\",\"time\":{\"created\":1100},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"q\",\"modelId\":\"n\"},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"max\"}}",
+        "{\"role\":\"user\",\"time\":{\"created\":1100},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"q\",\"modelId\":\"n\"},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"max\"}}",
         0
       ],
       [
@@ -1080,7 +1080,7 @@
         "sess_a",
         1200,
         1270,
-        "{\"role\":\"assistant\",\"time\":{\"created\":1200,\"completed\":1270},\"parentID\":\"msg_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"tool-calls\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_1\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":1200,\"completed\":1270},\"parentID\":\"msg_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"tool-calls\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_1\"}}",
         1
       ],
       [
@@ -1088,7 +1088,7 @@
         "sess_a",
         1320,
         1320,
-        "{\"role\":\"assistant\",\"time\":{\"created\":1320,\"completed\":1320},\"parentID\":\"msg_tl\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"completed\",\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":1320,\"completed\":1320},\"parentID\":\"msg_tl\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w\",\"root\":\"/w\"},\"cost\":0,\"tokens\":{\"input\":0,\"output\":0,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"completed\",\"semantics\":{\"origin\":\"system\",\"kind\":\"timeline_event\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"hidden\",\"transcriptVisibility\":\"visible\"}}",
         3
       ],
       [
@@ -1096,7 +1096,7 @@
         "sess_b",
         1330,
         1330,
-        "{\"role\":\"user\",\"time\":{\"created\":1330},\"agent\":\"zcode-agent\",\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"max\"}}",
+        "{\"role\":\"user\",\"time\":{\"created\":1330},\"agent\":\"nibi-agent\",\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"max\"}}",
         0
       ],
       [
@@ -1104,7 +1104,7 @@
         "sess_a",
         1540,
         1540,
-        "{\"role\":\"user\",\"time\":{\"created\":1540},\"agent\":\"zcode-agent\",\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"origin\":\"realUser\",\"sourceCommandId\":\"cmd-1\"},\"metadata\":{\"inputIntent\":{\"sourceCommandId\":\"cmd-1\",\"queueItemId\":\"queue_c1\",\"clientId\":\"client\",\"kind\":\"sendText\",\"admissionSeq\":1,\"admittedAt\":1500,\"requestedDelivery\":\"startNow\",\"admittedDelivery\":\"startNow\",\"attachmentRefs\":[]}},\"model\":{}}",
+        "{\"role\":\"user\",\"time\":{\"created\":1540},\"agent\":\"nibi-agent\",\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"origin\":\"realUser\",\"sourceCommandId\":\"cmd-1\"},\"metadata\":{\"inputIntent\":{\"sourceCommandId\":\"cmd-1\",\"queueItemId\":\"queue_c1\",\"clientId\":\"client\",\"kind\":\"sendText\",\"admissionSeq\":1,\"admittedAt\":1500,\"requestedDelivery\":\"startNow\",\"admittedDelivery\":\"startNow\",\"attachmentRefs\":[]}},\"model\":{}}",
         4
       ]
     ],
@@ -1291,7 +1291,7 @@
           "time": {
             "created": 1100
           },
-          "agent": "zcode-agent",
+          "agent": "nibi-agent",
           "semantics": {
             "origin": "real_user",
             "kind": "user_prompt",
@@ -1332,7 +1332,7 @@
           "providerId": "p",
           "mode": "build",
           "planEnabled": false,
-          "agent": "zcode-agent",
+          "agent": "nibi-agent",
           "path": {
             "cwd": "/w",
             "root": "/w"
@@ -1454,7 +1454,7 @@
           "parentID": "msg_tl",
           "mode": "build",
           "planEnabled": false,
-          "agent": "zcode-agent",
+          "agent": "nibi-agent",
           "path": {
             "cwd": "/w",
             "root": "/w"
@@ -1528,7 +1528,7 @@
           "time": {
             "created": 1540
           },
-          "agent": "zcode-agent",
+          "agent": "nibi-agent",
           "semantics": {
             "origin": "real_user",
             "kind": "user_prompt",

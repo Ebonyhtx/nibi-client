@@ -17,20 +17,20 @@ describe("release installer", () => {
   it("installs a tar release, writes pending and creates a stable launcher", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-"));
     const layout = resolveServerLayout(join(root, "server"));
-    const archiveRoot = join(root, "zcode-server-linux-x64");
+    const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
     await writeFile(join(archiveRoot, "runtime", "node"), "node", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "package.json"), JSON.stringify({ type: "module" }), "utf8");
-    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "linux-x64", appVersion: "1.2.3", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
+    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "nibi-server", target: "linux-x64", appVersion: "1.2.3", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
     await mkdir(layout.serverRoot, { recursive: true });
     await writeFile(layout.uninstalledFile, JSON.stringify({ uninstalled: true }), "utf8");
     await writeFile(join(layout.serverRoot, "KEEP_UNKNOWN.txt"), "preserve", "utf8");
     const archivePath = join(root, "release.tar.gz");
     const { execFile } = await import("node:child_process");
-    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "zcode-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "nibi-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
     const installed = await new ReleaseInstaller(layout).installArchive({ archivePath, target: "linux-x64", version: "1.2.3" });
     expect(installed.target).toBe("linux-x64");
     expect(JSON.parse(await readFile(layout.pendingFile, "utf8"))).toMatchObject({ version: "1.2.3" });
@@ -48,13 +48,13 @@ describe("release installer", () => {
   it("installs a Windows zip and writes a launcher that is safe for quoted paths", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-win-"));
     const layout = resolveServerLayout(join(root, "server"));
-    const archiveRoot = join(root, "zcode-server-win32-x64");
+    const archiveRoot = join(root, "nibi-server-win32-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
     await writeFile(join(archiveRoot, "runtime", "node.exe"), "node", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
-    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "win32-x64", appVersion: "1.2.4", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
+    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "nibi-server", target: "win32-x64", appVersion: "1.2.4", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
     const archivePath = join(root, "release.zip");
     const { execFile } = await import("node:child_process");
     // Bugfix: Windows 本机没有 Info-ZIP 的 `zip` 命令；System32 自带 bsdtar，`tar -a`
@@ -62,8 +62,8 @@ describe("release installer", () => {
     await new Promise<void>((resolve, reject) => execFile(
       process.platform === "win32" ? "tar" : "zip",
       process.platform === "win32"
-        ? ["-acf", archivePath, "zcode-server-win32-x64"]
-        : ["-qr", archivePath, "zcode-server-win32-x64"],
+        ? ["-acf", archivePath, "nibi-server-win32-x64"]
+        : ["-qr", archivePath, "nibi-server-win32-x64"],
       { cwd: root },
       (error) => error ? reject(error) : resolve(),
     ));
@@ -103,16 +103,16 @@ describe("release installer", () => {
     await mkdir(join(root, "var", "services"), { recursive: true });
     await symlink(join(root, "volume1", "homes"), join(root, "var", "services", "homes"));
     const aliasServerRoot = join(root, "var", "services", "homes", "dev", ".nibi", "server");
-    const archiveRoot = join(root, "zcode-server-linux-x64");
+    const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
     await writeFile(join(archiveRoot, "runtime", "node"), "node", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
-    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "zcode-server", target: "linux-x64", appVersion: "1.2.5", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
+    await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({ product: "nibi-server", target: "linux-x64", appVersion: "1.2.5", nodeVersion: "22.23.4", entrypoints: { cli: "runtime/server-cli.js", core: "runtime/server-core.js", agent: "runtime/nibi.cjs" }, native: ["node-pty"] }), "utf8");
     const archivePath = join(root, "release.tar.gz");
     const { execFile } = await import("node:child_process");
-    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "zcode-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "nibi-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
     // 与 cli.ts 的 update 一致：生命周期命令先把 --server-root 收敛为 canonical layout，再安装并切换 current。
     const layout = await resolveCanonicalServerLayout(aliasServerRoot);
     const installed = await new ReleaseInstaller(layout).installArchive({ archivePath, target: "linux-x64", version: "1.2.5" });
@@ -132,7 +132,7 @@ describe("release installer", () => {
   it("reuses an identical immutable release without deleting or replacing its live directory", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-immutable-"));
     const layout = resolveServerLayout(join(root, "server"));
-    const archiveRoot = join(root, "zcode-server-linux-x64");
+    const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
     await writeFile(join(archiveRoot, "runtime", "node"), "node", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
@@ -140,7 +140,7 @@ describe("release installer", () => {
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "package.json"), JSON.stringify({ type: "module" }), "utf8");
     await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({
-      product: "zcode-server",
+      product: "nibi-server",
       target: "linux-x64",
       appVersion: "2.0.0",
       nodeVersion: "22.23.4",
@@ -149,7 +149,7 @@ describe("release installer", () => {
     }), "utf8");
     const archivePath = join(root, "release.tar.gz");
     const { execFile } = await import("node:child_process");
-    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "zcode-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "nibi-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
     const installer = new ReleaseInstaller(layout);
     const [first, concurrent] = await Promise.all([
       installer.installArchive({ archivePath, target: "linux-x64", version: "2.0.0" }),
@@ -168,14 +168,14 @@ describe("release installer", () => {
   it("rejects an existing release whose immutable archive identity is missing", async () => {
     const root = await mkdtemp(join(tmpdir(), "zcode-release-installer-conflict-"));
     const layout = resolveServerLayout(join(root, "server"));
-    const archiveRoot = join(root, "zcode-server-linux-x64");
+    const archiveRoot = join(root, "nibi-server-linux-x64");
     await mkdir(join(archiveRoot, "runtime"), { recursive: true });
     await writeFile(join(archiveRoot, "runtime", "node"), "node", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "server-core.js"), "", "utf8");
     await writeFile(join(archiveRoot, "runtime", "nibi.cjs"), "", "utf8");
     await writeFile(join(archiveRoot, "manifest.json"), JSON.stringify({
-      product: "zcode-server",
+      product: "nibi-server",
       target: "linux-x64",
       appVersion: "2.1.0",
       nodeVersion: "22.23.4",
@@ -184,7 +184,7 @@ describe("release installer", () => {
     }), "utf8");
     const archivePath = join(root, "release.tar.gz");
     const { execFile } = await import("node:child_process");
-    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "zcode-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
+    await new Promise<void>((resolve, reject) => execFile("tar", ["-czf", archivePath, "nibi-server-linux-x64"], { cwd: root }, (error) => error ? reject(error) : resolve()));
     const installer = new ReleaseInstaller(layout);
     const first = await installer.installArchive({ archivePath, target: "linux-x64", version: "2.1.0" });
     await writeFile(join(first.releaseDir, "runtime", "server-core.js"), "tampered", "utf8");

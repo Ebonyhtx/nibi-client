@@ -1313,7 +1313,7 @@ describe("ZCode Protocol", () => {
             sessionId: "sess_1",
             role: "user",
             time: { created: 1 },
-            agent: "zcode-agent",
+            agent: "nibi-agent",
             model,
           },
           parts: [
@@ -2592,7 +2592,7 @@ describe("ZCode Protocol", () => {
       sessionId: "sess_1",
       role: "user",
       time: { created: 3 },
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       model,
       source: "subagent_message",
       visibility: "model-only",

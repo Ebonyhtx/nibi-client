@@ -21,7 +21,7 @@ import {
 
 // In stdio mode, all logging goes to stderr
 const log = (...args: unknown[]) =>
-  console.error(formatLogPrefix("zcode-server:stdio", process.pid), ...args);
+  console.error(formatLogPrefix("nibi-server:stdio", process.pid), ...args);
 const stderrConsoleLog = (...args: unknown[]) => console.error(...args);
 
 // stdio 模式下 stdout 只能承载 RPC 帧。

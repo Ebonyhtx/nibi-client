@@ -120,7 +120,7 @@ describe(`${CASE_MARKER}: 受限远端环境下的安装与连接（${SUBCASE}�
         throw new Error(`${CASE_MARKER}: noexec-tmp 安装失败: ${outcome.errorText}`);
       expect(after.current).toMatch(/archiveSha256/u);
       expect(after.status).toContain('"state":"ready"');
-      expect(after.tmpEntries).not.toContain("zcode-server");
+      expect(after.tmpEntries).not.toContain("nibi-server");
       return;
     }
     if (SUBCASE === "no-tar") {

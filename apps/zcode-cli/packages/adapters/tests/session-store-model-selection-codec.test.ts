@@ -153,12 +153,12 @@ describe("session message model selection codec", () => {
       data: JSON.stringify({
         role: "user",
         time: { created: 1 },
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         model: { providerID: "provider-a", modelID: "model-a", variant: "high" },
       }),
     });
 
-    expect(message).toMatchObject({ role: "user", agent: "zcode-agent" });
+    expect(message).toMatchObject({ role: "user", agent: "nibi-agent" });
     expect(message).not.toHaveProperty("modelSelection");
     expect(message).not.toHaveProperty("model");
   });
@@ -178,7 +178,7 @@ describe("session message model selection codec", () => {
         modelID: "model-a",
         variant: "high",
         mode: "build",
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         path: { cwd: "/workspace", root: "/workspace" },
         cost: 0,
         tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },

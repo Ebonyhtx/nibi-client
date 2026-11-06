@@ -53,8 +53,8 @@ export async function collectSourceServerRemoteReleaseArchives(options: {
   });
   const sources = (options.targets ?? SOURCE_SERVER_REMOTE_RELEASE_TARGETS).map((target) => ({
     target,
-    fileName: `zcode-server-${target}.tar.gz`,
-    path: join(options.distReleaseDir, `zcode-server-${target}.tar.gz`),
+    fileName: `nibi-server-${target}.tar.gz`,
+    path: join(options.distReleaseDir, `nibi-server-${target}.tar.gz`),
   }));
   for (const source of sources) {
     try {

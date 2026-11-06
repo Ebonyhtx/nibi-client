@@ -1840,7 +1840,7 @@ async function isValidReleaseDir(releaseDir: string, platformArch: string): Prom
     return false;
   }
 
-  if (!(await fileExists(releaseDir, "server", "zcode-server.cjs"))) {
+  if (!(await fileExists(releaseDir, "server", "nibi-server.cjs"))) {
     return false;
   }
 

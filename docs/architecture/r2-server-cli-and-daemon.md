@@ -280,7 +280,7 @@ R2 沿用第二条远端资产链路，并把它扩展为独立 Server CLI 的�
 发行包结构：
 
 ```text
-zcode-server-<os>-<arch>/
+nibi-server-<os>-<arch>/
 ├── bin/
 │   ├── zcode
 │   └── zcode.cmd
@@ -321,7 +321,7 @@ staging 由 `packages/zcode-server-cli/src/packaging/stage.ts` 实现，
   `spawn-helper`；
 - Node 二进制固定 `v22.16.0`：优先复用 `packages/desktop/mock-cdn/releases/<version>/node/<platform>/`
   已下载的缓存，缺失时从 nodejs.org 下载目标格式（POSIX 为 `tar.xz`，Windows 为 `zip`）并缓存；
-- 同时产出目录形态和 `zcode-server-<os>-<arch>.tar.gz`（供 scp 到远端解压验证）；
+- 同时产出目录形态和 `nibi-server-<os>-<arch>.tar.gz`（供 scp 到远端解压验证）；
 - staging 实现六个目标：`darwin-x64/arm64`、`linux-x64/arm64`、`win32-x64/arm64`；POSIX
   产出 `tar.gz`，Windows 产出 `zip` 和 `zcode.cmd`。Windows 不打包 `bfs`，使用 `rg.exe`、
   `ugrep.exe`，并保留系统/Git Bash fallback。

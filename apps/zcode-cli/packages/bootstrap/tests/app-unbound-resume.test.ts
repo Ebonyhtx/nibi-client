@@ -70,7 +70,7 @@ describe("App 从真实存储恢复未绑定选择", () => {
         id: messageID,
         sessionID,
         role: "user",
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         time: { created: 1 },
         modelSelection: complete,
       });

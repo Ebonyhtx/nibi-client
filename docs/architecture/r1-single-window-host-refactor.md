@@ -20,7 +20,7 @@
 | 连接入口 | 保留 `IPlatformService -> Main`；Main 只做请求、状态事件和 MessagePort 薄转发 |
 | Remote Host 合并 | 合并 UI、手机、Bot 创建的全部 Desktop Remote Host |
 | 投影持久化 | `ControllerProjection` 仅驻内存并可从 source 重建，不增加数据库 |
-| 远端协议 | 不修改现有 SSH/WSL/Docker/Server 的 zcode-server service channel |
+| 远端协议 | 不修改现有 SSH/WSL/Docker/Server 的 nibi-server service channel |
 | 列表写路由 | 跨 workspace 列表操作由 Controller 路由；进入 workspace/conversation 后继续使用 scoped facade |
 | Realtime Host 身份 | 每窗口一个 `hostId`，内部按 `workspaceKey + taskId` 路由 |
 | `remoteSessionId` | 由 Local Host 分配和管理；Main 只保存异步请求关联信息 |
@@ -43,8 +43,8 @@
 
 ```text
 Renderer ─┬─ base port ────> Local Host ─────────> Local CLI
-          ├─ remote port ──> SSH Remote Host ────> zcode-server
-          ├─ remote port ──> WSL Remote Host ────> zcode-server
+          ├─ remote port ──> SSH Remote Host ────> nibi-server
+          ├─ remote port ──> WSL Remote Host ────> nibi-server
           └─ remote port ──> Docker/Server Host ─> remote service
 
 Mobile -> relay/Main -> Local Host 或独立 Remote Host

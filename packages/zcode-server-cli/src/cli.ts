@@ -116,7 +116,7 @@ export async function runServerCli(
     if (command === "version" || command === "--version") {
       // Bug 原因：Server --version 过去落入 legacy delegate，实际输出取决于旁边的 Agent
       // nibi.cjs，Desktop probe 无法稳定判断 Server compatibility。
-      stdout(io, json ? { product: "zcode-server", version: NIBI_VERSION } : NIBI_VERSION);
+      stdout(io, json ? { product: "nibi-server", version: NIBI_VERSION } : NIBI_VERSION);
       return 0;
     }
     const proxyStdioRequested =
@@ -585,7 +585,7 @@ async function finishUninstall(
     "uninstalled.json",
     "update-transaction.json",
     "node",
-    "zcode-server.cjs",
+    "nibi-server.cjs",
     "agents",
     "build",
     "tools",

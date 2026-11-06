@@ -101,7 +101,7 @@ async function ensureNodeBinary(repoRoot: string, target: ServerTarget): Promise
   const url = `${distBase}/${nodeVersion}/${archiveName}`;
   log(`download node runtime: ${url}`);
   const expected = await expectedSha256(distBase, nodeVersion, archiveName);
-  const tempDir = await mkdtemp(join(tmpdir(), "zcode-server-node-"));
+  const tempDir = await mkdtemp(join(tmpdir(), "nibi-server-node-"));
   try {
     const archivePath = join(tempDir, archiveName);
     await downloadFile(url, archivePath);

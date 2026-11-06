@@ -99,7 +99,7 @@ async fn attachments_are_synthetic_reminders_that_read_back_unchanged() {
     assert_eq!(
         message,
         stringify(
-            &json!({"role": "user", "time": {"created": 1004}, "agent": "zcode-agent",
+            &json!({"role": "user", "time": {"created": 1004}, "agent": "nibi-agent",
             "metadata": metadata,
             "modelSelection": {"providerId": "p", "modelId": "m"},
             "anchor": {"turnId": "turn_00000000-0000-4000-8000-000000000001", "origin": "synthetic"},

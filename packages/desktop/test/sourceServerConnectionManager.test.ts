@@ -31,7 +31,7 @@ const sshProfile: ConnectionProfile = {
 const sshTarget: RemoteTarget = sshProfile.target;
 function createRelease(
   version: string,
-  localArchivePath = "/tmp/zcode-server-linux-x64.tar.gz",
+  localArchivePath = "/tmp/nibi-server-linux-x64.tar.gz",
 ): ServerReleaseAsset {
   return {
     localArchivePath,
@@ -39,7 +39,7 @@ function createRelease(
     version,
     sha256: "a".repeat(64),
     sizeBytes: 1024,
-    urls: ["https://cdn.example.test/zcode-server-linux-x64.tar.gz"],
+    urls: ["https://cdn.example.test/nibi-server-linux-x64.tar.gz"],
   };
 }
 const serverInfo: ServerRemoteInfo = {

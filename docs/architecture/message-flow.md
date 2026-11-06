@@ -63,7 +63,7 @@ SSH remote workspace 由窗口唯一 Host 内的 registry 路由；Main 只转�
 remoteSessionId A -- attachment A --┐
                                     ├-> Window Host / RemoteConnectionRegistry
 remoteSessionId B -- attachment B --┘
-                                    -> remoteHostKey 对应的 one SSH connection / zcode-server
+                                    -> remoteHostKey 对应的 one SSH connection / nibi-server
                                     -> workspaceKey A/B 对应的独立 CLI/runtime
 ```
 

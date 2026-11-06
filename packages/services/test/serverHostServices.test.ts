@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { expect, it } from "vitest";
 
 it("独立 Server 装配在提供服务前迁移稳定 owner，并保留 canonical workspace identity", async () => {
-  const home = await mkdtemp(join(tmpdir(), "zcode-server-host-"));
+  const home = await mkdtemp(join(tmpdir(), "nibi-server-host-"));
   try {
     const result = await promisify(execFile)(
       process.execPath,

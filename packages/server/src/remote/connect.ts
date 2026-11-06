@@ -209,7 +209,7 @@ async function connectRemoteUnchecked(
 
   // Forward stderr for debugging
   stream.stderr.on("data", (chunk: Buffer) => {
-    // 远端 zcode-server 的服务日志走 stderr，直接写 host stderr 时可能被结构化日志中继吞掉。
+    // 远端 nibi-server 的服务日志走 stderr，直接写 host stderr 时可能被结构化日志中继吞掉。
     // 这里转成 host 的 console 日志，让 remote sqlite 初始化/锁冲突日志能稳定出现在连接日志面板和启动终端。
     console.log(`[remote] ${chunk.toString().trimEnd()}`);
   });
@@ -412,5 +412,5 @@ function buildRemoteServerCommand(
       );
     }
   }
-  return `${envParts.join(" ")} ~/.nibi/server/node ~/.nibi/server/zcode-server.cjs`;
+  return `${envParts.join(" ")} ~/.nibi/server/node ~/.nibi/server/nibi-server.cjs`;
 }

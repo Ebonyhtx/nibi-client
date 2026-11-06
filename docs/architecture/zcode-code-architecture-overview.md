@@ -25,7 +25,7 @@ Electron App
          └─ web-remote-replayable
 ```
 
-窗口、Host、connection 和 workspace 不是同一层级：窗口 Host 按 workspaceKey 隔离本地 CLI，并在进程内维护远端 connection 与 logical session。SSH 在同一窗口、同一标准化 target 下共享一条连接和一个远端 `zcode-server`；WSL 按 normalized distro/user 共享连接并保留既有 60 秒 idle TTL/running-task protection；Docker、Server 保持 dedicated connection。所有 transport 仍保留独立 `remoteSessionId`、attachment 和 workspaceKey，连接复用不等于 workspace 身份合并。
+窗口、Host、connection 和 workspace 不是同一层级：窗口 Host 按 workspaceKey 隔离本地 CLI，并在进程内维护远端 connection 与 logical session。SSH 在同一窗口、同一标准化 target 下共享一条连接和一个远端 `nibi-server`；WSL 按 normalized distro/user 共享连接并保留既有 60 秒 idle TTL/running-task protection；Docker、Server 保持 dedicated connection。所有 transport 仍保留独立 `remoteSessionId`、attachment 和 workspaceKey，连接复用不等于 workspace 身份合并。
 
 ## 进程职责
 

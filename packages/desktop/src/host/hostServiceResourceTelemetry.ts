@@ -34,7 +34,7 @@ function disposeAll(registrations: IDisposable[]): void {
  * Bash 慢命令完成事实与 MCP 生命周期遥测。
  *
  * local host services 与每个远端 workspace 连接各自调用一次，`runtimeSurface` 由调用方给出：
- * 本机 CLI 是 local，远端 zcode-server 上的 CLI 是 remote，样本自报的硬件维度由 main 覆盖全局默认值。
+ * 本机 CLI 是 local，远端 nibi-server 上的 CLI 是 remote，样本自报的硬件维度由 main 覆盖全局默认值。
  * 订阅寿命等于该 collection 的寿命，远端连接释放时由 handle 调用 `dispose()`，不留监听器。
  * 同一台远端机器有多条 dedicated 连接时会有多份订阅；main 按环境与实例归并 CLI/MCP
  * 最近读数，Bash 完成事实由 main 按 completionToken 去重，避免多连接或多窗口重复计数。

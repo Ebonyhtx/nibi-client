@@ -39,7 +39,7 @@
         "sess_tools",
         1002,
         1002,
-        "{\"role\":\"user\",\"time\":{\"created\":1002},\"agent\":\"zcode-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_1\"},\"tools\":{},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
+        "{\"role\":\"user\",\"time\":{\"created\":1002},\"agent\":\"nibi-agent\",\"modelSelection\":{\"providerId\":\"p\",\"modelId\":\"m\",\"options\":{\"reasoningLevel\":\"high\"}},\"semantics\":{\"origin\":\"real_user\",\"kind\":\"user_prompt\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\",\"origin\":\"realUser\",\"sourceCommandId\":\"cmd_1\"},\"tools\":{},\"model\":{\"providerID\":\"p\",\"modelID\":\"m\",\"variant\":\"high\"}}",
         0
       ],
       [
@@ -47,7 +47,7 @@
         "sess_tools",
         1003,
         1030,
-        "{\"role\":\"assistant\",\"time\":{\"created\":1003,\"completed\":1030},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":20,\"input\":15,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":2,\"write\":3}},\"finish\":\"tool-calls\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":1003,\"completed\":1030},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":20,\"input\":15,\"output\":5,\"reasoning\":0,\"cache\":{\"read\":2,\"write\":3}},\"finish\":\"tool-calls\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
         1
       ],
       [
@@ -55,7 +55,7 @@
         "sess_tools",
         1031,
         1040,
-        "{\"role\":\"assistant\",\"time\":{\"created\":1031,\"completed\":1040},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":46,\"input\":40,\"output\":6,\"reasoning\":0,\"cache\":{\"read\":12,\"write\":0}},\"finish\":\"tool-calls\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":1031,\"completed\":1040},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":46,\"input\":40,\"output\":6,\"reasoning\":0,\"cache\":{\"read\":12,\"write\":0}},\"finish\":\"tool-calls\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
         2
       ],
       [
@@ -63,7 +63,7 @@
         "sess_tools",
         1041,
         1050,
-        "{\"role\":\"assistant\",\"time\":{\"created\":1041,\"completed\":1050},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"zcode-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":69,\"input\":60,\"output\":9,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
+        "{\"role\":\"assistant\",\"time\":{\"created\":1041,\"completed\":1050},\"parentID\":\"msg_ru_u1\",\"modelId\":\"m\",\"providerId\":\"p\",\"mode\":\"build\",\"planEnabled\":false,\"agent\":\"nibi-agent\",\"path\":{\"cwd\":\"/w/repo\",\"root\":\"/w/repo\"},\"cost\":0,\"tokens\":{\"total\":69,\"input\":60,\"output\":9,\"reasoning\":0,\"cache\":{\"read\":0,\"write\":0}},\"finish\":\"stop\",\"semantics\":{\"origin\":\"agent_runtime\",\"kind\":\"assistant_response\",\"uiVisibility\":\"visible\",\"providerVisibility\":\"visible\",\"transcriptVisibility\":\"visible\"},\"anchor\":{\"turnId\":\"turn_00000000-0000-4000-8000-000000000001\"}}",
         3
       ]
     ],

@@ -169,7 +169,7 @@ Electron App（单实例）
 └─ macOS CUA Helper.app                    由 launchd 拉起，故意不是子进程
 ```
 
-remote 模式桌面端不新增进程，远端 zcode-server 及其 CLI / MCP / pty 全部在远端机器。手机远控桌面端
+remote 模式桌面端不新增进程，远端 nibi-server 及其 CLI / MCP / pty 全部在远端机器。手机远控桌面端
 不新增进程，也不参与本 spec。
 
 ### 角色定义（第一期 10 个）
@@ -578,7 +578,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
   从 `ZCodeProcessResourceSample` 变为 `AgentLaneResourceSample`（多一个可选 `lane`）。
   lane 只能在这里补：进程管理器是唯一知道「这个 client 属于哪条 lane」的地方。
   落地位置（06）：远端订阅走的是既有的 `zcodeAgentConnectionScope` 边界，不新增 services 层代码——
-  远端 zcode-server 对桌面 Host 的连接是 `trusted-host-relay`（`packages/server` 的 stdio 与
+  远端 nibi-server 对桌面 Host 的连接是 `trusted-host-relay`（`packages/server` 的 stdio 与
   `zcode-server-cli` 的 `/ws/host`），只有该角色能订阅 `onDynamicProcessResourceSample` /
   `onDynamicMcpTelemetry` / `onDynamicMcpResourceSamples`；renderer 与手机远控 attachment 是 `terminal-client`，拿到 `RpcEvent.None`。
 - **Host**：资源遥测注册模块统一转发 CLI 样本、MCP 样本、Bash 事件；Host 自身样本复用内存诊断日志的
@@ -728,7 +728,7 @@ HAVING COUNT(DISTINCT device_mid) >= 100
 | PRT-024 | Windows，PERF-RES-01 场景                                                                                            | 跨过一个采样周期                 | 原断言保留；runtime log 不含 powershell                                                                                                 | e2e（Windows） | [ ] macOS 按条件跳过，待 Windows；[windows][prt-windows]   |
 | PRT-025 | 旧格式 CLI 样本（无新字段）                                                                                          | services 解析                    | 通过校验并分发                                                                                                                          | unit           | [x] 通过；[compat][prt-compat]                             |
 | PRT-026 | 三个事件的属性 key                                                                                                   | 白名单校验                       | 无隐私 key；spec / 事件字典属性表与代码白名单逐项一致                                                                                   | unit           | [x] 通过；[contract][prt-contract]                         |
-| PRT-027 | 远端 workspace 的 service collection（Agent service 为远端 zcode-server 的 RPC 代理）                                | Host 建立远端连接                | 注册了资源遥测订阅，CLI 样本与 MCP 事件都以 `runtimeSurface=remote` 送 main                                                             | unit           | [x] 通过；[remote][prt-remote]                             |
+| PRT-027 | 远端 workspace 的 service collection（Agent service 为远端 nibi-server 的 RPC 代理）                                | Host 建立远端连接                | 注册了资源遥测订阅，CLI 样本与 MCP 事件都以 `runtimeSurface=remote` 送 main                                                             | unit           | [x] 通过；[remote][prt-remote]                             |
 | PRT-028 | 同一份远端 collection 上再建立 `web-remote-replayable` attachment                                                    | attach 手机远控                  | attachment 侧订阅资源样本得到空事件，底层订阅数不变，转发给 main 的仍只有 Host 那一条                                                   | unit           | [x] 通过；[remote][prt-remote]                             |
 | PRT-029 | 已订阅的远端连接                                                                                                     | 释放 connection handle           | 两条订阅随之释放（重复 dispose 幂等），后续样本不再转发；缺 Agent service 或单条订阅抛错时不订阅、不抛错                                | unit           | [x] 通过；[remote][prt-remote]                             |
 | PRT-030 | 真实远端 workspace（SSH / WSL / Docker / Server）+ 开发态 1 分钟窗口                                                 | 连接后停留 90 秒                 | E2E 通道读到 `runtime_surface=remote` 的 `cli_chat` 事件，`platform` / `arch` 为远端机器的值；手机远控接入时不出现重复事件              | 手工           | [ ] 真实远端手工待补；仅订阅 UT 通过；[remote][prt-remote] |
@@ -812,7 +812,7 @@ SSH/WSL/Docker 保留原订阅路径。旧 Server 的通用 RPC 未知事件行�
 - **`cua_helper` 角色**。Windows Helper 由 Host fork，运行的是 workspace 包 `packages/zcode-cua`
   构建出的 Helper runtime，自采需要改该包的 Helper 入口；macOS Helper.app 由 launchd 拉起，不在进程树里，
   Host 只能靠 `ps` 采。二期方案：Helper runtime 在已有 health 心跳中自报 CPU 与 RSS，零外部进程。
-- 在 zcode-server 侧另起独立的 MCP / Bash 探针。远端 CLI 自己产生的资源事实沿既有 trusted Host relay 转发，已由 08 / 09 接线。
+- 在 nibi-server 侧另起独立的 MCP / Bash 探针。远端 CLI 自己产生的资源事实沿既有 trusted Host relay 转发，已由 08 / 09 接线。
 - Windows 上的 MCP CPU 与 Bash 进程树。方向是一个零外部进程的原生扩展（GetProcessMemoryInfo /
   GetProcessTimes），独立工程量。
 - C、D、E、F 四类告警规则的配置（规则已在本文定义，等数据积累后配）。

@@ -32,7 +32,7 @@ UI locale ──立即──> Main.currentApplicationLocale（实时 owner）
   预热请求不会带默认语言进入 1 小时缓存。
 - 调用方显式传入的 `X-Client-Language` 仍然优先（`marketing/touch` 行为不变）。
 - 没有收到语言时，回退到原有 `Intl` 规则，不阻断请求。
-- 远端 `zcode-server`（SSH/WSL/Docker）不注入，保持原有 `Intl` 行为；远端同步另行设计。
+- 远端 `nibi-server`（SSH/WSL/Docker）不注入，保持原有 `Intl` 行为；远端同步另行设计。
 
 ## 测试覆盖
 
@@ -55,6 +55,6 @@ E2E 无法稳定守住的约束：
 
 ## 未覆盖
 
-- 远端 `zcode-server` 发起的请求。
+- 远端 `nibi-server` 发起的请求。
 - `offPeakServerClient` 直接 `fetch`，仍用 `Intl` 规则。
 - CLI（`apps/zcode-cli`）的 provider endpoint routing 与 standalone Built-in 下载。

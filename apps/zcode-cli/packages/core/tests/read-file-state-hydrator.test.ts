@@ -453,7 +453,7 @@ function assistantToolMessage(
   const messageID = createMessageId(messageIDText);
   return {
     info: {
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       cost: 0,
       id: messageID,
       mode: "build",
@@ -478,7 +478,7 @@ function compactionMessage(
   const messageID = createMessageId(messageIDText);
   return {
     info: {
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       id: messageID,
       model: { modelID: "model-test", providerID: "provider-test" },
       role: "user",

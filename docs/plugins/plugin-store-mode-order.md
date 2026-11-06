@@ -84,7 +84,7 @@ flowchart LR
 
 ## 服务端落点
 
-zcode-server 已支持 `ClientConfigItem.Value:any`，Nacos 更新解析成功后替换快照。
+nibi-server 已支持 `ClientConfigItem.Value:any`，Nacos 更新解析成功后替换快照。
 `GetClientConfigs` 合并数据库固定配置和条件配置；相同 key 后命中的条件配置整体覆盖，
 不是嵌套合并。两种模式放同一个 value 原子发布，不能用两个同名 key 各放一个模式。
 无需新增 Go 业务接口或迁移；服务端提供 Nacos 示例与对象顺序透传回归测试。
@@ -152,7 +152,7 @@ CodeGraph：两个工作区均无 `.codegraph/`，按约定跳过索引，以 rg
   hook、Zustand 模式偏好及 DOM 顺序，包含配置延迟、失败、撤销与展开状态保留。
 - `pnpm typecheck` 通过；`pnpm lint` 无错误，43 条既有警告；架构检查零违规。
 - 功能图新增节点、边、代码种子校验通过；图谱基线已有 4 条悬空边，本次新增 0 条。
-- zcode-server 的 config 和 application/client_config 包测试通过。
+- nibi-server 的 config 和 application/client_config 包测试通过。
 - 2026-09-15 已完成真实测试环境链路：MSE `zcode_test / ZCODE / client_config.yaml`
   仅追加 `pluginStoreOrder`，原 14 项配置内容保持不变；带原 MD5 发布并精确回读成功。
   在线测试后端 `/api/v1/client/configs` 随即返回完全一致的对象，服务端未重启。

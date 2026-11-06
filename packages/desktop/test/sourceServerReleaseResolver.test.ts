@@ -8,7 +8,7 @@ import { resolveSourceServerReleaseAsset } from "../src/host/sourceServerRelease
 
 const target = { kind: "ssh", host: "example.com", username: "alice" } as const;
 const probe = { platform: "linux", arch: "x64", installed: false } as const;
-const fileName = "zcode-server-linux-x64.tar.gz";
+const fileName = "nibi-server-linux-x64.tar.gz";
 
 function sha256(contents: string): string {
   return createHash("sha256").update(contents).digest("hex");

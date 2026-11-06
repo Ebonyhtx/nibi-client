@@ -31,7 +31,7 @@
 
 ## DeviceMid 所有权
 
-Desktop、远端 zcode-server 和 zcode-cli 拥有彼此独立的“确保 deviceMid 存在”入口，但共同读写同一份状态：
+Desktop、远端 nibi-server 和 zcode-cli 拥有彼此独立的“确保 deviceMid 存在”入口，但共同读写同一份状态：
 
 ```text
 Desktop ensure（同步） ─────────┐
@@ -42,7 +42,7 @@ CLI ensure（异步） ─────────────┘               
 ```
 
 - 本地 Desktop 通常会在 Agent 启动前生成 `deviceMid`，zcode-cli 读取并消费同一个值。
-- 独立 CLI 或 SSH/WSL/Docker Agent 无需依赖 Desktop，由 CLI 自己生成并持久化；SSH/WSL/Docker 远端的 `zcode-server` 启动时也会确保同一文件里有 `deviceMid`，Agent 随后读到同一个值。
+- 独立 CLI 或 SSH/WSL/Docker Agent 无需依赖 Desktop，由 CLI 自己生成并持久化；SSH/WSL/Docker 远端的 `nibi-server` 启动时也会确保同一文件里有 `deviceMid`，Agent 随后读到同一个值。
 - CLI 使用与 Desktop/telemetry 相同的 `createUuid()` 格式，并保留 state 文件中的其他字段。
 - CLI 使用 `telemetry-state.lock` 协调并发读写，进程内按 state 文件缓存同一个 ensure promise。
 - 文件读写或锁异常不能阻断模型请求；此时返回并缓存当前进程生成的 UUID，下次进程启动再尝试持久化。

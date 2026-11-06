@@ -37,7 +37,7 @@ const require = createRequire(import.meta.url);
 const tsupCli = join(dirname(require.resolve("tsup/package.json")), "dist/cli-default.js");
 
 it("loads the real ESM Server CLI bundle before handling a version probe", async () => {
-  const runtimeDir = await mkdtemp(join(tmpdir(), "zcode-server-bundle-"));
+  const runtimeDir = await mkdtemp(join(tmpdir(), "nibi-server-bundle-"));
   try {
     // Bug 原因：源码测试不会经过真实 ESM 打包，模拟发行包也不会加载真实 services。
     // 必须执行实际 ESM 产物，才能捕获间接依赖 yazl 内的 require("fs") 启动崩溃。
@@ -62,7 +62,7 @@ it("loads the real ESM Server CLI bundle before handling a version probe", async
       },
     );
     expect(JSON.parse(stdout)).toEqual({
-      product: "zcode-server",
+      product: "nibi-server",
       version: expect.any(String),
     });
   } finally {

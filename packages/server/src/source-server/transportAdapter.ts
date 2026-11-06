@@ -215,8 +215,8 @@ class BackendSourceServerTransportAdapter implements SourceServerTransportAdapte
     const operationId = `${process.pid}-${Date.now()}`;
     const bootstrapRootShell = `${SERVER_ROOT_SHELL}/.bootstrap-${operationId}`;
     const bootstrapDirShell = `${bootstrapRootShell}/extract`;
-    const remoteArchive = `~/.nibi/server/.bootstrap-${operationId}/zcode-server.tar.gz`;
-    const remoteArchiveShell = `${bootstrapRootShell}/zcode-server.tar.gz`;
+    const remoteArchive = `~/.nibi/server/.bootstrap-${operationId}/nibi-server.tar.gz`;
+    const remoteArchiveShell = `${bootstrapRootShell}/nibi-server.tar.gz`;
     const cleanupCommand = `rm -rf ${bootstrapRootShell}`;
     const cleanupStaleBootstrapRootsCommand =
       "now_ms=$(($(date +%s) * 1000)); " +

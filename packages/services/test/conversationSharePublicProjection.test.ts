@@ -345,7 +345,7 @@ describe("conversation share public projection", () => {
   });
 });
 
-// 与 zcode-server 的 testdata/workflow-displays.json 同步，覆盖跨语言分享契约。
+// 与 nibi-server 的 testdata/workflow-displays.json 同步，覆盖跨语言分享契约。
 const workflowDisplays: unknown[] = JSON.parse(
   await readFile(new URL("./fixtures/workflow-displays.json", import.meta.url), "utf8"),
 );

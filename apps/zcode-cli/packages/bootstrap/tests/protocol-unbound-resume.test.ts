@@ -171,7 +171,7 @@ describe.each(["desktop-continuous", "web-remote-replayable"] as const)(
         id: messageID,
         sessionID,
         role: "user",
-        agent: "zcode-agent",
+        agent: "nibi-agent",
         time: { created: 1 },
         modelSelection: complete,
       });

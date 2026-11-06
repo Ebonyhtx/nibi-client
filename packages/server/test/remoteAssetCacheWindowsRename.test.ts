@@ -57,7 +57,7 @@ describe("remote asset cache Windows directory commit", () => {
       await mkdir(join(sourceRoot, "server"), { recursive: true });
       await mkdir(join(sourceRoot, "node", platformArch), { recursive: true });
       await mkdir(join(sourceRoot, "glm", platformArch), { recursive: true });
-      await writeFile(join(sourceRoot, "server", "zcode-server.cjs"), "server", "utf8");
+      await writeFile(join(sourceRoot, "server", "nibi-server.cjs"), "server", "utf8");
       await writeFile(join(sourceRoot, "node", platformArch, "node"), "node", "utf8");
       await writeFile(join(sourceRoot, "glm", platformArch, "zcode-agent"), "glm", "utf8");
 

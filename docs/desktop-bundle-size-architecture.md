@@ -18,7 +18,7 @@
 ## 生产态
 
 - 生产安装包不再包含 `remote-assets`
-- 生产态 remote 资源通过 CDN 版本根的 `source-server-release.json` 与 `zcode-server-<platform-arch>.tar.gz` 分发
+- 生产态 remote 资源通过 CDN 版本根的 `source-server-release.json` 与 `nibi-server-<platform-arch>.tar.gz` 分发
 - 首次安装或显式更新时按 descriptor 校验 SHA-256/大小；本地下载模式缓存完整 archive 后上传，SSH 远端下载模式在目标机下载同一 archive，最终都进入 immutable release installer
 - `ZCODE_ENV=production` 时默认内置两组官方 CDN：
   - 国内：`https://cdn.codegeex.cn/zcode/electron/releases/<version>`

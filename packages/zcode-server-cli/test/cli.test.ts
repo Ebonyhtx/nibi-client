@@ -31,7 +31,7 @@ async function createTestReleaseArchive(
   root: string,
   version: string,
 ): Promise<{ archivePath: string; archiveSha256: string }> {
-  const archiveRoot = join(root, `zcode-server-${currentServerTarget()}`);
+  const archiveRoot = join(root, `nibi-server-${currentServerTarget()}`);
   await mkdir(join(archiveRoot, "runtime"), { recursive: true });
   await writeFile(join(archiveRoot, "runtime", "node"), "node", "utf8");
   await writeFile(join(archiveRoot, "runtime", "server-cli.js"), "", "utf8");
@@ -45,7 +45,7 @@ async function createTestReleaseArchive(
   await writeFile(
     join(archiveRoot, "manifest.json"),
     JSON.stringify({
-      product: "zcode-server",
+      product: "nibi-server",
       target: currentServerTarget(),
       appVersion: version,
       nodeVersion: "22.23.4",
@@ -162,7 +162,7 @@ describe("Server CLI routing", () => {
 
     expect(textOutput.join("").trim()).toBe(NIBI_VERSION);
     expect(JSON.parse(jsonOutput.join(""))).toEqual({
-      product: "zcode-server",
+      product: "nibi-server",
       version: NIBI_VERSION,
     });
     expect(legacyDelegate).not.toHaveBeenCalled();

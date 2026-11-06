@@ -16,7 +16,7 @@ const readArg = (flag) => {
   return index >= 0 ? argv[index + 1] : undefined;
 };
 const target = resolveVerificationTarget(readArg("--target"));
-const archive = join(packageRoot, "dist-release", `zcode-server-${target}.tar.gz`);
+const archive = join(packageRoot, "dist-release", `nibi-server-${target}.tar.gz`);
 const containerName = `zcode-proxy-stdio-${process.pid}`;
 const image = process.env.NIBI_PROXY_STDIO_IMAGE ?? "node:24-bookworm-slim";
 
@@ -54,7 +54,7 @@ let exitCode = 0;
 try {
   await run("docker", ["version"]);
   await run("docker", ["run", "--detach", "--name", containerName, image, "sleep", "infinity"]);
-  await run("docker", ["cp", archive, `${containerName}:/tmp/zcode-server.tar.gz`]);
+  await run("docker", ["cp", archive, `${containerName}:/tmp/nibi-server.tar.gz`]);
   await run("docker", [
     "exec",
     containerName,
@@ -62,8 +62,8 @@ try {
     "-lc",
     [
       "mkdir -p /tmp/zcode-bootstrap",
-      "tar -xzf /tmp/zcode-server.tar.gz -C /tmp/zcode-bootstrap --strip-components=1",
-      "/tmp/zcode-bootstrap/bin/zcode update --from-archive /tmp/zcode-server.tar.gz --server-root /root/.nibi/server --json",
+      "tar -xzf /tmp/nibi-server.tar.gz -C /tmp/zcode-bootstrap --strip-components=1",
+      "/tmp/zcode-bootstrap/bin/zcode update --from-archive /tmp/nibi-server.tar.gz --server-root /root/.nibi/server --json",
       "NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 /root/.nibi/server/bin/zcode serve --daemon --server-root /root/.nibi/server --json",
     ].join(" && "),
   ]);

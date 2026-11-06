@@ -18,7 +18,7 @@ it("更新 fixture 解除 staged 硬链接，不能污染另一 case 的公共 a
     await mkdir(release, { recursive: true });
     await writeFile(join(root, "package.json"), JSON.stringify({ version: "1.0.0" }));
     await writeFile(join(work, "server/runtime/entry.js"), "original");
-    const archive = join(root, "zcode-server-linux-x64.tar.gz");
+    const archive = join(root, "nibi-server-linux-x64.tar.gz");
     await promisify(execFile)("tar", ["-czf", archive, "-C", work, "server"]);
     const original = await readFile(archive);
     const sha = createHash("sha256").update(original).digest("hex");
@@ -29,16 +29,16 @@ it("更新 fixture 解除 staged 硬链接，不能污染另一 case 的公共 a
         {
           target: "linux-x64",
           version: "1.0.0",
-          fileName: "zcode-server-linux-x64.tar.gz",
+          fileName: "nibi-server-linux-x64.tar.gz",
           sha256: sha,
           sizeBytes: original.length,
-          urls: ["zcode-server-linux-x64.tar.gz"],
+          urls: ["nibi-server-linux-x64.tar.gz"],
         },
       ],
     });
     const publicDescriptor = join(root, "descriptor.json");
     await writeFile(publicDescriptor, descriptor);
-    await link(archive, join(release, "zcode-server-linux-x64.tar.gz"));
+    await link(archive, join(release, "nibi-server-linux-x64.tar.gz"));
     await link(publicDescriptor, join(release, "source-server-release.json"));
     vi.stubEnv("NIBI_E2E_RUN_ID", "r3-server-fixture");
     vi.stubEnv("NIBI_E2E_ARTIFACT_DIR", join(root, "artifacts"));

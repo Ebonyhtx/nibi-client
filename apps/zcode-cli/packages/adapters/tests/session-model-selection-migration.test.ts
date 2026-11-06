@@ -98,7 +98,7 @@ describe("旧 Session 当前选择的单次迁移", () => {
   const oldMessage = () =>
     message({
       role: "user",
-      agent: "zcode-agent",
+      agent: "nibi-agent",
       time: { created: 1 },
       model: { providerID: oldProvider, modelID: "GLM-5.3", variant: "high" },
     });

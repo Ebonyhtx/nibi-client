@@ -10,7 +10,7 @@ const createIngressToken = vi.fn();
 const resolveCoreServerId = vi.fn();
 const installParentDisconnectHandler = vi.fn();
 const createTaskActivityTracker = vi.fn();
-const environmentConfigRoot = "/tmp/zcode-server-core-test/.nibi/v2";
+const environmentConfigRoot = "/tmp/nibi-server-core-test/.nibi/v2";
 
 vi.mock("@nibi/services/node", () => ({
   NIBI_BUILTIN_PROVIDER_CONFIG_FILE_ENV: "NIBI_BUILTIN_PROVIDER_CONFIG_FILE",
@@ -39,7 +39,7 @@ const PROCESS_EVENTS = ["message", "SIGTERM", "SIGINT"] as const;
 const processEmitter: NodeJS.EventEmitter = process;
 
 describe("runServerCore startup wiring", () => {
-  const layout = resolveServerLayout("/tmp/zcode-server-core-test/.nibi/server");
+  const layout = resolveServerLayout("/tmp/nibi-server-core-test/.nibi/server");
   const materializedPath = join(
     environmentConfigRoot,
     "runtime",

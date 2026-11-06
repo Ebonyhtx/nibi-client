@@ -7,7 +7,9 @@
 use nibi_kernel_api::model::ModelSelection;
 use serde_json::{Map, Value, json};
 
-pub const AGENT: &str = "zcode-agent";
+/// 消息行的 `agent` 值（主代理）。与 Node 侧 `config.agentName ?? "nibi-agent"` 同一个值：
+/// 两个内核共写一份会话库，任一边改了另一边必须同批改，否则同一会话在两种内核下的记录不一致。
+pub const AGENT: &str = "nibi-agent";
 pub const MODEL_SELECTION_ENTRY: &str = super::repo::codecs::MODEL_SELECTION_ENTRY;
 pub const EXECUTION_STATE_ENTRY: &str = "runtime/execution_state";
 

@@ -490,7 +490,7 @@ function writeMessages(cliDb, plan) {
         created: messageTimestamp,
         completed: role === "assistant" ? completedAt : undefined,
       }),
-      agent: "zcode-agent",
+      agent: "nibi-agent",
     };
     // Bugfix: 恢复脚本必须写当前消息契约；继续生成旧消息身份字段会迫使正常读取链依赖 legacy codec，
     // 并让新恢复的数据再次成为待迁移数据。

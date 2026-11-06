@@ -84,7 +84,7 @@ function wrapWebSocket(ws: WebSocket): ISocket {
 }
 
 const log = (...args: unknown[]) =>
-  console.log(formatLogPrefix("zcode-server:http", process.pid), ...args);
+  console.log(formatLogPrefix("nibi-server:http", process.pid), ...args);
 
 function setupChannelServer(
   ws: WebSocket,
@@ -161,7 +161,7 @@ function readTrimmedEnv(name: string): string | undefined {
 
 export function resolveHttpServerId(options: HttpServerOptions = {}): string {
   return (
-    options.serverId?.trim() || readTrimmedEnv("NIBI_SERVER_ID") || hostname() || "zcode-server"
+    options.serverId?.trim() || readTrimmedEnv("NIBI_SERVER_ID") || hostname() || "nibi-server"
   );
 }
 
