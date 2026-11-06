@@ -27,6 +27,10 @@ impl Actor {
                 child,
                 tool_use,
                 phase,
+                agent_type,
+                background,
+                status,
+                error,
             } => {
                 // 续跑（SendMessage）没有对应调用，`parent_tool_use` 又必填：用它自己的 agent id
                 // 占位，如实说明「这次运行不是某次工具调用开的」，不发明一个工具调用。
@@ -44,6 +48,10 @@ impl Actor {
                     },
                     child,
                     parent_tool_use,
+                    agent_type,
+                    background,
+                    status,
+                    error,
                 });
             }
             AgentSignal::Notice(notice) => self.on_agent_notice(notice).await,

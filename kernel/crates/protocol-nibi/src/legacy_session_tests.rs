@@ -15,8 +15,8 @@ use nibi_kernel_api::model::ModelSelection;
 use nibi_kernel_api::permission::{PermissionMode, ToolPolicy};
 use super::imported_history;
 use nibi_kernel_api::session_api::{
-    Ack as KernelAck, Command, CommandEnvelope, CreateSession, Kernel, KernelError, SequencedEvent,
-    SessionHandle, SessionView,
+    Ack as KernelAck, Command, CommandEnvelope, CreateSession, Delivery, Kernel, KernelError,
+    SequencedEvent, SessionHandle, SessionView,
 };
 use nibi_kernel_api::store::{
     MessageTime, SessionFilter, SessionKind, SessionMeta, SessionSummary,
@@ -512,6 +512,151 @@ async fn a_stale_revision_is_rejected_with_the_node_error_code() {
     };
     assert_eq!(error.code, -32009);
     assert_eq!(error.data.unwrap()["actualRevision"], 7);
+    assert!(sent.lock().unwrap().is_empty());
+}
+
+/// 旧输入入口：提交后立刻 ACK，带当前 revision；命令是 `Submit`（纯文本、立刻发送）。
+#[tokio::test]
+async fn send_prompt_acknowledges_with_the_state_revision() {
+    let (server, sent, _created, _policies, _parents) = fake("sess_1");
+    let reply = Handler(server)
+        .request(
+            "session/send",
+            json!({"sessionId": "sess_1", "content": "hi", "inputId": "inp_1"}),
+        )
+        .await
+        .unwrap();
+    assert_eq!(reply.result["sessionId"], "sess_1");
+    assert_eq!(reply.result["accepted"], true);
+    assert_eq!(reply.result["stateRevision"], 7);
+    let commands = sent.lock().unwrap();
+    assert_eq!(commands.len(), 1);
+    // `inputId` 是 Host 的幂等键：同一条输入重投时按同一个命令 id 去重。
+    assert_eq!(commands[0].id.as_str(), "inp_1");
+    assert!(matches!(
+        &commands[0].command,
+        Command::Submit { text, delivery, attachments }
+            if text == "hi" && *delivery == Delivery::Queue && attachments.is_empty()
+    ));
+}
+
+/// 一轮还在跑时旧入口不再接受新输入（Node `record.activeAbortController` 的同一裁决）。
+#[tokio::test]
+async fn send_prompt_is_rejected_while_a_turn_is_running() {
+    let sent = Arc::new(Mutex::new(Vec::new()));
+    let mut running = view("sess_1");
+    running.running = true;
+    let kernel = Arc::new(FakeKernel {
+        view: running,
+        selected: Mutex::new(selection()),
+        sent: sent.clone(),
+        created: Arc::new(Mutex::new(Vec::new())),
+        policies: Arc::new(Mutex::new(Vec::new())),
+        parents: Arc::new(Mutex::new(Vec::new())),
+        deferred: Arc::new(Mutex::new(Vec::new())),
+        draft: false,
+    });
+    let error = match Handler(server(kernel))
+        .request(
+            "session/send",
+            json!({"sessionId": "sess_1", "content": "hi"}),
+        )
+        .await
+    {
+        Ok(_) => panic!("expected the active prompt to be rejected"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, -32010);
+    assert!(sent.lock().unwrap().is_empty());
+}
+
+/// 子代理会话只读：旧入口不能绕过 V4 的用户输入准入。
+#[tokio::test]
+async fn send_prompt_refuses_subagent_sessions() {
+    let mut subagent = view("sess_child");
+    subagent.meta.kind = SessionKind::Subagent;
+    let kernel = Arc::new(FakeKernel {
+        view: subagent,
+        selected: Mutex::new(selection()),
+        sent: Arc::new(Mutex::new(Vec::new())),
+        created: Arc::new(Mutex::new(Vec::new())),
+        policies: Arc::new(Mutex::new(Vec::new())),
+        parents: Arc::new(Mutex::new(Vec::new())),
+        deferred: Arc::new(Mutex::new(Vec::new())),
+        draft: false,
+    });
+    let error = match Handler(server(kernel))
+        .request(
+            "session/send",
+            json!({"sessionId": "sess_child", "content": "hi"}),
+        )
+        .await
+    {
+        Ok(_) => panic!("expected the subagent session to be read-only"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, -32010);
+    assert_eq!(error.data.unwrap()["reasonCode"], "guard.subagentReadOnly");
+}
+
+/// 内联附件（GUI 的 `kind`/`mimeType`/`dataBase64`）变成内容块：图片在前、正文在后。
+#[tokio::test]
+async fn send_prompt_turns_inline_attachments_into_content_blocks() {
+    let (server, sent, _created, _policies, _parents) = fake("sess_1");
+    Handler(server)
+        .request(
+            "session/send",
+            json!({
+                "sessionId": "sess_1",
+                "content": "这张图里是什么",
+                "attachments": [{
+                    "kind": "image",
+                    "filename": "shot.png",
+                    "mimeType": "image/png",
+                    "dataBase64": "aGVsbG8=",
+                }],
+            }),
+        )
+        .await
+        .unwrap();
+    let commands = sent.lock().unwrap();
+    let Command::SubmitContent { content, delivery } = &commands[0].command else {
+        panic!("expected SubmitContent, got {:?}", commands[0].command);
+    };
+    assert_eq!(*delivery, Delivery::Queue);
+    assert_eq!(content.len(), 2);
+    assert!(matches!(
+        &content[0],
+        ContentBlock::Image { source: nibi_kernel_api::message::ImageSource::Base64 { media_type, data } }
+            if media_type == "image/png" && data == "aGVsbG8="
+    ));
+    assert!(matches!(&content[1], ContentBlock::Text { text } if text == "这张图里是什么"));
+}
+
+/// 内核没有内容块可承载的附件类型（视频、任意文件）fail-closed 拒绝，不静默丢内容。
+#[tokio::test]
+async fn send_prompt_refuses_unsupported_attachment_kinds() {
+    let (server, sent, _created, _policies, _parents) = fake("sess_1");
+    let error = match Handler(server)
+        .request(
+            "session/send",
+            json!({
+                "sessionId": "sess_1",
+                "content": "看看这个",
+                "attachments": [{
+                    "kind": "video",
+                    "filename": "clip.mp4",
+                    "mimeType": "video/mp4",
+                    "dataBase64": "aGVsbG8=",
+                }],
+            }),
+        )
+        .await
+    {
+        Ok(_) => panic!("expected the video attachment to be refused"),
+        Err(error) => error,
+    };
+    assert_eq!(error.code, -32602);
     assert!(sent.lock().unwrap().is_empty());
 }
 

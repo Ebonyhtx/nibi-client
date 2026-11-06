@@ -169,11 +169,13 @@ pub(crate) fn settle(core: &Core, id: &AgentId, finished: &Finished) -> Settle {
         // 子代理结束（不是停放：停放还会被唤醒续跑，那时会再发一次 spawned）。
         // 在锁内记信号，与上面「已结束」的写入同一次可见。
         core.hub.subagent_lifecycle(
-            &entry.root,
-            entry.agent.clone(),
-            entry.child.clone(),
-            entry.tool_use.clone(),
+            &entry,
             nibi_kernel_api::agents::SubagentLifecyclePhase::Done,
+            finished.ending.status().to_owned(),
+            // 只有失败带原因（Node `SubagentStopped.payload.error`）；完成与被停止都不写。
+            (finished.ending == Ending::Failed)
+                .then(|| error.clone())
+                .flatten(),
         );
         let mut wakes = Vec::new();
         if entry.background {

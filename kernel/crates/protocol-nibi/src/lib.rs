@@ -26,6 +26,7 @@ mod projection;
 mod row_target;
 mod server;
 mod session_debug;
+mod session_directory;
 mod subscribe;
 mod subagents_rpc;
 pub mod telemetry;
@@ -201,3 +202,7 @@ mod tests;
 #[cfg(test)]
 #[path = "subagents_debug_tests.rs"]
 mod subagents_debug_tests;
+
+#[cfg(test)]
+#[path = "session_directory_tests.rs"]
+mod session_directory_tests;

@@ -86,6 +86,17 @@ pub enum AgentSignal {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         tool_use: Option<ToolUseId>,
         phase: SubagentLifecyclePhase,
+        /// 定义里的类型名（Node `SubagentSpawned.payload.agentType`，如 `Explore`）。
+        agent_type: String,
+        /// 这个子代理是后台运行的吗（Node `payload.background`）。续跑之后 `tool_use` 缺席，
+        /// 那时这条信号是唯一还带着它的地方。
+        background: bool,
+        /// 生命周期状态（Node `payload.status`）：开始时是 `running`，结束时是 `completed` /
+        /// `failed` / `killed`。`v4/telemetry/event` 的 `subagent.lifecycle.status` 直接用它。
+        status: String,
+        /// 失败原因（Node `SubagentStopped.payload.error`）；只有失败时在场。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
     },
 }
 

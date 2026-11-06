@@ -613,6 +613,18 @@ impl Kernel for LocalKernel {
             .map_err(|error| failed(&error))
     }
 
+    /// legacy `session/list` 的目录读面：整行投影直接来自存储端口，这里不做二次筛选。
+    async fn session_directory(
+        &self,
+        query: nibi_kernel_api::store::SessionDirectoryQuery,
+    ) -> Result<Vec<nibi_kernel_api::store::SessionDirectoryEntry>, KernelError> {
+        self.ports
+            .store
+            .session_directory(query)
+            .await
+            .map_err(|error| failed(&error))
+    }
+
     /// `/context`（context-usage.md §2）：有会话时按会话 actor 的当前视图（历史、模型、模式），只读。
     async fn context_usage(
         &self,

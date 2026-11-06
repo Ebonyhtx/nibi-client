@@ -277,12 +277,13 @@ impl ConversationTelemetry {
                 phase,
                 child,
                 parent_tool_use,
+                agent_type,
+                background,
+                status,
+                error,
             } => {
-                let background = self
-                    .tools
-                    .get(parent_tool_use.as_str())
-                    .and_then(|trace| trace.background)
-                    .unwrap_or(false);
+                // `background` / `agent_type` / `status` / `error` 都由信号带上来：续跑的子代理
+                // 没有 `parent_tool_use`，以前从工具轨迹反查背景标记在那条路上永远得到 false。
                 Some(ConversationTelemetryFact::SubagentLifecycle {
                     base: self.base(event, now),
                     phase: match phase {
@@ -291,12 +292,13 @@ impl ConversationTelemetry {
                     }
                     .to_owned(),
                     agent_id: agent.as_str().to_owned(),
-                    agent_type: None,
+                    agent_type: Some(agent_type.clone()).filter(|value| !value.is_empty()),
                     child_session_id: child.as_str().to_owned(),
                     parent_tool_call_id: Some(parent_tool_use.as_str().to_owned()),
-                    background,
-                    status: None,
-                    error_message: None,
+                    background: *background,
+                    status: Some(status.clone()).filter(|value| !value.is_empty()),
+                    // Node 只在 stopped 且失败时带原因（`SubagentStopped.payload.error`）。
+                    error_message: error.clone().filter(|value| !value.is_empty()),
                 })
             }
             KernelEvent::ModelRequestStatus { status } => {

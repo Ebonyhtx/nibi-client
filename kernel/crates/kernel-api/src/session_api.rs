@@ -412,6 +412,15 @@ pub enum KernelEvent {
         phase: SubagentPhase,
         child: SessionId,
         parent_tool_use: ToolUseId,
+        /// 定义里的类型名（Node `SubagentSpawned.payload.agentType`）。
+        agent_type: String,
+        /// 后台运行的吗（Node `payload.background`）。
+        background: bool,
+        /// `running` / `completed` / `failed` / `killed`（Node `payload.status`）。
+        status: String,
+        /// 失败原因；只有失败时在场。
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error: Option<String>,
     },
     CompactStarted {
         trigger: CompactTrigger,
@@ -817,6 +826,18 @@ pub trait Kernel: Send + Sync {
         &self,
         filter: SessionFilter,
     ) -> Result<Vec<SessionSummary>, KernelError>;
+
+    /// 会话目录（legacy `session/list`）：比 [`Kernel::list_sessions`] 多带原始 `task_type`、
+    /// 标题来源、父链与 `workspace_id`——Host 的任务列表与项目谱系校验要这些列。
+    /// 缺省 `Unsupported`，调用方降级为空列表并记日志。
+    async fn session_directory(
+        &self,
+        _query: crate::store::SessionDirectoryQuery,
+    ) -> Result<Vec<crate::store::SessionDirectoryEntry>, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session directory".to_owned(),
+        })
+    }
 
     /// 同 [`Kernel::create_session`]，另给 SessionStart 的来源（`/clear` 之后的新会话是 `Clear`）。
     async fn create_session_as(

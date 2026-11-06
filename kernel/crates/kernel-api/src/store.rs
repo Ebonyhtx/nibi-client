@@ -354,6 +354,50 @@ pub struct SessionFilter {
     pub limit: usize,
 }
 
+/// 会话目录的一行（legacy `session/list`，Host 的任务列表与项目谱系校验）：Node `SessionInfo`
+/// 里 Host 真的会读的列。
+///
+/// 与 [`SessionSummary`] 分开而不是扩充它：那是 TUI `/resume` 的最小投影（docs/specs/rust-cli/
+/// session-lifecycle.md §6.2），只要 id/标题/活动时间；这条要保留**原始 `task_type`**（7 个值，
+/// [`SessionKind`] 只有 3 个）、`title_source`、`workspace_id` 与 `path`——Host 靠它们区分辅助
+/// 会话、判断项目归属，以及沿父链证明身份。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionDirectoryEntry {
+    pub id: SessionId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent: Option<SessionId>,
+    /// Node `SessionInfo.traceID`；旧行可能没有。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trace: Option<String>,
+    /// 会话行的 `task_type` 原值（存储已把未知值回退成 `interactive`）。
+    pub task_type: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_source: Option<String>,
+    /// 会话行的 `workspace_id`（远端身份）；本机会话为 None。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workspace_id: Option<String>,
+    /// 会话行的 `directory`（工作区根）。
+    pub directory: String,
+    /// 会话行的 `path`（Node `SessionInfo.path`，可能是工作区的子目录）；旧行为 None。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    pub created_at_ms: u64,
+    pub updated_at_ms: u64,
+}
+
+/// [`SessionStore::session_directory`] 的查询（Node `listSessions` / `getSession` 的两种读法）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionDirectoryQuery {
+    /// 只列这条目录下的会话（Node `listSessions({directory})`）。None 表示不限目录。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directory: Option<String>,
+    /// 显式 ID 查询（Node 逐个 `getSession`）：不加目录与任务类型的筛选，归属校验由调用方做。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ids: Option<Vec<SessionId>>,
+    pub limit: usize,
+}
+
 /// 会话列表的排序（修复线 F29，`/resume` 页的 Sort，docs/specs/rust-cli/tui-manage.md §10）。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -448,6 +492,20 @@ pub trait SessionStore: Send + Sync {
     }
 
     async fn list(&self, filter: SessionFilter) -> Result<Vec<SessionSummary>, StoreError>;
+
+    /// 会话目录（legacy `session/list`）：按目录或显式 ID 读出 Host 要的整行投影
+    /// （[`SessionDirectoryEntry`]）。与 [`Self::list`] 的口径不同——后者是 TUI 的最小投影，
+    /// 用「顶层或 fork」判可见性；这里的目录分支必须是 Node `TASK_LIST_SESSION_TYPES`
+    /// （`interactive` / `fork` / `workflow_parent`），否则有父的 `workflow_parent` 会漏。
+    /// 不支持的实现返回 `Unsupported`，调用方降级为空列表。
+    async fn session_directory(
+        &self,
+        _query: SessionDirectoryQuery,
+    ) -> Result<Vec<SessionDirectoryEntry>, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session directory".to_owned(),
+        })
+    }
 
     /// 本机项目规则集（Node `local_setting(permission/ruleset)`，shell-permissions.md §5）：启动时读回，
     /// 作为 LocalSettings 来源。不支持的实现返回 `Unsupported`。

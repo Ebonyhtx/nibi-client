@@ -9,8 +9,8 @@ use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId}
 use nibi_kernel_api::model::{ModelConnection, ModelSelection};
 use nibi_kernel_api::permission::ExecutionState;
 use nibi_kernel_api::store::{
-    LoadedSession, MessageTime, SessionKind, SessionLaunchTurn, SessionMeta, SessionModelTurn,
-    SessionSummary, TurnAnchor,
+    LoadedSession, MessageTime, SessionDirectoryEntry, SessionDirectoryQuery, SessionKind,
+    SessionLaunchTurn, SessionMeta, SessionModelTurn, SessionSummary, TurnAnchor,
 };
 use nibi_kernel_api::store::{SessionFilter, StoreError};
 use serde_json::Value;
@@ -129,6 +129,51 @@ pub fn list(conn: &Connection, filter: &SessionFilter) -> Result<Vec<SessionSumm
             updated_at_ms: u64::try_from(row.time_updated).unwrap_or(0),
         })
         .collect())
+}
+
+/// legacy `session/list` 的目录读面（[`SessionDirectoryQuery`]）：显式 ID 走 `getSession`
+/// 逐条读（不看目录与任务类型），否则走 Node 的任务列表口径（[`sessions::task_list`]）。
+/// 软删除的行两种读法都不返回——Node 的 `listSessions` 与父链校验都以
+/// `time.deleted === undefined` 为前提。
+pub fn directory(
+    conn: &Connection,
+    query: &SessionDirectoryQuery,
+) -> Result<Vec<SessionDirectoryEntry>, StoreError> {
+    let rows = match &query.ids {
+        Some(ids) => {
+            let mut rows = Vec::with_capacity(ids.len());
+            for id in ids {
+                let Some(row) = sessions::get(conn, id.as_str()).storage()? else {
+                    continue;
+                };
+                if row.time_deleted.is_none() {
+                    rows.push(row);
+                }
+            }
+            rows
+        }
+        None => {
+            let limit = i64::try_from(query.limit).unwrap_or(i64::MAX);
+            sessions::task_list(conn, query.directory.as_deref(), limit).storage()?
+        }
+    };
+    Ok(rows.into_iter().map(directory_entry).collect())
+}
+
+fn directory_entry(row: SessionRow) -> SessionDirectoryEntry {
+    SessionDirectoryEntry {
+        id: SessionId::new(row.id),
+        parent: row.parent_id.map(SessionId::new),
+        trace: row.trace_id,
+        task_type: row.task_type,
+        title: row.title,
+        title_source: row.title_source,
+        workspace_id: row.workspace_id,
+        directory: row.directory,
+        path: row.path,
+        created_at_ms: u64::try_from(row.time_created).unwrap_or(0),
+        updated_at_ms: u64::try_from(row.time_updated).unwrap_or(0),
+    }
 }
 
 /// 消息记录里带 `source: "workflow_launch"` 的控制轮（NIBI 中枢启动/设置轮，launch.md）：

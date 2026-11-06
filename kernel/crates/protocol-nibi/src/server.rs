@@ -363,8 +363,10 @@ impl Server {
                 reply(json!({"workspace": params["workspace"], "enabled": enabled}))
             }
             "workspace/readPresentation" => reply(self.read_presentation(&params).await),
-            // 目录来源按 sessionIds 查父链：rust 的会话没有要报的父链（子代理不进列表），P1 回空列表。
-            "session/list" => reply(json!({"sessions": []})),
+            // Host 的任务列表、项目谱系校验与分享导入去重（Node `listSessions` 的两种读法）。
+            "session/list" => crate::session_directory::list(self, &params)
+                .await
+                .map(Reply::new),
             // 旧会话入口（141 F5）：Host 的任务适配器、时间线、设置面板仍在用；内部桥到 v4 语义。
             "session/create" => crate::legacy_session::create(self, &params)
                 .await
@@ -373,6 +375,10 @@ impl Server {
                 .await
                 .map(Reply::new),
             "session/messages" => crate::legacy_session::messages(self, &params)
+                .await
+                .map(Reply::new),
+            // 旧输入入口：Host 的 Bot / 手机远控仍用它（桌面主输入走 v4 `sendText`）。
+            "session/send" => crate::legacy_session::send_prompt(self, &params)
                 .await
                 .map(Reply::new),
             "session/compact" => crate::legacy_session::compact(self, &params)

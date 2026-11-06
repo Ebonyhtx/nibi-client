@@ -314,9 +314,12 @@ fn permission_lifecycle_is_matched_by_interaction() {
     );
 }
 
-/// 子代理的后台标记来自 Agent 工具的输入（`run_in_background`）。
+/// 子代理事实的四个字段都来自信号：类型名、后台标记、生命周期状态与失败原因。
+///
+/// 以前 `background` 靠工具轨迹反查（`run_in_background`），续跑的子代理没有工具调用，那条路
+/// 永远得到 false；`agentType` / `status` / `errorMessage` 则一直是 `None`。
 #[test]
-fn a_subagent_is_background_when_the_agent_tool_says_so() {
+fn a_subagent_reports_its_type_background_status_and_error() {
     let mut facts = ConversationTelemetry::new("s1");
     facts.facts(&event(1, turn_started()), 1_000);
     facts.facts(
@@ -339,6 +342,10 @@ fn a_subagent_is_background_when_the_agent_tool_says_so() {
                     phase: SubagentPhase::Spawned,
                     child: SessionId::new("s2"),
                     parent_tool_use: ToolUseId::new("toolu_1"),
+                    agent_type: "Explore".to_owned(),
+                    background: true,
+                    status: "running".to_owned(),
+                    error: None,
                 },
             ),
             1_200,
@@ -347,9 +354,12 @@ fn a_subagent_is_background_when_the_agent_tool_says_so() {
     let ConversationTelemetryFact::SubagentLifecycle {
         phase,
         agent_id,
+        agent_type,
         child_session_id,
         parent_tool_call_id,
         background,
+        status,
+        error_message,
         ..
     } = &spawned
     else {
@@ -357,9 +367,12 @@ fn a_subagent_is_background_when_the_agent_tool_says_so() {
     };
     assert_eq!(phase, "spawned");
     assert_eq!(agent_id, "a1");
+    assert_eq!(agent_type.as_deref(), Some("Explore"));
     assert_eq!(child_session_id, "s2");
     assert_eq!(parent_tool_call_id.as_deref(), Some("toolu_1"));
     assert!(*background);
+    assert_eq!(status.as_deref(), Some("running"));
+    assert!(error_message.is_none());
     let stopped = facts
         .facts(
             &event(
@@ -369,15 +382,27 @@ fn a_subagent_is_background_when_the_agent_tool_says_so() {
                     phase: SubagentPhase::Done,
                     child: SessionId::new("s2"),
                     parent_tool_use: ToolUseId::new("toolu_1"),
+                    agent_type: "Explore".to_owned(),
+                    background: true,
+                    status: "failed".to_owned(),
+                    error: Some("model returned 500".to_owned()),
                 },
             ),
             1_300,
         )
         .expect("stopped");
-    let ConversationTelemetryFact::SubagentLifecycle { phase, .. } = &stopped else {
+    let ConversationTelemetryFact::SubagentLifecycle {
+        phase,
+        status,
+        error_message,
+        ..
+    } = &stopped
+    else {
         panic!("{stopped:?}")
     };
     assert_eq!(phase, "stopped");
+    assert_eq!(status.as_deref(), Some("failed"));
+    assert_eq!(error_message.as_deref(), Some("model returned 500"));
 }
 
 /// 压缩：开始只记状态，完成时一条终态（触发方式与起止时刻）。

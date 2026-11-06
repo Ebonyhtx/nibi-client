@@ -202,21 +202,27 @@ impl Hub {
     }
 
     /// 一个子代理开始或结束：通知顶层会话（`KernelEvent::Subagent` 的来源）。
+    ///
+    /// 类型名与后台标记从条目上取（续跑之后 `tool_use` 缺席，别的来源都没有这两项）；
+    /// `status` / `error` 由调用方按这次结束的裁决给出。
     pub(crate) fn subagent_lifecycle(
         &self,
-        session: &SessionId,
-        agent: AgentId,
-        child: SessionId,
-        tool_use: Option<nibi_kernel_api::ids::ToolUseId>,
+        entry: &crate::live::LiveAgent,
         phase: nibi_kernel_api::agents::SubagentLifecyclePhase,
+        status: String,
+        error: Option<String>,
     ) {
         self.lifecycle(
-            session,
+            &entry.root,
             AgentSignal::Subagent {
-                agent,
-                child,
-                tool_use,
+                agent: entry.agent.clone(),
+                child: entry.child.clone(),
+                tool_use: entry.tool_use.clone(),
                 phase,
+                agent_type: entry.definition.agent_type.clone(),
+                background: entry.background,
+                status,
+                error,
             },
         );
     }

@@ -151,11 +151,11 @@ pub(crate) async fn create(
     // `v4/telemetry/event` 的 `subagent.lifecycle` 事实从那里来）。
     // 在 `insert` 之后发：收到信号的一方去读目录时，表里已经有它。
     core.hub.subagent_lifecycle(
-        &agent.root,
-        agent.agent.clone(),
-        agent.child.clone(),
-        agent.tool_use.clone(),
+        &agent,
         nibi_kernel_api::agents::SubagentLifecyclePhase::Spawned,
+        // 开始时状态就是 running（Node `SubagentSpawned.payload.status`）。
+        "running".to_owned(),
+        None,
     );
     let messages = with_prefix(&agent, vec![first]);
     Ok((agent, Opening { messages, turn }))

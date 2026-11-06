@@ -16,7 +16,10 @@ pub struct SessionRow {
     pub trace_id: Option<String>,
     pub task_type: String,
     pub directory: String,
+    /// Node `SessionInfo.path`：工作目录，可能是 `directory` 的子目录；旧行为 None。
+    pub path: Option<String>,
     pub title: String,
+    pub title_source: Option<String>,
     pub revert: Option<Value>,
     pub permission: Option<Value>,
     pub time_created: i64,
@@ -82,7 +85,9 @@ fn decode(row: &Row) -> rusqlite::Result<SessionRow> {
             .filter(|t| super::codecs::TASK_TYPES.contains(&t.as_str()))
             .unwrap_or_else(|| "interactive".into()),
         directory: row.get("directory")?,
+        path: nonempty(row.get("path")?),
         title: row.get("title")?,
+        title_source: nonempty(row.get("title_source")?),
         revert: json_column(row, "revert")?,
         permission: json_column(row, "permission")?,
         time_created: row.get("time_created")?,
@@ -263,6 +268,33 @@ pub fn query(
         "select * from session where {} order by {order} desc, id desc{}",
         clauses.join(" and "),
         if limit.is_some() { " limit ?" } else { "" }
+    );
+    conn.prepare_cached(&sql)?
+        .query_map(rusqlite::params_from_iter(values), decode)?
+        .collect()
+}
+
+/// ← legacy `session/list` 的目录分支（Node `listSessions({directory, limit, taskTypes:
+/// TASK_LIST_SESSION_TYPES})`）。**不要**用上面的 [`list`] 代替：那条判可见性用
+/// 「顶层或 fork」，会漏掉有父会话的 `workflow_parent`；Node 的任务列表口径是 task_type 白名单。
+pub fn task_list(
+    conn: &Connection,
+    directory: Option<&str>,
+    limit: i64,
+) -> rusqlite::Result<Vec<SessionRow>> {
+    let mut clauses: Vec<&str> = vec![
+        "time_deleted is null",
+        "task_type in ('interactive', 'fork', 'workflow_parent')",
+    ];
+    let mut values: Vec<Sql> = vec![];
+    if let Some(directory) = directory {
+        clauses.push("directory = ?");
+        values.push(Sql::Text(directory.to_owned()));
+    }
+    values.push(Sql::Integer(limit));
+    let sql = format!(
+        "select * from session where {} order by time_updated desc, id desc limit ?",
+        clauses.join(" and ")
     );
     conn.prepare_cached(&sql)?
         .query_map(rusqlite::params_from_iter(values), decode)?

@@ -246,12 +246,17 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
         Opened::Loaded,
     );
     let mut events = session.subscribe(Some(0));
-    for (tool_use, phase) in [
+    for (tool_use, phase, status) in [
         (
             Some(ToolUseId::new("toolu_1")),
             nibi_kernel_api::agents::SubagentLifecyclePhase::Spawned,
+            "running",
         ),
-        (None, nibi_kernel_api::agents::SubagentLifecyclePhase::Done),
+        (
+            None,
+            nibi_kernel_api::agents::SubagentLifecyclePhase::Done,
+            "failed",
+        ),
     ] {
         sender
             .send(AgentSignal::Subagent {
@@ -259,6 +264,10 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
                 child: SessionId::new("sess_child"),
                 tool_use,
                 phase,
+                agent_type: "Explore".to_owned(),
+                background: true,
+                status: status.to_owned(),
+                error: (status == "failed").then(|| "boom".to_owned()),
             })
             .unwrap();
     }
@@ -274,6 +283,10 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
             phase,
             child,
             parent_tool_use,
+            agent_type,
+            background,
+            status,
+            error,
         } = event.event
         {
             spawned.push((
@@ -281,26 +294,34 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
                 phase,
                 child.as_str().to_owned(),
                 parent_tool_use.as_str().to_owned(),
+                agent_type,
+                background,
+                status,
+                error,
             ));
         }
     }
+    assert_eq!(spawned[0].0, "agent_1");
     assert_eq!(
-        spawned[0],
-        (
-            "agent_1".to_owned(),
-            nibi_kernel_api::session_api::SubagentPhase::Spawned,
-            "sess_child".to_owned(),
-            "toolu_1".to_owned()
-        )
+        spawned[0].1,
+        nibi_kernel_api::session_api::SubagentPhase::Spawned
     );
+    assert_eq!(spawned[0].2, "sess_child");
+    assert_eq!(spawned[0].3, "toolu_1");
+    // 三个新字段原样透传（Node 的 `agentType` / `background` / `status` / `error`）。
+    assert_eq!(spawned[0].4, "Explore");
+    assert!(spawned[0].5);
+    assert_eq!(spawned[0].6, "running");
+    assert!(spawned[0].7.is_none());
+
+    assert_eq!(spawned[1].0, "agent_1");
     assert_eq!(
-        spawned[1],
-        (
-            "agent_1".to_owned(),
-            nibi_kernel_api::session_api::SubagentPhase::Done,
-            "sess_child".to_owned(),
-            // 续跑没有对应工具调用：用它自己的 agent id 占位，不发明一个工具调用。
-            "agent_1".to_owned()
-        )
+        spawned[1].1,
+        nibi_kernel_api::session_api::SubagentPhase::Done
     );
+    assert_eq!(spawned[1].2, "sess_child");
+    // 续跑没有对应工具调用：用它自己的 agent id 占位，不发明一个工具调用。
+    assert_eq!(spawned[1].3, "agent_1");
+    assert_eq!(spawned[1].6, "failed");
+    assert_eq!(spawned[1].7.as_deref(), Some("boom"));
 }

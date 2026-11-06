@@ -52,8 +52,9 @@ use nibi_kernel_api::ids::{ArtifactId, MessageId, SessionId};
 use nibi_kernel_api::permission::{PermissionMode, ProjectRules};
 use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, ArtifactStore, CommitReceipt, FactBatch, ForkReceipt,
-    LoadedSession, MessageTime, SessionFilter, SessionFork, SessionKind, SessionMeta, SessionPage,
-    SessionQuery, SessionStore, SessionSummary, StoreError,
+    LoadedSession, MessageTime, SessionDirectoryEntry, SessionDirectoryQuery, SessionFilter,
+    SessionFork, SessionKind, SessionMeta, SessionPage, SessionQuery, SessionStore, SessionSummary,
+    StoreError,
 };
 use nibi_kernel_api::workspace_trust::TrustKey;
 use nibi_kernel_paths::StoragePaths;
@@ -249,6 +250,15 @@ impl SessionStore for NodeStore {
 
     async fn list(&self, filter: SessionFilter) -> Result<Vec<SessionSummary>, StoreError> {
         self.with_db(move |conn, _| load::list(conn, &filter)).await
+    }
+
+    /// legacy `session/list` 的目录读面（Node `listSessions` / `getSession`）。
+    async fn session_directory(
+        &self,
+        query: SessionDirectoryQuery,
+    ) -> Result<Vec<SessionDirectoryEntry>, StoreError> {
+        self.with_db(move |conn, _| load::directory(conn, &query))
+            .await
     }
 
     /// ← 项目页与 `/resume` 页的会话（修复线 F29，node-store.md §5.1）。
@@ -826,3 +836,7 @@ mod resume_sentinel_tests;
 #[cfg(test)]
 #[path = "frontend_records_tests.rs"]
 mod frontend_records_tests;
+
+#[cfg(test)]
+#[path = "directory_tests.rs"]
+mod directory_tests;

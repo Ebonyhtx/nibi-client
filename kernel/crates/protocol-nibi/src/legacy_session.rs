@@ -1,15 +1,17 @@
-//! 旧协议会话入口（141 审计 F5）：`session/create|resume|messages|compact|goal|setModel|
+//! 旧协议会话入口（141 审计 F5）：`session/create|resume|messages|send|compact|goal|setModel|
 //! setThoughtLevel|setMode`。Host 仍走旧词表（任务适配器、时间线、设置面板），切默认后这些
 //! 方法不能回 `-32601`；这里把参数映射到已收的 v4 语义（`CreateSession` / `Command`），响应
 //! 统一用 [`crate::legacy_snapshot`] 的旧快照形状。
 
 use nibi_kernel_api::env::EnvPath;
 use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::message::ContentBlock;
 use nibi_kernel_api::permission::ToolPolicy;
 use nibi_kernel_api::session_api::ImportedMessage;
 use nibi_kernel_api::session_api::{
     Ack as KernelAck, Command, CreateSession, Delivery, KernelError, SessionHandle, SessionView,
 };
+use nibi_kernel_api::store::SessionKind;
 use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
 
@@ -584,6 +586,180 @@ async fn mutation_snapshot(
     let times = times(server, &id).await;
     let media = media(server, &id, &after).await;
     Ok(legacy_snapshot::snapshot(&after, Profile::Full, &times, &media))
+}
+
+/// 旧附件载荷（GUI `ZCodePromptAttachment`）→ 内容块。
+///
+/// 与 v4 的 `AttachmentRef` 不是同一种形状：这里读 `kind` / `mimeType` / `localPath` /
+/// `dataBase64`。图片与 PDF 走同一条路（图片 `Image`、PDF `Document`）；其他类型（视频、
+/// 任意文件）内核没有对应内容块，fail-closed 报错而不是静默丢掉内容。
+async fn attachment_blocks(
+    server: &Server,
+    session: &SessionId,
+    view: &SessionView,
+    attachments: &[Value],
+) -> Result<Vec<ContentBlock>, RpcError> {
+    use base64::Engine;
+
+    let mut blocks = Vec::with_capacity(attachments.len());
+    for attachment in attachments {
+        let mime = attachment["mimeType"].as_str().unwrap_or_default();
+        let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+        let kind = attachment["kind"].as_str().unwrap_or_default();
+        let is_pdf = kind == "pdf" || media == "application/pdf";
+        let is_image = kind == "image" || media.starts_with("image/");
+        if !is_pdf && !is_image {
+            return Err(RpcError::invalid_params(format!(
+                "attachments of kind {kind:?} are not supported yet; only images and PDFs are"
+            )));
+        }
+        // 路径由会话所在机器读（与 v4 附件同一条读取链）；内联 base64 直接落成块，不落盘。
+        let (media_type, data) = match attachment["localPath"]
+            .as_str()
+            .filter(|path| !path.is_empty())
+        {
+            Some(path) => {
+                let loaded = server
+                    .kernel
+                    .load_attachment(
+                        session,
+                        &view.meta.workspace,
+                        nibi_kernel_api::attachment::AttachmentSource::Path {
+                            path: path.to_owned(),
+                        },
+                    )
+                    .await
+                    .map_err(|error| kernel_error(&error))?;
+                let media_type = loaded
+                    .media_type
+                    .map(|value| value.split(';').next().unwrap_or("").trim().to_ascii_lowercase())
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_else(|| {
+                        if is_pdf {
+                            "application/pdf".to_owned()
+                        } else if media.is_empty() || media == "image/*" {
+                            "image/png".to_owned()
+                        } else {
+                            media.clone()
+                        }
+                    });
+                (
+                    media_type,
+                    base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
+                )
+            }
+            None => {
+                let Some(data) = attachment["dataBase64"]
+                    .as_str()
+                    .filter(|data| !data.is_empty())
+                else {
+                    // Node 对既没有 localPath 也没有 dataBase64 的附件直接跳过；这里报错，是因为
+                    // 静默丢掉用户贴的内容比一次明确的拒绝更糟。
+                    return Err(RpcError::invalid_params(
+                        "an attachment without localPath or dataBase64 cannot be read",
+                    ));
+                };
+                let media_type = if is_pdf {
+                    "application/pdf".to_owned()
+                } else if media.is_empty() || media == "image/*" {
+                    "image/png".to_owned()
+                } else {
+                    media.clone()
+                };
+                (media_type, data.to_owned())
+            }
+        };
+        blocks.push(if is_pdf {
+            ContentBlock::Document {
+                source: nibi_kernel_api::message::ImageSource::Base64 { media_type, data },
+                name: attachment["filename"].as_str().map(str::to_owned),
+            }
+        } else {
+            ContentBlock::Image {
+                source: nibi_kernel_api::message::ImageSource::Base64 { media_type, data },
+            }
+        });
+    }
+    Ok(blocks)
+}
+
+/// 旧输入入口 `session/send`：Host 的 Bot / 手机远控仍走它（桌面主输入已收敛到 v4 `sendText`）。
+///
+/// 语义逐条对齐 Node `sendPrompt`：子代理会话只读、状态版本 CAS、已有回合在跑时拒绝；
+/// 提交后立刻 ACK（`accepted: true` + 当前 revision），回合在后台跑。带附件时走
+/// [`Command::SubmitContent`]（正文按 Node 的排法跟在附件后面）。
+pub async fn send_prompt(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let id = session_id(params)?;
+    let live = open(server, &id).await?;
+    let before = live
+        .handle
+        .view()
+        .await
+        .map_err(|error| kernel_error(&error))?;
+    // 子代理会话只读：旧入口也不能绕过 V4 的用户输入准入。
+    if before.meta.kind == SessionKind::Subagent {
+        return Err(
+            RpcError::new(REQUEST_REJECTED, "Subagent sessions are read-only")
+                .with_data(json!({"reasonCode": "guard.subagentReadOnly"})),
+        );
+    }
+    check_revision(&before, params)?;
+    // Node `record.activeAbortController` 的同一裁决：一轮还在跑时旧入口不再接受新输入。
+    if before.running {
+        return Err(RpcError::new(
+            REQUEST_REJECTED,
+            "A prompt is already running for this session",
+        ));
+    }
+    // 本次输入带的模型先作用到会话（Node 把它钉在这一条输入上；内核只记会话选择）。
+    if let Some(chosen) = commands::selection(&params["modelSelection"])
+        && before.selection != chosen
+    {
+        send(
+            live.handle.as_ref(),
+            &format!("{}:legacy-model", id.as_str()),
+            Command::SetModel { selection: chosen },
+        )
+        .await?;
+    }
+    let text = params["content"].as_str().unwrap_or_default().to_owned();
+    let attachments: Vec<Value> = params["attachments"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let mut blocks = attachment_blocks(server, &id, &before, &attachments).await?;
+    let submit = if blocks.is_empty() {
+        Command::Submit {
+            text,
+            attachments: Vec::new(),
+            delivery: Delivery::Queue,
+        }
+    } else {
+        if !text.is_empty() {
+            blocks.push(ContentBlock::Text { text });
+        }
+        Command::SubmitContent {
+            content: blocks,
+            delivery: Delivery::Queue,
+        }
+    };
+    // `inputId` 是 Host 的幂等键：同一条输入重投时内核按同 id 去重。
+    let command = params["inputId"]
+        .as_str()
+        .filter(|input| !input.is_empty())
+        .map(str::to_owned)
+        .unwrap_or_else(|| server.context.fresh("legacy-send"));
+    send(live.handle.as_ref(), &command, submit).await?;
+    let after = live
+        .handle
+        .view()
+        .await
+        .map_err(|error| kernel_error(&error))?;
+    Ok(json!({
+        "sessionId": id.as_str(),
+        "accepted": true,
+        "stateRevision": after.revision,
+    }))
 }
 
 pub async fn set_model(server: &Server, params: &Value) -> Result<Value, RpcError> {

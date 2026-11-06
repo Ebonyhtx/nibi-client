@@ -414,23 +414,42 @@ mod agents {
                     phase,
                     child,
                     parent_tool_use,
+                    agent_type,
+                    background,
+                    status,
+                    error,
                 } => Some((
                     agent.as_str().to_owned(),
                     *phase,
                     child.as_str().to_owned(),
                     parent_tool_use.as_str().to_owned(),
+                    agent_type.clone(),
+                    *background,
+                    status.clone(),
+                    error.clone(),
                 )),
                 _ => None,
             })
             .collect();
         assert_eq!(lifecycle.len(), 2, "{lifecycle:?}");
-        let (agent, phase, child, tool_use) = &lifecycle[0];
+        let (agent, phase, child, tool_use, agent_type, background, status, error) = &lifecycle[0];
         assert_eq!(phase, &nibi_kernel_api::session_api::SubagentPhase::Spawned);
         assert!(child.starts_with("sess_subagent_"), "{child}");
         assert_eq!(tool_use, "toolu_1");
-        let (done_agent, done_phase, done_child, _) = &lifecycle[1];
+        // 类型名来自定义（Agent 工具的 `subagent_type`），开始时状态是 running；
+        // 前台子代理的 background 是 false。
+        assert_eq!(agent_type, "general-purpose");
+        assert!(!background);
+        assert_eq!(status, "running");
+        assert!(error.is_none());
+        let (done_agent, done_phase, done_child, _, done_type, _, done_status, done_error) =
+            &lifecycle[1];
         assert_eq!(done_agent, agent);
         assert_eq!(done_child, child);
+        assert_eq!(done_type, agent_type);
         assert_eq!(done_phase, &nibi_kernel_api::session_api::SubagentPhase::Done);
+        // 正常结束：completed，没有失败原因。
+        assert_eq!(done_status, "completed");
+        assert!(done_error.is_none());
     }
 }
