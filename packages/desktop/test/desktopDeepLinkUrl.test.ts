@@ -173,7 +173,7 @@ describe("desktop deep link url helpers", () => {
     expect(operations).toContainEqual({
       args: [
         "add",
-        "HKCU\\Software\\Classes\\Directory\\shell\\ZCode.OpenInZCode\\command",
+        "HKCU\\Software\\Classes\\Directory\\shell\\NIBI.OpenInNIBI\\command",
         "/ve",
         "/d",
         '"C:\\Program Files\\ZCode\\ZCode.exe" --open-workspace "%1"',
@@ -183,7 +183,7 @@ describe("desktop deep link url helpers", () => {
     expect(operations).toContainEqual({
       args: [
         "add",
-        "HKCU\\Software\\Classes\\Drive\\shell\\ZCode.OpenInZCode\\command",
+        "HKCU\\Software\\Classes\\Drive\\shell\\NIBI.OpenInNIBI\\command",
         "/ve",
         "/d",
         '"C:\\Program Files\\ZCode\\ZCode.exe" --open-workspace "%1"',
@@ -207,7 +207,7 @@ describe("desktop deep link url helpers", () => {
     expect(operations).toContainEqual({
       args: [
         "add",
-        "HKCU\\Software\\Classes\\Directory\\shell\\ZCode.OpenInZCode",
+        "HKCU\\Software\\Classes\\Directory\\shell\\NIBI.OpenInNIBI",
         "/ve",
         "/d",
         "在 NIBI 中打开",
@@ -217,7 +217,7 @@ describe("desktop deep link url helpers", () => {
     expect(operations).toContainEqual({
       args: [
         "add",
-        "HKCU\\Software\\Classes\\Directory\\shell\\ZCode.OpenInZCode",
+        "HKCU\\Software\\Classes\\Directory\\shell\\NIBI.OpenInNIBI",
         "/v",
         "MUIVerb",
         "/t",

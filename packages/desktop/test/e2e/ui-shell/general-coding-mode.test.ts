@@ -169,7 +169,7 @@ async function clickText(selector: string, text: string) {
 
 async function waitForMode(mode: string) {
   await browser.waitUntil(async () =>
-    browser.execute((expected) => localStorage.getItem("zcode-interface-mode") === expected, mode),
+    browser.execute((expected) => localStorage.getItem("nibi-interface-mode") === expected, mode),
   );
 }
 

@@ -79,12 +79,12 @@ it.each(["zai", "bigmodel"])(
     const values: Record<string, string> = {
       "oauth:active_provider": provider,
       [`oauth:${provider}:user_info`]: '{"id":"u1"}',
-      zcodejwttoken: "jwt-1",
+      "nibi-jwttoken": "jwt-1",
     };
     const load = vi.fn(async (key: string) => values[key] ?? null);
     const authorization = createTelemetryAuthorizationLoader({ load });
     expect(await authorization("u1")).toBe("Bearer jwt-1");
-    values.zcodejwttoken = "jwt-2";
+    values["nibi-jwttoken"] = "jwt-2";
     expect(await authorization("u1")).toBe("Bearer jwt-2");
     expect(await authorization("other-user")).toBeNull();
     delete values["oauth:active_provider"];
@@ -106,8 +106,8 @@ it("uses the NIBI access token as the relay/API JWT", async () => {
   const authorization = createTelemetryAuthorizationLoader({ load });
   expect(await authorization("u1")).toBe("Bearer nibi-jwt");
   expect(await authorization("other-user")).toBeNull();
-  // NIBI 不写共享的 zcodejwttoken，别去读一个永远不存在的键。
-  expect(load.mock.calls.some(([key]) => key === "zcodejwttoken")).toBe(false);
+  // NIBI 不写共享的 nibi-jwttoken，别去读一个永远不存在的键。
+  expect(load.mock.calls.some(([key]) => key === "nibi-jwttoken")).toBe(false);
   values["oauth:nibi:access_token"] = "bad token";
   expect(await authorization("u1")).toBeNull();
 });

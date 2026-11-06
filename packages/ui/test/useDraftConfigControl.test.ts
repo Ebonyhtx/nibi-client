@@ -394,7 +394,7 @@ describe("useDraftConfigControl slash command hydration", () => {
       expect(readV4ComposerDraft(workspacePath, "remote:other", "__draft__")).toBeNull();
       expect(
         window.localStorage.getItem(
-          `zcode-model-selection-recent-v1:${workspaceIdentity ?? workspacePath}`,
+          `nibi-model-selection-recent-v1:${workspaceIdentity ?? workspacePath}`,
         ),
       ).toBeNull();
       act(() => root.unmount());
@@ -479,7 +479,7 @@ describe("useDraftConfigControl slash command hydration", () => {
         });
       const originalRoot = readV4ComposerDraft(workspacePath, undefined, "__draft__");
       const recentBefore = window.localStorage.getItem(
-        `zcode-model-selection-recent-v1:${workspacePath}`,
+        `nibi-model-selection-recent-v1:${workspacePath}`,
       );
       activateImportedSession({ workspacePath, sessionId: "imported", reused: false });
       let control: ReturnType<typeof useDraftConfigControl>;
@@ -511,7 +511,7 @@ describe("useDraftConfigControl slash command hydration", () => {
             }
           : imported,
       );
-      expect(window.localStorage.getItem(`zcode-model-selection-recent-v1:${workspacePath}`)).toBe(
+      expect(window.localStorage.getItem(`nibi-model-selection-recent-v1:${workspacePath}`)).toBe(
         recentBefore,
       );
       act(() => root.unmount());

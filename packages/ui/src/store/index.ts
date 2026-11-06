@@ -5,6 +5,7 @@
  * 广播频道前缀 "state:" 表示状态同步类消息。
  */
 import { create } from "zustand";
+import { readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
 import type { IBroadcastService, BroadcastMessage } from "@nibi/services";
 import type { OAuthProviderId, UserInfo } from "@nibi/shared";
 import type { CodePreviewSettings } from "@/lib/codePreviewSettings.js";
@@ -59,8 +60,8 @@ export interface LoginEntryAttempt {
   status: LoginEntryAttemptStatus;
 }
 
-const CODE_PREVIEW_SETTINGS_KEY = "zcode-code-preview-settings";
-const PERFORMANCE_MODE_STORAGE_KEY = "zcode-performance-mode";
+const CODE_PREVIEW_SETTINGS_KEY = "nibi-code-preview-settings";
+const PERFORMANCE_MODE_STORAGE_KEY = "nibi-performance-mode";
 export const FILE_MANAGER_NAVIGATION_PREFERENCES_STORAGE_KEY =
   "zcode-file-manager-navigation-preferences";
 
@@ -118,11 +119,11 @@ export interface ZCodeState {
 
   /** 当前主题 */
   theme: Theme;
+  locale: string;
+  setLocale: (locale: string) => void;
   setTheme: (theme: Theme) => void;
 
   /** 当前语言 */
-  locale: string;
-  setLocale: (locale: string) => void;
 
   /** 代码预览设置 */
   codePreviewSettings: CodePreviewSettings;
@@ -255,18 +256,19 @@ export function createZCodeStore(
     theme: loadThemePreference(),
     setTheme: (theme: Theme) => {
       const normalizedTheme = normalizeThemePreference(theme);
-      writeSafeLocalStorage("nibi-theme", normalizedTheme);
+      updatePrefs({ theme: normalizedTheme });
       syncSystemThemeListener(normalizedTheme);
       applyTheme(normalizedTheme);
 
       set({ theme: normalizedTheme });
     },
-
-    locale: readSafeLocalStorage("zcode-locale") || "zh-CN",
+    // 界面语言与主题同住 nibi:prefs；跨窗口广播仍按 BroadcastField 同步。
+    locale: readPrefs().locale ?? "zh-CN",
     setLocale: (locale: string) => {
-      writeSafeLocalStorage("zcode-locale", locale);
+      updatePrefs({ locale });
       set({ locale });
     },
+
 
     codePreviewSettings: loadCodePreviewSettings(),
     setCodePreviewSettings: (patch: Partial<CodePreviewSettings>) =>

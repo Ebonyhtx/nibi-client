@@ -52,7 +52,7 @@ export const UPSTREAM_THOUGHT_LEVEL = readUpstreamThoughtLevel();
 export const UPSTREAM_SECONDARY_THOUGHT_LEVEL =
   process.env.E2E_PROVIDER_SECONDARY_THOUGHT_LEVEL?.trim() || "max";
 const E2E_PROVIDER_REPLAY_API_KEY = "e2e-fixture-key";
-const MODEL_SELECTION_RECENT_KEY_PREFIX = "zcode-model-selection-recent-v1";
+const MODEL_SELECTION_RECENT_KEY_PREFIX = "nibi-model-selection-recent-v1";
 const UPSTREAM_THOUGHT_LEVEL_MAX_ATTEMPTS = 8;
 const UPSTREAM_THOUGHT_LEVEL_LABELS_BY_VALUE: Record<string, string[]> = {
   high: ["High", "高"],
@@ -243,7 +243,7 @@ async function seedUpstreamToolbarPreferences() {
           ...(thoughtLevel.trim() ? { options: { reasoningLevel: thoughtLevel.trim() } } : {}),
         }),
       );
-      window.localStorage.setItem("zcode-last-agent-provider", appProvider);
+      window.localStorage.setItem("nibi-last-agent-provider", appProvider);
     },
     DEFAULT_WORKSPACE,
     MODEL_SELECTION_RECENT_KEY_PREFIX,

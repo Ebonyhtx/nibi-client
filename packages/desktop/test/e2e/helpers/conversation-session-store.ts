@@ -87,7 +87,7 @@ export function getV4ComposerDraftScopeSnapshot(
       const storageKey =
         taskIdArg === null && intent
           ? `zcode-v4-composer-project-drafts:v1:${JSON.stringify([intent.clientNamespace, intent.hostId, intent.projectId])}`
-          : `zcode-v4-composer-drafts:v1:${encodeURIComponent(workspaceKey)}`;
+          : `nibi-v4-composer-drafts:v1:${encodeURIComponent(workspaceKey)}`;
       let draft: Record<string, unknown> | null = null;
       try {
         const raw = window.localStorage.getItem(storageKey);

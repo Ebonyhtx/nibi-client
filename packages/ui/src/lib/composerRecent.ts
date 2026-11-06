@@ -5,7 +5,7 @@ import { logger } from "@/logger.js";
 import { composerScopeKey, type ComposerScope } from "@/v4/composer/composerDraftStore.js";
 
 // 沿用旧 key，读取时兼容只保存 ModelSelection 的历史记录。
-const COMPOSER_RECENT_KEY_PREFIX = "zcode-model-selection-recent-v1";
+const COMPOSER_RECENT_KEY_PREFIX = "nibi-model-selection-recent-v1";
 
 interface StorageLike {
   getItem(key: string): string | null;

@@ -191,7 +191,7 @@ describe("桌面 OAuth 凭据完成事件", () => {
       await browser.waitUntil(
         async () => {
           const credentials = JSON.parse(await readFile(credentialsFile, "utf8"));
-          return !("zcodejwttoken" in credentials);
+          return !("nibi-jwttoken" in credentials);
         },
         { timeout: 15_000 },
       );

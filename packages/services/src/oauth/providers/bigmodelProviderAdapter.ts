@@ -184,7 +184,7 @@ export class BigModelProviderAdapter implements OAuthProviderAdapter {
       const accessToken = resolveBigModelBusinessAccessToken(payload);
       if (!accessToken) {
         // Coding Plan 付费套餐仍调用 bigmodel.cn 业务接口，只能使用
-        // BigModel 业务 access token；zcode JWT 只能写入 zcodejwttoken 给 Start Plan 使用。
+        // BigModel 业务 access token；zcode JWT 只能写入 nibi-jwttoken 给 Start Plan 使用。
         // 如果继续把 zcode JWT 写进 oauth:bigmodel:access_token，套餐预览会稳定报“令牌已过期”。
         log.warn(undefined, "zcode token response missing bigmodel access token", {
           code: payload.code,

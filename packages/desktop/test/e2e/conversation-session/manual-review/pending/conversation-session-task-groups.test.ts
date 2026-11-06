@@ -102,9 +102,9 @@ describe("任务分组独立视图", () => {
   it("GRP02：旧分组偏好迁移，新选择在重载后优先", async function () {
     this.timeout(60_000);
     await browser.execute(() => {
-      localStorage.removeItem("zcode-project-sidebar-preferences");
+      localStorage.removeItem("nibi-project-sidebar-preferences");
       localStorage.setItem(
-        "zcode-sidebar-task-preferences",
+        "nibi-sidebar-task-preferences",
         JSON.stringify({ organizeBy: "grouped", sortBy: "updated" }),
       );
     });

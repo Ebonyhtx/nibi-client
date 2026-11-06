@@ -18,7 +18,7 @@ function readWorkspaceFileDataUrl(path: string, mimeType: string): string {
 function createBootstrapDocument(theme: "nibi-dark" | "nibi-light"): JSDOM {
   return new JSDOM(readWebIndexHtml(), {
     beforeParse(window) {
-      window.localStorage.setItem("nibi-theme", theme);
+      window.localStorage.setItem("nibi:prefs", JSON.stringify({ version: 1, theme }));
       Object.defineProperty(window, "matchMedia", {
         configurable: true,
         value: () => ({ matches: false }),

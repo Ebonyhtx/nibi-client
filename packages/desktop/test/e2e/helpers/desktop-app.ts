@@ -888,7 +888,7 @@ export async function seedCredentials(authToken = "mock-token") {
         "oauth:active_provider": ZAI_PROVIDER_ID,
         [`oauth:${ZAI_PROVIDER_ID}:access_token`]: authToken,
         [`oauth:${ZAI_PROVIDER_ID}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
-        zcodejwttoken: authToken,
+        "nibi-jwttoken": authToken,
       },
       null,
       2,

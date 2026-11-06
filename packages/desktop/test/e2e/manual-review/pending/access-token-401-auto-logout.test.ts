@@ -49,7 +49,7 @@ describe("用户资料 access token 登录过期", () => {
       expect(status.rejectedIdentityHeaderCount).toBe(0);
       const credentials = await readCredentials();
       expect(credentials["oauth:active_provider"]).toBe("zai");
-      for (const key of ["oauth:zai:access_token", "oauth:zai:user_info", "zcodejwttoken"])
+      for (const key of ["oauth:zai:access_token", "oauth:zai:user_info", "nibi-jwttoken"])
         expect(credentials[key]).toBeDefined();
       expect(credentials["bot:e2e:credential"]).toBe("e2e-independent-bot-token");
       expect(await expiredAlertCount()).toBe(0);
@@ -90,7 +90,7 @@ describe("用户资料 access token 登录过期", () => {
           `oauth:${provider}:access_token`,
           `oauth:${provider}:refresh_token`,
           `oauth:${provider}:user_info`,
-          "zcodejwttoken",
+          "nibi-jwttoken",
         ].every((key) => !(key in credentials));
       },
       { timeout: 10_000, timeoutMsg: "弹窗确认前没有完成原 OAuth 清理" },

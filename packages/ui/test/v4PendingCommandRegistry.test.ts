@@ -73,7 +73,7 @@ it("PD06 首发账本写入失败时不能允许上行或留下不可恢复的�
     const registry = new PendingCommandRegistry({ storage });
     const original = storage.setItem.bind(storage);
     storage.setItem = (key, value) => {
-      if (key === "zcode-v4-pending-commands:v1") throw new Error("quota");
+      if (key === "nibi-v4-pending-commands:v1") throw new Error("quota");
       original(key, value);
     };
     const composer = {

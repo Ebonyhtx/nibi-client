@@ -66,7 +66,7 @@ it.each([
       const token = await fetch(new URL("/api/v1/remote/token", origin), {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${credentials.zcodejwttoken}`,
+          Authorization: `Bearer ${credentials["nibi-jwttoken"]}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ role: "terminal" }),

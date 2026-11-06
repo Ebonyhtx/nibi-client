@@ -9,7 +9,7 @@ import { useWorkspaceServicesResolution } from "@/hooks/useWorkspaceServices.js"
 import { logger } from "@/logger.js";
 import { isRendererReloadNavigation } from "@/lib/rendererNavigation.js";
 
-const STORAGE_PREFIX = "zcode-v4-last-session:v1:";
+const STORAGE_PREFIX = "nibi-v4-last-session:v1:";
 
 function storageKey(workspaceKey: string): string {
   return `${STORAGE_PREFIX}${workspaceKey}`;

@@ -27,7 +27,7 @@ export const SHARED_NIBI_CREDENTIAL_KEYS = {
   zaiAccessToken: "oauth:zai:access_token",
   zaiRefreshToken: "oauth:zai:refresh_token",
   zaiUserInfo: "oauth:zai:user_info",
-  zcodeJwtToken: "zcodejwttoken",
+  zcodeJwtToken: "nibi-jwttoken",
 } as const;
 
 export interface SharedZCodeCredentialStoreOptions {

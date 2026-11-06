@@ -32,7 +32,7 @@ export function createE2EStartupCredentialSeed(
   // 默认空凭据；只有显式账号 mock 或 JWT 专项采用合成身份，不再逐条排除普通用例。
   if (!options.accountMock && !requiresZCodeJwt) return {};
   const restoredOAuthCredentials = { ...options.restoredOAuthCredentials };
-  if (!requiresZCodeJwt) delete restoredOAuthCredentials.zcodejwttoken;
+  if (!requiresZCodeJwt) delete restoredOAuthCredentials["nibi-jwttoken"];
   return {
     auth_token: options.legacyAuthToken,
     ...restoredOAuthCredentials,

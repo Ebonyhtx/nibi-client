@@ -303,12 +303,12 @@ it("scopes selection and mobile marker, omits task file shortcuts, and closes on
 
 it("SBV02/04: migrates the legacy group view, preserves collapse and persists the new choice", () => {
   localStorage.setItem(
-    "zcode-sidebar-task-preferences",
+    "nibi-sidebar-task-preferences",
     JSON.stringify({ sortBy: "created", organizeBy: "grouped" }),
   );
-  localStorage.setItem("zcode-workspace-expansion", JSON.stringify({ "/one": false }));
+  localStorage.setItem("nibi-workspace-expansion", JSON.stringify({ "/one": false }));
   localStorage.setItem(
-    "zcode-project-sidebar-preferences",
+    "nibi-project-sidebar-preferences",
     JSON.stringify({ sort: "updated", view: "invalid" }),
   );
   const { result, unmount } = renderHook(() => useProjectSidebarPreferences([], false));
@@ -371,7 +371,7 @@ it("同步同一控制端的跨窗口排序，同时保留当前窗口未加载�
   act(() =>
     window.dispatchEvent(
       new StorageEvent("storage", {
-        key: "zcode-project-sidebar-preferences",
+        key: "nibi-project-sidebar-preferences",
         newValue: JSON.stringify({ order, view: "projects", expanded: {} }),
       }),
     ),

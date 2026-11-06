@@ -50,7 +50,7 @@ describe("桌面远控登录门禁", () => {
     for (const locale of ["zh-CN", "en-US"] as const) {
       for (const theme of ["nibi-light", "nibi-dark"] as const) {
         await seedSettings({ locale, localePreference: locale });
-        await browser.execute((value) => localStorage.setItem("nibi-theme", value), theme);
+        await browser.execute((value) => localStorage.setItem("nibi:prefs", JSON.stringify({ version: 1, theme: value })), theme);
         await browser.refresh();
         await enterWorkspace();
         expect(

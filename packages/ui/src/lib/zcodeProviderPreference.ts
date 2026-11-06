@@ -10,7 +10,7 @@ interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
-export const LAST_SELECTED_AGENT_PROVIDER_STORAGE_KEY = "zcode-last-agent-provider";
+export const LAST_SELECTED_AGENT_PROVIDER_STORAGE_KEY = "nibi-last-agent-provider";
 
 function getBrowserStorage(): StorageLike | null {
   if (typeof window === "undefined") {

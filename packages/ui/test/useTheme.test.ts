@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyTheme, loadThemePreference } from "@/useTheme.js";
+import { NIBI_PREFS_KEY, NIBI_PREFS_VERSION } from "@/lib/nibiStorage.js";
 
 beforeEach(() => {
   localStorage.clear();
@@ -91,20 +92,22 @@ describe("applyTheme", () => {
 
 describe("loadThemePreference", () => {
   it("把 light/dark 归一化为 nibi-* 并回写", () => {
-    localStorage.setItem("nibi-theme", "dark");
+    localStorage.setItem(NIBI_PREFS_KEY, JSON.stringify({ version: NIBI_PREFS_VERSION, theme: "dark" }));
 
     expect(loadThemePreference()).toBe("nibi-dark");
-    expect(localStorage.getItem("nibi-theme")).toBe("nibi-dark");
+    expect(localStorage.getItem(NIBI_PREFS_KEY)).toContain('"theme":"nibi-dark"');
   });
 
-  it("只认 nibi-theme，不读旧品牌键", () => {
-    localStorage.setItem("nibi-theme", "nibi-light");
-    // 旧键写一个不会被 nibi 认作主题的哨兵值：它若被读到，结果就不可能是 nibi-light。
-    localStorage.setItem("zcode-theme", "sentinel-not-a-theme");
+  it("偏好只落在 nibi:prefs，且带版本号", () => {
+    localStorage.setItem(
+      NIBI_PREFS_KEY,
+      JSON.stringify({ version: NIBI_PREFS_VERSION, theme: "nibi-dark" }),
+    );
 
-    expect(loadThemePreference()).toBe("nibi-light");
-    expect(localStorage.getItem("nibi-theme")).toBe("nibi-light");
-    // 旧键既不读也不清：NIBI 没有发布过，不会存在这种键。
-    expect(localStorage.getItem("zcode-theme")).toBe("sentinel-not-a-theme");
+    expect(loadThemePreference()).toBe("nibi-dark");
+    expect(JSON.parse(localStorage.getItem(NIBI_PREFS_KEY)!)).toMatchObject({
+      version: NIBI_PREFS_VERSION,
+      theme: "nibi-dark",
+    });
   });
 });

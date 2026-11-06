@@ -189,7 +189,7 @@ try {
             assert.equal(new URL(page.url()).searchParams.has("name"), false);
             assert.equal(new URL(page.url()).searchParams.get("app_version"), "3.13.0");
             assert.equal(
-              await page.evaluate(() => localStorage.getItem("zcode-web-remote-last-device-sid")),
+              await page.evaluate(() => localStorage.getItem("nibi-web-remote-last-device-sid")),
               "e2e-device",
             );
             await page.getByRole("button", { name: /Alice’s MacBook/ }).waitFor();

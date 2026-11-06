@@ -19,7 +19,7 @@ import { cleanupLogArchive, prepareCompactLogArchive } from "./compactLogArchive
 import { getFeedbackAttachmentDir } from "../paths.js";
 import { FeedbackLocalTicketStore } from "#src/feedback/feedbackLocalTicketStore.js";
 
-const NIBI_JWT_TOKEN_KEY = "zcodejwttoken";
+const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
 
 export interface CreateFeedbackServiceOptions {
   credentialService: ICredentialService;

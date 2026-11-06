@@ -5,7 +5,7 @@ const project = '[data-testid="project-section"]';
 const tasks = '[data-testid="conversation-section"]';
 const trigger = 'button[data-slot="collapsible-trigger"]';
 const indicator = '[data-testid="purpose-section-drop-indicator"]';
-const preferenceKey = "zcode-sidebar-purpose-section-preferences";
+const preferenceKey = "nibi-sidebar-purpose-section-preferences";
 
 describe("CWP02 分区标题拖拽", () => {
   before(async () => {

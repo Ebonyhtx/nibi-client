@@ -13,6 +13,7 @@ import {
   applyUiFontSizePx,
   loadMotionEnabled,
   loadUiFontSizePx,
+  readPrefs,
   subscribeToMotionStorageChanges,
   subscribeToUiFontSizeStorageChanges,
 } from "@nibi/ui";
@@ -46,7 +47,8 @@ function resolveTheme(theme: Theme): "light" | "dark" {
 
 function applyResourceManagerTheme(): void {
   // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
-  const savedTheme = (localStorage.getItem("nibi-theme") as Theme | null) ?? DEFAULT_THEME;
+  const storedTheme = readPrefs().theme;
+  const savedTheme = storedTheme ? (storedTheme as Theme) : DEFAULT_THEME;
   const normalizedTheme = normalizeTheme(savedTheme);
   const resolvedTheme = resolveTheme(normalizedTheme);
   const appliedTheme =

@@ -12,7 +12,7 @@ export const WEB_REMOTE_CONTROL_FIXTURE_CREDENTIALS = {
     username: "ZCode E2E",
     displayName: "ZCode E2E",
   }),
-  zcodejwttoken: "mock-token",
+  "nibi-jwttoken": "mock-token",
 };
 
 /** 单窗口真实 OAuth owner → RPC → renderer → Main 回归，只替换外部 relay。 */

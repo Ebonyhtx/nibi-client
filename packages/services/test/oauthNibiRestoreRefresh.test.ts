@@ -114,9 +114,9 @@ it("NIBI 启动恢复：refresh 遇到网络错误 → 保留凭据按已登录�
   expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
 });
 
-it("NIBI 登录成功会清掉 legacy zcodejwttoken，避免它反过来污染启动恢复", async () => {
+it("NIBI 登录成功会清掉 legacy nibi-jwttoken，避免它反过来污染启动恢复", async () => {
   const f = fixture();
-  f.credentials.set("zcodejwttoken", "stale-legacy-jwt");
+  f.credentials.set("nibi-jwttoken", "stale-legacy-jwt");
   await f.login();
-  expect(f.credentials.has("zcodejwttoken")).toBe(false);
+  expect(f.credentials.has("nibi-jwttoken")).toBe(false);
 });

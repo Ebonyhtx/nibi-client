@@ -90,7 +90,7 @@ describe("Provider/model readiness 只门禁模型执行", () => {
     expect(await $(`[data-testid="${TID_V4_COMPOSER_SEND}"]`).isEnabled()).toBe(false);
     await waitForV4ComposerText(blockedDraft, "缺模型门禁没有保留 composer 原文");
     expect(
-      await browser.execute(() => window.localStorage.getItem("zcode-v4-pending-commands:v1")),
+      await browser.execute(() => window.localStorage.getItem("nibi-v4-pending-commands:v1")),
     ).toBeNull();
     await waitForModelConfigMissingBanner();
 
@@ -133,7 +133,7 @@ describe("Provider/model readiness 只门禁模型执行", () => {
       timeoutMsg: "Provider 模型水合后发送按钮仍不可用",
     });
     expect(
-      await browser.execute(() => window.localStorage.getItem("zcode-v4-pending-commands:v1")),
+      await browser.execute(() => window.localStorage.getItem("nibi-v4-pending-commands:v1")),
     ).toBeNull();
 
     await switchToElectronRendererTarget(isResourceManagerUrl);

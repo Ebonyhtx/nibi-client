@@ -22,7 +22,7 @@ function fixture(provider: OAuthProviderId = "zai", responseStatus = 401) {
     ["oauth:active_provider", provider],
     [tokenKey, "old-token"],
     [`oauth:${provider}:refresh_token`, "refresh-token"],
-    ["zcodejwttoken", "old-jwt"],
+    ["nibi-jwttoken", "old-jwt"],
     ["bot:test:credential", "independent"],
   ]);
   const credentials = {
@@ -241,7 +241,7 @@ describe("401 条件退出与会话写入串行化", () => {
       for (const response of responses) expect(await response.json()).toMatchObject({ code: 401 });
       expect(f.store.has(f.tokenKey)).toBe(false);
       expect(f.store.has("oauth:active_provider")).toBe(false);
-      expect(f.store.has("zcodejwttoken")).toBe(false);
+      expect(f.store.has("nibi-jwttoken")).toBe(false);
       expect(f.store.get("bot:test:credential")).toBe("independent");
       expect(f.onProviderLogout).toHaveBeenCalledExactlyOnceWith(provider, "old-account");
       expect(f.notified).toHaveBeenCalledOnce();
@@ -358,7 +358,7 @@ describe("401 条件退出与会话写入串行化", () => {
     expect(await f.service.logoutIfCurrentCredentialRequest(f.url, f.headers)).toBe(true);
     expect(await f.service.logoutIfCurrentCredentialRequest(f.url, f.headers)).toBe(false);
     expect(f.store.has(f.tokenKey)).toBe(false);
-    expect(f.store.has("zcodejwttoken")).toBe(false);
+    expect(f.store.has("nibi-jwttoken")).toBe(false);
     expect(f.store.get("bot:test:credential")).toBe("independent");
     expect(f.onProviderLogout).toHaveBeenCalledOnce();
   });

@@ -34,7 +34,7 @@ async function reset(options: Record<string, boolean> = {}) {
 async function expectAnonymous() {
   const credentials = JSON.parse(await readFile(getE2EAppDataPaths().credentialsFile, "utf8"));
   // 只判断凭据是否存在，失败输出也不得带出凭据内容。
-  expect(Boolean(credentials.zcodejwttoken)).toBe(false);
+  expect(Boolean(credentials["nibi-jwttoken"])).toBe(false);
 }
 
 describe("Marketing Touch anonymous boundaries", () => {

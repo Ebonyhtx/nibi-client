@@ -37,7 +37,7 @@ describe("任务通知开关跨窗口同步", () => {
     // 模拟窗口 B 收到广播：应用开关（含 localStorage 持久化），不回播
     receive()?.({ channel: "state:notificationEnabled", payload: false });
     expect(store.getState().notificationEnabled).toBe(false);
-    expect(localStorage.getItem("zcode-notification-enabled")).toBe("false");
+    expect(localStorage.getItem("nibi-notification-enabled")).toBe("false");
     expect(send).not.toHaveBeenCalled();
 
     // 非法 payload 不改变状态
@@ -46,7 +46,7 @@ describe("任务通知开关跨窗口同步", () => {
   });
 
   it("新窗口启动从 localStorage 读最新开关值（跨窗口共享持久层）", () => {
-    localStorage.setItem("zcode-notification-enabled", "false");
+    localStorage.setItem("nibi-notification-enabled", "false");
     const { service } = createBroadcastFixture();
     const store = createZCodeStore(service);
     expect(store.getState().notificationEnabled).toBe(false);

@@ -111,7 +111,7 @@ describe("Composer Recent 权限继承", () => {
               __zcodeTabStoreE2E: { getState(): { activeWorkspacePath: string } };
             };
             const pending = JSON.parse(
-              localStorage.getItem('zcode-pending-task-draft:v1:["desktop","local",null]') ??
+              localStorage.getItem('nibi-pending-task-draft:v1:["desktop","local",null]') ??
                 "null",
             );
             return Boolean(
@@ -245,7 +245,7 @@ describe("Composer Recent 权限继承", () => {
               __zcodeTabStoreE2E: { getState(): { activeWorkspacePath: string } };
             };
             const pending = JSON.parse(
-              localStorage.getItem('zcode-pending-task-draft:v1:["desktop","local",null]') ??
+              localStorage.getItem('nibi-pending-task-draft:v1:["desktop","local",null]') ??
                 "null",
             );
             return Boolean(

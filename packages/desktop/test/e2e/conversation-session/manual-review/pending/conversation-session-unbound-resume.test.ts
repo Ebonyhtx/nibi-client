@@ -103,7 +103,7 @@ describe("Todo 70：模型选择残缺不阻止历史打开", () => {
       // 首轮发送已保存的合法 max，测到的是“已有草稿优先”而不是历史残缺恢复。
       await browser.execute(
         (workspacePath, targetSessionId) => {
-          const key = `zcode-v4-composer-drafts:v1:${encodeURIComponent(workspacePath)}`;
+          const key = `nibi-v4-composer-drafts:v1:${encodeURIComponent(workspacePath)}`;
           const raw = localStorage.getItem(key);
           if (!raw) return;
           const file = JSON.parse(raw);

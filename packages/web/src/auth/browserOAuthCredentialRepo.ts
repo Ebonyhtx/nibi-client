@@ -11,7 +11,7 @@ import {
 import { toUserInfo } from "./oauthUserInfo.js";
 
 const ACTIVE_PROVIDER_KEY = "oauth:active_provider";
-const NIBI_JWT_TOKEN_KEY = "zcodejwttoken";
+const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
 const ZAI_ACCESS_TOKEN_KEY = "oauth:zai:access_token";
 const ZAI_USER_INFO_KEY = "oauth:zai:user_info";
 const BIGMODEL_ACCESS_TOKEN_KEY = "oauth:bigmodel:access_token";

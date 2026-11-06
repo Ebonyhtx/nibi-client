@@ -9,7 +9,7 @@ try {
     for (const width of [320, 1280]) {
       for (const theme of ["nibi-light", "nibi-dark"]) {
         const context = await browser.newContext({ viewport: { width, height: 800 } });
-        await context.addInitScript((value) => localStorage.setItem("nibi-theme", value), theme);
+        await context.addInitScript((value) => localStorage.setItem("nibi:prefs", JSON.stringify({ version: 1, theme: value })), theme);
         const page = await context.newPage();
         const chinese = locale === "cn/share";
         const home = page.getByRole("link", {

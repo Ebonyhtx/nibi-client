@@ -34,7 +34,7 @@ export type PendingCommandResolution =
   | "discarded";
 
 export const PENDING_COMMAND_TTL_MS = 24 * 60 * 60 * 1_000;
-const STORAGE_KEY = "zcode-v4-pending-commands:v1";
+const STORAGE_KEY = "nibi-v4-pending-commands:v1";
 
 interface StorageLike {
   getItem(key: string): string | null;

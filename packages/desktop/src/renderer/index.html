@@ -123,15 +123,23 @@
       (() => {
         try {
           // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
-          const saved = localStorage.getItem("nibi-theme");
+          // 偏好合并存在 `nibi:prefs` 一个 JSON 里（见 @nibi/ui 的 lib/nibiStorage.ts）。
+          // 这里解析失败/结构不对都按"没设过"处理，与 bundle 侧的兜底一致。
+          let prefs = null;
+          try {
+            prefs = JSON.parse(localStorage.getItem("nibi:prefs") || "null");
+          } catch {
+            prefs = null;
+          }
+          const saved = prefs && typeof prefs === "object" ? prefs.theme : null;
           const resolvedDark =
             saved === "dark" ||
             saved === "nibi-dark" ||
             (saved === "system" &&
               window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", resolvedDark);
-          document.documentElement.dataset.nibiMotion =
-            localStorage.getItem("nibi-motion") === "false" ? "off" : "on";
+          const motion = prefs && typeof prefs === "object" ? prefs.motion : null;
+          document.documentElement.dataset.nibiMotion = motion === "off" ? "off" : "on";
         } catch {
           // localStorage 不可用时保持浅色底、保留动效（与两个默认值一致）。
         }

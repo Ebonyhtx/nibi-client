@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import type { Locale, LocalePreference } from "@nibi/shared";
 import { DEFAULT_LOCALE } from "@nibi/shared";
 import type { BroadcastMessage, IBroadcastService, ISettingService } from "@nibi/services";
-import { readNavigatorLanguage, readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnvironment.js";
+import { readNavigatorLanguage } from "@/lib/browserEnvironment.js";
+import { readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
 import zhCN from "./locales/zh-CN.js";
 import enUS from "./locales/en-US.js";
 
@@ -18,7 +19,6 @@ export interface IntlInstance {
   formatMessage(descriptor: { id: string }, values?: Record<string, string | number>): string;
 }
 
-const LOCALE_PREFERENCE_KEY = "nibi-locale-preference";
 const STATE_LOCALE_CHANNEL = "state:locale";
 
 interface LocaleBroadcastPayload {
@@ -168,7 +168,7 @@ export function ZCodeIntlProvider({
   }, [resolveHostSystemLocale, resolveNavigatorSystemLocale]);
 
   const readStoredPreference = useCallback((): LocalePreference | null => {
-    const raw = readSafeLocalStorage(LOCALE_PREFERENCE_KEY);
+    const raw = readPrefs().locale ?? null;
     if (isLocalePreference(raw)) {
       return raw;
     }
@@ -176,7 +176,7 @@ export function ZCodeIntlProvider({
   }, []);
 
   const persistLocalePreference = useCallback((preference: LocalePreference) => {
-    writeSafeLocalStorage(LOCALE_PREFERENCE_KEY, preference);
+    updatePrefs({ locale: preference });
   }, []);
 
   const [localePreference, setLocalePreferenceState] = useState<LocalePreference>(

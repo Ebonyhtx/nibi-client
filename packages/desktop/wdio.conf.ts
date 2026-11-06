@@ -1799,7 +1799,7 @@ async function startCodingPlanTeamMockIfNeeded(specs: string[] = []) {
           {
             apiKey: personal ? "personal-ak" : "team-ak",
             keyType: personal ? 1 : 2,
-            name: personal ? "zcode-api-key" : "zcode-team-api-key",
+            name: personal ? "nibi-api-key" : "zcode-team-api-key",
           },
         ],
       });
@@ -3373,7 +3373,7 @@ function seedE2EStartupState(specs: string[] = []) {
                         ? "e2e-bigmodel-oauth-token"
                         : E2E_AUTH_TOKEN,
                       [`oauth:${authProviderId}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
-                      zcodejwttoken: E2E_AUTH_TOKEN,
+                      "nibi-jwttoken": E2E_AUTH_TOKEN,
                     },
                   }),
       null,
@@ -3451,7 +3451,7 @@ function createCorruptOAuthCredentialSeed(authProviderId: string): Record<string
           ? { user_id: "e2e-user", name: "Fixture User" }
           : { id: "e2e-user", username: "Fixture User", displayName: "Fixture User" },
       ),
-      zcodejwttoken: "e2e-valid-opaque-jwt",
+      "nibi-jwttoken": "e2e-valid-opaque-jwt",
       "bot:e2e:credential": "e2e-independent-bot-token",
     };
   }
@@ -3465,7 +3465,7 @@ function createCorruptOAuthCredentialSeed(authProviderId: string): Record<string
     [`oauth:${BIGMODEL_PROVIDER_ID}:access_token`]: "stale-bigmodel-access-token",
     [`oauth:${BIGMODEL_PROVIDER_ID}:refresh_token`]: "stale-bigmodel-refresh-token",
     [`oauth:${BIGMODEL_PROVIDER_ID}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
-    zcodejwttoken: "stale-zcode-jwt-token",
+    "nibi-jwttoken": "stale-zcode-jwt-token",
     "bot:e2e:credential": "e2e-independent-bot-token",
   };
 }
@@ -3478,7 +3478,7 @@ function createExpiredJwtOAuthCredentialSeed(authProviderId: string): Record<str
     [`oauth:${authProviderId}:user_info`]: JSON.stringify(E2E_USER_PROFILE),
     // Bug 回归 fixture：exp=1 明确早于任意测试运行时间；客户端只解析 exp，
     // 不验证这枚本地测试 JWT 的签名。
-    zcodejwttoken: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjF9.e2e",
+    "nibi-jwttoken": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjF9.e2e",
   };
 }
 

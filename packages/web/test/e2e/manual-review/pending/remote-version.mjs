@@ -18,8 +18,8 @@ async function scenario({ width, theme, locale, missingVersion = false, oldDeskt
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await context.addInitScript((value) => {
-    localStorage.setItem("nibi-theme", value);
-    localStorage.setItem("zcodejwttoken", "e2e-jwt");
+    localStorage.setItem("nibi:prefs", JSON.stringify({ version: 1, theme: value }));
+    localStorage.setItem("nibi-jwttoken", "e2e-jwt");
     localStorage.setItem("oauth:active_provider", "zai");
     localStorage.setItem("oauth:zai:access_token", "e2e-access");
     localStorage.setItem(

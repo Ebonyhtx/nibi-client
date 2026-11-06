@@ -740,7 +740,7 @@ describe("Marketing Touch delivery", () => {
     await byId("cloud-content-dialog").$("button=Run action").click();
     await byId("cloud-content-dialog").waitForExist({ reverse: true, timeout: 15_000 });
     await browser.waitUntil(async () => (await ledger()).events.length === baseline + 1);
-    expect(await browser.execute(() => localStorage.getItem("zcode-settings-last-section"))).toBe(
+    expect(await browser.execute(() => localStorage.getItem("nibi-settings-last-section"))).toBe(
       "appearance",
     );
     expect((await ledger()).events[baseline]).toEqual({

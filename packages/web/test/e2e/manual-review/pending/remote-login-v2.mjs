@@ -146,7 +146,7 @@ try {
       name: "Alice’s MacBook",
     });
     assert.equal(
-      await selection.page.evaluate(() => localStorage.getItem("zcode-web-remote-last-device-sid")),
+      await selection.page.evaluate(() => localStorage.getItem("nibi-web-remote-last-device-sid")),
       "e2e-device",
     );
     await selection.page.reload();
@@ -185,11 +185,11 @@ try {
     assert.deepEqual(Object.fromEntries(new URL(other.page.url()).searchParams), {
       app_version: "3.13.0",
     });
-    assert.equal(await other.page.evaluate(() => localStorage.getItem("zcodejwttoken")), "e2e-jwt");
+    assert.equal(await other.page.evaluate(() => localStorage.getItem("nibi-jwttoken")), "e2e-jwt");
     await other.page.getByRole("button", { name: "切换", exact: true }).click();
     await other.page.getByRole("button", { name: "退出并切换", exact: true }).click();
     await other.page.getByRole("button", { name: /连接 Z.ai 继续使用/ }).waitFor();
-    assert.equal(await other.page.evaluate(() => localStorage.getItem("zcodejwttoken")), null);
+    assert.equal(await other.page.evaluate(() => localStorage.getItem("nibi-jwttoken")), null);
     assert.deepEqual(other.errors, []);
     results.push({ case: "MD04 失败页换设备跳过最近直连；MD05 列表切换账号", result: "passed" });
   } finally {
@@ -304,7 +304,7 @@ try {
             assert.equal(await login.page.getByRole("dialog").count(), 0);
             assert.equal(login.page.url(), `${origin}${loginQrPath}`);
             assert.equal(
-              await login.page.evaluate(() => localStorage.getItem("zcodejwttoken")),
+              await login.page.evaluate(() => localStorage.getItem("nibi-jwttoken")),
               null,
             );
             assert.equal(login.traffic.tokens, signedIn ? 1 : 0);
@@ -349,7 +349,7 @@ try {
             assert.equal(login.traffic.tokens, signedIn ? 2 : 1);
             assert.equal(login.traffic.sockets, 1);
             assert.equal(
-              await login.page.evaluate(() => localStorage.getItem("zcodejwttoken")),
+              await login.page.evaluate(() => localStorage.getItem("nibi-jwttoken")),
               "e2e-jwt",
             );
             assert.equal(
@@ -405,7 +405,7 @@ try {
       assert.equal(login.traffic.exchange.provider, provider);
       assert.equal(login.traffic.exchange.redirect_uri, redirectUri);
       assert.equal(
-        await callbackPage.evaluate(() => localStorage.getItem("zcodejwttoken")),
+        await callbackPage.evaluate(() => localStorage.getItem("nibi-jwttoken")),
         "e2e-jwt",
       );
       assert.equal(
@@ -428,7 +428,7 @@ try {
         if (tokenStatus === 200) await assertEventually(() => h.traffic.bootstraps === 1);
         else {
           await h.page.getByRole("button", { name: /连接 Z.ai 继续使用/ }).waitFor();
-          assert.equal(await h.page.evaluate(() => localStorage.getItem("zcodejwttoken")), null);
+          assert.equal(await h.page.evaluate(() => localStorage.getItem("nibi-jwttoken")), null);
           assert.equal(h.page.url(), `${origin}${qrPath}`);
           assert.equal(h.traffic.sockets, 0);
           await h.page.getByRole("button", { name: /连接 BigModel 继续使用/ }).click();

@@ -913,7 +913,7 @@ describe("createFeedbackService", () => {
     const service = createFeedbackService({
       apiClient: makeFetchApiClient(),
       credentialService: makeCredentialService((key) => {
-        if (key === "zcodejwttoken") return "shared-backend-jwt";
+        if (key === "nibi-jwttoken") return "shared-backend-jwt";
         return null;
       }),
       oauthService: makeOAuthService(),
@@ -940,7 +940,7 @@ describe("createFeedbackService", () => {
     const service = createFeedbackService({
       apiClient: makeFetchApiClient(),
       credentialService: makeCredentialService((key) => {
-        if (key === "zcodejwttoken") return "shared-backend-jwt";
+        if (key === "nibi-jwttoken") return "shared-backend-jwt";
         return null;
       }),
       oauthService: makeOAuthService(),
@@ -965,7 +965,7 @@ describe("createFeedbackService", () => {
     const service = createFeedbackService({
       apiClient: makeFetchApiClient(),
       credentialService: makeCredentialService((key) => {
-        if (key === "zcodejwttoken") return "shared-backend-jwt";
+        if (key === "nibi-jwttoken") return "shared-backend-jwt";
         return null;
       }),
       oauthService: makeOAuthService(),
@@ -1079,7 +1079,7 @@ describe("createFeedbackService", () => {
         apiBaseUrl: "https://zcode.z.ai/api/v1",
         getDeviceMid: () => "desktop-device-mid-222",
         credentialService: makeCredentialService((key) => {
-          if (key === "zcodejwttoken") return "shared-backend-jwt";
+          if (key === "nibi-jwttoken") return "shared-backend-jwt";
           return null;
         }),
         oauthService: makeOAuthService(),

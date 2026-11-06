@@ -3,7 +3,7 @@ interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
-export const WORKSPACE_EXPANSION_STORAGE_KEY = "zcode-workspace-expansion";
+export const WORKSPACE_EXPANSION_STORAGE_KEY = "nibi-workspace-expansion";
 
 function getBrowserStorage(): StorageLike | null {
   if (typeof window === "undefined") {

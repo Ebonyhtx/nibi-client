@@ -94,7 +94,7 @@ export function readTaskStoreSnapshotInBrowser(
     const result: Record<string, string | null> = {};
     try {
       for (const [key, value] of Object.entries(window.localStorage)) {
-        if (key.startsWith("zcode-model-selection-recent-v1:")) {
+        if (key.startsWith("nibi-model-selection-recent-v1:")) {
           result[key] = value;
         }
       }

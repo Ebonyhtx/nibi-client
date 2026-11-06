@@ -25,8 +25,8 @@ export function isWebRemoteControlOAuthCallback(url: URL): boolean {
   );
 }
 
-const LAST_DEVICE_KEY = "zcode-web-remote-last-device-sid";
-const LAST_DEVICE_MID_KEY = "zcode-web-remote-last-device-mid";
+const LAST_DEVICE_KEY = "nibi-web-remote-last-device-sid";
+const LAST_DEVICE_MID_KEY = "nibi-web-remote-last-device-mid";
 
 /**
  * 最近设备的自动落点：最近 SID 在线优先；否则同一台电脑（最近 MID）恰好一个在线 SID 时接上它。

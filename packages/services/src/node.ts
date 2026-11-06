@@ -2551,7 +2551,7 @@ export function createLocalServices(options: {
       IMarketingTouchService,
       createMarketingTouchService({
         apiClient,
-        getToken: () => credentialService.load("zcodejwttoken"),
+        getToken: () => credentialService.load("nibi-jwttoken"),
         getDeviceMid: () => options?.agentTelemetry?.getDeviceMid?.(),
         baseUrl: buildRuntimeZCodeApiUrl(process.env, "/"),
         appVersion: NIBI_VERSION,
@@ -2786,7 +2786,7 @@ export function createTelemetryAuthorizationLoader(
       // NIBI 没有单独的 zcode JWT：access token 本身就是中继/业务 API 的 Bearer。
       const jwt = (
         await credentialService.load(
-          provider === "nibi" ? "oauth:nibi:access_token" : "zcodejwttoken",
+          provider === "nibi" ? "oauth:nibi:access_token" : "nibi-jwttoken",
         )
       )?.trim();
       // 退出/切账号可能发生在异步读取期间；禁止将旧身份的 token 附到其他账号事件上。

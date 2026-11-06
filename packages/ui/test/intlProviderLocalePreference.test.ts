@@ -9,6 +9,7 @@ import {
   ZCodeIntlProvider,
 } from "@/i18n/IntlProvider.js";
 import type { Locale } from "@nibi/shared";
+import { NIBI_PREFS_KEY } from "@/lib/nibiStorage.js";
 import type { BroadcastMessage } from "@nibi/services";
 
 function LocaleProbe() {
@@ -304,7 +305,7 @@ describe("IntlProvider locale preference sync", () => {
       expect(screen.getByTestId("locale").textContent).toBe("en-US");
       expect(screen.getByTestId("localePreference").textContent).toBe("en-US");
     });
-    expect(localStorage.getItem("nibi-locale-preference")).toBe("en-US");
+    expect(JSON.parse(localStorage.getItem(NIBI_PREFS_KEY) ?? "{}").locale).toBe("en-US");
     expect(settingService.update).toHaveBeenCalledWith({
       locale: "en-US",
       localePreference: "en-US",
@@ -357,7 +358,7 @@ describe("IntlProvider locale preference sync", () => {
 
     expect(screen.getByTestId("locale").textContent).toBe("zh-CN");
     expect(screen.getByTestId("localePreference").textContent).toBe("system");
-    expect(localStorage.getItem("nibi-locale-preference")).toBe("system");
+    expect(JSON.parse(localStorage.getItem(NIBI_PREFS_KEY) ?? "{}").locale).toBe("system");
   });
 
   it("settingService 持久化延迟时不会阻塞跨窗口广播", async () => {

@@ -176,7 +176,7 @@ export async function isCurrentOAuthCredentialRequest(options: {
 }): Promise<boolean> {
   const authorization = options.headers.get("authorization")?.trim() ?? "";
   if (!authorization) return false;
-  const currentJwt = (await options.credentialService.load("zcodejwttoken"))?.trim() ?? "";
+  const currentJwt = (await options.credentialService.load("nibi-jwttoken"))?.trim() ?? "";
   if (currentJwt && authorization === `Bearer ${currentJwt}`) return true;
   // NIBI access token 的 401 同样要进入失效判定（撤销/过期后 UI 不再伪登录）。
   if (await isCurrentNibiCredentialRequest(options)) return true;

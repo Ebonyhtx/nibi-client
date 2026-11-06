@@ -21,7 +21,7 @@ const OAUTH_CREDENTIAL_KEYS = [
   `oauth:${BIGMODEL_PROVIDER_ID}:access_token`,
   `oauth:${BIGMODEL_PROVIDER_ID}:refresh_token`,
   `oauth:${BIGMODEL_PROVIDER_ID}:user_info`,
-  "zcodejwttoken",
+  "nibi-jwttoken",
 ] as const;
 
 describe("OAuth 凭据损坏恢复", () => {

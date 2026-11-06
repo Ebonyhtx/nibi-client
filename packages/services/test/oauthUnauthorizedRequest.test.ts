@@ -11,7 +11,7 @@ function createFixture(provider = "zai", env: NodeJS.ProcessEnv = { NIBI_ENV: "p
     ["oauth:active_provider", provider],
     ["oauth:zai:access_token", "zai-business-token"],
     ["oauth:bigmodel:access_token", "bigmodel-business-token"],
-    ["zcodejwttoken", "current-zcode-jwt"],
+    ["nibi-jwttoken", "current-zcode-jwt"],
   ]);
   const credentialService = { load: vi.fn(async (key: string) => credentials.get(key) ?? null) };
   const observe = (url: string | URL, headers: Headers) =>

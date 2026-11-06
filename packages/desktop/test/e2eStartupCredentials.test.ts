@@ -5,7 +5,7 @@ const restoredOAuthCredentials = {
   "oauth:active_provider": "zai",
   "oauth:zai:access_token": "fake-access-token",
   "oauth:zai:user_info": "{}",
-  zcodejwttoken: "fake-zcode-jwt",
+  "nibi-jwttoken": "fake-zcode-jwt",
 };
 
 describe("desktop e2e startup credentials", () => {
@@ -42,7 +42,7 @@ describe("desktop e2e startup credentials", () => {
       "oauth:zai:access_token": "fake-access-token",
       "oauth:zai:user_info": "{}",
     });
-    expect(fixture.zcodejwttoken).toBe("fake-zcode-jwt");
+    expect(fixture["nibi-jwttoken"]).toBe("fake-zcode-jwt");
   });
 
   it("远程回放优先保持匿名，不采用本地账号 mock", () => {
@@ -110,7 +110,7 @@ describe("desktop e2e startup credentials", () => {
         specs: ["/repo/packages/desktop/test/e2e/provider-family-responsive.test.ts"],
         legacyAuthToken: "fake-auth-token",
         restoredOAuthCredentials,
-      }).zcodejwttoken,
+      })["nibi-jwttoken"],
     ).toBe("fake-zcode-jwt");
   });
   it("纯 Provider 冷恢复 spec 不播种会访问账号控制面的假登录态", () => {
@@ -220,8 +220,8 @@ describe("desktop e2e startup credentials", () => {
       createE2EStartupCredentialSeed({
         specs: ["./test/e2e/conversation-session/conversation-session-share-popover.test.ts"],
         legacyAuthToken: "legacy",
-        restoredOAuthCredentials: { zcodejwttoken: "local-only" },
-      }).zcodejwttoken,
+        restoredOAuthCredentials: { "nibi-jwttoken": "local-only" },
+      })["nibi-jwttoken"],
     ).toBe("local-only");
   });
 });

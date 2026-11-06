@@ -12,7 +12,7 @@ import { createServiceLogger } from "../../logger/serviceLogger.js";
 
 const ACTIVE_PROVIDER_KEY = "oauth:active_provider";
 const LOGIN_ATTRIBUTION_KEY = "oauth:login_attribution";
-const NIBI_JWT_TOKEN_KEY = "zcodejwttoken";
+const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
 const KNOWN_OAUTH_PROVIDER_IDS = [BIGMODEL_PROVIDER_ID, ZAI_PROVIDER_ID] as const;
 const log = createServiceLogger("oauthCredentialRepo");
 

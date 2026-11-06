@@ -5,7 +5,7 @@ import { flushElectronStorageData } from "./e2e-electron-storage.js";
 import { skipOccupationOnboardingIfPresent } from "./occupation-onboarding.js";
 
 const paths = getE2EAppDataPaths();
-const MODEL_SELECTION_RECENT_KEY_PREFIX = "zcode-model-selection-recent-v1:";
+const MODEL_SELECTION_RECENT_KEY_PREFIX = "nibi-model-selection-recent-v1:";
 let retainedRestartUserDataDir: string | null = null;
 
 export interface ModelProviderRestartOptions {

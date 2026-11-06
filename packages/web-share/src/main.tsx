@@ -14,6 +14,7 @@ import {
   isConversationSharePath,
   resolveConversationShareCodeFromPath,
 } from "../../web/src/share/conversationShareRoute.js";
+import { readPrefs } from "@nibi/ui/nibi-storage";
 import { resolveWebRemoteControlInitialTheme } from "../../web/src/web-remote-control/adapters/webRemoteControlThemeSeed.js";
 import { createWebAuthService } from "../../web/src/auth/webAuthService.js";
 import {
@@ -28,7 +29,7 @@ const webAuthService = createWebAuthService();
 
 function resolveThemePreference(): Theme {
   // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
-  const saved = localStorage.getItem("nibi-theme");
+  const saved = readPrefs().theme ?? null;
   return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme: "nibi-light" });
 }
 

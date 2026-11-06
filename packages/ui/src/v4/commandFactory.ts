@@ -11,7 +11,7 @@ import {
 import { uuidv7 } from "@nibi/shared";
 export { uuidv7 } from "@nibi/shared";
 
-const CLIENT_ID_STORAGE_KEY = "zcode-v4-client-id:v1";
+const CLIENT_ID_STORAGE_KEY = "nibi-v4-client-id:v1";
 let cachedClientId: string | null = null;
 
 /**

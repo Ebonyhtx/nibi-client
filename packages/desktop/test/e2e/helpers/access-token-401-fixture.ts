@@ -111,7 +111,7 @@ export async function prepareAccessToken401Fixture(options: {
             },
           ],
         };
-      } else if (path.endsWith("/api_keys")) data = [{ apiKey: "key-e2e", name: "zcode-api-key" }];
+      } else if (path.endsWith("/api_keys")) data = [{ apiKey: "key-e2e", name: "nibi-api-key" }];
       else if (path.endsWith("/access_tokens")) {
         tokenRequests++;
         data = {
@@ -262,7 +262,7 @@ export async function prepareAccessToken401Fixture(options: {
               ...(projectRecovery ? { rawProfile: { zcodeProfileSchemaVersion: 2 } } : {}),
             },
       ),
-      zcodejwttoken: "e2e-distinct-zcode-jwt",
+      "nibi-jwttoken": "e2e-distinct-zcode-jwt",
       "bot:e2e:credential": "e2e-independent-bot-token",
       ...(projectRecovery
         ? {

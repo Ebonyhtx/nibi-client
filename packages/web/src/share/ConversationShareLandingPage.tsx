@@ -14,6 +14,7 @@ import type { ConversationSharePreview } from "@nibi/shared";
 import { ConversationShareReadonlyTimeline } from "@nibi/ui/conversation-share-readonly";
 import { renderOAuthProviderIcon } from "@nibi/ui/oauth-provider-icon";
 import { applyTheme, resolveTheme, type Theme } from "@nibi/ui/useTheme";
+import { updatePrefs } from "@nibi/ui/nibi-storage";
 import "./conversationShareLandingPage.css";
 import type { WebOAuthProviderId } from "../auth/browserOAuthCredentialRepo.js";
 import {
@@ -775,7 +776,7 @@ export function ConversationShareLandingLoader({
   const [state, setState] = useState<ConversationShareLandingState>({ kind: "loading" });
   const [activeTheme, setActiveTheme] = useState<Theme>(theme ?? "nibi-light");
   const handleThemeChange = useCallback((nextTheme: Theme) => {
-    localStorage.setItem("nibi-theme", nextTheme);
+    updatePrefs({ theme: nextTheme });
     setActiveTheme(nextTheme);
     applyTheme(nextTheme);
   }, []);

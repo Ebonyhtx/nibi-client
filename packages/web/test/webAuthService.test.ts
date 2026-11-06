@@ -440,7 +440,7 @@ describe("WebAuthService", () => {
         displayName: "Ada",
       },
     });
-    expect(localStorage.getItem("zcodejwttoken")).toBe("jwt-token");
+    expect(localStorage.getItem("nibi-jwttoken")).toBe("jwt-token");
     expect(localStorage.getItem("oauth:zai:access_token")).toBe("zai-token");
     expect(localStorage.getItem("oauth:active_provider")).toBe("zai");
     expect(localStorage.getItem(PENDING_LOGINS_KEY)).toBeNull();
@@ -476,7 +476,7 @@ describe("WebAuthService", () => {
       service.handleCallback(`http://192.168.1.8:5173/remote/v4?code=code-1&state=${state}`),
     ).rejects.toThrow(/access_token/);
 
-    expect(localStorage.getItem("zcodejwttoken")).toBeNull();
+    expect(localStorage.getItem("nibi-jwttoken")).toBeNull();
     expect(localStorage.getItem("oauth:zai:access_token")).toBeNull();
     expect(localStorage.getItem("oauth:active_provider")).toBeNull();
   });
@@ -545,7 +545,7 @@ describe("WebAuthService BigModel provider", () => {
     expect(result?.userInfo.id).toBe("53291785835589288");
     expect(localStorage.getItem("oauth:active_provider")).toBe("bigmodel");
     expect(localStorage.getItem("oauth:bigmodel:access_token")).toBe("bigmodel-token");
-    expect(localStorage.getItem("zcodejwttoken")).toBe("jwt-token");
+    expect(localStorage.getItem("nibi-jwttoken")).toBe("jwt-token");
     // 登录记录用完即清，避免污染下一次登录
     expect(localStorage.getItem(PENDING_LOGINS_KEY)).toBeNull();
   });
@@ -573,7 +573,7 @@ describe("WebAuthService BigModel provider", () => {
       service.handleCallback(`https://zcode.z.ai/cn/share/callback?code=code-1&state=${state}`),
     ).rejects.toThrow(/data\.bigmodel\.access_token/);
 
-    expect(localStorage.getItem("zcodejwttoken")).toBeNull();
+    expect(localStorage.getItem("nibi-jwttoken")).toBeNull();
     expect(localStorage.getItem("oauth:active_provider")).toBeNull();
   });
   it("NIBI 登录：干净的 redirect_uri、S256 challenge 与项目 audience", async () => {
@@ -666,7 +666,7 @@ describe("WebAuthService BigModel provider", () => {
     expect(result?.appReturnTo).toBe("/remote/v4?sid=s-1");
     expect(h.localStorage.getItem("oauth:nibi:access_token")).toBe("nibi-access");
     expect(h.localStorage.getItem("oauth:nibi:user_info")).toContain("Ada");
-    expect(h.localStorage.getItem("zcodejwttoken")).toBe("nibi-access");
+    expect(h.localStorage.getItem("nibi-jwttoken")).toBe("nibi-access");
     expect(h.localStorage.getItem("oauth:active_provider")).toBe("nibi");
     expect(h.openPage().getZCodeJwtToken()).toBe("nibi-access");
   });

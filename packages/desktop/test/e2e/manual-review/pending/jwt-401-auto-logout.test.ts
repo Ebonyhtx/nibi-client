@@ -6,7 +6,7 @@ const OAUTH_CREDENTIAL_KEYS = [
   "oauth:active_provider",
   "oauth:zai:access_token",
   "oauth:zai:user_info",
-  "zcodejwttoken",
+  "nibi-jwttoken",
 ] as const;
 
 describe("ZCode JWT 401 自动退出", () => {

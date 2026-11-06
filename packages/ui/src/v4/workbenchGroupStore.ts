@@ -25,7 +25,7 @@ import {
   type PaneWorkspaceScope,
 } from "@/v4/paneLayoutTree.js";
 
-export const WORKBENCH_GROUP_STORAGE_KEY = "zcode-v4-session-workbench-groups:v1";
+export const WORKBENCH_GROUP_STORAGE_KEY = "nibi-v4-session-workbench-groups:v1";
 
 export interface WorkbenchSessionBinding {
   readonly workspaceScope: PaneWorkspaceScope;

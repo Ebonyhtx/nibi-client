@@ -37,7 +37,7 @@ interface V4DraftFile {
   scopes: Record<string, V4ComposerDraft>;
 }
 
-const STORAGE_KEY_PREFIX = "zcode-v4-composer-drafts:v1:";
+const STORAGE_KEY_PREFIX = "nibi-v4-composer-drafts:v1:";
 export interface ComposerScope {
   clientNamespace: string;
   hostId: string;
@@ -56,7 +56,7 @@ export interface PendingTaskDraft {
 }
 
 function pendingTaskKey(scope: ComposerScope): string {
-  return `zcode-pending-task-draft:v1:${composerScopeKey(scope)}`;
+  return `nibi-pending-task-draft:v1:${composerScopeKey(scope)}`;
 }
 export function readPendingTaskDraft(scope: ComposerScope): PendingTaskDraft | null {
   try {

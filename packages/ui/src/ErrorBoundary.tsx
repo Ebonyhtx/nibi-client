@@ -6,6 +6,7 @@ import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
 import zhCN from "@/i18n/locales/zh-CN.js";
 import enUS from "@/i18n/locales/en-US.js";
 import { logger } from "@/logger.js";
+import { readPrefs } from "@/lib/nibiStorage.js";
 import { reportReactErrorToArms } from "@/lib/reactErrorArmsTelemetry.js";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
@@ -40,7 +41,6 @@ interface ScopedErrorBoundaryProps {
   onCaughtReactError?: (error: Error, errorInfo: ErrorInfo, scope: string) => void;
 }
 
-const LOCALE_PREFERENCE_KEY = "nibi-locale-preference";
 
 function normalizeError(error: unknown): Error {
   if (error instanceof Error) {
@@ -65,7 +65,7 @@ function serializeErrorForLog(error: Error): {
 function resolveBoundaryLocale(): Locale {
   if (typeof localStorage !== "undefined" && typeof localStorage.getItem === "function") {
     try {
-      const storedPreference = localStorage.getItem(LOCALE_PREFERENCE_KEY);
+      const storedPreference = readPrefs().locale;
       if (storedPreference === "zh-CN" || storedPreference === "en-US") {
         return storedPreference;
       }

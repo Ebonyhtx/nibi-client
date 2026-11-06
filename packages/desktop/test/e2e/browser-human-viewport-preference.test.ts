@@ -43,7 +43,7 @@ describe("BCP-231：human Browser 显示偏好跨重启恢复", () => {
     const credentials = JSON.parse(await readFile(getE2EAppDataPaths().credentialsFile, "utf8"));
     expect(
       Object.keys(credentials).filter(
-        (key) => key.startsWith("oauth:") || key === "auth_token" || key === "zcodejwttoken",
+        (key) => key.startsWith("oauth:") || key === "auth_token" || key === "nibi-jwttoken",
       ),
     ).toEqual([]);
     await prepareConversationE2E({ skipProvider: true });

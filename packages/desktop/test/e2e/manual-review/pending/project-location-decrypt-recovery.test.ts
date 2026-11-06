@@ -29,7 +29,7 @@ async function assertLoggedIn(before: Record<string, string>) {
   );
   const after = await readCredentials();
   for (const [key, value] of Object.entries(before)) {
-    if (key.startsWith("oauth:") || key === "zcodejwttoken" || key === "bot:e2e:credential")
+    if (key.startsWith("oauth:") || key === "nibi-jwttoken" || key === "bot:e2e:credential")
       expect(after[key]).toBe(value);
   }
   const expired = await browser.execute(() =>

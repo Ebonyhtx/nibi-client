@@ -27,7 +27,7 @@ export const PROVIDER_PROVISIONING_OAUTH_CREDENTIAL_KEYS = [
   "oauth:bigmodel:access_token",
   "oauth:bigmodel:refresh_token",
   "oauth:bigmodel:user_info",
-  "zcodejwttoken",
+  "nibi-jwttoken",
 ] as const;
 
 export interface ProviderProvisioningSource {

@@ -5,7 +5,7 @@ interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
-const TASK_ORDER_STORAGE_KEY_PREFIX = "zcode-task-order:";
+const TASK_ORDER_STORAGE_KEY_PREFIX = "nibi-task-order:";
 
 function getBrowserStorage(): StorageLike | null {
   if (typeof window === "undefined") {

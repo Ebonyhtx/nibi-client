@@ -89,7 +89,7 @@ try {
           viewport: { width, height: 900 },
           reducedMotion: "reduce",
         });
-        await context.addInitScript((theme) => localStorage.setItem("nibi-theme", theme), theme);
+        await context.addInitScript((theme) => localStorage.setItem("nibi:prefs", JSON.stringify({ version: 1, theme: theme })), theme);
         const page = await context.newPage();
         const errors = [],
           requests = [],

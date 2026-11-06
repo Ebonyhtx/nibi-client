@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
-import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnvironment.js";
+import { readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
 
 export type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
 export type ResolvedTheme = "light" | "dark";
 
-const STORAGE_KEY = "nibi-theme";
 const BROWSER_THEME_SURFACE_ATTRIBUTE = "data-nibi-browser-theme-surface";
 
 /**
@@ -92,11 +91,12 @@ function isThemeValue(value: string | null): value is Theme {
 
 /** 读取已保存的主题偏好；没有记录或值非法时回落到 DEFAULT_THEME。 */
 export function loadThemePreference(): Theme {
-  const saved = readSafeLocalStorage(STORAGE_KEY);
+  const saved = readPrefs().theme ?? null;
   if (isThemeValue(saved)) {
     const normalized = normalizeThemePreference(saved);
+    // 归一化结果写回，避免每次启动重算（`dark`/`light` 是合法输入，`nibi-*` 是落盘形态）。
     if (saved !== normalized) {
-      writeSafeLocalStorage(STORAGE_KEY, normalized);
+      updatePrefs({ theme: normalized });
     }
     return normalized;
   }
@@ -109,7 +109,7 @@ export function useTheme() {
 
   const setTheme = useCallback((t: Theme) => {
     const normalizedTheme = normalizeThemePreference(t);
-    localStorage.setItem(STORAGE_KEY, normalizedTheme);
+    updatePrefs({ theme: normalizedTheme });
     setThemeState(normalizedTheme);
     applyTheme(normalizedTheme);
   }, []);

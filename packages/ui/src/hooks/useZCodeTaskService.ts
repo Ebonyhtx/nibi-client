@@ -17,7 +17,7 @@ const snapshotCacheByService = new WeakMap<
   IZCodeTaskService,
   Map<string, { etag: string; snapshot: ZCodeTaskSnapshot }>
 >();
-const SNAPSHOT_CACHE_STORAGE_KEY = "zcode-task-snapshot-cache:v1";
+const SNAPSHOT_CACHE_STORAGE_KEY = "nibi-task-snapshot-cache:v1";
 const SNAPSHOT_CACHE_MAX_ENTRY_BYTES = 256 * 1024;
 const SNAPSHOT_CACHE_MAX_TOTAL_BYTES = 2 * 1024 * 1024;
 const SNAPSHOT_CACHE_MAX_ENTRIES = 20;

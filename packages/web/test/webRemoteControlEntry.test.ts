@@ -258,14 +258,14 @@ it("多个在线 SID 保留在同一设备项内，任意连接都可被明确�
     mid: onlineDevice.device_mid,
     name: "ZCode Dev",
   });
-  expect(h.storage.get("zcode-web-remote-last-device-sid")).toBe("other");
-  expect(h.storage.get("zcode-web-remote-last-device-mid")).toBe(onlineDevice.device_mid);
+  expect(h.storage.get("nibi-web-remote-last-device-sid")).toBe("other");
+  expect(h.storage.get("nibi-web-remote-last-device-mid")).toBe(onlineDevice.device_mid);
 });
 
 it("最近 SID 在线时优先连接原 SID，即使同 MID 还有其他在线连接", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4");
   const preferred = { ...onlineDevice, device_sid: "preferred", meta: { name: "ZCode Dev" } };
-  h.storage.set("zcode-web-remote-last-device-sid", "preferred");
+  h.storage.set("nibi-web-remote-last-device-sid", "preferred");
   h.devices.mockResolvedValue([onlineDevice, preferred]);
   await h.entry.start();
   expect(h.connect).toHaveBeenCalledOnce();
@@ -275,7 +275,7 @@ it("最近 SID 在线时优先连接原 SID，即使同 MID 还有其他在线�
 it("最近 SID 离线时，同一台电脑恰好一个在线连接则自动接上；MID 取自列表中的离线记录", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4");
   const preferred = { ...onlineDevice, device_sid: "preferred", online: false, meta: {} };
-  h.storage.set("zcode-web-remote-last-device-sid", "preferred");
+  h.storage.set("nibi-web-remote-last-device-sid", "preferred");
   h.devices.mockResolvedValue([onlineDevice, preferred]);
   await h.entry.start();
   expect(h.connect).toHaveBeenCalledOnce();
@@ -283,14 +283,14 @@ it("最近 SID 离线时，同一台电脑恰好一个在线连接则自动接�
     deviceSid: "last-device",
     deviceMid: onlineDevice.device_mid,
   });
-  expect(h.storage.get("zcode-web-remote-last-device-sid")).toBe("last-device");
-  expect(h.storage.get("zcode-web-remote-last-device-mid")).toBe(onlineDevice.device_mid);
+  expect(h.storage.get("nibi-web-remote-last-device-sid")).toBe("last-device");
+  expect(h.storage.get("nibi-web-remote-last-device-mid")).toBe(onlineDevice.device_mid);
 });
 
 it("最近 SID 已被删除时按记住的最近 MID 接上唯一在线连接", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4");
-  h.storage.set("zcode-web-remote-last-device-sid", "deleted-sid");
-  h.storage.set("zcode-web-remote-last-device-mid", onlineDevice.device_mid);
+  h.storage.set("nibi-web-remote-last-device-sid", "deleted-sid");
+  h.storage.set("nibi-web-remote-last-device-mid", onlineDevice.device_mid);
   const otherMachine = { ...onlineDevice, device_mid: "mid-other", device_sid: "other-sid" };
   h.devices.mockResolvedValue([otherMachine, onlineDevice]);
   await h.entry.start();
@@ -304,8 +304,8 @@ it.each([
   ["只有其他电脑在线", [{ ...onlineDevice, device_mid: "mid-other", device_sid: "other-sid" }]],
 ])("最近 SID 不在线且%s时展示列表，不猜测连接目标", async (_case, records) => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4");
-  h.storage.set("zcode-web-remote-last-device-sid", "deleted-sid");
-  h.storage.set("zcode-web-remote-last-device-mid", onlineDevice.device_mid);
+  h.storage.set("nibi-web-remote-last-device-sid", "deleted-sid");
+  h.storage.set("nibi-web-remote-last-device-mid", onlineDevice.device_mid);
   h.devices.mockResolvedValue(records);
   await h.entry.start();
   expect(h.connect).not.toHaveBeenCalled();
@@ -327,7 +327,7 @@ it("列表视图携带当前账号展示资料，刷新后保持", async () => {
 
 it("无码入口自动连接当前账号在线的最近设备，并回写可恢复 URL", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4?app_version=3.13.0&name=stale");
-  h.storage.set("zcode-web-remote-last-device-sid", "last-device");
+  h.storage.set("nibi-web-remote-last-device-sid", "last-device");
   h.devices.mockResolvedValue([onlineDevice]);
   await h.entry.start();
   expect(h.connect).toHaveBeenCalledOnce();
@@ -348,7 +348,7 @@ it("无码入口自动连接当前账号在线的最近设备，并回写可恢�
 
 it("最近设备离线时在线置顶按名字排序；手动/回前台刷新不自动连接，选择后只接纳一次", async () => {
   const h = setup("jwt", "https://zcode.z.ai/remote/v4?app_version=3.13.0&name=stale");
-  h.storage.set("zcode-web-remote-last-device-sid", "last-device");
+  h.storage.set("nibi-web-remote-last-device-sid", "last-device");
   const offline = { ...onlineDevice, online: false, meta: {} };
   const beta = {
     ...onlineDevice,
@@ -399,7 +399,7 @@ it("最近设备离线时在线置顶按名字排序；手动/回前台刷新不
     sid: "unnamed",
     mid: "mid-unnamed",
   });
-  expect(h.storage.get("zcode-web-remote-last-device-sid")).toBe("unnamed");
+  expect(h.storage.get("nibi-web-remote-last-device-sid")).toBe("unnamed");
   h.show();
   expect(h.devices).toHaveBeenCalledTimes(3);
 });
@@ -451,8 +451,8 @@ it("选择其他设备释放连接、移除目标参数并跳过最近设备；�
   await h.entry.start();
   const old = h.connect.mock.calls[0][0];
   old.onPaired();
-  expect(h.storage.get("zcode-web-remote-last-device-sid")).toBe("device-1");
-  expect(h.storage.get("zcode-web-remote-last-device-mid")).toBe("mid-1");
+  expect(h.storage.get("nibi-web-remote-last-device-sid")).toBe("device-1");
+  expect(h.storage.get("nibi-web-remote-last-device-mid")).toBe("mid-1");
   h.devices.mockResolvedValue([{ ...onlineDevice, device_sid: "device-1" }]);
   await h.entry.chooseOtherDevice();
   expect(old.signal.aborted).toBe(true);
@@ -500,7 +500,7 @@ it("最近 SID 不属于当前账号时不连接；同名按 MID/SID 排序且�
   vi.useFakeTimers();
   try {
     const h = setup("jwt", "https://zcode.z.ai/remote/v4");
-    h.storage.set("zcode-web-remote-last-device-sid", "other-account-device");
+    h.storage.set("nibi-web-remote-last-device-sid", "other-account-device");
     const b = { ...onlineDevice, device_mid: "mid-b" };
     const a2 = { ...onlineDevice, device_mid: "mid-a", device_sid: "sid-2" };
     const a1 = { ...a2, device_sid: "sid-1" };
@@ -541,7 +541,7 @@ it("聚合列表刷新期间拒绝所有 SID，刷新成全离线后保留记住
   expect(h.connect).not.toHaveBeenCalled();
 });
 
-const DEVICE_NAMES_KEY = "zcode-web-remote-device-names";
+const DEVICE_NAMES_KEY = "nibi-web-remote-device-names";
 
 describe("本地记住的设备名与平台", () => {
   it("在线平台写入缓存，下次该设备离线时仍显示记住的平台", async () => {

@@ -10,7 +10,7 @@ const IMPORT_KEYS = [
   "oauth:bigmodel:refresh_token",
   "oauth:bigmodel:user_info",
   "oauth:active_provider",
-  "zcodejwttoken",
+  "nibi-jwttoken",
 ];
 
 /**

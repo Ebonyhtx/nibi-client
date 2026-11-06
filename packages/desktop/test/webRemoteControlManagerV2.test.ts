@@ -256,10 +256,10 @@ describe("V2 manager public API with real relay", () => {
         JSON.stringify({ id: "user", username: "User", displayName: "User" }),
       ],
       ["oauth:zai:access_token", "access"],
-      ["zcodejwttoken", "jwt"],
+      ["nibi-jwttoken", "jwt"],
     ]);
     f.readLogin.mockImplementation(async () =>
-      credentials.has("zcodejwttoken") ? { jwt: "jwt", userId: "user" } : undefined,
+      credentials.has("nibi-jwttoken") ? { jwt: "jwt", userId: "user" } : undefined,
     );
     const oauth = createOAuthService(
       {
@@ -292,7 +292,7 @@ describe("V2 manager public API with real relay", () => {
     await expect(oauth.logout()).rejects.toThrow("derived settings failed");
     await vi.waitFor(() => expect(terminal.socket.readyState).toBe(WebSocket.CLOSED));
     expect(f.manager.getStatus(1)).toEqual({ status: "auth-required" });
-    expect(credentials.has("zcodejwttoken")).toBe(false);
+    expect(credentials.has("nibi-jwttoken")).toBe(false);
     expect(f.settings.webRemoteControlLastEnabledContext).toEqual({ workspacePath: "/workspace" });
   });
   it("首次注册503交给连接退避恢复，无需再次点击启动", async () => {

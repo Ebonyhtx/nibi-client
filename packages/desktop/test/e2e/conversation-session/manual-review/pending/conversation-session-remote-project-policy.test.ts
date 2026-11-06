@@ -121,7 +121,7 @@ describe("远程单目录项目展示", () => {
     await row.waitForExist({ reverse: true });
     const prefs = await browser.execute(
       () =>
-        JSON.parse(localStorage.getItem("zcode-project-sidebar-preferences") ?? "{}")
+        JSON.parse(localStorage.getItem("nibi-project-sidebar-preferences") ?? "{}")
           .order as string[],
     );
     expect(prefs.some((key) => key.includes("e2e-vpr-b"))).toBe(false);

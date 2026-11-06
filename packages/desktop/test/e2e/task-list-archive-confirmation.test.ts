@@ -82,14 +82,14 @@ describe("任务列表归档二次确认 E2E", () => {
 async function useProjectConversationTaskView() {
   await browser.execute(() => {
     localStorage.setItem(
-      "zcode-sidebar-task-preferences",
+      "nibi-sidebar-task-preferences",
       JSON.stringify({
         organizeBy: "project",
         sortBy: "updated",
       }),
     );
     localStorage.setItem(
-      "zcode-sidebar-purpose-section-preferences",
+      "nibi-sidebar-purpose-section-preferences",
       JSON.stringify({
         projectsExpanded: true,
         conversationsExpanded: true,

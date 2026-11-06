@@ -647,7 +647,7 @@ PY`,
         (text: string) =>
           Object.keys(localStorage).some(
             (key) =>
-              key.startsWith("zcode-v4-composer-drafts:v1:") &&
+              key.startsWith("nibi-v4-composer-drafts:v1:") &&
               localStorage.getItem(key)?.includes(text),
           ),
         unsentDraft,

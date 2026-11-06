@@ -31,6 +31,13 @@ export type {
 } from "./git-graph/layout.js";
 export { SSHDialog, RemoteConnectionDialog } from "./SSHDialog.js";
 export { DEFAULT_THEME, useTheme } from "./useTheme.js";
+export {
+  NIBI_PREFS_KEY,
+  NIBI_PREFS_VERSION,
+  readPrefs,
+  updatePrefs,
+  type NibiPrefs,
+} from "./lib/nibiStorage.js";
 export type { Theme } from "./useTheme.js";
 export { useTestActions } from "./test-actions.js";
 export type { TestActions } from "./test-actions.js";

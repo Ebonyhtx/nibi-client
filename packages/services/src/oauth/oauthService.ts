@@ -45,7 +45,7 @@ import {
 /** OAuth 超时时间（5 分钟） */
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
 const COMPLETED_POLLING_STATE_GRACE_MS = 30 * 1000;
-const NIBI_JWT_TOKEN_KEY = "zcodejwttoken";
+const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
 // access token ~12h。提前 5 分钟续期，避免远控重连/会员接口在边界上拿到刚过期的令牌。
 const NIBI_TOKEN_REFRESH_MARGIN_MS = 5 * 60_000;
 /** 网络类刷新失败的指数退避序列；走完后停止定时重试（下次启动/用户操作再触发）。 */
@@ -230,7 +230,7 @@ export class OAuthService implements IOAuthService {
 
     // 业务 JWT 过期而共享 JWT 仍有效时，旧实现会恢复伪登录态；直接读两个凭据做本地检查，
     // 不调用 loadActiveTokenSet，避免把后台 profile 迁移或网络请求带回首屏恢复链路。
-    // NIBI 不消费 legacy zcodejwttoken：那是 ZAI 时代的共享 JWT，残留过期会把 NIBI 会话误清。
+    // NIBI 不消费 legacy nibi-jwttoken：那是 ZAI 时代的共享 JWT，残留过期会把 NIBI 会话误清。
     const credentialKeys =
       activeProvider === NIBI_PROVIDER_ID
         ? [`oauth:${activeProvider}:access_token`]
@@ -328,9 +328,9 @@ export class OAuthService implements IOAuthService {
 
     if (activeProvider === ZAI_PROVIDER_ID) {
       if (!zcodeJwtToken) {
-        // sidebar 登录入口之前只看缓存 user_info，会把“缺少 zcodejwttoken”的状态误判成已登录。
-        // 这里补充 zcodejwttoken 门槛，确保没有后端 JWT 时统一按未登录处理。
-        log("restoreCachedSession skipped: missing zcodejwttoken:", activeProvider);
+        // sidebar 登录入口之前只看缓存 user_info，会把“缺少 nibi-jwttoken”的状态误判成已登录。
+        // 这里补充 nibi-jwttoken 门槛，确保没有后端 JWT 时统一按未登录处理。
+        log("restoreCachedSession skipped: missing nibi-jwttoken:", activeProvider);
         return { status: "signed-out" };
       }
     }
@@ -516,7 +516,7 @@ export class OAuthService implements IOAuthService {
     if (inactiveProvider) {
       await assertCurrent();
       // ZAI 与 BigModel 是互斥身份域。切换 provider 时必须先清旧 provider，
-      // 再保存当前 token；反序会让 clearProvider 误删共享的 zcodejwttoken。
+      // 再保存当前 token；反序会让 clearProvider 误删共享的 nibi-jwttoken。
       await this.repo.clearProvider(inactiveProvider);
     }
     await assertCurrent();

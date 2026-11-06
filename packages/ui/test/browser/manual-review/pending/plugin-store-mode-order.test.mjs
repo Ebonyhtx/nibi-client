@@ -225,7 +225,7 @@ for (const [width, locale, theme] of [
       assert.deepEqual(await cards(sections().nth(0)), ["p1", "p0"]);
       assert.equal(requests, 1);
       assert.equal(
-        await page.evaluate(() => localStorage.getItem("zcode-interface-mode")),
+        await page.evaluate(() => localStorage.getItem("nibi-interface-mode")),
         "office",
       );
       // 个人与当前来源搜索继续按各自原来的名称顺序。

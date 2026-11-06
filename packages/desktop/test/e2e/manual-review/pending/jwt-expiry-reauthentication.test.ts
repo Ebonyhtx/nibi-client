@@ -12,7 +12,7 @@ const EXPIRED_SESSION_CREDENTIAL_KEYS = [
   `oauth:${ZAI_PROVIDER_ID}:access_token`,
   `oauth:${ZAI_PROVIDER_ID}:refresh_token`,
   `oauth:${ZAI_PROVIDER_ID}:user_info`,
-  "zcodejwttoken",
+  "nibi-jwttoken",
 ] as const;
 
 describe("ZCode JWT 过期后重新认证", () => {

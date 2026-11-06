@@ -28,7 +28,7 @@ import { getV4DraftThoughtState } from "./v4-conversation.js";
 const paths = getE2EAppDataPaths();
 const SETTINGS_FILE = join(paths.appDataDir, "setting.json");
 const CREDENTIALS_FILE = paths.credentialsFile;
-const MODEL_SELECTION_RECENT_KEY_PREFIX = "zcode-model-selection-recent-v1";
+const MODEL_SELECTION_RECENT_KEY_PREFIX = "nibi-model-selection-recent-v1";
 
 export { seedTurboAgentStartupModel } from "./model-provider-restart-runtime.js";
 
@@ -80,7 +80,7 @@ export async function seedBigModelOAuthCredential() {
  * 为需要实际进入 BigModel Start Plan 的 E2E 补齐 zcode JWT。
  *
  * Start Plan 与个人 Coding Plan 共用 OAuth 用户身份，但请求授权读取的是
- * `zcodejwttoken`；只 seed business access token 会让菜单把 Start Plan 判成未认证。
+ * `nibi-jwttoken`；只 seed business access token 会让菜单把 Start Plan 判成未认证。
  */
 export async function seedBigModelStartPlanCredential() {
   await writeJsonPatch(CREDENTIALS_FILE, {
@@ -91,7 +91,7 @@ export async function seedBigModelStartPlanCredential() {
       id: "bigmodel-e2e-user",
       username: "bigmodel-e2e-user",
     }),
-    zcodejwttoken: "e2e-bigmodel-start-plan-jwt",
+    "nibi-jwttoken": "e2e-bigmodel-start-plan-jwt",
   });
 }
 
@@ -147,7 +147,7 @@ export async function seedPersistedModelSelection(params: {
           options: { reasoningLevel: selection.reasoningLevel },
         }),
       );
-      window.localStorage.setItem("zcode-last-agent-provider", appProvider);
+      window.localStorage.setItem("nibi-last-agent-provider", appProvider);
     },
     paths.workspace,
     MODEL_SELECTION_RECENT_KEY_PREFIX,

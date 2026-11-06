@@ -173,7 +173,7 @@ describe(`${CASE_MARKER}: SSH cold restart and automatic reconnect`, () => {
     // 在门禁关闭时保留恢复 ID，不用 task-list 点击补救导航。
     expect(
       await browser.execute(
-        (identity) => localStorage.getItem(`zcode-v4-last-session:v1:${identity}`),
+        (identity) => localStorage.getItem(`nibi-v4-last-session:v1:${identity}`),
         taskB.identity,
       ),
     ).toBe(taskB.taskId);
@@ -194,7 +194,7 @@ describe(`${CASE_MARKER}: SSH cold restart and automatic reconnect`, () => {
     // 构造持久化导航指向失效会话的前置；查询仍走真实远端 task-index，不 mock 返回值。
     await browser.execute(
       (identity) =>
-        localStorage.setItem(`zcode-v4-last-session:v1:${identity}`, "e2e-removed-session-rdux09"),
+        localStorage.setItem(`nibi-v4-last-session:v1:${identity}`, "e2e-removed-session-rdux09"),
       taskB.identity,
     );
     await seedSettings({ remoteStartupAutoReconnectEnabled: true });
@@ -215,7 +215,7 @@ describe(`${CASE_MARKER}: SSH cold restart and automatic reconnect`, () => {
     );
     expect(
       await browser.execute(
-        (identity) => localStorage.getItem(`zcode-v4-last-session:v1:${identity}`),
+        (identity) => localStorage.getItem(`nibi-v4-last-session:v1:${identity}`),
         taskB.identity,
       ),
     ).toBeNull();

@@ -62,7 +62,7 @@ it("同账号每次凭据落盘均经 RPC 发布完成事件，先于调用结�
   const f = fixture();
   const changes: string[] = [];
   const subscription = f.client.onDidChangeSession((state) => {
-    expect(f.credentials.get("zcodejwttoken")).toBe("jwt");
+    expect(f.credentials.get("nibi-jwttoken")).toBe("jwt");
     expect(f.credentials.get("oauth:active_provider")).toBe(ZAI_PROVIDER_ID);
     changes.push(state);
   });
@@ -82,7 +82,7 @@ it.each(["active", "provider", "all"] as const)(
     await f.login();
     const changes: string[] = [];
     const subscription = f.client.onDidChangeSession((state) => {
-      expect(f.credentials.has("zcodejwttoken")).toBe(false);
+      expect(f.credentials.has("nibi-jwttoken")).toBe(false);
       expect(onProviderLogout).not.toHaveBeenCalled();
       changes.push(state);
     });
@@ -132,7 +132,7 @@ it("active provider 落盘期间取消并回滚的登录不发布 signed-in", as
   await f.client.cancelPending();
   continueSave.resolve();
   await rejected;
-  expect(f.credentials.has("zcodejwttoken")).toBe(false);
+  expect(f.credentials.has("nibi-jwttoken")).toBe(false);
   expect(changed).not.toHaveBeenCalled();
   subscription.dispose();
 });

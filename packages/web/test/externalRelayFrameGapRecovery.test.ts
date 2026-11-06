@@ -278,7 +278,7 @@ function setupExternalRelayGlobals(pathname = "/remote") {
     ),
   };
   const credentials = new Map([
-    ["zcodejwttoken", "test-jwt"],
+    ["nibi-jwttoken", "test-jwt"],
     ["oauth:active_provider", "zai"],
     ["oauth:zai:access_token", "access"],
     ["oauth:zai:user_info", JSON.stringify({ user_id: "user", name: "Test" })],

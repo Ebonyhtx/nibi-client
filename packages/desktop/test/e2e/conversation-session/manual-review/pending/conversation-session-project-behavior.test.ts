@@ -165,7 +165,7 @@ describe("虚拟项目旧产品体验", () => {
       const targetId = "e2e-empty-a";
       const target = $(`[data-project-id="${targetId}"]`);
       const preferences = await browser.execute(() =>
-        localStorage.getItem("zcode-project-sidebar-preferences"),
+        localStorage.getItem("nibi-project-sidebar-preferences"),
       );
       const db = new DatabaseSync(
         join(process.env.NIBI_E2E_HOME_DIR!, ".nibi/v2/tasks-index.sqlite"),
@@ -223,8 +223,8 @@ describe("虚拟项目旧产品体验", () => {
         db.prepare("UPDATE projects SET deleted=0 WHERE project_id=?").run(targetId);
         db.close();
         await browser.execute((saved) => {
-          if (saved) localStorage.setItem("zcode-project-sidebar-preferences", saved);
-          else localStorage.removeItem("zcode-project-sidebar-preferences");
+          if (saved) localStorage.setItem("nibi-project-sidebar-preferences", saved);
+          else localStorage.removeItem("nibi-project-sidebar-preferences");
         }, preferences);
         await browser.refresh();
         await $(rowSelector).waitForDisplayed({ timeout: 45_000 });
@@ -531,8 +531,8 @@ describe("虚拟项目旧产品体验", () => {
     expect(await $('[data-testid="project-task-sort-created"]').isExisting()).toBe(false);
     await browser.keys("Escape");
     await browser.execute(() => {
-      localStorage.setItem("zcode-sidebar-task-preferences", JSON.stringify({ sortBy: "created" }));
-      const key = "zcode-project-sidebar-preferences";
+      localStorage.setItem("nibi-sidebar-task-preferences", JSON.stringify({ sortBy: "created" }));
+      const key = "nibi-project-sidebar-preferences";
       localStorage.setItem(
         key,
         JSON.stringify({ ...JSON.parse(localStorage.getItem(key) ?? "{}"), sort: "updated" }),

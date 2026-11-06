@@ -63,7 +63,7 @@ describe("BrowserOAuthCredentialRepo", () => {
       displayName: "Ada",
       avatarUrl: "https://example.com/a.png",
     });
-    expect(localStorage.getItem("zcodejwttoken")).toBe("jwt-token");
+    expect(localStorage.getItem("nibi-jwttoken")).toBe("jwt-token");
     expect(localStorage.getItem("oauth:zai:access_token")).toBe("zai-token");
   });
 
@@ -72,12 +72,12 @@ describe("BrowserOAuthCredentialRepo", () => {
     const repo = new BrowserOAuthCredentialRepo({ localStorage });
 
     localStorage.setItem("oauth:active_provider", "zai");
-    localStorage.setItem("zcodejwttoken", "jwt-token");
+    localStorage.setItem("nibi-jwttoken", "jwt-token");
     localStorage.setItem("oauth:zai:user_info", JSON.stringify({ user_id: "u_1", name: "Ada" }));
 
     expect(repo.loadCachedSession()).toBeNull();
     expect(localStorage.getItem("oauth:active_provider")).toBeNull();
-    expect(localStorage.getItem("zcodejwttoken")).toBeNull();
+    expect(localStorage.getItem("nibi-jwttoken")).toBeNull();
     expect(localStorage.getItem("oauth:zai:user_info")).toBeNull();
   });
 
@@ -152,7 +152,7 @@ describe("BrowserOAuthCredentialRepo", () => {
     const repo = new BrowserOAuthCredentialRepo({ localStorage }, { now: () => 2_000_000 });
 
     localStorage.setItem("oauth:active_provider", "zai");
-    localStorage.setItem("zcodejwttoken", createUnsignedJwt({ exp: 1_000 }));
+    localStorage.setItem("nibi-jwttoken", createUnsignedJwt({ exp: 1_000 }));
     localStorage.setItem("oauth:zai:access_token", "zai-token");
     localStorage.setItem("oauth:zai:user_info", JSON.stringify({ user_id: "u_1", name: "Ada" }));
 
@@ -161,7 +161,7 @@ describe("BrowserOAuthCredentialRepo", () => {
       reason: "jwt-expired",
     });
     expect(localStorage.getItem("oauth:active_provider")).toBeNull();
-    expect(localStorage.getItem("zcodejwttoken")).toBeNull();
+    expect(localStorage.getItem("nibi-jwttoken")).toBeNull();
     expect(localStorage.getItem("oauth:zai:access_token")).toBeNull();
     expect(localStorage.getItem("oauth:zai:user_info")).toBeNull();
   });

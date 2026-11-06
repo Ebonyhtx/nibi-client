@@ -162,7 +162,7 @@ describe(`${MARKER}: 远端分享账号权威与未登录拒绝`, () => {
             displayName: "SSH guide local",
             username: "ssh-guide-local-user",
           }),
-          zcodejwttoken: LOCAL_TOKEN,
+          "nibi-jwttoken": LOCAL_TOKEN,
         });
         await writeFile(localPath, JSON.stringify(local), { mode: 0o600 });
       },
@@ -174,7 +174,7 @@ describe(`${MARKER}: 远端分享账号权威与未登录拒绝`, () => {
       expectedPath: task.workspacePath,
       timeoutMs: 180_000,
     });
-    const setRemote = `const fs=await import('node:fs/promises');const p=process.env.HOME+'/.nibi/v2/credentials.json';const d=JSON.parse(await fs.readFile(p,'utf8'));Object.assign(d,{'oauth:active_provider':'zai','oauth:zai:access_token':${JSON.stringify(REMOTE_TOKEN)},zcodejwttoken:${JSON.stringify(REMOTE_TOKEN)}});await fs.writeFile(p,JSON.stringify(d),{mode:384});`;
+    const setRemote = `const fs=await import('node:fs/promises');const p=process.env.HOME+'/.nibi/v2/credentials.json';const d=JSON.parse(await fs.readFile(p,'utf8'));Object.assign(d,{'oauth:active_provider':'zai','oauth:zai:access_token':${JSON.stringify(REMOTE_TOKEN)},"nibi-jwttoken":${JSON.stringify(REMOTE_TOKEN)}});await fs.writeFile(p,JSON.stringify(d),{mode:384});`;
     const runtime = JSON.parse(
       (await runSSHCommand(prepared.config, 'cat "$HOME/.nibi/server/current.json"')).stdout,
     );
@@ -202,7 +202,7 @@ describe(`${MARKER}: 远端分享账号权威与未登录拒绝`, () => {
     facts.remoteAccountSelected = true;
 
     const removeRemote =
-      "const fs=await import('node:fs/promises');const p=process.env.HOME+'/.nibi/v2/credentials.json';const d=JSON.parse(await fs.readFile(p,'utf8'));for(const k of ['oauth:active_provider','oauth:zai:access_token','zcodejwttoken'])delete d[k];await fs.writeFile(p,JSON.stringify(d),{mode:384});";
+      "const fs=await import('node:fs/promises');const p=process.env.HOME+'/.nibi/v2/credentials.json';const d=JSON.parse(await fs.readFile(p,'utf8'));for(const k of ['oauth:active_provider','oauth:zai:access_token','nibi-jwttoken'])delete d[k];await fs.writeFile(p,JSON.stringify(d),{mode:384});";
     expect(
       (
         await runSSHCommand(

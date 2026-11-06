@@ -27,16 +27,16 @@ export type SettingsUsageTabTarget = "app";
 export type SettingsPluginTabTarget = "plugins" | "mcps" | "skills" | "commands";
 export type SettingsPluginNavigationOrigin = "plugin-store";
 
-const SETTINGS_SECTION_INTENT_KEY = "zcode-settings-section-intent",
-  SETTINGS_USAGE_TAB_INTENT_KEY = "zcode-settings-usage-tab-intent",
-  SETTINGS_PLUGIN_TAB_INTENT_KEY = "zcode-settings-plugin-tab-intent",
-  SETTINGS_PLUGIN_ORIGIN_INTENT_KEY = "zcode-settings-plugin-origin-intent",
-  SETTINGS_PLUGIN_SCOPE_KEY_INTENT_KEY = "zcode-settings-plugin-scope-key-intent";
-const SETTINGS_SOURCE_SERVER_ID_INTENT_KEY = "zcode-settings-source-server-id-intent";
-const SETTINGS_SOURCE_SERVER_DETAILS_INTENT_KEY = "zcode-settings-source-server-details-intent";
-const SETTINGS_MODEL_PROVIDER_ID_INTENT_KEY = "zcode-settings-model-provider-id-intent";
+const SETTINGS_SECTION_INTENT_KEY = "nibi-settings-section-intent",
+  SETTINGS_USAGE_TAB_INTENT_KEY = "nibi-settings-usage-tab-intent",
+  SETTINGS_PLUGIN_TAB_INTENT_KEY = "nibi-settings-plugin-tab-intent",
+  SETTINGS_PLUGIN_ORIGIN_INTENT_KEY = "nibi-settings-plugin-origin-intent",
+  SETTINGS_PLUGIN_SCOPE_KEY_INTENT_KEY = "nibi-settings-plugin-scope-key-intent";
+const SETTINGS_SOURCE_SERVER_ID_INTENT_KEY = "nibi-settings-source-server-id-intent";
+const SETTINGS_SOURCE_SERVER_DETAILS_INTENT_KEY = "nibi-settings-source-server-details-intent";
+const SETTINGS_MODEL_PROVIDER_ID_INTENT_KEY = "nibi-settings-model-provider-id-intent";
 const SETTINGS_SECTION_INTENT_EVENT = "nibi:settings-section-intent",
-  SETTINGS_LAST_SECTION_STORAGE_KEY = "zcode-settings-last-section";
+  SETTINGS_LAST_SECTION_STORAGE_KEY = "nibi-settings-last-section";
 const HIDDEN_SETTINGS_SECTIONS = new Set<SettingsSectionId>([
   // 产品语义：定时任务是 workspace 主视图，不能再作为设置页分区出现。
   // 注意：hooks 已是正式设置页分区，不在此列。

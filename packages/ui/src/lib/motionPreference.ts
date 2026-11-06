@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnvironment.js";
+import { NIBI_PREFS_KEY, readPrefs, updatePrefs } from "@/lib/nibiStorage.js";
 
 /**
  * 界面动效偏好（外观设置 → 界面设置 → 界面动效）。
@@ -15,8 +15,6 @@ import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnviro
  * 判断始终是「用户设置关闭」或「系统要求减少」取或 —— 任一生效就关闭，
  * 用户在设置里重新打开也不会压过系统的无障碍偏好。
  */
-export const MOTION_STORAGE_KEY = "nibi-motion";
-
 const MOTION_ATTRIBUTE = "data-nibi-motion";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -36,12 +34,8 @@ export function normalizeMotionEnabled(value: unknown): boolean {
   return value !== false;
 }
 
-export function parseMotionEnabled(rawValue: string | null): boolean {
-  return rawValue === null ? true : rawValue !== "false";
-}
-
 export function loadMotionEnabled(): boolean {
-  return parseMotionEnabled(readSafeLocalStorage(MOTION_STORAGE_KEY));
+  return readPrefs().motion !== "off";
 }
 
 function mediaPrefersReducedMotion(): boolean {
@@ -73,7 +67,7 @@ export function applyMotionPreference(enabled: boolean): void {
 /** 写入偏好并立即生效，返回归一化后的值；设置开关的唯一写入口。 */
 export function persistMotionEnabled(enabled: unknown): boolean {
   const normalized = normalizeMotionEnabled(enabled);
-  writeSafeLocalStorage(MOTION_STORAGE_KEY, normalized ? "true" : "false");
+  updatePrefs({ motion: normalized ? "on" : "off" });
   applyMotionPreference(normalized);
   return normalized;
 }
@@ -105,10 +99,11 @@ export function subscribeToMotionStorageChanges(): () => void {
 }
 
 function handleStorageChange(event: StorageEvent): void {
-  if (event.key !== MOTION_STORAGE_KEY) {
+  // 偏好合并在一个键里，其它字段变化也会触发这里；按当前值重算即可。
+  if (event.key !== NIBI_PREFS_KEY) {
     return;
   }
-  applyMotionPreference(parseMotionEnabled(event.newValue));
+  applyMotionPreference(loadMotionEnabled());
 }
 
 let storageListenerCount = 0;
