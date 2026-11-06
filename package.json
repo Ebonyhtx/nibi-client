@@ -130,7 +130,8 @@
     "overrides": {
       "react": "19.2.7",
       "react-dom": "19.2.7",
-      "node-abi": "4.40.0"
+      "node-abi": "4.40.0",
+      "electron-to-chromium": "^1.5.478"
     },
     "patchedDependencies": {
       "@radix-ui/react-collapsible@1.1.12": "patches/@radix-ui__react-collapsible@1.1.12.patch",

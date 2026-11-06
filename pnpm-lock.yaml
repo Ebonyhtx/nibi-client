@@ -8,6 +8,7 @@ overrides:
   react: 19.2.7
   react-dom: 19.2.7
   node-abi: 4.40.0
+  electron-to-chromium: ^1.5.478
 
 patchedDependencies:
   '@ai-sdk/anthropic@3.0.81':
@@ -7658,9 +7659,6 @@ packages:
 
   electron-publish@26.8.1:
     resolution: {integrity: sha512-q+jrSTIh/Cv4eGZa7oVR+grEJo/FoLMYBAnSL5GCtqwUpr1T+VgKB/dn1pnzxIxqD8S/jP1yilT9VrwCqINR4w==}
-
-  electron-to-chromium@1.5.336:
-    resolution: {integrity: sha512-AbH9q9J455r/nLmdNZes0G0ZKcRX73FicwowalLs6ijwOmCJSRRrLX63lcAlzy9ux3dWK1w1+1nsBJEWN11hcQ==}
 
   electron-to-chromium@1.5.478:
     resolution: {integrity: sha512-pftG+ma5Lm8O6/p45bhYT6StBN5ziQymaRzmCZwFl8DwWHKPPD93FdOmP1aqftcepolQYvrcyTLa17kE8Yf+jg==}
@@ -18412,8 +18410,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  electron-to-chromium@1.5.336: {}
-
   electron-to-chromium@1.5.478: {}
 
   electron-updater@6.8.3:
@@ -24063,7 +24059,7 @@ snapshots:
       '@wdio/logger': 9.18.0
       compare-versions: 6.1.1
       debug: 4.4.3(supports-color@8.1.1)
-      electron-to-chromium: 1.5.336
+      electron-to-chromium: 1.5.478
       fast-copy: 3.0.2
       get-port: 7.2.0
       puppeteer-core: 22.15.0
