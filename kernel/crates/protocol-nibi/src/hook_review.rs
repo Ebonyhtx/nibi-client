@@ -22,6 +22,7 @@ use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::hook_review::{HookTrustState, WorkspaceHookReview};
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::session_api::KernelError;
+use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Value, json};
 
 use crate::inbox::{Ack, Envelope, Status};
@@ -685,3 +686,109 @@ fn trust_error(command: &str, error: &KernelError, revision: u64) -> Ack {
 #[cfg(test)]
 #[path = "hook_review_tests.rs"]
 mod tests;
+
+/// 旧入口（141 F5）：`workspace/hooks/trustGrant`。
+///
+/// Settings 页在**没有会话**时预信任一组钩子声明：Host 直接用只读控制面发这条请求
+/// （`zcodeAgentService.grantWorkspaceHookTrust` → `getReadOnlyClient`），所以这里不碰 `Live`，
+/// 工作区从 params 取。
+///
+/// 判定顺序照 Node `workspace-hook-trust.ts`：信任库损坏 → 企业策略 → bundle 摘要 →
+/// 声明在不在快照里 → 写入 → 回读确认。**底层错误文本绝不进 `reasonCode`**：Node 那里曾把
+/// 配置绝对路径和用户名带过 Agent/Host/UI 协议边界，未知异常只能收敛成稳定码。
+pub async fn trust_grant(server: &Server, params: &Value) -> Result<Value, RpcError> {
+    let path = params["workspace"]["workspacePath"]
+        .as_str()
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
+        .ok_or_else(|| RpcError::invalid_params("workspace.workspacePath is required"))?;
+    // `workspaceHookSha256DigestSchema`：小写十六进制的 64 位 sha256。
+    let bundle_digest = sha256_hex(params, "bundleDigest")?;
+    let declaration_digest = sha256_hex(params, "hookDeclarationDigest")?;
+    // 信任按工作区**路径**建键（内核评审快照的 identity 也是它）；Host 的 `workspaceIdentity`
+    // 是远端寻址用的，不参与信任键——两边取同一个值才不会出现「授权了但快照仍待审」。
+    let workspace = server.workspace(path);
+    let review = match server.kernel.workspace_hook_review(&workspace).await {
+        Ok(review) => review,
+        // 没接信任库的入口（TUI / `-p`）与读不出来：Node 侧 grant 抛错后收敛成同一个码。
+        Err(_) => return Ok(rejected("workspace_hooks_config_unreadable")),
+    };
+    if review.reason_code == "trust_store_corrupt" {
+        return Ok(rejected("workspace_hooks_trust_store_corrupt"));
+    }
+    if review.reason_code == "blocked_policy" {
+        return Ok(rejected("workspace_hooks_blocked_by_policy"));
+    }
+    if review.bundle_digest.as_deref() != Some(bundle_digest) {
+        return Ok(rejected("workspace_hooks_bundle_changed"));
+    }
+    let matches: Vec<&nibi_kernel_api::hook_review::WorkspaceHookItem> = review
+        .items
+        .iter()
+        .filter(|item| item.declaration_digest == declaration_digest)
+        .collect();
+    if matches.is_empty() {
+        return Ok(rejected("workspace_hooks_snapshot_mismatch"));
+    }
+    if matches
+        .iter()
+        .any(|item| item.trust_state == HookTrustState::BlockedPolicy)
+    {
+        return Ok(rejected("workspace_hooks_blocked_by_policy"));
+    }
+    let ids: Vec<String> = matches
+        .iter()
+        .map(|item| item.review_item_id.clone())
+        .collect();
+    if let Err(error) = server.kernel.grant_workspace_hooks(&workspace, &ids).await {
+        return Ok(rejected(grant_error_code(&error)));
+    }
+    // 回读确认（Node `didGrantExactDeclaration`）：写成功但读不到可信状态也不能回 accepted。
+    let after = match server.kernel.workspace_hook_review(&workspace).await {
+        Ok(review) => review,
+        Err(_) => return Ok(rejected("workspace_hooks_config_unreadable")),
+    };
+    let trusted = after.items.iter().any(|item| {
+        item.declaration_digest == declaration_digest
+            && item.trust_state == HookTrustState::TrustedPersistent
+    });
+    Ok(if trusted {
+        json!({"accepted": true})
+    } else {
+        rejected("workspace_hooks_config_unreadable")
+    })
+}
+
+fn rejected(reason: &str) -> Value {
+    json!({"accepted": false, "reasonCode": reason})
+}
+
+fn sha256_hex<'a>(params: &'a Value, field: &str) -> Result<&'a str, RpcError> {
+    let value = params[field].as_str().unwrap_or_default();
+    let valid = value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase());
+    if valid {
+        Ok(value)
+    } else {
+        Err(RpcError::invalid_params(format!(
+            "{field} must be a lowercase sha256 hex digest"
+        )))
+    }
+}
+
+/// 信任库写入失败的公开码（不把底层文本透传出去）。
+fn grant_error_code(error: &KernelError) -> &'static str {
+    let corrupt = nibi_kernel_api::hook_review::HookTrustError::Corrupt.to_string();
+    match error {
+        KernelError::Failed { message } if *message == corrupt => {
+            "workspace_hooks_trust_store_corrupt"
+        }
+        _ => "workspace_hooks_config_unreadable",
+    }
+}
+
+#[cfg(test)]
+#[path = "hook_trust_grant_tests.rs"]
+mod trust_grant_tests;

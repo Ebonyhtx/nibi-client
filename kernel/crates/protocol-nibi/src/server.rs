@@ -363,6 +363,11 @@ impl Server {
                 reply(json!({"workspace": params["workspace"], "enabled": enabled}))
             }
             "workspace/readPresentation" => reply(self.read_presentation(&params).await),
+            // 旧入口（141 F5）：Settings 页无会话时的钩子预信任
+            // （Node `grantWorkspaceHookTrust` → `workspace-hook-trust.ts`）。无会话也受理。
+            "workspace/hooks/trustGrant" => crate::hook_review::trust_grant(self, &params)
+                .await
+                .map(Reply::new),
             // Host 的任务列表、项目谱系校验与分享导入去重（Node `listSessions` 的两种读法）。
             "session/list" => crate::session_directory::list(self, &params)
                 .await
