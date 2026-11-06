@@ -8,6 +8,17 @@ modules:
   - id: shared
     roots: [ packages/shared/src ]
     managed: false
+  # 远程目标（SSH / WSL）的契约、校验与连接日志。shared 整体仍是 legacy，但这个子目录已经
+  # 是独立边界：只有 shared 包内部按相对路径进它，外部一律经 @nibi/shared 桶，所以先把它
+  # 单独纳入 managed，而不是等整个 shared 包接管。
+  - id: shared-source-server
+    roots: [ packages/shared/src/source-server ]
+    managed: true
+    requires: [ shared ]
+    publicEntrypoints:
+      - packages/shared/src/source-server/index.ts
+      - packages/shared/src/source-server/contract.ts
+    owner: remote
   - id: provider
     roots: [ packages/provider/src ]
     managed: false
@@ -800,14 +811,14 @@ exceptions:
       - packages/ui/src/browser-use/EmbeddedBrowserPermissionPrompts.tsx
       - packages/ui/src/settings/DynamicWorkflowModeSetting.tsx
     reason: 已准入的存量文件只把 TID 导入从 @nibi/shared 根入口改为 @nibi/shared/test-ids 子路径（根入口不再导出 test-ids，以收窄受影响单测范围）；行为与模块边界不变，接管 ui 目录不在本次范围内。
-  - id: connection-log-secret-token-unmanaged-edit
-    rule: unmanaged-new-file
+  # 原 `connection-log-secret-token-unmanaged-edit` 与
+  # `connection-errors-econnreset-unmanaged-edit` 两条准入：`source-server/` 已在
+  # 2026-11-07 登记为 managed 模块（见 modules 里的 shared-source-server），新文件不再需要
+  # 逐条准入，两条一并删除（unmanaged-new-file 从 32 条降到 30 条）。
+  - id: source-server-ansi-control-regex-disable
+    rule: disable-count
     paths: [ packages/shared/src/source-server/connectionLog.ts ]
-    reason: 已存在的连接日志过滤函数只把已知秘密从子串替换改为完整 token 匹配，修复短密码反推泄露；签名与模块边界不变，接管整个 shared 包不在本次修复范围内。
-  - id: connection-errors-econnreset-unmanaged-edit
-    rule: unmanaged-new-file
-    paths: [ packages/shared/src/source-server/connectionErrors.ts ]
-    reason: 已存在的连接错误归一化码表补一项 ECONNRESET → remote-host-unreachable，修复在线断连恢复失败被误报为预检失败；签名与模块边界不变，接管整个 shared 包不在本次修复范围内。
+    reason: 该文件唯一的 lint disable 是 ANSI 清除正则的 `no-control-regex`——这条正则要匹配的就是控制序列本身，去掉就无法脱敏用户可见日志。
   - id: client-config-public-field-unmanaged-edit
     rule: unmanaged-new-file
     paths: [ packages/shared/src/clientConfig.ts ]
