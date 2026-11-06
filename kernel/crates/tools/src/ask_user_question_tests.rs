@@ -111,7 +111,8 @@ async fn declining_rejects_the_call() {
         .await
         .unwrap();
     assert!(output.is_error);
-    assert_eq!(output_text(&output), REJECT_MESSAGE);
+    // 提问被关掉时回的是提问自己的说法，不是通用的工具拒绝语（Node `interaction-broker.ts` 同）。
+    assert_eq!(output_text(&output), DECLINED_MESSAGE);
 }
 
 #[tokio::test]

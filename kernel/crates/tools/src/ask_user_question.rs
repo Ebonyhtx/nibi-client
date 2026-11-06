@@ -15,7 +15,7 @@ use serde_json::Value;
 use tokio::sync::mpsc;
 
 use crate::common::{Definition, definition, invalid, text};
-use crate::pipeline::{REJECT_MESSAGE, rejected};
+use crate::pipeline::rejected;
 use crate::texts_more as texts;
 
 pub const NAME: &str = "AskUserQuestion";
@@ -24,6 +24,8 @@ pub const NAME: &str = "AskUserQuestion";
 const SEPARATOR: &str = ", ";
 /// 只有备注、没有选项时的占位答案。
 const NOTES_ONLY: &str = "(notes only)";
+/// 用户主动关掉整组问答（esc 撤销）时回给模型的文字（Node `interaction-broker.ts` 的 `cancel` 分支）。
+const DECLINED_MESSAGE: &str = "AskUserQuestion was declined";
 
 pub struct AskUserQuestionTool {
     definition: Definition,
@@ -340,7 +342,12 @@ impl Tool for AskUserQuestionTool {
                 },
             )),
             // esc 或交互没有回答：按权限对话框的拒绝处理。
-            Some(QuestionAnswer::Declined) | None => rejected(REJECT_MESSAGE.to_owned()),
+            //
+            // 但结果文字要用提问自己的说法：Node 的 `interaction-broker.ts` 对非 accept 的回答回
+            // `AskUserQuestion was declined` / `AskUserQuestion was cancelled`，不是通用的
+            // `REJECT_MESSAGE`。模型靠这句话区分「用户不想继续这个工具」与「用户没回答问题」——
+            // 用通用拒绝语会让它以为整个任务被否掉。e2e 也按这句话做断言。
+            Some(QuestionAnswer::Declined) | None => rejected(DECLINED_MESSAGE.to_owned()),
         })
     }
 }

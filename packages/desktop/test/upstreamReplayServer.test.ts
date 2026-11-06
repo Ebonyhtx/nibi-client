@@ -562,7 +562,113 @@ describe("Upstream replay server", () => {
     expect(response.status).toBe(500);
     await expect(response.text()).resolves.toContain("Missing Upstream e2e fixture");
   });
+
+  it("serves the Rust title prompt from a fixture that only declares the Node wording", async () => {
+    const server = await startTitlePromptFixtureServer();
+
+    const nodeTitle = await requestTitlePrompt(
+      server,
+      "Generate a concise title for this coding session.",
+    );
+    expect(nodeTitle.status).toBe(200);
+    await expect(nodeTitle.text()).resolves.toContain("title-ok");
+
+    // Rust 的标题提示词是另一句话，但用途头相同。
+    const rustTitle = await requestTitlePrompt(
+      server,
+      "You are naming a coding session so the user can pick it out of a long list of sessions.",
+    );
+    expect(rustTitle.status).toBe(200);
+    await expect(rustTitle.text()).resolves.toContain("title-ok");
+  });
+
+  it("keeps a Rust title request out of a turn fixture that only excludes the Node wording", async () => {
+    const server = await startTitlePromptFixtureServer();
+
+    // 回合夹具带 `maxMatches: 1`，只排除 Node 的标题措辞。标题请求若落进去就会被消费掉，
+    // 真正的回合请求只能拿到 500 重试。
+    const stolen = await requestTitlePrompt(
+      server,
+      "You are naming a coding session so the user can pick it out of a long list of sessions.",
+      { includeTurnMarker: true },
+    );
+    expect(stolen.status).toBe(200);
+    await expect(stolen.text()).resolves.toContain("title-ok");
+
+    // 回合夹具必须还在，能用。
+    const turn = await requestTurn(server);
+    expect(turn.status).toBe(200);
+    await expect(turn.text()).resolves.toContain("turn-ok");
+  });
 });
+
+/** 标题夹具只用 Node 措辞声明；回合夹具 `maxMatches: 1` 且只排除 Node 措辞。 */
+async function startTitlePromptFixtureServer() {
+  const dir = await mkdtemp(join(tmpdir(), "nibi-replay-title-"));
+  tempDirs.push(dir);
+  const fixture = join(dir, "fixture.json");
+  await writeFile(
+    fixture,
+    JSON.stringify({
+      version: 1,
+      fixtures: [
+        {
+          id: "title",
+          metadata: { kind: "common" },
+          match: {
+            bodyIncludes: ["Generate a concise title"],
+            method: "POST",
+            pathIncludes: "/messages",
+          },
+          response: { statusCode: 200, text: "title-ok" },
+        },
+        {
+          id: "turn",
+          maxMatches: 1,
+          metadata: { kind: "main" },
+          match: {
+            bodyExcludes: ["Generate a concise title", "CRITICAL: Respond with TEXT ONLY"],
+            bodyIncludes: ["E2E_TITLE_THIEF_TURN"],
+            method: "POST",
+            pathIncludes: "/messages",
+          },
+          response: { statusCode: 200, text: "turn-ok" },
+        },
+      ],
+    }),
+  );
+  const server = await startUpstreamReplayServer({
+    artifactPath: join(dir, "artifact.json"),
+    fixturePaths: [fixture],
+  });
+  activeServers.push(server);
+  return server;
+}
+
+function requestTitlePrompt(
+  server: UpstreamReplayServer,
+  prompt: string,
+  options: { includeTurnMarker?: boolean } = {},
+) {
+  const userText = options.includeTurnMarker ? `E2E_TITLE_THIEF_TURN ${prompt}` : prompt;
+  return fetch(`${server.baseUrl}/messages`, {
+    body: JSON.stringify({
+      messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
+    }),
+    headers: { "content-type": "application/json", "x-zcode-query-source": "session_title" },
+    method: "POST",
+  });
+}
+
+function requestTurn(server: UpstreamReplayServer) {
+  return fetch(`${server.baseUrl}/messages`, {
+    body: JSON.stringify({
+      messages: [{ role: "user", content: [{ type: "text", text: "E2E_TITLE_THIEF_TURN" }] }],
+    }),
+    headers: { "content-type": "application/json", "x-zcode-query-source": "main_turn" },
+    method: "POST",
+  });
+}
 
 async function startFixtureServer(
   closeMode: "end" | "destroy",

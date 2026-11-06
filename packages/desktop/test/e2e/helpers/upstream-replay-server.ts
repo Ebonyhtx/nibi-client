@@ -1036,6 +1036,48 @@ function writeResponseChunk(response: ServerResponse, text: string | Buffer): Pr
   });
 }
 
+/**
+ * 请求用途头（`x-zcode-query-source`，两个内核都发）的标题生成值。
+ *
+ * 夹具靠**提示词原文**排除标题请求是不稳的：Node 的标题提示词是
+ * `Generate a concise title for this coding session.`，Rust 的是
+ * `You are naming a coding session so the user can pick it out of a long list of sessions.`
+ * （`kernel/prompts/title/system.txt`）。只排除 Node 那一句时，Rust 的标题请求会落进
+ * `kind: main` 的回合夹具——那些夹具多是 `maxMatches: 1`，被标题请求吃掉之后真正的回合
+ * 请求再也匹配不到，测试只看到 500 重试（AUQ 系列整片挂掉就是这么来的）。
+ * 这里按协议头判定用途，夹具不必再逐条维护两句提示词。
+ */
+const SESSION_TITLE_QUERY_SOURCE = "session_title";
+
+/** 本次请求是不是标题生成（头名按大小写无关取）。 */
+function isSessionTitleRequest(record: E2ENetworkCaptureRecord): boolean {
+  const headers = (record as { requestHeaders?: Record<string, string> }).requestHeaders;
+  if (!headers) {
+    return false;
+  }
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() === "x-zcode-query-source" && value === SESSION_TITLE_QUERY_SOURCE) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/** 这条 `bodyIncludes`/`bodyExcludes` 是不是“标题提示词”标记（两种内核的措辞都算）。 */
+function isTitlePromptMarker(text: string): boolean {
+  return text.includes("Generate a concise title") || text.includes("naming a coding session");
+}
+
+/**
+ * 夹具是否已经声明“我不是给标题请求用的”（`bodyExcludes` 里写着标题提示词）。
+ *
+ * 两种内核的措辞都认。这个判据只**收紧**匹配：声明过的夹具不再接标题请求；
+ * 没声明的夹具行为完全不变，所以不会影响既有的无标题夹具用例。
+ */
+function fixtureExcludesTitleRequests(fixture: UpstreamReplayFixture): boolean {
+  return (fixture.match.bodyExcludes ?? []).some(isTitlePromptMarker);
+}
+
 function findFixtureIndex(
   fixtures: UpstreamReplayFixture[],
   record: E2ENetworkCaptureRecord,
@@ -1043,7 +1085,14 @@ function findFixtureIndex(
   requestJson: unknown,
   fixtureMatchCounts: ReadonlyMap<string, number>,
 ) {
+  // 标题请求不得落在“已声明不是标题夹具”的夹具上。只做这一条收紧，不做正向对称：
+  // 没有标题夹具的用例保持原行为，避免把偶发匹配变成 500 重试。
+  const titleRequest = isSessionTitleRequest(record);
   return fixtures.findIndex((fixture) => {
+    if (titleRequest && fixtureExcludesTitleRequests(fixture)) {
+      return false;
+    }
+
     // 回放需要表达“同一类请求前 N 次失败、之后成功”的时序。
     // maxMatches 只影响测试 fixture 匹配，不进入产品协议。
     if (
@@ -1068,7 +1117,12 @@ function findFixtureIndex(
 
     return (
       (fixture.match.bodyIncludes?.every(
-        (text) => requestText.includes(text) || captureContainsText(requestJson, text),
+        (text) =>
+          requestText.includes(text) ||
+          captureContainsText(requestJson, text) ||
+          // 标题夹具用 Node 的措辞声明，但 Rust 内核的标题提示词是另一句话。
+          // 按用途头判定后，这里让标题标记对两种措辞都成立，标题夹具才能接住 Rust 的标题请求。
+          (titleRequest && isTitlePromptMarker(text)),
       ) ??
         true) &&
       (fixture.match.bodyExcludes?.every(
