@@ -48,7 +48,8 @@ describe("桌面端容器 headless boot demo", () => {
     );
 
     expect(mainWindow).toBeTruthy();
-    expect(mainWindow?.title).toBe("ZCode");
+    // 品牌化后窗口标题是 NIBI；这条断言停在改名之前，所以容器 e2e 一直红。
+    expect(mainWindow?.title).toBe("NIBI");
     expect(mainWindow?.visible).toBe(true);
 
     // 修复原因：v4 renderer URL 只承载启动/恢复参数，workspace 绑定已经迁入 store。
