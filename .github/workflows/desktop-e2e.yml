@@ -4,10 +4,23 @@ name: desktop-e2e-container
 # Linux container with replay-isolated network access, so no provider key or
 # repository secret is required.
 #
-# This workflow is intentionally manual-only: the image is large and the suite
-# takes several minutes, so it should not run on every push.
+# 触发方式：
+# - `push` 到 dev/main 且改动落在 packages/** 等路径时，跑默认那 5 个 spec。
+#   这是这套用例**唯一**的自动化入口——在此之前它只有 workflow_dispatch，
+#   实际运行次数是 0，422 个 e2e 用例在 CI 里完全没有覆盖。
+# - `workflow_dispatch` 保留给全量/定点排查，可以指定任意 spec。
+#
+# 注意：镜像大、单轮要几分钟，所以只在上面那些路径变化时跑，且**暂不进合并必过项**
+# ——先在 CI 里积累稳定性证据，再讨论是否升为门禁。
 
 on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "packages/**"
+      - "kernel/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/desktop-e2e.yml"
   workflow_dispatch:
     inputs:
       spec:
@@ -38,6 +51,8 @@ jobs:
         env:
           E2E_SPEC: ${{ inputs.spec }}
           SKIP_IMAGE_BUILD: ${{ inputs.skip_image_build && '1' || '0' }}
+          # push 触发时复用 GitHub Actions 的镜像层缓存，避免每次全量重建。
+          DOCKER_CACHE: ${{ github.event_name == 'push' && 'gha' || '' }}
         run: bash scripts/test-desktop-e2e-container.sh
       - name: Upload artifacts
         if: always()

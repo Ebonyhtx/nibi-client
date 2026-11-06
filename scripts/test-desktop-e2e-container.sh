@@ -124,10 +124,19 @@ if [ "${SKIP_IMAGE_BUILD:-0}" = "1" ]; then
   log "skipping image build for ${IMAGE_NAME}:latest"
 else
   log "building ${IMAGE_NAME}:latest with ${DOCKERFILE} for ${DOCKER_PLATFORM}"
-  DOCKER_BUILDKIT="${DOCKER_BUILDKIT:-1}" docker build \
+  # CI 里镜像很大，每次全量重建太慢。`DOCKER_CACHE=gha` 时走 buildx 的 GitHub Actions
+  # 缓存（本地跑不受影响）；`--load` 把结果放回本机镜像库，后面的 docker run 照旧。
+  build_cmd=(docker build)
+  build_cache=()
+  if [ "${DOCKER_CACHE:-}" = "gha" ]; then
+    build_cmd=(docker buildx build --load)
+    build_cache=(--cache-from "type=gha" --cache-to "type=gha,mode=max")
+  fi
+  DOCKER_BUILDKIT="${DOCKER_BUILDKIT:-1}" "${build_cmd[@]}" \
     --platform "$DOCKER_PLATFORM" \
     -f "$DOCKERFILE" \
     --build-arg "PNPM_VERSION=${PNPM_VERSION}" \
+    "${build_cache[@]}" \
     -t "${IMAGE_NAME}:latest" \
     .
 fi
