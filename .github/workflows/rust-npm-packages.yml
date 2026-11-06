@@ -3,9 +3,8 @@ name: rust-npm-packages
 # 远端执行器的平台包（`@nibi/cli-<platform>`）：构建 + 打包成 tarball，作为 artifact 上传。
 #
 # 消费方是 Rust 内核的 `machines/executor_dist`（从 npm 注册表取 tarball、校验
-# `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。**打包不等于发布**：
-# 本 workflow 只产出 artifact，`publish` job 需要人工在 GitHub UI 上 approve
-# （environment: npm-publish），且要仓库 secret `NPM_TOKEN` 才可能成功。
+# `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。**打包不等于发布**：本 workflow
+# 只产出 artifact，没有任何发布步骤（原因见文件末尾的说明）。
 #
 # 为什么不自动发：npm 版本号一经 publish 就永久占用；远端执行器的用户入口
 # （机器清单 `/machines`）还在后续阶段，Rust 内核也仍是灰度（默认 node）。
@@ -25,11 +24,6 @@ on:
       - "scripts/rust-cli/npm/**"
       - ".github/workflows/rust-npm-packages.yml"
   workflow_dispatch:
-    inputs:
-      publish:
-        description: "打包后进入 publish job（仍需人工 approve + NPM_TOKEN）"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -101,39 +95,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # 人工闸门：没有 approve 不会跑，没有 NPM_TOKEN 直接失败。
-  # 手动触发时把 `publish` 勾上才会进入这个 job。
-  publish:
-    name: publish to npm (manual gate)
-    needs: pack
-    if: github.event_name == 'workflow_dispatch' && inputs.publish
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    environment: npm-publish
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/download-artifact@fa0a91b85d4f404e444e00e881e0000aab4a191e # v4.1.8
-        with:
-          pattern: npm-pack-*
-          path: npm-pack
-          merge-multiple: true
+# 发布（publish）job 不放在公开仓：public-repo-policy 无条件拒绝公开仓 workflow 引用
+# `secrets.*`，而 npm publish 必须带 NPM_TOKEN。发布前置仍是「Rust 切默认 + 远端执行器入口
+# 上线」（见文件头的说明），到那时把 publish 挪到私有仓、用私有仓的 secret 与 environment，
+# 本仓继续只产出 artifact。在此之前这里只需要 `pack`。
 
-      - name: Setup Node
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1
-        with:
-          node-version: "24.22.1"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Publish platform packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN is not configured; refusing to publish." >&2
-            exit 1
-          fi
-          for tarball in npm-pack/*.tgz; do
-            echo "publishing $tarball"
-            npm publish --access public "$tarball"
-          done
