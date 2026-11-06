@@ -5,7 +5,9 @@ name: desktop-e2e-container
 # repository secret is required.
 #
 # 触发方式：
-# - `push` 到 dev/main 且改动落在 packages/** 等路径时，跑默认那 5 个 spec。
+# - `push` 到 dev/main 且改动落在 packages/** 等路径时，跑 `ci` 预设 =
+#   **默认 smoke 4 个 spec + 已验证的会话 spec 3 个**（默认 smoke 本身不含 conversation 一族，
+#   那条不变量由 desktopE2EContainerScript.test.ts 钉着；并集只影响 CI 覆盖面）。
 #   这是这套用例**唯一**的自动化入口——在此之前它只有 workflow_dispatch，
 #   实际运行次数是 0，422 个 e2e 用例在 CI 里完全没有覆盖。
 # - `workflow_dispatch` 保留给全量/定点排查，可以指定任意 spec。
@@ -29,9 +31,9 @@ on:
   workflow_dispatch:
     inputs:
       spec:
-        description: "Comma-separated specs, relative to packages/desktop (capture-only specs like upstream-provider cannot run under replay-isolated)"
+        description: "Comma-separated specs, relative to packages/desktop (capture-only specs like upstream-provider cannot run under replay-isolated; conversation-session specs are admitted via the verified preset, not this default)"
         required: false
-        default: "./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts"
+        default: "./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
       skip_image_build:
         description: "Reuse an existing local image (only useful on a persistent machine)"
         required: false
@@ -55,6 +57,9 @@ jobs:
         shell: bash
         env:
           E2E_SPEC: ${{ inputs.spec }}
+          # push 触发时跑「默认 smoke + verified 会话预设」的并集（见脚本的 ci 预设）：
+          # 默认 smoke 本身保持不含 conversation 一族，但 CI 覆盖面不因此缩水。
+          E2E_SPEC_PRESET: ci
           SKIP_IMAGE_BUILD: ${{ inputs.skip_image_build && '1' || '0' }}
           # push 触发时复用 GitHub Actions 的镜像层缓存，避免每次全量重建。
           DOCKER_CACHE: ${{ github.event_name == 'push' && 'gha' || '' }}

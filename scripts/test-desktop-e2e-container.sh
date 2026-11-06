@@ -17,13 +17,14 @@ PNPM_VERSION="${PNPM_VERSION:-10.33.2}"
 # （`E2E_PROVIDER_BASE_URL`），而容器是 replay-isolated（`--network none`），永远满足不了。
 # 放进来只会每天早上都红一次，且红的不是产品问题。
 #
-# 2026-11-06 扩充的三个 spec 都有**单 spec 容器准入证据**（replay-isolated，3/3 文件、7 条用例
-# 全绿）：AUQ 键盘焦点的两条 + 会话/项目归属的一条。它们覆盖的正是切 Rust 内核时最容易断的
-# 两类链路（旧协议提问交互、`session/list` 的项目谱系），所以优先扩这两组。
-DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts"
-# 修复原因：formal/local replay 通过不等于 Docker admission；Assistant Preview Cards 的容器尝试
-# 停在镜像解析阶段，CDD01 则在 WDIO 内失败；两者都没有 replay-isolated 绿色证据。
-CONVERSATION_SESSION_VERIFIED_E2E_SPEC=""
+# **默认 smoke 必须不含 `conversation-session/`**（`desktopE2EContainerScript.test.ts` 钉着这条）：
+# 那一族历史上有大量陈旧用例，只能走 `conversation-session-verified` 预设逐条准入。
+DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
+# 2026-11-06 通过单 spec 容器准入的三条（replay-isolated，3/3 文件、7 条用例全绿；2026-11-07 在
+# CI 上作为默认列表的一部分复跑过 7/7）。放进这个预设而不是默认 smoke：AUQ 键盘焦点两条 +
+# 会话/项目归属一条，覆盖切 Rust 内核时最容易断的两类链路（旧协议提问交互、`session/list` 谱系）。
+# 准入一条就往这里加一条，并保留它通过的运行记录。
+CONVERSATION_SESSION_VERIFIED_E2E_SPEC="./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-default-focus.test.ts,./test/e2e/conversation-session/conversation-session-ask-user-question-keyboard-navigation.test.ts,./test/e2e/conversation-session/conversation-session-conversation-workspace.test.ts"
 # 只有通过人工 review、formal promotion 和单 spec Docker admission 的插件用例才能写入。
 PLUGIN_MANAGEMENT_VERIFIED_E2E_SPEC=""
 E2E_SPEC_PRESET="${E2E_SPEC_PRESET:-}"
@@ -43,9 +44,18 @@ case "$E2E_SPEC_PRESET" in
   "" | default)
     PRESET_E2E_SPEC="$DEFAULT_E2E_SPEC"
     ;;
+  ci)
+    # CI 跑「默认 smoke + verified 会话预设」的并集：默认 smoke 本身仍不含 conversation 一族，
+    # 那条不变量由 desktopE2EContainerScript.test.ts 钉着；这里只是把已准入的加进 CI 覆盖面。
+    if [ -n "$CONVERSATION_SESSION_VERIFIED_E2E_SPEC" ]; then
+      PRESET_E2E_SPEC="$DEFAULT_E2E_SPEC,$CONVERSATION_SESSION_VERIFIED_E2E_SPEC"
+    else
+      PRESET_E2E_SPEC="$DEFAULT_E2E_SPEC"
+    fi
+    ;;
   conversation-session-verified)
     if [ -z "$CONVERSATION_SESSION_VERIFIED_E2E_SPEC" ]; then
-      printf '[desktop-e2e-container] No V4 conversation-session spec has Docker replay-isolated admission evidence; run a formal spec with E2E_SPEC first, then use e2e:docker:admit after it passes.\n' >&2
+      printf '[desktop-e2e-container] The verified conversation-session preset is empty; add a spec only after it passes a replay-isolated formal run (E2E_SPEC=<spec>), never by widening the default smoke preset.\n' >&2
       exit 2
     fi
     PRESET_E2E_SPEC="$CONVERSATION_SESSION_VERIFIED_E2E_SPEC"
@@ -59,7 +69,7 @@ case "$E2E_SPEC_PRESET" in
     ;;
   *)
     printf '[desktop-e2e-container] unsupported E2E_SPEC_PRESET: %s\n' "$E2E_SPEC_PRESET" >&2
-    printf '[desktop-e2e-container] expected one of: default, conversation-session-verified, plugins-verified\n' >&2
+    printf '[desktop-e2e-container] expected one of: default, ci, conversation-session-verified, plugins-verified\n' >&2
     exit 1
     ;;
 esac

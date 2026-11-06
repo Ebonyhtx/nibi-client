@@ -17,13 +17,16 @@ describe("desktop E2E container presets", () => {
     expect(defaultAssignment?.[1]).not.toContain("./test/e2e/conversation-session/");
   });
 
-  it("makes the V4 verified conversation preset explicitly unavailable until Docker evidence exists", () => {
+  it("admits conversation specs only through the verified preset, never the default smoke", () => {
     const script = readFileSync(containerScriptPath, "utf-8");
+    const verified = script.match(/^CONVERSATION_SESSION_VERIFIED_E2E_SPEC="([^"]*)"$/m);
 
-    expect(script).toContain('CONVERSATION_SESSION_VERIFIED_E2E_SPEC=""');
-    expect(script).toContain(
-      "No V4 conversation-session spec has Docker replay-isolated admission evidence",
-    );
+    expect(verified).not.toBeNull();
+    const specs = (verified?.[1] ?? "").split(",").filter(Boolean);
+    expect(specs.length).toBeGreaterThan(0);
+    for (const spec of specs) expect(spec).toContain("./test/e2e/conversation-session/");
+    // 预设为空时的提示要说明正确的准入方式，而不是宣称「从来没有证据」。
+    expect(script).toContain("The verified conversation-session preset is empty");
     expect(script).not.toContain("conversation-session-admission)");
     expect(script).not.toContain("conversation-session-needs-docker-fix)");
     expect(script).not.toContain("conversation-session-tool-cross-product)");
@@ -131,6 +134,14 @@ function runContainerScriptWithFakeDocker(env: Record<string, string>) {
 }
 
 describe.skipIf(process.platform === "win32")("desktop E2E container upstream provider env", () => {
+  it("ci 预设把默认 smoke 与已验证的会话 spec 合成一份清单", () => {
+    const result = runContainerScriptWithFakeDocker({ E2E_SPEC_PRESET: "ci" });
+
+    expect(result.status).toBe(0);
+    expect(result.runArgs).toContain("NIBI_E2E_SPEC=./test/e2e/container-boot.test.ts");
+    expect(result.runArgs).toContain("conversation-session-ask-user-question-keyboard-default-focus.test.ts");
+  });
+
   it("capture 模式把上游地址、模型与 preset 透传给容器", () => {
     const result = runContainerScriptWithFakeDocker({
       E2E_NETWORK_MODE: "capture",
