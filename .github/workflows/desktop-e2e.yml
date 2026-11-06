@@ -29,7 +29,7 @@ on:
   workflow_dispatch:
     inputs:
       spec:
-        description: "Comma-separated specs, relative to packages/desktop"
+        description: "Comma-separated specs, relative to packages/desktop (capture-only specs like upstream-provider cannot run under replay-isolated)"
         required: false
         default: "./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
       skip_image_build:

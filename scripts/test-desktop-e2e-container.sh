@@ -6,7 +6,10 @@ IMAGE_NAME="${IMAGE_NAME:-zcode-desktop-e2e-demo}"
 DOCKERFILE="${DOCKERFILE:-Dockerfile.desktop-e2e}"
 DOCKER_PLATFORM="${DOCKER_PLATFORM:-linux/amd64}"
 PNPM_VERSION="${PNPM_VERSION:-10.33.2}"
-DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/upstream-provider.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
+# `upstream-provider.test.ts` **不在**默认列表里：它要 capture 模式 + 真实上游地址
+# （`E2E_PROVIDER_BASE_URL`），而容器是 replay-isolated（`--network none`），永远满足不了。
+# 放进来只会每天早上都红一次，且红的不是产品问题。
+DEFAULT_E2E_SPEC="./test/e2e/container-boot.test.ts,./test/e2e/smoke.test.ts,./test/e2e/e2ecase-regression.test.ts,./test/e2e/task-list-archive-confirmation.test.ts"
 # 修复原因：formal/local replay 通过不等于 Docker admission；Assistant Preview Cards 的容器尝试
 # 停在镜像解析阶段，CDD01 则在 WDIO 内失败；两者都没有 replay-isolated 绿色证据。
 CONVERSATION_SESSION_VERIFIED_E2E_SPEC=""
