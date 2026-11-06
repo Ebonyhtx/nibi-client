@@ -141,7 +141,7 @@ export async function persistWorkflowLaunchUserMessage(
       sessionID: this.sessionId,
       role: "user",
       time: { created },
-      agent: this.config.agentName ?? "zcode-agent",
+      agent: this.config.agentName ?? "nibi-agent",
       // 冷恢复来源：transcript-hydration 据 source === "workflow_launch" + metadata.workflowLaunch
       // 重建启动卡行。
       metadata: { workflowLaunch: options.meta },

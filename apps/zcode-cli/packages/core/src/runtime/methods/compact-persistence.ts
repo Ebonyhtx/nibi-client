@@ -317,7 +317,7 @@ export async function persistCompactSummary(
           body: summary,
           diffs: [],
         },
-        agent: this.config.agentName ?? "zcode-agent",
+        agent: this.config.agentName ?? "nibi-agent",
         modelSelection: persistedModel,
         semantics: {
           origin: "agent_runtime",

@@ -91,7 +91,7 @@ export async function recordModelUsageFact(
       providerId: input.model.providerId,
       modelId: input.model.modelId,
       reasoningLevel: input.model.options.reasoningLevel,
-      agent: runtime.config.agentName ?? "zcode-agent",
+      agent: runtime.config.agentName ?? "nibi-agent",
       mode: runtime.config.mode ?? "build",
       taskType: runtime.config.taskType ?? "interactive",
       status: input.status,

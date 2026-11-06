@@ -41,7 +41,7 @@ export async function persistRuntimeReminderMessage(
         sessionID: this.sessionId,
         role: "user",
         time: { created },
-        agent: this.config.agentName ?? "zcode-agent",
+        agent: this.config.agentName ?? "nibi-agent",
         metadata: reminderPartMetadata(entry.metadata),
         modelSelection: resolvePersistedReminderModel(this, options.model),
         ...(options.anchor ? { anchor: options.anchor } : {}),

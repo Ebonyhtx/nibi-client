@@ -252,7 +252,7 @@ export interface AgentRuntimeConfig {
   };
   language?: string;
   outputStyle?: OutputStylePromptConfig;
-  agentName?: string; // Default: "zcode-agent"
+  agentName?: string; // Default: "nibi-agent"
   workingDirectory?: string; // Required for context builder
   /** 本次运行的附加目录，仅用于环境 prompt 展示，不参与配置发现或持久化。 */
   additionalDirectories?: readonly string[];

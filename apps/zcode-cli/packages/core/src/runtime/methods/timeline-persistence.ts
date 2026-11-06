@@ -122,7 +122,7 @@ export async function persistAssistantTimelinePartForSession(
       providerId: selection && createModelProviderId(selection.providerId),
       mode: this.config.mode ?? "build",
       planEnabled: this.getPlanEnabled(),
-      agent: this.config.agentName ?? "zcode-agent",
+      agent: this.config.agentName ?? "nibi-agent",
       path: {
         cwd: this.workingDirectory,
         root: this.workspaceRoot,
