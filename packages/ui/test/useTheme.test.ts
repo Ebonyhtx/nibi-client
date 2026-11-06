@@ -99,11 +99,12 @@ describe("loadThemePreference", () => {
 
   it("只认 nibi-theme，不读旧品牌键", () => {
     localStorage.setItem("nibi-theme", "nibi-light");
-    localStorage.setItem("zcode-theme", "zai-dark");
+    // 旧键写一个不会被 nibi 认作主题的哨兵值：它若被读到，结果就不可能是 nibi-light。
+    localStorage.setItem("zcode-theme", "sentinel-not-a-theme");
 
     expect(loadThemePreference()).toBe("nibi-light");
     expect(localStorage.getItem("nibi-theme")).toBe("nibi-light");
     // 旧键既不读也不清：NIBI 没有发布过，不会存在这种键。
-    expect(localStorage.getItem("zcode-theme")).toBe("zai-dark");
+    expect(localStorage.getItem("zcode-theme")).toBe("sentinel-not-a-theme");
   });
 });
