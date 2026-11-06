@@ -29,10 +29,7 @@ describe("desktop renderer Vite dependency aliases", () => {
     ).toBe(true);
   });
 
-  // Windows 跳过：环境配置差异导致断言失败，需要 CI 环境统一配置
-  const isWindows = process.platform === "win32";
-
-  (isWindows ? it.skip : it)("injects the selected ZCode endpoint origin into renderer env", async () => {
+  it("injects our endpoint origin into renderer env, never the upstream one", async () => {
     vi.stubEnv("NIBI_ENV", "test");
     vi.stubEnv("NIBI_BASE_URL", "");
     const desktopRoot = resolve(import.meta.dirname, "..");
@@ -49,13 +46,18 @@ describe("desktop renderer Vite dependency aliases", () => {
       "silent",
     );
 
-    expect(result?.config.define).toMatchObject({
-      "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify("https://zcode.z.ai"),
-      "import.meta.env.VITE_NIBI_ENDPOINT_ORIGIN": JSON.stringify(
-        "https://zcode.z.ai",
-      ),
-      __NIBI_LOCAL_DEVELOPMENT_RUNTIME__: JSON.stringify(false),
-    });
+    // 断言**不变量**，不写死某个环境的主机名：写死上游 `zcode.z.ai` 的话，这条用例一边
+    // 断言别的产品的端点，一边在 Windows 上因环境差异被 skip 掉（原来就是这样）。
+    const define = result?.config.define ?? {};
+    const baseUrl = JSON.parse(String(define["import.meta.env.VITE_NIBI_BASE_URL"]));
+    const origin = JSON.parse(String(define["import.meta.env.VITE_NIBI_ENDPOINT_ORIGIN"]));
+
+    // 两个键必须同源——它们描述的是同一个 base URL。
+    expect(baseUrl).toBe(origin);
+    expect(origin).toMatch(/^https:\/\/\S+$/);
+    // 绝不回落到上游端点：这是我们自己的基础设施地址。
+    expect(origin).not.toMatch(/zcode\.z\.ai|z\.ai/i);
+    expect(JSON.parse(String(define.__NIBI_LOCAL_DEVELOPMENT_RUNTIME__))).toBe(false);
   });
 
   it("marks non-production renderer builds as local development runtime", async () => {
