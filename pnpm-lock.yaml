@@ -73,6 +73,9 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      electron-to-chromium:
+        specifier: ^1.5.478
+        version: 1.5.478
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -7658,6 +7661,9 @@ packages:
 
   electron-to-chromium@1.5.336:
     resolution: {integrity: sha512-AbH9q9J455r/nLmdNZes0G0ZKcRX73FicwowalLs6ijwOmCJSRRrLX63lcAlzy9ux3dWK1w1+1nsBJEWN11hcQ==}
+
+  electron-to-chromium@1.5.478:
+    resolution: {integrity: sha512-pftG+ma5Lm8O6/p45bhYT6StBN5ziQymaRzmCZwFl8DwWHKPPD93FdOmP1aqftcepolQYvrcyTLa17kE8Yf+jg==}
 
   electron-updater@6.8.3:
     resolution: {integrity: sha512-Z6sgw3jgbikWKXei1ENdqFOxBP0WlXg3TtKfz0rgw2vIZFJUyI4pD7ZN7jrkm7EoMK+tcm/qTnPUdqfZukBlBQ==}
@@ -17332,7 +17338,7 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.10.18
       caniuse-lite: 1.0.30001787
-      electron-to-chromium: 1.5.336
+      electron-to-chromium: 1.5.478
       node-releases: 2.0.37
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
 
@@ -18407,6 +18413,8 @@ snapshots:
       - supports-color
 
   electron-to-chromium@1.5.336: {}
+
+  electron-to-chromium@1.5.478: {}
 
   electron-updater@6.8.3:
     dependencies:
