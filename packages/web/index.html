@@ -19,8 +19,6 @@
         // 这里提前按本地主题偏好决定首屏底色，避免 dark 用户在这一帧看到白底闪烁。
         // 默认浅色，与 @nibi/ui 的 DEFAULT_THEME 对齐（这段在 bundle 之前跑，只能写字面量）。
         const STORAGE_KEY = "nibi-theme";
-        // legacy-migration: 旧版本存储键/主题值，启动壳先于 bundle，必须自己兼容。
-        const LEGACY_STORAGE_KEY = "zcode-theme";
         const DEFAULT_THEME = "nibi-light";
         const BROWSER_THEME_COLORS = {
           dark: "#171716",
@@ -29,8 +27,8 @@
         const BOOTSTRAP_SNAPSHOT_KEY = "nibi:web-remote-control:bootstrap-shell";
 
         const normalizeResolvedTheme = (theme) => {
-          if (theme === "dark" || theme === "nibi-dark" || theme === "zai-dark") return "dark"; // legacy-migration
-          if (theme === "light" || theme === "nibi-light" || theme === "zai-light") return "light"; // legacy-migration
+          if (theme === "dark" || theme === "nibi-dark") return "dark";
+          if (theme === "light" || theme === "nibi-light") return "light";
           return theme;
         };
 
@@ -87,10 +85,7 @@
             }
           }
 
-          const saved =
-            localStorage.getItem(STORAGE_KEY) ||
-            localStorage.getItem(LEGACY_STORAGE_KEY) ||
-            DEFAULT_THEME;
+          const saved = localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
           const resolved =
             saved === "system"
               ? window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches

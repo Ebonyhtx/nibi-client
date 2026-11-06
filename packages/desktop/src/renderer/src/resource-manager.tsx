@@ -29,16 +29,14 @@ declare global {
 }
 
 type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
-// legacy-migration: 旧版本存储值，只在启动读取时兼容。
-type LegacyTheme = "zai-light" | "zai-dark"; // legacy-migration
 
-function normalizeTheme(theme: Theme | LegacyTheme): Theme {
-  if (theme === "dark" || theme === "zai-dark") return "nibi-dark"; // legacy-migration
-  if (theme === "light" || theme === "zai-light") return "nibi-light"; // legacy-migration
+function normalizeTheme(theme: Theme): Theme {
+  if (theme === "dark") return "nibi-dark";
+  if (theme === "light") return "nibi-light";
   return theme;
 }
 
-function resolveTheme(theme: Theme | LegacyTheme): "light" | "dark" {
+function resolveTheme(theme: Theme): "light" | "dark" {
   const normalized = normalizeTheme(theme);
   if (normalized === "system") {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -47,10 +45,8 @@ function resolveTheme(theme: Theme | LegacyTheme): "light" | "dark" {
 }
 
 function applyResourceManagerTheme(): void {
-  const savedTheme =
-    (localStorage.getItem("nibi-theme") as Theme | LegacyTheme | null) ??
-    (localStorage.getItem("zcode-theme") as LegacyTheme | null) ?? // legacy-migration
-    DEFAULT_THEME;
+  // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
+  const savedTheme = (localStorage.getItem("nibi-theme") as Theme | null) ?? DEFAULT_THEME;
   const normalizedTheme = normalizeTheme(savedTheme);
   const resolvedTheme = resolveTheme(normalizedTheme);
   const appliedTheme =

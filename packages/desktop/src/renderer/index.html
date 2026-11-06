@@ -110,7 +110,7 @@
 
       /* 应用内关掉「界面动效」时同样停掉弹入。这条规则必须写在本页内联样式里：
          启动壳先于应用 bundle 渲染，等 styles.css 里那条全局覆盖生效就已经闪过动画了。 */
-      html[data-zcode-motion="off"] .startup-logo-shell {
+      html[data-nibi-motion="off"] .startup-logo-shell {
         opacity: 1;
         transform: scale(1);
         animation: none;
@@ -122,18 +122,16 @@
       // 代码在 JS bundle 之前执行，不能 import，也不该为一个常量引入一次额外请求。
       (() => {
         try {
-          // legacy-migration: 旧版本存 zcode-theme / zai-*；启动壳先于 bundle，必须自己兼容。
-          const saved =
-            localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme");
+          // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
+          const saved = localStorage.getItem("nibi-theme");
           const resolvedDark =
             saved === "dark" ||
             saved === "nibi-dark" ||
-            saved === "zai-dark" || // legacy-migration
             (saved === "system" &&
               window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.classList.toggle("dark", resolvedDark);
-          document.documentElement.dataset.zcodeMotion =
-            localStorage.getItem("zcode-motion") === "false" ? "off" : "on";
+          document.documentElement.dataset.nibiMotion =
+            localStorage.getItem("nibi-motion") === "false" ? "off" : "on";
         } catch {
           // localStorage 不可用时保持浅色底、保留动效（与两个默认值一致）。
         }
@@ -154,9 +152,9 @@
       const isUpdateStatusWindow =
         new URLSearchParams(window.location.search).get("windowKind") === "update-status";
       // 关掉「界面动效」的用户不该看到启动图标的弹入动画；系统减弱动效同样停用。
-      // data-zcode-motion 由上面的 head 脚本落地，这里直接复用，不再读一遍 localStorage。
+      // data-nibi-motion 由上面的 head 脚本落地，这里直接复用，不再读一遍 localStorage。
       const reduceMotion =
-        document.documentElement.dataset.zcodeMotion === "off" ||
+        document.documentElement.dataset.nibiMotion === "off" ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       let finished = false;
       let animationDone = false;

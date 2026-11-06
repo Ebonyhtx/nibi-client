@@ -27,8 +27,8 @@ const root = createRoot(document.getElementById("root")!);
 const webAuthService = createWebAuthService();
 
 function resolveThemePreference(): Theme {
-  const saved =
-    localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme"); // legacy-migration
+  // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
+  const saved = localStorage.getItem("nibi-theme");
   return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme: "nibi-light" });
 }
 

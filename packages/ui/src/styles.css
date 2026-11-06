@@ -2639,22 +2639,22 @@ html[data-document-hidden] *::after {
 
 
 /* 界面动效关闭时，CSS 驱动的扫光与新建会话循环必须一起停。 */
-html[data-zcode-motion="off"] .composer-model-sweep {
+html[data-nibi-motion="off"] .composer-model-sweep {
   display: none !important;
 }
-html[data-zcode-motion="off"] .nibi-new-conversation-loop {
+html[data-nibi-motion="off"] .nibi-new-conversation-loop {
   animation: none !important;
   background-position: 0 0;
 }
 
-html[data-zcode-motion="off"] .composer-thinking-sheen,
-html[data-zcode-motion="off"] .composer-thinking-wisp,
-html[data-zcode-motion="off"] .composer-thinking-leaf,
-html[data-zcode-motion="off"] .nibi-hero-perched,
-html[data-zcode-motion="off"] .nibi-hero-feather {
+html[data-nibi-motion="off"] .composer-thinking-sheen,
+html[data-nibi-motion="off"] .composer-thinking-wisp,
+html[data-nibi-motion="off"] .composer-thinking-leaf,
+html[data-nibi-motion="off"] .nibi-hero-perched,
+html[data-nibi-motion="off"] .nibi-hero-feather {
   animation: none !important;
 }
-html[data-zcode-motion="off"] .composer-thinking-leaf.is-active {
+html[data-nibi-motion="off"] .composer-thinking-leaf.is-active {
   opacity: 0.7;
   transform: translate3d(0, 0, 0) rotate(var(--leaf-rotate)) scale(var(--leaf-scale));
 }
@@ -2708,7 +2708,7 @@ html[data-zcode-motion="off"] .composer-thinking-leaf.is-active {
     animation: none !important;
   }
 }
-html[data-zcode-motion="off"] .running-status-dot,
-html[data-zcode-motion="off"] .running-status-dot::after {
+html[data-nibi-motion="off"] .running-status-dot,
+html[data-nibi-motion="off"] .running-status-dot::after {
   animation: none !important;
 }

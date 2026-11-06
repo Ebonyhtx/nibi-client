@@ -492,7 +492,7 @@ export function createZCodeStore(
   applyTheme(useStore.getState().theme);
   applyUiFontSizePx(useStore.getState().uiFontSizePx);
   // 动效偏好不进 store：外观开关直接走 lib/motionPreference，store 只负责启动时落地一次
-  // html[data-zcode-motion]（资源管理器窗口在 resource-manager.tsx 里自己应用）。
+  // html[data-nibi-motion]（资源管理器窗口在 resource-manager.tsx 里自己应用）。
   applyMotionPreference(loadMotionEnabled());
   document.documentElement.classList.toggle(
     "dark",

@@ -11,7 +11,7 @@ import "@/styles.css";
 
 const params = new URLSearchParams(location.search);
 const locale = params.get("locale") === "en-US" ? "en-US" : "zh-CN";
-localStorage.setItem("zcode-locale-preference", locale);
+localStorage.setItem("nibi-locale-preference", locale);
 document.documentElement.className =
   params.get("theme") === "light" ? "theme-nibi-light" : "theme-nibi-dark dark";
 const svg =

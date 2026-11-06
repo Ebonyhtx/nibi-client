@@ -25,8 +25,6 @@ export const WEB_REMOTE_CONTROL_WORKSPACE_RECONNECT_TIMEOUT_MS = 120_000;
 export const WEB_REMOTE_CONTROL_OUTBOUND_PAYLOAD_BUFFER_TIMEOUT_MS = 5_000;
 
 export type WebRemoteControlThemeSeed = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
-// legacy-migration: 旧版本二维码/本地存储可能仍带旧主题值，只在解析时兼容。
-export type LegacyWebRemoteControlThemeSeed = "zai-light" | "zai-dark"; // legacy-migration
 
 export interface WebRemoteControlContext {
   workspacePath: string;
@@ -137,12 +135,6 @@ export function isWebRemoteControlThemeSeed(value: unknown): value is WebRemoteC
     value === "nibi-dark" ||
     value === "system"
   );
-}
-
-export function isLegacyWebRemoteControlThemeSeed(
-  value: unknown,
-): value is LegacyWebRemoteControlThemeSeed {
-  return value === "zai-light" || value === "zai-dark"; // legacy-migration
 }
 
 export function resolveWebRemoteControlRoutePathFromBaseUrl(baseUrl: string): string {

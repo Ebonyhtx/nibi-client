@@ -93,7 +93,7 @@ describe("资源管理器网络", () => {
         await browser.execute(
           (themeValue, localeValue) => {
             localStorage.setItem("nibi-theme", themeValue!);
-            localStorage.setItem("zcode-locale-preference", localeValue!);
+            localStorage.setItem("nibi-locale-preference", localeValue!);
           },
           theme,
           locale,

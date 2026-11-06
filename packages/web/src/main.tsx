@@ -187,8 +187,8 @@ async function markOpenedWebRemoteControlBridgeTaskRead({
 }
 
 function resolveWebThemePreference(defaultTheme: Theme = WEB_REMOTE_CONTROL_DEFAULT_THEME): Theme {
-  const saved =
-    localStorage.getItem("nibi-theme") ?? localStorage.getItem("zcode-theme"); // legacy-migration
+  // 只读 NIBI 自己的键：NIBI 没有发布过，不存在需要兼容的旧键。
+  const saved = localStorage.getItem("nibi-theme");
   return resolveWebRemoteControlInitialTheme({ storedTheme: saved, defaultTheme });
 }
 

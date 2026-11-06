@@ -3,13 +3,8 @@ import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnviro
 
 export type Theme = "light" | "dark" | "nibi-light" | "nibi-dark" | "system";
 export type ResolvedTheme = "light" | "dark";
-// legacy-migration: 旧版本写入的主题值，只用于读取旧偏好，不参与新写入。
-type LegacyTheme = "zai-light" | "zai-dark"; // legacy-migration
-type StoredTheme = Theme | LegacyTheme;
 
 const STORAGE_KEY = "nibi-theme";
-// legacy-migration: 旧版本存储键，读到后迁移到 nibi-theme。
-const LEGACY_STORAGE_KEY = "zcode-theme";
 const BROWSER_THEME_SURFACE_ATTRIBUTE = "data-nibi-browser-theme-surface";
 
 /**
@@ -24,7 +19,7 @@ function getSystemTheme(): ResolvedTheme {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-export function resolveTheme(theme: StoredTheme): ResolvedTheme {
+export function resolveTheme(theme: Theme): ResolvedTheme {
   const normalized = normalizeThemePreference(theme);
   if (normalized === "system") {
     return getSystemTheme();
@@ -33,9 +28,9 @@ export function resolveTheme(theme: StoredTheme): ResolvedTheme {
   return normalized === "dark" || normalized === "nibi-dark" ? "dark" : "light";
 }
 
-export function normalizeThemePreference(theme: StoredTheme): Theme {
-  if (theme === "dark" || theme === "zai-dark") return "nibi-dark"; // legacy-migration
-  if (theme === "light" || theme === "zai-light") return "nibi-light"; // legacy-migration
+export function normalizeThemePreference(theme: Theme): Theme {
+  if (theme === "dark") return "nibi-dark";
+  if (theme === "light") return "nibi-light";
   return theme;
 }
 
@@ -70,7 +65,7 @@ function syncBrowserThemeSurface(resolved: ResolvedTheme) {
   }
 }
 
-export function applyTheme(theme: StoredTheme) {
+export function applyTheme(theme: Theme) {
   const normalized = normalizeThemePreference(theme);
   const resolved = resolveTheme(normalized);
   const appliedTheme =
@@ -85,45 +80,24 @@ export function applyTheme(theme: StoredTheme) {
   syncBrowserThemeSurface(resolved);
 }
 
-function isStoredTheme(value: string | null): value is StoredTheme {
+function isThemeValue(value: string | null): value is Theme {
   return (
     value === "light" ||
     value === "dark" ||
     value === "nibi-light" ||
     value === "nibi-dark" ||
-    value === "system" ||
-    value === "zai-light" || // legacy-migration
-    value === "zai-dark" // legacy-migration
+    value === "system"
   );
-}
-
-function removeLegacyThemeStorage(): void {
-  try {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-    }
-  } catch {
-    // 隐私模式/受限环境移除失败不影响已完成的迁移。
-  }
 }
 
 /** 读取已保存的主题偏好；没有记录或值非法时回落到 DEFAULT_THEME。 */
 export function loadThemePreference(): Theme {
   const saved = readSafeLocalStorage(STORAGE_KEY);
-  if (isStoredTheme(saved)) {
+  if (isThemeValue(saved)) {
     const normalized = normalizeThemePreference(saved);
     if (saved !== normalized) {
       writeSafeLocalStorage(STORAGE_KEY, normalized);
     }
-    removeLegacyThemeStorage();
-    return normalized;
-  }
-
-  const legacy = readSafeLocalStorage(LEGACY_STORAGE_KEY);
-  if (isStoredTheme(legacy)) {
-    const normalized = normalizeThemePreference(legacy);
-    writeSafeLocalStorage(STORAGE_KEY, normalized);
-    removeLegacyThemeStorage();
     return normalized;
   }
 

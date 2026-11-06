@@ -90,14 +90,6 @@ describe("applyTheme", () => {
 });
 
 describe("loadThemePreference", () => {
-  it("把旧 zcode-theme / zai-* 迁移到 nibi-theme", () => {
-    localStorage.setItem("zcode-theme", "zai-dark"); // legacy-migration
-
-    expect(loadThemePreference()).toBe("nibi-dark");
-    expect(localStorage.getItem("nibi-theme")).toBe("nibi-dark");
-    expect(localStorage.getItem("zcode-theme")).toBeNull();
-  });
-
   it("把 light/dark 归一化为 nibi-* 并回写", () => {
     localStorage.setItem("nibi-theme", "dark");
 
@@ -105,12 +97,13 @@ describe("loadThemePreference", () => {
     expect(localStorage.getItem("nibi-theme")).toBe("nibi-dark");
   });
 
-  it("已有 nibi 选择时不会被旧键覆盖", () => {
+  it("只认 nibi-theme，不读旧品牌键", () => {
     localStorage.setItem("nibi-theme", "nibi-light");
-    localStorage.setItem("zcode-theme", "zai-dark"); // legacy-migration
+    localStorage.setItem("zcode-theme", "zai-dark");
 
     expect(loadThemePreference()).toBe("nibi-light");
     expect(localStorage.getItem("nibi-theme")).toBe("nibi-light");
-    expect(localStorage.getItem("zcode-theme")).toBeNull();
+    // 旧键既不读也不清：NIBI 没有发布过，不会存在这种键。
+    expect(localStorage.getItem("zcode-theme")).toBe("zai-dark");
   });
 });

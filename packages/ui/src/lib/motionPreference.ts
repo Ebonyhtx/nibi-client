@@ -7,7 +7,7 @@ import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnviro
  * 关闭后等价于系统级「减少动态效果」，但必须比它多一层：系统偏好只能用
  * `@media (prefers-reduced-motion: reduce)` 表达，而 JS 驱动、逐帧自绘的动画
  * （打字机、翻牌、跑马灯、彩带、工作流面部）根本不经过 CSS transition / keyframes，
- * 只写媒体查询管不到它们。所以这里落一个 `<html data-zcode-motion="on|off">`：
+ * 只写媒体查询管不到它们。所以这里落一个 `<html data-nibi-motion="on|off">`：
  *
  * - CSS 侧由 styles.css 末尾的全局覆盖统一归零，不用逐块复制媒体查询；
  * - JS 侧统一走 `isMotionDisabled()` / `useMotionDisabled()`，不再各自内联 matchMedia。
@@ -15,9 +15,9 @@ import { readSafeLocalStorage, writeSafeLocalStorage } from "@/lib/browserEnviro
  * 判断始终是「用户设置关闭」或「系统要求减少」取或 —— 任一生效就关闭，
  * 用户在设置里重新打开也不会压过系统的无障碍偏好。
  */
-export const MOTION_STORAGE_KEY = "zcode-motion";
+export const MOTION_STORAGE_KEY = "nibi-motion";
 
-const MOTION_ATTRIBUTE = "data-zcode-motion";
+const MOTION_ATTRIBUTE = "data-nibi-motion";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 type Listener = () => void;
