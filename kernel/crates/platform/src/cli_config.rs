@@ -86,6 +86,35 @@ pub enum ConfigWriteError {
     NoMcpServer(String, String),
 }
 
+/// 配置文件结构的当前版本（写进顶层 `schemaVersion`）。
+///
+/// 只在**破坏性**改动时 +1（字段改名、语义变化、值域收窄）。纯增量加字段不动它：
+/// 读取侧本来就把文件当通用对象，缺字段由调用方落默认值。
+///
+/// 缺失 `schemaVersion` 视为 0（版本化之前写的文件），按最老格式读。
+/// 版本高于当前 = 更新版本写的文件：只读我们认识的字段，不降级、不丢弃未知字段、不回写覆盖。
+pub const CONFIG_SCHEMA_VERSION: u64 = 1;
+
+/// 文件里的 `schemaVersion`；缺失或不是非负整数时为 0。
+pub fn config_schema_version(object: &Map<String, Value>) -> u64 {
+    object
+        .get("schemaVersion")
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+}
+
+/// 写入前补上当前 `schemaVersion`（已有则覆盖成当前版本）。
+///
+/// **只给我们自己的文件盖章**：用户级 `~/.nibi/config.json`、`installed_plugins.json`。
+/// 项目里的 `nibi.json` 是用户自己写、可能提交进仓库的文件，往里加 Rust 的版本字段会污染
+/// 用户的仓库；那边只读不盖（读取本来就容忍缺失）。
+pub fn stamp_config_schema_version(object: &mut Map<String, Value>) {
+    object.insert(
+        "schemaVersion".to_owned(),
+        Value::from(CONFIG_SCHEMA_VERSION),
+    );
+}
+
 /// 读一份配置文件的结果。
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConfigFile {
@@ -197,6 +226,7 @@ async fn write_ui_value(
             Some(Err(_)) => return Err(ConfigWriteError::Parse(shown.to_owned())),
         };
         patch_ui(&mut object, key, value);
+        stamp_config_schema_version(&mut object);
         let mut text = node_pretty(&Value::Object(object));
         text.push('\n');
         Ok(text)

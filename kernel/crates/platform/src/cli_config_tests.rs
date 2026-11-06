@@ -239,3 +239,20 @@ async fn concurrent_writes_keep_each_other() {
         );
     }
 }
+
+/// `schemaVersion`：缺失视为 0（版本化之前的文件），写入时补成当前版本。
+#[test]
+fn the_schema_version_defaults_to_zero_and_is_stamped_on_write() {
+    let mut object = Map::new();
+    assert_eq!(config_schema_version(&object), 0);
+
+    stamp_config_schema_version(&mut object);
+    assert_eq!(config_schema_version(&object), CONFIG_SCHEMA_VERSION);
+
+    // 已有更新版本时不去降级别的字段，只把版本号对齐（读取侧不因此丢字段）。
+    let mut newer = Map::new();
+    newer.insert("schemaVersion".to_owned(), Value::from(99));
+    newer.insert("futureField".to_owned(), Value::from("keep"));
+    assert_eq!(config_schema_version(&newer), 99);
+    assert_eq!(newer["futureField"], Value::from("keep"));
+}

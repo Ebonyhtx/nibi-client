@@ -45,8 +45,9 @@ NIBI 与上游 ZCode 可能装在同一台机器上。两者的持久化数据�
 | 数据 | 版本标记 |
 | --- | --- |
 | 渲染层偏好 | `nibi:prefs` 的 `version` 字段（`NIBI_PREFS_VERSION`） |
-| 项目配置 `nibi.json` | 顶层 `schemaVersion` |
-| `.nibi/config.json` | 顶层 `schemaVersion` |
+| 用户级 `~/.nibi/cli/config.json` | 顶层 `schemaVersion`（写时盖章，`CONFIG_SCHEMA_VERSION`） |
+| 项目 `nibi.json` | **不盖章**：用户自己写、可能提交进仓库的文件，加我们的版本字段等于污染用户仓库；只读、容忍缺失 |
+| `.nibi/config.json` | 同上 |
 | 已装插件清单 `installed_plugins.json` | 顶层 `schemaVersion` |
 | 会话库设置 | `local_setting.schema_version` 列（已有） |
 
