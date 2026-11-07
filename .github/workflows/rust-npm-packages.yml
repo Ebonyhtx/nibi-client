@@ -3,12 +3,16 @@ name: rust-npm-packages
 # 远端执行器的平台包（`@nibi-studio/cli-<platform>`）：构建 + 打包成 tarball，作为 artifact 上传。
 #
 # 消费方是 Rust 内核的 `machines/executor_dist`（从 npm 注册表取 tarball、校验
-# `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。**打包不等于发布**：本 workflow
-# 只产出 artifact，没有任何发布步骤（原因见文件末尾的说明）。
+# `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。
 #
-# 为什么不自动发：npm 版本号一经 publish 就永久占用；远端执行器的用户入口
-# （机器清单 `/machines`）还在后续阶段，Rust 内核也仍是灰度（默认 node）。
-# 发布前置 = Rust 切默认 + 远端入口上线，见 docs/planning/step9b-brand-inventory。
+# 发布走 **npm trusted publishing（OIDC）**，不需要任何 secret，所以能留在公开仓：
+# 每条 publish 用的是 GitHub Actions 签发的短期 OIDC 令牌，npm 只接受在包的
+# 「Trusted Publisher」设置里登记过的 仓库 + workflow 文件名（本文件：rust-npm-packages.yml）。
+# 前置（一次性，运营者在 npmjs.com 上给三个包各配一次）：组织/用户 `Ebonyhtx`、仓库
+# `nibi-client`、workflow `rust-npm-packages.yml`、允许 `npm publish`。
+#
+# 自动发布只在手动触发 `publish: true` 时跑（版本号一经 publish 就永久占用），
+# 默认的 push / PR 只打包上传 artifact。
 #
 # 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
 
@@ -24,6 +28,11 @@ on:
       - "scripts/rust-cli/npm/**"
       - ".github/workflows/rust-npm-packages.yml"
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the packed tarballs to npm (trusted publishing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -98,8 +107,53 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-# 发布（publish）job 不放在公开仓：public-repo-policy 无条件拒绝公开仓 workflow 引用
-# `secrets.*`，而 npm publish 必须带 NPM_TOKEN。发布前置仍是「Rust 切默认 + 远端执行器入口
-# 上线」（见文件头的说明），到那时把 publish 挪到私有仓、用私有仓的 secret 与 environment，
-# 本仓继续只产出 artifact。在此之前这里只需要 `pack`。
+  # 发布：只在手动勾选 `publish` 时跑。npm CLI 自动识别 GitHub Actions 的 OIDC 环境并换取
+  # 短期发布凭证（npm ≥ 11.5.1、Node ≥ 22.14；两者都满足，缺了会明确报错）。同一个版本
+  # 已经存在时跳过，手动重跑不会因为 409 失败。
+  publish:
+    name: publish ${{ matrix.package-id }}
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: pack
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            package-id: linux-x64-gnu
+          - os: ubuntu-24.04-arm
+            package-id: linux-arm64-gnu
+          - os: macos-latest
+            package-id: darwin-arm64
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1
+        with:
+          node-version: "24.22.1"
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: npm-pack-${{ matrix.package-id }}
+          path: pack
+
+      - name: Publish with OIDC
+        run: |
+          set -euo pipefail
+          # trusted publishing 要求 npm CLI ≥ 11.5.1（Node 24 自带的一般满足，升级一次最稳）。
+          npm install --global npm@^11.5.1 >/dev/null
+          echo "npm $(npm --version)"
+          TARBALL="$(find pack -name '*.tgz' -print -quit)"
+          test -n "$TARBALL"
+          PKG="$(node -p "require('./pack/pack.json').name")"
+          VERSION="$(node -p "require('./pack/pack.json').version")"
+          if npm view "$PKG@$VERSION" version >/dev/null 2>&1; then
+            echo "::notice::$PKG@$VERSION is already published; nothing to do"
+            exit 0
+          fi
+          npm publish "$TARBALL" --access public --provenance
 
