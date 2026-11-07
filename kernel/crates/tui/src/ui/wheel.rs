@@ -219,6 +219,7 @@ impl App {
                     view.wheel(step);
                 }
             }
+            Some(Overlay::Provider(_)) => self.provider_wheel(step),
             Some(Overlay::Projects(_)) => self.projects_wheel(step),
             Some(Overlay::Resume(_)) => self.resume_wheel(step),
             Some(Overlay::Trust(_)) => {}

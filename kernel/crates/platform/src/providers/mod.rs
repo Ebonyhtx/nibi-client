@@ -15,6 +15,7 @@
 //! 不会盖掉新读取（与 net 的出口策略热替换同一规则）。
 
 pub(crate) mod catalog;
+pub(crate) mod edit;
 pub(crate) mod resolve;
 pub(crate) mod rules;
 pub(crate) mod site;
@@ -26,10 +27,10 @@ use std::time::{Duration, Instant};
 use std::collections::{BTreeMap, HashMap};
 
 use futures_util::future::{join, join_all};
-use nibi_kernel_base::include_lf;
-use nibi_kernel_fs::{ChangeGate, FileStamp};
 use nibi_kernel_api::model::ModelConnection;
 use nibi_kernel_api::provider::CatalogConnection;
+use nibi_kernel_base::include_lf;
+use nibi_kernel_fs::{ChangeGate, FileStamp};
 use nibi_kernel_paths::StoragePath;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -175,6 +176,17 @@ impl Registry {
         let bytes = self.read_builtin().await?;
         let value: Value = serde_json::from_slice(&bytes)
             .map_err(|error| format!("builtin provider config: {error}"))?;
+        Ok(value["config"].clone())
+    }
+
+    /// 个人配置的 `config`（`/provider` 的概览与编辑）；文件不存在时是空配置。
+    pub async fn personal_config(&self) -> Result<Value, String> {
+        let bytes = nibi_kernel_fs::read_optional(self.personal.as_path())
+            .await
+            .map_err(|error| format!("personal provider config: {error}"))?
+            .unwrap_or_else(|| EMPTY_PERSONAL.to_vec());
+        let value: Value = serde_json::from_slice(&bytes)
+            .map_err(|error| format!("personal provider config: {error}"))?;
         Ok(value["config"].clone())
     }
 

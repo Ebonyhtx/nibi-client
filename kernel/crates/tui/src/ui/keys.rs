@@ -25,6 +25,10 @@ impl App {
             self.login_paste(text);
             return None;
         }
+        if matches!(self.overlay, Some(Overlay::Provider(_))) {
+            self.provider_paste(text);
+            return None;
+        }
         // `/resume` 页：粘贴进查询或改名输入（tui-manage.md §10.4）。
         if matches!(self.overlay, Some(Overlay::Resume(_))) {
             self.resume_paste(text);
@@ -238,6 +242,9 @@ impl App {
         if matches!(self.overlay, Some(Overlay::Login(_))) {
             return self.login_key(key);
         }
+        if matches!(self.overlay, Some(Overlay::Provider(_))) {
+            return self.provider_key(key);
+        }
         if matches!(self.overlay, Some(Overlay::Permissions(_))) {
             return self.permissions_key(key);
         }
@@ -306,6 +313,7 @@ impl App {
             }
             Overlay::Detail(_)
             | Overlay::Login(_)
+            | Overlay::Provider(_)
             | Overlay::Permissions(_)
             | Overlay::Export(_)
             | Overlay::Diff(_)

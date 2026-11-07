@@ -309,7 +309,8 @@ redirectPath)[0..24]>:authorization_credentials`）；
 - 测试：`nibi-platform` 11 条（端点/表单、轮询、slow_down、过期、取消、刷新、资料）、`cli` 8 条单测 +
   4 条真实进程（登录写 v2 凭据与 license、JSON 形状、退出、用法错误）。
 - Rust TUI 的 `/login`（`kernel/crates/cli/src/tui_account.rs`）走同一条 `device_login`：界面显示设备码与地址、
-  浏览器由入口打开，`esc` 取消；`/logout` 同时清 provider 凭据与 NIBI 的五个键。
+  浏览器由入口打开，`esc` 取消；`/logout` 同时清 provider 凭据与 NIBI 的五个键。登录视图只有一个方式（NIBI
+  账号），会员同步失败的原因与「会员未知」一起显示；传输层失败会重试一次（4xx/5xx 不重试）。
 
 ## 11. TUI 调色板（已补）
 
@@ -337,5 +338,10 @@ redirectPath)[0..24]>:authorization_credentials`）；
    （技能直接取 `ext::SkillCatalog::skills_for`；插件要从 `Plugins` 的 manifest 投影 pluginId/marketplace/
    skillQualifiedNames/mcpServerNames），并在协议层复用 Node 的 strict 形状。
 8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
-9. Rust TUI 的 `/login` 默认是 NIBI 账号的 Device Flow（`/login zai-coding-plan` 等仍是 provider 模板）；
-   背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。
+9. Rust TUI 的 `/login` 只有 NIBI 账号的 Device Flow（上游 `zai-coding-plan` / `bigmodel-coding-plan` 与
+   手工 key 入口已删，模型走 `/provider`）；背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。
+10. 模型 Provider 的配置在 Rust CLI/TUI 里是一等流程：`/provider`（列表、详情、预设向导、换 key、设为默认、
+    删除）与 `nibi provider list|show|path|add|key|remove|use` 都直接读写 `~/.nibi/v2/provider_config.json`
+    （`kernel/crates/platform/src/providers/edit.rs`），预设取随包内置模板（DeepSeek/OpenAI/Anthropic/Kimi…），
+    自定义端点按 schema 生成完整能力规则。新增的 Provider 会连同有效的 `options.reasoningLevel` 一起写成
+    默认模型（Node 只认带档位的 `defaultModelSelection`）。

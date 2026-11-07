@@ -32,6 +32,10 @@ fn view_lines(
         let lines = super::login::lines(view, app.strings, &app.palette, width);
         return Some((lines, Vec::new(), None));
     }
+    if let Some(Overlay::Provider(view)) = &app.overlay {
+        let lines = super::provider::lines(view, app.lang, &app.palette, width);
+        return Some((lines, Vec::new(), None));
+    }
     if let Some(Overlay::Diff(view)) = &app.overlay {
         let lines = super::diff_view_lines::lines(app, view, width, height, now_ms);
         return Some((lines, Vec::new(), None));

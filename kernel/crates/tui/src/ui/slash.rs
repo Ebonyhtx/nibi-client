@@ -61,6 +61,7 @@ impl App {
             }),
             "locale" => self.locale_command(args),
             "login" => self.login_command(args),
+            "provider" => self.provider_command(args),
             "logout" => self.logout_command(args),
             "exit" => Some(Action::Quit),
             _ => {

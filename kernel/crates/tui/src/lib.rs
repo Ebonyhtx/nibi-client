@@ -20,5 +20,6 @@ pub fn terminal_columns() -> Option<u16> {
 }
 pub use services::{
     Account, Authorize, Clipboard, Configured, CopyRoute, DeviceCode, Editor, Family, ImageBytes,
-    LocaleStore, LoginFailure, MemoryFile, NibiAccount, Preferences, Services, UiLocale, UiTheme,
+    LocaleStore, LoginFailure, MemoryFile, NibiAccount, Preferences, ProviderDraft, ProviderInfo,
+    ProviderPreset, Providers, SavedProvider, Services, UiLocale, UiTheme,
 };

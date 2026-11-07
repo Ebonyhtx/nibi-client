@@ -38,13 +38,13 @@ mod token;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use nibi_kernel_base::secret::RedactedString;
 use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::model::{ModelError, ModelSelection};
 use nibi_kernel_api::provider::{
     Credential, EndpointContext, ModelCapabilities, ModelCatalog, ModelDirectory, ModelEndpoint,
     ModelEndpoints, ModelLimits, TokenLimits, WireProtocol,
 };
+use nibi_kernel_base::secret::RedactedString;
 use nibi_kernel_net::Egress;
 use nibi_kernel_net::header;
 use nibi_kernel_paths::{StoragePath, StoragePaths};
@@ -60,6 +60,9 @@ pub use hook_trust::{HookTrustStore, TrustError, TrustLoad, TrustRecord};
 pub use login::{LoginError, LoginOutcome, PendingLogin, SetupOutcome};
 /// Node 的平台名（定义在 base，F55）；入口经 platform 取用，路径不变。
 pub use nibi_kernel_base::js::node_platform;
+pub use providers::edit::{
+    Draft as ProviderDraft, Preset as ProviderPreset, Summary as ProviderSummary,
+};
 pub use settings::Settings;
 pub use token::{AccountOrigins, Family, TokenError};
 
@@ -185,6 +188,62 @@ impl Platform {
     /// docs/specs/rust-cli/tui-manage.md §2.2）：写个人配置的 `defaultModelSelection`。返回文件路径。
     pub async fn save_default_model(&self, selection: &ModelSelection) -> Result<String, String> {
         login::save_default_model((&self.personal_config, &self.legacy_config), selection).await
+    }
+
+    /// 个人 Provider 配置 `provider_config.json` 的位置（`/provider edit`、`nibi provider path`）。
+    pub fn provider_config_file(&self) -> &StoragePath {
+        &self.personal_config
+    }
+
+    /// 内置模板作为新建 Provider 的预设（name、base URL、协议、模型清单）。
+    pub async fn provider_presets(&self) -> Result<Vec<ProviderPreset>, String> {
+        let builtin = self.registry.builtin_config().await?;
+        Ok(providers::edit::presets(&builtin))
+    }
+
+    /// 全部 Provider 的概览：内置规则与个人规则合并，按内置在前、个人在后的顺序。
+    pub async fn provider_list(&self) -> Result<Vec<ProviderSummary>, String> {
+        let builtin = self.registry.builtin_config().await?;
+        let personal = self.registry.personal_config().await?;
+        Ok(providers::edit::summaries(&builtin, &personal))
+    }
+
+    /// 新建或修改一个个人 Provider（写 `provider_config.json`），返回它的 id。写文件持目录锁、原子替换。
+    ///
+    /// 新 Provider 顺手写成默认模型：Node 只在 `options.reasoningLevel` 有效时才认 `defaultModelSelection`
+    /// （`resolveInitialModelSelection`），所以写完之后从目录里取它的第一个模型的最后一个档位再写一次。
+    pub async fn save_provider(&self, draft: ProviderDraft) -> Result<String, String> {
+        let builtin = self.registry.builtin_config().await?;
+        let is_new = draft.provider_id.is_none();
+        let id = providers::edit::save(&self.personal_config, &builtin, &draft).await?;
+        if is_new
+            && let Some(template) = self
+                .registry
+                .current()
+                .await
+                .snapshot
+                .templates
+                .iter()
+                .find(|template| template.provider == id && !template.hidden)
+            && let Some(level) = template.levels.last()
+        {
+            let selection = ModelSelection {
+                provider: id.clone(),
+                model: template.model.clone(),
+                reasoning: Some(level.clone()),
+                connection: template
+                    .connection
+                    .as_ref()
+                    .map(|connection| Box::new(connection.id.clone())),
+            };
+            self.save_default_model(&selection).await?;
+        }
+        Ok(id)
+    }
+
+    /// 删除一个个人 Provider 的规则、模型规则与顺序项。
+    pub async fn remove_provider(&self, id: &str) -> Result<(), String> {
+        providers::edit::remove(&self.personal_config, id).await
     }
 
     /// 内置配置的通用规则（显式覆盖的端点按它算能力，model.md §6，修复线 F23）。内置配置读不了时为空规则

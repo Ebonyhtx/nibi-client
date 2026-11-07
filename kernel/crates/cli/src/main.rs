@@ -37,6 +37,7 @@ mod network;
 mod nibi_session;
 mod options;
 mod origins;
+mod provider;
 mod output;
 mod peers;
 mod prepare_storage;
@@ -77,6 +78,7 @@ mod time_zone;
 mod tui;
 mod tui_account;
 mod tui_machines;
+mod tui_provider;
 mod tui_mcp;
 mod update;
 mod workspace_trust;
@@ -746,8 +748,14 @@ fn main() -> ExitCode {
     if let Some(code) = app_server::dispatch(&args) {
         return code;
     }
-    // 登录与退出（Node：用法错误也是 `Error: …`、退出码 1）。
-    let job = match login::parse(&args) {
+    // Provider 的查看与配置（只读写本机文件）。
+    let job = match provider::parse(&args) {
+        Some(Ok(command)) => Job::Providers(command),
+        Some(Err(usage)) => {
+            eprint_line(&format!("Error: {usage}"));
+            return ExitCode::FAILURE;
+        }
+        None => match login::parse(&args) {
         Some(Ok(command)) => Job::Account(command),
         Some(Err(usage)) => {
             eprint_line(&format!("Error: {usage}"));
@@ -797,6 +805,7 @@ fn main() -> ExitCode {
                 },
             },
         },
+    },
     };
     let runtime = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -810,6 +819,7 @@ fn main() -> ExitCode {
     };
     let outcome = match job {
         Job::Account(command) => runtime.block_on(setup::account(command)),
+        Job::Providers(command) => runtime.block_on(setup::providers(command)),
         Job::Trust(command) => runtime.block_on(setup::trust(command)),
         Job::Update(command) => {
             let env = EnvSnapshot::from(setup::process_env());
@@ -842,6 +852,7 @@ fn main() -> ExitCode {
 /// 这次启动要做的事。
 enum Job {
     Account(login::Command),
+    Providers(provider::Command),
     /// `zcode hooks trust …`（config.md §4.3）。
     Trust(hooks_trust::TrustCommand),
     /// `zcode update`（update.md §9，F48）。

@@ -74,7 +74,7 @@ async fn a_package_is_downloaded_verified_and_cached() {
     let setup = setup().await;
     let (binary, tarball) = good("0.2.0");
     let packument = setup.npm.publish(X64, "0.2.0", &tarball, None);
-    assert_eq!(packument, "/@nibi%2fcli-linux-x64-gnu");
+    assert_eq!(packument, "/@nibi-studio%2fcli-linux-x64-gnu");
     assert_eq!(
         setup.source.cached("0.2.0", Platform::LinuxX86_64).await,
         None
@@ -209,7 +209,7 @@ async fn a_missing_package_or_version_says_why() {
         panic!("{error:?}");
     };
     assert!(
-        reason.ends_with("/@nibi%2fcli-linux-x64-gnu: HTTP 404"),
+        reason.ends_with("/@nibi-studio%2fcli-linux-x64-gnu: HTTP 404"),
         "{reason}"
     );
     assert_eq!(latest, None);
@@ -300,7 +300,7 @@ async fn a_macos_package_is_downloaded_and_cached_under_its_own_target() {
     let packument = setup
         .npm
         .publish(DARWIN, "0.2.0", &package(&binary, &build), None);
-    assert_eq!(packument, "/@nibi%2fcli-darwin-arm64");
+    assert_eq!(packument, "/@nibi-studio%2fcli-darwin-arm64");
     let path = setup
         .source
         .download("0.2.0", Platform::MacosAarch64)

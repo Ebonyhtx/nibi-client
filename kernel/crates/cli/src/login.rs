@@ -274,15 +274,25 @@ async fn sync_license(context: &AccountContext, access_token: &str) -> License {
         request = request.header(name, value);
     }
     request.timeout = Some(LICENSE_TIMEOUT);
-    let response = match context.egress.send(request).await {
-        Ok(response) => response,
-        Err(error) => {
-            warnings.push(format!("会员状态暂时无法同步（{error}）"));
-            return License {
-                membership: None,
-                license_expires_at: None,
-                warnings,
-            };
+    // 传输层失败（代理抖动、DNS、网络切换）重试一次：登录本身已经成功，会员状态只差这一步。
+    // 4xx/5xx 不重试——那是服务端的裁决，重复问没有意义。
+    let mut attempt = 0;
+    let response = loop {
+        attempt += 1;
+        match context.egress.send(request.clone()).await {
+            Ok(response) => break response,
+            Err(error) if attempt < 2 => {
+                tracing::debug!(%error, "license check failed, retrying once");
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+            Err(error) => {
+                warnings.push(format!("会员状态暂时无法同步（{error}）"));
+                return License {
+                    membership: None,
+                    license_expires_at: None,
+                    warnings,
+                };
+            }
         }
     };
     let status = response.status();

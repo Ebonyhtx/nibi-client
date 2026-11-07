@@ -18,7 +18,7 @@ use super::NpmExecutors;
 use super::fake_npm_tests::{FakeNpm, build_json, image, package, sha256_hex, sri};
 
 const X64: &str = "@nibi-studio/cli-linux-x64-gnu";
-const PACKUMENT: &str = "/@nibi%2fcli-linux-x64-gnu";
+const PACKUMENT: &str = "/@nibi-studio%2fcli-linux-x64-gnu";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 
 fn executor(home: &Path) -> ExecutorPaths {

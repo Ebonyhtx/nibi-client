@@ -90,6 +90,8 @@ impl DeviceCode {
 pub struct NibiAccount {
     pub user: String,
     pub membership: String,
+    /// 会员同步失败的原因（网络、代理、服务端拒绝）：登录照样成功，但要告诉用户为什么是「未知」。
+    pub warning: Option<String>,
 }
 
 /// 账号的登录与退出（platform.md §5.6）。取消是一条消息：`cancel` 被取消后，实现在下一次检查时停下并返回
@@ -119,6 +121,68 @@ pub trait Account: Send + Sync {
 
     /// 退出账号（NIBI 账号与 provider 模板的凭据），返回凭据文件的路径。
     fn logout(&self) -> BoxFuture<'static, Result<String, String>>;
+}
+
+/// 一个模型 Provider 的概览（`/provider`）：与 `nibi_kernel_platform::ProviderSummary` 同形，TUI 不依赖
+/// platform 的配置解析。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderInfo {
+    pub id: String,
+    pub name: String,
+    pub base_url: String,
+    pub protocol: Option<nibi_kernel_api::provider::WireProtocol>,
+    pub models: Vec<String>,
+    pub has_key: bool,
+    /// 官方账号 Provider：不能填 key、不能改端点。
+    pub account: bool,
+    /// 个人配置里的规则：只有这些能改模型清单与删除。
+    pub personal: bool,
+    pub enabled: bool,
+    /// 继承的内置模板（预设）。
+    pub template: Option<String>,
+}
+
+/// 新建 Provider 的预设（内置模板）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProviderPreset {
+    pub id: String,
+    pub name: String,
+    pub base_url: String,
+    pub protocol: nibi_kernel_api::provider::WireProtocol,
+    pub models: Vec<String>,
+}
+
+/// 新建或修改一个 Provider（`/provider add`、`/provider edit`）。
+#[derive(Debug, Clone, PartialEq)]
+pub struct ProviderDraft {
+    /// 已有 Provider 的 id；`None` 是新建。
+    pub provider: Option<String>,
+    pub name: String,
+    pub base_url: String,
+    pub protocol: nibi_kernel_api::provider::WireProtocol,
+    pub models: Vec<String>,
+    /// `None`：保留已有的 key。
+    pub api_key: Option<RedactedString>,
+    pub template: Option<String>,
+    pub enabled: bool,
+}
+
+/// 保存成功：id、显示名与配置文件（提示里给出）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SavedProvider {
+    pub id: String,
+    pub name: String,
+    pub config: String,
+}
+
+/// Provider 配置的读写（platform.md §3）：TUI 不读文件、不解析配置，列表、预设、保存与删除都由入口实现；
+/// 测试用替身。没有时 `/provider` 提示不可用。
+pub trait Providers: Send + Sync {
+    fn list(&self) -> BoxFuture<'static, Result<Vec<ProviderInfo>, String>>;
+    fn presets(&self) -> BoxFuture<'static, Result<Vec<ProviderPreset>, String>>;
+    fn save(&self, draft: ProviderDraft) -> BoxFuture<'static, Result<SavedProvider, String>>;
+    /// 删掉一个个人 Provider，成功时是配置文件路径。
+    fn remove(&self, id: String) -> BoxFuture<'static, Result<String, String>>;
 }
 
 /// 读到的图片：原始字节（TUI 判断格式并编码，tui-input.md §3.1）。
@@ -217,6 +281,8 @@ pub struct Services {
     pub question_timeout: Option<crate::ui::afk::QuestionTimeout>,
     /// 远端机器（remote-exec.md §21.2）：`/machines` 与机器状态行；没有时 `/machines` 提示不可用、状态行不出现。
     pub machines: Option<Arc<dyn crate::machines::Machines>>,
+    /// 模型 Provider 的列表与配置（`/provider`）：没有时提示不可用。
+    pub providers: Option<Arc<dyn Providers>>,
     /// 绑定到远端机器的 MCP 服务器（服务器名，机器名；R5，remote-exec.md §22.8）：MCP 工具行标出机器。入口从同一份
     /// MCP 设置给出（启动时定了，之后不变）。
     pub mcp_machines: Vec<(String, String)>,

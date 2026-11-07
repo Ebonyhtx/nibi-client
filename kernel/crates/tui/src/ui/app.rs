@@ -125,6 +125,8 @@ pub enum Action {
         key: crate::services::RedactedString,
     },
     Logout,
+    /// `/provider` 的请求（列表、预设、向导提交、删除）。
+    Provider(super::provider::Request),
     /// `/goal` 不带参数：取会话的目标后打开面板（goal.md §6.2）。
     ShowGoal,
     /// `/fork`：取可选的用户输入后打开选择器（session-lifecycle.md §6.5.3）。
@@ -194,6 +196,8 @@ pub enum Overlay {
     Detail(super::detail::Detail),
     /// `/login`：登录视图（tui.md §7.2）。
     Login(super::login::LoginView),
+    /// `/provider`：Provider 列表、详情与向导。
+    Provider(super::provider::ProviderView),
     /// `/permissions`：规则页面（tui-manage.md §1.2）。装箱：比其他变体大得多。
     Permissions(Box<super::permissions::PermissionsView>),
     /// `/export`：导出方式与文件名（tui-manage.md §3）。

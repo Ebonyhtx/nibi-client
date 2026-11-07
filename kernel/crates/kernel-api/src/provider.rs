@@ -29,6 +29,15 @@ pub enum WireProtocol {
 }
 
 impl WireProtocol {
+    /// Provider 配置里的写法（`api.type`）。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::AnthropicMessages => "anthropic-messages",
+            Self::OpenAiChatCompletions => "openai-chat-completions",
+            Self::OpenAiResponses => "openai-responses",
+        }
+    }
+
     /// Provider 配置里的写法；不认识的类型返回 `None`。
     pub fn parse(value: &str) -> Option<Self> {
         match value {

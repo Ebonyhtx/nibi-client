@@ -111,15 +111,25 @@ pub fn configured(lang: Lang, result: &Configured) -> String {
 
 /// NIBI 账号登录成功：用户与会员摘要（收费插件门禁读的就是这份凭据）。
 pub fn nibi_signed_in(lang: Lang, account: &NibiAccount) -> String {
+    let warning = account
+        .warning
+        .as_deref()
+        .map(|warning| {
+            format!(
+                "
+{warning}"
+            )
+        })
+        .unwrap_or_default();
     match lang {
         Lang::En => format!(
             "Signed in to NIBI as {}.
-{}",
+{}{warning}",
             account.user, account.membership
         ),
         Lang::Zh => format!(
             "已登录 NIBI：{}。
-{}",
+{}{warning}",
             account.user, account.membership
         ),
     }
@@ -134,12 +144,8 @@ pub fn logged_out(lang: Lang, credentials: &str) -> String {
 
 pub fn login_usage(lang: Lang) -> &'static str {
     match lang {
-        Lang::En => {
-            "Usage: /login [nibi|zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
-        }
-        Lang::Zh => {
-            "用法：/login [nibi|zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
-        }
+        Lang::En => "Usage: /login [nibi]",
+        Lang::Zh => "用法：/login [nibi]",
     }
 }
 

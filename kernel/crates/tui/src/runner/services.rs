@@ -9,10 +9,12 @@ use super::Loop;
 use super::session::Done;
 use crate::services::{
     Authorize, CancellationToken, Configured, DeviceCode, Family, LoginFailure, NibiAccount,
-    RedactedString, UiLocale,
+    ProviderDraft, ProviderInfo, ProviderPreset, RedactedString, SavedProvider, UiLocale,
 };
 use crate::ui::app::Local;
 use crate::ui::i18n;
+use crate::ui::i18n_provider;
+use crate::ui::provider::{Intent, ProviderView};
 use nibi_kernel_api::context_usage::{ContextUsage, ContextUsageQuery};
 use nibi_kernel_api::session_api::KernelError;
 
@@ -29,9 +31,7 @@ pub(crate) enum ServiceDone {
         authorize: Option<Authorize>,
     },
     /// NIBI 设备码到了（通道被关掉时为 None）。
-    DeviceCode {
-        code: Option<DeviceCode>,
-    },
+    DeviceCode { code: Option<DeviceCode> },
     /// NIBI 账号登录结束。
     Nibi(Result<NibiAccount, LoginFailure>),
     /// 浏览器授权登录结束。
@@ -40,6 +40,26 @@ pub(crate) enum ServiceDone {
     ApiKey(Result<Configured, String>),
     /// 退出结束：成功时是凭据文件的路径。
     Logout(Result<String, String>),
+    /// Provider 列表到了（`intent` 决定接着打开什么）。
+    Providers {
+        intent: Intent,
+        result: Result<Vec<ProviderInfo>, String>,
+    },
+    /// 新建 Provider 的预设（内置模板）到了。
+    ProviderPresets(Result<Vec<ProviderPreset>, String>),
+    /// 保存成功（附带刷新后的列表）。
+    ProviderSaved {
+        saved: SavedProvider,
+        list: Result<Vec<ProviderInfo>, String>,
+    },
+    /// 保存失败：留在原来的视图上显示原因。
+    ProviderFailed(String),
+    /// 删除成功（附带刷新后的列表）。
+    ProviderRemoved {
+        name: String,
+        path: String,
+        list: Result<Vec<ProviderInfo>, String>,
+    },
     /// `/context` 的结果（装箱：比其他变体大得多）。
     Context {
         usage: Box<Result<ContextUsage, KernelError>>,
@@ -198,6 +218,95 @@ impl<B: Backend> Loop<'_, B> {
         }
     }
 
+    /// `/provider` 的请求分派。
+    pub(super) fn provider(&mut self, request: crate::ui::provider::Request) {
+        match request {
+            crate::ui::provider::Request::List => self.providers_list(Intent::ShowList),
+            crate::ui::provider::Request::Presets => self.provider_presets(),
+            crate::ui::provider::Request::Open(intent) => self.providers_list(intent),
+            crate::ui::provider::Request::Save(draft) => self.provider_save(draft),
+            crate::ui::provider::Request::Remove { id, name } => self.provider_remove(id, name),
+        }
+    }
+
+    /// `/provider`：读列表（`intent` 决定到了之后打开列表、表单还是详情）。
+    pub(super) fn providers_list(&mut self, intent: Intent) {
+        let Some(providers) = self.options.services.providers.clone() else {
+            self.app.error(i18n_provider::unavailable(self.app.lang));
+            return;
+        };
+        self.app.overlay = Some(crate::ui::app::Overlay::Provider(ProviderView::Loading {
+            intent: intent.clone(),
+        }));
+        let listing = providers.list();
+        self.pending.push(
+            async move {
+                Done::Service(ServiceDone::Providers {
+                    intent,
+                    result: listing.await,
+                })
+            }
+            .boxed(),
+        );
+    }
+
+    /// `/provider add`：读预设（内置模板）。
+    pub(super) fn provider_presets(&mut self) {
+        let Some(providers) = self.options.services.providers.clone() else {
+            self.app.error(i18n_provider::unavailable(self.app.lang));
+            return;
+        };
+        self.app.overlay = Some(crate::ui::app::Overlay::Provider(ProviderView::Loading {
+            intent: Intent::Add,
+        }));
+        let listing = providers.presets();
+        self.pending.push(
+            async move { Done::Service(ServiceDone::ProviderPresets(listing.await)) }.boxed(),
+        );
+    }
+
+    /// 向导交上来的内容：保存之后顺手刷新列表（保存成功的提示要带上文件名）。
+    pub(super) fn provider_save(&mut self, draft: ProviderDraft) {
+        let Some(providers) = self.options.services.providers.clone() else {
+            self.app.error(i18n_provider::unavailable(self.app.lang));
+            return;
+        };
+        let saving = providers.save(draft);
+        self.pending.push(
+            async move {
+                match saving.await {
+                    Ok(saved) => {
+                        let list = providers.list().await;
+                        Done::Service(ServiceDone::ProviderSaved { saved, list })
+                    }
+                    Err(reason) => Done::Service(ServiceDone::ProviderFailed(reason)),
+                }
+            }
+            .boxed(),
+        );
+    }
+
+    /// 详情页确认删除。
+    pub(super) fn provider_remove(&mut self, id: String, name: String) {
+        let Some(providers) = self.options.services.providers.clone() else {
+            self.app.error(i18n_provider::unavailable(self.app.lang));
+            return;
+        };
+        let removing = providers.remove(id);
+        self.pending.push(
+            async move {
+                match removing.await {
+                    Ok(path) => {
+                        let list = providers.list().await;
+                        Done::Service(ServiceDone::ProviderRemoved { name, path, list })
+                    }
+                    Err(reason) => Done::Service(ServiceDone::ProviderFailed(reason)),
+                }
+            }
+            .boxed(),
+        );
+    }
+
     pub(super) fn on_service(&mut self, done: ServiceDone) {
         let lang = self.app.lang;
         match done {
@@ -258,6 +367,18 @@ impl<B: Backend> Loop<'_, B> {
                 Ok(path) => self.app.info(i18n::logged_out(lang, &path)),
                 Err(reason) => self.app.error(reason),
             },
+            ServiceDone::Providers { intent, result } => {
+                // `/provider use <id>`：与 `/model` 选模型同一条路（切当前会话并写成默认）。
+                if let Some(selection) = self.app.provider_loaded(intent, result) {
+                    self.choose_model(selection, None);
+                }
+            }
+            ServiceDone::ProviderPresets(result) => self.app.provider_presets(result),
+            ServiceDone::ProviderSaved { saved, list } => self.app.provider_saved(saved, list),
+            ServiceDone::ProviderFailed(reason) => self.app.provider_failed(reason),
+            ServiceDone::ProviderRemoved { name, path, list } => {
+                self.app.provider_removed(&name, path, list);
+            }
             ServiceDone::Locale { locale, result } => {
                 self.services.locale_writing = false;
                 match result {

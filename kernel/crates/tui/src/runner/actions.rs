@@ -273,6 +273,7 @@ impl<B: Backend> Loop<'_, B> {
             Action::CancelLogin => self.cancel_login(),
             Action::ConfigureKey { family, key } => self.configure_key(family, key),
             Action::Logout => self.logout(),
+            Action::Provider(request) => self.provider(request),
             Action::ShowGoal => self.show_goal(),
             Action::OpenFork => self.open_fork(),
             Action::Fork { input } => self.fork(input),

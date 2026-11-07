@@ -122,6 +122,10 @@ pub(crate) const COMMANDS: &[HelpItem] = &[
         "Sign in to your NIBI account (Device Flow; --no-browser prints the URL and code)",
     ),
     item("logout", "Sign out of NIBI"),
+    item(
+        "provider",
+        "List or configure model providers (provider_config.json): list|show|path|add|key|remove|use",
+    ),
     item("update|upgrade", "Update NIBI to the latest version"),
 ];
 

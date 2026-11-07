@@ -251,7 +251,7 @@ pub(crate) fn options(inputs: Inputs<'_>, version: &str) -> Options {
             theme: inputs.theme,
             preferences: Some(Arc::new(ConfigPreferences {
                 paths: inputs.paths,
-                platform: inputs.account,
+                platform: inputs.account.clone(),
                 mcp: Arc::new(inputs.mcp),
             })),
             editor: Some(Arc::new(crate::editor::ProcessEditor::from_env(
@@ -271,6 +271,9 @@ pub(crate) fn options(inputs: Inputs<'_>, version: &str) -> Options {
             update: inputs.update,
             question_timeout: question_timeout(inputs.question_timeout, inputs.env),
             machines: inputs.machines.0,
+            providers: Some(Arc::new(crate::tui_provider::PlatformProviders {
+                platform: inputs.account,
+            })),
             mcp_machines: inputs.machines.1,
         },
         clock: inputs.clock,

@@ -142,6 +142,21 @@ pub(super) async fn account(command: login::Command) -> Result<u8> {
     .await)
 }
 
+/// `nibi provider …`：只读写本机文件，出口用直连（不读代理设置——代理坏了也要能配置模型）。
+pub(super) async fn providers(command: provider::Command) -> Result<u8> {
+    let startup = capture()?;
+    let egress = Arc::new(
+        Egress::new(nibi_kernel_net::NetworkPolicy::default())
+            .await
+            .context("preparing provider commands")?,
+    );
+    let clock = Arc::new(SystemClock::new(startup.zone.clone()));
+    let paths = storage_paths(&startup, &StorageSettings::default());
+    let platform = platform(&startup, &paths, egress, clock)?;
+    let env = &startup.env;
+    Ok(provider::run(command, &provider::Context { platform: &platform, env }).await)
+}
+
 /// 执行环境的注册表（remote-exec.md §15.8.1）：R0 只有本机——`LocalEnvironment` 实现一台机器的 8 个端口与本机的 Git、
 /// 取网页，MCP 传输是同一台机器的 `McpTransport` 端口。R3 加远端机器后，入口与内核读本机文件仍取这里的本机。
 pub(super) fn environments(

@@ -114,33 +114,16 @@ strings! {
     no_changes: "No changes", "没有改动";
     // 登录视图（tui.md §7.2，Node `tui.loginSetup` 的中英文）。
     login_title: "Sign in", "登录";
-    login_prompt: "Sign in to your NIBI account, or set up a provider template with an API key.", "登录 NIBI 账号，或用 API key 配置第三方 provider 模板。";
+    login_prompt: "Sign in to your NIBI account. Model providers are configured separately with /provider.", "登录 NIBI 账号。模型 Provider 用 /provider 单独配置。";
     login_nibi: "NIBI Account", "NIBI 账号";
     login_nibi_detail: "Sign in in the browser; membership and paid plugins follow the account.", "在浏览器里登录；会员与付费插件跟着账号走。";
     login_wait_nibi: "Waiting for NIBI sign-in", "等待 NIBI 登录";
     login_wait_nibi_detail: "Open the address below in a browser and enter the code. I will continue when sign-in finishes.", "在浏览器里打开下面的地址并输入代码，登录完成后会继续。";
-    login_help: "Use {Up/Down} to choose, {Enter} to select.", "使用 {Up/Down} 选择，{Enter} 确认。";
-    login_zai_detail: "Open browser login and create a Coding Plan API key.", "打开浏览器登录，并创建 Coding Plan API key。";
-    login_bigmodel_detail: "Open browser login; authorization is detected automatically.", "打开浏览器登录，CLI 会自动查询授权结果。";
-    login_key_detail: "Paste a Coding Plan API key manually.", "手动粘贴 Coding Plan API key。";
-    login_wait_zai: "Waiting for Z.AI authorization", "等待 Z.AI 授权";
-    login_wait_zai_detail: "Complete sign-in in your browser. I will continue when authorization finishes.", "请在浏览器里完成登录。授权完成后会继续配置。";
-    login_wait_bigmodel: "Waiting for BigModel authorization", "等待 BigModel 授权";
-    login_wait_bigmodel_detail: "Complete sign-in in your browser. Authorization is detected automatically.", "请在浏览器里完成登录，授权成功后会自动继续配置。";
+    login_help: "{Enter} signs in with the browser, {Esc} cancels.", "按 {Enter} 在浏览器里登录，{Esc} 取消。";
     login_wait_status: "Waiting for browser authorization...", "正在等待浏览器授权...";
     login_wait_help: "{Esc} cancels and returns to setup choices.", "按 {Esc} 取消，并返回配置方式选择。";
     login_cancelling: "Cancelling...", "正在取消...";
-    login_cancelled: "Login cancelled. Choose a setup method.", "已取消登录。请选择配置方式。";
-    login_key_zai: "Enter Z.AI Coding Plan API Key", "输入 Z.AI Coding Plan API Key";
-    login_key_bigmodel: "Enter BigModel Coding Plan API Key", "输入 BigModel Coding Plan API Key";
-    login_key_hidden: "Paste the key here. It is hidden while typing.", "在这里粘贴 key，输入时会隐藏显示。";
-    login_key_placeholder: "Paste API key", "粘贴 API key";
-    login_key_status: "Enter the API key, then press Enter.", "输入 API key 后按 Enter。";
-    login_key_help: "{Enter} saves the key. {Esc} returns to setup choices.", "按 {Enter} 保存 key，按 {Esc} 返回配置方式选择。";
-    login_key_empty: "API key is required.", "API key 不能为空。";
-    login_key_cleared: "API key input cleared.", "已清空 API key 输入。";
-    login_key_cancelled: "API key entry cancelled. Choose a setup method.", "已取消 API key 输入。请选择配置方式。";
-    login_key_saving: "Saving API key...", "正在保存 API key...";
+    login_cancelled: "Login cancelled.", "已取消登录。";
 }
 
 pub fn strings(lang: Lang) -> &'static Strings {

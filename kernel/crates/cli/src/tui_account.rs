@@ -74,6 +74,8 @@ impl Account for PlatformAccount {
                     signed_in.membership.as_ref(),
                     signed_in.license_expires_at.as_deref(),
                 ),
+                // 会员同步失败不影响登录：把原因一起显示，用户才知道「未知」是网络还是服务端。
+                warning: signed_in.warnings.first().cloned(),
             })
         }
         .boxed()
