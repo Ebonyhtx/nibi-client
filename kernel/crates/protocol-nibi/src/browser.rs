@@ -63,6 +63,40 @@ impl BrowserBroker {
         &self.token
     }
 
+    /// 回合结束：对每条登记过的浏览器连接发 `turnEnded`（Node 的 `turnEnded` 生命周期；
+    /// 不关闭标签页，交回 tab 归属）。
+    pub(crate) async fn turn_ended(&self, session: &str) {
+        let Some(workspace) = self.inner.context.workspace_of(session) else {
+            return;
+        };
+        let connections = self
+            .inner
+            .connections
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned()
+            .unwrap_or_default();
+        for (browser_id, generation) in connections {
+            let params = json!({
+                "requestId": self.inner.context.fresh("browser"),
+                "sessionId": session,
+                "workspaceKey": workspace.clone(),
+                "workspacePath": workspace,
+                "clientMode": "desktop-continuous",
+                "sessionContext": "live",
+                "browserId": browser_id,
+                "browserGeneration": generation,
+                "command": {"method": "turnEnded"},
+            });
+            let _ = tokio::time::timeout(
+                CLOSE_TIMEOUT,
+                self.inner.context.peer.request(BROWSER_EXECUTE, &params),
+            )
+            .await;
+        }
+    }
+
     /// 会话关闭：对每条登记过的浏览器连接发 `closeSession`（Node 的 `closeSession` 生命周期）。
     pub(crate) async fn close_session(&self, session: &str) {
         let Some(workspace) = self.inner.context.workspace_of(session) else {

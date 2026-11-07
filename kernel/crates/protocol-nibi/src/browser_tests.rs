@@ -206,6 +206,25 @@ async fn execute_records_the_connection_and_close_session_releases_it() {
     assert_eq!(response["result"]["ok"], true);
 
     let broker = harness.broker.clone();
+    let ended = tokio::spawn(async move { broker.turn_ended("session_1").await });
+    let line = tokio::time::timeout(Duration::from_secs(5), harness.lines.next_line())
+        .await
+        .expect("turnEnded reached the host")
+        .expect("the host stream is open")
+        .expect("one line");
+    let asked: Value = serde_json::from_str(&line).unwrap();
+    assert_eq!(asked["method"], BROWSER_EXECUTE);
+    assert_eq!(asked["params"]["command"]["method"], "turnEnded");
+    assert_eq!(asked["params"]["browserId"], "browser-1");
+    let reply = json!({"id": asked["id"], "result": {}});
+    harness
+        .host_out
+        .write_all(format!("{reply}\n").as_bytes())
+        .await
+        .unwrap();
+    ended.await.unwrap();
+
+    let broker = harness.broker.clone();
     let closing = tokio::spawn(async move { broker.close_session("session_1").await });
     let line = tokio::time::timeout(Duration::from_secs(5), harness.lines.next_line())
         .await

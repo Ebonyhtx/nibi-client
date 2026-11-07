@@ -7,7 +7,7 @@
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use async_trait::async_trait;
-use nibi_kernel_api::session_api::{SequencedEvent, SessionView};
+use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView, TurnOutcome};
 use nibi_kernel_protocol_core::delivery::TopicLog;
 use nibi_kernel_protocol_core::sessions::SessionSink;
 use serde_json::{Map, Value, json};
@@ -33,6 +33,8 @@ struct State {
     debug: crate::session_debug::DebugRecorder,
     /// 待发的通知（方法名 + 载荷；在 `flush` 里一次发完，与逻辑帧同序；流式增量不逐条 await）。
     pending_facts: Vec<(String, Value)>,
+    /// 当前回合（CUA 操作事件的 `tool-scheduled` 需要 `turnId`；`TurnStarted` 置、`TurnFinished` 清）。
+    current_turn: Option<String>,
 }
 
 /// 锁里算好、锁外写出的东西：（订阅、区间、payload）与变了的会话列表行。
@@ -45,6 +47,7 @@ pub struct Live {
     context: Arc<Context>,
     topics: Arc<Topics>,
     local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
+    spawner: nibi_kernel_base::Spawner,
     session: String,
     workspace: String,
     created_at: u64,
@@ -58,6 +61,7 @@ impl Live {
         view: &SessionView,
         followup: Followup,
         local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
+        spawner: nibi_kernel_base::Spawner,
     ) -> Self {
         let levels = view.selection.reasoning.iter().cloned().collect();
         let epoch = context.fresh("epoch");
@@ -76,10 +80,12 @@ impl Live {
                 ),
                 debug: crate::session_debug::DebugRecorder::default(),
                 pending_facts: Vec::new(),
+                current_turn: None,
             }),
             context,
             topics,
             local_ttft,
+            spawner,
         }
     }
 
@@ -476,6 +482,27 @@ impl SessionSink for Live {
         let now = self.context.now();
         // 事实派生与投影在同一把锁里（顺序即事件顺序）；发出在 `flush` 里。
         let mut state = self.state();
+        let cua_events = cua_operation_events(
+            &self.session,
+            &event,
+            now,
+            state.current_turn.as_deref(),
+        );
+        match &event.event {
+            KernelEvent::TurnStarted { turn, .. } => {
+                state.current_turn = Some(turn.as_str().to_owned());
+            }
+            KernelEvent::TurnFinished { .. } => {
+                state.current_turn = None;
+            }
+            _ => {}
+        }
+        for payload in cua_events {
+            state
+                .pending_facts
+                .push((CUA_OPERATION_EVENT.to_owned(), payload));
+        }
+        let turn_finished = matches!(&event.event, KernelEvent::TurnFinished { .. });
         let deltas = state.projection.apply(&event, now);
         state.log.record(deltas);
         if let Some(fact) = state.telemetry.facts(&event, now)
@@ -502,6 +529,16 @@ impl SessionSink for Live {
             }
             _ => {}
         }
+        drop(state);
+        // 浏览器 broker 的逐轮生命周期：与 Node 一样在 TurnFinished 后发 `turnEnded`。
+        if turn_finished
+            && let Some(broker) = self.context.browser_broker().cloned()
+        {
+            let session = self.session.clone();
+            drop(self.spawner.spawn("browser-turn-ended", async move {
+                broker.turn_ended(&session).await;
+            }));
+        }
     }
 
     async fn flush(&self) {
@@ -514,5 +551,139 @@ impl SessionSink for Live {
             self.context.notify(&method, &fact).await;
         }
         self.write(outgoing).await;
+    }
+}
+
+const CUA_OPERATION_EVENT: &str = "computer-use/operation-event";
+
+/// Node `computer-use-operation-event.ts` 的同一张映射：回合/工具事件 → CUA 操作通知。
+///
+/// 只给 `mcp__node_repl__js` 且源码里出现 `setupComputerUseRuntime` 的调用发 `computerUse`；
+/// 其他工具不发（Host 的 tracker 只关心 CUA，Node 侧的非 CUA 工具事件对指示器没有作用）。
+fn cua_operation_events(
+    session: &str,
+    event: &SequencedEvent,
+    now: u64,
+    current_turn: Option<&str>,
+) -> Vec<Value> {
+    let base = |kind: &str| {
+        json!({
+            "eventId": format!("cua-{session}-{}", event.seq),
+            "sequenceNumber": event.seq,
+            "sessionId": session,
+            "timestamp": now,
+            "kind": kind,
+        })
+    };
+    match &event.event {
+        KernelEvent::TurnStarted { turn, .. } => {
+            let mut payload = base("turn-started");
+            payload["turnId"] = json!(turn.as_str());
+            vec![payload]
+        }
+        KernelEvent::TurnFinished { turn, outcome, .. } => {
+            let kind = match outcome {
+                TurnOutcome::Success => "turn-completed",
+                TurnOutcome::Interrupted | TurnOutcome::Failed { .. } => "turn-failed",
+            };
+            let mut payload = base(kind);
+            payload["turnId"] = json!(turn.as_str());
+            vec![payload]
+        }
+        KernelEvent::ToolStarted {
+            tool_use,
+            name,
+            input,
+        } => {
+            if name != "mcp__node_repl__js" || !uses_computer_use(input) {
+                return Vec::new();
+            }
+            let Some(turn) = current_turn else {
+                return Vec::new();
+            };
+            let tool_call_id = tool_use.as_str();
+            let mut scheduled = base("tool-scheduled");
+            scheduled["eventId"] = json!(format!("cua-{session}-{}-scheduled", event.seq));
+            scheduled["turnId"] = json!(turn);
+            scheduled["toolCallId"] = json!(tool_call_id);
+            scheduled["toolName"] = json!(name);
+            scheduled["input"] = input.clone();
+            scheduled["computerUse"] = json!(true);
+            let mut started = base("tool-started");
+            started["eventId"] = json!(format!("cua-{session}-{}-started", event.seq));
+            started["turnId"] = json!(turn);
+            started["toolCallId"] = json!(tool_call_id);
+            started["toolName"] = json!(name);
+            vec![scheduled, started]
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn uses_computer_use(input: &Value) -> bool {
+    input
+        .get("code")
+        .and_then(Value::as_str)
+        .is_some_and(|code| code.contains("setupComputerUseRuntime"))
+}
+
+#[cfg(test)]
+mod cua_operation_tests {
+    use super::*;
+    use nibi_kernel_api::ids::{ToolUseId, TurnId};
+
+    #[test]
+    fn a_cua_tool_start_emits_scheduled_then_started() {
+        let event = SequencedEvent {
+            seq: 7,
+            revision: 0,
+            event: KernelEvent::ToolStarted {
+                tool_use: ToolUseId::new("toolu_1"),
+                name: "mcp__node_repl__js".to_owned(),
+                input: json!({"code": "await setupComputerUseRuntime({ globals });"}),
+            },
+        };
+        let events = cua_operation_events("s1", &event, 1_000, Some("turn-1"));
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0]["kind"], "tool-scheduled");
+        assert_eq!(events[0]["computerUse"], true);
+        assert_eq!(events[0]["turnId"], "turn-1");
+        assert_eq!(events[0]["toolCallId"], "toolu_1");
+        assert_eq!(events[1]["kind"], "tool-started");
+        assert_eq!(events[1]["toolCallId"], "toolu_1");
+    }
+
+    #[test]
+    fn a_non_cua_tool_emits_nothing() {
+        let event = SequencedEvent {
+            seq: 8,
+            revision: 0,
+            event: KernelEvent::ToolStarted {
+                tool_use: ToolUseId::new("toolu_2"),
+                name: "Bash".to_owned(),
+                input: json!({"command": "ls"}),
+            },
+        };
+        assert!(cua_operation_events("s1", &event, 1_000, Some("turn-1")).is_empty());
+    }
+
+    #[test]
+    fn turn_started_carries_the_turn_id() {
+        let event = SequencedEvent {
+            seq: 9,
+            revision: 0,
+            event: KernelEvent::TurnStarted {
+                turn: TurnId::new("turn-1"),
+                command: None,
+                execution_kind: None,
+                workflow_launch: None,
+                input_source: None,
+                origin_meta: None,
+            },
+        };
+        let events = cua_operation_events("s1", &event, 1_000, None);
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["kind"], "turn-started");
+        assert_eq!(events[0]["turnId"], "turn-1");
     }
 }

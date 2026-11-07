@@ -10,7 +10,7 @@
 | # | 功能 | 状态 |
 | --- | --- | --- |
 | 1 | 「生成提交信息」（`workspace/generateText` / `cancelGenerateText`） | ✅ **已补**（`277450ca`） |
-| 2 | 浏览器控制 | ✅ **已接回**：`node_repl` MCP + Rust 侧 broker + `browser-use` 准入；逐轮 `turnEnded` 未发（§2） |
+| 2 | 浏览器控制 | ✅ **已接回**：`node_repl` MCP + Rust broker + `browser-use` 准入；逐轮 `turnEnded` 已发（§2） |
 | 3 | topic 资源（bot 群话题上下文） | ⬜ 未做——见 §3 的数据流 |
 | 4 | 运行时偏好协商 | ✅ 三项已核：两项等价、一项（AUQ 自动结束）差异见 §4 |
 | 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；⚠️ 两条 UI 通知差异见 §5 |
@@ -55,10 +55,10 @@
   `app_server` 据此启动 broker，把 socket/token 放进 `Extensions.node_repl_env`；
   `runtime/src/node_repl.rs` 只按 `BROWSER_ENV` 白名单复制给 `node_repl` 子进程；选择器放行
   `browser-use` 的 skill（`select.rs` 的 `host_browser_broker`）。
-- 测试：protocol-nibi 3 条（`list` 反向请求、错误 token 不转发、`execute` + `closeSession`）、
-  runtime 1 条（broker 凭据白名单）、Host 1 条（flag 只在有 executor 时出现）。
-- 剩余：逐轮 `turnEnded` 还没发（会话关闭会 `closeSession`，标签页不会泄漏）；远程 workspace
-  的 `workspaceIdentity` 还没带（broker 用路径作 `workspaceKey`）。
+- 测试：protocol-nibi 3 条（`list` 反向请求、错误 token 不转发、`execute` + `turnEnded` +
+  `closeSession`）、runtime 1 条（broker 凭据白名单）、Host 1 条（flag 只在有 executor 时出现）。
+- 剩余：远程 workspace 的 `workspaceIdentity` 还没带（broker 用路径作 `workspaceKey`）。
+  逐轮 `turnEnded` 已在 `Live` 的 `TurnFinished` 后发出（`browser.rs::turn_ended`）。
 
 ## 3. topic 资源（未做）
 
@@ -126,7 +126,21 @@ Rust 不问、用内置缺省。逐项核对结果：
   （`packages/services/src/zcode-agent/nodeReplHostEnv.ts`）；Node 内核不读这两个变量。
 - 测试：`runtime` 5 条（装配/白名单/fail-closed）、`ext` 2 条（插件准入）、Host 1 条（env 契约）。
 
-### 5.4 真实 Helper 验证（2026-11-07）
+### 5.4 CUA 操作事件（已补；permission-observation 不补）
+
+- `Live::event` 按 Node `computer-use-operation-event.ts` 的同一映射发
+  `computer-use/operation-event`：`TurnStarted` / `TurnFinished` → turn-started / completed / failed；
+  `mcp__node_repl__js` 且 `input.code` 含 `setupComputerUseRuntime` 的 `ToolStarted` →
+  tool-scheduled（`computerUse: true`）+ tool-started；`close_session` → session-closed。
+  Host 的 `cuaOperationTurnTracker`（Windows 操作指示器 / macOS PiP）因此照常工作。
+- `v4/cua/permission-observation` **不补**，因为在当前 node_repl 表面下 Node 的触发器本身不可达：
+  normalizer 要求 tool result 的 display 是 `{kind:"cua", toolName:"request_access"}`，而
+  `result-display.ts` 只在工具名含 `computer_use` 时才生成该分支；实际唯一的 CUA 工具是
+  `mcp__node_repl__js`（display 是 `node_repl_images`），且 schema 硬编码 `platform:"darwin"`，
+  也没有对应测试。真正的权限 UI 是 Host 的 `ICuaPermissionService`（`permission_status` 的
+  accessibility/screenRecording/grantOwner + onboarding），与内核无关。
+
+### 5.5 真实 Helper 验证（2026-11-07）
 
 - 私有 sidecar 的 `packages/zcode-cua` 是完整实现（runtime/helper/engine），公开仓只是占位；
   本机原来私有 `node_modules` 指向已移动的旧路径，且缺 `@trycua/cua-driver-win32-x64-msvc`。
@@ -139,7 +153,7 @@ Rust 不问、用内置缺省。逐项核对结果：
 - 结论：Rust 内核只负责启动同一个 `node_repl` 进程；Helper/engine 路径与 Node 完全相同，
   私有 producer 在就能用，公开构建照旧 fail-closed。
 
-### 5.5 已知差异
+### 5.6 已知差异
 
 - `computer-use/operation-event` 与 `v4/cua/permission-observation` 由 Node agent 的 v4 gateway
   发出；Rust 下 node_repl 是独立进程，内核收不到这些事件 → UI 的操作指示细节缺失。
@@ -150,8 +164,8 @@ Rust 不问、用内置缺省。逐项核对结果：
 ## 已知差异（写在这里，别在别处重复记）
 
 1. `generateText` 的 token 不进会话用量。
-2. 浏览器的逐轮 `turnEnded` 未发；远程 workspace 的 `workspaceIdentity` 未带（路径作 key）；
-   topic 资源未做（§3）。
+2. 浏览器的远程 workspace `workspaceIdentity` 未带（路径作 key）；topic 资源未做（§3）。
 3. AUQ 自动结束未做（§4）。
-4. CUA 的两条 UI 通知未发（§5.5）。
+4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；
+   `computer-use/operation-event` 已由 Rust 发出（§5.4）。
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。

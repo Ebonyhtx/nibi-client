@@ -137,10 +137,11 @@ impl Server {
             .unwrap_or(Followup::Queue);
         let (context, topics) = (self.context.clone(), self.topics.clone());
         let local_ttft = self.local_ttft.clone();
+        let spawner = self.spawner.clone();
         let live = self
             .bridge
             .open(session, move |_, view| {
-                Live::new(context, topics, view, followup, local_ttft)
+                Live::new(context, topics, view, followup, local_ttft, spawner)
             })
             .await?;
         // 冷打开的每轮文件摘要（轮头角标与撤销入口）：读不出 artifact 只少一个角标，不拦打开。
@@ -267,6 +268,19 @@ impl Server {
         if let Some(broker) = self.context.browser_broker() {
             broker.close_session(session.as_str()).await;
         }
+        // CUA 操作指示器的会话收尾（Node 的 `SessionEnded → session-closed`）。
+        self.context
+            .notify(
+                "computer-use/operation-event",
+                &json!({
+                    "eventId": self.context.fresh("cua"),
+                    "sequenceNumber": 0,
+                    "sessionId": session.as_str(),
+                    "timestamp": self.context.now(),
+                    "kind": "session-closed",
+                }),
+            )
+            .await;
         let live = self.bridge.close(&session);
         // 真正关闭内核里的会话（Node `record.app.close()`）：SessionEnd、后台任务收尾与按会话的表都走
         // 这条路径。之前只停止转发、actor 一直活着，关闭后再打开拿到的是旧 actor。
