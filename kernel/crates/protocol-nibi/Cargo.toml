@@ -30,7 +30,7 @@ serde.workspace = true
 serde_json.workspace = true
 # 附件事务 commit 的 sha256 校验（Host `createHash("sha256")` 同算法）。
 sha2.workspace = true
-tokio = { workspace = true, features = ["io-util", "macros", "sync", "time"] }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "sync", "time"] }
 # 工作区补全的取消令牌（`Kernel::generate_text` 的签名）。
 tokio-util.workspace = true
 tracing.workspace = true
@@ -38,4 +38,6 @@ tracing.workspace = true
 [dev-dependencies]
 futures-util.workspace = true
 nibi-kernel-api = { workspace = true, features = ["testing"] }
+# broker 的 Unix socket 落在测试自己的临时目录里。
+tempfile.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "rt", "time"] }

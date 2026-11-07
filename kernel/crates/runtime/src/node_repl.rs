@@ -21,6 +21,13 @@ const SERVER_BUNDLE: [&str; 3] = ["dist", "mcp", "server.js"];
 
 /// Node 只把 CUA 凭据恢复给共享的 `node_repl` 宿主；这里同样只复制这一组（键名以
 /// `packages/shared/src/runtimeEnv.ts` 为准）。不复制 `NIBI_API_KEY` 等账号凭据。
+/// 浏览器 broker 的 socket/token（内核生成，入口放进 `node_repl_env`）。只在 Browser Use
+/// 插件放行时复制；键名与 `packages/shared/src/browser-use/nodeReplBroker.ts` 一致。
+const BROWSER_ENV: [&str; 2] = [
+    "NIBI_NODE_REPL_BROWSER_BROKER_SOCKET",
+    "NIBI_NODE_REPL_BROWSER_BROKER_TOKEN",
+];
+
 const CUA_ENV: [&str; 12] = [
     "NIBI_CUA_PERMISSION_BROKER_SOCKET",
     "NIBI_CUA_PLUGIN_AUTHORITY",
@@ -69,6 +76,11 @@ pub(crate) fn builtin_server(
     let mut server_env = BTreeMap::from([("ELECTRON_RUN_AS_NODE".to_owned(), "1".to_owned())]);
     if let Some(browser) = browser {
         server_env.insert("NIBI_PLUGIN_ROOT".to_owned(), browser.dir.clone());
+        for key in BROWSER_ENV {
+            if let Some(value) = env.get(key) {
+                server_env.insert(key.to_owned(), value.clone());
+            }
+        }
     }
     if let Some(cua) = cua {
         server_env.insert("NIBI_CUA_PLUGIN_ROOT".to_owned(), cua.dir.clone());

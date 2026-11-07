@@ -264,6 +264,9 @@ impl Server {
                 return json!({"closed": false});
             }
         }
+        if let Some(broker) = self.context.browser_broker() {
+            broker.close_session(session.as_str()).await;
+        }
         let live = self.bridge.close(&session);
         // 真正关闭内核里的会话（Node `record.app.close()`）：SessionEnd、后台任务收尾与按会话的表都走
         // 这条路径。之前只停止转发、actor 一直活着，关闭后再打开拿到的是旧 actor。

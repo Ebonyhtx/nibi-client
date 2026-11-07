@@ -182,6 +182,10 @@ pub(crate) async fn sources(
 }
 
 /// Host 声明「由它提供 node_repl 执行面」的开关。只认 `1`：空值、其它值都按未提供处理（fail-closed）。
+#[expect(
+    clippy::disallowed_methods,
+    reason = "entry crate: the Host's node_repl capability flags (§4)"
+)]
 fn host_flag(name: &str) -> bool {
     matches!(std::env::var(name).as_deref(), Ok("1"))
 }

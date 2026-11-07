@@ -11,10 +11,13 @@ export type NodeReplKernelSelection = "node" | "rust";
 export function buildNodeReplHostEnv(input: {
   kernel: NodeReplKernelSelection;
   execPath: string;
+  /** Host 有 browser executor 时，内核会起浏览器 broker 并放行 browser-use。 */
+  browserBroker?: boolean;
 }): Record<string, string> {
   if (input.kernel !== "rust") return {};
   return {
     NIBI_HOST_NODE_REPL: "1",
     NIBI_NODE_EXEC_PATH: input.execPath,
+    ...(input.browserBroker ? { NIBI_HOST_BROWSER_BROKER: "1" } : {}),
   };
 }

@@ -33,6 +33,7 @@ mod subagents_rpc;
 pub mod telemetry;
 mod attachment_rpc;
 mod attachment_upload;
+pub mod browser;
 mod v4_queries;
 mod wire;
 mod workflow_settings_turn;

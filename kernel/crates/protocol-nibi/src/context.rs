@@ -20,6 +20,8 @@ pub struct Context {
     counter: Mutex<u64>,
     /// 打开着的会话 → 所在的工作区（取账号凭据的反向请求要带工作区）。
     sessions: Mutex<HashMap<String, String>>,
+    /// 浏览器 broker（Host 声明提供 browser-use 执行面时由入口装上）。
+    browser_broker: std::sync::OnceLock<Arc<crate::browser::BrowserBroker>>,
     /// 本进程的随机前缀（代际标识与订阅 ID 用）。
     prefix: String,
 }
@@ -37,8 +39,18 @@ impl Context {
             ordinals: Mutex::new(HashMap::new()),
             counter: Mutex::new(0),
             sessions: Mutex::new(HashMap::new()),
+            browser_broker: std::sync::OnceLock::new(),
             prefix,
         }
+    }
+
+    /// 装上入口启动的浏览器 broker（只装一次；重复装保留第一个）。
+    pub fn set_browser_broker(&self, broker: Arc<crate::browser::BrowserBroker>) {
+        let _ = self.browser_broker.set(broker);
+    }
+
+    pub(crate) fn browser_broker(&self) -> Option<&Arc<crate::browser::BrowserBroker>> {
+        self.browser_broker.get()
     }
 
     /// 记下一个打开着的会话所在的工作区。

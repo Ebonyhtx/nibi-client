@@ -144,6 +144,28 @@ pub(crate) fn dispatch(args: &[String]) -> Option<ExitCode> {
     })
 }
 
+/// 浏览器 broker 的本地 socket：Unix 落在入口解析的临时目录，Windows 用命名管道。
+/// 每个进程一个随机名；`node_repl` 子进程按环境里的路径连接。
+#[expect(
+    clippy::disallowed_methods,
+    reason = "entry crate resolves the temp directory once (§4)"
+)]
+fn browser_socket_path() -> String {
+    let id = format!(
+        "{:016x}{:016x}",
+        nibi_kernel_base::random::u64(),
+        nibi_kernel_base::random::u64()
+    );
+    if cfg!(windows) {
+        format!(r"\\.\pipe\nibi-node-repl-browser-{id}")
+    } else {
+        std::env::temp_dir()
+            .join(format!("nibi-node-repl-browser-{id}.sock"))
+            .to_string_lossy()
+            .into_owned()
+    }
+}
+
 /// 会话库的不透明 ID：Node `createHash("sha256").update(dbPath)` 的同一十六进制（同一个库总是
 /// 同一个 ID，不带路径；Host 按它归并迁移基线，两内核必须一致）。
 fn database_id(path: &std::path::Path) -> String {
@@ -216,6 +238,27 @@ async fn serve(
 ) -> Result<()> {
     let state = Startup::new(context.clone(), database_id(paths.database().as_path()));
     state.checking().await;
+    // Browser Use 的模型面是 `node_repl` 的 `js` 工具；它经本地 socket 把命令交回这里，再变成
+    // `interaction/browser*` 反向请求。Host 声明它有 browser executor 时才起这个 broker。
+    let browser_broker = if startup.env.get("NIBI_HOST_BROWSER_BROKER") == Some("1") {
+        let socket = browser_socket_path();
+        match nibi_kernel_protocol_nibi::browser::start(context.clone(), socket.clone(), &spawner) {
+            Ok(broker) => {
+                let token = broker.token().to_owned();
+                context.set_browser_broker(Arc::new(broker));
+                Some((socket, token))
+            }
+            Err(error) => {
+                tracing::warn!(
+                    %error,
+                    "the browser broker could not start; Browser Use stays unavailable"
+                );
+                None
+            }
+        }
+    } else {
+        None
+    };
     let egress = setup::egress(&startup).await?;
     // 缺口 G8：账号模型的凭据向 Host 要（与 Node 相同经反向请求）；API key 的 provider 不受影响。
     let platform = Arc::new(
@@ -352,6 +395,19 @@ async fn serve(
         &config,
     )
     .await;
+    // 浏览器 broker 的 socket/token 只交给内核装配的 `node_repl` 子进程（runtime 只按白名单复制）。
+    if let Some((socket, token)) = &browser_broker
+        && let Some(env) = extensions.node_repl_env.as_mut()
+    {
+        env.insert(
+            "NIBI_NODE_REPL_BROWSER_BROKER_SOCKET".to_owned(),
+            socket.clone(),
+        );
+        env.insert(
+            "NIBI_NODE_REPL_BROWSER_BROKER_TOKEN".to_owned(),
+            token.clone(),
+        );
+    }
     // 插件按会话解析：进程级不再加载插件（避免启动快照 + 会话快照各一套连接）。
     extensions.config.plugins = Default::default();
     extensions.plugin_loader = Some(Arc::new(SessionPluginLoader {

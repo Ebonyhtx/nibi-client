@@ -2323,6 +2323,7 @@ export function createLocalServices(options: {
         ...buildNodeReplHostEnv({
           kernel: resolveKernelSelection(process.env.NIBI_KERNEL),
           execPath: process.execPath,
+          browserBroker: Boolean(options?.browserControlExecutor),
         }),
         ...buildAgentTelemetrySpawnEnv({
           deviceMid: telemetryDeviceMid,

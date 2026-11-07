@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use async_trait::async_trait;
-use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::generate_text::{GenerateTextReply, GenerateTextRequest, GeneratedToolCall};
 use nibi_kernel_api::ids::{EnvironmentId, SessionId};
 use nibi_kernel_api::message::{ContentBlock, StopReason, ToolResultContent, Usage};

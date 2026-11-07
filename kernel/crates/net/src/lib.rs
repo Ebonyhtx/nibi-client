@@ -26,6 +26,7 @@ mod no_proxy;
 pub mod retry;
 mod roots;
 mod sha1;
+pub mod local;
 pub mod sse;
 pub mod timeout;
 pub mod uds;

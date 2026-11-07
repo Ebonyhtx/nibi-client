@@ -131,3 +131,37 @@ fn without_a_node_runtime_path_there_is_no_server() {
     env.remove("NIBI_NODE_EXEC_PATH");
     assert!(builtin_server(&plugins, &env).is_none());
 }
+
+#[test]
+fn browser_use_gets_the_broker_credentials() {
+    let host = host_dir();
+    let plugins = Plugins(vec![
+        plugin("node-repl-host", &host),
+        plugin("browser-use", "/plugins/browser-use"),
+    ]);
+    let mut env = env();
+    env.insert(
+        "NIBI_NODE_REPL_BROWSER_BROKER_SOCKET".to_owned(),
+        "nibi-browser-test-pipe".to_owned(),
+    );
+    let token = "t".repeat(64);
+    env.insert(
+        "NIBI_NODE_REPL_BROWSER_BROKER_TOKEN".to_owned(),
+        token.clone(),
+    );
+
+    let server = builtin_server(&plugins, &env).expect("the host plugin is present");
+    let (_, _, env) = stdio(&server);
+
+    assert_eq!(
+        env.get("NIBI_NODE_REPL_BROWSER_BROKER_SOCKET")
+            .map(String::as_str),
+        Some("nibi-browser-test-pipe")
+    );
+    assert_eq!(
+        env.get("NIBI_NODE_REPL_BROWSER_BROKER_TOKEN")
+            .map(String::as_str),
+        Some(token.as_str())
+    );
+    assert!(!env.contains_key("NIBI_CUA_PLUGIN_ROOT"));
+}

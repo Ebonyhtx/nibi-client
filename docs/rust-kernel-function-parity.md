@@ -3,17 +3,17 @@
 > 目的：切默认内核的判据是「**功能不减**」，不是「协议 89/118」。这份表逐项记「Node 里由谁做、
 > Rust 里由谁做、还差什么」，每行都带可查的代码位置。改动任何一项时同步更新本表。
 >
-> 最后复核：2026-11-07（`dev` `ed71f30e` 之后：CUA / 浏览器控制的路线纠正与 `node_repl` 落地）。
+> 最后复核：2026-11-07（`dev` `60a5817d` 之后：浏览器 broker 落地 + 私有 CUA 真机验证）。
 
 ## 结论摘要
 
 | # | 功能 | 状态 |
 | --- | --- | --- |
 | 1 | 「生成提交信息」（`workspace/generateText` / `cancelGenerateText`） | ✅ **已补**（`277450ca`） |
-| 2 | 浏览器控制 | 🟡 **路线纠正**：Node 的模型面是 `node_repl` MCP，不是内置工具；Rust 侧还差 broker（§2） |
+| 2 | 浏览器控制 | ✅ **已接回**：`node_repl` MCP + Rust 侧 broker + `browser-use` 准入；逐轮 `turnEnded` 未发（§2） |
 | 3 | topic 资源（bot 群话题上下文） | ⬜ 未做——见 §3 的数据流 |
 | 4 | 运行时偏好协商 | ✅ 三项已核：两项等价、一项（AUQ 自动结束）差异见 §4 |
-| 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回**；⚠️ 两条 UI 通知差异见 §5 |
+| 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；⚠️ 两条 UI 通知差异见 §5 |
 
 ## 1. 生成提交信息（已补）
 
@@ -41,18 +41,24 @@
 - 因此「在 Rust 里做一套原生浏览器工具」会**分叉**：工具名、skill 文案、权限规则、UI 的工具判断
   全都要维护两套。和 Node 对齐的唯一干净路线是**复用同一个 `node_repl` MCP 服务器**。
 
-### 2.2 Rust 现状与剩余工作
+### 2.2 Rust 侧已落地
 
-- 内核已能装配内置 `node_repl`：`kernel/crates/runtime/src/node_repl.rs`，从官方插件缓存的
+- 内核装配内置 `node_repl`：`kernel/crates/runtime/src/node_repl.rs`，从官方插件缓存的
   `node-repl-host` 目录启动 `dist/mcp/server.js`，`alwaysLoad`、`isolation: workspace`、600 s。
-- `browser-use` 的 skill **还没有放行**：选择器只在 Host 同时提供 broker socket 时放行
-  （`NIBI_HOST_BROWSER_BROKER=1`，`select.rs` 的 `node_dependency`）。只有 skill 没有执行面
-  比没有更糟，所以先保持跳过。
-- 还差的东西只有一个：**Rust 侧的 broker socket**（NDJSON + token，把 `list`/`execute` 转成
-  `interaction/browser*` 反向请求；`Peer::request` 已有，`headers.rs` 是同款模板），以及
-  turn 结束/会话关闭时的 `turnEnded` / `closeSession` 生命周期命令。
-- 选定路线：**内核实现 broker**（和 Node 一样，agent 进程own 它）。Host 直接服务 broker 会绕开
-  内核的会话/子会话归属判断（`forChildSession`），不选。
+- **浏览器 broker 已实现**：`kernel/crates/protocol-nibi/src/browser.rs`，本地 socket 的
+  listener/client 在 `kernel/crates/net/src/local.rs`（Unix 域套接字 / Windows 命名管道）。
+  broker 认内核生成的 token（长度固定 + 常量时间比较），把 `list` / `execute` 转成
+  `interaction/browserList` / `interaction/browserExecute`；会话关闭时对登记过的连接发
+  `closeSession`（`Server::close_session`）。
+- 放行与注入：Host 有 `browserControlExecutor` 时在 Rust spawn env 里设
+  `NIBI_HOST_BROWSER_BROKER=1`（`packages/services/src/zcode-agent/nodeReplHostEnv.ts`）；
+  `app_server` 据此启动 broker，把 socket/token 放进 `Extensions.node_repl_env`；
+  `runtime/src/node_repl.rs` 只按 `BROWSER_ENV` 白名单复制给 `node_repl` 子进程；选择器放行
+  `browser-use` 的 skill（`select.rs` 的 `host_browser_broker`）。
+- 测试：protocol-nibi 3 条（`list` 反向请求、错误 token 不转发、`execute` + `closeSession`）、
+  runtime 1 条（broker 凭据白名单）、Host 1 条（flag 只在有 executor 时出现）。
+- 剩余：逐轮 `turnEnded` 还没发（会话关闭会 `closeSession`，标签页不会泄漏）；远程 workspace
+  的 `workspaceIdentity` 还没带（broker 用路径作 `workspaceKey`）。
 
 ## 3. topic 资源（未做）
 
@@ -119,10 +125,21 @@ Rust 不问、用内置缺省。逐项核对结果：
 - Host：Rust 内核的 agent spawn env 带 `NIBI_HOST_NODE_REPL=1` + `NIBI_NODE_EXEC_PATH=<process.execPath>`
   （`packages/services/src/zcode-agent/nodeReplHostEnv.ts`）；Node 内核不读这两个变量。
 - 测试：`runtime` 5 条（装配/白名单/fail-closed）、`ext` 2 条（插件准入）、Host 1 条（env 契约）。
-  真实探针：用缓存里的 `node-repl-host/0.6.1` 启动 MCP，`tools: ["js"]`，JS 里
-  `{"cua":"object","browser":"object"}`（两个 bridge 都在）。
 
-### 5.4 已知差异
+### 5.4 真实 Helper 验证（2026-11-07）
+
+- 私有 sidecar 的 `packages/zcode-cua` 是完整实现（runtime/helper/engine），公开仓只是占位；
+  本机原来私有 `node_modules` 指向已移动的旧路径，且缺 `@trycua/cua-driver-win32-x64-msvc`。
+- 按私有仓的正式流程 overlay 到公开 checkout，`pnpm install --no-frozen-lockfile` 装上原生
+  driver，重建 `node-repl-host` bundle；探针在 node_repl 进程里：
+  - `list_apps` 返回真实桌面应用列表（ZCode / chrome / Notepad 等）；
+  - `list_windows` 返回 ZCode 窗口（windowId/pid/bounds/isOnScreen）。
+- 测完恢复公开占位包、`git checkout pnpm-lock.yaml`、`pnpm install --frozen-lockfile` 并重建
+  bundle（hash 回到 `92301e78…`），公开仓不夹带私有代码。
+- 结论：Rust 内核只负责启动同一个 `node_repl` 进程；Helper/engine 路径与 Node 完全相同，
+  私有 producer 在就能用，公开构建照旧 fail-closed。
+
+### 5.5 已知差异
 
 - `computer-use/operation-event` 与 `v4/cua/permission-observation` 由 Node agent 的 v4 gateway
   发出；Rust 下 node_repl 是独立进程，内核收不到这些事件 → UI 的操作指示细节缺失。
@@ -133,7 +150,8 @@ Rust 不问、用内置缺省。逐项核对结果：
 ## 已知差异（写在这里，别在别处重复记）
 
 1. `generateText` 的 token 不进会话用量。
-2. 浏览器控制的 Rust broker 未实现（§2）；topic 资源未做（§3）。
+2. 浏览器的逐轮 `turnEnded` 未发；远程 workspace 的 `workspaceIdentity` 未带（路径作 key）；
+   topic 资源未做（§3）。
 3. AUQ 自动结束未做（§4）。
-4. CUA 的两条 UI 通知未发（§5.4）。
+4. CUA 的两条 UI 通知未发（§5.5）。
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
