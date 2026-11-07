@@ -10,7 +10,7 @@ use futures_util::stream::BoxStream;
 use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::EnvironmentId;
 use nibi_kernel_api::mcp::{
-    McpConnect, McpConnectionId, McpError, McpTransport, McpTransportEvent,
+    McpConnect, McpConnectionId, McpError, McpTransport, McpTransportConfig, McpTransportEvent,
 };
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
@@ -62,6 +62,10 @@ pub(crate) struct FakeMcp {
     roots: Mutex<Vec<(String, String)>>,
     /// [`FakeMcp::with_pid`] 之后每个连接都报这个 pid（`process/childProcesses` 与遥测测试）。
     pid: std::sync::atomic::AtomicU32,
+    /// 每次连接带的 `Authorization` 头（连接顺序；没有时 None）。
+    auth: Mutex<Vec<(String, Option<String>)>>,
+    /// 还有几次 `initialize` 的发送回 HTTP 401（模拟资源服务器拒绝令牌）。
+    unauthorized: Mutex<HashMap<String, usize>>,
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -87,6 +91,8 @@ pub(crate) fn server(
             }
             Some(Ok(result))
         }
+        // 合规的服务器对不认识的方法回 `-32601`（现代握手的探测靠它回退到 legacy）。
+        "server/discover" => Some(Err((-32601, "Method not found".to_owned()))),
         other => rest(other, params),
     })
 }
@@ -97,6 +103,8 @@ pub(crate) fn held(
 ) -> Arc<Handler> {
     Arc::new(move |method: &str, params: &Value| match method {
         "initialize" => None,
+        // 探测照常回 `-32601`：慢服务器只是握手慢，不是不肯回答。
+        "server/discover" => Some(Err((-32601, "Method not found".to_owned()))),
         other => rest(other, params),
     })
 }
@@ -145,6 +153,16 @@ impl FakeMcp {
     pub(crate) fn with_pid(self, pid: u32) -> Self {
         self.pid.store(pid, Ordering::Relaxed);
         self
+    }
+
+    /// 这个服务器的下 `count` 次 `initialize` 发送回 HTTP 401（令牌被拒，等刷新后重连）。
+    pub(crate) fn reject_initialize(&self, server: &str, count: usize) {
+        lock(&self.unauthorized).insert(server.to_owned(), count);
+    }
+
+    /// 每次连接带的 `Authorization` 头（连接顺序）。
+    pub(crate) fn authorizations(&self) -> Vec<(String, Option<String>)> {
+        lock(&self.auth).clone()
     }
 
     /// 服务器进程自己退出了（`process/mcpTelemetry` 的 crash 判据）。
@@ -203,6 +221,16 @@ impl McpTransport for FakeMcp {
         request: McpConnect,
     ) -> Result<McpConnectionId, McpError> {
         lock(&self.roots).push((request.server.clone(), workspace.root.as_str().to_owned()));
+        let auth = match &request.transport {
+            McpTransportConfig::Http { headers, .. } | McpTransportConfig::Sse { headers, .. } => {
+                headers
+                    .iter()
+                    .find(|(name, _)| name.eq_ignore_ascii_case("authorization"))
+                    .map(|(_, value)| value.clone())
+            }
+            McpTransportConfig::Stdio { .. } => None,
+        };
+        lock(&self.auth).push((request.server.clone(), auth));
         if lock(&self.refuse).contains(&request.server) {
             return Err(McpError::Connect {
                 message: "spawn failed".to_owned(),
@@ -236,6 +264,18 @@ impl McpTransport for FakeMcp {
                 })?;
             (found.server.clone(), found.sender.clone())
         };
+        // 资源服务器拒绝令牌：发送本身失败（HTTP 401），等调用方刷新后重连。
+        if message.get("method").and_then(Value::as_str) == Some("initialize") {
+            let mut unauthorized = lock(&self.unauthorized);
+            if let Some(remaining) = unauthorized.get_mut(&server)
+                && *remaining > 0
+            {
+                *remaining -= 1;
+                return Err(McpError::Connect {
+                    message: "HTTP 401: invalid_token".to_owned(),
+                });
+            }
+        }
         lock(&self.received).push((server.clone(), message.clone()));
         let (Some(id), Some(method)) = (
             message.get("id").cloned(),

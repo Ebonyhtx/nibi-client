@@ -67,6 +67,31 @@ pub enum LoginFailure {
     Failed(String),
 }
 
+/// NIBI 账号的设备码（RFC 8628）：界面显示 `user_code`，浏览器打开 `verification_uri_complete`
+/// （没有时开 `verification_uri` 并让用户自己输入 code）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeviceCode {
+    pub user_code: String,
+    pub verification_uri: String,
+    pub verification_uri_complete: Option<String>,
+}
+
+impl DeviceCode {
+    /// 浏览器要打开的地址。
+    pub fn target(&self) -> &str {
+        self.verification_uri_complete
+            .as_deref()
+            .unwrap_or(&self.verification_uri)
+    }
+}
+
+/// NIBI 账号登录的结果：用户的显示名与会员摘要（收费插件门禁读的就是这份凭据）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NibiAccount {
+    pub user: String,
+    pub membership: String,
+}
+
 /// 账号的登录与退出（platform.md §5.6）。取消是一条消息：`cancel` 被取消后，实现在下一次检查时停下并返回
 /// [`LoginFailure::Cancelled`]，调用方不丢弃 future。
 pub trait Account: Send + Sync {
@@ -85,7 +110,14 @@ pub trait Account: Send + Sync {
         key: RedactedString,
     ) -> BoxFuture<'static, Result<Configured, String>>;
 
-    /// 退出 Coding Plan 账号，返回凭据文件的路径。
+    /// NIBI 账号的 Device Flow：拿到设备码后经 `device` 交给界面（打开浏览器由实现负责），再轮询到结果。
+    fn login_nibi(
+        &self,
+        device: oneshot::Sender<DeviceCode>,
+        cancel: CancellationToken,
+    ) -> BoxFuture<'static, Result<NibiAccount, LoginFailure>>;
+
+    /// 退出账号（NIBI 账号与 provider 模板的凭据），返回凭据文件的路径。
     fn logout(&self) -> BoxFuture<'static, Result<String, String>>;
 }
 

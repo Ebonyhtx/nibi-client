@@ -23,6 +23,8 @@ fn stdio(name: &str) -> SessionMcpServer {
         always_load: false,
         timeout_ms: None,
         isolation: McpIsolation::Session,
+        oauth: None,
+        protocol_version: Default::default(),
     }
 }
 
@@ -42,6 +44,7 @@ fn pools(fake: Arc<FakeMcp>, scope: &TaskScope) -> SessionMcp {
         scope.spawner(),
         McpSettings::default(),
         crate::clock_tests::TokioClock::new(),
+        None,
         None,
         None,
     )
@@ -152,6 +155,8 @@ fn protocol_servers_become_dynamic_config_with_options() {
             always_load: false,
             timeout_ms: None,
             isolation: McpIsolation::Workspace,
+            oauth: None,
+            protocol_version: Default::default(),
         },
     ]);
     assert_eq!(servers.len(), 2);
@@ -204,6 +209,8 @@ fn workspace_at(root: &str) -> nibi_kernel_api::env::WorkspaceRef {
 fn workspace_stdio(name: &str) -> SessionMcpServer {
     SessionMcpServer {
         isolation: McpIsolation::Workspace,
+        oauth: None,
+        protocol_version: Default::default(),
         ..stdio(name)
     }
 }

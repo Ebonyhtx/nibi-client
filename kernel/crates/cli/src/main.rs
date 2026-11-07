@@ -29,6 +29,7 @@ mod loopback;
 mod machines;
 mod mcp;
 mod mcp_machines;
+mod mcp_oauth;
 mod model_io;
 mod model_io_files;
 mod models;
@@ -430,6 +431,8 @@ async fn session(
     };
     // 设备身份（platform.md §10，工作线 F52）：每个请求的 `metadata.user_id`；第一次请求时才读文件。
     let device = setup::device_id(&paths, ids.clone());
+    // MCP 的 OAuth 令牌端口也要这条出口（模型请求把 `egress` 的所有权拿走了）。
+    let oauth_egress = egress.clone();
     let models::Assembled {
         model,
         selection,
@@ -545,6 +548,19 @@ async fn session(
     )
     .await;
     extensions.monitor = monitor;
+    // NIBI 账号（TUI 的 `/login` 与 MCP 的 OAuth 端口共用同一份共享凭据文件）。
+    let env_lookup = |key: &str| startup.env.get(key).map(str::to_owned);
+    let nibi_account = setup::account_context(
+        &env_lookup,
+        paths.credentials().as_path().to_path_buf(),
+        oauth_egress.clone(),
+        clock.clone(),
+    )?;
+    extensions.mcp_oauth = Some(setup::mcp_oauth(
+        nibi_account.store.clone(),
+        oauth_egress,
+        clock.clone(),
+    ));
     // 绑定到远端机器的 MCP 服务器（R5，remote-exec.md §22.5、§22.8）：连上机器时的期望集合，TUI 的标记。
     machine_start = machine_start.with_mcp(&extensions.config);
     let mcp_machines = machine_start.mcp_marks.clone();
@@ -664,6 +680,7 @@ async fn session(
                 theme: config.theme,
                 paths: paths.clone(),
                 account,
+                nibi: nibi_account.clone(),
                 mcp: tui_mcp::McpConfigFiles {
                     origins: config.mcp_origins.clone(),
                     files: local_machine.files().clone(),
@@ -697,7 +714,7 @@ async fn session(
             if let Some(session) = &exit.session {
                 write_lossy(
                     std::io::stdout(),
-                    &format!("\nResume this session with:\nzcode --resume {session}\n"),
+                    &format!("\nResume this session with:\nnibi --resume {session}\n"),
                 );
             }
             for notice in exit.ending.run().await {

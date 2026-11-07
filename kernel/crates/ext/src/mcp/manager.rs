@@ -95,6 +95,8 @@ struct Server {
     generation: u64,
     /// 停掉当前连接任务的取消消息。
     cancel: CancellationToken,
+    /// 协商到的协议世代（连上时定；`mcp/list` 的 `protocolEra`）。
+    era: Option<McpProtocolEra>,
 }
 
 impl Server {
@@ -118,6 +120,7 @@ impl Server {
             wake: Arc::new(Notify::new()),
             generation: 0,
             cancel: CancellationToken::new(),
+            era: None,
         }
     }
 }
@@ -155,6 +158,8 @@ pub(crate) struct Inner {
     ui_events: OnceLock<tokio::sync::mpsc::UnboundedSender<McpUiEvent>>,
     /// 一个服务器的连接断了（含重连前的换代）：让 MCP Apps 的实例凭证失效并取消进行中的调用/采样。
     connection_lost: Mutex<Option<Arc<dyn Fn(&str) + Send + Sync>>>,
+    /// 令牌端口（Node 的 `AuthProvider`）：入口装上；没有时带 `oauth` 的服务器连上只会得到 401。
+    oauth: OnceLock<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
 }
 
 impl Inner {
@@ -189,6 +194,20 @@ impl Inner {
 
     pub(crate) fn settings(&self) -> &McpSettings {
         &self.settings
+    }
+
+    /// 协商到的协议世代（测试与 `mcp/list` 的快照用）。
+    #[cfg(test)]
+    fn protocol_era(&self, name: &str) -> Option<McpProtocolEra> {
+        self.servers().get(name).and_then(|server| server.era)
+    }
+
+    /// 这个服务器给出的 instructions 原文（没有时 None）。
+    #[cfg(test)]
+    fn instructions_of(&self, name: &str) -> Option<String> {
+        self.servers()
+            .get(name)
+            .and_then(|server| server.instructions.clone())
     }
 
     /// 这个服务器的选项（Node 配置的 `timeoutMs`、`alwaysLoad`，ext.md §3.1）；不认识的服务器用缺省值。
@@ -389,6 +408,8 @@ impl Inner {
             mut notices,
             capabilities,
             instructions,
+            // 世代在连接任务里记进 `Server.era`（`mcp/list` 的 `protocolEra`）。
+            era: _,
         } = session;
         let (tools, model_tools, visibility) = if has_capability(&capabilities, "tools") {
             self.tools_of(name, &client).await
@@ -652,18 +673,27 @@ impl Inner {
                 machines: self.machines.get(),
                 workspace: &workspace,
             };
+            let oauth = match (self.oauth.get(), config.oauth_request()) {
+                (Some(port), Some(request)) => Some(connection::OAuth {
+                    port: port.as_ref(),
+                    request,
+                }),
+                _ => None,
+            };
             let failure = match connection::open(
                 &pipe,
                 &self.spawner,
                 &config,
                 timeout,
                 &self.settings.client_version,
+                oauth.as_ref(),
             )
             .await
             {
                 Ok(session) => {
                     connected_once = true;
                     attempts = 0;
+                    self.update(&name, generation, |server| server.era = Some(session.era));
                     // 进程遥测（`process/mcpTelemetry`）：连上就拿 pid 记一次启动事实。
                     self.record_process(&name, &config, generation, session.client.pid());
                     let (reason, expired, exited) = self.serve(&name, generation, session).await;
@@ -769,13 +799,31 @@ impl McpManager {
             subscriptions: Mutex::default(),
             ui_events: OnceLock::new(),
             connection_lost: Mutex::default(),
+            oauth: OnceLock::new(),
         }))
+    }
+
+    /// 协商到的协议世代（测试与状态页用）。
+    #[cfg(test)]
+    pub(crate) fn protocol_era(&self, name: &str) -> Option<McpProtocolEra> {
+        self.0.protocol_era(name)
+    }
+
+    /// 这个服务器给出的 instructions 原文（没有时 None）。
+    #[cfg(test)]
+    pub(crate) fn instructions_of(&self, name: &str) -> Option<String> {
+        self.0.instructions_of(name)
     }
 
     /// 装上 MCP 进程遥测的出口（`process/mcpTelemetry`，141 审计 §9 F3）：连接开始之前给一次。
     /// 第二次给无效（`OnceLock`），与 `set_machines` 同一姿态。
     pub(crate) fn attach_telemetry(&self, slot: McpTelemetrySlot) {
         let _ = self.0.telemetry.set(slot);
+    }
+
+    /// 装上 OAuth 令牌端口（Node 的 `AuthProvider`）：连接开始之前给一次。
+    pub(crate) fn attach_oauth(&self, port: Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>) {
+        let _ = self.0.oauth.set(port);
     }
 
     /// 装上 MCP Apps 的事件出口（`pluginUi.*` 增量）：连接开始之前给一次。
@@ -1023,9 +1071,10 @@ impl McpManager {
                     error,
                     failure_kind,
                     server_request_id: None,
-                    // 内核的客户端固定说 `2025-06-18`（`connection::PROTOCOL_VERSION`）：连上的是 legacy。
+                    // 连上时的协商结果（连接中/失败时没有）。
                     protocol_era: matches!(server.status, McpStatus::Connected)
-                        .then_some(McpProtocolEra::Legacy),
+                        .then_some(server.era)
+                        .flatten(),
                     authorization: None,
                 }
             })
@@ -1509,6 +1558,10 @@ mod dormant_tests;
 #[cfg(test)]
 #[path = "manager_machines_tests.rs"]
 mod machines_tests;
+
+#[cfg(test)]
+#[path = "manager_oauth_tests.rs"]
+mod oauth_tests;
 
 #[cfg(test)]
 #[path = "manager_ui_tests.rs"]

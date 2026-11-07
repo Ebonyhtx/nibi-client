@@ -6,13 +6,15 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
 use nibi_kernel_api::testing::text_response;
-use nibi_kernel_tui::services::{CancellationToken, RedactedString};
+use nibi_kernel_tui::services::{CancellationToken, DeviceCode, NibiAccount, RedactedString};
 use nibi_kernel_tui::{Account, Authorize, Configured, Family, LoginFailure, Services};
 use tokio::sync::oneshot;
 
 use super::support::{GatedModel, Setup, with_ui};
 
 const URL: &str = "https://chat.example.com/oauth?flow=1";
+const DEVICE_URL: &str = "https://nibi.example.com/device";
+const USER_CODE: &str = "ABCD-1234";
 const CREDENTIALS: &str = "/Users/dev/.nibi/v2/credentials.json";
 const CONFIG: &str = "/Users/dev/.nibi/v2/provider_config.json";
 
@@ -68,6 +70,30 @@ impl Account for FakeAccount {
         .boxed()
     }
 
+    fn login_nibi(
+        &self,
+        device: oneshot::Sender<DeviceCode>,
+        cancel: CancellationToken,
+    ) -> BoxFuture<'static, Result<NibiAccount, LoginFailure>> {
+        let (sender, receiver) = oneshot::channel();
+        *self.release.lock().unwrap() = Some(sender);
+        let _ = device.send(DeviceCode {
+            user_code: USER_CODE.to_owned(),
+            verification_uri: DEVICE_URL.to_owned(),
+            verification_uri_complete: Some(format!("{DEVICE_URL}?code={USER_CODE}")),
+        });
+        async move {
+            tokio::select! {
+                () = cancel.cancelled() => Err(LoginFailure::Cancelled),
+                _ = receiver => Ok(NibiAccount {
+                    user: "Dev".to_owned(),
+                    membership: "Membership: Pro (expires 2026-12-01)".to_owned(),
+                }),
+            }
+        }
+        .boxed()
+    }
+
     fn configure_api_key(
         &self,
         family: Family,
@@ -100,8 +126,9 @@ async fn esc_cancels_a_browser_login_and_returns_to_the_choices() {
     let account = Arc::new(FakeAccount::default());
     with_ui(model, setup(&account), |mut ui| async move {
         ui.submit("/login");
-        let screen = ui.wait_for("Set Up Coding Plan").await;
+        let screen = ui.wait_for("Sign in").await;
         for option in [
+            "NIBI Account",
             "Z.AI Coding Plan",
             "BigModel Coding Plan",
             "Z.AI Coding Plan API Key",
@@ -109,6 +136,8 @@ async fn esc_cancels_a_browser_login_and_returns_to_the_choices() {
         ] {
             assert!(screen.contains(option), "{screen}");
         }
+        // 第一项是 NIBI 账号；向下到 Z.AI Coding Plan 再确认。
+        ui.key(KeyCode::Down);
         ui.key(KeyCode::Enter);
         let screen = ui.wait_for("Waiting for Z.AI authorization").await;
         assert!(
@@ -154,7 +183,7 @@ async fn a_finished_login_shows_the_result_and_switches_the_model() {
         })
         .await;
         ui.submit("/login nope");
-        ui.wait_for("Usage: /login [zai-coding-plan|bigmodel-coding-plan")
+        ui.wait_for("Usage: /login [nibi|zai-coding-plan|bigmodel-coding-plan")
             .await;
     })
     .await;
@@ -166,9 +195,10 @@ async fn api_keys_are_hidden_and_stay_out_of_the_history() {
     let account = Arc::new(FakeAccount::default());
     with_ui(model, setup(&account), |mut ui| async move {
         ui.submit("/login");
-        ui.wait_for("Set Up Coding Plan").await;
-        ui.key(KeyCode::Down);
-        ui.key(KeyCode::Down);
+        ui.wait_for("Sign in").await;
+        for _ in 0..3 {
+            ui.key(KeyCode::Down);
+        }
         ui.key(KeyCode::Enter);
         ui.wait_for("Enter Z.AI Coding Plan API Key").await;
         ui.key(KeyCode::Enter);
@@ -197,6 +227,26 @@ async fn api_keys_are_hidden_and_stay_out_of_the_history() {
     assert_eq!(account.keys(), ["sk-secret", "sk-inline"]);
 }
 
+/// `/login` 的第一项是 NIBI 账号：显示设备码与地址，完成后提示会员摘要。
+#[tokio::test(flavor = "multi_thread")]
+async fn the_default_login_is_the_nibi_device_flow() {
+    let model = GatedModel::scripted(vec![text_response(&["ok"])]);
+    let account = Arc::new(FakeAccount::default());
+    let control = account.clone();
+    with_ui(model, setup(&account), |mut ui| async move {
+        ui.submit("/login");
+        ui.wait_for("Sign in").await;
+        ui.key(KeyCode::Enter);
+        ui.wait_for("Waiting for NIBI sign-in").await;
+        let screen = ui.wait_for(USER_CODE).await;
+        assert!(screen.contains(&format!("{DEVICE_URL}?code={USER_CODE}")), "{screen}");
+        control.complete();
+        let screen = ui.wait_for("Signed in to NIBI as Dev.").await;
+        assert!(screen.contains("Membership: Pro"), "{screen}");
+    })
+    .await;
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn logout_reports_the_credentials_file() {
     let model = GatedModel::scripted(vec![text_response(&["ok"])]);
@@ -205,9 +255,7 @@ async fn logout_reports_the_credentials_file() {
         ui.submit("/logout now");
         ui.wait_for("Usage: /logout").await;
         ui.submit("/logout");
-        ui.wait_for(&format!(
-            "Logged out from Coding Plan accounts. Credentials: {CREDENTIALS}"
-        ))
+        ui.wait_for(&format!("Logged out. Credentials: {CREDENTIALS}"))
         .await;
     })
     .await;
@@ -218,7 +266,7 @@ async fn without_an_account_service_login_is_unavailable() {
     let model = GatedModel::scripted(vec![text_response(&["ok"])]);
     with_ui(model, Setup::default(), |mut ui| async move {
         ui.submit("/login zai-coding-plan");
-        ui.wait_for("Z.AI Coding Plan login is not available in this client.")
+        ui.wait_for("Z.AI login is not available in this client.")
             .await;
         ui.submit("/logout");
         ui.wait_for("Logout is not available in this client.").await;

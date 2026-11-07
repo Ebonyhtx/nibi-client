@@ -55,6 +55,118 @@ impl McpTransportConfig {
     }
 }
 
+/// 服务器配置的 `protocolVersion`（Node `auto` / `legacy` / 钉一个现代版本）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum McpProtocolVersion {
+    /// 先探 `server/discover`；服务器没有现代证据时回退 2025 的 `initialize`（Node 的 `auto`）。
+    #[default]
+    Auto,
+    /// 直接走 `initialize`（2025 的握手）。
+    Legacy,
+    /// 必须协商到 `2026-07-28` 起的现代协议；协商不到就失败（Node 的 pin）。
+    Modern,
+}
+
+/// 一个 HTTP / SSE 服务器的 OAuth 配置（Node `McpServerConfig.oauth`）。
+///
+/// `client_credentials` 由内核自己换令牌（发现授权服务器 + `client_secret_basic`）；
+/// `authorization_code` 的交互授权在桌面端做（浏览器 + 回调），令牌写进共享凭据文件，内核只读取与刷新。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum McpOAuthConfig {
+    ClientCredentials {
+        client_id: String,
+        client_secret: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_name: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scope: Option<String>,
+    },
+    AuthorizationCode {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_secret: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        client_name: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scope: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        redirect_path: Option<String>,
+    },
+}
+
+impl McpOAuthConfig {
+    /// 从 Node 配置 / NIBI 协议同形的 JSON 读（`type` 加 camelCase 字段；字段类型不对按 strict schema 报错）。
+    pub fn from_value(value: &Value) -> Result<Self, String> {
+        let object = value
+            .as_object()
+            .ok_or_else(|| "oauth: expected an object".to_owned())?;
+        for key in ["clientId", "clientSecret", "clientName", "scope", "redirectPath"] {
+            match object.get(key) {
+                None | Some(Value::Null) => {}
+                Some(Value::String(value)) if !value.trim().is_empty() => {}
+                Some(_) => return Err(format!("oauth.{key}: expected a non-empty string")),
+            }
+        }
+        let text = |key: &str| {
+            object
+                .get(key)
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_owned)
+        };
+        match object.get("type").and_then(Value::as_str) {
+            Some("client_credentials") => Ok(Self::ClientCredentials {
+                client_id: text("clientId")
+                    .ok_or_else(|| "oauth.clientId: required for client_credentials".to_owned())?,
+                client_secret: text("clientSecret")
+                    .ok_or_else(|| "oauth.clientSecret: required for client_credentials".to_owned())?,
+                client_name: text("clientName"),
+                scope: text("scope"),
+            }),
+            Some("authorization_code") => Ok(Self::AuthorizationCode {
+                client_id: text("clientId"),
+                client_secret: text("clientSecret"),
+                client_name: text("clientName"),
+                scope: text("scope"),
+                redirect_path: text("redirectPath"),
+            }),
+            Some(other) => Err(format!(
+                "oauth.type: expected client_credentials or authorization_code, got {other:?}"
+            )),
+            None => Err("oauth.type: required".to_owned()),
+        }
+    }
+}
+
+/// 一次令牌请求的上下文：服务器名、服务器 URL 与配置（凭据键按 Node 的 `[名字, URL, clientId, scope,
+/// redirectPath]` 派生，见 `nibi-platform::mcp_oauth`）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct McpOAuthRequest {
+    pub server: String,
+    pub url: String,
+    pub config: McpOAuthConfig,
+}
+
+/// MCP 的 OAuth 令牌端口（Node 的 `AuthProvider`）：入口/runtime 实现（发现授权服务器、读共享凭据、
+/// 换令牌、跨进程刷新锁），ext 只做「取令牌 → 带 `Authorization: Bearer` 连 → 401 时刷新一次再试」。
+#[async_trait]
+pub trait McpOAuthPort: Send + Sync {
+    /// 这个服务器当前可用的访问令牌；没有凭据时 None（请求照发，401 再走 [`Self::refresh`]）。
+    async fn access_token(&self, request: &McpOAuthRequest) -> Option<String>;
+
+    /// 服务器拒绝了上一次发出的令牌：刷新一次并返回新令牌（失败时是给用户看的原因）。
+    /// `rejected` 是被拒的那一枚（并发下用来避免刷新一枚未被拒绝的令牌）。
+    async fn refresh(
+        &self,
+        request: &McpOAuthRequest,
+        rejected: Option<&str>,
+    ) -> Result<String, String>;
+}
+
 /// 建立一条连接。`server` 只用于日志与错误文本。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct McpConnect {

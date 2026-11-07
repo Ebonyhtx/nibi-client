@@ -31,6 +31,8 @@ fn config(name: &str) -> McpServer {
             always_load: false,
         },
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }
 }
 

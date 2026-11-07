@@ -4,7 +4,7 @@
 //! 读者任务是这条连接上事件的唯一消费者；它结束（连接关闭）时让全部等待中的请求失败。
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
@@ -14,7 +14,7 @@ use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::mcp::{McpConnectionId, McpTransport, McpTransportEvent};
 
 use super::notices::{self, NoticeReceiver, NoticeSender};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 
@@ -51,12 +51,38 @@ pub(crate) enum Notice {
 
 type Pending = HashMap<u64, oneshot::Sender<Result<Value, RpcError>>>;
 
+/// 这条连接属于哪一代协议（Node `_outboundMetaEnvelope` / `_shouldDropInbound` 的两条开关）。
+#[derive(Clone, Default)]
+pub(crate) struct Link {
+    /// 现代协议：每个请求与通知自动带的 `_meta` 信封（用户自己写的键优先）。
+    envelope: Option<Value>,
+    /// 现代协议没有服务器→客户端的请求通道：收到请求就丢。
+    drops_requests: bool,
+}
+
+impl Link {
+    /// legacy（2025 的 `initialize` 之后）：不带信封，服务器请求照常回答。
+    pub(crate) fn legacy() -> Self {
+        Self::default()
+    }
+
+    /// 现代（`2026-07-28` 起）：每个请求与通知带信封，服务器请求丢掉。
+    pub(crate) fn modern(client_version: &str) -> Self {
+        Self {
+            envelope: Some(super::connection::envelope(client_version)),
+            drops_requests: true,
+        }
+    }
+}
+
 pub(crate) struct Client {
     transport: Arc<dyn McpTransport>,
     connection: McpConnectionId,
     next: AtomicU64,
     pending: Arc<Mutex<Pending>>,
     closed: CancellationToken,
+    envelope: Mutex<Option<Value>>,
+    modern: Arc<AtomicBool>,
 }
 
 fn lock(pending: &Mutex<Pending>) -> std::sync::MutexGuard<'_, Pending> {
@@ -135,13 +161,17 @@ impl Client {
         connection: McpConnectionId,
         spawner: &Spawner,
         roots: Vec<String>,
+        link: Link,
     ) -> (Arc<Self>, NoticeReceiver) {
+        let modern = Arc::new(AtomicBool::new(link.drops_requests));
         let client = Arc::new(Self {
             transport,
             connection,
             next: AtomicU64::new(0),
             pending: Arc::default(),
             closed: CancellationToken::new(),
+            envelope: Mutex::new(link.envelope),
+            modern: modern.clone(),
         });
         let (notices, receiver) = notices::channel();
         let reader = Reader {
@@ -151,9 +181,16 @@ impl Client {
             closed: client.closed.clone(),
             notices,
             roots,
+            modern,
         };
         spawner.spawn_resident("mcp-reader", reader.run());
         (client, receiver)
+    }
+
+    /// 协商到现代协议：之后的请求带信封，服务器请求丢掉（同一条连接，不重连）。
+    pub(crate) fn promote(&self, link: Link) {
+        *self.envelope.lock().unwrap_or_else(PoisonError::into_inner) = link.envelope;
+        self.modern.store(link.drops_requests, Ordering::Relaxed);
     }
 
     pub(crate) fn is_closed(&self) -> bool {
@@ -168,12 +205,38 @@ impl Client {
     pub(crate) async fn notify(&self, method: &str, params: Option<Value>) -> Result<(), RpcError> {
         let mut message = json!({"jsonrpc": "2.0", "method": method});
         if let Some(params) = params {
-            message["params"] = params;
+            message["params"] = self.with_envelope(params);
         }
         self.transport
             .send(&self.connection, message)
             .await
             .map_err(|error| RpcError::Send(error.to_string()))
+    }
+
+    /// 现代协议的信封（`_meta` 的三个保留键）：用户写了的键优先，没有被覆盖。
+    fn with_envelope(&self, params: Value) -> Value {
+        let envelope = self
+            .envelope
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        let Some(envelope) = envelope else {
+            return params;
+        };
+        let Value::Object(mut object) = params else {
+            return params;
+        };
+        let mut meta = match object.remove("_meta") {
+            Some(Value::Object(user)) => user,
+            _ => Map::new(),
+        };
+        if let Some(envelope) = envelope.as_object() {
+            for (key, value) in envelope {
+                meta.entry(key.clone()).or_insert_with(|| value.clone());
+            }
+        }
+        object.insert("_meta".to_owned(), Value::Object(meta));
+        Value::Object(object)
     }
 
     /// 发一个请求并等它的结果；超时或取消时发 `notifications/cancelled`。
@@ -190,6 +253,7 @@ impl Client {
         let id = self.next.fetch_add(1, Ordering::Relaxed);
         let (sender, receiver) = oneshot::channel();
         lock(&self.pending).insert(id, sender);
+        let params = self.with_envelope(params);
         let message = json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params});
         if let Err(error) = self.transport.send(&self.connection, message).await {
             lock(&self.pending).remove(&id);
@@ -229,6 +293,8 @@ struct Reader {
     closed: CancellationToken,
     notices: NoticeSender,
     roots: Vec<String>,
+    /// 现代协议：服务器→客户端的请求通道不存在，收到的请求丢掉（Node `_shouldDropInbound`）。
+    modern: Arc<AtomicBool>,
 }
 
 impl Reader {
@@ -270,6 +336,10 @@ impl Reader {
         let id = message.get("id").cloned().filter(|id| !id.is_null());
         match (method, id) {
             (None, Some(id)) => self.response(&id, &message),
+            // 现代协议没有服务器→客户端的请求通道：丢掉，不回答。
+            (Some(method), Some(_)) if self.modern.load(Ordering::Relaxed) => {
+                tracing::debug!(method, "dropped an MCP server request on a modern connection");
+            }
             (Some(method), Some(id)) => self.server_request(method, id).await,
             (Some(method), None) => self.notification(method, &message),
             (None, None) => tracing::debug!("ignored an MCP message without method or id"),

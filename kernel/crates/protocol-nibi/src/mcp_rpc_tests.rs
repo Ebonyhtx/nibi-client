@@ -439,9 +439,9 @@ async fn the_snapshot_shape_matches_the_host_schema() {
     );
 }
 
-/// 带 `oauth` 的服务器不进连接集合：直接给 `oauth_authorization_failed`，其余服务器照常连。
+/// 带 `oauth` 的服务器照常进连接集合，配置原样带到内核（令牌由入口的令牌端口取）。
 #[tokio::test]
-async fn oauth_servers_do_not_reach_the_kernel() {
+async fn oauth_servers_reach_the_kernel_with_their_config() {
     let (server, seen) = fake(FakeKernel::default());
     let reply = call(
         server,
@@ -461,22 +461,16 @@ async fn oauth_servers_do_not_reach_the_kernel() {
     .await;
     let requests = seen.lock().unwrap();
     let servers = requests[0].servers.as_ref().expect("explicit list");
-    assert_eq!(servers.len(), 1, "oauth 服务器不进连接集合");
-    assert_eq!(servers[0].name, "plain");
+    assert_eq!(servers.len(), 2, "oauth 服务器照常连接");
+    let oauth = servers.iter().find(|server| server.name == "oauth").unwrap();
+    assert!(matches!(
+        oauth.oauth,
+        Some(nibi_kernel_api::mcp::McpOAuthConfig::AuthorizationCode { .. })
+    ));
     drop(requests);
-
+    // 内核给出的快照原样返回（不再有内核合成的 `oauth_authorization_failed`）。
     let statuses = reply["statuses"].as_object().expect("statuses");
-    assert_eq!(statuses["oauth"]["status"], "failed");
-    assert_eq!(
-        statuses["oauth"]["failureKind"],
-        "oauth_authorization_failed"
-    );
-    assert!(
-        statuses["oauth"]["error"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("OAuth")
-    );
+    assert!(statuses.get("oauth").is_none());
 }
 
 /// 参数按 Host 的 zod 拒绝：未知键、坏枚举、缺字段、非正数都是 `-32602`。

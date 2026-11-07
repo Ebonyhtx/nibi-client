@@ -7,16 +7,18 @@ use ratatui::text::{Line, Span};
 
 use super::app::{Action, App, Overlay};
 use super::i18n::{self, Strings};
-use crate::services::{Family, RedactedString};
+use crate::services::{DeviceCode, Family, RedactedString};
 
-/// 登录视图的选项（Node `buildLoginSelection` 的顺序）。
+/// 登录视图的选项：NIBI 账号（Device Flow）在最前，其余是 provider 模板（Coding Plan 只是普通第三方模板）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
+    Nibi,
     OAuth(Family),
     ApiKey(Family),
 }
 
-const METHODS: [Method; 4] = [
+const METHODS: [Method; 5] = [
+    Method::Nibi,
     Method::OAuth(Family::Zai),
     Method::OAuth(Family::Bigmodel),
     Method::ApiKey(Family::Zai),
@@ -28,6 +30,7 @@ enum Next {
     Stay,
     Close,
     Start(Family),
+    StartNibi,
     Input(Family),
     Back(&'static str),
     Act(Action),
@@ -43,6 +46,11 @@ pub enum LoginView {
     },
     /// 等浏览器授权；`cancelling` 为真时取消已经发出、等 platform 停下。
     Waiting { family: Family, cancelling: bool },
+    /// 等 NIBI 账号的设备码授权；`code` 在设备码到了之后填上（界面显示 code）。
+    WaitingNibi {
+        code: Option<DeviceCode>,
+        cancelling: bool,
+    },
     /// 不回显的 key 输入；`saving` 为真时已交给 `Account`，等结果。
     Input {
         family: Family,
@@ -100,6 +108,18 @@ impl App {
         None
     }
 
+    /// 设备码到了：填进登录视图（用户可能已经关掉视图，这时什么都不做）。
+    pub fn login_device_code(&mut self, code: &DeviceCode) {
+        if let Some(Overlay::Login(LoginView::WaitingNibi {
+            code: slot,
+            cancelling,
+        })) = self.overlay.as_mut()
+            && !*cancelling
+        {
+            *slot = Some(code.clone());
+        }
+    }
+
     fn start_login(&mut self, family: Family) -> Option<Action> {
         self.overlay = Some(Overlay::Login(LoginView::Waiting {
             family,
@@ -152,6 +172,7 @@ impl App {
                     Next::Stay
                 }
                 KeyCode::Enter => match METHODS[*selected] {
+                    Method::Nibi => Next::StartNibi,
                     Method::OAuth(family) => Next::Start(family),
                     Method::ApiKey(family) => Next::Input(family),
                 },
@@ -160,7 +181,7 @@ impl App {
                 _ => Next::Stay,
             },
             // 等授权：esc / ctrl+c 发取消（一条消息）；结果回来之前视图不变。
-            LoginView::Waiting { cancelling, .. } => {
+            LoginView::WaitingNibi { cancelling, .. } | LoginView::Waiting { cancelling, .. } => {
                 let cancel = key.code == KeyCode::Esc || (ctrl && key.code == KeyCode::Char('c'));
                 if cancel && !*cancelling {
                     *cancelling = true;
@@ -215,6 +236,13 @@ impl App {
                 None
             }
             Next::Start(family) => self.start_login(family),
+            Next::StartNibi => {
+                self.overlay = Some(Overlay::Login(LoginView::WaitingNibi {
+                    code: None,
+                    cancelling: false,
+                }));
+                Some(Action::LoginNibi)
+            }
             Next::Input(family) => {
                 self.open_key_input(family, None);
                 None
@@ -255,6 +283,7 @@ fn title(text: &str) -> Line<'static> {
 
 fn method_labels(strings: &Strings, method: Method) -> (String, &'static str) {
     match method {
+        Method::Nibi => (strings.login_nibi.to_owned(), strings.login_nibi_detail),
         Method::OAuth(family) => (
             format!("{} Coding Plan", family.display_name()),
             match family {
@@ -311,6 +340,33 @@ pub fn lines(
                 lines.push(dim(*status));
             }
             lines.push(keys(strings.login_help));
+        }
+        LoginView::WaitingNibi { code, cancelling } => {
+            lines.push(title(strings.login_wait_nibi));
+            lines.push(dim(strings.login_wait_nibi_detail));
+            lines.push(Line::default());
+            match code {
+                Some(code) => {
+                    lines.push(Line::from(vec![
+                        Span::raw("  "),
+                        Span::styled(
+                            code.user_code.clone(),
+                            Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                        ),
+                    ]));
+                    lines.push(Line::from(vec![
+                        Span::raw("  "),
+                        Span::styled(code.target().to_owned(), palette.secondary()),
+                    ]));
+                }
+                None => lines.push(dim(strings.login_wait_status)),
+            }
+            lines.push(Line::default());
+            lines.push(dim(if *cancelling {
+                strings.login_cancelling
+            } else {
+                strings.login_wait_help
+            }));
         }
         LoginView::Waiting { family, cancelling } => {
             let (primary, secondary) = match family {

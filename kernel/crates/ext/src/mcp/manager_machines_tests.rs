@@ -85,6 +85,8 @@ fn bound(name: &str, machine: Option<&str>) -> McpServer {
         },
         options: Default::default(),
         machine: machine.map(str::to_owned),
+        oauth: None,
+        protocol: Default::default(),
     }
 }
 

@@ -38,6 +38,8 @@ fn config(name: &str, always_load: bool, remote: bool) -> McpServer {
             always_load,
         },
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }
 }
 

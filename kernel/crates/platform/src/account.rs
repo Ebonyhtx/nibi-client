@@ -9,7 +9,7 @@
 //!   profile id，个人订阅 available 时授权（`personal/`，§5.7）。团队 provider 有可用的团队项目时授权（`team/`，
 //!   模型按团队项目平铺，§9.3）；其余账号 provider 一律不授权——缺少成员不能表达“已断开”，必须显式
 //!   `entitled: false`。不写 `states.current`、不读 App 的连接选择（工作线 F49）。
-//! - 每请求鉴权：手工 key 取存好的 key；OAuth 登录（App 或 `zcode login`）按 profile id 用 access token 换短期
+//! - 每请求鉴权：手工 key 取存好的 key；OAuth 登录（App 或 `nibi login`）按 profile id 用 access token 换短期
 //!   项目令牌（`auth.rs`、`token/`）。
 //!
 //! 工作线 F50（用户决定 2026-10-21，账号以 App 为准）：以前照 Node 独立 CLI，OAuth 登录也要
@@ -196,7 +196,7 @@ pub(crate) fn overlay(builtin: &Value, view: &AccountView<'_>) -> AccountLayer {
             Some(credentials) if individual && manual(credentials, id) => {
                 manual_authorized(credentials, id)
             }
-            // OAuth（App 或 `zcode login`）照 App：个人订阅的结论（F50，以前照 Node 要连接身份）。
+            // OAuth（App 或 `nibi login`）照 App：个人订阅的结论（F50，以前照 Node 要连接身份）。
             Some(_) if individual => view.personal.get(id).copied().unwrap_or(false),
             Some(_) if candidate.mode == TEAM_CODING_PLAN => {
                 view.teams.get(id).is_some_and(|plans| !plans.is_empty())
@@ -260,7 +260,7 @@ fn manual_authorized(credentials: &Credentials, provider: &str) -> bool {
 pub(crate) enum RequestAuth {
     /// 手工 key 登录：存好的 key。
     Manual(RedactedString),
-    /// OAuth 登录（App 或 `zcode login`）：按 profile id 用 access token 换项目令牌。
+    /// OAuth 登录（App 或 `nibi login`）：按 profile id 用 access token 换项目令牌。
     OAuth(OAuthLogin),
 }
 
@@ -306,7 +306,7 @@ pub(crate) fn request_auth(
     login.map(RequestAuth::OAuth).ok_or_else(|| {
         unavailable(format!(
             "project_token_login_required: account provider {provider} needs a login \
-             (run `zcode login`)"
+             (run `nibi login`)"
         ))
     })
 }

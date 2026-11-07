@@ -172,6 +172,21 @@ fn the_credential_key_matches_node() {
     let prefix = credential_key_prefix("srv", "https://mcp.example.test", "c1", "scope", "");
     assert!(prefix.starts_with("mcp:oauth:"));
     assert_eq!(prefix.len(), "mcp:oauth:".len() + 24);
+    // 与 Node 逐字节一致（`["linear","https://mcp.linear.app/mcp","","",""].join("\n")` 的 sha256 前 24 位）。
+    assert_eq!(
+        credential_key_prefix("linear", "https://mcp.linear.app/mcp", "", "", ""),
+        "mcp:oauth:8e2536fc8757955d76e35957"
+    );
+    assert_eq!(
+        credential_key_prefix(
+            "linear",
+            "https://mcp.linear.app/mcp",
+            "client-1",
+            "read write",
+            "/cb"
+        ),
+        "mcp:oauth:0a1997dfbea976640c6aaf29"
+    );
     assert_eq!(
         credential_key(&prefix),
         format!("{prefix}:authorization_credentials")
@@ -227,14 +242,18 @@ fn code_for(record: &Value) -> Option<String> {
 fn near_expiry_uses_the_sixty_second_margin() {
     let token = Token {
         access_token: "at".to_owned(),
+        token_type: "Bearer".to_owned(),
         refresh_token: Some("rt".to_owned()),
+        scope: None,
         expires_at_ms: Some(100_000),
     };
     assert!(near_expiry(&token, 40_000));
     assert!(!near_expiry(&token, 20_000));
     let no_expiry = Token {
         access_token: "at".to_owned(),
+        token_type: "Bearer".to_owned(),
         refresh_token: None,
+        scope: None,
         expires_at_ms: None,
     };
     assert!(!near_expiry(&no_expiry, u64::MAX / 2));

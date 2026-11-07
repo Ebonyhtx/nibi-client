@@ -291,6 +291,8 @@ pub(crate) struct SessionMcp {
     telemetry: Option<Arc<McpTelemetry>>,
     /// MCP Apps 的事件出口（`pluginUi.*` 增量）：每套 manager 装同一份。
     ui_events: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
+    /// 令牌端口（Node 的 `AuthProvider`）：会话级服务器同样走它。
+    oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     /// MCP Apps 的实例账本：连接断了时按（会话, 服务器）作废页面凭证。`Ext::new` 建好之后装上。
     app_instances: std::sync::OnceLock<Arc<super::McpAppInstances>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
@@ -306,6 +308,7 @@ impl SessionMcp {
         clock: Arc<dyn Clock>,
         telemetry: Option<Arc<McpTelemetry>>,
         ui_events: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
+        oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     ) -> Self {
         Self {
             transport,
@@ -314,6 +317,7 @@ impl SessionMcp {
             clock,
             telemetry,
             ui_events,
+            oauth,
             app_instances: std::sync::OnceLock::new(),
             sessions: Mutex::default(),
             shared: Mutex::default(),
@@ -480,6 +484,9 @@ impl SessionMcp {
                 session: session.cloned(),
             });
         }
+        if let Some(oauth) = self.oauth.clone() {
+            manager.attach_oauth(oauth);
+        }
         if let Some(events) = self.ui_events.clone() {
             manager.attach_ui_events(events);
         }
@@ -570,6 +577,8 @@ fn to_servers(servers: Vec<SessionMcpServer>) -> Vec<McpServer> {
                 always_load: server.always_load,
             },
             machine: None,
+            oauth: server.oauth,
+            protocol: server.protocol_version,
         })
         .collect()
 }
@@ -580,6 +589,8 @@ fn config_fingerprint(server: &SessionMcpServer) -> String {
         "transport": server.transport,
         "alwaysLoad": server.always_load,
         "timeoutMs": server.timeout_ms,
+        "oauth": server.oauth,
+        "protocolVersion": server.protocol_version,
     })
     .to_string()
 }

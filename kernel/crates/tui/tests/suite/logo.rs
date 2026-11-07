@@ -1,5 +1,5 @@
-//! 新会话的背景标志（docs/specs/rust-cli/tui.md §7.3，修复线 F26，复制自 Host TUI 2f982570bb）：新会话的空白处
-//! 画 Z 镂空的金属徽章；点击后约 2 秒按动画节拍重画，结束后不再定时重画；有字、有会话时不画；深浅两种背景。
+//! 新会话的背景标志（docs/specs/rust-cli/tui.md §7.3）：新会话的空白处画 NIBI 鸟的像素画（半格字符）；
+//! 点击后约 2 秒按动画节拍重画，结束后不再定时重画；有字、有会话时不画；深浅两种背景各一套颜色。
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
@@ -8,7 +8,7 @@ use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, with_ui};
 
-/// 盲文点阵字符（标志的点）所在的格子：（列，行）。
+/// 半格字符（徽章的像素）所在的格子：（列，行）。
 fn braille(buffer: &Buffer) -> Vec<(u16, u16)> {
     let area = buffer.area;
     let mut cells = Vec::new();
@@ -18,7 +18,7 @@ fn braille(buffer: &Buffer) -> Vec<(u16, u16)> {
             if symbol
                 .chars()
                 .next()
-                .is_some_and(|c| ('\u{2801}'..='\u{28ff}').contains(&c))
+                .is_some_and(|c| ('\u{2580}'..='\u{259f}').contains(&c))
             {
                 cells.push((x, y));
             }
@@ -51,7 +51,7 @@ async fn the_badge_animates_only_after_a_click() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        ui.wait("the badge", |_| ui_braille(&buffer).len() > 300)
+        ui.wait("the badge", |_| ui_braille(&buffer).len() > 100)
             .await;
         let cells = ui_braille(&ui.buffer);
         // 平时不动：没有定时重画。
@@ -72,7 +72,7 @@ async fn the_badge_animates_only_after_a_click() {
         let settled = draws(&ui.handovers);
         tokio::time::sleep(Duration::from_millis(400)).await;
         assert_eq!(draws(&ui.handovers), settled, "no redraw after the press");
-        assert!(ui_braille(&ui.buffer).len() > 300, "the badge stays");
+        assert!(ui_braille(&ui.buffer).len() > 100, "the badge stays");
     })
     .await;
 }
@@ -86,13 +86,13 @@ fn ui_braille(buffer: &std::sync::Mutex<Option<Buffer>>) -> Vec<(u16, u16)> {
         .unwrap_or_default()
 }
 
-/// 有字或有会话时不画；浅色背景用另一套金属色（比纸暗）。
+/// 有字或有会话时不画；浅色背景用另一套像素色（不亮过纸）。
 #[tokio::test(flavor = "multi_thread")]
 async fn the_badge_hides_behind_input_and_sessions_and_follows_the_theme() {
     let model = GatedModel::scripted(vec![text_response(&["hello"])]);
     with_ui(model, setup((0xfa, 0xfa, 0xf7)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        ui.wait("the badge", |_| ui_braille(&buffer).len() > 300)
+        ui.wait("the badge", |_| ui_braille(&buffer).len() > 100)
             .await;
         // 浅色背景：点的颜色都比背景暗。
         {

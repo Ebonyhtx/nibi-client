@@ -49,7 +49,7 @@ impl ProcessEditor {
     /// `temp` 是入口算好的临时目录（`temp_dir::node_tmpdir`）。
     ///
     /// 修复线 F58：以前自己按 `TMPDIR` → `TEMP` → `TMP` → `/tmp` 找目录（与入口的算法不同），文件直接放在公共的临时
-    /// 目录里；现在放在本用户 0700 的私有目录（`zcode-prompt-<uuid>.md`）。
+    /// 目录里；现在放在本用户 0700 的私有目录（`nibi-prompt-<uuid>.md`）。
     pub(crate) fn from_env(env: &[(String, String)], temp: &Path, ids: Arc<NodeIds>) -> Self {
         Self {
             visual: value(env, "VISUAL"),
@@ -151,7 +151,7 @@ async fn edit_text(
 impl Editor for ProcessEditor {
     fn edit(&self, text: String) -> BoxFuture<'static, Result<String, String>> {
         let dir = self.temp_dir.clone();
-        let file = dir.join(format!("zcode-prompt-{}.md", self.ids.uuid()));
+        let file = dir.join(format!("nibi-prompt-{}.md", self.ids.uuid()));
         edit_text(self.candidates(), dir, file, text).boxed()
     }
 

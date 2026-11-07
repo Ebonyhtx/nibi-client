@@ -115,6 +115,8 @@ pub enum Action {
     SetLocale(crate::services::UiLocale),
     /// 浏览器授权登录（tui.md §7.2）。
     Login(crate::services::Family),
+    /// NIBI 账号的设备码登录（tui.md §7.2）。
+    LoginNibi,
     /// 取消在途的登录（一条消息）。
     CancelLogin,
     /// 保存手工 key（key 不经输入框，不进历史）。

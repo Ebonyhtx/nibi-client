@@ -266,24 +266,25 @@ fn session_mcp_servers_skips_unknown_shapes_and_empty_payloads() {
     assert!(session_mcp_servers(&json!({"mcpServers": []})).is_empty());
 }
 
-/// 需要 OAuth 或钉在现代握手版本上的服务器不连接（两条入口同一判据）。
+/// OAuth 与现代握手都原样带到会话级服务器上（令牌由入口的令牌端口取，版本在连接时协商）。
 #[test]
-fn session_mcp_servers_flags_unconnectable_options() {
-    let oauth = json!({"name": "o", "url": "https://mcp.example.invalid/mcp",
-        "oauth": {"type": "client_credentials", "clientId": "c", "clientSecret": "s"}});
-    let pinned = json!({"name": "p", "command": "node", "protocolVersion": "2026-07-28"});
-    let plain = json!({"name": "ok", "command": "node"});
-    for server in [&oauth, &pinned] {
-        assert!(unsupported_mcp_server(server), "{server}");
-    }
-    assert!(!unsupported_mcp_server(&plain));
-    // `auto` 与 `legacy` 都按 legacy 握手连接。
-    assert!(!unsupported_mcp_server(
-        &json!({"name": "a", "command": "node", "protocolVersion": "auto"})
+fn session_mcp_servers_carry_oauth_and_protocol_version() {
+    let parsed = session_mcp_servers(&json!({"mcpServers": [
+        {"name": "o", "type": "http", "url": "https://mcp.example.invalid/mcp",
+         "oauth": {"type": "client_credentials", "clientId": "c", "clientSecret": "s"}},
+        {"name": "p", "command": "node", "protocolVersion": "2026-07-28"},
+        {"name": "a", "command": "node", "protocolVersion": "auto"},
+    ]}));
+    assert_eq!(parsed.len(), 3);
+    let oauth = parsed.iter().find(|server| server.name == "o").unwrap();
+    assert!(matches!(
+        oauth.oauth,
+        Some(nibi_kernel_api::mcp::McpOAuthConfig::ClientCredentials { .. })
     ));
-    assert!(!unsupported_mcp_server(
-        &json!({"name": "l", "command": "node", "protocolVersion": "legacy"})
-    ));
+    let pinned = parsed.iter().find(|server| server.name == "p").unwrap();
+    assert_eq!(pinned.protocol_version, nibi_kernel_api::mcp::McpProtocolVersion::Modern);
+    let auto = parsed.iter().find(|server| server.name == "a").unwrap();
+    assert_eq!(auto.protocol_version, nibi_kernel_api::mcp::McpProtocolVersion::Auto);
 }
 
 #[test]

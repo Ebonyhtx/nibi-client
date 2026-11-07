@@ -19,6 +19,6 @@ pub fn terminal_columns() -> Option<u16> {
     crossterm::terminal::size().ok().map(|(columns, _)| columns)
 }
 pub use services::{
-    Account, Authorize, Clipboard, Configured, CopyRoute, Editor, Family, ImageBytes, LocaleStore,
-    LoginFailure, MemoryFile, Preferences, Services, UiLocale, UiTheme,
+    Account, Authorize, Clipboard, Configured, CopyRoute, DeviceCode, Editor, Family, ImageBytes,
+    LocaleStore, LoginFailure, MemoryFile, NibiAccount, Preferences, Services, UiLocale, UiTheme,
 };

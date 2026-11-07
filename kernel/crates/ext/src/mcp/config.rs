@@ -2,7 +2,7 @@
 //!
 //! 入口层读配置文件、展开 `${VAR}`、按作用域合并，交给 ext 的只是这份快照。
 
-use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::{McpOAuthConfig, McpProtocolVersion, McpTransportConfig};
 
 /// 配置作用域。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,6 +27,10 @@ pub struct McpServer {
     /// 服务器绑定的远端机器（R5，remote-exec.md §22.2：入口按 nibi-kernel-cli 的旁路文件设）；None 或 `local` 是本机。绑定到
     /// 远端时 `transport` 是配置的原文（`${VAR}` 由那台机器的执行器展开，§22.7）。
     pub machine: Option<String>,
+    /// 这个服务器的 OAuth 配置（Node `oauth`）：两种 grant 都走 `McpOAuthPort`，令牌进 `Authorization: Bearer`。
+    pub oauth: Option<McpOAuthConfig>,
+    /// 协议版本（Node `protocolVersion`）：`auto` 先探 `server/discover`，没有现代证据时回退 `initialize`。
+    pub protocol: McpProtocolVersion,
 }
 
 /// 按服务器的选项（Node 配置的 `timeoutMs`、`alwaysLoad`，ext.md §3.1）；`--mcp-config` 与插件的服务器用缺省值。

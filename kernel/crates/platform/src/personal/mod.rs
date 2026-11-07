@@ -1,7 +1,7 @@
 // 语义复制自 packages/services/src/model-provider/accountProviderConnectionResolver.ts 的个人分支（身份 → 个人项目
 // 令牌 → 订阅查询）与 packages/provider/src/account-provider-resolution.ts 的投影（unknown 沿用上次），feat/rust-cli
 // 2827169cbc，工作线 F50。
-//! 个人 Coding Plan 的授权（platform.md §5.2、§5.7）：照 App，OAuth 登录（App 或 `zcode login` 写的）的个人套餐要
+//! 个人 Coding Plan 的授权（platform.md §5.2、§5.7）：照 App，OAuth 登录（App 或 `nibi login` 写的）的个人套餐要
 //! 有 profile id，再用个人项目令牌查个人订阅，available 才可用。手工 key 不经过这里（`account.rs`）。
 //!
 //! 结论按 provider 记在进程内（profile id、access token 指纹、结论）。available / unavailable 之后直接用，profile id

@@ -140,18 +140,12 @@ fn with_text(text: String, mut blocks: Vec<ContentBlock>) -> Vec<ContentBlock> {
 
 /// `createSession.mcpServers` → 会话级的 MCP 服务器（NIBI `nibiProtocolMcpServerSchema` 的两种形态）。
 /// 形状已由契约层按同一 zod 生成的 schema 校验过，这里只做字段搬运；认不出的形态整条丢掉（不静默：
-/// 调用方在数量不等时 warn）。
-/// 本内核连不了的服务器配置：需要 OAuth 令牌，或钉在现代握手版本（`2026-07-28`）上。
-/// 两条入口（Host 的 `createSession.mcpServers` 与本机配置文件）用同一个判据，宁可报清楚也不无凭据连接。
-pub(crate) fn unsupported_mcp_server(server: &Value) -> bool {
-    server.get("oauth").is_some_and(|value| !value.is_null())
-        || server["protocolVersion"].as_str() == Some("2026-07-28")
-}
-
+/// 调用方在数量不等时 warn）。`oauth` 与 `protocolVersion` 原样带上：令牌由入口的令牌端口取，
+/// 现代握手在 `ext::mcp::connection` 里协商。
 pub(crate) fn session_mcp_servers(payload: &Value) -> Vec<nibi_kernel_api::mcp_session::SessionMcpServer> {
     use std::collections::BTreeMap;
 
-    use nibi_kernel_api::mcp::McpTransportConfig;
+    use nibi_kernel_api::mcp::{McpOAuthConfig, McpProtocolVersion, McpTransportConfig};
     use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 
     let entries = |value: &Value| -> BTreeMap<String, String> {
@@ -215,6 +209,16 @@ pub(crate) fn session_mcp_servers(payload: &Value) -> Vec<nibi_kernel_api::mcp_s
                         always_load: server["alwaysLoad"].as_bool().unwrap_or(false),
                         timeout_ms: server["timeoutMs"].as_u64(),
                         isolation: isolation(server),
+                        // 形状已由契约层校验过；认不出的 OAuth 配置按「没有」处理（连接会得到 401）。
+                        oauth: server
+                            .get("oauth")
+                            .filter(|value| !value.is_null())
+                            .and_then(|value| McpOAuthConfig::from_value(value).ok()),
+                        protocol_version: match server["protocolVersion"].as_str() {
+                            Some("legacy") => McpProtocolVersion::Legacy,
+                            Some("2026-07-28") => McpProtocolVersion::Modern,
+                            _ => McpProtocolVersion::Auto,
+                        },
                     })
                 })
                 .collect()
@@ -633,29 +637,13 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     // MCP 是创建期配置（NIBI createSession.mcpServers）：会话的工具表从此就是这批服务器。
     // 连接在后台建立；给了列表但一条都没认出来时点名，不静默。
     if let Some(raw) = payload["mcpServers"].as_array() {
-        // 内核连不了的两类配置：要 OAuth 令牌的、钉在现代握手版本（2026-07-28）上的。它们**不连接**、
-        // 在这里点名——无凭据或用错版本连上去只会变成一条报错连接（Node 会先跑 OAuth 授权与版本协商）。
-        let (supported, skipped): (Vec<&Value>, Vec<&Value>) = raw
-            .iter()
-            .partition(|server| !unsupported_mcp_server(server));
-        for server in &skipped {
-            tracing::warn!(
-                event = "protocol.create_session.mcp_server_unsupported",
-                server = server["name"].as_str().unwrap_or_default(),
-                "the session MCP server needs OAuth or a modern protocol version and was not connected"
-            );
-        }
         let servers = session_mcp_servers(&Value::Object(
-            std::iter::once((
-                "mcpServers".to_owned(),
-                Value::Array(supported.iter().map(|server| (*server).clone()).collect()),
-            ))
-            .collect(),
+            std::iter::once(("mcpServers".to_owned(), Value::Array(raw.clone()))).collect(),
         ));
-        if servers.len() != supported.len() {
+        if servers.len() != raw.len() {
             tracing::warn!(
                 event = "protocol.create_session.mcp_servers_unparsed",
-                given = supported.len(),
+                given = raw.len(),
                 parsed = servers.len(),
                 "createSession.mcpServers has entries the kernel cannot map"
             );

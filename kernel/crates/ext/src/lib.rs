@@ -76,6 +76,9 @@ pub struct ExtPorts {
     /// MCP 进程遥测（`process/mcpTelemetry`，141 审计 §9 F3）：入口给的通道与加盐用的设备标识。
     /// None 时什么都不发（TUI、测试）。
     pub mcp_telemetry: Option<mcp::McpTelemetrySetup>,
+    /// MCP 的 OAuth 令牌端口（Node 的 `AuthProvider`）：入口用共享凭据文件与网络出口实现；
+    /// None 时带 `oauth` 的服务器按 401 失败（测试、嵌入）。
+    pub mcp_oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量）：入口接给协议层；None 时什么都不发。
     pub mcp_ui_events: Option<
         tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>,
@@ -152,6 +155,9 @@ impl Ext {
                 session: None,
             });
         }
+        if let Some(oauth) = ports.mcp_oauth.clone() {
+            mcp.attach_oauth(oauth);
+        }
         if let Some(machines) = ports.machines.clone() {
             mcp.set_machines(machines);
         }
@@ -167,6 +173,7 @@ impl Ext {
             ports.clock.clone(),
             telemetry.clone(),
             ports.mcp_ui_events.clone(),
+            ports.mcp_oauth.clone(),
         ));
         // `mcp/list` 的状态检查（141 审计 §9 第 6 项）：每工作区一套独立连接，与上面两套都不混。
         let status_mcp = Arc::new(mcp::McpStatusRegistry::new(
@@ -175,6 +182,7 @@ impl Ext {
             config.mcp.clone(),
             ports.clock.clone(),
             telemetry,
+            ports.mcp_oauth.clone(),
         ));
         // App-Provided Tools 的登记表（`app__<server>__<tool>`）：按会话记实例、待执行调用与模型工具表。
         let app_tools = Arc::new(mcp::AppToolRegistry::new(

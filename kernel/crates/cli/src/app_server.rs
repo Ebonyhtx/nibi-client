@@ -435,6 +435,15 @@ async fn serve(
     // 按会话投进 live 投影。
     let (mcp_ui_events, mcp_ui_receiver) = tokio::sync::mpsc::unbounded_channel();
     extensions.mcp_ui = Some(mcp_ui_events);
+    // MCP 的 OAuth 令牌端口（Node 的 `AuthProvider`）：与登录共用一份凭据文件。
+    extensions.mcp_oauth = Some(setup::mcp_oauth(
+        setup::nibi_store(
+            &|key| startup.env.get(key).map(str::to_owned),
+            paths.credentials().as_path().to_path_buf(),
+        ),
+        egress.clone(),
+        clock.clone(),
+    ));
     extensions.cron_store = Some(Arc::new(LocalCronStore::new(
         &workspace.root,
         clock.clone(),

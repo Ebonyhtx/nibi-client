@@ -177,6 +177,8 @@ impl LocalKernel {
                 always_load: server.options.always_load,
                 timeout_ms: server.options.timeout_ms,
                 isolation: Default::default(),
+                oauth: server.oauth,
+                protocol_version: server.protocol,
             })
             .collect();
         // Browser Use / Computer Use 的模型面是共享的 `node_repl` MCP 服务器，不是内核原生工具。

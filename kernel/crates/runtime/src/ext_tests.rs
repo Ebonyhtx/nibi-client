@@ -112,6 +112,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             monitor: false,
             mcp_telemetry: None,
             mcp_ui: None,
+            mcp_oauth: None,
             node_repl_env: None,
             topic: None,
         },

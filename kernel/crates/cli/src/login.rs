@@ -109,54 +109,86 @@ async fn logout(context: &AccountContext, json: bool) -> Result<(), String> {
     Ok(())
 }
 
-async fn login(context: &AccountContext, no_browser: bool, json: bool) -> Result<(), String> {
+/// 登录成功的事实（CLI 与 TUI 共用；`nibi login` 打印，TUI 显示摘要）。
+pub(crate) struct SignedIn {
+    pub user_info: Value,
+    pub membership: Option<Value>,
+    pub license_expires_at: Option<String>,
+    pub warnings: Vec<String>,
+    pub credentials: String,
+}
+
+/// 设备码登录的公共段：开始 → 把设备码交给调用方（显示、开浏览器）→ 轮询 → 写凭据 → 同步会员。
+pub(crate) async fn device_login(
+    context: &AccountContext,
+    device: impl FnOnce(&device_flow::DeviceAuthorization),
+    cancel: &CancellationToken,
+) -> Result<SignedIn, String> {
     let transport = HostTransport {
         egress: context.egress.clone(),
     };
     let now = context.now.clone();
     let client = Client::with_defaults(&transport, &context.auth_origin, move || now());
     let authorization = client.start().await.map_err(text)?;
-
-    let target = authorization
-        .verification_uri_complete
-        .clone()
-        .unwrap_or_else(|| authorization.verification_uri.clone());
-    // `--json` 时提示走 stderr，stdout 只留结果（Node 相同）。
-    let code = authorization.user_code.clone();
-    if no_browser {
-        let _ = write_prompt(
-            json,
-            format!(
-                "To sign in to NIBI, open this URL in a browser and enter the code:\n{target}\nCode: {code}\n"
-            ),
-        );
-    } else {
-        let _ = write_prompt(
-            json,
-            format!(
-                "Opening the browser for NIBI sign-in. If it does not open, use this URL:\n{target}\nCode: {code}\n"
-            ),
-        );
-        if let Err(reason) = open_browser(&target)
-            && !json
-        {
-            let _ = writeln!(std::io::stderr(), "Browser open failed: {reason}");
-        }
-    }
-
-    let token = client
-        .poll_until_ready(&authorization, &CancellationToken::new())
-        .await
-        .map_err(text)?;
+    device(&authorization);
+    let token = client.poll_until_ready(&authorization, cancel).await.map_err(text)?;
     let user = client.user_info(&token.access_token).await.map_err(text)?;
     session::save_session(&context.store, &token, &user)
         .await
         .map_err(|error| format!("登录成功，但写入本地凭据失败：{error}"))?;
-
     let license = sync_license(context, &token.access_token).await;
-    let user_info = session::user_info_value(&user);
+    Ok(SignedIn {
+        user_info: session::user_info_value(&user),
+        membership: license.membership,
+        license_expires_at: license.license_expires_at,
+        warnings: license.warnings,
+        credentials: context.store.path().display().to_string(),
+    })
+}
+
+async fn login(context: &AccountContext, no_browser: bool, json: bool) -> Result<(), String> {
+    let signed_in = device_login(
+        context,
+        |authorization| {
+            let target = authorization
+                .verification_uri_complete
+                .clone()
+                .unwrap_or_else(|| authorization.verification_uri.clone());
+            // `--json` 时提示走 stderr，stdout 只留结果（Node 相同）。
+            let code = authorization.user_code.clone();
+            if no_browser {
+                let _ = write_prompt(
+                    json,
+                    format!(
+                        "To sign in to NIBI, open this URL in a browser and enter the code:
+{target}
+Code: {code}
+"
+                    ),
+                );
+            } else {
+                let _ = write_prompt(
+                    json,
+                    format!(
+                        "Opening the browser for NIBI sign-in. If it does not open, use this URL:
+{target}
+Code: {code}
+"
+                    ),
+                );
+                if let Err(reason) = open_browser(&target)
+                    && !json
+                {
+                    let _ = writeln!(std::io::stderr(), "Browser open failed: {reason}");
+                }
+            }
+        },
+        &CancellationToken::new(),
+    )
+    .await?;
+    let user_info = &signed_in.user_info;
     if json {
-        let membership = license.membership.as_ref().map(|membership| {
+        let membership = signed_in.membership.as_ref().map(|membership| {
             json!({
                 "expiresAt": membership.get("expiresAt").cloned().unwrap_or(Value::Null),
                 "plan": membership.get("plan").cloned().unwrap_or(Value::Null),
@@ -167,13 +199,13 @@ async fn login(context: &AccountContext, no_browser: bool, json: bool) -> Result
             })
         });
         let value = json!({
-            "account": session::account_user(&user_info),
+            "account": session::account_user(user_info),
             "apiBaseUrl": context.api_base_url,
-            "credentialsPath": context.store.path().display().to_string(),
-            "licenseExpiresAt": license.license_expires_at,
+            "credentialsPath": signed_in.credentials,
+            "licenseExpiresAt": signed_in.license_expires_at,
             "membership": membership,
             "status": "signed_in",
-            "warnings": license.warnings,
+            "warnings": signed_in.warnings,
         });
         let _ = write!(std::io::stdout(), "{}", format_json(&value));
         return Ok(());
@@ -182,18 +214,18 @@ async fn login(context: &AccountContext, no_browser: bool, json: bool) -> Result
     let _ = writeln!(
         out,
         "Signed in to NIBI{}.",
-        session::format_user_label(&user_info)
+        session::format_user_label(user_info)
     );
     let _ = writeln!(
         out,
         "{}",
         session::format_membership(
-            license.membership.as_ref(),
-            license.license_expires_at.as_deref()
+            signed_in.membership.as_ref(),
+            signed_in.license_expires_at.as_deref()
         )
     );
-    let _ = writeln!(out, "Credentials: {}", context.store.path().display());
-    for warning in &license.warnings {
+    let _ = writeln!(out, "Credentials: {}", signed_in.credentials);
+    for warning in &signed_in.warnings {
         let _ = writeln!(out, "Warning: {warning}");
     }
     Ok(())

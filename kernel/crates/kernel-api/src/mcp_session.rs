@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::mcp::McpTransportConfig;
+use crate::mcp::{McpOAuthConfig, McpProtocolVersion, McpTransportConfig};
 
 /// 跨会话复用的规则（NIBI 协议的 `isolation`）。缺省是 `session`：每个会话自己一条连接。
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,6 +38,16 @@ pub struct SessionMcpServer {
     /// 跨会话复用（见 [`McpIsolation`]）。
     #[serde(default)]
     pub isolation: McpIsolation,
+    /// OAuth 配置（HTTP / SSE；`authorization_code` 的令牌由桌面端写入共享凭据，内核读取与刷新）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub oauth: Option<McpOAuthConfig>,
+    /// 协议版本（`legacy` / `auto` / 钉一个现代版本）。
+    #[serde(default, skip_serializing_if = "is_auto")]
+    pub protocol_version: McpProtocolVersion,
+}
+
+fn is_auto(version: &McpProtocolVersion) -> bool {
+    *version == McpProtocolVersion::Auto
 }
 
 #[cfg(test)]
@@ -59,6 +69,8 @@ mod tests {
             always_load: false,
             timeout_ms: None,
             isolation: McpIsolation::Session,
+            oauth: None,
+            protocol_version: McpProtocolVersion::Auto,
         };
         let text = serde_json::to_value(&server).unwrap();
         // 缺省值不写进序列化：协议里 `isolation` 缺席就是 session。

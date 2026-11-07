@@ -4,17 +4,12 @@
 //! `status` 只读快照。结果是 `{statuses: Record<服务器名, 快照>}`，快照的字段与 Host 的
 //! `zcodeMcpServerStatusSnapshotSchema` 一一对应。
 //!
-//! 两条如实说明：
-//!
-//! - **OAuth**：内核不实现授权流。带 `oauth` 的服务器不进连接集合，直接给
-//!   `failureKind: "oauth_authorization_failed"` 的失败快照（其余服务器照常连）。不假装在授权，
-//!   也不让一条 OAuth 服务器拖垮整个设置页。
-//! - **protocolVersion**：Host 的 `legacy` / `auto` / `2026-07-28` 被接受，但内核的客户端固定说
-//!   `2025-06-18`（`ext::mcp::connection::PROTOCOL_VERSION`）：要 `2026-07-28` 的服务器会在握手时
-//!   失败，按 `protocol_negotiation_failed` 报出来，而不是静默换成别的版本。
+//! `oauth` 与 `protocolVersion` 都按 Node 的语义接上：`oauth` 的令牌由入口给的令牌端口取（
+//! `authorization_code` 读桌面端写进共享凭据的令牌、`client_credentials` 自己换），401 时刷新一次；
+//! `auto` 先探 `server/discover`、没有现代证据时回退 2025 的 `initialize`。
 
 use nibi_kernel_base::js::iso_timestamp;
-use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::{McpOAuthConfig, McpProtocolVersion, McpTransportConfig};
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::mcp_session::{McpIsolation, SessionMcpServer};
 use nibi_kernel_api::mcp_status::{McpListRequest, McpServerStatus};
@@ -58,18 +53,12 @@ pub(crate) async fn list(server: &Server, params: &Value) -> Result<Value, RpcEr
         }
     };
     let mut servers = Vec::new();
-    let mut oauth = Vec::new();
     if let Some(list) = params.get("mcpServers") {
         let list = list
             .as_array()
             .ok_or_else(|| invalid("`mcpServers` must be an array"))?;
         for entry in list {
-            let (converted, needs_oauth) = server_param(entry)?;
-            if needs_oauth {
-                oauth.push(converted);
-            } else {
-                servers.push(converted);
-            }
+            servers.push(server_param(entry)?);
         }
     }
     let explicit = params.contains_key("mcpServers");
@@ -78,21 +67,11 @@ pub(crate) async fn list(server: &Server, params: &Value) -> Result<Value, RpcEr
         servers: explicit.then_some(servers),
         connect,
     };
-    let mut statuses = server
+    let statuses = server
         .kernel
         .mcp_list(request)
         .await
         .map_err(|error| kernel_error(&error))?;
-    // OAuth 的服务器不进连接集合：这里给失败快照（不是「没有事实」）。
-    let now = server.context.clock.now_ms();
-    for server in &oauth {
-        let transport = server.transport.kind();
-        statuses.push(McpServerStatus::oauth_unsupported(
-            &server.name,
-            transport,
-            now,
-        ));
-    }
     let mut record = Map::new();
     for status in &statuses {
         record.insert(status.name.clone(), snapshot(status));
@@ -1539,14 +1518,14 @@ fn workspace_param(value: Option<&Value>) -> Result<(String, Option<String>), Rp
     Ok((path, identity))
 }
 
-/// 一个服务器条目 → 协议类型；第二个值是这个服务器带 `oauth`（内核不实现授权流）。
-fn server_param(value: &Value) -> Result<(SessionMcpServer, bool), RpcError> {
+/// 一个服务器条目 → 协议类型（`oauth` 与 `protocolVersion` 按 Node 的 schema 校验后带上）。
+fn server_param(value: &Value) -> Result<SessionMcpServer, RpcError> {
     let params = value
         .as_object()
         .ok_or_else(|| invalid("`mcpServers` entries must be objects"))?;
     let name = required_string(params, "name")?;
     let kind = params.get("type").and_then(Value::as_str);
-    let (transport, known, needs_oauth) = match kind {
+    let (transport, oauth, known) = match kind {
         Some("http" | "sse") => {
             let url = required_string(params, "url")?;
             let headers = entries(params, "headers")?;
@@ -1555,12 +1534,16 @@ fn server_param(value: &Value) -> Result<(SessionMcpServer, bool), RpcError> {
             } else {
                 McpTransportConfig::Sse { url, headers }
             };
-            let oauth = params.get("oauth").is_some_and(|value| !value.is_null());
-            if oauth {
-                authorization(params.get("oauth"))?;
-            }
+            let oauth = match params.get("oauth").filter(|value| !value.is_null()) {
+                Some(value) => Some(
+                    McpOAuthConfig::from_value(value)
+                        .map_err(|reason| invalid(format!("`oauth`: {reason}")))?,
+                ),
+                None => None,
+            };
             (
                 transport,
+                oauth,
                 [
                     "name",
                     "type",
@@ -1573,7 +1556,6 @@ fn server_param(value: &Value) -> Result<(SessionMcpServer, bool), RpcError> {
                     "timeoutMs",
                 ]
                 .as_slice(),
-                oauth,
             )
         }
         Some(other) => {
@@ -1588,6 +1570,7 @@ fn server_param(value: &Value) -> Result<(SessionMcpServer, bool), RpcError> {
                 env: entries(params, "env")?,
                 cwd: None,
             },
+            None,
             [
                 "name",
                 "command",
@@ -1599,48 +1582,28 @@ fn server_param(value: &Value) -> Result<(SessionMcpServer, bool), RpcError> {
                 "timeoutMs",
             ]
             .as_slice(),
-            false,
         ),
     };
     strict_keys(params, known, "an `mcpServers` entry")?;
-    if let Some(version) = params.get("protocolVersion").and_then(Value::as_str)
-        && !matches!(version, "legacy" | "auto" | "2026-07-28")
-    {
-        return Err(invalid(format!(
-            "`protocolVersion` must be \"legacy\", \"auto\" or \"2026-07-28\", got {version:?}"
-        )));
-    }
-    Ok((
-        SessionMcpServer {
-            name,
-            transport,
-            always_load: optional_bool(params, "alwaysLoad")?.unwrap_or(false),
-            timeout_ms: optional_positive(params, "timeoutMs")?,
-            isolation: isolation(params)?,
-        },
-        needs_oauth,
-    ))
-}
-
-/// `oauth` 的形状（Host `nibiProtocolMcpOAuthSchema` 的联合）：只为校验，内核不消费。
-fn authorization(value: Option<&Value>) -> Result<(), RpcError> {
-    let value = value
-        .and_then(Value::as_object)
-        .ok_or_else(|| invalid("`oauth` must be an object"))?;
-    match value.get("type").and_then(Value::as_str) {
-        Some("client_credentials") => {
-            required_string(value, "clientId")?;
-            required_string(value, "clientSecret")?;
-        }
-        Some("authorization_code") => {}
+    let protocol_version = match params.get("protocolVersion").and_then(Value::as_str) {
+        None | Some("auto") => McpProtocolVersion::Auto,
+        Some("legacy") => McpProtocolVersion::Legacy,
+        Some("2026-07-28") => McpProtocolVersion::Modern,
         Some(other) => {
             return Err(invalid(format!(
-                "`oauth.type` must be \"client_credentials\" or \"authorization_code\", got {other:?}"
+                "`protocolVersion` must be \"legacy\", \"auto\" or \"2026-07-28\", got {other:?}"
             )));
         }
-        None => return Err(invalid("`oauth.type` is required")),
-    }
-    Ok(())
+    };
+    Ok(SessionMcpServer {
+        name,
+        transport,
+        always_load: optional_bool(params, "alwaysLoad")?.unwrap_or(false),
+        timeout_ms: optional_positive(params, "timeoutMs")?,
+        isolation: isolation(params)?,
+        oauth,
+        protocol_version,
+    })
 }
 
 #[cfg(test)]

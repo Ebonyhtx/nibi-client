@@ -67,6 +67,8 @@ fn server(name: &str, scope: McpScope, command: &str) -> McpServer {
         },
         options: Default::default(),
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }
 }
 

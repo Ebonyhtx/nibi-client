@@ -154,6 +154,43 @@ pub(super) fn environments(
     ))
 }
 
+/// 共享凭据文件（`nibi login`、TUI 的 `/login`、MCP 的 OAuth 用同一份）。
+pub(super) fn nibi_store(
+    get_env: &dyn Fn(&str) -> Option<String>,
+    credentials: std::path::PathBuf,
+) -> nibi_session::Store {
+    nibi_session::Store::open(credentials, get_env)
+}
+
+/// 账号上下文：共享凭据文件、网络出口与账号中心地址（`nibi login` 与 TUI 的 `/login` 共用）。
+pub(super) fn account_context(
+    get_env: &dyn Fn(&str) -> Option<String>,
+    credentials: std::path::PathBuf,
+    egress: Arc<Egress>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
+) -> Result<Arc<login::AccountContext>> {
+    let lookup = |key: &str| get_env(key);
+    let (auth_origin, api_base_url) =
+        login::origins(&lookup).map_err(anyhow::Error::msg)?;
+    let store = nibi_store(get_env, credentials);
+    Ok(Arc::new(login::AccountContext {
+        store,
+        egress,
+        auth_origin,
+        api_base_url,
+        now: Arc::new(move || clock.now_ms()),
+    }))
+}
+
+/// MCP 的 OAuth 令牌端口（Node 的 `AuthProvider`）：共享凭据文件 + 网络出口，和 `nibi login` 用同一份凭据。
+pub(super) fn mcp_oauth(
+    store: nibi_session::Store,
+    egress: Arc<Egress>,
+    clock: Arc<dyn nibi_kernel_api::clock::Clock>,
+) -> Arc<dyn nibi_kernel_api::mcp::McpOAuthPort> {
+    Arc::new(crate::mcp_oauth::McpOAuth::new(store, egress, clock))
+}
+
 /// `zcode hooks trust …`：工作区文件经本机执行环境读，信任记录经 platform（config.md §4.3）。
 pub(super) async fn trust(command: hooks_trust::TrustCommand) -> Result<u8> {
     let startup = capture()?;

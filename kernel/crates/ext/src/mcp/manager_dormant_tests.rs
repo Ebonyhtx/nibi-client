@@ -26,6 +26,8 @@ fn stdio(name: &str) -> McpServer {
         },
         options: Default::default(),
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }
 }
 

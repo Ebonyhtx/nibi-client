@@ -28,6 +28,7 @@ fn ext(env: MemoryEnvironment, fake: Arc<FakeMcp>, scope: &TaskScope, servers: M
         mcp_telemetry: None,
         mcp_ui_events: None,
         sampling: None,
+        mcp_oauth: None,
     };
     let config = ExtConfig {
         mcp: McpSettings {
@@ -87,6 +88,8 @@ async fn the_registry_adds_skill_and_mcp_tools_after_the_base() {
         },
         options: Default::default(),
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }];
     let ext = ext(env, fake, &scope, servers);
     let registry = ext.registry();
@@ -136,6 +139,8 @@ async fn the_wait_tool_follows_pending_servers_and_the_declared_session() {
         },
         options: Default::default(),
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }];
     let ext = ext(
         MemoryEnvironment::new(facts()),

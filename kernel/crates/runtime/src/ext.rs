@@ -46,6 +46,9 @@ pub struct Extensions {
     /// MCP Apps 的 UI 事件出口（`pluginUi.*` 增量，141 审计 §9 第 6 项）：入口把另一头交给协议层；
     /// None 时（TUI、嵌入、测试）什么都不发。
     pub mcp_ui: Option<tokio::sync::mpsc::UnboundedSender<nibi_kernel_api::mcp_ui::McpUiEvent>>,
+    /// MCP 的 OAuth 令牌端口（Node 的 `AuthProvider`）：入口用共享凭据文件与网络出口实现；
+    /// None 时带 `oauth` 的服务器按 401 失败（测试、嵌入）。
+    pub mcp_oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     /// 入口投影的进程环境：内置 `node_repl` 服务器要的 `NIBI_HOST_NODE_REPL` /
     /// `NIBI_NODE_EXEC_PATH` / `NIBI_CUA_*`。runtime 不直接读 `std::env`（spec §4：只有入口
     /// crate 读进程环境）；None 时不装配内置服务器（CLI/TUI、测试）。
@@ -67,6 +70,7 @@ impl Extensions {
             monitor: false,
             mcp_telemetry: None,
             mcp_ui: None,
+            mcp_oauth: None,
             node_repl_env: None,
             topic: None,
         }

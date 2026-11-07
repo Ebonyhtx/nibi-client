@@ -20,7 +20,10 @@ pub const REFRESH_AHEAD_MS: u64 = 60_000;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token {
     pub access_token: String,
+    /// `token_type`（RFC 6749 要求；Node 的 `OAuthTokensSchema` 也要求非空）。
+    pub token_type: String,
     pub refresh_token: Option<String>,
+    pub scope: Option<String>,
     /// 绝对过期点（epoch ms）。
     pub expires_at_ms: Option<u64>,
 }
@@ -56,7 +59,8 @@ pub trait Transport: Send + Sync {
     ) -> Result<(u16, Value), String>;
 }
 
-/// `createCredentialKeyPrefix` 的键前缀（Node 取 sha256 前 24 个 hex）。
+/// `createCredentialKeyPrefix` 的键前缀（Node 取 `sha256([名字, URL, clientId, scope, redirectPath].join("\n"))`
+/// 的前 24 个 hex；注意最后一个字段后面没有换行）。
 pub fn credential_key_prefix(
     server_name: &str,
     server_url: &str,
@@ -64,13 +68,8 @@ pub fn credential_key_prefix(
     scope: &str,
     redirect_path: &str,
 ) -> String {
-    let mut hasher = Sha256::new();
-    for part in [server_name, server_url, client_id, scope, redirect_path] {
-        hasher.update(part.as_bytes());
-        hasher.update(b"\n");
-    }
-    let digest: String = hasher
-        .finalize()
+    let joined = [server_name, server_url, client_id, scope, redirect_path].join("\n");
+    let digest: String = Sha256::digest(joined.as_bytes())
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect();
@@ -97,6 +96,17 @@ pub fn tokens_from_record(record: &Value) -> Option<Token> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_owned);
+    let token_type = tokens
+        .get("token_type")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("Bearer")
+        .to_owned();
+    let scope = tokens
+        .get("scope")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     let expires_at_ms = record
         .get("expires_at")
         .and_then(Value::as_u64)
@@ -107,7 +117,9 @@ pub fn tokens_from_record(record: &Value) -> Option<Token> {
         });
     Some(Token {
         access_token,
+        token_type,
         refresh_token,
+        scope,
         expires_at_ms,
     })
 }
@@ -147,12 +159,20 @@ pub fn parse_token(value: &Value, now_ms: u64) -> Result<Token, OAuthError> {
         .to_owned();
     Ok(Token {
         access_token,
+        token_type: value
+            .get("token_type")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("Bearer")
+            .to_owned(),
         refresh_token: value
             .get("refresh_token")
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_owned),
+        scope: value.get("scope").and_then(Value::as_str).map(str::to_owned),
         expires_at_ms: value
             .get("expires_in")
             .and_then(Value::as_u64)
@@ -258,7 +278,12 @@ pub async fn refresh(
         ("refresh_token", refresh_token.to_owned()),
     ];
     let basic = client_secret.map(|secret| (client_id, secret));
-    token_request(transport, token_endpoint, &fields, basic, now_ms).await
+    let mut token = token_request(transport, token_endpoint, &fields, basic, now_ms).await?;
+    // RFC 6749 §6：响应里没有新的 refresh token 时沿用原来的（Node `refreshAuthorization` 同一条）。
+    if token.refresh_token.is_none() {
+        token.refresh_token = Some(refresh_token.to_owned());
+    }
+    Ok(token)
 }
 
 async fn token_request(
@@ -302,7 +327,9 @@ pub fn record(token: &Token, client_id: &str, client_secret: Option<&str>, issue
         },
         "tokens": {
             "access_token": token.access_token,
+            "token_type": token.token_type,
             "refresh_token": token.refresh_token,
+            "scope": token.scope,
             "expires_in": token.expires_at_ms.map(|expires| expires.saturating_sub(issued_at_ms) / 1000),
         },
         "obtained_at": issued_at_ms,

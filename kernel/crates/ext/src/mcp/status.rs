@@ -44,6 +44,8 @@ pub(crate) struct McpStatusRegistry {
     clock: Arc<dyn Clock>,
     /// 进程遥测的出口（与进程级 manager 共用一份）。
     telemetry: Option<Arc<McpTelemetry>>,
+    /// 令牌端口（与进程级 manager 共用一份）。
+    oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     seed: Mutex<Option<Seed>>,
     /// 工作区根 → 这套连接。
     managers: Mutex<BTreeMap<String, Arc<McpManager>>>,
@@ -56,6 +58,7 @@ impl McpStatusRegistry {
         settings: McpSettings,
         clock: Arc<dyn Clock>,
         telemetry: Option<Arc<McpTelemetry>>,
+        oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     ) -> Self {
         Self {
             transport,
@@ -63,6 +66,7 @@ impl McpStatusRegistry {
             settings,
             clock,
             telemetry,
+            oauth,
             seed: Mutex::new(None),
             managers: Mutex::new(BTreeMap::new()),
         }
@@ -106,6 +110,9 @@ impl McpStatusRegistry {
                         isolation: "workspace",
                         session: None,
                     });
+                }
+                if let Some(oauth) = self.oauth.clone() {
+                    manager.attach_oauth(oauth);
                 }
                 manager
             })
@@ -216,6 +223,8 @@ fn to_server(server: &SessionMcpServer) -> McpServer {
             always_load: server.always_load,
         },
         machine: None,
+        oauth: server.oauth.clone(),
+        protocol: server.protocol_version,
     }
 }
 

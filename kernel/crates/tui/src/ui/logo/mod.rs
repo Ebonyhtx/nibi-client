@@ -1,10 +1,10 @@
-// 复制自 apps/zcode-host/crates/tui/src/ui/logo/mod.rs（2f982570bb）；只改了 spec 的出处（docs/specs/rust-cli/tui.md §7.3）。
-//! 新会话的背景标志（docs/specs/rust-cli/tui.md §7.3；原为 rust-tui.md §8.11）：Z 镂空的立体金属徽章。平时是淡色的背景；点击时按点击的
-//! 位置被“按”进去一下，弹簧回弹，金属的反射灯条随倾斜在表面滑动。
-mod render;
-mod shape;
+//! 新会话的背景徽章（docs/specs/rust-cli/tui.md §7.3）：NIBI 鸟的像素画（移植 Node TUI 的
+//! `apps/zcode-cli/packages/tui/src/brand-pixel-logo.ts`，深色 / 浅色各一套）。
+//!
+//! 平时淡色挂在空白处；点击时亮起，两秒内淡回。画是半格字符（`▀▄█`）与品牌色，尺寸固定 26×10。
 
-use std::f64::consts::TAU;
+mod art;
+
 use std::time::Instant;
 
 use ratatui::buffer::Buffer;
@@ -12,46 +12,19 @@ use ratatui::layout::Rect;
 use ratatui::style::Modifier;
 
 use super::palette::{Palette, Rgb, blend};
-pub use render::{Cell, Metal, Pose, REST, frame};
 
-/// 一次点击的时长（秒）：0.1 秒亮起，弹簧在 1.2 秒内停住，`FADE_FROM` 起淡回。
+/// 一次点击的时长（秒）：`RISE` 内亮起，`FADE_FROM` 起淡回，`DURATION` 停住。
 pub const DURATION: f64 = 2.0;
-const RISE: f64 = 0.1;
-const FADE_FROM: f64 = 1.3;
+const RISE: f64 = 0.12;
+const FADE_FROM: f64 = 1.4;
 /// 平时的不透明度。
-pub const STATIC_OPACITY: f64 = 0.18;
-/// 按在徽章边缘时的最大倾斜（弧度）与按在中间时的最大下沉。
-const MAX_TILT: f64 = 0.42;
-const MAX_PUSH: f64 = 0.12;
-/// 标志最宽 60 列，高:宽 = 21:60，至少 14 行。
-const MAX_COLUMNS: u16 = 60;
-const RATIO_ROWS: u16 = 21;
-const MIN_ROWS: u16 = 14;
+pub const STATIC_OPACITY: f64 = 0.22;
 /// 查不到终端背景色时按这个深色背景混合。
-const DARK: Rgb = (0x1e, 0x1e, 0x2e);
+const DARK: Rgb = (0x1e, 0x1e, 0x21);
 
 fn smooth(t: f64) -> f64 {
     let t = t.clamp(0.0, 1.0);
     t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
-}
-
-/// 按下深度：衰减的弹簧，约 0.14 秒按到最深（≈1），回弹时轻微过冲，1.2 秒内停住。
-pub fn depth(t: f64) -> f64 {
-    if t <= 0.0 {
-        return 0.0;
-    }
-    1.6 * (-t / 0.32).exp() * (TAU * 1.5 * t).sin()
-}
-
-/// 点击 `point`（徽章上的位置，-1..1）后 `t` 秒的姿态：点到的一侧往里，整体下沉，越靠中间沉得越多。
-pub fn pose_at(point: [f64; 2], t: f64) -> Pose {
-    let d = depth(t);
-    let offset = point[0].hypot(point[1]).min(1.0);
-    Pose {
-        yaw: MAX_TILT * point[0] * d,
-        pitch: -MAX_TILT * point[1] * d,
-        push: -MAX_PUSH * d * (1.0 - 0.5 * offset),
-    }
 }
 
 /// 点击后 `t` 秒的不透明度。
@@ -67,38 +40,22 @@ pub fn opacity_at(t: f64) -> f64 {
     }
 }
 
-/// 空白处里标志的位置：居中，放不下时为 None。
+/// 空白处里徽章的位置：居中；放不下时为 None。
 pub fn stage_in(free: Rect) -> Option<Rect> {
-    let width = free
-        .width
-        .saturating_sub(4)
-        .min(MAX_COLUMNS)
-        .min(free.height.saturating_mul(MAX_COLUMNS) / RATIO_ROWS);
-    let height = width * RATIO_ROWS / MAX_COLUMNS;
-    (height >= MIN_ROWS).then(|| {
+    (free.width >= art::WIDTH && free.height >= art::HEIGHT).then(|| {
         Rect::new(
-            free.x + (free.width - width) / 2,
-            free.y + (free.height - height) / 2,
-            width,
-            height,
+            free.x + (free.width - art::WIDTH) / 2,
+            free.y + (free.height - art::HEIGHT) / 2,
+            art::WIDTH,
+            art::HEIGHT,
         )
     })
 }
 
-/// 屏幕上的字符格 → 徽章上的位置（-1..1）。
-pub fn to_badge(stage: Rect, column: u16, row: u16) -> [f64; 2] {
-    render::badge_point(
-        stage.width.into(),
-        stage.height.into(),
-        f64::from(column.saturating_sub(stage.x)) + 0.5,
-        f64::from(row.saturating_sub(stage.y)) + 0.5,
-    )
-}
-
 #[derive(Debug, Default)]
 pub struct Logo {
-    /// 最近一次点击：时间与徽章上的位置。
-    pressed: Option<(Instant, [f64; 2])>,
+    /// 最近一次点击的时刻。
+    pressed: Option<Instant>,
     /// 这一帧画在哪里（点击的目标）；没画时为 None。
     pub stage: Option<Rect>,
 }
@@ -109,17 +66,19 @@ impl Logo {
         self.stage.is_some()
             && self
                 .pressed
-                .is_some_and(|(at, _)| now.duration_since(at).as_secs_f64() < DURATION)
+                .is_some_and(|at| now.duration_since(at).as_secs_f64() < DURATION)
     }
 
-    /// 在 `(column, row)` 按下：从这个位置重新开始一次按压（没画时不算）。
+    /// 在 `(column, row)` 按下：点在徽章上时重新开始一次亮起（没画时不算）。
     pub fn press(&mut self, column: u16, row: u16, now: Instant) {
-        if let Some(stage) = self.stage {
-            self.pressed = Some((now, to_badge(stage, column, row)));
+        if let Some(stage) = self.stage
+            && stage.contains(ratatui::layout::Position::new(column, row))
+        {
+            self.pressed = Some(now);
         }
     }
 
-    /// 这一帧不画：正在进行的按压结束。
+    /// 这一帧不画：正在进行的亮起结束。
     pub fn hide(&mut self) {
         self.stage = None;
         self.pressed = None;
@@ -131,32 +90,43 @@ impl Logo {
             return;
         };
         self.stage = Some(stage);
-        let (pose, opacity) = match self.pressed {
-            Some((at, point)) if now.duration_since(at).as_secs_f64() < DURATION => {
-                let t = now.duration_since(at).as_secs_f64();
-                (pose_at(point, t), opacity_at(t))
+        let opacity = match self.pressed {
+            Some(at) if now.duration_since(at).as_secs_f64() < DURATION => {
+                opacity_at(now.duration_since(at).as_secs_f64())
             }
             _ => {
                 self.pressed = None;
-                (REST, STATIC_OPACITY)
+                STATIC_OPACITY
             }
         };
         let background = palette.background.unwrap_or(DARK);
-        let metal = Metal::new(palette.light);
-        let cells = frame(stage.width.into(), stage.height.into(), pose, &metal);
-        let width = usize::from(stage.width);
-        for (index, cell) in cells.iter().enumerate().filter(|(_, cell)| cell.dots != 0) {
-            let x = stage.x + (index % width) as u16;
-            let y = stage.y + (index / width) as u16;
-            let target = &mut buffer[(x, y)];
-            target.set_char(char::from_u32(0x2800 + u32::from(cell.dots)).unwrap_or(' '));
-            match palette.tint(blend(background, cell.rgb, opacity)) {
-                Some(color) => {
-                    target.set_fg(color);
+        for (row, runs) in art::rows(palette.light, false).iter().enumerate() {
+            let y = stage.y + row as u16;
+            let mut x = stage.x;
+            for run in *runs {
+                for character in run.text.chars() {
+                    if x >= stage.right() {
+                        break;
+                    }
+                    let target = &mut buffer[(x, y)];
+                    target.set_char(character);
+                    if let Some(fg) = run.fg {
+                        match palette.tint(blend(background, art::rgb(fg), opacity)) {
+                            Some(color) => {
+                                target.set_fg(color);
+                            }
+                            // 16 色终端不上色：淡的时候用 dim。
+                            None if opacity < 0.5 => target.modifier.insert(Modifier::DIM),
+                            None => {}
+                        }
+                    }
+                    if let Some(bg) = run.bg
+                        && let Some(color) = palette.tint(blend(background, art::rgb(bg), opacity))
+                    {
+                        target.set_bg(color);
+                    }
+                    x += 1;
                 }
-                // 16 色终端不上色：淡的时候用 dim。
-                None if opacity < 0.5 => target.modifier.insert(Modifier::DIM),
-                None => {}
             }
         }
     }

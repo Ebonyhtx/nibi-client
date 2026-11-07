@@ -1,6 +1,6 @@
 //! 界面语言、登录与退出的文字（docs/specs/rust-cli/tui.md §7.1）。英文取 Node 原文，另配中文。
 use super::Lang;
-use crate::services::{Configured, Family};
+use crate::services::{Configured, Family, NibiAccount};
 
 const AVAILABLE: &str = "auto, en-US, zh-CN";
 
@@ -109,20 +109,36 @@ pub fn configured(lang: Lang, result: &Configured) -> String {
     text
 }
 
+/// NIBI 账号登录成功：用户与会员摘要（收费插件门禁读的就是这份凭据）。
+pub fn nibi_signed_in(lang: Lang, account: &NibiAccount) -> String {
+    match lang {
+        Lang::En => format!(
+            "Signed in to NIBI as {}.
+{}",
+            account.user, account.membership
+        ),
+        Lang::Zh => format!(
+            "已登录 NIBI：{}。
+{}",
+            account.user, account.membership
+        ),
+    }
+}
+
 pub fn logged_out(lang: Lang, credentials: &str) -> String {
     match lang {
-        Lang::En => format!("Logged out from Coding Plan accounts. Credentials: {credentials}"),
-        Lang::Zh => format!("已退出 Coding Plan 账号。凭据：{credentials}"),
+        Lang::En => format!("Logged out. Credentials: {credentials}"),
+        Lang::Zh => format!("已退出登录。凭据：{credentials}"),
     }
 }
 
 pub fn login_usage(lang: Lang) -> &'static str {
     match lang {
         Lang::En => {
-            "Usage: /login [zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
+            "Usage: /login [nibi|zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
         }
         Lang::Zh => {
-            "用法：/login [zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
+            "用法：/login [nibi|zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
         }
     }
 }
@@ -138,10 +154,18 @@ pub fn logout_usage(lang: Lang) -> &'static str {
 pub fn login_unavailable(lang: Lang, family: Family, api_key: bool) -> String {
     let name = family.display_name();
     match (lang, api_key) {
-        (Lang::En, false) => format!("{name} Coding Plan login is not available in this client."),
+        (Lang::En, false) => format!("{name} login is not available in this client."),
         (Lang::En, true) => "Manual API key setup is not available in this client.".to_owned(),
-        (Lang::Zh, false) => format!("当前客户端不能登录 {name} Coding Plan。"),
+        (Lang::Zh, false) => format!("当前客户端不能登录 {name}。"),
         (Lang::Zh, true) => "当前客户端不能手动配置 API key。".to_owned(),
+    }
+}
+
+/// 入口没有给账号服务时，NIBI 账号那一条。
+pub fn login_nibi_unavailable(lang: Lang) -> &'static str {
+    match lang {
+        Lang::En => "NIBI sign-in is not available in this client.",
+        Lang::Zh => "当前客户端不能登录 NIBI 账号。",
     }
 }
 

@@ -53,6 +53,7 @@ impl McpManager {
         server.resources = false;
         server.expired = false;
         server.reconnecting = false;
+        server.era = None;
         let client = server.client.take();
         Some((
             server.config.clone(),

@@ -140,7 +140,7 @@ pub struct Client<'a> {
     origin: String,
     client_id: String,
     scope: String,
-    now: Box<dyn Fn() -> u64 + 'a>,
+    now: Box<dyn Fn() -> u64 + Send + Sync + 'a>,
 }
 
 impl<'a> Client<'a> {
@@ -149,7 +149,7 @@ impl<'a> Client<'a> {
         origin: impl Into<String>,
         client_id: impl Into<String>,
         scope: impl Into<String>,
-        now: impl Fn() -> u64 + 'a,
+        now: impl Fn() -> u64 + Send + Sync + 'a,
     ) -> Self {
         Self {
             transport,
@@ -161,7 +161,11 @@ impl<'a> Client<'a> {
     }
 
     /// 默认端点/客户端/范围（`NIBI_TUI_OIDC_CLIENT_ID` 是公开标识）。
-    pub fn with_defaults(transport: &'a dyn Transport, origin: &str, now: impl Fn() -> u64 + 'a) -> Self {
+    pub fn with_defaults(
+        transport: &'a dyn Transport,
+        origin: &str,
+        now: impl Fn() -> u64 + Send + Sync + 'a,
+    ) -> Self {
         Self::new(transport, origin, TUI_CLIENT_ID, OIDC_SCOPE, now)
     }
 

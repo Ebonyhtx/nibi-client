@@ -438,6 +438,7 @@ impl LocalKernel {
                 clock: ports.clock.clone(),
                 mcp_telemetry: extensions.mcp_telemetry.clone(),
                 mcp_ui_events: extensions.mcp_ui.clone(),
+                mcp_oauth: extensions.mcp_oauth.clone(),
                 sampling: Some(sampling),
             },
             base,

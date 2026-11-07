@@ -109,6 +109,8 @@ pub(crate) fn builtin_server(
         always_load: true,
         timeout_ms: Some(600_000),
         isolation: McpIsolation::Workspace,
+        oauth: None,
+        protocol_version: Default::default(),
     })
 }
 

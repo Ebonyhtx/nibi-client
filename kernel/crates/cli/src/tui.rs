@@ -78,6 +78,8 @@ pub(crate) struct Inputs<'a> {
     pub temp: &'a Path,
     pub selection: ModelSelection,
     pub mode: PermissionMode,
+    /// NIBI 账号的凭据上下文（TUI 的 `/login` 走 Device Flow，与 `nibi login` 共用）。
+    pub nibi: Arc<crate::login::AccountContext>,
     pub models: Option<Arc<dyn ModelDirectory>>,
     pub history: Vec<String>,
     pub recorder: Recorder,
@@ -244,6 +246,7 @@ pub(crate) fn options(inputs: Inputs<'_>, version: &str) -> Options {
             })),
             account: Some(Arc::new(crate::tui_account::PlatformAccount {
                 platform: inputs.account.clone(),
+                nibi: inputs.nibi.clone(),
             })),
             theme: inputs.theme,
             preferences: Some(Arc::new(ConfigPreferences {

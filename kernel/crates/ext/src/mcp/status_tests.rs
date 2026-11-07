@@ -21,6 +21,7 @@ fn new_registry(fake: Arc<FakeMcp>, scope: &TaskScope) -> McpStatusRegistry {
         McpSettings::default(),
         crate::clock_tests::TokioClock::new(),
         None,
+        None,
     )
 }
 
@@ -36,6 +37,8 @@ fn stdio(name: &str, args: &[&str]) -> SessionMcpServer {
         always_load: false,
         timeout_ms: None,
         isolation: McpIsolation::Session,
+        oauth: None,
+        protocol_version: Default::default(),
     }
 }
 
@@ -49,6 +52,8 @@ fn http(name: &str) -> SessionMcpServer {
         always_load: false,
         timeout_ms: None,
         isolation: McpIsolation::Session,
+        oauth: None,
+        protocol_version: Default::default(),
     }
 }
 
@@ -185,6 +190,7 @@ async fn a_handshake_timeout_is_its_own_kind() {
             ..McpSettings::default()
         },
         crate::clock_tests::TokioClock::new(),
+        None,
         None,
     );
     let statuses = manager

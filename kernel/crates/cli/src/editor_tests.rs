@@ -13,7 +13,7 @@ fn env(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         .collect()
 }
 
-/// 临时文件放在入口给的临时目录下本用户的私有目录（修复线 F58，`zcode-prompt-<uuid>.md`，
+/// 临时文件放在入口给的临时目录下本用户的私有目录（修复线 F58，`nibi-prompt-<uuid>.md`，
 /// 0700 并核对属主）。以前自己按 `TMPDIR` → `TEMP` → `TMP` → `/tmp` 找目录，文件直接放在公共的临时目录里。
 #[test]
 fn the_prompt_file_goes_to_the_private_temp_dir() {
@@ -51,11 +51,11 @@ fn visual_wins_over_editor_and_blank_values_do_not_count() {
 
 #[test]
 fn gui_editors_wait_for_the_file() {
-    let path = Path::new("/tmp/zcode-prompt-1.md");
+    let path = Path::new("/tmp/nibi-prompt-1.md");
     let quoted = if cfg!(windows) {
-        "\"/tmp/zcode-prompt-1.md\""
+        "\"/tmp/nibi-prompt-1.md\""
     } else {
-        "'/tmp/zcode-prompt-1.md'"
+        "'/tmp/nibi-prompt-1.md'"
     };
     assert_eq!(command_line("code", path), format!("code -w {quoted}"));
     assert_eq!(command_line("subl", path), format!("subl --wait {quoted}"));

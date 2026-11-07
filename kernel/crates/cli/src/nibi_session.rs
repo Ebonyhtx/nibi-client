@@ -40,6 +40,7 @@ const PRIVATE_WRITE: WriteOptions = WriteOptions {
 };
 
 /// 共享凭据文件的读写。
+#[derive(Clone)]
 pub struct Store {
     file: PathBuf,
     cipher: CredentialCipher,
@@ -220,13 +221,6 @@ pub fn user_info_value(user: &UserProfile) -> Value {
     }
     value.insert("rawProfile".to_owned(), user.raw_profile.clone());
     Value::Object(value)
-}
-
-/// 会员状态（Node `syncNibiLicense` 的写回）。
-pub struct LicenseOutcome {
-    pub membership: Option<Value>,
-    pub license_expires_at: Option<String>,
-    pub warnings: Vec<String>,
 }
 
 /// `POST {api}/licenses/check` 的地址与头（Node `syncNibiLicense`）。

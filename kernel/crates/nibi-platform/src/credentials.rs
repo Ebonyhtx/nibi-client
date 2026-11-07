@@ -92,6 +92,7 @@ enum KeySource {
     Explicit([u8; 32]),
 }
 
+#[derive(Clone)]
 pub struct CredentialCipher {
     source: Option<KeySource>,
     /// v1 读取密钥；`None` 时 v1 解密失败（不猜）。

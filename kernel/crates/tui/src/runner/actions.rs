@@ -269,6 +269,7 @@ impl<B: Backend> Loop<'_, B> {
             Action::Context { all } => self.context_usage(all),
             Action::SetLocale(locale) => self.save_locale(locale),
             Action::Login(family) => self.login(family),
+            Action::LoginNibi => self.login_nibi(),
             Action::CancelLogin => self.cancel_login(),
             Action::ConfigureKey { family, key } => self.configure_key(family, key),
             Action::Logout => self.logout(),

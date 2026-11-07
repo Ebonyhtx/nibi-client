@@ -30,7 +30,7 @@ pub(crate) struct AccountAuth {
 
 fn authentication(error: TokenError) -> ModelError {
     let hint = match error {
-        TokenError::LoginRequired | TokenError::LoginFailed => "run `zcode login` again",
+        TokenError::LoginRequired | TokenError::LoginFailed => "run `nibi login` again",
         TokenError::ScopeInvalidated => "the account changed during the request",
         TokenError::Disabled => "project tokens are disabled for this account",
         TokenError::ProjectUnavailable => "the account has no usable project",

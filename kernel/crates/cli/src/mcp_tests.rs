@@ -56,6 +56,8 @@ fn configured() -> Vec<McpServer> {
             },
             options: Default::default(),
             machine: None,
+            oauth: None,
+            protocol: Default::default(),
         })
         .collect()
 }

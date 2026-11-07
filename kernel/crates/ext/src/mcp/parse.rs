@@ -3,13 +3,45 @@
 
 use std::collections::BTreeMap;
 
-use nibi_kernel_api::mcp::McpTransportConfig;
+use nibi_kernel_api::mcp::{McpOAuthConfig, McpTransportConfig};
 use serde_json::Value;
 
 use super::config::{McpScope, McpServer};
 
 /// `${VAR}` 与 `${VAR:-默认}` 展开：规则只有一份，在 kernel-api（远端的执行器也用它，remote-exec.md §22.7）。
 pub use nibi_kernel_api::mcp_vars::expand_vars;
+
+/// `mcpServers.<名字>.oauth`（`--mcp-config` 与插件的服务器）：字段名是 Node 的 schema，值里的 `${VAR}` 展开
+/// （密钥常写成 `${TOKEN}`）。形状不对时整条服务器跳过，原因进警告。
+fn oauth(
+    config: &Value,
+    remote: bool,
+    expand: &mut dyn FnMut(&str) -> String,
+) -> Result<Option<McpOAuthConfig>, String> {
+    let Some(value) = config.get("oauth").filter(|value| !value.is_null()) else {
+        return Ok(None);
+    };
+    if !remote {
+        return Err("oauth is only for http or sse servers".to_owned());
+    }
+    // 先展开每个字符串字段，再交给 kernel-api 的同一份判定（字段名与 Node 的 schema 一致）。
+    let expanded = match value.as_object() {
+        Some(fields) => Value::Object(
+            fields
+                .iter()
+                .map(|(key, value)| {
+                    let value = match value.as_str() {
+                        Some(text) => Value::String(expand(text)),
+                        None => value.clone(),
+                    };
+                    (key.clone(), value)
+                })
+                .collect(),
+        ),
+        None => value.clone(),
+    };
+    McpOAuthConfig::from_value(&expanded).map(Some)
+}
 
 fn strings(value: Option<&Value>) -> Vec<String> {
     value
@@ -113,16 +145,24 @@ pub fn parse_servers_keeping(
     names.sort();
     for name in names {
         let mut missing = Vec::new();
+        let remote = keep(name)
+            || matches!(
+                entries[name].get("type").and_then(Value::as_str),
+                Some("http" | "sse" | "remote")
+            );
         let parsed = {
             let mut expand = |text: &str| match keep(name) {
                 // 绑定到远端机器的服务器（R5，remote-exec.md §22.7）：按原文，`${VAR}` 留给那台机器的执行器展开。
                 true => text.to_owned(),
                 false => expand_vars(text, lookup, &mut missing),
             };
-            transport(&entries[name], &mut expand)
+            transport(&entries[name], &mut expand).and_then(|transport| {
+                let settings = oauth(&entries[name], remote, &mut expand)?;
+                Ok((transport, settings))
+            })
         };
         match parsed {
-            Ok(transport) => {
+            Ok((transport, settings)) => {
                 if !missing.is_empty() {
                     warnings.push(format!(
                         "MCP server \"{name}\": missing environment variables: {}",
@@ -135,6 +175,8 @@ pub fn parse_servers_keeping(
                     transport,
                     options: Default::default(),
                     machine: None,
+                    oauth: settings,
+                    protocol: nibi_kernel_api::mcp::McpProtocolVersion::Auto,
                 });
             }
             Err(reason) => warnings.push(format!("MCP server \"{name}\" skipped: {reason}")),

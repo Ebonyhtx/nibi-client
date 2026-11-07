@@ -33,6 +33,8 @@ fn config(name: &str, remote: bool) -> McpServer {
         },
         options: Default::default(),
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
     }
 }
 
@@ -149,15 +151,20 @@ async fn connects_lists_and_calls_tools() {
             .unwrap()
             .always_load
     );
-    // 握手：initialize 之后发 initialized。
+    // 握手：`auto` 先探 `server/discover`（这个服务器回 -32601），再 initialize + initialized。
     let methods: Vec<String> = fake
         .received()
         .iter()
         .filter_map(|(_, message)| message["method"].as_str().map(str::to_owned))
         .collect();
     assert_eq!(
-        methods[..3],
-        ["initialize", "notifications/initialized", "tools/list"]
+        methods[..4],
+        [
+            "server/discover",
+            "initialize",
+            "notifications/initialized",
+            "tools/list"
+        ]
     );
     let context = tool_context(
         Arc::new(MemoryEnvironment::new(facts())),
@@ -368,6 +375,8 @@ async fn node_options_apply_per_server() {
             always_load,
         },
         machine: None,
+        oauth: None,
+        protocol: Default::default(),
         ..config(name, false)
     };
     manager.start(

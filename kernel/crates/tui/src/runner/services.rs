@@ -8,7 +8,8 @@ use tokio::sync::oneshot;
 use super::Loop;
 use super::session::Done;
 use crate::services::{
-    Authorize, CancellationToken, Configured, Family, LoginFailure, RedactedString, UiLocale,
+    Authorize, CancellationToken, Configured, DeviceCode, Family, LoginFailure, NibiAccount,
+    RedactedString, UiLocale,
 };
 use crate::ui::app::Local;
 use crate::ui::i18n;
@@ -27,6 +28,12 @@ pub(crate) enum ServiceDone {
         family: Family,
         authorize: Option<Authorize>,
     },
+    /// NIBI 设备码到了（通道被关掉时为 None）。
+    DeviceCode {
+        code: Option<DeviceCode>,
+    },
+    /// NIBI 账号登录结束。
+    Nibi(Result<NibiAccount, LoginFailure>),
     /// 浏览器授权登录结束。
     Login(Result<Configured, LoginFailure>),
     /// 手工 key 保存结束。
@@ -98,6 +105,32 @@ impl<B: Backend> Loop<'_, B> {
         );
         self.pending
             .push(async move { Done::Service(ServiceDone::Login(login.await)) }.boxed());
+    }
+
+    /// NIBI 账号的设备码登录（tui.md §7.2）：设备码与结果分别作为 `Done` 回来。
+    pub(super) fn login_nibi(&mut self) {
+        let lang = self.app.lang;
+        let Some(account) = self.options.services.account.clone() else {
+            self.app.login_closed();
+            self.app.info(i18n::login_nibi_unavailable(lang));
+            return;
+        };
+        if self.services.login.is_some() {
+            return;
+        }
+        let cancel = CancellationToken::new();
+        self.services.login = Some(cancel.clone());
+        let (sender, receiver) = oneshot::channel();
+        let login = account.login_nibi(sender, cancel);
+        self.pending.push(
+            async move {
+                let code = receiver.await.ok();
+                Done::Service(ServiceDone::DeviceCode { code })
+            }
+            .boxed(),
+        );
+        self.pending
+            .push(async move { Done::Service(ServiceDone::Nibi(login.await)) }.boxed());
     }
 
     /// `/context`：内核按会话的当前视图（没有会话时按新会话的模型与模式）算出用量，只读。
@@ -172,6 +205,28 @@ impl<B: Backend> Loop<'_, B> {
                 if let Some(authorize) = authorize {
                     self.app
                         .info(i18n::login_open_url(lang, family, &authorize.url));
+                }
+            }
+            ServiceDone::DeviceCode { code } => {
+                if let Some(code) = code {
+                    self.app.login_device_code(&code);
+                }
+            }
+            ServiceDone::Nibi(result) => {
+                self.services.login = None;
+                match result {
+                    Ok(account) => {
+                        self.app.login_closed();
+                        self.app.info(i18n::nibi_signed_in(lang, &account));
+                    }
+                    Err(LoginFailure::Cancelled) => {
+                        let status = self.app.strings.login_cancelled;
+                        self.app.login_back(status);
+                    }
+                    Err(LoginFailure::Failed(reason)) => {
+                        self.app.login_closed();
+                        self.app.error(reason);
+                    }
                 }
             }
             ServiceDone::Login(result) => {

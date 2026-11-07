@@ -135,9 +135,9 @@ fn bad_node_server_fields_make_the_server_invalid() {
     );
 }
 
-/// OAuth 与钉在现代握手版本上的服务器不连接：无凭据/用错版本连上去只会变成一条报错连接。
+/// OAuth 与 `protocolVersion` 都原样解析出来（令牌由入口的令牌端口取，版本在连接时协商）。
 #[test]
-fn oauth_and_a_modern_pin_are_reported_instead_of_connected() {
+fn oauth_and_a_modern_pin_are_carried_to_the_connection() {
     let (servers, warnings) = parse_node_servers(
         &json!({
             "a": {"type": "http", "url": "https://mcp.example.com/mcp",
@@ -149,18 +149,26 @@ fn oauth_and_a_modern_pin_are_reported_instead_of_connected() {
         }),
         McpScope::User,
     );
-    assert_eq!(
-        servers.iter().map(|server| server.server.name.as_str()).collect::<Vec<_>>(),
-        ["d"]
-    );
-    assert_eq!(
-        warnings,
-        vec![
-            "mcp.servers.a: oauth: this kernel does not acquire OAuth tokens yet; authorize the server in the desktop app".to_owned(),
-            "mcp.servers.b: oauth: this kernel does not acquire OAuth tokens yet; authorize the server in the desktop app".to_owned(),
-            "mcp.servers.c: protocolVersion: 2026-07-28 needs the modern MCP era, which this client does not speak; only 2025-06-18 is available".to_owned(),
-        ]
-    );
+    assert!(warnings.is_empty(), "{warnings:?}");
+    let by_name = |name: &str| {
+        servers
+            .iter()
+            .find(|server| server.server.name == name)
+            .unwrap()
+            .server
+            .clone()
+    };
+    assert!(matches!(
+        by_name("a").oauth,
+        Some(nibi_kernel_api::mcp::McpOAuthConfig::ClientCredentials { .. })
+    ));
+    assert!(matches!(
+        by_name("b").oauth,
+        Some(nibi_kernel_api::mcp::McpOAuthConfig::AuthorizationCode { .. })
+    ));
+    assert_eq!(by_name("a").protocol, nibi_kernel_api::mcp::McpProtocolVersion::Auto);
+    assert_eq!(by_name("c").protocol, nibi_kernel_api::mcp::McpProtocolVersion::Modern);
+    assert_eq!(by_name("d").protocol, nibi_kernel_api::mcp::McpProtocolVersion::Auto);
     // 形状不对的 oauth 是配置错误（Node 的 strict schema 同一姿态）。
     let (_, warnings) = parse_node_servers(
         &json!({"bad": {"type": "http", "url": "https://x", "oauth": {"type": "client_credentials"}}}),
