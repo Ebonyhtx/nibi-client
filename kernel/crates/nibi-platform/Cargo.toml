@@ -14,12 +14,20 @@ workspace = true
 doctest = false
 
 [dependencies]
+async-trait.workspace = true
 base64.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
+# 设备标识（与 Node 的 `randomUUID()` 同形状）。
+uuid = { workspace = true, features = ["v4"] }
+# 轮询的等待与取消（`poll_until_ready`）。
+tokio = { workspace = true, features = ["time"] }
+tokio-util.workspace = true
 
 [dev-dependencies]
+# `#[tokio::test]`。
+tokio = { workspace = true }
 tempfile.workspace = true

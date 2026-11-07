@@ -1,16 +1,20 @@
-//! NIBI Device Authorization Grant（RFC 8628）的纯协议层。
+//! NIBI Device Authorization Grant（RFC 8628）的协议层与轮询。
 //!
 //! 与 Node `adapters/src/auth/nibi-device-login.ts` 的端点/字段/错误码一致：
 //!
 //! - `POST {authOrigin}/oauth/v2/device_authorization`，form `client_id`+`scope`；
-//! - `POST {authOrigin}/oauth/v2/token`，form `client_id`+`device_code`+`grant_type`；
+//! - `POST {authOrigin}/oauth/v2/token`，form `client_id`+`device_code`+`grant_type`（刷新是 `refresh_token`）；
 //! - `GET {authOrigin}/oidc/v1/userinfo`，Bearer access token。
 //!
-//! 本模块只做请求形状与响应解析；HTTP 与轮询循环由调用方（后续接入 `nibi-kernel-net`）负责。
-//! 这样 Device Flow 的字段/错误码可以在零网络单测里锁死。
+//! HTTP 由调用方注入（[`Transport`]）：内核里的实现挂在 `nibi-kernel-net` 的单一出口上，单测用替身，
+//! 于是字段/错误码/两段计时都能在零网络里锁死。
 
+use std::time::Duration;
+
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio_util::sync::CancellationToken;
 
 pub const AUTH_ORIGIN: &str = "https://auth.nibistudio.top";
 /// OIDC native app：CLI/TUI（client id 是公开标识，不是密钥）。
@@ -19,6 +23,7 @@ pub const OIDC_PROJECT_ID: &str = "393742195619790852";
 pub const OIDC_SCOPE: &str =
     "openid profile email offline_access urn:zitadel:iam:org:project:id:393742195619790852:aud";
 pub const DEVICE_GRANT_TYPE: &str = "urn:ietf:params:oauth:grant-type:device_code";
+pub const REFRESH_GRANT_TYPE: &str = "refresh_token";
 pub const DEFAULT_POLL_INTERVAL_MS: u64 = 5_000;
 
 pub const DEVICE_AUTHORIZATION_PATH: &str = "/oauth/v2/device_authorization";
@@ -39,6 +44,24 @@ pub enum DeviceFlowError {
     MissingSubject,
     #[error("invalid JSON: {0}")]
     Json(String),
+    /// 传输层/HTTP 失败（文案来自实现）。
+    #[error("{0}")]
+    Http(String),
+    /// 非 2xx 且不是 RFC 8628 的四种轮询错误（Node 抛同一句 `error_description`）。
+    #[error("{0}")]
+    Failed(String),
+    /// Node `NibiLoginError("auth_timeout", "设备码已过期，请重新执行 nibi login")`。
+    #[error("设备码已过期，请重新执行 nibi login")]
+    Expired,
+    /// Node `NibiLoginError("auth_denied", "授权被拒绝，请重新执行 nibi login")`。
+    #[error("授权被拒绝，请重新执行 nibi login")]
+    Denied,
+    /// Node `NibiLoginError("auth_timeout", "登录超时，请重新执行 nibi login")`。
+    #[error("登录超时，请重新执行 nibi login")]
+    TimedOut,
+    /// 用户取消（TUI 的 esc）：轮询停下，不写任何文件。
+    #[error("Login cancelled.")]
+    Cancelled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -50,6 +73,8 @@ pub struct DeviceAuthorization {
     pub verification_uri_complete: Option<String>,
     /// 建议轮询间隔；Node 下限 1000ms。
     pub interval_ms: u64,
+    /// 设备码失效时刻（毫秒时间戳，`expires_in` 从响应时刻起算）。
+    pub expires_at_ms: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,6 +114,160 @@ pub enum PollResult {
     Ready { token: TokenSet },
     Expired,
     Denied,
+    /// 其他错误：Node 抛 `error_description`（没有时 `登录失败（<error>）`）。
+    Failed { message: String },
+}
+
+/// HTTP 传输（实现挂在调用方的网络出口上；单测用替身）。返回状态码与解析后的 JSON
+/// （正文不是 JSON 时是 `{}`，与 Node 的 `requestJson` 相同）。
+#[async_trait]
+pub trait Transport: Send + Sync {
+    async fn post_form(
+        &self,
+        url: &str,
+        fields: &[(&str, String)],
+    ) -> Result<(u16, serde_json::Value), String>;
+    async fn get_bearer(
+        &self,
+        url: &str,
+        token: &str,
+    ) -> Result<(u16, serde_json::Value), String>;
+}
+
+/// 账号中心的客户端（Node `createNibiDeviceLoginClient`）。
+pub struct Client<'a> {
+    transport: &'a dyn Transport,
+    origin: String,
+    client_id: String,
+    scope: String,
+    now: Box<dyn Fn() -> u64 + 'a>,
+}
+
+impl<'a> Client<'a> {
+    pub fn new(
+        transport: &'a dyn Transport,
+        origin: impl Into<String>,
+        client_id: impl Into<String>,
+        scope: impl Into<String>,
+        now: impl Fn() -> u64 + 'a,
+    ) -> Self {
+        Self {
+            transport,
+            origin: origin.into().trim_end_matches('/').to_owned(),
+            client_id: client_id.into(),
+            scope: scope.into(),
+            now: Box::new(now),
+        }
+    }
+
+    /// 默认端点/客户端/范围（`NIBI_TUI_OIDC_CLIENT_ID` 是公开标识）。
+    pub fn with_defaults(transport: &'a dyn Transport, origin: &str, now: impl Fn() -> u64 + 'a) -> Self {
+        Self::new(transport, origin, TUI_CLIENT_ID, OIDC_SCOPE, now)
+    }
+
+    pub fn origin(&self) -> &str {
+        &self.origin
+    }
+
+    /// `POST device_authorization`；缺字段、`expires_in` 非法按 Node 报错。
+    pub async fn start(&self) -> Result<DeviceAuthorization, DeviceFlowError> {
+        let fields = device_authorization_form(&self.client_id, &self.scope);
+        let (status, payload) = self
+            .transport
+            .post_form(&device_authorization_url(&self.origin), &fields)
+            .await
+            .map_err(DeviceFlowError::Http)?;
+        if !(200..300).contains(&status) {
+            return Err(DeviceFlowError::Http(http_error(&payload, status)));
+        }
+        parse_device_authorization(&payload, (self.now)())
+    }
+
+    /// 一次轮询（`POST token`，`grant_type=urn:ietf:params:oauth:grant-type:device_code`）。
+    pub async fn poll(&self, device_code: &str) -> Result<PollResult, DeviceFlowError> {
+        let (status, payload) = self
+            .transport
+            .post_form(
+                &token_url(&self.origin),
+                &token_form(&self.client_id, device_code),
+            )
+            .await
+            .map_err(DeviceFlowError::Http)?;
+        if (200..300).contains(&status) {
+            return Ok(PollResult::Ready {
+                token: parse_token_set(&payload, (self.now)())?,
+            });
+        }
+        Ok(parse_poll_failure(status, &payload))
+    }
+
+    /// 用 refresh token 换新的一对令牌（`grant_type=refresh_token`）。
+    pub async fn refresh(&self, refresh_token: &str) -> Result<TokenSet, DeviceFlowError> {
+        let (status, payload) = self
+            .transport
+            .post_form(
+                &token_url(&self.origin),
+                &refresh_form(&self.client_id, refresh_token),
+            )
+            .await
+            .map_err(DeviceFlowError::Http)?;
+        if !(200..300).contains(&status) {
+            return Err(DeviceFlowError::Failed(http_error(&payload, status)));
+        }
+        parse_token_set(&payload, (self.now)())
+    }
+
+    /// 读账号资料（`GET userinfo`，Bearer）。
+    pub async fn user_info(&self, access_token: &str) -> Result<UserProfile, DeviceFlowError> {
+        let (status, payload) = self
+            .transport
+            .get_bearer(&userinfo_url(&self.origin), access_token)
+            .await
+            .map_err(DeviceFlowError::Http)?;
+        if !(200..300).contains(&status) {
+            return Err(DeviceFlowError::Http("读取账号资料失败，请重新登录".to_owned()));
+        }
+        parse_user_profile(&payload)
+    }
+
+    /// 轮询到 `ready`（Node `pollDeviceAuthorization`）：设备码失效前每隔 `interval` 问一次，
+    /// `slow_down` 换间隔；取消令牌随时结束。
+    pub async fn poll_until_ready(
+        &self,
+        authorization: &DeviceAuthorization,
+        cancel: &CancellationToken,
+    ) -> Result<TokenSet, DeviceFlowError> {
+        let mut interval_ms = authorization.interval_ms;
+        while (self.now)() < authorization.expires_at_ms {
+            if cancel.is_cancelled() {
+                return Err(DeviceFlowError::Cancelled);
+            }
+            match self.poll(&authorization.device_code).await? {
+                PollResult::Ready { token } => return Ok(token),
+                PollResult::Expired => return Err(DeviceFlowError::Expired),
+                PollResult::Denied => return Err(DeviceFlowError::Denied),
+                PollResult::Failed { message } => return Err(DeviceFlowError::Failed(message)),
+                PollResult::SlowDown { interval_ms: slower } => interval_ms = slower,
+                PollResult::Pending => {}
+            }
+            let remaining_ms = authorization.expires_at_ms.saturating_sub((self.now)());
+            if remaining_ms == 0 {
+                break;
+            }
+            let wait = Duration::from_millis(interval_ms.min(remaining_ms));
+            tokio::select! {
+                () = tokio::time::sleep(wait) => {}
+                () = cancel.cancelled() => return Err(DeviceFlowError::Cancelled),
+            }
+        }
+        Err(DeviceFlowError::TimedOut)
+    }
+}
+
+/// 非 2xx 的文案：Node `error_description`，否则 `账号中心返回 HTTP <status>`。
+fn http_error(payload: &serde_json::Value, status: u16) -> String {
+    string_field(payload, "error_description")
+        .unwrap_or_else(|| format!("账号中心返回 HTTP {status}"))
 }
 
 /// `NIBI_AUTH_ORIGIN` 覆盖（联调/自建账号中心），去掉尾部斜杠。
@@ -112,21 +291,33 @@ pub fn userinfo_url(origin: &str) -> String {
 }
 
 /// form 用 `application/x-www-form-urlencoded`；返回键值对由 HTTP 层编码。
-pub fn device_authorization_form() -> Vec<(&'static str, &'static str)> {
-    vec![("client_id", TUI_CLIENT_ID), ("scope", OIDC_SCOPE)]
+pub fn device_authorization_form(client_id: &str, scope: &str) -> Vec<(&'static str, String)> {
+    vec![
+        ("client_id", client_id.to_owned()),
+        ("scope", scope.to_owned()),
+    ]
 }
 
-pub fn token_form(device_code: &str) -> Vec<(&'static str, String)> {
+pub fn token_form(client_id: &str, device_code: &str) -> Vec<(&'static str, String)> {
     vec![
-        ("client_id", TUI_CLIENT_ID.to_owned()),
+        ("client_id", client_id.to_owned()),
         ("device_code", device_code.to_owned()),
         ("grant_type", DEVICE_GRANT_TYPE.to_owned()),
     ]
 }
 
-/// 解析 `device_authorization` 的成功响应；缺字段按 Node 的口径报错。
+pub fn refresh_form(client_id: &str, refresh_token: &str) -> Vec<(&'static str, String)> {
+    vec![
+        ("client_id", client_id.to_owned()),
+        ("grant_type", REFRESH_GRANT_TYPE.to_owned()),
+        ("refresh_token", refresh_token.to_owned()),
+    ]
+}
+
+/// 解析 `device_authorization` 的成功响应；缺字段按 Node 的口径报错。`now_ms` 用于 `expires_at_ms`。
 pub fn parse_device_authorization(
     value: &serde_json::Value,
+    now_ms: u64,
 ) -> Result<DeviceAuthorization, DeviceFlowError> {
     let device_code =
         string_field(value, "device_code").ok_or(DeviceFlowError::MissingField("device_code"))?;
@@ -149,6 +340,7 @@ pub fn parse_device_authorization(
         verification_uri,
         verification_uri_complete: string_field(value, "verification_uri_complete"),
         interval_ms,
+        expires_at_ms: now_ms.saturating_add(expires_in.saturating_mul(1000)),
     })
 }
 
@@ -171,7 +363,7 @@ pub fn parse_token_set(
     })
 }
 
-/// token 失败响应的错误码 → 轮询结果；未知错误按 Node 的 `denied`。
+/// token 失败响应的错误码 → 轮询结果；四种已知错误之外按 Node 抛出 `error_description`。
 pub fn parse_poll_failure(status: u16, value: &serde_json::Value) -> PollResult {
     let error = string_field(value, "error").unwrap_or_else(|| format!("http_{status}"));
     match error.as_str() {
@@ -183,7 +375,10 @@ pub fn parse_poll_failure(status: u16, value: &serde_json::Value) -> PollResult 
         },
         "expired_token" => PollResult::Expired,
         "access_denied" => PollResult::Denied,
-        _ => PollResult::Denied,
+        _ => PollResult::Failed {
+            message: string_field(value, "error_description")
+                .unwrap_or_else(|| format!("登录失败（{error}）")),
+        },
     }
 }
 
@@ -217,126 +412,5 @@ fn u64_field(value: &serde_json::Value, key: &str) -> Option<u64> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn builds_node_compatible_requests() {
-        let origin = "https://auth.example.test/";
-        let origin = origin.trim_end_matches('/');
-        assert_eq!(
-            device_authorization_url(origin),
-            "https://auth.example.test/oauth/v2/device_authorization"
-        );
-        assert_eq!(
-            token_url(origin),
-            "https://auth.example.test/oauth/v2/token"
-        );
-        assert_eq!(
-            userinfo_url(origin),
-            "https://auth.example.test/oidc/v1/userinfo"
-        );
-        let form = device_authorization_form();
-        assert_eq!(form[0], ("client_id", TUI_CLIENT_ID));
-        assert!(form[1].1.contains(OIDC_PROJECT_ID));
-        let token = token_form("dev-code");
-        assert_eq!(token[0].0, "client_id");
-        assert_eq!(token[1].1, "dev-code");
-        assert_eq!(token[2].1, DEVICE_GRANT_TYPE);
-    }
-
-    #[test]
-    fn parses_authorization_and_clamps_interval() {
-        let parsed = parse_device_authorization(&json!({
-            "device_code": "dc",
-            "user_code": "UC-1",
-            "verification_uri": "https://auth/device",
-            "verification_uri_complete": "https://auth/device?uc=UC-1",
-            "expires_in": 300,
-            "interval": 1
-        }))
-        .unwrap();
-        assert_eq!(parsed.device_code, "dc");
-        assert_eq!(parsed.user_code, "UC-1");
-        assert_eq!(parsed.interval_ms, 1_000);
-        assert_eq!(
-            parsed.verification_uri_complete.as_deref(),
-            Some("https://auth/device?uc=UC-1")
-        );
-    }
-
-    #[test]
-    fn default_interval_is_five_seconds() {
-        let parsed = parse_device_authorization(&json!({
-            "device_code": "dc", "user_code": "UC", "verification_uri": "u", "expires_in": 60
-        }))
-        .unwrap();
-        assert_eq!(parsed.interval_ms, DEFAULT_POLL_INTERVAL_MS);
-    }
-
-    #[test]
-    fn missing_required_field_is_an_error() {
-        assert!(matches!(
-            parse_device_authorization(&json!({ "device_code": "dc" })).unwrap_err(),
-            DeviceFlowError::MissingField("user_code")
-        ));
-    }
-
-    #[test]
-    fn parses_token_set_with_expiry() {
-        let token = parse_token_set(
-            &json!({
-                "access_token": "at",
-                "refresh_token": "rt",
-                "id_token": "idt",
-                "token_type": "Bearer",
-                "scope": "openid",
-                "expires_in": 3600
-            }),
-            1_000,
-        )
-        .unwrap();
-        assert_eq!(token.access_token, "at");
-        assert_eq!(token.refresh_token.as_deref(), Some("rt"));
-        assert_eq!(token.expires_at_ms, Some(3_601_000));
-    }
-
-    #[test]
-    fn parses_poll_errors_like_node() {
-        assert_eq!(
-            parse_poll_failure(400, &json!({"error": "authorization_pending"})),
-            PollResult::Pending
-        );
-        assert_eq!(
-            parse_poll_failure(400, &json!({"error": "slow_down", "interval": 10})),
-            PollResult::SlowDown {
-                interval_ms: 10_000
-            }
-        );
-        assert_eq!(
-            parse_poll_failure(400, &json!({"error": "expired_token"})),
-            PollResult::Expired
-        );
-        assert_eq!(
-            parse_poll_failure(403, &json!({"error": "access_denied"})),
-            PollResult::Denied
-        );
-        assert_eq!(parse_poll_failure(500, &json!({})), PollResult::Denied);
-    }
-
-    #[test]
-    fn parses_user_profile() {
-        let profile = parse_user_profile(&json!({
-            "sub": "user-1",
-            "name": "Nibi",
-            "email": "u@example.test",
-            "preferred_username": "nibi",
-            "picture": "https://img"
-        }))
-        .unwrap();
-        assert_eq!(profile.id, "user-1");
-        assert_eq!(profile.email.as_deref(), Some("u@example.test"));
-        assert_eq!(profile.avatar_url.as_deref(), Some("https://img"));
-    }
-}
+#[path = "device_flow_tests.rs"]
+mod tests;

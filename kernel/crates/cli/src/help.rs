@@ -115,13 +115,13 @@ pub(crate) const OPTIONS: &[HelpItem] = &[
 pub(crate) const COMMANDS: &[HelpItem] = &[
     item(
         "hooks",
-        "Trust project hooks (zcode hooks trust --help for options)",
+        "Trust project hooks (nibi hooks trust --help for options)",
     ),
     item(
-        "login [target]",
-        "Log in to a Coding Plan account (zai, bigmodel, or <family>-coding-plan-api-key to read an API key from stdin)",
+        "login",
+        "Sign in to your NIBI account (Device Flow; --no-browser prints the URL and code)",
     ),
-    item("logout", "Log out from Coding Plan accounts"),
+    item("logout", "Sign out of NIBI"),
     item("update|upgrade", "Update NIBI to the latest version"),
 ];
 

@@ -114,14 +114,32 @@ pub(super) async fn updates(
     Some(update::Updates::start(inputs).await)
 }
 
-/// `zcode login` / `zcode logout`。
+/// `nibi login` / `nibi logout`。
 pub(super) async fn account(command: login::Command) -> Result<u8> {
     let startup = capture()?;
-    let paths = storage_paths(&startup, &StorageSettings::default());
     let egress = egress(&startup).await?;
     let clock = Arc::new(SystemClock::new(startup.zone.clone()));
-    let platform = platform(&startup, &paths, egress, clock)?;
-    Ok(login::run(command, &platform).await)
+    let (auth_origin, api_base_url) =
+        login::origins(&|key| startup.env.get(key).map(str::to_owned))
+            .map_err(anyhow::Error::msg)?;
+    let paths = nibi_platform::paths::NibiPaths::resolve(&startup.home, |key| {
+        startup.env.get(key).map(str::to_owned)
+    });
+    let store = nibi_session::Store::open(paths.credentials(), |key| {
+        startup.env.get(key).map(str::to_owned)
+    });
+    let now = clock.clone();
+    Ok(login::run(
+        command,
+        &login::AccountContext {
+            store,
+            egress,
+            auth_origin,
+            api_base_url,
+            now: Arc::new(move || now.now_ms()),
+        },
+    )
+    .await)
 }
 
 /// 执行环境的注册表（remote-exec.md §15.8.1）：R0 只有本机——`LocalEnvironment` 实现一台机器的 8 个端口与本机的 Git、

@@ -82,6 +82,7 @@ serde_json.workspace = true
 tokio = { workspace = true, features = ["io-std", "signal", "sync"] }
 # 退出信号交给前端的取消令牌（session-lifecycle.md §3.5）。
 tokio-util.workspace = true
+uuid.workspace = true
 bytes.workspace = true
 # 账号服务地址的环境变量取 origin（Node `normalizeZCodeEndpointOrigin`）。
 url.workspace = true

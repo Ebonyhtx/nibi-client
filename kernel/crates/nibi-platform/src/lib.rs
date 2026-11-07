@@ -10,11 +10,12 @@
 //! - [`paths`]：`.nibi` 数据根、`NIBI_*` env、凭据/钥匙/会话库路径；
 //! - [`credentials`]：`enc:v2:` 信封、每安装随机钥匙、v1 读取与惰性迁移、丢钥匙 fail-closed；
 //! - [`license`]：Ed25519 验签 + `dev` 设备绑定 + `uid/sub` 账号绑定 + exp/72h/7d 判定；
-//! - [`device_flow`]：Device Authorization Grant 的请求形状与响应解析；
+//! - [`device_flow`]：Device Authorization Grant 的请求形状、响应解析、轮询（含刷新）与资料读取；
 //! - [`paid_plugin`]：付费插件发现层门禁的判定顺序与文案。
 //!
-//! 尚未实现（下一段）：Device Flow 的 HTTP 轮询循环、manifest/安装记录读取，
-//! 以及把这些模块接进内核的登录/插件加载路径。
+//! 尚未实现（下一段）：manifest/安装记录读取（付费插件门禁的读面已在 `ext` 的发现层与
+//! `license_store` 里）。Device Flow 的 HTTP 实现由调用方注入（CLI 挂在 `nibi-kernel-net` 的
+//! 单一出口上）。
 
 pub mod credentials;
 pub mod device_flow;

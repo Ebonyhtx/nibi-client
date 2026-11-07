@@ -33,6 +33,7 @@ mod model_io;
 mod model_io_files;
 mod models;
 mod network;
+mod nibi_session;
 mod options;
 mod origins;
 mod output;
