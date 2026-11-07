@@ -228,3 +228,12 @@ nibi-kernel-protocol-nibi = { path = "crates/protocol-nibi" }
 [profile.release]
 lto = "thin"
 strip = true
+
+# 开发/测试不带调试符号：Windows 上每个测试二进制都会生成一个 ~0.4 GB 的 .pdb，反复 `cargo test`
+# 会按哈希各留一份（实测累积到 240 GB，D 盘被塞满）。CI 与发布都用 release，不受影响；
+# 真要调试时用 `CARGO_PROFILE_DEV_DEBUG=2 cargo build` 临时覆盖。
+[profile.dev]
+debug = 0
+
+[profile.test]
+debug = 0
