@@ -33,7 +33,9 @@ use crate::token::Family;
 
 pub(crate) const INDIVIDUAL_CODING_PLAN: &str = "individual-coding-plan";
 pub(crate) const TEAM_CODING_PLAN: &str = "team-coding-plan";
-/// bigmodel 旧版本可能把它误写进 OAuth access token（App 的防御）。
+/// NIBI 账号的 access token（与 `nibi_session` 写的键同名：CLI/TUI/桌面的 `nibi login` 都写这个）。
+pub(crate) const NIBI_ACCESS_TOKEN_KEY: &str = "oauth:nibi:access_token";
+/// 上游遗留的 JWT 键：只在没有新键时兜底（旧凭据文件里可能只有它）。
 pub(crate) const NIBI_JWT_KEY: &str = "zcodejwttoken";
 
 /// 账号连接的身份键（Node `standaloneAccountIdentityCredentialKey`）。
@@ -147,7 +149,8 @@ pub(crate) fn team_accounts(
                 family,
                 identity: credentials.and_then(|c| profile_id(c, family)),
                 token: present(oauth_key(family.as_str())),
-                zcode_jwt: present(NIBI_JWT_KEY),
+                // 新键优先，旧键兜底（登录写的是 `oauth:nibi:access_token`）。
+                zcode_jwt: present(NIBI_ACCESS_TOKEN_KEY).or_else(|| present(NIBI_JWT_KEY)),
             })
         })
         .collect()
@@ -300,7 +303,9 @@ pub(crate) fn request_auth(
         Some(OAuthLogin {
             identity: profile_id(credentials, family)?,
             access_token: credentials.present(oauth_key(family.as_str()))?,
-            zcode_jwt: credentials.present(NIBI_JWT_KEY),
+            zcode_jwt: credentials
+                .present(NIBI_ACCESS_TOKEN_KEY)
+                .or_else(|| credentials.present(NIBI_JWT_KEY)),
         })
     });
     login.map(RequestAuth::OAuth).ok_or_else(|| {

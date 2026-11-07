@@ -226,7 +226,9 @@ impl TeamAccess {
     fn read(credentials: &Credentials, family: Family, team: &ModelConnection) -> Option<Self> {
         let identity = profile_id(credentials, family)?;
         let token = credentials.present(account::oauth_key(family.as_str()))?;
-        let jwt = credentials.present(account::NIBI_JWT_KEY);
+        let jwt = credentials
+            .present(account::NIBI_ACCESS_TOKEN_KEY)
+            .or_else(|| credentials.present(account::NIBI_JWT_KEY));
         // BigModel /api/biz 只接受登录 access token，不能用旧版本误存的 NIBI JWT（App 相同）。
         if family == Family::Bigmodel && jwt.as_ref() == Some(&token) {
             return None;
