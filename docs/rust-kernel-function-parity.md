@@ -337,5 +337,5 @@ redirectPath)[0..24]>:authorization_credentials`）；
    （技能直接取 `ext::SkillCatalog::skills_for`；插件要从 `Plugins` 的 manifest 投影 pluginId/marketplace/
    skillQualifiedNames/mcpServerNames），并在协议层复用 Node 的 strict 形状。
 8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
-7. Rust TUI 的 `/login` 默认是 NIBI 账号的 Device Flow（`/login zai-coding-plan` 等仍是 provider 模板）；
+9. Rust TUI 的 `/login` 默认是 NIBI 账号的 Device Flow（`/login zai-coding-plan` 等仍是 provider 模板）；
    背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。
