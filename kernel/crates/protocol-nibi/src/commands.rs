@@ -141,6 +141,13 @@ fn with_text(text: String, mut blocks: Vec<ContentBlock>) -> Vec<ContentBlock> {
 /// `createSession.mcpServers` → 会话级的 MCP 服务器（NIBI `nibiProtocolMcpServerSchema` 的两种形态）。
 /// 形状已由契约层按同一 zod 生成的 schema 校验过，这里只做字段搬运；认不出的形态整条丢掉（不静默：
 /// 调用方在数量不等时 warn）。
+/// 本内核连不了的服务器配置：需要 OAuth 令牌，或钉在现代握手版本（`2026-07-28`）上。
+/// 两条入口（Host 的 `createSession.mcpServers` 与本机配置文件）用同一个判据，宁可报清楚也不无凭据连接。
+pub(crate) fn unsupported_mcp_server(server: &Value) -> bool {
+    server.get("oauth").is_some_and(|value| !value.is_null())
+        || server["protocolVersion"].as_str() == Some("2026-07-28")
+}
+
 pub(crate) fn session_mcp_servers(payload: &Value) -> Vec<nibi_kernel_api::mcp_session::SessionMcpServer> {
     use std::collections::BTreeMap;
 
@@ -626,29 +633,31 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     // MCP 是创建期配置（NIBI createSession.mcpServers）：会话的工具表从此就是这批服务器。
     // 连接在后台建立；给了列表但一条都没认出来时点名，不静默。
     if let Some(raw) = payload["mcpServers"].as_array() {
-        let servers = session_mcp_servers(payload);
-        if servers.len() != raw.len() {
+        // 内核连不了的两类配置：要 OAuth 令牌的、钉在现代握手版本（2026-07-28）上的。它们**不连接**、
+        // 在这里点名——无凭据或用错版本连上去只会变成一条报错连接（Node 会先跑 OAuth 授权与版本协商）。
+        let (supported, skipped): (Vec<&Value>, Vec<&Value>) = raw
+            .iter()
+            .partition(|server| !unsupported_mcp_server(server));
+        for server in &skipped {
             tracing::warn!(
-                event = "protocol.create_session.mcp_servers_unparsed",
-                given = raw.len(),
-                parsed = servers.len(),
-                "createSession.mcpServers has entries the kernel cannot map"
+                event = "protocol.create_session.mcp_server_unsupported",
+                server = server["name"].as_str().unwrap_or_default(),
+                "the session MCP server needs OAuth or a modern protocol version and was not connected"
             );
         }
-        // 内核的 MCP 连接没有 OAuth 授权、也不接受指定握手版本（ext 的 node_config 同样只 warn）：
-        // 这两项在这里点名，不静默丢掉（Node 的 OAuth 有 15s 授权窗口，Rust 会连成 Failed）。
-        let carrying = |field: &str| {
-            raw.iter()
-                .filter(|server| server.get(field).is_some_and(|value| !value.is_null()))
-                .count()
-        };
-        let (oauth, versioned) = (carrying("oauth"), carrying("protocolVersion"));
-        if oauth > 0 || versioned > 0 {
+        let servers = session_mcp_servers(&Value::Object(
+            std::iter::once((
+                "mcpServers".to_owned(),
+                Value::Array(supported.iter().map(|server| (*server).clone()).collect()),
+            ))
+            .collect(),
+        ));
+        if servers.len() != supported.len() {
             tracing::warn!(
-                event = "protocol.create_session.mcp_servers_unsupported_options",
-                oauth,
-                protocol_version = versioned,
-                "createSession.mcpServers carries oauth/protocolVersion the kernel does not implement"
+                event = "protocol.create_session.mcp_servers_unparsed",
+                given = supported.len(),
+                parsed = servers.len(),
+                "createSession.mcpServers has entries the kernel cannot map"
             );
         }
         let workspace = server.workspace(payload["workspaceId"].as_str().unwrap_or_default());

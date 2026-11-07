@@ -17,8 +17,8 @@ pub enum McpIsolation {
     /// 只属于这个会话（缺省；NIBI 协议与 Node pool 的缺省）。
     #[default]
     Session,
-    /// 同一工作区共享（无状态服务器）。当前实现仍按会话建连接（见 kernel/CHANGELOG-FORK.md），
-    /// 值被接受并保留，不改会话的工具表语义。
+    /// 同一工作区共享（无状态服务器）：同一工作区里配置相同的服务器只有一条连接，按会话引用计数，
+    /// 最后一个会话关闭时释放（Node `pool.ts` 的 `connectionKey()`）。
     Workspace,
 }
 

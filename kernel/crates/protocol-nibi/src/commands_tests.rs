@@ -266,6 +266,26 @@ fn session_mcp_servers_skips_unknown_shapes_and_empty_payloads() {
     assert!(session_mcp_servers(&json!({"mcpServers": []})).is_empty());
 }
 
+/// 需要 OAuth 或钉在现代握手版本上的服务器不连接（两条入口同一判据）。
+#[test]
+fn session_mcp_servers_flags_unconnectable_options() {
+    let oauth = json!({"name": "o", "url": "https://mcp.example.invalid/mcp",
+        "oauth": {"type": "client_credentials", "clientId": "c", "clientSecret": "s"}});
+    let pinned = json!({"name": "p", "command": "node", "protocolVersion": "2026-07-28"});
+    let plain = json!({"name": "ok", "command": "node"});
+    for server in [&oauth, &pinned] {
+        assert!(unsupported_mcp_server(server), "{server}");
+    }
+    assert!(!unsupported_mcp_server(&plain));
+    // `auto` 与 `legacy` 都按 legacy 握手连接。
+    assert!(!unsupported_mcp_server(
+        &json!({"name": "a", "command": "node", "protocolVersion": "auto"})
+    ));
+    assert!(!unsupported_mcp_server(
+        &json!({"name": "l", "command": "node", "protocolVersion": "legacy"})
+    ));
+}
+
 #[test]
 fn first_input_execution_overrides_config_mode() {
     let yolo = PermissionMode::BypassPermissions;

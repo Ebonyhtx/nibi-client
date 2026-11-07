@@ -18,18 +18,34 @@ use nibi_kernel_api::tool::{
 use serde_json::Value;
 use tokio::sync::mpsc;
 
+use super::sessions::SessionConnections;
 use super::McpManager;
 
 /// 最多等多久。
 const WAIT_MS: u64 = 5_000;
 
+/// 等哪一套连接：进程级/状态页的单个 manager，或会话合并后的连接面。
+enum Target {
+    Manager(Weak<McpManager>),
+    Session(Weak<SessionConnections>),
+}
+
 pub(crate) struct WaitForMcpServers {
-    manager: Weak<McpManager>,
+    target: Target,
 }
 
 impl WaitForMcpServers {
     pub(crate) fn new(manager: Weak<McpManager>) -> Self {
-        Self { manager }
+        Self {
+            target: Target::Manager(manager),
+        }
+    }
+
+    /// 会话自己的（合并了工作区共享的那部分）。
+    pub(crate) fn for_session(connections: Weak<SessionConnections>) -> Self {
+        Self {
+            target: Target::Session(connections),
+        }
     }
 }
 
@@ -184,7 +200,12 @@ impl Tool for WaitForMcpServers {
         context: ToolUseContext,
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
-        let manager = self.manager.upgrade().ok_or_else(|| ToolError::Failed {
+        // 两套目标都实现 `McpConnections`：下面只用到 view/wait。
+        let connections: std::sync::Arc<dyn McpConnections> = match &self.target {
+            Target::Manager(manager) => manager.upgrade().map(|manager| manager as _),
+            Target::Session(session) => session.upgrade().map(|session| session as _),
+        }
+        .ok_or_else(|| ToolError::Failed {
             message: "the MCP manager has been released".to_owned(),
         })?;
         let requested: Vec<String> = input
@@ -197,7 +218,7 @@ impl Tool for WaitForMcpServers {
                     .collect()
             })
             .unwrap_or_default();
-        let matcher = Matcher::new(targets(requested, &manager.view()));
+        let matcher = Matcher::new(targets(requested, &connections.view()));
         let settled = |view: &McpView| {
             !view
                 .servers
@@ -205,7 +226,7 @@ impl Tool for WaitForMcpServers {
                 .any(|server| matcher.matches(server) && server.state == McpServerState::Pending)
         };
         let view = tokio::select! {
-            view = manager.wait(WAIT_MS, &settled) => view,
+            view = connections.wait(WAIT_MS, &settled) => view,
             () = context.cancel.cancelled() => return Err(ToolError::Cancelled),
         };
         let outcome = Outcome::of(&matcher, &view);

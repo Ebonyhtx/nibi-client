@@ -2,8 +2,10 @@
 //!
 //! 外形是 Node 的 `McpServerConfig`（`apps/zcode-cli/packages/adapters/src/config/schema.ts`），解析前先做
 //! Node 的旧格式规范化（`normalizeMcpServerConfigInput`）。值原样使用，不展开 `${VAR}`（Node 不展开）。
-//! `cwd`、`timeoutMs`、`alwaysLoad` 按 Node 接上；`protocolVersion`、`oauth` 未覆盖，记警告照常连接（ext.md §3.1、
-//! D21）。
+//! `cwd`、`timeoutMs`、`alwaysLoad` 按 Node 接上。`protocolVersion` 只认 `legacy`/`auto`/缺省（本客户端只有
+//! 2025-06-18 握手；Node 的 `auto` 会先探 `server/discover` 再决定，这里直接走 legacy，属已知差异）；
+//! 钉在 `2026-07-28` 的服务器与带 `oauth` 的服务器**不连接**——无授权或用错版本连上去只会变成一条报错连接
+//! （ext.md §3.1、D21）。
 
 use std::collections::BTreeMap;
 
@@ -109,19 +111,18 @@ pub struct NodeMcpServer {
     pub enabled: bool,
 }
 
-/// 解析出的一个服务器：传输、是否启用、按服务器的选项与不影响连接的警告。
+/// 解析出的一个服务器：传输、是否启用与按服务器的选项。
 struct Parsed {
     transport: McpTransportConfig,
     enabled: bool,
     options: McpServerOptions,
-    warnings: Vec<String>,
 }
 
 /// Node `mcpServerBaseSchema` 的其余字段（ext.md §3.1）：类型不对时整个服务器不合法（Node 的 strict 校验）。
 fn extra_fields(
     server: &Map<String, Value>,
     stdio: bool,
-) -> Result<(Option<String>, McpServerOptions, Vec<String>), String> {
+) -> Result<(Option<String>, McpServerOptions), String> {
     let cwd = match server.get("cwd") {
         None => None,
         Some(_) if !stdio => return Err("cwd: only stdio servers have a working directory".into()),
@@ -148,26 +149,69 @@ fn extra_fields(
         None => false,
         Some(value) => value.as_bool().ok_or("alwaysLoad: expected a boolean")?,
     };
-    let mut warnings = Vec::new();
     match server.get("protocolVersion").map(Value::as_str) {
-        None | Some(Some("legacy")) => {}
-        Some(Some(version @ ("auto" | NEWER_PROTOCOL))) => warnings.push(format!(
-            "protocolVersion \"{version}\" is not supported; connecting with the {PROTOCOL_VERSION} handshake"
-        )),
+        // 缺省与 `auto`：Node 会先探现代握手，这里只有 2025-06-18（已知差异，见模块注释）。
+        None | Some(Some("auto" | "legacy")) => {}
+        Some(Some(NEWER_PROTOCOL)) => {
+            return Err(format!(
+                "protocolVersion: {NEWER_PROTOCOL} needs the modern MCP era, which this client does not speak; \
+ only {PROTOCOL_VERSION} is available"
+            ));
+        }
         Some(_) => {
             return Err(format!(
                 "protocolVersion: expected auto, legacy or {NEWER_PROTOCOL}"
             ));
         }
     }
-    if server.contains_key("oauth") {
-        warnings.push("oauth is not supported; connecting without it".to_owned());
+    if let Some(oauth) = server.get("oauth").filter(|value| !value.is_null()) {
+        // 形状不对按 Node 的 strict schema 报错；形状对也要失败——内核没有 OAuth 令牌获取
+        // （client_credentials 的发现链与交互授权都在桌面端），无凭据连接只会得到 401。
+        authorization(oauth)?;
+        return Err(
+            "oauth: this kernel does not acquire OAuth tokens yet; authorize the server in the desktop app"
+                .to_owned(),
+        );
     }
     let options = McpServerOptions {
         timeout_ms,
         always_load,
     };
-    Ok((cwd, options, warnings))
+    Ok((cwd, options))
+}
+
+/// Node `mcpOAuthSchema` 的形状（client_credentials 要 id/secret；authorization_code 都可省）。
+fn authorization(value: &Value) -> Result<(), String> {
+    let object = value
+        .as_object()
+        .ok_or("oauth: expected an object")?;
+    let text = |key: &str| {
+        object
+            .get(key)
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    };
+    match object.get("type").and_then(Value::as_str) {
+        Some("client_credentials") => {
+            if text("clientId").is_none() {
+                return Err("oauth.clientId: required for client_credentials".to_owned());
+            }
+            if text("clientSecret").is_none() {
+                return Err("oauth.clientSecret: required for client_credentials".to_owned());
+            }
+        }
+        Some("authorization_code") => {}
+        _ => return Err("oauth.type: expected client_credentials or authorization_code".to_owned()),
+    }
+    for key in ["clientId", "clientSecret", "clientName", "scope", "redirectPath"] {
+        match object.get(key) {
+            None | Some(Value::Null) => {}
+            Some(Value::String(value)) if !value.trim().is_empty() => {}
+            Some(_) => return Err(format!("oauth.{key}: expected a non-empty string")),
+        }
+    }
+    Ok(())
 }
 
 /// 一个服务器；`Err` 是不合法。
@@ -178,7 +222,7 @@ fn server(value: &Value) -> Result<Parsed, String> {
     if stdio {
         required(&server, "command")?;
     }
-    let (cwd, options, warnings) = extra_fields(&server, stdio)?;
+    let (cwd, options) = extra_fields(&server, stdio)?;
     let transport = match server.get("type").and_then(Value::as_str) {
         Some("stdio") => McpTransportConfig::Stdio {
             command: required(&server, "command")?,
@@ -210,7 +254,6 @@ fn server(value: &Value) -> Result<Parsed, String> {
         transport,
         enabled,
         options,
-        warnings,
     })
 }
 
@@ -227,8 +270,6 @@ pub fn parse_node_servers(servers: &Value, scope: McpScope) -> (Vec<NodeMcpServe
     for name in names {
         match server(&entries[name]) {
             Ok(parsed) => {
-                let prefix = |warning: String| format!("mcp.servers.{name}: {warning}");
-                warnings.extend(parsed.warnings.into_iter().map(prefix));
                 found.push(NodeMcpServer {
                     server: McpServer {
                         name: name.clone(),

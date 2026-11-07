@@ -179,8 +179,8 @@ R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用�
   退回进程级查找（本轮在联调里实际踩到：工具在工具表里但调用找不到）。
 
 **有意差异（记录在案）**：
-1. `isolation: "workspace"` 的值被接受但**仍按会话建连接**（Node 会跨会话共享一条连接）。
-   功能语义相同（工具可见性一致），只是进程数与连接数更高；等 Step 2 后续再做成共享池。
+1. ~~`isolation: "workspace"` 仍按会话建连接~~ 已补：同一工作区里配置相同的 workspace 服务器共用一条
+   连接，按会话引用计数、最后一个会话关闭时释放（`SessionMcp` 的共享表 + `SessionConnections` 合并视图）。
 2. 冷恢复（v4 subscribe 触发的 `resumePersistedSession`）**不带** `mcpServers`（Node 侧同样不带）：
    恢复出来的会话没有 MCP，直到 Host 重新建会话。这是 Host 契约的现状，不是内核差异。
 3. `alwaysLoad` 已进选项（影响 ToolSearch 的延迟规则）；会话级 MCP 的首请求等待固定 15 s、
@@ -188,9 +188,11 @@ R12：Host 在建会话时把完整 MCP 配置随 `mcpServers` 送进来（用�
 4. 子代理会话**继承**父会话的连接（同日补）：`ToolRegistry::inherit_session_mcp(parent, child)`
    在 `agents::spawn::create` 里调用；`SessionMcp` 的条目分 owned/borrowed，子会话关闭只移掉借用
    条目、不关父会话的连接。Node 的子代理 app 继承父 `config.mcp`，工具可见性由此对齐。
-5. `oauth` 与 `protocolVersion` 尚未实现（与 ext 的 node_config 同一现状）：`create_session`
-   对携带这两项条目的会话点名 `warn`（`protocol.create_session.mcp_servers_unsupported_options`），
-   不静默丢；OAuth 保护的服务会连成 Failed，等 MCP OAuth 支持补上。
+5. `oauth` 与 `protocolVersion`：`legacy`/`auto`/缺省都按 2025-06-18 握手连接（Node 的 `auto` 会先探
+   `server/discover`，这是已知差异）；**需要 OAuth 令牌的服务器与钉在 `2026-07-28` 上的服务器不连接**。
+   两条入口（`createSession.mcpServers` 与配置文件）用同一判据点名（`protocol.create_session.mcp_server_unsupported`
+   与控制台警告）：无凭据或用错版本连上去只会得到一条报错连接。OAuth 令牌获取（client_credentials 的发现链、
+   交互授权）仍未实现。
 
 验证：ext 3 个新测试（每会话独立连接 / 再给一次换掉旧集合 / 协议→配置映射）、kernel-api 2 个
 （序列化往返）、protocol-zcode 3 个（stdio/http/sse 映射、未知形态跳过、firstInput 执行状态优先级）；

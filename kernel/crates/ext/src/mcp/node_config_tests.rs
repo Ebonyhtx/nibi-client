@@ -82,19 +82,13 @@ fn node_server_fields_are_read_or_reported() {
         &json!({
             "a": {"type": "stdio", "command": "node", "cwd": "tools/mcp", "timeoutMs": 45000, "alwaysLoad": true},
             "b": {"type": "http", "url": "https://mcp.example.com/mcp", "timeoutMs": 1.5,
-                  "protocolVersion": "auto",
-                  "oauth": {"type": "client_credentials", "clientId": "c", "clientSecret": "s"}},
+                  "protocolVersion": "auto"},
             "c": {"type": "sse", "url": "https://mcp.example.com/sse", "protocolVersion": "legacy"}
         }),
         McpScope::Project,
     );
-    assert_eq!(
-        warnings,
-        vec![
-            "mcp.servers.b: protocolVersion \"auto\" is not supported; connecting with the 2025-06-18 handshake".to_owned(),
-            "mcp.servers.b: oauth is not supported; connecting without it".to_owned(),
-        ]
-    );
+    // `auto` 与缺省都按 legacy 握手连接，不再记警告。
+    assert!(warnings.is_empty(), "{warnings:?}");
     assert_eq!(
         servers[0].server.transport,
         McpTransportConfig::Stdio {
@@ -138,5 +132,42 @@ fn bad_node_server_fields_make_the_server_invalid() {
             "mcp.servers.d: protocolVersion: expected auto, legacy or 2026-07-28".to_owned(),
             "mcp.servers.e: cwd: only stdio servers have a working directory".to_owned(),
         ]
+    );
+}
+
+/// OAuth 与钉在现代握手版本上的服务器不连接：无凭据/用错版本连上去只会变成一条报错连接。
+#[test]
+fn oauth_and_a_modern_pin_are_reported_instead_of_connected() {
+    let (servers, warnings) = parse_node_servers(
+        &json!({
+            "a": {"type": "http", "url": "https://mcp.example.com/mcp",
+                  "oauth": {"type": "client_credentials", "clientId": "c", "clientSecret": "s"}},
+            "b": {"type": "http", "url": "https://mcp.example.com/mcp",
+                  "oauth": {"type": "authorization_code"}},
+            "c": {"type": "stdio", "command": "node", "protocolVersion": "2026-07-28"},
+            "d": {"type": "stdio", "command": "node", "protocolVersion": "auto"}
+        }),
+        McpScope::User,
+    );
+    assert_eq!(
+        servers.iter().map(|server| server.server.name.as_str()).collect::<Vec<_>>(),
+        ["d"]
+    );
+    assert_eq!(
+        warnings,
+        vec![
+            "mcp.servers.a: oauth: this kernel does not acquire OAuth tokens yet; authorize the server in the desktop app".to_owned(),
+            "mcp.servers.b: oauth: this kernel does not acquire OAuth tokens yet; authorize the server in the desktop app".to_owned(),
+            "mcp.servers.c: protocolVersion: 2026-07-28 needs the modern MCP era, which this client does not speak; only 2025-06-18 is available".to_owned(),
+        ]
+    );
+    // 形状不对的 oauth 是配置错误（Node 的 strict schema 同一姿态）。
+    let (_, warnings) = parse_node_servers(
+        &json!({"bad": {"type": "http", "url": "https://x", "oauth": {"type": "client_credentials"}}}),
+        McpScope::User,
+    );
+    assert_eq!(
+        warnings,
+        vec!["mcp.servers.bad: oauth.clientId: required for client_credentials".to_owned()]
     );
 }

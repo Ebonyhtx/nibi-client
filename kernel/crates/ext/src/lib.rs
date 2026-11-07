@@ -316,10 +316,10 @@ impl Ext {
     }
 
     /// 一个会话的 MCP 连接：会话自己的那套，没带服务器时回落到进程级配置（Node 的 session → pool lease）。
-    fn mcp_for_session(&self, session: &SessionId) -> Arc<McpManager> {
-        self.session_mcp
-            .manager(session)
-            .unwrap_or_else(|| self.mcp.clone())
+    fn mcp_for_session(&self, session: &SessionId) -> Arc<mcp::SessionConnections> {
+        self.session_mcp.manager_of(session).unwrap_or_else(|| {
+            Arc::new(mcp::SessionConnections::single(self.mcp.clone()))
+        })
     }
 
     /// `mcp/uiOpenInstance`：页面实例凭证（同一逻辑页面同连接代际幂等）。
@@ -841,9 +841,9 @@ impl ExtRegistry {
         tools
     }
 
-    /// 会话自己的 WaitForMcpServers：连接状态与 declared 都在这个会话的 manager 里。
-    fn session_wait(manager: &Arc<McpManager>) -> Arc<dyn Tool> {
-        Arc::new(mcp::WaitForMcpServers::new(Arc::downgrade(manager)))
+    /// 会话自己的 WaitForMcpServers：连接状态与 declared 都在这个会话的连接面里（含工作区共享的那部分）。
+    fn session_wait(manager: &Arc<mcp::SessionConnections>) -> Arc<dyn Tool> {
+        Arc::new(mcp::WaitForMcpServers::for_session(Arc::downgrade(manager)))
     }
 
     /// 把会话的 App-Provided Tools 接到工具表末尾：模型侧名字与已有工具冲突时以已有工具为准
@@ -884,7 +884,7 @@ impl ToolRegistry for ExtRegistry {
     /// 会话带了自己的 MCP 服务器时，工具只在自己会话里可见（Node 的 lease 模型）；App 工具的
     /// 模型侧名字只在登记它的会话里找得到。
     fn find_for(&self, session: &SessionId, name: &str) -> Option<Arc<dyn Tool>> {
-        let found = match self.sessions.manager(session) {
+        let found = match self.sessions.manager_of(session) {
             None => self.find(name),
             Some(manager) => {
                 if name == self.skill.name() {
@@ -905,7 +905,7 @@ impl ToolRegistry for ExtRegistry {
 
     /// MCP 工具、连接中的服务器与 instructions 在同一把锁里取（query.md §1.3，修复线 F36）。
     fn snapshot(&self, session: &SessionId) -> ToolSnapshot {
-        if let Some(manager) = self.sessions.manager(session) {
+        if let Some(manager) = self.sessions.manager_of(session) {
             let (tools, view) = manager.snapshot();
             let wait =
                 (!view.pending().is_empty() || manager.declared(session))
@@ -931,7 +931,7 @@ impl ToolRegistry for ExtRegistry {
     }
 
     fn mcp_for(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
-        match self.sessions.manager(session) {
+        match self.sessions.manager_of(session) {
             Some(manager) => Some(manager),
             None => Some(self.mcp.clone()),
         }
@@ -940,7 +940,7 @@ impl ToolRegistry for ExtRegistry {
     /// 会话级 MCP：主循环在首个模型请求前等它离开 Pending（连接在 createSession 里后台启动）。
     fn session_mcp(&self, session: &SessionId) -> Option<Arc<dyn McpConnections>> {
         self.sessions
-            .manager(session)
+            .manager_of(session)
             .map(|manager| manager as Arc<dyn McpConnections>)
     }
 
