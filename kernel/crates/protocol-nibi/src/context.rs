@@ -20,6 +20,9 @@ pub struct Context {
     counter: Mutex<u64>,
     /// 打开着的会话 → 所在的工作区（取账号凭据的反向请求要带工作区）。
     sessions: Mutex<HashMap<String, String>>,
+    /// 打开着的会话 → 工作区身份（远程 workspace 的 `workspace_id`；本机是 `local`）。
+    /// 浏览器的反向请求带它；本机不值当发（Host 按会话解析）。
+    identities: Mutex<HashMap<String, String>>,
     /// 浏览器 broker（Host 声明提供 browser-use 执行面时由入口装上）。
     browser_broker: std::sync::OnceLock<Arc<crate::browser::BrowserBroker>>,
     /// 本进程的随机前缀（代际标识与订阅 ID 用）。
@@ -39,6 +42,7 @@ impl Context {
             ordinals: Mutex::new(HashMap::new()),
             counter: Mutex::new(0),
             sessions: Mutex::new(HashMap::new()),
+            identities: Mutex::new(HashMap::new()),
             browser_broker: std::sync::OnceLock::new(),
             prefix,
         }
@@ -55,10 +59,31 @@ impl Context {
 
     /// 记下一个打开着的会话所在的工作区。
     pub fn register(&self, session: &str, workspace: &str) {
+        self.register_with_identity(session, workspace, None);
+    }
+
+    /// 同 [`Self::register`]，另记工作区身份（`SessionMeta.workspace.environment`：远程 workspace
+    /// 的 identity，本机是 `local`）。
+    pub fn register_with_identity(&self, session: &str, workspace: &str, identity: Option<&str>) {
         self.sessions
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .insert(session.to_owned(), workspace.to_owned());
+        if let Some(identity) = identity.filter(|identity| *identity != "local") {
+            self.identities
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .insert(session.to_owned(), identity.to_owned());
+        }
+    }
+
+    /// 远程工作区的身份；本机或不知道时为 None。
+    pub fn identity_of(&self, session: &str) -> Option<String> {
+        self.identities
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned()
     }
 
     pub fn workspace_of(&self, session: &str) -> Option<String> {

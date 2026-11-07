@@ -78,6 +78,8 @@ impl Harness {
         ));
         let context = Arc::new(Context::new(peer, Arc::new(FixedClock(1))));
         context.register("session_1", "/w");
+        // 远程工作区的身份：反向请求要带 `workspaceIdentity`（本机会话不带）。
+        context.register_with_identity("session_remote", "/w", Some("ws_remote"));
         let (dir, path) = socket_path();
         let broker = Arc::new(start(context, path, &scope.spawner()).unwrap());
         Self {
@@ -142,6 +144,31 @@ async fn list_round_trips_through_the_host() {
     assert_eq!(response["id"], id);
     assert_eq!(response["ok"], true);
     assert_eq!(response["browsers"], json!([]));
+}
+
+#[tokio::test]
+async fn a_remote_workspace_sends_its_identity() {
+    let mut harness = Harness::new();
+    let client = connect(harness.broker.socket_path()).await;
+    let (read, mut write) = tokio::io::split(client);
+    let _lines = BufReader::new(read).lines();
+    let mut ask = request(
+        "00000000-0000-4000-8000-000000000004",
+        harness.broker.token(),
+        "list",
+    );
+    ask["sessionId"] = json!("session_remote");
+    write
+        .write_all(format!("{ask}\n").as_bytes())
+        .await
+        .unwrap();
+
+    let asked = harness.next_host_request().await;
+    // 远程会话的 key 就是 identity，路径照常带上。
+    assert_eq!(asked["params"]["workspaceKey"], "ws_remote");
+    assert_eq!(asked["params"]["workspacePath"], "/w");
+    assert_eq!(asked["params"]["workspaceIdentity"], "ws_remote");
+    harness.reply(&asked, json!({"browsers": []})).await;
 }
 
 #[tokio::test]

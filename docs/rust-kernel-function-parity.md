@@ -3,7 +3,7 @@
 > 目的：切默认内核的判据是「**功能不减**」，不是「协议 89/118」。这份表逐项记「Node 里由谁做、
 > Rust 里由谁做、还差什么」，每行都带可查的代码位置。改动任何一项时同步更新本表。
 >
-> 最后复核：2026-11-07（`dev` `680a2364` + AUQ 自动结束：浏览器 broker/CUA 生命周期与 §4.1）。
+> 最后复核：2026-11-07（`dev` `81957f5e`：浏览器 broker/CUA、AUQ 自动结束、topic 资源）。
 
 ## 结论摘要
 
@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | 1 | 「生成提交信息」（`workspace/generateText` / `cancelGenerateText`） | ✅ **已补**（`277450ca`） |
 | 2 | 浏览器控制 | ✅ **已接回**：`node_repl` MCP + Rust broker + `browser-use` 准入；逐轮 `turnEnded` 已发（§2） |
-| 3 | topic 资源（bot 群话题上下文） | ⬜ 未做——见 §3 的数据流 |
+| 3 | topic 资源（bot 群话题上下文） | ✅ **已补**：意图落库 + 模型文本注入 + `ReadSessionContext`/`ReplyToChannel` + 两条反向请求（§3） |
 | 4 | 运行时偏好协商 | ✅ 三项已核；AUQ 自动结束已按 Node 语义实现（§4.1） |
 | 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；⚠️ 两条 UI 通知差异见 §5 |
 
@@ -57,19 +57,50 @@
   `browser-use` 的 skill（`select.rs` 的 `host_browser_broker`）。
 - 测试：protocol-nibi 3 条（`list` 反向请求、错误 token 不转发、`execute` + `turnEnded` +
   `closeSession`）、runtime 1 条（broker 凭据白名单）、Host 1 条（flag 只在有 executor 时出现）。
-- 剩余：远程 workspace 的 `workspaceIdentity` 还没带（broker 用路径作 `workspaceKey`）。
-  逐轮 `turnEnded` 已在 `Live` 的 `TurnFinished` 后发出（`browser.rs::turn_ended`）。
+- 远程 workspace 的身份：`Context` 记住会话的 `workspace.environment`，broker 对远程会话用 identity
+  作 `workspaceKey` 并带 `workspaceIdentity`（本机仍是路径）。逐轮 `turnEnded` 在 `Live` 的
+  `TurnFinished` 后发出（`browser.rs::turn_ended`）。
 
-## 3. topic 资源（未做）
+## 3. topic 资源（已补）
 
-- Node 的形状：bot 群会话的 `botGroupSource`（`botId`/`chatId`/`threadId`/`authorizationId` +
-  `topicHistory`/`topicContext`）由 core 的 `session-context/topic-resource.ts` 经
-  `topicResourcePort` → `topic/resource/read` 反向请求向 Host 读，再注入会话上下文。
-- Rust：没有 `topicResourcePort` 的对应面，也没有 `topic/resource/read`。
-- 可能的最短路径：Host 是数据所有者 → 在 `createSession` / `sendText` 的参数里带上话题上下文，
-  内核把它作为上下文注入。需要 Host 与协议同时加字段（不是纯内核工作）。
-- 现状：**未做**，先确认 bot 会话在 Rust 模式下是否真的会走到这条链（Bot 由 Host 驱动，
-  见 `botsService`），再决定注入方式。
+### 3.1 Node 的形状
+
+- `sendText` 的 payload 带 `botGroupSource`（`botId`/`chatId`/`threadId`/`authorizationId` +
+  `topicHistory`/`topicContext`/`messages`/`contentParts`）与 `conversationQuotes`；core 的
+  `message-persistence` 把**原文**写进 text part，把模型文本（`withConversationQuotes` 注入后的
+  那份）写进 `metadata.modelInput`，并把 canonical intent 写进消息的
+  `metadata.conversationInputIntent`。
+- 模型面是两个工具：`ReadSessionContext`（`strategy=topic` 读话题归档，带 `attachment` 时经
+  `topic/resource/read` 反向请求把附件物化成受管本机路径）与 `ReplyToChannel`（经
+  `bot/channel/reply` 反向请求发带原生 @ 的回复）。
+
+### 3.2 Rust 的落地（`ef86c5a1` + `81957f5e`）
+
+- **意图与注入**：`protocol-nibi/src/conversation_intent.rs` 是 Node `withConversationQuotes` 的镜像
+  （引用块 + 机器人来源的四段固定说明，逐字对齐）。`sendText` 提交注入后的模型文本，行上仍是原文；
+  意图经新命令 `RecordInputIntent` 与消息同一事务落库（`metadata.conversationInputIntent`），
+  `SessionView.input_intents` 让冷投影恢复行上原文、`botGroupSource`、`conversationQuotes` 与
+  插件来源。`editUserQuery` 的引用同样注入（以前只 warn）。
+- **两个工具**（`tools/src/topic_tools.rs`）：`ReadSessionContext` 的三种策略与 `ReplyToChannel`；
+  读面走 `kernel-api::topic::SessionReads`（runtime 的 `StoreReads` 直接读会话存储，不启动 actor），
+  Host 能力走 `TopicPort`（`protocol-nibi/src/topic.rs::HostTopic`）：
+  - `topic/resource/read`（120 s，可 `topic/resource/cancel`）→ 取回附件后物化成**会话 artifact**
+    （`nibi-artifact://…`），模型用 Read 读它；
+  - `bot/channel/reply`（60 s）→ Host 解析候选与送达，结果原样交回模型；
+  - 回复绑定的输入：按 `tool_use` 找到所属 assistant 消息，再取它前面最近的真人输入，用那条输入的
+    `sourceCommandId` 作 `inputId`（Node 用它 `parentID` 的同一判据）。
+- 附件索引判据与 Node 相同（`topicHistory.resourceMessages` 或 `topicContext.messages[].attachments`
+  两条）；没有已准入的意图时按 Node 的同一条错误失败。
+- 测试：`conversation_intent` 7 条（注入文案逐字、意图形状）、`topic_tools` 4 条（归档只读可信输入、
+  回复绑定输入、无授权失败、附件物化）。
+
+### 3.3 已知差异
+
+1. `relevant` / `handoff` 只给**按时间序的尾部窗口**：Node 会按 query 打分选块，并可经 lite 模型抽取
+   （`source: "lite"`）。Rust 的 `source` 恒为 `"local"`（Node 在没有 lite 模型时的合法取值）。
+2. 话题归档的 token 估算是字符数 / 4（Node 用 `estimateTokens`）；分页大小、匹配规则（id 相等或
+   小写包含）、`coverage` 文案与 `nextCursor` 语义相同。
+3. 话题附件物化成会话 artifact 而不是受管本机路径（Rust 的 Read 认 `nibi-artifact://…`）。
 
 ## 4. 运行时偏好协商（已核）
 
@@ -191,7 +222,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 ## 已知差异（写在这里，别在别处重复记）
 
 1. `generateText` 的 token 不进会话用量。
-2. 浏览器的远程 workspace `workspaceIdentity` 未带（路径作 key）；topic 资源未做（§3）。
+2. 浏览器远程 workspace 的身份已带（identity 作 key）；topic 资源的已知差异见 §3.3。
 3. AUQ 自动结束已实现（§4.1）；与 Node 的两点差异只剩「不持久化绝对时间」与「没有会话事件，
    用 `pendingInteractions` 增量表达」，都不影响倒计时。
 4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；

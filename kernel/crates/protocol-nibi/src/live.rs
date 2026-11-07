@@ -85,7 +85,11 @@ impl Live {
     ) -> Self {
         let levels = view.selection.reasoning.iter().cloned().collect();
         let epoch = context.fresh("epoch");
-        context.register(view.meta.id.as_str(), view.meta.workspace.root.as_str());
+        context.register_with_identity(
+            view.meta.id.as_str(),
+            view.meta.workspace.root.as_str(),
+            Some(view.meta.workspace.environment.as_str()),
+        );
         let now = context.now();
         Self {
             session: view.meta.id.as_str().to_owned(),

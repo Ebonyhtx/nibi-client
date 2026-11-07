@@ -167,6 +167,12 @@ impl Inner {
             "clientMode": "desktop-continuous",
             "sessionContext": "live",
         });
+        // 远程工作区的身份：Host 的 `workspaceKey` 对远程会话是 identity 而不是路径
+        // （本机仍是路径）。
+        if let Some(identity) = self.context.identity_of(&request.session_id) {
+            params["workspaceKey"] = json!(identity);
+            params["workspaceIdentity"] = json!(identity);
+        }
         if let Some(turn) = &request.turn_id {
             params["turnId"] = json!(turn);
         }
