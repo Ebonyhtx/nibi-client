@@ -352,7 +352,7 @@ async fn a_macos_package_is_downloaded_and_cached_under_its_own_target() {
     assert_eq!(
         error,
         DownloadError::Failed(
-            "there is no zcode executor package for x86_64-apple-darwin".to_owned()
+            "there is no nibi executor package for x86_64-apple-darwin".to_owned()
         )
     );
     assert_eq!(

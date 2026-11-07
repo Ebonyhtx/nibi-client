@@ -12,7 +12,7 @@ fn no_marker_is_an_unknown_install() {
     assert_eq!(Install::detect(&env(&[])), None);
     // 只有包名、没有标记：仍是未知安装（本地构建被别的进程带上包名也不检查）。
     assert_eq!(
-        Install::detect(&env(&[("NIBI_MANAGED_PACKAGE", "@scope/zcode")])),
+        Install::detect(&env(&[("NIBI_MANAGED_PACKAGE", "@nibi/cli")])),
         None
     );
 }
@@ -21,7 +21,7 @@ fn no_marker_is_an_unknown_install() {
 fn the_markers_follow_the_codex_precedence() {
     let with = |markers: &[&str]| {
         let mut pairs: Vec<(&str, &str)> = markers.iter().map(|name| (*name, "1")).collect();
-        pairs.push(("NIBI_MANAGED_PACKAGE", "@scope/zcode"));
+        pairs.push(("NIBI_MANAGED_PACKAGE", "@nibi/cli"));
         Install::detect(&env(&pairs)).map(|install| install.manager)
     };
     assert_eq!(with(&["NIBI_MANAGED_BY_NPM"]), Some(Manager::Npm));
@@ -47,17 +47,17 @@ fn the_markers_follow_the_codex_precedence() {
 fn the_package_names_come_from_the_launcher_and_are_checked() {
     let install = Install::detect(&env(&[
         ("NIBI_MANAGED_BY_NPM", "1"),
-        ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
+        ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
         (
             "NIBI_MANAGED_PLATFORM_PACKAGE",
-            "@scope/zcode-darwin-arm64",
+            "@nibi/cli-darwin-arm64",
         ),
     ]))
     .unwrap();
-    assert_eq!(install.package, "@scope/zcode");
+    assert_eq!(install.package, "@nibi/cli");
     assert_eq!(
         install.platform_package.as_deref(),
-        Some("@scope/zcode-darwin-arm64")
+        Some("@nibi/cli-darwin-arm64")
     );
     // 没有平台包名时只核对入口包。
     let entry_only = Install::detect(&env(&[
@@ -71,7 +71,7 @@ fn the_package_names_come_from_the_launcher_and_are_checked() {
         (Some(""), None),
         (Some("@Scope/ZCode"), None),
         (Some("zcode; rm -rf /"), None),
-        (Some("@scope/zcode"), Some("../zcode")),
+        (Some("@nibi/cli"), Some("../zcode")),
     ] {
         let mut pairs = vec![("NIBI_MANAGED_BY_NPM", "1")];
         if let Some(package) = package {
@@ -92,7 +92,7 @@ fn the_package_names_come_from_the_launcher_and_are_checked() {
 fn package_names_follow_the_npm_rules() {
     for good in [
         "zcode",
-        "@scope/zcode",
+        "@nibi/cli",
         "@nibi/cli-win32-x64",
         "a.b_c~d-e",
         "1zcode",
@@ -109,7 +109,7 @@ fn package_names_follow_the_npm_rules() {
         ".nibi",
         "_zcode",
         "zcode/x",
-        "@scope/zcode/x",
+        "@nibi/cli/x",
         "zcode x",
         "zcode\"",
         long.as_str(),
@@ -122,25 +122,25 @@ fn package_names_follow_the_npm_rules() {
 fn each_manager_has_the_codex_command() {
     let install = |manager| Install {
         manager,
-        package: "@scope/zcode".to_owned(),
+        package: "@nibi/cli".to_owned(),
         platform_package: None,
     };
     assert_eq!(
         install(Manager::Npm).command_line(),
-        "npm install -g @scope/zcode"
+        "npm install -g @nibi/cli"
     );
     assert_eq!(
         install(Manager::Pnpm).command_line(),
-        "pnpm add -g @scope/zcode"
+        "pnpm add -g @nibi/cli"
     );
     assert_eq!(
         install(Manager::Bun).command_line(),
-        "bun install -g @scope/zcode"
+        "bun install -g @nibi/cli"
     );
     assert_eq!(install(Manager::Pnpm).program(), "pnpm");
-    assert_eq!(install(Manager::Pnpm).args(), ["add", "-g", "@scope/zcode"]);
+    assert_eq!(install(Manager::Pnpm).args(), ["add", "-g", "@nibi/cli"]);
     assert_eq!(
         install(Manager::Npm).notes_url(),
-        "https://www.npmjs.com/package/@scope/zcode"
+        "https://www.npmjs.com/package/@nibi/cli"
     );
 }

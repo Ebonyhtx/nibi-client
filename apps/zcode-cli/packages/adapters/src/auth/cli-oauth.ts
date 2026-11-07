@@ -1,7 +1,11 @@
 import { randomBytes } from "node:crypto";
 import type { HttpClientPort, HttpClientRunOptions, TraceContext } from "@nibi/contracts";
 
-const DEFAULT_NIBI_OAUTH_BASE_URL = "https://zcode.z.ai/api/v1";
+/**
+ * 缺省端点留空：调用方（`auth-login.ts`）总会传入我们自己的端点；留空时请求会相对当前 origin 失败，
+ * 而不是悄悄打到上游（运营者定：端点只能是 NIBI 自己的或空的）。
+ */
+const DEFAULT_NIBI_OAUTH_BASE_URL = "";
 export type CliOAuthProviderId = "zai" | "bigmodel";
 const POLL_TOKEN_BYTES = 32;
 const JSON_CONTENT_TYPE = "application/json";

@@ -70,10 +70,10 @@ fn text(bytes: &[u8]) -> String {
 
 const NPM: [(&str, &str); 3] = [
     ("NIBI_MANAGED_BY_NPM", "1"),
-    ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
+    ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
     (
         "NIBI_MANAGED_PLATFORM_PACKAGE",
-        "@scope/zcode-darwin-arm64",
+        "@nibi/cli-darwin-arm64",
     ),
 ];
 
@@ -105,16 +105,16 @@ fn without_a_marker_the_update_command_asks_for_a_manual_update() {
 #[test]
 fn the_update_command_runs_the_package_manager_of_the_launcher() {
     for (marker, expected) in [
-        ("NIBI_MANAGED_BY_NPM", "npm install -g @scope/zcode"),
-        ("NIBI_MANAGED_BY_PNPM", "pnpm add -g @scope/zcode"),
-        ("NIBI_MANAGED_BY_BUN", "bun install -g @scope/zcode"),
+        ("NIBI_MANAGED_BY_NPM", "npm install -g @nibi/cli"),
+        ("NIBI_MANAGED_BY_PNPM", "pnpm add -g @nibi/cli"),
+        ("NIBI_MANAGED_BY_BUN", "bun install -g @nibi/cli"),
     ] {
         let home = tempfile::tempdir().unwrap();
         fake_managers(&home.path().join("bin"));
         let output = zcode(
             home.path(),
             &["update"],
-            &[(marker, "1"), ("NIBI_MANAGED_PACKAGE", "@scope/zcode")],
+            &[(marker, "1"), ("NIBI_MANAGED_PACKAGE", "@nibi/cli")],
         );
         assert_eq!(output.status.code(), Some(0), "{output:?}");
         assert_eq!(calls(home.path()), format!("{expected}\n"));
@@ -140,11 +140,11 @@ fn a_failed_update_reports_the_status_and_exits_with_one() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: `npm install -g @scope/zcode` failed with status exit status: 7\n"
+        "Error: `npm install -g @nibi/cli` failed with status exit status: 7\n"
     );
     assert_eq!(
         text(&output.stdout),
-        "\nUpdating NIBI via `npm install -g @scope/zcode`...\nfake npm output\n"
+        "\nUpdating NIBI via `npm install -g @nibi/cli`...\nfake npm output\n"
     );
 }
 

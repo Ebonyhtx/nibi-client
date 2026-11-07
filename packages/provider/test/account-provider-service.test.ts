@@ -102,7 +102,7 @@ describe("AccountProviderService", () => {
     expect(published).toEqual(["config-3"]);
     service.dispose();
   });
-  it("只从 ZCode Built-in Provider Config 解析 Account Provider Config", async () => {
+  it("只从 NIBI Built-in Provider Config 解析 Account Provider Config", async () => {
     const configSource = new MutableConfigSource(configSnapshot("config-1", ["model-a"]));
     const resolve = vi.fn(async ({ configuredProviders, reasons }) => {
       expect(reasons).toEqual(["start"]);

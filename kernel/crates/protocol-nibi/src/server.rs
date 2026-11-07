@@ -417,6 +417,11 @@ impl Server {
                 "genUiContext": false,
             })),
             // platform 自己读同一批文件；回执版本（app-protocol.md §5.1）。
+            // Host 设置页的「测试连通性」：一次 1 token 的无会话模型请求（Node
+            // `testModelConnectivity`）。
+            "provider/testModelConnectivity" => crate::model_connectivity::test(self, &params)
+                .await
+                .map(Reply::new),
             "provider/updateAccountConfig" => reply(json!({
                 "receivedRevision": params["revision"],
                 "providerCount": params["providers"].as_object().map_or(0, serde_json::Map::len),

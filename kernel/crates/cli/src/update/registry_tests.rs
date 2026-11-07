@@ -7,7 +7,7 @@ use super::*;
 fn install(platform: Option<&str>) -> Install {
     Install {
         manager: Manager::Npm,
-        package: "@scope/zcode".to_owned(),
+        package: "@nibi/cli".to_owned(),
         platform_package: platform.map(str::to_owned),
     }
 }
@@ -18,7 +18,7 @@ const PLATFORM: &str = "/@scope%2fzcode-darwin-arm64";
 #[test]
 fn scoped_packages_escape_the_slash() {
     assert_eq!(
-        package_url(REGISTRY, "@scope/zcode"),
+        package_url(REGISTRY, "@nibi/cli"),
         "https://registry.npmjs.org/@scope%2fzcode"
     );
     assert_eq!(
@@ -33,19 +33,19 @@ async fn the_latest_tag_is_read_and_both_packages_are_checked() {
         (
             ENTRY.to_owned(),
             200,
-            package("@scope/zcode", "0.1.47", &["0.1.46", "0.1.47"]),
+            package("@nibi/cli", "0.1.47", &["0.1.46", "0.1.47"]),
         ),
         (
             PLATFORM.to_owned(),
             200,
-            package("@scope/zcode-darwin-arm64", "0.1.47", &["0.1.47"]),
+            package("@nibi/cli-darwin-arm64", "0.1.47", &["0.1.47"]),
         ),
     ]);
     let egress = egress().await;
     let latest = latest(
         &egress,
         &registry.url,
-        &install(Some("@scope/zcode-darwin-arm64")),
+        &install(Some("@nibi/cli-darwin-arm64")),
     )
     .await
     .unwrap();
@@ -70,7 +70,7 @@ async fn without_a_platform_package_only_the_entry_is_checked() {
     let registry = FakeRegistry::start(vec![(
         ENTRY.to_owned(),
         200,
-        package("@scope/zcode", "0.1.47", &["0.1.47"]),
+        package("@nibi/cli", "0.1.47", &["0.1.47"]),
     )]);
     let latest = latest(&egress().await, &registry.url, &install(None))
         .await
@@ -84,9 +84,9 @@ async fn a_version_that_cannot_be_installed_fails_the_check() {
     let cases = [
         // 平台包还没有这个版本（入口先发了）。
         (
-            package("@scope/zcode", "0.1.47", &["0.1.47"]),
-            Some(package("@scope/zcode-darwin-arm64", "0.1.46", &["0.1.46"])),
-            "@scope/zcode-darwin-arm64 version 0.1.47 is missing",
+            package("@nibi/cli", "0.1.47", &["0.1.47"]),
+            Some(package("@nibi/cli-darwin-arm64", "0.1.46", &["0.1.46"])),
+            "@nibi/cli-darwin-arm64 version 0.1.47 is missing",
         ),
         // 入口包的 latest 没有 dist。
         (
@@ -119,7 +119,7 @@ async fn a_version_that_cannot_be_installed_fails_the_check() {
             routes.push((PLATFORM.to_owned(), 200, platform));
         }
         let registry = FakeRegistry::start(routes);
-        let platform_name = platform.is_some().then_some("@scope/zcode-darwin-arm64");
+        let platform_name = platform.is_some().then_some("@nibi/cli-darwin-arm64");
         let error = latest(&egress().await, &registry.url, &install(platform_name))
             .await
             .unwrap_err();

@@ -11,7 +11,7 @@ use super::*;
 fn install(manager: Manager) -> Install {
     Install {
         manager,
-        package: "@scope/zcode".to_owned(),
+        package: "@nibi/cli".to_owned(),
         platform_package: None,
     }
 }
@@ -48,9 +48,9 @@ async fn the_package_manager_gets_the_codex_arguments_and_the_result_is_printed(
     let bin = dir.path().join("bin");
     std::fs::create_dir_all(&bin).unwrap();
     for (manager, name, expected) in [
-        (Manager::Npm, "npm", "install\n-g\n@scope/zcode\n"),
-        (Manager::Pnpm, "pnpm", "add\n-g\n@scope/zcode\n"),
-        (Manager::Bun, "bun", "install\n-g\n@scope/zcode\n"),
+        (Manager::Npm, "npm", "install\n-g\n@nibi/cli\n"),
+        (Manager::Pnpm, "pnpm", "add\n-g\n@nibi/cli\n"),
+        (Manager::Bun, "bun", "install\n-g\n@nibi/cli\n"),
     ] {
         fake_manager(&bin, name);
         let args = dir.path().join(format!("{name}.args"));
@@ -91,13 +91,13 @@ async fn a_failing_package_manager_is_an_error_with_its_status() {
         .unwrap_err();
     assert_eq!(
         error.to_string(),
-        "Error: `npm install -g @scope/zcode` failed with status exit status: 3"
+        "Error: `npm install -g @nibi/cli` failed with status exit status: 3"
     );
     assert!(error.is::<Fatal>());
     // 开头的那句已经打印，没有成功的那句。
     assert_eq!(
         String::from_utf8(out).unwrap(),
-        "\nUpdating NIBI via `npm install -g @scope/zcode`...\n"
+        "\nUpdating NIBI via `npm install -g @nibi/cli`...\n"
     );
 }
 
@@ -169,9 +169,9 @@ async fn a_handoff_that_cannot_be_written_is_an_error() {
 #[tokio::test]
 async fn windows_without_a_handoff_only_names_the_command() {
     for (manager, line) in [
-        (Manager::Npm, "npm install -g @scope/zcode"),
-        (Manager::Pnpm, "pnpm add -g @scope/zcode"),
-        (Manager::Bun, "bun install -g @scope/zcode"),
+        (Manager::Npm, "npm install -g @nibi/cli"),
+        (Manager::Pnpm, "pnpm add -g @nibi/cli"),
+        (Manager::Bun, "bun install -g @nibi/cli"),
     ] {
         let mut out = Vec::new();
         let error = execute(Route::Manual, &install(manager), "0.1.55", &[], &mut out)

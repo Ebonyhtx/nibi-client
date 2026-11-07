@@ -69,7 +69,7 @@ export async function seedPersonalProviderConfig(
   file: string,
   provider: PersonalProviderConfigSeed,
 ) {
-  // 固定 account:* Provider 的 Access 由 ZCode Built-in Config 所有；测试只需把
+  // 固定 account:* Provider 的 Access 由 NIBI Built-in Config 所有；测试只需把
   // endpoint/model 事实切到 replay，不得在 Personal Config 再写 ApiKey Access，
   // 否则正式 schema 会拒绝“个人层覆盖计划 Access”的非法组合。
   const access = provider.id.startsWith("account:")

@@ -15,10 +15,10 @@ const PLATFORM: &str = "/@scope%2fzcode-darwin-arm64";
 fn marked() -> Vec<(String, String)> {
     [
         ("NIBI_MANAGED_BY_NPM", "1"),
-        ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
+        ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
         (
             "NIBI_MANAGED_PLATFORM_PACKAGE",
-            "@scope/zcode-darwin-arm64",
+            "@nibi/cli-darwin-arm64",
         ),
     ]
     .iter()
@@ -32,12 +32,12 @@ fn registry(latest: &str) -> FakeRegistry {
         (
             ENTRY.to_owned(),
             200,
-            package("@scope/zcode", latest, &[latest]),
+            package("@nibi/cli", latest, &[latest]),
         ),
         (
             PLATFORM.to_owned(),
             200,
-            package("@scope/zcode-darwin-arm64", latest, &[latest]),
+            package("@nibi/cli-darwin-arm64", latest, &[latest]),
         ),
     ])
 }
@@ -79,8 +79,8 @@ fn expected(latest: &str) -> UpdateInfo {
     UpdateInfo {
         current: "0.1.46".to_owned(),
         latest: latest.to_owned(),
-        command: "npm install -g @scope/zcode".to_owned(),
-        notes_url: "https://www.npmjs.com/package/@scope/zcode".to_owned(),
+        command: "npm install -g @nibi/cli".to_owned(),
+        notes_url: "https://www.npmjs.com/package/@nibi/cli".to_owned(),
     }
 }
 
@@ -100,7 +100,7 @@ async fn without_a_marker_nothing_is_read_or_fetched() {
     // 只有包名、没有标记：同样不检查。
     let half = vec![(
         "NIBI_MANAGED_PACKAGE".to_owned(),
-        "@scope/zcode".to_owned(),
+        "@nibi/cli".to_owned(),
     )];
     let mut updates = start(&half, true, &cache, &server.url).await;
     assert!(!updates.refreshed().await);
@@ -195,12 +195,12 @@ async fn a_failed_check_keeps_the_old_cache() {
         (
             ENTRY.to_owned(),
             200,
-            package("@scope/zcode", "0.1.48", &["0.1.48"]),
+            package("@nibi/cli", "0.1.48", &["0.1.48"]),
         ),
         (
             PLATFORM.to_owned(),
             200,
-            package("@scope/zcode-darwin-arm64", "0.1.47", &["0.1.47"]),
+            package("@nibi/cli-darwin-arm64", "0.1.47", &["0.1.47"]),
         ),
     ]);
     write_cache(&cache, "0.1.47", NOW_MS - 21 * HOUR_MS, None);

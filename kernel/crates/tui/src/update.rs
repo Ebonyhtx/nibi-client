@@ -25,7 +25,7 @@ pub struct UpdateInfo {
     pub current: String,
     /// npm 上的最新版本。
     pub latest: String,
-    /// 显示用的安装命令行（例如 `npm install -g @scope/zcode`）。
+    /// 显示用的安装命令行（例如 `npm install -g @nibi/cli`）。
     pub command: String,
     /// release notes 链接（入口包的 npm 页面）。
     pub notes_url: String,

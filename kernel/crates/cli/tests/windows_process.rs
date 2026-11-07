@@ -269,8 +269,8 @@ fn the_update_is_handed_to_the_launcher() {
     .unwrap();
     let markers = [
         ("NIBI_MANAGED_BY_NPM", "1"),
-        ("NIBI_MANAGED_PACKAGE", "@scope/zcode"),
-        ("NIBI_MANAGED_PLATFORM_PACKAGE", "@scope/zcode-win32-x64"),
+        ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
+        ("NIBI_MANAGED_PLATFORM_PACKAGE", "@nibi/cli-win32-x64"),
     ];
     let run = |extra: &[(&str, &str)]| -> Output {
         let mut command = sandbox.nibi(&["update"], None);
@@ -284,7 +284,7 @@ fn the_update_is_handed_to_the_launcher() {
     assert_eq!(output.status.code(), Some(1), "{output:?}");
     assert_eq!(
         text(&output.stderr),
-        "Error: Cannot update NIBI while it is running on Windows. Please run `npm install -g @scope/zcode` after it exits.\n"
+        "Error: Cannot update NIBI while it is running on Windows. Please run `npm install -g @nibi/cli` after it exits.\n"
     );
     assert!(output.stdout.is_empty(), "{output:?}");
     let handoff = sandbox.base.join("zcode-update-handoff.json");

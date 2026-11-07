@@ -7,7 +7,7 @@ import {
 } from "../src/index.js";
 
 describe("Todo 21 source contracts", () => {
-  it("ZCode Built-in Provider 只接受 Account Family Provider", () => {
+  it("NIBI Built-in Provider 只接受 Account Family Provider", () => {
     const providers = parseZCodeBuiltinProviderConfigMap([
       {
         providerId: "builtin",

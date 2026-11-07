@@ -33,7 +33,7 @@ beforeAll(async () => {
 
 afterAll(() => source.dispose());
 
-describe("真实 ZCode Built-in Config 到 Active Model", () => {
+describe("真实 NIBI Built-in Config 到 Active Model", () => {
   it("API Key Personal Overlay 经 Registry 原样装配到 Adapter", () => {
     const providerId = "zai-api";
     const modelId = "glm-5.3";

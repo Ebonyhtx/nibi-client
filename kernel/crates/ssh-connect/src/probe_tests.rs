@@ -94,13 +94,13 @@ async fn the_script_finds_ours_and_the_npm_one_and_never_runs_zcode() {
         "#!/bin/sh\necho 'error: unknown option' >&2; exit 1\n",
     );
     // npm 装的：`zcode` 是包里启动器的链接，平台包在包的 node_modules 里。
-    let package = home.path().join("prefix/lib/node_modules/@scope/zcode");
+    let package = home.path().join("prefix/lib/node_modules/@nibi/cli");
     write(
         &package.join("bin/zcode.js"),
         "#!/bin/sh\ntouch \"$HOME/ran-zcode\"\n",
     );
     write(
-        &package.join("node_modules/@scope/zcode-linux-x64/bin/nibi-rs"),
+        &package.join("node_modules/@nibi/cli-linux-x64/bin/nibi-rs"),
         "#!/bin/sh\necho '{\"version\":\"0.1.5\",\"protocol\":1}'\n",
     );
     let bin = home.path().join("prefix/bin");
@@ -188,17 +188,17 @@ async fn the_npm_package_is_found_through_a_relative_link_without_readlink_f() {
         std::fs::write(path, text).unwrap();
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
     };
-    // Homebrew 的 node 的布局：`<prefix>/bin/zcode -> ../lib/node_modules/@scope/zcode/bin/zcode.js`。
-    let package = home.path().join("prefix/lib/node_modules/@scope/zcode");
+    // Homebrew 的 node 的布局：`<prefix>/bin/zcode -> ../lib/node_modules/@nibi/cli/bin/zcode.js`。
+    let package = home.path().join("prefix/lib/node_modules/@nibi/cli");
     write(&package.join("bin/zcode.js"), "#!/bin/sh\nexit 0\n");
     write(
-        &package.join("node_modules/@scope/zcode-darwin-arm64/bin/nibi-rs"),
+        &package.join("node_modules/@nibi/cli-darwin-arm64/bin/nibi-rs"),
         "#!/bin/sh\necho '{\"version\":\"0.1.7\",\"protocol\":1}'\n",
     );
     let bin = home.path().join("prefix/bin");
     std::fs::create_dir_all(&bin).unwrap();
     std::os::unix::fs::symlink(
-        "../lib/node_modules/@scope/zcode/bin/zcode.js",
+        "../lib/node_modules/@nibi/cli/bin/zcode.js",
         bin.join("zcode"),
     )
     .unwrap();

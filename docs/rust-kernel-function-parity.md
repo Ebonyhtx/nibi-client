@@ -329,5 +329,13 @@ redirectPath)[0..24]>:authorization_credentials`）；
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
 6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
+7. **插件引用目录的三条仍在内核侧**（Host 只直答 17 条管理面方法，见
+   `packages/desktop/src/host/localPluginManagementService.ts` 的注释）：`plugins/referenceCatalog`
+   （含 category 变体）、`plugins/resolveSuggestedReference`、`plugins/onDynamicPluginOperationProgress`
+   以及 `skills/referenceCatalog` 在 Rust 内核里**还没有实现**——切流后 Composer 的 `@` 技能/插件引用面板
+   会是空的，推荐插件的安装前解析与进度通知会报 `-32601`。补齐需要给 `Kernel` 加两个目录方法
+   （技能直接取 `ext::SkillCatalog::skills_for`；插件要从 `Plugins` 的 manifest 投影 pluginId/marketplace/
+   skillQualifiedNames/mcpServerNames），并在协议层复用 Node 的 strict 形状。
+8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
 7. Rust TUI 的 `/login` 默认是 NIBI 账号的 Device Flow（`/login zai-coding-plan` 等仍是 provider 模板）；
    背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。

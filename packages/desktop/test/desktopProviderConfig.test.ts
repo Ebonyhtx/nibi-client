@@ -33,7 +33,7 @@ describe("resolveZCodeBuiltinProviderConfigFilePath", () => {
     ).toBe("/repo/config/provider/nibi-builtin.test.json");
   });
 
-  it("显式 ZCode Built-in Config Source 优先于安装布局", () => {
+  it("显式 NIBI Built-in Config Source 优先于安装布局", () => {
     expect(
       resolveZCodeBuiltinProviderConfigFilePath({
         env: { NIBI_BUILTIN_PROVIDER_CONFIG_FILE: "/fixtures/nibi-builtin.json" },

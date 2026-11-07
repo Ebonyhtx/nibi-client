@@ -142,7 +142,7 @@ impl Fetcher {
         // F107（§28.2）：这个平台没有发布的包（Intel Mac），一个请求都不发（部署器本来也不会走到这里）。
         if !platform.published() {
             return Err(DownloadError::Failed(format!(
-                "there is no zcode executor package for {}",
+                "there is no nibi executor package for {}",
                 platform.triple()
             )));
         }

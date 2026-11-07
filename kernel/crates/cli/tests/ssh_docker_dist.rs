@@ -320,7 +320,7 @@ async fn a_musl_machine_is_refused_before_downloading() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("the remote uses musl libc; there is no zcode executor package for it"),
+        stderr.contains("the remote uses musl libc; there is no nibi executor package for it"),
         "{stderr}"
     );
     assert!(

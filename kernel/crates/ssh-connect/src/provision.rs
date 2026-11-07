@@ -291,7 +291,7 @@ impl SshProvisioner {
                 version: version.clone(),
                 target: platform.triple().to_owned(),
                 reason: format!(
-                    "zcode {version} is not on npm, and the latest, {latest}, could not be downloaded: {}",
+                    "nibi {version} is not on npm, and the latest, {latest}, could not be downloaded: {}",
                     error.reason()
                 ),
             })?;

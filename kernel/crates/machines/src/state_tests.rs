@@ -250,7 +250,7 @@ fn falling_back_to_the_latest_downloads_once_and_names_both_protocols() {
     );
     assert_eq!(
         error.to_string(),
-        "zcode 0.1.64 (protocol 1) is not on npm, and the latest executor there, 0.1.63, speaks protocol 2"
+        "nibi 0.1.64 (protocol 1) is not on npm, and the latest executor there, 0.1.63, speaks protocol 2"
     );
     assert_eq!(
         transition(

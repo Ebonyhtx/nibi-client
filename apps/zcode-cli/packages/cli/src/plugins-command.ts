@@ -39,7 +39,7 @@ export type {
   PluginsCommandOverrides,
 } from "./plugins-command-shared.js";
 
-const PLUGINS_COMMAND_USAGE = `Usage: zcode plugins <command> [options]
+const PLUGINS_COMMAND_USAGE = `Usage: nibi plugins <command> [options]
 
 Commands:
   list [--json] [--available]                  List installed plugins; --available also lists the marketplace catalog
@@ -56,7 +56,7 @@ Commands:
   marketplace remove <name>                    Remove a configured marketplace
   marketplace update [name]                    Refresh one marketplace, or all when omitted
 
-Scopes: user (default), project. \`zcode plugin\` is an alias of \`zcode plugins\`.`;
+Scopes: user (default), project. \`nibi plugin\` is an alias of \`nibi plugins\`.`;
 
 export async function runPluginsCommand(
   ctx: RunContext,
@@ -225,13 +225,13 @@ async function runPluginsUpdateCommand(
   const version = current?.version ?? "";
   if (contentChanged) {
     ctx.stdout.write(
-      `Refreshed plugin ${pluginId} (${version || "unknown"}): marketplace content changed. Restart zcode to apply.\n`,
+      `Refreshed plugin ${pluginId} (${version || "unknown"}): marketplace content changed. Restart nibi to apply.\n`,
     );
   } else {
     ctx.stdout.write(
       version && version === result.previousVersion
         ? `Plugin ${pluginId} is already up to date (${version}).\n`
-        : `Updated plugin ${pluginId} from ${result.previousVersion || "unknown"} to ${version || "unknown"}. Restart zcode to apply.\n`,
+        : `Updated plugin ${pluginId} from ${result.previousVersion || "unknown"} to ${version || "unknown"}. Restart nibi to apply.\n`,
     );
   }
   writeWarnings(ctx, result.diagnostics);

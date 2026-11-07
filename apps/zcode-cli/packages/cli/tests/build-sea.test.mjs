@@ -83,7 +83,7 @@ const DATA_DIRECTORY_COUNT = 16;
 const PE_SIGNATURE = 0x00004550;
 const DOS_MAGIC = 0x5a4d;
 
-test("includes the production ZCode Built-in Provider Config as a SEA asset", async () => {
+test("includes the production NIBI Built-in Provider Config as a SEA asset", async () => {
   const root = fileURLToPath(new URL("../../../../..", import.meta.url));
   const assets = await collectSeaProviderConfigAssets({ root, env: { NIBI_ENV: "production" } });
   const nibiBuiltinFilePath = assets[SEA_NIBI_BUILTIN_PROVIDER_CONFIG_ASSET_KEY];

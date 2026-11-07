@@ -4700,7 +4700,7 @@ test("rejects unknown skills subcommands", async () => {
 
   assert.equal(exitCode, 1);
   assert.match(ctx.stderr.output(), /Unknown skills command: missing/);
-  assert.match(ctx.stderr.output(), /Usage: zcode skills \[list\|inspect <name>\]/);
+  assert.match(ctx.stderr.output(), /Usage: nibi skills \[list\|inspect <name>\]/);
   assert.equal(ctx.stdout.output(), "");
 });
 

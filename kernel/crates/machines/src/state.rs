@@ -75,7 +75,7 @@ pub enum MachineError {
     Unreachable(String),
     #[error("{os} {arch} is not supported (only Linux x86_64 / aarch64 and macOS arm64)")]
     Unsupported { os: String, arch: String },
-    #[error("no {target} build of zcode {version} to upload")]
+    #[error("no {target} build of nibi {version} to upload")]
     NoArtifact { version: String, target: String },
     #[error("the remote executor {version} speaks protocol {protocol}{}", if *busy { " and is busy" } else { "" })]
     Incompatible {
@@ -88,14 +88,14 @@ pub enum MachineError {
     #[error("cannot understand the remote: {0}")]
     Probe(String),
     /// 下载执行器失败，远端也没有兼容的（F100，remote-exec.md §26.6）。
-    #[error("downloading the {target} build of zcode {version} failed: {reason}")]
+    #[error("downloading the {target} build of nibi {version} failed: {reason}")]
     DownloadFailed {
         version: String,
         target: String,
         reason: String,
     },
     /// 远端是 musl，没有执行器包（F100）。
-    #[error("the remote uses musl libc; there is no zcode executor package for it")]
+    #[error("the remote uses musl libc; there is no nibi executor package for it")]
     Musl,
     /// 执行器在远端跑不起来：远端的 glibc 太旧（F100）。
     #[error("the executor needs {needs}, but the remote has {}", glibc.as_ref().map_or_else(|| "an older glibc".to_owned(), |version| format!("glibc {version}")))]
@@ -105,7 +105,7 @@ pub enum MachineError {
     },
     /// 本机的版本不在 npm 上，npm 的 latest 说别的协议（F103，remote-exec.md §27.7）。
     #[error(
-        "zcode {version} (protocol {protocol}) is not on npm, and the latest executor there, {latest}, speaks protocol {latest_protocol}"
+        "nibi {version} (protocol {protocol}) is not on npm, and the latest executor there, {latest}, speaks protocol {latest_protocol}"
     )]
     LatestIncompatible {
         version: String,
@@ -115,7 +115,7 @@ pub enum MachineError {
         target: String,
     },
     /// 这个平台没有发布的执行器包（F107，remote-exec.md §28.2：Intel Mac）。
-    #[error("there is no zcode executor package for the remote's platform ({package})")]
+    #[error("there is no nibi executor package for the remote's platform ({package})")]
     NoPackage { package: String },
     /// 上传的执行器在远端被系统杀掉：签名无效（F107，remote-exec.md §28.5）。
     #[error("the uploaded executor was killed on the remote: its signature is not valid")]

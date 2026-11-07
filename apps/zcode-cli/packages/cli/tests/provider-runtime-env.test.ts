@@ -37,7 +37,7 @@ test("preserves explicitly injected provider runtime paths", async () => {
   });
 });
 
-test("resolves the development ZCode Built-in Config and shared Personal Config", async () => {
+test("resolves the development NIBI Built-in Config and shared Personal Config", async () => {
   const root = await temporaryDirectory();
   const entrypoint = join(root, "apps/zcode-cli/packages/cli/src/main.ts");
   const nibiBuiltinFilePath = join(root, "config/provider/nibi-builtin.json");

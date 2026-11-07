@@ -26,8 +26,8 @@ fn info() -> UpdateInfo {
     UpdateInfo {
         current: "0.1.46".to_owned(),
         latest: "0.1.47".to_owned(),
-        command: "npm install -g @scope/zcode".to_owned(),
-        notes_url: "https://www.npmjs.com/package/@scope/zcode".to_owned(),
+        command: "npm install -g @nibi/cli".to_owned(),
+        notes_url: "https://www.npmjs.com/package/@nibi/cli".to_owned(),
     }
 }
 
@@ -66,9 +66,9 @@ async fn the_prompt_shows_the_codex_text_and_options() {
         &lines[1..9],
         [
             "  Update available · 0.1.46 → 0.1.47",
-            "  Release notes: https://www.npmjs.com/package/@scope/zcode",
+            "  Release notes: https://www.npmjs.com/package/@nibi/cli",
             "",
-            "  › 1. Update now (runs `npm install -g @scope/zcode`)",
+            "  › 1. Update now (runs `npm install -g @nibi/cli`)",
             "    2. Skip",
             "    3. Skip until next version",
             "",
@@ -110,8 +110,8 @@ async fn the_prompt_has_chinese_text() {
     let (_, screen, _) = run(Lang::Zh, (80, 12), dark(), vec![key(KeyCode::Esc)]).await;
     for text in [
         "有新版本 · 0.1.46 → 0.1.47",
-        "更新说明：https://www.npmjs.com/package/@scope/zcode",
-        "› 1. 立即更新（运行 `npm install -g @scope/zcode`）",
+        "更新说明：https://www.npmjs.com/package/@nibi/cli",
+        "› 1. 立即更新（运行 `npm install -g @nibi/cli`）",
         "2. 跳过",
         "3. 跳过，直到下一个版本",
         "enter 继续 · esc 跳过",
@@ -240,10 +240,10 @@ async fn the_notice_box_sits_under_the_session_header() {
                 [
                     "╭────────────────────────────────────────────╮",
                     "│ ✨\u{200A}Update available! 0.1.46 -> 0.1.47      │",
-                    "│ Run npm install -g @scope/zcode to update. │",
+                    "│ Run npm install -g @nibi/cli to update. │",
                     "│                                            │",
                     "│ See full release notes:                    │",
-                    "│ https://www.npmjs.com/package/@scope/zcode │",
+                    "│ https://www.npmjs.com/package/@nibi/cli │",
                     "╰────────────────────────────────────────────╯",
                 ],
                 "{screen}"
@@ -264,7 +264,7 @@ async fn the_notice_box_has_chinese_text() {
             for text in [
                 // ✨ 后面是 Codex 的细空格（U+200A）。
                 "✨\u{200A}有新版本！ 0.1.46 -> 0.1.47",
-                "运行 npm install -g @scope/zcode 更新。",
+                "运行 npm install -g @nibi/cli 更新。",
                 "完整的更新说明：",
             ] {
                 assert!(screen.contains(text), "{text}:\n{screen}");
