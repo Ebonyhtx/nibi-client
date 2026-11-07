@@ -63,6 +63,13 @@ export function isValidVersion(version) {
   );
 }
 
+/**
+ * provenance 校验要求的仓库地址：npm 会把它与 OIDC 令牌里的仓库比对
+ * （`Error verifying sigstore provenance bundle: … "repository.url" is ""`）。
+ * 与 `.github/workflows/rust-npm-packages.yml` 的 `Ebonyhtx/nibi-client` 一致。
+ */
+const REPOSITORY_URL = "git+https://github.com/Ebonyhtx/nibi-client.git";
+
 export function buildPackageManifest({ target, version }) {
   const platform = packageIdForTarget(target);
   if (!isValidVersion(version)) {
@@ -73,6 +80,7 @@ export function buildPackageManifest({ target, version }) {
     version,
     description: `NIBI kernel (nibi-rs) for ${platform.os}-${platform.cpu}`,
     license: "Apache-2.0",
+    repository: { type: "git", url: REPOSITORY_URL },
     os: [platform.os],
     cpu: [platform.cpu],
     bin: { "nibi-rs": "bin/nibi-rs" },

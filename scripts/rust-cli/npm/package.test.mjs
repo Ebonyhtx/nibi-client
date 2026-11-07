@@ -48,6 +48,8 @@ test("builds the manifest and build.json the kernel expects", () => {
   const manifest = buildPackageManifest({ target: "x86_64-unknown-linux-gnu", version: "4.0.0" });
   assert.equal(manifest.name, "@nibi-studio/cli-linux-x64-gnu");
   assert.deepEqual(manifest.os, ["linux"]);
+  // provenance 校验要 repository.url 与 OIDC 的仓库一致。
+  assert.equal(manifest.repository.url, "git+https://github.com/Ebonyhtx/nibi-client.git");
   assert.deepEqual(manifest.cpu, ["x64"]);
   assert.deepEqual(manifest.files, ["bin/nibi-rs", "build.json"]);
   assert.deepEqual(buildBuildJson({ target: "aarch64-apple-darwin", version: "4.0.0", sha256: "a".repeat(64) }), {
