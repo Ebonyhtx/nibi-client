@@ -65,6 +65,12 @@ pub fn load(
             .into_iter()
             .chain(model_turns(&active))
             .collect(),
+        // 输入的规范意图（Node 消息的 `metadata.conversationInputIntent`）：冷投影恢复行上原文、
+        // 机器人来源与引用；earlier 与活动段都算。
+        input_intents: input_intents(&earlier)
+            .into_iter()
+            .chain(input_intents(&active))
+            .collect(),
         model,
         mode: execution.map(|state| state.mode),
         plan: execution.is_some_and(|state| state.plan),
@@ -204,6 +210,19 @@ fn model_turns(records: &[Cow<'_, WithParts>]) -> Vec<SessionModelTurn> {
                 message: MessageId::new(record.id()),
                 selection: kernel_selection(&selection),
             })
+        })
+        .collect()
+}
+
+/// 每条真人输入的规范意图：Node 把 canonical intent 写进 user 消息的
+/// `metadata.conversationInputIntent`。坏数据跳过（冷投影只拿它恢复行上原文与来源，不能因此读不出会话）。
+fn input_intents(records: &[Cow<'_, WithParts>]) -> Vec<(MessageId, Value)> {
+    records
+        .iter()
+        .filter(|record| record.info["role"] == "user")
+        .filter_map(|record| {
+            let intent = &record.info["metadata"]["conversationInputIntent"];
+            (!intent.is_null()).then(|| (MessageId::new(record.id()), intent.clone()))
         })
         .collect()
 }

@@ -288,6 +288,7 @@ impl LocalKernel {
             messages: [loaded.earlier, loaded.messages].concat(),
             launches: loaded.launches,
             model_turns: loaded.model_turns,
+            input_intents: loaded.input_intents,
             selection: loaded
                 .model
                 .unwrap_or_else(|| self.defaults.selection.clone()),

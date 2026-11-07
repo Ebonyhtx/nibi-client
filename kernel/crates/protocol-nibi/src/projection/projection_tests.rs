@@ -45,6 +45,7 @@ fn view(messages: Vec<Message>) -> SessionView {
         output_speed: None,
         launches: Vec::new(),
         model_turns: Vec::new(),
+        input_intents: Vec::new(),
     }
 }
 
@@ -417,6 +418,7 @@ fn denied_tools_interrupt_markers_and_immediate_inputs_follow_node() {
             requested: "startNow",
             admitted: "startNow",
             attachments: None,
+            intent: None,
         },
     );
     let queued = feed.apply(KernelEvent::QueueChanged {

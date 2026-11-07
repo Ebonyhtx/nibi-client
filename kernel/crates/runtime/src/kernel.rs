@@ -122,6 +122,7 @@ impl LocalKernel {
                 last_turn_failed: false,
                 launches: Vec::new(),
                 model_turns: Vec::new(),
+                input_intents: Vec::new(),
                 draft,
             },
             Opened::Created,
@@ -543,6 +544,7 @@ impl Kernel for LocalKernel {
                 last_turn_failed: false,
                 launches: Vec::new(),
                 model_turns: Vec::new(),
+                input_intents: Vec::new(),
                 draft: false,
             },
             Opened::Created,
@@ -600,6 +602,7 @@ impl Kernel for LocalKernel {
             last_turn_failed: loaded.last_turn_failed,
             launches: loaded.launches,
             model_turns: loaded.model_turns,
+            input_intents: loaded.input_intents,
             // 冷加载的会话一定已经落库（草稿没有行可加载）。
             draft: false,
         };

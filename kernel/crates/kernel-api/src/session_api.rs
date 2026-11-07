@@ -75,6 +75,14 @@ pub enum Command {
         attachments: Vec<ArtifactRef>,
         delivery: Delivery,
     },
+    /// 下一条 `command` 输入的规范意图（Node `canonical intent` / `conversationInputIntent`）：
+    /// 机器人来源、引用与插件来源。协议层在 `Submit` / `SubmitContent` 之前发；会话 actor 记住它，
+    /// 在该输入的消息落库时把同一份 JSON 写进消息的 `metadata.conversationInputIntent`
+    /// （Node 同一个键），冷投影与话题工具都从这里读。没有意图的输入不发这条。
+    RecordInputIntent {
+        command: CommandId,
+        intent: Value,
+    },
     Interrupt,
     /// 进程要退出（修复线 F38，docs/specs/rust-cli/session-lifecycle.md §3.5）：以 [`crate::abort::AbortReason::Shutdown`]
     /// 中止在跑的回合（之后这个回合不再记录），此后不再开回合。没有回合在跑时也 `Accepted`。
@@ -628,6 +636,10 @@ pub struct SessionView {
     /// `modelChange` 分隔线。serde 缺省为空。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub model_turns: Vec<crate::store::SessionModelTurn>,
+    /// 每条真人输入的规范意图（Node `metadata.conversationInputIntent`），键是那条 user 消息：
+    /// 冷投影用它恢复行上原文、机器人来源与引用（`botGroupSource` 等）。serde 缺省为空。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub input_intents: Vec<(crate::ids::MessageId, Value)>,
 }
 
 // 会话生命周期的类型（SessionStart / SessionEnd 的来源、rewind 选择器的条目）放在分出的文件里（400 行上限，

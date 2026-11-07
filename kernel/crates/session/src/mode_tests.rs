@@ -150,6 +150,7 @@ fn spawn(
             last_turn_failed: false,
             launches: Vec::new(),
             model_turns: Vec::new(),
+            input_intents: Vec::new(),
             draft: false,
         },
         Opened::Created,

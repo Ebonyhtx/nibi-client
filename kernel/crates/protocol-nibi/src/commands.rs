@@ -18,6 +18,7 @@ use nibi_kernel_api::store::SessionFilter;
 use nibi_kernel_protocol_core::rpc::RpcError;
 use serde_json::{Map, Value, json};
 
+use crate::conversation_intent;
 use crate::inbound::Inbound;
 use crate::inbox::{self, Ack, Envelope, Status};
 use crate::projection::InputMeta;
@@ -743,7 +744,7 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
         };
         live.sink.remember_input(
             &envelope.command_id,
-            input_meta(envelope, first, "startNow", "startNow"),
+            input_meta(envelope, first, "startNow", "startNow", None),
         );
         if let KernelAck::Accepted { .. } =
             send(live.handle.as_ref(), &envelope.command_id, submit).await
@@ -759,6 +760,7 @@ fn input_meta(
     payload: &Value,
     requested: &'static str,
     admitted: &'static str,
+    intent: Option<Value>,
 ) -> InputMeta {
     InputMeta {
         client: envelope.client_id.clone(),
@@ -777,6 +779,7 @@ fn input_meta(
             .get("attachments")
             .filter(|value| value.as_array().is_some_and(|items| !items.is_empty()))
             .cloned(),
+        intent,
     }
 }
 
@@ -839,10 +842,31 @@ async fn send_text(
         .as_array()
         .cloned()
         .unwrap_or_default();
+    // 规范意图（原文 + 机器人来源 + 引用 + 插件来源）：模型文本按 Node `withConversationQuotes`
+    // 注入，行上仍显示原文。没有意图时不发那条命令（普通输入不写这个键）。
+    let source = payload.get("botGroupSource").filter(|value| value.is_object());
+    let quotes = payload
+        .get("conversationQuotes")
+        .filter(|value| value.as_array().is_some_and(|items| !items.is_empty()));
+    let input_source = payload.get("source").filter(|value| !value.is_null());
+    let intent = conversation_intent::canonical(&text, command, source, quotes, input_source);
+    let model_text = conversation_intent::model_text(&text, quotes, source);
+    if intent.is_some() {
+        // 先记意图再提交：消息落库时按开启本回合的命令取走（同一事务写进消息元数据）。
+        send(
+            handle,
+            &format!("{command}:intent"),
+            Command::RecordInputIntent {
+                command: CommandId::new(command),
+                intent: intent.clone().unwrap_or(Value::Null),
+            },
+        )
+        .await;
+    }
     // 附件：先解出内容（失败就拒绝这条命令，不静默丢内容），正文与图片一起提交。
     let submit = if refs.is_empty() {
         Command::Submit {
-            text,
+            text: model_text,
             attachments: Vec::new(),
             delivery,
         }
@@ -853,7 +877,7 @@ async fn send_text(
             .unwrap_or_else(|| server.workspace(""));
         match attachment_blocks(&server.kernel, handle.id(), &workspace, &refs).await {
             Ok(blocks) => Command::SubmitContent {
-                content: with_text(text, blocks),
+                content: with_text(model_text, blocks),
                 delivery,
             },
             Err((code, message)) => {
@@ -861,7 +885,10 @@ async fn send_text(
             }
         }
     };
-    live.remember_input(command, input_meta(envelope, payload, requested, admitted));
+    live.remember_input(
+        command,
+        input_meta(envelope, payload, requested, admitted, intent),
+    );
     let result = json!({"type": "inputAccepted", "delivery": admitted, "inputId": command});
     match send(handle, command, submit).await {
         KernelAck::Accepted { .. } => Ack::accepted(command, revision, Some(result)),
@@ -2288,7 +2315,7 @@ async fn apply_file_rewind(
 /// 与 Node 的差异（记录在案）：
 /// - workspaceMode=rewind 直接用 kernel `Rewind{scope: Both}`（文件+对话一次提交），
 ///   Node 的 preview/blocked UI 流（guard.workspaceRewind*）暂无对应 ACK 形状；
-/// - conversationQuotes 暂不消费：出现时 warn（不静默）。
+/// - conversationQuotes 与首次输入同样注入模型文本（行上仍显示原文）。
 async fn edit_user_query(
     server: &Server,
     handle: &dyn SessionHandle,
@@ -2354,16 +2381,11 @@ async fn edit_user_query(
         .as_array()
         .cloned()
         .unwrap_or_default();
-    if envelope
+    // 改写带的引用照常注入模型文本（与首次输入同一处 `withConversationQuotes`）。
+    let quotes = envelope
         .payload
         .get("conversationQuotes")
-        .is_some_and(|quotes| quotes.as_array().is_some_and(|items| !items.is_empty()))
-    {
-        tracing::warn!(
-            event = "protocol.edit_user_query.quotes_unsupported",
-            "editUserQuery carries conversation quotes; they are not replayed yet"
-        );
-    }
+        .filter(|quotes| quotes.as_array().is_some_and(|items| !items.is_empty()));
     let Some(new_text) = envelope.payload["newText"].as_str().map(str::to_owned) else {
         return Ack::refused(
             command,
@@ -2447,9 +2469,11 @@ async fn edit_user_query(
         }
     }
     // 带附件时连同图片内容块重发（attachment-only 的改写也在这里落成同一条写路径）。
+    // 行上仍是原文，模型拿注入后的文本。
+    let model_text = conversation_intent::model_text(&new_text, quotes, None);
     let submit = if refs.is_empty() {
         Command::Submit {
-            text: new_text,
+            text: model_text,
             attachments: Vec::new(),
             delivery: Delivery::Queue,
         }
@@ -2462,7 +2486,7 @@ async fn edit_user_query(
                 }
             };
         Command::SubmitContent {
-            content: with_text(new_text, blocks),
+            content: with_text(model_text, blocks),
             delivery: Delivery::Queue,
         }
     };

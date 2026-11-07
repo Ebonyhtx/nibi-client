@@ -140,7 +140,7 @@ fn append_user(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
     let turn = ctx
         .anchored_turn(id)
         .unwrap_or_else(|| turn_id(&(ctx.uuid)()));
-    let info = records::user_message(&UserPrompt {
+    let mut info = records::user_message(&UserPrompt {
         id,
         session: ctx.session,
         created,
@@ -148,6 +148,18 @@ fn append_user(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
         turn: &turn,
         command: ctx.command,
     });
+    // 输入的规范意图（会话 actor 与这条消息同一批写的 entry）：Node 把它放在消息的
+    // `metadata.conversationInputIntent`，行上的原文、机器人来源与引用都读它。
+    if let Some(intent) = ctx.batch.iter().find_map(|fact| match fact {
+        Fact::Entry {
+            kind,
+            id: entry,
+            data,
+        } if kind == nibi_kernel_api::store::INPUT_INTENT_ENTRY && entry == id => Some(data),
+        _ => None,
+    }) {
+        info["metadata"] = json!({"conversationInputIntent": intent});
+    }
     messages::save_message(ctx.conn, &info, ctx.now as i64).storage()?;
     ctx.opened(id, &turn);
     for text in &texts {

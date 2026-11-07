@@ -41,6 +41,7 @@ fn view(messages: Vec<Message>) -> SessionView {
         output_speed: None,
         launches: Vec::new(),
         model_turns: Vec::new(),
+        input_intents: Vec::new(),
     }
 }
 

@@ -6,6 +6,7 @@
 //! [`Startup::ready`] 或 [`Startup::failed`]；最后 [`serve`] 读到 Host 关掉输入。
 
 mod commands;
+mod conversation_intent;
 mod conversation_telemetry;
 pub mod context;
 mod generate_text;

@@ -46,6 +46,9 @@ pub struct InputMeta {
     pub admitted: &'static str,
     /// 命令带的附件引用（NIBI `AttachmentRef`，原样进 userInput 行的 `attachments`）。
     pub attachments: Option<Value>,
+    /// 这条输入的规范意图（`conversation_intent::canonical`）：行上原文、机器人来源、引用与插件
+    /// 来源都从它取（模型文本是注入后的那一份，行上要显示原文）。
+    pub intent: Option<Value>,
 }
 
 /// 一个回合里的行。
@@ -89,6 +92,9 @@ pub struct Projection {
     pending: Vec<Value>,
     turn: Option<Turn>,
     inputs: HashMap<String, InputMeta>,
+    /// 每条真人输入的规范意图（冷打开时来自 `SessionView.input_intents`，键是 user 消息 id）：
+    /// 行上原文、机器人来源、引用与插件来源都从它取。
+    input_intents: HashMap<String, Value>,
     /// 用户拒绝了的工具调用：结果投成 cancelled。
     denied: std::collections::HashSet<String>,
     /// 助手回复的赞/踩（NIBI setAssistantFeedback），按 assistant 消息 id：行落定时带上。
@@ -250,6 +256,11 @@ impl Projection {
             auto_resolution: auto_resolution::AutoResolution::new(auto_resolution_enabled),
             turn: None,
             inputs: HashMap::new(),
+            input_intents: view
+                .input_intents
+                .iter()
+                .map(|(message, intent)| (message.as_str().to_owned(), intent.clone()))
+                .collect(),
             denied: std::collections::HashSet::new(),
             created_at: view.meta.created_at_ms,
         };
@@ -1042,7 +1053,11 @@ impl Projection {
                     "queueItemId": format!("queue_{command}"),
                     "clientId": meta.map_or("unknown", |meta| meta.client.as_str()),
                     "kind": "sendText",
-                    "text": item.text,
+                    // 排队项显示原文（模型文本是注入后的那一份）。
+                    "text": meta
+                        .and_then(|meta| meta.intent.as_ref())
+                        .and_then(|intent| intent["text"].as_str())
+                        .unwrap_or(item.text.as_str()),
                     "attachments": [],
                     "delivery": {
                         "requested": meta.map_or("queue", |meta| meta.requested),

@@ -188,6 +188,9 @@ pub struct SessionState {
     /// 每轮输入的模型选择（冷加载的 `LoadedSession.model_turns`）：actor 在提交用户输入时追加，
     /// `view()` 带给冷投影（模型切换分隔线）。
     pub model_turns: Vec<nibi_kernel_api::store::SessionModelTurn>,
+    /// 每条真人输入的规范意图（冷加载的 `LoadedSession.input_intents`）：actor 在消息落库时追加，
+    /// `view()` 带给冷投影（行上原文、机器人来源与引用）。
+    pub input_intents: Vec<(nibi_kernel_api::ids::MessageId, serde_json::Value)>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行，状态与消息只在
     /// 内存里；第一条用户输入提交时 actor 才写会话行与初始事实（`actor.rs` 的 `promote`）。
     pub draft: bool,

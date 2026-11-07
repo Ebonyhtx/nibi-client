@@ -153,6 +153,7 @@ pub(crate) async fn view(
         messages: [loaded.earlier, loaded.messages].concat(),
         launches: loaded.launches,
         model_turns: loaded.model_turns,
+        input_intents: loaded.input_intents,
         selection,
         mode: execution.mode,
         plan: execution.plan,

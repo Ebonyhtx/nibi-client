@@ -369,16 +369,39 @@ impl Actor {
             .running
             .as_ref()
             .is_some_and(|running| running.prompt.as_ref() == Some(message.id()));
+        // 这条输入带了规范意图：与消息同一批落库（Node 消息的 `metadata.conversationInputIntent`）。
+        let intent = prompt
+            .then(|| {
+                self.running
+                    .as_ref()
+                    .and_then(|running| running.command.clone())
+            })
+            .flatten()
+            .and_then(|command| self.pending_intents.remove(&command));
+        let mut facts = vec![fact];
+        if let Some(intent) = &intent {
+            facts.insert(
+                0,
+                Fact::Entry {
+                    kind: nibi_kernel_api::store::INPUT_INTENT_ENTRY.to_owned(),
+                    id: message.id().as_str().to_owned(),
+                    data: intent.clone(),
+                },
+            );
+        }
         // 本地命令的记录不算（修复线 L-A：`/clear` 之后的新会话以 `/clear` 的记录开头，第一条输入照样起标题）。
         let first = !self
             .messages
             .iter()
             .any(|m| matches!(m, Message::User(user) if !crate::local_record::is_record(user)));
         if let Err(reason) = self
-            .commit(command, [vec![fact], extra, usage].concat())
+            .commit(command, [facts, extra, usage].concat())
             .await
         {
             return Err(self.fail(&reason));
+        }
+        if let Some(intent) = intent {
+            self.input_intents.push((message.id().clone(), intent));
         }
         self.plan_attachment_committed(&message);
         self.goal_committed(&message);

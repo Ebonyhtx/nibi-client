@@ -236,6 +236,12 @@ pub(crate) struct Actor {
     /// 每轮输入的模型选择（冷加载的 `LoadedSession.model_turns` + 本进程提交的用户输入）：
     /// `view()` 带给冷投影补模型切换分隔线。锁不跨 await（与 `turn` 同一写法）。
     pub(crate) model_turns: std::sync::Mutex<Vec<nibi_kernel_api::store::SessionModelTurn>>,
+    /// 每条真人输入的规范意图（冷加载的 `LoadedSession.input_intents` + 本进程落的）：`view()` 带给
+    /// 冷投影恢复行上原文、机器人来源与引用。
+    pub(crate) input_intents: Vec<(nibi_kernel_api::ids::MessageId, serde_json::Value)>,
+    /// 已经收到、还没落进消息的意图（[`Command::RecordInputIntent`]，键是输入的命令 id）。
+    /// 协议层在 `Submit` 之前发；消息落库时按开启本回合的命令取走。
+    pub(crate) pending_intents: HashMap<CommandId, serde_json::Value>,
     seen: HashSet<CommandId>,
     /// 草稿（NIBI legacy `session/create` 的 `persistence: "deferred"`）：还没有会话行。期间的提交只改
     /// 内存；第一条用户输入（[`opens_turn`]）提交时 [`Self::promote`] 写会话行与初始事实，之后照常落库。
@@ -350,6 +356,8 @@ impl Actor {
             pending_launch: VecDeque::new(),
             launches: state.launches,
             model_turns: std::sync::Mutex::new(state.model_turns),
+            input_intents: state.input_intents,
+            pending_intents: HashMap::new(),
             seen: HashSet::new(),
             draft,
             pending_project_mode: std::sync::Mutex::new(None),
@@ -684,6 +692,11 @@ impl Actor {
                     Ok(()) => accepted(),
                     Err(reason) => rejected(reason),
                 }
+            }
+            Command::RecordInputIntent { command, intent } => {
+                // 只记在输入的命令上；消息落库时（`record_with`）按开启本回合的命令取走。
+                self.pending_intents.insert(command, intent);
+                accepted()
             }
             Command::Interrupt => self.interrupt().await,
             Command::Shutdown => self.shutdown().await,
@@ -1030,6 +1043,7 @@ impl Actor {
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
                 .clone(),
+            input_intents: self.input_intents.clone(),
         }
     }
 }

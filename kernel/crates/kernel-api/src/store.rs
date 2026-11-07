@@ -302,7 +302,15 @@ pub struct LoadedSession {
     /// 每轮真实输入的模型选择（[`SessionModelTurn`]，earlier 与 messages 都算；serde 缺省为空）。
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub model_turns: Vec<SessionModelTurn>,
+    /// 每条真人输入的规范意图（Node 消息的 `metadata.conversationInputIntent`）：行上显示的原文、
+    /// 机器人来源、引用与插件来源。键是那条 user 消息；没有意图的输入不在表里（serde 缺省为空）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub input_intents: Vec<(MessageId, serde_json::Value)>,
 }
+
+/// 真人输入的规范意图 entry 的 kind：会话 actor 与消息同一批写（`Fact::Entry`），节点存储把它并进
+/// 消息的 `metadata.conversationInputIntent`（Node 同一个键）。
+pub const INPUT_INTENT_ENTRY: &str = "conversation_input_intent";
 
 /// 有意图、没有结果的操作（[`Fact::OperationIntent`] 原样）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

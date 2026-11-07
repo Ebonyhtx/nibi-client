@@ -145,6 +145,7 @@ fn subagent_view(mode: PermissionMode, plan: bool, stats: bool) -> Transcript {
         }),
         launches: Vec::new(),
         model_turns: Vec::new(),
+        input_intents: Vec::new(),
     };
     Transcript::from_view(view, 0)
 }
@@ -497,5 +498,6 @@ fn snapshot_of(view: Transcript) -> SessionView {
         output_speed: view.output_speed(),
         launches: Vec::new(),
         model_turns: Vec::new(),
+        input_intents: Vec::new(),
     }
 }

@@ -68,7 +68,32 @@ impl Projection {
                     return;
                 }
                 let mut row = self.base(&turn.id, user.id.as_str(), "userInput", now, seq);
-                row.insert("text".into(), json!(text_of(&user.content)));
+                // 输入的规范意图（活会话来自 `remember_input`，冷打开来自存储）：行上显示原文，
+                // 模型文本是注入后的那一份；机器人来源、引用与插件来源也在这里。
+                let intent = turn
+                    .command
+                    .as_deref()
+                    .and_then(|command| self.inputs.get(command))
+                    .and_then(|meta| meta.intent.as_ref())
+                    .or_else(|| self.input_intents.get(user.id.as_str()));
+                let displayed = intent
+                    .and_then(|intent| intent["text"].as_str().map(str::to_owned))
+                    .unwrap_or_else(|| text_of(&user.content));
+                row.insert("text".into(), json!(displayed));
+                if let Some(intent) = intent {
+                    // 中枢启动/设置轮优先（同为 Node `mapUserInputOrigin` 的次序）。
+                    if turn.launch.is_none() {
+                        for key in ["botGroupSource", "conversationQuotes", "source"] {
+                            if let Some(value) = intent.get(key).filter(|value| !value.is_null()) {
+                                row.insert(key.to_owned(), value.clone());
+                            }
+                        }
+                    }
+                    // text 从 epilogueStart 起是引擎附加文本（Node 同一字段）。
+                    if let Some(start) = intent["epilogueStart"].as_u64() {
+                        row.insert("epilogueStart".into(), json!(start));
+                    }
+                }
                 // 中枢启动/设置轮的输入行：与轮头同用 workflowLaunch origin（UI 据此画启动卡而非
                 // 用户气泡，Node mapUserInputOrigin），元数据原样上行；普通输入还是 realUser。
                 if let Some(launch) = &turn.launch {
