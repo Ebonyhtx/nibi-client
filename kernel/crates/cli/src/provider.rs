@@ -377,10 +377,13 @@ async fn execute(command: Command, context: &Context<'_>) -> Result<String, Stri
                 .models
                 .first()
                 .ok_or_else(|| format!("provider {id} has no model"))?;
+            let reasoning = item.default_reasoning.clone().ok_or_else(|| {
+                format!("provider {id} has no usable model yet — add its API key first")
+            })?;
             let selection = ModelSelection {
                 provider: item.id.clone(),
                 model: model.clone(),
-                reasoning: None,
+                reasoning: Some(reasoning),
                 connection: None,
             };
             context.platform.save_default_model(&selection).await?;
@@ -440,6 +443,7 @@ fn summary_json(item: &ProviderSummary) -> Value {
         "personal": item.personal,
         "enabled": item.enabled,
         "template": item.template,
+        "defaultReasoning": item.default_reasoning,
     })
 }
 

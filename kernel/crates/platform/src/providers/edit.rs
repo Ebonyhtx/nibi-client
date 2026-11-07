@@ -39,6 +39,9 @@ pub struct Summary {
     pub enabled: bool,
     /// 继承的内置模板（选预设时写进去的 `templateId`）。
     pub template: Option<String>,
+    /// 第一个可执行模型的最后一个档位：`/provider use` 写默认模型时要带上它（Node 只认带档位的选择）。
+    /// 没有可执行模型（缺 key、端点无效）时为空。
+    pub default_reasoning: Option<String>,
 }
 
 /// 内置模板（新建 Provider 的预设）。
@@ -215,6 +218,7 @@ pub fn summaries(builtin: &Value, personal: &Value) -> Vec<Summary> {
             personal,
             enabled: rule["enabled"] != false,
             template,
+            default_reasoning: None,
         });
     };
     for rule in array(&builtin["providerConfigRules"]["providerRules"]) {

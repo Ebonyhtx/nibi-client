@@ -40,6 +40,7 @@ fn info(id: &str) -> ProviderInfo {
         personal: true,
         enabled: true,
         template: None,
+        default_reasoning: Some("high".to_owned()),
     }
 }
 
@@ -228,14 +229,18 @@ fn removing_takes_two_enters() {
 #[test]
 fn use_returns_the_first_model_and_unknown_ids_stay_in_the_list() {
     let mut app = app();
-    let selection = app.provider_loaded(
-        Intent::Use("personal:gateway".to_owned()),
-        Ok(vec![info("personal:gateway")]),
-    );
+    let selection = app
+        .provider_loaded(
+            Intent::Use("personal:gateway".to_owned()),
+            Ok(vec![info("personal:gateway")]),
+        )
+        .expect("a usable model");
     assert_eq!(
-        selection.map(|selection| format!("{}/{}", selection.provider, selection.model)),
-        Some("personal:gateway/glm-5".to_owned())
+        format!("{}/{}", selection.provider, selection.model),
+        "personal:gateway/glm-5"
     );
+    // 默认模型必须带档位，否则 Node 与 TUI 都判它「不完整」。
+    assert_eq!(selection.reasoning.as_deref(), Some("high"));
 
     let missing = app.provider_loaded(
         Intent::Edit("personal:missing".to_owned()),

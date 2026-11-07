@@ -26,6 +26,7 @@ fn info(summary: PlatformSummary) -> ProviderInfo {
         personal: summary.personal,
         enabled: summary.enabled,
         template: summary.template,
+        default_reasoning: summary.default_reasoning,
     }
 }
 

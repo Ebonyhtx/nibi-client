@@ -297,6 +297,9 @@ async fn a_new_provider_becomes_the_default_model() {
     assert_eq!(selection.provider, id);
     assert_eq!(selection.model, "glm-5");
     assert_eq!(selection.reasoning.as_deref(), Some("high"));
+    // `/provider use` 与 `nibi provider use` 都靠这份档位写默认模型。
+    let items = platform.provider_list().await.unwrap();
+    assert_eq!(items[0].default_reasoning.as_deref(), Some("high"));
 }
 
 #[tokio::test]

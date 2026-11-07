@@ -319,6 +319,15 @@ pub fn usage(lang: Lang) -> &'static str {
     )
 }
 
+pub fn no_usable_model(lang: Lang, id: &str) -> String {
+    match lang {
+        Lang::En => {
+            format!("{id} has no usable model yet — add its API key first (/provider key {id})")
+        }
+        Lang::Zh => format!("{id} 还没有可用的模型 —— 先填 API key（/provider key {id}）"),
+    }
+}
+
 pub fn unknown_provider(lang: Lang, id: &str) -> String {
     match lang {
         Lang::En => format!("No provider with id {id}"),

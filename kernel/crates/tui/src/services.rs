@@ -140,6 +140,8 @@ pub struct ProviderInfo {
     pub enabled: bool,
     /// 继承的内置模板（预设）。
     pub template: Option<String>,
+    /// 第一个可执行模型的最后一个档位（`/provider use` 写默认模型要带它）。
+    pub default_reasoning: Option<String>,
 }
 
 /// 新建 Provider 的预设（内置模板）。

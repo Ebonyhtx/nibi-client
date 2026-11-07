@@ -205,7 +205,18 @@ impl Platform {
     pub async fn provider_list(&self) -> Result<Vec<ProviderSummary>, String> {
         let builtin = self.registry.builtin_config().await?;
         let personal = self.registry.personal_config().await?;
-        Ok(providers::edit::summaries(&builtin, &personal))
+        let mut items = providers::edit::summaries(&builtin, &personal);
+        // 档位只存在于解析后的目录里：`/provider use` 写的默认模型必须带它。
+        let current = self.registry.current().await;
+        for item in &mut items {
+            item.default_reasoning = current
+                .snapshot
+                .templates
+                .iter()
+                .find(|template| template.provider == item.id && !template.hidden)
+                .and_then(|template| template.levels.last().cloned());
+        }
+        Ok(items)
     }
 
     /// 新建或修改一个个人 Provider（写 `provider_config.json`），返回它的 id。写文件持目录锁、原子替换。

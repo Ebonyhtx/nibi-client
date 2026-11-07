@@ -344,17 +344,25 @@ impl App {
         };
         let status = match &intent {
             Intent::Use(id) => {
-                let found = items.iter().find(|info| &info.id == id);
-                match found.and_then(|info| info.models.first().map(|model| (info, model))) {
-                    Some((info, model)) => {
+                // 没有可执行模型（缺 key、端点无效）时没有档位：写不成默认模型，给出原因。
+                let found = items.iter().find(|info| &info.id == id).map(|info| {
+                    (
+                        info.id.clone(),
+                        info.models.first().cloned(),
+                        info.default_reasoning.clone(),
+                    )
+                });
+                match found {
+                    Some((provider, Some(model), Some(reasoning))) => {
                         self.overlay = None;
                         return Some(ModelSelection {
-                            provider: info.id.clone(),
-                            model: model.clone(),
-                            reasoning: None,
+                            provider,
+                            model,
+                            reasoning: Some(reasoning),
                             connection: None,
                         });
                     }
+                    Some(_) => Some(text::no_usable_model(lang, id)),
                     None => Some(text::unknown_provider(lang, id)),
                 }
             }
@@ -583,10 +591,14 @@ impl App {
                         }
                         Some(Act::Default) => {
                             let model = info.models.first()?.clone();
+                            let Some(reasoning) = info.default_reasoning.clone() else {
+                                *status = Some(text::no_usable_model(lang, &info.id));
+                                return None;
+                            };
                             let selection = ModelSelection {
                                 provider: info.id.clone(),
                                 model,
-                                reasoning: None,
+                                reasoning: Some(reasoning),
                                 connection: None,
                             };
                             self.overlay = None;
