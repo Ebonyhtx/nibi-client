@@ -4,12 +4,18 @@
 //! 投影与主题日志在一把锁里，只在计算时短暂持有；发帧的工作（事件、窗口、首帧、协议配置的变化）都在会话的泵任务里按
 //! 顺序做（protocol-core 的会话桥），所以首帧之后的增量只给一次，首帧与增量不交错。
 
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
 use async_trait::async_trait;
-use nibi_kernel_api::session_api::{KernelEvent, SequencedEvent, SessionView, TurnOutcome};
+use nibi_kernel_api::ids::{CommandId, InteractionId};
+use nibi_kernel_api::interaction::QuestionAnswer;
+use nibi_kernel_api::session_api::{
+    Ack as KernelAck, Command, CommandEnvelope, KernelEvent, SequencedEvent, SessionHandle,
+    SessionView, TurnOutcome,
+};
 use nibi_kernel_protocol_core::delivery::TopicLog;
-use nibi_kernel_protocol_core::sessions::SessionSink;
+use nibi_kernel_protocol_core::sessions::{Bridged, SessionSink};
 use serde_json::{Map, Value, json};
 
 use crate::context::Context;
@@ -37,6 +43,13 @@ struct State {
     current_turn: Option<String>,
 }
 
+impl Drop for Live {
+    fn drop(&mut self) {
+        // 计时任务可能正睡在 `notified()` 或 `sleep_until`：叫醒它，让它在 `Weak` 升级失败后退出。
+        self.auto_resolution_wake.notify_one();
+    }
+}
+
 /// 锁里算好、锁外写出的东西：（订阅、区间、payload）与变了的会话列表行。
 struct Outgoing {
     frames: Vec<(String, (u64, u64), Value)>,
@@ -52,6 +65,12 @@ pub struct Live {
     workspace: String,
     created_at: u64,
     state: Mutex<State>,
+    /// 自动结束计时任务的唤醒信号（登记、回答、snooze、偏好变化都叫一次）。
+    auto_resolution_wake: Arc<tokio::sync::Notify>,
+    /// 本会话在会话桥里的句柄：计时任务要用它在自己的泵任务里排工作。
+    /// `Server::live()` 打开会话之后装上（只装一次）。
+    clock_self: Mutex<Option<Weak<Bridged<Live>>>>,
+    clock_started: AtomicBool,
 }
 
 impl Live {
@@ -62,16 +81,24 @@ impl Live {
         followup: Followup,
         local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
         spawner: nibi_kernel_base::Spawner,
+        auto_resolution_enabled: bool,
     ) -> Self {
         let levels = view.selection.reasoning.iter().cloned().collect();
         let epoch = context.fresh("epoch");
         context.register(view.meta.id.as_str(), view.meta.workspace.root.as_str());
+        let now = context.now();
         Self {
             session: view.meta.id.as_str().to_owned(),
             workspace: view.meta.workspace.root.as_str().to_owned(),
             created_at: view.meta.created_at_ms,
             state: Mutex::new(State {
-                projection: Projection::from_view(view, followup, levels),
+                projection: Projection::from_view_with_auto_resolution(
+                    view,
+                    followup,
+                    levels,
+                    auto_resolution_enabled,
+                    now,
+                ),
                 log: TopicLog::new(epoch),
                 summary: None,
                 summaries: false,
@@ -86,6 +113,9 @@ impl Live {
             topics,
             local_ttft,
             spawner,
+            auto_resolution_wake: Arc::new(tokio::sync::Notify::new()),
+            clock_self: Mutex::new(None),
+            clock_started: AtomicBool::new(false),
         }
     }
 
@@ -205,6 +235,168 @@ impl Live {
         self.write(outgoing).await;
     }
 
+    /// 装上自动结束计时任务需要的会话句柄（`Server::live()` 打开会话之后调用）。
+    ///
+    /// 计时任务只拿 `Weak`：会话关闭后它会自己退出，任务不会被一条悬空的 `Arc` 撑住。
+    pub fn attach_auto_resolution_clock(&self, bridged: Weak<Bridged<Live>>) {
+        *self
+            .clock_self
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Some(bridged);
+        self.start_auto_resolution_clock();
+    }
+
+    fn start_auto_resolution_clock(&self) {
+        if self.clock_started.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let weak = self
+            .clock_self
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        let Some(weak) = weak else {
+            // 还没装句柄（纯投影的单测）：下一次 attach 再试。
+            self.clock_started.store(false, Ordering::SeqCst);
+            return;
+        };
+        let wake = self.auto_resolution_wake.clone();
+        std::mem::drop(
+            self.spawner
+                .spawn("auto-resolution-clock", auto_resolution_clock(weak, wake)),
+        );
+    }
+
+    /// 叫醒计时任务重排下一次唤醒（新交互、回答、snooze、偏好变化）。
+    fn wake_auto_resolution(&self) {
+        self.auto_resolution_wake.notify_one();
+    }
+
+    /// 下一次需要醒来处理的时刻（测试与计时任务读）。
+    pub fn next_auto_resolution_at(&self) -> Option<u64> {
+        self.state().projection.next_auto_resolution_at()
+    }
+
+    /// 到点了：可见阶段转换与自动应答。在会话的泵任务里跑，帧与事件同序。
+    ///
+    /// 自动应答与用户点「继续」是同一条路径：`action: accept` + 空 `answers`（Node 的
+    /// `V4InteractionRegistry` 到点就调 `resolve(interactionId, {action:"accept", content:{answers:{}}})`）。
+    pub async fn advance_auto_resolution(&self, handle: &dyn SessionHandle) {
+        let now = self.context.now();
+        let (outgoing, resolves) = {
+            let mut state = self.state();
+            let steps = state.projection.auto_resolution_due(now);
+            let mut visible = false;
+            let mut resolves = Vec::new();
+            for step in steps {
+                match step {
+                    crate::projection::Step::Visible(interaction) => {
+                        visible |= state.projection.auto_resolution_mark_visible(&interaction);
+                    }
+                    crate::projection::Step::Resolve(interaction) => {
+                        state
+                            .projection
+                            .auto_resolution_mark_in_flight(&interaction);
+                        resolves.push(interaction);
+                    }
+                }
+            }
+            if visible {
+                let pending = state.projection.pending_value();
+                state.log.record(vec![json!({
+                    "op": "state.updated",
+                    "patch": {"pendingInteractions": pending},
+                })]);
+            }
+            (self.collect(&mut state), resolves)
+        };
+        self.write(outgoing).await;
+        let had_resolves = !resolves.is_empty();
+        for interaction in resolves {
+            let ack = handle
+                .send(CommandEnvelope {
+                    id: CommandId::new(format!("auto-resolve-{interaction}")),
+                    command: Command::ResolveInteraction {
+                        interaction: InteractionId::new(interaction.clone()),
+                        answer: auto_resolution_answer(),
+                    },
+                })
+                .await;
+            if matches!(ack, KernelAck::Accepted { .. } | KernelAck::Duplicate) {
+                continue;
+            }
+            // 内核已经不认这条交互了：撤掉倒计时，别每秒重发（Node 的定时器也只响一次）。
+            let outgoing = {
+                let mut state = self.state();
+                if !state.projection.auto_resolution_abandon(&interaction) {
+                    None
+                } else {
+                    let pending = state.projection.pending_value();
+                    state.log.record(vec![json!({
+                        "op": "state.updated",
+                        "patch": {"pendingInteractions": pending},
+                    })]);
+                    Some(self.collect(&mut state))
+                }
+            };
+            if let Some(outgoing) = outgoing {
+                self.write(outgoing).await;
+            }
+        }
+        if had_resolves {
+            self.wake_auto_resolution();
+        }
+    }
+
+    /// 自动结束的偏好变了（Host 的 `workspace/updateInteractionPreferences`）。返回被换成
+    /// `snoozed` 的条数（Node 的 `snoozedInteractionCount`）。
+    pub async fn set_auto_resolution_enabled(&self, enabled: bool) -> usize {
+        let now = self.context.now();
+        let (count, outgoing) = {
+            let mut state = self.state();
+            let count = state.projection.set_auto_resolution_enabled(enabled, now);
+            let outgoing = (count > 0).then(|| {
+                let pending = state.projection.pending_value();
+                state.log.record(vec![json!({
+                    "op": "state.updated",
+                    "patch": {"pendingInteractions": pending},
+                })]);
+                self.collect(&mut state)
+            });
+            (count, outgoing)
+        };
+        if let Some(outgoing) = outgoing {
+            self.write(outgoing).await;
+        }
+        self.wake_auto_resolution();
+        count
+    }
+
+    /// 用户第一次操作：这个话题的倒计时永久停止（`snoozeInteractionAutoResolution`）。
+    pub async fn snooze_auto_resolution(&self, interaction: &str) -> bool {
+        let now = self.context.now();
+        let (snoozed, outgoing) = {
+            let mut state = self.state();
+            let snoozed = state.projection.snooze_auto_resolution(interaction, now);
+            let outgoing = snoozed.then(|| {
+                let pending = state.projection.pending_value();
+                state.log.record(vec![json!({
+                    "op": "state.updated",
+                    "patch": {"pendingInteractions": pending},
+                })]);
+                self.collect(&mut state)
+            });
+            (snoozed, outgoing)
+        };
+        if let Some(outgoing) = outgoing {
+            self.write(outgoing).await;
+        }
+        if snoozed {
+            self.wake_auto_resolution();
+        }
+        snoozed
+    }
+
     /// 协议保存的配置变了：记一组增量并发出。在会话的泵任务里调用。
     pub async fn set_followup(&self, followup: Followup) {
         let outgoing = {
@@ -316,7 +508,7 @@ impl Live {
             created_at: self.created_at,
             activity_at: self.context.now(),
             last_reply: reply.as_deref(),
-            permissions: state.projection.pending_permissions(),
+            pending: state.projection.pending(),
         }
         .to_value()
     }
@@ -345,7 +537,7 @@ impl Live {
             created_at,
             activity_at: self.context.now(),
             last_reply,
-            permissions: 0,
+            pending: &[],
         }
         .to_value();
         self.topics.upsert(&self.workspace, row);
@@ -503,6 +695,11 @@ impl SessionSink for Live {
                 .push((CUA_OPERATION_EVENT.to_owned(), payload));
         }
         let turn_finished = matches!(&event.event, KernelEvent::TurnFinished { .. });
+        // 待答队列变了：队首可能换了，自动结束的计时任务要重排。
+        let interaction_changed = matches!(
+            &event.event,
+            KernelEvent::InteractionAsked { .. } | KernelEvent::InteractionResolved { .. }
+        );
         let deltas = state.projection.apply(&event, now);
         state.log.record(deltas);
         if let Some(fact) = state.telemetry.facts(&event, now)
@@ -530,6 +727,9 @@ impl SessionSink for Live {
             _ => {}
         }
         drop(state);
+        if interaction_changed {
+            self.wake_auto_resolution();
+        }
         // 浏览器 broker 的逐轮生命周期：与 Node 一样在 TurnFinished 后发 `turnEnded`。
         if turn_finished
             && let Some(broker) = self.context.browser_broker().cloned()
@@ -555,6 +755,67 @@ impl SessionSink for Live {
 }
 
 const CUA_OPERATION_EVENT: &str = "computer-use/operation-event";
+
+/// AskUserQuestion 自动结束的应答：与用户点「继续」同一条语义（Node 的
+/// `resolve(interactionId, {action:"accept", content:{answers:{}}})`）。
+///
+/// 空 `answers` 是**显式**的“没选任何选项但允许继续”，与 `declined`（拒绝）不同；工具结果因此
+/// 让模型按最佳判断继续，而不是当成被否掉。
+fn auto_resolution_answer() -> Value {
+    serde_json::to_value(QuestionAnswer::Answered {
+        answers: std::collections::BTreeMap::new(),
+        annotations: std::collections::BTreeMap::new(),
+        response: None,
+        follow_up: false,
+        afk_timeout_ms: None,
+    })
+    .unwrap_or(Value::Null)
+}
+
+/// 自动结束的计时任务：睡到下一次需要转换/应答的时刻，到点在会话的泵任务里执行。
+///
+/// 只拿会话的 `Weak`：会话关闭后升级失败就退出。每次执行都经 `Bridged::run` 排进泵任务，
+/// 保证 `pendingInteractions` 的增量与内核事件帧同序（与 Node 在主线程事件循环里起表等价）。
+async fn auto_resolution_clock(weak: Weak<Bridged<Live>>, wake: Arc<tokio::sync::Notify>) {
+    loop {
+        let Some(bridged) = weak.upgrade() else {
+            return;
+        };
+        let now = bridged.sink.context.now();
+        let next = bridged.sink.next_auto_resolution_at();
+        drop(bridged);
+        match next {
+            Some(at) if at > now => {
+                tokio::select! {
+                    () = tokio::time::sleep(std::time::Duration::from_millis(at - now)) => {}
+                    () = wake.notified() => continue,
+                }
+            }
+            // 已经到点：马上执行。
+            Some(_) => {}
+            // 没有截止时间：等一次唤醒。
+            None => {
+                wake.notified().await;
+                continue;
+            }
+        }
+        let Some(bridged) = weak.upgrade() else {
+            return;
+        };
+        let handle = bridged.handle.clone();
+        let (done, finished) = tokio::sync::oneshot::channel::<()>();
+        let job = bridged.clone();
+        bridged.run(Box::pin(async move {
+            job.sink.advance_auto_resolution(handle.as_ref()).await;
+            let _ = done.send(());
+        }));
+        // 等这一轮在泵里跑完再重排：否则同一个过去的截止时间会排出一串重复工作。
+        if finished.await.is_err() {
+            // 泵已经结束：排进去的工作不会再跑，这条会话也没有事件可处理了。
+            return;
+        }
+    }
+}
 
 /// Node `computer-use-operation-event.ts` 的同一张映射：回合/工具事件 → CUA 操作通知。
 ///

@@ -34,11 +34,21 @@ pub struct Defaults {
     pub environment: EnvironmentId,
 }
 
-/// 工作区级的开关（Host 推来的偏好；P1 只保存与回声）。
-#[derive(Debug, Clone, Default)]
+/// 工作区级的开关（Host 推来的偏好）。
+#[derive(Debug, Clone)]
 struct Preferences {
     ask_auto_resolution: bool,
     full_retention: bool,
+}
+
+impl Default for Preferences {
+    fn default() -> Self {
+        // Node 的交互注册表默认开启（`V4InteractionRegistry` 的初值 true）；Host 连上后会推权威值。
+        Self {
+            ask_auto_resolution: true,
+            full_retention: false,
+        }
+    }
 }
 
 pub struct Server {
@@ -138,12 +148,24 @@ impl Server {
         let (context, topics) = (self.context.clone(), self.topics.clone());
         let local_ttft = self.local_ttft.clone();
         let spawner = self.spawner.clone();
+        let auto_resolution_enabled = self.preferences().ask_auto_resolution;
         let live = self
             .bridge
             .open(session, move |_, view| {
-                Live::new(context, topics, view, followup, local_ttft, spawner)
+                Live::new(
+                    context,
+                    topics,
+                    view,
+                    followup,
+                    local_ttft,
+                    spawner,
+                    auto_resolution_enabled,
+                )
             })
             .await?;
+        // 自动结束的计时任务：打开会话时装上（重复打开保留第一个）。
+        live.sink
+            .attach_auto_resolution_clock(Arc::downgrade(&live));
         // 冷打开的每轮文件摘要（轮头角标与撤销入口）：读不出 artifact 只少一个角标，不拦打开。
         // 只挂一次；之后的写入走 `FileChanges` 事件。先看旗标，别让每条命令都重读一遍 artifact。
         if live.sink.needs_file_summaries() {
@@ -165,6 +187,25 @@ impl Server {
         self.seed_subagents(&live).await;
         self.watch_subagents(&live);
         Ok(live)
+    }
+
+    /// 把自动结束偏好推给每个打开着的会话（Node 的注册表是进程级一份；Rust 的计时状态跟着
+    /// 会话投影走，所以逐会话下发）。返回被换成 `snoozed` 的条数。
+    async fn apply_auto_resolution_preference(&self, enabled: bool) -> usize {
+        let mut snoozed = 0;
+        for live in self.bridge.sessions() {
+            let (done, finished) = tokio::sync::oneshot::channel();
+            let bridged = live.clone();
+            live.run(std::boxed::Box::pin(async move {
+                let count = bridged.sink.set_auto_resolution_enabled(enabled).await;
+                let _ = done.send(count);
+            }));
+            // 泵已经结束的会话不会跑这件工作：计数按 0 算，不影响回执。
+            if let Ok(count) = finished.await {
+                snoozed += count;
+            }
+        }
+        snoozed
     }
 
     /// 冷播种 `subagents` 键。取不到只让这一项为空，不拦打开（与其它冷播种同一纪律）。
@@ -339,10 +380,14 @@ impl Server {
             "workspace/updateInteractionPreferences" => {
                 let enabled = params["preferences"]["askUserQuestionAutoResolutionEnabled"]
                     .as_bool()
-                    .unwrap_or(false);
+                    .unwrap_or(true);
                 self.preferences().ask_auto_resolution = enabled;
+                // 关掉时把每个打开会话里正在计时的 AskUserQuestion 换成 snoozed（Node 的注册表是
+                // 全工作区一份，计数取所有会话之和）。打开只让之后的问题计时，不追溯。
+                let snoozed = self.apply_auto_resolution_preference(enabled).await;
                 reply(json!({"workspace": params["workspace"],
-                    "askUserQuestionAutoResolutionEnabled": enabled, "snoozedInteractionCount": 0}))
+                    "askUserQuestionAutoResolutionEnabled": enabled,
+                    "snoozedInteractionCount": snoozed}))
             }
             "workspace/updateModelIoPreferences" => {
                 let enabled = params["preferences"]["fullRetentionEnabled"]

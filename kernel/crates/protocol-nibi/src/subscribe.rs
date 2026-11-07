@@ -38,7 +38,7 @@ async fn stored_rows(server: &Server, workspace: &str) -> Vec<Value> {
                     created_at: summary.updated_at_ms,
                     activity_at: summary.updated_at_ms,
                     last_reply: session.last_reply.as_deref(),
-                    permissions: 0,
+                    pending: &[],
                 }
                 .to_value()
             })
@@ -247,7 +247,7 @@ pub async fn reconcile(server: &Server, params: &Value) -> Result<Reply, RpcErro
                         created_at: view.meta.created_at_ms,
                         activity_at: view.meta.created_at_ms,
                         last_reply: None,
-                        permissions: 0,
+                        pending: &[],
                     }
                     .to_value(),
                 ),

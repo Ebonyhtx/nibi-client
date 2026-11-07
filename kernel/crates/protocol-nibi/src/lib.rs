@@ -208,3 +208,7 @@ mod subagents_debug_tests;
 #[cfg(test)]
 #[path = "session_directory_tests.rs"]
 mod session_directory_tests;
+
+#[cfg(test)]
+#[path = "auto_resolution_tests.rs"]
+mod auto_resolution_tests;

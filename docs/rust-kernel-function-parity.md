@@ -3,7 +3,7 @@
 > 目的：切默认内核的判据是「**功能不减**」，不是「协议 89/118」。这份表逐项记「Node 里由谁做、
 > Rust 里由谁做、还差什么」，每行都带可查的代码位置。改动任何一项时同步更新本表。
 >
-> 最后复核：2026-11-07（`dev` `60a5817d` 之后：浏览器 broker 落地 + 私有 CUA 真机验证）。
+> 最后复核：2026-11-07（`dev` `680a2364` + AUQ 自动结束：浏览器 broker/CUA 生命周期与 §4.1）。
 
 ## 结论摘要
 
@@ -12,7 +12,7 @@
 | 1 | 「生成提交信息」（`workspace/generateText` / `cancelGenerateText`） | ✅ **已补**（`277450ca`） |
 | 2 | 浏览器控制 | ✅ **已接回**：`node_repl` MCP + Rust broker + `browser-use` 准入；逐轮 `turnEnded` 已发（§2） |
 | 3 | topic 资源（bot 群话题上下文） | ⬜ 未做——见 §3 的数据流 |
-| 4 | 运行时偏好协商 | ✅ 三项已核：两项等价、一项（AUQ 自动结束）差异见 §4 |
+| 4 | 运行时偏好协商 | ✅ 三项已核；AUQ 自动结束已按 Node 语义实现（§4.1） |
 | 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；⚠️ 两条 UI 通知差异见 §5 |
 
 ## 1. 生成提交信息（已补）
@@ -80,16 +80,43 @@ Rust 不问、用内置缺省。逐项核对结果：
 | --- | --- | --- | --- |
 | `additionalDirectories` | 随 `createSession` 参数 | 同一个 Host 在 `createSession` 里带（`zcodeTaskServiceAdapter.ts:1109`），内核已消费 | ✅ 等价（已知差异：冷恢复不带） |
 | `subagentRuntimeConfigEnabled` | 同上 | 子代理运行时配置在内核 deps 闭环，不需要该开关 | ✅ 等价 |
-| `askUserQuestionAutoResolutionEnabled` | 同上 + `workspace/updateInteractionPreferences` | 只记录偏好并回声（`server.rs`），**没有自动结束** | ⚠️ 差异：AUQ 不会自动结束 |
+| `askUserQuestionAutoResolutionEnabled` | 同上 + `workspace/updateInteractionPreferences` | 记录偏好并**执行**自动结束（见 §4.1） | ✅ 已补 |
 
-- 投递不是问题：Host 在 workspace client 建好后会推 `updateInteractionPreferences`
-  （`zcodeAgentService.ts:2906-2915`），值能到内核。
-- 真正的差异是**行为**：Node 的 CLI 侧有一个交互注册表（`nibi-protocol-v4/interaction-registry.ts`），
-  对 AUQ 在 60 s 隐藏宽限 + 300 s 倒计时后自动 snooze 并持久化；Rust 协议层没有这套注册表，
-  AUQ 会一直挂着等回答。
-- 为什么这次没补：它是 CLI 侧的交互生命周期子系统（计时器 + snooze + 会话条目持久化 + 恢复 +
-  事件 `UserInputAutoResolutionUpdated` + UI 倒计时状态），不是「补一个方法」；半套实现会让 UI
-  拿到不完整的倒计时状态，比没有更糟。**单独一批做**，做的时候按上面的注册表逐条对齐。
+### 4.1 AUQ 自动结束（已补）
+
+Node 的语义在 `nibi-protocol-v4/interaction-registry.ts`：交互按会话排队，**只有队首**计时；登记后
+先 60 s `hiddenGrace`（界面还不显示进度），到 `visibleAt` 转 `visibleCountdown`（侧栏开始画进度环，
+弹窗最后一分钟才显示秒数），到 `deadlineAt`（300 s）用 `action: accept` + `content.answers: {}`
+自动应答（“没选但允许继续”，不是拒绝）；用户第一次操作把倒计时永久换成 `snoozed`；关掉偏好时
+把正在计时的全部换成 `snoozed` 并返回条数，重新打开只让之后登记的问题计时。
+
+Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_resolution.rs`）：
+
+- 状态写在待答交互的 `autoResolution` 字段里，所以**会话快照、`state.updated` 增量与
+  `sessions-index` 侧栏摘要读的是同一份值**（`index.rs` 的 `pendingInteraction` 现在带
+  `interactionId`/`kind`/`toolName`/`autoResolution`，`pendingInteractionSummary` 分
+  permission/userInput 计数）。
+- 队列与队首判定直接用投影的待答顺序：权限、提问、计划审批都排队，工作区钩子评审不排队
+  （Node 的 `activateHead` 同一判据）。`InteractionAsked` 起表、`InteractionResolved` 换下一个队首。
+- 计时任务在 `Live`（`live.rs::auto_resolution_clock`），只拿会话的 `Weak`，会话关闭即退出；
+  到点的工作经 `Bridged::run` 排进会话泵任务，保证增量与内核事件帧同序。
+- 到点应答走与用户点“继续”完全相同的路径：`Command::ResolveInteraction`，answer 是
+  `QuestionAnswer::Answered { answers: {} }`。工具结果文本对齐 Node 的空答案分支
+  （`tools/src/texts_more.rs::NO_ANSWER`）：明确告诉模型“不是拒绝、按最佳判断继续”。
+- `snoozeInteractionAutoResolution` 已真正生效（幂等成功，回执 `snoozed` 说明是否改了状态）；
+  `updateInteractionPreferences` 的回执带真实的 `snoozedInteractionCount`；偏好缺省为 true
+  （Node 注册表初值），Host 连上后推权威值。
+- 测试：状态机 10 条（队首、两段计时、跨过期限、snooze 幂等、关/开偏好、冷种子、在途与放弃）、
+  会话层 6 条（冷打开起表、可见转换、到期发 `ResolveInteraction` 且只发一次、snooze、偏好、侧栏摘要）。
+
+与 Node 的两点已知差异（都不影响用户看到的倒计时）：
+
+1. Node 把 `autoResolution` 写进 session entry（`user-input-auto-resolution:<interactionId>`）并在
+   重新登记时按绝对时间续跑；Rust 的待答交互本来就不跨进程恢复（`SessionView.pending` 只来自
+   活着的 actor），没有可续跑的绝对时间，冷打开从当下重新起表。进程内没有“关掉会话再打开还挂着
+   提问”的路径（`session/close` 会取消待答交互），所以这只影响冷打开一个已经在等的会话。
+2. Node 的 `UserInputAutoResolutionUpdated` 是会话事件；Rust 没有对 Host 暴露会话事件流，
+   等价物就是 `state.updated` 的 `pendingInteractions` 整键（以及随之更新的 `sessions-index` 行）。
 
 ## 5. CUA 电脑操控（模型面与执行链已接回）
 
@@ -165,7 +192,8 @@ Rust 不问、用内置缺省。逐项核对结果：
 
 1. `generateText` 的 token 不进会话用量。
 2. 浏览器的远程 workspace `workspaceIdentity` 未带（路径作 key）；topic 资源未做（§3）。
-3. AUQ 自动结束未做（§4）。
+3. AUQ 自动结束已实现（§4.1）；与 Node 的两点差异只剩「不持久化绝对时间」与「没有会话事件，
+   用 `pendingInteractions` 增量表达」，都不影响倒计时。
 4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；
    `computer-use/operation-event` 已由 Rust 发出（§5.4）。
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。

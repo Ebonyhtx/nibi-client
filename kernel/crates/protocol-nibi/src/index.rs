@@ -28,7 +28,8 @@ pub struct Summary<'a> {
     pub created_at: u64,
     pub activity_at: u64,
     pub last_reply: Option<&'a str>,
-    pub permissions: usize,
+    /// 待答交互（权限 / 提问）：侧栏据此显示徽标、工具身份与自动结束倒计时。
+    pub pending: &'a [Value],
 }
 
 impl Summary<'_> {
@@ -57,9 +58,38 @@ impl Summary<'_> {
             let preview: String = reply.chars().take(200).collect();
             row["lastAssistantPreview"] = json!(preview);
         }
-        if self.permissions > 0 {
+        // 侧栏只要轻量身份：不下发问题、命令或答案，也不带工作区钩子评审（它归 Hooks 设置页）。
+        let queued: Vec<&Value> = self
+            .pending
+            .iter()
+            .filter(|pending| {
+                matches!(
+                    pending["payload"]["kind"].as_str(),
+                    Some("permission" | "userInput")
+                )
+            })
+            .collect();
+        if let Some(first) = queued.first() {
+            let mut summary = json!({
+                "interactionId": first["interactionId"],
+                "kind": first["payload"]["kind"],
+            });
+            if let Some(tool) = first["payload"]["toolName"].as_str() {
+                summary["toolName"] = json!(tool);
+            }
+            if let Some(auto) = first.get("autoResolution").filter(|auto| !auto.is_null()) {
+                summary["autoResolution"] = auto.clone();
+            }
+            row["pendingInteraction"] = summary;
+        }
+        let permissions = queued
+            .iter()
+            .filter(|pending| pending["payload"]["kind"] == "permission")
+            .count();
+        let user_inputs = queued.len() - permissions;
+        if permissions > 0 || user_inputs > 0 {
             row["pendingInteractionSummary"] =
-                json!({"permissionCount": self.permissions, "userInputCount": 0});
+                json!({"permissionCount": permissions, "userInputCount": user_inputs});
         }
         row
     }

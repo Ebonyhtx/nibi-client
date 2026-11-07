@@ -4,12 +4,15 @@
 //! 行：turnHeader（回合）、userInput（真人输入）、assistantText、reasoning、toolCall；其余事件只改状态或忽略（P1）。
 
 mod actions;
+mod auto_resolution;
 mod cold;
 mod files;
 mod rows;
 pub mod state;
 mod subagents;
 mod workflow_runs;
+
+pub use auto_resolution::Step;
 
 use std::collections::HashMap;
 
@@ -109,6 +112,9 @@ pub struct Projection {
     /// 子代理目录（快照的 `subagents` 键）：`SessionHandle::subagents()` 的投影，`revision` 只在
     /// 语义变了时加一（与 Node `materializeSubagentProjection` 同一判据）。
     subagents: SubagentsState,
+    /// AskUserQuestion 的自动结束（Node `V4InteractionRegistry` 的会话侧状态）：资格、在途与
+    /// 队首激活；计时值本身写在待答交互的 `autoResolution` 字段里。
+    auto_resolution: auto_resolution::AutoResolution,
     created_at: u64,
 }
 
@@ -191,8 +197,21 @@ fn tool_key(tool_use: &str) -> String {
 }
 
 impl Projection {
-    /// 从视图建投影（冷打开或第一次订阅）。`followup` 与 `levels` 是协议自己保存的配置（不在内核里）。
+    /// 从视图建投影（纯投影的单测用；不开启自动结束）。
+    #[cfg(test)]
     pub fn from_view(view: &SessionView, followup: Followup, levels: Vec<String>) -> Self {
+        Self::from_view_with_auto_resolution(view, followup, levels, false, view.meta.created_at_ms)
+    }
+
+    /// 同 `from_view`，另给自动结束的偏好与“现在”：冷打开时待答的 AskUserQuestion
+    /// 从这一刻起表（Node 在交互登记时起表；Rust 没有持久化绝对时间，冷打开是唯一的参照）。
+    pub fn from_view_with_auto_resolution(
+        view: &SessionView,
+        followup: Followup,
+        levels: Vec<String>,
+        auto_resolution_enabled: bool,
+        now: u64,
+    ) -> Self {
         let mut projection = Self {
             session: view.meta.id.as_str().to_owned(),
             rows: Vec::new(),
@@ -212,15 +231,12 @@ impl Projection {
             levels,
             // App 的「总量」用模型的原始窗口（Node `usage.contextWindow.maxTokens`）；旧视图只带
             // 有效窗口时退回它。
-            context: view
-                .context_usage
-                .as_ref()
-                .map(|usage| {
-                    (
-                        usage.used_tokens,
-                        usage.window_tokens.unwrap_or(usage.max_tokens),
-                    )
-                }),
+            context: view.context_usage.as_ref().map(|usage| {
+                (
+                    usage.used_tokens,
+                    usage.window_tokens.unwrap_or(usage.max_tokens),
+                )
+            }),
             total: Usage::default(),
             queue: view.queue.clone(),
             pending: Vec::new(),
@@ -231,6 +247,7 @@ impl Projection {
             pending_model_change: None,
             workflow_runs: WorkflowRunsState::default(),
             subagents: SubagentsState::empty(),
+            auto_resolution: auto_resolution::AutoResolution::new(auto_resolution_enabled),
             turn: None,
             inputs: HashMap::new(),
             denied: std::collections::HashSet::new(),
@@ -240,6 +257,10 @@ impl Projection {
         for (interaction, request) in &view.pending {
             projection.ask(interaction.as_str(), request, view.meta.created_at_ms);
         }
+        // 冷打开时待答的问题：队首那个够格的从现在起表。
+        projection
+            .auto_resolution
+            .seed(&mut projection.pending, now);
         // 冷快照也要带行级动作（快照本身承载状态，不需要增量）。
         projection.refresh_actions(&mut Vec::new());
         projection
@@ -282,6 +303,7 @@ impl Projection {
         })
     }
 
+    #[cfg(test)]
     pub fn pending_permissions(&self) -> usize {
         self.pending.len()
     }
@@ -397,6 +419,53 @@ impl Projection {
         now: u64,
     ) -> Option<Value> {
         self.subagents.set(entries, now)
+    }
+
+    /// 待答交互的当前值（`pendingInteractions` 整键）与只读引用。
+    pub fn pending_value(&self) -> Value {
+        json!(self.pending)
+    }
+
+    pub fn pending(&self) -> &[Value] {
+        &self.pending
+    }
+
+    /// 自动结束的偏好变了。关掉时把正在计时的问题换成 `snoozed`，返回换掉的条数。
+    pub fn set_auto_resolution_enabled(&mut self, enabled: bool, now: u64) -> usize {
+        self.auto_resolution
+            .set_enabled(&mut self.pending, enabled, now)
+    }
+
+    /// 用户第一次操作：这个问题永久停止自动结束。不是活动倒计时时返回 false。
+    pub fn snooze_auto_resolution(&mut self, interaction: &str, now: u64) -> bool {
+        self.auto_resolution
+            .snooze(&mut self.pending, interaction, now)
+    }
+
+    /// 到点的状态转换与自动应答（按队列顺序）。
+    pub fn auto_resolution_due(&self, now: u64) -> Vec<auto_resolution::Step> {
+        self.auto_resolution.due(&self.pending, now)
+    }
+
+    /// `hiddenGrace` → `visibleCountdown`。
+    pub fn auto_resolution_mark_visible(&mut self, interaction: &str) -> bool {
+        self.auto_resolution
+            .mark_visible(&mut self.pending, interaction)
+    }
+
+    /// 已经发出自动应答，等内核收口。
+    pub fn auto_resolution_mark_in_flight(&mut self, interaction: &str) {
+        self.auto_resolution.mark_in_flight(interaction);
+    }
+
+    /// 自动应答被拒（交互已经不在）：撤掉计时与资格。
+    pub fn auto_resolution_abandon(&mut self, interaction: &str) -> bool {
+        self.auto_resolution.abandon(&mut self.pending, interaction)
+    }
+
+    /// 下一次需要醒来处理的时刻。
+    pub fn next_auto_resolution_at(&self) -> Option<u64> {
+        self.auto_resolution.next_at(&self.pending)
     }
 
     fn base(
@@ -581,6 +650,9 @@ impl Projection {
                         },
                         &mut out,
                     );
+                    // 队首如果是这个问题，现在起表（Node 的 register → activateHead）。
+                    self.auto_resolution
+                        .on_asked(&mut self.pending, interaction.as_str(), now);
                     patch.insert("pendingInteractions".into(), json!(self.pending));
                 }
             }
@@ -595,7 +667,11 @@ impl Projection {
                     });
                 self.pending
                     .retain(|pending| pending["interactionId"] != interaction.as_str());
-                if self.pending.len() != before {
+                // 队首走了：下一个够格的问题从这一刻起表（Node 的 remove → activateHead）。
+                let activated =
+                    self.auto_resolution
+                        .on_resolved(&mut self.pending, interaction.as_str(), now);
+                if self.pending.len() != before || activated {
                     patch.insert("pendingInteractions".into(), json!(self.pending));
                 }
                 if let Some(tool) = tool {
@@ -638,6 +714,7 @@ impl Projection {
                 }
                 if !self.pending.is_empty() {
                     self.pending.clear();
+                    self.auto_resolution.clear();
                     patch.insert("pendingInteractions".into(), json!([]));
                 }
             }

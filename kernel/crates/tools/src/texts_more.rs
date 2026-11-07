@@ -29,8 +29,11 @@ pub(crate) fn user_answered(answers: &str) -> String {
     )
 }
 
-/// AskUserQuestion 结果：没有任何答案。
-pub(crate) const NO_ANSWER: &str = "The user did not answer the questions.";
+/// AskUserQuestion 结果：没有任何答案（用户点了“继续”但没选，或 300 s 自动结束）。
+///
+/// 与 Node `formatAskUserQuestionModelContent` 的空答案分支逐字一致：明确告诉模型这**不是拒绝**，
+/// 否则自动结束后模型会把“没回答”当成用户否掉了任务。
+pub(crate) const NO_ANSWER: &str = "The user did not provide answers to these questions. Continue using your best judgment; do not treat this as a rejection or invent a user preference.";
 
 /// AskUserQuestion 结果：空闲到期自动提交（工作线 F72，tools-more.md §1.1）。秒数四舍五入。
 pub(crate) fn idle_timeout(timeout_ms: u64) -> String {

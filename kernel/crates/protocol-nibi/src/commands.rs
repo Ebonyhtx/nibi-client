@@ -531,7 +531,9 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "sendGoalCommand" => send_goal_command(handle, envelope).await,
         "pauseGoal" => set_goal_paused(handle, envelope, true).await,
         "resumeGoal" => set_goal_paused(handle, envelope, false).await,
-        "snoozeInteractionAutoResolution" => snooze_interaction_auto_resolution(envelope).await,
+        "snoozeInteractionAutoResolution" => {
+            snooze_interaction_auto_resolution(&live, envelope, revision).await
+        }
         "discardSharedContext" => discard_shared_context(server, &live.sink, envelope, revision).await,
         "startSavedWorkflow" => start_saved_workflow(server, Some(handle), envelope, revision).await,
         "resumeWorkflowRun" => resume_workflow_run(server, envelope, revision).await,
@@ -2115,16 +2117,38 @@ async fn set_assistant_feedback(
 /// NIBI `snoozeInteractionAutoResolution`：永久暂停这条询问的自动结束。内核没有自动结束的倒计时
 /// （`askUserQuestionAutoResolutionEnabled` 只记录偏好），所以这条命令在这里是幂等 noop——与 Node 在
 /// "没有进行中的倒计时"时的行为一致。
-async fn snooze_interaction_auto_resolution(envelope: &Envelope) -> Ack {
+/// `snoozeInteractionAutoResolution`：用户第一次操作这个问题，倒计时永久停止。
+///
+/// 与 Node 一样幂等成功：没有活动倒计时（已经 snoozed、不是 AskUserQuestion、交互已经不在了）
+/// 也回 accepted，回执里 `snoozed` 说明这次是否真的改了状态。
+async fn snooze_interaction_auto_resolution(
+    live: &std::sync::Arc<nibi_kernel_protocol_core::sessions::Bridged<crate::live::Live>>,
+    envelope: &Envelope,
+    revision: u64,
+) -> Ack {
     let interaction = envelope.payload["interactionId"]
         .as_str()
-        .unwrap_or_default();
+        .unwrap_or_default()
+        .to_owned();
+    let (done, finished) = tokio::sync::oneshot::channel();
+    let bridged = live.clone();
+    // 在会话的泵任务里改投影：与事件帧同序。
+    live.run(std::boxed::Box::pin(async move {
+        let snoozed = bridged.sink.snooze_auto_resolution(&interaction).await;
+        let _ = done.send(snoozed);
+    }));
+    let snoozed = finished.await.unwrap_or(false);
     tracing::info!(
         event = "protocol.snooze_auto_resolution",
-        interaction = %interaction,
-        "the kernel does not schedule auto resolution; the snooze is already in effect"
+        interaction = %envelope.payload["interactionId"].as_str().unwrap_or_default(),
+        snoozed,
+        "auto resolution snoozed"
     );
-    Ack::accepted(&envelope.command_id, 0, Some(json!({"type": "snoozeInteractionAutoResolution"})))
+    Ack::accepted(
+        &envelope.command_id,
+        revision,
+        Some(json!({"snoozed": snoozed})),
+    )
 }
 
 /// NIBI `applyFileRewind`：row-targeting CAS；只回退文件（`RewindScope::Code`），不动聊天。
