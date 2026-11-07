@@ -76,6 +76,10 @@ pub struct Server {
     /// 工作区补全的进行中操作（`workspace/generateText` 的 `operationId` → 取消信号）。
     pub(crate) generate_operations: Mutex<HashMap<String, nibi_kernel_api::abort::Abort>>,
     preferences: Mutex<Preferences>,
+    /// 会话第一次打开时问 Host 一轮启动偏好（`session/requestRuntimePreferences`）。
+    /// 只有 Host 侧的 stdio 服务打开它：没有对端应答的入口（测试、纯 CLI）保持关闭，否则每次冷打开
+    /// 都要等一次请求超时。
+    host_preferences: std::sync::atomic::AtomicBool,
 }
 
 pub(crate) fn kernel_error(error: &KernelError) -> RpcError {
@@ -123,7 +127,14 @@ impl Server {
             capture,
             generate_operations: Mutex::new(HashMap::new()),
             preferences: Mutex::new(Preferences::default()),
+            host_preferences: std::sync::atomic::AtomicBool::new(false),
         }
+    }
+
+    /// 打开「冷打开时问 Host 启动偏好」（Host 侧的 stdio 服务在装配时调用一次）。
+    pub(crate) fn request_host_preferences(&self) {
+        self.host_preferences
+            .store(true, std::sync::atomic::Ordering::Release);
     }
 
     pub(crate) fn workspace(&self, path: &str) -> WorkspaceRef {
@@ -149,6 +160,7 @@ impl Server {
         let local_ttft = self.local_ttft.clone();
         let spawner = self.spawner.clone();
         let auto_resolution_enabled = self.preferences().ask_auto_resolution;
+        let cold = self.bridge.get(session).is_none();
         let live = self
             .bridge
             .open(session, move |_, view| {
@@ -163,6 +175,14 @@ impl Server {
                 )
             })
             .await?;
+        // 冷打开时问一次 Host 的启动偏好（Node 在会话物化时问）：先应用，再挂计时任务。
+        if cold
+            && self
+                .host_preferences
+                .load(std::sync::atomic::Ordering::Acquire)
+        {
+            self.apply_host_preferences(session, &live).await;
+        }
         // 自动结束的计时任务：打开会话时装上（重复打开保留第一个）。
         live.sink
             .attach_auto_resolution_clock(Arc::downgrade(&live));
@@ -187,6 +207,32 @@ impl Server {
         self.seed_subagents(&live).await;
         self.watch_subagents(&live);
         Ok(live)
+    }
+
+    /// 冷打开时问 Host 一轮启动偏好，并应用本内核有开关的两项
+    /// （Node `resolveSessionStartupPreferences` 的 `runtime-materialization` 档）。
+    /// 请求失败/超时用内核缺省，不拦打开。
+    async fn apply_host_preferences(&self, session: &SessionId, live: &Arc<Bridged<Live>>) {
+        let Some(value) = crate::runtime_preferences::request(&self.context, session).await else {
+            return;
+        };
+        let preferences = crate::runtime_preferences::parse(&value);
+        if let Some(enabled) = preferences.auto_resolution {
+            live.sink.set_auto_resolution_enabled(enabled).await;
+        }
+        if !preferences.additional_directories.is_empty()
+            && let Err(error) = self
+                .kernel
+                .set_session_directories(session, preferences.additional_directories)
+                .await
+        {
+            tracing::warn!(
+                event = "protocol.runtime_preferences.directories_failed",
+                session = session.as_str(),
+                error = %error,
+                "the kernel refused the additional directories from the host"
+            );
+        }
     }
 
     /// 把自动结束偏好推给每个打开着的会话（Node 的注册表是进程级一份；Rust 的计时状态跟着

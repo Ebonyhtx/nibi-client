@@ -26,6 +26,7 @@ mod nibi_workflows;
 mod plugin_ui;
 mod projection;
 mod row_target;
+mod runtime_preferences;
 mod server;
 mod session_debug;
 mod session_directory;
@@ -164,6 +165,8 @@ where
         defaults,
         capture.clone(),
     ));
+    // Host 侧的 stdio 服务：冷打开会话时问一轮启动偏好（`session/requestRuntimePreferences`）。
+    server.request_host_preferences();
     if let Some(capture) = capture {
         // 攒批任务与服务器同生共死（作用域关闭时结束）。
         // 任务跟着 spawner 的作用域走；句柄不用。
