@@ -19,7 +19,7 @@
 | 7 | 钩子信任跨会话广播 | ✅ **已补**：`trustGrant` 立刻刷新同工作区已打开会话的提示条（§7） |
 | 8 | 会话启动偏好 | ✅ **已补**：冷打开问一次 `session/requestRuntimePreferences`（§8） |
 | 9 | 会话级 MCP 的 `isolation: workspace` | ✅ **已补**：同工作区共享连接 + 引用计数（§9） |
-| 10 | MCP 的 `oauth` / `protocolVersion` | ⚠️ **fail-closed**：不无凭据连接，明确报错；现代握手与 OAuth 令牌获取未实现（§9.2） |
+| 10 | MCP 的 `oauth` / `protocolVersion` | ✅ **已补**：两种 grant 的令牌端口 + 401 刷新一次；`auto` 探 `server/discover`、现代握手与 `protocolEra`（§9.2） |
 | 11 | NIBI 登录（Device Flow） | ✅ **已补**：`nibi-platform` 的 HTTP 轮询/刷新 + `nibi login` 接上（§10） |
 | 12 | TUI 调色板 | ✅ **已补**：品牌沙色/暖橙（§11） |
 
@@ -272,14 +272,29 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   子代理仍继承父会话的连接面（不增引用）。telemetry 的 `mcpIsolation` 是 `workspace`。
 - 测试：`ext` 9 条（各自的连接、共享一条、别的工作区不共享、引用计数释放、混合集合、子会话借用）。
 
-### 9.2 `oauth` / `protocolVersion`（fail-closed）
+### 9.2 `oauth` / `protocolVersion`（已补）
 
-- `protocolVersion`：`legacy` / `auto` / 缺省都按 2025-06-18 握手；`2026-07-28` 钉死的服务器**不连接**并
-  报清楚原因。Node 的 `auto` 会先探 `server/discover` 并可能说现代协议，Rust 只有 legacy 一种，属已知差异。
-- `oauth`：配置文件按 Node 的 strict schema 校验形状后**不连接**（内核没有 token 获取：client_credentials
-  的发现链与交互授权都在桌面端）；`createSession.mcpServers` 里带 `oauth` 或现代钉版的条目同样跳过并点名
-  （`protocol.create_session.mcp_server_unsupported`）。两条入口同一判据，不再出现「警告后无凭据照连」。
-- 这是刻意的 fail-closed：OAuth 保护的服务器本来就会连成 401，跳过并报清楚比一条报错连接更可诊断。
+- **令牌端口**（Node 的 `AuthProvider`）：`kernel-api` 的 `McpOAuthPort`（`access_token` / `refresh`）由入口实现，
+  `ext` 只做「取令牌 → `Authorization: Bearer` → 401 刷新一次再试」。`authorization_code` 的交互授权在桌面端做，
+  内核按 Node 的键读共享凭据
+  （`mcp:oauth:<sha256(名字
+URL
+clientId
+scope
+redirectPath)[0..24]>:authorization_credentials`）；
+  `client_credentials` 自己发现授权服务器并用 `client_secret_basic` 换令牌，进程内缓存到临期（60 秒前）。
+- **刷新写回**同一形状的 canonical 记录（`version: 2` + `token_type`，Node 的 reader 会校验它），保留原来的
+  `issuer`；被拒的那枚不是当前记录里的那枚时不刷新（另一个进程已经换代）。
+- **401**：连接与握手阶段刷新一次并重连；没有令牌端口时按 `oauth_authorization_failed` 报出来（不再跳过服务器）。
+- **现代握手**：`auto`（缺省）先发 `server/discover`（带 `_meta` 信封）；结果有 `2026-07-28` 且 `capabilities`
+  是对象时按现代建立连接（不再 `initialize`），之后每个请求与通知都带信封、服务器→客户端的请求丢掉、
+  `mcp/list` 报 `protocolEra: "modern"`；任何 RPC 错误或形状不对都回退 2025 的 `initialize`。钉在
+  `2026-07-28` 的服务器只认现代，协商不到时按 `protocol_negotiation_failed` 报出来。
+- **stdio 探测**：老服务器可能不认识 `server/discover` 并就此退出——探测期间连接关闭时换一条新连接走 legacy
+  （Node 用一次性的兄弟进程达到同一结论）。
+- 测试：`ext` 7 条（Bearer 头、401 刷新一次、无端口时授权失败、现代不 `initialize` 且带信封、`-32601` 回退、
+  钉版失败、版本默认值）、`nibi-platform` 7 条（发现链、两种 grant、刷新沿用 refresh token、键与 Node 逐字节一致）、
+  `cli` 2 条（记录键、并发换代判定）。
 
 ## 10. NIBI 登录（已补）
 
@@ -293,7 +308,8 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   `https://api.nibistudio.top/api/v1`）。
 - 测试：`nibi-platform` 11 条（端点/表单、轮询、slow_down、过期、取消、刷新、资料）、`cli` 8 条单测 +
   4 条真实进程（登录写 v2 凭据与 license、JSON 形状、退出、用法错误）。
-- 已知：Rust TUI 的 `/login` 仍走 `platform::begin_login`（Coding Plan 那条线，TUI 尚未随桌面切 Rust）。
+- Rust TUI 的 `/login`（`kernel/crates/cli/src/tui_account.rs`）走同一条 `device_login`：界面显示设备码与地址、
+  浏览器由入口打开，`esc` 取消；`/logout` 同时清 provider 凭据与 NIBI 的五个键。
 
 ## 11. TUI 调色板（已补）
 
@@ -311,8 +327,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；
    `computer-use/operation-event` 已由 Rust 发出（§5.4）。
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
-6. MCP 的现代握手（`2026-07-28`）与 OAuth 令牌获取未实现，两条入口 fail-closed（§9.2）；
-   `auto` 的探测（`server/discover`）同样未做，一律 legacy。
-7. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
+6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
-8. Rust TUI 的 `/login` 仍是 Coding Plan 登录（TUI 未随桌面切 Rust）。
+7. Rust TUI 的 `/login` 默认是 NIBI 账号的 Device Flow（`/login zai-coding-plan` 等仍是 provider 模板）；
+   背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。
