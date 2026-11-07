@@ -8,6 +8,7 @@
 mod commands;
 mod conversation_telemetry;
 pub mod context;
+mod generate_text;
 pub mod headers;
 mod hook_review;
 mod inbound;

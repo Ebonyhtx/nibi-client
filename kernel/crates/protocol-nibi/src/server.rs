@@ -63,6 +63,8 @@ pub struct Server {
     pub(crate) uploads: crate::attachment_upload::Registry,
     /// 网络捕获的开关与攒批（`process/networkCapture` → `process/networkRequests`，141 审计 §9 F3）。
     pub(crate) capture: Arc<crate::telemetry::Capture>,
+    /// 工作区补全的进行中操作（`workspace/generateText` 的 `operationId` → 取消信号）。
+    pub(crate) generate_operations: Mutex<HashMap<String, nibi_kernel_api::abort::Abort>>,
     preferences: Mutex<Preferences>,
 }
 
@@ -109,6 +111,7 @@ impl Server {
             defaults,
             uploads: crate::attachment_upload::Registry::default(),
             capture,
+            generate_operations: Mutex::new(HashMap::new()),
             preferences: Mutex::new(Preferences::default()),
         }
     }
@@ -367,6 +370,13 @@ impl Server {
             // （Node `grantWorkspaceHookTrust` → `workspace-hook-trust.ts`）。无会话也受理。
             "workspace/hooks/trustGrant" => crate::hook_review::trust_grant(self, &params)
                 .await
+                .map(Reply::new),
+            // 旧入口（141 F5）：Host 的「生成提交信息」做一次无会话补全
+            // （Node `workspace-generate-text.ts`）。取消按 `operationId` 单独一条。
+            "workspace/generateText" => crate::generate_text::generate(self, &params)
+                .await
+                .map(Reply::new),
+            "workspace/cancelGenerateText" => crate::generate_text::cancel(self, &params)
                 .map(Reply::new),
             // Host 的任务列表、项目谱系校验与分享导入去重（Node `listSessions` 的两种读法）。
             "session/list" => crate::session_directory::list(self, &params)

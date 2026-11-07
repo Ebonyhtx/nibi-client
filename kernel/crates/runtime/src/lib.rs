@@ -16,6 +16,7 @@ mod directory;
 mod escalations;
 mod export;
 mod ext;
+mod generate_text;
 mod hook_review;
 mod kernel;
 mod late;
@@ -725,6 +726,15 @@ impl LocalKernel {
 
     pub fn ports(&self) -> &Ports {
         &self.ports
+    }
+
+    /// 模型目录（辅助档的推理档位与输出上限来源）：入口经 `with_titles` 注入，`-p` 等显式覆盖时没有。
+    pub(crate) fn model_directory(
+        &self,
+    ) -> Option<Arc<dyn nibi_kernel_api::provider::ModelDirectory>> {
+        self.titles
+            .as_ref()
+            .and_then(|titles| titles.directory.clone())
     }
 }
 

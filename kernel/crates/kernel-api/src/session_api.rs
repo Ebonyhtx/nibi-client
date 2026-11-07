@@ -985,6 +985,19 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 无会话的一次性模型补全（NIBI `workspace/generateText`）：Host 的「生成提交信息」。
+    /// `cancel` 由协议层按 `operationId` 持有，`workspace/cancelGenerateText` 触发它。
+    /// 缺省实现返回 `Unsupported`（没接模型的入口）。
+    async fn generate_text(
+        &self,
+        _request: crate::generate_text::GenerateTextRequest,
+        _cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<crate::generate_text::GenerateTextReply, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "workspace generate text".to_owned(),
+        })
+    }
+
     /// 会话的分享导入状态（NIBI 快照的 `sharedContextImport`）：冷打开时喂给投影。没有导入时 None。
     async fn shared_context_import(
         &self,

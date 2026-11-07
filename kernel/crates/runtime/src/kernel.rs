@@ -1108,6 +1108,15 @@ impl Kernel for LocalKernel {
         self.toggle_hook(workspace, review_item_id, enabled).await
     }
 
+    /// NIBI `workspace/generateText`：无会话的一次性模型补全（Host 的「生成提交信息」）。
+    async fn generate_text(
+        &self,
+        request: nibi_kernel_api::generate_text::GenerateTextRequest,
+        cancel: tokio_util::sync::CancellationToken,
+    ) -> Result<nibi_kernel_api::generate_text::GenerateTextReply, KernelError> {
+        crate::generate_text::run(self, request, cancel).await
+    }
+
     /// NIBI 快照的 `sharedContextImport`：冷打开时从 `session_entry` 读出。
     async fn shared_context_import(
         &self,
