@@ -18,10 +18,13 @@ name: rust-npm-packages
 
 on:
   push:
+    # 分支推送按 paths 过滤；打 `v<版本>` 标签即发版（tag 推送不受 paths 过滤影响）。
     paths:
       - "kernel/**"
       - "scripts/rust-cli/npm/**"
       - ".github/workflows/rust-npm-packages.yml"
+    tags:
+      - "v*"
   pull_request:
     paths:
       - "kernel/**"
@@ -118,7 +121,9 @@ jobs:
   # 已经存在时跳过，手动重跑不会因为 409 失败。
   publish:
     name: publish ${{ matrix.package-id }}
-    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.publish)
+      || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
     needs: pack
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -157,6 +162,14 @@ jobs:
           test -n "$TARBALL"
           PKG="$(node -p "require('./pack/pack.json').name")"
           VERSION="$(node -p "require('./pack/pack.json').version")"
+          # 标签发版时，标签必须就是包里那个版本（防止 v4.0.2 的标签发出 4.0.1 的包）。
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            TAG="${GITHUB_REF_NAME#v}"
+            if [ "$TAG" != "$VERSION" ]; then
+              echo "::error::tag ${GITHUB_REF_NAME} does not match the packed version ${VERSION}"
+              exit 1
+            fi
+          fi
           if npm view "$PKG@$VERSION" version >/dev/null 2>&1; then
             echo "::notice::$PKG@$VERSION is already published; nothing to do"
             exit 0
