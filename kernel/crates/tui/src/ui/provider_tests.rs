@@ -278,3 +278,52 @@ fn the_key_view_saves_a_draft_with_the_existing_endpoint() {
         Some("sk-new".to_owned())
     );
 }
+
+#[test]
+fn every_view_renders() {
+    let palette = Palette::new(ColorLevel::TrueColor, Some((0, 0, 0)));
+    let views = [
+        ProviderView::Loading {
+            intent: Intent::ShowList,
+        },
+        ProviderView::List {
+            items: vec![info("personal:gateway")],
+            selected: 1,
+            status: None,
+        },
+        ProviderView::Detail {
+            info: info("personal:gateway"),
+            selected: 0,
+            confirming: false,
+            status: None,
+        },
+        ProviderView::Presets {
+            items: vec![preset()],
+            selected: 0,
+            status: None,
+        },
+        ProviderView::Form(Form::from_preset(&preset())),
+        ProviderView::Form(Form::custom()),
+        ProviderView::Key {
+            info: info("personal:gateway"),
+            key: RedactedString::new("sk-test".to_owned()),
+            status: None,
+            saving: false,
+        },
+    ];
+    for view in &views {
+        let rendered = super::lines(view, Lang::En, &palette, 80);
+        assert!(!rendered.is_empty(), "{view:?} rendered nothing");
+        let zh = super::lines(view, Lang::Zh, &palette, 80);
+        assert_eq!(
+            zh.len(),
+            rendered.len(),
+            "the two languages differ in height"
+        );
+    }
+}
+
+#[test]
+fn the_command_is_listed_in_help() {
+    assert!(crate::ui::commands::find("provider").is_some());
+}
