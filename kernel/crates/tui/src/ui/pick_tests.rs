@@ -20,14 +20,14 @@ fn the_selected_row_is_a_full_width_bar() {
     let line = paint(row(&palette), true, &palette, 40);
     assert_eq!(line.width(), 40);
     assert_eq!(line.spans[0].content, "› ");
-    let bar = Some(Color::Rgb(99, 168, 248));
+    let bar = Some(Color::Rgb(232, 196, 145));
     assert!(
         line.spans.iter().all(|span| span.style.bg == bar),
         "{line:?}"
     );
     assert_eq!(line.style.bg, bar);
     assert!(line.spans[1].style.add_modifier.contains(Modifier::BOLD));
-    assert_eq!(line.spans[1].style.fg, Some(Color::Rgb(0, 0, 46)));
+    assert_eq!(line.spans[1].style.fg, Some(Color::Rgb(42, 29, 10)));
     // 说明不加粗、不 dim。
     let description = &line.spans[3].style;
     assert!(!description.add_modifier.contains(Modifier::BOLD));
@@ -43,7 +43,7 @@ fn light_backgrounds_use_the_lighter_blue_and_sixteen_colors_reverse() {
     let light =
         Palette::new(ColorLevel::TrueColor, Some((255, 255, 255))).with_foreground(Some((0, 0, 0)));
     let line = paint(row(&light), true, &light, 30);
-    assert_eq!(line.spans[1].style.bg, Some(Color::Rgb(164, 205, 251)));
+    assert_eq!(line.spans[1].style.bg, Some(Color::Rgb(246, 226, 196)));
     let ansi = Palette::new(ColorLevel::Ansi16, Some((0, 0, 0)));
     let line = paint(row(&ansi), true, &ansi, 30);
     assert_eq!(line.width(), 30);

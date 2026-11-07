@@ -55,18 +55,18 @@ fn keys_are_bold_and_softened_on_light_backgrounds() {
 #[test]
 fn the_selection_is_a_blue_bar_with_dark_bold_text() {
     let dark = palette(ColorLevel::TrueColor, DARK, None).selection();
-    assert_eq!(dark.bg, Some(Color::Rgb(99, 168, 248)));
-    assert_eq!(dark.fg, Some(Color::Rgb(0, 0, 46)));
+    assert_eq!(dark.bg, Some(Color::Rgb(232, 196, 145)));
+    assert_eq!(dark.fg, Some(Color::Rgb(42, 29, 10)));
     assert!(dark.add_modifier.contains(Modifier::BOLD));
     let light = palette(ColorLevel::TrueColor, LIGHT, None).selection();
-    assert_eq!(light.bg, Some(Color::Rgb(164, 205, 251)));
+    assert_eq!(light.bg, Some(Color::Rgb(246, 226, 196)));
     // 蓝色的背景：底色换成对比度大的那种。
     let blue = palette(ColorLevel::TrueColor, Some((95, 160, 240)), None).selection();
-    assert_eq!(blue.bg, Some(Color::Rgb(164, 205, 251)));
+    assert_eq!(blue.bg, Some(Color::Rgb(246, 226, 196)));
     // 256 色取最近的一格；16 色与背景不知道时反色。
     assert_eq!(
         palette(ColorLevel::Ansi256, DARK, None).selection().bg,
-        Some(Color::Indexed(75))
+        Some(Color::Indexed(186))
     );
     let reversed = Style::default().add_modifier(Modifier::BOLD | Modifier::REVERSED);
     assert_eq!(
@@ -94,7 +94,7 @@ fn model_and_path_follow_the_codex_status_line() {
     }
     assert_eq!(
         palette(ColorLevel::Ansi16, DARK, None).model().fg,
-        Some(Color::Cyan)
+        Some(Color::Yellow)
     );
     assert_eq!(
         palette(ColorLevel::Ansi16, DARK, None).path().fg,

@@ -1,6 +1,6 @@
 //! 配色记号（docs/specs/rust-cli/tui.md §7.4，修复线 F26，用户决定）：次要文字、按键、选中行、模型名与工作区路径。
-//! 取值与规则参照 Codex TUI（`codex-rs/tui/src`，c3d3b142d）的 `style.rs`、`style/contrast.rs`、`key_hint.rs`、
-//! `bottom_pane/status_line_style.rs`；代码自己写，没有复制。颜色只取决于启动时探测到的终端事实（`Palette`）。
+//! 强调色取 NIBI 品牌板（暗色沙色 `#e8c491`、浅色暖橙 `#a45a1e`；与 `packages/ui/src/styles.css` 的
+//! `--color-brand` 同源），不再用上游的蓝。颜色只取决于启动时探测到的终端事实（`Palette`）。
 use ratatui::style::{Color, Modifier, Style};
 
 use super::palette::{ColorLevel, Palette, Rgb, blend, is_light};
@@ -14,16 +14,16 @@ pub const MIN_TEXT_CONTRAST: f64 = 4.5;
 pub const SECONDARY_ALPHA: f64 = 0.6;
 /// 浅色背景上按键的前景比例（Codex `key_hint_style` 的 0.85）。
 pub const KEY_ALPHA_LIGHT: f64 = 0.85;
-/// 选中行的底色：深色背景用 BLUE_200，浅色背景用 BLUE_100（Codex `CHATGPT_BLUE_*`）。
-pub const SELECTION_FILL_DARK: Rgb = (99, 168, 248);
-pub const SELECTION_FILL_LIGHT: Rgb = (164, 205, 251);
-/// 强调色（Codex `UI_ACCENT` / `LIGHT_BG_ACCENT_RGB`）：深色背景就是选中行的深色底色，浅色背景另取深一些的蓝；
-/// 16 色终端用 `ACCENT_NAMED`。列表与面板顶上的线和标题、工作区信任对话框（F26 起不再用黄色）都用它。
+/// 选中行的底色：深色背景用品牌沙色，浅色背景用暖色浅底。
+pub const SELECTION_FILL_DARK: Rgb = (232, 196, 145);
+pub const SELECTION_FILL_LIGHT: Rgb = (246, 226, 196);
+/// 强调色：深色背景就是选中行的沙色，浅色背景取加深的暖橙（浅底上文字对比度约 5:1）；
+/// 16 色终端用 `ACCENT_NAMED`。列表与面板顶上的线和标题、工作区信任对话框都用它。
 pub const ACCENT_DARK: Rgb = SELECTION_FILL_DARK;
-pub const ACCENT_LIGHT: Rgb = (28, 100, 200);
-pub const ACCENT_NAMED: Color = Color::Cyan;
-/// 选中行的文字（Codex `selection_style` 的 `(0, 0, 46)`）。
-pub const SELECTION_TEXT: Rgb = (0, 0, 46);
+pub const ACCENT_LIGHT: Rgb = (164, 90, 30);
+pub const ACCENT_NAMED: Color = Color::Yellow;
+/// 选中行的文字（品牌板上 `--color-primary-foreground` 的暗色）。
+pub const SELECTION_TEXT: Rgb = (42, 29, 10);
 /// 底色与背景的对比度低于这个值时换另一种蓝（Codex `selection_style`）。
 pub const SELECTION_MIN_RATIO: f64 = 1.25;
 /// 状态栏颜色的柔化：原色占的百分比（Codex `STATUS_LINE_COLOR_SATURATION_PERCENT`）。
@@ -31,7 +31,7 @@ pub const STATUS_SATURATION_PERCENT: u32 = 85;
 /// 模型名：Codex 状态栏 Model 的缺省主题色（catppuccin mocha / latte 的类型色）；16 色终端用 `MODEL_NAMED`。
 pub const MODEL_DARK: Rgb = (249, 226, 175);
 pub const MODEL_LIGHT: Rgb = (223, 142, 29);
-pub const MODEL_NAMED: Color = Color::Cyan;
+pub const MODEL_NAMED: Color = Color::Yellow;
 /// 工作区路径：Codex 状态栏 Path 的缺省主题色（catppuccin 的字符串色）；16 色终端用 `PATH_NAMED`。
 pub const PATH_DARK: Rgb = (166, 227, 161);
 pub const PATH_LIGHT: Rgb = (64, 160, 43);

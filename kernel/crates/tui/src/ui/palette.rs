@@ -125,7 +125,7 @@ impl Palette {
         let user_bg = tint(0.12, 0.04);
         let prompt_bg = tint(0.16, 0.02);
         let hover_bg = tint(0.20, 0.07);
-        // 强调色取 `tokens` 的命名常量（F26，取值不变：真彩色 (99,168,248) / (28,100,200)，256 色 75 / 26，16 色青色）。
+        // 强调色取 `tokens` 的命名常量（NIBI 品牌色：真彩色沙色/暖橙，16 色黄）。
         use super::tokens::{ACCENT_DARK, ACCENT_LIGHT, ACCENT_NAMED};
         let accent =
             to_color(if light { ACCENT_LIGHT } else { ACCENT_DARK }, level).unwrap_or(ACCENT_NAMED);
@@ -139,12 +139,9 @@ impl Palette {
             hover_bg,
             accent,
             selection_bg: {
-                let rgb = if light {
-                    (180, 213, 255)
-                } else {
-                    (38, 79, 120)
-                };
-                to_color(rgb, level).unwrap_or(if light { Color::Cyan } else { Color::Blue })
+                // NIBI 品牌：浅底暖沙、深底暖橙的暗面（不再用上游的蓝）。
+                let rgb = if light { (246, 226, 196) } else { (74, 52, 30) };
+                to_color(rgb, level).unwrap_or(Color::Yellow)
             },
         }
     }
@@ -357,14 +354,14 @@ mod tests {
         assert_eq!(nearest_256((255, 0, 0)), 196);
         // 修复线 F26：偏蓝的颜色取色块，不落到灰阶上（原来是 248）。
         assert_eq!(nearest_256((99, 168, 248)), 75);
-        // 强调色改从命名常量取之后，256 色的取值与原来写死的相同。
+        // 强调色从命名常量取：256 色的索引跟着品牌色走（不写死数字，免得调色板一改就假红）。
         assert_eq!(
             Palette::new(ColorLevel::Ansi256, Some((0, 0, 0))).accent,
-            Color::Indexed(75)
+            Color::Indexed(nearest_256(crate::ui::tokens::ACCENT_DARK))
         );
         assert_eq!(
             Palette::new(ColorLevel::Ansi256, Some((255, 255, 255))).accent,
-            Color::Indexed(26)
+            Color::Indexed(nearest_256(crate::ui::tokens::ACCENT_LIGHT))
         );
     }
 

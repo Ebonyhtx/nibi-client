@@ -470,9 +470,9 @@ fn chinese_and_both_themes() {
         assert!(text[1].ends_with("↑ 还有 2 个"), "{text:?}");
         // 选中的行按选择列表组件画：整行底色条（深浅两种背景各一种底色）。
         let fill = if background == (0, 0, 0) {
-            Color::Rgb(99, 168, 248)
+            Color::Rgb(232, 196, 145)
         } else {
-            Color::Rgb(164, 205, 251)
+            Color::Rgb(246, 226, 196)
         };
         assert_eq!(lines[6].style.bg, Some(fill), "{background:?}");
         app.focus = Some(Focus::Agents(2));
