@@ -1,6 +1,6 @@
 //! 连接上的共用部分：往 Host 写帧（wire v3、每个订阅自己的逻辑帧序号）、时间与随机标识。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use nibi_kernel_api::clock::Clock;
@@ -25,6 +25,8 @@ pub struct Context {
     identities: Mutex<HashMap<String, String>>,
     /// 浏览器 broker（Host 声明提供 browser-use 执行面时由入口装上）。
     browser_broker: std::sync::OnceLock<Arc<crate::browser::BrowserBroker>>,
+    /// `v4/connection/flow` 的 `saturated` 连接：投递暂停、订阅与位置都保留。
+    paused: Mutex<HashSet<String>>,
     /// 本进程的随机前缀（代际标识与订阅 ID 用）。
     prefix: String,
 }
@@ -44,8 +46,35 @@ impl Context {
             sessions: Mutex::new(HashMap::new()),
             identities: Mutex::new(HashMap::new()),
             browser_broker: std::sync::OnceLock::new(),
+            paused: Mutex::new(HashSet::new()),
             prefix,
         }
+    }
+
+    /// 下游背压（Node `setConnectionFlowState`）：`saturated` 暂停这条连接的投递，
+    /// `drained` 恢复。返回状态是否真的变了（给调用方决定要不要补一次 flush）。
+    pub fn set_connection_paused(&self, connection: &str, paused: bool) -> bool {
+        let mut set = self.paused.lock().unwrap_or_else(PoisonError::into_inner);
+        if paused {
+            set.insert(connection.to_owned())
+        } else {
+            set.remove(connection)
+        }
+    }
+
+    pub fn connection_paused(&self, connection: &str) -> bool {
+        self.paused
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .contains(connection)
+    }
+
+    /// 当前暂停的连接（`flush` 时跳过它们）。
+    pub fn paused_connections(&self) -> HashSet<String> {
+        self.paused
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     /// 装上入口启动的浏览器 broker（只装一次；重复装保留第一个）。

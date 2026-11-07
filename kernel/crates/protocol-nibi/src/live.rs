@@ -164,6 +164,41 @@ impl Live {
             .then(|| state.log.epoch().to_owned())
     }
 
+    /// 续传（`subscribe` / `resync` 带 `base`）：`None` = 不可续传（调用方回快照）；
+    /// `Some(None)` = 客户端已在当前序号；`Some(Some((from, to, deltas)))` = 补发这一段。
+    ///
+    /// 补发的这一段也受订阅缓冲上限约束：超过就回快照，不冒发不出去的帧的风险。
+    pub fn resume(
+        &self,
+        subscription: &str,
+        epoch: &str,
+        base: u64,
+    ) -> Option<Option<(u64, u64, Vec<Value>)>> {
+        let mut state = self.state();
+        let to = state.log.resume(subscription, epoch, base)?;
+        if to == base {
+            return Some(None);
+        }
+        let deltas = state.log.deltas_after(base);
+        if crate::wire::needs_snapshot(&deltas) {
+            return None;
+        }
+        Some(Some((base, to, deltas)))
+    }
+
+    /// 补发续传的这一段（在会话的泵任务里调用，与首帧同一条写路径）。
+    pub async fn send_resume(&self, subscription: &str, from: u64, to: u64, deltas: Vec<Value>) {
+        self.context
+            .frame(
+                &self.topic(),
+                subscription,
+                (from, to),
+                json!({"kind": "deltas", "deltas": deltas}),
+                Purpose::Recovery,
+            )
+            .await;
+    }
+
     pub fn unsubscribe(&self, subscription: &str) -> bool {
         let removed = self.state().log.unsubscribe(subscription);
         if removed {
@@ -548,19 +583,25 @@ impl Live {
     }
 
     /// 待发的增量与变了的会话列表行（阶段、标题、待回答的询问或预览变了才发，活动时间不算）。
+    ///
+    /// 落后出保留窗、或下游缓冲超过 Node 的 `subscriberBufferMaxOps` / `subscriberBufferMaxBytes`
+    /// 时，这一段增量不能无损补齐：位置已推到当前序号，改发快照（Node 的 `resyncRequired`）。
     fn collect(&self, state: &mut State) -> Outgoing {
-        let frames = state
-            .log
-            .flush()
-            .into_iter()
-            .map(|batch| {
-                (
+        let paused = self.context.paused_connections();
+        let mut frames = Vec::new();
+        for batch in state.log.flush(&paused) {
+            let payload = json!({"kind": "deltas", "deltas": batch.deltas});
+            if crate::wire::needs_snapshot(&batch.deltas) {
+                let snapshot = state.projection.snapshot(batch.to, state.log.epoch());
+                frames.push((
                     batch.subscription,
-                    (batch.from, batch.to),
-                    json!({"kind": "deltas", "deltas": batch.deltas}),
-                )
-            })
-            .collect();
+                    (0, batch.to),
+                    json!({"kind": "snapshot", "snapshot": snapshot}),
+                ));
+            } else {
+                frames.push((batch.subscription, (batch.from, batch.to), payload));
+            }
+        }
         let row = self.summary_of(state);
         let mut comparable = row.clone();
         comparable["lastActivityAt"] = json!(0);
@@ -663,6 +704,12 @@ impl Live {
     #[cfg(test)]
     pub fn snapshot_for_test(&self) -> Value {
         self.state().projection.snapshot(0, "test")["subagents"].clone()
+    }
+
+    /// 快照的 `workspaceHookAdmission` 键当前值（测试断言跨会话广播用）。
+    #[cfg(test)]
+    pub fn admission_for_test(&self) -> Value {
+        self.state().projection.snapshot(0, "test")["workspaceHookAdmission"].clone()
     }
 
     /// 直接喂一条内核事件（测试用：不经过会话 actor 的事件流）。

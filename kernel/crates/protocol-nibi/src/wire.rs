@@ -13,6 +13,23 @@ const FRAGMENT_BYTES: usize = 450 * 1024;
 /// 逻辑帧装配的上限（对端 `logicalFrameAssemblyMaxBytes`）。
 const ASSEMBLY_LIMIT: usize = 16 * 1024 * 1024;
 
+/// 一个订阅一次最多补多少条增量（对端 `subscriberBufferMaxOps`）：超过就改发快照。
+pub(crate) const SUBSCRIBER_MAX_OPS: usize = 500;
+/// 一段增量编码后的上限（对端 `subscriberBufferMaxBytes`）。
+pub(crate) const SUBSCRIBER_MAX_BYTES: usize = 1024 * 1024;
+
+/// 一段增量是否已不能直接补发、必须改发快照：空增量表示断档（落后出保留窗），
+/// 超过条数或字节上限则一段发不完整。
+pub(crate) fn needs_snapshot<D: serde::Serialize>(deltas: &[D]) -> bool {
+    if deltas.is_empty() {
+        return true;
+    }
+    deltas.len() > SUBSCRIBER_MAX_OPS
+        || serde_json::to_string(&json!({"kind": "deltas", "deltas": deltas}))
+            .map(|text| text.len() > SUBSCRIBER_MAX_BYTES)
+            .unwrap_or(true)
+}
+
 /// 帧的用途（对端按它区分首帧、在线增量与恢复）。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Purpose {

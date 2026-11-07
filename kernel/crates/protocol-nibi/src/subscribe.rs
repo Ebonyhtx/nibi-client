@@ -1,6 +1,9 @@
 //! 订阅（docs/specs/rust-cli/app-protocol.md §6）：`v4/conversation/subscribe` / `unsubscribe` / `resync`、
-//! `v4/connection/flow` 与 `v4/sessionsIndex/reconcile`。P1 只有 desktop-continuous：回复只有 ACK（mode 一律 snapshot），
-//! 首帧在回复之后发；resync 一律回快照。
+//! `v4/connection/flow` 与 `v4/sessionsIndex/reconcile`。
+//!
+//! 续传按 Node 的判据：`base.logEpoch` 是本进程这一代、`base.seq` 在保留窗内 → `mode: "resume"` 并补发
+//! `(base.seq, current]`；否则回 `mode: "snapshot"`。`resync` 同样优先续传（`forceSnapshot` 时一律快照）。
+//! 背压按 `saturated` / `drained` / `closed` 三态处理。
 
 use std::sync::Arc;
 
@@ -10,6 +13,7 @@ use nibi_kernel_api::session_api::{Command, CommandEnvelope};
 use nibi_kernel_api::store::SessionFilter;
 use nibi_kernel_protocol_core::connection::Reply;
 use nibi_kernel_protocol_core::rpc::RpcError;
+use nibi_kernel_protocol_core::sessions::SessionSink as _;
 use serde_json::{Value, json};
 
 use crate::index::{CONFIG_PREFIX, INDEX_PREFIX, Summary};
@@ -102,8 +106,14 @@ async fn apply_resume_hints(server: &Server, live: &Arc<Bridged<Live>>, params: 
     }
 }
 
-fn ack(subscription: &str, epoch: &str) -> Value {
-    json!({"ack": {"subscriptionId": subscription, "mode": "snapshot", "logEpoch": epoch}})
+fn ack(subscription: &str, epoch: &str, mode: &str) -> Value {
+    json!({"ack": {"subscriptionId": subscription, "mode": mode, "logEpoch": epoch}})
+}
+
+/// 客户端带上来的水位（`subscribe` 的 `base`；`resync` 的同名字段可为 null）。
+fn base(params: &Value) -> Option<(&str, u64)> {
+    let base = params.get("base")?;
+    Some((base.get("logEpoch")?.as_str()?, base.get("seq")?.as_u64()?))
 }
 
 pub async fn subscribe(server: &Server, params: &Value) -> Result<Reply, RpcError> {
@@ -129,8 +139,20 @@ pub async fn subscribe(server: &Server, params: &Value) -> Result<Reply, RpcErro
         }
         let subscription = server.context.fresh("sub");
         let epoch = live.sink.subscribe(&subscription, &connection);
+        // 水位有效才续传；否则回快照（Node `subscribeReserved` 的 resumable 判据）。
+        if let Some((base_epoch, seq)) = base(params)
+            && let Some(resumed) = live.sink.resume(&subscription, base_epoch, seq)
+        {
+            return Ok(match resumed {
+                Some((from, to, deltas)) => Reply::then(
+                    ack(&subscription, &epoch, "resume"),
+                    resume_on_pump(live, subscription, from, to, deltas),
+                ),
+                None => Reply::new(ack(&subscription, &epoch, "resume")),
+            });
+        }
         return Ok(Reply::then(
-            ack(&subscription, &epoch),
+            ack(&subscription, &epoch, "snapshot"),
             start_on_pump(live, subscription, Purpose::Initial),
         ));
     }
@@ -138,20 +160,32 @@ pub async fn subscribe(server: &Server, params: &Value) -> Result<Reply, RpcErro
     if index.is_none() && !topic.starts_with(CONFIG_PREFIX) {
         return Err(RpcError::invalid_params(format!("unknown topic {topic}")));
     }
-    let stored = match index {
-        Some(workspace) => stored_rows(server, workspace).await,
-        None => Vec::new(),
-    };
     let subscription = server
         .context
         .fresh(if index.is_some() { "six" } else { "wcs" });
     let epoch = server.topics.subscribe(&topic, &subscription, &connection);
+    if let Some((base_epoch, seq)) = base(params)
+        && let Some(resumed) = server.topics.resume(&topic, &subscription, base_epoch, seq)
+    {
+        return Ok(match resumed {
+            Some(frame) => {
+                server.topics.send(frame);
+                Reply::new(ack(&subscription, &epoch, "resume"))
+            }
+            None => Reply::new(ack(&subscription, &epoch, "resume")),
+        });
+    }
+    let stored = match index {
+        Some(workspace) => stored_rows(server, workspace).await,
+        None => Vec::new(),
+    };
     let topics = server.topics.clone();
     let id = subscription.clone();
+    let topic_for_job = topic.clone();
     Ok(Reply::then(
-        ack(&subscription, &epoch),
+        ack(&subscription, &epoch, "snapshot"),
         Box::new(move || {
-            topics.start(topic, id, stored, Purpose::Initial);
+            topics.start(topic_for_job, id, stored, Purpose::Initial);
             Box::pin(async {})
         }),
     ))
@@ -170,7 +204,7 @@ pub async fn unsubscribe(server: &Server, params: &Value) -> Result<Reply, RpcEr
     Ok(Reply::new(json!({})))
 }
 
-/// 重新同步：P1 一律回快照（续传在 P2）。
+/// 重新同步：`base` 有效且没要求强制快照时续传，否则回快照（Node `resyncReserved`）。
 pub async fn resync(server: &Server, params: &Value) -> Result<Reply, RpcError> {
     let topic = params["topic"].as_str().unwrap_or_default().to_owned();
     let subscription = params["subscriptionId"]
@@ -178,16 +212,40 @@ pub async fn resync(server: &Server, params: &Value) -> Result<Reply, RpcError> 
         .unwrap_or_default()
         .to_owned();
     let gone = || RpcError::invalid_params(format!("unknown subscription {subscription}"));
+    let force = params["forceSnapshot"].as_bool().unwrap_or(false);
     if let Some(session) = topic.strip_prefix(CONVERSATION_PREFIX) {
         let live = server
             .bridge
             .get(&SessionId::new(session))
             .ok_or_else(gone)?;
+        if !force
+            && let Some((base_epoch, seq)) = base(params)
+            && let Some(resumed) = live.sink.resume(&subscription, base_epoch, seq)
+        {
+            let epoch = live.sink.epoch();
+            return Ok(match resumed {
+                Some((from, to, deltas)) => Reply::then(
+                    ack(&subscription, &epoch, "resume"),
+                    resume_on_pump(live, subscription, from, to, deltas),
+                ),
+                None => Reply::new(ack(&subscription, &epoch, "resume")),
+            });
+        }
         let epoch = live.sink.restart(&subscription).ok_or_else(gone)?;
         return Ok(Reply::then(
-            ack(&subscription, &epoch),
+            ack(&subscription, &epoch, "snapshot"),
             start_on_pump(live, subscription, Purpose::Recovery),
         ));
+    }
+    let epoch = server.topics.epoch(&topic).ok_or_else(gone)?;
+    if !force
+        && let Some((base_epoch, seq)) = base(params)
+        && let Some(resumed) = server.topics.resume(&topic, &subscription, base_epoch, seq)
+    {
+        if let Some(frame) = resumed {
+            server.topics.send(frame);
+        }
+        return Ok(Reply::new(ack(&subscription, &epoch, "resume")));
     }
     let epoch = server
         .topics
@@ -199,28 +257,46 @@ pub async fn resync(server: &Server, params: &Value) -> Result<Reply, RpcError> 
     };
     let topics = server.topics.clone();
     let id = subscription.clone();
+    let topic_for_job = topic.clone();
     Ok(Reply::then(
-        ack(&subscription, &epoch),
+        ack(&subscription, &epoch, "snapshot"),
         Box::new(move || {
-            topics.start(topic, id, stored, Purpose::Recovery);
+            topics.start(topic_for_job, id, stored, Purpose::Recovery);
             Box::pin(async {})
         }),
     ))
 }
 
-/// 下游背压：P1 只在 closed 时去掉这条连接的订阅（暂停与恢复在 P2）。
+/// 下游背压（Node `setConnectionFlowState`）：`saturated` 暂停这条连接的投递（订阅与位置保留），
+/// `drained` 恢复并补发暂停期间攒下的增量，`closed` 去掉这条连接的全部订阅。
 pub async fn flow(server: &Server, params: &Value) -> Result<Reply, RpcError> {
-    if params["state"] == "closed" {
-        let connection = params["connectionId"].as_str().unwrap_or_default();
-        server.topics.drop_connection(connection);
-        for live in server.bridge.sessions() {
-            live.sink.drop_connection(connection);
+    let connection = params["connectionId"].as_str().unwrap_or_default();
+    match params["state"].as_str() {
+        Some("saturated") => {
+            server.context.set_connection_paused(connection, true);
         }
-        // 附件事务的暂存按连接隔离（Host `clearConnection`）：连接断了，这个连接的半截上传与
-        // 已提交记录都不再有用。
-        server
-            .uploads
-            .with(|table| table.clear_connection(connection));
+        Some("drained") => {
+            server.context.set_connection_paused(connection, false);
+            // 暂停期间的位置没动：会话主题在自己的泵里补发，工作区主题走单写者。
+            for live in server.bridge.sessions() {
+                let sink = live.sink.clone();
+                live.run(Box::pin(async move { sink.flush().await }));
+            }
+            server.topics.flush_all();
+        }
+        Some("closed") => {
+            server.context.set_connection_paused(connection, false);
+            server.topics.drop_connection(connection);
+            for live in server.bridge.sessions() {
+                live.sink.drop_connection(connection);
+            }
+            // 附件事务的暂存按连接隔离（Host `clearConnection`）：连接断了，这个连接的半截上传与
+            // 已提交记录都不再有用。
+            server
+                .uploads
+                .with(|table| table.clear_connection(connection));
+        }
+        _ => {}
     }
     Ok(Reply::new(json!({})))
 }
@@ -296,3 +372,24 @@ fn start_on_pump(
         Box::pin(async {})
     })
 }
+
+/// 回复之后在会话的泵任务里补发续传的那一段（与首帧同一条写路径，不交叠）。
+fn resume_on_pump(
+    live: Arc<Bridged<Live>>,
+    subscription: String,
+    from: u64,
+    to: u64,
+    deltas: Vec<Value>,
+) -> nibi_kernel_protocol_core::connection::After {
+    Box::new(move || {
+        let sink = live.sink.clone();
+        live.run(Box::pin(async move {
+            sink.send_resume(&subscription, from, to, deltas).await;
+        }));
+        Box::pin(async {})
+    })
+}
+
+#[cfg(test)]
+#[path = "subscribe_tests.rs"]
+mod tests;
