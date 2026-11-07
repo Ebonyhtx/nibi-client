@@ -38,6 +38,23 @@
   验证配置这类场景）。同一个版本已存在时 job 会跳过而不是失败。
 - 已发布版本不可覆盖：要修就发新版本，旧版本只能 `npm deprecate`。
 
+## npm 铁律（踩过的坑，别再踩）
+
+1. **版本号永久占用**：同一个版本不能覆盖。要改就发新版本；已发布的只能 `npm deprecate`，不能删。
+2. **发布只从 `main` 的 `v<版本>` 标签走**，标签必须等于根 `package.json` 的版本（workflow 里有守卫）。
+3. **provenance 要求 `package.json.repository.url`** 与 OIDC 令牌里的仓库一致（`git+https://github.com/Ebonyhtx/nibi-client.git`），
+   缺了会 `422 Error verifying sigstore provenance bundle`。已固定在 `scripts/rust-cli/npm/package.mjs`。
+4. **公开仓 workflow 不许出现 `secrets.*`**（`scripts/check-public-repo.mjs` 强制），所以发布只用 OIDC；
+   不要为了"图省事"往里加 `NPM_TOKEN`，那会让 `public-repo-policy` 直接红。
+5. **Trusted Publisher 一旦创建不可修改**：仓库/工作流文件名写错只能删掉重建；权限只勾 `npm publish`，
+   不要勾 `npm dist-tag`（最小权限）。
+6. **手动发布要 OTP**：npm 账号开了 2FA 后，`npm publish` 会要一次性密码，只能在交互终端里跑；
+   不要试图在脚本/CI 里绕（npm 正在限制能绕过 2FA 的 token）。
+7. **`0.0.0-stage` 占位版本**：npm 在带 2FA 的发布流程里会写这条内部记录，删它要 OTP，不影响安装与 `latest`，别当故障。
+8. **改了包名前缀要同步四处**：`package.rs` 的 `PACKAGE_PREFIX`、`package.mjs` 的 `name`、
+   测试夹具（`@nibi-studio/cli-*` 字符串）、本文档。
+9. **Intel Mac 不发**：与 `Platform::published()` 一致；`scripts/rust-cli/npm/package.mjs` 的 `TARGETS` 是唯一清单。
+
 ## 为什么不是"从 dev 发"
 
 npm 版本号永久占用、且 provenance 会把产物绑定到具体 commit。若从 `dev` 发，`main`（默认分支、对外展示）
