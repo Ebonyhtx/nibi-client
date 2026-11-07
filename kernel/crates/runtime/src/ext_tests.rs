@@ -113,6 +113,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             mcp_telemetry: None,
             mcp_ui: None,
             node_repl_env: None,
+            topic: None,
         },
     );
     kernel.start_extensions().await;

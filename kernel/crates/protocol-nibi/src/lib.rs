@@ -32,6 +32,7 @@ mod session_directory;
 mod subscribe;
 mod subagents_rpc;
 pub mod telemetry;
+pub mod topic;
 mod attachment_rpc;
 mod attachment_upload;
 pub mod browser;
@@ -49,6 +50,7 @@ use tokio::io::AsyncBufRead;
 
 pub use context::Context;
 pub use headers::HostHeaders;
+pub use topic::HostTopic;
 pub use server::Defaults;
 
 /// 存储的启动状态（`startup/storageState`，`zcodeStorageStartupStateSchema`）：checking → ready / failed。迁移与备份只由

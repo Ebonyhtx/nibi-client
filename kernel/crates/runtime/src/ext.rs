@@ -50,6 +50,9 @@ pub struct Extensions {
     /// `NIBI_NODE_EXEC_PATH` / `NIBI_CUA_*`。runtime 不直接读 `std::env`（spec §4：只有入口
     /// crate 读进程环境）；None 时不装配内置服务器（CLI/TUI、测试）。
     pub node_repl_env: Option<std::collections::BTreeMap<String, String>>,
+    /// Host 的话题能力（`ReadSessionContext` 的话题附件与 `ReplyToChannel`）：入口在服务 Host
+    /// 协议时装上；None 时两个工具按 Node 同一条错误失败。
+    pub topic: Option<std::sync::Arc<dyn nibi_kernel_api::topic::TopicPort>>,
 }
 
 impl Extensions {
@@ -65,6 +68,7 @@ impl Extensions {
             mcp_telemetry: None,
             mcp_ui: None,
             node_repl_env: None,
+            topic: None,
         }
     }
 }

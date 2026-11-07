@@ -125,6 +125,7 @@ pub mod session_paths;
 pub mod store;
 pub mod title;
 pub mod tool;
+pub mod topic;
 pub mod tool_search;
 pub mod unparsed_input;
 pub mod usage;

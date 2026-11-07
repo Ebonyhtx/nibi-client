@@ -417,6 +417,11 @@ async fn serve(
         files: local_machine.files().clone(),
     }));
     extensions.monitor = monitor;
+    // 话题能力（`ReadSessionContext` 的话题附件与 `ReplyToChannel`）：Host 是数据所有者，
+    // 内核经反向请求 `topic/resource/read` 与 `bot/channel/reply` 找它。
+    extensions.topic = Some(Arc::new(nibi_kernel_protocol_nibi::HostTopic::new(
+        context.clone(),
+    )));
     // `mcpId` 的盐：桌面注入的设备标识；没有时 ext 退回进程级随机串（跨进程不可关联）。
     extensions.mcp_telemetry = Some(nibi_kernel_ext::McpTelemetrySetup {
         sink: mcp_telemetry,

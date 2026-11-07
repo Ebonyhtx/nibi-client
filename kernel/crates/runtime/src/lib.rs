@@ -27,6 +27,7 @@ mod projects;
 mod sampling;
 mod shared_context;
 mod table;
+mod topic_reads;
 mod usage;
 mod workspace_sessions;
 
@@ -396,7 +397,14 @@ impl LocalKernel {
                 .with_tools(vec![Arc::new(nibi_kernel_tools::FillWorkflowHoleTool::new(
                     workflow_engine_slot.clone(),
                 ))])
-                .with_tools(nibi_kernel_tools::worktree_tools(&worktrees)),
+                .with_tools(nibi_kernel_tools::worktree_tools(&worktrees))
+                // 话题（bot 群）的两个工具：`ReadSessionContext` 读历史/话题附件，
+                // `ReplyToChannel` 经 Host 发带原生 @ 的回复。冷读走会话存储，
+                // Host 能力由入口装在 `extensions.topic`。
+                .with_tools(nibi_kernel_tools::topic_tools(
+                    Arc::new(topic_reads::StoreReads::new(ports.store.clone())),
+                    extensions.topic.clone(),
+                )),
         );
         // 用户输入的提及与 bash 模式用基础注册表里的 Read 与 Bash（与模型的调用共用 readFileState 与 shell 状态）。
         let inputs: Arc<dyn nibi_kernel_api::user_input::UserInputs> = Arc::new(
