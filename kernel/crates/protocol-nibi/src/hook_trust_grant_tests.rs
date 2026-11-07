@@ -319,3 +319,208 @@ async fn a_malformed_digest_is_invalid_params_and_never_leaks_the_value() {
     assert!(error.message.contains("bundleDigest"));
     assert!(!error.message.contains(&"A".repeat(64)));
 }
+
+/// 预信任之后，同工作区**已经打开**的会话要立刻换掉提示条（Node 的
+/// `notifyWorkspaceHookTrustGrantSessions`）；其他工作区的会话不动。
+#[tokio::test]
+async fn a_grant_refreshes_the_banner_of_the_other_open_sessions_in_the_workspace() {
+    use futures_util::StreamExt;
+    use nibi_kernel_api::env::EnvPath;
+    use nibi_kernel_api::ids::{SessionId, TraceId};
+    use nibi_kernel_api::session_api::{
+        Ack, CommandEnvelope, SequencedEvent, SessionHandle, SessionView,
+    };
+    use nibi_kernel_api::store::{SessionKind, SessionMeta};
+
+    fn view(workspace: &str) -> SessionView {
+        SessionView {
+            meta: SessionMeta {
+                id: SessionId::new("unset"),
+                kind: SessionKind::Interactive,
+                parent: None,
+                workspace: WorkspaceRef {
+                    environment: EnvironmentId::new("local"),
+                    root: EnvPath::new(workspace),
+                },
+                title: "t".to_owned(),
+                trace: TraceId::new("trace"),
+                created_at_ms: 1_000,
+            },
+            messages: Vec::new(),
+            selection: nibi_kernel_api::model::ModelSelection {
+                provider: "p".to_owned(),
+                model: "m".to_owned(),
+                reasoning: None,
+                connection: None,
+            },
+            mode: PermissionMode::Default,
+            plan: false,
+            pending: Vec::new(),
+            queue: Vec::new(),
+            last_seq: 0,
+            revision: 0,
+            running: false,
+            background: Vec::new(),
+            peer_held: Vec::new(),
+            context_usage: None,
+            context_notice: Default::default(),
+            output_speed: None,
+            launches: Vec::new(),
+            model_turns: Vec::new(),
+            input_intents: Vec::new(),
+        }
+    }
+
+    struct FakeHandle(SessionView);
+
+    #[async_trait]
+    impl SessionHandle for FakeHandle {
+        fn id(&self) -> &SessionId {
+            &self.0.meta.id
+        }
+
+        async fn send(&self, _command: CommandEnvelope) -> Ack {
+            Ack::Accepted {
+                result: Value::Null,
+            }
+        }
+
+        fn subscribe(
+            &self,
+            _after: Option<u64>,
+        ) -> futures_util::stream::BoxStream<'static, SequencedEvent> {
+            futures_util::stream::pending().boxed()
+        }
+
+        async fn view(&self) -> Result<SessionView, KernelError> {
+            Ok(self.0.clone())
+        }
+    }
+
+    struct LiveKernel {
+        review: Mutex<WorkspaceHookReview>,
+        view: SessionView,
+    }
+
+    #[async_trait]
+    impl Kernel for LiveKernel {
+        async fn create_session(
+            &self,
+            _request: nibi_kernel_api::session_api::CreateSession,
+        ) -> Result<SessionId, KernelError> {
+            Err(KernelError::Unsupported {
+                what: "session creation".to_owned(),
+            })
+        }
+
+        async fn list_sessions(
+            &self,
+            _filter: nibi_kernel_api::store::SessionFilter,
+        ) -> Result<Vec<nibi_kernel_api::store::SessionSummary>, KernelError> {
+            Err(KernelError::Unsupported {
+                what: "sessions".to_owned(),
+            })
+        }
+
+        async fn open_session(
+            &self,
+            session: &SessionId,
+        ) -> Result<Arc<dyn SessionHandle>, KernelError> {
+            let mut view = self.view.clone();
+            view.meta.id = session.clone();
+            // 一个别的工作区的会话：广播必须按 workspaceKey 过滤（Node 的同一判据）。
+            if session.as_str() == "sess_other" {
+                view.meta.workspace.root = EnvPath::new("/w/other");
+            }
+            Ok(Arc::new(FakeHandle(view)))
+        }
+
+        async fn workspace_hook_review(
+            &self,
+            _workspace: &WorkspaceRef,
+        ) -> Result<WorkspaceHookReview, KernelError> {
+            Ok(self
+                .review
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone())
+        }
+
+        async fn grant_workspace_hooks(
+            &self,
+            _workspace: &WorkspaceRef,
+            review_item_ids: &[String],
+        ) -> Result<usize, KernelError> {
+            let mut review = self
+                .review
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            for item in review.items.iter_mut() {
+                if review_item_ids.iter().any(|id| id == &item.review_item_id) {
+                    item.trust_state = HookTrustState::TrustedPersistent;
+                }
+            }
+            Ok(review_item_ids.len())
+        }
+    }
+
+    let scope = TaskScope::root("hook-trust-broadcast-test", |_| {});
+    let (out, _host_in) = tokio::io::duplex(1 << 16);
+    let (peer, _writer) = connection::start(out, &scope.spawner(), Options::default());
+    let clock: Arc<dyn nibi_kernel_api::clock::Clock> = Arc::new(FixedClock);
+    let kernel = Arc::new(LiveKernel {
+        review: Mutex::new(review("pending_trust")),
+        view: view("/w/app"),
+    });
+    let server = Arc::new(Server::new(
+        Arc::new(Context::new(peer, clock)),
+        kernel,
+        scope.spawner(),
+        Defaults {
+            selection: nibi_kernel_api::model::ModelSelection {
+                provider: "p".into(),
+                model: "m".into(),
+                reasoning: None,
+                connection: None,
+            },
+            mode: PermissionMode::Default,
+            environment: EnvironmentId::new("env"),
+        },
+        None,
+    ));
+
+    let first = server
+        .live(&SessionId::new("sess_a"))
+        .await
+        .expect("first session opens");
+    let second = server
+        .live(&SessionId::new("sess_b"))
+        .await
+        .expect("second session opens");
+    let other = server
+        .live(&SessionId::new("sess_other"))
+        .await
+        .expect("other session opens");
+    // 冷打开的提示条：两条同工作区、一条别的工作区，都是待审 1 条。
+    assert_eq!(first.sink.admission_for_test()["pendingCount"], 1);
+    assert_eq!(second.sink.admission_for_test()["pendingCount"], 1);
+    assert_eq!(other.sink.admission_for_test()["pendingCount"], 1);
+
+    let result = grant(&server, params(&digest(BUNDLE), &digest(DECLARATION)))
+        .await
+        .unwrap();
+    assert_eq!(result, json!({"accepted": true}));
+
+    // 广播在会话泵里异步执行：等它跑完。
+    for _ in 0..200 {
+        if first.sink.admission_for_test().is_null() && second.sink.admission_for_test().is_null()
+        {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+    assert!(first.sink.admission_for_test().is_null());
+    assert!(second.sink.admission_for_test().is_null());
+    // 其他工作区的会话不受影响（Node 按 workspaceKey 过滤）。
+    assert_eq!(other.sink.admission_for_test()["pendingCount"], 1);
+}

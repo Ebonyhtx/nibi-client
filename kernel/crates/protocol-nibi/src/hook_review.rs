@@ -752,11 +752,47 @@ pub async fn trust_grant(server: &Server, params: &Value) -> Result<Value, RpcEr
         item.declaration_digest == declaration_digest
             && item.trust_state == HookTrustState::TrustedPersistent
     });
-    Ok(if trusted {
-        json!({"accepted": true})
-    } else {
-        rejected("workspace_hooks_config_unreadable")
-    })
+    if trusted {
+        // Node `notifyWorkspaceHookTrustGrantSessions`：Settings 的预信任没有会话上下文，
+        // 但同工作区已经打开着的会话必须立刻换掉提示条，不能等下一次评审或重开。
+        broadcast_admission(server, path).await;
+        return Ok(json!({"accepted": true}));
+    }
+    Ok(rejected("workspace_hooks_config_unreadable"))
+}
+
+/// 把某个工作区当前的可信状态推给这个工作区里所有已经打开的会话
+/// （Node 逐会话 `reloadTrust` → `WorkspaceHookAdmissionUpdated` → `state.updated`）。
+///
+/// 走会话泵（`Bridged::run`）而不是直接写：增量与会话事件同序；`set_hook_admission`
+/// 自己按值去重，没变的会话不会多发一帧。
+async fn broadcast_admission(server: &Server, workspace_path: &str) {
+    let review = match server
+        .kernel
+        .workspace_hook_review(&server.workspace(workspace_path))
+        .await
+    {
+        Ok(review) => review,
+        // 读不出来就保持各会话现状（授权已成功，提示条留待下次评审刷新）。
+        Err(_) => return,
+    };
+    let value = admission(&review);
+    for live in server.bridge.sessions() {
+        if !same_workspace(live.sink.workspace(), workspace_path) {
+            continue;
+        }
+        let sink = live.sink.clone();
+        let value = value.clone();
+        live.run(std::boxed::Box::pin(async move {
+            sink.set_hook_admission(value).await;
+        }));
+    }
+}
+
+/// 信任键、会话的 `workspace.root` 与 Host 传来的路径可能差一个尾部分隔符。
+fn same_workspace(left: &str, right: &str) -> bool {
+    let trim = |value: &str| value.trim_end_matches(['/', '\\']).to_owned();
+    trim(left) == trim(right)
 }
 
 fn rejected(reason: &str) -> Value {
