@@ -449,6 +449,17 @@ impl Tool for ReadSessionContextTool {
         true
     }
 
+    /// 只读：与 Node 的 `readOnly` 工具同一姿态，不进询问。
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        _context: &ToolUseContext,
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
+            updated_input: None,
+        }
+    }
+
     fn search_hint(&self) -> Option<&str> {
         Some("read context from another session or this topic's archived discussion")
     }
@@ -596,6 +607,17 @@ impl Tool for ReplyToChannelTool {
 
     fn is_read_only(&self, _input: &Value) -> bool {
         false
+    }
+
+    /// Node 的这个工具是 `needsApproval: false`（会话本身已授权），不进询问；Host 仍会校验授权。
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        _context: &ToolUseContext,
+    ) -> nibi_kernel_api::permission::PermissionDecision {
+        nibi_kernel_api::permission::PermissionDecision::Allow {
+            updated_input: None,
+        }
     }
 
     fn search_hint(&self) -> Option<&str> {
