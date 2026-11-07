@@ -98,5 +98,21 @@ jobs:
             exit 1
           }
           echo "packaged kernel present"
+      - name: Assert the kernel ships with its license material
+        shell: bash
+        run: |
+          # 内嵌二进制必须带 Apache-2.0 许可证与第三方归属（rg/bfs/ugrep + vendor/copied 的复制代码）。
+          # 缺任何一份都说明 prepare:rust-kernel 的 stage 被绕过或有人删了归属文件。
+          for material in LICENSE THIRD-PARTY-NOTICES.txt; do
+            test -s "${{ matrix.resource-dir }}/rust-kernel/${material}" || {
+              echo "missing ${{ matrix.resource-dir }}/rust-kernel/${material}" >&2
+              exit 1
+            }
+          done
+          grep -q "openai-codex" "${{ matrix.resource-dir }}/rust-kernel/THIRD-PARTY-NOTICES.txt" || {
+            echo "packaged notices do not carry the copied-code attribution" >&2
+            exit 1
+          }
+          echo "packaged kernel license material present"
       - name: Smoke the packaged kernel (storage handshake)
         run: node scripts/desktop-package/smoke-prepare-storage.mjs "${{ matrix.resource-dir }}/rust-kernel/${{ matrix.kernel-exe }}"

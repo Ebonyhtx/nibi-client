@@ -9,3 +9,12 @@ rustflags = ["-C", "target-feature=+crt-static"]
 # 找得到系统库时动态链接（例如 Homebrew 的 libpcre2-8.dylib），发布的二进制在别的机器上起不来。
 [env]
 PCRE2_SYS_STATIC = "1"
+# macOS 最低系统版本 = 应用下限：Electron 44 起 Chromium 不再支持 macOS 12（Electron v44.0.0
+# release note：「macOS 13 (Ventura) or later will be required」），所以 NIBI 的下限是 13.0。
+#
+# 不设这个变量时 rustc 按 11.0 链接，而 cc 按构建机 Xcode SDK 的版本编 C/C++（ugrep、pcre2、bfs），
+# 产物自称 11.0 却弱引用新 SDK 才有的符号，在更老的系统上启动即失败。上游 0.1.86 的 6ed085bd
+# 修的就是这一处（他们选 13.0 也是同一个理由）。
+#
+# force：发版结果不受构建机环境变量影响。
+MACOSX_DEPLOYMENT_TARGET = { value = "13.0", force = true }

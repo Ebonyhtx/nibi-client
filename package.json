@@ -35,7 +35,7 @@
     "test:unit": "vitest run --exclude \"packages/desktop/test/e2e/**/*.test.ts\"",
     "test:unit:affected": "node scripts/run-affected-unit-tests.mjs",
     "test:docker:web-app-gateway": "node scripts/test-web-app-gateway-reset.mjs",
-    "verify:pre-push": "pnpm run lint && pnpm run check:a11y && pnpm run db:schema:check && pnpm run test:architecture && pnpm run architecture:check -- --changed && pnpm run check:identity-residue && pnpm run check:storage-keys && pnpm run check:session-agent && pnpm run check:visual-brand && pnpm run check:i18n-keys && pnpm run test:unit:affected --scope push",
+    "verify:pre-push": "pnpm run lint && pnpm run check:a11y && pnpm run db:schema:check && pnpm run test:architecture && pnpm run architecture:check -- --changed && pnpm run check:identity-residue && pnpm run check:storage-keys && pnpm run check:session-agent && pnpm run check:kernel-licenses && pnpm run check:visual-brand && pnpm run check:i18n-keys && pnpm run test:unit:affected --scope push",
     "check:a11y": "node scripts/check-ui-a11y.mjs",
     "check:a11y:update": "node scripts/check-ui-a11y.mjs --update-baseline",
     "check:visual-brand": "node scripts/check-visual-brand.mjs",
@@ -87,7 +87,8 @@
     "check:i18n-keys": "python scripts/check-i18n-keys.py",
     "check:public-repo": "node scripts/check-public-repo.mjs",
     "check:storage-keys": "node scripts/check-storage-keys.mjs",
-    "check:session-agent": "node scripts/check-session-agent-identity.mjs"
+    "check:session-agent": "node scripts/check-session-agent-identity.mjs",
+    "check:kernel-licenses": "node scripts/check-kernel-licenses.mjs"
   },
   "dependencies": {
     "border-beam": "^1.0.1",

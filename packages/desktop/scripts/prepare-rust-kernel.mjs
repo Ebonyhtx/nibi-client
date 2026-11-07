@@ -42,3 +42,25 @@ const target = join(stagingDir, executable);
 copyFileSync(source, target);
 const bytes = statSync(target).size;
 console.log(`[prepare-rust-kernel] staged ${source} -> ${target} (${bytes} bytes)`);
+
+// 分发合规：内嵌二进制必须带着许可证与第三方归属一起进包。
+// - LICENSE：内核本体 Apache-2.0；
+// - THIRD-PARTY-NOTICES.txt：`vendor/` 里 rg/bfs/ugrep 与 `vendor/copied/` 里复制代码的归属。
+// 缺任何一份都 fail-closed —— 宁可打包失败，也不要发一个没有归属的二进制。
+const licenseMaterials = [
+  ["LICENSE", join(workspaceRoot, "kernel", "LICENSE")],
+  ["THIRD-PARTY-NOTICES.txt", join(workspaceRoot, "kernel", "vendor", "THIRD-PARTY-NOTICES.txt")],
+];
+for (const [name, material] of licenseMaterials) {
+  if (!existsSync(material)) {
+    console.error(
+      `[prepare-rust-kernel] missing ${material}; refusing to stage the kernel binary without its license material`,
+    );
+    process.exit(1);
+  }
+  const destination = join(stagingDir, name);
+  copyFileSync(material, destination);
+  console.log(
+    `[prepare-rust-kernel] staged ${material} -> ${destination} (${statSync(destination).size} bytes)`,
+  );
+}

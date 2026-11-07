@@ -58,7 +58,58 @@
 |---|---|---|---|
 | 2026-10-29 | 0.1.66 → 0.1.67（130 文件 +8,605/−1,300） | 整体 pin；未逐项改造 | npm 产物可验证、编译全绿；协议/迁移/目标表/信任根/审计门禁零变化；F111–F114 是 NIBI 要继承的消费域修复 |
 | 2026-10-30 | `schema/inbound.json` 的 commands/CAS 段与 `workspace/updateOffPeakToolPolicy` 方法；`server.rs` 的 offPeak 处理器 | **删除** | NIBI 已删 offPeak；命令契约改由 `nibi_commands`（NIBI zod 生成物）承接，上游 35 个命令（含 NIBI 不存在的 `setHighspeedMetrics`）不再进入校验路径 |
-| 2026-11-05 | 季度 diff：`6d349ed4` → 上游 `main`（4 个提交，npm 0.1.67→0.1.82）。实质变更只有 `55bb6f18`（从源仓 `cfd5eaf2da` 同步，54 文件）与 `e08687d6`（launcher 文档措辞）；其余是 release 提交 | **不吸收** | 逐文件看过：54 个文件里 28 个 TUI、16 个 CLI（update 文案/缓存），安全域只有 `base/redact.rs`、`net/timeout.rs`、`paths/lib.rs` 的**注释**改动（去掉 Codex/来源措辞），`ext` 只改测试；**零行为、零安全修复**。`node-store` / `kernel-api` / `model` / `protocol-zcode` / `tools` / `policy` 无改动，迁移账本仍 0001–0024 |
+| 2026-11-05 | 季度 diff：`6d349ed4` → 上游 `main`（4 个提交，npm 0.1.67→0.1.82）。实质变更只有 `55bb6f18`（从源仓 `cfd5eaf2da` 同步，54 文件）与 `e08687d6`（launcher 文档措辞）；其余是 release 提交 | **不吸收**（2026-11-07 复核后改为**部分吸收**，见下条） | 逐文件看过：54 个文件里 28 个 TUI、16 个 CLI（update 文案/缓存），安全域只有 `base/redact.rs`、`net/timeout.rs`、`paths/lib.rs` 的**注释**改动（去掉 Codex/来源措辞），`ext` 只改测试；**零行为、零安全修复**。`node-store` / `kernel-api` / `model` / `protocol-zcode` / `tools` / `policy` 无改动，迁移账本仍 0001–0024。**当时漏看了一点：同一提交还新增了 `vendor/copied/openai-codex/` 的复制代码归属，那是对我们同样成立的许可证义务（见 §5.1）** |
+| 2026-11-07 | 0.1.67 → 0.1.86（`6d349ed4` → `5dfe6b46`，9 个提交）。实质：`55bb6f18`（54 文件，TUI/CLI）、`f98e90e4`（仓库根 provider catalog rev 33→43）、`6ed085bd`（macOS deployment target）。其余是 release/CI/文档 | **部分吸收**：复制代码归属 + macOS 部署目标；其余不吸收 | 见 §5.1。**pin 不变（仍 `6d349ed4`）**，两项以补丁形式回填；下次比对基线 = 0.1.86 / `5dfe6b46` |
+
+### 5.1 2026-11-07：从 0.1.86 吸收的两项（回填，不重 pin）
+
+**1. 复制代码归属（合规，必须做）**
+
+`crates/tui/src/ui/paste_burst.rs` 与 `paste_burst_tests.rs` 是从 `openai/codex`
+（Apache-2.0，commit `c3d3b142d`）复制的；这两份文件在 0.1.67 里**已经存在**（上游 2026-10-23
+初始包就带进来），但归属是上游 0.1.86 才补的。我们此前把它编进 `nibi-rs` 并打进安装包，
+`vendor/` 里却没有任何归属 → Apache-2.0 §4(d) 要求携带源的 NOTICE，属于许可证违约。
+
+回填内容：
+
+- `vendor/copied/openai-codex/{LICENSE,NOTICE,copied.json}` 按上游内容逐字节引入；
+- `vendor/THIRD-PARTY-NOTICES.txt` 换成上游 0.1.86 的版本（新增 Codex 的 Apache-2.0 全文与
+  NOTICE，后者还带 Ratatui 的 MIT 声明），只改开头两行为 NIBI 视角并写明来源；
+- `packages/desktop/scripts/prepare-rust-kernel.mjs` 在 stage 二进制时同时 stage
+  `LICENSE` 与 `THIRD-PARTY-NOTICES.txt`，缺任一份 fail-closed；
+- `desktop-package-gates` 断言 `resources/rust-kernel/` 下这两份材料存在且 notices 含
+  `openai-codex`；
+- 判据 `scripts/check-kernel-licenses.mjs`（进 `verify:pre-push`）：copied.json 列出的源文件必须存在、
+  notices 必须有 `--- LICENSE`/`--- NOTICE` 且含 NOTICE 原文、stage 脚本必须仍接这两份材料。
+  实测：删掉 `vendor/copied/openai-codex/NOTICE` 判据立刻红。
+
+`kernel/NOTICE.md` 是上游的产品级声明（描述 ZCode 的路径、网关、账号体系），**不随包分发**，
+文件头已加注说明它不适用于 NIBI；NIBI 的分发合规材料 = `LICENSE` + `vendor/THIRD-PARTY-NOTICES.txt`
++ 仓库根 `THIRD-PARTY-NOTICES.md`。
+
+**2. macOS deployment target（真实包装缺陷）**
+
+上游 `6ed085bd` 在 `.cargo/config.toml` 里加
+`MACOSX_DEPLOYMENT_TARGET = { value = "13.0", force = true }`。原因：不设时 `rustc` 按 11.0 链接，
+`cc` 却按构建机 Xcode SDK 编 C/C++（ugrep、pcre2、bfs），产物自称 11.0 却弱引用新 SDK 才有的
+符号，老系统启动即失败。
+
+我们采用同一机制，值取**应用自己的下限 13.0**：Electron 44 的 release note 明确
+「macOS 13 (Ventura) or later will be required to run Electron v44.0.0 and higher」。
+同步更新 `docs/runtime-tools/embedded-search-native-build.md` 里两处仍写「Electron 41 / macOS 12.0」
+的口径（sidecar 仍按 12.0 构建，低于下限、仍合规）。
+
+**不吸收的部分与理由**
+
+- `55bb6f18` 的其余 54 个文件：28 个 TUI（i18n/渲染/按键提示）、16 个 CLI（**他们自己的**
+  自更新器缓存/安装/registry）、3 个 vendor 脚本、4 个注释。我们不发布他们的 CLI/TUI，
+  内核随桌面包更新、不走他们的更新器。
+- `f98e90e4` provider catalog rev 33→43：**逐节比对过**——`templateRules`(34)、`modelRules`(83)、
+  `modelApiRules`(73)、`templateModelRules`(316) 与上游**完全一致**；差异只有 `providerRules` 10 条、
+  `builtinProviderModelRules` 30 条和 6 条 `providerSiteRules`，全部是 `account:*` 账号/套餐族
+  （`zcode-plan` / `highspeed` / `off-peak` 网关）。NIBI 不接上游账号体系（Coding Plan 只作普通模板），
+  且那些 URL 是上游域名，所以不跟随。
+- 其余：release chore（0.1.81/82/86）、他们的 CI（darwin-arm64 on macos-26）、文档。
 
 ## 6. Step 2 第一切片（2026-10-30）
 

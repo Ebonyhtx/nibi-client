@@ -1,3 +1,9 @@
+> **这份文件来自上游 vendored 子树（`packages/rust-cli/NOTICE.md`），描述的是上游产品（ZCode）的功能、
+> 数据边界与风险；其中的路径（如 `~/.zcode/...`）、网关、发行形态与账号体系不适用于 NIBI。**
+> NIBI 的分发合规材料是：`kernel/LICENSE`（Apache-2.0）、`kernel/vendor/THIRD-PARTY-NOTICES.txt`
+> （内嵌二进制与复制代码归属）、仓库根 `THIRD-PARTY-NOTICES.md`（依赖清单）。
+> **本文件不随 NIBI 安装包分发**；`prepare:rust-kernel` 只 stage `LICENSE` 与那份 THIRD-PARTY-NOTICES。
+
 # ZCode 相关功能说明与第三方组件声明
 
 本声明适用于本仓库公开的源码及其构建产物。各运行形态的功能、权限、存储位置和网络行为不同，不能将其中一种形态的默认设置理解为整个项目的统一设置。

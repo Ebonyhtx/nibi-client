@@ -690,13 +690,18 @@ export default {
     runTimedSync("afterPack:assertPackagedCuaHelper", () => assertPackagedCuaHelper(context));
     if (shouldPackageRustKernel) {
       runTimedSync("afterPack:assertPackagedRustKernel", () => {
-        const packed = resolve(
-          resolvePackagedResourcesDir(context),
-          "rust-kernel",
-          rustKernelExecutable,
-        );
+        const packedDir = resolve(resolvePackagedResourcesDir(context), "rust-kernel");
+        const packed = resolve(packedDir, rustKernelExecutable);
         if (!existsSync(packed)) {
           throw new Error(`packaged Rust kernel binary is missing: ${packed}`);
+        }
+        // 内嵌二进制必须带许可证与第三方归属（rg/bfs/ugrep + vendor/copied 的复制代码）；
+        // 缺了就不出包——许可证材料不是可选资源。
+        for (const material of ["LICENSE", "THIRD-PARTY-NOTICES.txt"]) {
+          const path = resolve(packedDir, material);
+          if (!existsSync(path)) {
+            throw new Error(`packaged Rust kernel is missing its ${material}: ${path}`);
+          }
         }
       });
     }

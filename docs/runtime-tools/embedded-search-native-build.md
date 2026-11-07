@@ -67,7 +67,7 @@ Agent root runtime materialization
 - PCRE2 JIT 按平台分支配置：macOS 关闭，Linux 和 Windows 开启。`win32-x64` / `win32-arm64` 都必须包含 Windows feature 分支。
 - 所有 desktop/SEA 平台的 `rg` 统一固定为 Microsoft `ripgrep-prebuilt v14.1.1-1`，运行时版本必须为 `ripgrep 14.1.1`，并且必须暴露 `features:+pcre2` 和 PCRE2 10.43；JIT 可用性继续由目标平台能力决定。除 Linux arm64 musl 归档不暴露 revision 外，其余目标必须输出上游 revision `4649aa9700`。归档内容身份由固定 SHA-256 保证，不能为补齐展示字符串包装或修改二进制。
 - 最终产物不得依赖 Homebrew 或构建目录中的动态库。macOS 上 `bfs` 只允许链接系统 `libSystem`；`ugrep` 只允许链接系统 `libSystem` 和 `libc++`。
-- native search sidecar 沿用各平台既有打包边界：macOS 产物的 deployment target 不得高于 Electron 41 的 macOS 12.0；Linux `bfs` / `ugrep` 的最高 GLIBC symbol version 固定为 `GLIBC_2.28`，producer 必须实际运行 Node 24、glibc 2.28、GCC 12 与 G++ 12；Windows x64/arm64 产物不得动态依赖构建契约明确要求静态链接的 CRT、PCRE2 与压缩库。
+- native search sidecar 沿用各平台既有打包边界：macOS 产物的 deployment target 不得高于应用下限（Electron 44 起为 macOS 13.0；sidecar 固定按 12.0 构建，低于下限仍合规）；Linux `bfs` / `ugrep` 的最高 GLIBC symbol version 固定为 `GLIBC_2.28`，producer 必须实际运行 Node 24、glibc 2.28、GCC 12 与 G++ 12；Windows x64/arm64 产物不得动态依赖构建契约明确要求静态链接的 CRT、PCRE2 与压缩库。
 
 Linux 的兼容性门禁检查最终 ELF 的 `readelf --version-info`，按数字版本比较全部
 `GLIBC_x.y[.z]` 引用。`bfs` / `ugrep` 必须至少包含一个可解析的 GLIBC 引用，且最大值不得高于
@@ -201,7 +201,7 @@ TODO：全部平台的 native build 与 E2E 接入完成后，将上述锁定源
 - Windows 构建固定使用静态 MSVC runtime，并静态链接 PCRE2、zlib、bzip2、zstd、Brotli 和 ugrep 自带的 7zip decoder。最终 PE 必须拒绝 `VCRUNTIME*.dll`、`MSVCP*.dll` 和 `ucrtbase.dll` 等动态 CRT，以及上述本应静态链接的构建依赖。
 - Linux producer 的放行依据是实际工具链能力，不是具体镜像身份：构建脚本必须在下载源码前检查 Node major 为 24、builder glibc 为 2.28、`CC` 的 GCC major 与 `CXX` 的 G++ major 都为 12，最终产物再通过 GLIBC symbol gate。macOS 的 Apple Silicon runner 允许使用系统 clang 的 `-arch x86_64` 构建 x64 sidecar，并通过 Rosetta 执行 configure probe；独立 E2E 入口同样可通过 Rosetta 验证 x64 产物，但不嵌入正式打包 job。ugrep configure 必须显式使用 `x86_64-apple-darwin` host，避免把 arm64 runner 身份写入 x64 产物。x64 继续由上游 compiler probe 启用 baseline SSE2 并禁用 AVX2。其他未经验证的 Unix 交叉编译继续拒绝。
 - Linux seed/rebuild 由开发机本地 Docker 分别以 `--platform linux/arm64` / `--platform linux/amd64` 启动目标架构容器，并在容器内使用统一入口 `pnpm pack:native-search -- --platform linux --arch <arm64|x64>`；当前可复现基线是 Rocky Linux 8 的 glibc 2.28、Node 24 与 GCC Toolset 12。macOS 与 Windows 仍由各自平台打包机产出。`ci:ensure-native-search-deps` 在当前 runner 满足 Node 24 / glibc 2.28 / GCC 12 / G++ 12 门禁时复用同一打包实现补产，不要求仓库提供额外 Dockerfile 或平台专用 wrapper；镜像名称本身不替代上述运行时门禁与固定归档 SHA-256。
-- macOS 自产 `bfs` / `ugrep` sidecar 的 deployment target 固定为 `12.0`；Microsoft `rg` 的 deployment target 可以更低但不得高于 `12.0`。构建校验必须同时读取 Mach-O `LC_BUILD_VERSION.minos` 与旧式 `LC_VERSION_MIN_MACOSX.version`，禁止任何工具提高 Electron 41 的最低 macOS 版本。
+- macOS 自产 `bfs` / `ugrep` sidecar 的 deployment target 固定为 `12.0`；Microsoft `rg` 的 deployment target 可以更低但不得高于 `12.0`。构建校验必须同时读取 Mach-O `LC_BUILD_VERSION.minos` 与旧式 `LC_VERSION_MIN_MACOSX.version`，禁止任何工具提高应用的最低 macOS 版本（Electron 44 起为 `13.0`，内核 `nibi-rs` 在 `kernel/.cargo/config.toml` 里按同一值固定）。
 - macOS `bfs` 必须屏蔽 macOS 26 SDK 新增的标准 `posix_spawn_file_actions_addfchdir()`，让上游继续选择从 macOS 10.15 可用的 `posix_spawn_file_actions_addfchdir_np()`；同时注入 `-Dfdclosedir=__bfs_poison_fdclosedir_macos_26_4`。两者都用于防止新版 SDK 的 configure probe 让 deployment target 为 12.0 的产物弱导入更高系统版本才存在的符号。
 - Linux `ugrep` 必须静态链接 GCC/C++ runtime；最终依赖白名单不得接受
   `libstdc++.so`、`libgcc_s.so`、`libc++.so` 或 `libc++abi.so`，避免构建参数回归后仍通过
