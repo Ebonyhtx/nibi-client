@@ -33,6 +33,10 @@ on:
         description: "Publish the packed tarballs to npm (trusted publishing)"
         type: boolean
         default: false
+      version:
+        description: "Version to pack (default: the root package.json version)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -84,7 +88,9 @@ jobs:
       - name: Pack npm platform package
         id: pack
         run: |
-          VERSION="$(node -p "require('./package.json').version")"
+          VERSION="${{ inputs.version }}"
+          [ -n "$VERSION" ] || VERSION="$(node -p "require('./package.json').version")"
+          echo "packing version $VERSION"
           node scripts/rust-cli/npm/package.mjs \
             --binary "kernel/target/${{ matrix.target }}/release/nibi-rs" \
             --target "${{ matrix.target }}" \
