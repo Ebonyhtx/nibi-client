@@ -72,6 +72,12 @@ pub struct PluginSources {
     pub paid_installed_ids: Vec<String>,
     /// 付费插件授权（token/设备/refusal）；`None` 时付费件一律拒绝（fail-closed）。
     pub paid_license: Option<PaidLicense>,
+    /// Host 在本进程外提供 `node_repl` MCP 服务器（桌面 Rust 内核）。三个 Node 宿主插件里，
+    /// `node-repl-host` 是服务器产物本身、`computer-use` 只贡献 skill；两者都放行。
+    pub host_node_repl: bool,
+    /// Host 同时提供 `node_repl` 的浏览器 broker socket。浏览器 broker 尚未在 Rust 侧实现，
+    /// 未置位时 `browser-use` 仍跳过：只有 skill 没有执行面比没有更糟。
+    pub host_browser_broker: bool,
 }
 
 /// 付费插件授权事实。判定逻辑在 `nibi_platform::paid_plugin`，这里只携带输入。
@@ -210,12 +216,25 @@ fn manifest_name(manifest: &Value) -> Result<String, String> {
 }
 
 /// 官方插件依赖 Node 运行时或宿主的判定（ext.md §4.4）；`tables` 是 MCP 服务器声明。
-fn node_dependency(name: &str, marketplace: &str, tables: &[Value]) -> Option<NodeDependency> {
+fn node_dependency(
+    name: &str,
+    marketplace: &str,
+    tables: &[Value],
+    host_node_repl: bool,
+    host_browser_broker: bool,
+) -> Option<NodeDependency> {
     if marketplace != OFFICIAL {
         return None;
     }
     if NODE_REPL.contains(&name) {
-        return Some(NodeDependency::NodeRepl);
+        // 桌面 Rust 内核里 Host 会注入共享的 `node_repl` MCP 服务器（与 Node bootstrap 同形），
+        // 这三个插件的执行面因此存在。浏览器还多一个 Host 侧 broker socket：没有它时继续跳过。
+        let satisfied = match name {
+            "node-repl-host" | "computer-use" => host_node_repl,
+            "browser-use" => host_node_repl && host_browser_broker,
+            _ => false,
+        };
+        return (!satisfied).then_some(NodeDependency::NodeRepl);
     }
     let servers = tables
         .iter()
@@ -310,7 +329,13 @@ impl Admission<'_> {
             return reject(SkipReason::DuplicateName);
         }
         let tables = self.reader.mcp_tables(dir, &manifest).await;
-        if let Some(dependency) = node_dependency(&name, &candidate.marketplace, &tables) {
+        if let Some(dependency) = node_dependency(
+            &name,
+            &candidate.marketplace,
+            &tables,
+            self.sources.host_node_repl,
+            self.sources.host_browser_broker,
+        ) {
             return reject(SkipReason::NodeRuntime(dependency));
         }
         Ok(self.reader.components(dir, name, manifest, &tables).await)

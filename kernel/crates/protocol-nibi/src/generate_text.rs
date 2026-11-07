@@ -114,7 +114,7 @@ fn request_from_params(params: &Value) -> Result<GenerateTextRequest, RpcError> 
     let query_source = require_non_empty(params, "querySource")?;
     let prompt = params["prompt"].as_str().unwrap_or_default().trim();
     let messages = params["messages"].as_array();
-    if prompt.is_empty() && messages.is_none_or(|list| list.is_empty()) {
+    if prompt.is_empty() && messages.is_none_or(Vec::is_empty) {
         return Err(RpcError::invalid_params(
             "prompt or messages is required",
         ));

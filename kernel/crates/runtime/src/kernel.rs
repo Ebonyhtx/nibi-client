@@ -163,17 +163,13 @@ impl LocalKernel {
             .set_session_plugins(session.clone(), agents);
         self.hooks
             .register_session_plugins(session.clone(), hooks);
-        let plugin_servers = plugins.mcp_servers();
-        if plugin_servers.is_empty() {
-            return;
-        }
         // 会话自己要一套 MCP 连接时，进程级配置的服务器也要在场（Node 的 App runtimeConfig.mcp
         // 同时含 CLI 配置与插件服务器）。
-        let servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer> = self
+        let mut servers: Vec<nibi_kernel_api::mcp_session::SessionMcpServer> = self
             .ext
             .base_mcp_servers()
             .into_iter()
-            .chain(plugin_servers)
+            .chain(plugins.mcp_servers())
             .map(|server| nibi_kernel_api::mcp_session::SessionMcpServer {
                 name: server.name,
                 transport: server.transport,
@@ -182,6 +178,17 @@ impl LocalKernel {
                 isolation: Default::default(),
             })
             .collect();
+        // Browser Use / Computer Use 的模型面是共享的 `node_repl` MCP 服务器，不是内核原生工具。
+        // Host 声明提供执行面时按 Node bootstrap 的同一形状装上；插件快照里没有
+        // `node-repl-host`（未声明或未启用）时这里是 None。
+        if let Some(env) = &self.node_repl_env
+            && let Some(server) = crate::node_repl::builtin_server(&plugins, env)
+        {
+            servers.push(server);
+        }
+        if servers.is_empty() {
+            return;
+        }
         self.ext.start_session_mcp(session, workspace, servers);
     }
 }

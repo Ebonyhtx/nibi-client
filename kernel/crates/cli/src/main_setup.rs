@@ -208,6 +208,9 @@ pub(super) async fn extensions(
     };
     // stream-json 输入（headless.md §6.1）：Bash 后台命令的缺省期限随之不同。
     extensions.streaming_input = flags.streaming_input;
+    // 内置 `node_repl` 服务器的环境投影（runtime 不直接读进程环境，spec §4）：入口捕获一次，
+    // 内核只在装配这个可信服务器时读其中的白名单键。
+    extensions.node_repl_env = Some(env.iter().cloned().collect());
     extensions
 }
 

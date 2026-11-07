@@ -21,6 +21,7 @@ mod hook_review;
 mod kernel;
 mod late;
 mod listings;
+mod node_repl;
 mod permissions;
 mod projects;
 mod sampling;
@@ -162,6 +163,8 @@ pub struct LocalKernel {
     ext: Arc<Ext>,
     /// 会话创建时重新读插件快照的入口（NIBI 多会话进程）；None 时用启动快照（CLI/TUI）。
     plugin_loader: Option<Arc<dyn ext::PluginSnapshotLoader>>,
+    /// 入口投影的进程环境（内置 `node_repl` 服务器的凭据白名单来源；runtime 不直接读 `std::env`）。
+    node_repl_env: Option<std::collections::BTreeMap<String, String>>,
     /// 会话侧 hooks 与回退事务的执行环境实例（L10，docs/specs/rust-cli/session-lifecycle.md）。
     hooks: Arc<HookEngine>,
     /// agent 类型的来源（context 的清单与 Agent 工具共用）；插件 agent 在插件加载后设置。
@@ -635,6 +638,7 @@ impl LocalKernel {
             gate,
             ext,
             plugin_loader,
+            node_repl_env: extensions.node_repl_env,
             hooks,
             agent_catalog,
             titles: None,

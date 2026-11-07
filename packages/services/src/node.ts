@@ -138,6 +138,8 @@ export { createBroadcastService } from "./broadcast/broadcastService.js";
 export { createZCodeAgentService } from "./zcode-agent/zcodeAgentService.js";
 export { createZCodeTaskServiceAdapter } from "./zcode-agent/zcodeTaskServiceAdapter.js";
 export { createZCodeSessionService } from "./zcode-session/zcodeSessionService.js";
+import { resolveKernelSelection } from "./zcode-agent/zcodeAgentProcessManager.js";
+import { buildNodeReplHostEnv } from "./zcode-agent/nodeReplHostEnv.js";
 export {
   resolveDefaultZCodeAgentCommand,
   ZCodeAgentProcessManager,
@@ -2315,6 +2317,13 @@ export function createLocalServices(options: {
         // broker 凭据（socket/token）注入 agent spawn env，让内置 zcode-cua plugin 的
         // computer-use MCP server 经 __zcode-plugin-host 恢复 token 后连上 broker。
         ...cuaProductHelperEnv,
+        // Rust 内核没有 Node bootstrap：Browser Use / Computer Use 共用的 `node_repl` MCP
+        // 服务器由内核自己装配（kernel/crates/runtime/src/node_repl.rs），Host 只给 Node
+        // 可执行路径和“已提供执行面”的标记。Node 内核不读这两个变量。
+        ...buildNodeReplHostEnv({
+          kernel: resolveKernelSelection(process.env.NIBI_KERNEL),
+          execPath: process.execPath,
+        }),
         ...buildAgentTelemetrySpawnEnv({
           deviceMid: telemetryDeviceMid,
           runtimeSurface: options?.agentTelemetry?.runtimeSurface ?? "remote_workspace_host",

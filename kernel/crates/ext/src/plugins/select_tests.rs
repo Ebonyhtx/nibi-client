@@ -100,6 +100,7 @@ async fn enablement_follows_enabled_plugins_and_the_defaults() {
         suppressed_builtins: vec![format!("zcode-guide@{OFFICIAL}")],
         paid_installed_ids: Vec::new(),
         paid_license: None,
+        ..PluginSources::default()
     };
     let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
     // 配置目录缺省启用；官方插件只有缺省名单里的启用；已安装插件要 `enabledPlugins` 打开。
@@ -321,4 +322,67 @@ async fn bundled_plugins_that_need_the_node_runtime_are_skipped() {
             ),
         ]
     );
+}
+
+#[tokio::test]
+async fn a_hosted_node_repl_admits_computer_use_and_the_shared_host() {
+    let files = [
+        official_manifest("node-repl-host", ""),
+        official_manifest("browser-use", r#", "skills": "skills""#),
+        official_manifest("computer-use", r#", "skills": "skills""#),
+        (
+            format!("{CACHE}/{OFFICIAL}/computer-use/1.0.0/skills/computer-use/SKILL.md"),
+            "---\ndescription: Computer Use\n---\nBody\n".to_owned(),
+        ),
+    ];
+    let sources = PluginSources {
+        candidates: vec![
+            official("node-repl-host"),
+            official("browser-use"),
+            official("computer-use"),
+        ],
+        enabled_plugins: enabled(&[("computer-use@nibi-official", true)]),
+        host_node_repl: true,
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    // browser-use 还缺 Host 的 broker socket，继续跳过；宿主与 CUA 放行。
+    assert_eq!(names(&loaded), ["node-repl-host", "computer-use"]);
+    assert_eq!(
+        reasons(&loaded),
+        [(
+            Some("browser-use@nibi-official"),
+            &SkipReason::NodeRuntime(NodeDependency::NodeRepl)
+        )]
+    );
+    assert_eq!(
+        loaded.plugins.0[1].skill_dirs,
+        [format!("{CACHE}/{OFFICIAL}/computer-use/1.0.0/skills")]
+    );
+}
+
+#[tokio::test]
+async fn a_hosted_browser_broker_admits_browser_use_too() {
+    let files = [
+        official_manifest("node-repl-host", ""),
+        official_manifest("browser-use", ""),
+        official_manifest("computer-use", ""),
+    ];
+    let sources = PluginSources {
+        candidates: vec![
+            official("node-repl-host"),
+            official("browser-use"),
+            official("computer-use"),
+        ],
+        enabled_plugins: enabled(&[("computer-use@nibi-official", true)]),
+        host_node_repl: true,
+        host_browser_broker: true,
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    assert_eq!(
+        names(&loaded),
+        ["node-repl-host", "browser-use", "computer-use"]
+    );
+    assert!(loaded.skipped.is_empty());
 }

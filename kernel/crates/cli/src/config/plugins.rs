@@ -176,7 +176,14 @@ pub(crate) async fn sources(
         suppressed_builtins: section.suppressed_builtins,
         paid_installed_ids,
         paid_license,
+        host_node_repl: host_flag("NIBI_HOST_NODE_REPL"),
+        host_browser_broker: host_flag("NIBI_HOST_BROWSER_BROKER"),
     }
+}
+
+/// Host 声明「由它提供 node_repl 执行面」的开关。只认 `1`：空值、其它值都按未提供处理（fail-closed）。
+fn host_flag(name: &str) -> bool {
+    matches!(std::env::var(name).as_deref(), Ok("1"))
 }
 
 #[cfg(test)]
