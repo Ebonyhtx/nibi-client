@@ -3,7 +3,8 @@
 > 目的：切默认内核的判据是「**功能不减**」，不是「协议 89/118」。这份表逐项记「Node 里由谁做、
 > Rust 里由谁做、还差什么」，每行都带可查的代码位置。改动任何一项时同步更新本表。
 >
-> 最后复核：2026-11-07（`dev` `81957f5e`：浏览器 broker/CUA、AUQ 自动结束、topic 资源）。
+> 最后复核：2026-11-07（`dev` `f7fc3db6`：浏览器 broker/CUA、AUQ 自动结束、topic 资源、订阅续传、
+> 钩子信任广播、启动偏好、workspace 共享 MCP、NIBI 登录、TUI 调色板）。
 
 ## 结论摘要
 
@@ -14,6 +15,13 @@
 | 3 | topic 资源（bot 群话题上下文） | ✅ **已补**：意图落库 + 模型文本注入 + `ReadSessionContext`/`ReplyToChannel` + 两条反向请求（§3） |
 | 4 | 运行时偏好协商 | ✅ 三项已核；AUQ 自动结束已按 Node 语义实现（§4.1） |
 | 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；⚠️ 两条 UI 通知差异见 §5 |
+| 6 | 订阅续传与背压 | ✅ **已补**：保留窗 + `base` 水位续传 + `saturated`/`drained`（§6） |
+| 7 | 钩子信任跨会话广播 | ✅ **已补**：`trustGrant` 立刻刷新同工作区已打开会话的提示条（§7） |
+| 8 | 会话启动偏好 | ✅ **已补**：冷打开问一次 `session/requestRuntimePreferences`（§8） |
+| 9 | 会话级 MCP 的 `isolation: workspace` | ✅ **已补**：同工作区共享连接 + 引用计数（§9） |
+| 10 | MCP 的 `oauth` / `protocolVersion` | ⚠️ **fail-closed**：不无凭据连接，明确报错；现代握手与 OAuth 令牌获取未实现（§9.2） |
+| 11 | NIBI 登录（Device Flow） | ✅ **已补**：`nibi-platform` 的 HTTP 轮询/刷新 + `nibi login` 接上（§10） |
+| 12 | TUI 调色板 | ✅ **已补**：品牌沙色/暖橙（§11） |
 
 ## 1. 生成提交信息（已补）
 
@@ -25,7 +33,7 @@
 - 已知差异：这一笔**不进会话用量**（Node 记 detached workspace 事实，内核没有对应表）。
 - 测试：runtime 5（辅助档规则）、protocol 5（映射与容器语义）。
 
-## 2. 浏览器控制（路线纠正，还差 broker）
+## 2. 浏览器控制（已接回）
 
 ### 2.1 Node 的真实形状：共享的 `node_repl` MCP，不是内置工具
 
@@ -219,6 +227,81 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 - 公开构建里 CUA 仍然 fail-closed（占位 `@nibi/cua`），这与内核无关；只有私有 producer
   替换 `packages/zcode-cua` 后才是真正可用的 Computer Use。Rust 侧不再改变这条路径。
 
+## 6. 订阅续传与背压（已补）
+
+- Node：`conversation-topic-publisher.ts` 的有界日志（`eventRetentionPerSession: 2000`、`floorSeq`）、
+  `subscribe`/`resync` 的 `base` 水位（`mode: "resume"`，重放 `(base.seq, current]`）、订阅缓冲上限
+  （`subscriberBufferMaxOps: 500` / `subscriberBufferMaxBytes: 1 MiB`，溢出退化为快照），以及
+  `v4-gateway.ts` 的 `setConnectionFlowState`（`saturated` 暂停、`drained` 恢复、`closed` 丢弃）。
+- Rust：`protocol-core/src/delivery.rs` 的 `TopicLog` 保留最近 2000 个序号并维护 `floor`；
+  `protocol-nibi/src/subscribe.rs` 认 `base`（`logEpoch` 匹配且在 `[floor, seq]` 内才续传）、
+  `resync` 优先续传（`forceSnapshot` 一律快照）、`flow` 三态（暂停的连接位置不动，`drained` 后在会话泵/
+  单写者里补齐）。落后出保留窗或超缓冲上限的订阅改发快照。
+- 工作区主题（`sessions-index` / `workspace-config`）用 Node 同值的 512 帧保留窗；断档重发快照用的是
+  首帧记住的存储行，不会丢只存在于存储里的会话。
+- 测试：`protocol-core` 7 条（保留窗、续传、floor、空增量、暂停）、`protocol-nibi` 4 条（续传/代际不符/
+  暂停恢复/closed）。
+
+## 7. 钩子信任跨会话广播（已补）
+
+- Node：`workspace/hooks/trustGrant` 成功后 `notifyWorkspaceHookTrustGrantSessions` 逐个会话
+  `reloadTrust()`，重发 `WorkspaceHookAdmissionUpdated` → `state.updated.workspaceHookAdmission`。
+- Rust：`hook_review::trust_grant` 回读确认后按工作区重算提示条，经每个同工作区会话的泵任务下发
+  （`set_hook_admission` 自带按值去重）。Settings 的预信任没有会话上下文，这条广播补上了其余已打开会话。
+- 测试：`a_grant_refreshes_the_banner_of_the_other_open_sessions_in_the_workspace`（含别的工作区不受影响）。
+
+## 8. 会话启动偏好（已补）
+
+- Node：会话物化时 `session/requestRuntimePreferences`（`runtime-materialization` 档，15 s），
+  回答里有 AUQ 自动结束开关、附加工作目录、memory/工具搜索等。
+- Rust：冷打开时问一次，应用本内核有会话级开关的两项（AUQ 自动结束、附加工作目录）；没有 Host 或
+  对端不认识这个方法时回退到内核缺省（Node 对 `-32601`/`-32020` 的兼容回退同一姿态）。只有 Host 侧的
+  stdio 服务打开这个请求（测试与纯 CLI 不打开，否则每次冷打开都要等一次超时）。
+- 未建模的偏好（`memoryEnabled` / `toolSearchMode` / `subagentRuntimeConfigEnabled` /
+  `nativeSearchEnhancementsEnabled`）在内核里没有会话级开关，不记一份永远不生效的偏好。
+- 测试：`runtime_preferences` 3 条（应用、无 Host 回退、字段解析）。
+
+## 9. 会话级 MCP
+
+### 9.1 `isolation: "workspace"`（已补）
+
+- Node：`pool.ts` 的 `connectionKey()` = `[serverName, scope, stableStringify(config)]`，
+  scope 是 workspace key；`PoolEntry.refs` 引用计数，最后一个租约释放时关连接。
+- Rust：`ext/src/mcp/sessions.rs` 的共享表按 `(工作区, 名字, 配置指纹)` 建连接，按会话引用计数；
+  每个会话看到 `SessionConnections`（自己的 + 共享的合并视图：工具、状态、等待、进程/采样清单）。
+  子代理仍继承父会话的连接面（不增引用）。telemetry 的 `mcpIsolation` 是 `workspace`。
+- 测试：`ext` 9 条（各自的连接、共享一条、别的工作区不共享、引用计数释放、混合集合、子会话借用）。
+
+### 9.2 `oauth` / `protocolVersion`（fail-closed）
+
+- `protocolVersion`：`legacy` / `auto` / 缺省都按 2025-06-18 握手；`2026-07-28` 钉死的服务器**不连接**并
+  报清楚原因。Node 的 `auto` 会先探 `server/discover` 并可能说现代协议，Rust 只有 legacy 一种，属已知差异。
+- `oauth`：配置文件按 Node 的 strict schema 校验形状后**不连接**（内核没有 token 获取：client_credentials
+  的发现链与交互授权都在桌面端）；`createSession.mcpServers` 里带 `oauth` 或现代钉版的条目同样跳过并点名
+  （`protocol.create_session.mcp_server_unsupported`）。两条入口同一判据，不再出现「警告后无凭据照连」。
+- 这是刻意的 fail-closed：OAuth 保护的服务器本来就会连成 401，跳过并报清楚比一条报错连接更可诊断。
+
+## 10. NIBI 登录（已补）
+
+- `kernel/crates/nibi-platform/src/device_flow.rs`：`Transport`（注入的 HTTP）+ `Client`
+  （`start` / `poll` / `refresh` / `user_info` / `poll_until_ready`，设备码过期、拒绝、取消与 Node 同文案）。
+- `nibi login`（`kernel/crates/cli/src/login.rs`）与 Node `login-command.ts` 同形状：只认
+  `[--no-browser] [--json]`，打印 URL/短码 → 轮询 → 读资料 → 写共享凭据（`enc:v2`）→ 同步会员状态
+  （失败只记警告）。退出清掉 NIBI 的五个键 + `active_provider`（只在这个值是 `nibi` 时）。
+- `kernel/crates/cli/src/nibi_session.rs` 是共享凭据的读改写（目录锁 + 原子写 + v1 惰性迁移；损坏文件不覆盖）。
+- 端点：`NIBI_AUTH_ORIGIN` 覆盖账号中心，API 根沿用 `NIBI_ENDPOINT_ORIGIN` 规则（默认
+  `https://api.nibistudio.top/api/v1`）。
+- 测试：`nibi-platform` 11 条（端点/表单、轮询、slow_down、过期、取消、刷新、资料）、`cli` 8 条单测 +
+  4 条真实进程（登录写 v2 凭据与 license、JSON 形状、退出、用法错误）。
+- 已知：Rust TUI 的 `/login` 仍走 `platform::begin_login`（Coding Plan 那条线，TUI 尚未随桌面切 Rust）。
+
+## 11. TUI 调色板（已补）
+
+- `apps/zcode-cli/packages/tui/src/theme/defaults.ts`：暗色品牌沙色 `#e8c491`、浅色暖橙 `#e08a3e`
+  （浅色主题的文字类 token 用同色相加深的 `#a45a1e`，浅底对比度约 5:1），中性面换成 NIBI 的
+  `#171716` / `#101011` / `#f9f2e4` 一系；语义色（error/warning/success/diff）不变。
+- 验证：`@nibi/tui` 216 条测试、`tsc --noEmit`、`pnpm check:visual-brand`（9358 个文件）。
+
 ## 已知差异（写在这里，别在别处重复记）
 
 1. `generateText` 的 token 不进会话用量。
@@ -228,3 +311,8 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；
    `computer-use/operation-event` 已由 Rust 发出（§5.4）。
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
+6. MCP 的现代握手（`2026-07-28`）与 OAuth 令牌获取未实现，两条入口 fail-closed（§9.2）；
+   `auto` 的探测（`server/discover`）同样未做，一律 legacy。
+7. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
+   工作区主题的断档快照用首帧记住的存储行。
+8. Rust TUI 的 `/login` 仍是 Coding Plan 登录（TUI 未随桌面切 Rust）。
