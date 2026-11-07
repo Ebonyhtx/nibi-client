@@ -317,7 +317,7 @@ pub fn footer_label(lang: Lang, which: &str) -> (&'static str, &'static str) {
         (Lang::Zh, "exit") => en("退出", "退出"),
         (Lang::Zh, "clear") => en("清除搜索", "清除"),
         (Lang::Zh, "new") => en("新会话", "新会话"),
-        (Lang::Zh, "quit") => en("退出 zcode", "退出"),
+        (Lang::Zh, "quit") => en("退出 NIBI", "退出"),
         (Lang::Zh, "focus") => en("切换焦点", "焦点"),
         (Lang::Zh, "option") => en("切换选项", "选项"),
         (Lang::Zh, "comfortable") => en("宽松视图", "宽松"),
