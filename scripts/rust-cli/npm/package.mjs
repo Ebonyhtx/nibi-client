@@ -7,8 +7,9 @@
 // - 内核按 `@nibi-studio/cli-<Platform::package_id()>` 向 npm 注册表要包，`dist.integrity`
 //   是 tarball 的 sha512（npm pack 生成）。
 //
-// 这个脚本只负责“产出可发布的 tarball”，不发布。发布需要运营者提供 npm token
-// （`npm publish --access public <tarball>`），见 docs/planning/step9b-brand-inventory。
+// 这个脚本只负责“产出可发布的 tarball”，不发布。发布由 `.github/workflows/rust-npm-packages.yml`
+// 的 `publish` job 走 npm trusted publishing（OIDC，不需要 token）完成；手动补发才需要本机
+// `npm publish --access public <tarball>` 加 OTP。规则见 docs/release-process.md。
 //
 // 用法：
 //   node scripts/rust-cli/npm/package.mjs \
