@@ -111,7 +111,7 @@ test("renders current-session modified files with aligned counts", () => {
 
   assert.ok(nodes.some((node) => node.text === "▼ Modified Files"));
   assert.equal(nodes.find((node) => node.text === "src/App.jsx")?.style.fg, "#94a3b8");
-  assert.equal(nodes.find((node) => node.text.trim() === "+3")?.style.fg, "#7dd3fc");
+  assert.equal(nodes.find((node) => node.text.trim() === "+3")?.style.fg, "#e8c491");
   assert.equal(nodes.find((node) => node.text.trim() === "-1")?.style.fg, "#fca5a5");
 });
 
@@ -192,7 +192,7 @@ test("production sidebar shows product header and hides developer diagnostics", 
   const lines = collectTextLines(node);
   const textNodes = collectTextNodes(node);
 
-  assert.equal(textNodes.find((item) => item.text === "NIBI")?.style.fg, "#7dd3fc");
+  assert.equal(textNodes.find((item) => item.text === "NIBI")?.style.fg, "#e8c491");
   assert.equal(textNodes.find((item) => item.text === " 1.2.3")?.style.fg, "#94a3b8");
   assert.equal(lines.includes("OpenTUI shell"), false);
   assert.equal(lines.includes("Run"), false);
