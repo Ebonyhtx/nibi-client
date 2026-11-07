@@ -50,14 +50,14 @@ fn the_package_names_come_from_the_launcher_and_are_checked() {
         ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
         (
             "NIBI_MANAGED_PLATFORM_PACKAGE",
-            "@nibi/cli-darwin-arm64",
+            "@nibi-studio/cli-darwin-arm64",
         ),
     ]))
     .unwrap();
     assert_eq!(install.package, "@nibi/cli");
     assert_eq!(
         install.platform_package.as_deref(),
-        Some("@nibi/cli-darwin-arm64")
+        Some("@nibi-studio/cli-darwin-arm64")
     );
     // 没有平台包名时只核对入口包。
     let entry_only = Install::detect(&env(&[
@@ -93,7 +93,7 @@ fn package_names_follow_the_npm_rules() {
     for good in [
         "zcode",
         "@nibi/cli",
-        "@nibi/cli-win32-x64",
+        "@nibi-studio/cli-win32-x64",
         "a.b_c~d-e",
         "1zcode",
     ] {

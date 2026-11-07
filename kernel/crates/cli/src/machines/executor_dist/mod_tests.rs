@@ -18,7 +18,7 @@ use super::fake_npm_tests::{FakeNpm, build_json, image, package, sha256_hex, sri
 use super::{NpmExecutors, registry};
 use crate::options::TestDeclarations;
 
-const X64: &str = "@nibi/cli-linux-x64-gnu";
+const X64: &str = "@nibi-studio/cli-linux-x64-gnu";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 
 struct Setup {
@@ -96,7 +96,7 @@ async fn a_package_is_downloaded_verified_and_cached() {
         seen,
         [
             packument,
-            "/@nibi/cli-linux-x64-gnu/-/cli-linux-x64-gnu-0.2.0.tgz".to_owned()
+            "/@nibi-studio/cli-linux-x64-gnu/-/cli-linux-x64-gnu-0.2.0.tgz".to_owned()
         ]
     );
     // 缓存命中：来源报告它，再要也不联网。
@@ -135,7 +135,7 @@ async fn a_wrong_integrity_is_refused_and_nothing_is_cached() {
     assert_eq!(
         error,
         DownloadError::Failed(
-            "@nibi/cli-linux-x64-gnu 0.2.0: the download does not match the registry's sha512 integrity"
+            "@nibi-studio/cli-linux-x64-gnu 0.2.0: the download does not match the registry's sha512 integrity"
                 .to_owned()
         )
     );
@@ -223,7 +223,7 @@ async fn a_missing_package_or_version_says_why() {
     assert_eq!(
         error,
         DownloadError::Unpublished {
-            reason: "npm package @nibi/cli-linux-x64-gnu version 0.2.0 is missing".to_owned(),
+            reason: "npm package @nibi-studio/cli-linux-x64-gnu version 0.2.0 is missing".to_owned(),
             latest: Some("0.1.9".to_owned()),
         }
     );
@@ -275,16 +275,16 @@ fn each_architecture_has_its_platform_package() {
     assert_eq!(super::package::package_name(Platform::LinuxX86_64), X64);
     assert_eq!(
         super::package::package_name(Platform::LinuxAarch64),
-        "@nibi/cli-linux-arm64-gnu"
+        "@nibi-studio/cli-linux-arm64-gnu"
     );
     // F107（remote-exec.md §28.2）：macOS 的包；`darwin-x64` 没有发布，只用来写错误。
     assert_eq!(
         super::package::package_name(Platform::MacosAarch64),
-        "@nibi/cli-darwin-arm64"
+        "@nibi-studio/cli-darwin-arm64"
     );
     assert_eq!(
         super::package::package_name(Platform::MacosX86_64),
-        "@nibi/cli-darwin-x64"
+        "@nibi-studio/cli-darwin-x64"
     );
 }
 
@@ -293,7 +293,7 @@ fn each_architecture_has_its_platform_package() {
 #[tokio::test]
 async fn a_macos_package_is_downloaded_and_cached_under_its_own_target() {
     let setup = setup().await;
-    const DARWIN: &str = "@nibi/cli-darwin-arm64";
+    const DARWIN: &str = "@nibi-studio/cli-darwin-arm64";
     const DARWIN_TARGET: &str = "aarch64-apple-darwin";
     let binary = image(Platform::MacosAarch64);
     let build = build_json("0.2.0", DARWIN_TARGET, &sha256_hex(&binary));

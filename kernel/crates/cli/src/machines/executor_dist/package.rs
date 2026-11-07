@@ -8,8 +8,8 @@ use nibi_kernel_ssh_connect::Platform;
 use serde_json::Value;
 use sha2::{Digest, Sha256, Sha512};
 
-/// 平台包名的前缀（NIBI-rs 的发布脚本 `scripts/rust-cli/npm/package.mjs`：`@nibi/cli-<id>`）。
-const PACKAGE_PREFIX: &str = "@nibi/cli-";
+/// 平台包名的前缀（NIBI-rs 的发布脚本 `scripts/rust-cli/npm/package.mjs`：`@nibi-studio/cli-<id>`）。
+const PACKAGE_PREFIX: &str = "@nibi-studio/cli-";
 /// 包里的执行器与构建记录（发布脚本放的位置；npm 的 tarball 里每项都在 `package/` 下）。
 const BINARY_ENTRY: &str = "package/bin/nibi-rs";
 const BUILD_ENTRY: &str = "package/build.json";

@@ -46,7 +46,7 @@ test("maps the published targets and refuses Intel Mac", () => {
 
 test("builds the manifest and build.json the kernel expects", () => {
   const manifest = buildPackageManifest({ target: "x86_64-unknown-linux-gnu", version: "4.0.0" });
-  assert.equal(manifest.name, "@nibi/cli-linux-x64-gnu");
+  assert.equal(manifest.name, "@nibi-studio/cli-linux-x64-gnu");
   assert.deepEqual(manifest.os, ["linux"]);
   assert.deepEqual(manifest.cpu, ["x64"]);
   assert.deepEqual(manifest.files, ["bin/nibi-rs", "build.json"]);
@@ -71,7 +71,7 @@ test("packs package/bin/nibi-rs and package/build.json with the real sha256", as
     version: "4.0.0",
     outDir,
   });
-  assert.equal(result.name, "@nibi/cli-linux-x64-gnu");
+  assert.equal(result.name, "@nibi-studio/cli-linux-x64-gnu");
   assert.match(result.integrity, /^sha512-/u);
   assert.equal(result.sha256, createHash("sha256").update(fakeElf()).digest("hex"));
 
@@ -79,7 +79,7 @@ test("packs package/bin/nibi-rs and package/build.json with the real sha256", as
   await mkdir(extractDir, { recursive: true });
   execFileSync(systemTar(), ["-xzf", result.tarball], { cwd: extractDir, stdio: "inherit" });
   const manifest = JSON.parse(await readFile(join(extractDir, "package", "package.json"), "utf8"));
-  assert.equal(manifest.name, "@nibi/cli-linux-x64-gnu");
+  assert.equal(manifest.name, "@nibi-studio/cli-linux-x64-gnu");
   assert.equal(manifest.version, "4.0.0");
   const build = JSON.parse(await readFile(join(extractDir, "package", "build.json"), "utf8"));
   assert.deepEqual(build, {

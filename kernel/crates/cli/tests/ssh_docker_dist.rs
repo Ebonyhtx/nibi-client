@@ -8,7 +8,7 @@
 //!    试跑核对协议 → 握手 → `Bash{machine}`。
 //!
 //! 包是把 `test:nibi-kernel-cli` 交叉编译的 musl 静态 debug 产物（`NIBI_TEST_SSH_ARTIFACT`）照 npm 平台包的样子打成
-//! `@nibi/cli-linux-<arch>-gnu@<版本>`（静态产物在 glibc 的系统上照样能跑）。没有 Docker 或没有产物时跳过并写明
+//! `@nibi-studio/cli-linux-<arch>-gnu@<版本>`（静态产物在 glibc 的系统上照样能跑）。没有 Docker 或没有产物时跳过并写明
 //! 原因。容器与镜像用完删掉（名字带各自修复线的前缀）。
 #![cfg(unix)]
 #![allow(
@@ -139,7 +139,7 @@ fn pack(artifact: &Path, target: &str, version: &str, dir: &Path) -> Vec<u8> {
 /// 路径，tarball 的路径）。
 fn registry_for(id: &str, version: &str, tarball: Vec<u8>) -> (Registry, String, String) {
     let registry = Registry::start();
-    let name = format!("@nibi/cli-{id}");
+    let name = format!("@nibi-studio/cli-{id}");
     let packument = format!("/@nibi%2fcli-{id}");
     let tarball_path = format!("/{name}/-/zcode-{id}-{version}.tgz");
     let integrity = format!(

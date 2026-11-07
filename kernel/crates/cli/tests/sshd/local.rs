@@ -356,7 +356,7 @@ impl Registry {
     pub fn publish(&self, id: &str, version: &str, tarball: Vec<u8>) -> (String, String) {
         use base64::Engine;
         use sha2::{Digest, Sha512};
-        let name = format!("@nibi/cli-{id}");
+        let name = format!("@nibi-studio/cli-{id}");
         let packument = format!("/@nibi%2fcli-{id}");
         let tarball_path = format!("/{name}/-/zcode-{id}-{version}.tgz");
         let integrity = format!(

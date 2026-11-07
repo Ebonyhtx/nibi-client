@@ -270,7 +270,7 @@ fn the_update_is_handed_to_the_launcher() {
     let markers = [
         ("NIBI_MANAGED_BY_NPM", "1"),
         ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
-        ("NIBI_MANAGED_PLATFORM_PACKAGE", "@nibi/cli-win32-x64"),
+        ("NIBI_MANAGED_PLATFORM_PACKAGE", "@nibi-studio/cli-win32-x64"),
     ];
     let run = |extra: &[(&str, &str)]| -> Output {
         let mut command = sandbox.nibi(&["update"], None);

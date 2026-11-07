@@ -100,7 +100,7 @@ async fn the_script_finds_ours_and_the_npm_one_and_never_runs_zcode() {
         "#!/bin/sh\ntouch \"$HOME/ran-zcode\"\n",
     );
     write(
-        &package.join("node_modules/@nibi/cli-linux-x64/bin/nibi-rs"),
+        &package.join("node_modules/@nibi-studio/cli-linux-x64/bin/nibi-rs"),
         "#!/bin/sh\necho '{\"version\":\"0.1.5\",\"protocol\":1}'\n",
     );
     let bin = home.path().join("prefix/bin");
@@ -192,7 +192,7 @@ async fn the_npm_package_is_found_through_a_relative_link_without_readlink_f() {
     let package = home.path().join("prefix/lib/node_modules/@nibi/cli");
     write(&package.join("bin/zcode.js"), "#!/bin/sh\nexit 0\n");
     write(
-        &package.join("node_modules/@nibi/cli-darwin-arm64/bin/nibi-rs"),
+        &package.join("node_modules/@nibi-studio/cli-darwin-arm64/bin/nibi-rs"),
         "#!/bin/sh\necho '{\"version\":\"0.1.7\",\"protocol\":1}'\n",
     );
     let bin = home.path().join("prefix/bin");

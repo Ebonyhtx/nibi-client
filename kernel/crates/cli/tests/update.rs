@@ -73,7 +73,7 @@ const NPM: [(&str, &str); 3] = [
     ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
     (
         "NIBI_MANAGED_PLATFORM_PACKAGE",
-        "@nibi/cli-darwin-arm64",
+        "@nibi-studio/cli-darwin-arm64",
     ),
 ];
 

@@ -197,7 +197,7 @@ pub(crate) fn gzip(bytes: &[u8]) -> Vec<u8> {
 
 /// npm 样子的平台包：`package/package.json`、`package/build.json`、`package/bin/nibi-rs`。
 pub(crate) fn package(binary: &[u8], build: &[u8]) -> Vec<u8> {
-    let manifest = br#"{"name":"@nibi/cli-linux-x64-gnu"}"#.to_vec();
+    let manifest = br#"{"name":"@nibi-studio/cli-linux-x64-gnu"}"#.to_vec();
     gzip(&tar(&[
         (
             header("package/package.json", "", manifest.len(), b'0'),

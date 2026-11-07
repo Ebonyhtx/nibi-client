@@ -18,7 +18,7 @@ fn marked() -> Vec<(String, String)> {
         ("NIBI_MANAGED_PACKAGE", "@nibi/cli"),
         (
             "NIBI_MANAGED_PLATFORM_PACKAGE",
-            "@nibi/cli-darwin-arm64",
+            "@nibi-studio/cli-darwin-arm64",
         ),
     ]
     .iter()
@@ -37,7 +37,7 @@ fn registry(latest: &str) -> FakeRegistry {
         (
             PLATFORM.to_owned(),
             200,
-            package("@nibi/cli-darwin-arm64", latest, &[latest]),
+            package("@nibi-studio/cli-darwin-arm64", latest, &[latest]),
         ),
     ])
 }
@@ -200,7 +200,7 @@ async fn a_failed_check_keeps_the_old_cache() {
         (
             PLATFORM.to_owned(),
             200,
-            package("@nibi/cli-darwin-arm64", "0.1.47", &["0.1.47"]),
+            package("@nibi-studio/cli-darwin-arm64", "0.1.47", &["0.1.47"]),
         ),
     ]);
     write_cache(&cache, "0.1.47", NOW_MS - 21 * HOUR_MS, None);

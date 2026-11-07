@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// 把 `nibi-rs` 打成远端执行器用的 npm 平台包（`@nibi/cli-<platform>`）。
+// 把 `nibi-rs` 打成远端执行器用的 npm 平台包（`@nibi-studio/cli-<platform>`）。
 //
 // 规格（Rust 侧的消费方）：
 // - `kernel/crates/cli/src/machines/executor_dist/package.rs` 从 tarball 取
 //   `package/bin/nibi-rs` 与 `package/build.json`，核对 version / target / sha256；
-// - 内核按 `@nibi/cli-<Platform::package_id()>` 向 npm 注册表要包，`dist.integrity`
+// - 内核按 `@nibi-studio/cli-<Platform::package_id()>` 向 npm 注册表要包，`dist.integrity`
 //   是 tarball 的 sha512（npm pack 生成）。
 //
 // 这个脚本只负责“产出可发布的 tarball”，不发布。发布需要运营者提供 npm token
@@ -69,7 +69,7 @@ export function buildPackageManifest({ target, version }) {
     throw new Error(`invalid version ${JSON.stringify(version)}`);
   }
   return {
-    name: `@nibi/cli-${platform.id}`,
+    name: `@nibi-studio/cli-${platform.id}`,
     version,
     description: `NIBI kernel (nibi-rs) for ${platform.os}-${platform.cpu}`,
     license: "Apache-2.0",

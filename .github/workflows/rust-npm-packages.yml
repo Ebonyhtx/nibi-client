@@ -1,6 +1,6 @@
 name: rust-npm-packages
 
-# 远端执行器的平台包（`@nibi/cli-<platform>`）：构建 + 打包成 tarball，作为 artifact 上传。
+# 远端执行器的平台包（`@nibi-studio/cli-<platform>`）：构建 + 打包成 tarball，作为 artifact 上传。
 #
 # 消费方是 Rust 内核的 `machines/executor_dist`（从 npm 注册表取 tarball、校验
 # `dist.integrity` 的 sha512、解出 `package/bin/nibi-rs`）。**打包不等于发布**：本 workflow

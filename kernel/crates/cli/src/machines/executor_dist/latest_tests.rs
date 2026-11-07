@@ -17,7 +17,7 @@ use nibi_kernel_ssh_connect::{ArtifactSource, DownloadError, Platform};
 use super::NpmExecutors;
 use super::fake_npm_tests::{FakeNpm, build_json, image, package, sha256_hex, sri};
 
-const X64: &str = "@nibi/cli-linux-x64-gnu";
+const X64: &str = "@nibi-studio/cli-linux-x64-gnu";
 const PACKUMENT: &str = "/@nibi%2fcli-linux-x64-gnu";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 
@@ -92,7 +92,7 @@ async fn a_missing_version_names_the_latest_which_is_cached_by_its_own_version()
     assert_eq!(
         source.download("0.2.0", Platform::LinuxX86_64).await,
         Err(DownloadError::Unpublished {
-            reason: "npm package @nibi/cli-linux-x64-gnu version 0.2.0 is missing".to_owned(),
+            reason: "npm package @nibi-studio/cli-linux-x64-gnu version 0.2.0 is missing".to_owned(),
             latest: Some("0.1.9".to_owned()),
         })
     );
@@ -184,7 +184,7 @@ async fn other_failures_do_not_offer_the_latest() {
     assert_eq!(
         error,
         DownloadError::Failed(
-            "npm package @nibi/cli-linux-x64-gnu version 0.2.0 is missing dist.tarball".to_owned()
+            "npm package @nibi-studio/cli-linux-x64-gnu version 0.2.0 is missing dist.tarball".to_owned()
         )
     );
 }

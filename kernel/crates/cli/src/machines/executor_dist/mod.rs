@@ -1,5 +1,5 @@
 //! 执行器的 npm 来源（F100，docs/specs/rust-cli/remote-exec.md §26）：实现 ssh-connect 的 `ArtifactSource`。远端没有能用
-//! 的执行器、本机没有静态产物时，部署器经它按远端的架构拿同版本的 Linux 平台包（`@nibi/cli-linux-*-gnu`）：先看本机
+//! 的执行器、本机没有静态产物时，部署器经它按远端的架构拿同版本的 Linux 平台包（`@nibi-studio/cli-linux-*-gnu`）：先看本机
 //! 缓存 `~/.nibi/nibi-kernel/exec/dist/<版本>/<gnu target>/nibi-rs`，没有就从注册表下载、校验，原子地写进缓存。
 //!
 //! 单飞：同一个（版本，target）在一个进程里只下载一次（所有机器共用这一个来源），一起等的拿到同一个结果；完成后从表里
