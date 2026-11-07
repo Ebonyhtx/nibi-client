@@ -21,6 +21,8 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
+# 发现链只取 origin（与 Host 同一套 WHATWG URL 解析）。
+url.workspace = true
 # 设备标识（与 Node 的 `randomUUID()` 同形状）。
 uuid = { workspace = true, features = ["v4"] }
 # 轮询的等待与取消（`poll_until_ready`）。

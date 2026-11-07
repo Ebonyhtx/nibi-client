@@ -11,6 +11,8 @@
 //! - [`credentials`]：`enc:v2:` 信封、每安装随机钥匙、v1 读取与惰性迁移、丢钥匙 fail-closed；
 //! - [`license`]：Ed25519 验签 + `dev` 设备绑定 + `uid/sub` 账号绑定 + exp/72h/7d 判定；
 //! - [`device_flow`]：Device Authorization Grant 的请求形状、响应解析、轮询（含刷新）与资料读取；
+//! - [`mcp_oauth`]：MCP 服务器的 OAuth（RFC 9728/8414 发现、`client_credentials`、`refresh_token`
+//!   换新、共享凭据里的记录形状），HTTP 同样由调用方注入；
 //! - [`paid_plugin`]：付费插件发现层门禁的判定顺序与文案。
 //!
 //! 尚未实现（下一段）：manifest/安装记录读取（付费插件门禁的读面已在 `ext` 的发现层与
@@ -21,5 +23,6 @@ pub mod credentials;
 pub mod device_flow;
 pub mod license;
 pub mod license_store;
+pub mod mcp_oauth;
 pub mod paid_plugin;
 pub mod paths;
