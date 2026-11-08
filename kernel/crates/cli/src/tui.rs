@@ -63,6 +63,21 @@ pub(crate) fn vars(env: &[(String, String)]) -> BTreeMap<String, String> {
         .collect()
 }
 
+/// 终端能显示 Sixel 像素图吗：`NIBI_TUI_SIXEL=1` 强制开、`=0` 强制关；都没有时认出 Windows Terminal
+/// （`WT_SESSION`，1.22 起支持 Sixel）。不认出来就走字符画，不会在不懂的终端上吐 DCS。
+fn pixel_graphics(env: &[(String, String)]) -> bool {
+    let get = |name: &str| {
+        env.iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.as_str())
+    };
+    match get("NIBI_TUI_SIXEL") {
+        Some("1") => true,
+        Some("0") => false,
+        _ => get("WT_SESSION").is_some(),
+    }
+}
+
 /// TUI 的机器服务与 MCP 服务器的机器标记（remote-exec.md §21.2、§22.8）。
 pub(crate) type MachineInputs = (
     Option<Arc<dyn nibi_kernel_tui::machines::Machines>>,
@@ -235,6 +250,7 @@ pub(crate) fn options(inputs: Inputs<'_>, version: &str) -> Options {
         mode: inputs.mode,
         version: version.to_owned(),
         vars: vars(inputs.env),
+        pixels: pixel_graphics(inputs.env),
         models: inputs.models,
         startup: inputs.startup,
         fork: inputs.fork,

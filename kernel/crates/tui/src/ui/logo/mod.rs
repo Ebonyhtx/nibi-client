@@ -7,6 +7,8 @@
 //! 用不透明品牌色，不再像以前那样淡淡地当背景水印。待机动画自己在动，所以画着的时候界面按动画节拍重画。
 
 mod pack;
+mod scene;
+mod sixel;
 
 use std::time::Instant;
 
@@ -17,6 +19,30 @@ use super::palette::Palette;
 
 /// 与右下角留的空隙（字符格）。
 const MARGIN: u16 = 1;
+
+/// 像素图（Sixel）的整数放大倍数：64×64 放 2 倍是 128×128 像素，约 15 列 × 8 行。
+const SCALE: u16 = 2;
+/// 像素图占的字符格：按常见 9×18 像素一格估算，并多留一列一行防止字宽不同时压到正文。
+const PIXEL_COLS: u16 = 16;
+const PIXEL_ROWS: u16 = 9;
+/// 多久无条件重发一次像素图（滚动等终端自己搬走画面的情况，靠它纠正）。
+const RESEND: std::time::Duration = std::time::Duration::from_millis(500);
+
+/// 交给终端写出去的一张像素图。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Image {
+    /// 光标要移到的格子（0 基）。
+    pub at: (u16, u16),
+    pub payload: Payload,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Payload {
+    /// Sixel 的 DCS 整串。
+    Sixel(String),
+    /// 用空格盖掉原来那张图。
+    Clear { cols: u16, rows: u16 },
+}
 
 /// 挂件的位置：`free` 的右下角；放不下时为 None。
 pub fn stage_in(free: Rect) -> Option<Rect> {
@@ -38,12 +64,30 @@ pub struct Logo {
     pub stage: Option<Rect>,
     /// 这一轮待机动画从哪一刻开始（重新出现或点一下时从头播）。
     started: Option<Instant>,
+    /// 终端支持 Sixel：画真实的素材帧，而不是字符画。
+    pixels: bool,
+    /// 上一次发出去的像素图（位置与帧号），没变就不重发。
+    sent: Option<(Rect, usize)>,
+    /// 上一次发像素图的时刻（无条件重发的节奏）。
+    sent_at: Option<Instant>,
+    /// 这一帧之后终端要写出去的东西。
+    pending: Option<Image>,
 }
 
 impl Logo {
     /// 需要按动画节拍重画：画着就在动。
     pub fn animating(&self) -> bool {
         self.stage.is_some()
+    }
+
+    /// 入口说明终端支持 Sixel（`Windows Terminal 1.22+` 或显式开关）。
+    pub fn set_pixels(&mut self, pixels: bool) {
+        self.pixels = pixels;
+    }
+
+    /// 终端这一帧之后要写出去的像素图（没有时为 None）。
+    pub fn take_image(&mut self) -> Option<Image> {
+        self.pending.take()
     }
 
     /// 点在小鸟身上：这一轮从头播（像被戳了一下）；点在外面不算。
@@ -55,13 +99,27 @@ impl Logo {
         }
     }
 
-    /// 这一帧不画。
+    /// 这一帧不画；上一次画过像素图的话，让终端用空格盖掉。
     pub fn hide(&mut self) {
-        self.stage = None;
+        if let Some(stage) = self.stage.take()
+            && self.sent.take().is_some()
+        {
+            self.pending = Some(Image {
+                at: (stage.x, stage.y),
+                payload: Payload::Clear {
+                    cols: PIXEL_COLS,
+                    rows: PIXEL_ROWS,
+                },
+            });
+        }
         self.started = None;
     }
 
     pub fn draw(&mut self, buffer: &mut Buffer, free: Rect, palette: &Palette, now: Instant) {
+        if self.pixels {
+            self.draw_pixels(free.intersection(buffer.area), now);
+            return;
+        }
         let Some(stage) = stage_in(free.intersection(buffer.area)) else {
             self.hide();
             return;
@@ -71,6 +129,55 @@ impl Logo {
         let elapsed = now.saturating_duration_since(started).as_millis() as u64;
         draw_pack(buffer, stage, palette, pack_frame_at(elapsed));
     }
+
+    /// 像素图这条：格子留空给终端画图，只在帧或位置变了、或过了一阵子才重发。
+    fn draw_pixels(&mut self, free: Rect, now: Instant) {
+        let Some(stage) = pixel_stage_in(free) else {
+            self.hide();
+            return;
+        };
+        self.stage = Some(stage);
+        let started = *self.started.get_or_insert(now);
+        let elapsed = now.saturating_duration_since(started).as_millis() as u64;
+        let index = scene_frame_at(elapsed);
+        let stale = self
+            .sent_at
+            .is_none_or(|at| now.saturating_duration_since(at) >= RESEND);
+        if self.sent == Some((stage, index)) && !stale {
+            return;
+        }
+        self.sent = Some((stage, index));
+        self.sent_at = Some(now);
+        self.pending = Some(Image {
+            at: (stage.x, stage.y),
+            payload: Payload::Sixel(sixel::encode(&scene::FRAMES[index], SCALE)),
+        });
+    }
+}
+
+/// 像素图的位置：右下角，占 `PIXEL_COLS × PIXEL_ROWS` 格。
+fn pixel_stage_in(free: Rect) -> Option<Rect> {
+    (free.width >= PIXEL_COLS + MARGIN && free.height >= PIXEL_ROWS).then(|| {
+        Rect::new(
+            free.right() - PIXEL_COLS - MARGIN,
+            free.bottom() - PIXEL_ROWS,
+            PIXEL_COLS,
+            PIXEL_ROWS,
+        )
+    })
+}
+
+/// 从开始到 `elapsed_ms` 该显示素材里的哪一帧（下标）。
+fn scene_frame_at(elapsed_ms: u64) -> usize {
+    let total: u64 = scene::FRAMES.iter().map(|frame| frame.ms).sum();
+    let mut at = elapsed_ms % total.max(1);
+    for (index, frame) in scene::FRAMES.iter().enumerate() {
+        if at < frame.ms {
+            return index;
+        }
+        at -= frame.ms;
+    }
+    scene::FRAMES.len() - 1
 }
 
 /// 从开始到 `elapsed_ms` 该显示哪一帧（按 `pack.json` 的逐帧时长循环）。

@@ -77,6 +77,8 @@ pub struct Options {
     pub ids: Arc<dyn Ids>,
     /// 运行的平台（修复线 F65）：按键的含义（AltGr、alt 码、paste burst，tui-input.md §9）与颜色级别（tui.md §7.4）。
     pub os: crate::os::Os,
+    /// 终端能不能显示 Sixel 像素图（角落的小鸟用它画真实素材）。入口按 `WT_SESSION` 与 `NIBI_TUI_SIXEL` 判断。
+    pub pixels: bool,
 }
 
 /// 退出时的结果：当前会话（入口打印恢复提示）与还没跑的 SessionEnd。
@@ -114,6 +116,8 @@ pub trait Screen {
     fn copy(&mut self, text: &str);
     /// 每画完一帧调用一次。
     fn drawn(&mut self, _buffer: &Buffer) {}
+    /// 把一张像素图写到终端（Sixel）：真实终端写 stdout，测试里记下来。
+    fn image(&mut self, _image: &crate::ui::logo::Image) {}
     /// 终端通知的转义序列（tui-manage.md §5.2）：真实终端原样写到 stdout。
     fn notify(&mut self, _sequence: &str) {}
     /// 终端分辨得出增强按键吗（修复线 F104，tui-input.md §11.1.1）：真实终端是进界面时键盘增强的查询结论
@@ -218,6 +222,7 @@ pub async fn drive<B: Backend>(
     // 滚轮每格的行数按终端（tui-select.md §4.2）；原来按终端决定要不要松开即复制，F25 起所有终端都复制。
     app.wheel = crate::ui::wheel::Accel::new(&options.vars, cfg!(windows));
     app.set_os(options.os);
+    app.logo.set_pixels(options.pixels);
     // 终端分辨得出 ctrl+enter 吗（修复线 F104）：立即发送的提示按它选键。
     app.keyboard_enhanced = screen.keyboard_enhanced();
     app.theme = theme;
@@ -370,6 +375,9 @@ impl<B: Backend> Loop<'_, B> {
             .draw(|frame| crate::ui::draw::draw(frame, app, cache, now, wall))
             .map_err(|error| anyhow::anyhow!("drawing the terminal: {error}"))?;
         self.screen.drawn(frame.buffer);
+        if let Some(image) = self.app.logo.take_image() {
+            self.screen.image(&image);
+        }
         if let Some(clear) = self.copy_after_draw.take() {
             self.copy_selection(clear);
         }

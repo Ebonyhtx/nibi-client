@@ -54,13 +54,19 @@ fn the_animation_data_is_consistent() {
 /// 角落的挂件：贴着右下角，留一格；放不下时不画。
 #[test]
 fn the_pet_sits_in_the_bottom_right_corner() {
+    let (width, rows) = (pack::WIDTH, pack::HEIGHT / 2);
     assert_eq!(
         stage_in(Rect::new(0, 3, 100, 30)),
-        Some(Rect::new(81, 24, 18, 9))
+        Some(Rect::new(
+            100 - width - 1,
+            3 + 30 - rows,
+            width,
+            rows
+        ))
     );
-    // 差一列 / 一行都放不下。
-    assert_eq!(stage_in(Rect::new(0, 0, 18, 30)), None);
-    assert_eq!(stage_in(Rect::new(0, 0, 100, 8)), None);
+    // 差一列 / 一行都放不下（右下角还要留一格）。
+    assert_eq!(stage_in(Rect::new(0, 0, width, 30)), None);
+    assert_eq!(stage_in(Rect::new(0, 0, 100, rows - 1)), None);
 }
 
 #[test]
@@ -71,7 +77,10 @@ fn the_bird_is_drawn_in_brand_colours() {
     let mut buffer = Buffer::empty(area);
     logo.draw(&mut buffer, area, &palette(), now);
     let stage = logo.stage.unwrap();
-    assert_eq!((stage.width, stage.height), (18, 9));
+    assert_eq!(
+        (stage.width, stage.height),
+        (pack::WIDTH, pack::HEIGHT / 2)
+    );
     // 鸟的轮廓画出来了（不是空白），而且是半格字符。
     assert!(drawn(&buffer, stage) > 80, "{}", drawn(&buffer, stage));
     let block = |position| {
@@ -113,6 +122,46 @@ fn the_bird_animates_while_it_is_on_screen() {
     logo.draw(&mut Buffer::empty(small), small, &palette(), now);
     logo.press(5, 5, now);
     assert!(logo.stage.is_none() && !logo.animating());
+}
+
+/// 像素图这条：格子留空、只把图交给终端；同一帧不重发，过一阵子重发一次；放不下就清掉。
+#[test]
+fn the_pixel_path_sends_an_image_and_clears_it() {
+    let area = Rect::new(0, 0, 100, 30);
+    let now = Instant::now();
+    let mut logo = Logo::default();
+    logo.set_pixels(true);
+    let mut buffer = Buffer::empty(area);
+    logo.draw(&mut buffer, area, &palette(), now);
+    let stage = logo.stage.unwrap();
+    assert_eq!((stage.width, stage.height), (PIXEL_COLS, PIXEL_ROWS));
+    // 字符画这条路不画（格子留给终端贴图）。
+    assert_eq!(drawn(&buffer, stage), 0);
+    match logo.take_image() {
+        Some(Image {
+            at,
+            payload: Payload::Sixel(bytes),
+        }) => {
+            assert_eq!(at, (stage.x, stage.y));
+            assert!(bytes.contains("\"1;1;128;128"), "scale {SCALE}");
+        }
+        other => panic!("expected a sixel image, got {other:?}"),
+    }
+    // 同一帧、同一位置：不重发。
+    logo.draw(&mut buffer, area, &palette(), now);
+    assert!(logo.take_image().is_none());
+    // 过了重发间隔：再发一次（终端滚动会自己搬走画面，靠这个纠正）。
+    logo.draw(&mut buffer, area, &palette(), now + RESEND);
+    assert!(logo.take_image().is_some());
+    // 放不下：交给终端清掉。
+    let small = Rect::new(0, 0, 10, 4);
+    logo.draw(&mut Buffer::empty(small), small, &palette(), now);
+    match logo.take_image().map(|image| image.payload) {
+        Some(Payload::Clear { cols, rows }) => {
+            assert_eq!((cols, rows), (PIXEL_COLS, PIXEL_ROWS));
+        }
+        other => panic!("expected a clear, got {other:?}"),
+    }
 }
 
 /// 点一下：这一轮从头播（点在外面不改）。

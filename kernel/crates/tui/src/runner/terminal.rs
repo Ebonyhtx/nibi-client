@@ -88,6 +88,30 @@ impl Screen for Stdout {
         self.guard.enhanced()
     }
 
+    /// 角落小鸟的像素图：把光标移到目标格，发 Sixel（终端自己缩放到 128×128 的像素网格）；要清掉时
+    /// 用空格盖住那几格（Sixel 不落墨的格子保持底色，所以透明处不会盖住正文）。
+    fn image(&mut self, image: &crate::ui::logo::Image) {
+        use crate::ui::logo::Payload;
+        let mut out = std::io::stdout().lock();
+        let (column, row) = image.at;
+        match &image.payload {
+            Payload::Sixel(bytes) => {
+                let _ = write!(out, "[{};{}H", row + 1, column + 1);
+                let _ = out.write_all(bytes.as_bytes());
+            }
+            Payload::Clear { cols, rows } => {
+                // 关掉自动换行再盖空格，免得最后一格把画面顶上去。
+                let _ = out.write_all(b"[?7l");
+                let blank = " ".repeat(usize::from(*cols));
+                for line in 0..*rows {
+                    let _ = write!(out, "[{};{}H{}", row + 1 + line, column + 1, blank);
+                }
+                let _ = out.write_all(b"[?7h");
+            }
+        }
+        let _ = out.flush();
+    }
+
     fn notify(&mut self, sequence: &str) {
         let mut out = std::io::stdout().lock();
         // 通知失败只影响这一次提醒。

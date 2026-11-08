@@ -521,6 +521,7 @@ where
         clock: Arc::new(WallClock),
         ids: Arc::new(SequentialIds::default()),
         os: setup.os,
+        pixels: false,
     };
     let ui = Ui {
         keys,
