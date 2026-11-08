@@ -6,6 +6,7 @@ use std::time::Instant;
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
+use ratatui::style::Style;
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
@@ -17,6 +18,9 @@ use super::mouse::{self, Target};
 use super::transcript::{self, Cache};
 
 /// 带底色的行补到整行宽度（底色铺满整行）。
+/// 右侧小鸟栏的宽度（字符列）：128 像素约 14 列，两侧各留一点。
+const PET_PANE: u16 = 18;
+
 pub(super) fn fill_rows(lines: &mut [Line<'static>], width: usize) {
     for line in lines {
         if line.style.bg.is_some() {
@@ -51,15 +55,22 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         app.selection = None;
     }
     app.composer_width = composer_width;
+    // 右侧常驻的小鸟栏：终端支持 Sixel、窗口够宽、没有全屏浮层时，正文让出 PET_PANE 列。
+    let pane = usize::from(PET_PANE);
+    let pet_pane = app.logo.pixels()
+        && width >= pane + 72
+        && app.overlay.is_none()
+        && app.viewing.is_none();
+    let text_width = width - if pet_pane { pane } else { 0 };
     // transcript 先排：搜索模式（修复线 F114，tui-input.md §2.3）要在画输入框之前定当前匹配与计数；当前匹配换了块时
     // 那一块要按展开的样子再排一次（其余的块都是缓存）。
-    let mut layout = transcript_layout(app, cache, width, now, now_ms);
+    let mut layout = transcript_layout(app, cache, text_width, now, now_ms);
     let mut settled = None;
     if app.find.is_some() {
         let before = super::find::peek(app);
-        settled = super::find::settle(app, &layout, cache.epoch(), width);
+        settled = super::find::settle(app, &layout, cache.epoch(), text_width);
         if super::find::peek(app) != before {
-            layout = transcript_layout(app, cache, width, now, now_ms);
+            layout = transcript_layout(app, cache, text_width, now, now_ms);
         }
     }
     // 底部区域贴底，最高 max(8, 2/3 屏)；上方留 1 行 gap 给 transcript 与它隔开。
@@ -119,7 +130,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         area.width,
         u16::from(bottom_area.y > area.y),
     );
-    let transcript_area = Rect::new(area.x, area.y, area.width, gap.y - area.y);
+    let transcript_area = Rect::new(area.x, area.y, text_width as u16, gap.y - area.y);
     let total = layout.len();
     let height = transcript_area.height as usize;
     app.viewport = height;
@@ -186,12 +197,31 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
             }
         }
     }
-    fill_rows(&mut visible, width);
+    fill_rows(&mut visible, text_width);
     let shown = visible.len() as u16;
     frame.render_widget(Paragraph::new(visible), transcript_area);
-    // 角落的小鸟（品牌素材的待机动画）：贴在正文下方空白区的右下角，不压正文；空白放不下就整只不画。
-    // 全屏浮层/视图会盖住这块区域，那时也不画（省掉无谓的重画）。
-    if app.overlay.is_none() && app.viewing.is_none() {
+    // 小鸟栏：左侧一条竖线把正文和它分开，鸟站在栏底。
+    if pet_pane {
+        let column = area.x + text_width as u16;
+        for y in transcript_area.top()..transcript_area.bottom() {
+            let cell = &mut frame.buffer_mut()[(column, y)];
+            cell.set_char('│');
+            let Style { fg, .. } = app.palette.dim();
+            cell.set_fg(fg.unwrap_or_default());
+        }
+        let pane = Rect::new(
+            column + 1,
+            transcript_area.y,
+            PET_PANE - 1,
+            transcript_area.height,
+        );
+        app.logo.draw(frame.buffer_mut(), pane, &app.palette, now);
+        if let Some(stage) = app.logo.stage {
+            app.hits.regions.push((stage, Target::Logo));
+        }
+    }
+    // 没有小鸟栏时（不支持 Sixel 的终端）：仍按老样子画在空白区的右下角。
+    if !pet_pane && app.overlay.is_none() && app.viewing.is_none() {
         let free = Rect::new(
             transcript_area.x,
             transcript_area.y + shown + 1,
@@ -202,7 +232,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         if let Some(stage) = app.logo.stage {
             app.hits.regions.push((stage, Target::Logo));
         }
-    } else {
+    } else if !pet_pane {
         app.logo.hide();
     }
     mouse::draw_copied(frame, app, gap);

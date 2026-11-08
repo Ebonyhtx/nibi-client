@@ -163,6 +163,8 @@ pub struct Setup {
     pub fork_subagent: Option<bool>,
     /// 终端分辨得出增强按键（修复线 F104，tui-input.md §11.1.1）：真实终端取键盘增强的查询结论；缺省否。
     pub keyboard_enhanced: bool,
+    /// 终端支持 Sixel 像素图（右侧小鸟栏）：缺省否（测试里不真发图片）。
+    pub pixels: bool,
 }
 
 impl Default for Setup {
@@ -189,6 +191,7 @@ impl Default for Setup {
             mode: PermissionMode::Default,
             fork_subagent: None,
             keyboard_enhanced: false,
+            pixels: false,
         }
     }
 }
@@ -233,9 +236,14 @@ struct Recorder {
     copies: Arc<Mutex<Vec<String>>>,
     notifications: Arc<Mutex<Vec<String>>>,
     handovers: Arc<Mutex<Vec<&'static str>>>,
+    images: Arc<Mutex<Vec<nibi_kernel_tui::ui::logo::Image>>>,
 }
 
 impl Screen for Recorder {
+    fn image(&mut self, image: &nibi_kernel_tui::ui::logo::Image) {
+        self.images.lock().unwrap().push(image.clone());
+    }
+
     fn keyboard_enhanced(&self) -> bool {
         self.enhanced
     }
@@ -273,6 +281,8 @@ pub struct Ui {
     pub notifications: Arc<Mutex<Vec<String>>>,
     /// 画帧（`draw`）与终端交出 / 收回（`suspend` / `resume`）的顺序（tui-input.md §4.1）。
     pub handovers: Arc<Mutex<Vec<&'static str>>>,
+    /// 写到终端的像素图（Sixel）。
+    pub images: Arc<Mutex<Vec<nibi_kernel_tui::ui::logo::Image>>>,
     cursor: Arc<Mutex<super::dead_terminal::Cursor>>,
 }
 
@@ -472,6 +482,7 @@ where
     let copies = Arc::new(Mutex::new(Vec::new()));
     let notifications = Arc::new(Mutex::new(Vec::new()));
     let handovers = Arc::new(Mutex::new(Vec::new()));
+    let images = Arc::new(Mutex::new(Vec::new()));
     let mut recorder = Recorder {
         screen,
         enhanced: setup.keyboard_enhanced,
@@ -479,6 +490,7 @@ where
         copies: copies.clone(),
         notifications: notifications.clone(),
         handovers: handovers.clone(),
+        images: images.clone(),
     };
     let cursor = Arc::new(Mutex::new(super::dead_terminal::Cursor::default()));
     let mut terminal = Terminal::new(super::dead_terminal::Hangable {
@@ -521,7 +533,7 @@ where
         clock: Arc::new(WallClock),
         ids: Arc::new(SequentialIds::default()),
         os: setup.os,
-        pixels: false,
+        pixels: setup.pixels,
     };
     let ui = Ui {
         keys,
@@ -530,6 +542,7 @@ where
         copies,
         notifications,
         handovers,
+        images,
         cursor,
     };
     let kernel = kernel(

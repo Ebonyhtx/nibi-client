@@ -87,6 +87,11 @@ impl Logo {
         self.pixels = pixels;
     }
 
+    /// 终端能不能显示像素图（据此决定要不要给小鸟留一栏）。
+    pub fn pixels(&self) -> bool {
+        self.pixels
+    }
+
     /// 终端这一帧之后要写出去的像素图（没有时为 None）。
     pub fn take_image(&mut self) -> Option<Image> {
         self.pending.take()

@@ -107,3 +107,48 @@ fn ui_braille(buffer: &std::sync::Mutex<Option<Buffer>>) -> Vec<(u16, u16)> {
         .map(braille)
         .unwrap_or_default()
 }
+
+/// 支持像素图时，右侧留一栏给小鸟：正文让出 18 列，栏左侧一条竖线，鸟通过 Sixel 贴在栏底。
+#[tokio::test(flavor = "multi_thread")]
+async fn the_pet_gets_its_own_column_on_the_right() {
+    let model = GatedModel::scripted(Vec::new());
+    let setup = Setup {
+        pixels: true,
+        ..setup((0x1e, 0x1e, 0x2e))
+    };
+    with_ui(model, setup, |mut ui| async move {
+        let images = ui.images.clone();
+        ui.wait("the pet image", |_| !images.lock().unwrap().is_empty())
+            .await;
+        // 100 列、栏宽 18：竖线在 x = 82。
+        {
+            let guard = ui.buffer.lock().unwrap();
+            let buffer = guard.as_ref().unwrap();
+            let rule_rows: Vec<u16> = (0..buffer.area.height)
+                .filter(|y| buffer[(82, *y)].symbol() == "│")
+                .collect();
+            assert!(rule_rows.len() > 10, "a vertical rule separates the column");
+            // 竖线右边、正文区域那几行里不写字（图片由终端贴上去）；输入框与状态行在下面，不受影响。
+            for y in &rule_rows {
+                for x in 83..buffer.area.width {
+                    assert!(
+                        buffer[(x, *y)].symbol().trim().is_empty(),
+                        "({x}, {y}) should stay blank for the image"
+                    );
+                }
+            }
+        }
+        // 图片贴在竖线右边、下半屏。
+        let guard = images.lock().unwrap();
+        let image = guard.last().unwrap();
+        assert!(image.at.0 >= 82, "{:?}", image.at);
+        assert!(image.at.1 >= 20, "{:?}", image.at);
+        match &image.payload {
+            nibi_kernel_tui::ui::logo::Payload::Sixel(bytes) => {
+                assert!(bytes.contains("\"1;1;128;128"), "2× the 64×64 frame");
+            }
+            other => panic!("expected a sixel image, got {other:?}"),
+        }
+    })
+    .await;
+}
