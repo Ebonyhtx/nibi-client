@@ -289,23 +289,27 @@ pub fn load_or_create_install_key(path: &Path) -> Result<[u8; KEY_BYTES], Creden
             });
         }
     }
-    // CI 的 4 核 runner 上创建者线程可能被调度走数百毫秒；窗口给到 2s。正常路径第一次读就有
-    // 内容，不会等；窗口耗尽仍空才 fail-closed。
-    const CONTENT_WAIT_ATTEMPTS: usize = 200;
+    // 创建者线程在「create_new 成功 → 写入内容」之间有一个窗口，并发读会看到空文件。窗口内
+    // 有界等待内容出现；正常路径第一次读就有内容，不会等。上限按**墙钟**算（30s）：CI 的
+    // 2 核 runner 上跑 8 线程并发时，创建者曾被调度走超过 2s（2026-11-09 rust-gates 实测），
+    // 按次数算的窗口会随 sleep 精度漂移，按截止时间算与调度时长成正比。
+    const CONTENT_WAIT_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
     const CONTENT_WAIT_INTERVAL_MS: u64 = 10;
-    for attempt in 0..CONTENT_WAIT_ATTEMPTS {
+    let deadline = std::time::Instant::now() + CONTENT_WAIT_DEADLINE;
+    loop {
         let read = read_install_key(path);
         match read {
             Ok(Some(key)) => return Ok(key),
             Ok(None) => return Err(CredentialError::InstallKeyVanished(path.to_path_buf())),
             // 空文件：创建者在写内容的路上，等一小拍再读。
-            Err(CredentialError::InstallKeyEmpty(_)) if attempt + 1 < CONTENT_WAIT_ATTEMPTS => {
+            Err(CredentialError::InstallKeyEmpty(_))
+                if std::time::Instant::now() < deadline =>
+            {
                 std::thread::sleep(std::time::Duration::from_millis(CONTENT_WAIT_INTERVAL_MS));
             }
             Err(error) => return Err(error),
         }
     }
-    Err(CredentialError::InstallKeyEmpty(path.to_path_buf()))
 }
 
 fn decode_install_key(path: &Path, raw: &str) -> Result<Option<[u8; KEY_BYTES]>, CredentialError> {
