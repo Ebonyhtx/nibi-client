@@ -90,6 +90,20 @@ async fn adds_a_custom_provider_with_its_model_rules_and_default() {
     assert_eq!(summary.protocol, Some(WireProtocol::OpenAiChatCompletions));
 }
 
+#[test]
+fn the_preset_list_keeps_third_party_apis_and_drops_upstream_plans() {
+    let presets = presets(&builtin());
+    assert!(presets.iter().any(|preset| preset.id == "deepseek"));
+    assert!(presets.iter().any(|preset| preset.id == "openai"));
+    assert!(presets.iter().any(|preset| preset.id == "anthropic"));
+    assert!(
+        presets
+            .iter()
+            .all(|preset| !preset.id.starts_with("zai-") && !preset.id.starts_with("bigmodel-")),
+        "upstream coding-plan templates must not be offered"
+    );
+}
+
 #[tokio::test]
 async fn a_preset_inherits_the_template_models() {
     let dir = tempfile::tempdir().unwrap();
