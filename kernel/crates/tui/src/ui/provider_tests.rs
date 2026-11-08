@@ -317,9 +317,9 @@ fn every_view_renders() {
         },
     ];
     for view in &views {
-        let rendered = super::lines(view, Lang::En, &palette, 80);
+        let rendered = super::lines(view, Lang::En, &palette, 80, 40);
         assert!(!rendered.is_empty(), "{view:?} rendered nothing");
-        let zh = super::lines(view, Lang::Zh, &palette, 80);
+        let zh = super::lines(view, Lang::Zh, &palette, 80, 40);
         assert_eq!(
             zh.len(),
             rendered.len(),
@@ -331,4 +331,42 @@ fn every_view_renders() {
 #[test]
 fn the_command_is_listed_in_help() {
     assert!(crate::ui::commands::find("provider").is_some());
+}
+
+#[test]
+fn long_lists_scroll_with_the_selection() {
+    let palette = Palette::new(ColorLevel::TrueColor, Some((0, 0, 0)));
+    let presets: Vec<ProviderPreset> = (0..40)
+        .map(|index| ProviderPreset {
+            id: format!("preset-{index}"),
+            name: format!("Pre[{index}]"),
+            base_url: format!("https://p{index}.example.com/v1"),
+            protocol: WireProtocol::OpenAiChatCompletions,
+            models: vec!["m".to_owned()],
+        })
+        .collect();
+    let view = ProviderView::Presets {
+        items: presets,
+        selected: 39,
+        status: None,
+    };
+    let rendered: Vec<String> = super::lines(&view, Lang::En, &palette, 80, 24)
+        .iter()
+        .map(|line| {
+            line.spans
+                .iter()
+                .map(|span| span.content.as_ref())
+                .collect::<String>()
+        })
+        .collect();
+    let text = rendered.join(
+        "
+",
+    );
+    // 选中的那一项必须在屏幕上，列表顶部不能被一直画出来。
+    assert!(text.contains("Pre[39]"), "{text}");
+    assert!(!text.contains("Pre[0]"), "{text}");
+    assert!(text.contains("40/41"), "页码提示缺失：{text}");
+    // 行数不能超过可用高度（终端里多出来的行会把输入区顶掉）。
+    assert!(rendered.len() <= 24, "rendered {} lines", rendered.len());
 }

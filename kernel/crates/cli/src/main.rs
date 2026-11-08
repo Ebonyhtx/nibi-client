@@ -45,6 +45,7 @@ mod print_format;
 mod request_headers;
 mod signals;
 mod ssh_executor;
+mod system_proxy;
 
 use std::path::PathBuf;
 use std::process::ExitCode;

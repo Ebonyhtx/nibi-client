@@ -876,6 +876,14 @@ impl App {
     }
 }
 
+/// 选择项在窗口里的起点：让它尽量居中，同时不越过两端。
+fn window_start(selected: usize, total: usize, visible: usize) -> usize {
+    let visible = visible.min(total).max(1);
+    selected
+        .saturating_sub(visible / 2)
+        .min(total.saturating_sub(visible))
+}
+
 fn next_protocol(protocol: WireProtocol) -> WireProtocol {
     match protocol {
         WireProtocol::AnthropicMessages => WireProtocol::OpenAiChatCompletions,
@@ -922,6 +930,7 @@ pub fn lines(
     lang: super::i18n::Lang,
     palette: &Palette,
     width: usize,
+    height: usize,
 ) -> Vec<Line<'static>> {
     let accent = palette.accent;
     let keys = |template: &str| super::key_hint::line(2, template, palette);
@@ -945,26 +954,39 @@ pub fn lines(
             lines.push(dim(&text::summary(lang, items.len(), missing)));
             lines.push(Line::default());
             let chosen = *selected == 0;
-            lines.push(super::pick::paint(
-                Line::from(vec![
-                    Span::raw("  "),
-                    super::pick::pointer(chosen),
-                    Span::styled(text::add_row(lang).to_owned(), Style::default().fg(accent)),
-                ]),
-                chosen,
-                palette,
-                width,
-            ));
-            lines.push(super::pick::paint(
-                Line::from(Span::styled(
-                    format!("    {}", text::add_detail(lang)),
-                    palette.secondary(),
-                )),
-                chosen,
-                palette,
-                width,
-            ));
-            for (index, info) in items.iter().enumerate() {
+            // 一页放不下：按可用行数开窗（添加行与每个 Provider 各占两行）。
+            let visible = (height.saturating_sub(8) / 2).max(1);
+            let total = items.len() + 1;
+            let start = window_start(*selected, total, visible);
+            if total > visible {
+                lines.push(dim(&text::page_indicator(lang, *selected + 1, total)));
+            }
+            if (start..start + visible).contains(&0) {
+                lines.push(super::pick::paint(
+                    Line::from(vec![
+                        Span::raw("  "),
+                        super::pick::pointer(chosen),
+                        Span::styled(text::add_row(lang).to_owned(), Style::default().fg(accent)),
+                    ]),
+                    chosen,
+                    palette,
+                    width,
+                ));
+                lines.push(super::pick::paint(
+                    Line::from(Span::styled(
+                        format!("    {}", text::add_detail(lang)),
+                        palette.secondary(),
+                    )),
+                    chosen,
+                    palette,
+                    width,
+                ));
+            }
+            for (index, info) in items
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| (start..start + visible).contains(&(index + 1)))
+            {
                 let chosen = *selected == index + 1;
                 lines.push(super::pick::paint(
                     Line::from(vec![
@@ -1100,6 +1122,12 @@ pub fn lines(
             lines.push(title(text::presets_title(lang)));
             lines.push(dim(text::presets_hint(lang)));
             lines.push(Line::default());
+            let visible = (height.saturating_sub(8) / 2).max(1);
+            let total = items.len() + 1;
+            let start = window_start(*selected, total, visible);
+            if total > visible {
+                lines.push(dim(&text::page_indicator(lang, *selected + 1, total)));
+            }
             let mut row = |index: usize, label: String, detail: &str| {
                 let chosen = index == *selected;
                 lines.push(super::pick::paint(
@@ -1119,12 +1147,18 @@ pub fn lines(
                     width,
                 ));
             };
-            row(
-                0,
-                text::custom_row(lang).to_owned(),
-                text::custom_detail(lang),
-            );
-            for (index, preset) in items.iter().enumerate() {
+            if (start..start + visible).contains(&0) {
+                row(
+                    0,
+                    text::custom_row(lang).to_owned(),
+                    text::custom_detail(lang),
+                );
+            }
+            for (index, preset) in items
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| (start..start + visible).contains(&(index + 1)))
+            {
                 row(
                     index + 1,
                     preset.name.clone(),

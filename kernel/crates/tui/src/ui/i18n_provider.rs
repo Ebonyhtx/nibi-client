@@ -27,6 +27,13 @@ pub fn summary(lang: Lang, total: usize, missing_key: usize) -> String {
     }
 }
 
+pub fn page_indicator(lang: Lang, selected: usize, total: usize) -> String {
+    match lang {
+        Lang::En => format!("{selected}/{total}"),
+        Lang::Zh => format!("{selected}/{total}"),
+    }
+}
+
 pub fn empty_hint(lang: Lang) -> &'static str {
     pick(
         lang,
