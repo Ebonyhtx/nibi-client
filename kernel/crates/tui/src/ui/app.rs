@@ -129,6 +129,8 @@ pub enum Action {
     Provider(super::provider::Request),
     /// `/btw <问题>`：旁路提问，答案单独成页，不进主对话。
     Btw(String),
+    /// 供应商向导里用右键粘贴剪贴板文字（终端自己的粘贴键在部分环境会多送一个 `v`）。
+    ProviderClipboard,
     /// `/goal` 不带参数：取会话的目标后打开面板（goal.md §6.2）。
     ShowGoal,
     /// `/fork`：取可选的用户输入后打开选择器（session-lifecycle.md §6.5.3）。
@@ -243,6 +245,9 @@ pub struct App {
     /// skill 清单第一次到之前提交、当时判定不了的命令（tui.md §6）：清单到了（`commands_arrived`）再提交一次。
     pub held_command: bool,
     pub overlay: Option<Overlay>,
+    /// 上一次往供应商向导里粘贴的时刻：终端把粘贴键同时送成字符时（Windows 上会多一个 `v`），
+    /// 用它把紧跟其后的那个字符吞掉。
+    pub provider_pasted_at: Option<std::time::Instant>,
     /// 当前待处理交互的选择状态；交互本身在视图里（旧会话的询问在 `detached` 里）。
     pub interaction: Option<Interaction>,
     /// 父会话关闭之后旧会话的询问（按到达顺序，agents.md §4.1.2，工作线 F72）：内核的 `detached_asks` 的投影。
@@ -363,6 +368,7 @@ impl App {
         version: String,
     ) -> Self {
         Self {
+            provider_pasted_at: None,
             palette,
             lang,
             strings: super::i18n::strings(lang),

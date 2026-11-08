@@ -5,10 +5,10 @@ use std::time::Instant;
 use anyhow::Result;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEventKind};
 use futures_util::FutureExt;
-use ratatui::backend::Backend;
 use nibi_kernel_api::model::ModelSelection;
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::session_api::Command;
+use ratatui::backend::Backend;
 
 use super::Loop;
 use super::session::Sent;
@@ -114,9 +114,7 @@ impl<B: Backend> Loop<'_, B> {
                 let text = content
                     .iter()
                     .find_map(|block| match block {
-                        nibi_kernel_api::message::ContentBlock::Text { text } => {
-                            Some(text.clone())
-                        }
+                        nibi_kernel_api::message::ContentBlock::Text { text } => Some(text.clone()),
                         _ => None,
                     })
                     .unwrap_or_default();
@@ -275,6 +273,7 @@ impl<B: Backend> Loop<'_, B> {
             Action::Logout => self.logout(),
             Action::Provider(request) => self.provider(request),
             Action::Btw(question) => self.btw(question),
+            Action::ProviderClipboard => self.provider_clipboard(),
             Action::ShowGoal => self.show_goal(),
             Action::OpenFork => self.open_fork(),
             Action::Fork { input } => self.fork(input),

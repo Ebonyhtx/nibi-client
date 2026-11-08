@@ -55,6 +55,8 @@ pub(crate) enum ServiceDone {
     },
     /// 保存失败：留在原来的视图上显示原因。
     ProviderFailed(String),
+    /// 向导里右键粘贴：剪贴板文字或读不出的原因。
+    ProviderClipboard(Result<String, String>),
     /// `/btw` 的答案（成功是正文，失败是内核错误）。
     Btw(Result<String, nibi_kernel_api::session_api::KernelError>),
     /// 删除成功（附带刷新后的列表）。
@@ -258,6 +260,19 @@ impl<B: Backend> Loop<'_, B> {
         );
     }
 
+    /// 向导里的右键粘贴：读剪贴板纯文字（不经过键盘，避免终端多送一个按键）。
+    pub(super) fn provider_clipboard(&mut self) {
+        let Some(clipboard) = self.options.services.clipboard.clone() else {
+            self.app
+                .info(i18n_provider::clipboard_unavailable(self.app.lang));
+            return;
+        };
+        let reading = clipboard.text();
+        self.pending.push(
+            async move { Done::Service(ServiceDone::ProviderClipboard(reading.await)) }.boxed(),
+        );
+    }
+
     /// `/provider` 的请求分派。
     pub(super) fn provider(&mut self, request: crate::ui::provider::Request) {
         match request {
@@ -419,6 +434,12 @@ impl<B: Backend> Loop<'_, B> {
                     self.choose_model(selection, None);
                 }
             }
+            ServiceDone::ProviderClipboard(result) => match result {
+                Ok(text) => self.app.provider_paste(&text),
+                Err(reason) => self
+                    .app
+                    .info(i18n_provider::clipboard_failed(lang, &reason)),
+            },
             ServiceDone::Btw(result) => match result {
                 Ok(answer) => {
                     self.app.overlay = Some(crate::ui::app::Overlay::Page {

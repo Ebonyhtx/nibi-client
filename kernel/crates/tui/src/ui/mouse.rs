@@ -198,6 +198,16 @@ impl App {
             }
             MouseEventKind::Up(MouseButton::Left) => self.release_left(x, y),
             MouseEventKind::Down(MouseButton::Right) => {
+                // 供应商向导里右键 = 粘贴剪贴板文字（终端自己的粘贴键在 Windows 上会多送一个 v）。
+                if matches!(
+                    self.overlay,
+                    Some(Overlay::Provider(
+                        super::provider::ProviderView::Form(_)
+                            | super::provider::ProviderView::Key { .. }
+                    ))
+                ) {
+                    return Some(Action::ProviderClipboard);
+                }
                 self.right_click();
                 None
             }
@@ -277,6 +287,16 @@ impl App {
                 Some(Action::CopySelection { clear: false })
             }
             MouseEventKind::Down(MouseButton::Right) => {
+                // 供应商向导里右键 = 粘贴剪贴板文字（终端自己的粘贴键在 Windows 上会多送一个 v）。
+                if matches!(
+                    self.overlay,
+                    Some(Overlay::Provider(
+                        super::provider::ProviderView::Form(_)
+                            | super::provider::ProviderView::Key { .. }
+                    ))
+                ) {
+                    return Some(Action::ProviderClipboard);
+                }
                 self.right_click();
                 None
             }

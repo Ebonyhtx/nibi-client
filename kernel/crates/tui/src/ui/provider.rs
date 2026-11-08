@@ -490,6 +490,17 @@ impl App {
 
     /// `/provider` 视图的按键；只在视图是它时调用。
     pub(super) fn provider_key(&mut self, key: KeyEvent) -> Option<Action> {
+        // 有的终端把粘贴键同时送成一个字符（Windows 上 Ctrl+V 会附一个 `v`）：粘贴之后
+        // 紧跟着的那一个 v/V 吞掉，否则它会钻进 Base URL 或 API key 里。
+        if matches!(key.code, KeyCode::Char('v') | KeyCode::Char('V'))
+            && !self.typing.ctrl(&key)
+            && !self.typing.alt(&key)
+            && self
+                .provider_pasted_at
+                .is_some_and(|at| at.elapsed() < std::time::Duration::from_millis(400))
+        {
+            return None;
+        }
         let ctrl = self.typing.ctrl(&key);
         let alt = self.typing.alt(&key);
         let typed = self.typing.is_text(&key) && !alt;
@@ -850,7 +861,8 @@ impl App {
     }
 
     /// 向导里的粘贴（去掉换行；key 一步照收，其他步骤也不该带换行）。
-    pub(super) fn provider_paste(&mut self, text: &str) {
+    pub(crate) fn provider_paste(&mut self, text: &str) {
+        self.provider_pasted_at = Some(std::time::Instant::now());
         if let Some(Overlay::Provider(ProviderView::Form(form))) = self.overlay.as_mut() {
             let text = text.replace(['\n', '\r'], " ");
             form.status = None;

@@ -212,6 +212,12 @@ pub trait Clipboard: Send + Sync {
     /// 粘贴的文字是一个图片文件的路径（拖文件进终端）时读出它；不是文件或读不出时 `Ok(None)`。
     fn image_file(&self, path: String) -> BoxFuture<'static, Result<Option<ImageBytes>, String>>;
 
+    /// 剪贴板里的纯文字（供应商向导的右键粘贴）。终端自己的粘贴快捷键在部分环境下会多送一个
+    /// 按键（Windows 上 Ctrl+V 会落成字符 `v`），所以给一个不经过键盘的入口。缺省不可用。
+    fn text(&self) -> BoxFuture<'static, Result<String, String>> {
+        Box::pin(async { Err("clipboard text is unavailable".to_owned()) })
+    }
+
     /// 复制文字（F25，tui-select.md §3.2，起进程的部分）：不在 SSH 里时写系统剪贴板，在 tmux 里
     /// 另写 tmux 的缓冲区；OSC 52 由 TUI 自己写到终端。返回复制的途径。缺省（没有系统剪贴板）只有 OSC 52。
     fn copy_text(&self, _text: String) -> BoxFuture<'static, CopyRoute> {

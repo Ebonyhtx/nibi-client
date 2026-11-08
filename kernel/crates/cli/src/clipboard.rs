@@ -15,6 +15,8 @@ use tokio::io::AsyncWriteExt;
 const POWERSHELL: &str = "$i = Get-Clipboard -Format Image; if ($i) { $m = New-Object System.IO.MemoryStream; $i.Save($m, [System.Drawing.Imaging.ImageFormat]::Png); [Convert]::ToBase64String($m.ToArray()) } else { exit 1 }";
 
 /// PowerShell 写剪贴板：文字从标准输入读，按 UTF-8。
+/// PowerShell：把剪贴板里的纯文字原样打出来（没有时是空串）。
+const GET_CLIPBOARD: &str = "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Clipboard -Raw";
 const SET_CLIPBOARD: &str = "[Console]::InputEncoding = [Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())";
 
 /// 每个写剪贴板的命令最多等这么久（2000 ms）。
@@ -213,6 +215,29 @@ impl Clipboard for SystemClipboard {
                 write_tmux(&text).await;
             }
             route(&clipboard, native)
+        }
+        .boxed()
+    }
+
+    fn text(&self) -> BoxFuture<'static, Result<String, String>> {
+        let clipboard = self.clone();
+        async move {
+            if clipboard.ssh {
+                return Err("the clipboard lives on the local machine".to_owned());
+            }
+            let (program, args): (&str, &[&str]) = if cfg!(target_os = "macos") {
+                ("pbpaste", &[])
+            } else if cfg!(windows) {
+                ("powershell", &["-NoProfile", "-Command", GET_CLIPBOARD])
+            } else if clipboard.wayland {
+                ("wl-paste", &["-n"])
+            } else {
+                ("xclip", &["-o", "-selection", "clipboard"])
+            };
+            let out = run(program, args)
+                .await
+                .ok_or_else(|| format!("{program} could not read the clipboard"))?;
+            String::from_utf8(out).map_err(|_| "the clipboard is not UTF-8 text".to_owned())
         }
         .boxed()
     }

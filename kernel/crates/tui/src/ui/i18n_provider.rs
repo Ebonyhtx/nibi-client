@@ -308,6 +308,21 @@ pub fn status_saving(lang: Lang) -> &'static str {
     pick(lang, "Saving…", "保存中…")
 }
 
+pub fn clipboard_unavailable(lang: Lang) -> &'static str {
+    pick(
+        lang,
+        "This build cannot read the clipboard. Paste with Ctrl+Shift+V.",
+        "这个构建读不了剪贴板，请用 Ctrl+Shift+V 粘贴。",
+    )
+}
+
+pub fn clipboard_failed(lang: Lang, reason: &str) -> String {
+    match lang {
+        Lang::En => format!("Could not read the clipboard: {reason}"),
+        Lang::Zh => format!("读取剪贴板失败：{reason}"),
+    }
+}
+
 pub fn probe_ok(lang: Lang, name: &str) -> String {
     match lang {
         Lang::En => format!("{name}: connectivity check passed"),
