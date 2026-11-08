@@ -409,8 +409,15 @@ Node 侧是 `packages/shared/src/node/systemProxy.ts`：WinINET 注册表 / macO
 Rust 原来只有 Windows（`system_proxy()` 在非 Windows 直接返回 `None`），macOS 上「只开 Clash 系统代理、
 没把端口填进客户端」的用户会登录、会员同步、模型请求全部直连失败（darwin 的 CLI 包已发布）。
 
+**作用范围**：只有独立运行的 CLI/TUI 读 OS 设置。桌面版由 Host 在 spawn agent 时把设置页/系统代理
+折算成 `NIBI_HTTP_PROXY` / `NIBI_NO_PROXY` 注入（`packages/services/src/runtime-tools/agentProxyEnv.ts`
+的 `buildAgentRuntimeEnv`，模式语义见 `shared/node/egressProxy.ts`：`manual` 只用手填地址、留空即直连；
+`system` 用 Host 探测到的系统代理），显式变量优先——所以桌面版里内核不会再读一次 OS 代理。
+
 - 出口顺序不变：显式变量（`NIBI_HTTP_PROXY` / `https_proxy` …）> 系统代理 > 直连
   （`kernel/crates/cli/src/network.rs`）。
+- 想「开着系统代理但终端直连」：`NIBI_NO_PROXY=*`（Node 规则，`*` 命中所有主机）或 `NO_PROXY=*`。
+  注意把 `http_proxy` 设成空值不等于直连——空值按未设置处理，仍会回落到系统代理。
 - Windows：`HKCU\…\Internet Settings` 的 `ProxyEnable` / `ProxyServer` / `ProxyOverride`（原有）。
 - macOS：`scutil --proxy`（与「系统设置 → 网络 → 代理」同一份），优先
   `HTTPSEnable/HTTPSProxy/HTTPSPort`（端口缺省 443），其次 HTTP（缺省 80）；`ExceptionsList` 转

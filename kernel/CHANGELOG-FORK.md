@@ -1150,6 +1150,9 @@ run 还欠着决定」——落 Rust。
 - 背景：Node 侧的 `packages/shared/src/node/systemProxy.ts` 三平台都读（WinINET / `scutil` / Linux
   环境变量），Rust 的入口只有 Windows 注册表，非 Windows 直接返回 `None`。macOS 上只开 Clash 系统代理、
   没把端口填进客户端的用户，登录、会员同步、模型请求会全部直连失败；darwin 的 CLI 包已经发布。
+  **只影响独立运行的 CLI/TUI**：桌面版由 Host 在 spawn agent 时把设置页/系统代理折算成
+  `NIBI_HTTP_PROXY` / `NIBI_NO_PROXY` 注入（`packages/services/src/runtime-tools/agentProxyEnv.ts`），
+  显式变量优先，内核不会再读 OS 代理；内核这条探测是给没有设置页的 CLI/TUI 兜底的。
 - `crates/cli/src/system_proxy.rs`：加 `scutil --proxy` 的解析（优先 HTTPS 再 HTTP，端口缺省 443 / 80）、
   `ExceptionsList` 转 no_proxy（`*.x` → `.x`，CIDR 跳过，本机三项永远直连）、2 秒超时。
   `SystemProxy.overrides` 改成已转换的 `no_proxy`，`network.rs` 不再自己调 `no_proxy_from_override`。
