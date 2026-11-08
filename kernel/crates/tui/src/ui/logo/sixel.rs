@@ -9,7 +9,9 @@
 //!
 //! 要点：
 //! - 调色板分量是 0..100，不是 0..255；
-//! - 透明像素**不进任何颜色的位图**，所以不落墨，背景保持终端自己的底色；
+//! - **透明像素要显式填成终端背景色**：Sixel 里「不落墨」的格子由终端自己填，那个值和终端背景
+//!   不一定一致，屏幕上就会出现一块底色不同的方块。所以这里把透明当成调色板最后一位（终端背景），
+//!   整幅画满；
 //! - 位图字符是 `?` + 6 位掩码（0x3F..0x7E），同一字符连续出现用 `!n` 压缩；
 //! - 缩放只做整数倍：像素艺术放大必须最近邻，这里直接把每格复制 `scale` 次。
 
@@ -17,8 +19,8 @@ use std::fmt::Write as _;
 
 use super::scene;
 
-/// 编码一帧；`scale` 是整数放大倍数（1 = 原尺寸）。
-pub(crate) fn encode(frame: &scene::Frame, scale: u16) -> String {
+/// 编码一帧；`scale` 是整数放大倍数（1 = 原尺寸），`background` 是终端背景色（填透明像素）。
+pub(crate) fn encode(frame: &scene::Frame, scale: u16, background: (u8, u8, u8)) -> String {
     let scale = usize::from(scale.max(1));
     // 尺寸从帧自己算：素材是 64×64，测试里的小帧也走同一段代码。
     let source_width: usize = frame
@@ -28,7 +30,9 @@ pub(crate) fn encode(frame: &scene::Frame, scale: u16) -> String {
     let source_height = frame.rows.len();
     let width = source_width * scale;
     let height = source_height * scale;
-    let mut pixels = vec![0u8; width * height];
+    // 透明（0）在编码时换成背景色：调色板最后多一位。
+    let background_index = u8::try_from(scene::PALETTE.len()).unwrap_or(u8::MAX);
+    let mut pixels = vec![background_index; width * height];
     // 展开游程并按整数倍复制（最近邻）。
     for (row, runs) in frame.rows.iter().enumerate() {
         let mut x = 0;
@@ -41,7 +45,7 @@ pub(crate) fn encode(frame: &scene::Frame, scale: u16) -> String {
                     let y = row * scale + dy;
                     let start = y * width + x * scale;
                     for dx in 0..scale {
-                        pixels[start + dx] = value;
+                        pixels[start + dx] = if value == 0 { background_index } else { value };
                     }
                 }
                 x += 1;
@@ -57,11 +61,18 @@ pub(crate) fn encode(frame: &scene::Frame, scale: u16) -> String {
     for &value in &pixels {
         used[usize::from(value)] = true;
     }
-    for (index, color) in scene::PALETTE.iter().enumerate() {
-        if index == 0 || !used[index] {
+    let component = |value: u8| u32::from(value) * 100 / 255;
+    let color_of = |index: usize| -> [u8; 3] {
+        match scene::PALETTE.get(index) {
+            Some(color) => *color,
+            None => [background.0, background.1, background.2],
+        }
+    };
+    for index in 1..=usize::from(background_index) {
+        if !used[index] {
             continue;
         }
-        let component = |value: u8| u32::from(value) * 100 / 255;
+        let color = color_of(index);
         let _ = write!(
             out,
             "#{index};2;{};{};{}",
@@ -73,7 +84,7 @@ pub(crate) fn encode(frame: &scene::Frame, scale: u16) -> String {
 
     for top in (0..height).step_by(6) {
         let mut first = true;
-        for index in 1..scene::PALETTE.len() {
+        for index in 1..=usize::from(background_index) {
             if !used[index] {
                 continue;
             }

@@ -15,7 +15,7 @@ use std::time::Instant;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
-use super::palette::Palette;
+use super::palette::{Palette, Rgb};
 
 /// 与右下角留的空隙（字符格）。
 const MARGIN: u16 = 1;
@@ -25,6 +25,8 @@ const SCALE: u16 = 2;
 /// 像素图占的字符格：按常见 9×18 像素一格估算，并多留一列一行防止字宽不同时压到正文。
 const PIXEL_COLS: u16 = 16;
 const PIXEL_ROWS: u16 = 9;
+/// 查不到终端背景色时按这个深色背景填（与 `Palette` 的缺省一致）。
+const DARK: Rgb = (0x1e, 0x1e, 0x21);
 /// 多久无条件重发一次像素图（滚动等终端自己搬走画面的情况，靠它纠正）。
 const RESEND: std::time::Duration = std::time::Duration::from_millis(500);
 
@@ -117,7 +119,7 @@ impl Logo {
 
     pub fn draw(&mut self, buffer: &mut Buffer, free: Rect, palette: &Palette, now: Instant) {
         if self.pixels {
-            self.draw_pixels(free.intersection(buffer.area), now);
+            self.draw_pixels(free.intersection(buffer.area), palette, now);
             return;
         }
         let Some(stage) = stage_in(free.intersection(buffer.area)) else {
@@ -131,7 +133,7 @@ impl Logo {
     }
 
     /// 像素图这条：格子留空给终端画图，只在帧或位置变了、或过了一阵子才重发。
-    fn draw_pixels(&mut self, free: Rect, now: Instant) {
+    fn draw_pixels(&mut self, free: Rect, palette: &Palette, now: Instant) {
         let Some(stage) = pixel_stage_in(free) else {
             self.hide();
             return;
@@ -148,9 +150,11 @@ impl Logo {
         }
         self.sent = Some((stage, index));
         self.sent_at = Some(now);
+        // 透明像素填成终端背景色：Sixel 里不落墨的格子由终端自己填，会和背景差一点，屏幕上就是一块方框。
+        let background = palette.background.unwrap_or(DARK);
         self.pending = Some(Image {
             at: (stage.x, stage.y),
-            payload: Payload::Sixel(sixel::encode(&scene::FRAMES[index], SCALE)),
+            payload: Payload::Sixel(sixel::encode(&scene::FRAMES[index], SCALE, background)),
         });
     }
 }
