@@ -325,3 +325,27 @@ fn vendor_finish_reasons_on_the_zhipu_endpoint() {
 fn zhipu() -> Vendor {
     crate::profiles::vendor("https://open.bigmodel.cn/api/anthropic")
 }
+
+/// DeepSeek 原生字段：`prompt_cache_hit_tokens`（没有 OpenAI 那个 details 对象时也要读到）。
+#[test]
+fn deepseek_native_cache_hit_tokens_are_read() {
+    let events = decode(vec![
+        chunk(json!({"role": "assistant", "content": "hi"})),
+        data(json!({"choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]})),
+        data(json!({"choices": [], "usage": {"prompt_tokens": 1200, "completion_tokens": 30,
+            "prompt_cache_hit_tokens": 900, "prompt_cache_miss_tokens": 300}})),
+        done(),
+    ])
+    .unwrap();
+    let usage = events
+        .into_iter()
+        .rev()
+        .find_map(|event| match event {
+            ModelEvent::MessageDelta { usage, .. } => Some(usage),
+            _ => None,
+        })
+        .expect("usage");
+    // 统一口径：input 不含缓存读。
+    assert_eq!(usage.input_tokens, 300);
+    assert_eq!(usage.cache_read_input_tokens, 900);
+}

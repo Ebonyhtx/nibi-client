@@ -55,9 +55,13 @@ impl ChatStream {
             });
         }
         if let Some(reported) = chunk.get("usage").filter(|value| value.is_object()) {
+            // 缓存命中：OpenAI 放在 `prompt_tokens_details.cached_tokens`；DeepSeek 与兼容它的中转站
+            // 用自家的 `prompt_cache_hit_tokens`。两个都读，谁有值用谁（以前只读前者，DeepSeek 原生
+            // 端点会一直显示 0%）。
             let cached = reported
                 .get("prompt_tokens_details")
-                .map_or(0, |details| number(details, "cached_tokens"));
+                .map_or(0, |details| number(details, "cached_tokens"))
+                .max(number(reported, "prompt_cache_hit_tokens"));
             self.usage = usage(
                 number(reported, "prompt_tokens"),
                 cached,
