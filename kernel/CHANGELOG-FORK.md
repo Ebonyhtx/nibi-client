@@ -1142,3 +1142,30 @@ run 还欠着决定」——落 Rust。
 - 门禁：`cargo check --workspace --all-targets` 通过；`cargo test --workspace --lib`
   全绿；`cargo test -p nibi-kernel-cli --bins` 309 通过 / 9 个既有 Windows-only 失败。
   历史 `docs/*-2026-*.md` 里的旧 crate 名是当时的发布记录，保留。
+
+## 9. 2026-11-08 macOS 系统代理与附件降级
+
+### 9.1 系统代理：macOS 也读 OS 设置
+
+- 背景：Node 侧的 `packages/shared/src/node/systemProxy.ts` 三平台都读（WinINET / `scutil` / Linux
+  环境变量），Rust 的入口只有 Windows 注册表，非 Windows 直接返回 `None`。macOS 上只开 Clash 系统代理、
+  没把端口填进客户端的用户，登录、会员同步、模型请求会全部直连失败；darwin 的 CLI 包已经发布。
+- `crates/cli/src/system_proxy.rs`：加 `scutil --proxy` 的解析（优先 HTTPS 再 HTTP，端口缺省 443 / 80）、
+  `ExceptionsList` 转 no_proxy（`*.x` → `.x`，CIDR 跳过，本机三项永远直连）、2 秒超时。
+  `SystemProxy.overrides` 改成已转换的 `no_proxy`，`network.rs` 不再自己调 `no_proxy_from_override`。
+- Linux 不动：代理本来就来自环境变量，`network()` 已经读过（与 Node 的 `linux-env` 同源）。
+- 门禁：新增 3 条纯函数单测（三平台都跑）+ 1 条真 macOS 探针；`rust-gates.yml` 的 `macos-only`
+  作业加上 `-p nibi-kernel-cli`，否则这段 macOS 专用代码在本地 Windows 与 ubuntu 都不编译。
+
+### 9.2 附件：按 Node 的降级链收口
+
+- 原来 v4（`commands.rs`）与 legacy（`legacy_session.rs`）都只认图片与 PDF，其余类型 **fail-closed**，
+  整次发送失败；Node 的 `file-part-hydration.ts` 从不失败：图片 `image`、视频 `video`、PDF `file`、
+  `text/*` 预览文本、其余 `[Attached <mime>: <label>]`。
+- 现在两条路径同一分法：图片 `Image`、PDF `Document`、`text/*` 读成文本块（≤64 KiB，
+  `INLINE_TEXT_ATTACHMENT_MAX_BYTES`）、其余（视频、音频、任意二进制）一行
+  `[Attached <mime>: <label>]`。`fault.command.attachmentUnsupported` 不再产生。
+- 仍差：内核没有 `video` 内容块，视频只留说明（后续补变体与三种协议投影）。引用读不出来仍报
+  `fault.command.attachmentUnreadable`——有意不学 Node 的静默降级，避免用户贴的截图无声消失。
+- 单测：`commands_tests` 的引用映射与占位文案、`legacy_session_tests` 的文本内联与视频降级；
+  `protocol-nibi` 300 条全绿。

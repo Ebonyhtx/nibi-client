@@ -117,7 +117,7 @@ Rust 不问、用内置缺省。逐项核对结果：
 
 | 偏好 | Node 来源 | Rust 现状 | 判定 |
 | --- | --- | --- | --- |
-| `additionalDirectories` | 随 `createSession` 参数 | 同一个 Host 在 `createSession` 里带（`zcodeTaskServiceAdapter.ts:1109`），内核已消费 | ✅ 等价（已知差异：冷恢复不带） |
+| `additionalDirectories` | 随 `createSession` 参数 | 同一个 Host 在 `createSession` 里带（`zcodeTaskServiceAdapter.ts:1109`），内核已消费；冷恢复时内核也认这个参数——v4 `conversation/subscribe`（`protocol-nibi/src/subscribe.rs::apply_resume_hints`）与 legacy `session/resume`（`legacy_session.rs::resume`）两处都会落进会话的附加目录 | ✅ 等价（冷开不带是 Host 的行为，Node 同：只给了 `createSession`） |
 | `subagentRuntimeConfigEnabled` | 同上 | 子代理运行时配置在内核 deps 闭环，不需要该开关 | ✅ 等价 |
 | `askUserQuestionAutoResolutionEnabled` | 同上 + `workspace/updateInteractionPreferences` | 记录偏好并**执行**自动结束（见 §4.1） | ✅ 已补 |
 
@@ -327,7 +327,12 @@ redirectPath)[0..24]>:authorization_credentials`）；
    用 `pendingInteractions` 增量表达」，都不影响倒计时。
 4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；
    `computer-use/operation-event` 已由 Rust 发出（§5.4）。
-5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
+5. 附件已按 Node 的降级链对齐：图片 `Image`、PDF `Document`、`text/*` 文本块（≤64 KiB）、
+   其余（视频、音频、任意二进制）一行 `[Attached <mime>: <label>]`，**没有类型会让整次发送失败**。
+   仍差两处：内核还没有 `video` 内容块（Node 会把视频直接送模型），以及引用读不出来时 Rust 报
+   `attachmentUnreadable`（Node 静默降级成占位文本；Rust 选择明确报错，见 §13）。
+   冷恢复的 `additionalDirectories` 不是差异：内核两条冷恢复通道都认这个参数，缺的是 Host
+   冷开时没带（Node 侧同样只给 `createSession`，见 §4 表格）。
 6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
 7. **插件引用目录已补齐**（Host 只直答 17 条管理面方法，见
@@ -395,3 +400,39 @@ redirectPath)[0..24]>:authorization_credentials`）；
 - 贴图后把终端光标显式移回输入框（`App::cursor_at` + `Screen::cursor_to`），否则鸟旁边会多一个光标。
 - 早期试过的手绘字符鸟（`pack.rs`）已删除：把 64×64 素材等比缩小到 12–19 列都会糊，手画的小稿也不好，
   结论是**要么用图片协议放原图，要么不放**。
+
+## 13. 出口：系统代理与附件降级（2026-11-08）
+
+### 13.1 系统代理（对齐 Node 的三平台）
+
+Node 侧是 `packages/shared/src/node/systemProxy.ts`：WinINET 注册表 / macOS `scutil` / Linux 环境变量。
+Rust 原来只有 Windows（`system_proxy()` 在非 Windows 直接返回 `None`），macOS 上「只开 Clash 系统代理、
+没把端口填进客户端」的用户会登录、会员同步、模型请求全部直连失败（darwin 的 CLI 包已发布）。
+
+- 出口顺序不变：显式变量（`NIBI_HTTP_PROXY` / `https_proxy` …）> 系统代理 > 直连
+  （`kernel/crates/cli/src/network.rs`）。
+- Windows：`HKCU\…\Internet Settings` 的 `ProxyEnable` / `ProxyServer` / `ProxyOverride`（原有）。
+- macOS：`scutil --proxy`（与「系统设置 → 网络 → 代理」同一份），优先
+  `HTTPSEnable/HTTPSProxy/HTTPSPort`（端口缺省 443），其次 HTTP（缺省 80）；`ExceptionsList` 转
+  no_proxy（`*.x` → `.x`；`169.254/16` 这类 CIDR 匹配器不支持，跳过）。本机三项
+  （`localhost` / `127.0.0.1` / `::1`）永远直连——MCP 服务在本机，不能绕进代理。
+- Linux 不读 OS 设置：代理本来就来自环境变量，`network()` 的显式变量已经读过（与 Node 的 `linux-env` 同源）。
+- 探测只在启动时做一次（`network()` 只由入口调用）；Node 的 30 s 缓存对应「每请求探测」，这里不需要。
+- `scutil` 2 秒超时（与 Node 的 `execFileSync` 相同），失败/超时当作没有系统代理。
+- PAC（`ProxyAutoConfigEnable`）要 JS 引擎才能求值：检测到 PAC 而没有固定代理时按「未配置」处理
+  （Node 的 `pac-unsupported` 同义；没有 warning）。
+- 用例：`system_proxy_tests.rs` 的 `scutil_prefers_https_then_http`、`scutil_exceptions_become_no_proxy_rules`、
+  `a_disabled_or_pac_only_proxy_has_no_url`（纯函数，三平台都跑）+ `the_live_scutil_proxy_parses`（真 macOS）。
+- 门禁：`rust-gates.yml` 的 `macos-only` 作业现在也编译 `-p nibi-kernel-cli`（否则这段 macOS 专用代码
+  在本地 Windows 与 ubuntu 上都不编译，只能等发版时才发现）。
+
+### 13.2 附件降级（对齐 Node `file-part-hydration.ts`）
+
+v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachment_blocks`）同一条分法：
+
+- 图片 → `Image`，PDF → `Document`，`text/*` → 文本块（≤64 KiB，Node `INLINE_TEXT_ATTACHMENT_MAX_BYTES`），
+- 其余（视频、音频、任意二进制）→ 一行 `[Attached <mime>: <label>]`，**不再让整次发送失败**。
+- 视频仍只留一行说明：内核还没有 `video` 内容块（`ContentBlock` 只有 Text/Image/Document），读进来也送不进
+  模型。后续要补的是变体 + 三种协议投影。
+- 引用读不出来（artifact 过期、文件被移走）报 `fault.command.attachmentUnreadable`：Node 会静默降级成占位
+  文本，这里明确报错——用户贴的截图无声消失比一次失败更难发现（有意保留的差异）。

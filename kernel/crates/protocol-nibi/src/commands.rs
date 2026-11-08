@@ -64,29 +64,45 @@ fn first_input_execution(
     }
 }
 
-/// 一条附件引用 → 读取来源与规范化 mime；认不出的类型（视频、音频、任意二进制）为 None，调用方拒绝。
+/// 一条附件引用 → 读取来源：`nibi-artifact://` 走 artifact 存储，其余按本机路径。
 ///
-/// 支持图片与 PDF：Node 的 `filePartToContentBlock` 与 AI SDK 的 file part 都只认这两类
-/// （`application/pdf` 走 `document` 块，其余非文本 MIME 在 Node 侧同样降级成占位文本）。
-fn attachment_source(reference: &Value) -> Option<(AttachmentSource, String)> {
-    let mime = reference["mime"].as_str().unwrap_or_default();
-    let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
-    if !media.starts_with("image/") && media != "application/pdf" {
+/// 类型不在这里过滤：认不出的类型也要先判一次（`attachment_blocks` 决定读内容还是只留一行说明）。
+fn attachment_source(reference: &Value) -> Option<AttachmentSource> {
+    let reference = reference["ref"].as_str().unwrap_or_default();
+    if reference.is_empty() {
         return None;
     }
-    let reference = reference["ref"].as_str().unwrap_or_default().to_owned();
-    let source = if reference.starts_with(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME) {
-        AttachmentSource::Artifact { uri: reference }
-    } else {
-        AttachmentSource::Path { path: reference }
-    };
-    Some((source, media))
+    Some(
+        if reference.starts_with(nibi_kernel_api::persisted_output::ARTIFACT_SCHEME) {
+            AttachmentSource::Artifact {
+                uri: reference.to_owned(),
+            }
+        } else {
+            AttachmentSource::Path {
+                path: reference.to_owned(),
+            }
+        },
+    )
+}
+
+/// 文本附件最多内联的字节数（Node `INLINE_TEXT_ATTACHMENT_MAX_BYTES`）。
+pub(crate) const TEXT_ATTACHMENT_MAX_BYTES: usize = 64 * 1024;
+
+/// 模型看不到内容的附件留一行说明（Node `filePartToContentBlock` 的 `[Attached …]` 兜底）。
+pub(crate) fn attachment_note(mime: &str, label: &str) -> ContentBlock {
+    ContentBlock::Text {
+        text: format!("[Attached {mime}: {label}]"),
+    }
 }
 
 /// 命令里的附件（NIBI `AttachmentRef`）→ 模型内容块。
 ///
-/// 图片与 PDF：图片进 `Image` 块、PDF 进 `Document` 块（Node `filePartToContentBlock` 的同一分法）。
-/// 其他类型 fail-closed 拒绝并点名 mime，不静默丢掉内容。附件按 Node 的排法放在正文之前。
+/// 与 Node 同一条降级链（`file-part-hydration.ts`）：图片进 `Image`、PDF 进 `Document`、
+/// `text/*` 读成文本块（≤64 KiB）、其余（视频、音频、任意二进制）留一行 `[Attached …]` 说明。
+/// **没有一种类型会让整次发送失败**。附件按 Node 的排法放在正文之前。
+///
+/// 与 Node 的已知差异：引用读不出来时这里报 `attachmentUnreadable`，Node 会静默降级成占位文本。
+/// 报错是有意的——用户贴的截图不见了比一次明确的失败更难发现。
 async fn attachment_blocks(
     kernel: &std::sync::Arc<dyn nibi_kernel_api::session_api::Kernel>,
     session: &SessionId,
@@ -97,13 +113,20 @@ async fn attachment_blocks(
 
     let mut blocks = Vec::with_capacity(refs.len());
     for reference in refs {
-        let Some((source, media)) = attachment_source(reference) else {
-            let mime = reference["mime"].as_str().unwrap_or_default();
-            let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
-            return Err((
-                "fault.command.attachmentUnsupported",
-                format!("attachments of type {media} are not supported yet; only images and PDFs are"),
-            ));
+        let mime = reference["mime"].as_str().unwrap_or_default();
+        let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+        let label = reference["fileName"]
+            .as_str()
+            .filter(|name| !name.is_empty())
+            .or_else(|| reference["ref"].as_str().filter(|path| !path.is_empty()))
+            .unwrap_or(mime);
+        // 视频与超长文本没有可用的内容块（内核还没有 `video` 变体）：不读内容，只留说明。
+        let inline = media.starts_with("image/")
+            || media.starts_with("text/")
+            || media == "application/pdf";
+        let Some(source) = attachment_source(reference).filter(|_| inline) else {
+            blocks.push(attachment_note(mime, label));
+            continue;
         };
         let loaded = kernel
             .load_attachment(session, workspace, source)
@@ -114,18 +137,28 @@ async fn attachment_blocks(
                     error.to_string(),
                 )
             })?;
-        let source = ImageSource::Base64 {
-            media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
-            data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
-        };
-        blocks.push(if media == "application/pdf" {
-            ContentBlock::Document {
-                source,
+        if media == "application/pdf" {
+            blocks.push(ContentBlock::Document {
+                source: ImageSource::Base64 {
+                    media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
+                    data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
+                },
                 name: reference["fileName"].as_str().map(str::to_owned),
-            }
+            });
+        } else if media.starts_with("image/") {
+            blocks.push(ContentBlock::Image {
+                source: ImageSource::Base64 {
+                    media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
+                    data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
+                },
+            });
+        } else if loaded.bytes.len() <= TEXT_ATTACHMENT_MAX_BYTES {
+            blocks.push(ContentBlock::Text {
+                text: String::from_utf8_lossy(&loaded.bytes).into_owned(),
+            });
         } else {
-            ContentBlock::Image { source }
-        });
+            blocks.push(attachment_note(mime, label));
+        }
     }
     Ok(blocks)
 }
@@ -2308,7 +2341,7 @@ async fn apply_file_rewind(
 
 /// NIBI `editUserQuery`：换文本的 retryTurn。target 是 real user 行（entityId 即该
 /// user 消息 id）→ `guard.latestQueryEditOnly` → rewind 截断该轮 → 重发 newText。
-/// 附件（图片）与 newText 一起重发；其他类型 fail-closed 拒绝（`attachmentUnsupported`）。
+/// 附件与 newText 一起重发（图片 / PDF / 文本按内容块，其余留一行说明，见 `attachment_blocks`）。
 /// 与 Node 的差异（记录在案）：
 /// - workspaceMode=rewind 直接用 kernel `Rewind{scope: Both}`（文件+对话一次提交），
 ///   Node 的 preview/blocked UI 流（guard.workspaceRewind*）暂无对应 ACK 形状；

@@ -325,26 +325,41 @@ fn first_input_execution_overrides_config_mode() {
 }
 
 #[test]
-fn attachment_source_maps_images_and_pdfs_and_rejects_other_types() {
-    let image = json!({"ref": "nibi-artifact://sess_a/tool-result-1", "fileName": "a.png", "mime": "image/png", "bytes": 12});
-    let (source, media) = attachment_source(&image).unwrap();
-    assert_eq!(media, "image/png");
-    assert!(matches!(source, AttachmentSource::Artifact { .. }));
+fn attachment_source_reads_artifact_and_path_refs() {
+    // artifact 引用（Host 寄存的内容）。
+    let artifact = json!({"ref": "nibi-artifact://sess_a/tool-result-1", "fileName": "a.png", "mime": "image/png", "bytes": 12});
+    assert!(matches!(
+        attachment_source(&artifact),
+        Some(AttachmentSource::Artifact { .. })
+    ));
     // desktop 直传的绝对路径引用。
     let local = json!({"ref": "/tmp/a.jpg", "fileName": "a.jpg", "mime": "image/jpeg; charset=binary", "bytes": 12});
-    let (source, media) = attachment_source(&local).unwrap();
-    assert_eq!(media, "image/jpeg");
-    assert!(matches!(source, AttachmentSource::Path { .. }));
-    // PDF 也受理（走 document 块）；mime 参数被剥掉。
-    let pdf = json!({"ref": "nibi-artifact://sess_a/tool-result-2", "fileName": "a.pdf", "mime": "application/pdf", "bytes": 12});
-    let (source, media) = attachment_source(&pdf).unwrap();
-    assert_eq!(media, "application/pdf");
-    assert!(matches!(source, AttachmentSource::Artifact { .. }));
-    // 其余类型：不给来源（调用方按 attachmentUnsupported 拒绝）。
+    assert!(matches!(
+        attachment_source(&local),
+        Some(AttachmentSource::Path { .. })
+    ));
+    // 类型不在这一层过滤：视频、文本、二进制也要拿到来源（`attachment_blocks` 决定读不读内容）。
     for mime in ["video/mp4", "text/plain", "application/octet-stream", ""] {
         let reference = json!({"ref": "/tmp/a", "fileName": "a", "mime": mime, "bytes": 1});
-        assert!(attachment_source(&reference).is_none(), "{mime}");
+        assert!(
+            matches!(attachment_source(&reference), Some(AttachmentSource::Path { .. })),
+            "{mime}"
+        );
     }
+    // 没有 ref：读不到内容。
+    assert!(attachment_source(&json!({"fileName": "a", "mime": "image/png"})).is_none());
+    assert!(attachment_source(&json!({"ref": "", "mime": "image/png"})).is_none());
+}
+
+/// 模型看不到内容的附件留一行说明（Node 的 `[Attached <mime>: <label>]`）。
+#[test]
+fn attachment_notes_name_the_type_and_the_file() {
+    assert_eq!(
+        attachment_note("video/mp4", "demo.mp4"),
+        ContentBlock::Text {
+            text: "[Attached video/mp4: demo.mp4]".to_owned()
+        }
+    );
 }
 
 #[test]

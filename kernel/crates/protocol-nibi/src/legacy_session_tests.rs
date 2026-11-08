@@ -634,11 +634,40 @@ async fn send_prompt_turns_inline_attachments_into_content_blocks() {
     assert!(matches!(&content[1], ContentBlock::Text { text } if text == "这张图里是什么"));
 }
 
-/// 内核没有内容块可承载的附件类型（视频、任意文件）fail-closed 拒绝，不静默丢内容。
+/// `text/*` 附件读成文本块（≤64 KiB），不是一行说明。
 #[tokio::test]
-async fn send_prompt_refuses_unsupported_attachment_kinds() {
+async fn send_prompt_inlines_text_attachments() {
     let (server, sent, _created, _policies, _parents) = fake("sess_1");
-    let error = match Handler(server)
+    Handler(server)
+        .request(
+            "session/send",
+            json!({
+                "sessionId": "sess_1",
+                "content": "总结这个日志",
+                "attachments": [{
+                    "kind": "file",
+                    "filename": "notes.txt",
+                    "mimeType": "text/plain; charset=utf-8",
+                    "dataBase64": "aGVsbG8K",
+                }],
+            }),
+        )
+        .await
+        .unwrap();
+    let commands = sent.lock().unwrap();
+    let Command::SubmitContent { content, .. } = &commands[0].command else {
+        panic!("expected SubmitContent, got {:?}", commands[0].command);
+    };
+    assert!(matches!(&content[0], ContentBlock::Text { text } if text == "hello\n"));
+    assert!(matches!(&content[1], ContentBlock::Text { text } if text == "总结这个日志"));
+}
+
+/// 内核没有内容块可承载的附件类型（视频、任意文件）降级成一行说明，不让整次发送失败
+/// （Node `filePartToContentBlock` 的 `[Attached …]` 兜底）。
+#[tokio::test]
+async fn send_prompt_degrades_unsupported_attachment_kinds() {
+    let (server, sent, _created, _policies, _parents) = fake("sess_1");
+    Handler(server)
         .request(
             "session/send",
             json!({
@@ -653,12 +682,16 @@ async fn send_prompt_refuses_unsupported_attachment_kinds() {
             }),
         )
         .await
-    {
-        Ok(_) => panic!("expected the video attachment to be refused"),
-        Err(error) => error,
+        .unwrap();
+    let commands = sent.lock().unwrap();
+    let Command::SubmitContent { content, .. } = &commands[0].command else {
+        panic!("expected SubmitContent, got {:?}", commands[0].command);
     };
-    assert_eq!(error.code, -32602);
-    assert!(sent.lock().unwrap().is_empty());
+    assert!(matches!(
+        &content[0],
+        ContentBlock::Text { text } if text == "[Attached video/mp4: clip.mp4]"
+    ));
+    assert!(matches!(&content[1], ContentBlock::Text { text } if text == "看看这个"));
 }
 
 #[tokio::test]

@@ -76,14 +76,32 @@ jobs:
         working-directory: kernel
         run: cargo test -p nibi-platform --locked
 
-  # 只在本机 macOS 上编译到的分支（`cfg(unix, not(target_os = "linux"))`）不会出现在
-  # ubuntu 的 checks 里：proc 的 macOS 采样器就曾在这里漏过（本地 Windows 与 ubuntu 都不编译它）。
+  # 只在本机 macOS 上编译到的分支（`cfg(unix, not(target_os = "linux"))` 与
+  # `cfg(target_os = "macos")`）不会出现在 ubuntu 的 checks 里：proc 的 macOS 采样器就曾在这里
+  # 漏过（本地 Windows 与 ubuntu 都不编译它），`cli` 的 `scutil --proxy` 系统代理同理。
   #
   # 这一步必须跑在真 macOS 上，不能在 ubuntu 上 `--target aarch64-apple-darwin` 交叉检查：
   # `nibi-kernel-ext` 为了付费插件验签依赖 `nibi-platform`，而 `nibi-platform` 带 `ring`
   # （C 代码）。交叉编译 ring 需要 Apple SDK，ubuntu 的 gcc 不认 `-arch arm64` /
   # `-mmacosx-version-min`，于是这条门禁在 ext 新增该依赖后一直是红的（不是代码回归）。
   # 公开仓的 macOS runner 不额外计费，直接原生编译最稳。
+  macos-only:
+    name: rust-macos-only
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: "1.95.0"
+          targets: aarch64-apple-darwin
+      - name: macOS-only code compiles
+        working-directory: kernel
+        run: |
+          cargo check --locked \
+            -p nibi-kernel-proc -p nibi-kernel-fs -p nibi-kernel-policy \
+            -p nibi-kernel-session -p nibi-kernel-ext -p nibi-kernel-cli \
+            --target aarch64-apple-darwin
   macos-only:
     name: rust-macos-only
     runs-on: macos-latest

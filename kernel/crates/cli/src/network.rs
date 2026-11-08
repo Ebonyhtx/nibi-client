@@ -50,8 +50,8 @@ pub(crate) struct Network {
 
 /// 按环境快照算出口策略。`cwd` 是 CA 文件相对路径的基准（与 Node 的 `readFileSync` 相同，相对进程 cwd）。
 pub(crate) async fn network(env: &EnvSnapshot, cwd: &Path) -> Result<Network> {
-    // 出口顺序：显式变量 > Windows 系统代理 > 直连。只设了系统代理（Clash 这类）时，
-    // 直连模型接口与会员接口会被重置（os error 10054）。
+    // 出口顺序：显式变量 > 系统代理（Windows 的 Internet 选项 / macOS 的 scutil）> 直连。只设了
+    // 系统代理（Clash 这类）时，直连模型接口与会员接口会被重置（os error 10054）。
     let explicit = proxy(env)?;
     let system = if explicit.is_none() {
         crate::system_proxy::system_proxy()
@@ -60,11 +60,10 @@ pub(crate) async fn network(env: &EnvSnapshot, cwd: &Path) -> Result<Network> {
     };
     let proxy = explicit.or_else(|| system.as_ref().map(|found| found.url.clone()));
     let no_proxy = match &system {
-        // 用了系统代理而环境里没写 no_proxy：用 Windows 的忽略列表；没有列表时至少放过本机。
+        // 用了系统代理而环境里没写 no_proxy：用系统的忽略列表；没有列表时至少放过本机。
         Some(found) if no_proxy(env) == NoProxy::None => found
-            .overrides
-            .as_deref()
-            .and_then(crate::system_proxy::no_proxy_from_override)
+            .no_proxy
+            .clone()
             .map(NoProxy::Standard)
             .unwrap_or_else(|| NoProxy::Standard("localhost,127.0.0.1,::1".to_owned())),
         _ => no_proxy(env),

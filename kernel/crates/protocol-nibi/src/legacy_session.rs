@@ -591,8 +591,9 @@ async fn mutation_snapshot(
 /// 旧附件载荷（GUI `ZCodePromptAttachment`）→ 内容块。
 ///
 /// 与 v4 的 `AttachmentRef` 不是同一种形状：这里读 `kind` / `mimeType` / `localPath` /
-/// `dataBase64`。图片与 PDF 走同一条路（图片 `Image`、PDF `Document`）；其他类型（视频、
-/// 任意文件）内核没有对应内容块，fail-closed 报错而不是静默丢掉内容。
+/// `dataBase64`。分法与 Node 的 `filePartToContentBlock` 一致：图片 `Image`、PDF `Document`、
+/// `text/*` 读成文本块（≤64 KiB），其余（视频、任意文件）留一行 `[Attached …]` 说明——
+/// 没有一种类型会让整次发送失败。
 async fn attachment_blocks(
     server: &Server,
     session: &SessionId,
@@ -606,18 +607,67 @@ async fn attachment_blocks(
         let mime = attachment["mimeType"].as_str().unwrap_or_default();
         let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
         let kind = attachment["kind"].as_str().unwrap_or_default();
+        let label = attachment["filename"]
+            .as_str()
+            .filter(|name| !name.is_empty())
+            .unwrap_or(mime);
         let is_pdf = kind == "pdf" || media == "application/pdf";
         let is_image = kind == "image" || media.starts_with("image/");
-        if !is_pdf && !is_image {
-            return Err(RpcError::invalid_params(format!(
-                "attachments of kind {kind:?} are not supported yet; only images and PDFs are"
-            )));
+        let is_text = !is_pdf && !is_image && media.starts_with("text/");
+        if !is_pdf && !is_image && !is_text {
+            // 视频与任意文件：内核没有对应内容块，与 Node 一样留一行说明。
+            blocks.push(crate::commands::attachment_note(mime, label));
+            continue;
         }
-        // 路径由会话所在机器读（与 v4 附件同一条读取链）；内联 base64 直接落成块，不落盘。
-        let (media_type, data) = match attachment["localPath"]
+        let local_path = attachment["localPath"]
             .as_str()
-            .filter(|path| !path.is_empty())
-        {
+            .filter(|path| !path.is_empty());
+        let inline_base64 = attachment["dataBase64"]
+            .as_str()
+            .filter(|data| !data.is_empty());
+        if is_text {
+            let bytes = match (local_path, inline_base64) {
+                // 路径由会话所在机器读（与图片同一条读取链）。
+                (Some(path), _) => {
+                    server
+                        .kernel
+                        .load_attachment(
+                            session,
+                            &view.meta.workspace,
+                            nibi_kernel_api::attachment::AttachmentSource::Path {
+                                path: path.to_owned(),
+                            },
+                        )
+                        .await
+                        .map_err(|error| kernel_error(&error))?
+                        .bytes
+                }
+                (None, Some(data)) => {
+                    let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(data) else {
+                        blocks.push(crate::commands::attachment_note(mime, label));
+                        continue;
+                    };
+                    bytes
+                }
+                (None, None) => {
+                    // Node 对既没有 localPath 也没有 dataBase64 的附件直接跳过；这里报错，是因为
+                    // 静默丢掉用户贴的内容比一次明确的拒绝更糟。
+                    return Err(RpcError::invalid_params(
+                        "an attachment without localPath or dataBase64 cannot be read",
+                    ));
+                }
+            };
+            if bytes.len() <= crate::commands::TEXT_ATTACHMENT_MAX_BYTES {
+                blocks.push(ContentBlock::Text {
+                    text: String::from_utf8_lossy(&bytes).into_owned(),
+                });
+            } else {
+                blocks.push(crate::commands::attachment_note(mime, label));
+            }
+            continue;
+        }
+        // 内联 base64 直接落成块，不落盘。
+        let (media_type, data) = match local_path {
             Some(path) => {
                 let loaded = server
                     .kernel
@@ -649,10 +699,7 @@ async fn attachment_blocks(
                 )
             }
             None => {
-                let Some(data) = attachment["dataBase64"]
-                    .as_str()
-                    .filter(|data| !data.is_empty())
-                else {
+                let Some(data) = inline_base64 else {
                     // Node 对既没有 localPath 也没有 dataBase64 的附件直接跳过；这里报错，是因为
                     // 静默丢掉用户贴的内容比一次明确的拒绝更糟。
                     return Err(RpcError::invalid_params(
