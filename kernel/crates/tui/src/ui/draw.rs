@@ -18,9 +18,6 @@ use super::mouse::{self, Target};
 use super::transcript::{self, Cache};
 
 /// 带底色的行补到整行宽度（底色铺满整行）。
-/// 右侧小鸟栏的宽度（字符列）：128 像素约 14 列，两侧各留一点。
-const PET_PANE: u16 = 18;
-
 pub(super) fn fill_rows(lines: &mut [Line<'static>], width: usize) {
     for line in lines {
         if line.style.bg.is_some() {
@@ -55,13 +52,12 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         app.selection = None;
     }
     app.composer_width = composer_width;
-    // 右侧常驻的小鸟栏：终端支持 Sixel、窗口够宽、没有全屏浮层时，正文让出 PET_PANE 列。
-    let pane = usize::from(PET_PANE);
-    let pet_pane = app.logo.pixels()
-        && width >= pane + 72
-        && app.overlay.is_none()
-        && app.viewing.is_none();
-    let text_width = width - if pet_pane { pane } else { 0 };
+    // 顶部固定栏：终端支持像素图时，把身份那两行所在的区域加高，小鸟站在栏的右端。
+    // 正文从栏下面开始，滚动永远不经过这里——栏是静止的。
+    let masthead = usize::from(crate::ui::logo::masthead_rows(
+        app.logo.pixels() && app.overlay.is_none() && app.viewing.is_none(),
+    ));
+    let text_width = width;
     // transcript 先排：搜索模式（修复线 F114，tui-input.md §2.3）要在画输入框之前定当前匹配与计数；当前匹配换了块时
     // 那一块要按展开的样子再排一次（其余的块都是缓存）。
     let mut layout = transcript_layout(app, cache, text_width, now, now_ms);
@@ -130,7 +126,12 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         area.width,
         u16::from(bottom_area.y > area.y),
     );
-    let transcript_area = Rect::new(area.x, area.y, text_width as u16, gap.y - area.y);
+    let transcript_area = Rect::new(
+        area.x,
+        area.y + masthead as u16,
+        area.width,
+        gap.y.saturating_sub(area.y + masthead as u16),
+    );
     let total = layout.len();
     let height = transcript_area.height as usize;
     app.viewport = height;
@@ -200,28 +201,40 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
     fill_rows(&mut visible, text_width);
     let shown = visible.len() as u16;
     frame.render_widget(Paragraph::new(visible), transcript_area);
-    // 小鸟栏：左侧一条竖线把正文和它分开，鸟站在栏底。
-    if pet_pane {
-        let column = area.x + text_width as u16;
-        for y in transcript_area.top()..transcript_area.bottom() {
-            let cell = &mut frame.buffer_mut()[(column, y)];
-            cell.set_char('│');
-            let Style { fg, .. } = app.palette.dim();
-            cell.set_fg(fg.unwrap_or_default());
-        }
-        let pane = Rect::new(
-            column + 1,
-            transcript_area.y,
-            PET_PANE - 1,
-            transcript_area.height,
+    // 顶部固定栏：身份两行在左，小鸟在右。栏不随正文滚动，也不参与正文重画。
+    if masthead > 0 {
+        let band = Rect::new(area.x, area.y, area.width, masthead as u16);
+        let model = app.model_label().unwrap_or_default();
+        let workspace = app.shown().workspace().root.as_str();
+        let label = crate::ui::app::label(workspace, app.home.as_deref());
+        // 身份行给小鸟让出右边那几列，目录太长时按这个宽度省略。
+        let header_width = width.saturating_sub(usize::from(crate::ui::logo::PIXEL_COLS) + 2);
+        let ctx = Ctx {
+            palette: &app.palette,
+            lang: app.lang,
+            strings: app.strings,
+            width: header_width,
+            expanded: false,
+            elapsed: now.duration_since(app.started),
+            now_ms,
+            workspace,
+            workspace_label: &label,
+            version: &app.version,
+            mcp_machines: &app.mcp_machines,
+            machines: &app.machines,
+            markdown: None,
+        };
+        frame.render_widget(
+            Paragraph::new(super::cells::header(app.view.mode(), &model, &ctx)),
+            band,
         );
-        app.logo.draw(frame.buffer_mut(), pane, &app.palette, now);
+        app.logo.draw(frame.buffer_mut(), band, &app.palette, now);
         if let Some(stage) = app.logo.stage {
             app.hits.regions.push((stage, Target::Logo));
         }
     }
-    // 没有小鸟栏时（不支持 Sixel 的终端）：仍按老样子画在空白区的右下角。
-    if !pet_pane && app.overlay.is_none() && app.viewing.is_none() {
+    // 没有固定栏时（不支持 Sixel 的终端）：仍按老样子画在空白区的角落。
+    if masthead == 0 && app.overlay.is_none() && app.viewing.is_none() {
         let free = Rect::new(
             transcript_area.x,
             transcript_area.y + shown + 1,
@@ -232,7 +245,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         if let Some(stage) = app.logo.stage {
             app.hits.regions.push((stage, Target::Logo));
         }
-    } else if !pet_pane {
+    } else if masthead == 0 {
         app.logo.hide();
     }
     mouse::draw_copied(frame, app, gap);

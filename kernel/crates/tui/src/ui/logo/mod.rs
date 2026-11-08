@@ -23,8 +23,13 @@ const MARGIN: u16 = 1;
 /// 像素图（Sixel）的整数放大倍数：64×64 放 2 倍是 128×128 像素，约 15 列 × 8 行。
 const SCALE: u16 = 2;
 /// 像素图占的字符格：按常见 9×18 像素一格估算，并多留一列一行防止字宽不同时压到正文。
-const PIXEL_COLS: u16 = 16;
-const PIXEL_ROWS: u16 = 9;
+pub(crate) const PIXEL_COLS: u16 = 16;
+pub(crate) const PIXEL_ROWS: u16 = 9;
+
+/// 顶部固定栏的高度（字符行）：支持像素图时把身份那两行所在的区域加高到能放下小鸟，否则不加高。
+pub fn masthead_rows(pixels: bool) -> u16 {
+    if pixels { PIXEL_ROWS } else { 0 }
+}
 /// 查不到终端背景色时按这个深色背景填（与 `Palette` 的缺省一致）。
 const DARK: Rgb = (0x1e, 0x1e, 0x21);
 

@@ -161,6 +161,8 @@ pub fn lines(app: &App, cache: &mut Cache, ctx: &Ctx<'_>) -> Layout {
     // 只读查看子代理：顶部是 `↳ 类型 · 描述`，行来自子会话的视图，没有本地 cell（tui-panels.md §1.4）。
     if let Some(header) = app.viewing_header() {
         out.push(HEADER_KEY, Rendered::new(header));
+    } else if app.logo.pixels() {
+        // 身份那两行画在顶部的固定栏里（tui.md §7.3）：正文里不再重复一遍。
     } else {
         let model = app.model_label().unwrap_or_default();
         out.push(

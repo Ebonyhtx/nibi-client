@@ -3,10 +3,9 @@
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
-use nibi_kernel_api::testing::text_response;
 use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
-use super::support::{GatedModel, Setup, with_ui};
+use super::support::{GatedModel, Setup, text_of, with_ui};
 
 /// 半格字符（徽章的像素）所在的格子：（列，行）。
 fn braille(buffer: &Buffer) -> Vec<(u16, u16)> {
@@ -96,9 +95,10 @@ fn ui_braille(buffer: &std::sync::Mutex<Option<Buffer>>) -> Vec<(u16, u16)> {
         .unwrap_or_default()
 }
 
-/// 支持像素图时，右侧留一栏给小鸟：正文让出 18 列，栏左侧一条竖线，鸟通过 Sixel 贴在栏底。
+/// 支持像素图时，顶部那两行身份所在的位置加高成固定栏：身份在左，鸟在栏的右端；正文从栏下面开始，
+/// 身份行不会在正文里重复。
 #[tokio::test(flavor = "multi_thread")]
-async fn the_pet_gets_its_own_column_on_the_right() {
+async fn the_pet_lives_in_the_top_masthead() {
     let model = GatedModel::scripted(Vec::new());
     let setup = Setup {
         pixels: true,
@@ -108,44 +108,32 @@ async fn the_pet_gets_its_own_column_on_the_right() {
         let images = ui.images.clone();
         ui.wait("the pet image", |_| !images.lock().unwrap().is_empty())
             .await;
-        // 100 列、栏宽 18：竖线在 x = 82。
         {
             let guard = ui.buffer.lock().unwrap();
             let buffer = guard.as_ref().unwrap();
-            let rule_rows: Vec<u16> = (0..buffer.area.height)
-                .filter(|y| buffer[(82, *y)].symbol() == "│")
-                .collect();
-            assert!(rule_rows.len() > 10, "a vertical rule separates the column");
-            // 竖线右边、正文区域那几行里不写字（图片由终端贴上去）；输入框与状态行在下面，不受影响。
-            for y in &rule_rows {
-                for x in 83..buffer.area.width {
-                    assert!(
-                        buffer[(x, *y)].symbol().trim().is_empty(),
-                        "({x}, {y}) should stay blank for the image"
-                    );
+            // 身份行在顶部、只有一份。
+            let text = text_of(buffer);
+            assert_eq!(text.matches("NIBI v0.1.0").count(), 1, "{text}");
+            // 鸟在栏的右端、贴着顶部。
+            let image = images.lock().unwrap().last().cloned().unwrap();
+            assert!(image.at.0 > buffer.area.width - 20, "{:?}", image.at);
+            assert!(image.at.1 < 3, "{:?}", image.at);
+            // 栏里不写字（图片由终端贴上去）。
+            for x in (usize::from(image.at.0))..usize::from(buffer.area.width) {
+                for y in 0..usize::from(image.at.1) + 1 {
+                    let symbol = buffer[(u16::try_from(x).unwrap(), u16::try_from(y).unwrap())]
+                        .symbol()
+                        .to_owned();
+                    assert!(symbol.trim().is_empty(), "({x}, {y}) holds {symbol:?}");
                 }
             }
         }
-        // 图片贴在竖线右边、栏顶。
-        let guard = images.lock().unwrap();
-        let image = guard.last().unwrap();
-        assert!(image.at.0 >= 82, "{:?}", image.at);
-        assert!(image.at.1 < 6, "{:?}", image.at);
-        match &image.payload {
-            nibi_kernel_tui::ui::logo::Payload::Sixel(bytes) => {
-                assert!(bytes.contains("\"1;1;128;128"), "2× the 64×64 frame");
-            }
-            other => panic!("expected a sixel image, got {other:?}"),
-        }
-        drop(guard);
-        // 动画按帧边界重发（约 2–4 帧/秒），界面不按统一的 30fps 节拍一直刷。
+        // 动画按帧边界重发，界面不按统一的 30fps 节拍一直刷。
         let before = images.lock().unwrap().len();
         let frames = draws(&ui.handovers);
         tokio::time::sleep(Duration::from_millis(1200)).await;
-        let resent = images.lock().unwrap().len() - before;
-        assert!(resent >= 1, "the animation advances: {resent}");
-        let redraws = draws(&ui.handovers) - frames;
-        assert!(redraws < 20, "not per-frame at 30fps: {redraws}");
+        assert!(images.lock().unwrap().len() > before, "the animation advances");
+        assert!(draws(&ui.handovers) - frames < 20, "not per-frame at 30fps");
     })
     .await;
 }
