@@ -9,6 +9,7 @@ use nibi_kernel_api::provider::{CatalogModel, ModelCatalog, ModelDirectory, Wire
 use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 /// 两个有档位的模型（Node 的执行模型都有档位）。
 struct LeveledDirectory;
@@ -97,7 +98,7 @@ async fn the_picked_model_becomes_the_default_after_the_session_accepts_it() {
         |mut ui| async move {
             ui.submit("hello");
             ui.wait("the first reply", |s| {
-                s.contains("\u{23fa} hi") && !s.contains("esc to interrupt")
+                s.contains(&format!("{BULLET} hi")) && !s.contains("esc to interrupt")
             })
             .await;
             // meta+p 打开同一个列表（tui-input.md §5）。
@@ -112,7 +113,7 @@ async fn the_picked_model_becomes_the_default_after_the_session_accepts_it() {
             .await;
             ui.submit("again please");
             ui.wait("the second turn", |s| {
-                s.contains("\u{23fa} again") && !s.contains("esc to interrupt")
+                s.contains(&format!("{BULLET} again")) && !s.contains("esc to interrupt")
             })
             .await;
         },
@@ -161,7 +162,7 @@ async fn a_failed_write_warns_and_keeps_the_switch() {
             assert!(screen.contains("Set model to other-model"), "{screen}");
             ui.submit("go");
             ui.wait("the turn", |s| {
-                s.contains("\u{23fa} done") && !s.contains("esc to interrupt")
+                s.contains(&format!("{BULLET} done")) && !s.contains("esc to interrupt")
             })
             .await;
         },

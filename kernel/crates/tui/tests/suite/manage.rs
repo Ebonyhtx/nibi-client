@@ -6,6 +6,7 @@ use crossterm::event::KeyCode;
 use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 fn idle(screen: &str, text: &str) -> bool {
     screen.contains(text) && !screen.contains("esc to interrupt")
@@ -207,7 +208,7 @@ async fn effort_without_arguments_opens_a_picker() {
         ui.wait_for("Set effort level to low (this session only)")
             .await;
         ui.submit("say ok");
-        ui.wait("the reply", |s| idle(s, "⏺ ok")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} ok"))).await;
     })
     .await;
     let requests = model.requests();
@@ -244,9 +245,9 @@ async fn copy_n_usage_and_exit_words() {
     let model = GatedModel::scripted(vec![text_response(&["first"]), text_response(&["second"])]);
     let session = with_ui(model.clone(), Setup::default(), |mut ui| async move {
         ui.submit("one");
-        ui.wait("the first reply", |s| idle(s, "⏺ first")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} first"))).await;
         ui.submit("two");
-        ui.wait("the second reply", |s| idle(s, "⏺ second")).await;
+        ui.wait("the second reply", |s| idle(s, &format!("{BULLET} second"))).await;
         ui.submit("/copy 2");
         ui.wait_for("Copied").await;
         assert_eq!(
@@ -288,7 +289,7 @@ async fn clear_with_a_name_renames_the_old_session() {
     let facts_of = store.clone();
     with_ui(model, setup, |mut ui| async move {
         ui.submit("hi there");
-        ui.wait("the reply", |s| idle(s, "⏺ hello")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} hello"))).await;
         ui.submit("/status");
         let page = ui.wait_for("Session").await;
         *seen.lock().unwrap() = page.lines().find_map(|line| {
@@ -337,9 +338,9 @@ async fn plan_with_a_description_enters_plan_mode_and_sends_it() {
     with_ui(model.clone(), Setup::default(), |mut ui| async move {
         // 有会话时：先切模式，回执到了再发输入。
         ui.submit("hi");
-        ui.wait("the first reply", |s| idle(s, "⏺ hello")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} hello"))).await;
         ui.submit("/plan write a parser");
-        let screen = ui.wait("the reply", |s| idle(s, "⏺ planning")).await;
+        let screen = ui.wait("the reply", |s| idle(s, &format!("{BULLET} planning"))).await;
         assert!(screen.contains("Plan mode"), "{screen}");
         // `/plan open` 见 plan_open.rs（要有能给出路径事实的执行环境）。
     })

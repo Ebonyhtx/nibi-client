@@ -7,6 +7,7 @@ use nibi_kernel_api::model::ModelRequest;
 use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 const CAVEAT: &str = "<local-command-caveat>The command below was run directly in NIBI";
 
@@ -92,7 +93,7 @@ async fn local_commands_are_recorded_for_the_next_request() {
     let screen = with_ui(model.clone(), setup, |mut ui| async move {
         ui.wait_for("Ask before changes").await;
         ui.submit("hello");
-        ui.wait("the first reply", |s| idle(s, "⏺ first")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} first"))).await;
         ui.submit("/effort high");
         ui.wait_for("Set effort level to high (this session only)")
             .await;
@@ -103,7 +104,7 @@ async fn local_commands_are_recorded_for_the_next_request() {
         ui.submit("/rename my-name");
         ui.wait_for("Session renamed to: my-name").await;
         ui.submit("next");
-        ui.wait("the second reply", |s| idle(s, "⏺ second")).await;
+        ui.wait("the second reply", |s| idle(s, &format!("{BULLET} second"))).await;
     })
     .await
     .unwrap_or_default();
@@ -153,12 +154,12 @@ async fn records_before_the_session_go_first_and_clear_starts_over() {
         ui.submit("/cd");
         ui.wait_for("Usage: /cd <path>").await;
         ui.submit("hello");
-        ui.wait("the first reply", |s| idle(s, "⏺ first")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} first"))).await;
         ui.submit("/clear");
-        ui.wait("the conversation to clear", |s| !s.contains("⏺ first"))
+        ui.wait("the conversation to clear", |s| !s.contains(&format!("{BULLET} first")))
             .await;
         ui.submit("again");
-        ui.wait("the second reply", |s| idle(s, "⏺ second")).await;
+        ui.wait("the second reply", |s| idle(s, &format!("{BULLET} second"))).await;
     })
     .await;
     let requests = model.requests();
@@ -212,7 +213,7 @@ async fn a_model_command_keeps_its_record_when_a_later_command_finishes_first() 
     with_ui(model.clone(), setup, |mut ui| async move {
         ui.wait_for("Ask before changes").await;
         ui.submit("hello");
-        ui.wait("the first reply", |s| idle(s, "⏺ first")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} first"))).await;
         // `/model` 等目录；`/effort` 先完成。
         ui.submit("/model other-model");
         ui.submit("/effort high");
@@ -221,7 +222,7 @@ async fn a_model_command_keeps_its_record_when_a_later_command_finishes_first() 
         gate.notify_one();
         ui.wait_for("Set model to other-model").await;
         ui.submit("next");
-        ui.wait("the second reply", |s| idle(s, "⏺ second")).await;
+        ui.wait("the second reply", |s| idle(s, &format!("{BULLET} second"))).await;
     })
     .await;
     let requests = model.requests();

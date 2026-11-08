@@ -9,6 +9,11 @@ use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 use serde_json::{Value, json};
 
 use super::support::{GatedModel, Setup, Ui, request_text, with_ui};
+use nibi_kernel_tui::ui::tokens::{ACCENT_DARK, ACCENT_LIGHT};
+
+/// NIBI 品牌强调色（`tokens` 是唯一来源；深浅两种背景各一种）。
+const ACCENT_DARK_COLOR: Color = Color::Rgb(ACCENT_DARK.0, ACCENT_DARK.1, ACCENT_DARK.2);
+const ACCENT_LIGHT_COLOR: Color = Color::Rgb(ACCENT_LIGHT.0, ACCENT_LIGHT.1, ACCENT_LIGHT.2);
 
 type Rgb = (u8, u8, u8);
 
@@ -24,13 +29,13 @@ const THEMES: [Theme; 2] = [
     Theme {
         background: (0, 0, 0),
         foreground: (255, 255, 255),
-        accent: Color::Rgb(99, 168, 248),
+        accent: ACCENT_DARK_COLOR,
         success: Color::Rgb(78, 186, 101),
     },
     Theme {
         background: (255, 255, 255),
         foreground: (0, 0, 0),
-        accent: Color::Rgb(28, 100, 200),
+        accent: ACCENT_LIGHT_COLOR,
         success: Color::Rgb(44, 122, 57),
     },
 ];

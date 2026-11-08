@@ -514,11 +514,11 @@ async fn a_busy_incompatible_executor_says_how_to_upgrade() {
     for (lang, wanted) in [
         (
             "en_US.UTF-8",
-            "The executor on gpu-1 is zcode 0.1.40 (protocol 0) and is busy, so it can't be replaced now. Connect again once its work ends, or stop it on gpu-1 with `nibi-rs executor stop` (its background tasks end).",
+            "The executor on gpu-1 is NIBI 0.1.40 (protocol 0) and is busy, so it can't be replaced now. Connect again once its work ends, or stop it on gpu-1 with `nibi-rs executor stop` (its background tasks end).",
         ),
         (
             "zh_CN.UTF-8",
-            "gpu-1 上的执行器是 zcode 0.1.40（协议 0），正忙，现在不能换。等它的工作结束后再连，或者在 gpu-1 上运行 `nibi-rs executor stop` 停掉它（它上面的后台任务会结束）。",
+            "gpu-1 上的执行器是 NIBI 0.1.40（协议 0），正忙，现在不能换。等它的工作结束后再连，或者在 gpu-1 上运行 `nibi-rs executor stop` 停掉它（它上面的后台任务会结束）。",
         ),
     ] {
         with_ui(

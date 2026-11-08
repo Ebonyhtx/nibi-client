@@ -11,6 +11,7 @@ use nibi_kernel_api::provider::{
 use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 const PERSONAL: &str = "account:bigmodel-individual-coding-plan";
 const TEAM: &str = "account:bigmodel-team-coding-plan";
@@ -99,7 +100,7 @@ async fn pick_second_team(
     with_ui(model.clone(), setup, |mut ui| async move {
         ui.submit("hello");
         ui.wait("the first reply", |s| {
-            s.contains("⏺ hi") && !s.contains("esc to")
+            s.contains(&format!("{BULLET} hi")) && !s.contains("esc to")
         })
         .await;
         ui.submit("/model");
@@ -124,7 +125,7 @@ async fn pick_second_team(
         ui.wait("the list to close", |s| !s.contains(title)).await;
         ui.submit("again please");
         ui.wait("the second reply", |s| {
-            s.contains("⏺ again") && !s.contains("esc to")
+            s.contains(&format!("{BULLET} again")) && !s.contains("esc to")
         })
         .await;
     })

@@ -12,6 +12,7 @@ use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 use nibi_kernel_tui::{Clipboard, CopyRoute, ImageBytes};
 
 use super::support::{GatedModel, Setup, row_of, squash, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 /// 用户报告里那条 Bedrock 的 400（请求 ID 换成示例值）。
 const BEDROCK: &str = "InvokeModelWithResponseStream: operation error Bedrock Runtime: InvokeModelWithResponseStream, https response error StatusCode: 400, RequestID: 0f0e0d0c-1111-2222-3333-444455556666, ValidationException: system.1.cache_control.ephemeral.scope: Extra inputs are not permitted (request id: req_0123456789abcdef)";
@@ -112,7 +113,7 @@ async fn dragging_over_the_error_copies_the_whole_message() {
                     s.contains("invalid request") && !s.contains("esc to interrupt")
                 })
                 .await;
-            let first = row_of(&screen, "⏺ invalid request").expect("error row");
+            let first = row_of(&screen, &format!("{BULLET} invalid request")).expect("error row");
             let lines: Vec<&str> = screen.lines().collect();
             let mut last = first;
             while lines
@@ -215,9 +216,10 @@ async fn the_selection_uses_the_theme_background_and_chinese_notices() {
         ui.drag((col, row), (col + 4, row));
         ui.wait_for("已通过 OSC 52 发送 5 个字符").await;
         let buffer = ui.buffer.lock().unwrap().clone().unwrap();
-        // 浅色主题的选区底色，前景不变。
-        assert_eq!(buffer[(col, row)].bg, Color::Rgb(180, 213, 255));
-        assert_ne!(buffer[(col + 5, row)].bg, Color::Rgb(180, 213, 255));
+        // 浅色主题的选区底色（取自 `Palette::selection_bg`），前景不变。
+        let selection = Palette::new(ColorLevel::TrueColor, Some((255, 255, 255))).selection_bg;
+        assert_eq!(buffer[(col, row)].bg, selection);
+        assert_ne!(buffer[(col + 5, row)].bg, selection);
     })
     .await;
 }

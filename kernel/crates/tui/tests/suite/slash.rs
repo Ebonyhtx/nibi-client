@@ -4,15 +4,16 @@ use crossterm::event::KeyCode;
 use nibi_kernel_api::testing::text_response;
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 /// 画面里有回复行 `⏺ <text>`，且回合已结束（不再显示 “esc to interrupt”）。
 fn replied(screen: &str, text: &str) -> bool {
-    let line = format!("\u{23fa} {text}");
+    let line = format!("{BULLET} {text}");
     screen.lines().any(|row| row.trim() == line) && !screen.contains("esc to interrupt")
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn help_lists_the_commands_and_marks_the_missing_ones() {
+async fn help_lists_every_command_as_implemented() {
     let model = GatedModel::scripted(Vec::new());
     let setup = Setup {
         width: 140,
@@ -28,15 +29,13 @@ async fn help_lists_the_commands_and_marks_the_missing_ones() {
             page.contains("Rename the current conversation  /name"),
             "{page}"
         );
-        // L27 实现了 `/memory`、L29 实现了 `/diff` 等：剩下的 `/btw` 说明较长，往下滚并看末尾的标记（修复线 L-A 起
-        // `/init` 是内核给出的 skill 命令）。
+        // 命令表里的每一条都已实现（`/btw`、`/init` 等最后补齐）：页面上不该再有「未实现」标记。
         for _ in 0..12 {
             ui.key(KeyCode::Down);
-            if ui.screen().contains("(not implemented)") {
-                break;
-            }
         }
-        ui.wait_for("(not implemented)").await;
+        let page = ui.screen();
+        assert!(!page.contains("(not implemented)"), "{page}");
+        assert!(!page.contains("（未实现）"), "{page}");
         ui.key(KeyCode::Esc);
         ui.wait("the page to close", |s| !s.contains("Slash commands"))
             .await;

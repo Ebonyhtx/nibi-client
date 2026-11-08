@@ -1169,3 +1169,20 @@ run 还欠着决定」——落 Rust。
   `fault.command.attachmentUnreadable`——有意不学 Node 的静默降级，避免用户贴的截图无声消失。
 - 单测：`commands_tests` 的引用映射与占位文案、`legacy_session_tests` 的文本内联与视频降级；
   `protocol-nibi` 300 条全绿。
+
+### 9.3 Windows 上的 TUI/CLI 旧期望清零
+
+- `cargo test -p nibi-kernel-tui`：**438 单元 + 240 集成全绿**（集成原来是 195 过 / 46 失败）；
+  `cargo test -p nibi-kernel-cli --bins`：**336 全绿**（原来 324 过 / 16 失败）。
+- 原因一类是平台的写法，一类是品牌化后没跟上的旧期望：
+  - 块的前导圆点在 macOS 是 `⏺`、其它平台是 `●`（`cells::BULLET`）；测试改用这个常量，不再写死。
+  - 选中行底色取自 `Palette::selection()`、鼠标选区取自 `selection_bg`、强调色取自
+    `tokens::ACCENT_DARK` / `ACCENT_LIGHT`，不再写旧蓝。
+  - 登录只剩 NIBI Device Flow：删掉上游套餐与 API key 的旧用例，`/login <其它>` 只提示
+    `Usage: /login [nibi]`。
+  - 剪贴板替身补上 `text()`：没图片时先按文字粘贴，空文字才提示「No image found…」。
+  - `workspace_trust` 的 git 根用例是 POSIX 夹具 + 宿主 `Path`，Windows 上必然对不上：标
+    `#[cfg(unix)]`，另加一条原生 Windows 路径用例；`config::plugins` 的路径期望改用宿主
+    `Path` + `normalize`；update 的注册表用例改用当前包名（`@nibi/cli`、`@nibi-studio/cli-*`）。
+- **顺带修掉一个真 bug**：等待 NIBI 授权那页的帮助文字直接走了 `dim()`，`{Esc}` 原样显示在界面上
+  （`crates/tui/src/ui/login.rs`）；现在过 `key_hint` 渲染。

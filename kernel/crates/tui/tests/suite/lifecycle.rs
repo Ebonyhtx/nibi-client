@@ -4,6 +4,7 @@ use crossterm::event::KeyCode;
 use nibi_kernel_api::testing::{environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 /// esc 连按两次 → 选择器（Rewind）→ 选第一条 → `Restore conversation`：历史截掉，消息放回输入框。
 #[tokio::test(flavor = "multi_thread")]
@@ -61,7 +62,7 @@ async fn resume_right_after_clear_reopens_the_old_session() {
     with_ui(model, setup, |mut ui| async move {
         ui.submit("hello");
         ui.wait("the first reply", |s| {
-            s.contains("⏺ first") && !s.contains("esc to interrupt")
+            s.contains(&format!("{BULLET} first")) && !s.contains("esc to interrupt")
         })
         .await;
         ui.submit("/clear");
@@ -81,7 +82,7 @@ async fn resume_right_after_clear_reopens_the_old_session() {
         env.release();
         let screen = ui
             .wait("the old session to reopen", |s| {
-                s.contains("⏺ first") || s.contains("the session is closed")
+                s.contains(&format!("{BULLET} first")) || s.contains("the session is closed")
             })
             .await;
         assert!(!screen.contains("the session is closed"), "{screen}");

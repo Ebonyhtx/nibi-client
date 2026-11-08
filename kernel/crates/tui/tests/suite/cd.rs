@@ -8,6 +8,7 @@ use nibi_kernel_api::machine::Files;
 use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 fn env() -> Arc<MemoryEnvironment> {
     Arc::new(
@@ -43,7 +44,7 @@ async fn the_session_moves_and_the_next_request_knows() {
         ui.submit("/cd");
         ui.wait_for("Usage: /cd <path>").await;
         ui.submit("hello");
-        ui.wait("the first reply", |s| idle(s, "⏺ first")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} first"))).await;
         ui.submit("/cd ../missing");
         ui.wait_for("Couldn't find a directory at /Users/dev/missing.")
             .await;
@@ -55,7 +56,7 @@ async fn the_session_moves_and_the_next_request_knows() {
         ui.submit("/cd ../other");
         ui.wait_for("Moved to ~/other").await;
         ui.submit("next");
-        ui.wait("the second reply", |s| idle(s, "⏺ second")).await;
+        ui.wait("the second reply", |s| idle(s, &format!("{BULLET} second"))).await;
         ui.submit("/export chat");
         ui.wait_for("Conversation exported to: /Users/dev/other/chat.txt")
             .await;
@@ -87,7 +88,7 @@ async fn the_session_moves_and_the_next_request_knows() {
     assert!(
         String::from_utf8(exported.bytes)
             .unwrap()
-            .contains("⏺ second")
+            .contains(&format!("{BULLET} second"))
     );
 }
 
@@ -107,7 +108,7 @@ async fn the_reopened_session_brings_its_own_workspace() {
     };
     with_ui(model, setup, |mut ui| async move {
         ui.submit("hello");
-        ui.wait("the first reply", |s| idle(s, "⏺ first")).await;
+        ui.wait("the first reply", |s| idle(s, &format!("{BULLET} first"))).await;
         ui.submit("/cd ../other");
         ui.wait_for("Moved to ~/other").await;
         // 切回同一个会话：`/clear` 关闭它（离开内核），`/resume` 页（修复线 F29）的 Filter 换到 All 才看得到它（当前
@@ -122,7 +123,7 @@ async fn the_reopened_session_brings_its_own_workspace() {
         ui.wait_for("Working directory · resume").await;
         ui.key(KeyCode::Enter);
         ui.wait("the session to reopen", |s| {
-            s.contains("⏺ first") && !s.contains("Working directory")
+            s.contains(&format!("{BULLET} first")) && !s.contains("Working directory")
         })
         .await;
         ui.submit("/export chat");

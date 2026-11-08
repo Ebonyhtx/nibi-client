@@ -17,6 +17,7 @@ use nibi_kernel_api::testing::{MemoryStore, text_response};
 use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, Ui, row_of, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 const TITLE: &str = "⚠ Enable full access?";
 
@@ -63,10 +64,10 @@ async fn shift_tab_asks_before_entering_full_access() {
     let model = GatedModel::scripted(vec![text_response(&["hello"])]);
     let session = with_ui(model, setup, |mut ui| async move {
         ui.submit("hi");
-        ui.wait("the reply", |s| idle(s, "⏺ hello")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} hello"))).await;
         let screen = open_by_shift_tab(&mut ui, "⏵⏵ Autonomous mode", TITLE).await;
         // 局部的框：上面的对话照常显示，输入框与 footer 让位；焦点在取消，确认没勾选时 dim。
-        assert!(screen.contains("⏺ hello"), "{screen}");
+        assert!(screen.contains(&format!("{BULLET} hello")), "{screen}");
         assert!(!screen.contains("⏵⏵"), "{screen}");
         assert!(
             screen.contains("    [ ] I understand the risks"),
@@ -304,7 +305,7 @@ async fn starting_or_resuming_in_full_access_does_not_ask() {
         let screen = ui.wait_for("⏵⏵ Full access").await;
         assert!(!screen.contains(TITLE), "{screen}");
         ui.submit("hi");
-        let screen = ui.wait("the reply", |s| idle(s, "⏺ hello")).await;
+        let screen = ui.wait("the reply", |s| idle(s, &format!("{BULLET} hello"))).await;
         assert!(!screen.contains(TITLE), "{screen}");
     })
     .await
@@ -319,7 +320,7 @@ async fn starting_or_resuming_in_full_access_does_not_ask() {
         GatedModel::scripted(Vec::new()),
         setup,
         |mut ui| async move {
-            let screen = ui.wait("the resumed session", |s| idle(s, "⏺ hello")).await;
+            let screen = ui.wait("the resumed session", |s| idle(s, &format!("{BULLET} hello"))).await;
             assert!(screen.contains("⏵⏵ Full access"), "{screen}");
             assert!(!screen.contains(TITLE), "{screen}");
         },
@@ -338,7 +339,7 @@ async fn starting_or_resuming_in_full_access_does_not_ask() {
             ui.submit(&format!("/resume {session}"));
             let screen = ui
                 .wait("the resumed session", |s| {
-                    idle(s, "⏺ hello") && s.contains("⏵⏵ Full access")
+                    idle(s, &format!("{BULLET} hello")) && s.contains("⏵⏵ Full access")
                 })
                 .await;
             assert!(!screen.contains(TITLE), "{screen}");

@@ -8,6 +8,7 @@ use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 use nibi_kernel_tui::{Editor, Services};
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 /// 记下打开的文件。
 #[derive(Default)]
@@ -65,7 +66,7 @@ async fn plan_open_switches_to_plan_and_opens_the_plan_file() {
         ui.wait_for("Enabled plan mode").await;
         ui.wait_for("Plan mode").await;
         ui.submit("hello");
-        ui.wait("the reply", |s| idle(s, "⏺ ok")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} ok"))).await;
         // 已经在 plan，还没有计划。
         ui.submit("/plan open");
         ui.wait_for("Already in plan mode. No plan written yet.")

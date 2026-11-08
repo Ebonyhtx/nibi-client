@@ -4,6 +4,7 @@ use crossterm::event::KeyCode;
 use ratatui::style::Color;
 use nibi_kernel_api::metering::{ActivityDay, ActivityRange, ActivityStats, ModelTokens};
 use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
+use nibi_kernel_tui::ui::tokens::ACCENT_LIGHT;
 
 use super::support::{GatedModel, Setup, with_ui};
 
@@ -131,14 +132,17 @@ async fn chinese_and_light_backgrounds_keep_the_page() {
         },
     )
     .await;
-    // 浅色背景：选中的标签页用浅色主题的强调色（深蓝），不是深色主题的浅蓝。
+    // 浅色背景：选中的标签页用浅色主题的强调色（暖橙），不是深色主题的沙色。
     let buffer = buffer.lock().unwrap().clone().unwrap();
     let area = buffer.area;
     let accent = (area.left()..area.right())
         .map(|x| buffer[(x, area.top())].clone())
         .find(|cell| cell.symbol() == "统")
         .map(|cell| cell.fg);
-    assert_eq!(accent, Some(Color::Rgb(0x1c, 0x64, 0xc8)));
+    assert_eq!(
+        accent,
+        Some(Color::Rgb(ACCENT_LIGHT.0, ACCENT_LIGHT.1, ACCENT_LIGHT.2))
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]

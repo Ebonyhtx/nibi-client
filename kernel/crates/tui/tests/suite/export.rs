@@ -8,6 +8,7 @@ use nibi_kernel_api::machine::Files;
 use nibi_kernel_api::testing::{MemoryEnvironment, environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 fn env() -> Arc<MemoryEnvironment> {
     Arc::new(MemoryEnvironment::new(EnvFacts {
@@ -57,13 +58,13 @@ async fn the_conversation_goes_to_a_file_or_the_clipboard() {
     let copied = copies.clone();
     with_ui(model, setup, |mut ui| async move {
         ui.submit("hello there");
-        ui.wait("the reply", |s| idle(s, "⏺ world")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} world"))).await;
         ui.submit("/export notes/chat");
         ui.wait_for("Conversation exported to: /Users/dev/project/notes/chat.txt")
             .await;
         let text = read(&check, "/Users/dev/project/notes/chat.txt").await;
         assert!(text.contains("❯ hello there"), "{text}");
-        assert!(text.contains("⏺ world"), "{text}");
+        assert!(text.contains(&format!("{BULLET} world")), "{text}");
         assert!(text.ends_with('\n') && !text.contains(" \n"), "{text:?}");
         // 对话框：复制到剪贴板。
         ui.submit("/export");
@@ -109,5 +110,5 @@ async fn the_conversation_goes_to_a_file_or_the_clipboard() {
     assert!(copies[0].contains("❯ hello there"), "{}", copies[0]);
     let name = named.lock().unwrap().clone();
     let text = read(&env, &format!("/Users/dev/project/{name}")).await;
-    assert!(text.contains("⏺ world"));
+    assert!(text.contains(&format!("{BULLET} world")));
 }

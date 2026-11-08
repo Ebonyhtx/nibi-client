@@ -11,6 +11,7 @@ use nibi_kernel_api::testing::{
 use serde_json::json;
 
 use super::support::{GatedModel, Setup, request_text, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 fn idle(screen: &str, text: &str) -> bool {
     screen.contains(text) && !screen.contains("esc to interrupt")
@@ -46,7 +47,7 @@ async fn shift_tab_cycles_build_guarded_and_yolo() {
         assert!(!screen.contains("Plan mode"), "{screen}");
         // 有会话时同样循环（以 `ModeChanged` 为准）。
         ui.submit("hi");
-        ui.wait("the reply", |s| idle(s, "⏺ hello")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} hello"))).await;
         ui.press(KeyCode::BackTab, KeyModifiers::SHIFT);
         ui.wait_for("⏵⏵ Autonomous mode").await;
         // edit 不在循环里、工作线 F76 起 `/mode` 也不再能选（shift+tab 从 edit 回到 build 见 mode_picker.rs）。
@@ -73,7 +74,7 @@ async fn plan_is_a_switch_next_to_the_mode() {
         // 用户决定（2026-10-20）：权限模式后面不再有切换提示。
         assert!(!screen.contains("shift+tab"), "{screen}");
         ui.submit("hi");
-        ui.wait("the reply", |s| idle(s, "⏺ hello")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} hello"))).await;
         // shift+tab 改的是权限模式，plan 不变。
         ui.press(KeyCode::BackTab, KeyModifiers::SHIFT);
         ui.wait_for("⏸ Plan mode · ⏸ Ask before changes").await;
@@ -125,7 +126,7 @@ async fn approving_the_plan_returns_to_the_mode_from_before() {
         assert!(!ask.contains("auto-accept edits"), "{ask}");
         ui.settle().await;
         ui.key(KeyCode::Enter);
-        let screen = ui.wait("the reply", |s| idle(s, "⏺ implementing")).await;
+        let screen = ui.wait("the reply", |s| idle(s, &format!("{BULLET} implementing"))).await;
         assert!(screen.contains("⏵⏵ Autonomous mode"), "{screen}");
         assert!(!screen.contains("Plan mode ·"), "{screen}");
     })
@@ -159,7 +160,7 @@ async fn guarded_asks_once_for_dangerous_commands() {
         assert!(!ask.contains("don't ask again"), "{ask}");
         ui.settle().await;
         ui.key(KeyCode::Enter);
-        ui.wait("the reply", |s| idle(s, "⏺ cleaned")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} cleaned"))).await;
     })
     .await;
     let requests = model.requests();

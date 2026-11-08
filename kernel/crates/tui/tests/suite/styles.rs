@@ -61,12 +61,20 @@ async fn assert_selected_bar(ui: &mut Ui, row: &str, name: &str, bar: Color) {
     assert_eq!(last.bg, bar, "the bar reaches the end of the row");
 }
 
+/// 选中行的底色条取自 `Palette::selection()`（深底品牌沙色、浅底暖色浅底），不是写死的颜色。
+fn selection_themes() -> [((u8, u8, u8), (u8, u8, u8), Color); 2] {
+    let bar = |background: (u8, u8, u8)| {
+        Palette::new(ColorLevel::TrueColor, Some(background))
+            .selection()
+            .bg
+            .unwrap_or_default()
+    };
+    [(DARK, LIGHT, bar(DARK)), (LIGHT, DARK, bar(LIGHT))]
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn pickers_and_popups_share_the_selection_bar_in_both_themes() {
-    for (background, foreground, bar) in [
-        (DARK, LIGHT, Color::Rgb(99, 168, 248)),
-        (LIGHT, DARK, Color::Rgb(164, 205, 251)),
-    ] {
+    for (background, foreground, bar) in selection_themes() {
         let model = GatedModel::scripted(Vec::new());
         with_ui(
             model,

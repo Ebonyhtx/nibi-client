@@ -8,6 +8,7 @@ use nibi_kernel_api::store::SessionStore;
 use nibi_kernel_api::testing::{environments, text_response};
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 fn idle_with(screen: &str, text: &str) -> bool {
     screen.contains(text) && !screen.contains("esc to interrupt")
@@ -45,7 +46,7 @@ async fn fork_lists_the_inputs_and_keeps_the_chosen_turn() {
     let exit = with_ui(model, setup, |mut ui| async move {
         for (prompt, answer) in [("first", "one"), ("second", "two"), ("third", "three")] {
             ui.submit(prompt);
-            let answer = format!("⏺ {answer}");
+            let answer = format!("{BULLET} {answer}");
             ui.wait("the answer", |s| idle_with(s, &answer)).await;
         }
         ui.submit("/fork latest");
@@ -58,7 +59,7 @@ async fn fork_lists_the_inputs_and_keeps_the_chosen_turn() {
         ui.key(KeyCode::Up);
         ui.key(KeyCode::Enter);
         let screen = ui.wait_for("Switched to forked session").await;
-        assert!(screen.contains("⏺ two"), "{screen}");
+        assert!(screen.contains(&format!("{BULLET} two")), "{screen}");
         assert!(!screen.contains("three"), "{screen}");
     })
     .await;
@@ -161,7 +162,7 @@ async fn fork_texts_follow_the_interface_language() {
     with_ui(model, setup, |mut ui| async move {
         ui.submit("first");
         ui.wait("the answer", |s| {
-            s.contains("⏺ one") && !s.contains("esc 中断")
+            s.contains(&format!("{BULLET} one")) && !s.contains("esc 中断")
         })
         .await;
         ui.submit("/fork");

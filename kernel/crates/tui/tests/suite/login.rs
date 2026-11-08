@@ -30,10 +30,6 @@ impl FakeAccount {
         let sender = self.release.lock().unwrap().take().unwrap();
         sender.send(()).unwrap();
     }
-
-    fn keys(&self) -> Vec<String> {
-        self.keys.lock().unwrap().clone()
-    }
 }
 
 fn configured(family: Family, oauth: bool) -> Configured {
@@ -122,38 +118,30 @@ fn setup(account: &Arc<FakeAccount>) -> Setup {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn esc_cancels_a_browser_login_and_returns_to_the_choices() {
+async fn esc_cancels_the_nibi_login_and_returns_to_the_choice() {
     let model = GatedModel::scripted(vec![text_response(&["ok"])]);
     let account = Arc::new(FakeAccount::default());
     with_ui(model, setup(&account), |mut ui| async move {
         ui.submit("/login");
         let screen = ui.wait_for("Sign in").await;
-        for option in [
-            "NIBI Account",
-            "Z.AI Coding Plan",
-            "BigModel Coding Plan",
-            "Z.AI Coding Plan API Key",
-            "BigModel Coding Plan API Key",
-        ] {
-            assert!(screen.contains(option), "{screen}");
-        }
-        // 第一项是 NIBI 账号；向下到 Z.AI Coding Plan 再确认。
-        ui.key(KeyCode::Down);
+        // 只有一种方式：NIBI 账号（上游套餐登录已删，模型 Provider 走 `/provider`）。
+        assert!(screen.contains("NIBI Account"), "{screen}");
+        assert!(!screen.contains("Coding Plan"), "{screen}");
         ui.key(KeyCode::Enter);
-        let screen = ui.wait_for("Waiting for Z.AI authorization").await;
+        let screen = ui.wait_for("Waiting for NIBI sign-in").await;
         assert!(
             screen.contains("Esc cancels and returns to setup choices."),
             "{screen}"
         );
-        let screen = ui.wait_for(URL).await;
+        let screen = ui.wait_for(USER_CODE).await;
         assert!(
-            screen.contains("Open this URL to sign in with Z.AI:"),
+            screen.contains(&format!("{DEVICE_URL}?code={USER_CODE}")),
             "{screen}"
         );
         ui.key(KeyCode::Esc);
-        let screen = ui.wait_for("Login cancelled. Choose a setup method.").await;
-        assert!(screen.contains("BigModel Coding Plan API Key"), "{screen}");
-        assert!(!screen.contains("Configured"), "{screen}");
+        let screen = ui.wait_for("Login cancelled.").await;
+        assert!(screen.contains("NIBI Account"), "{screen}");
+        assert!(!screen.contains("Signed in"), "{screen}");
         ui.key(KeyCode::Esc);
         ui.wait_for("Ask before changes").await;
     })
@@ -161,71 +149,26 @@ async fn esc_cancels_a_browser_login_and_returns_to_the_choices() {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn a_finished_login_shows_the_result_and_switches_the_model() {
+async fn a_finished_login_shows_the_membership() {
     let model = GatedModel::scripted(vec![text_response(&["ok"])]);
     let account = Arc::new(FakeAccount::default());
     let control = account.clone();
     with_ui(model, setup(&account), |mut ui| async move {
-        ui.submit("/login bigmodel-coding-plan");
-        ui.wait_for("Waiting for BigModel authorization").await;
-        ui.wait_for(URL).await;
+        // 显式点名 `nibi`：(与不带参数那条第 1 项是同一个流程。)
+        ui.submit("/login nibi");
+        ui.wait_for("Waiting for NIBI sign-in").await;
+        ui.wait_for(USER_CODE).await;
         control.complete();
-        let screen = ui.wait_for("Configured BigModel Coding Plan.").await;
-        assert!(screen.contains("Model: fixture/other-model"), "{screen}");
+        let screen = ui.wait_for("Signed in to NIBI as Dev.").await;
         assert!(
-            screen.contains(&format!("Model selection: {CONFIG}")),
+            screen.contains("Membership: Pro (expires 2026-12-01)"),
             "{screen}"
         );
-        // 模型目录重读后切到登录给出的模型（footer 显示当前模型）。
-        ui.wait("the new model in the footer", |s| {
-            s.lines()
-                .last()
-                .is_some_and(|line| line.contains("other-model"))
-        })
-        .await;
+        // 其它参数只提示用法：模型 Provider 走 `/provider`，不再是登录入口。
         ui.submit("/login nope");
-        ui.wait_for("Usage: /login [nibi|zai-coding-plan|bigmodel-coding-plan")
-            .await;
+        ui.wait_for("Usage: /login [nibi]").await;
     })
     .await;
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn api_keys_are_hidden_and_stay_out_of_the_history() {
-    let model = GatedModel::scripted(vec![text_response(&["ok"])]);
-    let account = Arc::new(FakeAccount::default());
-    with_ui(model, setup(&account), |mut ui| async move {
-        ui.submit("/login");
-        ui.wait_for("Sign in").await;
-        for _ in 0..3 {
-            ui.key(KeyCode::Down);
-        }
-        ui.key(KeyCode::Enter);
-        ui.wait_for("Enter Z.AI Coding Plan API Key").await;
-        ui.key(KeyCode::Enter);
-        ui.wait_for("API key is required.").await;
-        ui.type_text("sk-secret");
-        let screen = ui.wait_for("•••••••••").await;
-        assert!(!screen.contains("sk-secret"), "{screen}");
-        ui.key(KeyCode::Enter);
-        let screen = ui.wait_for("Configured Z.AI Coding Plan.").await;
-        assert!(!screen.contains("Credentials:"), "{screen}");
-        // 带 key 的一行按 Node 直接保存，但不留在输入历史里。
-        ui.submit("/login bigmodel-coding-plan-api-key sk-inline");
-        ui.wait_for("Configured BigModel Coding Plan.").await;
-        ui.key(KeyCode::Up);
-        let screen = ui.wait_for("❯ /login").await;
-        assert!(!screen.contains("sk-inline"), "{screen}");
-        ui.press(KeyCode::Char('u'), KeyModifiers::CONTROL);
-        // 不带 key：直接打开不回显的输入。
-        ui.submit("/login bigmodel-coding-plan-api-key");
-        ui.wait_for("Enter BigModel Coding Plan API Key").await;
-        ui.key(KeyCode::Esc);
-        ui.wait_for("API key entry cancelled. Choose a setup method.")
-            .await;
-    })
-    .await;
-    assert_eq!(account.keys(), ["sk-secret", "sk-inline"]);
 }
 
 /// `/login` 的第一项是 NIBI 账号：显示设备码与地址，完成后提示会员摘要。
@@ -266,8 +209,11 @@ async fn logout_reports_the_credentials_file() {
 async fn without_an_account_service_login_is_unavailable() {
     let model = GatedModel::scripted(vec![text_response(&["ok"])]);
     with_ui(model, Setup::default(), |mut ui| async move {
+        // 上游套餐登录已经删掉：其它参数一律只提示用法。
         ui.submit("/login zai-coding-plan");
-        ui.wait_for("Z.AI login is not available in this client.")
+        ui.wait_for("Usage: /login [nibi]").await;
+        ui.submit("/login nibi");
+        ui.wait_for("NIBI sign-in is not available in this client.")
             .await;
         ui.submit("/logout");
         ui.wait_for("Logout is not available in this client.").await;

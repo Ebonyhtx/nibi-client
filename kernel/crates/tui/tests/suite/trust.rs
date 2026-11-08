@@ -10,6 +10,11 @@ use nibi_kernel_tui::ui::i18n::Lang;
 use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::text_of;
+use nibi_kernel_tui::ui::tokens::{ACCENT_DARK, ACCENT_LIGHT};
+
+/// NIBI 品牌强调色（`tokens` 是唯一来源；深浅两种背景各一种）。
+const ACCENT_DARK_COLOR: Color = Color::Rgb(ACCENT_DARK.0, ACCENT_DARK.1, ACCENT_DARK.2);
+const ACCENT_LIGHT_COLOR: Color = Color::Rgb(ACCENT_LIGHT.0, ACCENT_LIGHT.1, ACCENT_LIGHT.2);
 
 fn key(code: KeyCode) -> Event {
     Event::Key(KeyEvent::new(code, KeyModifiers::NONE))
@@ -98,8 +103,8 @@ async fn the_dialog_shows_the_folder_and_the_fixed_text() {
 #[tokio::test]
 async fn the_dialog_uses_the_theme_accent_in_both_themes() {
     for (background, accent) in [
-        ((0, 0, 0), Color::Rgb(99, 168, 248)),
-        ((255, 255, 255), Color::Rgb(28, 100, 200)),
+        ((0, 0, 0), ACCENT_DARK_COLOR),
+        ((255, 255, 255), ACCENT_LIGHT_COLOR),
     ] {
         let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
         let palette = Palette::new(ColorLevel::TrueColor, Some(background));

@@ -212,11 +212,12 @@ pub fn lines(
                 None => lines.push(dim(strings.login_wait_status)),
             }
             lines.push(Line::default());
-            lines.push(dim(if *cancelling {
-                strings.login_cancelling
+            // 取消中显示原文；否则按键提示要经 `key_hint` 渲染（`{Esc}` 不能原样显示）。
+            lines.push(if *cancelling {
+                dim(strings.login_cancelling)
             } else {
-                strings.login_wait_help
-            }));
+                keys(strings.login_wait_help)
+            });
         }
     }
     lines

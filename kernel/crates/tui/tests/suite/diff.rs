@@ -10,6 +10,7 @@ use nibi_kernel_api::testing::{
 use serde_json::json;
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::cells::BULLET;
 
 fn facts() -> EnvFacts {
     EnvFacts {
@@ -54,7 +55,7 @@ async fn uncommitted_changes_and_turns_are_listed() {
         ui.confirm_full_access().await;
         ui.wait_for("⏵⏵ Full access").await;
         ui.submit("write the notes");
-        ui.wait("the reply", |s| idle(s, "⏺ done")).await;
+        ui.wait("the reply", |s| idle(s, &format!("{BULLET} done"))).await;
         ui.submit("/diff");
         let page = ui.wait_for("src/a.rs").await;
         assert!(

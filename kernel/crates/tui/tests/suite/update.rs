@@ -13,6 +13,11 @@ use nibi_kernel_tui::update::{UpdateChoice, UpdateInfo, drive};
 
 use super::sessions_seed::{Seed, seed};
 use super::support::{GatedModel, Setup, text_of, with_ui};
+use nibi_kernel_tui::ui::tokens::{ACCENT_DARK, ACCENT_LIGHT};
+
+/// NIBI 品牌强调色（`tokens` 是唯一来源；深浅两种背景各一种）。
+const ACCENT_DARK_COLOR: Color = Color::Rgb(ACCENT_DARK.0, ACCENT_DARK.1, ACCENT_DARK.2);
+const ACCENT_LIGHT_COLOR: Color = Color::Rgb(ACCENT_LIGHT.0, ACCENT_LIGHT.1, ACCENT_LIGHT.2);
 
 fn key(code: KeyCode) -> Event {
     Event::Key(KeyEvent::new(code, KeyModifiers::NONE))
@@ -79,8 +84,8 @@ async fn the_prompt_shows_the_codex_text_and_options() {
     let buffer = terminal.backend().buffer();
     // 顶上整行 `─` 与标题用强调色、标题粗体；焦点行铺选中的底色条（选择列表组件，tui.md §7.4）。
     assert_eq!(buffer[(0, 0)].symbol(), "─");
-    assert_eq!(buffer[(79, 0)].fg, Color::Rgb(99, 168, 248));
-    assert_eq!(buffer[(2, 1)].fg, Color::Rgb(99, 168, 248));
+    assert_eq!(buffer[(79, 0)].fg, ACCENT_DARK_COLOR);
+    assert_eq!(buffer[(2, 1)].fg, ACCENT_DARK_COLOR);
     assert!(buffer[(2, 1)].modifier.contains(Modifier::BOLD));
     let focused = line_of(&screen, "1. Update now") as u16;
     assert_ne!(buffer[(79, focused)].bg, Color::Reset, "the selection bar");
@@ -94,8 +99,8 @@ async fn the_prompt_shows_the_codex_text_and_options() {
 #[tokio::test]
 async fn the_prompt_uses_the_theme_accent_in_both_themes() {
     for (background, accent) in [
-        ((0, 0, 0), Color::Rgb(99, 168, 248)),
-        ((255, 255, 255), Color::Rgb(28, 100, 200)),
+        ((0, 0, 0), ACCENT_DARK_COLOR),
+        ((255, 255, 255), ACCENT_LIGHT_COLOR),
     ] {
         let palette = Palette::new(ColorLevel::TrueColor, Some(background));
         let (_, _, terminal) = run(Lang::En, (80, 12), palette, vec![key(KeyCode::Esc)]).await;
@@ -238,13 +243,13 @@ async fn the_notice_box_sits_under_the_session_header() {
             assert_eq!(
                 &lines[top..top + 7],
                 [
-                    "╭────────────────────────────────────────────╮",
-                    "│ ✨\u{200A}Update available! 0.1.46 -> 0.1.47      │",
+                    "╭─────────────────────────────────────────╮",
+                    "│ ✨\u{200A}Update available! 0.1.46 -> 0.1.47   │",
                     "│ Run npm install -g @nibi/cli to update. │",
-                    "│                                            │",
-                    "│ See full release notes:                    │",
+                    "│                                         │",
+                    "│ See full release notes:                 │",
                     "│ https://www.npmjs.com/package/@nibi/cli │",
-                    "╰────────────────────────────────────────────╯",
+                    "╰─────────────────────────────────────────╯",
                 ],
                 "{screen}"
             );

@@ -33,6 +33,11 @@ impl Clipboard for FakeClipboard {
         }
         .boxed()
     }
+
+    /// 剪贴板里没有文字（没有图片时先按文字粘贴，空文字才提示）。
+    fn text(&self) -> BoxFuture<'static, Result<String, String>> {
+        async { Ok(String::new()) }.boxed()
+    }
 }
 
 fn setup(clipboard: Option<Vec<u8>>) -> Setup {

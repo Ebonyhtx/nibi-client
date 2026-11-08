@@ -16,6 +16,11 @@ use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 use tokio::sync::mpsc;
 
 use super::support::{GatedModel, Setup, with_ui};
+use nibi_kernel_tui::ui::tokens::{ACCENT_DARK, ACCENT_LIGHT};
+
+/// NIBI 品牌强调色（`tokens` 是唯一来源；深浅两种背景各一种）。
+const ACCENT_DARK_COLOR: Color = Color::Rgb(ACCENT_DARK.0, ACCENT_DARK.1, ACCENT_DARK.2);
+const ACCENT_LIGHT_COLOR: Color = Color::Rgb(ACCENT_LIGHT.0, ACCENT_LIGHT.1, ACCENT_LIGHT.2);
 
 struct FakePort {
     inbound: Mutex<Option<mpsc::UnboundedReceiver<PeerSignal>>>,
@@ -252,8 +257,8 @@ async fn the_chinese_dialog_denies_with_escape() {
 #[tokio::test(flavor = "multi_thread")]
 async fn the_focused_choice_has_no_bar_in_both_themes() {
     for (background, accent) in [
-        ((0, 0, 0), Color::Rgb(99, 168, 248)),
-        ((255, 255, 255), Color::Rgb(28, 100, 200)),
+        ((0, 0, 0), ACCENT_DARK_COLOR),
+        ((255, 255, 255), ACCENT_LIGHT_COLOR),
     ] {
         let port = FakePort::new();
         let model = GatedModel::scripted(vec![text_response(&["first"])]);
