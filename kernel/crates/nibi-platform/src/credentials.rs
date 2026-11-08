@@ -252,7 +252,13 @@ pub fn read_install_key(path: &Path) -> Result<Option<[u8; KEY_BYTES]>, Credenti
     decode_install_key(path, raw.trim())
 }
 
-/// 写入侧：缺失则 `wx` 独占创建；并发时其余进程读回同一把钥匙。
+/// 写入侧：缺失则原子发布一把新钥匙；并发时其余进程读回同一把。
+///
+/// 发布方式：先在**同目录的临时文件**里写完内容并收紧权限，再用 `hard_link` 链接到目标路径
+/// （目标已存在时 link 失败）。这样目标路径从出现的第一刻起内容就是完整的——老的
+/// `create_new` + 随后写入会在两步之间留一个「空文件」窗口，并发读回看到空内容只能靠有界等待
+/// 猜创建者什么时候被调度回来（2026-11-09 rust-gates 上实测失败过）。现在空文件只有一种含义：
+/// 真的是坏文件，按 fail-closed 立即报错。
 pub fn load_or_create_install_key(path: &Path) -> Result<[u8; KEY_BYTES], CredentialError> {
     if let Some(existing) = read_install_key(path)? {
         return Ok(existing);
@@ -268,47 +274,53 @@ pub fn load_or_create_install_key(path: &Path) -> Result<[u8; KEY_BYTES], Creden
         .fill(&mut generated)
         .map_err(|_| CredentialError::Crypto("random install key"))?;
     let encoded = URL_SAFE_NO_PAD.encode(generated);
-    match OpenOptions::new().write(true).create_new(true).open(path) {
-        Ok(mut file) => {
-            restrict_permissions(&file);
-            file.write_all(format!("{encoded}\n").as_bytes())
-                .map_err(|source| CredentialError::InstallKeyWrite {
-                    path: path.to_path_buf(),
-                    source,
-                })?;
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            // 另一个进程先写成功；下面统一读回。注意「create_new 成功 → 写入内容」之间有一个
-            // 窗口：并发读回会看到空文件（POSIX 上实测会，Windows 的共享锁语义掩盖了它）——
-            // 有界等待内容出现，窗口耗尽仍空才按 fail-closed 报错。
-        }
-        Err(source) => {
-            return Err(CredentialError::InstallKeyWrite {
-                path: path.to_path_buf(),
+
+    // 临时文件名不参与任何判定，只要与目标同目录、同一文件系统（link 跨设备会失败）。
+    let mut suffix = [0u8; 8];
+    SystemRandom::new()
+        .fill(&mut suffix)
+        .map_err(|_| CredentialError::Crypto("random install key"))?;
+    let name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "credential-v2.key".to_owned());
+    let staged = path.with_file_name(format!(".{name}.tmp-{}", URL_SAFE_NO_PAD.encode(suffix)));
+
+    let staged_result = (|| -> Result<(), CredentialError> {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&staged)
+            .map_err(|source| CredentialError::InstallKeyWrite {
+                path: staged.clone(),
                 source,
-            });
-        }
+            })?;
+        restrict_permissions(&file);
+        file.write_all(format!("{encoded}\n").as_bytes())
+            .map_err(|source| CredentialError::InstallKeyWrite {
+                path: staged.clone(),
+                source,
+            })?;
+        Ok(())
+    })();
+    if let Err(error) = staged_result {
+        let _ = fs::remove_file(&staged);
+        return Err(error);
     }
-    // 创建者线程在「create_new 成功 → 写入内容」之间有一个窗口，并发读会看到空文件。窗口内
-    // 有界等待内容出现；正常路径第一次读就有内容，不会等。上限按**墙钟**算（30s）：CI 的
-    // 2 核 runner 上跑 8 线程并发时，创建者曾被调度走超过 2s（2026-11-09 rust-gates 实测），
-    // 按次数算的窗口会随 sleep 精度漂移，按截止时间算与调度时长成正比。
-    const CONTENT_WAIT_DEADLINE: std::time::Duration = std::time::Duration::from_secs(30);
-    const CONTENT_WAIT_INTERVAL_MS: u64 = 10;
-    let deadline = std::time::Instant::now() + CONTENT_WAIT_DEADLINE;
-    loop {
-        let read = read_install_key(path);
-        match read {
-            Ok(Some(key)) => return Ok(key),
-            Ok(None) => return Err(CredentialError::InstallKeyVanished(path.to_path_buf())),
-            // 空文件：创建者在写内容的路上，等一小拍再读。
-            Err(CredentialError::InstallKeyEmpty(_))
-                if std::time::Instant::now() < deadline =>
-            {
-                std::thread::sleep(std::time::Duration::from_millis(CONTENT_WAIT_INTERVAL_MS));
-            }
-            Err(error) => return Err(error),
+    let published = fs::hard_link(&staged, path);
+    let _ = fs::remove_file(&staged);
+    match published {
+        Ok(()) => read_install_key(path)?
+            .ok_or_else(|| CredentialError::InstallKeyVanished(path.to_path_buf())),
+        // 另一个进程先发布了完整内容：读回它的钥匙。
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            read_install_key(path)?
+                .ok_or_else(|| CredentialError::InstallKeyVanished(path.to_path_buf()))
         }
+        Err(source) => Err(CredentialError::InstallKeyWrite {
+            path: path.to_path_buf(),
+            source,
+        }),
     }
 }
 
