@@ -370,3 +370,30 @@ fn long_lists_scroll_with_the_selection() {
     // 行数不能超过可用高度（终端里多出来的行会把输入区顶掉）。
     assert!(rendered.len() <= 24, "rendered {} lines", rendered.len());
 }
+
+#[test]
+fn pasting_a_url_or_key_strips_whitespace() {
+    let mut app = app();
+    let mut form = Form::custom();
+    form.step = Step::BaseUrl;
+    app.overlay = Some(Overlay::Provider(ProviderView::Form(form)));
+    // Get-Clipboard -Raw 会连结尾的换行一起给；URL 里不能有空白。
+    app.provider_paste("https://api.example.com/v1\n");
+    match &app.overlay {
+        Some(Overlay::Provider(ProviderView::Form(form))) => {
+            assert_eq!(form.base_url, "https://api.example.com/v1");
+        }
+        other => panic!("expected the form, got {other:?}"),
+    }
+
+    let mut form = Form::custom();
+    form.step = Step::Key;
+    app.overlay = Some(Overlay::Provider(ProviderView::Form(form)));
+    app.provider_paste(" sk-abc 123\n");
+    match &app.overlay {
+        Some(Overlay::Provider(ProviderView::Form(form))) => {
+            assert_eq!(form.key.expose(), "sk-abc123");
+        }
+        other => panic!("expected the form, got {other:?}"),
+    }
+}

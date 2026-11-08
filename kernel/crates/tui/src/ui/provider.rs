@@ -864,22 +864,35 @@ impl App {
     pub(crate) fn provider_paste(&mut self, text: &str) {
         self.provider_pasted_at = Some(std::time::Instant::now());
         if let Some(Overlay::Provider(ProviderView::Form(form))) = self.overlay.as_mut() {
-            let text = text.replace(['\n', '\r'], " ");
             form.status = None;
             match form.step {
+                // 剪贴板里的 URL 常带换行/空白（Get-Clipboard -Raw 连结尾换行一起给），
+                // 直接拼进去会在末尾多几个空格；URL 与 key 都不含空白，一律去掉。
+                Step::BaseUrl => {
+                    let pasted: String = text.chars().filter(|c| !c.is_whitespace()).collect();
+                    form.field_mut().push_str(&pasted);
+                }
                 Step::Key => {
                     let pasted: String = text.chars().filter(|c| !c.is_whitespace()).collect();
                     form.key = RedactedString::new(format!("{}{pasted}", form.key.expose()));
                 }
+                // 模型清单按行粘贴也能用：换行当逗号。
+                Step::Models => {
+                    let pasted = text.replace(['\n', '\r'], ",");
+                    form.field_mut().push_str(pasted.trim_end());
+                }
                 Step::Protocol => {}
-                _ => form.field_mut().push_str(&text),
+                Step::Name => {
+                    let pasted = text.replace(['\n', '\r'], " ");
+                    form.field_mut().push_str(pasted.trim_end());
+                }
             }
         } else if let Some(Overlay::Provider(ProviderView::Key { key, status, .. })) =
             self.overlay.as_mut()
         {
             *status = None;
-            let text = text.replace(['\n', '\r'], "");
-            *key = RedactedString::new(format!("{}{text}", key.expose()));
+            let pasted: String = text.chars().filter(|c| !c.is_whitespace()).collect();
+            *key = RedactedString::new(format!("{}{pasted}", key.expose()));
         }
     }
 }
