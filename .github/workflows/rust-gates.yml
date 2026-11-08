@@ -8,6 +8,8 @@ name: rust-gates
 # - cargo audit（RustSec 公告库）
 # - webpki-root-certs 版本断言（>= 1.0.11，FIX-10b 下限）
 # - cargo check --locked --workspace（vendored 树至少能编译）
+# - cargo test --locked --workspace（全量单元/集成测试；`windows_process` 是 cfg(windows)，
+#   这里不跑，Windows 专有分支由本地/打包机覆盖。步骤级超时 30 分钟，避免拖长流水线）
 # - macOS 专有分支编译（单独一个 macos-latest job，原因见该 job 的注释）
 #
 # 所有 action 必须钉到完整 commit SHA（public-repo-policy 要求）。
@@ -75,6 +77,13 @@ jobs:
       - name: nibi-platform tests
         working-directory: kernel
         run: cargo test -p nibi-platform --locked
+      # 全量测试（2026-11-09 接入）：与 `cargo check` 同一个 job，复用已编译的依赖与共享 target，
+      # 冷启动也就多出测试二进制的一次构建。`--no-fail-fast` 让一轮跑出所有失败，不用逐条重跑。
+      # 步骤级 timeout 是闸门：超时说明有测试挂住，按失败处理，不拖到 job 的 45 分钟。
+      - name: cargo test
+        working-directory: kernel
+        timeout-minutes: 30
+        run: cargo test --locked --workspace --no-fail-fast
 
   # 只在本机 macOS 上编译到的分支（`cfg(unix, not(target_os = "linux"))` 与
   # `cfg(target_os = "macos")`）不会出现在 ubuntu 的 checks 里：proc 的 macOS 采样器就曾在这里
@@ -101,22 +110,5 @@ jobs:
           cargo check --locked \
             -p nibi-kernel-proc -p nibi-kernel-fs -p nibi-kernel-policy \
             -p nibi-kernel-session -p nibi-kernel-ext -p nibi-kernel-cli \
-            --target aarch64-apple-darwin
-  macos-only:
-    name: rust-macos-only
-    runs-on: macos-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
-        with:
-          toolchain: "1.95.0"
-          targets: aarch64-apple-darwin
-      - name: macOS-only code compiles
-        working-directory: kernel
-        run: |
-          cargo check --locked \
-            -p nibi-kernel-proc -p nibi-kernel-fs -p nibi-kernel-policy \
-            -p nibi-kernel-session -p nibi-kernel-ext \
             --target aarch64-apple-darwin
 
