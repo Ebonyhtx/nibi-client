@@ -68,7 +68,7 @@ fn command(root: &Path, task: &str, text: &str) -> StartCommand {
 async fn the_resident_starts_reports_its_status_and_stops() {
     let home = Home::new();
     let (code, stdout, _) = home.run(&["executor", "status"]);
-    assert_eq!((code, stdout.trim()), (3, "zcode executor is not running"));
+    assert_eq!((code, stdout.trim()), (3, "nibi executor is not running"));
     assert_eq!(home.status()["resident"], Value::Null);
     assert_eq!(home.status()["protocol"], 1);
 

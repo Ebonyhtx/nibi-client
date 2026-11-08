@@ -92,8 +92,9 @@ async fn a_server_that_exits_is_reported(kind: Kind) {
         Some(McpTransportEvent::Closed {
             reason: Some("MCP server \"s\" process exited".to_owned()),
             session_expired: false,
-            // 服务器进程自己退出的：这条要能报 `process_crash`。
-            exited: true,
+            // `exited` 是本机判定 `process_crash` 的判据；loopback（远端执行器）那边自己做遥测，
+            // 传回来的这条如实是 false（kernel-api `McpTransportEvent::Closed` 的约定）。
+            exited: matches!(kind, Kind::Local),
         })
     );
 }

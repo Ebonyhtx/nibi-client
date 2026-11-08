@@ -375,7 +375,7 @@ async fn a_latest_that_cannot_be_downloaded_names_both_versions() {
         Err(ProvisionError::DownloadFailed {
             version: "0.2.0".to_owned(),
             target: "x86_64-unknown-linux-gnu".to_owned(),
-            reason: "zcode 0.2.0 is not on npm, and the latest, 0.0.0-placeholder, could not be downloaded: @nibi-studio/cli-linux-x64-gnu 0.0.0-placeholder: the package has no bin/nibi-rs".to_owned(),
+            reason: "nibi 0.2.0 is not on npm, and the latest, 0.0.0-placeholder, could not be downloaded: @nibi-studio/cli-linux-x64-gnu 0.0.0-placeholder: the package has no bin/nibi-rs".to_owned(),
         })
     );
     assert_eq!(registry.downloads(), ["0.2.0", "0.0.0-placeholder"]);

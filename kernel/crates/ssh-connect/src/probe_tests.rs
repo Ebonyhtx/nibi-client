@@ -105,7 +105,7 @@ async fn the_script_finds_ours_and_the_npm_one_and_never_runs_zcode() {
     );
     let bin = home.path().join("prefix/bin");
     std::fs::create_dir_all(&bin).unwrap();
-    std::os::unix::fs::symlink(package.join("bin/zcode.js"), bin.join("zcode")).unwrap();
+    std::os::unix::fs::symlink(package.join("bin/zcode.js"), bin.join("nibi")).unwrap();
     let mut child = tokio::process::Command::new("/bin/sh")
         .arg("-s")
         .env_clear()
@@ -154,7 +154,7 @@ async fn the_script_finds_ours_and_the_npm_one_and_never_runs_zcode() {
     );
     assert!(
         found.iter().any(
-            |(path, version)| path.ends_with("zcode-linux-x64/bin/nibi-rs")
+            |(path, version)| path.ends_with("cli-linux-x64/bin/nibi-rs")
                 && version.as_deref() == Some("0.1.5")
         ),
         "{found:?}"
@@ -199,7 +199,7 @@ async fn the_npm_package_is_found_through_a_relative_link_without_readlink_f() {
     std::fs::create_dir_all(&bin).unwrap();
     std::os::unix::fs::symlink(
         "../lib/node_modules/@nibi/cli/bin/zcode.js",
-        bin.join("zcode"),
+        bin.join("nibi"),
     )
     .unwrap();
     // 不认 `-f` 的 readlink（旧版本的 macOS）：其余照常。
@@ -230,7 +230,7 @@ async fn the_npm_package_is_found_through_a_relative_link_without_readlink_f() {
     assert!(
         probe.candidates.iter().any(|candidate| candidate
             .path
-            .ends_with("zcode-darwin-arm64/bin/nibi-rs")
+            .ends_with("cli-darwin-arm64/bin/nibi-rs")
             && candidate
                 .report
                 .as_ref()

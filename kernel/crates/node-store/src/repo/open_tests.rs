@@ -335,8 +335,15 @@ fn the_database_id_matches_node() {
         session_database_id(path),
         "bd5335bada9ac0927e417b4ca7b0255b2b7475760ae91f8642fc85a21039bf9c"
     );
-    // Node 的 dbPath 是 `path.resolve` 的产物：Windows 上混用分隔符归一成 `\`（同一个库同一个 ID）。
+    // Node 的 dbPath 是 `path.resolve` 的产物：只有 Windows 上混用分隔符会归一成 `\`（同一个库同一个 ID）。
+    // 其他平台上反斜杠只是文件名的普通字符，两段文本不同，不做归一。
+    #[cfg(windows)]
     assert_eq!(
+        session_database_id(Path::new("C:\\Users\\dev\\.nibi/cli/db/db.sqlite")),
+        session_database_id(path)
+    );
+    #[cfg(not(windows))]
+    assert_ne!(
         session_database_id(Path::new("C:\\Users\\dev\\.nibi/cli/db/db.sqlite")),
         session_database_id(path)
     );

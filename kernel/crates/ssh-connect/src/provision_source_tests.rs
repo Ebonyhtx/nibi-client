@@ -236,7 +236,7 @@ async fn an_executor_that_needs_a_newer_glibc_names_the_remote_version() {
     );
     assert_eq!(
         error.to_string(),
-        "the zcode executor needs GLIBC_2.34, but the remote has glibc 2.31"
+        "the nibi executor needs GLIBC_2.34, but the remote has glibc 2.31"
     );
     // 改名之前试跑：跑不起来的执行器不留在远端。
     let dir = installed(&remote).parent().unwrap().to_path_buf();

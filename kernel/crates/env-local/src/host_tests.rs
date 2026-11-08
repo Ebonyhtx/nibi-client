@@ -104,11 +104,12 @@ async fn facts_come_from_the_local_host() {
         Some(&*home.path().to_string_lossy())
     );
     if cfg!(unix) {
-        // Node 的 `${os.type()} ${os.release()}`，例如 `Darwin 24.6.0`、`Linux 6.8.0`。
+        // Node 的来源是 `process.platform`（小写），例如 `linux 6.8.0 x64`、`darwin 24.6.0 arm64`
+        // （`adapters/src/context/index.ts` 的 `osVersion`）。
         let kernel = if cfg!(target_os = "macos") {
-            "Darwin "
+            "darwin "
         } else {
-            "Linux "
+            "linux "
         };
         assert!(facts.os_version.starts_with(kernel), "{}", facts.os_version);
     }

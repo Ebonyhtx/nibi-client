@@ -135,7 +135,7 @@ fn untrusted_project_hooks_are_skipped_until_granted() {
         "{stderr}"
     );
     assert!(stderr.contains(&format!(
-        "Review with: zcode hooks trust review --workspace \"{workspace}\"\n"
+        "Review with: nibi hooks trust review --workspace \"{workspace}\"\n"
     )));
 
     let review = zcode(

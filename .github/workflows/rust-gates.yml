@@ -80,6 +80,10 @@ jobs:
       # 全量测试（2026-11-09 接入）：与 `cargo check` 同一个 job，复用已编译的依赖与共享 target，
       # 冷启动也就多出测试二进制的一次构建。`--no-fail-fast` 让一轮跑出所有失败，不用逐条重跑。
       # 步骤级 timeout 是闸门：超时说明有测试挂住，按失败处理，不拖到 job 的 45 分钟。
+      # zsh 是 shell 选法与 prelude 的测试夹具（`/bin/zsh`）；runner 镜像不带它，显式装上，
+      # 否则这几条 unix 测试只在装了 zsh 的开发机上通过。
+      - name: zsh for the shell tests
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
       - name: cargo test
         working-directory: kernel
         timeout-minutes: 30
