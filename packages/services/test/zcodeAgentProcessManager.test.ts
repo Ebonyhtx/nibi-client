@@ -1633,12 +1633,16 @@ describe("NIBI_KERNEL 灰度开关", () => {
   });
 
   it.each([
-    [undefined, "node"],
+    [undefined, "rust"],
+    ["", "rust"],
     ["node", "node"],
+    ["NODE", "node"],
+    [" node ", "node"],
     ["rust", "rust"],
     ["RUST", "rust"],
     [" rust ", "rust"],
-    ["ruust", "node"],
+    // 拼错按默认（Rust）；真有二进制缺失时还有 node 回落。
+    ["ruust", "rust"],
   ])("resolveKernelSelection(%s) → %s", (value, expected) => {
     expect(resolveKernelSelection(value)).toBe(expected);
   });
@@ -1683,8 +1687,22 @@ describe("NIBI_KERNEL 灰度开关", () => {
     expect(command?.storagePreparationProcess).toBe(true);
   });
 
-  it("NIBI_KERNEL 未设时即便有 Rust 命令也保持 node 链路", () => {
+  it("NIBI_KERNEL 未设时默认走 Rust 链路", () => {
     sandboxWithBundle();
+    process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
+
+    const command = resolveDefaultZCodeAgentCommand({
+      workspacePath: "/repo/workspace",
+      workspaceKey: "/repo/workspace",
+    });
+
+    expect(command?.command).toBe("/opt/nibi/nibi-rs");
+    expect(command?.supportsStorageStartup).toBe(true);
+  });
+
+  it("NIBI_KERNEL=node 是回退开关：有 Rust 命令也走 node 链路", () => {
+    sandboxWithBundle();
+    process.env.NIBI_KERNEL = "node";
     process.env.NIBI_RUST_AGENT_SERVER_COMMAND = "/opt/nibi/nibi-rs";
 
     const command = resolveDefaultZCodeAgentCommand({
@@ -1695,11 +1713,11 @@ describe("NIBI_KERNEL 灰度开关", () => {
     expect(command?.command).toBe(process.execPath);
   });
 
-  it("NIBI_KERNEL=rust 但找不到 Rust 二进制时回落到 node 链路", () => {
+  it("默认 Rust 但找不到 Rust 二进制时回落到 node 链路", () => {
     const root = mkdtempSync(join(tmpdir(), "zcode-kernel-nobinary-"));
     createdDirs.push(root);
     process.chdir(root);
-    process.env.NIBI_KERNEL = "rust";
+    delete process.env.NIBI_KERNEL;
 
     // 临时目录里既没有 kernel/target 也没有 nibi.cjs：Rust 与 node 两条位次都为空。
     expect(

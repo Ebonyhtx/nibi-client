@@ -6,7 +6,7 @@
 // `resourcesPath/rust-kernel`）按这个路径解析。Cargo 的 `[[bin]]` 名与打包位次同名
 // （`nibi-rs`），进程列表/任务管理器里显示的是 NIBI。
 //
-// 灰度纪律：**可选资产**。`NIBI_KERNEL` 默认 node，正式包不携带内核也要能跑——本机没构建过
+// 纪律：**可选资产**。默认内核是 Rust，但正式包不携带内核也要能跑（运行时回落 node）——本机没构建过
 // 内核（kernel/target 下两档都没有）时跳过并退出 0，不fail打包。构建产物选档：release 优先
 // （打包要优化档），debug 兜底；`NIBI_RUST_KERNEL_BIN` 显式指文件时无视位次。
 
@@ -32,7 +32,7 @@ const source = candidates.find((candidate) => existsSync(candidate));
 if (source === undefined) {
   console.log(
     "[prepare-rust-kernel] no kernel binary found (kernel/target/{release,debug}); " +
-      "skipping — the packaged app stays on the node kernel (NIBI_KERNEL=rust falls back at runtime)",
+      "skipping — the packaged app falls back to the node kernel at runtime",
   );
   process.exit(0);
 }

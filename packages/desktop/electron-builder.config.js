@@ -768,8 +768,8 @@ export default {
     ...(shouldPackageRustKernel
       ? [
           {
-            // Rust 内核（灰度轨）：可选资产，暂存过才进包。签名断言不覆盖它——灰度期不买证书，
-            // 只在 NIBI_KERNEL=rust 时被拉起（node 默认链路不碰它）。
+            // Rust 内核（默认内核）：可选资产，暂存过才进包。签名断言不覆盖它——灰度期不买证书，
+            // 进包后被默认拉起（`NIBI_KERNEL=node` 或二进制缺失时回落 node 链路）。
             from: resolve(workspaceRoot, ".staging/rust-kernel"),
             to: "rust-kernel",
           },

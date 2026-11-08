@@ -6,6 +6,10 @@
 > 最后复核：2026-11-09（`dev` `c859572a`：macOS 系统代理、附件降级、**video 内容块**、topic 的
 > `relevant`/`handoff` 本地打分、Windows 上 TUI/CLI 旧测试清零）。**清单本身已无「未做」项**；
 > 剩下的都是刻意的实现差异，逐条列在文末「已知差异」。
+>
+> **2026-11-09 切默认**：桌面 agent 默认已从 node 改为 **rust**——`resolveKernelSelection` 只有显式
+> `NIBI_KERNEL=node` 才走 Node，未设（或拼错）都按 Rust；找不到 Rust 二进制时 `resolveDefaultZCodeAgentCommand`
+> 运行时回落到 node 链路。**回退开关：`NIBI_KERNEL=node`。**
 
 ## 结论摘要
 

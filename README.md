@@ -85,7 +85,7 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 > `kernel/` 是**独立的 Cargo workspace**，不进 pnpm/tsc 链（CI 门禁是 `cargo check --locked --workspace`
 > 加全量 `cargo test --locked --workspace`，见 `.github/workflows/rust-gates.yml`）。它能单独编译成
 > `nibi-rs`——CLI/TUI 与远端执行器是同一个二进制。
-> 桌面客户端的 agent 层默认仍是 Node，`NIBI_KERNEL=rust` 才走 Rust；两边的功能对照与已知差异在
+> 桌面客户端的 agent 层默认已是 Rust（`NIBI_KERNEL=node` 回退到 Node；没有内核二进制的机器自动回落）；两边的功能对照与已知差异在
 > [`docs/rust-kernel-function-parity.md`](docs/rust-kernel-function-parity.md)，改造台账在
 > [`kernel/CHANGELOG-FORK.md`](kernel/CHANGELOG-FORK.md)。
 

@@ -1236,7 +1236,14 @@ run 还欠着决定」——落 Rust。
 
 ## 10. 2026-11-09 模型选择的模式分流与 CI 全量测试
 
-### 10.1 `-p` 与交互模式的模型选择
+### 10.1 默认内核切到 Rust（2026-11-09）
+
+`resolveKernelSelection` 从「只有显式 `NIBI_KERNEL=rust` 才走 Rust」翻成「只有显式
+`NIBI_KERNEL=node` 才走 Node」，未设/拼错都按 Rust；`resolveDefaultZCodeAgentCommand` 找不到
+`nibi-rs` 时仍回落到 node 链路（没构建过内核的开发机、不带内核的精简包行为不变）。
+`packages/desktop/scripts/mcp-apps-host-e2e.mjs` 显式钉住两档，避免 Node 覆盖在切默认后静默消失。
+
+### 10.2 `-p` 与交互模式的模型选择
 
 `99e9746a`（「加供应商不用重启」）把所有「选不出模型」都换成了平台端口，`-p` 于是丢掉确切原因。
 现在 `models::assemble` 收 `interactive`：
@@ -1246,14 +1253,14 @@ run 还欠着决定」——落 Rust。
   一行 `Local::Info`，`App::carry` 让它在 `--resume` 的第一次切换后落到新视图顶上（`update_carry` 由
   `Option<UpdateInfo>` 泛化成 `Vec<Local>`）。
 
-### 10.2 全量测试进 CI（`rust-gates.yml`）
+### 10.3 全量测试进 CI（`rust-gates.yml`）
 
 同一 job 在 `cargo check` 之后跑 `cargo test --locked --workspace --no-fail-fast`（步骤超时 30 分钟；
 ubuntu runner 显式装 `zsh`，shell 选法测试要 `/bin/zsh`）。实测 **6m39s** 全绿。
 顺手修掉 `e1b49168` 留下的**重复 `macos-only:` YAML 键**——GitHub 因它拒收整份 workflow，
 `rust-gates` 从那天起 0 秒失败、门禁静默停摆。
 
-### 10.3 全量测试第一次跑 Linux 时暴露的 12 条既有死测试
+### 10.4 全量测试第一次跑 Linux 时暴露的 12 条既有死测试
 
 都是 `#![cfg(unix)]`、Windows 上编译不到的：
 

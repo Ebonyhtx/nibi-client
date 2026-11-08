@@ -14,7 +14,7 @@ const output = await mkdtemp(join(tmpdir(), "zcode-mcp-host-e2e-"));
 if (process.env.NIBI_MCP_E2E_DEBUG) console.error(`[e2e] output: ${output}`);
 const fixture = join(desktop, "scripts/mcp-apps-host-fixture");
 // `--rust`：宿主夹具改为拉起 Rust app-server（交互走 v4 pendingInteractions），
-// 用于补 §8.1.1 MCP Apps 的 Rust 真机链路。默认仍是 Node agent。
+// 用于补 §8.1.1 MCP Apps 的 Rust 真机链路。`--rust` 才强制 Rust（默认跟随内核选择）。
 const rustKernel = process.argv.includes("--rust");
 if (rustKernel) {
   await access(join(root, "kernel/target/debug/nibi-rs.exe"));
@@ -215,6 +215,8 @@ const modes =
 for (const mode of modes) {
   await new Promise((accept, reject) => {
     const env = { ...process.env };
+    // 默认内核已切 Rust：这里显式钉住两档，否则不带 `--rust` 也会跑到 Rust 上，Node 覆盖会静默消失。
+    env.NIBI_KERNEL = rustKernel ? "rust" : "node";
     if (rustKernel) env.NIBI_MCP_E2E_RUST_BIN = join(root, "kernel/target/debug/nibi-rs.exe");
     if (process.argv.includes("--chain-core-only")) env.NIBI_MCP_E2E_CORE_ONLY = "1";
     if (process.argv.includes("--photocraft-background-only")) {

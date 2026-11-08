@@ -443,11 +443,12 @@ function resolveElectronRuntimeZCodeAgentCommand(
 }
 
 /**
- * 灰度开关 `NIBI_KERNEL`（计划阶段 3 的入口）：只有显式 `rust` 才走 Rust 内核，未设、`node`
- * 或拼错都按 node。默认 node 是硬前置——命令门禁全绿之前不允许切默认。
+ * 内核选择 `NIBI_KERNEL`（切流后默认 Rust）：**只有显式 `node` 才走 Node**，未设（或拼错）都按
+ * Rust。Rust 二进制不存在时 `resolveDefaultZCodeAgentCommand` 会回落到 node 链路，所以没有构建过
+ * 内核的机器行为不变。回退开关：`NIBI_KERNEL=node`。
  */
 export function resolveKernelSelection(value: string | undefined): "node" | "rust" {
-  return value?.trim().toLowerCase() === "rust" ? "rust" : "node";
+  return value?.trim().toLowerCase() === "node" ? "node" : "rust";
 }
 
 /**
@@ -533,14 +534,14 @@ export function resolveDefaultZCodeAgentCommand(
     );
   }
 
-  // 灰度开关（`NIBI_KERNEL=rust`）：显式 env 覆盖之后、node 的各条位次之前。默认 node——
-  // 未设或拼错都落到下面的原链路，桌面行为与切流前逐字节相同。
+  // 内核选择（默认 Rust，`NIBI_KERNEL=node` 回退）：显式 env 覆盖之后、node 的各条位次之前。
+  // 找不到 Rust 二进制时落到下面的原链路（开发机没构建过内核、精简包不带内核）。
   if (resolveKernelSelection(process.env.NIBI_KERNEL) === "rust") {
     const rust = resolveRustZCodeAgentCommand(context);
     if (rust) {
       return applyPresentationSurfaceToCommand(rust, context.presentationSurface);
     }
-    debugLog("NIBI_KERNEL=rust but no Rust agent binary is available; falling back to the node kernel");
+    debugLog("no Rust agent binary is available; falling back to the node kernel");
   }
 
   // 顺序：env 显式覆盖 → monorepo dev 源码/dist（dev 改源码立刻生效，不会被远端历史装的 native binary
