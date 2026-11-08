@@ -95,11 +95,45 @@ pub(crate) fn attachment_note(mime: &str, label: &str) -> ContentBlock {
     }
 }
 
+/// 附件的 mime → 内容块的分法（Node `file-part-hydration.ts` 的同一顺序）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MediaKind {
+    /// `image/*` → [`ContentBlock::Image`]。
+    Image,
+    /// `application/pdf` → [`ContentBlock::Document`]。
+    Document,
+    /// `video/*` → [`ContentBlock::Video`]。
+    Video,
+    /// `text/*` → 文本块（≤64 KiB），超了留说明。
+    Text,
+    /// 其余（音频、任意二进制）：没有内容块，留一行说明。
+    Note,
+}
+
+/// mime 的分法；`;` 之后的参数先剥掉，不分大小写。
+pub(crate) fn media_kind(mime: &str) -> MediaKind {
+    let media = mime.split(';').next().unwrap_or("").trim().to_ascii_lowercase();
+    if media == "application/pdf" {
+        MediaKind::Document
+    } else if media.starts_with("video/") {
+        MediaKind::Video
+    } else if media.starts_with("image/") {
+        MediaKind::Image
+    } else if media.starts_with("text/") {
+        MediaKind::Text
+    } else {
+        MediaKind::Note
+    }
+}
+
 /// 命令里的附件（NIBI `AttachmentRef`）→ 模型内容块。
 ///
-/// 与 Node 同一条降级链（`file-part-hydration.ts`）：图片进 `Image`、PDF 进 `Document`、
-/// `text/*` 读成文本块（≤64 KiB）、其余（视频、音频、任意二进制）留一行 `[Attached …]` 说明。
+/// 与 Node 同一条分法（`file-part-hydration.ts`）：图片进 `Image`、PDF 进 `Document`、视频进 `Video`、
+/// `text/*` 读成文本块（≤64 KiB）、其余（音频、任意二进制）留一行 `[Attached …]` 说明。
 /// **没有一种类型会让整次发送失败**。附件按 Node 的排法放在正文之前。
+///
+/// 视频进 `Video` 块是 2026-11-08 补上的：端点没声明 `supportsVideo` 时由 `model::media` 在发送前换成
+/// Node 的占位文字，与图片/PDF 同一条规则（不发出去不代表拒绝接收）。
 ///
 /// 与 Node 的已知差异：引用读不出来时这里报 `attachmentUnreadable`，Node 会静默降级成占位文本。
 /// 报错是有意的——用户贴的截图不见了比一次明确的失败更难发现。
@@ -120,11 +154,9 @@ async fn attachment_blocks(
             .filter(|name| !name.is_empty())
             .or_else(|| reference["ref"].as_str().filter(|path| !path.is_empty()))
             .unwrap_or(mime);
-        // 视频与超长文本没有可用的内容块（内核还没有 `video` 变体）：不读内容，只留说明。
-        let inline = media.starts_with("image/")
-            || media.starts_with("text/")
-            || media == "application/pdf";
-        let Some(source) = attachment_source(reference).filter(|_| inline) else {
+        let kind = media_kind(mime);
+        // 音频与任意二进制没有可用的内容块：不读内容，只留说明。
+        let Some(source) = attachment_source(reference).filter(|_| kind != MediaKind::Note) else {
             blocks.push(attachment_note(mime, label));
             continue;
         };
@@ -137,27 +169,28 @@ async fn attachment_blocks(
                     error.to_string(),
                 )
             })?;
-        if media == "application/pdf" {
-            blocks.push(ContentBlock::Document {
-                source: ImageSource::Base64 {
-                    media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
-                    data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
-                },
+        // 借用而不是移动：文本分支还要原字节（`String::from_utf8_lossy`）。
+        let source = ImageSource::Base64 {
+            media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
+            data: base64::engine::general_purpose::STANDARD.encode(&loaded.bytes),
+        };
+        match kind {
+            MediaKind::Document => blocks.push(ContentBlock::Document {
+                source,
                 name: reference["fileName"].as_str().map(str::to_owned),
-            });
-        } else if media.starts_with("image/") {
-            blocks.push(ContentBlock::Image {
-                source: ImageSource::Base64 {
-                    media_type: loaded.media_type.unwrap_or_else(|| media.clone()),
-                    data: base64::engine::general_purpose::STANDARD.encode(loaded.bytes),
-                },
-            });
-        } else if loaded.bytes.len() <= TEXT_ATTACHMENT_MAX_BYTES {
-            blocks.push(ContentBlock::Text {
-                text: String::from_utf8_lossy(&loaded.bytes).into_owned(),
-            });
-        } else {
-            blocks.push(attachment_note(mime, label));
+            }),
+            MediaKind::Video => blocks.push(ContentBlock::Video {
+                source,
+                name: reference["fileName"].as_str().map(str::to_owned),
+            }),
+            MediaKind::Image => blocks.push(ContentBlock::Image { source }),
+            MediaKind::Text if loaded.bytes.len() <= TEXT_ATTACHMENT_MAX_BYTES => {
+                blocks.push(ContentBlock::Text {
+                    text: String::from_utf8_lossy(&loaded.bytes).into_owned(),
+                });
+            }
+            // 超长文本与 Note 一样只留说明。
+            MediaKind::Text | MediaKind::Note => blocks.push(attachment_note(mime, label)),
         }
     }
     Ok(blocks)

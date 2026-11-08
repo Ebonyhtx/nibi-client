@@ -108,6 +108,7 @@ pub(crate) fn block_kind(block: &ContentBlock) -> &'static str {
         ContentBlock::Text { .. } => "text",
         ContentBlock::Image { .. } => "image",
         ContentBlock::Document { .. } => "document",
+        ContentBlock::Video { .. } => "video",
         ContentBlock::Thinking { .. } => "thinking",
         ContentBlock::RedactedThinking { .. } => "redacted_thinking",
         ContentBlock::ToolUse { .. } => "tool_use",
@@ -131,6 +132,8 @@ fn append_user(ctx: &Commit<'_>, user: &UserMessage) -> Result<(), StoreError> {
             ContentBlock::Text { text } => texts.push(text.as_str()),
             ContentBlock::Image { source } => files.push((source, None)),
             ContentBlock::Document { source, name } => files.push((source, name.as_deref())),
+            // 用户贴的视频与图片同一个 `file` part（Node `persistUserPrompt` 对附件一视同仁，`mime` 区分）。
+            ContentBlock::Video { source, name } => files.push((source, name.as_deref())),
             other => return Err(unsupported(&format!("user {} block", block_kind(other)))),
         }
     }

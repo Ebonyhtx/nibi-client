@@ -662,10 +662,9 @@ async fn send_prompt_inlines_text_attachments() {
     assert!(matches!(&content[1], ContentBlock::Text { text } if text == "总结这个日志"));
 }
 
-/// 内核没有内容块可承载的附件类型（视频、任意文件）降级成一行说明，不让整次发送失败
-/// （Node `filePartToContentBlock` 的 `[Attached …]` 兜底）。
+/// 视频（旧载荷的 `kind: "video"`）进 `Video` 块（2026-11-08 起内核有了视频内容块）。
 #[tokio::test]
-async fn send_prompt_degrades_unsupported_attachment_kinds() {
+async fn send_prompt_turns_video_attachments_into_video_blocks() {
     let (server, sent, _created, _policies, _parents) = fake("sess_1");
     Handler(server)
         .request(
@@ -689,9 +688,43 @@ async fn send_prompt_degrades_unsupported_attachment_kinds() {
     };
     assert!(matches!(
         &content[0],
-        ContentBlock::Text { text } if text == "[Attached video/mp4: clip.mp4]"
+        ContentBlock::Video { source, name }
+            if matches!(source, nibi_kernel_api::message::ImageSource::Base64 { media_type, data }
+                if media_type == "video/mp4" && data == "aGVsbG8=")
+                && name.as_deref() == Some("clip.mp4")
     ));
     assert!(matches!(&content[1], ContentBlock::Text { text } if text == "看看这个"));
+}
+
+/// 音频之类的类型仍没有内容块：一行说明，不让整次发送失败（Node `[Attached …]` 兜底）。
+#[tokio::test]
+async fn send_prompt_degrades_attachments_without_a_block() {
+    let (server, sent, _created, _policies, _parents) = fake("sess_1");
+    Handler(server)
+        .request(
+            "session/send",
+            json!({
+                "sessionId": "sess_1",
+                "content": "听听这个",
+                "attachments": [{
+                    "kind": "file",
+                    "filename": "clip.wav",
+                    "mimeType": "audio/wav",
+                    "dataBase64": "aGVsbG8=",
+                }],
+            }),
+        )
+        .await
+        .unwrap();
+    let commands = sent.lock().unwrap();
+    let Command::SubmitContent { content, .. } = &commands[0].command else {
+        panic!("expected SubmitContent, got {:?}", commands[0].command);
+    };
+    assert!(matches!(
+        &content[0],
+        ContentBlock::Text { text } if text == "[Attached audio/wav: clip.wav]"
+    ));
+    assert!(matches!(&content[1], ContentBlock::Text { text } if text == "听听这个"));
 }
 
 #[tokio::test]

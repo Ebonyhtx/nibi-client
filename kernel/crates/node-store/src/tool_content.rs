@@ -68,9 +68,9 @@ pub fn store(
         .iter()
         .map(|block| match block {
             ToolResultContent::Text { text } => text.clone(),
-            ToolResultContent::Image { source } | ToolResultContent::Document { source } => {
-                placeholder(media_type(source))
-            }
+            ToolResultContent::Image { source }
+            | ToolResultContent::Document { source }
+            | ToolResultContent::Video { source } => placeholder(media_type(source)),
             // Node 没有 tool_reference：`output` 里是降级文本，Node 续写时按文本发给模型
             // （docs/specs/rust-cli/tools-more.md §3.6）。
             ToolResultContent::ToolReference { tool_name } => tool_reference_text(tool_name),
@@ -86,8 +86,10 @@ pub fn store(
                 .map(|block| match block {
                     ToolResultContent::Text { text } => json!({"type": "text", "text": text}),
                     // PDF 与图片同一写法（file part，mime 是 application/pdf；node-store.md §4.6，F24）。
+                    // 视频同：`video/*` 的 file part，冷读取按 mime 还原成 `Video` 块。
                     ToolResultContent::Image { source }
-                    | ToolResultContent::Document { source } => {
+                    | ToolResultContent::Document { source }
+                    | ToolResultContent::Video { source } => {
                         attachments.push(file_part(part_id(), owner, source, None));
                         json!({"type": "attachment", "attachmentIndex": attachments.len() - 1})
                     }
@@ -126,16 +128,26 @@ fn is_pdf(mime: &str) -> bool {
         .is_some_and(|base| base.trim().eq_ignore_ascii_case("application/pdf"))
 }
 
-/// Node `filePartToContentBlock` 的图片与 PDF 分支，加上本工程的 Artifact 引用。读不出时是 Node 的
+/// Node `isVideoMime`：`video/` 开头，不分大小写。
+fn is_video(mime: &str) -> bool {
+    mime.split(';')
+        .next()
+        .is_some_and(|base| base.trim().to_ascii_lowercase().starts_with("video/"))
+}
+
+/// Node `filePartToContentBlock` 的图片/PDF/视频分支，加上本工程的 Artifact 引用。读不出时是 Node 的
 /// 占位文本（Node 写的 artifact 媒体要读文件才能还原，冷读取不读 artifact）。
 ///
 /// 修 bug（F24）：以前只认图片，Read 整读 PDF 的 document 块（`application/pdf` 的 data URL）冷读取后变成
 /// `[Attached application/pdf: data:…]` 文字，续写时模型看不到文档；现在与 Node `isPdfMime` 分支一样还原。
+/// 视频同理（Node `isVideoMime`）：`video/*` 的 file part 还原成 `Video` 块。
 pub(crate) fn from_file_part(part: &Value) -> ToolResultContent {
     let mime = part["mime"].as_str().unwrap_or("");
     let media = |source: ImageSource| {
         if is_pdf(mime) {
             ToolResultContent::Document { source }
+        } else if is_video(mime) {
+            ToolResultContent::Video { source }
         } else {
             ToolResultContent::Image { source }
         }
@@ -159,6 +171,14 @@ pub(crate) fn from_file_part(part: &Value) -> ToolResultContent {
     {
         return media(ImageSource::Base64 {
             media_type: "application/pdf".to_owned(),
+            data: data.to_owned(),
+        });
+    }
+    if let Some((_, data)) = inline
+        && is_video(mime)
+    {
+        return media(ImageSource::Base64 {
+            media_type: mime.to_owned(),
             data: data.to_owned(),
         });
     }

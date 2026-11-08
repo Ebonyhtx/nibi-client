@@ -93,10 +93,27 @@ struct Sandbox {
     work: PathBuf,
 }
 
+/// 去掉 Windows `canonicalize` 给的 `\\?\` 前缀（POSIX 上原样返回）。
+fn strip_verbatim(path: PathBuf) -> PathBuf {
+    #[cfg(windows)]
+    {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+            return PathBuf::from(format!(r"\\{rest}"));
+        }
+        if let Some(rest) = text.strip_prefix(r"\\?\") {
+            return PathBuf::from(rest.to_owned());
+        }
+    }
+    path
+}
+
 impl Sandbox {
     fn new() -> Self {
         let dir = tempfile::tempdir().unwrap();
-        let base = std::fs::canonicalize(dir.path()).unwrap();
+        // Windows 的 `canonicalize` 给 `\\?\C:\…`；CLI 的路径解析（`PathStyle::Windows`）会去掉这个前缀，
+        // 期望值要按同样的写法拼，否则报错文字里多出 `\\?\`。
+        let base = strip_verbatim(std::fs::canonicalize(dir.path()).unwrap());
         let (home, work) = (base.join("home"), base.join("work"));
         std::fs::create_dir_all(&home).unwrap();
         std::fs::create_dir_all(&work).unwrap();

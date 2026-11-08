@@ -30,6 +30,9 @@ pub(crate) enum Part {
         url: String,
         name: Option<String>,
     },
+    /// 用户贴的视频：Chat Completions 写成 `{type:"video_url", video_url:{url}}`（Node 的
+    /// `@ai-sdk/openai-compatible` 补丁同一形状）；Responses 没有对应物，那边报不支持。
+    Video(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -112,6 +115,7 @@ pub(crate) fn items(
                         | ContentBlock::WebSearchToolResult { .. } => {}
                         ContentBlock::Image { .. }
                         | ContentBlock::Document { .. }
+                        | ContentBlock::Video { .. }
                         | ContentBlock::ToolResult { .. } => {
                             return Err(invalid(
                                 "assistant messages carry only text and tool calls",
@@ -148,6 +152,8 @@ fn user(
                 url: data_url(source)?,
                 name,
             }),
+            // 用户贴的视频：Chat Completions 的 `video_url` 片段（Responses 由编码方拒绝）。
+            ContentBlock::Video { source, .. } => parts.push(Part::Video(data_url(source)?)),
             ContentBlock::ToolResult {
                 tool_use_id,
                 content,
@@ -166,6 +172,11 @@ fn user(
                                 url: data_url(source)?,
                                 name: None,
                             });
+                        }
+                        // 视频与图片一样挪进紧随的 user 片段（Node 的 tool_media 对含视频的结果强制 textify
+                        // + 后置投影，原因相同：OpenAI 的 tool 消息只能放文本）。
+                        ToolResultContent::Video { source } => {
+                            images.push(Part::Video(data_url(source)?));
                         }
                         // OpenAI 没有 tool_reference：降成文本（model.md §10）。
                         ToolResultContent::ToolReference { tool_name } => {

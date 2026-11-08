@@ -277,3 +277,119 @@ async fn a_topic_attachment_is_materialized_as_a_session_artifact() {
         .unwrap();
     assert!(tool_text(&output).contains("nibi-artifact://sess_1/tool-result-2"));
 }
+
+/// 断词（Node `tokenizeQuery`）：小写、ASCII 词与汉字串；长度 < 2 的丢掉，汉字串补二字切片。
+#[test]
+fn query_terms_follow_the_node_tokenizer() {
+    assert_eq!(tokenize_query("Deploy FAILED"), ["deploy", "failed"]);
+    // 单字符丢掉（`< 2` 的规则）；`a.b/c-d` 是同一个词（Node 的 `[a-z0-9_./-]+`）。
+    assert!(tokenize_query("a x").is_empty());
+    assert_eq!(tokenize_query("src/a.rs"), ["src/a.rs"]);
+    // 汉字串：整串与所有二字切片都要（Node 的 `match.slice(i, i + 2)`）。
+    let terms = tokenize_query("部署失败");
+    assert!(terms.contains(&"部署失败".to_owned()), "{terms:?}");
+    assert!(terms.contains(&"部署".to_owned()), "{terms:?}");
+    assert!(terms.contains(&"署失".to_owned()), "{terms:?}");
+    assert!(terms.contains(&"失败".to_owned()), "{terms:?}");
+    // 两个汉字只给整串，不补切片。
+    assert_eq!(tokenize_query("部署"), ["部署"]);
+}
+
+/// 打分（Node `scoreSearchText`）：整句命中加 20，每个命中的词加 `3 + min(次数, 5)`。
+#[test]
+fn scores_follow_the_node_weights() {
+    let terms = tokenize_query("deploy");
+    assert_eq!(score_search_text("nothing here", "deploy", &terms), 0.0);
+    // 整句（就是这个词）命中 20，词本身再 3 + 1。
+    assert_eq!(score_search_text("deploy failed", "deploy", &terms), 24.0);
+    // 整句不在、只有词在：3 + 1。
+    assert_eq!(score_search_text("please redeploy it", "deploy now", &terms), 4.0);
+    // 出现 7 次也只加 5（整句 `deploy` 也命中，所以再加 20）。
+    let many = "deploy deploy deploy deploy deploy deploy deploy";
+    assert_eq!(score_search_text(many, "deploy", &terms), 20.0 + 3.0 + 5.0);
+    // 整句命中再加 20。
+    assert_eq!(
+        score_search_text("please deploy now", "please deploy", &terms),
+        20.0 + 4.0
+    );
+}
+
+/// `relevant`：命中的片段排在前面（Node 的 20 分整句命中 + 每词 3 分），只看时间序会拿到无关的尾部。
+#[tokio::test]
+async fn relevant_context_picks_the_matching_messages() {
+    let snapshot = SessionSnapshot {
+        messages: vec![
+            user("u1", "we discussed the deploy pipeline earlier"),
+            user("u2", "lunch plans"),
+            user("u3", "another unrelated message"),
+        ],
+        intents: Vec::new(),
+    };
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "deploy pipeline", "strategy": "relevant", "sessionId": "sess_other"}),
+            context(Arc::new(MemoryArtifacts::default())),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    assert!(text.contains("deploy pipeline"), "{text}");
+    assert!(!text.contains("lunch plans"), "{text}");
+    assert!(!text.contains("another unrelated message"), "{text}");
+}
+
+/// `handoff` 不看命中：从最后一条往前取满预算（Node `selectTailWithinBudget`）。
+#[tokio::test]
+async fn handoff_context_is_the_tail() {
+    let snapshot = SessionSnapshot {
+        messages: vec![
+            user("u1", "early deploy note"),
+            user("u2", "middle"),
+            user("u3", "last words"),
+        ],
+        intents: Vec::new(),
+    };
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "deploy", "strategy": "handoff", "sessionId": "sess_other"}),
+            context(Arc::new(MemoryArtifacts::default())),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    // 预算足够时三条都在，顺序是时间序。
+    assert!(text.contains("early deploy note"), "{text}");
+    assert!(text.contains("last words"), "{text}");
+    let early = text.find("early deploy note").unwrap();
+    let last = text.find("last words").unwrap();
+    assert!(early < last, "{text}");
+}
+
+/// 一个词都不命中时退化成最后 12 条（Node 的兜底），不是空结果。
+#[tokio::test]
+async fn relevant_context_falls_back_to_the_tail_without_a_match() {
+    let messages: Vec<Message> = (0..20)
+        .map(|index| user(&format!("u{index}"), &format!("message {index}")))
+        .collect();
+    let snapshot = SessionSnapshot {
+        messages,
+        intents: Vec::new(),
+    };
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "nothing matches this", "strategy": "relevant", "sessionId": "sess_other"}),
+            context(Arc::new(MemoryArtifacts::default())),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    assert!(text.contains("message 19"), "{text}");
+    assert!(text.contains("message 8"), "{text}");
+    assert!(!text.contains("message 7"), "{text}");
+}

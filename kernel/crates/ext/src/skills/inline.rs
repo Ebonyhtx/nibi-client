@@ -118,6 +118,7 @@ fn text_of(content: &[ToolResultContent]) -> String {
             ToolResultContent::Text { text } => Some(text.as_str()),
             ToolResultContent::Image { .. }
             | ToolResultContent::Document { .. }
+            | ToolResultContent::Video { .. }
             | ToolResultContent::ToolReference { .. } => None,
         })
         .collect::<Vec<_>>()

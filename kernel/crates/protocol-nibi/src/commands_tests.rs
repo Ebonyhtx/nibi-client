@@ -351,13 +351,33 @@ fn attachment_source_reads_artifact_and_path_refs() {
     assert!(attachment_source(&json!({"ref": "", "mime": "image/png"})).is_none());
 }
 
-/// 模型看不到内容的附件留一行说明（Node 的 `[Attached <mime>: <label>]`）。
+/// mime → 内容块的分法（Node `file-part-hydration.ts` 的同一顺序）。
+#[test]
+fn media_kinds_follow_the_node_order() {
+    for (mime, kind) in [
+        ("image/png", MediaKind::Image),
+        ("image/jpeg; charset=binary", MediaKind::Image),
+        ("application/pdf", MediaKind::Document),
+        ("Application/PDF; q=1", MediaKind::Document),
+        ("video/mp4", MediaKind::Video),
+        ("VIDEO/WEBM", MediaKind::Video),
+        ("text/plain; charset=utf-8", MediaKind::Text),
+        ("text/markdown", MediaKind::Text),
+        ("audio/wav", MediaKind::Note),
+        ("application/octet-stream", MediaKind::Note),
+        ("", MediaKind::Note),
+    ] {
+        assert_eq!(media_kind(mime), kind, "{mime:?}");
+    }
+}
+
+/// 模型看不到内容的附件留一行说明（Node 的 `[Attached <mime>: <label>]`）：音频与任意二进制走这条。
 #[test]
 fn attachment_notes_name_the_type_and_the_file() {
     assert_eq!(
-        attachment_note("video/mp4", "demo.mp4"),
+        attachment_note("audio/wav", "clip.wav"),
         ContentBlock::Text {
-            text: "[Attached video/mp4: demo.mp4]".to_owned()
+            text: "[Attached audio/wav: clip.wav]".to_owned()
         }
     );
 }

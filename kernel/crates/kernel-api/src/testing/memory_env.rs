@@ -151,6 +151,11 @@ impl MemoryEnvironment {
         lock(&self.files).insert(path.to_owned(), text.as_bytes().to_vec());
     }
 
+    /// 二进制文件（图片、视频、PDF 的夹具）：原样放进文件表。
+    pub fn set_bytes(&self, path: &str, bytes: &[u8]) {
+        lock(&self.files).insert(path.to_owned(), bytes.to_vec());
+    }
+
     pub fn remove_file(&self, path: &str) {
         lock(&self.files).remove(path);
     }

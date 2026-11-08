@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 use crossterm::event::{KeyCode, KeyModifiers};
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
-use ratatui::style::Color;
 use nibi_kernel_api::model::ModelError;
 use nibi_kernel_api::testing::text_response;
 use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};

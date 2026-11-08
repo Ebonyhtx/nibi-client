@@ -282,3 +282,58 @@ fn user_documents_lower_to_file_parts_with_their_name() {
         ])]
     );
 }
+
+/// 用户贴的视频：Chat Completions 的 `video_url` 片段（Node `@ai-sdk/openai-compatible` 补丁同一形状）。
+#[test]
+fn user_videos_lower_to_video_url_parts() {
+    let messages = vec![message(
+        ApiRole::User,
+        vec![
+            text("what happens here"),
+            ContentBlock::Video {
+                source: ImageSource::Base64 {
+                    media_type: "video/mp4".to_owned(),
+                    data: "AAAAIGZ0eXA=".to_owned(),
+                },
+                name: Some("clip.mp4".to_owned()),
+            },
+        ],
+    )];
+    assert_eq!(
+        items(Vec::new(), messages).unwrap(),
+        vec![Item::User(vec![
+            Part::Text("what happens here".to_owned()),
+            Part::Video("data:video/mp4;base64,AAAAIGZ0eXA=".to_owned()),
+        ])]
+    );
+}
+
+/// Read 整读视频的结果：与图片一样挪进紧随的 user 片段（OpenAI 的 tool 消息只能放文本）。
+#[test]
+fn tool_result_videos_move_into_the_following_user_part() {
+    let messages = vec![message(
+        ApiRole::User,
+        vec![ContentBlock::ToolResult {
+            tool_use_id: ToolUseId::new("toolu_1"),
+            content: vec![ToolResultContent::Video {
+                source: ImageSource::Base64 {
+                    media_type: "video/webm".to_owned(),
+                    data: "AAAAIGZ0eXA=".to_owned(),
+                },
+            }],
+            is_error: false,
+        }],
+    )];
+    assert_eq!(
+        items(Vec::new(), messages).unwrap(),
+        vec![
+            Item::ToolResult {
+                call_id: "toolu_1".to_owned(),
+                output: String::new(),
+            },
+            Item::User(vec![Part::Video(
+                "data:video/webm;base64,AAAAIGZ0eXA=".to_owned()
+            )]),
+        ]
+    );
+}

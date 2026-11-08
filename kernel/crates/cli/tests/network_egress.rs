@@ -138,6 +138,10 @@ fn zcode_variables_win_over_the_standard_ones() {
     assert_eq!(standard_proxy.targets(), Vec::<String>::new());
 }
 
+/// `https_proxy` 优先于 `HTTPS_PROXY`，且 CA 文件被信任。
+///
+/// Windows 上两个字母大小写是**同一个**变量（`_wputenv` 不分大小写），无法同时给出两个值：那里只验证
+/// 「标准变量生效」与 CA 被信任，先后顺序由 POSIX 的用例覆盖。
 #[test]
 fn standard_variables_route_through_the_proxy_and_add_the_ca() {
     let pki = egress::pki("extra");
@@ -146,15 +150,22 @@ fn standard_variables_route_through_the_proxy_and_add_the_ca() {
     let upper = egress::connect_proxy();
     let s = sandbox();
     let ca = s.write("extra-ca.pem", &pki.ca_pem);
-    let output = s.run(
-        &model.url(),
-        &[
-            // 顺序：https_proxy → HTTPS_PROXY → http_proxy → HTTP_PROXY。
-            ("https_proxy", &lower.url()),
-            ("HTTPS_PROXY", &upper.url()),
-            ("NODE_EXTRA_CA_CERTS", &ca),
-        ],
-    );
+    #[cfg(not(windows))]
+    let vars = [
+        // 顺序：https_proxy → HTTPS_PROXY → http_proxy → HTTP_PROXY。
+        ("https_proxy", lower.url()),
+        ("HTTPS_PROXY", upper.url()),
+        ("NODE_EXTRA_CA_CERTS", ca),
+    ];
+    #[cfg(windows)]
+    let vars = [
+        // 同一个变量：后设的生效（`lower` 与 `upper` 只留一个）。
+        ("HTTPS_PROXY", lower.url()),
+        ("NODE_EXTRA_CA_CERTS", ca),
+    ];
+    let vars: Vec<(&str, String)> = vars.into_iter().collect();
+    let vars: Vec<(&str, &str)> = vars.iter().map(|(k, v)| (*k, v.as_str())).collect();
+    let output = s.run(&model.url(), &vars);
     succeeded(&output);
     tunnelled(&lower, &model);
     assert_eq!(upper.targets(), Vec::<String>::new());

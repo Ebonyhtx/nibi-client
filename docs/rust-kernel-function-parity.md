@@ -104,8 +104,13 @@
 
 ### 3.3 已知差异
 
-1. `relevant` / `handoff` 只给**按时间序的尾部窗口**：Node 会按 query 打分选块，并可经 lite 模型抽取
-   （`source: "lite"`）。Rust 的 `source` 恒为 `"local"`（Node 在没有 lite 模型时的合法取值）。
+1. `relevant` / `handoff` 的**选片已按 Node 的本地口径实现**（`tools/src/topic_tools.rs`）：
+   `tokenizeQuery`（小写、`[a-z0-9_./-]+` 与汉字串、长度 ≥ 2、汉字补二字切片）、
+   `scoreSearchText`（整句命中 +20，每个词 `3 + min(次数, 5)`）、`handoff` 从尾部取满预算、
+   `relevant` 取分数 ≥ 3 的片段按分数降序、一个都不命中时退最后 12 条；同分用 `index/10000` 的
+   稳定顺序。**仍差的是 lite 模型抽取**（`source: "lite"`）：内核没有辅助模型调用通道，
+   `source` 恒为 `"local"`（Node 在没有 lite 模型时的合法取值），所以大会话的召回上限就是本地
+   打分——不比 Node 差，只是没有那一步摘要。
 2. 话题归档的 token 估算是字符数 / 4（Node 用 `estimateTokens`）；分页大小、匹配规则（id 相等或
    小写包含）、`coverage` 文案与 `nextCursor` 语义相同。
 3. 话题附件物化成会话 artifact 而不是受管本机路径（Rust 的 Read 认 `nibi-artifact://…`）。
@@ -327,9 +332,13 @@ redirectPath)[0..24]>:authorization_credentials`）；
    用 `pendingInteractions` 增量表达」，都不影响倒计时。
 4. CUA 的 `v4/cua/permission-observation` 在 Node 当前表面下也不可达，不算 Rust 缺口；
    `computer-use/operation-event` 已由 Rust 发出（§5.4）。
-5. 附件已按 Node 的降级链对齐：图片 `Image`、PDF `Document`、`text/*` 文本块（≤64 KiB）、
-   其余（视频、音频、任意二进制）一行 `[Attached <mime>: <label>]`，**没有类型会让整次发送失败**。
-   仍差两处：内核还没有 `video` 内容块（Node 会把视频直接送模型），以及引用读不出来时 Rust 报
+5. 附件已按 Node 的降级链对齐：图片 `Image`、PDF `Document`、**视频 `Video`**、`text/*` 文本块
+   （≤64 KiB）、其余（音频、任意二进制）一行 `[Attached <mime>: <label>]`，**没有类型会让整次发送失败**。
+   视频在 2026-11-08 补齐：`ContentBlock::Video` 与 `ToolResultContent::Video` 已进 canonical 模型，
+   Anthropic 形状的 `{type:"video", source}` 与 OpenAI 兼容的 `video_url` 都已投影，Read 工具也能读
+   `mp4/m4v/mov/webm/mkv/avi`（30 MiB 上限，与 Node `VIDEO_INPUT_MAX_BYTES` 同）；端点没有
+   `supportsVideo` 时按 Node 的 `video input` 占位降级。**Responses 协议没有视频片段**，在这条协议上
+   报不支持（Node 的 AI SDK 同样只放行 PDF）。剩下的差异只有一条：引用读不出来时 Rust 报
    `attachmentUnreadable`（Node 静默降级成占位文本；Rust 选择明确报错，见 §13）。
    冷恢复的 `additionalDirectories` 不是差异：内核两条冷恢复通道都认这个参数，缺的是 Host
    冷开时没带（Node 侧同样只给 `createSession`，见 §4 表格）。
@@ -437,9 +446,31 @@ Rust 原来只有 Windows（`system_proxy()` 在非 Windows 直接返回 `None`�
 
 v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachment_blocks`）同一条分法：
 
-- 图片 → `Image`，PDF → `Document`，`text/*` → 文本块（≤64 KiB，Node `INLINE_TEXT_ATTACHMENT_MAX_BYTES`），
-- 其余（视频、音频、任意二进制）→ 一行 `[Attached <mime>: <label>]`，**不再让整次发送失败**。
-- 视频仍只留一行说明：内核还没有 `video` 内容块（`ContentBlock` 只有 Text/Image/Document），读进来也送不进
-  模型。后续要补的是变体 + 三种协议投影。
+- 图片 → `Image`，PDF → `Document`，视频 → `Video`，
+  `text/*` → 文本块（≤64 KiB，Node `INLINE_TEXT_ATTACHMENT_MAX_BYTES`），
+- 其余（音频、任意二进制）→ 一行 `[Attached <mime>: <label>]`，**没有类型会让整次发送失败**。
+- 视频在 2026-11-08 补齐（见 §13.3）：`ContentBlock::Video` / `ToolResultContent::Video` 两种变体、
+  三种协议的投影、落库与冷恢复都在；端点没有 `supportsVideo` 时按 Node 的 `video input` 占位降级
+  （`model::media::project`，与图片/PDF 同一条规则）。
 - 引用读不出来（artifact 过期、文件被移走）报 `fault.command.attachmentUnreadable`：Node 会静默降级成占位
   文本，这里明确报错——用户贴的截图无声消失比一次失败更难发现（有意保留的差异）。
+
+### 13.3 视频内容块（2026-11-08 补齐）
+
+- **canonical 模型**：`ContentBlock::Video { source, name }`（用户贴的附件）与
+  `ToolResultContent::Video { source }`（Read 整读视频的结果）。两者都是 base64 或 Artifact 引用，
+  写法与图片同。
+- **三种协议**：Anthropic 形状 `{type:"video", source:{type:"base64", media_type, data}}`（与 Node 的
+  `@ai-sdk/anthropic` 补丁同形）；OpenAI Chat Completions 写 `{type:"video_url", video_url:{url}}`
+  （data URL，Node 的 `@ai-sdk/openai-compatible` 补丁同形）；**OpenAI Responses 报不支持**——那边
+  只有 `input_file`（只放行 PDF），Node 同样发不出去。
+- **工具结果里的视频**挪进紧随的 user 片段（OpenAI 的 tool 消息只能放文本；Node 的
+  `tool-result-media-projection` 对含视频的结果强制 textify + 后置投影，原因相同）。
+- **能力门**：`ModelEndpoint::supports_video`（Provider 配置的 `inputFormat.supportsVideo`）为假时，
+  发送前换成 `[Attached <mime>]` + `...does not support video input.`（Node
+  `createUnsupportedModelInputMediaText` 同一句）。
+- **Read**：`kernel-api::video` 的扩展名表（mp4/m4v/mov/webm/mkv/avi → mime，与 Node
+  `inferVideoMimeFromPath` 同一份），上限 30 MiB（Node `VIDEO_INPUT_MAX_BYTES`）；不转码、不抽帧。
+- **落库与冷恢复**：user 消息写成 Node 的 `file` part（`mime: video/*`），冷读取按 mime 还原成
+  `Video` 块；工具结果走 `modelContentLayout` 的 attachment 项，同一套。
+- **压缩估量**：视频与图片同一档（`IMAGE_TOKENS`），不按 base64 字节数算（否则一两个视频就能把历史撑满）。

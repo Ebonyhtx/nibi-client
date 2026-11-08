@@ -154,7 +154,9 @@ fn kernel_content(content: &[ToolResultContent]) -> Value {
                 source: ImageSource::Base64 { media_type, data },
             } => json!({"type": "image", "mediaType": media_type,
                 "dataUrl": format!("data:{media_type};base64,{data}")}),
-            ToolResultContent::Image { source } | ToolResultContent::Document { source } => {
+            ToolResultContent::Image { source }
+            | ToolResultContent::Document { source }
+            | ToolResultContent::Video { source } => {
                 panic!("unexpected media {source:?}")
             }
             ToolResultContent::ToolReference { tool_name } => panic!("unexpected {tool_name}"),

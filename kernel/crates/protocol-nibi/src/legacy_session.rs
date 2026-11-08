@@ -592,7 +592,7 @@ async fn mutation_snapshot(
 ///
 /// 与 v4 的 `AttachmentRef` 不是同一种形状：这里读 `kind` / `mimeType` / `localPath` /
 /// `dataBase64`。分法与 Node 的 `filePartToContentBlock` 一致：图片 `Image`、PDF `Document`、
-/// `text/*` 读成文本块（≤64 KiB），其余（视频、任意文件）留一行 `[Attached …]` 说明——
+/// 视频 `Video`、`text/*` 读成文本块（≤64 KiB），其余（音频、任意文件）留一行 `[Attached …]` 说明——
 /// 没有一种类型会让整次发送失败。
 async fn attachment_blocks(
     server: &Server,
@@ -613,9 +613,10 @@ async fn attachment_blocks(
             .unwrap_or(mime);
         let is_pdf = kind == "pdf" || media == "application/pdf";
         let is_image = kind == "image" || media.starts_with("image/");
-        let is_text = !is_pdf && !is_image && media.starts_with("text/");
-        if !is_pdf && !is_image && !is_text {
-            // 视频与任意文件：内核没有对应内容块，与 Node 一样留一行说明。
+        let is_video = kind == "video" || media.starts_with("video/");
+        let is_text = !is_pdf && !is_image && !is_video && media.starts_with("text/");
+        if !is_pdf && !is_image && !is_video && !is_text {
+            // 音频与任意文件：内核没有对应内容块，与 Node 一样留一行说明。
             blocks.push(crate::commands::attachment_note(mime, label));
             continue;
         }
@@ -718,6 +719,11 @@ async fn attachment_blocks(
         };
         blocks.push(if is_pdf {
             ContentBlock::Document {
+                source: nibi_kernel_api::message::ImageSource::Base64 { media_type, data },
+                name: attachment["filename"].as_str().map(str::to_owned),
+            }
+        } else if is_video {
+            ContentBlock::Video {
                 source: nibi_kernel_api::message::ImageSource::Base64 { media_type, data },
                 name: attachment["filename"].as_str().map(str::to_owned),
             }

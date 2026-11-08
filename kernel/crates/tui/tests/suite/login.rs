@@ -2,7 +2,7 @@
 //! transcript；esc 发取消、回到选项；授权完成后提示结果并切到新模型；手工 key 只显示 `•`、不进输入历史。
 use std::sync::{Arc, Mutex};
 
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::KeyCode;
 use futures_util::FutureExt;
 use futures_util::future::BoxFuture;
 use nibi_kernel_api::testing::text_response;

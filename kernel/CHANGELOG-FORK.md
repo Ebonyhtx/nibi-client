@@ -1189,3 +1189,47 @@ run 还欠着决定」——落 Rust。
     `Path` + `normalize`；update 的注册表用例改用当前包名（`@nibi/cli`、`@nibi-studio/cli-*`）。
 - **顺带修掉一个真 bug**：等待 NIBI 授权那页的帮助文字直接走了 `dim()`，`{Esc}` 原样显示在界面上
   （`crates/tui/src/ui/login.rs`）；现在过 `key_hint` 渲染。
+
+### 9.4 视频内容块（附件与 Read）
+
+- canonical 模型加两种变体：`ContentBlock::Video { source, name }`（用户贴的）与
+  `ToolResultContent::Video { source }`（Read 整读视频）。
+- 三种协议：Anthropic 形状 `{type:"video", source}`；OpenAI Chat Completions 的
+  `{type:"video_url", video_url:{url}}`；**Responses 报不支持**（那边只有 `input_file`，Node 同样发不出去）。
+  工具结果里的视频挪进紧随的 user 片段（OpenAI 的 tool 消息只能放文本，Node 对含视频的结果做同一件事）。
+- 能力门：端点没有 `supportsVideo` 时按 Node 的 `video input` 占位降级（`model::media::project`）。
+- 附件：v4 与 legacy 两条路径的 `video/*` 进 `Video` 块（以前只留一行说明）；音频与任意二进制仍留说明。
+- Read：`kernel-api::video` 的扩展名表与 30 MiB 上限（Node `inferVideoMimeFromPath` /
+  `VIDEO_INPUT_MAX_BYTES` 同一份），`read_video` 原样内联、不转码。
+- 落库与冷恢复：user 消息写 Node 的 `file` part（`mime: video/*`），冷读取按 mime 还原；
+  工具结果走 `modelContentLayout` 的 attachment 项。压缩估量按图片那一档算。
+- 单测：`model` 的三种协议投影与占位降级、`node-store` 的往返、`protocol-nibi` 的 mime 分法、
+  `tools` 的 Read 视频与扩展名映射。
+
+### 9.5 topic 的 relevant / handoff 按 Node 的本地口径打分
+
+- 以前只给按时间序的尾部窗口。现在与 Node `session-context/read-session-context.ts` 同一套：
+  `tokenizeQuery`（小写、`[a-z0-9_./-]+` 与汉字串、长度 ≥ 2、汉字补二字切片）、
+  `scoreSearchText`（整句命中 +20，每个词 `3 + min(次数, 5)`）、`handoff` 从尾部取满预算、
+  `relevant` 取分数 ≥ 3 的按分数降序、全不命中退最后 12 条，同分用 `index/10000` 稳定。
+- **仍不做 lite 模型抽取**（`source: "lite"`）：内核没有辅助模型调用通道，`source` 恒为 `"local"`
+  （Node 在没有 lite 模型时的合法取值）。
+- 单测：断词、权重、命中优先、handoff 取尾、无命中的兜底。
+
+### 9.6 顺带修掉的既有失败（与上面无关，但门禁要全绿）
+
+- **`--append-system-prompt-file` / `--settings` / `--add-dir` 的报错**：Windows 的
+  `std::fs::canonicalize` 给 `\?\C:\…`，CLI 的路径解析会去掉前缀，测试夹具也去掉（`cli_args.rs`）。
+- **`config_files` 的项目模式测试**：同上，`workspace(...)` 要按无前缀的写法拼。
+- **`run_log` / `time_zone`**：日志文件前缀早就是 `nibi-`（品牌化），期望还写 `zcode-`。
+- **`env_names` 的 Anthropic 变量用例**：启动时目录为空不再锁死模型端口（`/provider` 现加现用），
+  提示变成平台层的「配置 Provider 或登录」，断言改成看这一句且不含 `ANTHROPIC`。
+- **`network_egress` 的标准变量顺序**：Windows 上 `https_proxy` 与 `HTTPS_PROXY` 是同一个变量，
+  无法同时给两个值；只在 POSIX 上验证先后。
+- **`server_blocks`**：缺 `keep_system()`（Windows 上 Winsock 起不来，os error 10106）；夹具的
+  `notes.txt` 路径带 verbatim 前缀，工作区判定不认它（提示「未授权读取」）。
+- **`storage_paths`**：配置里写的路径带 verbatim 前缀时，库落到了同一目录的另一种写法下。
+- **`plan_mode_flow`**：期望的计划路径用 `.nibi/plans` 一整个 join，Windows 上是混合分隔符。
+- **`executor-host` 的 `facts` 契约**：Windows 上 `os_version` 以前恒为空（环境段少一行）。
+  现在按 Node 的 `${platform} ${os.release()} ${arch()}` 给出，Windows 用 `RtlGetVersion` 的
+  `major.minor.build`。

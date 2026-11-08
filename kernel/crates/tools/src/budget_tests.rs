@@ -44,6 +44,7 @@ fn first(output: &ToolOutput) -> &str {
         ToolResultContent::Text { text } => text,
         ToolResultContent::Image { .. }
         | ToolResultContent::Document { .. }
+        | ToolResultContent::Video { .. }
         | ToolResultContent::ToolReference { .. } => "",
     }
 }

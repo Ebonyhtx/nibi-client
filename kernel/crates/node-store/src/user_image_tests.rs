@@ -164,3 +164,52 @@ async fn attachment_blocks_round_trip_as_parts_after_the_text() {
     let loaded = t.store.load(&SessionId::new("sess_1")).await.unwrap();
     assert_eq!(loaded.messages, vec![human, attachment]);
 }
+
+/// 用户贴的视频（Node `file` part，mime 是 `video/*`）：与图片同一条 `file` part，冷读取还原成
+/// `Video` 块（Node `filePartToContentBlock` 的 video 分支）。
+#[tokio::test]
+async fn pasted_videos_round_trip_as_node_file_parts() {
+    let t = TestStore::new();
+    started(&t, "sess_1").await;
+    let video = ContentBlock::Video {
+        source: ImageSource::Base64 {
+            media_type: "video/mp4".into(),
+            data: "AAAAIGZ0eXA=".into(),
+        },
+        name: Some("clip.mp4".into()),
+    };
+    let message = Message::User(UserMessage {
+        id: MessageId::new("msg_ru_v1"),
+        content: vec![
+            ContentBlock::Text {
+                text: "summarize the clip".into(),
+            },
+            video,
+        ],
+        origin: UserOrigin::Human,
+    });
+    t.store
+        .commit(
+            &SessionId::new("sess_1"),
+            batch(
+                Some("cmd"),
+                vec![Fact::MessageAppended {
+                    message: message.clone(),
+                }],
+            ),
+        )
+        .await
+        .unwrap();
+    let parts = t.rows("select data from part where message_id = 'msg_ru_v1' order by sequence");
+    let file: Value = parts
+        .iter()
+        .filter_map(|row| row[0].as_str())
+        .map(|data| serde_json::from_str::<Value>(data).unwrap())
+        .find(|part| part["type"] == "file")
+        .expect("a file part");
+    assert_eq!(file["mime"], "video/mp4");
+    assert_eq!(file["filename"], "clip.mp4");
+    assert_eq!(file["url"], "data:video/mp4;base64,AAAAIGZ0eXA=");
+    let loaded = t.store.load(&SessionId::new("sess_1")).await.unwrap();
+    assert_eq!(loaded.messages, vec![message]);
+}

@@ -84,6 +84,7 @@ pub(crate) fn output_text(output: &ToolOutput) -> String {
             ToolResultContent::Text { text } => text.clone(),
             ToolResultContent::Image { .. } => "<image>".to_owned(),
             ToolResultContent::Document { .. } => "<document>".to_owned(),
+            ToolResultContent::Video { .. } => "<video>".to_owned(),
             ToolResultContent::ToolReference { tool_name } => format!("<ref:{tool_name}>"),
         })
         .collect::<Vec<_>>()

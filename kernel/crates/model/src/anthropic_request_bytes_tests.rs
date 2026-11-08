@@ -173,6 +173,9 @@ mod reference {
                 }
                 block
             }
+            ContentBlock::Video { source, .. } => {
+                object([("type", text("video")), ("source", image_source(source)?)])
+            }
             ContentBlock::Thinking {
                 thinking,
                 signature,
@@ -247,6 +250,10 @@ mod reference {
             }
             ToolResultContent::Document { source } => object([
                 ("type", text("document")),
+                ("source", image_source(source)?),
+            ]),
+            ToolResultContent::Video { source } => object([
+                ("type", text("video")),
                 ("source", image_source(source)?),
             ]),
             // ToolSearch 的结果（docs/specs/rust-cli/tools-more.md §3.6）。

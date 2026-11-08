@@ -131,6 +131,7 @@ pub mod unparsed_input;
 pub mod usage;
 pub mod user_command;
 pub mod user_input;
+pub mod video;
 pub mod workflow;
 pub mod workspace_trust;
 

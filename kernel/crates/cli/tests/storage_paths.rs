@@ -88,7 +88,7 @@ fn run(home: &Path, work: &Path, extra: &[(&str, &Path)]) {
 #[test]
 fn the_session_db_and_the_storage_root_follow_node_settings() {
     let dir = tempfile::tempdir().unwrap();
-    let base = std::fs::canonicalize(dir.path()).unwrap();
+    let base = plain(std::fs::canonicalize(dir.path()).unwrap());
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(home.join(".nibi/cli")).unwrap();
@@ -122,4 +122,23 @@ fn the_session_db_and_the_storage_root_follow_node_settings() {
     assert_eq!(projects.len(), 1, "{projects:?}");
     assert!(projects[0].join("memory").is_dir());
     assert!(!home.join(".nibi/projects").exists());
+}
+
+
+/// 去掉 Windows `canonicalize` 给的 verbatim 前缀（`\\?\`；POSIX 上原样返回）。
+///
+/// 配置里的路径由 CLI 按 Node 的 `resolvePath` 展开（不带前缀），夹具写进配置的也必须是不带的，
+/// 否则测试在 `base` 下找不到库，而实际写到了同一个目录的另一种写法下。
+fn plain(path: std::path::PathBuf) -> std::path::PathBuf {
+    #[cfg(windows)]
+    {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix("\\\\?\\UNC\\") {
+            return std::path::PathBuf::from(format!("\\\\{rest}"));
+        }
+        if let Some(rest) = text.strip_prefix("\\\\?\\") {
+            return std::path::PathBuf::from(rest.to_owned());
+        }
+    }
+    path
 }

@@ -195,7 +195,9 @@ fn anthropic_sdk_variables_are_not_read() {
     assert!(!output.status.success(), "{}", text(&output));
     assert!(server.all().is_empty(), "{:?}", server.all());
     let shown = text(&output);
-    assert!(shown.contains("set NIBI_API_KEY"), "{shown}");
+    // 启动时目录为空不锁死模型端口（`/provider` 现加现用，见 `models::assemble_model`），所以提示是平台层
+    // 的「配置 Provider 或登录」；关键是**没有** `ANTHROPIC_*` 的字样，也没发出请求。
+    assert!(shown.contains("check the provider configuration"), "{shown}");
     assert!(!shown.contains("ANTHROPIC"), "{shown}");
 }
 

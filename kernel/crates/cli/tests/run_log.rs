@@ -96,7 +96,7 @@ fn a_print_run_writes_info_lines_to_the_daily_log() {
     assert_eq!(files.len(), 1, "{files:?}");
     let name = files[0].file_name().unwrap().to_string_lossy().into_owned();
     assert!(
-        name.starts_with("zcode-") && name.ends_with(".jsonl") && name.len() == 22,
+        name.starts_with("nibi-") && name.ends_with(".jsonl") && name.len() == 21,
         "{name}"
     );
     let text = std::fs::read_to_string(&files[0]).unwrap();

@@ -298,10 +298,12 @@ fn attachment_blocks(record: &WithParts) -> Vec<ContentBlock> {
             match crate::tool_content::from_file_part(part) {
                 ToolResultContent::Image { source } => ContentBlock::Image { source },
                 ToolResultContent::Text { text } => ContentBlock::Text { text },
-                // attachment 不带 document（提及不附 PDF 内容，tui-input.md §1.3）；万一有，读成 Node 的占位。
-                ToolResultContent::Document { source } => ContentBlock::Text {
-                    text: crate::tool_content::attached(&source),
-                },
+                // attachment 不带 document 或视频（提及不带这些内容，tui-input.md §1.3）；万一有，读成 Node 的占位。
+                ToolResultContent::Document { source } | ToolResultContent::Video { source } => {
+                    ContentBlock::Text {
+                        text: crate::tool_content::attached(&source),
+                    }
+                }
                 ToolResultContent::ToolReference { tool_name } => ContentBlock::Text {
                     text: nibi_kernel_api::message::tool_reference_text(&tool_name),
                 },

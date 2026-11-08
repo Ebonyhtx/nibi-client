@@ -108,6 +108,9 @@ fn result_content(item: &ToolResultContent) -> Value {
         ToolResultContent::Document { source } => {
             json!({"type": "document", "source": image_source(source)})
         }
+        ToolResultContent::Video { source } => {
+            json!({"type": "video", "source": image_source(source)})
+        }
         ToolResultContent::ToolReference { tool_name } => {
             json!({"type": "tool_reference", "tool_name": tool_name})
         }
@@ -123,6 +126,14 @@ pub(crate) fn block(block: &ContentBlock) -> Value {
         // 文件附件（用户贴的 PDF）：与 tool_result 里的 document 同一种写法，另外带上展示名。
         ContentBlock::Document { source, name } => {
             let mut value = json!({"type": "document", "source": image_source(source)});
+            if let Some(name) = name {
+                value["name"] = json!(name);
+            }
+            value
+        }
+        // 用户贴的视频：与图片同构（Anthropic 形状的 `{type:"video", source}`）。
+        ContentBlock::Video { source, name } => {
+            let mut value = json!({"type": "video", "source": image_source(source)});
             if let Some(name) = name {
                 value["name"] = json!(name);
             }

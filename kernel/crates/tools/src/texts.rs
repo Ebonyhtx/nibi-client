@@ -65,6 +65,11 @@ pub fn too_large(size: &str, max: &str) -> String {
     )
 }
 
+/// 空的媒体文件（Node `read-video.ts`：空视频会生成空 data URL，随后被丢弃，但 Read 已宣告成功）。
+pub fn empty_media(path: &str) -> String {
+    format!("Cannot read '{path}': the file is empty.")
+}
+
 /// 文件的 token 数超过上限。
 pub fn too_many_tokens(tokens: u64, max: u64) -> String {
     format!(

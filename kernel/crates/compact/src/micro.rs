@@ -81,9 +81,9 @@ pub fn plan(messages: &[&Message], keep_recent: usize) -> Plan {
                     .iter()
                     .map(|item| match item {
                         ToolResultContent::Text { text } => tokens::rough(text),
-                        ToolResultContent::Image { .. } | ToolResultContent::Document { .. } => {
-                            tokens::IMAGE_TOKENS
-                        }
+                        ToolResultContent::Image { .. }
+                        | ToolResultContent::Document { .. }
+                        | ToolResultContent::Video { .. } => tokens::IMAGE_TOKENS,
                         ToolResultContent::ToolReference { tool_name } => tokens::rough(tool_name),
                     })
                     .sum::<u64>();

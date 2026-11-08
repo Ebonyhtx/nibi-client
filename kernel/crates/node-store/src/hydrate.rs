@@ -134,6 +134,10 @@ fn user(record: &WithParts) -> Option<Message> {
                             name: part["filename"].as_str().map(str::to_owned),
                         })
                     }
+                    ToolResultContent::Video { source } if !summary => Some(ContentBlock::Video {
+                        source,
+                        name: part["filename"].as_str().map(str::to_owned),
+                    }),
                     _ => None,
                 };
             }

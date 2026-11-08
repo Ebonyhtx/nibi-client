@@ -133,9 +133,10 @@ impl Restore<'_> {
         for item in &output.content {
             match item {
                 ToolResultContent::Text { text: part } => text.push_str(part),
-                // 图片、PDF 等非文本结果不重读（spec §8）。
+                // 图片、PDF、视频等非文本结果不重读（spec §8）。
                 ToolResultContent::Image { .. }
                 | ToolResultContent::Document { .. }
+                | ToolResultContent::Video { .. }
                 | ToolResultContent::ToolReference { .. } => {
                     return None;
                 }

@@ -6,7 +6,9 @@
 //! - `ReplyToChannel`：把一次带原生 @ 的回复绑定到发起这次工具调用的那条输入，交给 Host 发送。
 //!
 //! 与 Node 的已知差异（记录在 `docs/rust-kernel-function-parity.md`）：
-//! 1. `relevant` / `handoff` 只给按时间序的尾部窗口（Node 会按 query 打分并可选地经 lite 模型抽取）；
+//! 1. `relevant` / `handoff` 的选片已按 Node 的本地口径实现（query 断词、`scoreSearchText` 的权重、
+//!    `handoff` 取尾部、`relevant` 取命中、全不命中退最后 12 条）；**lite 模型抽取不做**——内核没有
+//!    辅助模型调用通道，`source` 恒为 `"local"`（Node 在没有 lite 模型时的合法取值）；
 //! 2. 话题附件物化成会话 artifact（`nibi-artifact://…`），Node 物化成受管的本机路径。
 
 use std::sync::Arc;
@@ -76,31 +78,154 @@ fn message_text(message: &Message) -> Option<(&'static str, String)> {
     }
 }
 
-/// 尾部窗口：从最后一条往前取，直到预算用尽（Node 按打分选块，Rust 只给时间序的尾部）。
-fn tail_transcript(snapshot: &SessionSnapshot, budget: usize) -> (String, usize, usize, bool) {
-    let mut pieces: Vec<String> = Vec::new();
-    let mut used = 0;
-    let mut selected = 0;
-    let readable: Vec<(String, &'static str, String)> = snapshot
-        .messages
+/// 一条可读消息及其在会话里的序号（Node 的 `MessageSnippet.index`）。
+#[derive(Clone)]
+struct Snippet {
+    index: usize,
+    id: String,
+    role: &'static str,
+    body: String,
+    score: f64,
+}
+
+/// Node `tokenizeQuery`：小写后取 `[a-z0-9_./-]+` 与连续的汉字串；长度 < 2 的丢掉，汉字串再补所有二字切片。
+///
+/// 没有用正则：Rust 的 `regex` 不认 JS 的 `\p{Script=Han}`，这里是纯字符分类，不需要正则引擎。
+fn tokenize_query(query: &str) -> Vec<String> {
+    let mut terms: Vec<String> = Vec::new();
+    let mut push = |term: &str| {
+        if term.chars().count() >= 2 && !terms.iter().any(|existing| existing == term) {
+            terms.push(term.to_owned());
+        }
+    };
+    let mut word = String::new();
+    let mut han = String::new();
+    let flush_word = |word: &mut String, push: &mut dyn FnMut(&str)| {
+        if !word.is_empty() {
+            push(word);
+            word.clear();
+        }
+    };
+    let flush_han = |han: &mut String, push: &mut dyn FnMut(&str)| {
+        if !han.is_empty() {
+            let chars: Vec<char> = han.chars().collect();
+            push(han);
+            if chars.len() > 2 {
+                // 二字切片（Node：`match.slice(i, i + 2)`）。
+                for pair in chars.windows(2) {
+                    push(&pair.iter().collect::<String>());
+                }
+            }
+            han.clear();
+        }
+    };
+    for c in query.to_lowercase().chars() {
+        let word_char = c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '/' | '-');
+        if word_char {
+            flush_han(&mut han, &mut push);
+            word.push(c);
+            continue;
+        }
+        flush_word(&mut word, &mut push);
+        // `\p{Script=Han}` 的近似：CJK 统一表意文字的四个常用区（不含扩展 B 以后的生僻字量级）。
+        if is_han(c) {
+            han.push(c);
+        } else {
+            flush_han(&mut han, &mut push);
+        }
+    }
+    flush_word(&mut word, &mut push);
+    flush_han(&mut han, &mut push);
+    terms
+}
+
+/// 是不是汉字（CJK 统一表意文字的基本区与扩展 A，加兼容区）。
+fn is_han(c: char) -> bool {
+    matches!(c as u32, 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF)
+}
+
+/// Node `countOccurrences`：不重叠地数子串出现次数。
+fn count_occurrences(text: &str, term: &str) -> usize {
+    if term.is_empty() {
+        return 0;
+    }
+    text.matches(term).count()
+}
+
+/// Node `scoreSearchText`：整句命中加 20；每个词命中加 `3 + min(出现次数, 5)`。
+fn score_search_text(search_text: &str, normalized_query: &str, terms: &[String]) -> f64 {
+    let mut score = 0.0;
+    if !normalized_query.is_empty() && search_text.contains(normalized_query) {
+        score += 20.0;
+    }
+    for term in terms {
+        if !search_text.contains(term.as_str()) {
+            continue;
+        }
+        score += 3.0 + count_occurrences(search_text, term).min(5) as f64;
+    }
+    score
+}
+
+/// Node `formatMessageSnippet` 里的 `searchText`：角色与正文（大小写不敏感的打分靠先转小写）。
+fn search_text(role: &str, body: &str) -> String {
+    format!("{role} {body}").to_lowercase()
+}
+
+/// 按 Node 的打分选出要放进上下文的片段。
+///
+/// - `handoff`：从最后一条往前取满预算（Node `selectTailWithinBudget`）；
+/// - `relevant`：命中（分数 ≥ 3）的按分数降序取满预算，一个都没命中时退化成最后 12 条
+///   （Node `selectSnippets`）。返回的片段按时间序。
+fn select_snippets(snippets: Vec<Snippet>, strategy: &str, budget: usize) -> Vec<Snippet> {
+    if snippets.is_empty() {
+        return Vec::new();
+    }
+    if strategy == "handoff" {
+        return tail_within_budget(snippets, budget);
+    }
+    let positives: Vec<Snippet> = snippets
         .iter()
-        .filter_map(|message| {
-            let (role, body) = message_text(message)?;
-            Some((message.id().as_str().to_owned(), role, body))
-        })
+        .filter(|snippet| snippet.score >= 3.0)
+        .cloned()
         .collect();
-    for (id, role, body) in readable.iter().rev() {
-        let piece = format!("## {role} ({id})\n{body}");
-        if used + piece.len() > budget {
+    let mut ranked = if positives.is_empty() {
+        snippets[snippets.len().saturating_sub(12)..].to_vec()
+    } else {
+        positives
+    };
+    ranked.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then(b.index.cmp(&a.index))
+    });
+    let mut selected = Vec::new();
+    let mut used = 0;
+    for snippet in ranked {
+        if used > budget {
             break;
         }
-        used += piece.len() + 2;
-        pieces.push(piece);
-        selected += 1;
+        used += snippet.body.len();
+        selected.push(snippet);
     }
-    pieces.reverse();
-    let truncated = selected < readable.len();
-    (pieces.join("\n\n"), readable.len(), selected, truncated)
+    selected.sort_by_key(|snippet| snippet.index);
+    selected
+}
+
+/// Node `selectTailWithinBudget`：至少保留最后一条，之后按预算往前取。
+fn tail_within_budget(snippets: Vec<Snippet>, budget: usize) -> Vec<Snippet> {
+    let mut selected: Vec<Snippet> = Vec::new();
+    let mut used = 0;
+    for snippet in snippets.into_iter().rev() {
+        if !selected.is_empty() && used + snippet.body.len() > budget {
+            break;
+        }
+        used += snippet.body.len();
+        selected.push(snippet);
+    }
+    selected.reverse();
+    selected
 }
 
 /// 话题归档（Node `readTopicArchive`）：只读运行时保存的可信输入事实，按 scope 去重后翻页。
@@ -532,12 +657,40 @@ impl Tool for ReadSessionContextTool {
             output["sessionId"] = json!(target.as_str());
             return Ok(text(&model_content(&output)));
         }
-        // relevant / handoff：时间序的尾部窗口（见文件头第 1 条差异）。
+        // relevant / handoff：本地按 query 打分（Node `selectSnippets`：`handoff` 从尾部取满预算，
+        // `relevant` 取命中的片段）。lite 模型抽取不做（内核没有辅助模型通道，见文件头第 1 条差异）。
         let budget = input["maxTokens"]
             .as_u64()
             .map(|tokens| (tokens.saturating_mul(4) as usize).min(CONTEXT_MAX_CHARS))
             .unwrap_or(CONTEXT_MAX_CHARS);
-        let (content, readable, selected, truncated) = tail_transcript(&snapshot, budget);
+        let terms = tokenize_query(query);
+        let normalized = query.trim().to_lowercase();
+        let readable: Vec<Snippet> = snapshot
+            .messages
+            .iter()
+            .enumerate()
+            .filter_map(|(index, message)| {
+                let (role, body) = message_text(message)?;
+                let score = score_search_text(&search_text(role, &body), &normalized, &terms)
+                    // Node 用 `index / 10000` 做同分时的稳定顺序。
+                    + index as f64 / 10_000.0;
+                Some(Snippet {
+                    index,
+                    id: message.id().as_str().to_owned(),
+                    role,
+                    body,
+                    score,
+                })
+            })
+            .collect();
+        let total = readable.len();
+        let selected = select_snippets(readable, strategy, budget);
+        let content = selected
+            .iter()
+            .map(|snippet| format!("## {} ({})\n{}", snippet.role, snippet.id, snippet.body))
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        let count = selected.len();
         let output = json!({
             "status": "success",
             "sessionId": target.as_str(),
@@ -546,8 +699,8 @@ impl Tool for ReadSessionContextTool {
             "source": "local",
             "content": if content.is_empty() { "No readable messages.".to_owned() } else { content },
             "messageCount": snapshot.messages.len(),
-            "selectedMessageCount": selected,
-            "truncated": truncated || readable > selected,
+            "selectedMessageCount": count,
+            "truncated": count < total,
         });
         Ok(text(&model_content(&output)))
     }

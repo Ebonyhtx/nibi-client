@@ -44,25 +44,64 @@ pub(crate) fn git_root(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-/// Node 的 `${os.type()} ${os.release()}`，Unix 上就是 `uname -sr`。失败时为空串（环境段不出这一行）。
-/// Windows 的 `os.version()` 是产品名，暂不给出（context.md §7）。
+/// Node 的 `${process.platform} ${os.release()} ${os.arch()}`（`adapters/src/context/index.ts`）。
+///
+/// Unix 上的 `os.release()` 就是 `uname -r`（`uname -sr` 一起拿到 `type` 与 `release`）。
+/// Windows 的 `os.release()` 是 `RtlGetVersion` 的 `major.minor.build`（`10.0.19045`）；
+/// 以前这里返回空串，环境段因此少一行（Node 一直有）。
 pub(crate) async fn os_version(env: &[(String, String)]) -> String {
-    if cfg!(windows) {
+    let release = if cfg!(windows) {
+        windows_release().unwrap_or_default()
+    } else {
+        let mut command = nibi_kernel_proc::command("uname");
+        command
+            .arg("-sr")
+            .env_clear()
+            .envs(env.iter().filter(|(name, _)| name == "PATH").cloned())
+            .stdin(Stdio::null())
+            .kill_on_drop(true);
+        match command.output().await {
+            Ok(output) if output.status.success() => {
+                let text = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+                // `uname -sr` 是 `Darwin 24.6.0`；Node 的 `os.release()` 只要后半段。
+                text.split_once(' ').map_or(text.clone(), |(_, rest)| rest.to_owned())
+            }
+            Ok(_) | Err(_) => String::new(),
+        }
+    };
+    if release.is_empty() {
         return String::new();
     }
-    let mut command = nibi_kernel_proc::command("uname");
-    command
-        .arg("-sr")
-        .env_clear()
-        .envs(env.iter().filter(|(name, _)| name == "PATH").cloned())
-        .stdin(Stdio::null())
-        .kill_on_drop(true);
-    match command.output().await {
-        Ok(output) if output.status.success() => {
-            String::from_utf8_lossy(&output.stdout).trim().to_owned()
-        }
-        Ok(_) | Err(_) => String::new(),
+    format!("{} {release} {}", platform(), nibi_kernel_base::js::node_arch())
+}
+
+/// Windows 的系统版本号（`major.minor.build`），取不到时 None。
+#[cfg(windows)]
+#[expect(
+    unsafe_code,
+    reason = "RtlGetVersion 是 ntdll 的版本查询，没有安全封装；结构由调用方清零后传入"
+)]
+fn windows_release() -> Option<String> {
+    use windows_sys::Win32::System::SystemInformation::OSVERSIONINFOW;
+    use windows_sys::Wdk::System::SystemServices::RtlGetVersion;
+
+    let mut info = OSVERSIONINFOW {
+        dwOSVersionInfoSize: u32::try_from(std::mem::size_of::<OSVERSIONINFOW>()).ok()?,
+        ..Default::default()
+    };
+    // STATUS_SUCCESS 是 0；失败时保持空串。
+    if unsafe { RtlGetVersion(&mut info) } != 0 {
+        return None;
     }
+    Some(format!(
+        "{}.{}.{}",
+        info.dwMajorVersion, info.dwMinorVersion, info.dwBuildNumber
+    ))
+}
+
+#[cfg(not(windows))]
+fn windows_release() -> Option<String> {
+    None
 }
 
 #[cfg(test)]

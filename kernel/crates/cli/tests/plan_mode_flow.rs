@@ -71,8 +71,10 @@ async fn run(dir: &Path) -> (Arc<ScriptedModel>, String) {
     std::fs::create_dir_all(&work).unwrap();
     std::fs::create_dir_all(&home).unwrap();
     // Node 的位置：`<工作区>/.nibi/plans/plan-<会话>.md`（tools-more.md §2.2）。
+    // 逐段 join：`Path` 在 Windows 上用 `\`，写成一整个 `.nibi/plans` 会让期望值与内核给出的混合写法不同。
     let plan = work
-        .join(".nibi/plans")
+        .join(".nibi")
+        .join("plans")
         .join(format!("plan-{SESSION}.md"))
         .to_string_lossy()
         .into_owned();

@@ -418,3 +418,65 @@ fn server_tools_follow_the_tool_list_and_their_blocks_replay() {
     assert!(body.contains(r#"{"type":"server_tool_use","id":"srvtoolu_1","name":"web_search","input":{"query":"rust"}}"#));
     assert!(body.contains(r#"{"type":"web_search_tool_result","tool_use_id":"srvtoolu_1","content":[{"type":"web_search_result","title":"T","url":"https://example.com"}]}"#));
 }
+
+/// 用户贴的视频：与图片块同构的 `{type:"video", source:{type:"base64", media_type, data}}`
+/// （Node 的 `@ai-sdk/anthropic` 补丁把 `video/*` 的 file part 写成这个形状）。
+#[test]
+fn user_videos_are_base64_video_blocks() {
+    let body = super::body(
+        request(vec![ApiMessage {
+            role: ApiRole::User,
+            content: vec![plain(ContentBlock::Video {
+                source: ImageSource::Base64 {
+                    media_type: "video/mp4".to_owned(),
+                    data: "AAAAIGZ0eXA=".to_owned(),
+                },
+                name: Some("clip.mp4".to_owned()),
+            })],
+            output_config: None,
+        }]),
+        false,
+        &[],
+    )
+    .unwrap();
+    // 展示名不上线（Node 的 video 块没有 title）。
+    assert!(
+        body.contains(
+            r#"{"type":"video","source":{"type":"base64","media_type":"video/mp4","data":"AAAAIGZ0eXA="}}"#
+        ),
+        "{body}"
+    );
+    assert!(!body.contains("clip.mp4"), "{body}");
+}
+
+/// Read 整读视频的结果：tool_result 里的 `video` 块。
+#[test]
+fn tool_result_videos_are_video_blocks() {
+    let body = super::body(
+        request(vec![ApiMessage {
+            role: ApiRole::User,
+            content: vec![plain(ContentBlock::ToolResult {
+                tool_use_id: nibi_kernel_api::ids::ToolUseId::new("toolu_1"),
+                content: vec![nibi_kernel_api::message::ToolResultContent::Video {
+                    source: ImageSource::Base64 {
+                        media_type: "video/webm".to_owned(),
+                        data: "AAAAIGZ0eXA=".to_owned(),
+                    },
+                }],
+                is_error: false,
+            })],
+            output_config: None,
+        }]),
+        false,
+        &[],
+    )
+    .unwrap();
+    assert!(
+        body.contains(
+            r#"{"type":"video","source":{"type":"base64","media_type":"video/webm","data":"AAAAIGZ0eXA="}}"#
+        ),
+        "{body}"
+    );
+    // 视频不触发 PDF beta。
+    assert!(!body.contains("pdfs-2024-09-25"), "{body}");
+}

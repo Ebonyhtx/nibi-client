@@ -10,6 +10,8 @@
 )]
 
 mod sse;
+mod system_env;
+use system_env::KeepSystem as _;
 
 use std::process::Stdio;
 use std::sync::Arc;
@@ -71,7 +73,7 @@ fn reply_with_server_blocks(notes: &str) -> String {
 #[tokio::test]
 async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
     let dir = tempfile::tempdir().unwrap();
-    let base = std::fs::canonicalize(dir.path()).unwrap();
+    let base = plain(std::fs::canonicalize(dir.path()).unwrap());
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     std::fs::create_dir_all(&home).unwrap();
@@ -85,6 +87,8 @@ async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
         .args(["-p", "go"])
         .current_dir(&work)
         .env_clear()
+        // Windows 上 Winsock 要 `SystemRoot`（F66）：缺了连不上本地的模型夹具（os error 10106）。
+        .keep_system()
         .env("HOME", &home)
         .env("USERPROFILE", &home)
         .env("PATH", "/usr/bin:/bin")
@@ -152,4 +156,22 @@ async fn server_blocks_in_a_main_reply_do_not_fail_the_turn() {
         "{:?}",
         loaded.open_operations
     );
+}
+
+/// 去掉 Windows `canonicalize` 给的 verbatim 前缀（`\\?\`；POSIX 上原样返回）。
+///
+/// 夹具把 `notes.txt` 的路径写进模型的工具调用；带前缀时工作区判定不认它（提示「未授权读取」），
+/// 而 CLI 自己算的工作区根是不带前缀的写法。
+fn plain(path: std::path::PathBuf) -> std::path::PathBuf {
+    #[cfg(windows)]
+    {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+            return std::path::PathBuf::from(format!(r"\\{rest}"));
+        }
+        if let Some(rest) = text.strip_prefix(r"\\?\") {
+            return std::path::PathBuf::from(rest.to_owned());
+        }
+    }
+    path
 }

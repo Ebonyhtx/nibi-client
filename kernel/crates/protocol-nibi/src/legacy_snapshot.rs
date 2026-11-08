@@ -341,6 +341,7 @@ fn tool_result_text(content: &[ToolResultContent]) -> String {
             ToolResultContent::Text { text } => text.as_str(),
             ToolResultContent::Image { .. } => "[image]",
             ToolResultContent::Document { .. } => "[document]",
+            ToolResultContent::Video { .. } => "[video]",
             ToolResultContent::ToolReference { tool_name } => tool_name.as_str(),
         })
         .collect::<Vec<_>>()

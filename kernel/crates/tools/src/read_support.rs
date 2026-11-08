@@ -11,6 +11,8 @@ pub(crate) const MAX_BYTES: u64 = 262_144;
 const MAX_TOKENS: u64 = 25_000;
 /// 图片原样内联的上限（字节）：kernel-api 的一个常量，TUI 的粘贴也用它（F58）。
 pub(crate) const MAX_IMAGE_BYTES: usize = nibi_kernel_api::image::MAX_IMAGE_BYTES;
+/// 视频原样内联的上限（字节）：Node `VIDEO_INPUT_MAX_BYTES`（30 MiB）。
+pub(crate) const MAX_VIDEO_BYTES: usize = nibi_kernel_api::video::MAX_VIDEO_BYTES;
 
 /// 读出来就是二进制、不能当文本读的扩展名。
 const BINARY: &[&str] = &[
@@ -49,12 +51,15 @@ pub(crate) fn has_binary_extension(path: &str) -> bool {
     BINARY.contains(&extension.as_str())
 }
 
-/// 二进制扩展名，除去图片与 PDF（它们另有读法）。
+/// 二进制扩展名，除去图片、PDF 与受支持的视频（它们另有读法）。
 pub(crate) fn is_binary(path: &str) -> bool {
     let extension = path
         .rfind('.')
         .map_or_else(String::new, |at| path[at..].to_lowercase());
-    has_binary_extension(path) && !IMAGES.contains(&extension.as_str()) && extension != ".pdf"
+    has_binary_extension(path)
+        && !IMAGES.contains(&extension.as_str())
+        && extension != ".pdf"
+        && !nibi_kernel_api::video::has_video_extension(path)
 }
 
 pub(crate) fn is_device(path: &str) -> bool {

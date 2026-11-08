@@ -79,6 +79,22 @@ fn text(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
 
+/// 去掉 Windows `canonicalize` 给的 verbatim 前缀（`\\?\`，POSIX 上原样返回）：CLI 从进程 cwd
+/// 取工作区根，那个写法没有前缀，测试拼 `workspace(...)` 时要与库里的行一致。
+fn base_dir(path: &Path) -> std::path::PathBuf {
+    #[cfg(windows)]
+    {
+        let text = path.to_string_lossy();
+        if let Some(rest) = text.strip_prefix("\\\\?\\UNC\\") {
+            return std::path::PathBuf::from(format!("\\\\{rest}"));
+        }
+        if let Some(rest) = text.strip_prefix("\\\\?\\") {
+            return std::path::PathBuf::from(rest.to_owned());
+        }
+    }
+    path.to_path_buf()
+}
+
 fn write(path: &Path, content: &str) {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, content).unwrap();
@@ -89,7 +105,7 @@ fn write(path: &Path, content: &str) {
 #[test]
 fn untrusted_project_hooks_are_skipped_until_granted() {
     let dir = tempfile::tempdir().unwrap();
-    let base = std::fs::canonicalize(dir.path()).unwrap();
+    let base = base_dir(&std::fs::canonicalize(dir.path()).unwrap());
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     // 用户级 hook 不需要审核；项目级 hook 要先授权。两个都在 UserPromptSubmit 时写一个标记文件。
@@ -195,7 +211,7 @@ async fn the_project_mode_sits_between_the_command_line_and_the_config() {
     use nibi_kernel_api::permission::PermissionMode;
     use nibi_kernel_api::store::{Fact, FactBatch, SessionFilter, SessionStore};
     let dir = tempfile::tempdir().unwrap();
-    let base = std::fs::canonicalize(dir.path()).unwrap();
+    let base = base_dir(&std::fs::canonicalize(dir.path()).unwrap());
     let (home, work) = (base.join("home"), base.join("work"));
     std::fs::create_dir_all(work.join(".git")).unwrap();
     write(

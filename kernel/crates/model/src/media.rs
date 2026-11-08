@@ -34,9 +34,9 @@ fn project_result(content: &mut [ToolResultContent], endpoint: &ModelEndpoint) {
     }
 }
 
-/// 端点不接受图片或 PDF 时，把请求消息里的图片与 document 块换成占位文字。
+/// 端点不接受图片、PDF 或视频时，把请求消息里的对应块换成占位文字。
 pub(crate) fn project(messages: &mut [ApiMessage], endpoint: &ModelEndpoint) {
-    if endpoint.supports_image && endpoint.supports_pdf {
+    if endpoint.supports_image && endpoint.supports_pdf && endpoint.supports_video {
         return;
     }
     for message in messages {
@@ -51,6 +51,12 @@ pub(crate) fn project(messages: &mut [ApiMessage], endpoint: &ModelEndpoint) {
                 ContentBlock::Document { source, .. } if !endpoint.supports_pdf => {
                     content.block = ContentBlock::Text {
                         text: placeholder(source, "PDF input"),
+                    };
+                }
+                // 视频同理：端点没有声明 `supportsVideo` 就不发（Node 的 `video input` 占位）。
+                ContentBlock::Video { source, .. } if !endpoint.supports_video => {
+                    content.block = ContentBlock::Text {
+                        text: placeholder(source, "video input"),
                     };
                 }
                 ContentBlock::ToolResult { content, .. } => project_result(content, endpoint),
@@ -261,5 +267,42 @@ mod tests {
             },
         );
         assert_eq!(kept, request());
+    }
+
+    /// 端点没有声明 `supportsVideo` 时，用户贴的视频换成 Node 的 `video input` 占位；声明了就原样发。
+    #[test]
+    fn videos_become_node_placeholders_for_models_without_video_input() {
+        let video = || {
+            vec![ApiMessage {
+                role: ApiRole::User,
+                content: vec![plain(ContentBlock::Video {
+                    source: ImageSource::Base64 {
+                        media_type: "video/mp4".to_owned(),
+                        data: "AAAAIGZ0eXA=".to_owned(),
+                    },
+                    name: Some("clip.mp4".to_owned()),
+                })],
+                output_config: None,
+            }]
+        };
+        let text = "[Attached video/mp4]
+[Media omitted from provider request because the selected model does not support video input.]";
+        let mut projected = video();
+        project(&mut projected, &endpoint(true));
+        assert_eq!(
+            projected[0].content[0].block,
+            ContentBlock::Text {
+                text: text.to_owned()
+            }
+        );
+        let mut kept = video();
+        project(
+            &mut kept,
+            &ModelEndpoint {
+                supports_video: true,
+                ..endpoint(true)
+            },
+        );
+        assert_eq!(kept, video());
     }
 }

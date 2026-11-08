@@ -242,7 +242,9 @@ fn result_tokens(content: &[ToolResultContent]) -> u64 {
         .iter()
         .map(|item| match item {
             ToolResultContent::Text { text } => rough_tokens(text),
-            ToolResultContent::Image { .. } | ToolResultContent::Document { .. } => IMAGE_TOKENS,
+            ToolResultContent::Image { .. }
+            | ToolResultContent::Document { .. }
+            | ToolResultContent::Video { .. } => IMAGE_TOKENS,
             ToolResultContent::ToolReference { tool_name } => rough_tokens(tool_name),
         })
         .sum()
@@ -256,6 +258,9 @@ fn block_tokens(block: &ContentBlock) -> u64 {
         } => IMAGE_TOKENS,
         // 用户贴的 PDF 与工具结果里的 document 同一档（上面 `result_tokens` 的规则）：按图算，不按字节算。
         ContentBlock::Document { .. } => IMAGE_TOKENS,
+        // 视频比图片大得多，但这里只是压缩时的粗估：按图片那一档算，不按 base64 字节数（否则一两个视频就能
+        // 把整段历史撑满，压缩永远触发）。
+        ContentBlock::Video { .. } => IMAGE_TOKENS,
         ContentBlock::Thinking { thinking, .. } => rough_tokens(thinking),
         ContentBlock::RedactedThinking { data } => rough_tokens(data),
         ContentBlock::ToolUse { name, input, .. } => rough_tokens(&format!("{name}{input}")),

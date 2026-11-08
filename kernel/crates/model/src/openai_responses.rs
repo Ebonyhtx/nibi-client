@@ -85,7 +85,7 @@ pub(crate) fn body(
     };
     let mut input = Vec::new();
     for item in items(system, messages)? {
-        lower(item, system_role, &mut input);
+        lower(item, system_role, &mut input)?;
     }
     let mut body = Map::new();
     body.insert("model".into(), Value::String(model.to_owned()));
@@ -113,20 +113,24 @@ pub(crate) fn body(
     Ok(stringify(&body))
 }
 
-fn lower(item: Item, system_role: &str, input: &mut Vec<Value>) {
+fn lower(item: Item, system_role: &str, input: &mut Vec<Value>) -> Result<(), ModelError> {
     match item {
         Item::System(text) => input.push(json!({"role": system_role, "content": text})),
         Item::User(parts) => {
             let content: Vec<Value> = parts
                 .into_iter()
                 .map(|part| match part {
-                    Part::Text(text) => json!({"type": "input_text", "text": text}),
-                    Part::Image(url) => json!({"type": "input_image", "image_url": url}),
-                    Part::File { url, name } => json!({"type": "input_file",
+                    Part::Text(text) => Ok(json!({"type": "input_text", "text": text})),
+                    Part::Image(url) => Ok(json!({"type": "input_image", "image_url": url})),
+                    Part::File { url, name } => Ok(json!({"type": "input_file",
                         "filename": name.as_deref().unwrap_or(crate::openai_chat::PDF_NAME),
-                        "file_data": url}),
+                        "file_data": url})),
+                    // Responses 没有视频片段（Node 在这条协议上同样报不支持：AI SDK 的 `input_file` 只放行 PDF）。
+                    Part::Video(_) => Err(ModelError::Unsupported {
+                        what: "video input on the OpenAI Responses protocol".to_owned(),
+                    }),
                 })
-                .collect();
+                .collect::<Result<_, _>>()?;
             input.push(json!({"role": "user", "content": content}));
         }
         // 推理正文不回放：Responses 的推理项要有 item ID 与加密内容，canonical 的 thinking 块没有。
@@ -152,6 +156,7 @@ fn lower(item: Item, system_role: &str, input: &mut Vec<Value>) {
             "output": output,
         })),
     }
+    Ok(())
 }
 
 fn tool(tool: ToolDefinition) -> Value {

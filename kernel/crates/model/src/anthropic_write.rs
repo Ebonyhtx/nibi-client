@@ -112,6 +112,13 @@ fn block(out: &mut String, block: &ContentBlock) -> Result<(), ModelError> {
                 text_field(out, "title", name);
             }
         }
+        // 用户贴的视频：与图片块同构（Node 的补丁把 `video/*` 的 file part 写成
+        // `{type:"video", source:{type:"base64", media_type, data}}`）。
+        ContentBlock::Video { source, .. } => {
+            kind(out, "video");
+            key(out, "source", false);
+            image_source(out, source)?;
+        }
         ContentBlock::Thinking {
             thinking,
             signature,
@@ -192,6 +199,12 @@ fn tool_result_content(out: &mut String, content: &ToolResultContent) -> Result<
         // Read 整读 PDF 的结果（docs/specs/rust-cli/model.md §10.6）：source 的写法与图片相同。
         ToolResultContent::Document { source } => {
             kind(out, "document");
+            key(out, "source", false);
+            image_source(out, source)?;
+        }
+        // Read 整读视频的结果：与消息级的视频块同一形状。
+        ToolResultContent::Video { source } => {
+            kind(out, "video");
             key(out, "source", false);
             image_source(out, source)?;
         }

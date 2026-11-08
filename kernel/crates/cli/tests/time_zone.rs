@@ -123,7 +123,7 @@ fn run(tz: &str, offset_minutes: i64) -> (String, String, [String; 2]) {
 fn assert_local(tz: &str, offset_minutes: i64) -> String {
     let (date, log, expected) = run(tz, offset_minutes);
     assert!(expected.contains(&date), "{tz}: {date} not in {expected:?}");
-    assert_eq!(log, format!("zcode-{date}.jsonl"), "{tz}");
+    assert_eq!(log, format!("nibi-{date}.jsonl"), "{tz}");
     date
 }
 

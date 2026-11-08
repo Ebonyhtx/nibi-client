@@ -165,6 +165,9 @@ fn user_part(part: Part) -> Value {
         // Node 经 AI SDK（`@ai-sdk/openai-compatible`）的写法：`filename` 取文件块的名字，没有时用 AI SDK 的缺省名。
         Part::File { url, name } => json!({"type": "file",
             "file": {"filename": name.as_deref().unwrap_or(PDF_NAME), "file_data": url}}),
+        // 视频：Node 的 `@ai-sdk/openai-compatible` 补丁把 `video/*` 的 file part 写成 `video_url`
+        // （data URL 原样，见 patches/…openai-compatible…）。
+        Part::Video(url) => json!({"type": "video_url", "video_url": {"url": url}}),
     }
 }
 

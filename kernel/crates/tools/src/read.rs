@@ -23,8 +23,8 @@ use crate::common::{
 };
 use crate::file_state::{Baseline, FileState};
 use crate::read_support::{
-    IMAGES, MAX_BYTES, MAX_IMAGE_BYTES, check_tokens, image_type, is_binary, is_device,
-    number_lines,
+    IMAGES, MAX_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, check_tokens, image_type, is_binary,
+    is_device, number_lines,
 };
 use crate::{base64, budget, notebook, read_pdf, texts};
 
@@ -214,6 +214,52 @@ impl ReadTool {
         })
     }
 
+    /// 视频（Node `read-video.ts`）：原样内联 base64，不转码、不抽帧。上限是 `MAX_VIDEO_BYTES`。
+    async fn read_video(
+        &self,
+        context: &ToolUseContext,
+        path: &str,
+        media_type: &str,
+    ) -> Result<ToolOutput, ToolError> {
+        let request = ReadFile {
+            path: EnvPath::new(path),
+        };
+        let file = match context
+            .machine
+            .files()
+            .read_file(&context.workspace, request)
+            .await
+        {
+            Ok(file) => file,
+            Err(EnvError::NotFound { .. }) => {
+                return Err(failed(
+                    missing_file(context, &cwd(context).await, path).await,
+                ));
+            }
+            Err(error) => return Err(env_failure(error)),
+        };
+        if file.bytes.is_empty() {
+            // 空文件会变成空 data URL，随后被丢弃；Read 却已宣告成功（Node 同样报错）。
+            return Err(failed(texts::empty_media(path)));
+        }
+        if file.bytes.len() > MAX_VIDEO_BYTES {
+            return Err(failed(texts::too_large(
+                &format_bytes(file.bytes.len() as u64),
+                &format_bytes(MAX_VIDEO_BYTES as u64),
+            )));
+        }
+        Ok(ToolOutput {
+            content: vec![ToolResultContent::Video {
+                source: ImageSource::Base64 {
+                    media_type: media_type.to_owned(),
+                    data: base64::encode(&file.bytes),
+                },
+            }],
+            is_error: false,
+            display: json!({"type": "video", "file": {"type": media_type, "originalSize": file.bytes.len()}}),
+        })
+    }
+
     /// 同样的 offset / limit 再读一次、文件版本没变：不再返回内容。
     async fn unchanged(&self, context: &ToolUseContext, path: &str, input: &Input) -> bool {
         let Some(prior) = self
@@ -323,6 +369,10 @@ impl Tool for ReadTool {
         }
         if IMAGES.contains(&extension.as_str()) {
             return self.read_image(&context, &path).await;
+        }
+        // 视频（Node `inferVideoMimeFromPath`）：原样内联，不转码；扩展名不认识时按普通文件读。
+        if let Some(media_type) = nibi_kernel_api::video::media_type(&path) {
+            return self.read_video(&context, &path, media_type).await;
         }
         // PDF 不写 readFileState，所以排在“未变”判断之前。
         if extension == ".pdf" {

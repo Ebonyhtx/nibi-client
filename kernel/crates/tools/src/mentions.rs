@@ -202,6 +202,7 @@ fn blocks_json(content: &[ToolResultContent]) -> String {
             ToolResultContent::Document { source } => {
                 json!({ "type": "document", "source": source })
             }
+            ToolResultContent::Video { source } => json!({ "type": "video", "source": source }),
             ToolResultContent::ToolReference { tool_name } => {
                 json!({ "type": "tool_reference", "tool_name": tool_name })
             }
@@ -231,8 +232,10 @@ pub fn media(path: &str, display: &str, content: &[ToolResultContent]) -> InputA
             ToolResultContent::Image { source } => Some(ContentBlock::Image {
                 source: source.clone(),
             }),
-            // 提及不附 PDF 内容（tui-input.md §1.3），Read 的 notebook 与图片结果里也没有 document。
-            ToolResultContent::Document { .. } | ToolResultContent::ToolReference { .. } => None,
+            // 提及不附 PDF 或视频内容（tui-input.md §1.3），Read 的 notebook 与图片结果里也没有这些。
+            ToolResultContent::Document { .. }
+            | ToolResultContent::Video { .. }
+            | ToolResultContent::ToolReference { .. } => None,
         })
         .collect();
     InputAttachment {

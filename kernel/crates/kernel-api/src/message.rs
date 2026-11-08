@@ -31,6 +31,16 @@ pub enum ContentBlock {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         name: Option<String>,
     },
+    /// 用户消息里的视频附件：Node 的 `video` part（`ModelVideoContentBlock`）。与图片同构，`media_type` 是
+    /// `video/*`；线格式按协议分叉（Anthropic 形状的 `{type:"video", source}`、OpenAI 兼容的
+    /// `{type:"video_url", video_url:{url}}`），Responses 没有对应物（Node 在那边也报不支持）。
+    ///
+    /// 端点没有声明 `supportsVideo` 时由 `model::media` 在发送前换成占位文字，与图片/PDF 同一条规则。
+    Video {
+        source: ImageSource,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+    },
     Thinking {
         thinking: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -93,6 +103,12 @@ pub enum ToolResultContent {
     /// 同一种写法（base64 或 Artifact 引用），`media_type` 是 `application/pdf`；Anthropic 线格式是
     /// `{type: "document", source: {type: "base64", media_type, data}}`。
     Document {
+        source: ImageSource,
+    },
+    /// 视频（Read 整读视频的结果，Node `read-video.ts`）。与图片同一种写法，`media_type` 是 `video/*`；
+    /// 线格式与消息级的 [`ContentBlock::Video`] 相同（Anthropic 形状 `{type:"video", source}`、OpenAI 兼容
+    /// `video_url`）。
+    Video {
         source: ImageSource,
     },
     /// ToolSearch 的结果：引用一个延迟工具，API 在服务端展开它的完整定义

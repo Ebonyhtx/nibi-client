@@ -1,5 +1,6 @@
 //! OpenAI Responses 请求体（model.md §10.2）。
 
+use nibi_kernel_api::message::{ContentBlock, ImageSource};
 use nibi_kernel_api::model::{ApiRole, SystemBlock};
 use serde_json::json;
 
@@ -63,5 +64,26 @@ fn documents_are_input_files_with_the_ai_sdk_name() {
     assert!(
         body.contains(r#"{"role":"user","content":[{"type":"input_file","filename":"document.pdf","file_data":"data:application/pdf;base64,JVBERi0="}]}"#),
         "{body}"
+    );
+}
+
+/// Responses 没有视频片段：AI SDK 的 `input_file` 只放行 PDF，视频在这条协议上报不支持
+/// （Node 同样不会把它发出去——`passThroughUnsupportedFiles` 没有开）。
+#[test]
+fn videos_are_unsupported_by_the_responses_protocol() {
+    let messages = vec![message(
+        ApiRole::User,
+        vec![ContentBlock::Video {
+            source: ImageSource::Base64 {
+                media_type: "video/mp4".to_owned(),
+                data: "AAAAIGZ0eXA=".to_owned(),
+            },
+            name: Some("clip.mp4".to_owned()),
+        }],
+    )];
+    let error = body("gpt-5.6", request(messages), &[]).unwrap_err();
+    assert!(
+        matches!(&error, ModelError::Unsupported { what } if what.contains("video")),
+        "{error:?}"
     );
 }

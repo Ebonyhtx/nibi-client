@@ -128,7 +128,9 @@ fn estimate(content: &[ToolResultContent]) -> u64 {
         .iter()
         .map(|item| match item {
             ToolResultContent::Text { text } => (text.chars().count() as u64).div_ceil(4),
-            ToolResultContent::Image { .. } | ToolResultContent::Document { .. } => IMAGE_TOKENS,
+            ToolResultContent::Image { .. }
+            | ToolResultContent::Document { .. }
+            | ToolResultContent::Video { .. } => IMAGE_TOKENS,
             // MCP 的结果里没有 tool_reference（只有 ToolSearch 产生）。
             ToolResultContent::ToolReference { .. } => 0,
         })
@@ -160,7 +162,10 @@ pub(crate) fn truncate(content: Vec<ToolResultContent>, max_tokens: u64) -> Vec<
                 left -= kept.chars().count();
                 out.push(ToolResultContent::Text { text: kept });
             }
-            image @ (ToolResultContent::Image { .. } | ToolResultContent::Document { .. }) => {
+            image
+            @ (ToolResultContent::Image { .. }
+                | ToolResultContent::Document { .. }
+                | ToolResultContent::Video { .. }) => {
                 let cost = usize::try_from(IMAGE_TOKENS * 4).unwrap_or(usize::MAX);
                 if cost <= left {
                     left -= cost;
