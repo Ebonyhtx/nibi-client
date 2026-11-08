@@ -255,8 +255,8 @@ pub fn prompt_models(lang: Lang) -> &'static str {
 pub fn prompt_key(lang: Lang) -> &'static str {
     pick(
         lang,
-        "API key (input is hidden; enter skips when one is already saved)",
-        "API key（不回显；已经存过时直接 enter 保留）",
+        "API key (hidden input; paste with right-click or Ctrl+Shift+V; enter keeps a saved key)",
+        "API key（不回显；用右键或 Ctrl+Shift+V 粘贴；已存过时 enter 保留）",
     )
 }
 

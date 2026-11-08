@@ -132,11 +132,10 @@ impl Form {
 
     /// 这一步与后面的步骤。
     fn steps(&self) -> Vec<Step> {
-        let mut steps = vec![Step::Name, Step::BaseUrl];
-        // 预设（模板）已经定义协议与模型清单：不让用户在中途改错协议（DeepSeek 的
-        // anthropic 端点配成 chat 会被对端当成无效 key 拒绝）。
+        // 协议始终可选（预设用模板的默认值，用户仍可改成自己的中转协议）；模型清单只有
+        // 自定义 Provider 才问（预设的清单由模板给）。
+        let mut steps = vec![Step::Name, Step::BaseUrl, Step::Protocol];
         if self.template.is_none() {
-            steps.push(Step::Protocol);
             steps.push(Step::Models);
         }
         steps.push(Step::Key);
@@ -492,7 +491,8 @@ impl App {
     /// `/provider` 视图的按键；只在视图是它时调用。
     pub(super) fn provider_key(&mut self, key: KeyEvent) -> Option<Action> {
         let ctrl = self.typing.ctrl(&key);
-        let typed = self.typing.is_text(&key);
+        let alt = self.typing.alt(&key);
+        let typed = self.typing.is_text(&key) && !alt;
         let lang = self.lang;
         // 表单要整块取出再放回：它自己会改 overlay，不能与 `view` 的借用并存。
         if matches!(self.overlay, Some(Overlay::Provider(ProviderView::Form(_)))) {
@@ -748,7 +748,8 @@ impl App {
         let Some(Overlay::Provider(ProviderView::Form(mut form))) = self.overlay.take() else {
             return None;
         };
-        let action = Self::form_key(&mut form, key, ctrl, typed, lang);
+        let alt = self.typing.alt(&key);
+        let action = Self::form_key(&mut form, key, ctrl, alt, typed, lang);
         if !matches!(action, Some(Action::Provider(Request::List))) && self.overlay.is_none() {
             self.overlay = Some(Overlay::Provider(ProviderView::Form(form)));
         }
@@ -760,6 +761,7 @@ impl App {
         form: &mut Form,
         key: KeyEvent,
         ctrl: bool,
+        alt: bool,
         typed: bool,
         lang: super::i18n::Lang,
     ) -> Option<Action> {
@@ -832,7 +834,7 @@ impl App {
                 }
                 None
             }
-            KeyCode::Char(character) if typed => {
+            KeyCode::Char(character) if typed && !alt => {
                 form.status = None;
                 match form.step {
                     Step::Key => {

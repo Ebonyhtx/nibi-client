@@ -572,8 +572,10 @@ pub async fn save(file: &StoragePath, builtin: &Value, draft: &Draft) -> Result<
 
 /// 删除一个个人 Provider 的规则、它的模型规则与顺序项；默认模型指向它时一起清掉。
 pub async fn remove(file: &StoragePath, id: &str) -> Result<(), String> {
-    if !id.starts_with("personal:") {
-        return Err(format!("provider {id} is not a personal provider"));
+    // 只要求它确实是**个人**规则（桌面早期写的 id 没有 `personal:` 前缀，比如 `new-provider`）；
+    // 内置 provider 没有个人规则，removal 找不到记录会报错。
+    if id.trim().is_empty() {
+        return Err("provider id is required".to_owned());
     }
     let path = file.as_path();
     let write = async move || {

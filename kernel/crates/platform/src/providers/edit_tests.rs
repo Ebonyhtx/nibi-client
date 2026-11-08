@@ -184,6 +184,46 @@ async fn editing_keeps_the_key_and_syncs_the_model_rules() {
 }
 
 #[tokio::test]
+async fn removal_accepts_legacy_ids_without_the_personal_prefix() {
+    let dir = tempfile::tempdir().unwrap();
+    let paths = paths(dir.path());
+    // 桌面早期写的规则 id 就是 `new-provider`（没有 `personal:`）：直接写进文件再删。
+    std::fs::create_dir_all(paths.provider_config().as_path().parent().unwrap()).unwrap();
+    std::fs::write(
+        paths.provider_config().as_path(),
+        serde_json::json!({
+            "schemaVersion": 1,
+            "config": {
+                "providerOrder": ["new-provider"],
+                "providerConfigRules": {"providerRules": [{
+                    "providerId": "new-provider",
+                    "providerName": "Legacy",
+                    "config": {
+                        "group": "standard-personal",
+                        "access": {"type": "api-key", "apiKey": "sk-test"},
+                        "api": {"type": "openai-chat-completions", "baseUrl": "https://legacy.example.com/v1"},
+                        "personalModelIds": ["m"]
+                    }
+                }]},
+                "modelConfigRules": {"providerModelRules": [], "manualProviderModelRules": []},
+                "defaultModelSelection": {"providerId": "new-provider", "modelId": "m"}
+            }
+        })
+        .to_string(),
+    )
+    .unwrap();
+    remove(&paths.provider_config(), "new-provider")
+        .await
+        .unwrap();
+    assert!(
+        read(&paths)["config"]["providerConfigRules"]["providerRules"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[tokio::test]
 async fn removal_clears_the_rule_models_order_and_default() {
     let dir = tempfile::tempdir().unwrap();
     let paths = paths(dir.path());
