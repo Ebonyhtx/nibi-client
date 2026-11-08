@@ -22,7 +22,7 @@ fn drawn(buffer: &Buffer, area: Rect) -> usize {
         .count()
 }
 
-/// 素材数据是生成的：每行正好铺满 12 像素、帧时长加起来是 2.4 秒、下标都在调色板里。
+/// 素材数据是生成的：每行正好铺满 18 像素、帧时长加起来是 2.4 秒、下标都在调色板里。
 #[test]
 fn the_animation_data_is_consistent() {
     assert!(pack::FRAMES.len() >= 2);
@@ -30,7 +30,7 @@ fn the_animation_data_is_consistent() {
         pack::FRAMES.iter().map(|frame| frame.ms).sum::<u64>(),
         2400
     );
-    // 14 行像素 = 7 行字符（两像素一格），所以高度必须是偶数。
+    // 18 行像素 = 9 行字符（两像素一格），所以高度必须是偶数。
     assert_eq!(pack::HEIGHT % 2, 0);
     for (index, frame) in pack::FRAMES.iter().enumerate() {
         assert_eq!(frame.rows.len(), usize::from(pack::HEIGHT), "frame {index}");
@@ -45,9 +45,9 @@ fn the_animation_data_is_consistent() {
             }
         }
     }
-    // 按 `pack.json` 的逐帧时长取帧，2.4 秒一轮。
+    // 两帧：睁眼 2.2 秒、眨眼 0.2 秒，2.4 秒一轮。
     assert!(std::ptr::eq(pack_frame_at(0), &pack::FRAMES[0]));
-    assert!(std::ptr::eq(pack_frame_at(400), &pack::FRAMES[1]));
+    assert!(std::ptr::eq(pack_frame_at(2300), &pack::FRAMES[1]));
     assert!(std::ptr::eq(pack_frame_at(2400), &pack::FRAMES[0]));
 }
 
@@ -56,11 +56,11 @@ fn the_animation_data_is_consistent() {
 fn the_pet_sits_in_the_bottom_right_corner() {
     assert_eq!(
         stage_in(Rect::new(0, 3, 100, 30)),
-        Some(Rect::new(87, 26, 12, 7))
+        Some(Rect::new(81, 24, 18, 9))
     );
     // 差一列 / 一行都放不下。
-    assert_eq!(stage_in(Rect::new(0, 0, 12, 30)), None);
-    assert_eq!(stage_in(Rect::new(0, 0, 100, 6)), None);
+    assert_eq!(stage_in(Rect::new(0, 0, 18, 30)), None);
+    assert_eq!(stage_in(Rect::new(0, 0, 100, 8)), None);
 }
 
 #[test]
@@ -71,16 +71,16 @@ fn the_bird_is_drawn_in_brand_colours() {
     let mut buffer = Buffer::empty(area);
     logo.draw(&mut buffer, area, &palette(), now);
     let stage = logo.stage.unwrap();
-    assert_eq!((stage.width, stage.height), (12, 7));
+    assert_eq!((stage.width, stage.height), (18, 9));
     // 鸟的轮廓画出来了（不是空白），而且是半格字符。
-    assert!(drawn(&buffer, stage) > 40, "{}", drawn(&buffer, stage));
+    assert!(drawn(&buffer, stage) > 80, "{}", drawn(&buffer, stage));
     let block = |position| {
         buffer[position]
             .symbol()
             .chars()
             .all(|c| ('\u{2580}'..='\u{259f}').contains(&c))
     };
-    assert!((stage.x..stage.right()).any(|x| block((x, stage.y + 2))));
+    assert!((stage.x..stage.right()).any(|x| block((x, stage.y + 3))));
     // 不透明品牌色：前景色就是素材调色板里的颜色之一（不做背景混合）。
     let brand: Vec<(u8, u8, u8)> = pack::PALETTE
         .iter()
@@ -123,10 +123,10 @@ fn a_click_restarts_the_round() {
     let mut logo = Logo::default();
     logo.draw(&mut Buffer::empty(area), area, &palette(), start);
     let stage = logo.stage.unwrap();
-    // 播到第 1 秒时不是第一帧。
-    assert!(!std::ptr::eq(pack_frame_at(1000), &pack::FRAMES[0]));
+    // 播到眨眼那段时不是第一帧。
+    assert!(!std::ptr::eq(pack_frame_at(2300), &pack::FRAMES[0]));
     // 点一下：这一轮从头开始 —— 画出来与「从此刻刚开始的一只」逐格相同。
-    let clicked = start + std::time::Duration::from_millis(1000);
+    let clicked = start + std::time::Duration::from_millis(2300);
     logo.press(stage.x + 1, stage.y + 1, clicked);
     let mut after_click = Buffer::empty(area);
     logo.draw(&mut after_click, area, &palette(), clicked);
