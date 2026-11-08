@@ -94,21 +94,25 @@ impl Screen for Stdout {
         use crate::ui::logo::Payload;
         let mut out = std::io::stdout().lock();
         let (column, row) = image.at;
+        // 贴图要把光标移到目标格；写完恢复原位（DECSC/DECRC），否则那个位置会留下一个
+        // "第二个光标"，打字时终端的光标也会停在小鸟旁边。
+        let _ = out.write_all(b"\x1b7");
         match &image.payload {
             Payload::Sixel(bytes) => {
-                let _ = write!(out, "[{};{}H", row + 1, column + 1);
+                let _ = write!(out, "\x1b[{};{}H", row + 1, column + 1);
                 let _ = out.write_all(bytes.as_bytes());
             }
             Payload::Clear { cols, rows } => {
                 // 关掉自动换行再盖空格，免得最后一格把画面顶上去。
-                let _ = out.write_all(b"[?7l");
+                let _ = out.write_all(b"\x1b[?7l");
                 let blank = " ".repeat(usize::from(*cols));
                 for line in 0..*rows {
-                    let _ = write!(out, "[{};{}H{}", row + 1 + line, column + 1, blank);
+                    let _ = write!(out, "\x1b[{};{}H{}", row + 1 + line, column + 1, blank);
                 }
-                let _ = out.write_all(b"[?7h");
+                let _ = out.write_all(b"\x1b[?7h");
             }
         }
+        let _ = out.write_all(b"\x1b8");
         let _ = out.flush();
     }
 
