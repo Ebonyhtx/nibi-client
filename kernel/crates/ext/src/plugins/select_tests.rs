@@ -386,3 +386,73 @@ async fn a_hosted_browser_broker_admits_browser_use_too() {
     );
     assert!(loaded.skipped.is_empty());
 }
+
+/// 加载一次的产出里就带着 Composer `@` 面板的身份目录：已加载条目的身份/能力/展示，以及停用条目
+/// 声明出来的组件名（Node `buildPluginReferenceCatalog` 的口径）。
+#[tokio::test]
+async fn the_reference_catalog_is_built_from_the_same_load() {
+    use nibi_kernel_api::listing::{MarketplaceListing, PluginListing};
+
+    let files = [
+        manifest("/Users/dev/cfg", r#"{"name": "kit", "description": "Kit tools"}"#),
+        (
+            "/Users/dev/cfg/skills/hello/SKILL.md".to_owned(),
+            "Hello\n".to_owned(),
+        ),
+        (
+            "/Users/dev/cfg/agents/team/lead.md".to_owned(),
+            "Lead\n".to_owned(),
+        ),
+        (
+            "/Users/dev/cfg/.mcp.json".to_owned(),
+            r#"{"mcpServers": {"web": {"type": "http", "url": "https://mcp.example.com"}}}"#
+                .to_owned(),
+        ),
+        official_manifest("restore-legacy-sessions", ""),
+        (
+            format!("{CACHE}/{OFFICIAL}/restore-legacy-sessions/1.0.0/skills/undo/SKILL.md"),
+            "Undo\n".to_owned(),
+        ),
+    ];
+    let sources = PluginSources {
+        candidates: vec![
+            candidate("/Users/dev/cfg", "inline", PluginOrigin::ConfigDir),
+            official("restore-legacy-sessions"),
+        ],
+        listings: vec![MarketplaceListing {
+            plugin_id: "kit@inline".to_owned(),
+            plugin_name: "kit".to_owned(),
+            marketplace: "inline".to_owned(),
+            listing: PluginListing {
+                display_name: Some("Kit".to_owned()),
+                icon: Some("https://cdn.example/kit.png".to_owned()),
+                category: Some("developer-tools".to_owned()),
+                ..PluginListing::default()
+            },
+        }],
+        ..PluginSources::default()
+    };
+    let loaded = load_all(&env(&files), &workspace(), &[], &sources).await;
+    let catalog = &loaded.catalog.references;
+    assert_eq!(catalog.len(), 2);
+
+    let kit = &catalog[0];
+    assert_eq!(kit.plugin_id, "kit@inline");
+    assert_eq!(kit.marketplace, "inline");
+    assert!(kit.enabled);
+    assert!(kit.conflicting_plugin_ids.is_empty());
+    assert_eq!(kit.skill_qualified_names, ["kit:hello"]);
+    assert_eq!(kit.subagent_names, ["kit:team:lead"]);
+    assert_eq!(kit.mcp_server_names, ["plugin:kit:web"]);
+    assert_eq!(kit.display.description.as_deref(), Some("Kit tools"));
+    assert_eq!(kit.display.display_name.as_deref(), Some("Kit"));
+    assert_eq!(kit.display.icon.as_deref(), Some("https://cdn.example/kit.png"));
+    assert_eq!(kit.category.as_deref(), Some("developer-tools"));
+
+    // 停用（缺省不启用）的官方插件仍在目录里：能力名来自 manifest 目录的声明，MCP 名称为空。
+    let disabled = &catalog[1];
+    assert_eq!(disabled.plugin_id, "restore-legacy-sessions@nibi-official");
+    assert!(!disabled.enabled);
+    assert_eq!(disabled.skill_qualified_names, ["restore-legacy-sessions:undo"]);
+    assert!(disabled.mcp_server_names.is_empty());
+}
