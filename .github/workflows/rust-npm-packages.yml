@@ -18,7 +18,11 @@ name: rust-npm-packages
 
 on:
   push:
-    # 分支推送按 paths 过滤；打 `v<版本>` 标签即发版（tag 推送不受 paths 过滤影响）。
+    # 只写了 `tags` 时 GitHub **不会**为分支推送触发（分支过滤是未定义状态）。这里只在发布分支
+    # `main` 上打包（`dev` 的 kernel 变更不跑三平台 release 构建，避免拖长流水线）；打
+    # `v<版本>` 标签才发布，`dev` 上要临时打包/发版走 workflow_dispatch。
+    branches:
+      - "main"
     paths:
       - "kernel/**"
       - "scripts/rust-cli/npm/**"
