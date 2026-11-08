@@ -13,6 +13,7 @@ use crate::services::{
 };
 use crate::ui::app::Local;
 use crate::ui::i18n;
+use crate::ui::i18n_input;
 use crate::ui::i18n_provider;
 use crate::ui::provider::{Intent, ProviderView};
 use nibi_kernel_api::context_usage::{ContextUsage, ContextUsageQuery};
@@ -57,6 +58,8 @@ pub(crate) enum ServiceDone {
     ProviderFailed(String),
     /// 向导里右键粘贴：剪贴板文字或读不出的原因。
     ProviderClipboard(Result<String, String>),
+    /// 输入框按 Ctrl+V 而剪贴板里没有图片：按文字粘贴。
+    ComposerText(Result<String, String>),
     /// `/btw` 的答案（成功是正文，失败是内核错误）。
     Btw(Result<String, nibi_kernel_api::session_api::KernelError>),
     /// 删除成功（附带刷新后的列表）。
@@ -434,6 +437,17 @@ impl<B: Backend> Loop<'_, B> {
                     self.choose_model(selection, None);
                 }
             }
+            ServiceDone::ComposerText(result) => match result {
+                Ok(text) if !text.is_empty() => self.app.paste_plain(&text),
+                Ok(_) => self.app.notify(
+                    i18n_input::no_image(lang, crate::ui::shortcuts::image_paste_chord()),
+                    crate::ui::notice::HINT_FOR,
+                ),
+                Err(reason) => self.app.notify(
+                    i18n_input::clipboard_failed(lang, &reason),
+                    crate::ui::notice::HINT_FOR,
+                ),
+            },
             ServiceDone::ProviderClipboard(result) => match result {
                 Ok(text) => self.app.provider_paste(&text),
                 Err(reason) => self

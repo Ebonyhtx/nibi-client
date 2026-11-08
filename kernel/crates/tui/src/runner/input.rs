@@ -1,9 +1,10 @@
 //! 输入能力的动作（docs/specs/rust-cli/tui-input.md）：各种输入的发送、立即发送、粘贴图片。
 use futures_util::FutureExt;
-use ratatui::backend::Backend;
 use nibi_kernel_api::session_api::Command;
+use ratatui::backend::Backend;
 
 use super::Loop;
+use super::services::ServiceDone;
 use super::session::{Done, Sent};
 use crate::services::ImageBytes;
 use crate::ui::composer::images::Added;
@@ -91,7 +92,18 @@ impl<B: Backend> Loop<'_, B> {
                 Added::NotImage => i18n_input::no_image(lang, key),
                 Added::TooLarge => i18n_input::image_too_large(lang),
             },
-            Ok(None) => i18n_input::no_image(lang, key),
+            // 剪贴板里没有图片：按文字粘贴（Ctrl+V 的常见预期），读不出文字时再提示。
+            Ok(None) => {
+                if let Some(clipboard) = self.options.services.clipboard.clone() {
+                    let reading = clipboard.text();
+                    self.pending.push(
+                        async move { Done::Service(ServiceDone::ComposerText(reading.await)) }
+                            .boxed(),
+                    );
+                    return;
+                }
+                i18n_input::no_image(lang, key)
+            }
             Err(reason) => i18n_input::clipboard_failed(lang, &reason),
         };
         self.app.notify(notice, HINT_FOR);

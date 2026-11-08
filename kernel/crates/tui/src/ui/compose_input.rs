@@ -90,8 +90,9 @@ impl App {
             KeyCode::Char('p') if alt => Some(Some(Action::OpenModels)),
             // 外部编辑器（ctrl+x ctrl+e 见上面的和弦，tui-input.md §4.1）。
             KeyCode::Char('g') if ctrl => Some(Some(Action::ExternalEditor)),
-            // 粘贴图片：Windows 是 alt+v，其他平台是 ctrl+v（tui-input.md §3.1）。
-            KeyCode::Char('v') if (cfg!(windows) && alt) || (!cfg!(windows) && ctrl) => {
+            // 粘贴图片：Windows 上 alt+v 与 ctrl+v 都算（用户习惯 ctrl+v；剪贴板里没有图片时按文字粘贴），
+            // 其他平台是 ctrl+v（tui-input.md §3.1）。
+            KeyCode::Char('v') if (cfg!(windows) && (alt || ctrl)) || (!cfg!(windows) && ctrl) => {
                 Some(Some(Action::PasteImage))
             }
             _ => None,
