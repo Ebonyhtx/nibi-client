@@ -67,7 +67,15 @@ async fn a_foreground_command_past_the_limit_is_killed_and_its_file_removed() {
         Some("Command killed: output file exceeded 64KB")
     );
     assert!(bytes > SMALL.bytes, "{bytes}");
-    assert!(ran.output.starts_with("yyyy"));
+    // 结束时会删掉输出文件：读线程能抢到多少取决于调度（CI 慢时可能一段都没有），
+    // 所以只校验读到的内容都是完整的 `y` 行，不要求一定读到前缀。
+    assert!(
+        ran.output
+            .lines()
+            .all(|line| !line.is_empty() && line.bytes().all(|byte| byte == b'y')),
+        "{:?}",
+        &ran.output[..ran.output.len().min(120)]
+    );
     // 前台被结束：输出文件删除，磁盘上不留下超限的文件。
     assert!(!exists(&output));
 }
