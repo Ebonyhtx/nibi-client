@@ -463,8 +463,8 @@ impl App {
             .copied
             .as_ref()
             .is_some_and(|(notice, at)| at.elapsed() < notice.duration);
-        // 角落的小鸟一直在动，画着的时候按动画节拍重画。查看在跑的子代理时状态行的
-        // spinner 是它的（F112），主会话空闲时也按动画节拍重画。
+        // 小鸟不在这里：它按自己的帧边界重画（`Logo::next_frame`），不然空闲时也会一直 30fps 刷屏。
+        // 查看在跑的子代理时状态行的 spinner 是它的（F112），主会话空闲时也按动画节拍重画。
         let viewed_running = self
             .viewed_entry()
             .is_some_and(|entry| entry.status == nibi_kernel_api::panels::SubagentStatus::Running);
@@ -474,7 +474,6 @@ impl App {
             || self.notice_text().is_some()
             || dragging_at_edge
             || copied
-            || self.logo.animating()
     }
 
     /// 要显示的待处理交互：当前会话的在前，之后是旧会话的询问（按到达顺序，agents.md §4.1.2）。

@@ -150,9 +150,12 @@ fn the_pixel_path_sends_an_image_and_clears_it() {
     // 同一帧、同一位置：不重发。
     logo.draw(&mut buffer, area, &palette(), now);
     assert!(logo.take_image().is_none());
-    // 过了重发间隔：再发一次（终端滚动会自己搬走画面，靠这个纠正）。
-    logo.draw(&mut buffer, area, &palette(), now + RESEND);
+    // 走到下一帧（第一帧 400ms）：重发一次。
+    logo.draw(&mut buffer, area, &palette(), now + std::time::Duration::from_millis(400));
     assert!(logo.take_image().is_some());
+    // `next_frame` 给出的是帧边界，界面按它唤醒，不再统一按 30fps 重画。
+    let due = logo.next_frame(now).expect("a frame is due");
+    assert!(due > now && due <= now + std::time::Duration::from_millis(400));
     // 放不下：交给终端清掉。
     let small = Rect::new(0, 0, 10, 4);
     logo.draw(&mut Buffer::empty(small), small, &palette(), now);

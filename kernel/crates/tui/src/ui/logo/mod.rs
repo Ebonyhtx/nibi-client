@@ -27,8 +27,6 @@ const PIXEL_COLS: u16 = 16;
 const PIXEL_ROWS: u16 = 9;
 /// 查不到终端背景色时按这个深色背景填（与 `Palette` 的缺省一致）。
 const DARK: Rgb = (0x1e, 0x1e, 0x21);
-/// 多久无条件重发一次像素图（滚动等终端自己搬走画面的情况，靠它纠正）。
-const RESEND: std::time::Duration = std::time::Duration::from_millis(500);
 
 /// 交给终端写出去的一张像素图。
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,8 +68,6 @@ pub struct Logo {
     pixels: bool,
     /// 上一次发出去的像素图（位置与帧号），没变就不重发。
     sent: Option<(Rect, usize)>,
-    /// 上一次发像素图的时刻（无条件重发的节奏）。
-    sent_at: Option<Instant>,
     /// 这一帧之后终端要写出去的东西。
     pending: Option<Image>,
 }
@@ -85,6 +81,29 @@ impl Logo {
     /// 入口说明终端支持 Sixel（`Windows Terminal 1.22+` 或显式开关）。
     pub fn set_pixels(&mut self, pixels: bool) {
         self.pixels = pixels;
+    }
+
+    /// 下一帧动画该在什么时候画（没有像素图、或者还没开始画时为 None）。界面只在帧边界重画，
+    /// 不再按统一的动画节拍一直重画——那样终端每秒要刷三十次，光标都会闪。
+    pub fn next_frame(&self, now: Instant) -> Option<Instant> {
+        if !self.pixels {
+            return None;
+        }
+        let started = self.started?;
+        self.stage?;
+        let elapsed = now.saturating_duration_since(started).as_millis() as u64;
+        let total: u64 = scene::FRAMES.iter().map(|frame| frame.ms).sum();
+        let at = elapsed % total.max(1);
+        let mut boundary = 0u64;
+        for frame in scene::FRAMES {
+            boundary += frame.ms;
+            if at < boundary {
+                // 至少 40ms 之后再画，避免同一时刻被反复唤醒。
+                let wait = (boundary - at).max(40);
+                return Some(now + std::time::Duration::from_millis(wait));
+            }
+        }
+        None
     }
 
     /// 终端能不能显示像素图（据此决定要不要给小鸟留一栏）。
@@ -147,14 +166,10 @@ impl Logo {
         let started = *self.started.get_or_insert(now);
         let elapsed = now.saturating_duration_since(started).as_millis() as u64;
         let index = scene_frame_at(elapsed);
-        let stale = self
-            .sent_at
-            .is_none_or(|at| now.saturating_duration_since(at) >= RESEND);
-        if self.sent == Some((stage, index)) && !stale {
+        if self.sent == Some((stage, index)) {
             return;
         }
         self.sent = Some((stage, index));
-        self.sent_at = Some(now);
         // 透明像素填成终端背景色：Sixel 里不落墨的格子由终端自己填，会和背景差一点，屏幕上就是一块方框。
         let background = palette.background.unwrap_or(DARK);
         self.pending = Some(Image {
@@ -164,12 +179,12 @@ impl Logo {
     }
 }
 
-/// 像素图的位置：右下角，占 `PIXEL_COLS × PIXEL_ROWS` 格。
+/// 像素图的位置：这一栏的右上角（贴着顶部不变的那块），占 `PIXEL_COLS × PIXEL_ROWS` 格。
 fn pixel_stage_in(free: Rect) -> Option<Rect> {
     (free.width >= PIXEL_COLS + MARGIN && free.height >= PIXEL_ROWS).then(|| {
         Rect::new(
             free.right() - PIXEL_COLS - MARGIN,
-            free.bottom() - PIXEL_ROWS,
+            free.top(),
             PIXEL_COLS,
             PIXEL_ROWS,
         )

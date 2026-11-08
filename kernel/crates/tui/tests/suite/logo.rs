@@ -45,33 +45,21 @@ fn setup(background: (u8, u8, u8)) -> Setup {
     }
 }
 
-/// 角落的小鸟（品牌素材的待机动画）：贴在正文下方空白区的右下角、一直动着，不压输入框里的字。
+/// 不支持像素图时的回退：字符画小鸟画在空白区，静止不动（不按 30fps 重画）。
 #[tokio::test(flavor = "multi_thread")]
-async fn the_pet_sits_in_the_corner_and_animates() {
+async fn the_fallback_pet_is_still_and_sits_in_the_blank_area() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        // 18×9 格里有大半是鸟的轮廓（半格字符）。
-        ui.wait("the pet", |_| ui_braille(&buffer).len() > 80).await;
-        // 位置：右下角（不压正文）。
-        // `setup` 里给的终端尺寸。
-        let (width, height) = (100, 40);
-        for (x, y) in ui_braille(&ui.buffer) {
-            assert!(x > width - 30, "({x}, {y}) is not in the right corner");
-            assert!(y > height / 2, "({x}, {y}) is not in the bottom corner");
+        ui.wait("the pet", |_| ui_braille(&buffer).len() > 40).await;
+        let (width, _) = (100, 40);
+        for (x, _y) in ui_braille(&ui.buffer) {
+            assert!(x > width / 2, "({x}) is not on the right half");
         }
-        // 待机动画自己在动：没有输入时也按动画节拍重画。
+        // 静止：没有输入时不再重画。
         let before = draws(&ui.handovers);
-        tokio::time::sleep(Duration::from_millis(400)).await;
-        let idle = draws(&ui.handovers) - before;
-        assert!(idle >= 3, "the pet animates while idle: {idle}");
-        // 打字时它还在角落里，输入框的字照常显示。
-        ui.type_text("hi");
-        ui.wait_for("❯ hi").await;
-        assert!(
-            ui_braille(&ui.buffer).len() > 80,
-            "the pet stays while typing"
-        );
+        tokio::time::sleep(Duration::from_millis(600)).await;
+        assert_eq!(draws(&ui.handovers), before, "no redraw while idle");
     })
     .await;
 }
@@ -138,17 +126,26 @@ async fn the_pet_gets_its_own_column_on_the_right() {
                 }
             }
         }
-        // 图片贴在竖线右边、下半屏。
+        // 图片贴在竖线右边、栏顶。
         let guard = images.lock().unwrap();
         let image = guard.last().unwrap();
         assert!(image.at.0 >= 82, "{:?}", image.at);
-        assert!(image.at.1 >= 20, "{:?}", image.at);
+        assert!(image.at.1 < 6, "{:?}", image.at);
         match &image.payload {
             nibi_kernel_tui::ui::logo::Payload::Sixel(bytes) => {
                 assert!(bytes.contains("\"1;1;128;128"), "2× the 64×64 frame");
             }
             other => panic!("expected a sixel image, got {other:?}"),
         }
+        drop(guard);
+        // 动画按帧边界重发（约 2–4 帧/秒），界面不按统一的 30fps 节拍一直刷。
+        let before = images.lock().unwrap().len();
+        let frames = draws(&ui.handovers);
+        tokio::time::sleep(Duration::from_millis(1200)).await;
+        let resent = images.lock().unwrap().len() - before;
+        assert!(resent >= 1, "the animation advances: {resent}");
+        let redraws = draws(&ui.handovers) - frames;
+        assert!(redraws < 20, "not per-frame at 30fps: {redraws}");
     })
     .await;
 }

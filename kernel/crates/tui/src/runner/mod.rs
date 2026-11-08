@@ -284,6 +284,7 @@ pub async fn drive<B: Backend>(
         let notify_at = state.app.notify.next_due();
         let afk_at = state.app.afk.next_due(tokio::time::Instant::now());
         let burst_at = state.app.burst_deadline();
+        let logo_at = state.app.logo.next_frame(Instant::now());
         tokio::select! {
             event = input.next() => match event {
                 Some(event) => {
@@ -309,6 +310,12 @@ pub async fn drive<B: Backend>(
                 burst_at.unwrap_or_else(Instant::now),
             )), if burst_at.is_some() => state.on_burst_due()?,
             () = tokio::time::sleep(crate::ui::bottom::ANIMATION), if animating => {
+                state.dirty = true;
+            }
+            // 小鸟的下一帧（按素材的逐帧时长，2.4 秒一轮，平均每秒四帧）。
+            () = tokio::time::sleep_until(tokio::time::Instant::from_std(
+                logo_at.unwrap_or_else(Instant::now),
+            )), if logo_at.is_some() => {
                 state.dirty = true;
             }
             // 终端通知的计时（只是界面提示，tui-manage.md §5.1）。
