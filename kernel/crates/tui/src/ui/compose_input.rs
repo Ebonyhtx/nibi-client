@@ -3,7 +3,7 @@
 //! 另有排队的插话下面那一行立即发送提示的键与条件（tui.md §5.1.1，修复线 F104）。
 use std::time::{Duration, Instant};
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use super::app::{Action, App};
 use super::composer::InputMode;
@@ -15,6 +15,16 @@ impl App {
     pub(super) fn input_key(&mut self, key: KeyEvent, now: Instant) -> Option<Option<Action>> {
         let ctrl = self.typing.ctrl(&key);
         let alt = self.typing.alt(&key);
+        // 中文输入法的全角斜杠（／）：在输入框开头等同于命令斜杠，`/login`、`/provider` 都能直接打。
+        if key.code == KeyCode::Char('／')
+            && !ctrl
+            && !alt
+            && self.composer.mode == InputMode::Prompt
+            && self.composer.area.cursor() == 0
+        {
+            let slash = KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE);
+            return Some(self.compose_key(slash, now));
+        }
         // 和弦的第二个键；不是已知的和弦时这个键照常处理。
         if let Some(at) = self.chord.take()
             && now.duration_since(at) < CHORD
