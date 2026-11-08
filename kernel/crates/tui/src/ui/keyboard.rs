@@ -98,6 +98,28 @@ impl Releases {
                     self.held.remove(0);
                 }
             }
+            // 开发构建才写（发布构建的级别是 info）。正文文字不记（日志要脱敏）：只记标点/符号的字符、
+            // 是否 ASCII、修饰键、按下还是重复、手上还按着几个——输入法把半角符号换成全角时，光看界面
+            // 分不清是「多了一个按下」还是「松开被当成字符」。
+            if c.is_alphanumeric() {
+                tracing::debug!(
+                    modifiers = ?key.modifiers,
+                    kind = ?key.kind,
+                    held = self.held.len(),
+                    outcome = "press",
+                    "tui key"
+                );
+            } else {
+                tracing::debug!(
+                    character = %c.escape_default(),
+                    ascii = c.is_ascii(),
+                    modifiers = ?key.modifiers,
+                    kind = ?key.kind,
+                    held = self.held.len(),
+                    outcome = "press",
+                    "tui key"
+                );
+            }
             return Some(key);
         }
         // 先找同一个字符（大小写不同也算：shift 先松开时字符变了）；找不到时配对最早按下的（AltGr 先松开时字符变了）。
@@ -106,25 +128,47 @@ impl Releases {
             self.held.remove(at);
             return None;
         }
-        // 输入法确认候选的键（空格）：按下被输入法吃掉，松开单独送到控制台，于是没有配对。它不是 alt 码——
-        // alt 码打出来的是键盘上没有的可打印字符。以前这里照 alt 码处理，于是每选一次词就往输入框里塞一个
-        // 空格。真正的空格有配对的按下，不受影响。日志留给「症状还在」时确认事件形状。
-        if c.is_whitespace() {
-            tracing::debug!(
-                character = %c.escape_default(),
-                held = self.held.len(),
-                "an unpaired whitespace release was dropped"
-            );
-            return None;
-        }
+        // 没有配对、但手上有别的按下：shift 符号的抬起带的常是没加 shift 的字符（`!` 的抬起是 `1`），
+        // AltGr 的抬起也是另一个字符。按最早按下的那个配对掉（T3 起就是这样），不当文字。
         if !self.held.is_empty() {
             self.held.remove(0);
+            tracing::debug!(
+                character = %c.escape_default(),
+                modifiers = ?key.modifiers,
+                held = self.held.len(),
+                outcome = "mispaired-release",
+                "tui key"
+            );
             return None;
         }
         if self.refocused {
             return None;
         }
-        Some(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE))
+        // 没有配对的松开只有一种该变成文字：alt 码。控制台把 alt 码的字符放在 **Alt 的松开**事件里（前面没有
+        // 这个字符的按下），那时修饰键里还有 Alt。
+        //
+        // 其余没有配对的松开都是「按下没到、抬起到了」：输入法把确认键/符号的按下吃掉，控制台（Windows
+        // Terminal）照样把抬起送进来，crossterm 按抬起记录里的字符给一个 `Char` + `Release`。以前这里一律
+        // 当 alt 码，于是每选一次词多一个空格、每打一个全角符号多一个半角符号。真正的字符都有配对的按下，
+        // 不受影响。日志留给「症状还在」时确认形状（开发构建才写）。
+        if key.modifiers.contains(KeyModifiers::ALT) {
+            tracing::debug!(
+                character = %c.escape_default(),
+                modifiers = ?key.modifiers,
+                held = self.held.len(),
+                outcome = "alt-code",
+                "tui key"
+            );
+            return Some(KeyEvent::new(KeyCode::Char(c), KeyModifiers::NONE));
+        }
+        tracing::debug!(
+            character = %c.escape_default(),
+            modifiers = ?key.modifiers,
+            held = self.held.len(),
+            outcome = "stray-release",
+            "tui key"
+        );
+        None
     }
 
     /// 焦点变化：窗口外松开的键不留在记录里；之后第一次按键之前，没有配对的松开不当作 alt 码。

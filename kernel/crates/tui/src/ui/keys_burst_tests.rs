@@ -232,17 +232,23 @@ fn altgr_characters_are_typed_and_join_bursts() {
     assert!(unix.notice.is_some());
 }
 
-/// T3：alt+小键盘码的字符只在 Alt 的松开事件里（没有配对的按下）：进输入框；配对的松开不重复。
+/// T3：alt+小键盘码的字符只在 Alt 的松开事件里（没有配对的按下、修饰键里还有 Alt）：进输入框；配对的松开
+/// 不重复。没有 Alt 的未配对松开是「按下没到、抬起到了」（输入法的确认键/全角符号），不键入。
 #[test]
 fn alt_codes_are_typed_and_paired_releases_are_not() {
     let mut app = app(WINDOWS);
     let t0 = Instant::now();
-    let up =
-        |c| KeyEvent::new_with_kind(KeyCode::Char(c), KeyModifiers::NONE, KeyEventKind::Release);
+    let up = |c, modifiers| {
+        KeyEvent::new_with_kind(KeyCode::Char(c), modifiers, KeyEventKind::Release)
+    };
     app.on_terminal_key(press(KeyCode::Char('x')), t0);
-    app.on_terminal_key(up('x'), t0 + ms(30));
+    app.on_terminal_key(up('x', KeyModifiers::NONE), t0 + ms(30));
     settle(&mut app);
-    app.on_terminal_key(up('é'), t0 + ms(100));
+    app.on_terminal_key(up('é', KeyModifiers::ALT), t0 + ms(100));
+    settle(&mut app);
+    assert_eq!(app.composer.area.text(), "xé");
+    // 输入法把按下吃掉、只送来抬起时的半角符号：不是字符。
+    app.on_terminal_key(up('.', KeyModifiers::NONE), t0 + ms(200));
     settle(&mut app);
     assert_eq!(app.composer.area.text(), "xé");
 }

@@ -364,13 +364,16 @@ redirectPath)[0..24]>:authorization_credentials`）；
     自定义端点按 schema 生成完整能力规则。新增的 Provider 会连同有效的 `options.reasoningLevel` 一起写成
     默认模型（Node 只认带档位的 `defaultModelSelection`）。
 
-12. **Windows 上中文输入法（TUI 输入框）**：选词时空格被当成真实按键进输入框（中文句子里多出空格）。
-    已定位到 TUI 自己的一层：`ui/keyboard.rs` 的 `Releases` 为 F65 的 alt 码把**没有配对的松开**当按下
-    （alt 码的字符只在 Alt 的松开事件里）。输入法确认候选的键（空格）被输入法吃掉按下、只把松开送进控制台，
-    正好落进这条分支 → 每选一次词多一个空格。现在没有配对的**空白字符**松开一律丢掉（alt 码打出来的是
-    可打印字符，不受影响），并给「等不到松开的按下」加了上限，避免输入法提交的文字越积越多。
-    仍开放的一层：crossterm 0.29 在 Windows 走 `ReadConsoleInputW`，没有 VT 解析器也没有 `9001`；如果
-    症状以**按下**的形式出现（而不是松开），就要做 Windows 专用输入源（`ENABLE_VIRTUAL_TERMINAL_INPUT` +
+12. **Windows 上中文输入法（TUI 输入框）**：输入法确认候选/转换全角符号时，按下被输入法吃掉，控制台
+    （Windows Terminal）仍把**抬起**送进输入流，crossterm 按抬起记录里的字符给出 `Char` + `Release`。
+    `ui/keyboard.rs` 的 `Releases` 为 F65 的 alt 码把「没有配对的松开」当按下，于是每选一次词多一个空格、
+    每打一个全角符号（`。`/`？`/`、`）多一个半角字符。现在只有**修饰键里还有 Alt**的未配对松开才是 alt 码
+    （控制台把 alt 码的字符放在 Alt 的松开事件里），其余一律丢掉；「等不到松开的按下」加了上限（输入法提交
+    的文字可能只有按下）。真正的字符都有配对的按下，不受影响。开发构建会记每个非字母数字按键的形状
+    （`outcome: press|paired|mispaired-release|alt-code|stray-release`，正文文字不落日志）。
+    仍开放的一层：crossterm 0.29 在 Windows 走 `ReadConsoleInputW`，没有 VT 解析器也没有 `9001`；如果还有
+    输入法残留以**按下**的形式出现，就要做 Windows 专用输入源（`ENABLE_VIRTUAL_TERMINAL_INPUT` +
     `ESC[?9001h` + 自己解析 `CSI Vk;Sc;Uc;Kd;Cs;Rc _`，并接管粘贴/鼠标/resize）。非 Windows 不受影响。
     全角「／」在输入框开头已归一成命令斜杠（`848896e1`）。
+
 

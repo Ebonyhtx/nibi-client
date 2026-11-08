@@ -51,10 +51,17 @@ async fn altgr_characters_and_alt_codes_reach_the_input_box() {
             KeyModifiers::NONE,
         )));
         ui.wait_for("❯ @{").await;
-        // alt+小键盘码：字符只在 Alt 键的松开事件里，前面没有它的按下。
+        // 输入法把按下吃掉、控制台只送来抬起（全角符号的抬起带半角字符）：不键入。
+        ui.send(KeyEvent::new_with_kind(
+            KeyCode::Char('.'),
+            KeyModifiers::NONE,
+            KeyEventKind::Release,
+        ));
+        ui.wait_for("❯ @{").await;
+        // alt+小键盘码：字符只在 Alt 键的松开事件里，前面没有它的按下，修饰键里还有 Alt。
         ui.send(KeyEvent::new_with_kind(
             KeyCode::Char('é'),
-            KeyModifiers::NONE,
+            KeyModifiers::ALT,
             KeyEventKind::Release,
         ));
         ui.wait_for("❯ @{é").await;

@@ -53,8 +53,8 @@ fn other_modifiers_keep_their_meaning_on_windows() {
     assert!(!windows.is_text(&control));
 }
 
-/// T3：Windows 上每个键都有按下与松开；配对的松开丢掉。alt+小键盘码的字符只在 Alt 的松开事件里，没有配对：
-/// 当作这个字符的按下（不带修饰键）。
+/// T3：Windows 上每个键都有按下与松开；配对的松开丢掉。alt+小键盘码的字符只在 **Alt 的松开**事件里，
+/// 没有配对、修饰键里还有 Alt：当作这个字符的按下（不带修饰键）。
 #[test]
 fn alt_codes_come_through_and_paired_releases_are_dropped() {
     let mut releases = Releases::new(WINDOWS);
@@ -62,17 +62,28 @@ fn alt_codes_come_through_and_paired_releases_are_dropped() {
     assert_eq!(releases.admit(a), Some(a));
     assert_eq!(releases.admit(up('a', KeyModifiers::NONE)), None);
     assert_eq!(
-        releases.admit(up('ä', KeyModifiers::NONE)),
+        releases.admit(up('ä', KeyModifiers::ALT)),
         Some(key(KeyCode::Char('ä'), KeyModifiers::NONE))
-    );
-    // Alt 的状态还在时也一样，修饰键去掉。
-    assert_eq!(
-        releases.admit(up('é', KeyModifiers::ALT)),
-        Some(key(KeyCode::Char('é'), KeyModifiers::NONE))
     );
     // 非字符键的松开照样丢掉。
     let enter = KeyEvent::new_with_kind(KeyCode::Enter, KeyModifiers::NONE, KeyEventKind::Release);
     assert_eq!(releases.admit(enter), None);
+}
+
+/// 没有配对、也没有 Alt 的松开不是文字：输入法把按下吃掉、控制台只送抬起（全角符号的抬起带的是半角字符）。
+/// 以前按 alt 码处理，于是每打一个全角符号多一个半角符号。
+#[test]
+fn an_unpaired_release_without_alt_is_not_a_character() {
+    let mut releases = Releases::new(WINDOWS);
+    releases.admit(key(KeyCode::Enter, KeyModifiers::NONE));
+    for c in ['?', '.', '/', '!', '1'] {
+        assert_eq!(releases.admit(up(c, KeyModifiers::NONE)), None, "{c}");
+    }
+    // 带 Alt 的还是 alt 码。
+    assert_eq!(
+        releases.admit(up('ä', KeyModifiers::ALT)),
+        Some(key(KeyCode::Char('ä'), KeyModifiers::NONE))
+    );
 }
 
 /// 按下与松开的字符不同时也配对：shift 先松开（`A` / `a`）、AltGr 先松开（`@` / `q`）、两个键交错、按住重复。
@@ -91,8 +102,8 @@ fn releases_pair_with_presses_whose_character_changed() {
         releases.admit(key(KeyCode::Char('z'), KeyModifiers::NONE));
     }
     assert_eq!(releases.admit(up('z', KeyModifiers::NONE)), None);
-    // 都配对完了：下一个没有配对的是 alt 码。
-    assert!(releases.admit(up('ñ', KeyModifiers::NONE)).is_some());
+    // 都配对完了：下一个没有配对的是 alt 码（Alt 还在修饰键里）。
+    assert!(releases.admit(up('ñ', KeyModifiers::ALT)).is_some());
 }
 
 /// 启动与焦点变化之后、按下任何键之前，没有配对的松开是在别处按下的键（例如 Win+数字切过来时数字键的松开、启动前
@@ -102,13 +113,13 @@ fn stray_releases_after_start_or_focus_are_dropped() {
     let mut releases = Releases::new(WINDOWS);
     assert_eq!(releases.admit(up('1', KeyModifiers::NONE)), None);
     releases.admit(key(KeyCode::Enter, KeyModifiers::NONE));
-    assert!(releases.admit(up('ä', KeyModifiers::NONE)).is_some());
+    assert!(releases.admit(up('ä', KeyModifiers::ALT)).is_some());
     releases.admit(key(KeyCode::Char('k'), KeyModifiers::NONE));
     releases.focus_changed();
     assert_eq!(releases.admit(up('2', KeyModifiers::NONE)), None);
     releases.admit(key(KeyCode::Char('b'), KeyModifiers::NONE));
     assert_eq!(releases.admit(up('b', KeyModifiers::NONE)), None);
-    assert!(releases.admit(up('ö', KeyModifiers::NONE)).is_some());
+    assert!(releases.admit(up('ö', KeyModifiers::ALT)).is_some());
 }
 
 /// 其他平台的松开事件一律丢掉（不变）。
@@ -147,17 +158,17 @@ fn held_presses_are_capped() {
     // 上限内只留最近按下的几个。
     assert_eq!(releases.held.len(), 8);
     // 还有没配对的按下时，没有配对的可打印松开按配对处理（不当作 alt 码）。
-    assert!(releases.admit(up('ä', KeyModifiers::NONE)).is_none());
+    assert!(releases.admit(up('ä', KeyModifiers::ALT)).is_none());
 }
 
-/// 没有配对的**可打印**字符松开仍是 alt 码（T3 的能力不许回退）。
+/// 没有配对的**可打印**字符松开、且 Alt 还在时仍是 alt 码（T3 的能力不许回退）。
 #[test]
 fn unpaired_releases_of_printable_characters_stay_alt_codes() {
     let mut releases = Releases::new(WINDOWS);
     releases.admit(key(KeyCode::Char('a'), KeyModifiers::NONE));
     assert_eq!(releases.admit(up('a', KeyModifiers::NONE)), None);
     assert_eq!(
-        releases.admit(up('ä', KeyModifiers::NONE)),
+        releases.admit(up('ä', KeyModifiers::ALT)),
         Some(key(KeyCode::Char('ä'), KeyModifiers::NONE))
     );
 }
