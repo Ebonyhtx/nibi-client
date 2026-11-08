@@ -6,7 +6,9 @@
 //! - 否则：平台层的 Provider registry。`--model` 是 `<provider>/<model>` 或目录里的模型 ID（取第一个
 //!   匹配），没有时用目录的默认选择。
 //!
-//! 选不出模型时不在启动时失败：模型端口对每次请求报鉴权错误并说明原因（与没有配置时的 M0 行为相同）。
+//! 选不出模型时不在启动时失败：模型端口对每次请求报鉴权错误并说明原因（与没有配置时的 M0 行为相同）。交互模式
+//! （TUI、App server）还留着平台层的端口，用户可以用 `/provider` 现加供应商，原因作为启动提示；`-p` 没有这个
+//! 入口，按原因直接失败（不再给一个换供应商也修不了的替身）。
 
 use std::sync::Arc;
 
@@ -189,19 +191,24 @@ pub(crate) struct Assembled {
     pub model: ProviderModel,
     pub selection: ModelSelection,
     pub limits: Arc<dyn ModelLimits>,
+    /// 启动时没选出模型的原因（交互模式）：目录为空、团队项目过期或 `--model` 匹配多个。TUI 把它作为启动提示。
+    pub notice: Option<String>,
 }
 
 /// 模型端口与新会话的默认选择。`device` 是设备身份的来源（工作线 F52：每个请求的 `metadata.user_id`，model.md §3.3）。
-/// `flags` 是 `--model` 与 `--effort`（cli-args.md §1.4：新会话的档位，覆盖配置的缺省）。
+/// `flags` 是 `--model` 与 `--effort`（cli-args.md §1.4：新会话的档位，覆盖配置的缺省）。`interactive`：用户之后
+/// 还能不能用 `/provider` 加供应商（TUI 与 App server 是，`-p` 不是）。
 pub(crate) async fn assemble(
     egress: Arc<Egress>,
     platform: Arc<Platform>,
     explicit: Override,
     (flag, effort): (Option<String>, Option<&str>),
     (clock, device): (Arc<dyn Clock>, DeviceIdSource),
+    interactive: bool,
 ) -> Assembled {
     let assumed_base_url = explicit.assumed_base_url.clone();
-    let mut assembled = assemble_model(egress, platform, explicit, (flag, effort), clock).await;
+    let mut assembled =
+        assemble_model(egress, platform, explicit, (flag, effort), clock, interactive).await;
     assembled.model = assembled.model.with_device_id(device);
     if let Some(base_url) = assumed_base_url {
         assembled.model = assembled.model.with_assumed_base_url(base_url);
@@ -215,6 +222,7 @@ async fn assemble_model(
     explicit: Override,
     (flag, effort): (Option<String>, Option<&str>),
     clock: Arc<dyn Clock>,
+    interactive: bool,
 ) -> Assembled {
     let unselected = |reason: String, limits: Arc<dyn ModelLimits>| Assembled {
         model: ProviderModel::unconfigured(reason),
@@ -225,6 +233,7 @@ async fn assemble_model(
             connection: None,
         },
         limits,
+        notice: None,
     };
     let assume = explicit.assume;
     if let Some(endpoint) = anthropic_endpoint(explicit.base_url, explicit.api_key) {
@@ -261,6 +270,7 @@ async fn assemble_model(
             model,
             selection,
             limits,
+            notice: None,
         };
     }
     // 平台层的上限读已发布的快照：这里先取一次目录，启动后的第一次判定就有值。
@@ -271,6 +281,7 @@ async fn assemble_model(
             model: ProviderModel::new(egress, platform, clock),
             selection: with_effort(selection, effort, Some(&catalog)),
             limits,
+            notice: None,
         },
         // 团队项目已过期或未分配：照 App 的文案（platform.md §9.2）。目录为空（没给 `--model`），或 `--model` 指的
         // provider 有这样的团队项目时（工作线 F49：不再看 App 的当前连接）。
@@ -284,9 +295,14 @@ async fn assemble_model(
                 None if catalog.default.is_none() => platform.team_notice(None).await,
                 None => None,
             };
-            // 启动时目录为空，但用户可能在 TUI 里用 `/provider` 现加供应商：这里不能把模型
-            // 锁死成「永远报错」的替身（那样加完还得重启），交给平台层按会话的选择解析。
             let notice = notice.unwrap_or(reason);
+            // `-p` 没有 `/provider`：按选不出的确切原因失败（团队项目过期、`--model` 匹配多个、没有配置），
+            // 换供应商也修不了这几种，给一个「每次请求都报错」的替身只会把原因盖掉。
+            if !interactive {
+                return unselected(notice, limits);
+            }
+            // 交互模式：启动时目录为空，但用户可能在 TUI 或 App 里用 `/provider` 现加供应商，这里不能把模型
+            // 锁死成「永远报错」的替身（那样加完还得重启），交给平台层按会话的选择解析；原因作为启动提示。
             tracing::warn!(%notice, "no model provider configured at startup");
             Assembled {
                 model: ProviderModel::new(egress, platform, clock),
@@ -297,6 +313,7 @@ async fn assemble_model(
                     connection: None,
                 },
                 limits,
+                notice: Some(notice),
             }
         }
     }

@@ -222,6 +222,7 @@ pub async fn interface(model: Arc<dyn ModelPort>) {
         clock: Arc::new(WallClock),
         ids: Arc::new(SequentialIds::default()),
         os: nibi_kernel_tui::Os::Unix,
+        notice: None,
     };
     nibi_kernel_tui::run(kernel, options).await.unwrap();
 }

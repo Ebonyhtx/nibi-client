@@ -124,6 +124,9 @@ pub(crate) struct Inputs<'a> {
     pub trust: Arc<dyn nibi_kernel_tui::services::WorkspaceTrust>,
     /// npm 上有更新的版本时会话里的提示（update.md §7，F48）。
     pub update: Option<nibi_kernel_tui::update::UpdateInfo>,
+    /// 启动时没选出模型的原因（没配供应商、团队项目过期或 `--model` 匹配多个）：会话里的启动提示。
+    /// 用户可以用 `/provider` 现加供应商，所以这里不失败退出。
+    pub notice: Option<String>,
     /// 运行的平台（修复线 F65，tui-input.md §9）。
     pub os: nibi_kernel_tui::Os,
     /// 配置的 `askUserQuestionTimeout`（毫秒，tools-more.md §1.1，工作线 F72）。
@@ -262,6 +265,7 @@ pub(crate) fn options(inputs: Inputs<'_>, version: &str) -> Options {
         startup: inputs.startup,
         fork: inputs.fork,
         stop: inputs.stop,
+        notice: inputs.notice,
         services: Services {
             locale: inputs.locale,
             locale_store: Some(Arc::new(ConfigLocale {

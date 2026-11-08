@@ -81,6 +81,9 @@ pub struct Options {
     pub pixels: bool,
     /// 播小鸟的待机动画（`NIBI_TUI_PET_ANIM=1`）。默认关：终端每帧都要重解码整张图，会卡。
     pub pet_anim: bool,
+    /// 启动时没选出模型的原因（没配供应商、团队项目过期或 `--model` 匹配多个）：会话里的一行提示。
+    /// 入口不因此失败退出——用户可以用 `/provider` 现加供应商。
+    pub notice: Option<String>,
 }
 
 /// 退出时的结果：当前会话（入口打印恢复提示）与还没跑的 SessionEnd。
@@ -235,13 +238,20 @@ pub async fn drive<B: Backend>(
     app.composer.load_history(options.history.clone());
     app.memory_files = options.services.memory_files.clone();
     app.afk = crate::ui::afk::Afk::new(options.services.question_timeout);
-    // npm 上有更新的版本（docs/specs/rust-cli/update.md §7，F48）：会话头下面插一个提示；启动时要打开已有会话时，
-    // 第一次切换清掉旧视图后再插到新视图的顶上。
+    // 启动时的两条提示（有新版本、没选出模型）：会话头下面各插一行；启动时要打开已有会话时，第一次切换
+    // 清掉旧视图后再插到新视图的顶上（docs/specs/rust-cli/update.md §7，F48）。
+    let mut startup_locals = Vec::new();
     if let Some(info) = options.services.update.clone() {
-        app.push_local(crate::ui::app::Local::Update(Box::new(info.clone())));
-        if !matches!(options.startup, Startup::New) {
-            app.update_carry = Some(info);
-        }
+        startup_locals.push(crate::ui::app::Local::Update(Box::new(info)));
+    }
+    if let Some(notice) = options.notice.clone() {
+        startup_locals.push(crate::ui::app::Local::Info(notice));
+    }
+    for local in &startup_locals {
+        app.push_local(local.clone());
+    }
+    if !startup_locals.is_empty() && !matches!(options.startup, Startup::New) {
+        app.carry = startup_locals;
     }
     let detached = kernel.detached_asks();
     let machine_changes = machines::changes(&options.services);

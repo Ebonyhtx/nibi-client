@@ -440,12 +440,14 @@ async fn session(
         model,
         selection,
         limits,
+        notice: model_notice,
     } = models::assemble(
         egress,
         platform,
         startup.explicit,
         (model_id, effort),
         (clock.clone(), device),
+        tui_mode,
     )
     .await;
     // stream-json 输入的 MCP prewait 看能不能用工具搜索（headless.md §6.2）：乐观判断，`ENABLE_TOOL_SEARCH` 不是关（工作线
@@ -694,6 +696,7 @@ async fn session(
                 clock,
                 ids,
                 update: updates.as_ref().and_then(update::Updates::notice),
+                notice: model_notice,
                 trust: Arc::new(workspace_trust::InAppTrust {
                     info: local_machine.info().clone(),
                     files: local_machine.files().clone(),

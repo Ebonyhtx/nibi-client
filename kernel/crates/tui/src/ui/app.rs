@@ -328,8 +328,9 @@ pub struct App {
     pub focus: Option<super::agents::Focus>,
     /// 新会话的背景标志（tui.md §7.3，修复线 F26）：这一帧画在哪里与最近一次点击。
     pub logo: super::logo::Logo,
-    /// 启动时要打开已有会话：“有新版本”的提示在第一次切换后移到新视图的顶上（docs/specs/rust-cli/update.md §7）。
-    pub update_carry: Option<crate::update::UpdateInfo>,
+    /// 启动时要打开已有会话：启动时的提示（有新版本、没选出模型）在第一次切换后移到新视图的顶上
+    /// （docs/specs/rust-cli/update.md §7）。
+    pub carry: Vec<Local>,
     /// 按平台判断文字输入、松开事件与 alt 码、没有括号粘贴时的 paste burst（只在 Windows 上有，tui-input.md §9，
     /// 修复线 F65）；runner 按入口注入的平台设置（[`App::set_os`]）。
     pub typing: super::keyboard::Typing,
@@ -430,7 +431,7 @@ impl App {
             viewing: None,
             focus: None,
             logo: super::logo::Logo::default(),
-            update_carry: None,
+            carry: Vec::new(),
             typing: super::keyboard::Typing::default(),
             releases: super::keyboard::Releases::default(),
             burst: None,

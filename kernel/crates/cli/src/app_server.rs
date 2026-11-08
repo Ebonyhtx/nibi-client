@@ -331,12 +331,15 @@ async fn serve(
         model,
         selection,
         limits: model_limits,
+        // 交互面（桌面客户端的 agent）：没选出模型时不在这里失败，用户能现加供应商，原因随会话提示。
+        notice: _,
     } = models::assemble(
         egress.clone(),
         platform.clone(),
         startup.explicit,
         (None, None),
         (clock.clone(), device),
+        true,
     )
     .await;
     let var = |name: &str| startup.env.get(name).map(str::to_owned);

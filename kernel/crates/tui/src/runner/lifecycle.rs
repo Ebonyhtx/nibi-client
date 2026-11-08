@@ -170,11 +170,13 @@ impl<B: Backend> Loop<'_, B> {
             }) => {
                 self.app.reset();
                 self.cache.clear();
-                if let Some(info) = self.app.update_carry.take() {
-                    self.app.local.push(crate::ui::app::LocalCell {
-                        anchor: None,
-                        local: crate::ui::app::Local::Update(Box::new(info)),
-                    });
+                if !self.app.carry.is_empty() {
+                    for local in std::mem::take(&mut self.app.carry) {
+                        self.app.local.push(crate::ui::app::LocalCell {
+                            anchor: None,
+                            local,
+                        });
+                    }
                 }
                 self.app.session = Some(handle.id().as_str().to_owned());
                 let last = view.last_seq;
@@ -196,7 +198,7 @@ impl<B: Backend> Loop<'_, B> {
             }
             Err(error) => {
                 // 没有切换：提示还在草稿里。
-                self.app.update_carry = None;
+                self.app.carry.clear();
                 self.after_switch(false);
                 self.app.error(error.to_string());
             }

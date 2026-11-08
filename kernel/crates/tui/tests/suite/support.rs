@@ -544,6 +544,7 @@ where
         os: setup.os,
         pixels: setup.pixels,
         pet_anim: false,
+        notice: None,
     };
     let ui = Ui {
         keys,
