@@ -27,10 +27,26 @@ pub fn summary(lang: Lang, total: usize, missing_key: usize) -> String {
     }
 }
 
-pub fn page_indicator(lang: Lang, selected: usize, total: usize) -> String {
+/// 分页位置：`↑3 · 12/31 · ↓9`（上/下还有多少项没显示）。
+pub fn page_indicator(
+    lang: Lang,
+    selected: usize,
+    total: usize,
+    above: usize,
+    below: usize,
+) -> String {
+    let up = if above > 0 {
+        format!("↑{above} · ")
+    } else {
+        String::new()
+    };
+    let down = if below > 0 {
+        format!(" · ↓{below}")
+    } else {
+        String::new()
+    };
     match lang {
-        Lang::En => format!("{selected}/{total}"),
-        Lang::Zh => format!("{selected}/{total}"),
+        Lang::En | Lang::Zh => format!("{up}{selected}/{total}{down}"),
     }
 }
 
@@ -138,8 +154,8 @@ pub fn action_close(lang: Lang) -> &'static str {
 pub fn list_help(lang: Lang) -> &'static str {
     pick(
         lang,
-        "{Up/Down} choose · {Enter} open · {A} add · {Esc} close",
-        "{Up/Down} 选择 · {Enter} 打开 · {A} 添加 · {Esc} 关闭",
+        "{Up/Down} choose · {Enter} open · {A} add · {D} remove · {Esc} close",
+        "{Up/Down} 选择 · {Enter} 打开 · {A} 添加 · {D} 删除 · {Esc} 关闭",
     )
 }
 
@@ -290,6 +306,20 @@ pub fn status_models_required(lang: Lang) -> &'static str {
 
 pub fn status_saving(lang: Lang) -> &'static str {
     pick(lang, "Saving…", "保存中…")
+}
+
+pub fn probe_ok(lang: Lang, name: &str) -> String {
+    match lang {
+        Lang::En => format!("{name}: connectivity check passed"),
+        Lang::Zh => format!("{name}：连通性检查通过"),
+    }
+}
+
+pub fn probe_failed(lang: Lang, name: &str, reason: &str) -> String {
+    match lang {
+        Lang::En => format!("{name} was saved, but the model request was rejected: {reason}"),
+        Lang::Zh => format!("{name} 已保存，但模型请求被拒绝：{reason}"),
+    }
 }
 
 pub fn saved(lang: Lang, name: &str, config: &str) -> String {

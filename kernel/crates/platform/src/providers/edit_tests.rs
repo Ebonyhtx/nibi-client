@@ -91,17 +91,15 @@ async fn adds_a_custom_provider_with_its_model_rules_and_default() {
 }
 
 #[test]
-fn the_preset_list_keeps_third_party_apis_and_drops_upstream_plans() {
+fn the_preset_list_covers_third_party_apis_and_upstream_model_endpoints() {
     let presets = presets(&builtin());
+    // 普通第三方 API。
     assert!(presets.iter().any(|preset| preset.id == "deepseek"));
     assert!(presets.iter().any(|preset| preset.id == "openai"));
     assert!(presets.iter().any(|preset| preset.id == "anthropic"));
-    assert!(
-        presets
-            .iter()
-            .all(|preset| !preset.id.starts_with("zai-") && !preset.id.starts_with("bigmodel-")),
-        "upstream coding-plan templates must not be offered"
-    );
+    // 上游的模型端点也保留（用户可以用自己的 key 用它的模型），只是不接账号与会员。
+    assert!(presets.iter().any(|preset| preset.id == "zai-api"));
+    assert!(presets.iter().any(|preset| preset.id == "bigmodel-api"));
 }
 
 #[tokio::test]

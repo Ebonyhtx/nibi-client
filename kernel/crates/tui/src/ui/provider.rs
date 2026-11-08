@@ -132,8 +132,11 @@ impl Form {
 
     /// 这一步与后面的步骤。
     fn steps(&self) -> Vec<Step> {
-        let mut steps = vec![Step::Name, Step::BaseUrl, Step::Protocol];
+        let mut steps = vec![Step::Name, Step::BaseUrl];
+        // 预设（模板）已经定义协议与模型清单：不让用户在中途改错协议（DeepSeek 的
+        // anthropic 端点配成 chat 会被对端当成无效 key 拒绝）。
         if self.template.is_none() {
+            steps.push(Step::Protocol);
             steps.push(Step::Models);
         }
         steps.push(Step::Key);
@@ -542,6 +545,17 @@ impl App {
                         None
                     }
                     KeyCode::Char('a') if typed => Some(Action::Provider(Request::Presets)),
+                    // 删除：直接在列表上按 d，比先进详情再选「删除」快。
+                    KeyCode::Char('d') if typed && index_of_selected(*selected, items.len()) => {
+                        let info = items[*selected - 1].clone();
+                        self.overlay = Some(Overlay::Provider(ProviderView::Detail {
+                            info,
+                            selected: 0,
+                            confirming: true,
+                            status: None,
+                        }));
+                        None
+                    }
                     KeyCode::Esc => {
                         self.overlay = None;
                         None
@@ -713,7 +727,7 @@ impl App {
                         *secret = RedactedString::new(value);
                         None
                     }
-                    KeyCode::Char(character) if typed => {
+                    KeyCode::Char(character) if typed && !character.is_whitespace() => {
                         *secret = RedactedString::new(format!("{}{character}", secret.expose()));
                         *status = None;
                         None
@@ -840,7 +854,8 @@ impl App {
             form.status = None;
             match form.step {
                 Step::Key => {
-                    form.key = RedactedString::new(format!("{}{text}", form.key.expose()));
+                    let pasted: String = text.chars().filter(|c| !c.is_whitespace()).collect();
+                    form.key = RedactedString::new(format!("{}{pasted}", form.key.expose()));
                 }
                 Step::Protocol => {}
                 _ => form.field_mut().push_str(&text),
@@ -877,6 +892,11 @@ impl App {
 }
 
 /// 选择项在窗口里的起点：让它尽量居中，同时不越过两端。
+/// 列表里当前选中的是不是一个 Provider（第一行是「添加」，不是）。
+fn index_of_selected(selected: usize, items: usize) -> bool {
+    selected >= 1 && selected <= items
+}
+
 fn window_start(selected: usize, total: usize, visible: usize) -> usize {
     let visible = visible.min(total).max(1);
     selected
@@ -959,7 +979,15 @@ pub fn lines(
             let total = items.len() + 1;
             let start = window_start(*selected, total, visible);
             if total > visible {
-                lines.push(dim(&text::page_indicator(lang, *selected + 1, total)));
+                let above = start;
+                let below = total.saturating_sub(start + visible);
+                lines.push(dim(&text::page_indicator(
+                    lang,
+                    *selected + 1,
+                    total,
+                    above,
+                    below,
+                )));
             }
             if (start..start + visible).contains(&0) {
                 lines.push(super::pick::paint(
@@ -1126,7 +1154,15 @@ pub fn lines(
             let total = items.len() + 1;
             let start = window_start(*selected, total, visible);
             if total > visible {
-                lines.push(dim(&text::page_indicator(lang, *selected + 1, total)));
+                let above = start;
+                let below = total.saturating_sub(start + visible);
+                lines.push(dim(&text::page_indicator(
+                    lang,
+                    *selected + 1,
+                    total,
+                    above,
+                    below,
+                )));
             }
             let mut row = |index: usize, label: String, detail: &str| {
                 let chosen = index == *selected;

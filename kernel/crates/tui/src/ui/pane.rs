@@ -33,7 +33,7 @@ fn view_lines(
         return Some((lines, Vec::new(), None));
     }
     if let Some(Overlay::Provider(view)) = &app.overlay {
-        let lines = super::provider::lines(view, app.lang, &app.palette, width, rows);
+        let lines = super::provider::lines(view, app.lang, &app.palette, width, height);
         return Some((lines, Vec::new(), None));
     }
     if let Some(Overlay::Diff(view)) = &app.overlay {

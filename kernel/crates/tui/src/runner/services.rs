@@ -47,10 +47,11 @@ pub(crate) enum ServiceDone {
     },
     /// 新建 Provider 的预设（内置模板）到了。
     ProviderPresets(Result<Vec<ProviderPreset>, String>),
-    /// 保存成功（附带刷新后的列表）。
+    /// 保存成功（附带刷新后的列表与一次 1 token 的连通性探测）。
     ProviderSaved {
         saved: SavedProvider,
         list: Result<Vec<ProviderInfo>, String>,
+        probe: Option<Result<(), String>>,
     },
     /// 保存失败：留在原来的视图上显示原因。
     ProviderFailed(String),
@@ -304,19 +305,25 @@ impl<B: Backend> Loop<'_, B> {
         );
     }
 
-    /// 向导交上来的内容：保存之后顺手刷新列表（保存成功的提示要带上文件名）。
+    /// 向导交上来的内容：保存之后刷新列表，并用 1 token 探一次这个 Provider（key 对不对、端点通不通
+    /// 当场就能看到，不用等第一次对话才被对端拒绝）。
     pub(super) fn provider_save(&mut self, draft: ProviderDraft) {
         let Some(providers) = self.options.services.providers.clone() else {
             self.app.error(i18n_provider::unavailable(self.app.lang));
             return;
         };
+        let kernel = self.kernel.clone();
         let saving = providers.save(draft);
         self.pending.push(
             async move {
                 match saving.await {
                     Ok(saved) => {
                         let list = providers.list().await;
-                        Done::Service(ServiceDone::ProviderSaved { saved, list })
+                        let probe = match &list {
+                            Ok(items) => probe_provider(kernel, items, &saved.id).await,
+                            Err(_) => None,
+                        };
+                        Done::Service(ServiceDone::ProviderSaved { saved, list, probe })
                     }
                     Err(reason) => Done::Service(ServiceDone::ProviderFailed(reason)),
                 }
@@ -425,7 +432,23 @@ impl<B: Backend> Loop<'_, B> {
                 Err(error) => self.app.error(i18n::rejected(lang, &error.to_string())),
             },
             ServiceDone::ProviderPresets(result) => self.app.provider_presets(result),
-            ServiceDone::ProviderSaved { saved, list } => self.app.provider_saved(saved, list),
+            ServiceDone::ProviderSaved { saved, list, probe } => {
+                match &probe {
+                    Some(Ok(())) => self
+                        .app
+                        .info(i18n_provider::probe_ok(self.app.lang, &saved.name)),
+                    Some(Err(reason)) => {
+                        // key/端点被对端拒绝：保存本身没错，但要说清楚「存下来了，用不了」。
+                        self.app.error(i18n_provider::probe_failed(
+                            self.app.lang,
+                            &saved.name,
+                            reason,
+                        ));
+                    }
+                    None => {}
+                }
+                self.app.provider_saved(saved, list);
+            }
             ServiceDone::ProviderFailed(reason) => self.app.provider_failed(reason),
             ServiceDone::ProviderRemoved { name, path, list } => {
                 self.app.provider_removed(&name, path, list);
@@ -451,4 +474,53 @@ impl<B: Backend> Loop<'_, B> {
             }
         }
     }
+}
+
+/// 新保存的 Provider 用它的第一个模型发 1 个 token：key、端点与协议对不上时当场给出原因。
+async fn probe_provider(
+    kernel: std::sync::Arc<dyn nibi_kernel_api::session_api::Kernel>,
+    items: &[ProviderInfo],
+    id: &str,
+) -> Option<Result<(), String>> {
+    use nibi_kernel_api::generate_text::GenerateTextRequest;
+    use nibi_kernel_api::message::ContentBlock;
+    use nibi_kernel_api::model::{
+        ApiContent, ApiMessage, ApiRole, ModelSelection, QuerySource, SystemBlock,
+    };
+    let info = items.iter().find(|item| item.id == id)?;
+    let model = info.models.first()?.clone();
+    let reasoning = info.default_reasoning.clone()?;
+    let request = GenerateTextRequest {
+        selection: ModelSelection {
+            provider: info.id.clone(),
+            model,
+            reasoning: Some(reasoning),
+            connection: None,
+        },
+        system: vec![SystemBlock {
+            text: "You are NIBI connectivity probe.".to_owned(),
+            cache_control: None,
+        }],
+        messages: vec![ApiMessage {
+            role: ApiRole::User,
+            content: vec![ApiContent {
+                block: ContentBlock::Text {
+                    text: "hi".to_owned(),
+                },
+                cache_control: None,
+            }],
+            output_config: None,
+        }],
+        tools: Vec::new(),
+        tool_choice: None,
+        max_tokens: Some(1),
+        source: QuerySource::Side("provider_settings_connectivity".to_owned()),
+    };
+    Some(
+        kernel
+            .generate_text(request, CancellationToken::new())
+            .await
+            .map(|_| ())
+            .map_err(|error| error.to_string()),
+    )
 }

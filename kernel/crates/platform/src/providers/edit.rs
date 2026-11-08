@@ -143,14 +143,13 @@ fn templates(builtin: &Value) -> Vec<Preset> {
         .collect()
 }
 
-/// 预设清单（新建 Provider 时选）。上游的两套「套餐」生态（Z.ai / BigModel Coding Plan）不列：
-/// 它们是另一家的账号产品，NIBI 的模型入口只留普通第三方 API（端点 + key）。
+/// 预设清单（新建 Provider 时选）：内置模板全列，包括 Z.ai / BigModel 的 Coding Plan 与普通 API。
+/// NIBI 只是不接它们的**账号与会员**（登录入口），模型本身允许用户填自己的 key 使用。
 pub fn presets(builtin: &Value) -> Vec<Preset> {
     let mut seen = HashSet::new();
     templates(builtin)
         .into_iter()
         .filter(|preset| !preset.id.is_empty())
-        .filter(|preset| !preset.id.starts_with("zai-") && !preset.id.starts_with("bigmodel-"))
         .filter(|preset| seen.insert(preset.id.clone()))
         .collect()
 }
