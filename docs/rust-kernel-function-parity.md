@@ -374,6 +374,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
     仍开放的一层：crossterm 0.29 在 Windows 走 `ReadConsoleInputW`，没有 VT 解析器也没有 `9001`；如果还有
     输入法残留以**按下**的形式出现，就要做 Windows 专用输入源（`ENABLE_VIRTUAL_TERMINAL_INPUT` +
     `ESC[?9001h` + 自己解析 `CSI Vk;Sc;Uc;Kd;Cs;Rc _`，并接管粘贴/鼠标/resize）。非 Windows 不受影响。
-    全角「／」在输入框开头已归一成命令斜杠（`848896e1`）。
+    命令斜杠：输入法会把 `/` 换成别的字符——全角「／」（`848896e1`）以及 Microsoft/搜狗等换成顿号「、」；
+    两者在输入框开头（空输入框、光标 0）都等同于命令斜杠，正文里的顿号不受影响。
 
 

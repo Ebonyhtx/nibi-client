@@ -15,8 +15,10 @@ impl App {
     pub(super) fn input_key(&mut self, key: KeyEvent, now: Instant) -> Option<Option<Action>> {
         let ctrl = self.typing.ctrl(&key);
         let alt = self.typing.alt(&key);
-        // 中文输入法的全角斜杠（／）：在输入框开头等同于命令斜杠，`/login`、`/provider` 都能直接打。
-        if key.code == KeyCode::Char('／')
+        // 中文输入法把命令斜杠换成别的字符（全角「／」，Microsoft/搜狗等把 `/` 转成顿号「、」）：在输入框
+        // 开头等同于命令斜杠，`/login`、`/provider` 都能直接打。顿号只在这个位置这样处理——它出现在正文里
+        // 仍是顿号。
+        if matches!(key.code, KeyCode::Char('／' | '、'))
             && !ctrl
             && !alt
             && self.composer.mode == InputMode::Prompt

@@ -274,3 +274,18 @@ fn other_platforms_keep_the_old_behavior() {
     app.on_terminal_key(up, last + ms(20));
     assert_eq!(app.composer.area.text(), "two");
 }
+
+/// 中文输入法把 `/` 换成顿号（`、`）：输入框开头的顿号等同于命令斜杠，正文里的顿号照常是顿号。
+#[test]
+fn a_leading_ideographic_comma_opens_the_command_list() {
+    use crate::ui::composer::Popup;
+    let mut app = app(WINDOWS);
+    app.on_terminal_key(press(KeyCode::Char('、')), Instant::now());
+    assert!(matches!(app.composer.popup, Some(Popup::Slash { .. })));
+    assert_eq!(app.composer.area.text(), "/");
+    // 不是开头就是顿号本身。
+    let mut app = self::app(WINDOWS);
+    app.composer.area.insert_str("你好");
+    app.on_terminal_key(press(KeyCode::Char('、')), Instant::now());
+    assert_eq!(app.composer.area.text(), "你好、");
+}
