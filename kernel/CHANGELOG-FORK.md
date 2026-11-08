@@ -1222,8 +1222,8 @@ run 还欠着决定」——落 Rust。
   `std::fs::canonicalize` 给 `\?\C:\…`，CLI 的路径解析会去掉前缀，测试夹具也去掉（`cli_args.rs`）。
 - **`config_files` 的项目模式测试**：同上，`workspace(...)` 要按无前缀的写法拼。
 - **`run_log` / `time_zone`**：日志文件前缀早就是 `nibi-`（品牌化），期望还写 `zcode-`。
-- **`env_names` 的 Anthropic 变量用例**：启动时目录为空不再锁死模型端口（`/provider` 现加现用），
-  提示变成平台层的「配置 Provider 或登录」，断言改成看这一句且不含 `ANTHROPIC`。
+- **`env_names` 的 Anthropic 变量用例**：`-p` 没有 `/provider`，目录为空时仍按确切原因失败（提示里是
+  本工程的变量名）——断言保持 `set NIBI_API_KEY`；交互模式（TUI / app-server）才保留平台端口。
 - **`network_egress` 的标准变量顺序**：Windows 上 `https_proxy` 与 `HTTPS_PROXY` 是同一个变量，
   无法同时给两个值；只在 POSIX 上验证先后。
 - **`server_blocks`**：缺 `keep_system()`（Windows 上 Winsock 起不来，os error 10106）；夹具的
@@ -1233,3 +1233,38 @@ run 还欠着决定」——落 Rust。
 - **`executor-host` 的 `facts` 契约**：Windows 上 `os_version` 以前恒为空（环境段少一行）。
   现在按 Node 的 `${platform} ${os.release()} ${arch()}` 给出，Windows 用 `RtlGetVersion` 的
   `major.minor.build`。
+
+## 10. 2026-11-09 模型选择的模式分流与 CI 全量测试
+
+### 10.1 `-p` 与交互模式的模型选择
+
+`99e9746a`（「加供应商不用重启」）把所有「选不出模型」都换成了平台端口，`-p` 于是丢掉确切原因。
+现在 `models::assemble` 收 `interactive`：
+
+- `-p`：按原因直接失败（团队项目过期 / `--model` 匹配多个 / 没配供应商），提示与 Node 一致。
+- TUI、App server：保留平台端口（`/provider` 现加现用），原因写进 `Assembled.notice`；TUI 在会话里插
+  一行 `Local::Info`，`App::carry` 让它在 `--resume` 的第一次切换后落到新视图顶上（`update_carry` 由
+  `Option<UpdateInfo>` 泛化成 `Vec<Local>`）。
+
+### 10.2 全量测试进 CI（`rust-gates.yml`）
+
+同一 job 在 `cargo check` 之后跑 `cargo test --locked --workspace --no-fail-fast`（步骤超时 30 分钟；
+ubuntu runner 显式装 `zsh`，shell 选法测试要 `/bin/zsh`）。实测 **6m39s** 全绿。
+顺手修掉 `e1b49168` 留下的**重复 `macos-only:` YAML 键**——GitHub 因它拒收整份 workflow，
+`rust-gates` 从那天起 0 秒失败、门禁静默停摆。
+
+### 10.3 全量测试第一次跑 Linux 时暴露的 12 条既有死测试
+
+都是 `#![cfg(unix)]`、Windows 上编译不到的：
+
+- 品牌残留断言（实现已是 nibi）：`config_files` 的 `Review with: … hooks trust review`、
+  `executor_resident` 的 `… executor is running`、`ssh-connect` 的 provision 文案。
+- `probe_tests`：npm 平台包已改 `@nibi-studio/cli-<platform>`（旧断言找 `zcode-…`），
+  启动器链接名要 `nibi`（脚本 `command -v nibi`）。
+- `host_tests`：Node 的 `osVersion` 用 `process.platform`（小写 `linux …`），实现正确、测试按
+  `os.type()` 断言。
+- `request_headers`：`NIBI_ENV=test` 的 `http-referer` 是 `https://api-test.nibistudio.top`。
+- `node-store` 的 databaseId：分隔符归一只有 Windows 做，按平台分支断言。
+- `executor-host` 的 MCP `Closed.exited`：本机 `true`、loopback `false`（对端自己做遥测）。
+- `compacted-request-*` 夹具：`15000000 tokens left` → `1000000`，`ZCode's own earlier attribution`
+  → `NIBI's own`。
