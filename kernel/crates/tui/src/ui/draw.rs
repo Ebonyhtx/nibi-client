@@ -17,6 +17,18 @@ use super::cells::Ctx;
 use super::mouse::{self, Target};
 use super::transcript::{self, Cache};
 
+/// 顶部固定栏左边的字标：5 行高的「NIBI」（块字符，每行 23 列）。
+const WORDMARK: [&str; 5] = [
+    "█   █ █████ ████  █████",
+    "██  █   █   █   █   █  ",
+    "█ █ █   █   ████    █  ",
+    "█  ██   █   █   █   █  ",
+    "█   █ █████ ████  █████",
+];
+/// 字标占的列数与行数。
+const WORDMARK_WIDTH: u16 = 23;
+const WORDMARK_ROWS: u16 = 5;
+
 /// 带底色的行补到整行宽度（底色铺满整行）。
 pub(super) fn fill_rows(lines: &mut [Line<'static>], width: usize) {
     for line in lines {
@@ -225,9 +237,31 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
             machines: &app.machines,
             markdown: None,
         };
+        // 字标在上、身份行在下：栏有九行，正好把左边填满，右边留给小鸟。
+        let mut info_top = band.y;
+        if band.width >= WORDMARK_WIDTH + 4 {
+            let word = Rect::new(band.x + 2, band.y, WORDMARK_WIDTH, WORDMARK_ROWS);
+            let lines: Vec<ratatui::text::Line<'static>> = WORDMARK
+                .iter()
+                .map(|row| {
+                    ratatui::text::Line::from(ratatui::text::Span::styled(
+                        *row,
+                        Style::default().fg(app.palette.accent),
+                    ))
+                })
+                .collect();
+            frame.render_widget(Paragraph::new(lines), word);
+            info_top += WORDMARK_ROWS;
+        }
+        let info = Rect::new(
+            band.x + 2,
+            info_top,
+            u16::try_from(header_width.saturating_sub(2)).unwrap_or(0),
+            band.bottom().saturating_sub(info_top),
+        );
         frame.render_widget(
             Paragraph::new(super::cells::header(app.view.mode(), &model, &ctx)),
-            band,
+            info,
         );
         app.logo.draw(frame.buffer_mut(), band, &app.palette, now);
         if let Some(stage) = app.logo.stage {
