@@ -57,7 +57,7 @@ const repositoryRoot = resolve(root, "../..");
 const cliRoot = resolve(import.meta.dirname, "..");
 const dist = resolve(cliRoot, "dist");
 const cliBundle = resolve(dist, "nibi.cjs");
-const seaBlobForTarget = (target) => resolve(dist, `zcode-${target}.sea.blob`);
+const seaBlobForTarget = (target) => resolve(dist, `nibi-${target}.sea.blob`);
 const seaConfigForTarget = (target) => resolve(dist, `sea-config-${target}.json`);
 const seaAssetStagingForTarget = (target) => resolve(dist, "sea-assets", target);
 const nodeCache = resolve(dist, "sea-node-cache");
@@ -234,7 +234,7 @@ const adHocSignMacBinary = (target, binaryPath) => {
 
 const smokeTestHostTarget = async (target, binaryPath) => {
   if (isHostTarget(target)) {
-    const storageRoot = await mkdtemp(join(tmpdir(), "zcode-sea-smoke-"));
+    const storageRoot = await mkdtemp(join(tmpdir(), "nibi-sea-smoke-"));
     try {
       const env = {
         ...process.env,

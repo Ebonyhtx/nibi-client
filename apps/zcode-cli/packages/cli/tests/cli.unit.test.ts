@@ -1777,7 +1777,7 @@ test("filters the known SQLite experimental warning from stderr", () => {
     "(node:59658) ExperimentalWarning: SQLite is an experimental feature and might change at any time\n",
   );
   stderr.write(
-    "(Use `zcode-darwin-arm64 --trace-warnings ...` to show where the warning was created)\n",
+    "(Use `nibi-darwin-arm64 --trace-warnings ...` to show where the warning was created)\n",
   );
   stderr.write("real error\n");
 

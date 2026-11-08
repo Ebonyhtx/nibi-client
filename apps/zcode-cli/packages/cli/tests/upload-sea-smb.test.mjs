@@ -18,7 +18,7 @@ import {
 const createReleaseFixture = async (root) => {
   const distDir = join(root, "dist");
   const rootDirectory = join(root, "repo");
-  const destinationRoot = join(root, "shared", "zcode", "deps");
+  const destinationRoot = join(root, "shared", "nibi", "deps");
 
   await mkdir(distDir, {
     recursive: true,
@@ -56,7 +56,7 @@ test("parses upload arguments with defaults and overrides", () => {
         "--force",
         "--dist",
         "dist-out",
-        "--dest-root=/mnt/shared/zcode/deps",
+        "--dest-root=/mnt/shared/nibi/deps",
         "--version",
         "9.8.7",
         "--smb-url",
@@ -67,7 +67,7 @@ test("parses upload arguments with defaults and overrides", () => {
       },
     ),
     {
-      destinationRoot: "/mnt/shared/zcode/deps",
+      destinationRoot: "/mnt/shared/nibi/deps",
       // 本地路径按宿主解析（Windows 上 /tmp/... 会变成当前盘符下的路径）。
       distDir: resolve(cwd, "dist-out"),
       force: true,
@@ -102,7 +102,7 @@ test("reads root package version and rejects path-like release versions", async 
   await writeFile(join(directory, "package.json"), JSON.stringify({ version: "2.0.1" }));
 
   assert.equal(await readRootPackageVersion({ rootDirectory: directory }), "2.0.1");
-  assert.equal(releaseDirectoryName("2.0.1"), "zcode-cli-2.0.1");
+  assert.equal(releaseDirectoryName("2.0.1"), "nibi-cli-2.0.1");
   assert.throws(() => releaseDirectoryName("../2.0.1"), /Invalid release version/);
   assert.throws(() => releaseDirectoryName(".."), /Invalid release version/);
 });
@@ -126,16 +126,16 @@ test("collects all SEA upload binaries and reports missing files", async (t) => 
   assert.deepEqual(
     files.map((file) => file.fileName),
     [
-      "zcode-darwin-arm64",
-      "zcode-darwin-x64",
-      "zcode-linux-arm64",
-      "zcode-linux-x64",
-      "zcode-windows-arm64.exe",
-      "zcode-windows-x64.exe",
+      "nibi-darwin-arm64",
+      "nibi-darwin-x64",
+      "nibi-linux-arm64",
+      "nibi-linux-x64",
+      "nibi-windows-arm64.exe",
+      "nibi-windows-x64.exe",
     ],
   );
 
-  await rm(join(directory, "zcode-linux-x64"));
+  await rm(join(directory, "nibi-linux-x64"));
   await assert.rejects(
     () =>
       collectSeaUploadFiles({
@@ -165,7 +165,7 @@ test("uploads release binaries into a versioned destination with progress events
 
   assert.equal(result.status, "uploaded");
   assert.equal(result.version, "1.2.3");
-  assert.equal(result.destination, join(fixture.destinationRoot, "zcode-cli-1.2.3"));
+  assert.equal(result.destination, join(fixture.destinationRoot, "nibi-cli-1.2.3"));
   assert.equal(events[0]?.type, "start");
   assert.equal(events.at(-1)?.type, "complete");
   assert.equal(
@@ -187,7 +187,7 @@ test("abandons an existing release when the user chooses abandon", async (t) => 
     }),
   );
   const fixture = await createReleaseFixture(directory);
-  const destination = join(fixture.destinationRoot, "zcode-cli-1.2.3");
+  const destination = join(fixture.destinationRoot, "nibi-cli-1.2.3");
   const events = [];
 
   await mkdir(destination, {
@@ -217,7 +217,7 @@ test("force replaces an existing release directory", async (t) => {
     }),
   );
   const fixture = await createReleaseFixture(directory);
-  const destination = join(fixture.destinationRoot, "zcode-cli-1.2.3");
+  const destination = join(fixture.destinationRoot, "nibi-cli-1.2.3");
 
   await mkdir(destination, {
     recursive: true,
@@ -233,8 +233,8 @@ test("force replaces an existing release directory", async (t) => {
   assert.equal(result.status, "uploaded");
   await assert.rejects(() => stat(join(destination, "stale.txt")), /ENOENT/);
   assert.equal(
-    await readFile(join(destination, "zcode-darwin-arm64"), "utf8"),
-    "binary:zcode-darwin-arm64",
+    await readFile(join(destination, "nibi-darwin-arm64"), "utf8"),
+    "binary:nibi-darwin-arm64",
   );
 });
 

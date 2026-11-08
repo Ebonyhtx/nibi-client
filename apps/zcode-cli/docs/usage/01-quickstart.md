@@ -7,8 +7,8 @@
 ```sh
 pnpm install --frozen-lockfile
 pnpm --filter @nibi/cli... build
-node apps/zcode-cli/packages/cli/dist/zcode.cjs --version
-node apps/zcode-cli/packages/cli/dist/zcode.cjs doctor --json
+node apps/zcode-cli/packages/cli/dist/nibi.cjs --version
+node apps/zcode-cli/packages/cli/dist/nibi.cjs doctor --json
 ```
 
 `@nibi/cli...` 包含 CLI 的 workspace 依赖。首次安装会执行仓库的资源准备步骤，需要能访问包和资源下载源。不要把安装脚本被跳过的目录当作完整发行包。
@@ -19,23 +19,23 @@ node apps/zcode-cli/packages/cli/dist/zcode.cjs doctor --json
 pnpm --filter @nibi/cli sea --target linux-x64
 ```
 
-目标包括 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64`、`win-arm64`、`win-x64`。产物在 `apps/zcode-cli/packages/cli/dist/`；Windows 文件名使用 `zcode-windows-<arch>.exe`。交叉打包不等于目标平台运行验证。
+目标包括 `darwin-arm64`、`darwin-x64`、`linux-arm64`、`linux-x64`、`win-arm64`、`win-x64`。产物在 `apps/zcode-cli/packages/cli/dist/`；Windows 文件名使用 `nibi-windows-<arch>.exe`。交叉打包不等于目标平台运行验证。
 
-后文以 `zcode` 代表 CLI 命令。使用普通 Node bundle 时，替换为 `node /absolute/path/to/zcode.cjs`，并保留构建生成的相邻资源。SEA 内嵌 Node，不依赖系统 Node 版本；MCP、Hook 或插件启动的外部程序仍须单独安装。
+后文以 `nibi` 代表 CLI 命令。使用普通 Node bundle 时，替换为 `node /absolute/path/to/nibi.cjs`，并保留构建生成的相邻资源。SEA 内嵌 Node，不依赖系统 Node 版本；MCP、Hook 或插件启动的外部程序仍须单独安装。
 
 ## 使用可执行文件
 
 macOS/Linux 给可信产物添加执行权限，然后直接使用绝对路径：
 
 ```sh
-chmod +x /absolute/path/to/zcode-darwin-arm64
-/absolute/path/to/zcode-darwin-arm64 doctor --json
+chmod +x /absolute/path/to/nibi-darwin-arm64
+/absolute/path/to/nibi-darwin-arm64 doctor --json
 ```
 
 Windows PowerShell 示例：
 
 ```powershell
-& 'C:\tools\zcode-windows-x64.exe' doctor --json
+& 'C:\tools\nibi-windows-x64.exe' doctor --json
 ```
 
 不要使用不匹配的系统或 CPU 架构。macOS 若拦截未签名产物，先确认来源，再通过系统设置允许运行；不要对未知文件批量移除安全属性。
@@ -43,11 +43,11 @@ Windows PowerShell 示例：
 ## 自检与模型设置
 
 ```sh
-zcode --version
-zcode --help
-zcode doctor --json
-zcode plugins list --json
-zcode skills list --json
+nibi --version
+nibi --help
+nibi doctor --json
+nibi plugins list --json
+nibi skills list --json
 ```
 
 `doctor` 用于检查版本、平台、CPU、Node、执行路径和 SEA 状态；它不证明模型凭据、网络或工具调用已经可用。插件清单可以独立查询，不要求先发一次付费模型请求。
@@ -57,7 +57,7 @@ zcode skills list --json
 ## 第一次非交互调用
 
 ```sh
-zcode --prompt "只用一句话回复 ready，不调用工具" --cwd /absolute/path/to/project --mode plan --json --no-color
+nibi --prompt "只用一句话回复 ready，不调用工具" --cwd /absolute/path/to/project --mode plan --json --no-color
 ```
 
 普通 prompt 成功时返回 `sessionId`、`response` 和相关运行信息。然后在一次性测试目录中验证所需工具，检查真实文件或命令结果。模型回复“成功”不等于工具已执行。
