@@ -51,8 +51,8 @@ async fn the_pet_sits_in_the_corner_and_animates() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        // 19×11 格里有大半是鸟的轮廓（半格字符）。
-        ui.wait("the pet", |_| ui_braille(&buffer).len() > 80).await;
+        // 12×7 格里有大半是鸟的轮廓（半格字符）。
+        ui.wait("the pet", |_| ui_braille(&buffer).len() > 40).await;
         // 位置：右下角（不压正文）。
         // `setup` 里给的终端尺寸。
         let (width, height) = (100, 40);
@@ -69,7 +69,7 @@ async fn the_pet_sits_in_the_corner_and_animates() {
         ui.type_text("hi");
         ui.wait_for("❯ hi").await;
         assert!(
-            ui_braille(&ui.buffer).len() > 80,
+            ui_braille(&ui.buffer).len() > 40,
             "the pet stays while typing"
         );
     })
@@ -82,7 +82,7 @@ async fn the_pet_keeps_brand_colours_on_light_paper() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup((0xfa, 0xfa, 0xf7)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        ui.wait("the pet", |_| ui_braille(&buffer).len() > 80).await;
+        ui.wait("the pet", |_| ui_braille(&buffer).len() > 40).await;
         let cells = ui_braille(&ui.buffer);
         assert!(!cells.is_empty());
         let guard = ui.buffer.lock().unwrap();

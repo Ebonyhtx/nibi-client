@@ -22,7 +22,7 @@ fn drawn(buffer: &Buffer, area: Rect) -> usize {
         .count()
 }
 
-/// 素材数据是生成的：每行正好铺满 19 像素、帧时长加起来是 2.4 秒、下标都在调色板里。
+/// 素材数据是生成的：每行正好铺满 12 像素、帧时长加起来是 2.4 秒、下标都在调色板里。
 #[test]
 fn the_animation_data_is_consistent() {
     assert!(pack::FRAMES.len() >= 2);
@@ -30,7 +30,7 @@ fn the_animation_data_is_consistent() {
         pack::FRAMES.iter().map(|frame| frame.ms).sum::<u64>(),
         2400
     );
-    // 22 行像素 = 11 行字符（两像素一格），所以高度必须是偶数。
+    // 14 行像素 = 7 行字符（两像素一格），所以高度必须是偶数。
     assert_eq!(pack::HEIGHT % 2, 0);
     for (index, frame) in pack::FRAMES.iter().enumerate() {
         assert_eq!(frame.rows.len(), usize::from(pack::HEIGHT), "frame {index}");
@@ -56,11 +56,11 @@ fn the_animation_data_is_consistent() {
 fn the_pet_sits_in_the_bottom_right_corner() {
     assert_eq!(
         stage_in(Rect::new(0, 3, 100, 30)),
-        Some(Rect::new(80, 22, 19, 11))
+        Some(Rect::new(87, 26, 12, 7))
     );
     // 差一列 / 一行都放不下。
-    assert_eq!(stage_in(Rect::new(0, 0, 19, 30)), None);
-    assert_eq!(stage_in(Rect::new(0, 0, 100, 10)), None);
+    assert_eq!(stage_in(Rect::new(0, 0, 12, 30)), None);
+    assert_eq!(stage_in(Rect::new(0, 0, 100, 6)), None);
 }
 
 #[test]
@@ -71,16 +71,16 @@ fn the_bird_is_drawn_in_brand_colours() {
     let mut buffer = Buffer::empty(area);
     logo.draw(&mut buffer, area, &palette(), now);
     let stage = logo.stage.unwrap();
-    assert_eq!((stage.width, stage.height), (19, 11));
+    assert_eq!((stage.width, stage.height), (12, 7));
     // 鸟的轮廓画出来了（不是空白），而且是半格字符。
-    assert!(drawn(&buffer, stage) > 80, "{}", drawn(&buffer, stage));
+    assert!(drawn(&buffer, stage) > 40, "{}", drawn(&buffer, stage));
     let block = |position| {
         buffer[position]
             .symbol()
             .chars()
             .all(|c| ('\u{2580}'..='\u{259f}').contains(&c))
     };
-    assert!((stage.x..stage.right()).any(|x| block((x, stage.y + 3))));
+    assert!((stage.x..stage.right()).any(|x| block((x, stage.y + 2))));
     // 不透明品牌色：前景色就是素材调色板里的颜色之一（不做背景混合）。
     let brand: Vec<(u8, u8, u8)> = pack::PALETTE
         .iter()
