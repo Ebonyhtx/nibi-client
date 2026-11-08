@@ -63,7 +63,9 @@ async fn messages_round_trip_and_close(kind: Kind) {
         next(&mut events).await,
         Some(McpTransportEvent::Closed {
             reason: None,
-            session_expired: false
+            session_expired: false,
+            // 我们自己关的：不是服务器进程自己退出（`process_crash` 的判据）。
+            exited: false,
         })
     );
     assert_eq!(next(&mut events).await, None);
@@ -89,7 +91,9 @@ async fn a_server_that_exits_is_reported(kind: Kind) {
         next(&mut events).await,
         Some(McpTransportEvent::Closed {
             reason: Some("MCP server \"s\" process exited".to_owned()),
-            session_expired: false
+            session_expired: false,
+            // 服务器进程自己退出的：这条要能报 `process_crash`。
+            exited: true,
         })
     );
 }

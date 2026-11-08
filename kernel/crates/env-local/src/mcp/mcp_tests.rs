@@ -78,7 +78,9 @@ async fn stdio_round_trips_lines_and_closes() {
         next(&mut events).await,
         McpTransportEvent::Closed {
             reason: None,
-            session_expired: false
+            session_expired: false,
+            // 我们自己关的。
+            exited: false,
         }
     );
     assert!(transport.send(&id, json!({})).await.is_err());
@@ -108,7 +110,9 @@ async fn stdio_projects_the_environment_and_reports_exit() {
         next(&mut events).await,
         McpTransportEvent::Closed {
             reason: Some("MCP server \"s\" process exited".to_owned()),
-            session_expired: false
+            session_expired: false,
+            // 服务器进程自己退出的。
+            exited: true,
         }
     );
 }
