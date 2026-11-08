@@ -10,13 +10,13 @@
 
 use std::sync::Arc;
 
-use nibi_kernel_base::names::DOT_DIR;
-use nibi_kernel_base::secret::RedactedString;
 use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::model::ModelSelection;
 use nibi_kernel_api::provider::{
     ModelCatalog, ModelDirectory, ModelLimits, TokenLimits, WireProtocol,
 };
+use nibi_kernel_base::names::DOT_DIR;
+use nibi_kernel_base::secret::RedactedString;
 use nibi_kernel_model::{
     AnthropicEndpoint, CapabilityRules, DeviceIdSource, FixedEndpoint, ProviderModel,
 };
@@ -284,7 +284,20 @@ async fn assemble_model(
                 None if catalog.default.is_none() => platform.team_notice(None).await,
                 None => None,
             };
-            unselected(notice.unwrap_or(reason), limits)
+            // 启动时目录为空，但用户可能在 TUI 里用 `/provider` 现加供应商：这里不能把模型
+            // 锁死成「永远报错」的替身（那样加完还得重启），交给平台层按会话的选择解析。
+            let notice = notice.unwrap_or(reason);
+            tracing::warn!(%notice, "no model provider configured at startup");
+            Assembled {
+                model: ProviderModel::new(egress, platform, clock),
+                selection: ModelSelection {
+                    provider: String::new(),
+                    model: flag.clone().unwrap_or_default(),
+                    reasoning: None,
+                    connection: None,
+                },
+                limits,
+            }
         }
     }
 }
