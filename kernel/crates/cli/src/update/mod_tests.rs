@@ -9,8 +9,8 @@ use super::*;
 const HOUR_MS: u64 = 60 * 60 * 1000;
 /// 2026-10-20T08:00:00.000Z。
 const NOW_MS: u64 = 1_792_483_200_000;
-const ENTRY: &str = "/@scope%2fzcode";
-const PLATFORM: &str = "/@scope%2fzcode-darwin-arm64";
+const ENTRY: &str = "/@nibi%2fcli";
+const PLATFORM: &str = "/@nibi-studio%2fcli-darwin-arm64";
 
 fn marked() -> Vec<(String, String)> {
     [

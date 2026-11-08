@@ -104,6 +104,10 @@ async fn declining_exits_with_the_dialog_code_and_records_nothing() {
     }
 }
 
+// 下面五条用 POSIX 路径（`/w/…`）与假环境（platform=darwin）模拟一台 POSIX 机器：判定链里的 git 根探测
+// 走**宿主** `std::path::Path`（cli 只组装本机环境），Windows 宿主上下划线/分隔符与假环境的键对不上，
+// 因此只在 unix 上跑。Windows 的原生路径语义由后面的 `a_repository_root_is_found_with_native_windows_paths` 覆盖。
+#[cfg(unix)]
 #[tokio::test]
 async fn inside_a_repository_the_record_goes_to_the_git_root() {
     let env = env(&[("/w/repo/.git/HEAD", "ref: refs/heads/main\n")]);
@@ -113,6 +117,7 @@ async fn inside_a_repository_the_record_goes_to_the_git_root() {
     assert_eq!(keys, ["/w/repo"]);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn a_dot_git_that_is_neither_file_nor_directory_is_not_a_git_root() {
     // git 根只认目录与文件；FIFO 等别的种类继续往上（F58：以前任何种类都算）。
@@ -122,6 +127,7 @@ async fn a_dot_git_that_is_neither_file_nor_directory_is_not_a_git_root() {
     assert_eq!(keys, ["/w/repo"]);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn a_parent_grant_counts_outside_repositories_only_up_to_the_git_root_inside() {
     // 不在仓库里：父目录的记录一直向上算。
@@ -138,6 +144,7 @@ async fn a_parent_grant_counts_outside_repositories_only_up_to_the_git_root_insi
     assert_eq!((outcome, asked), (Outcome::Continue, None));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn a_worktree_shares_the_trust_of_its_main_repository() {
     let env = env(&[
@@ -158,6 +165,7 @@ async fn a_worktree_shares_the_trust_of_its_main_repository() {
     assert_eq!(asked, None);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn a_git_file_that_does_not_point_back_is_its_own_root() {
     // `gitdir` 回指别处（或 commondir 不对）时规范根就是 git 根。
@@ -169,6 +177,40 @@ async fn a_git_file_that_does_not_point_back_is_its_own_root() {
     let store = MemoryStore::default();
     let (_, _, keys) = run(&env, &store, "/w/trees/wt", None, TrustAnswer::Trusted).await;
     assert_eq!(keys, ["/w/trees/wt"]);
+}
+
+/// Windows 的原生路径：仓库根的记录落在仓库根上（不是起点目录），同一仓库里的别处不再问。
+#[cfg(windows)]
+#[tokio::test]
+async fn a_repository_root_is_found_with_native_windows_paths() {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("repo");
+    let home = dir.path().to_string_lossy().into_owned();
+    let facts = EnvFacts {
+        cwd: EnvPath::new(&home),
+        platform: "win32".to_owned(),
+        os_version: "Windows".to_owned(),
+        shell: "pwsh".to_owned(),
+        is_git_repo: false,
+        additional_directories: Vec::new(),
+        home: Some(EnvPath::new(&home)),
+    };
+    let head = repo.join(".git").join("HEAD").to_string_lossy().into_owned();
+    let env = MemoryEnvironment::new(facts).with_file(&head, "ref: refs/heads/main\n");
+    let store = MemoryStore::default();
+    let start = repo.join("a").join("b").to_string_lossy().into_owned();
+    let (outcome, asked, keys) = run(&env, &store, &start, None, TrustAnswer::Trusted).await;
+    assert_eq!(outcome, Outcome::Continue);
+    assert!(asked.is_some());
+    assert_eq!(keys.len(), 1);
+    assert!(
+        keys[0].ends_with("/repo"),
+        "the record goes to the repository root: {keys:?}"
+    );
+    // 记录生效：仓库里另一个目录不再问。
+    let sibling = repo.join("x").to_string_lossy().into_owned();
+    let (_, asked, _) = run(&env, &store, &sibling, None, TrustAnswer::Exit(1)).await;
+    assert_eq!(asked, None);
 }
 
 #[tokio::test]

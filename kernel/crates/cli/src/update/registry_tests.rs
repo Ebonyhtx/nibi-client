@@ -12,18 +12,18 @@ fn install(platform: Option<&str>) -> Install {
     }
 }
 
-const ENTRY: &str = "/@scope%2fzcode";
-const PLATFORM: &str = "/@scope%2fzcode-darwin-arm64";
+const ENTRY: &str = "/@nibi%2fcli";
+const PLATFORM: &str = "/@nibi-studio%2fcli-darwin-arm64";
 
 #[test]
 fn scoped_packages_escape_the_slash() {
     assert_eq!(
         package_url(REGISTRY, "@nibi/cli"),
-        "https://registry.npmjs.org/@scope%2fzcode"
+        "https://registry.npmjs.org/@nibi%2fcli"
     );
     assert_eq!(
-        package_url("http://127.0.0.1:1/", "zcode"),
-        "http://127.0.0.1:1/zcode"
+        package_url("http://127.0.0.1:1/", "nibi"),
+        "http://127.0.0.1:1/nibi"
     );
 }
 

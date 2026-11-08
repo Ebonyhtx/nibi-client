@@ -49,21 +49,46 @@ fn an_unusable_zcode_proxy_counts_as_unset() {
 
 #[test]
 fn standard_proxies_follow_the_fixed_order() {
-    let all = [
-        ("HTTP_PROXY", "http://d.example:1"),
-        ("http_proxy", "http://c.example:1"),
-        ("HTTPS_PROXY", "http://b.example:1"),
-        ("https_proxy", "http://a.example:1"),
-    ];
-    assert_eq!(proxy_of(&all), Some("http://a.example:1/".to_owned()));
-    assert_eq!(proxy_of(&all[..3]), Some("http://b.example:1/".to_owned()));
-    assert_eq!(proxy_of(&all[..2]), Some("http://c.example:1/".to_owned()));
-    assert_eq!(proxy_of(&all[..1]), Some("http://d.example:1/".to_owned()));
-    // 空值跳过（取第一个“真值”）。
-    assert_eq!(
-        proxy_of(&[("https_proxy", ""), ("HTTPS_PROXY", "http://b.example:1")]),
-        Some("http://b.example:1/".to_owned())
-    );
+    // Windows 上变量名不分大小写（`http_proxy` 与 `HTTP_PROXY` 是同一个），只有 POSIX 能把四种写法
+    // 放进同一张快照里比先后。
+    #[cfg(not(windows))]
+    {
+        let all = [
+            ("HTTP_PROXY", "http://d.example:1"),
+            ("http_proxy", "http://c.example:1"),
+            ("HTTPS_PROXY", "http://b.example:1"),
+            ("https_proxy", "http://a.example:1"),
+        ];
+        assert_eq!(proxy_of(&all), Some("http://a.example:1/".to_owned()));
+        assert_eq!(proxy_of(&all[..3]), Some("http://b.example:1/".to_owned()));
+        assert_eq!(proxy_of(&all[..2]), Some("http://c.example:1/".to_owned()));
+        assert_eq!(proxy_of(&all[..1]), Some("http://d.example:1/".to_owned()));
+        // 空值跳过（取第一个“真值”）。
+        assert_eq!(
+            proxy_of(&[("https_proxy", ""), ("HTTPS_PROXY", "http://b.example:1")]),
+            Some("http://b.example:1/".to_owned())
+        );
+    }
+    #[cfg(windows)]
+    {
+        // 同一个变量写两个大小写：先出现的那个生效（Node 读环境也一样）。
+        assert_eq!(
+            proxy_of(&[
+                ("HTTPS_PROXY", "http://b.example:1"),
+                ("https_proxy", "http://a.example:1"),
+            ]),
+            Some("http://b.example:1/".to_owned())
+        );
+        assert_eq!(
+            proxy_of(&[("http_proxy", "http://c.example:1")]),
+            Some("http://c.example:1/".to_owned())
+        );
+        // 空值跳过。
+        assert_eq!(
+            proxy_of(&[("https_proxy", ""), ("HTTP_PROXY", "http://d.example:1")]),
+            Some("http://d.example:1/".to_owned())
+        );
+    }
     assert_eq!(proxy_of(&[]), None);
 }
 
@@ -110,21 +135,43 @@ fn no_proxy_prefers_zcode_then_merges_the_standard_pair() {
         NoProxy::Standard("c.test".to_owned())
     );
     // 合并：任一个是 `*` 时为 `*`；都非空且不同时拼起来；否则取非空的那个。
-    assert_eq!(
-        of(&[("no_proxy", "a.test"), ("NO_PROXY", "b.test")]),
-        NoProxy::Standard("a.test,b.test".to_owned())
-    );
+    // Windows 上两个名字是同一个变量（先出现的生效），只有 POSIX 能分别设置。
+    #[cfg(not(windows))]
+    {
+        assert_eq!(
+            of(&[("no_proxy", "a.test"), ("NO_PROXY", "b.test")]),
+            NoProxy::Standard("a.test,b.test".to_owned())
+        );
+        assert_eq!(
+            of(&[("no_proxy", "a.test"), ("NO_PROXY", "*")]),
+            NoProxy::Standard("*".to_owned())
+        );
+    }
+    #[cfg(windows)]
+    {
+        assert_eq!(
+            of(&[("no_proxy", "a.test"), ("NO_PROXY", "b.test")]),
+            NoProxy::Standard("a.test".to_owned())
+        );
+        assert_eq!(
+            of(&[("NO_PROXY", "*"), ("no_proxy", "a.test")]),
+            NoProxy::Standard("*".to_owned())
+        );
+    }
     assert_eq!(
         of(&[("no_proxy", "a.test"), ("NO_PROXY", "a.test")]),
         NoProxy::Standard("a.test".to_owned())
     );
-    assert_eq!(
-        of(&[("no_proxy", "a.test"), ("NO_PROXY", "*")]),
-        NoProxy::Standard("*".to_owned())
-    );
+    // POSIX：空的那个跳过、取另一个；Windows：两个名字是同一个变量，先出现的空值生效。
+    #[cfg(not(windows))]
     assert_eq!(
         of(&[("no_proxy", ""), ("NO_PROXY", "b.test")]),
         NoProxy::Standard("b.test".to_owned())
+    );
+    #[cfg(windows)]
+    assert_eq!(
+        of(&[("no_proxy", ""), ("NO_PROXY", "b.test")]),
+        NoProxy::None
     );
     assert_eq!(of(&[("NO_PROXY", "")]), NoProxy::None);
     assert_eq!(of(&[]), NoProxy::None);

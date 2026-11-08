@@ -22,14 +22,15 @@ const STANDARD_PROXY: [&str; 4] = ["https_proxy", "HTTPS_PROXY", "http_proxy", "
 /// 标准代理变量不是带主机的完整 URL（启动时的用户错误）。入口把它原样写到 stderr，退出码 1。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct InvalidProxy {
-    source: &'static str,
+    /// 快照里真正写着的那一项（Windows 上大小写按用户写的；Node 报的是读到的键）。
+    source: String,
     value: String,
 }
 
 impl fmt::Display for InvalidProxy {
     /// 固定的文字；值去掉 Unicode 控制字符（`/\p{Cc}/gu`）。
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let source = self.source;
+        let source = &self.source;
         let value: String = self.value.chars().filter(|c| !c.is_control()).collect();
         write!(
             formatter,
@@ -90,15 +91,23 @@ fn var<'a>(env: &'a EnvSnapshot, name: &str) -> Option<&'a str> {
     env.get(name)
 }
 
+/// 按名字取「快照里真正写着的那一项」：键名（大小写按用户写的）与值。
+///
+/// 报错文案要用这个而不是候选名：Windows 上 `https_proxy` 会匹配到用户设置的 `HTTPS_PROXY`，
+/// 用候选名会让用户去改一个自己没设过的变量。
+fn var_entry<'a>(env: &'a EnvSnapshot, name: &str) -> Option<(&'a str, &'a str)> {
+    env.iter()
+        .find(|(key, _)| nibi_kernel_base::secret::same_env_name(key, name, cfg!(windows)))
+        .map(|(key, value)| (key.as_str(), value.as_str()))
+}
+
 /// 代理地址：`NIBI_HTTP_PROXY`（Node 的写法）有效时用它，否则取第一个非空的标准变量。
 pub(crate) fn proxy(env: &EnvSnapshot) -> Result<Option<String>, InvalidProxy> {
     if let Some(url) = var(env, "NIBI_HTTP_PROXY").and_then(node_proxy_url) {
         return Ok(Some(url));
     }
     let Some((source, value)) = STANDARD_PROXY.iter().find_map(|name| {
-        var(env, name)
-            .filter(|value| !value.is_empty())
-            .map(|value| (*name, value))
+        var_entry(env, name).filter(|(_, value)| !value.is_empty())
     }) else {
         return Ok(None);
     };
@@ -106,7 +115,7 @@ pub(crate) fn proxy(env: &EnvSnapshot) -> Result<Option<String>, InvalidProxy> {
     match url::Url::parse(value) {
         Ok(url) if url.host_str().is_some_and(|host| !host.is_empty()) => Ok(Some(url.into())),
         _ => Err(InvalidProxy {
-            source,
+            source: source.to_owned(),
             value: value.to_owned(),
         }),
     }

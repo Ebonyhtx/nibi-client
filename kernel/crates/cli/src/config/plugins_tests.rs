@@ -26,6 +26,18 @@ fn layers<'a>(user: &'a Map<String, Value>, projects: &'a [Map<String, Value>]) 
     .collect()
 }
 
+/// 期望值按 `resolve_dir` 的规则算：本机 `Path::join` + `nibi_kernel_base::path::normalize`
+/// （Node 的 `path.resolve` 也是本机写法，Windows 上是 `C:\…`，POSIX 上是 `/…`）。
+fn resolved(parts: &[&str]) -> String {
+    let mut path = std::path::PathBuf::from(parts[0]);
+    for part in &parts[1..] {
+        path.push(part);
+    }
+    nibi_kernel_base::path::normalize(&path)
+        .to_string_lossy()
+        .into_owned()
+}
+
 #[test]
 fn the_plugins_section_merges_like_node() {
     let user = object(json!({"plugins": {
@@ -87,7 +99,10 @@ async fn candidates_follow_the_node_order() {
     let root = StoragePaths::resolve(&Default::default(), home, home).plugin_storage(None, home);
     let guide = root
         .as_path()
-        .join("cache/nibi-official/zcode-guide/0.3.0");
+        .join("cache")
+        .join("nibi-official")
+        .join("zcode-guide")
+        .join("0.3.0");
     let partition = root
         .as_path()
         .join("marketplaces/nibi-official/bundled-marketplace.json");
@@ -109,13 +124,15 @@ async fn candidates_follow_the_node_order() {
         .to_string(),
     )
     .unwrap();
+    let abs = dir.path().join("abs").to_string_lossy().into_owned();
+    let repo = dir.path().join("repo").to_string_lossy().into_owned();
     let section = PluginSection {
         enabled: true,
-        dirs: vec!["/Users/dev/abs".to_owned(), "rel/kit".to_owned()],
+        dirs: vec![abs.clone(), "rel/kit".to_owned()],
         enabled_plugins: [("kit@market".to_owned(), true)].into_iter().collect(),
         suppressed_builtins: vec!["zcode-guide@nibi-official".to_owned()],
     };
-    let sources = sources(section.clone(), "/Users/dev/repo", &root, None).await;
+    let sources = sources(section.clone(), &repo, &root, None).await;
     let candidates: Vec<(String, &str, PluginOrigin)> = sources
         .candidates
         .iter()
@@ -124,13 +141,9 @@ async fn candidates_follow_the_node_order() {
     assert_eq!(
         candidates,
         [
+            (abs, "inline", PluginOrigin::ConfigDir),
             (
-                "/Users/dev/abs".to_owned(),
-                "inline",
-                PluginOrigin::ConfigDir
-            ),
-            (
-                "/Users/dev/repo/rel/kit".to_owned(),
+                resolved(&[&repo, "rel", "kit"]),
                 "inline",
                 PluginOrigin::ConfigDir
             ),
@@ -167,17 +180,15 @@ async fn sources_of(
 #[test]
 fn config_dirs_resolve_like_node_path_resolve() {
     // 绝对路径原样；相对路径相对工作区根，`.` 与 `..` 按字面化简；不展开 `~`（Node `resolve`）。
+    let dir = tempfile::tempdir().unwrap();
+    let base = dir.path().to_string_lossy().into_owned();
+    let repo = dir.path().join("repo").to_string_lossy().into_owned();
+    let absolute = dir.path().join("kit").to_string_lossy().into_owned();
+    assert_eq!(resolve_dir(&repo, &absolute), absolute);
+    assert_eq!(resolve_dir(&repo, "./kit"), resolved(&[&repo, "kit"]));
+    assert_eq!(resolve_dir(&repo, "../kit/"), resolved(&[&base, "kit"]));
     assert_eq!(
-        resolve_dir("/Users/dev/repo", "/Users/dev/kit"),
-        "/Users/dev/kit"
-    );
-    assert_eq!(
-        resolve_dir("/Users/dev/repo", "./kit"),
-        "/Users/dev/repo/kit"
-    );
-    assert_eq!(resolve_dir("/Users/dev/repo", "../kit/"), "/Users/dev/kit");
-    assert_eq!(
-        resolve_dir("/Users/dev/repo", "~/kit"),
-        "/Users/dev/repo/~/kit"
+        resolve_dir(&repo, "~/kit"),
+        resolved(&[&repo, "~", "kit"])
     );
 }
