@@ -61,6 +61,9 @@ pub struct Releases {
     refocused: bool,
 }
 
+/// 「按下了、还没松开」的记录上限（几种指法同时按住远到不了；只是别让等不到松开的记录无限增长）。
+const MAX_HELD: usize = 8;
+
 impl Releases {
     pub fn new(os: Os) -> Self {
         Self {
@@ -89,6 +92,11 @@ impl Releases {
             self.refocused = false;
             if !self.held.contains(&c) {
                 self.held.push(c);
+                // 输入法提交的文字可能只有按下、永远等不到松开（控制台注入的记录）：留一个上限，
+                // 别让它们越积越多、把之后真的没有配对的松开全吃掉。
+                if self.held.len() > MAX_HELD {
+                    self.held.remove(0);
+                }
             }
             return Some(key);
         }
@@ -96,6 +104,17 @@ impl Releases {
         let same = |held: &char| held.to_lowercase().eq(c.to_lowercase());
         if let Some(at) = self.held.iter().position(same) {
             self.held.remove(at);
+            return None;
+        }
+        // 输入法确认候选的键（空格）：按下被输入法吃掉，松开单独送到控制台，于是没有配对。它不是 alt 码——
+        // alt 码打出来的是键盘上没有的可打印字符。以前这里照 alt 码处理，于是每选一次词就往输入框里塞一个
+        // 空格。真正的空格有配对的按下，不受影响。日志留给「症状还在」时确认事件形状。
+        if c.is_whitespace() {
+            tracing::debug!(
+                character = %c.escape_default(),
+                held = self.held.len(),
+                "an unpaired whitespace release was dropped"
+            );
             return None;
         }
         if !self.held.is_empty() {

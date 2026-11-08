@@ -364,9 +364,13 @@ redirectPath)[0..24]>:authorization_credentials`）；
     自定义端点按 schema 生成完整能力规则。新增的 Provider 会连同有效的 `options.reasoningLevel` 一起写成
     默认模型（Node 只认带档位的 `defaultModelSelection`）。
 
-12. **Windows 上中文输入法（TUI 输入框）**：输入法用来选词的空格会被当成一次真实按键送进输入框
-    （中文句子里出现多余空格），全角标点按普通字符进文本（全角「／」在输入框开头已归一成命令斜杠）。
-    根因不在 TUI：crossterm 0.29 在 Windows 走 `ReadConsoleInputW`（`event/sys/windows/parse.rs`），
-    没有 VT 解析器、也没有 `9001`；crates.io 上没有更新的版本。真正的修法是 Windows 专用输入源：
-    开 `ENABLE_VIRTUAL_TERMINAL_INPUT` + `ESC[?9001h`，自己解析 `CSI Vk;Sc;Uc;Kd;Cs;Rc _`，并接管
-    粘贴/鼠标/resize。列为独立工作项；非 Windows 平台的行为不受影响。
+12. **Windows 上中文输入法（TUI 输入框）**：选词时空格被当成真实按键进输入框（中文句子里多出空格）。
+    已定位到 TUI 自己的一层：`ui/keyboard.rs` 的 `Releases` 为 F65 的 alt 码把**没有配对的松开**当按下
+    （alt 码的字符只在 Alt 的松开事件里）。输入法确认候选的键（空格）被输入法吃掉按下、只把松开送进控制台，
+    正好落进这条分支 → 每选一次词多一个空格。现在没有配对的**空白字符**松开一律丢掉（alt 码打出来的是
+    可打印字符，不受影响），并给「等不到松开的按下」加了上限，避免输入法提交的文字越积越多。
+    仍开放的一层：crossterm 0.29 在 Windows 走 `ReadConsoleInputW`，没有 VT 解析器也没有 `9001`；如果
+    症状以**按下**的形式出现（而不是松开），就要做 Windows 专用输入源（`ENABLE_VIRTUAL_TERMINAL_INPUT` +
+    `ESC[?9001h` + 自己解析 `CSI Vk;Sc;Uc;Kd;Cs;Rc _`，并接管粘贴/鼠标/resize）。非 Windows 不受影响。
+    全角「／」在输入框开头已归一成命令斜杠（`848896e1`）。
+

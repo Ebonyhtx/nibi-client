@@ -120,3 +120,44 @@ fn releases_are_dropped_elsewhere() {
     let a = key(KeyCode::Char('a'), KeyModifiers::NONE);
     assert_eq!(releases.admit(a), Some(a));
 }
+
+/// 输入法确认候选的空格：按下被输入法吃掉，控制台只把松开送进来。它不是 alt 码（alt 码是键盘上打不出来的
+/// 可打印字符），丢掉；否则中文每选一次词就多一个空格。真正的空格有配对的按下，照常键入。
+#[test]
+fn an_unpaired_space_release_is_not_typed() {
+    let mut releases = Releases::new(WINDOWS);
+    let typed = key(KeyCode::Char('中'), KeyModifiers::NONE);
+    assert_eq!(releases.admit(typed), Some(typed));
+    // 输入法提交的文字没有松开；选词的空格只有松开。
+    assert_eq!(releases.admit(up(' ', KeyModifiers::NONE)), None);
+    assert_eq!(releases.admit(up('\u{3000}', KeyModifiers::NONE)), None);
+    // 用户真的敲空格：按下照常，松开配对掉。
+    let space = key(KeyCode::Char(' '), KeyModifiers::NONE);
+    assert_eq!(releases.admit(space), Some(space));
+    assert_eq!(releases.admit(up(' ', KeyModifiers::NONE)), None);
+}
+
+/// 等不到松开的按下有上限：输入法提交的文字可能只来按下，别让它们越积越多。
+#[test]
+fn held_presses_are_capped() {
+    let mut releases = Releases::new(WINDOWS);
+    for c in ['中', '文', '输', '入', '法', '提', '交', '的', '文', '字'] {
+        releases.admit(key(KeyCode::Char(c), KeyModifiers::NONE));
+    }
+    // 上限内只留最近按下的几个。
+    assert_eq!(releases.held.len(), 8);
+    // 还有没配对的按下时，没有配对的可打印松开按配对处理（不当作 alt 码）。
+    assert!(releases.admit(up('ä', KeyModifiers::NONE)).is_none());
+}
+
+/// 没有配对的**可打印**字符松开仍是 alt 码（T3 的能力不许回退）。
+#[test]
+fn unpaired_releases_of_printable_characters_stay_alt_codes() {
+    let mut releases = Releases::new(WINDOWS);
+    releases.admit(key(KeyCode::Char('a'), KeyModifiers::NONE));
+    assert_eq!(releases.admit(up('a', KeyModifiers::NONE)), None);
+    assert_eq!(
+        releases.admit(up('ä', KeyModifiers::NONE)),
+        Some(key(KeyCode::Char('ä'), KeyModifiers::NONE))
+    );
+}
