@@ -237,11 +237,16 @@ struct Recorder {
     notifications: Arc<Mutex<Vec<String>>>,
     handovers: Arc<Mutex<Vec<&'static str>>>,
     images: Arc<Mutex<Vec<nibi_kernel_tui::ui::logo::Image>>>,
+    cursor_at: Arc<Mutex<Vec<(u16, u16)>>>,
 }
 
 impl Screen for Recorder {
     fn image(&mut self, image: &nibi_kernel_tui::ui::logo::Image) {
         self.images.lock().unwrap().push(image.clone());
+    }
+
+    fn cursor_to(&mut self, at: (u16, u16)) {
+        self.cursor_at.lock().unwrap().push(at);
     }
 
     fn keyboard_enhanced(&self) -> bool {
@@ -283,6 +288,8 @@ pub struct Ui {
     pub handovers: Arc<Mutex<Vec<&'static str>>>,
     /// 写到终端的像素图（Sixel）。
     pub images: Arc<Mutex<Vec<nibi_kernel_tui::ui::logo::Image>>>,
+    /// 贴图之后把光标移回去的记录。
+    pub cursor_at: Arc<Mutex<Vec<(u16, u16)>>>,
     cursor: Arc<Mutex<super::dead_terminal::Cursor>>,
 }
 
@@ -483,6 +490,7 @@ where
     let notifications = Arc::new(Mutex::new(Vec::new()));
     let handovers = Arc::new(Mutex::new(Vec::new()));
     let images = Arc::new(Mutex::new(Vec::new()));
+    let cursor_at = Arc::new(Mutex::new(Vec::new()));
     let mut recorder = Recorder {
         screen,
         enhanced: setup.keyboard_enhanced,
@@ -491,6 +499,7 @@ where
         notifications: notifications.clone(),
         handovers: handovers.clone(),
         images: images.clone(),
+        cursor_at: cursor_at.clone(),
     };
     let cursor = Arc::new(Mutex::new(super::dead_terminal::Cursor::default()));
     let mut terminal = Terminal::new(super::dead_terminal::Hangable {
@@ -534,6 +543,7 @@ where
         ids: Arc::new(SequentialIds::default()),
         os: setup.os,
         pixels: setup.pixels,
+        pet_anim: false,
     };
     let ui = Ui {
         keys,
@@ -543,6 +553,7 @@ where
         notifications,
         handovers,
         images,
+        cursor_at,
         cursor,
     };
     let kernel = kernel(

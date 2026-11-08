@@ -78,6 +78,12 @@ fn pixel_graphics(env: &[(String, String)]) -> bool {
     }
 }
 
+/// 环境变量开关：只认 `1`。
+fn flag(env: &[(String, String)], name: &str) -> bool {
+    env.iter()
+        .any(|(key, value)| key == name && value == "1")
+}
+
 /// TUI 的机器服务与 MCP 服务器的机器标记（remote-exec.md §21.2、§22.8）。
 pub(crate) type MachineInputs = (
     Option<Arc<dyn nibi_kernel_tui::machines::Machines>>,
@@ -251,6 +257,7 @@ pub(crate) fn options(inputs: Inputs<'_>, version: &str) -> Options {
         version: version.to_owned(),
         vars: vars(inputs.env),
         pixels: pixel_graphics(inputs.env),
+        pet_anim: flag(inputs.env, "NIBI_TUI_PET_ANIM"),
         models: inputs.models,
         startup: inputs.startup,
         fork: inputs.fork,

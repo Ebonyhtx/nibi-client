@@ -131,6 +131,7 @@ fn the_pixel_path_sends_an_image_and_clears_it() {
     let now = Instant::now();
     let mut logo = Logo::default();
     logo.set_pixels(true);
+    logo.set_anim(true);
     let mut buffer = Buffer::empty(area);
     logo.draw(&mut buffer, area, &palette(), now);
     let stage = logo.stage.unwrap();
@@ -165,6 +166,24 @@ fn the_pixel_path_sends_an_image_and_clears_it() {
         }
         other => panic!("expected a clear, got {other:?}"),
     }
+}
+
+/// 默认不播动画：只贴一张静态图，之后同一位置不再重发（终端每帧重解码会卡）。
+#[test]
+fn the_pet_is_static_unless_the_animation_is_asked_for() {
+    let area = Rect::new(0, 0, 100, 30);
+    let now = Instant::now();
+    let mut logo = Logo::default();
+    logo.set_pixels(true);
+    let mut buffer = Buffer::empty(area);
+    logo.draw(&mut buffer, area, &palette(), now);
+    assert!(logo.take_image().is_some());
+    for step in 1..=10u64 {
+        let at = now + std::time::Duration::from_millis(step * 300);
+        logo.draw(&mut buffer, area, &palette(), at);
+        assert!(logo.take_image().is_none(), "no re-send at step {step}");
+    }
+    assert_eq!(logo.next_frame(now), None, "nothing is scheduled");
 }
 
 /// 点一下：这一轮从头播（点在外面不改）。

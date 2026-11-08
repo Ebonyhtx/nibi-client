@@ -116,6 +116,13 @@ impl Screen for Stdout {
         let _ = out.flush();
     }
 
+    fn cursor_to(&mut self, at: (u16, u16)) {
+        let mut out = std::io::stdout().lock();
+        let (row, column) = at;
+        let _ = write!(out, "[{};{}H", row + 1, column + 1);
+        let _ = out.flush();
+    }
+
     fn notify(&mut self, sequence: &str) {
         let mut out = std::io::stdout().lock();
         // 通知失败只影响这一次提醒。

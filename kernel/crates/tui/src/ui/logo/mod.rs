@@ -71,6 +71,8 @@ pub struct Logo {
     started: Option<Instant>,
     /// 终端支持 Sixel：画真实的素材帧，而不是字符画。
     pixels: bool,
+    /// 播待机动画（默认不播：终端每秒重解码四次会卡，连输入法都跟着迟）。
+    anim: bool,
     /// 上一次发出去的像素图（位置与帧号），没变就不重发。
     sent: Option<(Rect, usize)>,
     /// 这一帧之后终端要写出去的东西。
@@ -91,7 +93,7 @@ impl Logo {
     /// 下一帧动画该在什么时候画（没有像素图、或者还没开始画时为 None）。界面只在帧边界重画，
     /// 不再按统一的动画节拍一直重画——那样终端每秒要刷三十次，光标都会闪。
     pub fn next_frame(&self, now: Instant) -> Option<Instant> {
-        if !self.pixels {
+        if !self.pixels || !self.anim {
             return None;
         }
         let started = self.started?;
@@ -109,6 +111,11 @@ impl Logo {
             }
         }
         None
+    }
+
+    /// 要不要播待机动画（`NIBI_TUI_PET_ANIM=1`）：默认关，只贴一张静态图。
+    pub fn set_anim(&mut self, anim: bool) {
+        self.anim = anim;
     }
 
     /// 终端能不能显示像素图（据此决定要不要给小鸟留一栏）。
@@ -170,7 +177,7 @@ impl Logo {
         self.stage = Some(stage);
         let started = *self.started.get_or_insert(now);
         let elapsed = now.saturating_duration_since(started).as_millis() as u64;
-        let index = scene_frame_at(elapsed);
+        let index = if self.anim { scene_frame_at(elapsed) } else { 0 };
         if self.sent == Some((stage, index)) {
             return;
         }

@@ -128,12 +128,17 @@ async fn the_pet_lives_in_the_top_masthead() {
                 }
             }
         }
-        // 动画按帧边界重发，界面不按统一的 30fps 节拍一直刷。
+        // 贴完图要把终端光标放回输入框，否则鸟旁边会多一个光标。
+        assert!(
+            !ui.cursor_at.lock().unwrap().is_empty(),
+            "the cursor goes back after the image"
+        );
+        // 默认是静态图：不再重发，界面也不重画（终端每帧重解码会卡、还会拖慢输入法）。
         let before = images.lock().unwrap().len();
         let frames = draws(&ui.handovers);
         tokio::time::sleep(Duration::from_millis(1200)).await;
-        assert!(images.lock().unwrap().len() > before, "the animation advances");
-        assert!(draws(&ui.handovers) - frames < 20, "not per-frame at 30fps");
+        assert_eq!(images.lock().unwrap().len(), before, "static pet");
+        assert_eq!(draws(&ui.handovers), frames, "no redraw while idle");
     })
     .await;
 }

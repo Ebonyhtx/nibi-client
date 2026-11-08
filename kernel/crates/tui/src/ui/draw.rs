@@ -94,6 +94,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         bottom_height,
     );
     frame.render_widget(Paragraph::new(bottom), bottom_area);
+    app.cursor_at = cursor.map(|(row, col)| (bottom_area.y + row, bottom_area.x + col));
     if let Some((row, col)) = cursor {
         frame.set_cursor_position((bottom_area.x + col, bottom_area.y + row));
     }

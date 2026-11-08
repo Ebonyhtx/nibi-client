@@ -230,6 +230,8 @@ pub struct App {
     pub strings: &'static Strings,
     /// 会话的视图；没有会话时是新会话的草稿（模型与模式）。
     pub view: Transcript,
+    /// 本帧输入框光标的屏幕位置：贴完像素图要把终端光标放回这里，否则会多出一个光标。
+    pub cursor_at: Option<(u16, u16)>,
     /// 当前会话的 ID（`/status` 与退出提示用）；runner 打开会话后写入。
     pub session: Option<String>,
     /// 正在创建会话（第一次发送）。
@@ -368,6 +370,7 @@ impl App {
         version: String,
     ) -> Self {
         Self {
+            cursor_at: None,
             provider_pasted_at: None,
             palette,
             lang,
