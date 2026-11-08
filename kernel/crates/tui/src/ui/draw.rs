@@ -25,8 +25,10 @@ const WORDMARK: [&str; 5] = [
     "█  ██   █   █   █   █  ",
     "█   █ █████ ████  █████",
 ];
-/// 屏幕低于这么多行时不留顶栏（正文更要紧）：九行栏在 24 行的窗口里会挤掉正文。
+/// 屏幕低于这么多行时不留顶栏（正文更要紧）：栏在 24 行的窗口里会挤掉正文。
 const MASTHEAD_MIN_ROWS: u16 = 28;
+/// 顶栏的行数：字标与身份行九行，最后一行留给与正文之间的分隔线。
+const MASTHEAD_ROWS: u16 = crate::ui::logo::PIXEL_ROWS + 1;
 
 /// 字标占的列数与行数。
 const WORDMARK_WIDTH: u16 = 23;
@@ -75,7 +77,7 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         app.overlay.is_none()
             && app.viewing.is_none()
             && area.height >= MASTHEAD_MIN_ROWS,
-    ) * usize::from(crate::ui::logo::PIXEL_ROWS);
+    ) * usize::from(MASTHEAD_ROWS);
     app.masthead = masthead > 0;
     let text_width = width;
     // transcript 先排：搜索模式（修复线 F114，tui-input.md §2.3）要在画输入框之前定当前匹配与计数；当前匹配换了块时
@@ -270,6 +272,13 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
             Paragraph::new(super::cells::header(app.view.mode(), &model, &ctx)),
             info,
         );
+        // 与正文之间的分隔线：最后一行整宽一条淡色细线。
+        let rule = Rect::new(band.x, band.bottom() - 1, band.width, 1);
+        let style = Style::default().fg(match app.palette.dim() {
+            Style { fg: Some(color), .. } => color,
+            _ => app.palette.accent,
+        });
+        frame.render_widget(Paragraph::new(Span::styled("─".repeat(width), style)), rule);
         app.logo.draw(band, &app.palette, now);
         if let Some(stage) = app.logo.stage {
             app.hits.regions.push((stage, Target::Logo));

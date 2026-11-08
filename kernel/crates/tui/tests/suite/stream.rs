@@ -30,6 +30,11 @@ fn transcript(buffer: &Buffer) -> Vec<(String, String)> {
             .map(|x| buffer[(x, y)].clone())
             .collect();
         let text: String = row.iter().map(ratatui::buffer::Cell::symbol).collect();
+        // 顶栏与正文之间的分隔线（只有顶部十来行里那一条）：它上面是品牌栏，不是正文。
+        if text.starts_with('─') && y < area.top() + 12 {
+            rows.clear();
+            continue;
+        }
         // 状态行（`✳ Puzzling… (1s · ↓ 667 tokens)`）的动画字与用时按真实时间变，不比。
         if text.starts_with('─') || text.contains("esc to interrupt") || text.contains("… (") {
             break;
