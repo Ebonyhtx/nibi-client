@@ -45,34 +45,35 @@ fn setup(background: (u8, u8, u8)) -> Setup {
     }
 }
 
-/// 新会话时画出徽章；不点击时不定时重画；点击后约 2 秒里重画多帧，结束后停住、不再重画。
+/// 新会话时画出素材动画（`nibi-pixel-pet` 的待机帧）：待机动画自己在动，所以一直按动画节拍重画；
+/// 点一下仍会亮起；打上字之后藏起来。
 #[tokio::test(flavor = "multi_thread")]
-async fn the_badge_animates_only_after_a_click() {
+async fn the_badge_animates_while_visible() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        ui.wait("the badge", |_| ui_braille(&buffer).len() > 100)
+        // 素材动画 36×15 格，画出来的半格字符远多于手绘徽章的 120 格。
+        ui.wait("the badge", |_| ui_braille(&buffer).len() > 200)
             .await;
-        let cells = ui_braille(&ui.buffer);
-        // 平时不动：没有定时重画。
+        // 平日也在动：没有输入时按动画节拍重画。
         let before = draws(&ui.handovers);
         tokio::time::sleep(Duration::from_millis(400)).await;
-        assert_eq!(draws(&ui.handovers), before, "no redraw while idle");
-        // 按在徽章右边：按动画节拍重画（约 30 fps），大约 2 秒后停住。
+        let idle = draws(&ui.handovers) - before;
+        assert!(idle >= 3, "the pet animates while idle: {idle}");
+        // 点在鸟身上：亮起，动画照旧。
+        let cells = ui_braille(&ui.buffer);
         let (x, y) = cells[cells.len() / 2];
         ui.mouse(
             crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
-            x + 10,
+            x,
             y,
         );
-        tokio::time::sleep(Duration::from_millis(600)).await;
-        let during = draws(&ui.handovers) - before;
-        assert!(during >= 5, "redrawn during the press: {during}");
-        tokio::time::sleep(Duration::from_millis(1800)).await;
-        let settled = draws(&ui.handovers);
-        tokio::time::sleep(Duration::from_millis(400)).await;
-        assert_eq!(draws(&ui.handovers), settled, "no redraw after the press");
-        assert!(ui_braille(&ui.buffer).len() > 100, "the badge stays");
+        tokio::time::sleep(Duration::from_millis(300)).await;
+        assert!(draws(&ui.handovers) > before + idle);
+        // 打上字：藏起来。
+        ui.type_text("x");
+        ui.wait("the badge to hide", |_| ui_braille(&buffer).is_empty())
+            .await;
     })
     .await;
 }
