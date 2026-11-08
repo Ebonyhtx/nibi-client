@@ -22,8 +22,8 @@ const MARGIN: u16 = 1;
 const SCALE: u16 = 2;
 /// 像素图占的字符格：按常见 9×18 像素一格估算，并多留一列防止字宽不同时压到正文。
 pub(crate) const PIXEL_COLS: u16 = 16;
-/// 顶部固定栏的高度（字符行），也是像素图占的行数。
-pub(crate) const PIXEL_ROWS: u16 = 9;
+/// 像素图占的行数（栏里除去分隔线那行）：128 像素按常见的 18 像素一行约七行，留八行。
+pub(crate) const PIXEL_ROWS: u16 = 8;
 
 /// 查不到终端背景色时按这个深色背景填（与 `Palette` 的缺省一致）。
 const DARK: Rgb = (0x1e, 0x1e, 0x21);
