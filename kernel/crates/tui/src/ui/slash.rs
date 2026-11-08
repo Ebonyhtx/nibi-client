@@ -62,6 +62,14 @@ impl App {
             "locale" => self.locale_command(args),
             "login" => self.login_command(args),
             "provider" => self.provider_command(args),
+            "btw" => {
+                if args.is_empty() {
+                    self.info(i18n::btw_usage(self.lang));
+                    None
+                } else {
+                    Some(Action::Btw(args.to_owned()))
+                }
+            }
             "logout" => self.logout_command(args),
             "exit" => Some(Action::Quit),
             _ => {
@@ -174,10 +182,8 @@ impl App {
     fn permissions_label(&self) -> String {
         let mode = i18n::mode_label(self.lang, self.view.mode());
         if self.view.plan() {
-            let plan = i18n::mode_label(
-                self.lang,
-                nibi_kernel_api::permission::PermissionMode::Plan,
-            );
+            let plan =
+                i18n::mode_label(self.lang, nibi_kernel_api::permission::PermissionMode::Plan);
             format!("{plan} · {mode}")
         } else {
             mode.to_owned()

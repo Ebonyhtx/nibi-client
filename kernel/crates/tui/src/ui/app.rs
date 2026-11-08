@@ -127,6 +127,8 @@ pub enum Action {
     Logout,
     /// `/provider` 的请求（列表、预设、向导提交、删除）。
     Provider(super::provider::Request),
+    /// `/btw <问题>`：旁路提问，答案单独成页，不进主对话。
+    Btw(String),
     /// `/goal` 不带参数：取会话的目标后打开面板（goal.md §6.2）。
     ShowGoal,
     /// `/fork`：取可选的用户输入后打开选择器（session-lifecycle.md §6.5.3）。
@@ -457,9 +459,9 @@ impl App {
             .is_some_and(|(notice, at)| at.elapsed() < notice.duration);
         // 背景标志只在点击后的约 2 秒里按动画节拍重画，停住后不再定时重画（tui.md §7.3）。查看在跑的子代理时状态行的
         // spinner 是它的（F112），主会话空闲时也按动画节拍重画。
-        let viewed_running = self.viewed_entry().is_some_and(|entry| {
-            entry.status == nibi_kernel_api::panels::SubagentStatus::Running
-        });
+        let viewed_running = self
+            .viewed_entry()
+            .is_some_and(|entry| entry.status == nibi_kernel_api::panels::SubagentStatus::Running);
         self.running()
             || viewed_running
             || self.creating

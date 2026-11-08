@@ -88,6 +88,7 @@ impl Account for FakeAccount {
                 _ = receiver => Ok(NibiAccount {
                     user: "Dev".to_owned(),
                     membership: "Membership: Pro (expires 2026-12-01)".to_owned(),
+                    warning: None,
                 }),
             }
         }

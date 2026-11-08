@@ -330,7 +330,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
 6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
-7. **插件引用目录的三条仍在内核侧**（Host 只直答 17 条管理面方法，见
+7. **插件引用目录（`plugins/referenceCatalog` / `resolveSuggestedReference` / `onDynamicPluginOperationProgress`）仍在内核侧**（Host 只直答 17 条管理面方法，见
    `packages/desktop/src/host/localPluginManagementService.ts` 的注释）：`plugins/referenceCatalog`
    （含 category 变体）、`plugins/resolveSuggestedReference`、`plugins/onDynamicPluginOperationProgress`
    以及 `skills/referenceCatalog` 在 Rust 内核里**还没有实现**——切流后 Composer 的 `@` 技能/插件引用面板
@@ -340,7 +340,10 @@ redirectPath)[0..24]>:authorization_credentials`）；
 8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
 9. Rust TUI 的 `/login` 只有 NIBI 账号的 Device Flow（上游 `zai-coding-plan` / `bigmodel-coding-plan` 与
    手工 key 入口已删，模型走 `/provider`）；背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。
-10. 模型 Provider 的配置在 Rust CLI/TUI 里是一等流程：`/provider`（列表、详情、预设向导、换 key、设为默认、
+10. Rust TUI 的 `/btw <问题>` 已实现（无会话的一次性旁路提问，`generate_text` + `QuerySource::Side("btw")`，
+    答案单独成页、不进主对话、不占会话用量）；桌面版的 `/side`、`/btw` 是 App 层命令（`SessionPane` 注入、
+    CLI catalog 过滤），不经内核，切内核不受影响。
+11. 模型 Provider 的配置在 Rust CLI/TUI 里是一等流程：`/provider`（列表、详情、预设向导、换 key、设为默认、
     删除）与 `nibi provider list|show|path|add|key|remove|use` 都直接读写 `~/.nibi/v2/provider_config.json`
     （`kernel/crates/platform/src/providers/edit.rs`），预设取随包内置模板（DeepSeek/OpenAI/Anthropic/Kimi…），
     自定义端点按 schema 生成完整能力规则。新增的 Provider 会连同有效的 `options.reasoningLevel` 一起写成

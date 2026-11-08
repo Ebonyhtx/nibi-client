@@ -54,6 +54,8 @@ pub(crate) enum ServiceDone {
     },
     /// 保存失败：留在原来的视图上显示原因。
     ProviderFailed(String),
+    /// `/btw` 的答案（成功是正文，失败是内核错误）。
+    Btw(Result<String, nibi_kernel_api::session_api::KernelError>),
     /// 删除成功（附带刷新后的列表）。
     ProviderRemoved {
         name: String,
@@ -218,6 +220,43 @@ impl<B: Backend> Loop<'_, B> {
         }
     }
 
+    /// `/btw <问题>`：无会话的一次性旁路提问。答案单独成页，不写进主对话、不占会话用量。
+    pub(super) fn btw(&mut self, question: String) {
+        use nibi_kernel_api::generate_text::GenerateTextRequest;
+        use nibi_kernel_api::message::ContentBlock;
+        use nibi_kernel_api::model::{ApiContent, ApiMessage, ApiRole, QuerySource, SystemBlock};
+        let selection = self.app.view.selection().clone();
+        let kernel = self.kernel.clone();
+        let request = GenerateTextRequest {
+            selection,
+            system: vec![SystemBlock {
+                text: "You are answering a quick side question inside the NIBI terminal.                        Answer in the user's language, be concise, and do not claim to have run tools."
+                    .to_owned(),
+                cache_control: None,
+            }],
+            messages: vec![ApiMessage {
+                role: ApiRole::User,
+                content: vec![ApiContent {
+                    block: ContentBlock::Text { text: question },
+                    cache_control: None,
+                }],
+                output_config: None,
+            }],
+            tools: Vec::new(),
+            tool_choice: None,
+            max_tokens: Some(2000),
+            source: QuerySource::Side("btw".to_owned()),
+        };
+        let cancel = CancellationToken::new();
+        self.pending.push(
+            async move {
+                let reply = kernel.generate_text(request, cancel).await;
+                Done::Service(ServiceDone::Btw(reply.map(|reply| reply.text)))
+            }
+            .boxed(),
+        );
+    }
+
     /// `/provider` 的请求分派。
     pub(super) fn provider(&mut self, request: crate::ui::provider::Request) {
         match request {
@@ -373,6 +412,18 @@ impl<B: Backend> Loop<'_, B> {
                     self.choose_model(selection, None);
                 }
             }
+            ServiceDone::Btw(result) => match result {
+                Ok(answer) => {
+                    self.app.overlay = Some(crate::ui::app::Overlay::Page {
+                        local: Local::Text {
+                            title: i18n::btw_title(lang).to_owned(),
+                            body: answer,
+                        },
+                        scroll: 0,
+                    });
+                }
+                Err(error) => self.app.error(i18n::rejected(lang, &error.to_string())),
+            },
             ServiceDone::ProviderPresets(result) => self.app.provider_presets(result),
             ServiceDone::ProviderSaved { saved, list } => self.app.provider_saved(saved, list),
             ServiceDone::ProviderFailed(reason) => self.app.provider_failed(reason),

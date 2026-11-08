@@ -49,8 +49,9 @@ async fn missing_and_unknown_commands_only_explain() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model.clone(), Setup::default(), |mut ui| async move {
         ui.wait_for("Ask before changes").await;
+        // `/btw` 已实现：不带问题时只给用法。
         ui.submit("/btw");
-        ui.wait_for("/btw is not implemented yet.").await;
+        ui.wait_for("Usage: /btw <question>").await;
         // 没有会话时 rewind 选择器只说明没有可回退的消息（原文）。
         ui.submit("/rewind");
         ui.wait_for("Nothing to rewind to yet.").await;

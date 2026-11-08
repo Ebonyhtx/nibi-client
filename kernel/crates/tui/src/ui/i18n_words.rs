@@ -113,7 +113,10 @@ pub fn unknown_model(lang: Lang, name: &str) -> String {
 }
 
 /// `/model 名称` 说不清是哪个团队项目（docs/specs/rust-cli/cli-args.md §1.3，工作线 F49）：要写 `[<团队>]`。
-pub fn ambiguous_model(lang: Lang, error: &nibi_kernel_platform::model_name::LookupError) -> String {
+pub fn ambiguous_model(
+    lang: Lang,
+    error: &nibi_kernel_platform::model_name::LookupError,
+) -> String {
     use nibi_kernel_platform::model_name::LookupError;
     match (lang, error) {
         (Lang::Zh, LookupError::SeveralTeams { name, choices }) => {
@@ -248,5 +251,19 @@ pub fn asked_by_session(lang: Lang, name: &str, session: &str) -> String {
         (Lang::En, title) => format!("from {agent} in session \"{title}\""),
         (Lang::Zh, "") => format!("来自之前的会话的 {agent}"),
         (Lang::Zh, title) => format!("来自会话「{title}」的 {agent}"),
+    }
+}
+
+pub fn btw_title(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Zh => "旁路回答",
+        Lang::En => "Side answer",
+    }
+}
+
+pub fn btw_usage(lang: Lang) -> &'static str {
+    match lang {
+        Lang::Zh => "用法：/btw <问题>",
+        Lang::En => "Usage: /btw <question>",
     }
 }

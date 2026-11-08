@@ -84,7 +84,7 @@ commands! {
     "login", true, "Sign in to your account", "登录账号";
     "provider", true, "Add or change a model provider (endpoint, protocol, models, API key)", "新增或修改模型 Provider（端点、协议、模型、API key）";
     "logout", true, "Sign out from your account", "退出登录";
-    "btw", false, "Ask a quick side question without interrupting the main conversation", "旁路提问，不打断主对话";
+    "btw", true, "Ask a quick side question without interrupting the main conversation", "旁路提问，不打断主对话";
     "locale", true, "Show or switch the interface language", "查看或切换界面语言";
     "effort", true, "Set effort level for model usage", "设置模型的推理档位";
     "mode", true, "Show or switch the current permission mode", "查看或切换当前权限模式";
