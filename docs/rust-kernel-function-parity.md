@@ -330,13 +330,14 @@ redirectPath)[0..24]>:authorization_credentials`）；
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
 6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
-7. **插件引用目录（`plugins/referenceCatalog` / `resolveSuggestedReference` / `onDynamicPluginOperationProgress`）仍在内核侧**（Host 只直答 17 条管理面方法，见
+7. **插件引用目录的三条仍在内核侧**（Host 只直答 17 条管理面方法，见
    `packages/desktop/src/host/localPluginManagementService.ts` 的注释）：`plugins/referenceCatalog`
    （含 category 变体）、`plugins/resolveSuggestedReference`、`plugins/onDynamicPluginOperationProgress`
-   以及 `skills/referenceCatalog` 在 Rust 内核里**还没有实现**——切流后 Composer 的 `@` 技能/插件引用面板
-   会是空的，推荐插件的安装前解析与进度通知会报 `-32601`。补齐需要给 `Kernel` 加两个目录方法
-   （技能直接取 `ext::SkillCatalog::skills_for`；插件要从 `Plugins` 的 manifest 投影 pluginId/marketplace/
-   skillQualifiedNames/mcpServerNames），并在协议层复用 Node 的 strict 形状。
+   在 Rust 内核里**还没有实现**——切流后 Composer 的 `@` **插件**面板会是空的，推荐插件的安装前解析与
+   进度通知会报 `-32601`。`skills/referenceCatalog` 已在 `9ee7aa2e` 落地（会话权威取会话插件快照，
+   否则现扫工作区，id 保持 Host 认的 `glm:<scope>:<path>`），所以 `@` **技能**面板已经能用。
+   补齐需要给 `Kernel` 加插件目录方法（从 `Plugins` 的 manifest 与安装记录投影 pluginId/marketplace/
+   skillQualifiedNames/mcpServerNames/subagentNames），并在协议层复用 Node 的 strict 形状。
 8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
 9. Rust TUI 的 `/login` 只有 NIBI 账号的 Device Flow（上游 `zai-coding-plan` / `bigmodel-coding-plan` 与
    手工 key 入口已删，模型走 `/provider`）；背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。
@@ -348,3 +349,10 @@ redirectPath)[0..24]>:authorization_credentials`）；
     （`kernel/crates/platform/src/providers/edit.rs`），预设取随包内置模板（DeepSeek/OpenAI/Anthropic/Kimi…），
     自定义端点按 schema 生成完整能力规则。新增的 Provider 会连同有效的 `options.reasoningLevel` 一起写成
     默认模型（Node 只认带档位的 `defaultModelSelection`）。
+
+12. **Windows 上中文输入法（TUI 输入框）**：输入法用来选词的空格会被当成一次真实按键送进输入框
+    （中文句子里出现多余空格），全角标点按普通字符进文本（全角「／」在输入框开头已归一成命令斜杠）。
+    根因不在 TUI：crossterm 0.29 在 Windows 走 `ReadConsoleInputW`（`event/sys/windows/parse.rs`），
+    没有 VT 解析器、也没有 `9001`；crates.io 上没有更新的版本。真正的修法是 Windows 专用输入源：
+    开 `ENABLE_VIRTUAL_TERMINAL_INPUT` + `ESC[?9001h`，自己解析 `CSI Vk;Sc;Uc;Kd;Cs;Rc _`，并接管
+    粘贴/鼠标/resize。列为独立工作项；非 Windows 平台的行为不受影响。
