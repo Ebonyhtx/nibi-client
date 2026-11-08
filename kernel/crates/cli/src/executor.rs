@@ -1,14 +1,14 @@
-//! `zcode executor`（docs/specs/rust-cli/remote-exec.md §12、§18.6、§19.3）：执行器模式。同一个二进制，不读模型凭据、
+//! `nibi executor`（docs/specs/rust-cli/remote-exec.md §12、§18.6、§19.3）：执行器模式。同一个二进制，不读模型凭据、
 //! 不打开会话库、不画界面、不写模型轨迹；按与 TUI / `-p` 相同的规则建本机的执行环境（env-local），交给 executor-host。
 //!
 //! | 命令                                   | 做什么                                                                 |
 //! | -------------------------------------- | ---------------------------------------------------------------------- |
-//! | `zcode executor`                       | 前台跑常驻执行器（单实例、本用户私有的 socket），一直跑到 `stop`        |
-//! | `zcode executor --daemon`              | 同上，另在 stdout 写一行就绪结果（代理拉起它时用，不写进帮助）          |
-//! | `zcode executor --stdio`               | 代理：没有常驻进程就拉起一个，再把 stdio 接到它的 socket                |
-//! | `zcode executor --stdio --standalone`  | R1 的行为：在自己的 stdio 上直接服务一条连接（只给 loopback，§18.6）    |
-//! | `zcode executor status [--json]`       | 常驻进程的状态                                                         |
-//! | `zcode executor stop [--if-idle]`      | 停掉常驻进程                                                           |
+//! | `nibi executor`                       | 前台跑常驻执行器（单实例、本用户私有的 socket），一直跑到 `stop`        |
+//! | `nibi executor --daemon`              | 同上，另在 stdout 写一行就绪结果（代理拉起它时用，不写进帮助）          |
+//! | `nibi executor --stdio`               | 代理：没有常驻进程就拉起一个，再把 stdio 接到它的 socket                |
+//! | `nibi executor --stdio --standalone`  | R1 的行为：在自己的 stdio 上直接服务一条连接（只给 loopback，§18.6）    |
+//! | `nibi executor status [--json]`       | 常驻进程的状态                                                         |
+//! | `nibi executor stop [--if-idle]`      | 停掉常驻进程                                                           |
 //!
 //! `--add-dir` 与 `--no-find-and-grep` 是 loopback 为了与本机结果相同而传的会话参数，只能和 `--standalone` 一起用。
 

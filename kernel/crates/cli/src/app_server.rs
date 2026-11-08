@@ -110,7 +110,7 @@ pub(crate) fn parse(args: &[String]) -> Option<Result<Parsed, String>> {
 
 /// `executor` 与 `app-server` 两个子命令（不走常规命令行参数的解析）：是其中之一时返回退出码。
 pub(crate) fn dispatch(args: &[String]) -> Option<ExitCode> {
-    // `zcode executor`（远端执行 R1 / R2，remote-exec.md §12、§18.6、§19.3）：执行器模式，不读凭据、不开会话库。
+    // `nibi executor`（远端执行 R1 / R2，remote-exec.md §12、§18.6、§19.3）：执行器模式，不读凭据、不开会话库。
     if let Some(parsed) = crate::executor::parse(args) {
         return Some(crate::executor::main(parsed));
     }

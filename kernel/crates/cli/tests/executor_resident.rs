@@ -82,7 +82,7 @@ async fn the_resident_starts_reports_its_status_and_stops() {
     assert_eq!(resident["version"], status["version"]);
     let (code, stdout, _) = home.run(&["executor", "status"]);
     assert_eq!(code, 0);
-    assert!(stdout.contains("zcode executor is running"), "{stdout}");
+    assert!(stdout.contains("nibi executor is running"), "{stdout}");
     // 只有一个：第二个报错退出。
     let (code, _, stderr) = home.run(&["executor"]);
     assert_eq!(code, 1);

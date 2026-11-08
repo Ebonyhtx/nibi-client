@@ -1,4 +1,4 @@
-//! `zcode executor` 各个命令的执行（docs/specs/rust-cli/remote-exec.md §19.3；解析在 `executor.rs`）。
+//! `nibi executor` 各个命令的执行（docs/specs/rust-cli/remote-exec.md §19.3；解析在 `executor.rs`）。
 
 use std::sync::Arc;
 use std::time::Duration;

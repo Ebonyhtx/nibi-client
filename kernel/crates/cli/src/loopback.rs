@@ -1,5 +1,5 @@
 //! 只给测试的 loopback（docs/specs/rust-cli/remote-exec.md §18.6）：debug 构建设了 `_NIBI_ASSUME_LOOPBACK_EXECUTOR` 时，
-//! 本机的执行端口（`MachineEnv` 的 8 个端口）换成经 stdio 连到子进程 `zcode executor --stdio --standalone` 的
+//! 本机的执行端口（`MachineEnv` 的 8 个端口）换成经 stdio 连到子进程 `nibi executor --stdio --standalone` 的
 //! `RemoteEnvironment`（每个会话一个执行器，不经常驻进程，remote-exec.md §19.3）。
 //! MCP 仍走本机（远端 MCP 在 R5）；只在本机的 Git、取网页仍是本机的 `LocalEnvironment`。用来验证远端实现与本机结果相同
 //! （同一批场景、同一份轨迹）。
