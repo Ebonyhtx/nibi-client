@@ -1,30 +1,11 @@
-//! 新会话的背景标志（docs/specs/rust-cli/tui.md §7.3）：新会话的空白处画 NIBI 鸟的像素画（半格字符）；
-//! 点击后约 2 秒按动画节拍重画，结束后不再定时重画；有字、有会话时不画；深浅两种背景各一套颜色。
+//! 顶部固定栏（docs/specs/rust-cli/tui.md §7.3）：左边是「NIBI」块字标与身份行，右端是小鸟（Sixel）。
+//! 不支持像素图的终端只有左边，不画鸟；栏静止，不随正文滚动。
 use std::time::Duration;
 
 use ratatui::buffer::Buffer;
 use nibi_kernel_tui::ui::palette::{ColorLevel, Palette};
 
 use super::support::{GatedModel, Setup, text_of, with_ui};
-
-/// 半格字符（徽章的像素）所在的格子：（列，行）。
-fn braille(buffer: &Buffer) -> Vec<(u16, u16)> {
-    let area = buffer.area;
-    let mut cells = Vec::new();
-    for y in area.top()..area.bottom() {
-        for x in area.left()..area.right() {
-            let symbol = buffer[(x, y)].symbol();
-            if symbol
-                .chars()
-                .next()
-                .is_some_and(|c| ('\u{2580}'..='\u{259f}').contains(&c))
-            {
-                cells.push((x, y));
-            }
-        }
-    }
-    cells
-}
 
 fn draws(handovers: &std::sync::Mutex<Vec<&'static str>>) -> usize {
     handovers
@@ -44,61 +25,22 @@ fn setup(background: (u8, u8, u8)) -> Setup {
     }
 }
 
-/// 不支持像素图时的回退：字符画小鸟画在空白区，静止不动（不按 30fps 重画）。
-#[tokio::test(flavor = "multi_thread")]
-async fn the_fallback_pet_is_still_and_sits_in_the_blank_area() {
-    let model = GatedModel::scripted(Vec::new());
-    with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
-        let buffer = ui.buffer.clone();
-        ui.wait("the pet", |_| ui_braille(&buffer).len() > 40).await;
-        let (width, _) = (100, 40);
-        for (x, _y) in ui_braille(&ui.buffer) {
-            assert!(x > width / 2, "({x}) is not on the right half");
-        }
-        // 静止：没有输入时不再重画。
-        let before = draws(&ui.handovers);
-        tokio::time::sleep(Duration::from_millis(600)).await;
-        assert_eq!(draws(&ui.handovers), before, "no redraw while idle");
-    })
-    .await;
-}
-
-/// 浅色纸面上仍然用品牌色（不透明），不会白到看不见。
-#[tokio::test(flavor = "multi_thread")]
-async fn the_pet_keeps_brand_colours_on_light_paper() {
-    let model = GatedModel::scripted(Vec::new());
-    with_ui(model, setup((0xfa, 0xfa, 0xf7)), |mut ui| async move {
-        let buffer = ui.buffer.clone();
-        ui.wait("the pet", |_| ui_braille(&buffer).len() > 80).await;
-        let cells = ui_braille(&ui.buffer);
-        assert!(!cells.is_empty());
-        let guard = ui.buffer.lock().unwrap();
-        let buffer = guard.as_ref().unwrap();
-        for (x, y) in cells {
-            if let ratatui::style::Color::Rgb(r, g, b) = buffer[(x, y)].fg {
-                assert!(
-                    u32::from(r) + u32::from(g) + u32::from(b) < 0xfa + 0xfa + 0xf7,
-                    "({x}, {y})"
-                );
+/// 栏里的块字标（`█`）：左上角那片。
+fn wordmark_cells(buffer: &Buffer) -> usize {
+    let mut count = 0;
+    for y in 0..5 {
+        for x in 0..30 {
+            if buffer[(x, y)].symbol().starts_with('█') {
+                count += 1;
             }
         }
-    })
-    .await;
+    }
+    count
 }
 
-fn ui_braille(buffer: &std::sync::Mutex<Option<Buffer>>) -> Vec<(u16, u16)> {
-    buffer
-        .lock()
-        .unwrap()
-        .as_ref()
-        .map(braille)
-        .unwrap_or_default()
-}
-
-/// 支持像素图时，顶部那两行身份所在的位置加高成固定栏：身份在左，鸟在栏的右端；正文从栏下面开始，
-/// 身份行不会在正文里重复。
+/// 支持像素图：字标 + 身份行 + 栏右端的小鸟（一张静态图，贴完把光标移回输入框）。
 #[tokio::test(flavor = "multi_thread")]
-async fn the_pet_lives_in_the_top_masthead() {
+async fn the_masthead_carries_the_wordmark_and_the_bird() {
     let model = GatedModel::scripted(Vec::new());
     let setup = Setup {
         pixels: true,
@@ -111,33 +53,56 @@ async fn the_pet_lives_in_the_top_masthead() {
         {
             let guard = ui.buffer.lock().unwrap();
             let buffer = guard.as_ref().unwrap();
-            // 身份行在顶部、只有一份。
+            // 字标在左上角，身份行只有一份（不在正文里重复）。
+            assert!(wordmark_cells(buffer) > 40, "{}", wordmark_cells(buffer));
             let text = text_of(buffer);
             assert_eq!(text.matches("NIBI v0.1.0").count(), 1, "{text}");
-            // 鸟在栏的右端、贴着顶部。
+            // 小鸟在栏的右端、贴着顶部。
             let image = images.lock().unwrap().last().cloned().unwrap();
             assert!(image.at.0 > buffer.area.width - 20, "{:?}", image.at);
             assert!(image.at.1 < 3, "{:?}", image.at);
-            // 栏里不写字（图片由终端贴上去）。
-            for x in (usize::from(image.at.0))..usize::from(buffer.area.width) {
-                for y in 0..usize::from(image.at.1) + 1 {
-                    let symbol = buffer[(u16::try_from(x).unwrap(), u16::try_from(y).unwrap())]
-                        .symbol()
-                        .to_owned();
-                    assert!(symbol.trim().is_empty(), "({x}, {y}) holds {symbol:?}");
-                }
-            }
         }
         // 贴完图要把终端光标放回输入框，否则鸟旁边会多一个光标。
         assert!(
             !ui.cursor_at.lock().unwrap().is_empty(),
             "the cursor goes back after the image"
         );
-        // 默认是静态图：不再重发，界面也不重画（终端每帧重解码会卡、还会拖慢输入法）。
+        // 静态：不再重发，界面也不重画。
         let before = images.lock().unwrap().len();
         let frames = draws(&ui.handovers);
         tokio::time::sleep(Duration::from_millis(1200)).await;
         assert_eq!(images.lock().unwrap().len(), before, "static pet");
+        assert_eq!(draws(&ui.handovers), frames, "no redraw while idle");
+    })
+    .await;
+}
+
+/// 不支持像素图：栏照常在（字标 + 身份行），但一只鸟都不画，也不发任何图片。
+#[tokio::test(flavor = "multi_thread")]
+async fn without_sixel_the_masthead_has_no_bird() {
+    let model = GatedModel::scripted(Vec::new());
+    with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
+        let buffer = ui.buffer.clone();
+        ui.wait("the wordmark", |_| {
+            buffer
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(|buffer| wordmark_cells(buffer) > 40)
+        })
+        .await;
+        let guard = ui.buffer.lock().unwrap();
+        let buffer = guard.as_ref().unwrap();
+        let text = text_of(buffer);
+        assert_eq!(text.matches("NIBI v0.1.0").count(), 1, "{text}");
+        drop(guard);
+        assert!(
+            ui.images.lock().unwrap().is_empty(),
+            "no image without sixel"
+        );
+        // 界面静止：不按动画节拍重画。
+        let frames = draws(&ui.handovers);
+        tokio::time::sleep(Duration::from_millis(600)).await;
         assert_eq!(draws(&ui.handovers), frames, "no redraw while idle");
     })
     .await;

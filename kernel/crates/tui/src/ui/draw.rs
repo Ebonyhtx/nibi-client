@@ -25,6 +25,9 @@ const WORDMARK: [&str; 5] = [
     "█  ██   █   █   █   █  ",
     "█   █ █████ ████  █████",
 ];
+/// 屏幕低于这么多行时不留顶栏（正文更要紧）：九行栏在 24 行的窗口里会挤掉正文。
+const MASTHEAD_MIN_ROWS: u16 = 28;
+
 /// 字标占的列数与行数。
 const WORDMARK_WIDTH: u16 = 23;
 const WORDMARK_ROWS: u16 = 5;
@@ -66,9 +69,14 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
     app.composer_width = composer_width;
     // 顶部固定栏：终端支持像素图时，把身份那两行所在的区域加高，小鸟站在栏的右端。
     // 正文从栏下面开始，滚动永远不经过这里——栏是静止的。
-    let masthead = usize::from(crate::ui::logo::masthead_rows(
-        app.logo.pixels() && app.overlay.is_none() && app.viewing.is_none(),
-    ));
+    // 顶部固定栏：高度够、没有全屏浮层时一直有（字标 + 身份行）；小鸟只是栏右端的一格装饰，
+    // 终端不支持像素图时不画它，栏本身照常。
+    let masthead = usize::from(
+        app.overlay.is_none()
+            && app.viewing.is_none()
+            && area.height >= MASTHEAD_MIN_ROWS,
+    ) * usize::from(crate::ui::logo::PIXEL_ROWS);
+    app.masthead = masthead > 0;
     let text_width = width;
     // transcript 先排：搜索模式（修复线 F114，tui-input.md §2.3）要在画输入框之前定当前匹配与计数；当前匹配换了块时
     // 那一块要按展开的样子再排一次（其余的块都是缓存）。
@@ -212,7 +220,6 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
         }
     }
     fill_rows(&mut visible, text_width);
-    let shown = visible.len() as u16;
     frame.render_widget(Paragraph::new(visible), transcript_area);
     // 顶部固定栏：身份两行在左，小鸟在右。栏不随正文滚动，也不参与正文重画。
     if masthead > 0 {
@@ -263,24 +270,11 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
             Paragraph::new(super::cells::header(app.view.mode(), &model, &ctx)),
             info,
         );
-        app.logo.draw(frame.buffer_mut(), band, &app.palette, now);
+        app.logo.draw(band, &app.palette, now);
         if let Some(stage) = app.logo.stage {
             app.hits.regions.push((stage, Target::Logo));
         }
-    }
-    // 没有固定栏时（不支持 Sixel 的终端）：仍按老样子画在空白区的角落。
-    if masthead == 0 && app.overlay.is_none() && app.viewing.is_none() {
-        let free = Rect::new(
-            transcript_area.x,
-            transcript_area.y + shown + 1,
-            transcript_area.width,
-            transcript_area.height.saturating_sub(shown + 1),
-        );
-        app.logo.draw(frame.buffer_mut(), free, &app.palette, now);
-        if let Some(stage) = app.logo.stage {
-            app.hits.regions.push((stage, Target::Logo));
-        }
-    } else if masthead == 0 {
+    } else {
         app.logo.hide();
     }
     mouse::draw_copied(frame, app, gap);

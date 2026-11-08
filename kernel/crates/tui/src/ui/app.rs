@@ -232,6 +232,8 @@ pub struct App {
     pub view: Transcript,
     /// 本帧输入框光标的屏幕位置：贴完像素图要把终端光标放回这里，否则会多出一个光标。
     pub cursor_at: Option<(u16, u16)>,
+    /// 这一帧画不画顶部固定栏（`draw` 按终端高度决定；transcript 据此不再重复画身份行）。
+    pub masthead: bool,
     /// 当前会话的 ID（`/status` 与退出提示用）；runner 打开会话后写入。
     pub session: Option<String>,
     /// 正在创建会话（第一次发送）。
@@ -371,6 +373,7 @@ impl App {
     ) -> Self {
         Self {
             cursor_at: None,
+            masthead: false,
             provider_pasted_at: None,
             palette,
             lang,
