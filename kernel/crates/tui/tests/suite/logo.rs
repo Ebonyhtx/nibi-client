@@ -45,35 +45,56 @@ fn setup(background: (u8, u8, u8)) -> Setup {
     }
 }
 
-/// 新会话时画出素材动画（`nibi-pixel-pet` 的待机帧）：待机动画自己在动，所以一直按动画节拍重画；
-/// 点一下仍会亮起；打上字之后藏起来。
+/// 角落的小鸟（品牌素材的待机动画）：贴在正文下方空白区的右下角、一直动着，不压输入框里的字。
 #[tokio::test(flavor = "multi_thread")]
-async fn the_badge_animates_while_visible() {
+async fn the_pet_sits_in_the_corner_and_animates() {
     let model = GatedModel::scripted(Vec::new());
     with_ui(model, setup((0x1e, 0x1e, 0x2e)), |mut ui| async move {
         let buffer = ui.buffer.clone();
-        // 素材动画 36×15 格，画出来的半格字符远多于手绘徽章的 120 格。
-        ui.wait("the badge", |_| ui_braille(&buffer).len() > 200)
-            .await;
-        // 平日也在动：没有输入时按动画节拍重画。
+        // 19×11 格里有大半是鸟的轮廓（半格字符）。
+        ui.wait("the pet", |_| ui_braille(&buffer).len() > 80).await;
+        // 位置：右下角（不压正文）。
+        // `setup` 里给的终端尺寸。
+        let (width, height) = (100, 40);
+        for (x, y) in ui_braille(&ui.buffer) {
+            assert!(x > width - 30, "({x}, {y}) is not in the right corner");
+            assert!(y > height / 2, "({x}, {y}) is not in the bottom corner");
+        }
+        // 待机动画自己在动：没有输入时也按动画节拍重画。
         let before = draws(&ui.handovers);
         tokio::time::sleep(Duration::from_millis(400)).await;
         let idle = draws(&ui.handovers) - before;
         assert!(idle >= 3, "the pet animates while idle: {idle}");
-        // 点在鸟身上：亮起，动画照旧。
-        let cells = ui_braille(&ui.buffer);
-        let (x, y) = cells[cells.len() / 2];
-        ui.mouse(
-            crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
-            x,
-            y,
+        // 打字时它还在角落里，输入框的字照常显示。
+        ui.type_text("hi");
+        ui.wait_for("❯ hi").await;
+        assert!(
+            ui_braille(&ui.buffer).len() > 80,
+            "the pet stays while typing"
         );
-        tokio::time::sleep(Duration::from_millis(300)).await;
-        assert!(draws(&ui.handovers) > before + idle);
-        // 打上字：藏起来。
-        ui.type_text("x");
-        ui.wait("the badge to hide", |_| ui_braille(&buffer).is_empty())
-            .await;
+    })
+    .await;
+}
+
+/// 浅色纸面上仍然用品牌色（不透明），不会白到看不见。
+#[tokio::test(flavor = "multi_thread")]
+async fn the_pet_keeps_brand_colours_on_light_paper() {
+    let model = GatedModel::scripted(Vec::new());
+    with_ui(model, setup((0xfa, 0xfa, 0xf7)), |mut ui| async move {
+        let buffer = ui.buffer.clone();
+        ui.wait("the pet", |_| ui_braille(&buffer).len() > 80).await;
+        let cells = ui_braille(&ui.buffer);
+        assert!(!cells.is_empty());
+        let guard = ui.buffer.lock().unwrap();
+        let buffer = guard.as_ref().unwrap();
+        for (x, y) in cells {
+            if let ratatui::style::Color::Rgb(r, g, b) = buffer[(x, y)].fg {
+                assert!(
+                    u32::from(r) + u32::from(g) + u32::from(b) < 0xfa + 0xfa + 0xf7,
+                    "({x}, {y})"
+                );
+            }
+        }
     })
     .await;
 }
@@ -85,35 +106,4 @@ fn ui_braille(buffer: &std::sync::Mutex<Option<Buffer>>) -> Vec<(u16, u16)> {
         .as_ref()
         .map(braille)
         .unwrap_or_default()
-}
-
-/// 有字或有会话时不画；浅色背景用另一套像素色（不亮过纸）。
-#[tokio::test(flavor = "multi_thread")]
-async fn the_badge_hides_behind_input_and_sessions_and_follows_the_theme() {
-    let model = GatedModel::scripted(vec![text_response(&["hello"])]);
-    with_ui(model, setup((0xfa, 0xfa, 0xf7)), |mut ui| async move {
-        let buffer = ui.buffer.clone();
-        ui.wait("the badge", |_| ui_braille(&buffer).len() > 100)
-            .await;
-        // 浅色背景：点的颜色都比背景暗。
-        {
-            let guard = ui.buffer.lock().unwrap();
-            let buffer = guard.as_ref().unwrap();
-            for (x, y) in braille(buffer) {
-                if let ratatui::style::Color::Rgb(r, g, b) = buffer[(x, y)].fg {
-                    assert!(
-                        u32::from(r) + u32::from(g) + u32::from(b) < 0xfa + 0xfa + 0xf7,
-                        "({x}, {y})"
-                    );
-                }
-            }
-        }
-        ui.type_text("hi");
-        ui.wait("the badge to hide", |_| ui_braille(&buffer).is_empty())
-            .await;
-        ui.key(crossterm::event::KeyCode::Enter);
-        ui.wait_for("⏺ hello").await;
-        assert!(ui_braille(&ui.buffer).is_empty(), "no badge in a session");
-    })
-    .await;
 }

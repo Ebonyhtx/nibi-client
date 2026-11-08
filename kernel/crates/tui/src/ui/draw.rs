@@ -189,9 +189,9 @@ pub fn draw(frame: &mut Frame<'_>, app: &mut App, cache: &mut Cache, now: Instan
     fill_rows(&mut visible, width);
     let shown = visible.len() as u16;
     frame.render_widget(Paragraph::new(visible), transcript_area);
-    // 新会话的背景标志（tui.md §7.3，修复线 F26，复制自 Host TUI）：启动头下面的空白处；有会话、输入框有字或有
-    // 视图时不画。
-    if app.shows_logo() {
+    // 角落的小鸟（品牌素材的待机动画）：贴在正文下方空白区的右下角，不压正文；空白放不下就整只不画。
+    // 全屏浮层/视图会盖住这块区域，那时也不画（省掉无谓的重画）。
+    if app.overlay.is_none() && app.viewing.is_none() {
         let free = Rect::new(
             transcript_area.x,
             transcript_area.y + shown + 1,

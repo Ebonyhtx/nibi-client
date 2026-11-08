@@ -463,7 +463,7 @@ impl App {
             .copied
             .as_ref()
             .is_some_and(|(notice, at)| at.elapsed() < notice.duration);
-        // 背景标志只在点击后的约 2 秒里按动画节拍重画，停住后不再定时重画（tui.md §7.3）。查看在跑的子代理时状态行的
+        // 角落的小鸟一直在动，画着的时候按动画节拍重画。查看在跑的子代理时状态行的
         // spinner 是它的（F112），主会话空闲时也按动画节拍重画。
         let viewed_running = self
             .viewed_entry()
@@ -474,18 +474,7 @@ impl App {
             || self.notice_text().is_some()
             || dragging_at_edge
             || copied
-            || self.logo.animating(Instant::now())
-    }
-
-    /// 新会话的背景标志画不画（tui.md §7.3）：还没有会话（也不在建）、输入框为空、没有打开视图、不在查看子代理。
-    pub fn shows_logo(&self) -> bool {
-        self.session.is_none()
-            && !self.creating
-            && self.held.is_empty()
-            && self.composer.is_empty()
-            && self.overlay.is_none()
-            && self.viewing.is_none()
-            && self.pending().is_none()
+            || self.logo.animating()
     }
 
     /// 要显示的待处理交互：当前会话的在前，之后是旧会话的询问（按到达顺序，agents.md §4.1.2）。
