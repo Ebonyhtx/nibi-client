@@ -133,6 +133,18 @@ impl LocalKernel {
         Ok(id)
     }
 
+    /// 工作区权威的插件引用目录：入口给了 loader（NIBI app-server）就按当前配置与 license 现解析，
+    /// 否则用启动快照（CLI/TUI）。
+    async fn workspace_plugin_catalog(
+        &self,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> nibi_kernel_ext::plugins::PluginCatalog {
+        match &self.plugin_loader {
+            Some(loader) => loader.load(workspace).await.catalog,
+            None => self.ext.process_plugin_catalog(),
+        }
+    }
+
     /// 给一个会话装上当前的插件快照：skills、hooks、agents 与 MCP。
     ///
     /// 只在入口提供 `PluginSnapshotLoader`（NIBI app-server）时生效；CLI/TUI 继续用进程级快照。
@@ -150,16 +162,22 @@ impl LocalKernel {
         if let Some(parent) = parent {
             self.ext
                 .copy_session_skill_roots(parent, session.clone());
+            self.ext
+                .copy_session_plugin_catalog(parent, session.clone());
             self.agent_catalog
                 .copy_session(parent, session.clone());
             self.hooks.copy_session(parent, session.clone());
             return;
         }
-        let plugins = loader.load(workspace).await;
-        let (agents, hooks) = crate::ext::plugin_parts(&plugins);
+        let loaded = loader.load(workspace).await;
+        let plugins = &loaded.plugins;
+        let (agents, hooks) = crate::ext::plugin_parts(plugins);
         self.ext
-            .set_session_skill_roots(session.clone(), &plugins);
-        self.ext.refresh_status_servers(workspace, &plugins);
+            .set_session_skill_roots(session.clone(), plugins);
+        // Composer `@` 插件面板的身份目录：会话创建时冻结（Node 的 session-owned catalog）。
+        self.ext
+            .set_session_plugin_catalog(session.clone(), loaded.catalog.clone());
+        self.ext.refresh_status_servers(workspace, plugins);
         self.agent_catalog
             .set_session_plugins(session.clone(), agents);
         self.hooks
@@ -1156,6 +1174,41 @@ impl Kernel for LocalKernel {
                 })
             })
             .collect())
+    }
+
+    /// Composer 的 `@` 插件面板（NIBI `plugins/referenceCatalog`）：带会话时用它创建时冻结的目录，
+    /// 不带时按当前配置现扫工作区（Node 的 workspace authority）。
+    async fn plugin_reference_catalog(
+        &self,
+        session: Option<&SessionId>,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Result<Vec<nibi_kernel_api::listing::PluginReference>, KernelError> {
+        let catalog = match session {
+            Some(session) => self.ext.session_plugin_catalog(session),
+            None => Some(self.workspace_plugin_catalog(workspace).await),
+        };
+        Ok(catalog
+            .map(|catalog| catalog.references)
+            .unwrap_or_default())
+    }
+
+    /// 推荐插件的安装前解析：已发现的身份条目与官方市场目录里的条目（两者都可缺）。
+    async fn suggested_plugin_facts(
+        &self,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+        stable_id: &str,
+    ) -> Result<nibi_kernel_api::listing::SuggestedPluginFacts, KernelError> {
+        let catalog = self.workspace_plugin_catalog(workspace).await;
+        Ok(nibi_kernel_api::listing::SuggestedPluginFacts {
+            entry: catalog
+                .references
+                .into_iter()
+                .find(|entry| entry.plugin_id == stable_id),
+            listing: catalog
+                .listings
+                .into_iter()
+                .find(|listing| listing.plugin_id == stable_id),
+        })
     }
 
     async fn generate_text(

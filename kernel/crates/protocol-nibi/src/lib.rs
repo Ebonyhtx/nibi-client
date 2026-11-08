@@ -24,6 +24,7 @@ mod local_ttft;
 mod mcp_rpc;
 mod nibi_commands;
 mod nibi_workflows;
+mod plugin_catalog;
 mod plugin_ui;
 mod skill_catalog;
 mod projection;

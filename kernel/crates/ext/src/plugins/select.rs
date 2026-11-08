@@ -11,7 +11,7 @@ use nibi_kernel_api::env_files::FileKind;
 use nibi_kernel_api::machine::Files;
 use serde_json::Value;
 
-use super::{Manifest, Plugin, Plugins, Reader};
+use super::{DeclaredComponents, Manifest, Plugin, PluginCatalog, Plugins, Reader};
 
 /// Node `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`（定义在 base，F55）。
 const OFFICIAL: &str = nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
@@ -78,6 +78,9 @@ pub struct PluginSources {
     /// Host 同时提供 `node_repl` 的浏览器 broker socket。浏览器 broker 尚未在 Rust 侧实现，
     /// 未置位时 `browser-use` 仍跳过：只有 skill 没有执行面比没有更糟。
     pub host_browser_broker: bool,
+    /// 商店目录的展示投影（官方分片 + `marketplaces/<id>/marketplace.json` 快照），按稳定 ID join 到
+    /// 引用目录的条目上；入口从本机存储读（platform `plugin_marketplace`）。
+    pub listings: Vec<nibi_kernel_api::listing::MarketplaceListing>,
 }
 
 /// 付费插件授权事实。判定逻辑在 `nibi_platform::paid_plugin`，这里只携带输入。
@@ -179,14 +182,18 @@ pub struct Skipped {
     pub dir: String,
     /// manifest 读出之后才有。
     pub id: Option<String>,
+    /// manifest 读出之后才能声明的组件名（停用/被抑制的条目也要进引用目录，Node 同口径）；
+    /// manifest 缺失或非法时为空。
+    pub components: DeclaredComponents,
     pub reason: SkipReason,
 }
 
-/// 加载结果：加载好的插件与跳过的候选目录。
+/// 加载结果：加载好的插件、跳过的候选目录，以及 Composer 引用面板的两份数据（身份目录与商店条目）。
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Loaded {
     pub plugins: Plugins,
     pub skipped: Vec<Skipped>,
+    pub catalog: PluginCatalog,
 }
 
 /// Node `PLUGIN_NAME_PATTERN`：`^[a-z0-9][a-z0-9._-]{0,127}$`。
@@ -275,6 +282,7 @@ impl Admission<'_> {
         let skip = |id: Option<&str>, reason| Skipped {
             dir: dir.to_owned(),
             id: id.map(str::to_owned),
+            components: DeclaredComponents::default(),
             reason,
         };
         if self.reader.kind(dir).await != Some(FileKind::Directory) {
@@ -292,7 +300,10 @@ impl Admission<'_> {
         if candidate.origin == PluginOrigin::Official
             && self.sources.suppressed_builtins.contains(&id)
         {
-            return reject(SkipReason::Suppressed);
+            return Err(
+                self.declared_skip(dir, &id, &manifest, SkipReason::Suppressed)
+                    .await,
+            );
         }
         if !self.seen.insert(id.clone()) {
             return reject(SkipReason::DuplicateId);
@@ -301,7 +312,9 @@ impl Admission<'_> {
             || (candidate.marketplace == OFFICIAL && DEFAULT_ENABLED.contains(&name.as_str()));
         let enabled = self.sources.enabled_plugins.get(&id).copied();
         if !enabled.unwrap_or(default) {
-            return reject(SkipReason::Disabled);
+            return Err(self
+                .declared_skip(dir, &id, &manifest, SkipReason::Disabled)
+                .await);
         }
         // 付费插件发现层门禁（R30）：manifest 或安装记录任一 paid=true 都要会员授权；
         // 拒绝时整个插件不加载，skill/MCP/hooks/agents 能力根因此天然为空。
@@ -313,20 +326,33 @@ impl Admission<'_> {
                 .unwrap_or(false);
         if paid {
             let Some(license) = self.sources.paid_license.as_ref() else {
-                return reject(SkipReason::MembershipRequired(
-                    "该插件是会员专享插件：这台设备还没有 NIBI 会员凭证，请登录后开通会员"
-                        .to_owned(),
-                ));
+                return Err(self
+                    .declared_skip(
+                        dir,
+                        &id,
+                        &manifest,
+                        SkipReason::MembershipRequired(
+                            "该插件是会员专享插件：这台设备还没有 NIBI 会员凭证，请登录后开通会员"
+                                .to_owned(),
+                        ),
+                    )
+                    .await);
             };
             if let Err(message) = license.check(&name) {
-                return reject(SkipReason::MembershipRequired(message));
+                return Err(self
+                    .declared_skip(dir, &id, &manifest, SkipReason::MembershipRequired(message))
+                    .await);
             }
         }
         if self.session.contains(&name) {
-            return reject(SkipReason::ShadowedBySession);
+            return Err(self
+                .declared_skip(dir, &id, &manifest, SkipReason::ShadowedBySession)
+                .await);
         }
         if loaded.iter().any(|plugin| plugin.name == name) {
-            return reject(SkipReason::DuplicateName);
+            return Err(self
+                .declared_skip(dir, &id, &manifest, SkipReason::DuplicateName)
+                .await);
         }
         let tables = self.reader.mcp_tables(dir, &manifest).await;
         if let Some(dependency) = node_dependency(
@@ -336,9 +362,30 @@ impl Admission<'_> {
             self.sources.host_node_repl,
             self.sources.host_browser_broker,
         ) {
-            return reject(SkipReason::NodeRuntime(dependency));
+            return Err(self
+                .declared_skip(dir, &id, &manifest, SkipReason::NodeRuntime(dependency))
+                .await);
         }
-        Ok(self.reader.components(dir, name, manifest, &tables).await)
+        Ok(self
+            .reader
+            .components(dir, name, &candidate.marketplace, manifest, &tables)
+            .await)
+    }
+
+    /// 没加载的候选：带上它声明的组件名（引用目录要展示停用条目的能力面）。
+    async fn declared_skip(
+        &self,
+        dir: &str,
+        id: &str,
+        manifest: &Value,
+        reason: SkipReason,
+    ) -> Skipped {
+        Skipped {
+            dir: dir.to_owned(),
+            id: Some(id.to_owned()),
+            components: self.reader.declared(dir, manifest).await,
+            reason,
+        }
     }
 }
 
@@ -388,8 +435,13 @@ pub async fn load_all(
             }
         }
     }
+    let plugins = Plugins(plugins);
     Loaded {
-        plugins: Plugins(plugins),
+        catalog: PluginCatalog {
+            references: plugins.reference_catalog(&skipped, &sources.listings),
+            listings: sources.listings.clone(),
+        },
+        plugins,
         skipped,
     }
 }

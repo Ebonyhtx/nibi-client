@@ -14,10 +14,14 @@ use super::builtin_server;
 
 fn plugin(name: &str, dir: &str) -> Plugin {
     Plugin {
+        id: format!("{name}@inline"),
         name: name.to_owned(),
+        marketplace: "inline".to_owned(),
         dir: dir.to_owned(),
         manifest: json!({}),
         skill_dirs: Vec::new(),
+        skill_names: Vec::new(),
+        agent_names: Vec::new(),
         mcp_servers: Vec::new(),
         agent_files: Vec::new(),
         hooks: Vec::new(),

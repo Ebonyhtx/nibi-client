@@ -34,10 +34,14 @@ fn workspace() -> WorkspaceRef {
 #[test]
 fn plugin_parts_carry_the_plugin_name_and_root() {
     let plugins = Plugins(vec![Plugin {
+        id: "kit@inline".to_owned(),
         name: "kit".to_owned(),
+        marketplace: "inline".to_owned(),
         dir: KIT.to_owned(),
         manifest: json!({}),
         skill_dirs: Vec::new(),
+        skill_names: Vec::new(),
+        agent_names: vec!["team:lead".to_owned()],
         mcp_servers: Vec::new(),
         agent_files: vec![ExtAgentFile {
             path: format!("{KIT}/agents/team/lead.md"),

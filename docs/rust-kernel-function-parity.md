@@ -330,14 +330,28 @@ redirectPath)[0..24]>:authorization_credentials`）；
 5. 更早的：`session/send` 对 video/file 附件 fail-closed；冷恢复不带 `additionalDirectories`。
 6. 订阅续传已知差异：保留窗按「事件数」计（同 Node），`flush` 不合并同类增量（Node 会 coalesce）；
    工作区主题的断档快照用首帧记住的存储行。
-7. **插件引用目录的三条仍在内核侧**（Host 只直答 17 条管理面方法，见
-   `packages/desktop/src/host/localPluginManagementService.ts` 的注释）：`plugins/referenceCatalog`
-   （含 category 变体）、`plugins/resolveSuggestedReference`、`plugins/onDynamicPluginOperationProgress`
-   在 Rust 内核里**还没有实现**——切流后 Composer 的 `@` **插件**面板会是空的，推荐插件的安装前解析与
-   进度通知会报 `-32601`。`skills/referenceCatalog` 已在 `9ee7aa2e` 落地（会话权威取会话插件快照，
-   否则现扫工作区，id 保持 Host 认的 `glm:<scope>:<path>`），所以 `@` **技能**面板已经能用。
-   补齐需要给 `Kernel` 加插件目录方法（从 `Plugins` 的 manifest 与安装记录投影 pluginId/marketplace/
-   skillQualifiedNames/mcpServerNames/subagentNames），并在协议层复用 Node 的 strict 形状。
+7. **插件引用目录已补齐**（Host 只直答 17 条管理面方法，见
+   `packages/desktop/src/host/localPluginManagementService.ts` 的注释）：`plugins/referenceCatalog` 与
+   `plugins/referenceCatalogWithCategory`、`plugins/resolveSuggestedReference` 都在 Rust 内核实现
+   （`protocol-nibi/src/plugin_catalog.rs`；身份目录由 `ext::Plugins::reference_catalog` 产出，商店展示字段由
+   `platform::plugin_marketplace` 从官方分片与 `marketplaces/<id>/marketplace.json` 快照读取）。
+   - **会话权威**：会话创建/冷恢复时把目录冻结在 `Ext`（`set_session_plugin_catalog`，子代理继承父会话）；
+     不带 `sessionId` 时按当前配置现扫工作区（app-server 走 loader，CLI/TUI 走启动快照）。未知会话 fail closed。
+   - **条目**：`pluginId` = `<manifest.name>@<marketplace>`，含停用条目（`enabled: false`，供
+     `disabled_in_session` 诊断）、同名启用插件的 `conflictingPluginIds`、声明的
+     `skillQualifiedNames` / `subagentNames` / `mcpServerNames`。停用条目也枚举它声明的 skill/agent 名。
+     `rootPath` 不出协议；`category` 只有 `WithCategory` 变体返回（缺失回 `other`）。
+   - **推荐插件解析**：只认 `@nibi-official` 的稳定 ID（其它来源回
+     `plugin_suggested_reference_untrusted_source`）；已发现条目回 `ready` / `disabled` / `conflict`，
+     目录里有但本机没装回 `missing` + listing（UI 据此走安装确认），都没有回
+     `plugin_suggested_reference_not_listed`。
+   - **已知差异（刻意）**：Node 在目录缺条目时会**联网刷新**官方目录（10 s 超时 + `plugins/operationProgress`
+     的 `refreshing` 通知）。Rust 内核只读 Host 落盘的快照——插件市场与安装归 Host 的 17 条管理面，
+     内核不写 Host 管的存储，也不伪造进度通知。代价：缓存过旧且插件刚发布时，推荐项会先回 `not_listed`
+     （商店本身由 Host 刷新，不受影响）。`plugins/onDynamicPluginOperationProgress` 是客户端订阅通知的 API，
+     不是内核方法；内核不发通知时不涉及。
+   - `skills/referenceCatalog` 早在 `9ee7aa2e` 落地（会话权威取会话插件快照，否则现扫工作区，
+     id 保持 Host 认的 `glm:<scope>:<path>`）。
 8. `provider/testModelConnectivity` 已补（`model_connectivity.rs`：1 token 的探测请求，形状与 Node 一致）。
 9. Rust TUI 的 `/login` 只有 NIBI 账号的 Device Flow（上游 `zai-coding-plan` / `bigmodel-coding-plan` 与
    手工 key 入口已删，模型走 `/provider`）；背景徽章是 NIBI 鸟的像素画，不再是上游的 Z 金属徽章。

@@ -52,6 +52,10 @@ pub const SCHEDULED_TASKS_FILE: &str = "scheduled_tasks.json";
 /// 已安装清单、ext 的插件选择、入口合并 `plugins` 段都用它（F55：以前三处各写一份）。
 pub const OFFICIAL_MARKETPLACE: &str = "nibi-official";
 
+/// `--plugin-dir` / 会话插件的 marketplace 段（Node `NIBI_INLINE_PLUGIN_MARKETPLACE`）：插件 id 是
+/// `<name>@inline`。ext 的插件加载与入口合并 `plugins` 段共用（以前入口自己写一份）。
+pub const INLINE_MARKETPLACE: &str = "inline";
+
 /// 执行器的目录（docs/specs/rust-cli/remote-exec.md §19.4）：用户根下的 `nibi-kernel/exec`。本机的位置由 paths 的
 /// `StoragePaths::executor()` 算；远端的位置由 ssh-connect 按远端的 home 拼（远端只用这个目录，不碰 `cli/`）。
 pub const EXECUTOR_HOME: &str = "nibi-kernel/exec";

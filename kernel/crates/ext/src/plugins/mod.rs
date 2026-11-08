@@ -5,6 +5,7 @@
 //! manifest 按 Node `findManifest` 依次找本工程的 `.zcode-plugin` 与另外两种插件格式的目录下的 `plugin.json`
 //! （同时兼容几种插件格式）；`--plugin-dir` 没有 manifest 时插件名取目录名。
 
+mod reference;
 mod select;
 
 use nibi_kernel_base::names::vars;
@@ -17,6 +18,7 @@ use serde_json::Value;
 use crate::mcp::{McpScope, McpServer, parse_servers};
 use crate::skills::PluginSkillRoot;
 
+pub use self::reference::{DeclaredComponents, PluginCatalog};
 pub use self::select::{
     Loaded, NodeDependency, PaidLicense, PluginCandidate, PluginOrigin, PluginSources, SkipReason,
     Skipped, load_all,
@@ -48,10 +50,19 @@ pub struct PluginAgentFile {
 /// 一个已加载的插件。
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plugin {
+    /// 稳定身份：`<manifest.name>@<marketplace>`（Node `PluginMetadata.id`）。
+    pub id: String,
     pub name: String,
+    /// 插件 id 的后半（`inline`、`nibi-official` 或安装记录里的 marketplace）。
+    pub marketplace: String,
     pub dir: String,
     pub manifest: Value,
     pub skill_dirs: Vec<String>,
+    /// 声明出来的 skill 名（`skills/` 与 manifest 声明路径下含 SKILL.md 的子目录名）。
+    /// 引用目录的 `skillQualifiedNames` 用它，与 runtime 的发现口径一致（按目录名）。
+    pub skill_names: Vec<String>,
+    /// 声明出来的 agent 名（相对 agents 目录的路径段，用 `:` 连接；与 runtime 的类型名同形）。
+    pub agent_names: Vec<String>,
     pub mcp_servers: Vec<McpServer>,
     /// agent 文件（runtime 交给 agents 的 `AgentCatalog::set_plugins`）。
     pub agent_files: Vec<PluginAgentFile>,
@@ -83,6 +94,16 @@ impl Plugins {
             .flat_map(|plugin| plugin.mcp_servers.iter().cloned())
             .collect()
     }
+
+    /// Composer `@` 插件面板的身份目录（Node `buildPluginReferenceCatalog`）：已加载的插件（enabled）
+    /// 加上没加载但有 manifest 的候选（disabled），并与商店 listing 的展示字段按稳定 ID join。
+    pub fn reference_catalog(
+        &self,
+        skipped: &[Skipped],
+        listings: &[nibi_kernel_api::listing::MarketplaceListing],
+    ) -> Vec<nibi_kernel_api::listing::PluginReference> {
+        reference::catalog(&self.0, skipped, listings)
+    }
 }
 
 /// 插件目录下的路径（`path.join`）：风格按插件目录的写法推断，规则是 kernel-api `env_path`
@@ -93,6 +114,12 @@ fn join(base: &str, relative: &str) -> String {
 
 fn base_name(path: &str) -> String {
     PathStyle::infer(path).file_name(path)
+}
+
+/// 文件名去掉 `.md`（agent 的缺省名字，与 agents crate 的 `file_stem` 同口径）。
+fn stem(path: &str) -> &str {
+    let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+    name.strip_suffix(".md").unwrap_or(name)
 }
 
 /// manifest 里的路径字段：字符串或字符串数组。
@@ -284,28 +311,36 @@ impl Reader<'_> {
             .filter(|name| !name.is_empty())
             .map_or_else(|| base_name(dir), str::to_owned);
         let tables = self.mcp_tables(dir, &manifest).await;
-        Some(self.components(dir, name, manifest, &tables).await)
+        Some(
+            self.components(
+                dir,
+                name,
+                nibi_kernel_base::names::INLINE_MARKETPLACE,
+                manifest,
+                &tables,
+            )
+            .await,
+        )
     }
 
-    /// 插件的组件（ext.md §4.5）。`tables` 是 [`Self::mcp_tables`] 的结果。
-    async fn components(
-        &self,
-        dir: &str,
-        name: String,
-        manifest: Value,
-        tables: &[Value],
-    ) -> Plugin {
-        let mut skill_dirs = Vec::new();
+    /// `skills/` 与 manifest 声明路径里的 skill 根目录（存在的、去重）。
+    async fn skill_dirs(&self, dir: &str, manifest: &Value) -> Vec<String> {
+        let mut found = Vec::new();
         for candidate in std::iter::once("skills".to_owned()).chain(paths(manifest.get("skills"))) {
             let path = join(dir, &candidate);
-            if self.kind(&path).await == Some(FileKind::Directory) && !skill_dirs.contains(&path) {
-                skill_dirs.push(path);
+            if self.kind(&path).await == Some(FileKind::Directory) && !found.contains(&path) {
+                found.push(path);
             }
         }
-        let mut agent_files: Vec<PluginAgentFile> = Vec::new();
+        found
+    }
+
+    /// `agents/` 与 manifest 声明路径里的 agent 文件（存在的、按路径去重）。
+    async fn agent_files(&self, dir: &str, manifest: &Value) -> Vec<PluginAgentFile> {
+        let mut found: Vec<PluginAgentFile> = Vec::new();
         for candidate in std::iter::once("agents".to_owned()).chain(paths(manifest.get("agents"))) {
             let path = join(dir, &candidate);
-            let found = match self.kind(&path).await {
+            let files = match self.kind(&path).await {
                 Some(FileKind::Directory) => self.markdown(&path).await,
                 Some(FileKind::File) if path.to_lowercase().ends_with(".md") => {
                     vec![PluginAgentFile {
@@ -316,12 +351,88 @@ impl Reader<'_> {
                 _ => Vec::new(),
             };
             // 同一文件只取一次。
-            for file in found {
-                if !agent_files.iter().any(|known| known.path == file.path) {
-                    agent_files.push(file);
+            for file in files {
+                if !found.iter().any(|known| known.path == file.path) {
+                    found.push(file);
                 }
             }
         }
+        found
+    }
+
+    /// 没加载的候选声明出来的组件名（引用目录里停用条目的能力面）。
+    async fn declared(&self, dir: &str, manifest: &Value) -> DeclaredComponents {
+        let skill_dirs = self.skill_dirs(dir, manifest).await;
+        let agent_files = self.agent_files(dir, manifest).await;
+        self.declare(&skill_dirs, &agent_files).await
+    }
+
+    /// 插件声明出来的 skill 与 agent 名（引用目录的 `skillQualifiedNames` / `subagentNames`）。
+    ///
+    /// skill 名取 `skills/` 与 manifest 声明路径下**含 SKILL.md 的子目录名**——与 runtime 的发现口径一致；
+    /// agent 名取相对 agents 目录的路径段（`:` 连接），与 runtime 的类型名同形。
+    async fn declare(
+        &self,
+        skill_dirs: &[String],
+        agent_files: &[PluginAgentFile],
+    ) -> DeclaredComponents {
+        let mut skill_names = Vec::new();
+        for dir in skill_dirs {
+            let request = ListDir {
+                path: EnvPath::new(dir.as_str()),
+            };
+            let Ok(mut entries) = self.files.list_dir(self.workspace, request).await else {
+                continue;
+            };
+            entries.retain(|entry| entry.kind == FileKind::Directory);
+            for entry in entries {
+                let skill = join(dir, &entry.name);
+                let request = StatFile {
+                    path: EnvPath::new(join(&skill, "SKILL.md").as_str()),
+                };
+                let found = self
+                    .files
+                    .stat(self.workspace, request)
+                    .await
+                    .ok()
+                    .flatten()
+                    .is_some_and(|stat| stat.kind == FileKind::File);
+                if found {
+                    skill_names.push(entry.name);
+                }
+            }
+        }
+        skill_names.sort();
+        skill_names.dedup();
+        let agent_names = agent_files
+            .iter()
+            .map(|file| {
+                file.namespace
+                    .iter()
+                    .map(String::as_str)
+                    .chain(std::iter::once(stem(&file.path)))
+                    .collect::<Vec<_>>()
+                    .join(":")
+            })
+            .collect();
+        DeclaredComponents {
+            skill_names,
+            agent_names,
+        }
+    }
+
+    /// 插件的组件（ext.md §4.5）。`tables` 是 [`Self::mcp_tables`] 的结果。
+    async fn components(
+        &self,
+        dir: &str,
+        name: String,
+        marketplace: &str,
+        manifest: Value,
+        tables: &[Value],
+    ) -> Plugin {
+        let skill_dirs = self.skill_dirs(dir, &manifest).await;
+        let agent_files = self.agent_files(dir, &manifest).await;
+        let declared = self.declare(&skill_dirs, &agent_files).await;
         let mut hooks = Vec::new();
         let default_hooks = join(dir, "hooks/hooks.json");
         if self.kind(&default_hooks).await == Some(FileKind::File)
@@ -342,10 +453,14 @@ impl Reader<'_> {
         }
         let mcp_servers = Self::mcp_servers(&name, dir, self.workspace.root.as_str(), tables);
         Plugin {
+            id: format!("{name}@{marketplace}"),
             name,
+            marketplace: marketplace.to_owned(),
             dir: dir.to_owned(),
             manifest,
             skill_dirs,
+            skill_names: declared.skill_names,
+            agent_names: declared.agent_names,
             mcp_servers,
             agent_files,
             hooks,

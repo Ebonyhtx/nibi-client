@@ -28,6 +28,7 @@ pub mod model_name;
 mod option_map;
 mod personal;
 pub mod plugin_inventory;
+pub mod plugin_marketplace;
 mod providers;
 mod settings;
 mod team;

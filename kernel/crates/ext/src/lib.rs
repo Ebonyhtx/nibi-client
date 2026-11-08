@@ -123,6 +123,16 @@ pub struct Ext {
     /// 插件目录（`--plugin-dir` 与入口给的候选，都在本机）。
     files: Arc<dyn Files>,
     config: ExtConfig,
+    /// Composer `@` 插件面板的数据：进程级快照 + 每会话冻结的一份（NIBI `plugins/referenceCatalog`
+    /// 的 session authority）。快照只活在这个进程里，不落库。
+    plugin_catalog: std::sync::RwLock<PluginCatalogState>,
+}
+
+/// 插件引用目录的进程级与会话级快照。会话关闭时删掉它那份；子代理继承父会话（Node 子代理 app 继承父 app）。
+#[derive(Default)]
+struct PluginCatalogState {
+    process: plugins::PluginCatalog,
+    sessions: std::collections::HashMap<SessionId, plugins::PluginCatalog>,
 }
 
 impl Ext {
@@ -252,6 +262,7 @@ impl Ext {
             registry,
             files: ports.files,
             config,
+            plugin_catalog: std::sync::RwLock::new(PluginCatalogState::default()),
         }
     }
 
@@ -723,8 +734,16 @@ impl Ext {
             &self.config.plugin_dirs,
             &self.config.plugins,
         )
-        .await
-        .plugins;
+        .await;
+        // Composer 的 `@` 插件面板（CLI/TUI 没有会话级 loader，用这份进程级快照）。
+        *self
+            .plugin_catalog
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = PluginCatalogState {
+            process: loaded.catalog.clone(),
+            sessions: std::collections::HashMap::new(),
+        };
+        let loaded = loaded.plugins;
         self.skills.set_plugin_roots(loaded.skill_roots());
         let plugin_servers = loaded.mcp_servers();
         let mut servers = self.config.mcp.servers.clone();
@@ -750,8 +769,9 @@ impl Ext {
         self.config.mcp.servers.clone()
     }
 
-    /// 按当前插件来源加载一份快照，不改进程级状态（会话级插件用；入口可在启动时换来源）。
-    pub async fn plugin_snapshot(&self, workspace: &WorkspaceRef) -> Plugins {
+    /// 按当前插件来源加载一份完整快照（插件 + 引用面板的两份数据），不改进程级状态
+    /// （会话级插件用；入口可在启动时换来源）。
+    pub async fn plugin_snapshot(&self, workspace: &WorkspaceRef) -> plugins::Loaded {
         plugins::load_all(
             self.files.as_ref(),
             workspace,
@@ -759,7 +779,6 @@ impl Ext {
             &self.config.plugins,
         )
         .await
-        .plugins
     }
 
     /// 把会话的插件快照装进 skill 目录；会话关闭时由 [`Ext::release_session`] 清掉。
@@ -785,14 +804,58 @@ impl Ext {
         );
     }
 
-    /// 会话关闭时清掉 skill 快照（hooks/agents 由 runtime 各自清）。
+    /// 会话关闭时清掉 skill 快照（hooks/agents 由 runtime 各自清），连同它的插件引用目录。
     pub fn clear_session_plugins(&self, session: &SessionId) {
         self.skills.clear_session(session);
+        self.plugin_catalog
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .sessions
+            .remove(session);
     }
 
     /// 子代理继承父会话的 skill 根。
     pub fn copy_session_skill_roots(&self, from: &SessionId, to: SessionId) {
         self.skills.copy_session(from, to);
+    }
+
+    /// 会话创建/冷恢复时冻结它的插件引用目录（NIBI `plugins/referenceCatalog` 的 session authority）。
+    pub fn set_session_plugin_catalog(&self, session: SessionId, catalog: plugins::PluginCatalog) {
+        self.plugin_catalog
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .sessions
+            .insert(session, catalog);
+    }
+
+    /// 子代理继承父会话的引用目录（父会话不在时不装，调用方按新快照处理）。
+    pub fn copy_session_plugin_catalog(&self, from: &SessionId, to: SessionId) {
+        let mut state = self
+            .plugin_catalog
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if let Some(catalog) = state.sessions.get(from).cloned() {
+            state.sessions.insert(to, catalog);
+        }
+    }
+
+    /// 会话冻结的引用目录；没有这个会话（或入口没有 loader）时为 None。
+    pub fn session_plugin_catalog(&self, session: &SessionId) -> Option<plugins::PluginCatalog> {
+        self.plugin_catalog
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .sessions
+            .get(session)
+            .cloned()
+    }
+
+    /// 进程级引用目录（CLI/TUI 的启动快照）。
+    pub fn process_plugin_catalog(&self) -> plugins::PluginCatalog {
+        self.plugin_catalog
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .process
+            .clone()
     }
 }
 

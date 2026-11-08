@@ -1306,6 +1306,28 @@ pub trait Kernel: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// Composer 的 `@` **插件**引用面板（NIBI `plugins/referenceCatalog`）：带 `session` 时取该会话创建时
+    /// 冻结的插件身份目录（含停用条目，供 `disabled_in_session` 诊断），不带时现扫当前工作区。
+    /// 缺省实现返回空（没接扩展的入口）。
+    async fn plugin_reference_catalog(
+        &self,
+        _session: Option<&SessionId>,
+        _workspace: &crate::env::WorkspaceRef,
+    ) -> Result<Vec<crate::listing::PluginReference>, KernelError> {
+        Ok(Vec::new())
+    }
+
+    /// 推荐插件的安装前可信解析（NIBI `plugins/resolveSuggestedReference` 的数据面）：已发现的身份条目
+    /// 与官方市场目录里的条目，两者都可缺。来源信任判定（只认官方市场）在协议层。
+    /// 缺省实现两条都缺（没接扩展的入口）。
+    async fn suggested_plugin_facts(
+        &self,
+        _workspace: &crate::env::WorkspaceRef,
+        _stable_id: &str,
+    ) -> Result<crate::listing::SuggestedPluginFacts, KernelError> {
+        Ok(crate::listing::SuggestedPluginFacts::default())
+    }
+
     async fn mcp_list(
         &self,
         _request: crate::mcp_status::McpListRequest,

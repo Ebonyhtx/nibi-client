@@ -16,9 +16,10 @@ pub use nibi_kernel_ext::ExtConfig;
 ///
 /// 入口（CLI）负责重新读插件配置、安装清单与 license；每次 `session/create` 调一次，
 /// 返回的快照只属于该会话，不写回进程级状态。返回空插件表示“当前没有可用插件”。
+/// 快照里的 `catalog` 是 Composer `@` 插件面板的身份目录与商店条目（会话冻结）。
 #[async_trait]
 pub trait PluginSnapshotLoader: Send + Sync {
-    async fn load(&self, workspace: &WorkspaceRef) -> Plugins;
+    async fn load(&self, workspace: &WorkspaceRef) -> nibi_kernel_ext::plugins::Loaded;
 }
 
 /// 入口层给内核的扩展配置：配置快照与持久定时任务的存储。MCP 传输在机器上（`MachineEnv::mcp()`，经 `Ports` 的注册表，

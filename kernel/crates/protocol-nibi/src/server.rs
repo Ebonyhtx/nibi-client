@@ -431,6 +431,19 @@ impl Server {
             "skills/referenceCatalog" => crate::skill_catalog::skills(self, &params)
                 .await
                 .map(Reply::new),
+            // Composer 的 `@` 插件引用面板（Host `plugins/referenceCatalog[WithCategory]`）。
+            "plugins/referenceCatalog" => crate::plugin_catalog::reference(self, &params, false)
+                .await
+                .map(Reply::new),
+            "plugins/referenceCatalogWithCategory" => {
+                crate::plugin_catalog::reference(self, &params, true)
+                    .await
+                    .map(Reply::new)
+            }
+            // 推荐 Prompt 的安装前可信解析（Host `plugins/resolveSuggestedReference`）。
+            "plugins/resolveSuggestedReference" => crate::plugin_catalog::suggested(self, &params)
+                .await
+                .map(Reply::new),
             "provider/testModelConnectivity" => crate::model_connectivity::test(self, &params)
                 .await
                 .map(Reply::new),

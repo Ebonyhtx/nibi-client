@@ -48,7 +48,7 @@ struct SessionPluginLoader {
 
 #[async_trait]
 impl PluginSnapshotLoader for SessionPluginLoader {
-    async fn load(&self, workspace: &WorkspaceRef) -> nibi_kernel_ext::Plugins {
+    async fn load(&self, workspace: &WorkspaceRef) -> nibi_kernel_ext::plugins::Loaded {
         let inputs = config::ConfigInputs {
             files: self.files.as_ref(),
             workspace,

@@ -224,7 +224,9 @@ pub(crate) async fn user_hooks(paths: &nibi_kernel_paths::StoragePaths) -> NodeH
 ///
 /// 只读、不改进程级快照；app-server 每个 `session/create` 调一次。付费门禁的 license 也在这里
 /// 重新读，所以会员刷新后新会话能立刻生效（老会话保持原快照）。
-pub(crate) async fn plugin_snapshot(inputs: &ConfigInputs<'_>) -> nibi_kernel_ext::Plugins {
+pub(crate) async fn plugin_snapshot(
+    inputs: &ConfigInputs<'_>,
+) -> nibi_kernel_ext::plugins::Loaded {
     let Files {
         user_path,
         user,
@@ -263,9 +265,7 @@ pub(crate) async fn plugin_snapshot(inputs: &ConfigInputs<'_>) -> nibi_kernel_ex
     for warning in warnings {
         tracing::warn!(warning, "plugin snapshot config");
     }
-    nibi_kernel_ext::plugins::load_all(inputs.files, inputs.workspace, &[], &sources)
-        .await
-        .plugins
+    nibi_kernel_ext::plugins::load_all(inputs.files, inputs.workspace, &[], &sources).await
 }
 
 /// 读配置文件并组装快照。只在启动时调用一次（没有文件监听，config.md §6 D6）。

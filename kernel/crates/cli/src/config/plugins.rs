@@ -17,8 +17,8 @@ use serde_json::Value;
 
 use super::merge::Layer;
 
-/// Node `NIBI_INLINE_PLUGIN_MARKETPLACE` 与 `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`。
-const INLINE: &str = "inline";
+/// Node `NIBI_INLINE_PLUGIN_MARKETPLACE` 与 `NIBI_OFFICIAL_PLUGIN_MARKETPLACE`（都在 base 里定义）。
+const INLINE: &str = nibi_kernel_base::names::INLINE_MARKETPLACE;
 const OFFICIAL: &str = nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
 
 /// 合并后的 `plugins` 段。
@@ -178,6 +178,8 @@ pub(crate) async fn sources(
         paid_license,
         host_node_repl: host_flag("NIBI_HOST_NODE_REPL"),
         host_browser_broker: host_flag("NIBI_HOST_BROWSER_BROKER"),
+        // 商店目录的展示投影：Composer 的 `@` 插件面板与推荐插件解析都要（含未安装的条目）。
+        listings: nibi_kernel_platform::plugin_marketplace::listings(storage).await,
     }
 }
 
