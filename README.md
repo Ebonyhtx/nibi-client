@@ -79,7 +79,14 @@ NIBI_DATA_BASE_DIR="$HOME/.nibi-dev" pnpm dev:desktop
 | `packages/provider`、`packages/provider-node` | Provider 公共能力与 Node 实现 |
 | `apps/zcode-cli` | Agent CLI、TUI、运行时与工具 |
 | `packages/zcode-cua` | Computer Use 公开契约与占位实现 |
+| `kernel` | **Rust 内核**（独立 Cargo workspace，37 个 crate）：协议前端、会话/工具/模型层、CLI 与 TUI |
 | `scripts`、`config`、`third-party` | 构建维护脚本、内置配置与第三方声明 |
+
+> `kernel/` 是**独立的 Cargo workspace**，不进 pnpm/tsc 链（CI 门禁是 `cargo check --locked --workspace`，
+> 见 `.github/workflows/rust-gates.yml`）。它能单独编译成 `nibi-rs`——CLI/TUI 与远端执行器是同一个二进制。
+> 桌面客户端的 agent 层默认仍是 Node，`NIBI_KERNEL=rust` 才走 Rust；两边的功能对照与已知差异在
+> [`docs/rust-kernel-function-parity.md`](docs/rust-kernel-function-parity.md)，改造台账在
+> [`kernel/CHANGELOG-FORK.md`](kernel/CHANGELOG-FORK.md)。
 
 > `apps/zcode-cli`、`packages/zcode-server-cli`、`packages/zcode-cua` 是上游沿用的**源码目录名**；包名、CLI 命令和产物均为 NIBI（`nibi-cli`、`@nibi/server-cli`、`@nibi/cua`、`dist/nibi/`、远端执行器 `nibi-server.cjs` 与 `nibi-server-<target>.tar.gz`）。目录改名会打散上游快照与 300+ 处引用，暂不做机械改名；运行时可见的名字已全部改成 NIBI。
 

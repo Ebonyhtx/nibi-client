@@ -40,7 +40,9 @@
 
 ### 实测证据
 
-日志 `~/.nibi/cli/log/zcode-<日期>.jsonl`，`sess=-` 即设置页的 `protocol-settings` lease：
+日志 `~/.nibi/cli/log/nibi-<日期>.jsonl`（文件名前缀随品牌化改为 `nibi-`，见
+`apps/zcode-cli/packages/adapters/src/logging/index.ts` 的 `getLogFileName`），`sess=-` 即设置页的
+`protocol-settings` lease：
 
 ```text
 08:40:04.732  mcp.server.connect.started   sess=-   plugin:official-tools:server

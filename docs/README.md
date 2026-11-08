@@ -55,6 +55,12 @@
 - [公共契约文档](contracts/)
 - [性能](performance/)
 
+## Rust 内核
+
+- [与 Node 的功能对照（切流判据）](rust-kernel-function-parity.md)：哪些已对齐、哪些是刻意的实现差异
+- [改造台账](../kernel/CHANGELOG-FORK.md)：每一段落地的范围与证据
+- [上游吸收记录](../kernel/CHANGELOG-FORK.md)（§5）：跟到哪一版、为什么跟或不跟
+
 ## 安全
 
 - [Deep link 与项目信任边界](security/deep-link-project-trust-boundary.md)
