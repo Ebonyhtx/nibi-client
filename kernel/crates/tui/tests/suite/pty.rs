@@ -222,6 +222,9 @@ pub async fn interface(model: Arc<dyn ModelPort>) {
         clock: Arc::new(WallClock),
         ids: Arc::new(SequentialIds::default()),
         os: nibi_kernel_tui::Os::Unix,
+        // 伪终端里不贴 Sixel（没有真终端的图形能力），也不播动画。
+        pixels: false,
+        pet_anim: false,
         notice: None,
     };
     nibi_kernel_tui::run(kernel, options).await.unwrap();
