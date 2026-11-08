@@ -1388,17 +1388,17 @@ const BINDING_MISMATCH: &str = "MCP App resource binding mismatch";
 
 // ———— 参数校验（Host zod 的 `.strict()` 语义）————
 
-fn invalid(message: impl std::fmt::Display) -> RpcError {
+pub(crate) fn invalid(message: impl std::fmt::Display) -> RpcError {
     RpcError::invalid_params(format!("Invalid params — {message}"))
 }
 
-fn object(params: &Value) -> Result<&Map<String, Value>, RpcError> {
+pub(crate) fn object(params: &Value) -> Result<&Map<String, Value>, RpcError> {
     params
         .as_object()
         .ok_or_else(|| invalid("params must be an object"))
 }
 
-fn strict_keys(
+pub(crate) fn strict_keys(
     params: &Map<String, Value>,
     known: &[&str],
     what: &str,
@@ -1494,7 +1494,7 @@ fn isolation(params: &Map<String, Value>) -> Result<McpIsolation, RpcError> {
     }
 }
 
-fn workspace_param(value: Option<&Value>) -> Result<(String, Option<String>), RpcError> {
+pub(crate) fn workspace_param(value: Option<&Value>) -> Result<(String, Option<String>), RpcError> {
     let value = value
         .and_then(Value::as_object)
         .ok_or_else(|| invalid("`workspace` must be an object"))?;

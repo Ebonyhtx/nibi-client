@@ -85,3 +85,38 @@ pub struct InvokedSkill {
     pub path: String,
     pub content: String,
 }
+
+/// 一个 skill 在 Composer 引用面板里的样子（`skills/referenceCatalog` 的条目，与 Host 的
+/// `zcodeSkillReferenceCatalogEntrySchema` 同形）。
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillReference {
+    /// 稳定行身份：`glm:<scope>:<path>`（Host 的 UI 按 `glm:` 前缀过滤 provider，沿用 Node 的写法）。
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub path: String,
+    pub scope: SkillReferenceScope,
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plugin_name: Option<String>,
+}
+
+/// 引用面板的 scope（封闭三值，Host 严格校验）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SkillReferenceScope {
+    Workspace,
+    User,
+    Plugin,
+}
+
+impl SkillReferenceScope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Workspace => "workspace",
+            Self::User => "user",
+            Self::Plugin => "plugin",
+        }
+    }
+}

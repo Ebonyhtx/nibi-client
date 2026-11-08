@@ -82,6 +82,14 @@ pub struct Server {
     host_preferences: std::sync::atomic::AtomicBool,
 }
 
+/// 未知会话的协议错误（Host 的 `requireSession`：fail closed，不回落到工作区）。
+pub(crate) fn session_unavailable(session: &nibi_kernel_api::ids::SessionId) -> RpcError {
+    RpcError::new(
+        SESSION_UNAVAILABLE,
+        format!("Session unavailable: {}", session.as_str()),
+    )
+}
+
 pub(crate) fn kernel_error(error: &KernelError) -> RpcError {
     match error {
         KernelError::NotFound { session } => RpcError::new(
@@ -419,6 +427,10 @@ impl Server {
             // platform 自己读同一批文件；回执版本（app-protocol.md §5.1）。
             // Host 设置页的「测试连通性」：一次 1 token 的无会话模型请求（Node
             // `testModelConnectivity`）。
+            // Composer 的 `@` 技能引用面板（Host `skills/referenceCatalog`）。
+            "skills/referenceCatalog" => crate::skill_catalog::skills(self, &params)
+                .await
+                .map(Reply::new),
             "provider/testModelConnectivity" => crate::model_connectivity::test(self, &params)
                 .await
                 .map(Reply::new),

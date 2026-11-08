@@ -25,6 +25,7 @@ mod mcp_rpc;
 mod nibi_commands;
 mod nibi_workflows;
 mod plugin_ui;
+mod skill_catalog;
 mod projection;
 mod row_target;
 mod runtime_preferences;

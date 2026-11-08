@@ -1121,6 +1121,43 @@ impl Kernel for LocalKernel {
     }
 
     /// NIBI `workspace/generateText`：无会话的一次性模型补全（Host 的「生成提交信息」）。
+    /// Composer 的 `@` 技能引用面板（`skills/referenceCatalog`）：有会话时用该会话的插件快照，
+    /// 没有时按当前工作区现扫。内置（bundled）skill 不进面板（Node 同口径）。
+    async fn skill_reference_catalog(
+        &self,
+        session: Option<&nibi_kernel_api::ids::SessionId>,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> Result<
+        Vec<nibi_kernel_api::listing::SkillReference>,
+        nibi_kernel_api::session_api::KernelError,
+    > {
+        use nibi_kernel_api::listing::{SkillReference, SkillReferenceScope};
+        let skills = self.ext.skills().skills_for(session, workspace).await;
+        Ok(skills
+            .iter()
+            .filter_map(|skill| {
+                let (scope, plugin_name) = match &skill.source {
+                    nibi_kernel_ext::SkillSource::Builtin => return None,
+                    nibi_kernel_ext::SkillSource::Plugin { plugin } => {
+                        (SkillReferenceScope::Plugin, Some(plugin.clone()))
+                    }
+                    nibi_kernel_ext::SkillSource::Project => (SkillReferenceScope::Workspace, None),
+                    nibi_kernel_ext::SkillSource::Managed
+                    | nibi_kernel_ext::SkillSource::User => (SkillReferenceScope::User, None),
+                };
+                Some(SkillReference {
+                    id: format!("glm:{}:{}", scope.as_str(), skill.dir),
+                    name: skill.name.clone(),
+                    description: skill.description.clone(),
+                    path: skill.dir.clone(),
+                    scope,
+                    enabled: true,
+                    plugin_name,
+                })
+            })
+            .collect())
+    }
+
     async fn generate_text(
         &self,
         request: nibi_kernel_api::generate_text::GenerateTextRequest,
