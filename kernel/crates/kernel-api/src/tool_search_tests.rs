@@ -172,3 +172,32 @@ fn the_carried_tools_are_optional_in_the_boundary_json() {
     let json = serde_json::to_value(&carried).unwrap();
     assert_eq!(json["discovered_tools"], json!(["WebFetch"]));
 }
+
+/// 已加载顺序按历史里的首次引用（缓存友好：工具清单只在这段尾部追加）。
+#[test]
+fn loaded_tools_keep_the_order_they_were_first_referenced() {
+    let reference = |id: &str, name: &str| {
+        Message::User(UserMessage {
+            id: MessageId::new(id),
+            content: vec![ContentBlock::ToolResult {
+                tool_use_id: ToolUseId::new(format!("t-{id}")),
+                content: vec![ToolResultContent::ToolReference {
+                    tool_name: name.to_owned(),
+                }],
+                is_error: false,
+            }],
+            origin: UserOrigin::ToolResult {
+                assistant: MessageId::new("a1"),
+            },
+        })
+    };
+    let history = [
+        reference("m1", "WebFetch"),
+        reference("m2", "mcp__srv__ping"),
+        reference("m3", "WebFetch"),
+    ];
+    assert_eq!(
+        loaded_in_order(history.iter()),
+        ["WebFetch".to_owned(), "mcp__srv__ping".to_owned()]
+    );
+}

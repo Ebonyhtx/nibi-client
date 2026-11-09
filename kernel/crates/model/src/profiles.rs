@@ -48,6 +48,8 @@ pub(crate) struct Profile {
     pub(crate) system: SystemShape,
     /// 发一方专有项：卡片的 thinking / effort / context_management / 每轮 effort、`diagnostics`、全部按特性的 beta。
     pub(crate) first_party_extras: bool,
+    /// 发 OpenAI 官方的 `prompt_cache_key`（只对 `api.openai.com`；中转站不一定认这个字段）。
+    pub(crate) prompt_cache_key: bool,
     /// 字节级看门狗的缺省上限（官方 Anthropic 端点 180 s，其他 300 s）。
     pub(crate) byte_idle: Duration,
 }
@@ -70,7 +72,23 @@ const fn official(
         model: Some(model),
         system: SystemShape::FirstParty,
         first_party_extras: true,
+        prompt_cache_key: false,
         byte_idle,
+    }
+}
+
+/// OpenAI 官方：Chat Completions 与 Responses 都发 `prompt_cache_key`。system 用第三方形状（OpenAI 没有
+/// Anthropic 的分段断点），也不发 Anthropic 的一方字段。
+const fn openai_official(name: &'static str, protocol: WireProtocol) -> Profile {
+    Profile {
+        name,
+        protocol,
+        endpoint: Endpoint::Pattern(r"https://api\.openai\.com(?:/v1)?/?$"),
+        model: None,
+        system: SystemShape::ThirdParty,
+        first_party_extras: false,
+        prompt_cache_key: true,
+        byte_idle: OTHER_IDLE,
     }
 }
 
@@ -83,6 +101,7 @@ const fn other(name: &'static str, protocol: WireProtocol) -> Profile {
         model: None,
         system: SystemShape::ThirdParty,
         first_party_extras: false,
+        prompt_cache_key: false,
         byte_idle: OTHER_IDLE,
     }
 }
@@ -91,7 +110,7 @@ const fn other(name: &'static str, protocol: WireProtocol) -> Profile {
 ///
 /// 修复线 F58：智谱的端点以前是三种精确地址（照 nibi-builtin.json 的站点规则），与 ToolSearch 的域名规则不一致；
 /// 现在用同一个判定（主机是 z.ai / bigmodel.cn 或子域名，Node / App 的 `resolveModelProviderFamilyIdByBaseURL`）。
-pub(crate) static PROFILES: [Profile; 6] = [
+pub(crate) static PROFILES: [Profile; 8] = [
     official(
         "anthropic-official",
         Endpoint::Pattern(r"https://api\.anthropic\.com(?:/v1)?"),
@@ -105,6 +124,12 @@ pub(crate) static PROFILES: [Profile; 6] = [
         ".*deepseek.*",
         OTHER_IDLE,
     ),
+    // 官方 OpenAI：两种协议各一条，都在通用兜底之前命中。
+    openai_official(
+        "openai-official-chat",
+        WireProtocol::OpenAiChatCompletions,
+    ),
+    openai_official("openai-official-responses", WireProtocol::OpenAiResponses),
     other("anthropic-compatible", WireProtocol::AnthropicMessages),
     other("openai-chat", WireProtocol::OpenAiChatCompletions),
     other("openai-responses", WireProtocol::OpenAiResponses),
@@ -154,8 +179,13 @@ pub(crate) fn select(protocol: WireProtocol, base_url: &str, model: &str) -> &'s
             profile.protocol == protocol && endpoint && hit(model_regex, Some(model))
         })
         .map(|(profile, _)| profile)
-        // 最后两条按协议兜底，Anthropic 协议有“其他 Anthropic 兼容”：不会走到这里。
-        .unwrap_or(&PROFILES[3])
+        // 最后三条按协议兜底，Anthropic 协议有“其他 Anthropic 兼容”：不会走到这里。
+        .unwrap_or_else(|| {
+            PROFILES
+                .iter()
+                .find(|profile| profile.name == "anthropic-compatible")
+                .expect("the anthropic-compatible fallback profile exists")
+        })
 }
 
 /// 经网关：兼容端点的 base URL 既不是 Anthropic 官方（`anthropic-official` 的端点正则）也不是智谱（model.md §3.1 的

@@ -29,7 +29,6 @@ const CONTEXT_PROGRESS_TONE_COLORS = [
   "color-mix(in oklab, var(--color-usage-chart-1) 28%, var(--color-surface))",
 ] as const;
 const PERCENT_MAX = 100;
-const CACHE_HIT_RATE_DISPLAY_THRESHOLD = 0.78;
 
 export function formatContextUsageTokenCount(
   value: number,
@@ -66,18 +65,13 @@ export function formatContextUsageSummary({
 export function formatContextCacheHitRateLabel(
   hitRate: number | null | undefined,
   locale: string,
-  options: { showBelowThreshold?: boolean } = {},
 ): string | null {
   if (hitRate === null || hitRate === undefined || !Number.isFinite(hitRate)) {
     return null;
   }
 
-  // 生产面板只露出明显缓存收益，避免低命中率分散对上下文容量的注意力；
-  // 开发环境需要观察 provider 的真实低命中值，因此允许绕过 78% 展示阈值。
-  if (!options.showBelowThreshold && hitRate < CACHE_HIT_RATE_DISPLAY_THRESHOLD) {
-    return null;
-  }
-
+  // 会话级缓存命中率始终显示：低命中率同样有诊断价值（例如中转站根本没缓存），
+  // 不再用 78% 阈值把信息藏起来。
   return new Intl.NumberFormat(locale, {
     maximumFractionDigits: 1,
     style: "percent",
@@ -221,9 +215,7 @@ export function ChatContextUsage({
     );
   }, [intl, numberFormatter, renderableTaskUsage]);
   const cacheHitRateLabel = useMemo(() => {
-    return formatContextCacheHitRateLabel(renderableTaskUsage?.cache?.hitRate, locale, {
-      showBelowThreshold: import.meta.env.DEV,
-    });
+    return formatContextCacheHitRateLabel(renderableTaskUsage?.cache?.hitRate, locale);
   }, [locale, renderableTaskUsage]);
   const breakdownSegments = useMemo(
     () => buildContextUsageBreakdownSegments(renderableTaskUsage?.breakdown),

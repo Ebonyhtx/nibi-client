@@ -3,7 +3,7 @@
 //! 请求体与 Node 的 Provider 适配器相同的键序：
 //!
 //! ```text
-//! model, stream, store, include, max_output_tokens, input, tools?, tool_choice?, temperature?
+//! model, prompt_cache_key?, stream, store, include, max_output_tokens, input, tools?, tool_choice?, temperature?
 //! ```
 //!
 //! `store: false`（不在服务端留存）；`include: ["reasoning.encrypted_content"]` 与 Node 一致。system 提示是
@@ -30,9 +30,13 @@ impl Protocol for OpenAiResponses {
         &self,
         endpoint: &ModelEndpoint,
         request: ModelRequest,
-        _profile: &crate::profiles::Profile,
+        profile: &crate::profiles::Profile,
     ) -> Result<HttpRequest, ModelError> {
-        let body = body(&endpoint.model, request, &endpoint.body_patches)?;
+        let cache_key = profile
+            .prompt_cache_key
+            .then(|| crate::openai_lower::prompt_cache_key(&request))
+            .flatten();
+        let body = body(&endpoint.model, request, &endpoint.body_patches, cache_key)?;
         let mut http = HttpRequest::post(responses_url(&endpoint.base_url), body)
             .header(header::ACCEPT, header::EVENT_STREAM)
             .header(header::CONTENT_TYPE, header::JSON);
@@ -62,6 +66,7 @@ pub(crate) fn body(
     model: &str,
     request: ModelRequest,
     patches: &[Value],
+    prompt_cache_key: Option<String>,
 ) -> Result<String, ModelError> {
     // OpenAI 协议没有 Anthropic 的服务端工具（WebSearch，model.md §10）。
     if !request.options.server_tools.is_empty() {
@@ -89,6 +94,9 @@ pub(crate) fn body(
     }
     let mut body = Map::new();
     body.insert("model".into(), Value::String(model.to_owned()));
+    if let Some(key) = prompt_cache_key {
+        body.insert("prompt_cache_key".into(), Value::String(key));
+    }
     body.insert("stream".into(), Value::Bool(true));
     body.insert("store".into(), Value::Bool(false));
     body.insert("include".into(), json!(["reasoning.encrypted_content"]));

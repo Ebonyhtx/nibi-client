@@ -72,6 +72,41 @@ pub fn loaded<'a>(history: impl IntoIterator<Item = &'a Message>) -> BTreeSet<St
     names
 }
 
+/// [`loaded`] 的“首次出现顺序”版本：压缩边界带的工具先按边界里的顺序，再按历史里 `tool_reference`
+/// 第一次出现的顺序。发给模型的工具清单用它在尾部追加已加载工具（缓存友好，docs/specs/rust-cli/
+/// tools-more.md §3.2.2）。
+pub fn loaded_in_order<'a>(history: impl IntoIterator<Item = &'a Message>) -> Vec<String> {
+    let mut names = Vec::new();
+    let mut seen = BTreeSet::new();
+    for message in history {
+        match message {
+            Message::System(SystemMessage::CompactBoundary(boundary)) => {
+                for name in &boundary.discovered_tools {
+                    if seen.insert(name.clone()) {
+                        names.push(name.clone());
+                    }
+                }
+            }
+            Message::User(user) => {
+                for block in &user.content {
+                    let ContentBlock::ToolResult { content, .. } = block else {
+                        continue;
+                    };
+                    for item in content {
+                        if let ToolResultContent::ToolReference { tool_name } = item
+                            && seen.insert(tool_name.clone())
+                        {
+                            names.push(tool_name.clone());
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    names
+}
+
 #[cfg(test)]
 #[path = "tool_search_tests.rs"]
 mod tests;

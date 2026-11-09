@@ -21,7 +21,7 @@ fn a_conversation_encodes_in_the_node_order() {
         input_schema: json!({"type": "object"}),
         cache_control: None,
     }];
-    let body = body("qwen3.8-max", request, &[]).unwrap();
+    let body = body("qwen3.8-max", request, &[], None).unwrap();
     assert_eq!(
         body,
         concat!(
@@ -45,13 +45,13 @@ fn reasoning_models_get_the_developer_role_and_patches_apply() {
         cache_control: None,
     }];
     let patches = [json!({"reasoning": {"effort": "high"}, "max_output_tokens": 64000})];
-    let body = body("gpt-5.4", request.clone(), &patches).unwrap();
+    let body = body("gpt-5.4", request.clone(), &patches, None).unwrap();
     assert_eq!(
         body,
         r#"{"model":"gpt-5.4","stream":true,"store":false,"include":["reasoning.encrypted_content"],"max_output_tokens":64000,"input":[{"role":"developer","content":"sys"},{"role":"user","content":[{"type":"input_text","text":"hi"}]}],"reasoning":{"effort":"high"}}"#
     );
     assert!(
-        super::body("gpt-5-chat-latest", request, &[])
+        super::body("gpt-5-chat-latest", request, &[], None)
             .unwrap()
             .contains(r#"{"role":"system","content":"sys"}"#)
     );
@@ -60,7 +60,7 @@ fn reasoning_models_get_the_developer_role_and_patches_apply() {
 #[test]
 fn documents_are_input_files_with_the_ai_sdk_name() {
     let request = request(crate::openai_lower::tests::pdf_result());
-    let body = body("gpt-5.6", request, &[]).unwrap();
+    let body = body("gpt-5.6", request, &[], None).unwrap();
     assert!(
         body.contains(r#"{"role":"user","content":[{"type":"input_file","filename":"document.pdf","file_data":"data:application/pdf;base64,JVBERi0="}]}"#),
         "{body}"
@@ -81,9 +81,26 @@ fn videos_are_unsupported_by_the_responses_protocol() {
             name: Some("clip.mp4".to_owned()),
         }],
     )];
-    let error = body("gpt-5.6", request(messages), &[]).unwrap_err();
+    let error = body("gpt-5.6", request(messages), &[], None).unwrap_err();
     assert!(
         matches!(&error, ModelError::Unsupported { what } if what.contains("video")),
         "{error:?}"
     );
+}
+
+#[test]
+fn the_prompt_cache_key_is_sent_only_when_the_profile_asks_for_it() {
+    let with_key = body(
+        "gpt-5.4",
+        request(conversation()),
+        &[],
+        Some("nibi-session_1".to_owned()),
+    )
+    .unwrap();
+    assert!(
+        with_key.contains(r#""prompt_cache_key":"nibi-session_1""#),
+        "{with_key}"
+    );
+    let without = body("gpt-5.4", request(conversation()), &[], None).unwrap();
+    assert!(!without.contains("prompt_cache_key"), "{without}");
 }

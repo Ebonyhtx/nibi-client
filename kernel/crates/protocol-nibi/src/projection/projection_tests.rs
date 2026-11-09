@@ -1048,3 +1048,27 @@ fn a_selection_side_chat_starts_after_its_boundary() {
         1
     );
 }
+
+/// 会话级缓存命中率：输入总量 = 未缓存 + 缓存读 + 缓存写；`contextWindow.cache` 是 contextUsage 面板的口径。
+#[test]
+fn the_context_window_carries_the_session_cache_hit_rate() {
+    use nibi_kernel_api::message::Usage;
+
+    let usage = super::state::usage(
+        Some((500, 1_000)),
+        &Usage {
+            input_tokens: 100,
+            output_tokens: 10,
+            cache_creation_input_tokens: 50,
+            cache_read_input_tokens: 350,
+        },
+    );
+    let cache = &usage["contextWindow"]["cache"];
+    assert_eq!(cache["inputTokens"], 500);
+    assert_eq!(cache["cacheReadTokens"], 350);
+    assert_eq!(cache["cacheWriteTokens"], 50);
+    assert_eq!(cache["hitRate"], 0.7);
+    // 没有输入时命中率是 null，不写 0（避免把「没有数据」说成 0 命中）。
+    let empty = super::state::usage(Some((1, 1)), &Usage::default());
+    assert!(empty["contextWindow"]["cache"]["hitRate"].is_null());
+}

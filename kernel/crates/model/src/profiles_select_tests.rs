@@ -116,7 +116,15 @@ fn each_endpoint_lands_on_its_profile() {
             "https://api.openai.com/v1",
             "gpt-5"
         ),
-        "openai-responses"
+        "openai-official-responses"
+    );
+    assert_eq!(
+        name(
+            WireProtocol::OpenAiChatCompletions,
+            "https://api.openai.com/v1",
+            "gpt-5"
+        ),
+        "openai-official-chat"
     );
 }
 
@@ -244,4 +252,38 @@ fn the_vendor_follows_the_endpoint_only() {
             "{base_url}"
         );
     }
+}
+
+/// OpenAI 官方（两种协议）才发 `prompt_cache_key`；中转站、Azure、Anthropic 都不发。
+#[test]
+fn only_the_official_openai_endpoints_enable_the_prompt_cache_key() {
+    for protocol in [
+        WireProtocol::OpenAiChatCompletions,
+        WireProtocol::OpenAiResponses,
+    ] {
+        for base_url in [
+            "https://api.openai.com",
+            "https://api.openai.com/v1",
+            "https://API.OPENAI.COM/v1/",
+        ] {
+            let profile = select(protocol, base_url, "gpt-5.4");
+            assert!(profile.prompt_cache_key, "{base_url}");
+            assert_eq!(profile.system, SystemShape::ThirdParty);
+        }
+        for base_url in [
+            "https://relay.example.com/v1",
+            "https://api.openai.com.example.com/v1",
+            "https://my-resource.openai.azure.com/openai",
+        ] {
+            assert!(!select(protocol, base_url, "gpt-5.4").prompt_cache_key, "{base_url}");
+        }
+    }
+    assert!(
+        !select(
+            WireProtocol::AnthropicMessages,
+            "https://api.anthropic.com",
+            "claude-opus-5-5"
+        )
+        .prompt_cache_key
+    );
 }

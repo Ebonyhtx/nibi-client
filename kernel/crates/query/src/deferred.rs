@@ -10,11 +10,12 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use nibi_kernel_api::message::{ContentBlock, Message, ToolResultContent, tool_reference_text};
-use nibi_kernel_api::model::{ToolDefinition, ToolFlags};
+use nibi_kernel_api::model::{CacheControl, ToolDefinition, ToolFlags};
 use nibi_kernel_api::provider::ModelCapabilities;
 use nibi_kernel_api::tool::{PromptContext, Tool};
 use nibi_kernel_api::tool_search::{
     PLACEHOLDER, PLACEHOLDER_DESCRIPTION, TOOL_SEARCH, compare_names, is_deferred, loaded,
+    loaded_in_order,
 };
 use nibi_kernel_prompts::models::{self, ToolSearchMode, ToolSearchSetting};
 use serde_json::json;
@@ -188,12 +189,21 @@ pub(crate) fn wire_tools<'a>(
     let native = mode == ToolSearchMode::Native;
     // 已加载 = 引用过的 + 活动历史开头那条压缩边界带下来的（docs/specs/rust-cli/compact.md §3.5）。
     // 修 bug（F82）：以前只看引用，压缩之后已加载的延迟工具从 tools 里消失。
+    let history: Vec<&Message> = history.into_iter().collect();
     let carried = if active {
-        loaded(history)
+        loaded(history.iter().copied())
     } else {
         Default::default()
     };
+    // 本地模式下已加载的延迟工具追加在稳定工具的后面（按首次引用顺序）：工具表增长时只改尾部，
+    // 旧前缀还能命中缓存；以前按名字插回中间，新工具一次就把后面的工具定义全改了。
+    let loaded_order = if active && !native {
+        loaded_in_order(history.iter().copied())
+    } else {
+        Vec::new()
+    };
     let mut definitions = Vec::new();
+    let mut deferred_loaded = Vec::new();
     let mut flags = BTreeMap::new();
     for tool in sorted {
         let deferred = active && is_deferred(tool.as_ref());
@@ -208,6 +218,10 @@ pub(crate) fn wire_tools<'a>(
         if deferred && native {
             flags.insert(tool.name().to_owned(), deferred_flag());
         }
+        if deferred && !native {
+            deferred_loaded.push(tool);
+            continue;
+        }
         definitions.push(ToolDefinition {
             name: tool.name().to_owned(),
             description: tool.description(prompt),
@@ -215,6 +229,27 @@ pub(crate) fn wire_tools<'a>(
             cache_control: None,
         });
     }
+    // 本地 ToolSearch 的第二个缓存断点：稳定工具的最后一项。之后新加载的工具追加在它后面，
+    // 这个断点覆盖的前缀保持原样（尾部的消息断点仍然会因工具表变化而 miss，但工具块本身可复用）。
+    if active && !native && let Some(last) = definitions.last_mut() {
+        last.cache_control = Some(CacheControl {
+            kind: "ephemeral".to_owned(),
+            ttl: None,
+            scope: None,
+        });
+    }
+    deferred_loaded.sort_by_key(|tool| {
+        loaded_order
+            .iter()
+            .position(|name| name == tool.name())
+            .unwrap_or(usize::MAX)
+    });
+    definitions.extend(deferred_loaded.into_iter().map(|tool| ToolDefinition {
+        name: tool.name().to_owned(),
+        description: tool.description(prompt),
+        input_schema: tool.input_schema(),
+        cache_control: None,
+    }));
     // 占位工具（缺省开，只在原生时）：插在倒数第二位。
     if native && !definitions.iter().any(|tool| tool.name == PLACEHOLDER) {
         let at = definitions.len().saturating_sub(1);

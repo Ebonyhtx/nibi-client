@@ -35,10 +35,11 @@ describe("chat input context usage formatting", () => {
     ).toBe("12.5万/100万 (12.5%)");
   });
 
-  it("only renders cache hit rate at 78 percent or above", () => {
-    expect(formatContextCacheHitRateLabel(0.779, "en-US")).toBeNull();
+  it("always renders the session cache hit rate, including low values", () => {
+    expect(formatContextCacheHitRateLabel(0.779, "en-US")).toBe("77.9%");
     expect(formatContextCacheHitRateLabel(0.78, "en-US")).toBe("78%");
     expect(formatContextCacheHitRateLabel(0.781, "en-US")).toBe("78.1%");
+    expect(formatContextCacheHitRateLabel(0, "en-US")).toBe("0%");
     expect(formatContextCacheHitRateLabel(null, "en-US")).toBeNull();
   });
 

@@ -4,7 +4,7 @@
 //! 相同的键序：
 //!
 //! ```text
-//! model, messages, tools?, tool_choice?, stream, stream_options, max_tokens, temperature?
+//! model, prompt_cache_key?, messages, tools?, tool_choice?, stream, stream_options, max_tokens, temperature?
 //! ```
 //!
 //! 之后合并 Provider 的 option map 补丁（推理参数、`max_completion_tokens` 等）。补丁给出
@@ -31,9 +31,13 @@ impl Protocol for OpenAiChat {
         &self,
         endpoint: &ModelEndpoint,
         request: ModelRequest,
-        _profile: &crate::profiles::Profile,
+        profile: &crate::profiles::Profile,
     ) -> Result<HttpRequest, ModelError> {
-        let body = body(&endpoint.model, request, &endpoint.body_patches)?;
+        let cache_key = profile
+            .prompt_cache_key
+            .then(|| crate::openai_lower::prompt_cache_key(&request))
+            .flatten();
+        let body = body(&endpoint.model, request, &endpoint.body_patches, cache_key)?;
         let mut http = HttpRequest::post(chat_completions_url(&endpoint.base_url), body)
             .header(header::ACCEPT, header::EVENT_STREAM)
             .header(header::CONTENT_TYPE, header::JSON);
@@ -55,6 +59,7 @@ pub(crate) fn body(
     model: &str,
     request: ModelRequest,
     patches: &[Value],
+    prompt_cache_key: Option<String>,
 ) -> Result<String, ModelError> {
     // OpenAI 协议没有 Anthropic 的服务端工具（WebSearch，model.md §10）。
     if !request.options.server_tools.is_empty() {
@@ -73,6 +78,9 @@ pub(crate) fn body(
     } = request;
     let mut body = Map::new();
     body.insert("model".into(), Value::String(model.to_owned()));
+    if let Some(key) = prompt_cache_key {
+        body.insert("prompt_cache_key".into(), Value::String(key));
+    }
     let messages = items(system, messages)?.into_iter().map(message).collect();
     body.insert("messages".into(), Value::Array(messages));
     if !tools.is_empty() {

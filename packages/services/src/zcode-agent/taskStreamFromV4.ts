@@ -473,6 +473,7 @@ export class V4TaskStreamSink {
       previous?.contextWindow &&
       previous.contextWindow.usedTokens === window.usedTokens &&
       previous.contextWindow.maxTokens === window.maxTokens &&
+      previous.contextWindow.cache?.hitRate === window.cache?.hitRate &&
       previous.cumulative.inputTokens === usage.cumulative.inputTokens &&
       previous.cumulative.outputTokens === usage.cumulative.outputTokens
     ) {

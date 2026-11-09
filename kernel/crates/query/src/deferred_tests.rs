@@ -270,8 +270,8 @@ fn tools_loaded_before_compaction_stay_on_the_wire() {
     assert!(wire.flags["mcp__srv__ping"].defer_loading);
 }
 
-/// 本地 ToolSearch（工作线 F84，tools-more.md §3.2.2）：工具与顺序同原生，已加载的延迟工具是普通定义（不带
-/// `defer_loading`），没有占位工具；压缩边界带的同样算已加载。
+/// 本地 ToolSearch（工作线 F84，tools-more.md §3.2.2）：稳定工具按名字排序，已加载的延迟工具按首次
+/// 引用顺序追加在尾部（缓存友好），普通定义不带 `defer_loading`，没有占位工具；压缩边界带的同样算已加载。
 #[test]
 fn local_tool_search_sends_loaded_tools_as_plain_definitions() {
     let wire = wire_tools(
@@ -283,6 +283,8 @@ fn local_tool_search_sends_loaded_tools_as_plain_definitions() {
     assert_eq!(names(&wire), ["Bash", "Read", TOOL_SEARCH, "Write"]);
     assert!(wire.flags.is_empty(), "{:?}", wire.flags);
     assert_eq!(wire.mode, ToolSearchMode::Local);
+    // 稳定工具的最后一项是第二个缓存断点；之后新加载的工具追加在它后面。
+    assert!(wire.definitions[3].cache_control.is_some());
 
     use nibi_kernel_api::message::{CompactBoundary, CompactTrigger, SystemMessage};
     let boundary = Message::System(SystemMessage::CompactBoundary(CompactBoundary {
@@ -306,11 +308,15 @@ fn local_tool_search_sends_loaded_tools_as_plain_definitions() {
             "Bash",
             "Read",
             TOOL_SEARCH,
-            "WebFetch",
             "Write",
-            "mcp__srv__ping"
+            "mcp__srv__ping",
+            "WebFetch"
         ]
     );
+    // 断点仍在稳定工具的最后一项（Write），已加载的工具在断点之后。
+    assert!(wire.definitions[3].cache_control.is_some());
+    assert!(wire.definitions[4].cache_control.is_none());
+    assert!(wire.definitions[5].cache_control.is_none());
     assert!(wire.flags.is_empty(), "{:?}", wire.flags);
     // 没有延迟工具时同样不开。
     let plain = vec![tool("Read", false), tool(TOOL_SEARCH, false)];

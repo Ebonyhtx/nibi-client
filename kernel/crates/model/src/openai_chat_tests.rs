@@ -31,7 +31,7 @@ fn a_conversation_encodes_in_the_node_order() {
     });
     request.options.effort = Some("medium".to_owned());
     request.betas = vec!["effort-2025-11-24".to_owned()];
-    let body = body("glm-5", request, &[]).unwrap();
+    let body = body("glm-5", request, &[], None).unwrap();
     assert_eq!(
         body,
         concat!(
@@ -52,7 +52,7 @@ fn a_conversation_encodes_in_the_node_order() {
 fn a_single_text_turn_is_a_string_and_tools_are_optional() {
     let request = request(vec![message(ApiRole::User, vec![text("hi")])]);
     assert_eq!(
-        body("m", request, &[]).unwrap(),
+        body("m", request, &[], None).unwrap(),
         r#"{"model":"m","messages":[{"role":"user","content":"hi"}],"stream":true,"stream_options":{"include_usage":true},"max_tokens":32000}"#
     );
 }
@@ -72,7 +72,7 @@ fn tool_choice_maps_to_the_chat_values() {
         let mut request = request(vec![message(ApiRole::User, vec![text("hi")])]);
         request.tools = vec![read_tool()];
         request.tool_choice = Some(choice);
-        let body = body("m", request, &[]).unwrap();
+        let body = body("m", request, &[], None).unwrap();
         assert!(body.contains(expected), "{body}");
     }
 }
@@ -86,7 +86,7 @@ fn provider_patches_set_reasoning_and_the_completion_budget() {
     ];
     // 补丁给出 max_completion_tokens 时去掉默认的 max_tokens。
     assert_eq!(
-        body("m", request, &patches).unwrap(),
+        body("m", request, &patches, None).unwrap(),
         r#"{"model":"m","messages":[{"role":"user","content":"hi"}],"stream":true,"stream_options":{"include_usage":true},"thinking":{"type":"enabled"},"reasoning_effort":"high","max_completion_tokens":128000}"#
     );
 }
@@ -100,11 +100,11 @@ fn server_tools_are_unsupported_on_openai() {
         max_uses: 8,
     }];
     assert!(matches!(
-        body("m", request.clone(), &[]),
+        body("m", request.clone(), &[], None),
         Err(ModelError::Unsupported { .. })
     ));
     assert!(matches!(
-        crate::openai_responses::body("m", request, &[]),
+        crate::openai_responses::body("m", request, &[], None),
         Err(ModelError::Unsupported { .. })
     ));
 }
@@ -112,9 +112,40 @@ fn server_tools_are_unsupported_on_openai() {
 #[test]
 fn documents_are_file_parts_with_the_ai_sdk_name() {
     let request = request(crate::openai_lower::tests::pdf_result());
-    let body = body("gpt-5.6", request, &[]).unwrap();
+    let body = body("gpt-5.6", request, &[], None).unwrap();
     assert!(
         body.contains(r#"{"role":"user","content":[{"type":"file","file":{"filename":"document.pdf","file_data":"data:application/pdf;base64,JVBERi0="}}]}"#),
         "{body}"
     );
+}
+
+/// OpenAI 官方：`prompt_cache_key` 只由 profile 决定，编码器原样发出；第三方/没有 key 时不写这个字段。
+#[test]
+fn the_prompt_cache_key_is_sent_only_when_the_profile_asks_for_it() {
+    let with_key = body(
+        "gpt-5.4",
+        request(conversation()),
+        &[],
+        Some("nibi-session_1".to_owned()),
+    )
+    .unwrap();
+    assert!(
+        with_key.contains(r#""prompt_cache_key":"nibi-session_1""#),
+        "{with_key}"
+    );
+    let without = body("gpt-5.4", request(conversation()), &[], None).unwrap();
+    assert!(!without.contains("prompt_cache_key"), "{without}");
+}
+
+#[test]
+fn the_cache_key_is_derived_from_the_session_id() {
+    let mut with_session = request(conversation());
+    with_session.options.session_id =
+        Some(nibi_kernel_api::ids::SessionId::new("session_abc"));
+    assert_eq!(
+        crate::openai_lower::prompt_cache_key(&with_session).as_deref(),
+        Some("nibi-session_abc")
+    );
+    let without = request(conversation());
+    assert_eq!(crate::openai_lower::prompt_cache_key(&without), None);
 }

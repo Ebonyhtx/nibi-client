@@ -16,7 +16,17 @@ use nibi_kernel_base::js::json::stringify;
 use nibi_kernel_api::message::{
     ContentBlock, ImageSource, ToolResultContent, tool_reference_text,
 };
-use nibi_kernel_api::model::{ApiMessage, ApiRole, ModelError, SystemBlock};
+use nibi_kernel_api::model::{ApiMessage, ApiRole, ModelError, ModelRequest, SystemBlock};
+
+/// OpenAI 官方的 `prompt_cache_key`（只对 `api.openai.com` 发）：同一个会话的请求稳定落到同一条缓存路由。
+/// 用会话 ID 而不是随机值；标题/压缩这类没有会话的请求不发。
+pub(crate) fn prompt_cache_key(request: &ModelRequest) -> Option<String> {
+    request
+        .options
+        .session_id
+        .as_ref()
+        .map(|session| format!("nibi-{}", session.as_str()))
+}
 
 /// 一个用户片段。
 #[derive(Debug, Clone, PartialEq)]

@@ -190,11 +190,28 @@ pub fn config(
 }
 
 pub fn usage(context: Option<(u64, u64)>, total: &Usage) -> Value {
+    // 会话级缓存命中率：输入总量按「未缓存 + 缓存读 + 缓存写」算（Anthropic 的 input_tokens 不含缓存），
+    // 与 Node `recordMainTurnCacheHitUsage` 同一口径。contextUsage 面板读 contextWindow.cache。
+    let total_input = total
+        .input_tokens
+        .saturating_add(total.cache_read_input_tokens)
+        .saturating_add(total.cache_creation_input_tokens);
+    let hit_rate = if total_input > 0 {
+        Some(total.cache_read_input_tokens as f64 / total_input as f64)
+    } else {
+        None
+    };
     json!({
         "contextWindow": context.map(|(used, max)| json!({
             "usedTokens": used,
             "maxTokens": max,
             "autoCompactThresholdTokens": null,
+            "cache": {
+                "inputTokens": total_input,
+                "cacheReadTokens": total.cache_read_input_tokens,
+                "cacheWriteTokens": total.cache_creation_input_tokens,
+                "hitRate": hit_rate,
+            },
         })),
         "cumulative": {
             "inputTokens": total.input_tokens,
