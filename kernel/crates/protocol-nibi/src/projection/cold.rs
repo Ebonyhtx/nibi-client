@@ -29,7 +29,20 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
             .map(|turn| (turn.message.as_str(), &turn.selection))
             .collect();
     let mut previous_selection = None;
-    for message in &view.messages {
+    // 辅助对话：边界消息（只给模型的 system 提醒）之前的父会话历史不进界面，侧栏从空白开始
+    // （Node transcript-hydration：复制来的消息带 `uiVisibility: hidden` / `transcriptVisibility: hidden`）。
+    let start = view
+        .messages
+        .iter()
+        .position(|message| {
+            matches!(
+                message,
+                Message::User(user)
+                    if matches!(&user.origin, UserOrigin::Meta { source, .. } if source == "selection_side_chat")
+            )
+        })
+        .map_or(0, |index| index + 1);
+    for message in &view.messages[start..] {
         match message {
             Message::User(user)
                 if user.origin == UserOrigin::Human

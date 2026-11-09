@@ -998,3 +998,53 @@ fn questions_and_plan_approval_project_user_input_pendings() {
     assert_eq!(pending["payload"]["questions"][0]["options"][0]["value"], "approve");
     assert_eq!(feed.projection.pending_permissions(), 1);
 }
+
+/// 辅助对话：边界提醒之前的父会话历史不进界面（Node transcript-hydration 把复制来的消息标成
+/// `uiVisibility: hidden`），边界提醒自己也不显示；边界之后的新输入照常开一轮。
+#[test]
+fn a_selection_side_chat_starts_after_its_boundary() {
+    let boundary = Message::User(UserMessage {
+        id: MessageId::new("msg_boundary"),
+        content: vec![ContentBlock::Text {
+            text: "The preceding conversation was inherited from the parent task for reference only."
+                .into(),
+        }],
+        origin: UserOrigin::Meta {
+            source: "selection_side_chat".into(),
+            origin_meta: None,
+        },
+    });
+    let mut side_chat = view(vec![
+        user("msg_u1", "parent work"),
+        assistant("msg_a1", vec![ContentBlock::Text { text: "parent done".into() }]),
+        boundary,
+        user("msg_u2", "side question"),
+        assistant("msg_a2", vec![ContentBlock::Text { text: "side answer".into() }]),
+    ]);
+    side_chat.meta.kind = SessionKind::SelectionSideChat;
+    let projection = Projection::from_view(&side_chat, Followup::Queue, Vec::new());
+    let rows = projection.rows();
+    fn text_of<'a>(row: &'a serde_json::Map<String, serde_json::Value>) -> &'a str {
+        row.get("text")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+    }
+    assert!(
+        rows.iter().all(|row| text_of(row) != "parent work"),
+        "inherited user turns stay out of the side pane: {rows:?}"
+    );
+    assert!(
+        rows.iter().all(|row| text_of(row) != "parent done"),
+        "inherited assistant turns stay out too"
+    );
+    assert!(
+        rows.iter()
+            .all(|row| !text_of(row).contains("inherited from the parent")),
+        "the boundary reminder is model-only"
+    );
+    assert!(rows.iter().any(|row| text_of(row) == "side question"));
+    assert_eq!(
+        rows.iter().filter(|row| row["kind"] == "turnHeader").count(),
+        1
+    );
+}

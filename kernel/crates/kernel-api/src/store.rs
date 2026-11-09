@@ -26,6 +26,9 @@ pub enum SessionKind {
     Interactive,
     Subagent,
     Fork,
+    /// 辅助对话（`selection_side_chat`）：像 fork 一样复制父会话历史，但不进任务列表，
+    /// 标题是「Selection side chat」（Node `buildForkedSessionInput` 的 kind）。
+    SelectionSideChat,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -340,6 +343,17 @@ pub struct SessionFork {
     /// plan 开关（修复线 F20；serde 缺省 false）。
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub plan: bool,
+    /// 分叉的种类（Node `buildForkedSessionInput` 的 `kind`）：普通分叉 / 辅助对话。缺省是普通分叉。
+    #[serde(default)]
+    pub kind: SessionForkKind,
+}
+
+/// 分叉的种类：决定会话的 `task_type`、标题与是否写「分叉提示」。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SessionForkKind {
+    #[default]
+    Fork,
+    SelectionSideChat,
 }
 
 /// [`SessionStore::fork`] 的回执。

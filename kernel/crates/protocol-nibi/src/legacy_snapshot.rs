@@ -457,6 +457,7 @@ fn session_kind(kind: SessionKind) -> &'static str {
     match kind {
         SessionKind::Interactive => "interactive",
         SessionKind::Fork => "fork",
+        SessionKind::SelectionSideChat => "selection_side_chat",
         SessionKind::Subagent => "subagent_child",
     }
 }

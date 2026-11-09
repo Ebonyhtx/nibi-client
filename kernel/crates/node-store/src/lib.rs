@@ -180,10 +180,14 @@ fn create_input(meta: &SessionMeta, version: &str) -> Result<repo::sessions::Cre
         SessionKind::Interactive => None,
         SessionKind::Subagent => Some("subagent_child"),
         SessionKind::Fork => Some("fork"),
+        SessionKind::SelectionSideChat => Some("selection_side_chat"),
     };
     // fork 的标题是 `Fork of <原会话标题>`，来源同 Node `buildForkedSessionInput`：generated。其余会话
     // 标题为空时记为 default；首条真实输入按 Node `titleFromInput` 补上（append）。
-    let title_source = if meta.kind == SessionKind::Fork {
+    let title_source = if matches!(
+        meta.kind,
+        SessionKind::Fork | SessionKind::SelectionSideChat
+    ) {
         "generated"
     } else if meta.title.is_empty() {
         "default"

@@ -107,10 +107,14 @@ impl Kernel for OnlySessions {
 }
 
 fn view() -> SessionView {
+    view_with_kind(SessionKind::Interactive)
+}
+
+fn view_with_kind(kind: SessionKind) -> SessionView {
     SessionView {
         meta: SessionMeta {
             id: SessionId::new("sess_1"),
-            kind: SessionKind::Interactive,
+            kind,
             parent: None,
             workspace: WorkspaceRef {
                 environment: EnvironmentId::new("local"),
@@ -193,6 +197,19 @@ fn harness_with_facts(
     nibi_kernel_base::Task<()>,
     Arc<std::sync::atomic::AtomicBool>,
 ) {
+    harness_full(facts, SessionKind::Interactive)
+}
+
+fn harness_full(
+    facts: std::collections::HashMap<String, nibi_kernel_api::store::SessionIndexFact>,
+    kind: SessionKind,
+) -> (
+    Arc<Server>,
+    Wire,
+    TaskScope,
+    nibi_kernel_base::Task<()>,
+    Arc<std::sync::atomic::AtomicBool>,
+) {
     let scope = TaskScope::root("subscribe-test", |_| {});
     let (agent_out, host_in) = duplex(1 << 20);
     let (peer, writer) = connection::start(agent_out, &scope.spawner(), Options::default());
@@ -202,7 +219,7 @@ fn harness_with_facts(
     let server = Arc::new(Server::new(
         Arc::new(Context::new(peer, clock)),
         Arc::new(OnlySessions {
-            view: view(),
+            view: view_with_kind(kind),
             draft: draft.clone(),
             facts,
         }),
@@ -528,4 +545,55 @@ async fn reconcile_reports_soft_deleted_sessions_as_deleted() {
     assert_eq!(sessions[1]["deleted"], false);
     assert_eq!(sessions[2], json!({"sessionId": "sess_other", "exists": false, "deleted": false}));
     assert_eq!(sessions[3], json!({"sessionId": "sess_missing", "exists": false, "deleted": false}));
+}
+
+/// 辅助对话不进会话列表：Node 的 sessions-index 只发布 task-list 类型（`selection_side_chat` 不在
+/// 白名单里），侧栏因此不会出现一条「Selection side chat」。
+#[tokio::test]
+async fn a_selection_side_chat_stays_out_of_the_sessions_index() {
+    let (server, mut wire, _scope, _writer, _draft) = harness_full(
+        std::collections::HashMap::new(),
+        SessionKind::SelectionSideChat,
+    );
+    let index_topic = "sessions-index//w";
+    let conversation_topic = "conversation/sess_1";
+    run(subscribe(
+        &server,
+        &json!({"topic": index_topic, "connectionId": "c1"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let snapshot = wire.next_frame().await;
+    assert_eq!(snapshot["topic"], index_topic);
+    assert!(
+        snapshot["payload"]["snapshot"]["sessions"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    run(subscribe(
+        &server,
+        &json!({"topic": conversation_topic, "connectionId": "c1"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let first = wire.next_frame().await;
+    assert_eq!(first["topic"], conversation_topic);
+
+    let live = server.bridge.get(&SessionId::new("sess_1")).unwrap();
+    live.sink
+        .set_hook_admission(Some(json!({"pendingCount": 1, "bundleDigest": "b"})))
+        .await;
+    let frames = wire.frames_within(200).await;
+    assert!(
+        frames.iter().any(|frame| frame["topic"] == conversation_topic),
+        "the side chat still gets its own conversation deltas"
+    );
+    assert!(
+        frames.iter().all(|frame| frame["topic"] != index_topic),
+        "a side chat must not publish a sessions-index row"
+    );
 }

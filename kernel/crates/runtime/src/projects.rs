@@ -182,8 +182,10 @@ impl LocalKernel {
             let Ok(view) = session.view().await else {
                 continue;
             };
-            if view.meta.kind == SessionKind::Subagent
-                || view.meta.workspace.environment != environment
+            if matches!(
+                view.meta.kind,
+                SessionKind::Subagent | SessionKind::SelectionSideChat
+            ) || view.meta.workspace.environment != environment
                 || root
                     .as_ref()
                     .is_some_and(|root| &view.meta.workspace.root != root)

@@ -7,7 +7,7 @@
 use std::borrow::Cow;
 
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
-use nibi_kernel_api::store::{Fact, ForkReceipt, SessionFork, StoreError};
+use nibi_kernel_api::store::{Fact, ForkReceipt, SessionFork, SessionForkKind, StoreError};
 use serde_json::{Value, json};
 
 use crate::branch::{Branch, select_branch};
@@ -19,6 +19,13 @@ use crate::{OrStorage, records, state, storage};
 /// 分叉提示的来源（Node `SyntheticUserMessageSource` 的 `fork`）。
 pub(crate) const NOTICE_SOURCE: &str = "fork";
 const CONTINUE: &str = "Continue from this fork. Do not assume messages after the fork point happened in this session.";
+/// 辅助对话的边界提醒（Node `SELECTION_SIDE_CHAT_BOUNDARY`，逐字一致）。
+const SIDE_CHAT_BOUNDARY: [&str; 3] = [
+    "The preceding conversation was inherited from the parent task for reference only.",
+    "Do not continue the parent's active work automatically; answer only new questions sent in this side chat.",
+    "Modify the workspace only when the user explicitly asks you to do so in this side chat.",
+];
+pub(crate) const SIDE_CHAT_SOURCE: &str = "selection_side_chat";
 
 /// 新会话行要从原会话行取的列（Node `buildForkedSessionInput`）。
 struct Parent {
@@ -156,6 +163,28 @@ fn notice(ctx: &Commit<'_>, fork: &SessionFork) -> Result<(), StoreError> {
     messages::save_part(ctx.conn, &part, ctx.now as i64).storage()
 }
 
+/// 辅助对话的边界提醒（Node `buildSelectionSideChatBoundary`）：只给模型，界面不显示。
+fn side_chat_boundary(ctx: &Commit<'_>, fork: &SessionFork) -> Result<(), StoreError> {
+    let id = message_id(ctx.now, &(ctx.uuid)());
+    let created = ctx.now;
+    let selection = facts::node_selection(&fork.selection);
+    let text = SIDE_CHAT_BOUNDARY.join(" ");
+    let info = json!({"id": id, "sessionID": ctx.session, "role": "user",
+        "time": {"created": created}, "agent": records::AGENT,
+        "modelSelection": {"providerId": selection["providerId"], "modelId": selection["modelId"]},
+        "synthetic": true, "source": SIDE_CHAT_SOURCE, "visibility": "model-only",
+        "semantics": {"origin": "system", "kind": "system_reminder", "source": SIDE_CHAT_SOURCE,
+            "uiVisibility": "hidden", "providerVisibility": "visible", "transcriptVisibility": "hidden"},
+        "anchor": {"productTurnId": id, "orderedMessageIds": [id], "boundaryMessageId": id,
+            "origin": "synthetic"}});
+    messages::save_message(ctx.conn, &info, created as i64).storage()?;
+    let part = json!({"id": part_id(ctx.now, &(ctx.uuid)()), "sessionID": ctx.session,
+        "messageID": id, "type": "text", "text": text, "synthetic": true,
+        "time": {"start": created, "end": created},
+        "metadata": {"source": SIDE_CHAT_SOURCE, "visibility": "model-only"}});
+    messages::save_part(ctx.conn, &part, created as i64).storage()
+}
+
 pub(crate) fn fork(
     conn: &mut Connection,
     fork: &SessionFork,
@@ -171,6 +200,10 @@ pub(crate) fn fork(
     } else {
         parent.title.as_str()
     };
+    // Node `buildForkedSessionInput(kind)`：辅助对话不是普通 fork——不进任务列表（task_type
+    // 白名单不含 selection_side_chat）、标题固定，也不写「This session was forked…」提示。
+    let side_chat = fork.kind == SessionForkKind::SelectionSideChat;
+    let kind = if side_chat { "selection_side_chat" } else { "fork" };
     let input = sessions::Create {
         id: fork.child.as_str().to_owned(),
         project_id: parent.project_id.clone(),
@@ -182,18 +215,23 @@ pub(crate) fn fork(
                 .clone()
                 .unwrap_or_else(|| fork.parent.as_str().to_owned()),
         ),
-        task_type: Some("fork".to_owned()),
+        task_type: Some(kind.to_owned()),
         slug: head(
             &format!(
-                "{}-fork-{}",
+                "{}-{}-{}",
                 slugify(&parent.slug),
+                kind,
                 nibi_kernel_base::js::base36(fork.created_at_ms)
             ),
             120,
         ),
         directory: parent.directory.clone(),
         path: parent.path.clone(),
-        title: format!("Fork of {title}"),
+        title: if side_chat {
+            "Selection side chat".to_owned()
+        } else {
+            format!("Fork of {title}")
+        },
         title_source: Some("generated".to_owned()),
         version: parent.version.clone(),
         permission: parent.permission.clone(),
@@ -234,11 +272,15 @@ pub(crate) fn fork(
         })?
         + 1;
     let copied: Vec<&messages::WithParts> = branch[..end].iter().map(AsRef::as_ref).collect();
-    let map = crate::fork_clone::copy_messages(&ctx, &copied)?;
+    let map = crate::fork_clone::copy_messages(&ctx, &copied, side_chat)?;
     crate::fork_clone::copy_goal(&ctx, fork.parent.as_str(), &map)?;
-    let anchor = map.get(fork.through.as_str()).map(String::as_str);
-    timeline(&ctx, fork, &parent.directory, anchor)?;
-    notice(&ctx, fork)?;
+    if side_chat {
+        side_chat_boundary(&ctx, fork)?;
+    } else {
+        let anchor = map.get(fork.through.as_str()).map(String::as_str);
+        timeline(&ctx, fork, &parent.directory, anchor)?;
+        notice(&ctx, fork)?;
+    }
     facts::next_sequence(&ctx)?;
     tx.commit().storage()?;
     Ok(ForkReceipt { copied: end })

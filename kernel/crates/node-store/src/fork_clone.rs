@@ -214,6 +214,7 @@ fn part_with_id(
 pub(crate) fn copy_messages(
     ctx: &Commit<'_>,
     records: &[&WithParts],
+    hide_from_ui: bool,
 ) -> Result<Mapping, StoreError> {
     let mut map = Mapping::new();
     // 带位置键的 tool part（node-store.md §4.6，工作线 F81）：键指向 assistant 之后的行，逐条映射时还没有新 ID。
@@ -221,7 +222,17 @@ pub(crate) fn copy_messages(
     for record in records {
         let next = message_id(ctx.now, &(ctx.uuid)());
         map.insert(record.id().to_owned(), next.clone());
-        let info = message(&record.info, &map, ctx.session, &next);
+        let mut info = message(&record.info, &map, ctx.session, &next);
+        if hide_from_ui {
+            // 辅助对话继承的父历史只给模型参考，界面上从空白开始（Node `copyMessagesForFork`
+            // 对 `kind === "selection_side_chat"` 的同一改写）。
+            info["visibility"] = "model-only".into();
+            let mut semantics = info["semantics"].as_object().cloned().unwrap_or_default();
+            semantics.insert("uiVisibility".into(), "hidden".into());
+            semantics.insert("providerVisibility".into(), "visible".into());
+            semantics.insert("transcriptVisibility".into(), "hidden".into());
+            info["semantics"] = Value::Object(semantics);
+        }
         messages::save_message(ctx.conn, &info, ctx.now as i64).storage()?;
         for source in &record.parts {
             let cloned = part(ctx, source, &map, &next);

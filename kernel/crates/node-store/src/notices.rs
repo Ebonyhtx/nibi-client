@@ -249,6 +249,18 @@ pub fn hydrate(record: &WithParts) -> Option<Message> {
             data: Value::Null,
         }));
     }
+    // 辅助对话的边界提醒（Node `buildSelectionSideChatBoundary`，没有 `rustCli`）：只给模型看，
+    // 还原成 Meta 来源的 user 消息——投影不给它建行，模型上下文里仍在。
+    if marker.is_null() && source == crate::fork::SIDE_CHAT_SOURCE && first["synthetic"] == true {
+        return Some(Message::User(UserMessage {
+            id,
+            content: content(),
+            origin: UserOrigin::Meta {
+                source,
+                origin_meta: None,
+            },
+        }));
+    }
     let message = match marker["message"].as_str()? {
         ATTACHMENT => Message::Attachment(AttachmentMessage {
             id,

@@ -178,6 +178,7 @@ async fn a_fork_keeps_the_results_in_place() {
     commit_each(&t, &facts).await;
     t.store
         .fork(SessionFork {
+            kind: nibi_kernel_api::store::SessionForkKind::Fork,
             parent: sid(),
             child: SessionId::new("sess_2"),
             created_at_ms: 36_000,

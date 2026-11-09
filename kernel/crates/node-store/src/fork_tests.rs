@@ -14,6 +14,7 @@ fn sid(id: &str) -> SessionId {
 
 fn request(through: &str) -> SessionFork {
     SessionFork {
+        kind: nibi_kernel_api::store::SessionForkKind::Fork,
         parent: sid("sess_1"),
         child: sid("sess_2"),
         created_at_ms: 36_000,
@@ -331,5 +332,62 @@ async fn a_fork_through_the_last_answer_of_a_tool_turn_keeps_its_tool_results() 
         ),
         "{}",
         notice.text
+    );
+}
+
+/// 辅助对话（Node `buildForkedSessionInput(kind = selection_side_chat)`）：不进任务列表、标题固定、
+/// 不写「This session was forked…」提示；复制的历史带隐藏语义，末尾是只给模型的边界提醒。
+#[tokio::test]
+async fn a_selection_side_chat_is_a_hidden_copy_not_a_listable_fork() {
+    use nibi_kernel_api::store::SessionForkKind;
+
+    let t = TestStore::new();
+    three_turns(&t).await;
+    let mut fork = request("msg_3_u2");
+    fork.kind = SessionForkKind::SelectionSideChat;
+    let receipt = t.store.fork(fork).await.unwrap();
+    assert_eq!(receipt.copied, 3);
+
+    let row = &t.rows("select parent_id, task_type, title, title_source from session where id = 'sess_2'")[0];
+    assert_eq!(row[0], json!("sess_1"));
+    assert_eq!(row[1], json!("selection_side_chat"));
+    assert_eq!(row[2], json!("Selection side chat"));
+    assert_eq!(row[3], json!("generated"));
+
+    // 任务列表的 task_type 白名单不含 selection_side_chat（Node `isTaskListSessionType`）。
+    let conn = t.connection();
+    let listed = crate::repo::sessions::task_list(&conn, Some("/w"), 10).unwrap();
+    assert!(listed.iter().all(|row| row.id != "sess_2"), "{listed:?}");
+
+    let messages = data(&t, "message", "sess_2");
+    // 三条复制 + 边界提醒；没有时间线与分叉提示。
+    assert_eq!(messages.len(), 4);
+    for message in &messages[..3] {
+        assert_eq!(message["visibility"], json!("model-only"));
+        assert_eq!(message["semantics"]["uiVisibility"], json!("hidden"));
+        assert_eq!(message["semantics"]["providerVisibility"], json!("visible"));
+    }
+    let boundary = &messages[3];
+    assert_eq!(boundary["source"], json!("selection_side_chat"));
+    assert_eq!(boundary["synthetic"], json!(true));
+    assert_eq!(boundary["visibility"], json!("model-only"));
+    assert_eq!(boundary["semantics"]["uiVisibility"], json!("hidden"));
+    assert_eq!(boundary["semantics"]["providerVisibility"], json!("visible"));
+    // 最后一条消息的 part 就是边界提醒（part 的 message_id 是列，不在 data JSON 里）。
+    let boundary_id = t.rows(
+        "select id from message where session_id = 'sess_2' order by rowid desc limit 1",
+    )[0][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let parts = data(&t, "part", "sess_2");
+    let text = parts
+        .iter()
+        .find(|part| part["text"].as_str().is_some_and(|text| text.contains("inherited")))
+        .and_then(|part| part["text"].as_str())
+        .unwrap_or_default();
+    assert!(
+        text.contains("inherited from the parent task for reference only"),
+        "boundary={boundary_id} parts={parts:?}"
     );
 }

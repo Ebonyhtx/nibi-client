@@ -53,6 +53,7 @@ impl Actor {
             selection: self.selection.clone(),
             mode: self.execution.mode,
             plan: self.execution.plan,
+            kind: nibi_kernel_api::store::SessionForkKind::Fork,
         };
         let receipt = match self.deps.store.fork(fork).await {
             Ok(receipt) => receipt,
@@ -96,6 +97,8 @@ impl Actor {
             selection: selection.unwrap_or_else(|| self.selection.clone()),
             mode: self.execution.mode,
             plan: self.execution.plan,
+            // 辅助对话：复制历史，但不进任务列表、标题固定、写边界提醒而不是分叉提示。
+            kind: nibi_kernel_api::store::SessionForkKind::SelectionSideChat,
         };
         match self.deps.store.fork(fork).await {
             Ok(receipt) => Ack::Accepted {

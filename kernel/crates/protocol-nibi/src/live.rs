@@ -14,6 +14,7 @@ use nibi_kernel_api::session_api::{
     Ack as KernelAck, Command, CommandEnvelope, KernelEvent, SequencedEvent, SessionHandle,
     SessionView, TurnOutcome,
 };
+use nibi_kernel_api::store::SessionKind;
 use nibi_kernel_protocol_core::delivery::TopicLog;
 use nibi_kernel_protocol_core::sessions::{Bridged, SessionSink};
 use serde_json::{Map, Value, json};
@@ -67,6 +68,8 @@ pub struct Live {
     state: Mutex<State>,
     /// 会话句柄的弱引用：会话列表判断草稿（`is_draft`）用。句柄由会话桥持有，比 Live 活得久。
     handle: Weak<dyn SessionHandle>,
+    /// 辅助对话不进任务列表（Node `isTaskListSessionType` 不含 selection_side_chat）。
+    side_chat: bool,
     /// 自动结束计时任务的唤醒信号（登记、回答、snooze、偏好变化都叫一次）。
     auto_resolution_wake: Arc<tokio::sync::Notify>,
     /// 本会话在会话桥里的句柄：计时任务要用它在自己的泵任务里排工作。
@@ -99,6 +102,7 @@ impl Live {
             session: view.meta.id.as_str().to_owned(),
             workspace: view.meta.workspace.root.as_str().to_owned(),
             created_at: view.meta.created_at_ms,
+            side_chat: view.meta.kind == SessionKind::SelectionSideChat,
             state: Mutex::new(State {
                 projection: Projection::from_view_with_auto_resolution(
                     view,
@@ -615,7 +619,9 @@ impl Live {
             .handle
             .upgrade()
             .is_none_or(|handle| handle.is_draft());
-        let summary = if draft {
+        // 辅助对话与草稿一样不进会话列表：Node 的 sessions-index 只发布 task-list 类型
+        // （`getSessionWorkspaceId` 对 selection_side_chat 回 null）。
+        let summary = if draft || self.side_chat {
             None
         } else {
             let row = self.summary_of(state);

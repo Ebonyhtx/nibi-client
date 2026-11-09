@@ -487,7 +487,13 @@ impl SessionStore for MemoryStore {
         let updated = lock(&self.updated).clone();
         let mut records: Vec<SessionRecord> = lock(&self.sessions)
             .values()
-            .filter(|(meta, _)| !deleted.contains(&meta.id) && meta.kind != SessionKind::Subagent)
+            .filter(|(meta, _)| {
+                !deleted.contains(&meta.id)
+                    && !matches!(
+                        meta.kind,
+                        SessionKind::Subagent | SessionKind::SelectionSideChat
+                    )
+            })
             .filter(|(meta, _)| {
                 query
                     .root
