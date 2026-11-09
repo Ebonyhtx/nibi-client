@@ -22,12 +22,14 @@ const INLINE: &str = nibi_kernel_base::names::INLINE_MARKETPLACE;
 const OFFICIAL: &str = nibi_kernel_base::names::OFFICIAL_MARKETPLACE;
 
 /// 合并后的 `plugins` 段。
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PluginSection {
     pub(crate) enabled: bool,
     pub(crate) dirs: Vec<String>,
     pub(crate) enabled_plugins: BTreeMap<String, bool>,
     pub(crate) suppressed_builtins: Vec<String>,
+    /// `plugins.options`（插件 id → 选项键 → 标量）：合并按 Node `mergePluginOptions`，同键后者覆盖。
+    pub(crate) options: BTreeMap<String, BTreeMap<String, Value>>,
 }
 
 /// 非空字符串数组里的合格项；坏项记警告（D1）。
@@ -57,6 +59,7 @@ pub(crate) fn merge(layers: &[Layer<'_>], warnings: &mut Vec<String>) -> PluginS
         dirs: Vec::new(),
         enabled_plugins: BTreeMap::new(),
         suppressed_builtins: Vec::new(),
+        options: BTreeMap::new(),
     };
     for layer in layers {
         let Some(section) = layer.object.get("plugins") else {
@@ -108,6 +111,37 @@ pub(crate) fn merge(layers: &[Layer<'_>], warnings: &mut Vec<String>) -> PluginS
         {
             merged.suppressed_builtins = suppressed;
         }
+        match section.get("options").map(Value::as_object) {
+            Some(Some(table)) => {
+                for (id, values) in table {
+                    let Some(values) = values.as_object() else {
+                        warnings.push(format!(
+                            "{}: plugins.options.{id} must be an object",
+                            layer.path
+                        ));
+                        continue;
+                    };
+                    let entry = merged.options.entry(id.clone()).or_default();
+                    for (key, value) in values {
+                        // 选项值只认标量（Node `PluginOptionValues`）；对象/数组留给插件自己读 manifest，
+                        // 模板里的 `${user_config.<key>}` 不会用它。
+                        if matches!(value, Value::String(_) | Value::Number(_) | Value::Bool(_)) {
+                            entry.insert(key.clone(), value.clone());
+                        } else {
+                            warnings.push(format!(
+                                "{}: plugins.options.{id}.{key} must be a string, number or boolean",
+                                layer.path
+                            ));
+                        }
+                    }
+                }
+            }
+            Some(None) => warnings.push(format!(
+                "{}: plugins.options must be an object",
+                layer.path
+            )),
+            None => {}
+        }
     }
     merged
 }
@@ -130,9 +164,11 @@ pub(crate) async fn sources(
     root: &str,
     storage: &StoragePath,
     paid_license: Option<nibi_kernel_ext::plugins::PaidLicense>,
+    process_env: &[(String, String)],
 ) -> PluginSources {
     let mut candidates = Vec::new();
     let mut paid_installed_ids = Vec::new();
+    let data_root = storage.join("data").as_path().to_string_lossy().into_owned();
     if section.enabled {
         let candidate = |dir: String, marketplace: &str, origin, paid| PluginCandidate {
             dir: EnvPath::new(dir),
@@ -180,6 +216,10 @@ pub(crate) async fn sources(
         host_browser_broker: host_flag("NIBI_HOST_BROWSER_BROKER"),
         // 商店目录的展示投影：Composer 的 `@` 插件面板与推荐插件解析都要（含未安装的条目）。
         listings: nibi_kernel_platform::plugin_marketplace::listings(storage).await,
+        // 插件清单模板 `${NIBI_PLUGIN_DATA}` 的数据根与 `${user_config.*}` 的配置值。
+        data_root: Some(data_root),
+        options: section.options,
+        env: process_env.iter().cloned().collect(),
     }
 }
 

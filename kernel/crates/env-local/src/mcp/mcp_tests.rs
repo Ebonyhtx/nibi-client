@@ -433,3 +433,16 @@ async fn an_sse_endpoint_on_another_origin_fails_to_connect() {
     );
     server.abort();
 }
+
+/// 非 UTF-8 的 stdio 行不能判成连接断开（实测：Windows 上 Python 插件按系统代码页写 JSON，
+/// 旧实现 `lines()` 一遇到非法字节就把整条连接当作进程退出）。
+#[test]
+fn a_non_utf8_line_is_decoded_lossily() {
+    // `{"error":"中文"}` 的 cp936 字节 + CRLF。
+    let bytes = b"{\"error\":\"\xd6\xd0\xce\xc4\"}\r\n";
+    let line = super::stdio::decode_line(bytes);
+    assert!(line.starts_with("{\"error\":\""));
+    assert!(line.ends_with("\"}"), "{line}");
+    assert!(line.contains('\u{FFFD}'), "invalid bytes become replacement chars");
+    assert!(!line.ends_with('\n'), "the line terminator is stripped");
+}

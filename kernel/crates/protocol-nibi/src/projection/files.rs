@@ -27,11 +27,30 @@ fn summary(files: u64, additions: u64, deletions: u64) -> Value {
     json!({"additions": additions, "deletions": deletions, "files": files, "state": "active"})
 }
 
+/// 收口时把这一轮攒下的文件摘要挂到轮头（`finish_turn` 用）。
+pub(super) fn finish_summary(
+    row: &mut Map<String, Value>,
+    files: u64,
+    additions: u64,
+    deletions: u64,
+    rewindable: bool,
+    can_rewind: bool,
+) {
+    if files == 0 {
+        return;
+    }
+    row.insert("fileChanges".into(), summary(files, additions, deletions));
+    if rewindable && can_rewind {
+        set_can_rewind(row);
+    }
+}
+
 impl Projection {
-    /// 这一轮有文件写入落定：轮头的摘要累加（同一轮多次工具结果分几次到）。
+    /// 这一轮有文件写入落定：先攒在回合里，收口时一次挂到轮头。
     ///
-    /// `files` 按「机器 + 路径」去重：同一个文件在一轮里写两次只算一个（Node 的摘要取文件数），
-    /// 增删行数照常累加。
+    /// Node 的轮头摘要只在回合收口时给出（`ModelComplete` 且这一轮不再发起工具调用），
+    /// 工具结果刚提交就画「N 个文件已更改」会让用户以为回合已经结束。`files` 按「机器 + 路径」
+    /// 去重：同一个文件在一轮里写两次只算一个（Node 的摘要取文件数），增删行数照常累加。
     pub(super) fn file_changes(
         &mut self,
         turn: &str,
@@ -40,49 +59,37 @@ impl Projection {
         out: &mut Vec<Value>,
     ) {
         let (_, additions, deletions) = totals(files);
-        // 这一轮的路径表在 `Turn` 上；事件晚于收口（对不上轮键）时只能按本次去重。
-        let mut seen_now: HashSet<(Option<String>, String)> = HashSet::new();
-        let cumulative = match self.turn.as_mut().filter(|current| current.id == turn) {
-            Some(current) => {
-                for file in files {
-                    let key = (file.machine.clone(), file.path.clone());
-                    if !current.file_paths.contains(&key) {
-                        current.file_paths.push(key);
-                    }
+        if let Some(current) = self.turn.as_mut().filter(|current| current.id == turn) {
+            for file in files {
+                let key = (file.machine.clone(), file.path.clone());
+                if !current.file_paths.contains(&key) {
+                    current.file_paths.push(key);
                 }
-                Some(current.file_paths.len() as u64)
             }
-            None => {
-                for file in files {
-                    seen_now.insert((file.machine.clone(), file.path.clone()));
-                }
-                None
-            }
-        };
-        // Host 的 actions 只在终态给出（Node 的 materialization 规则：running 时没有撤销入口）。
-        let open = rewindable && self.pending.is_empty();
+            current.file_additions += additions;
+            current.file_deletions += deletions;
+            current.file_rewindable &= rewindable;
+            return;
+        }
+        // 晚于收口（或不属于当前回合）的摘要：只有轮头还没有摘要时补一次，避免与收口那一次重复累加。
+        let can_rewind = self.pending.is_empty();
         self.upsert(
             &turn_key(turn),
             |row| {
-                let existing = row.get("fileChanges").and_then(Value::as_object);
-                let (files, additions, deletions) = match existing {
-                    Some(existing) => (
-                        cumulative.unwrap_or_else(|| {
-                            existing.get("files").and_then(Value::as_u64).unwrap_or(0)
-                                + seen_now.len() as u64
-                        }),
-                        existing.get("additions").and_then(Value::as_u64).unwrap_or(0) + additions,
-                        existing.get("deletions").and_then(Value::as_u64).unwrap_or(0) + deletions,
-                    ),
-                    None => (
-                        cumulative.unwrap_or(seen_now.len() as u64),
-                        additions,
-                        deletions,
-                    ),
-                };
-                row.insert("fileChanges".into(), summary(files, additions, deletions));
+                if row.get("fileChanges").is_some() {
+                    return;
+                }
+                let mut seen_now: HashSet<(Option<String>, String)> = HashSet::new();
+                for file in files {
+                    seen_now.insert((file.machine.clone(), file.path.clone()));
+                }
+                row.insert(
+                    "fileChanges".into(),
+                    summary(seen_now.len() as u64, additions, deletions),
+                );
+                // Host 的 actions 只在终态给出（Node 的 materialization 规则：running 时没有撤销入口）。
                 let terminal = row["state"] != "running";
-                if open && terminal {
+                if rewindable && can_rewind && terminal {
                     set_can_rewind(row);
                 }
             },

@@ -4178,6 +4178,9 @@ const zhCN: Record<string, string> = {
   "settings.plugins.store.ui.unsupported": "当前环境暂不支持打开插件界面，请在桌面本地项目中使用。",
   "settings.plugins.store.ui.needsSession": "请在当前项目的可用会话中打开插件界面。",
   "settings.plugins.store.ui.unavailable": "当前项目没有可用的插件界面，请检查启用状态。",
+  // 面板打开时插件还没在本任务里连上：任务在启用之前就开始了，只能新建任务后再用。
+  "settings.plugins.store.ui.notConnected":
+    "当前任务没有连接这个插件（任务开始后才启用的插件不会补进正在进行的任务）。新建一个任务后即可打开面板。",
   "settings.plugins.store.ui.chooseSurface": "选择插件界面",
   "settings.plugins.store.ui.preview": "放大效果图",
   "settings.plugins.store.ui.capability": "提供可在侧边面板打开的交互界面。",

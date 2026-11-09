@@ -68,6 +68,10 @@ fn string_map(value: Option<&Value>) -> BTreeMap<String, String> {
 }
 
 /// 一个服务器的配置；不认识的形状返回原因。
+#[expect(
+    clippy::redundant_closure,
+    reason = "`expand` is a `&mut dyn FnMut`; `Option::map` needs a closure (the suggested `&mut expand` does not borrow-check)"
+)]
 fn transport(
     config: &Value,
     expand: &mut dyn FnMut(&str) -> String,
@@ -88,6 +92,8 @@ fn transport(
                 .get("command")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing command".to_owned())?;
+            // `cwd` 按 Node 的 schema 接上（相对工作区根，绝对路径原样；env-local 负责 resolve）。
+            let cwd = config.get("cwd").and_then(Value::as_str);
             Ok(McpTransportConfig::Stdio {
                 command: expand(command),
                 args: strings(config.get("args"))
@@ -98,7 +104,7 @@ fn transport(
                     .into_iter()
                     .map(|(key, value)| (key, expand(&value)))
                     .collect(),
-                cwd: None,
+                cwd: cwd.map(|cwd| expand(cwd)),
             })
         }
         "sse" | "http" => {

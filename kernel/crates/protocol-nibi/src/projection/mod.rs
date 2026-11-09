@@ -66,6 +66,11 @@ struct Turn {
     launch: Option<Value>,
     /// 这一轮写过的「机器 + 路径」（摘要的 `files` 去重，Node 的 summary 按文件数算）。
     file_paths: Vec<(Option<String>, String)>,
+    /// 这一轮的增删行数：`FileChanges` 会在每个工具结果落定时到一次，先攒着等收口。
+    file_additions: u64,
+    file_deletions: u64,
+    /// 当前的 checkpoint 是否都允许撤销（任一事件不可撤销就不给入口）。
+    file_rewindable: bool,
 }
 
 /// 一个会话的投影。
@@ -840,6 +845,9 @@ impl Projection {
             execution_kind,
             launch: launch.cloned(),
             file_paths: Vec::new(),
+            file_additions: 0,
+            file_deletions: 0,
+            file_rewindable: true,
         });
         // 模型切换的分隔线：切换事件先记在 pending，真正开跑的下一轮才落一行
         // （Node 的 `modelChange` 是 lightBoundary，只比 provider/model）。
@@ -940,6 +948,15 @@ impl Projection {
         }
         self.active = None;
         let started = self.turn.as_ref().map_or(now, |turn| turn.started_at);
+        // 收口时一次挂上这一轮的文件摘要（Node 只在最后一个 model step 给 summary）。
+        let file_summary = self.turn.as_ref().map(|turn| {
+            (
+                turn.file_paths.len() as u64,
+                turn.file_additions,
+                turn.file_deletions,
+                turn.file_rewindable,
+            )
+        });
         let keys = self.turn.take().map(|turn| turn.keys).unwrap_or_default();
         for key in &keys {
             self.upsert(
@@ -987,6 +1004,12 @@ impl Projection {
                 if let Some(tokens) = output_tokens {
                     row.insert("outputTokens".into(), json!(tokens));
                 }
+                // 这一轮的 checkpoint 都在收口前落定：摘要与撤销入口一次写齐。
+                if let Some((count, additions, deletions, rewindable)) = file_summary {
+                    files::finish_summary(
+                        row, count, additions, deletions, rewindable, can_rewind,
+                    );
+                }
                 // 轮头已经有一轮的摘要（`FileChanges` 早于收口到达）：这时补上撤销入口。
                 if can_rewind
                     && row
@@ -994,7 +1017,8 @@ impl Projection {
                         .and_then(Value::as_object)
                         .is_some_and(|changes| changes.get("state") != Some(&json!("reverted")))
                 {
-                    files::set_can_rewind(row);                }
+                    files::set_can_rewind(row);
+                }
             },
             out,
         );

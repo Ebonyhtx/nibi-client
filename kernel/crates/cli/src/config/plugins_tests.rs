@@ -48,9 +48,11 @@ fn the_plugins_section_merges_like_node() {
         "options": {"x@m": {"key": "value"}}
     }}));
     let projects = [
-        object(
-            json!({"plugins": {"dirs": ["rel", "/Users/dev/b"], "enabledPlugins": {"y@m": false}}}),
-        ),
+        object(json!({"plugins": {
+            "dirs": ["rel", "/Users/dev/b"],
+            "enabledPlugins": {"y@m": false},
+            "options": {"x@m": {"key": "override", "second": 2}}
+        }})),
         object(json!({"plugins": {"suppressedBuiltins": ["s2@nibi-official"]}})),
     ];
     let mut warnings = Vec::new();
@@ -64,6 +66,22 @@ fn the_plugins_section_merges_like_node() {
         [("x@m".to_owned(), true), ("y@m".to_owned(), false)]
     );
     assert_eq!(merged.suppressed_builtins, ["s2@nibi-official"]);
+    // `options` 按插件 id + 选项键合并（Node `mergePluginOptions`）：同键后者覆盖，未提到的键保留。
+    let options: Vec<(String, Vec<(String, serde_json::Value)>)> = merged
+        .options
+        .into_iter()
+        .map(|(id, values)| (id, values.into_iter().collect()))
+        .collect();
+    assert_eq!(
+        options,
+        [(
+            "x@m".to_owned(),
+            vec![
+                ("key".to_owned(), serde_json::json!("override")),
+                ("second".to_owned(), serde_json::json!(2)),
+            ]
+        )]
+    );
 
     let off = [object(json!({"plugins": {"enabled": false}}))];
     let merged = merge(&layers(&user, &off), &mut warnings);
@@ -131,8 +149,9 @@ async fn candidates_follow_the_node_order() {
         dirs: vec![abs.clone(), "rel/kit".to_owned()],
         enabled_plugins: [("kit@market".to_owned(), true)].into_iter().collect(),
         suppressed_builtins: vec!["zcode-guide@nibi-official".to_owned()],
+        options: Default::default(),
     };
-    let sources = sources(section.clone(), &repo, &root, None).await;
+    let sources = sources(section.clone(), &repo, &root, None, &[]).await;
     let candidates: Vec<(String, &str, PluginOrigin)> = sources
         .candidates
         .iter()
@@ -174,7 +193,7 @@ async fn sources_of(
     section: PluginSection,
     root: &nibi_kernel_paths::StoragePath,
 ) -> nibi_kernel_ext::plugins::PluginSources {
-    sources(section, "/Users/dev/repo", root, None).await
+    sources(section, "/Users/dev/repo", root, None, &[]).await
 }
 
 #[test]

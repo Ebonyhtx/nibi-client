@@ -121,10 +121,9 @@ fn file_changes_accumulate_and_open_the_rewind_after_the_turn() {
             rewindable: true,
         },
     );
+    // 运行中先攒着：Node 的轮头摘要只在回合收口时给出，工具结果刚落定就画出来会让用户以为回合结束。
     let row = header(&projection);
-    assert_eq!(row["fileChanges"]["files"], 2, "路径去重");
-    assert_eq!(row["fileChanges"]["additions"], 7);
-    assert_eq!(row["fileChanges"]["state"], "active");
+    assert!(row.get("fileChanges").is_none(), "running 时不出现摘要");
     assert!(row.get("actions").is_none(), "running 时没有撤销入口");
     feed(
         &mut projection,
@@ -136,6 +135,9 @@ fn file_changes_accumulate_and_open_the_rewind_after_the_turn() {
         },
     );
     let row = header(&projection);
+    assert_eq!(row["fileChanges"]["files"], 2, "路径去重");
+    assert_eq!(row["fileChanges"]["additions"], 7);
+    assert_eq!(row["fileChanges"]["state"], "active");
     assert_eq!(row["actions"]["canRewindFiles"], true);
 }
 

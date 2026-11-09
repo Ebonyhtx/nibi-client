@@ -1,5 +1,6 @@
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useOptionalServices } from "@/hooks/useServices.js";
+import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { isRemoteWorkspaceIdentity } from "@nibi/shared";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { buildPluginUiSurfaceKey, PLUGIN_UI_CARD_DEFAULT_HEIGHT_PX } from "../contract.js";
@@ -8,6 +9,23 @@ import type { UsePluginUiHostInput, UsePluginUiHostResult } from "./pluginUiHost
 import { createPage } from "./pluginUiManagedPage.js";
 import { acquirePluginUiPage, pluginUiPages, subscribePage } from "./pluginUiPageRegistry.js";
 export type { UsePluginUiHostInput, UsePluginUiHostResult } from "./pluginUiHostTypes.js";
+
+/**
+ * 面板准备失败的错误文案：agent 的 `mcp/uiOpenInstance` 在会话里没拿到该 MCP App 连接时回
+ * `MCP App connection is unavailable`。这不是“插件坏了”——会话的插件快照在创建时冻结，启用发生在
+ * 任务开始之后就补不进来。直接展示协议原文会让人以为插件不可用。
+ */
+function localizePluginUiError(
+  error: unknown,
+  formatMessage: (descriptor: { id: string }) => string,
+): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("MCP App connection is unavailable")) {
+    return formatMessage({ id: "settings.plugins.store.ui.notConnected" });
+  }
+  return message;
+}
+
 function pageIdentity(input: UsePluginUiHostInput): { key: string; input: UsePluginUiHostInput } {
   const scope = resolvePluginUiLogicalScope(input.presentation, input.scope.scope);
   const key = buildPluginUiSurfaceKey({ ...input.scope, ...input.presentation }, scope);
@@ -18,6 +36,7 @@ function pageIdentity(input: UsePluginUiHostInput): { key: string; input: UsePlu
 export function usePluginUiHost(input: UsePluginUiHostInput): UsePluginUiHostResult {
   const platform = useOptionalPlatform();
   const services = useOptionalServices();
+  const { intl } = useZCodeIntl();
   const local =
     !input.scope.remoteSessionId && !isRemoteWorkspaceIdentity(input.scope.workspaceIdentity ?? "");
   const identified = pageIdentity(input);
@@ -46,6 +65,12 @@ export function usePluginUiHost(input: UsePluginUiHostInput): UsePluginUiHostRes
     [key, empty],
   );
   const result = useSyncExternalStore(subscribe, read, () => empty);
+  // 协议错误文案对用户没有意义：会话里没连上该插件时给出可执行的解释（controller 的 error 也走这里）。
+  const localized = useMemo(() => {
+    if (!result.error) return result;
+    const error = localizePluginUiError(result.error, intl.formatMessage);
+    return error === result.error ? result : { ...result, error };
+  }, [result, intl]);
   useEffect(() => {
     if (
       !local ||
@@ -68,5 +93,5 @@ export function usePluginUiHost(input: UsePluginUiHostInput): UsePluginUiHostRes
       current = false;
     };
   });
-  return result;
+  return localized;
 }

@@ -5,6 +5,7 @@ import { useScopedPluginManagementStore } from "@/store/pluginManagementStore.js
 import {
   buildStoreItems,
   isItemBusy,
+  resolvePluginEnableScope,
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
 import { useUiPluginRecommendations } from "@/plugin-ui/adapters/useUiPluginRecommendations.js";
@@ -92,7 +93,13 @@ export function useRecommendedUiPlugins(target: {
         ? item.restorable
           ? await management.restoreBuiltin(item.id, operationService)
           : await management.installPlugin(item.name, item.marketplace, operationService, "user")
-        : await management.setEnabled(item.id, true, operationService, "workspace");
+        : // 与商店卡片同一规则：默认写 user scope，只有当前禁用来自项目级 override 时才写 workspace。
+          await management.setEnabled(
+            item.id,
+            true,
+            operationService,
+            resolvePluginEnableScope(item),
+          );
       if (!succeeded) {
         const message = store.getState().error;
         if (message && isCurrent()) setFailure({ context, message });

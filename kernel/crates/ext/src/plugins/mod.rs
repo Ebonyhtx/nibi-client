@@ -8,12 +8,14 @@
 mod reference;
 mod select;
 
+use std::collections::BTreeMap;
+
 use nibi_kernel_base::names::vars;
 use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
 use nibi_kernel_api::env_files::{FileKind, ListDir, PathStyle, StatFile};
 use nibi_kernel_api::machine::Files;
 use nibi_kernel_api::mcp::McpTransportConfig;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::mcp::{McpScope, McpServer, parse_servers};
 use crate::skills::PluginSkillRoot;
@@ -116,6 +118,19 @@ fn base_name(path: &str) -> String {
     PathStyle::infer(path).file_name(path)
 }
 
+/// Node `sanitizePluginId`：`[^a-zA-Z0-9_.@-]` 换成 `-`（插件数据目录的最后一段）。
+pub(crate) fn sanitize_plugin_id(id: &str) -> String {
+    id.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '@' | '-') {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect()
+}
+
 /// 文件名去掉 `.md`（agent 的缺省名字，与 agents crate 的 `file_stem` 同口径）。
 fn stem(path: &str) -> &str {
     let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
@@ -137,6 +152,12 @@ fn paths(value: Option<&Value>) -> Vec<String> {
 struct Reader<'a> {
     files: &'a dyn Files,
     workspace: &'a WorkspaceRef,
+    /// `<插件存储根>/data`：插件数据目录的父目录（`${NIBI_PLUGIN_DATA}`）。
+    data_root: Option<&'a str>,
+    /// 合并后的 `plugins.options`（插件 id → 选项键 → 标量）。
+    options: &'a BTreeMap<String, BTreeMap<String, Value>>,
+    /// 入口捕获的进程环境（模板里的 `${NIBI_*}` 与敏感 sink）。
+    env: &'a BTreeMap<String, String>,
 }
 
 impl Reader<'_> {
@@ -250,37 +271,84 @@ impl Reader<'_> {
             .collect()
     }
 
-    /// `project` 是工作区根：stdio 服务器的环境按 Node（`adapters/src/plugins/mcp.ts`）给插件目录与项目目录，两套
-    /// 名字，配置里的 `env` 优先（修复线 F42，config.md §2.5.1；以前不给）。数据目录与插件 ID 不给（ext.md D13）。
-    fn mcp_servers(plugin: &str, dir: &str, project: &str, tables: &[Value]) -> Vec<McpServer> {
-        let root = dir.to_owned();
-        let lookup = move |name: &str| {
-            matches!(
-                name,
-                vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT | vars::ZCODE_PLUGIN_ROOT
-            )
-            .then(|| root.clone())
-        };
-        let provided = [
-            (vars::CLAUDE_PLUGIN_ROOT, dir),
-            (vars::NIBI_PLUGIN_ROOT, dir),
-            (vars::ZCODE_PLUGIN_ROOT, dir),
-            (vars::CLAUDE_PROJECT_DIR, project),
-            (vars::NIBI_PROJECT_DIR, project),
-            (vars::ZCODE_PROJECT_DIR, project),
-        ];
+    /// 插件声明的 MCP 服务器：先按 Node `resolveMcpServerConfig` 展开清单模板，再交给通用的服务器解析。
+    ///
+    /// 模板上下文（`adapters/src/plugins/mcp.ts`）：`${*_PLUGIN_ROOT}`、`${*_PLUGIN_DATA}`
+    /// （`<插件存储根>/data/<sanitize(id)>`）、`${*_PROJECT_DIR}`（工作区根）、`${user_config.<key>}`
+    /// （配置值优先，缺失时取 manifest 默认值）。`env`/`headers` 是敏感 sink：可以写 `${TOKEN}` 这类
+    /// 环境变量；其它字段里出现敏感 user_config 会按 Node 同一规则整条跳过。缺变量同样 fail-closed
+    /// （不把字面量留给子进程）。
+    ///
+    /// stdio 服务器的环境按 Node 给两套名字（插件根 / 数据目录 / 项目目录），清单 `env` 优先，
+    /// 插件身份 `NIBI_PLUGIN_ID` 最后权威写入（manifest 不可覆盖）。
+    fn mcp_servers(
+        plugin: &str,
+        id: &str,
+        variables: &Variables<'_>,
+        tables: &[Value],
+    ) -> Vec<McpServer> {
         let mut servers = Vec::new();
         for table in tables {
-            let (found, warnings) = parse_servers(table, McpScope::Plugin, &lookup);
+            let Some(entries) = table.as_object() else {
+                tracing::warn!(
+                    plugin,
+                    "plugin MCP configuration: mcpServers must be a JSON object"
+                );
+                continue;
+            };
+            let mut expanded = Map::new();
+            for (server, config) in entries {
+                match expand_server(config, variables) {
+                    Ok(value) => {
+                        expanded.insert(server.clone(), value);
+                    }
+                    Err(error) => {
+                        tracing::warn!(plugin, server, error, "plugin MCP server skipped");
+                    }
+                }
+            }
+            let expanded = Value::Object(expanded);
+            let (found, warnings) = parse_servers(&expanded, McpScope::Plugin, &|_| None);
             for warning in warnings {
                 tracing::warn!(plugin, warning, "plugin MCP configuration");
             }
             servers.extend(found.into_iter().map(|mut server| {
                 if let McpTransportConfig::Stdio { env, .. } = &mut server.transport {
-                    for (name, value) in provided {
+                    for (name, value) in [
+                        (vars::CLAUDE_PLUGIN_ROOT, variables.root),
+                        (vars::NIBI_PLUGIN_ROOT, variables.root),
+                        (vars::ZCODE_PLUGIN_ROOT, variables.root),
+                    ] {
                         env.entry(name.to_owned())
                             .or_insert_with(|| value.to_owned());
                     }
+                    if let Some(data) = variables.data {
+                        for name in [
+                            vars::CLAUDE_PLUGIN_DATA,
+                            vars::NIBI_PLUGIN_DATA,
+                            vars::ZCODE_PLUGIN_DATA,
+                        ] {
+                            env.entry(name.to_owned())
+                                .or_insert_with(|| data.to_owned());
+                        }
+                    }
+                    for (name, value) in [
+                        (vars::CLAUDE_PROJECT_DIR, variables.project),
+                        (vars::NIBI_PROJECT_DIR, variables.project),
+                        (vars::ZCODE_PROJECT_DIR, variables.project),
+                    ] {
+                        env.entry(name.to_owned())
+                            .or_insert_with(|| value.to_owned());
+                    }
+                    // 插件身份必须由 resolver 权威写入（Node 同规则）：manifest/user env 不能伪造。
+                    env.insert(vars::NIBI_PLUGIN_ID.to_owned(), id.to_owned());
+                    // Python 插件（数模插件的 MCP 桥）在 Windows 上默认按系统代码页写 stdio，JSON 里的中文
+                    // 会变成 cp936 字节，宿主只能按 UTF-8 丢错。Node 的执行环境同样给这两个变量
+                    // （`outputEncoding.ts`）；这里给所有插件服务器，非 Python 的进程忽略它们。
+                    env.entry("PYTHONIOENCODING".to_owned())
+                        .or_insert_with(|| "utf-8".to_owned());
+                    env.entry("PYTHONUTF8".to_owned())
+                        .or_insert_with(|| "1".to_owned());
                 }
                 McpServer {
                     name: format!("plugin:{plugin}:{}", server.name),
@@ -451,9 +519,23 @@ impl Reader<'_> {
                 }
             }
         }
-        let mcp_servers = Self::mcp_servers(&name, dir, self.workspace.root.as_str(), tables);
+        let id = format!("{name}@{marketplace}");
+        let data_path = self
+            .data_root
+            .map(|root| join(root, &sanitize_plugin_id(&id)));
+        let defaults = user_config_defaults(&manifest);
+        let variables = Variables {
+            root: dir,
+            project: self.workspace.root.as_str(),
+            data: data_path.as_deref(),
+            defaults: &defaults,
+            options: self.options.get(&id),
+            env: self.env,
+            manifest: &manifest,
+        };
+        let mcp_servers = Self::mcp_servers(&name, &id, &variables, tables);
         Plugin {
-            id: format!("{name}@{marketplace}"),
+            id,
             name,
             marketplace: marketplace.to_owned(),
             dir: dir.to_owned(),
@@ -471,3 +553,231 @@ impl Reader<'_> {
 #[cfg(test)]
 #[path = "plugins_tests.rs"]
 mod tests;
+
+/// 插件清单模板的上下文（Node `VariableContext` 的 Rust 侧）。
+struct Variables<'a> {
+    root: &'a str,
+    project: &'a str,
+    data: Option<&'a str>,
+    /// manifest `userConfig` 里带默认值的项。
+    defaults: &'a BTreeMap<String, Value>,
+    /// 合并后的 `plugins.options.<插件 id>`。
+    options: Option<&'a BTreeMap<String, Value>>,
+    env: &'a BTreeMap<String, String>,
+    manifest: &'a Value,
+}
+
+impl Variables<'_> {
+    /// 该 `user_config.<key>` 是否声明为敏感（Node `userConfig[key].sensitive`）。
+    fn sensitive(&self, key: &str) -> bool {
+        self.manifest
+            .get("userConfig")
+            .and_then(|config| config.get(key))
+            .and_then(|option| option.get("sensitive"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+    }
+}
+
+/// manifest `userConfig` 里可用的默认值（Node `getUserConfigDefaults`：只认标量）。
+fn user_config_defaults(manifest: &Value) -> BTreeMap<String, Value> {
+    let mut defaults = BTreeMap::new();
+    let Some(config) = manifest.get("userConfig").and_then(Value::as_object) else {
+        return defaults;
+    };
+    for (key, option) in config {
+        if let Some(value) = option.get("default").filter(|value| scalar_text(value).is_some()) {
+            defaults.insert(key.clone(), value.clone());
+        }
+    }
+    defaults
+}
+
+/// 标量的字符串形式（Node `String(value)`；只有字符串/数字/布尔算选项值）。
+fn scalar_text(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => Some(text.clone()),
+        Value::Number(number) => Some(number.to_string()),
+        Value::Bool(flag) => Some(flag.to_string()),
+        _ => None,
+    }
+}
+
+/// 一个服务器配置的模板展开：`env` / `headers` 是敏感 sink，`oauth.clientSecret` 单独放行。
+fn expand_server(config: &Value, variables: &Variables<'_>) -> Result<Value, String> {
+    let Some(server) = config.as_object() else {
+        return Err("MCP server config must be an object".to_owned());
+    };
+    let mut out = Map::new();
+    for (key, value) in server {
+        let expanded = match key.as_str() {
+            "env" | "headers" => expand_string_map(value, variables, true)?,
+            "oauth" => expand_oauth(value, variables)?,
+            _ => expand_value(value, variables, false)?,
+        };
+        out.insert(key.clone(), expanded);
+    }
+    Ok(Value::Object(out))
+}
+
+fn expand_string_map(
+    value: &Value,
+    variables: &Variables<'_>,
+    allow_sensitive: bool,
+) -> Result<Value, String> {
+    let Some(map) = value.as_object() else {
+        return Ok(value.clone());
+    };
+    let mut out = Map::new();
+    for (key, item) in map {
+        let expanded = match item {
+            Value::String(text) => Value::String(expand_template(text, variables, allow_sensitive)?),
+            other => other.clone(),
+        };
+        out.insert(key.clone(), expanded);
+    }
+    Ok(Value::Object(out))
+}
+
+fn expand_oauth(value: &Value, variables: &Variables<'_>) -> Result<Value, String> {
+    let Some(map) = value.as_object() else {
+        return Ok(value.clone());
+    };
+    let mut out = Map::new();
+    for (key, item) in map {
+        let expanded = match item {
+            Value::String(text) => {
+                Value::String(expand_template(text, variables, key == "clientSecret")?)
+            }
+            other => other.clone(),
+        };
+        out.insert(key.clone(), expanded);
+    }
+    Ok(Value::Object(out))
+}
+
+fn expand_value(
+    value: &Value,
+    variables: &Variables<'_>,
+    allow_sensitive: bool,
+) -> Result<Value, String> {
+    match value {
+        Value::String(text) => Ok(Value::String(expand_template(
+            text,
+            variables,
+            allow_sensitive,
+        )?)),
+        Value::Array(items) => items
+            .iter()
+            .map(|item| expand_value(item, variables, allow_sensitive))
+            .collect::<Result<Vec<_>, _>>()
+            .map(Value::Array),
+        Value::Object(map) => {
+            let mut out = Map::new();
+            for (key, item) in map {
+                // 嵌套对象里的 `env` 也是敏感 sink（`.mcp.json` 的服务器表外层已被剥离）。
+                let nested_sensitive = matches!(key.as_str(), "env" | "headers");
+                out.insert(
+                    key.clone(),
+                    expand_value(item, variables, allow_sensitive || nested_sensitive)?,
+                );
+            }
+            Ok(Value::Object(out))
+        }
+        other => Ok(other.clone()),
+    }
+}
+
+/// `${VAR}` 展开（Node `resolveTemplate`）：识别插件根 / 数据目录 / 项目目录 / `user_config.*` /
+/// `NIBI_*`；敏感 sink 里再认任意环境变量名；其余名字按原样保留。需要运行时会话或不存在的必需
+/// 变量返回错误，调用方按 Node 同一行为整条跳过该服务器。
+fn expand_template(
+    text: &str,
+    variables: &Variables<'_>,
+    allow_sensitive: bool,
+) -> Result<String, String> {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find("${") {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 2..];
+        let Some(end) = after.find('}') else {
+            out.push_str(&rest[start..]);
+            return Ok(out);
+        };
+        let name = &after[..end];
+        match resolve_variable(name, variables, allow_sensitive)? {
+            Some(value) => out.push_str(&value),
+            None => out.push_str(&rest[start..start + 2 + end + 1]),
+        }
+        rest = &after[end + 1..];
+    }
+    out.push_str(rest);
+    Ok(out)
+}
+
+fn resolve_variable(
+    name: &str,
+    variables: &Variables<'_>,
+    allow_sensitive: bool,
+) -> Result<Option<String>, String> {
+    match name {
+        vars::CLAUDE_PLUGIN_ROOT | vars::NIBI_PLUGIN_ROOT | vars::ZCODE_PLUGIN_ROOT => {
+            return Ok(Some(variables.root.to_owned()));
+        }
+        vars::CLAUDE_PLUGIN_DATA | vars::NIBI_PLUGIN_DATA | vars::ZCODE_PLUGIN_DATA => {
+            let data = variables
+                .data
+                .ok_or_else(|| format!("Missing plugin variable: {name}"))?;
+            return Ok(Some(data.to_owned()));
+        }
+        vars::CLAUDE_PROJECT_DIR | vars::NIBI_PROJECT_DIR | vars::ZCODE_PROJECT_DIR => {
+            return Ok(Some(variables.project.to_owned()));
+        }
+        vars::CLAUDE_CODE_SESSION_ID | vars::CLAUDE_SESSION_ID | vars::NIBI_SESSION_ID => {
+            return Err(format!(
+                "Plugin variable requires a runtime session context: {name}"
+            ));
+        }
+        vars::CLAUDE_SKILL_DIR | vars::NIBI_SKILL_DIR | vars::ZCODE_SKILL_DIR => {
+            return Err(format!(
+                "Plugin variable requires a skill context: {name}"
+            ));
+        }
+        _ => {}
+    }
+    if let Some(key) = name.strip_prefix("user_config.") {
+        if variables.sensitive(key) && !allow_sensitive {
+            return Err(format!(
+                "Sensitive plugin user_config value cannot be used in this field: {key}"
+            ));
+        }
+        let configured = variables
+            .options
+            .and_then(|options| options.get(key))
+            .filter(|value| scalar_text(value).is_some());
+        let value = configured
+            .or_else(|| variables.defaults.get(key))
+            .and_then(scalar_text)
+            .ok_or_else(|| format!("Missing plugin user_config value: {key}"))?;
+        return Ok(Some(value));
+    }
+    if name.starts_with("NIBI_") || (allow_sensitive && valid_env_name(name)) {
+        let value = variables
+            .env
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("Missing environment variable: {name}"))?;
+        return Ok(Some(value));
+    }
+    Ok(None)
+}
+
+/// 环境变量名的形状（Node `enums.ts` 同规则）：敏感 sink 里只认这种名字，避免把 `${1}` 之类当变量。
+fn valid_env_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}

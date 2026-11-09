@@ -77,6 +77,9 @@ pub const TOKEN_CLIENT_TYPE: &str = "zcode";
 pub mod vars {
     pub const NIBI_PLUGIN_ROOT: &str = "NIBI_PLUGIN_ROOT";
     pub const CLAUDE_PLUGIN_ROOT: &str = "CLAUDE_PLUGIN_ROOT";
+    /// 插件数据目录（`<插件存储根>/data/<sanitize(id)>`；Node `adapters/src/plugins/mcp.ts` 的 `dataPath`）。
+    pub const NIBI_PLUGIN_DATA: &str = "NIBI_PLUGIN_DATA";
+    pub const CLAUDE_PLUGIN_DATA: &str = "CLAUDE_PLUGIN_DATA";
     pub const NIBI_PROJECT_DIR: &str = "NIBI_PROJECT_DIR";
     pub const CLAUDE_PROJECT_DIR: &str = "CLAUDE_PROJECT_DIR";
     pub const NIBI_SESSION_ID: &str = "NIBI_SESSION_ID";
@@ -92,7 +95,9 @@ pub mod vars {
     pub const ZCODE_PROJECT_DIR: &str = "ZCODE_PROJECT_DIR";
     pub const ZCODE_SESSION_ID: &str = "ZCODE_SESSION_ID";
     pub const ZCODE_SKILL_DIR: &str = "ZCODE_SKILL_DIR";
-    /// Node 的插件 MCP 环境还提供数据目录；Rust 按 ext.md D13 不提供。
+    /// 插件身份（`<name>@<marketplace>`）：插件 MCP 子进程的权威身份，manifest/user env 不能覆盖。
+    pub const NIBI_PLUGIN_ID: &str = "NIBI_PLUGIN_ID";
+    /// Node 的插件 MCP 环境还提供数据目录；与 `NIBI_PLUGIN_DATA` 同值，只给移植过来的上游插件读。
     pub const ZCODE_PLUGIN_DATA: &str = "ZCODE_PLUGIN_DATA";
 
     /// 文本里的引用写法 `${NAME}`。

@@ -4469,6 +4469,8 @@ const enUS: Record<string, string> = {
     "Open this plugin in an available session of the current project.",
   "settings.plugins.store.ui.unavailable":
     "No plugin UI is available in this project. Check whether the plugin is enabled.",
+  "settings.plugins.store.ui.notConnected":
+    "This task is not connected to the plugin (plugins enabled after a task starts are not added to it). Start a new task to open this panel.",
   "settings.plugins.store.ui.chooseSurface": "Choose a plugin interface",
   "settings.plugins.store.ui.preview": "Enlarge preview",
   "settings.plugins.store.ui.capability":

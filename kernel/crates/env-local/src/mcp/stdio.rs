@@ -159,29 +159,45 @@ struct Pipes {
 }
 
 /// 为什么停下。
+#[derive(Debug)]
 enum Stop {
     Closed,
     Exited,
     WriteFailed(String),
 }
 
+/// 一行协议/日志的文本形式：非 UTF-8 按替换字符解码（Node `toString("utf8")` 同口径），
+/// 去掉行尾的 `\r\n`。MCP 子进程不一定说 UTF-8（Windows 上的 Python 插件按系统代码页写）。
+pub(super) fn decode_line(bytes: &[u8]) -> String {
+    String::from_utf8_lossy(bytes).trim_end().to_owned()
+}
+
 /// 读的一半：stdout 一行一条消息交给读者，stderr 只进日志。事件通道满时在这里等（背压）；读者已经释放事件流时
 /// 继续读、丢掉消息（不让服务器卡在输出上）。stdout 结束即服务器退出。
+///
+/// 按**字节行**读再 [`decode_line`]：之前用 `lines()` 一遇到非 UTF-8 就把整条连接判成"进程退出"
+/// （实测 2026-11-09：数模插件的 Python 桥在 Windows 上写 cp936 的 JSON，面板永远报
+/// `MCP App connection is unavailable`）。
 async fn read(
     server: &str,
     stdout: tokio::process::ChildStdout,
     stderr: tokio::process::ChildStderr,
     events: &EventSender,
 ) -> Stop {
-    let mut lines = BufReader::new(stdout).lines();
-    let mut errors = BufReader::new(stderr).lines();
+    let mut lines = BufReader::new(stdout);
+    let mut errors = BufReader::new(stderr);
+    let mut line_bytes: Vec<u8> = Vec::new();
+    let mut error_bytes: Vec<u8> = Vec::new();
     let mut errors_open = true;
     let mut reader_gone = false;
     loop {
         tokio::select! {
-            line = lines.next_line() => match line {
-                Ok(Some(line)) => {
-                    if line.trim().is_empty() {
+            read = lines.read_until(b'\n', &mut line_bytes) => match read {
+                Ok(0) => return Stop::Exited,
+                Ok(_) => {
+                    let line = decode_line(&line_bytes);
+                    line_bytes.clear();
+                    if line.is_empty() {
                         continue;
                     }
                     match serde_json::from_str::<Value>(&line) {
@@ -193,18 +209,35 @@ async fn read(
                         Err(error) => tracing::debug!(server, %error, "ignored a non-JSON line from an MCP server"),
                     }
                 }
-                Ok(None) | Err(_) => return Stop::Exited,
+                Err(error) => {
+                    tracing::debug!(server, %error, "reading MCP server stdout failed");
+                    return Stop::Exited;
+                }
             },
-            line = errors.next_line(), if errors_open => match line {
-                Ok(Some(line)) => tracing::debug!(server, line, "MCP server stderr"),
-                Ok(None) | Err(_) => errors_open = false,
+            read = errors.read_until(b'\n', &mut error_bytes), if errors_open => match read {
+                Ok(0) => errors_open = false,
+                Ok(_) => {
+                    let line = decode_line(&error_bytes);
+                    error_bytes.clear();
+                    if !line.is_empty() {
+                        tracing::debug!(server, line, "MCP server stderr");
+                    }
+                }
+                Err(error) => {
+                    tracing::debug!(server, %error, "reading MCP server stderr failed");
+                    errors_open = false;
+                }
             },
         }
     }
 }
 
 /// 写的一半：发件箱里的消息逐条写进 stdin；发件箱的发送端全部释放（连接已移除）时当作关闭。
-async fn write(mut stdin: tokio::process::ChildStdin, mut inbox: mpsc::Receiver<Value>) -> Stop {
+async fn write(
+    server: &str,
+    mut stdin: tokio::process::ChildStdin,
+    mut inbox: mpsc::Receiver<Value>,
+) -> Stop {
     while let Some(message) = inbox.recv().await {
         let mut text = message.to_string();
         text.push('\n');
@@ -215,6 +248,7 @@ async fn write(mut stdin: tokio::process::ChildStdin, mut inbox: mpsc::Receiver<
             return Stop::WriteFailed(error.to_string());
         }
     }
+    tracing::debug!(server, "MCP server stdin writer finished: the outbox was closed");
     Stop::Closed
 }
 
@@ -232,11 +266,19 @@ async fn run(pipes: Pipes) {
     // 先关 stdin（MCP SDK 关闭时也是先结束输入），再结束进程树：select! 结束时写的一半连同 stdin 一起释放。
     let stop = tokio::select! {
         stop = read(&server, stdout, stderr, &events) => stop,
-        stop = write(stdin, inbox) => stop,
+        stop = write(&server, stdin, inbox) => stop,
         () = closing.cancelled() => Stop::Closed,
     };
     // 进程自己退出时直接收拾残留；主动关闭与写失败时先 TERM 再 KILL。
     let exited = matches!(stop, Stop::Exited);
+    // 服务器刚握手就断开时，这一行是唯一能区分「进程自己退了」与「宿主把 stdin 收了」的证据。
+    let status = tracked
+        .child()
+        .try_wait()
+        .ok()
+        .flatten()
+        .map(|status| status.to_string());
+    tracing::debug!(server, stop = ?stop, ?status, "MCP server transport stopped");
     let (reason, shutdown) = match stop {
         Stop::Closed => (None, Shutdown::Graceful),
         Stop::Exited => (

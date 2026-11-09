@@ -4,6 +4,7 @@ import type {
   ZCodeInstalledPluginSummary,
   ZCodePluginInfo,
   ZCodePluginMarketplaceSummary,
+  ZCodePluginScope,
   ZCodePluginStoreListing,
 } from "@nibi/shared";
 import {
@@ -71,9 +72,23 @@ export interface StorePluginItem {
   installedMeta?: ZCodeInstalledPluginSummary;
 }
 
+/**
+ * 商店/推荐卡片的“装好给我用”应该写到哪一层。
+ *
+ * 默认写 user scope：新建任务的工作区是 `draft-<uuid>` 这种一次性目录，写 workspace override 只对
+ * 那一个草稿目录有效——用户点完启用、再新建任务又变回未启用（真机复现）。
+ *
+ * 例外：当前禁用来自**项目级 override**（`enabledSource === "workspace"`）时必须继续写 workspace，
+ * 否则 user 层再写 true 也盖不过那条 false，用户会看到“点了启用却没反应”。
+ */
+export function resolvePluginEnableScope(
+  item: Pick<StorePluginItem, "info"> | undefined,
+): ZCodePluginScope {
+  return item?.info?.enabledSource === "workspace" ? "workspace" : "user";
+}
+
 // 市场和右侧推荐共用按插件的忙碌判定，避免安装一个插件时禁用整个推荐列表。
-export function isItemBusy(
-  item: StorePluginItem,
+export function isItemBusy(  item: StorePluginItem,
   actions: { activeOperations: ReadonlyArray<{ id: string }>; togglingPluginId: string | null },
 ): boolean {
   return (

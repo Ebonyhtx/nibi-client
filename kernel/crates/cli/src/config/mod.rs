@@ -260,6 +260,7 @@ pub(crate) async fn plugin_snapshot(
         root,
         &plugin_root,
         inputs.paid_license.clone(),
+        inputs.process_env,
     )
     .await;
     for warning in warnings {
@@ -329,6 +330,7 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         root,
         &plugin_root,
         inputs.paid_license.clone(),
+        inputs.process_env,
     )
     .await;
     let user_hooks = match user_object.and_then(|object| object.get("hooks")) {

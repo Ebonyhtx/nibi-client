@@ -60,7 +60,7 @@ pub struct PluginCandidate {
 }
 
 /// 入口层组装的插件来源（配置快照的一部分，config.md §2.1）。
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct PluginSources {
     /// 按 Node 的顺序：配置目录、官方内置缓存、已安装插件。`plugins.enabled` 为 false 时为空。
     pub candidates: Vec<PluginCandidate>,
@@ -81,6 +81,14 @@ pub struct PluginSources {
     /// 商店目录的展示投影（官方分片 + `marketplaces/<id>/marketplace.json` 快照），按稳定 ID join 到
     /// 引用目录的条目上；入口从本机存储读（platform `plugin_marketplace`）。
     pub listings: Vec<nibi_kernel_api::listing::MarketplaceListing>,
+    /// 插件数据根（`<插件存储根>/data`）：`${NIBI_PLUGIN_DATA}` = 它 + `/` + sanitize(插件 id)。
+    /// `None` 时该变量不展开，用到它的服务器按缺少变量跳过（Node 同口径的 fail-closed）。
+    pub data_root: Option<String>,
+    /// 合并后的 `plugins.options`（插件 id → 选项键 → 标量值）：`${user_config.<key>}` 的配置值，
+    /// 未配置时取 manifest `userConfig.<key>.default`。
+    pub options: BTreeMap<String, BTreeMap<String, Value>>,
+    /// 入口捕获的进程环境：`${NIBI_*}` 与敏感 sink（env/headers）里的同名变量；内核不自己读进程环境。
+    pub env: BTreeMap<String, String>,
 }
 
 /// 付费插件授权事实。判定逻辑在 `nibi_platform::paid_plugin`，这里只携带输入。
@@ -414,7 +422,13 @@ pub async fn load_all(
     session_dirs: &[EnvPath],
     sources: &PluginSources,
 ) -> Loaded {
-    let reader = Reader { files, workspace };
+    let reader = Reader {
+        files,
+        workspace,
+        data_root: sources.data_root.as_deref(),
+        options: &sources.options,
+        env: &sources.env,
+    };
     let mut plugins = Vec::new();
     for dir in session_dirs {
         plugins.extend(reader.session_plugin(dir.as_str()).await);

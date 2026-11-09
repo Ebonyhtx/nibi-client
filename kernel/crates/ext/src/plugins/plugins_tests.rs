@@ -111,6 +111,116 @@ async fn plugin_stdio_servers_get_the_node_variables(kit: &Plugin, root: &str) {
     ] {
         assert_eq!(env.get(name).map(String::as_str), Some(value), "{name}");
     }
+    // 插件身份由 resolver 权威写入（Node 同规则）：`<name>@<marketplace>`。
+    assert_eq!(env.get("NIBI_PLUGIN_ID").map(String::as_str), Some("toolkit@inline"));
+}
+
+/// 插件清单模板的数据目录与 user_config（Node `adapters/src/plugins/mcp.ts`）：
+/// `${NIBI_PLUGIN_DATA}` 落在 `<插件存储根>/data/<sanitize(id)>`，`${user_config.<key>}` 取默认值，
+/// `cwd`/`env` 里的 `${NIBI_PROJECT_DIR}` 展开成会话工作区。
+#[tokio::test]
+async fn plugin_templates_expand_data_user_config_and_project() {
+    let root = "/Users/dev/plugins/math-agent";
+    let env = MemoryEnvironment::new(facts()).with_file(
+        &format!("{root}/.nibi-plugin/plugin.json"),
+        r#"{"name": "math-agent", "userConfig": {"pythonMirror": {"type": "string", "default": "https://pypi.example/simple"}}, "mcpServers": {"math": {"command": "python", "args": ["${NIBI_PLUGIN_ROOT}/tools/mcp_server.py"], "cwd": "${NIBI_PROJECT_DIR}", "env": {"NIBI_MATH_ENV_DIR": "${NIBI_PLUGIN_DATA}/env", "NIBI_MATH_PYTHON_MIRROR": "${user_config.pythonMirror}", "NIBI_WORKSPACE_ROOT": "${NIBI_PROJECT_DIR}"}}}}"#,
+    );
+    let data_root = "/Users/dev/plugins/data";
+    let sources = PluginSources {
+        data_root: Some(data_root.to_owned()),
+        ..PluginSources::default()
+    };
+    let plugins = load_all(&env, &workspace(), &[EnvPath::new(root)], &sources)
+        .await
+        .plugins;
+    let server = &plugins.0[0].mcp_servers[0];
+    let McpTransportConfig::Stdio {
+        command,
+        args,
+        env,
+        cwd,
+    } = &server.transport
+    else {
+        panic!("math is stdio");
+    };
+    let project = workspace().root.as_str().to_owned();
+    assert_eq!(server.name, "plugin:math-agent:math");
+    assert_eq!(command, "python");
+    assert_eq!(args, &[format!("{root}/tools/mcp_server.py")]);
+    assert_eq!(cwd.as_deref(), Some(project.as_str()));
+    assert_eq!(env["NIBI_MATH_ENV_DIR"], format!("{data_root}/math-agent@inline/env"));
+    assert_eq!(env["NIBI_MATH_PYTHON_MIRROR"], "https://pypi.example/simple");
+    assert_eq!(env["NIBI_WORKSPACE_ROOT"], project);
+    for name in ["CLAUDE_PLUGIN_DATA", "NIBI_PLUGIN_DATA", "ZCODE_PLUGIN_DATA"] {
+        assert_eq!(env[name], format!("{data_root}/math-agent@inline"), "{name}");
+    }
+    assert_eq!(env["NIBI_PLUGIN_ID"], "math-agent@inline");
+}
+
+/// 配置的 `plugins.options.<id>.<key>` 覆盖 manifest 默认值（Node `options[key] ?? defaults[key]`）。
+#[tokio::test]
+async fn configured_plugin_options_override_the_manifest_defaults() {
+    let root = "/Users/dev/plugins/math-agent";
+    let env = MemoryEnvironment::new(facts()).with_file(
+        &format!("{root}/.nibi-plugin/plugin.json"),
+        r#"{"name": "math-agent", "userConfig": {"pythonMirror": {"type": "string", "default": "https://pypi.example/simple"}}, "mcpServers": {"math": {"command": "python", "env": {"MIRROR": "${user_config.pythonMirror}"}}}}"#,
+    );
+    let mut options = BTreeMap::new();
+    options.insert(
+        "math-agent@inline".to_owned(),
+        BTreeMap::from([(
+            "pythonMirror".to_owned(),
+            Value::String("https://mirror.example/simple".to_owned()),
+        )]),
+    );
+    let sources = PluginSources {
+        options,
+        ..PluginSources::default()
+    };
+    let plugins = load_all(&env, &workspace(), &[EnvPath::new(root)], &sources)
+        .await
+        .plugins;
+    let McpTransportConfig::Stdio { env, .. } = &plugins.0[0].mcp_servers[0].transport else {
+        panic!("math is stdio");
+    };
+    assert_eq!(env["MIRROR"], "https://mirror.example/simple");
+}
+
+/// 缺 `user_config` 值时整条服务器跳过（Node `plugin_variable_missing`，fail-closed：不留字面量）。
+#[tokio::test]
+async fn a_missing_user_config_value_skips_the_server() {
+    let root = "/Users/dev/plugins/bare-config";
+    let env = MemoryEnvironment::new(facts()).with_file(
+        &format!("{root}/.nibi-plugin/plugin.json"),
+        r#"{"name": "bare-config", "mcpServers": {"math": {"command": "python", "env": {"MIRROR": "${user_config.pythonMirror}"}}}}"#,
+    );
+    let plugins = load_all(&env, &workspace(), &[EnvPath::new(root)], &PluginSources::default())
+        .await
+        .plugins;
+    assert!(plugins.0[0].mcp_servers.is_empty());
+}
+
+/// 敏感 user_config 只能进敏感 sink（Node `Sensitive plugin user_config value cannot be used in this field`）。
+#[tokio::test]
+async fn a_sensitive_user_config_value_is_rejected_outside_sensitive_fields() {
+    let root = "/Users/dev/plugins/secret";
+    let env = MemoryEnvironment::new(facts()).with_file(
+        &format!("{root}/.nibi-plugin/plugin.json"),
+        r#"{"name": "secret", "userConfig": {"token": {"type": "string", "sensitive": true, "default": "s3cr3t"}}, "mcpServers": {"bad": {"command": "tool", "args": ["${user_config.token}"]}, "good": {"command": "tool", "env": {"TOKEN": "${user_config.token}"}}}}"#,
+    );
+    let plugins = load_all(&env, &workspace(), &[EnvPath::new(root)], &PluginSources::default())
+        .await
+        .plugins;
+    let names: Vec<&str> = plugins.0[0]
+        .mcp_servers
+        .iter()
+        .map(|server| server.name.as_str())
+        .collect();
+    assert_eq!(names, ["plugin:secret:good"]);
+    let McpTransportConfig::Stdio { env, .. } = &plugins.0[0].mcp_servers[0].transport else {
+        panic!("good is stdio");
+    };
+    assert_eq!(env["TOKEN"], "s3cr3t");
 }
 
 /// 配置里的 `env` 优先（Node 先放缺省再展开配置的 `env`）。

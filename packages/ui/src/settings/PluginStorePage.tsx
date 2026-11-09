@@ -43,6 +43,7 @@ import {
   isPluginUpdatePending,
   resolveItemDisplayName,
   resolvePluginDisplayName,
+  resolvePluginEnableScope,
   type StorePluginItem,
 } from "@/settings/pluginStoreListing.js";
 import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
@@ -536,7 +537,13 @@ export function PluginStorePage({
                   ? undefined
                   : async () => {
                       if (await requireMembership(item)) return false;
-                      const enabled = await setEnabled(item.id, true, operationService, "workspace");
+                      // 草稿任务的工作区是一次性目录：启用写 user scope，下一次新建任务也生效。
+                      const enabled = await setEnabled(
+                        item.id,
+                        true,
+                        operationService,
+                        resolvePluginEnableScope(item),
+                      );
                       const error = usePluginManagementStore.getState().error;
                       if (!enabled && error && /会员|membership/i.test(error)) {
                         setMembershipOpen(true);
@@ -551,7 +558,12 @@ export function PluginStorePage({
         // 已安装的会员插件在到期后“启用/使用”同样先弹开通页。
         void (async () => {
           if (enabled && (await requireMembership(itemById.get(pluginId)))) return;
-          await setEnabled(pluginId, enabled, operationService, "workspace");
+          await setEnabled(
+            pluginId,
+            enabled,
+            operationService,
+            resolvePluginEnableScope(itemById.get(pluginId)),
+          );
         })();
       },
       onInstall: (item) => void handleInstall(item),
