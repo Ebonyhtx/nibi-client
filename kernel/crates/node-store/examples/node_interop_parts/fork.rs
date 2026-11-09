@@ -2,7 +2,7 @@
 //!
 //! `fork <storage-dir> <session> <through>`：从会话分出新会话，复制到 `through`（脚本给出所选那一轮最后一条
 //! assistant），文件不动（`SessionStore::fork` 分叉对话的记录），输出新会话 id 与复制的消息数。
-use nibi_kernel_api::store::SessionFork;
+use nibi_kernel_api::store::{SessionFork, SessionForkKind};
 
 use super::*;
 
@@ -24,6 +24,7 @@ pub(super) async fn fork(dir: &str, session: &str, through: &str) -> Result<()> 
         }),
         mode: loaded.mode.unwrap_or(PermissionMode::Default),
         plan: loaded.plan,
+        kind: SessionForkKind::Fork,
     };
     let receipt = store.fork(fork).await?;
     print(&json!({"session": child.as_str(), "copied": receipt.copied}))
