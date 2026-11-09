@@ -408,6 +408,9 @@ pub(crate) async fn run(
         step.declare(&scope, &source);
         let active: Vec<_> = active
             .iter()
+            .filter(|message| {
+                wired.mode.is_on() || !crate::deferred::is_deferred_listing(message)
+            })
             .map(|message| tool_references(message, wired.mode, &prompt.tool_names))
             .collect();
         let user_context: Vec<Message> = context

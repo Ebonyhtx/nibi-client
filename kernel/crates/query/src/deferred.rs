@@ -28,6 +28,20 @@ pub(crate) struct WireTools {
     pub(crate) mode: ToolSearchMode,
 }
 
+
+/// 历史里的延迟工具清单（`deferred_tools_delta` meta 消息）。ToolSearch 关闭时这些消息引用的
+/// ToolSearch 已不在工具表里，继续发给模型会自相矛盾（「用 ToolSearch 加载」但工具不存在）。
+pub(crate) fn is_deferred_listing(message: &Message) -> bool {
+    matches!(
+        message,
+        Message::User(user)
+            if matches!(
+                &user.origin,
+                nibi_kernel_api::message::UserOrigin::Meta { source, .. }
+                    if source == "deferred_tools_delta"
+            )
+    )
+}
 /// 引用了延迟工具的 tool_result 所在的 user 消息末尾加的说明。
 const TOOL_LOADED: &str = "Tool loaded.";
 /// 没有启用延迟加载时，引用全部去掉后的占位。

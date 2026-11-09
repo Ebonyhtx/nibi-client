@@ -393,3 +393,30 @@ fn local_tool_search_turns_references_into_text() {
         }]
     );
 }
+
+/// ToolSearch 关闭时历史里的延迟工具清单要被过滤：清单说「用 ToolSearch 加载」，但工具表里
+/// 已经没有 ToolSearch，两者一起发给模型会自相矛盾。
+#[test]
+fn deferred_listings_are_recognized_for_filtering() {
+    use nibi_kernel_api::message::UserOrigin;
+
+    let listing = Message::User(UserMessage {
+        id: MessageId::new("m_listing"),
+        content: vec![ContentBlock::Text {
+            text: "The following deferred tools are now available via ToolSearch.".to_owned(),
+        }],
+        origin: UserOrigin::Meta {
+            source: "deferred_tools_delta".to_owned(),
+            origin_meta: None,
+        },
+    });
+    assert!(is_deferred_listing(&listing));
+    let human = Message::User(UserMessage {
+        id: MessageId::new("m_human"),
+        content: vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+        origin: UserOrigin::Human,
+    });
+    assert!(!is_deferred_listing(&human));
+}

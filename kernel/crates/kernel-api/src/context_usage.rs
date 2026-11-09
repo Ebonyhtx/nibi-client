@@ -60,7 +60,8 @@ pub fn breakdown(categories: &[UsageCategory]) -> Vec<ContextBreakdownItem> {
             "MCP tools" | "MCP server instructions" => "mcp_tool_schemas",
             "Skills" => "skills",
             "Memory files" => "meta_user_context",
-            "Custom agents" => "system_prompt",
+            // 自定义 agent 的定义属于「meta user context」那一类（Node 的其它），不是系统提示词。
+            "Custom agents" => "meta_user_context",
             _ => continue,
         };
         if category.tokens == 0 {
