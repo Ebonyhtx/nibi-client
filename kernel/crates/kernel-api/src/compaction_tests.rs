@@ -110,6 +110,7 @@ fn the_used_percent_is_the_context_used_formula() {
         used_tokens: 1,
         max_tokens: 2,
         window_tokens: None,
+        breakdown: Vec::new(),
     };
     assert_eq!(
         serde_json::to_value(&event).unwrap(),

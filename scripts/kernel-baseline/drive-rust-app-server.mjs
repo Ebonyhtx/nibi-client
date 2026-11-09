@@ -1059,6 +1059,20 @@ try {
     throw new Error("toolSearchMode=off still sent ToolSearch to the provider");
   }
 
+  // 上下文分项：每轮结束时 Rust 用自己的 /context 分析器发 contextWindow.breakdown。
+  const breakdownOf = () => {
+    for (const frame of frames) {
+      for (const delta of frame.frame?.payload?.deltas ?? []) {
+        const breakdown = delta.patch?.usage?.contextWindow?.breakdown;
+        if (Array.isArray(breakdown) && breakdown.length > 0) return breakdown;
+      }
+    }
+    return undefined;
+  };
+  const breakdown = await waitFor(breakdownOf, "a context usage breakdown", 10_000);
+  checks.contextBreakdownSources = [...new Set(breakdown.map((item) => item.source))];
+  console.log(`context breakdown: ${checks.contextBreakdownSources.join(",")}`);
+
   // 3.1) 集成终端 Shell 探针：新会话的 user-execution 档给 cmd，模型跑一条 Bash 工具命令。
   const shellAck = ack(
     await send("v4/command", {

@@ -109,6 +109,7 @@ async fn an_agent_notice_starts_a_turn_and_is_acked_after_the_commit() {
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
+            context_usage: None,
         },
         SessionState {
             meta: meta(),
@@ -229,6 +230,7 @@ async fn a_subagent_lifecycle_signal_becomes_a_kernel_event() {
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
+            context_usage: None,
         },
         SessionState {
             meta: meta(),

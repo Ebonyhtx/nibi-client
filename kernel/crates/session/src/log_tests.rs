@@ -225,6 +225,7 @@ async fn the_revision_counts_state_changes_only() {
         used_tokens: 1,
         max_tokens: 2,
         window_tokens: None,
+        breakdown: Vec::new(),
     });
     assert_eq!(log.revision(), 2);
     let replay: Vec<(u64, u64)> = log

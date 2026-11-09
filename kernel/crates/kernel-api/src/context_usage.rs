@@ -1,12 +1,14 @@
 //! 上下文用量（`/context`，docs/specs/rust-cli/context-usage.md）：前端的查询与内核给出的结构化结果，以及
 //! 数字的写法（`-p` 的 markdown 与 TUI 的方格图共用）。
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::env::WorkspaceRef;
 use crate::ids::SessionId;
 use crate::model::ModelSelection;
 use crate::permission::PermissionMode;
+use crate::session_api::KernelError;
 
 /// `Kernel::context_usage` 的参数。没有会话时按新会话的模型与模式算（不建会话）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -35,6 +37,51 @@ pub struct UsageCategory {
     pub name: String,
     pub tokens: u64,
     pub kind: CategoryKind,
+}
+
+/// 上下文分项（NIBI contextUsage 面板的 `contextWindow.breakdown`）：`source` 是 UI 的固定来源名，
+/// `chars` 是该项的字符量。内核的 `/context` 只按 token 估算，这里按 4 字符/token 折算；UI 只用它算
+/// 各项占比，不展示绝对字符数。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContextBreakdownItem {
+    pub source: String,
+    pub chars: u64,
+}
+
+/// 按 `UsageCategory` 的固定名字换成 UI 的分项来源。延迟工具、空闲空间与缓冲不是「已用上下文」，
+/// 不放进分项（否则占比会被空闲空间稀释）。
+pub fn breakdown(categories: &[UsageCategory]) -> Vec<ContextBreakdownItem> {
+    let mut out = Vec::new();
+    for category in categories {
+        let source = match category.name.as_str() {
+            "Messages" => "messages",
+            "System prompt" => "system_prompt",
+            "System tools" => "system_tool_schemas",
+            "MCP tools" | "MCP server instructions" => "mcp_tool_schemas",
+            "Skills" => "skills",
+            "Memory files" => "meta_user_context",
+            "Custom agents" => "system_prompt",
+            _ => continue,
+        };
+        if category.tokens == 0 {
+            continue;
+        }
+        out.push(ContextBreakdownItem {
+            source: source.to_owned(),
+            chars: category.tokens.saturating_mul(4),
+        });
+    }
+    out
+}
+
+/// 会话 actor 每轮结束后算一次分项（`/context` 的同一个分析器）；没有实现时保持旧行为。
+#[async_trait]
+pub trait ContextUsageSource: Send + Sync {
+    async fn analyze(
+        &self,
+        query: ContextUsageQuery,
+        history: &[crate::message::Message],
+    ) -> Result<ContextUsage, KernelError>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

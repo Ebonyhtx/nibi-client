@@ -346,3 +346,14 @@ impl UsageAnalyzer {
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[async_trait::async_trait]
+impl nibi_kernel_api::context_usage::ContextUsageSource for UsageAnalyzer {
+    async fn analyze(
+        &self,
+        query: ContextUsageQuery,
+        history: &[Message],
+    ) -> Result<ContextUsage, KernelError> {
+        UsageAnalyzer::analyze(self, query, history).await
+    }
+}

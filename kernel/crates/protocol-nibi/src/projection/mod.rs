@@ -92,6 +92,8 @@ pub struct Projection {
     followup: Followup,
     levels: Vec<String>,
     context: Option<(u64, u64)>,
+    /// 上下文分项（ContextUsage 面板）；由每轮结束时的 /context 分析器写入。
+    breakdown: Vec<nibi_kernel_api::context_usage::ContextBreakdownItem>,
     total: Usage,
     queue: Vec<QueuedInput>,
     pending: Vec<Value>,
@@ -242,6 +244,7 @@ impl Projection {
             levels,
             // App 的「总量」用模型的原始窗口（Node `usage.contextWindow.maxTokens`）；旧视图只带
             // 有效窗口时退回它。
+            breakdown: Vec::new(),
             context: view.context_usage.as_ref().map(|usage| {
                 (
                     usage.used_tokens,
@@ -726,7 +729,7 @@ impl Projection {
                     self.phase_patch(&mut patch);
                 }
                 if !control_only {
-                    patch.insert("usage".into(), state::usage(self.context, &self.total));
+                    patch.insert("usage".into(), state::usage(self.context, &self.total, &self.breakdown));
                 }
                 if !self.pending.is_empty() {
                     self.pending.clear();
@@ -738,9 +741,16 @@ impl Projection {
                 used_tokens,
                 max_tokens,
                 window_tokens,
+                breakdown,
             } => {
                 self.context = Some((*used_tokens, window_tokens.unwrap_or(*max_tokens)));
-                patch.insert("usage".into(), state::usage(self.context, &self.total));
+                if !breakdown.is_empty() {
+                    self.breakdown.clone_from(breakdown);
+                }
+                patch.insert(
+                    "usage".into(),
+                    state::usage(self.context, &self.total, &self.breakdown),
+                );
             }
             KernelEvent::TitleChanged { title } => {
                 self.title.clone_from(title);
@@ -1132,7 +1142,7 @@ impl Projection {
             "meta": state::meta(&self.title, true),
             "config": self.config(),
             "modelTransition": null,
-            "usage": state::usage(self.context, &self.total),
+            "usage": state::usage(self.context, &self.total, &self.breakdown),
             "queue": self.queue_state(),
             "pendingInteractions": self.pending,
             "pendingCommands": [],

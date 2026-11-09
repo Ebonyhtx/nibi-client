@@ -174,6 +174,7 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
+            context_usage: None,
         },
         SessionState {
             meta: meta(),
@@ -264,7 +265,8 @@ async fn compact_runs_as_a_turn_and_commits_one_batch() {
     assert!(events.contains(&KernelEvent::ContextUsage {
         used_tokens: 7,
         max_tokens: 100,
-        window_tokens: None
+        window_tokens: None,
+        breakdown: Vec::new()
     }));
     assert!(matches!(
         events.last(),
@@ -404,7 +406,8 @@ async fn changing_the_model_recomputes_the_context() {
             KernelEvent::ContextUsage {
                 used_tokens: 2,
                 max_tokens: 1_000,
-                window_tokens: None
+                window_tokens: None,
+                breakdown: Vec::new()
             }
         ]
     );

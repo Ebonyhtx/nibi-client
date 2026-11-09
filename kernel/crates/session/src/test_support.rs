@@ -290,6 +290,7 @@ impl Setup {
                 peers: self.peers,
                 detached: self.detached,
                 blocked: self.blocked.clone(),
+                context_usage: None,
             },
             SessionState {
                 meta,

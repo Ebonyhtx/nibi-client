@@ -189,7 +189,11 @@ pub fn config(
     value
 }
 
-pub fn usage(context: Option<(u64, u64)>, total: &Usage) -> Value {
+pub fn usage(
+    context: Option<(u64, u64)>,
+    total: &Usage,
+    breakdown: &[nibi_kernel_api::context_usage::ContextBreakdownItem],
+) -> Value {
     // 会话级缓存命中率：输入总量按「未缓存 + 缓存读 + 缓存写」算（Anthropic 的 input_tokens 不含缓存），
     // 与 Node `recordMainTurnCacheHitUsage` 同一口径。contextUsage 面板读 contextWindow.cache。
     let total_input = total
@@ -202,17 +206,23 @@ pub fn usage(context: Option<(u64, u64)>, total: &Usage) -> Value {
         None
     };
     json!({
-        "contextWindow": context.map(|(used, max)| json!({
-            "usedTokens": used,
-            "maxTokens": max,
-            "autoCompactThresholdTokens": null,
-            "cache": {
-                "inputTokens": total_input,
-                "cacheReadTokens": total.cache_read_input_tokens,
-                "cacheWriteTokens": total.cache_creation_input_tokens,
-                "hitRate": hit_rate,
-            },
-        })),
+        "contextWindow": context.map(|(used, max)| {
+            let mut window = json!({
+                "usedTokens": used,
+                "maxTokens": max,
+                "autoCompactThresholdTokens": null,
+                "cache": {
+                    "inputTokens": total_input,
+                    "cacheReadTokens": total.cache_read_input_tokens,
+                    "cacheWriteTokens": total.cache_creation_input_tokens,
+                    "hitRate": hit_rate,
+                },
+            });
+            if !breakdown.is_empty() {
+                window["breakdown"] = json!(breakdown);
+            }
+            window
+        }),
         "cumulative": {
             "inputTokens": total.input_tokens,
             "outputTokens": total.output_tokens,

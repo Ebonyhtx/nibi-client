@@ -185,6 +185,7 @@ impl Transcript {
                 used_tokens,
                 max_tokens,
                 window_tokens,
+                ..
             } => {
                 self.occupancy = Some(nibi_kernel_api::compaction::ContextOccupancy {
                     used_tokens,

@@ -102,6 +102,7 @@ pub(crate) async fn session_on_machines<E: nibi_kernel_api::testing::AllPorts + 
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
+            context_usage: None,
         },
         SessionState {
             meta: meta(),

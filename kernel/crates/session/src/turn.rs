@@ -539,6 +539,26 @@ impl Actor {
                 Message::Assistant(assistant) => assistant.usage,
                 _ => None,
             });
+        // 每轮结束算一次上下文分项（与 `/context` 同一个分析器）：contextUsage 面板的消息/系统/
+        // 工具/MCP/技能占比从这里来。分析失败只少分项，不改回合结果。
+        if let Some(source) = self.deps.context_usage.clone() {
+            let query = nibi_kernel_api::context_usage::ContextUsageQuery {
+                session: Some(self.meta.id.clone()),
+                workspace: self.meta.workspace.clone(),
+                selection: self.selection.clone(),
+                mode: self.mode(),
+            };
+            if let Ok(context) = source.analyze(query, &self.messages).await
+                && context.total_tokens > 0
+            {
+                self.log.append(KernelEvent::ContextUsage {
+                    used_tokens: context.total_tokens,
+                    max_tokens: context.raw_max_tokens,
+                    window_tokens: Some(context.raw_max_tokens),
+                    breakdown: nibi_kernel_api::context_usage::breakdown(&context.categories),
+                });
+            }
+        }
         self.log.append(KernelEvent::TurnFinished {
             turn: running.turn,
             outcome,

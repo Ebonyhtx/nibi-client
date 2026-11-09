@@ -391,6 +391,7 @@ fn the_revision_comes_from_the_events_only() {
                 used_tokens: 5,
                 max_tokens: 10,
                 window_tokens: None,
+                breakdown: Vec::new(),
             },
         ),
         0,
@@ -903,6 +904,7 @@ fn the_context_window_display_prefers_the_raw_window() {
         used_tokens: 1_020,
         max_tokens: 127_000,
         window_tokens: Some(128_000),
+        breakdown: Vec::new(),
     });
     let usage = &deltas[0]["patch"]["usage"]["contextWindow"];
     assert_eq!(usage["usedTokens"], 1_020);
@@ -1062,6 +1064,7 @@ fn the_context_window_carries_the_session_cache_hit_rate() {
             cache_creation_input_tokens: 50,
             cache_read_input_tokens: 350,
         },
+        &[],
     );
     let cache = &usage["contextWindow"]["cache"];
     assert_eq!(cache["inputTokens"], 500);
@@ -1069,7 +1072,7 @@ fn the_context_window_carries_the_session_cache_hit_rate() {
     assert_eq!(cache["cacheWriteTokens"], 50);
     assert_eq!(cache["hitRate"], 0.7);
     // 没有输入时命中率是 null，不写 0（避免把「没有数据」说成 0 命中）。
-    let empty = super::state::usage(Some((1, 1)), &Usage::default());
+    let empty = super::state::usage(Some((1, 1)), &Usage::default(), &[]);
     assert!(empty["contextWindow"]["cache"]["hitRate"].is_null());
 }
 

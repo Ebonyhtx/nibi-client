@@ -145,6 +145,8 @@ pub struct SessionDeps {
     /// transcript-and-notifications.md「Reminding an idle main agent」）：actor 在忙闲转换处
     /// 调用，钟与宿主装配在 runtime。没有时（测试 / 嵌入）没有提醒链。
     pub blocked: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowBlockedEdges>>,
+    /// 每轮结束算上下文分项的来源（`/context` 分析器）：没有时（测试/嵌入）不发分项。
+    pub context_usage: Option<Arc<dyn nibi_kernel_api::context_usage::ContextUsageSource>>,
 }
 
 /// 会话关闭的收尾（docs/specs/rust-cli/session-lifecycle.md §3.3、§3.3.1）：每个会话的关闭任务各调用一次。

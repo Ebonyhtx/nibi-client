@@ -67,3 +67,70 @@ fn the_over_limit_note_follows_the_window_source() {
         "Context is 2k tokens past the 1m-token compaction window \u{2014} run /clear to reduce usage."
     );
 }
+
+/// `/context` 的固定类别换成 UI 的分项来源；空闲/缓冲/延迟工具不进分项，token 按 4 字符折算。
+#[test]
+fn categories_map_to_the_context_panel_breakdown() {
+    let categories = [
+        UsageCategory {
+            name: "Messages".to_owned(),
+            tokens: 100,
+            kind: CategoryKind::Used,
+        },
+        UsageCategory {
+            name: "System prompt".to_owned(),
+            tokens: 10,
+            kind: CategoryKind::Used,
+        },
+        UsageCategory {
+            name: "System tools".to_owned(),
+            tokens: 5,
+            kind: CategoryKind::Used,
+        },
+        UsageCategory {
+            name: "MCP server instructions".to_owned(),
+            tokens: 2,
+            kind: CategoryKind::Used,
+        },
+        UsageCategory {
+            name: "Skills".to_owned(),
+            tokens: 1,
+            kind: CategoryKind::Used,
+        },
+        UsageCategory {
+            name: "Free space".to_owned(),
+            tokens: 9_999,
+            kind: CategoryKind::Free,
+        },
+        UsageCategory {
+            name: "MCP tools (deferred)".to_owned(),
+            tokens: 7,
+            kind: CategoryKind::Deferred,
+        },
+    ];
+    assert_eq!(
+        breakdown(&categories),
+        [
+            ContextBreakdownItem {
+                source: "messages".to_owned(),
+                chars: 400
+            },
+            ContextBreakdownItem {
+                source: "system_prompt".to_owned(),
+                chars: 40
+            },
+            ContextBreakdownItem {
+                source: "system_tool_schemas".to_owned(),
+                chars: 20
+            },
+            ContextBreakdownItem {
+                source: "mcp_tool_schemas".to_owned(),
+                chars: 8
+            },
+            ContextBreakdownItem {
+                source: "skills".to_owned(),
+                chars: 4
+            },
+        ]
+    );
+}

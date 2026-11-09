@@ -137,6 +137,7 @@ fn spawn(
             peers: crate::PeerDeps::off(),
             detached: None,
             blocked: None,
+            context_usage: None,
         },
         SessionState {
             meta: meta(),

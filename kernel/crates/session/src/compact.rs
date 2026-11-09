@@ -175,6 +175,7 @@ impl Actor {
                 used_tokens,
                 max_tokens,
                 window_tokens,
+                breakdown: Vec::new(),
             });
         }
     }

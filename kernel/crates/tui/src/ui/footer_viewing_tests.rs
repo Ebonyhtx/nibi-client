@@ -51,6 +51,7 @@ fn main_app(lang: Lang) -> App {
             used_tokens: 66_600,
             max_tokens: 180_000,
             window_tokens: None,
+            breakdown: Vec::new(),
         },
     );
     event(
