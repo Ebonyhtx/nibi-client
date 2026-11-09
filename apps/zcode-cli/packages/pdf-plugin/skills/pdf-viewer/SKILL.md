@@ -22,6 +22,10 @@ Every location is an anchor `<workspace-relative path>#<location>`: `page:N` or 
 
 After you produce a PDF with the `pdf` skill, open it with `open_document` so the user can look at the result with you.
 
+## Use these tools before shelling out
+
+`open_document` / `read_document` / `search_document` / `capture_view` are self-contained and work without host binaries. Do **not** start by reading the PDF with the generic file-read tool, `pdftoppm` / `pdfinfo`, or Python libraries (`fitz`, `pdfplumber`, `PyPDF2`): on Windows those are frequently missing, and each attempt leaves a failed-command badge in the user's transcript for no benefit. Only fall back to `pdftotext` (when present) or a Python extractor if the plugin tools cannot answer (for example a file outside the workspace), and say why.
+
 ## References from the user
 
 When the user selects text or clicks a page and chooses **Add to chat**, the next message carries context like `- paper.pdf#page:4: "Latency fell by 40 percent…"`. Treat those anchors as precise pointers: read them with `read_document` if you need more than the quoted text, and answer about exactly those places. **Ask** sends a question that already includes the anchor and the quoted text.
