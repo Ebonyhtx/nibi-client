@@ -325,6 +325,41 @@ impl Topics {
         }
     }
 
+    /// 会话被软删除：从会话列表里移除这一行（Node `disposeSession({deleted:true})` 的
+    /// `session.removed`）。只在真的删了之后发；普通关闭是纯内存优化，不发。
+    ///
+    /// 不发这一步的后果是 Host 侧的 tasks-index 永远认为会话还活着：删除命令本身成功，
+    /// 紧接着的 reconcile / 下一次快照又把它加回来（`cli_deleted=0`），归档管理里删过的
+    /// 任务原地复活、删除永远“失败”（2026-11-09 真机）。
+    pub fn remove(self: &Arc<Self>, session: &str) {
+        let topics = self.clone();
+        let session = session.to_owned();
+        self.serial.run(Box::pin(async move {
+            let mut outgoing = Vec::new();
+            {
+                let mut table = topics.table();
+                let index_topics: Vec<String> = table
+                    .keys()
+                    .filter(|topic| topic.starts_with(INDEX_PREFIX))
+                    .cloned()
+                    .collect();
+                for topic in index_topics {
+                    let Some(entry) = table.get_mut(&topic) else {
+                        continue;
+                    };
+                    if entry.rows.remove(&session).is_none() {
+                        continue;
+                    }
+                    entry.log.record(vec![
+                        json!({"op": "session.removed", "sessionId": session}),
+                    ]);
+                    outgoing.extend(topics.flush_topic(&topic, entry));
+                }
+            }
+            Self::write(&topics.context, outgoing).await;
+        }));
+    }
+
     /// 会话列表的一行变了（经单写者）：记下并发给已经开始的订阅者。
     pub fn upsert(self: &Arc<Self>, workspace: &str, row: Value) {
         let topics = self.clone();

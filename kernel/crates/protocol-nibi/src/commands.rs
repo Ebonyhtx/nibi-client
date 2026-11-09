@@ -2615,6 +2615,9 @@ async fn delete_session(server: &Server, envelope: &Envelope, revision: u64) -> 
     }
     match server.kernel.delete_session(&session_id).await {
         Ok(()) => {
+            // 列表行也要撤掉（Node `disposeSession({deleted:true})` 的 session.removed）：
+            // 只软删存储不发这一帧，Host 的 tasks-index 会按旧的列表行把会话加回来。
+            server.topics.remove(session);
             // bridge 的打开会话由 kernel 的 delete 处理（下次 open 同 id 会 NotFound）。
             // **ACK 不带 result**：Node 的 deleteSession handler 返回 undefined，Host 的
             // `commandResultSchema` 联合类型里也没有 deleteSession 这个分支。以前这里回

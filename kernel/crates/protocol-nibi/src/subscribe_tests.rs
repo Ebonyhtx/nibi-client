@@ -423,4 +423,34 @@ async fn a_draft_session_stays_out_of_the_sessions_index_until_promoted() {
         upserted["payload"]["deltas"][0]["session"]["sessionId"],
         "sess_1"
     );
+
+    // 软删除之后必须把这一行从列表里撤掉（Node `session.removed`）：只删存储不发这一帧，
+    // Host 的 tasks-index 会按旧行把会话加回来，归档管理里的删除永远“失败”。
+    server.topics.remove("sess_1");
+    let frames = wire.frames_within(300).await;
+    let removed = frames
+        .iter()
+        .find(|frame| {
+            frame["topic"] == index_topic
+                && frame["payload"]["deltas"][0]["op"] == "session.removed"
+        })
+        .expect("a deleted session should be removed from the index");
+    assert_eq!(removed["payload"]["deltas"][0]["sessionId"], "sess_1");
+
+    // 新的订阅者拿到的快照里没有它（内存行已撤、存储行由 kernel 过滤）。
+    run(subscribe(
+        &server,
+        &json!({"topic": index_topic, "connectionId": "c2"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let snapshot = wire.next_frame().await;
+    assert_eq!(snapshot["topic"], index_topic);
+    assert!(
+        snapshot["payload"]["snapshot"]["sessions"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 }
