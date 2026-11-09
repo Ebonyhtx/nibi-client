@@ -53,13 +53,17 @@ pub(crate) struct Network {
 pub(crate) async fn network(env: &EnvSnapshot, cwd: &Path) -> Result<Network> {
     // 出口顺序：显式变量 > 系统代理（Windows 的 Internet 选项 / macOS 的 scutil）> 直连。只设了
     // 系统代理（Clash 这类）时，直连模型接口与会员接口会被重置（os error 10054）。
+    //
+    // App 的「手动模式」把出口固定成「手填地址，留空即直连」（node.ts `withEffectiveEgressProxy` 同语义）：
+    // 这时环境里同样可能没有任何代理变量，不能当成「没配代理」再回落系统代理。
     let explicit = proxy(env)?;
-    let system = if explicit.is_none() {
+    let manual = proxy_mode(env) == Some(ProxyMode::Manual);
+    let system = if explicit.is_none() && !manual {
         crate::system_proxy::system_proxy()
     } else {
         None
     };
-    let proxy = explicit.or_else(|| system.as_ref().map(|found| found.url.clone()));
+    let proxy = effective_proxy(explicit, manual, system.as_ref().map(|found| found.url.clone()));
     let no_proxy = match &system {
         // 用了系统代理而环境里没写 no_proxy：用系统的忽略列表；没有列表时至少放过本机。
         Some(found) if no_proxy(env) == NoProxy::None => found
@@ -84,6 +88,42 @@ pub(crate) async fn network(env: &EnvSnapshot, cwd: &Path) -> Result<Network> {
         },
         warnings,
     })
+}
+
+/// App 的代理方式（Host spawn agent 时注入；CLI/TUI 不设）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ProxyMode {
+    System,
+    /// 只用手填地址；留空表示直连，**不**回落系统代理。
+    Manual,
+}
+
+/// `NIBI_HTTP_PROXY_MODE`（去空白、不分大小写）；不认识的值按没设。
+pub(crate) fn proxy_mode(env: &EnvSnapshot) -> Option<ProxyMode> {
+    match var(env, "NIBI_HTTP_PROXY_MODE")
+        .map(trim)
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        Some("manual") => Some(ProxyMode::Manual),
+        Some("system") => Some(ProxyMode::System),
+        _ => None,
+    }
+}
+
+/// 显式地址 > 系统地址 > 直连；手动模式在显式地址缺席时直接返回 None。
+pub(crate) fn effective_proxy(
+    explicit: Option<String>,
+    manual: bool,
+    system: Option<String>,
+) -> Option<String> {
+    if explicit.is_some() {
+        return explicit;
+    }
+    if manual {
+        return None;
+    }
+    system
 }
 
 /// 按名字取变量。Windows 的变量名不分大小写（Node 与 Bun 的 `process.env` 相同；F58 起是快照唯一的规则）。

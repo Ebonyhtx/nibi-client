@@ -12,6 +12,7 @@ use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::env_path::git_bash_spelling;
 use nibi_kernel_api::env_shell::{BackgroundKind, CwdScope, ShellNotice};
 use nibi_kernel_api::ids::{OperationId, SessionId};
+use nibi_kernel_api::session_prefs::ShellDialect;
 use nibi_kernel_proc::ledger::{Containment, Isolation, Ledger, Purpose, Tracked};
 use nibi_kernel_proc::shell::single_quote;
 use nibi_kernel_proc::tree::Shutdown;
@@ -38,7 +39,10 @@ pub(crate) struct Plan {
     pub cwd: PathBuf,
     /// `StartCommand::cwd`：越界时重置到这里。
     pub origin: PathBuf,
+    /// 实际执行的 shell（`bash.exe` 或用户选的 `cmd.exe`）。
     pub bash: PathBuf,
+    /// shell 的语法方言：cmd 走 `cmd /d /s /c`，不套 POSIX 函数 prelude。
+    pub dialect: ShellDialect,
     pub env: BTreeMap<String, String>,
     /// 内嵌搜索工具的 prelude（embedded-search.md §8）；hook 命令与没有内置时是 None。
     pub prelude: Option<String>,
@@ -103,6 +107,29 @@ pub(crate) fn script(
     }
 }
 
+/// 交给 `cmd.exe /d /s /c` 的一行脚本（Node `createWindowsCmdCwdCaptureCommand` 的同形）：
+/// 多行命令用 `&` 串成一行（cmd /c 的多行只执行第一行），成功时 `cd` 把当前目录写进 cwd 文件，
+/// `exit /b` 保留原退出码。`%ERRORLEVEL%` 在解析期展开，不能用；`if not errorlevel 1` 是执行期取值。
+pub(crate) fn cmd_script(command: &str, cwd_file: Option<&Path>) -> String {
+    let command = command
+        .trim_end_matches(['\r', '\n'])
+        .replace("\r\n", "\n")
+        .replace('\n', " & ");
+    let body = match cwd_file {
+        Some(file) => format!(
+            "{command} & if not errorlevel 1 cd > {} & exit /b",
+            cmd_quote(&file.to_string_lossy())
+        ),
+        None => format!("{command} & exit /b"),
+    };
+    format!("@echo off & {body}")
+}
+
+/// cmd 的引号：值里的 `"` 写成 `""`（Node `cmdQuote`）。
+fn cmd_quote(value: &str) -> String {
+    format!("\"{}\"", value.replace('"', "\"\""))
+}
+
 #[expect(
     clippy::disallowed_methods,
     reason = "env-local 是进程 IO 的入口：输出文件在执行侧（docs/specs/rust-cli/README.md §4）"
@@ -156,22 +183,55 @@ pub(crate) async fn spawn(
     .map_err(|error| io(&error))?;
     let cwd_file = matches!(request.cwd_scope, CwdScope::Session { .. }).then_some(&*plan.cwd_file);
     let hook = request.hook.is_some();
-    let text = script(
-        &request.command,
-        cwd_file,
-        hook,
-        &plan.bash,
-        plan.prelude.as_deref(),
-    );
     let tag = format!("NIBI_SBX_{}", request.task);
-    let launch = sandbox::launch(
-        request.sandbox.as_ref(),
-        backend,
-        &plan.bash,
-        &text,
-        &plan.cwd,
-        &tag,
-    )?;
+    let launch = match plan.dialect {
+        // Windows 的 cmd：Node 用 `spawn(command, {shell: cmd})`，等价于 `cmd /d /s /c <command>`。
+        // 脚本里用 `&` 把多行压成一行（cmd /c 的多行只执行第一行），成功时 `cd` 把目录写进 cwd 文件。
+        ShellDialect::Cmd => {
+            if !cfg!(windows) {
+                return Err(EnvError::Unsupported {
+                    what: "cmd.exe commands outside Windows".to_owned(),
+                });
+            }
+            if request
+                .sandbox
+                .as_ref()
+                .is_some_and(|policy| policy.required)
+            {
+                return Err(EnvError::PermissionDenied {
+                    message: "This call must run inside a fully confining sandbox and none is available here. The command was not run.".to_owned(),
+                });
+            }
+            let text = cmd_script(&request.command, cwd_file);
+            sandbox::Launch {
+                program: plan.bash.clone(),
+                args: vec![
+                    "/d".to_owned(),
+                    "/s".to_owned(),
+                    "/c".to_owned(),
+                    text,
+                ],
+                mounts: None,
+            }
+        }
+        ShellDialect::GitBash => {
+            let text = script(
+                &request.command,
+                cwd_file,
+                hook,
+                &plan.bash,
+                plan.prelude.as_deref(),
+            );
+            sandbox::launch(
+                request.sandbox.as_ref(),
+                backend,
+                &plan.bash,
+                &text,
+                &plan.cwd,
+                &tag,
+            )?
+        }
+    };
     let mut command = nibi_kernel_proc::command(&launch.program);
     command
         .args(&launch.args)

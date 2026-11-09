@@ -218,14 +218,32 @@ impl Server {
         Ok(live)
     }
 
-    /// 冷打开时问 Host 一轮启动偏好，并应用本内核有开关的两项
-    /// （Node `resolveSessionStartupPreferences` 的 `runtime-materialization` 档）。
+    /// 冷打开时问 Host 两档启动偏好并应用：`runtime-materialization`（AUQ、附加目录、工具搜索、
+    /// 增强搜索）与 `user-execution`（集成终端 Shell，Node 也只在这个档位给）。两档并发、各自超时；
     /// 请求失败/超时用内核缺省，不拦打开。
     async fn apply_host_preferences(&self, session: &SessionId, live: &Arc<Bridged<Live>>) {
-        let Some(value) = crate::runtime_preferences::request(&self.context, session).await else {
-            return;
-        };
-        let preferences = crate::runtime_preferences::parse(&value);
+        let (materialization, execution) = tokio::join!(
+            crate::runtime_preferences::request_scope(
+                &self.context,
+                session,
+                crate::runtime_preferences::MATERIALIZATION_SCOPE,
+            ),
+            crate::runtime_preferences::request_scope(
+                &self.context,
+                session,
+                crate::runtime_preferences::USER_EXECUTION_SCOPE,
+            ),
+        );
+        let mut preferences = materialization
+            .as_ref()
+            .map(crate::runtime_preferences::parse)
+            .unwrap_or_default();
+        if let Some(shell) = execution
+            .as_ref()
+            .and_then(crate::runtime_preferences::parse_execution_shell)
+        {
+            preferences.execution.integrated_shell = Some(shell);
+        }
         if let Some(enabled) = preferences.auto_resolution {
             live.sink.set_auto_resolution_enabled(enabled).await;
         }
@@ -241,6 +259,29 @@ impl Server {
                 error = %error,
                 "the kernel refused the additional directories from the host"
             );
+        }
+        // 设置页的三项按会话固定：分叉/辅助对话在建会话时已从父会话继承，Host 的全局值不再覆盖；
+        // 其余（新建、冷恢复）按物化这一刻的 Host 值。和 Node 一样，当前会话不受之后的设置变更影响。
+        if !preferences.execution.is_empty() {
+            let inherited = live.sink.has_parent()
+                && self
+                    .kernel
+                    .session_execution_preferences(session)
+                    .await
+                    .is_some();
+            if !inherited
+                && let Err(error) = self
+                    .kernel
+                    .set_session_execution_preferences(session, preferences.execution)
+                    .await
+            {
+                tracing::warn!(
+                    event = "protocol.runtime_preferences.execution_failed",
+                    session = session.as_str(),
+                    error = %error,
+                    "the kernel did not store the session execution preferences"
+                );
+            }
         }
     }
 

@@ -78,6 +78,7 @@ describe("buildAgentRuntimeEnv", () => {
       HTTPS_PROXY: "http://127.0.0.1:7890",
       ALL_PROXY: "http://127.0.0.1:7890",
       NIBI_HTTP_PROXY: "http://127.0.0.1:7890",
+      NIBI_HTTP_PROXY_MODE: "system",
       NO_PROXY: "localhost,127.0.0.1",
       no_proxy: "localhost,127.0.0.1",
       NIBI_NO_PROXY: "localhost,127.0.0.1",
@@ -92,6 +93,7 @@ describe("buildAgentRuntimeEnv", () => {
       HTTPS_PROXY: "http://127.0.0.1:7890",
       ALL_PROXY: "http://127.0.0.1:7890",
       NIBI_HTTP_PROXY: "http://127.0.0.1:7890",
+      NIBI_HTTP_PROXY_MODE: "system",
     });
   });
 
@@ -99,8 +101,16 @@ describe("buildAgentRuntimeEnv", () => {
     expect(
       buildAgentRuntimeEnv({ httpProxy: undefined, caCertPath: " /tmp/root-ca.pem " }),
     ).toEqual({
+      NIBI_HTTP_PROXY_MODE: "system",
       NODE_EXTRA_CA_CERTS: "/tmp/root-ca.pem",
       NIBI_AGENT_CA_CERT: "/tmp/root-ca.pem",
+    });
+  });
+
+  it("marks manual mode even when the address is empty (direct, never the system proxy)", () => {
+    // Rust 内核只有这个键能区分「手动留空 = 直连」与「系统没配代理」，值必须始终存在。
+    expect(buildAgentRuntimeEnv({ httpProxy: "", httpProxyMode: "manual" })).toEqual({
+      NIBI_HTTP_PROXY_MODE: "manual",
     });
   });
 });

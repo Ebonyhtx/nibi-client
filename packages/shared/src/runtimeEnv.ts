@@ -1,6 +1,11 @@
 export const NIBI_RUNTIME_ENV_KEY = "NIBI_RUNTIME_ENV";
 export const NIBI_HTTP_PROXY_ENV_KEY = "NIBI_HTTP_PROXY";
 export const NIBI_NO_PROXY_ENV_KEY = "NIBI_NO_PROXY";
+/**
+ * App 的代理方式（`system` / `manual`）。Node 内核只按 spawn 时已解析的代理变量工作，不读这个键；
+ * Rust 内核用它区分「手动模式留空 = 直连」与「没配代理 = 跟随系统」——两者在环境里都没有代理变量。
+ */
+export const NIBI_HTTP_PROXY_MODE_ENV_KEY = "NIBI_HTTP_PROXY_MODE";
 /** Desktop Host 只向 desktop-attached remote server 传递一次的网络配置。 */
 export const NIBI_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY =
   "NIBI_REMOTE_RUNTIME_NETWORK_AUTHORITY";
@@ -55,6 +60,8 @@ const SANITIZED_RUNTIME_ENV_KEYS = [
   "REQUESTS_CA_BUNDLE",
   "CURL_CA_BUNDLE",
   "GIT_SSL_CAINFO",
+  // Host 在 spawn 时按设置重新注入；不让用户 shell 里的同名值漏给 agent。
+  NIBI_HTTP_PROXY_MODE_ENV_KEY,
   NIBI_REMOTE_RUNTIME_NETWORK_AUTHORITY_ENV_KEY,
   NIBI_REMOTE_HTTP_PROXY_ENV_KEY,
   NIBI_REMOTE_HTTP_PROXY_MODE_ENV_KEY,

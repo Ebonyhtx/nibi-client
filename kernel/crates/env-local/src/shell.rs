@@ -19,7 +19,7 @@ mod watch;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 use std::time::Duration;
 
 use futures_util::stream::BoxStream;
@@ -32,6 +32,7 @@ use nibi_kernel_api::env_shell::{
     BackgroundKind, BackgroundStop, BackgroundTask, CwdScope, ShellKind, ShellNotice, ShellState,
 };
 use nibi_kernel_api::ids::{OperationId, SessionId, ShellTaskId};
+use nibi_kernel_api::session_prefs::{SessionExecutionPreferences, ShellDialect};
 use nibi_kernel_proc::ledger::Ledger;
 use tokio::sync::watch as signal;
 use tokio_util::sync::CancellationToken;
@@ -190,11 +191,41 @@ pub(crate) struct Shared {
     state: Mutex<State>,
     /// 任何会话有新通知时递增，通知流据此醒来再查自己的会话。
     pub notices: signal::Sender<u64>,
+    /// 会话物化时 Host 给的执行偏好（工具搜索那一项在 query 侧读，Shell 与增强搜索在这里读）。
+    execution: RwLock<HashMap<SessionId, SessionExecutionPreferences>>,
 }
 
 impl Shared {
     pub(crate) fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn execution(&self, session: &SessionId) -> Option<SessionExecutionPreferences> {
+        self.execution
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(session)
+            .cloned()
+    }
+
+    fn set_execution(&self, session: &SessionId, preferences: SessionExecutionPreferences) {
+        self.execution
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session.clone(), preferences);
+    }
+
+    fn inherit_execution(&self, parent: &SessionId, child: &SessionId) {
+        if let Some(preferences) = self.execution(parent) {
+            self.set_execution(child, preferences);
+        }
+    }
+
+    fn forget_execution(&self, session: &SessionId) {
+        self.execution
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
     }
 }
 
@@ -249,6 +280,7 @@ impl Shells {
             shared: Arc::new(Shared {
                 state: Mutex::default(),
                 notices: signal::channel(0).0,
+                execution: RwLock::default(),
             }),
             limit: OUTPUT_LIMIT,
             telemetry: None,
@@ -309,14 +341,25 @@ impl Shells {
             });
         }
         // ws 来源的 monitor 不起进程（工作线 F83），不需要 shell。
-        let bash = if request.socket.is_some() {
-            PathBuf::new()
-        } else if request.hook.is_some() {
-            hook_shell(&self.config)?
-        } else {
-            self.config.bash.clone().ok_or_else(no_shell)?
-        };
         let session = session_of(&context);
+        // 会话物化时 Host 给的偏好：集成终端 Shell 与「增强 Find 和 Grep」。hook 命令固定在 Git Bash /
+        // POSIX 上跑（hooks 是 POSIX 脚本），只有 Bash 工具与 `!` 命令用会话选择。
+        let execution = self.shared.execution(&session);
+        let (bash, dialect) = if request.socket.is_some() {
+            (PathBuf::new(), ShellDialect::GitBash)
+        } else if request.hook.is_some() {
+            (hook_shell(&self.config)?, ShellDialect::GitBash)
+        } else if let Some(shell) = execution
+            .as_ref()
+            .and_then(|preferences| preferences.integrated_shell.as_ref())
+        {
+            (PathBuf::from(&shell.path), shell.dialect)
+        } else {
+            (
+                self.config.bash.clone().ok_or_else(no_shell)?,
+                ShellDialect::GitBash,
+            )
+        };
         let origin = PathBuf::from(request.cwd.as_str());
         let cwd = match &request.cwd_scope {
             CwdScope::Pinned => origin.clone(),
@@ -337,21 +380,39 @@ impl Shells {
             })?;
         let dir = self.task_outputs(&session);
         let shell_name = bash.to_string_lossy().into_owned();
-        let mut env = environ::project(&self.config.env, Some(&shell_name));
+        // cmd 的 shell 变量不是 POSIX 的 `$SHELL`（Node 的 cmd provider 也不写 overlay）；保持继承值。
+        let mut env = environ::project(
+            &self.config.env,
+            (dialect != ShellDialect::Cmd).then_some(shell_name.as_str()),
+        );
         // 执行器的服务端按客户端实例填的变量（远端执行 F96，remote-exec.md §23.5）：加在投影之后，`None` 是去掉。
         environ::apply(&mut env, &request.env);
         if let Some(hook) = &request.hook {
             env.extend(hook.env.clone());
         }
         // 内嵌搜索工具的 prelude 只给 Bash 工具与 `!` 命令（hook 命令不加 prelude、不设本进程路径的变量）；
-        // 环境的白名单投影不变，这个变量单独加。
+        // 环境的白名单投影不变，这个变量单独加。cmd 没有 POSIX 函数 prelude（Node
+        // `supportsPosixShellFunctionPrelude` 同样跳过 cmd）。
+        let find_and_grep = execution
+            .as_ref()
+            .and_then(|preferences| preferences.native_search_enhancements)
+            .unwrap_or_else(|| {
+                self.config
+                    .embedded
+                    .as_ref()
+                    .is_some_and(|search| search.find_and_grep)
+            });
         let prelude = match (&request.hook, &self.config.embedded) {
-            (None, Some(search)) => {
+            (None, Some(search)) if dialect != ShellDialect::Cmd => {
+                let search = EmbeddedSearch {
+                    executable: search.executable.clone(),
+                    find_and_grep,
+                };
                 env.insert(
                     embedded::EXECPATH.to_owned(),
                     search.executable.to_string_lossy().into_owned(),
                 );
-                Some(embedded::prelude(search, cfg!(windows)))
+                Some(embedded::prelude(&search, cfg!(windows)))
             }
             _ => None,
         };
@@ -369,6 +430,7 @@ impl Shells {
             origin,
             env,
             bash,
+            dialect,
             prelude,
         };
         if let Some(socket) = request.socket.clone() {
@@ -586,6 +648,7 @@ impl Shells {
         if !forget {
             return;
         }
+        self.shared.forget_execution(session);
         let mut state = self.shared.state();
         for running in state.commands.values() {
             if &running.session == session {
@@ -593,6 +656,30 @@ impl Shells {
             }
         }
         state.sessions.remove(session);
+    }
+
+    /// 会话物化时 Host 给的三项执行偏好（`NIBI session/requestRuntimePreferences`）。
+    pub(crate) fn set_session_execution_preferences(
+        &self,
+        session: &SessionId,
+        preferences: SessionExecutionPreferences,
+    ) {
+        self.shared.set_execution(session, preferences);
+    }
+
+    pub(crate) fn session_execution_preferences(
+        &self,
+        session: &SessionId,
+    ) -> Option<SessionExecutionPreferences> {
+        self.shared.execution(session)
+    }
+
+    pub(crate) fn inherit_session_execution_preferences(
+        &self,
+        parent: &SessionId,
+        child: &SessionId,
+    ) {
+        self.shared.inherit_execution(parent, child);
     }
 }
 

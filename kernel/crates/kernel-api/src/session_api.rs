@@ -912,6 +912,24 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 记下 Host 在会话物化时给的执行偏好（NIBI 设置页的工具搜索、增强 Find/Grep、集成 Shell）。
+    /// 只影响这个会话之后的回合；缺省什么都不做。
+    async fn set_session_execution_preferences(
+        &self,
+        _session: &SessionId,
+        _preferences: crate::session_prefs::SessionExecutionPreferences,
+    ) -> Result<(), KernelError> {
+        Ok(())
+    }
+
+    /// 这个会话已经记下的执行偏好（协议层判断子会话是否已有继承值）。缺省 None。
+    async fn session_execution_preferences(
+        &self,
+        _session: &SessionId,
+    ) -> Option<crate::session_prefs::SessionExecutionPreferences> {
+        None
+    }
+
     /// NIBI `createSession.permissionScope: "session"`（群协作会话）：创建后把
     /// `{version:1, scope:"session", mode:"build"}` 写进会话行，并让这个已打开的会话换用它自己的
     /// 规则集（Node `createSessionRecordForV4` 的 `updateSession` + 每次判决读会话行）。

@@ -70,6 +70,8 @@ pub struct Live {
     handle: Weak<dyn SessionHandle>,
     /// 辅助对话不进任务列表（Node `isTaskListSessionType` 不含 selection_side_chat）。
     side_chat: bool,
+    /// 有父会话（分叉 / 辅助对话 / 导入）：执行偏好已在建会话时从父会话继承，不再问 Host 覆盖。
+    has_parent: bool,
     /// 自动结束计时任务的唤醒信号（登记、回答、snooze、偏好变化都叫一次）。
     auto_resolution_wake: Arc<tokio::sync::Notify>,
     /// 本会话在会话桥里的句柄：计时任务要用它在自己的泵任务里排工作。
@@ -103,6 +105,7 @@ impl Live {
             workspace: view.meta.workspace.root.as_str().to_owned(),
             created_at: view.meta.created_at_ms,
             side_chat: view.meta.kind == SessionKind::SelectionSideChat,
+            has_parent: view.meta.parent.is_some(),
             state: Mutex::new(State {
                 projection: Projection::from_view_with_auto_resolution(
                     view,
@@ -134,6 +137,11 @@ impl Live {
 
     fn state(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// 有父会话：执行偏好已在建会话时继承，Host 的物化偏好不再覆盖。
+    pub(crate) fn has_parent(&self) -> bool {
+        self.has_parent
     }
 
     pub fn topic(&self) -> String {

@@ -31,6 +31,13 @@ const binArgs = isNode
 // Rust 内核的用户根从 2026-10-29 起与 Node 共用 `~/.nibi`（nibi-platform `DOT_DIR`），
 // 驱动脚本曾按旧 `.zcode` 落 provider_config.json，导致会话拿不到模型、整条对拍超时。
 const dotDir = ".nibi";
+// 设置页三项的执行探针（NIBI 2026-11 对齐）：
+// - `NIBI_DRIVE_SHELL=git-bash` 让 user-execution 档给 Git Bash（默认给 cmd），
+// - `NIBI_DRIVE_NATIVE_SEARCH=off` 让 materialization 档关掉增强 Find/Grep。
+const shellDialect = process.env.NIBI_DRIVE_SHELL === "git-bash" ? "git-bash" : "cmd";
+const gitBashPath =
+  process.env.NIBI_DRIVE_GIT_BASH || "C:\\Program Files\\Git\\bin\\bash.exe";
+const nativeSearchEnabled = process.env.NIBI_DRIVE_NATIVE_SEARCH !== "off";
 const phases = (args.find((a) => a.startsWith("--phases")) ?? "--phases=create,hookReview,rename,discardSharedContext,switchModel,switchMode,fork,edit,retry,compact,rejections,storagePrepare,permission,question,planApproval,permissionScope")
   .split("=")[1]
   .split(",");
@@ -524,6 +531,89 @@ const server = createServer((req, res) => {
       });
       return;
     }
+    // 集成终端 Shell 探针（`user-execution` 给了 cmd）：让模型跑一条 Bash 工具命令。
+    // cmd 的 echo 不需要 POSIX 语法；结果里的 CMD-PROBE 证明命令确实由会话选的 shell 执行。
+    if (
+      toolResult === null &&
+      lastUserText.includes("SHELL-PROBE") &&
+      tools.includes("Bash")
+    ) {
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_shell_1",
+                    type: "function",
+                    function: {
+                      name: "Bash",
+                      arguments: JSON.stringify({
+                        command: "echo CMD-PROBE",
+                        description: "shell probe",
+                      }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
+    // 增强 Find/Grep 探针：`type grep` 在 Git Bash 里是函数（内嵌 ugrep）还是系统二进制。
+    if (
+      toolResult === null &&
+      lastUserText.includes("NATIVE-SEARCH-PROBE") &&
+      tools.includes("Bash")
+    ) {
+      res.write(
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: {
+                role: "assistant",
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_drive_native_search_1",
+                    type: "function",
+                    function: {
+                      name: "Bash",
+                      arguments: JSON.stringify({
+                        command: "echo NATIVE-SEARCH-MARKER; type grep",
+                        description: "native search probe",
+                      }),
+                    },
+                  },
+                ],
+              },
+              index: 0,
+            },
+          ],
+          id: "drive",
+          object: "chat.completion.chunk",
+        })}\n\n`,
+      );
+      res.write(
+        `data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "tool_calls", index: 0 }], id: "drive", object: "chat.completion.chunk" })}\n\n`,
+      );
+      res.write("data: [DONE]\n\n");
+      res.end();
+      return;
+    }
     // 新回合（还没有 assistant 消息）、工具表里有会话级 MCP 工具：要求调用它一次。工具结果回来后的
     // 请求（roles 里有 tool）回正文。标题生成这类请求没有工具，不会触发。
     const freshTurn = !messages.some((message) => message.role === "assistant");
@@ -719,8 +809,29 @@ function parseLine(line) {
             result: {
               askUserQuestionAutoResolutionEnabled: true,
               memoryEnabled: false,
-              nativeSearchEnhancementsEnabled: true,
+              nativeSearchEnhancementsEnabled: nativeSearchEnabled,
               toolSearchMode: "off",
+              // `user-execution` 档才给集成终端 Shell（Node 的同一档位语义）；探针按 env 选 cmd / Git Bash。
+              ...(value.params?.scope === "user-execution"
+                ? {
+                    integratedTerminalShell:
+                      shellDialect === "git-bash"
+                        ? {
+                            mode: "shell",
+                            dialect: "git-bash",
+                            id: "git-bash:probe",
+                            label: "Git Bash",
+                            path: gitBashPath,
+                          }
+                        : {
+                            mode: "shell",
+                            dialect: "cmd",
+                            id: "cmd:probe",
+                            label: "CMD",
+                            path: process.env.ComSpec || "cmd.exe",
+                          },
+                  }
+                : {}),
             },
           }
         : { error: { code: -32601, message: `drive: ${value.method} not supported` } };
@@ -933,11 +1044,98 @@ try {
   await waitFor(() => assistantReplyRow(), "assistant reply row", 60_000);
   checks.sendTextStatus = send1.result?.status;
   checks.additionalDirInPrompt = REQUESTS.some((request) => request.mentionsExtraDir);
+  // NIBI 设置页「工具搜索 = 关闭」：Host 的 runtime preferences 里 toolSearchMode=off，内核必须
+  // 不发 ToolSearch、全部工具内联（Node 的同一档位语义）。
+  checks.toolSearchOffRemovesTool = REQUESTS.every(
+    (request) => !request.tools.includes("ToolSearch"),
+  );
   console.log(
-    `sendText: assistant reply visible, frames=${frames.length}; extra dir in prompt=${checks.additionalDirInPrompt}`,
+    `sendText: assistant reply visible, frames=${frames.length}; extra dir in prompt=${checks.additionalDirInPrompt}; tool-search-off=${checks.toolSearchOffRemovesTool}`,
   );
   if (!checks.additionalDirInPrompt) {
     throw new Error("createSession.additionalDirectories never reached the prompt");
+  }
+  if (!checks.toolSearchOffRemovesTool) {
+    throw new Error("toolSearchMode=off still sent ToolSearch to the provider");
+  }
+
+  // 3.1) 集成终端 Shell 探针：新会话的 user-execution 档给 cmd，模型跑一条 Bash 工具命令。
+  const shellAck = ack(
+    await send("v4/command", {
+      commandId: "0197d3f0-0000-7000-8000-00000000000b",
+      clientId: "drive",
+      sessionId: null,
+      type: "createSession",
+      payload: {
+        workspaceId: workspace,
+        firstInput: { text: "SHELL-PROBE", mode: "yolo" },
+      },
+      issuedAt: Date.now(),
+    }),
+    "createSession(shell probe)",
+  );
+  const shellSessionId = shellAck.result?.sessionId;
+  if (!shellSessionId) {
+    throw new Error(`shell probe createSession missing sessionId: ${JSON.stringify(shellAck)}`);
+  }
+  await send("v4/conversation/subscribe", {
+    topic: `conversation/${shellSessionId}`,
+    connectionId: "drive",
+    visibility: "foreground",
+    clientMode: "desktop-continuous",
+  });
+  await waitFor(
+    () => TOOL_RESULTS.some((text) => text.includes("CMD-PROBE")),
+    "the cmd shell probe result",
+    60_000,
+  );
+  checks.cmdShellProbe = true;
+  console.log("shell probe: the Bash tool ran through the user-selected cmd.exe");
+
+  // 3.2) 增强 Find/Grep 探针（只在 Git Bash 下有意义）：`type grep` 是函数（内嵌 ugrep）还是系统二进制。
+  if (shellDialect === "git-bash") {
+    const nativeAck = ack(
+      await send("v4/command", {
+        commandId: "0197d3f0-0000-7000-8000-00000000000c",
+        clientId: "drive",
+        sessionId: null,
+        type: "createSession",
+        payload: {
+          workspaceId: workspace,
+          firstInput: { text: "NATIVE-SEARCH-PROBE", mode: "yolo" },
+        },
+        issuedAt: Date.now(),
+      }),
+      "createSession(native search probe)",
+    );
+    const nativeSessionId = nativeAck.result?.sessionId;
+    if (!nativeSessionId) {
+      throw new Error(
+        `native search probe createSession missing sessionId: ${JSON.stringify(nativeAck)}`,
+      );
+    }
+    await send("v4/conversation/subscribe", {
+      topic: `conversation/${nativeSessionId}`,
+      connectionId: "drive",
+      visibility: "foreground",
+      clientMode: "desktop-continuous",
+    });
+    const probe = await waitFor(
+      () => TOOL_RESULTS.find((text) => text.includes("NATIVE-SEARCH-MARKER")),
+      "the native search probe result",
+      60_000,
+    );
+    const isFunction = probe.includes("grep is a function");
+    checks.nativeSearchProbeIsFunction = isFunction;
+    checks.nativeSearchMatchesSetting = isFunction === nativeSearchEnabled;
+    console.log(
+      `native search probe: enabled=${nativeSearchEnabled} grep-is-function=${isFunction}`,
+    );
+    if (!checks.nativeSearchMatchesSetting) {
+      throw new Error(
+        `nativeSearchEnhancementsEnabled=${nativeSearchEnabled} but the Bash prelude ${isFunction ? "wrapped" : "did not wrap"} grep`,
+      );
+    }
   }
 
 

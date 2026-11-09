@@ -265,13 +265,18 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 ## 8. 会话启动偏好（已补）
 
 - Node：会话物化时 `session/requestRuntimePreferences`（`runtime-materialization` 档，15 s），
-  回答里有 AUQ 自动结束开关、附加工作目录、memory/工具搜索等。
-- Rust：冷打开时问一次，应用本内核有会话级开关的两项（AUQ 自动结束、附加工作目录）；没有 Host 或
-  对端不认识这个方法时回退到内核缺省（Node 对 `-32601`/`-32020` 的兼容回退同一姿态）。只有 Host 侧的
-  stdio 服务打开这个请求（测试与纯 CLI 不打开，否则每次冷打开都要等一次超时）。
-- 未建模的偏好（`memoryEnabled` / `toolSearchMode` / `subagentRuntimeConfigEnabled` /
-  `nativeSearchEnhancementsEnabled`）在内核里没有会话级开关，不记一份永远不生效的偏好。
-- 测试：`runtime_preferences` 3 条（应用、无 Host 回退、字段解析）。
+  回答里有 AUQ 自动结束开关、附加工作目录、memory/工具搜索/增强搜索；第一次跑 Bash 前再问一次
+  `user-execution` 档拿「集成终端 Shell」。
+- Rust：冷打开时并发问两档，应用本内核有会话级开关的：AUQ 自动结束、附加工作目录、工具搜索
+  （`off` 关闭 / `local`·`auto` 打开，产品路径固定本地）、增强 Find/Grep（Bash 的 `find`/`grep`
+  是否映射到内嵌 bfs/ugrep）、集成终端 Shell（Git Bash 或 cmd，cmd 走 `cmd /d /s /c`）。偏好按会话
+  存在本机执行环境的表里，分叉/辅助对话/子代理从父会话继承；当前会话不随后续设置变更改变。
+  没有 Host 或对端不认识这个方法时回退到内核缺省（Node 对 `-32601`/`-32020` 的兼容回退同一姿态）。
+  只有 Host 侧的 stdio 服务打开这个请求（测试与纯 CLI 不打开，否则每次冷打开都要等一次超时）。
+- 仍未建模的偏好：`memoryEnabled` / `subagentRuntimeConfigEnabled`（memory 只有入站命令上的字段，
+  子代理配置在内核依赖里闭环）。
+- 测试：`runtime_preferences` 5 条（应用三项 + Shell、无 Host 回退、字段解析、Shell 只认显式选择），
+  `env-local` 2 条（偏好按会话/继承/forget、cmd 脚本），`query` 1 条（三档映射）。
 
 ## 9. 会话级 MCP
 
@@ -425,15 +430,18 @@ Node 侧是 `packages/shared/src/node/systemProxy.ts`：WinINET 注册表 / macO
 Rust 原来只有 Windows（`system_proxy()` 在非 Windows 直接返回 `None`），macOS 上「只开 Clash 系统代理、
 没把端口填进客户端」的用户会登录、会员同步、模型请求全部直连失败（darwin 的 CLI 包已发布）。
 
-**作用范围**：只有独立运行的 CLI/TUI 读 OS 设置。桌面版由 Host 在 spawn agent 时把设置页/系统代理
-折算成 `NIBI_HTTP_PROXY` / `NIBI_NO_PROXY` 注入（`packages/services/src/runtime-tools/agentProxyEnv.ts`
-的 `buildAgentRuntimeEnv`，模式语义见 `shared/node/egressProxy.ts`：`manual` 只用手填地址、留空即直连；
-`system` 用 Host 探测到的系统代理），显式变量优先——所以桌面版里内核不会再读一次 OS 代理。
+**作用范围**：独立运行的 CLI/TUI 读 OS 设置。桌面版由 Host 在 spawn agent 时把设置页/系统代理
+折算成 `NIBI_HTTP_PROXY` / `NIBI_NO_PROXY` / `NIBI_HTTP_PROXY_MODE` 注入
+（`packages/services/src/runtime-tools/agentProxyEnv.ts` 的 `buildAgentRuntimeEnv`，模式语义见
+`shared/node/egressProxy.ts`：`manual` 只用手填地址、留空即直连；`system` 用 Host 探测到的系统代理）。
 
-- 出口顺序不变：显式变量（`NIBI_HTTP_PROXY` / `https_proxy` …）> 系统代理 > 直连
-  （`kernel/crates/cli/src/network.rs`）。
-- 想「开着系统代理但终端直连」：`NIBI_NO_PROXY=*`（Node 规则，`*` 命中所有主机）或 `NO_PROXY=*`。
-  注意把 `http_proxy` 设成空值不等于直连——空值按未设置处理，仍会回落到系统代理。
+- 出口顺序：显式变量（`NIBI_HTTP_PROXY` / `https_proxy` …）> 系统代理 > 直连
+  （`kernel/crates/cli/src/network.rs`）。`NIBI_HTTP_PROXY_MODE=manual` 时跳过「系统代理」这一步：
+  没有显式地址就是直连（这是「手动模式留空」与「没配代理」在环境里的唯一区别）。
+- 想「开着系统代理但终端直连」：桌面版把代理方式切到手动、地址留空；CLI/TUI 用
+  `NIBI_HTTP_PROXY_MODE=manual`，或 `NIBI_NO_PROXY=*`（Node 规则，`*` 命中所有主机）/
+  `NO_PROXY=*`。只把 `http_proxy` 设成空值不等于直连——空值按未设置处理，仍会回落到系统代理
+  （`manual` 模式除外）。
 - Windows：`HKCU\…\Internet Settings` 的 `ProxyEnable` / `ProxyServer` / `ProxyOverride`（原有）。
 - macOS：`scutil --proxy`（与「系统设置 → 网络 → 代理」同一份），优先
   `HTTPSEnable/HTTPSProxy/HTTPSPort`（端口缺省 443），其次 HTTP（缺省 80）；`ExceptionsList` 转

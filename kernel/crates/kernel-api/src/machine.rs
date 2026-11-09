@@ -175,6 +175,27 @@ pub trait Commands: Send + Sync {
 
     /// 会话关闭：`forget` 为 true 时释放执行侧为这个会话保存的全部状态。
     async fn close_session(&self, session: &SessionId, forget: bool) -> Result<(), EnvError>;
+
+    /// 记下会话物化时 Host 给的三项执行偏好（工具搜索、增强 Find/Grep、集成 Shell）。返回执行侧
+    /// 是否真的存了（远端执行环境没有这张表时是 false）。缺省不存。
+    fn set_session_execution_preferences(
+        &self,
+        _session: &SessionId,
+        _preferences: crate::session_prefs::SessionExecutionPreferences,
+    ) -> bool {
+        false
+    }
+
+    /// 这个会话物化时记下的执行偏好；没有时 None（用内核缺省）。
+    fn session_execution_preferences(
+        &self,
+        _session: &SessionId,
+    ) -> Option<crate::session_prefs::SessionExecutionPreferences> {
+        None
+    }
+
+    /// 子代理/分叉会话继承父会话的执行偏好（Node `source.kind === "inherit"`）。
+    fn inherit_session_execution_preferences(&self, _parent: &SessionId, _child: &SessionId) {}
 }
 
 /// 会话的 shell 状态与后台命令的终态通知。

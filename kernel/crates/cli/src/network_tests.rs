@@ -311,3 +311,36 @@ async fn the_policy_carries_all_three_parts() {
         .unwrap();
     assert!(error.downcast_ref::<InvalidProxy>().is_some(), "{error}");
 }
+
+/// App 的两种代理方式（`NIBI_HTTP_PROXY_MODE`）：manual 留空必须直连，不能回落系统代理；
+/// system/未设时保持「显式 > 系统 > 直连」。
+#[test]
+fn the_proxy_mode_separates_manual_direct_from_system() {
+    let read = |value: &str| proxy_mode(&env(&[("NIBI_HTTP_PROXY_MODE", value)]));
+    assert_eq!(read("manual"), Some(ProxyMode::Manual));
+    assert_eq!(read(" MANUAL "), Some(ProxyMode::Manual));
+    assert_eq!(read("system"), Some(ProxyMode::System));
+    assert_eq!(read("direct"), None);
+    assert_eq!(proxy_mode(&env(&[])), None);
+
+    let system = Some("http://system.example:7890/".to_owned());
+    // 手动模式：有手填地址用它，留空直连。
+    assert_eq!(
+        effective_proxy(Some("http://manual.example:3128/".to_owned()), true, system.clone()),
+        Some("http://manual.example:3128/".to_owned())
+    );
+    assert_eq!(effective_proxy(None, true, system.clone()), None);
+    // 系统模式与 CLI（没有模式）仍回落到系统地址。
+    assert_eq!(effective_proxy(None, false, system.clone()), system);
+    assert_eq!(effective_proxy(None, false, None), None);
+}
+
+/// 手动模式留空：即使操作系统配了代理也不能用（`NIBI_HTTP_PROXY_MODE=manual` 与「没配代理」的区别）。
+#[tokio::test]
+async fn manual_mode_without_an_address_never_uses_the_system_proxy() {
+    let network = network_in(&[], &[("NIBI_HTTP_PROXY_MODE", "manual")])
+        .await
+        .unwrap();
+    assert_eq!(network.policy.proxy, None);
+    assert_eq!(network.policy.no_proxy, NoProxy::None);
+}

@@ -20,6 +20,7 @@ fn plan(dir: &Path) -> Plan {
         cwd: dir.to_path_buf(),
         origin: dir.to_path_buf(),
         bash: PathBuf::from("/bin/bash"),
+        dialect: nibi_kernel_api::session_prefs::ShellDialect::GitBash,
         env: BTreeMap::new(),
         prelude: None,
     }
@@ -94,4 +95,57 @@ fn git_bash_cwds_are_read_back_like_node() {
         native_cwd("/c/Users/dev", PathStyle::Posix),
         PathBuf::from("/c/Users/dev")
     );
+}
+
+/// cmd 的脚本（Node `createWindowsCmdCwdCaptureCommand` 同形）：多行用 `&` 串成一行，成功时
+/// 把 cwd 写进文件，`exit /b` 保留退出码。
+#[test]
+fn cmd_scripts_join_newlines_and_capture_the_cwd() {
+    let script = cmd_script("echo one\necho two", Some(Path::new(r"C:\tmp\b1.cwd")));
+    assert_eq!(
+        script,
+        r#"@echo off & echo one & echo two & if not errorlevel 1 cd > "C:\tmp\b1.cwd" & exit /b"#
+    );
+    assert_eq!(
+        cmd_script("dir", None),
+        "@echo off & dir & exit /b"
+    );
+}
+
+/// 会话的执行偏好按会话存、可继承、关闭并 forget 时清掉。
+#[test]
+fn session_execution_preferences_are_per_session_and_inherited() {
+    use nibi_kernel_api::ids::SessionId;
+    use nibi_kernel_api::session_prefs::{
+        AppToolSearchMode, IntegratedShell, SessionExecutionPreferences, ShellDialect,
+    };
+
+    use super::super::{ShellConfig, Shells};
+
+    let dir = tempfile::tempdir().unwrap();
+    let shells = Shells::new(ShellConfig {
+        scratch: dir.path().join("scratch"),
+        ledger: dir.path().join("ledger"),
+        bash: Some(PathBuf::from("/bin/bash")),
+        ..ShellConfig::default()
+    });
+    let parent = SessionId::new("s1");
+    let child = SessionId::new("s2");
+    let preferences = SessionExecutionPreferences {
+        tool_search: Some(AppToolSearchMode::Off),
+        native_search_enhancements: Some(false),
+        integrated_shell: Some(IntegratedShell {
+            dialect: ShellDialect::Cmd,
+            path: r"C:\Windows\System32\cmd.exe".to_owned(),
+        }),
+    };
+    shells.set_session_execution_preferences(&parent, preferences.clone());
+    assert_eq!(
+        shells.session_execution_preferences(&parent),
+        Some(preferences.clone())
+    );
+    shells.inherit_session_execution_preferences(&parent, &child);
+    assert_eq!(shells.session_execution_preferences(&child), Some(preferences));
+    shells.close_session(&child, true);
+    assert_eq!(shells.session_execution_preferences(&child), None);
 }

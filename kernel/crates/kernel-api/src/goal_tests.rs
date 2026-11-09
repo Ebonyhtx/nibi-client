@@ -9,7 +9,7 @@ use crate::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use crate::model::ModelSelection;
 use crate::permission::PermissionMode;
 use crate::session_api::Command;
-use crate::store::{ForkReceipt, SessionFork};
+use crate::store::{ForkReceipt, SessionFork, SessionForkKind};
 
 fn round_trip<T>(value: &T) -> serde_json::Value
 where
@@ -148,6 +148,7 @@ fn forks_round_trip() {
         },
         mode: PermissionMode::Default,
         plan: true,
+        kind: SessionForkKind::Fork,
     });
     round_trip(&ForkReceipt { copied: 3 });
 }

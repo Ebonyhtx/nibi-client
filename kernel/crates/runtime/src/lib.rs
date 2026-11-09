@@ -131,6 +131,9 @@ struct SubagentPlugins {
     ext: Arc<Ext>,
     agents: Arc<AgentCatalog>,
     hooks: Arc<HookEngine>,
+    /// 子代理继承父会话的执行偏好（Node `source.kind === "inherit"`）：工具搜索、增强搜索、
+    /// 集成 Shell 与父会话一致。执行环境没有这张表时缺省什么都不做。
+    commands: Arc<dyn nibi_kernel_api::machine::Commands>,
 }
 
 impl nibi_kernel_agents::SubagentPluginInheritance for SubagentPlugins {
@@ -139,6 +142,8 @@ impl nibi_kernel_agents::SubagentPluginInheritance for SubagentPlugins {
             .copy_session_skill_roots(parent, child.clone());
         self.agents.copy_session(parent, child.clone());
         self.hooks.copy_session(parent, child.clone());
+        self.commands
+            .inherit_session_execution_preferences(parent, child);
     }
 }
 
@@ -557,6 +562,7 @@ impl LocalKernel {
                     ext: ext.clone(),
                     agents: agent_catalog.clone(),
                     hooks: hooks.clone(),
+                    commands: machine.commands().clone(),
                 })),
             },
             parts.tools.clone(),

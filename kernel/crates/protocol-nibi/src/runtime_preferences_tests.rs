@@ -17,6 +17,9 @@ use nibi_kernel_api::session_api::{
     Ack, CommandEnvelope, Kernel, KernelError, KernelEvent, SequencedEvent, SessionHandle,
     SessionView,
 };
+use nibi_kernel_api::session_prefs::{
+    AppToolSearchMode, IntegratedShell, SessionExecutionPreferences, ShellDialect,
+};
 use nibi_kernel_api::store::{SessionFilter, SessionKind, SessionMeta, SessionSummary};
 use nibi_kernel_base::TaskScope;
 use nibi_kernel_protocol_core::connection::{self, Options, Reply, Service};
@@ -69,6 +72,7 @@ impl SessionHandle for Handle {
 #[derive(Default)]
 struct Kernel0 {
     directories: Mutex<Vec<Vec<String>>>,
+    execution: Mutex<Vec<(String, SessionExecutionPreferences)>>,
 }
 
 #[async_trait]
@@ -115,6 +119,25 @@ impl Kernel for Kernel0 {
                     .collect(),
             );
         Ok(())
+    }
+
+    async fn set_session_execution_preferences(
+        &self,
+        session: &SessionId,
+        preferences: SessionExecutionPreferences,
+    ) -> Result<(), KernelError> {
+        self.execution
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .push((session.as_str().to_owned(), preferences));
+        Ok(())
+    }
+
+    async fn session_execution_preferences(
+        &self,
+        _session: &SessionId,
+    ) -> Option<SessionExecutionPreferences> {
+        None
     }
 }
 
@@ -270,7 +293,14 @@ async fn ask(live: &Arc<nibi_kernel_protocol_core::sessions::Bridged<crate::live
 async fn the_host_answer_is_applied_to_the_session() {
     let harness = harness(Some(json!({
         "askUserQuestionAutoResolutionEnabled": false,
-        "additionalDirectories": ["/extra"]
+        "additionalDirectories": ["/extra"],
+        "toolSearchMode": "off",
+        "nativeSearchEnhancementsEnabled": false,
+        "integratedTerminalShell": {
+            "mode": "shell",
+            "dialect": "git-bash",
+            "path": "C:\\Program Files\\Git\\bin\\bash.exe"
+        }
     })));
     let live = harness
         .server
@@ -286,6 +316,26 @@ async fn the_host_answer_is_applied_to_the_session() {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .as_slice(),
         [vec!["/extra".to_owned()]]
+    );
+    // 设置页的三项也按会话记下来（工具搜索关闭、增强搜索关闭、用户选的 Git Bash）。
+    assert_eq!(
+        harness
+            .kernel
+            .execution
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_slice(),
+        [(
+            "sess_1".to_owned(),
+            SessionExecutionPreferences {
+                tool_search: Some(AppToolSearchMode::Off),
+                native_search_enhancements: Some(false),
+                integrated_shell: Some(IntegratedShell {
+                    dialect: ShellDialect::GitBash,
+                    path: "C:\\Program Files\\Git\\bin\\bash.exe".to_owned(),
+                }),
+            }
+        )]
     );
     // 自动结束关掉：新问题不起表（不出现 autoResolution）。
     ask(&live).await;
@@ -325,7 +375,8 @@ fn only_the_preferences_the_kernel_models_are_parsed() {
         "askUserQuestionAutoResolutionEnabled": true,
         "additionalDirectories": ["/a", "/b"],
         "memoryEnabled": true,
-        "toolSearchMode": "off"
+        "toolSearchMode": "off",
+        "nativeSearchEnhancementsEnabled": false
     }));
     assert_eq!(parsed.auto_resolution, Some(true));
     assert_eq!(
@@ -336,6 +387,40 @@ fn only_the_preferences_the_kernel_models_are_parsed() {
             .collect::<Vec<_>>(),
         ["/a", "/b"]
     );
+    assert_eq!(parsed.execution.tool_search, Some(AppToolSearchMode::Off));
+    assert_eq!(parsed.execution.native_search_enhancements, Some(false));
     // 缺字段：都按「没说」处理（用内核缺省）。
     assert_eq!(parse(&json!({})), StartupPreferences::default());
+    // 未知模式按没给，不让一个坏值把整份回答读坏。
+    assert_eq!(
+        parse(&json!({"toolSearchMode": "native"})).execution.tool_search,
+        None
+    );
+}
+
+#[test]
+fn the_execution_shell_is_only_taken_when_the_user_picked_one() {
+    let shell = parse_execution_shell(&json!({
+        "integratedTerminalShell": {
+            "mode": "shell",
+            "dialect": "cmd",
+            "path": "C:\\Windows\\System32\\cmd.exe"
+        }
+    }));
+    assert_eq!(
+        shell,
+        Some(IntegratedShell {
+            dialect: ShellDialect::Cmd,
+            path: "C:\\Windows\\System32\\cmd.exe".to_owned(),
+        })
+    );
+    // 自动选择 = 不覆盖；缺字段、空路径、不认识的方言都不覆盖。
+    for value in [
+        json!({"integratedTerminalShell": {"mode": "auto"}}),
+        json!({"integratedTerminalShell": {"mode": "shell", "dialect": "cmd", "path": " "}}),
+        json!({"integratedTerminalShell": {"mode": "shell", "dialect": "powershell", "path": "x"}}),
+        json!({}),
+    ] {
+        assert_eq!(parse_execution_shell(&value), None, "{value}");
+    }
 }

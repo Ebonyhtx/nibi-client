@@ -109,6 +109,7 @@ impl LocalKernel {
         // CLI/TUI 没有 loader（单会话进程），继续用 `ext.start()` 的进程级快照。
         self.apply_session_plugin_snapshot(&id, &workspace, meta.parent.as_ref())
             .await;
+        let parent_for_preferences = meta.parent.clone();
         self.start(
             SessionState {
                 meta,
@@ -129,6 +130,13 @@ impl LocalKernel {
         );
         if let Some(gate) = inherited_dynamic_workflow {
             self.gate.set_dynamic_workflow(&id, gate);
+        }
+        // 分叉 / 辅助对话 / 导入历史继承父会话物化时的执行偏好（Node `source.kind === "inherit"`）：
+        // 子会话不再问 Host，工具搜索、增强搜索与集成 Shell 与父会话一致。
+        if let Some(parent) = &parent_for_preferences {
+            self.machine
+                .commands()
+                .inherit_session_execution_preferences(parent, &id);
         }
         Ok(id)
     }
@@ -551,6 +559,7 @@ impl Kernel for LocalKernel {
             .commit(&id, batch)
             .await
             .map_err(|error| failed(&error))?;
+        let parent_for_preferences = meta.parent.clone();
         self.start(
             SessionState {
                 meta,
@@ -571,6 +580,13 @@ impl Kernel for LocalKernel {
         );
         if let Some(gate) = inherited_dynamic_workflow {
             self.gate.set_dynamic_workflow(&id, gate);
+        }
+        // 分叉 / 辅助对话 / 导入历史继承父会话物化时的执行偏好（Node `source.kind === "inherit"`）：
+        // 子会话不再问 Host，工具搜索、增强搜索与集成 Shell 与父会话一致。
+        if let Some(parent) = &parent_for_preferences {
+            self.machine
+                .commands()
+                .inherit_session_execution_preferences(parent, &id);
         }
         Ok(id)
     }
@@ -1003,6 +1019,28 @@ impl Kernel for LocalKernel {
     ) -> Result<(), KernelError> {
         self.directories.set(session, directories);
         Ok(())
+    }
+
+    /// Host 在会话物化时给的三项执行偏好：存在本机执行环境的表里，查询（工具搜索）与 Bash
+    /// （集成 Shell、增强 Find/Grep）各自按会话读。远端执行环境没有这张表时什么都不做。
+    async fn set_session_execution_preferences(
+        &self,
+        session: &SessionId,
+        preferences: nibi_kernel_api::session_prefs::SessionExecutionPreferences,
+    ) -> Result<(), KernelError> {
+        self.machine
+            .commands()
+            .set_session_execution_preferences(session, preferences);
+        Ok(())
+    }
+
+    async fn session_execution_preferences(
+        &self,
+        session: &SessionId,
+    ) -> Option<nibi_kernel_api::session_prefs::SessionExecutionPreferences> {
+        self.machine
+            .commands()
+            .session_execution_preferences(session)
     }
 
     /// NIBI `createSession.permissionScope: "session"`：Node 在 v4-bridge 里 create 之后立刻

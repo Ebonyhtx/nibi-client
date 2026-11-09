@@ -316,3 +316,25 @@ async fn the_auto_setting_waits_for_enough_deferred_tools() {
     let request = first_request_set(gateway_opus(), window(1000), search_tools(), auto).await;
     assert_eq!(names(&request), ["Read", "TaskStop"]);
 }
+
+/// NIBI 设置页的三档（`off` / `local` / `auto`）覆盖入口的 `ENABLE_TOOL_SEARCH`：`off` 关，
+/// `local`/`auto` 开；没有会话偏好（CLI/TUI）时保留入口值。
+#[test]
+fn the_session_setting_overrides_enable_tool_search() {
+    use nibi_kernel_api::session_prefs::AppToolSearchMode;
+
+    assert_eq!(
+        crate::applied_tool_search(ToolSearchSetting::On, Some(AppToolSearchMode::Off)),
+        ToolSearchSetting::Off
+    );
+    for mode in [AppToolSearchMode::Local, AppToolSearchMode::Auto] {
+        assert_eq!(
+            crate::applied_tool_search(ToolSearchSetting::Off, Some(mode)),
+            ToolSearchSetting::On
+        );
+    }
+    assert_eq!(
+        crate::applied_tool_search(ToolSearchSetting::Off, None),
+        ToolSearchSetting::Off
+    );
+}

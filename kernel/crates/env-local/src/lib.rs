@@ -300,6 +300,33 @@ impl Commands for LocalEnvironment {
         }
         Ok(())
     }
+
+    fn set_session_execution_preferences(
+        &self,
+        session: &SessionId,
+        preferences: nibi_kernel_api::session_prefs::SessionExecutionPreferences,
+    ) -> bool {
+        let Some(shells) = &self.shells else {
+            return false;
+        };
+        shells.set_session_execution_preferences(session, preferences);
+        true
+    }
+
+    fn session_execution_preferences(
+        &self,
+        session: &SessionId,
+    ) -> Option<nibi_kernel_api::session_prefs::SessionExecutionPreferences> {
+        self.shells
+            .as_ref()
+            .and_then(|shells| shells.session_execution_preferences(session))
+    }
+
+    fn inherit_session_execution_preferences(&self, parent: &SessionId, child: &SessionId) {
+        if let Some(shells) = &self.shells {
+            shells.inherit_session_execution_preferences(parent, child);
+        }
+    }
 }
 
 #[async_trait]

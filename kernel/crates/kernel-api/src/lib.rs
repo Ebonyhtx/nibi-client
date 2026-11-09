@@ -122,6 +122,7 @@ pub mod reminder_fold;
 pub mod session_api;
 pub mod shared_context;
 pub mod session_paths;
+pub mod session_prefs;
 pub mod store;
 pub mod title;
 pub mod tool;

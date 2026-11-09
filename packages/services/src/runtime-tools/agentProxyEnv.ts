@@ -1,6 +1,7 @@
 import {
   NIBI_AGENT_CA_CERT_ENV_KEY,
   NIBI_HTTP_PROXY_ENV_KEY,
+  NIBI_HTTP_PROXY_MODE_ENV_KEY,
   NIBI_NO_PROXY_ENV_KEY,
   NIBI_WORKSPACE_IDENTITY_ENV,
 } from "@nibi/shared";
@@ -68,12 +69,16 @@ export function buildAgentNoProxyEnv(noProxy: string | undefined): Record<string
  */
 export function buildAgentRuntimeEnv(input: {
   httpProxy: string | undefined;
+  httpProxyMode?: "system" | "manual" | undefined;
   noProxy?: string | undefined;
   caCertPath?: string | undefined;
 }): Record<string, string> {
   const proxyEnv = buildAgentProxyEnv(input.httpProxy);
   return {
     ...proxyEnv,
+    // 两种模式都可能没有任何代理变量：system 是「系统没配代理」，manual 是「留空 = 直连」。
+    // Node 内核按 env 本来就区分不了，Rust 内核靠这个键避免把后者误判成前者而回落到系统代理。
+    [NIBI_HTTP_PROXY_MODE_ENV_KEY]: input.httpProxyMode === "manual" ? "manual" : "system",
     ...buildAgentNoProxyEnv(input.noProxy),
     ...buildAgentCaCertEnv(input.caCertPath),
   };

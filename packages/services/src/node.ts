@@ -2308,6 +2308,7 @@ export function createLocalServices(options: {
       return {
         ...buildAgentRuntimeEnv({
           httpProxy: effectiveAgentProxy,
+          httpProxyMode: agentNetwork.httpProxyMode,
           noProxy: effectiveNoProxy,
           caCertPath: settings.httpProxyCaCertPath,
         }),

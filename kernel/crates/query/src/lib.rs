@@ -74,7 +74,9 @@ use nibi_kernel_api::orchestration::{
 };
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::plan::PlanModeFlags;
+use nibi_kernel_api::session_prefs::AppToolSearchMode;
 use nibi_kernel_api::store::ArtifactStore;
+use nibi_kernel_prompts::models::ToolSearchSetting;
 
 /// 主循环用到的能力，由 runtime 注入。
 #[derive(Clone)]
@@ -158,6 +160,19 @@ impl QueryLoop {
     }
 }
 
+/// 设置页的三档落到本内核的开关：`off` 关；`local` / `auto` 开（Rust 产品路径固定本地，
+/// 工作线 F89——`auto` 在 Node 上是「按模型选原生或本地」，非 Anthropic 端点同样落到本地）。
+fn applied_tool_search(
+    default: ToolSearchSetting,
+    mode: Option<AppToolSearchMode>,
+) -> ToolSearchSetting {
+    match mode {
+        Some(AppToolSearchMode::Off) => ToolSearchSetting::Off,
+        Some(AppToolSearchMode::Local | AppToolSearchMode::Auto) => ToolSearchSetting::On,
+        None => default,
+    }
+}
+
 #[async_trait]
 impl QueryRunner for QueryLoop {
     async fn run(
@@ -166,6 +181,17 @@ impl QueryRunner for QueryLoop {
         sink: Arc<dyn RunSink>,
         abort: Abort,
     ) -> Result<QueryStop, QueryError> {
+        // NIBI 设置页的「工具搜索」按会话物化时固定（Node `toolSearchMode` 传进 runtimeConfig）：
+        // CLI/TUI 没有这张表，仍用入口的 `ENABLE_TOOL_SEARCH`。
+        let mut parts = self.parts.clone();
+        if let Some(preferences) = parts
+            .machine
+            .commands()
+            .session_execution_preferences(&request.session)
+        {
+            parts.limits.tool_search =
+                applied_tool_search(parts.limits.tool_search, preferences.tool_search);
+        }
         let scope = Arc::new(RunScope {
             session: request.session.clone(),
             run: request.run.clone(),
@@ -174,7 +200,7 @@ impl QueryRunner for QueryLoop {
             mode: request.mode,
             abort,
             sink,
-            parts: self.parts.clone(),
+            parts,
             exhausted: Default::default(),
         });
         run::run(scope, request).await
