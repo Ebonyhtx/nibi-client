@@ -239,10 +239,10 @@ function formatZCodeAgentLogDate(now: Date): string {
 
 function resolveZCodeAgentCurrentLogFilePath(now = new Date()): string {
   const configuredLogDir = process.env.NIBI_LOG_DIR?.trim();
-  // 兜底目录跟数据根走：dev / e2e 实例的日志在自己的数据根下，写死主目录会读另一个实例的日志。
+  // 兜底目录跟**存储根**走：dev / e2e 实例的日志在自己的存储根下，写死主目录会读另一个实例的日志。
+  // `NIBI_DATA_BASE_DIR` 不算存储根（它只挪 `.nibi/v2`）；内核写日志用的是 NIBI_STORAGE_DIR，两者必须同源。
   const fallbackRoot =
     process.env.NIBI_STORAGE_DIR?.trim() ||
-    process.env.NIBI_DATA_BASE_DIR?.trim() ||
     process.env.NIBI_HOME?.trim() ||
     join(homedir(), ".nibi");
   const logDir = configuredLogDir || join(fallbackRoot, "cli", "log");

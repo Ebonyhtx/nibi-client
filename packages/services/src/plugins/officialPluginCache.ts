@@ -1,6 +1,9 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
-import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
+import {
+  DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS,
+  NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID,
+} from "@nibi/shared";
 
 // 市场 id 的**唯一真源**在 @nibi/shared/plugin-marketplaces。
 // 这里曾经复写一份 "nibi-official"，与共享常量 "nibi-official" 分叉：
@@ -9,18 +12,13 @@ import { NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID } from "@nibi/shared";
 export const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID;
 
 /**
- * 与 apps/zcode-cli/packages/bootstrap/src/app/official-plugin-definitions.ts 的 defaultEnabled 保持一致。
- * services 侧（skills / commands / subagents）共用这一份，避免再出现 zcode-guide 那样某一处漏掉的分叉。
+ * 默认启用的官方插件集合。**直接复用 @nibi/shared 的那一份**，不再在 services 里复写：
+ * 这里原来抄了一份，四件套从 `document-skills` 拆成 documents/pdf/presentations/spreadsheets
+ * 时没跟上，于是内置插件缓存兜底判成「默认关闭」——四件套的 visual-judge 子智能体在
+ * 设置页一个都不出现（2026-11-09 真机）。同一份名单只许有一个真源；bootstrap 侧的
+ * 「Settings 默认启用集合与 CLI 官方声明一致」单测机械对照另一头。
  */
-export const DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS: ReadonlySet<string> = new Set([
-  `browser-use@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
-  `document-skills@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
-  // 宿主不贡献 skill/command/subagent，列在这里只为与 definitions 的 defaultEnabled 逐一对应
-  // （见 @nibi/shared 的同名集合注释）；这份没有机械对照单测兜着，漏掉只会静默分叉。
-  `node-repl-host@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
-  `skill-creator@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
-  `zcode-guide@${NIBI_OFFICIAL_PLUGIN_MARKETPLACE}`,
-]);
+export { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS };
 
 export interface OfficialPluginCacheRoot {
   /** 缓存目录名，即官方插件 name。 */

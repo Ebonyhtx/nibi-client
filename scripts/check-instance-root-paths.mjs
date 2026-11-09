@@ -9,8 +9,9 @@
  *      技能列表列出的是线上实例的插件）
  *   3. `commands/commandsService.ts`、`plugin-sync/pluginSyncService.ts`
  *   4. `desktop/src/main/mcpUserDirectory`（会**写**进另一个实例的 `mcp.servers`）
- * 正确写法是 `resolveZCodeStorageRoot()`（显式参数 → NIBI_STORAGE_DIR / NIBI_DATA_BASE_DIR /
- * NIBI_HOME → 配置里的 storage.dir → `~/.nibi`），设置目录用 `NIBI_SETTINGS_DIR` 覆盖。
+ * 正确写法是 `resolveZCodeStorageRoot()`（显式参数 → NIBI_STORAGE_DIR / NIBI_HOME → 配置里的
+ * storage.dir → `~/.nibi`），设置目录用 `NIBI_SETTINGS_DIR` 覆盖。`NIBI_DATA_BASE_DIR` 不是存储根：
+ * 它只把 `.nibi/v2`（配置 / tasks-index）挪到 `<base>/.nibi`，与内核 `with_data_base_dir` 同口径。
  *
  * 用法：node scripts/check-instance-root-paths.mjs [repoRoot]
  * 退出码：0 = 干净；1 = 有命中（列出文件:行）。
@@ -83,7 +84,7 @@ for (const root of SCAN_ROOTS) {
 if (hits.length > 0) {
   console.error(`✗ 实例路径写死在用户主目录（扫了 ${scanned} 个文件，命中 ${hits.length} 处）：`);
   for (const hit of hits) console.error(`   · ${hit}`);
-  console.error("  正确写法：resolveZCodeStorageRoot()（services 层）或读 NIBI_STORAGE_DIR / NIBI_DATA_BASE_DIR / NIBI_HOME；设置目录用 NIBI_SETTINGS_DIR 覆盖（见 settingService.getSettingsDir）。");
+  console.error("  正确写法：resolveZCodeStorageRoot()（services 层）或读 NIBI_STORAGE_DIR / NIBI_HOME；设置目录用 NIBI_SETTINGS_DIR 覆盖（见 settingService.getSettingsDir）。NIBI_DATA_BASE_DIR 只挪 .nibi/v2，不是存储根。");
   process.exit(1);
 }
 console.log(`✓ 实例路径判据通过（扫 ${scanned} 个文件，白名单 ${ALLOWED.length} 处：${ALLOWED.map((entry) => entry.path).join(", ")}）`);

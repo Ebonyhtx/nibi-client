@@ -65,17 +65,16 @@ function resolveUserHomeDir(): string {
 /**
  * 用户级 MCP 配置的基目录。
  *
- * 必须跟**数据根**走：这里读写的是 `<数据根>/cli/config.json` 的 `mcp.servers` —— 写死用户主目录
+ * 必须跟**存储根**走：这里读写的是 `<存储根>/cli/config.json` 的 `mcp.servers` —— 写死用户主目录
  * 会让隔离实例（桌面端 dev / e2e）去读写**另一个实例**的 MCP 配置。同一类缺陷在 services 层多次
  * 实测（skillsService / commandsService / pluginSyncService），优先级与
  * `subagents/subagentStorage.ts#resolveZCodeStorageRoot` 一致：
- * `NIBI_STORAGE_DIR` → `NIBI_DATA_BASE_DIR` → `NIBI_HOME` → 用户主目录。
+ * `NIBI_STORAGE_DIR` → `NIBI_HOME` → 用户主目录。
+ * `NIBI_DATA_BASE_DIR` 不是存储根（它只挪 `.nibi/v2`），混用会让内核与设置页读两份配置。
  */
 function resolveMcpBaseDir(): string {
   const envRoot =
-    process.env.NIBI_STORAGE_DIR?.trim() ||
-    process.env.NIBI_DATA_BASE_DIR?.trim() ||
-    process.env.NIBI_HOME?.trim();
+    process.env.NIBI_STORAGE_DIR?.trim() || process.env.NIBI_HOME?.trim();
   return envRoot && envRoot.length > 0 ? envRoot : resolveUserHomeDir();
 }
 

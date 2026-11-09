@@ -684,18 +684,18 @@ function resolveCliStorageRoot(storageDir: string): string {
 }
 
 /**
- * 插件 cache / 安装记录的根（`<数据根>/cli/plugins`）。
+ * 插件 cache / 安装记录的根（`<存储根>/cli/plugins`）。
  *
- * 数据根优先级与 `subagents/subagentStorage.ts#resolveZCodeStorageRoot` 一致：
- * 环境变量（桌面端 dev / e2e / 换根部署靠它们隔离）→ 配置里的 `storage.dir` → `~/.nibi`。
+ * 存储根优先级与 `subagents/subagentStorage.ts#resolveZCodeStorageRoot` 一致：
+ * `NIBI_STORAGE_DIR` / `NIBI_HOME` → 配置里的 `storage.dir` → `~/.nibi`。
+ * `NIBI_DATA_BASE_DIR` 不在这里：它只挪 `.nibi/v2`（配置与 tasks-index），与内核
+ * `resolveCliStorageRoot` 同一口径。混用的后果是内核能加载、设置页却看不到插件。
  * 只看配置文件会让隔离实例去读**另一个实例**的插件表 —— 实测 dev 里"创建插件"因此判定不可用
  * （列出的是线上实例的插件），而本实例的 plugin-creator 根本不在视野里。
  */
 function resolvePluginStorageRoot(config: { storageDir: string }): string {
   const envRoot =
-    process.env.NIBI_STORAGE_DIR?.trim() ||
-    process.env.NIBI_DATA_BASE_DIR?.trim() ||
-    process.env.NIBI_HOME?.trim();
+    process.env.NIBI_STORAGE_DIR?.trim() || process.env.NIBI_HOME?.trim();
   const base = resolveConfigPath(envRoot || readStorageDirFromConfig(config));
   return join(resolveCliStorageRoot(base), "plugins");
 }
