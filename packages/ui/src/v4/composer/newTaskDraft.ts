@@ -22,6 +22,8 @@ export function initializeNewTaskDraft(
   return {
     ...draft,
     mode: recent?.mode === "plan" ? "build" : (recent?.mode ?? "build"),
+    // 继承来的默认模式不是用户的显式选择：首发时不能把它再写成新的默认。
+    modeExplicit: false,
     planEnabled: false,
     modelSelection:
       recent?.modelSelection ??

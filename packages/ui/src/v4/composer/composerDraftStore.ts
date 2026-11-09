@@ -26,6 +26,8 @@ export interface V4ComposerDraft {
   mention?: ComposerMentionPrefill;
   /** 有合法 mode 表示已经初始化；没有模型仍是明确空态，不能按旧文本草稿补默认。 */
   mode?: SubmissionMode;
+  /** 用户在这个草稿上显式切换过权限模式；只有显式选择才记成新任务默认。 */
+  modeExplicit?: boolean;
   planEnabled?: boolean;
   modelSelection?: ModelSelection;
   updatedAt: number;
@@ -289,6 +291,7 @@ function readDraft(value: unknown): V4ComposerDraft | null {
       : {}),
     ...(hasMention ? { mention: mention as unknown as ComposerMentionPrefill } : {}),
     ...(mode.success ? { mode: mode.data === "plan" ? ("build" as const) : mode.data } : {}),
+    ...(value.modeExplicit === true ? { modeExplicit: true } : {}),
     ...(typeof value.planEnabled === "boolean"
       ? { planEnabled: value.planEnabled }
       : mode.success

@@ -78,9 +78,9 @@ export function shouldHydrateWorkspaceCatalog(params: {
 export interface DraftConfigControl {
   modelSelectionRead: ModelSelectionRead;
   /** Renderer 下一次提交的配置；恢复采用当前权限，在线授权只同步对应字段。 */
-  draftConfig: Partial<SessionConfigState>;
+  draftConfig: DraftConfigState;
   /** 草稿已选 config（partial）；createSession 时经 buildDraftCreateConfigPayload 携带。 */
-  draftConfigRef: React.RefObject<Partial<SessionConfigState>>;
+  draftConfigRef: React.RefObject<DraftConfigState>;
   /** 当前草稿生命周期冻结的初始化 config；只供 prewarm/createSession 建立时使用。 */
   resolveInitialDraftConfig: () => Partial<SessionConfigState> | undefined;
   composerDraft: V4ComposerDraft;
@@ -99,6 +99,9 @@ export interface DraftConfigControl {
   handleDraftSelectThought: (thought: string) => void;
   handleDraftSwitchMode: (mode: string) => void;
 }
+
+/** 草稿的提交配置：在会话配置之外带上「模式是不是用户显式选的」。 */
+export type DraftConfigState = Partial<SessionConfigState> & { modeExplicit?: boolean };
 
 interface ComposerState {
   scopeKey: string;
@@ -269,6 +272,7 @@ export function useDraftConfigControl(params: {
           ? undefined
           : draft.mode,
       planEnabled: draft.planEnabled ?? false,
+      modeExplicit: draft.modeExplicit === true,
       modelSelection: effectiveSelection,
       provider: effectiveSelection?.providerId ?? "",
       model: effectiveSelection?.modelId ?? "",
@@ -620,6 +624,7 @@ export function useDraftConfigControl(params: {
         updateComposerDraft((current) => ({
           ...current,
           mode: parsed.data,
+          modeExplicit: true,
         }));
     },
     [updateComposerDraft],

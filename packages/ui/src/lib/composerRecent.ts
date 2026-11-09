@@ -55,7 +55,12 @@ export function acceptComposerRecentReceipt(
   if (!selection.success || !mode.success) return true;
   const key = resolveComposerRecentKey("", undefined, receipt.scope);
   try {
-    let previous: { order?: number; mode?: unknown; modeSource?: unknown } | null = null;
+    let previous: {
+      order?: number;
+      mode?: unknown;
+      modeSource?: unknown;
+      modeVersion?: unknown;
+    } | null = null;
     try {
       previous = JSON.parse(storage.getItem(key) ?? "null");
     } catch {
@@ -63,18 +68,25 @@ export function acceptComposerRecentReceipt(
     }
     // 回执/查询/快照可能重复到达；持久化顺序让刷新后的旧回执也不能回滚默认配置。
     if (typeof previous?.order === "number" && previous.order >= receipt.order) return true;
-    // 跟进不覆盖新任务默认模式：只保留由新任务首发记录的那一份（旧记录没有来源标记，按 build 处理）。
+    // 只有「新任务页 + 用户显式切换模式」的提交才写默认模式。跟进、继承来的默认、以及旧版
+    // 回执（没有 recordMode 字段）都不覆盖它；旧记录（没有 modeVersion）一律回落 build——
+    // 它们可能是旧实现把会话模式写进来的。
     const previousMode = submissionModeSchema.safeParse(previous?.mode);
     const rememberedDraftMode =
-      previous?.modeSource === "draft" && previousMode.success ? previousMode.data : undefined;
+      previous?.modeSource === "draft" &&
+      previous?.modeVersion === 2 &&
+      previousMode.success
+        ? previousMode.data
+        : undefined;
     const storedMode =
-      receipt.recordMode === false ? (rememberedDraftMode ?? "build") : mode.data;
+      receipt.recordMode === true ? mode.data : (rememberedDraftMode ?? "build");
     storage.setItem(
       key,
       JSON.stringify({
         modelSelection: selection.data,
         mode: storedMode,
         modeSource: "draft",
+        modeVersion: 2,
         order: receipt.order,
       }),
     );
@@ -115,9 +127,10 @@ export function readComposerRecent(
     const selection = modelSelectionSchema.safeParse(
       "modelSelection" in fields ? fields.modelSelection : fields,
     );
-    // 只有 `modeSource: "draft"` 的记录才是用户在新任务页的显式选择。旧记录（没有来源标记）是
-    // 旧实现把会话模式写进来的，不能继续当新任务默认——否则新建任务会默认继承上一个会话的完全访问。
-    const draftMode = fields.modeSource === "draft" ? fields.mode : undefined;
+    // 只有「modeSource: draft + modeVersion: 2」的记录才是用户在新任务页的显式选择。旧记录是旧
+    // 实现把会话模式写进来的，不能继续当新任务默认——否则新建任务会默认继承上一个会话的完全访问。
+    const draftMode =
+      fields.modeSource === "draft" && fields.modeVersion === 2 ? fields.mode : undefined;
     const mode = submissionModeSchema.safeParse(draftMode);
     const healedSelection = selection.success ? selection.data : undefined;
     if (!healedSelection && !mode.success) return null;
@@ -168,7 +181,10 @@ export function captureComposerRecentSubmission(
     if (sequence <= (accepted.get(key) ?? 0)) return;
     accepted.set(key, sequence);
     try {
-      storage.setItem(key, JSON.stringify({ ...recent, modeSource: "draft" }));
+      storage.setItem(
+        key,
+        JSON.stringify({ ...recent, modeSource: "draft", modeVersion: 2 }),
+      );
     } catch (error) {
       // 权威发送已经接纳，本地偏好写入失败不能把它报告成发送失败。
       logger.warn("[ComposerRecent] 保存最近提交配置失败", {

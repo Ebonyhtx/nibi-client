@@ -85,10 +85,15 @@ describe("composerRecent", () => {
       { modelSelection: selection },
     ],
     [
-      JSON.stringify({ modelSelection: { bad: true }, mode: "yolo", modeSource: "draft" }),
+      JSON.stringify({
+        modelSelection: { bad: true },
+        mode: "yolo",
+        modeSource: "draft",
+        modeVersion: 2,
+      }),
       { mode: "yolo" },
     ],
-    [JSON.stringify({ mode: "plan", modeSource: "draft" }), { mode: "plan" }],
+    [JSON.stringify({ mode: "plan", modeSource: "draft", modeVersion: 2 }), { mode: "plan" }],
     // 旧记录没有来源标记：里面的模式来自旧实现（会把会话模式写成默认），只信模型。
     [JSON.stringify({ modelSelection: selection, mode: "yolo" }), { modelSelection: selection }],
     [
@@ -155,6 +160,7 @@ describe("composerRecent", () => {
       modelSelection: { providerId: "provider", modelId: "model" },
       mode: "yolo",
       modeSource: "draft",
+      modeVersion: 2,
     });
     captureComposerRecentSubmission(
       "/repo",

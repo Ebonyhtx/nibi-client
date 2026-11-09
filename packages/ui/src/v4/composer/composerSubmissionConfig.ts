@@ -7,12 +7,19 @@ export interface ComposerSubmissionConfig {
   modelSelection: ModelSelection;
   mode: SubmissionMode;
   planEnabled: boolean;
+  /** 用户在新任务页显式切换过权限模式：只有这种提交才把它记成新任务默认。 */
+  modeExplicit?: boolean;
 }
 
 /** 在点击提交的瞬间，把 Composer 意图冻结成本次 Submission 的执行配置。 */
 export function createComposerSubmissionConfig(
   composer:
-    | { mode?: string; planEnabled?: boolean; modelSelection?: ModelSelection }
+    | {
+        mode?: string;
+        planEnabled?: boolean;
+        modelSelection?: ModelSelection;
+        modeExplicit?: boolean;
+      }
     | null
     | undefined,
   view: ModelSelectionView | null,
@@ -35,6 +42,7 @@ export function createComposerSubmissionConfig(
   return Object.freeze({
     mode: mode.data === "plan" ? "build" : mode.data,
     planEnabled: resolveExecutionState(composer).planEnabled,
+    ...(composer.modeExplicit === true ? { modeExplicit: true } : {}),
     modelSelection: Object.freeze({
       providerId: selection.providerId,
       modelId: selection.modelId,
