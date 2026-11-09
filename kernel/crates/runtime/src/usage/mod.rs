@@ -163,12 +163,16 @@ impl UsageAnalyzer {
         // 与主循环同一个能力来源（model.md §11，修复线 F23）：WebSearch 的去留、对话中间的 system。
         let capabilities = self.model.capabilities(&query.selection).await;
         let web_search = capabilities.is_none_or(|found| found.supports_native_web_search);
-        let mut tools: Vec<Arc<dyn Tool>> = self
-            .tools
-            .tools()
-            .into_iter()
-            .filter(|tool| tool.is_enabled() && (web_search || !tool.needs_native_web_search()))
-            .collect();
+        // 会话自己的 MCP/App 工具只在 `snapshot(session)` 里（ext.md §3.8 的 lease 模型）；用进程级的
+        // `tools()` 会把数模插件这类会话级 MCP 漏掉，「MCP 工具」分项永远是 0、面板里那一行不出现。
+        let session = query.session.clone();
+        let mut tools: Vec<Arc<dyn Tool>> = match session.as_ref() {
+            Some(session) => self.tools.snapshot(session).tools,
+            None => self.tools.tools(),
+        }
+        .into_iter()
+        .filter(|tool| tool.is_enabled() && (web_search || !tool.needs_native_web_search()))
+        .collect();
         let model = query.selection.model.clone();
         // 有 ToolSearch 时没有 WaitForMcpServers（与主循环的工具快照相同，tools-more.md §3.3 第 4 条，修复线 F36）。
         if tools.iter().any(|tool| tool.name() == TOOL_SEARCH) {
@@ -191,10 +195,7 @@ impl UsageAnalyzer {
             default_machine: None,
             capabilities,
             // 没有会话时规则缓存不参与（analysis 不缓存），会话 ID 只是占位。
-            session: query
-                .session
-                .clone()
-                .unwrap_or_else(|| SessionId::new("context-usage")),
+            session: session.unwrap_or_else(|| SessionId::new("context-usage")),
             workspace: query.workspace.clone(),
             agent: None,
             source: QuerySource::MainThread,
