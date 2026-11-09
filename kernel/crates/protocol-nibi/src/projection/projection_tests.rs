@@ -1072,3 +1072,30 @@ fn the_context_window_carries_the_session_cache_hit_rate() {
     let empty = super::state::usage(Some((1, 1)), &Usage::default());
     assert!(empty["contextWindow"]["cache"]["hitRate"].is_null());
 }
+
+/// 新会话的空基线不产生「模型已切换」：第一条真实选择只是建立基线，不是用户中途换模型。
+#[test]
+fn the_first_model_selection_does_not_mark_a_change() {
+    let mut feed = Feed::new();
+    feed.projection.selection = pick("", "", None);
+    let changed = feed.apply(KernelEvent::ModelChanged {
+        selection: pick("APIXIN", "deepseek-v4.1-flash-1017", None),
+    });
+    assert!(
+        changed.iter().all(|delta| delta["op"] != "row.appended"),
+        "the first selection must not append a marker: {changed:?}"
+    );
+    let started = feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    assert!(
+        started.iter().all(|delta| delta["row"]["marker"]["type"]
+            != serde_json::json!("modelChange")),
+        "the first turn must not carry a modelChange marker: {started:?}"
+    );
+}

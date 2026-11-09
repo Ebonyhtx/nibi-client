@@ -748,8 +748,13 @@ impl Projection {
             }
             KernelEvent::ModelChanged { selection } => {
                 // 切换先记住，等下一轮真正开跑才落分隔线（Node：切换后没有新回合就不画线）。
-                if self.selection.provider != selection.provider
-                    || self.selection.model != selection.model
+                // 新会话的第一条选择不是「切换」：有些入口先给空基线、再落真实模型，落线会显示
+                // 「模型已切换 → X」这种没有 from 的假事件。
+                let baseline_ready =
+                    !self.selection.provider.is_empty() && !self.selection.model.is_empty();
+                if baseline_ready
+                    && (self.selection.provider != selection.provider
+                        || self.selection.model != selection.model)
                 {
                     self.pending_model_change = Some((self.selection.clone(), selection.clone()));
                 }

@@ -25,6 +25,7 @@ import {
   resolveComposerScope,
   ensurePendingTaskDraft,
   bindPendingTaskDraft,
+  completePendingTaskDraft,
   rememberComposerWorkspaceScope,
   readComposerWorkspaceScope,
 } from "@/v4/composer/composerDraftStore.js";
@@ -348,18 +349,37 @@ export function useRootWorkspaceActions({
           return;
         }
         if (!services.projectService) throw new Error("project.service-unavailable");
-        const pendingDraft =
+        let pendingDraft =
           !projectId && (!hostId || hostId === "local")
             ? ensurePendingTaskDraft(resolveComposerScope(null, undefined, composerClientNamespace))
             : null;
-        const target = await services.projectService.prepareSession({
-          ...(projectId ? { projectId } : {}),
-          ...(hostId ? { hostId } : {}),
-          // 显式 local 与省略 Host 是同一入口，不能漏掉待发送身份而另建目录。
-          ...(pendingDraft
-            ? { draftId: pendingDraft.draftId, reuseDraft: Boolean(pendingDraft.workspacePath) }
-            : {}),
-        });
+        const prepareTarget = (draft: typeof pendingDraft) =>
+          services.projectService!.prepareSession({
+            ...(projectId ? { projectId } : {}),
+            ...(hostId ? { hostId } : {}),
+            // 显式 local 与省略 Host 是同一入口，不能漏掉待发送身份而另建目录。
+            ...(draft
+              ? { draftId: draft.draftId, reuseDraft: Boolean(draft.workspacePath) }
+              : {}),
+          });
+        let target: Awaited<ReturnType<typeof prepareTarget>>;
+        try {
+          target = await prepareTarget(pendingDraft);
+        } catch (error) {
+          // 持久化的待发送草稿可能指向已被清理的目录。Host 刻意不重建已交付目录（里面的用户
+          // 文件可能已经没了），所以这里换一个新的 draftId 重新准备，而不是让「新建任务」静默失败。
+          const message = error instanceof Error ? error.message : String(error);
+          if (
+            !pendingDraft?.workspacePath ||
+            !/ENOENT|project\.directory-required|no such file or directory/i.test(message)
+          ) {
+            throw error;
+          }
+          const scope = resolveComposerScope(null, undefined, composerClientNamespace);
+          completePendingTaskDraft(scope, pendingDraft.draftId);
+          pendingDraft = ensurePendingTaskDraft(scope);
+          target = await prepareTarget(pendingDraft);
+        }
         if (!isCurrent()) return;
         if (hostId && hostId !== "local") {
           if (!target.workspaceIdentity || !openRemoteProjectWorkspace)
