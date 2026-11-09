@@ -557,6 +557,16 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
             0,
         );
     };
+    // 删除必须**幂等**，所以不能先 `live()`：已经软删过的会话 open 会 NotFound，Host 在
+    // 归档管理里重试删除就会永远失败（`proto.sessionNotFound`，2026-11-09 真机）。Node 的
+    // softDeleteSession 也是 0 行更新也算成功。
+    if envelope.kind == "deleteSession" {
+        let revision = server
+            .bridge
+            .get(&SessionId::new(session))
+            .map_or(0, |live| live.sink.status().1);
+        return delete_session(server, envelope, revision).await;
+    }
     let live = match server.live(&SessionId::new(session)).await {
         Ok(live) => live,
         Err(error) => {
@@ -630,7 +640,6 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "revokeWorkspaceHookTrust" => {
             crate::hook_review::revoke(server, &live.sink, envelope, revision).await
         }
-        "deleteSession" => delete_session(server, envelope, revision).await,
         _ => unsupported(envelope, revision),
     }
 }
