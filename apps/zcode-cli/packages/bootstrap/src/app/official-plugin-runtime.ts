@@ -184,7 +184,22 @@ export function officialPluginHostPrefixArgs(): string[] | undefined {
   const entrypoint = process.argv[1];
   if (!entrypoint) return undefined;
 
+  // 测试进程绝不能把测试运行器的 argv 固化进用户缓存。实测（2026-11-09）：一次在
+  // `cli.unit.test.ts` 里跑的启动流程把 `--import tsx .../cli.unit.test.ts
+  // __zcode-plugin-host` 写进了 `~/.nibi/cli/plugins/cache/nibi-official/{documents,pdf,
+  // presentations,spreadsheets}/*/.nibi-plugin/plugin.json`，四件套的 MCP server 从此
+  // 拉起的是一个单元测试文件——面板、工具全部不可用，而且缓存看着是“已就绪”。
+  if (isTestProcess(entrypoint)) return undefined;
+
   return [...process.execArgv, resolve(entrypoint), NIBI_PLUGIN_HOST_COMMAND];
+}
+
+function isTestProcess(entrypoint: string): boolean {
+  if (process.env.VITEST || process.env.NODE_ENV === "test") return true;
+  return (
+    /(^|[\\/])(tests?|__tests__)[\\/]/u.test(entrypoint) ||
+    /\.(test|spec)\.[cm]?[jt]sx?$/u.test(entrypoint)
+  );
 }
 
 function isSeaRuntime(): boolean {
