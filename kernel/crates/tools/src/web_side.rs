@@ -72,14 +72,16 @@ pub(crate) async fn apply_prompt(
         },
     };
     let mut stream = side.model.stream(request, context.cancel.clone());
-    // 只取第一个块的文本（`content[0].text`）。
+    // 取第一个**文本**块的正文（Node 的 `content[0].text` 只对 text 块有值）。思考型模型
+    // （deepseek 等）会先发一个 thinking 块：以前把它的 index 当成首个块，后面的 text 增量
+    // 全被丢掉，工具“调用成功但返回空”——2026-11-10 真机自检的 WebFetch 空内容就是这个。
     let mut first: Option<usize> = None;
     let mut text = String::new();
     while let Some(event) = stream.next().await {
         match event.map_err(|error| failed(error.to_string()))? {
             ModelEvent::BlockStart { index, block } if first.is_none() => {
-                first = Some(index);
                 if let ContentBlock::Text { text: start } = block {
+                    first = Some(index);
                     text.push_str(&start);
                 }
             }

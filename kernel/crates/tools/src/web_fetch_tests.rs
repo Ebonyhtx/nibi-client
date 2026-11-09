@@ -276,3 +276,67 @@ fn web_fetch_is_deferred_and_read_only() {
         Some("fetch and extract content from a URL")
     );
 }
+
+/// 思考型模型（deepseek 等）先发 thinking 块再发 text 块：旁路请求必须取 **text** 块。
+/// 以前取第一个块（thinking），后面的文本增量全被丢掉，工具“成功但返回空”——2026-11-10 真机自检。
+#[tokio::test]
+async fn a_thinking_block_before_the_text_does_not_empty_the_answer() {
+    use nibi_kernel_api::message::{ContentBlock, StopReason, Usage};
+    use nibi_kernel_api::model::{BlockDelta, ModelEvent};
+
+    let thinking = vec![
+        Ok(ModelEvent::MessageStart {
+            id: "msg_api".to_owned(),
+            model: "scripted".to_owned(),
+            usage: Usage::default(),
+        }),
+        Ok(ModelEvent::BlockStart {
+            index: 0,
+            block: ContentBlock::Thinking {
+                thinking: String::new(),
+                signature: None,
+            },
+        }),
+        Ok(ModelEvent::BlockDelta {
+            index: 0,
+            delta: BlockDelta::Thinking("考虑一下".to_owned()),
+        }),
+        Ok(ModelEvent::BlockStop { index: 0 }),
+        Ok(ModelEvent::BlockStart {
+            index: 1,
+            block: ContentBlock::Text {
+                text: String::new(),
+            },
+        }),
+        Ok(ModelEvent::BlockDelta {
+            index: 1,
+            delta: BlockDelta::Text("页面讲的是安装步骤。".to_owned()),
+        }),
+        Ok(ModelEvent::BlockStop { index: 1 }),
+        Ok(ModelEvent::MessageDelta {
+            stop_reason: Some(StopReason::EndTurn),
+            usage: Usage::default(),
+        }),
+        Ok(ModelEvent::MessageStop),
+    ];
+    let model = Arc::new(ScriptedModel::new(vec![thinking]));
+    let side = SideModel {
+        model: model.clone(),
+        selection: selection(),
+    };
+    let run = Run {
+        env: Arc::new(TextEnv::web(vec![(
+            "https://example.com/doc",
+            page(200, "text/html", "<p>install</p>"),
+        )])),
+        tool: WebFetchTool::new(Some(side), Arc::new(FixedClock(0))),
+        model,
+    };
+    let answer = call(
+        &run,
+        json!({"url": "https://example.com/doc", "prompt": "这是什么？"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(answer, "页面讲的是安装步骤。");
+}
