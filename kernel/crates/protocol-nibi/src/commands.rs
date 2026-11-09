@@ -2608,6 +2608,18 @@ async fn delete_session(server: &Server, envelope: &Envelope, revision: u64) -> 
     };
     let session_id = SessionId::new(session);
     // 打开着就先关：draft 关掉即丢弃（不写会话行），真会话关掉后下一句软删。
+    //
+    // 正在跑的会话必须先中断：actor 的 `Close` 要等 busy 结束才退出（会话库的
+    // `closing` 分支），不中断就让 close 等一整轮——Host 那边表现为删除一直失败/超时。
+    // Node 的 `record.app.close()` 同样会中止当前回合。
+    if let Some(live) = server.bridge.get(&session_id) {
+        let _ = send(
+            live.handle.as_ref(),
+            &format!("{command}:stop"),
+            Command::Interrupt,
+        )
+        .await;
+    }
     if server.bridge.get(&session_id).is_some() {
         server
             .close_session(&json!({"sessionId": session}))
