@@ -122,7 +122,10 @@ impl Projection {
                 let Some(turn) = self.turn.clone() else {
                     return;
                 };
-                let response = turn.response.unwrap_or(u32::MAX);
+                // 冷投影没有流式 response 编号（`turn.response` 是 None），不能拿同一个哨兵值当
+                // key：同一轮里多条 assistant 消息的相同块下标会互相覆盖，最后的答复会落在
+                // 先出现的文本行位置上（看起来跑到工具行前面）。settle_block 会对 None 用消息 id。
+                let response = turn.response;
                 for (index, block) in assistant.content.iter().enumerate() {
                     match block {
                         ContentBlock::Text { text } => {
@@ -180,7 +183,7 @@ impl Projection {
         &mut self,
         kind: &str,
         turn: &str,
-        response: u32,
+        response: Option<u32>,
         index: usize,
         text: &str,
         assistant: &nibi_kernel_api::message::AssistantMessage,
@@ -191,7 +194,12 @@ impl Projection {
         if text.is_empty() {
             return;
         }
-        let key = block_key(kind, turn, response, index);
+        // 流式过的消息用 response 编号接回 stream() 建的行；没流式的（冷投影、非流式完成）
+        // 用 assistant id 区分，否则同一轮多条消息的同类块会撞 key、后一条覆盖前一条。
+        let key = match response {
+            Some(response) => block_key(kind, turn, response, index),
+            None => format!("{kind}:{turn}:settled:{}:{index}", assistant.id.as_str()),
+        };
         if !self.index.contains_key(&key) {
             let mut row = self.base(
                 turn,

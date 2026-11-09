@@ -368,6 +368,61 @@ fn a_cold_view_rebuilds_the_rows_of_finished_turns() {
     assert_eq!(snapshot["config"]["followupMode"], "guide");
 }
 
+/// 冷投影没有流式 response 编号：同一轮多条 assistant 消息的同类块不能互相覆盖，
+/// 否则最终答复会落在第一条文本行的位置，看起来跑到工具行前面。
+#[test]
+fn a_cold_turn_keeps_each_assistant_message_text_in_its_own_row() {
+    let projection = Projection::from_view(
+        &view(vec![
+            user("msg_u1", "go"),
+            assistant(
+                "msg_a1",
+                vec![ContentBlock::Text {
+                    text: "first".into(),
+                }],
+            ),
+            assistant(
+                "msg_a2",
+                vec![
+                    ContentBlock::Text {
+                        text: "second".into(),
+                    },
+                    ContentBlock::ToolUse {
+                        id: ToolUseId::new("toolu_1"),
+                        name: "Bash".into(),
+                        input: json!({"command": "true"}),
+                    },
+                ],
+            ),
+            assistant(
+                "msg_a3",
+                vec![ContentBlock::Text {
+                    text: "third".into(),
+                }],
+            ),
+        ]),
+        Followup::Guide,
+        Vec::new(),
+    );
+    let snapshot = projection.snapshot(0, "epoch");
+    let window = snapshot["rows"]["window"].as_array().unwrap();
+    let texts: Vec<&str> = window
+        .iter()
+        .filter(|row| row["kind"] == "assistantText")
+        .map(|row| row["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(texts, ["first", "second", "third"]);
+    let final_at = window
+        .iter()
+        .position(|row| row["text"] == "third")
+        .unwrap();
+    let tool_at = window
+        .iter()
+        .position(|row| row["kind"] == "toolCall")
+        .unwrap();
+    assert!(final_at > tool_at, "最终答复应排在工具行之后");
+}
+
 /// revision 只在事件带来的值变了时才进 patch；流式增量不带 patch。
 #[test]
 fn the_revision_comes_from_the_events_only() {
