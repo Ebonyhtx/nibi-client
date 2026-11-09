@@ -155,9 +155,11 @@ impl Harness {
             model_turns: Vec::new(),
             input_intents: Vec::new(),
         };
+        let handle = Arc::new(FakeHandle::new());
         let live = Live::new(
             context,
             topics,
+            &(handle.clone() as Arc<dyn SessionHandle>),
             &view,
             Followup::Queue,
             Arc::new(crate::local_ttft::LocalTtftRecorder::new(
@@ -168,7 +170,7 @@ impl Harness {
         );
         Self {
             live,
-            handle: Arc::new(FakeHandle::new()),
+            handle,
             _scope: scope,
             _host: host,
         }

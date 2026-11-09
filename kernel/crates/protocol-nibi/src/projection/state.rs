@@ -169,8 +169,7 @@ pub fn config(
     followup: Followup,
     levels: &[String],
 ) -> Value {
-    json!({
-        "modelSelection": selection(current),
+    let mut value = json!({
         "provider": current.provider,
         "model": current.model,
         "thought": current.reasoning.clone().unwrap_or_default(),
@@ -178,7 +177,16 @@ pub fn config(
         "followupMode": followup.name(),
         "mode": mode_name(mode),
         "planEnabled": plan,
-    })
+    });
+    // `modelSelection` 是稀疏的选择意图（schema 里 optional），Node 只在真的选过模型时才写。
+    // 还没选模型时 provider/model 是空串，照 `selection()` 写出去就是
+    // `{providerId: "", modelId: ""}`——`modelSelectionSchema` 要求两者非空，整份快照会被
+    // schema 拒收，客户端报 `fault.subscription.contentRejected`（2026-11-09 真机：草稿预热
+    // 会话打不开新建任务页）。这里与 Node 同口径：空选择时不写这个键。
+    if !current.provider.trim().is_empty() && !current.model.trim().is_empty() {
+        value["modelSelection"] = selection(current);
+    }
+    value
 }
 
 pub fn usage(context: Option<(u64, u64)>, total: &Usage) -> Value {
@@ -292,4 +300,48 @@ pub fn plan_approval_questions() -> Value {
             "description": "Exit plan mode and start implementation.",
         }],
     }])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn selection(provider: &str, model: &str) -> ModelSelection {
+        ModelSelection {
+            provider: provider.to_owned(),
+            model: model.to_owned(),
+            reasoning: None,
+            connection: None,
+        }
+    }
+
+    /// 还没选模型（草稿预热、未配置 provider）时不能写 `modelSelection`：schema 要求
+    /// providerId/modelId 非空，写出去整份快照会被拒（`fault.subscription.contentRejected`）。
+    #[test]
+    fn an_unselected_model_omits_the_sparse_selection() {
+        let config = config(
+            &selection("", ""),
+            PermissionMode::Default,
+            false,
+            Followup::Queue,
+            &[],
+        );
+        assert!(config.get("modelSelection").is_none());
+        // provider/model 仍是空串：Node 的初始快照也是这个形状，UI 据此显示「未选择」。
+        assert_eq!(config["provider"], "");
+        assert_eq!(config["model"], "");
+    }
+
+    #[test]
+    fn a_selected_model_carries_its_sparse_selection() {
+        let config = config(
+            &selection("p", "m"),
+            PermissionMode::Default,
+            false,
+            Followup::Queue,
+            &[],
+        );
+        assert_eq!(config["modelSelection"]["providerId"], "p");
+        assert_eq!(config["modelSelection"]["modelId"], "m");
+    }
 }

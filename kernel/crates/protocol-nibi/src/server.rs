@@ -171,10 +171,11 @@ impl Server {
         let cold = self.bridge.get(session).is_none();
         let live = self
             .bridge
-            .open(session, move |_, view| {
+            .open(session, move |handle, view| {
                 Live::new(
                     context,
                     topics,
+                    handle,
                     view,
                     followup,
                     local_ttft,
@@ -346,7 +347,7 @@ impl Server {
             "slashCommands": commands})
     }
 
-    async fn close_session(&self, params: &Value) -> Value {
+    pub(crate) async fn close_session(&self, params: &Value) -> Value {
         let session = SessionId::new(params["sessionId"].as_str().unwrap_or_default());
         // 条件关闭（Node `shouldCloseSessionForExpectedPersistence`）：deferred 的草稿可能刚被首条输入
         // 提升，这时不能关一个已经变成真任务的会话。没有打开着的记录时按“不是这个持久化状态”回答

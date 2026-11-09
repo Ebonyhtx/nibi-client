@@ -25,12 +25,20 @@ use super::*;
 use crate::context::Context;
 use crate::server::{Defaults, Server};
 
-struct Handle(SessionView);
+struct Handle {
+    view: SessionView,
+    /// 会话是不是草稿（`session/create` 的 deferred）：sessions-index 据此过滤。
+    draft: Arc<std::sync::atomic::AtomicBool>,
+}
 
 #[async_trait]
 impl SessionHandle for Handle {
     fn id(&self) -> &SessionId {
-        &self.0.meta.id
+        &self.view.meta.id
+    }
+
+    fn is_draft(&self) -> bool {
+        self.draft.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     async fn send(&self, _command: CommandEnvelope) -> Ack {
@@ -47,11 +55,14 @@ impl SessionHandle for Handle {
     }
 
     async fn view(&self) -> Result<SessionView, KernelError> {
-        Ok(self.0.clone())
+        Ok(self.view.clone())
     }
 }
 
-struct OnlySessions(SessionView);
+struct OnlySessions {
+    view: SessionView,
+    draft: Arc<std::sync::atomic::AtomicBool>,
+}
 
 #[async_trait]
 impl Kernel for OnlySessions {
@@ -77,9 +88,12 @@ impl Kernel for OnlySessions {
         &self,
         session: &SessionId,
     ) -> Result<Arc<dyn SessionHandle>, KernelError> {
-        let mut view = self.0.clone();
+        let mut view = self.view.clone();
         view.meta.id = session.clone();
-        Ok(Arc::new(Handle(view)))
+        Ok(Arc::new(Handle {
+            view,
+            draft: self.draft.clone(),
+        }))
     }
 }
 
@@ -151,15 +165,25 @@ impl Wire {
     }
 }
 
-fn harness() -> (Arc<Server>, Wire, TaskScope, nibi_kernel_base::Task<()>) {
+fn harness() -> (
+    Arc<Server>,
+    Wire,
+    TaskScope,
+    nibi_kernel_base::Task<()>,
+    Arc<std::sync::atomic::AtomicBool>,
+) {
     let scope = TaskScope::root("subscribe-test", |_| {});
     let (agent_out, host_in) = duplex(1 << 20);
     let (peer, writer) = connection::start(agent_out, &scope.spawner(), Options::default());
     let clock: Arc<dyn nibi_kernel_api::clock::Clock> =
         Arc::new(nibi_kernel_api::testing::FixedClock(1));
+    let draft = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let server = Arc::new(Server::new(
         Arc::new(Context::new(peer, clock)),
-        Arc::new(OnlySessions(view())),
+        Arc::new(OnlySessions {
+            view: view(),
+            draft: draft.clone(),
+        }),
         scope.spawner(),
         Defaults {
             selection: nibi_kernel_api::model::ModelSelection {
@@ -178,6 +202,7 @@ fn harness() -> (Arc<Server>, Wire, TaskScope, nibi_kernel_base::Task<()>) {
         Wire(BufReader::new(host_in).lines()),
         scope,
         writer,
+        draft,
     )
 }
 
@@ -192,7 +217,7 @@ async fn run(reply: Reply) -> Value {
 
 #[tokio::test]
 async fn a_subscription_resumes_from_the_client_watermark() {
-    let (server, mut wire, _scope, _writer) = harness();
+    let (server, mut wire, _scope, _writer, _draft) = harness();
     let topic = "conversation/sess_1";
     let result = run(subscribe(&server, &json!({"topic": topic, "connectionId": "c1"}))
         .await
@@ -245,7 +270,7 @@ async fn a_subscription_resumes_from_the_client_watermark() {
 
 #[tokio::test]
 async fn a_watermark_from_another_generation_falls_back_to_a_snapshot() {
-    let (server, mut wire, _scope, _writer) = harness();
+    let (server, mut wire, _scope, _writer, _draft) = harness();
     let topic = "conversation/sess_1";
     let _ = run(subscribe(&server, &json!({"topic": topic, "connectionId": "c1"}))
         .await
@@ -265,7 +290,7 @@ async fn a_watermark_from_another_generation_falls_back_to_a_snapshot() {
 
 #[tokio::test]
 async fn a_saturated_connection_is_paused_until_drained() {
-    let (server, mut wire, _scope, _writer) = harness();
+    let (server, mut wire, _scope, _writer, _draft) = harness();
     let topic = "conversation/sess_1";
     run(subscribe(&server, &json!({"topic": topic, "connectionId": "c1"}))
         .await
@@ -295,7 +320,7 @@ async fn a_saturated_connection_is_paused_until_drained() {
 
 #[tokio::test]
 async fn a_closed_connection_drops_its_subscriptions() {
-    let (server, mut wire, _scope, _writer) = harness();
+    let (server, mut wire, _scope, _writer, _draft) = harness();
     let topic = "conversation/sess_1";
     run(subscribe(&server, &json!({"topic": topic, "connectionId": "c1"}))
         .await
@@ -311,4 +336,91 @@ async fn a_closed_connection_drops_its_subscriptions() {
         .set_hook_admission(Some(json!({"pendingCount": 1, "bundleDigest": "b"})))
         .await;
     wire.no_frame().await;
+}
+
+impl Wire {
+    /// 在 `ms` 内把到达的帧全读出来（用于断言某个主题「没有说话」）。
+    async fn frames_within(&mut self, ms: u64) -> Vec<Value> {
+        let mut frames = Vec::new();
+        loop {
+            match tokio::time::timeout(Duration::from_millis(ms), self.0.next_line()).await {
+                Ok(Ok(Some(line))) => {
+                    let value: Value = serde_json::from_str(&line).expect("a JSON line");
+                    if value["method"] == crate::context::FRAME {
+                        frames.push(value["params"]["frame"].clone());
+                    }
+                }
+                _ => return frames,
+            }
+        }
+    }
+}
+
+/// 草稿（deferred，还没有会话行）不进会话列表：Node 的 sessions-index 用
+/// `host.isDraftSession` 把这类会话从快照与 `session.upserted` 里过滤掉，点「新建任务」
+/// 才不会在侧栏多出一条空会话。首条输入把它提升成真会话之后，第一帧就补发列表行。
+#[tokio::test]
+async fn a_draft_session_stays_out_of_the_sessions_index_until_promoted() {
+    let (server, mut wire, _scope, _writer, draft) = harness();
+    let index_topic = "sessions-index//w";
+    let conversation_topic = "conversation/sess_1";
+
+    run(subscribe(
+        &server,
+        &json!({"topic": index_topic, "connectionId": "c1"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let snapshot = wire.next_frame().await;
+    assert_eq!(snapshot["topic"], index_topic);
+    assert_eq!(snapshot["payload"]["kind"], "snapshot");
+    assert!(
+        snapshot["payload"]["snapshot"]["sessions"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+
+    draft.store(true, std::sync::atomic::Ordering::SeqCst);
+    run(subscribe(
+        &server,
+        &json!({"topic": conversation_topic, "connectionId": "c1"}),
+    )
+    .await
+    .unwrap())
+    .await;
+    let first = wire.next_frame().await;
+    assert_eq!(first["topic"], conversation_topic);
+
+    // 草稿上的状态变化只发会话自己的增量，不发列表行。
+    let live = server.bridge.get(&SessionId::new("sess_1")).unwrap();
+    live.sink
+        .set_hook_admission(Some(json!({"pendingCount": 1, "bundleDigest": "b"})))
+        .await;
+    let frames = wire.frames_within(200).await;
+    assert!(
+        frames.iter().any(|frame| frame["topic"] == conversation_topic),
+        "the conversation delta should still be delivered"
+    );
+    assert!(
+        frames.iter().all(|frame| frame["topic"] != index_topic),
+        "a draft must not publish a sessions-index row"
+    );
+
+    // 提升（首条输入落库）之后，下一个状态变化就把列表行补上。
+    draft.store(false, std::sync::atomic::Ordering::SeqCst);
+    live.sink.set_hook_admission(None).await;
+    let frames = wire.frames_within(300).await;
+    let upserted = frames
+        .iter()
+        .find(|frame| {
+            frame["topic"] == index_topic
+                && frame["payload"]["deltas"][0]["op"] == "session.upserted"
+        })
+        .expect("the promoted session should be published to the index");
+    assert_eq!(
+        upserted["payload"]["deltas"][0]["session"]["sessionId"],
+        "sess_1"
+    );
 }

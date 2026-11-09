@@ -2579,7 +2579,13 @@ async fn edit_user_query(
 }
 
 /// NIBI `deleteSession`：存储软删除（migration 0023 的 `time_deleted`）。
-/// 打开着的会话先关（kernel `delete_session` 对打开着的返回 Failed——与 Node 同判）。
+///
+/// Node 的 v4 执行面是「softDeleteSession → record.app.close → 注册表移除」；内核的
+/// `delete_session` 对**打开着**的会话返回 Failed（actor 还会提交），所以这里先把 live 会话
+/// 关掉（`close_session` 同一套收尾：SessionEnd hook、CUA session-closed、附件事务、桥表），
+/// 再走软删。草稿（deferred，没有会话行）走这条路径才删得掉：以前直接调 `delete_session`
+/// 必然失败，预热会话的清理因此被拒（`fault.command.deleteFailed`），草稿在内存里一直留到
+/// 进程退出——2026-11-09 真机：点「新建任务」越点越多。
 async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
     let command = envelope.command_id.as_str();
     let Some(session) = envelope.session_id.as_deref() else {
@@ -2592,6 +2598,12 @@ async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
         );
     };
     let session_id = SessionId::new(session);
+    // 打开着就先关：draft 关掉即丢弃（不写会话行），真会话关掉后下一句软删。
+    if server.bridge.get(&session_id).is_some() {
+        server
+            .close_session(&json!({"sessionId": session}))
+            .await;
+    }
     match server.kernel.delete_session(&session_id).await {
         Ok(()) => {
             // bridge 的打开会话由 kernel 的 delete 处理（下次 open 同 id 会 NotFound）。

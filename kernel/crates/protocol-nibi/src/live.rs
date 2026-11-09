@@ -65,6 +65,8 @@ pub struct Live {
     workspace: String,
     created_at: u64,
     state: Mutex<State>,
+    /// 会话句柄的弱引用：会话列表判断草稿（`is_draft`）用。句柄由会话桥持有，比 Live 活得久。
+    handle: Weak<dyn SessionHandle>,
     /// 自动结束计时任务的唤醒信号（登记、回答、snooze、偏好变化都叫一次）。
     auto_resolution_wake: Arc<tokio::sync::Notify>,
     /// 本会话在会话桥里的句柄：计时任务要用它在自己的泵任务里排工作。
@@ -77,6 +79,8 @@ impl Live {
     pub fn new(
         context: Arc<Context>,
         topics: Arc<Topics>,
+        // 会话句柄：会话列表要据此过滤草稿（Node `isDraftSession`）。
+        handle: &Arc<dyn SessionHandle>,
         view: &SessionView,
         followup: Followup,
         local_ttft: Arc<crate::local_ttft::LocalTtftRecorder>,
@@ -115,6 +119,7 @@ impl Live {
             }),
             context,
             topics,
+            handle: Arc::downgrade(handle),
             local_ttft,
             spawner,
             auto_resolution_wake: Arc::new(tokio::sync::Notify::new()),
@@ -602,13 +607,25 @@ impl Live {
                 frames.push((batch.subscription, (batch.from, batch.to), payload));
             }
         }
-        let row = self.summary_of(state);
-        let mut comparable = row.clone();
-        comparable["lastActivityAt"] = json!(0);
-        let summary = (state.summary.as_ref() != Some(&comparable)).then(|| {
-            state.summary = Some(comparable);
-            row
-        });
+        // 草稿（还没落会话行、纯内存）不进会话列表：Node 的 sessions-index 用
+        // `isDraftSession` 把 deferred 会话挡在快照与 `session.upserted` 之外，侧栏因此
+        // 不会因为点「新建任务」多出一条空会话。这里同口径：草稿期间不产出列表行，也
+        // 不写 `state.summary` 缓存——首条输入把它提升成真会话后，第一帧就会补发这一行。
+        let draft = self
+            .handle
+            .upgrade()
+            .is_none_or(|handle| handle.is_draft());
+        let summary = if draft {
+            None
+        } else {
+            let row = self.summary_of(state);
+            let mut comparable = row.clone();
+            comparable["lastActivityAt"] = json!(0);
+            (state.summary.as_ref() != Some(&comparable)).then(|| {
+                state.summary = Some(comparable);
+                row
+            })
+        };
         Outgoing { frames, summary }
     }
 
