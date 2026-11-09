@@ -667,16 +667,24 @@ async fn create_session(server: &Server, envelope: &Envelope) -> Ack {
     // 协议层不再自带 id 生成器。
     let requested = payload["sessionId"].as_str().map(SessionId::new);
     let workspace = payload["workspaceId"].as_str().unwrap_or_default();
-    let created = server
+    let create = CreateSession {
+        id: requested,
+        workspace: server.workspace(workspace),
+        selection: chosen,
+        mode: permission,
+        plan,
+    };
+    // Node 的 v4 `createSession` 一律按 **deferred** 建（草稿不进 sqlite，首条输入提交时才提升）；
+    // 以前这里直接 `create_session`，于是 UI 的草稿预热会话会立刻落库，侧栏与归档里堆满
+    // 「新任务」空会话（2026-11-09 真机验收）。协议测试替身没有 deferred 实现时退回立即落库。
+    let created = match server
         .kernel
-        .create_session(CreateSession {
-            id: requested,
-            workspace: server.workspace(workspace),
-            selection: chosen,
-            mode: permission,
-            plan,
-        })
-        .await;
+        .create_session_deferred(create.clone(), None)
+        .await
+    {
+        Err(KernelError::Unsupported { .. }) => server.kernel.create_session(create).await,
+        other => other,
+    };
     let refused = |message: String| {
         Ack::refused(
             &envelope.command_id,
