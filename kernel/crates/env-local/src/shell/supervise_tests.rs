@@ -149,3 +149,28 @@ fn session_execution_preferences_are_per_session_and_inherited() {
     shells.close_session(&child, true);
     assert_eq!(shells.session_execution_preferences(&child), None);
 }
+
+/// 设置页「自动选择」：Windows 上没有 Git Bash 时回退 ComSpec，而不是让 Bash 工具直接不可用。
+#[test]
+fn the_default_shell_falls_back_to_comspec_on_windows() {
+    use super::super::{default_shell, ShellConfig};
+
+    #[cfg(windows)]
+    {
+        let config = ShellConfig {
+            env: vec![(
+                "ComSpec".to_owned(),
+                r"C:\Windows\System32\cmd.exe".to_owned(),
+            )]
+            .into(),
+            ..ShellConfig::default()
+        };
+        let (path, dialect) = default_shell(&config).unwrap();
+        assert_eq!(dialect, nibi_kernel_api::session_prefs::ShellDialect::Cmd);
+        assert_eq!(path, PathBuf::from(r"C:\Windows\System32\cmd.exe"));
+    }
+    #[cfg(unix)]
+    {
+        assert!(default_shell(&ShellConfig::default()).is_err());
+    }
+}

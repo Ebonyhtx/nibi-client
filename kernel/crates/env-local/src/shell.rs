@@ -77,8 +77,26 @@ fn no_shell() -> EnvError {
     }
 }
 
+/// 没有会话选择时的 shell。Windows 上入口找不到 Git Bash 时回退 `ComSpec` / `cmd.exe`（NIBI 设置页
+/// 「集成终端 Shell = 自动选择：优先 Git Bash，找不到回退 cmd.exe」与 Node 同语义）；Unix 上仍要求
+/// POSIX shell。
+fn default_shell(config: &ShellConfig) -> Result<(PathBuf, ShellDialect), EnvError> {
+    if let Some(bash) = &config.bash {
+        return Ok((bash.clone(), ShellDialect::GitBash));
+    }
+    if cfg!(windows) {
+        let comspec = nibi_kernel_base::secret::env_var(&config.env, "ComSpec")
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("cmd.exe");
+        return Ok((PathBuf::from(comspec), ShellDialect::Cmd));
+    }
+    Err(no_shell())
+}
+
 /// hook 命令用的 shell：Unix 上固定 `/bin/bash`，不随 Bash 工具找到的 shell（hooks.md D4）；
-/// Windows 上是 Git Bash（入口找到的就是它）。
+/// Windows 上是 Git Bash（入口找到的就是它）。没有 Git Bash 时 hooks 不可用（会话选择的 cmd 也不能
+/// 跑 POSIX hook 脚本）。
 fn hook_shell(config: &ShellConfig) -> Result<PathBuf, EnvError> {
     if cfg!(windows) {
         return config.bash.clone().ok_or_else(no_shell);
@@ -355,10 +373,7 @@ impl Shells {
         {
             (PathBuf::from(&shell.path), shell.dialect)
         } else {
-            (
-                self.config.bash.clone().ok_or_else(no_shell)?,
-                ShellDialect::GitBash,
-            )
+            default_shell(&self.config)?
         };
         let origin = PathBuf::from(request.cwd.as_str());
         let cwd = match &request.cwd_scope {
