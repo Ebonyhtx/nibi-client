@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use nibi_kernel_api::ids::{MessageId, ToolUseId};
-use nibi_kernel_api::message::{ContentBlock, ToolResultContent, UserMessage, UserOrigin};
+use nibi_kernel_api::message::{
+    AttachmentMessage, ContentBlock, ToolResultContent, UserMessage, UserOrigin,
+};
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::tool::{ToolError, ToolOutput, ToolProgress, ToolUseContext};
 use serde_json::Value;
@@ -411,6 +413,21 @@ fn deferred_listings_are_recognized_for_filtering() {
         },
     });
     assert!(is_deferred_listing(&listing));
+    // 真实历史里的落库形态是 attachment（context::listings 生成），不是 user meta。
+    let attachment = Message::Attachment(AttachmentMessage {
+        id: MessageId::new("m_attachment"),
+        source: "deferred_tools_delta".to_owned(),
+        text: "The following deferred tools are now available via ToolSearch.".to_owned(),
+        data: serde_json::json!({ "addedNames": ["WebFetch"] }),
+    });
+    assert!(is_deferred_listing(&attachment));
+    let other = Message::Attachment(AttachmentMessage {
+        id: MessageId::new("m_other"),
+        source: "environment".to_owned(),
+        text: "cwd".to_owned(),
+        data: serde_json::json!({}),
+    });
+    assert!(!is_deferred_listing(&other));
     let human = Message::User(UserMessage {
         id: MessageId::new("m_human"),
         content: vec![ContentBlock::Text {

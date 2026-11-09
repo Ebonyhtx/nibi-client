@@ -29,18 +29,21 @@ pub(crate) struct WireTools {
 }
 
 
-/// 历史里的延迟工具清单（`deferred_tools_delta` meta 消息）。ToolSearch 关闭时这些消息引用的
+/// 历史里的延迟工具清单（`deferred_tools_delta`）。ToolSearch 关闭时这些消息引用的
 /// ToolSearch 已不在工具表里，继续发给模型会自相矛盾（「用 ToolSearch 加载」但工具不存在）。
+///
+/// 真实落库形态是 [`Message::Attachment`]（`context::listings` 生成）；`User` 的 meta 形态也认，
+/// 防止别的路径把同一来源折成 user 消息后漏过滤。
 pub(crate) fn is_deferred_listing(message: &Message) -> bool {
-    matches!(
-        message,
-        Message::User(user)
-            if matches!(
-                &user.origin,
-                nibi_kernel_api::message::UserOrigin::Meta { source, .. }
-                    if source == "deferred_tools_delta"
-            )
-    )
+    match message {
+        Message::Attachment(attachment) => attachment.source == "deferred_tools_delta",
+        Message::User(user) => matches!(
+            &user.origin,
+            nibi_kernel_api::message::UserOrigin::Meta { source, .. }
+                if source == "deferred_tools_delta"
+        ),
+        Message::Assistant(_) | Message::System(_) => false,
+    }
 }
 /// 引用了延迟工具的 tool_result 所在的 user 消息末尾加的说明。
 const TOOL_LOADED: &str = "Tool loaded.";
