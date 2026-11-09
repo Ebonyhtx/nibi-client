@@ -149,3 +149,49 @@ fn the_cache_key_is_derived_from_the_session_id() {
     let without = request(conversation());
     assert_eq!(crate::openai_lower::prompt_cache_key(&without), None);
 }
+
+/// 端到端到编码器：官方 OpenAI 的 profile + 会话 ID 才产生请求体里的 prompt_cache_key；中转站不发。
+#[test]
+fn the_encoder_sends_the_cache_key_only_for_the_official_profile() {
+    use nibi_kernel_api::ids::SessionId;
+    use nibi_kernel_api::provider::{Credential, ModelEndpoint, WireProtocol};
+
+    fn endpoint(base_url: &str) -> ModelEndpoint {
+        ModelEndpoint {
+            protocol: WireProtocol::OpenAiChatCompletions,
+            base_url: base_url.to_owned(),
+            model: "gpt-5.4".to_owned(),
+            credential: Credential::None,
+            headers: Vec::new(),
+            body_patches: Vec::new(),
+            mid_conversation_system: false,
+            supports_image: false,
+            supports_pdf: false,
+            supports_video: false,
+            supports_audio: false,
+            renewable: false,
+        }
+    }
+
+    let mut request = request(conversation());
+    request.options.session_id = Some(SessionId::new("session_abc"));
+    let official = endpoint("https://api.openai.com/v1");
+    let profile = crate::profiles::select(
+        WireProtocol::OpenAiChatCompletions,
+        &official.base_url,
+        &official.model,
+    );
+    let http = OpenAiChat.encode(&official, request.clone(), profile).unwrap();
+    let body = std::str::from_utf8(&http.body).unwrap();
+    assert!(body.contains(r#""prompt_cache_key":"nibi-session_abc""#), "{body}");
+
+    let relay = endpoint("https://relay.example.com/v1");
+    let profile = crate::profiles::select(
+        WireProtocol::OpenAiChatCompletions,
+        &relay.base_url,
+        &relay.model,
+    );
+    let http = OpenAiChat.encode(&relay, request, profile).unwrap();
+    let body = std::str::from_utf8(&http.body).unwrap();
+    assert!(!body.contains("prompt_cache_key"), "{body}");
+}
