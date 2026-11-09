@@ -254,6 +254,14 @@ pub struct SessionLaunchTurn {
 pub struct SessionModelTurn {
     pub message: MessageId,
     pub selection: ModelSelection,
+    /// 这一轮的 `turn_usage.started_at` / `completed_at` / `duration_ms`（冷投影的「已工作」计时；
+    /// 旧库没有行时为空）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ended_at_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_ms: Option<u64>,
 }
 
 /// 一条消息的持久时间（Node `message` 行的 `time_created` / `time_updated`）。旧协议快照的

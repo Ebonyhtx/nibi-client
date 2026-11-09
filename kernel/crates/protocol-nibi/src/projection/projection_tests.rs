@@ -9,7 +9,7 @@ use nibi_kernel_api::message::{
 };
 use nibi_kernel_api::model::BlockDelta;
 use nibi_kernel_api::orchestration::InteractionRequest;
-use nibi_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta};
+use nibi_kernel_api::store::{SessionKind, SessionLaunchTurn, SessionMeta, SessionModelTurn};
 use nibi_kernel_api::testing::selection;
 use serde_json::json;
 
@@ -421,6 +421,139 @@ fn a_cold_turn_keeps_each_assistant_message_text_in_its_own_row() {
         .position(|row| row["kind"] == "toolCall")
         .unwrap();
     assert!(final_at > tool_at, "最终答复应排在工具行之后");
+}
+
+/// 冷打开用 `turn_usage` 的真实起止时间，不再拿会话创建时间给每一轮（全部显示「已工作 1 秒」）。
+#[test]
+fn a_cold_turn_uses_the_stored_turn_timing() {
+    let mut cold = view(vec![
+        user("msg_u1", "go"),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::Text {
+                text: "done".into(),
+            }],
+        ),
+    ]);
+    cold.model_turns = vec![SessionModelTurn {
+        message: MessageId::new("msg_u1"),
+        selection: pick("fixture", "scripted", Some("high")),
+        started_at_ms: Some(2_000),
+        ended_at_ms: Some(9_500),
+        active_ms: Some(7_500),
+    }];
+    let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    let header = projection
+        .rows()
+        .into_iter()
+        .find(|row| row["kind"] == "turnHeader")
+        .unwrap();
+    assert_eq!(header["startedAt"].as_u64(), Some(2_000));
+    assert_eq!(header["endedAt"].as_u64(), Some(9_500));
+    assert_eq!(header["activeMs"].as_u64(), Some(7_500));
+}
+
+/// 子代理在长任务中途发回来的 task-notification 没有自己的 turn_usage 行：冷打开并入当前轮，
+/// 不另起一段「已工作」。
+#[test]
+fn a_cold_notification_without_its_own_turn_stays_inside_the_current_turn() {
+    let notification = Message::User(UserMessage {
+        id: MessageId::new("msg_n1"),
+        content: vec![ContentBlock::Text {
+            text: "<task-notification>done</task-notification>".into(),
+        }],
+        origin: UserOrigin::Meta {
+            source: "task-notification".into(),
+            origin_meta: None,
+        },
+    });
+    let mut cold = view(vec![
+        user("msg_u1", "go"),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::Text {
+                text: "first".into(),
+            }],
+        ),
+        notification,
+        assistant(
+            "msg_a2",
+            vec![ContentBlock::Text {
+                text: "second".into(),
+            }],
+        ),
+    ]);
+    cold.model_turns = vec![SessionModelTurn {
+        message: MessageId::new("msg_u1"),
+        selection: pick("fixture", "scripted", Some("high")),
+        started_at_ms: Some(2_000),
+        ended_at_ms: Some(9_500),
+        active_ms: Some(7_500),
+    }];
+    let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    let headers: Vec<_> = projection
+        .rows()
+        .into_iter()
+        .filter(|row| row["kind"] == "turnHeader")
+        .collect();
+    assert_eq!(headers.len(), 1);
+    assert_eq!(headers[0]["activeMs"].as_u64(), Some(7_500));
+}
+
+/// 真正的后台结果轮有自己的 turn_usage 行：冷打开仍然单独开一段 backgroundResult。
+#[test]
+fn a_cold_notification_with_its_own_turn_starts_a_background_result() {
+    let notification = Message::User(UserMessage {
+        id: MessageId::new("msg_n1"),
+        content: vec![ContentBlock::Text {
+            text: "<task-notification>done</task-notification>".into(),
+        }],
+        origin: UserOrigin::Meta {
+            source: "task-notification".into(),
+            origin_meta: None,
+        },
+    });
+    let mut cold = view(vec![
+        user("msg_u1", "go"),
+        assistant(
+            "msg_a1",
+            vec![ContentBlock::Text {
+                text: "first".into(),
+            }],
+        ),
+        notification,
+        assistant(
+            "msg_a2",
+            vec![ContentBlock::Text {
+                text: "second".into(),
+            }],
+        ),
+    ]);
+    cold.model_turns = vec![
+        SessionModelTurn {
+            message: MessageId::new("msg_u1"),
+            selection: pick("fixture", "scripted", Some("high")),
+            started_at_ms: Some(2_000),
+            ended_at_ms: Some(9_500),
+            active_ms: Some(7_500),
+        },
+        SessionModelTurn {
+            message: MessageId::new("msg_n1"),
+            selection: pick("fixture", "scripted", Some("high")),
+            started_at_ms: Some(10_000),
+            ended_at_ms: Some(12_000),
+            active_ms: Some(2_000),
+        },
+    ];
+    let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());
+    let headers: Vec<_> = projection
+        .rows()
+        .into_iter()
+        .filter(|row| row["kind"] == "turnHeader")
+        .collect();
+    assert_eq!(headers.len(), 2);
+    assert_eq!(headers[1]["origin"], "backgroundResult");
+    assert_eq!(headers[1]["activeMs"].as_u64(), Some(2_000));
 }
 
 /// revision 只在事件带来的值变了时才进 patch；流式增量不带 patch。
@@ -907,8 +1040,6 @@ fn a_model_change_marks_the_next_turn_before_its_header() {
 /// 冷打开：每轮用户消息带着当时的选择，与上一轮不同才补分隔线（第一轮不画）。
 #[test]
 fn a_cold_open_restores_model_change_markers_from_message_selections() {
-    use nibi_kernel_api::store::SessionModelTurn;
-
     let messages = vec![
         user("u1", "first"),
         assistant("a1", vec![ContentBlock::Text { text: "one".into() }]),
@@ -920,10 +1051,16 @@ fn a_cold_open_restores_model_change_markers_from_message_selections() {
         SessionModelTurn {
             message: MessageId::new("u1"),
             selection: pick("fixture", "scripted", Some("high")),
+            started_at_ms: None,
+            ended_at_ms: None,
+            active_ms: None,
         },
         SessionModelTurn {
             message: MessageId::new("u2"),
             selection: pick("other", "next", None),
+            started_at_ms: None,
+            ended_at_ms: None,
+            active_ms: None,
         },
     ];
     let projection = Projection::from_view(&cold, Followup::Queue, Vec::new());

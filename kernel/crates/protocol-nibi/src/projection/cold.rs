@@ -1,5 +1,7 @@
 //! 冷投影：从会话视图（已提交的消息）重建行。没有事件的时间，行的时间取会话的创建时间；回合以真人输入为界。
 
+use std::collections::HashMap;
+
 use nibi_kernel_api::message::{ContentBlock, Message, SystemMessage, UserOrigin};
 use nibi_kernel_api::session_api::{
     SequencedEvent, SessionView, TurnExecutionKind, TurnInputSource,
@@ -28,6 +30,16 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
             .iter()
             .map(|turn| (turn.message.as_str(), &turn.selection))
             .collect();
+    // 每轮的真实计时（`turn_usage`）：冷打开不再拿会话创建时间冒充每一轮的起止。
+    // 只留带 `started_at_ms` 的条目；没有计时的通知/旧库轮次退回原来的行为。
+    let timings: HashMap<&str, &nibi_kernel_api::store::SessionModelTurn> = view
+        .model_turns
+        .iter()
+        .filter(|turn| turn.started_at_ms.is_some())
+        .map(|turn| (turn.message.as_str(), turn))
+        .collect();
+    // 当前轮的真实结束时刻（收口用）；没有计时的轮次是 None。
+    let mut current_end: Option<u64> = None;
     let mut previous_selection = None;
     // 辅助对话：边界消息（只给模型的 system 提醒）之前的父会话历史不进界面，侧栏从空白开始
     // （Node transcript-hydration：复制来的消息带 `uiVisibility: hidden` / `transcriptVisibility: hidden`）。
@@ -49,18 +61,21 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                     && !INTERRUPT_TEXTS.contains(&super::text_of(&user.content).as_str()) =>
             {
                 if projection.turn.is_some() {
-                    projection.close_cold_turn(interrupted, at, &mut out);
+                    projection.close_cold_turn(interrupted, current_end.unwrap_or(at), &mut out);
                 }
                 interrupted = false;
                 turns += 1;
                 let turn = format!("{}:turn:{turns}", user.id.as_str());
+                let timing = timings.get(user.id.as_str());
+                let started = timing.and_then(|turn| turn.started_at_ms).unwrap_or(at);
+                current_end = timing.and_then(|turn| turn.ended_at_ms);
                 model_change(
                     projection,
                     &selections,
                     &mut previous_selection,
                     &user.id,
                     &turn,
-                    at,
+                    started,
                     &mut out,
                 );
                 // 工作流控制轮（NIBI 中枢启动/设置轮，launch.md）：消息记录带 `source: "workflow_launch"`
@@ -79,7 +94,7 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                     launch,
                     None,
                     None,
-                    at,
+                    started,
                     0,
                     &mut out,
                 );
@@ -95,36 +110,49 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
                     UserOrigin::Meta { source, .. } if NOTICE_TURN_SOURCES.contains(&source.as_str())
                 ) =>
             {
-                if projection.turn.is_some() {
-                    projection.close_cold_turn(interrupted, at, &mut out);
+                let timing = timings.get(user.id.as_str());
+                let started = timing.and_then(|turn| turn.started_at_ms);
+                if started.is_none() && projection.turn.is_some() {
+                    // 通知夹在当前轮里（子代理在自检/长任务过程中发回来的）：它没有自己的
+                    // turn_usage 行，不另起一段「已工作」；保持在当前轮里。
+                } else {
+                    if projection.turn.is_some() {
+                        projection.close_cold_turn(
+                            interrupted,
+                            current_end.unwrap_or(at),
+                            &mut out,
+                        );
+                    }
+                    interrupted = false;
+                    turns += 1;
+                    let turn = format!("{}:turn:{turns}", user.id.as_str());
+                    let started = started.unwrap_or(at);
+                    current_end = timing.and_then(|turn| turn.ended_at_ms);
+                    model_change(
+                        projection,
+                        &selections,
+                        &mut previous_selection,
+                        &user.id,
+                        &turn,
+                        started,
+                        &mut out,
+                    );
+                    let origin_meta = match &user.origin {
+                        UserOrigin::Meta { origin_meta, .. } => origin_meta.clone(),
+                        _ => None,
+                    };
+                    projection.start_turn(
+                        &turn,
+                        None,
+                        None,
+                        None,
+                        Some(TurnInputSource::BackgroundTask),
+                        origin_meta.as_ref(),
+                        started,
+                        0,
+                        &mut out,
+                    );
                 }
-                interrupted = false;
-                turns += 1;
-                let turn = format!("{}:turn:{turns}", user.id.as_str());
-                model_change(
-                    projection,
-                    &selections,
-                    &mut previous_selection,
-                    &user.id,
-                    &turn,
-                    at,
-                    &mut out,
-                );
-                let origin_meta = match &user.origin {
-                    UserOrigin::Meta { origin_meta, .. } => origin_meta.clone(),
-                    _ => None,
-                };
-                projection.start_turn(
-                    &turn,
-                    None,
-                    None,
-                    None,
-                    Some(TurnInputSource::BackgroundTask),
-                    origin_meta.as_ref(),
-                    at,
-                    0,
-                    &mut out,
-                );
             }
             Message::User(user) => {
                 if INTERRUPT_TEXTS.contains(&super::text_of(&user.content).as_str()) {
@@ -172,7 +200,7 @@ pub(super) fn rows(projection: &mut Projection, view: &SessionView) {
         if view.running {
             projection.phase = Phase::Running;
         } else {
-            projection.close_cold_turn(interrupted, at, &mut out);
+            projection.close_cold_turn(interrupted, current_end.unwrap_or(at), &mut out);
         }
     }
 }
@@ -200,7 +228,13 @@ fn model_change(
 }
 
 impl Projection {
-    fn close_cold_turn(&mut self, interrupted: bool, at: u64, out: &mut Vec<serde_json::Value>) {
+    /// `ended_at` 是这一轮的真实结束时刻（`turn_usage.completed_at`）；没有计时时退回会话创建时间。
+    fn close_cold_turn(
+        &mut self,
+        interrupted: bool,
+        ended_at: u64,
+        out: &mut Vec<serde_json::Value>,
+    ) {
         let Some(turn) = self.turn.as_ref().map(|turn| turn.id.clone()) else {
             return;
         };
@@ -212,6 +246,6 @@ impl Projection {
         } else {
             nibi_kernel_api::session_api::TurnOutcome::Success
         };
-        self.finish_turn(&turn, &outcome, None, control_only, at, out);
+        self.finish_turn(&turn, &outcome, None, control_only, ended_at, out);
     }
 }

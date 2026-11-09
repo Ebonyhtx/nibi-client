@@ -836,6 +836,9 @@ impl Actor {
                 nibi_kernel_api::store::SessionModelTurn {
                     message,
                     selection: self.selection.clone(),
+                    started_at_ms: None,
+                    ended_at_ms: None,
+                    active_ms: None,
                 }
             }));
         }

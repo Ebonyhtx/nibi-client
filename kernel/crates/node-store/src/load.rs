@@ -1,7 +1,7 @@
 //! 冷读取：会话行、活动分支上的消息、模型选择与模式；会话列表
 //! （docs/specs/rust-cli/node-store.md §5，docs/specs/rust-m11-node-storage.md §6）。
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rusqlite::{Connection, OptionalExtension};
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
@@ -52,6 +52,37 @@ pub fn load(
             prompt: MessageId::new(prompt),
             turn: turn.map(TurnId::new),
         });
+    // 冷投影的「已工作」计时：turn_usage 是唯一带真实开始/结束时间的事实源。每条真人输入一轮；
+    // 通知轮（后台结果）也有自己的 turn_usage 行，按 user_message_id 认出来，才能和「通知夹在
+    // 当前轮里」区分开。
+    let timings = turn_timings(conn, session)?;
+    let visible: HashSet<&str> = earlier.iter().chain(active.iter()).map(|record| record.id()).collect();
+    let mut turns: Vec<SessionModelTurn> = model_turns(&earlier)
+        .into_iter()
+        .chain(model_turns(&active))
+        .map(|model_turn| {
+            let timing = timings.get(model_turn.message.as_str());
+            with_timing(model_turn, timing)
+        })
+        .collect();
+    if let Some(selection) = &model {
+        for (message, timing) in &timings {
+            if visible.contains(message.as_str())
+                && !turns.iter().any(|model_turn| model_turn.message.as_str() == message)
+            {
+                turns.push(with_timing(
+                    SessionModelTurn {
+                        message: MessageId::new(message.clone()),
+                        selection: selection.clone(),
+                        started_at_ms: None,
+                        ended_at_ms: None,
+                        active_ms: None,
+                    },
+                    Some(timing),
+                ));
+            }
+        }
+    }
     let loaded = LoadedSession {
         messages: crate::hydrate::hydrate(&active),
         earlier: crate::hydrate::hydrate(&earlier),
@@ -61,10 +92,7 @@ pub fn load(
             .chain(launch_turns(&active))
             .collect(),
         // 每轮输入的模型选择（Node 消息记录上的 `modelSelection`）：冷投影补 modelChange 分隔线。
-        model_turns: model_turns(&earlier)
-            .into_iter()
-            .chain(model_turns(&active))
-            .collect(),
+        model_turns: turns,
         // 输入的规范意图（Node 消息的 `metadata.conversationInputIntent`）：冷投影恢复行上原文、
         // 机器人来源与引用；earlier 与活动段都算。
         input_intents: input_intents(&earlier)
@@ -238,9 +266,60 @@ fn model_turns(records: &[Cow<'_, WithParts>]) -> Vec<SessionModelTurn> {
             Some(SessionModelTurn {
                 message: MessageId::new(record.id()),
                 selection: kernel_selection(&selection),
+                started_at_ms: None,
+                ended_at_ms: None,
+                active_ms: None,
             })
         })
         .collect()
+}
+
+/// `turn_usage` 的计时，键是触发这一轮的 user 消息（`user_message_id`）。值：
+/// `(started_at, completed_at, duration_ms)`。
+fn turn_timings(
+    conn: &Connection,
+    session: &SessionId,
+) -> Result<HashMap<String, (u64, Option<u64>, Option<u64>)>, StoreError> {
+    let mut query = conn
+        .prepare(
+            "select user_message_id, started_at, completed_at, duration_ms from turn_usage \
+             where session_id = ? and user_message_id is not null",
+        )
+        .storage()?;
+    let rows = query
+        .query_map([session.as_str()], |row| {
+            let message: String = row.get(0)?;
+            let started: i64 = row.get(1)?;
+            let ended: Option<i64> = row.get(2)?;
+            let active: Option<i64> = row.get(3)?;
+            Ok((message, started, ended, active))
+        })
+        .storage()?;
+    let mut out = HashMap::new();
+    for row in rows {
+        let (message, started, ended, active) = row.storage()?;
+        out.insert(
+            message,
+            (
+                u64::try_from(started).unwrap_or_default(),
+                ended.and_then(|value| u64::try_from(value).ok()),
+                active.and_then(|value| u64::try_from(value).ok()),
+            ),
+        );
+    }
+    Ok(out)
+}
+
+fn with_timing(
+    mut model_turn: SessionModelTurn,
+    timing: Option<&(u64, Option<u64>, Option<u64>)>,
+) -> SessionModelTurn {
+    if let Some((started, ended, active)) = timing {
+        model_turn.started_at_ms = Some(*started);
+        model_turn.ended_at_ms = *ended;
+        model_turn.active_ms = *active;
+    }
+    model_turn
 }
 
 /// 每条真人输入的规范意图：Node 把 canonical intent 写进 user 消息的
