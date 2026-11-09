@@ -181,10 +181,24 @@ async fn connects_lists_and_calls_tools() {
         .into_iter()
         .find(|(_, message)| message["method"] == "tools/call")
         .unwrap();
-    // `_meta` 只带本工程的键：tool_use 的 ID（ext.md §3.3、D35）。
+    // `_meta`：本工程的 tool_use ID + node_repl 需要的 request-context（平铺键与
+    // `com.zcode/request-context` 嵌套副本各一份）。缺 session_id 时 Browser Use 会拒绝调用。
+    let request_context = json!({
+        "session_id": "sess_1",
+        "turn_id": "run_1",
+        "runtime_scope": "main",
+        "workspace_path": crate::test_support::CWD,
+        "workspace_key": crate::test_support::CWD,
+    });
+    let mut expected_meta = serde_json::Map::new();
+    expected_meta.insert("nibi/toolUseId".to_owned(), json!("toolu_1"));
+    for (key, value) in request_context.as_object().unwrap() {
+        expected_meta.insert(key.clone(), value.clone());
+    }
+    expected_meta.insert("com.zcode/request-context".to_owned(), request_context);
     assert_eq!(
         call.1["params"]["_meta"],
-        json!({"zcode/toolUseId": "toolu_1"})
+        serde_json::Value::Object(expected_meta)
     );
     // 服务器报告的错误：原文、标记为错误。
     let failed = manager
