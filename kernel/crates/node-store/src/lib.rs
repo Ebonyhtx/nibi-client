@@ -53,8 +53,8 @@ use nibi_kernel_api::permission::{PermissionMode, ProjectRules};
 use nibi_kernel_api::store::{
     ArtifactPurpose, ArtifactRef, ArtifactStore, CommitReceipt, FactBatch, ForkReceipt,
     LoadedSession, MessageTime, SessionDirectoryEntry, SessionDirectoryQuery, SessionFilter,
-    SessionFork, SessionKind, SessionMeta, SessionPage, SessionQuery, SessionStore, SessionSummary,
-    StoreError,
+    SessionFork, SessionIndexFact, SessionKind, SessionMeta, SessionPage, SessionQuery,
+    SessionStore, SessionSummary, StoreError,
 };
 use nibi_kernel_api::workspace_trust::TrustKey;
 use nibi_kernel_paths::StoragePaths;
@@ -237,6 +237,15 @@ impl SessionStore for NodeStore {
             .await?;
         loaded.checkpoints = node_checkpoints::resolve(self.paths.artifacts(), checkpoints).await;
         Ok(loaded)
+    }
+
+    async fn session_index_fact(
+        &self,
+        session: &SessionId,
+    ) -> Result<Option<SessionIndexFact>, StoreError> {
+        let session = session.clone();
+        self.with_db(move |conn, _| load::index_fact(conn, &session))
+            .await
     }
 
     async fn message_times(

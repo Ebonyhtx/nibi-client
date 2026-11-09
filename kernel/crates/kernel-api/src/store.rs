@@ -476,6 +476,25 @@ pub struct FrontendRecord {
     pub data: Value,
 }
 
+/// `sessions-index/reconcile` 的一条会话事实（Node `sessionsIndex/reconcile`）。
+///
+/// 与 [`SessionStore::load`] 的区别：**软删除的行也要能读到**（`deleted: true`）。Host 靠这个标记把
+/// tasks-index 里的行落墓碑；只回 `exists: false` 的话 Host 会当成“CLI 里暂时缺这一行”（orphan），
+/// 归档管理里删掉的会话于是永远留在列表里（2026-11-09 真机：删除命令成功、行不消失）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionIndexFact {
+    pub title: String,
+    pub title_source: Option<String>,
+    pub created_at_ms: u64,
+    pub updated_at_ms: u64,
+    pub deleted: bool,
+    pub last_outcome: Option<String>,
+    /// 会话工作目录（Node `session.directory`）。
+    pub directory: String,
+    /// 远端工作区身份（本机会话为 None）。
+    pub workspace_id: Option<String>,
+}
+
 #[async_trait]
 pub trait SessionStore: Send + Sync {
     async fn create(&self, meta: SessionMeta) -> Result<(), StoreError>;
@@ -487,6 +506,14 @@ pub trait SessionStore: Send + Sync {
     ) -> Result<CommitReceipt, StoreError>;
 
     async fn load(&self, session: &SessionId) -> Result<LoadedSession, StoreError>;
+
+    /// `sessions-index/reconcile` 的单条事实（含软删除的行）。缺省实现没有这份读面。
+    async fn session_index_fact(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Option<SessionIndexFact>, StoreError> {
+        Ok(None)
+    }
 
     /// 会话里每条消息的持久时间（旧协议快照的时间戳；见 [`MessageTime`]）。缺省实现返回
     /// `Unsupported`，调用方回退到会话创建时间。

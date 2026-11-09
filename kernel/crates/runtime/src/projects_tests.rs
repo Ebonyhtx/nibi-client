@@ -186,6 +186,12 @@ async fn rename_goes_through_the_actor_when_open_and_delete_refuses_open_session
         "{refused:?}"
     );
     assert!(!store.is_deleted(&open));
+    // 删除路径先关闭打开着的会话（Live 可能已经不在了，只按 Live 判断会一直拒绝）。
+    assert!(kernel.close_open_session(&open).await.unwrap());
+    kernel.delete_session(&open).await.unwrap();
+    assert!(store.is_deleted(&open));
+    // 没有打开时是 no-op。
+    assert!(!kernel.close_open_session(&closed).await.unwrap());
     kernel.delete_session(&closed).await.unwrap();
     assert!(store.is_deleted(&closed));
     let missing = kernel.rename_session(&closed, "again".into()).await;

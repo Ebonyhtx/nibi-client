@@ -62,6 +62,8 @@ impl SessionHandle for Handle {
 struct OnlySessions {
     view: SessionView,
     draft: Arc<std::sync::atomic::AtomicBool>,
+    /// `sessions-index/reconcile` 的存储事实（按会话 id）。
+    facts: std::collections::HashMap<String, nibi_kernel_api::store::SessionIndexFact>,
 }
 
 #[async_trait]
@@ -94,6 +96,13 @@ impl Kernel for OnlySessions {
             view,
             draft: self.draft.clone(),
         }))
+    }
+
+    async fn session_index_fact(
+        &self,
+        session: &SessionId,
+    ) -> Result<Option<nibi_kernel_api::store::SessionIndexFact>, KernelError> {
+        Ok(self.facts.get(session.as_str()).cloned())
     }
 }
 
@@ -172,6 +181,18 @@ fn harness() -> (
     nibi_kernel_base::Task<()>,
     Arc<std::sync::atomic::AtomicBool>,
 ) {
+    harness_with_facts(std::collections::HashMap::new())
+}
+
+fn harness_with_facts(
+    facts: std::collections::HashMap<String, nibi_kernel_api::store::SessionIndexFact>,
+) -> (
+    Arc<Server>,
+    Wire,
+    TaskScope,
+    nibi_kernel_base::Task<()>,
+    Arc<std::sync::atomic::AtomicBool>,
+) {
     let scope = TaskScope::root("subscribe-test", |_| {});
     let (agent_out, host_in) = duplex(1 << 20);
     let (peer, writer) = connection::start(agent_out, &scope.spawner(), Options::default());
@@ -183,6 +204,7 @@ fn harness() -> (
         Arc::new(OnlySessions {
             view: view(),
             draft: draft.clone(),
+            facts,
         }),
         scope.spawner(),
         Defaults {
@@ -453,4 +475,57 @@ async fn a_draft_session_stays_out_of_the_sessions_index_until_promoted() {
             .unwrap()
             .is_empty()
     );
+}
+
+/// `sessions-index/reconcile` 与 Node 同口径：软删除的会话回 `exists: true, deleted: true`（Host 靠它
+/// 把 tasks-index 的行落墓碑），别的目录的会话回 `exists: false`。
+#[tokio::test]
+async fn reconcile_reports_soft_deleted_sessions_as_deleted() {
+    let fact = |title: &str, directory: &str, deleted: bool| {
+        nibi_kernel_api::store::SessionIndexFact {
+            title: title.to_owned(),
+            title_source: Some("custom".to_owned()),
+            created_at_ms: 10,
+            updated_at_ms: 20,
+            deleted,
+            last_outcome: None,
+            directory: directory.to_owned(),
+            workspace_id: None,
+        }
+    };
+    let facts = std::collections::HashMap::from([
+        ("sess_gone".to_owned(), fact("gone", "/w", true)),
+        ("sess_live".to_owned(), fact("live", "/w", false)),
+        ("sess_other".to_owned(), fact("other", "/elsewhere", false)),
+    ]);
+    let (server, _wire, _scope, _writer, _draft) = harness_with_facts(facts);
+    let result = run(reconcile(
+        &server,
+        &json!({
+            "workspaceId": "/w",
+            "sessionIds": ["sess_gone", "sess_live", "sess_other", "sess_missing"],
+        }),
+    )
+    .await
+    .unwrap())
+    .await;
+    let sessions = result["sessions"].as_array().unwrap();
+    assert_eq!(sessions.len(), 4);
+    assert_eq!(
+        sessions[0],
+        json!({
+            "sessionId": "sess_gone",
+            "exists": true,
+            "deleted": true,
+            "title": "gone",
+            "titleSource": "custom",
+            "createdAt": 10,
+            "updatedAt": 20,
+        })
+    );
+    assert_eq!(sessions[1]["sessionId"], "sess_live");
+    assert_eq!(sessions[1]["exists"], true);
+    assert_eq!(sessions[1]["deleted"], false);
+    assert_eq!(sessions[2], json!({"sessionId": "sess_other", "exists": false, "deleted": false}));
+    assert_eq!(sessions[3], json!({"sessionId": "sess_missing", "exists": false, "deleted": false}));
 }

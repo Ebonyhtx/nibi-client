@@ -302,6 +302,11 @@ pub async fn flow(server: &Server, params: &Value) -> Result<Reply, RpcError> {
 }
 
 /// 会话列表对账：按 sessionIds 回存在与否、标题与时间。
+///
+/// 与 Node `v4-bridge.ts` 的 `reconcileSessions` 同口径：直接读存储行（包括软删除的行，`deleted: true`），
+/// 并且只认**本工作区**的会话。以前先看 bridge 的 live summary、没有再看 `session_snapshot`，软删除的
+/// 会话因此回成 `exists: false`——Host 把它当成“CLI 里暂时缺这一行”（orphan），tasks-index 的行不落
+/// 墓碑，归档管理里删掉的会话永远留在列表里（2026-11-09 真机）。
 pub async fn reconcile(server: &Server, params: &Value) -> Result<Reply, RpcError> {
     let workspace = params["workspaceId"].as_str().unwrap_or_default();
     let ids: Vec<&str> = params["sessionIds"]
@@ -311,45 +316,48 @@ pub async fn reconcile(server: &Server, params: &Value) -> Result<Reply, RpcErro
     let mut sessions = Vec::new();
     for id in ids {
         let session = SessionId::new(id);
-        let row = match server.bridge.get(&session) {
-            Some(live) => Some(live.sink.summary()),
-            None => match server.kernel.session_snapshot(&session).await {
-                Ok(view) => Some(
-                    Summary {
-                        session: id,
-                        workspace,
-                        title: &view.meta.title,
-                        phase: Phase::CompletedSuccess,
-                        created_at: view.meta.created_at_ms,
-                        activity_at: view.meta.created_at_ms,
-                        last_reply: None,
-                        pending: &[],
-                    }
-                    .to_value(),
-                ),
-                Err(_) => None,
-            },
+        let fact = server
+            .kernel
+            .session_index_fact(&session)
+            .await
+            .ok()
+            .flatten()
+            .filter(|fact| {
+                // Node：`session.directory === directory`，且本机会话的 `workspaceID` 为空或等于它。
+                fact.directory == workspace
+                    && fact
+                        .workspace_id
+                        .as_deref()
+                        .is_none_or(|workspace_id| workspace_id == workspace)
+            });
+        let Some(fact) = fact else {
+            sessions.push(json!({"sessionId": id, "exists": false, "deleted": false}));
+            continue;
         };
-        sessions.push(match row {
-            Some(row) => {
-                let mut entry = json!({
-                    "sessionId": id,
-                    "exists": true,
-                    "deleted": false,
-                    "title": row["title"],
-                    "titleSource": row["titleSource"],
-                    "createdAt": row["createdAt"],
-                    "updatedAt": row["lastActivityAt"],
-                });
-                if let Some(outcome) = row.get("lastOutcome") {
-                    entry["lastOutcome"] = outcome.clone();
-                }
-                entry
-            }
-            None => json!({"sessionId": id, "exists": false, "deleted": false}),
+        let mut entry = json!({
+            "sessionId": id,
+            "exists": true,
+            "deleted": fact.deleted,
+            "title": fact.title,
+            "titleSource": title_source(fact.title_source.as_deref()),
+            "createdAt": fact.created_at_ms,
+            "updatedAt": fact.updated_at_ms,
         });
+        if let Some(outcome) = fact.last_outcome {
+            entry["lastOutcome"] = json!(outcome);
+        }
+        sessions.push(entry);
     }
     Ok(Reply::new(json!({"sessions": sessions})))
+}
+
+/// Node `normalizeStoredTitleSource`：只认 `custom` / `default`，其余（含缺省）一律 `generated`。
+fn title_source(source: Option<&str>) -> &'static str {
+    match source {
+        Some("custom") => "custom",
+        Some("default") => "default",
+        _ => "generated",
+    }
 }
 
 /// 新建的会话马上进会话列表（在会话的泵任务里发）。

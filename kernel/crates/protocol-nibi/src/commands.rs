@@ -2625,6 +2625,11 @@ async fn delete_session(server: &Server, envelope: &Envelope, revision: u64) -> 
             .close_session(&json!({"sessionId": session}))
             .await;
     }
+    // 没有订阅者时 Live 已经不在了（归档任务在设置页删除就是这样），但内核会话表里的 actor 还开着；
+    // 只按 Live 关闭会让下面的 `delete_session` 一直以「The session is open in this window.」拒绝。
+    if let Err(error) = server.kernel.close_open_session(&session_id).await {
+        tracing::warn!(session = %session_id, %error, "could not close an open session before deleting it");
+    }
     match server.kernel.delete_session(&session_id).await {
         Ok(()) => {
             // 列表行也要撤掉（Node `disposeSession({deleted:true})` 的 session.removed）：

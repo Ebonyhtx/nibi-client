@@ -1613,6 +1613,10 @@ impl Kernel for LocalKernel {
         self.rename(session, title).await
     }
 
+    async fn close_open_session(&self, session: &SessionId) -> Result<bool, KernelError> {
+        self.close_open(session).await
+    }
+
     async fn delete_session(&self, session: &SessionId) -> Result<(), KernelError> {
         self.delete(session).await
     }
@@ -1622,6 +1626,17 @@ impl Kernel for LocalKernel {
         session: &SessionId,
     ) -> Result<nibi_kernel_api::session_api::SessionView, KernelError> {
         self.snapshot(session).await
+    }
+
+    async fn session_index_fact(
+        &self,
+        session: &SessionId,
+    ) -> Result<Option<nibi_kernel_api::store::SessionIndexFact>, KernelError> {
+        self.ports
+            .store
+            .session_index_fact(session)
+            .await
+            .map_err(|error| failed(&error))
     }
 
     /// 旧协议快照的逐条消息时间：node-store 从 `message` 行的 `time_created/time_updated` 读出。

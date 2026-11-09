@@ -262,6 +262,25 @@ impl LocalKernel {
             .map_err(failed)
     }
 
+    /// 关闭一个打开着的会话（删除前的收尾）：没有打开时 `false`。Live 已经撤掉、但表里的 actor
+    /// 还开着时，`delete` 的“打开着不能删”会一直成立——归档任务在设置页删除就是这种情况。
+    pub(crate) async fn close_open(&self, session: &SessionId) -> Result<bool, KernelError> {
+        let Some(open) = self.open(session).await else {
+            return Ok(false);
+        };
+        for notice in open
+            .close(nibi_kernel_api::session_api::EndReason::Other)
+            .await
+        {
+            tracing::warn!(
+                session = %session,
+                %notice,
+                "a SessionEnd hook failed while closing the session"
+            );
+        }
+        Ok(true)
+    }
+
     /// 打开着的会话不能删（它的 actor 还会提交）；否则存储软删除。
     pub(crate) async fn delete(&self, session: &SessionId) -> Result<(), KernelError> {
         if self.open(session).await.is_some() {

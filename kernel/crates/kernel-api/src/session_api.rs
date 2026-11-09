@@ -1653,6 +1653,16 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 关闭一个**已经打开**的会话（没有打开时 `Ok(false)`）：SessionEnd、后台收尾与关闭 actor 都走
+    /// [`SessionHandle::close`] 同一条路。
+    ///
+    /// 删除路径要它：协议层的 Live 只在有订阅者时存在，归档任务在设置页删除时 Live 往往已经撤了，
+    /// 但内核会话表里的 actor 还开着——只按 Live 判断能否关闭，`delete_session` 会一直拒绝
+    /// （`The session is open in this window.`，2026-11-09 真机：归档管理里 5 个会话全删不掉）。
+    async fn close_open_session(&self, _session: &SessionId) -> Result<bool, KernelError> {
+        Ok(false)
+    }
+
     /// 删除会话（F29，tui-manage.md §10.6）：打开着的拒绝（`Failed`），否则存储软删除。
     async fn delete_session(&self, _session: &SessionId) -> Result<(), KernelError> {
         Err(KernelError::Unsupported {
@@ -1666,6 +1676,15 @@ pub trait Kernel: Send + Sync {
         Err(KernelError::Unsupported {
             what: "session snapshots".to_owned(),
         })
+    }
+
+    /// `sessions-index/reconcile` 的单条事实：与 [`Self::session_snapshot`] 不同，**软删除的会话也要读出来**
+    /// 并带 `deleted: true`（Host 靠它把 tasks-index 的行落墓碑）。缺省没有这份读面。
+    async fn session_index_fact(
+        &self,
+        _session: &SessionId,
+    ) -> Result<Option<crate::store::SessionIndexFact>, KernelError> {
+        Ok(None)
     }
 
     /// 会话里每条消息的持久时间（旧协议快照的时间戳）。缺省 `Unsupported`，调用方回退到会话

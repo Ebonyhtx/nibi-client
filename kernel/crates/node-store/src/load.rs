@@ -3,14 +3,14 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{EnvironmentId, MessageId, SessionId, TraceId, TurnId};
 use nibi_kernel_api::model::{ModelConnection, ModelSelection};
 use nibi_kernel_api::permission::ExecutionState;
 use nibi_kernel_api::store::{
-    LoadedSession, MessageTime, SessionDirectoryEntry, SessionDirectoryQuery, SessionKind,
-    SessionLaunchTurn, SessionMeta, SessionModelTurn, SessionSummary, TurnAnchor,
+    LoadedSession, MessageTime, SessionDirectoryEntry, SessionDirectoryQuery, SessionIndexFact,
+    SessionKind, SessionLaunchTurn, SessionMeta, SessionModelTurn, SessionSummary, TurnAnchor,
 };
 use nibi_kernel_api::store::{SessionFilter, StoreError};
 use serde_json::Value;
@@ -166,8 +166,37 @@ pub fn directory(
     Ok(rows.into_iter().map(directory_entry).collect())
 }
 
-fn directory_entry(row: SessionRow) -> SessionDirectoryEntry {
-    SessionDirectoryEntry {
+/// `sessions-index/reconcile` 的单条事实（Node `v4-bridge.ts` 的 `reconcileSessions`）：软删除的行
+/// 也要读出来并带 `deleted: true`——Host 用它把 tasks-index 的行落墓碑。
+pub fn index_fact(
+    conn: &Connection,
+    session: &SessionId,
+) -> Result<Option<SessionIndexFact>, StoreError> {
+    conn.prepare_cached(
+        "select directory, workspace_id, title, title_source, time_created, time_updated,
+                time_deleted, last_outcome
+           from session where id = ?",
+    )
+    .storage()?
+    .query_row([session.as_str()], |row| {
+        let created = row.get::<_, i64>(4)?;
+        let updated = row.get::<_, i64>(5)?;
+        Ok(SessionIndexFact {
+            directory: row.get(0)?,
+            workspace_id: row.get(1)?,
+            title: row.get(2)?,
+            title_source: row.get(3)?,
+            created_at_ms: u64::try_from(created).unwrap_or(0),
+            updated_at_ms: u64::try_from(updated).unwrap_or(0),
+            deleted: row.get::<_, Option<i64>>(6)?.is_some(),
+            last_outcome: row.get(7)?,
+        })
+    })
+    .optional()
+    .storage()
+}
+
+fn directory_entry(row: SessionRow) -> SessionDirectoryEntry {    SessionDirectoryEntry {
         id: SessionId::new(row.id),
         parent: row.parent_id.map(SessionId::new),
         trace: row.trace_id,
