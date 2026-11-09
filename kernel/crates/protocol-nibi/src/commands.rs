@@ -630,7 +630,7 @@ async fn decide(server: &Server, envelope: &Envelope) -> Ack {
         "revokeWorkspaceHookTrust" => {
             crate::hook_review::revoke(server, &live.sink, envelope, revision).await
         }
-        "deleteSession" => delete_session(server, envelope).await,
+        "deleteSession" => delete_session(server, envelope, revision).await,
         _ => unsupported(envelope, revision),
     }
 }
@@ -1851,12 +1851,12 @@ async fn set_auto_drain(handle: &dyn SessionHandle, envelope: &Envelope) -> Ack 
         KernelAck::Accepted { .. } => Ack::accepted(
             &envelope.command_id,
             revision,
-            Some(json!({"type": "setAutoDrain", "autoDrain": enabled})),
+            None,
         ),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(
             &envelope.command_id,
             revision,
-            Some(json!({"type": "setAutoDrain", "autoDrain": enabled})),
+            None,
         )),
         KernelAck::Rejected { reason } => Ack::refused(
             &envelope.command_id,
@@ -1899,12 +1899,12 @@ async fn send_queued_now(handle: &dyn SessionHandle, envelope: &Envelope, revisi
         KernelAck::Accepted { .. } => Ack::accepted(
             &envelope.command_id,
             revision,
-            Some(json!({"type": "sendQueuedNow", "inputId": queue_command(item)})),
+            None,
         ),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(
             &envelope.command_id,
             revision,
-            Some(json!({"type": "sendQueuedNow", "inputId": queue_command(item)})),
+            None,
         )),
         // Node 的 sendQueuedNow 未命中抛无 reasonCode 的领域错误 → failed + executionFailed。
         KernelAck::Rejected { reason } => Ack::refused(
@@ -2075,7 +2075,7 @@ async fn send_goal_command(handle: &dyn SessionHandle, envelope: &Envelope) -> A
         KernelAck::Accepted { .. } => Ack::accepted(
             command,
             view.revision,
-            Some(json!({"type": "sendGoalCommand", "objective": objective})),
+            None,
         ),
         KernelAck::Duplicate => inbox::duplicate(&Ack::accepted(command, view.revision, None)),
         KernelAck::Rejected { reason } => Ack::refused(
@@ -2209,7 +2209,7 @@ async fn set_assistant_feedback(
         );
     }
     live.set_feedback(message, feedback).await;
-    Ack::accepted(command, revision, Some(json!({"type": "setAssistantFeedback"})))
+    Ack::accepted(command, revision, None)
 }
 
 /// NIBI `snoozeInteractionAutoResolution`：永久暂停这条询问的自动结束。内核没有自动结束的倒计时
@@ -2586,7 +2586,7 @@ async fn edit_user_query(
 /// 再走软删。草稿（deferred，没有会话行）走这条路径才删得掉：以前直接调 `delete_session`
 /// 必然失败，预热会话的清理因此被拒（`fault.command.deleteFailed`），草稿在内存里一直留到
 /// 进程退出——2026-11-09 真机：点「新建任务」越点越多。
-async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
+async fn delete_session(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
     let command = envelope.command_id.as_str();
     let Some(session) = envelope.session_id.as_deref() else {
         return Ack::refused(
@@ -2594,7 +2594,7 @@ async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
             Status::Rejected,
             "proto.sessionRequired",
             "deleteSession needs a sessionId",
-            0,
+            revision,
         );
     };
     let session_id = SessionId::new(session);
@@ -2607,7 +2607,11 @@ async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
     match server.kernel.delete_session(&session_id).await {
         Ok(()) => {
             // bridge 的打开会话由 kernel 的 delete 处理（下次 open 同 id 会 NotFound）。
-            Ack::accepted(command, 0, Some(json!({"type": "deleteSession"})))
+            // **ACK 不带 result**：Node 的 deleteSession handler 返回 undefined，Host 的
+            // `commandResultSchema` 联合类型里也没有 deleteSession 这个分支。以前这里回
+            // `{"type":"deleteSession"}`，Host 解 ACK 时 ZodError（No matching discriminator），
+            // 归档管理的「删除」于是永远失败——命令其实已经执行了（2026-11-09 真机）。
+            Ack::accepted(command, revision, None)
         }
         Err(error) => {
             let text = error.to_string();
@@ -2616,7 +2620,7 @@ async fn delete_session(server: &Server, envelope: &Envelope) -> Ack {
                 Status::Rejected,
                 "fault.command.deleteFailed",
                 text,
-                0,
+                revision,
             )
         }
     }
