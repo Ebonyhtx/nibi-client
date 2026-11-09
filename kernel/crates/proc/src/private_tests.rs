@@ -13,9 +13,9 @@ fn mode(path: &Path) -> u32 {
 fn the_directory_name_carries_the_uid() {
     let temp = Path::new("/t");
     #[cfg(unix)]
-    assert_eq!(user_dir(temp), temp.join(format!("zcode-{}", uid())));
+    assert_eq!(user_dir(temp), temp.join(format!("nibi-{}", uid())));
     #[cfg(windows)]
-    assert_eq!(user_dir(temp), temp.join("zcode"));
+    assert_eq!(user_dir(temp), temp.join("nibi"));
 }
 
 #[cfg(unix)]
@@ -23,7 +23,7 @@ fn the_directory_name_carries_the_uid() {
 async fn a_missing_directory_is_created_private_and_a_loose_one_is_tightened() {
     use std::os::unix::fs::PermissionsExt;
     let base = tempfile::tempdir().unwrap();
-    let dir = base.path().join("a/zcode-1");
+    let dir = base.path().join("a/nibi-1");
     ensure(&dir).await.unwrap();
     assert_eq!(mode(&dir), 0o700);
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
@@ -37,7 +37,7 @@ async fn a_symlink_is_refused() {
     let base = tempfile::tempdir().unwrap();
     let target = base.path().join("elsewhere");
     std::fs::create_dir(&target).unwrap();
-    let dir = base.path().join("zcode-1");
+    let dir = base.path().join("nibi-1");
     std::os::unix::fs::symlink(&target, &dir).unwrap();
     let error = ensure(&dir).await.unwrap_err();
     assert_eq!(error.kind(), io::ErrorKind::PermissionDenied);

@@ -13,15 +13,15 @@ use std::path::{Path, PathBuf};
 #[cfg(unix)]
 const HINT: &str = "Set TMPDIR to a directory you control, or ask an administrator to remove it.";
 
-/// 本用户的私有临时目录：Unix 上 `<temp>/zcode-<uid>`，Windows 上 `<temp>/zcode`。
+/// 本用户的私有临时目录：Unix 上 `<temp>/nibi-<uid>`，Windows 上 `<temp>/nibi`。
 pub fn user_dir(temp: &Path) -> PathBuf {
     #[cfg(unix)]
     {
-        temp.join(format!("zcode-{}", uid()))
+        temp.join(format!("nibi-{}", uid()))
     }
     #[cfg(windows)]
     {
-        temp.join("zcode")
+        temp.join("nibi")
     }
 }
 

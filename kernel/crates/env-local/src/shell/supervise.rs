@@ -110,11 +110,24 @@ pub(crate) fn script(
 async fn open_output(plan: &Plan, path: &Path) -> std::io::Result<std::fs::File> {
     tokio::fs::create_dir_all(&plan.dir).await?;
     let mut options = tokio::fs::OpenOptions::new();
-    options.create(true).append(true);
+    options.create(true);
+    // Windows 上不能用 `append(true)`：Rust 会以 `FILE_APPEND_DATA` 打开，Git Bash（MSYS 运行时）
+    // 启动时对 stdout 做 seek，拿到这种句柄直接退出 1——每条 Bash 命令都变成空的 `Exit code 1`
+    // （2026-11-09 真机验收定位；同样的脚本用普通可写句柄跑就正常）。改用可写句柄并在打开时
+    // 定位到末尾，保持"追加"语义；Unix 仍用 O_APPEND（并发写更稳）。
+    #[cfg(windows)]
+    options.write(true);
+    #[cfg(not(windows))]
+    options.append(true);
     // 缺陷修复 R2-1：输出只给本用户读（原来按默认权限建，常见是 0644）。
     #[cfg(unix)]
     options.mode(0o600);
-    let file = options.open(path).await?;
+    let mut file = options.open(path).await?;
+    #[cfg(windows)]
+    {
+        use tokio::io::AsyncSeekExt as _;
+        file.seek(std::io::SeekFrom::End(0)).await?;
+    }
     Ok(file.into_std().await)
 }
 
