@@ -1565,8 +1565,9 @@ export function SessionPane({
           ? newTaskComposerScope
           : { ...newTaskComposerScope, projectId: creationProjectId };
       // 在异步查询归属前冻结选择与发起顺序，避免慢查询把早发命令排成最新。
+      // 权限模式只在新任务页首发时记成默认；会话内跟进不改变下一次新建任务的默认模式。
       const recentReceipt = recentSubmission
-        ? prepareComposerRecentReceipt(recentScope, recentSubmission)
+        ? prepareComposerRecentReceipt(recentScope, recentSubmission, sessionId === null)
         : undefined;
       if (recentSubmission && sessionId && targetSessionId) {
         const projectService = baseWorkspaceServices.projectService;

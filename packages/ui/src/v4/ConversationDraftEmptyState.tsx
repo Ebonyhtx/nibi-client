@@ -20,14 +20,31 @@ import nibiLoopDarkUrl from "@/assets/nibi/nibi-loop-dark.png";
 
 // 3072x2304 的精灵图偶尔会在路由切换的第一帧只绘出一半；提前 decode，
 // 让新建会话页首次挂载时直接命中已解码缓存。
-if (typeof Image !== "undefined") {
-  for (const url of [nibiLoopLightUrl, nibiLoopDarkUrl]) {
-    const image = new Image();
-    image.decoding = "async";
-    image.src = url;
-    void image.decode?.().catch(() => {});
-  }
-}
+//
+// 只 decode 一次不够：大图（解码后约 28MB）会被 Chromium 从解码缓存里淘汰，重新显示时又开始
+// 渐进解码，首帧只画出上半张（整个上半圆 + 鸟头，下半张透明）——真机表现为「小鸟只显示一半」。
+// 所以 decode 同时记完成标记，组件在标记到达前隐藏鸟，解码完成后再显示。
+let loopSpriteDecoded = false;
+const loopSpriteDecodePromise: Promise<void> =
+  typeof Image === "undefined"
+    ? Promise.resolve().then(() => {
+        loopSpriteDecoded = true;
+      })
+    : Promise.all(
+        [nibiLoopLightUrl, nibiLoopDarkUrl].map(async (url) => {
+          const image = new Image();
+          image.decoding = "async";
+          image.src = url;
+          try {
+            // 不支持 decode 的宿主直接放行，让动画按渐进帧显示。
+            await image.decode?.();
+          } catch {
+            // 解码失败也要放行：不能把入口永久藏起来。
+          }
+        }),
+      ).then(() => {
+        loopSpriteDecoded = true;
+      });
 
 const GREETING_BOUNDARY_HOURS = [5, 9, 12, 14, 18, 23] as const;
 const GREETING_MIN_FONT_SIZE_PX = 20;
@@ -114,6 +131,17 @@ export function ConversationDraftEmptyState({
 }) {
   const { intl } = useZCodeIntl();
   const isOfficeMode = useIsOfficeMode();
+  // 解码完成前不画鸟：否则重新解码时的首帧只有上半张，看起来像「小鸟只显示一半」。
+  const [logoReady, setLogoReady] = useState(() => loopSpriteDecoded);
+  useEffect(() => {
+    let active = true;
+    void loopSpriteDecodePromise.then(() => {
+      if (active) setLogoReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const [greetingDate, setGreetingDate] = useState(() => new Date());
   const [greetingFontSizePx, setGreetingFontSizePx] = useState(
     GREETING_MAX_FONT_SIZE_PX,
@@ -219,7 +247,9 @@ export function ConversationDraftEmptyState({
       {/* 上游是"绝对定位的 Z 水印 + 文字压在上面"；NIBI 的鸟是实心角色，压字很难看，
           改成正常流：鸟在上、问候语在下。整帧映射的单元自带约 39px 底边留白，用负 margin
           抵掉它，否则鸟和问候语之间会空出一大块。 */}
-      <ZCodeEmptyStateLogo className="-mb-10" />
+      <ZCodeEmptyStateLogo
+        className={cn("-mb-10", logoReady ? "opacity-100" : "opacity-0")}
+      />
       <p
         ref={greetingContainerRef}
         data-v4-draft-greeting="true"

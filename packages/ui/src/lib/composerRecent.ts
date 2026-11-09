@@ -21,17 +21,28 @@ export interface ComposerRecentReceipt {
   scope: ComposerScope;
   selection: { modelSelection: ModelSelection; mode: SubmissionMode };
   order: number;
+  /**
+   * 是否把这次的权限模式写进“新任务默认”。
+   *
+   * 只有新任务页的首发（sessionId 为空）才算用户的显式选择；会话内的跟进沿用会话既有模式，
+   * 不是用户为新任务做的选择，不能把模式带进下一次新建任务。历史上这里不区分，任何一次发送都会
+   * 把会话模式记成默认——用户在某个会话里切到「完全访问」后，之后每次新建任务都默认完全访问
+   * （2026-11-09 真机）。
+   */
+  recordMode?: boolean;
 }
 let lastReceiptOrder = 0;
 export function prepareComposerRecentReceipt(
   scope: ComposerScope,
   selection: ComposerRecentReceipt["selection"],
+  recordMode = true,
 ): ComposerRecentReceipt {
   lastReceiptOrder = Math.max(Date.now() * 1000, lastReceiptOrder + 1);
   return {
     scope: { ...scope },
     selection: JSON.parse(JSON.stringify(selection)),
     order: lastReceiptOrder,
+    recordMode,
   };
 }
 export function acceptComposerRecentReceipt(
@@ -44,7 +55,7 @@ export function acceptComposerRecentReceipt(
   if (!selection.success || !mode.success) return true;
   const key = resolveComposerRecentKey("", undefined, receipt.scope);
   try {
-    let previous: { order?: number } | null = null;
+    let previous: { order?: number; mode?: unknown; modeSource?: unknown } | null = null;
     try {
       previous = JSON.parse(storage.getItem(key) ?? "null");
     } catch {
@@ -52,9 +63,20 @@ export function acceptComposerRecentReceipt(
     }
     // 回执/查询/快照可能重复到达；持久化顺序让刷新后的旧回执也不能回滚默认配置。
     if (typeof previous?.order === "number" && previous.order >= receipt.order) return true;
+    // 跟进不覆盖新任务默认模式：只保留由新任务首发记录的那一份（旧记录没有来源标记，按 build 处理）。
+    const previousMode = submissionModeSchema.safeParse(previous?.mode);
+    const rememberedDraftMode =
+      previous?.modeSource === "draft" && previousMode.success ? previousMode.data : undefined;
+    const storedMode =
+      receipt.recordMode === false ? (rememberedDraftMode ?? "build") : mode.data;
     storage.setItem(
       key,
-      JSON.stringify({ modelSelection: selection.data, mode: mode.data, order: receipt.order }),
+      JSON.stringify({
+        modelSelection: selection.data,
+        mode: storedMode,
+        modeSource: "draft",
+        order: receipt.order,
+      }),
     );
     return true;
   } catch (error) {
@@ -88,11 +110,15 @@ export function readComposerRecent(
     if (!raw) return null;
     const record: unknown = JSON.parse(raw);
     if (!record || typeof record !== "object" || Array.isArray(record)) return null;
+    const fields = record as Record<string, unknown>;
     // 两个叶子独立校验：模型过期或坏数据不能连带丢掉合法权限，反之亦然。
     const selection = modelSelectionSchema.safeParse(
-      "modelSelection" in record ? record.modelSelection : record,
+      "modelSelection" in fields ? fields.modelSelection : fields,
     );
-    const mode = submissionModeSchema.safeParse("mode" in record ? record.mode : undefined);
+    // 只有 `modeSource: "draft"` 的记录才是用户在新任务页的显式选择。旧记录（没有来源标记）是
+    // 旧实现把会话模式写进来的，不能继续当新任务默认——否则新建任务会默认继承上一个会话的完全访问。
+    const draftMode = fields.modeSource === "draft" ? fields.mode : undefined;
+    const mode = submissionModeSchema.safeParse(draftMode);
     const healedSelection = selection.success ? selection.data : undefined;
     if (!healedSelection && !mode.success) return null;
     return {
@@ -142,7 +168,7 @@ export function captureComposerRecentSubmission(
     if (sequence <= (accepted.get(key) ?? 0)) return;
     accepted.set(key, sequence);
     try {
-      storage.setItem(key, JSON.stringify(recent));
+      storage.setItem(key, JSON.stringify({ ...recent, modeSource: "draft" }));
     } catch (error) {
       // 权威发送已经接纳，本地偏好写入失败不能把它报告成发送失败。
       logger.warn("[ComposerRecent] 保存最近提交配置失败", {

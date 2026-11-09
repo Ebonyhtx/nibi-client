@@ -80,9 +80,17 @@ describe("composerRecent", () => {
   });
 
   it.each([
-    [JSON.stringify({ modelSelection: selection, mode: "invalid" }), { modelSelection: selection }],
-    [JSON.stringify({ modelSelection: { bad: true }, mode: "yolo" }), { mode: "yolo" }],
-    [JSON.stringify({ mode: "plan" }), { mode: "plan" }],
+    [
+      JSON.stringify({ modelSelection: selection, mode: "invalid", modeSource: "draft" }),
+      { modelSelection: selection },
+    ],
+    [
+      JSON.stringify({ modelSelection: { bad: true }, mode: "yolo", modeSource: "draft" }),
+      { mode: "yolo" },
+    ],
+    [JSON.stringify({ mode: "plan", modeSource: "draft" }), { mode: "plan" }],
+    // 旧记录没有来源标记：里面的模式来自旧实现（会把会话模式写成默认），只信模型。
+    [JSON.stringify({ modelSelection: selection, mode: "yolo" }), { modelSelection: selection }],
     [
       JSON.stringify({
         providerId: "provider",
@@ -100,6 +108,40 @@ describe("composerRecent", () => {
     expect(readComposerRecent("/repo", undefined, target)).toEqual(expected);
   });
 
+  it("会话内跟进不改变新任务默认模式；新任务页首发才记住模式", () => {
+    const target = storage();
+    const scope = { clientNamespace: "desktop", hostId: "local", projectId: null };
+    // 新任务页首发：记住 yolo。
+    const draft = prepareComposerRecentReceipt(scope, { modelSelection: selection, mode: "yolo" });
+    acceptComposerRecentReceipt(draft, target);
+    expect(readComposerRecent("/repo", undefined, target, scope)?.mode).toBe("yolo");
+    // 会话内跟进：模型可以更新，但模式保持新任务默认（yolo），不随会话的 build 改动。
+    const followUp = prepareComposerRecentReceipt(
+      scope,
+      { modelSelection: { ...selection, modelId: "next" }, mode: "build" },
+      false,
+    );
+    followUp.order = Number.MAX_SAFE_INTEGER;
+    acceptComposerRecentReceipt(followUp, target);
+    expect(readComposerRecent("/repo", undefined, target, scope)).toMatchObject({
+      mode: "yolo",
+      modelSelection: { modelId: "next" },
+    });
+  });
+
+  it("没有新任务首发记录时，跟进不会把会话模式写成默认", () => {
+    const target = storage();
+    const scope = { clientNamespace: "desktop", hostId: "local", projectId: null };
+    const followUp = prepareComposerRecentReceipt(
+      scope,
+      { modelSelection: selection, mode: "yolo" },
+      false,
+    );
+    acceptComposerRecentReceipt(followUp, target);
+    // 默认回到 build，而不是跟进里的 yolo。
+    expect(readComposerRecent("/repo", undefined, target, scope)?.mode).toBe("build");
+  });
+
   it("接受后一次写入冻结的模型与模式，未接纳候选不改变 Recent", () => {
     const target = storage();
     const submission = { modelSelection: { ...selection, options: {} }, mode: "yolo" as const };
@@ -112,6 +154,7 @@ describe("composerRecent", () => {
     expect(JSON.parse(target.values.get(key)!)).toEqual({
       modelSelection: { providerId: "provider", modelId: "model" },
       mode: "yolo",
+      modeSource: "draft",
     });
     captureComposerRecentSubmission(
       "/repo",
