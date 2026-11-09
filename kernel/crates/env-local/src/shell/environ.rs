@@ -100,6 +100,11 @@ pub(crate) fn project(
     }
     env.insert("GIT_EDITOR".to_owned(), "true".to_owned());
     env.insert("ZCODE".to_owned(), "1".to_owned());
+    // Node `applyExecutionTextEnv`（`adapters/src/exec/outputEncoding.ts`）：工具子进程默认 UTF-8。
+    // Windows 上 Python 的 stdout 是管道时按系统代码页（cp936）编码，脚本里一个 `✓`/emoji 就会
+    // UnicodeEncodeError——2026-11-10 真机自检撞到。`-I` 会忽略这两个变量，那是调用方自己的选择。
+    env.insert("PYTHONIOENCODING".to_owned(), "utf-8".to_owned());
+    env.insert("PYTHONUTF8".to_owned(), "1".to_owned());
     env
 }
 

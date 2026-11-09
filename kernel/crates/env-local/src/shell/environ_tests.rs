@@ -63,4 +63,11 @@ fn commands_get_the_shell_that_runs_them() {
     assert_eq!(env.get("SHELL").map(String::as_str), Some("/bin/bash"));
     assert_eq!(env.get("GIT_EDITOR").map(String::as_str), Some("true"));
     assert_eq!(env.get("ZCODE").map(String::as_str), Some("1"));
+    // 工具子进程默认 UTF-8（Node `applyExecutionTextEnv` 同口径）：Windows 上 Python 否则按
+    // cp936 写 stdout，一个 `✓` 就 UnicodeEncodeError。
+    assert_eq!(
+        env.get("PYTHONIOENCODING").map(String::as_str),
+        Some("utf-8")
+    );
+    assert_eq!(env.get("PYTHONUTF8").map(String::as_str), Some("1"));
 }
