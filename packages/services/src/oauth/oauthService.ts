@@ -50,9 +50,24 @@ const NIBI_JWT_TOKEN_KEY = "nibi-jwttoken";
 const NIBI_TOKEN_REFRESH_MARGIN_MS = 5 * 60_000;
 /** 网络类刷新失败的指数退避序列；走完后停止定时重试（下次启动/用户操作再触发）。 */
 const NIBI_TOKEN_REFRESH_BACKOFF_MS = [30_000, 2 * 60_000, 10 * 60_000, 30 * 60_000] as const;
+/** 缺账号资料时从 userinfo 补回的等待上限：启动恢复在后台跑，但慢网不能把登录态吊太久。 */
+const PROFILE_RECOVERY_TIMEOUT_MS = 10_000;
 const log = (...args: unknown[]) =>
   console.log(formatLogPrefix("oauthService", process.pid), ...args);
 const serviceLog = createServiceLogger("oauthService");
+
+/** 给后台恢复的网络请求加等待上限；超时按网络失败处理，底层请求继续完成也不影响本地凭据。 */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 interface PendingState {
   state: string;
@@ -224,8 +239,10 @@ export class OAuthService implements IOAuthService {
       // zai / bigmodel 这类 OAuth token 生命周期很短，启动时如果强依赖远端 userinfo 校验，
       // 用户明明刚登录过，也会因为 access_token 过期被误判成未登录。
       // 这里改为优先读取登录成功时持久化的 user_info，只要用户没有手动退出，就按缓存恢复展示态。
-      log("restoreCachedSession skipped: missing cached user profile:", activeProvider);
-      return { status: "signed-out" };
+      // 资料缺失是半清状态（例如退出/强杀正好落在凭据清理中间）：有 token 就先用 refresh/userinfo
+      // 补回资料；补不回来才收敛到干净的未登录，避免 active_provider 还在、购买页拿空 token 去请求。
+      log("restoreCachedSession: missing cached user profile, trying recovery:", activeProvider);
+      return this.recoverMissingCachedProfile(restoreGeneration, activeProvider, adapter);
     }
 
     // 业务 JWT 过期而共享 JWT 仍有效时，旧实现会恢复伪登录态；直接读两个凭据做本地检查，
@@ -338,6 +355,94 @@ export class OAuthService implements IOAuthService {
     log("restoreCachedSession restored:", activeProvider, profile.id);
     void this.scheduleNibiTokenRefreshFromCredentials(activeProvider);
     return { status: "authenticated", userInfo: toUserInfo(profile) };
+  }
+
+  /**
+   * 缓存资料缺失时的恢复（半清状态，例如退出/强杀落在清理中间）：
+   * - 没有 token：删掉 stale `active_provider`，让购买/远控等入口看到干净的未登录；
+   * - NIBI access token 过期：先用 refresh token 续期（网络失败保留凭据，下次启动再试）；
+   * - 有 token：用 userinfo 补回账号资料并落盘，恢复成真正的已登录；
+   * - userinfo 明确 401/403：清会话（Host 钩子同时清 license，付费插件 fail-closed）；
+   * - 网络/超时/5xx：保留凭据，当前按未登录展示，不误删可恢复的会话。
+   */
+  private async recoverMissingCachedProfile(
+    restoreGeneration: number,
+    activeProvider: OAuthProviderId,
+    adapter: OAuthProviderAdapter,
+  ): Promise<OAuthCachedSessionRestoreResult> {
+    const stillCurrent = () => this.oauthSessionGeneration === restoreGeneration;
+    let tokenSet = await this.repo.loadActiveTokenSet();
+    if (!tokenSet && adapter.loadLegacyTokenSet) {
+      // 旧版 BigModel 只保留 legacy token key 的兼容读取（与 restoreSession 同一口径）。
+      tokenSet = await adapter.loadLegacyTokenSet((key) => this.credentialService.load(key));
+      if (tokenSet) {
+        await this.repo.saveActiveTokenSet(tokenSet);
+        await this.repo.saveTokenSet(activeProvider, tokenSet);
+      }
+    }
+    if (!tokenSet) {
+      log("profile recovery: no token, clearing stale active provider:", activeProvider);
+      if (!stillCurrent()) return this.restoreCachedSessionState();
+      // 删 active_provider 会触发 Host 的 license 清理；这是半清状态下的 fail-closed。
+      await this.repo.setActiveProvider(null);
+      return { status: "signed-out" };
+    }
+
+    if (activeProvider === NIBI_PROVIDER_ID) {
+      const expired = resolveJwtExpiration(tokenSet.accessToken, this.now()).kind === "expired";
+      if (expired) {
+        const outcome = await this.refreshExpiredNibiSessionOnRestore();
+        if (outcome === "invalid-grant") {
+          log("profile recovery: refresh token invalid, clearing session:", activeProvider);
+          if (!stillCurrent()) return this.restoreCachedSessionState();
+          await this.repo.setActiveProvider(null);
+          return { status: "reauthentication-required", reason: "jwt-expired" };
+        }
+        if (outcome === "network-error") {
+          // refresh token 仍可能有效：保留凭据，当前没有资料可展示，按未登录。
+          log("profile recovery: refresh failed on network; keeping credentials");
+          return { status: "signed-out" };
+        }
+        tokenSet = (await this.repo.loadActiveTokenSet()) ?? tokenSet;
+      }
+    }
+
+    if (!adapter.fetchUserInfo) {
+      log("profile recovery: provider has no userinfo capability:", activeProvider);
+      if (!stillCurrent()) return this.restoreCachedSessionState();
+      await this.repo.setActiveProvider(null);
+      return { status: "signed-out" };
+    }
+
+    try {
+      const profile = await withTimeout(
+        this.runWithAdapterError(adapter, () =>
+          adapter.fetchUserInfo!(tokenSet, {
+            providerId: activeProvider,
+            state: "",
+            redirectUri: adapter.redirectUri,
+            now: this.now,
+          }),
+        ),
+        PROFILE_RECOVERY_TIMEOUT_MS,
+      );
+      if (!stillCurrent()) return this.restoreCachedSessionState();
+      await this.repo.saveActiveUserProfile(withProviderProfileSchema(activeProvider, profile));
+      await this.repo.setActiveProvider(activeProvider);
+      log("profile recovery: restored from userinfo:", activeProvider, profile.id);
+      return { status: "authenticated", userInfo: toUserInfo(profile) };
+    } catch (error) {
+      if (!stillCurrent()) return this.restoreCachedSessionState();
+      const normalized = adapter.normalizeError(error);
+      if (this.isUnauthorizedError(normalized)) {
+        log("profile recovery unauthorized, clearing session:", activeProvider, normalized.message);
+        await this.logout();
+        return { status: "reauthentication-required", reason: "jwt-expired" };
+      }
+      // 网络/超时/5xx：不能误删可能仍有效的 refresh token；下次启动再补。
+      log("profile recovery failed; keeping credentials:", activeProvider, normalized.message);
+      return { status: "signed-out" };
+    }
   }
 
   /**

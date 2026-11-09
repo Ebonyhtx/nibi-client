@@ -21,6 +21,7 @@ const FRESH_ACCESS = jwtWithExp(Math.floor(NOW_MS / 1000) + 3600);
 
 interface FixtureOptions {
   refreshToken?: (tokenSet: OAuthTokenSet) => Promise<OAuthTokenSet>;
+  fetchUserInfo?: NonNullable<OAuthProviderAdapter["fetchUserInfo"]>;
 }
 
 function fixture(options: FixtureOptions = {}) {
@@ -50,7 +51,9 @@ function fixture(options: FixtureOptions = {}) {
       accessToken: EXPIRED_ACCESS,
       refreshToken: "refresh-1",
     })),
-    fetchUserInfo: async () => ({ id: "user-1", username: "user-1", displayName: "User" }),
+    fetchUserInfo:
+      options.fetchUserInfo ??
+      (async () => ({ id: "user-1", username: "user-1", displayName: "User" })),
     refreshToken: options.refreshToken,
     normalizeError: (error) => (error instanceof Error ? error : new Error(String(error))),
   };
@@ -110,6 +113,88 @@ it("NIBI 启动恢复：refresh 遇到网络错误 → 保留凭据按已登录�
   expect(result.status).toBe("authenticated");
   // 凭据原样保留：网络失败绝不能误删 refresh token。
   expect(f.credentials.get("oauth:nibi:access_token")).toBe(EXPIRED_ACCESS);
+  expect(f.credentials.get("oauth:nibi:refresh_token")).toBe("refresh-1");
+  expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
+});
+
+it("NIBI 启动恢复：资料缺失但 token 有效 → userinfo 补回资料，不清会话", async () => {
+  const f = fixture({
+    refreshToken: async (tokenSet) => ({
+      accessToken: FRESH_ACCESS,
+      refreshToken: tokenSet.refreshToken,
+    }),
+  });
+  await f.login();
+  f.credentials.delete("oauth:nibi:user_info");
+
+  const result = await f.service.restoreCachedSessionState();
+  expect(result.status).toBe("authenticated");
+  expect(f.credentials.get("oauth:nibi:user_info")).toContain("user-1");
+  expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
+});
+
+it("NIBI 启动恢复：资料缺失且没有 token → 清掉 stale active_provider", async () => {
+  const f = fixture();
+  await f.login();
+  f.credentials.delete("oauth:nibi:user_info");
+  f.credentials.delete("oauth:nibi:access_token");
+  f.credentials.delete("oauth:nibi:refresh_token");
+
+  const result = await f.service.restoreCachedSessionState();
+  expect(result.status).toBe("signed-out");
+  expect(f.credentials.get("oauth:active_provider")).toBeUndefined();
+});
+
+it("NIBI 启动恢复：资料缺失且 userinfo 明确 401 → 清会话并提示重新登录", async () => {
+  let unauthorized = false;
+  const f = fixture({
+    refreshToken: async (tokenSet) => ({
+      accessToken: FRESH_ACCESS,
+      refreshToken: tokenSet.refreshToken,
+    }),
+    fetchUserInfo: async () => {
+      if (unauthorized) {
+        throw new ApiError({
+          message: "unauthorized",
+          url: "https://auth.example/userinfo",
+          method: "GET",
+          status: 401,
+        });
+      }
+      return { id: "user-1", username: "user-1", displayName: "User" };
+    },
+  });
+  await f.login();
+  unauthorized = true;
+  f.credentials.delete("oauth:nibi:user_info");
+
+  const result = await f.service.restoreCachedSessionState();
+  expect(result.status).toBe("reauthentication-required");
+  expect(f.credentials.get("oauth:nibi:access_token")).toBeUndefined();
+  expect(f.credentials.get("oauth:nibi:refresh_token")).toBeUndefined();
+  expect(f.credentials.get("oauth:active_provider")).toBeUndefined();
+});
+
+it("NIBI 启动恢复：资料缺失且 userinfo 网络失败 → 保留凭据，下次启动再补", async () => {
+  let offline = false;
+  const f = fixture({
+    refreshToken: async (tokenSet) => ({
+      accessToken: FRESH_ACCESS,
+      refreshToken: tokenSet.refreshToken,
+    }),
+    fetchUserInfo: async () => {
+      if (offline) throw new Error("getaddrinfo ENOTFOUND auth.example");
+      return { id: "user-1", username: "user-1", displayName: "User" };
+    },
+  });
+  await f.login();
+  offline = true;
+  f.credentials.delete("oauth:nibi:user_info");
+
+  const result = await f.service.restoreCachedSessionState();
+  expect(result.status).toBe("signed-out");
+  // 网络失败不能误删仍可能有效的 refresh token；active_provider 留着，下次启动继续尝试。
+  expect(f.credentials.get("oauth:nibi:access_token")).toBe(FRESH_ACCESS);
   expect(f.credentials.get("oauth:nibi:refresh_token")).toBe("refresh-1");
   expect(f.credentials.get("oauth:active_provider")).toBe(NIBI_PROVIDER_ID);
 });
