@@ -179,9 +179,10 @@ agent env (it returns `Path: undefined` so Node's spawn drops the inherited vari
 - **Node version.** It is the Electron Node version. Servers that need a newer Node must use a
   system Node.
 - **Windows `.cmd` resolution.** The Node kernel uses cross-spawn, so `node.cmd`/`npx.cmd` resolve.
-  The Rust kernel spawns the command directly (`CreateProcess`), which finds `node.exe` but not
-  `.cmd`; a Windows Rust agent without Node therefore needs the follow-up native-shim work recorded
-  in the absorption plan, or `NIBI_KERNEL=node`.
+  The Rust kernel resolves the command through the child `PATH` × `PATHEXT` before spawning, falls
+  back to the Electron executable + bundled npm when the name is `node`/`npm`/`npx` and nothing is
+  found, and wraps a resolved `.cmd`/`.bat` in `cmd.exe /d /s /c`. Users' own `node.exe` still wins
+  because PATH lookup happens first. See `kernel/crates/env-local/src/mcp/node_fallback.rs`.
 - **Starting another Electron app** from inside an MCP server inherits `ELECTRON_RUN_AS_NODE=1` and
   runs that app as plain Node.
 - **Third-party notices.** The root `THIRD-PARTY-NOTICES.md` inventory is generated from the pnpm

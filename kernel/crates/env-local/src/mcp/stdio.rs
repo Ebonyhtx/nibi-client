@@ -18,6 +18,8 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
+#[cfg(windows)]
+use super::node_fallback;
 use super::{EventSender, OUTBOX_CAPACITY};
 use crate::shell::environ;
 
@@ -84,7 +86,7 @@ pub(crate) fn child_env(
     env
 }
 
-fn spawn_error(server: &str, error: &std::io::Error) -> McpError {
+fn spawn_error(server: &str, error: impl std::fmt::Display) -> McpError {
     McpError::Connect {
         message: format!("MCP server \"{server}\" failed to start: {error}"),
     }
@@ -96,10 +98,35 @@ pub(crate) async fn start(
     launch: Launch<'_>,
     events: EventSender,
 ) -> Result<(std::sync::Arc<StdioLink>, nibi_kernel_base::OwnedTask<()>), McpError> {
-    let env = child_env(launch.snapshot, launch.overrides, launch.env);
-    let mut command = nibi_kernel_proc::command(launch.command);
+    let mut env = child_env(launch.snapshot, launch.overrides, launch.env);
+    // Windows 的 CreateProcess 只认 `.exe`：先按 PATH/PATHEXT 解析（用户自己的 node/npm/npx 优先），
+    // 再回退到 Host 下发的 Electron Node（docs/design/v2/mcp-node-fallback.md）。
+    #[cfg(windows)]
+    let mut command = {
+        let resolved = node_fallback::resolve(launch.command, launch.args, &env)
+            .map_err(|detail| spawn_error(launch.server, detail))?;
+        let mut command = nibi_kernel_proc::command(&resolved.program);
+        if let Some(raw_arguments) = resolved.raw_arguments {
+            // 批处理：参数已经按 cmd.exe 规则拼好，不能再让 CRT 加引号。
+            command.raw_arg(raw_arguments);
+        } else {
+            command.args(&resolved.args);
+        }
+        for (key, value) in resolved.env {
+            // Windows 上环境名不区分大小写：先删掉大小写变体，保证回退变量是子进程实际看到的值。
+            env.retain(|existing, _| !existing.eq_ignore_ascii_case(&key));
+            env.insert(key, value);
+        }
+        command
+    };
+    // 非 Windows 不做任何改写（与以前完全一致）。
+    #[cfg(not(windows))]
+    let mut command = {
+        let mut command = nibi_kernel_proc::command(launch.command);
+        command.args(launch.args);
+        command
+    };
     command
-        .args(launch.args)
         .current_dir(launch.cwd)
         .env_clear()
         .envs(&env)

@@ -174,6 +174,110 @@ async fn a_missing_command_fails_to_connect() {
     );
 }
 
+/// Windows：用户自己的 Node 装的是 `npx.cmd` 这种批处理。CreateProcess 不认，必须经 cmd.exe；参数里的
+/// 空格按 cross-spawn 规则引用后原样到达脚本（docs/design/v2/mcp-node-fallback.md）。
+#[cfg(windows)]
+#[tokio::test]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "测试夹具：在临时目录里写一个 .cmd 脚本（不是产品的存储 IO）"
+)]
+async fn stdio_runs_a_cmd_command_through_cmd_exe() {
+    let dir = tempfile::tempdir().unwrap();
+    let script = dir.path().join("reply.cmd");
+    std::fs::write(
+        &script,
+        "@echo off\r\necho {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"arg\":\"%~1\"}}\r\n",
+    )
+    .unwrap();
+    let (transport, ledger) = transport(None);
+    let id = transport
+        .connect(
+            &workspace(ledger.path().to_str().unwrap()),
+            stdio(script.to_str().unwrap(), &["hello world"], &[]),
+        )
+        .await
+        .unwrap();
+    let mut events = transport.events(&id);
+    assert_eq!(
+        next(&mut events).await,
+        McpTransportEvent::Message {
+            message: json!({"jsonrpc": "2.0", "id": 0, "result": {"arg": "hello world"}})
+        }
+    );
+    transport.close(&id).await.unwrap();
+}
+
+/// Windows：PATH 上没有 npm 时回退到 Host 下发的 Electron Node（这里用一个 `.cmd` 冒充可执行文件，
+/// 顺带验证 `ELECTRON_RUN_AS_NODE=1`、npm-cli.js 是第一个参数、升级提示被关掉）。
+#[cfg(windows)]
+#[tokio::test]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "测试夹具：在临时目录里写一个冒充 Electron 可执行文件的 .cmd 脚本（不是产品的存储 IO）"
+)]
+async fn stdio_falls_back_to_the_electron_node_for_npm() {
+    let dir = tempfile::tempdir().unwrap();
+    let executable = dir.path().join("nibi.cmd");
+    std::fs::write(
+        &executable,
+        "@echo off\r\n\
+         echo {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"first\":\"%~nx1\",\"drive\":\"%~d1\",\"electron\":\"%ELECTRON_RUN_AS_NODE%\",\"notifier\":\"%npm_config_update_notifier%\"}}\r\n",
+    )
+    .unwrap();
+    let npm_root = dir.path().join("npm");
+    let first = npm_root
+        .join("bin")
+        .join("npm-cli.js")
+        .to_string_lossy()
+        .into_owned();
+    // JSON 里的反斜杠必须转义，脚本只回报文件名与盘符（完整路径由 node_fallback 的单测断言）。
+    let drive = std::path::Path::new(&first)
+        .components()
+        .next()
+        .unwrap()
+        .as_os_str()
+        .to_string_lossy()
+        .into_owned();
+    let env: Vec<(String, String)> = vec![
+        // PATH 上没有 npm（Host 没找到随包 npm 时就是这样）。
+        ("PATH".to_owned(), String::new()),
+        (
+            "NIBI_NODE_FALLBACK_EXEC_PATH".to_owned(),
+            executable.to_string_lossy().into_owned(),
+        ),
+        (
+            "NIBI_NODE_FALLBACK_NPM_ROOT".to_owned(),
+            npm_root.to_string_lossy().into_owned(),
+        ),
+        ("SystemRoot".to_owned(), r"C:\Windows".to_owned()),
+    ];
+    let transport = LocalMcpTransport::new(dir.path().join("ledger"), env.into(), None);
+    let expected = json!({
+        "jsonrpc": "2.0",
+        "id": 0,
+        "result": {
+            "first": "npm-cli.js",
+            "drive": drive,
+            "electron": "1",
+            "notifier": "false",
+        }
+    });
+    let id = transport
+        .connect(
+            &workspace(dir.path().to_str().unwrap()),
+            stdio("npm", &["--version"], &[]),
+        )
+        .await
+        .unwrap();
+    let mut events = transport.events(&id);
+    assert_eq!(
+        next(&mut events).await,
+        McpTransportEvent::Message { message: expected }
+    );
+    transport.close(&id).await.unwrap();
+}
+
 /// 一个 HTTP 请求：方法、路径、header（小写）、正文。
 struct Request {
     method: String,
@@ -443,6 +547,9 @@ fn a_non_utf8_line_is_decoded_lossily() {
     let line = super::stdio::decode_line(bytes);
     assert!(line.starts_with("{\"error\":\""));
     assert!(line.ends_with("\"}"), "{line}");
-    assert!(line.contains('\u{FFFD}'), "invalid bytes become replacement chars");
+    assert!(
+        line.contains('\u{FFFD}'),
+        "invalid bytes become replacement chars"
+    );
     assert!(!line.ends_with('\n'), "the line terminator is stripped");
 }

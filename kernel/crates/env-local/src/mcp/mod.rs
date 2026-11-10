@@ -11,6 +11,10 @@
 //! 发往 stdio 服务器的消息最多排 [`OUTBOX_CAPACITY`] 条，满了说明服务器不读输入，发送立即报错（调用方不被卡住）。
 
 mod http;
+// Windows 上解析真正要执行的程序（PATH/PATHEXT、Electron 回退、`.cmd` 经 cmd.exe）：
+// docs/design/v2/mcp-node-fallback.md。测试在任意平台都能跑（解析只依赖注入的文件存在判断）。
+#[cfg(any(windows, test))]
+mod node_fallback;
 pub(crate) mod stdio;
 
 use std::collections::HashMap;
