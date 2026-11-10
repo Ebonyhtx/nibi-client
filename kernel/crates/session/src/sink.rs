@@ -113,6 +113,11 @@ pub(crate) enum SinkRequest {
         verdict: nibi_kernel_api::hooks::StopVerdict,
         reply: oneshot::Sender<Result<Vec<Message>, StoreError>>,
     },
+    /// 工具请求一次旁路辅助模型补全（`ReadSessionContext` 的 lite 抽取）：选择与辅助档的 owner 是 actor。
+    Auxiliary {
+        request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
+        reply: oneshot::Sender<Result<Option<String>, OrchestrationError>>,
+    },
 }
 
 pub(crate) struct ActorSink {
@@ -267,6 +272,23 @@ impl Interactions for ActorSink {
         answer.await.ok()
     }
 
+    /// 辅助补全的 owner 是会话 actor（当前选择、辅助档与任务作用域都在它那里）。
+    async fn auxiliary_text(
+        &self,
+        _session: &SessionId,
+        request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
+    ) -> Result<Option<String>, OrchestrationError> {
+        let gone = || OrchestrationError::Failed {
+            message: "the session is closed".to_owned(),
+        };
+        let (reply, answer) = oneshot::channel();
+        self.sender
+            .send(SinkRequest::Auxiliary { request, reply })
+            .await
+            .map_err(|_| gone())?;
+        answer.await.map_err(|_| gone())?
+    }
+
     /// 对话的 owner 是会话 actor：按请求时已提交的消息回答（fork 子代理继承它，修复线 L-A）。
     async fn conversation(&self, _session: &SessionId) -> Option<Vec<Message>> {
         let (reply, answer) = oneshot::channel();
@@ -347,6 +369,25 @@ impl Interactions for SessionAsks {
         if let Some(detached) = &self.detached {
             detached.cancel(&self.session, tool_use);
         }
+    }
+
+    /// 后台子代理的辅助补全：回合通道可能已经关了，走会话的请求通道（actor 收不下时按会话已关闭失败）。
+    async fn auxiliary_text(
+        &self,
+        _session: &SessionId,
+        request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
+    ) -> Result<Option<String>, OrchestrationError> {
+        let gone = || OrchestrationError::Failed {
+            message: "the session is closed".to_owned(),
+        };
+        let (reply, answer) = oneshot::channel();
+        let requests = self.requests.upgrade().ok_or_else(gone)?;
+        requests
+            .send(crate::actor::Request::Auxiliary { request, reply })
+            .await
+            .map_err(|_| gone())?;
+        drop(requests);
+        answer.await.map_err(|_| gone())?
     }
 
     fn lasting(&self, _session: &SessionId) -> Option<Arc<dyn Interactions>> {

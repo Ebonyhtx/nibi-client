@@ -43,6 +43,12 @@ pub struct TopicResource {
 /// 一个会话的冷读面：消息与每条输入的规范意图。
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct SessionSnapshot {
+    /// 会话标题（Node `SessionInfo.title`）：lite 抽取的提示词带它。
+    #[serde(default)]
+    pub title: String,
+    /// 工作目录（Node `SessionInfo.directory`）；冷读拿不到时为 None，提示词里省掉这一行。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub directory: Option<String>,
     pub messages: Vec<Message>,
     /// user 消息 id → 那条输入的 canonical intent（`conversation_intent::canonical` 的形状）。
     #[serde(default)]

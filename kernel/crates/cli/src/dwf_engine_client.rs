@@ -10,7 +10,7 @@
 //! 2. typed ask 的 repair/nudge 循环在这一侧：`run_workflow_actor` 跑一轮 → 把 `submit_result`
 //!    交给引擎 → 等 `ask/verdict` → reject 时把 violations 作为下一条消息再跑一轮。
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -294,6 +294,9 @@ struct EngineShared {
     kernel: Mutex<Option<Weak<dyn Kernel>>>,
     process: Mutex<Option<Arc<Process>>>,
     runs: Mutex<HashMap<String, Arc<RunState>>>,
+    /// 还在跑的 run（`ListWorkflowRuns` 的 `possiblyInterrupted`）：登记时加入，`run/settled`
+    /// 或引擎进程退出时移除。
+    live: Mutex<HashSet<String>>,
 }
 
 /// sidecar 引擎（`WorkflowEngine` 的实现）。
@@ -323,6 +326,7 @@ impl SidecarEngine {
                 kernel: Mutex::new(None),
                 process: Mutex::new(None),
                 runs: Mutex::new(HashMap::new()),
+                live: Mutex::new(HashSet::new()),
             }),
         }
     }
@@ -453,6 +457,11 @@ impl SidecarEngine {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .insert(run_id.to_owned(), Arc::new(state));
+        self.shared
+            .live
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(run_id.to_owned());
     }
 
     /// 世界读取：`glob` / `read` / `grep`（其余 op 明确拒绝，脚本可 catch）。
@@ -1111,6 +1120,11 @@ where
             "run/settled" => {
                 let params = &message["params"];
                 let run_id = params["runId"].as_str().unwrap_or_default();
+                shared
+                    .live
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .remove(run_id);
                 tracing::info!(
                     event = "dwf.run.settled",
                     run = run_id,
@@ -1238,10 +1252,15 @@ where
             }
         }
     }
-    // 进程结束：清掉进程槽，下一次调用重新起。
+    // 进程结束：清掉进程槽与活 run（它们的结算不会再来），下一次调用重新起。
     if let Ok(mut slot) = shared.process.lock() {
         *slot = None;
     }
+    shared
+        .live
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clear();
 }
 
 /// 一次 ask 的循环：跑 actor 轮 → 交提交/文本给引擎 → 按裁决 repair/nudge。
@@ -1425,6 +1444,19 @@ async fn run_ask(shared: Arc<EngineShared>, process: Arc<Process>, params: Value
 
 #[async_trait::async_trait]
 impl WorkflowEngine for SidecarEngine {
+    /// 同进程引擎的活 run（登记到 `run/settled` 或进程退出为止）。
+    fn live_run_ids(&self) -> Option<Vec<String>> {
+        Some(
+            self.shared
+                .live
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .iter()
+                .cloned()
+                .collect(),
+        )
+    }
+
     async fn start_saved(
         &self,
         parent: &SessionId,

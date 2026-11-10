@@ -19,7 +19,7 @@
 | 2 | 浏览器控制 | ✅ **已接回**：`node_repl` MCP + Rust broker + `browser-use` 准入；逐轮 `turnEnded` 已发（§2） |
 | 3 | topic 资源（bot 群话题上下文） | ✅ **已补**：意图落库 + 模型文本注入 + `ReadSessionContext`/`ReplyToChannel` + 两条反向请求（§3） |
 | 4 | 运行时偏好协商 | ✅ 三项已核；AUQ 自动结束已按 Node 语义实现（§4.1） |
-| 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；⚠️ 两条 UI 通知差异见 §5 |
+| 5 | CUA 电脑操控 | ✅ **模型面与执行链已接回，真实 Helper 验证通过**；`operation-event` 已发，`permission-observation` 刻意不补（§5.4、§5.6） |
 | 6 | 订阅续传与背压 | ✅ **已补**：保留窗 + `base` 水位续传 + `saturated`/`drained`（§6） |
 | 7 | 钩子信任跨会话广播 | ✅ **已补**：`trustGrant` 立刻刷新同工作区已打开会话的提示条（§7） |
 | 8 | 会话启动偏好 | ✅ **已补**：冷打开问一次 `session/requestRuntimePreferences`（§8） |
@@ -28,7 +28,7 @@
 | 11 | NIBI 登录（Device Flow） | ✅ **已补**：`nibi-platform` 的 HTTP 轮询/刷新 + `nibi login` 接上（§10） |
 | 12 | TUI 调色板 | ✅ **已补**：品牌沙色/暖橙（§11） |
 | 13 | 附件与本地媒体（2026-11-09） | ✅ **已补**：图片/PDF/**视频**三种内容块 + `text/*` 内联 + 音频与二进制占位；Read 能读视频；落库与冷恢复同 Node（§13） |
-| 14 | topic 检索质量（2026-11-09） | ✅ **已补**：`relevant`/`handoff` 按 Node 的本地口径打分（§3.3）；只差 lite 模型抽取 |
+| 14 | topic 检索质量（2026-11-09） | ✅ **已补**：`relevant`/`handoff` 按 Node 的本地口径打分（§3.3）；lite 模型抽取已接回（§3.4） |
 
 ## 1. 生成提交信息（已补）
 
@@ -115,12 +115,31 @@
    `tokenizeQuery`（小写、`[a-z0-9_./-]+` 与汉字串、长度 ≥ 2、汉字补二字切片）、
    `scoreSearchText`（整句命中 +20，每个词 `3 + min(次数, 5)`）、`handoff` 从尾部取满预算、
    `relevant` 取分数 ≥ 3 的片段按分数降序、一个都不命中时退最后 12 条；同分用 `index/10000` 的
-   稳定顺序。**仍差的是 lite 模型抽取**（`source: "lite"`）：内核没有辅助模型调用通道，
-   `source` 恒为 `"local"`（Node 在没有 lite 模型时的合法取值），所以大会话的召回上限就是本地
-   打分——不比 Node 差，只是没有那一步摘要。
+   稳定顺序。lite 模型抽取见 §3.4（`source` 是 `lite`/`local`/`fallback`）。
 2. 话题归档的 token 估算是字符数 / 4（Node 用 `estimateTokens`）；分页大小、匹配规则（id 相等或
    小写包含）、`coverage` 文案与 `nextCursor` 语义相同。
 3. 话题附件物化成会话 artifact 而不是受管本机路径（Rust 的 Read 认 `nibi-artifact://…`）。
+
+### 3.4 lite 模型抽取（已补，2026-11-11）
+
+Node 的 `ReadSessionContext` 在本地选片之外还有一步辅助模型抽取（`core/src/tool/handlers/
+read-session-context.ts` 的 `extractWithLite`）：整份清洗记录 ≤ 80k 字符时一次抽取；更大时按
+28k 字符切块、最多选 5 块逐块抽取再合成。Rust 现在有同一条通道：
+
+- `kernel-api::auxiliary::AuxiliaryTextRequest` + `Interactions::auxiliary_text`：工具向会话
+  actor 要一次旁路补全；没有辅助模型的实现返回 `Ok(None)`（Node `!context.model` 的本地分支）。
+- `session/src/auxiliary.rs`：actor 用**请求时**的会话主模型（小模型槽位）、目录第一档推理档位与
+  目录卡片的上限（Node `auxiliaryModelOptions`），起任务并在自己的 select 里等结果；工具取消随
+  取消令牌取消在飞的请求。子代理经 `ChildSink` 转给父会话；后台子代理（父回合可能已结束）走
+  会话级的 `Request::Auxiliary`，与回合内是同一条 actor 方法。
+- `tools/src/topic_lite.rs`：材料、切块/选块（`handoff` 取最后 5 块；其余取分数最高 4 块 + 最后
+  一块）、三段提示词（抽取/合成/`NO_RELEVANT_CONTEXT`）与 80k 截断，逐字对齐 Node。
+  `ReadSessionContext` 的 `source` 现在是 `lite`（成功）/`local`（没有辅助模型）/
+  `fallback`（抽取失败或没有可用内容，强制 `truncated`）。
+- 与 Node 的差异：`SessionSnapshot` 现在带标题与工作目录（提示词的 `Target session`/`Directory`
+  两行），但内核消息没有 Node 的 `created` 时间戳，材料里省掉那一行。
+- 测试：`topic_lite` 4（材料/切块/选块/截断）、`topic_tools` 4（lite 成功、失败回落、空结果回落、
+  大会话逐块+合成）、`session::auxiliary` 4（请求形状、无目录、走 actor 的整条链路）。
 
 ## 4. 运行时偏好协商（已核）
 
@@ -233,9 +252,9 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
 
 ### 5.6 已知差异
 
-- `computer-use/operation-event` 与 `v4/cua/permission-observation` 由 Node agent 的 v4 gateway
-  发出；Rust 下 node_repl 是独立进程，内核收不到这些事件 → UI 的操作指示细节缺失。
-  动作链不受影响。
+- `computer-use/operation-event` 已由 Rust 的 `Live` 按同一映射发出（§5.4）；
+  `v4/cua/permission-observation` 不补——当前 node_repl 表面下 Node 的触发器本身不可达，
+  真正的权限 UI 是 Host 的 `ICuaPermissionService`。动作链不受影响。
 - 公开构建里 CUA 仍然 fail-closed（占位 `@nibi/cua`），这与内核无关；只有私有 producer
   替换 `packages/zcode-cua` 后才是真正可用的 Computer Use。Rust 侧不再改变这条路径。
 
@@ -580,9 +599,28 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 
 **仍开着（本轮之后）**
 
-1. **`ListWorkflowRuns` 的 `possiblyInterrupted`**：没有 sidecar 时按「非本会话且在飞」保守
-   标注；Node 用同进程的活 run 注册表。
-2. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
+1. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
    工具表（`ListModels`/`ListWorkflowRuns` 仍可用）；桌面由 Host 注入，功能完整。
-3. **`ListModels` 的 `disabledReason`**：Rust 目录只列可用模型，没有 Node 注册表里的禁用原因；
-   不影响可用模型选择。
+2. **`ListModels` 的 `disabledReason` 不是缺口**（2026-11-11 核对）：Node 的宿主目录端口
+   （`packages/bootstrap/src/app/model-catalog-port.ts:80-85`）明确写「`disabledReason` 恒缺席：
+   本宿主今天没有这条事实的来源」，工具侧只是原样透传；仓库里唯一的产出点在桌面端 legacy 配置迁移，
+   够不到这份注册表。Rust 目录同样没有禁用原因可报（`visibility: hidden` 的 provider 两边都不进
+   目录），所以这一项不再算差异——将来 Node 有了「配了但不可用」的判据再一起补。
+
+### `ListWorkflowRuns` 的 `possiblyInterrupted`（已补，2026-11-11）
+
+Node 用同进程的活 run 注册表判断「在飞但不属于本会话」的 run 到底是另一会话还在跑，还是上一个进程
+留下的残骸。Rust 的引擎是 sidecar，客户端本来就登记着本进程启动的 run：
+
+- `WorkflowEngine::live_run_ids()`（kernel-api）：不跟踪的实现返回 `None`。
+- `cli/src/dwf_engine_client.rs`：`register_run` 加入活集合，`run/settled` 移除，引擎进程退出时
+  清空（它们的结算不会再来）。
+- `ListWorkflowRuns`（`tools/src/workflow_authoring.rs`）：`possiblyInterrupted` = 在飞 + 不属于
+  本会话 + **不在**活集合里；没有引擎（CLI/TUI 没有 sidecar）时保持原来的保守标注。
+- `GetWorkflowRun`（`runtime/src/escalations.rs` 的 `WorkflowRunDetailReader` 合成）：同一条判据
+  写进详情的 `possibly_interrupted`，模型面在 `owned_by_this_session` 之后输出
+  `<possibly_interrupted>true — this session cannot confirm the run is still alive</possibly_interrupted>`
+  （Node `get-workflow-run-format.ts` 逐字）。
+- 测试：`workflow_authoring_tests` 的 `possibly_interrupted_follows_the_live_run_registry`（四条：
+  无注册表、在活集合里、不在活集合里、本会话自己的 run）；`workflow_run_detail_tests` 的
+  `possibly_interrupted_is_an_annotation_after_the_owner_line`（默认不出现 + 位置）。

@@ -504,6 +504,7 @@ pub fn authoring_tools(
     .collect();
     tools.push(Arc::new(ListWorkflowRunsTool {
         store: store.clone(),
+        engine: engine.clone(),
     }));
     tools.push(Arc::new(ListModelsTool { models, current }));
     tools
@@ -515,6 +516,8 @@ pub fn authoring_tools(
 
 pub struct ListWorkflowRunsTool {
     store: Arc<dyn SessionStore>,
+    /// 同进程引擎的活 run 登记（`possiblyInterrupted` 的判据）；没有引擎时保守标注。
+    engine: WorkflowEngineSlot,
 }
 
 #[async_trait]
@@ -589,10 +592,19 @@ impl Tool for ListWorkflowRunsTool {
                 message: error.to_string(),
             })?;
         let truncated = rows.len() > limit;
+        // 同进程引擎的活 run：另一会话仍在飞的 run 不算可能中断（Node 的活 run 注册表）。
+        // 没有引擎（CLI/TUI 没有 sidecar）时不跟踪，返回 None，按「非本会话且在飞」保守标注。
+        let live: Option<HashSet<String>> = self
+            .engine
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .as_ref()
+            .and_then(|engine| engine.live_run_ids())
+            .map(|ids| ids.into_iter().collect());
         let runs: Vec<Value> = rows
             .into_iter()
             .take(limit)
-            .map(|row| run_row(&row, context.session.as_str()))
+            .map(|row| run_row(&row, context.session.as_str(), live.as_ref()))
             .collect();
         let mut header = format!("count=\"{}\"", runs.len());
         if truncated {
@@ -619,7 +631,11 @@ impl Tool for ListWorkflowRunsTool {
     }
 }
 
-fn run_row(row: &WorkflowRunListRow, session: &str) -> Value {
+fn run_row(
+    row: &WorkflowRunListRow,
+    session: &str,
+    live: Option<&HashSet<String>>,
+) -> Value {
     let label = row
         .name
         .as_deref()
@@ -650,7 +666,8 @@ fn run_row(row: &WorkflowRunListRow, session: &str) -> Value {
         value.insert("supersededBy".to_owned(), json!(by));
     }
     value.insert("ownedByThisSession".to_owned(), json!(owned));
-    if in_flight && !owned {
+    // 「可能中断」= 在飞、不属于本会话，且不在同进程引擎的活 run 里；没有活 run 注册表时保守为真。
+    if in_flight && !owned && live.is_none_or(|live| !live.contains(&row.run_id)) {
         value.insert("possiblyInterrupted".to_owned(), json!(true));
     }
     value.insert("createdAt".to_owned(), json!(row.created_at));

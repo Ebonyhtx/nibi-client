@@ -307,6 +307,7 @@ fn empty_detail(run_id: &str) -> WorkflowRunDetail {
         resumed_from: None,
         superseded_by: None,
         owned_by_this_session: true,
+        possibly_interrupted: false,
         created_at: 1,
         updated_at: 1,
         spent_tokens: 0,

@@ -6,9 +6,9 @@
 //! - `ReplyToChannel`：把一次带原生 @ 的回复绑定到发起这次工具调用的那条输入，交给 Host 发送。
 //!
 //! 与 Node 的已知差异（记录在 `docs/rust-kernel-function-parity.md`）：
-//! 1. `relevant` / `handoff` 的选片已按 Node 的本地口径实现（query 断词、`scoreSearchText` 的权重、
-//!    `handoff` 取尾部、`relevant` 取命中、全不命中退最后 12 条）；**lite 模型抽取不做**——内核没有
-//!    辅助模型调用通道，`source` 恒为 `"local"`（Node 在没有 lite 模型时的合法取值）；
+//! 1. `relevant` / `handoff` 的选片按 Node 的本地口径实现（query 断词、`scoreSearchText` 的权重、
+//!    `handoff` 取尾部、`relevant` 取命中、全不命中退最后 12 条），有辅助模型时再按 Node
+//!    `extractWithLite` 做 lite 抽取（`topic_lite.rs`；`source` 是 `lite`/`local`/`fallback`）；
 //! 2. 话题附件物化成会话 artifact（`nibi-artifact://…`），Node 物化成受管的本机路径。
 
 use std::sync::Arc;
@@ -21,6 +21,8 @@ use nibi_kernel_api::tool::{Tool, ToolError, ToolOutput, ToolProgress, ToolUseCo
 use nibi_kernel_api::topic::{SessionReads, SessionSnapshot, TopicPort, TopicResourceRead};
 use serde_json::{Value, json};
 use tokio::sync::mpsc;
+
+use crate::topic_lite::{self, Snippet};
 
 pub const READ_SESSION_CONTEXT: &str = "ReadSessionContext";
 pub const REPLY_TO_CHANNEL: &str = "ReplyToChannel";
@@ -76,16 +78,6 @@ fn message_text(message: &Message) -> Option<(&'static str, String)> {
         }
         _ => None,
     }
-}
-
-/// 一条可读消息及其在会话里的序号（Node 的 `MessageSnippet.index`）。
-#[derive(Clone)]
-struct Snippet {
-    index: usize,
-    id: String,
-    role: &'static str,
-    body: String,
-    score: f64,
 }
 
 /// Node `tokenizeQuery`：小写后取 `[a-z0-9_./-]+` 与连续的汉字串；长度 < 2 的丢掉，汉字串再补所有二字切片。
@@ -663,11 +655,12 @@ impl Tool for ReadSessionContextTool {
             return Ok(text(&model_content(&output)));
         }
         // relevant / handoff：本地按 query 打分（Node `selectSnippets`：`handoff` 从尾部取满预算，
-        // `relevant` 取命中的片段）。lite 模型抽取不做（内核没有辅助模型通道，见文件头第 1 条差异）。
-        let budget = input["maxTokens"]
+        // `relevant` 取命中的片段）；有辅助模型时再走 lite 抽取（Node `extractWithLite`）。
+        let max_tokens = input["maxTokens"]
             .as_u64()
-            .map(|tokens| (tokens.saturating_mul(4) as usize).min(CONTEXT_MAX_CHARS))
-            .unwrap_or(CONTEXT_MAX_CHARS);
+            .unwrap_or(topic_lite::DEFAULT_MAX_TOKENS)
+            .min(topic_lite::MAX_TOKENS);
+        let budget = ((max_tokens.saturating_mul(4)) as usize).min(CONTEXT_MAX_CHARS);
         let terms = tokenize_query(query);
         let normalized = query.trim().to_lowercase();
         let readable: Vec<Snippet> = snapshot
@@ -689,23 +682,61 @@ impl Tool for ReadSessionContextTool {
             })
             .collect();
         let total = readable.len();
-        let selected = select_snippets(readable, strategy, budget);
+        let selected = select_snippets(readable.clone(), strategy, budget);
         let content = selected
             .iter()
             .map(|snippet| format!("## {} ({})\n{}", snippet.role, snippet.id, snippet.body))
             .collect::<Vec<_>>()
             .join("\n\n");
         let count = selected.len();
+        let target_info = topic_lite::Target {
+            title: &snapshot.title,
+            directory: snapshot.directory.as_deref(),
+            session: &target,
+            strategy,
+            query,
+            output_char_budget: budget,
+        };
+        let all_chars = if readable.is_empty() {
+            0
+        } else {
+            topic_lite::material(&target_info, &readable).chars().count()
+        };
+        // Node `material.truncated` 的两条：选片少于可读条数，或整份记录超出输出预算。
+        let truncated = count < total || all_chars > budget;
+        let mut source = "local";
+        let mut lite_error = None;
+        let mut body = if content.is_empty() {
+            "No readable messages.".to_owned()
+        } else {
+            content
+        };
+        if !readable.is_empty() {
+            match topic_lite::extract(&context, &target_info, &readable, max_tokens).await {
+                topic_lite::Outcome::Lite(text) => {
+                    source = "lite";
+                    body = text;
+                }
+                topic_lite::Outcome::NoModel => {}
+                // Node：空结果与请求失败都退回本地结果并强制 `truncated`；失败时附错误。
+                topic_lite::Outcome::Empty => source = "fallback",
+                topic_lite::Outcome::Failed(error) => {
+                    source = "fallback";
+                    lite_error = Some(error);
+                }
+            }
+        }
         let output = json!({
             "status": "success",
             "sessionId": target.as_str(),
             "strategy": strategy,
             "query": query,
-            "source": "local",
-            "content": if content.is_empty() { "No readable messages.".to_owned() } else { content },
+            "source": source,
+            "content": body,
             "messageCount": snapshot.messages.len(),
             "selectedMessageCount": count,
-            "truncated": count < total,
+            "truncated": truncated || source == "fallback",
+            "error": lite_error,
         });
         Ok(text(&model_content(&output)))
     }

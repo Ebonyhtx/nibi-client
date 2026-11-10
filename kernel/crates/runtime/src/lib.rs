@@ -422,6 +422,7 @@ impl LocalKernel {
                     Arc::new(escalations::WorkflowRunDetailReader {
                         store: ports.store.clone(),
                         escalations: escalations.clone(),
+                        engine: workflow_engine_slot.clone(),
                     }),
                     ports.clock.clone(),
                 ))])

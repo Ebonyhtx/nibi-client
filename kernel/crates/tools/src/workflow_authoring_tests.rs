@@ -144,7 +144,7 @@ fn list_rows_carry_the_node_attributes() {
         updated_at: 1_792_231_651_000,
         spent_tokens: 7,
     };
-    let value = super::run_row(&row, "s1");
+    let value = super::run_row(&row, "s1", None);
     assert_eq!(value["label"], "// probe");
     assert_eq!(value["labelSource"], "script");
     assert_eq!(value["ownedByThisSession"], true);
@@ -159,4 +159,39 @@ fn list_rows_carry_the_node_attributes() {
         line.contains("created_at=\"2026-10-17T10:07:30.000Z\""),
         "{line}"
     );
+}
+
+/// `possiblyInterrupted`：在飞、不属于本会话，且不在同进程引擎的活 run 里才标注。
+#[test]
+fn possibly_interrupted_follows_the_live_run_registry() {
+    use std::collections::HashSet;
+
+    use nibi_kernel_api::workflow::WorkflowRunListRow;
+    let row = WorkflowRunListRow {
+        run_id: "dwfrun-2".to_owned(),
+        name: Some("other session run".to_owned()),
+        script_text: None,
+        status: "running".to_owned(),
+        stop_reason: None,
+        resumed_from: None,
+        superseded_by: None,
+        parent_session_id: Some("s_other".to_owned()),
+        created_at: 1,
+        updated_at: 2,
+        spent_tokens: 0,
+    };
+    // 没有引擎（不跟踪活 run）：保守标注。
+    let value = super::run_row(&row, "s1", None);
+    assert_eq!(value["possiblyInterrupted"], true);
+    // 引擎知道它还在飞：这是另一会话的正常在飞 run，不是残骸。
+    let live: HashSet<String> = ["dwfrun-2".to_owned()].into_iter().collect();
+    let value = super::run_row(&row, "s1", Some(&live));
+    assert!(value.get("possiblyInterrupted").is_none(), "{value}");
+    // 引擎不知道它（上一个进程留下的）：标注。
+    let empty: HashSet<String> = HashSet::new();
+    let value = super::run_row(&row, "s1", Some(&empty));
+    assert_eq!(value["possiblyInterrupted"], true);
+    // 本会话自己的在飞 run 从不标注。
+    let value = super::run_row(&row, "s_other", Some(&empty));
+    assert!(value.get("possiblyInterrupted").is_none(), "{value}");
 }

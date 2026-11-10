@@ -16,7 +16,9 @@ use nibi_kernel_api::orchestration::{
 };
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::store::{ArtifactPurpose, ArtifactStore};
-use nibi_kernel_api::testing::{MemoryArtifacts, UnusedEnvironment, local_services, machine};
+use nibi_kernel_api::testing::{
+    MemoryArtifacts, ScriptedInteractions, UnusedEnvironment, local_services, machine,
+};
 use nibi_kernel_api::tool::{Tool, ToolUseContext};
 use nibi_kernel_api::topic::{
     SessionReads, SessionSnapshot, TopicPort, TopicResource, TopicResourceRead,
@@ -42,6 +44,13 @@ impl Interactions for NoInteractions {
 }
 
 fn context(artifacts: Arc<MemoryArtifacts>) -> ToolUseContext {
+    context_with(artifacts, Arc::new(NoInteractions))
+}
+
+fn context_with(
+    artifacts: Arc<MemoryArtifacts>,
+    interactions: Arc<dyn Interactions>,
+) -> ToolUseContext {
     let env = Arc::new(UnusedEnvironment);
     ToolUseContext {
         session: SessionId::new("sess_1"),
@@ -57,7 +66,7 @@ fn context(artifacts: Arc<MemoryArtifacts>) -> ToolUseContext {
         machine: machine(env.clone()),
         local: local_services(env),
         artifacts,
-        interactions: Arc::new(NoInteractions),
+        interactions,
         operation: OperationContext {
             environment: EnvironmentId::new("local"),
             generation: Generation::new("g1"),
@@ -163,6 +172,8 @@ async fn the_topic_archive_reads_only_trusted_inputs_and_pages() {
         {"id": "m2", "chatId": "c1", "threadId": "t1", "text": "bot reply", "senderId": "b", "senderType": "app", "createdAt": 2},
     ]);
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages: vec![user("u1", "question")],
         intents: vec![(MessageId::new("u1"), topic_intent("cmd-1", records))],
     };
@@ -186,6 +197,8 @@ async fn the_topic_archive_reads_only_trusted_inputs_and_pages() {
 #[tokio::test]
 async fn the_reply_is_bound_to_the_input_that_opened_the_tool_call() {
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages: vec![
             user("u1", "please @ Ann"),
             assistant_with_tool("a1", "toolu_1"),
@@ -214,6 +227,8 @@ async fn the_reply_is_bound_to_the_input_that_opened_the_tool_call() {
 #[tokio::test]
 async fn a_reply_without_an_authorized_input_fails() {
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages: vec![user("u1", "hello"), assistant_with_tool("a1", "toolu_1")],
         intents: Vec::new(),
     };
@@ -250,6 +265,8 @@ async fn a_topic_attachment_is_materialized_as_a_session_artifact() {
         {"id": "m1", "chatId": "c1", "threadId": "t1", "text": "look", "senderId": "u", "senderType": "user", "createdAt": 1, "attachments": [{"kind": "image"}]},
     ]);
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages: vec![user("u1", "question")],
         intents: vec![(MessageId::new("u1"), topic_intent("cmd-1", records))],
     };
@@ -321,6 +338,8 @@ fn scores_follow_the_node_weights() {
 #[tokio::test]
 async fn relevant_context_picks_the_matching_messages() {
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages: vec![
             user("u1", "we discussed the deploy pipeline earlier"),
             user("u2", "lunch plans"),
@@ -347,6 +366,8 @@ async fn relevant_context_picks_the_matching_messages() {
 #[tokio::test]
 async fn handoff_context_is_the_tail() {
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages: vec![
             user("u1", "early deploy note"),
             user("u2", "middle"),
@@ -379,6 +400,8 @@ async fn relevant_context_falls_back_to_the_tail_without_a_match() {
         .map(|index| user(&format!("u{index}"), &format!("message {index}")))
         .collect();
     let snapshot = SessionSnapshot {
+        title: "Test session".to_owned(),
+        directory: Some("D:/work".to_owned()),
         messages,
         intents: Vec::new(),
     };
@@ -417,4 +440,168 @@ fn topic_not_found_does_not_claim_the_session_is_missing() {
         "content": "",
     }));
     assert_eq!(text, "Session sess_2 was not found.");
+}
+
+/// 有辅助模型时 `relevant` 用 lite 抽取的结果（Node `extractWithLite`），提示词与请求形状对齐。
+#[tokio::test]
+async fn lite_extraction_replaces_the_local_context() {
+    let snapshot = SessionSnapshot {
+        title: "Deploy work".to_owned(),
+        directory: Some("D:/work".to_owned()),
+        messages: vec![
+            user("u1", "we discussed the deploy pipeline earlier"),
+            user("u2", "lunch plans"),
+        ],
+        intents: Vec::new(),
+    };
+    let interactions = Arc::new(ScriptedInteractions::default());
+    interactions.script_auxiliary([Ok::<Option<String>, String>(Some(
+        "## Findings\n- the deploy pipeline moved to `pipeline.log`".to_owned(),
+    ))]);
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "deploy pipeline", "strategy": "relevant", "sessionId": "sess_other"}),
+            context_with(
+                Arc::new(MemoryArtifacts::default()),
+                interactions.clone(),
+            ),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    assert!(text.contains("returned lite context for sess_other"), "{text}");
+    assert!(text.contains("## Findings"), "{text}");
+    assert!(!text.contains("lunch plans"), "{text}");
+    let requests = interactions.aux_requests();
+    assert_eq!(requests.len(), 1);
+    assert!(requests[0].system.contains("You are the extraction model"));
+    assert!(
+        requests[0]
+            .user
+            .contains("Target session: Deploy work (sess_other)"),
+        "{}",
+        requests[0].user
+    );
+    assert!(requests[0].user.contains("Directory: D:/work"));
+    assert!(requests[0].user.contains("Query: deploy pipeline"));
+    assert!(requests[0].user.contains("Transcript material:"));
+    assert!(requests[0].user.contains("deploy pipeline earlier"));
+    assert_eq!(requests[0].source, "read_session_context_extract");
+    assert_eq!(requests[0].max_tokens, 6_000);
+}
+
+/// 抽取失败或没有可用内容时按 Node 退回本地结果，`source` 是 `fallback` 并带错误。
+#[tokio::test]
+async fn a_failed_extraction_falls_back_to_the_local_context() {
+    let snapshot = SessionSnapshot {
+        title: "Deploy work".to_owned(),
+        directory: None,
+        messages: vec![user("u1", "we discussed the deploy pipeline earlier")],
+        intents: Vec::new(),
+    };
+    let interactions = Arc::new(ScriptedInteractions::default());
+    interactions.script_auxiliary([Err::<Option<String>, String>("boom".to_owned())]);
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "deploy", "strategy": "relevant", "sessionId": "sess_other"}),
+            context_with(
+                Arc::new(MemoryArtifacts::default()),
+                interactions.clone(),
+            ),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    assert!(text.contains("returned fallback context for sess_other"), "{text}");
+    assert!(text.contains("deploy pipeline earlier"), "{text}");
+    assert!(text.contains("The returned context is truncated."), "{text}");
+    // Node 的成功分支不把抽取错误写进模型文案（只有 status=failed 才带 Error 行）。
+    assert!(!text.contains("Error:"), "{text}");
+}
+
+/// `NO_RELEVANT_CONTEXT` 与空正文都算没有可用内容：退回本地结果，不是错误。
+#[tokio::test]
+async fn an_empty_extraction_falls_back_to_the_local_context() {
+    let snapshot = SessionSnapshot {
+        title: "Deploy work".to_owned(),
+        directory: None,
+        messages: vec![user("u1", "we discussed the deploy pipeline earlier")],
+        intents: Vec::new(),
+    };
+    let interactions = Arc::new(ScriptedInteractions::default());
+    interactions.script_auxiliary([Ok::<Option<String>, String>(Some(
+        "NO_RELEVANT_CONTEXT".to_owned(),
+    ))]);
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "deploy", "strategy": "relevant", "sessionId": "sess_other"}),
+            context_with(
+                Arc::new(MemoryArtifacts::default()),
+                interactions.clone(),
+            ),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    assert!(text.contains("returned fallback context for sess_other"), "{text}");
+    assert!(!text.contains("Error:"), "{text}");
+    assert!(text.contains("deploy pipeline earlier"), "{text}");
+}
+
+/// 大会话先逐块抽取再合成（Node `extractWithLite` 的第二条路径）。
+#[tokio::test]
+async fn a_large_session_extracts_chunks_then_synthesizes() {
+    let long = "x".repeat(30_000);
+    let snapshot = SessionSnapshot {
+        title: "Big session".to_owned(),
+        directory: None,
+        messages: vec![
+            user("u1", &format!("needle {long}")),
+            user("u2", &format!("needle {long}")),
+            user("u3", &format!("needle {long}")),
+        ],
+        intents: Vec::new(),
+    };
+    let interactions = Arc::new(ScriptedInteractions::default());
+    interactions.script_auxiliary([
+        Ok::<Option<String>, String>(Some("note one".to_owned())),
+        Ok::<Option<String>, String>(Some("note two".to_owned())),
+        Ok::<Option<String>, String>(Some("note three".to_owned())),
+        Ok::<Option<String>, String>(Some("## Synthesized\nall notes".to_owned())),
+    ]);
+    let tool = ReadSessionContextTool::new(Arc::new(Reads(snapshot)), None);
+    let output = tool
+        .call(
+            json!({"query": "needle", "strategy": "relevant", "sessionId": "sess_other"}),
+            context_with(
+                Arc::new(MemoryArtifacts::default()),
+                interactions.clone(),
+            ),
+            tokio::sync::mpsc::channel(1).0,
+        )
+        .await
+        .unwrap();
+    let text = tool_text(&output);
+    assert!(text.contains("returned lite context for sess_other"), "{text}");
+    assert!(text.contains("## Synthesized"), "{text}");
+    let requests = interactions.aux_requests();
+    assert_eq!(requests.len(), 4);
+    assert!(
+        requests[..3]
+            .iter()
+            .all(|request| request.source == "read_session_context_extract"
+                && request.user.contains("Transcript chunk")),
+        "{:?}",
+        requests.iter().map(|request| &request.user).collect::<Vec<_>>()
+    );
+    assert_eq!(requests[3].source, "read_session_context_synthesize");
+    assert!(requests[3].user.contains("## Chunk 1\nnote one"));
+    // 逐块预算 = clamp(maxTokens/2, 800..2500)。
+    assert_eq!(requests[0].max_tokens, 2_500);
 }

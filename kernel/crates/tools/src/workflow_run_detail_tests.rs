@@ -17,6 +17,7 @@ fn detail(status: &str) -> WorkflowRunDetail {
         resumed_from: None,
         superseded_by: None,
         owned_by_this_session: true,
+        possibly_interrupted: false,
         created_at: 1_000,
         updated_at: 61_000,
         spent_tokens: 0,
@@ -274,4 +275,29 @@ fn hole_blocks_route_to_fill_workflow_hole_only_when_waiting() {
     let text = hole_blocks(&detail, NOW).join("\n\n");
     assert!(text.contains("— filled 0s ago"), "{text}");
     assert!(text.contains(HOLES_ALL_FILLED_INSTRUCTION), "{text}");
+}
+
+/// `possibly_interrupted` 块只在合成层判定为真时出现，位置在 owned_by_this_session 之后
+/// （Node `get-workflow-run-format.ts` 的同一句）。
+#[test]
+fn possibly_interrupted_is_an_annotation_after_the_owner_line() {
+    let mut detail = detail("running");
+    detail.owned_by_this_session = false;
+    let text = format_model_content(&detail, NOW);
+    assert!(
+        !text.contains("<possibly_interrupted>"),
+        "a normal run carries no annotation: {text}"
+    );
+    detail.possibly_interrupted = true;
+    let text = format_model_content(&detail, NOW);
+    let owner = text
+        .find("<owned_by_this_session>false</owned_by_this_session>")
+        .expect("owner line");
+    let annotation = text
+        .find("<possibly_interrupted>true — this session cannot confirm the run is still alive</possibly_interrupted>")
+        .expect("annotation");
+    assert!(
+        owner < annotation,
+        "the annotation follows the owner line: {text}"
+    );
 }

@@ -96,6 +96,12 @@ pub(crate) enum Request {
     CancelAsk {
         tool_use: ToolUseId,
     },
+    /// 回合外的旁路辅助补全（后台子代理的 `ReadSessionContext` lite 抽取）：与回合内的
+    /// `SinkRequest::Auxiliary` 走同一个 actor 方法，只是不依赖正在跑的回合。
+    Auxiliary {
+        request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
+        reply: oneshot::Sender<Result<Option<String>, OrchestrationError>>,
+    },
 }
 
 /// 待回答的交互属于谁：回合里的询问随回合结束取消；会话级的询问只随会话关闭取消。
@@ -154,6 +160,11 @@ enum Next {
     Job(Result<JobDone, nibi_kernel_base::TaskError>),
     Title(crate::title::TitleDone),
     Name(Result<Option<String>, nibi_kernel_base::TaskError>),
+    /// 一次旁路辅助补全结束（auxiliary.rs）：第几个任务与它的结果。
+    Aux(
+        usize,
+        Result<Result<String, nibi_kernel_api::model::ModelError>, nibi_kernel_base::TaskError>,
+    ),
     /// 跨会话的入站（消息或回执，cross-session.md §2.4）。
     Peer(nibi_kernel_api::peers::PeerSignal),
     /// 扣住的消息里最早的到期时刻到了（醒来后按时钟判断）。
@@ -225,6 +236,9 @@ pub(crate) struct Actor {
     /// `/loop` 哨兵展开的状态（loop_tick.rs）：不持久化，主线程压缩后清空。
     pub(crate) loop_ticks: crate::loop_tick::LoopTicks,
     pub(crate) naming: Option<crate::rename::NameJob>,
+    /// 在跑的旁路辅助模型调用（`ReadSessionContext` 的 lite 抽取，auxiliary.rs）：可以同时有多个
+    /// （只读工具并发安全）。
+    pub(crate) aux_jobs: Vec<crate::auxiliary::AuxJob>,
     /// `/goal` 的目标（goal.rs）：提交 `goal_status` 后才改，冷加载从活动历史恢复。
     pub(crate) goal: crate::goal::Goals,
     /// 回合或压缩在跑时到达的本地命令记录（修复线 L-A，local_record.rs）：收尾后按到达顺序提交。
@@ -356,6 +370,7 @@ impl Actor {
             titles: TitleState::default(),
             loop_ticks: Default::default(),
             naming: None,
+            aux_jobs: Vec::new(),
             goal,
             held_records: Vec::new(),
             pending_launch: VecDeque::new(),
@@ -428,6 +443,7 @@ impl Actor {
                 done = job_done(&mut self.job) => Next::Job(done),
                 done = title_done(&mut self.titles) => Next::Title(done),
                 done = crate::rename::name_done(&mut self.naming) => Next::Name(done),
+                done = crate::auxiliary::aux_done(&mut self.aux_jobs) => Next::Aux(done.0, done.1),
                 signal = self.peer_stream.next() => Next::Peer(signal),
                 () = crate::peers::deadline(&self.peers, now_ms) => Next::PeerDeadline,
                 (task, event) = crate::monitors::next_event(&mut self.monitors) => Next::Monitor(task, event),
@@ -442,6 +458,7 @@ impl Actor {
                 Next::Job(done) => self.on_job(done).await,
                 Next::Title(done) => self.on_title(done).await,
                 Next::Name(result) => self.on_name(result).await,
+                Next::Aux(index, result) => self.on_aux(index, result),
                 Next::Peer(signal) => self.on_peer_signal(signal).await,
                 Next::PeerDeadline => self.peers_expire(true).await,
                 Next::Monitor(task, event) => self.on_monitor_event(task, event).await,
@@ -523,6 +540,7 @@ impl Actor {
             Request::Selection { reply } => {
                 let _ = reply.send(self.selection.clone());
             }
+            Request::Auxiliary { request, reply } => self.auxiliary(request, reply),
             Request::RecordUsage { call, reply } => {
                 // 用量是观测：写不进去只记日志，不影响这次采样（Node 的 `recordModelUsageFact` 同）。
                 let result = self

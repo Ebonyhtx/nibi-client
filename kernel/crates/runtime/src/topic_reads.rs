@@ -29,6 +29,8 @@ impl SessionReads for StoreReads {
             .await
             .map_err(|error| error.to_string())?;
         Ok(SessionSnapshot {
+            title: loaded.meta.title,
+            directory: Some(loaded.meta.workspace.root.as_str().to_owned()),
             messages: loaded.messages,
             intents: loaded.input_intents,
         })

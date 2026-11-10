@@ -57,12 +57,15 @@
 //! | [`project_memory`] | 项目记忆的会话开关与回合结束抽取调度 |
 //! | [`clock`] | 时间与 ID 的注入端口 |
 //! | [`user_command`] | 用户输入的斜杠命令（skill 的用户调用） |
+//! | [`automation`] | 桌面 Automations 的 Host 端口与每轮事实 |
+//! | [`auxiliary`] | 旁路辅助模型补全的请求（`ReadSessionContext` 的 lite 抽取） |
 //! | [`workspace_trust`] | 工作区信任记录的键 |
 
 pub mod abort;
 pub mod agents;
 pub mod attachment;
 pub mod automation;
+pub mod auxiliary;
 pub mod catalog;
 pub mod checkpoint;
 pub mod clock;

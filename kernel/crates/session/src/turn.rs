@@ -352,6 +352,7 @@ impl Actor {
             SinkRequest::Selection { reply } => {
                 let _ = reply.send(self.selection.clone());
             }
+            SinkRequest::Auxiliary { request, reply } => self.auxiliary(request, reply),
             SinkRequest::TurnFacts { reply } => {
                 let _ = reply.send(
                     self.running

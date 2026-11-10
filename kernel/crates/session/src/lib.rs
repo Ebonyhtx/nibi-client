@@ -9,6 +9,7 @@
 
 mod actor;
 mod agent_signals;
+mod auxiliary;
 mod bash;
 mod checkpoints;
 mod closing;

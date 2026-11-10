@@ -308,6 +308,19 @@ impl Interactions for ChildSink {
         let parent = self.parent.as_ref()?;
         parent.interactions.turn_facts(&parent.session).await
     }
+
+    /// 子代理里的辅助补全（`ReadSessionContext` 的 lite 抽取）用父会话的模型与辅助档；没有入口的
+    /// 后台子代理（`-p`）没有辅助模型，调用方用本地结果。
+    async fn auxiliary_text(
+        &self,
+        _session: &SessionId,
+        request: nibi_kernel_api::auxiliary::AuxiliaryTextRequest,
+    ) -> Result<Option<String>, OrchestrationError> {
+        match self.asker() {
+            Some((session, asker)) => asker.auxiliary_text(session, request).await,
+            None => Ok(None),
+        }
+    }
 }
 
 impl ChildSink {

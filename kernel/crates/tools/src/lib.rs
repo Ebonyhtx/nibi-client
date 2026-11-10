@@ -65,6 +65,7 @@ mod test_more;
 mod texts;
 mod texts_more;
 mod tool_search;
+mod topic_lite;
 mod topic_tools;
 mod tool_search_keywords;
 mod tool_search_mcp;

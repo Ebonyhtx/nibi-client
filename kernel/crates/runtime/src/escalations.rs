@@ -560,6 +560,8 @@ impl WorkflowEventJournal for SessionJournalSink {
 pub struct WorkflowRunDetailReader {
     pub store: Arc<dyn SessionStore>,
     pub escalations: Arc<WorkflowEscalations>,
+    /// 同进程引擎的活 run 登记（`possiblyInterrupted` 的判据）；没有引擎时不跟踪。
+    pub engine: nibi_kernel_api::workflow::WorkflowEngineSlot,
 }
 
 #[async_trait::async_trait]
@@ -589,6 +591,16 @@ impl WorkflowRunIntrospection for WorkflowRunDetailReader {
                     asked_at: question.asked_at,
                 });
             }
+            // 在飞、不属于本会话、且同进程引擎不知道它 → 可能是上一个进程留下的残骸。
+            let in_flight = matches!(detail.status.as_str(), "pending" | "running");
+            let live = self
+                .engine
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .as_ref()
+                .and_then(|engine| engine.live_run_ids())
+                .is_some_and(|ids| ids.iter().any(|id| id == run_id));
+            detail.possibly_interrupted = in_flight && !detail.owned_by_this_session && !live;
         }
         Ok(detail)
     }

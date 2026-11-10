@@ -671,6 +671,18 @@ pub trait Interactions: Send + Sync {
         None
     }
 
+    /// 一次旁路辅助模型补全（Node `model.generateText`；`ReadSessionContext` 的 lite 抽取）。
+    /// 模型选择、辅助档与请求计时都在会话 actor。`Ok(None)` 表示没有辅助模型（测试替身、没有会话的
+    /// sink），调用方用本地结果；`Err` 是这次请求失败（调用方按 Node 记 `fallback` 并附错误）。
+    /// 这一笔不写会话用量（Node 的 `generateText` 同样不记）。
+    async fn auxiliary_text(
+        &self,
+        _session: &SessionId,
+        _request: crate::auxiliary::AuxiliaryTextRequest,
+    ) -> Result<Option<String>, OrchestrationError> {
+        Ok(None)
+    }
+
     /// Monitor 工具起好的 monitor 交给会话 actor（工作线 F83 新增，docs/specs/rust-cli/tools-more.md §19.6）：actor 是
     /// 切行、批、限流与通知的唯一 owner，按游标读它的输出。不持有会话的实现（子代理、测试替身）返回 `Unsupported`，
     /// 调用方停掉已经起的命令。

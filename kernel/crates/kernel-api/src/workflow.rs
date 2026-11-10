@@ -348,6 +348,9 @@ pub struct WorkflowRunDetail {
     /// 本 run 被哪次修订停下并替代（stopped(superseded) 的结算袋）。
     pub superseded_by: Option<String>,
     pub owned_by_this_session: bool,
+    /// 在飞、不属于本会话，且同进程引擎的活 run 注册表里没有它（可能是上一个进程的残骸）。
+    /// 读面（journal）不知道活 run，只有持有引擎槽的合成层能填；缺省 false。
+    pub possibly_interrupted: bool,
     pub created_at: u64,
     pub updated_at: u64,
     pub spent_tokens: u64,
@@ -1128,6 +1131,13 @@ pub trait WorkflowEngine: Send + Sync {
         _request: WorkflowAuthorRequest,
     ) -> Result<Value, WorkflowEngineError> {
         Err(WorkflowEngineError::new("authoring_unavailable"))
+    }
+
+    /// 此刻还在跑的 run（Node 同进程的活 run 注册表）：`ListWorkflowRuns` 的
+    /// `possiblyInterrupted` 用它区分「同进程另一会话仍在飞」与「上一个进程留下的残骸」。
+    /// 不跟踪活 run 的实现返回 None，调用方按「非本会话且在飞」保守标注。
+    fn live_run_ids(&self) -> Option<Vec<String>> {
+        None
     }
 
     /// GUI 中枢的已保存工作流读面（`workflows/list`）：定向 scope 的目录枚举，回复是

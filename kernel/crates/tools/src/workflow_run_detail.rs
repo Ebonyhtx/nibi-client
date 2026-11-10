@@ -168,6 +168,7 @@ Use ListWorkflowRuns to see the runs that do."
                 "ok": true,
                 "runId": detail.run_id,
                 "status": detail.status,
+                "possiblyInterrupted": detail.possibly_interrupted.then_some(true),
             }),
         })
     }
@@ -237,6 +238,13 @@ fn format_model_content(detail: &WorkflowRunDetail, now: u64) -> String {
         "<owned_by_this_session>{}</owned_by_this_session>",
         detail.owned_by_this_session
     ));
+    if detail.possibly_interrupted {
+        // Node `get-workflow-run-format.ts` 的同一句（评估为「注解，不是判决」）。
+        blocks.push(
+            "<possibly_interrupted>true — this session cannot confirm the run is still alive</possibly_interrupted>"
+                .to_owned(),
+        );
+    }
     blocks.push(format!(
         "<created_at>{}</created_at>",
         format_instant(now, detail.created_at)

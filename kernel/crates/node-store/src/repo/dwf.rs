@@ -1440,6 +1440,8 @@ pub fn run_detail(
         resumed_from: row.resumed_from.clone(),
         superseded_by,
         owned_by_this_session: row.parent_session_id.as_deref() == Some(session),
+        // 活 run 的判据在合成层（runtime 的 WorkflowRunDetailReader）；存储只给 journal 事实。
+        possibly_interrupted: false,
         created_at: row.time_created.max(0) as u64,
         updated_at: row.time_updated.max(0) as u64,
         spent_tokens: row.spent_tokens.max(0) as u64,
