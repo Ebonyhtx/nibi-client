@@ -2295,7 +2295,7 @@ const zhCN: Record<string, string> = {
   "webRemoteControl.triggerStatus.error": "远程控制连接失败",
   "webRemoteControl.authRequired.title": "需要先登录",
   "webRemoteControl.authRequired.description":
-    "登录后即可使用手机远程控制。手机和电脑需登录同一账号。",
+    "手机远程控制免费，登录后即可使用。手机和电脑需登录同一账号。",
   "webRemoteControl.authRequired.login": "登录",
   "webRemoteControl.title": "移动端远程控制",
   "webRemoteControl.description": "扫码或在手机上打开链接，即可远程控制当前工作区。",
@@ -7014,7 +7014,8 @@ const zhCN: Record<string, string> = {
     "该插件为会员专享，请开通会员后重试。",
   "settings.plugins.membership.title": "NIBI 会员",
   "settings.plugins.membership.badge": "会员专享",
-  "settings.plugins.membership.description": "会员可安装收费插件，并解锁手机远控。",
+  "settings.plugins.membership.description":
+    "会员可安装并运行收费插件。手机远控免费，登录账号即可使用。",
   "settings.plugins.membership.pricing": "月 ¥29 · 季 ¥68 · 年 ¥198",
   "settings.plugins.membership.firstMonth": "新用户首月 ¥19.9",
   "settings.plugins.membership.cta": "查看会员方案",
@@ -7031,8 +7032,9 @@ const zhCN: Record<string, string> = {
   "settings.plugins.membership.status.notActivated": "尚未开通会员",
   "settings.plugins.membership.status.perpetual": "永久会员",
   "settings.plugins.membership.status.denied": "会员状态异常，请打开会员页处理",
-  "settings.plugins.membership.benefits": "权益：收费插件 + 手机远控",
-  "nibi.membership.dialog.subtitle": "开通会员后可安装收费插件，并解锁手机远控",
+  "settings.plugins.membership.benefits": "权益：收费插件（手机远控免费，登录即可）",
+  "nibi.membership.dialog.subtitle":
+    "开通会员后可安装并运行收费插件。手机远控免费，登录账号即可使用。",
   "nibi.membership.dialog.loginRequired": "请先在客户端登录 NIBI 账号",
   "nibi.membership.dialog.loginRequiredHint":
     "会员绑定账号：登录后会直接进入开通页，不需要在网页里再次登录。",

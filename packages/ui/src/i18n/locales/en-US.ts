@@ -2468,7 +2468,7 @@ const enUS: Record<string, string> = {
   "webRemoteControl.triggerStatus.error": "Remote control failed",
   "webRemoteControl.authRequired.title": "Sign in required",
   "webRemoteControl.authRequired.description":
-    "Sign in to control this computer from your phone. Use the same account on both devices.",
+    "Mobile remote control is free. Sign in to use it — use the same account on both devices.",
   "webRemoteControl.authRequired.login": "Sign in",
   "webRemoteControl.title": "Mobile remote control",
   "webRemoteControl.description":
@@ -7356,7 +7356,7 @@ const enUS: Record<string, string> = {
   "settings.plugins.membership.title": "NIBI Membership",
   "settings.plugins.membership.badge": "Members only",
   "settings.plugins.membership.description":
-    "Membership unlocks paid plugins and remote control from your phone.",
+    "Membership lets you install and run paid plugins. Phone remote control is free — just sign in.",
   "settings.plugins.membership.pricing": "Monthly ¥29 · Quarterly ¥68 · Yearly ¥198",
   "settings.plugins.membership.firstMonth": "First month ¥19.9 for new users",
   "settings.plugins.membership.cta": "View plans",
@@ -7376,9 +7376,10 @@ const enUS: Record<string, string> = {
   "settings.plugins.membership.status.perpetual": "Lifetime membership",
   "settings.plugins.membership.status.denied":
     "Membership unavailable — open the membership page to resolve",
-  "settings.plugins.membership.benefits": "Includes paid plugins and phone remote control",
+  "settings.plugins.membership.benefits":
+    "Paid plugins included (phone remote control is free with sign-in)",
   "nibi.membership.dialog.subtitle":
-    "Membership lets you install paid plugins and use remote control",
+    "Membership lets you install and run paid plugins. Phone remote control is free — just sign in.",
   "nibi.membership.dialog.loginRequired": "Sign in to NIBI in the app first",
   "nibi.membership.dialog.loginRequiredHint":
     "Membership belongs to your account. Once signed in, checkout opens directly — no separate website login.",
