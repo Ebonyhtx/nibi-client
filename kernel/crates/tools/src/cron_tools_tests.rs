@@ -63,6 +63,7 @@ fn definitions_are_deferred_with_search_hints() {
     for (tool, hint) in cron_tools(&board, false).iter().zip([
         "schedule a recurring or one-shot prompt",
         "cancel a scheduled cron job",
+        "update an existing scheduled cron job",
         "list active cron jobs",
     ]) {
         assert!(tool.should_defer());
@@ -180,6 +181,39 @@ async fn delete_and_empty_list() {
     assert_eq!(text, "Cancelled job abcd0123.");
     let list = call(&tool(&board, LIST), json!({}), ctx).await;
     assert_eq!(list, "No scheduled jobs.");
+}
+
+#[tokio::test]
+async fn update_changes_fields_and_keeps_omitted_ones() {
+    let board = board();
+    let update = tool(&board, UPDATE);
+    let ctx = context("op_1", PermissionMode::Default);
+    assert_eq!(
+        error(update.validate_input(&json!({"id": "nope"}), &ctx).await),
+        ("No scheduled job with id 'nope'".to_owned(), Some(1))
+    );
+    board.add(&ctx.session, "abcd0123".to_owned(), "7 * * * *", "old", true);
+    assert_eq!(
+        error(
+            update
+                .validate_input(&json!({"id": "abcd0123", "cron": "bad"}), &ctx)
+                .await
+        ),
+        (
+            "Invalid cron expression 'bad'. Expected 5 fields: M H DoM Mon DoW.".to_owned(),
+            Some(2)
+        )
+    );
+    let text = call(
+        &update,
+        json!({"id": "abcd0123", "cron": "*/6 * * * *"}),
+        ctx.clone(),
+    )
+    .await;
+    assert_eq!(text, "Updated job abcd0123 (Every 6 minutes).");
+    // 省略的 prompt / recurring 保留原值。
+    let list = call(&tool(&board, LIST), json!({}), ctx).await;
+    assert_eq!(list, "abcd0123 \u{2014} Every 6 minutes (recurring) [session-only]: old");
 }
 
 #[tokio::test]

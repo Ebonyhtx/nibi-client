@@ -23,6 +23,7 @@ use crate::cron_expr;
 pub const CREATE: &str = "CronCreate";
 pub const DELETE: &str = "CronDelete";
 pub const LIST: &str = "CronList";
+pub const UPDATE: &str = "CronUpdate";
 
 /// CronCreate 结果的两种说明之一（另一种 `Persisted to
 /// .nibi/scheduled_tasks.json` 在结果里用共用的名字拼）。产品名按替换规则换成 NIBI（2026-10-18 用户确认、2026-11-05 品牌化批次统一，
@@ -86,6 +87,11 @@ pub fn cron_tools(board: &CronBoard, monitor: bool) -> Vec<std::sync::Arc<dyn To
             DELETE,
             board,
             "cancel a scheduled cron job",
+        ))),
+        std::sync::Arc::new(CronUpdateTool(Shared::new(
+            UPDATE,
+            board,
+            "update an existing scheduled cron job",
         ))),
         std::sync::Arc::new(crate::cron_list::CronListTool(Shared::new(
             LIST,
@@ -300,6 +306,127 @@ impl Tool for CronDeleteTool {
         Ok(output(
             format!("Cancelled job {}.", input.id),
             json!({"id": input.id}),
+        ))
+    }
+}
+
+#[derive(Deserialize)]
+struct UpdateInput {
+    id: String,
+    #[serde(default)]
+    cron: Option<String>,
+    #[serde(default)]
+    prompt: Option<String>,
+    #[serde(default)]
+    recurring: Option<bool>,
+}
+
+/// 现有任务的三项（会话任务优先，其次文件里的持久任务）。
+async fn current(
+    board: &CronBoard,
+    owner: &SessionId,
+    id: &str,
+) -> Option<(String, String, bool)> {
+    if let Some(job) = board
+        .session_jobs(owner)
+        .into_iter()
+        .find(|job| job.id == id)
+    {
+        return Some((job.cron, job.prompt, job.recurring));
+    }
+    board
+        .read_durable()
+        .await
+        .into_iter()
+        .find(|task| task.id == id)
+        .map(|task| (task.cron, task.prompt, task.recurring))
+}
+
+pub struct CronUpdateTool(Shared);
+
+#[async_trait]
+impl Tool for CronUpdateTool {
+    fn name(&self) -> &str {
+        UPDATE
+    }
+
+    shared_tool_methods!();
+
+    async fn validate_input(&self, input: &Value, context: &ToolUseContext) -> Validation {
+        let Ok(input) = parse::<UpdateInput>(input) else {
+            return Validation::Ok;
+        };
+        let board = &self.0.board;
+        let owner = owner(context).await;
+        let Some((cron, prompt, recurring)) = current(board, &owner, &input.id).await else {
+            return coded(format!("No scheduled job with id '{}'", input.id), 1);
+        };
+        let _ = (prompt, recurring);
+        let next = input.cron.as_deref().unwrap_or(&cron);
+        if cron_expr::parse(next).is_none() {
+            return coded(
+                format!("Invalid cron expression '{next}'. Expected 5 fields: M H DoM Mon DoW."),
+                2,
+            );
+        }
+        if cron_expr::next_after(next, board.now_ms(), &board.offset()).is_none() {
+            return coded(
+                format!("Cron expression '{next}' does not match any calendar date in the next year."),
+                3,
+            );
+        }
+        Validation::Ok
+    }
+
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        context: &ToolUseContext,
+    ) -> PermissionDecision {
+        if context.mode == PermissionMode::Auto {
+            return PermissionDecision::Passthrough;
+        }
+        PermissionDecision::Allow {
+            updated_input: None,
+        }
+    }
+
+    async fn call(
+        &self,
+        input: Value,
+        context: ToolUseContext,
+        _progress: mpsc::Sender<ToolProgress>,
+    ) -> Result<ToolOutput, ToolError> {
+        let input: UpdateInput = parse(&input)?;
+        let board = &self.0.board;
+        let owner = owner(&context).await;
+        let Some((cron, prompt, recurring)) = current(board, &owner, &input.id).await else {
+            return Err(ToolError::Failed {
+                message: format!("No scheduled job with id '{}'", input.id),
+            });
+        };
+        let next_cron = input.cron.unwrap_or(cron);
+        let next_prompt = input.prompt.unwrap_or(prompt);
+        let next_recurring = input.recurring.unwrap_or(recurring);
+        if !board
+            .update(
+                &owner,
+                &input.id,
+                &next_cron,
+                &next_prompt,
+                next_recurring,
+            )
+            .await
+            .map_err(|message| ToolError::Failed { message })?
+        {
+            return Err(ToolError::Failed {
+                message: format!("No scheduled job with id '{}'", input.id),
+            });
+        }
+        let human = cron_expr::human(&next_cron);
+        Ok(output(
+            format!("Updated job {} ({human}).", input.id),
+            json!({"id": input.id, "humanSchedule": human, "recurring": next_recurring}),
         ))
     }
 }

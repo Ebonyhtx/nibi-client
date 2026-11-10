@@ -45,12 +45,29 @@ const MANIFEST_PREVIEW_LINES: u64 = 30;
 const MEMORY_TOOL_NAMES: [&str; 6] = ["Read", "Grep", "Glob", "Write", "Edit", "Bash"];
 
 /// 按会话的记忆开关。默认开启；只有 Host 在会话物化时明确给 `false` 才关闭。
-#[derive(Default)]
+/// `features.memory=false` 时缺省值也是关闭（Node `runtimeConfig.memory.enabled`）。
 pub struct MemoryPreferences {
     enabled: Mutex<HashMap<SessionId, bool>>,
+    default_enabled: bool,
+}
+
+impl Default for MemoryPreferences {
+    fn default() -> Self {
+        Self {
+            enabled: Mutex::default(),
+            default_enabled: true,
+        }
+    }
 }
 
 impl MemoryPreferences {
+    pub(crate) fn with_default(enabled: bool) -> Self {
+        Self {
+            enabled: Mutex::default(),
+            default_enabled: enabled,
+        }
+    }
+
     fn set(&self, session: &SessionId, enabled: bool) {
         self.enabled
             .lock()
@@ -73,7 +90,7 @@ impl ProjectMemorySettings for MemoryPreferences {
             .unwrap_or_else(PoisonError::into_inner)
             .get(session)
             .copied()
-            .unwrap_or(true)
+            .unwrap_or(self.default_enabled)
     }
 }
 

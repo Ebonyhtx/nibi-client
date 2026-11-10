@@ -20,6 +20,11 @@ dev 的 Node 内核）按需把它作为子进程拉起，经 stdio 行协议驱
 - `workflows/list|get|save|updateMeta|delete|move|forRun`（request）：中枢读写面——解析器在
   @nibi/core（frontmatter/规则），这里只承载；`save|updateMeta|delete|move|forRun` 需要
   `dbPath` 指到会话库（与 holes/fill 同一家，读 journal）。
+- `author/prepare` / `author/execute`（request）：作者工具的确认前/后两跳。prepare 跑
+  `@nibi/core` 的 validateInput + resolveInput 并回 `{ok, input, gate}`；execute 跑同一份
+  handler + formatModelContent 并回 `{ok, content, isError}`。入参带 `tool`/`input`/`cwd`/
+  `session`/`toolCall`/`hasLoadedSkill`/`models`/`dbPath`——技能门与模型目录的事实由内核
+  先算好，侧车不另开回宿主的 RPC。
 
 ## 不变量
 

@@ -240,3 +240,47 @@ async fn the_background_question_is_a_safety_check_outside_guarded() {
         allow()
     );
 }
+
+/// workflow 作者工具的 `alwaysAsk`（Node `permission.alwaysAsk`）：yolo 与 allow 规则都盖不过它，
+/// deny 规则照旧优先。与「yolo 啥也不问」（F76）的关系：那一条讲的是危险命令与安全检查，
+/// Create/Save/Amend 是**必须由用户点头**的执行授权，不属于「模式放行」。
+#[tokio::test]
+async fn workflow_authoring_tools_always_ask() {
+    for name in ["CreateWorkflow", "AmendWorkflow", "SaveWorkflow"] {
+        let decision = |message: &str| PermissionDecision::Ask {
+            message: message.to_owned(),
+            suggestions: Vec::new(),
+        };
+        let gate = PolicyGate::new(rules(&[(RuleBehavior::Allow, name)]));
+        for mode in [
+            PermissionMode::Default,
+            PermissionMode::Guarded,
+            PermissionMode::BypassPermissions,
+        ] {
+            let answer = gate
+                .decide(
+                    &Named(name, decision("confirm")),
+                    &json!({}),
+                    &context(mode),
+                )
+                .await;
+            assert!(
+                matches!(answer, PermissionDecision::Ask { .. }),
+                "{name} in {mode:?}: {answer:?}"
+            );
+        }
+        // deny 规则仍然优先。
+        let gate = PolicyGate::new(rules(&[(RuleBehavior::Deny, name)]));
+        let answer = gate
+            .decide(
+                &Named(name, decision("confirm")),
+                &json!({}),
+                &context(PermissionMode::BypassPermissions),
+            )
+            .await;
+        assert!(
+            matches!(answer, PermissionDecision::Deny { .. }),
+            "{name}: {answer:?}"
+        );
+    }
+}

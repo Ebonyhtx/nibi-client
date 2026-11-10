@@ -280,7 +280,7 @@ impl Projection {
                     "detail": input,
                     "freeText": true,
                     "fullAccessOption": state::full_access_option(),
-                    "options": state::permission_options(),
+                    "options": state::permission_options(tool),
                 },
             }),
             // AskUserQuestion：Node 把它的等待态投影成 userInput（结构化 questions），不是

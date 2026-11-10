@@ -539,6 +539,7 @@ fn built_full(
             background_prompts: keep_alive,
             // fork 子代理由 TUI 的集成测试与 fork_tests.rs 覆盖（agents.md §8.1）。
             fork: false,
+            subagents_enabled: true,
         },
     );
     Harness {

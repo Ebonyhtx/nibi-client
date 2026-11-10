@@ -187,6 +187,22 @@ async fn the_prompt_commands_render_their_bodies() {
         "{body}"
     );
     assert!(!body.contains("Base directory for this skill"), "{body}");
+    // `/init 备注`：Node `buildInitAgentsPrompt` 把备注追加成一段代码块。
+    let with_notes = super::super::body::render(
+        &catalog,
+        None,
+        &init,
+        "focus on the build system",
+        &context,
+    )
+    .await
+    .unwrap();
+    assert!(
+        with_notes.ends_with(
+            "Additional user instructions supplied with /init:\n```text\nfocus on the build system\n```"
+        ),
+        "{with_notes}"
+    );
     let review = catalog.find(&workspace(), "security-review").await.unwrap();
     let body = super::super::body::render(&catalog, None, &review, "", &context)
         .await

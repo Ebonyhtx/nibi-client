@@ -564,3 +564,40 @@ fn checkpoint() -> crate::store::WorkspaceCheckpoint {
 
 #[path = "lib_tests_more.rs"]
 mod more;
+
+/// 冷恢复的 `onDemand` 判据：`/workflow` 文本或十一个工具任一次调用。
+#[test]
+fn dynamic_workflow_history_is_recognized() {
+    use crate::workflow::history_shows_dynamic_workflow;
+    let workflow_call = Message::Assistant(AssistantMessage {
+        id: MessageId::new("m1"),
+        content: vec![ContentBlock::ToolUse {
+            id: ToolUseId::new("t1"),
+            name: "CreateWorkflow".to_owned(),
+            input: json!({}),
+        }],
+        model: "test".to_owned(),
+        stop_reason: None,
+        usage: None,
+    });
+    assert!(history_shows_dynamic_workflow(&[workflow_call]));
+    let command = Message::User(crate::message::UserMessage {
+        id: MessageId::new("u1"),
+        content: vec![ContentBlock::Text {
+            text: "/workflow do it".to_owned(),
+        }],
+        origin: crate::message::UserOrigin::Human,
+    });
+    assert!(history_shows_dynamic_workflow(&[command]));
+    // 普通对话与别的斜杠命令不算。
+    for text in ["hello", "/compact", "please run /workflow"] {
+        let message = Message::User(crate::message::UserMessage {
+            id: MessageId::new("u2"),
+            content: vec![ContentBlock::Text {
+                text: text.to_owned(),
+            }],
+            origin: crate::message::UserOrigin::Human,
+        });
+        assert!(!history_shows_dynamic_workflow(&[message]), "{text}");
+    }
+}

@@ -206,6 +206,21 @@ impl CronStore for LocalCronStore {
                 tasks.retain(|task| !ids.contains(&task.id));
                 tasks.len() != before
             }
+            CronTasksChange::Update {
+                id,
+                cron,
+                prompt,
+                recurring,
+            } => {
+                let mut changed = false;
+                for task in tasks.iter_mut().filter(|task| task.id == id) {
+                    task.cron = cron.clone();
+                    task.prompt = prompt.clone();
+                    task.recurring = recurring;
+                    changed = true;
+                }
+                changed
+            }
             CronTasksChange::MarkFired { ids, at } => {
                 let mut changed = false;
                 for task in tasks.iter_mut().filter(|task| ids.contains(&task.id)) {

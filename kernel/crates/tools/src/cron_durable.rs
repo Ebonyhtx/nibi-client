@@ -82,6 +82,55 @@ impl CronBoard {
         Ok(true)
     }
 
+    /// CronUpdate：先改会话任务，没有再看文件里的；返回这个 id 是否存在。
+    pub(crate) async fn update(
+        &self,
+        owner: &SessionId,
+        id: &str,
+        cron: &str,
+        prompt: &str,
+        recurring: bool,
+    ) -> Result<bool, String> {
+        {
+            let mut state = self.state();
+            if let Some(jobs) = state.jobs.get_mut(owner)
+                && let Some(job) = jobs.iter_mut().find(|job| job.id == id)
+            {
+                job.cron = cron.to_owned();
+                job.prompt = prompt.to_owned();
+                job.recurring = recurring;
+                // 新 cron 从**现在**起算下一次（与创建时同一条规则）。
+                let from = self.now_ms();
+                job.next_fire = self.first_fire(cron, recurring, id, from);
+                // 版本号与状态锁互不相关（`changed` 只发 watch），持锁调用安全。
+                self.changed();
+                return Ok(true);
+            }
+        }
+        let known = self.read_durable().await.iter().any(|task| task.id == id);
+        if !known {
+            return Ok(false);
+        }
+        self.change(CronTasksChange::Update {
+            id: id.to_owned(),
+            cron: cron.to_owned(),
+            prompt: prompt.to_owned(),
+            recurring,
+        })
+        .await?;
+        // 新 cron 从**现在**起算：把持久任务的下一次触发清掉，调度器下一拍按新表达式重算
+        // （`read_durable` 是幂等重读，不会自己丢掉已算好的时间）。
+        {
+            let mut state = self.state();
+            for scheduler in state.schedulers.values_mut() {
+                scheduler.next_fire.remove(id);
+            }
+        }
+        self.enable();
+        self.changed();
+        Ok(true)
+    }
+
     /// CronDelete：先删会话任务，没有再删文件里的。
     pub(crate) async fn delete(&self, owner: &SessionId, id: &str) -> Result<(), String> {
         if self.delete_session_job(owner, id) {

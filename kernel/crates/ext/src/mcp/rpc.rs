@@ -11,7 +11,7 @@ use std::time::Duration;
 use futures_util::StreamExt;
 use nibi_kernel_base::Spawner;
 use nibi_kernel_api::env_files::PathStyle;
-use nibi_kernel_api::mcp::{McpConnectionId, McpTransport, McpTransportEvent};
+use nibi_kernel_api::mcp::{McpConnectionId, McpElicitation, McpTransport, McpTransportEvent};
 
 use super::notices::{self, NoticeReceiver, NoticeSender};
 use serde_json::{Map, Value, json};
@@ -162,6 +162,8 @@ impl Client {
         spawner: &Spawner,
         roots: Vec<String>,
         link: Link,
+        server: String,
+        elicitation: Option<Arc<dyn McpElicitation>>,
     ) -> (Arc<Self>, NoticeReceiver) {
         let modern = Arc::new(AtomicBool::new(link.drops_requests));
         let client = Arc::new(Self {
@@ -182,6 +184,8 @@ impl Client {
             notices,
             roots,
             modern,
+            server,
+            elicitation,
         };
         spawner.spawn_resident("mcp-reader", reader.run());
         (client, receiver)
@@ -295,6 +299,10 @@ struct Reader {
     roots: Vec<String>,
     /// 现代协议：服务器→客户端的请求通道不存在，收到的请求丢掉（Node `_shouldDropInbound`）。
     modern: Arc<AtomicBool>,
+    /// 这条连接属于哪个配置名（`elicitation/create` 的归属键）。
+    server: String,
+    /// `elicitation/create` 的宿主端口；没有时不宣告能力，请求回 Method not found。
+    elicitation: Option<Arc<dyn McpElicitation>>,
 }
 
 impl Reader {
@@ -340,7 +348,7 @@ impl Reader {
             (Some(method), Some(_)) if self.modern.load(Ordering::Relaxed) => {
                 tracing::debug!(method, "dropped an MCP server request on a modern connection");
             }
-            (Some(method), Some(id)) => self.server_request(method, id).await,
+            (Some(method), Some(id)) => self.server_request(method, id, &message).await,
             (Some(method), None) => self.notification(method, &message),
             (None, None) => tracing::debug!("ignored an MCP message without method or id"),
         }
@@ -365,15 +373,39 @@ impl Reader {
         let _ = sender.send(result);
     }
 
-    async fn server_request(&self, method: &str, id: Value) {
-        let reply = match answer(method, &self.roots) {
+    async fn server_request(&self, method: &str, id: Value, message: &Value) {
+        // `elicitation/create` 要等用户作答，绝不在这条读循环里 await：其余响应用同一条 stdin。
+        if method == "elicitation/create" {
+            let Some(port) = self.elicitation.clone() else {
+                self.reply(id, Err((-32601, format!("Method not found: {method}"))))
+                    .await;
+                return;
+            };
+            let transport = self.transport.clone();
+            let connection = self.connection.clone();
+            let server = self.server.clone();
+            let params = message.get("params").cloned().unwrap_or(Value::Null);
+            tokio::spawn(async move {
+                let result = port.elicit(&server, params).await;
+                let reply = json!({"jsonrpc": "2.0", "id": id, "result": result});
+                if let Err(error) = transport.send(&connection, reply).await {
+                    tracing::debug!(%error, "could not answer an MCP elicitation request");
+                }
+            });
+            return;
+        }
+        self.reply(id, answer(method, &self.roots)).await;
+    }
+
+    async fn reply(&self, id: Value, answer: Result<Value, (i64, String)>) {
+        let reply = match answer {
             Ok(result) => json!({"jsonrpc": "2.0", "id": id, "result": result}),
             Err((code, message)) => {
                 json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}})
             }
         };
         if let Err(error) = self.transport.send(&self.connection, reply).await {
-            tracing::debug!(%error, method, "could not answer an MCP server request");
+            tracing::debug!(%error, "could not answer an MCP server request");
         }
     }
 

@@ -563,6 +563,87 @@ pub struct WorkflowStart {
     pub args: Option<serde_json::Value>,
 }
 
+/// 会话工作流工具面的激活入口（Node `activateDynamicWorkflowTools` 的内核一半）：`/workflow`
+/// 命令、GUI 的启动/恢复/修订与冷恢复历史扫描都经它翻位。只加不减。
+pub trait WorkflowActivation: Send + Sync {
+    fn activate(&self, session: &crate::ids::SessionId);
+}
+
+/// 持久化历史里有没有过工作流用法（`/workflow` 文本或十一个工具的任一次调用）——
+/// Node `persistedMessagesShowDynamicWorkflow` 的同一判据，冷恢复按它决定 `onDemand` 会话是否激活。
+pub fn history_shows_dynamic_workflow(
+    messages: &[crate::message::Message],
+) -> bool {
+    use crate::message::{ContentBlock, Message};
+    const TOOLS: [&str; 11] = [
+        "CreateWorkflow",
+        "AmendWorkflow",
+        "SaveWorkflow",
+        "ListSavedWorkflows",
+        "ListModels",
+        "EvalWorkflowSnippet",
+        "ListWorkflowRuns",
+        "GetWorkflowRun",
+        "ResumeWorkflowRun",
+        "ResolveWorkflowQuestion",
+        "FillWorkflowHole",
+    ];
+    for message in messages {
+        match message {
+            Message::User(user) => {
+                for block in &user.content {
+                    if let ContentBlock::Text { text } = block
+                        && text
+                            .split_whitespace()
+                            .next()
+                            .is_some_and(|first| first.eq_ignore_ascii_case("/workflow"))
+                    {
+                        return true;
+                    }
+                }
+            }
+            Message::Assistant(assistant) => {
+                for block in &assistant.content {
+                    if let ContentBlock::ToolUse { name, .. } = block
+                        && TOOLS.contains(&name.as_str())
+                    {
+                        return true;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    false
+}
+
+/// 一次作者工具调用（Node 的 `CreateWorkflow` / `AmendWorkflow` / `SaveWorkflow` /
+/// `ListSavedWorkflows` / `EvalWorkflowSnippet` / `ResumeWorkflowRun`）的两个阶段：确认前的
+/// `prepare`（validateInput + resolveInput）与确认后的 `execute`（handler + formatModelContent）。
+///
+/// 两个阶段都由 sidecar 里的 Node 工具实现执行：校验器、诊断形状、文件落点、模型绑定与
+/// model 内容都是同一份 `@nibi/core` 代码，Rust 只做工具面与权限。技能门的事实也在这里：
+/// `has_loaded_skill` 由内核按**当前可见历史**判定（压缩后重新关门，与 Node 同一条语义）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowAuthorRequest {
+    /// Node 工具名（逐字，例如 `CreateWorkflow`）。
+    pub tool: String,
+    /// 模型给的入参（prepare 返回解析后的入参；execute 收同一份）。
+    pub input: Value,
+    /// 会话的工作目录（工具归一化与草稿落点都用它）。
+    pub cwd: String,
+    /// 发起调用的会话。
+    pub session: String,
+    /// 这次工具调用的 id（run 的 toolCallId 锚点）。
+    pub tool_call: String,
+    /// 当前可见历史里有没有一次成功的 `Skill(dynamic-workflows)` 调用。
+    pub has_loaded_skill: bool,
+    /// 会话此刻的模型选择（`ListModels` 的 `[current]` 与 `introduced_providers` 的判据）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current: Option<crate::model::ModelSelection>,
+}
+
 /// `amendWorkflowRunSettings`：两项设置的三态（省略 = 沿用，`null` = 回默认，值 = 设定）。
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -774,6 +855,24 @@ pub struct WorkflowRunEventRow {
     /// 载荷被裁剪过（原始事实仍在 journal）。
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub truncated: bool,
+}
+
+/// `ListWorkflowRuns` 的工具读面（按项目 cwd 跨会话枚举）：标签派生需要脚本首行，因此这一行
+/// 带 `script_text`（调用方截取首行后丢弃，不把脚本搬进模型内容）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkflowRunListRow {
+    pub run_id: String,
+    pub name: Option<String>,
+    pub script_text: Option<String>,
+    /// 逻辑状态：`pending` / `running` / `completed` / `errored` / `stopped`。
+    pub status: String,
+    pub stop_reason: Option<String>,
+    pub resumed_from: Option<String>,
+    pub superseded_by: Option<String>,
+    pub parent_session_id: Option<String>,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub spent_tokens: u64,
 }
 
 /// 事件日志的一页；`has_more` 由存储判定（页可能因字节上界提前收尾）。
@@ -1011,6 +1110,25 @@ pub trait WorkflowEngine: Send + Sync {
         hole_id: &str,
         body: &str,
     ) -> Result<WorkflowFillOutcome, WorkflowEngineError>;
+
+    /// 作者工具的确认前阶段（Node 工具条目的 validateInput + resolveInput）。成功时回解析后的
+    /// 入参（JSON 对象）；业务拒绝由实现返回 `WorkflowEngineError`（`reason` 是 Node 词表，
+    /// `message` 是给模型的说明）。没有作者能力的实现返回默认的 `authoring_unavailable`。
+    async fn author_prepare(
+        &self,
+        _request: WorkflowAuthorRequest,
+    ) -> Result<Value, WorkflowEngineError> {
+        Err(WorkflowEngineError::new("authoring_unavailable"))
+    }
+
+    /// 作者工具的执行阶段（handler + formatModelContent）。回复形状：
+    /// `{"ok":true,"content":"…","isError":false}` 或 `{"ok":false,"message":"…"}`。
+    async fn author_execute(
+        &self,
+        _request: WorkflowAuthorRequest,
+    ) -> Result<Value, WorkflowEngineError> {
+        Err(WorkflowEngineError::new("authoring_unavailable"))
+    }
 
     /// GUI 中枢的已保存工作流读面（`workflows/list`）：定向 scope 的目录枚举，回复是
     /// Node `listSavedWorkflowsOp` 的原形（解析器在 sidecar 的 @nibi/core，宿主只转发）。

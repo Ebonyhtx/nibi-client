@@ -284,6 +284,17 @@ impl McpTransport for NoMcpTransport {
     }
 }
 
+/// MCP 服务器在工具执行期间反向提问（`elicitation/create`，MCP `form` 模式）的宿主端口。
+///
+/// 归属：Node 的 `activeCallTraces` 把 server 的提问挂到该 server **当前工具调用**的会话上；
+/// 没有正在执行的调用（server 空闲时主动提问）就拒绝，不猜会话。实现方返回 MCP 的
+/// `ElicitResult`（`{action:"accept", content}` / `{action:"decline"}` / `{action:"cancel"}`）。
+#[async_trait]
+pub trait McpElicitation: Send + Sync {
+    /// `request` 是 `elicitation/create` 的 params（`message` + `requestedSchema`）。
+    async fn elicit(&self, server: &str, request: Value) -> Value;
+}
+
 /// MCP 工具的来源（服务器信息与 `alwaysLoad`）：延迟加载与规则匹配用。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct McpToolInfo {

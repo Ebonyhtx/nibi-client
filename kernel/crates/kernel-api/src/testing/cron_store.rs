@@ -108,6 +108,19 @@ impl CronStore for MemoryCronStore {
                 in_project: true,
             }),
             CronTasksChange::Remove { ids } => tasks.retain(|task| !ids.contains(&task.id)),
+            CronTasksChange::Update {
+                id,
+                cron,
+                prompt,
+                recurring,
+            } => tasks
+                .iter_mut()
+                .filter(|task| task.id == id)
+                .for_each(|task| {
+                    task.cron = cron.clone();
+                    task.prompt = prompt.clone();
+                    task.recurring = recurring;
+                }),
             CronTasksChange::MarkFired { ids, at } => tasks
                 .iter_mut()
                 .filter(|task| ids.contains(&task.id))

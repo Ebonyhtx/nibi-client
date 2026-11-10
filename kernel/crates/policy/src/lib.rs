@@ -40,7 +40,8 @@ pub mod web_preapproved;
 #[cfg(test)]
 mod test_support;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, RwLock};
 
 use async_trait::async_trait;
@@ -97,6 +98,12 @@ pub struct PolicyGate {
     /// 没登记门的会话的缺省值（子代理与 actor 会话直接经存储建，不经过内核的会话启动路径）：
     /// Host 进程由入口置成关闭（fail-closed，Agent 工具不能变成绕开灰度的后门）；CLI/TUI 不参加灰度。
     dynamic_workflow_default: Mutex<DynamicWorkflowGate>,
+    /// `onDemand` 会话里已经激活工作流工具面的那些（`/workflow`、GUI 的启动/恢复/修订、
+    /// 冷恢复扫描历史）。只加不减，Node `dynamicWorkflowToolsActivated` 的同一条语义。
+    dynamic_workflow_activated: Mutex<HashSet<SessionId>>,
+    /// 本进程有没有接上 DWF 引擎（sidecar）。作者工具与留白补全只在有引擎时进工具表——
+    /// 挂一个永远失败的工具体比缺一个工具更糟：模型会据此反复重试。
+    workflow_authoring: AtomicBool,
     classifier: Arc<dyn AutoClassifier>,
     options: PolicyOptions,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：判决时按会话取，
@@ -118,6 +125,8 @@ impl PolicyGate {
             tool_policies: Mutex::default(),
             dynamic_workflows: Mutex::default(),
             dynamic_workflow_default: Mutex::new(DynamicWorkflowGate::UNGATED),
+            dynamic_workflow_activated: Mutex::default(),
+            workflow_authoring: AtomicBool::new(false),
             classifier: Arc::new(Unavailable),
             options: PolicyOptions::default(),
             directories: None,
@@ -190,6 +199,10 @@ impl PolicyGate {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .remove(session);
+        self.dynamic_workflow_activated
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(session);
     }
 
     /// 设置会话级的工具清单（NIBI create/resume 的 toolAllowlist/toolDenylist）。
@@ -243,6 +256,37 @@ impl PolicyGate {
             .unwrap_or_else(PoisonError::into_inner)
             .get(session)
             .copied()
+    }
+
+    /// 这个会话此刻能不能看见工作流工具：门开着，且不是「按需模式尚未激活」。
+    pub fn dynamic_workflow_visible(&self, session: &SessionId) -> bool {
+        let gate = self.dynamic_workflow(session);
+        gate.enabled
+            && (!gate.on_demand
+                || self
+                    .dynamic_workflow_activated
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .contains(session))
+    }
+
+    /// 激活本会话的工作流工具面（`/workflow`、GUI 的启动/恢复/修订、冷恢复历史扫描）。
+    /// 只加不减；激活本身不改变灰度结论（门关着时仍然不可见）。
+    pub fn activate_dynamic_workflow(&self, session: &SessionId) {
+        self.dynamic_workflow_activated
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert(session.clone());
+    }
+
+    /// 本进程接上了 DWF 引擎（sidecar）：作者工具与留白补全进工具表。
+    pub fn set_workflow_authoring(&self, available: bool) {
+        self.workflow_authoring.store(available, Ordering::Relaxed);
+    }
+
+    /// 本进程有没有 DWF 引擎。
+    pub fn workflow_authoring(&self) -> bool {
+        self.workflow_authoring.load(Ordering::Relaxed)
     }
 
     /// 这个会话判决用的快照：群协作会话把 LocalSettings 换成它自己的规则集，其余会话就是当前快照。

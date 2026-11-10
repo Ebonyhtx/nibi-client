@@ -113,6 +113,9 @@ pub struct AgentsConfig {
     pub background_prompts: bool,
     /// fork 子代理（修复线 L-A，agents.md §8.1）：交互会话打开，`-p` 关。打开时 Agent 用 fork 写法、全部在后台。
     pub fork: bool,
+    /// `features.subagent`（Node `runtimeConfig.subagents.enabled`）：false 时不注册 Agent 与
+    /// 协作工具（Node 让 subagentPort 缺席，`includeAgent` 随之 false）。
+    pub subagents_enabled: bool,
 }
 
 impl AgentsPorts {
@@ -291,8 +294,11 @@ impl Agents {
                 fork: config.fork,
                 registry: registry.clone(),
             });
-            let mut own: Vec<Arc<dyn Tool>> = vec![Arc::new(AgentTool { core: core.clone() })];
-            own.extend(messaging::tools(&core));
+            let mut own: Vec<Arc<dyn Tool>> = Vec::new();
+            if config.subagents_enabled {
+                own.push(Arc::new(AgentTool { core: core.clone() }));
+                own.extend(messaging::tools(&core));
+            }
             if config.task_tools {
                 own.extend(tasks::tools(&core));
             }

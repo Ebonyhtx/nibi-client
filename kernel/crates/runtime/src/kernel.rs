@@ -1116,6 +1116,12 @@ impl Kernel for LocalKernel {
         Ok(())
     }
 
+    /// `/workflow`、GUI 的启动/恢复/修订：翻 `onDemand` 会话的工具面（只加不减）。
+    async fn activate_dynamic_workflow(&self, session: &SessionId) -> Result<(), KernelError> {
+        self.gate.activate_dynamic_workflow(session);
+        Ok(())
+    }
+
     /// NIBI `AttachmentRef`：artifact URI 经会话 artifact 存储，路径经会话所在机器的文件端口。
     async fn load_attachment(
         &self,

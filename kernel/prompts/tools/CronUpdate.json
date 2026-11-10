@@ -1,0 +1,30 @@
+{
+  "name": "CronUpdate",
+  "description": "Update selected definition fields of an existing scheduled job in the current session while preserving its id and run history.\n\nUse CronList first when the job id is not already known. Never guess a job id.\n\nEvery field is optional; omitted fields keep their existing values. Pass at least one field.\n\n- `cron`: replacement standard 5-field cron expression in the user's local timezone. Keep the user's natural-language schedule phrase consistent with it.\n- `prompt`: replacement prompt for future scheduled fires.\n- `recurring`: true repeats until deleted or auto-expired after 7 days; false fires once then auto-deletes. Changing a one-shot task to recurring restarts it from the next match of the (new or existing) cron.\n\nDo not simulate an update by deleting and recreating the job: that loses its history and id.",
+  "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "id": {
+        "description": "Job id returned by CronCreate or CronList.",
+        "type": "string"
+      },
+      "cron": {
+        "description": "Replacement standard 5-field cron expression in local time. Omit to preserve the existing schedule.",
+        "type": "string"
+      },
+      "prompt": {
+        "description": "Replacement prompt for future scheduled fires. Omit to preserve the existing prompt.",
+        "type": "string"
+      },
+      "recurring": {
+        "description": "Replacement recurrence mode. Omit to preserve the existing mode.",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "id"
+    ],
+    "additionalProperties": false
+  }
+}

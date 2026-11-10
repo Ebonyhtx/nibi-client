@@ -88,6 +88,7 @@ const TOOL_FILES: &[&str] = &[
     include_lf!("../../../prompts/tools/CronCreate.json"),
     include_lf!("../../../prompts/tools/CronDelete.json"),
     include_lf!("../../../prompts/tools/CronList.json"),
+    include_lf!("../../../prompts/tools/CronUpdate.json"),
     include_lf!("../../../prompts/tools/ReportFindings.json"),
     include_lf!("../../../prompts/tools/ScheduleWakeup.json"),
     include_lf!("../../../prompts/tools/EnterWorktree.json"),

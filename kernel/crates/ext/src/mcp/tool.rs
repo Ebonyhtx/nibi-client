@@ -256,6 +256,15 @@ impl Tool for McpTool {
             .upgrade()
             .ok_or_else(|| failed("MCP is shut down".to_owned()))?;
         let server = &self.info.server;
+        // 服务器在这次调用里发起的 `elicitation/create` 归到本会话（Node 的 activeCallTraces）。
+        // 作用域在返回/失败/取消的任何路径上撤下。
+        let _elicitation = manager.enter_elicitation(
+            server,
+            context.interactions.clone(),
+            context.session.clone(),
+            context.tool_use.clone(),
+            context.cancel.clone(),
+        );
         let settings = manager.settings();
         // 这个服务器的 `timeoutMs`，没有时 `MCP_TOOL_TIMEOUT`（ext.md §3.1）。
         let timeout_ms = settings.tool_timeout_for(manager.options(server));

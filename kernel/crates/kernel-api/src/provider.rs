@@ -241,6 +241,11 @@ pub trait ModelDirectory: Send + Sync {
     async fn catalog(&self) -> ModelCatalog;
 }
 
+/// 目录的**槽**：工具注册表先建好、入口稍后才经 `with_titles` 注入目录（`ListModels` 与
+/// 作者工具的 `subagent_model` 在调用时读它）。没有目录时槽为空，工具如实报能力缺席。
+pub type ModelDirectorySlot =
+    std::sync::Arc<std::sync::Mutex<Option<std::sync::Arc<dyn ModelDirectory>>>>;
+
 /// 压缩用的模型上限（修复线 F61，docs/specs/rust-cli/compact.md §2）：生效配置的 `contextWindow` 与
 /// `optionSpecs.maxOutputTokens.max`。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

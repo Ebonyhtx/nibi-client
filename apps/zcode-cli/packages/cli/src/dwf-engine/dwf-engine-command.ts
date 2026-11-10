@@ -20,6 +20,9 @@
  *                   （GUI 中枢读面）`{id, method:"workflows/save"|"workflows/updateMeta"|
  *                   "workflows/delete"|"workflows/move"|"workflows/forRun", params:{workspacePath, …}}`
  *                   （写面与完成卡的推导判定；save / forRun 另带 runId + dbPath，journal 在这一侧）
+ *                   `{id, method:"author/prepare"|"author/execute", params:{tool, input, cwd, session,
+ *                    toolCall, hasLoadedSkill, models, dbPath, parentSessionId}}`
+ *                   （作者工具的确认前/后两跳；跑 @nibi/core 的同一份 handler 与归一化）
  *   engine → 宿主：`actor/create`（建 actor 子会话，回 `{session:<id>}`；`model` 在场时带上选型）
  *                   `world/read`（files.glob/read/grep，回结果）
  *                   `ask/start` / `ask/verdict` / `ask/cancel` / `run/event`（通知）
@@ -102,6 +105,12 @@ import {
 } from "@nibi/bootstrap";
 
 import type { RunContext } from "@nibi/shared-types";
+
+import {
+  createAuthoringHost,
+  type AuthorListRunsResult,
+  type AuthorRunSnapshot,
+} from "./authoring.js";
 
 export const NIBI_DWF_ENGINE_COMMAND = "__nibi-dwf-engine";
 
@@ -720,6 +729,39 @@ interface SubmitParams {
   homeDir?: string;
   /** 发起 run 的锚点（宿主铸的 `launch-`）：落 dwf_run.tool_call_id。 */
   toolCallId?: string;
+  /** run 的展示名（工具路径的 `CreateWorkflow.name`）。 */
+  name?: string;
+  /** 子代理模型（规范串）：工具路径的 `subagent_model`。 */
+  subagentModel?: string;
+  /** 脚本点名的模型绑定表（规范串）：工具路径的 `model_bindings`。 */
+  modelBindings?: Record<string, string>;
+  /** 脚本文件（内联提交的工作副本或 `path` 来源）：留白通知的 draft 来源。 */
+  scriptPath?: string;
+}
+
+/** 模型目录的一行（Node `ModelCatalogEntry` 的 JSON 面）。 */
+interface AuthorModelEntry {
+  providerId: string;
+  modelId: string;
+  providerLabel?: string;
+  reasoningLevels: string[];
+  defaultReasoningLevel?: string;
+  contextWindow?: number;
+  current: boolean;
+  disabledReason?: string;
+}
+
+/** 作者工具一跳的入参（Rust 的 `WorkflowAuthorRequest` + sidecar 自己的 journal 身份）。 */
+interface AuthorParams {
+  tool: string;
+  input: unknown;
+  cwd: string;
+  session: string;
+  toolCall: string;
+  hasLoadedSkill: boolean;
+  dbPath: string;
+  parentSessionId: string;
+  models?: AuthorModelEntry[];
 }
 
 type Outgoing = (message: unknown) => void;
@@ -1338,8 +1380,10 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     // 脚本点名的模型（launch.md「Models the script names」）：宿主的目录解出来才起 run——
     // 解不出来的名字按 Node 的启动路径同一个理由码（compile_failed），什么都不跑。
     const names = scriptModelNames(scriptText);
-    let modelBindings: Record<string, string> | undefined;
-    if (names.length > 0) {
+    // 工具路径的绑定表由 `CreateWorkflow` 的 resolveInput 解好（确认窗批准的正是那张表）；
+    // 缺席时才在这里按脚本点名的名字现解（中枢/老宿主路径）。
+    let modelBindings: Record<string, string> | undefined = params.modelBindings;
+    if (modelBindings === undefined && names.length > 0) {
       const resolved = await resolveScriptModels(request, names, undefined);
       if (resolved.bindings === null) {
         return { ok: false, reason: "compile_failed", message: resolved.message.slice(0, 2_000) };
@@ -1361,9 +1405,12 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
         args: rowArgs,
         caps: params.caps ?? { maxConcurrency: DEFAULT_CONCURRENCY },
         ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),
-        // run 的展示名 = saved 名字（Node 的启动路径同一条读法）；设置轮与侧板题名按它。
-        ...(params.savedName === undefined ? {} : { name: params.savedName }),
-        savedPath: draftPath,
+        // run 的展示名 = 工具给的 name，其次 saved 名字（Node 的启动路径同一条读法）。
+        ...((params.name ?? params.savedName) === undefined
+          ? {}
+          : { name: params.name ?? params.savedName }),
+        ...(params.subagentModel === undefined ? {} : { subagentModel: params.subagentModel }),
+        savedPath: draftPath ?? params.scriptPath,
         ...(modelBindings === undefined ? {} : { modelBindings }),
       },
       request,
@@ -1488,6 +1535,311 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
     } finally {
       db.close();
     }
+  }
+
+  interface ScriptAmendParams {
+    runId: string;
+    predecessorRunId: string;
+    dbPath: string;
+    scriptText: string;
+    cwd: string;
+    parentSessionId: string;
+    name?: string;
+    toolCallId?: string;
+    maxConcurrency?: number;
+    subagentModel?: string;
+    modelBindings?: Record<string, string>;
+    scriptPath?: string;
+  }
+
+  /**
+   * 一次**脚本**修订（工具面 `AmendWorkflow` 的 `port.amend`）：预检前驱 → 编新脚本 →
+   * 停下在飞的前驱并等它结算 → 从前驱 journal 构建导入缓存 → 带 lineage 启动后继。
+   *
+   * 与设置轮 `acceptAmend` 的区别只在来源：那边重跑前驱的存档脚本，这边跑模型刚给的脚本。
+   * 两者都**不**继承实参——修订是另一次确认过的执行，实参属于前驱那次 run 的身份。
+   */
+  async function acceptScriptAmend(params: ScriptAmendParams): Promise<
+    | { ok: true; accepted: true; supersededRunId?: string }
+    | { ok: false; reason: string; message: string }
+  > {
+    const db = openDatabase(params.dbPath);
+    try {
+      const journal = createDwfJournalStore(db);
+      const record = journal.getRun(params.predecessorRunId);
+      if (record === undefined) {
+        return {
+          ok: false,
+          reason: "not_found",
+          message: `run ${params.predecessorRunId} does not exist`,
+        };
+      }
+      if (record.scriptText === undefined || record.scriptText.length === 0) {
+        return {
+          ok: false,
+          reason: "script_missing",
+          message: `run ${params.predecessorRunId} has no stored script`,
+        };
+      }
+      // 编不过的修订在停下任何东西之前拒绝（与设置轮同一条顺序：坏脚本不让前驱陪葬）。
+      try {
+        const program = createWorkflowProgram(params.scriptText);
+        const diagnostics = collectDiagnostics(program.program);
+        if (diagnostics.length > 0) {
+          return {
+            ok: false,
+            reason: "compile_failed",
+            message: diagnostics
+              .map((diagnostic) => diagnostic.message)
+              .join("; ")
+              .slice(0, 2_000),
+          };
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          reason: "compile_failed",
+          message: error instanceof Error ? error.message.slice(0, 2_000) : String(error),
+        };
+      }
+
+      // 在飞前驱以 `{ superseded }` 停下，并等它自己的结算 promise（不是超时、不是轮询）。
+      const live = runs.get(params.predecessorRunId);
+      let supersededRunId: string | undefined;
+      if (live !== undefined) {
+        live.abort.abort({ superseded: params.runId });
+        await live.settlement;
+        supersededRunId = params.predecessorRunId;
+      }
+      const settled = journal.getRun(params.predecessorRunId) ?? record;
+      const built = await buildImportedCache({ journal }, params.predecessorRunId);
+      if (!built.ok) {
+        return {
+          ok: false,
+          reason: "import_failed",
+          message: `dynamic workflow amend could not import from run ${params.predecessorRunId} after settlement: ${built.reason}`,
+        };
+      }
+      void launchRun(
+        {
+          runId: params.runId,
+          parentSessionId: params.parentSessionId,
+          cwd: params.cwd,
+          dbPath: params.dbPath,
+          scriptText: params.scriptText,
+          // 修订沿用前驱的展示名（Node 的修订路径同一条读法）。
+          ...((params.name ?? settled.name) === undefined
+            ? {}
+            : { name: params.name ?? settled.name }),
+          caps: { maxConcurrency: params.maxConcurrency ?? DEFAULT_CONCURRENCY },
+          ...(params.subagentModel === undefined
+            ? {}
+            : { subagentModel: params.subagentModel }),
+          ...(params.modelBindings === undefined
+            ? {}
+            : { modelBindings: params.modelBindings }),
+          ...(params.scriptPath === undefined ? {} : { savedPath: params.scriptPath }),
+          ...(params.toolCallId === undefined ? {} : { toolCallId: params.toolCallId }),
+          resumedFrom: params.predecessorRunId,
+          inheritedTokens: settled.spentTokens ?? 0,
+          importedCache: built.cache,
+        } as Parameters<typeof launchRun>[0],
+        request,
+        notify,
+        runs,
+      ).then(({ settlement, notice }) =>
+        notify("run/settled", { runId: params.runId, settlement, notice }),
+      );
+      return {
+        ok: true,
+        accepted: true,
+        ...(supersededRunId === undefined ? {} : { supersededRunId }),
+      };
+    } finally {
+      db.close();
+    }
+  }
+
+  /** run 的展示标签：name → 脚本首个非空行（≤80）→ runId（Node 的同一条派生链）。 */
+  function runLabel(record: {
+    runId: string;
+    name?: string;
+    scriptText?: string;
+  }): { label: string; labelSource: "name" | "script" } {
+    const name = record.name?.trim();
+    if (name !== undefined && name.length > 0) return { label: name, labelSource: "name" };
+    for (const line of (record.scriptText ?? "").split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed.length > 0) {
+        return {
+          label: trimmed.length <= 80 ? trimmed : trimmed.slice(0, 80),
+          labelSource: "script",
+        };
+      }
+    }
+    return { label: record.runId, labelSource: "script" };
+  }
+
+  /** 作者工具的宿主：journal 读面 + 已有三条启动/修订/恢复函数。 */
+  function authoringHost(dbPath: string, parentSessionId: string) {
+    const withJournal = <T>(read: (journal: ReturnType<typeof createDwfJournalStore>) => T): T => {
+      const db = openDatabase(dbPath);
+      try {
+        return read(createDwfJournalStore(db));
+      } finally {
+        db.close();
+      }
+    };
+    return createAuthoringHost({
+      dbPath,
+      parentSessionId,
+      defaultConcurrency: DEFAULT_CONCURRENCY,
+      submit: async (request) => {
+        const reply = await acceptSubmit({
+          runId: request.runId,
+          parentSessionId: request.parentSessionId,
+          cwd: request.cwd,
+          dbPath,
+          scriptText: request.scriptText,
+          ...(request.name === undefined ? {} : { name: request.name }),
+          ...(request.args === undefined ? {} : { args: request.args }),
+          ...(request.maxConcurrency === undefined
+            ? {}
+            : { caps: { maxConcurrency: request.maxConcurrency } }),
+          ...(request.subagentModel === undefined
+            ? {}
+            : { subagentModel: request.subagentModel }),
+          ...(request.modelBindings === undefined
+            ? {}
+            : { modelBindings: request.modelBindings }),
+          ...(request.scriptPath === undefined ? {} : { scriptPath: request.scriptPath }),
+          ...(request.toolCallId === undefined ? {} : { toolCallId: request.toolCallId }),
+        });
+        return reply.ok
+          ? { ok: true as const }
+          : { ok: false as const, reason: reply.reason, message: reply.message };
+      },
+      amendScript: async (request) => {
+        const reply = await acceptScriptAmend({ ...request, dbPath });
+        return reply.ok
+          ? {
+              ok: true as const,
+              ...(reply.supersededRunId === undefined
+                ? {}
+                : { supersededRunId: reply.supersededRunId }),
+            }
+          : { ok: false as const, reason: reply.reason, message: reply.message };
+      },
+      resume: async (runId) => {
+        const reply = await acceptResume({ runId, dbPath });
+        return reply.ok
+          ? { ok: true as const }
+          : { ok: false as const, reason: reply.reason, message: reply.message };
+      },
+      isLive: (runId) => runs.has(runId),
+      getScript: async (runId) =>
+        withJournal((journal) => journal.getRun(runId)?.scriptText),
+      getSnapshot: async (runId): Promise<AuthorRunSnapshot | undefined> =>
+        withJournal((journal) => {
+          const record = journal.getRun(runId);
+          if (record === undefined) return undefined;
+          const launched = journal
+            .listEvents(runId, { types: ["run-launched"], reportItems: { limit: 0 } })
+            .at(-1)?.event as
+            | {
+                subagentModel?: unknown;
+                modelBindings?: unknown;
+                scriptPath?: unknown;
+              }
+            | undefined;
+          const bindings =
+            launched?.modelBindings !== null &&
+            typeof launched?.modelBindings === "object"
+              ? (launched.modelBindings as Record<string, string>)
+              : undefined;
+          const terminal =
+            record.status === "completed" ||
+            record.status === "errored" ||
+            record.status === "stopped";
+          return {
+            id: runId,
+            status:
+              record.status === "stopped"
+                ? "cancelled"
+                : record.status === "errored"
+                  ? "failed"
+                  : record.status,
+            ...(terminal ? { runStatus: record.status } : {}),
+            ...(record.stopReason === undefined ? {} : { stopReason: record.stopReason }),
+            ...(record.parentSessionId === undefined
+              ? {}
+              : { parentSessionId: record.parentSessionId }),
+            ...(record.name === undefined ? {} : { name: record.name }),
+            ...(record.caps.maxConcurrency === DEFAULT_CONCURRENCY
+              ? {}
+              : { maxConcurrency: record.caps.maxConcurrency }),
+            ...(typeof launched?.subagentModel === "string"
+              ? { subagentModel: launched.subagentModel }
+              : {}),
+            ...(bindings === undefined ? {} : { modelBindings: bindings }),
+            ...(typeof launched?.scriptPath === "string" &&
+            launched.scriptPath.length > 0
+              ? { scriptPath: launched.scriptPath }
+              : {}),
+          };
+        }),
+      listRuns: async (query): Promise<AuthorListRunsResult> =>
+        withJournal((journal) => {
+          // `JournalStorePort` 不带枚举面（引擎从不枚举 run）；`SqliteDwfJournalStore`
+          // 实现了宿主内省查询，这里按结构调用（与 ListWorkflowRuns 的上游同一份实现）。
+          const rows = (
+            journal as unknown as {
+              listRuns(query: {
+                cwd: string;
+                limit: number;
+                statuses?: readonly string[];
+              }): {
+                runId: string;
+                parentSessionId?: string;
+                name?: string;
+                scriptText?: string;
+                status: string;
+                stopReason?: string;
+                resumedFrom?: string;
+                supersededBy?: string;
+                timeCreated: number;
+                timeUpdated: number;
+                spentTokens: number;
+              }[];
+            }
+          ).listRuns({
+            cwd: query.cwd,
+            limit: query.limit + 1,
+            ...(query.statuses === undefined ? {} : { statuses: query.statuses }),
+          });
+          const truncated = rows.length > query.limit;
+          const items = rows.slice(0, query.limit).map((row) => {
+            const owned = row.parentSessionId === parentSessionId;
+            const inFlight = row.status === "pending" || row.status === "running";
+            return {
+              runId: row.runId,
+              ...runLabel(row),
+              status: row.status,
+              ...(row.stopReason === undefined ? {} : { stopReason: row.stopReason }),
+              ...(row.resumedFrom === undefined ? {} : { resumedFrom: row.resumedFrom }),
+              ...(row.supersededBy === undefined ? {} : { supersededBy: row.supersededBy }),
+              ownedByThisSession: owned,
+              ...(!inFlight || owned || runs.has(row.runId)
+                ? {}
+                : { possiblyInterrupted: true }),
+              createdAt: row.timeCreated,
+              updatedAt: row.timeUpdated,
+              spentTokens: row.spentTokens,
+            };
+          });
+          return { runs: items, ...(truncated ? { truncated: true } : {}) };
+        }),
+    });
   }
 
   interface AmendParams {
@@ -2485,6 +2837,37 @@ export async function runDwfEngineCommand(ctx: RunContext): Promise<number> {
       // 完成卡的推导判定：读 journal（dbPath）+ 现扫两根定义目录，同规不挡读循环。
       const id = message.id;
       void acceptHubForRun(message.params as HubForRunParams).then((result) => {
+        if (id !== undefined) out({ id, result });
+      });
+      continue;
+    }
+    if (message.method === "author/prepare" || message.method === "author/execute") {
+      // 作者工具的两跳：prepare 在确认窗之前（校验 + 归一化 + 确认门），execute 在批准之后
+      // （handler + model 内容）。同一条纪律：绝不 await 挡住读循环。
+      const id = message.id;
+      const params = message.params as AuthorParams;
+      const host = authoringHost(params.dbPath, params.parentSessionId);
+      const call =
+        message.method === "author/prepare"
+          ? host.prepare({
+              tool: params.tool,
+              input: params.input,
+              cwd: params.cwd,
+              session: params.session,
+              toolCall: params.toolCall,
+              hasLoadedSkill: params.hasLoadedSkill,
+              models: params.models ?? [],
+            })
+          : host.execute({
+              tool: params.tool,
+              input: params.input,
+              cwd: params.cwd,
+              session: params.session,
+              toolCall: params.toolCall,
+              hasLoadedSkill: params.hasLoadedSkill,
+              models: params.models ?? [],
+            });
+      void call.then((result) => {
         if (id !== undefined) out({ id, result });
       });
       continue;

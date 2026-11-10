@@ -114,6 +114,8 @@ export {
 } from "./app/dynamic-workflow-import.js";
 export type { AmendImportOptions } from "./app/dynamic-workflow-import.js";
 export type { ImportedRunCache } from "@nibi/dynamic-workflow";
+// EvalWorkflowSnippet 的执行面（sidecar 复用生产同一条编译/沙箱/world-read 路径）。
+export { createDynamicWorkflowSnippetService } from "./app/dynamic-workflow-snippet-service.js";
 export {
   grantWorkspaceHookTrust,
   inspectWorkspaceHookTrust,

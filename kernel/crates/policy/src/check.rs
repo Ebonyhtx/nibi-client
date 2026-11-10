@@ -20,6 +20,9 @@ pub enum AskKind {
     Safety,
     /// bypass 也要询问、allow 规则盖不过的安全检查（危险删除、guarded 的危险命令）；自动模式不经分类器。
     Immune,
+    /// 工具自己声明的 `alwaysAsk`（workflow 的 Create/Save/Amend）：**任何**模式都询问
+    /// （Node `permission.alwaysAsk`），yolo 也不放行；deny 规则仍然优先。
+    Always,
     /// 其他理由。
     Other,
 }

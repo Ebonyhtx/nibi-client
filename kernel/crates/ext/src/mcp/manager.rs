@@ -164,6 +164,8 @@ pub(crate) struct Inner {
     paid_gate: OnceLock<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>,
     /// 服务器名 → 插件名（插件加载时由 Ext 维护）。付费服务器据此找到要检查的插件。
     paid_owners: OnceLock<Arc<RwLock<HashMap<String, String>>>>,
+    /// `elicitation/create` 的宿主端口：工具调用执行期间登记会话，服务器提问时找回它。
+    elicitation: Arc<super::elicitation::ElicitationHub>,
 }
 
 impl Inner {
@@ -183,6 +185,19 @@ impl Inner {
             Some(gate) => gate.check(&plugin),
             None => Ok(()),
         }
+    }
+
+    /// 工具调用执行期间登记会话：服务器此时发起的 `elicitation/create` 归到这次调用。
+    pub(crate) fn enter_elicitation(
+        &self,
+        server: &str,
+        interactions: Arc<dyn nibi_kernel_api::orchestration::Interactions>,
+        session: nibi_kernel_api::ids::SessionId,
+        tool_use: nibi_kernel_api::ids::ToolUseId,
+        cancel: CancellationToken,
+    ) -> super::elicitation::ElicitationGuard {
+        self.elicitation
+            .enter(server, interactions, session, tool_use, cancel)
     }
 
     fn servers(&self) -> MutexGuard<'_, BTreeMap<String, Server>> {
@@ -719,6 +734,10 @@ impl Inner {
                 timeout,
                 &self.settings.client_version,
                 oauth.as_ref(),
+                Some(
+                    self.elicitation.clone()
+                        as Arc<dyn nibi_kernel_api::mcp::McpElicitation>,
+                ),
             )
             .await
             {
@@ -834,6 +853,7 @@ impl McpManager {
             oauth: OnceLock::new(),
             paid_gate: OnceLock::new(),
             paid_owners: OnceLock::new(),
+            elicitation: super::elicitation::ElicitationHub::new(),
         }))
     }
 

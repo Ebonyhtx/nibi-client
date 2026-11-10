@@ -155,6 +155,25 @@ pub(crate) fn mcp_enabled(layers: &[Layer<'_>]) -> bool {
         .unwrap_or(true)
 }
 
+/// `features.<name>` 的最终值（后层覆盖前层，缺省 true）。`compact` / `rewind` 也走它：
+/// Node 目前只存不消费，但配置的最终值仍应与 Node 一致。
+pub(crate) fn feature_enabled(layers: &[Layer<'_>], name: &str) -> bool {
+    layers
+        .iter()
+        .rev()
+        .find_map(|layer| layer.object.get("features")?.get(name)?.as_bool())
+        .unwrap_or(true)
+}
+
+/// `memory.use`（记忆召回是否参与上下文；Node `runtimeConfig.memory.use`，缺省 true）。
+pub(crate) fn memory_use(layers: &[Layer<'_>]) -> bool {
+    layers
+        .iter()
+        .rev()
+        .find_map(|layer| layer.object.get("memory")?.get("use")?.as_bool())
+        .unwrap_or(true)
+}
+
 /// `features.skill` 与 `skills.enabled`：两者都为真才启用 skill（Node `createNodeSkillAdapter` 同一判据）。
 pub(crate) fn skills_enabled(layers: &[Layer<'_>]) -> bool {
     let mut feature = true;

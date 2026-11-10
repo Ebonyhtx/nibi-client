@@ -67,6 +67,13 @@ pub(crate) struct ConfigSnapshot {
     pub(crate) mcp_enabled: bool,
     /// `features.skill` 与 `skills.enabled` 都为真（Node `createNodeSkillAdapter` 的判据）。
     pub(crate) skills_enabled: bool,
+    /// `features.memory`（Node `runtimeConfig.memory.enabled` 的配置来源，缺省 true）。
+    pub(crate) memory_enabled: bool,
+    /// `memory.use`（记忆召回是否参与上下文；Node `runtimeConfig.memory.use`）。
+    pub(crate) memory_use: bool,
+    /// `features.subagent`（Node `runtimeConfig.subagents.enabled`，缺省 true）：false 时
+    /// `Agent` 与协作工具不进工具表。
+    pub(crate) subagents_enabled: bool,
     /// `skill` / `command` 两段里最终 `enable: false` 的 `.md` 绝对路径（Node `collectDisabledPaths`）。
     pub(crate) disabled_skill_paths: Vec<String>,
     pub(crate) disabled_command_paths: Vec<String>,
@@ -321,6 +328,9 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
     } = merge::mcp_layers(&layers, &mut warnings);
     let mcp_enabled = merge::mcp_enabled(&layers);
     let skills_enabled = merge::skills_enabled(&layers);
+    let memory_enabled = merge::feature_enabled(&layers, "memory");
+    let memory_use = merge::memory_use(&layers);
+    let subagents_enabled = merge::feature_enabled(&layers, "subagent");
     let disabled_skill_paths = merge::disabled_paths(&layers, "skill", &mut warnings);
     let disabled_command_paths = merge::disabled_paths(&layers, "command", &mut warnings);
     let locale = merge::locale(&layers, &mut warnings);
@@ -390,6 +400,9 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         mcp_origins,
         mcp_enabled,
         skills_enabled,
+        memory_enabled,
+        memory_use,
+        subagents_enabled,
         disabled_skill_paths,
         disabled_command_paths,
         pending: workspace.pending(),

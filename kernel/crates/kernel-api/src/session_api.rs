@@ -986,6 +986,12 @@ pub trait Kernel: Send + Sync {
         Ok(())
     }
 
+    /// 激活一个 `onDemand` 会话的工作流工具面（Node `activateDynamicWorkflowTools`）：
+    /// `/workflow`、GUI 的启动/恢复/修订与冷恢复历史扫描都调它。只加不减；缺省什么都不做。
+    async fn activate_dynamic_workflow(&self, _session: &SessionId) -> Result<(), KernelError> {
+        Ok(())
+    }
+
     /// 工作区钩子的评审快照（NIBI `requestWorkspaceHookReview` 的数据来源）：bundle 摘要、逐条钩子
     /// 与它们的信任状态。只读。缺省实现返回 `Unsupported`。
     async fn workspace_hook_review(

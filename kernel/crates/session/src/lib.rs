@@ -149,6 +149,9 @@ pub struct SessionDeps {
     pub context_usage: Option<Arc<dyn nibi_kernel_api::context_usage::ContextUsageSource>>,
     /// 回合成功后的项目记忆抽取：没有时（测试/嵌入）不调度。
     pub memory: Option<Arc<dyn nibi_kernel_api::project_memory::ProjectMemoryScheduler>>,
+    /// `onDemand` 会话的工具面激活（`/workflow` 是唯一从会话侧到达的激活入口）：没有时
+    /// （测试/嵌入）不做任何事。
+    pub workflow_activation: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowActivation>>,
 }
 
 /// 会话关闭的收尾（docs/specs/rust-cli/session-lifecycle.md §3.3、§3.3.1）：每个会话的关闭任务各调用一次。

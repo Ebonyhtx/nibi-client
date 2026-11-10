@@ -240,15 +240,24 @@ pub fn add_usage(total: &mut Usage, usage: &Usage) {
 }
 
 /// 权限询问的选项（与 Node 的 V4 投影同一组）：允许一次、本项目一直允许、拒绝。
-pub fn permission_options() -> Value {
-    json!([
+/// `SaveWorkflow` 不投「一直允许」——Node `askOptions.allowAlways: false`：每次保存都是不同的
+/// 文件与内容，持久规则记不住这一次的决定。
+pub fn permission_options(tool: &str) -> Value {
+    let mut options = vec![json!(
         {"optionId": "allowOnce", "label": "Allow once", "kind": "allowOnce",
-            "response": {"decision": "allow", "reason": "Approved once"}},
-        {"optionId": "allowAlways", "label": "Always allow in this project", "kind": "allowAlways",
-            "response": {"decision": "allow", "reason": "Approved for this project"}},
+            "response": {"decision": "allow", "reason": "Approved once"}}
+    )];
+    if tool != "SaveWorkflow" {
+        options.push(json!(
+            {"optionId": "allowAlways", "label": "Always allow in this project", "kind": "allowAlways",
+                "response": {"decision": "allow", "reason": "Approved for this project"}}
+        ));
+    }
+    options.push(json!(
         {"optionId": "deny", "label": "Deny", "kind": "deny",
-            "response": {"decision": "deny", "reason": "The user doesn't want to proceed with this tool use."}},
-    ])
+            "response": {"decision": "deny", "reason": "The user doesn't want to proceed with this tool use."}}
+    ));
+    Value::Array(options)
 }
 
 /// “完全访问”选项（与 Node 的 V4 投影相同）：选它时会话切到 yolo（bypassPermissions）并放行这一次。

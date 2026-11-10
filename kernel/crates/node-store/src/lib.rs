@@ -555,6 +555,26 @@ impl SessionStore for NodeStore {
             .await
     }
 
+    /// `ListWorkflowRuns`：按项目 cwd 跨会话枚举（journal 是逐项目的，不是逐会话的）。
+    async fn workflow_runs_by_cwd(
+        &self,
+        cwd: &str,
+        limit: usize,
+        statuses: Option<&[String]>,
+    ) -> Result<Vec<nibi_kernel_api::workflow::WorkflowRunListRow>, StoreError> {
+        let work = (cwd.to_owned(), limit, statuses.map(<[String]>::to_vec));
+        self.with_db(move |conn, _| {
+            repo::run_queries::list_by_cwd(
+                conn,
+                &work.0,
+                work.1,
+                work.2.as_deref(),
+            )
+            .map_err(storage)
+        })
+        .await
+    }
+
     // ——— v4 查询面（141 审计 §9 第 2 项）———
     //
     // 六条读面共用一条授权链（run 行存在 ∧ `parent_session_id` 是本会话；见

@@ -292,6 +292,7 @@ impl Setup {
                 blocked: self.blocked.clone(),
                 context_usage: None,
                 memory: None,
+            workflow_activation: None,
             },
             SessionState {
                 meta,

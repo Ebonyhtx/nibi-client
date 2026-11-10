@@ -44,7 +44,7 @@ pub(crate) async fn render(
     context: &ToolUseContext,
 ) -> Result<String, String> {
     if skill.source == SkillSource::Builtin {
-        if let Some(body) = builtin::prompt_command(catalog, skill, context).await {
+        if let Some(body) = builtin::prompt_command(catalog, skill, context, args).await {
             return body;
         }
         // 在 git 仓库里的 `/security-review`：正文的 `!` 命令照 skill 的规则执行。

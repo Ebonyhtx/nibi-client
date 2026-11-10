@@ -22,8 +22,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 use nibi_kernel_api::workflow::{
     WorkflowRunArtifactDetail, WorkflowRunArtifactItem, WorkflowRunArtifactItemPage,
     WorkflowRunArtifactItemQuery, WorkflowRunArtifactVersion, WorkflowRunEventPage,
-    WorkflowRunEventQuery, WorkflowRunEventRow, WorkflowRunNodeResult, WorkflowRunSummaryRow,
-    WorkflowRunWorkspaceNode, WorkflowRunWorkspaceSummary,
+    WorkflowRunEventQuery, WorkflowRunEventRow, WorkflowRunListRow, WorkflowRunNodeResult,
+    WorkflowRunSummaryRow, WorkflowRunWorkspaceNode, WorkflowRunWorkspaceSummary,
 };
 
 /// 事件载荷的结构界（Node `DYNAMIC_WORKFLOW_RUN_EVENT_PAYLOAD_LIMITS` 的镜像）。
@@ -132,6 +132,77 @@ pub fn summaries(
         });
     }
     Ok(out)
+}
+
+/// `ListWorkflowRuns` 的取数面：按项目 cwd 跨会话枚举，最近更新在前。
+///
+/// 与上面的 `summaries` 是两条读面（一个是会话视角的 run 卡片目录，一个是项目视角的
+/// 工具查询）：后者要 `script_text` 派生标签，但**只**在 Rust 里截首行，正文绝不进模型内容。
+/// `statuses` 下推 SQL（空数组即「不匹配任何状态」，与 Node 的端口语义一致）。
+pub fn list_by_cwd(
+    conn: &Connection,
+    cwd: &str,
+    limit: usize,
+    statuses: Option<&[String]>,
+) -> Result<Vec<WorkflowRunListRow>> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+    if statuses.is_some_and(<[String]>::is_empty) {
+        return Ok(Vec::new());
+    }
+    // 调用方用逻辑状态（`errored` / `stopped`），存储的 CHECK 用物理词（`failed` / `cancelled`）。
+    let physical: Vec<String> = statuses
+        .unwrap_or_default()
+        .iter()
+        .map(|status| match status.as_str() {
+            "errored" => "failed".to_owned(),
+            "stopped" => "cancelled".to_owned(),
+            other => other.to_owned(),
+        })
+        .collect();
+    let statuses: Option<&[String]> = statuses.map(|_| physical.as_slice());
+    let mut sql = String::from(
+        "select id, name, script_text, parent_session_id, status, failure_json, resumed_from,
+                spent_tokens, time_created, time_updated
+         from dwf_run where cwd = ?",
+    );
+    if statuses.is_some() {
+        sql.push_str(" and status in (");
+        sql.push_str(&vec!["?"; statuses.unwrap_or_default().len()].join(", "));
+        sql.push(')');
+    }
+    sql.push_str(" order by time_updated desc, id desc limit ?");
+    let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+    let mut statement = conn.prepare(&sql)?;
+    let mut values: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(cwd.to_owned())];
+    for status in statuses.unwrap_or_default() {
+        values.push(Box::new(status.clone()));
+    }
+    values.push(Box::new(limit));
+    let rows = statement.query_map(
+        rusqlite::params_from_iter(values.iter().map(std::convert::AsRef::as_ref)),
+        |row| {
+            let settlement = super::dwf::settlement_of(
+                &row.get::<_, String>(4)?,
+                row.get::<_, Option<String>>(5)?.as_deref(),
+            );
+            Ok(WorkflowRunListRow {
+                run_id: row.get(0)?,
+                name: row.get(1)?,
+                script_text: row.get(2)?,
+                parent_session_id: row.get(3)?,
+                status: settlement.status,
+                stop_reason: settlement.stop_reason,
+                superseded_by: settlement.superseded_by,
+                resumed_from: row.get(6)?,
+                spent_tokens: row.get::<_, i64>(7)?.max(0) as u64,
+                created_at: row.get::<_, i64>(8)?.max(0) as u64,
+                updated_at: row.get::<_, i64>(9)?.max(0) as u64,
+            })
+        },
+    )?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
 /// 事件日志的一页。条数与字节两道界同时生效：条数到 `limit`、或再加一行就超 `max_bytes`

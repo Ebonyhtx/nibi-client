@@ -262,6 +262,23 @@ fn disabled_skill_and_command_paths_are_merged_by_key() {
 }
 
 #[test]
+fn memory_and_subagent_features_follow_the_last_layer() {
+    assert!(feature_enabled(&layers(&object(json!({})), &[]), "memory"));
+    let off = object(json!({"features": {"memory": false, "subagent": false}}));
+    assert!(!feature_enabled(&layers(&off, &[]), "memory"));
+    assert!(!feature_enabled(&layers(&off, &[]), "subagent"));
+    // 项目层可以重新打开用户层关掉的开关。
+    let on = object(json!({"features": {"memory": true}}));
+    assert!(feature_enabled(&layers(&off, &[on]), "memory"));
+    // `memory.use` 缺省 true，`false` 才关。
+    assert!(memory_use(&layers(&object(json!({})), &[])));
+    assert!(!memory_use(&layers(
+        &object(json!({"memory": {"use": false}})),
+        &[]
+    )));
+}
+
+#[test]
 fn skills_need_both_feature_and_section_switches() {
     let enabled = object(json!({"features": {"skill": true}}));
     assert!(skills_enabled(&layers(&enabled, &[])));

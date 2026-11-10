@@ -490,7 +490,7 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
   `Video` 块；工具结果走 `modelContentLayout` 的 attachment 项，同一套。
 - **压缩估量**：视频与图片同一档（`IMAGE_TOKENS`），不按 base64 字节数算（否则一两个视频就能把历史撑满）。
 
-## 13. 2026-11-10 主动复核（自定义命令与剩余工具面）
+## 14. 2026-11-10 主动复核（自定义命令与剩余工具面）
 
 这一轮不是用户点名，而是逐层对 Node 源码后发现的差异；已修的与仍开着的分开记。
 
@@ -517,24 +517,44 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 `createMcpToolDisplay` 生成 display，`ToolDone` 投影写入 row.display；真机 `/mathmodel` 已能在侧栏
 打开「NIBI 数模工作台」。
 
-**仍开着（按影响排序）**
+**2026-11-10 第二轮（同一份清单的逐条收口）**
 
-1. **DWF 作者工具面缺 8 个**：Node 有 11 个动态工作流工具；Rust 只有
-   `GetWorkflowRun`/`ResolveWorkflowQuestion`/`FillWorkflowHole`。缺 `CreateWorkflow`、
-   `AmendWorkflow`、`SaveWorkflow`、`ListSavedWorkflows`、`ListModels`、`EvalWorkflowSnippet`、
-   `ListWorkflowRuns`、`ResumeWorkflowRun`（`kernel-api/src/session_api.rs` 的 `DynamicWorkflowGate`
-   注释已明说「内核没有 authoring 工具」）。后果：`/workflow` 的提示能到达模型，但模型无法创建
-   run；运行中/停止后的 amend/resume 指引也指向不存在的工具。这是当前最大的功能缺口，需要
-   port 工具或把 Node 的 DWF 包成 MCP 再接入。
-2. **`CronUpdate` 工具缺失**：Node 的 automation 工具四件套有 Create/Update/List/Delete；Rust 只有
-   Create/List/Delete，且 `CronTasksChange` 没有 update 变体。模型无法修改已有定时任务。
-3. **MCP `elicitation/create` 未实现**：Node 有 `mcp-elicitation` 映射到用户提问通道；Rust 的
-   MCP 客户端对服务器发来的请求只答 `ping`/`roots/list`，其余回 method not found。
-4. **`features.memory` 等其余 `features.*` 开关**：`features.skill`/`skills.enabled` 与
-   `skill`/`command` 的逐文件停用已在本轮接入（`ExtConfig.skills_disabled` 与两份 disabled 名单）；
-   `features.memory`/`features.subagent`/`features.compact`/`features.rewind` 仍只由 Host 的会话偏好或
-   内核缺省控制，Rust CLI/TUI 不读配置里的这四个开关。
-5. **`/init` 的用户备注未带上**：Node `buildInitAgentsPrompt` 会把 `/init 备注` 追加成
-   "Additional user instructions"；Rust 的 `builtin::init` 是固定正文。
-6. **legacy `Workflow` 工具**（`/expert` 的脚本通道）在 Rust 工具面不存在；Node 桌面在
-   `workflowPort` 存在时仍注册它。是否补取决于 `/expert` 是否继续保留。
+1. **DWF 作者工具面补齐**：八个工具全部落地。`CreateWorkflow`/`AmendWorkflow`/`SaveWorkflow`/
+   `ListSavedWorkflows`/`EvalWorkflowSnippet`/`ResumeWorkflowRun` 由 sidecar 承载——Rust 发
+   `author/prepare`（validateInput + resolveInput + 确认门）与 `author/execute`（handler +
+   formatModelContent），执行的是 `@nibi/core` 里**同一份** Node 工具实现，不是第二套归一化；
+   `ListModels`/`ListWorkflowRuns` 是内核原生读面（侧车缺席也能答）。
+   灰度门从 3 个扩到 Node 的 11 个，并补上 `onDemand` 激活（`/workflow`、GUI 启动/恢复/修订、
+   冷恢复扫描历史），与 Node `dynamicWorkflowToolsActivated` 同语义。技能门按**当前可见历史**
+   判定（`Interactions::conversation`，压缩后自然关门）。Create/Amend/Save 的 `alwaysAsk`
+   新增 `AskKind::Always`：yolo、guarded 与 allow 规则都盖不过，deny 仍优先；Amend 的
+   owner 免确认读 resolveInput 回填的 `predecessor`（本会话、非用户停、未引入新 provider）。
+2. **`CronUpdate`**：新增工具、`CronTasksChange::Update`（env-local 与测试存储）、
+   `CronBoard::update`（会话任务与持久任务都支持）与 prompt JSON；改 cron 时下一次触发从
+   现在重新算。更新只改 `cron`/`prompt`/`recurring`，其余字段沿用。
+3. **MCP `elicitation/create`**：宣告 `elicitation.form` 能力；工具执行期间按服务器名登记
+   会话（RAII，成功/失败/取消都撤下），服务器提问映射到用户提问通道（boolean→Yes/No、
+   enum→枚举项、string/number→自定义输入），`url` 等模式回 decline；没有在执行的调用时
+   也 decline，不猜会话。
+4. **`features.memory`/`features.subagent`**：配置的最终值进了 `ConfigSnapshot` 与
+   `Extensions`；`features.memory=false` 时记忆缺省关闭且不调度抽取，`features.subagent=false`
+   时 Agent/SendMessage 等协作工具不注册。`features.compact`/`features.rewind` 逐行对过
+   Node：它们只在配置层存取，**没有任何消费方**，Rust 不引入开关才是对齐（不是漏读）。
+5. **`/init` 备注**：`/init 备注` 追加成 Node 同形的
+   `Additional user instructions supplied with /init:` 代码块（原样，不插值）。
+6. **legacy `Workflow` 工具**：核对结论是**不需要**——Node 的 `handlers/index.ts` 里
+   `workflowToolEntry` 的 import 与注册都已被注释掉（2026-11-10 逐行确认），模型在 Node 桌面
+   也看不到它。原清单这一条是误报。
+
+**仍开着（本轮之后）**
+
+1. **Node automation 的字段面**：Rust 的 CronCreate/CronUpdate 仍只有
+   `cron`/`prompt`/`recurring`/`durable` 四项；Node 的 `title`/`maxRuns`/`intervalUnit+interval`
+   （scheduleRule carrier）/`delayMinutes` 没有移植。CronUpdate 已能改 Rust 面上已有的三项，
+   模型还不能改标题、次数与相对间隔——这是 automation 功能整体的差距，不是 CronUpdate 的缺失。
+2. **`ListWorkflowRuns` 的 `possiblyInterrupted`**：没有 sidecar 时按「非本会话且在飞」保守
+   标注；Node 用同进程的活 run 注册表。
+3. **`ListModels` 的 `[current]`**：取工具构造时的默认选择；会话中途换模型后这一行可能仍
+   标旧值（Node 每次现读注册表视图）。`disabledReason` 也没有（Rust 目录只列可用模型）。
+4. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
+   工具表（`ListModels`/`ListWorkflowRuns` 仍可用）；桌面由 Host 注入，功能完整。

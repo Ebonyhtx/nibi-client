@@ -70,6 +70,13 @@ pub enum CronTasksChange {
     Remove { ids: Vec<String> },
     /// 循环任务触发后回写 `lastFiredAt`。
     MarkFired { ids: Vec<String>, at: u64 },
+    /// 原地改一个持久任务的字段（`CronUpdate`）：只动调度相关的三项，创建者与溯源不变。
+    Update {
+        id: String,
+        cron: String,
+        prompt: String,
+        recurring: bool,
+    },
     /// `createdBySessionId` 是这个会话、但 PID 不是本进程的项改成本进程（resume 后的刷新）。
     Claim { session: SessionId },
 }

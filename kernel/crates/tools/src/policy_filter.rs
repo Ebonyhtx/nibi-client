@@ -21,13 +21,12 @@ use crate::{glob, grep};
 /// 被 Bash 藏起来、Bash 不在清单里时补回的搜索工具（按这个顺序）。
 const SEARCH: [&str; 2] = [glob::NAME, grep::NAME];
 
-/// 动态工作流灰度门关闭时下架的三件套（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 里内核有对应实现的
-/// 三个；另外八个内核没有工具面）。决定权在 Host，逐会话存在判决链的门上。
-const DYNAMIC_WORKFLOW: [&str; 3] = [
-    crate::fill_workflow_hole::FILL_WORKFLOW_HOLE_TOOL,
-    crate::workflow_run_detail::GET_WORKFLOW_RUN_TOOL,
-    nibi_kernel_api::workflow::RESOLVE_WORKFLOW_QUESTION_TOOL,
-];
+/// 动态工作流灰度门关闭时下架的十一个工具（Node `DYNAMIC_WORKFLOW_TOOL_NAMES` 逐字；
+/// 决定权在 Host，逐会话存在判决链的门上）。
+const DYNAMIC_WORKFLOW: [&str; 11] = crate::DYNAMIC_WORKFLOW_TOOL_NAMES;
+
+/// 需要 DWF 引擎（sidecar）才能工作的作者工具：没有引擎时不进工具表。
+const ENGINE_TOOLS: [&str; 6] = crate::ENGINE_TOOLS;
 
 /// 按规则快照过滤的注册表：包住基础工具与 MCP 工具，外层（Agent 等）经 [`ToolRegistry::hides`] 过滤自己的工具。
 pub struct PolicyFiltered {
@@ -73,8 +72,11 @@ impl PolicyFiltered {
     /// 会话的动态工作流灰度门允许这个名字（关闭时三件套不出现在清单与查找里）。没给会话时
     /// （进程级清单、CLI/TUI）不限制。
     fn workflow_allows(&self, session: Option<&SessionId>, name: &str) -> bool {
+        if ENGINE_TOOLS.contains(&name) && !self.gate.workflow_authoring() {
+            return false;
+        }
         !DYNAMIC_WORKFLOW.contains(&name)
-            || session.is_none_or(|session| self.gate.dynamic_workflow(session).enabled)
+            || session.is_none_or(|session| self.gate.dynamic_workflow_visible(session))
     }
 
     fn visible(

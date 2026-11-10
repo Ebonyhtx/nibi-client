@@ -104,6 +104,13 @@ pub fn builtin(tool: &str, input: &Value, inputs: &Inputs<'_>) -> Check {
     }
 }
 
+/// Node 里声明 `permission.alwaysAsk: true` 的三个 workflow 作者工具。
+const ALWAYS_ASK_TOOLS: [&str; 3] = ["CreateWorkflow", "AmendWorkflow", "SaveWorkflow"];
+
+fn always_ask_tool(tool: &str) -> bool {
+    ALWAYS_ASK_TOOLS.contains(&tool)
+}
+
 /// 工具自己的 `check_permissions` 结果换成检查结果；没有意见时用内置检查。
 pub fn own(
     tool: &str,
@@ -125,7 +132,13 @@ pub fn own(
         } => (
             Check::Ask {
                 message,
-                kind: AskKind::Other,
+                // Node 的 `alwaysAsk`（workflow 的 Create/Save/Amend）：任何权限模式（含
+                // yolo / plan）都要先问。
+                kind: if always_ask_tool(tool) {
+                    AskKind::Always
+                } else {
+                    AskKind::Other
+                },
                 suggestions,
             },
             None,
@@ -145,6 +158,17 @@ pub fn inner(tool: &str, check: Check, updated_input: Option<Value>, inputs: &In
     if inputs.full_access {
         return match check {
             Check::Deny { message } => Inner::Deny { message },
+            // alwaysAsk 工具（workflow 的 Create/Save/Amend）在 yolo 下仍然询问；其余
+            // 询问照旧被 full_access 放行（工作线 F76 的既有语义不变）。
+            Check::Ask {
+                message,
+                kind: AskKind::Always,
+                suggestions,
+            } => Inner::Ask {
+                message,
+                kind: AskKind::Always,
+                suggestions,
+            },
             _ => Inner::Allow { updated_input },
         };
     }
@@ -171,7 +195,7 @@ pub fn inner(tool: &str, check: Check, updated_input: Option<Value>, inputs: &In
         // （App 对自主模式的说明是“在有风险时询问”），yolo 由上面的 `full_access` 放行。
         Check::Ask {
             message,
-            kind: kind @ (AskKind::Rule | AskKind::Safety | AskKind::Immune),
+            kind: kind @ (AskKind::Rule | AskKind::Safety | AskKind::Immune | AskKind::Always),
             suggestions,
         } => {
             return Inner::Ask {
@@ -190,7 +214,11 @@ pub fn inner(tool: &str, check: Check, updated_input: Option<Value>, inputs: &In
             suggestions,
         } => (None, reason, AskKind::Other, suggestions),
     };
-    if bypass_category(inputs.mode) || inputs.rules.whole_tool(tool, RuleBehavior::Allow).is_some()
+    // alwaysAsk 的询问（`Always`）也不被「本模式放行」或 allow 规则盖过——Node 的
+    // `checkAlwaysAsk` 压过全部放行分支，只让 deny / 硬禁用先行。
+    if kind != AskKind::Always
+        && (bypass_category(inputs.mode)
+            || inputs.rules.whole_tool(tool, RuleBehavior::Allow).is_some())
     {
         return Inner::Allow { updated_input };
     }

@@ -207,6 +207,8 @@ pub struct LocalKernel {
     workflow_engine: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowEngine>>,
     /// 同一引擎的工具面槽：注册表建好时引擎还没接上，`FillWorkflowHole` 在调用时读它。
     workflow_engine_slot: nibi_kernel_tools::WorkflowEngineSlot,
+    /// 模型目录槽：`with_titles` 在建内核之后注入，`ListModels` 在调用时读它。
+    model_directory_slot: nibi_kernel_api::provider::ModelDirectorySlot,
     /// DWF 升级问答的停驻表（actor 的 `escalate` 与主会话的 `ResolveWorkflowQuestion` 共用）。
     escalations: Arc<escalations::WorkflowEscalations>,
     /// 本进程在服务 Host 协议（`app-server` 入口置位）：Host 关闭灰度时**什么都不发**，所以「没有
@@ -339,9 +341,14 @@ impl LocalKernel {
         let file_states: Arc<dyn ReadFileStates> = read_files.clone();
         let worktrees = Arc::new(nibi_kernel_tools::WorktreeBoard::default());
         // 会话级记忆开关：context 与会话 actor 共用；默认开启，Host 物化会话时按 `memoryEnabled` 写入。
-        let memory_prefs = Arc::new(memory::MemoryPreferences::default());
+        let memory_prefs = Arc::new(memory::MemoryPreferences::with_default(
+            extensions.memory_enabled,
+        ));
         // DWF 工具面的引擎槽：入口的 `with_workflow_engine` 在注册表建好之后才调，工具在调用时读。
         let workflow_engine_slot: nibi_kernel_tools::WorkflowEngineSlot =
+            Arc::new(std::sync::Mutex::new(None));
+        // 模型目录槽：入口的 `with_titles` 在建内核之后才注入（`ListModels` 调用时读）。
+        let model_directory_slot: nibi_kernel_api::provider::ModelDirectorySlot =
             Arc::new(std::sync::Mutex::new(None));
         let base: Arc<dyn nibi_kernel_api::orchestration::ToolRegistry> = Arc::new(
             builtin
@@ -392,6 +399,15 @@ impl LocalKernel {
                     Vec::new()
                 })
                 .with_tools(vec![Arc::new(nibi_kernel_tools::ReportFindingsTool::new())])
+                // DWF 作者面（Node 的 11 个工具里剩下的 8 个）：6 个经 sidecar 的 Node
+                // 工具实现，2 个是本机读面（ListModels / ListWorkflowRuns）。灰度门与
+                // 引擎在场与否在 `PolicyFiltered` 里收口。
+                .with_tools(nibi_kernel_tools::authoring_tools(
+                    workflow_engine_slot.clone(),
+                    model_directory_slot.clone(),
+                    Some(defaults.selection.clone()),
+                    ports.store.clone(),
+                ))
                 // DWF 升级问答的答题入口（主会话；actor 的工具面里被藏起来）。
                 .with_tools(vec![Arc::new(
                     nibi_kernel_tools::ResolveWorkflowQuestionTool::new(escalations.clone()),
@@ -576,6 +592,8 @@ impl LocalKernel {
                 background_prompts: !non_interactive,
                 // 修复线 L-A：交互会话缺省打开 fork 子代理，`-p` 关；环境变量可以改（agents.md §8.1.1）。
                 fork: defaults.limits.fork_subagent.unwrap_or(!non_interactive),
+                // `features.subagent`：false 时 Agent / SendMessage 等协作工具不进工具表。
+                subagents_enabled: extensions.subagents_enabled,
             },
         ));
         let tools = agents.registry();
@@ -687,11 +705,12 @@ impl LocalKernel {
             detached,
             directories: session_directories,
             memory,
-            memory_extraction: !non_interactive,
+            memory_extraction: !non_interactive && extensions.memory_enabled,
             hook_trust: None,
             user_hooks: Arc::new(nibi_kernel_hooks::node_config::NodeHooks::default()),
             workflow_engine: None,
             workflow_engine_slot,
+            model_directory_slot,
             escalations,
             host_serving: false,
             dynamic_workflow: Mutex::default(),
@@ -709,6 +728,8 @@ impl LocalKernel {
             *slot = Some(engine.clone());
         }
         self.workflow_engine = Some(engine);
+        // 有引擎才有作者面与留白补全：`PolicyFiltered` 按这一位决定那七个工具进不进表。
+        self.gate.set_workflow_authoring(true);
         self
     }
 
@@ -784,9 +805,15 @@ impl LocalKernel {
     pub(crate) fn model_directory(
         &self,
     ) -> Option<Arc<dyn nibi_kernel_api::provider::ModelDirectory>> {
-        self.titles
-            .as_ref()
-            .and_then(|titles| titles.directory.clone())
+        self.model_directory_slot
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
+            .or_else(|| {
+                self.titles
+                    .as_ref()
+                    .and_then(|titles| titles.directory.clone())
+            })
     }
 }
 

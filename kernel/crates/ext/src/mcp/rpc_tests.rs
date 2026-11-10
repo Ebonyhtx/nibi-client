@@ -25,6 +25,8 @@ async fn connected(fake: &Arc<FakeMcp>, scope: &TaskScope) -> (Arc<Client>, Noti
         &scope.spawner(),
         vec!["/Users/dev/project".to_owned()],
         Link::legacy(),
+        "s".to_owned(),
+        None,
     )
 }
 

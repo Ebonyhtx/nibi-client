@@ -21,6 +21,15 @@ use tokio_util::sync::CancellationToken;
 
 use crate::LocalKernel;
 
+/// 会话侧的激活入口：把 `/workflow` 翻成判决链里的 `onDemand` 激活位。
+struct GateActivation(Arc<PolicyGate>);
+
+impl nibi_kernel_api::workflow::WorkflowActivation for GateActivation {
+    fn activate(&self, session: &SessionId) {
+        self.0.activate_dynamic_workflow(session);
+    }
+}
+
 /// 打开着的会话：句柄与它的任务作用域（释放时中止它的 actor 与主循环）。
 pub(crate) struct Open {
     pub(crate) session: Arc<Session>,
@@ -234,6 +243,11 @@ impl LocalKernel {
         // 已有会话的工具面不回收，只有新建与恢复读策略）。Host 显式给的值由协议层在打开后覆盖。
         let gate = self.dynamic_workflow_gate(&state.meta.workspace);
         self.gate.set_dynamic_workflow(&id, gate);
+        // `onDemand` 的冷恢复：记录里已有工作流用法（`/workflow` 或十一个工具任一次调用）
+        // 即视为已激活——Node `restoreDynamicWorkflowActivationOnResume` 的同一条判据。
+        if nibi_kernel_api::workflow::history_shows_dynamic_workflow(&state.messages) {
+            self.gate.activate_dynamic_workflow(&id);
+        }
         let scope = self.scope.spawner().child(format!("session/{id}"));
         let deps = SessionDeps {
             store: self.ports.store.clone(),
@@ -266,6 +280,7 @@ impl LocalKernel {
                 let memory: Arc<dyn ProjectMemoryScheduler> = self.memory.clone();
                 memory
             }),
+            workflow_activation: Some(Arc::new(GateActivation(self.gate.clone()))),
         };
         let session = Arc::new(Session::spawn(deps, state, opened));
         tracing::info!(event = "session.open", session = %id, opened = ?opened, "session opened");

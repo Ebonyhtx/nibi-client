@@ -5,6 +5,7 @@ mod app_instances;
 mod app_tools;
 mod config;
 mod connection;
+mod elicitation;
 mod manager;
 mod node_config;
 mod notices;

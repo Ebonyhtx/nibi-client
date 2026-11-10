@@ -250,6 +250,16 @@ impl Actor {
             input_source: None,
             origin_meta: None,
         });
+        // `/workflow` 是 `onDemand` 会话唯一从会话侧到达的激活入口：必须在主循环装配工具表
+        // 之前翻位（Node 的 `activateDynamicWorkflowTools` 也发生在请求发出之前）。
+        if text
+            .split_whitespace()
+            .next()
+            .is_some_and(|first| first.eq_ignore_ascii_case("/workflow"))
+            && let Some(activation) = &self.deps.workflow_activation
+        {
+            activation.activate(&self.meta.id);
+        }
         let hook = self.user_prompt_submit(&text);
         // `/goal` 是内置的本地命令：消息按 actor 现在的目标算好，不经 skill 展开（goal.md §2.1）。
         let goal = crate::goal::command(&text).map(|args| self.goal_inputs(args, prompt.clone()));

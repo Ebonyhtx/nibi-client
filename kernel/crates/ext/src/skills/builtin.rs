@@ -97,9 +97,23 @@ pub(crate) async fn prompt_command(
     catalog: &SkillCatalog,
     skill: &Skill,
     context: &ToolUseContext,
+    args: &str,
 ) -> Option<Result<String, String>> {
     match skill.name.as_str() {
-        INIT => Some(Ok(nibi_kernel_prompts::commands::init().to_owned())),
+        INIT => {
+            // `/init 备注`：Node `buildInitAgentsPrompt` 把备注原样追加成一段
+            // 「Additional user instructions supplied with /init」（代码块里，不做插值）。
+            let mut text = nibi_kernel_prompts::commands::init().to_owned();
+            let extra = args.trim();
+            if !extra.is_empty() {
+                text.push_str(
+                    "\n\nAdditional user instructions supplied with /init:\n```text\n",
+                );
+                text.push_str(extra);
+                text.push_str("\n```");
+            }
+            Some(Ok(text))
+        }
         SECURITY_REVIEW => {
             let workspace = &context.workspace;
             let git = catalog

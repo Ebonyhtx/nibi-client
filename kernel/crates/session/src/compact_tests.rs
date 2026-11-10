@@ -176,6 +176,7 @@ async fn session(fail: Option<&str>) -> (TaskScope, Arc<MemoryStore>, Session) {
             blocked: None,
             context_usage: None,
             memory: None,
+            workflow_activation: None,
         },
         SessionState {
             meta: meta(),

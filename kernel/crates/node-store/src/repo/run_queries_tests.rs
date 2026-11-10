@@ -763,3 +763,41 @@ fn artifact_field_paths_follow_the_shared_rule() {
     assert_eq!(read("scalar.deeper"), None);
     assert_eq!(read("rounds.notanumber"), None);
 }
+
+/// `ListWorkflowRuns` 的取数面：按项目 cwd 跨会话、最近更新在前、状态过滤下推、
+/// 标签原料（name / script_text）随行交出。
+#[test]
+fn list_by_cwd_enumerates_the_project_across_sessions() {
+    let (_dir, conn) = database();
+    insert_run(&conn, "run_a", Some("s1"), Some("named"), "completed", None, 300);
+    insert_run(&conn, "run_b", Some("s2"), None, "running", None, 200);
+    insert_run(&conn, "run_c", Some("s1"), Some("old"), "failed", Some(r#"{"code":"Boom","message":"x"}"#), 100);
+    conn.execute(
+        "insert into dwf_run (
+            id, parent_session_id, cwd, name, script_text, script_hash, args_json, tool_call_id,
+            resumed_from, caps_max_concurrency, spent_tokens, status, result_json, failure_json,
+            time_created, time_updated
+         ) values ('run_other', 's1', '/other', null, '// x', 'hash', null, null, null, 4, 0,
+                   'completed', null, null, 1, 9)",
+        [],
+    )
+    .unwrap();
+    let rows = super::list_by_cwd(&conn, "/w", 10, None).unwrap();
+    assert_eq!(
+        rows.iter().map(|row| row.run_id.as_str()).collect::<Vec<_>>(),
+        ["run_a", "run_b", "run_c"]
+    );
+    assert_eq!(rows[0].name.as_deref(), Some("named"));
+    assert_eq!(rows[0].script_text.as_deref(), Some("// first line"));
+    assert_eq!(rows[0].parent_session_id.as_deref(), Some("s1"));
+    assert_eq!(rows[0].status, "completed");
+    assert_eq!(rows[0].spent_tokens, 7);
+    assert_eq!(rows[2].status, "errored");
+    assert_eq!(rows[2].stop_reason, None);
+
+    let running = super::list_by_cwd(&conn, "/w", 10, Some(&["running".to_owned()])).unwrap();
+    assert_eq!(running.len(), 1);
+    assert_eq!(running[0].run_id, "run_b");
+    assert!(super::list_by_cwd(&conn, "/w", 10, Some(&[])).unwrap().is_empty());
+    assert_eq!(super::list_by_cwd(&conn, "/w", 2, None).unwrap().len(), 2);
+}

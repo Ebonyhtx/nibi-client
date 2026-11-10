@@ -46,6 +46,8 @@ pub struct SessionMcpServer {
     pub protocol_version: McpProtocolVersion,
 }
 
+// serde 的 `skip_serializing_if` 只接受 `&T -> bool`，这里不能按值收。
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn is_auto(version: &McpProtocolVersion) -> bool {
     *version == McpProtocolVersion::Auto
 }

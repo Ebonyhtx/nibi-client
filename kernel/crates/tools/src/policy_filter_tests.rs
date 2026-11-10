@@ -170,6 +170,8 @@ fn a_closed_dynamic_workflow_gate_hides_the_three_tools_for_that_session() {
         .collect();
     let gate = Arc::new(PolicyGate::new(rules(&[])));
     let inner: Arc<dyn ToolRegistry> = Arc::new(BuiltinTools::new(tools));
+    // 这个测试测灰度门；作者面/补全的「有没有引擎」是另一条位，这里打开。
+    gate.set_workflow_authoring(true);
     let tools = PolicyFiltered::new(inner, gate.clone());
 
     let host = SessionId::new("host");
@@ -186,8 +188,10 @@ fn a_closed_dynamic_workflow_gate_hides_the_three_tools_for_that_session() {
     assert!(tools.find_for(&cli, "GetWorkflowRun").is_some());
     // 进程级清单不按会话门过滤。
     assert!(names(&tools.tools()).contains(&"ResolveWorkflowQuestion"));
-    // 打开后恢复。
+    // 打开后恢复；`onDemand` 还要先激活。
     gate.set_dynamic_workflow(&host, DynamicWorkflowGate::new(true, true));
+    assert!(!names(&tools.snapshot(&host).tools).contains(&"FillWorkflowHole"));
+    gate.activate_dynamic_workflow(&host);
     assert!(names(&tools.snapshot(&host).tools).contains(&"FillWorkflowHole"));
     assert!(tools.find_for(&host, "FillWorkflowHole").is_some());
 }

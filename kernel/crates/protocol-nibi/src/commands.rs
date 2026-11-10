@@ -2717,6 +2717,11 @@ async fn start_saved_workflow(
         .await
     {
         Ok(started) => {
+            // GUI 直接启动也是「本会话在用工作流」：`onDemand` 在这里翻位（Node 同一条）。
+            let _ = server
+                .kernel
+                .activate_dynamic_workflow(&SessionId::new(session))
+                .await;
             // 启动轮（launch.md「The launch turn」）：用户在中枢里点的「运行」就是他的真实动作，
             // 以一条 controlOnly 的合成输入落进会话（模型直到通知到来才第一次听说这次 run）。
             // 失败只记日志不回滚——run 已在飞（Node 的同一条规矩）。
@@ -2759,16 +2764,24 @@ async fn start_saved_workflow(
 /// NIBI `resumeWorkflowRun`：`workId ≡ runId`，门（可恢复集）在引擎侧。
 async fn resume_workflow_run(server: &Server, envelope: &Envelope, revision: u64) -> Ack {
     let command = envelope.command_id.as_str();
-    if let Err(ack) = workflow_session(envelope, command, "resumeWorkflowRun", revision) {
-        return *ack;
-    }
+    let session = match workflow_session(envelope, command, "resumeWorkflowRun", revision) {
+        Ok(session) => session,
+        Err(ack) => return *ack,
+    };
     let work = envelope.payload["workId"].as_str().unwrap_or_default();
     match server
         .kernel
         .resume_workflow_run(work, envelope.payload["name"].as_str())
         .await
     {
-        Ok(_) => Ack::accepted(command, revision, None),
+        Ok(_) => {
+            // GUI 的 Resume 同样激活 `onDemand` 会话（Node 的 run-track 同一条）。
+            let _ = server
+                .kernel
+                .activate_dynamic_workflow(&SessionId::new(session))
+                .await;
+            Ack::accepted(command, revision, None)
+        }
         Err(error) => workflow_ack(command, revision, error, "resumeWorkflowRun"),
     }
 }
@@ -2800,6 +2813,11 @@ async fn amend_workflow_run_settings(
     let predecessor = request.run_id.clone();
     match server.kernel.amend_workflow_run(request).await {
         Ok(started) => {
+            // GUI 的「配置」重跑同一条 run：`onDemand` 会话在这里激活。
+            let _ = server
+                .kernel
+                .activate_dynamic_workflow(&SessionId::new(session))
+                .await;
             // 设置轮（launch.md「The settings turn」）：成功后的 controlOnly 会话记录。失败只记
             // 日志不回滚——新 run 已在飞，撤回它反而制造孤儿（Node 的同一条规矩）。
             let session_id = SessionId::new(session);

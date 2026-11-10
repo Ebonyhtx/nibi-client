@@ -144,6 +144,12 @@ async fn an_explicit_session_gate_overrides_the_absent_workspace_policy() {
     let gate = kernel.gate.dynamic_workflow(&session);
     assert!(gate.enabled);
     assert!(gate.on_demand);
+    // `onDemand` 出生时工具面下架，直到 `/workflow` / GUI 控制 / 历史扫描激活它。
+    assert_has_no_workflow_tools(&catalog_tools(&kernel, &session).await);
+    kernel
+        .activate_dynamic_workflow(&session)
+        .await
+        .expect("activate");
     assert_has_workflow_tools(&catalog_tools(&kernel, &session).await);
 }
 

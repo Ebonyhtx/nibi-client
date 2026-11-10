@@ -738,6 +738,17 @@ pub trait SessionStore: Send + Sync {
         Ok(None)
     }
 
+    /// 按项目（`dwf_run.cwd` 字面等值）跨会话枚举 run，最近更新在前（`ListWorkflowRuns`
+    /// 的取数面）。`limit` 由调用方钳过；不支持的实现返回空。
+    async fn workflow_runs_by_cwd(
+        &self,
+        _cwd: &str,
+        _limit: usize,
+        _statuses: Option<&[String]>,
+    ) -> Result<Vec<crate::workflow::WorkflowRunListRow>, StoreError> {
+        Ok(Vec::new())
+    }
+
     // ——— v4 查询面（141 审计 §9 第 2 项）：run 目录 + 详情页四个切片 ———
     //
     // 四条读面都**先过同一条授权链**（run 行存在 ∧ `parent_session_id` 等于本会话；NULL 的

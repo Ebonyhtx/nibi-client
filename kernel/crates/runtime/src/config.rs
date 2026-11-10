@@ -11,6 +11,13 @@ impl LocalKernel {
     /// 调用：之后开的会话 actor 才带上它。
     #[must_use]
     pub fn with_titles(mut self, titles: TitleModel) -> Self {
+        // `ListModels` 与作者工具在建内核之后才拿得到目录：槽是它们与入口之间唯一的一跳。
+        if let Some(directory) = titles.directory.clone() {
+            *self
+                .model_directory_slot
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(directory);
+        }
         self.titles = Some(titles);
         self
     }

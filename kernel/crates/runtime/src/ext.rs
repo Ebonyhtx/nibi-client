@@ -57,6 +57,12 @@ pub struct Extensions {
     /// Host 的话题能力（`ReadSessionContext` 的话题附件与 `ReplyToChannel`）：入口在服务 Host
     /// 协议时装上；None 时两个工具按 Node 同一条错误失败。
     pub topic: Option<std::sync::Arc<dyn nibi_kernel_api::topic::TopicPort>>,
+    /// `features.memory`（缺省 true）：false 时不调度项目记忆抽取，会话记忆开关缺省关闭。
+    pub memory_enabled: bool,
+    /// `memory.use`（缺省 true）：false 时记忆召回不参与上下文。
+    pub memory_use: bool,
+    /// `features.subagent`（缺省 true）：false 时不注册 Agent / SendMessage 等子代理工具。
+    pub subagents_enabled: bool,
 }
 
 impl Extensions {
@@ -74,6 +80,9 @@ impl Extensions {
             mcp_oauth: None,
             node_repl_env: None,
             topic: None,
+            memory_enabled: true,
+            memory_use: true,
+            subagents_enabled: true,
         }
     }
 }

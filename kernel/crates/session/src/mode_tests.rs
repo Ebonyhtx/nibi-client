@@ -139,6 +139,7 @@ fn spawn(
             blocked: None,
             context_usage: None,
             memory: None,
+            workflow_activation: None,
         },
         SessionState {
             meta: meta(),

@@ -122,6 +122,9 @@ async fn plugin_agents_reach_the_agent_listing() {
             mcp_oauth: None,
             node_repl_env: None,
             topic: None,
+            memory_enabled: true,
+            memory_use: true,
+            subagents_enabled: true,
         },
     );
     kernel.start_extensions().await;

@@ -142,6 +142,7 @@ pub(crate) async fn open(
     timeout: Duration,
     client_version: &str,
     oauth: Option<&OAuth<'_>>,
+    elicitation: Option<Arc<dyn nibi_kernel_api::mcp::McpElicitation>>,
 ) -> Result<Session, OpenFailure> {
     let timed_out = || {
         OpenFailure::new(
@@ -165,7 +166,17 @@ pub(crate) async fn open(
                 Some(token) => with_bearer(&server.transport, token),
                 None => server.transport.clone(),
             };
-            match handshake(pipe, spawner, server, &transport, timeout, client_version).await {
+            match handshake(
+                pipe,
+                spawner,
+                server,
+                &transport,
+                timeout,
+                client_version,
+                elicitation.clone(),
+            )
+            .await
+            {
                 Ok(session) => return Ok(session),
                 Err(Attempt::Unauthorized) => {
                     let Some(oauth) = oauth else {
@@ -216,6 +227,7 @@ async fn handshake(
     transport: &McpTransportConfig,
     timeout: Duration,
     client_version: &str,
+    elicitation: Option<Arc<dyn nibi_kernel_api::mcp::McpElicitation>>,
 ) -> Result<Session, Attempt> {
     let (transport_port, workspace) = pipe
         .resolve(server.machine.as_deref())
@@ -255,8 +267,15 @@ async fn handshake(
     let never = CancellationToken::new();
 
     // 世代协商：先按 legacy 起客户端（探测也是一个 JSON-RPC 请求），现代成立时换成带信封的连接。
-    let (mut client, mut notices) =
-        Client::start(transport_port.clone(), connection, spawner, roots.clone(), Link::legacy());
+    let (mut client, mut notices) = Client::start(
+        transport_port.clone(),
+        connection,
+        spawner,
+        roots.clone(),
+        Link::legacy(),
+        server.name.clone(),
+        elicitation.clone(),
+    );
     let era = match server.protocol {
         McpProtocolVersion::Legacy => Probe::Legacy,
         McpProtocolVersion::Auto | McpProtocolVersion::Modern => {
@@ -332,14 +351,22 @@ async fn handshake(
             spawner,
             roots,
             Link::legacy(),
+            server.name.clone(),
+            elicitation.clone(),
         );
         client = started.0;
         notices = started.1;
     }
 
+    // 有提问端口才宣告 `elicitation`（Node 同一条：缺省时服务器拿 Method not found）。
+    let capabilities = if elicitation.is_some() {
+        json!({"roots": {}, "elicitation": {"form": {}}})
+    } else {
+        json!({"roots": {}})
+    };
     let params = json!({
         "protocolVersion": PROTOCOL_VERSION,
-        "capabilities": {"roots": {}},
+        "capabilities": capabilities,
         "clientInfo": {"name": nibi_kernel_base::names::MCP_CLIENT_NAME, "version": client_version},
     });
     let result = match client.request("initialize", params, timeout, &never).await {

@@ -348,6 +348,58 @@ impl SidecarEngine {
             })
     }
 
+    /// 作者工具的一跳：`author/prepare` 或 `author/execute`。模型目录随请求一起带过去
+    /// （Node 的 `ModelCatalogPort.listModels()` 是同步读面，sidecar 不另开回宿主的 RPC）。
+    async fn author(
+        &self,
+        method: &str,
+        request: nibi_kernel_api::workflow::WorkflowAuthorRequest,
+    ) -> Result<Value, WorkflowEngineError> {
+        let catalog = self.shared.models.catalog().await;
+        let models: Vec<Value> = catalog
+            .models
+            .iter()
+            .map(|model| {
+                let mut entry = serde_json::Map::new();
+                entry.insert("providerId".to_owned(), json!(model.provider));
+                entry.insert("modelId".to_owned(), json!(model.model));
+                entry.insert("providerLabel".to_owned(), json!(model.provider_name));
+                entry.insert("reasoningLevels".to_owned(), json!(model.reasoning_levels));
+                // Node 的 `defaultReasoningLevel === undefined` 分支：没有档位时**缺席**，不是 null。
+                if let Some(level) = model.reasoning_levels.last() {
+                    entry.insert("defaultReasoningLevel".to_owned(), json!(level));
+                }
+                entry.insert("contextWindow".to_owned(), json!(model.context_window));
+                // 会话此刻的选择（工具带着默认选择来；同一条 `ModelSelection` 的 provider + model）。
+                entry.insert(
+                    "current".to_owned(),
+                    json!(request.current.as_ref().is_some_and(|current| {
+                        current.provider.eq_ignore_ascii_case(&model.provider)
+                            && current.model.eq_ignore_ascii_case(&model.model)
+                    })),
+                );
+                Value::Object(entry)
+            })
+            .collect();
+        let process = self.ensure_process().map_err(|error| {
+            WorkflowEngineError::with_message("authoring_unavailable", error)
+        })?;
+        let params = json!({
+            "tool": request.tool,
+            "input": request.input,
+            "cwd": request.cwd,
+            "session": request.session,
+            "toolCall": request.tool_call,
+            "hasLoadedSkill": request.has_loaded_skill,
+            "dbPath": self.shared.database.display().to_string(),
+            "parentSessionId": request.session,
+            "models": models,
+        });
+        process.request(method, params).await.map_err(|error| {
+            WorkflowEngineError::with_message("authoring_unavailable", error)
+        })
+    }
+
     /// 起（或复用）sidecar 进程；读线程在第一次用到时启动。
     fn ensure_process(&self) -> Result<Arc<Process>, String> {
         let mut slot = self
@@ -1553,6 +1605,20 @@ impl WorkflowEngine for SidecarEngine {
         })?;
         process.notify("cancel", json!({"runId": run_id}));
         Ok(())
+    }
+
+    async fn author_prepare(
+        &self,
+        request: nibi_kernel_api::workflow::WorkflowAuthorRequest,
+    ) -> Result<Value, WorkflowEngineError> {
+        self.author("author/prepare", request).await
+    }
+
+    async fn author_execute(
+        &self,
+        request: nibi_kernel_api::workflow::WorkflowAuthorRequest,
+    ) -> Result<Value, WorkflowEngineError> {
+        self.author("author/execute", request).await
     }
 
     async fn hub_list_saved_workflows(

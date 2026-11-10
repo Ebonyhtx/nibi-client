@@ -287,6 +287,10 @@ pub(super) async fn extensions(
         plugins: config.plugins.clone(),
         workspace: Some(workspace.clone()),
     };
+    // `features.memory` / `memory.use` / `features.subagent`（Node `runtimeConfig` 的同名来源）。
+    extensions.memory_enabled = config.memory_enabled;
+    extensions.memory_use = config.memory_use;
+    extensions.subagents_enabled = config.subagents_enabled;
     // stream-json 输入（headless.md §6.1）：Bash 后台命令的缺省期限随之不同。
     extensions.streaming_input = flags.streaming_input;
     // 内置 `node_repl` 服务器的环境投影（runtime 不直接读进程环境，spec §4）：入口捕获一次，
