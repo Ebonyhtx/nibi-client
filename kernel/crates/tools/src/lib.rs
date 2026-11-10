@@ -29,6 +29,7 @@ mod cron_expr;
 mod cron_list;
 mod cron_loop;
 mod cron_resume;
+mod cron_rule;
 mod cron_texts;
 mod cron_tools;
 mod cron_wakeups;

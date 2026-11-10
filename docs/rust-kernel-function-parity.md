@@ -531,7 +531,7 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
    owner 免确认读 resolveInput 回填的 `predecessor`（本会话、非用户停、未引入新 provider）。
 2. **`CronUpdate`**：新增工具、`CronTasksChange::Update`（env-local 与测试存储）、
    `CronBoard::update`（会话任务与持久任务都支持）与 prompt JSON；改 cron 时下一次触发从
-   现在重新算。更新只改 `cron`/`prompt`/`recurring`，其余字段沿用。
+   现在重新算。本轮先覆盖 `cron`/`prompt`/`recurring`，字段面在同日第三轮补齐（见第 7 条）。
 3. **MCP `elicitation/create`**：宣告 `elicitation.form` 能力；工具执行期间按服务器名登记
    会话（RAII，成功/失败/取消都撤下），服务器提问映射到用户提问通道（boolean→Yes/No、
    enum→枚举项、string/number→自定义输入），`url` 等模式回 decline；没有在执行的调用时
@@ -545,6 +545,20 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 6. **legacy `Workflow` 工具**：核对结论是**不需要**——Node 的 `handlers/index.ts` 里
    `workflowToolEntry` 的 import 与注册都已被注释掉（2026-11-10 逐行确认），模型在 Node 桌面
    也看不到它。原清单这一条是误报。
+7. **Cron 字段面补齐**：`CronCreate`/`CronUpdate` 现在接受 `title`、`maxRuns`、
+   `intervalUnit+interval` 与 `delayMinutes`，组合约束与 Node contract 同一条（相对延迟只做
+   一次性、carrier 只做无限循环、清空 `maxRuns` 必须同轮 `recurring=true`）。长间隔由
+   `cron_rule` 按本地日历推进（分钟/小时/天/周/月/年，锚点语义与 Node
+   `computeScheduleRuleNextRunAt` 一致），持久任务把 `title`/`maxRuns`/`runCount`/
+   `scheduleRule`/`fireAt` 写进 `.nibi/scheduled_tasks.json`；`CronList`、`CronDelete`、
+   `cron_resume` 与 prompt JSON 同步。`maxRuns` 按调度次数计数，跑满才删除；carrier 规则不受
+   7 天到期限制。`delayMinutes` 固定 `now + N` 的精确触发时刻，不经过 cron 的墙钟对齐。
+8. **`ListModels` 的 `[current]`**：改为每次调用读
+   `Interactions::current_selection(&session)`，工具构造时的默认选择只作回退；会话中途换模型后
+   这一行会跟着变（与 Node 每次现读注册表视图一致）。
+9. **`ReadSessionContext` 的 not_found 文案**：`topic` 策略只读当前会话的归档话题，没有可读
+   原文时不再说 `Session … was not found`（会让模型以为会话 id 错了），改成
+   `No archived topic discussion was found … The session exists, but …`；Node 与 Rust 同一句。
 
 **同日追加（真机文档工具报告后抓到的真 bug）**：MCP 结果同时带 `content` 与
 `structuredContent` 时，Rust 的 `transform` 只取 structured、把正文丢了。office 文档工具的
@@ -555,13 +569,13 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 
 **仍开着（本轮之后）**
 
-1. **Node automation 的字段面**：Rust 的 CronCreate/CronUpdate 仍只有
-   `cron`/`prompt`/`recurring`/`durable` 四项；Node 的 `title`/`maxRuns`/`intervalUnit+interval`
-   （scheduleRule carrier）/`delayMinutes` 没有移植。CronUpdate 已能改 Rust 面上已有的三项，
-   模型还不能改标题、次数与相对间隔——这是 automation 功能整体的差距，不是 CronUpdate 的缺失。
+1. **桌面 Automations 与内核定时任务是两套存储**：Rust `CronCreate`/`CronUpdate` 写内核任务表与
+   `.nibi/scheduled_tasks.json`，不会在桌面 Automations 列表里生成 Host 记录；Node 桌面经
+   automation port 映射到 `AutomationService`。字段面已对齐，但 Host 记录、结果卡片与编辑页的
+   联动仍缺一条 Host 侧桥（双向 RPC 或统一存储），需要单独立项，不能靠工具字段伪造。
 2. **`ListWorkflowRuns` 的 `possiblyInterrupted`**：没有 sidecar 时按「非本会话且在飞」保守
    标注；Node 用同进程的活 run 注册表。
-3. **`ListModels` 的 `[current]`**：取工具构造时的默认选择；会话中途换模型后这一行可能仍
-   标旧值（Node 每次现读注册表视图）。`disabledReason` 也没有（Rust 目录只列可用模型）。
-4. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
+3. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
    工具表（`ListModels`/`ListWorkflowRuns` 仍可用）；桌面由 Host 注入，功能完整。
+4. **`ListModels` 的 `disabledReason`**：Rust 目录只列可用模型，没有 Node 注册表里的禁用原因；
+   不影响可用模型选择。

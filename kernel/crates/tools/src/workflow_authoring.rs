@@ -226,6 +226,11 @@ is not available here. This is a capability gap, not a bad input.",
     }
 
     async fn request(&self, input: Value, context: &ToolUseContext) -> WorkflowAuthorRequest {
+        let current = context
+            .interactions
+            .current_selection(&context.session)
+            .await
+            .or_else(|| self.current.clone());
         WorkflowAuthorRequest {
             tool: self.kind.name().to_owned(),
             input,
@@ -233,7 +238,7 @@ is not available here. This is a capability gap, not a bad input.",
             session: context.session.as_str().to_owned(),
             tool_call: context.tool_use.as_str().to_owned(),
             has_loaded_skill: self.skill_loaded(context).await,
-            current: self.current.clone(),
+            current,
         }
     }
 
@@ -744,7 +749,7 @@ fn civil_from_days(days: i64) -> (i64, u32, u32) {
 
 pub struct ListModelsTool {
     models: ModelDirectorySlot,
-    /// 会话此刻的选择（工具构造时的默认选择；会话中途换模型时这一行只是起点）。
+    /// 工具构造时的默认选择；会话中途换模型时以 `Interactions::current_selection` 为准。
     current: Option<nibi_kernel_api::model::ModelSelection>,
 }
 
@@ -795,9 +800,15 @@ impl Tool for ListModelsTool {
     async fn call(
         &self,
         _input: Value,
-        _context: ToolUseContext,
+        context: ToolUseContext,
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
+        // Node 每次现读注册表视图：会话中途换模型后 `[current]` 必须跟着变。
+        let current = context
+            .interactions
+            .current_selection(&context.session)
+            .await
+            .or_else(|| self.current.clone());
         let directory = self
             .models
             .lock()
@@ -832,7 +843,7 @@ session model."
                         .unwrap_or_default();
                     parts.push(format!("; levels: {levels}{fallback}"));
                 }
-                if self.current.as_ref().is_some_and(|current| {
+                if current.as_ref().is_some_and(|current| {
                     current.provider.eq_ignore_ascii_case(&model.provider)
                         && current.model.eq_ignore_ascii_case(&model.model)
                 }) {

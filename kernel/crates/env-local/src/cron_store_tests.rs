@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use nibi_kernel_api::cron_store::NewCronTask;
+use nibi_kernel_api::cron_store::{CronFiredTask, NewCronTask};
 
 use super::*;
 
@@ -29,6 +29,10 @@ fn new_task(id: &str, session: &str) -> NewCronTask {
         created_at: 1_760_000_000_000,
         recurring: true,
         created_by: SessionId::new(session),
+        title: None,
+        max_runs: None,
+        schedule_rule: None,
+        fire_at: None,
     }
 }
 
@@ -80,8 +84,11 @@ async fn remove_and_mark_fired_rewrite_the_file() {
     }
     store
         .change(CronTasksChange::MarkFired {
-            ids: vec!["a1".to_owned()],
-            at: 99,
+            entries: vec![CronFiredTask {
+                id: "a1".to_owned(),
+                at: 99,
+                run_count: 1,
+            }],
         })
         .await
         .unwrap();
@@ -127,6 +134,11 @@ async fn creators_projects_and_claim() {
         last_fired_at: None,
         recurring: false,
         permanent: false,
+        title: None,
+        max_runs: None,
+        run_count: 0,
+        schedule_rule: None,
+        fire_at: None,
         created_by_session: Some("sess_old".to_owned()),
         created_by_pid: None,
         created_by_proc_start: None,
@@ -224,13 +236,9 @@ async fn changes_follow_writes_to_the_tasks_file() {
         .await
         .is_ok()
     {}
-    nibi_kernel_fs::atomic_write(
-        &dir.path().join(".nibi/other.json"),
-        b"{}",
-        write_options(),
-    )
-    .await
-    .unwrap();
+    nibi_kernel_fs::atomic_write(&dir.path().join(".nibi/other.json"), b"{}", write_options())
+        .await
+        .unwrap();
     assert!(
         tokio::time::timeout(std::time::Duration::from_millis(500), changes.next())
             .await

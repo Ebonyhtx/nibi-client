@@ -24,6 +24,38 @@ pub enum CronCreator {
     Gone,
 }
 
+/// 自定义重复间隔的单位（Node `ZCodeAutomationScheduleRule.unit`）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CronScheduleUnit {
+    Minute,
+    Hourly,
+    Daily,
+    Weekly,
+    Monthly,
+    Yearly,
+}
+
+/// 每 N 个单位的重复规则；与 Node 的 `scheduleRule` 同形。
+///
+/// `cron` 仍是兼容/展示表达式，真实频率由这条规则按 `anchor_at` 推进——五段 cron 的
+/// 步长上限（分 59、时 24、日 31、月 12）表达不了每 61 分钟、每 40 天这类间隔。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CronScheduleRule {
+    pub unit: CronScheduleUnit,
+    pub interval: u32,
+    pub hour: u32,
+    pub minute: u32,
+    pub anchor_at: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub weekdays: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub month_days: Vec<u32>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub months: Vec<u32>,
+}
+
 /// 文件里的一个持久任务（执行侧已校验字段类型）。
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StoredCronTask {
@@ -40,6 +72,21 @@ pub struct StoredCronTask {
     /// 不受 7 天到期限制（assistant 模式的内置任务；工具不会写它）。
     #[serde(default)]
     pub permanent: bool,
+    /// 展示用标题（模型按用户原话填写）；旧任务没有。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// 有限次任务的最大触发次数（`recurring=false` 时可用）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_runs: Option<u32>,
+    /// 已触发的调度次数（`maxRuns` 判据；`runCount` 在 Node 侧是累计展示次数）。
+    #[serde(default)]
+    pub run_count: u32,
+    /// 每 N 单位的长间隔规则；缺省按 `cron` 调度。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schedule_rule: Option<CronScheduleRule>,
+    /// 相对延迟任务的确切触发时刻（`delayMinutes`）；缺省按 `cron` 调度。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fire_at: Option<u64>,
     /// `createdBySessionId`：建它的顶层会话；旧格式与手写的任务没有。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_by: Option<SessionId>,
@@ -58,6 +105,24 @@ pub struct NewCronTask {
     pub created_at: u64,
     pub recurring: bool,
     pub created_by: SessionId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_runs: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schedule_rule: Option<CronScheduleRule>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fire_at: Option<u64>,
+}
+
+/// 一次调度触发（`MarkFired` 的逐项事实）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CronFiredTask {
+    pub id: String,
+    /// 触发时刻（UTC 毫秒）。
+    pub at: u64,
+    /// 触发后的调度次数。
+    pub run_count: u32,
 }
 
 /// 一次读改写（执行侧读文件、修改、原子替换）。
@@ -68,14 +133,18 @@ pub enum CronTasksChange {
     Add { task: NewCronTask },
     /// 删除这些 ID；一个都不在时不写文件。
     Remove { ids: Vec<String> },
-    /// 循环任务触发后回写 `lastFiredAt`。
-    MarkFired { ids: Vec<String>, at: u64 },
-    /// 原地改一个持久任务的字段（`CronUpdate`）：只动调度相关的三项，创建者与溯源不变。
+    /// 循环任务触发后回写 `lastFiredAt` 与调度次数。
+    MarkFired { entries: Vec<CronFiredTask> },
+    /// 原地改一个持久任务的字段（`CronUpdate`）：只动调度相关的字段，创建者与溯源不变。
     Update {
         id: String,
         cron: String,
         prompt: String,
         recurring: bool,
+        title: Option<String>,
+        max_runs: Option<u32>,
+        schedule_rule: Option<CronScheduleRule>,
+        fire_at: Option<u64>,
     },
     /// `createdBySessionId` 是这个会话、但 PID 不是本进程的项改成本进程（resume 后的刷新）。
     Claim { session: SessionId },

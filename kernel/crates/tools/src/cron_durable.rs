@@ -4,7 +4,9 @@
 //! 幂等的。哪个会话触发哪个任务见 [`belongs`]。
 
 use nibi_kernel_api::cron::{CronFire, CronFireKind};
-use nibi_kernel_api::cron_store::{CronCreator, CronTasksChange, NewCronTask, StoredCronTask};
+use nibi_kernel_api::cron_store::{
+    CronCreator, CronFiredTask, CronScheduleRule, CronTasksChange, NewCronTask, StoredCronTask,
+};
 use nibi_kernel_api::ids::SessionId;
 
 use crate::cron_board::{CronBoard, State};
@@ -83,6 +85,7 @@ impl CronBoard {
     }
 
     /// CronUpdate：先改会话任务，没有再看文件里的；返回这个 id 是否存在。
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn update(
         &self,
         owner: &SessionId,
@@ -90,6 +93,10 @@ impl CronBoard {
         cron: &str,
         prompt: &str,
         recurring: bool,
+        title: Option<String>,
+        max_runs: Option<u32>,
+        schedule_rule: Option<CronScheduleRule>,
+        fire_at: Option<u64>,
     ) -> Result<bool, String> {
         {
             let mut state = self.state();
@@ -99,9 +106,20 @@ impl CronBoard {
                 job.cron = cron.to_owned();
                 job.prompt = prompt.to_owned();
                 job.recurring = recurring;
+                job.title = title;
+                job.max_runs = max_runs;
+                job.schedule_rule = schedule_rule;
+                job.fire_at = fire_at;
                 // 新 cron 从**现在**起算下一次（与创建时同一条规则）。
                 let from = self.now_ms();
-                job.next_fire = self.first_fire(cron, recurring, id, from);
+                job.next_fire = self.first_fire(
+                    &job.cron,
+                    job.schedule_rule.as_ref(),
+                    job.fire_at,
+                    recurring,
+                    id,
+                    from,
+                );
                 // 版本号与状态锁互不相关（`changed` 只发 watch），持锁调用安全。
                 self.changed();
                 return Ok(true);
@@ -116,6 +134,10 @@ impl CronBoard {
             cron: cron.to_owned(),
             prompt: prompt.to_owned(),
             recurring,
+            title,
+            max_runs,
+            schedule_rule,
+            fire_at,
         })
         .await?;
         // 新 cron 从**现在**起算：把持久任务的下一次触发清掉，调度器下一拍按新表达式重算
@@ -191,9 +213,17 @@ impl CronBoard {
         scheduler.next_probe = (!leader).then_some(now + PROBE_INTERVAL_MS);
         let missed: Vec<StoredCronTask> = tasks
             .into_iter()
-            .filter(|task| !task.recurring && !scheduler.missed_asked.contains(&task.id))
+            .filter(|task| !task.recurring && task.max_runs.is_none())
+            .filter(|task| !scheduler.missed_asked.contains(&task.id))
             .filter(|task| belongs(task, session, leader))
             .filter(|task| {
+                if let Some(at) = task.fire_at {
+                    return at < now;
+                }
+                // 长间隔规则（每 N 天/月/年）不是「错过的一次性任务」。
+                if task.schedule_rule.is_some() {
+                    return false;
+                }
                 cron_expr::next_after(&task.cron, task.created_at, &offset)
                     .is_some_and(|at| at < now)
             })
@@ -257,10 +287,7 @@ impl CronBoard {
             due_durable(self, &mut state, session, now)
         };
         if !fired.is_empty() {
-            let mark = CronTasksChange::MarkFired {
-                ids: fired,
-                at: now,
-            };
+            let mark = CronTasksChange::MarkFired { entries: fired };
             if let Err(error) = self.change(mark).await {
                 tracing::warn!(%error, "cannot persist lastFiredAt");
             }
@@ -275,17 +302,28 @@ impl CronBoard {
     }
 }
 
-/// 持久任务第一次看到时的触发时间：循环任务从 `lastFiredAt ?? createdAt`，一次性任务从 `createdAt`。
+/// 持久任务第一次看到时的触发时间：相对延迟用确切时刻；循环任务从 `lastFiredAt ?? createdAt`，
+/// 一次性任务从 `createdAt`。
 pub(crate) fn first_sight(board: &CronBoard, task: &StoredCronTask) -> Option<u64> {
-    let from = if task.recurring {
+    if let Some(at) = task.fire_at {
+        return Some(at);
+    }
+    let from = if task.recurring || task.max_runs.is_some() {
         task.last_fired_at.unwrap_or(task.created_at)
     } else {
         task.created_at
     };
-    board.first_fire(&task.cron, task.recurring, &task.id, from)
+    board.first_fire(
+        &task.cron,
+        task.schedule_rule.as_ref(),
+        None,
+        task.recurring,
+        &task.id,
+        from,
+    )
 }
 
-type Due = (Vec<CronFire>, Vec<String>, Vec<String>);
+type Due = (Vec<CronFire>, Vec<CronFiredTask>, Vec<String>);
 
 fn due_durable(board: &CronBoard, state: &mut State, session: &SessionId, now: u64) -> Due {
     let mut due = (Vec::new(), Vec::new(), Vec::new());
@@ -307,7 +345,6 @@ fn due_durable(board: &CronBoard, state: &mut State, session: &SessionId, now: u
     if !scheduler.started || scheduler.closed {
         return due;
     }
-    let offset = board.offset();
     for task in durable.iter() {
         if !belongs(task, session, scheduler.leader) {
             continue;
@@ -324,16 +361,37 @@ fn due_durable(board: &CronBoard, state: &mut State, session: &SessionId, now: u
             prompt: task.prompt.clone(),
             kind: CronFireKind::Task,
         });
-        let aged = task.recurring
+        let run_count = task.run_count.saturating_add(1);
+        let maxed = task.max_runs.is_some_and(|max| run_count >= max);
+        let rule = task.schedule_rule.is_some();
+        let exact_one_shot = task.fire_at.is_some();
+        let aged = !rule
+            && !exact_one_shot
+            && task.recurring
             && !task.permanent
             && now.saturating_sub(task.created_at) >= RECURRING_MAX_AGE_MS;
-        if task.recurring && !aged {
-            let next = cron_expr::recurring_next(&task.cron, now, &task.id, &offset);
-            scheduler.next_fire.insert(task.id.clone(), next);
-            due.1.push(task.id.clone());
-        } else {
+        let expired = exact_one_shot
+            || maxed
+            || aged
+            || (!task.recurring && task.max_runs.is_none() && !rule);
+        if expired {
             scheduler.next_fire.insert(task.id.clone(), None);
             due.2.push(task.id.clone());
+        } else {
+            let next = board.first_fire(
+                &task.cron,
+                task.schedule_rule.as_ref(),
+                None,
+                task.recurring,
+                &task.id,
+                now,
+            );
+            scheduler.next_fire.insert(task.id.clone(), next);
+            due.1.push(CronFiredTask {
+                id: task.id.clone(),
+                at: now,
+                run_count,
+            });
         }
     }
     due

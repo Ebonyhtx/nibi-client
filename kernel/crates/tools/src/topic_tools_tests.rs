@@ -303,7 +303,10 @@ fn scores_follow_the_node_weights() {
     // 整句（就是这个词）命中 20，词本身再 3 + 1。
     assert_eq!(score_search_text("deploy failed", "deploy", &terms), 24.0);
     // 整句不在、只有词在：3 + 1。
-    assert_eq!(score_search_text("please redeploy it", "deploy now", &terms), 4.0);
+    assert_eq!(
+        score_search_text("please redeploy it", "deploy now", &terms),
+        4.0
+    );
     // 出现 7 次也只加 5（整句 `deploy` 也命中，所以再加 20）。
     let many = "deploy deploy deploy deploy deploy deploy deploy";
     assert_eq!(score_search_text(many, "deploy", &terms), 20.0 + 3.0 + 5.0);
@@ -392,4 +395,26 @@ async fn relevant_context_falls_back_to_the_tail_without_a_match() {
     assert!(text.contains("message 19"), "{text}");
     assert!(text.contains("message 8"), "{text}");
     assert!(!text.contains("message 7"), "{text}");
+}
+
+/// 没有归档话题时不能把「会话不存在」告诉模型：topic 只读当前会话。
+#[test]
+fn topic_not_found_does_not_claim_the_session_is_missing() {
+    let text = model_content(&json!({
+        "status": "not_found",
+        "strategy": "topic",
+        "sessionId": "sess_1",
+        "content": "",
+    }));
+    assert_eq!(
+        text,
+        "No archived topic discussion was found for session sess_1. The session exists, but it has no archived group-topic messages (or none have been admitted yet)."
+    );
+    let text = model_content(&json!({
+        "status": "not_found",
+        "strategy": "relevant",
+        "sessionId": "sess_2",
+        "content": "",
+    }));
+    assert_eq!(text, "Session sess_2 was not found.");
 }

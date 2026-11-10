@@ -176,6 +176,11 @@ impl CronStore for LocalCronStore {
                 last_fired_at: task.last_fired_at,
                 recurring: task.recurring,
                 permanent: task.permanent,
+                title: task.title,
+                max_runs: task.max_runs,
+                run_count: task.run_count,
+                schedule_rule: task.schedule_rule,
+                fire_at: task.fire_at,
             });
         }
         Ok(stored)
@@ -194,6 +199,11 @@ impl CronStore for LocalCronStore {
                     last_fired_at: None,
                     recurring: task.recurring,
                     permanent: false,
+                    title: task.title,
+                    max_runs: task.max_runs,
+                    run_count: 0,
+                    schedule_rule: task.schedule_rule,
+                    fire_at: task.fire_at,
                     created_by_session: Some(task.created_by.as_str().to_owned()),
                     created_by_pid: Some(me.pid),
                     created_by_proc_start: me.started.clone(),
@@ -211,21 +221,32 @@ impl CronStore for LocalCronStore {
                 cron,
                 prompt,
                 recurring,
+                title,
+                max_runs,
+                schedule_rule,
+                fire_at,
             } => {
                 let mut changed = false;
                 for task in tasks.iter_mut().filter(|task| task.id == id) {
                     task.cron = cron.clone();
                     task.prompt = prompt.clone();
                     task.recurring = recurring;
+                    task.title = title.clone();
+                    task.max_runs = max_runs;
+                    task.schedule_rule = schedule_rule.clone();
+                    task.fire_at = fire_at;
                     changed = true;
                 }
                 changed
             }
-            CronTasksChange::MarkFired { ids, at } => {
+            CronTasksChange::MarkFired { entries } => {
                 let mut changed = false;
-                for task in tasks.iter_mut().filter(|task| ids.contains(&task.id)) {
-                    task.last_fired_at = Some(at);
-                    changed = true;
+                for task in tasks.iter_mut() {
+                    if let Some(entry) = entries.iter().find(|entry| entry.id == task.id) {
+                        task.last_fired_at = Some(entry.at);
+                        task.run_count = entry.run_count;
+                        changed = true;
+                    }
                 }
                 changed
             }

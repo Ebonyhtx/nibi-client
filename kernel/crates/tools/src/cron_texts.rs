@@ -3,8 +3,8 @@
 //! 文字逐字固定：错过任务的提示里产品名按 cron 文字的决定写成 NIBI、路径取产品目录 `.nibi`；ScheduleWakeup 的
 //! 结果按 brief 模式关、不预先报告状态的写法。
 
-use nibi_kernel_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
 use nibi_kernel_api::cron_store::StoredCronTask;
+use nibi_kernel_base::names::{DOT_DIR, SCHEDULED_TASKS_FILE};
 
 use crate::cron_expr;
 
@@ -51,9 +51,16 @@ pub(crate) fn missed(tasks: &[StoredCronTask], offset: &dyn Fn(u64) -> i32) -> S
     let blocks: Vec<String> = tasks
         .iter()
         .map(|task| {
+            let human = if let Some(at) = task.fire_at {
+                crate::cron_tools::human_at(at, offset)
+            } else if let Some(rule) = task.schedule_rule.as_ref() {
+                crate::cron_rule::human(rule)
+            } else {
+                cron_expr::human(&task.cron)
+            };
             format!(
                 "[{}, created {}]\n{}",
-                cron_expr::human(&task.cron),
+                human,
                 locale_string(task.created_at, offset),
                 fence(&task.prompt)
             )

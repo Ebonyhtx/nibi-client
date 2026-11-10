@@ -100,6 +100,11 @@ export function buildSessionContextMaterial(input: {
 
 export function formatReadSessionContextModelContent(output: ReadSessionContextOutput): string {
   if (output.status === "not_found") {
+    // topic 策略只读当前会话的归档话题：会话本身一定存在，not_found 只表示没有可读的归档原文。
+    // 沿用「Session was not found」会让模型以为会话 id 错了，转而用 shell 或别的工具反复找会话。
+    if (output.strategy === "topic") {
+      return `No archived topic discussion was found for session ${output.sessionId}. The session exists, but it has no archived group-topic messages (or none have been admitted yet).`;
+    }
     return `Session ${output.sessionId} was not found.`;
   }
   if (output.status === "failed") {

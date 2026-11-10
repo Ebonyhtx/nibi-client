@@ -1,6 +1,6 @@
 {
   "name": "CronUpdate",
-  "description": "Update selected definition fields of an existing scheduled job in the current session while preserving its id and run history.\n\nUse CronList first when the job id is not already known. Never guess a job id.\n\nEvery field is optional; omitted fields keep their existing values. Pass at least one field.\n\n- `cron`: replacement standard 5-field cron expression in the user's local timezone. Keep the user's natural-language schedule phrase consistent with it.\n- `prompt`: replacement prompt for future scheduled fires.\n- `recurring`: true repeats until deleted or auto-expired after 7 days; false fires once then auto-deletes. Changing a one-shot task to recurring restarts it from the next match of the (new or existing) cron.\n\nDo not simulate an update by deleting and recreating the job: that loses its history and id.",
+  "description": "Update selected definition fields of an existing scheduled job in the current session while preserving its id and run history.\n\nUse CronList first when the job id is not already known. Never guess a job id.\n\nEvery field except id is optional; omitted fields keep their existing values. Pass at least one field.\n\n- `title`: synchronized automation title describing the task after this update. Keep the user's natural-language schedule phrase consistent with cron (for example, changing every 5 minutes to every 6 minutes must also change the title).\n- `cron`: replacement standard 5-field cron expression in the user's local timezone. Omit to preserve the existing schedule. Do not convert to UTC.\n- `prompt`: replacement prompt for future scheduled fires.\n- `recurring`: true repeats until deleted (and clears an old maxRuns limit); false is finite. Do not combine true with a numeric maxRuns.\n- `maxRuns`: replacement maximum successful dispatch count for recurring=false. null clears the existing limit and is valid only with recurring=true in the same update.\n- `intervalUnit` + `interval`: switch to every N minutes/hours/days/weeks/months/years (1-200). Pass both together; the compatible cron only supplies the time/day slot.\n\nDo not simulate an update by deleting and recreating the job: that loses its history and id.",
   "input_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -17,9 +17,29 @@
         "description": "Replacement prompt for future scheduled fires. Omit to preserve the existing prompt.",
         "type": "string"
       },
+      "title": {
+        "description": "Synchronized automation title describing the task after this update. Keep the user's natural-language schedule phrase consistent with cron.",
+        "type": "string"
+      },
       "recurring": {
-        "description": "Replacement recurrence mode. Omit to preserve the existing mode.",
+        "description": "Replacement recurrence mode. true repeats indefinitely and clears any old finite maxRuns limit; false is finite. Omit to preserve the existing mode.",
         "type": "boolean"
+      },
+      "maxRuns": {
+        "description": "Replacement maximum successful dispatch count for recurring=false. null clears the existing limit and is valid only when recurring=true is included in the same update.",
+        "type": ["integer", "null"],
+        "minimum": 1
+      },
+      "intervalUnit": {
+        "description": "Switch this job to a long recurring interval whose step exceeds a cron field ceiling (hourly N>24, daily N>31, etc.). Pair with interval.",
+        "type": "string",
+        "enum": ["minute", "hourly", "daily", "weekly", "monthly", "yearly"]
+      },
+      "interval": {
+        "description": "Positive integer interval from 1 to 200 paired with intervalUnit. Must be set together with intervalUnit.",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200
       }
     },
     "required": [

@@ -192,7 +192,13 @@ async fn update_changes_fields_and_keeps_omitted_ones() {
         error(update.validate_input(&json!({"id": "nope"}), &ctx).await),
         ("No scheduled job with id 'nope'".to_owned(), Some(1))
     );
-    board.add(&ctx.session, "abcd0123".to_owned(), "7 * * * *", "old", true);
+    board.add(
+        &ctx.session,
+        "abcd0123".to_owned(),
+        "7 * * * *",
+        "old",
+        true,
+    );
     assert_eq!(
         error(
             update
@@ -213,7 +219,10 @@ async fn update_changes_fields_and_keeps_omitted_ones() {
     assert_eq!(text, "Updated job abcd0123 (Every 6 minutes).");
     // 省略的 prompt / recurring 保留原值。
     let list = call(&tool(&board, LIST), json!({}), ctx).await;
-    assert_eq!(list, "abcd0123 \u{2014} Every 6 minutes (recurring) [session-only]: old");
+    assert_eq!(
+        list,
+        "abcd0123 \u{2014} Every 6 minutes (recurring) [session-only]: old"
+    );
 }
 
 #[tokio::test]
@@ -312,5 +321,211 @@ async fn durable_jobs_go_to_the_file() {
     assert_eq!(
         board.read_durable().await.len() + board.session_count(&SessionId::new("x")),
         0
+    );
+}
+
+/// `delayMinutes`：一次性任务钉在相对触发时刻，不走 cron 的墙钟对齐。
+#[tokio::test]
+async fn delay_minutes_create_an_exact_one_shot() {
+    let board = board();
+    let create = tool(&board, CREATE);
+    let ctx = context(
+        "op_1a2b3c4d-0000-4000-8000-000000000000",
+        PermissionMode::Default,
+    );
+    let text = call(
+        &create,
+        json!({"prompt": "stand up", "delayMinutes": 3, "title": "3 分钟后提醒"}),
+        ctx.clone(),
+    )
+    .await;
+    assert_eq!(
+        text,
+        "Scheduled one-shot task 1a2b3c4d (In 3 minutes) — title: 3 分钟后提醒. Session-only (not written to disk, dies when NIBI exits). It will fire once then auto-delete."
+    );
+    let job = board.session_jobs(&ctx.session).remove(0);
+    assert_eq!(job.fire_at, Some(NOW + 3 * 60_000));
+    assert_eq!(job.next_fire, Some(NOW + 3 * 60_000));
+    assert!(!job.recurring);
+    assert_eq!(job.title.as_deref(), Some("3 分钟后提醒"));
+    // 到点触发一次后删除。
+    let fires = board.take_session_jobs(&ctx.session, NOW + 3 * 60_000);
+    assert_eq!(fires.len(), 1);
+    assert!(board.session_jobs(&ctx.session).is_empty());
+}
+
+/// `intervalUnit + interval`：真实频率由规则推进，兼容 cron 只负责时/分位置。
+#[tokio::test]
+async fn interval_carrier_uses_the_schedule_rule() {
+    let board = board();
+    let create = tool(&board, CREATE);
+    let ctx = context(
+        "op_1a2b3c4d-0000-4000-8000-000000000000",
+        PermissionMode::Default,
+    );
+    let text = call(
+        &create,
+        json!({
+            "cron": "49 * * * *",
+            "prompt": "check",
+            "intervalUnit": "hourly",
+            "interval": 31,
+            "title": "每 31 小时",
+        }),
+        ctx.clone(),
+    )
+    .await;
+    assert_eq!(
+        text,
+        "Scheduled recurring job 1a2b3c4d (Every 31 hours at :49) — title: 每 31 小时. Session-only (not written to disk, dies when NIBI exits). It repeats on its saved interval. Use CronDelete to cancel sooner."
+    );
+    let job = board.session_jobs(&ctx.session).remove(0);
+    let rule = job.schedule_rule.expect("the carrier becomes a rule");
+    assert_eq!(rule.interval, 31);
+    assert_eq!(rule.minute, 49);
+    let (_, _, _, _, minute, _) = cron_expr::local_parts(job.next_fire.unwrap(), &board.offset());
+    assert_eq!(minute, 49);
+}
+
+/// `maxRuns`：有限次任务跑满次数才删除，不是一次就删。
+#[tokio::test]
+async fn max_runs_are_counted_before_deleting() {
+    let board = board();
+    let create = tool(&board, CREATE);
+    let ctx = context(
+        "op_1a2b3c4d-0000-4000-8000-000000000000",
+        PermissionMode::Default,
+    );
+    let text = call(
+        &create,
+        json!({"cron": "*/5 * * * *", "prompt": "ping", "recurring": false, "maxRuns": 2}),
+        ctx.clone(),
+    )
+    .await;
+    assert_eq!(
+        text,
+        "Scheduled job 1a2b3c4d (Every 5 minutes). Session-only (not written to disk, dies when NIBI exits). It will fire up to 2 times then auto-delete."
+    );
+    assert_eq!(
+        board
+            .take_session_jobs(&ctx.session, NOW + 10 * 60_000)
+            .len(),
+        1
+    );
+    let job = board.session_jobs(&ctx.session).remove(0);
+    assert_eq!(job.run_count, 1);
+    assert_eq!(
+        board
+            .take_session_jobs(&ctx.session, NOW + 20 * 60_000)
+            .len(),
+        1
+    );
+    assert!(board.session_jobs(&ctx.session).is_empty());
+}
+
+/// 更新可以改标题、次数与长间隔；省略的字段保留。
+#[tokio::test]
+async fn update_changes_title_counts_and_interval() {
+    let board = board();
+    let create = tool(&board, CREATE);
+    let ctx = context(
+        "op_1a2b3c4d-0000-4000-8000-000000000000",
+        PermissionMode::Default,
+    );
+    call(
+        &create,
+        json!({"cron": "*/5 * * * *", "prompt": "ping", "title": "每 5 分钟"}),
+        ctx.clone(),
+    )
+    .await;
+    let update = tool(&board, UPDATE);
+    let text = call(
+        &update,
+        json!({"id": "1a2b3c4d", "title": "每 6 分钟", "cron": "*/6 * * * *"}),
+        ctx.clone(),
+    )
+    .await;
+    assert_eq!(
+        text,
+        "Updated job 1a2b3c4d (Every 6 minutes) — title: 每 6 分钟."
+    );
+    let text = call(
+        &update,
+        json!({
+            "id": "1a2b3c4d",
+            "intervalUnit": "minute",
+            "interval": 61,
+            "cron": "* * * * *",
+        }),
+        ctx.clone(),
+    )
+    .await;
+    assert_eq!(
+        text,
+        "Updated job 1a2b3c4d (Every 61 minutes) — title: 每 6 分钟."
+    );
+    let job = board.session_jobs(&ctx.session).remove(0);
+    assert_eq!(
+        job.schedule_rule.as_ref().map(|rule| rule.interval),
+        Some(61)
+    );
+    assert_eq!(job.title.as_deref(), Some("每 6 分钟"));
+}
+
+/// 组合约束在 validate 阶段拒绝（与 Node contract 同一组）。
+#[tokio::test]
+async fn invalid_combinations_are_rejected() {
+    let board = board();
+    let create = tool(&board, CREATE);
+    let ctx = context("op_1", PermissionMode::Default);
+    let message = |validation| error(validation).0;
+    assert_eq!(
+        message(
+            create
+                .validate_input(
+                    &json!({"cron": "* * * * *", "prompt": "p", "delayMinutes": 3}),
+                    &ctx
+                )
+                .await
+        ),
+        "a relative delay must omit cron; the host computes the schedule from its real clock"
+    );
+    assert_eq!(
+        message(
+            create
+                .validate_input(
+                    &json!({"prompt": "p", "delayMinutes": 3, "recurring": true}),
+                    &ctx
+                )
+                .await
+        ),
+        "a relative delay creates a one-shot automation and cannot use recurring=true"
+    );
+    assert_eq!(
+        message(
+            create
+                .validate_input(
+                    &json!({"cron": "* * * * *", "prompt": "p", "intervalUnit": "minute"}),
+                    &ctx
+                )
+                .await
+        ),
+        "intervalUnit and interval must be set together"
+    );
+    assert_eq!(
+        message(
+            create
+                .validate_input(
+                    &json!({"cron": "* * * * *", "prompt": "p", "recurring": true, "maxRuns": 2}),
+                    &ctx
+                )
+                .await
+        ),
+        "recurring=true is indefinite and must not be combined with maxRuns."
+    );
+    let update = tool(&board, UPDATE);
+    assert_eq!(
+        message(update.validate_input(&json!({"id": "nope"}), &ctx).await),
+        "No scheduled job with id 'nope'"
     );
 }

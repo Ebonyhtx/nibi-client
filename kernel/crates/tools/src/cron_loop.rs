@@ -218,10 +218,15 @@ fn schedule(
         id,
         cron,
         prompt: prompt.to_owned(),
+        title: None,
         recurring: false,
         created_at,
         kind: JobKind::Loop,
         next_fire,
+        max_runs: None,
+        run_count: 0,
+        schedule_rule: None,
+        fire_at: None,
     });
     state.enabled = true;
     Scheduled::At {

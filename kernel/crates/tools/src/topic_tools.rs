@@ -339,6 +339,11 @@ fn estimate_tokens(text: &str) -> u64 {
 /// 模型看到的文案（Node `formatReadSessionContextModelContent`）。
 fn model_content(output: &Value) -> String {
     match output["status"].as_str() {
+        Some("not_found") if output["strategy"].as_str() == Some("topic") => format!(
+            // topic 只读当前会话的归档话题：会话存在，not_found 只表示没有可读的归档原文。
+            "No archived topic discussion was found for session {}. The session exists, but it has no archived group-topic messages (or none have been admitted yet).",
+            output["sessionId"].as_str().unwrap_or_default()
+        ),
         Some("not_found") => format!(
             "Session {} was not found.",
             output["sessionId"].as_str().unwrap_or_default()

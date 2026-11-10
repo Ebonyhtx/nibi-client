@@ -110,7 +110,7 @@ fn civil(days: i64) -> (i64, u32, u32) {
 }
 
 /// (年, 月, 日) → 1970-01-01 起的天数（days_from_civil）。
-fn days_from(year: i64, month: u32, day: u32) -> i64 {
+pub(crate) fn days_from(year: i64, month: u32, day: u32) -> i64 {
     let year = if month <= 2 { year - 1 } else { year };
     let era = year.div_euclid(400);
     let yoe = year.rem_euclid(400);
@@ -145,7 +145,7 @@ pub(crate) fn local_parts(
 }
 
 /// 本地墙上时间（分钟数）→ UTC 毫秒：先按该时刻附近的偏移换算，再用换算结果的偏移校正一次。
-fn to_utc(local: i64, offset: &dyn Fn(u64) -> i32) -> u64 {
+pub(crate) fn to_utc(local: i64, offset: &dyn Fn(u64) -> i32) -> u64 {
     let local_ms = local * MINUTE_MS;
     let guess = local_ms - i64::from(offset(local_ms.max(0) as u64)) * MINUTE_MS;
     let utc = local_ms - i64::from(offset(guess.max(0) as u64)) * MINUTE_MS;
@@ -263,7 +263,7 @@ pub(crate) fn one_shot_next(
     Some(ceil_ms(next as f64 - lead).max(from_ms))
 }
 
-const DAY_NAMES: [&str; 7] = [
+pub(crate) const DAY_NAMES: [&str; 7] = [
     "Sunday",
     "Monday",
     "Tuesday",
@@ -275,7 +275,7 @@ const DAY_NAMES: [&str; 7] = [
 
 /// `toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit'})` 的写法（时间与
 /// AM/PM 之间是普通空格）。
-fn clock_time(minute: u32, hour: u32) -> String {
+pub(crate) fn clock_time(minute: u32, hour: u32) -> String {
     let (display, period) = match hour {
         0 => (12, "AM"),
         1..=11 => (hour, "AM"),

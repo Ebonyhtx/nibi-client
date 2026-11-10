@@ -18,6 +18,11 @@ fn stored(id: &str) -> StoredCronTask {
         last_fired_at: Some(1_760_000_300_000),
         recurring: true,
         permanent: false,
+        title: None,
+        max_runs: None,
+        run_count: 0,
+        schedule_rule: None,
+        fire_at: None,
         created_by: Some(SessionId::new("sess_a")),
         creator: CronCreator::Gone,
         in_project: true,
@@ -42,6 +47,10 @@ fn dtos_round_trip() {
         created_at: 1,
         recurring: false,
         created_by: SessionId::new("sess_a"),
+        title: None,
+        max_runs: None,
+        schedule_rule: None,
+        fire_at: None,
     };
     for change in [
         CronTasksChange::Add { task },
@@ -49,8 +58,11 @@ fn dtos_round_trip() {
             ids: vec!["1a2b3c4d".to_owned()],
         },
         CronTasksChange::MarkFired {
-            ids: vec!["1a2b3c4d".to_owned()],
-            at: 2,
+            entries: vec![CronFiredTask {
+                id: "1a2b3c4d".to_owned(),
+                at: 2,
+                run_count: 1,
+            }],
         },
         CronTasksChange::Claim {
             session: SessionId::new("sess_a"),

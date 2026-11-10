@@ -13,7 +13,9 @@ use tokio::sync::mpsc;
 use unicode_width::UnicodeWidthStr;
 
 use crate::cron_expr;
-use crate::cron_tools::{LIST, Shared, output, owner, shared_tool_methods};
+use crate::cron_rule;
+use crate::cron_tools::{LIST, Shared, human_at, output, owner, shared_tool_methods};
+use nibi_kernel_api::cron_store::CronScheduleRule;
 
 pub struct CronListTool(pub(crate) Shared);
 
@@ -22,7 +24,11 @@ struct Row {
     id: String,
     cron: String,
     prompt: String,
+    title: Option<String>,
     recurring: bool,
+    max_runs: Option<u32>,
+    schedule_rule: Option<CronScheduleRule>,
+    fire_at: Option<u64>,
     session_only: bool,
 }
 
@@ -59,11 +65,16 @@ impl Tool for CronListTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let board = &self.0.board;
+        let offset = board.offset();
         let durable = board.read_durable().await.into_iter().map(|task| Row {
             id: task.id,
             cron: task.cron,
             prompt: task.prompt,
+            title: task.title,
             recurring: task.recurring,
+            max_runs: task.max_runs,
+            schedule_rule: task.schedule_rule,
+            fire_at: task.fire_at,
             session_only: false,
         });
         let session = board
@@ -73,26 +84,41 @@ impl Tool for CronListTool {
                 id: job.id,
                 cron: job.cron,
                 prompt: job.prompt,
+                title: job.title,
                 recurring: job.recurring,
+                max_runs: job.max_runs,
+                schedule_rule: job.schedule_rule,
+                fire_at: job.fire_at,
                 session_only: true,
             });
         let rows: Vec<Row> = durable.chain(session).collect();
         let lines: Vec<String> = rows
             .iter()
             .map(|row| {
-                let kind = if row.recurring {
-                    " (recurring)"
+                let kind = if let Some(max_runs) = row.max_runs {
+                    format!(" ({max_runs} runs)")
+                } else if row.recurring {
+                    " (recurring)".to_owned()
                 } else {
-                    " (one-shot)"
+                    " (one-shot)".to_owned()
                 };
                 let only = if row.session_only {
                     " [session-only]"
                 } else {
                     ""
                 };
-                let human = cron_expr::human(&row.cron);
+                let human = match (&row.schedule_rule, row.fire_at) {
+                    (Some(rule), _) => cron_rule::human(rule),
+                    (None, Some(at)) => human_at(at, &offset),
+                    (None, None) => cron_expr::human(&row.cron),
+                };
+                let title = row
+                    .title
+                    .as_deref()
+                    .map(|title| format!(" {title} —"))
+                    .unwrap_or_default();
                 let prompt = truncate_display(&row.prompt, 80);
-                format!("{} \u{2014} {human}{kind}{only}: {prompt}", row.id)
+                format!("{} —{title} {human}{kind}{only}: {prompt}", row.id)
             })
             .collect();
         let text = if lines.is_empty() {
@@ -100,10 +126,25 @@ impl Tool for CronListTool {
         } else {
             lines.join("\n")
         };
-        let display = json!({"jobs": rows.iter().map(|row| json!({
-            "id": row.id, "cron": row.cron, "humanSchedule": cron_expr::human(&row.cron),
-            "prompt": row.prompt, "recurring": row.recurring, "durable": !row.session_only,
-        })).collect::<Vec<_>>()});
+        let display = json!({"jobs": rows.iter().map(|row| {
+            let human = match (&row.schedule_rule, row.fire_at) {
+                (Some(rule), _) => cron_rule::human(rule),
+                (None, Some(at)) => human_at(at, &offset),
+                (None, None) => cron_expr::human(&row.cron),
+            };
+            json!({
+                "id": row.id,
+                "cron": row.cron,
+                "title": row.title,
+                "humanSchedule": human,
+                "prompt": row.prompt,
+                "recurring": row.recurring,
+                "maxRuns": row.max_runs,
+                "scheduleRule": row.schedule_rule,
+                "fireAt": row.fire_at,
+                "durable": !row.session_only,
+            })
+        }).collect::<Vec<_>>()});
         Ok(output(text, display))
     }
 }

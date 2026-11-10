@@ -103,6 +103,11 @@ impl CronStore for MemoryCronStore {
                 last_fired_at: None,
                 recurring: task.recurring,
                 permanent: false,
+                title: task.title,
+                max_runs: task.max_runs,
+                run_count: 0,
+                schedule_rule: task.schedule_rule,
+                fire_at: task.fire_at,
                 created_by: Some(task.created_by),
                 creator: CronCreator::ThisProcess,
                 in_project: true,
@@ -113,6 +118,10 @@ impl CronStore for MemoryCronStore {
                 cron,
                 prompt,
                 recurring,
+                title,
+                max_runs,
+                schedule_rule,
+                fire_at,
             } => tasks
                 .iter_mut()
                 .filter(|task| task.id == id)
@@ -120,11 +129,19 @@ impl CronStore for MemoryCronStore {
                     task.cron = cron.clone();
                     task.prompt = prompt.clone();
                     task.recurring = recurring;
+                    task.title = title.clone();
+                    task.max_runs = max_runs;
+                    task.schedule_rule = schedule_rule.clone();
+                    task.fire_at = fire_at;
                 }),
-            CronTasksChange::MarkFired { ids, at } => tasks
-                .iter_mut()
-                .filter(|task| ids.contains(&task.id))
-                .for_each(|task| task.last_fired_at = Some(at)),
+            CronTasksChange::MarkFired { entries } => {
+                for task in tasks.iter_mut() {
+                    if let Some(entry) = entries.iter().find(|entry| entry.id == task.id) {
+                        task.last_fired_at = Some(entry.at);
+                        task.run_count = entry.run_count;
+                    }
+                }
+            }
             CronTasksChange::Claim { session } => tasks
                 .iter_mut()
                 .filter(|task| task.created_by.as_ref() == Some(&session))

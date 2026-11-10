@@ -20,6 +20,7 @@ import {
 import {
   buildReferencedSessionContextReminderBody,
   extractSessionReferences,
+  formatReadSessionContextModelContent,
 } from "../src/session-context/read-session-context.js";
 import {
   readSessionContextHandler,
@@ -30,6 +31,36 @@ import type { ToolExecutionContext } from "../src/tool/types.js";
 import { createTestModelFormatProperties } from "./test-runtime-model.js";
 
 describe("ReadSessionContext tool", () => {
+  it("does not claim the session is missing when a topic has no archive", () => {
+    expect(
+      formatReadSessionContextModelContent({
+        status: "not_found",
+        sessionId: "sess_1",
+        strategy: "topic",
+        query: "original message",
+        source: "none",
+        content: "",
+        messageCount: 0,
+        selectedMessageCount: 0,
+        truncated: false,
+      }),
+    ).toBe(
+      "No archived topic discussion was found for session sess_1. The session exists, but it has no archived group-topic messages (or none have been admitted yet).",
+    );
+    expect(
+      formatReadSessionContextModelContent({
+        status: "not_found",
+        sessionId: "sess_2",
+        strategy: "relevant",
+        query: "earlier work",
+        source: "none",
+        content: "",
+        messageCount: 0,
+        selectedMessageCount: 0,
+        truncated: false,
+      }),
+    ).toBe("Session sess_2 was not found.");
+  });
   it("accepts explicit current topic through the executor schema boundary", () => {
     expect(
       validateInput(

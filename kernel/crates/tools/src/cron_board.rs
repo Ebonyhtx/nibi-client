@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::cron::{CronFire, CronFireKind, CronSignals};
-use nibi_kernel_api::cron_store::{CronStore, StoredCronTask};
+use nibi_kernel_api::cron_store::{CronScheduleRule, CronStore, StoredCronTask};
 use nibi_kernel_api::ids::SessionId;
 use tokio::sync::watch;
 
@@ -35,11 +35,21 @@ pub(crate) struct Job {
     pub(crate) id: String,
     pub(crate) cron: String,
     pub(crate) prompt: String,
+    /// 展示用标题（模型按用户原话填写）。
+    pub(crate) title: Option<String>,
     pub(crate) recurring: bool,
     pub(crate) created_at: u64,
     pub(crate) kind: JobKind,
     /// 下次触发的 UTC 毫秒；None 表示不会再触发。
     pub(crate) next_fire: Option<u64>,
+    /// 有限次任务的最大触发次数。
+    pub(crate) max_runs: Option<u32>,
+    /// 已触发的调度次数。
+    pub(crate) run_count: u32,
+    /// 每 N 单位的长间隔规则；None 表示按 `cron` 调度。
+    pub(crate) schedule_rule: Option<CronScheduleRule>,
+    /// 相对延迟任务的确切触发时刻；None 表示按 `cron` 调度。
+    pub(crate) fire_at: Option<u64>,
 }
 
 /// 一个顶层会话的持久任务调度状态（任务表、下次触发时间、是否问过错过的任务）。
@@ -129,14 +139,22 @@ impl CronBoard {
         }
     }
 
-    /// 首次触发时间：循环任务与一次性任务都从创建时间算。
+    /// 首次触发时间：相对延迟用确切时刻，长间隔规则按锚点推进，其余按 cron 算。
     pub(crate) fn first_fire(
         &self,
         cron: &str,
+        schedule_rule: Option<&CronScheduleRule>,
+        fire_at: Option<u64>,
         recurring: bool,
         id: &str,
         from: u64,
     ) -> Option<u64> {
+        if let Some(at) = fire_at {
+            return Some(at);
+        }
+        if let Some(rule) = schedule_rule {
+            return crate::cron_rule::next(rule, from, &self.offset());
+        }
         if recurring {
             cron_expr::recurring_next(cron, from, id, &self.offset())
         } else {
@@ -150,6 +168,7 @@ impl CronBoard {
     }
 
     /// CronCreate（`durable` 为假）。
+    #[cfg(test)]
     pub(crate) fn add(
         &self,
         owner: &SessionId,
@@ -158,16 +177,45 @@ impl CronBoard {
         prompt: &str,
         recurring: bool,
     ) {
+        self.add_with(owner, id, cron, prompt, recurring, None, None, None, None);
+    }
+
+    /// CronCreate 的完整形态（标题、次数、长间隔规则、相对延迟）。
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn add_with(
+        &self,
+        owner: &SessionId,
+        id: String,
+        cron: &str,
+        prompt: &str,
+        recurring: bool,
+        title: Option<String>,
+        max_runs: Option<u32>,
+        schedule_rule: Option<CronScheduleRule>,
+        fire_at: Option<u64>,
+    ) {
         let created_at = self.now_ms();
-        let next_fire = self.first_fire(cron, recurring, &id, created_at);
+        let next_fire = self.first_fire(
+            cron,
+            schedule_rule.as_ref(),
+            fire_at,
+            recurring,
+            &id,
+            created_at,
+        );
         let job = Job {
             id,
             cron: cron.to_owned(),
             prompt: prompt.to_owned(),
+            title,
             recurring,
             created_at,
             kind: JobKind::Cron,
             next_fire,
+            max_runs,
+            run_count: 0,
+            schedule_rule,
+            fire_at,
         };
         let mut state = self.state();
         state.jobs.entry(owner.clone()).or_default().push(job);
@@ -203,7 +251,6 @@ impl CronBoard {
     /// 调度器检查里会话任务的部分：到期的按创建顺序取出；循环任务从现在起排下一次，满 7 天的
     /// 循环任务与一次性任务删除。触发了 loop 唤醒时记下“在跑的 tick”（keepalive 用）。
     pub(crate) fn take_session_jobs(&self, owner: &SessionId, now: u64) -> Vec<CronFire> {
-        let offset = self.offset();
         let mut fires = Vec::new();
         let mut loop_prompt = None;
         let mut state = self.state();
@@ -223,12 +270,32 @@ impl CronBoard {
                 if job.kind == JobKind::Loop {
                     loop_prompt = Some(job.prompt.clone());
                 }
-                let aged = now.saturating_sub(job.created_at) >= RECURRING_MAX_AGE_MS;
-                if job.recurring && !aged {
-                    job.next_fire = cron_expr::recurring_next(&job.cron, now, &job.id, &offset);
-                    return true;
+                let run_count = job.run_count.saturating_add(1);
+                let maxed = job.max_runs.is_some_and(|max| run_count >= max);
+                let exact_one_shot = job.fire_at.is_some();
+                let rule = job.schedule_rule.is_some();
+                // 长间隔规则不受 7 天到期限制：每 40 天一次的任务在 7 天内永远不会触发。
+                let aged = !rule
+                    && !exact_one_shot
+                    && job.recurring
+                    && now.saturating_sub(job.created_at) >= RECURRING_MAX_AGE_MS;
+                let expired = exact_one_shot
+                    || maxed
+                    || aged
+                    || (!job.recurring && job.max_runs.is_none() && !rule);
+                if expired {
+                    return false;
                 }
-                false
+                job.run_count = run_count;
+                job.next_fire = self.first_fire(
+                    &job.cron,
+                    job.schedule_rule.as_ref(),
+                    None,
+                    job.recurring,
+                    &job.id,
+                    now,
+                );
+                true
             });
         }
         if let Some(prompt) = loop_prompt {

@@ -15,6 +15,11 @@ pub(crate) struct FileTask {
     pub(crate) last_fired_at: Option<u64>,
     pub(crate) recurring: bool,
     pub(crate) permanent: bool,
+    pub(crate) title: Option<String>,
+    pub(crate) max_runs: Option<u32>,
+    pub(crate) run_count: u32,
+    pub(crate) schedule_rule: Option<nibi_kernel_api::cron_store::CronScheduleRule>,
+    pub(crate) fire_at: Option<u64>,
     pub(crate) created_by_session: Option<String>,
     pub(crate) created_by_pid: Option<u32>,
     pub(crate) created_by_proc_start: Option<String>,
@@ -52,6 +57,22 @@ fn task(item: &Value) -> Option<FileTask> {
         last_fired_at: item.get("lastFiredAt").and_then(millis),
         recurring: truthy(item.get("recurring")),
         permanent: truthy(item.get("permanent")),
+        title: text(item, "title"),
+        max_runs: item
+            .get("maxRuns")
+            .and_then(Value::as_u64)
+            .and_then(|value| u32::try_from(value).ok())
+            .filter(|value| *value > 0),
+        run_count: item
+            .get("runCount")
+            .and_then(Value::as_u64)
+            .and_then(|value| u32::try_from(value).ok())
+            .unwrap_or(0),
+        schedule_rule: item
+            .get("scheduleRule")
+            .cloned()
+            .and_then(|value| serde_json::from_value(value).ok()),
+        fire_at: item.get("fireAt").and_then(millis),
         created_by_session: text(item, "createdBySessionId"),
         created_by_pid: item
             .get("createdByPid")
@@ -101,6 +122,21 @@ pub(crate) fn render(tasks: &[FileTask]) -> String {
             }
             if task.permanent {
                 item.insert("permanent".to_owned(), json!(true));
+            }
+            if let Some(title) = &task.title {
+                item.insert("title".to_owned(), json!(title));
+            }
+            if let Some(max_runs) = task.max_runs {
+                item.insert("maxRuns".to_owned(), json!(max_runs));
+            }
+            if task.run_count > 0 {
+                item.insert("runCount".to_owned(), json!(task.run_count));
+            }
+            if let Some(rule) = &task.schedule_rule {
+                item.insert("scheduleRule".to_owned(), json!(rule));
+            }
+            if let Some(fire_at) = task.fire_at {
+                item.insert("fireAt".to_owned(), json!(fire_at));
             }
             if let Some(session) = &task.created_by_session {
                 item.insert("createdBySessionId".to_owned(), json!(session));

@@ -27,6 +27,11 @@ fn task(id: &str, cron: &str, created_by: Option<&str>, creator: CronCreator) ->
         last_fired_at: None,
         recurring: true,
         permanent: false,
+        title: None,
+        max_runs: None,
+        run_count: 0,
+        schedule_rule: None,
+        fire_at: None,
         created_by: created_by.map(SessionId::new),
         creator,
         in_project: true,
@@ -83,6 +88,10 @@ async fn durable_tasks_fire_and_write_back() {
         created_at: board.now_ms(),
         recurring,
         created_by: me(),
+        title: None,
+        max_runs: None,
+        schedule_rule: None,
+        fire_at: None,
     };
     assert!(
         board
@@ -114,7 +123,9 @@ async fn durable_tasks_fire_and_write_back() {
     assert_eq!(left[0].last_fired_at, Some(board.now_ms()));
     assert!(store.changes_made().iter().any(|change| matches!(
         change,
-        CronTasksChange::MarkFired { ids, .. } if ids == &["1a2b3c4d".to_owned()]
+        CronTasksChange::MarkFired { entries }
+            if entries.iter().map(|entry| entry.id.as_str()).collect::<Vec<_>>()
+                == ["1a2b3c4d"]
     )));
 }
 
