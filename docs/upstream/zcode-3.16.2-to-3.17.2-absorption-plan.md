@@ -40,7 +40,7 @@
 - 12 小时日志：`project.readTree` 1,453 次（远端 504 / 本地 370 / 离线失败 579）；侧栏 210 次触发产生 370 轮读取；70% 的轮次落在 1.5 秒内的连发里。
 - 相关性数据：有远端 readTree 在途时 `sendConversationCommandV4` p50 891ms（n=6），无在途时 p59ms（n=50）。作者注明样本有干扰，但单通道突发并发确实拖慢发送。
 - 上游修复状态：**[源码] P0-1 已实施**（`createRemoteIdentityRegistrationCache`，`packages/services/src/project/index.ts`，`packages/desktop/src/host/index.ts` 两条分支各一份缓存，按物理连接做 key）；**[未实施] P0-2**（发送时从窗口目录树同步取 projectId，缺行才查 Host）、**P1-1**（侧栏只读在线主机）、**P1-2**（合并连发读取）在 3.17.2 仍是待确认。
-- **[现状] 我们两处都没有**：`packages/ui/src/v4/SessionPane.tsx` 仍在发送前 `await resolveSessionDirectories`；仓库没有 `createRemoteIdentityRegistrationCache`；`project-tree-reader.ts` 仍读所有主机。**这是纯收益、低风险的移植项，应放在 P0。**
+- **[x] 我们已全部吸收（`364aefd2`）**：`SessionPane` 发送前先同步读窗口目录的任务归属，缺行才回退 `resolveSessionDirectories`；`createRemoteIdentityRegistrationCache` 按物理连接去重（Registry/Manager 各一份）；`project-tree-reader.ts` 只读在线主机；连发读取在同一微任务轮次合并，`ensureWorkspaceTab` 无变化返回原数组。上游 P0-2/P1-1/P1-2 仍未实施，我们按分析文档自行实现。
 
 ### 2.2 常驻会话池与生命周期（会话切换/内存）
 
@@ -93,10 +93,10 @@
 
 | 机制 | 影响 | 我们是否有 | 吸收优先级 |
 | --- | --- | --- | --- |
-| 远程身份缓存（P0-1） | 发送少 1 次往返、侧栏每轮少 N 次远端查询/开库 | 无 | **P0** |
-| 发送不等待远端查询（P0-2） | 回车到“发送中”≈90ms → ≈0ms | 无（仍是 3.16.2 写法） | **P0** |
-| 侧栏只读在线主机（P1-1） | 去掉 579 次/12h 无效调用 | 无 | P1 |
-| 合并连发读取（P1-2） | 370 轮 → 约 210 | 无 | P1 |
+| 远程身份缓存（P0-1） | 发送少 1 次往返、侧栏每轮少 N 次远端查询/开库 | **[x] `364aefd2`** | **P0** |
+| 发送不等待远端查询（P0-2） | 回车到“发送中”≈90ms → ≈0ms | **[x] `364aefd2`**（缺行回退查询） | **P0** |
+| 侧栏只读在线主机（P1-1） | 去掉 579 次/12h 无效调用 | **[x] `364aefd2`** | P1 |
+| 合并连发读取（P1-2） | 370 轮 → 约 210 | **[x] `364aefd2`**（同 tick 合并） | P1 |
 | 渲染隔离 | row/turn 执行数降一个数量级 | 无 | **P0** |
 | 常驻会话池 | 会话切换/内存稳定，热会话常驻 | 无（Rust 无池；Node 也没有） | **P1（Rust 工作量大）** |
 | 虚拟滚动细节 | 长历史滚动/搜索成本 | 有基线，细节待对齐 | P1 |
@@ -110,16 +110,16 @@
 
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
-| A1 | Plan + Guarded 危险命令免确认漏洞修复；Plan 下 MCP 询问不提供“始终允许” | [源码] `core/src/permission/service.ts` | 已实施 | Node 直接移植；Rust 核对 `policy` 的 plan+guarded 路径并补测试；**P0** |
-| A2 | 子代理权限与主会话一致：explore 不再用独立 default `PermissionService`；插件 profile 只能收紧 | [源码] `runtime/methods/subagent.ts`、`bootstrap/src/subagents.ts` | 已实施 | Node 移植；Rust 核对子循环权限链；**P0** |
-| A3 | 自定义命令 `!`/```` ```! ```` shell 不再解析期执行，改写为给模型的 Bash 指令，经权限确认 | [源码] `contracts/src/commands/index.ts::handOffCustomCommandShellBlocks`；删除 `custom-command-shell-expansion.ts` | 已实施 | Node 与 Rust 都改（Rust 现在 `expand_shell` 直接执行）；**P0** |
-| A4 | 本地 HTML 预览签名目录：`file://` → `zcode-html://`，每次资源请求验签 + 真实路径检查 | [源码] `desktop/src/main/browser-local-preview/`、`docs/browser-use/local-html-preview.md` | 已实施 | Host 移植（NIBI 也内置浏览器）；**P0** |
+| A1 | Plan + Guarded 危险命令免确认漏洞修复；Plan 下 MCP 询问不提供“始终允许” | [源码] `core/src/permission/service.ts` | 已实施 | **[x] Node `7eb98256` / Rust `a11fc5c3`**：Node 直接移植（plan deny 优先 → guarded 单次确认 → plan 放行）；Rust 按 `ExecutionState` 基础模式判决，plan 下危险命令是**拒绝**（对齐上游 `guarded-mode.test.ts`），并补上生产路径缺失的 `ask_once` 转发；**P0** |
+| A2 | 子代理权限与主会话一致：explore 不再用独立 default `PermissionService`；插件 profile 只能收紧 | [源码] `runtime/methods/subagent.ts`、`bootstrap/src/subagents.ts` | 已实施 | **[x] Node `7eb98256` / Rust `a11fc5c3`**：子代理共享父会话权限服务；`permissionModeRestrictOnly` + 严格度表只收紧；explore 继承父模式与 plan，子会话用精简 plan 提醒；Rust 子循环本就共享判决链，补上所有模式的收紧与执行状态落库；**P0** |
+| A3 | 自定义命令 `!`/```` ```! ```` shell 不再解析期执行，改写为给模型的 Bash 指令，经权限确认 | [源码] `contracts/src/commands/index.ts::handOffCustomCommandShellBlocks`；删除 `custom-command-shell-expansion.ts` | 已实施 | **[x] Node `9aab88cd` / Rust `a11fc5c3`**：两内核都改为文本改写 + 模型 Bash 调用；删掉解析期执行者与 unsupported 诊断；**P0** |
+| A4 | 本地 HTML 预览签名目录：`file://` → `zcode-html://`，每次资源请求验签 + 真实路径检查 | [源码] `desktop/src/main/browser-local-preview/`、`docs/browser-use/local-html-preview.md` | 已实施 | **[x] `9d3d66b9`**：Host 移植为 `nibi-html`，只在内置浏览器分区安装并封住原始 `file` 读面；**P0** |
 | A5 | 工作区 MCP 信任：项目 MCP 声明按 digest 记录信任/评审 | [源码] `bootstrap/src/workspace-mcp-trust/` | 已实施 | Host + Rust MCP 发现层；**P0/P1** |
 | A6 | MCP 设置检测仅限已注册工作区 | [源码] `workspace-mcp-trust` 与 MCP 设置测试 | 已实施 | Host；**P0** |
-| A7 | 用户级 `config.json` 写入加固：损坏时报错不覆盖、写前重读、只改自己字段、临时文件+rename | [源码] `docs/issues/data-sync/01-harden-user-config-writers.md`、`services/src/fs/atomicFileUtils.ts` | 已实施 | Node services；Rust 检查自己的配置写入；**P0** |
-| A8 | MCP stdio 无 Node 回退：Electron Node + 内置 npm/npx | [源码] `adapters/src/mcp/node-fallback.ts`、`bootstrap/src/app/mcp-node-fallback.ts` | 已实施 | Node 直接移植；Rust 侧由 Host 注入 node/npm/npx 路径或命令改写；**P1** |
-| A9 | **多会话并发写数据异常**：`commitForkBundle` 在 `DatabaseSync` 事务里 `await`，其他会话的写入会被 fork 回滚误删；改为事务内同步写 + 新增 `commitMessageBundle`（`begin immediate`） | [源码] `adapters/src/storage/session-store/sqlite-session-store.ts` | 已实施 | **Node 必移植（数据完整性）**；Rust node-store 已同步事务，核对无同类 await；**P0** |
-| A10 | fork 的 `compactLeadingMessageIds` 元数据非数组时不再抛错（字符串被逐字符校验、数字 TypeError） | [源码] 同上 | 已实施 | Node 小修；**P0（小）** |
+| A7 | 用户级 `config.json` 写入加固：损坏时报错不覆盖、写前重读、只改自己字段、临时文件+rename | [源码] `docs/issues/data-sync/01-harden-user-config-writers.md`、`services/src/fs/atomicFileUtils.ts` | 已实施 | **[x] `a7e6633a`**：`updateJsonObjectFile` 落地到命令/钩子/技能/MCP 目录/迁移导入/插件目录六处写入；Rust 的配置写入是原子临时文件，无同类宽松读取；**P0** |
+| A8 | MCP stdio 无 Node 回退：Electron Node + 内置 npm/npx | [源码] `adapters/src/mcp/node-fallback.ts`、`bootstrap/src/app/mcp-node-fallback.ts` | 已实施 | **Phase 1**：需要随包 npm staging（构建链）与真机验证，不在 Phase 0 出口内；见 §11；**P1** |
+| A9 | **多会话并发写数据异常**：`commitForkBundle` 在 `DatabaseSync` 事务里 `await`，其他会话的写入会被 fork 回滚误删；改为事务内同步写 + 新增 `commitMessageBundle`（`begin immediate`） | [源码] `adapters/src/storage/session-store/sqlite-session-store.ts` | 已实施 | **[x] `89a03069`**：事务内全部同步写，新增 `commitMessageBundle` 并用于 compact 整组提交；Rust node-store 本来就是同步事务；**P0** |
+| A10 | fork 的 `compactLeadingMessageIds` 元数据非数组时不再抛错（字符串被逐字符校验、数字 TypeError） | [源码] 同上 | 已实施 | **[x] `89a03069`**：非数组按空忽略，与读取方一致；**P0（小）** |
 
 ### B. 数据同步与远程设备
 
@@ -166,7 +166,7 @@
 | D3 | 新增 `session/lifecycle/getState / ensureReady / stop / restart` + 常驻池 | [源码] `session-lifecycle/`、`session-resident-pool.ts` | 已实施 | Rust 需要设计/实现；Node 直接移植；**P1** |
 | D4 | 新增 `x-zcode-session-features` 多值请求头（按会话累计能力标签） | [源码] `session-features-header.md` | 已实施 | 若我们做统计，改 `x-nibi-session-features`；Rust 模型请求头；**P3** |
 | D5 | 发行版请求安全策略钩子（开源默认空实现） | [源码] `shared/src/request-security-edition/` | 已实施 | 我们已有自己的 license/门禁，不吸收；**不吸收** |
-| D6 | Provider 目录 rev 33 → 43：13 个新模板、38 个新模型、移除 3 个旧 MiniMax | [源码] `config/provider/zcode-builtin.json` | 已实施 | 数据同步脚本 + 平台目录；**P0（低风险）** |
+| D6 | Provider 目录 rev 33 → 43：13 个新模板、38 个新模型、移除 3 个旧 MiniMax | [源码] `config/provider/zcode-builtin.json` | 已实施 | **[x] 已同步，无需改动**：逐条比对 3.17.2 源文件，随包 `nibi-builtin.json` 已是 34 模板 / 316 条 `templateModelRules`（与上游完全一致），只按设计排除 6 条 `zcode.z.ai` 专属站点规则；随包 revision 36 是 NIBI 自己的内容版本号，不跟上游 43；**P0（低风险）** |
 
 ### E. 平台与构建
 
@@ -256,7 +256,7 @@
 
 ### 5.1 P0：安全语义
 
-1. **A1 Plan + Guarded**：检查 `crates/policy/src/lib.rs` 的判定顺序。Node 的漏洞是 `planEnabled` 跳过 guarded 单次确认、再由 plan 分支放行；Rust 的 plan 是独立开关，`effective` 模式会变，必须写测试确认 `guarded::applies` 在 plan 开启时仍能命中。若缺失，在 plan 拒绝优先之后补 `ask_once`，并保证 `ask_once` 仍只在 guarded 生效。验收：plan+guarded 危险 Bash 必须询问；plan 拒绝优先；hook 放行不能代替用户单次批准。
+1. **A1 Plan + Guarded**：检查 `crates/policy/src/lib.rs` 的判定顺序。Node 的漏洞是 `planEnabled` 跳过 guarded 单次确认、再由 plan 分支放行；Rust 的 plan 是独立开关，`effective` 模式会变，必须按 `ExecutionState` 的基础模式识别危险命令。**以 3.17.2 源码与测试为准：`checkPlanMode` 对非只读工具直接 deny，plan 下的危险 Bash 是拒绝而不是询问**；guarded 的单次确认只发生在 plan 闸门放过之后。验收：plan+guarded 危险 Bash 被拒绝（`mode.plan.nonReadOnly` 同义文案）；plan 拒绝优先于 guarded；hook 放行不能代替单次批准或 plan 的拒绝；MCP 询问不带“始终允许”。
 2. **A2 子代理权限**：核对 `crates/agents` 子循环使用的权限判定是否与父会话同源（`ChildSink` 的交互只是询问通道，不是判决链）。若 explore 子代理有独立的默认放行，改为共享父会话的 `PolicyGate`/规则快照；插件 profile 的 `permissionMode` 只允许收紧（`spawn::mode` 已有 bypass 收紧逻辑，需补其它模式）。
 3. **A3 自定义命令 shell 交权**：改 `crates/ext/src/commands/user.rs`：
    - 删除/停用 `expand_shell` 的执行路径，解析阶段只做文本改写；
@@ -346,18 +346,18 @@
 > 依赖顺序：安全 > 数据完整性 > 远程发送/侧栏 > 渲染隔离 > 常驻池 > 数据同步/项目删除 > 小功能 > 测试债。
 > 每一项独立提交、独立验收；不与品牌化或 Rust 内核大改混批。
 
-### Phase 0：安全 + 数据完整性 + 远程回归（第 1–2 周）
+### Phase 0：安全 + 数据完整性 + 远程回归（第 1–2 周）**[已完成 2026-11-11，见 §11]**
 
-- Node：A1、A2、A3、A9、A10、远程 P0-1/P0-2、A8。
+- Node：A1、A2、A3、A9、A10、远程 P0-1/P0-2（A8 顺延到 Phase 1，见 §11）。
 - Rust：A1、A2、A3（语义对齐 + 测试）。
-- Host/UI：A4、A7、远程 P0-1/P0-2。
-- 数据：D6 provider rev 43 同步与模板探测。
+- Host/UI：A4、A7、远程 P0-1/P0-2（P1-1/P1-2 一并完成）。
+- 数据：D6 provider rev 43 —— 核查后随包内容已与上游一致，未改动。
 - 出口：
-  - plan+guarded 危险命令必须询问；explore 子代理在 plan 下受限；
+  - plan 下危险命令被拒绝；非 plan 的 guarded 危险命令必须单次确认；explore 子代理在 plan 下受限；
   - `/命令` 的 `!` 变成需确认的 Bash 调用；
   - fork 并发写不再互相回滚；
-  - 回车到“发送中”≈0ms（目录缺行时 ≈45ms）；
-  - provider 目录新模板可用。
+  - 发送不再固定多等两次串行远端往返（目录缺行时才回退查询）；
+  - provider 目录新模板已可用（34 模板 / 316 条模型规则）。
 
 ### Phase 1：长会话渲染 + 常驻池 + MCP 安全（第 3–5 周）
 
@@ -414,7 +414,7 @@
 
 | 项 | 验收 |
 | --- | --- |
-| A1 | plan+guarded 危险 Bash 必须 `user-once` 询问；plan 拒绝优先；hook 放行不能代替批准；MCP 询问无“始终允许” |
+| A1 | plan 下危险 Bash 被拒绝（plan 拒绝优先）；非 plan 的 guarded 危险 Bash 必须 `user-once` 询问；hook 放行不能代替批准或 plan 的拒绝；MCP 询问无“始终允许” |
 | A2 | explore 子代理在 plan 下写文件被拒；插件 profile 不能把父模式放宽 |
 | A3 | `!` 内联/围栏五组单测；真实会话里模型看到 ```bash 块并触发确认；不可解析变量整块不执行 |
 | A4 | `file://` HTML 不再获得跨文件读取；签名目录外请求被拒；导航序号防旧 IO 覆盖 |
@@ -490,15 +490,53 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 
 > `H` 项按 §3.H 处理：实施前先按关键词在 3.17.2 源码定位，不能只按日志改。
 
-### 10.4 我们仓库的当前快照（2026-11-11）
+### 10.4 我们仓库的当前快照（2026-11-11，Phase 0 之后）
 
 - 内核：Rust 默认（`NIBI_KERNEL=node` 回退），parity 14 项全关。
-- Electron：44.10.1；provider 目录 rev 36（上游 43）。
-- Node 树：仍有 `custom-command-shell-expansion.ts`、无常驻池、`commitForkBundle` 事务内有 `await`、`SessionPane` 发送前 `await resolveSessionDirectories`。
-- Rust 树：无 `session/lifecycle/*`、无 `sessionData/*`、自定义命令解析期执行 shell。
-- 测试：App 单测仍在（UI 976 个测试文件、services 251 个），上次 push 12,789 条。
+- Electron：44.10.1；provider 目录随包 revision 36，内容与上游 rev 43 一致（34 模板 / 316 条模型规则）。
+- Node 树：`custom-command-shell-expansion.ts` 已删除；`commitForkBundle` 事务内无 `await` 并有 `commitMessageBundle`；`SessionPane` 发送前同步读目录事实、缺行才回退查询；仍无常驻池（Phase 1）。
+- Rust 树：`ExecutionState` 已进 `ToolUseContext`，plan 拒绝优先于 guarded；自定义命令只改写不执行 shell；无 `session/lifecycle/*`、无 `sessionData/*`（Phase 1）。
+- 测试：App 单测仍在（UI 976 个测试文件、services 251 个）；2026-11-11 全量 Node 单测 18,200 条、Rust workspace 全绿（TUI esc 偶发除外）。
 
 ### 10.5 本计划的维护
 
 - 每完成一项，在本文件对应编号后标 `[x]` 并写提交号；每季度用最新上游 tag 重跑 §10.1 的命令，更新差异清单。
 - 若上游把 P0-2/P1-1/P1-2 实施，优先对齐上游实现而不是保留我们的私有方案。
+
+## 11. Phase 0 执行记录（2026-11-11）
+
+上游源码参考：`D:/NIBI/.ref-zcode`，checkout `a9fe401`（v3.17.2）。所有改动只提交、未推送。
+
+### 11.1 提交
+
+| 范围 | 提交 | 内容 |
+| --- | --- | --- |
+| Node A1+A2 | `7eb98256` | plan/guarded 判定顺序、`optionsPolicy`、CronPauseSelf 预批准、子代理权限同源、插件 profile 只收紧 |
+| Node A3 | `9aab88cd` | `handOffCustomCommandShellBlocks`；删除解析期 shell 执行与 CLI 重复路径 |
+| Node A9+A10 | `89a03069` | 事务内同步写、`commitMessageBundle`、`compactLeadingMessageIds` 容错 |
+| Host/UI 远程 | `364aefd2` | 身份登记缓存、发送不预查目录、侧栏只读在线主机、同 tick 合并、`ensureWorkspaceTab` 稳定引用 |
+| Host A4 | `9d3d66b9` | `nibi-html` 签名目录协议，内置浏览器分区安装并封住原始 `file` |
+| Host A7 | `a7e6633a` | `updateJsonObjectFile` 与六处 config.json 写入收紧 |
+| Rust A1+A2+A3 | `a11fc5c3` + `b8622970` | `ExecutionState` 接线、plan 拒绝优先、`ask_once` 转发、子代理/插件只收紧、命令 shell 交权 |
+
+### 11.2 门禁结果
+
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过。
+- `pnpm architecture:check --changed`：0 violations。
+- `pnpm test:unit`：1931 个测试文件 / 18,200 条通过，76 条 skipped（5 个文件 skipped），0 失败。
+- Rust：`cargo check --workspace --all-targets` 通过；改动 crate 的 clippy 无新增告警；`cargo test --workspace --no-fail-fast` 除 `nibi-kernel-tui` 的既有偶发 `esc_before_the_turn_is_drawn_puts_the_input_back`（超时型，单跑 3/3 通过，见 `nibi-rust-custom-commands-and-audit-2026-11-10` 的记录）外全绿。
+- 未执行：真实会话的 `!` 命令 E2E（模型看到 bash 块并触发确认）；远程发送的真机 12 小时日志复测；A4 的 Electron 真机预览。
+
+### 11.3 执行中的发现
+
+- **D6 无需同步**：随包 `config/provider/nibi-builtin.json` 已是上游 rev 43 的内容（34 模板、316 条 `templateModelRules`，逐条一致），只按设计排除 6 条 `zcode.z.ai` 专属站点规则；随包 revision 36 是 NIBI 自己的内容版本号。
+- **A1 的正确语义以源码为准**：计划初稿把验收写成“plan+guarded 危险命令必须询问”，但 3.17.2 的 `checkPermission` 是 plan deny 优先（`guarded-mode.test.ts` 明确断言 `deny / mode.plan.nonReadOnly`）。Node 与 Rust 均按 deny 落地；guarded 的单次确认只在 plan 闸门放过、且基础模式是 guarded 时生效。
+- **Rust 生产路径的真实缺口**：`runtime::permissions::SharedRules` 没有转发 `PermissionGate::ask_once`，一直落到 trait 缺省 `false`，guarded 的单次批准会被 PermissionRequest hook 顶掉；单元测试直接打 `PolicyGate` 看不出来。已补转发与锁定测试（`a11fc5c3`）。
+- **插件 profile 的 `permissionMode`**：Rust 原来完全忽略；按 3.17.2 改为解析后只收紧（`b8622970`），与 Node 的 `permissionModeRestrictOnly` 一致。
+
+### 11.4 顺延项
+
+- **A8（MCP 无 Node 回退）**：需要随包 npm 的构建期 staging（下载 npm tarball、integrity 校验、`prepare:agent-bundle` 接线）与真机验证，不属于 Phase 0 的“安全/数据完整性/远程回归”出口；按 §3 的 P1 优先级移到 Phase 1，与 A5/A6 一起做。
+- **Phase 1 其余项**：渲染隔离、常驻池/生命周期、`sessionData/measure|purge`、工作区 MCP 信任。
+
