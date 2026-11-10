@@ -10,6 +10,7 @@ import type {
 } from "electron";
 import type { DesktopTitleBarTheme, Locale } from "@nibi/shared";
 import {
+  BROWSER_LOCAL_PREVIEW_SCHEME,
   DEFAULT_LOCALE,
   desktopMenuMessageIds,
   getDesktopMenuMessage,
@@ -48,6 +49,7 @@ const ALLOWED_EMBEDDED_BROWSER_PROTOCOLS = new Set([
   "http:",
   "https:",
   "zcode-browser-restore:",
+  `${BROWSER_LOCAL_PREVIEW_SCHEME}:`,
 ]);
 const ALLOWED_EMBEDDED_BROWSER_NEW_WINDOW_PROTOCOLS = new Set(["http:", "https:"]);
 const EXTERNAL_BROWSER_DISPOSITIONS = new Set(["background-tab"]);

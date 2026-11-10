@@ -25,6 +25,7 @@ import {
   type BrowserViewportSize,
 } from "@nibi/shared";
 import { executeBrowserCommandOnView, type ControlledView } from "./browserCommandExecutor.js";
+import { resolveBrowserLocalPreviewNavigation } from "../browserLocalPreview/index.js";
 import { executeIabPlaywrightLocator } from "./browserPlaywrightLocatorExecutor.js";
 import { recordBrowserVideo, type BrowserWebmRecorderFactory } from "./browserVideoRecorder.js";
 import { normalizePlaywrightTimeout } from "./browserPlaywrightTimeout.js";
@@ -3614,6 +3615,8 @@ export class BrowserGuestManager {
       captureViewportScreenshot,
       normalizeScreenshotToCssPixels,
       resizeScreenshotToCssPixels: this.resizeScreenshotToCssPixels,
+      // guest 在 tab 生命周期内稳定；跨命令比较导航序号不能依赖每次新建的 ControlledView。
+      navigationGenerationKey: guest,
     };
   }
 
@@ -3829,8 +3832,17 @@ export class BrowserGuestManager {
       }
     }
     if (!tab.cachedUrl) return false;
+    let restoreUrl: string;
     try {
-      await guest.loadURL(tab.cachedUrl);
+      // 冷恢复/挂起恢复同样不能绕过预览校验：file: 重新解析成签名目录 URL。
+      restoreUrl = await resolveBrowserLocalPreviewNavigation(tab.cachedUrl);
+    } catch (error) {
+      // 解析失败时宁可不恢复，也不加载原始 file（否则分区里的 file handler 只会失败，且语义错误）。
+      this.warn(`browser tab preview URL restore rejected tabId=${tab.tabId}`, error);
+      return false;
+    }
+    try {
+      await guest.loadURL(restoreUrl);
       return true;
     } catch (error) {
       this.warn(`browser tab URL restore failed tabId=${tab.tabId}`, error);

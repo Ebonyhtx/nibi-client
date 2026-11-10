@@ -1,4 +1,4 @@
-import type { BrowserPageState } from "@nibi/shared";
+import { BROWSER_LOCAL_PREVIEW_SCHEME, type BrowserPageState } from "@nibi/shared";
 import type { ControlledViewWebContents } from "./browserCommandTypes.js";
 
 /**
@@ -12,14 +12,20 @@ export class BrowserNavigationTimeoutError extends Error {
 }
 
 /**
- * 浏览器导航白名单：只允许 http/https 与精确的 about:blank。
- * 不能放行任意 about:*。
+ * 浏览器导航白名单：只允许 http/https、精确的 about:blank，以及本地 HTML 预览相关的
+ * file:/nibi-html:。file: 只作为输入，handleNavigate 会先换成签名目录 URL；
+ * 不能放行任意 about:*、javascript: 或 data:。
  */
 export function isAllowedBrowserUrl(rawUrl: string): boolean {
   if (rawUrl === "about:blank") return true;
   try {
     const u = new URL(rawUrl);
-    return u.protocol === "http:" || u.protocol === "https:";
+    return (
+      u.protocol === "http:" ||
+      u.protocol === "https:" ||
+      u.protocol === "file:" ||
+      u.protocol === `${BROWSER_LOCAL_PREVIEW_SCHEME}:`
+    );
   } catch {
     return false;
   }

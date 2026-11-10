@@ -768,6 +768,20 @@ modules:
     layers:
       adapters: .
     owner: desktop
+  # browser-local-preview：内置浏览器本地 HTML 的签名目录协议；只在内置浏览器分区安装
+  # file 封堵与 nibi-html handler，不承载窗口/IPC 生命周期。
+  - id: browser-local-preview
+    roots:
+      - packages/desktop/src/main/browserLocalPreview
+    managed: true
+    requires:
+      - shared
+    publicEntrypoints:
+      - packages/desktop/src/main/browserLocalPreview/index.ts
+      - packages/desktop/src/main/browserLocalPreview/contract.ts
+    layers:
+      adapters: .
+    owner: desktop
 
 global:
   # 临时时间戳（2026-09-10）：unmanaged-new-file 只约束此日期之后首次入库的文件。

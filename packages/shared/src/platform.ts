@@ -75,6 +75,12 @@ export type BrowserTabResidencyState =
 /** 仅用于创建尚未提交首个 navigation entry 的 residency restore guest。 */
 export const BROWSER_VIEW_RESTORE_BOOTSTRAP_URL = "zcode-browser-restore://pending";
 
+/**
+ * 本地 HTML 预览的私有 scheme：file: 只作为模型输入，内置浏览器最终加载的是
+ * 带目录签名、每次资源请求重新校验的 nibi-html://。
+ */
+export const BROWSER_LOCAL_PREVIEW_SCHEME = "nibi-html";
+
 /** Renderer 上报 tab shell 的展示事实；windowId 必须由 main 绑定可信 IPC sender。 */
 export interface BrowserViewResidencyReportPayload {
   tabId: string;

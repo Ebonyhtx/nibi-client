@@ -12,9 +12,34 @@ import type { ControlledView } from "./browserCommandTypes.js";
 import type { BrowserCommandDone } from "./browserCommandResult.js";
 import { executionError } from "./browserCommandResult.js";
 import { captureScreenshotWithCssPixelCorrection } from "./browserScreenshotCapture.js";
+import { resolveBrowserLocalPreviewNavigation } from "../browserLocalPreview/index.js";
 
 const ABORTED_NAVIGATION_CONFIRM_TIMEOUT_MS = 500;
 const ABORTED_NAVIGATION_POLL_INTERVAL_MS = 25;
+
+/**
+ * 每个 guest（单测里是 stub webContents）最新的导航序号。
+ * 文件 realpath/签名是异步 IO，可能晚于下一次导航完成；旧结果不得重新加载旧页面，
+ * 也不得用旧文件的解析错误覆盖已经成功的新页面。
+ */
+const navigationGenerations = new WeakMap<object, number>();
+
+function beginNavigation(view: ControlledView): { isCurrent: () => boolean } {
+  const key = view.navigationGenerationKey ?? view.webContents;
+  const generation = (navigationGenerations.get(key) ?? 0) + 1;
+  navigationGenerations.set(key, generation);
+  return { isCurrent: () => navigationGenerations.get(key) === generation };
+}
+
+function supersededNavigationResult() {
+  return {
+    ok: false as const,
+    error: {
+      code: "cancelled" as const,
+      message: "Navigation superseded by a newer request",
+    },
+  };
+}
 
 interface ScreenshotViewportMetrics {
   pageX?: number;
@@ -177,10 +202,28 @@ export async function handleNavigate(
       error: { code: "navigation_blocked", message: `Blocked URL: ${command.url}` },
     });
   }
+  const navigation = beginNavigation(view);
+  let targetUrl: string;
+  try {
+    // file: 只作为输入：换成签名目录 URL 后才交给 loadURL；解析失败不回退加载原始文件。
+    targetUrl = await resolveBrowserLocalPreviewNavigation(command.url);
+  } catch (error) {
+    // 旧文件的解析错误不能覆盖已经被新导航取代的页面。
+    if (!navigation.isCurrent()) return done(supersededNavigationResult());
+    return done({
+      ok: false,
+      error: {
+        code: "navigation_blocked",
+        message: `Blocked local HTML preview: ${error instanceof Error ? error.message : String(error)}`,
+      },
+    });
+  }
+  if (!navigation.isCurrent()) return done(supersededNavigationResult());
+  if (opts?.signal?.aborted) throw new DOMException("aborted", "AbortError");
   const previousUrl = view.webContents.getURL();
   try {
     await settleNavigation(
-      view.webContents.loadURL(command.url),
+      view.webContents.loadURL(targetUrl),
       opts?.navigateSettleMs ?? DEFAULT_NAVIGATE_SETTLE_MS,
       opts?.signal,
     );
@@ -191,7 +234,7 @@ export async function handleNavigate(
     // 不能把已成功导航的页面回报成硬失败，诱导模型继续猜 URL/资源 ID。
     if (
       isElectronNavigationAborted(error) &&
-      (await confirmAbortedNavigationCommitted(view, command.url, previousUrl, opts?.signal))
+      (await confirmAbortedNavigationCommitted(view, targetUrl, previousUrl, opts?.signal))
     ) {
       return done({ ok: true, state: readState(view.webContents) });
     }

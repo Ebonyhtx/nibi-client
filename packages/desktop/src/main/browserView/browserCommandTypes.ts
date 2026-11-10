@@ -27,6 +27,11 @@ export interface ControlledView {
   webContents: ControlledViewWebContents;
   cdp: ControlledViewCdp;
   /**
+   * 并发导航序号的稳定载体：生产实现传入 guest 对象（ControlledView 本身每次命令都会重建）。
+   * 缺省时退化为按 webContents 对象计序号，供单测复用同一个 stub view。
+   */
+  navigationGenerationKey?: object;
+  /**
    * 已由宿主 compositor 合成的 viewport 截图。仅用于无 clip、非 fullPage 的普通截图；
    * Desktop 生产实现从 main 进程直接读取 guest surface，避开 Windows 下 CDP 对小 surface 的平铺。
    */

@@ -17,6 +17,12 @@ describe("embeddedBrowserHelpers", () => {
     );
   });
 
+  it("keeps signed nibi-html preview URLs reloadable", () => {
+    const signed = `nibi-html://${"a".repeat(64)}/${encodeURIComponent("file:///workspace/")}/index.html`;
+    expect(isAllowedBrowserUrl(signed)).toBe(true);
+    expect(normalizeBrowserUrl(signed)).toBe(signed);
+  });
+
   it("keeps explicit HTTP and HTTPS URLs unchanged", () => {
     expect(normalizeBrowserUrl("http://localhost:5173")).toBe(
       "http://localhost:5173",

@@ -76,15 +76,18 @@ function pngHeaderData(width: number, height: number, marker = 0): string {
 }
 
 describe("isAllowedBrowserUrl", () => {
-  it("allows about/http/https, blocks others", () => {
+  it("allows http/https, exact about:blank and local preview input schemes", () => {
     expect(isAllowedBrowserUrl("https://x.com")).toBe(true);
     expect(isAllowedBrowserUrl("http://localhost:3000")).toBe(true);
     expect(isAllowedBrowserUrl("about:blank")).toBe(true);
+    // file: 只作为输入；handleNavigate 会先解析成签名目录 URL，解析失败不会加载原始文件。
+    expect(isAllowedBrowserUrl("file:///C:/tmp/page.html")).toBe(true);
+    expect(isAllowedBrowserUrl(`nibi-html://${"a".repeat(64)}/root/page.html`)).toBe(true);
     expect(isAllowedBrowserUrl("about:srcdoc")).toBe(false);
     expect(isAllowedBrowserUrl("about:config")).toBe(false);
     expect(isAllowedBrowserUrl("data:text/html,hello")).toBe(false);
     expect(isAllowedBrowserUrl("javascript:alert(1)")).toBe(false);
-    expect(isAllowedBrowserUrl("file:///etc/passwd")).toBe(false);
+    expect(isAllowedBrowserUrl("nibi-htmlx://root/page.html")).toBe(false);
   });
 });
 

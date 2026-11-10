@@ -1,3 +1,5 @@
+import { BROWSER_LOCAL_PREVIEW_SCHEME } from "@nibi/shared";
+
 export const DEFAULT_BROWSER_URL = "about:blank";
 
 const RECOVERABLE_BROWSER_GUEST_EXIT_REASONS = new Set([
@@ -65,6 +67,9 @@ const ALLOWED_BROWSER_PROTOCOLS = new Set([
   "file:",
   "http:",
   "https:",
+  // 签名目录预览：webview 重挂/恢复时 loadURL 的是 main 生成的 nibi-html URL；
+  // 伪造签名只会在分区协议 handler 收到 403，不会绕过目录校验。
+  `${BROWSER_LOCAL_PREVIEW_SCHEME}:`,
 ]);
 
 const URL_PROTOCOL_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
