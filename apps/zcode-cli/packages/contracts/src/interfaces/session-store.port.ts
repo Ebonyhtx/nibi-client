@@ -249,6 +249,15 @@ export interface ForkCommitBundle {
   };
 }
 
+/**
+ * 同一 session 的多条消息及其 part 按顺序写入，全有或全无。
+ * 用于 compaction 的请求前公告、summary 与附件，以及空闲整批通知（一条消息多个文本 part）。
+ */
+export interface MessageCommitBundle {
+  sessionID: SessionId;
+  messages: MessageWithParts[];
+}
+
 export interface UpdateSessionInput {
   id: SessionId;
   lastOutcome?: SessionLastOutcome;
@@ -554,6 +563,13 @@ export interface CompactionPart {
     start?: number;
     end?: number;
   };
+  /** 不进入 strict 的 compactBoundary 与 App 协议；旧版本按 JSON 读取时忽略。 */
+  metadata?: CompactionPartMetadata;
+}
+
+export interface CompactionPartMetadata {
+  /** summary 之前的请求前公告；冷恢复放回 summary 之前，切片之后的保留段时跳过。 */
+  compactLeadingMessageIds?: MessageId[];
 }
 
 export type TimelinePartDisplay = "separator" | "worklog";
@@ -1106,6 +1122,8 @@ export interface SessionStorePort {
   /** V4 stable/compact-edit fork 的唯一事务入口。legacy workspace fork 不调用。 */
   commitForkBundle?(bundle: ForkCommitBundle): Promise<SessionInfo>;
   commitSharedContextImportBundle?(bundle: SharedContextImportCommitBundle): Promise<SessionInfo>;
+  /** 一组消息的唯一事务入口；未实现时调用方逐条写入。 */
+  commitMessageBundle?(bundle: MessageCommitBundle): Promise<void>;
   transitionSharedContextImport?(input: SharedContextImportTransition): Promise<boolean>;
   updateSession(input: UpdateSessionInput): Promise<SessionInfo>;
   /** 只写一次删除时间；正文保留，普通列表永不返回软删除行。 */
