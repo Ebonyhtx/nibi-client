@@ -546,6 +546,13 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
    `workflowToolEntry` 的 import 与注册都已被注释掉（2026-11-10 逐行确认），模型在 Node 桌面
    也看不到它。原清单这一条是误报。
 
+**同日追加（真机文档工具报告后抓到的真 bug）**：MCP 结果同时带 `content` 与
+`structuredContent` 时，Rust 的 `transform` 只取 structured、把正文丢了。office 文档工具的
+正文在 `content[0].text`，structured 只有 `{path, at, revision, next}`，于是模型只看到元数据
+（真机报告「Word/PDF/PPT/Excel 均返回 {path, at, revision}，没有正文」）。现在按 Node
+`formatMcpToolResult` 同序：先转 `content` 的块，有信息量的 structured 再追加成
+`Structured content:` 文本块；真机 `read_document` 已返回正文 + 元数据。
+
 **仍开着（本轮之后）**
 
 1. **Node automation 的字段面**：Rust 的 CronCreate/CronUpdate 仍只有

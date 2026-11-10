@@ -99,7 +99,22 @@ fn block(item: &Value, server: &str) -> Vec<ToolResultContent> {
     }
 }
 
+/// Node `hasInformativeStructuredContent`：null 与空对象/空数组没有模型信息。
+fn informative_structured(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Array(items) => !items.is_empty(),
+        Value::Object(fields) => !fields.is_empty(),
+        _ => true,
+    }
+}
+
 /// 成功结果的内容；形状不对时为 None（报 `unexpected response format`）。
+///
+/// 与 Node `formatMcpToolResult` 同序：先转 `content` 的块，有信息量的 `structuredContent`
+/// 再追加成 `Structured content:` 文本块。**不能只取 structuredContent**——office 文档工具
+/// 的正文在 `content[0].text`，structured 只有 `{path, at, revision, next}`；只取后者会让模型
+/// 只能看到元数据（真机报告「Word/PDF/PPT/Excel 均返回 {path, at, revision}，没有正文」）。
 pub(crate) fn transform(result: &Value, server: &str) -> Option<Vec<ToolResultContent>> {
     if let Some(value) = result.get("toolResult") {
         let rendered = match value {
@@ -108,19 +123,21 @@ pub(crate) fn transform(result: &Value, server: &str) -> Option<Vec<ToolResultCo
         };
         return Some(vec![text(rendered)]);
     }
+    let mut content = Vec::new();
+    if let Some(blocks) = result.get("content").and_then(Value::as_array) {
+        content.extend(blocks.iter().flat_map(|item| block(item, server)));
+    }
     if let Some(structured) = result
         .get("structuredContent")
-        .filter(|value| !value.is_null())
+        .filter(|value| informative_structured(value))
     {
-        return Some(vec![text(structured.to_string())]);
+        content.push(text(format!(
+            "Structured content:\n{}",
+            serde_json::to_string(structured).unwrap_or_else(|_| structured.to_string())
+        )));
     }
-    let content = result.get("content")?.as_array()?;
-    Some(
-        content
-            .iter()
-            .flat_map(|item| block(item, server))
-            .collect(),
-    )
+    // 既没有 content 也没有有信息量的 structured：形状不对。
+    result.get("content").is_some().then_some(content)
 }
 
 fn estimate(content: &[ToolResultContent]) -> u64 {

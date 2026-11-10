@@ -54,9 +54,34 @@ fn content_blocks_are_converted() {
         ToolResultContent::Image { source: ImageSource::Base64 { media_type, .. } } if media_type == "image/jpeg"
     ));
     assert_eq!(content.len(), 4);
+    // Node `formatMcpToolResult`：content 的块在前，有信息量的 structured 追加成一段。
     assert_eq!(
         texts(&transform(&json!({"structuredContent": {"a": 1}, "content": []}), "s").unwrap()),
-        ["{\"a\":1}"]
+        ["Structured content:\n{\"a\":1}"]
+    );
+    assert_eq!(
+        texts(
+            &transform(
+                &json!({"content": [{"type": "text", "text": "body"}], "structuredContent": {"a": 1}}),
+                "s"
+            )
+            .unwrap()
+        ),
+        [
+            "body".to_owned(),
+            "Structured content:\n{\"a\":1}".to_owned()
+        ]
+    );
+    // 空 structured 不伪造一段；content 仍然是模型看到的正文。
+    assert_eq!(
+        texts(
+            &transform(
+                &json!({"content": [{"type": "text", "text": "body"}], "structuredContent": {}}),
+                "s"
+            )
+            .unwrap()
+        ),
+        ["body"]
     );
     assert!(transform(&json!({"nothing": true}), "s").is_none());
 }
