@@ -63,6 +63,7 @@ import {
   SettingsResourceGroupHeader,
   SettingsResourceList,
 } from "@/settings/SettingsResourceGroup.js";
+import { workspaceMcpTrustReasonMessageId } from "@/settings/workspaceMcpTrustPresentation.js";
 import { McpServersImportDialog } from "@/settings/ExternalAgentImportDialog.js";
 import { RemoteSyncDialogs, shouldShowRemoteSyncActions } from "@/settings/RemoteSyncActions.js";
 import { useMcpStore } from "@/store/mcpStore.js";
@@ -593,6 +594,10 @@ export function McpSettingsSection({
 
   const storedServers = useMcpStore((s) => s.servers);
   const storedStatusSnapshots = useMcpStore((s) => s.statusSnapshots);
+  const storedWorkspaceTrust = useMcpStore((s) => s.workspaceTrust);
+  const storedWorkspaceTrustKnown = useMcpStore((s) => s.workspaceTrustKnown);
+  const storedWorkspaceTrustReasonCode = useMcpStore((s) => s.workspaceTrustReasonCode);
+  const storedWorkspaceTrustUnreviewable = useMcpStore((s) => s.workspaceTrustUnreviewable);
   const plugins = usePluginManagementStore((state) => state.plugins);
   const availablePlugins = usePluginManagementStore((state) => state.availablePlugins);
   const installedPlugins = usePluginManagementStore((state) => state.installedPlugins);
@@ -616,6 +621,14 @@ export function McpSettingsSection({
     Boolean(activeWorkspaceKey) && currentMcpStoreWorkspaceKey === activeWorkspaceKey;
   const servers = mcpStoreMatchesActiveWorkspace ? storedServers : [];
   const statusSnapshots = mcpStoreMatchesActiveWorkspace ? storedStatusSnapshots : {};
+  const workspaceTrust = mcpStoreMatchesActiveWorkspace ? storedWorkspaceTrust : {};
+  const workspaceTrustKnown = mcpStoreMatchesActiveWorkspace && storedWorkspaceTrustKnown;
+  const workspaceTrustReasonCode = mcpStoreMatchesActiveWorkspace
+    ? storedWorkspaceTrustReasonCode
+    : undefined;
+  const workspaceTrustUnreviewable = mcpStoreMatchesActiveWorkspace
+    ? storedWorkspaceTrustUnreviewable
+    : [];
   const isConfigLoaded = useMcpStore((s) => s.isConfigLoaded);
   const ensureLoadedForWorkspace = useMcpStore((s) => s.ensureLoadedForWorkspace);
   const loadMcpFromUserDirectory = useMcpStore((s) => s.loadMcpFromUserDirectory);
@@ -624,6 +637,7 @@ export function McpSettingsSection({
   const updateScopedMcpServer = useMcpStore((s) => s.updateScopedMcpServer);
   const deleteScopedMcpServer = useMcpStore((s) => s.deleteScopedMcpServer);
   const updateServerStatus = useMcpStore((s) => s.updateServerStatus);
+  const decideWorkspaceTrust = useMcpStore((s) => s.decideWorkspaceTrust);
   const beginServerStatusListRefresh = useMcpStore((s) => s.beginServerStatusListRefresh);
   const markServerStatusListRefreshFailed = useMcpStore((s) => s.markServerStatusListRefreshFailed);
   const mergeServerStatusSnapshots = useMcpStore((s) => s.mergeServerStatusSnapshots);
@@ -639,6 +653,9 @@ export function McpSettingsSection({
   const [mcpOAuthAuthorizationFollowupRefresh, setMcpOAuthAuthorizationFollowupRefresh] =
     useState<McpOAuthAuthorizationFollowupRefresh | null>(null);
   const [mcpStatusOnlyUnsupported, setMcpStatusOnlyUnsupported] = useState(false);
+  const [workspaceTrustBusyServerName, setWorkspaceTrustBusyServerName] = useState<string | null>(
+    null,
+  );
   const mcpStatusOnlyUnsupportedRef = useRef(false);
   const isFormView = showForm || editingServer !== null;
   useEffect(() => {
@@ -1164,6 +1181,13 @@ export function McpSettingsSection({
     () => filterLocalMcpServers(scopedServers, query),
     [query, scopedServers],
   );
+  const hasProjectMcpServerRows = useMemo(
+    () =>
+      scopedServers.some(
+        (server) => server.scope === "workspace" && server.source === "zcodeagentmcp",
+      ),
+    [scopedServers],
+  );
   const connectedRemoteSyncTarget =
     shouldShowRemoteSyncActions({
       remoteSessionId,
@@ -1273,6 +1297,35 @@ export function McpSettingsSection({
     void requestMcpServerStatusList();
   }
 
+  async function handleWorkspaceTrustDecision(server: ZCodeMcpServer, trusted: boolean) {
+    if (workspaceTrustBusyServerName) return;
+    setWorkspaceTrustBusyServerName(server.name);
+    try {
+      const decision = await decideWorkspaceTrust(server.name, trusted);
+      if (!decision.accepted) {
+        // Host 拒绝时只展示它给出的 reasonCode；UI 不自行判断是否已信任。
+        toast(
+          intl.formatMessage(
+            { id: "settings.mcp.workspaceTrust.rejected" },
+            { reason: decision.reasonCode },
+          ),
+          { durationMs: 8_000 },
+        );
+        return;
+      }
+      toast(
+        intl.formatMessage({
+          id: trusted
+            ? "settings.mcp.workspaceTrust.accepted"
+            : "settings.mcp.workspaceTrust.revokeAccepted",
+        }),
+        { durationMs: 5_000 },
+      );
+    } finally {
+      setWorkspaceTrustBusyServerName(null);
+    }
+  }
+
   async function handleSave(form: FormState, prev?: ZCodeMcpServer) {
     if (!activeWorkspacePath) {
       return;
@@ -1298,6 +1351,15 @@ export function McpSettingsSection({
       await updateScopedMcpServer(DEFAULT_MCP_SOURCE, prev.name, config, projectPath);
     } else {
       await addScopedMcpServer(DEFAULT_MCP_SOURCE, form.name, config, projectPath);
+    }
+    if (projectPath && projectPath === currentProjectPath) {
+      // 项目声明写入后 Host 的旧摘要记录仍然存在：立即重读 review，让当前行
+      // 从 Host 得到 declarationChanged（旧授权已失效），而不是停留在未知状态。
+      await loadMcpFromUserDirectory(
+        services.mcpSyncService,
+        activeWorkspaceIdentity,
+        cacheAuthorityKey,
+      );
     }
 
     setShowForm(false);
@@ -1493,6 +1555,22 @@ export function McpSettingsSection({
         </div>
       ) : null}
 
+      {scopeFilter === "workspace" &&
+      workspaceTrustKnown &&
+      workspaceTrustReasonCode &&
+      !hasProjectMcpServerRows ? (
+        <div
+          className="rounded-lg border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle"
+          role="status"
+          data-testid="mcp-workspace-trust-notice"
+          data-workspace-mcp-trust-reason={workspaceTrustReasonCode}
+        >
+          {intl.formatMessage({
+            id: workspaceMcpTrustReasonMessageId(workspaceTrustReasonCode),
+          })}
+        </div>
+      ) : null}
+
       {!mcpProjectionReady ? (
         <PluginLoadingState label={intl.formatMessage({ id: "common.loading" })} />
       ) : hasEmptySearchResult ? (
@@ -1536,6 +1614,12 @@ export function McpSettingsSection({
               onEdit={handleEdit}
               onToggle={handleToggle}
               onOpenAuthorization={handleOpenAuthorization}
+              workspaceTrust={workspaceTrust}
+              workspaceTrustKnown={workspaceTrustKnown}
+              workspaceTrustReasonCode={workspaceTrustReasonCode}
+              workspaceTrustUnreviewable={workspaceTrustUnreviewable}
+              workspaceTrustBusyServerName={workspaceTrustBusyServerName}
+              onWorkspaceTrustDecision={handleWorkspaceTrustDecision}
               emptyTitle={intl.formatMessage({ id: "settings.mcp.emptyTitle" })}
               emptyDescription={intl.formatMessage({
                 id: "settings.mcp.emptyDescription",

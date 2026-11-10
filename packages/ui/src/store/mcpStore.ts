@@ -12,7 +12,7 @@ import type {
   McpServerStatus,
   McpSource,
   NativeMcpServerRecord,
-  WorkspaceMcpTrustReview,
+  WorkspaceMcpTrustDecision,
   ZCodeMcpListMode,
   ZCodeMcpServerStatusSnapshot,
   ZCodeMcpServer,
@@ -20,10 +20,13 @@ import type {
 import { convertToZCodeAgentMcpServer } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
+  decideWorkspaceMcpTrustThroughPlatform,
   fetchNativeMcpServers,
   persistCliMcpToUserDirectory,
   type McpDirectoryService,
   type McpPlatformService,
+  type WorkspaceMcpTrustReasonCode,
+  type WorkspaceMcpTrustReviewView,
 } from "@/store/mcpStoreDesktop.js";
 import {
   buildServerList,
@@ -59,12 +62,16 @@ interface McpStoreState {
   servers: ZCodeMcpServer[];
   statusSnapshots: Record<string, ZCodeMcpServerStatusSnapshot>;
   /** 项目级 MCP 的 Host 审核状态（Host 唯一 owner；未信任的项目 server 不进入 Agent）。 */
-  workspaceTrust: Record<string, WorkspaceMcpTrustReview>;
+  workspaceTrust: Record<string, WorkspaceMcpTrustReviewView>;
   /**
    * 当前 Host 是否返回了 trust 元数据。旧远端 Host 没有该字段时保持兼容（不按未知状态拦截）；
    * 本机 Host 与新远端 Host 一律 true，按 fail-closed 过滤。
    */
   workspaceTrustKnown: boolean;
+  /** Host 明确拒绝审核时的原因（未登记/离线/信任存储不可用）；没有 review 时用于只读展示。 */
+  workspaceTrustReasonCode?: WorkspaceMcpTrustReasonCode;
+  /** 无法归一化、Host 按未信任处理的项目 server 名。 */
+  workspaceTrustUnreviewable: string[];
   currentProjectPath: string;
   currentWorkspaceIdentity?: string;
   currentAuthorityKey?: string;
@@ -131,6 +138,11 @@ interface McpStoreState {
     directoryService?: McpDirectoryService | null,
     authorityKey?: string,
   ) => void;
+  /** 对一条当前项目声明提交显式信任/撤销；成功后重新读取 Host review。 */
+  decideWorkspaceTrust: (
+    serverName: string,
+    trusted: boolean,
+  ) => Promise<WorkspaceMcpTrustDecision>;
   getEnabledMcpServersForZCode: (provider: string) => ZCodeAgentMcpServer[];
   checkAllServerStatus: (tester: (config: McpServerConfig) => Promise<{ success: boolean; error?: string }>) => Promise<void>;
   mergePreloadedMcpServers: (preloaded: Record<string, McpServerConfig>) => void;
@@ -202,7 +214,18 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
     // 项目声明被修改后旧审核摘要失效；同名重新保存必须重新审核，不能沿用旧 trusted。
     const workspaceTrust = { ...get().workspaceTrust };
     if (projectPath) delete workspaceTrust[name];
-    set({ ...commitState({ nativeServers }), workspaceTrust });
+    set({
+      ...commitState({ nativeServers }),
+      workspaceTrust,
+      ...(projectPath
+        ? {
+            workspaceTrustReasonCode: undefined,
+            workspaceTrustUnreviewable: get().workspaceTrustUnreviewable.filter(
+              (item) => item !== name,
+            ),
+          }
+        : {}),
+    });
   }
 
   async function persistScopedChange(
@@ -229,6 +252,8 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
     statusSnapshots: {},
     workspaceTrust: {},
     workspaceTrustKnown: false,
+    workspaceTrustReasonCode: undefined,
+    workspaceTrustUnreviewable: [],
     currentProjectPath: "",
     currentWorkspaceIdentity: undefined,
     currentAuthorityKey: undefined,
@@ -309,7 +334,12 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
           set({
             ...commitState({ nativeServers: servers }),
             workspaceTrust: loaded.trust ?? {},
-            workspaceTrustKnown: loaded.trust !== undefined,
+            // Host 只返回原因码（未登记/离线）时也开始展示只读审核状态；
+            // 旧远端 Host 不返回任何 trust 元数据时才保持 known=false 的兼容行为。
+            workspaceTrustKnown:
+              loaded.trust !== undefined || loaded.trustReasonCode !== undefined,
+            workspaceTrustReasonCode: loaded.trustReasonCode,
+            workspaceTrustUnreviewable: loaded.unreviewable ?? [],
           });
           return true;
         } catch (e) {
@@ -572,6 +602,8 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
         nativeServers: nextNativeServers,
         workspaceTrust: workspaceChanged ? {} : get().workspaceTrust,
         workspaceTrustKnown: workspaceChanged ? false : get().workspaceTrustKnown,
+        workspaceTrustReasonCode: workspaceChanged ? undefined : get().workspaceTrustReasonCode,
+        workspaceTrustUnreviewable: workspaceChanged ? [] : get().workspaceTrustUnreviewable,
         statusSnapshots: {},
         servers: buildServerList(
           config,
@@ -586,6 +618,58 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
         // user-level MCP，不能把其 env/header/OAuth clientSecret 暂存为 B 的可发送配置。
         void get().loadMcpFromUserDirectory(directoryService, normalizedWorkspaceIdentity, normalizedAuthorityKey);
       }
+    },
+
+    decideWorkspaceTrust: async (serverName, trusted) => {
+      const state = get();
+      const review = state.workspaceTrust[serverName];
+      const workspacePath = state.currentProjectPath;
+      if (!workspacePath || !review) {
+        return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
+      }
+      const workspaceIdentity = state.currentWorkspaceIdentity?.trim() || undefined;
+      const decision = await decideWorkspaceMcpTrustThroughPlatform(mcpPlatformService, {
+        workspacePath,
+        ...(workspaceIdentity ? { workspaceIdentity } : {}),
+        serverName,
+        declarationDigest: review.declarationDigest,
+        trusted,
+      });
+      if (!decision.accepted) {
+        // Host 拒绝（声明已变化、未登记、离线、存储不可用）：保持 review 原样并只读展示原因。
+        set({ workspaceTrustReasonCode: decision.reasonCode });
+        return decision;
+      }
+
+      // 成功只代表 Host 接受了本次写入；必须重新读取 Host review，不能用本地状态推断已信任。
+      try {
+        const loaded = await fetchNativeMcpServers(
+          mcpPlatformService,
+          {
+            workspacePath,
+            ...(workspaceIdentity ? { workspaceIdentity } : {}),
+          },
+          null,
+        );
+        const latest = get();
+        if (
+          latest.currentProjectPath !== workspacePath ||
+          (latest.currentWorkspaceIdentity?.trim() || undefined) !== workspaceIdentity
+        ) {
+          return decision;
+        }
+        set({
+          workspaceTrust: loaded.trust ?? {},
+          workspaceTrustKnown:
+            loaded.trust !== undefined || loaded.trustReasonCode !== undefined,
+          workspaceTrustReasonCode: loaded.trustReasonCode,
+          workspaceTrustUnreviewable: loaded.unreviewable ?? [],
+        });
+      } catch (error) {
+        logger.warn("[mcpStore] reload workspace MCP trust after decision failed", String(error));
+        set({ workspaceTrustReasonCode: "workspace_mcp_trust_unavailable" });
+      }
+      return decision;
     },
 
     getEnabledMcpServersForZCode: (_provider) => {

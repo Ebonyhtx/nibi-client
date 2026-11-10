@@ -8,6 +8,7 @@
   "include": [
     "src/preload",
     "src/shared/armsRumBridgeForward.ts",
+    "src/shared/workspaceMcpTrustBridge.ts",
     "src/main/workspace-open-confirm/contract.ts"
   ],
   "references": [{ "path": "../shared" }]

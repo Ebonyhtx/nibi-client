@@ -33,6 +33,8 @@ describe("mcpStore", () => {
       statusSnapshots: {},
       workspaceTrust: {},
       workspaceTrustKnown: false,
+      workspaceTrustReasonCode: undefined,
+      workspaceTrustUnreviewable: [],
       currentProjectPath: "",
       currentWorkspaceIdentity: undefined,
       enabledStates: {},
@@ -1063,5 +1065,210 @@ describe("mcpStore", () => {
         .map((server) => server.name)
         .sort(),
     ).toEqual(["probe", "user_probe"]);
+  });
+
+  it("项目 MCP 待信任时显示但不可用，信任后调用 Host 并刷新为已信任", async () => {
+    vi.stubGlobal("window", {});
+    const workspaceReview = {
+      declarationDigest: "a".repeat(64),
+      configuredEnabled: true,
+      transport: "stdio" as const,
+      sourcePaths: ["/workspace/project/.nibi/config.json"],
+      display: '{"command":"node"}',
+      trusted: false,
+    };
+    const decideWorkspaceMcpTrust = vi.fn(async () => ({ accepted: true } as const));
+    const loadMcpFromUserDirectory = vi.fn(async () => ({
+      servers: [
+        {
+          source: "zcodeagentmcp" as const,
+          scope: "workspace" as const,
+          name: "probe",
+          config: { type: "stdio" as const, command: "node" },
+          enabled: true,
+          projectPath: "/workspace/project",
+        },
+      ],
+      trust: {
+        probe: { ...workspaceReview, trusted: true },
+      },
+    }));
+    setMcpStorePlatform({
+      loadMcpFromUserDirectory,
+      saveMcpToUserDirectory: vi.fn(async () => ({ success: true })),
+      decideWorkspaceMcpTrust,
+    });
+    useMcpStore.setState({
+      currentProjectPath: "/workspace/project",
+      isConfigLoaded: true,
+      enabledStates: {},
+      workspaceTrust: { probe: workspaceReview },
+      workspaceTrustKnown: true,
+      servers: [
+        {
+          id: "zcodeagentmcp-workspace-probe",
+          name: "probe",
+          config: { type: "stdio", command: "node" },
+          enabled: true,
+          source: "zcodeagentmcp",
+          scope: "workspace",
+          projectPath: "/workspace/project",
+        },
+      ],
+    });
+
+    // 未信任：开关仍展示配置值，但不会进入 Agent 输入。
+    expect(useMcpStore.getState().servers[0]?.enabled).toBe(true);
+    expect(useMcpStore.getState().getEnabledMcpServersForZCode(undefined)).toEqual([]);
+
+    await expect(
+      useMcpStore.getState().decideWorkspaceTrust("probe", true),
+    ).resolves.toEqual({ accepted: true });
+    expect(decideWorkspaceMcpTrust).toHaveBeenCalledWith({
+      workspacePath: "/workspace/project",
+      serverName: "probe",
+      declarationDigest: workspaceReview.declarationDigest,
+      trusted: true,
+    });
+    expect(loadMcpFromUserDirectory).toHaveBeenCalledWith({
+      workspacePath: "/workspace/project",
+    });
+    expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(true);
+    expect(
+      useMcpStore
+        .getState()
+        .getEnabledMcpServersForZCode(undefined)
+        .map((server) => server.name),
+    ).toEqual(["probe"]);
+  });
+
+  it("撤销信任调用 Host 的 trusted:false 并刷新回未信任", async () => {
+    vi.stubGlobal("window", {});
+    const review = {
+      declarationDigest: "b".repeat(64),
+      configuredEnabled: true,
+      transport: "http" as const,
+      sourcePaths: ["/workspace/project/.nibi/config.json"],
+      display: '{"type":"http"}',
+      trusted: true,
+    };
+    const decideWorkspaceMcpTrust = vi.fn(async () => ({ accepted: true } as const));
+    const loadMcpFromUserDirectory = vi.fn(async () => ({
+      servers: [
+        {
+          source: "zcodeagentmcp" as const,
+          scope: "workspace" as const,
+          name: "probe",
+          config: { type: "http" as const, url: "https://example.test/mcp" },
+          enabled: true,
+          projectPath: "/workspace/project",
+        },
+      ],
+      trust: { probe: { ...review, trusted: false } },
+    }));
+    setMcpStorePlatform({
+      loadMcpFromUserDirectory,
+      saveMcpToUserDirectory: vi.fn(async () => ({ success: true })),
+      decideWorkspaceMcpTrust,
+    });
+    useMcpStore.setState({
+      currentProjectPath: "/workspace/project",
+      isConfigLoaded: true,
+      enabledStates: {},
+      workspaceTrust: { probe: review },
+      workspaceTrustKnown: true,
+      servers: [
+        {
+          id: "zcodeagentmcp-workspace-probe",
+          name: "probe",
+          config: { type: "http", url: "https://example.test/mcp" },
+          enabled: true,
+          source: "zcodeagentmcp",
+          scope: "workspace",
+          projectPath: "/workspace/project",
+        },
+      ],
+    });
+
+    await expect(
+      useMcpStore.getState().decideWorkspaceTrust("probe", false),
+    ).resolves.toEqual({ accepted: true });
+    expect(decideWorkspaceMcpTrust).toHaveBeenCalledWith({
+      workspacePath: "/workspace/project",
+      serverName: "probe",
+      declarationDigest: review.declarationDigest,
+      trusted: false,
+    });
+    expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(false);
+    expect(
+      useMcpStore.getState().getEnabledMcpServersForZCode(undefined).map((server) => server.name),
+    ).toEqual([]);
+  });
+
+  it("Host 拒绝信任时只记录 reasonCode，不本地改写信任状态", async () => {
+    vi.stubGlobal("window", {});
+    const review = {
+      declarationDigest: "c".repeat(64),
+      configuredEnabled: true,
+      transport: "stdio" as const,
+      sourcePaths: [],
+      display: "{}",
+      trusted: false,
+    };
+    const loadMcpFromUserDirectory = vi.fn();
+    setMcpStorePlatform({
+      loadMcpFromUserDirectory,
+      saveMcpToUserDirectory: vi.fn(async () => ({ success: true })),
+      decideWorkspaceMcpTrust: vi.fn(async () => ({
+        accepted: false as const,
+        reasonCode: "workspace_mcp_workspace_offline" as const,
+      })),
+    });
+    useMcpStore.setState({
+      currentProjectPath: "/workspace/project",
+      isConfigLoaded: true,
+      workspaceTrust: { probe: review },
+      workspaceTrustKnown: true,
+    });
+
+    await expect(
+      useMcpStore.getState().decideWorkspaceTrust("probe", true),
+    ).resolves.toEqual({
+      accepted: false,
+      reasonCode: "workspace_mcp_workspace_offline",
+    });
+    expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(false);
+    expect(useMcpStore.getState().workspaceTrustReasonCode).toBe(
+      "workspace_mcp_workspace_offline",
+    );
+    expect(loadMcpFromUserDirectory).not.toHaveBeenCalled();
+  });
+
+  it("Host 信任桥缺失时 fail closed 为 trust_unavailable", async () => {
+    setMcpStorePlatform({
+      loadMcpFromUserDirectory: vi.fn(async () => ({ servers: [] })),
+      saveMcpToUserDirectory: vi.fn(async () => ({ success: true })),
+    });
+    useMcpStore.setState({
+      currentProjectPath: "/workspace/project",
+      workspaceTrust: {
+        probe: {
+          declarationDigest: "d".repeat(64),
+          configuredEnabled: true,
+          transport: "stdio",
+          sourcePaths: [],
+          display: "{}",
+          trusted: false,
+        },
+      },
+      workspaceTrustKnown: true,
+    });
+
+    await expect(
+      useMcpStore.getState().decideWorkspaceTrust("probe", true),
+    ).resolves.toEqual({
+      accepted: false,
+      reasonCode: "workspace_mcp_trust_unavailable",
+    });
   });
 });

@@ -1,13 +1,27 @@
 import { recordArmsCustomEventForE2E } from "@nibi/ui";
 import { DesktopCommandIds, buildLocalMediaPreviewUrl, type IPlatformService } from "@nibi/shared";
 
+import type {
+  WorkspaceMcpTrustDecisionRequest,
+  WorkspaceMcpTrustDecisionResponse,
+} from "../../shared/workspaceMcpTrustBridge.js";
 import { desktopBrowserPlatformBridge } from "./desktopBrowserPlatformBridge.js";
 import { createDesktopPluginSandboxPlatform } from "./plugin-sandbox/desktopPluginSandboxPlatform.js";
 
 export function createDesktopPlatform(options: {
   isLocalDevelopmentRuntime: boolean;
 }): IPlatformService {
+  // window.nibi 的共享声明没有逐个列出新增的可选方法；这里只做一次窄化，
+  // 缺失时保持 undefined，让 UI 按「Host 不提供信任桥」处理。
+  const decideWorkspaceMcpTrust = (
+    window.nibi as typeof window.nibi & {
+      decideWorkspaceMcpTrust?: (
+        payload: WorkspaceMcpTrustDecisionRequest,
+      ) => Promise<WorkspaceMcpTrustDecisionResponse>;
+    }
+  ).decideWorkspaceMcpTrust;
   return {
+    ...(decideWorkspaceMcpTrust ? { decideWorkspaceMcpTrust } : {}),
     canSelectFilePath: true,
     canOpenLocalFiles: true,
     pluginSandbox: createDesktopPluginSandboxPlatform(),

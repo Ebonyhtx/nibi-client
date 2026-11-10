@@ -91,12 +91,15 @@ export interface ZCodeAgentProcessManagerOptions {
    *
    * context 携带本次 spawn 的 workspace 标识三元组（workspacePath/workspaceIdentity/workspaceKey）。
    * Helper lifecycle 不再回收或重启已有 Agent。
+   *
+   * 值允许 `undefined`：Windows 上 PATH 有大小写变体时，Host 需要显式覆盖继承的 `Path`，
+   * Node spawn 会跳过 undefined 值，等价于从子进程环境里删掉该键。
    */
   resolveSpawnEnv?: (context: {
     workspacePath: string;
     workspaceIdentity?: string;
     workspaceKey: string;
-  }) => Promise<Record<string, string>> | Record<string, string>;
+  }) => Promise<Record<string, string | undefined>> | Record<string, string | undefined>;
   /**
    * 可选的外部 spawn admission hook。CUA 默认装配不再注入 Helper recovery gate，
    * 避免 Helper lifecycle 阻塞或间接重启 Agent；保留该通用 hook 供其他产品策略使用。

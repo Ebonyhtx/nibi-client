@@ -7,6 +7,7 @@
  */
 
 import type {
+  LoadCliMcpFromUserDirectoryResult,
   NativeMcpServerRecord,
   WorkspaceMcpTrustDecision,
   WorkspaceMcpTrustReview,
@@ -15,6 +16,37 @@ import type { WorkspaceMcpTrustRecord } from "./storeFile.js";
 
 export type { WorkspaceMcpTrustDecision, WorkspaceMcpTrustReview } from "@nibi/shared";
 export const MCP_WORKSPACE_TRUST_MODULE_ID = "mcp-workspace-trust" as const;
+
+/** 审核/决定失败的原因码（与 shared `WorkspaceMcpTrustDecision` 同一联合）。 */
+export type WorkspaceMcpTrustReasonCode = Extract<
+  WorkspaceMcpTrustDecision,
+  { accepted: false }
+>["reasonCode"];
+
+/**
+ * 设置页展示用的 review 扩展。
+ *
+ * `declarationChanged` 由 Host 在读取用户域记录时计算：同一工作区/服务器还留着旧摘要，
+ * 说明当前声明已变化，旧授权已失效。它是 Host 的读取结论，UI 不得自行比较/猜测。
+ */
+export interface WorkspaceMcpTrustReviewView extends WorkspaceMcpTrustReview {
+  declarationChanged?: boolean;
+}
+
+/**
+ * 目录读取结果 + Host 审核元数据。
+ *
+ * `trustReasonCode` 只在 Host 明确拒绝审核时出现（工作区未登记/离线），此时没有 review；
+ * `unreviewable` 是无法归一化、必须按未信任处理的项目 server 名。
+ */
+export type WorkspaceMcpTrustLoadResult = Omit<
+  LoadCliMcpFromUserDirectoryResult,
+  "trust"
+> & {
+  trust?: Record<string, WorkspaceMcpTrustReviewView>;
+  trustReasonCode?: WorkspaceMcpTrustReasonCode;
+  unreviewable?: string[];
+};
 
 /** 一个已登记的工作区；`online=false` 时 fail closed（不读声明、不复用旧授权）。 */
 export interface WorkspaceMcpRegistration {
@@ -32,7 +64,7 @@ export interface WorkspaceMcpTrustRegistry {
 
 /** 一条审核结果；`trusted` 只对应当前精确摘要。 */
 export interface WorkspaceMcpTrustInspectResult {
-  reviews: Record<string, WorkspaceMcpTrustReview>;
+  reviews: Record<string, WorkspaceMcpTrustReviewView>;
   /** 无法归一化（不可审核）的项目 server 名：调用方必须按未信任处理。 */
   unreviewable: string[];
 }

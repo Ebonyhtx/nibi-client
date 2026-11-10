@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { McpServerConfig, NativeMcpServerRecord } from "@nibi/shared";
 import { loadCliMcpFromUserDirectory } from "../src/main/mcpUserDirectory/index.js";
 import {
@@ -15,6 +15,10 @@ import {
   resolveWorkspaceMcpTrustStorePath,
   writeWorkspaceMcpTrustDecision,
 } from "../src/main/mcpWorkspaceTrust/index.js";
+import {
+  decideWorkspaceMcpTrustForWindow,
+  parseWorkspaceMcpTrustDecisionRequest,
+} from "../src/main/mcpWorkspaceTrustIpc.js";
 
 const roots: string[] = [];
 const originalEnv = {
@@ -217,6 +221,90 @@ describe("trust admissions", () => {
     expect((await readWorkspaceMcpTrustStore(storePath)).status).toBe("missing");
   });
 
+  it("marks declarationChanged when the user store still holds an older digest", async () => {
+    const workspace = await makeRoot("nibi-mcp-trust-changed-flag-");
+    const storePath = join(workspace, "security", "workspace-mcp-trust-v1.json");
+    const records = [projectRecord(workspace, "probe", probeConfig)];
+    const initial = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+    expect(initial.reviews.probe).toMatchObject({
+      trusted: false,
+      declarationChanged: false,
+    });
+
+    await decideWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      serverName: "probe",
+      declarationDigest: initial.reviews.probe!.declarationDigest,
+      trusted: true,
+      storePath,
+    });
+    const trusted = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+    expect(trusted.reviews.probe).toMatchObject({
+      trusted: true,
+      declarationChanged: false,
+    });
+
+    const changedRecords = [
+      projectRecord(workspace, "probe", { ...probeConfig, env: { VERSION: "2" } }),
+    ];
+    const changed = await inspectWorkspaceMcpTrust({
+      records: changedRecords,
+      workspacePath: workspace,
+      storePath,
+    });
+    expect(changed.reviews.probe).toMatchObject({
+      trusted: false,
+      declarationChanged: true,
+    });
+  });
+
+  it("revokes trust through decide(trusted:false)", async () => {
+    const workspace = await makeRoot("nibi-mcp-trust-revoke-");
+    const storePath = join(workspace, "security", "workspace-mcp-trust-v1.json");
+    const records = [projectRecord(workspace, "probe", probeConfig)];
+    const inspected = await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath });
+    const declarationDigest = inspected.reviews.probe!.declarationDigest;
+
+    expect(
+      await decideWorkspaceMcpTrust({
+        records,
+        workspacePath: workspace,
+        serverName: "probe",
+        declarationDigest,
+        trusted: true,
+        storePath,
+      }),
+    ).toEqual({ accepted: true });
+    expect(
+      (await inspectWorkspaceMcpTrust({ records, workspacePath: workspace, storePath })).reviews
+        .probe?.trusted,
+    ).toBe(true);
+
+    expect(
+      await decideWorkspaceMcpTrust({
+        records,
+        workspacePath: workspace,
+        serverName: "probe",
+        declarationDigest,
+        trusted: false,
+        storePath,
+      }),
+    ).toEqual({ accepted: true });
+    const afterRevoke = await inspectWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      storePath,
+    });
+    expect(afterRevoke.reviews.probe).toMatchObject({
+      trusted: false,
+      declarationChanged: false,
+    });
+    expect(
+      filterTrustedProjectMcpRecords({ records, reviews: afterRevoke.reviews }),
+    ).toEqual([]);
+  });
+
   it("does not grant or inspect offline and unregistered workspaces", async () => {
     const workspace = await makeRoot("nibi-mcp-trust-offline-");
     const records = [projectRecord(workspace, "probe", probeConfig)];
@@ -384,6 +472,131 @@ describe("trust store owner", () => {
   });
 });
 
+describe("desktop workspace MCP trust decision bridge", () => {
+  it("parses only well-formed decision payloads", () => {
+    expect(parseWorkspaceMcpTrustDecisionRequest(null)).toBeNull();
+    expect(
+      parseWorkspaceMcpTrustDecisionRequest({
+        workspacePath: "/ws",
+        serverName: "probe",
+        declarationDigest: "a".repeat(64),
+        trusted: "yes",
+      }),
+    ).toBeNull();
+    expect(
+      parseWorkspaceMcpTrustDecisionRequest({
+        workspacePath: "/ws",
+        workspaceIdentity: "ssh:host:/ws",
+        serverName: "probe",
+        declarationDigest: "a".repeat(64),
+        trusted: true,
+      }),
+    ).toEqual({
+      workspacePath: "/ws",
+      workspaceIdentity: "ssh:host:/ws",
+      serverName: "probe",
+      declarationDigest: "a".repeat(64),
+      trusted: true,
+    });
+  });
+
+  it("rejects windows that have not registered the workspace before reading files", async () => {
+    const loadRecords = vi.fn();
+    const decision = await decideWorkspaceMcpTrustForWindow({
+      windowWorkspaceMap: new Map(),
+      windowId: 7,
+      payload: {
+        workspacePath: "/workspace/unregistered",
+        serverName: "probe",
+        declarationDigest: "a".repeat(64),
+        trusted: true,
+      },
+      loadRecords,
+    });
+    expect(decision).toEqual({
+      accepted: false,
+      reasonCode: "workspace_mcp_workspace_not_registered",
+    });
+    expect(loadRecords).not.toHaveBeenCalled();
+  });
+
+  it("persists the exact reviewed digest for a registered window", async () => {
+    const workspace = await makeRoot("nibi-mcp-trust-ipc-");
+    const records = [projectRecord(workspace, "probe", probeConfig)];
+    const declarationDigest = computeWorkspaceMcpDeclarationDigest({
+      workspaceIdentity: workspace,
+      serverName: "probe",
+      config: probeConfig,
+    })!;
+    const loadRecords = vi.fn(async () => ({ servers: records, trust: {} }));
+    const decision = await decideWorkspaceMcpTrustForWindow({
+      windowWorkspaceMap: new Map([[7, new Set([workspace])]]),
+      windowId: 7,
+      payload: {
+        workspacePath: workspace,
+        serverName: "probe",
+        declarationDigest,
+        trusted: true,
+      },
+      loadRecords,
+    });
+    expect(decision).toEqual({ accepted: true });
+
+    const inspected = await inspectWorkspaceMcpTrust({
+      records,
+      workspacePath: workspace,
+      storePath: await resolveWorkspaceMcpTrustStorePath(),
+    });
+    expect(inspected.reviews.probe?.trusted).toBe(true);
+  });
+
+  it("fails closed when the project declarations cannot be read", async () => {
+    const workspace = await makeRoot("nibi-mcp-trust-ipc-fail-");
+    const decision = await decideWorkspaceMcpTrustForWindow({
+      windowWorkspaceMap: new Map([[3, new Set([workspace])]]),
+      windowId: 3,
+      payload: {
+        workspacePath: workspace,
+        serverName: "probe",
+        declarationDigest: "a".repeat(64),
+        trusted: true,
+      },
+      loadRecords: vi.fn(async () => {
+        throw new SyntaxError("broken config");
+      }),
+    });
+    expect(decision).toEqual({
+      accepted: false,
+      reasonCode: "workspace_mcp_trust_unavailable",
+    });
+  });
+
+  it("does not write when the Host reports an offline workspace", async () => {
+    const workspace = await makeRoot("nibi-mcp-trust-ipc-offline-");
+    const decision = await decideWorkspaceMcpTrustForWindow({
+      windowWorkspaceMap: new Map([[4, new Set([workspace])]]),
+      windowId: 4,
+      payload: {
+        workspacePath: workspace,
+        serverName: "probe",
+        declarationDigest: "a".repeat(64),
+        trusted: true,
+      },
+      loadRecords: vi.fn(async () => ({
+        servers: [],
+        trustReasonCode: "workspace_mcp_workspace_offline" as const,
+      })),
+    });
+    expect(decision).toEqual({
+      accepted: false,
+      reasonCode: "workspace_mcp_workspace_offline",
+    });
+    expect(
+      (await readWorkspaceMcpTrustStore(await resolveWorkspaceMcpTrustStorePath())).status,
+    ).toBe("missing");
+  });
+});
+
 describe("A6 registered workspaces", () => {
   it("only accepts workspaces registered for the same window", () => {
     const windows = new Map<number, Set<string>>([[1, new Set(["/workspace/a/"])]]);
@@ -415,6 +628,7 @@ describe("A6 registered workspaces", () => {
     );
     expect(unregistered.servers.map((server) => server.name)).toEqual(["user_probe"]);
     expect(unregistered.trust).toBeUndefined();
+    expect(unregistered.trustReasonCode).toBe("workspace_mcp_workspace_not_registered");
 
     const registered = await loadCliMcpFromUserDirectory(
       { workspacePath: workspace },
@@ -430,6 +644,17 @@ describe("A6 registered workspaces", () => {
       trusted: false,
     });
     expect(registered.trust?.user_probe).toBeUndefined();
+    expect(registered.trustReasonCode).toBeUndefined();
+    expect(registered.unreviewable).toEqual([]);
+
+    // 离线工作区 fail closed：不读项目声明，只返回用户级 MCP + Host 原因。
+    const offline = await loadCliMcpFromUserDirectory(
+      { workspacePath: workspace },
+      { workspaceRegistered: true, online: false, storageRoot },
+    );
+    expect(offline.servers.map((server) => server.name)).toEqual(["user_probe"]);
+    expect(offline.trust).toBeUndefined();
+    expect(offline.trustReasonCode).toBe("workspace_mcp_workspace_offline");
   });
 
   it("returns the user-domain store path reused by the Rust kernel", async () => {

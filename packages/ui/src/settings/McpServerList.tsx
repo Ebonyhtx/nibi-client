@@ -15,6 +15,12 @@ import {
   resolveMcpFailureMessageId,
 } from "@/settings/McpFailurePresentation.js";
 import { SettingsResourceList } from "@/settings/SettingsResourceGroup.js";
+import { WorkspaceMcpTrustPanel } from "@/settings/WorkspaceMcpTrustPanel.js";
+import { resolveWorkspaceMcpTrustPresentation } from "@/settings/workspaceMcpTrustPresentation.js";
+import type {
+  WorkspaceMcpTrustReasonCode,
+  WorkspaceMcpTrustReviewView,
+} from "@/store/mcpStoreDesktop.js";
 import { runUserAction } from "@/lib/userActionTelemetry.js";
 import { CircleIcon, Cable, Loader2Icon, ExternalLink, Plus } from "lucide-react";
 
@@ -66,12 +72,24 @@ function McpServerItem({
   onToggle,
   onOpenAuthorization,
   hideMetadata,
+  workspaceTrust,
+  workspaceTrustKnown,
+  workspaceTrustReasonCode,
+  workspaceTrustUnreviewable,
+  workspaceTrustBusyServerName,
+  onWorkspaceTrustDecision,
 }: {
   server: ZCodeMcpServer;
   onEdit: (server: ZCodeMcpServer) => void;
   onToggle: (id: string, enabled: boolean) => void;
   onOpenAuthorization?: (server: ZCodeMcpServer) => void;
   hideMetadata: boolean;
+  workspaceTrust?: Record<string, WorkspaceMcpTrustReviewView>;
+  workspaceTrustKnown: boolean;
+  workspaceTrustReasonCode?: WorkspaceMcpTrustReasonCode;
+  workspaceTrustUnreviewable: readonly string[];
+  workspaceTrustBusyServerName?: string | null;
+  onWorkspaceTrustDecision?: (server: ZCodeMcpServer, trusted: boolean) => void;
 }) {
   const { intl } = useZCodeIntl();
   const typeLabel = server.config.command
@@ -100,6 +118,14 @@ function McpServerItem({
     : server.config.command
       ? `${typeLabel} · ${server.config.command} ${(server.config.args ?? []).join(" ")}`
       : typeLabel;
+  const workspaceTrustPresentation = resolveWorkspaceMcpTrustPresentation({
+    server,
+    trustKnown: workspaceTrustKnown,
+    ...(workspaceTrust?.[server.name] ? { review: workspaceTrust[server.name] } : {}),
+    ...(workspaceTrustReasonCode ? { reasonCode: workspaceTrustReasonCode } : {}),
+    unreviewable: workspaceTrustUnreviewable,
+  });
+  const workspaceTrustBusy = workspaceTrustBusyServerName === server.name;
 
   return (
     <div
@@ -134,6 +160,15 @@ function McpServerItem({
         <div className="mt-1 truncate text-ui-sm text-foreground-subtle">{description}</div>
         {server.status === "error" ? (
           <McpFailurePresentation error={server.error} failureKind={server.failureKind} />
+        ) : null}
+        {workspaceTrustPresentation ? (
+          <WorkspaceMcpTrustPanel
+            serverName={server.name}
+            presentation={workspaceTrustPresentation}
+            busy={workspaceTrustBusy}
+            canDecide={Boolean(onWorkspaceTrustDecision)}
+            onDecide={(trusted) => onWorkspaceTrustDecision?.(server, trusted)}
+          />
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -173,6 +208,12 @@ export function McpServerList({
   emptyTitle,
   emptyDescription,
   hideMetadata = false,
+  workspaceTrust,
+  workspaceTrustKnown = false,
+  workspaceTrustReasonCode,
+  workspaceTrustUnreviewable = [],
+  workspaceTrustBusyServerName,
+  onWorkspaceTrustDecision,
 }: {
   servers: ZCodeMcpServer[];
   onCreate: () => void;
@@ -182,6 +223,12 @@ export function McpServerList({
   emptyTitle: string;
   emptyDescription: string;
   hideMetadata?: boolean;
+  workspaceTrust?: Record<string, WorkspaceMcpTrustReviewView>;
+  workspaceTrustKnown?: boolean;
+  workspaceTrustReasonCode?: WorkspaceMcpTrustReasonCode;
+  workspaceTrustUnreviewable?: readonly string[];
+  workspaceTrustBusyServerName?: string | null;
+  onWorkspaceTrustDecision?: (server: ZCodeMcpServer, trusted: boolean) => void;
 }) {
   const { intl } = useZCodeIntl();
 
@@ -213,6 +260,12 @@ export function McpServerList({
           onToggle={onToggle}
           onOpenAuthorization={onOpenAuthorization}
           hideMetadata={hideMetadata}
+          workspaceTrust={workspaceTrust}
+          workspaceTrustKnown={workspaceTrustKnown}
+          workspaceTrustReasonCode={workspaceTrustReasonCode}
+          workspaceTrustUnreviewable={workspaceTrustUnreviewable}
+          workspaceTrustBusyServerName={workspaceTrustBusyServerName}
+          onWorkspaceTrustDecision={onWorkspaceTrustDecision}
         />
       )}
     />

@@ -17,7 +17,6 @@ import {
   type McpServerConfig,
   type NativeMcpServerRecord,
   type WorkspaceMcpTrustDecision,
-  type WorkspaceMcpTrustReview,
 } from "@nibi/shared";
 import { updateJsonObjectFile } from "@nibi/services/node";
 import {
@@ -32,13 +31,17 @@ import type {
   WorkspaceMcpTrustInspectInput,
   WorkspaceMcpTrustInspectResult,
   WorkspaceMcpTrustRegistry,
+  WorkspaceMcpTrustReviewView,
   WorkspaceMcpTrustStoreLoad,
 } from "./contract.js";
 
 export type {
   WorkspaceMcpTrustDecision,
+  WorkspaceMcpTrustReasonCode,
   WorkspaceMcpTrustReview,
-} from "@nibi/shared";
+  WorkspaceMcpTrustReviewView,
+  WorkspaceMcpTrustLoadResult,
+} from "./contract.js";
 export type {
   WorkspaceMcpRegistration,
   WorkspaceMcpTrustHost,
@@ -426,7 +429,7 @@ export async function inspectWorkspaceMcpTrust(
       (record) => record.scope === "workspace" && record.source === "zcodeagentmcp",
     )
     .sort((left, right) => left.name.localeCompare(right.name));
-  const reviews: Record<string, WorkspaceMcpTrustReview> = {};
+  const reviews: Record<string, WorkspaceMcpTrustReviewView> = {};
   const unreviewable: string[] = [];
   if (projectRecords.length === 0) return { reviews, unreviewable };
 
@@ -445,6 +448,22 @@ export async function inspectWorkspaceMcpTrust(
       unreviewable.push(record.name);
       continue;
     }
+    const trusted = trustedRecords.some(
+      (item) =>
+        item.workspaceIdentity === workspaceIdentity &&
+        item.serverName === record.name &&
+        item.declarationDigest === digest,
+    );
+    // 旧摘要记录仍在用户域存储里 = 声明已变化、旧授权失效；这是 Host 的读取结论，
+    // 设置页直接展示「需重新信任」，不自行比较摘要。
+    const declarationChanged =
+      !trusted &&
+      trustedRecords.some(
+        (item) =>
+          item.workspaceIdentity === workspaceIdentity &&
+          item.serverName === record.name &&
+          item.declarationDigest !== digest,
+      );
     reviews[record.name] = {
       declarationDigest: digest,
       configuredEnabled: record.enabled !== false,
@@ -455,12 +474,8 @@ export async function inspectWorkspaceMcpTrust(
           ? [record.location.directoryPath]
           : [],
       display: displayConfig(record.config, canonical, input.workspacePath),
-      trusted: trustedRecords.some(
-        (item) =>
-          item.workspaceIdentity === workspaceIdentity &&
-          item.serverName === record.name &&
-          item.declarationDigest === digest,
-      ),
+      trusted,
+      declarationChanged,
     };
   }
   return { reviews, unreviewable };

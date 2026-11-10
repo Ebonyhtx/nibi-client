@@ -8,7 +8,6 @@ import { homedir } from "node:os";
 import type {
   CliMcpSource,
   LoadCliMcpFromUserDirectoryRequest,
-  LoadCliMcpFromUserDirectoryResult,
   McpScope,
   SettingsDirectoryLocation,
   SettingsDirectorySource,
@@ -18,6 +17,7 @@ import type {
 import type { McpConfigKeyName } from "./types.js";
 import { readJsonObjectFileForUpdate, updateJsonObjectFile } from "@nibi/services/node";
 import { inspectWorkspaceMcpTrust } from "../mcpWorkspaceTrust/index.js";
+import type { WorkspaceMcpTrustLoadResult } from "../mcpWorkspaceTrust/contract.js";
 import { isRecord } from "./utils.js";
 
 // 重新导出类型和函数
@@ -386,29 +386,43 @@ export async function loadCliMcpFromUserDirectory(
     workspaceRegistered?: boolean;
     /** 测试/隔离实例的存储根覆盖（trust store 位置）。 */
     storageRoot?: string;
+    /** A6：工作区离线时 fail closed，不读取项目声明、不复用旧授权。 */
+    online?: boolean;
   },
-): Promise<LoadCliMcpFromUserDirectoryResult> {
+): Promise<WorkspaceMcpTrustLoadResult> {
   const servers: NativeMcpServerRecord[] = [];
   const workspacePath = request?.workspacePath;
   const inspectWorkspace = Boolean(workspacePath) && options?.workspaceRegistered !== false;
+  const workspaceOnline = options?.online !== false;
 
   // 去掉其他 provider 后，ZCode Agent 只按目录约定读取；先 workspace，再 user。
-  if (workspacePath && inspectWorkspace) {
+  if (workspacePath && inspectWorkspace && workspaceOnline) {
     servers.push(...await readDirectoryServersFromPreferredSources("workspace", workspacePath));
   }
 
   servers.push(...await readDirectoryServersFromPreferredSources("user", workspacePath));
 
-  if (!workspacePath || !inspectWorkspace) {
+  if (!workspacePath) {
     return { servers };
   }
-  const { reviews } = await inspectWorkspaceMcpTrust({
+  if (!inspectWorkspace) {
+    // 未登记工作区不探测项目配置；Host 明确给出原因，设置页只读展示并禁用审核动作。
+    return { servers, trustReasonCode: "workspace_mcp_workspace_not_registered" };
+  }
+  if (!workspaceOnline) {
+    return { servers, trustReasonCode: "workspace_mcp_workspace_offline" };
+  }
+  const inspected = await inspectWorkspaceMcpTrust({
     records: servers,
     workspacePath,
     ...(request?.workspaceIdentity ? { workspaceIdentity: request.workspaceIdentity } : {}),
     ...(options?.storageRoot ? { storageRoot: options.storageRoot } : {}),
   });
-  return { servers, trust: reviews };
+  return {
+    servers,
+    trust: inspected.reviews,
+    unreviewable: inspected.unreviewable,
+  };
 }
 
 export async function saveCliMcpToUserDirectory(

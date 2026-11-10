@@ -3616,6 +3616,38 @@ const enUS: Record<string, string> = {
     "This NIBI Agent cannot refresh OAuth status. Upgrade or restart NIBI, then reopen MCP settings to run a full refresh.",
   "settings.mcp.refreshFailed": "Failed to refresh MCP status: {error}",
   "settings.mcp.status.toolCount": "{count} tools",
+  "settings.mcp.workspaceTrust.badge.pending": "Pending trust",
+  "settings.mcp.workspaceTrust.badge.trusted": "Trusted",
+  "settings.mcp.workspaceTrust.badge.changed": "Configuration changed",
+  "settings.mcp.workspaceTrust.badge.unavailable": "Review unavailable",
+  "settings.mcp.workspaceTrust.effectiveAfterTrust": "Takes effect after trust",
+  "settings.mcp.workspaceTrust.trustedHint": "Editing this declaration requires trust again.",
+  "settings.mcp.workspaceTrust.changedHint": "Configuration changed. Trust it again.",
+  "settings.mcp.workspaceTrust.fingerprintLabel": "Declaration fingerprint",
+  "settings.mcp.workspaceTrust.sourceLabel": "Source",
+  "settings.mcp.workspaceTrust.displayLabel": "Declaration summary",
+  "settings.mcp.workspaceTrust.trust": "Trust this configuration",
+  "settings.mcp.workspaceTrust.trustAria": "Trust MCP configuration {name}",
+  "settings.mcp.workspaceTrust.revoke": "Revoke trust",
+  "settings.mcp.workspaceTrust.revokeAria": "Revoke trust for MCP configuration {name}",
+  "settings.mcp.workspaceTrust.updating": "Updating trust…",
+  "settings.mcp.workspaceTrust.accepted":
+    "Trust saved. Reconnect the MCP server or start a new session to apply it.",
+  "settings.mcp.workspaceTrust.revokeAccepted":
+    "Trust revoked. This MCP server will not be used in new sessions.",
+  "settings.mcp.workspaceTrust.rejected": "The host did not accept this trust change: {reason}",
+  "settings.mcp.workspaceTrust.reason.declarationChanged":
+    "The host detected a changed declaration (workspace_mcp_declaration_changed); the previous trust no longer applies.",
+  "settings.mcp.workspaceTrust.reason.unavailable":
+    "The host cannot read or write trust records right now (workspace_mcp_trust_unavailable).",
+  "settings.mcp.workspaceTrust.reason.notRegistered":
+    "The host has not registered this workspace for review (workspace_mcp_workspace_not_registered). Reopen the workspace and try again.",
+  "settings.mcp.workspaceTrust.reason.offline":
+    "The workspace is offline (workspace_mcp_workspace_offline), so project MCP servers cannot be reviewed.",
+  "settings.mcp.workspaceTrust.reason.unreviewable":
+    "This declaration cannot be reviewed; the host treats it as untrusted.",
+  "settings.mcp.workspaceTrust.reason.unknown":
+    "The host did not return a review state for this MCP server.",
   "settings.mcp.status.connectedReason": "Connected and available.",
   "settings.mcp.status.connectingReason": "Connecting to the MCP runtime.",
   "settings.mcp.status.errorReason": "The MCP server failed to connect.",

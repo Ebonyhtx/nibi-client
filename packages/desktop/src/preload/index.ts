@@ -10,6 +10,11 @@ import {
   installArmsRumBridgeIpcForward,
   scheduleArmsEventBridgePatch,
 } from "../shared/armsRumBridgeForward.js";
+import {
+  WORKSPACE_MCP_TRUST_DECIDE_CHANNEL,
+  type WorkspaceMcpTrustDecisionRequest,
+  type WorkspaceMcpTrustDecisionResponse,
+} from "../shared/workspaceMcpTrustBridge.js";
 
 // ARMS frame preload 闭包内的 send 不会随后序 ipcRenderer.send 补丁生效，须同步包装 Bridge.send
 installArmsRumBridgeIpcForward(ipcRenderer);
@@ -74,6 +79,7 @@ import type {
   ZCodeStdioTapDevState,
   LoadCliMcpFromUserDirectoryRequest,
   SaveCliMcpToUserDirectoryRequest,
+  WorkspaceMcpTrustDecision,
   SaveFileRequest,
   SaveFileResult,
   PrintPageToPdfResult,
@@ -319,6 +325,16 @@ contextBridge.exposeInMainWorld("nibi", {
     ipcRenderer.invoke(PlatformChannels.LoadMcpFromUserDirectory, payload ?? {}),
   saveMcpToUserDirectory: (payload: SaveCliMcpToUserDirectoryRequest) =>
     ipcRenderer.invoke(PlatformChannels.SaveMcpToUserDirectory, payload),
+  /** 对一条项目级 MCP 声明提交显式信任/撤销；Host 重读声明并校验摘要。 */
+  decideWorkspaceMcpTrust: async (
+    payload: WorkspaceMcpTrustDecisionRequest,
+  ): Promise<WorkspaceMcpTrustDecision> => {
+    const response = (await ipcRenderer.invoke(
+      WORKSPACE_MCP_TRUST_DECIDE_CHANNEL,
+      payload,
+    )) as WorkspaceMcpTrustDecisionResponse;
+    return response.decision;
+  },
   /** renderer 日志通过 IPC 传到 main 进程统一存储 */
   log: (level: "info" | "warn" | "error", args: unknown[]) =>
     ipcRenderer.send(PlatformChannels.Log, { level, args }),

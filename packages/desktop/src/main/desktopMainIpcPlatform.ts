@@ -3,7 +3,6 @@ import { decorateRequestSecurityLogArgs } from "./request-security-edition/index
 import { BrowserWindow, dialog, ipcMain, nativeTheme } from "electron";
 import { readZCodeStdioTapDevState } from "@nibi/services/node";
 import {
-  DesktopCommandIds,
   appSettingsPatchSchema,
   formatZodError,
   localeSchema,
@@ -55,6 +54,8 @@ import {
   saveCliMcpToUserDirectory,
 } from "./mcpUserDirectory/index.js";
 import { isWorkspaceRegisteredForMcpInspection } from "./mcpWorkspaceTrust/index.js";
+import { decideWorkspaceMcpTrustForWindow } from "./mcpWorkspaceTrustIpc.js";
+import { WORKSPACE_MCP_TRUST_DECIDE_CHANNEL } from "../shared/workspaceMcpTrustBridge.js";
 import { createTempTextAttachment } from "./tempTextAttachment.js";
 import { materializeWorkflowArtifactFile } from "./workflowArtifactFile.js";
 import { registerDesktopSaveFileIpcHandler } from "./desktopSaveFile.js";
@@ -220,12 +221,29 @@ export function registerPlatformIpcHandlers(options: {
     async (event, payload?: LoadCliMcpFromUserDirectoryRequest) => {
       // A6：MCP 设置检测只读本窗口已登记（真正打开过）的工作区；未登记时只返回用户级 MCP，
       // 不按 renderer 传来的任意路径探测项目配置。
+      // windowWorkspaceMap 以 BrowserWindow.id 为键（见 SyncWindowTabs / activateOrSetWorkspace），
+      // 不能用 webContents.id 查询，否则命中的是另一个 id 空间。
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
       const workspaceRegistered = isWorkspaceRegisteredForMcpInspection(
         options.windowWorkspaceMap,
-        event.sender.id,
+        senderWindow?.id,
         payload?.workspacePath,
       );
       return loadCliMcpFromUserDirectory(payload, { workspaceRegistered });
+    },
+  );
+
+  ipcMain.handle(
+    WORKSPACE_MCP_TRUST_DECIDE_CHANNEL,
+    async (event, payload?: unknown) => {
+      // 信任记录只由 Host 写；renderer 只能对一条当前声明提交 accept/revoke。
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+      const decision = await decideWorkspaceMcpTrustForWindow({
+        windowWorkspaceMap: options.windowWorkspaceMap,
+        windowId: senderWindow?.id,
+        payload,
+      });
+      return { decision };
     },
   );
 

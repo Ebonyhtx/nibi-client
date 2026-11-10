@@ -139,6 +139,46 @@ describe("registerPlatformIpcHandlers", () => {
     });
   });
 
+  it("resolves MCP workspace registration by BrowserWindow id and registers trust decisions", async () => {
+    const { registerPlatformIpcHandlers } = await import("../src/main/desktopMainIpcPlatform.js");
+    const { loadCliMcpFromUserDirectory } = await import(
+      "../src/main/mcpUserDirectory/index.js"
+    );
+    const { WORKSPACE_MCP_TRUST_DECIDE_CHANNEL } = await import(
+      "../src/shared/workspaceMcpTrustBridge.js"
+    );
+    const loadMcp = vi.mocked(loadCliMcpFromUserDirectory);
+    loadMcp.mockClear();
+    loadMcp.mockResolvedValue({ servers: [] });
+    electronMocks.browserWindowFromWebContents.mockReturnValue({ id: 42 });
+    const windowWorkspaceMap = new Map<number, Set<string>>([
+      [42, new Set(["/workspace/registered"])],
+    ]);
+
+    registerPlatformIpcHandlers({
+      logger: { info: vi.fn(), warn: vi.fn() },
+      applyApplicationLocale: vi.fn(async () => {}),
+      focusWorkspaceInExistingWindow: vi.fn(() => ({ activated: false })),
+      windowWorkspaceMap,
+      windowUnreadCountMap: new Map(),
+      currentApplicationLocale: () => "en-US",
+      executeDesktopCommand: vi.fn(async () => {}),
+      acknowledgePostUpdateReleaseNotes: vi.fn(async () => {}),
+      syncTaskRealtimeWorkspaceKeys: vi.fn(),
+      getUpdateState: vi.fn(() => ({ status: "idle" })),
+      syncWebRemoteControlWorkspaces: vi.fn(),
+      deviceMid: "test-device-mid",
+    });
+
+    const loadHandler = electronMocks.handlers.get(PlatformChannels.LoadMcpFromUserDirectory);
+    await loadHandler?.({ sender: {} }, { workspacePath: "/workspace/registered" });
+    expect(loadMcp).toHaveBeenCalledWith(
+      { workspacePath: "/workspace/registered" },
+      { workspaceRegistered: true },
+    );
+    expect(electronMocks.handlers.get(WORKSPACE_MCP_TRUST_DECIDE_CHANNEL)).toBeDefined();
+  });
+
   it("returns every native directory selection and an empty list on cancellation", async () => {
     const { registerPlatformIpcHandlers } = await import("../src/main/desktopMainIpcPlatform.js");
     registerPlatformIpcHandlers({
