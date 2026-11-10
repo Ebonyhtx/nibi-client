@@ -59,6 +59,9 @@ pub struct McpSettings {
     pub client_version: String,
     /// `-p` 的启动等待（ext.md §3.3.1，修复线 F36）：入口按环境变量与参数算好。
     pub startup: super::startup::McpStartup,
+    /// 工作区 MCP 信任快照（A5/A6）：入口读 Host 写入的用户域记录后注入；项目服务器未命中即跳过。
+    /// 未注入（`Default`）时不启用闸门，只用于非 Host 嵌入与既有单测。
+    pub project_trust: super::trust::ProjectMcpTrust,
 }
 
 impl McpSettings {
@@ -82,6 +85,7 @@ impl Default for McpSettings {
             max_output_tokens: 25_000,
             client_version: String::new(),
             startup: super::startup::McpStartup::default(),
+            project_trust: super::trust::ProjectMcpTrust::default(),
         }
     }
 }

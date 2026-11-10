@@ -24,6 +24,7 @@ pub mod header_source;
 mod history;
 mod hook_trust;
 mod login;
+pub mod mcp_trust;
 pub mod model_name;
 mod option_map;
 mod personal;
@@ -59,6 +60,7 @@ pub use device::{DeviceMid, NewUuid};
 pub use history::{History, Recorder};
 pub use hook_trust::{HookTrustStore, TrustError, TrustLoad, TrustRecord};
 pub use login::{LoginError, LoginOutcome, PendingLogin, SetupOutcome};
+pub use mcp_trust::{McpTrustLoad, McpTrustRecord, McpTrustStore};
 /// Node 的平台名（定义在 base，F55）；入口经 platform 取用，路径不变。
 pub use nibi_kernel_base::js::node_platform;
 pub use providers::edit::{

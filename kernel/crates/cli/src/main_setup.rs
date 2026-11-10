@@ -250,6 +250,7 @@ pub(super) async fn extensions(
         (env, bindings),
         config.mcp_servers.clone(),
         config.mcp_enabled,
+        config.mcp_trust.clone(),
     )
     .await;
     // 配置里停用的服务器（tui-manage.md §6.1）：MCP 关闭或 `--strict-mcp-config` 时没有；同名的

@@ -166,6 +166,8 @@ pub(crate) struct Inner {
     paid_owners: OnceLock<Arc<RwLock<HashMap<String, String>>>>,
     /// `elicitation/create` 的宿主端口：工具调用执行期间登记会话，服务器提问时找回它。
     elicitation: Arc<super::elicitation::ElicitationHub>,
+    /// 本次装载被工作区信任闸门拒绝的项目服务器（诊断用，不进入连接表）。
+    untrusted_project: Mutex<BTreeMap<String, super::trust::ProjectMcpRejection>>,
 }
 
 impl Inner {
@@ -231,6 +233,43 @@ impl Inner {
 
     pub(crate) fn settings(&self) -> &McpSettings {
         &self.settings
+    }
+
+    /// 工作区信任闸门（A5/A6）：只放行 `ProjectMcpTrust` 允许的服务器，其余留在诊断表里。
+    ///
+    /// 没注入信任快照（`ProjectMcpTrust::default()`）时不拦截；CLI 入口总是注入启用快照。
+    fn admit_servers(
+        &self,
+        servers: Vec<McpServer>,
+    ) -> (
+        Vec<McpServer>,
+        BTreeMap<String, super::trust::ProjectMcpRejection>,
+    ) {
+        let mut admitted = Vec::with_capacity(servers.len());
+        let mut rejected = BTreeMap::new();
+        for server in servers {
+            match self.settings.project_trust.rejection(&server) {
+                None => admitted.push(server),
+                Some(reason) => {
+                    tracing::warn!(
+                        event = "mcp.project_trust.rejected",
+                        server = server.name,
+                        reason = reason.reason(),
+                        workspace = self.settings.project_trust.workspace_identity(),
+                        "project MCP server is not trusted and was not loaded"
+                    );
+                    rejected.insert(server.name.clone(), reason);
+                }
+            }
+        }
+        (admitted, rejected)
+    }
+
+    fn set_untrusted_project(&self, rejected: BTreeMap<String, super::trust::ProjectMcpRejection>) {
+        *self
+            .untrusted_project
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = rejected;
     }
 
     /// 协商到的协议世代（测试与 `mcp/list` 的快照用）。
@@ -854,6 +893,7 @@ impl McpManager {
             paid_gate: OnceLock::new(),
             paid_owners: OnceLock::new(),
             elicitation: super::elicitation::ElicitationHub::new(),
+            untrusted_project: Mutex::default(),
         }))
     }
 
@@ -934,6 +974,8 @@ impl McpManager {
             .workspace
             .lock()
             .unwrap_or_else(PoisonError::into_inner) = Some(workspace.clone());
+        let (servers, rejected) = self.0.admit_servers(servers);
+        self.0.set_untrusted_project(rejected);
         let now = self.0.clock.now_ms();
         for config in servers {
             let cancel = {
@@ -952,6 +994,15 @@ impl McpManager {
         self.0.changed.send_modify(|version| *version += 1);
     }
 
+    /// 最近一次 `start`/`reconcile` 被工作区信任闸门拒绝的项目服务器与原因（诊断/测试用）。
+    pub fn untrusted_project_servers(&self) -> BTreeMap<String, super::trust::ProjectMcpRejection> {
+        self.0
+            .untrusted_project
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
     /// 把连接集合收敛到 `servers`（Host `mcp/list` 的 `mode: "connect"`）。
     ///
     /// 这次给的是**完整集合**：缺席的断开并移出，新名字开始连，配置变了的换掉重连。同步返回，
@@ -962,6 +1013,8 @@ impl McpManager {
             .workspace
             .lock()
             .unwrap_or_else(PoisonError::into_inner) = Some(workspace.clone());
+        let (servers, rejected) = self.0.admit_servers(servers);
+        self.0.set_untrusted_project(rejected);
         let incoming: BTreeSet<String> = servers
             .iter()
             .map(|server| server.name.clone())

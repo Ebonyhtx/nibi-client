@@ -17,6 +17,7 @@ import type {
 } from "@nibi/shared";
 import type { McpConfigKeyName } from "./types.js";
 import { readJsonObjectFileForUpdate, updateJsonObjectFile } from "@nibi/services/node";
+import { inspectWorkspaceMcpTrust } from "../mcpWorkspaceTrust/index.js";
 import { isRecord } from "./utils.js";
 
 // 重新导出类型和函数
@@ -377,17 +378,37 @@ async function updateZCodeServersInFile(
 
 export async function loadCliMcpFromUserDirectory(
   request?: LoadCliMcpFromUserDirectoryRequest,
+  options?: {
+    /**
+     * A6：只有 Host 已登记（本窗口打开过）的工作区才读取项目配置。未登记时只返回用户级 MCP，
+     * 不探测任意路径。缺省 true，保持非 IPC 调用方与单测的既有语义。
+     */
+    workspaceRegistered?: boolean;
+    /** 测试/隔离实例的存储根覆盖（trust store 位置）。 */
+    storageRoot?: string;
+  },
 ): Promise<LoadCliMcpFromUserDirectoryResult> {
   const servers: NativeMcpServerRecord[] = [];
+  const workspacePath = request?.workspacePath;
+  const inspectWorkspace = Boolean(workspacePath) && options?.workspaceRegistered !== false;
 
   // 去掉其他 provider 后，ZCode Agent 只按目录约定读取；先 workspace，再 user。
-  if (request?.workspacePath) {
-    servers.push(...await readDirectoryServersFromPreferredSources("workspace", request.workspacePath));
+  if (workspacePath && inspectWorkspace) {
+    servers.push(...await readDirectoryServersFromPreferredSources("workspace", workspacePath));
   }
 
-  servers.push(...await readDirectoryServersFromPreferredSources("user", request?.workspacePath));
+  servers.push(...await readDirectoryServersFromPreferredSources("user", workspacePath));
 
-  return { servers };
+  if (!workspacePath || !inspectWorkspace) {
+    return { servers };
+  }
+  const { reviews } = await inspectWorkspaceMcpTrust({
+    records: servers,
+    workspacePath,
+    ...(request?.workspaceIdentity ? { workspaceIdentity: request.workspaceIdentity } : {}),
+    ...(options?.storageRoot ? { storageRoot: options.storageRoot } : {}),
+  });
+  return { servers, trust: reviews };
 }
 
 export async function saveCliMcpToUserDirectory(

@@ -797,6 +797,21 @@ modules:
     layers:
       adapters: .
     owner: desktop
+  # mcp-workspace-trust：工作区 MCP 信任的用户域记录、声明摘要与装载过滤。Host 是唯一写入者；
+  # Rust 内核只读同一份 `<storage>/security/workspace-mcp-trust-v1.json`。
+  - id: mcp-workspace-trust
+    roots:
+      - packages/desktop/src/main/mcpWorkspaceTrust
+    managed: true
+    requires:
+      - shared
+      - services
+    publicEntrypoints:
+      - packages/desktop/src/main/mcpWorkspaceTrust/index.ts
+      - packages/desktop/src/main/mcpWorkspaceTrust/contract.ts
+    layers:
+      adapters: .
+    owner: desktop
 
 global:
   # 临时时间戳（2026-09-10）：unmanaged-new-file 只约束此日期之后首次入库的文件。

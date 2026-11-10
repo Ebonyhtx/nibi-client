@@ -232,6 +232,7 @@ pub(crate) async fn settings(
     (snapshot, bindings): (&[(String, String)], &McpBindings),
     configured: Vec<McpServer>,
     enabled: bool,
+    project_trust: nibi_kernel_ext::mcp::ProjectMcpTrust,
 ) -> McpSettings {
     let reader = Reader {
         files,
@@ -266,6 +267,7 @@ pub(crate) async fn settings(
         // 握手的 `clientInfo.version`：入口的版本是唯一来源（docs/specs/rust-cli/version.md §4）。
         client_version: crate::VERSION.to_owned(),
         startup: startup(snapshot, (explicit, flags), connect_timeout_ms, allowed),
+        project_trust,
     }
 }
 

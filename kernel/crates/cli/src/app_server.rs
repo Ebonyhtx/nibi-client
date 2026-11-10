@@ -523,6 +523,8 @@ async fn serve(
     let kernel = Arc::new(kernel);
     kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.start_extensions().await;
+    // 常驻会话池：目标 8 / 高水位 16 / 空闲 10 分钟；请求租约释放触发收敛，60 s sampler 兜底。
+    kernel.start_resident_pool();
     if let Some(engine) = workflow_engine {
         engine.attach_kernel(kernel.clone() as Arc<dyn nibi_kernel_api::session_api::Kernel>);
     }

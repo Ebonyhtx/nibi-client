@@ -19,6 +19,7 @@ mod startup;
 mod status;
 mod telemetry;
 mod tool;
+mod trust;
 mod wait_tool;
 
 pub use app_instances::CallGuard;
@@ -38,4 +39,5 @@ pub use startup::{
     DEFAULT_CONNECT_WAIT_MS, DEFAULT_PREWAIT_MS, McpStartup, prewait_ms, required_servers,
     wait_for_deferrable,
 };
+pub use trust::{ProjectMcpRejection, ProjectMcpTrust, ProjectMcpTrustRecord, declaration_digest};
 pub(crate) use wait_tool::WaitForMcpServers;

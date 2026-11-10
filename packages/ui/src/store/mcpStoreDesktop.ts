@@ -1,7 +1,7 @@
 import type {
   IPlatformService,
   LoadCliMcpFromUserDirectoryRequest,
-  NativeMcpServerRecord,
+  LoadCliMcpFromUserDirectoryResult,
   SaveCliMcpToUserDirectoryRequest,
 } from "@nibi/shared";
 import type { IMcpSyncService } from "@nibi/services";
@@ -44,15 +44,13 @@ export async function fetchNativeMcpServers(
   platform: McpPlatformService | null,
   payload?: LoadCliMcpFromUserDirectoryRequest,
   directoryService?: McpDirectoryService | null,
-): Promise<NativeMcpServerRecord[]> {
+): Promise<LoadCliMcpFromUserDirectoryResult> {
   if (directoryService) {
-    const result = await directoryService.loadMcpFromUserDirectory(payload);
-    return result.servers ?? [];
+    return await directoryService.loadMcpFromUserDirectory(payload);
   }
   if (!platform?.loadMcpFromUserDirectory) {
-    return [];
+    return { servers: [] };
   }
-  const result = await platform.loadMcpFromUserDirectory(payload);
-  return result.servers ?? [];
+  return await platform.loadMcpFromUserDirectory(payload);
 }
 

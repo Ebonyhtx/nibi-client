@@ -88,10 +88,40 @@ export interface NativeMcpServerRecord {
 
 export interface LoadCliMcpFromUserDirectoryRequest {
   workspacePath?: string;
+  /** 工作区身份（remote 链路与本地路径不同的稳定键）；缺省按 workspacePath。 */
+  workspaceIdentity?: string;
 }
+
+/**
+ * 一条工作区 MCP 声明的审核结果（Host 唯一 owner 计算）。
+ *
+ * `trusted` 只表示用户域记录里有当前精确摘要；`configuredEnabled` 与信任正交。
+ * `display` 是 Host 已脱敏的展示文本，UI 不得从原始配置重建。
+ */
+export interface WorkspaceMcpTrustReview {
+  declarationDigest: string;
+  configuredEnabled: boolean;
+  transport: "stdio" | "http" | "sse";
+  sourcePaths: string[];
+  display: string;
+  trusted: boolean;
+}
+
+export type WorkspaceMcpTrustDecision =
+  | { accepted: true }
+  | {
+      accepted: false;
+      reasonCode:
+        | "workspace_mcp_declaration_changed"
+        | "workspace_mcp_trust_unavailable"
+        | "workspace_mcp_workspace_not_registered"
+        | "workspace_mcp_workspace_offline";
+    };
 
 export interface LoadCliMcpFromUserDirectoryResult {
   servers: NativeMcpServerRecord[];
+  /** 项目级（workspace scope）MCP 的审核状态；用户级/插件级不在其中。 */
+  trust?: Record<string, WorkspaceMcpTrustReview>;
 }
 
 export interface McpConfig {

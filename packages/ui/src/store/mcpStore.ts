@@ -12,6 +12,7 @@ import type {
   McpServerStatus,
   McpSource,
   NativeMcpServerRecord,
+  WorkspaceMcpTrustReview,
   ZCodeMcpListMode,
   ZCodeMcpServerStatusSnapshot,
   ZCodeMcpServer,
@@ -57,6 +58,13 @@ interface McpStoreState {
   nativeServers: NativeMcpServerRecord[];
   servers: ZCodeMcpServer[];
   statusSnapshots: Record<string, ZCodeMcpServerStatusSnapshot>;
+  /** 项目级 MCP 的 Host 审核状态（Host 唯一 owner；未信任的项目 server 不进入 Agent）。 */
+  workspaceTrust: Record<string, WorkspaceMcpTrustReview>;
+  /**
+   * 当前 Host 是否返回了 trust 元数据。旧远端 Host 没有该字段时保持兼容（不按未知状态拦截）；
+   * 本机 Host 与新远端 Host 一律 true，按 fail-closed 过滤。
+   */
+  workspaceTrustKnown: boolean;
   currentProjectPath: string;
   currentWorkspaceIdentity?: string;
   currentAuthorityKey?: string;
@@ -191,7 +199,10 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
         projectPath,
       });
     }
-    set(commitState({ nativeServers }));
+    // 项目声明被修改后旧审核摘要失效；同名重新保存必须重新审核，不能沿用旧 trusted。
+    const workspaceTrust = { ...get().workspaceTrust };
+    if (projectPath) delete workspaceTrust[name];
+    set({ ...commitState({ nativeServers }), workspaceTrust });
   }
 
   async function persistScopedChange(
@@ -216,6 +227,8 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
     nativeServers: [],
     servers: [],
     statusSnapshots: {},
+    workspaceTrust: {},
+    workspaceTrustKnown: false,
     currentProjectPath: "",
     currentWorkspaceIdentity: undefined,
     currentAuthorityKey: undefined,
@@ -275,11 +288,17 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
           logger.info(
             `[mcpStore] loadMcpFromUserDirectory workspace=${latestWorkspacePath ?? "<none>"} identity=${latestWorkspaceIdentity ?? "<none>"}`,
           );
-          let servers = await fetchNativeMcpServers(
+          const loaded = await fetchNativeMcpServers(
             mcpPlatformService,
-            { workspacePath: latestWorkspacePath },
+            {
+              workspacePath: latestWorkspacePath,
+              ...(latestWorkspaceIdentity?.trim()
+                ? { workspaceIdentity: latestWorkspaceIdentity.trim() }
+                : {}),
+            },
             activeDirectoryService,
           );
+          const servers = loaded.servers ?? [];
           const currentState = get();
           const currentWorkspaceKey = `${currentState.currentAuthorityKey?.trim() || "workspace"}\0${currentState.currentWorkspaceIdentity?.trim() || currentState.currentProjectPath}`;
           if (currentWorkspaceKey !== latestWorkspaceKey) {
@@ -287,7 +306,11 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
             // 旧结果包含 env/header/OAuth secret，不能写回共享 store 后被 B 的 Agent 消费。
             return false;
           }
-          set(commitState({ nativeServers: servers }));
+          set({
+            ...commitState({ nativeServers: servers }),
+            workspaceTrust: loaded.trust ?? {},
+            workspaceTrustKnown: loaded.trust !== undefined,
+          });
           return true;
         } catch (e) {
           // 读取失败不是“配置为空”；调用方必须保持 workspace not-ready，
@@ -547,6 +570,8 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
         currentWorkspaceIdentity: normalizedWorkspaceIdentity,
         currentAuthorityKey: normalizedAuthorityKey,
         nativeServers: nextNativeServers,
+        workspaceTrust: workspaceChanged ? {} : get().workspaceTrust,
+        workspaceTrustKnown: workspaceChanged ? false : get().workspaceTrustKnown,
         statusSnapshots: {},
         servers: buildServerList(
           config,
@@ -564,14 +589,20 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
     },
 
     getEnabledMcpServersForZCode: (_provider) => {
-      const { servers, enabledStates, currentProjectPath } = get();
+      const { servers, enabledStates, currentProjectPath, workspaceTrust, workspaceTrustKnown } =
+        get();
       const candidates = new Map<string, ZCodeMcpServer>();
 
       for (const server of servers) {
         const isEnabled = enabledStates[server.id] ?? server.enabled;
         if (!isEnabled) continue;
         if (server.source !== "zcodeagentmcp") continue;
-        if (server.scope === "workspace" && server.projectPath !== currentProjectPath) continue;
+        if (server.scope === "workspace") {
+          if (server.projectPath !== currentProjectPath) continue;
+          // 项目级 MCP 必须通过 Host 的当前声明审核；未信任/不可审核/离线不进入 Agent。
+          // 旧远端 Host 没有 trust 元数据时保持兼容，不按未知状态批量停用项目 MCP。
+          if (workspaceTrustKnown && workspaceTrust[server.name]?.trusted !== true) continue;
+        }
 
         const existing = candidates.get(server.name);
         if (!existing || getServerPriority(server) > getServerPriority(existing)) {

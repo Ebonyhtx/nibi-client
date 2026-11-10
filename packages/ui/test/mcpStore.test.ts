@@ -31,6 +31,8 @@ describe("mcpStore", () => {
       nativeServers: [],
       servers: [],
       statusSnapshots: {},
+      workspaceTrust: {},
+      workspaceTrustKnown: false,
       currentProjectPath: "",
       currentWorkspaceIdentity: undefined,
       enabledStates: {},
@@ -127,6 +129,7 @@ describe("mcpStore", () => {
 
     expect(directoryService.loadMcpFromUserDirectory).toHaveBeenCalledWith({
       workspacePath: "/remote/workspace",
+      workspaceIdentity: "ssh:host:/remote/workspace",
     });
     expect(platformLoad).not.toHaveBeenCalled();
     expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual([
@@ -225,6 +228,7 @@ describe("mcpStore", () => {
 
     expect(directoryService.loadMcpFromUserDirectory).toHaveBeenCalledWith({
       workspacePath: "/remote/workspace-b",
+      workspaceIdentity: "ssh://dev/remote/workspace-b",
     });
     expect(useMcpStore.getState().servers.map((server) => server.name)).toEqual([
       "remote-b",
@@ -1003,5 +1007,61 @@ describe("mcpStore", () => {
     await toggle;
 
     expect(useMcpStore.getState().servers[0]?.enabled).toBe(true);
+  });
+
+  it("未信任的项目 MCP 不进入 Agent，用户级不受影响", () => {
+    useMcpStore.setState({
+      currentProjectPath: "/workspace/project",
+      enabledStates: {},
+      workspaceTrust: {},
+      workspaceTrustKnown: true,
+      servers: [
+        {
+          id: "zcodeagentmcp-workspace-probe",
+          name: "probe",
+          config: { type: "stdio", command: "node", args: ["server.mjs"] },
+          enabled: true,
+          source: "zcodeagentmcp",
+          scope: "workspace",
+          projectPath: "/workspace/project",
+        },
+        {
+          id: "zcodeagentmcp-global-user",
+          name: "user_probe",
+          config: { type: "stdio", command: "node", args: ["user.mjs"] },
+          enabled: true,
+          source: "zcodeagentmcp",
+          scope: "user",
+        },
+      ],
+    });
+
+    expect(
+      useMcpStore
+        .getState()
+        .getEnabledMcpServersForZCode(undefined)
+        .map((server) => server.name),
+    ).toEqual(["user_probe"]);
+
+    useMcpStore.setState({
+      workspaceTrust: {
+        probe: {
+          declarationDigest: "a".repeat(64),
+          configuredEnabled: true,
+          transport: "stdio",
+          sourcePaths: ["/workspace/project/.nibi/config.json"],
+          display: "{}",
+          trusted: true,
+        },
+      },
+      workspaceTrustKnown: true,
+    });
+    expect(
+      useMcpStore
+        .getState()
+        .getEnabledMcpServersForZCode(undefined)
+        .map((server) => server.name)
+        .sort(),
+    ).toEqual(["probe", "user_probe"]);
   });
 });

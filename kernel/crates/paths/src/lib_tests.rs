@@ -286,6 +286,27 @@ fn the_cli_config_and_the_hook_trust_store_follow_the_node_cli() {
 }
 
 #[test]
+fn the_mcp_trust_store_shares_the_hook_trust_root() {
+    let paths = resolve(None, Some("data"));
+    assert_eq!(
+        paths.mcp_trust_store(None).as_path(),
+        Path::new("/home/dev/.nibi/security/workspace-mcp-trust-v1.json")
+    );
+    assert_eq!(
+        paths.mcp_trust_store(Some("store")).as_path(),
+        Path::new("/home/dev/store/security/workspace-mcp-trust-v1.json")
+    );
+    assert_eq!(
+        paths.mcp_trust_store(Some("~/x")).as_path(),
+        Path::new("/home/dev/x/security/workspace-mcp-trust-v1.json")
+    );
+    assert_eq!(
+        paths.mcp_trust_store(Some("  ")).as_path(),
+        Path::new("/home/dev/.nibi/security/workspace-mcp-trust-v1.json")
+    );
+}
+
+#[test]
 fn the_plugin_storage_follows_the_node_cli() {
     let paths = resolve(None, None);
     let base = Path::new("/work/repo");

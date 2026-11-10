@@ -6,6 +6,7 @@
 //! 候选目录在同一次组装里从本机存储的插件清单得出（`plugins`，config.md §2.1）。
 
 mod files;
+pub(crate) mod mcp_trust;
 pub(crate) mod merge;
 mod plugins;
 mod storage;
@@ -63,6 +64,8 @@ pub(crate) struct ConfigSnapshot {
     /// 配置里停用的 MCP 服务器与每个名字的来源文件（`/mcp enable/disable`，tui-manage.md §6.1）。
     pub(crate) mcp_disabled: Vec<McpServer>,
     pub(crate) mcp_origins: std::collections::BTreeMap<String, merge::McpOrigin>,
+    /// 工作区 MCP 信任快照（A5/A6）：项目服务器未信任时不装载（ext 的装载闸门）。
+    pub(crate) mcp_trust: nibi_kernel_ext::mcp::ProjectMcpTrust,
     /// `features.mcp` 不为 false。
     pub(crate) mcp_enabled: bool,
     /// `features.skill` 与 `skills.enabled` 都为真（Node `createNodeSkillAdapter` 的判据）。
@@ -326,6 +329,20 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         disabled: mcp_disabled,
         origins: mcp_origins,
     } = merge::mcp_layers(&layers, &mut warnings);
+    let root = inputs.workspace.root.as_str();
+    // 工作区身份与 Host 一致：优先入口注入的稳定 identity（远程/别名），否则工作区根。
+    let workspace_identity = inputs
+        .process_env
+        .iter()
+        .rev()
+        .find_map(|(name, value)| {
+            (name == "NIBI_WORKSPACE_IDENTITY" && !value.trim().is_empty())
+                .then(|| value.trim().to_owned())
+        })
+        .unwrap_or_else(|| root.to_owned());
+    // 工作区 MCP 信任（A5/A6）：Host 写入的用户域记录；存储缺失=无授权，损坏=全部拒绝。
+    let mcp_trust =
+        mcp_trust::load(inputs.paths, user_object, &workspace_identity, &mcp_servers).await;
     let mcp_enabled = merge::mcp_enabled(&layers);
     let skills_enabled = merge::skills_enabled(&layers);
     let memory_enabled = merge::feature_enabled(&layers, "memory");
@@ -337,7 +354,6 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
     let theme = merge::theme(&layers, &mut warnings);
     let check_for_update = merge::check_for_update(&layers, &mut warnings);
     let question_timeout = merge::question_timeout(&layers, &mut warnings);
-    let root = inputs.workspace.root.as_str();
     let plugin_section = plugins::merge(&layers, &mut warnings);
     let storage = StorageLayers::from_layers(&layers, inputs.process_env);
     let plugin_root = inputs
@@ -398,6 +414,7 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         mcp_servers,
         mcp_disabled,
         mcp_origins,
+        mcp_trust,
         mcp_enabled,
         skills_enabled,
         memory_enabled,

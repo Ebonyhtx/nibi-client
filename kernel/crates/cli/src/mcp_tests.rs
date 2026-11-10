@@ -78,6 +78,7 @@ async fn settings(
         (snapshot, &McpBindings::default()),
         configured,
         enabled,
+        nibi_kernel_ext::mcp::ProjectMcpTrust::default(),
     )
     .await
 }
@@ -101,6 +102,7 @@ async fn bindings_put_servers_on_their_machines_and_keep_their_variables() {
         (&snapshot, &bindings),
         configured(),
         true,
+        nibi_kernel_ext::mcp::ProjectMcpTrust::default(),
     )
     .await;
     let machines: Vec<(String, Option<String>)> = bound

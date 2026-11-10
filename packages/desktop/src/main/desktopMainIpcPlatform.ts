@@ -54,6 +54,7 @@ import {
   loadCliMcpFromUserDirectory,
   saveCliMcpToUserDirectory,
 } from "./mcpUserDirectory/index.js";
+import { isWorkspaceRegisteredForMcpInspection } from "./mcpWorkspaceTrust/index.js";
 import { createTempTextAttachment } from "./tempTextAttachment.js";
 import { materializeWorkflowArtifactFile } from "./workflowArtifactFile.js";
 import { registerDesktopSaveFileIpcHandler } from "./desktopSaveFile.js";
@@ -216,8 +217,15 @@ export function registerPlatformIpcHandlers(options: {
 
   ipcMain.handle(
     PlatformChannels.LoadMcpFromUserDirectory,
-    async (_event, payload?: LoadCliMcpFromUserDirectoryRequest) => {
-      return loadCliMcpFromUserDirectory(payload);
+    async (event, payload?: LoadCliMcpFromUserDirectoryRequest) => {
+      // A6：MCP 设置检测只读本窗口已登记（真正打开过）的工作区；未登记时只返回用户级 MCP，
+      // 不按 renderer 传来的任意路径探测项目配置。
+      const workspaceRegistered = isWorkspaceRegisteredForMcpInspection(
+        options.windowWorkspaceMap,
+        event.sender.id,
+        payload?.workspacePath,
+      );
+      return loadCliMcpFromUserDirectory(payload, { workspaceRegistered });
     },
   );
 

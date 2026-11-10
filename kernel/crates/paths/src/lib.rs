@@ -75,6 +75,8 @@ const CONFIG_ROOT: &str = "v2";
 const CLI_CONFIG: &str = concat!(cli_dir!(), "/config.json");
 /// 项目 hooks 的信任记录（Node `SECURITY_DIRECTORY` / `TRUST_STORE_FILE`）。
 const HOOK_TRUST_STORE: &str = "security/workspace-hook-trust-v1.json";
+/// 工作区 MCP 的信任记录（Host 唯一写入；内核只读）。
+const MCP_TRUST_STORE: &str = "security/workspace-mcp-trust-v1.json";
 /// Node `getCliStorageRoot` 的子目录与 `getPluginStorageRoot` 的子目录。
 const CLI_DIR: &str = cli_dir!();
 const PLUGINS_DIR: &str = "plugins";
@@ -272,6 +274,17 @@ impl StoragePaths {
             None => user_path(&self.home, ""),
         };
         StoragePath(root.join(HOOK_TRUST_STORE))
+    }
+
+    /// 工作区 MCP 的信任记录（Host `mcpWorkspaceTrust/index.ts` 写入，内核只读）。位置规则与
+    /// [`Self::hook_trust_store`] 完全相同：`storage.dir` 的 `~/` 展开到 home，相对路径相对 home，
+    /// 空白视为没有，缺省 `<home>/.nibi`。
+    pub fn mcp_trust_store(&self, storage_dir: Option<&str>) -> StoragePath {
+        let root = match storage_dir.map(str::trim).filter(|dir| !dir.is_empty()) {
+            Some(dir) => self.home.join(expand_home(dir, &self.home)),
+            None => user_path(&self.home, ""),
+        };
+        StoragePath(root.join(MCP_TRUST_STORE))
     }
 
     /// Node 的插件存储根（`getPluginStorageRoot(getCliStorageRoot(resolvePath(storage.dir)))`）：
