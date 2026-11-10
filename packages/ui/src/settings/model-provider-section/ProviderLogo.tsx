@@ -11,6 +11,10 @@ import deepSeekLogo from "@/assets/provider-icons/model-provider-deepseek.png";
 import miniMaxLogo from "@/assets/provider-icons/model-provider-minimax.png";
 import moonshotKimiLogo from "@/assets/provider-icons/model-provider-moonshot-kimi.png";
 import openAiLogo from "@/assets/provider-icons/model-provider-openai.png";
+import siliconFlowLogo from "@/assets/provider-icons/model-provider-siliconflow.png";
+import stepFunLogo from "@/assets/provider-icons/model-provider-stepfun.png";
+import tencentCloudLogo from "@/assets/provider-icons/model-provider-tencent-cloud.png";
+import volcengineLogo from "@/assets/provider-icons/model-provider-volcengine.png";
 import xAiLogo from "@/assets/provider-icons/model-provider-xai.png";
 import xiaomiMimoLogo from "@/assets/provider-icons/model-provider-xiaomi-mimo.png";
 import zaiLogo from "@/assets/provider-icons/model-provider-zai-app.png";
@@ -36,12 +40,21 @@ const BUILTIN_PROVIDER_LOGO_ASSETS: Readonly<Record<string, BuiltinProviderLogoA
   deepseek: { light: deepSeekLogo },
   "alibaba-model-studio": { light: alibabaModelStudioLogo },
   "xiaomi-mimo": { light: xiaomiMimoLogo },
+  "tencent-cloud": { light: tencentCloudLogo },
+  volcengine: { light: volcengineLogo },
+  stepfun: { light: stepFunLogo },
+  siliconflow: { light: siliconFlowLogo },
   openai: { light: openAiLogo },
   anthropic: { light: anthropicLogo },
   xai: { light: xAiLogo },
   openrouter: { light: openrouterLight, dark: openrouterDark },
   opencode: { light: opencodeLight, dark: opencodeDark },
 };
+
+/** 配置里的内置 logo key 是否已有打包素材（测试用，防止新增预设再次落到通用图标）。 */
+export function hasBuiltinProviderLogoAsset(key: string): boolean {
+  return key in BUILTIN_PROVIDER_LOGO_ASSETS;
+}
 
 export function resolveBuiltinProviderLogoAsset(
   logo: ProviderLogoRef | null | undefined,

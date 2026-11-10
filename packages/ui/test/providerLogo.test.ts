@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
+  hasBuiltinProviderLogoAsset,
   ProviderLogo,
   resolveBuiltinProviderLogoAsset,
 } from "@/settings/model-provider-section/ProviderLogo.js";
@@ -35,6 +38,27 @@ describe("ProviderLogo", () => {
     expect(known).toContain("<img");
     expect(known).toContain('alt=""');
     expect(unknown).toContain("lucide-package");
+  });
+
+  it("配置里的每个内置 logo key 都有打包素材", () => {
+    const config = JSON.parse(
+      readFileSync(join(process.cwd(), "config/provider/nibi-builtin.json"), "utf8"),
+    ) as {
+      config: {
+        providerConfigRules: {
+          templateRules: Array<{ config?: { logo?: { type?: string; key?: string } } }>;
+        };
+      };
+    };
+    const keys = new Set<string>();
+    for (const rule of config.config.providerConfigRules.templateRules) {
+      const logo = rule.config?.logo;
+      if (logo?.type === "builtin" && logo.key) keys.add(logo.key);
+    }
+    expect(keys.size).toBeGreaterThan(0);
+    for (const key of keys) {
+      expect(hasBuiltinProviderLogoAsset(key), key).toBe(true);
+    }
   });
 
   it("打包资源加载失败时回退通用图标", () => {

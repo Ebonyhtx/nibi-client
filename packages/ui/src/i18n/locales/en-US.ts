@@ -1268,6 +1268,8 @@ const enUS: Record<string, string> = {
   "bots.allowedWorkspaces.mode.selected": "Selected projects",
   "bots.allowedWorkspaces.allDescription": "This bot can use any configured project.",
   "bots.allowedWorkspaces.selectedDescription": "This bot can use {count} selected projects.",
+  "bots.allowedWorkspaces.empty": "No project is available yet. Add or open a project in NIBI first.",
+  "bots.allowedWorkspaces.none": "No projects",
   "bots.botMeta": "{users} bound users · workspace {workspace}",
   "bots.botSummary": "{users} users · {workspaces} workspaces · {workspace}",
   "bots.userCount": "{count} users",

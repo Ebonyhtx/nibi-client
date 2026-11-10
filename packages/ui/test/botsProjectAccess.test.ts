@@ -54,3 +54,23 @@ it("切换指定项目时保存真实项目 ID，不能保存当前 tab cwd", ()
   fireEvent.click(screen.getByText("select-projects"));
   expect(patch).toHaveBeenCalledWith(['["local","p1"]']);
 });
+
+it("没有项目时说明要先添加或打开项目，且不显示成可配置的全部项目", () => {
+  render(
+    createElement(
+      ZCodeIntlProvider,
+      { initialLocale: "en-US" },
+      createElement(WorkspaceAccessCard, {
+        bot: { allowedWorkspaces: ["*"] } as BotConfig,
+        workspaceRefs: [],
+        loading: false,
+        onPatchAllowedWorkspaces: vi.fn(async () => undefined),
+        onToggleWorkspaceAccess: vi.fn(async () => undefined),
+      }),
+    ),
+  );
+  expect(
+    screen.getByText("No project is available yet. Add or open a project in NIBI first."),
+  ).not.toBeNull();
+  expect(screen.getByText("select-projects").closest("button")?.disabled).toBe(true);
+});

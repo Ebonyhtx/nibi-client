@@ -1152,6 +1152,8 @@ const zhCN: Record<string, string> = {
   "bots.allowedWorkspaces.mode.selected": "指定项目",
   "bots.allowedWorkspaces.allDescription": "这个机器人可以使用所有已配置的项目。",
   "bots.allowedWorkspaces.selectedDescription": "这个机器人可以使用 {count} 个指定项目。",
+  "bots.allowedWorkspaces.empty": "还没有可用的项目。请先在 NIBI 中添加或打开一个项目。",
+  "bots.allowedWorkspaces.none": "暂无项目",
   "bots.botMeta": "{users} 个已绑定用户 · 工作区 {workspace}",
   "bots.botSummary": "{users} 个用户 · {workspaces} 个工作区 · {workspace}",
   "bots.userCount": "{count} 个用户",

@@ -37,19 +37,25 @@ export function WorkspaceAccessCard({
   return (
     <SettingsRow
       label={intl.formatMessage({ id: "bots.allowedWorkspaces" })}
-      description={intl.formatMessage(
-        {
-          id: allAllowed
-            ? "bots.allowedWorkspaces.allDescription"
-            : "bots.allowedWorkspaces.selectedDescription",
-        },
-        { count: String(allowedCount) },
-      )}
+      description={
+        workspaceRefs.length === 0
+          ? intl.formatMessage({ id: "bots.allowedWorkspaces.empty" })
+          : intl.formatMessage(
+              {
+                id: allAllowed
+                  ? "bots.allowedWorkspaces.allDescription"
+                  : "bots.allowedWorkspaces.selectedDescription",
+              },
+              { count: String(allowedCount) },
+            )
+      }
       control={
         <div className="flex items-center justify-end gap-2">
           {loading ? <LoaderCircle className="size-4 animate-spin text-foreground-subtle" /> : null}
           <Select
-            value={allAllowed ? "all" : "selected"}
+            value={
+              workspaceRefs.length === 0 ? undefined : allAllowed ? "all" : "selected"
+            }
             onValueChange={(value) => {
               void onPatchAllowedWorkspaces(
                 value === "all" ? [ALL_BOT_WORKSPACES] : [workspaceRefs[0]!.id],
@@ -62,7 +68,9 @@ export function WorkspaceAccessCard({
               size="lg"
               className="w-48 justify-between"
             >
-              <SelectValue />
+              <SelectValue
+                placeholder={intl.formatMessage({ id: "bots.allowedWorkspaces.none" })}
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">

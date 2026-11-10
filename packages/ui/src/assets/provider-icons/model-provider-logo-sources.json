@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-09-02",
+  "reviewedAt": "2026-11-10",
   "logos": [
     {
       "brand": "OpenRouter",
@@ -109,6 +109,38 @@
       "sourceUrl": "https://avatars.githubusercontent.com/u/130314967?v=4",
       "sourceOwner": "xAI",
       "normalization": "Official GitHub organization avatar downsampled from 460x460 to 80x80 RGB."
+    },
+    {
+      "brand": "Tencent Cloud",
+      "file": "model-provider-tencent-cloud.png",
+      "providerIds": ["tencent-tokenhub-cn", "tencent-tokenhub-intl"],
+      "sourceUrl": "https://github.com/TencentCloud.png?size=512",
+      "sourceOwner": "Tencent Cloud",
+      "normalization": "Official Tencent Cloud GitHub organization avatar downsampled from 460x460 to 80x80 RGBA."
+    },
+    {
+      "brand": "Volcengine",
+      "file": "model-provider-volcengine.png",
+      "providerIds": ["volcengine-ark", "volcengine-coding-plan", "volcengine-agent-plan"],
+      "sourceUrl": "https://github.com/volcengine.png?size=512",
+      "sourceOwner": "Volcengine",
+      "normalization": "Official Volcengine GitHub organization avatar downsampled from 460x460 to 80x80 RGB."
+    },
+    {
+      "brand": "StepFun",
+      "file": "model-provider-stepfun.png",
+      "providerIds": ["stepfun", "stepfun-step-plan"],
+      "sourceUrl": "https://github.com/stepfun-ai.png?size=512",
+      "sourceOwner": "StepFun",
+      "normalization": "Official StepFun GitHub organization avatar downsampled from 460x460 to 80x80 RGB."
+    },
+    {
+      "brand": "SiliconFlow",
+      "file": "model-provider-siliconflow.png",
+      "providerIds": ["siliconflow-cn"],
+      "sourceUrl": "https://github.com/siliconflow.png?size=512",
+      "sourceOwner": "SiliconFlow",
+      "normalization": "Official SiliconFlow GitHub organization avatar downsampled from 460x460 to 80x80 RGBA."
     }
   ]
 }
