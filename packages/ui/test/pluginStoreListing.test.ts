@@ -12,6 +12,7 @@ import {
   groupItemsByCategory,
   resolveItemDisplayName,
   resolvePluginDisplayName,
+  resolvePluginEnableScope,
   resolveUniquePluginListingByName,
   resolveLocalizedList,
   resolveLocalizedText,
@@ -623,5 +624,22 @@ describe("document plugin default order", () => {
       marketplace: "personal",
     }));
     expect(sortInstalledStripItems(personal, "en-US")[0]?.name).toBe("aaa");
+  });
+});
+
+describe("resolvePluginEnableScope", () => {
+  it("defaults to user scope and keeps workspace only for a project-level disable", () => {
+    expect(resolvePluginEnableScope(undefined)).toBe("user");
+    expect(resolvePluginEnableScope({ info: undefined })).toBe("user");
+    expect(
+      resolvePluginEnableScope({
+        info: { enabledSource: "user" } as ZCodePluginInfo,
+      }),
+    ).toBe("user");
+    expect(
+      resolvePluginEnableScope({
+        info: { enabledSource: "workspace" } as ZCodePluginInfo,
+      }),
+    ).toBe("workspace");
   });
 });

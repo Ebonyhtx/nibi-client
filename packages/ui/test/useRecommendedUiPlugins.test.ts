@@ -59,7 +59,7 @@ function setup() {
   ];
   return service;
 }
-it("未安装和禁用仍展示，复用 user 安装与 workspace 启用，不自动打开", async () => {
+it("未安装和禁用仍展示，复用 user 安装与 user 启用，不自动打开", async () => {
   const service = setup();
   const { result } = renderHook(() =>
     useRecommendedUiPlugins({ workspacePath: "/workspace/a", sessionId: "s" }),
@@ -74,8 +74,11 @@ it("未安装和禁用仍展示，复用 user 安装与 workspace 启用，不�
   );
   expect(result.current.entries[0]!.item.installed).toBe(true);
   await act(async () => result.current.prepare(result.current.entries[0]!.item));
+  // 1268c20c：商店/推荐的隐式启用默认写 user scope（草稿工作区是一次性目录），
+  // 只有当前禁用来自项目级 override 时才写 workspace（见 pluginStoreListing 的
+  // resolvePluginEnableScope）。
   expect(service.setPluginEnabled).toHaveBeenCalledWith(
-    expect.objectContaining({ scope: "workspace", enabled: true }),
+    expect.objectContaining({ scope: "user", enabled: true }),
   );
   expect(result.current.entries[0]!.item.info?.enabled).toBe(true);
 });
