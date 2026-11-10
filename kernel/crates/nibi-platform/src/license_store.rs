@@ -16,13 +16,16 @@ use crate::credentials::{CredentialCipher, is_encrypted_value, is_legacy_encrypt
 pub const LICENSE_TOKEN_KEY: &str = "nibi:license:token";
 pub const LICENSE_STATE_KEY: &str = "nibi:license:state";
 pub const DEVICE_ID_KEY: &str = "nibi:device:id";
+/// 当前登录账号资料（JSON：`{ id, ... }`）：付费插件门禁的账号绑定。
+pub const USER_INFO_KEY: &str = "oauth:nibi:user_info";
 
-/// 门禁需要的三项事实；缺失都是 `None`，由判定层按 fail-closed 处理。
+/// 门禁需要的四项事实；缺失都是 `None`，由判定层按 fail-closed 处理。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct LicenseCredentials {
     pub token: Option<String>,
     pub refusal: Option<String>,
     pub device_id: Option<String>,
+    pub account_identity: Option<String>,
 }
 
 /// 读 `credentials.json` 并解出三项事实。
@@ -63,10 +66,20 @@ pub fn read_license_credentials(
                 .map(str::to_owned)
         })
         .filter(|refusal| !refusal.is_empty());
+    let account_identity = read(USER_INFO_KEY)
+        .and_then(|profile| serde_json::from_str::<serde_json::Value>(&profile).ok())
+        .and_then(|profile| {
+            profile
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned)
+        })
+        .filter(|id| !id.is_empty());
     LicenseCredentials {
         token: read(LICENSE_TOKEN_KEY),
         refusal,
         device_id: read(DEVICE_ID_KEY),
+        account_identity,
     }
 }
 

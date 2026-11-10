@@ -140,6 +140,9 @@ impl Tool for ListResources {
     ) -> Result<ToolOutput, ToolError> {
         let manager = manager(&self.manager)?;
         let wanted = input.get("server").and_then(Value::as_str);
+        if let Some(wanted) = wanted {
+            manager.check_paid_server(wanted).map_err(failed)?;
+        }
         let servers = resource_servers(&manager);
         if let Some(wanted) = wanted
             && !servers.iter().any(|(name, _)| name == wanted)
@@ -153,6 +156,10 @@ impl Tool for ListResources {
         let mut all = Vec::new();
         for (name, client) in servers {
             if wanted.is_some_and(|wanted| wanted != name) {
+                continue;
+            }
+            // 没点名服务器时，付费插件被门禁拒绝的服务器不列资源（不打断其他服务器）。
+            if manager.check_paid_server(&name).is_err() {
                 continue;
             }
             let options = manager.options(&name);
@@ -300,6 +307,7 @@ impl Tool for ReadResource {
             .and_then(Value::as_str)
             .unwrap_or_default();
         let uri = input.get("uri").and_then(Value::as_str).unwrap_or_default();
+        manager.check_paid_server(server).map_err(failed)?;
         let servers = resource_servers(&manager);
         let Some((_, client)) = servers.iter().find(|(name, _)| name == server) else {
             return match manager.client(server) {

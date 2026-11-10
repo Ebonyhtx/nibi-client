@@ -18,7 +18,8 @@ pub mod skills;
 #[cfg(test)]
 mod test_support;
 
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 use nibi_kernel_base::Spawner;
@@ -32,6 +33,7 @@ use nibi_kernel_api::listing::{ListingEntry, ListingSource, Listings};
 use nibi_kernel_api::machine::{EnvInfo, Files};
 use nibi_kernel_api::mcp::McpTransport;
 use nibi_kernel_api::mcp_state::{McpConnections, WAIT_FOR_MCP_SERVERS};
+use nibi_kernel_api::paid_plugin::PaidPluginGate;
 use nibi_kernel_api::mcp_ui::{
     McpResourceContent, McpResourcePage, McpResourceTemplatePage, McpUiCallToolRequest,
     McpUiCancelCallRequest, McpUiError, McpUiInstanceRequest, McpUiListRequest, McpUiReadRequest,
@@ -106,6 +108,8 @@ pub struct ExtConfig {
 
 pub struct Ext {
     skills: Arc<SkillCatalog>,
+    /// 模型侧 Skill 工具（需要保留具体类型，执行期门禁要装到它上面）。
+    skill_tool: Arc<skills::SkillTool>,
     commands: Arc<SkillCommands>,
     mcp: Arc<McpManager>,
     /// 会话级的 MCP（NIBI `createSession.mcpServers`）：每个会话一套连接，见 [`SessionMcp`]。
@@ -126,6 +130,12 @@ pub struct Ext {
     /// Composer `@` 插件面板的数据：进程级快照 + 每会话冻结的一份（NIBI `plugins/referenceCatalog`
     /// 的 session authority）。快照只活在这个进程里，不落库。
     plugin_catalog: std::sync::RwLock<PluginCatalogState>,
+    /// 付费插件执行期门禁（工具表冻结，调用时复核）；入口装上，None 时不检查。
+    paid_gate: RwLock<Option<Arc<dyn PaidPluginGate>>>,
+    /// 服务器名 → 插件名（插件加载时更新，各 MCP manager 共享）。
+    paid_owners: Arc<RwLock<HashMap<String, String>>>,
+    /// 已加载过的付费插件名：门禁晚于 `start()` 装上时用它补登记。
+    loaded_paid: RwLock<std::collections::BTreeSet<String>>,
 }
 
 /// 插件引用目录的进程级与会话级快照。会话关闭时删掉它那份；子代理继承父会话（Node 子代理 app 继承父 app）。
@@ -144,8 +154,8 @@ impl Ext {
             .map(|bash| skills::runner(bash, ports.gate.clone(), ports.ids.clone()));
         // 用户调用（`/<名字>`，ext.md §2.7）与 Skill 工具共用目录与 `!` 命令的执行者。
         let commands = Arc::new(SkillCommands::new(skills.clone(), runner.clone()));
-        let skill_tool: Arc<dyn Tool> =
-            Arc::new(SkillTool::new(skills.clone(), ports.ids.clone(), runner));
+        let skill_tool = Arc::new(SkillTool::new(skills.clone(), ports.ids.clone(), runner));
+        let skill: Arc<dyn Tool> = skill_tool.clone();
         // 进程遥测的出口（两个 manager 共用一份：`mcpId` 的盐只算一次）。
         let telemetry = ports
             .mcp_telemetry
@@ -201,7 +211,7 @@ impl Ext {
         ));
         let registry = Arc::new(ExtRegistry {
             base,
-            skill: skill_tool,
+            skill,
             wait: Arc::new(mcp::WaitForMcpServers::new(Arc::downgrade(&mcp))),
             mcp: mcp.clone(),
             sessions: session_mcp.clone(),
@@ -249,8 +259,14 @@ impl Ext {
                 instances.close_server(None, server);
             }));
         }
+        // 付费插件的服务器归属表：进程级、会话级与状态页的 manager 共用一份；插件快照变化时更新。
+        let paid_owners = Arc::new(RwLock::new(HashMap::new()));
+        mcp.attach_paid_owners(paid_owners.clone());
+        session_mcp.attach_paid_owners(paid_owners.clone());
+        status_mcp.attach_paid_owners(paid_owners.clone());
         Self {
             skills,
+            skill_tool,
             commands,
             mcp,
             session_mcp,
@@ -263,6 +279,9 @@ impl Ext {
             files: ports.files,
             config,
             plugin_catalog: std::sync::RwLock::new(PluginCatalogState::default()),
+            paid_gate: RwLock::new(None),
+            paid_owners,
+            loaded_paid: RwLock::new(std::collections::BTreeSet::new()),
         }
     }
 
@@ -346,11 +365,35 @@ impl Ext {
     /// 首次签发要在服务器还在 `initialize` 时等它（Node `waitForAppConnection` 等 `connecting`
     /// 同一条）：桌面会在会话刚建、MCP 尚未 ready 时打开页面，立即回“不可用”会把等待态变成错误页。
     /// 已有凭证的校验路径仍然是同步拒绝（`mcp_ui_validate`）。
+    /// MCP 服务器属于付费插件时，按当前 license 复核（资源、面板、App 工具共用）。
+    fn check_paid_server(&self, server: &str) -> Result<(), String> {
+        let plugin = self
+            .paid_owners
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(server)
+            .cloned();
+        let Some(plugin) = plugin else {
+            return Ok(());
+        };
+        let gate = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        match gate {
+            Some(gate) => gate.check(&plugin),
+            None => Ok(()),
+        }
+    }
+
     pub async fn mcp_ui_open(
         &self,
         request: nibi_kernel_api::mcp_ui::McpUiOpenRequest,
     ) -> Result<nibi_kernel_api::mcp_ui::McpAppInstance, nibi_kernel_api::mcp_ui::McpUiError>
     {
+        self.check_paid_server(&request.scope.server_name)
+            .map_err(nibi_kernel_api::mcp_ui::McpUiError::failed)?;
         let manager = self.mcp_for_session(&request.scope.session);
         if manager.app_connection(&request.scope.server_name).is_none() {
             // 与默认 `MCP_TIMEOUT`（连接与握手 30s）同一窗口；连不上时这一行之后仍是“不可用”。
@@ -434,6 +477,8 @@ impl Ext {
         &self,
         request: McpUiReadRequest,
     ) -> Result<Vec<McpResourceContent>, McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         let manager = self.mcp_for_session(&request.instance.scope.session);
         let bound = self.check_instance(&request.instance).await?;
         if bound != request.uri {
@@ -449,6 +494,8 @@ impl Ext {
         &self,
         request: McpUiReadRequest,
     ) -> Result<Vec<McpResourceContent>, McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         let manager = self.mcp_for_session(&request.instance.scope.session);
         self.check_instance(&request.instance).await?;
         manager
@@ -461,6 +508,8 @@ impl Ext {
         &self,
         request: McpUiListRequest,
     ) -> Result<McpResourcePage, McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         let manager = self.mcp_for_session(&request.instance.scope.session);
         self.check_instance(&request.instance).await?;
         manager
@@ -476,6 +525,8 @@ impl Ext {
         &self,
         request: McpUiListRequest,
     ) -> Result<McpResourceTemplatePage, McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         let manager = self.mcp_for_session(&request.instance.scope.session);
         self.check_instance(&request.instance).await?;
         manager
@@ -491,6 +542,8 @@ impl Ext {
         &self,
         request: McpUiSubscriptionRequest,
     ) -> Result<(), McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         let key = subscription_key(&request)?;
         self.check_instance(&request.instance).await?;
         self.mcp_for_session(&request.instance.scope.session)
@@ -560,6 +613,8 @@ impl Ext {
         input: Value,
         cancel: &CancellationToken,
     ) -> Result<Value, McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         self.mcp_for_session(&request.instance.scope.session)
             .call_tool_for_ui(
                 &request.instance.scope.server_name,
@@ -657,6 +712,8 @@ impl Ext {
         request: nibi_kernel_api::mcp_ui::McpUiSamplingRequest,
         selection: Option<nibi_kernel_api::model::ModelSelection>,
     ) -> Result<nibi_kernel_api::mcp_ui::McpUiSamplingResult, McpUiError> {
+        self.check_paid_server(&request.instance.scope.server_name)
+            .map_err(McpUiError::failed)?;
         self.check_instance(&request.instance).await?;
         let Some(port) = self.sampling.clone() else {
             return Err(McpUiError::unsupported(
@@ -744,6 +801,7 @@ impl Ext {
             sessions: std::collections::HashMap::new(),
         };
         let loaded = loaded.plugins;
+        self.register_plugins(&loaded);
         self.skills.set_plugin_roots(loaded.skill_roots());
         let plugin_servers = loaded.mcp_servers();
         let mut servers = self.config.mcp.servers.clone();
@@ -759,6 +817,63 @@ impl Ext {
         loaded
     }
 
+    /// 装上付费插件执行期门禁：工具表不增删，MCP/Skill/命令在真正执行时按当前 license 复核。
+    /// 可以在 `start()` 之前或之后调用；之后调用时用已加载的插件名补登记。
+    pub fn set_paid_gate(&self, gate: Arc<dyn PaidPluginGate>) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(gate.clone());
+        self.mcp.attach_paid_gate(gate.clone());
+        self.session_mcp.attach_paid_gate(gate.clone());
+        self.status_mcp.attach_paid_gate(gate.clone());
+        self.skill_tool.set_paid_gate(gate.clone());
+        self.commands.set_paid_gate(gate.clone());
+        for plugin in self
+            .loaded_paid
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .iter()
+        {
+            gate.register(plugin);
+        }
+    }
+
+    /// 会话级插件快照应用前调用：把付费插件名与服务器归属登记到执行期门禁。
+    pub fn note_plugin_snapshot(&self, plugins: &Plugins) {
+        self.register_plugins(plugins);
+    }
+
+    /// 插件快照加载后：登记付费插件名，合并服务器 → 插件归属。
+    fn register_plugins(&self, plugins: &Plugins) {        let paid = plugins.paid_names();
+        {
+            let mut known = self
+                .loaded_paid
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            for plugin in &paid {
+                known.insert(plugin.clone());
+            }
+        }
+        if let Some(gate) = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_ref()
+        {
+            for plugin in &paid {
+                gate.register(plugin);
+            }
+        }
+        let mut owners = self
+            .paid_owners
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        for (server, plugin) in plugins.mcp_owners() {
+            owners.insert(server, plugin);
+        }
+    }
+
     /// `-p` 在第一个请求前的等待（ext.md §3.3.1）：alwaysLoad 的服务器与第一条命令前的 prewait，到期就开跑。
     pub async fn wait_for_print(&self) {
         self.mcp.wait_for_print().await;
@@ -772,13 +887,16 @@ impl Ext {
     /// 按当前插件来源加载一份完整快照（插件 + 引用面板的两份数据），不改进程级状态
     /// （会话级插件用；入口可在启动时换来源）。
     pub async fn plugin_snapshot(&self, workspace: &WorkspaceRef) -> plugins::Loaded {
-        plugins::load_all(
+        let loaded = plugins::load_all(
             self.files.as_ref(),
             workspace,
             &self.config.plugin_dirs,
             &self.config.plugins,
         )
-        .await
+        .await;
+        // 会话级快照也要登记付费插件名与 MCP 服务器归属；工具表仍由这份快照冻结。
+        self.register_plugins(&loaded.plugins);
+        loaded
     }
 
     /// 把会话的插件快照装进 skill 目录；会话关闭时由 [`Ext::release_session`] 清掉。

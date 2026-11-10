@@ -33,6 +33,10 @@ pub struct SkillTool {
     ids: Arc<dyn Ids>,
     /// `!` 命令的执行者；注册表里没有 Bash 时为 None（命令原样保留）。
     runner: Option<Runner>,
+    /// 付费插件执行期门禁；skill 来自付费插件时在调用前复核。
+    paid_gate: std::sync::RwLock<
+        Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>,
+    >,
 }
 
 impl SkillTool {
@@ -45,6 +49,33 @@ impl SkillTool {
             catalog,
             ids,
             runner,
+            paid_gate: std::sync::RwLock::new(None),
+        }
+    }
+
+    /// 入口装上执行期门禁（工具表不增删，调用时复核）。
+    pub(crate) fn set_paid_gate(
+        &self,
+        gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>,
+    ) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(gate);
+    }
+
+    fn check_skill_license(&self, skill: &super::Skill) -> Result<(), String> {
+        let super::SkillSource::Plugin { plugin } = &skill.source else {
+            return Ok(());
+        };
+        let gate = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        match gate {
+            Some(gate) => gate.check(plugin),
+            None => Ok(()),
         }
     }
 }
@@ -170,6 +201,11 @@ impl Tool for SkillTool {
                 message: format!("Unknown skill: {name}"),
             });
         };
+        // 付费插件的 skill：工具表里的名字不变，执行时按当前 license 复核。错误是工具结果，
+        // 只追加在会话尾部，不改前缀缓存。
+        if let Err(message) = self.check_skill_license(&skill) {
+            return Err(ToolError::Failed { message });
+        }
         let args = input
             .get("args")
             .and_then(Value::as_str)

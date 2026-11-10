@@ -151,8 +151,40 @@ pub(crate) fn read_paid_license_from(
         token: credentials.token.unwrap_or_default(),
         device_id: credentials.device_id,
         refusal: credentials.refusal,
+        account_identity: credentials.account_identity,
         now_ms,
     }
+}
+
+/// 执行期门禁的凭据来源：每次按需读 v2 凭据（带 5 秒 TTL 缓存，续费/拒绝不会拖太久）。
+struct CredentialPaidLicenseSource {
+    home: PathBuf,
+    env: EnvSnapshot,
+}
+
+impl nibi_platform::paid_plugin::PaidLicenseSource for CredentialPaidLicenseSource {
+    fn load(&self) -> nibi_platform::paid_plugin::PaidLicenseFacts {
+        let paid = read_paid_license_from(&self.home, &self.env);
+        nibi_platform::paid_plugin::PaidLicenseFacts {
+            token: paid.token,
+            device_id: paid.device_id,
+            refusal: paid.refusal,
+            account_identity: paid.account_identity,
+        }
+    }
+}
+
+/// 运行期付费插件门禁（工具表冻结，执行时复核）。
+pub(crate) fn paid_plugin_gate(
+    home: &std::path::Path,
+    env: &EnvSnapshot,
+) -> Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate> {
+    Arc::new(nibi_platform::paid_plugin::PaidPluginRuntime::new(Arc::new(
+        CredentialPaidLicenseSource {
+            home: home.to_path_buf(),
+            env: env.clone(),
+        },
+    )))
 }
 
 /// 非空（去掉首尾空白）的环境变量值。
@@ -600,6 +632,8 @@ async fn session(
         Mode::Tui => kernel.with_titles(titles),
         Mode::Print | Mode::Version | Mode::Help => kernel,
     });
+    // 付费插件执行期门禁：工具表在会话创建时冻结，调用时按当前 license 复核。
+    kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.replace_hooks(config.hooks.clone());
     let local = config::local_rules(kernel.ports().store.as_ref(), &workspace).await;
     kernel.replace_permission_rules(

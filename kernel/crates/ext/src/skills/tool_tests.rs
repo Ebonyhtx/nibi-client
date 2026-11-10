@@ -9,6 +9,7 @@ use serde_json::json;
 
 use super::*;
 use crate::skills::runner;
+use crate::skills::PluginSkillRoot;
 use crate::test_support::{CWD, EchoBash, facts, tool_context};
 
 const GREET: &str = "---\ndescription: Greet someone by name\nwhen_to_use: When the user asks for a greeting\nargument-hint: <name>\narguments: [who]\nallowed-tools: Bash(echo:*)\n---\nSay hello to $ARGUMENTS ($who, first: $0).\nSkill dir: ${CLAUDE_SKILL_DIR}\nInline: !`echo inline-ok`\n";
@@ -61,6 +62,52 @@ fn body(call: &ToolCallOutput) -> &str {
             other => panic!("unexpected content {other:?}"),
         },
         other => panic!("unexpected messages {other:?}"),
+    }
+}
+
+struct Expired;
+
+impl nibi_kernel_api::paid_plugin::PaidPluginGate for Expired {
+    fn is_paid(&self, _plugin: &str) -> bool {
+        true
+    }
+
+    fn check(&self, _plugin: &str) -> Result<(), String> {
+        Err("会员已到期，续费后重试".to_owned())
+    }
+}
+
+/// 付费插件的 skill：名字仍在目录里，调用时门禁拒绝；续费后同一调用直接通过。
+#[tokio::test]
+async fn paid_plugin_skill_is_gated_at_call_time() {
+    let env = Arc::new(
+        MemoryEnvironment::new(facts()).with_file(
+            "/plugins/paid/skills/secret/SKILL.md",
+            "---\ndescription: secret\n---\nsecret body\n",
+        ),
+    );
+    let catalog = Arc::new(SkillCatalog::new(env.clone(), env.clone()));
+    catalog.set_plugin_roots(vec![PluginSkillRoot {
+        plugin: "paid".to_owned(),
+        dir: "/plugins/paid/skills".to_owned(),
+    }]);
+    let ids: Arc<dyn Ids> = Arc::new(SequentialIds::default());
+    let tool = SkillTool::new(catalog, ids, None);
+    tool.set_paid_gate(Arc::new(Expired));
+    let (progress, _ignored) = mpsc::channel(4);
+    let error = tool
+        .call_with_messages(
+            json!({"skill": "paid:secret"}),
+            tool_context(env, PermissionMode::DontAsk),
+            progress,
+        )
+        .await
+        .unwrap_err();
+    match error {
+        nibi_kernel_api::tool::ToolError::Failed { message } => {
+            assert!(message.contains("到期"), "{message}");
+        }
+        other => panic!("unexpected error {other:?}"),
     }
 }
 

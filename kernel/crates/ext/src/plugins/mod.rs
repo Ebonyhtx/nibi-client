@@ -59,6 +59,8 @@ pub struct Plugin {
     pub marketplace: String,
     pub dir: String,
     pub manifest: Value,
+    /// manifest 或安装记录声明了 `paid=true`：执行期门禁要登记这个插件。
+    pub paid: bool,
     pub skill_dirs: Vec<String>,
     /// 声明出来的 skill 名（`skills/` 与 manifest 声明路径下含 SKILL.md 的子目录名）。
     /// 引用目录的 `skillQualifiedNames` 用它，与 runtime 的发现口径一致（按目录名）。
@@ -94,6 +96,26 @@ impl Plugins {
         self.0
             .iter()
             .flat_map(|plugin| plugin.mcp_servers.iter().cloned())
+            .collect()
+    }
+
+    /// 服务器名 → 插件名：执行期门禁据此从 MCP 工具找到所属插件。
+    pub fn mcp_owners(&self) -> std::collections::BTreeMap<String, String> {
+        let mut owners = std::collections::BTreeMap::new();
+        for plugin in &self.0 {
+            for server in &plugin.mcp_servers {
+                owners.insert(server.name.clone(), plugin.name.clone());
+            }
+        }
+        owners
+    }
+
+    /// 付费插件的名字：执行期门禁只拦登记过的插件。
+    pub fn paid_names(&self) -> Vec<String> {
+        self.0
+            .iter()
+            .filter(|plugin| plugin.paid)
+            .map(|plugin| plugin.name.clone())
             .collect()
     }
 
@@ -540,6 +562,7 @@ impl Reader<'_> {
             marketplace: marketplace.to_owned(),
             dir: dir.to_owned(),
             manifest,
+            paid: false,
             skill_dirs,
             skill_names: declared.skill_names,
             agent_names: declared.agent_names,

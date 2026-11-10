@@ -110,6 +110,7 @@ pub mod network_capture;
 pub mod monitor;
 pub mod monitor_watch;
 pub mod orchestration;
+pub mod paid_plugin;
 pub mod panels;
 pub mod peers;
 pub mod permission;

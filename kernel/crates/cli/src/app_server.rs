@@ -516,6 +516,7 @@ async fn serve(
         config.permission_rules(local, crate::args::cli_rules(&[], &[], Vec::new())),
     );
     let kernel = Arc::new(kernel);
+    kernel.set_paid_plugin_gate(crate::paid_plugin_gate(&startup.home, &startup.env));
     kernel.start_extensions().await;
     if let Some(engine) = workflow_engine {
         engine.attach_kernel(kernel.clone() as Arc<dyn nibi_kernel_api::session_api::Kernel>);

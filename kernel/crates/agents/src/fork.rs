@@ -38,6 +38,7 @@ pub(crate) fn definition() -> AgentDefinition {
         disallowed_tools: Vec::new(),
         prompt: String::new(),
         source: AgentSource::BuiltIn,
+        plugin: None,
         model: Some("inherit".to_owned()),
         effort: None,
         max_turns: Some(MAX_TURNS),

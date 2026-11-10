@@ -70,6 +70,8 @@ pub struct AgentCatalog {
     plugins: RwLock<Vec<PluginAgentFile>>,
     /// 会话级插件 agent（NIBI 一个 app-server 承载多个会话；有快照时覆盖进程级）。
     session_plugins: RwLock<HashMap<SessionId, Vec<PluginAgentFile>>>,
+    /// 付费插件执行期门禁（启动插件 agent 前复核）；入口装上。
+    paid_gate: RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
 }
 
 impl AgentCatalog {
@@ -79,6 +81,28 @@ impl AgentCatalog {
             files,
             plugins: RwLock::default(),
             session_plugins: RwLock::default(),
+            paid_gate: RwLock::default(),
+        }
+    }
+
+    /// 装上付费插件执行期门禁：插件 agent 启动前复核（工具表不增删）。
+    pub fn set_paid_gate(&self, gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(gate);
+    }
+
+    /// 插件 agent 的执行期授权检查；非插件 agent 放行。
+    pub(crate) fn check_plugin(&self, plugin: &str) -> Result<(), String> {
+        let gate = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        match gate {
+            Some(gate) => gate.check(plugin),
+            None => Ok(()),
         }
     }
 

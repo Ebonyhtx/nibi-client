@@ -91,6 +91,7 @@ pub(crate) fn parse(raw: &str, file: &PluginAgentFile, project_dir: &str) -> Age
         disallowed_tools: frontmatter::tools(map.get("disallowedTools")).unwrap_or_default(),
         prompt: substitute(body.trim(), &file.root, project_dir),
         source: AgentSource::Plugin,
+        plugin: Some(file.plugin.clone()),
         model,
         effort: text("effort").map(str::to_owned),
         max_turns: text("maxTurns")

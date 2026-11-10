@@ -17,6 +17,46 @@ fn stdin_of(env: &ScriptedEnv, index: usize) -> Value {
     serde_json::from_str(request.hook.as_ref().unwrap().stdin.trim_end()).unwrap()
 }
 
+struct DenyPaid;
+
+impl nibi_kernel_api::paid_plugin::PaidPluginGate for DenyPaid {
+    fn is_paid(&self, plugin: &str) -> bool {
+        plugin == "paid"
+    }
+
+    fn check(&self, plugin: &str) -> Result<(), String> {
+        if plugin == "paid" {
+            Err("会员已到期".to_owned())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// 付费插件的 hooks 在执行前过滤；非付费插件不受影响。过滤是运行时判断，续费后自动恢复。
+#[test]
+fn paid_plugin_hooks_are_filtered_at_runtime() {
+    let engine = engine(
+        Arc::new(ScriptedEnv::with(&[]).cwd("/Users/dev/project")),
+        &json!({}),
+    );
+    engine.set_paid_gate(Arc::new(DenyPaid));
+    let allowed = engine.allowed_plugin_hooks(vec![
+        PluginHooks {
+            plugin: "paid".to_owned(),
+            root: "/paid".to_owned(),
+            settings: HooksSettings::default(),
+        },
+        PluginHooks {
+            plugin: "free".to_owned(),
+            root: "/free".to_owned(),
+            settings: HooksSettings::default(),
+        },
+    ]);
+    assert_eq!(allowed.len(), 1);
+    assert_eq!(allowed[0].plugin, "free");
+}
+
 #[tokio::test]
 async fn pre_tool_use_runs_matching_hooks_with_the_input_on_stdin() {
     let env = Arc::new(

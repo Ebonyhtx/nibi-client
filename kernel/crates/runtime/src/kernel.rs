@@ -179,6 +179,8 @@ impl LocalKernel {
         }
         let loaded = loader.load(workspace).await;
         let plugins = &loaded.plugins;
+        // 执行期门禁：登记这份快照里的付费插件名与 MCP 服务器归属（工具表仍冻结在这份快照里）。
+        self.ext.note_plugin_snapshot(plugins);
         let (agents, hooks) = crate::ext::plugin_parts(plugins);
         self.ext
             .set_session_skill_roots(session.clone(), plugins);

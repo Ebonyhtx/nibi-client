@@ -416,6 +416,7 @@ fn definition(profile: &ActorProfile) -> AgentDefinition {
         disallowed_tools,
         prompt: profile.prompt.clone(),
         source: AgentSource::BuiltIn,
+        plugin: None,
         model: None,
         effort: None,
         max_turns: profile.max_turns,

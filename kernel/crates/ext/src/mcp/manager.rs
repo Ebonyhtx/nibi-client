@@ -1,9 +1,9 @@
 //! MCP 连接管理（docs/specs/rust-cli/ext.md §3.3）：每个服务器一个连接任务，状态与工具快照只在这里，
 //! 注册表每步读当前快照；`list_changed` 重新拉取；HTTP / SSE 断开后退避重连。
 
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError, RwLock};
 use std::time::Duration;
 
 use nibi_kernel_base::Spawner;
@@ -160,9 +160,31 @@ pub(crate) struct Inner {
     connection_lost: Mutex<Option<Arc<dyn Fn(&str) + Send + Sync>>>,
     /// 令牌端口（Node 的 `AuthProvider`）：入口装上；没有时带 `oauth` 的服务器连上只会得到 401。
     oauth: OnceLock<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
+    /// 付费插件执行期门禁（工具表冻结，调用时复核）；入口装上。
+    paid_gate: OnceLock<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>,
+    /// 服务器名 → 插件名（插件加载时由 Ext 维护）。付费服务器据此找到要检查的插件。
+    paid_owners: OnceLock<Arc<RwLock<HashMap<String, String>>>>,
 }
 
 impl Inner {
+    /// 这个服务器属于付费插件时按当前 license 复核（资源工具用）。
+    pub(crate) fn check_paid_server(&self, server: &str) -> Result<(), String> {
+        let plugin = self.paid_owners.get().and_then(|owners| {
+            owners
+                .read()
+                .unwrap_or_else(PoisonError::into_inner)
+                .get(server)
+                .cloned()
+        });
+        let Some(plugin) = plugin else {
+            return Ok(());
+        };
+        match self.paid_gate.get() {
+            Some(gate) => gate.check(&plugin),
+            None => Ok(()),
+        }
+    }
+
     fn servers(&self) -> MutexGuard<'_, BTreeMap<String, Server>> {
         self.servers.lock().unwrap_or_else(PoisonError::into_inner)
     }
@@ -356,12 +378,22 @@ impl Inner {
                 let mut visibility: BTreeMap<String, Vec<String>> = BTreeMap::new();
                 let mut all: Vec<Arc<dyn Tool>> = Vec::new();
                 let mut model: Vec<Arc<dyn Tool>> = Vec::new();
+                let paid_plugin = self.paid_owners.get().and_then(|owners| {
+                    owners
+                        .read()
+                        .unwrap_or_else(PoisonError::into_inner)
+                        .get(server)
+                        .cloned()
+                });
+                let paid_gate = self.paid_gate.get().cloned();
                 for item in &listed {
                     let Some(tool) = McpTool::from_listed(
                         server,
                         item,
                         options.always_load,
                         Arc::downgrade(self),
+                        paid_plugin.clone(),
+                        paid_gate.clone(),
                     ) else {
                         continue;
                     };
@@ -800,6 +832,8 @@ impl McpManager {
             ui_events: OnceLock::new(),
             connection_lost: Mutex::default(),
             oauth: OnceLock::new(),
+            paid_gate: OnceLock::new(),
+            paid_owners: OnceLock::new(),
         }))
     }
 
@@ -824,6 +858,19 @@ impl McpManager {
     /// 装上 OAuth 令牌端口（Node 的 `AuthProvider`）：连接开始之前给一次。
     pub(crate) fn attach_oauth(&self, port: Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>) {
         let _ = self.0.oauth.set(port);
+    }
+
+    /// 装上付费插件执行期门禁（工具表冻结，调用时复核）。
+    pub(crate) fn attach_paid_gate(
+        &self,
+        gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>,
+    ) {
+        let _ = self.0.paid_gate.set(gate);
+    }
+
+    /// 装上服务器 → 插件的归属表（插件加载时由 Ext 维护，可更新）。
+    pub(crate) fn attach_paid_owners(&self, owners: Arc<RwLock<HashMap<String, String>>>) {
+        let _ = self.0.paid_owners.set(owners);
     }
 
     /// 装上 MCP Apps 的事件出口（`pluginUi.*` 增量）：连接开始之前给一次。

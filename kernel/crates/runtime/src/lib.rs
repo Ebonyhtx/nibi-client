@@ -728,6 +728,17 @@ impl LocalKernel {
             .unwrap_or_default()
     }
 
+    /// 装上付费插件执行期门禁：工具表在会话创建时冻结，MCP/Skill/命令/Agent/hooks 在真正
+    /// 执行时按当前 license 复核。到期不删工具、续费不加工具，避免工具数组变化导致前缀缓存失效。
+    pub fn set_paid_plugin_gate(
+        &self,
+        gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>,
+    ) {
+        self.ext.set_paid_gate(gate.clone());
+        self.agent_catalog.set_paid_gate(gate.clone());
+        self.hooks.set_paid_gate(gate);
+    }
+
     /// 加载插件、开始连接 MCP 服务器（不等待连接完成，ext.md §3.3）。插件的 agent 文件交给 agent
     /// 目录、hooks 登记到 hooks 引擎（ext.md §4，L12）；返回时两者都已生效，之后才开会话。
     pub async fn start_extensions(&self) {

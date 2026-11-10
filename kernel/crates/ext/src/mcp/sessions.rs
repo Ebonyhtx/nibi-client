@@ -12,8 +12,8 @@
 //! 与会话无关的进程级配置（TUI、`-p`、配置文件里的 MCP）仍走 [`Ext`](crate::Ext) 上的那个 manager；
 //! 两者不混：会话带了自己的服务器时，它的工具表就是自己那批（与 Node 的 runtimeConfig.mcp 相同）。
 
-use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::collections::{BTreeMap, HashMap};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 
 use async_trait::async_trait;
 use nibi_kernel_api::clock::Clock;
@@ -295,6 +295,10 @@ pub(crate) struct SessionMcp {
     oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
     /// MCP Apps 的实例账本：连接断了时按（会话, 服务器）作废页面凭证。`Ext::new` 建好之后装上。
     app_instances: std::sync::OnceLock<Arc<super::McpAppInstances>>,
+    /// 付费插件执行期门禁：每套会话/共享 manager 建好后装上。
+    paid_gate: RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
+    /// 服务器 → 插件归属（与 Ext 共享）。
+    paid_owners: std::sync::OnceLock<Arc<RwLock<HashMap<String, String>>>>,
     sessions: Mutex<BTreeMap<SessionId, Entry>>,
     /// 工作区共享的连接（`isolation: "workspace"`）。
     shared: Mutex<BTreeMap<SharedKey, SharedEntry>>,
@@ -319,9 +323,30 @@ impl SessionMcp {
             ui_events,
             oauth,
             app_instances: std::sync::OnceLock::new(),
+            paid_gate: RwLock::new(None),
+            paid_owners: std::sync::OnceLock::new(),
             sessions: Mutex::default(),
             shared: Mutex::default(),
         }
+    }
+
+    /// 装上付费插件执行期门禁：之后新建的会话/共享 manager 都会带上。
+    pub(crate) fn attach_paid_gate(
+        &self,
+        gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>,
+    ) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(gate);
+    }
+
+    /// 装上服务器 → 插件归属表（与 Ext 共享，可更新）。
+    pub(crate) fn attach_paid_owners(
+        &self,
+        owners: Arc<RwLock<HashMap<String, String>>>,
+    ) {
+        let _ = self.paid_owners.set(owners);
     }
 
     /// 装上 MCP Apps 的实例账本：连接断了时作废页面凭证。
@@ -486,6 +511,17 @@ impl SessionMcp {
         }
         if let Some(oauth) = self.oauth.clone() {
             manager.attach_oauth(oauth);
+        }
+        if let Some(gate) = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+        {
+            manager.attach_paid_gate(gate);
+        }
+        if let Some(owners) = self.paid_owners.get() {
+            manager.attach_paid_owners(owners.clone());
         }
         if let Some(events) = self.ui_events.clone() {
             manager.attach_ui_events(events);

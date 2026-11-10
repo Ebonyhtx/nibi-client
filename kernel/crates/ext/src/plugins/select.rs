@@ -97,6 +97,8 @@ pub struct PaidLicense {
     pub token: String,
     pub device_id: Option<String>,
     pub refusal: Option<String>,
+    /// 当前登录账号（`oauth:nibi:user_info` 的 id）；提供后与 claims 的 uid/sub 比对。
+    pub account_identity: Option<String>,
     pub now_ms: u64,
 }
 
@@ -108,6 +110,7 @@ impl PaidLicense {
                 token: &self.token,
                 plugin_name,
                 device_id: self.device_id.as_deref(),
+                account_identity: self.account_identity.as_deref(),
                 refusal: self.refusal.as_deref(),
                 now_ms: self.now_ms,
                 keys: &nibi_platform::license::public_key,
@@ -374,10 +377,15 @@ impl Admission<'_> {
                 .declared_skip(dir, &id, &manifest, SkipReason::NodeRuntime(dependency))
                 .await);
         }
-        Ok(self
-            .reader
-            .components(dir, name, &candidate.marketplace, manifest, &tables)
-            .await)
+        Ok({
+            let mut plugin = self
+                .reader
+                .components(dir, name, &candidate.marketplace, manifest, &tables)
+                .await;
+            // 发现层放行的付费插件：执行期门禁据此登记插件名（工具表冻结，调用时复核）。
+            plugin.paid = paid;
+            plugin
+        })
     }
 
     /// 没加载的候选：带上它声明的组件名（引用目录要展示停用条目的能力面）。

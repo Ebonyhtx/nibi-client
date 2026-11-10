@@ -45,6 +45,8 @@ pub struct AgentDefinition {
     /// system prompt 的第一部分。
     pub prompt: String,
     pub source: AgentSource,
+    /// 插件 agent 所属插件名（执行期付费门禁用）；内置/用户/项目 agent 为 None。
+    pub plugin: Option<String>,
     /// `inherit` 或缺省时继承父会话的模型；其余是模型 ID。
     pub model: Option<String>,
     pub effort: Option<String>,
@@ -111,6 +113,7 @@ fn built_in(agent_type: &str, when_to_use: &str, prompt: &str) -> AgentDefinitio
         disallowed_tools: Vec::new(),
         prompt: prompt.to_owned(),
         source: AgentSource::BuiltIn,
+        plugin: None,
         model: None,
         effort: None,
         max_turns: None,

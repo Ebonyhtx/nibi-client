@@ -121,6 +121,7 @@ pub(crate) fn parse(raw: &str, source: AgentSource) -> Option<AgentDefinition> {
         disallowed_tools: frontmatter::tools(map.get("disallowedTools")).unwrap_or_default(),
         prompt: body.trim().to_owned(),
         source,
+        plugin: None,
         model,
         effort: text("effort").map(str::to_owned),
         max_turns: text("maxTurns")

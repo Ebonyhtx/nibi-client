@@ -32,6 +32,7 @@ fn names_descriptions_and_variables_follow_the_plugin_rules() {
     assert_eq!(agent.agent_type, "kit:team:lead");
     assert_eq!(agent.when_to_use, "Leads the team.");
     assert_eq!(agent.source, AgentSource::Plugin);
+    assert_eq!(agent.plugin.as_deref(), Some("kit"));
     assert_eq!(agent.tools, Some(vec!["Read".to_owned()]));
     // permissionMode 对插件 agent 无效（会越过安装时的授权）。
     assert_eq!(agent.permission_mode, None);

@@ -59,6 +59,7 @@ use nibi_kernel_api::hooks::{
 };
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::model::small_fast_model;
+use nibi_kernel_api::paid_plugin::PaidPluginGate;
 use tokio_util::sync::CancellationToken;
 
 pub use config::{HookSource, HooksConfig, HooksSettings};
@@ -116,6 +117,8 @@ pub struct HookEngine {
     loaded: RwLock<Arc<Loaded>>,
     /// 会话级插件 hooks（NIBI 一个 app-server 承载多个会话；有快照时覆盖进程级插件 hooks）。
     session_plugins: RwLock<HashMap<SessionId, Vec<PluginHooks>>>,
+    /// 付费插件执行期门禁：hook 运行时把付费插件的 hooks 过滤掉。
+    paid_gate: RwLock<Option<Arc<dyn PaidPluginGate>>>,
 }
 
 impl HookEngine {
@@ -129,7 +132,46 @@ impl HookEngine {
             ports,
             loaded: RwLock::new(Arc::new(load(config, Vec::new()))),
             session_plugins: RwLock::default(),
+            paid_gate: RwLock::default(),
         }
+    }
+
+    /// 装上付费插件执行期门禁：付费插件的 hooks 在运行前过滤（不注入模型消息）。
+    pub fn set_paid_gate(&self, gate: Arc<dyn PaidPluginGate>) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(gate);
+    }
+
+    fn allowed_plugin_hooks(&self, plugins: Vec<PluginHooks>) -> Vec<PluginHooks> {
+        let gate = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        match gate {
+            Some(gate) => plugins
+                .into_iter()
+                .filter(|plugin| gate.check(&plugin.plugin).is_ok())
+                .collect(),
+            None => plugins,
+        }
+    }
+
+    /// 进程级插件里有没有被门禁拒绝的付费插件。false 时直接用缓存，不克隆 hooks 配置。
+    fn has_denied_paid_plugin(&self, plugins: &[PluginHooks]) -> bool {
+        let gate = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        let Some(gate) = gate else {
+            return false;
+        };
+        plugins
+            .iter()
+            .any(|plugin| gate.is_paid(&plugin.plugin) && gate.check(&plugin.plugin).is_err())
     }
 
     /// 换上新的快照；正在运行的事件用旧快照。插件 hooks
@@ -205,8 +247,17 @@ impl HookEngine {
             .get(session)
             .cloned();
         match session_plugins {
-            Some(plugins) => loaded.config.effective_with(&plugins),
-            None => loaded.effective.clone(),
+            Some(plugins) => loaded.config.effective_with(&self.allowed_plugin_hooks(plugins)),
+            None => {
+                // 没有门禁/全部放行时直接吃缓存；有付费插件被拒时按过滤后的插件重算。
+                if self.has_denied_paid_plugin(&loaded.plugins) {
+                    loaded
+                        .config
+                        .effective_with(&self.allowed_plugin_hooks(loaded.plugins.clone()))
+                } else {
+                    loaded.effective.clone()
+                }
+            }
         }
     }
 

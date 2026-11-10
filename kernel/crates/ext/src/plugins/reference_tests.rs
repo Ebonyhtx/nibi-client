@@ -14,6 +14,7 @@ fn plugin(name: &str, marketplace: &str) -> Plugin {
         marketplace: marketplace.to_owned(),
         dir: format!("/plugins/{name}"),
         manifest: json!({"description": format!("{name} description")}),
+        paid: false,
         skill_dirs: Vec::new(),
         skill_names: Vec::new(),
         agent_names: Vec::new(),

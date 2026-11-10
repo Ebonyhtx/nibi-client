@@ -88,6 +88,12 @@ impl AgentTool {
             .definitions_for(Some(&context.session), &context.workspace)
             .await;
         if let Some(found) = definitions.iter().find(|agent| agent.agent_type == wanted) {
+            // 付费插件的 agent：工具表里的类型名不变，启动子代理前按当前 license 复核。
+            if let Some(plugin) = found.plugin.as_deref()
+                && let Err(message) = self.core.catalog.check_plugin(plugin)
+            {
+                return Err(message);
+            }
             return Ok(found.clone());
         }
         let available: Vec<&str> = definitions

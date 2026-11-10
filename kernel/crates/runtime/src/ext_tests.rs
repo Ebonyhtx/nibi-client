@@ -39,6 +39,7 @@ fn plugin_parts_carry_the_plugin_name_and_root() {
         marketplace: "inline".to_owned(),
         dir: KIT.to_owned(),
         manifest: json!({}),
+        paid: false,
         skill_dirs: Vec::new(),
         skill_names: Vec::new(),
         agent_names: vec!["team:lead".to_owned()],

@@ -19,6 +19,7 @@ fn plugin(name: &str, dir: &str) -> Plugin {
         marketplace: "inline".to_owned(),
         dir: dir.to_owned(),
         manifest: json!({}),
+        paid: false,
         skill_dirs: Vec::new(),
         skill_names: Vec::new(),
         agent_names: Vec::new(),

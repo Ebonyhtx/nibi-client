@@ -14,7 +14,7 @@ use nibi_kernel_api::user_command::{
 };
 
 use super::inline::Runner;
-use super::{SKILL_MESSAGE_SOURCE, Skill, SkillCatalog};
+use super::{SKILL_MESSAGE_SOURCE, Skill, SkillCatalog, SkillSource};
 
 /// 本地命令之前的 caveat（产品名替换，kernel-api 的定义，F55：以前这里另写了一份）。
 const CAVEAT: &str = nibi_kernel_api::user_input::BASH_CAVEAT;
@@ -24,11 +24,43 @@ pub struct SkillCommands {
     catalog: Arc<SkillCatalog>,
     /// `!` 命令的执行者（与 Skill 工具同一个）。
     runner: Option<Runner>,
+    /// 付费插件执行期门禁；`/命令` 来自付费插件时在执行前复核。
+    paid_gate:
+        std::sync::RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
 }
 
 impl SkillCommands {
     pub(crate) fn new(catalog: Arc<SkillCatalog>, runner: Option<Runner>) -> Self {
-        Self { catalog, runner }
+        Self {
+            catalog,
+            runner,
+            paid_gate: std::sync::RwLock::new(None),
+        }
+    }
+
+    pub(crate) fn set_paid_gate(
+        &self,
+        gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>,
+    ) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(gate);
+    }
+
+    fn check_skill_license(&self, skill: &Skill) -> Result<(), String> {
+        let SkillSource::Plugin { plugin } = &skill.source else {
+            return Ok(());
+        };
+        let gate = self
+            .paid_gate
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        match gate {
+            Some(gate) => gate.check(plugin),
+            None => Ok(()),
+        }
     }
 }
 
@@ -144,6 +176,10 @@ impl UserCommands for SkillCommands {
             }
             return Expansion::NotCommand;
         };
+        // 付费插件的命令：不调模型，直接把原因作为本地结果给用户（不进上下文，缓存不受影响）。
+        if let Err(message) = self.check_skill_license(&skill) {
+            return local(format!("/{}", skill.name), message);
+        }
         // `userInvocable === false` 时只回一句提示，不调模型（产品名替换，ext.md §2.7）。
         if !skill.user_invocable {
             return local(

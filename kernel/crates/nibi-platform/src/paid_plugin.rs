@@ -5,12 +5,22 @@
 //! 2. 没有 token → `no_license`；
 //! 3. 验签失败/iss 不对 → `bad_license`；
 //! 4. `claims.dev` 缺失、本机 deviceId 缺失或不等 → `device_mismatch`；
-//! 5. `exp <= now` → `expired`；
-//! 6. license 未覆盖该插件 → `not_covered`；
-//! 7. 其余放行。
+//! 5. 账号不一致（`uid`/`sub` 都对不上当前登录账号）→ 拒绝；
+//! 6. `exp <= now` → `expired`；
+//! 7. license 未覆盖该插件 → `not_covered`；
+//! 8. 其余放行。
 //!
 //! “是否付费”由调用方按 manifest `paid=true` **或**安装记录 `paid=true` 判定
 //! （只看 manifest 拦不住复制件）；本模块只做授权判定，不读文件。
+//!
+//! 除了发现层，本模块还给 [`PaidPluginRuntime`]：会话建好之后，工具表保持不变，执行
+//! 付费能力时按当前 license 复核（到期不删工具、续费不加工具）。
+
+use std::collections::BTreeSet;
+use std::sync::{Arc, Mutex, RwLock};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
+pub use nibi_kernel_api::paid_plugin::PaidPluginGate;
 
 use crate::license::{LicenseClaims, LicenseKeyResolver, license_covers_plugin, verify_token};
 
@@ -73,6 +83,8 @@ pub struct PaidPluginEvaluation<'a> {
     pub token: &'a str,
     pub plugin_name: &'a str,
     pub device_id: Option<&'a str>,
+    /// 当前登录账号（`oauth:nibi:user_info` 的 id）；提供后与 claims 的 `uid`/`sub` 比对。
+    pub account_identity: Option<&'a str>,
     pub refusal: Option<&'a str>,
     pub now_ms: u64,
     pub keys: LicenseKeyResolver<'a>,
@@ -123,6 +135,17 @@ pub fn evaluate(params: PaidPluginEvaluation<'_>) -> PaidPluginDecision {
         );
     }
 
+    if let Some(account) = params.account_identity.filter(|value| !value.is_empty())
+        && claims.uid != account
+        && claims.sub != account
+    {
+        return PaidPluginDecision::deny(
+            PaidPluginDenyReason::Denied,
+            "会员凭证与当前登录账号不一致，请重新登录 NIBI 账号后重试",
+            Some(claims),
+        );
+    }
+
     if claims.exp.saturating_mul(1000) <= params.now_ms {
         return PaidPluginDecision::deny(
             PaidPluginDenyReason::Expired,
@@ -140,6 +163,151 @@ pub fn evaluate(params: PaidPluginEvaluation<'_>) -> PaidPluginDecision {
     }
 
     PaidPluginDecision::allow(claims)
+}
+
+/// 执行期门禁的授权事实（本机凭据文件里与付费插件有关的那几项）。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PaidLicenseFacts {
+    pub token: String,
+    pub device_id: Option<String>,
+    pub refusal: Option<String>,
+    /// 当前登录账号 id（`oauth:nibi:user_info`）；没有登录态时 None。
+    pub account_identity: Option<String>,
+}
+
+/// 读授权事实的来源。生产是入口层的 v2 凭据读取；测试用固定值。
+pub trait PaidLicenseSource: Send + Sync {
+    fn load(&self) -> PaidLicenseFacts;
+}
+
+/// 执行期门禁：工具表冻结，执行付费能力时按当前 license 复核。
+/// 默认缓存 5 秒：续费/拒绝最多这么晚生效；`exp` 每次都用当前时钟判，不受缓存影响。
+const DEFAULT_LICENSE_TTL: Duration = Duration::from_secs(5);
+
+pub struct PaidPluginRuntime {
+    paid: RwLock<BTreeSet<String>>,
+    source: Arc<dyn PaidLicenseSource>,
+    cache: Mutex<Option<(Instant, PaidLicenseFacts)>>,
+    ttl: Duration,
+    now_ms: Arc<dyn Fn() -> u64 + Send + Sync>,
+    keys: Arc<dyn Fn(Option<&str>) -> Option<[u8; 32]> + Send + Sync>,
+}
+
+impl PaidPluginRuntime {
+    pub fn new(source: Arc<dyn PaidLicenseSource>) -> Self {
+        Self::with_clock(source, Arc::new(unix_now_ms), DEFAULT_LICENSE_TTL)
+    }
+
+    /// 测试用：固定时钟与 TTL。
+    pub fn with_clock(
+        source: Arc<dyn PaidLicenseSource>,
+        now_ms: Arc<dyn Fn() -> u64 + Send + Sync>,
+        ttl: Duration,
+    ) -> Self {
+        Self {
+            paid: RwLock::default(),
+            source,
+            cache: Mutex::default(),
+            ttl,
+            now_ms,
+            keys: Arc::new(crate::license::public_key),
+        }
+    }
+
+    /// 测试用：换验签公钥。
+    pub fn with_keys(
+        mut self,
+        keys: Arc<dyn Fn(Option<&str>) -> Option<[u8; 32]> + Send + Sync>,
+    ) -> Self {
+        self.keys = keys;
+        self
+    }
+
+    /// 插件加载后登记。只有登记过的插件才会被 `check` 拦住；未登记视为非付费。
+    pub fn register_paid(&self, plugin: &str) {
+        let plugin = plugin.trim();
+        if plugin.is_empty() {
+            return;
+        }
+        self.paid
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(plugin.to_owned());
+    }
+
+    pub fn is_paid(&self, plugin: &str) -> bool {
+        self.paid
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .contains(plugin)
+    }
+
+    /// 按给定时刻检查（测试/批处理用）；生产走 [`PaidPluginGate::check`] 的当前时钟。
+    pub fn check_at(&self, plugin: &str, now_ms: u64) -> Result<(), String> {
+        if !self.is_paid(plugin) {
+            return Ok(());
+        }        let facts = self.facts();
+        let decision = evaluate(PaidPluginEvaluation {
+            token: &facts.token,
+            plugin_name: plugin,
+            device_id: facts.device_id.as_deref(),
+            account_identity: facts.account_identity.as_deref(),
+            refusal: facts.refusal.as_deref(),
+            now_ms,
+            keys: self.keys.as_ref(),
+        });
+        if decision.allowed {
+            Ok(())
+        } else {
+            Err(decision.message)
+        }
+    }
+
+    fn facts(&self) -> PaidLicenseFacts {
+        let now = Instant::now();
+        {
+            let cache = self
+                .cache
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if let Some((read_at, facts)) = cache.as_ref()
+                && now.duration_since(*read_at) < self.ttl
+            {
+                return facts.clone();
+            }
+        }
+        // 读失败/解密失败由来源返回空事实：门禁按无 token 拒绝，且缓存 TTL 内不再锤文件。
+        let facts = self.source.load();
+        *self
+            .cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some((now, facts.clone()));
+        facts
+    }
+}
+
+impl PaidPluginGate for PaidPluginRuntime {
+    fn is_paid(&self, plugin: &str) -> bool {
+        self.paid
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .contains(plugin)
+    }
+
+    fn check(&self, plugin: &str) -> Result<(), String> {
+        self.check_at(plugin, (self.now_ms)())
+    }
+
+    fn register(&self, plugin: &str) {
+        self.register_paid(plugin);
+    }
+}
+
+fn unix_now_ms() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -171,6 +339,7 @@ mod tests {
             token,
             plugin_name: plugin,
             device_id: device,
+            account_identity: None,
             refusal,
             now_ms: NOW_MS,
             keys: &|_kid| Some(key()),
@@ -228,6 +397,7 @@ mod tests {
             token: ACTIVE,
             plugin_name: "math-modeling",
             device_id: Some("dev-1"),
+            account_identity: None,
             refusal: None,
             now_ms: 1_793_288_600_000,
             keys: &|_kid| Some(key()),
@@ -260,5 +430,97 @@ mod tests {
             Some("membership_expired"),
         );
         assert!(expired.message.contains("已到期"));
+    }
+
+    struct FixedSource {
+        facts: Mutex<PaidLicenseFacts>,
+        loads: std::sync::atomic::AtomicUsize,
+    }
+
+    impl FixedSource {
+        fn new(facts: PaidLicenseFacts) -> Arc<Self> {
+            Arc::new(Self {
+                facts: Mutex::new(facts),
+                loads: std::sync::atomic::AtomicUsize::new(0),
+            })
+        }
+
+        fn set(&self, facts: PaidLicenseFacts) {
+            *self.facts.lock().unwrap() = facts;
+        }
+
+        fn loads(&self) -> usize {
+            self.loads.load(std::sync::atomic::Ordering::SeqCst)
+        }
+    }
+
+    impl PaidLicenseSource for FixedSource {
+        fn load(&self) -> PaidLicenseFacts {
+            self.loads
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.facts.lock().unwrap().clone()
+        }
+    }
+
+    fn facts(token: &str, account: Option<&str>) -> PaidLicenseFacts {
+        PaidLicenseFacts {
+            token: token.to_owned(),
+            device_id: Some("dev-1".to_owned()),
+            refusal: None,
+            account_identity: account.map(str::to_owned),
+        }
+    }
+
+    fn runtime(source: Arc<FixedSource>, ttl: Duration) -> PaidPluginRuntime {
+        PaidPluginRuntime::with_clock(source, Arc::new(|| NOW_MS), ttl)
+            .with_keys(Arc::new(|_kid| Some(key())))
+    }
+
+    #[test]
+    fn runtime_allows_paid_plugins_and_ignores_unregistered_ones() {
+        let source = FixedSource::new(facts(ACTIVE, Some("user-1")));
+        let gate = runtime(source.clone(), Duration::from_secs(5));
+        gate.register("math-modeling");
+        assert!(gate.check("math-modeling").is_ok());
+        // 缓存命中：同一 TTL 内只读一次凭据。
+        assert!(gate.check("math-modeling").is_ok());
+        assert_eq!(source.loads(), 1);
+        // 未登记的不是付费插件，不读凭据。
+        assert!(gate.check("other-plugin").is_ok());
+        assert_eq!(source.loads(), 1);
+    }
+
+    #[test]
+    fn runtime_denies_after_expiry_and_after_account_switch() {
+        let gate = runtime(
+            FixedSource::new(facts(ACTIVE, Some("user-1"))),
+            Duration::ZERO,
+        );
+        gate.register("math-modeling");
+        assert!(gate.check_at("math-modeling", NOW_MS).is_ok());
+        let expired = gate
+            .check_at("math-modeling", 1_793_288_600_000)
+            .unwrap_err();
+        assert!(expired.contains("到期"), "{expired}");
+
+        let switched = runtime(
+            FixedSource::new(facts(ACTIVE, Some("user-2"))),
+            Duration::ZERO,
+        );
+        switched.register("math-modeling");
+        let message = switched.check_at("math-modeling", NOW_MS).unwrap_err();
+        assert!(message.contains("账号不一致"), "{message}");
+    }
+
+    #[test]
+    fn runtime_reads_a_renewed_license_after_the_ttl() {
+        let source = FixedSource::new(PaidLicenseFacts::default());
+        let gate = runtime(source.clone(), Duration::ZERO);
+        gate.register("math-modeling");
+        assert!(gate.check("math-modeling").is_err());
+        // 续费/重新激活后凭据文件换了一份：下一次检查必须重新读，不能一直用缓存拒绝。
+        source.set(facts(ACTIVE, Some("user-1")));
+        assert!(gate.check("math-modeling").is_ok());
+        assert!(source.loads() >= 2);
     }
 }

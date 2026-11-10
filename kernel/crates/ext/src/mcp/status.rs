@@ -12,8 +12,8 @@
 //! 从配置读到的集合（Node 的 `createConfig`）。插件提供的 MCP 服务器总是并入——设置页的插件
 //! 分组按名字读同一份快照（`buildPluginMcpServerItems`）。
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 use std::time::Duration;
 
 use nibi_kernel_base::Spawner;
@@ -46,6 +46,10 @@ pub(crate) struct McpStatusRegistry {
     telemetry: Option<Arc<McpTelemetry>>,
     /// 令牌端口（与进程级 manager 共用一份）。
     oauth: Option<Arc<dyn nibi_kernel_api::mcp::McpOAuthPort>>,
+    /// 付费插件执行期门禁（与进程级 manager 共用一份）。
+    paid_gate: RwLock<Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>>,
+    /// 服务器 → 插件归属（与 Ext 共享）。
+    paid_owners: std::sync::OnceLock<Arc<RwLock<HashMap<String, String>>>>,
     seed: Mutex<Option<Seed>>,
     /// 工作区根 → 这套连接。
     managers: Mutex<BTreeMap<String, Arc<McpManager>>>,
@@ -67,9 +71,28 @@ impl McpStatusRegistry {
             clock,
             telemetry,
             oauth,
+            paid_gate: RwLock::new(None),
+            paid_owners: std::sync::OnceLock::new(),
             seed: Mutex::new(None),
             managers: Mutex::new(BTreeMap::new()),
         }
+    }
+
+    pub(crate) fn attach_paid_gate(
+        &self,
+        gate: Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>,
+    ) {
+        *self
+            .paid_gate
+            .write()
+            .unwrap_or_else(PoisonError::into_inner) = Some(gate);
+    }
+
+    pub(crate) fn attach_paid_owners(
+        &self,
+        owners: Arc<RwLock<HashMap<String, String>>>,
+    ) {
+        let _ = self.paid_owners.set(owners);
     }
 
     /// `Ext::start` 记下配置与插件的服务器。
@@ -113,6 +136,17 @@ impl McpStatusRegistry {
                 }
                 if let Some(oauth) = self.oauth.clone() {
                     manager.attach_oauth(oauth);
+                }
+                if let Some(gate) = self
+                    .paid_gate
+                    .read()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .clone()
+                {
+                    manager.attach_paid_gate(gate);
+                }
+                if let Some(owners) = self.paid_owners.get() {
+                    manager.attach_paid_owners(owners.clone());
                 }
                 manager
             })

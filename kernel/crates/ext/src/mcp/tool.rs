@@ -66,6 +66,10 @@ pub(crate) struct McpTool {
     schema: Value,
     read_only: bool,
     manager: Weak<Inner>,
+    /// 这个服务器所属的插件（插件加载时登记；配置/会话自己的服务器为 None）。
+    paid_plugin: Option<String>,
+    /// 付费插件执行期门禁；非付费服务器为 None。
+    paid_gate: Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>,
 }
 
 /// 工具自己的不延迟标记：`_meta` 里这两个键任一为 `true`（ext.md §3.1、D35）。第一个是本工程的键；第二个是旧键，
@@ -80,6 +84,8 @@ impl McpTool {
         listed: &Value,
         server_always_load: bool,
         manager: Weak<Inner>,
+        paid_plugin: Option<String>,
+        paid_gate: Option<Arc<dyn nibi_kernel_api::paid_plugin::PaidPluginGate>>,
     ) -> Option<Self> {
         let original = listed.get("name").and_then(Value::as_str)?.to_owned();
         let meta = listed.get("_meta");
@@ -110,6 +116,8 @@ impl McpTool {
                 always_load,
             },
             manager,
+            paid_plugin,
+            paid_gate,
         })
     }
 }
@@ -174,6 +182,13 @@ impl Tool for McpTool {
         context: ToolUseContext,
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
+        // 工具表冻结，执行时复核：到期/撤销/换账号只让这次调用失败；续费后同一次会话的下一次
+        // 调用直接通过，不需要增删工具。错误作为工具结果回到模型（追加在尾部，不影响前缀缓存）。
+        if let (Some(plugin), Some(gate)) = (&self.paid_plugin, &self.paid_gate)
+            && let Err(message) = gate.check(plugin)
+        {
+            return Err(failed(message));
+        }
         let manager = self
             .manager
             .upgrade()
