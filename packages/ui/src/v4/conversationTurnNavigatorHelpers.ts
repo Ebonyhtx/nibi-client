@@ -102,23 +102,41 @@ export function resolveConversationTurnNavigatorHydrationRetryDelayMs(
 const DEFAULT_MAX_PREVIEW_CHARS = 220;
 const DEFAULT_MAX_PREVIEW_PARAGRAPHS = 2;
 
-function normalizePreviewParagraphs(text: string, maxParagraphs: number): string[] {
-  return text
-    .trim()
-    .split(/\n\s*\n/u)
-    .map((paragraph) => paragraph.replace(/\s+/gu, " ").trim())
-    .filter(Boolean)
-    .slice(0, Math.max(1, maxParagraphs));
+function isPreviewWhitespace(char: string): boolean {
+  return /\s/u.test(char);
 }
 
-function truncatePreview(text: string, maxChars: number): string {
-  const normalizedMaxChars = Math.max(8, maxChars);
-  if (text.length <= normalizedMaxChars) {
-    return text;
+/**
+ * 只归一化「截断一定用得到」的前缀：空白折叠与 trim 语义和全量 replace 一致，
+ * 但单个超长段落不会因为流式追加而反复整段扫描。返回结果长度不超过 maxChars。
+ */
+function normalizePreviewParagraphPrefix(raw: string, maxChars: number): string {
+  let normalized = "";
+  let pendingSpace = false;
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index]!;
+    if (isPreviewWhitespace(char)) {
+      // 段首空白被 trim 掉；段中连续空白折叠成一个空格，延后到下一个可见字符再写入。
+      pendingSpace = normalized.length > 0;
+      continue;
+    }
+    if (pendingSpace) {
+      normalized += " ";
+      pendingSpace = false;
+    }
+    normalized += char;
+    if (normalized.length >= maxChars) {
+      break;
+    }
   }
-  return `${text.slice(0, normalizedMaxChars - 3).trimEnd()}...`;
+  return normalized;
 }
 
+/**
+ * 导航预览正文：保持既有空白归一、段落上限、字符上限与省略号语义。
+ * 只扫描足够确定结果的前缀——段落数达到上限或字符数达到上限即停止，
+ * 不再为每次流式追加先处理所有历史正文再截断。
+ */
 function buildPreviewText({
   texts,
   fallback,
@@ -130,11 +148,38 @@ function buildPreviewText({
   maxPreviewChars: number;
   maxPreviewParagraphs: number;
 }): string {
-  const paragraphs = normalizePreviewParagraphs(texts.join("\n\n"), maxPreviewParagraphs);
+  const normalizedMaxChars = Math.max(8, maxPreviewChars);
+  const paragraphLimit = Math.max(1, maxPreviewParagraphs);
+  // 多保留一个字符：能区分「恰好等于上限」与「还有更多正文」，
+  // 省略号语义不依赖继续扫描剩余历史正文。
+  const scanLimit = normalizedMaxChars + 1;
+  const paragraphs: string[] = [];
+  let joinedLength = 0;
+  let determined = false;
+
+  for (const text of texts) {
+    if (determined) break;
+    for (const rawParagraph of text.trim().split(/\n\s*\n/u)) {
+      const paragraph = normalizePreviewParagraphPrefix(rawParagraph, scanLimit);
+      if (!paragraph) continue;
+      paragraphs.push(paragraph);
+      // 拼接后每个段落之间还有一个换行符。
+      joinedLength += paragraph.length + (paragraphs.length > 1 ? 1 : 0);
+      if (paragraphs.length >= paragraphLimit || joinedLength > normalizedMaxChars) {
+        determined = true;
+        break;
+      }
+    }
+  }
+
   if (paragraphs.length === 0) {
     return fallback;
   }
-  return truncatePreview(paragraphs.join("\n"), maxPreviewChars);
+  const joined = paragraphs.join("\n");
+  if (joined.length <= normalizedMaxChars) {
+    return joined;
+  }
+  return `${joined.slice(0, normalizedMaxChars - 3).trimEnd()}...`;
 }
 
 function buildAssistantPreview(
@@ -169,6 +214,57 @@ function buildAssistantPreview(
   };
 }
 
+interface ConversationTurnNavigatorItemsCacheEntry {
+  optionsKey: string;
+  unitIndex: number;
+  items: ConversationTurnNavigatorItem[];
+}
+
+// 按 turn 原始输入复用导航项：unit 引用稳定时（历史轮）目录项与预览保持同一对象，
+// 流式帧只重建变化的那一轮。WeakMap 以窗口内的 unit 为键，离开窗口即被回收，
+// 不延长历史窗口生命期，也不成为第二份消息状态。
+const navigatorItemsCache = new WeakMap<
+  ConversationTurnRenderUnit,
+  ConversationTurnNavigatorItemsCacheEntry
+>();
+
+function buildNavigatorItemsForUnit(
+  unit: ConversationTurnRenderUnit,
+  unitIndex: number,
+  options: Required<BuildConversationTurnNavigatorItemsOptions>,
+): ConversationTurnNavigatorItem[] {
+  // provider/store 的物理 role=user 还包含 background/goal/mailbox
+  // 等系统上下文；目录代表用户主动 query，只能使用投影明确裁决的 realUser。
+  const realUserInputs = unit.visibleUserInputs.filter((row) => row.origin === "realUser");
+  if (unit.timelineOnly || realUserInputs.length === 0) {
+    return [];
+  }
+
+  // 导航项按 query 拆分，但 hover 的 assistant 摘要保持旧产品语义：
+  // 取所属 product turn 的文本结果，不在 renderer 猜测 guide 回复分段。
+  const { assistantPreview, assistantPreviewKind } = buildAssistantPreview(unit, options);
+  return realUserInputs.map((row, queryIndex) => ({
+    // 不能以 product turn 为目录粒度，并把同一 turn 的 steer query
+    // 全部拼进一个 preview。目录真正导航的是用户可见 query，必须用稳定 row
+    // 身份逐条建项，turnId 只负责把虚拟列表先定位到所属容器。
+    key: `${unit.key}:query:${row.entityId ?? row.rowId}`,
+    turnId: unit.turnId,
+    unitIndex,
+    rowId: row.rowId,
+    userPreview: buildPreviewText({
+      texts: [row.text],
+      fallback: options.userFallbackPreview,
+      maxPreviewChars: options.maxPreviewChars,
+      maxPreviewParagraphs: options.maxPreviewParagraphs,
+    }),
+    assistantPreview,
+    assistantPreviewKind,
+    // 同一 running product turn 可能已有多个已结束 guide segment；只有最后一条
+    // query 仍代表当前工作，避免所有旧 query 一起呈现 running 强调。
+    isRunning: unit.isRunning && queryIndex === realUserInputs.length - 1,
+  }));
+}
+
 export function buildConversationTurnNavigatorItems(
   units: readonly ConversationTurnRenderUnit[],
   options: BuildConversationTurnNavigatorItemsOptions,
@@ -179,43 +275,22 @@ export function buildConversationTurnNavigatorItems(
     maxPreviewParagraphs:
       options.maxPreviewParagraphs ?? DEFAULT_MAX_PREVIEW_PARAGRAPHS,
   };
+  const optionsKey = [
+    resolvedOptions.assistantEmptyPreview,
+    resolvedOptions.assistantRunningPreview,
+    resolvedOptions.userFallbackPreview,
+    String(resolvedOptions.maxPreviewChars),
+    String(resolvedOptions.maxPreviewParagraphs),
+  ].join("\u0000");
 
   return units.flatMap((unit, unitIndex) => {
-    // provider/store 的物理 role=user 还包含 background/goal/mailbox
-    // 等系统上下文；目录代表用户主动 query，只能使用投影明确裁决的 realUser。
-    const realUserInputs = unit.visibleUserInputs.filter(
-      (row) => row.origin === "realUser",
-    );
-    if (unit.timelineOnly || realUserInputs.length === 0) {
-      return [];
+    const cached = navigatorItemsCache.get(unit);
+    if (cached && cached.optionsKey === optionsKey && cached.unitIndex === unitIndex) {
+      return cached.items;
     }
-
-    // 导航项按 query 拆分，但 hover 的 assistant 摘要保持旧产品语义：
-    // 取所属 product turn 的文本结果，不在 renderer 猜测 guide 回复分段。
-    const { assistantPreview, assistantPreviewKind } = buildAssistantPreview(
-      unit,
-      resolvedOptions,
-    );
-    return realUserInputs.map((row, queryIndex) => ({
-      // 不能以 product turn 为目录粒度，并把同一 turn 的 steer query
-      // 全部拼进一个 preview。目录真正导航的是用户可见 query，必须用稳定 row
-      // 身份逐条建项，turnId 只负责把虚拟列表先定位到所属容器。
-      key: `${unit.key}:query:${row.entityId ?? row.rowId}`,
-      turnId: unit.turnId,
-      unitIndex,
-      rowId: row.rowId,
-      userPreview: buildPreviewText({
-        texts: [row.text],
-        fallback: resolvedOptions.userFallbackPreview,
-        maxPreviewChars: resolvedOptions.maxPreviewChars,
-        maxPreviewParagraphs: resolvedOptions.maxPreviewParagraphs,
-      }),
-      assistantPreview,
-      assistantPreviewKind,
-      // 同一 running product turn 可能已有多个已结束 guide segment；只有最后一条
-      // query 仍代表当前工作，避免所有旧 query 一起呈现 running 强调。
-      isRunning: unit.isRunning && queryIndex === realUserInputs.length - 1,
-    }));
+    const items = buildNavigatorItemsForUnit(unit, unitIndex, resolvedOptions);
+    navigatorItemsCache.set(unit, { optionsKey, unitIndex, items });
+    return items;
   });
 }
 

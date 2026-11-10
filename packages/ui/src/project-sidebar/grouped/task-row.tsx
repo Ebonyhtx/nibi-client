@@ -42,9 +42,7 @@ function GroupedTaskRowComponent({
   currentGroupId,
   groups,
   remoteSessionId,
-  activeWorkspacePath,
-  activeWorkspaceIdentity,
-  activeTaskId,
+  active,
   mobileActiveTaskKey,
   workspaceLabel,
   onSelectTask,
@@ -64,9 +62,8 @@ function GroupedTaskRowComponent({
   currentGroupId?: string;
   groups: TaskGroupMenuItem[];
   remoteSessionId?: string;
-  activeWorkspacePath: string;
-  activeWorkspaceIdentity?: string;
-  activeTaskId: string | null;
+  /** 本行是否选中；由列表层按 activeTaskId 逐行判定，行内不再读取全局选中态。 */
+  active: boolean;
   mobileActiveTaskKey?: string | null;
   workspaceLabel: string;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
@@ -126,9 +123,7 @@ function GroupedTaskRowComponent({
   const taskChangeParts = formatGroupedTaskHoverChangeParts(getTaskChangeSummary(task));
   const taskTimeLabel = formatTaskRelativeTime(task.updatedAt, intl);
   const isTaskCron = isCronTask(task);
-  const isActive =
-    buildTaskWorkspaceKey(activeWorkspacePath, activeWorkspaceIdentity) === workspaceKey &&
-    activeTaskId === task.taskId;
+  const isActive = active === true;
   const isMobileActive = mobileActiveTaskKey === `${workspaceKey}:${task.taskId}`;
   const statusDotClassName =
     leadingIndicator === "error"

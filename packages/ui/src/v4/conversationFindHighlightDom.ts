@@ -128,6 +128,15 @@ function getMountedRowElement(
   return root.querySelector<HTMLElement>(`[data-row-id="${rowId}"]`);
 }
 
+/**
+ * `Range=null` 不能等同于「目标未挂载」：源码索引可能命中 Markdown 标记或链接地址，
+ * 渲染后的文本节点没有对应内容。调用方需要先判断行是否挂载，再决定是继续粗定位
+ * 还是结束本次定位。
+ */
+export function isConversationFindRowMounted(root: HTMLElement, rowId: number): boolean {
+  return getMountedRowElement(root, rowId) !== null;
+}
+
 export function getMountedConversationFindRange(
   root: HTMLElement,
   query: string,
@@ -205,7 +214,8 @@ export function applySearchResultHighlight({
 export function scrollConversationFindRangeIntoView(range: Range) {
   const container = range.commonAncestorContainer;
   const element = container instanceof Element ? container : container.parentElement;
-  element?.scrollIntoView({ block: "center", behavior: "smooth" });
+  // 立即居中：平滑滚动会被随后的测高补偿取消，留下错误落点。
+  element?.scrollIntoView({ block: "center", behavior: "auto" });
 }
 
 export function clearConversationFindHighlights() {

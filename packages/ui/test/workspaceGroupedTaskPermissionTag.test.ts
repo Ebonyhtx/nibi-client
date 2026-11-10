@@ -105,7 +105,7 @@ function renderGroupedTaskRow(
         groups: [],
         activeWorkspacePath: task.workspacePath,
         activeWorkspaceIdentity: task.workspaceIdentity,
-        activeTaskId: null,
+        active: false,
         workspaceLabel: "workspace",
         onSelectTask: () => {},
         onCloseTask: () => {},

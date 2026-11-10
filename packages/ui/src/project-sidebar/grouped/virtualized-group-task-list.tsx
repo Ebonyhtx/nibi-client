@@ -3,6 +3,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
 import { GroupedTaskItem } from "@/project-sidebar/grouped/task-item.js";
+import { resolveGroupedTaskActive } from "@/project-sidebar/grouped/task-selection.js";
 import { taskKey } from "@/project-sidebar/grouped/ids.js";
 import {
   isPotentialVerticalScrollContainer,
@@ -160,9 +161,12 @@ export function VirtualizedGroupedTaskList({
         groups={groups}
         remoteSessionId={getTaskRemoteSessionId(task)}
         workspaceLabel={getTaskWorkspaceLabel(task)}
-        activeWorkspacePath={activeWorkspacePath}
-        activeWorkspaceIdentity={activeWorkspaceIdentity}
-        activeTaskId={activeTaskId}
+        // 选中态逐行判定：切换当前任务时只有旧/新两行拿到不同的 active。
+        active={resolveGroupedTaskActive(task, {
+          activeTaskId,
+          activeWorkspacePath,
+          ...(activeWorkspaceIdentity === undefined ? {} : { activeWorkspaceIdentity }),
+        })}
         mobileActiveTaskKey={mobileActiveTaskKey}
         onSelectTask={onSelectTask}
         onCloseTask={onCloseTask}
@@ -250,6 +254,7 @@ export function VirtualizedGroupedTaskList({
 
 export {
   GROUPED_TASK_ROW_ESTIMATE_PX,
+  GROUPED_TASK_VIRTUALIZATION_OVERSCAN,
   GROUPED_TASK_VIRTUALIZATION_THRESHOLD,
   shouldVirtualizeGroupedTasks,
 };

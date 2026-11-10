@@ -19,6 +19,9 @@ import {
   resolveConversationTurnNavigatorActiveUnitIndex,
   resolveConversationTurnNavigatorBarVisualState,
   resolveConversationTurnNavigatorVisualFocusItemIndex,
+  type ConversationTurnNavigatorBarColorTone,
+  type ConversationTurnNavigatorBarTone,
+  type ConversationTurnNavigatorItem,
   type ConversationTurnNavigatorVirtualItem,
 } from "@/v4/conversationTurnNavigatorHelpers.js";
 import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
@@ -35,6 +38,122 @@ export interface ConversationTurnNavigatorProps {
     behavior: ScrollBehavior,
   ) => void;
 }
+
+interface ConversationTurnNavigatorRailItemProps {
+  item: ConversationTurnNavigatorItem;
+  itemIndex: number;
+  active: boolean;
+  showScrollActiveColor: boolean;
+  colorTone: ConversationTurnNavigatorBarColorTone;
+  tone: ConversationTurnNavigatorBarTone;
+  opacity: number;
+  scaleX: number;
+  translateYPx: number;
+  prefersReducedMotion: boolean;
+  onHoverChange: (itemIndex: number | undefined) => void;
+  onJumpToQuery: ConversationTurnNavigatorProps["onJumpToQuery"];
+}
+
+/**
+ * 单个导航条。hover/focus 只改变视觉状态实际变化的条目（自身与上下两个峰），
+ * 其余条目的 props 全部相同，memo 直接跳过，不会重建全部 HoverCard。
+ */
+const ConversationTurnNavigatorRailItem = memo(function ConversationTurnNavigatorRailItem({
+  item,
+  itemIndex,
+  active,
+  showScrollActiveColor,
+  colorTone,
+  tone,
+  opacity,
+  scaleX,
+  translateYPx,
+  prefersReducedMotion,
+  onHoverChange,
+  onJumpToQuery,
+}: ConversationTurnNavigatorRailItemProps) {
+  const { intl } = useZCodeIntl();
+  return (
+    <div
+      className="absolute left-0 top-0 h-2.5 w-9"
+      style={{ transform: `translateY(${translateYPx}px)` }}
+    >
+      <HoverCard closeDelay={80} openDelay={120}>
+        <HoverCardTrigger asChild>
+          <button
+            type="button"
+            aria-current={active ? "location" : undefined}
+            aria-label={intl.formatMessage(
+              { id: "chat.turnNavigator.jumpToQuery" },
+              { index: String(itemIndex + 1) },
+            )}
+            data-testid={testId(TID_V4_TURN_NAVIGATOR_ITEM, item.key)}
+            data-item-index={itemIndex}
+            data-unit-index={item.unitIndex}
+            data-turn-id={item.turnId}
+            data-query-row-id={item.rowId}
+            data-active={active ? "true" : "false"}
+            data-running={item.isRunning ? "true" : "false"}
+            data-visual-color-tone={colorTone}
+            data-visual-scale={String(scaleX)}
+            data-visual-tone={tone}
+            onBlur={() => onHoverChange(undefined)}
+            onClick={() =>
+              onJumpToQuery(
+                { unitIndex: item.unitIndex, rowId: item.rowId },
+                prefersReducedMotion ? "auto" : "smooth",
+              )
+            }
+            onFocus={() => onHoverChange(itemIndex)}
+            onPointerEnter={() => onHoverChange(itemIndex)}
+            onPointerLeave={() => onHoverChange(undefined)}
+            className="flex h-2.5 w-9 items-center justify-start rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <span
+              className={cn(
+                "block h-0.5 w-3 origin-left rounded-full transition-[height,opacity,transform,background-color] duration-150 ease-out motion-reduce:transition-none",
+                colorTone === "focus" && "bg-foreground",
+                colorTone === "muted" &&
+                  (showScrollActiveColor ? "bg-foreground" : "bg-foreground-subtlest"),
+              )}
+              style={{
+                opacity: showScrollActiveColor
+                  ? 0.9
+                  : item.isRunning
+                    ? Math.max(opacity, 0.72)
+                    : opacity,
+                transform: `scaleX(${scaleX})`,
+              }}
+            />
+          </button>
+        </HoverCardTrigger>
+        <HoverCardContent
+          align="start"
+          side="right"
+          sideOffset={8}
+          data-testid={testId(TID_V4_TURN_NAVIGATOR_TOOLTIP, item.key)}
+          className="w-80 max-w-[calc(100vw-2rem)] border border-popover-border bg-popover p-3 text-popover-foreground shadow-lg"
+        >
+          <div className="space-y-2">
+            <p className="line-clamp-2 whitespace-pre-line text-ui-base font-medium leading-5">
+              {item.userPreview}
+            </p>
+            <p
+              className={cn(
+                "line-clamp-3 whitespace-pre-line text-ui-base leading-5",
+                item.assistantPreviewKind === "text"
+                  ? "text-popover-foreground/80"
+                  : "text-foreground-subtle",
+              )}
+            >
+              {item.assistantPreview}
+            </p>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    </div>
+  );
+});
 
 function ConversationTurnNavigatorImpl({
   renderUnits,
@@ -162,94 +281,22 @@ function ConversationTurnNavigatorImpl({
               itemIndex,
               visualFocusItemIndex,
             });
-            const showScrollActiveColor =
-              visualFocusItemIndex === undefined && active;
             return (
-              <div
+              <ConversationTurnNavigatorRailItem
                 key={item.key}
-                className="absolute left-0 top-0 h-2.5 w-9"
-                style={{ transform: `translateY(${virtualRow.start}px)` }}
-              >
-                <HoverCard closeDelay={80} openDelay={120}>
-                  <HoverCardTrigger asChild>
-                    <button
-                      type="button"
-                      aria-current={active ? "location" : undefined}
-                      aria-label={intl.formatMessage(
-                        { id: "chat.turnNavigator.jumpToQuery" },
-                        { index: String(itemIndex + 1) },
-                      )}
-                      data-testid={testId(TID_V4_TURN_NAVIGATOR_ITEM, item.key)}
-                      data-item-index={itemIndex}
-                      data-unit-index={item.unitIndex}
-                      data-turn-id={item.turnId}
-                      data-query-row-id={item.rowId}
-                      data-active={active ? "true" : "false"}
-                      data-running={item.isRunning ? "true" : "false"}
-                      data-visual-color-tone={visualState.colorTone}
-                      data-visual-scale={String(visualState.scaleX)}
-                      data-visual-tone={visualState.tone}
-                      onBlur={() => setInteractionItemIndex(undefined)}
-                      onClick={() =>
-                        onJumpToQuery(
-                          { unitIndex: item.unitIndex, rowId: item.rowId },
-                          prefersReducedMotion ? "auto" : "smooth",
-                        )
-                      }
-                      onFocus={() => setInteractionItemIndex(itemIndex)}
-                      onPointerEnter={() => setInteractionItemIndex(itemIndex)}
-                      onPointerLeave={() => setInteractionItemIndex(undefined)}
-                      className="flex h-2.5 w-9 items-center justify-start rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      <span
-                        className={cn(
-                          "block h-0.5 w-3 origin-left rounded-full transition-[height,opacity,transform,background-color] duration-150 ease-out motion-reduce:transition-none",
-                          visualState.colorTone === "focus" && "bg-foreground",
-                          visualState.colorTone === "muted" &&
-                            (showScrollActiveColor
-                              ? "bg-foreground"
-                              : "bg-foreground-subtlest"),
-                        )}
-                        style={{
-                          opacity:
-                            showScrollActiveColor
-                              ? 0.9
-                              : item.isRunning
-                                ? Math.max(visualState.opacity, 0.72)
-                                : visualState.opacity,
-                          transform: `scaleX(${visualState.scaleX})`,
-                        }}
-                      />
-                    </button>
-                  </HoverCardTrigger>
-                  <HoverCardContent
-                    align="start"
-                    side="right"
-                    sideOffset={8}
-                    data-testid={testId(
-                      TID_V4_TURN_NAVIGATOR_TOOLTIP,
-                      item.key,
-                    )}
-                    className="w-80 max-w-[calc(100vw-2rem)] border border-popover-border bg-popover p-3 text-popover-foreground shadow-lg"
-                  >
-                    <div className="space-y-2">
-                      <p className="line-clamp-2 whitespace-pre-line text-ui-base font-medium leading-5">
-                        {item.userPreview}
-                      </p>
-                      <p
-                        className={cn(
-                          "line-clamp-3 whitespace-pre-line text-ui-base leading-5",
-                          item.assistantPreviewKind === "text"
-                            ? "text-popover-foreground/80"
-                            : "text-foreground-subtle",
-                        )}
-                      >
-                        {item.assistantPreview}
-                      </p>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </div>
+                item={item}
+                itemIndex={itemIndex}
+                active={active}
+                showScrollActiveColor={visualFocusItemIndex === undefined && active}
+                colorTone={visualState.colorTone}
+                tone={visualState.tone}
+                opacity={visualState.opacity}
+                scaleX={visualState.scaleX}
+                translateYPx={virtualRow.start}
+                prefersReducedMotion={prefersReducedMotion}
+                onHoverChange={setInteractionItemIndex}
+                onJumpToQuery={onJumpToQuery}
+              />
             );
           })}
         </div>

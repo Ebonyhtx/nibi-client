@@ -33,7 +33,7 @@ export type {
   ConversationTurnWorkStatus,
 } from "@/v4/conversationTurnWorkSegments.js";
 
-interface DraftTurnRenderUnit {
+export interface DraftTurnRenderUnit {
   key: string;
   turnId: string;
   header?: TurnHeaderRow;
@@ -155,7 +155,7 @@ function isCompletionBlockingWorkRowRunning(row: AssistantWorkRow): boolean {
   }
 }
 
-function resolveTurnRunning(
+export function resolveTurnRunning(
   draft: DraftTurnRenderUnit,
   options: BuildConversationTurnRenderUnitsOptions,
 ): boolean {
@@ -188,7 +188,7 @@ function shouldForceOpenAbnormalHistory(
   return sessionPhase === "completedInterrupted" || sessionPhase === "error";
 }
 
-function materializeDraftUnit(
+export function materializeDraftUnit(
   draft: DraftTurnRenderUnit,
   index: number,
   total: number,
@@ -331,7 +331,7 @@ function createDraftUnit(turnId: string): DraftTurnRenderUnit {
   };
 }
 
-function shouldKeepRenderUnit(unit: ConversationTurnRenderUnit): boolean {
+export function shouldKeepRenderUnit(unit: ConversationTurnRenderUnit): boolean {
   // 隐形行清零后（投影不再产不可渲染 marker），任何工作行都可渲染；
   // 「哪些 marker 可渲染」不再是 UI 的判断。
   return (
@@ -345,7 +345,7 @@ function shouldKeepRenderUnit(unit: ConversationTurnRenderUnit): boolean {
   );
 }
 
-function normalizeRenderUnitPosition(
+export function normalizeRenderUnitPosition(
   unit: ConversationTurnRenderUnit,
   index: number,
   total: number,
@@ -395,10 +395,13 @@ function normalizeRenderUnitPosition(
   };
 }
 
-export function buildConversationTurnRenderUnits(
+/**
+ * 按协议行全序切出 turn 草稿。纯分片，不含派生。缓存层与无缓存 builder 共用，
+ * 保证「有没有缓存」不会改变轮次边界或行归属。
+ */
+export function splitConversationTurnDrafts(
   rows: readonly ConversationRow[],
-  options: BuildConversationTurnRenderUnitsOptions = {},
-): ConversationTurnRenderUnit[] {
+): DraftTurnRenderUnit[] {
   const units: DraftTurnRenderUnit[] = [];
   const unitByTurnId = new Map<string, DraftTurnRenderUnit>();
 
@@ -431,6 +434,14 @@ export function buildConversationTurnRenderUnits(
     unit.assistantWorkRows.push(row);
   }
 
+  return units;
+}
+
+export function buildConversationTurnRenderUnits(
+  rows: readonly ConversationRow[],
+  options: BuildConversationTurnRenderUnitsOptions = {},
+): ConversationTurnRenderUnit[] {
+  const units = splitConversationTurnDrafts(rows);
   const materializedUnits = units.map((unit, index) =>
     materializeDraftUnit(unit, index, units.length, options),
   );

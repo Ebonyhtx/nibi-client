@@ -53,9 +53,7 @@ function GroupedTaskItemComponent({
   groupId,
   groups,
   remoteSessionId,
-  activeWorkspacePath,
-  activeWorkspaceIdentity,
-  activeTaskId,
+  active,
   mobileActiveTaskKey,
   workspaceLabel,
   onSelectTask,
@@ -75,9 +73,8 @@ function GroupedTaskItemComponent({
   groupId?: string;
   groups: TaskGroupMenuItem[];
   remoteSessionId?: string;
-  activeWorkspacePath: string;
-  activeWorkspaceIdentity?: string;
-  activeTaskId: string | null;
+  /** 本行是否选中；列表层逐行判定，避免把全局 activeTaskId 下发给每一行。 */
+  active: boolean;
   mobileActiveTaskKey?: string | null;
   workspaceLabel: string;
   onSelectTask: (workspacePath: string, taskId: string, workspaceIdentity?: string) => void;
@@ -100,9 +97,7 @@ function GroupedTaskItemComponent({
         currentGroupId={groupId}
         groups={groups}
         remoteSessionId={remoteSessionId}
-        activeWorkspacePath={activeWorkspacePath}
-        activeWorkspaceIdentity={activeWorkspaceIdentity}
-        activeTaskId={activeTaskId}
+        active={active}
         mobileActiveTaskKey={mobileActiveTaskKey}
         workspaceLabel={workspaceLabel}
         onSelectTask={onSelectTask}

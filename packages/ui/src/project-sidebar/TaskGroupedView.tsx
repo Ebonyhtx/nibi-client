@@ -34,6 +34,7 @@ import {
 import { buildGroupedTaskView, groupedMoveCommand } from "@/project-sidebar/grouped/model.js";
 import { GroupItem } from "@/project-sidebar/grouped/group-item.js";
 import { GroupedTaskItem } from "@/project-sidebar/grouped/task-item.js";
+import { resolveGroupedTaskActive } from "@/project-sidebar/grouped/task-selection.js";
 import { GroupedDraftTaskRow } from "@/project-sidebar/grouped/draft-task-row.js";
 import { GroupDragOverlay } from "@/project-sidebar/grouped/group-drag-overlay.js";
 import { StickyGroupHeader } from "@/project-sidebar/grouped/sticky-group-header.js";
@@ -246,37 +247,90 @@ export function TaskGroupedView({
     task.workspacePurpose === "conversation"
       ? intl.formatMessage({ id: "workspaceSidebar.conversationsSection" })
       : task.workspacePath.split(/[\\/]/).filter(Boolean).at(-1) || task.workspacePath;
-  const rowCallbacks = {
-    groups,
-    activeWorkspacePath: workspacePath,
-    activeWorkspaceIdentity: workspaceIdentity,
-    activeTaskId,
-    mobileActiveTaskKey: presentation.mobileActiveTaskKey,
-    onSelectTask: (path: string, id: string, identity?: string) => {
-      const task = findTaskInGroupedView(
-        authoritativeView,
-        taskKey({ workspacePath: path, taskId: id, workspaceIdentity: identity }),
-      );
-      onSelect(path, id, identity, task ? getTaskRemoteSessionId(task) : undefined, task?.unreadAt);
-    },
-    onCloseTask: (task: ProjectTask) =>
-      action(() => mutate(task, { kind: "archive", archived: true }), "taskList.archiveFailed"),
-    onArchiveTask: (task: ProjectTask) =>
-      action(() => mutate(task, { kind: "archive", archived: true }), "taskList.archiveFailed"),
-    onOpenFileTree: presentation.onOpenTaskFiles
-      ? (task: ProjectTask) =>
-          action(() => presentation.onOpenTaskFiles!(task, getTaskRemoteSessionId(task)))
-      : undefined,
-    onMoveTaskToGroup: (task: ProjectTask, id: string | null) => moveTask(task, id),
-    onMoveTaskToTop: (task: ProjectTask) => moveTask(task),
-    onStartRenameTask: (task: ProjectTask) => {
-      setRenamingTask(task);
-      setRenameDraft(task.title ?? "");
-    },
-    onMarkTaskAsUnread: (task: ProjectTask) =>
-      action(() => mutate(task, { kind: "mark-unread" }), "taskList.markAsUnreadFailed"),
-    tooltipsDisabled: drag.dragging,
+  // 行操作保持稳定引用，并在执行时读取最近一次已提交的展示树（渲染性能契约）。
+  // 若每次父组件渲染都换新回调，memo 行全部失效，选中切换会把整组任务行都重渲染。
+  const latestRowContextRef = useRef({
+    authoritativeView,
+    onSelect,
+    getTaskRemoteSessionId,
+    action,
+    mutate,
+    moveTask,
+    presentation,
+  });
+  latestRowContextRef.current = {
+    authoritativeView,
+    onSelect,
+    getTaskRemoteSessionId,
+    action,
+    mutate,
+    moveTask,
+    presentation,
   };
+  const rowCallbacks = useMemo(() => {
+    const read = () => latestRowContextRef.current;
+    return {
+      groups,
+      mobileActiveTaskKey: presentation.mobileActiveTaskKey,
+      onSelectTask: (path: string, id: string, identity?: string) => {
+        const context = read();
+        const task = findTaskInGroupedView(
+          context.authoritativeView,
+          taskKey({ workspacePath: path, taskId: id, workspaceIdentity: identity }),
+        );
+        context.onSelect(
+          path,
+          id,
+          identity,
+          task ? context.getTaskRemoteSessionId(task) : undefined,
+          task?.unreadAt,
+        );
+      },
+      onCloseTask: (task: ProjectTask) => {
+        const context = read();
+        context.action(
+          () => context.mutate(task, { kind: "archive", archived: true }),
+          "taskList.archiveFailed",
+        );
+      },
+      onArchiveTask: (task: ProjectTask) => {
+        const context = read();
+        context.action(
+          () => context.mutate(task, { kind: "archive", archived: true }),
+          "taskList.archiveFailed",
+        );
+      },
+      onOpenFileTree: presentation.onOpenTaskFiles
+        ? (task: ProjectTask) => {
+            const context = read();
+            context.action(() =>
+              context.presentation.onOpenTaskFiles!(task, context.getTaskRemoteSessionId(task)),
+            );
+          }
+        : undefined,
+      onMoveTaskToGroup: (task: ProjectTask, id: string | null) => read().moveTask(task, id),
+      onMoveTaskToTop: (task: ProjectTask) => read().moveTask(task),
+      onStartRenameTask: (task: ProjectTask) => {
+        setRenamingTask(task);
+        setRenameDraft(task.title ?? "");
+      },
+      onMarkTaskAsUnread: (task: ProjectTask) => {
+        const context = read();
+        context.action(
+          () => context.mutate(task, { kind: "mark-unread" }),
+          "taskList.markAsUnreadFailed",
+        );
+      },
+      tooltipsDisabled: drag.dragging,
+    };
+  }, [
+    groups,
+    workspacePath,
+    workspaceIdentity,
+    presentation.mobileActiveTaskKey,
+    presentation.onOpenTaskFiles,
+    drag.dragging,
+  ]);
   const [stickyId, setStickyId] = useState<string | null>(null);
   useEffect(() => {
     const root = drag.root.current;
@@ -428,6 +482,9 @@ export function TaskGroupedView({
                   <GroupItem
                     {...rowCallbacks}
                     node={node}
+                    activeWorkspacePath={workspacePath}
+                    activeWorkspaceIdentity={workspaceIdentity}
+                    activeTaskId={activeTaskId}
                     getTaskRemoteSessionId={getTaskRemoteSessionId}
                     getTaskWorkspaceLabel={getWorkspaceLabel}
                     onCreateTask={() => createTask(node.group.id)}
@@ -456,6 +513,11 @@ export function TaskGroupedView({
                   {...rowCallbacks}
                   key={taskKey(node.task)}
                   task={node.task}
+                  active={resolveGroupedTaskActive(node.task, {
+                    activeTaskId,
+                    activeWorkspacePath: workspacePath,
+                    ...(workspaceIdentity === undefined ? {} : { activeWorkspaceIdentity: workspaceIdentity }),
+                  })}
                   remoteSessionId={getTaskRemoteSessionId(node.task)}
                   workspaceLabel={getWorkspaceLabel(node.task)}
                   dragId={taskKey(node.task)}
@@ -485,6 +547,11 @@ export function TaskGroupedView({
                 <GroupedTaskItem
                   {...rowCallbacks}
                   task={activeTask}
+                  active={resolveGroupedTaskActive(activeTask, {
+                    activeTaskId,
+                    activeWorkspacePath: workspacePath,
+                    ...(workspaceIdentity === undefined ? {} : { activeWorkspaceIdentity: workspaceIdentity }),
+                  })}
                   remoteSessionId={getTaskRemoteSessionId(activeTask)}
                   workspaceLabel={getWorkspaceLabel(activeTask)}
                   dragId={drag.activeTaskKey ?? undefined}

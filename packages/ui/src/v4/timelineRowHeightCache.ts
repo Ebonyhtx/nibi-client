@@ -58,4 +58,23 @@ export class TimelineRowHeightCache {
   clear(): void {
     this.sizes.clear();
   }
+
+  /**
+   * 只保留当前 rows.window 内的 turn。
+   *
+   * 渲染性能契约要求 turn 级派生缓存只保留当前窗口；测高属于同一类每轮派生结果。
+   * 被 rows/range 重新补回的历史轮会重新走一次真实测高，本命中窗口内的行不受影响。
+   * 返回被删除的条目数，供测试与诊断使用。
+   */
+  retain(keys: Iterable<TimelineRowHeightCacheKey>): number {
+    const keep = new Set(keys);
+    let removed = 0;
+    // Map 迭代器允许在遍历中删除当前/其他键；不需要先复制整份 key 列表。
+    for (const key of this.sizes.keys()) {
+      if (keep.has(key)) continue;
+      this.sizes.delete(key);
+      removed += 1;
+    }
+    return removed;
+  }
 }

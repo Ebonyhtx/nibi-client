@@ -90,7 +90,7 @@ function Fixture() {
             }}
             groups={[]}
             activeWorkspacePath="/example"
-            activeTaskId={null}
+            active={false}
             workspaceLabel="Grouped folder"
             onSelectTask={noop}
             onCloseTask={noop}

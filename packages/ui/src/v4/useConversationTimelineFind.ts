@@ -8,6 +8,7 @@ import {
   applySearchResultHighlight,
   clearConversationFindHighlights,
   clearSearchResultHighlight,
+  isConversationFindRowMounted,
   scrollConversationFindRangeIntoView,
 } from "@/v4/conversationFindHighlightDom.js";
 import {
@@ -45,6 +46,10 @@ export interface UseConversationTimelineFindOptions {
   searchResultHighlightRequest?: ChatSearchResultHighlightRequest | null;
   onSearchResultHighlightDone?: (requestId: number) => void;
   scrollToUnit: (unitIndex: number) => void;
+  /** 宽度校正期间的测量提交序号；精确居中要等这个生命周期结束。 */
+  layoutCommitRevision?: number;
+  /** 内容列宽度仍在变化（含同步提交中）时，精确定位让位给布局 owner。 */
+  isLayoutSettling?: () => boolean;
 }
 
 function normalizeSearchResultSnippet(text: string): string {
@@ -77,6 +82,8 @@ export function useConversationTimelineFind({
   searchResultHighlightRequest,
   onSearchResultHighlightDone,
   scrollToUnit,
+  layoutCommitRevision = 0,
+  isLayoutSettling,
 }: UseConversationTimelineFindOptions) {
   const codeCommentCardsEnabled = useAssistantCodeCommentFeatureEnabled();
   const findStable = sessionPhase !== "running" && sessionPhase !== "prewarming";
@@ -137,7 +144,6 @@ export function useConversationTimelineFind({
   const lastFindAutoLoadAttemptRef = useRef("");
   const lastSearchResultAutoLoadAttemptRef = useRef("");
   const searchResultAppliedRequestRef = useRef<number | null>(null);
-  const searchResultScrollRequestRef = useRef<number | null>(null);
   const searchResultCleanupTimerRef = useRef<number | undefined>(undefined);
   const activeFindMatch =
     resolvedFindActiveIndex >= 0
@@ -219,13 +225,20 @@ export function useConversationTimelineFind({
     if (!conversationFindIndex.query || !activeFindMatch) {
       return;
     }
-    const scrollKey = `${conversationFindIndex.query}:${activeFindMatch.rowId}:${activeFindMatch.rowMatchIndex}:${activeFindMatch.unitIndex}`;
+    // 显式上下项导航（含单命中环绕）每次请求都要重新驱动虚拟窗口：
+    // 目标可能已滚出窗口，不能只靠高亮 effect 或同一命中的滚动去重。
+    const scrollKey = `${conversationFindNavigationRequestId}:${conversationFindIndex.query}:${activeFindMatch.rowId}:${activeFindMatch.rowMatchIndex}:${activeFindMatch.unitIndex}`;
     if (lastFindScrollKeyRef.current === scrollKey) {
       return;
     }
     lastFindScrollKeyRef.current = scrollKey;
     scrollToUnit(activeFindMatch.unitIndex);
-  }, [activeFindMatch, conversationFindIndex.query, scrollToUnit]);
+  }, [
+    activeFindMatch,
+    conversationFindIndex.query,
+    conversationFindNavigationRequestId,
+    scrollToUnit,
+  ]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -235,6 +248,11 @@ export function useConversationTimelineFind({
     }
 
     const frame = window.requestAnimationFrame(() => {
+      // 宽度校正 / 同步测高提交期间不精确定位：等既有收敛回调发布提交后
+      // 由 layoutCommitRevision 重新触发，避免被上方缓冲行测高推离视口。
+      if (isLayoutSettling?.()) {
+        return;
+      }
       const activeRange = applyConversationFindHighlights({
         root,
         query: conversationFindQuery,
@@ -254,6 +272,8 @@ export function useConversationTimelineFind({
     conversationFindIndex,
     conversationFindQuery,
     conversationFindNavigationRequestId,
+    isLayoutSettling,
+    layoutCommitRevision,
     mountedRowsKey,
     rootRef,
   ]);
@@ -298,7 +318,6 @@ export function useConversationTimelineFind({
     if (!request || !findStable) {
       clearSearchResultHighlight();
       searchResultAppliedRequestRef.current = null;
-      searchResultScrollRequestRef.current = null;
       if (searchResultCleanupTimerRef.current !== undefined) {
         window.clearTimeout(searchResultCleanupTimerRef.current);
         searchResultCleanupTimerRef.current = undefined;
@@ -324,13 +343,11 @@ export function useConversationTimelineFind({
       }
       return;
     }
-
-    if (searchResultScrollRequestRef.current !== request.requestId) {
-      searchResultScrollRequestRef.current = request.requestId;
-      scrollToUnit(match.unitIndex);
-    }
-
     if (searchResultAppliedRequestRef.current === request.requestId) {
+      return;
+    }
+    // 精确定位必须等宽度校正生命周期结束；测量提交会以 layoutCommitRevision 重跑本 effect。
+    if (isLayoutSettling?.()) {
       return;
     }
 
@@ -339,15 +356,26 @@ export function useConversationTimelineFind({
       if (!root) {
         return;
       }
+      // CR-01：Range=null 不等于目标未挂载。先判断行是否在窗口内：
+      // 未挂载 → 本次请求仍未完成，允许再次粗定位让目标进窗；
+      // 已挂载且布局已确认 → 无论能否创建 Range 都结束本次定位（无 Range 不滚动）。
+      if (!isConversationFindRowMounted(root, match.rowId)) {
+        scrollToUnit(match.unitIndex);
+        return;
+      }
       const range = applySearchResultHighlight({
         root,
         query: request.query,
         match,
       });
+      searchResultAppliedRequestRef.current = request.requestId;
       if (!range) {
+        // 目标已挂载但渲染文本没有对应节点（源码命中 Markdown 标记/链接地址）：
+        // 本次定位直接结束，不滚动、不重试，也不占用临时高亮层。
+        clearSearchResultHighlight();
+        onSearchResultHighlightDone?.(request.requestId);
         return;
       }
-      searchResultAppliedRequestRef.current = request.requestId;
       scrollConversationFindRangeIntoView(range);
       if (searchResultCleanupTimerRef.current !== undefined) {
         window.clearTimeout(searchResultCleanupTimerRef.current);
@@ -363,6 +391,8 @@ export function useConversationTimelineFind({
   }, [
     canLoadOlder,
     findStable,
+    isLayoutSettling,
+    layoutCommitRevision,
     loadingOlder,
     mountedRowsKey,
     onSearchResultHighlightDone,

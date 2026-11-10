@@ -69,4 +69,22 @@ describe("TimelineRowHeightCache", () => {
     expect(cache.size).toBe(0);
     expect(cache.estimate(1)).toBe(DEFAULT_ROW_HEIGHT_ESTIMATE_PX);
   });
+
+  it("retain 只保留当前窗口的 turn（窗口外测量不再成为第二份历史）", () => {
+    const cache = new TimelineRowHeightCache();
+    cache.set("turn-a", 100);
+    cache.set("turn-b", 200);
+    cache.set("turn-c", 300);
+
+    // 窗口滑动到 b/c：a 离开窗口即被裁剪，窗口内测量保持。
+    expect(cache.retain(["turn-b", "turn-c"])).toBe(1);
+    expect(cache.get("turn-a")).toBeUndefined();
+    expect(cache.get("turn-b")).toBe(200);
+    expect(cache.get("turn-c")).toBe(300);
+    expect(cache.size).toBe(2);
+
+    // 前插补页把 a 拉回窗口：旧测量已裁剪，重新估计而非保留过期高度。
+    expect(cache.retain(["turn-a", "turn-b", "turn-c"])).toBe(0);
+    expect(cache.estimate("turn-a")).toBe(DEFAULT_ROW_HEIGHT_ESTIMATE_PX);
+  });
 });

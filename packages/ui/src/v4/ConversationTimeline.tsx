@@ -59,10 +59,8 @@ import {
   getConversationContentWidthClassName,
   getConversationStatusPanelOffsetClassName,
 } from "@/v4/conversationLayout.js";
-import {
-  buildConversationTurnRenderUnits,
-  type ConversationTurnRenderUnit,
-} from "@/v4/conversationTurnRenderUnits.js";
+import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
+import { ConversationTurnRenderUnitCache } from "@/v4/conversationTurnRenderUnitCache.js";
 import {
   resolveConversationTurnNavigatorActiveQueryRowId,
   resolveConversationTurnNavigatorHydrationRetryDelayMs,
@@ -111,7 +109,9 @@ import type { ConversationSelectionReference } from "@/lib/conversationSelection
 // 让未传该属性的渲染绕过稳定引用边界；共享只读空数组可保持默认值恒定。
 const EMPTY_PENDING_GUIDES: readonly QueueItem[] = [];
 
-const ROW_OVERSCAN = 8;
+// 虚拟单位是一整轮（user + assistant/tool 全量）。overscan 前后各两轮即可覆盖
+// 滚动一屏的挂载需求；更大的值会把长正文放大成大量不可见 Markdown/测高工作。
+const ROW_OVERSCAN = 2;
 const RUNNING_WORK_DURATION_TICK_MS = 1000;
 const COMPOSER_MESSAGE_MASK_FADE_PX = 24;
 const COMPOSER_MESSAGE_MASK_TRANSPARENT_HEIGHT_PX = 96;
@@ -461,10 +461,16 @@ function ConversationTimelineImpl({
     });
   }, [pluginUiDerivation, sessionKey, pluginUiDisclosureVersion]);
   const topicPreparations = useBotTopicPreparations();
+  // turn 级派生缓存：未变化的轮保持 render unit 稳定引用，时钟只让运行轮失效。
+  // 实例级（不是模块级），多 pane 互不共享；缓存随窗口裁剪，见 ConversationTurnRenderUnitCache。
+  const renderUnitCacheRef = useRef<ConversationTurnRenderUnitCache | null>(null);
+  if (renderUnitCacheRef.current === null) {
+    renderUnitCacheRef.current = new ConversationTurnRenderUnitCache();
+  }
   const renderUnits = useMemo(
     () =>
       withTopicPreparationMessages(
-        buildConversationTurnRenderUnits(rows, {
+        renderUnitCacheRef.current!.build(rows, {
           nowMs: liveNowMs,
           sessionPhase,
           pluginUiPinResolver,
@@ -526,6 +532,8 @@ function ConversationTimelineImpl({
   unitsRef.current = renderUnits;
   const virtualizedUnitsRef = useRef(virtualizedUnits);
   virtualizedUnitsRef.current = virtualizedUnits;
+  const liveUnitRef = useRef(liveUnit);
+  liveUnitRef.current = liveUnit;
   const liveTailRef = useRef<HTMLDivElement>(null);
   const messageLayerRef = useRef<HTMLDivElement>(null);
   const virtualHistoryRef = useRef<HTMLDivElement>(null);
@@ -578,6 +586,14 @@ function ConversationTimelineImpl({
   if (heightCacheRef.current === null) {
     heightCacheRef.current = new TimelineRowHeightCache();
   }
+  // 测高缓存与 turn 派生缓存一样只保留当前窗口：窗口边界变化（前插补页、尾窗滑动、
+  // rewind 截断）时裁掉已离开 window 的 turn，避免长会话里缓存成为第二份历史。
+  const heightCacheWindowKey = `${rows.length}:${rows[0]?.rowId ?? "none"}:${rows[rows.length - 1]?.rowId ?? "none"}`;
+  useLayoutEffect(() => {
+    const keys = unitsRef.current.map((unit) => unit.key);
+    if (liveUnitRef.current !== null) keys.push(liveUnitRef.current.key);
+    heightCacheRef.current?.retain(keys);
+  }, [heightCacheWindowKey]);
   const [backToBottomVisible, setBackToBottomVisible] = useState(false);
   const [turnNavigatorViewport, setTurnNavigatorViewport] = useState({
     scrollOffsetPx: 0,
@@ -817,7 +833,8 @@ function ConversationTimelineImpl({
     return height;
   }, []);
 
-  const [, commitMeasuredLayout] = useState(0);
+  // 宽度校正的同步测量提交序号：find 精确居中消费这个提交，不另建延时/宽度状态。
+  const [measuredLayoutRevision, commitMeasuredLayout] = useState(0);
   const virtualizer = useVirtualizer({
     count: virtualizedUnits.length,
     getScrollElement,
@@ -1259,7 +1276,23 @@ function ConversationTimelineImpl({
         if (disposed) return;
         stableContentWidthRef.current = contentColumn.clientWidth;
         contentWidthResizeActiveRef.current = false;
-        // 同步提交可能触发其他布局处理；用户上滚或定位始终优先。
+        // 同步提交已经写入新占位高度；跟随权必须按提交后的坐标再确认一次，
+        // 期间用户上滚 / 搜索定位 / 会话切换优先，不能被本次测高抢回滚动权。
+        const postCommitElement = scrollRef.current;
+        if (postCommitElement) {
+          commitFollowing(
+            reconcileFollowingForContentAnchor({
+              following: followingRef.current,
+              metrics: {
+                scrollTop: postCommitElement.scrollTop,
+                viewportHeight: postCommitElement.clientHeight,
+                contentHeight: postCommitElement.scrollHeight,
+              },
+              lastObservedScrollTop: lastObservedScrollTopRef.current,
+              userScrollIntent: getActiveUserScrollIntent(),
+            }),
+          );
+        }
         if (followingRef.current && getActiveUserScrollIntent() !== "awayFromBottom")
           scrollToBottom();
         return;
@@ -1276,6 +1309,9 @@ function ConversationTimelineImpl({
         stableContentWidthRef.current = contentColumn.clientWidth;
         contentWidthResizeActiveRef.current = false;
         contentWidthResizeSettleTimerRef.current = null;
+        // 宽度校正生命周期结束也要发布一次测量提交：等待中的 find 精确定位
+        // 依赖这个序号重新触发，不能只依赖跟随时 flushSync 的那一次。
+        commitMeasuredLayout((revision) => revision + 1);
         if (followingRef.current) {
           scrollToBottom();
         }
@@ -1629,6 +1665,8 @@ function ConversationTimelineImpl({
     searchResultHighlightRequest,
     onSearchResultHighlightDone,
     scrollToUnit,
+    layoutCommitRevision: measuredLayoutRevision,
+    isLayoutSettling: isContentWidthChanging,
   });
 
   const saveCurrentScrollMemoryRef = useRef(saveCurrentScrollMemory);

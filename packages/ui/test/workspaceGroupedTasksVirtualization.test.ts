@@ -1,6 +1,8 @@
 import type { Virtualizer } from "@tanstack/react-virtual";
 import { describe, expect, it, vi } from "vitest";
 import {
+  GROUPED_TASK_ROW_ESTIMATE_PX,
+  GROUPED_TASK_VIRTUALIZATION_OVERSCAN,
   GROUPED_TASK_VIRTUALIZATION_THRESHOLD,
   shouldVirtualizeGroupedTasks,
 } from "@/project-sidebar/grouped/virtualized-group-task-list.js";
@@ -15,6 +17,12 @@ import {
 
 describe("workspace grouped task virtualization", () => {
   it("only virtualizes large groups", () => {
+    // 与上游 virtualized-group-task-list.tsx 同语义：>80 行才虚拟化，
+    // overscan 12，行估高 32px。临界值必须精确，否则小组会退化为全量 DOM 或误触发虚拟化。
+    expect(GROUPED_TASK_VIRTUALIZATION_THRESHOLD).toBe(80);
+    expect(GROUPED_TASK_VIRTUALIZATION_OVERSCAN).toBe(12);
+    expect(GROUPED_TASK_ROW_ESTIMATE_PX).toBe(32);
+    expect(shouldVirtualizeGroupedTasks(79)).toBe(false);
     expect(shouldVirtualizeGroupedTasks(GROUPED_TASK_VIRTUALIZATION_THRESHOLD)).toBe(false);
     expect(shouldVirtualizeGroupedTasks(GROUPED_TASK_VIRTUALIZATION_THRESHOLD + 1)).toBe(true);
   });
