@@ -57,6 +57,12 @@ pub trait CronSignals: Send + Sync {
     /// 循环任务排下一次。
     async fn take_due(&self, session: &SessionId) -> Vec<CronFire>;
 
+    /// 有没有已经到点、还没被取走的任务（常驻池的阻止项：到点的 cron 要靠 actor 触发，
+    /// 回收运行实例会让它推迟到下次冷恢复）。只读、不做调度。缺省 false。
+    fn has_due(&self, _session: &SessionId) -> bool {
+        false
+    }
+
     /// 会话关闭（TUI 退出、`/clear`、`/resume` 切走）：停止这个会话的持久任务调度，释放它持有的调度锁
     /// （tools-more.md §16.4）。默认什么都不做。
     async fn session_closed(&self, _session: &SessionId) {}

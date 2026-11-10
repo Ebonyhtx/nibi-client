@@ -20,11 +20,14 @@ mod generate_text;
 mod hook_review;
 mod kernel;
 mod late;
+mod lifecycle;
 mod listings;
 mod memory;
 mod node_repl;
 mod permissions;
 mod projects;
+mod resident;
+mod residency;
 mod sampling;
 mod session_data;
 mod shared_context;
@@ -75,6 +78,7 @@ pub use permissions::{
     bash_rule_label, bash_rule_seed, format_rule as format_permission_rule,
     parse_rule as parse_permission_rule,
 };
+pub use resident::ResidentPoolConfig;
 pub use nibi_kernel_compact::{CompactConfig, Thresholds as CompactThresholds};
 pub use nibi_kernel_context::{Attribution, ContextConfig, OutputStyle, Surface};
 // hooks 快照（`LocalKernel::replace_hooks` 的参数）：前端的测试组装它不必依赖 hooks crate（修复线 F37 的 TUI 测试）。
@@ -221,6 +225,12 @@ pub struct LocalKernel {
     /// 「run 还欠着决定、主代理闲着」提醒钟的会话侧边（blocked_board.md）：actor 的忙闲沿与
     /// 引擎客户端的开集沿都汇到这里，每个会话一尊钟。
     blocked: Arc<blocked_board::WorkflowBlockedBoard>,
+    /// 运行实例的生命周期状态机（`session/lifecycle/*`）：常驻池回收与协议方法共用的唯一写者。
+    lifecycle: lifecycle::LifecycleController,
+    /// 常驻池的容量/空闲/LRU/租约计数（`session-resident-pool.ts`）。
+    resident: Arc<resident::ResidentPool>,
+    /// 协议层注入的常驻事实（Live/分享订阅）；没有协议前端时为空。
+    residency_watch: resident::ResidencyWatchSlot,
 }
 
 impl LocalKernel {
@@ -679,6 +689,11 @@ impl LocalKernel {
             ports.store.clone(),
             ports.ids.clone(),
         ));
+        // 常驻池：容量与 TTL 只做账，回收走生命周期状态机。时钟经注入端口（测试可控）。
+        let resident = Arc::new(resident::ResidentPool::new(
+            ResidentPoolConfig::default(),
+            ports.clock.clone(),
+        ));
         Self {
             ports,
             machine,
@@ -721,6 +736,9 @@ impl LocalKernel {
             host_serving: false,
             dynamic_workflow: Mutex::default(),
             blocked,
+            lifecycle: lifecycle::LifecycleController::default(),
+            resident,
+            residency_watch: Mutex::default(),
         }
     }
 
@@ -760,6 +778,17 @@ impl LocalKernel {
         self.host_serving = true;
         self.gate
             .set_dynamic_workflow_default(DynamicWorkflowGate::default());
+        self
+    }
+
+    /// 覆盖常驻池参数（测试/嵌入用；生产保持 8 / 16 / 10 分钟 / 60 s）。要在
+    /// [`LocalKernel::start_resident_pool`] 之前调用；已取出的租约不迁移。
+    #[must_use]
+    pub fn with_resident_pool_config(mut self, config: ResidentPoolConfig) -> Self {
+        self.resident = Arc::new(resident::ResidentPool::new(
+            config,
+            self.ports.clock.clone(),
+        ));
         self
     }
 
@@ -854,3 +883,11 @@ mod permission_scope_tests;
 #[cfg(test)]
 #[path = "dynamic_workflow_tests.rs"]
 mod dynamic_workflow_tests;
+
+#[cfg(test)]
+#[path = "lifecycle_tests.rs"]
+mod lifecycle_tests;
+
+#[cfg(test)]
+#[path = "resident_tests.rs"]
+mod resident_tests;

@@ -185,6 +185,45 @@ impl CronSignals for CronBoard {
         fires
     }
 
+    /// 常驻池的阻止项：此刻已经到点、还没被取走的任务（会话任务、错过提示、持久任务的调度投影）。
+    /// 只读；不改任务状态。持久任务的首次触发时间在调度器启动时才投影，没投影过的按“不知道”处理
+    /// （常驻池另有“事实未知不淘汰”的兜底）。
+    fn has_due(&self, session: &SessionId) -> bool {
+        let now = self.now_ms();
+        let mut state = self.state();
+        let state = &mut *state;
+        if state
+            .jobs
+            .get(session)
+            .is_some_and(|jobs| jobs.iter().any(|job| job.next_fire.is_some_and(|at| at <= now)))
+        {
+            return true;
+        }
+        let Some(scheduler) = state.schedulers.get_mut(session) else {
+            return false;
+        };
+        if scheduler
+            .missed_notice
+            .as_ref()
+            .is_some_and(|(_, at)| *at <= now)
+        {
+            return true;
+        }
+        if !scheduler.started || scheduler.closed {
+            return false;
+        }
+        let leader = scheduler.leader;
+        let next_fire = &scheduler.next_fire;
+        state.durable.iter().any(|task| {
+            belongs(task, session, leader)
+                && next_fire
+                    .get(&task.id)
+                    .copied()
+                    .flatten()
+                    .is_some_and(|at| at <= now)
+        })
+    }
+
     /// 关闭（session-lifecycle.md §3.3）：停止持久调度、释放锁；会话任务与 loop 状态一并丢掉——会话再打开时按
     /// 从活动历史复原 CronCreate 建的任务（`resume`）。
     async fn session_closed(&self, session: &SessionId) {

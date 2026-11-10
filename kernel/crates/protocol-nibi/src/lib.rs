@@ -173,6 +173,8 @@ where
     ));
     // Host 侧的 stdio 服务：冷打开会话时问一轮启动偏好（`session/requestRuntimePreferences`）。
     server.request_host_preferences();
+    // 常驻池的协议侧事实（Live/分享订阅）：有订阅者时不回收会话。
+    server.install_residency_watch();
     if let Some(capture) = capture {
         // 攒批任务与服务器同生共死（作用域关闭时结束）。
         // 任务跟着 spawner 的作用域走；句柄不用。
@@ -224,3 +226,7 @@ mod session_directory_tests;
 #[cfg(test)]
 #[path = "auto_resolution_tests.rs"]
 mod auto_resolution_tests;
+
+#[cfg(test)]
+#[path = "lifecycle_tests.rs"]
+mod lifecycle_tests;

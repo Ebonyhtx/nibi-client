@@ -678,6 +678,19 @@ pub trait SessionHandle: Send + Sync {
         false
     }
 
+    /// actor 已经退出（句柄是关闭后留下的旧实例）。协议桥据此丢弃缓存的打开结果、重新冷加载：
+    /// 常驻池回收会话时不会通知协议层，桥里的旧条目必须自己失效。
+    fn is_closed(&self) -> bool {
+        false
+    }
+
+    /// 常驻池的轻量事实（不复制历史）。缺省 `Unsupported`：池按“事实未知 = 不淘汰”处理。
+    async fn residency_facts(&self) -> Result<crate::residency::SessionResidencyFacts, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session residency facts".to_owned(),
+        })
+    }
+
     async fn send(&self, command: CommandEnvelope) -> Ack;
 
     /// 订阅 `after` 之后的事件；`after` 为空时从当前位置开始。
@@ -847,6 +860,67 @@ pub trait Kernel: Send + Sync {
         &self,
         filter: SessionFilter,
     ) -> Result<Vec<SessionSummary>, KernelError>;
+
+    // ── 运行实例的生命周期与常驻池（`session/lifecycle/*`，NIBI 3.17.2）──
+    //
+    // 只管理**本进程里的运行实例**：不创建、不删除持久会话；`session/open|close` 的对外语义不变。
+    // 缺省全部 `Unsupported`：旧 Host 不调用时行为不变，嵌入/测试的内核不必实现。
+
+    /// 一个协议请求的常驻租约：持有期间这些会话不被池回收，`Drop` 时释放并触发收敛。
+    /// 缺省 `None`（没有池的内核不做回收）。
+    async fn acquire_residency_lease(
+        &self,
+        _sessions: &[SessionId],
+    ) -> Option<crate::residency::ResidencyLease> {
+        None
+    }
+
+    /// `session/lifecycle/getState`：只读；会话不存在时报错，不隐式启动。
+    async fn session_lifecycle_state(
+        &self,
+        _session: &SessionId,
+    ) -> Result<crate::residency::SessionLifecycleSnapshot, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session lifecycle state".to_owned(),
+        })
+    }
+
+    /// `session/lifecycle/ensureReady`：幂等恢复已有会话；完成时实例 ready。
+    async fn ensure_session_ready(
+        &self,
+        _session: &SessionId,
+        _workspace: Option<WorkspaceRef>,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session lifecycle ensureReady".to_owned(),
+        })
+    }
+
+    /// `session/lifecycle/stop`：幂等释放运行实例；不删除持久事实，不发 `session.removed`。
+    async fn stop_session_runtime(&self, _session: &SessionId) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session lifecycle stop".to_owned(),
+        })
+    }
+
+    /// `session/lifecycle/restart`：原子占有整个 stop → ensureReady。
+    async fn restart_session_runtime(
+        &self,
+        _session: &SessionId,
+        _workspace: Option<WorkspaceRef>,
+    ) -> Result<(), KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session lifecycle restart".to_owned(),
+        })
+    }
+
+    /// 正在释放运行实例：`stopping` 期间的业务命令/订阅按上游语义拒绝（`fault.sessionLifecycle.stopping`）。
+    fn is_session_stopping(&self, _session: &SessionId) -> bool {
+        false
+    }
+
+    /// 协议层注入常驻事实（Live/分享订阅）。缺省忽略；池只在内核里读。
+    fn set_session_residency_watch(&self, _watch: Arc<dyn crate::residency::SessionResidencyWatch>) {}
 
     /// 会话目录（legacy `session/list`）：比 [`Kernel::list_sessions`] 多带原始 `task_type`、
     /// 标题来源、父链与 `workspace_id`——Host 的任务列表与项目谱系校验要这些列。

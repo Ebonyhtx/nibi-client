@@ -99,42 +99,63 @@ impl<S: SessionSink> SessionBridge<S> {
     where
         F: FnOnce(&Arc<dyn SessionHandle>, &SessionView) -> S,
     {
-        let cell = self.table().entry(session.clone()).or_default().clone();
-        let opened = cell
-            .get_or_init(|| async move {
-                let handle = self.kernel.open_session(session).await?;
-                let view = handle.view().await?;
-                let sink = Arc::new(make(&handle, &view));
-                let (jobs, queue) = mpsc::unbounded_channel();
-                let pump = self.spawner.spawn(
-                    "session-pump",
-                    pump(
-                        handle.clone(),
-                        sink.clone(),
-                        queue,
-                        view.last_seq,
-                        self.window,
-                    ),
-                );
-                Ok(Arc::new(Bridged {
-                    handle,
-                    sink,
-                    jobs,
-                    pump,
-                }))
-            })
-            .await
-            .clone();
-        if opened.is_err() {
-            let mut table = self.table();
-            if table
-                .get(session)
-                .is_some_and(|known| Arc::ptr_eq(known, &cell))
-            {
-                table.remove(session);
+        // 常驻池回收会话（或 `session/lifecycle/stop`）只关内核里的 actor，不会通知协议层；
+        // 缓存的条目可能是已经关闭的旧句柄。发现它已关闭时丢掉条目、重新打开（只重试一次，
+        // 避免“打开后立刻关闭”的实现造成死循环）。
+        let mut retried = false;
+        loop {
+            let cell = self.table().entry(session.clone()).or_default().clone();
+            let stale = !retried
+                && cell
+                    .get()
+                    .is_some_and(|opened| matches!(opened, Ok(bridged) if bridged.handle.is_closed()));
+            if stale {
+                retried = true;
+                let mut table = self.table();
+                if table
+                    .get(session)
+                    .is_some_and(|known| Arc::ptr_eq(known, &cell))
+                {
+                    table.remove(session);
+                }
+                continue;
             }
+            let opened = cell
+                .get_or_init(|| async move {
+                    let handle = self.kernel.open_session(session).await?;
+                    let view = handle.view().await?;
+                    let sink = Arc::new(make(&handle, &view));
+                    let (jobs, queue) = mpsc::unbounded_channel();
+                    let pump = self.spawner.spawn(
+                        "session-pump",
+                        pump(
+                            handle.clone(),
+                            sink.clone(),
+                            queue,
+                            view.last_seq,
+                            self.window,
+                        ),
+                    );
+                    Ok(Arc::new(Bridged {
+                        handle,
+                        sink,
+                        jobs,
+                        pump,
+                    }))
+                })
+                .await
+                .clone();
+            if opened.is_err() {
+                let mut table = self.table();
+                if table
+                    .get(session)
+                    .is_some_and(|known| Arc::ptr_eq(known, &cell))
+                {
+                    table.remove(session);
+                }
+            }
+            return opened;
         }
-        opened
     }
 
     /// 不再转发这个会话的事件（会话本身由内核管理）。

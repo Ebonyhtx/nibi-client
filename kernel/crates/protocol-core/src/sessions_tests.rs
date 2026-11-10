@@ -23,12 +23,18 @@ struct FakeHandle {
     id: SessionId,
     events: Vec<SequencedEvent>,
     subscriptions: StdMutex<Vec<Option<u64>>>,
+    /// 常驻池回收后 actor 退出、句柄变成关闭态（桥要丢掉缓存条目）。
+    closed: std::sync::atomic::AtomicBool,
 }
 
 #[async_trait]
 impl SessionHandle for FakeHandle {
     fn id(&self) -> &SessionId {
         &self.id
+    }
+
+    fn is_closed(&self) -> bool {
+        self.closed.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     async fn send(&self, _command: CommandEnvelope) -> Ack {
@@ -156,6 +162,7 @@ async fn events_after_the_view_reach_the_sink_once_even_when_the_stream_restarts
         id: SessionId::new("s1"),
         events: (1..=5).map(title).collect(),
         subscriptions: StdMutex::new(Vec::new()),
+        closed: std::sync::atomic::AtomicBool::new(false),
     });
     let kernel = Arc::new(FakeKernel {
         handle: handle.clone(),
@@ -206,6 +213,10 @@ impl SessionHandle for ViewHandle {
         self.0.id()
     }
 
+    fn is_closed(&self) -> bool {
+        self.0.is_closed()
+    }
+
     async fn send(&self, command: CommandEnvelope) -> Ack {
         self.0.send(command).await
     }
@@ -239,4 +250,37 @@ impl Kernel for ViewKernel {
     ) -> Result<Vec<SessionSummary>, KernelError> {
         self.0.list_sessions(filter).await
     }
+}
+
+/// 常驻池回收会话后，桥里缓存的句柄已经关闭：再次打开必须丢掉旧条目、重新调用内核打开
+/// （否则协议层会一直拿着已退出的 actor）。
+#[tokio::test]
+async fn a_closed_cached_handle_is_dropped_and_the_session_is_opened_again() {
+    let handle = Arc::new(FakeHandle {
+        id: SessionId::new("s1"),
+        events: Vec::new(),
+        subscriptions: StdMutex::new(Vec::new()),
+        closed: std::sync::atomic::AtomicBool::new(false),
+    });
+    let kernel = Arc::new(FakeKernel {
+        handle: handle.clone(),
+        opens: StdMutex::new(0),
+    });
+    let scope = TaskScope::root("test", |_| {});
+    let bridge = SessionBridge::<Recorder>::new(
+        Arc::new(ViewKernel(kernel.clone())),
+        scope.spawner(),
+        Duration::from_millis(30),
+    );
+    let id = SessionId::new("s1");
+    let first = bridge.open(&id, |_, _| Recorder::default()).await.unwrap();
+    assert!(bridge.open(&id, |_, _| Recorder::default()).await.is_ok());
+    assert_eq!(*kernel.opens.lock().unwrap(), 1, "cached while the handle lives");
+
+    handle
+        .closed
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    let second = bridge.open(&id, |_, _| Recorder::default()).await.unwrap();
+    assert!(!Arc::ptr_eq(&first, &second), "the closed entry is not reused");
+    assert_eq!(*kernel.opens.lock().unwrap(), 2);
 }

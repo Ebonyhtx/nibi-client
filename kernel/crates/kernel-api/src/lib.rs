@@ -60,6 +60,7 @@
 //! | [`automation`] | 桌面 Automations 的 Host 端口与每轮事实 |
 //! | [`auxiliary`] | 旁路辅助模型补全的请求（`ReadSessionContext` 的 lite 抽取） |
 //! | [`workspace_trust`] | 工作区信任记录的键 |
+//! | [`residency`] | 常驻会话池与运行实例生命周期（`session/lifecycle/*`）的类型、租约与协议侧事实 |
 
 pub mod abort;
 pub mod agents;
@@ -126,6 +127,7 @@ pub mod process_table;
 pub mod project_memory;
 pub mod provider;
 pub mod reminder_fold;
+pub mod residency;
 pub mod session_api;
 pub mod session_data;
 pub mod shared_context;

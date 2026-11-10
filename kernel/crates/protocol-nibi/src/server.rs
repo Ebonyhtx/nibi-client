@@ -2,7 +2,7 @@
 //! 命令在 [`crate::commands`]，订阅在 [`crate::subscribe`]。
 
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, Mutex, PoisonError, Weak};
 
 use async_trait::async_trait;
 use futures_util::StreamExt;
@@ -10,6 +10,9 @@ use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{EnvironmentId, SessionId};
 use nibi_kernel_api::model::ModelSelection;
 use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::residency::{
+    ResidencyLease, SessionLifecycleSnapshot, SessionResidencyWatch,
+};
 use nibi_kernel_api::session_api::{EndReason, Kernel, KernelError};
 use nibi_kernel_protocol_core::connection::{Reply, Service};
 use nibi_kernel_protocol_core::rpc::RpcError;
@@ -20,11 +23,19 @@ use crate::context::Context;
 use crate::inbound::Inbound;
 use crate::inbox::Remembered;
 use crate::index::Topics;
-use crate::live::Live;
+use crate::live::{CONVERSATION_PREFIX, Live};
 use crate::projection::state::Followup;
 
 /// 会话不可用（`zcodeProtocolErrorCodes.sessionUnavailable`）。
 pub const SESSION_UNAVAILABLE: i64 = -32004;
+
+/// 运行实例正在释放时业务命令/订阅被拒的错误文本（上游 `fault.sessionLifecycle.stopping`）。
+pub const SESSION_LIFECYCLE_STOPPING: &str = "fault.sessionLifecycle.stopping";
+
+pub(crate) const SESSION_LIFECYCLE_GET_STATE: &str = "session/lifecycle/getState";
+pub(crate) const SESSION_LIFECYCLE_ENSURE_READY: &str = "session/lifecycle/ensureReady";
+pub(crate) const SESSION_LIFECYCLE_STOP: &str = "session/lifecycle/stop";
+pub(crate) const SESSION_LIFECYCLE_RESTART: &str = "session/lifecycle/restart";
 
 /// 新会话的缺省（入口给出）。
 #[derive(Debug, Clone)]
@@ -100,6 +111,84 @@ pub(crate) fn kernel_error(error: &KernelError) -> RpcError {
     }
 }
 
+/// 协议层注入给常驻池的事实：会话还有订阅者时不回收（Live 对话与分享共用同一个主题日志）。
+struct ResidencyWatch {
+    server: Weak<Server>,
+}
+
+impl SessionResidencyWatch for ResidencyWatch {
+    fn has_protocol_blockers(&self, session: &SessionId) -> bool {
+        self.server
+            .upgrade()
+            .and_then(|server| server.bridge.get(session))
+            .is_some_and(|live| live.sink.has_subscribers())
+    }
+}
+
+/// 一个协议请求可能碰到的会话 id（上游 `collectResidencySessionIds` 的同义：租约按会话计数）。
+pub(crate) fn residency_session_ids(params: &Value) -> Vec<SessionId> {
+    let mut ids = Vec::new();
+    let mut push = |value: Option<&str>| {
+        if let Some(value) = value.filter(|value| !value.is_empty()) {
+            ids.push(SessionId::new(value));
+        }
+    };
+    push(params["sessionId"].as_str());
+    if let Some(topic) = params["topic"].as_str()
+        && let Some(session) = topic.strip_prefix(CONVERSATION_PREFIX)
+    {
+        push(Some(session));
+    }
+    if let Some(commands) = params["commands"].as_array() {
+        for command in commands {
+            push(command["sessionId"].as_str());
+        }
+    }
+    ids
+}
+
+fn lifecycle_session_id(params: &Value) -> Result<SessionId, RpcError> {
+    params["sessionId"]
+        .as_str()
+        .filter(|session| !session.is_empty())
+        .map(SessionId::new)
+        .ok_or_else(|| RpcError::invalid_params("Invalid params: sessionId"))
+}
+
+/// `zcodeWorkspaceRef` 的 `workspacePath`：省略/`null` 时没有归属约束（旧协议调用由持久记录提供上下文）。
+fn lifecycle_workspace(
+    server: &Server,
+    params: &Value,
+) -> Result<Option<WorkspaceRef>, RpcError> {
+    let Some(workspace) = params.get("workspace").filter(|value| !value.is_null()) else {
+        return Ok(None);
+    };
+    let Some(path) = workspace["workspacePath"]
+        .as_str()
+        .filter(|path| !path.is_empty())
+    else {
+        return Err(RpcError::invalid_params(
+            "Invalid params: workspace.workspacePath",
+        ));
+    };
+    Ok(Some(server.workspace(path)))
+}
+
+/// `sessionLifecycleSnapshotSchema` 的线上形状（`.strict()`：`lastError` 恒在场，没有时是 `null`）。
+fn lifecycle_snapshot(snapshot: &SessionLifecycleSnapshot) -> Value {
+    json!({
+        "sessionId": snapshot.session_id.as_str(),
+        "state": snapshot.state.as_str(),
+        "generation": snapshot.generation,
+        "revision": snapshot.revision,
+        "lastError": snapshot.last_error.as_ref().map(|error| json!({
+            "operation": error.operation.as_str(),
+            "code": error.code,
+            "message": error.message,
+        })),
+    })
+}
+
 impl Server {
     /// `capture` 是网络捕获的运行时：入口要先把它的观察者装到 `Egress` 上，所以由调用方建好传进来
     /// （`None` 时自建一份——观察者没装，捕获就只会空转）。
@@ -143,6 +232,50 @@ impl Server {
     pub(crate) fn request_host_preferences(&self) {
         self.host_preferences
             .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    /// 把订阅事实接到常驻池上（`serve_with_capture` 在 `Arc` 建好后调用一次）。
+    pub(crate) fn install_residency_watch(self: &Arc<Self>) {
+        self.kernel
+            .set_session_residency_watch(Arc::new(ResidencyWatch {
+                server: Arc::downgrade(self),
+            }));
+    }
+
+    /// 每个协议请求的常驻租约（上游 `handleRequest` 的同一条闸门）：
+    ///
+    /// - `session/lifecycle/getState` 是观察：不续期、不触发回收；
+    /// - 生命周期变更用进程级租约（空会话列表）：按会话的互斥由生命周期 owner 管理；
+    /// - 其余请求按参数里的 `sessionId`/`topic`/`commands[].sessionId` 记账并 touch。
+    pub(crate) async fn residency_lease(
+        &self,
+        method: &str,
+        params: &Value,
+    ) -> Option<ResidencyLease> {
+        if method == SESSION_LIFECYCLE_GET_STATE {
+            return None;
+        }
+        let mutation = matches!(
+            method,
+            SESSION_LIFECYCLE_ENSURE_READY | SESSION_LIFECYCLE_STOP | SESSION_LIFECYCLE_RESTART
+        );
+        let sessions = if mutation {
+            Vec::new()
+        } else {
+            residency_session_ids(params)
+        };
+        self.kernel.acquire_residency_lease(&sessions).await
+    }
+
+    /// `stopping` 期间到达的业务命令按上游语义拒绝（`fault.sessionLifecycle.stopping`）。
+    fn reject_if_stopping(&self, params: &Value) -> Result<(), RpcError> {
+        if residency_session_ids(params)
+            .iter()
+            .any(|session| self.kernel.is_session_stopping(session))
+        {
+            return Err(RpcError::internal(SESSION_LIFECYCLE_STOPPING));
+        }
+        Ok(())
     }
 
     pub(crate) fn workspace(&self, path: &str) -> WorkspaceRef {
@@ -488,6 +621,9 @@ impl Server {
                 "historyFirst": true,
                 "sessionDirectorySource": false,
                 "genUiContext": false,
+                // 生命周期方法已实现；workspace 归属参数只做宽松校验，Host 侧不需要按工作区路由
+                // 重启（与旧 CLI 一样按当前工作区），所以不声明这条能力。
+                "sessionLifecycleWorkspace": false,
             })),
             // platform 自己读同一批文件；回执版本（app-protocol.md §5.1）。
             // Host 设置页的「测试连通性」：一次 1 token 的无会话模型请求（Node
@@ -620,6 +756,48 @@ impl Server {
                 .map(Reply::new),
             "session/read" => crate::legacy::read(self, &params).await.map(Reply::new),
             "session/close" => reply(self.close_session(&params).await),
+            // ── 运行实例的生命周期（NIBI 3.17.2 `session/lifecycle/*`；旧 Host 不调用时行为不变）──
+            //
+            // 只管理本进程里的运行实例：`stop` 关闭 actor 但不发 `session.removed`、不删持久事实；
+            // `ensureReady`/`restart` 复用现有冷加载。方法名与变体字段在 `packages/shared` 已冻结。
+            SESSION_LIFECYCLE_GET_STATE => {
+                let session = lifecycle_session_id(&params)?;
+                let snapshot = self
+                    .kernel
+                    .session_lifecycle_state(&session)
+                    .await
+                    .map_err(|error| kernel_error(&error))?;
+                reply(lifecycle_snapshot(&snapshot))
+            }
+            SESSION_LIFECYCLE_ENSURE_READY => {
+                let session = lifecycle_session_id(&params)?;
+                let workspace = lifecycle_workspace(self, &params)?;
+                self.kernel
+                    .ensure_session_ready(&session, workspace)
+                    .await
+                    .map_err(|error| kernel_error(&error))?;
+                reply(json!({"completed": true}))
+            }
+            SESSION_LIFECYCLE_STOP => {
+                let session = lifecycle_session_id(&params)?;
+                self.kernel
+                    .stop_session_runtime(&session)
+                    .await
+                    .map_err(|error| kernel_error(&error))?;
+                // 协议桥缓存的旧投影不能继续拿着已关闭的 actor；下次订阅会重新冷加载。
+                self.bridge.close(&session);
+                reply(json!({"completed": true}))
+            }
+            SESSION_LIFECYCLE_RESTART => {
+                let session = lifecycle_session_id(&params)?;
+                let workspace = lifecycle_workspace(self, &params)?;
+                self.kernel
+                    .restart_session_runtime(&session, workspace)
+                    .await
+                    .map_err(|error| kernel_error(&error))?;
+                self.bridge.close(&session);
+                reply(json!({"completed": true}))
+            }
             // 子代理目录的旧查询入口（Host 的 `SubagentDirectorySidePane`）：与快照的 `subagents`
             // 键同一事实源，另给已结束项的分页明细。
             "session/subagents" => crate::subagents_rpc::list(self, &params)
@@ -628,7 +806,18 @@ impl Server {
             // 开发者工具的调试面（Host 的 `DeveloperToolsPane`）：网络面来自模型请求状态事实，
             // 轮次面来自结束回合的用量。
             "session/debug" => reply(self.debug_snapshot(&params)),
-            "v4/conversation/subscribe" => crate::subscribe::subscribe(self, &params).await,
+            "v4/conversation/subscribe" => {
+                if let Some(session) = params["topic"]
+                    .as_str()
+                    .and_then(|topic| topic.strip_prefix(CONVERSATION_PREFIX))
+                    && self
+                        .kernel
+                        .is_session_stopping(&SessionId::new(session))
+                {
+                    return Err(RpcError::internal(SESSION_LIFECYCLE_STOPPING));
+                }
+                crate::subscribe::subscribe(self, &params).await
+            }
             "v4/conversation/unsubscribe" => crate::subscribe::unsubscribe(self, &params).await,
             "v4/conversation/resync" => crate::subscribe::resync(self, &params).await,
             "v4/connection/flow" => crate::subscribe::flow(self, &params).await,
@@ -787,7 +976,11 @@ impl Server {
             "mcp/uiCancelSampling" => crate::mcp_rpc::cancel_sampling(self, &params)
                 .await
                 .map(Reply::new),
-            "v4/command" => crate::commands::command(self, params).await.map(Reply::new),
+            "v4/command" => {
+                // 重启/停止在释放旧实例期间到达的命令按上游语义拒绝（不能排队等同一个 restart 互等）。
+                self.reject_if_stopping(&params)?;
+                crate::commands::command(self, params).await.map(Reply::new)
+            }
             "v4/commands/query" => crate::commands::query(self, &params).await.map(Reply::new),
             other => Err(RpcError::method_not_found(other)),
         }
@@ -832,7 +1025,12 @@ pub struct Handler(pub Arc<Server>);
 impl Service for Handler {
     async fn request(&self, method: &str, params: Value) -> Result<Reply, RpcError> {
         Inbound::get().method(method, &params)?;
-        self.0.dispatch(method, params).await
+        // 每个协议 request 一个常驻租约：跨 await 的 handler 期间池不回收这些会话，释放后触发收敛。
+        // 租约 Drop 是同步计数 + 唤醒驱动器，request future 被丢下时也会释放。
+        let lease = self.0.residency_lease(method, &params).await;
+        let result = self.0.dispatch(method, params).await;
+        drop(lease);
+        result
     }
 
     /// Host 发来的通知。目前只有 `process/networkCapture`（开/关网络捕获）一条有语义，其余

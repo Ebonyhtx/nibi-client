@@ -224,6 +224,11 @@ impl Live {
         removed
     }
 
+    /// 这个会话还有订阅者（Live 对话与分享共用同一个主题日志）。常驻池的阻止项：有订阅者时不回收。
+    pub fn has_subscribers(&self) -> bool {
+        !self.state().log.subscribers().is_empty()
+    }
+
     pub fn drop_connection(&self, connection: &str) {
         let gone = self.state().log.drop_connection(connection);
         for subscription in gone {

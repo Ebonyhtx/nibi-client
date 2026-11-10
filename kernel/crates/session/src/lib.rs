@@ -404,6 +404,17 @@ impl SessionHandle for Session {
         Session::is_draft(self)
     }
 
+    /// actor 退出后接收端被丢弃：常驻池回收会话不会通知协议桥，桥里的旧条目据此失效重开。
+    fn is_closed(&self) -> bool {
+        self.requests.is_closed()
+    }
+
+    async fn residency_facts(
+        &self,
+    ) -> Result<nibi_kernel_api::residency::SessionResidencyFacts, KernelError> {
+        self.ask(|reply| Request::ResidencyFacts { reply }).await
+    }
+
     async fn send(&self, envelope: CommandEnvelope) -> Ack {
         let (reply, answer) = oneshot::channel();
         if self

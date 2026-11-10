@@ -48,6 +48,11 @@ pub(crate) enum Request {
     Meta {
         reply: oneshot::Sender<SessionMeta>,
     },
+    /// 常驻池的轻量事实（NIBI `session-resident-pool.ts` 的 `readResidencyFacts`）：在跑回合、排队输入、
+    /// 待回答交互与后台工作。不复制历史——`View` 对长会话很贵，池每次收敛都会问。
+    ResidencyFacts {
+        reply: oneshot::Sender<nibi_kernel_api::residency::SessionResidencyFacts>,
+    },
     RewindOptions {
         reply: oneshot::Sender<crate::rewind::Snapshot>,
     },
@@ -520,6 +525,25 @@ impl Actor {
             }
             Request::Meta { reply } => {
                 let _ = reply.send(self.meta.clone());
+            }
+            Request::ResidencyFacts { reply } => {
+                // 后台命令与后台子代理的事实不在 actor 状态里（执行环境的账本与 agents），
+                // 与 `view()` 同一条读取路径；其余取 actor 自己的队列与计数。
+                let background_shells = self.background().await.len();
+                let background_subagents = self.background_agents().await.len();
+                let queued_commands = self.queue.len()
+                    + self.lane.len()
+                    + self.cron_fires.len()
+                    + usize::from(self.promote.is_some());
+                let _ = reply.send(nibi_kernel_api::residency::SessionResidencyFacts {
+                    // `job` 是回合级的后台工作（SessionStart、代码回退）：没结束前不算空闲。
+                    running: self.running.is_some() || self.job.is_some(),
+                    queued_commands,
+                    pending_interactions: self.pending.len(),
+                    background_shells,
+                    background_subagents,
+                    created_at_ms: self.meta.created_at_ms,
+                });
             }
             Request::RewindOptions { reply } => {
                 let _ = reply.send(self.rewind_snapshot());

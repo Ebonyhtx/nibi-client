@@ -451,6 +451,68 @@ impl Kernel for LocalKernel {
         self.open_session_as(session, StartSource::Resume).await
     }
 
+    // ── 运行实例的生命周期与常驻池（`session/lifecycle/*`）──
+
+    async fn acquire_residency_lease(
+        &self,
+        sessions: &[SessionId],
+    ) -> Option<nibi_kernel_api::residency::ResidencyLease> {
+        Some(self.resident.acquire(sessions).await)
+    }
+
+    async fn session_lifecycle_state(
+        &self,
+        session: &SessionId,
+    ) -> Result<nibi_kernel_api::residency::SessionLifecycleSnapshot, KernelError> {
+        self.lifecycle
+            .get_state(self, session)
+            .await
+            .map_err(crate::lifecycle::LifecycleError::into_kernel)
+    }
+
+    async fn ensure_session_ready(
+        &self,
+        session: &SessionId,
+        workspace: Option<WorkspaceRef>,
+    ) -> Result<(), KernelError> {
+        self.lifecycle
+            .ensure_ready(self, session, workspace)
+            .await
+            .map_err(crate::lifecycle::LifecycleError::into_kernel)
+    }
+
+    async fn stop_session_runtime(&self, session: &SessionId) -> Result<(), KernelError> {
+        self.lifecycle
+            .stop(self, session)
+            .await
+            .map_err(crate::lifecycle::LifecycleError::into_kernel)
+    }
+
+    async fn restart_session_runtime(
+        &self,
+        session: &SessionId,
+        workspace: Option<WorkspaceRef>,
+    ) -> Result<(), KernelError> {
+        self.lifecycle
+            .restart(self, session, workspace)
+            .await
+            .map_err(crate::lifecycle::LifecycleError::into_kernel)
+    }
+
+    fn is_session_stopping(&self, session: &SessionId) -> bool {
+        self.lifecycle.is_stopping(self, session)
+    }
+
+    fn set_session_residency_watch(
+        &self,
+        watch: Arc<dyn nibi_kernel_api::residency::SessionResidencyWatch>,
+    ) {
+        *self
+            .residency_watch
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(watch);
+    }
+
     async fn create_session_as(
         &self,
         request: CreateSession,
