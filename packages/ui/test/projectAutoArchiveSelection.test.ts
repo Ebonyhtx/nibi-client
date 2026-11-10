@@ -101,6 +101,8 @@ it("服务换代后的迟到归档响应不能清理新树保留的当前任务"
   act(() => {
     first = hook.result.current.refresh();
   });
+  // 刷新经 microtask 合并后才发出读取；先让它进入在途，再模拟服务换代后的迟到响应。
+  await act(async () => {});
   // 修复原因：重叠 refresh 现在共享 flight，先等待第二次再释放第一次会让测试自锁。
   // 迟到结果失效的真实边界是 service 换代；新 owner 接受树后，旧 owner 不能清理展示。
   act(() => {

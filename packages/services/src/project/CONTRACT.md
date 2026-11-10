@@ -8,6 +8,8 @@
 
 远端装配器在 prepareSession 和 resolveSessionDirectories 后，通过既有 workspace identity resolver 为返回的真实 cwd 登记并返回 workspaceIdentity；不复制请求中的身份，resolver 失败直接拒绝。readTree 返回前对全部项目 roots（包括无任务的空项目）与历史任务 cwd 去重并完成同一身份准备，失败不发布树，防止侧栏动态订阅落到未映射的事件源。它只提供导航/隔离身份，不改 cwd 和附加目录；UI 不得从远端真实路径推断本机 workspace。导航继续严格比较任务与目录解析结果的 cwd 和身份，不以路径相同绕过设备隔离。
 
+装配器用 `createRemoteIdentityRegistrationCache` 包住 resolver：同一物理连接内同一路径只向远端登记一次，并发调用共用同一次登记，失败不缓存。物理连接由装配器传入（Registry handle 的 `physicalOwner()` 或 Manager 连接的 `services`），不能用跨重连不换代的 logical handle。工作区打开的身份登记不经过这个去重。规则见 `docs/remote/project-first-remote-navigation-spec.md` §2.1b。
+
 readProjects 只查询项目/roots，不加载任务或触发 Agent，用于目录管理；readTree 同样只读，两者都不触发自动归档。旧 settings 集合由本机提交的项目/入口派生；窗口只写 lastActiveWorkspace。派生端口不得调用 settings 或网络，设置文件锁内重读，防止删除入口被迟到响应复活。
 
 缺少 virtualProjects 握手能力的远端只使用单 root 读适配器。它读取远端旧 app 数据，不写本机项目，不启动 Agent，项目组织操作显式拒绝；创建/恢复只返回既有 cwd 与空附加目录。合成 ID 由 host/cwd 稳定导出，升级时只允许入口的版本 CAS 解析，不形成持久权威项目。

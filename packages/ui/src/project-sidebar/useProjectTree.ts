@@ -182,6 +182,10 @@ export function useProjectTree(isDesktop = false) {
     if (reads.flight) return reads.flight;
     const generation = serial.current;
     const flight = (async () => {
+      // 连发触发（Controller delta、未读写回、focus、tabs）常落在同一 tick。
+      // 先让出一轮微任务，把同一 tick 的重复请求合并成一轮读取；之后仍由 dirty 标记
+      // 吸收读取期间到达的请求。不用定时防抖，避免给侧栏加固定延迟。
+      await Promise.resolve();
       // 事实变化只标记下一次读取，不能反复废弃当前结果，否则连续变化会饿死列表。
       while (reads.dirty && generation === serial.current) {
         reads.dirty = false;

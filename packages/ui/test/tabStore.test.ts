@@ -45,6 +45,26 @@ describe("tabStore", () => {
       remoteSessionId: "connection-2",
     });
   });
+
+  it("ensureWorkspaceTab 内容不变时保留原 tabs 引用，不触发侧栏目录重读", () => {
+    const store = createTabStore();
+    store.getState().addTab("/srv/app", { workspacePurpose: "project" });
+    const original = store.getState().tabs;
+    // 侧栏/窗口入口会反复 ensure；等价元数据不能制造新数组。
+    store.getState().ensureWorkspaceTab("/srv/app");
+    expect(store.getState().tabs).toBe(original);
+    store.getState().ensureWorkspaceTab("/srv/app", { workspacePurpose: "project" });
+    expect(store.getState().tabs).toBe(original);
+    // 真实变化仍要发布新引用。
+    const remote = createTabStore();
+    remote.getState().addTab("/srv/app", { workspaceIdentity: "legacy-route" });
+    const beforeRekey = remote.getState().tabs;
+    remote.getState().ensureWorkspaceTab("/srv/app", {
+      previousWorkspaceIdentity: "legacy-route",
+      workspaceIdentity: "remote:server:source-a:/srv/app",
+    });
+    expect(remote.getState().tabs).not.toBe(beforeRekey);
+  });
   it("RPN-02 keeps expansion and order isolated for same-path remote projects", () => {
     const storage = createMemoryStorage();
     const store = createTabStore(storage);

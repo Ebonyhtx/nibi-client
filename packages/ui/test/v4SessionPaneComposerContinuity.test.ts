@@ -130,6 +130,14 @@ const prewarmHookInputs = vi.hoisted(() => ({
   }>,
 }));
 
+// 侧栏目录事实：发送路径据它同步取归属，测试可按用例提供命中/缺行两种窗口目录。
+const directoryMock = vi.hoisted(() => ({
+  current: null as null | {
+    factTree: { projects: unknown[]; tasks: unknown[] };
+    groups: { refresh: () => void };
+  },
+}));
+
 const servicesMock = vi.hoisted(() => ({
   projectService: {
     resolveSessionDirectories: vi.fn(async (task) => ({
@@ -190,6 +198,13 @@ vi.mock("@/v4/V4ConversationContext.js", () => ({
     fileChanges: vi.fn(),
     fileRewindPreview: vi.fn(),
   }),
+}));
+
+// 只替换窗口目录上下文，保留侧栏模块的真实纯函数（readDirectoryTaskProjectId）。
+vi.mock("@/project-sidebar/ProjectDirectoryProvider.js", () => ({
+  ProjectDirectoryProvider: ({ children }: { children: unknown }) => children,
+  useProjectDirectory: () => directoryMock.current,
+  useOptionalProjectDirectory: () => directoryMock.current,
 }));
 
 vi.mock("@/store/StoreProvider.js", () => ({
@@ -531,6 +546,12 @@ function renderPane(
 
 beforeEach(() => {
   servicesMock.projectService.resolveSessionDirectories.mockClear();
+  servicesMock.projectService.resolveSessionDirectories.mockImplementation(async (task) => ({
+    ...task,
+    projectId: null,
+    additionalDirectories: [],
+  }));
+  directoryMock.current = null;
   sessionCreateCapture.report.mockClear();
   recoveryCapture.entries = [];
   recoveryCapture.onResend = null;
@@ -603,6 +624,104 @@ describe("SessionPane composer continuity", () => {
     expect(conversationMock.sendCommand).toHaveBeenCalledWith(
       expect.objectContaining({ type: "sendText", sessionId: "session-1" }),
     );
+  });
+
+  it.each([
+    ["普通会话", false, "session-1"],
+    ["辅助对话", true, "parent"],
+  ] as const)(
+    "%s 命中窗口目录时发送不再等待远端目录查询",
+    async (_kind, selectionSideChat, ownerId) => {
+      const record = vi.spyOn(pendingCommandRegistry, "record");
+      try {
+        const root = createRoot(installMinimalDom());
+        mountedRoots.push(root);
+        projectionState.current = {
+          ...projectionState.current,
+          snapshot: { ...makeDraftSnapshot(), sessionId: "session-1" },
+        };
+        directoryMock.current = {
+          factTree: {
+            projects: [],
+            tasks: [
+              {
+                taskId: ownerId,
+                projectId: `project-${ownerId}`,
+                hostId: "local",
+                workspacePath: "/workspace",
+              },
+            ],
+          },
+          groups: { refresh: vi.fn() },
+        };
+        renderPane(root, "session-1", { selectionSideChat, rootSessionId: "parent" });
+        await act(async () => {
+          await scrollFocus.composerProps?.onSendText("follow up");
+        });
+        expect(servicesMock.projectService.resolveSessionDirectories).not.toHaveBeenCalled();
+        // 冻结的 Recent 范围来自目录事实，不能再等一次远端往返。
+        expect(record.mock.calls.at(-1)?.[1]?.composer?.scope.projectId).toBe(`project-${ownerId}`);
+        expect(conversationMock.sendCommand).toHaveBeenCalledWith(
+          expect.objectContaining({ type: "sendText", sessionId: "session-1" }),
+        );
+      } finally {
+        record.mockRestore();
+      }
+    },
+  );
+
+  it("目录行存在但未归类时沿用该归属，不回退远端查询", async () => {
+    const root = createRoot(installMinimalDom());
+    mountedRoots.push(root);
+    projectionState.current = {
+      ...projectionState.current,
+      snapshot: { ...makeDraftSnapshot(), sessionId: "session-1" },
+    };
+    directoryMock.current = {
+      factTree: {
+        projects: [],
+        tasks: [
+          { taskId: "session-1", projectId: null, hostId: "local", workspacePath: "/workspace" },
+        ],
+      },
+      groups: { refresh: vi.fn() },
+    };
+    renderPane(root, "session-1");
+    await act(async () => {
+      await scrollFocus.composerProps?.onSendText("follow up");
+    });
+    expect(servicesMock.projectService.resolveSessionDirectories).not.toHaveBeenCalled();
+  });
+
+  it("目录缺行时才回退远端目录查询", async () => {
+    const record = vi.spyOn(pendingCommandRegistry, "record");
+    try {
+      const root = createRoot(installMinimalDom());
+      mountedRoots.push(root);
+      projectionState.current = {
+        ...projectionState.current,
+        snapshot: { ...makeDraftSnapshot(), sessionId: "session-1" },
+      };
+      directoryMock.current = {
+        factTree: { projects: [], tasks: [] },
+        groups: { refresh: vi.fn() },
+      };
+      servicesMock.projectService.resolveSessionDirectories.mockResolvedValueOnce({
+        projectId: "project-b",
+        additionalDirectories: [],
+      } as never);
+      renderPane(root, "session-1");
+      await act(async () => {
+        await scrollFocus.composerProps?.onSendText("follow up");
+      });
+      expect(servicesMock.projectService.resolveSessionDirectories).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ taskId: "session-1" }),
+        "local",
+      );
+      expect(record.mock.calls.at(-1)?.[1]?.composer?.scope.projectId).toBe("project-b");
+    } finally {
+      record.mockRestore();
+    }
   });
 
   it.each(["group", "project", "session"] as const)(

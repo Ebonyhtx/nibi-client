@@ -328,3 +328,35 @@ export function bindRemoteProjectIdentities(
     },
   };
 }
+
+/**
+ * 远端身份登记按物理连接代际去重，供装配器包住传给 `bindRemoteProjectIdentities` 的 resolver。
+ *
+ * 原因：3.16 起，每次远端 readTree、resolveSessionDirectories、prepareSession 都对每个路径
+ * 重新调用一次远端 resolveWorkspace。登记只写入 Server Core 进程内的 stable → canonical
+ * 映射表，同一连接内重复登记不改变任何状态，却给发送前的目录解析多加一次串行 SSH 往返，
+ * 并让远端每次同步打开两个 SQLite 库。
+ *
+ * 修复：映射表随 Core 进程存活且只增不删；Core 重启一定会断开连接，Host 会拿到新的物理连接
+ * 对象。所以按物理连接对象缓存登记结果即可，不需要超时。登记失败不缓存，下次重新登记。
+ */
+export function createRemoteIdentityRegistrationCache(): (
+  physicalConnection: object,
+  workspacePath: string,
+  register: () => Promise<string>,
+) => Promise<string> {
+  const byConnection = new WeakMap<object, Map<string, Promise<string>>>();
+  return (physicalConnection, workspacePath, register) => {
+    const byPath = byConnection.get(physicalConnection) ?? new Map<string, Promise<string>>();
+    byConnection.set(physicalConnection, byPath);
+    const registered = byPath.get(workspacePath);
+    if (registered) return registered;
+    const flight = register();
+    byPath.set(workspacePath, flight);
+    // 调用方照常收到失败；这里只删除缓存，让下一次读取重新登记。
+    flight.catch(() => {
+      if (byPath.get(workspacePath) === flight) byPath.delete(workspacePath);
+    });
+    return flight;
+  };
+}

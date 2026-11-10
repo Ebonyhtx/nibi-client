@@ -99,6 +99,21 @@ flowchart TD
 
 原因：提前创建的动态监听会固定到未映射的 emitter；稍后首次打开才注册映射，并不会自动重绑旧监听。修复在树发布边界完成准备，沿用 desktop-continuous / mobile replayable 各自的原订阅恢复与同一个远端 owner，不新增映射或重试机制。回归覆盖空项目首发权限实时显示、既有任务目录、共享 root 去重及准备失败不发布。
 
+身份准备按物理连接代际去重（2026-10-21）：
+
+- 规则：同一物理连接内，同一路径只向远端登记一次。readTree、`resolveSessionDirectories` 与 `prepareSession` 共用这次结果。并发请求共用同一次登记。登记失败不保留结果，下次调用重新登记。
+- 代际：用 Host 的物理连接对象（Registry handle 的 `physicalOwner()`、Manager 连接的 `services`）区分。Registry 的 logical handle 在重连后保持不变，不能用作代际。
+- 依据：登记写入 Server Core 进程内的 stable → canonical 映射表。该表随进程存活，只增不删。Core 重启一定会断开连接，Host 因此得到新的物理连接对象，旧结果自然失效。不使用超时。
+- 不受影响：工作区打开（admission）的目录检查与身份登记不使用这个去重，打开时仍按 R3 §9.2 惰性合并旧版本客户端写出的变体。去重后，侧栏读取不再触发这类合并；合并发生在下次打开该工作区或下次连接时。
+
+```text
+物理连接 G1：readTree / resolveSessionDirectories ── 路径首次 ──SSH──▶ Core resolveWorkspace → 映射表登记
+                                                └─ 已登记 ──▶ 直接返回 stable identity（0 次往返）
+Core 重启 → 连接断开 → 物理连接 G2：映射表为空，按路径重新登记
+```
+
+Registry 分支带 Host 目录的 legacy hint、Manager 分支不带，两者各自一份缓存；首次登记请求因此保持不变。
+
 ### 2.1 三屏选择与收起（RDUX-10）
 
 “打开远程项目”固定从可搜索统一列表进入，来源与平台门禁见 [UX 规格](../architecture/remote-device-connection-ux-spec.md#三屏向导与统一选择2026-09-28rdux-10)。设备行连接后选目录；最近目录 chip（包括离线设备）连接后打开该目录。首屏内的新建表单不增加进度步骤。

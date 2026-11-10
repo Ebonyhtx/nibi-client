@@ -83,11 +83,20 @@ it("FSV03：持续失效合并读取，首发目录与详情同次提交，按�
     completed = owner.commitCreatedTask(task, () => setDetail(task.taskId));
     for (let i = 0; i < 20; i++) void owner.refresh();
   });
+  // 同一 tick 的连发刷新先经 microtask 合并，读取在下一轮微任务才开始；仍只读一轮。
+  await act(async () => {
+    await Promise.resolve();
+  });
   expect(mocks.read).toHaveBeenCalledTimes(1);
   await act(async () => {
     first.resolve(resultOf([{ ...task, workspaceIdentity: "remote:other" }]));
   });
   expect(screen.getByTestId("detail").textContent).toBe("draft");
+  // 同一 tick 的 20 次失效已并入第一轮；新的一轮失效才产生第二次读取。
+  await act(async () => {
+    void owner.refresh();
+    await Promise.resolve();
+  });
   expect(mocks.read).toHaveBeenCalledTimes(2);
   await act(async () => {
     second.resolve(resultOf([task]));
@@ -140,6 +149,10 @@ it("FSV04：服务换代接受新目录，旧响应不覆盖也不导航", async
   let completed!: Promise<void>;
   act(() => {
     completed = owner.commitCreatedTask(task, commit);
+  });
+  // 先让本次读取真正发出（消费 old.promise），再换代；迟到响应仍不能覆盖新目录。
+  await act(async () => {
+    await Promise.resolve();
   });
   mocks.services = { ...mocks.services, projectService: {} };
   app.rerender(createElement(App));

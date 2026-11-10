@@ -374,25 +374,39 @@ export function createTabStore(storage: StorageLike | null | undefined = undefin
             state.activeTabId === existing.id ||
             (state.activeWorkspacePath === existing.workspacePath &&
               state.activeWorkspaceIdentity === existing.workspaceIdentity);
+          const tabs = state.tabs.map((tab) =>
+            tab.id !== existing.id || !isWorkspaceTab(tab)
+              ? tab
+              : mergeWorkspaceTabOptions(tab, options),
+          );
+          // Bug 原因：入口已存在时这里无条件返回新的 tabs 数组，侧栏把它当成目录事实变化，
+          // 每轮 ensure 都触发整棵项目树（含远端）重读。等价内容保留原引用，只回填真实变化。
+          const tabsChanged =
+            tabs.length !== state.tabs.length ||
+            tabs.some((tab, index) => tab !== state.tabs[index]);
+          // Bug 原因：stable identity 原地 rekey 只更新了 tab，activeWorkspaceIdentity
+          // 仍保留 legacy route key，当前或最近焦点会继续按旧 scope 查询任务与服务。
+          // ensure 不改变焦点，但必须让 active workspace identity 与 tab 本体原子一致。
+          const activeWorkspaceIdentity = rekeysActiveWorkspace
+            ? (options?.workspaceIdentity ?? existing.workspaceIdentity ?? null)
+            : state.activeWorkspaceIdentity;
+          const expandedWorkspacePaths = ensureWorkspaceExpanded(
+            state.expandedWorkspacePaths,
+            resolveWorkspaceKey({
+              ...existing,
+              workspaceIdentity: options?.workspaceIdentity ?? existing.workspaceIdentity,
+            }),
+          );
+          if (
+            !tabsChanged &&
+            activeWorkspaceIdentity === state.activeWorkspaceIdentity &&
+            expandedWorkspacePaths === state.expandedWorkspacePaths
+          )
+            return {};
           return {
-            tabs: state.tabs.map((tab) =>
-              tab.id !== existing.id || !isWorkspaceTab(tab)
-                ? tab
-                : mergeWorkspaceTabOptions(tab, options),
-            ),
-            // Bug 原因：stable identity 原地 rekey 只更新了 tab，activeWorkspaceIdentity
-            // 仍保留 legacy route key，当前或最近焦点会继续按旧 scope 查询任务与服务。
-            // ensure 不改变焦点，但必须让 active workspace identity 与 tab 本体原子一致。
-            activeWorkspaceIdentity: rekeysActiveWorkspace
-              ? (options?.workspaceIdentity ?? existing.workspaceIdentity ?? null)
-              : state.activeWorkspaceIdentity,
-            expandedWorkspacePaths: ensureWorkspaceExpanded(
-              state.expandedWorkspacePaths,
-              resolveWorkspaceKey({
-                ...existing,
-                workspaceIdentity: options?.workspaceIdentity ?? existing.workspaceIdentity,
-              }),
-            ),
+            ...(tabsChanged ? { tabs } : {}),
+            activeWorkspaceIdentity,
+            expandedWorkspacePaths,
           };
         });
         return existing.id;

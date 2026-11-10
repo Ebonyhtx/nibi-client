@@ -184,6 +184,31 @@ export function resolveEntryProject(
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
+/**
+ * 从窗口目录已接收的权威组织态同步读取任务归属，发送路径据此冻结 Recent 范围。
+ * 返回 `undefined` 表示目录里没有这条任务行（刚创建/移动或目录尚未加载），调用方需回退查询；
+ * 返回 `null` 是行存在但未归类，属于有效归属，不能当成缺行。
+ */
+export function readDirectoryTaskProjectId(
+  tree: Pick<ProjectTree, "tasks"> | null | undefined,
+  address: {
+    taskId: string;
+    hostId: string;
+    workspacePath: string;
+    workspaceIdentity?: string;
+  },
+): string | null | undefined {
+  if (!tree) return undefined;
+  const workspaceKey = address.workspaceIdentity?.trim() || address.workspacePath;
+  const task = tree.tasks.find(
+    (item) =>
+      item.taskId === address.taskId &&
+      item.hostId === address.hostId &&
+      (item.workspaceIdentity?.trim() || item.workspacePath) === workspaceKey,
+  );
+  return task ? task.projectId : undefined;
+}
+
 /** 聚合是展示投影，不复制远端事实；离线后只保留本机入口基础缓存。 */
 export function mergeProjectTrees(
   local: ProjectTree,

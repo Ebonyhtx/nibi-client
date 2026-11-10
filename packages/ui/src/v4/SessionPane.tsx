@@ -11,7 +11,10 @@ import { reportSessionCreate } from "@/lib/sessionCreateTelemetry.js";
 import { getLocalTtftObserver } from "@/v4/telemetry/localTtftObserver.js";
 import { BotGroupDeliveryProvider } from "@/v4/BotGroupDeliveryAction.js";
 /* oxlint-disable eslint(max-lines) -- SessionPane 是单 pane 竖切的命令编排收口（订阅/发送/停止/fork/edit/retry/queue/slash 全集），与旧 ChatView 同粒度；HEAD 已超限（693 行计数），拆散命令组会打散 dispatchCommand/snapshotRef 的闭包纪律。 */
-import { useOptionalProjectDirectory } from "@/project-sidebar/index.js";
+import {
+  readDirectoryTaskProjectId,
+  useOptionalProjectDirectory,
+} from "@/project-sidebar/index.js";
 import { useIsOfficeMode } from "@/hooks/useInterfaceMode.js";
 import {
   useCallback,
@@ -1397,6 +1400,10 @@ export function SessionPane({
   );
   const openSettingsTab = useOptionalTabStore((state) => state.openSettingsTab);
   const projectDirectory = useOptionalProjectDirectory();
+  // 发送时同步读取目录事实，不能把目录对象塞进 dispatchCommand 依赖：侧栏每轮刷新都会换引用，
+  // 会让所有依赖 dispatchCommand 的回调跟着重建。ref 只读最新已接收的权威组织态。
+  const projectDirectoryRef = useRef(projectDirectory);
+  projectDirectoryRef.current = projectDirectory;
   const commitCreatedTask = projectDirectory?.commitCreatedTask;
   const refreshTaskGroups = projectDirectory?.groups.refresh;
   const draftNavigation = useMemo(
@@ -1575,22 +1582,35 @@ export function SessionPane({
           )
         : undefined;
       if (recentSubmission && sessionId && targetSessionId) {
-        const projectService = baseWorkspaceServices.projectService;
-        if (!projectService) throw new Error("project.service-unavailable");
-        const directories = await projectService.resolveSessionDirectories(
-          {
-            workspacePath,
-            workspaceIdentity,
-            // 辅助 child 不进主任务索引；Recent 查所属主会话，输入仍发给 child。
-            // 普通会话和 fork 即使带 rootSessionId 也必须保留自身项目归属。
-            taskId:
-              selectionSideChat && targetSessionId === sessionId && rootSessionId
-                ? rootSessionId
-                : targetSessionId,
-          },
-          recentScope.hostId,
-        );
-        recentScope = { ...recentScope, projectId: directories.projectId };
+        // 辅助 child 不进主任务索引；Recent 查所属主会话，输入仍发给 child。
+        // 普通会话和 fork 即使带 rootSessionId 也必须保留自身项目归属。
+        const ownerTaskId =
+          selectionSideChat && targetSessionId === sessionId && rootSessionId
+            ? rootSessionId
+            : targetSessionId;
+        // 窗口目录已接收的权威组织态里就有归属，发送前不必再等远端往返。
+        // 只有目录缺行（刚创建/移动，或目录尚未加载）时才向所属 Host 查询。
+        const knownProjectId = readDirectoryTaskProjectId(projectDirectoryRef.current?.factTree, {
+          taskId: ownerTaskId,
+          hostId: recentScope.hostId,
+          workspacePath,
+          ...(workspaceIdentity ? { workspaceIdentity } : {}),
+        });
+        if (knownProjectId !== undefined) {
+          recentScope = { ...recentScope, projectId: knownProjectId };
+        } else {
+          const projectService = baseWorkspaceServices.projectService;
+          if (!projectService) throw new Error("project.service-unavailable");
+          const directories = await projectService.resolveSessionDirectories(
+            {
+              workspacePath,
+              workspaceIdentity,
+              taskId: ownerTaskId,
+            },
+            recentScope.hostId,
+          );
+          recentScope = { ...recentScope, projectId: directories.projectId };
+        }
       }
       if (recentReceipt) recentReceipt.scope = recentScope;
       const pendingDraft =

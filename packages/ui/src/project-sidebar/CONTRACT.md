@@ -2,6 +2,8 @@
 
 Host projectService 的 readTree 决定行集合、项目归属和 CLI 事实镜像；UI 只保存折叠、视图与表单草稿。实时 sessions-index 只附加 activity，不补行、不写回归属。读取以请求序号拒绝迟到结果；workspace/remote endpoint 变化立即取消旧结果资格。
 
+远端树只读取读取开始时 `connectionStatus === "online"` 的主机；离线/连接中主机不发起 readTree，仍由入口缓存显示，读取期间断线才记失败。同一 tick 的多次刷新触发合并为一轮读取（microtask 合并，不用定时防抖）；`ensureWorkspaceTab` 内容不变时保留原 tabs 数组引用，避免侧栏把等价元数据当成目录事实变化。
+
 设置页复用公开的 `useOptionalProjectDirectory` 读取同一目录 owner；最近项目通过 `resolveRecentRemoteProjectPreference` 按 Source + 目录固定唯一入口 ID，继续既有项目恢复链路。缺失或歧义不生成创建意图，连接完成仍复验原入口。
 
 恢复时通过公开的 `resolveEntryProject` 从所属 Host 项目树解析有效项目，复用旧入口的唯一匹配规则。原项目 ID 显式传给 Root 草稿 owner，同时更新内存与持久化草稿范围，不从同目录缓存反推归属。

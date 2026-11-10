@@ -70,3 +70,32 @@ it("MRO02：目录读取、修改入口和变化订阅一起选择窗口 owner�
   expect(sourceBroadcast).toHaveBeenCalledOnce();
   unmount();
 });
+
+it("MRO03：同一 tick 的连发刷新合并成一轮读取", async () => {
+  const changed: Array<() => void> = [];
+  mocks.services = {
+    projectService: { owner: "window" },
+    remoteProjectService: { owner: "window" },
+    broadcastService: { onMessage: vi.fn(() => ({ dispose: vi.fn() })) },
+    changesService: {
+      onDidChange: (listener: () => void) => {
+        changed.push(listener);
+        return { dispose: vi.fn() };
+      },
+    },
+  };
+  mocks.read.mockResolvedValue({
+    tree: { projects: [], tasks: [] },
+    directory: { hosts: [], entries: [] },
+    availability: new Map(),
+  });
+  const { result } = renderHook(() => useProjectTree());
+  await waitFor(() => expect(result.current.loading).toBe(false));
+  const before = mocks.read.mock.calls.length;
+  await act(async () => {
+    // Controller delta、未读写回、focus 等触发常落在同一 tick。
+    const flights = [result.current.refresh(), result.current.refresh(), result.current.refresh()];
+    await Promise.all(flights);
+  });
+  expect(mocks.read.mock.calls.length).toBe(before + 1);
+});
