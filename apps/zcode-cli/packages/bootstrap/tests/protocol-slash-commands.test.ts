@@ -2,7 +2,6 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { ExecutionPort, ExecutionResult, SessionId } from "@nibi/contracts";
 import { resolveZCodeBuiltinPromptCommand } from "../src/builtin-prompt-command.js";
 import { resolveZCodeCustomCommandPrompt } from "../src/custom-command-prompt.js";
 import { listProtocolSlashCommands } from "../src/nibi-protocol/slash-commands.js";
@@ -175,21 +174,13 @@ describe("protocol slash command surface", () => {
     }
   });
 
-  it("runs shell expansion for plugin commands with plugin and session variables", async () => {
+  it("hands plugin command shell blocks to the model without running them", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "zcode-plugin-command-shell-"));
     const workspace = join(tempRoot, "workspace");
     const pluginRoot = join(tempRoot, "ralph-loop");
     const commandsRoot = join(pluginRoot, "commands");
     const pluginDataRoot = join(tempRoot, "plugins");
     const configPath = join(tempRoot, "config.json");
-    const sessionId = "sess_shell_expansion" as SessionId;
-    let capturedRequest: Parameters<ExecutionPort["run"]>[0] | undefined;
-    const executionPort: ExecutionPort = {
-      async run(request) {
-        capturedRequest = request;
-        return createExecutionResult("ralph setup output");
-      },
-    };
 
     try {
       await mkdir(commandsRoot, { recursive: true });
@@ -225,46 +216,29 @@ describe("protocol slash command surface", () => {
 
       const prompt = await resolveZCodeCustomCommandPrompt("/ralph-loop build demo", {
         env: { NIBI_ENV: "test" },
-        executionPort,
         projectConfigPath: configPath,
-        sessionId,
         skipUserConfig: true,
         workingDirectory: workspace,
       });
 
-      expect(prompt).toContain("ralph setup output");
+      // 解析期只改写文本：插件变量换成插件真实路径，$ARGUMENTS 在改写之后展开，命令交给模型执行。
+      expect(prompt).toContain(
+        "[This shell step comes from the /ralph-loop command file (user/plugin), not from NIBI.",
+      );
+      expect(prompt).toContain(
+        `\`\`\`bash\necho "${pluginRoot.replaceAll("\\", "/")}/scripts/setup-ralph-loop.sh" "build demo"\n\`\`\``,
+      );
       expect(prompt).not.toContain("```!");
-      expect(capturedRequest?.command).toMatchObject({
-        command: 'echo "${CLAUDE_PLUGIN_ROOT}/scripts/setup-ralph-loop.sh" "build demo"',
-        mode: "shell",
-      });
-      expect(capturedRequest?.cwd).toBe(workspace);
-      expect(capturedRequest?.env?.set).toMatchObject({
-        CLAUDE_CODE_SESSION_ID: sessionId,
-        CLAUDE_PLUGIN_ROOT: pluginRoot,
-        CLAUDE_PROJECT_DIR: workspace,
-        CLAUDE_SESSION_ID: sessionId,
-        NIBI_PLUGIN_ROOT: pluginRoot,
-        NIBI_PROJECT_DIR: workspace,
-        NIBI_SESSION_ID: sessionId,
-      });
     } finally {
       await rm(tempRoot, { force: true, recursive: true });
     }
   });
 
-  it("fails shell-expanded custom commands that request unavailable contexts", async () => {
+  it("holds back shell blocks whose variables only a skill or bash environment can provide", async () => {
     const tempRoot = await mkdtemp(join(tmpdir(), "zcode-command-shell-missing-context-"));
     const workspace = join(tempRoot, "workspace");
     const home = join(tempRoot, "home");
     const userCommands = join(home, ".nibi", "commands");
-    let executionCalled = false;
-    const executionPort: ExecutionPort = {
-      async run() {
-        executionCalled = true;
-        return createExecutionResult("should not run");
-      },
-    };
 
     try {
       await mkdir(userCommands, { recursive: true });
@@ -272,30 +246,30 @@ describe("protocol slash command surface", () => {
         userCommands,
         "skill-context",
         "Needs skill context",
-        ["```!", 'echo "${CLAUDE_SKILL_DIR}"', "```"].join("\n"),
+        ["```!", 'echo "${NIBI_SKILL_DIR}"', "```"].join("\n"),
       );
       await writeCommand(
         userCommands,
         "session-context",
         "Needs session context",
-        ["```!", 'echo "${CLAUDE_SESSION_ID}"', "```"].join("\n"),
+        ["```!", 'echo "${NIBI_SESSION_ID}"', "```"].join("\n"),
       );
 
       const options = {
         env: { NIBI_ENV: "test" },
-        executionPort,
         homeDirectory: home,
         skipUserConfig: true,
         workingDirectory: workspace,
       };
 
-      await expect(resolveZCodeCustomCommandPrompt("/skill-context", options)).rejects.toThrow(
-        "Custom command /skill-context variable requires a skill context: CLAUDE_SKILL_DIR",
+      // 命令文件没有 skill 目录，整块不转交，只留说明。
+      await expect(resolveZCodeCustomCommandPrompt("/skill-context", options)).resolves.toContain(
+        "[A shell step from the /skill-context command file (user/nibi) was not run: it uses ${NIBI_SKILL_DIR}, which cannot be resolved here.]",
       );
-      await expect(resolveZCodeCustomCommandPrompt("/session-context", options)).rejects.toThrow(
-        "Custom command /session-context variable requires a runtime session context: CLAUDE_SESSION_ID",
+      // 会话变量由 Bash 工具注入，保持原样交给模型。
+      await expect(resolveZCodeCustomCommandPrompt("/session-context", options)).resolves.toContain(
+        '```bash\necho "${NIBI_SESSION_ID}"\n```',
       );
-      expect(executionCalled).toBe(false);
     } finally {
       await rm(tempRoot, { force: true, recursive: true });
     }
@@ -313,19 +287,4 @@ async function writeCommand(
     join(directory, `${name}.md`),
     ["---", `description: ${description}`, ...extraFrontmatter, "---", "", body].join("\n"),
   );
-}
-
-function createExecutionResult(stdout: string): ExecutionResult {
-  const now = new Date();
-  return {
-    status: "completed",
-    exitCode: 0,
-    stdout: { text: stdout, bytes: stdout.length, truncated: false },
-    stderr: { text: "", bytes: 0, truncated: false },
-    durationMs: 1,
-    timedOut: false,
-    cancelled: false,
-    startedAt: now,
-    completedAt: now,
-  };
 }
