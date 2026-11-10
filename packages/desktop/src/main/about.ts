@@ -141,6 +141,22 @@ function resolveElectronBuilderVersion(buildMetadata: DesktopBuildMetadata | nul
   return normalizePackageVersion(packageJson?.devDependencies?.["electron-builder"]);
 }
 
+/**
+ * About 里显示的应用版本。开发态未打包时 `app.getVersion()` 是 Electron 的版本
+ * （例如 44.10.1），不是 NIBI 的版本；只有安装包里 electron-builder 才会把
+ * `extraMetadata.version` 写成 NIBI 版本。开发态回退到 build-meta / 编译期版本。
+ */
+export function resolveAboutAppVersion(input: {
+  packaged: boolean;
+  electronAppVersion: string;
+  buildMetadata?: { appVersion?: string } | null;
+}): string {
+  if (input.packaged) {
+    return normalizeValue(input.electronAppVersion);
+  }
+  return normalizeValue(input.buildMetadata?.appVersion ?? NIBI_VERSION);
+}
+
 export function createAboutSnapshot(options: AboutSnapshotOptions = {}): AboutSnapshot {
   const buildMetadata = options.buildMetadata ?? null;
   const runtimeVersions = options.runtimeVersions ?? process.versions;
@@ -240,9 +256,14 @@ export async function showAboutDialog(
   locale: Locale = DEFAULT_LOCALE,
 ): Promise<MessageBoxReturnValue> {
   const { app, BrowserWindow } = await import("electron");
+  const buildMetadata = readBuildMetadata();
   const snapshot = createAboutSnapshot({
-    appVersion: app.getVersion(),
-    buildMetadata: readBuildMetadata(),
+    appVersion: resolveAboutAppVersion({
+      packaged: app.isPackaged,
+      electronAppVersion: app.getVersion(),
+      buildMetadata,
+    }),
+    buildMetadata,
   });
   const aboutMessages = getAboutMessages(locale);
   // 之前只有 macOS 使用自绘 About，Windows/Linux 仍走原生 message box。

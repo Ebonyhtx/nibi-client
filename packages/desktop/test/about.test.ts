@@ -5,6 +5,7 @@ import {
   formatAboutCopyright,
   formatAboutDetail,
   formatAboutOptimizationLine,
+  resolveAboutAppVersion,
 } from "../src/main/about.js";
 
 describe("about", () => {
@@ -31,6 +32,23 @@ describe("about", () => {
       arch: "arm64",
       hostname: "zcode-mbp",
     },
+  });
+
+  it("开发态显示 NIBI 版本，而不是 Electron 版本", () => {
+    expect(
+      resolveAboutAppVersion({
+        packaged: false,
+        electronAppVersion: "44.10.1",
+        buildMetadata: { appVersion: "4.0.0" },
+      }),
+    ).toBe("4.0.0");
+    expect(
+      resolveAboutAppVersion({
+        packaged: true,
+        electronAppVersion: "4.0.0",
+        buildMetadata: { appVersion: "4.0.0" },
+      }),
+    ).toBe("4.0.0");
   });
 
   it("应格式化完整的 about 文本信息", () => {
