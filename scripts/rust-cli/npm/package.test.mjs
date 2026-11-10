@@ -41,6 +41,7 @@ test("maps the published targets and refuses Intel Mac", () => {
   assert.equal(packageIdForTarget("x86_64-unknown-linux-gnu").id, "linux-x64-gnu");
   assert.equal(packageIdForTarget("aarch64-unknown-linux-gnu").id, "linux-arm64-gnu");
   assert.equal(packageIdForTarget("aarch64-apple-darwin").id, "darwin-arm64");
+  assert.equal(packageIdForTarget("aarch64-linux-android").id, "android-arm64");
   assert.throws(() => packageIdForTarget("x86_64-apple-darwin"), /unsupported target/u);
 });
 
@@ -52,6 +53,11 @@ test("builds the manifest and build.json the kernel expects", () => {
   assert.equal(manifest.repository.url, "git+https://github.com/Ebonyhtx/nibi-client.git");
   assert.deepEqual(manifest.cpu, ["x64"]);
   assert.deepEqual(manifest.files, ["bin/nibi-rs", "build.json"]);
+  // Android 的包名/平台字段：NIBI-GO 按 registry 的包名直接取，`os` 必须写 android。
+  const android = buildPackageManifest({ target: "aarch64-linux-android", version: "4.0.0" });
+  assert.equal(android.name, "@nibi-studio/cli-android-arm64");
+  assert.deepEqual(android.os, ["android"]);
+  assert.deepEqual(android.cpu, ["arm64"]);
   assert.deepEqual(buildBuildJson({ target: "aarch64-apple-darwin", version: "4.0.0", sha256: "a".repeat(64) }), {
     version: "4.0.0",
     target: "aarch64-apple-darwin",
@@ -104,4 +110,17 @@ test("refuses a binary whose header does not match the target", async () => {
     }),
     /does not look like a Linux ELF/u,
   );
+});
+
+test("packs the android platform package under its own tarball name", async () => {
+  const binaryPath = join(root, "nibi-rs-android");
+  await writeFile(binaryPath, fakeElf());
+  const result = await packPlatformPackage({
+    binaryPath,
+    target: "aarch64-linux-android",
+    version: "4.0.0",
+    outDir: join(root, "out-android"),
+  });
+  assert.equal(result.name, "@nibi-studio/cli-android-arm64");
+  assert.match(result.tarball, /nibi-studio-cli-android-arm64-4\.0\.0\.tgz$/u);
 });

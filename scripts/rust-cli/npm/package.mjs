@@ -27,11 +27,13 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-/** 已发布的平台（与 `Platform::published()` 一致：Intel Mac 不发布）。 */
+/** 已发布的平台（与 `.github/workflows/rust-npm-packages.yml` 的 pack matrix 一一对应；Intel Mac 不发布）。 */
 const TARGETS = {
   "x86_64-unknown-linux-gnu": { id: "linux-x64-gnu", os: "linux", cpu: "x64", format: "elf" },
   "aarch64-unknown-linux-gnu": { id: "linux-arm64-gnu", os: "linux", cpu: "arm64", format: "elf" },
   "aarch64-apple-darwin": { id: "darwin-arm64", os: "darwin", cpu: "arm64", format: "macho" },
+  // NIBI-GO 的本机内核（Phase C）：Android 只消费 npm 包，不经过内核的 ssh-connect `Platform`。
+  "aarch64-linux-android": { id: "android-arm64", os: "android", cpu: "arm64", format: "elf" },
 };
 
 const ELF_MAGIC = Buffer.from([0x7f, 0x45, 0x4c, 0x46]);

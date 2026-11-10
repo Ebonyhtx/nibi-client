@@ -105,6 +105,8 @@ fn main() {
         ("macos", _) => "darwin",
         ("linux", "gnu") => "linux-gnu",
         ("linux", "musl") => "linux-musl",
+        // NIBI-GO 的本机内核（Phase C）：保守的 bionic 配置，见 config/android.h。
+        ("android", _) => "android",
         (os, target_env) => panic!(
             "nibi-kernel-vendor-bfs：没有 {os}-{target_env} 的 config.h；先用 scripts/rust-cli/vendor/bfs-config.mjs 生成（embedded-search.md §6.2）"
         ),
