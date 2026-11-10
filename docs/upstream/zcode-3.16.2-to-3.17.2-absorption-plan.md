@@ -52,7 +52,7 @@
 - 协议方法：`session/lifecycle/getState`、`ensureReady`、`stop`、`restart`；[源码] 已在 app-server 注册，Host/UI 目前主要用池的自动收敛，方法留给后续。
 - 每个协议 request 持 operation lease，request 结束触发收敛；另有 60s sampler 兜底。
 - 额外：`pruneSessionEventStores` 按时间淘汰 subagent 的一次性 event store。
-- **[现状] Rust 内核没有常驻池/生命周期**：`runtime/src/table.rs` 的 `Slot::Open` 一直持有 `Arc<Session>` 直到显式关闭，打开的会话越多内存越高；切换已打开会话是快的，但没有 LRU 回收与 `ensureReady` 语义。
+- **[现状] 我们两侧都已吸收**：Node 的常驻池在 3.16.2 基座里就有（`nibi-protocol/session-resident-pool.ts` 的 8/16/10 分钟、淘汰门与 60s sampler 都已装配），3.17.2 补的是 `session-lifecycle/` 状态机、四个协议方法与 stopping 闸门（`8564ec98`）。Rust 原来只有 `runtime/src/table.rs` 的 Loading/Open/Closing，现已加常驻池与生命周期状态机（`c9b19065`）。
 
 ### 2.3 渲染隔离（长会话流式更新）
 
@@ -98,7 +98,7 @@
 | 侧栏只读在线主机（P1-1） | 去掉 579 次/12h 无效调用 | **[x] `364aefd2`** | P1 |
 | 合并连发读取（P1-2） | 370 轮 → 约 210 | **[x] `364aefd2`**（同 tick 合并） | P1 |
 | 渲染隔离 | row/turn 执行数降一个数量级 | 无 | **P0** |
-| 常驻会话池 | 会话切换/内存稳定，热会话常驻 | 无（Rust 无池；Node 也没有） | **P1（Rust 工作量大）** |
+| 常驻会话池 | 会话切换/内存稳定，热会话常驻 | **[x] Node `8564ec98` / Rust `c9b19065`**（Node 基座已有池，补 lifecycle） | P1 |
 | 虚拟滚动细节 | 长历史滚动/搜索成本 | 有基线，细节待对齐 | P1 |
 | Electron 44 | 渲染/JS 整体提升 | 已是 44.10.1 | 无需 |
 
@@ -233,11 +233,11 @@
 6. **远程 P0-2**：`SessionPane` 发送时从 `useOptionalProjectDirectory()` 的 `factTree.tasks[].projectId` 同步取归属，缺行才回退 `resolveSessionDirectories`；更新草稿生命周期 spec。我们比上游 3.17.2 多走一步（上游仍待确认）。
 7. **P1-1/P1-2**：`project-tree-reader.ts` 只读 `connectionStatus === "online"` 的主机；按 delta/host 合并连发读取，`ensureWorkspaceTab` 无变化返回原数组。上游未实施，我们按文档方案自己做。
 
-### 4.2 P1：常驻池与生命周期（直接移植）
+### 4.2 P1：常驻池与生命周期（直接移植）**[已完成 `8564ec98`]**
 
-- 从上游移植 `session-resident-pool.ts`、`session-lifecycle/`、`server.ts` 的装配与 `v4-gateway` 的 `fault.sessionLifecycle.stopping` 检查。
-- 默认参数保持 8/16/10 分钟；gating facts 与本仓库的 `CommandInbox`、subscribers 对接。
-- 验收：高水位 LRU、空闲淘汰、有订阅/队列/交互时不淘汰、stop/restart 幂等、faulted 不重建、request lease 释放触发收敛、60s sampler 兜底。
+- 池本体在 3.16.2 基座已存在（8/16/10 分钟、LRU、淘汰门、60s sampler）；本次补 `session-lifecycle/` 状态机、`operationCount`、ready 准入与完整 release 语义。
+- `v4-gateway` 在 stopping 时返回 `fault.sessionLifecycle.stopping`；`create/resume/fork/close` 收口到生命周期 owner。
+- 验收：高水位 LRU、空闲淘汰、有订阅/队列/交互时不淘汰、stop/restart 幂等、faulted 不重建、request lease 释放触发收敛、60s sampler 兜底（221 条相关测试通过）。
 
 ### 4.3 P2：小功能与协议
 
@@ -270,14 +270,8 @@
 
 ### 5.2 P1：协议与生命周期
 
-1. **D1 `sessionData/measure|purge`**：在 `protocol-nibi` 增加两个方法，调用 `SessionStore` 测量/删除会话与目录记忆；运行中/被引用会话保留，幂等；`transport` 方法名冻结后旧 Host 回 method-not-found 时 UI 隐藏。
-2. **D3 常驻池 + 生命周期**：在 `runtime/src/table.rs` 之上加池：
-   - 状态：`unloaded/starting/ready/stopping/faulted`；`SessionLifecycleController` 唯一写者；
-   - 淘汰门：无 running turn、无 queue、无 pending interactions、无 cron 到点任务、无后台 shell/子代理、无协议订阅（`Live` 连接）；
-   - 淘汰 = 关闭 actor（复用现有 `closing` 路径）但不发 `session.removed`、不删存储；`ensureReady` 复用现有冷加载；
-   - 目标 8 / 高水位 16 / 空闲 10 分钟；request lease 结束触发收敛，60s sampler 兜底；
-   - 协议四个方法：`session/lifecycle/getState|ensureReady|stop|restart`；
-   - 风险：cron、peers、DWF run、后台子代理、分享订阅都要计入“阻止项”，宁可少淘汰。
+1. **D1 `sessionData/measure|purge`** **[x] `3bee959e`**：`protocol-nibi` 两个方法 + `kernel-api` 端口 + node-store 文件/行删除 + runtime 编排；运行中/被引用/分享钉住保留，幂等，先删文件后删行。
+2. **D3 常驻池 + 生命周期** **[x] `c9b19065`**：`runtime::lifecycle` 是唯一写者（unloaded/starting/ready/stopping/faulted），`runtime::resident` 常驻池（8/16/10 分钟、lease、60s sampler）；淘汰门覆盖 running turn、queue、pending interactions、cron 到点、后台 shell/子代理、Live 订阅、DWF 在飞；stop 复用 close_open，不删存储、不发 `session.removed`；四个协议方法已注册，stopping 时 v4 返回 `fault.sessionLifecycle.stopping`。
 3. **D6 provider 目录**：改 `config/provider/nibi-builtin.json` 到新 revision；`crates/platform` 的目录解析要能识别新模板；跑 `scripts/sync-upstream-provider-config.mjs` 后做逐模板端点探测。
 4. **C8 工作流配额续跑**：DWF 调度层（Rust 侧编排 + sidecar）在配额失败后按重置时间自动重试；先确认 NIBI 是否走同一配额模型。
 5. **B7 仅常驻行读取**：`protocol-nibi` 的 `rowsRange` 增加 `residency` 能力声明；非 resident 回 `proto.sessionNotResident`。
@@ -359,17 +353,17 @@
   - 发送不再固定多等两次串行远端往返（目录缺行时才回退查询）；
   - provider 目录新模板已可用（34 模板 / 316 条模型规则）。
 
-### Phase 1：长会话渲染 + 常驻池 + MCP 安全（第 3–5 周）
+### Phase 1：长会话渲染 + 常驻池 + MCP 安全（第 3–5 周）**[已完成 2026-11-11，见 §12]**
 
-- Host/UI：渲染隔离（§6.1）、虚拟滚动细节、分组列表虚拟化阈值。
-- Node：常驻池/生命周期直接移植（§4.2）。
-- Rust：D1 `sessionData`；D3 常驻池/生命周期设计与第一版（§5.2）。
-- Host + Rust：A5/A6 工作区 MCP 信任；A8 无 Node 回退。
+- Host/UI：渲染隔离（§6.1）、虚拟滚动细节、分组列表虚拟化阈值 → `23106f99`。
+- Node：常驻池/生命周期（池在基座已有，补 lifecycle）→ `8564ec98`。
+- Rust：D1 `sessionData` `3bee959e`；D3 常驻池/生命周期第一版 `c9b19065`。
+- Host + Rust：A5/A6 工作区 MCP 信任 `a65f236e`（设置页入口 `6519f6fb`）；A8 无 Node 回退 `ed91e03f` + Rust Windows 解析 `5b7bb702`。
 - 出口：
-  - 30 轮/20 次更新、4 轮完整流式的 row/turn/App 执行数降到上游同量级；
-  - Node 常驻池 8/16/10min 生效，有订阅/队列/交互不淘汰；
-  - Rust 生命周期状态机与 `ensureReady` 可演示；
-  - MCP 信任记录生效，未信任项目 MCP 不装载。
+  - 渲染隔离：180 条隔离/缓存/导航测试通过；未用上游同款计数探针量化，真机冒烟待做；
+  - Node 常驻池 8/16/10min 生效，有订阅/队列/交互不淘汰（221 条测试）；
+  - Rust 生命周期状态机与 `ensureReady` 已实现并有测试；
+  - MCP 信任记录生效，未信任项目 MCP 不装载；设置页可信任/撤销。
 
 ### Phase 2：数据同步 + 项目删除 + 远端运维（第 6–9 周）
 
@@ -541,3 +535,42 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 - **Phase 1 其余项**：渲染隔离、常驻池/生命周期、`sessionData/measure|purge`。
 - **A5/A6 剩余接线**：设置页「信任/撤销」评审弹窗与会话内待审核提示；没有审核入口时项目 MCP 默认拒绝（Host 已提供 review/decision 服务、UI 装载过滤与测试）。
 
+
+## 12. Phase 1 执行记录（2026-11-11）
+
+### 12.1 提交
+
+| 范围 | 提交 | 内容 |
+| --- | --- | --- |
+| Host/UI 渲染隔离 | `23106f99` | turn render unit cache、行级选中、导航预览复用、overscan 2、宽度批处理、搜索粗定位、分组列表边界测试 |
+| Node 常驻池/生命周期 | `8564ec98` | `session-lifecycle/` 状态机、四个协议方法、stopping 闸门、完整 release |
+| Rust sessionData | `3bee959e` | `v4/storage/sessionData/measure|purge`、文件/行删除、运行中/被引用保留 |
+| A8 MCP 无 Node（Node/Host） | `ed91e03f` | shim、PATH 合并、Electron-only 装配、随包 npm staging、Host 注入 |
+| A8 Rust Windows | `5b7bb702` | PATH/PATHEXT 解析、npm/npx 回退、`.cmd` 经 cmd.exe |
+| A5/A6 MCP 信任核心 | `a65f236e` | Host 唯一写者、摘要、未信任不装载、A6 已注册工作区 |
+| Rust 常驻池/生命周期 | `c9b19065` | `runtime::lifecycle` + `runtime::resident`、淘汰门、协议四方法 |
+| MCP 信任设置页 | `6519f6fb` | 待信任/已信任/已变化/不可审核、信任/撤销、i18n、A6 窗口 ID 修正 |
+
+### 12.2 与上游的对照与差异
+
+- **Node 常驻池不是新增**：3.16.2 基座已有 8/16/10 分钟池、淘汰门与 sampler；3.17.2 新增的是生命周期状态机、四个协议方法与 stopping 闸门。计划 §2.2 初稿的“Node 也没有”已纠正。
+- **Rust A8**：上游 Rust 无对应实现；我们补了 PATH/PATHEXT 解析与 Electron 回退，`.cmd` 经 `cmd.exe /d /s /c`（cross-spawn 同款转义）；`node` 回退直接执行 Electron 可执行文件。
+- **MCP 信任**：Host 记录在 `<存储根>/security/workspace-mcp-trust-v1.json`；Rust 只读同一份文件，摘要算法与 Host 固定向量一致（`6781e00d…`）。
+- **sessionData**：口径与上游一致（只统计真正删除的文件、数据库行不计入、先文件后行、分享钉住保守保留）。
+
+### 12.3 门禁
+
+- `pnpm typecheck`：通过。
+- `pnpm lint`：0 errors（159 条既有 warning）。
+- `pnpm architecture:check --changed`：0 违规；新增 5 个 managed 模块（adapters/bootstrap/services/UI×2），desktop 的信任 IPC 与 preload 桥并入既有 `mcp-workspace-trust`。
+- `pnpm test:unit`：1948 个测试文件 / **18,286 条通过**，76 条 skipped（5 个文件 skipped），0 失败。
+- Rust `cargo test --workspace --no-fail-fast`：全绿，唯一例外是 TUI 两个并行负载下的时序敏感用例（`esc_before_the_turn_is_drawn_puts_the_input_back` 既知偶发；`footer_stats::the_context_share_updates_once_the_conversation_is_compacted` 出现过一次，单跑 8/8、`--test-threads=1` 全绿）。
+- 新增测试：渲染隔离 180 条；Node lifecycle 221 条；sessionData 各 crate（node-store 202、protocol-nibi 325、runtime 126）；MCP 信任 74 + 106 条；A8 adapters 18、bootstrap 5、services 10、desktop scripts 8、Rust env-local 107。
+- 未执行：真机 Electron 渲染计数与 A4/A8 整包冒烟；渲染隔离的执行数未用上游同款探针量化。
+
+### 12.4 已知边界
+
+- 渲染隔离只保证结构与 memo 边界，浏览器级 hover/宽度/搜索视觉未跑 E2E。
+- A5 的会话内待审核提示未做；远端 workspace 的 MCP 目录暂不返回 trust（fail closed）。
+- sessionData 的“被引用”不含 cron 持久任务与 workflow_activity；跨进程运行态需 Host 路由。
+- Rust 生命周期不覆盖跨进程/远端 daemon 实例；`session/lifecycle/changed` 通知未实现。
