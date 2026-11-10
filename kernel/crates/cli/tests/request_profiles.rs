@@ -353,8 +353,8 @@ fn sent_inline(body: &Value, name: &str) -> bool {
 
 /// 工作线 F89（tools-more.md §3.2.1、config.md §2.5）：入口读 `ENABLE_TOOL_SEARCH`，只决定开不开，开时是本地。`false`
 /// 关：ToolSearch 不发、WebFetch 内联、没有延迟工具清单。`auto:50` 的门槛是延迟工具占上下文窗口的 50%（按字符），内置的
-/// 延迟工具远远不够：这一步的请求全部内联，清单照样宣布（ToolSearch 工具仍然启用）。`auto:0` 等于开。修 bug 前不读这个
-/// 变量，三种写法都是本地 ToolSearch。
+/// 延迟工具远远不够：这一步的请求全部内联，ToolSearch 也不发；历史里的延迟工具清单会被过滤（`8e5a3595`），
+/// 否则模型会看到「用 ToolSearch 加载」但工具不存在。`auto:0` 等于开。修 bug 前不读这个变量，三种写法都是本地 ToolSearch。
 #[tokio::test]
 async fn enable_tool_search_decides_whether_tool_search_is_on() {
     let run = |value: &str| {
@@ -375,7 +375,8 @@ async fn enable_tool_search_decides_whether_tool_search_is_on() {
     let (body, beta) = run("auto:50");
     assert_eq!(tool_search(&body, beta.as_deref()), Search::Off, "{body}");
     assert!(sent_inline(&body, "WebFetch"), "{body}");
-    assert!(body.to_string().contains("\\nWebFetch\\n"), "{body}");
+    assert!(!sent_inline(&body, "ToolSearch"), "{body}");
+    assert!(!body.to_string().contains("\\nWebFetch\\n"), "{body}");
     let (body, beta) = run("auto:0");
     assert_eq!(tool_search(&body, beta.as_deref()), Search::Local, "{body}");
     assert!(listed_as_deferred(&body, "WebFetch"), "{body}");
