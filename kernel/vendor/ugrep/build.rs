@@ -199,6 +199,11 @@ fn main() {
         brotli.join("include"),
     ];
     for dependency in ["Z", "BZIP2", "ZSTD"] {
+        // libz-sys 对 Android 直接用 NDK 自带的 libz：它的 build.rs 在 Android 上提前 return，
+        // 不会给 DEP_Z_INCLUDE；zlib.h 在 NDK clang 的默认 include path（sysroot/usr/include）里。
+        if dependency == "Z" && os == "android" && env::var_os("DEP_Z_INCLUDE").is_none() {
+            continue;
+        }
         let dir = env::var_os(format!("DEP_{dependency}_INCLUDE")).unwrap_or_else(|| {
             panic!("{dependency} 的 -sys crate 没有给出头文件目录（DEP_{dependency}_INCLUDE）")
         });
