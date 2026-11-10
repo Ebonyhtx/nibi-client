@@ -95,7 +95,7 @@ pub use bash::{BashTimeouts, BashTool};
 pub use changes::FileChanges;
 pub use common::FileTools;
 pub use cron_board::CronBoard;
-pub use cron_tools::cron_tools;
+pub use cron_tools::{cron_tools, cron_tools_with};
 pub use edit::EditTool;
 pub use file_state::ReadFileState;
 pub use file_state_restore::restore_file_state;

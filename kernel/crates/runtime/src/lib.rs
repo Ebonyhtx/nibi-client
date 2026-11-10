@@ -384,7 +384,11 @@ impl LocalKernel {
                     },
                     ports.clock.clone(),
                 ))
-                .with_tools(nibi_kernel_tools::cron_tools(&cron, extensions.monitor))
+                .with_tools(nibi_kernel_tools::cron_tools_with(
+                    &cron,
+                    extensions.monitor,
+                    extensions.automation.clone(),
+                ))
                 // `/loop` 动态模式的自定节奏（L17，tools-more.md §17.2）：默认注册、不延迟。
                 .with_tools(vec![Arc::new(nibi_kernel_tools::ScheduleWakeupTool::new(
                     &cron,

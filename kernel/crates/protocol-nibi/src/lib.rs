@@ -38,6 +38,7 @@ mod subagents_rpc;
 pub mod telemetry;
 pub mod topic;
 mod attachment_rpc;
+pub mod automation;
 mod attachment_upload;
 pub mod browser;
 mod v4_queries;
@@ -54,6 +55,7 @@ use tokio::io::AsyncBufRead;
 
 pub use context::Context;
 pub use headers::HostHeaders;
+pub use automation::HostAutomation;
 pub use topic::HostTopic;
 pub use server::Defaults;
 

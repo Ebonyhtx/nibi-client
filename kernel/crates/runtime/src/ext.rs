@@ -5,10 +5,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use nibi_kernel_agents::PluginAgentFile;
-use nibi_kernel_ext::Plugins;
-use nibi_kernel_hooks::PluginHooks;
 use nibi_kernel_api::cron_store::CronStore;
 use nibi_kernel_api::env::WorkspaceRef;
+use nibi_kernel_ext::Plugins;
+use nibi_kernel_hooks::PluginHooks;
 
 pub use nibi_kernel_ext::ExtConfig;
 
@@ -57,6 +57,10 @@ pub struct Extensions {
     /// Host 的话题能力（`ReadSessionContext` 的话题附件与 `ReplyToChannel`）：入口在服务 Host
     /// 协议时装上；None 时两个工具按 Node 同一条错误失败。
     pub topic: Option<std::sync::Arc<dyn nibi_kernel_api::topic::TopicPort>>,
+    /// Host 的 Automations 端口（`CronCreate` / `CronUpdate` / `CronList` / `CronDelete`）：
+    /// App 入口装上后，模型创建的定时任务归 Host 的 `AutomationService`（记录、卡片、历史）；
+    /// None 时用本机 `CronBoard`（CLI/TUI）。
+    pub automation: Option<std::sync::Arc<dyn nibi_kernel_api::automation::AutomationPort>>,
     /// `features.memory`（缺省 true）：false 时不调度项目记忆抽取，会话记忆开关缺省关闭。
     pub memory_enabled: bool,
     /// `memory.use`（缺省 true）：false 时记忆召回不参与上下文。
@@ -80,6 +84,7 @@ impl Extensions {
             mcp_oauth: None,
             node_repl_env: None,
             topic: None,
+            automation: None,
             memory_enabled: true,
             memory_use: true,
             subagents_enabled: true,

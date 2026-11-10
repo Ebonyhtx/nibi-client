@@ -5,6 +5,9 @@
 //! `.nibi/scheduled_tasks.json`（§16）；计数、删除校验与列出每次重读文件。
 
 use async_trait::async_trait;
+use nibi_kernel_api::automation::{
+    AutomationCreate, AutomationError, AutomationMaxRuns, AutomationPort, AutomationUpdate,
+};
 use nibi_kernel_api::cron_store::{CronScheduleRule, CronScheduleUnit, NewCronTask};
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::permission::{PermissionDecision, PermissionMode};
@@ -53,22 +56,49 @@ pub(crate) struct Shared {
     pub(crate) definition: Definition,
     pub(crate) board: CronBoard,
     pub(crate) hint: &'static str,
+    /// 桌面 Automations 的 Host 端口；Some 时四个工具走 Host，不碰本机任务表。
+    pub(crate) automation: Option<std::sync::Arc<dyn AutomationPort>>,
 }
 
 impl Shared {
-    fn new(name: &str, board: &CronBoard, hint: &'static str) -> Self {
+    fn with_automation(
+        name: &str,
+        board: &CronBoard,
+        hint: &'static str,
+        automation: Option<std::sync::Arc<dyn AutomationPort>>,
+    ) -> Self {
         Self {
             definition: definition(name),
             board: board.clone(),
             hint,
+            automation,
         }
+    }
+
+    pub(crate) fn host(&self) -> Option<&std::sync::Arc<dyn AutomationPort>> {
+        self.automation.as_ref()
     }
 }
 
 /// 三个 cron 工具（按工具池的顺序）。`monitor`：Monitor 开着时 CronCreate 的描述在 `## Runtime behavior` 之前多
 /// “Not for live watching” 一节（工作线 F83，tools-more.md §19.9）。
 pub fn cron_tools(board: &CronBoard, monitor: bool) -> Vec<std::sync::Arc<dyn Tool>> {
-    let mut create = Shared::new(CREATE, board, "schedule a recurring or one-shot prompt");
+    cron_tools_with(board, monitor, None)
+}
+
+/// 与 [`cron_tools`] 相同；`automation` 存在时四个工具改走 Host 的 Automations。
+pub fn cron_tools_with(
+    board: &CronBoard,
+    monitor: bool,
+    automation: Option<std::sync::Arc<dyn AutomationPort>>,
+) -> Vec<std::sync::Arc<dyn Tool>> {
+    let host = automation.is_some();
+    let mut create = Shared::with_automation(
+        CREATE,
+        board,
+        "schedule a recurring or one-shot prompt",
+        automation.clone(),
+    );
     if monitor {
         const ANCHOR: &str = "## Runtime behavior";
         create.definition.description = create.definition.description.replacen(
@@ -80,22 +110,40 @@ pub fn cron_tools(board: &CronBoard, monitor: bool) -> Vec<std::sync::Arc<dyn To
             1,
         );
     }
+    if host {
+        // 桌面 Automations 由 Host 持有并总是落盘：`durable` 是终端专有开关，别让模型看到。
+        if let Some(properties) = create
+            .definition
+            .schema
+            .get_mut("properties")
+            .and_then(Value::as_object_mut)
+        {
+            properties.remove("durable");
+        }
+        create.definition.description = format!(
+            "In the desktop app, scheduled automations are stored by NIBI and always persist; the durability notes below apply only to terminal use.\n\n{}",
+            create.definition.description
+        );
+    }
     vec![
         std::sync::Arc::new(CronCreateTool(create)),
-        std::sync::Arc::new(CronDeleteTool(Shared::new(
+        std::sync::Arc::new(CronDeleteTool(Shared::with_automation(
             DELETE,
             board,
             "cancel a scheduled cron job",
+            automation.clone(),
         ))),
-        std::sync::Arc::new(CronUpdateTool(Shared::new(
+        std::sync::Arc::new(CronUpdateTool(Shared::with_automation(
             UPDATE,
             board,
             "update an existing scheduled cron job",
+            automation.clone(),
         ))),
-        std::sync::Arc::new(crate::cron_list::CronListTool(Shared::new(
+        std::sync::Arc::new(crate::cron_list::CronListTool(Shared::with_automation(
             LIST,
             board,
             "list active cron jobs",
+            automation,
         ))),
     ]
 }
@@ -324,6 +372,118 @@ fn resolve_create(
     })
 }
 
+/// Node `AUTOMATION_CREATE_IN_BOUND_SESSION_ERROR`：已归属定时任务的会话不能再建一个。
+const BOUND_SESSION: &str = "Cannot create a scheduled task inside a session that already belongs to a scheduled task. Ask the user to start a new chat to create another scheduled task.";
+
+fn host_error(error: AutomationError) -> ToolError {
+    ToolError::Failed {
+        message: error.message,
+    }
+}
+
+/// Rust 的 `ModelSelection` → Host 的 `{providerId, modelId, options}`。
+fn model_selection_value(selection: &nibi_kernel_api::model::ModelSelection) -> Value {
+    let mut value = json!({
+        "providerId": selection.provider,
+        "modelId": selection.model,
+    });
+    if let Some(reasoning) = selection.reasoning.as_deref() {
+        value["options"] = json!({"reasoningLevel": reasoning});
+    }
+    value
+}
+
+/// 权限模式 → Host 的任务模式；Node 的 automation port 把 auto 记成 build。
+fn mode_value(mode: PermissionMode) -> &'static str {
+    match mode {
+        PermissionMode::Auto => "build",
+        other => other.node_name(),
+    }
+}
+
+/// 桌面入口：定义交给 Host 的 `AutomationService`，本机任务表不写。
+async fn create_via_host(
+    shared: &Shared,
+    port: &std::sync::Arc<dyn AutomationPort>,
+    input: &CreateInput,
+    context: &ToolUseContext,
+) -> Result<ToolOutput, ToolError> {
+    let board = &shared.board;
+    let now = board.now_ms();
+    let offset = board.offset();
+    // 组合约束仍在本机先过一遍：Host 的 schema 是最后一道，不是唯一一道。
+    let resolved =
+        resolve_create(input, now, &offset).map_err(|error| ToolError::InvalidInput {
+            message: match error {
+                Validation::Invalid { message, .. } => message,
+                Validation::Ok => "invalid CronCreate input".to_owned(),
+            },
+        })?;
+    if port
+        .task_binding(context.session.as_str())
+        .await
+        .map_err(host_error)?
+    {
+        return Err(ToolError::Failed {
+            message: BOUND_SESSION.to_owned(),
+        });
+    }
+    let title = input
+        .title
+        .as_deref()
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
+        .map(str::to_owned);
+    let carrier = input.interval_unit.is_some() && input.interval.is_some();
+    let recurring = if input.delay_minutes.is_some() {
+        false
+    } else if carrier {
+        true
+    } else {
+        input.recurring.unwrap_or(true)
+    };
+    let selection = context
+        .interactions
+        .current_selection(&context.session)
+        .await;
+    let record = port
+        .create(AutomationCreate {
+            title,
+            cron: input.cron.clone().unwrap_or_else(|| "* * * * *".to_owned()),
+            prompt: input.prompt.clone(),
+            delay_minutes: input.delay_minutes,
+            model_selection: selection.as_ref().map(model_selection_value),
+            mode: Some(mode_value(context.mode).to_owned()),
+            target_task_id: Some(context.session.as_str().to_owned()),
+            bot_delivery_target: None,
+            recurring,
+            max_runs: if carrier { None } else { input.max_runs },
+            interval_unit: input.interval_unit,
+            interval: input.interval,
+        })
+        .await
+        .map_err(host_error)?;
+    let human = if let Some(minutes) = input.delay_minutes {
+        format!("In {minutes} minutes")
+    } else if let Some(rule) = resolved.schedule_rule.as_ref() {
+        cron_rule::human(rule)
+    } else {
+        cron_expr::human(&resolved.cron)
+    };
+    let titled = if record.title.trim().is_empty() {
+        String::new()
+    } else {
+        format!(" — title: {}", record.title.trim())
+    };
+    Ok(output(
+        format!(
+            "Created automation {}{titled} ({human}). The automation is stored by the desktop host; use CronList to see its id and status.",
+            record.automation_id
+        ),
+        json!({"automation": record}),
+    ))
+}
+
 pub struct CronCreateTool(Shared);
 
 #[async_trait]
@@ -360,6 +520,9 @@ impl Tool for CronCreateTool {
                 );
             }
         }
+        if self.0.host().is_some() {
+            return Validation::Ok;
+        }
         let total = board.read_durable().await.len() + board.session_count(&owner(context).await);
         if total >= MAX_JOBS {
             return coded(
@@ -391,6 +554,9 @@ impl Tool for CronCreateTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let input: CreateInput = parse(&input)?;
+        if let Some(port) = self.0.host() {
+            return create_via_host(&self.0, port, &input, &context).await;
+        }
         let board = &self.0.board;
         let resolved =
             resolve_create(&input, board.now_ms(), &board.offset()).map_err(|error| {
@@ -509,6 +675,9 @@ impl Tool for CronDeleteTool {
         let Ok(input) = parse::<DeleteInput>(input) else {
             return Validation::Ok;
         };
+        if self.0.host().is_some() {
+            return Validation::Ok;
+        }
         let board = &self.0.board;
         let known = board.has_session_job(&owner(context).await, &input.id)
             || board
@@ -540,6 +709,18 @@ impl Tool for CronDeleteTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let input: DeleteInput = parse(&input)?;
+        if let Some(port) = self.0.host() {
+            let deleted = port.delete(&input.id).await.map_err(host_error)?;
+            let text = if deleted {
+                format!("Deleted automation {}.", input.id)
+            } else {
+                format!(
+                    "Automation {} was not found in the current workspace.",
+                    input.id
+                )
+            };
+            return Ok(output(text, json!({"deleted": deleted, "id": input.id})));
+        }
         self.0
             .board
             .delete(&owner(&context).await, &input.id)
@@ -781,6 +962,155 @@ fn resolve_update(
     })
 }
 
+/// Host 模式下没有本机记录可读：只校验补丁自身的组合约束，id/现状是否存在交给 Host。
+///
+/// 不能拿一份「recurring=true」的占位现状套 `resolve_update`：那会把
+/// 「有限任务只改 maxRuns、省略 recurring」这种合法补丁误拒。
+fn validate_update_shape(input: &UpdateInput, now: u64, offset: &dyn Fn(u64) -> i32) -> Validation {
+    if !input.has_field() {
+        return coded(
+            "CronUpdate requires at least one field to update".to_owned(),
+            4,
+        );
+    }
+    let has_unit = input.interval_unit.is_some();
+    let has_interval = input.interval.is_some();
+    if has_unit != has_interval {
+        return coded(
+            "intervalUnit and interval must be set together".to_owned(),
+            4,
+        );
+    }
+    if has_unit {
+        let interval = input.interval.unwrap_or(0);
+        if !(1..=200).contains(&interval) {
+            return coded("interval must be an integer from 1 to 200.".to_owned(), 4);
+        }
+        if input.recurring == Some(false) {
+            return coded(
+                "intervalUnit is a recurring carrier and cannot combine with recurring=false"
+                    .to_owned(),
+                4,
+            );
+        }
+    }
+    let patch = match input.max_runs.as_ref() {
+        None => MaxRunsPatch::Keep,
+        Some(Value::Null) => MaxRunsPatch::Clear,
+        Some(Value::Number(number)) => {
+            let Some(value) = number
+                .as_u64()
+                .and_then(|value| u32::try_from(value).ok())
+                .filter(|value| *value > 0)
+            else {
+                return coded("maxRuns must be a positive integer.".to_owned(), 4);
+            };
+            MaxRunsPatch::Set(value)
+        }
+        Some(_) => {
+            return coded("maxRuns must be a positive integer or null.".to_owned(), 4);
+        }
+    };
+    if matches!(patch, MaxRunsPatch::Clear) && input.recurring != Some(true) {
+        return coded(
+            "Clearing maxRuns requires recurring=true in the same update".to_owned(),
+            4,
+        );
+    }
+    if input.recurring == Some(true) && matches!(patch, MaxRunsPatch::Set(_)) {
+        return coded(
+            "recurring=true cannot be combined with a numeric maxRuns".to_owned(),
+            4,
+        );
+    }
+    if has_unit && matches!(patch, MaxRunsPatch::Set(_)) {
+        return coded(
+            "intervalUnit is a recurring carrier and cannot combine with a numeric maxRuns"
+                .to_owned(),
+            4,
+        );
+    }
+    if let Some(cron) = input.cron.as_deref() {
+        if cron_expr::parse(cron).is_none() {
+            return coded(
+                format!("Invalid cron expression '{cron}'. Expected 5 fields: M H DoM Mon DoW."),
+                2,
+            );
+        }
+        if cron_expr::next_after(cron, now, offset).is_none() {
+            return coded(
+                format!(
+                    "Cron expression '{cron}' does not match any calendar date in the next year."
+                ),
+                3,
+            );
+        }
+    }
+    if let Some(title) = input.title.as_deref()
+        && title.trim().is_empty()
+    {
+        return coded("title must not be empty.".to_owned(), 4);
+    }
+    Validation::Ok
+}
+
+/// 桌面入口：补丁交给 Host 的 `AutomationService.update`，本机任务表不动。
+async fn update_via_host(
+    port: &std::sync::Arc<dyn AutomationPort>,
+    input: &UpdateInput,
+) -> Result<ToolOutput, ToolError> {
+    let carrier = input.interval_unit.is_some() && input.interval.is_some();
+    let max_runs = if carrier {
+        AutomationMaxRuns::Clear
+    } else {
+        match input.max_runs.as_ref() {
+            None => AutomationMaxRuns::Keep,
+            Some(Value::Null) => AutomationMaxRuns::Clear,
+            Some(Value::Number(number)) => {
+                let value = number
+                    .as_u64()
+                    .and_then(|value| u32::try_from(value).ok())
+                    .filter(|value| *value > 0)
+                    .ok_or_else(|| ToolError::InvalidInput {
+                        message: "maxRuns must be a positive integer.".to_owned(),
+                    })?;
+                AutomationMaxRuns::Set(value)
+            }
+            Some(_) => {
+                return Err(ToolError::InvalidInput {
+                    message: "maxRuns must be a positive integer or null.".to_owned(),
+                });
+            }
+        }
+    };
+    let record = port
+        .update(AutomationUpdate {
+            automation_id: input.id.clone(),
+            title: input
+                .title
+                .as_deref()
+                .map(str::trim)
+                .filter(|title| !title.is_empty())
+                .map(str::to_owned),
+            cron: input.cron.clone(),
+            prompt: input.prompt.clone(),
+            recurring: if carrier { Some(true) } else { input.recurring },
+            max_runs,
+            interval_unit: input.interval_unit,
+            interval: input.interval,
+        })
+        .await
+        .map_err(host_error)?;
+    Ok(output(
+        format!(
+            "Updated automation {} — title: {}.",
+            record.automation_id,
+            record.title.trim()
+        ),
+        json!({"automation": record}),
+    ))
+}
+
 pub struct CronUpdateTool(Shared);
 
 #[async_trait]
@@ -796,6 +1126,9 @@ impl Tool for CronUpdateTool {
             return Validation::Ok;
         };
         let board = &self.0.board;
+        if self.0.host().is_some() {
+            return validate_update_shape(&input, board.now_ms(), &board.offset());
+        }
         let owner = owner(context).await;
         let Some(existing) = current(board, &owner, &input.id).await else {
             return coded(format!("No scheduled job with id '{}'", input.id), 1);
@@ -826,6 +1159,9 @@ impl Tool for CronUpdateTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let input: UpdateInput = parse(&input)?;
+        if let Some(port) = self.0.host() {
+            return update_via_host(port, &input).await;
+        }
         let board = &self.0.board;
         let owner = owner(&context).await;
         let Some(existing) = current(board, &owner, &input.id).await else {

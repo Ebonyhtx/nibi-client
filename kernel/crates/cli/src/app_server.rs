@@ -15,14 +15,14 @@ use std::time::Duration;
 
 use anyhow::Result;
 use async_trait::async_trait;
-use nibi_kernel_base::TaskScope;
-use nibi_kernel_base::secret::EnvSnapshot;
-use nibi_kernel_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
 use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::EnvironmentId;
 use nibi_kernel_api::machine::Files;
 use nibi_kernel_api::provider::ModelDirectory;
 use nibi_kernel_api::store::{SessionFilter, SessionStore};
+use nibi_kernel_base::TaskScope;
+use nibi_kernel_base::secret::EnvSnapshot;
+use nibi_kernel_env_local::{LocalCronStore, LocalEnvironment, LocalMcpTransport};
 use nibi_kernel_node_store::{NodeIds, NodeStore, SystemClock};
 use nibi_kernel_paths::StorageSettings;
 use nibi_kernel_protocol_core::connection::{self, Options};
@@ -426,6 +426,11 @@ async fn serve(
     extensions.topic = Some(Arc::new(nibi_kernel_protocol_nibi::HostTopic::new(
         context.clone(),
     )));
+    // 桌面 Automations：模型侧的 CronCreate/CronUpdate/CronList/CronDelete 交给 Host 的
+    // AutomationService（记录、卡片、编辑页与历史都在 Host），不在内核另存一份。
+    extensions.automation = Some(Arc::new(nibi_kernel_protocol_nibi::HostAutomation::new(
+        context.clone(),
+    )));
     // `mcpId` 的盐：桌面注入的设备标识；没有时 ext 退回进程级随机串（跨进程不可关联）。
     extensions.mcp_telemetry = Some(nibi_kernel_ext::McpTelemetrySetup {
         sink: mcp_telemetry,
@@ -475,10 +480,8 @@ async fn serve(
         .with_host_serving();
     // DWF 引擎 sidecar（路线 C）：Host/开发经 `NIBI_DWF_ENGINE_CMD` 指过来；缺席时三条 DWF 命令保持
     // `fault.command.capabilityUnsupported`。
-    let workflow_engine = startup
-        .env
-        .get("NIBI_DWF_ENGINE_CMD")
-        .and_then(|text| match crate::dwf_engine_client::SidecarCommand::parse(text) {
+    let workflow_engine = startup.env.get("NIBI_DWF_ENGINE_CMD").and_then(|text| {
+        match crate::dwf_engine_client::SidecarCommand::parse(text) {
             Ok(command) => Some(Arc::new(crate::dwf_engine_client::SidecarEngine::new(
                 command,
                 spawner.clone(),
@@ -496,7 +499,8 @@ async fn serve(
                 );
                 None
             }
-        });
+        }
+    });
     let kernel = match &workflow_engine {
         Some(engine) => kernel.with_workflow_engine(
             engine.clone() as Arc<dyn nibi_kernel_api::workflow::WorkflowEngine>

@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use nibi_kernel_ext::{Plugin, PluginAgentFile as ExtAgentFile, Plugins};
 use nibi_kernel_api::env::{EnvFacts, EnvPath, WorkspaceRef};
 use nibi_kernel_api::ids::{CommandId, EnvironmentId};
 use nibi_kernel_api::message::Message;
@@ -15,6 +14,7 @@ use nibi_kernel_api::testing::{
     FixedClock, MemoryEnvironment, MemoryStore, ScriptedModel, SequentialIds, environments,
     selection, text_response,
 };
+use nibi_kernel_ext::{Plugin, PluginAgentFile as ExtAgentFile, Plugins};
 use serde_json::json;
 
 use super::*;
@@ -122,6 +122,7 @@ async fn plugin_agents_reach_the_agent_listing() {
             mcp_oauth: None,
             node_repl_env: None,
             topic: None,
+            automation: None,
             memory_enabled: true,
             memory_use: true,
             subagents_enabled: true,

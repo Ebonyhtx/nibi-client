@@ -36,6 +36,20 @@ pub enum CronScheduleUnit {
     Yearly,
 }
 
+impl CronScheduleUnit {
+    /// 协议里的写法（`intervalUnit`）。
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Minute => "minute",
+            Self::Hourly => "hourly",
+            Self::Daily => "daily",
+            Self::Weekly => "weekly",
+            Self::Monthly => "monthly",
+            Self::Yearly => "yearly",
+        }
+    }
+}
+
 /// 每 N 个单位的重复规则；与 Node 的 `scheduleRule` 同形。
 ///
 /// `cron` 仍是兼容/展示表达式，真实频率由这条规则按 `anchor_at` 推进——五段 cron 的

@@ -15,7 +15,52 @@ use unicode_width::UnicodeWidthStr;
 use crate::cron_expr;
 use crate::cron_rule;
 use crate::cron_tools::{LIST, Shared, human_at, output, owner, shared_tool_methods};
+use nibi_kernel_api::automation::AutomationRecord;
 use nibi_kernel_api::cron_store::CronScheduleRule;
+
+/// Host 模式的列表：automation 记录由 Host 持有，展示字段与 Node 的 `toModelAutomation` 同源。
+pub(crate) fn host_output(automations: &[AutomationRecord]) -> ToolOutput {
+    let lines: Vec<String> = automations
+        .iter()
+        .map(|automation| {
+            let human = match automation.schedule_rule.as_ref() {
+                Some(rule) => cron_rule::human(rule),
+                None => cron_expr::human(&automation.cron_expr),
+            };
+            let kind = if let Some(max_runs) = automation.max_runs {
+                format!(" ({max_runs} runs)")
+            } else if automation.recurring {
+                " (recurring)".to_owned()
+            } else {
+                " (one-shot)".to_owned()
+            };
+            let status = if automation.enabled {
+                automation.lifecycle_status.as_str()
+            } else {
+                "paused"
+            };
+            let title = if automation.title.trim().is_empty() {
+                String::new()
+            } else {
+                format!("{} — ", automation.title.trim())
+            };
+            format!(
+                "{} — {title}{human}{kind} [{status}]: {}",
+                automation.automation_id,
+                truncate_display(&automation.prompt, 80)
+            )
+        })
+        .collect();
+    let text = if lines.is_empty() {
+        "No scheduled jobs.".to_owned()
+    } else {
+        lines.join(
+            "
+",
+        )
+    };
+    output(text, json!({"automations": automations}))
+}
 
 pub struct CronListTool(pub(crate) Shared);
 
@@ -64,6 +109,12 @@ impl Tool for CronListTool {
         context: ToolUseContext,
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
+        if let Some(port) = self.0.host() {
+            let automations = port.list().await.map_err(|error| ToolError::Failed {
+                message: error.message,
+            })?;
+            return Ok(host_output(&automations));
+        }
         let board = &self.0.board;
         let offset = board.offset();
         let durable = board.read_durable().await.into_iter().map(|task| Row {

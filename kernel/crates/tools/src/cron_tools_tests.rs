@@ -529,3 +529,220 @@ async fn invalid_combinations_are_rejected() {
         "No scheduled job with id 'nope'"
     );
 }
+
+/// Host 模式的替身：记录收到的 DTO，返回 Host 形状的 automation。
+struct FakeAutomation {
+    created: std::sync::Mutex<Vec<nibi_kernel_api::automation::AutomationCreate>>,
+    updated: std::sync::Mutex<Vec<nibi_kernel_api::automation::AutomationUpdate>>,
+    list: std::sync::Mutex<Vec<nibi_kernel_api::automation::AutomationRecord>>,
+    deleted: std::sync::Mutex<Vec<String>>,
+    bound: bool,
+}
+
+impl Default for FakeAutomation {
+    fn default() -> Self {
+        Self {
+            created: std::sync::Mutex::default(),
+            updated: std::sync::Mutex::default(),
+            list: std::sync::Mutex::default(),
+            deleted: std::sync::Mutex::default(),
+            bound: false,
+        }
+    }
+}
+
+impl FakeAutomation {
+    fn record(title: &str, recurring: bool) -> nibi_kernel_api::automation::AutomationRecord {
+        nibi_kernel_api::automation::AutomationRecord {
+            automation_id: "auto-1".to_owned(),
+            title: title.to_owned(),
+            cron_expr: "*/5 * * * *".to_owned(),
+            prompt: "check".to_owned(),
+            enabled: true,
+            lifecycle_status: "active".to_owned(),
+            next_run_at: Some(NOW + 60_000),
+            last_run_at: None,
+            run_count: 0,
+            recurring,
+            max_runs: None,
+            schedule_rule: None,
+            target_task_id: Some("sess_1".to_owned()),
+            model_selection: None,
+            mode: Some("build".to_owned()),
+        }
+    }
+}
+
+#[async_trait]
+impl nibi_kernel_api::automation::AutomationPort for FakeAutomation {
+    async fn create(
+        &self,
+        request: nibi_kernel_api::automation::AutomationCreate,
+    ) -> Result<
+        nibi_kernel_api::automation::AutomationRecord,
+        nibi_kernel_api::automation::AutomationError,
+    > {
+        let mut record = Self::record(request.title.as_deref().unwrap_or(""), request.recurring);
+        record.cron_expr = request.cron.clone();
+        record.prompt = request.prompt.clone();
+        self.created.lock().unwrap().push(request);
+        Ok(record)
+    }
+
+    async fn update(
+        &self,
+        request: nibi_kernel_api::automation::AutomationUpdate,
+    ) -> Result<
+        nibi_kernel_api::automation::AutomationRecord,
+        nibi_kernel_api::automation::AutomationError,
+    > {
+        let mut record = Self::record("updated", true);
+        if let Some(title) = &request.title {
+            record.title = title.clone();
+        }
+        if let Some(cron) = &request.cron {
+            record.cron_expr = cron.clone();
+        }
+        self.updated.lock().unwrap().push(request);
+        Ok(record)
+    }
+
+    async fn list(
+        &self,
+    ) -> Result<
+        Vec<nibi_kernel_api::automation::AutomationRecord>,
+        nibi_kernel_api::automation::AutomationError,
+    > {
+        Ok(self.list.lock().unwrap().clone())
+    }
+
+    async fn delete(
+        &self,
+        automation_id: &str,
+    ) -> Result<bool, nibi_kernel_api::automation::AutomationError> {
+        self.deleted.lock().unwrap().push(automation_id.to_owned());
+        Ok(true)
+    }
+
+    async fn task_binding(
+        &self,
+        _target_task_id: &str,
+    ) -> Result<bool, nibi_kernel_api::automation::AutomationError> {
+        Ok(self.bound)
+    }
+}
+
+fn host_tools(board: &CronBoard, fake: &Arc<FakeAutomation>) -> Vec<Arc<dyn Tool>> {
+    cron_tools_with(board, false, Some(fake.clone()))
+}
+
+fn host_tool(tools: &[Arc<dyn Tool>], name: &str) -> Arc<dyn Tool> {
+    tools
+        .iter()
+        .find(|tool| tool.name() == name)
+        .unwrap_or_else(|| panic!("{name}"))
+        .clone()
+}
+
+#[tokio::test]
+async fn host_mode_creates_an_automation_instead_of_a_local_task() {
+    let board = board();
+    let fake = Arc::new(FakeAutomation::default());
+    let tools = host_tools(&board, &fake);
+    let create = host_tool(&tools, CREATE);
+    assert!(create.input_schema()["properties"].get("durable").is_none());
+    let prompt = PromptContext {
+        tool_names: Vec::new(),
+        mode: PermissionMode::Default,
+    };
+    assert!(create.description(&prompt).contains("desktop app"));
+    let ctx = context(
+        "op_1a2b3c4d-0000-4000-8000-000000000000",
+        PermissionMode::Default,
+    );
+    let text = call(
+        &create,
+        json!({"prompt": "stand up", "delayMinutes": 3, "title": "3 分钟后提醒"}),
+        ctx.clone(),
+    )
+    .await;
+    assert!(text.starts_with("Created automation auto-1"), "{text}");
+    assert!(board.session_jobs(&ctx.session).is_empty());
+    let created = fake.created.lock().unwrap().clone();
+    assert_eq!(created.len(), 1);
+    assert_eq!(created[0].delay_minutes, Some(3));
+    assert_eq!(created[0].title.as_deref(), Some("3 分钟后提醒"));
+    assert_eq!(created[0].target_task_id.as_deref(), Some("sess_1"));
+    assert_eq!(created[0].mode.as_deref(), Some("build"));
+    assert!(!created[0].recurring);
+}
+
+#[tokio::test]
+async fn host_mode_rejects_a_bound_session() {
+    let board = board();
+    let fake = Arc::new(FakeAutomation {
+        bound: true,
+        ..FakeAutomation::default()
+    });
+    let tools = host_tools(&board, &fake);
+    let ctx = context("op_1", PermissionMode::Default);
+    let error = host_tool(&tools, CREATE)
+        .call(json!({"cron": "* * * * *", "prompt": "p"}), ctx, {
+            let (progress, _rx) = mpsc::channel(1);
+            progress
+        })
+        .await
+        .unwrap_err();
+    assert_eq!(
+        error.to_string(),
+        "Cannot create a scheduled task inside a session that already belongs to a scheduled task. Ask the user to start a new chat to create another scheduled task."
+    );
+    assert!(fake.created.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn host_mode_lists_and_deletes_host_records() {
+    let board = board();
+    let fake = Arc::new(FakeAutomation::default());
+    *fake.list.lock().unwrap() = vec![FakeAutomation::record("每 5 分钟", true)];
+    let tools = host_tools(&board, &fake);
+    let ctx = context("op_1", PermissionMode::Default);
+    let list = call(&host_tool(&tools, LIST), json!({}), ctx.clone()).await;
+    assert!(
+        list.contains("auto-1 — 每 5 分钟 — Every 5 minutes (recurring) [active]: check"),
+        "{list}"
+    );
+    let text = call(&host_tool(&tools, DELETE), json!({"id": "auto-1"}), ctx).await;
+    assert_eq!(text, "Deleted automation auto-1.");
+    assert_eq!(fake.deleted.lock().unwrap().as_slice(), ["auto-1"]);
+}
+
+#[tokio::test]
+async fn host_mode_update_sends_only_the_patch() {
+    let board = board();
+    let fake = Arc::new(FakeAutomation::default());
+    let tools = host_tools(&board, &fake);
+    let ctx = context("op_1", PermissionMode::Default);
+    // 有限任务只改次数、省略 recurring 是合法补丁：Host 按现状的 recurring=false 处理。
+    assert_eq!(
+        host_tool(&tools, UPDATE)
+            .validate_input(&json!({"id": "auto-1", "maxRuns": 3}), &ctx)
+            .await,
+        Validation::Ok
+    );
+    let text = call(
+        &host_tool(&tools, UPDATE),
+        json!({"id": "auto-1", "title": "每 6 分钟", "cron": "*/6 * * * *"}),
+        ctx,
+    )
+    .await;
+    assert_eq!(text, "Updated automation auto-1 — title: 每 6 分钟.");
+    let updated = fake.updated.lock().unwrap().clone();
+    assert_eq!(updated.len(), 1);
+    assert_eq!(updated[0].title.as_deref(), Some("每 6 分钟"));
+    assert_eq!(updated[0].cron.as_deref(), Some("*/6 * * * *"));
+    assert_eq!(
+        updated[0].max_runs,
+        nibi_kernel_api::automation::AutomationMaxRuns::Keep
+    );
+}

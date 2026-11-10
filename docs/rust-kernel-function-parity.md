@@ -559,6 +559,14 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 9. **`ReadSessionContext` 的 not_found 文案**：`topic` 策略只读当前会话的归档话题，没有可读
    原文时不再说 `Session … was not found`（会让模型以为会话 id 错了），改成
    `No archived topic discussion was found … The session exists, but …`；Node 与 Rust 同一句。
+10. **桌面 Automations 的 Host 桥已接**：新增 `AutomationPort`（kernel-api）与
+    `HostAutomation`（protocol-nibi，走 `Peer::request` 的反向请求），app-server 在 `Extensions`
+    里装上后 `CronCreate`/`CronUpdate`/`CronList`/`CronDelete` 全部改走 Host 的
+    `automation/create|update|list|delete|checkTaskBinding`；Host 仍是任务记录、调度、卡片、
+    编辑页与历史的唯一 owner。CLI/TUI 没有 Host 时继续用本机 `CronBoard`。桌面模式下
+    `durable` 从工具 schema 里移除（automation 总是落盘）。模型侧创建前按
+    `checkTaskBinding` 拒绝已绑定会话（旧 Host `-32601` 时回退列表筛选，与 Node 同一条）。
+    旧的本机 `.nibi/scheduled_tasks.json` 任务不迁移，继续按内核任务运行。
 
 **同日追加（真机文档工具报告后抓到的真 bug）**：MCP 结果同时带 `content` 与
 `structuredContent` 时，Rust 的 `transform` 只取 structured、把正文丢了。office 文档工具的
@@ -569,13 +577,14 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 
 **仍开着（本轮之后）**
 
-1. **桌面 Automations 与内核定时任务是两套存储**：Rust `CronCreate`/`CronUpdate` 写内核任务表与
-   `.nibi/scheduled_tasks.json`，不会在桌面 Automations 列表里生成 Host 记录；Node 桌面经
-   automation port 映射到 `AutomationService`。字段面已对齐，但 Host 记录、结果卡片与编辑页的
-   联动仍缺一条 Host 侧桥（双向 RPC 或统一存储），需要单独立项，不能靠工具字段伪造。
-2. **`ListWorkflowRuns` 的 `possiblyInterrupted`**：没有 sidecar 时按「非本会话且在飞」保守
+1. **`ListWorkflowRuns` 的 `possiblyInterrupted`**：没有 sidecar 时按「非本会话且在飞」保守
    标注；Node 用同进程的活 run 注册表。
-3. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
+2. **作者工具依赖 sidecar**：CLI/TUI 没有 `NIBI_DWF_ENGINE_CMD` 时六个 sidecar 作者工具不进
    工具表（`ListModels`/`ListWorkflowRuns` 仍可用）；桌面由 Host 注入，功能完整。
-4. **`ListModels` 的 `disabledReason`**：Rust 目录只列可用模型，没有 Node 注册表里的禁用原因；
+3. **`ListModels` 的 `disabledReason`**：Rust 目录只列可用模型，没有 Node 注册表里的禁用原因；
    不影响可用模型选择。
+4. **Bot 来源的 automation 回推**：`automation/create` 的 `botDeliveryTarget` 由 Node 从当前 Bot
+   turn 注入；Rust 的 `sendText` 不携带它，所以 Bot 会话里创建的定时任务不会把结果回推原群。
+5. **automation 执行轮的 per-turn `automationId`**：Rust 的 `sendText` 不读 `automationId`，
+   自改任务的拒绝只能靠 Host 的工具可见性/会话级 denylist；同一绑定会话里的用户轮仍可正常
+   `CronUpdate`（与 Node 的“用户轮不受限”一致）。

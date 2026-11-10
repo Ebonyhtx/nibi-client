@@ -62,6 +62,7 @@
 pub mod abort;
 pub mod agents;
 pub mod attachment;
+pub mod automation;
 pub mod catalog;
 pub mod checkpoint;
 pub mod clock;
