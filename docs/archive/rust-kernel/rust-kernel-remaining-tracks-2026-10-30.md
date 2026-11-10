@@ -238,7 +238,7 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
 - 留档的边界：策略阻断无来源（恒 false）；`taskId`/`runId` 用会话 ID；被替换/超时只撤交互、
   不发 Node 的 Superseded/Settled 事件。
 
-详见 `kernel/CHANGELOG-FORK.md` §6.10 与 `docs/rust-kernel-step2-slice1-2026-10-30.md` §6.17。
+详见 `kernel/CHANGELOG-FORK.md` §6.10 与 `docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md` §6.17。
 
 ### 落地结果（2026-10-30，已完成）
 
@@ -250,7 +250,7 @@ fixture 形状修正为 Node 的 schema（`hooks: { enabled?, timeoutMs?, maxOut
   `check-dual-kernel-parity` 71 字段全绿，`check-cold-resume` 仍绿。
 - 边界：导入本身仍由 Node 的 server-operations 完成；消息元数据 `sharedContextStatus` Rust 不写。
 
-详见 `kernel/CHANGELOG-FORK.md` §6.11 与 `docs/rust-kernel-step2-slice1-2026-10-30.md` §6.18。
+详见 `kernel/CHANGELOG-FORK.md` §6.11 与 `docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md` §6.18。
 
 ## 2. `discardSharedContext`：动手前要查的
 

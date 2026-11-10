@@ -117,7 +117,7 @@
   `scripts/kernel-baseline/generate-nibi-command-schema.ts --check` 守漂移）+ `src/nibi_commands.rs`。
 - 上游 `schema/inbound.json` 删除整段 `commands`/CAS 与 `workspace/updateOffPeakToolPolicy` 方法；
   `server.rs` 删除 offPeak 处理器；`inbound.rs::command` 委托 NIBI 契约；`commands.rs::create_session`
-  对内核未消费字段点名 `warn`（R12/R23 防静默丢失）。详见 `docs/rust-kernel-step2-slice1-2026-10-30.md`。
+  对内核未消费字段点名 `warn`（R12/R23 防静默丢失）。详见 `docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md`。
 - 验证：protocol-zcode 25 测试（7 个契约测试）、clippy -D warnings、rust 1.95.0 MSRV、
   workspace check / nibi-platform / 互认 / deny / audit 全绿。
 - 同日追加 4 个处理器：`switchModelConfig`（CAS→SetModel）、`switchCollaborationMode`
@@ -450,7 +450,7 @@ bundleDigest 全一致，只有加 `.zcode/config.json` 或 `.nibi/config.json` 
 
 DWF 调研（8,524 行规格 + 26k 行 TS 引擎/编译器 + 20 多个工具；脚本跑在 `node:vm` 沙箱里；
 `dwf_*` 表已在 migration 0019）后拍板走 **路线 C：Rust 协议面 + Node 引擎 sidecar**，理由与
-三方案对比见 `docs/rust-kernel-dwf-design-2026-10-30.md`。
+三方案对比见 `docs/archive/rust-kernel/rust-kernel-dwf-design-2026-10-30.md`。
 
 第一段落地（只读、无迁移）：
 
@@ -631,7 +631,7 @@ launch.md「Models the script names」：`agent(…, { model: "名字" })` 的�
 
 ## 6.19 GetWorkflowRun 的情势截面与产物（2026-10-30，路线 C 第八段）
 
-四块缺了的读面接上（详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.26）：
+四块缺了的读面接上（详见 docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.26）：
 
 - **kernel-api**：`WorkflowRunDetail` 增 `subagent_model` / `model_bindings`（`run-launched` 上的
   元数据）与 `phases` / `subagents` / `health` / `holes` / `artifacts` 五个截面字段及其镜像类型
@@ -655,7 +655,7 @@ launch.md「Models the script names」：`agent(…, { model: "名字" })` 的�
 ## 6.20 控制轮的投影面（2026-10-30，路线 C 第九段）
 
 中枢启动 / 设置轮在活投影与冷投影里按 controlOnly 呈现（详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
 
 - **kernel-api**：`KernelEvent::TurnStarted` 增 `execution_kind`（`TurnExecutionKind`：agent /
   controlOnly，缺席按 agent 读，与 Node `payload.executionKind ?? "agent"` 同读法）与
@@ -682,7 +682,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
 ## 6.21 后台通知轮的轮头面（2026-10-30，路线 C 第十段）
 
 后台通知（`<task-notification>` 信封）开的 model-only 轮在投影里按 `origin: "backgroundResult"`
-呈现（详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.28）：
+呈现（详见 docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.28）：
 
 - **kernel-api**：`KernelEvent::TurnStarted` 增 `input_source`（`TurnInputSource`，只有
   `background_task` 一档；Node `turnHeaderOrigin` 的表——`background_task` → backgroundResult，
@@ -707,7 +707,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.27）：
 ## 6.22 run 的终态通知链（2026-10-30，路线 C 第十一段）
 
 `run/settled` 从「宿主只摘表」接成父会话里的后台通知轮（详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.29）：
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.29）：
 
 - **sidecar**：结算时随 `run/settled` 带上通知事实（`notice`：run 行的名字/toolCallId、
   `run-launched` 的脚本落点、report 条目（快照同款 256 条上限）与真实总条数、
@@ -756,7 +756,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.29）：
 
 §6.22-§6.23 之后的最后一块通知缺口：`originMeta`（Node `BackgroundResultOriginMeta`，GUI 运行
 卡的关联键与通知卡载荷）端到端——结构化载体、信封、记录、行、冷重建（详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
 
 - **kernel-api**：`UserOrigin::Meta` 变体带 `origin_meta: Option<Value>`（`Eq` 从 UserOrigin 链
   上摘除——workspace 无一处理需要它，全树零 fallout）；`AgentNotice` 同增（ 同去 Eq）；
@@ -784,7 +784,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
 
 ## 6.25 escalation 的 manifest 判别分支（2026-10-30，路线 C 第十四段）
 
-§6.24 留的四个判别分支第一个接上（详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.32）：
+§6.24 留的四个判别分支第一个接上（详见 docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.32）：
 
 - **escalations**：`WorkflowEscalations` 增 store 钩子（run 行的只读面，runtime 组装时接上
   `ports.store`）——raise 通知的 originMeta 走 `escalation_origin_meta`：base 三键 + `kind:
@@ -803,7 +803,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.31）：
 ## 6.26 留白到达的通知链（2026-10-30，路线 C 第十五段）
 
 §6.25 留下的三类 run 中通知第一个接上——也是 FillWorkflowHole 工具面的前置（详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.33）：
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.33）：
 
 - **sidecar**：`run/event` 的 hole-reached 从只报类型升级为**完整载荷**（Node
   `toProgressPayload` + `notifyHoleReached` 的快照合并同构）——事件原文（instance/name/prompt）
@@ -831,7 +831,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.33）：
 ## 6.27 FillWorkflowHole 工具面（2026-10-30，路线 C 第十六段）
 
 留白还代码的地方（docs/dynamic-workflow/launch.md「The `FillWorkflowHole` tool」；详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.34）：
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.34）：
 
 - **sidecar**：`holes`（确认前读面：run 行元数据 + 留白表——`waiting` 只在**本进程**引擎的
   停驻表里成立，`filled` 来自事件，两样都不是的到达不出现）与 `fill`（bootstrap
@@ -870,7 +870,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.34）：
 ## 6.28 `workflows/runs` 中枢方法（2026-10-30，路线 C 第十七段）
 
 NIBI 协议中枢的第一个方法（Node `listSavedWorkflowRunsOp` 同一契约；详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.35）：GUI 中枢按「工作流名 = run 名」归属运行
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.35）：GUI 中枢按「工作流名 = run 名」归属运行
 历史，只读 journal、在任何会话之外。
 
 - **node-store**：`repo::dwf::list_runs_hub`——Node `listRuns` 的 SQL 逐字（cwd/name 谓词下推、
@@ -896,7 +896,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.35）：GUI 中枢按「工作�
 ## 6.29 resume 的模型 pin（2026-11-01，路线 C 第十八段）
 
 一次 run 的身份包含它跑在哪个模型上（Node `resumeDynamicWorkflowRun` 同一条读；详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.36）：修订把 `subagentModel` 写进 `run-launched`，
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.36）：修订把 `subagentModel` 写进 `run-launched`，
 取消再恢复之后，恢复出来的 actor 必须还跑在同一个模型上。
 
 - **sidecar**：`acceptResume` 补齐 pin——`runSubagentModel` / `runModelBindings` / `scriptPath`
@@ -916,7 +916,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.36）：修订把 `subagentModel
   `dwfPinResumedActor=true`、`dwfPinResumed=completed`、`dwfPinStored=drive-fake/fake-model-b$enabled`）。
 ## 6.30 打包轨第一段：Rust 内核进打包资源（2026-11-01，路线 C 第十九段）
 
-桌面灰度的分发面（docs/rust-kernel-dwf-design-2026-10-30.md 的分发拍板 B：sidecar 用
+桌面灰度的分发面（docs/archive/rust-kernel/rust-kernel-dwf-design-2026-10-30.md 的分发拍板 B：sidecar 用
 Electron 自带 Node 跑 `nibi.cjs __nibi-dwf-engine`，不额外打包 Node 二进制）：
 
 - **prepare:rust-kernel**（desktop 脚本，挂进 prepare:runtime-assets）：把构建好的内核二进制
@@ -937,7 +937,7 @@ Electron 自带 Node 跑 `nibi.cjs __nibi-dwf-engine`，不额外打包 Node 二
 ## 6.31 amend-resume 的导入缓存全链（2026-11-01，路线 C 第二十段）
 
 修订续跑的性能链补齐（Node 的 amend-resume 导入特性在路线 C 的全链；详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.38）：修订后继与恢复的 run 此前都从零重跑
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.38）：修订后继与恢复的 run 此前都从零重跑
 未消费的导入——结果正确，只是花掉本可省下的 token。
 
 - **构建/重建（sidecar）**：`buildImportedCache` / `rebuildImportedCacheForResume` 从 bootstrap
@@ -961,7 +961,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.38）：修订后继与恢复的
 ## 6.32 `workflows/list` / `workflows/get` 中枢读面（2026-11-01，路线 C 第二十一段）
 
 GUI 中枢的已保存工作流读面（Node `listSavedWorkflowsOp` / `getSavedWorkflowOp` 同一契约；
-详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.39）：
+详见 docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.39）：
 
 - **sidecar**：`workflows/list`（定向 scope 的目录枚举——**永远传定向 scope**，两根 first-wins
   会把被遮蔽的 global 从全局组里藏掉）与 `workflows/get`（单个解析 + 失败四态）。解析器与
@@ -981,7 +981,7 @@ GUI 中枢的已保存工作流读面（Node `listSavedWorkflowsOp` / `getSavedW
 
 GUI 中枢的已保存工作流写面（Node `saveSavedWorkflowFromRunOp` / `updateSavedWorkflowMetaOp` /
 `deleteSavedWorkflowOp` / `moveSavedWorkflowOp` 同一契约；详见
-docs/rust-kernel-step2-slice1-2026-10-30.md §6.40）：
+docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.40）：
 
 - **sidecar**：四个方法与读面同一条纪律——序列化器（`serializeSavedWorkflow`）、名字规则
   （`isValidSavedWorkflowName`，路径穿越的防线**先验后拼**）与类型检查器（`analyzeScript`）
@@ -1008,7 +1008,7 @@ docs/rust-kernel-step2-slice1-2026-10-30.md §6.40）：
 ## 6.34 `workflows/forRun` 完成卡的推导判定（2026-11-01，路线 C 第二十三段）
 
 完成卡的「已保存」芯片与「再次运行」的判定（Node `findSavedWorkflowForRunOp` 同一契约；
-详见 docs/rust-kernel-step2-slice1-2026-10-30.md §6.41）。答案**推导得来、不记在卡上**：
+详见 docs/archive/rust-kernel/rust-kernel-step2-slice1-2026-10-30.md §6.41）。答案**推导得来、不记在卡上**：
 三规则按序命中即返回——对话说的候选（规则 1）→ run 跑的脚本逐字节相同（规则 2，项目档
 先于全局档、按文件名序）→ run 叫的名字（规则 3，不定向 first-wins）。
 
