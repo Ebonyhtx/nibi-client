@@ -3,9 +3,9 @@
 > 目的：切默认内核的判据是「**功能不减**」，不是「协议 89/118」。这份表逐项记「Node 里由谁做、
 > Rust 里由谁做、还差什么」，每行都带可查的代码位置。改动任何一项时同步更新本表。
 >
-> 最后复核：2026-11-09（`dev` `c859572a`：macOS 系统代理、附件降级、**video 内容块**、topic 的
-> `relevant`/`handoff` 本地打分、Windows 上 TUI/CLI 旧测试清零）。**清单本身已无「未做」项**；
-> 剩下的都是刻意的实现差异，逐条列在文末「已知差异」。
+> 最后复核：2026-11-11（`cf175de2`：`ReadSessionContext` 的 **lite 模型抽取**、`ListWorkflowRuns` /
+> `GetWorkflowRun` 的 **活 run 判据**、`ListModels.disabledReason` 核对为「Node 宿主恒不产出」）。
+> **清单本身已无「未做」项**；剩下的都是刻意的实现差异，逐条列在文末「已知差异」。
 >
 > **2026-11-09 切默认**：桌面 agent 默认已从 node 改为 **rust**——`resolveKernelSelection` 只有显式
 > `NIBI_KERNEL=node` 才走 Node，未设（或拼错）都按 Rust；找不到 Rust 二进制时 `resolveDefaultZCodeAgentCommand`
@@ -137,7 +137,9 @@ read-session-context.ts` 的 `extractWithLite`）：整份清洗记录 ≤ 80k �
   `ReadSessionContext` 的 `source` 现在是 `lite`（成功）/`local`（没有辅助模型）/
   `fallback`（抽取失败或没有可用内容，强制 `truncated`）。
 - 与 Node 的差异：`SessionSnapshot` 现在带标题与工作目录（提示词的 `Target session`/`Directory`
-  两行），但内核消息没有 Node 的 `created` 时间戳，材料里省掉那一行。
+  两行），但内核消息没有 Node 的 `created` 时间戳，材料里省掉那一行；子代理调用时用的是**父会话**
+  当前的主模型（`ChildSink` 转给父会话），Node 用子代理自己的模型——只有子代理被 pin 了不同模型时
+  才有差别。
 - 测试：`topic_lite` 4（材料/切块/选块/截断）、`topic_tools` 4（lite 成功、失败回落、空结果回落、
   大会话逐块+合成）、`session::auxiliary` 4（请求形状、无目录、走 actor 的整条链路）。
 

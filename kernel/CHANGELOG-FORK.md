@@ -1120,7 +1120,10 @@ run 还欠着决定」——落 Rust。
 - 触发面：kernel/** + packages/desktop/** + 本 workflow（打包覆盖整个桌面，desktop 变更
   本来就可能破坏它）。
 
-## 7. 未完成项
+## 7. 未完成项（2026-10-29 阶段一快照）
+
+> 本节记的是 Step 1 当时的缺口，**不代表现在**：Device Flow 轮询、manifest/安装记录、品牌化等
+> 已在 §8–§11 与后续批次收口。当前缺口以 `docs/rust-kernel-function-parity.md` 为准。
 
 - `crates/nibi-platform` 已落地第一段：`paths`、`credentials`（v2/v1/env/钥匙文件）、`license`（Ed25519+dev/uid 绑定+exp/72h/7d）、`device_flow`（请求形状/响应解析）、`paid_plugin`（发现层判定）；46 个单测全绿。
 - 尚未接线：Device Flow 的 HTTP 轮询循环、manifest/安装记录读取、把 `nibi-platform` 接进内核登录/插件加载路径（属阶段 2）。
@@ -1212,8 +1215,8 @@ run 还欠着决定」——落 Rust。
   `tokenizeQuery`（小写、`[a-z0-9_./-]+` 与汉字串、长度 ≥ 2、汉字补二字切片）、
   `scoreSearchText`（整句命中 +20，每个词 `3 + min(次数, 5)`）、`handoff` 从尾部取满预算、
   `relevant` 取分数 ≥ 3 的按分数降序、全不命中退最后 12 条，同分用 `index/10000` 稳定。
-- **仍不做 lite 模型抽取**（`source: "lite"`）：内核没有辅助模型调用通道，`source` 恒为 `"local"`
-  （Node 在没有 lite 模型时的合法取值）。
+- **lite 模型抽取当时不做**（`source: "lite"`）：内核没有辅助模型调用通道，`source` 恒为
+  `"local"`；**2026-11-11 已补齐，见 §11.1**。
 - 单测：断词、权重、命中优先、handoff 取尾、无命中的兜底。
 
 ### 9.6 顺带修掉的既有失败（与上面无关，但门禁要全绿）
@@ -1275,3 +1278,45 @@ ubuntu runner 显式装 `zsh`，shell 选法测试要 `/bin/zsh`）。实测 **6
 - `executor-host` 的 MCP `Closed.exited`：本机 `true`、loopback `false`（对端自己做遥测）。
 - `compacted-request-*` 夹具：`15000000 tokens left` → `1000000`，`ZCode's own earlier attribution`
   → `NIBI's own`。
+
+## 11. 2026-11-11 topic 的 lite 抽取与工作流活 run 判据
+
+### 11.1 `ReadSessionContext` 的 lite 模型抽取（对齐 Node `extractWithLite`）
+
+- **通道**：`kernel-api::auxiliary::AuxiliaryTextRequest` + `Interactions::auxiliary_text`。会话
+  actor 用请求时的主模型（小模型槽位）、目录第一档推理档位与目录卡片的输出上限（Node
+  `auxiliaryModelOptions`）起旁路任务；回合内经 `SinkRequest::Auxiliary`，回合外（后台子代理）
+  经 `Request::Auxiliary`，子代理的 `ChildSink` 转给父会话；工具取消时任务随取消令牌取消。
+  这一笔不写会话用量（Node 的 `generateText` 同样不记）。
+- **工具**：`tools/src/topic_lite.rs` 复刻 Node 的材料、切块与提示词——整份记录 ≤ 80k 字符时
+  一次抽取；更大时按 28k 切块，最多选 5 块（`handoff` 取最后 5 块，其余取分数最高 4 块 + 最后
+  一块）逐块抽取再合成；`NO_RELEVANT_CONTEXT` 与空正文都按「没有可用内容」退回本地结果。
+  `source` 现在是 `lite`（成功）/ `local`（没有辅助模型）/ `fallback`（失败或空，强制
+  `truncated`）。
+- **读面**：`SessionSnapshot` 增加 `title` 与 `directory`，提示词带 `Target session` 与
+  `Directory` 两行；内核消息没有 Node 的 `created` 时间戳，材料里省掉那一行。
+- 单测：`topic_lite` 4（材料/切块/选块/截断）、`topic_tools` 4（成功/失败回落/空结果回落/
+  大会话逐块+合成）、`session::auxiliary` 4（请求形状、无目录、走 actor 的整条链路）。
+
+### 11.2 `possiblyInterrupted` 按同进程活 run 判据
+
+- `WorkflowEngine::live_run_ids()`（kernel-api，默认 None）：sidecar 客户端在 `register_run` 加入
+  活集合，`run/settled` 与引擎进程退出时移除。
+- `ListWorkflowRuns` 与 `GetWorkflowRun` 的 `possiblyInterrupted` = 在飞 + 不属于本会话 +
+  **不在**活集合里；没有引擎（CLI/TUI 无 sidecar）时保持原来的「非本会话且在飞」保守标注。
+  详情面输出 Node 同句的 `<possibly_interrupted>true — this session cannot confirm the run is
+  still alive</possibly_interrupted>`，位置在 `owned_by_this_session` 之后。
+- 单测：`workflow_authoring_tests` 四条（无注册表/在活集合/不在活集合/本会话自己的 run）；
+  `workflow_run_detail_tests` 一条（默认不出现 + 位置）。
+
+### 11.3 `ListModels.disabledReason` 核对结论
+
+Node 的宿主目录端口（`packages/bootstrap/src/app/model-catalog-port.ts:80-85`）明确写
+「`disabledReason` 恒缺席：本宿主今天没有这条事实的来源」；工具侧只是原样透传。Rust 目录同样
+没有可报的禁用原因（`visibility: hidden` 的 provider 两边都不进目录），因此不再算差异。
+
+### 11.4 门禁
+
+- `cargo test --workspace --no-fail-fast` 全绿（TUI 的 `esc_before_the_turn_is_drawn` 偶发本轮
+  通过；该偶发与内核改动无关，见 §10）。
+- `cargo clippy` 对改动的 crate（tools/session/runtime/node-store）无新增告警。
