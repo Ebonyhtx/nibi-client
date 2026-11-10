@@ -65,6 +65,8 @@ pub(crate) struct McpTool {
     description: String,
     schema: Value,
     read_only: bool,
+    /// 工具的 `_meta.ui`（MCP App）：宿主据此渲染面板，Node `createMcpToolDisplay` 的输入。
+    ui: Option<Value>,
     manager: Weak<Inner>,
     /// 这个服务器所属的插件（插件加载时登记；配置/会话自己的服务器为 None）。
     paid_plugin: Option<String>,
@@ -75,6 +77,20 @@ pub(crate) struct McpTool {
 /// 工具自己的不延迟标记：`_meta` 里这两个键任一为 `true`（ext.md §3.1、D35）。第一个是本工程的键；第二个是旧键，
 /// Node 与已有的 MCP 服务器用它，照样认（工作线 F77）。
 const ALWAYS_LOAD_KEYS: [&str; 2] = ["zcode/alwaysLoad", "anthropic/alwaysLoad"];
+
+/// `tools/list` 里的 `_meta.ui`：只留下宿主渲染需要且协议 `mcpToolDisplayUi` 认的键。
+fn ui_descriptor(listed: &Value) -> Option<Value> {
+    let ui = listed.pointer("/_meta/ui")?.as_object()?;
+    let resource = ui.get("resourceUri")?.as_str()?;
+    let mut descriptor = serde_json::Map::new();
+    descriptor.insert("resourceUri".to_owned(), json!(resource));
+    for key in ["surface", "preferredDisplayMode", "prefersBorder", "csp"] {
+        if let Some(value) = ui.get(key) {
+            descriptor.insert(key.to_owned(), value.clone());
+        }
+    }
+    Some(Value::Object(descriptor))
+}
 
 impl McpTool {
     /// `tools/list` 的一项；没有名字的项为 None。不延迟：服务器配置的 `alwaysLoad`（`server_always_load`）
@@ -102,6 +118,7 @@ impl McpTool {
                 .and_then(Value::as_str)
                 .map(truncate_description)
                 .unwrap_or_default(),
+            ui: ui_descriptor(listed),
             schema: listed
                 .get("inputSchema")
                 .cloned()
@@ -124,6 +141,51 @@ impl McpTool {
 
 fn failed(message: String) -> ToolError {
     ToolError::Failed { message }
+}
+
+impl McpTool {
+    /// Node `createMcpToolDisplay`：MCP App 的 `_meta.ui` + 本次结果里的 `structuredContent` /
+    /// `_meta` 投影成 v4 row 的 `display`。UI 的 `readPluginUiPresentation` 靠它找到面板。
+    fn display(&self, value: &Value, is_error: bool) -> Value {
+        let Some(ui) = &self.ui else {
+            return Value::Null;
+        };
+        let mut ui_value = ui.as_object().cloned().unwrap_or_default();
+        // pluginId 是插件名（Node `mcpPresentation.pluginId`）；非插件服务器用服务器名顶替。
+        ui_value.insert(
+            "pluginId".to_owned(),
+            json!(
+                self.paid_plugin
+                    .as_deref()
+                    .unwrap_or(self.info.server.as_str())
+            ),
+        );
+        if let Some(structured) = value.get("structuredContent") {
+            ui_value.insert(
+                "structuredContent".to_owned(),
+                json!(serde_json::to_string(structured).unwrap_or_default()),
+            );
+        }
+        if let Some(meta) = value.get("_meta") {
+            ui_value.insert(
+                "widgetMeta".to_owned(),
+                json!(serde_json::to_string(meta).unwrap_or_default()),
+            );
+        }
+        if is_error {
+            ui_value.insert("isError".to_owned(), json!(true));
+        }
+        let mut display = json!({
+            "kind": "mcp_tool",
+            "serverName": self.info.server,
+            "toolName": self.info.tool,
+            "ui": Value::Object(ui_value),
+        });
+        if !self.description.is_empty() {
+            display["description"] = json!(self.description);
+        }
+        display
+    }
 }
 
 #[async_trait]
@@ -260,7 +322,7 @@ impl Tool for McpTool {
             return Ok(ToolOutput {
                 content: vec![ToolResultContent::Text { text: message }],
                 is_error: true,
-                display: Value::Null,
+                display: self.display(&value, true),
             });
         }
         let content = result::transform(&value, server).ok_or_else(|| {
@@ -272,7 +334,7 @@ impl Tool for McpTool {
         Ok(ToolOutput {
             content: result::truncate(content, settings.max_output_tokens),
             is_error: false,
-            display: Value::Null,
+            display: self.display(&value, false),
         })
     }
 }

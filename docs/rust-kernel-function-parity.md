@@ -512,6 +512,11 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
    带 resources 下的同一份资产，开发态沿仓库向上找），`SkillSource::Bundled` 追加在插件之后；
    `/workflow` 依赖的 `dynamic-workflows` skill 因此可见。
 
+**同日追加（`a5ef4c30`）**：MCP App 的 `display` 之前恒为 `Null`，插件面板拿不到
+`_meta.ui` 的 `resourceUri`/`surface`/`preferredDisplayMode`。`McpTool` 现在按 Node
+`createMcpToolDisplay` 生成 display，`ToolDone` 投影写入 row.display；真机 `/mathmodel` 已能在侧栏
+打开「NIBI 数模工作台」。
+
 **仍开着（按影响排序）**
 
 1. **DWF 作者工具面缺 8 个**：Node 有 11 个动态工作流工具；Rust 只有

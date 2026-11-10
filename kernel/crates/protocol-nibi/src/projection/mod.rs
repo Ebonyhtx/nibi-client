@@ -637,6 +637,7 @@ impl Projection {
             }
             KernelEvent::ToolDone { tool_use, output } => {
                 let text = output_text(output);
+                let display = output.display.clone();
                 let status = if self.denied.remove(tool_use.as_str()) {
                     "cancelled"
                 } else if output.is_error {
@@ -651,6 +652,11 @@ impl Projection {
                         row.insert("output".into(), json!({"text": text}));
                         row.insert("endedAt".into(), json!(now));
                         row.remove("approvalInteractionId");
+                        // MCP App 的 display（Node `call-runner` 的 result display）：插件面板靠它
+                        // 找到 surface/资源；普通工具的 legacy `{type}` display 不进 v4 行。
+                        if display.get("kind").and_then(Value::as_str).is_some() {
+                            row.insert("display".into(), display.clone());
+                        }
                     },
                     &mut out,
                 );

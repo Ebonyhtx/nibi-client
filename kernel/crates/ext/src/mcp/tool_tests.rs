@@ -99,3 +99,57 @@ fn the_server_option_does_not_look_at_the_tool() {
         true
     ));
 }
+
+#[test]
+fn mcp_app_ui_metadata_becomes_the_row_display() {
+    let tool = McpTool::from_listed(
+        "plugin_math-modeling_math-modeling",
+        &json!({
+            "name": "open_panel",
+            "description": "Open the panel",
+            "inputSchema": {"type": "object"},
+            "_meta": {"ui": {
+                "resourceUri": "ui://math-modeling/panel.html",
+                "surface": "panel",
+                "visibility": ["model", "app"],
+                "preferredDisplayMode": "fullscreen"
+            }}
+        }),
+        false,
+        Weak::new(),
+        Some("math-modeling".to_owned()),
+        None,
+    )
+    .unwrap();
+    let display = tool.display(
+        &json!({"structuredContent": {"ok": true}, "_meta": {"frame": 1}}),
+        false,
+    );
+    assert_eq!(display["kind"], "mcp_tool");
+    assert_eq!(display["serverName"], "plugin_math-modeling_math-modeling");
+    assert_eq!(display["toolName"], "open_panel");
+    assert_eq!(display["description"], "Open the panel");
+    assert_eq!(display["ui"]["pluginId"], "math-modeling");
+    assert_eq!(
+        display["ui"]["resourceUri"],
+        "ui://math-modeling/panel.html"
+    );
+    assert_eq!(display["ui"]["surface"], "panel");
+    assert_eq!(display["ui"]["preferredDisplayMode"], "fullscreen");
+    assert_eq!(display["ui"]["structuredContent"], "{\"ok\":true}");
+    assert_eq!(display["ui"]["widgetMeta"], "{\"frame\":1}");
+}
+
+#[test]
+fn tools_without_ui_metadata_have_no_display() {
+    let tool = McpTool::from_listed(
+        "files",
+        &json!({"name": "read", "inputSchema": {"type": "object"}}),
+        false,
+        Weak::new(),
+        None,
+        None,
+    )
+    .unwrap();
+    assert!(tool.display(&json!({}), false).is_null());
+}

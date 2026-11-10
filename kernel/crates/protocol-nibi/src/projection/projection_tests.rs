@@ -1294,3 +1294,41 @@ fn the_first_model_selection_does_not_mark_a_change() {
         "the first turn must not carry a modelChange marker: {started:?}"
     );
 }
+
+#[test]
+fn a_tool_result_display_is_projected_on_the_row() {
+    let mut feed = Feed::new();
+    feed.apply(KernelEvent::TurnStarted {
+        execution_kind: None,
+        input_source: None,
+        origin_meta: None,
+        workflow_launch: None,
+        turn: TurnId::new("turn_1"),
+        command: None,
+    });
+    let tool = ToolUseId::new("toolu_panel");
+    feed.apply(KernelEvent::ToolStarted {
+        tool_use: tool.clone(),
+        name: "mcp__plugin_math-modeling_math-modeling__open_panel".into(),
+        input: json!({}),
+    });
+    let done = feed.apply(KernelEvent::ToolDone {
+        tool_use: tool,
+        output: nibi_kernel_api::tool::ToolOutput {
+            content: vec![ToolResultContent::Text { text: "{\"ok\":true}".into() }],
+            is_error: false,
+            display: json!({
+                "kind": "mcp_tool",
+                "serverName": "plugin_math-modeling_math-modeling",
+                "toolName": "open_panel",
+                "ui": {
+                    "pluginId": "math-modeling",
+                    "resourceUri": "ui://math-modeling/panel.html",
+                    "surface": "panel"
+                }
+            }),
+        },
+    });
+    assert_eq!(done[0]["row"]["display"]["ui"]["surface"], "panel");
+    assert_eq!(done[0]["row"]["display"]["ui"]["pluginId"], "math-modeling");
+}
