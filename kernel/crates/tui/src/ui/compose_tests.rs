@@ -40,6 +40,8 @@ fn greet() -> UserCommand {
         description: "Greet someone".into(),
         argument_hint: None,
         hidden: false,
+        non_interactive: false,
+        custom: false,
     }
 }
 

@@ -129,6 +129,7 @@ fn window_source(source: Source) -> WindowSource {
 fn skill_source(source: &SkillSource) -> (&'static str, Option<String>) {
     match source {
         SkillSource::Builtin => ("Built-in", None),
+        SkillSource::Bundled => ("Bundled", None),
         SkillSource::User => ("User", None),
         SkillSource::Project => ("Project", None),
         SkillSource::Managed => ("Managed", None),

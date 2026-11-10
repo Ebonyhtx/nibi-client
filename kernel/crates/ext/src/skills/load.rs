@@ -38,6 +38,8 @@ struct Reader<'a> {
     /// 路径规则按执行环境的 platform（kernel-api `env_path`）。修复（R1-9）：以前按“路径含不含 `\`”
     /// 猜风格，`C:\a` 的上一层算成 `C:`。
     style: PathStyle,
+    /// `skill` 配置里停用的 SKILL.md 路径（Node `collectDisabledPaths`）。
+    disabled: &'a std::collections::HashSet<String>,
 }
 
 impl Reader<'_> {
@@ -82,6 +84,9 @@ impl Reader<'_> {
 
     async fn skill(&self, dir: &str, name: String, source: &SkillSource) -> Option<Arc<Skill>> {
         let file = self.style.join(dir, &["SKILL.md"]);
+        if self.disabled.contains(&file) {
+            return None;
+        }
         let request = StatFile {
             path: EnvPath::new(&file),
         };
@@ -122,6 +127,8 @@ pub(crate) async fn discover(
     workspace: &WorkspaceRef,
     facts: &EnvFacts,
     plugins: &[PluginSkillRoot],
+    extra: &[String],
+    disabled: &std::collections::HashSet<String>,
 ) -> Vec<Arc<Skill>> {
     let style = PathStyle::of_platform(&facts.platform);
     let reader = Reader {
@@ -129,6 +136,7 @@ pub(crate) async fn discover(
         files: catalog.files.as_ref(),
         workspace,
         style,
+        disabled,
     };
     let mut roots = vec![Root {
         dir: style.join(managed_dir(&facts.platform), &[DOT_DIR, SKILLS_DIR]),
@@ -152,6 +160,14 @@ pub(crate) async fn discover(
             },
         };
         found.extend(reader.load(&root, Some(&plugin.plugin)).await);
+    }
+    // 随包内置技能包（Node `bundledSkillRoots`）：追加在插件之后，同名时前面的生效。
+    for dir in extra {
+        let root = Root {
+            dir: dir.clone(),
+            source: SkillSource::Bundled,
+        };
+        found.extend(reader.load(&root, None).await);
     }
     found
 }

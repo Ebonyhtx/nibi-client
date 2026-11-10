@@ -62,6 +62,10 @@ pub struct Plugin {
     /// manifest 或安装记录声明了 `paid=true`：执行期门禁要登记这个插件。
     pub paid: bool,
     pub skill_dirs: Vec<String>,
+    /// `commands/` 与 manifest 声明路径里的自定义命令根目录（Node `resolveCommandRoots`）。
+    pub command_dirs: Vec<String>,
+    /// 插件数据目录（`<data_root>/<插件 id>`）：`!` 展开的 `${NIBI_PLUGIN_DATA}`。
+    pub data_dir: Option<String>,
     /// 声明出来的 skill 名（`skills/` 与 manifest 声明路径下含 SKILL.md 的子目录名）。
     /// 引用目录的 `skillQualifiedNames` 用它，与 runtime 的发现口径一致（按目录名）。
     pub skill_names: Vec<String>,
@@ -88,6 +92,25 @@ impl Plugins {
                     plugin: plugin.name.clone(),
                     dir: dir.clone(),
                 })
+            })
+            .collect()
+    }
+
+    /// 插件提供的自定义命令根（Node `commandRoots`）。
+    pub fn command_roots(&self) -> Vec<crate::commands::PluginCommandRoot> {
+        self.0
+            .iter()
+            .flat_map(|plugin| {
+                plugin
+                    .command_dirs
+                    .iter()
+                    .map(|dir| crate::commands::PluginCommandRoot {
+                        plugin: plugin.name.clone(),
+                        dir: dir.clone(),
+                        root: plugin.dir.clone(),
+                        data: plugin.data_dir.clone(),
+                        official: plugin.marketplace == nibi_kernel_base::names::OFFICIAL_MARKETPLACE,
+                    })
             })
             .collect()
     }
@@ -425,6 +448,21 @@ impl Reader<'_> {
         found
     }
 
+    /// `commands/` 与 manifest 声明路径里的自定义命令根目录（Node `resolveComponentRoots("commands")`：
+    /// 默认目录存在时排第一，声明路径按顺序、去重）。
+    async fn command_dirs(&self, dir: &str, manifest: &Value) -> Vec<String> {
+        let mut found = Vec::new();
+        for candidate in
+            std::iter::once("commands".to_owned()).chain(paths(manifest.get("commands")))
+        {
+            let path = join(dir, &candidate);
+            if self.kind(&path).await == Some(FileKind::Directory) && !found.contains(&path) {
+                found.push(path);
+            }
+        }
+        found
+    }
+
     /// `agents/` 与 manifest 声明路径里的 agent 文件（存在的、按路径去重）。
     async fn agent_files(&self, dir: &str, manifest: &Value) -> Vec<PluginAgentFile> {
         let mut found: Vec<PluginAgentFile> = Vec::new();
@@ -521,6 +559,7 @@ impl Reader<'_> {
         tables: &[Value],
     ) -> Plugin {
         let skill_dirs = self.skill_dirs(dir, &manifest).await;
+        let mut command_dirs = self.command_dirs(dir, &manifest).await;
         let agent_files = self.agent_files(dir, &manifest).await;
         let declared = self.declare(&skill_dirs, &agent_files).await;
         let mut hooks = Vec::new();
@@ -545,6 +584,14 @@ impl Reader<'_> {
         let data_path = self
             .data_root
             .map(|root| join(root, &sanitize_plugin_id(&id)));
+        // 市场清单的 object 形式命令由 Host 物化到 `<data>/generated-commands`；存在就作为命令根
+        // （Node `materializeCommandMetadataRoot` 的产物，优先级排在插件声明目录之后）。
+        if let Some(data) = &data_path {
+            let generated = join(data, "generated-commands");
+            if self.kind(&generated).await == Some(FileKind::Directory) {
+                command_dirs.push(generated);
+            }
+        }
         let defaults = user_config_defaults(&manifest);
         let variables = Variables {
             root: dir,
@@ -564,6 +611,8 @@ impl Reader<'_> {
             manifest,
             paid: false,
             skill_dirs,
+            command_dirs,
+            data_dir: data_path,
             skill_names: declared.skill_names,
             agent_names: declared.agent_names,
             mcp_servers,

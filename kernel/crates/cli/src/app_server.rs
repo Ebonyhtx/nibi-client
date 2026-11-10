@@ -411,8 +411,9 @@ async fn serve(
             token.clone(),
         );
     }
-    // 插件按会话解析：进程级不再加载插件（避免启动快照 + 会话快照各一套连接）。
-    extensions.config.plugins = Default::default();
+    // 插件按会话解析：启动只加载元数据（skill/命令/agent/hooks 与工作区目录），MCP 连接由会话快照
+    // 各建一套——避免启动快照 + 会话快照两套连接，同时保留 `workspace/readPresentation` 的插件命令。
+    extensions.config.plugin_mcp_per_session = true;
     extensions.plugin_loader = Some(Arc::new(SessionPluginLoader {
         home: startup.home.clone(),
         env: startup.env.clone(),

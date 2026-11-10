@@ -382,21 +382,31 @@ impl Server {
     async fn read_presentation(&self, params: &Value) -> Value {
         let workspace = params["workspace"].clone();
         let path = workspace["workspacePath"].as_str().unwrap_or_default();
-        let commands: Vec<Value> = self
-            .kernel
-            .user_commands(&self.workspace(path))
-            .await
-            .into_iter()
-            .filter(|command| !command.hidden && !command.name.is_empty())
-            .map(|command| {
-                let mut value = json!({"name": command.name, "description": command.description,
-                    "source": "custom"});
-                if let Some(hint) = command.argument_hint {
-                    value["inputHint"] = json!(hint);
-                }
-                value
-            })
-            .collect();
+        let workspace_ref = self.workspace(path);
+        // Node `listProtocolSlashCommands`：内置段（goal/workflow/compact/init）在前，再是自定义命令。
+        // skill 不进这份目录（它只属于 TUI 的 `/` 补全）；`/workflow` 按工作区动态工作流开关剔除。
+        let workflow = self.kernel.dynamic_workflow_enabled(&workspace_ref).await;
+        let mut commands = presentation_builtins(workflow);
+        commands.extend(
+            self.kernel
+                .user_commands(&workspace_ref)
+                .await
+                .into_iter()
+                .filter(|command| {
+                    command.custom
+                        && !command.hidden
+                        && !command.non_interactive
+                        && !command.name.is_empty()
+                })
+                .map(|command| {
+                    let mut value = json!({"name": command.name, "description": command.description,
+                        "source": "custom"});
+                    if let Some(hint) = command.argument_hint {
+                        value["inputHint"] = json!(hint);
+                    }
+                    value
+                }),
+        );
         json!({"workspace": workspace, "mode": self.defaults.mode.node_name(),
             "slashCommands": commands})
     }
@@ -776,6 +786,37 @@ impl Server {
     }
 }
 
+/// Node `APP_PROTOCOL_VISIBLE_BUILTIN_SLASH_COMMAND_NAMES` 与共享 help 表的同形投影。
+fn presentation_builtins(workflow: bool) -> Vec<Value> {
+    let mut commands = vec![json!({
+        "name": "goal",
+        "description": "Show or set the current session goal.",
+        "inputHint": "/goal [pause|resume|clear|replace <objective>|<objective>]",
+        "source": "builtin",
+    })];
+    if workflow {
+        commands.push(json!({
+            "name": "workflow",
+            "description": "Design and launch a dynamic workflow for a task.",
+            "inputHint": "/workflow [what the workflow should accomplish]",
+            "source": "builtin",
+        }));
+    }
+    commands.push(json!({
+        "name": "compact",
+        "description": "Compact the current conversation with optional instructions.",
+        "inputHint": "/compact [instructions]",
+        "source": "builtin",
+    }));
+    commands.push(json!({
+        "name": "init",
+        "description": "Create or update workspace AGENTS.md instructions.",
+        "inputHint": "/init [notes]",
+        "source": "builtin",
+    }));
+    commands
+}
+
 /// [`Server`] 放在连接上的形状（读循环要 `'static`）。
 pub struct Handler(pub Arc<Server>);
 
@@ -793,5 +834,26 @@ impl Service for Handler {
             // 形状不对就当没收到（Node 的 `safeParse` 同一姿态）；不开捕获时这是零成本。
             self.0.capture.control(&params);
         }
+    }
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+
+    fn names(commands: &[Value]) -> Vec<&str> {
+        commands
+            .iter()
+            .filter_map(|command| command["name"].as_str())
+            .collect()
+    }
+
+    #[test]
+    fn builtin_slash_commands_match_node_order() {
+        let enabled = presentation_builtins(true);
+        assert_eq!(names(&enabled), ["goal", "workflow", "compact", "init"]);
+        assert!(enabled.iter().all(|command| command["source"] == "builtin"));
+        let disabled = presentation_builtins(false);
+        assert_eq!(names(&disabled), ["goal", "compact", "init"]);
     }
 }

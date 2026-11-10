@@ -130,3 +130,57 @@ async fn session_plugin_roots_do_not_leak_between_sessions() {
     catalog.clear_session(&a);
     assert!(names(catalog.skills_for(Some(&a), &workspace()).await).is_empty());
 }
+
+#[tokio::test]
+async fn bundled_skill_roots_are_discovered_after_plugin_roots() {
+    let env = Arc::new(
+        MemoryEnvironment::new(facts())
+            .with_file(
+                "/Users/dev/bundled/skills/dynamic-workflows/SKILL.md",
+                "---\ndescription: Workflow authoring\n---\nBody.\n",
+            )
+            .with_file(
+                "/Users/dev/plugins/a/skills/dynamic-workflows/SKILL.md",
+                "---\ndescription: Plugin copy\n---\nPlugin body.\n",
+            ),
+    );
+    let catalog = SkillCatalog::new(env.clone(), env);
+    catalog.set_extra_roots(vec!["/Users/dev/bundled/skills".to_owned()]);
+    // 没有插件时 bundled 根可见。
+    let skill = catalog
+        .find(&workspace(), "dynamic-workflows")
+        .await
+        .expect("bundled skill");
+    assert_eq!(skill.source, SkillSource::Bundled);
+    assert_eq!(skill.description, "Workflow authoring");
+
+    // 插件同名时插件在前（Node：bundled 追加在插件根之后）。
+    catalog.set_plugin_roots(vec![PluginSkillRoot {
+        plugin: "kit".to_owned(),
+        dir: "/Users/dev/plugins/a/skills".to_owned(),
+    }]);
+    let skill = catalog
+        .find(&workspace(), "kit:dynamic-workflows")
+        .await
+        .expect("plugin skill");
+    assert_eq!(skill.source, SkillSource::Plugin { plugin: "kit".to_owned() });
+}
+
+#[tokio::test]
+async fn disabled_skills_and_the_global_switch_hide_skills() {
+    let env = Arc::new(MemoryEnvironment::new(facts()).with_file(
+        "/Users/dev/project/.nibi/skills/greet/SKILL.md",
+        "---\ndescription: Greet\n---\nBody.\n",
+    ));
+    let catalog = SkillCatalog::new(env.clone(), env);
+    assert!(catalog.find(&workspace(), "greet").await.is_some());
+
+    catalog.set_disabled_paths(vec![
+        "/Users/dev/project/.nibi/skills/greet/SKILL.md".to_owned(),
+    ]);
+    assert!(catalog.find(&workspace(), "greet").await.is_none());
+
+    catalog.set_disabled_paths(Vec::new());
+    catalog.set_enabled(false);
+    assert!(catalog.find(&workspace(), "greet").await.is_none());
+}

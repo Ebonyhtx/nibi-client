@@ -155,6 +155,50 @@ pub(crate) fn mcp_enabled(layers: &[Layer<'_>]) -> bool {
         .unwrap_or(true)
 }
 
+/// `features.skill` 与 `skills.enabled`：两者都为真才启用 skill（Node `createNodeSkillAdapter` 同一判据）。
+pub(crate) fn skills_enabled(layers: &[Layer<'_>]) -> bool {
+    let mut feature = true;
+    let mut skills = true;
+    for layer in layers {
+        if let Some(value) = layer.object.get("skills").and_then(|section| section.get("enabled")) {
+            skills = value.as_bool().unwrap_or(true);
+        }
+        if let Some(value) = layer.object.get("features").and_then(|section| section.get("skill")) {
+            feature = value.as_bool().unwrap_or(true);
+        }
+    }
+    feature && skills
+}
+
+/// `skill` / `command` 两段配置里的停用名单（Node `collectDisabledPaths`）：路径 → `enable`，后层覆盖前层。
+/// 只把最终 `enable: false` 的路径交给发现层；值不是对象或缺 `enable` 的项按 Node 的宽松解析忽略。
+pub(crate) fn disabled_paths(
+    layers: &[Layer<'_>],
+    key: &str,
+    warnings: &mut Vec<String>,
+) -> Vec<String> {
+    let mut merged: std::collections::BTreeMap<String, bool> = std::collections::BTreeMap::new();
+    for layer in layers {
+        let Some(section) = layer.object.get(key) else {
+            continue;
+        };
+        let Some(section) = section.as_object() else {
+            warnings.push(format!("{}: {key} must be an object", layer.path));
+            continue;
+        };
+        for (path, value) in section {
+            if let Some(enable) = value.get("enable").and_then(Value::as_bool) {
+                merged.insert(path.clone(), enable);
+            }
+        }
+    }
+    merged
+        .into_iter()
+        .filter(|(_, enabled)| !enabled)
+        .map(|(path, _)| path)
+        .collect()
+}
+
 /// MCP 服务器最终生效的定义所在的配置文件（`/mcp enable/disable` 写这里，tui-manage.md §6.1）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct McpOrigin {

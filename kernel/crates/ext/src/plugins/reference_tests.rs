@@ -16,6 +16,8 @@ fn plugin(name: &str, marketplace: &str) -> Plugin {
         manifest: json!({"description": format!("{name} description")}),
         paid: false,
         skill_dirs: Vec::new(),
+        command_dirs: Vec::new(),
+        data_dir: None,
         skill_names: Vec::new(),
         agent_names: Vec::new(),
         mcp_servers: Vec::new(),

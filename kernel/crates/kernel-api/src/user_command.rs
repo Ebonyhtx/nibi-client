@@ -109,6 +109,15 @@ pub struct UserCommand {
     /// 不在补全里列出（`user-invocable: false`），但仍是命令：用户输入时会话给出提示。
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hidden: bool,
+    /// 自定义命令的 `disable-noninteractive`：只从非交互面的 `/` 目录里剔除（Node 协议服务端同口径），
+    /// 交互式 TUI 仍可使用。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub non_interactive: bool,
+    /// 自定义命令（`.nibi/commands`、`.agents/commands`、插件 `commands/`）。协议
+    /// `workspace/readPresentation` 的目录只收自定义命令（Node `listProtocolSlashCommands`）；
+    /// skill 只留在 TUI 的 `/` 补全里。
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub custom: bool,
 }
 
 /// 展开出的一条消息的种类。

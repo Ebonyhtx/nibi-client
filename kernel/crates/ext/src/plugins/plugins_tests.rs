@@ -248,3 +248,33 @@ async fn configured_env_wins_over_the_provided_variables() {
     // 插件 ABI 兼容层：上游插件读的旧名也在，且同样可被 manifest env 覆盖。
     assert_eq!(env["ZCODE_PLUGIN_ROOT"], root);
 }
+
+/// 插件 `commands/` 与 manifest `commands` 路径都成为自定义命令根，身份随根走。
+#[tokio::test]
+async fn command_roots_follow_the_plugin_manifest() {
+    let root = "/Users/dev/plugins/math";
+    let env = MemoryEnvironment::new(facts())
+        .with_file(
+            &format!("{root}/.nibi-plugin/plugin.json"),
+            r#"{"name": "math-modeling", "commands": "commands"}"#,
+        )
+        .with_file(
+            &format!("{root}/commands/mathmodel.md"),
+            "---\ndescription: 数模工作台\n---\n打开。",
+        );
+    let plugins = load_all(
+        &env,
+        &workspace(),
+        &[EnvPath::new(root)],
+        &PluginSources::default(),
+    )
+    .await
+    .plugins;
+    assert_eq!(plugins.0[0].command_dirs, [format!("{root}/commands")]);
+    let roots = plugins.command_roots();
+    assert_eq!(roots.len(), 1);
+    assert_eq!(roots[0].plugin, "math-modeling");
+    assert_eq!(roots[0].dir, format!("{root}/commands"));
+    assert_eq!(roots[0].root, root);
+    assert!(!roots[0].official);
+}

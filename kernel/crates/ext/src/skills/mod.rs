@@ -7,8 +7,8 @@ mod args;
 mod body;
 mod builtin;
 mod closest;
-mod frontmatter;
-mod inline;
+pub(crate) mod frontmatter;
+pub(crate) mod inline;
 mod invoked;
 mod listing;
 mod load;
@@ -53,6 +53,8 @@ pub enum SkillSource {
     },
     /// 内置（bundled）：只有 `/loop`（tools-more.md §17.1）。
     Builtin,
+    /// 随包内置的技能包（Node `bundled-skills`，例如 `dynamic-workflows`）：文件发现，排在插件之后。
+    Bundled,
 }
 
 /// `!` 命令用的 shell（frontmatter `shell`）。
@@ -127,6 +129,12 @@ pub struct SkillCatalog {
     plugins: Mutex<Vec<PluginSkillRoot>>,
     /// 会话级插件根（NIBI 一个 app-server 承载多个会话）：有会话快照时覆盖进程级根。
     session_plugins: Mutex<HashMap<SessionId, Vec<PluginSkillRoot>>>,
+    /// 随包内置技能包的根（`<root>/<名字>/SKILL.md`）；进程级，不随会话变化。
+    extra: Mutex<Vec<String>>,
+    /// `features.skill` / `skills.enabled`：为假时整层 skill 不出（Node 同一判据）。
+    enabled: AtomicBool,
+    /// `skill` 配置里 `enable: false` 的 SKILL.md 绝对路径（Node `collectDisabledPaths`）。
+    disabled: Mutex<std::collections::HashSet<String>>,
     cache: Mutex<Cache>,
     /// 单次的 `-p`（`singleShotPrintSession`）：内置 `/loop` 的 Monitor 超时随它（tools-more.md §17.1）。
     print: AtomicBool,
@@ -139,6 +147,9 @@ impl SkillCatalog {
             files,
             plugins: Mutex::default(),
             session_plugins: Mutex::default(),
+            extra: Mutex::default(),
+            enabled: AtomicBool::new(true),
+            disabled: Mutex::default(),
             cache: Mutex::default(),
             print: AtomicBool::new(false),
         }
@@ -156,6 +167,28 @@ impl SkillCatalog {
     /// 换上插件的 skill 根目录（插件加载完成后，ext.md §4）。
     pub fn set_plugin_roots(&self, roots: Vec<PluginSkillRoot>) {
         *self.plugins.lock().unwrap_or_else(PoisonError::into_inner) = roots;
+    }
+
+    /// 随包内置技能包的根（Node `bundledSkillRoots`；排在插件之后，同名时前面的生效）。
+    pub fn set_extra_roots(&self, roots: Vec<String>) {
+        *self.extra.lock().unwrap_or_else(PoisonError::into_inner) = roots;
+    }
+
+    /// `features.skill` / `skills.enabled`：为假时整层 skill 不出。
+    pub fn set_enabled(&self, enabled: bool) {
+        self.enabled.store(enabled, Ordering::Relaxed);
+    }
+
+    /// `skill` 配置里停用的 SKILL.md 路径。
+    pub fn set_disabled_paths(&self, paths: Vec<String>) {
+        *self.disabled.lock().unwrap_or_else(PoisonError::into_inner) = paths.into_iter().collect();
+    }
+
+    fn disabled_paths(&self) -> std::collections::HashSet<String> {
+        self.disabled
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     /// 会话级插件根（NIBI 每个会话创建时解析一次；运行中不热更新）。
@@ -238,8 +271,20 @@ impl SkillCatalog {
                 return Vec::new();
             }
         };
-        self.skills_with(workspace, &facts, &self.plugin_roots_for(session))
-            .await
+        self.skills_with(
+            workspace,
+            &facts,
+            &self.plugin_roots_for(session),
+            &self.extra_roots(),
+        )
+        .await
+    }
+
+    fn extra_roots(&self) -> Vec<String> {
+        self.extra
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     async fn skills_with(
@@ -247,8 +292,20 @@ impl SkillCatalog {
         workspace: &WorkspaceRef,
         facts: &EnvFacts,
         plugins: &[PluginSkillRoot],
+        extra: &[String],
     ) -> Vec<Arc<Skill>> {
-        let mut found = load::discover(self, workspace, facts, plugins).await;
+        if !self.enabled.load(Ordering::Relaxed) {
+            return Vec::new();
+        }
+        let mut found = load::discover(
+            self,
+            workspace,
+            facts,
+            plugins,
+            extra,
+            &self.disabled_paths(),
+        )
+        .await;
         // 内置 skill 排在文件与插件 skill 之后，同名时前面的生效。
         found.extend(builtin::skills());
         let mut seen = HashSet::new();
@@ -307,7 +364,7 @@ impl SkillCatalog {
         plugins: &[PluginSkillRoot],
     ) -> Option<Arc<Skill>> {
         let facts = self.info.facts(workspace).await.ok()?;
-        self.skills_with(workspace, &facts, plugins)
+        self.skills_with(workspace, &facts, plugins, &self.extra_roots())
             .await
             .into_iter()
             .find(|skill| skill.name == name)
@@ -335,7 +392,12 @@ impl SkillCatalog {
             return Vec::new();
         };
         let skills = self
-            .skills_with(workspace, &facts, &self.plugin_roots_for(session))
+            .skills_with(
+                workspace,
+                &facts,
+                &self.plugin_roots_for(session),
+                &self.extra_roots(),
+            )
             .await;
         let touched = paths::touched(history, facts.cwd.as_str());
         let visible: Vec<Arc<Skill>> = skills

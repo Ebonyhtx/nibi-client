@@ -98,7 +98,7 @@ fn source_label(source: &SkillSource) -> &'static str {
         SkillSource::User => "userSettings",
         SkillSource::Project => "projectSettings",
         SkillSource::Plugin { .. } => "plugin",
-        SkillSource::Builtin => "bundled",
+        SkillSource::Builtin | SkillSource::Bundled => "bundled",
     }
 }
 

@@ -489,3 +489,47 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
 - **落库与冷恢复**：user 消息写成 Node 的 `file` part（`mime: video/*`），冷读取按 mime 还原成
   `Video` 块；工具结果走 `modelContentLayout` 的 attachment 项，同一套。
 - **压缩估量**：视频与图片同一档（`IMAGE_TOKENS`），不按 base64 字节数算（否则一两个视频就能把历史撑满）。
+
+## 13. 2026-11-10 主动复核（自定义命令与剩余工具面）
+
+这一轮不是用户点名，而是逐层对 Node 源码后发现的差异；已修的与仍开着的分开记。
+
+**已修**
+
+1. **自定义斜杠命令没有内核实现**：Node 的 `resolveZCodeCustomCommandPrompt` 会在 `executeTurn`
+   之前展开 `.nibi/commands`、`.agents/commands`、插件 `commands/`（`$ARGUMENTS`/`$N`、`skills:`
+   前言、`!` shell、保留名、`disable-noninteractive`、用户级优先于项目级、附加目录 namespace）。
+   Rust 之前只有 skill 命令，Host 的「命令」页能列出插件 `/mathmodel`，但发出去是字面文本。
+   现在 `kernel/crates/ext/src/commands/` 按同一口径实现，`CommandSet` 先自定义命令、再 skill；
+   TUI/CLI/桌面协议三条链共用。命令标签仍用于界面显示（`/名字 参数`），正文作为 meta 交给模型。
+2. **桌面 `/` 目录缺内置段**：`workspace/readPresentation` 之前把 skill 也当 custom 列出，却没有
+   Node `listProtocolSlashCommands` 的 `goal/workflow/compact/init`。现在内置段按 Node 顺序投影，
+   `custom` 只收自定义命令，`/workflow` 随动态工作流开关剔除；`UserCommand` 增加 `custom` 标记。
+3. **`/workflow` 没有展开**：Rust 内置 skill 只有 `loop/init/security-review`。现在 `/workflow` 按
+   Node `expandBuiltinWorkflowCommandPrompt` 的正文与提示形状在 `CommandSet` 内展开。
+4. **随包 `bundled-skills` 在 Rust 不可见**：Node bootstrap 把 `bundled-skills/skills` 追加在插件根
+   之后；Rust 之前不读。现在 `ExtConfig.skill_roots` 经 `NIBI_BUNDLED_SKILLS_DIR` 注入（桌面 Host
+   带 resources 下的同一份资产，开发态沿仓库向上找），`SkillSource::Bundled` 追加在插件之后；
+   `/workflow` 依赖的 `dynamic-workflows` skill 因此可见。
+
+**仍开着（按影响排序）**
+
+1. **DWF 作者工具面缺 8 个**：Node 有 11 个动态工作流工具；Rust 只有
+   `GetWorkflowRun`/`ResolveWorkflowQuestion`/`FillWorkflowHole`。缺 `CreateWorkflow`、
+   `AmendWorkflow`、`SaveWorkflow`、`ListSavedWorkflows`、`ListModels`、`EvalWorkflowSnippet`、
+   `ListWorkflowRuns`、`ResumeWorkflowRun`（`kernel-api/src/session_api.rs` 的 `DynamicWorkflowGate`
+   注释已明说「内核没有 authoring 工具」）。后果：`/workflow` 的提示能到达模型，但模型无法创建
+   run；运行中/停止后的 amend/resume 指引也指向不存在的工具。这是当前最大的功能缺口，需要
+   port 工具或把 Node 的 DWF 包成 MCP 再接入。
+2. **`CronUpdate` 工具缺失**：Node 的 automation 工具四件套有 Create/Update/List/Delete；Rust 只有
+   Create/List/Delete，且 `CronTasksChange` 没有 update 变体。模型无法修改已有定时任务。
+3. **MCP `elicitation/create` 未实现**：Node 有 `mcp-elicitation` 映射到用户提问通道；Rust 的
+   MCP 客户端对服务器发来的请求只答 `ping`/`roots/list`，其余回 method not found。
+4. **`features.memory` 等其余 `features.*` 开关**：`features.skill`/`skills.enabled` 与
+   `skill`/`command` 的逐文件停用已在本轮接入（`ExtConfig.skills_disabled` 与两份 disabled 名单）；
+   `features.memory`/`features.subagent`/`features.compact`/`features.rewind` 仍只由 Host 的会话偏好或
+   内核缺省控制，Rust CLI/TUI 不读配置里的这四个开关。
+5. **`/init` 的用户备注未带上**：Node `buildInitAgentsPrompt` 会把 `/init 备注` 追加成
+   "Additional user instructions"；Rust 的 `builtin::init` 是固定正文。
+6. **legacy `Workflow` 工具**（`/expert` 的脚本通道）在 Rust 工具面不存在；Node 桌面在
+   `workflowPort` 存在时仍注册它。是否补取决于 `/expert` 是否继续保留。

@@ -968,6 +968,13 @@ pub trait Kernel: Send + Sync {
         Ok(())
     }
 
+    /// 这个工作区此刻是否开启动态工作流（`workspace/readPresentation` 决定是否列出内置
+    /// `/workflow`：Node 只在 `dynamicWorkflowEnabled !== false` 时提供）。CLI/TUI 恒为真；
+    /// Host 进程读它同步来的策略，缺席按关闭。
+    async fn dynamic_workflow_enabled(&self, _workspace: &WorkspaceRef) -> bool {
+        true
+    }
+
     /// 会话出生/冷恢复后覆盖它的动态工作流灰度门（NIBI `createSession.dynamicWorkflowEnabled/
     /// Mode`，只有 Host 显式 `true` 时才带）：显式值与 workspace 结论取或，与 Node
     /// `resolveDynamicWorkflowRuntimeGate` 同序。缺省实现什么都不做。

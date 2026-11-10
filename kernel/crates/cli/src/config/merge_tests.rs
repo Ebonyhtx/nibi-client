@@ -237,3 +237,39 @@ fn disabled_servers_and_origins_follow_the_shadowing() {
     // 离工作区根最近的项目文件。
     assert_eq!(found.origins["repo"].path, layers(&user, &projects)[2].path);
 }
+
+#[test]
+fn disabled_skill_and_command_paths_are_merged_by_key() {
+    let user = object(json!({
+        "skill": {"/a/SKILL.md": {"enable": false}, "/b/SKILL.md": {"enable": false}},
+        "command": {"/a/cmd.md": {"enable": false}}
+    }));
+    let projects = [
+        object(json!({"skill": {"/b/SKILL.md": {"enable": true}}})),
+        object(json!({"command": {"/a/cmd.md": {"enable": true}, "/b/cmd.md": {"enable": false}}})),
+    ];
+    let mut warnings = Vec::new();
+    let layers = layers(&user, &projects);
+    assert_eq!(
+        disabled_paths(&layers, "skill", &mut warnings),
+        ["/a/SKILL.md"]
+    );
+    assert_eq!(
+        disabled_paths(&layers, "command", &mut warnings),
+        ["/b/cmd.md"]
+    );
+    assert!(warnings.is_empty());
+}
+
+#[test]
+fn skills_need_both_feature_and_section_switches() {
+    let enabled = object(json!({"features": {"skill": true}}));
+    assert!(skills_enabled(&layers(&enabled, &[])));
+    let feature_off = object(json!({"features": {"skill": false}}));
+    assert!(!skills_enabled(&layers(&feature_off, &[])));
+    let section_off = object(json!({"skills": {"enabled": false}}));
+    assert!(!skills_enabled(&layers(&section_off, &[])));
+    // 后一层可以把前一层关掉的开关重新打开。
+    let reopened = object(json!({"skills": {"enabled": true}}));
+    assert!(skills_enabled(&layers(&section_off, &[reopened])));
+}

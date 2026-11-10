@@ -126,6 +126,25 @@ fn text_of(content: &[ToolResultContent]) -> String {
 }
 
 impl Runner {
+    /// 自定义命令正文里的 `!` 命令：与 skill 的 `!` 同一条执行链（Bash 工具 + 判决链），
+    /// `allowed` 来自命令 frontmatter 的 `allowed-tools`。
+    pub(crate) async fn run_command(
+        &self,
+        command: &str,
+        allowed: &[String],
+        context: &ToolUseContext,
+    ) -> Result<String, String> {
+        let inline = Inline {
+            raw: command.to_owned(),
+            command: command.to_owned(),
+        };
+        let rules: Vec<PermissionRule> = allowed
+            .iter()
+            .map(|rule| nibi_kernel_policy::rules::parse_rule(rule))
+            .collect();
+        self.run(&inline, &rules, context).await
+    }
+
     /// 一条命令的输出；失败时是错误文本。
     async fn run(
         &self,

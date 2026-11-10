@@ -1097,6 +1097,14 @@ impl Kernel for LocalKernel {
         Ok(())
     }
 
+    /// `workspace/readPresentation` 的 `/workflow` 条目（Node 的目录只在显式关闭时剔除）。
+    async fn dynamic_workflow_enabled(
+        &self,
+        workspace: &nibi_kernel_api::env::WorkspaceRef,
+    ) -> bool {
+        self.dynamic_workflow_gate(workspace).enabled
+    }
+
     /// `createSession.dynamicWorkflowEnabled/Mode`：Host 显式值覆盖 workspace 结论（Node 的取值是
     /// 「显式 true 或 workspace 开启」；显式 false 不否决 workspace，所以只有 true 走到这里）。
     async fn set_session_dynamic_workflow(
@@ -1205,7 +1213,8 @@ impl Kernel for LocalKernel {
             .iter()
             .filter_map(|skill| {
                 let (scope, plugin_name) = match &skill.source {
-                    nibi_kernel_ext::SkillSource::Builtin => return None,
+                    nibi_kernel_ext::SkillSource::Builtin
+                    | nibi_kernel_ext::SkillSource::Bundled => return None,
                     nibi_kernel_ext::SkillSource::Plugin { plugin } => {
                         (SkillReferenceScope::Plugin, Some(plugin.clone()))
                     }

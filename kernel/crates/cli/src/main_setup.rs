@@ -269,10 +269,21 @@ pub(super) async fn extensions(
     extensions.config = ExtConfig {
         mcp_disabled,
         mcp: settings,
+        plugin_mcp_per_session: false,
         plugin_dirs: plugin_dirs
             .iter()
             .map(|dir| EnvPath::new(cwd.join(expand_home(dir, home)).to_string_lossy()))
             .collect(),
+        // 桌面 Host 把随包内置技能包的根目录放进来（Node `bundledSkillRoots` 的同一份资产）。
+        skill_roots: env
+            .iter()
+            .find(|(name, _)| name == "NIBI_BUNDLED_SKILLS_DIR")
+            .map(|(_, root)| vec![EnvPath::new(root.as_str())])
+            .unwrap_or_default(),
+        // `features.skill`/`skills.enabled` 与 `skill`/`command` 的逐文件启停（Node 同一份配置）。
+        skills_disabled: !config.skills_enabled,
+        disabled_skill_paths: config.disabled_skill_paths.clone(),
+        disabled_command_paths: config.disabled_command_paths.clone(),
         plugins: config.plugins.clone(),
         workspace: Some(workspace.clone()),
     };

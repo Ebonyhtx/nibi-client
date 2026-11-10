@@ -65,6 +65,11 @@ pub(crate) struct ConfigSnapshot {
     pub(crate) mcp_origins: std::collections::BTreeMap<String, merge::McpOrigin>,
     /// `features.mcp` 不为 false。
     pub(crate) mcp_enabled: bool,
+    /// `features.skill` 与 `skills.enabled` 都为真（Node `createNodeSkillAdapter` 的判据）。
+    pub(crate) skills_enabled: bool,
+    /// `skill` / `command` 两段里最终 `enable: false` 的 `.md` 绝对路径（Node `collectDisabledPaths`）。
+    pub(crate) disabled_skill_paths: Vec<String>,
+    pub(crate) disabled_command_paths: Vec<String>,
     /// 启用但未信任的项目 hooks（`-p` 结束时提示，config.md §4.4）。
     pub(crate) pending: Option<Pending>,
     /// 插件候选与启用设置（config.md §2.1、ext.md §4.1）。
@@ -315,6 +320,9 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         origins: mcp_origins,
     } = merge::mcp_layers(&layers, &mut warnings);
     let mcp_enabled = merge::mcp_enabled(&layers);
+    let skills_enabled = merge::skills_enabled(&layers);
+    let disabled_skill_paths = merge::disabled_paths(&layers, "skill", &mut warnings);
+    let disabled_command_paths = merge::disabled_paths(&layers, "command", &mut warnings);
     let locale = merge::locale(&layers, &mut warnings);
     let theme = merge::theme(&layers, &mut warnings);
     let check_for_update = merge::check_for_update(&layers, &mut warnings);
@@ -381,6 +389,9 @@ pub(crate) async fn assemble(inputs: &ConfigInputs<'_>) -> ConfigSnapshot {
         mcp_disabled,
         mcp_origins,
         mcp_enabled,
+        skills_enabled,
+        disabled_skill_paths,
+        disabled_command_paths,
         pending: workspace.pending(),
         plugins,
         locale,

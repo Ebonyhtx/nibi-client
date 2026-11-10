@@ -12,6 +12,7 @@
 
 #[cfg(test)]
 mod clock_tests;
+pub mod commands;
 pub mod mcp;
 pub mod plugins;
 pub mod skills;
@@ -46,6 +47,7 @@ use nibi_kernel_api::orchestration::{
 use nibi_kernel_api::tool::Tool;
 use nibi_kernel_policy::PolicyGate;
 
+pub use commands::{CommandSet, CustomCommand, CustomCommands, PluginCommandRoot};
 pub use mcp::{McpManager, McpScope, McpServer, McpServers, McpSettings};
 pub use mcp::{McpTelemetry, McpTelemetrySetup, McpTelemetrySlot};
 pub use plugins::{Plugin, PluginAgentFile, PluginSources, Plugins};
@@ -97,10 +99,21 @@ pub struct ExtConfig {
     pub mcp: McpSettings,
     /// 插件目录（`--plugin-dir`，执行环境里的路径，ext.md §4）。
     pub plugin_dirs: Vec<EnvPath>,
+    /// 随包内置 skill 的根目录（Node `bundledSkillRoots`）：`<root>/<名字>/SKILL.md`。
+    /// 入口从 `NIBI_BUNDLED_SKILLS_DIR` 读（桌面 Host 指向 `resources/glm/packages/bundled-skills/skills`）。
+    pub skill_roots: Vec<EnvPath>,
+    /// `features.skill` 或 `skills.enabled` 为假时停用 skill（Node `createNodeSkillAdapter`）。
+    pub skills_disabled: bool,
+    /// `skill` / `command` 配置里最终停用的 `.md` 路径（Node `collectDisabledPaths`）。
+    pub disabled_skill_paths: Vec<String>,
+    pub disabled_command_paths: Vec<String>,
     /// Node 配置与已安装插件给出的候选目录与启用设置（ext.md §4.1、config.md §2.1）。
     pub plugins: PluginSources,
     /// MCP 服务器与插件所在的工作区（stdio 服务器的 cwd）；None 时不连接 MCP、不加载插件。
     pub workspace: Option<WorkspaceRef>,
+    /// 插件声明里的 MCP 服务器只在会话快照里连接（桌面 app-server：每个会话一套，避免启动时多一套）。
+    /// 插件元数据（skill/命令/agent/hooks）仍然在 `start()` 加载，供工作区级命令目录与引用面板使用。
+    pub plugin_mcp_per_session: bool,
     /// 配置里停用的 MCP 服务器（`enabled: false`）：登记为 disabled、不连接，`/mcp enable` 时才连
     /// （docs/specs/rust-cli/tui-manage.md §6.1）。
     pub mcp_disabled: Vec<McpServer>,
@@ -110,7 +123,7 @@ pub struct Ext {
     skills: Arc<SkillCatalog>,
     /// 模型侧 Skill 工具（需要保留具体类型，执行期门禁要装到它上面）。
     skill_tool: Arc<skills::SkillTool>,
-    commands: Arc<SkillCommands>,
+    commands: Arc<CommandSet>,
     mcp: Arc<McpManager>,
     /// 会话级的 MCP（NIBI `createSession.mcpServers`）：每个会话一套连接，见 [`SessionMcp`]。
     session_mcp: Arc<SessionMcp>,
@@ -149,11 +162,24 @@ impl Ext {
     /// `base` 是基础工具注册表（文件、Bash 等）；Skill 的 `!` 命令用其中的 `Bash`。
     pub fn new(ports: ExtPorts, base: Arc<dyn ToolRegistry>, config: ExtConfig) -> Self {
         let skills = Arc::new(SkillCatalog::new(ports.info.clone(), ports.files.clone()));
+        // Node `createNodeSkillAdapter`：`features.skill`/`skills.enabled` 为假时整层 skill 关闭；
+        // `skill`/`command` 配置里的 `enable: false` 在发现阶段剔除单个文件。
+        skills.set_enabled(!config.skills_disabled);
+        skills.set_disabled_paths(config.disabled_skill_paths.clone());
         let runner = base
             .find("Bash")
             .map(|bash| skills::runner(bash, ports.gate.clone(), ports.ids.clone()));
         // 用户调用（`/<名字>`，ext.md §2.7）与 Skill 工具共用目录与 `!` 命令的执行者。
-        let commands = Arc::new(SkillCommands::new(skills.clone(), runner.clone()));
+        // 自定义斜杠命令（`.nibi/commands`、`.agents/commands`、插件 `commands/`）走同一个入口，
+        // 与 Node 的 input facade 一致：自定义命令先于同名 skill。
+        let skills_commands = Arc::new(SkillCommands::new(skills.clone(), runner.clone()));
+        let custom_commands = Arc::new(commands::CustomCommands::new(
+            ports.info.clone(),
+            ports.files.clone(),
+            runner.clone(),
+        ));
+        custom_commands.set_disabled_paths(config.disabled_command_paths.clone());
+        let commands = Arc::new(CommandSet::new(skills_commands, custom_commands));
         let skill_tool = Arc::new(SkillTool::new(skills.clone(), ports.ids.clone(), runner));
         let skill: Arc<dyn Tool> = skill_tool.clone();
         // 进程遥测的出口（两个 manager 共用一份：`mcpId` 的盐只算一次）。
@@ -782,6 +808,14 @@ impl Ext {
     /// 加载插件、开始连接 MCP 服务器（每个服务器一个连接任务，不等待）。返回加载好的插件：其中的
     /// agent 文件与 hooks 由 runtime 交给 agents 与 hooks（ext.md §4）。
     pub async fn start(&self) -> Plugins {
+        // 随包内置 skill 与用户/项目/插件根并列发现（Node `bundledSkillRoots` 追加在插件根之后）。
+        self.skills.set_extra_roots(
+            self.config
+                .skill_roots
+                .iter()
+                .map(|root| root.as_str().to_owned())
+                .collect(),
+        );
         let Some(workspace) = self.config.workspace.clone() else {
             return Plugins::default();
         };
@@ -803,7 +837,15 @@ impl Ext {
         let loaded = loaded.plugins;
         self.register_plugins(&loaded);
         self.skills.set_plugin_roots(loaded.skill_roots());
-        let plugin_servers = loaded.mcp_servers();
+        self.commands.set_plugin_roots(loaded.command_roots());
+        // 桌面 app-server：插件的 MCP 连接按会话建立（会话快照），启动这里只留元数据。
+        let plugin_servers = if self.config.plugin_mcp_per_session {
+            Vec::new()
+        } else {
+            loaded.mcp_servers()
+        };
+        let mut servers = self.config.mcp.servers.clone();
+        servers.extend(plugin_servers.iter().cloned());
         let mut servers = self.config.mcp.servers.clone();
         servers.extend(plugin_servers.iter().cloned());
         self.mcp.start(workspace.clone(), servers);
@@ -906,7 +948,9 @@ impl Ext {
         plugins: &Plugins,
     ) {
         self.skills
-            .set_session_plugin_roots(session, plugins.skill_roots());
+            .set_session_plugin_roots(session.clone(), plugins.skill_roots());
+        self.commands
+            .set_session_plugin_roots(session, plugins.command_roots());
     }
 
     /// 把这份插件快照的 MCP 服务器放进 `mcp/list` 的状态页种子（工作区级，取最近一次会话快照）。
@@ -922,9 +966,10 @@ impl Ext {
         );
     }
 
-    /// 会话关闭时清掉 skill 快照（hooks/agents 由 runtime 各自清），连同它的插件引用目录。
+    /// 会话关闭时清掉 skill/命令快照（hooks/agents 由 runtime 各自清），连同它的插件引用目录。
     pub fn clear_session_plugins(&self, session: &SessionId) {
         self.skills.clear_session(session);
+        self.commands.clear_session(session);
         self.plugin_catalog
             .write()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -932,9 +977,10 @@ impl Ext {
             .remove(session);
     }
 
-    /// 子代理继承父会话的 skill 根。
+    /// 子代理继承父会话的 skill/命令根。
     pub fn copy_session_skill_roots(&self, from: &SessionId, to: SessionId) {
-        self.skills.copy_session(from, to);
+        self.skills.copy_session(from, to.clone());
+        self.commands.copy_session(from, to);
     }
 
     /// 会话创建/冷恢复时冻结它的插件引用目录（NIBI `plugins/referenceCatalog` 的 session authority）。

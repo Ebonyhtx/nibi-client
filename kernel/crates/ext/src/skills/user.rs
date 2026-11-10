@@ -141,6 +141,8 @@ impl UserCommands for SkillCommands {
                 argument_hint: skill.argument_hint.clone(),
                 // `user-invocable: false` 不进 `/` 菜单，但输入时仍按命令处理（给出提示）。
                 hidden: !skill.user_invocable,
+                non_interactive: false,
+                custom: false,
             })
             .collect()
     }

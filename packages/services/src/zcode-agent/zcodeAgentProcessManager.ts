@@ -480,6 +480,22 @@ function findRustAgentBinary(): string | null {
 }
 
 /**
+ * 随包内置技能包（`bundled-skills/skills`）：Node 内核由 bootstrap 自己找；Rust app-server 没有这条
+ * 入口，Host 把同一个目录经 `NIBI_BUNDLED_SKILLS_DIR` 交给内核（`/workflow` 依赖里面的
+ * `dynamic-workflows` skill）。打包后取 resources 下的同一份资产；开发态沿仓库向上找。
+ */
+function findBundledSkillsDir(): string | null {
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (resourcesPath) {
+    const packaged = join(resourcesPath, "glm", "packages", "bundled-skills", "skills");
+    if (existsSync(packaged)) {
+      return packaged;
+    }
+  }
+  return findUpward(join("apps", "zcode-cli", "packages", "bundled-skills", "skills"));
+}
+
+/**
  * Rust 内核的 DWF 侧车（路线 C）：桌面与开发都用 Electron 自带 Node 跑同一个 `nibi.cjs` 的隐藏
  * 子命令（分发拍板 B：不额外打包 Node 二进制）。找不到 Electron runtime 或 bundle 时整个 env
  * 缺席，Rust 的三条 DWF 命令保持 `fault.command.capabilityUnsupported`。
@@ -507,6 +523,11 @@ function resolveRustZCodeAgentCommand(
     return null;
   }
   const sidecar = resolveRustDwfSidecarCommand();
+  const bundledSkills = findBundledSkillsDir();
+  const env: Record<string, string> = {
+    ...(sidecar === null ? {} : { NIBI_DWF_ENGINE_CMD: JSON.stringify(sidecar) }),
+    ...(bundledSkills === null ? {} : { NIBI_BUNDLED_SKILLS_DIR: bundledSkills }),
+  };
   return {
     command: binary,
     args: ["app-server", "--stdio"],
@@ -515,7 +536,7 @@ function resolveRustZCodeAgentCommand(
     // 对拍 21 字段）；原生 binary 进不了 Worker 线程，存储准备走子进程分支。
     supportsStorageStartup: true,
     storagePreparationProcess: true,
-    ...(sidecar === null ? {} : { env: { NIBI_DWF_ENGINE_CMD: JSON.stringify(sidecar) } }),
+    ...(Object.keys(env).length === 0 ? {} : { env }),
   };
 }
 
