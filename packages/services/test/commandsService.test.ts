@@ -590,3 +590,75 @@ describe("commandsService", () => {
     expect(reenabledConfig.command?.[created.command.filePath]).toBeUndefined();
   });
 });
+
+describe("commandsService config write hardening", () => {
+  it("拒绝覆盖损坏的用户 config，文件字节保持不变", async () => {
+    const home = makeTempRoot();
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    const broken = '{"mcp":{"servers":{"browser":{"command":"npx"}}},"command":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const service = await createCommandsServiceInEnv(home);
+    await expect(
+      service.setCommandEnabled({
+        commandId: "user:review",
+        filePath: join(home, ".nibi", "commands", "review.md"),
+        enabled: false,
+      }),
+    ).rejects.toThrow(/not valid JSON/);
+
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("只改 command 字段，保留 MCP 与插件字段", async () => {
+    const home = makeTempRoot();
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify(
+        {
+          mcp: { servers: { browser: { command: "npx" } } },
+          plugins: { dirs: ["/plugins/a"], enabledPlugins: { "a@inline": true } },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const service = await createCommandsServiceInEnv(home);
+    await service.setCommandEnabled({
+      commandId: "user:review",
+      filePath: join(home, ".nibi", "commands", "review.md"),
+      enabled: false,
+    });
+
+    const saved = JSON.parse(readFileSync(configPath, "utf-8"));
+    expect(saved.command).toEqual({
+      [join(home, ".nibi", "commands", "review.md")]: { enable: false },
+    });
+    expect(saved.mcp).toEqual({ servers: { browser: { command: "npx" } } });
+    expect(saved.plugins).toEqual({
+      dirs: ["/plugins/a"],
+      enabledPlugins: { "a@inline": true },
+    });
+  });
+
+  it("连续写两条命令时前一条 override 仍在", async () => {
+    const home = makeTempRoot();
+    const service = await createCommandsServiceInEnv(home);
+    const first = join(home, ".nibi", "commands", "first.md");
+    const second = join(home, ".nibi", "commands", "second.md");
+
+    await service.setCommandEnabled({ commandId: "user:first", filePath: first, enabled: false });
+    await service.setCommandEnabled({ commandId: "user:second", filePath: second, enabled: false });
+
+    const saved = JSON.parse(readFileSync(join(home, ".nibi", "cli", "config.json"), "utf-8"));
+    expect(saved.command).toEqual({
+      [first]: { enable: false },
+      [second]: { enable: false },
+    });
+  });
+});

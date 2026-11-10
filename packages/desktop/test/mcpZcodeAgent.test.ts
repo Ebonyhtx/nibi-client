@@ -432,3 +432,49 @@ describe("MCP enabled state", () => {
     });
   });
 });
+
+describe("MCP config write hardening", () => {
+  it("拒绝覆盖损坏的 config.json，文件字节保持不变", async () => {
+    const home = makeTempRoot();
+    process.env.HOME = home;
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    const broken = '{"provider":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    await expect(
+      saveCliMcpToUserDirectory({
+        action: "upsert",
+        source: "zcodeagentmcp",
+        name: "browser",
+        config: { command: "npx", args: ["-y", "browser-mcp"] },
+      }),
+    ).rejects.toThrow(/not valid JSON/);
+
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("写 MCP server 时保留 provider 等其他字段", async () => {
+    const home = makeTempRoot();
+    process.env.HOME = home;
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify({ provider: { default: "glm" }, command: { "/c.md": { enable: false } } }),
+      "utf-8",
+    );
+
+    await saveCliMcpToUserDirectory({
+      action: "upsert",
+      source: "zcodeagentmcp",
+      name: "browser",
+      config: { command: "npx", args: ["-y", "browser-mcp"] },
+    });
+
+    const saved = JSON.parse(readFileSync(configPath, "utf-8"));
+    expect(saved.provider).toEqual({ default: "glm" });
+    expect(saved.command).toEqual({ "/c.md": { enable: false } });
+    expect(saved.mcp.servers.browser).toEqual({ command: "npx", args: ["-y", "browser-mcp"] });
+  });
+});

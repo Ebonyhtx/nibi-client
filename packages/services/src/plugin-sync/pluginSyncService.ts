@@ -10,7 +10,6 @@ import {
   realpath,
   rename,
   rm,
-  writeFile,
 } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
@@ -29,6 +28,7 @@ import {
 } from "./pluginSyncArchive.js";
 import { normalizePluginSyncRelativePath, resolvePluginSyncPathWithin } from "./pluginSyncPath.js";
 import { checkRemoteSyncDirectoriesWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
+import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
 import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
 
 interface PluginManifestInfo {
@@ -72,7 +72,6 @@ interface MarketplaceSourceMirrorEntry {
 
 const INLINE_PLUGIN_MARKETPLACE = "inline";
 const DEFAULT_MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
-const USER_CONFIG_FILE_MODE = 0o600;
 const MARKETPLACE_SOURCE_ROOT_DIRECTORY = "marketplace-sources";
 const MIRRORED_MARKETPLACE_PLUGIN_ROOT = "plugins";
 const PLUGIN_MANIFEST_RELATIVE_PATHS = [
@@ -905,36 +904,43 @@ function createMarketplaceSourceDirectoryName(
   return `${toSafeDirectoryName(marketplaceId)}-${createShortHash(hashInput).slice(0, 12)}`;
 }
 
+/**
+ * 插件登记写 config.json 的 plugins 字段。
+ * 根因：旧实现先读整份配置再整文件写回；读取失败（含并发写入导致的瞬时不可读）被当作空对象时，
+ * provider、命令、技能等其他写入方的字段会被冲掉。
+ * 修法：改用 updateJsonObjectFile——文件损坏时报错不写，写前重读，只改 plugins 字段，原子替换（0600）。
+ */
 async function addPluginDirToUserConfig(
   pluginPath: string,
   pluginId: string,
   enabledOverride: boolean | undefined,
 ): Promise<void> {
   const filePath = await getUserZcodeConfigPath();
-  const parsed = await readJsonFileOrEmpty(filePath);
-  const plugins = isRecord(parsed.plugins) ? parsed.plugins : {};
   const resolvedPluginPath = resolve(pluginPath);
-  const dirs = readStringArray(plugins.dirs);
-  const nextDirs = dirs.map((item) => resolve(item)).includes(resolvedPluginPath)
-    ? dirs
-    : [...dirs, resolvedPluginPath];
-  const enabledPlugins = isRecord(plugins.enabledPlugins) ? plugins.enabledPlugins : {};
-  await writeJsonFileAtomic(filePath, {
-    ...parsed,
-    plugins: {
-      ...plugins,
-      dirs: nextDirs,
-      ...(enabledOverride !== undefined
-        ? {
-            enabledPlugins: {
-              ...enabledPlugins,
-              [pluginId]: enabledOverride,
-            },
-          }
-        : Object.keys(enabledPlugins).length > 0
-          ? { enabledPlugins }
-          : {}),
-    },
+  await updateJsonObjectFile(filePath, (current) => {
+    const plugins = isRecord(current.plugins) ? current.plugins : {};
+    const dirs = readStringArray(plugins.dirs);
+    const nextDirs = dirs.map((item) => resolve(item)).includes(resolvedPluginPath)
+      ? dirs
+      : [...dirs, resolvedPluginPath];
+    const enabledPlugins = isRecord(plugins.enabledPlugins) ? plugins.enabledPlugins : {};
+    return {
+      ...current,
+      plugins: {
+        ...plugins,
+        dirs: nextDirs,
+        ...(enabledOverride !== undefined
+          ? {
+              enabledPlugins: {
+                ...enabledPlugins,
+                [pluginId]: enabledOverride,
+              },
+            }
+          : Object.keys(enabledPlugins).length > 0
+            ? { enabledPlugins }
+            : {}),
+      },
+    };
   });
 }
 
@@ -1105,19 +1111,6 @@ async function readJsonFileOrEmpty(filePath: string): Promise<Record<string, unk
     throw new Error(`invalid json object: ${filePath}`);
   }
   return parsed;
-}
-
-async function writeJsonFileAtomic(
-  filePath: string,
-  value: Record<string, unknown>,
-): Promise<void> {
-  await mkdir(dirname(filePath), { recursive: true });
-  const tempPath = join(dirname(filePath), `.tmp-${basename(filePath)}-${randomUUID()}`);
-  await writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, {
-    encoding: "utf-8",
-    mode: USER_CONFIG_FILE_MODE,
-  });
-  await rename(tempPath, filePath);
 }
 
 function readStringArray(value: unknown): string[] {

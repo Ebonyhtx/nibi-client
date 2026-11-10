@@ -1651,3 +1651,123 @@ describe("settingsSyncService skills import", () => {
     ]);
   });
 });
+
+describe("settingsSyncService config write hardening", () => {
+  it("插件导入遇到损坏的 config.json 时拒绝写入且字节不变，并清理本次放入的插件目录", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    process.env.HOME = home;
+    writePlugin(join(home, ".claude", "plugins"), "review-plugin", {
+      name: "review-plugin",
+      version: "1.2.3",
+    });
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    const broken = '{"mcp":{"servers":{}},"plugins":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+    const result = await service.importSelected({
+      workspacePath,
+      selections: [{ agent: "claudeCode", category: "plugins" }],
+    });
+
+    expect(result.failedCount).toBe(1);
+    expect(result.successCount).toBe(0);
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+    // 目录残留会让用户修好配置后重试时被判成 targetExists，必须只删本次放入的目录。
+    expect(existsSync(join(home, ".nibi", "plugins", "review-plugin"))).toBe(false);
+  });
+
+  it("MCP 导入遇到损坏的 config.json 时拒绝写入且字节不变", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    process.env.HOME = home;
+    writeJsonConfig(join(home, ".claude", "settings.json"), {
+      mcpServers: { browser: { command: "npx", args: ["-y", "browser-mcp"] } },
+    });
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    const broken = '{"mcp":{"servers":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+    const result = await service.importSelected({
+      workspacePath,
+      selections: [{ agent: "claudeCode", category: "mcpServers" }],
+    });
+
+    expect(result.failedCount).toBe(1);
+    expect(result.successCount).toBe(0);
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("项目级 config.json 损坏时同样拒绝写入且字节不变", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    process.env.HOME = home;
+    writeJsonConfig(join(home, ".claude", "settings.json"), {
+      mcpServers: { browser: { command: "npx", args: ["-y", "browser-mcp"] } },
+    });
+    mkdirSync(join(workspacePath, ".nibi"), { recursive: true });
+    const configPath = join(workspacePath, ".nibi", "config.json");
+    const broken = '{"mcp":{"servers":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+    const result = await service.importSelected({
+      workspacePath,
+      selections: [{ agent: "claudeCode", category: "mcpServers", targetScope: "workspace" }],
+    });
+
+    expect(result.failedCount).toBe(1);
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("依次导入插件与 MCP 时保留其他字段，两类字段都在", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    process.env.HOME = home;
+    writePlugin(join(home, ".claude", "plugins"), "review-plugin", {
+      name: "review-plugin",
+      version: "1.2.3",
+    });
+    writeJsonConfig(join(home, ".claude", "settings.json"), {
+      mcpServers: { browser: { command: "npx", args: ["-y", "browser-mcp"] } },
+    });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    writeJsonConfig(configPath, { command: { "/commands/review.md": { enable: false } } });
+
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+
+    const pluginResult = await service.importSelected({
+      workspacePath,
+      selections: [{ agent: "claudeCode", category: "plugins" }],
+    });
+    const mcpResult = await service.importSelected({
+      workspacePath,
+      selections: [
+        {
+          agent: "claudeCode",
+          category: "mcpServers",
+          mcpServerPaths: [`${join(home, ".claude", "settings.json")}#browser`],
+        },
+      ],
+    });
+
+    expect(pluginResult.failedCount).toBe(0);
+    expect(mcpResult.failedCount).toBe(0);
+    const saved = JSON.parse(readFileSync(configPath, "utf-8"));
+    expect(saved.command).toEqual({ "/commands/review.md": { enable: false } });
+    expect(saved.plugins.dirs).toEqual([join(home, ".nibi", "plugins", "review-plugin")]);
+    expect(saved.mcp.servers.browser).toEqual({ command: "npx", args: ["-y", "browser-mcp"] });
+  });
+});

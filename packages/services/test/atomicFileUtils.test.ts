@@ -83,6 +83,13 @@ vi.mock("node:fs/promises", async () => {
 
 import { atomicWriteText } from "../src/fs/atomicFileUtils.js";
 import {
+  JsonObjectFileUnreadableError,
+  pathExists,
+  readJsonObjectFileForUpdate,
+  updateJsonObjectFile,
+  writeFileAtomically,
+} from "../src/fs/atomicFileUtils.js";
+import {
   createFsFaultInjector,
   resetProcessFsFaultInjectorForTests,
   setFsFaultInjectorForTests,
@@ -552,5 +559,122 @@ describe("atomicWriteText", () => {
     const files = readdirSync(tempDir);
     expect(files).not.toContain("config.json.123.1000.stale.tmp");
     expect(files).toContain("config.json.123.1000.fresh.tmp");
+  });
+});
+
+describe("json object config updates", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "zcode-config-update-"));
+    fsMockState.renameFailures.length = 0;
+    fsMockState.lockRemoveFailure = null;
+    fsMockState.renameDelayMs = 0;
+    fsMockState.activeRenames = 0;
+    fsMockState.maxActiveRenames = 0;
+    fsMockState.lockMkdirGate = null;
+    fsMockState.lockMkdirEntered = null;
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("treats a missing config as an empty object and creates it", async () => {
+    const filePath = join(tempDir, "config.json");
+
+    await expect(readJsonObjectFileForUpdate(filePath)).resolves.toEqual({});
+    await updateJsonObjectFile(filePath, (current) => ({
+      ...current,
+      command: { "a.md": { enable: false } },
+    }));
+
+    expect(existsSync(filePath)).toBe(true);
+    expect(JSON.parse(readFileSync(filePath, "utf-8"))).toEqual({
+      command: { "a.md": { enable: false } },
+    });
+    expect(readdirSync(tempDir).filter((name) => name.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("re-reads before each write and keeps fields owned by other writers", async () => {
+    const filePath = join(tempDir, "config.json");
+    writeFileSync(
+      filePath,
+      JSON.stringify({
+        mcp: { servers: { browser: { command: "npx" } } },
+        plugins: { dirs: ["/plugins/a"] },
+      }),
+      "utf-8",
+    );
+
+    await updateJsonObjectFile(filePath, (current) => ({
+      ...current,
+      command: { "a.md": { enable: false } },
+    }));
+    await updateJsonObjectFile(filePath, (current) => ({
+      ...current,
+      skills: { "/skills/a/SKILL.md": { enable: false } },
+    }));
+
+    expect(JSON.parse(readFileSync(filePath, "utf-8"))).toEqual({
+      mcp: { servers: { browser: { command: "npx" } } },
+      plugins: { dirs: ["/plugins/a"] },
+      command: { "a.md": { enable: false } },
+      skills: { "/skills/a/SKILL.md": { enable: false } },
+    });
+  });
+
+  it("rejects invalid JSON and leaves the file bytes untouched", async () => {
+    const filePath = join(tempDir, "config.json");
+    const broken = '{ "mcp": { "servers": ';
+    writeFileSync(filePath, broken, "utf-8");
+
+    await expect(
+      updateJsonObjectFile(filePath, (current) => ({ ...current, command: {} })),
+    ).rejects.toBeInstanceOf(JsonObjectFileUnreadableError);
+    expect(readFileSync(filePath, "utf-8")).toBe(broken);
+  });
+
+  it("rejects a non-object root and leaves the file bytes untouched", async () => {
+    const filePath = join(tempDir, "config.json");
+    const arrayConfig = '["not", "an", "object"]\n';
+    writeFileSync(filePath, arrayConfig, "utf-8");
+
+    await expect(
+      updateJsonObjectFile(filePath, (current) => ({ ...current, command: {} })),
+    ).rejects.toMatchObject({ name: "JsonObjectFileUnreadableError" });
+    expect(readFileSync(filePath, "utf-8")).toBe(arrayConfig);
+  });
+
+  it("pathExists reports missing and existing paths without swallowing other errors", async () => {
+    const filePath = join(tempDir, "config.json");
+
+    await expect(pathExists(filePath)).resolves.toBe(false);
+    writeFileSync(filePath, "{}\n", "utf-8");
+    await expect(pathExists(filePath)).resolves.toBe(true);
+  });
+
+  it("writeFileAtomically replaces the target and leaves no temp files behind", async () => {
+    const filePath = join(tempDir, "config.json");
+    writeFileSync(filePath, "old\n", "utf-8");
+
+    await writeFileAtomically(filePath, Buffer.from("new\n", "utf-8"));
+
+    expect(readFileSync(filePath, "utf-8")).toBe("new\n");
+    expect(readdirSync(tempDir).filter((name) => name.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("rename 失败时不留下半截文件，原文件保持不变", async () => {
+    const filePath = join(tempDir, "config.json");
+    const original = '{"mcp":{"servers":{}}}\n';
+    writeFileSync(filePath, original, "utf-8");
+    fsMockState.renameFailures.push(createFsError("EPERM"));
+
+    await expect(
+      updateJsonObjectFile(filePath, () => ({ command: {} })),
+    ).rejects.toMatchObject({ code: "EPERM" });
+
+    expect(readFileSync(filePath, "utf-8")).toBe(original);
+    expect(readdirSync(tempDir).filter((name) => name.endsWith(".tmp"))).toEqual([]);
   });
 });

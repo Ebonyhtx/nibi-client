@@ -1513,3 +1513,83 @@ cyclic-body`,
     expect(result.skills.map((skill) => skill.name)).toEqual(["cyclic-skill"]);
   });
 });
+
+describe("skillsService config write hardening", () => {
+  it("拒绝覆盖损坏的用户 config，文件字节保持不变", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    writeSkill(
+      workspaceSkillRoot(workspacePath),
+      "repo-review",
+      `---
+name: repo-review
+description: review
+---
+body`,
+    );
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    const broken = '{"mcp":{"servers":{}},"skills":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
+    const listed = await service.list({ workspacePath, provider: "glm" });
+    const skill = listed.skills[0]!;
+
+    await expect(
+      service.setEnabled({
+        workspacePath,
+        provider: "glm",
+        scope: skill.scope,
+        skillId: skill.id,
+        enabled: false,
+      }),
+    ).rejects.toThrow(/not valid JSON/);
+
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("只改 skills 字段，保留 MCP 与插件字段", async () => {
+    const home = makeTempHome();
+    const workspacePath = join(home, "workspace");
+    writeSkill(
+      workspaceSkillRoot(workspacePath),
+      "repo-review",
+      `---
+name: repo-review
+description: review
+---
+body`,
+    );
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    writeFileSync(
+      configPath,
+      JSON.stringify(
+        {
+          mcp: { servers: { browser: { command: "npx" } } },
+          plugins: { dirs: ["/plugins/a"] },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const service = await createSkillsServiceInEnv(home, { isDesktopRuntime: true });
+    const listed = await service.list({ workspacePath, provider: "glm" });
+    const skill = listed.skills[0]!;
+    await service.setEnabled({
+      workspacePath,
+      provider: "glm",
+      scope: skill.scope,
+      skillId: skill.id,
+      enabled: false,
+    });
+
+    const saved = JSON.parse(readFileSync(configPath, "utf-8"));
+    expect(saved.skills[skill.path.replaceAll("\\", "/")]).toEqual({ enable: false });
+    expect(saved.mcp).toEqual({ servers: { browser: { command: "npx" } } });
+    expect(saved.plugins).toEqual({ dirs: ["/plugins/a"] });
+  });
+});

@@ -539,3 +539,58 @@ describe("mcp sync service", () => {
     });
   });
 });
+
+describe("mcp sync config write hardening", () => {
+  it("拒绝覆盖损坏的用户 config，文件字节保持不变", async () => {
+    const home = makeHome();
+    process.env.HOME = home;
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    await mkdir(join(home, ".nibi", "cli"), { recursive: true });
+    const broken = '{"mcp":{"servers":';
+    await writeFile(configPath, broken);
+
+    const service = createMcpSyncService();
+    await expect(
+      service.saveMcpToUserDirectory({
+        action: "upsert",
+        source: "zcodeagentmcp",
+        name: "deepwiki",
+        config: { type: "http", url: "https://mcp.deepwiki.com/mcp" },
+      }),
+    ).rejects.toThrow(/not valid JSON/);
+
+    await expect(readFile(configPath, "utf-8")).resolves.toBe(broken);
+  });
+
+  it("写 MCP server 时保留其他写入方字段", async () => {
+    const home = makeHome();
+    process.env.HOME = home;
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    await mkdir(join(home, ".nibi", "cli"), { recursive: true });
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        provider: { default: "glm" },
+        command: { "/c.md": { enable: false } },
+        mcp: { servers: { existing: { type: "http", url: "https://existing.test/mcp" } } },
+      }),
+    );
+
+    const service = createMcpSyncService();
+    await service.saveMcpToUserDirectory({
+      action: "upsert",
+      source: "zcodeagentmcp",
+      name: "deepwiki",
+      config: { type: "http", url: "https://mcp.deepwiki.com/mcp" },
+    });
+
+    const saved = JSON.parse(await readFile(configPath, "utf-8")) as {
+      provider?: unknown;
+      command?: unknown;
+      mcp?: { servers?: Record<string, unknown> };
+    };
+    expect(saved.provider).toEqual({ default: "glm" });
+    expect(saved.command).toEqual({ "/c.md": { enable: false } });
+    expect(Object.keys(saved.mcp?.servers ?? {}).sort()).toEqual(["deepwiki", "existing"]);
+  });
+});

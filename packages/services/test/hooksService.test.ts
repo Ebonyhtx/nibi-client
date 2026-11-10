@@ -401,3 +401,101 @@ describe("hooksService", () => {
     }
   });
 });
+
+describe("hooksService config write hardening", () => {
+  it("拒绝覆盖损坏的用户级 config，文件字节保持不变", async () => {
+    const home = makeTempRoot();
+    mkdirSync(join(home, ".nibi", "cli"), { recursive: true });
+    const configPath = join(home, ".nibi", "cli", "config.json");
+    const broken = '{"mcp":{"servers":{}},"hooks":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const service = await createHooksServiceInEnv(home);
+    await expect(
+      service.saveHooks({
+        workspacePath: join(home, "workspace"),
+        hooks: [
+          {
+            id: "user",
+            event: "Stop",
+            type: "command",
+            command: "echo user",
+            enabled: true,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/not valid JSON/);
+
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("拒绝覆盖损坏的项目级 .nibi/config.json，文件字节保持不变", async () => {
+    const home = makeTempRoot();
+    const workspacePath = join(makeTempRoot(), "workspace");
+    mkdirSync(join(workspacePath, ".nibi"), { recursive: true });
+    const configPath = join(workspacePath, ".nibi", "config.json");
+    const broken = '{"hooks":';
+    writeFileSync(configPath, broken, "utf-8");
+
+    const service = await createHooksServiceInEnv(home);
+    await expect(
+      service.saveHooks({
+        workspacePath,
+        hooks: [
+          {
+            id: "project",
+            event: "PreToolUse",
+            type: "command",
+            command: "echo project",
+            enabled: true,
+            location: {
+              source: "nibi",
+              scope: "project",
+              directoryPath: join(workspacePath, ".nibi"),
+              projectPath: workspacePath,
+            },
+          },
+        ],
+      }),
+    ).rejects.toThrow(/not valid JSON/);
+
+    expect(readFileSync(configPath, "utf-8")).toBe(broken);
+  });
+
+  it("先写命令开关再写钩子开关，两类字段都保留", async () => {
+    const home = makeTempRoot();
+    const workspacePath = join(home, "workspace");
+    process.env.HOME = home;
+    vi.resetModules();
+    const commandsMod = await import("../src/commands/commandsService.js");
+    const commands = commandsMod.createCommandsService({ isDesktopRuntime: true });
+    const commandPath = join(home, ".nibi", "commands", "review.md");
+    await commands.setCommandEnabled({
+      commandId: "user:review",
+      filePath: commandPath,
+      enabled: false,
+    });
+
+    const hooksMod = await import("../src/hooks/hooksService.js");
+    const hooks = hooksMod.createHooksService();
+    await hooks.saveHooks({
+      workspacePath,
+      scope: "user",
+      hooks: [
+        {
+          id: "user-stop",
+          event: "Stop",
+          type: "command",
+          command: "echo user",
+          enabled: true,
+        },
+      ],
+    });
+
+    const saved = JSON.parse(readFileSync(join(home, ".nibi", "cli", "config.json"), "utf-8"));
+    expect(saved.command).toEqual({ [commandPath]: { enable: false } });
+    expect(saved.hooks.events.Stop).toEqual([
+      { hooks: [{ type: "command", command: "echo user", enabled: true }] },
+    ]);
+  });
+});
