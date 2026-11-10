@@ -55,6 +55,10 @@
 - [公共契约文档](contracts/)
 - [性能](performance/)
 
+## 上游对齐
+
+- [ZCode 3.16.2 → 3.17.2 差异与吸收方案](upstream/zcode-3.16.2-to-3.17.2-absorption-plan.md)：逐项变化、Node/Rust 各自方案、性能专题与路线图
+
 ## Rust 内核
 
 - [与 Node 的功能对照（切流判据）](rust-kernel-function-parity.md)：哪些已对齐、哪些是刻意的实现差异
