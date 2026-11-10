@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 use nibi_kernel_base::TaskScope;
 use nibi_kernel_context::PromptAssembler;
 use nibi_kernel_api::ids::SessionId;
+use nibi_kernel_api::project_memory::ProjectMemoryScheduler;
 use nibi_kernel_policy::PolicyGate;
 use nibi_kernel_session::{Opened, Session, SessionDeps, SessionState};
 use tokio_util::sync::CancellationToken;
@@ -129,6 +130,8 @@ pub(crate) struct Closer {
     pub(crate) hooks: Arc<nibi_kernel_hooks::HookEngine>,
     /// 会话级插件 agents（NIBI 多会话）：随会话释放。
     pub(crate) agents: Arc<nibi_kernel_agents::AgentCatalog>,
+    /// 项目记忆抽取：会话关闭时取消在跑任务、清游标与开关。
+    pub(crate) memory: Arc<crate::memory::MemoryExtractor>,
 }
 
 impl nibi_kernel_session::Released for Closer {
@@ -154,6 +157,8 @@ impl nibi_kernel_session::Released for Closer {
     fn released(&self, session: &SessionId) {
         // `/clear` 清 readFileState 与规则文件缓存；resume 从历史重建它们。
         self.context.session_closed(session);
+        // 项目记忆抽取在会话关闭时中止（Node 的 `sessionCloseCancelsMemoryExtraction`）。
+        self.memory.session_closed(session);
         self.read_files.forget(session);
         self.worktrees.forget(session);
         self.gate.release(session);
@@ -257,6 +262,10 @@ impl LocalKernel {
             detached: Some(self.detached.clone()),
             blocked: Some(self.blocked.clone()),
             context_usage: Some(self.usage.clone()),
+            memory: self.memory_extraction.then(|| {
+                let memory: Arc<dyn ProjectMemoryScheduler> = self.memory.clone();
+                memory
+            }),
         };
         let session = Arc::new(Session::spawn(deps, state, opened));
         tracing::info!(event = "session.open", session = %id, opened = ?opened, "session opened");

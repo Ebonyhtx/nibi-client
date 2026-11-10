@@ -915,6 +915,16 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 记下 Host 在会话物化时给的记忆开关（NIBI 设置页「工作区记忆」）。只影响这个会话之后的回合；
+    /// 缺省什么都不做（CLI/TUI 与旧 Host 按开启）。
+    async fn set_session_memory_enabled(
+        &self,
+        _session: &SessionId,
+        _enabled: bool,
+    ) -> Result<(), KernelError> {
+        Ok(())
+    }
+
     /// 记下 Host 在会话物化时给的执行偏好（NIBI 设置页的工具搜索、增强 Find/Grep、集成 Shell）。
     /// 只影响这个会话之后的回合；缺省什么都不做。
     async fn set_session_execution_preferences(

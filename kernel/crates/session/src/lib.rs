@@ -147,6 +147,8 @@ pub struct SessionDeps {
     pub blocked: Option<Arc<dyn nibi_kernel_api::workflow::WorkflowBlockedEdges>>,
     /// 每轮结束算上下文分项的来源（`/context` 分析器）：没有时（测试/嵌入）不发分项。
     pub context_usage: Option<Arc<dyn nibi_kernel_api::context_usage::ContextUsageSource>>,
+    /// 回合成功后的项目记忆抽取：没有时（测试/嵌入）不调度。
+    pub memory: Option<Arc<dyn nibi_kernel_api::project_memory::ProjectMemoryScheduler>>,
 }
 
 /// 会话关闭的收尾（docs/specs/rust-cli/session-lifecycle.md §3.3、§3.3.1）：每个会话的关闭任务各调用一次。

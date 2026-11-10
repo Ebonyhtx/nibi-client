@@ -247,6 +247,19 @@ impl Server {
         if let Some(enabled) = preferences.auto_resolution {
             live.sink.set_auto_resolution_enabled(enabled).await;
         }
+        if let Some(enabled) = preferences.memory_enabled
+            && let Err(error) = self
+                .kernel
+                .set_session_memory_enabled(session, enabled)
+                .await
+        {
+            tracing::warn!(
+                event = "protocol.runtime_preferences.memory_failed",
+                session = session.as_str(),
+                error = %error,
+                "the kernel refused the memory setting from the host"
+            );
+        }
         if !preferences.additional_directories.is_empty()
             && let Err(error) = self
                 .kernel

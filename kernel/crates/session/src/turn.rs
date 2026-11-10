@@ -11,8 +11,9 @@ use nibi_kernel_api::model::QuerySource;
 use nibi_kernel_api::orchestration::{
     InteractionAnswer, InteractionRequest, OrchestrationError, QueryEvent, QueryRequest, QueryStop,
 };
+use nibi_kernel_api::project_memory::ProjectMemoryTurn;
 use nibi_kernel_api::session_api::{Ack, KernelEvent, TurnInputSource, TurnOutcome};
-use nibi_kernel_api::store::{Fact, StoreError};
+use nibi_kernel_api::store::{Fact, SessionKind, StoreError};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
@@ -559,11 +560,26 @@ impl Actor {
                 });
             }
         }
+        let succeeded = matches!(outcome, TurnOutcome::Success);
         self.log.append(KernelEvent::TurnFinished {
             turn: running.turn,
             outcome,
             usage,
         });
+        // 项目记忆：只在主/分叉/辅助会话的成功回合后调度（Node `isMainMemoryTaskType`）；子代理不写主记忆。
+        if succeeded
+            && prompted
+            && self.meta.kind != SessionKind::Subagent
+            && let Some(memory) = &self.deps.memory
+        {
+            memory.schedule(ProjectMemoryTurn {
+                session: self.meta.id.clone(),
+                workspace: self.meta.workspace.clone(),
+                selection: self.selection.clone(),
+                mode: self.mode(),
+                messages: Arc::from(self.messages.clone()),
+            });
+        }
         self.start_next().await;
     }
 

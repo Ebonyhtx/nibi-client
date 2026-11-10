@@ -84,12 +84,11 @@ fn joined_storage_paths_stay_storage_paths() {
 }
 
 #[test]
-fn memory_lives_under_the_storage_root() {
+fn the_cli_root_is_the_parent_of_the_shared_memory_tree() {
     let paths = resolve(None, None);
-    assert_eq!(
-        paths.memory_dir("/work/repo").as_path(),
-        Path::new("/home/dev/.nibi/projects/-work-repo/memory")
-    );
+    assert_eq!(paths.cli_root().as_path(), Path::new("/home/dev/.nibi/cli"));
+    let already_cli = resolve(None, Some("/home/dev/.nibi/cli"));
+    assert_eq!(already_cli.cli_root().as_path(), Path::new("/home/dev/.nibi/cli"));
     assert_eq!(sanitize_path("C:\\a b/c.d"), "C--a-b-c-d");
     // 代理对是两个 UTF-16 码元，各换成一个 `-`。
     assert_eq!(sanitize_path("/x/😀"), "-x---");

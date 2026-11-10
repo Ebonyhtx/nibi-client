@@ -291,6 +291,7 @@ impl Setup {
                 detached: self.detached,
                 blocked: self.blocked.clone(),
                 context_usage: None,
+                memory: None,
             },
             SessionState {
                 meta,

@@ -294,6 +294,7 @@ async fn asking_session_with(
             detached: None,
             blocked: None,
             context_usage: None,
+            memory: None,
         },
         SessionState {
             meta: meta(),

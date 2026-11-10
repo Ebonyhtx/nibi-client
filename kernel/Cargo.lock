@@ -1910,6 +1910,7 @@ name = "nibi-kernel-memory"
 version = "0.1.0"
 dependencies = [
  "nibi-kernel-api",
+ "sha2",
  "tokio",
 ]
 

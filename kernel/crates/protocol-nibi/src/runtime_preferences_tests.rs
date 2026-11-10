@@ -379,6 +379,7 @@ fn only_the_preferences_the_kernel_models_are_parsed() {
         "nativeSearchEnhancementsEnabled": false
     }));
     assert_eq!(parsed.auto_resolution, Some(true));
+    assert_eq!(parsed.memory_enabled, Some(true));
     assert_eq!(
         parsed
             .additional_directories

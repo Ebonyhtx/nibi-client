@@ -371,5 +371,14 @@ fn the_auto_memory_switch_takes_effect() {
     };
     const MEMORY: &str = "You have a persistent file-based memory at";
     assert!(!system(("NIBI_DISABLE_AUTO_MEMORY", "1")).contains(MEMORY));
-    assert!(system(("NIBI_DISABLE_AUTO_MEMORY", "0")).contains(MEMORY));
+    let enabled = system(("NIBI_DISABLE_AUTO_MEMORY", "0"));
+    assert!(enabled.contains(MEMORY));
+    // 与 Node / 设置页同一棵树：`<cli>/memories/projects/<slug>-<hash>/memory`，不再是旧的
+    // `<storage>/projects/<sanitize(项目)>/memory`。
+    let expected = if cfg!(windows) {
+        "cli\\\\memories\\\\projects"
+    } else {
+        "cli/memories/projects"
+    };
+    assert!(enabled.contains(expected), "{enabled}");
 }

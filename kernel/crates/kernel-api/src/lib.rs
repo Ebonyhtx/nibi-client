@@ -54,6 +54,7 @@
 //! | [`hooks`] | hook 事件、合并结果与 http hook 的出口端口 |
 //! | [`session_api`] | 前端使用的会话 API 与内核事件 |
 //! | [`session_paths`] | 会话的附加工作目录（NIBI `createSession.additionalDirectories`） |
+//! | [`project_memory`] | 项目记忆的会话开关与回合结束抽取调度 |
 //! | [`clock`] | 时间与 ID 的注入端口 |
 //! | [`user_command`] | 用户输入的斜杠命令（skill 的用户调用） |
 //! | [`workspace_trust`] | 工作区信任记录的键 |
@@ -118,6 +119,7 @@ pub mod persisted_output;
 pub mod plan;
 pub mod process_metrics;
 pub mod process_table;
+pub mod project_memory;
 pub mod provider;
 pub mod reminder_fold;
 pub mod session_api;

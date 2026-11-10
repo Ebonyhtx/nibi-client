@@ -1,6 +1,6 @@
 [package]
 name = "nibi-kernel-memory"
-description = "Memory directory, extraction, recall and consolidation of nibi-kernel-cli"
+description = "Project memory directory and MEMORY.md truncation of nibi-kernel-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 nibi-kernel-api.workspace = true
+sha2.workspace = true
 
 [dev-dependencies]
 nibi-kernel-api = { workspace = true, features = ["testing"] }

@@ -107,6 +107,8 @@ pub struct PromptAssembler {
     machines: Option<Arc<dyn EnvironmentRegistry>>,
     /// 会话的附加工作目录（NIBI `createSession.additionalDirectories`）：环境段按会话列出。
     directories: Option<Arc<nibi_kernel_api::session_paths::SessionDirectories>>,
+    /// 会话级的自动记忆开关（Host 的 `memoryEnabled`）：关闭时不渲染记忆段、不读 `MEMORY.md`。
+    memory_settings: Option<Arc<dyn nibi_kernel_api::project_memory::ProjectMemorySettings>>,
 }
 
 /// 当步 attachment 属于哪个循环（docs/specs/rust-cli/agents.md §4.3）。
@@ -149,7 +151,30 @@ impl PromptAssembler {
             tasks: std::sync::OnceLock::new(),
             machines: None,
             directories: None,
+            memory_settings: None,
         }
+    }
+
+    /// 接上会话级记忆开关（runtime 与协议层的 `memoryEnabled` 共用一个实例）。
+    #[must_use]
+    pub fn with_memory_settings(
+        mut self,
+        settings: Arc<dyn nibi_kernel_api::project_memory::ProjectMemorySettings>,
+    ) -> Self {
+        self.memory_settings = Some(settings);
+        self
+    }
+
+    /// 这个会话现在是否读自动记忆（没接开关时按开启）。
+    fn memory_dir(&self, request: &ContextRequest) -> Option<&str> {
+        if self
+            .memory_settings
+            .as_ref()
+            .is_some_and(|settings| !settings.enabled(&request.session))
+        {
+            return None;
+        }
+        self.config.memory_dir.as_deref()
     }
 
     /// 接上会话的附加工作目录（runtime 建一个句柄，与判决链共用）。
@@ -197,7 +222,7 @@ impl PromptAssembler {
     async fn load_rule_files(&self, request: &ContextRequest, facts: &EnvFacts) -> Vec<RuleFile> {
         let scope = self.scope(request, facts);
         let mut loaded = scope.startup(&facts.platform).await;
-        if let Some(dir) = &self.config.memory_dir
+        if let Some(dir) = self.memory_dir(request)
             && let Some(memory) = scope.auto_memory(dir).await
         {
             loaded.push(memory);
@@ -492,7 +517,7 @@ impl ContextBuilder for PromptAssembler {
             system_turns: crate::system::facts_system_turns(&request),
             tool_names: &request.tool_names,
             has_skills: !listings.skills.is_empty(),
-            memory_dir: self.config.memory_dir.as_deref(),
+            memory_dir: self.memory_dir(&request),
             output_style: self.config.output_style.as_ref(),
             custom: self.config.custom_system_prompt.as_deref(),
             append: self.config.append_system_prompt.as_deref(),

@@ -103,6 +103,7 @@ pub(crate) async fn session_on_machines<E: nibi_kernel_api::testing::AllPorts + 
             detached: None,
             blocked: None,
             context_usage: None,
+            memory: None,
         },
         SessionState {
             meta: meta(),

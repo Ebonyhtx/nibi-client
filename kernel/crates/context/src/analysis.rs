@@ -43,7 +43,7 @@ impl PromptAssembler {
             system_turns: crate::system::facts_system_turns(request),
             tool_names: &request.tool_names,
             has_skills: !listings.skills.is_empty(),
-            memory_dir: self.config.memory_dir.as_deref(),
+            memory_dir: self.memory_dir(request),
             output_style: self.config.output_style.as_ref(),
             custom: self.config.custom_system_prompt.as_deref(),
             append: self.config.append_system_prompt.as_deref(),
@@ -69,7 +69,7 @@ impl PromptAssembler {
         }
         let scope = self.scope(request, &env_facts);
         let mut loaded = scope.startup(&env_facts.platform).await;
-        if let Some(dir) = &self.config.memory_dir
+        if let Some(dir) = self.memory_dir(request)
             && let Some(memory) = scope.auto_memory(dir).await
         {
             loaded.push(memory);

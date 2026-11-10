@@ -138,6 +138,7 @@ fn spawn(
             detached: None,
             blocked: None,
             context_usage: None,
+            memory: None,
         },
         SessionState {
             meta: meta(),

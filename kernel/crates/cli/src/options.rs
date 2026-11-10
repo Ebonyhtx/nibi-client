@@ -80,8 +80,11 @@ pub(crate) fn task_tools(snapshot: &[(String, String)]) -> Option<bool> {
 }
 
 /// 自动记忆目录：建好后返回给提示词的展示文本（末尾带分隔符）；关闭或建不了时为 None。
+///
+/// 路径与 Node `resolveProjectMemoryRoot` 同口径：`<cli>/memories/projects/<slug>-<hash>/memory`。
+/// 远端工作区不读本机记忆（Node `runtime.isRemoteWorkspace()` 同样跳过）。
 pub(crate) async fn memory_dir(
-    files: &dyn Files,
+    _files: &dyn Files,
     paths: &StoragePaths,
     workspace: &WorkspaceRef,
     snapshot: &[(String, String)],
@@ -89,11 +92,15 @@ pub(crate) async fn memory_dir(
     if truthy(snapshot, "NIBI_DISABLE_AUTO_MEMORY") {
         return None;
     }
-    let project = nibi_kernel_memory::project_root(files, workspace).await;
-    let dir = paths.memory_dir(project.as_str());
+    if workspace.environment.as_str() != "local" {
+        return None;
+    }
+    let cli_root = paths.cli_root();
+    let dir =
+        nibi_kernel_memory::project_memory_root(cli_root.as_path(), workspace.root.as_str(), None);
     // 建不了目录时不打开记忆段（提示词会说目录已存在）。
-    nibi_kernel_fs::create_dir_all(dir.as_path()).await.ok()?;
-    Some(format!("{}{MAIN_SEPARATOR}", dir.as_path().display()))
+    nibi_kernel_fs::create_dir_all(&dir).await.ok()?;
+    Some(format!("{}{MAIN_SEPARATOR}", dir.display()))
 }
 
 /// `NIBI_AUTO_COMPACT_WINDOW`：`200k`、`1m`、`100`–`1000`（按千计）或 token 数。

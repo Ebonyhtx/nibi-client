@@ -7,8 +7,8 @@
 //! - 会话库默认 `~/.nibi/cli/db/db.sqlite`，`storage.sessionDbPath` 覆盖；
 //! - 产物根目录是 `<storage.dir>/cli/artifacts`，`storage.dir` 默认 `~/.nibi`；
 //! - 只展开 `~` 与 `~/…`，其余相对路径相对调用方给的基准目录；
-//! - 自动记忆目录：`<storage.dir>/projects/<sanitizePath(项目)>/memory`
-//!   （根换成 zcode 的存储根，docs/specs/rust-cli/context.md §2）。
+//! - 自动记忆目录：`<storage.dir>/cli/memories/projects/<slug>-<hash>/memory`，与 Node
+//!   `resolveProjectMemoryRoot` 及 App 设置页同一棵树；路径规则在 `nibi-kernel-memory`。
 //!
 //! 配置分层与 `NIBI_*` 环境变量覆盖由配置层先算好，这里只接收结果。
 //!
@@ -55,8 +55,6 @@ macro_rules! project_dir {
 /// 布局放会话库（F58：以前 node-store 与 cli 的示例各写一次 `cli/db/db.sqlite`）。
 pub const DEFAULT_SESSION_DB: &str = concat!(cli_dir!(), "/db/db.sqlite");
 const ARTIFACTS_DIR: &str = concat!(cli_dir!(), "/artifacts");
-const PROJECTS_DIR: &str = "projects";
-const MEMORY_DIR: &str = "memory";
 /// 任务清单（Task v2）目录（docs/specs/rust-cli/agents.md §7.2）。
 const TASKS_DIR: &str = "tasks";
 /// 本工程的运行日志目录（docs/specs/rust-cli/logging.md §1；Node CLI 的在 `cli/log`）。
@@ -238,13 +236,14 @@ impl StoragePaths {
         &self.artifacts
     }
 
-    /// 自动记忆目录。`project` 是项目的规范路径（git 根，不在仓库里时用项目根），
-    /// 由调用方从执行环境的事实算好。
-    pub fn memory_dir(&self, project: &str) -> StoragePath {
-        self.root
-            .join(PROJECTS_DIR)
-            .join(sanitize_path(project))
-            .join(MEMORY_DIR)
+    /// Node 的 CLI 存储根：`<storage.dir>/cli`（`basename` 已经是 `cli` 时不再加一层）。
+    /// 项目记忆目录从它拼（`cli/memories/projects/...`），与设置页扫的是同一棵树。
+    pub fn cli_root(&self) -> StoragePath {
+        if self.root.as_path().file_name() == Some(std::ffi::OsStr::new("cli")) {
+            self.root.clone()
+        } else {
+            self.root.join("cli")
+        }
     }
 }
 

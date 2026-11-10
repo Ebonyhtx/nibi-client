@@ -21,6 +21,7 @@ mod hook_review;
 mod kernel;
 mod late;
 mod listings;
+mod memory;
 mod node_repl;
 mod permissions;
 mod projects;
@@ -32,6 +33,7 @@ mod usage;
 mod workspace_sessions;
 
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::{Mutex, PoisonError};
 
@@ -193,6 +195,10 @@ pub struct LocalKernel {
     detached: Arc<nibi_kernel_session::DetachedAsks>,
     /// 会话的附加工作目录（NIBI createSession.additionalDirectories）：判决链与环境段读的同一份表。
     directories: Arc<nibi_kernel_api::session_paths::SessionDirectories>,
+    /// 回合结束后的项目记忆抽取（Node `memory/` 同一语义）。
+    memory: Arc<memory::MemoryExtractor>,
+    /// 是否在回合结束后调度抽取：`-p`/headless 关闭（Node `headlessMemoryExtractionDisabled`）。
+    memory_extraction: bool,
     /// 工作区钩子的信任库（NIBI 协议前端的钩子评审）：入口注入，没接的入口三个方法报 Unsupported。
     hook_trust: Option<Arc<dyn nibi_kernel_api::hook_review::HookTrust>>,
     /// 用户层 hooks（评审 digest 的默认超时与输出上限来源，config.md §4.1）。
@@ -332,6 +338,8 @@ impl LocalKernel {
             builtin.file_state().cloned().unwrap_or_default();
         let file_states: Arc<dyn ReadFileStates> = read_files.clone();
         let worktrees = Arc::new(nibi_kernel_tools::WorktreeBoard::default());
+        // 会话级记忆开关：context 与会话 actor 共用；默认开启，Host 物化会话时按 `memoryEnabled` 写入。
+        let memory_prefs = Arc::new(memory::MemoryPreferences::default());
         // DWF 工具面的引擎槽：入口的 `with_workflow_engine` 在注册表建好之后才调，工具在调用时读。
         let workflow_engine_slot: nibi_kernel_tools::WorkflowEngineSlot =
             Arc::new(std::sync::Mutex::new(None));
@@ -455,6 +463,8 @@ impl LocalKernel {
             machine.info().clone(),
             machine.files().clone(),
         ));
+        // 抽取器要的目录必须在 `ContextConfig` 移进 `PromptAssembler` 之前取出。
+        let memory_dir = context.memory_dir.clone();
         let context = PromptAssembler::new(
             ContextPorts {
                 info: machine.info().clone(),
@@ -482,21 +492,11 @@ impl LocalKernel {
         // 机器清单提醒（R3，remote-exec.md §20.5.3）。
         .with_machines(ports.environments.clone())
         // 会话的附加工作目录（NIBI createSession.additionalDirectories）。
-        .with_session_directories(session_directories.clone());
+        .with_session_directories(session_directories.clone())
+        // 会话级记忆开关（Host 的 `memoryEnabled`）。
+        .with_memory_settings(memory_prefs.clone());
         let context = Arc::new(context);
         let assembler = context.clone();
-        let closer = Arc::new(Closer {
-            sessions: Arc::downgrade(&sessions),
-            context: context.clone(),
-            read_files,
-            worktrees,
-            gate: gate.clone(),
-            mcp: ext.mcp().clone(),
-            ext: ext.clone(),
-            directories: session_directories.clone(),
-            hooks: hooks.clone(),
-            agents: agent_catalog.clone(),
-        });
         let parts = QueryParts {
             model: ports.model.clone(),
             context: context.clone(),
@@ -617,7 +617,7 @@ impl LocalKernel {
                 runner: Arc::new(summary),
                 tools: tools.clone(),
                 files: file_states,
-                context,
+                context: context.clone(),
                 hooks: hooks.clone(),
                 ids: ports.ids.clone(),
                 machine: machine.clone(),
@@ -630,6 +630,26 @@ impl LocalKernel {
         late.set(compactor.clone());
         let generation = parts.generation.clone();
         let parts = QueryParts { tools, ..parts };
+        // 抽取器拿主循环的同一套模型、工具、上下文与执行环境；它只读历史、只写记忆目录。
+        let memory = Arc::new(memory::MemoryExtractor::new(
+            parts.clone(),
+            memory_prefs.clone(),
+            memory_dir.map(PathBuf::from),
+            scope.spawner(),
+        ));
+        let closer = Arc::new(Closer {
+            sessions: Arc::downgrade(&sessions),
+            context: context.clone(),
+            read_files,
+            worktrees,
+            gate: gate.clone(),
+            mcp: ext.mcp().clone(),
+            ext: ext.clone(),
+            directories: session_directories.clone(),
+            hooks: hooks.clone(),
+            agents: agent_catalog.clone(),
+            memory: memory.clone(),
+        });
         let runner = agents.track(Arc::new(QueryLoop::new(parts)));
         let detached = Arc::new(nibi_kernel_session::DetachedAsks::new(
             ports.store.clone(),
@@ -666,6 +686,8 @@ impl LocalKernel {
             peers: extensions.peers,
             detached,
             directories: session_directories,
+            memory,
+            memory_extraction: !non_interactive,
             hook_trust: None,
             user_hooks: Arc::new(nibi_kernel_hooks::node_config::NodeHooks::default()),
             workflow_engine: None,

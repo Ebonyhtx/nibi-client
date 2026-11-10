@@ -8,6 +8,7 @@ use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use nibi_kernel_api::model::{ModelSelection, QuerySource};
 use nibi_kernel_api::orchestration::{ContextBuilder, ContextRequest};
 use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::project_memory::ProjectMemorySettings;
 use nibi_kernel_api::testing::{FixedClock, MemoryEnvironment, SequentialIds};
 
 use crate::{ContextConfig, ContextPorts, NoListings, PromptAssembler, Surface};
@@ -94,6 +95,78 @@ async fn memory_md_comes_last_with_the_auto_memory_label() {
         ))
         .unwrap_or_else(|| panic!("{text}"));
     assert!(project < memory);
+}
+
+struct MemoryOff;
+
+impl ProjectMemorySettings for MemoryOff {
+    fn enabled(&self, _session: &SessionId) -> bool {
+        false
+    }
+}
+
+#[tokio::test]
+async fn the_session_switch_removes_both_the_section_and_the_index() {
+    let env = Arc::new(MemoryEnvironment::new(facts()).with_file(
+        &format!("{MEMORY}/MEMORY.md"),
+        "\n- [Fact](fact.md) — hook\n",
+    ));
+    let mut config = ContextConfig::new(Surface::Print);
+    config.memory_dir = Some(format!("{MEMORY}/"));
+    let context = PromptAssembler::new(
+        ContextPorts {
+            info: env.clone(),
+            files: env.clone(),
+            shell: env.clone(),
+            git: env,
+            clock: Arc::new(FixedClock(1_792_224_000_000)),
+            ids: Arc::new(SequentialIds::default()),
+            listings: Arc::new(NoListings),
+        },
+        config,
+    )
+    .with_memory_settings(Arc::new(MemoryOff));
+    let request = ContextRequest {
+        default_machine: None,
+        capabilities: None,
+        session: SessionId::new("sess_1"),
+        workspace: WorkspaceRef {
+            environment: EnvironmentId::new("local"),
+            root: EnvPath::new("/Users/dev/w"),
+        },
+        agent: None,
+        source: QuerySource::MainThread,
+        mode: PermissionMode::Default,
+        tool_names: Vec::new(),
+        selection: ModelSelection {
+            provider: "anthropic".to_owned(),
+            model: "claude-opus-5-5".to_owned(),
+            reasoning: None,
+            connection: None,
+        },
+        plan_flags: Default::default(),
+        mcp: None,
+    };
+    let history = [Message::User(UserMessage {
+        id: MessageId::new("u"),
+        content: vec![ContentBlock::Text {
+            text: "hi".to_owned(),
+        }],
+        origin: UserOrigin::Human,
+    })];
+    let built = context.build(request, &history).await.unwrap();
+    assert!(
+        built
+            .system
+            .iter()
+            .all(|block| !block.text.contains("persistent file-based memory"))
+    );
+    assert!(
+        built
+            .attachments
+            .iter()
+            .all(|attachment| { !attachment.text.contains("MEMORY.md") })
+    );
 }
 
 #[tokio::test]

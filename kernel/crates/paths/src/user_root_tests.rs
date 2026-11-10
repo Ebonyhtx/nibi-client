@@ -43,10 +43,7 @@ fn default_storage_locations_match_the_current_formulas() {
             os(paths.artifacts().as_path()),
             os(&root.join("cli/artifacts"))
         );
-        assert_eq!(
-            os(paths.memory_dir("/work/repo").as_path()),
-            os(&root.join("projects").join("-work-repo").join("memory"))
-        );
+        assert_eq!(os(paths.cli_root().as_path()), os(&root.join("cli")));
         assert_eq!(
             os(paths.task_list("s1").as_path()),
             os(&root.join("tasks").join("s1.json"))

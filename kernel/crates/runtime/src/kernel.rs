@@ -1023,6 +1023,16 @@ impl Kernel for LocalKernel {
         Ok(())
     }
 
+    /// Host 在会话物化时给的记忆开关：context 与会话 actor 共用的表。
+    async fn set_session_memory_enabled(
+        &self,
+        session: &SessionId,
+        enabled: bool,
+    ) -> Result<(), KernelError> {
+        self.memory.set_enabled(session, enabled);
+        Ok(())
+    }
+
     /// Host 在会话物化时给的三项执行偏好：存在本机执行环境的表里，查询（工具搜索）与 Bash
     /// （集成 Shell、增强 Find/Grep）各自按会话读。远端执行环境没有这张表时什么都不做。
     async fn set_session_execution_preferences(

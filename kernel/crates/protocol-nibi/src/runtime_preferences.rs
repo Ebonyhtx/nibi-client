@@ -9,8 +9,8 @@
 //!   （按会话存进本机执行环境，查询与 Bash 各自读）；
 //! - `integratedTerminalShell` → 设置页「集成终端 Shell」（`user-execution` 档，Node 也只在这个档位给）。
 //!
-//! 其余（`memoryEnabled` / `subagentRuntimeConfigEnabled`）在 Rust 里没有会话级开关：memory 只有
-//! 入站命令上的字段、子代理配置在内核依赖里闭环。它们不出现在这里，免得记一份永远不生效的偏好。
+//! `memoryEnabled` 是会话级记忆开关（`Kernel::set_session_memory_enabled`）；`subagentRuntimeConfigEnabled`
+//! 仍在内核依赖里闭环，不出现在这里。
 //!
 //! 没有 Host（纯 CLI/TUI）或对端不认识这个方法时立刻回退到内核缺省（Node 对 `-32601`/`-32020`
 //! 的兼容回退同一姿态）；超时只告警，不拦打开。
@@ -39,6 +39,8 @@ const LIMIT: Duration = Duration::from_secs(15);
 pub struct StartupPreferences {
     pub auto_resolution: Option<bool>,
     pub additional_directories: Vec<EnvPath>,
+    /// NIBI 设置页「工作区记忆」；缺省（旧 Host / CLI）按开启。
+    pub memory_enabled: Option<bool>,
     pub execution: SessionExecutionPreferences,
 }
 
@@ -59,6 +61,7 @@ pub fn parse(value: &Value) -> StartupPreferences {
                     .collect()
             })
             .unwrap_or_default(),
+        memory_enabled: value.get("memoryEnabled").and_then(Value::as_bool),
         execution: SessionExecutionPreferences {
             tool_search: value
                 .get("toolSearchMode")
