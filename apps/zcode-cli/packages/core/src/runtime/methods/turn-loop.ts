@@ -10,7 +10,7 @@ import {
   TurnMachineImpl,
 } from "../deps.js";
 import {
-  buildRuntimeModeReminderBody,
+  buildRuntimeModeReminderBodyForTask,
   buildPlanModeExitReminderBody,
   buildRuntimeOutputStyleReminderBody,
   buildTodoReminderBody,
@@ -138,11 +138,12 @@ export async function runRegularTurnLoop(
     }
     const runtimeModeReminderBody = outputTokenRecoveryActive
       ? null
-      : buildRuntimeModeReminderBody(
-          state.turnRequestState.entries,
-          this.getMode(),
-          this.getPlanEnabled(),
-        );
+      : buildRuntimeModeReminderBodyForTask(state.turnRequestState.entries, {
+          mode: this.getMode(),
+          planEnabled: this.getPlanEnabled(),
+          taskType: this.config.taskType,
+          tools,
+        });
     if (runtimeModeReminderBody) {
       commitTurnRequestEntries(this, state.turnRequestState, [
         systemReminderAttachmentEntry("runtime_mode", runtimeModeReminderBody),

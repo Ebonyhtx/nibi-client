@@ -32,6 +32,9 @@ function harness(
     deferredBroker?: PermissionBrokerPort;
     hookInput?: unknown;
     permissionHookInput?: unknown;
+    /** Hook 只给上下文、不做 allow/ask 裁决（用于测试权限判定本身）。 */
+    neutralHook?: boolean;
+    planEnabled?: boolean;
     timeoutMs?: number;
     validateInput?: ToolEntry["validateInput"];
     prepareApproval?: ToolEntry["prepareApproval"];
@@ -67,8 +70,12 @@ function harness(
   let cwd = "/workspace/original";
   const hooks = vi.fn(async (input: unknown) => ({
     additionalContexts: [],
-    permissionBehavior:
-      options.permissionHookInput === undefined ? ("allow" as const) : ("ask" as const),
+    ...(options.neutralHook
+      ? {}
+      : {
+          permissionBehavior:
+            options.permissionHookInput === undefined ? ("allow" as const) : ("ask" as const),
+        }),
     ...((input as { hookEventName?: string }).hookEventName === "PreToolUse" &&
     options.hookInput !== undefined
       ? { updatedInput: options.hookInput }
@@ -95,6 +102,11 @@ function harness(
     getWorkingDirectory: () => cwd,
     sessionId: createSessionId("guarded"),
     permissionService: new PermissionService(),
+    sessionModePort: {
+      getMode: () => mode,
+      getPrePlanMode: () => undefined,
+      isPlanEnabled: () => options.planEnabled === true,
+    } as never,
     permissionTimeoutMs: options.timeoutMs,
     sessionStore: {
       getSession: async () => ({ projectID: "guarded-project" }),
@@ -649,5 +661,76 @@ describe("Guarded executor authorization boundary", () => {
     expect(result.success).toBe(false);
     expect(result.error?.type).toBe(CoreErrorType.ToolExecutionFailed);
     expect(h.handler).not.toHaveBeenCalled();
+  });
+
+  // 修复原因：guarded 单次确认曾带 !planEnabled，Plan 开着时被整段跳过，之后又按 guarded 放行；
+  // 能通过 Plan 闸门的工具一旦带危险命令规则就会免确认执行。
+  it("keeps the guarded user-once confirmation under Plan even when PreToolUse allows", async () => {
+    const h = harness({
+      mode: "guarded",
+      planEnabled: true,
+      // 默认 hook 对 PreToolUse 返回 allow；单次确认必须在 hook 裁决之前就成立。
+      resolvePermissionCapability: () => ({
+        destructive: false,
+        needsApproval: true,
+        permission: {
+          denyPriority: "beforeAsk",
+          needsApproval: true,
+          permission: "mcp",
+          reason: "MCP tool executes through an external server",
+          riskLevel: "medium",
+          sideEffectScope: "network",
+        },
+        readOnly: false,
+        riskLevel: "medium",
+        sideEffectScope: "network",
+        userApprovalRule: "safety.test.rule",
+      }),
+    });
+    const pending = h.execute("echo fixture");
+    await vi.waitFor(() => expect(h.broker.listPendingRequests()).toHaveLength(1));
+    expect(h.requests[0]).toMatchObject({
+      approvalMode: "user-once",
+      ruleId: "safety.test.rule",
+      suggestedPermissionUpdates: [],
+    });
+    expect(h.handler).not.toHaveBeenCalled();
+    expect(h.broker.resolvePermission(h.requests[0]!.requestId, { decision: "allow" })).toBe(true);
+    expect((await pending).success).toBe(true);
+    expect(h.handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("carries the no-always-allow policy from a Plan MCP ask into broker and event", async () => {
+    const h = harness({
+      mode: "build",
+      planEnabled: true,
+      neutralHook: true,
+      resolvePermissionCapability: () => ({
+        destructive: false,
+        needsApproval: true,
+        permission: {
+          denyPriority: "beforeAsk",
+          needsApproval: true,
+          permission: "mcp",
+          reason: "MCP tool executes through an external server",
+          riskLevel: "medium",
+          sideEffectScope: "network",
+        },
+        readOnly: false,
+        riskLevel: "medium",
+        sideEffectScope: "network",
+      }),
+    });
+    const pending = h.execute("echo fixture");
+    await vi.waitFor(() => expect(h.broker.listPendingRequests()).toHaveLength(1));
+    expect(h.requests[0]).toMatchObject({
+      optionsPolicy: "no-always-allow",
+      ruleId: "mode.plan.mcp",
+    });
+    expect(
+      h.events.filter((event) => event.type === SessionEventType.PermissionRequested),
+    ).toMatchObject([{ payload: { optionsPolicy: "no-always-allow" } }]);
+    expect(h.broker.resolvePermission(h.requests[0]!.requestId, { decision: "deny" })).toBe(true);
+    expect((await pending).success).toBe(false);
   });
 });

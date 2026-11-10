@@ -4,12 +4,10 @@ import {
   SESSION_ENTRY_MODEL_SELECTION,
   parseModelSelectionValue,
 } from "@nibi/contracts";
-import type { SubagentRunOptions } from "@nibi/contracts";
-import { inheritPermissionMode } from "@nibi/contracts";
+import type { CollaborationMode, SubagentRunOptions } from "@nibi/contracts";
+import { inheritPermissionMode, restrictPermissionMode } from "@nibi/contracts";
 import {
   defaultScheduler,
-  PermissionService,
-  defaultPermissionConfig,
   buildExploreAllowedTools,
   buildExploreAgentPrompt,
   createExploreSubagentPort,
@@ -176,7 +174,7 @@ export function createDefaultSubagentPort(
         const childMode = resolveSubagentPermissionMode(
           this.getPlanEnabled() ? "plan" : this.config.mode,
           request.permissionMode,
-          builtInExplore,
+          request.profile.permissionModeRestrictOnly === true,
         );
         const childCuaPolicy = createOfficialCuaPolicy(
           officialCuaServerNames,
@@ -337,10 +335,9 @@ export function createDefaultSubagentPort(
               parentToolCallId,
               enqueue: (input) => this.enqueueSubagentMessage(input),
             }),
-            // Explore 使用独立只读权限配置；general-purpose 和自定义 agent 继承父权限服务。
-            permissionService: builtInExplore
-              ? new PermissionService(defaultPermissionConfig)
-              : this.permissionService,
+            // 修复原因：Explore 曾新建默认配置的权限服务，父会话的 allowedTools、disallowedTools 和
+            // 会话内授权都不生效。所有子会话（含 Explore）都继承父会话的权限服务。
+            permissionService: this.permissionService,
             toolScheduler: deps.toolScheduler ?? defaultScheduler,
             executionPort: deps.executionPort,
             fileSystemPort: deps.fileSystemPort,
@@ -538,21 +535,29 @@ function createSubagentOverrideModelFactory(
 function resolveSubagentPermissionMode(
   parentMode: AgentRuntimeInternal["config"]["mode"],
   permissionMode: ExploreSubagentRuntimeRequest["permissionMode"],
-  builtInExplore: boolean,
+  restrictOnly: boolean,
 ): AgentRuntimeInternal["config"]["mode"] {
+  // 修复原因：插件 profile 按用户级解析，声明 bypassPermissions 时父会话 build 的子会话
+  // 也会变成 yolo，模型生成的命令全部免审批。插件声明只能收紧：取父会话与声明中更严格的一个。
+  // 父会话未设置模式时按 build 比较，与 getMode 的默认值一致。
+  const applyDeclared = (mode: CollaborationMode): CollaborationMode =>
+    restrictOnly ? restrictPermissionMode(parentMode ?? "build", mode) : mode;
   switch (permissionMode) {
     case "bypassPermissions":
     case "dontAsk":
-      return inheritPermissionMode(parentMode, "yolo");
+      return applyDeclared(inheritPermissionMode(parentMode, "yolo"));
     case "acceptEdits":
-      return "edit";
+      return applyDeclared("edit");
     case "auto":
-      return "auto";
+      return applyDeclared("auto");
     case "plan":
-      return "plan";
+      return applyDeclared("plan");
     case "default":
     case undefined:
-      return inheritPermissionMode(parentMode, builtInExplore ? "yolo" : parentMode);
+      // 修复原因：内置 Explore 曾在这里固定为 yolo，只靠 prompt 约束只读；提示注入后模型可经
+      // Agent(Explore) 在 build 或 Plan 父会话下免审批执行任意 Bash。现在与其他 profile 一样继承
+      // 父会话模式与 Plan 状态，Bash 是否只读交给 shell AST 判定。
+      return parentMode;
     default:
       return parentMode;
   }
