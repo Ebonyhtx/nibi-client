@@ -4,8 +4,8 @@
 
 use nibi_kernel_api::abort::{Abort, AbortReason};
 use nibi_kernel_api::hooks::HookOutcome;
-use nibi_kernel_api::ids::{CommandId, InteractionId, OperationId};
-use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
+use nibi_kernel_api::ids::{CommandId, InteractionId, MessageId, OperationId};
+use nibi_kernel_api::message::{ContentBlock, Message, Usage, UserMessage, UserOrigin};
 use nibi_kernel_api::metering::{CallStatus, Metered, ModelCall, OutputSpeed};
 use nibi_kernel_api::model::QuerySource;
 use nibi_kernel_api::orchestration::{
@@ -46,6 +46,39 @@ pub(crate) fn output_speed(call: &ModelCall) -> Option<OutputSpeed> {
     (call.source == QuerySource::MainThread)
         .then(|| OutputSpeed::of(call))
         .flatten()
+}
+
+/// 本回合所有主回合模型请求的用量合计（Node `recordMainTurnCacheHitUsage` 的口径）：
+/// 不是最后一条 assistant 的用量。一个回合里可能有工具轮，多次请求都要算进累计缓存命中率；
+/// 只取最后一条会把冷启动的第一次大请求漏掉，把命中率虚高。找不到开启本回合的 user 消息时
+/// （压缩/控制轮等）退回旧行为：最后一条带用量的 assistant。
+pub(crate) fn turn_usage(messages: &[Message], prompt: Option<&MessageId>) -> Option<Usage> {
+    let Some(start) =
+        prompt.and_then(|prompt| messages.iter().position(|message| message.id() == prompt))
+    else {
+        return messages.iter().rev().find_map(|message| match message {
+            Message::Assistant(assistant) => assistant.usage,
+            _ => None,
+        });
+    };
+    let mut total = Usage::default();
+    let mut found = false;
+    for message in &messages[start + 1..] {
+        if let Message::Assistant(assistant) = message
+            && let Some(usage) = assistant.usage
+        {
+            total.input_tokens = total.input_tokens.saturating_add(usage.input_tokens);
+            total.output_tokens = total.output_tokens.saturating_add(usage.output_tokens);
+            total.cache_creation_input_tokens = total
+                .cache_creation_input_tokens
+                .saturating_add(usage.cache_creation_input_tokens);
+            total.cache_read_input_tokens = total
+                .cache_read_input_tokens
+                .saturating_add(usage.cache_read_input_tokens);
+            found = true;
+        }
+    }
+    found.then_some(total)
 }
 
 /// 成批进同一个回合的一条后续输入（修复线 L-A，query.md §4.3）。
@@ -532,14 +565,7 @@ impl Actor {
                 tracing::warn!(%reason, "the turn usage could not be stored");
             }
         }
-        let usage = self
-            .messages
-            .iter()
-            .rev()
-            .find_map(|message| match message {
-                Message::Assistant(assistant) => assistant.usage,
-                _ => None,
-            });
+        let usage = turn_usage(&self.messages, running.prompt.as_ref());
         // 每轮结束算一次上下文分项（与 `/context` 同一个分析器）：contextUsage 面板的消息/系统/
         // 工具/MCP/技能占比从这里来。分析失败只少分项，不改回合结果。
         if let Some(source) = self.deps.context_usage.clone() {
@@ -624,6 +650,10 @@ impl Actor {
 
 #[path = "turn_interact.rs"]
 mod interact;
+
+#[cfg(test)]
+#[path = "turn_usage_tests.rs"]
+mod turn_usage_tests;
 
 #[cfg(test)]
 #[path = "write_failure_tests.rs"]
