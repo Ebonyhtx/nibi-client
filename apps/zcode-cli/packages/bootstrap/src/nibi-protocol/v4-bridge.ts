@@ -1464,7 +1464,9 @@ export function createConversationV4Gateway(
   };
   return new ConversationV4Gateway({
     cliVersion: context.deps.version,
-    sessionExists: (sessionId) => context.sessions.has(sessionId),
+    isSessionStopping: (sessionId) => context.sessionLifecycle?.isStopping(sessionId) ?? false,
+    sessionExists: (sessionId) =>
+      context.sessions.has(sessionId) && (context.sessionLifecycle?.isReady(sessionId) ?? true),
     reconcileSessions: async ({ workspaceId, sessionIds }) => {
       const store = context.deps.sessionStore;
       if (!store) throw new Error("Session store is unavailable");

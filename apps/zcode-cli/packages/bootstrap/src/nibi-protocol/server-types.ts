@@ -156,6 +156,8 @@ export interface NibiProtocolAgentServerContext {
   // 单 CLI resident session 池。冷恢复入口经 waitForDeactivation 等待旧 app.close 收尾，
   // 协议请求则持有 operation lease，禁止异步 handler 与容量回收交错。
   sessionResidentPool?: SessionResidentPool;
+  // 单个 session 运行实例的生命周期 owner；与 resident pool 分离，pool 只决定何时回收。
+  sessionLifecycle?: import("../session-lifecycle/index.js").SessionLifecycleController;
   sessions: Map<string, NibiProtocolSessionRecord>;
   /** 仅覆盖异步创建窗口，结束即释放；输入命令仍由 CommandInbox 排队。 */
   sessionCreationIds?: Set<string>;
@@ -325,6 +327,13 @@ export function requireSession(
   sessionId: string,
   options: { deliveryKind?: ZCodeDeliveryKind; operation?: string } = {},
 ): NibiProtocolSessionRecord {
+  if (context.sessionLifecycle && !context.sessionLifecycle.isReady(sessionId)) {
+    throw new ProtocolRequestError(
+      nibiProtocolErrorCodes.sessionUnavailable,
+      "Session runtime is not ready",
+      { code: "runtimeNotReady" },
+    );
+  }
   const record = context.sessions.get(sessionId);
   if (!record) {
     // 诊断：readSession 只读取活跃 runtime；记录缺失时要区分“冷会话尚未恢复”和“ID 已失效”，

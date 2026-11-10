@@ -101,6 +101,7 @@ export function createFakeApp(
         foregroundPromotionLeaseId = leaseId;
         return { kind: "acquired", leaseId };
       },
+      beginShutdown: () => undefined,
       emitModelSelected: async () => undefined,
       getProjection: async () =>
         ({

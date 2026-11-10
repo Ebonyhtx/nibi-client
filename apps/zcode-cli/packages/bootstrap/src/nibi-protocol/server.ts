@@ -1,3 +1,8 @@
+import {
+  sessionLifecycleActivationParamsSchema,
+  sessionLifecycleParamsSchema,
+  sessionLifecycleSnapshotSchema,
+} from "@nibi/shared";
 import { querySessionDebug } from "./session-debug.js";
 import { createNodeNetworkCapture } from "@nibi/shared/node";
 import { networkCaptureControlSchema, nibiProtocolNotifications } from "@nibi/shared";
@@ -119,7 +124,11 @@ import {
   resolveV4InteractionRegistryOptionsFromEnv,
 } from "../nibi-protocol-v4/interaction-registry.js";
 import { createConversationV4Gateway } from "./v4-bridge.js";
-import { createSessionResidentPoolHost } from "./session-residency.js";
+import {
+  createSessionResidentPoolHost,
+  getSessionLifecycle,
+  shutdownSessionRuntime,
+} from "./session-residency.js";
 import {
   DEFAULT_SESSION_RESIDENT_HIGH_WATER_COUNT,
   SessionResidentPool,
@@ -420,7 +429,11 @@ export class NibiProtocolAgentServer {
   /** 进程资源关闭，不使用会删除产品会话/发布 session.removed 的 session/close。 */
   shutdown(): Promise<void> {
     if (this.shutdownPromise) return this.shutdownPromise;
-    this.shutdownPromise = this.runtimeResources.close();
+    // abort listener 可以同步重入；在通知任何 owner 前先占有同一个关闭结果。
+    const shutdown = Promise.withResolvers<void>();
+    this.shutdownPromise = shutdown.promise;
+    const closingResources = this.runtimeResources.close();
+    const closingSessions: Promise<void>[] = [];
     const error = new Error("NIBI Protocol runtime stopping");
     this.disconnectClient(error);
     this.messageSink = undefined;
@@ -430,6 +443,10 @@ export class NibiProtocolAgentServer {
       controller.abort(error);
     for (const record of this.context.sessions.values()) {
       record.activeAbortController?.abort(error);
+      if (getSessionLifecycle(this.context).isReady(record.app.sessionId)) {
+        closingSessions.push(shutdownSessionRuntime(this.context, record.app.sessionId));
+        continue;
+      }
       try {
         record.unsubscribe?.();
       } catch {
@@ -438,6 +455,14 @@ export class NibiProtocolAgentServer {
         });
       }
     }
+    void Promise.allSettled([closingResources, ...closingSessions]).then((results) => {
+      const errors = results.flatMap((result) =>
+        result.status === "rejected" ? [result.reason] : [],
+      );
+      if (errors.length)
+        shutdown.reject(new AggregateError(errors, "Protocol runtime shutdown failed"));
+      else shutdown.resolve();
+    });
     return this.shutdownPromise;
   }
 
@@ -509,9 +534,16 @@ export class NibiProtocolAgentServer {
       // subscribe hydration、workspace 配置与 resume 都可能跨 await。若只看
       // session 当前状态，sampler 会在 handler 持有旧 record 时把它关闭。进程级 lease
       // 覆盖整个 request；能识别的 sessionIds 额外用于冷恢复闸门与 LRU touch。
-      releaseResidencyOperation = await this.context.sessionResidentPool?.acquireOperation(
-        collectResidencySessionIds(request.params),
-      );
+      const lifecycleQuery = request.method === nibiProtocolMethods.sessionLifecycleGetState;
+      const lifecycleMutation =
+        request.method === nibiProtocolMethods.sessionLifecycleEnsureReady ||
+        request.method === nibiProtocolMethods.sessionLifecycleStop ||
+        request.method === nibiProtocolMethods.sessionLifecycleRestart;
+      // 查询不能续期或触发回收。生命周期变更使用进程 lease，按 session 的互斥由 owner 管理。
+      if (!lifecycleQuery)
+        releaseResidencyOperation = await this.context.sessionResidentPool?.acquireOperation(
+          lifecycleMutation ? undefined : collectResidencySessionIds(request.params),
+        );
       const result = await this.dispatchRequest(request);
       return this.ok(request.id, result);
     } catch (error) {
@@ -638,6 +670,29 @@ export class NibiProtocolAgentServer {
         return this.requireV4Gateway().reconcileSessions(request.params);
       case nibiProtocolMethods.sessionCreate:
         return await createSession(this.context, request.params, request.trace);
+      case nibiProtocolMethods.sessionLifecycleGetState: {
+        const { sessionId } = parseParams(sessionLifecycleParamsSchema, request.params);
+        return sessionLifecycleSnapshotSchema.parse(
+          await getSessionLifecycle(this.context).getState(sessionId),
+        );
+      }
+      case nibiProtocolMethods.sessionLifecycleStop: {
+        const { sessionId } = parseParams(sessionLifecycleParamsSchema, request.params);
+        await getSessionLifecycle(this.context).stop(sessionId);
+        return { completed: true as const };
+      }
+      case nibiProtocolMethods.sessionLifecycleEnsureReady:
+      case nibiProtocolMethods.sessionLifecycleRestart: {
+        const { sessionId, workspace } = parseParams(
+          sessionLifecycleActivationParamsSchema,
+          request.params,
+        );
+        const lifecycle = getSessionLifecycle(this.context);
+        if (request.method === nibiProtocolMethods.sessionLifecycleEnsureReady)
+          await lifecycle.ensureReady(sessionId, workspace);
+        else await lifecycle.restart(sessionId, workspace);
+        return { completed: true as const };
+      }
       case nibiProtocolMethods.sessionResume:
         return await resumeSession(this.context, request.params);
       case nibiProtocolMethods.sessionList:
@@ -786,7 +841,11 @@ export class NibiProtocolAgentServer {
       case nibiProtocolMethods.processChildProcesses:
         return listChildProcesses(this.context.deps.mcpTelemetry?.listProcesses() ?? []);
       case nibiProtocolMethods.runtimeCapabilities:
-        return { independentPlanState: true, historyFirst: true };
+        return {
+          sessionLifecycleWorkspace: true,
+          independentPlanState: true,
+          historyFirst: true,
+        };
       case nibiProtocolMethods.pluginsMarketplaceAdd:
         return await this.withPluginOperationSignal(request, (signal) =>
           addPluginMarketplace(this.context, request.params, signal),

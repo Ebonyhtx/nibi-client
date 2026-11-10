@@ -2,6 +2,7 @@ import {
   isAuxiliarySessionKind,
   isReadonlyAgentSessionKind,
 } from "@nibi/shared";
+import { isAbsolute, resolve } from "node:path";
 /* eslint-disable max-lines -- NIBI Protocol 的 session/workspace 方法共享同一个 server context 与 snapshot helpers，迁移期先集中维护。 */
 import { observeSessionDebug } from "./session-debug.js";
 import {
@@ -129,9 +130,13 @@ import {
   projectSessionSubagents,
 } from "./subagent-session-query.js";
 import { runSessionModelConfigMutation } from "../nibi-protocol-v4/model-config-mutation.js";
-import { runWithSessionResidencyFinalization } from "./session-residency.js";
+import {
+  runWithSessionResidencyFinalization,
+  getSessionLifecycle,
+  closeSessionRuntime,
+  discardSessionRuntime,
+} from "./session-residency.js";
 import { resolveDynamicWorkflowRuntimeGate } from "./dynamic-workflow-policy.js";
-import { abortMcpUiToolCallsForSession, clearMcpUiAppToolsForSession } from "./mcp-ui/index.js";
 
 const PLAN_MODE_GOAL_CONTINUATION_SKIPPED_MESSAGE = "Plan mode 下已记录 goal，但不会自动继续。";
 const SLOW_SNAPSHOT_LOG_THRESHOLD_MS = 1000;
@@ -1281,7 +1286,16 @@ async function createSessionWithProjection<T>(
   try {
     if (await context.deps.sessionStore?.getSession(sessionId))
       throw new ProtocolRequestError(-32602, "sessionId already exists");
-    return await materializeCreatedSession(context, { ...params, sessionId }, trace, project);
+    let result!: T;
+    await getSessionLifecycle(context).initialize(
+      sessionId,
+      async () => {
+        result = await materializeCreatedSession(context, { ...params, sessionId }, trace, project);
+      },
+      params.workspace,
+      "create",
+    );
+    return result;
   } finally {
     claims.delete(sessionId);
   }
@@ -1418,21 +1432,9 @@ async function materializeCreatedSession<T>(
       workspaceKey: workspace.workspaceKey,
       workspacePath: workspace.workspacePath,
     });
-    // draft 创建会用用户上次选择的模型作为启动种子。
-    // 如果该模型已被删除，失败的 record 不能留在 context.sessions：
-    // 后续 workspace 状态继续读到这个半初始化 app，造成模型/思考档位串台。
-    record.unsubscribe?.();
-    // v4 通道：创建期已 ingest 的事件会惰性建出 publisher，失败清理时一并回收。
-    // 创建失败只释放运行态，不把它宣告为 CLI 已持久化的软删除。
+    // 新建失败不保留临时投影；恢复失败的历史投影则由 gateway 自己管理。
     context.v4Gateway?.disposeSession(sessionId);
-    context.sessions.delete(sessionId);
-    try {
-      await record.app.close?.();
-    } catch {
-      // 保留原始 create 失败原因；close 只是清理半初始化 runtime 的 best-effort 动作。
-    }
-    // 内存 event store 随 record 释放。
-    await record.eventStore.deleteSession(sessionId as SessionId).catch(() => undefined);
+    // 生命周期 owner 统一清理半初始化实例；不能吞掉 close 失败后允许再次创建。
     throw error;
   }
 }
@@ -1451,14 +1453,7 @@ export async function discardFailedSessionResume(
   record: NibiProtocolSessionRecord,
 ): Promise<void> {
   if (context.sessions.get(sessionId) !== record) return;
-  record.unsubscribe?.();
-  context.sessions.delete(sessionId);
-  try {
-    await record.app.close?.();
-  } catch {
-    /* 保留原始恢复错误。 */
-  }
-  await record.eventStore.deleteSession(sessionId as SessionId).catch(() => undefined);
+  await discardSessionRuntime(context, sessionId);
 }
 
 /**
@@ -1473,6 +1468,25 @@ export async function activateSessionForResume(
   params: ZCodeSessionResumeParams,
   options: { reusePersistedMessages?: boolean; persistedMessages?: MessageWithParts[] } = {},
 ): Promise<ActivatedSessionForResume> {
+  let activated: ActivatedSessionForResume | undefined;
+  await getSessionLifecycle(context).initialize(
+    params.sessionId,
+    async () => {
+      activated = await activateSessionRuntime(context, params, options);
+    },
+    params.workspace,
+  );
+  const record = activated?.record ?? context.sessions.get(params.sessionId);
+  if (!record) throw new Error("Session runtime unavailable after initialization");
+  return activated ?? { record };
+}
+
+/** 生命周期 owner 专用的初始化执行面；外部恢复必须调用 activateSessionForResume。 */
+export async function activateSessionRuntime(
+  context: NibiProtocolAgentServerContext,
+  params: ZCodeSessionResumeParams,
+  options: { reusePersistedMessages?: boolean; persistedMessages?: MessageWithParts[] } = {},
+): Promise<ActivatedSessionForResume> {
   const resumeStartedAt = Date.now();
   const activeBeforeWait = context.sessions.has(params.sessionId);
   context.logger?.debug("NIBI Protocol session resume started", {
@@ -1482,9 +1496,6 @@ export async function activateSessionForResume(
     module: "bootstrap.nibi_protocol",
     sessionId: params.sessionId,
   });
-  // 再激活闸门：该 session 正在容量去激活（app.close 收尾未完成）时先等待，
-  // 防止新旧 app 对同一 session 资源交错读写。无 in-flight 时立即返回。
-  await context.sessionResidentPool?.waitForDeactivation(params.sessionId);
   const existing = context.sessions.get(params.sessionId);
   if (existing) {
     return { record: existing };
@@ -1552,37 +1563,32 @@ export async function activateSessionForResume(
   record.lastOutcome = session.lastOutcome;
   context.assertServing?.();
   context.sessions.set(params.sessionId, record);
-  try {
-    const resumeResult = await runSessionModelConfigMutation(record.app, async () => {
-      const result = options.reusePersistedMessages
-        ? await record.app.resume({ persistedMessages })
-        : await record.app.resume();
-      // 仅用于首次投影种子，包含有效模型+空档位；它不是第二份可执行 Runtime 选择。
-      record.restoredModelSelection = result.modelSelection;
-      return result;
-    });
-    if (options.reusePersistedMessages && resumeResult.persistedMessagesReloadRequired) {
-      persistedMessages = await readPersistedSessionMessages(context, params.sessionId);
-    }
-    context.logger?.info("NIBI Protocol session resume completed", {
-      activeSessionCount: context.sessions.size,
-      durationMs: Math.max(0, Date.now() - resumeStartedAt),
-      event: "nibi_protocol.session.resume_completed",
-      module: "bootstrap.nibi_protocol",
-      persistedMessageCount: persistedMessages.length,
-      sessionId: params.sessionId,
-      traceId: record.traceContext.traceId,
-    });
-    return {
-      knownSession: session,
-      record,
-      ...(options.reusePersistedMessages ? { persistedMessages } : {}),
-    };
-  } catch (error) {
-    // resume 入册后失败曾留下半初始化 app，重试误判已就绪；只回收本次 record，保留历史投影。
-    await discardFailedSessionResume(context, params.sessionId, record);
-    throw error;
+  const resumeResult = await runSessionModelConfigMutation(record.app, async () => {
+    const result = options.reusePersistedMessages
+      ? await record.app.resume({ persistedMessages })
+      : await record.app.resume();
+    // 仅用于首次投影种子，包含有效模型+空档位；它不是第二份可执行 Runtime 选择。
+    record.restoredModelSelection = result.modelSelection;
+    return result;
+  });
+  if (options.reusePersistedMessages && resumeResult.persistedMessagesReloadRequired) {
+    persistedMessages = await readPersistedSessionMessages(context, params.sessionId);
   }
+  context.logger?.info("NIBI Protocol session resume completed", {
+    activeSessionCount: context.sessions.size,
+    durationMs: Math.max(0, Date.now() - resumeStartedAt),
+    event: "nibi_protocol.session.resume_completed",
+    module: "bootstrap.nibi_protocol",
+    persistedMessageCount: persistedMessages.length,
+    sessionId: params.sessionId,
+    traceId: record.traceContext.traceId,
+  });
+  context.assertServing?.();
+  return {
+    knownSession: session,
+    record,
+    ...(options.reusePersistedMessages ? { persistedMessages } : {}),
+  };
 }
 
 export async function resumeSession(context: NibiProtocolAgentServerContext, rawParams: unknown) {
@@ -1686,6 +1692,60 @@ function resolveLegacyRemoteWorkspace(
     workspaceIdentity: embeddedIdentity as WorkspaceId,
     workspacePath: embedded.workspacePath,
   };
+}
+
+async function resolvePersistedDirectorySession(
+  context: NibiProtocolAgentServerContext,
+  session: SessionInfo,
+  workspace: ZCodeWorkspaceRef,
+): Promise<SessionInfo | null> {
+  const expectedKey = workspace.workspaceIdentity?.trim() || workspace.workspacePath;
+  const visited = new Set<string>();
+  let current: SessionInfo | null = session;
+  while (current && current.time.deleted === undefined && !visited.has(current.id)) {
+    visited.add(current.id);
+    const identity = current.workspaceID?.trim();
+    const path = current.path || current.directory;
+    const key = identity || path;
+    const auxiliary = isAuxiliarySessionKind(current.taskType);
+    // 旧 root 曾保存规范化 cwd；只在目标 OS 的绝对路径词法等价时兼容，绝不重写身份 key。
+    const samePath =
+      path === workspace.workspacePath ||
+      (isAbsolute(path) &&
+        isAbsolute(workspace.workspacePath) &&
+        resolve(path) === resolve(workspace.workspacePath));
+    const sameIdentity =
+      key === expectedKey || (!identity && !workspace.workspaceIdentity?.trim() && samePath);
+    if (samePath && sameIdentity) return current;
+    // 历史 child 的执行 cwd 不能否定完整父链；显式身份、缺父、删除、环仍不能跨归属。
+    if (!auxiliary || !current.parentID || (identity && (!sameIdentity || !samePath))) return null;
+    current = (await context.deps.sessionStore?.getSession(current.parentID)) ?? null;
+  }
+  return null;
+}
+
+/** 激活前验证既有会话归属；restart 必须在释放旧实例之前调用。 */
+export async function validateSessionActivationWorkspace(
+  context: NibiProtocolAgentServerContext,
+  sessionId: string,
+  workspace?: ZCodeWorkspaceRef,
+): Promise<void> {
+  if (!workspace) return; // 旧协议调用仍由持久记录提供上下文。
+  const active = context.sessions.get(sessionId);
+  if (active) {
+    // key 相同不保证显式 identity 相同；与在途操作一样逐字段校验，避免错误请求关闭原实例。
+    if (
+      active.workspace.workspaceKey !== workspace.workspaceKey ||
+      active.workspace.workspacePath !== workspace.workspacePath ||
+      active.workspace.workspaceIdentity !== workspace.workspaceIdentity ||
+      active.workspace.remoteSessionId !== workspace.remoteSessionId
+    )
+      throw new Error("project.session-lineage-invalid");
+    return;
+  }
+  const session = await getPersistedSession(context, sessionId);
+  if (!session || !(await resolvePersistedDirectorySession(context, session, workspace)))
+    throw new Error("project.session-lineage-invalid");
 }
 
 export async function listSessions(context: NibiProtocolAgentServerContext, rawParams: unknown) {
@@ -2339,6 +2399,34 @@ export async function forkSession(context: NibiProtocolAgentServerContext, rawPa
  * 但不会进入 forkSession 的 active-turn guard / workspace fork；runtimeConfig 可固定在 fork 点。
  */
 export async function registerForkedSession(
+  ...args: Parameters<typeof registerForkedSessionRuntime>
+) {
+  const [context, record, fork] = args;
+  let result: Awaited<ReturnType<typeof registerForkedSessionRuntime>> | undefined;
+  await getSessionLifecycle(context).initialize(
+    fork.forkedSessionId,
+    async () => {
+      result = await registerForkedSessionRuntime(...args);
+    },
+    record.workspace,
+  );
+  if (!result) {
+    // 同一 fork id 的重复登记不重建实例；返回已归属的 record，保持登记幂等。
+    const existing = context.sessions.get(fork.forkedSessionId);
+    if (!existing) throw new Error("Fork runtime already initialized");
+    return {
+      forkedSessionId: fork.forkedSessionId,
+      parentSessionId: fork.parentSessionId,
+      targetMessageId: fork.targetMessageId,
+      targetCheckpointId: fork.targetCheckpointId,
+      response: fork.response,
+      snapshot: await snapshot(context, existing, undefined),
+    };
+  }
+  return result;
+}
+
+async function registerForkedSessionRuntime(
   context: NibiProtocolAgentServerContext,
   record: NibiProtocolSessionRecord,
   fork: Awaited<ReturnType<NibiProtocolSessionRecord["app"]["forkFromCheckpoint"]>>,
@@ -2781,20 +2869,7 @@ export async function closeSession(context: NibiProtocolAgentServerContext, rawP
     // immediate；条件关闭必须在 Agent record 上原子判断，不能依赖 renderer 的旧快照。
     return { closed: false };
   }
-  record.unsubscribe?.();
-  // 会话关闭时 abort 仍在进行的插件 UI 工具调用，登记表不留孤儿。
-  abortMcpUiToolCallsForSession(params.sessionId);
-  // App-Provided Tools：结束本会话全部待执行的页面调用并丢弃登记。
-  clearMcpUiAppToolsForSession(context, params.sessionId);
-  // 清掉本会话全部资源订阅（refcount 归零的 uri 才真正向 server 退订）。
-  await record.app.unsubscribeMcpResourcesForUi?.(`${params.sessionId}|`).catch(() => 0);
-  await record.app.close?.();
-  // v4 通道（M3）：会话关闭同时清 publisher / 订阅调度；重开会话走 snapshot 冷启动。
-  // 关闭运行实例不删除持久化事实，因此必须保留 sessions-index 中的行。
-  context.v4Gateway?.disposeSession(params.sessionId);
-  context.sessions.delete(params.sessionId);
-  // 内存 event store 随 record 释放。
-  await record.eventStore.deleteSession(params.sessionId as SessionId);
+  await closeSessionRuntime(context, params.sessionId);
   return { closed: true };
 }
 

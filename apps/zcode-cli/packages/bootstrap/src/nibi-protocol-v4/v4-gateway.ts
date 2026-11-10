@@ -217,6 +217,8 @@ interface BinaryReadCacheEntry {
 }
 
 export interface V4GatewayHost {
+  /** 正在拆旧实例时，不允许订阅抢先重建 publisher。 */
+  isSessionStopping?(sessionId: string): boolean;
   cliVersion?: string;
   /** 会话是否在宿主注册表中活跃（inbox 的 sessionNotFound 裁决依据）。 */
   sessionExists(sessionId: string): boolean;
@@ -607,6 +609,8 @@ export class ConversationV4Gateway {
     string,
     {
       history: Promise<ConversationTopicPublisher>;
+      messages: Promise<MessageWithParts[]>;
+      finished: Promise<void>;
       start: () => void;
       cancel: () => void;
     }
@@ -691,6 +695,9 @@ export class ConversationV4Gateway {
     this.coldResume = new ColdSessionResumeCoordinator(host);
     this.inbox = new CommandInbox({
       prepareDecision: async (envelope) => {
+        // 重启正在等待旧 inbox 收口，不能让迟到命令反向等待同一个 restart，形成互等。
+        if (envelope.sessionId && this.host.isSessionStopping?.(envelope.sessionId))
+          throw new Error("fault.sessionLifecycle.stopping");
         if (
           envelope.sessionId &&
           (envelope.type === "renameSession" || envelope.type === "deleteSession") &&
@@ -1488,6 +1495,8 @@ export class ConversationV4Gateway {
     if (sessionId === null) {
       throw new Error(`Unsupported topic: ${params.topic}`);
     }
+    if (this.host.isSessionStopping?.(sessionId))
+      throw new Error("fault.sessionLifecycle.stopping");
     const isLiveConversation = this.hasLiveConversation(sessionId);
     this.host.onDebug?.(
       `subscribe conversation session=${sessionId} coldResume=${String(!isLiveConversation)}`,
@@ -2854,6 +2863,21 @@ export class ConversationV4Gateway {
     });
   }
 
+  /** 释放之前等待旧 hydration 真正退出；取消 ready Promise 不等于异步重建已经停止。 */
+  async releaseSessionProjection(sessionId: string): Promise<void> {
+    const opening = this.historyOpenings.get(sessionId);
+    const hydration = this.hydrationInFlight.get(sessionId);
+    this.disposeSession(sessionId);
+    await Promise.allSettled([opening?.history, opening?.finished, hydration]);
+    this.disposeSession(sessionId);
+  }
+
+  /** 旧 runner 的 finally 可能发布过终态；释放屏障后再次清理，不能留给新实例继承。 */
+  async finishSessionRelease(sessionId: string): Promise<void> {
+    await this.inbox.resetReleasedSession(sessionId);
+    this.disposeSession(sessionId);
+  }
+
   /**
    * Resident 回收纯预检：调用方可在拆 runtime event subscription 前拒绝不安全回收。
    * deactivateSession 内仍复用同一校验，防止未来新增调用方绕过执行面 preflight。
@@ -3047,6 +3071,31 @@ export class ConversationV4Gateway {
     }
   }
 
+  /**
+   * 生命周期 owner 只复用历史结果，直接执行实例激活；不能等待投影的激活回调。
+   * 旧实现复用 opening 时丢弃新回调，ensureReady 因而永远等不到 activated。
+   */
+  async prepareSessionHistory(
+    sessionId: string,
+    workspace?: ZCodeWorkspaceRef,
+  ): Promise<MessageWithParts[]> {
+    const history = this.ensureHistoryReadyPublisher(
+      sessionId,
+      undefined,
+      workspace,
+      undefined,
+      this.publishers.get(sessionId)?.getSnapshot().runtimeInitialization?.attemptId,
+    );
+    const opening = this.historyOpenings.get(sessionId);
+    if (!opening) return (await this.host.loadPersistedMessages?.(sessionId)) ?? [];
+    await history;
+    // start 只观察同一生命周期结果，不由调用方等待；无订阅者也会完成投影。
+    opening.start();
+    // 让已登记订阅的历史首帧先进入 outbox，随后 owner 才执行可能同步扫描插件的激活。
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    return opening.messages;
+  }
+
   /** 首帧先落 transport queue，再启动会同步扫描插件的 runtime；重连不重跑失败 hook。 */
   private ensureHistoryReadyPublisher(
     sessionId: string,
@@ -3076,19 +3125,26 @@ export class ConversationV4Gateway {
     this.readyFlights.set(sessionId, ready);
     let messages: MessageWithParts[] | undefined;
     let started = false;
+    const finished = Promise.withResolvers<void>();
+    const persistedMessages = Promise.resolve().then(() =>
+      this.host.loadPersistedMessages!(sessionId),
+    );
     const clear = () => {
       messages = undefined;
       if (this.readyFlights.get(sessionId) === ready) this.readyFlights.delete(sessionId);
       if (this.historyOpenings.get(sessionId) === opening) this.historyOpenings.delete(sessionId);
     };
     const opening = {
+      messages: persistedMessages,
+      finished: finished.promise,
       cancel: () => {
+        if (!started) finished.resolve();
         rejectReady(new Error("cold opening disposed"));
         clear();
       },
-      history: Promise.resolve()
-        .then(async () => {
-          messages = await this.host.loadPersistedMessages!(sessionId);
+      history: persistedMessages
+        .then(async (loadedMessages) => {
+          messages = loadedMessages;
           if (this.disposed || this.historyOpenings.get(sessionId) !== opening)
             throw new Error("cold opening disposed");
           const result = await this.hydratePublisher(sessionId, messages, true);
@@ -3151,6 +3207,7 @@ export class ConversationV4Gateway {
             .finally(() => {
               releaseRuntime?.();
               clear();
+              finished.resolve();
             });
         });
       },

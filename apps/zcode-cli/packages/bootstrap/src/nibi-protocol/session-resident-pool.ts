@@ -228,6 +228,10 @@ export class SessionResidentPool {
     return this.inFlightDeactivations.get(sessionId) ?? Promise.resolve();
   }
 
+  operationCount(sessionId: string): number {
+    return this.operationLeaseCounts.get(sessionId) ?? 0;
+  }
+
   private isEligible(sessionId: string, facts: SessionResidencyFacts): boolean {
     return (
       facts.persisted &&

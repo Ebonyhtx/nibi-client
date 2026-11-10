@@ -4633,7 +4633,10 @@ describe("NibiProtocolAgentServer", () => {
 
     expect(updated.settings.model.current).toEqual({ providerId: "glm", modelId: "glm-4-air" });
     expect(updated.runtime.stateRevision).toBe(created.runtime.stateRevision + 1);
-    expect(notifications).toMatchObject([
+    // 创建现在经生命周期 owner 发布 starting/ready 通知，模型变更通知单独断言。
+    expect(
+      notifications.filter((notification) => notification.method === "state.updated"),
+    ).toMatchObject([
       {
         method: "state.updated",
         params: {
