@@ -11,6 +11,7 @@ pub mod migrations;
 pub mod open;
 mod open_error;
 pub mod run_queries;
+pub mod session_data;
 pub mod sessions;
 pub mod usage;
 

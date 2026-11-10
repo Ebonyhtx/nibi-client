@@ -20,6 +20,8 @@ rusqlite.workspace = true
 nibi-kernel-base.workspace = true
 nibi-kernel-fs.workspace = true
 nibi-kernel-api.workspace = true
+# 项目记忆目录与运行时同一套解析（`cli/memories/projects/<slug>-<hash>`）。
+nibi-kernel-memory.workspace = true
 nibi-kernel-paths.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

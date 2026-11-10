@@ -252,3 +252,25 @@ fn the_node_rename_retry_delays_keep_their_values() {
     let millis: Vec<u128> = NODE_RENAME_RETRY.iter().map(Duration::as_millis).collect();
     assert_eq!(millis, [50, 100, 200, 400, 800]);
 }
+
+#[tokio::test]
+async fn path_bytes_and_remove_path_cover_files_and_directories() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("session");
+    tokio::fs::create_dir_all(root.join("nested"))
+        .await
+        .unwrap();
+    tokio::fs::write(root.join("a.txt"), b"12345").await.unwrap();
+    tokio::fs::write(root.join("nested/b.txt"), b"1234567")
+        .await
+        .unwrap();
+    assert_eq!(path_bytes(&root).await.unwrap(), 12);
+    // 缺失按 0。
+    assert_eq!(path_bytes(&dir.path().join("missing")).await.unwrap(), 0);
+    // 单文件也算长度。
+    assert_eq!(path_bytes(&root.join("a.txt")).await.unwrap(), 5);
+    remove_path(&root).await.unwrap();
+    assert!(!root.exists());
+    // 再删一次是幂等的。
+    remove_path(&root).await.unwrap();
+}

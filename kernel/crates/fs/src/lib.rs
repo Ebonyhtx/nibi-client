@@ -357,3 +357,59 @@ pub async fn subdirectories(path: &Path) -> io::Result<Vec<String>> {
     names.sort();
     Ok(names)
 }
+
+/// 一个路径下真实文件的总字节数（`v4/storage/sessionData/measure` 的会话文件口径）。目录递归，
+/// 符号链接按 0 且不跟随（Node `lstat` + `isSymbolicLink()`），路径不存在按 0。
+pub async fn path_bytes(path: &Path) -> io::Result<u64> {
+    let mut total = 0;
+    let mut pending = vec![path.to_path_buf()];
+    while let Some(current) = pending.pop() {
+        let metadata = match tokio::fs::symlink_metadata(&current).await {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == ErrorKind::NotFound => continue,
+            Err(error) => return Err(error),
+        };
+        if metadata.file_type().is_symlink() {
+            continue;
+        }
+        if metadata.is_dir() {
+            let mut entries = tokio::fs::read_dir(&current).await?;
+            while let Some(entry) = entries.next_entry().await? {
+                pending.push(entry.path());
+            }
+        } else {
+            total += metadata.len();
+        }
+    }
+    Ok(total)
+}
+
+/// 删掉一个文件或整棵目录；路径不存在不算错。符号链接只删链接本身，不跟随（`rm` 的语义）。
+/// 调用方负责在删除前用 [`path_bytes`] 统计字节数（删除后文件不再可测）。
+pub async fn remove_path(path: &Path) -> io::Result<()> {
+    let metadata = match tokio::fs::symlink_metadata(path).await {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    if metadata.file_type().is_symlink() {
+        // Unix 上 remove_file 对文件/目录符号链接都只删链接；Windows 的目录符号链接要 remove_dir，
+        // 先试 remove_file，再按目录链接兜底。
+        #[cfg(unix)]
+        {
+            return tokio::fs::remove_file(path).await;
+        }
+        #[cfg(not(unix))]
+        {
+            return match tokio::fs::remove_file(path).await {
+                Ok(()) => Ok(()),
+                Err(_) => tokio::fs::remove_dir(path).await,
+            };
+        }
+    }
+    if metadata.is_dir() {
+        tokio::fs::remove_dir_all(path).await
+    } else {
+        tokio::fs::remove_file(path).await
+    }
+}

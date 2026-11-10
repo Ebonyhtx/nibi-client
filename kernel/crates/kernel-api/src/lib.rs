@@ -127,6 +127,7 @@ pub mod project_memory;
 pub mod provider;
 pub mod reminder_fold;
 pub mod session_api;
+pub mod session_data;
 pub mod shared_context;
 pub mod session_paths;
 pub mod session_prefs;

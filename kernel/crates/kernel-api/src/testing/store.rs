@@ -97,6 +97,14 @@ pub struct MemoryStore {
     records: Mutex<HashMap<SessionId, Vec<crate::store::FrontendRecord>>>,
     /// 冷读取按 node-store 的形状切分压缩过的会话（[`Self::split_at_compaction`]，工作线 F102）。
     split: std::sync::atomic::AtomicBool,
+    /// 每个会话的“磁盘字节”（`v4/storage/sessionData/*` 的测试替身）。
+    files: Mutex<HashMap<SessionId, u64>>,
+    /// 每个工作区目录的项目记忆字节。
+    memory: Mutex<HashMap<String, u64>>,
+    /// 目标会话 → 仍引用它的其他会话（artifact URI / 父链 / 任务链接的替身）。
+    referrers: Mutex<HashMap<SessionId, Vec<SessionId>>>,
+    /// 被分享钉住的会话。
+    pinned: Mutex<HashSet<SessionId>>,
 }
 
 impl MemoryStore {
@@ -152,6 +160,61 @@ impl MemoryStore {
         stats: crate::metering::ActivityStats,
     ) {
         lock(&self.activity).insert(range, stats);
+    }
+
+    /// 会话的可清理字节数（`measure_session_files` / `remove_session_files` 的替身）。
+    pub fn set_session_files(&self, session: &SessionId, bytes: u64) {
+        lock(&self.files).insert(session.clone(), bytes);
+    }
+
+    /// 目录的项目记忆字节数（`measure_project_memory` / `remove_project_memory` 的替身）。
+    pub fn set_memory_bytes(&self, workspace_path: &str, bytes: u64) {
+        lock(&self.memory).insert(workspace_path.to_owned(), bytes);
+    }
+
+    /// 设置“谁引用了谁”：`referrer` 仍引用 `target`（`session_data_referrers` 的替身）。
+    pub fn set_artifact_referrer(&self, target: &SessionId, referrer: &SessionId) {
+        let mut refs = lock(&self.referrers);
+        let entry = refs.entry(target.clone()).or_default();
+        if !entry.contains(referrer) {
+            entry.push(referrer.clone());
+        }
+    }
+
+    /// 把会话标记为被分享钉住（`session_data_pinned` 的替身）。
+    pub fn pin(&self, session: &SessionId) {
+        lock(&self.pinned).insert(session.clone());
+    }
+
+    /// 会话是否还在（彻底删除后为 false）。
+    pub fn contains(&self, session: &SessionId) -> bool {
+        lock(&self.sessions).contains_key(session)
+    }
+
+    /// 会话根 → 根与它的附属后代（node-store 的子树读面的替身）：按 `parent` 展开
+    /// `Subagent` / `SelectionSideChat`，`Fork` 不展开。
+    fn tree(&self, root: &SessionId) -> Vec<SessionId> {
+        let sessions = lock(&self.sessions);
+        if !sessions.contains_key(root) {
+            return Vec::new();
+        }
+        let mut seen = HashSet::from([root.clone()]);
+        let mut queue = std::collections::VecDeque::from([root.clone()]);
+        while let Some(current) = queue.pop_front() {
+            for (meta, _) in sessions.values() {
+                if meta.parent.as_ref() != Some(&current)
+                    || !matches!(
+                        meta.kind,
+                        SessionKind::Subagent | SessionKind::SelectionSideChat
+                    )
+                    || !seen.insert(meta.id.clone())
+                {
+                    continue;
+                }
+                queue.push_back(meta.id.clone());
+            }
+        }
+        seen.into_iter().collect()
     }
 }
 
@@ -554,6 +617,94 @@ impl SessionStore for MemoryStore {
         }
         lock(&self.deleted).insert(session.clone());
         Ok(())
+    }
+
+    async fn owned_session_trees(
+        &self,
+        roots: &[SessionId],
+    ) -> Result<HashMap<SessionId, Vec<SessionId>>, StoreError> {
+        Ok(roots
+            .iter()
+            .map(|root| (root.clone(), self.tree(root)))
+            .collect())
+    }
+
+    async fn session_data_referrers(
+        &self,
+        targets: &[SessionId],
+    ) -> Result<HashMap<SessionId, Vec<SessionId>>, StoreError> {
+        let refs = lock(&self.referrers);
+        Ok(targets
+            .iter()
+            .filter_map(|target| {
+                refs.get(target)
+                    .filter(|referrers| !referrers.is_empty())
+                    .map(|referrers| (target.clone(), referrers.clone()))
+            })
+            .collect())
+    }
+
+    async fn session_data_pinned(
+        &self,
+        targets: &[SessionId],
+    ) -> Result<Vec<SessionId>, StoreError> {
+        let pinned = lock(&self.pinned);
+        Ok(targets
+            .iter()
+            .filter(|target| pinned.contains(*target))
+            .cloned()
+            .collect())
+    }
+
+    async fn measure_session_files(
+        &self,
+        session: &SessionId,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Ok(lock(&self.files).get(session).copied().unwrap_or(0))
+    }
+
+    async fn remove_session_files(
+        &self,
+        session: &SessionId,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Ok(lock(&self.files).remove(session).unwrap_or(0))
+    }
+
+    async fn purge_session_rows(&self, roots: &[SessionId]) -> Result<(), StoreError> {
+        for root in roots {
+            for id in self.tree(root) {
+                lock(&self.sessions).remove(&id);
+                lock(&self.deleted).remove(&id);
+                lock(&self.records).remove(&id);
+                lock(&self.permissions).remove(&id);
+                lock(&self.updated).remove(&id);
+                lock(&self.turns).remove(&id);
+                lock(&self.files).remove(&id);
+                for refs in lock(&self.referrers).values_mut() {
+                    refs.retain(|referrer| referrer != &id);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn measure_project_memory(
+        &self,
+        directory: &crate::session_data::SessionDataDirectory,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Ok(lock(&self.memory)
+            .get(&directory.workspace_path)
+            .copied()
+            .unwrap_or(0))
+    }
+
+    async fn remove_project_memory(
+        &self,
+        directory: &crate::session_data::SessionDataDirectory,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Ok(lock(&self.memory)
+            .remove(&directory.workspace_path)
+            .unwrap_or(0))
     }
 
     async fn list(&self, _filter: SessionFilter) -> Result<Vec<SessionSummary>, StoreError> {

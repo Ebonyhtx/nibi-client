@@ -26,6 +26,7 @@ mod node_repl;
 mod permissions;
 mod projects;
 mod sampling;
+mod session_data;
 mod shared_context;
 mod table;
 mod topic_reads;

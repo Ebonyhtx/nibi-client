@@ -31,6 +31,7 @@ mod projection;
 mod row_target;
 mod runtime_preferences;
 mod server;
+mod session_data;
 mod session_debug;
 mod session_directory;
 mod subscribe;

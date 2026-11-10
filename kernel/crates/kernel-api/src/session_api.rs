@@ -1720,6 +1720,28 @@ pub trait Kernel: Send + Sync {
         })
     }
 
+    /// 测量会话数据（`v4/storage/sessionData/measure`，上游项目彻底删除的数据用量）。只读：
+    /// 不打开会话、不启动 actor、不改任何事实。缺省 `Unsupported`，协议层回标准错误。
+    async fn measure_session_data(
+        &self,
+        _params: crate::session_data::SessionDataParams,
+    ) -> Result<crate::session_data::SessionDataMeasure, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session data measurement".to_owned(),
+        })
+    }
+
+    /// 彻底删除会话数据（`v4/storage/sessionData/purge`）：运行中/被引用的会话整棵保留；
+    /// 其余先删文件再删行，幂等。缺省 `Unsupported`，协议层回标准错误。
+    async fn purge_session_data(
+        &self,
+        _params: crate::session_data::SessionDataParams,
+    ) -> Result<crate::session_data::SessionDataPurge, KernelError> {
+        Err(KernelError::Unsupported {
+            what: "session data purge".to_owned(),
+        })
+    }
+
     /// 会话的只读快照（F29，`/resume` 页的预览与全屏对话）：打开着的问它的 actor，否则从存储冷加载；不打开会话、
     /// 不启动 actor、不跑 SessionStart。
     async fn session_snapshot(&self, _session: &SessionId) -> Result<SessionView, KernelError> {

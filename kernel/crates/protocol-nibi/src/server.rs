@@ -689,6 +689,14 @@ impl Server {
             "v4/conversation/workflowRunNodeResult" => {
                 crate::v4_queries::workflow_run_node_result(self, &params).await.map(Reply::new)
             }
+            // 项目彻底删除的数据面（上游 3.17.2 `session-data`）：测量只读；purge 运行中/被引用
+            // 保留、先删文件再删行、幂等。旧 Host 没有这两个方法时按本表的 `-32601` 处理。
+            "v4/storage/sessionData/measure" => {
+                crate::session_data::measure(self, &params).await
+            }
+            "v4/storage/sessionData/purge" => {
+                crate::session_data::purge(self, &params).await
+            }
             // 附件事务与回读（141 审计 §9 第 4 项）：上行四条走进程内暂存表，回读四条按已授权行。
             "v4/attachment/begin" => crate::attachment_rpc::begin(self, &params).await.map(Reply::new),
             "v4/attachment/chunk" => crate::attachment_rpc::chunk(self, &params).await.map(Reply::new),

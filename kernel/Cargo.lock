@@ -1958,6 +1958,7 @@ dependencies = [
  "nibi-kernel-api",
  "nibi-kernel-base",
  "nibi-kernel-fs",
+ "nibi-kernel-memory",
  "nibi-kernel-paths",
  "rusqlite",
  "serde_json",

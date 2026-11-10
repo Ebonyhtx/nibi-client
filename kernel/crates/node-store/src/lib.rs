@@ -29,6 +29,7 @@ mod query;
 mod records;
 mod repo;
 mod rewind;
+mod session_data;
 mod state;
 mod task_lists;
 mod tool_content;
@@ -292,6 +293,81 @@ impl SessionStore for NodeStore {
         let session = session.clone();
         self.with_db(move |conn, ids| query::delete(conn, &session, ids.now_ms()))
             .await
+    }
+
+    /// 会话根 → 根与附属后代（上游 `listOwnedSessionTrees`）。
+    async fn owned_session_trees(
+        &self,
+        roots: &[SessionId],
+    ) -> Result<HashMap<SessionId, Vec<SessionId>>, StoreError> {
+        let roots = roots.to_vec();
+        self.with_db(move |conn, _| {
+            repo::session_data::owned_session_trees(conn, &roots).map_err(storage)
+        })
+        .await
+    }
+
+    /// 仍引用目标会话的未删除会话（artifact URI、父链与工作流任务链接）。
+    async fn session_data_referrers(
+        &self,
+        targets: &[SessionId],
+    ) -> Result<HashMap<SessionId, Vec<SessionId>>, StoreError> {
+        let targets = targets.to_vec();
+        self.with_db(move |conn, _| {
+            repo::session_data::referrers(conn, &targets).map_err(storage)
+        })
+        .await
+    }
+
+    /// 被分享钉住的会话（`share_url` 非空）。
+    async fn session_data_pinned(
+        &self,
+        targets: &[SessionId],
+    ) -> Result<Vec<SessionId>, StoreError> {
+        let targets = targets.to_vec();
+        self.with_db(move |conn, _| repo::session_data::pinned(conn, &targets).map_err(storage))
+            .await
+    }
+
+    /// 会话文件的可清理字节数（artifacts / exec / agents / sessions 与模型轨迹）。
+    async fn measure_session_files(
+        &self,
+        session: &SessionId,
+    ) -> Result<u64, nibi_kernel_api::session_data::SessionDataError> {
+        session_data::measure_session(self.paths.cli_root().as_path(), session).await
+    }
+
+    /// 删除会话文件并返回删除前的字节数。
+    async fn remove_session_files(
+        &self,
+        session: &SessionId,
+    ) -> Result<u64, nibi_kernel_api::session_data::SessionDataError> {
+        session_data::remove_session(self.paths.cli_root().as_path(), session).await
+    }
+
+    /// 删除根及附属后代的会话行（上游 `purgeSessions` 的同一事务与显式删除表）。
+    async fn purge_session_rows(&self, roots: &[SessionId]) -> Result<(), StoreError> {
+        let roots = roots.to_vec();
+        self.with_db(move |conn, _| {
+            repo::session_data::purge_sessions(conn, &roots).map_err(storage)
+        })
+        .await
+    }
+
+    /// 目录的项目记忆字节数。
+    async fn measure_project_memory(
+        &self,
+        directory: &nibi_kernel_api::session_data::SessionDataDirectory,
+    ) -> Result<u64, nibi_kernel_api::session_data::SessionDataError> {
+        session_data::measure_memory(self.paths.cli_root().as_path(), directory).await
+    }
+
+    /// 删除目录的项目记忆并返回删除前的字节数。
+    async fn remove_project_memory(
+        &self,
+        directory: &nibi_kernel_api::session_data::SessionDataDirectory,
+    ) -> Result<u64, nibi_kernel_api::session_data::SessionDataError> {
+        session_data::remove_memory(self.paths.cli_root().as_path(), directory).await
     }
 
     /// Node `/fork` 的新会话，一个事务写完（docs/specs/rust-cli/node-store.md §4.8）。

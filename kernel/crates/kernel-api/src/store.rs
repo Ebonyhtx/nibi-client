@@ -929,6 +929,79 @@ pub trait SessionStore: Send + Sync {
             what: "deleting sessions".to_owned(),
         })
     }
+
+    /// 每个会话根 → 根自身与它的附属后代（`v4/storage/sessionData/*`）。只沿 subagent /
+    /// workflow / selection side chat 的父链展开；fork 是独立任务，不展开。库里不存在的根回空数组
+    /// （调用方按根自身处理，好清理残留文件）。不支持的实现返回 `Unsupported`。
+    async fn owned_session_trees(
+        &self,
+        _roots: &[SessionId],
+    ) -> Result<HashMap<SessionId, Vec<SessionId>>, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session data trees".to_owned(),
+        })
+    }
+
+    /// 每个目标会话 → 仍引用它的其他**未删除**会话。口径见上游 `listArtifactReferrers`：
+    /// part 里按值复制的 `nibi-artifact://<目标>/…` 不随 fork 改写；这里另加父链与
+    /// `session_task_link` 两类库内引用。软删除的会话不算引用方。不支持的实现返回 `Unsupported`。
+    async fn session_data_referrers(
+        &self,
+        _targets: &[SessionId],
+    ) -> Result<HashMap<SessionId, Vec<SessionId>>, StoreError> {
+        Err(StoreError::Unsupported {
+            what: "session data references".to_owned(),
+        })
+    }
+
+    /// 被外部事实钉住的会话（目前是 `share_url` 非空的分享）。没有这份读面的实现返回空。
+    async fn session_data_pinned(
+        &self,
+        _targets: &[SessionId],
+    ) -> Result<Vec<SessionId>, StoreError> {
+        Ok(Vec::new())
+    }
+
+    /// 一个会话在磁盘上的可清理字节数（artifacts / exec / agents / sessions 目录与模型轨迹）。
+    /// 只统计真实文件；符号链接按 0，缺失按 0。不支持的实现返回 `SessionDataError::unsupported`。
+    async fn measure_session_files(
+        &self,
+        _session: &SessionId,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Err(crate::session_data::SessionDataError::unsupported())
+    }
+
+    /// 删除一个会话的磁盘文件，返回删除前统计的字节数。已不存在按 0 成功。
+    async fn remove_session_files(
+        &self,
+        _session: &SessionId,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Err(crate::session_data::SessionDataError::unsupported())
+    }
+
+    /// 删除会话根及其附属后代的数据库行（外键级联 message/part 等；`input_history`、`dwf_run`、
+    /// `workflow_run` 显式删除）。调用方负责先删文件：文件失败时不调用，下次重试仍能找到它们。
+    async fn purge_session_rows(&self, _roots: &[SessionId]) -> Result<(), StoreError> {
+        Err(StoreError::Unsupported {
+            what: "purging sessions".to_owned(),
+        })
+    }
+
+    /// 一个目录的项目记忆字节数（`cli/memories/projects/<slug>-<hash>` 整个目录）。
+    async fn measure_project_memory(
+        &self,
+        _directory: &crate::session_data::SessionDataDirectory,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Err(crate::session_data::SessionDataError::unsupported())
+    }
+
+    /// 删除一个目录的项目记忆，返回删除前统计的字节数。已不存在按 0 成功。
+    async fn remove_project_memory(
+        &self,
+        _directory: &crate::session_data::SessionDataDirectory,
+    ) -> Result<u64, crate::session_data::SessionDataError> {
+        Err(crate::session_data::SessionDataError::unsupported())
+    }
 }
 
 /// Artifact 的用途：决定是否进入文件选择器、保留策略（cloud 规则 7）。

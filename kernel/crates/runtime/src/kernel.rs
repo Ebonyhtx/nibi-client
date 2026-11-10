@@ -1688,6 +1688,20 @@ impl Kernel for LocalKernel {
         self.delete(session).await
     }
 
+    async fn measure_session_data(
+        &self,
+        params: nibi_kernel_api::session_data::SessionDataParams,
+    ) -> Result<nibi_kernel_api::session_data::SessionDataMeasure, KernelError> {
+        self.session_data_measure(params).await
+    }
+
+    async fn purge_session_data(
+        &self,
+        params: nibi_kernel_api::session_data::SessionDataParams,
+    ) -> Result<nibi_kernel_api::session_data::SessionDataPurge, KernelError> {
+        self.session_data_purge(params).await
+    }
+
     async fn session_snapshot(
         &self,
         session: &SessionId,
