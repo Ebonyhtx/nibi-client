@@ -71,3 +71,27 @@ fn commands_get_the_shell_that_runs_them() {
     );
     assert_eq!(env.get("PYTHONUTF8").map(String::as_str), Some("1"));
 }
+
+/// MCP node fallback（docs/design/v2/mcp-node-fallback.md）：Host 注入的两个变量必须随
+/// PATH 一起投影给 stdio 子进程，否则 shim 以 127 失败；它们不是凭据。
+#[test]
+fn mcp_children_get_the_node_fallback_variables() {
+    let snapshot = snapshot(&[
+        ("PATH", "/opt/nibi/node-fallback/v1:/usr/bin"),
+        ("NIBI_NODE_FALLBACK_EXEC_PATH", "/Applications/NIBI.app/NIBI"),
+        ("NIBI_NODE_FALLBACK_NPM_ROOT", "/Applications/NIBI.app/glm/node-runtime/npm"),
+    ]);
+    let env = crate::mcp::stdio::child_env(&snapshot, &Default::default(), &BTreeMap::new());
+    assert_eq!(
+        env.get("PATH").map(String::as_str),
+        Some("/opt/nibi/node-fallback/v1:/usr/bin")
+    );
+    assert_eq!(
+        env.get("NIBI_NODE_FALLBACK_EXEC_PATH").map(String::as_str),
+        Some("/Applications/NIBI.app/NIBI")
+    );
+    assert_eq!(
+        env.get("NIBI_NODE_FALLBACK_NPM_ROOT").map(String::as_str),
+        Some("/Applications/NIBI.app/glm/node-runtime/npm")
+    );
+}

@@ -145,6 +145,7 @@ export { createZCodeAgentService } from "./zcode-agent/zcodeAgentService.js";
 export { createZCodeTaskServiceAdapter } from "./zcode-agent/zcodeTaskServiceAdapter.js";
 export { createZCodeSessionService } from "./zcode-session/zcodeSessionService.js";
 import { resolveKernelSelection } from "./zcode-agent/zcodeAgentProcessManager.js";
+import { buildMcpNodeFallbackHostEnv } from "./zcode-agent/mcpNodeFallbackEnv.js";
 import { buildNodeReplHostEnv } from "./zcode-agent/nodeReplHostEnv.js";
 export {
   resolveDefaultZCodeAgentCommand,
@@ -2332,6 +2333,13 @@ export function createLocalServices(options: {
           execPath: process.execPath,
           browserBroker: Boolean(options?.browserControlExecutor),
         }),
+        // MCP 无 Node 回退（Rust 内核）：内核的 MCP 子进程环境来自入口快照的白名单投影，
+        // Host 把 shim 目录追加到 agent 的 PATH，并把 Electron 可执行文件与随包 npm 一起注入。
+        // Node 内核走 bootstrap 自己的 MCP 适配器回退，这里返回空对象。
+        ...(await buildMcpNodeFallbackHostEnv({
+          kernel: resolveKernelSelection(process.env.NIBI_KERNEL),
+          execPath: process.execPath,
+        })),
         ...buildAgentTelemetrySpawnEnv({
           deviceMid: telemetryDeviceMid,
           runtimeSurface: options?.agentTelemetry?.runtimeSurface ?? "remote_workspace_host",

@@ -62,6 +62,7 @@ import {
   resolveEffectiveConfigResult,
 } from "./app-config-options.js";
 import { getCliStorageRoot, getModelIoDir, projectIdFromDirectory } from "./paths.js";
+import { resolveMcpNodeFallbackProvider } from "./mcp-node-fallback.js";
 import {
   asInputHistoryStore,
   asLocalSettingStore,
@@ -450,6 +451,11 @@ export async function createZCodeApp(options: ZCodeAppOptions): Promise<ZCodeApp
               noProxy: configResult.config.network.noProxy,
               caCertFile: configResult.config.network.caCertFile,
             },
+            // 桌面 Electron Node 上的 stdio MCP 无 Node 回退；纯 CLI/SEA 返回 undefined，env 不变。
+            nodeFallback: resolveMcpNodeFallbackProvider({
+              cliStorageRoot,
+              logger,
+            }),
             workingDirectory,
           })));
     const ownsMcpPort = options.mcpPort === undefined && mcpPort !== undefined;

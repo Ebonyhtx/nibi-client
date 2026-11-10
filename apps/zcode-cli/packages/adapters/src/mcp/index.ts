@@ -75,6 +75,11 @@ import {
   type McpConnectionContext,
   type McpConnectionPool,
 } from "./pool.js";
+import {
+  applyMcpNodeFallbackEnv,
+  type McpNodeFallback,
+  type McpNodeFallbackProvider,
+} from "./node-fallback.js";
 import { terminateMcpStdioProcessTree } from "./process-tree.js";
 import { McpResourceSubscriptionRegistry } from "./resource-subscriptions.js";
 import { ProcessTreeStdioClientTransport } from "./stdio-transport.js";
@@ -108,6 +113,11 @@ export interface CreateMcpAdapterOptions {
   elicitation?: McpElicitationPort;
   /** server → client 通知（资源更新 / 列表变化 / 工具列表变化 / 日志）的出口；缺省只记 debug。 */
   notifications?: McpNotificationPort;
+  /**
+   * 桌面 Electron Node 下的 node/npm/npx 回退（docs/design/v2/mcp-node-fallback.md）。
+   * 是否启用由 bootstrap 判定（只有 agent 跑在 Electron Node 上才注入），适配器不自检。
+   */
+  nodeFallback?: McpNodeFallbackProvider;
 }
 
 type McpClient = Client;
@@ -221,6 +231,19 @@ export function createMcpAdapterConnectionPool(
 }
 
 export {
+  applyMcpNodeFallbackEnv,
+  createMcpNodeFallbackProvider,
+  ensureNodeFallbackShimDir,
+  NODE_FALLBACK_EXEC_PATH_ENV_KEY,
+  NODE_FALLBACK_NPM_ROOT_ENV_KEY,
+  renderNodeFallbackShims,
+  resolveBundledNpmRoot,
+  type CreateMcpNodeFallbackProviderOptions,
+  type McpNodeFallback,
+  type McpNodeFallbackProvider,
+  type NodeFallbackShimFile,
+} from "./node-fallback.js";
+export {
   createMcpConnectionPool,
   type McpConnectionPool,
   type McpConnectionPoolOptions,
@@ -254,6 +277,7 @@ class NodeMcpAdapter implements McpPort {
   private readonly workingDirectory?: string;
   private readonly elicitation?: McpElicitationPort;
   private readonly notifications?: McpNotificationPort;
+  private readonly nodeFallback?: McpNodeFallbackProvider;
   /** 资源订阅登记表 serverName → uri → subscriberKey；唯一 owner，连接层计数。 */
   private readonly resourceSubscriptions = new McpResourceSubscriptionRegistry();
   /** tools/list_changed 累计次数，runtime 按此判断是否需要重注册。 */
@@ -276,6 +300,7 @@ class NodeMcpAdapter implements McpPort {
     this.workingDirectory = options.workingDirectory;
     this.elicitation = options.elicitation;
     this.notifications = options.notifications;
+    this.nodeFallback = options.nodeFallback;
   }
 
   async connectConfiguredServers(
@@ -1339,11 +1364,23 @@ class NodeMcpAdapter implements McpPort {
       config.type === "stdio" ? undefined : await this.readAuthorizationBaseline(config, name, generation);
 
     try {
+      // 根因（上游 MR !3089 评审 CR-02）：首次 stdio 连接要先准备 node fallback（文件 IO），原先在
+      // createTransport 里裸等，不受连接超时与取消约束；IO 卡住时连接会一直停在 connecting。
+      const nodeFallback =
+        config.type === "stdio" && this.nodeFallback
+          ? await withTimeout(
+              this.nodeFallback.resolve(),
+              timeoutMs,
+              `MCP server ${name} node fallback preparation timed out after ${timeoutMs}ms`,
+              signal,
+            )
+          : undefined;
       const transportBundle = await this.createTransport(
         config,
         name,
         oauthAuthorizationTimeoutMs,
         workingDirectory,
+        nodeFallback,
       );
       transport = transportBundle.transport;
       getRecentStderr = this.attachStdioLogging(name, transport);
@@ -1706,6 +1743,7 @@ class NodeMcpAdapter implements McpPort {
     serverName: string,
     _oauthAuthorizationTimeoutMs?: number,
     workingDirectory?: string,
+    nodeFallback?: McpNodeFallback,
   ): Promise<{ transport: McpTransport }> {
     if (config.type === "stdio") {
       return {
@@ -1715,10 +1753,14 @@ class NodeMcpAdapter implements McpPort {
           cwd: config.cwd
             ? resolve(workingDirectory ?? this.workingDirectory ?? process.cwd(), config.cwd)
             : (workingDirectory ?? this.workingDirectory),
-          env: {
-            ...buildMcpStdioEnv({ env: this.env, network: this.network }),
-            ...config.env,
-          },
+          // fallback 在 server env 之后合并：插件自带 PATH 时 shim 目录仍追加在末尾。
+          env: applyMcpNodeFallbackEnv(
+            {
+              ...buildMcpStdioEnv({ env: this.env, network: this.network }),
+              ...config.env,
+            },
+            nodeFallback,
+          ),
           stderr: "pipe",
         }),
       };

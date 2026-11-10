@@ -1,4 +1,4 @@
-import { createConfig } from "@nibi/adapters/config";
+import { createConfig, resolvePath } from "@nibi/adapters/config";
 import type { McpElicitationPort, McpNotificationPort } from "@nibi/contracts";
 import { createNodeModelSelectionFacade } from "@nibi/provider-node";
 import { createNodeLoggerFactory } from "@nibi/adapters/logging";
@@ -19,6 +19,8 @@ import type { McpPort, ModelSelection } from "@nibi/contracts";
 import type { PresentationSurface } from "@nibi/core";
 import type { RunNibiProtocolAgentOptions, ZCodeAppOptions } from "./app/types.js";
 import { createZCodeApp } from "./app/create-app.js";
+import { resolveMcpNodeFallbackProvider } from "./app/mcp-node-fallback.js";
+import { getCliStorageRoot } from "./app/paths.js";
 import {
   createNodeReplBrowserBroker,
   type NodeReplBrowserBroker,
@@ -218,6 +220,11 @@ export async function runNibiProtocolAgent(
               caCertFile: configResult.config.network.caCertFile,
             },
             telemetry: mcpTelemetryTracker,
+            // 桌面 Electron Node 上的 stdio MCP 无 Node 回退；池把同一个 provider 共享给所有 session 适配器。
+            nodeFallback: resolveMcpNodeFallbackProvider({
+              cliStorageRoot: getCliStorageRoot(resolvePath(configResult.config.storage.dir)),
+              logger,
+            }),
             workingDirectory: options.cwd,
           });
     mcpPort = mcpConnectionPool?.acquireLease({ leaseId: "protocol-settings" });

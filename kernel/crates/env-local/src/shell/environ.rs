@@ -50,6 +50,12 @@ const NAMES: &[&str] = &[
     "VIRTUAL_ENV",
     "CONDA_PREFIX",
     "HOMEBREW_PREFIX",
+    // MCP 无 Node 回退（docs/design/v2/mcp-node-fallback.md）：Host 把 Electron 可执行文件与
+    // 随包 npm 的绝对路径放进 agent 环境，MCP stdio 子进程里的 node/npm/npx shim（PATH 末尾）
+    // 靠这两个变量工作。它们不是凭据，只在该子进程树内使用；不传给 Bash 之外的东西没有意义，
+    // 白名单本来就是给子进程投影的。
+    "NIBI_NODE_FALLBACK_EXEC_PATH",
+    "NIBI_NODE_FALLBACK_NPM_ROOT",
     // Windows
     "SystemRoot",
     "SystemDrive",

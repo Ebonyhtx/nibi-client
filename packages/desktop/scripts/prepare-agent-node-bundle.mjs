@@ -23,6 +23,7 @@ import {
   stageSharpIntoBundledAgents,
 } from "./sharp-package-assets.mjs";
 import { stageKoffiIntoBundledAgents } from "./koffi-package-assets.mjs";
+import { BUNDLED_NPM_VERSION, stageBundledNpm } from "./bundled-npm-assets.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const desktopRoot = resolve(scriptDir, "..");
@@ -492,6 +493,20 @@ function stageKoffiForCuaPlugin() {
   );
 }
 
+// stdio MCP 的 npm/npx 回退（用户没装 Node 时由 Electron Node 运行随包 npm）。
+// tarball 按 sha512 缓存在 node_modules/.cache，重复打包不再下载；registry 不可达时回退到
+// 本机 Node 自带 npm（无 integrity，见 bundled-npm-assets.mjs 文件头）。
+// 必须在 stageBundle() 之后：stageAgentBundle 会整体重建 glm。
+async function stageBundledNpmRuntime() {
+  const result = await stageBundledNpm({
+    cacheDir: resolve(repoRoot, "node_modules", ".cache", "nibi-bundled-npm"),
+    glmDir,
+  });
+  console.log(
+    `[prepare:agent-bundle] staged npm@${BUNDLED_NPM_VERSION} (${result.source}${result.integrityVerified ? ", sha512 verified" : ", UNVERIFIED local copy"}) into ${result.stagedRoot}`,
+  );
+}
+
 // 修复原因：Electron 生产包只带 resources/glm/nibi.cjs 时，app-server 进程的
 // __dirname 附近没有官方插件目录，启动时 seed 找不到 source，用户侧不会自动得到内置插件。
 // 这里把官方插件按 bootstrap 的 rootCandidates 期望放到 glm/packages/*-plugin，
@@ -503,5 +518,6 @@ buildOfficialPluginRuntimes();
 stageBundle();
 stageOfficialPlugins();
 stageBundledSkillPack();
+await stageBundledNpmRuntime();
 stageKoffiForCuaPlugin();
 stageSharpForNodeReplPlugin();
