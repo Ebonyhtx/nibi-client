@@ -250,7 +250,8 @@ impl Tool for AgentTool {
                     input.effort.clone().or_else(|| definition.effort.clone()),
                 )
             },
-            mode: spawn::mode(parent.mode, definition.permission_mode),
+            // 父会话的执行状态（基础模式 + plan）交给子代理：声明只能收紧，plan 开着时基础模式继承父会话。
+            execution: spawn::execution(context.execution, definition.permission_mode),
             definition: Arc::new(definition),
             workspace: context.workspace.clone(),
             // 执行管线已按 Agent 的 `machine` 换好了机器（R3）：远端时记下它，子代理的工具缺省在那里跑。

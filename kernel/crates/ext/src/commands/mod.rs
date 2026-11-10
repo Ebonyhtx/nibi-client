@@ -20,9 +20,8 @@ use nibi_kernel_api::machine::{EnvInfo, Files};
 use nibi_kernel_api::paid_plugin::PaidPluginGate;
 
 use crate::skills::frontmatter::{self, Value as FrontmatterValue};
-use crate::skills::inline::Runner;
 
-pub(crate) use expand::{prompt, shell_matches, template};
+pub(crate) use expand::{ShellHandOff, hand_off_shell_blocks, prompt, template};
 pub use user::CommandSet;
 pub(crate) use user::{CUSTOM_COMMAND_SOURCE, parse};
 
@@ -128,11 +127,10 @@ struct Root {
     plugin: Option<PluginCommandRoot>,
 }
 
-/// 命令目录的发现与执行。
+/// 命令目录的发现与展开（`!` 块只改写成 Bash 指令，不在这里执行）。
 pub struct CustomCommands {
     info: Arc<dyn EnvInfo>,
     files: Arc<dyn Files>,
-    runner: Option<Runner>,
     /// 进程级插件命令根（CLI/TUI）；会话级快照覆盖它。
     plugins: Mutex<Vec<PluginCommandRoot>>,
     session_plugins: Mutex<HashMap<SessionId, Vec<PluginCommandRoot>>>,
@@ -142,15 +140,10 @@ pub struct CustomCommands {
 }
 
 impl CustomCommands {
-    pub(crate) fn new(
-        info: Arc<dyn EnvInfo>,
-        files: Arc<dyn Files>,
-        runner: Option<Runner>,
-    ) -> Self {
+    pub(crate) fn new(info: Arc<dyn EnvInfo>, files: Arc<dyn Files>) -> Self {
         Self {
             info,
             files,
-            runner,
             plugins: Mutex::default(),
             session_plugins: Mutex::default(),
             disabled: RwLock::default(),

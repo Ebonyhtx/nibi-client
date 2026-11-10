@@ -173,6 +173,7 @@ impl Bench {
                 root: EnvPath::new(self.root.to_string_lossy()),
             },
             mode: PermissionMode::DontAsk,
+            execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::DontAsk),
             cancel: CancellationToken::new(),
             machine: machine(env.clone()),
             local: local_services(env),

@@ -50,7 +50,7 @@ fn running(agent: &str, root: &str) -> crate::live::LiveAgent {
         ),
         workspace: crate::test_support::workspace(),
         selection: nibi_kernel_api::testing::selection(),
-        mode: nibi_kernel_api::permission::PermissionMode::Default,
+        execution: nibi_kernel_api::permission::ExecutionState::default(),
         background: true,
         asks: None,
         state: AgentState::Running {

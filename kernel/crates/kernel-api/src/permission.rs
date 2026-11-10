@@ -101,11 +101,27 @@ impl Default for ExecutionState {
 impl ExecutionState {
     /// 判决、工具与上下文看的模式：plan 开时是 plan，否则是权限模式。
     pub fn effective(self) -> PermissionMode {
-        if self.plan {
+        if self.plan_enabled() {
             PermissionMode::Plan
         } else {
             self.mode
         }
+    }
+
+    /// 基础权限模式：不含 plan 开关。旧写法把模式记成 [`PermissionMode::Plan`] 时按 default 算。
+    ///
+    /// 判决链在 plan 开着时仍要认出基础模式（plan + guarded 的危险命令要用户单次确认），`mode` 是
+    /// `effective()` 的结果、分不出基础模式，所以另给这一个读法（Node `ExecutionState.mode`）。
+    pub fn base_mode(self) -> PermissionMode {
+        match self.mode {
+            PermissionMode::Plan => PermissionMode::Default,
+            mode => mode,
+        }
+    }
+
+    /// plan 开关：独立开关，或旧写法把模式记成 [`PermissionMode::Plan`]。
+    pub fn plan_enabled(self) -> bool {
+        self.plan || self.mode == PermissionMode::Plan
     }
 
     /// 换权限模式；`Plan`（旧写法）只打开 plan、模式不变（Node `resolveExecutionState` 的 `mode: plan`）。

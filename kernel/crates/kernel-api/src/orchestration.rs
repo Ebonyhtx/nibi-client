@@ -197,6 +197,15 @@ pub trait RunSink: Interactions {
             .map(|mode| (mode, PlanModeFlags::default()))
     }
 
+    /// 会话现在的执行状态（权限模式 + plan 开关），每次工具调用组装上下文时读一次。缺省：`current_mode`
+    /// 换成的单值状态（plan 开时基础模式记作 default）。owner 是会话 actor 的输出端给完整快照，判决链据此在
+    /// plan 开着时仍能认出 guarded 的危险命令。
+    async fn current_execution(&self) -> Option<crate::permission::ExecutionState> {
+        self.current_mode()
+            .await
+            .map(crate::permission::ExecutionState::from)
+    }
+
     /// 会话现在的工作目录，读法同 `current_mode`（tools-more.md §11.4）；None 时用请求里的。
     async fn current_workspace(&self) -> Option<WorkspaceRef> {
         None

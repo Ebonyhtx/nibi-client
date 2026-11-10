@@ -106,6 +106,7 @@ impl Restore<'_> {
             agent: request.agent.clone(),
             workspace: request.workspace.clone(),
             mode: request.mode.unwrap_or(PermissionMode::Default),
+            execution: nibi_kernel_api::permission::ExecutionState::from(request.mode.unwrap_or(PermissionMode::Default)),
             cancel: cancel.clone(),
             machine: self.machine.clone(),
             local: self.local.clone(),

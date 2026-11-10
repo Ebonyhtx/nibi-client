@@ -339,13 +339,14 @@ impl Session {
         .await
     }
 
-    /// 回合外的工具授权（MCP Apps 的页面调用）要的会话当前状态：权限模式与工作目录。
-    /// 两者都按请求时的值回答，owner 是会话 actor（`/cd` 与模式切换之后立即生效）。
+    /// 回合外的工具授权（MCP Apps 的页面调用）要的会话当前状态：执行状态（权限模式 + plan 开关）与工作目录。
+    /// 两者都按请求时的值回答，owner 是会话 actor（`/cd` 与模式切换之后立即生效）。判决用的模式取
+    /// [`nibi_kernel_api::permission::ExecutionState::effective`]；修复线 A1 另需基础模式，所以不再只给模式。
     pub async fn out_of_turn_context(
         &self,
     ) -> Result<
         (
-            nibi_kernel_api::permission::PermissionMode,
+            nibi_kernel_api::permission::ExecutionState,
             nibi_kernel_api::env::WorkspaceRef,
         ),
         KernelError,

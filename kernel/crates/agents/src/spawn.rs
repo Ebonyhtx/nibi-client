@@ -46,15 +46,52 @@ pub(crate) fn selection(
     selection
 }
 
-/// 子代理的模式：定义里的 `permissionMode` 覆盖父运行；bypassPermissions 只在父也是 bypass 时生效
-/// （授权检查）。
+/// 模式的严格程度（Node 3.17.2 `PERMISSION_MODE_STRICTNESS`：plan < build < edit < guarded < yolo）。
+/// `auto` 尚未实现，不参与比较；`dontAsk` 是 NIBI 的命令行模式，与 build 同级（它只会多拒绝询问，不会放宽）。
+fn strictness(mode: PermissionMode) -> Option<u8> {
+    match mode {
+        PermissionMode::Plan => Some(0),
+        PermissionMode::Default | PermissionMode::DontAsk => Some(1),
+        PermissionMode::AcceptEdits => Some(2),
+        PermissionMode::Guarded => Some(3),
+        PermissionMode::BypassPermissions => Some(4),
+        PermissionMode::Auto => None,
+    }
+}
+
+/// 子模式只能收紧父模式（Node `restrictPermissionMode`）：返回更严格的一个；任一方无法比较（`auto`）时
+/// 继承父模式。修复线 A2：以前只收紧 bypassPermissions，`edit`/`guarded` 一类声明能把 build 父会话放宽。
+pub(crate) fn restrict(parent: PermissionMode, child: PermissionMode) -> PermissionMode {
+    match (strictness(parent), strictness(child)) {
+        (Some(parent_rank), Some(child_rank)) if child_rank < parent_rank => child,
+        _ => parent,
+    }
+}
+
+/// 子代理的模式：定义里的 `permissionMode` 只能在父运行的模式上收紧；没有声明时继承父运行（含 plan）。
+/// 插件 profile 的声明同样走这里（只收紧）：插件是第三方代码，不能借声明把父会话变宽。
 pub(crate) fn mode(parent: PermissionMode, declared: Option<PermissionMode>) -> PermissionMode {
     match declared {
-        Some(PermissionMode::BypassPermissions) if parent != PermissionMode::BypassPermissions => {
-            parent
-        }
-        Some(mode) => mode,
+        Some(declared) => restrict(parent, declared),
         None => parent,
+    }
+}
+
+/// 子代理的执行状态（Node `resolveExecutionState({mode: childMode === "plan" ? config.mode : childMode,
+/// planEnabled: childMode === "plan"})`）：声明收紧后的模式是 plan 时保留 plan 开关、基础模式继承父会话；
+/// 其余情况就是那个模式（plan 关着）。父会话的执行状态由 `ToolUseContext.execution` 给出。
+pub(crate) fn execution(
+    parent: nibi_kernel_api::permission::ExecutionState,
+    declared: Option<PermissionMode>,
+) -> nibi_kernel_api::permission::ExecutionState {
+    let child = mode(parent.effective(), declared);
+    if child == PermissionMode::Plan {
+        nibi_kernel_api::permission::ExecutionState {
+            mode: parent.base_mode(),
+            plan: true,
+        }
+    } else {
+        nibi_kernel_api::permission::ExecutionState::from(child)
     }
 }
 
@@ -120,7 +157,11 @@ pub(crate) async fn create(
         Fact::ModelSelected {
             selection: agent.selection.clone(),
         },
-        Fact::ModeChanged { mode: agent.mode },
+        // 子会话的执行状态整体落库（基础模式 + plan）：只写 `ModeChanged{plan}` 时续写会丢掉基础模式
+        // （Node 的子会话也持久化 `childExecutionState`，修复线 A1/A2）。
+        Fact::ExecutionChanged {
+            state: agent.execution,
+        },
     ];
     // fork：子会话记下父会话与切点（溯源用，node-store.md §4.8.1）；继承的前缀不落库。
     if let Some(prefix) = &agent.fork_prefix {
@@ -255,6 +296,7 @@ pub(crate) async fn drive(
             parent,
         )
         .with_turn(turn)
+        .with_execution(agent.execution)
         .asking(&agent.definition.agent_type, agent.asks.clone())
         .with_core(core.clone()),
     );
@@ -364,7 +406,7 @@ async fn run_loop(
         agent: Some(agent.agent.clone()),
         messages,
         selection: agent.selection.clone(),
-        mode: agent.mode,
+        mode: agent.mode(),
         source: QuerySource::Subagent(agent.definition.agent_type.clone()),
         max_turns: agent.definition.max_turns,
         prompt_hook_messages: Vec::new(),

@@ -121,10 +121,14 @@ pub(crate) struct RunScope {
 }
 
 impl RunScope {
-    /// 会话现在的权限模式：会话 actor 是唯一 owner，工具（EnterPlanMode / ExitPlanMode）改过后同一回合
-    /// 立即生效；输出端不持有模式时用请求里的值（docs/specs/rust-cli/tools-more.md §2.3）。
-    pub(crate) async fn current_mode(&self) -> PermissionMode {
-        self.sink.current_mode().await.unwrap_or(self.mode)
+    /// 会话现在的执行状态（权限模式 + plan 开关）：会话 actor 是唯一 owner，工具（EnterPlanMode /
+    /// ExitPlanMode）与模式切换改过后同一回合立即生效。判决链在 plan 开着时也要认出基础模式（修复线 A1）；
+    /// 输出端不持有时按请求里的模式推（plan 开时基础模式记 default）。
+    pub(crate) async fn current_execution(&self) -> nibi_kernel_api::permission::ExecutionState {
+        self.sink
+            .current_execution()
+            .await
+            .unwrap_or_else(|| nibi_kernel_api::permission::ExecutionState::from(self.mode))
     }
 
     /// 组装上下文用的模式与计划模式的会话标志：一次取回 actor 的同一个快照；输出端不持有时用请求里的

@@ -21,7 +21,7 @@ use crate::machine::MachineEnv;
 use crate::mcp::McpToolInfo;
 use crate::message::{Message, ToolResultContent};
 use crate::orchestration::Interactions;
-use crate::permission::{PermissionDecision, PermissionMode};
+use crate::permission::{ExecutionState, PermissionDecision, PermissionMode};
 use crate::store::ArtifactStore;
 
 /// 用户拒绝工具调用时的结果文字：执行管线（tools）与主循环取消排队的调用（query）
@@ -67,6 +67,11 @@ pub struct ToolUseContext {
     pub agent: Option<AgentId>,
     pub workspace: WorkspaceRef,
     pub mode: PermissionMode,
+    /// 会话此刻的执行状态（权限模式 + plan 开关）：`mode` 是它的 [`ExecutionState::effective`]。
+    /// plan 开着时 `mode` 是 [`PermissionMode::Plan`]，单看它分不出基础权限模式是不是 guarded；判决链按这里的
+    /// 基础模式识别 guarded 的危险命令（plan 下的 guarded 仍要用户单次确认，Node `!planEnabled && mode ===
+    /// "guarded"` 的另一半）。
+    pub execution: ExecutionState,
     pub cancel: CancellationToken,
     /// 这次调用在哪台机器上执行（R0 只有本机；R3 起按调用的 `machine` 换，remote-exec.md §15.8.1）。
     pub machine: MachineEnv,

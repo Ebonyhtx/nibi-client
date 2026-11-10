@@ -60,6 +60,19 @@ fn tools_description_lists_the_usable_tools() {
     assert_eq!(tools_description(Some(&[]), &[]), "All tools");
 }
 
+/// 修复线 A2：内置 agent 不声明 `permissionMode`（Explore 曾经固定成 yolo，只靠 prompt 约束只读）；
+/// 子代理继承父会话的模式与 plan 状态，判决仍走父会话的 `PolicyGate`。
+#[test]
+fn builtins_inherit_the_parent_permission_mode() {
+    for agent in builtins() {
+        assert_eq!(
+            agent.permission_mode, None,
+            "{} must inherit the parent mode",
+            agent.agent_type
+        );
+    }
+}
+
 #[test]
 fn later_sources_override_by_type_and_keep_the_position() {
     let mut custom = builtins()[0].clone();

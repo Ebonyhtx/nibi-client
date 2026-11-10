@@ -56,6 +56,7 @@ impl Ctx {
                 root: EnvPath::new("/Users/dev/work"),
             },
             mode: self.mode,
+            execution: nibi_kernel_api::permission::ExecutionState::from(self.mode),
             cancel: CancellationToken::new(),
             machine: self.machine,
             local: self.local,

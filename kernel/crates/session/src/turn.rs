@@ -336,6 +336,9 @@ impl Actor {
             SinkRequest::Mode { reply } => {
                 let _ = reply.send(self.mode());
             }
+            SinkRequest::Execution { reply } => {
+                let _ = reply.send(self.execution);
+            }
             SinkRequest::ModeAndPlanFlags { reply } => {
                 let _ = reply.send((self.mode(), self.plan_flags));
             }

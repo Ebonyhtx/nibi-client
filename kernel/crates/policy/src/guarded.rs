@@ -184,8 +184,9 @@ pub fn dangerous(command: &str, dialect: Dialect) -> Danger {
     }
 }
 
-/// 这次调用要不要按 guarded 先询问一次：模式是 guarded、工具是 Bash、命令命中规则（Node
-/// `!planEnabled && mode === "guarded" && userApprovalRule`；plan 开时判决用的模式是 plan，不会到这里）。
+/// 这次调用要不要按 guarded 先询问一次：**基础权限模式**是 guarded、工具是 Bash、命令命中规则（Node
+/// `mode === "guarded" && userApprovalRule`）。`mode` 必须是基础模式而不是判决用的 `effective()`：plan 开着时
+/// 判决用的模式是 plan，基础模式仍要能识别危险命令（plan 的拒绝先于这次确认，见 `decide_with_allowed`）。
 pub fn applies(mode: PermissionMode, tool: &str, input: &Value, style: PathStyle) -> bool {
     if mode != PermissionMode::Guarded || tool != "Bash" {
         return false;

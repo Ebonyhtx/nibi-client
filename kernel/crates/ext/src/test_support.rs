@@ -346,6 +346,7 @@ pub(crate) fn tool_context<E: nibi_kernel_api::testing::AllPorts + 'static>(
         agent: None,
         workspace: workspace(),
         mode,
+        execution: nibi_kernel_api::permission::ExecutionState::from(mode),
         cancel: tokio_util::sync::CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

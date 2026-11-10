@@ -41,6 +41,8 @@ impl Actor {
             agent: None,
             workspace: self.meta.workspace.clone(),
             mode: self.mode(),
+            // actor 是执行状态的唯一 owner：plan 开关与基础模式一起交给判决链（修复线 A1）。
+            execution: self.execution,
             cancel: abort.token().clone(),
             machine: self.deps.machine.clone(),
             local: self.deps.local.clone(),

@@ -403,6 +403,7 @@ impl Inner {
             agent: None,
             workspace: turn.workspace.clone(),
             mode: PermissionMode::BypassPermissions,
+            execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::BypassPermissions),
             cancel: cancel.child_token(),
             machine: self.parts.machine.clone(),
             local: self.parts.local.clone(),

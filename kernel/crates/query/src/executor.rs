@@ -448,13 +448,16 @@ async fn execute(
             input: input.clone(),
         })
         .await;
+    // 一次取回 actor 的执行状态快照：`mode` 是判决用的模式，`execution` 另带基础模式与 plan 开关（修复线 A1）。
+    let execution = scope.current_execution().await;
     let context = ToolUseContext {
         session: scope.session.clone(),
         run: scope.run.clone(),
         tool_use: id.clone(),
         agent: scope.agent.clone(),
         workspace: scope.current_workspace().await,
-        mode: scope.current_mode().await,
+        mode: execution.effective(),
+        execution,
         cancel,
         // 缺省机器（R3，remote-exec.md §20.6）：主线程是本机，子代理是派生时给的机器；执行管线再按调用的 `machine` 换。
         machine: scope.default_machine().await,

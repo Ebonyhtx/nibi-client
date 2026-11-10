@@ -87,6 +87,7 @@ fn context(mode: PermissionMode, home: Option<&str>) -> ToolUseContext {
             root: EnvPath::new("/w"),
         },
         mode,
+        execution: nibi_kernel_api::permission::ExecutionState::from(mode),
         cancel: CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

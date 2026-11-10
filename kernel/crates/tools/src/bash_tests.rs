@@ -184,6 +184,7 @@ fn context(env: Arc<Scripted>, agent: Option<AgentId>) -> ToolUseContext {
             root: EnvPath::new("/w"),
         },
         mode: PermissionMode::Default,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::Default),
         cancel: CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

@@ -46,6 +46,10 @@ pub const BASH_REQUIRES_APPROVAL: &str = "This command requires approval";
 /// guarded 下的危险命令（Node `permission/service.ts` 的原文，修复线 F20，shell-permissions.md §4.6.1）。
 pub const GUARDED_ASK: &str = "Dangerous command requires your approval for this execution";
 
+/// plan 模式拒绝非只读工具（Node `checkPlanMode` 的 `mode.plan.nonReadOnly` 原文）。
+/// plan 的拒绝先于 guarded 的单次确认：危险命令在 plan 里是拒绝，不是询问。
+pub const PLAN_NON_READ_ONLY: &str = "Plan mode only allows read-only, non-destructive tools";
+
 /// 规则来源的说明。
 pub fn source_display(source: RuleSource) -> &'static str {
     match source {

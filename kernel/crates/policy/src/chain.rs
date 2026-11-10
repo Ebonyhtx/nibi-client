@@ -181,6 +181,13 @@ pub fn inner(tool: &str, check: Check, updated_input: Option<Value>, inputs: &In
     }
     let (message, reason, kind, suggestions) = match check {
         Check::Deny { message } => return Inner::Deny { message },
+        // 修复线 A1：plan 的拒绝先于 guarded 的单次确认（Node `checkPermission` 里 `checkPlanMode` 的 deny
+        // 在 guarded ask 之前）。危险命令在 plan 下是拒绝，不能被降级成一次可确认的询问。
+        _ if inputs.mode == PermissionMode::Plan && inputs.dangerous => {
+            return Inner::Deny {
+                message: texts::PLAN_NON_READ_ONLY.to_owned(),
+            };
+        }
         // 修复线 F20：guarded 下的危险命令先询问一次（Node `userApprovalRule`，shell-permissions.md §4.6.1）。排在
         // deny 之后、放行之前：allow 规则与只读判定都不盖过它；没有建议规则，只批准这一次。
         _ if inputs.dangerous => {

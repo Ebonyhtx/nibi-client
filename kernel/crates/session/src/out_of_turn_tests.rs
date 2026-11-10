@@ -57,15 +57,38 @@ async fn out_of_turn_usage_is_stored_as_a_model_call() {
     );
 }
 
-/// 不在回合里也能读到 owner（actor）的当前模式与工作目录。
+/// 不在回合里也能读到 owner（actor）的当前执行状态与工作目录。
 #[tokio::test]
-async fn the_actor_reports_the_mode_and_workspace_out_of_turn() {
+async fn the_actor_reports_the_execution_state_and_workspace_out_of_turn() {
     let built = Setup::new(Arc::new(ScriptedModel::new(Vec::new())))
         .build()
         .await;
-    let (mode, workspace) = built.session.out_of_turn_context().await.expect("context");
-    assert_eq!(mode, PermissionMode::Default);
+    let (execution, workspace) = built.session.out_of_turn_context().await.expect("context");
+    assert_eq!(execution.mode, PermissionMode::Default);
+    assert!(!execution.plan);
     assert_eq!(workspace.root.as_str(), "/work");
+}
+
+/// plan + guarded：回合外工具授权也要拿到基础模式与 plan 开关（修复线 A1 的判决链输入）。
+#[tokio::test]
+async fn the_actor_reports_the_base_mode_while_plan_is_enabled() {
+    let built = Setup::new(Arc::new(ScriptedModel::new(Vec::new())))
+        .build()
+        .await;
+    built
+        .session
+        .send(envelope("mode", Command::SetMode {
+            mode: PermissionMode::Guarded,
+        }))
+        .await;
+    built
+        .session
+        .send(envelope("plan", Command::SetPlan { enabled: true }))
+        .await;
+    let (execution, _) = built.session.out_of_turn_context().await.expect("context");
+    assert_eq!(execution.mode, PermissionMode::Guarded);
+    assert!(execution.plan);
+    assert_eq!(execution.effective(), PermissionMode::Plan);
 }
 
 /// 回合外的审批询问走会话级入口：actor 登记后可以用 `ResolveInteraction` 回答，

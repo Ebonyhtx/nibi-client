@@ -144,6 +144,7 @@ fn context(harness: &Harness, index: usize) -> ToolUseContext {
         agent: None,
         workspace: workspace(&harness.root),
         mode: PermissionMode::DontAsk,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::DontAsk),
         cancel: CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

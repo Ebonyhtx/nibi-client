@@ -135,6 +135,7 @@ impl Bench {
                 root: EnvPath::new(self.root.to_string_lossy()),
             },
             mode: self.mode,
+            execution: nibi_kernel_api::permission::ExecutionState::from(self.mode),
             cancel: CancellationToken::new(),
             machine: machine(env.clone()),
             local: local_services(env),

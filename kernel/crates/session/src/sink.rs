@@ -71,6 +71,10 @@ pub(crate) enum SinkRequest {
     Mode {
         reply: oneshot::Sender<PermissionMode>,
     },
+    /// 主循环组装工具上下文时读完整的执行状态（判决用的模式 + 基础权限模式 + plan 开关；修复线 A1）。
+    Execution {
+        reply: oneshot::Sender<nibi_kernel_api::permission::ExecutionState>,
+    },
     /// 主循环组装上下文时读模式与计划模式的会话标志（同一个快照，context.md §13.4）。
     ModeAndPlanFlags {
         reply: oneshot::Sender<(PermissionMode, PlanModeFlags)>,
@@ -453,6 +457,16 @@ impl RunSink for ActorSink {
     async fn current_mode(&self) -> Option<PermissionMode> {
         let (reply, answer) = oneshot::channel();
         self.sender.send(SinkRequest::Mode { reply }).await.ok()?;
+        answer.await.ok()
+    }
+
+    /// 判决链要的完整执行状态：plan 开着时 `current_mode` 只给 plan，分不出基础模式（修复线 A1）。
+    async fn current_execution(&self) -> Option<nibi_kernel_api::permission::ExecutionState> {
+        let (reply, answer) = oneshot::channel();
+        self.sender
+            .send(SinkRequest::Execution { reply })
+            .await
+            .ok()?;
         answer.await.ok()
     }
 

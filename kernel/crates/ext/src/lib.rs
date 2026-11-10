@@ -169,14 +169,14 @@ impl Ext {
         let runner = base
             .find("Bash")
             .map(|bash| skills::runner(bash, ports.gate.clone(), ports.ids.clone()));
-        // 用户调用（`/<名字>`，ext.md §2.7）与 Skill 工具共用目录与 `!` 命令的执行者。
-        // 自定义斜杠命令（`.nibi/commands`、`.agents/commands`、插件 `commands/`）走同一个入口，
-        // 与 Node 的 input facade 一致：自定义命令先于同名 skill。
+        // 用户调用（`/<名字>`，ext.md §2.7）与 Skill 工具共用目录；Skill 的 `!` 命令仍在这里执行，
+        // 自定义斜杠命令（`.nibi/commands`、`.agents/commands`、插件 `commands/`）的 `!` 块只改写成
+        // Bash 指令、交给模型确认（修复线 A3），所以不需要执行者。与 Node 的 input facade 一致：
+        // 自定义命令先于同名 skill。
         let skills_commands = Arc::new(SkillCommands::new(skills.clone(), runner.clone()));
         let custom_commands = Arc::new(commands::CustomCommands::new(
             ports.info.clone(),
             ports.files.clone(),
-            runner.clone(),
         ));
         custom_commands.set_disabled_paths(config.disabled_command_paths.clone());
         let commands = Arc::new(CommandSet::new(skills_commands, custom_commands));

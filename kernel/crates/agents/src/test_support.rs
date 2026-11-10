@@ -211,6 +211,7 @@ pub(crate) fn tool_context(session: &SessionId, run: &RunId) -> ToolUseContext {
         agent: None,
         workspace: workspace(),
         mode: PermissionMode::DontAsk,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::DontAsk),
         cancel: CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

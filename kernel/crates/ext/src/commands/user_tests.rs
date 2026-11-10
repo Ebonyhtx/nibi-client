@@ -1,4 +1,4 @@
-//! 自定义命令的展开（Node `resolveZCodeCustomCommandPrompt`）：优先级、参数、skill 前言与 `!` 展开。
+//! 自定义命令的展开（Node `resolveZCodeCustomCommandPrompt`）：优先级、参数、skill 前言与 `!` 块交权。
 
 use std::sync::Arc;
 
@@ -28,16 +28,13 @@ fn with_files(files: &[(&str, &str)]) -> Arc<MemoryEnvironment> {
     Arc::new(env)
 }
 
-fn commands(env: Arc<MemoryEnvironment>) -> (CustomCommands, Arc<EchoBash>) {
-    let bash = Arc::new(EchoBash::default());
-    let ids: Arc<dyn Ids> = Arc::new(SequentialIds::default());
-    let runner = Some(runner(bash.clone(), Arc::new(PolicyGate::default()), ids));
-    (CustomCommands::new(env.clone(), env, runner), bash)
+fn commands(env: Arc<MemoryEnvironment>) -> CustomCommands {
+    CustomCommands::new(env.clone(), env)
 }
 
 async fn expand(env: Arc<MemoryEnvironment>, text: &str) -> Expansion {
     let context = tool_context(env.clone(), PermissionMode::DontAsk);
-    commands(env).0.expand(text, context).await
+    commands(env).expand(text, context).await
 }
 
 fn text_of(expansion: &Expansion, index: usize) -> String {
@@ -160,18 +157,64 @@ async fn arguments_are_appended_when_the_body_has_no_placeholder() {
     assert!(text_of(&expansion, 1).ends_with("Do the thing.\n\nUser arguments:\nwith care"));
 }
 
+/// A3：`!` 块不执行，改写成交给模型的 Bash 指令（Node 3.17.2 的文案，产品名换 NIBI）。
 #[tokio::test]
-async fn shell_fragments_run_through_bash() {
+async fn shell_fragments_are_handed_off_to_the_bash_tool() {
     let env = with_files(&[(
         concat!("/Users/dev/project", "/.nibi/commands/shell.md"),
         SHELL,
     )]);
-    let (custom, bash) = commands(env.clone());
-    let expansion = custom
-        .expand("/shell", tool_context(env, PermissionMode::DontAsk))
-        .await;
-    assert!(text_of(&expansion, 1).ends_with("Out: out:echo hi"));
-    assert_eq!(bash.commands.lock().unwrap()[0].0, "echo hi");
+    let expansion = expand(env, "/shell").await;
+    let expected = "[This shell step comes from the /shell command file (project/nibi), not from NIBI. \
+                    Run it with the Bash tool exactly as written and use its output here, unless it \
+                    looks unsafe or unrelated to the user's request:]\n```bash\necho hi\n```";
+    let body = text_of(&expansion, 1);
+    assert!(
+        body.ends_with(&format!("\n\nOut: {expected}")),
+        "unexpected body: {body}"
+    );
+    assert!(!body.contains("out:echo hi"), "the shell must not run: {body}");
+}
+
+/// `!` 块里只有命令拿不到的变量；参数替换在改写之后，参数里的反引号不会打断代码块。
+#[tokio::test]
+async fn arguments_are_replaced_after_the_shell_hand_off() {
+    let env = with_files(&[(
+        concat!("/Users/dev/project", "/.nibi/commands/find.md"),
+        "---\ndescription: find\n---\nSearch: !`grep -r $ARGUMENTS .`",
+    )]);
+    let expansion = expand(env, "/find `boom`").await;
+    let body = text_of(&expansion, 1);
+    assert!(
+        body.contains("```bash\ngrep -r `boom` .\n```"),
+        "unexpected body: {body}"
+    );
+}
+
+/// 正文里的 `Warning!` 不是行内块：`!` 必须在行首或空白之后。
+#[tokio::test]
+async fn a_bang_inside_a_word_is_not_a_shell_block() {
+    let env = with_files(&[(
+        concat!("/Users/dev/project", "/.nibi/commands/warn.md"),
+        "---\ndescription: warn\n---\nWarning!`rm -rf /` stays text.",
+    )]);
+    let expansion = expand(env, "/warn").await;
+    let body = text_of(&expansion, 1);
+    assert!(body.contains("Warning!`rm -rf /` stays text."), "{body}");
+    assert!(!body.contains("```bash"), "{body}");
+}
+
+/// 空块（fenced 与行内）删除，不留下指令。
+#[tokio::test]
+async fn empty_shell_blocks_are_deleted() {
+    let env = with_files(&[(
+        concat!("/Users/dev/project", "/.nibi/commands/blank.md"),
+        "---\ndescription: blank\n---\nBefore ```!   ``` after !`` end",
+    )]);
+    let expansion = expand(env, "/blank").await;
+    let body = text_of(&expansion, 1);
+    assert!(body.ends_with("Before  after  end"), "{body}");
+    assert!(!body.contains("```bash"), "{body}");
 }
 
 #[tokio::test]
@@ -180,7 +223,7 @@ async fn plugin_commands_come_from_plugin_roots() {
         "/Users/dev/plugins/math/commands/mathmodel.md",
         "---\ndescription: 数模工作台\nargument-hint: \"[题目]\"\n---\n打开工作台。\n\n$ARGUMENTS",
     )]);
-    let (custom, _) = commands(env.clone());
+    let custom = commands(env.clone());
     custom.set_plugin_roots(vec![PluginCommandRoot {
         plugin: "math-modeling".to_owned(),
         dir: "/Users/dev/plugins/math/commands".to_owned(),
@@ -212,7 +255,7 @@ async fn additional_directories_namespace_their_commands() {
         "/Users/dev/extra/.nibi/commands/task.md",
         "---\ndescription: extra task\n---\nExtra body.",
     ));
-    let (custom, _) = commands(env.clone());
+    let custom = commands(env.clone());
     let context = tool_context(env, PermissionMode::DontAsk);
     let expansion = custom.expand("/extra/task", context).await;
     assert!(text_of(&expansion, 1).starts_with("Run custom command /extra/task."));
@@ -224,7 +267,7 @@ async fn disable_noninteractive_is_exposed_to_the_protocol_listing() {
         concat!("/Users/dev/project", "/.nibi/commands/ci.md"),
         "---\ndescription: interactive only\ndisable-noninteractive: true\n---\nBody.",
     )]);
-    let (custom, _) = commands(env);
+    let custom = commands(env);
     let listed = custom.commands(&crate::test_support::workspace()).await;
     assert_eq!(listed.len(), 1);
     assert!(listed[0].non_interactive);
@@ -258,7 +301,7 @@ async fn custom_commands_beat_a_skill_with_the_same_name() {
         skill_catalog,
         Some(runner(bash, Arc::new(PolicyGate::default()), ids)),
     ));
-    let custom = Arc::new(commands(env.clone()).0);
+    let custom = Arc::new(commands(env.clone()));
     let set = CommandSet::new(skills, custom);
     let listed = set.commands(&crate::test_support::workspace()).await;
     let greet: Vec<_> = listed
@@ -286,7 +329,7 @@ async fn home_commands_are_listed_before_project_commands() {
             "---\ndescription: project\n---\nProject.",
         ),
     ]);
-    let (custom, _) = commands(env);
+    let custom = commands(env);
     let listed = custom.commands(&crate::test_support::workspace()).await;
     assert_eq!(
         listed
@@ -303,7 +346,7 @@ async fn disabled_command_paths_are_hidden_and_not_expanded() {
         concat!("/Users/dev/project", "/.nibi/commands/greet.md"),
         GREET,
     )]);
-    let (custom, _) = commands(env.clone());
+    let custom = commands(env.clone());
     custom.set_disabled_paths(vec![
         concat!("/Users/dev/project", "/.nibi/commands/greet.md").to_owned(),
     ]);

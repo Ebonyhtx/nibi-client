@@ -1,11 +1,21 @@
 //! `/permissions` 的列表组成与修改后的快照（tui-manage.md §1.1、§1.4）。
-use nibi_kernel_api::env::{EnvPath, WorkspaceRef};
-use nibi_kernel_api::ids::{EnvironmentId, SessionId};
+use nibi_kernel_api::env::{EnvPath, OperationContext, Origin, WorkspaceRef};
+use nibi_kernel_api::ids::{
+    EnvironmentId, Generation, OperationId, OwnerEpoch, RunId, SessionId, ToolUseId,
+};
 use std::sync::Arc;
 
-use nibi_kernel_api::orchestration::PermissionGate;
-use nibi_kernel_api::permission::RuleBehavior;
-use nibi_kernel_api::testing::MemoryStore;
+use nibi_kernel_api::orchestration::{
+    InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionGate,
+};
+use nibi_kernel_api::permission::{
+    ExecutionState, PermissionDecision, PermissionMode, RuleBehavior,
+};
+use nibi_kernel_api::testing::{MemoryStore, UnusedEnvironment, local_services, machine};
+use nibi_kernel_api::tool::{PromptContext, Tool, ToolError, ToolOutput, ToolProgress, ToolUseContext};
+use serde_json::{Value, json};
+use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 
 use super::*;
 
@@ -131,6 +141,118 @@ async fn a_committed_always_allow_replaces_the_local_layer() {
                 "Bash(git status:*)".to_owned()
             ),
         ]
+    );
+}
+
+struct Bash;
+
+#[async_trait::async_trait]
+impl Tool for Bash {
+    fn name(&self) -> &str {
+        "Bash"
+    }
+
+    fn input_schema(&self) -> Value {
+        json!({"type": "object"})
+    }
+
+    fn description(&self, _context: &PromptContext) -> String {
+        String::new()
+    }
+
+    async fn check_permissions(
+        &self,
+        _input: &Value,
+        _context: &ToolUseContext,
+    ) -> PermissionDecision {
+        PermissionDecision::Passthrough
+    }
+
+    async fn call(
+        &self,
+        _input: Value,
+        _context: ToolUseContext,
+        _progress: mpsc::Sender<ToolProgress>,
+    ) -> Result<ToolOutput, ToolError> {
+        Err(ToolError::Unsupported {
+            what: "test".to_owned(),
+        })
+    }
+}
+
+struct NoAnswers;
+
+#[async_trait::async_trait]
+impl Interactions for NoAnswers {
+    async fn ask(
+        &self,
+        _session: &SessionId,
+        _request: InteractionRequest,
+    ) -> Result<InteractionAnswer, OrchestrationError> {
+        Err(OrchestrationError::Unsupported {
+            what: "test".to_owned(),
+        })
+    }
+}
+
+fn context_with(execution: ExecutionState) -> ToolUseContext {
+    ToolUseContext {
+        session: SessionId::new("s1"),
+        run: RunId::new("r1"),
+        tool_use: ToolUseId::new("toolu_1"),
+        agent: None,
+        workspace: WorkspaceRef {
+            environment: EnvironmentId::new("local"),
+            root: EnvPath::new("/w"),
+        },
+        mode: execution.effective(),
+        execution,
+        cancel: CancellationToken::new(),
+        machine: machine(Arc::new(UnusedEnvironment)),
+        local: local_services(Arc::new(UnusedEnvironment)),
+        artifacts: Arc::new(MemoryStore::default()),
+        interactions: Arc::new(NoAnswers),
+        operation: OperationContext {
+            environment: EnvironmentId::new("local"),
+            generation: Generation::new("g"),
+            owner_epoch: OwnerEpoch::LOCAL,
+            operation: OperationId::new("op"),
+            origin: Origin::Agent {
+                session: SessionId::new("s1"),
+                run: RunId::new("r1"),
+            },
+        },
+    }
+}
+
+/// 修复线 A1：执行管线拿到的 `SharedRules` 必须把 `ask_once` 转给 `PolicyGate`，否则 guarded（含 plan +
+/// guarded）的危险命令会跑 PermissionRequest hooks，hook 就能替用户批准（trait 缺省是 false）。
+#[tokio::test]
+async fn the_runtime_gate_forwards_the_single_use_ask() {
+    let gate = Arc::new(PolicyGate::default());
+    let shared = SharedRules {
+        gate: gate.clone(),
+        store: Arc::new(MemoryStore::default()),
+    };
+    let tool = Bash;
+    let input = json!({"command": "rm -rf build"});
+    for execution in [
+        ExecutionState::from(PermissionMode::Guarded),
+        ExecutionState::from(PermissionMode::Guarded).with_plan(true),
+    ] {
+        assert!(
+            shared.ask_once(&tool, &input, &context_with(execution)).await,
+            "{execution:?}"
+        );
+    }
+    assert!(
+        !shared
+            .ask_once(
+                &tool,
+                &input,
+                &context_with(ExecutionState::from(PermissionMode::Default))
+            )
+            .await
     );
 }
 

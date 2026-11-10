@@ -841,15 +841,17 @@ impl Kernel for LocalKernel {
             .mcp_ui_app_tool(&request.instance, &request.tool_name)
             .await
             .map_err(mcp_ui_error)?;
-        // 会话当前的模式与工作目录：owner 是 actor（`/cd` 与模式切换之后立即生效）。
-        let (mode, workspace) = session.out_of_turn_context().await?;
+        // 会话当前的执行状态与工作目录：owner 是 actor（`/cd` 与模式切换之后立即生效）。`mode` 是判决用的模式，
+        // `execution` 另带基础模式与 plan 开关（修复线 A1）。
+        let (execution, workspace) = session.out_of_turn_context().await?;
         let context = ToolUseContext {
             session: session_id.clone(),
             run: self.ports.ids.run(),
             tool_use: ToolUseId::new(format!("ui-{}", self.ports.ids.uuid())),
             agent: None,
             workspace: workspace.clone(),
-            mode,
+            mode: execution.effective(),
+            execution,
             cancel: guard.token(),
             machine: self.machine.clone(),
             local: self.local.clone(),

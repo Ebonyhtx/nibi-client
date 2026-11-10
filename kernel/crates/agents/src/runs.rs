@@ -1,8 +1,9 @@
-//! 正在进行的运行（主循环与子循环）：按 `RunId` 记下本次运行的会话、工作区、模型与模式
+//! 正在进行的运行（主循环与子循环）：按 `RunId` 记下本次运行的会话、工作区与模型
 //! （docs/specs/rust-cli/agents.md §4.1）。
 //!
-//! Agent 工具要用父运行的模型与模式，`ToolUseContext` 只带 `run`。运行开始时登记、结束（或被丢弃）时
-//! 删除，所以查到的总是这次运行自己的值，不会过期。
+//! Agent 工具要用父运行的模型，`ToolUseContext` 只带 `run`（父会话的执行状态由
+//! `ToolUseContext.execution` 直接给出，修复线 A2）。运行开始时登记、结束（或被丢弃）时删除，所以查到的
+//! 总是这次运行自己的值，不会过期。
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
@@ -15,15 +16,12 @@ use nibi_kernel_api::model::ModelSelection;
 use nibi_kernel_api::orchestration::{
     QueryError, QueryRequest, QueryRunner, QueryStop, RunSink,
 };
-use nibi_kernel_api::permission::PermissionMode;
-
 /// 一次运行的事实（取自它的 [`QueryRequest`]）。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RunInfo {
     pub(crate) session: SessionId,
     pub(crate) workspace: WorkspaceRef,
     pub(crate) selection: ModelSelection,
-    pub(crate) mode: PermissionMode,
 }
 
 #[derive(Default)]
@@ -69,7 +67,6 @@ impl QueryRunner for Tracked {
             session: request.session.clone(),
             workspace: request.workspace.clone(),
             selection: request.selection.clone(),
-            mode: request.mode,
         };
         self.book.runs().insert(request.run.clone(), info);
         let _entry = Entry {

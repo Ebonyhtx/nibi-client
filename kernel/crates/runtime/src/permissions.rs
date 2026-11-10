@@ -120,6 +120,12 @@ impl PermissionGate for SharedRules {
         self.gate.check_rules(tool, input, context).await
     }
 
+    /// guarded 的危险命令只批准这一次：执行管线据此不跑 PermissionRequest hooks（修复线 A1）。不转发时
+    /// 用 trait 的缺省 `false`，hook 就能替用户批准——单元测试直接打 `PolicyGate` 看不出来，生产走这里。
+    async fn ask_once(&self, tool: &dyn Tool, input: &Value, context: &ToolUseContext) -> bool {
+        self.gate.ask_once(tool, input, context).await
+    }
+
     async fn local_rules_committed(&self, workspace: &WorkspaceRef) {
         reload_local(&self.gate, self.store.as_ref(), workspace).await;
     }

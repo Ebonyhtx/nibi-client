@@ -66,6 +66,9 @@ pub(crate) struct ChildSink {
     turn: Mutex<Option<TurnAnchor>>,
     /// 子代理里的 Monitor 交给 agents（agents.md §5.3，工作线 F83）；没有时（测试）不支持。
     core: Option<Arc<crate::Core>>,
+    /// 子代理的执行状态（基础权限模式 + plan 开关）：主循环组装工具上下文时读它，判决链据此在 plan
+    /// 开着时仍认出基础模式（修复线 A1/A2）。None：测试夹具不持有，主循环用请求里的模式。
+    execution: Option<nibi_kernel_api::permission::ExecutionState>,
 }
 
 impl ChildSink {
@@ -91,6 +94,18 @@ impl ChildSink {
             record: Mutex::default(),
             turn: Mutex::default(),
             core: None,
+            execution: None,
+        }
+    }
+
+    /// 子代理的执行状态（`spawn::drive` 给出：判决链在 plan 开着时也要认出基础模式）。
+    pub(crate) fn with_execution(
+        self,
+        execution: nibi_kernel_api::permission::ExecutionState,
+    ) -> Self {
+        Self {
+            execution: Some(execution),
+            ..self
         }
     }
 
@@ -367,6 +382,14 @@ impl ChildSink {
 impl RunSink for ChildSink {
     async fn commit_message(&self, message: Message) -> Result<(), StoreError> {
         self.commit_with(message, Vec::new(), None).await
+    }
+
+    /// 子代理的执行状态由父会话的 `ToolUseContext.execution` 派生（`spawn::execution`）：工具上下文与
+    /// 判决链拿到的 `mode` / `execution` 是同一个快照，plan 开着时也分得出基础模式（修复线 A1/A2）。
+    async fn current_execution(
+        &self,
+    ) -> Option<nibi_kernel_api::permission::ExecutionState> {
+        self.execution
     }
 
     /// 子代理的请求与工具调用写在子会话（Node `query_source = subagent`，usage.md §2.1）。完成的子代理请求另把输出速度

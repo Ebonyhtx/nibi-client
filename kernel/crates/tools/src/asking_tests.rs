@@ -52,6 +52,7 @@ fn context(interactions: Arc<dyn Interactions>, cancel: CancellationToken) -> To
             root: EnvPath::new("/work"),
         },
         mode: PermissionMode::Default,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::Default),
         cancel,
         machine: machine(env.clone()),
         local: local_services(env),

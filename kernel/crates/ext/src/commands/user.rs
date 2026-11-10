@@ -1,5 +1,5 @@
 //! 自定义命令的展开与 `/` 目录（Node `resolveZCodeCustomCommandPrompt` 的镜像）：
-//! 解析 `/<名字> [参数]`、找命令、参数替换、`!` shell 展开，再按 Node 的提示形状交给会话。
+//! 解析 `/<名字> [参数]`、找命令、`!` 块交权改写、参数替换，再按 Node 的提示形状交给会话。
 //!
 //! 与 skill 命令同一个 `UserCommands` 入口：自定义命令先于同名 skill（Node 的 input facade 也是先
 //! 解析自定义命令），保留名直接落到后面的 skill/内置命令，不借同名接管内置语义。
@@ -14,7 +14,9 @@ use nibi_kernel_api::user_command::{
     UserCommand, UserCommands, command_input, command_tags,
 };
 
-use super::{CustomCommand, CustomCommands, is_reserved, prompt, shell_matches, template};
+use super::{
+    CustomCommands, ShellHandOff, hand_off_shell_blocks, is_reserved, prompt, template,
+};
 use crate::skills::SkillCommands;
 
 /// 自定义命令正文的消息来源（不写成 `skill`，免得上报/上下文把它当 skill 调用）。
@@ -37,12 +39,6 @@ fn meta(source: &str, text: String) -> ExpandedMessage {
             source: source.to_owned(),
         },
     }
-}
-
-fn escape(text: &str) -> String {
-    text.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
 }
 
 /// 不调模型的本地结果（拒绝/失败）：caveat、命令输入、结果。
@@ -86,20 +82,20 @@ impl CustomCommands {
         if let Err(reason) = self.check_license(&command) {
             return Some(local(&command.name, &args, reason));
         }
-        let expanded = template(&command.body, &args);
-        let body = match self.expand_shell(&command, &expanded.body, context).await {
-            Ok(body) => body,
-            Err(error) => {
-                return Some(local(
-                    &command.name,
-                    &args,
-                    format!(
-                        "<local-command-stderr>{}</local-command-stderr>",
-                        escape(&error)
-                    ),
-                ));
-            }
-        };
+        // 修复线 A3（Node 3.17.2 `handOffCustomCommandShellBlocks`）：`!` 块只在解析阶段改写成 Bash 指令，
+        // 真正执行交给模型的 Bash 工具（权限服务决定放行、询问或拒绝）。改写必须在参数替换之前：参数里的
+        // 反引号不会打断改写出来的代码块。
+        let rewritten = hand_off_shell_blocks(
+            &command.body,
+            ShellHandOff {
+                name: &command.name,
+                scope: command.scope.as_str(),
+                source: command.source.as_str(),
+                plugin: command.plugin.as_ref(),
+            },
+        );
+        let expanded = template(&rewritten, &args);
+        let body = expanded.body;
         let prompt = prompt(
             &command.name,
             command.scope.as_str(),
@@ -117,91 +113,6 @@ impl CustomCommands {
         })
     }
 
-    async fn expand_shell(
-        &self,
-        command: &CustomCommand,
-        body: &str,
-        context: &ToolUseContext,
-    ) -> Result<String, String> {
-        let matches = shell_matches(body);
-        if matches.is_empty() {
-            return Ok(body.to_owned());
-        }
-        let Some(runner) = &self.runner else {
-            return Err(format!(
-                "Custom command /{} uses unsupported shell expansion. Dynamic expansion is not available.",
-                command.name
-            ));
-        };
-        let mut output = body.to_owned();
-        for found in matches.iter().rev() {
-            let shell = substitute_variables(&found.command, command, context);
-            let expanded = runner
-                .run_command(&shell, &command.allowed_tools, context)
-                .await?;
-            output.replace_range(found.start..found.end, expanded.trim_end());
-        }
-        Ok(output)
-    }
-}
-
-/// `!` 命令里的 `${NIBI_PLUGIN_ROOT}` 一类变量（Node 用环境变量注入；Bash 工具没有 env 参数，
-/// 这里在命令文本上替换，效果相同）。未提供插件上下文时保留原文，由 shell 自己报错。
-fn substitute_variables(command: &str, custom: &CustomCommand, context: &ToolUseContext) -> String {
-    let project = context.workspace.root.as_str();
-    let session = context.session.as_str();
-    let mut variables: Vec<(&str, &str)> = vec![
-        ("CLAUDE_PROJECT_DIR", project),
-        ("NIBI_PROJECT_DIR", project),
-        ("ZCODE_PROJECT_DIR", project),
-        ("CLAUDE_CODE_SESSION_ID", session),
-        ("CLAUDE_SESSION_ID", session),
-        ("NIBI_SESSION_ID", session),
-    ];
-    if let Some(plugin) = &custom.plugin {
-        variables.extend([
-            ("CLAUDE_PLUGIN_ROOT", plugin.root.as_str()),
-            ("NIBI_PLUGIN_ROOT", plugin.root.as_str()),
-            ("ZCODE_PLUGIN_ROOT", plugin.root.as_str()),
-        ]);
-        if let Some(data) = &plugin.data {
-            variables.extend([
-                ("CLAUDE_PLUGIN_DATA", data.as_str()),
-                ("NIBI_PLUGIN_DATA", data.as_str()),
-                ("ZCODE_PLUGIN_DATA", data.as_str()),
-            ]);
-        }
-    }
-    let mut text = command.to_owned();
-    for (name, value) in variables {
-        text = text.replace(&format!("${{{name}}}"), value);
-        text = replace_bare(&text, name, value);
-    }
-    text
-}
-
-/// `$NAME`（不带花括号）的替换：只替换后面不是标识符字符的出现。
-fn replace_bare(text: &str, name: &str, value: &str) -> String {
-    let needle = format!("${name}");
-    let mut output = String::with_capacity(text.len());
-    let mut cursor = 0;
-    while let Some(found) = text[cursor..].find(&needle) {
-        let start = cursor + found;
-        let end = start + needle.len();
-        output.push_str(&text[cursor..start]);
-        let boundary = text[end..]
-            .chars()
-            .next()
-            .is_none_or(|c| !(c.is_ascii_alphanumeric() || c == '_'));
-        if boundary {
-            output.push_str(value);
-        } else {
-            output.push_str(&needle);
-        }
-        cursor = end;
-    }
-    output.push_str(&text[cursor..]);
-    output
 }
 
 #[async_trait]

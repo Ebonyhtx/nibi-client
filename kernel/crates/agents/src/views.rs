@@ -128,7 +128,8 @@ pub(crate) async fn view(
         Some(mode) => {
             nibi_kernel_api::permission::ExecutionState::from_parts(mode, loaded.plan)
         }
-        None => found.mode.into(),
+        // 子代理运行时的执行状态（基础模式 + plan）；以前只拿判决用的 `mode`，plan 时丢了基础模式。
+        None => found.execution,
     };
     let selection = loaded.model.unwrap_or(found.selection);
     // 查看时 footer 的 ctx 与上下文提示（修复线 F112，tui-panels.md §1.7）：同一个压缩器按子会话的模型侧历史与子代理的

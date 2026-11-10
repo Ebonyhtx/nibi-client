@@ -4,6 +4,11 @@
 //! （bypassPermissions 也遵守 deny、ask 规则与安全路径）→ allow 规则 → 询问；外层再按 dontAsk /
 //! auto / plan 改写询问。工具没有自己的检查时，Bash、文件工具、WebFetch 用这里的内置检查。
 //!
+//! plan 是独立开关（[`ExecutionState`]）：判决用的模式是 plan；plan 的闸门（非只读工具直接拒绝）先于
+//! guarded 的单次确认，所以危险命令在 plan 下是拒绝而不是询问。危险命令的识别按**基础模式**
+//! （[`execution_of`]），hook 放行也不能把 plan 的拒绝降级成一次确认（Node 3.17.2 `checkPermission`
+//! 的顺序，修复线 A1）。
+//!
 //! 规则只来自配置快照（[`PermissionRules`]，由入口层组装后交进来，“总是允许”落库后由 runtime 换上新的
 //! LocalSettings 层；进程里所有会话共用一份权限上下文）。这里不做 IO：cwd、home 与命令
 //! 输出目录都从执行环境的端口取。Bash 解析与只读判定复制自 `apps/zcode-cli-rust/crates/{bash-parse,bash}`。
@@ -49,7 +54,7 @@ use nibi_kernel_api::env_files::PathStyle;
 use nibi_kernel_api::ids::SessionId;
 use nibi_kernel_api::orchestration::PermissionGate;
 use nibi_kernel_api::permission::{
-    PermissionDecision, PermissionMode, PermissionRule, PermissionRules, ToolPolicy,
+    ExecutionState, PermissionDecision, PermissionMode, PermissionRule, PermissionRules, ToolPolicy,
 };
 use nibi_kernel_api::plan::PlanFiles;
 use nibi_kernel_api::session_api::DynamicWorkflowGate;
@@ -363,6 +368,20 @@ impl PolicyGate {
     }
 }
 
+/// 判决链看的基础权限模式与 plan 开关（Node 3.17.2 `ExecutionState{mode, planEnabled}`）。
+///
+/// `ToolUseContext.mode` 是判决用的模式（`effective()`，plan 开时是 plan），单看它分不出基础模式是
+/// yolo 还是 guarded。`execution` 是会话 actor 的完整快照；早期的单值构造点把它填成
+/// `ExecutionState::from(mode)`（plan 时记作“plan + default”），这里按 `mode == Plan` 补回 plan 开关。
+fn execution_of(context: &ToolUseContext) -> ExecutionState {
+    let state = context.execution;
+    ExecutionState {
+        mode: state.base_mode(),
+        // 旧构造点：`execution` 是 `from(mode)`（plan 时基础模式记 default），判决用的模式是 plan 时补上开关。
+        plan: state.plan_enabled() || context.mode == PermissionMode::Plan,
+    }
+}
+
 impl PolicyGate {
     /// 与 [`PermissionGate::decide`] 相同，另把 `allowed` 当作这一次判决的 allow 规则（skill 的
     /// `allowed-tools`，docs/specs/rust-cli/ext.md §2.5）。
@@ -383,25 +402,32 @@ impl PolicyGate {
         let root = context.workspace.root.as_str();
         let own = tool.check_permissions(input, context).await;
         let name = tool.name();
+        // 修复线 A1（Node 3.17.2 `checkPermission`）：plan 是独立开关，基础模式另取 `execution.mode`。
+        // plan 的拒绝先于 guarded 的确认：`chain::inner` 对 plan 下的危险命令直接拒绝，dangerous 的单次
+        // 确认只可能在 plan 闸门放过之后执行（Node `checkPlanMode` 的 deny 在 guarded ask 之前）。
+        let execution = execution_of(context);
+        let base_mode = execution.mode;
+        let mode = execution.effective();
+        let dangerous = guarded::applies(base_mode, name, input, paths.style);
         let evaluate = |mode: PermissionMode| {
             let inputs = Inputs {
                 mode,
                 rules: &rules,
                 paths: &paths,
                 root,
-                dangerous: guarded::applies(mode, name, input, paths.style),
+                dangerous,
                 hook_check: false,
                 full_access: mode == PermissionMode::BypassPermissions,
             };
             let (check, updated) = chain::own(name, own.clone(), input, &inputs);
             chain::inner(name, check, updated, &inputs)
         };
-        let result = evaluate(context.mode);
+        let result = evaluate(mode);
         let call = Call {
             tool: name,
             input,
             session: &context.session,
-            mode: context.mode,
+            mode,
         };
         let options = Outer {
             auto_in_plan: self.options.auto_in_plan,
@@ -430,8 +456,9 @@ impl PermissionGate for PolicyGate {
     }
 
     /// hook 放行或询问时仍然生效的检查（不可绕过的权限关卡，
-    /// docs/specs/rust-cli/hooks.md §6）：按 bypassPermissions 跑内层判决链，仍然拒绝或询问的就是
-    /// deny / ask 规则、工具检查的拒绝与规则 / 安全检查的询问（敏感文件也算：`hook_check`）。
+    /// docs/specs/rust-cli/hooks.md §6）：一般按 bypassPermissions 跑内层判决链，仍然拒绝或询问的就是
+    /// deny / ask 规则、工具检查的拒绝与规则 / 安全检查的询问（敏感文件也算：`hook_check`）。基础模式是
+    /// guarded 时按 guarded 跑（危险命令的 user-once），plan 开着时按 plan 跑（plan 的拒绝在 hook 之前）。
     async fn check_rules(
         &self,
         tool: &dyn Tool,
@@ -445,19 +472,30 @@ impl PermissionGate for PolicyGate {
         };
         let paths = self.path_context(&base, context).await;
         // guarded 按 guarded 跑：hook 放行时危险命令仍然询问（Node user-once 不让 hook 替用户批准，修复线 F20）。
-        let mode = match context.mode {
-            PermissionMode::Guarded => PermissionMode::Guarded,
-            _ => PermissionMode::BypassPermissions,
+        // 基础模式从 `execution` 取（修复线 A1）：plan 开着时 `context.mode` 是 plan，基础模式 guarded 的危险
+        // 命令仍要让 hook 放行过不了这一关。
+        //
+        // plan 开着时按 plan 跑（Node 先算权限判决、再套 PreToolUse 的 allow；plan 的拒绝排在 hook 前面）：
+        // hook 放行只读调用，不放过 plan 会询问/拒绝的调用——管线拿到 Ask 后会走完整判决链，plan 分支照常生效。
+        let execution = execution_of(context);
+        let base_mode = execution.mode;
+        let mode = if execution.plan {
+            PermissionMode::Plan
+        } else if base_mode == PermissionMode::Guarded {
+            PermissionMode::Guarded
+        } else {
+            PermissionMode::BypassPermissions
         };
         let inputs = Inputs {
             mode,
             rules: &rules,
             paths: &paths,
             root: context.workspace.root.as_str(),
-            dangerous: guarded::applies(mode, tool.name(), input, paths.style),
+            dangerous: guarded::applies(base_mode, tool.name(), input, paths.style),
             hook_check: true,
-            // 会话本身是 yolo 时 hook 放行后也不再询问（工作线 F76）；别的模式这里按 bypass 跑，但不算完全访问。
-            full_access: context.mode == PermissionMode::BypassPermissions,
+            // 会话本身是 yolo（且 plan 关着）时 hook 放行后也不再询问（工作线 F76）；别的模式这里按 bypass 跑，
+            // 但不算完全访问。
+            full_access: base_mode == PermissionMode::BypassPermissions && !execution.plan,
         };
         let own = tool.check_permissions(input, context).await;
         let (check, updated) = chain::own(tool.name(), own, input, &inputs);
@@ -478,7 +516,9 @@ impl PermissionGate for PolicyGate {
     /// guarded 的危险命令只批准这一次（Node `approvalMode: "user-once"`，修复线 F20）：执行管线据此不跑
     /// PermissionRequest hooks。路径风格（方言）与判决同一来源（执行环境的 `path_facts`）。
     async fn ask_once(&self, tool: &dyn Tool, input: &Value, context: &ToolUseContext) -> bool {
-        if context.mode != PermissionMode::Guarded {
+        // 基础模式是 guarded 才只批准这一次（plan 开着时 `context.mode` 是 plan，见 `execution_of`）。
+        let base_mode = execution_of(context).mode;
+        if base_mode != PermissionMode::Guarded {
             return false;
         }
         let style = context
@@ -487,7 +527,7 @@ impl PermissionGate for PolicyGate {
             .path_facts(&context.workspace)
             .await
             .map_or(PathStyle::Posix, |facts| facts.style);
-        guarded::applies(context.mode, tool.name(), input, style)
+        guarded::applies(base_mode, tool.name(), input, style)
     }
 }
 

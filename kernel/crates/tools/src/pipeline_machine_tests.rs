@@ -130,6 +130,7 @@ fn context(asked: Arc<Asked>, on: MachineEnv) -> ToolUseContext {
             root: EnvPath::new("/work"),
         },
         mode: PermissionMode::Default,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::Default),
         cancel: CancellationToken::new(),
         machine: on,
         local: local_services(Arc::new(UnusedEnvironment)),

@@ -139,6 +139,7 @@ fn context(asked: Arc<Asked>) -> ToolUseContext {
             root: EnvPath::new("/work"),
         },
         mode: PermissionMode::AcceptEdits,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::AcceptEdits),
         cancel: CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

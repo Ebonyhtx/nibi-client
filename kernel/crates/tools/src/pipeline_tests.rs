@@ -73,6 +73,7 @@ fn context(answer: PermissionAnswer) -> ToolUseContext {
             root: EnvPath::new("/work"),
         },
         mode: PermissionMode::Default,
+        execution: nibi_kernel_api::permission::ExecutionState::from(PermissionMode::Default),
         cancel: CancellationToken::new(),
         machine: machine(env.clone()),
         local: local_services(env),

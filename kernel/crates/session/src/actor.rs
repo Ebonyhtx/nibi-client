@@ -59,10 +59,10 @@ pub(crate) enum Request {
     Goal {
         reply: oneshot::Sender<nibi_kernel_api::goal::GoalView>,
     },
-    /// 回合外的工具授权要的会话当前状态：权限模式与工作目录（MCP Apps 的页面调用）。
+    /// 回合外的工具授权要的会话当前状态：执行状态（权限模式 + plan 开关）与工作目录（MCP Apps 的页面调用）。
     TurnContext {
         reply: oneshot::Sender<(
-            nibi_kernel_api::permission::PermissionMode,
+            nibi_kernel_api::permission::ExecutionState,
             nibi_kernel_api::env::WorkspaceRef,
         )>,
     },
@@ -535,7 +535,7 @@ impl Actor {
                 let _ = reply.send(self.goal_view());
             }
             Request::TurnContext { reply } => {
-                let _ = reply.send((self.mode(), self.meta.workspace.clone()));
+                let _ = reply.send((self.execution, self.meta.workspace.clone()));
             }
             Request::Selection { reply } => {
                 let _ = reply.send(self.selection.clone());

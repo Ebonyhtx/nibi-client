@@ -12,7 +12,7 @@ use nibi_kernel_api::clock::Clock;
 use nibi_kernel_api::env::WorkspaceRef;
 use nibi_kernel_api::ids::{AgentId, SessionId, ToolUseId};
 use nibi_kernel_api::model::ModelSelection;
-use nibi_kernel_api::permission::PermissionMode;
+use nibi_kernel_api::permission::{ExecutionState, PermissionMode};
 
 use crate::definitions::AgentDefinition;
 use crate::doing::Doing;
@@ -69,7 +69,9 @@ pub(crate) struct LiveAgent {
     /// 子代理的工具缺省在哪台远端机器上跑（Agent 的 `machine`，R3，remote-exec.md §20.6）；本机为 None。
     pub(crate) machine: Option<String>,
     pub(crate) selection: ModelSelection,
-    pub(crate) mode: PermissionMode,
+    /// 子代理的执行状态（基础权限模式 + plan 开关）：判决用的模式是 [`Self::mode`]；plan 开着时也要
+    /// 认出基础模式（修复线 A1/A2，Node `childExecutionState`）。
+    pub(crate) execution: ExecutionState,
     pub(crate) background: bool,
     /// 父会话的会话级询问入口（交互界面里才有，agents.md §4.1.1）：后台运行（含续跑、停放后的唤醒）经它询问。
     pub(crate) asks: Option<crate::child::Asks>,
@@ -96,6 +98,11 @@ pub(crate) struct Shown {
 }
 
 impl LiveAgent {
+    /// 判决用的模式（plan 开时是 plan）：子循环的 `QueryRequest.mode` 与模式事实都用它。
+    pub(crate) fn mode(&self) -> PermissionMode {
+        self.execution.effective()
+    }
+
     pub(crate) fn status(&self) -> &'static str {
         match &self.state {
             AgentState::Running { .. } => "running",
