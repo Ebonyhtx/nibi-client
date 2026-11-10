@@ -90,6 +90,10 @@ pub(crate) enum SinkRequest {
     Selection {
         reply: oneshot::Sender<ModelSelection>,
     },
+    /// 工具读本轮的 automationId / botDeliveryTarget（只在当前轮有效，不进会话配置）。
+    TurnFacts {
+        reply: oneshot::Sender<nibi_kernel_api::automation::TurnFacts>,
+    },
     /// fork 子代理读已提交的对话（修复线 L-A，agents.md §8.1.2）。
     Conversation {
         reply: oneshot::Sender<Vec<Message>>,
@@ -238,6 +242,19 @@ impl Interactions for ActorSink {
             .await
             .map_err(|_| gone())?;
         answer.await.map_err(|_| gone())?
+    }
+
+    /// 本轮事实的 owner 是会话 actor 的当前回合；没有回合时返回默认（空）。
+    async fn turn_facts(
+        &self,
+        _session: &SessionId,
+    ) -> Option<nibi_kernel_api::automation::TurnFacts> {
+        let (reply, answer) = oneshot::channel();
+        self.sender
+            .send(SinkRequest::TurnFacts { reply })
+            .await
+            .ok()?;
+        answer.await.ok()
     }
 
     /// 选择的 owner 是会话 actor：按请求时的值回答，不另存副本。

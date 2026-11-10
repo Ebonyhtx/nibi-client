@@ -299,6 +299,15 @@ impl Interactions for ChildSink {
         let parent = self.parent.as_ref()?;
         parent.interactions.current_selection(&parent.session).await
     }
+
+    /// 子代理看到父会话本轮的事实（定时任务执行轮的子代理同样不能自改任务）。
+    async fn turn_facts(
+        &self,
+        _session: &SessionId,
+    ) -> Option<nibi_kernel_api::automation::TurnFacts> {
+        let parent = self.parent.as_ref()?;
+        parent.interactions.turn_facts(&parent.session).await
+    }
 }
 
 impl ChildSink {

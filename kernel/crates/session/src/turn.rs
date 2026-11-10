@@ -257,6 +257,7 @@ impl Actor {
             // checkpoint 挂在这次运行最后一条 user 消息上（drive 的同一规则）。
             prompt: users.last().map(|message| message.id().clone()),
             command: None,
+            turn_facts: Default::default(),
         });
         Ok(())
     }
@@ -350,6 +351,14 @@ impl Actor {
             }
             SinkRequest::Selection { reply } => {
                 let _ = reply.send(self.selection.clone());
+            }
+            SinkRequest::TurnFacts { reply } => {
+                let _ = reply.send(
+                    self.running
+                        .as_ref()
+                        .map(|running| running.turn_facts.clone())
+                        .unwrap_or_default(),
+                );
             }
             SinkRequest::Goal { reply } => {
                 let _ = reply.send(self.goal.condition());

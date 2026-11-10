@@ -664,6 +664,13 @@ pub trait Interactions: Send + Sync {
         None
     }
 
+    /// 本轮输入携带的固定事实（`sendText` 的 `automationId` / `botDeliveryTarget`）：owner 是会话
+    /// actor 的当前回合，只在开这一轮的命令上有效，不写进会话级配置。子代理转给父会话；没有会话
+    /// 的实现（测试替身）返回 None。
+    async fn turn_facts(&self, _session: &SessionId) -> Option<crate::automation::TurnFacts> {
+        None
+    }
+
     /// Monitor 工具起好的 monitor 交给会话 actor（工作线 F83 新增，docs/specs/rust-cli/tools-more.md §19.6）：actor 是
     /// 切行、批、限流与通知的唯一 owner，按游标读它的输出。不持有会话的实现（子代理、测试替身）返回 `Unsupported`，
     /// 调用方停掉已经起的命令。

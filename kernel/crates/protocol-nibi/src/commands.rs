@@ -863,6 +863,25 @@ fn input_meta(
     }
 }
 
+/// `sendText` 里只属于这一轮的固定事实；两个字段都没有时返回 None（不发空命令）。
+fn turn_facts(payload: &Value) -> Option<nibi_kernel_api::automation::TurnFacts> {
+    let automation_id = payload["automationId"]
+        .as_str()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .map(str::to_owned);
+    let bot_delivery_target = payload
+        .get("botDeliveryTarget")
+        .filter(|value| value.is_object())
+        .cloned();
+    (automation_id.is_some() || bot_delivery_target.is_some()).then(|| {
+        nibi_kernel_api::automation::TurnFacts {
+            automation_id,
+            bot_delivery_target,
+        }
+    })
+}
+
 async fn send_text(
     server: &Server,
     handle: &dyn SessionHandle,
@@ -873,6 +892,18 @@ async fn send_text(
 ) -> Ack {
     let payload = &envelope.payload;
     let command = envelope.command_id.as_str();
+    // 本轮事实（定时任务执行轮的 automationId、Bot 来源的回推目标）：只开这一轮，不写会话配置。
+    if let Some(facts) = turn_facts(payload) {
+        send(
+            handle,
+            &format!("{command}:turn-facts"),
+            Command::SetTurnFacts {
+                command: CommandId::new(command),
+                facts,
+            },
+        )
+        .await;
+    }
     // 这次提交带的模型与模式先作用到会话（同 Node：Submission 带完整的选择）。
     let view = handle.view().await.ok();
     if let Some(chosen) = selection(&payload["modelSelection"])

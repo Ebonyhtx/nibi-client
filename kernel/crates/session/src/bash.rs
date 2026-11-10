@@ -157,6 +157,7 @@ impl Actor {
             failure: None,
             prompt: Some(prompt),
             command: Some(command),
+            turn_facts: Default::default(),
         });
     }
 }

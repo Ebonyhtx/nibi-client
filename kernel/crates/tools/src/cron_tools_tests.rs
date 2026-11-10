@@ -746,3 +746,105 @@ async fn host_mode_update_sends_only_the_patch() {
         nibi_kernel_api::automation::AutomationMaxRuns::Keep
     );
 }
+
+fn context_with_turn_facts(
+    operation: &str,
+    mode: PermissionMode,
+    facts: nibi_kernel_api::automation::TurnFacts,
+) -> ToolUseContext {
+    let interactions = Arc::new(ScriptedInteractions::default());
+    interactions.set_turn_facts(facts);
+    let mut ctx = Ctx::new(interactions);
+    ctx.mode = mode;
+    let mut context = ctx.build();
+    context.operation.operation = OperationId::new(operation);
+    context
+}
+
+#[tokio::test]
+async fn host_mode_passes_the_bot_delivery_target_from_the_turn() {
+    let board = board();
+    let fake = Arc::new(FakeAutomation::default());
+    let tools = host_tools(&board, &fake);
+    let target = json!({
+        "provider": "feishu",
+        "botId": "bot-1",
+        "providerUserId": "ou_1",
+        "chatType": "group",
+    });
+    let ctx = context_with_turn_facts(
+        "op_1a2b3c4d-0000-4000-8000-000000000000",
+        PermissionMode::Default,
+        nibi_kernel_api::automation::TurnFacts {
+            automation_id: None,
+            bot_delivery_target: Some(target.clone()),
+        },
+    );
+    call(
+        &host_tool(&tools, CREATE),
+        json!({"cron": "*/5 * * * *", "prompt": "p"}),
+        ctx,
+    )
+    .await;
+    let created = fake.created.lock().unwrap().clone();
+    assert_eq!(created[0].bot_delivery_target, Some(target));
+}
+
+#[tokio::test]
+async fn automation_turn_cannot_mutate_tasks_but_can_list() {
+    let board = board();
+    let fake = Arc::new(FakeAutomation::default());
+    let tools = host_tools(&board, &fake);
+    let facts = nibi_kernel_api::automation::TurnFacts {
+        automation_id: Some("auto-1".to_owned()),
+        bot_delivery_target: None,
+    };
+    let ctx = || {
+        context_with_turn_facts(
+            "op_1a2b3c4d-0000-4000-8000-000000000000",
+            PermissionMode::Default,
+            facts.clone(),
+        )
+    };
+    let create = host_tool(&tools, CREATE);
+    assert_eq!(
+        error(
+            create
+                .validate_input(&json!({"cron": "* * * * *", "prompt": "p"}), &ctx())
+                .await
+        ),
+        (
+            "CronCreate is not allowed while running a scheduled automation.".to_owned(),
+            Some(5)
+        )
+    );
+    let update = host_tool(&tools, UPDATE);
+    assert_eq!(
+        error(
+            update
+                .validate_input(&json!({"id": "auto-1", "title": "x"}), &ctx())
+                .await
+        ),
+        (
+            "CronUpdate is not allowed while running a scheduled automation.".to_owned(),
+            Some(5)
+        )
+    );
+    let delete = host_tool(&tools, DELETE);
+    assert_eq!(
+        error(
+            delete
+                .validate_input(&json!({"id": "auto-1"}), &ctx())
+                .await
+        ),
+        (
+            "CronDelete is not allowed while running a scheduled automation.".to_owned(),
+            Some(5)
+        )
+    );
+    // 只读的列表仍然可用（Node 的 automation turn 同样保留 CronList）。
+    *fake.list.lock().unwrap() = vec![FakeAutomation::record("t", true)];
+    let list = call(&host_tool(&tools, LIST), json!({}), ctx()).await;
+    assert!(list.contains("auto-1"), "{list}");
+    assert!(fake.created.lock().unwrap().is_empty());
+}

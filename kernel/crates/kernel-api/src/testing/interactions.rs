@@ -21,6 +21,7 @@ pub struct ScriptedInteractions {
     asked: Mutex<Vec<InteractionRequest>>,
     modes: Mutex<Vec<PermissionMode>>,
     plans: Mutex<Vec<bool>>,
+    turn_facts: Mutex<Option<crate::automation::TurnFacts>>,
 }
 
 impl ScriptedInteractions {
@@ -44,6 +45,11 @@ impl ScriptedInteractions {
     /// 收到的 plan 开关请求，按顺序（修复线 F20）。
     pub fn plans(&self) -> Vec<bool> {
         lock(&self.plans).clone()
+    }
+
+    /// 设定本轮事实（`sendText` 的 automationId / botDeliveryTarget 替身）。
+    pub fn set_turn_facts(&self, facts: crate::automation::TurnFacts) {
+        *lock(&self.turn_facts) = Some(facts);
     }
 }
 
@@ -83,5 +89,9 @@ impl Interactions for ScriptedInteractions {
     ) -> Result<(), OrchestrationError> {
         lock(&self.plans).push(enabled);
         Ok(())
+    }
+
+    async fn turn_facts(&self, _session: &SessionId) -> Option<crate::automation::TurnFacts> {
+        lock(&self.turn_facts).clone()
     }
 }

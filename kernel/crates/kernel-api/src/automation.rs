@@ -110,3 +110,17 @@ pub trait AutomationPort: Send + Sync {
     /// `-32601` 时实现方按 Node 同一条兼容路径回退到列表筛选；其他错误必须 fail-closed。
     async fn task_binding(&self, target_task_id: &str) -> Result<bool, AutomationError>;
 }
+
+/// 本轮输入携带的执行事实（`sendText` 的 `automationId` / `botDeliveryTarget`）。
+///
+/// Host 只在定时任务执行轮的 `sendText` 里带 `automationId`；它不能写进会话级配置，否则绑定会话
+/// 里用户后来主动发的一轮会永久失去修改任务的能力。`botDeliveryTarget` 同样只属于当前轮，
+/// 用于在 Bot 会话里创建的 automation 回推原群。
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TurnFacts {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub automation_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bot_delivery_target: Option<Value>,
+}

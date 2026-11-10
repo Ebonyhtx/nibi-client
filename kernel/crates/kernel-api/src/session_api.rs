@@ -83,6 +83,12 @@ pub enum Command {
         command: CommandId,
         intent: Value,
     },
+    /// 这一轮输入的固定事实（Host `sendText` 的 `automationId` / `botDeliveryTarget`）：协议层在
+    /// `Submit` 之前发；会话 actor 只在开这一轮时取走，不写会话级配置。没有事实的输入不发这条。
+    SetTurnFacts {
+        command: CommandId,
+        facts: crate::automation::TurnFacts,
+    },
     Interrupt,
     /// 进程要退出（修复线 F38，docs/specs/rust-cli/session-lifecycle.md §3.5）：以 [`crate::abort::AbortReason::Shutdown`]
     /// 中止在跑的回合（之后这个回合不再记录），此后不再开回合。没有回合在跑时也 `Accepted`。

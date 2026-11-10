@@ -38,6 +38,22 @@ pub(crate) async fn owner(context: &ToolUseContext) -> SessionId {
     context.interactions.owner_session(&context.session).await
 }
 
+/// 本轮是不是定时任务派发的执行轮（`sendText` 带了 `automationId`）。这种轮次里 Node 的
+/// executor 在 handler 之前就隐藏/拒绝三个写工具；Rust 在工具入口做同一条拒绝，`CronList` 仍放行。
+async fn is_automation_turn(context: &ToolUseContext) -> bool {
+    context
+        .interactions
+        .turn_facts(&context.session)
+        .await
+        .is_some_and(|facts| facts.automation_id.is_some())
+}
+
+fn automation_turn_error(tool: &str) -> ToolError {
+    ToolError::Failed {
+        message: format!("{tool} is not allowed while running a scheduled automation."),
+    }
+}
+
 /// 任务 ID：取这次调用的操作 ID（`op_<uuid>`）里 uuid 的前 8 位。
 pub(crate) fn job_id(context: &ToolUseContext) -> String {
     let operation = context.operation.operation.as_str();
@@ -408,6 +424,11 @@ async fn create_via_host(
     input: &CreateInput,
     context: &ToolUseContext,
 ) -> Result<ToolOutput, ToolError> {
+    let facts = context
+        .interactions
+        .turn_facts(&context.session)
+        .await
+        .unwrap_or_default();
     let board = &shared.board;
     let now = board.now_ms();
     let offset = board.offset();
@@ -455,7 +476,7 @@ async fn create_via_host(
             model_selection: selection.as_ref().map(model_selection_value),
             mode: Some(mode_value(context.mode).to_owned()),
             target_task_id: Some(context.session.as_str().to_owned()),
-            bot_delivery_target: None,
+            bot_delivery_target: facts.bot_delivery_target,
             recurring,
             max_runs: if carrier { None } else { input.max_runs },
             interval_unit: input.interval_unit,
@@ -498,6 +519,12 @@ impl Tool for CronCreateTool {
         let Ok(input) = parse::<CreateInput>(input) else {
             return Validation::Ok;
         };
+        if is_automation_turn(context).await {
+            return coded(
+                format!("{CREATE} is not allowed while running a scheduled automation."),
+                5,
+            );
+        }
         let board = &self.0.board;
         let now = board.now_ms();
         let offset = board.offset();
@@ -554,6 +581,9 @@ impl Tool for CronCreateTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let input: CreateInput = parse(&input)?;
+        if is_automation_turn(&context).await {
+            return Err(automation_turn_error(CREATE));
+        }
         if let Some(port) = self.0.host() {
             return create_via_host(&self.0, port, &input, &context).await;
         }
@@ -675,6 +705,12 @@ impl Tool for CronDeleteTool {
         let Ok(input) = parse::<DeleteInput>(input) else {
             return Validation::Ok;
         };
+        if is_automation_turn(context).await {
+            return coded(
+                format!("{DELETE} is not allowed while running a scheduled automation."),
+                5,
+            );
+        }
         if self.0.host().is_some() {
             return Validation::Ok;
         }
@@ -709,6 +745,9 @@ impl Tool for CronDeleteTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let input: DeleteInput = parse(&input)?;
+        if is_automation_turn(&context).await {
+            return Err(automation_turn_error(DELETE));
+        }
         if let Some(port) = self.0.host() {
             let deleted = port.delete(&input.id).await.map_err(host_error)?;
             let text = if deleted {
@@ -1125,6 +1164,12 @@ impl Tool for CronUpdateTool {
         let Ok(input) = parse::<UpdateInput>(input) else {
             return Validation::Ok;
         };
+        if is_automation_turn(context).await {
+            return coded(
+                format!("{UPDATE} is not allowed while running a scheduled automation."),
+                5,
+            );
+        }
         let board = &self.0.board;
         if self.0.host().is_some() {
             return validate_update_shape(&input, board.now_ms(), &board.offset());
@@ -1159,6 +1204,9 @@ impl Tool for CronUpdateTool {
         _progress: mpsc::Sender<ToolProgress>,
     ) -> Result<ToolOutput, ToolError> {
         let input: UpdateInput = parse(&input)?;
+        if is_automation_turn(&context).await {
+            return Err(automation_turn_error(UPDATE));
+        }
         if let Some(port) = self.0.host() {
             return update_via_host(port, &input).await;
         }

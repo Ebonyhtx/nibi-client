@@ -567,6 +567,9 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
     `durable` 从工具 schema 里移除（automation 总是落盘）。模型侧创建前按
     `checkTaskBinding` 拒绝已绑定会话（旧 Host `-32601` 时回退列表筛选，与 Node 同一条）。
     旧的本机 `.nibi/scheduled_tasks.json` 任务不迁移，继续按内核任务运行。
+    `sendText` 的 `automationId` / `botDeliveryTarget` 经 `SetTurnFacts` 进入会话 actor 的当前
+    回合（不进会话配置）：执行轮的三个写工具按 Node 同一条拒绝，`CronList` 仍放行；Bot 会话里
+    创建 automation 时把回推目标交给 Host。
 
 **同日追加（真机文档工具报告后抓到的真 bug）**：MCP 结果同时带 `content` 与
 `structuredContent` 时，Rust 的 `transform` 只取 structured、把正文丢了。office 文档工具的
@@ -583,8 +586,3 @@ v4（`commands.rs::attachment_blocks`）与 legacy（`legacy_session.rs::attachm
    工具表（`ListModels`/`ListWorkflowRuns` 仍可用）；桌面由 Host 注入，功能完整。
 3. **`ListModels` 的 `disabledReason`**：Rust 目录只列可用模型，没有 Node 注册表里的禁用原因；
    不影响可用模型选择。
-4. **Bot 来源的 automation 回推**：`automation/create` 的 `botDeliveryTarget` 由 Node 从当前 Bot
-   turn 注入；Rust 的 `sendText` 不携带它，所以 Bot 会话里创建的定时任务不会把结果回推原群。
-5. **automation 执行轮的 per-turn `automationId`**：Rust 的 `sendText` 不读 `automationId`，
-   自改任务的拒绝只能靠 Host 的工具可见性/会话级 denylist；同一绑定会话里的用户轮仍可正常
-   `CronUpdate`（与 Node 的“用户轮不受限”一致）。

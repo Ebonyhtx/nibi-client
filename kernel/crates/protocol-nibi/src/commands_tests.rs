@@ -572,3 +572,21 @@ fn plan_approval_answers_map_the_host_action_and_content() {
         );
     }
 }
+
+#[test]
+fn send_text_turn_facts_only_include_this_turn() {
+    let facts = super::turn_facts(&json!({
+        "text": "hi",
+        "automationId": "auto-1",
+        "botDeliveryTarget": {"provider": "feishu", "botId": "b"},
+    }))
+    .unwrap();
+    assert_eq!(facts.automation_id.as_deref(), Some("auto-1"));
+    assert_eq!(
+        facts.bot_delivery_target,
+        Some(json!({"provider": "feishu", "botId": "b"}))
+    );
+    // 空白 automationId 与不是对象的 botDeliveryTarget 都不算事实。
+    assert!(super::turn_facts(&json!({"automationId": " ", "botDeliveryTarget": "x"})).is_none());
+    assert!(super::turn_facts(&json!({"text": "hi"})).is_none());
+}

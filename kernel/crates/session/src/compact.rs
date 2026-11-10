@@ -113,6 +113,7 @@ impl Actor {
             failure: None,
             prompt: None,
             command: None,
+            turn_facts: Default::default(),
         });
         Ok(())
     }

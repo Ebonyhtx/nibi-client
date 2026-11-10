@@ -242,6 +242,7 @@ impl Actor {
             origin: UserOrigin::Human,
         });
         let turn = self.deps.ids.turn();
+        let turn_facts = self.pending_turn_facts.remove(&command).unwrap_or_default();
         self.log.append(KernelEvent::TurnStarted {
             turn: turn.clone(),
             command: Some(command.clone()),
@@ -377,6 +378,7 @@ impl Actor {
             failure: None,
             prompt: Some(prompt),
             command: Some(command),
+            turn_facts,
         });
     }
 
