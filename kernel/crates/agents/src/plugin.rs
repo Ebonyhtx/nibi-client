@@ -2,7 +2,8 @@
 //!
 //! 文件位置由 ext 在插件加载时给出（runtime 经 [`crate::AgentCatalog::set_plugins`] 交进来）；内容与
 //! 用户 / 项目 agent 一样每次经执行环境读。与自定义 agent 的不同：类型名带插件名与命名空间、描述有
-//! 缺省句、不认 `permissionMode`、正文替换插件与项目目录变量。
+//! 缺省句、`permissionMode` 只能收紧父会话（Node 3.17.2 的 `permissionModeRestrictOnly`）、正文替换插件
+//! 与项目目录变量。
 
 use std::collections::BTreeMap;
 
@@ -10,6 +11,7 @@ use nibi_kernel_base::names::vars;
 use nibi_kernel_api::env::{EnvPath, ReadFile, WorkspaceRef};
 use nibi_kernel_api::machine::Files;
 
+use crate::custom::permission_mode;
 use crate::definitions::{AgentDefinition, AgentSource};
 use crate::frontmatter::{self, Value};
 
@@ -75,13 +77,13 @@ pub(crate) fn parse(raw: &str, file: &PluginAgentFile, project_dir: &str) -> Age
             model.to_owned()
         }
     });
-    if ["permissionMode", "hooks", "mcpServers"]
+    if ["hooks", "mcpServers"]
         .iter()
         .any(|key| map.contains_key(*key))
     {
         tracing::warn!(
             path = file.path,
-            "plugin agent sets permissionMode, hooks or mcpServers, which are ignored"
+            "plugin agent sets hooks or mcpServers, which are ignored"
         );
     }
     AgentDefinition {
@@ -97,8 +99,9 @@ pub(crate) fn parse(raw: &str, file: &PluginAgentFile, project_dir: &str) -> Age
         max_turns: text("maxTurns")
             .and_then(|turns| turns.parse::<u32>().ok())
             .filter(|turns| *turns > 0),
-        // 插件 agent 不认 permissionMode（插件是第三方代码）。
-        permission_mode: None,
+        // 插件 profile 的 permissionMode 只收紧父会话（Node `permissionModeRestrictOnly`）：这里原样解析，
+        // 派生子会话时由 `spawn::mode` 取父会话与声明中更严格的一个，第三方插件不能把父模式放宽。
+        permission_mode: text("permissionMode").and_then(permission_mode),
         background: text("background") == Some("true"),
     }
 }

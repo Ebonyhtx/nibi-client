@@ -34,8 +34,12 @@ fn names_descriptions_and_variables_follow_the_plugin_rules() {
     assert_eq!(agent.source, AgentSource::Plugin);
     assert_eq!(agent.plugin.as_deref(), Some("kit"));
     assert_eq!(agent.tools, Some(vec!["Read".to_owned()]));
-    // permissionMode 对插件 agent 无效（会越过安装时的授权）。
-    assert_eq!(agent.permission_mode, None);
+    // 插件声明的 permissionMode 原样解析，派生子会话时只收紧父会话（Node `permissionModeRestrictOnly`），
+    // 不能越过安装时的授权把父模式放宽。
+    assert_eq!(
+        agent.permission_mode,
+        Some(nibi_kernel_api::permission::PermissionMode::BypassPermissions)
+    );
     assert_eq!(agent.max_turns, Some(3));
     assert_eq!(
         agent.prompt,

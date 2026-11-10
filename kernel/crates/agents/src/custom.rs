@@ -92,8 +92,8 @@ impl Reader<'_> {
     }
 }
 
-/// 先把 `manual` 换成 `default` 再校验（修复线 F58：以前不认 `manual`）。
-fn permission_mode(value: &str) -> Option<PermissionMode> {
+/// 先把 `manual` 换成 `default` 再校验（修复线 F58：以前不认 `manual`）。插件 agent 也用这一份。
+pub(crate) fn permission_mode(value: &str) -> Option<PermissionMode> {
     PermissionMode::from_cli_choice(value)
 }
 
