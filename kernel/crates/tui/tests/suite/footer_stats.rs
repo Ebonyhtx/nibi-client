@@ -110,7 +110,8 @@ async fn requested(model: &GatedModel, count: usize) {
 }
 
 /// 一次请求：开始 1000、首字 3000、结束 6000，输出 120 → 120 × 1000 / 3000 = 40 tok/s；输入 200、缓存读 800（Node
-/// 的输入是 1000）→ 80%；上下文 1120 / 180,000 → ctx 0.6%。流式中三项都还没有（还没有完成的请求）。
+/// 的输入是 1000）→ 80%。上下文是面板口径（系统提示、工具与消息一起算），这里只断言这一项存在；
+/// 精确百分比随提示词长度变化，不适合写死。流式中三项都还没有（还没有完成的请求）。
 #[tokio::test(flavor = "multi_thread")]
 async fn a_finished_request_shows_tps_context_and_cache() {
     let (model, mut senders) = GatedModel::new(1);
@@ -141,7 +142,7 @@ async fn a_finished_request_shows_tps_context_and_cache() {
             })
             .await;
         assert!(
-            screen.contains("scripted · 40 tok/s · ctx 0.6% · cache 80.0%"),
+            screen.contains("scripted · 40 tok/s · ctx ") && screen.contains(" · cache 80.0%"),
             "{screen}"
         );
     })
@@ -221,7 +222,7 @@ async fn the_hit_rate_is_rebuilt_from_the_usage_rows_after_resume() {
         let screen = ui
             .wait("the second reply", |s| idle(s, "cache 40.0%"))
             .await;
-        assert!(screen.contains("ctx 0.6%"), "{screen}");
+        assert!(screen.contains("ctx "), "{screen}");
         assert!(!screen.contains("tok/s"), "{screen}");
         ui.submit("/clear");
         let screen = ui
@@ -247,14 +248,14 @@ async fn the_hit_rate_is_rebuilt_from_the_usage_rows_after_resume() {
             })
             .await;
         assert!(
-            screen.contains("scripted · ctx 0.6% · cache 40.0%"),
+            screen.contains("scripted · ctx ") && screen.contains(" · cache 40.0%"),
             "{screen}"
         );
     })
     .await;
 }
 
-/// 压缩结果提交后 ctx 立即按压缩后的历史更新（不等下一条回复）：150,001 / 180,000 → 83.3%，压缩后只剩摘要 → 不到 1%。
+/// 压缩结果提交后 ctx 立即按压缩后的历史更新（不等下一条回复）：大回复占满窗口，压缩后只剩摘要 → 不到 1%。
 #[tokio::test(flavor = "multi_thread")]
 async fn the_context_share_updates_once_the_conversation_is_compacted() {
     let model = GatedModel::scripted(vec![
@@ -267,7 +268,7 @@ async fn the_context_share_updates_once_the_conversation_is_compacted() {
     };
     with_ui(model, setup, |mut ui| async move {
         ui.submit("first");
-        ui.wait("the big reply", |s| idle(s, "ctx 83.3%")).await;
+        ui.wait("the big reply", |s| idle(s, "ctx ")).await;
         ui.submit("/compact");
         ui.wait_for("Conversation compacted").await;
         // 一位小数（F115）：压缩后的历史只剩摘要的续写消息，约 700 个 token，不到 1%（以前的整数式子写 0%）。
@@ -298,7 +299,7 @@ async fn chinese_and_light_themes_show_the_same_items() {
             })
             .await;
         assert!(
-            screen.contains("scripted · 上下文 0.6% · 缓存 80.0%"),
+            screen.contains("scripted · 上下文 ") && screen.contains(" · 缓存 80.0%"),
             "{screen}"
         );
         // footer 那一行里“缓”字的格子（宽字符占两格，按格子找）。

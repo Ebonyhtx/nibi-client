@@ -114,8 +114,9 @@ fn the_session_db_and_the_storage_root_follow_node_settings() {
     );
     assert!(base.join("short.sqlite").exists());
     assert!(!home.join(".nibi/cli/db/db.sqlite").exists());
-    // `storage.dir` 是存储根：自动记忆目录在它下面（`<storage.dir>/projects/<项目>/memory`）。
-    let projects: Vec<_> = std::fs::read_dir(base.join("store/projects"))
+    // `storage.dir` 是存储根：自动记忆目录在 `<storage.dir>/cli/memories/projects/<项目>/memory`
+    // 下（Node `resolveProjectMemoryRoot` 的 cliStorageRoot 就是 `<storage.dir>/cli`）。
+    let projects: Vec<_> = std::fs::read_dir(base.join("store/cli/memories/projects"))
         .unwrap()
         .map(|entry| entry.unwrap().path())
         .collect();
@@ -123,7 +124,6 @@ fn the_session_db_and_the_storage_root_follow_node_settings() {
     assert!(projects[0].join("memory").is_dir());
     assert!(!home.join(".nibi/projects").exists());
 }
-
 
 /// 去掉 Windows `canonicalize` 给的 verbatim 前缀（`\\?\`；POSIX 上原样返回）。
 ///
