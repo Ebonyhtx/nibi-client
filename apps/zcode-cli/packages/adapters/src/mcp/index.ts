@@ -79,7 +79,7 @@ import {
   applyMcpNodeFallbackEnv,
   type McpNodeFallback,
   type McpNodeFallbackProvider,
-} from "./node-fallback.js";
+} from "./nodeFallback/index.js";
 import { terminateMcpStdioProcessTree } from "./process-tree.js";
 import { McpResourceSubscriptionRegistry } from "./resource-subscriptions.js";
 import { ProcessTreeStdioClientTransport } from "./stdio-transport.js";
@@ -242,7 +242,7 @@ export {
   type McpNodeFallback,
   type McpNodeFallbackProvider,
   type NodeFallbackShimFile,
-} from "./node-fallback.js";
+} from "./nodeFallback/index.js";
 export {
   createMcpConnectionPool,
   type McpConnectionPool,

@@ -802,8 +802,11 @@ modules:
   - id: mcp-workspace-trust
     roots:
       - packages/desktop/src/main/mcpWorkspaceTrust
+      - packages/desktop/src/main/mcpWorkspaceTrustIpc.ts
+      - packages/desktop/src/shared/workspaceMcpTrustBridge.ts
     managed: true
     requires:
+      - desktop
       - shared
       - services
     publicEntrypoints:
@@ -812,6 +815,73 @@ modules:
     layers:
       adapters: .
     owner: desktop
+  # adapters-mcp-node-fallback：由 architecture:adopt 登记
+  - id: adapters-mcp-node-fallback
+    roots:
+      - apps/zcode-cli/packages/adapters/src/mcp/nodeFallback
+    managed: true
+    requires:
+      - zcode-cli
+    publicEntrypoints:
+      - apps/zcode-cli/packages/adapters/src/mcp/nodeFallback/index.ts
+      - apps/zcode-cli/packages/adapters/src/mcp/nodeFallback/contract.ts
+    layers:
+      adapters: .
+    owner: agent
+  # cli-mcp-node-fallback：由 architecture:adopt 登记
+  - id: cli-mcp-node-fallback
+    roots:
+      - apps/zcode-cli/packages/bootstrap/src/app/mcpNodeFallback
+    managed: true
+    requires:
+      - zcode-cli
+    publicEntrypoints:
+      - apps/zcode-cli/packages/bootstrap/src/app/mcpNodeFallback/index.ts
+      - apps/zcode-cli/packages/bootstrap/src/app/mcpNodeFallback/contract.ts
+    layers:
+      app: .
+    owner: agent
+  # services-mcp-node-fallback：由 architecture:adopt 登记
+  - id: services-mcp-node-fallback
+    roots:
+      - packages/services/src/zcode-agent/mcpNodeFallback
+    managed: true
+    requires:
+      - services
+    publicEntrypoints:
+      - packages/services/src/zcode-agent/mcpNodeFallback/index.ts
+      - packages/services/src/zcode-agent/mcpNodeFallback/contract.ts
+    layers:
+      adapters: .
+    owner: desktop
+  # ui-workspace-mcp-trust：由 architecture:adopt 登记
+  - id: ui-workspace-mcp-trust
+    roots:
+      - packages/ui/src/settings/workspaceMcpTrust
+    managed: true
+    requires:
+      - ui
+    publicEntrypoints:
+      - packages/ui/src/settings/workspaceMcpTrust/index.ts
+      - packages/ui/src/settings/workspaceMcpTrust/contract.ts
+    layers:
+      ui: .
+    owner: ui
+  # ui-turn-render-unit-cache：由 architecture:adopt 登记
+  - id: ui-turn-render-unit-cache
+    roots:
+      - packages/ui/src/v4/turnRenderUnitCache
+    managed: true
+    requires:
+      - plugin-ui
+      - shared
+      - ui
+    publicEntrypoints:
+      - packages/ui/src/v4/turnRenderUnitCache/index.ts
+      - packages/ui/src/v4/turnRenderUnitCache/contract.ts
+    layers:
+      ui: .
+    owner: ui
 
 global:
   # 临时时间戳（2026-09-10）：unmanaged-new-file 只约束此日期之后首次入库的文件。
@@ -1084,9 +1154,7 @@ exceptions:
     paths:
       - packages/ui/src/lib/nibiStorage.ts
     reason: >-
-      `ui` 模块是 managed:false 的遗留区（roots 覆盖整个 packages/ui/src），
-      所以新文件必须单独登记。这个文件是渲染层唯一的偏好写入口（前缀白名单 + 版本迁移），
-      放在 lib/ 下是为了和 browserEnvironment 等既有存储工具同层。path-exact，不开整个目录。
+      `ui` 模块是 managed:false 的遗留区（roots 覆盖整个 packages/ui/src）， 所以新文件必须单独登记。这个文件是渲染层唯一的偏好写入口（前缀白名单 + 版本迁移）， 放在 lib/ 下是为了和 browserEnvironment 等既有存储工具同层。path-exact，不开整个目录。
 
   - id: rust-migration-unmanaged-files
     rule: unmanaged-new-file
@@ -1098,9 +1166,4 @@ exceptions:
       - packages/services/src/zcode-agent/nodeReplHostEnv.ts
       - packages/zcode-server-cli/src/packaging/nodeDistIntegrity.ts
     reason: >-
-      Rust 内核改造期间的六个新文件：storage-paths / plugin-management 是从 bootstrap 既有实现抽出的
-      同层文件，localPluginManagementService 让插件管理留在 Host（不再转 agent），taskStreamFromV4 是
-      v4 事件到旧 task 事件的投影，nodeReplHostEnv 把 Host 注入的 node_repl 执行面投影成子进程环境，
-      nodeDistIntegrity 是 Server CLI 下载 Node 二进制的 sha256 校验。
-      四处所属目录（zcode-cli bootstrap、desktop/host、services/zcode-agent、zcode-server-cli）都还是
-      上游的未受管大区，逐个接管要单独一轮模块边界重构；这里按路径逐个登记，不放开整目录。
+      Rust 内核改造期间的六个新文件：storage-paths / plugin-management 是从 bootstrap 既有实现抽出的 同层文件，localPluginManagementService 让插件管理留在 Host（不再转 agent），taskStreamFromV4 是 v4 事件到旧 task 事件的投影，nodeReplHostEnv 把 Host 注入的 node_repl 执行面投影成子进程环境， nodeDistIntegrity 是 Server CLI 下载 Node 二进制的 sha256 校验。 四处所属目录（zcode-cli bootstrap、desktop/host、services/zcode-agent、zcode-server-cli）都还是 上游的未受管大区，逐个接管要单独一轮模块边界重构；这里按路径逐个登记，不放开整目录。

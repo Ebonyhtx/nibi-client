@@ -3,7 +3,7 @@ import { access, chmod, mkdir, readFile, rename, rm, stat, writeFile } from "nod
 import { dirname, join, posix, win32 } from "node:path";
 import { createServiceLogger, type ServiceLogger } from "#src/logger/serviceLogger.js";
 import { getAppConfigDir } from "#src/paths.js";
-import { findZCodeAgentRuntimeNodeBundle } from "../runtime-tools/providerRuntimeResolver.js";
+import { findZCodeAgentRuntimeNodeBundle } from "../../runtime-tools/providerRuntimeResolver.js";
 
 /**
  * Rust 内核的 MCP 无 Node 回退（docs/design/v2/mcp-node-fallback.md）。

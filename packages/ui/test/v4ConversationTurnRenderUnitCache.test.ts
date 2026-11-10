@@ -6,7 +6,7 @@ import type {
   UserInputRow,
 } from "@nibi/shared/nibi-protocol-v4";
 import { buildConversationTurnRenderUnits } from "@/v4/conversationTurnRenderUnits.js";
-import { ConversationTurnRenderUnitCache } from "@/v4/conversationTurnRenderUnitCache.js";
+import { ConversationTurnRenderUnitCache } from "@/v4/turnRenderUnitCache/index.js";
 
 function baseRow<T extends ConversationRow>(
   row: Omit<T, "createdAt" | "createdAtSeq" | "rowId" | "turnId"> & {

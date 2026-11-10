@@ -19,7 +19,7 @@ import type { McpPort, ModelSelection } from "@nibi/contracts";
 import type { PresentationSurface } from "@nibi/core";
 import type { RunNibiProtocolAgentOptions, ZCodeAppOptions } from "./app/types.js";
 import { createZCodeApp } from "./app/create-app.js";
-import { resolveMcpNodeFallbackProvider } from "./app/mcp-node-fallback.js";
+import { resolveMcpNodeFallbackProvider } from "./app/mcpNodeFallback/index.js";
 import { getCliStorageRoot } from "./app/paths.js";
 import {
   createNodeReplBrowserBroker,

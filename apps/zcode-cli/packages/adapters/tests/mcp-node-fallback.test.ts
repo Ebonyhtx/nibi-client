@@ -15,7 +15,7 @@ import {
   NODE_FALLBACK_NPM_ROOT_ENV_KEY,
   renderNodeFallbackShims,
   resolveBundledNpmRoot,
-} from "../src/mcp/node-fallback.js";
+} from "../src/mcp/nodeFallback/index.js";
 
 const execFileAsync = promisify(execFile);
 const isPosix = process.platform !== "win32";

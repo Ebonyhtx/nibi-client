@@ -4,7 +4,7 @@
  */
 export const mcpWorkspaceTrustModule = {
   id: "mcp-workspace-trust",
-  requires: ["shared", "services"],
+  requires: ["desktop", "shared", "services"],
   provides: ["mcp-workspace-trust"],
   publicEntrypoints: ["index.ts", "contract.ts"],
 } as const;

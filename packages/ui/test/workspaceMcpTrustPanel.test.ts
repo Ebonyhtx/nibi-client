@@ -3,11 +3,11 @@ import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ZCodeIntlProvider } from "../src/i18n/IntlProvider.js";
-import { WorkspaceMcpTrustPanel } from "../src/settings/WorkspaceMcpTrustPanel.js";
+import { WorkspaceMcpTrustPanel } from "../src/settings/workspaceMcpTrust/panel.js";
 import {
   resolveWorkspaceMcpTrustPresentation,
   type WorkspaceMcpTrustPresentation,
-} from "../src/settings/workspaceMcpTrustPresentation.js";
+} from "../src/settings/workspaceMcpTrust/presentation.js";
 
 const digest = "6781e00d56fceeb639263a7ee238dcfe1c8f6b922616d91337acf85b78304d14";
 

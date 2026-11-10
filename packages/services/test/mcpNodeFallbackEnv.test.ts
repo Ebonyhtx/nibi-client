@@ -9,7 +9,7 @@ import {
   MCP_NODE_FALLBACK_EXEC_PATH_ENV_KEY,
   MCP_NODE_FALLBACK_NPM_ROOT_ENV_KEY,
   renderMcpNodeFallbackShims,
-} from "../src/zcode-agent/mcpNodeFallbackEnv.js";
+} from "../src/zcode-agent/mcpNodeFallback/index.js";
 
 const tempRoots: string[] = [];
 

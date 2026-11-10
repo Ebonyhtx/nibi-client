@@ -7,7 +7,7 @@ import {
   WORKSPACE_MCP_TRUST_UNKNOWN_MESSAGE_ID,
   WORKSPACE_MCP_TRUST_UNREVIEWABLE_MESSAGE_ID,
   workspaceMcpTrustReasonMessageId,
-} from "../src/settings/workspaceMcpTrustPresentation.js";
+} from "../src/settings/workspaceMcpTrust/presentation.js";
 import type { WorkspaceMcpTrustReviewView } from "../src/store/mcpStoreDesktop.js";
 
 const digest = "6781e00d56fceeb639263a7ee238dcfe1c8f6b922616d91337acf85b78304d14";

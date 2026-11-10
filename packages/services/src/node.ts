@@ -145,7 +145,7 @@ export { createZCodeAgentService } from "./zcode-agent/zcodeAgentService.js";
 export { createZCodeTaskServiceAdapter } from "./zcode-agent/zcodeTaskServiceAdapter.js";
 export { createZCodeSessionService } from "./zcode-session/zcodeSessionService.js";
 import { resolveKernelSelection } from "./zcode-agent/zcodeAgentProcessManager.js";
-import { buildMcpNodeFallbackHostEnv } from "./zcode-agent/mcpNodeFallbackEnv.js";
+import { buildMcpNodeFallbackHostEnv } from "./zcode-agent/mcpNodeFallback/index.js";
 import { buildNodeReplHostEnv } from "./zcode-agent/nodeReplHostEnv.js";
 export {
   resolveDefaultZCodeAgentCommand,

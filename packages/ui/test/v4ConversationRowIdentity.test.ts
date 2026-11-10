@@ -7,7 +7,7 @@ import type {
 } from "@nibi/shared/nibi-protocol-v4";
 import { applyConversationDelta } from "@nibi/shared/nibi-protocol-v4";
 import type { ConversationSnapshot } from "@nibi/shared/nibi-protocol-v4";
-import { ConversationTurnRenderUnitCache } from "@/v4/conversationTurnRenderUnitCache.js";
+import { ConversationTurnRenderUnitCache } from "@/v4/turnRenderUnitCache/index.js";
 
 function baseRow<T extends ConversationRow>(
   row: Omit<T, "createdAt" | "createdAtSeq" | "rowId" | "turnId"> & {

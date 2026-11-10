@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
-import type { WorkspaceMcpTrustPresentation } from "@/settings/workspaceMcpTrustPresentation.js";
+import type { WorkspaceMcpTrustPresentation } from "./presentation.js";
 
 /**
  * 项目级 MCP 行的 Host 审核状态。

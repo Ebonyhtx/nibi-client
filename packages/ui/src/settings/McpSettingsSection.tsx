@@ -63,7 +63,7 @@ import {
   SettingsResourceGroupHeader,
   SettingsResourceList,
 } from "@/settings/SettingsResourceGroup.js";
-import { workspaceMcpTrustReasonMessageId } from "@/settings/workspaceMcpTrustPresentation.js";
+import { workspaceMcpTrustReasonMessageId } from "@/settings/workspaceMcpTrust/presentation.js";
 import { McpServersImportDialog } from "@/settings/ExternalAgentImportDialog.js";
 import { RemoteSyncDialogs, shouldShowRemoteSyncActions } from "@/settings/RemoteSyncActions.js";
 import { useMcpStore } from "@/store/mcpStore.js";

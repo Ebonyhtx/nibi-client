@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   bundledNpmRootCandidates,
   resolveMcpNodeFallbackProvider,
-} from "../src/app/mcp-node-fallback.js";
+} from "../src/app/mcpNodeFallback/index.js";
 
 const tempRoots: string[] = [];
 

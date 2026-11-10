@@ -62,7 +62,7 @@ import {
   resolveEffectiveConfigResult,
 } from "./app-config-options.js";
 import { getCliStorageRoot, getModelIoDir, projectIdFromDirectory } from "./paths.js";
-import { resolveMcpNodeFallbackProvider } from "./mcp-node-fallback.js";
+import { resolveMcpNodeFallbackProvider } from "./mcpNodeFallback/index.js";
 import {
   asInputHistoryStore,
   asLocalSettingStore,

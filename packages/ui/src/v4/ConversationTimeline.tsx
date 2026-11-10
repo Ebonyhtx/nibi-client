@@ -60,7 +60,7 @@ import {
   getConversationStatusPanelOffsetClassName,
 } from "@/v4/conversationLayout.js";
 import type { ConversationTurnRenderUnit } from "@/v4/conversationTurnRenderUnits.js";
-import { ConversationTurnRenderUnitCache } from "@/v4/conversationTurnRenderUnitCache.js";
+import { ConversationTurnRenderUnitCache } from "@/v4/turnRenderUnitCache/index.js";
 import {
   resolveConversationTurnNavigatorActiveQueryRowId,
   resolveConversationTurnNavigatorHydrationRetryDelayMs,

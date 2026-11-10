@@ -15,8 +15,8 @@ import {
   resolveMcpFailureMessageId,
 } from "@/settings/McpFailurePresentation.js";
 import { SettingsResourceList } from "@/settings/SettingsResourceGroup.js";
-import { WorkspaceMcpTrustPanel } from "@/settings/WorkspaceMcpTrustPanel.js";
-import { resolveWorkspaceMcpTrustPresentation } from "@/settings/workspaceMcpTrustPresentation.js";
+import { WorkspaceMcpTrustPanel } from "@/settings/workspaceMcpTrust/panel.js";
+import { resolveWorkspaceMcpTrustPresentation } from "@/settings/workspaceMcpTrust/presentation.js";
 import type {
   WorkspaceMcpTrustReasonCode,
   WorkspaceMcpTrustReviewView,
