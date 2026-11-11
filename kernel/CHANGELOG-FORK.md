@@ -36,9 +36,13 @@
 | `rustls-webpki`（RUSTSEC-2026-0382） | **0.103.15 → 0.103.16** | 该版本拒收含已泄露 emSign 中间公钥的证书路径；比根证书包更靠内的一层 |
 | `pulldown-cmark`（RUSTSEC-2026-0381 系列） | **0.13.4 → 0.13.5** | wikilink 解析漏洞；仅 TUI 依赖 |
 | `libz-sys`（RUSTSEC-2026-0403） | **1.1.30 → 1.1.31** | 构建期环境变量探测；仅 vendored ugrep |
+| `rusqlite` / `libsqlite3-sys`（RUSTSEC-2026-0459 / CVE-2026-119375） | **2026-11-12：0.37.0 → 0.41.1；libsqlite3-sys 0.35.0 → 0.39.1（bundled SQLite 3.54.1）** | SQLite < 3.54.0 在 `-wal` 页大小与主库不一致时可返回未初始化页缓存内存；0.39.0 起打包 3.54.0。`cargo update -p rusqlite`；lock 连带 `hashlink` 0.10.0→0.12.2、wasm-only 的 `rsqlite-vfs`/`sqlite-wasm-rs`；测试适配 2 处（`column_names()` 改为返回迭代器、`u64` 不再实现 `ToSql`）；`deny.toml` 未豁免本公告 |
+| `rustix`（RUSTSEC-2026-0486） | **2026-11-12：1.1.5 → 1.1.6** | 零长度 `spare_capacity` 调用让 xattr 函数把未写内存标为已初始化（UB）；1.1.6 起零长度返回空结果。`cargo update -p rustix --precise 1.1.6`；仅版本与 checksum 变化，依赖列表不变；经 `crossterm`（TUI）与 `tempfile`（dev）进入，无 crate 钉死 1.1.5 |
 | `deny.toml` 落库 | **已落库** | `kernel/deny.toml` |
 | `cargo deny check` | **全绿**（advisories/bans/licenses/sources ok） | 2026-10-29 实跑；`pulldown-cmark` 0.13.4→0.13.5、`rustls-webpki` 0.103.15→0.103.16、`libz-sys` 1.1.30→1.1.31；`bincode` unmaintained（RUSTSEC-2025-0141）按 TUI-only 豁免并登记在 `deny.toml` |
 | `cargo audit` | **0 漏洞**（1 allowed warning：bincode unmaintained） | `cargo audit` 2026-10-29 实跑，扫描 415 个依赖 |
+
+> 2026-11-12 复跑（rusqlite + rustix 升级后）：`cargo audit` 0 漏洞（1 allowed warning：bincode unmaintained）；`cargo deny check` **全绿**（advisories/bans/licenses/sources ok，`deny.toml` 的 bincode 豁免保持不动）；`cargo test --locked --workspace --no-fail-fast` 4633 passed / 0 failed。rustix 1.1.6 只改 lock 的版本与 checksum，无传递依赖或 manifest 变化。
 
 > 上游 0.1.67 基线为 1.0.9（2026-07-18，早于 eMudhra 事件），且 `crates/net/src/egress.rs` 使用 `Anchors::Merge` 合并平台信任库；不抬版本会把已撤根的旧锚重新信任回来。
 

@@ -148,7 +148,8 @@ rustls = { version = "0.23", default-features = false, features = ["ring"] }
 # （rustls-platform-verifier 在 wasm 上用它），不引入新包。
 webpki-root-certs = "1"
 # 只有 node-store 使用（spec §4：rusqlite 只在 sqlite / node-store）；bundled 自带 SQLite，不依赖系统库。
-rusqlite = { version = "0.37", features = ["bundled"] }
+# 0.41 起 bundled 的 libsqlite3-sys 0.39.x 带修复后的 SQLite（RUSTSEC-2026-0459 / CVE-2026-119375），勿降回 0.37。
+rusqlite = { version = "0.41", features = ["bundled"] }
 serde = { version = "1", default-features = false, features = ["std"] }
 # preserve_order：JS 的 JSON 文本按插入顺序输出键（nibi_kernel_base::js::json），Node 记录逐字节一致依赖它。
 serde_json = { version = "1", features = ["preserve_order"] }

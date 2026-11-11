@@ -336,14 +336,14 @@ async fn app_usage_aggregates_across_sessions_by_day() {
             "insert into turn_usage (session_id, turn_id, status, started_at, duration_ms,
                 model_request_count, input_tokens, output_tokens, computed_total_tokens)
              values ('sess_u1', 'turn_1', 'completed', ?1, 1200, 2, 200, 40, 400)",
-            [DAY + 1_000],
+            [DAY as i64 + 1_000],
         )
         .unwrap();
     t.connection()
         .execute(
             "insert into tool_usage (id, session_id, tool_call_id, tool_name, status, started_at, duration_ms)
              values ('tool_1', 'sess_u1', 'tc_1', 'read', 'error', ?1, 30)",
-            [DAY + 1_500],
+            [DAY as i64 + 1_500],
         )
         .unwrap();
 
@@ -406,7 +406,7 @@ async fn session_usage_accounts_input_side_incrementally_per_source() {
                     provider_id, model_id, status, started_at, input_tokens, output_tokens,
                     computed_total_tokens)
                  values (?1, ?1, 'sess_t1', 'main_turn', 'p', 'opus', 'completed', ?2, ?3, 10, ?4)",
-                rusqlite::params![id, at, input, input + 10],
+                rusqlite::params![id, at as i64, input as i64, (input + 10) as i64],
             )
             .unwrap();
     }

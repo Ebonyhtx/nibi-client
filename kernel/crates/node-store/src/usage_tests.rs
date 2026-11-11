@@ -69,8 +69,7 @@ fn row(t: &TestStore, sql: &str) -> Value {
     Value::Object(
         statement
             .column_names()
-            .iter()
-            .map(|n| (*n).to_owned())
+            .map(str::to_owned)
             .zip(values)
             .collect(),
     )
