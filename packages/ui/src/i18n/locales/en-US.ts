@@ -2715,6 +2715,8 @@ const enUS: Record<string, string> = {
   "settings.dataSync.blocked.targetSymlink": "Remote skill directory is a symbolic link",
   "settings.dataSync.blocked.compatDirectory":
     "Remote skill lives in the compatibility directory and cannot be overwritten",
+  "settings.dataSync.blocked.externalDirectory":
+    "A remote plugin with the same id lives outside the user plugin directory and cannot be overwritten",
   "settings.dataSync.blocked.targetCompatConfig":
     "The remote device uses the compatibility MCP configuration, so pushing would disable it",
   "settings.dataSync.summary.local": "Local: {files} files · {size}",
@@ -2734,13 +2736,14 @@ const enUS: Record<string, string> = {
   "settings.dataSync.result.conflict": "Conflict",
   "settings.dataSync.result.skipped": "Skipped",
   "settings.dataSync.category.description":
-    "Sync your local user-level skills, MCP servers, commands, hooks, and subagents to a remote device. Only creates or updates; remote-only content is kept.",
+    "Sync your local user-level skills, MCP servers, commands, hooks, subagents, and inline plugins to a remote device. Only creates or updates; remote-only content is kept.",
   "settings.dataSync.category.tabsLabel": "Sync categories",
   "settings.dataSync.category.skills": "Skills",
   "settings.dataSync.category.mcp": "MCP servers",
   "settings.dataSync.category.commands": "Commands",
   "settings.dataSync.category.hooks": "Hooks",
   "settings.dataSync.category.subagents": "Subagents",
+  "settings.dataSync.category.plugins": "Plugins",
   "settings.dataSync.category.loading": "Reading items on both sides…",
   "settings.dataSync.category.errorTitle": "Failed to read items",
   "settings.dataSync.category.offlineDescription":

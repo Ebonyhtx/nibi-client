@@ -47,6 +47,8 @@ export function blockedReasonLabel(intl: DataSyncIntl, reason: DataSyncBlockedRe
       return intl.formatMessage({ id: "settings.dataSync.blocked.targetSymlink" });
     case "compat-directory":
       return intl.formatMessage({ id: "settings.dataSync.blocked.compatDirectory" });
+    case "external-directory":
+      return intl.formatMessage({ id: "settings.dataSync.blocked.externalDirectory" });
     case "target-compat-config":
       return intl.formatMessage({ id: "settings.dataSync.blocked.targetCompatConfig" });
   }

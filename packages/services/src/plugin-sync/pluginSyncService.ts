@@ -1,16 +1,7 @@
 /* eslint-disable max-lines -- plugin 同步需要集中维护候选扫描、归档安全、远端判重和配置写入，拆分会增加远端同步回归面。 */
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import {
-  cp,
-  lstat,
-  mkdir,
-  readFile,
-  readdir,
-  realpath,
-  rename,
-  rm,
-} from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, realpath, rename, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import type {
@@ -19,6 +10,7 @@ import type {
   PluginSyncImportResult,
   PluginSyncRemoteStatus,
 } from "@nibi/shared";
+import { PLUGIN_DATA_SYNC_MAX_ITEM_BYTES } from "@nibi/shared";
 import type { IPluginSyncService } from "./pluginSync.js";
 import {
   createPluginSyncArchive,
@@ -27,21 +19,26 @@ import {
   type PluginSyncArchiveMetadata,
 } from "./pluginSyncArchive.js";
 import { normalizePluginSyncRelativePath, resolvePluginSyncPathWithin } from "./pluginSyncPath.js";
+import { createInlinePluginDataSyncMethods } from "#src/data-sync/node.js";
 import { checkRemoteSyncDirectoriesWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
 import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
 import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
 
-interface PluginManifestInfo {
+export interface PluginManifestInfo {
   name: string;
   pluginId: string;
   description?: string;
   version?: string;
   componentTypes: PluginSyncComponentType[];
+  /** manifest 的 userConfig（options schema），原样保留；数据同步据此筛选可移植 options。 */
+  userConfig: Record<string, unknown>;
 }
 
-interface UserPluginConfigState {
+export interface UserPluginConfigState {
   dirs: string[];
   enabledOverrides: Map<string, boolean>;
+  /** plugins.options，按 pluginId 原样保留大小写。 */
+  options: Record<string, unknown>;
 }
 
 interface MarketplaceManifestInfo {
@@ -71,7 +68,7 @@ interface MarketplaceSourceMirrorEntry {
 }
 
 const INLINE_PLUGIN_MARKETPLACE = "inline";
-const DEFAULT_MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+const DEFAULT_MAX_ARCHIVE_BYTES = PLUGIN_DATA_SYNC_MAX_ITEM_BYTES;
 const MARKETPLACE_SOURCE_ROOT_DIRECTORY = "marketplace-sources";
 const MIRRORED_MARKETPLACE_PLUGIN_ROOT = "plugins";
 const PLUGIN_MANIFEST_RELATIVE_PATHS = [
@@ -86,6 +83,8 @@ export function createPluginSyncService(options?: {
 }): IPluginSyncService {
   const maxArchiveBytes = options?.maxArchiveBytes ?? DEFAULT_MAX_ARCHIVE_BYTES;
   return {
+    // 数据同步分类方法：inline 插件的 list / hash / export / import，两端同一实现。
+    ...createInlinePluginDataSyncMethods({ maxItemBytes: maxArchiveBytes }),
     async listLocalUserPluginCandidates() {
       return {
         candidates: await collectLocalUserPluginCandidates(),
@@ -213,16 +212,16 @@ export function createPluginSyncService(options?: {
   };
 }
 
-function resolveUserHomeDir(): string {
+export function resolveUserHomeDir(): string {
   return process.env.HOME?.trim() || process.env.USERPROFILE?.trim() || homedir();
 }
 
 /** CLI 配置路径：跟数据根走（隔离实例不能读写另一个实例的插件开关）。 */
-async function getUserZcodeConfigPath(): Promise<string> {
+export async function getUserZcodeConfigPath(): Promise<string> {
   return join(await resolveZCodeStorageRoot(), "cli", "config.json");
 }
 
-function getUserZcodePluginRoot(): string {
+export function getUserZcodePluginRoot(): string {
   return join(resolveUserHomeDir(), ".nibi", "plugins");
 }
 
@@ -401,7 +400,7 @@ async function importMarketplaceSourceArchiveInternal(
   }
 }
 
-async function readUserPluginConfigState(): Promise<UserPluginConfigState> {
+export async function readUserPluginConfigState(): Promise<UserPluginConfigState> {
   const parsed = await readJsonFileOrEmpty(await getUserZcodeConfigPath());
   const plugins = isRecord(parsed.plugins) ? parsed.plugins : {};
   const enabledPlugins = isRecord(plugins.enabledPlugins) ? plugins.enabledPlugins : {};
@@ -414,6 +413,7 @@ async function readUserPluginConfigState(): Promise<UserPluginConfigState> {
   return {
     dirs: readStringArray(plugins.dirs),
     enabledOverrides,
+    options: isRecord(plugins.options) ? plugins.options : {},
   };
 }
 
@@ -944,7 +944,9 @@ async function addPluginDirToUserConfig(
   });
 }
 
-async function readPluginManifestInfo(pluginRoot: string): Promise<PluginManifestInfo | null> {
+export async function readPluginManifestInfo(
+  pluginRoot: string,
+): Promise<PluginManifestInfo | null> {
   for (const segments of PLUGIN_MANIFEST_RELATIVE_PATHS) {
     const manifestPath = join(pluginRoot, ...segments);
     let raw: string;
@@ -976,6 +978,7 @@ async function readPluginManifestInfo(pluginRoot: string): Promise<PluginManifes
         ? { version: parsed.version.trim() }
         : {}),
       componentTypes: await resolvePluginComponentTypes(pluginRoot, parsed),
+      userConfig: isRecord(parsed.userConfig) ? parsed.userConfig : {},
     };
   }
   return null;
@@ -1056,7 +1059,7 @@ function createUniqueDirectoryName(
   return dedupedName;
 }
 
-function toSafeDirectoryName(value: string): string {
+export function toSafeDirectoryName(value: string): string {
   const sanitized = value.trim().replace(/[\\/:]/gu, "-") || "plugin";
   try {
     return normalizePluginSyncRelativePath(sanitized);
@@ -1069,7 +1072,7 @@ function createCandidateId(pluginId: string, pluginRoot: string): string {
   return createShortHash(`${pluginId}:${pluginRoot}`);
 }
 
-function createShortHash(value: string): string {
+export function createShortHash(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
@@ -1085,7 +1088,7 @@ function normalizeMarketplaceId(marketplaceId: string): string {
   return normalizePluginId(marketplaceId);
 }
 
-function normalizePluginIdKey(pluginId: string): string {
+export function normalizePluginIdKey(pluginId: string): string {
   return normalizePluginId(pluginId).toLowerCase();
 }
 

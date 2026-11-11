@@ -16,6 +16,7 @@ import type { DataSyncListItem, DataSyncListResult } from "@nibi/shared";
 import {
   DataSyncSection,
   compareSkillRows,
+  resolveDataSyncCategoryService,
   selectSkillHashRequests,
   useDataSyncCategory,
   type DataSyncCategoryId,
@@ -54,7 +55,8 @@ type CategoryServiceKey =
   | "mcpSyncService"
   | "commandsService"
   | "hooksService"
-  | "subagentsService";
+  | "subagentsService"
+  | "pluginSyncService";
 
 function item(overrides: Partial<DataSyncListItem> & { key: string }): DataSyncListItem {
   return { name: overrides.key, enabled: true, ...overrides };
@@ -91,6 +93,7 @@ function createAccessor(
     commandsService: createService(),
     hooksService: createService(),
     subagentsService: createService(),
+    pluginSyncService: createService(),
     ...overrides,
   } as unknown as IServiceAccessor;
 }
@@ -327,6 +330,37 @@ describe("DataSyncSection categories", () => {
     );
     const checkbox = screen.getByRole("checkbox", { name: "Planner" });
     expect(checkbox.hasAttribute("disabled")).toBe(false);
+    expect(
+      screen.getByText("settings.dataSync.category.selection.count(count=1)"),
+    ).toBeTruthy();
+  });
+
+  it("maps the plugins category to pluginSyncService and shows its counts", async () => {
+    const pluginsSource = createService({
+      list: async () =>
+        listResult([
+          item({ key: "local-only", signature: { fileCount: 2, totalBytes: 20 } }),
+          item({ key: "same", contentHash: "h1" }),
+        ]),
+    });
+    const pluginsTarget = createService({
+      list: async () => listResult([item({ key: "same", contentHash: "h1" })]),
+    });
+    const source = createAccessor({ pluginSyncService: pluginsSource });
+    const target = createAccessor({ pluginSyncService: pluginsTarget });
+    mountSection(source, target);
+
+    expect(resolveDataSyncCategoryService(source, "plugins")).toBe(pluginsSource);
+
+    const tab = await screen.findByTestId("settings-data-sync-category-tab-plugins");
+    expect(tab.textContent).toContain("settings.dataSync.category.plugins");
+    expect(tab.textContent).toContain("settings.dataSync.category.pushable(count=1)");
+    const overviewRow = screen.getByTestId("settings-data-sync-overview-row-plugins");
+    expect(overviewRow.textContent).toContain("settings.dataSync.overview.local(count=2)");
+    expect(overviewRow.textContent).toContain("settings.dataSync.overview.remote(count=1)");
+
+    fireEvent.click(tab);
+    expect(await screen.findByTestId("settings-data-sync-row-local-only")).toBeTruthy();
     expect(
       screen.getByText("settings.dataSync.category.selection.count(count=1)"),
     ).toBeTruthy();

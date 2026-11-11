@@ -8,7 +8,7 @@ import type {
 } from "@nibi/shared";
 
 /** 设置页数据同步支持的用户级分类；顺序即标签栏与概览的展示顺序。 */
-export type DataSyncCategoryId = "skills" | "mcp" | "commands" | "hooks" | "subagents";
+export type DataSyncCategoryId = "skills" | "mcp" | "commands" | "hooks" | "subagents" | "plugins";
 
 export const DATA_SYNC_CATEGORIES: readonly DataSyncCategoryId[] = [
   "skills",
@@ -16,6 +16,7 @@ export const DATA_SYNC_CATEGORIES: readonly DataSyncCategoryId[] = [
   "commands",
   "hooks",
   "subagents",
+  "plugins",
 ];
 
 /** 概览计数：本机条目数、远端条目数、需要推送的条目数（可勾选行）。 */
@@ -50,7 +51,7 @@ export type DataSyncRowNote =
   | { kind: "blocked"; reason: DataSyncBlockedReason };
 
 /**
- * 通用同步行：五种分类共用同一形状，`category` 决定服务、文案与行内提示。
+ * 通用同步行：六种分类共用同一形状，`category` 决定服务、文案与行内提示。
  * 技能特有的字段（`directoryName` / `parentKey` / 版本）在其他分类留空。
  */
 export interface DataSyncRow {

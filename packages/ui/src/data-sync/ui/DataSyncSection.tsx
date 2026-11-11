@@ -39,6 +39,7 @@ const CATEGORY_LABEL_IDS: Record<DataSyncCategoryId, string> = {
   commands: "settings.dataSync.category.commands",
   hooks: "settings.dataSync.category.hooks",
   subagents: "settings.dataSync.category.subagents",
+  plugins: "settings.dataSync.category.plugins",
 };
 
 function categoryLabel(intl: Intl, category: DataSyncCategoryId): string {
@@ -473,8 +474,7 @@ export function DataSyncSectionView({
     activeTab === "overview"
       ? undefined
       : categories.find((category) => category.category === activeTab);
-  const reloadDisabled =
-    pagePhase !== "ready" || categories.some((category) => category.pushing);
+  const reloadDisabled = pagePhase !== "ready" || categories.some((category) => category.pushing);
   return (
     <div className="space-y-6" data-testid="settings-data-sync">
       <p className="text-ui-base text-foreground-subtle">
@@ -514,7 +514,8 @@ export function DataSyncSectionView({
         >
           <RefreshCw
             className={
-              pagePhase === "connecting" || categories.some((category) => category.phase === "loading")
+              pagePhase === "connecting" ||
+              categories.some((category) => category.phase === "loading")
                 ? "animate-spin"
                 : undefined
             }
@@ -583,7 +584,7 @@ export function DataSyncSectionView({
   );
 }
 
-/** 设置页内容：设备选择 + 该设备 source-settings attachment + 五个用户级分类的同步状态。 */
+/** 设置页内容：设备选择 + 该设备 source-settings attachment + 六个用户级分类的同步状态。 */
 export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[] }) {
   const request = useOptionalPlatform()?.requestSourceSettingsAttachment;
   const sourceServices = useBaseWorkspaceServices();
@@ -632,7 +633,15 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
   const commands = useDataSyncCategory({ ...categoryParams, category: "commands" });
   const hooks = useDataSyncCategory({ ...categoryParams, category: "hooks" });
   const subagents = useDataSyncCategory({ ...categoryParams, category: "subagents" });
-  const categories: DataSyncCategoryController[] = [skills, mcp, commands, hooks, subagents];
+  const plugins = useDataSyncCategory({ ...categoryParams, category: "plugins" });
+  const categories: DataSyncCategoryController[] = [
+    skills,
+    mcp,
+    commands,
+    hooks,
+    subagents,
+    plugins,
+  ];
   const categoriesRef = useRef(categories);
   categoriesRef.current = categories;
   const previousTabRef = useRef<DataSyncTabId>(activeTab);
@@ -642,9 +651,7 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
     const previous = previousTabRef.current;
     previousTabRef.current = activeTab;
     if (previous === activeTab || previous === "overview") return;
-    categoriesRef.current
-      .find((category) => category.category === previous)
-      ?.clearSelection();
+    categoriesRef.current.find((category) => category.category === previous)?.clearSelection();
   }, [activeTab]);
 
   const pagePhase: DataSyncPagePhase = !selectedDevice

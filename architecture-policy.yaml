@@ -244,7 +244,7 @@ modules:
       ui: .
     layerOrder: [ contract, domain, ui ]
     owner: conversation
-  # data-sync-service：B1 数据同步五分类（技能/MCP/命令/钩子/子智能体）
+  # data-sync-service：B1 数据同步六分类（技能/MCP/命令/钩子/子智能体/inline 插件）
   - id: data-sync-service
     roots:
       - packages/services/src/data-sync

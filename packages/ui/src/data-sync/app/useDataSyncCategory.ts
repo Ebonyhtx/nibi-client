@@ -26,7 +26,7 @@ import {
 export type DataSyncCategoryService = IDataSyncCategoryService<unknown>;
 
 /**
- * 按分类从 accessor 取对应服务。五类都 extends `IDataSyncCategoryService`，
+ * 按分类从 accessor 取对应服务。六类都 extends `IDataSyncCategoryService`，
  * 服务名固定在 accessor 上；不存在的 accessor 由页面按「连接中」处理。
  */
 export function resolveDataSyncCategoryService(
@@ -48,6 +48,8 @@ function categoryKey(category: Exclude<DataSyncCategoryId, "skills">) {
       return "hooksService" as const;
     case "subagents":
       return "subagentsService" as const;
+    case "plugins":
+      return "pluginSyncService" as const;
   }
 }
 
@@ -114,7 +116,7 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * 数据同步分类页的状态 owner（技能、MCP、命令、钩子、子智能体共用）。
+ * 数据同步分类页的状态 owner（技能、MCP、命令、钩子、子智能体、inline 插件共用）。
  *
  * 关键语义：
  * - 离线 / 连接中 fail-closed：不读写、清空列表，不展示旧快照。

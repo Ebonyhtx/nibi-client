@@ -15,6 +15,11 @@ interface DirectoryContentEntry {
   size: number;
 }
 
+export interface DirectoryContentOptions {
+  /** 排除的顶层条目名（例如 inline 插件的 `data/`），签名与哈希保持同一口径。 */
+  excludeTopLevel?: readonly string[];
+}
+
 /** `path` 严格位于 `root` 之内（不含 root 本身）。 */
 export function isPathWithin(root: string, path: string): boolean {
   const relativePath = relative(root, path);
@@ -40,7 +45,11 @@ export async function hasSymlinkWithin(root: string, path: string): Promise<bool
  * 按 lstat 递归列出目录内容，不跟随内部软链。顶层目录本身由调用方先取 realpath。
  * 结果按相对路径排序，供签名与哈希共用，保证两端遍历顺序一致。
  */
-async function listDirectoryContent(rootPath: string): Promise<DirectoryContentEntry[]> {
+async function listDirectoryContent(
+  rootPath: string,
+  options: DirectoryContentOptions = {},
+): Promise<DirectoryContentEntry[]> {
+  const excluded = new Set(options.excludeTopLevel ?? []);
   const entries: DirectoryContentEntry[] = [];
   const stack: Array<{ absolutePath: string; relativePath: string }> = [
     { absolutePath: rootPath, relativePath: "" },
@@ -50,6 +59,7 @@ async function listDirectoryContent(rootPath: string): Promise<DirectoryContentE
     if (!current) continue;
     const children = await readdir(current.absolutePath, { withFileTypes: true });
     for (const child of children) {
+      if (!current.relativePath && excluded.has(child.name)) continue;
       const absolutePath = join(current.absolutePath, child.name);
       const relativePath = current.relativePath
         ? posix.join(current.relativePath, child.name)
@@ -71,8 +81,11 @@ async function listDirectoryContent(rootPath: string): Promise<DirectoryContentE
 }
 
 /** 轻量签名：文件数 + 总字节，同时报告内部软链。 */
-export async function scanDirectoryContent(rootPath: string): Promise<DirectoryContentScan> {
-  const entries = await listDirectoryContent(rootPath);
+export async function scanDirectoryContent(
+  rootPath: string,
+  options?: DirectoryContentOptions,
+): Promise<DirectoryContentScan> {
+  const entries = await listDirectoryContent(rootPath, options);
   let fileCount = 0;
   let totalBytes = 0;
   let containsSymlink = false;
@@ -91,9 +104,12 @@ export async function scanDirectoryContent(rootPath: string): Promise<DirectoryC
  * 目录内容哈希：按「相对路径 + 字节」递归计算，与 mtime、权限无关。
  * 两端各自在本端计算，网络上只传哈希字符串。
  */
-export async function hashDirectoryContent(rootPath: string): Promise<string> {
+export async function hashDirectoryContent(
+  rootPath: string,
+  options?: DirectoryContentOptions,
+): Promise<string> {
   const hash = createHash("sha256");
-  for (const entry of await listDirectoryContent(rootPath)) {
+  for (const entry of await listDirectoryContent(rootPath, options)) {
     hash.update(`${entry.kind}\0${entry.relativePath}\0`);
     if (entry.kind === "file") {
       const content = await readFile(entry.absolutePath);

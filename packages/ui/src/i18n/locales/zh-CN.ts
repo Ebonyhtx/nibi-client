@@ -2533,6 +2533,7 @@ const zhCN: Record<string, string> = {
   "settings.dataSync.blocked.containsSymlink": "技能目录包含符号链接",
   "settings.dataSync.blocked.targetSymlink": "远端技能目录是符号链接",
   "settings.dataSync.blocked.compatDirectory": "远端技能位于兼容目录，不能覆盖",
+  "settings.dataSync.blocked.externalDirectory": "远端同名插件位于用户插件目录以外，不能覆盖",
   "settings.dataSync.blocked.targetCompatConfig": "远端使用兼容 MCP 配置，推送会使其失效",
   "settings.dataSync.summary.local": "本地：{files} 个文件 · {size}",
   "settings.dataSync.summary.localMissing": "本机不存在",
@@ -2551,13 +2552,14 @@ const zhCN: Record<string, string> = {
   "settings.dataSync.result.conflict": "冲突",
   "settings.dataSync.result.skipped": "跳过",
   "settings.dataSync.category.description":
-    "把本机用户级技能、MCP、命令、钩子和子智能体同步到远端设备。只新增或更新，保留远端独有内容。",
+    "把本机用户级技能、MCP、命令、钩子、子智能体和 inline 插件同步到远端设备。只新增或更新，保留远端独有内容。",
   "settings.dataSync.category.tabsLabel": "同步分类",
   "settings.dataSync.category.skills": "技能",
   "settings.dataSync.category.mcp": "MCP 服务器",
   "settings.dataSync.category.commands": "命令",
   "settings.dataSync.category.hooks": "钩子",
   "settings.dataSync.category.subagents": "子智能体",
+  "settings.dataSync.category.plugins": "插件",
   "settings.dataSync.category.loading": "正在读取本机与远端的条目…",
   "settings.dataSync.category.errorTitle": "读取条目失败",
   "settings.dataSync.category.offlineDescription":
