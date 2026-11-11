@@ -125,7 +125,7 @@
 
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
-| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 五类已接入**：技能 `1c17b5e4`；MCP / 命令 / 钩子 / 子智能体在 Phase 3（见 §14），UI 分类导航 + 概览；插件（inline/marketplace）与用户配置仍待扩；跨分类全选/推送全部未做；**P1** |
+| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 六类已接入**：技能 `1c17b5e4`；MCP / 命令 / 钩子 / 子智能体 / inline 插件在 Phase 3（见 §14），UI 分类导航 + 概览；marketplace 插件重装仍走原弹窗；跨分类全选/推送全部未做；**P1** |
 | B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | **[x] `0f8b730f`**：settings-scope managed 模块 + 插件/MCP/子智能体/钩子/命令/技能页统一接线；远端「用户」走 attachment，离线 fail-closed；数据同步前置；**P1** |
 | B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
 | B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
@@ -621,6 +621,7 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 | C13 按未读 | `ProjectSidebarView` 增加 `unread`，菜单为「按项目 / 按分组 / 最近更新 / 未读」；未读集合与系统角标共用同一 ProjectTree 选择器（跨项目置顶、本地未归类、去重规则一致），按最近更新时间倒序，复用时间线与 20 条分页，空态「暂无未读任务」；打开任务仍走既有已读 CAS |
 | C2 图片标注 | `image-preview-editor` managed 模块（归一化坐标、画笔/箭头/矩形/椭圆/文字/橡皮擦、撤销重做、自然尺寸 PNG、序列化与命中测试）；文件预览「标注」入口只在桌面且源为 base64 位图时显示；完成后按会话/草稿作用域交给 Composer 既有附件队列，不直接发送、不改附件协议 |
 | C3 另存为 | 产物「作为文件打开」菜单增加「另存为…」：把这一版字节交给宿主原生保存对话框（`saveFile`），不是 `~/.nibi/tmp` 副本；无 `saveFile` 的宿主不显示该项 |
+| B1 插件分类 | `inlinePluginDataSync`：按插件 id 对齐 inline 插件、签名/哈希排除顶层 `data/`、覆盖保留目标 `data/` 与启用态、createOnly 冲突与 overwrite 乐观并发、坏 config 整批不写；`pickPortablePluginOptions` 双向筛选 options；UI 增加「插件」分类 |
 
 ### 14.2 门禁
 
@@ -630,10 +631,12 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 - 复跑全量：**1978 个测试文件 / 18,451 条通过 / 76 skipped / 0 失败**。
 - 新增测试：MCP 9、命令 13、钩子 12、子智能体 10、UI 分类 8；既有技能/命令/钩子/子智能体服务测试与 UI 技能/设备测试全绿。
 - C13/C2 提交 `4bf48b5a`：新增图片标注 19 条 + 侧栏未读/既有侧栏/预览/附件定向 186 条通过；typecheck、lint、architecture 通过，i18n 中英一致。
+- C3 提交 `eaeed071`；inline 插件分类提交 `cf139590`（新增 inline 插件同步 10 条 + 插件/数据同步定向 47 条）。
+- 最终全量 `pnpm test:unit`（插件分类后）：**1982 个测试文件 / 18,488 条通过 / 76 skipped / 0 失败**。
 
 ### 14.3 已知边界
 
-- 插件（inline / marketplace）与用户配置分类未接入；跨分类全选与「推送全部」未做，推送按分类执行。
+- marketplace 插件重装仍未接入数据同步页（沿用原「插件同步」弹窗）；跨分类全选与「推送全部」未做，推送按分类执行。
 - 远端旧版本 agent 没有这些同步方法时，分类页按错误展示，暂无版本门禁（本地与远端同版本发布不受影响）。
 - 命令/子智能体的「新建文件 + 写启用态」不是跨文件事务：config 写失败会回滚刚建的文件；其他项不受影响。
 - MCP 目标端使用 `~/.agents/mcp.json` 兼容配置时整类拒绝推送（与上游一致），不尝试迁移目标端配置。
@@ -641,7 +644,7 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 ### 14.4 C 项盘点（2026-11-11）
 
 - 已有、无需重复实现：C1 插件全部更新（`PluginsSection` 的 `updateAll` 与三态文案）、C4 标记未读 + 托盘/任务栏角标、C14 分组列表虚拟化（`project-sidebar/grouped/virtualized-group-task-list.tsx`）、C15 设备号展示（Source 设备面板）。
-- 本轮完成：C2、C13。
+- 本轮完成：C2、C13；B1 追加 inline 插件分类（提交见 §14.2 同批）。
 - C3：产物侧已有「用系统默认 App 打开 / 选择编辑器 / 在工作区显示 / 复制路径」，本轮补「另存为…」；Git 变更已有「在文件管理器显示」；普通聊天文件附件仍没有同一套菜单。
 - C8 暂缓：Rust DWF 侧没有 `providerStop.resetAt` 这类额度停止状态（只有通知投影），只做 Node 轨等于只服务回退内核；等 Rust DWF 补齐停止原因后再两侧一起做。
 - C16（登录链接复制）/C18（文件树回到预览左侧）/C19（侧栏插件已安装优先）只有更新日志、未在 3.17.2 公开源码定位到对应实现，按 §3.H 先定位再实施，本轮不做。
