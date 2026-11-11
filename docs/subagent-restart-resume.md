@@ -167,6 +167,9 @@ then finish the remaining work and report the result.
 - 已知环境问题（与本次改动无关）：CLI 全量套件里 `mcp-runtime`（plan 模式 MCP）、`plugins`（A8
   node 回退命令投影）、`bundled-plugins-resilience`（Windows 文件锁时序）、`mcp-node-fallback`
   （Windows 并发 rename）在 Windows 并行/单跑下仍有既有失败或抖动，另行处理。
+- 根 `pnpm test:unit`（两个内核改动后）：1,982 个文件 / 18,488 条通过 / 76 skipped / 0 失败。
+- Rust 全 workspace：117 个 suite 通过；`nibi-kernel-platform` 的两进程 device 用例与 TUI esc 用例在
+  Node 全量并行时偶发超时，单跑通过。
 
 ## 已知边界
 
