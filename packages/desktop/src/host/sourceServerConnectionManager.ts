@@ -1,4 +1,8 @@
-import { sourceServerRunningTasksSchema, type SourceServerRunningTask } from "@nibi/shared";
+import {
+  sourceServerRunningTasksSchema,
+  type SourceServerRunningTask,
+  type SourceServerRunningTasksResult,
+} from "@nibi/shared";
 /* eslint-disable max-lines -- Source 连接状态机、重试、更新和单连接归并必须共享同一代际状态。 */
 import { SourceServerOperationLogs } from "./sourceServerOperationLogs.js";
 import { Emitter, type Event } from "@nibi/rpc";
@@ -25,6 +29,7 @@ import {
 import type { IServiceAccessor } from "@nibi/services";
 import {
   createSourceServerTransportAdapter,
+  readServerCommandResult,
   type ServerReleaseAsset,
   type SourceServerFileTransfer,
   type SourceServerTransportAdapter,
@@ -52,10 +57,23 @@ export interface ManagedSourceServerConnection {
   services: IServiceAccessor;
 }
 
+/** 会让远端主动断线的设备级生命周期操作。 */
+type LifecycleOperationKind = "update" | "stop" | "restart";
+
+/**
+ * 让同 Source 在线连接关闭成为“预期断线”的生命周期操作：更新与重启，完成后由 reconnect 换代。
+ * 停止在执行远端命令前已删除恢复意图并释放连接，不属于此类。
+ */
+type ExpectedDisconnectOperationKind = Exclude<LifecycleOperationKind, "stop">;
+
+/** 设备级操作（停止、重启、读取运行中任务）执行远端命令所用的连接与凭据。 */
+export type SourceOperationRoute = Pick<ReconnectInput, "profile" | "target">;
+
 export type SourceServerConnectionInvalidatedEvent =
   | {
       sourceServerId: string;
-      reason: "update";
+      /** 更新或重启远端服务让在线连接失效；两者都可恢复，完成后由 reconnect 换代。 */
+      reason: ExpectedDisconnectOperationKind;
     }
   | {
       sourceServerId: string;
@@ -117,6 +135,15 @@ class SourceServerProfileRemovedError extends Error {
   public constructor(public readonly profileId: string) {
     super(`Connection Profile removed: ${profileId}`);
     this.name = "SourceServerProfileRemovedError";
+  }
+}
+
+class SourceServerLifecycleOperationInProgressError extends Error {
+  public readonly code = "source-server-operation-in-progress";
+  public readonly retryable = true;
+  public constructor(public readonly sourceServerId: string) {
+    super(`Another lifecycle operation is in progress for Source Server: ${sourceServerId}`);
+    this.name = "SourceServerLifecycleOperationInProgressError";
   }
 }
 
@@ -199,8 +226,38 @@ interface ConnectFlight {
   controller: AbortController;
 }
 
+interface LifecycleOperationFlight {
+  kind: LifecycleOperationKind;
+  profileId: string;
+  sourceServerId?: string;
+  controller: AbortController;
+}
+
 const ONLINE_RETRY_DELAYS_MS = [2_000, 4_000, 8_000] as const;
 const OFFLINE_PROBE_INTERVAL_MS = 2 * 60_000;
+
+/**
+ * 生命周期操作（更新、停止、重启）失败写入连接状态的错误字段。errorCode 与 retryable 取自同一归一化
+ * 结果（唯一来源）：错误码来自内层原因时，retryable 不能再读外层包装。远端未声明 retryable 时统一
+ * 按可重试处理（含停止失败）。
+ */
+function describeLifecycleOperationFailure(
+  error: unknown,
+): Pick<SourceServerConnectionStateSnapshot, "error" | "errorCode" | "retryable"> {
+  const normalized = normalizeRemoteConnectionError(error);
+  return {
+    error: normalized.message,
+    ...(isPublicZCodeErrorCode(normalized.code) ? { errorCode: normalized.code } : {}),
+    retryable: normalized.retryable ?? true,
+  };
+}
+
+/** 预期断线操作在被失效连接上的状态投影：重启只显示“连接中”，不能显示成更新中。 */
+function expectedDisconnectProjection(
+  kind: ExpectedDisconnectOperationKind,
+): "updating" | "bootstrapping" {
+  return kind === "restart" ? "bootstrapping" : "updating";
+}
 
 function readErrorRetryable(error: unknown): boolean | undefined {
   if (!error || typeof error !== "object" || !("retryable" in error)) {
@@ -307,11 +364,7 @@ export class SourceServerConnectionManager {
   private readonly profileIdsBySourceServerId = new Map<string, Set<string>>();
   private readonly retryTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly offlineProbeTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private readonly updateFlights = new Set<{
-    profileId: string;
-    sourceServerId?: string;
-    controller: AbortController;
-  }>();
+  private readonly lifecycleOperationFlights = new Set<LifecycleOperationFlight>();
   public readonly onDidChangeState: Event<SourceServerConnectionStateSnapshot> =
     this.stateEmitter.event;
   public readonly onDidReconnect: Event<ManagedSourceServerConnection> =
@@ -522,19 +575,7 @@ export class SourceServerConnectionManager {
     };
   }
 
-  public async updateServer(
-    options: Parameters<SourceServerConnectionManager["updateServerOnce"]>[0],
-  ): Promise<ManagedSourceServerConnection> {
-    return this.operationLogs.run(
-      "update",
-      options.profile,
-      options.target,
-      options.context,
-      (context) => this.updateServerOnce({ ...options, context }),
-    );
-  }
-
-  private async updateServerOnce(options: {
+  public async updateServer(options: {
     profile: ConnectionProfile;
     target: Exclude<RemoteTarget, { kind: "server" }>;
     force?: boolean;
@@ -542,20 +583,51 @@ export class SourceServerConnectionManager {
     release?: ServerReleaseAsset;
     resolveRelease?: SourceServerConnectionManagerOptions["resolveRelease"];
   }): Promise<ManagedSourceServerConnection> {
+    const { profile } = options;
+    // 必须在写操作日志前拒绝：日志 owner 按设备只保留最近一次操作，被拒绝的更新不能覆盖停止的日志。
+    if (profile.sourceServerId) {
+      this.assertLifecycleOperationCanStart(profile.sourceServerId, "update");
+    }
+    // Bug 原因：更新不在 connectFlights 中，断开后安装的迟到结果仍能重新发布连接。
+    // 按操作身份登记，尚未握手的 Profile 也可取消；取消时先摘 owner，旧更新不再压住新连接的恢复。
+    const flight = this.registerLifecycleOperation(
+      "update",
+      profile.profileId,
+      profile.sourceServerId,
+    );
+    const signal = options.context?.signal
+      ? AbortSignal.any([options.context.signal, flight.controller.signal])
+      : flight.controller.signal;
+    try {
+      return await this.operationLogs.run(
+        "update",
+        profile,
+        options.target,
+        { ...options.context, signal },
+        (context) => this.updateServerOnce({ ...options, context }, flight.controller),
+      );
+    } finally {
+      this.lifecycleOperationFlights.delete(flight);
+      // 更新成功后 reconnectInputs 已换成同一 target；失败时也可能仍有在线连接。
+      // 更新不释放 target transport，避免把在线线路的底层会话当成一次性路由关闭。
+    }
+  }
+
+  private async updateServerOnce(
+    options: {
+      profile: ConnectionProfile;
+      target: Exclude<RemoteTarget, { kind: "server" }>;
+      force?: boolean;
+      context: TransportContext;
+      release?: ServerReleaseAsset;
+      resolveRelease?: SourceServerConnectionManagerOptions["resolveRelease"];
+    },
+    controller: AbortController,
+  ): Promise<ManagedSourceServerConnection> {
     const sourceServerId = options.profile.sourceServerId;
     const previousState = this.getStateByProfile(options.profile.profileId);
     const previousCompatibility = preserveCompatibilityState(previousState);
-    const controller = new AbortController();
-    const flight = { profileId: options.profile.profileId, sourceServerId, controller };
-    const context: TransportContext = {
-      ...options.context,
-      signal: options.context?.signal
-        ? AbortSignal.any([options.context.signal, controller.signal])
-        : controller.signal,
-    };
-    // Bug 原因：更新不在 connectFlights 中，断开后安装的迟到结果仍能重新发布连接。
-    // 按操作身份登记，尚未握手的 Profile 也可取消；取消时先摘 owner，旧更新不再压住新连接的恢复。
-    this.updateFlights.add(flight);
+    const context = options.context;
     if (sourceServerId) {
       this.clearRecoveryTimers(sourceServerId);
     }
@@ -583,7 +655,7 @@ export class SourceServerConnectionManager {
       context.signal?.throwIfAborted();
       const online = sourceServerId ? this.onlineBySourceServerId.get(sourceServerId) : undefined;
       if (sourceServerId && online) {
-        this.invalidateOnlineConnectionForUpdate(sourceServerId, online);
+        this.invalidateOnlineConnectionForLifecycleOperation(sourceServerId, online, "update");
       }
       // 失效事件的同步订阅者也可能提交断开，不能在该终态后进入 bootstrapping。
       context.signal?.throwIfAborted();
@@ -607,76 +679,274 @@ export class SourceServerConnectionManager {
         error.code === "source-server-update-running-tasks"
       ) {
         // 清单走只读控制命令，不扩展持久化 status 格式，旧远端不支持时保持未知。
-        try {
-          const result = await this.getAdapter(options.profile.transport).exec(
-            options.target,
-            ["running-tasks", "--json"],
-            context,
-          );
-          if (result.exitCode === 0) {
-            const parsed = sourceServerRunningTasksSchema.safeParse(
-              JSON.parse(result.stdout.trim()),
-            );
-            if (parsed.success) runningTasks = parsed.data;
-          }
-        } catch {
-          /* 清单不可用不能绕过 force=false 的运行任务守卫。 */
-        }
+        runningTasks = await this.readRunningTasks(
+          options.profile.transport,
+          options.target,
+          context,
+        );
       }
       // running-tasks 读取同样会让出执行权，断开可能发生在错误收尾期间。
       controller.signal.throwIfAborted();
-      const normalized = normalizeRemoteConnectionError(error);
-      const errorCode = isPublicZCodeErrorCode(normalized.code) ? normalized.code : undefined;
-      const retryable =
-        error && typeof error === "object" && "retryable" in error
-          ? (error as { retryable?: unknown }).retryable
-          : undefined;
-      if (sourceServerId && !this.onlineBySourceServerId.has(sourceServerId)) {
-        // 更新期间 transport 已断开时不能恢复捕获的 online 快照，否则会产生无连接、无 timer 的假在线。
-        if (this.reconnectInputs.has(sourceServerId)) {
-          if (!this.stopAutomaticRecoveryForTerminalFailure(sourceServerId, error)) {
-            this.scheduleOnlineRetry(sourceServerId, 0);
-          }
-        } else {
-          this.setState(options.profile.profileId, {
-            state: "offline",
-            sourceServerId,
-            ...previousCompatibility,
-            ...(runningTasks ? { runningTasks } : {}),
-            ...(errorCode ? { errorCode } : {}),
-            retryable: typeof retryable === "boolean" ? retryable : true,
-            error: normalized.message,
-          });
+      this.settleFailedLifecycleOperation({
+        kind: "update",
+        profileId: options.profile.profileId,
+        sourceServerId,
+        previousState,
+        runningTasks,
+        error,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * 经 transport 执行只读的 `running-tasks --json`。清单走控制命令，不扩展持久化 status 格式；
+   * 远端输出 null（Core 尚未上报）、命令失败或输出不符 schema 都返回 undefined，即“清单不可用”。
+   */
+  private async readRunningTasks(
+    transport: ConnectionProfile["transport"],
+    target: Exclude<RemoteTarget, { kind: "server" }>,
+    context: TransportContext,
+  ): Promise<SourceServerRunningTask[] | undefined> {
+    try {
+      const result = await this.getAdapter(transport).exec(
+        target,
+        ["running-tasks", "--json"],
+        context,
+      );
+      if (result.exitCode !== 0) return undefined;
+      const parsed = sourceServerRunningTasksSchema.safeParse(JSON.parse(result.stdout.trim()));
+      return parsed.success ? parsed.data : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * 停止 / 重启确认前按设备读取运行中任务。路由与凭据规则同停止和重启：有恢复意图时沿用其连接
+   * 与内存中的凭据，否则由调用方解析可静默取得凭据的离线路由（取不到时抛 `credentials-required`）。
+   * 只读：不登记生命周期操作，不改变连接状态，也不写设备操作日志。
+   */
+  public async getSourceRunningTasks(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<SourceServerRunningTasksResult> {
+    const route = await this.resolveSourceOperationRoute(input);
+    try {
+      const tasks = await this.readRunningTasks(route.profile.transport, route.target, {});
+      return tasks ? { available: true, tasks } : { available: false };
+    } finally {
+      this.releaseTargetTransport(route.target);
+    }
+  }
+
+  /**
+   * 设备级操作（停止、重启、读取运行中任务）的唯一路由解析：Source 有恢复意图（在线、重试或离线探测中）
+   * 时沿用其连接与内存中的凭据；否则由调用方按默认连接、最近连接解析可静默取得凭据的离线路由。
+   * 读取凭据会让出执行权，期间手动连接可能已发布恢复意图：恢复意图的连接优先，保证操作的 Profile
+   * 就是之后承接恢复的那条连接。让出执行权后的互斥复查由调用方负责。
+   */
+  private async resolveSourceOperationRoute(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<SourceOperationRoute> {
+    const current = this.reconnectInputs.get(input.sourceServerId);
+    if (current) return current;
+    const offlineRoute = await input.resolveOfflineRoute();
+    return this.reconnectInputs.get(input.sourceServerId) ?? offlineRoute;
+  }
+
+  /**
+   * 更新与重启失败的统一收口。物理连接已不在时：有恢复意图且非终态从第一档自动恢复；
+   * 没有恢复意图时，更新保持 offline 带错误，重启显示连接失败（`failed`）。连接仍在时恢复操作前状态。
+   */
+  private settleFailedLifecycleOperation(input: {
+    kind: ExpectedDisconnectOperationKind;
+    profileId: string;
+    sourceServerId?: string;
+    previousState: SourceServerConnectionStateSnapshot;
+    runningTasks?: SourceServerRunningTask[];
+    error: unknown;
+  }): void {
+    const { profileId, sourceServerId, previousState, runningTasks, error } = input;
+    const failure = {
+      ...preserveCompatibilityState(previousState),
+      ...(runningTasks ? { runningTasks } : {}),
+      ...describeLifecycleOperationFailure(error),
+    };
+    if (sourceServerId && !this.onlineBySourceServerId.has(sourceServerId)) {
+      // 操作期间 transport 已断开时不能恢复捕获的 online 快照，否则会产生无连接、无 timer 的假在线。
+      if (this.reconnectInputs.has(sourceServerId)) {
+        if (!this.stopAutomaticRecoveryForTerminalFailure(sourceServerId, error)) {
+          this.scheduleOnlineRetry(sourceServerId, 0);
         }
       } else {
-        this.setState(options.profile.profileId, {
-          // 更新失败不是新的兼容性事实；真实连接仍在时恢复操作前状态。
-          state: previousState.state === "absent" ? "failed" : previousState.state,
-          ...(sourceServerId ? { sourceServerId } : {}),
-          ...previousCompatibility,
-          ...(runningTasks ? { runningTasks } : {}),
-          ...(errorCode ? { errorCode } : {}),
-          retryable: typeof retryable === "boolean" ? retryable : true,
-          error: normalized.message,
+        this.setState(profileId, {
+          // 重启从未连接状态发起即是“让设备恢复可用”，失败须显示连接失败而非中性的未连接。
+          state: input.kind === "restart" ? "failed" : "offline",
+          sourceServerId,
+          ...failure,
         });
       }
+      return;
+    }
+    this.setState(profileId, {
+      // 失败不是新的兼容性事实；真实连接仍在时恢复操作前状态。
+      state: previousState.state === "absent" ? "failed" : previousState.state,
+      ...(sourceServerId ? { sourceServerId } : {}),
+      ...failure,
+    });
+  }
+
+  /**
+   * 重启设备上的远端服务。登记 `restart` 生命周期操作 flight 并清恢复定时器，设备显示“连接中”；
+   * 经 transport 执行 `restart --json`，远端旧进程退出引起的在线连接关闭视为预期断线。远端确认新
+   * daemon ready 后走现有连接流程并发出 reconnect，由 Registry 为已打开的 workspace 换代。
+   */
+  public async restartSource(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<ManagedSourceServerConnection> {
+    const { sourceServerId } = input;
+    // 必须在写操作日志前拒绝：被拒绝的重启不能覆盖进行中操作的日志。
+    this.assertLifecycleOperationCanStart(sourceServerId, "restart");
+    const { profile, target } = await this.resolveSourceOperationRoute(input);
+    // 离线路由读取凭据会让出执行权，期间可能已有其他生命周期操作登记。
+    this.assertLifecycleOperationCanStart(sourceServerId, "restart");
+    const flight = this.registerLifecycleOperation("restart", profile.profileId, sourceServerId);
+    const { controller } = flight;
+    try {
+      return await this.operationLogs.run(
+        "restart",
+        profile,
+        target,
+        { signal: controller.signal },
+        async (context) => {
+          const previousState = this.getStateByProfile(profile.profileId);
+          this.clearRecoveryTimers(sourceServerId);
+          // 不新增 Host 状态：重启期间投影为“连接中”，不显示更新中，也不带自动重试计数。
+          this.setState(profile.profileId, { state: "bootstrapping", sourceServerId });
+          try {
+            const status = readServerCommandResult(
+              await this.getAdapter(profile.transport).exec(target, ["restart", "--json"], context),
+              "Remote service failed to restart",
+            );
+            // 旧远端会把 restart 当成只换 Core 的 ack；只有新 daemon ready 才能开始连接。
+            if (status.state !== "ready") {
+              throw new Error("Remote service did not confirm that it restarted");
+            }
+            controller.signal.throwIfAborted();
+            // Bug 原因：远端旧进程退出后，WS close 可能晚于命令返回；连接流程会把仍登记为在线的
+            // 旧连接当作可复用并直接返回，随后迟到的 close 又按普通断线排重试。连接前先主动失效。
+            const online = this.onlineBySourceServerId.get(sourceServerId);
+            if (online) {
+              this.invalidateOnlineConnectionForLifecycleOperation(
+                sourceServerId,
+                online,
+                "restart",
+              );
+            }
+            // 失效事件的同步订阅者也可能提交断开，不能在该终态后进入连接流程。
+            controller.signal.throwIfAborted();
+            // 重连事件由 connectOnce 的发布点统一 fire。
+            return await this.connectForSource({ profile, target, context }, sourceServerId, false);
+          } catch (error) {
+            // 断开、移除或释放已经发布了终态；被中止的重启不能写回状态。
+            controller.signal.throwIfAborted();
+            this.settleFailedLifecycleOperation({
+              kind: "restart",
+              profileId: profile.profileId,
+              sourceServerId,
+              previousState,
+              error,
+            });
+            throw error;
+          }
+        },
+      );
+    } finally {
+      this.lifecycleOperationFlights.delete(flight);
+      this.releaseTargetTransport(target);
+    }
+  }
+
+  /**
+   * 停止设备上的远端服务。先完整执行显式断开收口（清定时器、中止在途连接、删除恢复意图、释放连接、
+   * 置 offline），再经 transport 执行 `stop --wait --json`。恢复意图已删除，远端退出引起的连接关闭
+   * 不会排重试或离线探测；成功和失败都保持 offline。
+   */
+  public async stopSource(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<void> {
+    const { sourceServerId } = input;
+    // 必须在写操作日志前拒绝：被拒绝的停止不能覆盖进行中操作的日志。
+    this.assertLifecycleOperationCanStart(sourceServerId, "stop");
+    const route = await this.resolveSourceOperationRoute(input);
+    // 离线路由读取凭据会让出执行权，期间可能已有其他生命周期操作登记；必须在显式断开（会中止
+    // 同 Source 的全部 flight）之前复查，否则断开会先中止进行中的操作。
+    this.assertLifecycleOperationCanStart(sourceServerId, "stop");
+    // 路由取自恢复意图时，断开交回的就是 route.target：远端命令沿用它的会话，不重新认证，结束后再释放。
+    this.disconnectSource(sourceServerId);
+    const profileId = route.profile.profileId;
+    const flight = this.registerLifecycleOperation("stop", profileId, sourceServerId);
+    const { controller } = flight;
+    // 清掉上一次停止失败留在这条连接上的原因；整个停止过程设备保持未连接。
+    this.setState(profileId, { state: "offline", sourceServerId });
+    try {
+      await this.operationLogs.run(
+        "stop",
+        route.profile,
+        route.target,
+        { signal: controller.signal },
+        async (context) => {
+          const status = readServerCommandResult(
+            await this.getAdapter(route.profile.transport).exec(
+              route.target,
+              ["stop", "--wait", "--json"],
+              context,
+            ),
+            "Remote service failed to stop",
+          );
+          // 不支持 --wait 的旧远端只回 ack；只有最终 stopped 才能报告“已停止”。
+          if (status.state !== "stopped" && status.state !== "uninstalled") {
+            throw new Error("Remote service did not confirm that it stopped");
+          }
+          return { sourceServerId, profileId };
+        },
+      );
+      controller.signal.throwIfAborted();
+    } catch (error) {
+      // 断开、移除或释放已经发布了终态；被中止的停止不能写回状态。
+      controller.signal.throwIfAborted();
+      // 设备保持未连接；失败原因留在这条连接的状态上，供失败详情分类展示。
+      this.setState(profileId, {
+        state: "offline",
+        sourceServerId,
+        ...describeLifecycleOperationFailure(error),
+      });
       throw error;
     } finally {
-      this.updateFlights.delete(flight);
+      this.lifecycleOperationFlights.delete(flight);
+      this.releaseTargetTransport(route.target);
     }
   }
 
   public disconnect(sourceServerId: string): void {
-    this.disconnectSource(sourceServerId);
+    const droppedTarget = this.disconnectSource(sourceServerId);
+    if (droppedTarget) this.releaseTargetTransport(droppedTarget);
   }
 
   public removeProfile(profileId: string): void {
     this.operationLogs.removeProfile(profileId);
-    const canceledUpdateSources = new Set<string>();
-    for (const flight of this.updateFlights) {
+    // 记下被取消的预期断线操作及其类型，收尾时直接按类型判断它留在恢复 owner 上的投影。
+    const canceledExpectedDisconnects = new Map<string, ExpectedDisconnectOperationKind>();
+    for (const flight of this.lifecycleOperationFlights) {
       if (flight.profileId !== profileId) continue;
-      if (flight.sourceServerId) canceledUpdateSources.add(flight.sourceServerId);
-      this.updateFlights.delete(flight);
+      if (flight.sourceServerId && flight.kind !== "stop") {
+        canceledExpectedDisconnects.set(flight.sourceServerId, flight.kind);
+      }
+      this.lifecycleOperationFlights.delete(flight);
       flight.controller.abort(new SourceServerProfileRemovedError(profileId));
     }
     const connectingSourceServerId = this.connectFlights.get(profileId)?.sourceServerId;
@@ -694,7 +964,8 @@ export class SourceServerConnectionManager {
       // Bug 原因：Directory 删除当前线路后，旧实现只删展示状态，恢复 owner、timer 和
       // 已解析的 secret 仍存活，断线后会继续使用已删除线路。删除当前线路等价于显式
       // 断开整个 Source；其他线路只能由用户后续手动选择，不能在这里静默接管。
-      this.disconnectSource(currentSourceServerId, profileId);
+      const droppedTarget = this.disconnectSource(currentSourceServerId, profileId);
+      if (droppedTarget) this.releaseTargetTransport(droppedTarget);
       return;
     }
 
@@ -712,29 +983,40 @@ export class SourceServerConnectionManager {
       if (!profileIds.delete(profileId)) continue;
       if (profileIds.size === 0) this.profileIdsBySourceServerId.delete(sourceServerId);
     }
-    // Bug 原因：非当前线路的更新可能已移除旧物理连接；取消后跳过更新收尾，原 owner
-    // 会永久停在 updating。删除操作接回仍保留的恢复意图，不依赖已取消更新的迟到结果。
-    for (const sourceServerId of canceledUpdateSources) {
+    // Bug 原因：非当前线路的更新或重启可能已移除旧物理连接；取消后跳过操作收尾，原 owner
+    // 会永久停在该操作的投影（更新为 updating，重启为 bootstrapping）。删除操作接回仍保留的
+    // 恢复意图，不依赖已取消操作的迟到结果。投影按被取消 flight 的类型判断，不从状态反推。
+    for (const [sourceServerId, kind] of canceledExpectedDisconnects) {
       const input = this.reconnectInputs.get(sourceServerId);
       if (
         input &&
         !this.onlineBySourceServerId.has(sourceServerId) &&
-        this.getStateByProfile(input.profile.profileId).state === "updating" &&
-        ![...this.updateFlights].some((flight) => flight.sourceServerId === sourceServerId)
+        this.getStateByProfile(input.profile.profileId).state ===
+          expectedDisconnectProjection(kind) &&
+        // owner 自己已有在途连接时由该连接收口，不能再排重试。
+        !this.connectFlights.has(input.profile.profileId) &&
+        !this.expectedDisconnectOperation(sourceServerId)
       )
         this.scheduleOnlineRetry(sourceServerId, 0);
     }
   }
 
-  private disconnectSource(sourceServerId: string, removedProfileId?: string): void {
+  /**
+   * 显式断开收口。返回被删除的恢复意图 target：它的 transport 会话由调用方释放
+   * （停止要先用它执行远端命令）。
+   */
+  private disconnectSource(
+    sourceServerId: string,
+    removedProfileId?: string,
+  ): Exclude<RemoteTarget, { kind: "server" }> | undefined {
     const online = this.onlineBySourceServerId.get(sourceServerId);
     const reconnectInput = this.reconnectInputs.get(sourceServerId);
     const profileIds = new Set(this.profileIdsBySourceServerId.get(sourceServerId) ?? []);
     for (const profileId of online?.profileIds ?? []) profileIds.add(profileId);
     if (reconnectInput) profileIds.add(reconnectInput.profile.profileId);
-    for (const flight of this.updateFlights) {
+    for (const flight of this.lifecycleOperationFlights) {
       if (flight.sourceServerId !== sourceServerId) continue;
-      this.updateFlights.delete(flight);
+      this.lifecycleOperationFlights.delete(flight);
       flight.controller.abort(new SourceServerExplicitDisconnectError(sourceServerId));
       profileIds.add(flight.profileId);
     }
@@ -776,14 +1058,15 @@ export class SourceServerConnectionManager {
       this.states.delete(removedProfileId);
       this.compatibilityByProfileId.delete(removedProfileId);
     }
+    return reconnectInput?.target;
   }
 
   public dispose(): void {
     const reason = Object.assign(new Error("Source Server manager disposed"), {
       code: "remote-connection-canceled",
     });
-    for (const flight of this.updateFlights) flight.controller.abort(reason);
-    this.updateFlights.clear();
+    for (const flight of this.lifecycleOperationFlights) flight.controller.abort(reason);
+    this.lifecycleOperationFlights.clear();
     // 更新的重握手可能尚无 online owner，不能只遍历 online 表来回收在途连接。
     for (const flight of this.connectFlights.values()) flight.controller.abort(reason);
     this.connectFlights.clear();
@@ -1220,8 +1503,14 @@ export class SourceServerConnectionManager {
     const online = this.onlineBySourceServerId.get(sourceServerId);
     // 只处理属于当前 online owner 的关闭；已被替换或从未发布的连接迟到的 close 不得拆掉后继者。
     if (!online || online.connection !== connection) return;
-    if ([...this.updateFlights].some((flight) => flight.sourceServerId === sourceServerId)) {
-      this.invalidateOnlineConnectionForUpdate(sourceServerId, online);
+    // 生命周期操作会让远端主动断线：只做连接失效，不摘恢复意图、不排重试。
+    const expectedDisconnect = this.expectedDisconnectOperation(sourceServerId);
+    if (expectedDisconnect) {
+      this.invalidateOnlineConnectionForLifecycleOperation(
+        sourceServerId,
+        online,
+        expectedDisconnect,
+      );
       return;
     }
     this.onlineBySourceServerId.delete(sourceServerId);
@@ -1242,9 +1531,54 @@ export class SourceServerConnectionManager {
     this.scheduleOnlineRetry(sourceServerId, 0);
   }
 
-  private invalidateOnlineConnectionForUpdate(
+  /**
+   * 让在线连接关闭成为“预期断线”的操作（更新或重启；按互斥矩阵二者不会并存）。停止在执行远端命令前
+   * 已删除恢复意图并释放连接，其间用户另行建立的新连接按普通断线恢复，不能被当成换代吞掉。
+   */
+  private expectedDisconnectOperation(
+    sourceServerId: string,
+  ): ExpectedDisconnectOperationKind | undefined {
+    for (const flight of this.lifecycleOperationFlights) {
+      if (flight.sourceServerId === sourceServerId && flight.kind !== "stop") return flight.kind;
+    }
+    return undefined;
+  }
+
+  /** 同 Source 互斥：停止、重启与任何操作互斥；多个更新经 sibling Profile 并存保持现状。 */
+  private assertLifecycleOperationCanStart(
+    sourceServerId: string,
+    kind: LifecycleOperationKind,
+  ): void {
+    const conflict = [...this.lifecycleOperationFlights].some(
+      (flight) =>
+        flight.sourceServerId === sourceServerId && (kind !== "update" || flight.kind !== "update"),
+    );
+    if (conflict) throw new SourceServerLifecycleOperationInProgressError(sourceServerId);
+  }
+
+  /**
+   * 登记生命周期操作 flight 的唯一入口。调用方须先完成互斥检查（让出执行权后要复查），并在写操作
+   * 日志前登记；flight 由同一调用方在操作日志结束后摘除。
+   */
+  private registerLifecycleOperation(
+    kind: LifecycleOperationKind,
+    profileId: string,
+    sourceServerId: string | undefined,
+  ): LifecycleOperationFlight {
+    const flight: LifecycleOperationFlight = {
+      kind,
+      profileId,
+      sourceServerId,
+      controller: new AbortController(),
+    };
+    this.lifecycleOperationFlights.add(flight);
+    return flight;
+  }
+
+  private invalidateOnlineConnectionForLifecycleOperation(
     sourceServerId: string,
     online: OnlineConnection,
+    operation: ExpectedDisconnectOperationKind,
   ): void {
     if (this.onlineBySourceServerId.get(sourceServerId) !== online) return;
     // Bug 原因：显式更新过去只替换 Manager 内的物理连接，没有先失效仍指向旧 services 的
@@ -1252,14 +1586,22 @@ export class SourceServerConnectionManager {
     // 先摘物理 owner 并发布一次 Source 级失效，再释放连接，Registry 才能 fail-closed 后换代。
     this.onlineBySourceServerId.delete(sourceServerId);
     for (const profileId of online.profileIds) {
-      this.setState(profileId, { state: "updating", sourceServerId });
+      this.setState(profileId, { state: expectedDisconnectProjection(operation), sourceServerId });
     }
-    this.connectionInvalidatedEmitter.fire({
-      sourceServerId,
-      reason: "update",
-    });
+    this.connectionInvalidatedEmitter.fire({ sourceServerId, reason: operation });
     online.projectSubscription?.dispose();
     online.connection.dispose();
+  }
+
+  /**
+   * 设备级一次性命令结束后释放只为它创建的 transport 会话；恢复意图（在线/重试/离线探测）
+   * 仍引用同一 target 时保留，不能拆掉现有线路。
+   */
+  private releaseTargetTransport(target: RemoteTarget): void {
+    for (const input of this.reconnectInputs.values()) {
+      if (input.target === target) return;
+    }
+    this.adapters.get(target.kind)?.cancel?.(target);
   }
 
   private scheduleOnlineRetry(sourceServerId: string, attempt: number): void {

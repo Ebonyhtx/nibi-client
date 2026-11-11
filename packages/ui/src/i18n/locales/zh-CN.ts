@@ -296,6 +296,10 @@ const zhCN: Record<string, string> = {
   "remote.error.workspaceMigrationPlanDiverged.reason": "请查看详细信息并按提示处理后重试。",
   "remote.error.workspaceSessionGenerationChanged.reason": "请查看详细信息并按提示处理后重试。",
   "remote.error.retryableHint.reason": "请查看详细信息并按提示处理后重试。",
+  "remote.error.sourceServerStopFailed.reason":
+    "远端服务没有正常退出。请稍后重试；仍失败时请登录这台设备检查。",
+  "remote.error.sourceServerControlUnresponsive.reason":
+    "远端服务没有响应请求。请登录这台设备检查后重试。",
   "remote.error.connectionClosed.reason": "请查看详细信息并按提示处理后重试。",
   "settings.source.error.source-server-remove-callback-missing.reason":
     "请查看详细信息并按提示处理后重试。",
@@ -2144,6 +2148,8 @@ const zhCN: Record<string, string> = {
   "remote.error.permissionDenied": "没有远端写入权限",
   "remote.error.connectionCanceled": "已取消连接",
   "remote.error.unknown": "连接失败",
+  "remote.error.sourceServerStopFailed": "远端服务未能停止",
+  "remote.error.sourceServerControlUnresponsive": "远端服务无响应",
   "settings.source.recentLog": "查看最近日志",
   "remote.error.retryableHint": "你可以稍后重试。",
   "remote.error.connectionClosed": "远程连接已断开",
@@ -2474,6 +2480,21 @@ const zhCN: Record<string, string> = {
   "settings.source.reinstallRequired": "远端已卸载 NIBI Server；连接与任务记录仍保留在本机",
   "settings.source.reinstallAndConnect": "重新安装并连接",
   "settings.source.copyDeviceId": "复制设备 ID",
+  "settings.source.restartRemoteService": "重启远端服务",
+  "settings.source.restartRemoteServiceTitle": "重启远端服务？",
+  "settings.source.stopRemoteService": "停止远端服务",
+  "settings.source.stopRemoteServiceTitle": "停止远端服务？",
+  "settings.source.remoteServiceInterruptionDescription":
+    "这会中断此设备上所有运行中的任务，这些任务不会自动续跑。",
+  "settings.source.remoteServiceRunningTasksUnavailable": "设备未提供任务清单。",
+  "settings.source.remoteServiceNoRunningTasks": "此设备当前没有运行中的任务。",
+  "settings.source.remoteServiceOtherClientsNotice":
+    "其他电脑上的 NIBI 若连着这台设备，可能会重新启动远端服务。",
+  "settings.source.stopRemoteServiceStartupReconnectNotice":
+    "「启动时自动重连」已开启，下次打开 NIBI 时会重新启动远端服务。",
+  "settings.source.remoteServiceUpdateRequired": "更新远端服务后可用",
+  "settings.source.searchPlaceholder": "搜索设备名、地址或项目",
+  "settings.source.searchEmpty": "没有匹配「{query}」的设备",
   "common.justNow": "刚刚",
   "common.minutesAgo": "{count} 分钟前",
   "common.hoursAgo": "{count} 小时前",
@@ -2499,6 +2520,13 @@ const zhCN: Record<string, string> = {
   "settings.source.deviceNameRequired": "设备名不能为空。",
   "settings.source.error.connection-profile-unavailable": "此连接已不可用，请刷新后重试。",
   "settings.source.error.recent-project-unresolved": "无法确定原项目，请从侧栏选择项目。",
+  "settings.source.error.credentials-required": "无法自动取得 SSH 凭据，请先连接一次此设备。",
+  "settings.source.error.source-server-stop-failed":
+    "远端服务未能停止。请稍后重试；仍失败时请登录这台设备检查。",
+  "settings.source.error.source-server-control-unresponsive":
+    "远端服务无响应。请登录这台设备检查后重试。",
+  "settings.source.error.source-server-operation-in-progress":
+    "此设备有其他操作正在进行，请稍后再试。",
   "settings.source.connectionNameRequired": "连接名称不能为空。",
   "settings.source.keepSavedSecret": "留空以保留已保存的凭据",
   "settings.source.otherSavedConnections": "其他已保存连接",
@@ -2580,6 +2608,10 @@ const zhCN: Record<string, string> = {
   "sourceServer.updateStartedToast": "正在更新 {source}…",
   "sourceServer.updateCompletedToast": "{source} 已更新并重新连接。",
   "sourceServer.updateFailedToast": "{source} 更新失败，请在远程设备中查看日志并重试。",
+  "sourceServer.stopCompletedToast": "已停止 {source} 的远端服务。",
+  "sourceServer.stopFailedToast": "未能停止 {source} 的远端服务，请查看详情。",
+  "sourceServer.restartCompletedToast": "已重启 {source} 的远端服务并重新连接。",
+  "sourceServer.restartFailedToast": "未能重启 {source} 的远端服务，请查看详情。",
   "sourceServer.controllerUpdateAvailableToast":
     "{source} 需要更新 NIBI\nDesktop {current} → {available}，请更新 NIBI 后重新连接。",
   "settings.source.forceUpdate": "强制更新",
@@ -7080,8 +7112,7 @@ const zhCN: Record<string, string> = {
   "scheduledPreview.toast.view": "查看",
   "scheduledPreview.addSchedule": "添加计划",
   ...requestSecurityMessagesZhCN,
-  "settings.plugins.error.membershipRequired":
-    "该插件为会员专享，请开通会员后重试。",
+  "settings.plugins.error.membershipRequired": "该插件为会员专享，请开通会员后重试。",
   "settings.plugins.membership.title": "NIBI 会员",
   "settings.plugins.membership.badge": "会员专享",
   "settings.plugins.membership.description":
@@ -7137,7 +7168,8 @@ const zhCN: Record<string, string> = {
   "settings.companion.visible": "显示灵羽",
   "settings.companion.visibleDescription": "关闭后侧栏底部不再显示灵羽。",
   "settings.companion.mode": "状态模式",
-  "settings.companion.modeDescription": "跟随任务时按运行、完成、出错自动切换；锁定后忽略任务语义变化。",
+  "settings.companion.modeDescription":
+    "跟随任务时按运行、完成、出错自动切换；锁定后忽略任务语义变化。",
   "settings.companion.mode.auto": "跟随任务",
   "settings.companion.mode.perch": "锁定为观察",
   "settings.companion.mode.working": "锁定为工作中",
@@ -7148,7 +7180,8 @@ const zhCN: Record<string, string> = {
   "settings.companion.feathers": "羽迹氛围",
   "settings.companion.feathersDescription": "环绕羽迹与气流线；关闭后只保留小鸟本体。",
   "settings.companion.animation": "灵羽动画",
-  "settings.companion.animationDescription": "选择灵羽动效跟随全局、独立运行或关闭；独立模式仍尊重系统「减少动态效果」。",
+  "settings.companion.animationDescription":
+    "选择灵羽动效跟随全局、独立运行或关闭；独立模式仍尊重系统「减少动态效果」。",
   "settings.companion.animationInherited": "继承全局",
   "settings.companion.animationInherit": "继承全局",
   "settings.companion.animationIndependent": "独立动效",

@@ -869,6 +869,16 @@ Core 启动（server-core/core.ts runServerCore）
 - 只门禁 Host 启动静默重连入口（`listStartupReconnectCandidates → reconnectOnStartup`），不影响手动连接与断线后的 retrying / offline 恢复；修改立即持久化、下次启动生效。仅桌面设置页提供入口，不新增跨端 RPC。
 - 不提供全局下载方式默认偏好（2026-08-28 决策撤销 `remoteDefaultAssetInstallMode`）；SSH 新建线路表单每次从 `local-download-upload` 开始，Profile 自身 `assetInstallMode` 优先。
 
+**8.4.5 设备级停止 / 重启远端服务（RDLC-01，2026-11-11）**
+
+- 能力：管理服务新增 `stopSource(sourceServerId)`、`restartSource(sourceServerId)`、`getSourceRunningTasks(sourceServerId)`，入参与返回值有严格 schema（`sourceServerLifecycleSourceIdSchema`、`sourceServerRunningTasksResultSchema`）；只对桌面 Renderer 开放，手机 attachment 的频道 allowlist 不增加。
+- 路由：按 `sourceServerId` 选择。设备有恢复意图（在线、重试、离线探测）时沿用其连接与内存凭据；否则由 Directory 按默认连接、最近连接解析可静默取得凭据的线路（`resolveSourceLifecycleRoute`），取不到返回 `credentials-required`。更新仍由 Renderer 传 `profileId`，不改。
+- 停止：执行远端命令前先完整断开（清 timer、中止在途连接与操作、删除恢复意图、释放连接、置 offline），再经 transport 执行 `stop --wait --json`。恢复意图已删除，连接关闭不会排重试或离线探测；成功和失败都保持 offline，失败原因留在该连接状态上。
+- 重启：登记 `restart` 生命周期 flight 并清恢复 timer，投影为“连接中”（不新增 Host 状态）；在线连接关闭视为预期断线，只失效、不排重试。远端确认 `ready` 后走现有连接流程并发布 reconnect；失败时原本有恢复意图且非终态从第一档继续自动恢复，没有恢复意图时置 `failed`。
+- 互斥：同一设备的更新、停止、重启互斥；进行中的更新拒绝停止/重启，反之亦然。多个更新经 sibling Profile 并存保持现状。显式断开或移除 Profile 会中止进行中的生命周期操作；被取消的预期断线按 flight 类型接回恢复意图。
+- 运行中任务：`running-tasks --json` 只读，不登记 flight、不改连接状态、不写操作日志；`null`、非零退出或 schema 不符返回 `{ available: false }`，不能当作没有任务。
+- 版本门禁：`SOURCE_SERVER_LIFECYCLE_CONTROL_MIN_VERSION`（`packages/shared/src/source-server/compatibility.ts`）是首个支持本合同的正式版；设备最近握手版本低于它或未知时，设备卡菜单项禁用并提示更新，不发命令试探。
+
 ## 9. 数据迁移（D7 / D8）
 
 结构升级统一进入物理库的正式 migration 账本：Controller/Source 附加表按用途进入

@@ -8,6 +8,14 @@ export const NIBI_MIN_COMPATIBLE_VERSION =
     ? __NIBI_MIN_COMPATIBLE_VERSION__
     : NIBI_VERSION;
 
+/**
+ * 远端服务支持设备卡停止 / 重启合同（`nibi-server stop --wait` 等，RDLC-01）的首个版本。
+ * 取首个包含本合同的 NIBI 正式版 4.0.0；不提升最低兼容版本。
+ * 旧版 CLI 会把 `stop --wait` 当成 ack 型 stop、把 `restart` 当成只换 Core，桌面端收不到最终状态，
+ * 所以低于该版本或版本未知时禁用菜单项，不发命令试探（旧 CLI 收到未知命令会转交 TUI）。
+ */
+export const SOURCE_SERVER_LIFECYCLE_CONTROL_MIN_VERSION = "4.0.0";
+
 export const compatibilityManifestSchema = z
   .object({
     schemaVersion: z.literal(1),

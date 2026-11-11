@@ -52,7 +52,7 @@ export interface SupervisorOptions {
   onStopped?: () => void;
 }
 
-type LifecycleOperationKind = "stop" | "restart" | "update" | "uninstall";
+type LifecycleOperationKind = "stop" | "update" | "uninstall";
 
 export class Supervisor {
   private readonly layout: ServerLayout;
@@ -184,7 +184,7 @@ export class Supervisor {
       await this.control?.close();
       this.control = undefined;
       await this.lock.release();
-      if (reason !== "restart") this.options.onStopped?.();
+      this.options.onStopped?.();
       return this.status();
     }
     await this.stopCore(reason);
@@ -194,15 +194,8 @@ export class Supervisor {
     this.control = undefined;
     await this.lock.release();
     log.info("supervisor stopped", { reason });
-    if (reason !== "restart") this.options.onStopped?.();
+    this.options.onStopped?.();
     return this.status();
-  }
-
-  public async restart(): Promise<ServerStatus> {
-    return await this.runLifecycleOperation("restart", async () => {
-      await this.stopInternal("restart");
-      return await this.start();
-    });
   }
 
   private async stopCore(reason: string): Promise<void> {
@@ -529,12 +522,6 @@ export class Supervisor {
           this.stopInternal("control request"),
         );
         return { stopping: true };
-      case "restart":
-        this.startAcknowledgedLifecycleOperation("restart", async () => {
-          await this.stopInternal("restart");
-          await this.start();
-        });
-        return { restarting: true };
       case "prepare-update":
         return {
           status: this.runningTaskCount ? "blocked" : "ready",

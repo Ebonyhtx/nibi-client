@@ -150,6 +150,8 @@ export function ConfirmDialogHost() {
               className={cn(
                 "whitespace-pre-line pt-0.5 text-ui-base leading-6 text-foreground-subtle",
                 isAutomationConfirmation && AUTOMATION_CONFIRM_DIALOG_DESCRIPTION_CLASS,
+                // 停止 / 重启远端服务的任务清单可能很长；限高滚动保证按钮仍在视口内。
+                displayedRequest?.scrollableDescription && "max-h-64 overflow-y-auto pr-1",
               )}
             >
               {displayedRequest.description}

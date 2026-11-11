@@ -1630,13 +1630,14 @@ async function createWindowRemoteConnectionHandle(params: {
     };
     managerConnectionInvalidatedSubscription = manager.onDidInvalidateConnection((event) => {
       if (event.sourceServerId !== managed.sourceServerId || disposed) return;
-      // Bug 原因：物理 Source connection 被更新或其当前 Profile 被删除时，若不先按
+      // Bug 原因：物理 Source connection 被更新/重启或其当前 Profile 被删除时，若不先按
       // Source 通知 Registry，已有 logical workspace 会继续以 online 状态持有失效 services。
-      // 更新允许恢复；删除当前 Profile 属于用户显式断开，必须发布 terminal close。
+      // 更新与重启都允许恢复（完成后由 reconnect 换代）；删除当前 Profile 属于用户显式断开，
+      // 必须发布 terminal close。
       notifyClose({
         exitCode: null,
         signal: null,
-        recoverable: event.reason === "update",
+        recoverable: event.reason !== "profile-removed",
       });
     });
     managerReconnectSubscription = manager.onDidReconnect((reconnected) => {

@@ -325,6 +325,10 @@ const enUS: Record<string, string> = {
   "remote.error.workspaceSessionGenerationChanged.reason":
     "View details, follow the instructions, and retry.",
   "remote.error.retryableHint.reason": "View details, follow the instructions, and retry.",
+  "remote.error.sourceServerStopFailed.reason":
+    "The remote service didn't exit cleanly. Try again later, or sign in to the device to check it.",
+  "remote.error.sourceServerControlUnresponsive.reason":
+    "The remote service didn't answer the request. Sign in to the device to check it, then try again.",
   "remote.error.connectionClosed.reason": "View details, follow the instructions, and retry.",
   "settings.source.error.source-server-remove-callback-missing.reason":
     "View details, follow the instructions, and retry.",
@@ -1301,7 +1305,8 @@ const enUS: Record<string, string> = {
   "bots.allowedWorkspaces.mode.selected": "Selected projects",
   "bots.allowedWorkspaces.allDescription": "This bot can use any configured project.",
   "bots.allowedWorkspaces.selectedDescription": "This bot can use {count} selected projects.",
-  "bots.allowedWorkspaces.empty": "No project is available yet. Add or open a project in NIBI first.",
+  "bots.allowedWorkspaces.empty":
+    "No project is available yet. Add or open a project in NIBI first.",
   "bots.allowedWorkspaces.none": "No projects",
   "bots.botMeta": "{users} bound users · workspace {workspace}",
   "bots.botSummary": "{users} users · {workspaces} workspaces · {workspace}",
@@ -2312,6 +2317,8 @@ const enUS: Record<string, string> = {
   "remote.error.permissionDenied": "Remote write permission denied",
   "remote.error.connectionCanceled": "Connection canceled",
   "remote.error.unknown": "Connection failed",
+  "remote.error.sourceServerStopFailed": "The remote service didn't stop",
+  "remote.error.sourceServerControlUnresponsive": "The remote service isn't responding",
   "settings.source.recentLog": "View recent logs",
   "remote.error.retryableHint": "You can try again later.",
   "remote.error.connectionClosed": "The remote connection was closed",
@@ -2656,6 +2663,21 @@ const enUS: Record<string, string> = {
     "NIBI Server was uninstalled remotely; connection and task records remain on this device.",
   "settings.source.reinstallAndConnect": "Reinstall and connect",
   "settings.source.copyDeviceId": "Copy device ID",
+  "settings.source.restartRemoteService": "Restart remote service",
+  "settings.source.restartRemoteServiceTitle": "Restart the remote service?",
+  "settings.source.stopRemoteService": "Stop remote service",
+  "settings.source.stopRemoteServiceTitle": "Stop the remote service?",
+  "settings.source.remoteServiceInterruptionDescription":
+    "This interrupts all running tasks on this device. They won't resume automatically.",
+  "settings.source.remoteServiceRunningTasksUnavailable": "The device didn't provide a task list.",
+  "settings.source.remoteServiceNoRunningTasks": "No tasks are running on this device right now.",
+  "settings.source.remoteServiceOtherClientsNotice":
+    "If NIBI on another computer is connected to this device, it may start the remote service again.",
+  "settings.source.stopRemoteServiceStartupReconnectNotice":
+    "“Reconnect automatically at startup” is on, so the remote service will start again the next time you open NIBI.",
+  "settings.source.remoteServiceUpdateRequired": "Available after updating the remote service",
+  "settings.source.searchPlaceholder": "Search devices, addresses, or projects",
+  "settings.source.searchEmpty": "No devices match “{query}”",
   "common.justNow": "just now",
   "common.minutesAgo": "{count}m ago",
   "common.hoursAgo": "{count}h ago",
@@ -2683,6 +2705,14 @@ const enUS: Record<string, string> = {
     "This connection is no longer available. Refresh and try again.",
   "settings.source.error.recent-project-unresolved":
     "The original project cannot be identified. Select a project from the sidebar.",
+  "settings.source.error.credentials-required":
+    "Couldn't get the SSH credentials automatically. Connect to this device once first.",
+  "settings.source.error.source-server-stop-failed":
+    "The remote service didn't stop. Try again later, or sign in to the device to check it.",
+  "settings.source.error.source-server-control-unresponsive":
+    "The remote service isn't responding. Sign in to the device to check it, then try again.",
+  "settings.source.error.source-server-operation-in-progress":
+    "Another operation is in progress on this device. Try again later.",
   "settings.source.connectionNameRequired": "Connection name is required.",
   "settings.source.keepSavedSecret": "Leave blank to keep the saved credential",
   "settings.source.otherSavedConnections": "Other saved connections",
@@ -2767,6 +2797,11 @@ const enUS: Record<string, string> = {
   "sourceServer.updateCompletedToast": "{source} was updated and reconnected.",
   "sourceServer.updateFailedToast":
     "{source} could not be updated. Review the log under Remote devices and try again.",
+  "sourceServer.stopCompletedToast": "Stopped the remote service on {source}.",
+  "sourceServer.stopFailedToast": "Couldn't stop the remote service on {source}. View details.",
+  "sourceServer.restartCompletedToast": "Restarted the remote service on {source} and reconnected.",
+  "sourceServer.restartFailedToast":
+    "Couldn't restart the remote service on {source}. View details.",
   "sourceServer.controllerUpdateAvailableToast":
     "NIBI has an update for {source}\nDesktop {current} → {available}; update NIBI to match this Source.",
   "settings.source.forceUpdate": "Force update",
@@ -5117,8 +5152,7 @@ const enUS: Record<string, string> = {
   "chat.emptyResult.title": "No visible output",
   "chat.emptyResult.description":
     "This task finished without any chat content. It may have been stopped before the model produced a response.",
-  "chat.placeholder.newTask":
-    "Ask NIBI anything, @ to add context, / for commands or capabilities",
+  "chat.placeholder.newTask": "Ask NIBI anything, @ to add context, / for commands or capabilities",
   "chat.placeholder.newTaskMobile": "Ask NIBI anything…",
   "chat.placeholder.followUpAsk": "Ask for follow-up changes",
   "chat.placeholder.followUpQueue": "Keep typing to queue follow-up changes",
@@ -6430,7 +6464,8 @@ const enUS: Record<string, string> = {
   "chat.error.collapseDetails": "Hide details",
   "chat.error.feedback": "Report issue",
   "chat.error.feedbackOpened": "Feedback opened with the error context attached",
-  "chat.error.noAvailableModel": "No model available. Sign in to NIBI for membership, or set a custom model.",
+  "chat.error.noAvailableModel":
+    "No model available. Sign in to NIBI for membership, or set a custom model.",
   "chat.error.remoteNoAvailableModel":
     "This remote device has no available model yet. Configure models on this computer first; they will sync to the remote device automatically after you save.",
   "chat.error.sendFailed": "Failed to send. Try again later.",
@@ -7060,8 +7095,7 @@ const enUS: Record<string, string> = {
   "settings.automations.betaBadge": "Beta",
   "automations.noWorkspace": "Open a workspace to manage its scheduled tasks.",
   "automations.workspace.label": "Project",
-  "automations.description":
-    "Create scheduled tasks that run in the background on schedule.",
+  "automations.description": "Create scheduled tasks that run in the background on schedule.",
   "automations.description.populated": "Run tasks on a schedule or whenever you need them.",
   "automations.refresh": "Refresh",
   "automations.refreshing": "Refreshing…",
@@ -7468,14 +7502,16 @@ const enUS: Record<string, string> = {
   "nibi.membership.dialog.purchaseComplete": "Payment complete — membership is active.",
   "nibi.membership.dialog.purchaseSyncing": "Syncing membership status…",
   "nibi.membership.dialog.sessionExpired": "Your session has expired. Sign in again and retry.",
-  "nibi.membership.dialog.openFailed": "Couldn't open the membership page. Check your network and retry.",
+  "nibi.membership.dialog.openFailed":
+    "Couldn't open the membership page. Check your network and retry.",
   "login.success": "Signed in to NIBI",
   "nibi.membership.dialog.purchaseSyncFailed":
     "Failed to sync membership status; paid plugins stay locked until it succeeds. Retry, or restart the app if it keeps failing.",
   "nibi.membership.dialog.bannedTitle": "Account suspended",
   "nibi.membership.dialog.bannedHint":
     "This account cannot sign in or use membership benefits right now. If you believe this is a mistake, email contact@nibistudio.top with the subject “Account appeal - username”, and include your account details and a short explanation. We will reply within 7 business days after receiving the complete request.",
-  "nibi.login.desktopOnly": "Signing in to NIBI requires the desktop app; the web build does not support it yet.",
+  "nibi.login.desktopOnly":
+    "Signing in to NIBI requires the desktop app; the web build does not support it yet.",
   "login.dismiss.later": "Later",
   "browser.permission.denyThisTime": "Don't allow",
   "workspaceSidebar.addProject": "Add project",
@@ -7484,11 +7520,13 @@ const enUS: Record<string, string> = {
   "settings.motionEnabledDescription":
     "Turn off to stop interface animations and transitions. Useful on low-end hardware or if you prefer a static interface.",
   "settings.companion.title": "Lingyu",
-  "settings.companion.description": "Lingyu at the bottom of the sidebar follows task state and looks toward your pointer.",
+  "settings.companion.description":
+    "Lingyu at the bottom of the sidebar follows task state and looks toward your pointer.",
   "settings.companion.visible": "Show Lingyu",
   "settings.companion.visibleDescription": "Hide Lingyu from the bottom of the sidebar.",
   "settings.companion.mode": "State mode",
-  "settings.companion.modeDescription": "Follow tasks switches automatically between running, complete, and error; a locked mode ignores task changes.",
+  "settings.companion.modeDescription":
+    "Follow tasks switches automatically between running, complete, and error; a locked mode ignores task changes.",
   "settings.companion.mode.auto": "Follow tasks",
   "settings.companion.mode.perch": "Lock to watching",
   "settings.companion.mode.working": "Lock to working",
@@ -7497,9 +7535,11 @@ const enUS: Record<string, string> = {
   "settings.companion.follow": "Gaze follow",
   "settings.companion.followDescription": "Eyes and body turn slightly toward the pointer.",
   "settings.companion.feathers": "Feather ambience",
-  "settings.companion.feathersDescription": "Orbiting feathers and airflow lines; turn off to keep only the bird.",
+  "settings.companion.feathersDescription":
+    "Orbiting feathers and airflow lines; turn off to keep only the bird.",
   "settings.companion.animation": "Lingyu animation",
-  "settings.companion.animationDescription": "Choose whether Lingyu follows the global motion switch, runs independently, or stays still. Independent still respects the system reduced-motion preference.",
+  "settings.companion.animationDescription":
+    "Choose whether Lingyu follows the global motion switch, runs independently, or stays still. Independent still respects the system reduced-motion preference.",
   "settings.companion.animationInherited": "Inherited",
   "settings.companion.animationInherit": "Inherit global",
   "settings.companion.animationIndependent": "Independent",

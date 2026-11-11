@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { resolveRemoteConnectionPresentation } from "@/lib/remoteConnectionPresentation.js";
 import { createElement } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Emitter } from "@nibi/rpc";
 import type { SourceServerManagementSnapshot } from "@nibi/shared";
@@ -73,8 +73,8 @@ function baseSnapshot(
   } as SourceServerManagementSnapshot;
 }
 
-function renderPanel(snapshot: SourceServerManagementSnapshot) {
-  return render(
+async function renderPanel(snapshot: SourceServerManagementSnapshot) {
+  const view = render(
     createElement(SourceServerManagementPanel, {
       management: {
         getSnapshot: vi.fn(async () => snapshot),
@@ -83,6 +83,14 @@ function renderPanel(snapshot: SourceServerManagementSnapshot) {
       } as never,
     }),
   );
+  // 设备列表默认折叠；占位符断言针对展开区，先展开设备行。
+  await waitFor(() => expect(document.querySelector("[data-source-server-toggle]")).not.toBeNull());
+  for (const toggle of document.querySelectorAll<HTMLButtonElement>(
+    "[data-source-server-toggle]",
+  )) {
+    if (toggle.getAttribute("aria-expanded") === "false") fireEvent.click(toggle);
+  }
+  return view;
 }
 
 function expectNoRawPlaceholders(container: HTMLElement) {
@@ -142,7 +150,7 @@ describe("SourceServerManagementPanel placeholder values", () => {
       ],
     });
 
-    const { container } = renderPanel(snapshot);
+    const { container } = await renderPanel(snapshot);
 
     expect(await screen.findByRole("button", { name: "b" })).toBeTruthy();
     expect(container.querySelectorAll("[data-device-project]")).toHaveLength(3);
@@ -167,7 +175,7 @@ describe("SourceServerManagementPanel placeholder values", () => {
       ],
     });
 
-    const { container } = renderPanel(snapshot);
+    const { container } = await renderPanel(snapshot);
 
     expect(await screen.findByText("0 个项目")).toBeTruthy();
     // 单条连接时“当前 / 默认”没有区分意义，不显示。
@@ -191,7 +199,7 @@ describe("SourceServerManagementPanel placeholder values", () => {
       ],
     });
 
-    const { container } = renderPanel(snapshot);
+    const { container } = await renderPanel(snapshot);
 
     expect(await screen.findByText("可更新到 v3.8.2")).toBeTruthy();
     expect(

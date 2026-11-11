@@ -111,7 +111,6 @@ export const controlRequestSchema = z.discriminatedUnion("command", [
   requestBase.extend({ command: z.literal("status") }),
   requestBase.extend({ command: z.literal("running-tasks") }),
   requestBase.extend({ command: z.literal("stop") }),
-  requestBase.extend({ command: z.literal("restart") }),
   requestBase.extend({ command: z.literal("runtime-identity") }),
   requestBase.extend({ command: z.literal("prepare-update") }),
   requestBase.extend({ command: z.literal("apply-update"), force: z.boolean().optional() }),

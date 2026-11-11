@@ -838,8 +838,9 @@ describe("Supervisor lifecycle", () => {
       5_000,
     );
     while (cores.length < 2) await new Promise<void>((resolve) => setImmediate(resolve));
+    // 控制协议不再接受只换 Core 的 restart；并发的第二个生命周期请求同样必须被拒绝。
     await expect(
-      requestControl(layout.controlEndpoint, { command: "restart" }),
+      requestControl(layout.controlEndpoint, { command: "apply-update", force: true }),
     ).rejects.toMatchObject({
       code: "operation-in-progress",
       retryable: true,

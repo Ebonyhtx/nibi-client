@@ -38,7 +38,12 @@ import {
   removeRunContentsExceptLock,
 } from "./runtime/uninstallGuard.js";
 import { readPersistedStatus, readPersistedStatusDetailed } from "./runtime/statusSnapshot.js";
-import { waitForServerStopped } from "./runtime/shutdownWait.js";
+import {
+  isStoppedServerStatus,
+  readStatusForStopWithoutControl,
+  stopSupervisorAndWait,
+  waitForServerStopped,
+} from "./runtime/shutdownWait.js";
 export { readPersistedStatus } from "./runtime/statusSnapshot.js";
 import {
   hasLegacyServiceRegistration,
@@ -163,10 +168,26 @@ export async function runServerCli(
     switch (command) {
       case "serve":
         return await runServe(parsed.argv.slice(1), io, json, layout, runtimeOptions);
+      case "stop":
+        // Bug 原因：runControl 不接收 argv，`stop --wait` 曾被当成 ack 型 stop 立即返回，
+        // 桌面端会在远端仍持锁时报告“已停止”。--wait 必须走统一的停止等待。
+        if (parsed.argv.includes("--wait")) return await runStopAndWait(io, layout);
+        return await runControl(command, io, json, {}, layout);
+      case "restart": {
+        // 与 update / uninstall 同一把生命周期命令锁：多台电脑或终端并发时，重启不能停掉正在被更新
+        // 或卸载接管的服务。锁被占用时直接失败（不等待、不停止现有服务），沿用 uninstall 的冲突输出。
+        const restartLock = await acquireLifecycleCommandLock(
+          layout,
+          "A NIBI Server update is already running",
+        );
+        try {
+          return await runRestart(io, json, layout, runtimeOptions);
+        } finally {
+          await restartLock.release();
+        }
+      }
       case "status":
       case "running-tasks":
-      case "stop":
-      case "restart":
         return await runControl(command, io, json, {}, layout);
       case "update": {
         const updateLock = await acquireLifecycleCommandLock(
@@ -294,15 +315,12 @@ async function runServe(
       }
       // 旧 fallback 会持有 data-root lock，直接注册并启动 OS service 只能
       // 拉起一个立即锁冲突的 Supervisor。空闲时先收口 fallback，再重试真实注册。
-      await stopExistingSupervisor(layout, "Cannot verify fallback Server status before migration");
+      await stopSupervisorAndWait(layout, "fallback Server migration");
     } else if (existing?.state === "stop-failed" && existing.pid === null) {
       // Bug 原因：stop-failed 的 Supervisor 观察到迟到的 Core 终态后仍持有锁和 control socket，
       // 直接启动只会让新 Supervisor 锁冲突，设备在手工 stop 前无法恢复。已无存活 Core 时由
       // 原 owner 按 stop 契约收口；pid 仍存在则不发 stop，继续由锁 fail-closed。
-      await stopExistingSupervisor(
-        layout,
-        "Cannot verify stop-failed Server status before restart",
-      );
+      await stopSupervisorAndWait(layout, "stop-failed Server restart");
     }
     const baselineUpdatedAt = (await readPersistedStatus(layout))?.updatedAt ?? 0;
     let serviceStarted = false;
@@ -456,19 +474,6 @@ async function runServe(
 export const APPLY_UPDATE_TIMEOUT_MS =
   3 * (CORE_STOP_GRACE_TIMEOUT_MS + CORE_KILL_TIMEOUT_MS) + 2 * CORE_READY_TIMEOUT_MS + 30_000;
 
-async function stopExistingSupervisor(
-  layout: ReturnType<typeof resolveServerLayout>,
-  unverifiedStatusMessage: string,
-): Promise<void> {
-  const persistedBeforeStop = await readPersistedStatusDetailed(layout);
-  if (persistedBeforeStop.state === "invalid" || persistedBeforeStop.state === "unreadable") {
-    throw new Error(unverifiedStatusMessage);
-  }
-  const stopBaselineUpdatedAt = persistedBeforeStop.status?.updatedAt ?? 0;
-  await requestControl(layout.controlEndpoint, { command: "stop" });
-  await waitForServerStopped(layout, stopBaselineUpdatedAt, true);
-}
-
 async function requestApplyUpdate(
   layout: ReturnType<typeof resolveServerLayout>,
   force: boolean,
@@ -499,21 +504,11 @@ async function runControl(
     if (command === "status") {
       const persisted = await readPersistedStatusDetailed(layout);
       result = persisted.status ?? createStoppedServerStatus(NIBI_VERSION);
-    } else if (command === "stop" && isControlEndpointUnavailable(error)) {
-      const persisted = await readPersistedStatusDetailed(layout);
-      if (persisted.state === "invalid" || persisted.state === "unreadable") {
-        throw error;
-      }
-      if (
-        persisted.status &&
-        persisted.status.state !== "stopped" &&
-        persisted.status.state !== "uninstalled"
-      ) {
-        throw error;
-      }
-      // Supervisor 停止时会先关闭 control socket，再由 CLI 落盘 stopped 状态。
-      // 重复 stop 发生在这个窗口后不应因为 socket 不存在而变成失败。
-      result = persisted.status ?? createStoppedServerStatus(NIBI_VERSION);
+    } else if (command === "stop") {
+      // 快照缺失表示 daemon 从未写出过状态，按已停止输出。
+      result =
+        (await readStatusForStopWithoutControl(layout, error)) ??
+        createStoppedServerStatus(NIBI_VERSION);
     } else {
       throw error;
     }
@@ -523,9 +518,46 @@ async function runControl(
   return 0;
 }
 
-function isControlEndpointUnavailable(error: unknown): boolean {
-  if (typeof error !== "object" || error === null || !("code" in error)) return false;
-  return error.code === "ENOENT" || error.code === "ECONNREFUSED" || error.code === "EINVAL";
+/**
+ * `stop --wait`：data-root 锁释放且 status 为比基线新的 stopped 后才输出最终 ServerStatus（R2 §8.1）。
+ * daemon 未运行（锁缺失或 stale）时立即成功；stop-failed 与 control 超时以公开错误码失败。
+ */
+async function runStopAndWait(
+  io: CliIO,
+  layout: ReturnType<typeof resolveServerLayout>,
+): Promise<number> {
+  await stopSupervisorAndWait(layout, "stop");
+  const persisted = await readPersistedStatusDetailed(layout);
+  const status = persisted.status;
+  // Supervisor 已死时快照可能仍停在死前的 ready；输出只表达“已停止”这一最终事实。
+  stdout(
+    io,
+    isStoppedServerStatus(status)
+      ? status
+      : createStoppedServerStatus(NIBI_VERSION, {
+          serviceRegistered: status?.serviceRegistered ?? false,
+        }),
+  );
+  return 0;
+}
+
+/**
+ * 整棵进程树重启（R2 §8.1），由发起命令的 CLI 协调，不在持锁的 Supervisor 内自举。
+ *
+ * Bug 原因：旧 `restart` 只经 control 让 Supervisor 在进程内换 Core，Supervisor 与崩溃预算不变；
+ * daemon 未运行或 Supervisor 已死但残留 socket 时直接报错，`crash-loop-stopped` 也无法自救。
+ * 现在先用统一停止等待收口现有 Supervisor（锁缺失或 stale 即视为未运行，跳过停止；新的
+ * `stop-failed` 以公开码失败且不启动新实例），再按 `serve --daemon` 启动并等 ready。本进程由
+ * stable launcher 从 current release 执行，启动方式沿用同一环境判定（OS service / detached fallback）。
+ */
+async function runRestart(
+  io: CliIO,
+  json: boolean,
+  layout: ReturnType<typeof resolveServerLayout>,
+  runtimeOptions: ServerCliRuntimeOptions,
+): Promise<number> {
+  await stopSupervisorAndWait(layout, "restart");
+  return await runServe(["--daemon"], io, json, layout, runtimeOptions);
 }
 
 async function runUninstall(

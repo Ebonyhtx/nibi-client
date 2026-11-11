@@ -483,15 +483,16 @@ R2 至少准备以下平台资产：
 ## 8. CLI 命令语义
 
 ```bash
-zcode                  # 无参数仍进入 TUI
-zcode serve            # 前台 Server Core
-zcode serve --daemon   # 注册并启动 daemon
-zcode status
-zcode stop
-zcode restart
-zcode update
-zcode update --force
-zcode uninstall
+nibi                  # 无参数仍进入 TUI
+nibi serve            # 前台 Server Core
+nibi serve --daemon   # 注册并启动 daemon
+nibi status
+nibi stop
+nibi stop --wait
+nibi restart
+nibi update
+nibi update --force
+nibi uninstall
 ```
 
 | 命令             | 行为                                                                                                                                                                                                                                                                                                                                                                                |
@@ -499,8 +500,9 @@ zcode uninstall
 | `serve`          | 由当前 CLI 进程运行 Supervisor/Core；不注册 OS 自启动；终止信号后有界退出                                                                                                                                                                                                                                                                                                           |
 | `serve --daemon` | 安装/复用当前用户的服务注册，并启动或复用 Supervisor/Core                                                                                                                                                                                                                                                                                                                           |
 | `status`         | 返回注册状态、Core 状态、PID、端口、版本、最近退出原因和 crash budget                                                                                                                                                                                                                                                                                                               |
-| `stop`           | 请求 Supervisor 停止 Core；保留自启动注册                                                                                                                                                                                                                                                                                                                                           |
-| `restart`        | 有界停止并重新启动；不自动恢复中断 Task                                                                                                                                                                                                                                                                                                                                             |
+| `stop`           | 请求 Supervisor 停止 Core 并回 ack；保留自启动注册。只回 ack 不代表停止完成，脚本与桌面端必须用 `--wait` 判定最终结果 |
+| `stop --wait`    | 等到 data-root 锁释放且 status 为比基线新的 `stopped` 后才输出最终 ServerStatus；daemon 未运行时立即成功；Supervisor 进入 `stop-failed` 返回 `source-server-stop-failed`，control 超时返回 `source-server-control-unresponsive`（不强杀 Supervisor） |
+| `restart`        | 由发起命令的 CLI 协调整棵进程树重启：先执行与 `stop --wait` 相同的停止等待（未运行或锁 stale 时跳过），再以 current release 执行 `serve --daemon` 并等 ready；可从 `crash-loop-stopped`、`stop-failed` 且 `pid:null`、Supervisor 已死但残留锁恢复，新 Supervisor 重置崩溃预算；不自动恢复中断 Task；与 update/uninstall 共用生命周期命令锁 |
 | `update`         | 获取 catalog 中当前 target 的新 release（或使用已有 pending），校验并安装后应用；在线 daemon 必须完成 Supervisor/Core/Agent 的整棵进程树换代与 runtime identity 校验后才返回成功；catalog 与 current archive 相同返回成功的 `up-to-date`，不得继续请求 apply；未配置 catalog 且没有 pending 时返回明确的 release source 错误；有运行 Task 时默认返回可操作的 guard 错误，不中断任务 |
 | `update --force` | 明确允许中断运行 Task 后应用 release                                                                                                                                                                                                                                                                                                                                                |
 | `uninstall`      | 检查运行 Task（有运行 Task 时拒绝并保持原状态），要求两次输入 `DELETE`，停止并移除服务，删除允许列表内的 ZCode 数据                                                                                                                                                                                                                                                                 |

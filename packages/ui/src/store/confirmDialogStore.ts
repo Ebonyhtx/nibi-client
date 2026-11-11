@@ -12,6 +12,8 @@ export interface ConfirmDialogRequest {
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: "default" | "destructive";
+  /** 需要展示运行中任务等长清单时限制描述高度并在弹窗内滚动；未设置的调用方不受影响。 */
+  scrollableDescription?: boolean;
   showCloseButton?: boolean;
   /** 需要用户显式确认的告知弹窗：隐藏取消，并忽略遮罩/Escape 关闭。 */
   requiredAcknowledgement?: boolean;

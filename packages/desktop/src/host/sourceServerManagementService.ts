@@ -5,6 +5,8 @@ import {
   sourceServerUpdateRequestSchema,
   isSameSourceServerUpdateTarget,
   sourceServerManagementSnapshotRequestSchema,
+  sourceServerRunningTasksResultSchema,
+  sourceServerLifecycleSourceIdSchema,
   type SourceServerManagementSnapshotRequest,
   sourceServerManagementDirectoryDeltaSchema,
   sourceServerManagementStateDeltaSchema,
@@ -24,6 +26,7 @@ import type { SourceServerDirectorySnapshot } from "./sourceServerDirectory.js";
 import type {
   ManagedSourceServerConnection,
   SourceServerConnectionManagerOptions,
+  SourceOperationRoute,
   ConnectSourceServerOptions,
 } from "./sourceServerConnectionManager.js";
 import type { ISourceServerManagementService, UpdateConnectionProfileInput } from "@nibi/services";
@@ -34,6 +37,8 @@ interface SourceServerManagementDirectory {
   resolveProfileTarget(
     profileOrId: string | ConnectionProfile,
   ): Promise<Exclude<RemoteTarget, { kind: "server" }>>;
+  /** 设备级命令的离线路由；凭据不可静默取得时抛 `credentials-required`。 */
+  resolveSourceLifecycleRoute(sourceServerId: string): Promise<SourceOperationRoute>;
   renameSource(sourceServerId: string, displayName: string): Promise<void>;
   renameProfile(profileId: string, displayName: string): Promise<void>;
   updateProfile(input: UpdateConnectionProfileInput): Promise<void>;
@@ -67,6 +72,18 @@ interface SourceServerManagementManager {
       onLog?: (event: { phase: string; message: string; progress?: number }) => void;
     };
   }): Promise<ManagedSourceServerConnection>;
+  stopSource(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<void>;
+  restartSource(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<ManagedSourceServerConnection>;
+  getSourceRunningTasks(input: {
+    sourceServerId: string;
+    resolveOfflineRoute: () => Promise<SourceOperationRoute>;
+  }): Promise<import("@nibi/shared").SourceServerRunningTasksResult>;
   disconnect(sourceServerId: string): void;
   removeProfile(profileId: string): void;
 }
@@ -201,6 +218,31 @@ export function createSourceServerManagementService(options: {
     async disconnectSource(sourceServerId) {
       options.manager.disconnect(sourceServerId);
       return await getSnapshot();
+    },
+    async stopSource(input) {
+      const sourceServerId = sourceServerLifecycleSourceIdSchema.parse(input);
+      await options.manager.stopSource({
+        sourceServerId,
+        resolveOfflineRoute: () => options.directory.resolveSourceLifecycleRoute(sourceServerId),
+      });
+      return await getSnapshot();
+    },
+    async restartSource(input) {
+      const sourceServerId = sourceServerLifecycleSourceIdSchema.parse(input);
+      await options.manager.restartSource({
+        sourceServerId,
+        resolveOfflineRoute: () => options.directory.resolveSourceLifecycleRoute(sourceServerId),
+      });
+      return await getSnapshot();
+    },
+    async getSourceRunningTasks(input) {
+      const sourceServerId = sourceServerLifecycleSourceIdSchema.parse(input);
+      return sourceServerRunningTasksResultSchema.parse(
+        await options.manager.getSourceRunningTasks({
+          sourceServerId,
+          resolveOfflineRoute: () => options.directory.resolveSourceLifecycleRoute(sourceServerId),
+        }),
+      );
     },
     async ensureConversationWorkspace(sourceServerId) {
       const connection = options.manager.getOnlineConnection(sourceServerId);

@@ -8,6 +8,7 @@ import type {
   SourceServerManagementDirectoryDelta,
   SourceServerManagementStateDelta,
   SourceServerOperationLog,
+  SourceServerRunningTasksResult,
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
@@ -36,6 +37,12 @@ export interface ISourceServerManagementService {
   ): Promise<SourceServerManagementSnapshot>;
   confirmIdentityChange(profileId: string): Promise<SourceServerManagementSnapshot>;
   disconnectSource(sourceServerId: string): Promise<SourceServerManagementSnapshot>;
+  /** 停止设备上的远端服务（RDLC-01）；设备保持未连接。仅桌面 Renderer 开放。 */
+  stopSource(sourceServerId: string): Promise<SourceServerManagementSnapshot>;
+  /** 重启设备上的远端服务并自动重连（RDLC-01）。仅桌面 Renderer 开放。 */
+  restartSource(sourceServerId: string): Promise<SourceServerManagementSnapshot>;
+  /** 停止 / 重启确认前按设备读取运行中任务；不可用时返回 `{available:false}`。 */
+  getSourceRunningTasks(sourceServerId: string): Promise<SourceServerRunningTasksResult>;
   ensureConversationWorkspace(sourceServerId: string): Promise<{
     path: string;
     created: boolean;

@@ -86,6 +86,41 @@ export class SourceServerTransportOperationError extends Error {
   }
 }
 
+/**
+ * 远端 Server CLI `--json` 失败输出 `{ok:false,error,code?,retryable?}`（写在 stdout）。
+ * 公开错误码必须原样保留给 Host/UI 分类，不能只取 error 文本。
+ */
+function createServerCommandError(result: RemoteExecResult, fallbackMessage: string): Error {
+  try {
+    const response = readLastJsonLine(result.stdout);
+    if (isPublicZCodeErrorCode(response.code)) {
+      return new SourceServerTransportOperationError(
+        typeof response.error === "string" && response.error.trim()
+          ? response.error
+          : fallbackMessage,
+        response.code,
+        typeof response.retryable === "boolean" ? response.retryable : undefined,
+      );
+    }
+  } catch {
+    // 输出不是 JSON 时按文本诊断处理。
+  }
+  // Bug 原因：CLI 的 --json 错误写在 stdout，stderr 可能只有 SQLite warning；
+  // 安装路径与 daemon 启动复用同一错误解析，避免 warning 覆盖真正的失败原因。
+  return new Error(
+    (readStructuredCommandError(result.stdout) ?? result.stderr.trim()) || fallbackMessage,
+  );
+}
+
+/** 读取远端 Server CLI `--json` 命令的最终 JSON；非零退出按 {@link createServerCommandError} 失败。 */
+export function readServerCommandResult(
+  result: RemoteExecResult,
+  fallbackMessage: string,
+): Record<string, unknown> {
+  if (result.exitCode !== 0) throw createServerCommandError(result, fallbackMessage);
+  return readLastJsonLine(result.stdout);
+}
+
 export type SourceServerFileTransfer = Pick<IRemoteBackend, "exec" | "upload">;
 
 export interface SourceServerTransportAdapter {
@@ -331,7 +366,10 @@ class BackendSourceServerTransportAdapter implements SourceServerTransportAdapte
       }
       const event = sourceServerInstallProgressSchema.safeParse(value);
       if (event.success) {
-        context.onLog?.({ phase: event.data.phase, message: INSTALL_PROGRESS_MESSAGES[event.data.phase] });
+        context.onLog?.({
+          phase: event.data.phase,
+          message: INSTALL_PROGRESS_MESSAGES[event.data.phase],
+        });
       }
     });
     if (result.exitCode !== 0) {
@@ -446,10 +484,12 @@ class BackendSourceServerTransportAdapter implements SourceServerTransportAdapte
     throwIfAborted(context.signal);
     const backend = await this.getBackend(target);
     const hasServerRoot = argv.includes("--server-root");
+    // `restart` 会以 current release 重新执行 `serve --daemon`，必须与首次启动一样在
+    // WSL/Docker 中跳过不可用的用户级服务注册，避免改变发行版或容器环境。
+    const daemonCommand =
+      argv[0] === "restart" || (argv[0] === "serve" && argv.includes("--daemon"));
     const daemonEnvironment =
-      this.kind !== "ssh" && argv[0] === "serve" && argv.includes("--daemon")
-        ? "NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 "
-        : "";
+      this.kind !== "ssh" && daemonCommand ? "NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1 " : "";
     const command = [
       // Bug 原因：WSL/Docker 没有稳定的用户级服务管理器；若沿用 SSH 命令会尝试
       // 注册 systemd user service 并在常见环境中失败。两者必须显式进入 detached fallback。

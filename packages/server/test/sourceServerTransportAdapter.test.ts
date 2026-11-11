@@ -359,6 +359,17 @@ function contract(name: string, target: RemoteTarget): void {
         expect(serveCommand).toContain("NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1");
       }
 
+      // restart 会以 current release 重新执行 serve --daemon，非 SSH 同样必须跳过服务注册。
+      const restart = await adapter.exec(target, ["restart", "--json"], {});
+      expect(restart.exitCode).toBe(0);
+      const restartCommand = backend.commands.at(-1) ?? "";
+      expect(restartCommand).toContain("'restart' '--json'");
+      if (target.kind === "ssh") {
+        expect(restartCommand).not.toContain("NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1");
+      } else {
+        expect(restartCommand).toContain("NIBI_SERVER_SKIP_SERVICE_REGISTRATION=1");
+      }
+
       const channel = await adapter.openChannel(target, ingress, {});
       const echoed = new Promise<Buffer>((resolve) =>
         channel.once("data", (data) => resolve(Buffer.from(data))),
@@ -395,20 +406,36 @@ it.each(targets)("forwards $kind install progress before command completion", as
   });
   const onLog = vi.fn();
   let complete = false;
-  const install = adapter.installOrUpdate(target, {
-    localArchivePath: "/tmp/release.tar.gz", target: "linux-x64", version: "3.12.1",
-    sha256: "a".repeat(64), sizeBytes: 1024, urls: [],
-  }, { onLog }).then(() => { complete = true; });
+  const install = adapter
+    .installOrUpdate(
+      target,
+      {
+        localArchivePath: "/tmp/release.tar.gz",
+        target: "linux-x64",
+        version: "3.12.1",
+        sha256: "a".repeat(64),
+        sizeBytes: 1024,
+        urls: [],
+      },
+      { onLog },
+    )
+    .then(() => {
+      complete = true;
+    });
   await started.promise;
   expect(backend.commands.at(-1)).toContain("--progress");
   expect(onLog).toHaveBeenCalledWith(expect.objectContaining({ phase: "extract" }));
   stdout.write('shell banner\n{"type":"source-server-install-progress","phase":"ver');
   stdout.write('ify"}\n{"type":"source-server-install-progress","phase":"ready"}\n');
-  await vi.waitFor(() => expect(onLog).toHaveBeenCalledWith(expect.objectContaining({ phase: "verify" })));
+  await vi.waitFor(() =>
+    expect(onLog).toHaveBeenCalledWith(expect.objectContaining({ phase: "verify" })),
+  );
   expect(complete).toBe(false);
   expect(onLog).not.toHaveBeenCalledWith(expect.objectContaining({ phase: "ready" }));
   stdout.write('{"type":"source-server-install-progress","phase":"restart"}\n');
-  await vi.waitFor(() => expect(onLog).toHaveBeenCalledWith(expect.objectContaining({ phase: "restart" })));
+  await vi.waitFor(() =>
+    expect(onLog).toHaveBeenCalledWith(expect.objectContaining({ phase: "restart" })),
+  );
   stdout.end('{"applied":true}\n');
   stderr.end();
   closed.fire(0);

@@ -78,6 +78,19 @@ function identityPendingSnapshot(
   };
 }
 
+/**
+ * 设备列表默认折叠（RDUX-13）。断言展开区内容或点击其中的按钮前先展开所有设备行；
+ * 只展开设备行，不影响「其他已保存连接 / 最近日志」等面板内部折叠。
+ */
+async function expandDeviceRows(): Promise<void> {
+  await waitFor(() => expect(document.querySelector("[data-source-server-toggle]")).not.toBeNull());
+  for (const toggle of document.querySelectorAll<HTMLButtonElement>(
+    "[data-source-server-toggle]",
+  )) {
+    if (toggle.getAttribute("aria-expanded") === "false") fireEvent.click(toggle);
+  }
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -123,6 +136,7 @@ describe("SourceServerManagementPanel", () => {
         ],
       }),
     );
+    await expandDeviceRows();
     await screen.findByText("Reinstalled server");
     const line = container.querySelector("[data-device-connection]")!;
     expect(line.textContent).toContain("other.example.com");
@@ -166,6 +180,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
     await screen.findByText("Reinstalled server");
     const line = container.querySelector("[data-device-connection]")!;
     expect(line.textContent).toContain("dev@preferred.example.com:22");
@@ -191,15 +206,18 @@ describe("SourceServerManagementPanel", () => {
       onDidChangeState: new Emitter().event,
     } as never;
     const first = render(createElement(SourceServerManagementPanel, { management }));
+    await expandDeviceRows();
     fireEvent.click(await screen.findByRole("button", { name: "updateDialog.later" }));
     expect(screen.queryByText("settings.source.updateAvailableVersion")).toBeNull();
     first.unmount();
     const second = render(createElement(SourceServerManagementPanel, { management }));
     await screen.findByText("Reinstalled server");
+    await expandDeviceRows();
     expect(screen.queryByText("settings.source.updateAvailableVersion")).toBeNull();
     second.unmount();
     snapshot.states[0]!.availableVersion = "defer-test-2";
     render(createElement(SourceServerManagementPanel, { management }));
+    await expandDeviceRows();
     expect(await screen.findByRole("button", { name: "updateDialog.later" })).toBeTruthy();
   });
 
@@ -470,11 +488,13 @@ describe("SourceServerManagementPanel", () => {
     } as never;
     // 失败设备的最近日志默认展开；用户手动收起后以用户选择为准。
     const first = render(createElement(SourceServerManagementPanel, { management }));
+    await expandDeviceRows();
     await waitFor(() => expect(screen.getByText("Connection refused")).toBeTruthy());
     fireEvent.click(screen.getByText("settings.source.recentLog"));
     expect(screen.queryByText("Connection refused")).toBeNull();
     first.unmount();
     render(createElement(SourceServerManagementPanel, { management }));
+    await expandDeviceRows();
     await waitFor(() => expect(screen.getByText("Connection refused")).toBeTruthy());
     expect(getRecentOperationLogs).toHaveBeenCalledWith("preferred");
   });
@@ -549,6 +569,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
     await screen.findByText("Reinstalled server");
     const buttons = screen.getAllByRole("button", {
       name: "settings.source.identityChangeConfirm",
@@ -795,6 +816,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
     await screen.findByText("Reinstalled server");
     expect(screen.getAllByText("remote.error.hostUnreachable")).toHaveLength(1);
   });
@@ -949,6 +971,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
     expect(await screen.findByText("remote.error.unknown")).toBeTruthy();
     expect(screen.queryByText("raw host detail")).toBeNull();
   });
@@ -993,6 +1016,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
 
     expect(await screen.findByText(/remote\.error\.recoveryBudgetExhausted:3\/3/u)).toBeTruthy();
   });
@@ -1036,6 +1060,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
 
     expect(await screen.findByText("settings.source.versionDetails")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "remote.action.connect" })).toBeNull();
@@ -1102,6 +1127,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
 
     expect(await screen.findByText("settings.source.updateInProgress")).toBeTruthy();
     expect(screen.queryByText("settings.source.updateRequired")).toBeNull();
@@ -1256,11 +1282,13 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
 
     expect(await screen.findByText("Build server")).toBeTruthy();
     expect(document.querySelector('[data-remote-connection-status="offline"]')).toBeTruthy();
     expect(document.querySelector('[data-remote-connection-kind="ssh"]')).toBeTruthy();
-    expect(screen.getByText("dev@primary.example.com:22")).toBeTruthy();
+    // 行摘要与展开后的连接行都会展示地址；只断言首选连接出现、备用连接仍折叠。
+    expect(screen.getAllByText("dev@primary.example.com:22").length).toBeGreaterThan(0);
     expect(screen.queryByText("dev@backup.example.com:22")).toBeNull();
     expect(
       screen.getAllByRole("button", {
@@ -1452,6 +1480,7 @@ describe("SourceServerManagementPanel", () => {
         } as never,
       }),
     );
+    await expandDeviceRows();
 
     expect(await screen.findByText("settings.source.connectionHistoryNeedsAttention")).toBeTruthy();
     expect(screen.queryByText(/产品边界/u)).toBeNull();
@@ -1665,15 +1694,25 @@ it("管理入口在快照到达后定位设备卡并消费一次意图，普通�
   expect(consumed).not.toHaveBeenCalled();
   await act(async () => pending.resolve(snapshot));
   await waitFor(() =>
-    expect(document.activeElement?.getAttribute("data-source-server-card")).toBe("old-source"),
+    expect(
+      document.activeElement
+        ?.closest("[data-source-server-card]")
+        ?.getAttribute("data-source-server-card"),
+    ).toBe("old-source"),
   );
+  // 定位设备时自动展开该设备行，焦点落在行开关上。
+  expect(document.activeElement?.getAttribute("aria-expanded")).toBe("true");
   expect(consumed).toHaveBeenCalledOnce();
   expect(scroll).toHaveBeenCalledWith({ block: "center" });
   view.unmount();
   render(createElement(SourceServerManagementPanel, { management }));
   await screen.findByText("Reinstalled server");
   expect(scroll).toHaveBeenCalledOnce();
-  expect(document.activeElement?.getAttribute("data-source-server-card")).toBeNull();
+  expect(
+    document.activeElement
+      ?.closest("[data-source-server-card]")
+      ?.getAttribute("data-source-server-card") ?? null,
+  ).toBeNull();
 });
 
 it("设备操作按 Source 防重，无关设备与只读展开可继续，反序快照不回滚", async () => {
@@ -1721,6 +1760,7 @@ it("设备操作按 Source 防重，无关设备与只读展开可继续，反�
       onDisconnectSource: vi.fn(async () => {}),
     }),
   );
+  await expandDeviceRows();
   await screen.findByText("Second");
   const card = (id: string) => container.querySelector(`[data-source-server-card="${id}"]`)!;
   const action = (id: string) =>
@@ -1823,6 +1863,7 @@ it.each([false, true])("可选更新不吞同设备连接失败原因（同 Prof
       } as never,
     }),
   );
+  await expandDeviceRows();
   await screen.findByText("Reinstalled server");
   expect(screen.getByText("remote.error.hostUnreachable")).toBeTruthy();
   if (!sameProfile) expect(screen.getByText("settings.source.updateAvailableVersion")).toBeTruthy();
@@ -1845,6 +1886,7 @@ it("同连接的可选更新稍后隐藏后仍展示连接失败原因", async (
       } as never,
     }),
   );
+  await expandDeviceRows();
   await screen.findByText("remote.error.hostUnreachable");
   fireEvent.click(screen.getByRole("button", { name: "updateDialog.later" }));
   expect(screen.getByText("remote.error.hostUnreachable")).toBeTruthy();

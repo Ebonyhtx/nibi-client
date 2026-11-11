@@ -773,6 +773,33 @@ export class SourceServerDirectory {
     });
   }
 
+  /**
+   * 设备级生命周期命令（停止 / 重启 / 读取任务）的离线路由：默认连接优先，其余按最近连接倒序，
+   * 只选能静默取得凭据的线路。取不到时返回 `credentials-required`，与项目入口的补充凭据提示一致。
+   */
+  public async resolveSourceLifecycleRoute(
+    sourceServerId: string,
+  ): Promise<SourceServerReconnectCandidate> {
+    const snapshot = await this.snapshot();
+    const server = snapshot.servers.find((entry) => entry.sourceServerId === sourceServerId);
+    if (!server) throw new Error(`Unknown Source Server: ${sourceServerId}`);
+    const profiles = snapshot.profiles
+      .filter((profile) => isActiveProfile(profile) && profile.sourceServerId === sourceServerId)
+      .sort((left, right) => {
+        if (left.profileId === server.preferredProfileId) return -1;
+        if (right.profileId === server.preferredProfileId) return 1;
+        return (right.lastConnectedAt ?? 0) - (left.lastConnectedAt ?? 0);
+      });
+    for (const profile of profiles) {
+      const target = await this.resolveSilentTarget(profile);
+      if (target) return { profile, target };
+    }
+    throw Object.assign(
+      new Error(`Source Server requires interactive credentials: ${sourceServerId}`),
+      { code: "credentials-required" },
+    );
+  }
+
   public async resolveProfileTarget(
     profileOrId: string | ConnectionProfile,
   ): Promise<Exclude<RemoteTarget, { kind: "server" }>> {
