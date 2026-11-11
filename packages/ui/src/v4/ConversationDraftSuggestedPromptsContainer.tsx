@@ -35,9 +35,10 @@ import {
   type DraftSuggestedPromptItem,
 } from "@/v4/ConversationDraftSuggestedPrompts.js";
 import { buildDraftSuggestedPluginMention } from "@/v4/draftSuggestedPromptPrefill.js";
-import { resolveDraftSuggestedPromptText } from "@/v4/draftSuggestedPromptItems.js";
 import {
   DRAFT_SUGGESTED_PROMPT_NAVIGATE_AUTOMATIONS,
+  filterSuggestedPromptItemsByPluginAvailability,
+  resolveDraftSuggestedPromptText,
 } from "@/v4/draftSuggestedPromptItems.js";
 import {
   resolveDraftSuggestedPluginFlowStage,
@@ -47,7 +48,10 @@ import {
   type DraftSuggestedPluginOperation,
   trackDraftSuggestedPluginOperation,
 } from "@/v4/ConversationDraftSuggestedPluginFlow.js";
-import { useDraftSuggestedPromptItems } from "@/v4/useDraftSuggestedPromptItems.js";
+import {
+  useDraftSuggestedPromptItems,
+  useSuggestedPromptPluginAvailability,
+} from "@/v4/useDraftSuggestedPromptItems.js";
 import { useDraftSuggestedPluginActionPopover } from "@/v4/useDraftSuggestedPluginActionPopover.js";
 import { getComposerDraftRevision } from "@/v4/composer/composerDraftRevision.js";
 import { useComposerTextInsertApplied } from "@/v4/useComposerTextInsertApplied.js";
@@ -142,15 +146,23 @@ export function ConversationDraftSuggestedPromptsContainer({
     rpcReady: resolution.rpcReady,
     workspaceKey,
   });
+  const sourceItems = proactive ? recommendedItems : allItems;
+  // 运行时过滤：推荐语料/Client Scenes 都可能引用当前安装集里不存在的 Plugin。
+  // 只看文案无法阻止旧数据继续下发，必须在渲染前按 Host catalog 收缩候选。
+  const availablePluginIds = useSuggestedPromptPluginAvailability({
+    items: sourceItems,
+    workspacePath,
+    workspaceIdentity,
+    remoteSessionId: resolution.remoteSessionId,
+  });
   const items = useMemo(
     () =>
-      (proactive ? recommendedItems : allItems).filter(
+      filterSuggestedPromptItemsByPluginAvailability(sourceItems, availablePluginIds).filter(
         (item) =>
-          !item.actions?.some(
-            (action) => action === DRAFT_SUGGESTED_PROMPT_NAVIGATE_AUTOMATIONS,
-          ) || Boolean(onOpenAutomations),
+          !item.actions?.some((action) => action === DRAFT_SUGGESTED_PROMPT_NAVIGATE_AUTOMATIONS) ||
+          Boolean(onOpenAutomations),
       ),
-    [allItems, onOpenAutomations, proactive, recommendedItems],
+    [availablePluginIds, onOpenAutomations, sourceItems],
   );
   const {
     clearPluginActionPopover,
@@ -724,12 +736,10 @@ export function ConversationDraftSuggestedPromptsContainer({
   );
 
   return (
-    <div data-v4-draft-suggested-prompts-slot="true" className={cn(!proactive && "h-8", className)}>
+    <div data-v4-draft-suggested-prompts-slot="true" className={cn("w-full min-w-0", className)}>
       <ConversationDraftSuggestedPrompts
-        // 绝对定位让推荐区脱离 Composer 的正常结构，调试和间距语义都不直观。
-        // 旧场景推荐保留固定槽位；主动推荐列表必须由内容撑高，否则多行会溢出并覆盖下方内容。
+        // 旧场景推荐保留同一槽位；主动推荐列表必须由内容撑高，否则多行会溢出并覆盖下方内容。
         items={items}
-        layout={proactive ? "list" : "chips"}
         onSelect={handleSelect}
         onRefresh={proactive ? () => advanceRecommendedPromptPane(recommendationPaneId) : undefined}
         onClose={proactive ? closeRecommendations : undefined}

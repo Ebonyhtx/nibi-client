@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS, NIBI_CUA_OFFICIAL_PLUGIN_ID } from "@nibi/shared";
+import { featureSuggestedPrompts } from "@/v4/featureSuggestedPrompts.js";
+import { collectSuggestedPromptPluginIds } from "@/v4/draftSuggestedPromptItems.js";
 import {
   advanceRecommendedPromptPane,
   getRecommendedPromptsForPane,
@@ -13,6 +16,15 @@ afterEach(() => {
 });
 
 describe("active task recommendations", () => {
+  it("only recommends Plugins the client actually ships", () => {
+    const shipped = new Set([...DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS, NIBI_CUA_OFFICIAL_PLUGIN_ID]);
+    for (const item of featureSuggestedPrompts) {
+      for (const pluginId of collectSuggestedPromptPluginIds(item)) {
+        expect(shipped.has(pluginId), `${item.id} references ${pluginId}`).toBe(true);
+      }
+    }
+  });
+
   it("replaces all three visible office recommendations when refreshing", () => {
     registerRecommendedPromptPane(paneIds[0]!, "office");
 
@@ -22,9 +34,7 @@ describe("active task recommendations", () => {
       const next = getRecommendedPromptsForPane(paneIds[0]!, "office");
 
       expect(next).toHaveLength(3);
-      expect(
-        next.every((item) => !previous.some((shown) => shown.id === item.id)),
-      ).toBe(true);
+      expect(next.every((item) => !previous.some((shown) => shown.id === item.id))).toBe(true);
       expect(new Set(next.map((item) => item.iconUrl)).size).toBe(3);
     }
   });
@@ -47,12 +57,7 @@ describe("active task recommendations", () => {
 
     advanceRecommendedPromptPane(paneIds[0]!);
     const refreshed = getRecommendedPromptsForPane(paneIds[0]!, "coding");
-    expect(new Set(refreshed.map((item) => item.iconUrl))).toHaveProperty(
-      "size",
-      3,
-    );
-    expect(refreshed.map((item) => item.id)).not.toEqual(
-      first.map((item) => item.id),
-    );
+    expect(new Set(refreshed.map((item) => item.iconUrl))).toHaveProperty("size", 3);
+    expect(refreshed.map((item) => item.id)).not.toEqual(first.map((item) => item.id));
   });
 });

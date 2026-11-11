@@ -118,11 +118,26 @@ describe("draft suggested prompt Client Scenes mapping", () => {
     ]);
   });
 
+  it("maps a non-empty scene description for the shared card body", () => {
+    const prompt = createItem({
+      id: "with-description",
+      descs: { cn: "补充说明", en: "Extra context" },
+    });
+
+    expect(mapClientScenesToDraftSuggestedPromptItems([createScene([prompt])])).toEqual([
+      {
+        id: "with-description",
+        label: prompt.labels,
+        description: { cn: "补充说明", en: "Extra context" },
+        prompt: prompt.contents,
+      },
+    ]);
+  });
+
   it("splits, trims, deduplicates, and allowlists on_finish actions", () => {
     const navigationPrompt = createItem({
       id: "open-automations",
-      on_finish:
-        " UNKNOWN:ACTION, NAVIGATE:AUTOMATIONS, NAVIGATE:AUTOMATIONS ",
+      on_finish: " UNKNOWN:ACTION, NAVIGATE:AUTOMATIONS, NAVIGATE:AUTOMATIONS ",
     });
 
     expect(mapClientScenesToDraftSuggestedPromptItems([createScene([navigationPrompt])])).toEqual([

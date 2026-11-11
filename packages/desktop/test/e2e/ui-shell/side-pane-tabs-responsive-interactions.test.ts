@@ -54,14 +54,22 @@ describe("Side Pane Tab responsive interactions", () => {
     }
     expect(await $(`[data-testid="${TID_WORKSPACE_TITLE}"]`).isExisting()).toBe(false);
     expect(await readHeaderBorderBottomColor()).toBe("rgba(0, 0, 0, 0)");
-    expect(
-      await browser.execute((slotSelector) => {
-        const slot = document.querySelector<HTMLElement>(slotSelector);
-        if (!slot) return null;
-        const style = window.getComputedStyle(slot);
-        return { height: style.height, position: style.position };
-      }, DRAFT_SUGGESTED_PROMPTS_SLOT_SELECTOR),
-    ).toEqual({ height: "32px", position: "static" });
+    const draftSuggestionsSlotStyle = await browser.execute((slotSelector) => {
+      const slot = document.querySelector<HTMLElement>(slotSelector);
+      if (!slot) return null;
+      const style = window.getComputedStyle(slot);
+      return {
+        position: style.position,
+        overflowX: style.overflowX,
+        overflowY: style.overflowY,
+      };
+    }, DRAFT_SUGGESTED_PROMPTS_SLOT_SELECTOR);
+    expect(draftSuggestionsSlotStyle).toEqual({
+      position: "static",
+      // 推荐卡改为自适应 grid：槽位不再固定 32px，也不允许出现内嵌滚动条。
+      overflowX: "visible",
+      overflowY: "visible",
+    });
 
     const sidePaneToggle = await $(`[data-testid="${TID_SIDE_PANE_TOGGLE}"]`);
     await sidePaneToggle.waitForClickable({ timeout: 10_000 });
@@ -419,10 +427,7 @@ describe("Side Pane Tab responsive interactions", () => {
       expect(terminalTabStyle.closePosition).toBe("static");
       expect(terminalTabStyle.gap).toBe("4px");
       await browser.saveScreenshot(
-        join(
-          process.env.NIBI_E2E_ARTIFACT_DIR || process.cwd(),
-          `independent-panels-${theme}.png`,
-        ),
+        join(process.env.NIBI_E2E_ARTIFACT_DIR || process.cwd(), `independent-panels-${theme}.png`),
       );
     }
     await terminalToggle.click();

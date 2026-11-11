@@ -1,4 +1,10 @@
-import { useState } from "react";
+import {
+  forwardRef,
+  useId,
+  useState,
+  type ComponentPropsWithoutRef,
+  type CSSProperties,
+} from "react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,7 +17,6 @@ import {
 } from "@/components/ui/alert-dialog.js";
 /* New task 草稿页推荐提示词入口。
    推荐配置来自 Client Scenes 的 draft-suggestion scene。 */
-import type { CSSProperties } from "react";
 import { X, Check, Info, LoaderCircle, SquareCode, TriangleAlert } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMotionDisabled } from "@/lib/motionPreference.js";
@@ -33,10 +38,20 @@ const PLUGIN_SUCCESS_ROLL_TRANSITION = {
   ease: [0.4, 0, 0.2, 1],
 } as const;
 
-function DraftSuggestedPromptIcon({ name }: { name?: string }) {
+function SuggestedPromptIcon({ item }: { item: DraftSuggestedPromptItem }) {
+  if (item.iconUrl) {
+    return (
+      <img
+        src={item.iconUrl}
+        alt=""
+        draggable={false}
+        className="size-4 rounded-sm object-contain"
+      />
+    );
+  }
   return (
     <ClientSceneLucideIcon
-      name={name}
+      name={item.iconName}
       aria-hidden="true"
       className="size-4"
       strokeWidth={2}
@@ -45,10 +60,78 @@ function DraftSuggestedPromptIcon({ name }: { name?: string }) {
   );
 }
 
+interface SuggestedPromptCardProps extends ComponentPropsWithoutRef<"button"> {
+  item: DraftSuggestedPromptItem;
+  label: string;
+  description?: string;
+  waterfallDelayMs: number;
+}
+
+/**
+ * 两套推荐卡（新建任务草稿、办公模式主动推荐）共用的唯一外观。
+ * 不另建设计系统：沿用设置页任务卡的圆角、描边与 hover，保证同一窗口内卡片语言一致。
+ */
+const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardProps>(
+  function SuggestedPromptCard(
+    { item, label, description, waterfallDelayMs, className, ...buttonProps },
+    ref,
+  ) {
+    const descriptionId = useId();
+    return (
+      <button
+        ref={ref}
+        type="button"
+        data-draft-suggested-prompt={item.id}
+        aria-label={label}
+        aria-describedby={description ? descriptionId : undefined}
+        title={label}
+        className={cn(
+          // 根因：旧草稿卡是固定 h-8 的横排 chip，办公推荐是竖排列表，两套圆角/图标/间距各不相同。
+          // 这里统一成同一种卡片；高度由 line-clamp 内容决定，不再依赖固定槽位或滚动容器。
+          "zcode-draft-prompt-waterfall group/prompt flex min-h-14 w-full min-w-0 items-start gap-2.5",
+          "rounded-xl border border-card-border bg-background p-3 text-left text-foreground",
+          "transition-colors hover:border-border-hover hover:bg-hover active:bg-surface-hover",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
+          "disabled:pointer-events-none disabled:opacity-50",
+          className,
+        )}
+        {...buttonProps}
+        style={
+          {
+            "--zcode-draft-prompt-waterfall-delay": `${waterfallDelayMs}ms`,
+          } as CSSProperties
+        }
+      >
+        <span
+          data-draft-suggested-prompt-icon="true"
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground-subtle transition-colors group-hover/prompt:text-foreground motion-reduce:transition-none"
+        >
+          <SuggestedPromptIcon item={item} />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span
+            data-draft-suggested-prompt-text="true"
+            className="line-clamp-2 break-words text-ui-base font-medium leading-5 text-foreground"
+          >
+            {label}
+          </span>
+          {description ? (
+            <span
+              id={descriptionId}
+              className="line-clamp-2 break-words text-ui-sm leading-4.5 text-foreground-subtle"
+            >
+              {description}
+            </span>
+          ) : null}
+        </span>
+      </button>
+    );
+  },
+);
+
 interface ConversationDraftSuggestedPromptsProps {
   className?: string;
-  layout?: "chips" | "list";
-  /** 推荐项列表；由上层从 Client Scenes 映射后下发。 */
+  /** 推荐项列表；由上层从 Client Scenes / 主动推荐池映射后下发。 */
   items?: DraftSuggestedPromptItem[];
   /** 点击回调；完整配置交给上层解析 prompt 与 Plugin catalog。 */
   onSelect?: (item: DraftSuggestedPromptItem) => void;
@@ -175,7 +258,6 @@ function DraftSuggestedPluginActionPopoverContent({
 
 export function ConversationDraftSuggestedPrompts({
   className,
-  layout = "chips",
   items = [],
   onSelect,
   disabled = false,
@@ -189,13 +271,16 @@ export function ConversationDraftSuggestedPrompts({
 
   if (items.length === 0) return null;
 
-  if (layout === "list") {
-    return (
-      <div
-        data-v4-draft-suggested-prompts="true"
-        className={cn("w-full min-w-0 px-2 py-4", className)}
-      >
-        <div className="flex items-center justify-between gap-2 px-3 pb-2 text-ui-sm text-foreground-subtle">
+  const hasHeader = Boolean(onRefresh || onClose);
+
+  return (
+    <div
+      data-v4-draft-suggested-prompts="true"
+      // 命名容器驱动列数：同一组件在宽会话页排 3 列，在窄侧栏/远控宽度自动落到 1 列。
+      className={cn("w-full min-w-0 @container/suggestions", className)}
+    >
+      {hasHeader ? (
+        <div className="mb-2 flex items-center justify-between gap-2 px-1 text-ui-sm text-foreground-subtle">
           <span>{intl.formatMessage({ id: "occupationOnboarding.suggestionsHeading" })}</span>
           <div className="flex shrink-0 items-center gap-2">
             {onRefresh ? (
@@ -224,6 +309,8 @@ export function ConversationDraftSuggestedPrompts({
             ) : null}
           </div>
         </div>
+      ) : null}
+      {onClose ? (
         <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -242,111 +329,46 @@ export function ConversationDraftSuggestedPrompts({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        <ul className="m-0 flex list-none flex-col p-0">
-          {items.map((item) => (
-            <Popover
-              key={item.id}
-              open={pluginActionPopover?.anchorItemId === item.id}
-              modal={false}
-            >
-              <li>
-                <PopoverAnchor asChild>
-                  <button
-                    type="button"
-                    data-draft-suggested-prompt={item.id}
+      ) : null}
+      {/* 根因：旧 chips 行用 w-max + overflow-x-auto，窄窗把它变成横向滚动区；主动推荐列表
+          又可能把内容顶高，二者都会出现滚动条。改为自适应 grid 后高度随内容增长，页面不再有内嵌滚动。 */}
+      <ul
+        data-v4-draft-suggested-prompts-group="true"
+        className="m-0 grid w-full list-none grid-cols-1 gap-2 p-0 @min-[480px]/suggestions:grid-cols-2 @min-[840px]/suggestions:grid-cols-3"
+      >
+        {items.map((item, index) => {
+          const label = resolveDraftSuggestedPromptText(item.label, locale);
+          const description = item.description
+            ? resolveDraftSuggestedPromptText(item.description, locale)
+            : "";
+          const isPopoverAnchor = pluginActionPopover?.anchorItemId === item.id;
+          return (
+            <Popover key={item.id} open={isPopoverAnchor} modal={false}>
+              <li className="min-w-0">
+                {/* 只在 Popover 打开时才包 Root/Anchor 会重挂按钮并重播 waterfall，
+                    Radix 因而连续测量到带 translateY 的锚点。所有推荐项从首次渲染起保持同一结构。 */}
+                <PopoverAnchor
+                  asChild
+                  data-slot="button"
+                  data-draft-suggested-plugin-popover-anchor={isPopoverAnchor ? "true" : undefined}
+                >
+                  <SuggestedPromptCard
+                    item={item}
+                    label={label}
+                    description={description || undefined}
+                    waterfallDelayMs={index * 65}
                     disabled={!onSelect || disabled}
-                    onClick={() => onSelect?.(item)}
-                    className="flex w-full items-center gap-3 rounded-xl p-3 text-left text-ui-base text-foreground hover:bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused disabled:opacity-50"
-                  >
-                    <span className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface p-px">
-                      <img
-                        src={item.iconUrl}
-                        alt=""
-                        draggable={false}
-                        className={cn(
-                          "shrink-0 rounded-sm object-contain",
-                          // GitHub 素材自带白色方形底，再缩小一圈以露出与其他图标一致的外层留白。
-                          item.iconUrl?.includes("/github/icon.png") ? "size-4.5" : "size-full",
-                        )}
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1 break-words">
-                      {resolveDraftSuggestedPromptText(item.label, locale)}
-                    </span>
-                  </button>
+                    onClick={onSelect ? () => onSelect(item) : undefined}
+                  />
                 </PopoverAnchor>
-                {pluginActionPopover?.anchorItemId === item.id ? (
+                {isPopoverAnchor ? (
                   <DraftSuggestedPluginActionPopoverContent state={pluginActionPopover} />
                 ) : null}
               </li>
             </Popover>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      data-v4-draft-suggested-prompts="true"
-      className={cn(
-        "w-full min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
-        className,
-      )}
-    >
-      <div
-        data-v4-draft-suggested-prompts-group="true"
-        className="mx-auto flex w-max items-center gap-4"
-      >
-        {items.map((item, index) => {
-          const label = resolveDraftSuggestedPromptText(item.label, locale);
-          const isPopoverAnchor = pluginActionPopover?.anchorItemId === item.id;
-          return (
-            <Popover key={item.id} open={isPopoverAnchor} modal={false}>
-              {/* 只在 Popover 打开时才包 Root/Anchor 会重挂按钮并重播 waterfall，
-                  Radix 因而连续测量到带 translateY 的锚点。所有推荐项从首次渲染起保持同一结构。 */}
-              <PopoverAnchor
-                asChild
-                data-slot="button"
-                data-draft-suggested-plugin-popover-anchor={isPopoverAnchor ? "true" : undefined}
-              >
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  data-draft-suggested-prompt={item.id}
-                  aria-label={label}
-                  title={label}
-                  disabled={!onSelect || disabled}
-                  onClick={onSelect ? () => onSelect(item) : undefined}
-                  className="zcode-draft-prompt-waterfall h-8 min-w-0 justify-start gap-1.5 overflow-hidden rounded-lg px-3 text-left text-ui-caption font-normal leading-4.5 text-foreground"
-                  style={
-                    {
-                      "--zcode-draft-prompt-waterfall-delay": `${index * 65}ms`,
-                    } as CSSProperties
-                  }
-                >
-                  <span
-                    data-draft-suggested-prompt-icon="true"
-                    className="flex size-4 shrink-0 items-center justify-center text-foreground opacity-70 transition-opacity group-hover/button:opacity-100 motion-reduce:transition-none"
-                  >
-                    <DraftSuggestedPromptIcon name={item.iconName} />
-                  </span>
-                  <span
-                    data-draft-suggested-prompt-text="true"
-                    className="min-w-0 max-w-64 truncate text-ui-base text-foreground opacity-70 transition-opacity group-hover/button:opacity-100 motion-reduce:transition-none"
-                  >
-                    {label}
-                  </span>
-                </Button>
-              </PopoverAnchor>
-              {isPopoverAnchor ? (
-                <DraftSuggestedPluginActionPopoverContent state={pluginActionPopover} />
-              ) : null}
-            </Popover>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

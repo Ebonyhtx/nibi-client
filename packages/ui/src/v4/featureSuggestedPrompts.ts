@@ -1,13 +1,11 @@
 /* eslint-disable max-lines -- 推荐语料按表格逐条维护，集中放置便于对照审核。 */
 import finderIcon from "@/onboarding/assets/finder.png";
 import terminalIcon from "@/onboarding/assets/terminal.png";
-import feishuIcon from "@/onboarding/assets/feishu.png";
 import documentsIcon from "@/assets/plugin-icons/documents.png";
 import pdfIcon from "@/assets/plugin-icons/pdf.png";
 import presentationsIcon from "@/assets/plugin-icons/presentations.png";
 import spreadsheetsIcon from "@/assets/plugin-icons/spreadsheets.png";
 import browserUseIcon from "@/assets/plugin-icons/browser-use.png";
-import githubIcon from "@/assets/plugin-icons/github.png";
 import gitlabIcon from "@/assets/plugin-icons/gitlab.png";
 import computerUseIcon from "@/assets/plugin-icons/computer-use.png";
 import type { DraftSuggestedPromptItem } from "@/v4/draftSuggestedPromptItems.js";
@@ -124,18 +122,14 @@ export const featureSuggestedPrompts: FeatureRecommendedPrompt[] = [
   {
     id: "feature-recvvsPdvcA0k8",
     mode: "office",
-    iconUrl: feishuIcon,
+    iconUrl: terminalIcon,
     label: {
       cn: "每天自动回顾昨天的工作并整理今天要做的事",
       en: "Review yesterday’s work and plan today automatically",
     },
     prompt: {
-      cn: "帮我设置一个每个工作日上午 9 点运行的定时任务：使用 [@飞书 CLI](plugin://lark-cli@nibi-official) 读取我昨天的飞书日程、任务和我可访问的工作记录，生成简短的昨日日报，并整理今天最值得先做的三件事。只写有记录依据的内容；如果插件未启用或缺少访问权限，先告诉我需要完成什么配置。",
-      en: "Set up a scheduled task for 9 a.m. every workday. Use [@Lark CLI](plugin://lark-cli@nibi-official) to read my accessible calendar events, tasks, and work records from yesterday. Give me a brief daily report and the three most important things to do today. Only include claims supported by those records; tell me what to connect if access is missing.",
-    },
-    plugin: {
-      stableId: "lark-cli@nibi-official",
-      label: { cn: "飞书 CLI", en: "Lark CLI" },
+      cn: "帮我设置一个每个工作日上午 9 点运行的定时任务：提醒我回顾昨天完成和未完成的工作，并整理今天最值得先做的三件事。运行前先问我有没有可参考的笔记、待办或工作记录；没有依据的内容不要补写，也不要把猜测写成已经发生的事实。",
+      en: "Set up a scheduled task for 9 a.m. every workday. Remind me to review what I finished and left open yesterday, then help me choose the three most important things to do today. Ask me for any notes, to-dos, or work records to use as evidence first; do not invent progress or present guesses as facts.",
     },
   },
   {
@@ -172,18 +166,14 @@ export const featureSuggestedPrompts: FeatureRecommendedPrompt[] = [
   {
     id: "feature-recvvsPdvciNsr",
     mode: "office",
-    iconUrl: feishuIcon,
+    iconUrl: terminalIcon,
     label: {
       cn: "每周自动汇总进展并准备下周的重点工作",
       en: "Summarize this week and prepare next week’s priorities",
     },
     prompt: {
-      cn: "帮我设置一个每周五下午 5 点运行的定时任务：使用 [@飞书 CLI](plugin://lark-cli@nibi-official) 读取我本周可访问的飞书日程、任务和工作记录，整理已完成、仍在推进和需要我决定的事项，再列出下周建议优先处理的三件事。没有记录依据的进展不要补写；如果插件或权限未就绪，先提示我配置。",
-      en: "Set up a scheduled task for 5 p.m. every Friday. Use [@Lark CLI](plugin://lark-cli@nibi-official) to review my accessible calendar, tasks, and work records for the week. Summarize what was completed, what is ongoing, and what needs my decision, then suggest three priorities for next week. Do not invent progress that the records do not support.",
-    },
-    plugin: {
-      stableId: "lark-cli@nibi-official",
-      label: { cn: "飞书 CLI", en: "Lark CLI" },
+      cn: "帮我设置一个每周五下午 5 点运行的定时任务：提醒我用几分钟回顾本周完成、仍在推进和需要我决定的事项，并整理下周建议优先处理的三件事。运行前先问我有没有可参考的笔记、待办或工作记录；没有依据的内容不要补写，也不要把未完成的工作写成已完成。",
+      en: "Set up a scheduled task for 5 p.m. every Friday. Remind me to review what I completed, what is still in progress, and what needs my decision this week, then help me choose three priorities for next week. Ask me for notes, to-dos, or work records to use as evidence first; do not invent progress or mark unfinished work as complete.",
     },
   },
   {

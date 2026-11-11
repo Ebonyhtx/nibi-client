@@ -1,4 +1,7 @@
-import type { DraftSuggestedPromptItem } from "@/v4/draftSuggestedPromptItems.js";
+import {
+  collectSuggestedPromptPluginIds,
+  type DraftSuggestedPromptItem,
+} from "@/v4/draftSuggestedPromptItems.js";
 import { getRecommendedPromptPool } from "@/v4/featureSuggestedPrompts.js";
 
 type Mode = "office" | "coding";
@@ -63,21 +66,10 @@ function usedByOtherPanes(id: string, mode: Mode): [Set<string>, Set<string>, Se
     for (const item of pane.items) {
       ids.add(item.id);
       icons.add(iconKey(item));
-      for (const pluginId of pluginIds(item)) plugins.add(pluginId);
+      for (const pluginId of collectSuggestedPromptPluginIds(item)) plugins.add(pluginId);
     }
   }
   return [ids, plugins, icons];
-}
-
-function pluginIds(item: DraftSuggestedPromptItem): string[] {
-  const ids = new Set<string>();
-  if (item.plugin) ids.add(item.plugin.stableId);
-  for (const prompt of [item.prompt.cn, item.prompt.en]) {
-    for (const match of prompt?.matchAll(/\(plugin:\/\/([\w.-]+@[\w.-]+)\)/g) ?? []) {
-      if (match[1]) ids.add(match[1]);
-    }
-  }
-  return [...ids];
 }
 
 function iconKey(item: DraftSuggestedPromptItem): string {
@@ -109,7 +101,7 @@ function selectForPane(
           (avoidPrevious && previousIds.has(item.id))
         )
           continue;
-        const plugins = pluginIds(item);
+        const plugins = collectSuggestedPromptPluginIds(item);
         const icon = iconKey(item);
         if (localIcons.has(icon)) continue;
         if (plugins.some((id) => localPlugins.has(id))) continue;
@@ -131,7 +123,7 @@ function selectForPane(
   for (const item of selected) {
     globalIds.add(item.id);
     globalIcons.add(iconKey(item));
-    for (const id of pluginIds(item)) globalPlugins.add(id);
+    for (const id of collectSuggestedPromptPluginIds(item)) globalPlugins.add(id);
   }
   return selected;
 }

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { createElement, type ReactNode } from "react";
+import { ApiError } from "@nibi/shared";
 import { SWRConfig } from "swr";
 import {
   act,
@@ -260,7 +261,21 @@ const clientScenesResponse = {
 describe("ConversationDraftSuggestedPromptsContainer", () => {
   beforeEach(() => {
     getPluginReferenceCatalog.mockReset();
-    getPluginReferenceCatalog.mockResolvedValue({ authority: "workspace", plugins: [] });
+    getPluginReferenceCatalog.mockResolvedValue({
+      authority: "workspace",
+      plugins: [
+        {
+          pluginId: "document-skills@nibi-official",
+          name: "document-skills",
+          marketplace: "nibi-official",
+          enabled: true,
+          conflictingPluginIds: [],
+          skillQualifiedNames: [],
+          mcpServerNames: [],
+          subagentNames: [],
+        },
+      ],
+    });
     resolveSuggestedPluginReference.mockReset();
     resolveSuggestedPluginReference.mockResolvedValue({
       stableId: "document-skills@nibi-official",
@@ -378,6 +393,30 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
+  it("falls back to local Plugin-free recommendations when Client Scenes returns 404", async () => {
+    listClientScenes.mockRejectedValue(
+      new ApiError({
+        url: "https://api.example/client-scenes",
+        method: "GET",
+        message: "Not Found",
+        status: 404,
+      }),
+    );
+
+    render(
+      createElement(ConversationDraftSuggestedPromptsContainer, {
+        workspacePath: "/tmp/suggested-prompt-scenes-404",
+      }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "帮我梳理今天要做的事并排出优先级" }),
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: "帮我看看电脑空间主要被什么占满了" })).not.toBeNull();
+    // 兜底条目不含 Plugin 依赖，因此不需要为可用性过滤再拉一次 catalog。
+    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+  });
+
   it("filters Automations navigation prompts when the navigation capability is absent", async () => {
     render(
       createElement(ConversationDraftSuggestedPromptsContainer, {
@@ -406,7 +445,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
     expect(
       useZCodeSessionStore.getState().getWorkspaceState(workspacePath).composerTextInsertRequest,
     ).toBeNull();
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
   });
 
   it("reports a Desktop template click before plugin resolution", async () => {
@@ -473,7 +512,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
         text: plainPrompt,
       }),
     );
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
   });
 
   it("waits for trusted resolution, then inserts Plugin and prompt together once", async () => {
@@ -547,7 +586,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
       deliveryKind: "desktop-continuous",
     });
     expect(resolveSuggestedPluginReference).toHaveBeenCalledOnce();
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
     expect(invalidateDraftSession).not.toHaveBeenCalled();
     expect(toast).not.toHaveBeenCalled();
   });
@@ -572,7 +611,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
           ?.mention?.data,
       ).toEqual({ pluginId: "document-skills@nibi-official" }),
     );
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the plain PDF prompt when trusted resolution fails", async () => {
@@ -615,7 +654,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
     fireEvent.click(await screen.findByRole("button", { name: pluginLabel }));
 
     await waitFor(() => expect(resolveSuggestedPluginReference).toHaveBeenCalledOnce());
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
     expect(
       useZCodeSessionStore.getState().getWorkspaceState(workspacePath).composerTextInsertRequest,
     ).toEqual({ requestId: 1, text: pluginPrompt });
@@ -769,7 +808,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
     }
     expect(invalidateDraftSession).toHaveBeenCalledOnce();
     expect(resolveSuggestedPluginReference).toHaveBeenCalledTimes(2);
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
   });
 
   it("keeps one Popover from missing-plugin refresh loading through confirmation", async () => {
@@ -906,7 +945,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
       document.querySelector('[data-draft-suggested-plugin-popover="success"]'),
     ).not.toBeNull();
     expect(toast).not.toHaveBeenCalled();
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
   });
 
   it("replaces the persistent enablement Popover with failure and never calls toast", async () => {
@@ -1101,7 +1140,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
     await waitFor(() => expect(installPlugin).toHaveBeenCalledTimes(2));
     expect(installPlugin.mock.calls[1]?.[0]?.operationId).not.toBe(firstOperationId);
     expect(await screen.findByText("正在安装插件…")).not.toBeNull();
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
     expect(
       useZCodeSessionStore.getState().getWorkspaceState(workspacePath).composerTextInsertRequest,
     ).toBeNull();
@@ -1349,7 +1388,7 @@ describe("ConversationDraftSuggestedPromptsContainer", () => {
       requestId: 2,
       text: plainPrompt,
     });
-    expect(getPluginReferenceCatalog).not.toHaveBeenCalled();
+    expect(getPluginReferenceCatalog).toHaveBeenCalledTimes(1);
     expect(
       toast.mock.calls.some(
         ([message]) => String(message).includes("取消") || String(message).includes("中断"),

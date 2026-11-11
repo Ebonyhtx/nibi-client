@@ -6,6 +6,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useZCodeIntl: () => ({
     locale: "zh-CN",
+    intl: {
+      formatMessage: ({ id }: { id: string }) =>
+        ({
+          "occupationOnboarding.suggestionsHeading": "推荐任务",
+          "chat.officeSuggestions.refresh": "换一批",
+          "chat.officeSuggestions.closeTitle": "关闭推荐",
+          "chat.officeSuggestions.closeDescription": "关闭后可在设置中重新开启。",
+          "common.cancel": "取消",
+          "common.confirm": "确认",
+        })[id] ?? id,
+    },
   }),
 }));
 
@@ -186,6 +197,60 @@ describe("ConversationDraftSuggestedPrompts", () => {
     expect(successContent?.textContent).toBe("安装成功");
     expect(successIcon).not.toBeNull();
     expect(screen.queryByRole("button", { name: "确认" })).toBeNull();
+  });
+
+  it("uses one responsive grid card instead of a horizontally scrolling chip row", () => {
+    const view = render(createElement(ConversationDraftSuggestedPrompts, { items }));
+    const root = view.container.querySelector<HTMLElement>(
+      '[data-v4-draft-suggested-prompts="true"]',
+    );
+    const group = view.container.querySelector<HTMLElement>(
+      '[data-v4-draft-suggested-prompts-group="true"]',
+    );
+    const cardText = view.container.querySelector<HTMLElement>(
+      "[data-draft-suggested-prompt-text]",
+    );
+
+    expect(root?.className).toContain("@container/suggestions");
+    expect(root?.className).not.toContain("overflow-x-auto");
+    expect(group?.className).toContain("grid-cols-1");
+    expect(group?.className).toContain("@min-[480px]/suggestions:grid-cols-2");
+    expect(group?.className).toContain("@min-[840px]/suggestions:grid-cols-3");
+    expect(cardText?.className).toContain("line-clamp-2");
+  });
+
+  it("renders the proactive header with refresh and close actions", () => {
+    const onRefresh = vi.fn();
+    const onClose = vi.fn();
+    render(
+      createElement(ConversationDraftSuggestedPrompts, {
+        items,
+        onSelect: vi.fn(),
+        onRefresh,
+        onClose,
+      }),
+    );
+
+    expect(screen.getByText("推荐任务")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "换一批" }));
+    expect(onRefresh).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "关闭推荐" }));
+    expect(screen.getByText("关闭后可在设置中重新开启。")).not.toBeNull();
+  });
+
+  it("renders an optional description under the two-line title", () => {
+    render(
+      createElement(ConversationDraftSuggestedPrompts, {
+        items: [
+          {
+            ...items[0]!,
+            description: { cn: "补充说明", en: "Extra context" },
+          },
+        ],
+      }),
+    );
+
+    expect(screen.getByText("补充说明")).not.toBeNull();
   });
 
   it("renders nothing when the recommendation list is empty", () => {
