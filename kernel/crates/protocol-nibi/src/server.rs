@@ -36,6 +36,8 @@ pub(crate) const SESSION_LIFECYCLE_GET_STATE: &str = "session/lifecycle/getState
 pub(crate) const SESSION_LIFECYCLE_ENSURE_READY: &str = "session/lifecycle/ensureReady";
 pub(crate) const SESSION_LIFECYCLE_STOP: &str = "session/lifecycle/stop";
 pub(crate) const SESSION_LIFECYCLE_RESTART: &str = "session/lifecycle/restart";
+/// 生命周期快照的通知（NIBI 3.17.2 `zcodeProtocolMethods.sessionLifecycleChanged`）。
+pub(crate) const SESSION_LIFECYCLE_CHANGED: &str = "session/lifecycle/changed";
 
 /// 新会话的缺省（入口给出）。
 #[derive(Debug, Clone)]
@@ -122,6 +124,23 @@ impl SessionResidencyWatch for ResidencyWatch {
             .upgrade()
             .and_then(|server| server.bridge.get(session))
             .is_some_and(|live| live.sink.has_subscribers())
+    }
+}
+
+/// 生命周期快照的推送（`session/lifecycle/changed`）：只发给出订阅了这个会话的连接。
+///
+/// 状态机同步调用；这里用不等队列的 `Peer::try_notify`，写队列满或连接已关时丢弃——通知失败
+/// 不改变已经完成的生命周期事实，客户端重连后用 `getState` 对账。
+struct LifecycleWatch {
+    server: Weak<Server>,
+}
+
+impl nibi_kernel_api::residency::SessionLifecycleObserver for LifecycleWatch {
+    fn lifecycle_changed(&self, snapshot: &SessionLifecycleSnapshot) {
+        let Some(server) = self.server.upgrade() else {
+            return;
+        };
+        server.publish_lifecycle_changed(snapshot);
     }
 }
 
@@ -240,6 +259,40 @@ impl Server {
             .set_session_residency_watch(Arc::new(ResidencyWatch {
                 server: Arc::downgrade(self),
             }));
+    }
+
+    /// 把生命周期观察者接到内核上（`serve_with_capture` 在 `Arc` 建好后调用一次）：状态机每次
+    /// 发布快照时推 `session/lifecycle/changed`。
+    pub(crate) fn install_lifecycle_observer(self: &Arc<Self>) {
+        self.kernel
+            .set_session_lifecycle_observer(Arc::new(LifecycleWatch {
+                server: Arc::downgrade(self),
+            }));
+    }
+
+    /// 推一条生命周期通知：只给订阅了这个会话的连接（没有打开/没有订阅者时静默跳过）。
+    ///
+    /// 与上游 `context.notify` 同一姿态：同步、尽力而为；失败只记日志，不影响已完成的生命周期事实。
+    fn publish_lifecycle_changed(&self, snapshot: &SessionLifecycleSnapshot) {
+        let Some(live) = self.bridge.get(&snapshot.session_id) else {
+            return;
+        };
+        if !live.sink.has_subscribers() {
+            return;
+        }
+        let params = lifecycle_snapshot(snapshot);
+        if !self
+            .context
+            .peer
+            .try_notify(SESSION_LIFECYCLE_CHANGED, &params)
+        {
+            tracing::debug!(
+                event = "protocol.session_lifecycle.notify_failed",
+                session = %snapshot.session_id,
+                state = snapshot.state.as_str(),
+                "the lifecycle notification was dropped (connection closed or queue full)"
+            );
+        }
     }
 
     /// 每个协议请求的常驻租约（上游 `handleRequest` 的同一条闸门）：

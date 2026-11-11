@@ -175,6 +175,8 @@ where
     server.request_host_preferences();
     // 常驻池的协议侧事实（Live/分享订阅）：有订阅者时不回收会话。
     server.install_residency_watch();
+    // 生命周期快照的推送（`session/lifecycle/changed`）：只给订阅了该会话的连接。
+    server.install_lifecycle_observer();
     if let Some(capture) = capture {
         // 攒批任务与服务器同生共死（作用域关闭时结束）。
         // 任务跟着 spawner 的作用域走；句柄不用。

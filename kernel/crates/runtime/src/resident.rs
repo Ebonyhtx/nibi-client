@@ -269,3 +269,7 @@ fn touch(state: &mut PoolState, session: &SessionId, now: u64) {
 
 /// 协议层注入的订阅事实（Live/分享）。池只读。
 pub(crate) type ResidencyWatchSlot = Mutex<Option<Arc<dyn SessionResidencyWatch>>>;
+
+/// 协议层注入的生命周期观察者（`session/lifecycle/changed` 的推送来源）。
+pub(crate) type LifecycleObserverSlot =
+    Mutex<Option<Arc<dyn nibi_kernel_api::residency::SessionLifecycleObserver>>>;

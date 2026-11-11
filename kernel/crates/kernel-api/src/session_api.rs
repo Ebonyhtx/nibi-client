@@ -922,6 +922,14 @@ pub trait Kernel: Send + Sync {
     /// 协议层注入常驻事实（Live/分享订阅）。缺省忽略；池只在内核里读。
     fn set_session_residency_watch(&self, _watch: Arc<dyn crate::residency::SessionResidencyWatch>) {}
 
+    /// 协议层注入生命周期观察者（`session/lifecycle/changed` 的推送来源）。缺省忽略；没有协议前端的
+    /// 入口（TUI、`-p`、测试）不需要推送。
+    fn set_session_lifecycle_observer(
+        &self,
+        _observer: Arc<dyn crate::residency::SessionLifecycleObserver>,
+    ) {
+    }
+
     /// 会话目录（legacy `session/list`）：比 [`Kernel::list_sessions`] 多带原始 `task_type`、
     /// 标题来源、父链与 `workspace_id`——Host 的任务列表与项目谱系校验要这些列。
     /// 缺省 `Unsupported`，调用方降级为空列表并记日志。

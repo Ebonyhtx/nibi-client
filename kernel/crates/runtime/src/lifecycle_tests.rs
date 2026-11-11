@@ -28,7 +28,7 @@ struct Inner {
     releases: usize,
     fail_activate: bool,
     fail_release: bool,
-    changes: Vec<SessionLifecycleState>,
+    changes: Vec<SessionLifecycleSnapshot>,
 }
 
 struct FakeHost {
@@ -93,6 +93,22 @@ impl FakeHost {
         let inner = self.inner();
         (inner.activations, inner.releases)
     }
+
+    fn changes(&self) -> Vec<SessionLifecycleSnapshot> {
+        self.inner().changes.clone()
+    }
+
+    fn states(&self) -> Vec<SessionLifecycleState> {
+        self.changes().into_iter().map(|snapshot| snapshot.state).collect()
+    }
+
+    fn last_change(&self) -> SessionLifecycleSnapshot {
+        self.inner()
+            .changes
+            .last()
+            .cloned()
+            .expect("no lifecycle change was published")
+    }
 }
 
 #[async_trait]
@@ -154,7 +170,7 @@ impl LifecycleHost for FakeHost {
     }
 
     fn on_change(&self, snapshot: &SessionLifecycleSnapshot) {
-        self.inner().changes.push(snapshot.state);
+        self.inner().changes.push(snapshot.clone());
     }
 }
 
@@ -392,4 +408,97 @@ async fn the_snapshot_reconciles_with_the_session_table() {
     assert!(controller.is_ready(host.as_ref(), &session()));
     let snapshot = controller.get_state(host.as_ref(), &session()).await.unwrap();
     assert_eq!(snapshot.state, SessionLifecycleState::Ready);
+}
+
+/// 每次状态发布恰好一条 `on_change`，且最后一条与 `getState` 的快照逐字段一致；
+/// revision 严格递增（客户端据此丢弃落后的观察）。
+#[tokio::test]
+async fn every_transition_publishes_one_snapshot_matching_get_state() {
+    let host = FakeHost::new(true, false);
+    let controller = LifecycleController::default();
+    let id = session();
+
+    controller
+        .ensure_ready(host.as_ref(), &id, None)
+        .await
+        .unwrap();
+    assert_eq!(
+        host.states(),
+        [
+            SessionLifecycleState::Starting,
+            SessionLifecycleState::Ready
+        ]
+    );
+    let state = controller.get_state(host.as_ref(), &id).await.unwrap();
+    assert_eq!(host.last_change(), state);
+    assert_eq!(state.generation, 1);
+
+    controller.stop(host.as_ref(), &id).await.unwrap();
+    assert_eq!(
+        host.states(),
+        [
+            SessionLifecycleState::Starting,
+            SessionLifecycleState::Ready,
+            SessionLifecycleState::Stopping,
+            SessionLifecycleState::Unloaded,
+        ]
+    );
+    let state = controller.get_state(host.as_ref(), &id).await.unwrap();
+    assert_eq!(host.last_change(), state);
+    assert!(state.last_error.is_none());
+
+    controller.restart(host.as_ref(), &id, None).await.unwrap();
+    assert_eq!(
+        host.states(),
+        [
+            SessionLifecycleState::Starting,
+            SessionLifecycleState::Ready,
+            SessionLifecycleState::Stopping,
+            SessionLifecycleState::Unloaded,
+            SessionLifecycleState::Stopping,
+            SessionLifecycleState::Unloaded,
+            SessionLifecycleState::Starting,
+            SessionLifecycleState::Ready,
+        ]
+    );
+    let state = controller.get_state(host.as_ref(), &id).await.unwrap();
+    assert_eq!(host.last_change(), state);
+    assert_eq!(state.generation, 2);
+
+    let revisions: Vec<u64> = host
+        .changes()
+        .iter()
+        .map(|snapshot| snapshot.revision)
+        .collect();
+    assert!(
+        revisions.windows(2).all(|pair| pair[0] < pair[1]),
+        "revisions must increase: {revisions:?}"
+    );
+}
+
+/// 释放失败：状态发布 faulted，随后失败事实再发布一条带 `lastError` 的快照（上游
+/// `resourceReleaseFailed` 的同一走向）；最终快照与 `getState` 一致。
+#[tokio::test]
+async fn a_failed_release_publishes_faulted_with_the_failure_fact() {
+    let host = FakeHost::new(true, true);
+    host.fail_release();
+    let controller = LifecycleController::default();
+    let result = controller.stop(host.as_ref(), &session()).await;
+    assert!(result.is_err());
+    assert_eq!(
+        host.states(),
+        [
+            SessionLifecycleState::Stopping,
+            SessionLifecycleState::Faulted,
+            SessionLifecycleState::Faulted,
+        ]
+    );
+    let state = controller
+        .get_state(host.as_ref(), &session())
+        .await
+        .unwrap();
+    assert_eq!(host.last_change(), state);
+    let failure = state.last_error.expect("the failure fact is published");
+    assert_eq!(failure.operation, SessionLifecycleOperation::Stop);
+    assert_eq!(failure.code, "resourceReleaseFailed");
 }

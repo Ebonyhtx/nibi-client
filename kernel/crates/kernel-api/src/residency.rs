@@ -119,6 +119,15 @@ pub struct NoResidencyBlockers;
 
 impl SessionResidencyWatch for NoResidencyBlockers {}
 
+/// 生命周期快照的观察者（协议层注入，`session/lifecycle/changed` 的推送来源）。
+///
+/// 状态机在每次发布状态/失败事实时同步调用；实现必须便宜、不阻塞，也不能把失败（连接已关、
+/// 写队列满）传回状态机——通知失败不改变已经完成的生命周期事实，客户端重连后用
+/// `session/lifecycle/getState` 对账。
+pub trait SessionLifecycleObserver: Send + Sync {
+    fn lifecycle_changed(&self, snapshot: &SessionLifecycleSnapshot);
+}
+
 /// 一次协议请求持有的常驻租约：持有期间池不回收这些会话，`Drop` 时释放并触发收敛。
 ///
 /// 只做同步计数与唤醒（收敛由内核的池驱动器异步跑）：request future 被丢下时 `Drop` 照样执行，

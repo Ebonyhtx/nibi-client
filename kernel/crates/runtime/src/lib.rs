@@ -231,6 +231,8 @@ pub struct LocalKernel {
     resident: Arc<resident::ResidentPool>,
     /// 协议层注入的常驻事实（Live/分享订阅）；没有协议前端时为空。
     residency_watch: resident::ResidencyWatchSlot,
+    /// 协议层注入的生命周期观察者（`session/lifecycle/changed`）；没有协议前端时为空。
+    lifecycle_observer: resident::LifecycleObserverSlot,
 }
 
 impl LocalKernel {
@@ -739,6 +741,7 @@ impl LocalKernel {
             lifecycle: lifecycle::LifecycleController::default(),
             resident,
             residency_watch: Mutex::default(),
+            lifecycle_observer: Mutex::default(),
         }
     }
 

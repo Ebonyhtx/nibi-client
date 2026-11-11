@@ -513,6 +513,16 @@ impl Kernel for LocalKernel {
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(watch);
     }
 
+    fn set_session_lifecycle_observer(
+        &self,
+        observer: Arc<dyn nibi_kernel_api::residency::SessionLifecycleObserver>,
+    ) {
+        *self
+            .lifecycle_observer
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(observer);
+    }
+
     async fn create_session_as(
         &self,
         request: CreateSession,

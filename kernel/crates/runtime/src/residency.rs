@@ -399,6 +399,16 @@ impl LifecycleHost for LocalKernel {
             last_error = snapshot.last_error.as_ref().map(|error| error.code.as_str()),
             "session runtime lifecycle changed"
         );
+        // 协议层注入的观察者（`session/lifecycle/changed`）。同步、失败只记在观察者那边：
+        // 通知不改变已经完成的生命周期事实。
+        let observer = self
+            .lifecycle_observer
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        if let Some(observer) = observer {
+            observer.lifecycle_changed(snapshot);
+        }
     }
 }
 
