@@ -1,7 +1,6 @@
 /* eslint-disable max-lines -- commandsService 需要集中处理目录来源优先级、读写和命令解析，拆分会削弱读取顺序的一致性 */
 import { access, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import {
   NIBI_COMMAND_AGENT_SOURCE,
@@ -22,14 +21,18 @@ import {
 import { DEFAULT_ENABLED_OFFICIAL_PLUGIN_IDS } from "@nibi/shared";
 import type { ICommandsService } from "./commands.js";
 import { CommandFileParser, type CommandFileFormat } from "./commandFileParser.js";
+import {
+  getCommandEnabled,
+  getUserCommandRootSegments,
+  isRecord,
+  readCommandEnabledOverridesFromUserConfig,
+  readUserCliConfig,
+  resolveUserHomeDir,
+  setCommandEnabledOverride,
+  updateUserCliConfig,
+} from "./commandStorage.js";
+import { createCommandDataSyncMethods } from "#src/data-sync/commandDataSync.js";
 import { readInstalledPluginRoots } from "#src/plugins/installedPluginRoots.js";
-import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
-import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
-
-function resolveUserHomeDir() {
-  const envHome = process.env.HOME?.trim() || process.env.USERPROFILE?.trim();
-  return envHome && envHome.length > 0 ? envHome : homedir();
-}
 
 interface CommandAgentSourceDescriptor {
   agentSource: CommandAgentSource;
@@ -44,7 +47,6 @@ interface CommandAgentSourceDescriptor {
 
 const DEFAULT_COMMAND_AGENT_SOURCE: CommandAgentSource = NIBI_COMMAND_AGENT_SOURCE;
 const COMMAND_AGENT_SOURCE_ORDER: readonly CommandAgentSource[] = NIBI_COMMAND_AGENT_SOURCES;
-const ENABLE_OVERRIDE_KEY = "enable";
 const HOME_PREFIX = "~/";
 const NIBI_OFFICIAL_PLUGIN_MARKETPLACE = "nibi-official";
 const NIBI_INLINE_PLUGIN_MARKETPLACE = "inline";
@@ -55,8 +57,8 @@ const CODEX_PLUGIN_MANIFEST_PATH = join(".codex-plugin", "plugin.json");
 const NIBI_COMMAND_DESCRIPTOR: CommandAgentSourceDescriptor = {
   agentSource: "zcodeAgent",
   directorySource: "nibi",
-  userDirectorySegments: [".nibi", "commands"],
-  workspaceDirectorySegments: [".nibi", "commands"],
+  userDirectorySegments: getUserCommandRootSegments("nibi"),
+  workspaceDirectorySegments: getUserCommandRootSegments("nibi"),
   fileExtension: ".md",
   format: "markdown",
   namespaceSeparator: "/",
@@ -72,8 +74,8 @@ const COMMAND_DIRECTORY_SOURCE_DESCRIPTORS: readonly CommandAgentSourceDescripto
   {
     ...NIBI_COMMAND_DESCRIPTOR,
     directorySource: "agents",
-    userDirectorySegments: [".agents", "commands"],
-    workspaceDirectorySegments: [".agents", "commands"],
+    userDirectorySegments: getUserCommandRootSegments("agents"),
+    workspaceDirectorySegments: getUserCommandRootSegments("agents"),
   },
 ];
 
@@ -86,87 +88,6 @@ function getCommandSourceDescriptor(
 function getUserCommandsRoot(agentSource?: CommandAgentSource): string {
   const descriptor = getCommandSourceDescriptor(agentSource);
   return join(resolveUserHomeDir(), ...descriptor.userDirectorySegments);
-}
-
-/**
- * CLI 配置路径（`<数据根>/cli/config.json`）。必须跟数据根走：`config.json` 记的是"这个实例
- * 装了哪些插件/命令"，写死用户主目录会让隔离实例（桌面端 dev / e2e）去读写**另一个实例**的配置
- * —— 同一类缺陷在 skillsService / subagents 都实测过，口径见
- * `subagents/subagentStorage.ts#resolveZCodeStorageRoot`。
- */
-async function getUserCliConfigPath(): Promise<string> {
-  return join(await resolveZCodeStorageRoot(), "cli", "config.json");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-// 只用于列表展示：config.json 损坏时按空配置展示命令，不影响浏览。写入一律走 updateUserCliConfig。
-async function readUserCliConfig(): Promise<Record<string, unknown>> {
-  try {
-    const content = await readFile(await getUserCliConfigPath(), "utf-8");
-    const parsed = JSON.parse(content) as unknown;
-    return isRecord(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-/**
- * 根因：旧实现写入前用 readUserCliConfig 读取，读失败或 JSON 损坏时返回空对象，再用 writeFile
- * 整文件写回，config.json 里的 MCP、插件等其他配置会被冲掉；writeFile 也不是原子写。
- * 修法：写入路径改用 updateJsonObjectFile——文件损坏时报错不写，写前重读，只改 command 字段，原子替换。
- */
-async function updateUserCliConfig(
-  update: (config: Record<string, unknown>) => Record<string, unknown>,
-): Promise<void> {
-  await updateJsonObjectFile(await getUserCliConfigPath(), update);
-}
-
-function readCommandEnabledOverrides(config: Record<string, unknown>): Map<string, boolean> {
-  const commandConfig = config.command;
-  const overrides = new Map<string, boolean>();
-  if (!isRecord(commandConfig)) {
-    return overrides;
-  }
-
-  for (const [filePath, entry] of Object.entries(commandConfig)) {
-    if (isRecord(entry) && typeof entry[ENABLE_OVERRIDE_KEY] === "boolean") {
-      overrides.set(filePath, entry[ENABLE_OVERRIDE_KEY]);
-    }
-  }
-  return overrides;
-}
-
-async function readCommandEnabledOverridesFromUserConfig(): Promise<Map<string, boolean>> {
-  return readCommandEnabledOverrides(await readUserCliConfig());
-}
-
-function getCommandEnabled(filePath: string, overrides: ReadonlyMap<string, boolean>): boolean {
-  return overrides.get(filePath) ?? true;
-}
-
-function setCommandEnabledOverride(
-  config: Record<string, unknown>,
-  filePath: string,
-  enabled: boolean,
-): Record<string, unknown> {
-  const commandConfig = isRecord(config.command) ? { ...config.command } : {};
-
-  if (enabled) {
-    delete commandConfig[filePath];
-  } else {
-    commandConfig[filePath] = { [ENABLE_OVERRIDE_KEY]: false };
-  }
-
-  const nextConfig: Record<string, unknown> = { ...config };
-  if (Object.keys(commandConfig).length > 0) {
-    nextConfig.command = commandConfig;
-  } else {
-    delete nextConfig.command;
-  }
-  return nextConfig;
 }
 
 interface PluginConfigSummary {
@@ -768,6 +689,8 @@ export function createCommandsService(_options?: CommandsServiceOptions): IComma
     deleteCommandFile,
     setCommandEnabled,
     getPrimaryUserCommandsDirectory,
+    // 数据同步（命令分类）与命令管理共用同一套目录/启用口径，见 data-sync/commandDataSync.ts。
+    ...createCommandDataSyncMethods(),
   };
 }
 

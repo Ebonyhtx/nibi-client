@@ -19,6 +19,7 @@ import type {
   SettingsDirectorySource,
 } from "@nibi/shared";
 import type { IMcpSyncService } from "./mcpSync.js";
+import { createMcpDataSyncMethods } from "#src/data-sync/mcpDataSync.js";
 import { checkRemoteSyncDirectoryWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
 import {
   readJsonObjectFileForUpdate,
@@ -36,7 +37,7 @@ interface DirectoryMcpDescriptor {
   configKeyName: McpConfigKeyName;
 }
 
-interface UserMcpRecord {
+export interface UserMcpRecord {
   name: string;
   config: McpServerConfig;
   enabled: boolean;
@@ -86,6 +87,8 @@ export function createMcpSyncService(
   dependencies: McpSyncServiceDependencies = {},
 ): IMcpSyncService {
   return {
+    // 数据同步分类方法：list/hash/export/import，两端同一实现。
+    ...createMcpDataSyncMethods(),
     async loadMcpFromUserDirectory(request) {
       return loadMcpFromUserDirectory(request);
     },
@@ -157,7 +160,7 @@ export function createMcpSyncService(
   };
 }
 
-function resolveUserHomeDir(): string {
+export function resolveUserHomeDir(): string {
   return (
     process.env.HOME?.trim() || process.env.USERPROFILE?.trim() || homedir()
   );
@@ -185,7 +188,7 @@ function buildUserConfigPath(descriptor: DirectoryMcpDescriptor): string {
   return buildDirectoryConfigPath(descriptor, "user");
 }
 
-function getUserZcodeMcpConfigPath(): string {
+export function getUserZcodeMcpConfigPath(): string {
   return buildUserConfigPath(NIBI_MCP_DESCRIPTOR);
 }
 
@@ -217,7 +220,7 @@ function findDescriptorByLocation(
   return descriptor;
 }
 
-async function collectEffectiveUserMcpRecords(): Promise<UserMcpRecord[]> {
+export async function collectEffectiveUserMcpRecords(): Promise<UserMcpRecord[]> {
   const zcodeRecords = await readUserMcpRecordsFromFile(NIBI_MCP_DESCRIPTOR);
   if (zcodeRecords.length > 0) {
     return sortMcpRecords(zcodeRecords);
@@ -519,15 +522,15 @@ function createCandidateId(record: UserMcpRecord): string {
     .digest("hex");
 }
 
-function normalizeMcpNameKey(name: string): string {
+export function normalizeMcpNameKey(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function readServerEnabled(config: Record<string, unknown>): boolean {
+export function readServerEnabled(config: Record<string, unknown>): boolean {
   return config[ENABLED_KEY] !== false;
 }
 
-function setServerEnabled(
+export function setServerEnabled(
   config: McpServerConfig,
   enabled: boolean,
 ): McpServerConfig {
@@ -603,7 +606,7 @@ async function readServerMapWithLegacyMigration(
   return migration.servers;
 }
 
-function readServerMapFromJson(
+export function readServerMapFromJson(
   parsed: Record<string, unknown>,
   configKeyName: McpConfigKeyName,
 ): Record<string, Record<string, unknown>> {
@@ -624,7 +627,7 @@ function readServerMapFromJson(
     : {};
 }
 
-function writeServerMapToJson(
+export function writeServerMapToJson(
   current: Record<string, unknown>,
   configKeyName: McpConfigKeyName,
   servers: Record<string, Record<string, unknown>>,
@@ -721,7 +724,7 @@ async function importMcpServers(params: {
   return { results };
 }
 
-function rewriteFilesystemMcpConfig(
+export function rewriteFilesystemMcpConfig(
   name: string,
   config: McpServerConfig,
   paths: {
@@ -872,7 +875,7 @@ function joinRemotePath(remoteBasePath: string, relativePath: string): string {
   return posix.join(normalizedBasePath.replaceAll("\\", "/"), ...segments);
 }
 
-function cloneMcpConfig(config: McpServerConfig): McpServerConfig {
+export function cloneMcpConfig(config: McpServerConfig): McpServerConfig {
   return JSON.parse(JSON.stringify(config)) as McpServerConfig;
 }
 

@@ -1,4 +1,5 @@
 import type {
+  CommandDataSyncPayload,
   CommandsListResult,
   CommandCreateParams,
   CommandUpdateParams,
@@ -9,8 +10,9 @@ import type {
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
+import type { IDataSyncCategoryService } from "../data-sync/contract.js";
 
-export interface ICommandsService {
+export interface ICommandsService extends IDataSyncCategoryService<CommandDataSyncPayload> {
   list(params: {
     agentSource?: CommandAgentSource;
     workspacePath?: string;

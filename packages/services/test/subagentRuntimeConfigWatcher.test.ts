@@ -326,7 +326,8 @@ describe("native subagent Host watchers", () => {
         await f.both({ profiles: [{ name: "renamed", systemPrompt: "new" }] });
       }
     },
-    15000,
+    // 进程内双 Host + 文件 watcher：并行 worker 负载下 15s 会偶发超时，单跑约 3-8s。
+    30_000,
   );
 
   it.each(["user", "project"] as const)(

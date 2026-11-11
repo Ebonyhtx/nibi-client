@@ -47,10 +47,11 @@ import {
 import { createServiceLogger } from "#src/logger/serviceLogger.js";
 
 import { createSubagentRuntimeConfigCache } from "./subagentRuntimeConfig.js";
+import { createSubagentDataSyncMethods } from "#src/data-sync/subagentDataSync.js";
 
 const subagentLogger = createServiceLogger("subagents");
 
-interface AgentsStateFile {
+export interface AgentsStateFile {
   builtInModelSelectionOverrides: BuiltInSubagentModelSelectionOverrides;
   pluginAgentModelSelectionOverrides: PluginSubagentModelSelectionOverrides;
   /** 选型落空策略；缺席 = fail（既有语义）。 */
@@ -168,7 +169,8 @@ async function readAgentStateFile(options?: SubagentsServiceOptions): Promise<Ag
   return readAgentStateAtPath(await resolveSubagentStateFile(options));
 }
 
-async function readAgentStateAtPath(stateFile: string): Promise<AgentsStateFile> {
+/** 读取（并按需迁移）指定路径的 agents-state；数据同步复用同一口径。 */
+export async function readAgentStateAtPath(stateFile: string): Promise<AgentsStateFile> {
   await migrateSubagentStateFile(stateFile);
   try {
     const raw = await readFile(stateFile, "utf-8");
@@ -265,7 +267,11 @@ async function discoverFileAgents(params: {
   return agents;
 }
 
-async function collectAgentMarkdownPaths(rootPath: string, recursive = false): Promise<string[]> {
+/** 用户级 agents 根下一层的 markdown 路径（插件发现传 recursive）；数据同步复用同一发现范围。 */
+export async function collectAgentMarkdownPaths(
+  rootPath: string,
+  recursive = false,
+): Promise<string[]> {
   if (!(await exists(rootPath))) {
     return [];
   }
@@ -769,10 +775,7 @@ export function createSubagentsService(options?: SubagentsServiceOptions): ISuba
       // 绕开队列就会出现"我刚设的策略被另一个写覆盖回去了"。
       const runUpdate = async () => {
         const state = await readAgentStateFile(storageOptions);
-        await writeAgentStateFile(
-          { ...state, selectionFallback: params.mode },
-          storageOptions,
-        );
+        await writeAgentStateFile({ ...state, selectionFallback: params.mode }, storageOptions);
       };
       const queued = writeQueue.then(runUpdate, runUpdate);
       writeQueue = queued.catch(() => {});
@@ -842,6 +845,7 @@ export function createSubagentsService(options?: SubagentsServiceOptions): ISuba
     },
   };
   return {
+    ...createSubagentDataSyncMethods(storageOptions),
     ...service,
     createAgent: (params: AgentCreateParams) => mutate(() => service.createAgent(params)),
     updateAgent: (params: AgentUpdateParams) => mutate(() => service.updateAgent(params)),

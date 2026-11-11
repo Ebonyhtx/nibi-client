@@ -1,9 +1,14 @@
-import type { Hook, ZCodeWorkspaceHookTrustGrantResult } from "@nibi/shared";
+import type {
+  Hook,
+  HookDataSyncPayload,
+  ZCodeWorkspaceHookTrustGrantResult,
+} from "@nibi/shared";
 import type { WorkspaceHookBundleSnapshotData } from "@nibi/shared/workspace-hook-discovery";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
+import type { IDataSyncCategoryService } from "../data-sync/contract.js";
 
-export interface IHooksService {
+export interface IHooksService extends IDataSyncCategoryService<HookDataSyncPayload> {
   /**
    * 加载 workspace 的 hooks 配置
    */

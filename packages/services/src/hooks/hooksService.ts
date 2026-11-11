@@ -19,6 +19,7 @@ import {
   type WorkspaceHooksConfig,
 } from "@nibi/shared/workspace-hook-discovery";
 import { parseWorkspaceHookTrustStoreContent } from "@nibi/shared/workspace-hook-trust-store-file";
+import { createHookDataSyncMethods } from "#src/data-sync/hookDataSync.js";
 import { createServiceLogger, type ServiceLogger } from "#src/logger/serviceLogger.js";
 import type { IHooksService } from "./hooks.js";
 import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
@@ -59,6 +60,14 @@ function getRootDir(source: SettingsDirectorySource, workspacePath?: string): st
     return workspacePath ? join(baseDir, ".nibi") : join(baseDir, ".nibi", "cli");
   }
   return join(baseDir, source === "agents" ? ".agents" : ".claude");
+}
+
+/**
+ * 用户级 hooks 配置文件：`~/.nibi/cli/config.json`。
+ * 数据同步必须写这里——hooks 的加载/保存都走同一路径，不能按 storage.dir 分叉。
+ */
+export function getUserHooksConfigPath(): string {
+  return getConfigPath("nibi");
 }
 
 function getConfigPath(source: SettingsDirectorySource, workspacePath?: string): string {
@@ -342,6 +351,8 @@ export function createHooksService(
   return {
     loadHooks: (params) => loadHooksImpl(params, logger),
     saveHooks: saveHooksImpl,
+    // 数据同步（hooks 通道）：与设置页读写同一份用户级 config.json，按定义合并，不覆盖其他字段。
+    ...createHookDataSyncMethods(),
     ...(options.grantWorkspaceHookTrust
       ? { grantWorkspaceHookTrust: options.grantWorkspaceHookTrust }
       : {}),

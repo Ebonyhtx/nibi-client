@@ -7,13 +7,15 @@ import type {
   AgentDeleteParams,
   BuiltInSubagentModelOverrideParams,
   PluginSubagentModelOverrideParams,
+  SubagentDataSyncPayload,
   SubagentsListMode,
   SubagentSelectionFallbackMode,
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
+import type { IDataSyncCategoryService } from "../data-sync/contract.js";
 
-export interface ISubagentsService {
+export interface ISubagentsService extends IDataSyncCategoryService<SubagentDataSyncPayload> {
   list(params: {
     workspacePath: string;
     workspaceIdentity?: string;

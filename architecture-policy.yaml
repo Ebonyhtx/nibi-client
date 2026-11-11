@@ -1218,3 +1218,14 @@ exceptions:
       - packages/zcode-server-cli/src/packaging/nodeDistIntegrity.ts
     reason: >-
       Rust 内核改造期间的六个新文件：storage-paths / plugin-management 是从 bootstrap 既有实现抽出的 同层文件，localPluginManagementService 让插件管理留在 Host（不再转 agent），taskStreamFromV4 是 v4 事件到旧 task 事件的投影，nodeReplHostEnv 把 Host 注入的 node_repl 执行面投影成子进程环境， nodeDistIntegrity 是 Server CLI 下载 Node 二进制的 sha256 校验。 四处所属目录（zcode-cli bootstrap、desktop/host、services/zcode-agent、zcode-server-cli）都还是 上游的未受管大区，逐个接管要单独一轮模块边界重构；这里按路径逐个登记，不放开整目录。
+
+  - id: commands-data-sync-storage-split
+    rule: unmanaged-new-file
+    paths:
+      - packages/services/src/commands/commandStorage.ts
+    reason: >-
+      数据同步的命令分类需要复用命令根解析与启用覆盖读写；这些 helper 原本是
+      commandsService 的私有实现，直接互相 import 会形成 commandsService ↔ commandDataSync
+      的运行期循环。抽到同目录 commandStorage.ts 后两边共用同一份存储规则（`.nibi` 优先、
+      `.agents` 兼容、override 写 `config.json`），命令服务与同步服务都只依赖它。
+      packages/services/src/commands 仍是未受管目录，接管整目录不在本次范围内。

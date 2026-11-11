@@ -1,6 +1,7 @@
 import type {
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
+  McpDataSyncPayload,
   McpSyncCandidateListResult,
   McpSyncExportResult,
   McpSyncExportedServer,
@@ -14,8 +15,9 @@ import type {
 } from "@nibi/shared";
 import { ServiceChannels } from "@nibi/shared";
 import { createServiceDescriptor } from "../descriptors.js";
+import type { IDataSyncCategoryService } from "../data-sync/contract.js";
 
-export interface IMcpSyncService {
+export interface IMcpSyncService extends IDataSyncCategoryService<McpDataSyncPayload> {
   loadMcpFromUserDirectory(
     request?: LoadCliMcpFromUserDirectoryRequest,
   ): Promise<LoadCliMcpFromUserDirectoryResult>;

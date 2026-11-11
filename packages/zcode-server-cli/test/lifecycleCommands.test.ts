@@ -363,7 +363,8 @@ describe("Server CLI restart", () => {
     } finally {
       await supervisor.cleanup(root, layout);
     }
-  });
+    // 真正拉起 Supervisor + Core 两棵进程树：并行 worker 负载下单跑约 8s，30s 会偶发超时。
+  }, 60_000);
 
   it("refuses to restart while an update owns the lifecycle lock", async () => {
     const { serverRoot, layout } = await createRoot("nibi-cli-restart-lock-");

@@ -225,6 +225,12 @@ export function HooksSection({ workspacePath, workspaceIdentity }: HooksSectionP
     return {
       loadHooks: (params) => targetHooksService.loadHooks({ ...params, scope: "user" }),
       saveHooks: (params) => targetHooksService.saveHooks({ ...params, scope: "user" }),
+      // 数据同步分类只读写用户级 hooks，与上面的 user-only 合同一致。
+      listSyncItems: () => targetHooksService.listSyncItems(),
+      getSyncContentHashes: (params) => targetHooksService.getSyncContentHashes(params),
+      checkSyncWriteAccess: () => targetHooksService.checkSyncWriteAccess(),
+      exportSyncItems: (params) => targetHooksService.exportSyncItems(params),
+      importSyncItems: (params) => targetHooksService.importSyncItems(params),
       ...(targetHooksService.grantWorkspaceHookTrust
         ? {
             grantWorkspaceHookTrust:
