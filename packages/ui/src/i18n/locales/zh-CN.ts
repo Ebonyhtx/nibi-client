@@ -5993,6 +5993,7 @@ const zhCN: Record<string, string> = {
   "chat.toolCall.workflow.run.artifacts.copy": "复制",
   "chat.toolCall.workflow.run.artifacts.copied": "已复制",
   "chat.toolCall.workflow.run.artifacts.openAsFile": "作为文件打开",
+  "chat.toolCall.workflow.run.artifacts.saveAs": "另存为…",
   "chat.toolCall.workflow.run.artifacts.openAsFileFailed": "无法作为文件打开此产物",
   "chat.toolCall.workflow.run.artifacts.openInBrowser": "在浏览器中打开",
   // 打开的是**工作区里的原文件**，不是这一版被钉住的字节（协议不给 renderer store 路径）。

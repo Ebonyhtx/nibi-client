@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { EditorInfo, IPlatformService } from "@nibi/shared";
-import { ChevronDownIcon, CopyIcon, ExternalLinkIcon, FolderOpenIcon } from "lucide-react";
+import { ChevronDownIcon, CopyIcon, ExternalLinkIcon, FolderOpenIcon, SaveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import {
   DropdownMenu,
@@ -136,6 +136,20 @@ function OpenAsFileSplitButton({
       .catch((error: unknown) => reportFailure("copy-path", error));
   };
 
+  // 另存为：把这一版字节交给宿主原生保存对话框（用户挑位置），不是 ~/.nibi/tmp 副本。
+  const handleSaveAs = () => {
+    if (!bytes) return;
+    const saveFile = platform.saveFile;
+    if (!saveFile) return;
+    void saveFile({ data: bytes.slice().buffer, suggestedName: fileName })
+      .then((result) => {
+        if (!result.success && !result.canceled) {
+          reportFailure("save-as", result.error ?? "save_failed");
+        }
+      })
+      .catch((error: unknown) => reportFailure("save-as", error));
+  };
+
   const loadEditors = () => {
     if (editors !== null) return;
     void platform
@@ -200,6 +214,12 @@ function OpenAsFileSplitButton({
           ))
         )}
         <DropdownMenuSeparator />
+        {platform.saveFile === undefined ? null : (
+          <DropdownMenuItem data-testid="workflow-artifact-save-as" onSelect={handleSaveAs}>
+            <SaveIcon aria-hidden="true" className="size-4" />
+            {intl.formatMessage({ id: "chat.toolCall.workflow.run.artifacts.saveAs" })}
+          </DropdownMenuItem>
+        )}
         {onReveal === undefined ? null : (
           // 显示的是工作区里的原件，不落副本（与 tab 头部原来那颗按钮同一条路径）。
           <DropdownMenuItem data-testid="workflow-artifact-open-as-file-reveal" onSelect={onReveal}>

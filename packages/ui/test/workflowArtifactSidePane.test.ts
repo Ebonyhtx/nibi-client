@@ -578,6 +578,7 @@ describe("WorkflowArtifactSidePane 作为文件打开", () => {
         { id: "finder", name: "Finder", iconDataUrl: "data:," },
       ]),
       openInEditor: vi.fn(async () => ({ success: true })),
+      saveFile: vi.fn(async () => ({ success: true, path: "/chosen/notes.md" })),
       ...overrides,
     };
   }
@@ -838,5 +839,28 @@ describe("WorkflowArtifactSidePane 作为文件打开", () => {
     fireEvent.click(view.getByText("复制绝对路径"));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("/copies/notes.md"));
+  });
+
+  it("「另存为」把这一版字节交给宿主保存对话框，不落副本", async () => {
+    workflowRunArtifacts.mockResolvedValue({ artifacts: [markdownRecord()] });
+    workflowRunArtifactRead.mockResolvedValue(textChunk("# hi", "text/markdown"));
+    const platform = desktopPlatform();
+    const view = renderPane({ tab: tabOf({ artifactId: "notes" }), platform });
+
+    await waitFor(() => expect(view.getByTestId("markdown-response")).toBeTruthy());
+    fireEvent.pointerDown(view.getByTestId("workflow-artifact-open-as-file-menu"), {
+      button: 0,
+      ctrlKey: false,
+    });
+    fireEvent.click(await view.findByTestId("workflow-artifact-save-as"));
+
+    await waitFor(() => expect(platform.saveFile).toHaveBeenCalledTimes(1));
+    const payload = platform.saveFile.mock.calls[0]?.[0] as unknown as {
+      suggestedName: string;
+      data: ArrayBuffer;
+    };
+    expect(payload.suggestedName).toBe("notes.md");
+    expect(decode(payload.data)).toBe("# hi");
+    expect(platform.materializeWorkflowArtifactFile).not.toHaveBeenCalled();
   });
 });

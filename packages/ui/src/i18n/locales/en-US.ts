@@ -6304,6 +6304,7 @@ const enUS: Record<string, string> = {
   "chat.toolCall.workflow.run.artifacts.copy": "Copy",
   "chat.toolCall.workflow.run.artifacts.copied": "Copied",
   "chat.toolCall.workflow.run.artifacts.openAsFile": "Open as file",
+  "chat.toolCall.workflow.run.artifacts.saveAs": "Save as…",
   "chat.toolCall.workflow.run.artifacts.openAsFileFailed": "Could not open this artifact as a file",
   "chat.toolCall.workflow.run.artifacts.openInBrowser": "Open in browser",
   "chat.toolCall.workflow.run.artifacts.openInBrowserNote":
