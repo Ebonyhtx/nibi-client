@@ -114,7 +114,7 @@
 | A2 | 子代理权限与主会话一致：explore 不再用独立 default `PermissionService`；插件 profile 只能收紧 | [源码] `runtime/methods/subagent.ts`、`bootstrap/src/subagents.ts` | 已实施 | **[x] Node `7eb98256` / Rust `a11fc5c3`**：子代理共享父会话权限服务；`permissionModeRestrictOnly` + 严格度表只收紧；explore 继承父模式与 plan，子会话用精简 plan 提醒；Rust 子循环本就共享判决链，补上所有模式的收紧与执行状态落库；**P0** |
 | A3 | 自定义命令 `!`/```` ```! ```` shell 不再解析期执行，改写为给模型的 Bash 指令，经权限确认 | [源码] `contracts/src/commands/index.ts::handOffCustomCommandShellBlocks`；删除 `custom-command-shell-expansion.ts` | 已实施 | **[x] Node `9aab88cd` / Rust `a11fc5c3`**：两内核都改为文本改写 + 模型 Bash 调用；删掉解析期执行者与 unsupported 诊断；**P0** |
 | A4 | 本地 HTML 预览签名目录：`file://` → `zcode-html://`，每次资源请求验签 + 真实路径检查 | [源码] `desktop/src/main/browser-local-preview/`、`docs/browser-use/local-html-preview.md` | 已实施 | **[x] `9d3d66b9`**：Host 移植为 `nibi-html`，只在内置浏览器分区安装并封住原始 `file` 读面；**P0** |
-| A5 | 工作区 MCP 信任：项目 MCP 声明按 digest 记录信任/评审 | [源码] `bootstrap/src/workspace-mcp-trust/` | 已实施 | **Phase 1 [x] Host `mcpWorkspaceTrust/index.ts` + Rust `ext/src/mcp/trust.rs`**：用户域 `security/workspace-mcp-trust-v1.json`（Host 唯一 writer，`updateJsonObjectFile` 原子写），构建期无第二份存储；Host 与内核同一 canonical digest；未信任/声明变化/损坏/离线默认拒绝；UI `getEnabledMcpServersForZCode` 过滤未信任项目 MCP；内核 `McpManager::start/reconcile` 跳过并以 `mcp.project_trust.rejected` 诊断。UI 评审弹窗与会话内提示未接线；**P0/P1** |
+| A5 | 工作区 MCP 信任：项目 MCP 声明按 digest 记录信任/评审 | [源码] `bootstrap/src/workspace-mcp-trust/` | 已实施 | **Phase 1 [x] Host `mcpWorkspaceTrust/index.ts` + Rust `ext/src/mcp/trust.rs`**：用户域 `security/workspace-mcp-trust-v1.json`（Host 唯一 writer，`updateJsonObjectFile` 原子写），构建期无第二份存储；Host 与内核同一 canonical digest；未信任/声明变化/损坏/离线默认拒绝；UI `getEnabledMcpServersForZCode` 过滤未信任项目 MCP；内核 `McpManager::start/reconcile` 跳过并以 `mcp.project_trust.rejected` 诊断。**2026-11-12 收尾**：信任实现下沉 `services/src/mcp-trust`，`IMcpSyncService` 回传远端 trust/unreviewable 并支持远端审批；设置页评审入口与会话内未信任提示条接线；**P0/P1** |
 | A6 | MCP 设置检测仅限已注册工作区 | [源码] `workspace-mcp-trust` 与 MCP 设置测试 | 已实施 | **Phase 1 [x] Host**：`LoadMcpFromUserDirectory` 只读本窗口 `windowWorkspaceMap` 登记过的工作区，未登记只返回用户级 MCP；trust registry 的未注册/离线路径 fail-closed；**P0** |
 | A7 | 用户级 `config.json` 写入加固：损坏时报错不覆盖、写前重读、只改自己字段、临时文件+rename | [源码] `docs/issues/data-sync/01-harden-user-config-writers.md`、`services/src/fs/atomicFileUtils.ts` | 已实施 | **[x] `a7e6633a`**：`updateJsonObjectFile` 落地到命令/钩子/技能/MCP 目录/迁移导入/插件目录六处写入；Rust 的配置写入是原子临时文件，无同类宽松读取；**P0** |
 | A8 | MCP stdio 无 Node 回退：Electron Node + 内置 npm/npx | [源码] `adapters/src/mcp/node-fallback.ts`、`bootstrap/src/app/mcp-node-fallback.ts` | 已实施 | **Phase 1**：需要随包 npm staging（构建链）与真机验证，不在 Phase 0 出口内；见 §11；**P1** |
@@ -125,7 +125,7 @@
 
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
-| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 六类已接入**：技能 `1c17b5e4`；MCP / 命令 / 钩子 / 子智能体 / inline 插件在 Phase 3（见 §14），UI 分类导航 + 概览；marketplace 插件重装仍走原弹窗；跨分类全选/推送全部未做；**P1** |
+| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 六类已接入并收敛入口**：技能 `1c17b5e4`；MCP / 命令 / 钩子 / 子智能体 / inline 插件在 Phase 3（见 §14）；marketplace 重装并入 plugins 分类；跨分类全选与「推送全部」已做；旧三类同步弹窗及其入口已删除（2026-11-12）；**P1** |
 | B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | **[x] `0f8b730f`**：settings-scope managed 模块 + 插件/MCP/子智能体/钩子/命令/技能页统一接线；远端「用户」走 attachment，离线 fail-closed；数据同步前置；**P1** |
 | B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
 | B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
@@ -139,9 +139,9 @@
 | --- | --- | --- | --- | --- |
 | C1 | 插件一键全部更新 | [源码] `ui/src/settings/PluginsSection.tsx`、`PluginStoreCard.tsx` 的 `updateAll` | 已实施 | Host/UI；**P2（小）** |
 | C2 | 图片预览标注并作为附件发送 | [源码] `ui/src/image-preview-editor/` | 已实施 | Host/UI；**P2** |
-| C3 | 文件菜单：系统关联应用、另存为、在 Finder/资源管理器打开 | [源码] `ui/src/file-menu/`、`desktop/src/main/file-open-apps/` | 已实施 | Host/UI；**P2** |
-| C4 | 未读任务：标记未读；托盘红点移除 | [源码] `TaskActionMenuContent`、`TaskList`、`desktopTray.ts` | 已实施 | Host/UI；**P2（小）** |
-| C5 | MCP 配置界面（草稿版） | [源码] `docs/plugins/draft-mcp-ui-session-spec.md` | 草稿 | Host/UI；**P2** |
+| C3 | 文件菜单：系统关联应用、另存为、在 Finder/资源管理器打开 | [源码] `ui/src/file-menu/`、`desktop/src/main/file-open-apps/` | 已实施 | **[x]** Host/UI：产物菜单含另存为；2026-11-12 聊天附件卡片与 composer 附件 chip 补齐打开/在文件夹中显示/另存为/复制路径（拿不到本地路径、远端会话时降级）；**P2** |
+| C4 | 未读任务：标记未读；托盘红点移除 | [源码] `TaskActionMenuContent`、`TaskList`、`desktopTray.ts` | 已实施 | **[x]** 标记未读、未读视图、任务栏/Dock 角标保留；2026-11-12 托盘图标的未读数字/红点合成已移除；**P2（小）** |
+| C5 | MCP 配置界面（草稿版） | [源码] `docs/plugins/draft-mcp-ui-session-spec.md` | 草稿 | **[x]** Host/UI：新增/编辑先进内存草稿，保存才落盘；字段级现场校验、无效禁用保存、离开/切换确认；**P2** |
 | C6 | ZCode Sites 官方插件（7 个 `site-*` 命令 + deploy skill + 本地 API） | [源码] `apps/zcode-cli/packages/zcode-site-plugin/` | 已实施 | **不直接吸收**（依赖 ZCode 云）；若做自建部署另立项 |
 | C7 | 官方插件命令安全端点：本机 socket + 每会话 token，凭据不进 env | [源码] `official-command-endpoint.md`、`coding-plan/zcode-official-plugin-command-auth-spec.md` | 已实施 | 暂不吸收（只有 Sites 用）；如做官方插件云工具再复用 |
 | C8 | 工作流配额暂停后自动续跑 | [源码] `bootstrap/src/app/dynamic-workflow-quota-resume.ts` | 已实施 | Node + Rust（DWF 调度）；**P2** |
@@ -173,7 +173,7 @@
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
 | E1 | Electron 41.0.3 → 44.7.0（macOS 最低 13） | [源码] `packages/desktop/package.json`、`docs/electron/electron-44-upgrade.md` | 已实施 | 我们已是 44.10.1；无需 |
-| E2 | electron-builder 26.8.1 → 26.17.0；electron-updater 6.8.3 → 6.8.10 | [源码] 同上 | 已实施 | 小幅跟进；**P2** |
+| E2 | electron-builder 26.8.1 → 26.17.0；electron-updater 6.8.3 → 6.8.10 | [源码] 同上 | 已实施 | **[x] 2026-11-12**：升到 26.18.1 / 6.8.12；配置用新版 schema 校验通过；NSIS 编译用例改用 toolsets 新 helper；**仍需一次真实 Windows NSIS+zip 打包验证**；**P2** |
 | E3 | 安装包体积明显减小、macOS 语言资源修复、Windows 组件兼容 | [日志] | 已实施 | 按构建脚本逐项定位；**P2** |
 | E4 | 崩溃/内存诊断：Host 自资源遥测、内存 provider 注册表 | [源码] `hostSelfResourceTelemetry.ts`、`services/src/memoryDiagnostics.ts` | 已实施 | 可选，便于排查长会话内存；**P3** |
 | E5 | 新增 `electron-to-chromium` 版本锁定 | [源码] `packages/desktop/package.json` | 已实施 | 跟进；**P3** |
@@ -194,7 +194,7 @@
 | # | 移除 | 证据 | NIBI 动作 |
 | --- | --- | --- | --- |
 | G1 | 托盘未读红点徽章 | [源码] `desktopTray.ts` | 跟 C4；**P2** |
-| G2 | 旧三类分散同步弹窗入口 | [源码] 数据同步页接管 | 跟 B1 |
+| G2 | 旧三类分散同步弹窗入口 | [源码] 数据同步页接管 | 跟 B1 | **[x] 2026-11-12**：技能/MCP/插件三套旧弹窗、共享入口组件、对应测试与 i18n key 删除；设置页/工作区头部/远程连接横幅/项目侧栏统一跳数据同步页并预选分类 |
 | G3 | App 业务单测与 coverage/lint-staged 接线 | [源码] | 跟 F1，不盲从 |
 | G4 | 3 个旧 MiniMax 模型 | [源码] provider config | 跟 D6 |
 | G5 | 自定义命令解析期 shell 执行器 | [源码] | 跟 A3 |
