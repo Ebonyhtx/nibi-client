@@ -1,5 +1,5 @@
 import { FileTextIcon, GlobeIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { MessageFileLinkTarget } from "@/components/ai-elements/message.js";
 import { useWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -273,6 +273,7 @@ function AssistantPreviewCardRow({
   compactForRemoteControl?: boolean;
 }) {
   const filePath = getAssistantPreviewCardFilePath(card);
+  const titleId = useId();
   const renderAsFile = shouldRenderAssistantPreviewCardAsFile(card, {
     workspaceIdentity,
     workspaceRemoteSessionId,
@@ -292,9 +293,9 @@ function AssistantPreviewCardRow({
       : null;
   return (
     <OpenSplitButton
-      renderCard={(button) => (
+      renderCard={(button, cardAction) => (
         <div
-          className="flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground"
+          className="relative flex w-full items-center gap-3 rounded-xl border border-card-border bg-card p-3 pr-4 text-foreground"
           data-preview-card-title={card.title}
           data-zcode-stream-animate="true"
           style={
@@ -303,7 +304,19 @@ function AssistantPreviewCardRow({
             } as CSSProperties
           }
         >
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-background text-foreground-subtle">
+          {/* 整卡点击曾被漏掉：卡片本体只是普通 div，只有右侧按钮有动作。
+              这里用透明原生 button 铺满卡片负责点击/聚焦（Enter/Space 由 button 原生行为触发），
+              视觉内容层 pointer-events-none 把点击透传给下层 button。
+              内部真实按钮/下拉与整卡 button 是兄弟节点而非祖先，点击只走自身回调，
+              不会冒泡出第二次预览；也避免给 div 加 role="button" 触发 prefer-tag-over-role。 */}
+          <button
+            type="button"
+            aria-labelledby={titleId}
+            disabled={!cardAction.canPreview}
+            onClick={cardAction.preview}
+            className="absolute inset-0 z-0 cursor-pointer rounded-xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-input-border-focused disabled:cursor-default"
+          />
+          <div className="pointer-events-none relative z-10 flex size-11 shrink-0 items-center justify-center rounded-md bg-background text-foreground-subtle">
             {!renderAsFile && card.type === "website" ? (
               <GlobeIcon className="size-6" />
             ) : descriptor ? (
@@ -312,13 +325,15 @@ function AssistantPreviewCardRow({
               <FileTextIcon className="size-6" />
             )}
           </div>
-          <div className="min-w-0 flex flex-1 flex-col gap-1">
-            <div className="truncate text-ui-base font-medium leading-5">{card.title}</div>
+          <div className="pointer-events-none relative z-10 min-w-0 flex flex-1 flex-col gap-1">
+            <div id={titleId} className="truncate text-ui-base font-medium leading-5">
+              {card.title}
+            </div>
             <div className="truncate text-ui-base leading-5 text-foreground-subtlest">
               {subtitle}
             </div>
           </div>
-          {button}
+          <div className="relative z-10 flex shrink-0 items-center">{button}</div>
         </div>
       )}
       target={

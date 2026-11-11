@@ -55,6 +55,13 @@ export type OpenSplitButtonTarget =
       previewSource?: CodeViewerSource;
     };
 
+export interface OpenSplitButtonCardAction {
+  /** 与主按钮完全相同的预览动作；整卡点击不应另建导航。 */
+  preview: () => void;
+  /** 与主按钮 disabled 状态同源，整卡命中层不能比按钮更“可点”。 */
+  canPreview: boolean;
+}
+
 interface OpenSplitButtonProps {
   target: OpenSplitButtonTarget;
   onOpenBrowserUrl?: (url: string) => void;
@@ -63,7 +70,7 @@ interface OpenSplitButtonProps {
   hideOpenWithMenu?: boolean;
   stopPropagation?: boolean;
   /** 整张卡片复用按钮的操作与状态，右键和下拉不会维护两套动作。 */
-  renderCard?: (button: ReactNode) => ReactElement;
+  renderCard?: (button: ReactNode, action: OpenSplitButtonCardAction) => ReactElement;
 }
 
 export function OpenSplitButton({
@@ -392,7 +399,9 @@ export function OpenSplitButton({
         void loadEditors()
       }
     >
-      <ContextMenuTrigger asChild>{renderCard(button)}</ContextMenuTrigger>
+      <ContextMenuTrigger asChild>
+        {renderCard(button, { preview: handlePreview, canPreview })}
+      </ContextMenuTrigger>
       <ContextMenuContent>{renderContextActions()}</ContextMenuContent>
     </ContextMenu>
   );
