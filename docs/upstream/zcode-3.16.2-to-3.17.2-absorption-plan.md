@@ -125,7 +125,7 @@
 
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
-| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 技能单类试点 `1c17b5e4`**：data-sync 服务/UI 模块、三态与默认勾选、父子同批、远端独有不删、离线 fail-closed、迟到丢弃、单项失败可重试；其余类别待扩；**P1** |
+| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 五类已接入**：技能 `1c17b5e4`；MCP / 命令 / 钩子 / 子智能体在 Phase 3（见 §14），UI 分类导航 + 概览；插件（inline/marketplace）与用户配置仍待扩；跨分类全选/推送全部未做；**P1** |
 | B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | **[x] `0f8b730f`**：settings-scope managed 模块 + 插件/MCP/子智能体/钩子/命令/技能页统一接线；远端「用户」走 attachment，离线 fail-closed；数据同步前置；**P1** |
 | B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
 | B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
@@ -603,3 +603,33 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 - B5 设备列表并入既有受管 `SourceServerManagementPanel`，未新增上游同名的独立文件。
 - B1 只做技能：MCP/命令/钩子/插件/子智能体/用户配置未接入；设备概览、推送全部、上次同步状态持久化与旧入口统一未做；远端独有按不可勾选行展示（上游隐藏）。
 - 数据同步的目标端统一 `~/.nibi/skills`，来源兼容 `~/.agents/skills`；启用状态写 `cli/config.json`，不是上游 `~/.zcode`。
+
+## 14. Phase 3 执行记录（2026-11-11，B1 扩类）
+
+### 14.1 已完成
+
+| 项 | 内容 |
+| --- | --- |
+| 共享契约 | `McpDataSyncPayload`、`CommandDataSyncPayload`、`HookDataSyncPayload`、`SubagentDataSyncPayload`；`DataSyncItemDependencies`、`DataSyncWorkspaceMapping`、`target-compat-config`；`IDataSyncCategoryService` 增加可选 `targetHomeDir` / `workspace`（旧实现不受影响） |
+| MCP | `data-sync/mcpDataSync.ts`：按小写名对齐、`~/.agents/mcp.json` 兼容配置整类阻断、目标 home/workspace 路径改写、启用态新建带来源/覆盖保留目标、乐观并发 `expectedTargetHash`、坏 JSON 不写、远端独有不删 |
+| 命令 | `data-sync/commandDataSync.ts` + `commands/commandStorage.ts`：两来源合并（`.nibi` 优先）、大小写同 key、保留子目录结构、原子写、config 写失败回滚新建文件、软链阻断、远端独有不删 |
+| 钩子 | `data-sync/hookDataSync.ts`：定义级合并（事件 + matcher + 类型 + 命令）、根开关只开不关、覆盖保留目标 `enabled`、坏配置不写、其他配置字段保留；路径固定 `~/.nibi/cli/config.json`，与 hooks 加载/保存同源 |
+| 子智能体 | `data-sync/subagentDataSync.ts`：按名（trim + 小写）对齐、markdown 迁移后字节哈希、依赖提示（MCP/技能）、agents-state 启用态、覆盖保留目标文件名与启用态、远端独有不删 |
+| 接线 | 数据同步方法挂在四个既有通道上（`mcp-sync` / `commands` / `hooks` / `subagents`），`source-settings` attachment 已暴露这些通道，不新增 RPC 通道；`data-sync/node.ts` 导出五类工厂，`module.ts` provides 五类 |
+| UI | 分类标签（技能 / MCP / 命令 / 钩子 / 子智能体）+ 概览计数 + 分类徽标；MCP 整类阻断提示；子智能体依赖提示；切换分类清空选择；中英文 i18n；`useDataSyncSkills` 保留为 `category: "skills"` 薄包装 |
+| 架构 | `commandStorage.ts` 按 `commands-data-sync-storage-split` 准入：命令根解析与启用覆盖只维护一份，避免 `commandsService ↔ commandDataSync` 运行期循环 |
+
+### 14.2 门禁
+
+- 代码提交：`c6c84942`。
+- `pnpm typecheck`、`pnpm lint`（0 error）、`pnpm architecture:check --changed`（0 违规）：通过。
+- 首次全量 `pnpm test:unit`：1978 个文件 / 18,449 条通过 / 76 skipped；2 条**超时**失败（Server CLI 的 Supervisor/Core 整树重启、subagents 双 Host watcher）。两条单跑均通过，属并行 worker 负载下的超时；已把这两条进程型用例的显式超时放宽（30s→60s、15s→30s）。
+- 复跑全量：**1978 个测试文件 / 18,451 条通过 / 76 skipped / 0 失败**。
+- 新增测试：MCP 9、命令 13、钩子 12、子智能体 10、UI 分类 8；既有技能/命令/钩子/子智能体服务测试与 UI 技能/设备测试全绿。
+
+### 14.3 已知边界
+
+- 插件（inline / marketplace）与用户配置分类未接入；跨分类全选与「推送全部」未做，推送按分类执行。
+- 远端旧版本 agent 没有这些同步方法时，分类页按错误展示，暂无版本门禁（本地与远端同版本发布不受影响）。
+- 命令/子智能体的「新建文件 + 写启用态」不是跨文件事务：config 写失败会回滚刚建的文件；其他项不受影响。
+- MCP 目标端使用 `~/.agents/mcp.json` 兼容配置时整类拒绝推送（与上游一致），不尝试迁移目标端配置。
