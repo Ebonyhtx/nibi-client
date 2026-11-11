@@ -16,6 +16,7 @@ import {
   webRemoteControlV2PairState,
   parseWebRemoteControlRelayV2IncomingMessage,
   type WebRemoteControlRelayV2IncomingMessage,
+  type WebRemoteControlRelayV2OutgoingData,
   type WebRemoteControlRelayV2OutgoingMessage,
 } from "@nibi/shared/web-remote-relay";
 import {
@@ -27,6 +28,7 @@ import type {
   WebRemoteControlDeviceTransportState,
   WebRemoteControlDeviceTransportOptions,
 } from "#src/main/web-remote-relay/contract.js";
+import { DesktopE2EChannel } from "#src/main/web-remote-relay/webRemoteControlE2E.js";
 
 function rawBytes(raw: RawData): Buffer {
   return Array.isArray(raw)
@@ -54,6 +56,12 @@ export class WebRemoteControlDeviceTransport {
     () => this.scheduleReconnect(),
   );
   private readonly serializer = new WebRemoteControlRelayPayloadSerializer();
+  // E2E 信封（规格 e2e-envelope-v1）：桌面只做响应端，K 是会话级的，socket 一换就 reset。
+  // context 取 relay 侧已握手的 deviceSid（手机用配对凭据里的同一个值做域分离）。
+  private readonly e2e = new DesktopE2EChannel({
+    context: () => this.deviceSid ?? "",
+    onStateChange: (state) => this.options.logger.info("[web-remote-control] V2 e2e", { state }),
+  });
 
   constructor(private readonly options: WebRemoteControlDeviceTransportOptions) {}
 
@@ -73,7 +81,7 @@ export class WebRemoteControlDeviceTransport {
   }
 
   measurePayloadBytes(payload: WebRemoteControlAppPayload): number {
-    return this.serializer.prepare(payload, Math.floor(Date.now() / 1000)).bytes;
+    return this.prepareDataFrame(payload).bytes;
   }
 
   sendPayload(payload: WebRemoteControlAppPayload): boolean {
@@ -81,8 +89,8 @@ export class WebRemoteControlDeviceTransport {
   }
 
   sendPayloadResult(payload: WebRemoteControlAppPayload): WebRemoteControlPayloadSendResult {
-    const prepared = this.serializer.prepare(payload, Math.floor(Date.now() / 1000));
-    if (this.serializer.isOversize(prepared)) {
+    const prepared = this.prepareDataFrame(payload);
+    if (prepared.bytes > WEB_REMOTE_CONTROL_RPC_TRANSPORT_LIMITS.maxPhysicalFrameBytes) {
       return {
         kind: "oversize",
         bytes: prepared.bytes,
@@ -93,6 +101,23 @@ export class WebRemoteControlDeviceTransport {
       return { kind: "unavailable" };
     this.socket.send(prepared.json);
     return { kind: "sent", bytes: prepared.bytes };
+  }
+
+  /**
+   * data 帧的单一出口：secure 后先包 `enc` 信封再序列化，明文路径仍复用 serializer 的缓存。
+   * 计量（measurePayloadBytes / 分片 sizing）也走这里，保证"量的字节"就是"发的字节"。
+   */
+  private prepareDataFrame(payload: WebRemoteControlAppPayload): { json: string; bytes: number } {
+    const clientTimestamp = Math.floor(Date.now() / 1000);
+    const wirePayload = this.e2e.wrapOutgoing(payload);
+    if (wirePayload === payload) return this.serializer.prepare(payload, clientTimestamp);
+    const message: WebRemoteControlRelayV2OutgoingData = {
+      type: "data",
+      payload: wirePayload as WebRemoteControlRelayV2OutgoingData["payload"],
+      client_ts: clientTimestamp,
+    };
+    const json = JSON.stringify(message);
+    return { json, bytes: Buffer.byteLength(json, "utf8") };
   }
 
   private async connect(): Promise<void> {
@@ -213,6 +238,8 @@ export class WebRemoteControlDeviceTransport {
     if (message.type === "auth_ack" || message.type === "pair_status_ack") {
       const previousGeneration = this.pairedGeneration;
       this.heartbeat.acknowledged();
+      // 离开 matched（terminal 断开/换端）就丢弃会话级 K：下一条 init 必须重新协商（P3b）。
+      if (message.pair_status !== "matched") this.e2e.reset();
       this.setState(webRemoteControlV2PairState(message.pair_status));
       if (message.pair_status === "matched") {
         this.pairedGeneration = this.generation;
@@ -222,7 +249,15 @@ export class WebRemoteControlDeviceTransport {
           });
       }
     } else if (message.type === "data" && this.state === "paired") {
-      const value = message.payload;
+      // 信封必须最先过：keyneg 帧要在业务管线之前被消费，enc 帧要在路由（含 rpc-frame）之前解开；
+      // 解密失败/握手前的 enc 只丢这一帧，不断连。
+      const incoming = this.e2e.handleIncoming(message.payload);
+      if (incoming.kind === "dropped") return;
+      if (incoming.kind === "keyneg-response") {
+        this.sendDataPayload(incoming.response);
+        return;
+      }
+      const value = incoming.payload;
       if (
         value &&
         typeof value === "object" &&
@@ -236,12 +271,23 @@ export class WebRemoteControlDeviceTransport {
     }
   }
 
+  /** 协商回包走 data 明文（不是 App payload，relay 的 data.payload 是 z.json() 透传）。 */
+  private sendDataPayload(payload: unknown): void {
+    this.send({
+      type: "data",
+      payload: payload as WebRemoteControlRelayV2OutgoingData["payload"],
+      client_ts: Math.floor(Date.now() / 1000),
+    });
+  }
+
   private closeSocket(): void {
     // 先撤销当前代，再关闭；旧 close/ACK 及异步 token 结果均不能推进下一代。
     this.generation += 1;
     this.authenticated = false;
     this.heartbeat.stop();
     clearTimeout(this.handshakeTimer);
+    // 换 socket = 换会话：丢弃旧 K，旧密文在新连接上必须认证失败（防重放，规格 §5）。
+    this.e2e.reset();
     const socket = this.socket;
     this.socket = undefined;
     if (socket?.readyState === WebSocket.CONNECTING) socket.terminate();
