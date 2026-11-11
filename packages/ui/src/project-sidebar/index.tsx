@@ -330,8 +330,9 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
                         </>
                       ) : (
                         <ProjectTaskRows
-                          key="timeline"
-                          kind="timeline"
+                          // 时间线与按未读共用行渲染；key 跟随视图，切换时重置分页。
+                          key={view}
+                          kind={view}
                           tasks={selectProjectRows(tree, { kind: view })}
                           onSelect={onSelectTask}
                           refresh={refresh}

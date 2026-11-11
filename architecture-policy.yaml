@@ -229,7 +229,22 @@ modules:
       ui: ui
     layerOrder: [ contract, domain, app, ui ]
     owner: remote
-  # data-sync-service：B1 技能单类试点（架构治理新模块）
+  # image-preview-editor：C2 图片预览标注并作为附件发送（归一化标注 + 输入框目标桥）
+  - id: image-preview-editor
+    roots:
+      - packages/ui/src/image-preview-editor
+    managed: true
+    requires: [ ui ]
+    publicEntrypoints:
+      - packages/ui/src/image-preview-editor/index.ts
+      - packages/ui/src/image-preview-editor/contract.ts
+    layers:
+      contract: contract.ts
+      domain: geometry.ts
+      ui: .
+    layerOrder: [ contract, domain, ui ]
+    owner: conversation
+  # data-sync-service：B1 数据同步五分类（技能/MCP/命令/钩子/子智能体）
   - id: data-sync-service
     roots:
       - packages/services/src/data-sync

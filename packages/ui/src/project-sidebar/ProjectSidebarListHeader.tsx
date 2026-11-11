@@ -1,6 +1,7 @@
 import type { Ref } from "react";
-import { Clock, Folder, Hash, ListFilter, Search } from "lucide-react";
+import { Bell, Clock, Folder, Hash, ListFilter, Search } from "lucide-react";
 import type { ProjectSidebarProps, ProjectSidebarView } from "@/project-sidebar/contract.js";
+import { isProjectSidebarView } from "@/project-sidebar/view-preference.js";
 import { Button } from "@/components/ui/button.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { formatCommandShortcutLabel } from "@/lib/keyboardShortcuts.js";
@@ -75,8 +76,7 @@ export function ProjectSidebarListHeader({
           <DropdownMenuRadioGroup
             value={view}
             onValueChange={(value) => {
-              if (value === "projects" || value === "grouped" || value === "timeline")
-                onViewChange(value);
+              if (isProjectSidebarView(value)) onViewChange(value);
             }}
           >
             <DropdownMenuRadioItem data-testid="sidebar-view-projects" value="projects">
@@ -90,6 +90,10 @@ export function ProjectSidebarListHeader({
             <DropdownMenuRadioItem data-testid="sidebar-view-timeline" value="timeline">
               <Clock className="size-4 text-foreground-subtle" aria-hidden="true" />
               {intl.formatMessage({ id: "project.viewRecentlyUpdated" })}
+            </DropdownMenuRadioItem>
+            <DropdownMenuRadioItem data-testid="sidebar-view-unread" value="unread">
+              <Bell className="size-4 text-foreground-subtle" aria-hidden="true" />
+              {intl.formatMessage({ id: "project.viewUnread" })}
             </DropdownMenuRadioItem>
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>

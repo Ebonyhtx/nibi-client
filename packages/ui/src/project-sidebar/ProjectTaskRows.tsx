@@ -89,13 +89,15 @@ export function ProjectTaskRows({
   showEmptyState = true,
 }: {
   showEmptyState?: boolean;
-  kind?: "project" | "pinned" | "timeline";
+  kind?: "project" | "pinned" | "timeline" | "unread";
   tasks: ProjectTask[];
   onSelect: ProjectSidebarProps["onSelectTask"];
   refresh(): Promise<void>;
 }) {
   const { intl, locale } = useZCodeIntl();
-  const pageSize = kind === "timeline" ? 20 : 5;
+  // 按未读复用最近更新的日期标题与 20/+20 分页，只是集合换成未读任务。
+  const timeGrouped = kind === "timeline" || kind === "unread";
+  const pageSize = timeGrouped ? 20 : 5;
   const [limit, setLimit] = useState(pageSize);
   const [showAll, setShowAll] = useState(false);
   const ordered = useMemo(
@@ -105,33 +107,38 @@ export function ProjectTaskRows({
   const visible =
     kind === "pinned" ? (showAll ? ordered : ordered.slice(0, 20)) : ordered.slice(0, limit);
   const hasMore = kind === "pinned" ? ordered.length > 20 : ordered.length > limit;
-  const headings =
-    kind === "timeline"
-      ? timelineDateHeadings(
-          visible.map((task) => task.updatedAt),
-          Date.now(),
-          locale,
-        )
-      : [];
+  const headings = timeGrouped
+    ? timelineDateHeadings(
+        visible.map((task) => task.updatedAt),
+        Date.now(),
+        locale,
+      )
+    : [];
   // 原因：逐行复用 TaskList 后，空数组不再挂载旧空态；列表 owner 统一展示一次。
-  if (!tasks.length)
-    return kind === "pinned" || !showEmptyState ? null : (
+  if (!tasks.length) {
+    if (kind === "pinned" || !showEmptyState) return null;
+    return (
       <div
         className="px-8.5 py-2 text-ui-base text-foreground-subtlest"
-        data-testid="project-no-tasks"
+        data-testid={kind === "unread" ? "project-no-unread-tasks" : "project-no-tasks"}
       >
-        {intl.formatMessage({ id: "taskList.noTasks" })}
+        {intl.formatMessage({
+          id: kind === "unread" ? "taskList.noUnreadTasks" : "taskList.noTasks",
+        })}
       </div>
     );
+  }
   return (
     <div
-      className={kind === "pinned" || kind === "timeline" ? "px-2" : undefined}
+      className={kind === "pinned" || timeGrouped ? "px-2" : undefined}
       data-testid={
         kind === "pinned"
           ? "project-pinned-tasks"
           : kind === "timeline"
             ? "project-timeline-tasks"
-            : undefined
+            : kind === "unread"
+              ? "project-unread-tasks"
+              : undefined
       }
     >
       {kind === "pinned" ? (
@@ -161,7 +168,7 @@ export function ProjectTaskRows({
             task={task}
             onSelect={onSelect}
             refresh={refresh}
-            variant={kind === "timeline" ? "timeline" : "default"}
+            variant={timeGrouped ? "timeline" : "default"}
             showFiles={kind === "pinned"}
           />
         </Fragment>

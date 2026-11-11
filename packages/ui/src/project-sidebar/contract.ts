@@ -69,7 +69,7 @@ export interface ProjectAvailability {
   unresolved?: boolean;
 }
 export type { Locale, Theme };
-export type ProjectSidebarView = "projects" | "grouped" | "timeline";
+export type ProjectSidebarView = "projects" | "grouped" | "timeline" | "unread";
 export interface SidebarFileTreeTarget {
   workspacePath: string;
   workspaceName: string;

@@ -64,16 +64,17 @@ export function stabilizeProjectTree(previous: ProjectTree, next: ProjectTree): 
 export type ProjectRowSelection =
   | { kind: "project"; projectId: string | null; hostId?: string }
   | { kind: "timeline" }
+  | { kind: "unread" }
   | { kind: "pinned" };
 
 /** 选择器和行列表共用同一比较器，避免时间线在渲染时又被运行优先覆盖。 */
 export function compareProjectTaskRows(
   left: ProjectTask,
   right: ProjectTask,
-  kind: "project" | "pinned" | "timeline",
+  kind: "project" | "pinned" | "timeline" | "unread",
 ): number {
   return (
-    (kind === "timeline"
+    (kind === "timeline" || kind === "unread"
       ? compareTaskListItemsByTime(left, right, "updated")
       : compareZCodeTaskListItems(left, right, "updated")) ||
     JSON.stringify([right.hostId, buildTaskEntityKey(right)]).localeCompare(
@@ -81,11 +82,61 @@ export function compareProjectTaskRows(
     )
   );
 }
+
+/** 未读去重身份：跨 Host 同名任务、同一 Host 不同工作区都不是同一条提醒。 */
+function unreadTaskIdentity(
+  task: Pick<ProjectTask, "hostId" | "workspacePath" | "workspaceIdentity" | "taskId">,
+): string {
+  return JSON.stringify([
+    task.hostId,
+    task.workspaceIdentity?.trim() || task.workspacePath,
+    task.taskId,
+  ]);
+}
+
+/**
+ * 未读视图与系统角标共用的选择器：只收非归档且带 unreadAt 的任务。
+ * 可见性对齐侧栏渲染分区：跨项目置顶和本地未归类（Host=local 的 null 项目）可见；
+ * 孤儿、已删项目与远端未归类任务没有蓝点落点，不进入未读集合。
+ */
+export function selectUnreadProjectRows(tree: ProjectTree): ProjectTask[] {
+  const renderedProjectKeys = new Set(
+    tree.projects
+      .filter((project) => !project.deleted)
+      .map((project) => `${project.hostId}::${project.id}`),
+  );
+  const seen = new Set<string>();
+  const rows: ProjectTask[] = [];
+  for (const task of tree.tasks) {
+    if (task.archived || !task.unreadAt) {
+      continue;
+    }
+
+    const visible =
+      task.pinned ||
+      (task.projectId == null && task.hostId === "local") ||
+      renderedProjectKeys.has(`${task.hostId}::${task.projectId}`);
+    if (!visible) {
+      continue;
+    }
+
+    const identity = unreadTaskIdentity(task);
+    if (seen.has(identity)) {
+      continue;
+    }
+    seen.add(identity);
+    rows.push(task);
+  }
+  // 未读视图沿用最近更新的 CLI 时间顺序：不按 unreadAt、置顶或运行层重排。
+  return rows.sort((left, right) => compareProjectTaskRows(left, right, "unread"));
+}
+
 /** 只从 Host 已提交的行派生显示；相同 cwd 不代表相同项目。 */
 export function selectProjectRows(
   tree: ProjectTree,
   selection: ProjectRowSelection,
 ): ProjectTask[] {
+  if (selection.kind === "unread") return selectUnreadProjectRows(tree);
   return tree.tasks
     .filter((task) => {
       if (selection.kind === "pinned") return task.pinned && !task.archived;
@@ -121,39 +172,9 @@ export function projectHasUnread(
  * 背景工作区有蓝点时这两份缓存是空的，角标会丢数。
  */
 export function countProjectTreeUnreadTasks(tree: ProjectTree): number {
-  // 只统计侧边栏实际渲染的项目（非软删）：孤儿任务（项目不存在）与已删项目的
-  // 未读在界面上没有蓝点落点，计入只会产生「有角标没蓝点」的幽灵提醒。
-  const renderedProjectKeys = new Set(
-    tree.projects
-      .filter((project) => !project.deleted)
-      .map((project) => `${project.hostId}::${project.id}`),
-  );
-  const seen = new Set<string>();
-  for (const task of tree.tasks) {
-    if (task.archived || !task.unreadAt) {
-      continue;
-    }
-
-    // 可见性对齐渲染分区：置顶区跨项目渲染；本地无项目任务区只渲染
-    // host=local 的 null-project 任务；其余任务必须归属渲染项目。
-    const visible =
-      task.pinned ||
-      (task.projectId == null && task.hostId === "local") ||
-      renderedProjectKeys.has(`${task.hostId}::${task.projectId}`);
-    if (!visible) {
-      continue;
-    }
-
-    seen.add(
-      JSON.stringify([
-        task.hostId,
-        task.workspaceIdentity?.trim() || task.workspacePath,
-        task.taskId,
-      ]),
-    );
-  }
-
-  return seen.size;
+  // 角标与「按未读」列表必须消费同一选择器；两处各自过滤迟早会漂移成
+  // 「有角标没行」或「有行没角标」。选择器内部已按 host+workspace+task 去重。
+  return selectUnreadProjectRows(tree).length;
 }
 
 export function projectKey(project: Pick<VirtualProject, "id" | "hostId">): string {

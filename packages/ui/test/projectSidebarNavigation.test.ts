@@ -58,7 +58,7 @@ it.each([
   },
 );
 
-it("SBV02: filter has project, group and recent update choices", async () => {
+it("SBV02: filter has project, group, recent update and unread choices", async () => {
   const onViewChange = vi.fn();
   render(
     createElement(
@@ -82,8 +82,13 @@ it("SBV02: filter has project, group and recent update choices", async () => {
   const trigger = screen.getByTestId("sidebar-view-menu");
   fireEvent.keyDown(trigger, { key: "ArrowDown" });
   const choices = await screen.findAllByRole("menuitemradio");
-  expect(choices).toHaveLength(3);
+  expect(choices).toHaveLength(4);
   expect(choices[0]?.getAttribute("aria-checked")).toBe("true");
+  expect(choices[3]?.getAttribute("data-testid")).toBe("sidebar-view-unread");
   fireEvent.click(screen.getByTestId("sidebar-view-timeline"));
   expect(onViewChange).toHaveBeenCalledWith("timeline");
+  // 选择后菜单关闭；重新打开再验证未读项，避免依赖已卸载的菜单内容。
+  fireEvent.keyDown(trigger, { key: "ArrowDown" });
+  fireEvent.click(await screen.findByTestId("sidebar-view-unread"));
+  expect(onViewChange).toHaveBeenCalledWith("unread");
 });

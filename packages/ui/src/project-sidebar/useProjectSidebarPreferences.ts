@@ -10,7 +10,7 @@ import { readWorkspaceExpansionState } from "@/lib/workspaceExpansionPreference.
 
 import { reconcileProjectOrder, moveProjectOrder } from "@/project-sidebar/projectOrder.js";
 
-import { readProjectSidebarView } from "@/project-sidebar/view-preference.js";
+import { isProjectSidebarView, readProjectSidebarView } from "@/project-sidebar/view-preference.js";
 
 const KEY = "nibi-project-sidebar-preferences";
 const EMPTY_AVAILABILITY: ReadonlyMap<string, ProjectAvailability> = new Map();
@@ -79,7 +79,8 @@ export function useProjectSidebarPreferences(
         setPreferences((previous) => ({
           ...previous,
           order: [...new Set(value.order)],
-          view: value.view === "timeline" || value.view === "grouped" ? value.view : "projects",
+          // 视图偏好只接受当前白名单；与首读一致，非法值回落按项目。
+          view: isProjectSidebarView(value.view) ? value.view : "projects",
           expanded:
             value.expanded && typeof value.expanded === "object"
               ? Object.fromEntries(

@@ -90,6 +90,10 @@ import {
 import { Spinner } from "@/components/ui/spinner.js";
 import { ImagePreviewDialog } from "@/components/ai-elements/image-preview-dialog.js";
 import {
+  createImageEditorAttachmentFile,
+  registerImageComposerTarget,
+} from "@/image-preview-editor/index.js";
+import {
   ChatMediaAttachmentPreviewDialog,
   type ChatMediaAttachmentPreviewTarget,
 } from "@/ChatMediaAttachmentPreviewDialog.js";
@@ -733,6 +737,33 @@ function ConversationComposerImpl({
     disabled: disabled || runtimeBlocked,
     listenAddToChatEvents: listenAddToChatEvents && !disabled && !runtimeBlocked,
   });
+  // 图片预览标注的「发送到输入框」按会话/草稿作用域投递给对应 Composer；
+  // 侧栏常驻或其它 pane 的输入框不会认领。仍复用 addAttachmentFiles，
+  // 不绕过附件数量/大小/上传队列，也不触发发送。
+  useEffect(() => {
+    if (!listenAddToChatEvents || disabled || runtimeBlocked) return;
+    return registerImageComposerTarget({
+      // 主/辅 pane 可能同时 focused；用会话/草稿身份匹配预览的投递目标，
+      // 不依赖注册顺序，也不把附件写进另一个会话。
+      scope: {
+        sessionId: sessionId ?? null,
+        workspaceKey,
+        draftScopeKey: rootDraftScopeKey,
+      },
+      target: {
+        appendImage: (output) =>
+          attachmentsApi.addAttachmentFiles([createImageEditorAttachmentFile(output)]).length > 0,
+      },
+    });
+  }, [
+    attachmentsApi.addAttachmentFiles,
+    disabled,
+    listenAddToChatEvents,
+    rootDraftScopeKey,
+    runtimeBlocked,
+    sessionId,
+    workspaceKey,
+  ]);
   // 对齐旧版 useChatComposer：窗口级 dragover 会在指针进入 ChatView 前预先点亮
   // 整个聊天区与桌面草稿标题栏；workspace payload 的文案优先于系统附件。
   const { externalFileDragging, workspaceFileDragging } = usePromptEditorDragState({

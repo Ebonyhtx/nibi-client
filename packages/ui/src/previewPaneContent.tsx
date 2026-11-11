@@ -279,6 +279,17 @@ export function PreviewPaneContent({
         imageSource={`data:${imagePreview.mediaType};base64,${imagePreview.dataBase64}`}
         sourcePath={source.path}
         fileReference={imageFileReference}
+        composerScope={
+          markdownSelectionTarget
+            ? {
+                sessionId: markdownSelectionTarget.sessionId,
+                workspaceKey: markdownSelectionTarget.workspaceKey,
+                ...(markdownSelectionTarget.draftScopeKey
+                  ? { draftScopeKey: markdownSelectionTarget.draftScopeKey }
+                  : {}),
+              }
+            : undefined
+        }
       />
     );
   }

@@ -1,6 +1,6 @@
 import type { CSSProperties, SyntheticEvent } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Copy, Download, Ellipsis, MessageSquarePlus } from "lucide-react";
+import { Copy, Download, Ellipsis, MessageSquarePlus, Pencil } from "lucide-react";
 import { downloadImagePreview } from "@/components/ai-elements/image-preview-dialog.js";
 import { Button } from "@/components/ui/button.js";
 import {
@@ -19,6 +19,15 @@ import { toast } from "@/components/ui/toast.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import {
+  canUseImageEditor,
+  decodeImageDataUrl,
+  detectImageEditorCanvas,
+  ImageAnnotationDialog,
+  isAnnotatableImageSource,
+  type ImageEditorComposerScope,
+  type ImageEditorInput,
+} from "@/image-preview-editor/index.js";
+import {
   dispatchWorkspaceFileAddToChat,
   type WorkspaceFileDragPayload,
 } from "@/lib/workspaceFileDrag.js";
@@ -32,6 +41,8 @@ interface ImagePreviewContentProps {
   sourcePath?: string;
   fileReference?: WorkspaceFileDragPayload;
   loadDownloadSource?: () => Promise<string>;
+  /** 标注后附件的目标会话/草稿；与预览所属会话一致，避免投递到其它 pane。 */
+  composerScope?: ImageEditorComposerScope;
 }
 
 interface ImageNaturalSize {
@@ -90,6 +101,7 @@ export function ImagePreviewContent({
   sourcePath,
   fileReference,
   loadDownloadSource,
+  composerScope,
 }: ImagePreviewContentProps) {
   const { intl } = useZCodeIntl();
   const platform = useOptionalPlatform();
@@ -97,12 +109,47 @@ export function ImagePreviewContent({
   const actionPendingRef = useRef(false);
   const [actionPending, setActionPending] = useState(false);
   const [naturalSize, setNaturalSize] = useState<ImageNaturalSize | null>(null);
+  const [annotationDraft, setAnnotationDraft] = useState<{
+    input: ImageEditorInput;
+    scope?: ImageEditorComposerScope;
+  } | null>(null);
   const copyLabel = intl.formatMessage({ id: "preview.image.copy" });
+  const annotateLabel = intl.formatMessage({ id: "imageEditor.annotate" });
   const canUseImage =
     !actionPending &&
     naturalSize?.source === imageSource &&
     naturalSize.width > 0 &&
     naturalSize.height > 0;
+  // 只在桌面/Host 且具备 canvas 导出能力时提供标注；Web 手机远控保持隐藏。
+  // SVG 预览使用 URL 编码而不是 base64 字节，因此也不显示入口。
+  const canAnnotate = useMemo(() => {
+    const desktopHost = platform?.canOpenLocalFiles === true;
+    return (
+      isAnnotatableImageSource(imageSource) &&
+      canUseImageEditor({
+        desktopHost,
+        canvas: desktopHost ? detectImageEditorCanvas() : false,
+      })
+    );
+  }, [imageSource, platform]);
+  const handleAnnotate = useCallback(() => {
+    if (!canAnnotate || !canUseImage || !naturalSize) return;
+    const decoded = decodeImageDataUrl(imageSource);
+    if (!decoded) {
+      toast(intl.formatMessage({ id: "imageEditor.loadFailed" }));
+      return;
+    }
+    setAnnotationDraft({
+      input: {
+        bytes: decoded.bytes,
+        mediaType: decoded.mediaType,
+        width: naturalSize.width,
+        height: naturalSize.height,
+        filename: sourcePath ? getPathLeaf(sourcePath) : title,
+      },
+      ...(composerScope ? { scope: composerScope } : {}),
+    });
+  }, [canAnnotate, canUseImage, composerScope, imageSource, intl, naturalSize, sourcePath, title]);
   const handleCopy = useCallback(async () => {
     const image = imageRef.current;
     if (!image || actionPendingRef.current || !canUseImage) return;
@@ -222,6 +269,19 @@ export function ImagePreviewContent({
             src={imageSource}
             style={imageStyle}
           />
+          {canAnnotate ? (
+            <Button
+              className="absolute top-3 right-3 hidden min-h-11 gap-2 bg-menu sm:inline-flex"
+              variant="outline"
+              aria-label={annotateLabel}
+              data-image-preview-annotate=""
+              disabled={!canUseImage}
+              onClick={handleAnnotate}
+            >
+              <Pencil aria-hidden="true" />
+              {annotateLabel}
+            </Button>
+          ) : null}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -234,6 +294,17 @@ export function ImagePreviewContent({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {canAnnotate ? (
+                <DropdownMenuItem
+                  className="min-h-11"
+                  data-image-preview-annotate
+                  disabled={!canUseImage}
+                  onSelect={handleAnnotate}
+                >
+                  <Pencil aria-hidden="true" />
+                  {annotateLabel}
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem
                 className="min-h-11"
                 data-image-preview-add
@@ -266,6 +337,16 @@ export function ImagePreviewContent({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
+        {canAnnotate ? (
+          <ContextMenuItem
+            data-image-preview-annotate
+            disabled={!canUseImage}
+            onSelect={handleAnnotate}
+          >
+            <Pencil aria-hidden="true" />
+            {annotateLabel}
+          </ContextMenuItem>
+        ) : null}
         <ContextMenuItem
           data-image-preview-add
           disabled={!canUseImage || !fileReference}
@@ -291,6 +372,21 @@ export function ImagePreviewContent({
           {intl.formatMessage({ id: "markdownImage.download" })}
         </ContextMenuItem>
       </ContextMenuContent>
+      {annotationDraft ? (
+        <ImageAnnotationDialog
+          composerScope={annotationDraft.scope}
+          input={annotationDraft.input}
+          open
+          onAppended={() => {
+            // 附件已进入当前输入框的既有上传队列；这里只提示并关闭编辑器，不触发发送。
+            toast(intl.formatMessage({ id: "imageEditor.added" }));
+            setAnnotationDraft(null);
+          }}
+          onOpenChange={(open) => {
+            if (!open) setAnnotationDraft(null);
+          }}
+        />
+      ) : null}
     </ContextMenu>
   );
 }
