@@ -6,6 +6,7 @@ import {
   type McpConnectionSnapshot,
   type McpPort,
   type PermissionBrokerPort,
+  type PermissionBrokerRequest,
   type SessionEventStorePort,
   type SessionId,
 } from "@nibi/contracts";
@@ -272,20 +273,23 @@ describe("AgentRuntime MCP integration", () => {
     expect(toolNames).toContain("mcp__local__ping");
   });
 
-  it("executes non-destructive MCP tools in plan mode without readOnlyHint", async () => {
+  // A1（7eb98256）后的正确语义：Plan 闸门对「非只读、非 destructive」的 MCP 工具是
+  // **询问**而不是直接放行，也不能给「始终允许」——否则 Plan 会比 build 更宽
+  // （EnterPlanMode 本身免确认，任何 MCP 写工具都能绕过审批）。这条用例因此断言
+  // 「询问一次 → 用户批准 → 执行」，并钉住 no-always-allow。
+  it("asks before running non-destructive MCP tools in plan mode without readOnlyHint", async () => {
     const sessionId = createSessionId("runtime-mcp-plan-mode");
     const eventStore = createTestSessionEventStore();
     let modelCallCount = 0;
     let mcpCallCount = 0;
     let permissionRequestCount = 0;
+    let permissionRequest: PermissionBrokerRequest | undefined;
 
     const permissionBroker: PermissionBrokerPort = {
-      async requestPermission() {
+      async requestPermission(request) {
         permissionRequestCount++;
-        return {
-          decision: "deny",
-          reason: "permission broker should not be called for plan-mode MCP allow",
-        };
+        permissionRequest = request;
+        return { decision: "allow" };
       },
     };
 
@@ -392,7 +396,10 @@ describe("AgentRuntime MCP integration", () => {
 
     expect(result.response).toBe("done");
     expect(mcpCallCount).toBe(1);
-    expect(permissionRequestCount).toBe(0);
+    expect(permissionRequestCount).toBe(1);
+    // Plan 下不许记住「始终允许」：规则不能跳过这个询问。
+    expect(permissionRequest?.optionsPolicy).toBe("no-always-allow");
+    expect(permissionRequest?.ruleId).toBe("mode.plan.mcp");
   });
 
   it("denies destructive MCP tools in plan mode before calling the MCP server", async () => {
