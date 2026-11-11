@@ -19,11 +19,15 @@ const MCP_SERVER_RELATIVE_PATH = ["dist", "mcp", "server.js"] as const;
 export function createBundledMcpRuntimeConfig(input: {
   cwd: string;
   env?: Record<string, string>;
+  /**
+   * 显式宿主前缀（仅内部/测试使用），语义同 {@link OfficialRuntimeManifestInput.hostPrefixArgs}。
+   */
+  hostPrefixArgs?: readonly string[];
   relativeServerPath?: readonly string[];
   rootPath: string;
   timeoutMs?: number;
 }): McpServerConfig | undefined {
-  const hostPrefixArgs = officialPluginHostPrefixArgs();
+  const hostPrefixArgs = resolveHostPrefixArgs(input.hostPrefixArgs);
   if (!hostPrefixArgs) return undefined;
   return {
     args: [
@@ -43,6 +47,16 @@ export function createBundledMcpRuntimeConfig(input: {
 }
 
 interface OfficialRuntimeManifestInput {
+  /**
+   * 显式注入的宿主入口前缀，仅供内部调用方/测试使用。
+   *
+   * `officialPluginHostPrefixArgs()` 在测试进程里故意返回 undefined（见其内注释的
+   * 2026-11-09 事故：测试 argv 被固化进用户缓存）。这个闸门本身必须保留，但它会让
+   * `.mcp.json` / plugin.json 的重写在 vitest 下整段跳过，测试覆盖不到真实路径。
+   * 因此留一个显式注入缝：调用方自带前缀时按自带值重写；不传时仍走生产探测，
+   * 行为与之前完全一致。
+   */
+  hostPrefixArgs?: readonly string[];
   sourceManifestContents?: string;
   pluginName: string;
   retryBudget?: OfficialPluginCacheRetryBudget;
@@ -63,7 +77,7 @@ export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifes
     string,
     unknown
   >;
-  const hostPrefixArgs = officialPluginHostPrefixArgs();
+  const hostPrefixArgs = resolveHostPrefixArgs(input.hostPrefixArgs);
   if (!hostPrefixArgs) return;
 
   // 同一批内置件有的把 MCP 声明在 plugin.json，有的放在 Claude 兼容的 `.mcp.json`
@@ -136,7 +150,7 @@ export function writeOfficialPluginRuntimeManifest(input: OfficialRuntimeManifes
  */
 function rewritePluginMcpConfigFile(
   rootPath: string,
-  hostPrefixArgs: string[],
+  hostPrefixArgs: readonly string[],
   retryBudget: OfficialPluginCacheRetryBudget | undefined,
 ): void {
   const filePath = join(rootPath, ".mcp.json");
@@ -176,6 +190,17 @@ function rewritePluginMcpConfigFile(
     nextContents,
     retryBudget ?? createOfficialPluginCacheRetryBudget(),
   );
+}
+
+/**
+ * 解析宿主入口前缀：显式注入优先，没有注入时走生产探测。
+ *
+ * 空数组按“不可用”处理：注入缝不存在“空前缀”的语义，静默写出一份没有宿主入口的
+ * 清单比直接跳过更难排查；跳过则等同于原有降级路径。
+ */
+function resolveHostPrefixArgs(injected: readonly string[] | undefined): string[] | undefined {
+  if (injected === undefined) return officialPluginHostPrefixArgs();
+  return injected.length > 0 ? [...injected] : undefined;
 }
 
 export function officialPluginHostPrefixArgs(): string[] | undefined {

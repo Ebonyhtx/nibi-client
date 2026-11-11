@@ -72,6 +72,13 @@ export interface ResolveZCodePluginsOptions {
   officialPluginRoots?: string[];
   pluginStorageRoot?: string;
   projectConfigPath?: string;
+  /**
+   * 显式宿主入口前缀（仅内部/测试使用），透传给内置插件 seed 的 runtime manifest 重写。
+   *
+   * 生产调用方不传：`officialPluginHostPrefixArgs()` 在测试进程里恒为 undefined（防止
+   * vitest argv 被写进用户缓存），测试需要覆盖 `.mcp.json`/plugin.json 重写路径时注入假前缀。
+   */
+  runtimeHostPrefixArgs?: readonly string[];
   skipUserConfig?: boolean;
   userConfigPath?: string;
   workingDirectory?: string;
@@ -291,6 +298,7 @@ export function resolveZCodePlugins(options: ResolveZCodePluginsOptions = {}): P
       extraRoots: options.officialPluginRoots,
       // cache 锁冲突已从 fatal 改为 degraded，普通插件入口也必须保留诊断日志。
       logger: options.logger,
+      runtimeHostPrefixArgs: options.runtimeHostPrefixArgs,
       storageRoot: pluginStorageRoot,
       suppressedBuiltins: new Set(configResult.config.plugins.suppressedBuiltins),
     }),

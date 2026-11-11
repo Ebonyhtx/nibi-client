@@ -1696,6 +1696,10 @@ describe("ZCode plugins", () => {
       const outcome = resolveZCodePlugins({
         env: {},
         pluginStorageRoot,
+        // ios/android 把 MCP 声明在插件根 `.mcp.json`；生产态的重写由
+        // officialPluginHostPrefixArgs() 驱动，但它在 vitest 下被测试闸门挡成 undefined。
+        // 显式注入假前缀，才能覆盖真实重写路径（下面的断言保持 command/args/env 不变）。
+        runtimeHostPrefixArgs: [NIBI_PLUGIN_HOST_COMMAND],
         userConfigPath: configPath,
         workingDirectory: root,
       });
@@ -1783,6 +1787,8 @@ describe("ZCode plugins", () => {
       const outcome = resolveZCodePlugins({
         env: {},
         pluginStorageRoot,
+        // 同上：注入假宿主前缀，让 `.mcp.json` 的重写在测试进程里真正执行。
+        runtimeHostPrefixArgs: [NIBI_PLUGIN_HOST_COMMAND],
         userConfigPath: configPath,
         workingDirectory: root,
       });

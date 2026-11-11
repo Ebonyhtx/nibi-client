@@ -99,6 +99,11 @@ type SeaModule = typeof import("node:sea");
 
 function seedBundledOfficialPlugins(input: {
   logger?: Logger;
+  /**
+   * 显式宿主前缀，仅供内部/测试使用；转交给 runtime manifest 重写。
+   * 不传时由 writeOfficialPluginRuntimeManifest 走生产探测（测试进程下为 undefined）。
+   */
+  runtimeHostPrefixArgs?: readonly string[];
   storageRoot: string;
 }): OfficialPluginDefinition[] {
   const source = resolveSeedSource();
@@ -151,6 +156,7 @@ function seedBundledOfficialPlugins(input: {
           if (isSeedCurrent(targetRoot, plugin)) {
             cleanupLegacySeedBackup(targetRoot, retryBudget);
             const manifestWritten = tryWriteOfficialPluginRuntimeManifest({
+              hostPrefixArgs: input.runtimeHostPrefixArgs,
               sourceManifestContents,
               pluginName: plugin.definition.name,
               retryBudget,
@@ -183,6 +189,7 @@ function seedBundledOfficialPlugins(input: {
             );
             replaceSeedRoot(temporaryRoot, targetRoot, plugin, retryBudget);
             writeOfficialPluginRuntimeManifest({
+              hostPrefixArgs: input.runtimeHostPrefixArgs,
               sourceManifestContents,
               pluginName: plugin.definition.name,
               retryBudget,
@@ -228,6 +235,7 @@ function seedBundledOfficialPlugins(input: {
 }
 
 function tryWriteOfficialPluginRuntimeManifest(input: {
+  hostPrefixArgs?: readonly string[];
   sourceManifestContents: string;
   pluginName: string;
   retryBudget: OfficialPluginCacheRetryBudget;
@@ -246,6 +254,13 @@ export function resolveOfficialPluginRoots(input: {
   env?: NodeJS.ProcessEnv;
   extraRoots?: string[];
   logger?: Logger;
+  /**
+   * 显式宿主入口前缀（仅内部/测试使用），透传给 runtime manifest 重写。
+   *
+   * 生产调用方不传：`officialPluginHostPrefixArgs()` 在测试进程里恒为 undefined，
+   * 否则 seed 会带着 vitest argv 重写缓存清单；测试要覆盖重写路径时用这个缝注入假前缀。
+   */
+  runtimeHostPrefixArgs?: readonly string[];
   storageRoot: string;
   suppressedBuiltins?: ReadonlySet<string>;
 }): string[] {
@@ -257,6 +272,7 @@ export function resolveOfficialPluginRoots(input: {
   }
   const failedSeeds = seedBundledOfficialPlugins({
     logger: input.logger,
+    runtimeHostPrefixArgs: input.runtimeHostPrefixArgs,
     storageRoot: input.storageRoot,
   });
 
