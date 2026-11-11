@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  setMcpStoreDirectoryService,
-  setMcpStorePlatform,
-  useMcpStore,
-} from "@/store/mcpStore.js";
+import { setMcpStorePlatform, useMcpStore } from "@/store/mcpStore.js";
 import { DEFAULT_MCP_CONFIG } from "@/store/mcpStoreHelpers.js";
 import { logger } from "@/logger.js";
 
@@ -23,7 +19,6 @@ function createLocalStorageStub(initial: Record<string, string> = {}) {
 describe("mcpStore", () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
-    setMcpStoreDirectoryService(null);
     setMcpStorePlatform(null);
     useMcpStore.setState((state) => ({
       ...state,
@@ -37,6 +32,7 @@ describe("mcpStore", () => {
       workspaceTrustUnreviewable: [],
       currentProjectPath: "",
       currentWorkspaceIdentity: undefined,
+      currentDirectoryService: null,
       enabledStates: {},
       deletedPreloadMcpServers: new Set(),
       isConfigLoaded: false,
@@ -328,7 +324,6 @@ describe("mcpStore", () => {
       })),
       saveMcpToUserDirectory: vi.fn(async () => {}),
     };
-    setMcpStoreDirectoryService(directoryService);
 
     await useMcpStore
       .getState()

@@ -48,7 +48,7 @@ vi.mock("@/store/pluginManagementStore.js", () => ({
 }));
 
 vi.mock("@/workspace-config-catalog/index.js", () => ({
-  useConfigWorkspaceTargets: () => [],
+  useConfigWorkspaceTargets: () => ({ targets: [], loaded: true }),
   useConfigWorkspaceServicesResolution: () => ({
     rpcReady: serviceResolutionMock.rpcReady,
     services: {

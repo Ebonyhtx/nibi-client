@@ -58,32 +58,33 @@ describe("Hooks settings page", () => {
   });
 
   it("keeps a selected local workspace scope on the base host while a remote workspace is active", () => {
-    const activePath = "/home/dev/project";
-    const activeIdentity = "remote:server:source-1:/home/dev/project";
+    const deviceHome = "/home/device";
 
     // 选中的本地项目没有 identity，不能借用活动远端工作区的 identity 把本机路径发往远端。
     expect(
       resolveHookScopeTarget(
         { workspacePath: "/Users/dev/local", workspaceIdentity: undefined },
-        activePath,
-        activeIdentity,
+        { workspacePath: deviceHome },
       ),
     ).toEqual({ workspacePath: "/Users/dev/local", workspaceIdentity: undefined });
     // 选中远端项目时沿用其自身 identity。
     expect(
       resolveHookScopeTarget(
         { workspacePath: "/srv/other", workspaceIdentity: "remote:server:source-2:/srv/other" },
-        activePath,
-        activeIdentity,
+        { workspacePath: deviceHome },
       ),
     ).toEqual({
       workspacePath: "/srv/other",
       workspaceIdentity: "remote:server:source-2:/srv/other",
     });
-    // User scope 未选项目：仍跟随当前 workspace 路由。
-    expect(resolveHookScopeTarget(undefined, activePath, activeIdentity)).toEqual({
-      workspacePath: activePath,
-      workspaceIdentity: activeIdentity,
+    // User scope 使用 Scope 菜单选中设备的「用户」锚点，不携带 identity。
+    expect(resolveHookScopeTarget(undefined, { workspacePath: deviceHome })).toEqual({
+      workspacePath: deviceHome,
+      workspaceIdentity: undefined,
+    });
+    expect(resolveHookScopeTarget(undefined, null)).toEqual({
+      workspacePath: undefined,
+      workspaceIdentity: undefined,
     });
   });
 

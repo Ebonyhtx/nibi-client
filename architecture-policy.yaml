@@ -197,6 +197,22 @@ modules:
       app: catalog.ts
       ui: .
     owner: configuration
+  # settings-scope：由 architecture:adopt 登记
+  - id: settings-scope
+    roots:
+      - packages/ui/src/settings-scope
+    managed: true
+    requires: [ conversation-workspace-target, services, shared, ui, workspace-config-catalog ]
+    publicEntrypoints:
+      - packages/ui/src/settings-scope/index.ts
+      - packages/ui/src/settings-scope/contract.ts
+    layers:
+      contract: contract.ts
+      domain: domain
+      app: app
+      ui: ui
+    layerOrder: [ contract, domain, app, ui ]
+    owner: configuration
   # project-catalog：由 architecture:adopt 登记
   - id: project-catalog
     roots:

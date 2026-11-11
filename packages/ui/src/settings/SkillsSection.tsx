@@ -200,7 +200,7 @@ export function SkillsSection({
     remoteSessionId,
     activeWorkspaceIdentity,
     remoteTarget,
-    { unscopedServices, forceUnscoped: Boolean(cacheAuthorityKey) },
+    { unscopedServices, forceUnscoped: Boolean(cacheAuthorityKey || unscopedServices) },
   );
   // PluginsSection 已把 Scope target 传入，但 Skills 仍从当前 ServiceProvider
   // 取服务，导致跨远程 host 误路由。技能读写和远端同步都改用同一 target 解析结果。

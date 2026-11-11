@@ -71,7 +71,6 @@ import { usePluginManagementStore } from "@/store/pluginManagementStore.js";
 import { usePlatform } from "@/hooks/usePlatform.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useConfigWorkspaceServices as useWorkspaceServices } from "@/workspace-config-catalog/index.js";
-import { useTabStore } from "@/store/TabStoreProvider.js";
 import type { ConfigWorkspaceTarget } from "@/workspace-config-catalog/index.js";
 import { getPluginWorkspaceKey } from "@/settings/PluginScopeMenu.js";
 import { ExternalLink, Import, Plus, UploadCloud } from "lucide-react";
@@ -587,7 +586,7 @@ export function McpSettingsSection({
     remoteSessionId,
     workspaceIdentity,
     remoteTarget,
-    { unscopedServices, forceUnscoped: Boolean(cacheAuthorityKey) },
+    { unscopedServices, forceUnscoped: Boolean(cacheAuthorityKey || unscopedServices) },
   );
   const platform = usePlatform();
   const baseServices = useBaseWorkspaceServices();
@@ -609,10 +608,11 @@ export function McpSettingsSection({
   const currentProjectPath = useMcpStore((s) => s.currentProjectPath);
   const currentWorkspaceIdentity = useMcpStore((s) => s.currentWorkspaceIdentity);
   const currentAuthorityKey = useMcpStore((s) => s.currentAuthorityKey);
-  const storeActiveWorkspacePath = useTabStore((s) => s.activeWorkspacePath);
-  const storeActiveWorkspaceIdentity = useTabStore((s) => s.activeWorkspaceIdentity ?? undefined);
-  const activeWorkspacePath = workspacePath ?? storeActiveWorkspacePath;
-  const activeWorkspaceIdentity = workspaceIdentity ?? storeActiveWorkspaceIdentity;
+  // Bug 原因：props 缺省时曾回退到当前 tab 的路径和 identity。远端「用户」本来就没有 identity，
+  // 回退后混入当前 tab 的 identity，读写落到当前 tab 所在设备。
+  // 修法：只用 Scope 目标（props）这一组绑定；唯一调用方 PluginsSection 总会传入目标路径。
+  const activeWorkspacePath = workspacePath ?? undefined;
+  const activeWorkspaceIdentity = workspaceIdentity;
   const activeWorkspaceKey = `${cacheAuthorityKey?.trim() || "workspace"}\0${activeWorkspaceIdentity?.trim() || activeWorkspacePath || ""}`;
   const currentMcpStoreWorkspaceKey = `${currentAuthorityKey?.trim() || "workspace"}\0${currentWorkspaceIdentity?.trim() || currentProjectPath}`;
   // 修复原因：active tab 会先于异步 MCP 目录加载切换；过渡帧不能把 A 的配置和
@@ -631,7 +631,6 @@ export function McpSettingsSection({
     : [];
   const isConfigLoaded = useMcpStore((s) => s.isConfigLoaded);
   const ensureLoadedForWorkspace = useMcpStore((s) => s.ensureLoadedForWorkspace);
-  const loadMcpFromUserDirectory = useMcpStore((s) => s.loadMcpFromUserDirectory);
   const toggleServer = useMcpStore((s) => s.toggleServer);
   const addScopedMcpServer = useMcpStore((s) => s.addScopedMcpServer);
   const updateScopedMcpServer = useMcpStore((s) => s.updateScopedMcpServer);
@@ -860,29 +859,24 @@ export function McpSettingsSection({
     if (refreshingStatusList) return;
     setRefreshingStatusList(true);
     try {
-      await loadMcpFromUserDirectory(
+      // 目标整组（路径 / identity / authority / 服务）由 Scope 给出；ensure 同时完成
+      // 目标绑定与重读，手动刷新不借用 store 里上一次的目标。
+      const loaded = await ensureLoadedForWorkspace(
+        activeWorkspacePath,
         services.mcpSyncService,
         activeWorkspaceIdentity,
         cacheAuthorityKey,
       );
-      if (activeWorkspacePath && !mcpConfigReadyWorkspaceKey) {
-        const loaded = await ensureLoadedForWorkspace(
-          activeWorkspacePath,
-          services.mcpSyncService,
-          activeWorkspaceIdentity,
-          cacheAuthorityKey,
-        );
-        const state = useMcpStore.getState();
-        const loadedWorkspaceKey = `${state.currentAuthorityKey?.trim() || "workspace"}\0${state.currentWorkspaceIdentity?.trim() || state.currentProjectPath}`;
-        if (loaded && loadedWorkspaceKey === activeWorkspaceKey) {
-          setMcpConfigReadyWorkspaceKey(activeWorkspaceKey);
-          // ref 只在 render 时同步；这里补写一次，否则同一 tick 内紧接着的请求仍会
-          // 因为 config-not-ready 被跳过，用户就得再点一次刷新。
-          latestStatusListRefreshInputRef.current = {
-            ...latestStatusListRefreshInputRef.current,
-            configReadyWorkspaceKey: activeWorkspaceKey,
-          };
-        }
+      const state = useMcpStore.getState();
+      const loadedWorkspaceKey = `${state.currentAuthorityKey?.trim() || "workspace"}\0${state.currentWorkspaceIdentity?.trim() || state.currentProjectPath}`;
+      if (loaded && activeWorkspaceKey && loadedWorkspaceKey === activeWorkspaceKey) {
+        setMcpConfigReadyWorkspaceKey(activeWorkspaceKey);
+        // ref 只在 render 时同步；这里补写一次，否则同一 tick 内紧接着的请求仍会
+        // 因为 config-not-ready 被跳过，用户就得再点一次刷新。
+        latestStatusListRefreshInputRef.current = {
+          ...latestStatusListRefreshInputRef.current,
+          configReadyWorkspaceKey: activeWorkspaceKey,
+        };
       }
       await requestMcpServerStatusList({ trigger: "manual" });
     } finally {
@@ -894,7 +888,6 @@ export function McpSettingsSection({
     activeWorkspacePath,
     cacheAuthorityKey,
     ensureLoadedForWorkspace,
-    loadMcpFromUserDirectory,
     mcpConfigReadyWorkspaceKey,
     refreshingStatusList,
     requestMcpServerStatusList,
@@ -1355,7 +1348,8 @@ export function McpSettingsSection({
     if (projectPath && projectPath === currentProjectPath) {
       // 项目声明写入后 Host 的旧摘要记录仍然存在：立即重读 review，让当前行
       // 从 Host 得到 declarationChanged（旧授权已失效），而不是停留在未知状态。
-      await loadMcpFromUserDirectory(
+      await ensureLoadedForWorkspace(
+        activeWorkspacePath,
         services.mcpSyncService,
         activeWorkspaceIdentity,
         cacheAuthorityKey,
@@ -1695,7 +1689,8 @@ export function McpSettingsSection({
         settingsSyncService={services.settingsSyncService}
         onOpenChange={setImportDialogOpen}
         onImported={async () => {
-          await loadMcpFromUserDirectory(
+          await ensureLoadedForWorkspace(
+            activeWorkspacePath,
             services.mcpSyncService,
             activeWorkspaceIdentity,
             cacheAuthorityKey,
@@ -1717,7 +1712,8 @@ export function McpSettingsSection({
         mcpLocalWorkspacePath={localWorkspacePath}
         onSkillsSynced={() => {}}
         onMcpSynced={async () => {
-          const loaded = await loadMcpFromUserDirectory(
+          const loaded = await ensureLoadedForWorkspace(
+            activeWorkspacePath,
             services.mcpSyncService,
             activeWorkspaceIdentity,
             cacheAuthorityKey,

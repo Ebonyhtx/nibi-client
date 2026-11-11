@@ -25,6 +25,18 @@ const mockScopeRouting = vi.hoisted(() => ({
   enabled: false,
   context: null as IServiceAccessor | null,
   modelServices: [] as unknown[],
+  selectedKey: "user",
+  targets: [] as Array<{
+    workspacePath: string;
+    workspaceIdentity?: string;
+    remoteSessionId?: string;
+  }>,
+  devices: [] as Array<{ sourceServerId: string; name: string; online: boolean }>,
+  remoteUserAvailable: false,
+  remoteUsers: new Map<string, { services: IServiceAccessor; homedir: string }>(),
+  localUserTarget: null as { workspacePath: string } | null,
+  localServices: null as IServiceAccessor | null,
+  form: null as { agent: unknown } | null,
 }));
 const mockInitializePlugins = vi.hoisted(() => vi.fn(async () => {}));
 const mockSubagentsService = vi.hoisted(() => ({
@@ -43,6 +55,7 @@ const mockSubagentsService = vi.hoisted(() => ({
   setPluginAgentModelOverride: vi.fn(),
 }));
 const mockRefreshLoadedSubagentsStoreForWorkspace = vi.hoisted(() => vi.fn(async () => {}));
+const mockRefreshSubagentsStoreForRemoteWorkspaces = vi.hoisted(() => vi.fn(async () => {}));
 const mockUseModelProviders = vi.hoisted(() =>
   vi.fn(() => ({
     displayOrder: { providerIds: [] },
@@ -236,34 +249,32 @@ vi.mock("@/store/pluginManagementStore.js", () => ({
 
 vi.mock("@/settings/PluginScopeMenu.js", () => ({
   PluginScopeMenu: ({
-    workspaceTabs,
+    groups,
     onScopeKeyChange,
   }: {
-    workspaceTabs: Array<{ workspacePath: string; workspaceIdentity?: string }>;
+    groups?: Array<{ options: Array<{ key: string }> }>;
     onScopeKeyChange: (key: string) => void;
   }) =>
     mockScopeRouting.enabled
       ? createElement(
           "div",
           null,
-          ["user", ...workspaceTabs.map((tab) => tab.workspaceIdentity || tab.workspacePath)].map(
-            (key) =>
+          (groups ?? []).flatMap((group) =>
+            group.options.map((option) =>
               createElement(
                 "button",
                 {
-                  key,
+                  key: option.key,
                   type: "button",
-                  "data-testid": `scope-${key}`,
-                  onClick: () => onScopeKeyChange(key),
+                  "data-testid": `scope-${option.key}`,
+                  onClick: () => onScopeKeyChange(option.key),
                 },
-                key,
+                option.key,
               ),
+            ),
           ),
         )
       : createElement("button", null, "scope"),
-  getPluginWorkspaceKey: (tab: { workspacePath: string; workspaceIdentity?: string }) =>
-    mockScopeRouting.enabled ? tab.workspaceIdentity || tab.workspacePath : "workspace",
-  isPluginScopeWorkspaceConnected: () => true,
 }));
 
 vi.mock("@/chat-input-toolbar/ThoughtLevelCycleControl.js", () => ({
@@ -338,6 +349,7 @@ vi.mock("@/hooks/useServices.js", () => ({
 
 vi.mock("@/store/subagentsStore.js", () => ({
   refreshLoadedSubagentsStoreForWorkspace: mockRefreshLoadedSubagentsStoreForWorkspace,
+  refreshSubagentsStoreForRemoteWorkspaces: mockRefreshSubagentsStoreForRemoteWorkspaces,
 }));
 
 vi.mock("@/hooks/useModelProviders.js", () => ({
@@ -365,7 +377,6 @@ vi.mock("@/hooks/useZCodeConfig.js", () => ({
     status: mockToolbarConfigState.status,
   }),
 }));
-
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useZCodeIntl: () => ({
@@ -470,6 +481,14 @@ describe("SubagentsSection", () => {
     mockScopeRouting.enabled = false;
     mockScopeRouting.context = null;
     mockScopeRouting.modelServices = [];
+    mockScopeRouting.selectedKey = "user";
+    mockScopeRouting.targets = [];
+    mockScopeRouting.devices = [];
+    mockScopeRouting.remoteUserAvailable = false;
+    mockScopeRouting.remoteUsers.clear();
+    mockScopeRouting.localUserTarget = null;
+    mockScopeRouting.localServices = null;
+    mockScopeRouting.form = null;
     useRemoteWorkspaceSessionStore.setState({
       baseServices: null,
       sessionsById: {},
@@ -490,6 +509,7 @@ describe("SubagentsSection", () => {
       },
     });
     mockRefreshLoadedSubagentsStoreForWorkspace.mockResolvedValue(undefined);
+    mockRefreshSubagentsStoreForRemoteWorkspaces.mockResolvedValue(undefined);
   });
 
   function setupScopeRouting(includeLocalWorkspace = true, connected = true) {
@@ -533,6 +553,18 @@ describe("SubagentsSection", () => {
       },
     ];
     mockScopeRouting.context = remoteA as unknown as IServiceAccessor;
+    mockScopeRouting.targets = mockTabs.tabs as never;
+    mockScopeRouting.devices = [
+      { sourceServerId: "source-a", name: "Device A", online: connected },
+      { sourceServerId: "source-b", name: "Device B", online: connected },
+    ];
+    mockScopeRouting.remoteUserAvailable = true;
+    mockScopeRouting.remoteUsers = new Map([
+      ["source-a", { services: remoteA as unknown as IServiceAccessor, homedir: "/home/a" }],
+      ["source-b", { services: remoteB as unknown as IServiceAccessor, homedir: "/home/b" }],
+    ]);
+    mockScopeRouting.localUserTarget = includeLocalWorkspace ? { workspacePath: path } : null;
+    mockScopeRouting.localServices = local as unknown as IServiceAccessor;
     useRemoteWorkspaceSessionStore.setState({
       baseServices: local as unknown as IServiceAccessor,
       sessionsById: connected
@@ -579,36 +611,41 @@ describe("SubagentsSection", () => {
     await waitFor(() => expect(container.querySelector("form")).toBeNull());
   }
 
-  it("远端激活时 User 的列表、模型、插件初始化和保存都属于本机", async () => {
+  it("远程 tab 选中该设备项目时，列表、模型、插件初始化与保存都走该设备", async () => {
     const { local, remoteA, path, identityA } = setupScopeRouting();
+    mockScopeRouting.selectedKey = identityA;
     const { SubagentsSection } = await import("@/settings/SubagentsSection.js");
     const view = render(
       createElement(SubagentsSection, { workspacePath: path, workspaceIdentity: identityA }),
     );
-    await waitFor(() => expect(local.subagentsService.list).toHaveBeenCalled());
-    expect(view.container.querySelector("[data-settings-machine]")).toBeNull();
-    expect(remoteA.subagentsService.list).not.toHaveBeenCalled();
-    expect(mockScopeRouting.modelServices.at(-1)).toBe(local.modelSelectionService);
+    await waitFor(() => expect(remoteA.subagentsService.list).toHaveBeenCalled());
+    expect(local.subagentsService.list).not.toHaveBeenCalled();
+    expect(mockScopeRouting.modelServices.at(-1)).toBe(remoteA.modelSelectionService);
     expect(mockInitializePlugins).toHaveBeenCalledWith(
       expect.objectContaining({
         workspacePath: path,
-        workspaceIdentity: undefined,
-        configScope: "user",
-        pluginService: local.pluginManagementService,
+        workspaceIdentity: identityA,
+        configScope: undefined,
+        pluginService: remoteA.pluginManagementService,
       }),
     );
     await submitScopeAgent(view.container);
-    expect(local.subagentsService.createAgent).toHaveBeenCalledWith(
-      expect.objectContaining({ scope: "user", workspaceIdentity: undefined }),
+    expect(remoteA.subagentsService.createAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: "workspace",
+        workspacePath: path,
+        workspaceIdentity: identityA,
+      }),
     );
-    expect(remoteA.subagentsService.createAgent).not.toHaveBeenCalled();
+    expect(local.subagentsService.createAgent).not.toHaveBeenCalled();
     expect(mockRefreshLoadedSubagentsStoreForWorkspace).toHaveBeenCalledWith(
-      expect.objectContaining({ scope: "user", subagentsService: local.subagentsService }),
+      expect.objectContaining({ scope: "workspace", subagentsService: remoteA.subagentsService }),
     );
   });
 
-  it("没有本机 workspace 且远端离线时 User 仍可保存，不借远端目录初始化插件", async () => {
+  it("没有本机项目时 User 使用本机 home，不借远端目录初始化插件", async () => {
     const { local, path, identityA } = setupScopeRouting(false, false);
+    mockScopeRouting.localUserTarget = { workspacePath: "/home/local" };
     const { SubagentsSection } = await import("@/settings/SubagentsSection.js");
     const view = render(
       createElement(SubagentsSection, { workspacePath: path, workspaceIdentity: identityA }),
@@ -616,33 +653,47 @@ describe("SubagentsSection", () => {
     await waitFor(() =>
       expect(local.subagentsService.list).toHaveBeenCalledWith(
         expect.objectContaining({
-          workspacePath: "",
+          workspacePath: "/home/local",
           workspaceIdentity: undefined,
           mode: "settingsUserOnly",
         }),
       ),
     );
-    expect(mockInitializePlugins).not.toHaveBeenCalled();
-    await submitScopeAgent(view.container);
-    expect(local.subagentsService.createAgent).toHaveBeenCalledOnce();
-  });
-
-  it("显式 Source User 无 workspace attachment 时仍使用注入的 Source 服务", async () => {
-    const { local, remoteA } = setupScopeRouting(false, false);
-    mockTabs.tabs = [];
-    const { SubagentsSection } = await import("@/settings/SubagentsSection.js");
-    const view = render(
-      createElement(SubagentsSection, {
-        settingsSourceServerId: "source-a",
-        workspacePath: "/home/dev",
+    expect(mockInitializePlugins).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspacePath: "/home/local",
+        workspaceIdentity: undefined,
+        configScope: "user",
+        pluginService: local.pluginManagementService,
       }),
     );
-    await waitFor(() => expect(remoteA.subagentsService.list).toHaveBeenCalled());
+    await submitScopeAgent(view.container);
+    expect(local.subagentsService.createAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ scope: "user", workspacePath: "/home/local" }),
+    );
+  });
+
+  it("远端设备的「用户」使用该设备的 attachment 服务，且不读取模型目录", async () => {
+    const { local, remoteA } = setupScopeRouting(false, false);
+    mockScopeRouting.selectedKey = "source-user:source-a";
+    mockScopeRouting.devices = [{ sourceServerId: "source-a", name: "Device A", online: true }];
+    const { SubagentsSection } = await import("@/settings/SubagentsSection.js");
+    const view = render(createElement(SubagentsSection, { workspacePath: "/home/dev" }));
+    await waitFor(() =>
+      expect(remoteA.subagentsService.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspacePath: "/home/a",
+          workspaceIdentity: undefined,
+          mode: "settingsUserOnly",
+        }),
+      ),
+    );
     expect(local.subagentsService.list).not.toHaveBeenCalled();
-    expect(mockScopeRouting.modelServices.at(-1)).toBe(remoteA.modelSelectionService);
+    // 远端「用户」没有 model-selection 目录：不读取，也不每 1s 重试。
+    expect(mockScopeRouting.modelServices.at(-1)).toBeNull();
     await submitScopeAgent(view.container);
     expect(remoteA.subagentsService.createAgent).toHaveBeenCalledWith(
-      expect.objectContaining({ scope: "user" }),
+      expect.objectContaining({ scope: "user", workspacePath: "/home/a" }),
     );
     expect(local.subagentsService.createAgent).not.toHaveBeenCalled();
   });
@@ -946,9 +997,8 @@ describe("SubagentsSection", () => {
     stateOverrides = new Map<number, unknown>([
       [1, []],
       [2, { userScopeAvailable: true }],
-      [7, true],
-      [8, customAgent],
     ]);
+    mockScopeRouting.form = { agent: customAgent };
 
     await renderSubagentsSection();
 
@@ -1043,7 +1093,7 @@ describe("SubagentsSection", () => {
     });
     await waitFor(() =>
       expect(mockSubagentsService.list).toHaveBeenCalledWith({
-        workspacePath: "",
+        workspacePath: "/repo",
         workspaceIdentity: undefined,
         provider: "glm",
         mode: "settingsUserOnly",
@@ -1487,10 +1537,8 @@ describe("SubagentsSection", () => {
   });
 
   it("renders tools permissions using the workspace-access row pattern", async () => {
-    stateOverrides = new Map<number, unknown>([
-      [2, { userScopeAvailable: true }],
-      [7, true],
-    ]);
+    stateOverrides = new Map<number, unknown>([[2, { userScopeAvailable: true }]]);
+    mockScopeRouting.form = { agent: null };
 
     const html = await renderSubagentsSection();
 
@@ -1504,10 +1552,8 @@ describe("SubagentsSection", () => {
   });
 
   it("uses the real chat toolbar model picker values with an inherit option in the form", async () => {
-    stateOverrides = new Map<number, unknown>([
-      [2, { userScopeAvailable: true }],
-      [7, true],
-    ]);
+    stateOverrides = new Map<number, unknown>([[2, { userScopeAvailable: true }]]);
+    mockScopeRouting.form = { agent: null };
 
     const html = await renderSubagentsSection();
     const modelPicker = capturedModelConfigSelects.at(-1);
@@ -1594,7 +1640,7 @@ describe("SubagentsSection", () => {
       model,
       modelAvailable: true,
       modelSelectionView: null,
-      modelSelectionLoading: true,
+      modelCatalogStatus: "loading",
       thoughtLevel: initial.thoughtLevel,
     });
     expect(unknownState).toEqual({ kind: "unknown", status: "loading" });
@@ -1604,7 +1650,7 @@ describe("SubagentsSection", () => {
       model,
       modelAvailable: true,
       modelSelectionView: mockModelSelectionView,
-      modelSelectionLoading: false,
+      modelCatalogStatus: "ready",
       thoughtLevel: initial.thoughtLevel,
     });
     expect(supportedState.option?.currentValue).toBe("");
@@ -1621,7 +1667,7 @@ describe("SubagentsSection", () => {
       model,
       modelAvailable: true,
       modelSelectionView: mockModelSelectionView,
-      modelSelectionLoading: false,
+      modelCatalogStatus: "ready",
       thoughtLevel: undefined,
     });
 
@@ -1670,14 +1716,14 @@ describe("SubagentsSection", () => {
     const base = {
       model: "custom:custom-openai:gpt-5.4",
       modelAvailable: true,
-      modelSelectionLoading: false,
+      modelCatalogStatus: "ready",
       thoughtLevel: undefined,
     };
 
     const loading = resolveSubagentThoughtOptionState({
       ...base,
       modelSelectionView: null,
-      modelSelectionLoading: true,
+      modelCatalogStatus: "loading",
     });
     expect(loading).toEqual({ kind: "unknown", status: "loading" });
     // Registry 尚未发布时保持未知，不能把已保存的档位误判为非法并清空。
@@ -1702,7 +1748,7 @@ describe("SubagentsSection", () => {
       ...base,
       thoughtLevel: "max",
       modelSelectionView: null,
-      modelSelectionLoading: true,
+      modelCatalogStatus: "loading",
     });
     expect(targetModelReconciling).toEqual({ kind: "unknown", status: "loading" });
 
@@ -1789,7 +1835,7 @@ describe("SubagentsSection", () => {
     expect(
       resolveSubagentThoughtOptionState({
         ...base,
-        modelSelectionLoading: true,
+        modelCatalogStatus: "loading",
       }),
     ).toMatchObject({
       kind: "supported",
@@ -1801,7 +1847,7 @@ describe("SubagentsSection", () => {
     expect(
       resolveSubagentThoughtOptionState({
         ...base,
-        modelSelectionLoading: false,
+        modelCatalogStatus: "ready",
       }),
     ).toMatchObject({
       kind: "supported",
@@ -1821,7 +1867,7 @@ describe("SubagentsSection", () => {
         model: encodeCustomModelValue("provider-demo", "GLM-5.2"),
         modelAvailable: true,
         modelSelectionView: null,
-        modelSelectionLoading: true,
+        modelCatalogStatus: "loading",
         thoughtLevel: undefined,
       }),
     ).toEqual({ kind: "unknown", status: "loading" });
@@ -1834,7 +1880,7 @@ describe("SubagentsSection", () => {
       model: "custom:custom-openai:plain-chat",
       modelAvailable: true,
       modelSelectionView: mockModelSelectionView,
-      modelSelectionLoading: false,
+      modelCatalogStatus: "ready",
       thoughtLevel: "high",
     };
     const disabled = resolveSubagentThoughtOptionState(base);
@@ -1853,8 +1899,8 @@ describe("SubagentsSection", () => {
     const { isSubagentModelAvailable } = await import("../src/settings/SubagentsSection.js");
     const model = "custom:custom-anthropic:claude-opus-4-8";
 
-    expect(isSubagentModelAvailable([], model, true)).toBe(true);
-    expect(isSubagentModelAvailable([], model, false)).toBe(false);
+    expect(isSubagentModelAvailable([], model, "loading")).toBe(true);
+    expect(isSubagentModelAvailable([], model, "ready")).toBe(false);
   });
 
   it("defaults new and legacy custom agents to AGENTS.md injection and preserves false", async () => {
@@ -1972,8 +2018,8 @@ describe("SubagentsSection", () => {
     stateOverrides = new Map<number, unknown>([
       [1, [agent]],
       [2, { userScopeAvailable: true }],
-      [8, agent],
     ]);
+    mockScopeRouting.form = { agent };
     mockToolbarConfigState.status = "error";
 
     const html = await renderSubagentsSection();
@@ -2057,13 +2103,111 @@ describe("SubagentsSection", () => {
   });
 });
 
+// Scope 的领域规则与 hook 时序由 settings-scope 自带用例覆盖；这里用可控状态验证分区接线。
+vi.mock("@/settings-scope/index.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/settings-scope/index.js")>();
+  const React = await vi.importActual<typeof import("react")>("react");
+  const fallbackServices = {
+    subagentsService: mockSubagentsService,
+    pluginManagementService: {},
+    modelSelectionService: {},
+  } as unknown as IServiceAccessor;
+  const buildState = () => {
+    const targets =
+      mockScopeRouting.targets.length > 0 ? mockScopeRouting.targets : (mockTabs.tabs as never);
+    const context = {
+      targets,
+      devices: mockScopeRouting.devices,
+      remoteUserAvailable: mockScopeRouting.remoteUserAvailable,
+    };
+    const groups = actual.buildSettingsScopeGroups(context);
+    const resolution = actual.resolveSettingsScope(mockScopeRouting.selectedKey, context);
+    const device =
+      resolution.status === "missing" ? ({ kind: "local" } as const) : resolution.device;
+    const deviceId = device.kind === "local" ? "local" : device.id;
+    const deviceTargets =
+      groups
+        .find((group) => (group.device.kind === "local" ? "local" : group.device.id) === deviceId)
+        ?.options.flatMap((option) => (option.target ? [option.target] : [])) ?? [];
+    const user =
+      device.kind === "local"
+        ? ({
+            status: "ready",
+            target: mockScopeRouting.localUserTarget ??
+              deviceTargets.find((target) => !target.workspaceIdentity) ?? {
+                workspacePath: "/repo",
+                label: "repo",
+              },
+            unscopedServices: mockScopeRouting.localServices ?? fallbackServices,
+          } as const)
+        : device.sourceServerId && mockScopeRouting.remoteUsers.has(device.sourceServerId)
+          ? ({
+              status: "ready",
+              target: {
+                workspacePath: mockScopeRouting.remoteUsers.get(device.sourceServerId)!.homedir,
+                label: mockScopeRouting.remoteUsers.get(device.sourceServerId)!.homedir,
+              },
+              unscopedServices: mockScopeRouting.remoteUsers.get(device.sourceServerId)!.services,
+              cacheAuthorityKey: `source-settings:${device.sourceServerId}`,
+            } as const)
+          : ({ status: "connecting" } as const);
+    return {
+      groups,
+      selectedScopeKey: mockScopeRouting.selectedKey,
+      resolution,
+      device,
+      deviceTargets,
+      user,
+      syncSourceServerId: null,
+      isActiveWorkspaceDevice: true,
+      toLocalScopeKey: (key: string) => (actual.isUserScopeKey(key) ? "user" : key),
+      toPageScopeKey: (key: string) =>
+        key === "user"
+          ? device.kind === "remote" && device.sourceServerId
+            ? actual.remoteUserScopeKey(device.sourceServerId)
+            : "user"
+          : key,
+    };
+  };
+  return {
+    ...actual,
+    useSettingsScope: () => {
+      const [, force] = React.useReducer((value: number) => value + 1, 0);
+      return {
+        ...buildState(),
+        setSelectedScopeKey: (key: string) => {
+          mockScopeRouting.selectedKey = key;
+          force();
+        },
+      };
+    },
+    useSettingsScopeForm: () => {
+      const [form, dispatch] = React.useReducer(
+        (_state: unknown, action: { type: "open"; value?: unknown } | { type: "close" }) =>
+          action.type === "open" ? { value: action.value } : null,
+        (mockScopeRouting.form ? { value: mockScopeRouting.form } : null) as {
+          value?: unknown;
+        } | null,
+      );
+      return {
+        form: form ? (form.value ?? null) : null,
+        openForm: (value: unknown) => dispatch({ type: "open", value }),
+        closeForm: () => dispatch({ type: "close" }),
+      };
+    },
+    SettingsScopeDeviceProvider: ({ children }: { children?: unknown }) => children,
+    SettingsScopeBlockedNotice: () => null,
+    resolveSettingsScopeBlock: () => null,
+  };
+});
+
 // 本套验证 Subagent 表单行为；目录读取/连接竞态由 Catalog 合同与真实 hook 用例覆盖。
 vi.mock("@/workspace-config-catalog/index.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/workspace-config-catalog/index.js")>();
   const workspace = await import("@/hooks/useWorkspaceServices.js");
   return {
     ...actual,
-    useConfigWorkspaceTargets: () => mockTabs.tabs,
+    useConfigWorkspaceTargets: () => ({ targets: mockTabs.tabs, loaded: true }),
     useConfigWorkspaceServicesResolution: workspace.useWorkspaceServicesResolution,
   };
 });
