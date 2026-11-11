@@ -14,6 +14,12 @@ export interface ProjectDataRepositoryContract {
   readProjectTaskRefs(projectId: string): ProjectDataTaskRef[];
   /** 全库任务行所属项目与 cwd，用于排除仍被别的项目/任务使用的目录。 */
   readTaskScopes(): Array<{ projectId: string | null; cwd: string }>;
+  /**
+   * Host 定时任务仍指向的会话：`automations.target_task_id` 是任务绑定的执行会话，
+   * `automation_runs.session_id` 是已派发运行实际使用的会话。两类行都在任务索引库里，
+   * 删掉会话会让定时任务失去目标或运行历史指向悬空，因此清理时必须按「被引用」保留。
+   */
+  readAutomationSessionRefs(): string[];
   /** CLI 已删除会话后移除 Host 行；目录删除失败时保留行供重试。 */
   purgeTasks(tasks: readonly ProjectDataTaskRef[]): void;
 }

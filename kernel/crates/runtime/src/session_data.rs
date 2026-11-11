@@ -129,7 +129,7 @@ impl LocalKernel {
         let mut removable: HashSet<SessionId> = candidate_ids.iter().cloned().collect();
 
         // 分享中的会话被外部事实钉住；不参与删除，并让引用它的树也保留。
-        let mut referenced: HashSet<SessionId> = self
+        let pinned: HashSet<SessionId> = self
             .ports
             .store
             .session_data_pinned(&candidate_ids)
@@ -138,8 +138,24 @@ impl LocalKernel {
             .into_iter()
             .filter(|root| !running.contains(root))
             .collect();
+        // workflow_activity 等活动记录不是会话，但同样引用着子会话：活动行不随会话删除
+        // （`on delete set null`），删掉会话会让待继续/可重放的工作流失去目标。与分享同一
+        // 口径整棵保留；被引用的可能是根也可能是附属后代，所以按树内任一会话命中判断。
+        let activity_referenced: HashSet<SessionId> = self
+            .ports
+            .store
+            .session_data_external_references(&candidate_ids)
+            .await
+            .map_err(failed)?
+            .into_iter()
+            .collect();
+        let mut referenced: HashSet<SessionId> = HashSet::new();
         for (root, ids) in &candidates {
-            if referenced.contains(root) {
+            if ids
+                .iter()
+                .any(|id| pinned.contains(id) || activity_referenced.contains(id))
+            {
+                referenced.insert(root.clone());
                 for id in ids {
                     removable.remove(id);
                 }

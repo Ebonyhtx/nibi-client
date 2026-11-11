@@ -100,13 +100,25 @@ export function createProjectDataCommands(options: {
       const data = requireLocal(hostId);
       const { repository } = await requireProject(id);
       const rows = await dataRows(data);
-      const directories = deletableProjectDirectories(repository, rows, id);
-      const measured = await data.port.measure({
-        sessions: sessionRefs(rows, id),
-        directories,
-      });
+      const refs = sessionRefs(rows, id);
+      // cron 绑定的会话由 Host 判定（CLI 看不到 Host 的 automations），它和它的 cwd
+      // 都必须算作仍在使用：否则 measure 会把 purge 实际保留的记忆/检查点报成可删。
+      const automationRefs = new Set(rows.readAutomationSessionRefs());
+      const directories = deletableProjectDirectories(
+        repository,
+        rows,
+        id,
+        refs
+          .filter((ref) => automationRefs.has(ref.sessionId))
+          .map((ref) => ref.cwd),
+      );
+      const measured = await data.port.measure({ sessions: refs, directories });
       return {
-        sessions: measured.sessions,
+        // 被 cron 引用的会话仍保留行与标题，但可释放字节记 0：与 purge 的
+        // kept(reason=referenced) 同口径，UI 也不会默认勾选它。
+        sessions: measured.sessions.map((session) =>
+          automationRefs.has(session.sessionId) ? { ...session, bytes: 0 } : session,
+        ),
         directories: measured.directories,
       } satisfies ProjectDataMeasureDetail;
     },
@@ -117,10 +129,15 @@ export function createProjectDataCommands(options: {
       const { repository } = await requireProject(parsed.projectId);
       const rows = await dataRows(data);
       const refs = sessionRefs(rows, parsed.projectId);
+      // automations / automation_runs 只在 Host 库里：CLI 的 sessionData/purge 看不到它们，
+      // 所以由 Host 先摘出这些会话，既保证 purge 不删，也保证它们的 cwd 不被当成可释放目录。
+      const automationRefs = new Set(rows.readAutomationSessionRefs());
       const selectedIds = parsed.sessionIds ? new Set(parsed.sessionIds) : undefined;
       const selected = selectedIds ? refs.filter((ref) => selectedIds.has(ref.sessionId)) : refs;
+      const cronKept = selected.filter((ref) => automationRefs.has(ref.sessionId));
+      const purgeable = selected.filter((ref) => !automationRefs.has(ref.sessionId));
 
-      const sessions = await data.port.purgeSessions(selected);
+      const sessions = await data.port.purgeSessions(purgeable);
       const deleted = new Set(sessions.deleted.map((entry) => entry.sessionId));
       // 保留下来的会话仍在用自己的 cwd：其记忆与检查点不能删。
       const survivors = refs.filter((ref) => !deleted.has(ref.sessionId)).map((ref) => ref.cwd);
@@ -147,7 +164,13 @@ export function createProjectDataCommands(options: {
       await options.changed();
       return {
         deleted: sessions.deleted,
-        kept: sessions.kept,
+        kept: [
+          ...sessions.kept,
+          ...cronKept.map((ref) => ({
+            sessionId: ref.sessionId,
+            reason: "referenced" as const,
+          })),
+        ],
         failed: [...sessions.failed, ...folders.failed],
         memory: folders.memory,
         checkpoints: folders.checkpoints,

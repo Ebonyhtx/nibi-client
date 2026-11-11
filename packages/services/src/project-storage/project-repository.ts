@@ -351,6 +351,31 @@ export class ProjectRepository implements ProjectRepositoryContract, ProjectData
       }));
   }
 
+  /**
+   * cron（Host automations）仍指向的会话。`target_task_id` 是任务绑定的会话，
+   * `automation_runs.session_id` 是每次派发实际使用的会话：两者都删除后，
+   * 定时任务会失去目标，运行历史也会指向不存在的会话。
+   *
+   * 不过滤生命周期与运行结果：已完成/暂停的任务仍可重启，历史 run 仍是用户可见记录；
+   * 这里按「宁可少删」的口径，凡是被引用的都保留。旧行 `host_id` 为 NULL，按本机处理。
+   * 调用方是项目数据清理，库已由 tasksDatabase 迁移保证两张表存在。
+   */
+  readAutomationSessionRefs(): string[] {
+    const hostId = this.ownerHostId ?? "local";
+    return this.db
+      .prepare(
+        `SELECT target_task_id AS session_id FROM automations
+         WHERE target_task_id IS NOT NULL AND (host_id IS NULL OR host_id=?)
+         UNION
+         SELECT r.session_id AS session_id FROM automation_runs r
+         JOIN automations a ON a.automation_id = r.automation_id
+         WHERE r.session_id IS NOT NULL AND (a.host_id IS NULL OR a.host_id=?)
+         ORDER BY session_id`,
+      )
+      .all(hostId, hostId)
+      .map((row) => String(row.session_id));
+  }
+
   purgeTasks(tasks: readonly ProjectTaskRef[]): void {
     if (!tasks.length) return;
     transaction(this.db, () => {

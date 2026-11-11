@@ -329,6 +329,18 @@ impl SessionStore for NodeStore {
             .await
     }
 
+    /// 被 `workflow_activity.child_session_id` 引用的会话。
+    async fn session_data_external_references(
+        &self,
+        targets: &[SessionId],
+    ) -> Result<Vec<SessionId>, StoreError> {
+        let targets = targets.to_vec();
+        self.with_db(move |conn, _| {
+            repo::session_data::activity_referenced(conn, &targets).map_err(storage)
+        })
+        .await
+    }
+
     /// 会话文件的可清理字节数（artifacts / exec / agents / sessions 与模型轨迹）。
     async fn measure_session_files(
         &self,

@@ -137,6 +137,59 @@ async fn referrers_cover_artifacts_parents_and_task_links_but_not_deleted_sessio
 }
 
 #[tokio::test]
+async fn workflow_activity_children_are_external_references_while_their_run_survives() {
+    let t = TestStore::new();
+    for id in [
+        "sess_orphan_child",
+        "sess_live_child",
+        "sess_purged_child",
+        "sess_other",
+        "sess_purged_parent",
+        "sess_outside_parent",
+    ] {
+        create(&t, id, SessionKind::Interactive, None).await;
+    }
+    t.connection()
+        .execute_batch(
+            "insert into workflow_run (
+                id, name, cwd, script_hash, status, parent_session_id,
+                time_created, time_updated
+             ) values
+                ('run_orphan', 'flow', '/w/app', 'hash', 'running', null, 1, 1),
+                ('run_purged', 'flow', '/w/app', 'hash', 'running', 'sess_purged_parent', 1, 1),
+                ('run_live', 'flow', '/w/app', 'hash', 'running', 'sess_outside_parent', 1, 1);
+             insert into workflow_activity (
+                id, run_id, call_index, call_path, type, input_hash, status,
+                child_session_id, time_created, time_updated
+             ) values
+                ('act_orphan', 'run_orphan', 0, '/flow', 'agent', 'hash', 'running',
+                 'sess_orphan_child', 1, 1),
+                ('act_purged', 'run_purged', 0, '/flow', 'agent', 'hash', 'running',
+                 'sess_purged_child', 1, 1),
+                ('act_live', 'run_live', 0, '/flow', 'agent', 'hash', 'running',
+                 'sess_live_child', 1, 1);",
+        )
+        .unwrap();
+
+    let targets = [
+        sid("sess_orphan_child"),
+        sid("sess_live_child"),
+        sid("sess_purged_child"),
+        sid("sess_other"),
+        sid("sess_purged_parent"),
+    ];
+    let mut refs = t
+        .store
+        .session_data_external_references(&targets)
+        .await
+        .unwrap();
+    refs.sort_by(|left, right| left.as_str().cmp(right.as_str()));
+    // 没有父会话（孤儿 run）与父会话不在删除范围（run 会存活）的活动都钉住子会话；
+    // 父会话本身也要删时，run/activity 会级联消失，不能拿它阻挡清理。
+    assert_eq!(refs, [sid("sess_live_child"), sid("sess_orphan_child")]);
+}
+
+#[tokio::test]
 async fn shared_sessions_are_pinned() {
     let t = TestStore::new();
     create(&t, "sess_shared", SessionKind::Interactive, None).await;

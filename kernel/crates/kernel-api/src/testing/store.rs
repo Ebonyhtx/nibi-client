@@ -105,6 +105,8 @@ pub struct MemoryStore {
     referrers: Mutex<HashMap<SessionId, Vec<SessionId>>>,
     /// 被分享钉住的会话。
     pinned: Mutex<HashSet<SessionId>>,
+    /// 被非会话事实（workflow_activity）引用的会话。
+    external_references: Mutex<HashSet<SessionId>>,
 }
 
 impl MemoryStore {
@@ -184,6 +186,11 @@ impl MemoryStore {
     /// 把会话标记为被分享钉住（`session_data_pinned` 的替身）。
     pub fn pin(&self, session: &SessionId) {
         lock(&self.pinned).insert(session.clone());
+    }
+
+    /// 把会话标记为被 workflow_activity 引用（`session_data_external_references` 的替身）。
+    pub fn set_external_reference(&self, session: &SessionId) {
+        lock(&self.external_references).insert(session.clone());
     }
 
     /// 会话是否还在（彻底删除后为 false）。
@@ -656,6 +663,18 @@ impl SessionStore for MemoryStore {
             .collect())
     }
 
+    async fn session_data_external_references(
+        &self,
+        targets: &[SessionId],
+    ) -> Result<Vec<SessionId>, StoreError> {
+        let external = lock(&self.external_references);
+        Ok(targets
+            .iter()
+            .filter(|target| external.contains(*target))
+            .cloned()
+            .collect())
+    }
+
     async fn measure_session_files(
         &self,
         session: &SessionId,
@@ -680,6 +699,7 @@ impl SessionStore for MemoryStore {
                 lock(&self.updated).remove(&id);
                 lock(&self.turns).remove(&id);
                 lock(&self.files).remove(&id);
+                lock(&self.external_references).remove(&id);
                 for refs in lock(&self.referrers).values_mut() {
                     refs.retain(|referrer| referrer != &id);
                 }

@@ -962,6 +962,17 @@ pub trait SessionStore: Send + Sync {
         Ok(Vec::new())
     }
 
+    /// 被非会话事实引用的会话（目前是 `workflow_activity.child_session_id`）。活动行不随
+    /// 会话删除（`on delete set null`），删掉会话会让仍可继续/待审阅的工作流失去子会话；
+    /// 这与 `session_data_referrers` 的「会话引用会话」不同，调用方只能整棵保留。
+    /// 没有这份读面的实现返回空。
+    async fn session_data_external_references(
+        &self,
+        _targets: &[SessionId],
+    ) -> Result<Vec<SessionId>, StoreError> {
+        Ok(Vec::new())
+    }
+
     /// 一个会话在磁盘上的可清理字节数（artifacts / exec / agents / sessions 目录与模型轨迹）。
     /// 只统计真实文件；符号链接按 0，缺失按 0。不支持的实现返回 `SessionDataError::unsupported`。
     async fn measure_session_files(

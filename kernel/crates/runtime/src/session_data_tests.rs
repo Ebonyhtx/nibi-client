@@ -280,6 +280,32 @@ async fn purge_is_idempotent_and_never_touches_other_sessions() {
 }
 
 #[tokio::test]
+async fn purge_keeps_trees_referenced_by_workflow_activity() {
+    let store = Arc::new(MemoryStore::default());
+    let kernel = kernel(store.clone(), environment());
+    kernel
+        .create_session(create("sess_flow", "/w/app"))
+        .await
+        .unwrap();
+    create_child(&store, "sess_flow_child", "sess_flow", SessionKind::Subagent).await;
+    store.set_session_files(&SessionId::new("sess_flow"), 10);
+    store.set_session_files(&SessionId::new("sess_flow_child"), 5);
+    // 活动记录引用的是树内后代（workflow_activity.child_session_id），整棵树都要保留。
+    store.set_external_reference(&SessionId::new("sess_flow_child"));
+
+    let result = kernel
+        .purge_session_data(params(&["sess_flow"], &[]))
+        .await
+        .unwrap();
+    assert!(result.deleted.is_empty());
+    assert_eq!(result.kept.len(), 1);
+    assert_eq!(result.kept[0].session_id, SessionId::new("sess_flow"));
+    assert_eq!(result.kept[0].reason, SessionDataKeptReason::Referenced);
+    assert!(store.contains(&SessionId::new("sess_flow")));
+    assert!(store.contains(&SessionId::new("sess_flow_child")));
+}
+
+#[tokio::test]
 async fn a_shared_session_is_kept_as_referenced() {
     let store = Arc::new(MemoryStore::default());
     let kernel = kernel(store.clone(), environment());

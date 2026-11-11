@@ -198,6 +198,47 @@ pub fn pinned(conn: &Connection, targets: &[SessionId]) -> rusqlite::Result<Vec<
     Ok(out)
 }
 
+/// 被 `workflow_activity` 记录引用的会话（`child_session_id`）。活动行不随会话删除
+/// （`on delete set null`），删掉会话会让仍可继续、待审阅或可重放的工作流失去子会话，
+/// 因此这里不按活动状态过滤：完成后的活动仍是用户可见的归档记录，宁可少删。
+///
+/// 例外是运行的父会话也在本次删除范围：`purge_sessions` 会连 `workflow_run` 一起删，
+/// 活动行随之级联消失，此时这条引用不会存活，不能拿它把子会话钉住（否则整个工作流
+/// 子树永远无法清理）。
+pub fn activity_referenced(
+    conn: &Connection,
+    targets: &[SessionId],
+) -> rusqlite::Result<Vec<SessionId>> {
+    if targets.is_empty() {
+        return Ok(Vec::new());
+    }
+    let wanted: HashSet<&str> = targets.iter().map(SessionId::as_str).collect();
+    let mut out = Vec::new();
+    for chunk in chunks(targets) {
+        let marks = vec!["?"; chunk.len()].join(",");
+        let sql = format!(
+            "select distinct wa.child_session_id, wr.parent_session_id
+             from workflow_activity wa join workflow_run wr on wr.id = wa.run_id
+             where wa.child_session_id in ({marks})"
+        );
+        let mut statement = conn.prepare(&sql)?;
+        let rows = statement.query_map(
+            params_from_iter(chunk.iter().map(SessionId::as_str)),
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?)),
+        )?;
+        for row in rows {
+            let (child, parent) = row?;
+            if parent
+                .as_deref()
+                .is_none_or(|parent| !wanted.contains(parent))
+            {
+                out.push(SessionId::new(child));
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// 删除这些根及其附属后代的会话行。`input_history`、`dwf_run`、`workflow_run` 没有指向
 /// `session` 的级联外键，显式删除；message / part / todo / session_entry / usage / session_input
 /// 经外键级联。调用方先删文件，文件失败时不调用。
