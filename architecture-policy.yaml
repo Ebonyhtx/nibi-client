@@ -1290,3 +1290,12 @@ exceptions:
       同步入口收敛到数据同步页后的导航胶水（设置分区意图、分类预选、旧入口统一按钮），
       以及聊天附件的文件操作菜单。两者都只复用既有平台能力与既有菜单/导航模型，
       不新增服务通道或跨层依赖；packages/ui 仍是 managed:false 的遗留大区，按路径登记。
+
+  - id: mcp-draft-state
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/settings/mcpDraftState.ts
+    reason: >-
+      MCP 表单的草稿判定与草稿校验是纯函数，被 McpServerForm 与 McpSettingsSection
+      共用；放在 settings 同目录避免组件间互相 import 出环。packages/ui 仍是
+      managed:false 的遗留大区，按路径单独登记。

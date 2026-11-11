@@ -17,6 +17,17 @@ export const SOURCE_META: Record<
 export type ConfigStorageLevel = "user" | "workspace";
 export type McpEditorMode = "form" | "json";
 
+/**
+ * JSON 草稿解析失败时携带 i18n messageId，而不是把中文文案直接抛给 UI。
+ * 草稿校验与保存按钮的启用条件都依赖这个错误类型，避免 en 界面出现中文报错。
+ */
+export class McpJsonDraftError extends Error {
+  constructor(readonly messageId: string) {
+    super(messageId);
+    this.name = "McpJsonDraftError";
+  }
+}
+
 export interface FormState {
   name: string;
   scope: ServerScope;
@@ -156,7 +167,7 @@ export function jsonDraftToForm(jsonText: string, fallback: FormState): FormStat
   if (isRecord(parsed) && isRecord(parsed.mcpServers)) {
     const entries = Object.entries(parsed.mcpServers).filter(([, value]) => isRecord(value));
     if (entries.length !== 1) {
-      throw new Error("JSON 模式暂时只支持一次编辑一个 MCP server");
+      throw new McpJsonDraftError("settings.mcp.form.jsonError.singleServer");
     }
     const [singleName, singleConfig] = entries[0]!;
     serverName = singleName;
@@ -176,11 +187,11 @@ export function jsonDraftToForm(jsonText: string, fallback: FormState): FormStat
   }
 
   if (!isRecord(serverConfig)) {
-    throw new Error("JSON 内容不是有效的 MCP server 配置对象");
+    throw new McpJsonDraftError("settings.mcp.form.jsonError.invalidConfig");
   }
 
   if (!serverName) {
-    throw new Error("JSON 模式需要提供 server 名称");
+    throw new McpJsonDraftError("settings.mcp.form.jsonError.missingName");
   }
 
   const normalizedConfig = serverConfig as McpServerConfig;

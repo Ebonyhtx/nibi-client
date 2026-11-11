@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { McpSource, ZCodeMcpServer } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Input } from "@/components/ui/input.js";
@@ -23,10 +23,43 @@ import {
   type FormState,
   type McpEditorMode,
 } from "./mcpSettingsShared.js";
+import {
+  isMcpFormDraftDirty,
+  resolveMcpDraftErrorId,
+  validateMcpFormDraft,
+  type McpDraftErrors,
+  type McpDraftValidation,
+} from "./mcpDraftState.js";
 
 function McpFormFieldLabel({ children }: { children: string }) {
   return (
     <label className="mb-1 block text-ui-base font-medium text-foreground-subtle">{children}</label>
+  );
+}
+
+function McpDraftErrorList({ messageIds, testId }: { messageIds?: string[]; testId: string }) {
+  const { intl } = useZCodeIntl();
+  if (!messageIds?.length) {
+    return null;
+  }
+  return (
+    <div className="mt-1 space-y-0.5" role="alert" data-testid={testId}>
+      {messageIds.map((messageId, index) => (
+        <p key={`${index}:${messageId}`} className="text-ui-base text-destructive">
+          {intl.formatMessage({ id: messageId })}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function draftErrorIds(messageId: string | undefined): string[] | undefined {
+  return messageId ? [messageId] : undefined;
+}
+
+function allDraftErrorIds(errors: McpDraftErrors): string[] {
+  return Object.values(errors).filter(
+    (messageId): messageId is string => typeof messageId === "string" && messageId.length > 0,
   );
 }
 
@@ -66,6 +99,7 @@ export function McpServerForm({
   onSave,
   onCancel,
   onDelete,
+  onDirtyChange,
   scopeKey,
   workspaceTabs,
   onScopeKeyChange,
@@ -81,21 +115,31 @@ export function McpServerForm({
   onSave: (form: FormState, prevServer?: ZCodeMcpServer) => void;
   onCancel: () => void;
   onDelete?: (server: ZCodeMcpServer) => void;
+  /** 草稿是否包含未保存修改；分区据此在离开/切换 server 前弹确认。 */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { intl } = useZCodeIntl();
-  const initialForm: FormState = initial
-    ? serverToForm(initial)
-    : {
-        ...EMPTY_FORM,
-        storageLevel: scopeKey === "user" ? "user" : "workspace",
-      };
-  const [form, setForm] = useState<FormState>(initialForm);
-  const [jsonDraft, setJsonDraft] = useState<string>(() => formToJsonDraft(initialForm));
-  const [jsonError, setJsonError] = useState<string | null>(null);
+  // baseline 在挂载时固定：编辑期间 store 的状态快照会不断重建 server 对象，
+  // 若每帧重算 baseline，用户刚输入的内容会被误判成"未修改"或反复重置。
+  const [baselineForm] = useState<FormState>(() =>
+    initial
+      ? serverToForm(initial)
+      : {
+          ...EMPTY_FORM,
+          storageLevel: scopeKey === "user" ? "user" : "workspace",
+        },
+  );
+  const [baselineJsonDraft] = useState<string>(() => formToJsonDraft(baselineForm));
+  // 表单与 JSON 编辑器共享同一份草稿：两者都只改本地 state，保存按钮才提交。
+  const [form, setForm] = useState<FormState>(baselineForm);
+  const [jsonDraft, setJsonDraft] = useState<string>(baselineJsonDraft);
   const [showEnv, setShowEnv] = useState(false);
   const formRef = useRef(form);
   const jsonDraftRef = useRef(jsonDraft);
   const previousEditorModeRef = useRef(editorMode);
+  const onDirtyChangeRef = useRef(onDirtyChange);
+
+  onDirtyChangeRef.current = onDirtyChange;
 
   useEffect(() => {
     formRef.current = form;
@@ -105,6 +149,54 @@ export function McpServerForm({
     jsonDraftRef.current = jsonDraft;
   }, [jsonDraft]);
 
+  const jsonDraftParse = useMemo((): {
+    form: FormState | null;
+    errorId: string | null;
+  } => {
+    if (editorMode !== "json") {
+      return { form: null, errorId: null };
+    }
+    try {
+      return { form: jsonDraftToForm(jsonDraft, form), errorId: null };
+    } catch (error) {
+      return { form: null, errorId: resolveMcpDraftErrorId(error) };
+    }
+  }, [editorMode, form, jsonDraft]);
+
+  const formValidation = useMemo(() => validateMcpFormDraft(form), [form]);
+  const jsonValidation = useMemo((): McpDraftValidation => {
+    if (editorMode !== "json") {
+      return formValidation;
+    }
+    if (jsonDraftParse.errorId) {
+      return { valid: false, errors: { json: jsonDraftParse.errorId } };
+    }
+    return jsonDraftParse.form
+      ? validateMcpFormDraft(jsonDraftParse.form)
+      : { valid: false, errors: {} };
+  }, [editorMode, formValidation, jsonDraftParse]);
+  const activeValidation = editorMode === "json" ? jsonValidation : formValidation;
+  // JSON 模式下 form 只在 Scope 切换等场景更新，JSON 文本才是主草稿；
+  // form 模式则忽略可能已过期的 jsonDraft，避免切换 tab 后残留格式差异一直显示未保存。
+  const dirty =
+    isMcpFormDraftDirty(form, baselineForm) ||
+    (editorMode === "json" && jsonDraft !== baselineJsonDraft);
+  // 新建表单刚打开时整体都是空的，立即铺红字只会制造噪音；
+  // 编辑态直接展示已落盘配置里的问题（例如历史坏 URL），新建态等用户改动后再生效。
+  const showValidationErrors = dirty || Boolean(initial);
+
+  useEffect(() => {
+    onDirtyChangeRef.current?.(dirty);
+  }, [dirty]);
+
+  useEffect(
+    () => () => {
+      // 表单卸载即草稿丢弃；分区不能在下次打开时继承上一份草稿的 dirty。
+      onDirtyChangeRef.current?.(false);
+    },
+    [],
+  );
+
   useEffect(() => {
     const previousMode = previousEditorModeRef.current;
     if (previousMode === editorMode) {
@@ -113,7 +205,6 @@ export function McpServerForm({
 
     if (editorMode === "json") {
       setJsonDraft(formToJsonDraft(formRef.current));
-      setJsonError(null);
       previousEditorModeRef.current = editorMode;
       return;
     }
@@ -121,17 +212,13 @@ export function McpServerForm({
     try {
       const parsedForm = jsonDraftToForm(jsonDraftRef.current, formRef.current);
       setForm(parsedForm);
-      setJsonError(null);
       previousEditorModeRef.current = editorMode;
-    } catch (error) {
-      setJsonError(
-        error instanceof Error
-          ? error.message
-          : intl.formatMessage({ id: "settings.mcp.form.jsonParseError" }),
-      );
+    } catch {
+      // 解析失败时留在 JSON 模式：实时校验已经把 i18n 错误显示在编辑框下，
+      // 这里只回退 tab，避免把用户正在修改的 JSON 草稿替换成旧表单值。
       onEditorModeChange(previousMode);
     }
-  }, [editorMode, intl, onEditorModeChange]);
+  }, [editorMode, onEditorModeChange]);
 
   function update(patch: Partial<FormState>) {
     setForm((prev) => {
@@ -144,43 +231,25 @@ export function McpServerForm({
   }
 
   function handleSaveClick() {
-    if (editorMode === "json") {
-      try {
-        const parsedForm = jsonDraftToForm(jsonDraft, form);
-        setForm(parsedForm);
-        setJsonError(null);
-
-        onSave(parsedForm, initial);
-      } catch (error) {
-        setJsonError(
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({ id: "settings.mcp.form.jsonParseError" }),
-        );
-      }
+    const targetForm = editorMode === "json" ? jsonDraftParse.form : form;
+    if (!targetForm || !validateMcpFormDraft(targetForm).valid) {
       return;
     }
-
-    onSave(form, initial);
+    if (editorMode === "json") {
+      setForm(targetForm);
+    }
+    onSave(targetForm, initial);
   }
 
-  const canSave = (() => {
-    if (editorMode !== "json") {
-      return Boolean(
-        form.name.trim() && (form.type === "stdio" ? form.command.trim() : form.url.trim()),
-      );
-    }
-    if (!jsonDraft.trim()) return false;
-    try {
-      const parsedForm = jsonDraftToForm(jsonDraft, form);
-      return Boolean(
-        parsedForm.name.trim() &&
-        (parsedForm.type === "stdio" ? parsedForm.command.trim() : parsedForm.url.trim()),
-      );
-    } catch {
-      return false;
-    }
-  })();
+  const canSave = activeValidation.valid;
+  const visibleErrors: McpDraftErrors = showValidationErrors ? activeValidation.errors : {};
+  // env/headers/oauth 收在折叠区里；错误提示放在折叠按钮外，
+  // 否则用户收起高级选项后只会看到保存按钮变灰、找不到原因。
+  const optionalConfigErrorIds = allDraftErrorIds(
+    form.type === "stdio"
+      ? { env: visibleErrors.env }
+      : { headers: visibleErrors.headers, oauth: visibleErrors.oauth },
+  );
 
   const envToggleLabel =
     form.type === "stdio"
@@ -203,9 +272,12 @@ export function McpServerForm({
       scopeKey={scopeKey}
       workspaceTabs={workspaceTabs}
       onChange={(nextScopeKey) => {
-        update({
+        // Scope 只影响保存目标，不属于 JSON 配置本身；直接改 form，
+        // 避免 JSON 模式下用 formToJsonDraft 把用户正在编辑的 JSON 文本覆盖掉。
+        setForm((prev) => ({
+          ...prev,
           storageLevel: nextScopeKey === "user" ? "user" : "workspace",
-        });
+        }));
         onScopeKeyChange(nextScopeKey);
       }}
     />
@@ -226,13 +298,9 @@ export function McpServerForm({
               placeholder={
                 '{\n  "my-mcp-server": {\n    "type": "http",\n    "url": "https://example.com/mcp"\n  }\n}'
               }
+              aria-invalid={showValidationErrors && !activeValidation.valid}
               value={jsonDraft}
-              onChange={(e) => {
-                setJsonDraft(e.target.value);
-                if (jsonError) {
-                  setJsonError(null);
-                }
-              }}
+              onChange={(e) => setJsonDraft(e.target.value)}
             />
             <p className="text-ui-base text-foreground-subtle">
               {intl.formatMessage({ id: "settings.mcp.form.pasteHintPrefix" })}{" "}
@@ -241,7 +309,10 @@ export function McpServerForm({
               <code>{`{"mcpServers": {"server-name": {...}}}`}</code>
               {intl.formatMessage({ id: "settings.mcp.form.pasteHintSuffix" })}
             </p>
-            {jsonError && <p className="text-ui-base text-destructive">{jsonError}</p>}
+            <McpDraftErrorList
+              messageIds={showValidationErrors ? allDraftErrorIds(activeValidation.errors) : []}
+              testId="mcp-server-form-json-mode-error"
+            />
           </div>
         </div>
       ) : (
@@ -256,7 +327,12 @@ export function McpServerForm({
                 placeholder="my-mcp-server"
                 value={form.name}
                 disabled={!!editingId}
+                aria-invalid={Boolean(visibleErrors.name)}
                 onChange={(e) => update({ name: e.target.value })}
+              />
+              <McpDraftErrorList
+                messageIds={draftErrorIds(visibleErrors.name)}
+                testId="mcp-server-form-name-error"
               />
             </div>
             <div>{scopeSelect}</div>
@@ -300,7 +376,12 @@ export function McpServerForm({
               inputMode="numeric"
               placeholder="30000"
               value={form.timeoutMs}
+              aria-invalid={Boolean(visibleErrors.timeoutMs)}
               onChange={(e) => update({ timeoutMs: e.target.value })}
+            />
+            <McpDraftErrorList
+              messageIds={draftErrorIds(visibleErrors.timeoutMs)}
+              testId="mcp-server-form-timeout-error"
             />
           </div>
 
@@ -343,7 +424,12 @@ export function McpServerForm({
                   size="lg"
                   placeholder="npx"
                   value={form.command}
+                  aria-invalid={Boolean(visibleErrors.command)}
                   onChange={(e) => update({ command: e.target.value })}
+                />
+                <McpDraftErrorList
+                  messageIds={draftErrorIds(visibleErrors.command)}
+                  testId="mcp-server-form-command-error"
                 />
               </div>
               <div className="space-y-1.5">
@@ -365,7 +451,12 @@ export function McpServerForm({
                 size="lg"
                 placeholder="https://mcp.example.com/mcp"
                 value={form.url}
+                aria-invalid={Boolean(visibleErrors.url)}
                 onChange={(e) => update({ url: e.target.value })}
+              />
+              <McpDraftErrorList
+                messageIds={draftErrorIds(visibleErrors.url)}
+                testId="mcp-server-form-url-error"
               />
             </div>
           )}
@@ -385,11 +476,18 @@ export function McpServerForm({
                   rows={4}
                   className="font-mono text-ui-base"
                   placeholder={envPlaceholder}
+                  aria-invalid={Boolean(
+                    form.type === "stdio" ? visibleErrors.env : visibleErrors.headers,
+                  )}
                   value={envValue}
                   onChange={(e) => updateEnvValue(e.target.value)}
                 />
               </div>
             )}
+            <McpDraftErrorList
+              messageIds={optionalConfigErrorIds}
+              testId="mcp-server-form-optional-config-error"
+            />
           </div>
         </div>
       )}
@@ -410,7 +508,12 @@ export function McpServerForm({
           ) : undefined
         }
       >
-        <Button size="lg" disabled={!canSave} onClick={handleSaveClick}>
+        <Button
+          size="lg"
+          data-testid="mcp-server-form-save"
+          disabled={!canSave}
+          onClick={handleSaveClick}
+        >
           {intl.formatMessage({ id: "common.save" })}
         </Button>
         <Button variant="ghost" size="lg" onClick={onCancel}>

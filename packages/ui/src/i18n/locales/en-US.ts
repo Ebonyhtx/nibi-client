@@ -3848,6 +3848,12 @@ const enUS: Record<string, string> = {
   "settings.mcp.deleteConfirmDescription":
     "This action cannot be undone. The server configuration will be removed from the file.",
   "settings.mcp.deleteConfirmAction": "Delete server",
+  "settings.mcp.draft.unsaved": "Draft not saved",
+  "settings.mcp.draft.discardTitle": "Discard unsaved MCP draft?",
+  "settings.mcp.draft.discardDescription":
+    "These changes only exist in the draft. Discarding them will not write anything to the MCP configuration file.",
+  "settings.mcp.draft.discardConfirm": "Discard draft",
+  "settings.mcp.draft.keepEditing": "Keep editing",
   "settings.mcp.form.backToList": "Back",
   "settings.mcp.form.createTitle": "New MCP server",
   "settings.mcp.form.editTitle": "Edit MCP server",
@@ -3856,6 +3862,23 @@ const enUS: Record<string, string> = {
   "settings.mcp.form.editDescription":
     "Modify the current MCP configuration, then save to return to the list.",
   "settings.mcp.form.jsonParseError": "JSON parsing failed",
+  "settings.mcp.form.jsonError.singleServer":
+    "JSON mode currently supports editing only one MCP server at a time.",
+  "settings.mcp.form.jsonError.invalidConfig":
+    "The JSON content is not a valid MCP server configuration object.",
+  "settings.mcp.form.jsonError.missingName":
+    "JSON mode requires a server name.",
+  "settings.mcp.form.validation.nameRequired": "Enter a server name.",
+  "settings.mcp.form.validation.commandRequired": "Enter the command to start the server.",
+  "settings.mcp.form.validation.urlRequired": "Enter the server URL.",
+  "settings.mcp.form.validation.urlInvalid":
+    "Invalid URL. It must start with http:// or https://.",
+  "settings.mcp.form.validation.timeoutInvalid":
+    "Timeout must be a positive integer number of milliseconds.",
+  "settings.mcp.form.validation.jsonInvalid": "Invalid JSON.",
+  "settings.mcp.form.validation.jsonObjectRequired": "JSON must be an object.",
+  "settings.mcp.form.validation.jsonStringValues":
+    "Every value in the JSON object must be a string.",
   "settings.mcp.form.envOptional": "Environment variables (optional)",
   "settings.mcp.form.headersOptional": "Headers (optional)",
   "settings.mcp.form.mode.form": "Form",

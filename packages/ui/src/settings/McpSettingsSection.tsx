@@ -645,6 +645,52 @@ export function McpSettingsSection({
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const query = searchQuery;
   const [editorMode, setEditorMode] = useState<McpEditorMode>("form");
+  // 草稿只活在 McpServerForm 内；分区仅保存 dirty 标记，用于离开/切换前确认。
+  // 不能把草稿写进 mcpStore：store 变更会驱动 mcp/list，未确认的输入会提前连接或落盘。
+  const [mcpDraftDirty, setMcpDraftDirty] = useState(false);
+  // 同一 server 反复打开（或新建后再新建）时 id 不变，需要 epoch 强制重建表单，
+  // 否则 baseline 与本地草稿会沿用上一份，取消后再次打开仍看到旧输入。
+  const [mcpFormInstance, setMcpFormInstance] = useState(0);
+  const mcpDraftDirtyRef = useRef(false);
+  const handleMcpDraftDirtyChange = useCallback((dirty: boolean) => {
+    mcpDraftDirtyRef.current = dirty;
+    setMcpDraftDirty(dirty);
+  }, []);
+  const resetMcpDraftDirty = useCallback(() => {
+    mcpDraftDirtyRef.current = false;
+    setMcpDraftDirty(false);
+  }, []);
+  const closeMcpFormView = useCallback(() => {
+    setShowForm(false);
+    setEditingServer(null);
+    setEditorMode("form");
+    resetMcpDraftDirty();
+    onFormScopeKeyChange?.(null);
+  }, [onFormScopeKeyChange, resetMcpDraftDirty]);
+  const confirmDiscardMcpDraft = useCallback(async (): Promise<boolean> => {
+    if (!mcpDraftDirtyRef.current) {
+      return true;
+    }
+    const confirmed = await confirmDialog({
+      confirmVariant: "destructive",
+      title: intl.formatMessage({ id: "settings.mcp.draft.discardTitle" }),
+      description: intl.formatMessage({ id: "settings.mcp.draft.discardDescription" }),
+      confirmLabel: intl.formatMessage({ id: "settings.mcp.draft.discardConfirm" }),
+      cancelLabel: intl.formatMessage({ id: "settings.mcp.draft.keepEditing" }),
+      intent: "mcp-draft-discard",
+    });
+    if (confirmed) {
+      // 确认丢弃后立刻清掉 dirty：后续异步关闭/切 server 路径不应再弹第二次。
+      resetMcpDraftDirty();
+    }
+    return confirmed;
+  }, [confirmDialog, intl, resetMcpDraftDirty]);
+  const requestCloseMcpFormView = useCallback(async () => {
+    if (!(await confirmDiscardMcpDraft())) {
+      return;
+    }
+    closeMcpFormView();
+  }, [closeMcpFormView, confirmDiscardMcpDraft]);
   const [mcpConfigReadyWorkspaceKey, setMcpConfigReadyWorkspaceKey] = useState("");
   const [mcpOAuthAuthorizationFollowupRefresh, setMcpOAuthAuthorizationFollowupRefresh] =
     useState<McpOAuthAuthorizationFollowupRefresh | null>(null);
@@ -1355,6 +1401,7 @@ export function McpSettingsSection({
 
     setShowForm(false);
     setEditingServer(null);
+    resetMcpDraftDirty();
     onFormScopeKeyChange?.(null);
   }
 
@@ -1376,13 +1423,16 @@ export function McpSettingsSection({
     }
 
     await deleteScopedMcpServer(server.source, server.name, server.projectPath);
-    setEditingServer(null);
-    setShowForm(false);
-    setEditorMode("form");
-    onFormScopeKeyChange?.(null);
+    closeMcpFormView();
   }
 
-  function handleEdit(server: ZCodeMcpServer) {
+  async function handleEdit(server: ZCodeMcpServer) {
+    // 列表与表单当前是互斥视图，理论上不会在草稿未保存时点另一行；
+    // 保留守卫是为了以后列表常驻时切换 server 不会静默吞掉草稿。
+    // 无脏改动时不进入 await，打开编辑视图保持同步，避免多一帧空窗。
+    if (mcpDraftDirtyRef.current && !(await confirmDiscardMcpDraft())) {
+      return;
+    }
     const ownerWorkspace = workspaceTabs.find((tab) => tab.workspacePath === server.projectPath);
     const ownedScopeKey =
       server.scope === "workspace"
@@ -1392,14 +1442,19 @@ export function McpSettingsSection({
         : "user";
     setFormScopeKey(ownedScopeKey);
     onFormScopeKeyChange?.(ownedScopeKey);
+    setMcpFormInstance((instance) => instance + 1);
     setEditingServer(server);
     setShowForm(false);
     setEditorMode("form");
   }
 
-  function handleCreate() {
+  async function handleCreate() {
+    if (mcpDraftDirtyRef.current && !(await confirmDiscardMcpDraft())) {
+      return;
+    }
     setFormScopeKey(parentScopeKey);
     onFormScopeKeyChange?.(parentScopeKey);
+    setMcpFormInstance((instance) => instance + 1);
     setEditingServer(null);
     setEditorMode("form");
     setShowForm(true);
@@ -1437,11 +1492,20 @@ export function McpSettingsSection({
   }
 
   if (isFormView) {
-    const closeFormView = () => {
-      setShowForm(false);
-      setEditingServer(null);
-      setEditorMode("form");
-      onFormScopeKeyChange?.(null);
+    const requestLeaveFormView = () => {
+      void requestCloseMcpFormView();
+    };
+    // 商品页（marketplace 面包屑）离开时先确认草稿，确认通过才真正跳转；
+    // 否则未保存的 MCP 配置会被页面切换直接丢弃。
+    const requestLeaveToPluginStore = () => {
+      void (async () => {
+        if (!(await confirmDiscardMcpDraft())) {
+          return;
+        }
+        // 确认丢弃后先关表单再跳转；即使跳转延迟/失败，草稿也不会继续显示成可保存状态。
+        closeMcpFormView();
+        onOpenPluginStore?.();
+      })();
     };
     const pluginsBreadcrumbLabel = intl.formatMessage({ id: "settings.plugins.title" });
     const formBreadcrumbLabel =
@@ -1452,23 +1516,35 @@ export function McpSettingsSection({
           items={
             showMarketplaceBreadcrumb
               ? [
-                  { label: pluginsBreadcrumbLabel, onSelect: closeFormView },
+                  { label: pluginsBreadcrumbLabel, onSelect: requestLeaveFormView },
                   { label: formBreadcrumbLabel },
                 ]
               : [{ label: formBreadcrumbLabel }]
           }
           onSectionSelect={
-            showMarketplaceBreadcrumb && onOpenPluginStore ? onOpenPluginStore : closeFormView
+            showMarketplaceBreadcrumb && onOpenPluginStore
+              ? requestLeaveToPluginStore
+              : requestLeaveFormView
           }
         />
         <div className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              <h3 className="text-ui-xl font-semibold text-foreground">
-                {editingServer
-                  ? intl.formatMessage({ id: "settings.mcp.form.editTitle" })
-                  : intl.formatMessage({ id: "settings.mcp.form.createTitle" })}
-              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-ui-xl font-semibold text-foreground">
+                  {editingServer
+                    ? intl.formatMessage({ id: "settings.mcp.form.editTitle" })
+                    : intl.formatMessage({ id: "settings.mcp.form.createTitle" })}
+                </h3>
+                {mcpDraftDirty ? (
+                  <span
+                    className="inline-flex items-center rounded-md bg-surface px-1.5 py-0.5 text-ui-sm text-foreground-subtle ring-1 ring-border"
+                    data-testid="mcp-draft-unsaved-indicator"
+                  >
+                    {intl.formatMessage({ id: "settings.mcp.draft.unsaved" })}
+                  </span>
+                ) : null}
+              </div>
               <p className="text-ui-base text-foreground-subtle">
                 {editingServer
                   ? intl.formatMessage({
@@ -1497,6 +1573,9 @@ export function McpSettingsSection({
           </div>
 
           <McpServerForm
+            // 按 server 重建表单：切换编辑对象时 baseline/draft 必须一起重置，
+            // 不能把上一台 server 的输入带进下一台的保存。
+            key={`${editingServer?.id ?? "mcp-create"}:${mcpFormInstance}`}
             initial={editingServer ?? undefined}
             editingId={editingServer?.id}
             editorMode={editorMode}
@@ -1510,7 +1589,8 @@ export function McpSettingsSection({
             onEditorModeChange={setEditorMode}
             onSave={handleSave}
             onDelete={editingServer ? handleDelete : undefined}
-            onCancel={closeFormView}
+            onDirtyChange={handleMcpDraftDirtyChange}
+            onCancel={requestLeaveFormView}
           />
         </div>
       </div>
@@ -1527,10 +1607,7 @@ export function McpSettingsSection({
 
       {connectedRemoteTarget ? (
         <div className="rounded-lg border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle">
-          {intl.formatMessage(
-            { id: "settings.mcp.remoteContext" },
-            { target: remoteTargetLabel },
-          )}
+          {intl.formatMessage({ id: "settings.mcp.remoteContext" }, { target: remoteTargetLabel })}
         </div>
       ) : null}
 
