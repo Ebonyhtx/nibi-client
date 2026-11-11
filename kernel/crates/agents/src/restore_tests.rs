@@ -17,7 +17,8 @@ use nibi_kernel_api::testing::MemoryStore;
 use serde_json::{Value, json};
 
 use super::{
-    ATTEMPT_ENTRY, DELIVERED_ENTRY, RESULT_ENTRY, SPAWN_ENTRY, SpawnData, blocked_report,
+    ATTEMPT_ENTRY, DELIVERED_ENTRY, RESULT_ENTRY, RUN_ENTRY, SPAWN_ENTRY, SpawnData,
+    blocked_report,
     interrupted_results,
 };
 use crate::live::AgentState;
@@ -324,6 +325,53 @@ async fn a_stored_result_is_restored_and_the_lost_notification_is_sent_once() {
             .background(&SessionId::new(ROOT))
             .await
             .is_empty()
+    );
+}
+
+/// 上一轮已完成、之后又被 SendMessage/续跑拉起，崩溃在新一轮里：旧的 `subagent_result` 还在，
+/// 但 `subagent_run` 比它新，必须按“跑到一半”恢复，不能当成已完成跳过。
+#[tokio::test]
+async fn a_newer_run_marker_resumes_instead_of_trusting_the_old_result() {
+    let harness = harness(None);
+    seed_root(&harness.store, ROOT).await;
+    seed_child(&harness.store, CHILD, ROOT).await;
+    commit(
+        &harness.store,
+        CHILD,
+        vec![
+            spawn_entry(AGENT, spawn_json(AGENT, CHILD, ROOT, ROOT, false)),
+            Fact::MessageAppended {
+                message: user("Do it."),
+            },
+            Fact::MessageAppended {
+                message: assistant_text("msg_done", "First turn done."),
+            },
+            result_entry(AGENT, result_json("completed", "First turn done.", 777)),
+            Fact::Entry {
+                kind: RUN_ENTRY.to_owned(),
+                id: AGENT.to_owned(),
+                data: json!({ "startedAtMs": 1_000 }),
+            },
+        ],
+    )
+    .await;
+
+    let (agents, seen) = harness.reboot();
+    agents.restore_session(&SessionId::new(ROOT)).await;
+
+    let started = started(&seen).await;
+    assert_eq!(started[0].request.session.as_str(), CHILD);
+    assert!(
+        matches!(
+            started[0].request.messages.last(),
+            Some(Message::User(user))
+                if user.origin
+                    == UserOrigin::Meta {
+                        source: "process-restart".to_owned(),
+                        origin_meta: None,
+                    }
+        ),
+        "the stale result must not suppress the continuation"
     );
 }
 

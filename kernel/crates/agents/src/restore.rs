@@ -39,6 +39,9 @@ pub(crate) const SPAWN_ENTRY: &str = "subagent_spawn";
 pub(crate) const RESULT_ENTRY: &str = "subagent_result";
 /// 自动续跑的尝试计数（跨重启累计）。
 pub(crate) const ATTEMPT_ENTRY: &str = "subagent_resume_attempt";
+/// 本次运行开始（每次 `create` / `resume` 覆盖）：与 `subagent_result` 的结束时刻比较，
+/// 判断崩溃时是“上一轮已完成”还是“新一轮跑到一半”。
+pub(crate) const RUN_ENTRY: &str = "subagent_run";
 /// 结果通知已投递（写在父会话，避免重启后重复补发）。
 pub(crate) const DELIVERED_ENTRY: &str = "subagent_result_delivered";
 
@@ -83,6 +86,14 @@ struct SpawnData {
     background: bool,
     #[serde(default)]
     fork: bool,
+}
+
+/// `subagent_run` 的内容。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RunData {
+    #[serde(default)]
+    started_at_ms: u64,
 }
 
 /// `subagent_result` 的内容。
@@ -476,14 +487,31 @@ async fn latest_result(
         .rev()
         .find(|(id, _)| id == agent.as_str())
         .or_else(|| entries.last());
-    Ok(found.and_then(|(_, data)| {
-        serde_json::from_value(data.clone())
+    let result = found.and_then(|(_, data)| {
+        serde_json::from_value::<ResultData>(data.clone())
             .map_err(|error| {
                 tracing::warn!(agent = %agent, %error, "a subagent result entry could not be read");
                 error
             })
             .ok()
-    }))
+    });
+    let Some(result) = result else {
+        return Ok(None);
+    };
+    // 上一轮已完成、之后又被 SendMessage/续跑拉起：`subagent_run` 比结果新，说明崩溃发生在
+    // 新一轮里，旧结果不能当作“已完成”跳过恢复。
+    let runs = core.ports.store.entries(child, RUN_ENTRY).await?;
+    let run_started = runs
+        .iter()
+        .rev()
+        .find(|(id, _)| id == agent.as_str())
+        .or_else(|| runs.last())
+        .and_then(|(_, data)| serde_json::from_value::<RunData>(data.clone()).ok())
+        .map_or(0, |run| run.started_at_ms);
+    if run_started > result.finished_at_ms {
+        return Ok(None);
+    }
+    Ok(Some(result))
 }
 
 async fn attempts(core: &Core, child: &SessionId, agent: &AgentId) -> Result<u32, StoreError> {

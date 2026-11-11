@@ -52,6 +52,7 @@
 | --- | --- | --- | --- |
 | `subagent_spawn` | 子会话 | agentId | agentId、childSessionId、parentSession、rootSession、ownerAgentId、depth、toolUseId、description、agentType、workspace、machine、selection、execution、background、fork、createdAtMs |
 | `subagent_result` | 子会话 | agentId | ending（completed/failed/killed）、text、tokens、toolUses、durationMs、toolUseId、finishedAtMs |
+| `subagent_run` | 子会话 | agentId | startedAtMs（每次 create / resume 覆盖，用来判断旧 result 是否已被新一轮取代） |
 | `subagent_resume_attempt` | 子会话 | agentId | count、lastAtMs、reason（`process_restart`） |
 | `subagent_result_delivered` | 父会话 | agentId | deliveredAtMs |
 
@@ -69,11 +70,12 @@
 
 1. `store.owned_session_trees([root])` 拿到顶层会话与全部附属后代（已包含 `subagent_child`）。
 2. 对每个子会话读 `subagent_spawn` / `subagent_result` / `subagent_resume_attempt`（`store.entries`，不加载全量消息）。
-3. 有 `subagent_result`：
+3. 有 `subagent_result` 且 `subagent_run.startedAtMs <= result.finishedAtMs`（旧结果没有被新一轮取代）：
    - 重建 `LiveAgent`（状态 `Finished(ending)`），让侧栏能看到；
    - 父会话没有 `subagent_result_delivered` 时，按结果重建 `<task-notification>` 投递给父会话，写 delivered marker；
    - `Killed` 的结果不再续跑。
-4. 没有 `subagent_result`：
+   - 若 `subagent_run` 比结果新（上一轮完成后又被 SendMessage/续跑拉起，崩溃在新一轮里），按“没有结果”处理。
+4. 没有（或被新一轮取代的）`subagent_result`：
    - 重建 `LiveAgent`（定义按 `agentType` 从目录重新解析；workspace/selection/execution 来自 spawn entry）；
    - fork 子代理不自动续跑：标记为 `Failed` 并在报告文字里说明「fork 前缀未持久化，需人工处理」；
    - 尝试次数达到上限（2 次）不自动续跑：标记为 `Failed`，保留正文可见；
@@ -146,11 +148,11 @@ Node 是回退内核，Rust 通过验收后再做，避免两条轨同时改。
 
 ## 实施记录（Rust，2026-11-11）
 
-- `kernel/crates/agents/src/spawn.rs`：`create` 同一批写 `subagent_spawn`；`drive` 结束写 `subagent_result`（完成/失败/停止都写）；`ApiError` / `Blocked` 由“完成”改为失败终态。
+- `kernel/crates/agents/src/spawn.rs`：`create` 同一批写 `subagent_spawn` 与 `subagent_run`；`resume` 覆盖 `subagent_run`；`drive` 结束写 `subagent_result`（完成/失败/停止都写）；`ApiError` / `Blocked` 由“完成”改为失败终态。
 - `kernel/crates/agents/src/restore.rs`：`restore_session` / `restore_loaded_session`；重建 `LiveAgent`、补 `INTERRUPTED_CALL`、写续跑尝试、后台续跑、补发丢失通知；不能续跑的分支（fork、次数上限、定义缺失、续跑失败）落失败结果并通知。
 - `kernel/crates/runtime/src/kernel.rs`：冷加载顶层会话后调用 `restore_loaded_session`，不重复全量读历史。
 - `kernel/crates/kernel-api/src/orchestration.rs`：`QueryError::Api { message }`，避免把 API 错误伪装成 `InvalidRequest`。
-- 测试：`nibi-kernel-agents` 98 条（含 9 条恢复用例）；`nibi-kernel-runtime` 新增集成用例（重启后恢复完成子代理 + 补发通知）；全 workspace 117 个 suite 通过（TUI esc 时序用例在并行负载下偶发，单跑通过，既有问题）。
+- 测试：`nibi-kernel-agents` 99 条（含 10 条恢复用例，含“旧结果被新一轮取代”）；`nibi-kernel-runtime` 新增集成用例（重启后恢复完成子代理 + 补发通知）；全 workspace 117 个 suite 通过（TUI esc 时序用例在并行负载下偶发，单跑通过，既有问题）。
 
 ## 已知边界
 

@@ -203,6 +203,11 @@ pub(crate) async fn create(
             "createdAtMs": core.ports.clock.now_ms(),
         }),
     });
+    facts.push(Fact::Entry {
+        kind: crate::restore::RUN_ENTRY.to_owned(),
+        id: agent.agent.as_str().to_owned(),
+        data: serde_json::json!({ "startedAtMs": core.ports.clock.now_ms() }),
+    });
     facts.push(Fact::MessageAppended {
         message: first.clone(),
     });
@@ -251,9 +256,17 @@ pub(crate) async fn resume(
     let turn = commit(
         core,
         &agent.child,
-        vec![Fact::MessageAppended {
-            message: next.clone(),
-        }],
+        vec![
+            // 新一轮开始：崩溃时用它和新旧 result 比较，旧结果不能掩盖这次运行。
+            Fact::Entry {
+                kind: crate::restore::RUN_ENTRY.to_owned(),
+                id: agent.agent.as_str().to_owned(),
+                data: serde_json::json!({ "startedAtMs": core.ports.clock.now_ms() }),
+            },
+            Fact::MessageAppended {
+                message: next.clone(),
+            },
+        ],
         loaded.turn.as_ref(),
     )
     .await?;
