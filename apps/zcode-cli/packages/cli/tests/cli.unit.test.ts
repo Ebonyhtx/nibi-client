@@ -1015,7 +1015,7 @@ test("nibi login runs the NIBI device flow and prints the sign-in code", async (
   assert.match(ctx.stdout.output(), /open this URL in a browser and enter the code/i);
   assert.match(
     ctx.stdout.output(),
-    /https:\/\/auth\.nibistudio\.top\/device\?user_code=ABCD-EFGH/,
+    /https:\/\/auth\.nibistudio\.cn\/device\?user_code=ABCD-EFGH/,
   );
   assert.match(ctx.stdout.output(), /Code: ABCD-EFGH/);
   assert.match(ctx.stdout.output(), /Signed in to NIBI as Alice <alice@example\.com>/);
@@ -1128,7 +1128,7 @@ test("command center handles NIBI login and logout locally", async () => {
   assert.equal(logoutCalled, true);
   assert.match(
     loginResult.response,
-    /https:\/\/auth\.nibistudio\.top\/device\?user_code=ABCD-EFGH/,
+    /https:\/\/auth\.nibistudio\.cn\/device\?user_code=ABCD-EFGH/,
   );
   assert.match(loginResult.response, /enter code ABCD-EFGH/);
   assert.match(loginResult.response, /Signed in to NIBI as Alice\./);
@@ -1167,7 +1167,7 @@ test("command center localizes NIBI sign-in copy", async () => {
   const result = await commandCenter("/login", {});
   const usage = await commandCenter("/login zai", {});
 
-  assert.match(result.response, /登录 NIBI：打开 https:\/\/auth\.nibistudio\.top\/device/);
+  assert.match(result.response, /登录 NIBI：打开 https:\/\/auth\.nibistudio\.cn\/device/);
   assert.match(result.response, /已登录 NIBI：Alice。/);
   assert.match(result.response, /会员：未开通（会员专享插件保持锁定）。/);
   assert.equal(usage.response, "用法：/login");
