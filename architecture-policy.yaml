@@ -213,6 +213,35 @@ modules:
       ui: ui
     layerOrder: [ contract, domain, app, ui ]
     owner: configuration
+  # data-sync：B1 技能单类试点（数据同步页）
+  - id: data-sync
+    roots:
+      - packages/ui/src/data-sync
+    managed: true
+    requires: [ services, settings-scope, shared, ui ]
+    publicEntrypoints:
+      - packages/ui/src/data-sync/index.ts
+      - packages/ui/src/data-sync/contract.ts
+    layers:
+      contract: contract.ts
+      domain: domain
+      app: app
+      ui: ui
+    layerOrder: [ contract, domain, app, ui ]
+    owner: remote
+  # data-sync-service：B1 技能单类试点（架构治理新模块）
+  - id: data-sync-service
+    roots:
+      - packages/services/src/data-sync
+    managed: true
+    requires: [ services, shared ]
+    publicEntrypoints:
+      - packages/services/src/data-sync/index.ts
+      - packages/services/src/data-sync/contract.ts
+      - packages/services/src/data-sync/node.ts
+    layers:
+      app: .
+    owner: remote
   # project-catalog：由 architecture:adopt 登记
   - id: project-catalog
     roots:

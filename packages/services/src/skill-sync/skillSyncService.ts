@@ -22,6 +22,7 @@ import {
   walkSkillMarkdownPaths,
 } from "../skills/skillDiscoveryWalk.js";
 import { checkRemoteSyncDirectoryWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
+import { createSkillDataSyncMethods } from "#src/data-sync/node.js";
 
 const SKILL_FILE_NAME = "SKILL.md";
 const DEFAULT_MAX_ARCHIVE_BYTES = 20 * 1024 * 1024;
@@ -29,6 +30,8 @@ const DEFAULT_MAX_ARCHIVE_BYTES = 20 * 1024 * 1024;
 export function createSkillSyncService(options?: { maxArchiveBytes?: number }): ISkillSyncService {
   const maxArchiveBytes = options?.maxArchiveBytes ?? DEFAULT_MAX_ARCHIVE_BYTES;
   return {
+    // 统一数据同步分类形状（data-sync-service）：list / hashes / write access / export / import。
+    ...createSkillDataSyncMethods({ maxItemBytes: maxArchiveBytes }),
     async listLocalUserSkillCandidates(): Promise<SkillSyncCandidateListResult> {
       return {
         candidates: await collectUserSkillCandidates(),

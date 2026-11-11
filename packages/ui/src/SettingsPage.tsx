@@ -72,6 +72,7 @@ import { ComputerUseSection } from "@/settings/ComputerUseSection.js";
 import { ShortcutSettingsSection } from "@/settings/ShortcutSettingsSection.js";
 import { MigrationSection } from "@/settings/MigrationSection.js";
 import { SETTINGS_FRAME_CONTENT_CLASSNAME } from "@/settings/SettingsPageParts.js";
+import { DataSyncSection, useDataSyncDevices } from "@/data-sync/index.js";
 import {
   SettingsBreadcrumbProvider,
   SettingsHeaderBreadcrumb,
@@ -329,7 +330,7 @@ export function SettingsPage({
     [activeSection],
   );
   useEffect(() => {
-    if (!isDesktop && activeSection === "remoteDevices") {
+    if (!isDesktop && (activeSection === "remoteDevices" || activeSection === "dataSync")) {
       setActiveSettingsSection("general");
     }
   }, [activeSection, isDesktop, setActiveSettingsSection]);
@@ -407,6 +408,9 @@ export function SettingsPage({
     () => resolveRemoteConnectionNavigationPresentation(sourceManagementSnapshot),
     [sourceManagementSnapshot],
   );
+  // 数据同步入口只在桌面端、且至少有一台在线 Source 设备提供远端「用户」时出现。
+  const dataSyncDevices = useDataSyncDevices();
+  const showDataSyncEntry = Boolean(isDesktop) && dataSyncDevices.devices.length > 0;
   const memoryWorkspaceDisplayNames = useMemo(() => {
     const names = new Set<string>();
     // Memory Scope 的项目顺序以 settings.json recentProjects 为准；打开中的
@@ -1244,7 +1248,11 @@ export function SettingsPage({
                           {groupLabel}
                         </div>
                         {group.sections
-                          .filter(({ id }) => isSettingsSectionAvailable(id, Boolean(isDesktop)))
+                          .filter(
+                            ({ id }) =>
+                              isSettingsSectionAvailable(id, Boolean(isDesktop)) &&
+                              (id !== "dataSync" || showDataSyncEntry),
+                          )
                           .map(({ id, icon: Icon, titleId }) => {
                             const isActive = activeSection === id;
                             const label = intl.formatMessage({ id: titleId });
@@ -1685,6 +1693,10 @@ export function SettingsPage({
                                 })}
                               </p>
                             )
+                          ) : activeSection === "dataSync" ? (
+                            isDesktop ? (
+                              <DataSyncSection devices={dataSyncDevices.devices} />
+                            ) : null
                           ) : activeSection === "appearance" ? (
                             <AppearanceSectionContent
                               codePreviewSettings={codePreviewSettings}

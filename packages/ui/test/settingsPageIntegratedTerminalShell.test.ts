@@ -143,6 +143,8 @@ const mockPlatform = {
 
 vi.mock("@/hooks/usePlatform.js", () => ({
   usePlatform: () => mockPlatform,
+  // 数据同步/设置 Scope 用可选平台读取 source-settings attachment 能力。
+  useOptionalPlatform: () => mockPlatform,
   useSelectDirectory: () => vi.fn(async () => null),
 }));
 

@@ -21,9 +21,11 @@ afterEach(() => {
 });
 
 describe("settingsPageConfig", () => {
-  it("only exposes remote device management on desktop", () => {
+  it("only exposes remote device management and data sync on desktop", () => {
     expect(isSettingsSectionAvailable("remoteDevices", true)).toBe(true);
     expect(isSettingsSectionAvailable("remoteDevices", false)).toBe(false);
+    expect(isSettingsSectionAvailable("dataSync", true)).toBe(true);
+    expect(isSettingsSectionAvailable("dataSync", false)).toBe(false);
     expect(isSettingsSectionAvailable("general", false)).toBe(true);
   });
   it("按设置页分组与顺序展示公开分区", async () => {
@@ -43,6 +45,7 @@ describe("settingsPageConfig", () => {
           "modelProvider",
           "browser",
           "remoteDevices",
+          "dataSync",
           "shortcuts",
         ],
       },
@@ -65,6 +68,7 @@ describe("settingsPageConfig", () => {
       "hooks",
       "browser",
       "remoteDevices",
+      "dataSync",
       "shortcuts",
       "usage",
       "archives",
@@ -100,6 +104,7 @@ describe("settingsPageConfig", () => {
       "modelProvider",
       "browser",
       "remoteDevices",
+      "dataSync",
       "computerUse",
       "shortcuts",
     ]);

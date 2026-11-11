@@ -16,6 +16,7 @@ import {
   Blocks,
   Globe2,
   Cable,
+  RefreshCw,
   WandSparkles,
   HardDrive,
   Keyboard,
@@ -138,6 +139,13 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     contentTitleId: "settings.remoteDevicesTitle",
     groupId: "basics",
   },
+  {
+    id: "dataSync",
+    icon: RefreshCw,
+    titleId: "settings.dataSync.title",
+    contentTitleId: "settings.dataSync.title",
+    groupId: "basics",
+  },
   // 电脑控制紧跟「浏览器」：两者都是给 Agent 用的本机操控入口，
   // 放在基础设置里让用户在同一处理解「控制浏览器 / 控制整台电脑」的关系。
   {
@@ -233,5 +241,7 @@ export function isSettingsSectionAvailable(
   section: SettingsSectionId,
   isDesktop: boolean,
 ): boolean {
+  // 数据同步与远程设备一样只在桌面端出现；页面还需要至少一台在线远端「用户」才算真正可用。
+  if (section === "dataSync") return isDesktop;
   return isDesktop || section !== "remoteDevices";
 }

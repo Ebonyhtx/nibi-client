@@ -279,6 +279,11 @@ export { isValidCronExpr } from "./session/automationCronValidation.js";
 // Skills service — ISkillsService is both a type (interface) and value (descriptor)
 export { ISkillsService } from "./skills/skills.js";
 export { ISkillSyncService } from "./skill-sync/skillSync.js";
+// 数据同步分类服务形状（B1 技能单类试点）
+export type {
+  IDataSyncCategoryService,
+  ISkillDataSyncMethods,
+} from "./data-sync/contract.js";
 export { IMcpSyncService } from "./mcp-sync/mcpSync.js";
 export { IPluginSyncService } from "./plugin-sync/pluginSync.js";
 export {

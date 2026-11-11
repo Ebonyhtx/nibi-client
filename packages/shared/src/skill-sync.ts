@@ -2,6 +2,9 @@ export type SkillSyncImportStatus = "synced" | "skipped" | "failed";
 
 export const SKILL_SYNC_SIZE_LIMIT_ERROR_CODE = "SKILL_SYNC_SIZE_LIMIT_EXCEEDED" as const;
 
+/** 数据同步：单个技能目录超过该上限时标为不能同步，不计算哈希。 */
+export const SKILL_DATA_SYNC_MAX_ITEM_BYTES = 20 * 1024 * 1024;
+
 export type SkillSyncSizeLimitPhase = "selected-content" | "archive" | "extracted-content";
 
 export interface SkillSyncSizeLimitErrorData {
