@@ -75,6 +75,12 @@ export default defineConfig(({ command, mode }) => {
           find: "@nibi/ui/oauth-provider-icon",
           replacement: resolve(REPO_ROOT, "packages/ui/src/lib/oauthProviderIcon.tsx"),
         },
+        // 偏好存储（a95a9060 之后 main.tsx 从 @nibi/ui/nibi-storage 读主题偏好）。
+        // 和上面几个同理：镜像不装 @nibi/ui，子路径必须显式指向源码，否则 Rolldown 解析失败。
+        {
+          find: "@nibi/ui/nibi-storage",
+          replacement: resolve(REPO_ROOT, "packages/ui/src/lib/nibiStorage.ts"),
+        },
       ],
     },
     define: {
