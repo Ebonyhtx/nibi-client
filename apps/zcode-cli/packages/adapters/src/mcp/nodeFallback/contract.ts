@@ -7,4 +7,7 @@ export type {
   McpNodeFallback,
   McpNodeFallbackProvider,
 } from "./index.js";
-export { applyMcpNodeFallbackEnv } from "./index.js";
+export {
+  applyMcpNodeFallbackEnv,
+  createMcpNodeFallbackProvider,
+} from "./index.js";
