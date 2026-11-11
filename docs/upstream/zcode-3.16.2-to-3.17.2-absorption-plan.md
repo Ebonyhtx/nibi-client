@@ -126,10 +126,10 @@
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
 | B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | Host/UI 大工程；先单类试点；**P1** |
-| B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | Host/UI；数据同步前置；**P1** |
+| B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | **[x] `0f8b730f`**：settings-scope managed 模块 + 插件/MCP/子智能体/钩子/命令/技能页统一接线；远端「用户」走 attachment，离线 fail-closed；数据同步前置；**P1** |
 | B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
-| B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | Host + `nibi-server`；**P1** |
-| B5 | 远端设备紧凑可搜索列表、在线状态、停止/重启菜单 | [源码] `settings/SourceServerDeviceRow.tsx`、`sourceServerDeviceList.ts` | 已实施 | Host/UI；**P1** |
+| B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
+| B5 | 远端设备紧凑可搜索列表、在线状态、停止/重启菜单 | [源码] `settings/SourceServerDeviceRow.tsx`、`sourceServerDeviceList.ts` | 已实施 | **[x] `7229bd42`**：紧凑可折叠 + 搜索 + 在线优先/最近使用冻结排序 + 停止/重启菜单；**P1** |
 | B6 | Provider provisioning lane 状态 + 失败重试 | [源码] `services/src/provider-provisioning-status/` | 已实施 | Host（依赖数据同步）；**P2** |
 | B7 | 远端「仅常驻」行读取（手机项目列表预加载最新一页） | [源码] `services/src/zcode-agent/resident-rows-range/` | 已实施 | Host + Rust 能力声明；**P2** |
 
@@ -367,13 +367,13 @@
 
 ### Phase 2：数据同步 + 项目删除 + 远端运维（第 6–9 周）**[进行中]**
 
-- Host/UI：B2 设备 Scope → B1 数据同步单类试点（技能）→ 扩 MCP/命令/钩子/插件/子代理。
+- Host/UI：B2 设备 Scope → **[x] `0f8b730f`**；B1 数据同步单类试点（技能）→ 扩 MCP/命令/钩子/插件/子代理（待做）。
 - Host/UI + Rust：B3 项目彻底删除（UI + `sessionData/measure|purge`）→ **[x] `3bee959e` + `04824ccd`**。
-- Host/server：B4 远端服务停止/重启；B5 设备列表。
+- Host/server：B4 远端服务停止/重启 → **[x] `7229bd42`**；B5 设备列表 → **[x] `7229bd42`**。
 - 出口：
-  - 单类同步的对比/推送/离线/迟到结果语义全过；
+  - 单类同步的对比/推送/离线/迟到结果语义全过（B1 待做）；
   - 项目删除保留运行中/被引用会话，幂等（Host/UI 已完成，真机冒烟待做）；
-  - 远端 crash-loop 可在设备卡自救。
+  - 远端 crash-loop 可在设备卡自救（CLI 整树 restart + Host flight + 设备卡确认，真机 E2E 待做）。
 
 ### Phase 3：小功能 + 测试债（第 10–12 周）
 
@@ -574,3 +574,29 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 - A5 的会话内待审核提示未做；远端 workspace 的 MCP 目录暂不返回 trust（fail closed）。
 - sessionData 的“被引用”不含 cron 持久任务与 workflow_activity；跨进程运行态需 Host 路由。
 - Rust 生命周期不覆盖跨进程/远端 daemon 实例；`session/lifecycle/changed` 通知未实现。
+
+## 13. Phase 2 执行记录（2026-11-11）
+
+### 13.1 已完成
+
+| 项 | 提交 | 内容 |
+| --- | --- | --- |
+| B3 Rust | `3bee959e` | `v4/storage/sessionData/measure|purge`；文件口径、运行中/被引用/分享保留、幂等 |
+| B3 Host/UI | `04824ccd` | shared 契约、-32601→unsupported、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”、删除项目可选清理 |
+| B2 | `0f8b730f` | settings-scope managed 模块；插件/MCP/子智能体/钩子/命令/技能页统一 Scope；离线 fail-closed；表单 owner 按设备 |
+| Rust 生命周期通知 | `e2291835` | `session/lifecycle/changed`，有订阅者才推、失败不影响收敛 |
+| B4/B5 | `7229bd42` | `stop --wait`、整树 `restart`（crash-loop 恢复）、Host 生命周期 flight、确认前列运行任务、紧凑可搜索设备列表与停止/重启菜单 |
+
+### 13.2 门禁
+
+- `pnpm typecheck`、`pnpm lint`（0 error）、`pnpm architecture:check --changed`（0 违规）：通过。
+- `pnpm test:unit`（B4/B5 后）：1963 个测试文件 / **18,378 条通过**，76 条 skipped，0 失败。
+- 新增测试：B3 72 条；B2 201 条；B4/B5 CLI 9 条 + desktop 8 条 + UI 19 条 + 既有相关 300+ 条。
+- 未执行：真实 SSH/WSL/Docker 设备的停止/重启、桌面 R3 daemon E2E、手机远控被动断线 E2E；渲染计数与真机冒烟仍未做。
+
+### 13.3 已知边界
+
+- B4 的崩溃恢复用“持久化状态 + 无存活 Supervisor”和运行中进程树重启两种场景覆盖，未等真实连续崩溃退避。
+- 上游 issue 06（操作失败但旧连接仍在时显示“连接失败”）未修。
+- 版本门禁取 NIBI `4.0.0`，开发构建 `0.0.0-dev` 会显示禁用。
+- B5 设备列表并入既有受管 `SourceServerManagementPanel`，未新增上游同名的独立文件。
