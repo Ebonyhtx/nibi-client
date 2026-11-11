@@ -24,6 +24,7 @@ mod monitors;
 mod peer_send;
 mod plugin;
 mod report;
+mod restore;
 mod routing;
 mod runs;
 mod shell_notices;

@@ -52,6 +52,7 @@
 - [浏览器使用](browser-use/)
 - [动态工作流](dynamic-workflow/)
 - [运行时工具](runtime-tools/)
+- [子代理重启续跑](subagent-restart-resume.md)：客户端重启/断网后子代理的可见、续跑与通知补发（Rust 先行）
 - [公共契约文档](contracts/)
 - [性能](performance/)
 

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use nibi_kernel_api::abort::{Abort, AbortReason};
 use nibi_kernel_api::env_shell;
-use nibi_kernel_api::ids::{AgentId, OwnerEpoch, SessionId, TraceId};
+use nibi_kernel_api::ids::{AgentId, OwnerEpoch, SessionId, ToolUseId, TraceId};
 use nibi_kernel_api::message::{ContentBlock, Message, UserMessage, UserOrigin};
 use nibi_kernel_api::metering::CallStatus;
 use nibi_kernel_api::model::{ModelSelection, QuerySource};
@@ -179,6 +179,30 @@ pub(crate) async fn create(
             }),
         });
     }
+    // 重启后续跑要用的身份（docs/subagent-restart-resume.md）：与模型/模式/第一条消息同一批落库，
+    // 冷加载时进程里已没有 `Live`，只有这条 entry 能说明“这个子会话是谁、属于谁”。
+    facts.push(Fact::Entry {
+        kind: crate::restore::SPAWN_ENTRY.to_owned(),
+        id: agent.agent.as_str().to_owned(),
+        data: serde_json::json!({
+            "agentId": agent.agent.as_str(),
+            "childSessionId": agent.child.as_str(),
+            "parentSession": parent.session.as_str(),
+            "rootSession": agent.root.as_str(),
+            "ownerAgentId": agent.owner.as_ref().map(AgentId::as_str),
+            "depth": agent.depth,
+            "toolUseId": agent.tool_use.as_ref().map(ToolUseId::as_str),
+            "description": &agent.description,
+            "agentType": &agent.definition.agent_type,
+            "workspace": &agent.workspace,
+            "machine": &agent.machine,
+            "selection": &agent.selection,
+            "execution": agent.execution,
+            "background": agent.background,
+            "fork": agent.fork_prefix.is_some(),
+            "createdAtMs": core.ports.clock.now_ms(),
+        }),
+    });
     facts.push(Fact::MessageAppended {
         message: first.clone(),
     });
@@ -312,30 +336,42 @@ pub(crate) async fn drive(
     // 子会话这一轮的 `turn_usage`（usage.md §2.4）：用量行是观测，写不进去只记日志。
     let status = match &result {
         Ok(QueryStop::Aborted) => CallStatus::Cancelled,
-        Ok(QueryStop::ApiError { .. }) | Err(_) => CallStatus::Error,
-        Ok(QueryStop::Completed | QueryStop::MaxTurns | QueryStop::Blocked { .. }) => {
-            CallStatus::Completed
-        }
+        // 与终态一致：API 错误与 stop hook 阻塞都算这一轮失败（docs/subagent-restart-resume.md「顺带修正」）。
+        Ok(QueryStop::ApiError { .. } | QueryStop::Blocked { .. }) | Err(_) => CallStatus::Error,
+        Ok(QueryStop::Completed | QueryStop::MaxTurns) => CallStatus::Completed,
     };
     if let Err(error) = sink.commit(vec![Fact::TurnEnded { status }]).await {
         tracing::warn!(%error, "the subagent turn usage could not be stored");
     }
     let (last, tool_uses) = sink.outcome();
     let mut text = report::final_text(last.as_ref());
-    let (ending, error) = match result {
-        Ok(QueryStop::Aborted) => (Ending::Killed, None),
-        Ok(QueryStop::ApiError { message } | QueryStop::Blocked { message }) => {
-            // 子循环以一条 API 错误消息结束，它就是最后的文本。
-            if text.is_empty() {
-                text = message;
-            }
-            (Ending::Completed, None)
-        }
-        Ok(QueryStop::Completed | QueryStop::MaxTurns) => (Ending::Completed, None),
-        // 失败时 `<result>` 仍是已有的文本，错误进 `<summary>`（`failed: <error>`，agents.md §5）。
-        Err(error) => (Ending::Failed, Some(error)),
-    };
+    let (ending, error) = ending_of(result, &mut text);
     let duration_ms = core.ports.clock.now_ms().saturating_sub(started);
+    let report = Report {
+        text,
+        tokens: report::tokens(last.and_then(|last| last.usage)),
+        tool_uses,
+        duration_ms,
+    };
+    // 重启后的终态（docs/subagent-restart-resume.md）：完成、失败与停止都写，恢复逻辑据此不再重跑
+    // 用户停掉或已经结束的子代理；通知丢了时也靠它补发。写在 `TurnEnded` 之后，作为独立一批。
+    let finished_at = core.ports.clock.now_ms();
+    let stored = Fact::Entry {
+        kind: crate::restore::RESULT_ENTRY.to_owned(),
+        id: agent.agent.as_str().to_owned(),
+        data: serde_json::json!({
+            "ending": ending.status(),
+            "text": &report.text,
+            "tokens": report.tokens,
+            "toolUses": report.tool_uses,
+            "durationMs": report.duration_ms,
+            "toolUseId": agent.tool_use.as_ref().map(ToolUseId::as_str),
+            "finishedAtMs": finished_at,
+        }),
+    };
+    if let Err(error) = sink.commit(vec![stored]).await {
+        tracing::warn!(agent = %agent.agent, %error, "the subagent result could not be stored");
+    }
     // `Option` 的字段在 None 时不写（logging.md §2）。
     let failure = error.as_ref().map(ToString::to_string);
     tracing::info!(
@@ -352,13 +388,34 @@ pub(crate) async fn drive(
     );
     Finished {
         ending,
-        report: Report {
-            text,
-            tokens: report::tokens(last.and_then(|last| last.usage)),
-            tool_uses,
-            duration_ms,
-        },
+        report,
         error,
+    }
+}
+
+/// 子循环结果的终态：中止是 `Killed`；API 错误与 stop hook 阻塞是 `Failed`（以前算 `Completed`，重启恢复
+/// 就无法区分“跑完了”和“网络失败”，docs/subagent-restart-resume.md「顺带修正」）；其余完成。子循环以一条
+/// API 错误消息结束时，报表为空就用它当部分文本。
+pub(crate) fn ending_of(
+    result: Result<QueryStop, QueryError>,
+    text: &mut String,
+) -> (Ending, Option<QueryError>) {
+    match result {
+        Ok(QueryStop::Aborted) => (Ending::Killed, None),
+        Ok(QueryStop::ApiError { message } | QueryStop::Blocked { message }) => {
+            if text.is_empty() {
+                *text = message.clone();
+            }
+            // `QueryError` 没有“API 错误”这一变体；`InvalidRequest` 是唯一带自由文本、且不冒充
+            // 网络/协议错误的载体（错误文本原样进 `<summary>` 的 `failed: …`）。
+            (
+                Ending::Failed,
+                Some(QueryError::Api { message }),
+            )
+        }
+        Ok(QueryStop::Completed | QueryStop::MaxTurns) => (Ending::Completed, None),
+        // 失败时 `<result>` 仍是已有的文本，错误进 `<summary>`（`failed: <error>`，agents.md §5）。
+        Err(error) => (Ending::Failed, Some(error)),
     }
 }
 

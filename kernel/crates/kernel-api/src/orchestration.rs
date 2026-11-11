@@ -107,6 +107,10 @@ pub enum QueryError {
     Model(#[from] ModelError),
     #[error(transparent)]
     Store(#[from] StoreError),
+    /// 模型请求以 API 错误结束（重试耗尽、内容拦截等），但错误不在 [`ModelError`] 的分类里。
+    /// 子代理把它记成失败终态并原样展示；主循环用 `QueryStop::ApiError` 的同一段文字。
+    #[error("{message}")]
+    Api { message: String },
     #[error("not implemented: {what}")]
     Unsupported { what: String },
 }

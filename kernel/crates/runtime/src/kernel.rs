@@ -719,7 +719,12 @@ impl Kernel for LocalKernel {
         // 冷恢复：会话 runtime 重建，插件快照重新解析（Node 冷恢复重建 App 的同一语义）。
         self.apply_session_plugin_snapshot(session, &state.meta.workspace, None)
             .await;
-        Ok(self.start(state, Opened::Loaded))
+        let is_child = state.meta.parent.is_some();
+        let handle = self.start(state, Opened::Loaded);
+        // 重启后的子代理恢复（docs/subagent-restart-resume.md）：重建 `Live`、补中断结果、
+        // 自动续跑与补发丢失的完成通知。只处理顶层会话；失败只记日志，不影响会话打开。
+        self.actors.restore_loaded_session(session, is_child).await;
+        Ok(handle)
     }
 
     async fn list_sessions(

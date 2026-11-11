@@ -346,3 +346,131 @@ async fn a_closed_session_leaves_the_kernel_and_reopens_with_a_new_actor() {
     assert!(!Arc::ptr_eq(&first, &again));
     again.view().await.unwrap();
 }
+
+/// 重启后的子代理恢复（docs/subagent-restart-resume.md）：同一个 store 上新建内核（进程重启），
+/// 打开父会话时把已完成、但通知丢了的后台子代理恢复进 Live，并补发结果。
+#[tokio::test]
+async fn opening_a_session_restores_a_finished_subagent_and_delivers_its_result() {
+    use nibi_kernel_api::agents::AgentSignals;
+    use nibi_kernel_api::ids::{AgentId, OwnerEpoch, SessionId, TraceId};
+    use nibi_kernel_api::permission::ExecutionState;
+    use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta};
+
+    let store = Arc::new(MemoryStore::default());
+    let first = kernel(store.clone(), Arc::new(ScriptedModel::new(Vec::new())));
+    let parent = first
+        .create_session(CreateSession {
+            id: None,
+            workspace: workspace(),
+            selection: selection(),
+            mode: PermissionMode::Default,
+            plan: false,
+        })
+        .await
+        .unwrap();
+    let child = SessionId::new("sess_subagent_agent_restored");
+    let agent = "agent_restored";
+    store
+        .create(SessionMeta {
+            id: child.clone(),
+            kind: SessionKind::Subagent,
+            parent: Some(parent.clone()),
+            workspace: workspace(),
+            title: "restored".to_owned(),
+            trace: TraceId::new(parent.as_str()),
+            created_at_ms: 2,
+        })
+        .await
+        .unwrap();
+    let spawn = serde_json::json!({
+        "agentId": agent,
+        "childSessionId": child.as_str(),
+        "parentSession": parent.as_str(),
+        "rootSession": parent.as_str(),
+        "ownerAgentId": null,
+        "depth": 1,
+        "toolUseId": "toolu_restored",
+        "description": "restored subagent",
+        "agentType": "general-purpose",
+        "workspace": workspace(),
+        "machine": null,
+        "selection": selection(),
+        "execution": serde_json::to_value(ExecutionState::from(PermissionMode::Default)).unwrap(),
+        "background": true,
+        "fork": false,
+        "createdAtMs": 2
+    });
+    let result = serde_json::json!({
+        "ending": "completed",
+        "text": "the subagent finished before the crash",
+        "tokens": 12,
+        "toolUses": 1,
+        "durationMs": 34,
+        "toolUseId": "toolu_restored",
+        "finishedAtMs": 3
+    });
+    store
+        .commit(
+            &child,
+            FactBatch {
+                owner_epoch: OwnerEpoch::LOCAL,
+                command: None,
+                facts: vec![
+                    Fact::Entry {
+                        kind: "subagent_spawn".to_owned(),
+                        id: agent.to_owned(),
+                        data: spawn,
+                    },
+                    Fact::Entry {
+                        kind: "subagent_result".to_owned(),
+                        id: agent.to_owned(),
+                        data: result,
+                    },
+                ],
+                turn: None,
+            },
+        )
+        .await
+        .unwrap();
+    drop(first);
+
+    // 新内核 = 进程重启；打开父会话触发 restore。
+    let reopened = kernel(store, Arc::new(ScriptedModel::new(Vec::new())));
+    reopened
+        .open_session_as(&parent, StartSource::Resume)
+        .await
+        .unwrap();
+    let entries = reopened
+        .actors
+        .signals()
+        .subagents(&parent)
+        .await;
+    assert_eq!(entries.len(), 1, "the subagent must be restored into Live");
+    assert_eq!(entries[0].agent, AgentId::new(agent));
+    assert_eq!(
+        entries[0].status,
+        nibi_kernel_api::panels::SubagentStatus::Completed
+    );
+    assert_eq!(entries[0].child, child);
+    // 结果通知补发：父会话里出现一条带 task-id 的 meta 消息（Hub 投递后由 actor 落库）。
+    let mut found = false;
+    for _ in 0..50 {
+        let loaded = reopened.ports.store.load(&parent).await.unwrap();
+        found = loaded.messages.iter().any(|message| {
+            matches!(
+                message,
+                Message::User(user)
+                    if user.content.iter().any(|block| matches!(
+                        block,
+                        nibi_kernel_api::message::ContentBlock::Text { text }
+                            if text.contains("<task-id>") && text.contains(agent)
+                    ))
+            )
+        });
+        if found {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(found, "the missing result notification must be delivered");
+}

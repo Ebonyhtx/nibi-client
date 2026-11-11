@@ -557,6 +557,61 @@ fn built_full(
 }
 
 impl Harness {
+    /// 同一份存储上的第二套 `Agents`（模拟进程重启：`Live`、Hub 与子循环记录都是新的）。
+    /// 返回的 `seen` 是新进程的子循环记录。
+    pub(crate) fn reboot(&self) -> (Agents, Arc<Mutex<Vec<Seen>>>) {
+        let queries = FakeQueries::default();
+        let seen = queries.seen.clone();
+        let base: Vec<Arc<dyn Tool>> = ["Bash", "Read", "Edit", "Workflow"]
+            .into_iter()
+            .map(|name| Arc::new(FakeTool::new(name, true, "")) as Arc<dyn Tool>)
+            .collect();
+        let ports = AgentsPorts {
+            directories: Arc::new(nibi_kernel_api::session_paths::SessionDirectories::new()),
+            plugins: None,
+            store: self.store.clone(),
+            ids: Arc::new(SequentialIds::default()),
+            clock: Arc::new(FixedClock(1_000)),
+            compactor: Arc::new(ContextFake::default()),
+            machines: Arc::new(nibi_kernel_api::env_registry::LocalRegistry::new(
+                self.machine.clone(),
+                self.local.clone(),
+            )),
+            machine: self.machine.clone(),
+            catalog: Arc::new(crate::AgentCatalog::new(
+                Arc::new(UnusedEnvironment),
+                Arc::new(UnusedEnvironment),
+            )),
+            tasks: self.tasks.clone() as Arc<dyn TaskListStore>,
+            queries: Arc::new(queries),
+            context: Arc::new(FixedContext(Vec::new())),
+            spawner: self._scope.spawner(),
+            shell_notice: |notice| ("completed", format!("<task-id>{}</task-id>", notice.task)),
+            monitor: crate::MonitorTexts {
+                notice: |notice| format!("{notice:?}"),
+                end: |notice, events| {
+                    (
+                        "completed",
+                        format!("<task-id>{}</task-id> end {events:?}", notice.task),
+                    )
+                },
+            },
+            peers: no_peers(),
+        };
+        let agents = Agents::new(
+            ports,
+            Arc::new(ListTools(base)),
+            AgentsConfig {
+                task_tools: true,
+                keep_alive: false,
+                background_prompts: false,
+                fork: false,
+                subagents_enabled: true,
+            },
+        );
+        (agents, seen)
+    }
+
     /// 父运行里工具调用看到的机器与本机服务换成 `env`（一个替身实现全部端口）。
     pub(crate) fn set_env<E: AllPorts + 'static>(&mut self, env: Arc<E>) {
         self.machine = machine(env.clone());

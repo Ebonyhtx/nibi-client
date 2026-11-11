@@ -93,12 +93,17 @@ async fn a_foreground_agent_runs_in_a_child_session_and_hands_back_its_report() 
         .store
         .facts(&SessionId::new("sess_subagent_agent_1"));
     assert!(matches!(facts[0], Fact::ModelSelected { .. }));
-    // 子循环结束时在子会话写这一轮的 `turn_usage`（usage.md §2.4）。
+    // 子循环结束时在子会话写这一轮的 `turn_usage`（usage.md §2.4），之后写终态 entry
+    // （docs/subagent-restart-resume.md）。
     assert!(matches!(
-        facts.last(),
+        facts.get(facts.len() - 2),
         Some(Fact::TurnEnded {
             status: nibi_kernel_api::metering::CallStatus::Completed
         })
+    ));
+    assert!(matches!(
+        facts.last(),
+        Some(Fact::Entry { kind, .. }) if kind == "subagent_result"
     ));
     assert!(
         harness
