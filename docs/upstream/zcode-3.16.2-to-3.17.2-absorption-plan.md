@@ -125,7 +125,7 @@
 
 | # | 变化 | 证据 | 上游状态 | NIBI 动作 |
 | --- | --- | --- | --- | --- |
-| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | Host/UI 大工程；先单类试点；**P1** |
+| B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 技能单类试点 `1c17b5e4`**：data-sync 服务/UI 模块、三态与默认勾选、父子同批、远端独有不删、离线 fail-closed、迟到丢弃、单项失败可重试；其余类别待扩；**P1** |
 | B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | **[x] `0f8b730f`**：settings-scope managed 模块 + 插件/MCP/子智能体/钩子/命令/技能页统一接线；远端「用户」走 attachment，离线 fail-closed；数据同步前置；**P1** |
 | B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
 | B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
@@ -365,13 +365,13 @@
   - Rust 生命周期状态机与 `ensureReady` 已实现并有测试；
   - MCP 信任记录生效，未信任项目 MCP 不装载；设置页可信任/撤销。
 
-### Phase 2：数据同步 + 项目删除 + 远端运维（第 6–9 周）**[进行中]**
+### Phase 2：数据同步 + 项目删除 + 远端运维（第 6–9 周）**[已完成 2026-11-11，见 §13]**
 
-- Host/UI：B2 设备 Scope → **[x] `0f8b730f`**；B1 数据同步单类试点（技能）→ 扩 MCP/命令/钩子/插件/子代理（待做）。
+- Host/UI：B2 设备 Scope → **[x] `0f8b730f`**；B1 数据同步技能单类试点 → **[x] `1c17b5e4`**（其余类别待扩）。
 - Host/UI + Rust：B3 项目彻底删除（UI + `sessionData/measure|purge`）→ **[x] `3bee959e` + `04824ccd`**。
 - Host/server：B4 远端服务停止/重启 → **[x] `7229bd42`**；B5 设备列表 → **[x] `7229bd42`**。
 - 出口：
-  - 单类同步的对比/推送/离线/迟到结果语义全过（B1 待做）；
+  - 技能同步的对比/推送/离线/迟到结果语义全过；其余类别待接入；
   - 项目删除保留运行中/被引用会话，幂等（Host/UI 已完成，真机冒烟待做）；
   - 远端 crash-loop 可在设备卡自救（CLI 整树 restart + Host flight + 设备卡确认，真机 E2E 待做）。
 
@@ -586,12 +586,13 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 | B2 | `0f8b730f` | settings-scope managed 模块；插件/MCP/子智能体/钩子/命令/技能页统一 Scope；离线 fail-closed；表单 owner 按设备 |
 | Rust 生命周期通知 | `e2291835` | `session/lifecycle/changed`，有订阅者才推、失败不影响收敛 |
 | B4/B5 | `7229bd42` | `stop --wait`、整树 `restart`（crash-loop 恢复）、Host 生命周期 flight、确认前列运行任务、紧凑可搜索设备列表与停止/重启菜单 |
+| B1 技能试点 | `1c17b5e4` | data-sync 服务/UI 模块；三态、父子同批、远端独有不删、离线 fail-closed、迟到丢弃、单项失败重试；设置页「数据同步」分区 |
 
 ### 13.2 门禁
 
 - `pnpm typecheck`、`pnpm lint`（0 error）、`pnpm architecture:check --changed`（0 违规）：通过。
-- `pnpm test:unit`（B4/B5 后）：1963 个测试文件 / **18,378 条通过**，76 条 skipped，0 失败。
-- 新增测试：B3 72 条；B2 201 条；B4/B5 CLI 9 条 + desktop 8 条 + UI 19 条 + 既有相关 300+ 条。
+- `pnpm test:unit`（B1 后）：1968 个测试文件 / **18,399 条通过**，76 条 skipped，0 失败。
+- 新增测试：B3 72 条；B2 201 条；B4/B5 CLI 9 条 + desktop 8 条 + UI 19 条 + 既有相关 300+ 条；B1 69 条。
 - 未执行：真实 SSH/WSL/Docker 设备的停止/重启、桌面 R3 daemon E2E、手机远控被动断线 E2E；渲染计数与真机冒烟仍未做。
 
 ### 13.3 已知边界
@@ -600,3 +601,5 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 - 上游 issue 06（操作失败但旧连接仍在时显示“连接失败”）未修。
 - 版本门禁取 NIBI `4.0.0`，开发构建 `0.0.0-dev` 会显示禁用。
 - B5 设备列表并入既有受管 `SourceServerManagementPanel`，未新增上游同名的独立文件。
+- B1 只做技能：MCP/命令/钩子/插件/子智能体/用户配置未接入；设备概览、推送全部、上次同步状态持久化与旧入口统一未做；远端独有按不可勾选行展示（上游隐藏）。
+- 数据同步的目标端统一 `~/.nibi/skills`，来源兼容 `~/.agents/skills`；启用状态写 `cli/config.json`，不是上游 `~/.zcode`。
