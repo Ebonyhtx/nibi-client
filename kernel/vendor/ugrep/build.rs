@@ -163,6 +163,9 @@ fn main() {
         ("macos", _) => "darwin",
         ("linux", "gnu") => "linux-gnu",
         ("linux", "musl") => "linux-musl",
+        // NIBI-GO 的本机内核（Phase C）：bionic 的 feature 集与 linux-gnu 一致，
+        // 见 config/android.h 的头注释。
+        ("android", _) => "android",
         ("windows", "msvc") => "windows",
         (os, target_env) => panic!(
             "nibi-kernel-vendor-ugrep：没有 {os}-{target_env} 的 config.h；Unix 先用 scripts/rust-cli/vendor/ugrep-config.mjs 生成（embedded-search.md §7.2）"
@@ -196,6 +199,11 @@ fn main() {
         brotli.join("include"),
     ];
     for dependency in ["Z", "BZIP2", "ZSTD"] {
+        // libz-sys 对 Android 直接用 NDK 自带的 libz：它的 build.rs 在 Android 上提前 return，
+        // 不会给 DEP_Z_INCLUDE；zlib.h 在 NDK clang 的默认 include path（sysroot/usr/include）里。
+        if dependency == "Z" && os == "android" && env::var_os("DEP_Z_INCLUDE").is_none() {
+            continue;
+        }
         let dir = env::var_os(format!("DEP_{dependency}_INCLUDE")).unwrap_or_else(|| {
             panic!("{dependency} 的 -sys crate 没有给出头文件目录（DEP_{dependency}_INCLUDE）")
         });
@@ -285,6 +293,9 @@ fn main() {
         .files(c_files(&brotli.join("common")))
         .files(c_files(&brotli.join("dec")));
 
+    // Android 这里不特别处理：cc 对 Android 默认链 `c++_shared`（NDK 的标准做法）。平台包因此
+    // 要求设备/APK 侧提供 `libc++_shared.so`（Phase C 把它放进 jniLibs）。要改静态 `c++_static`
+    // 的话还得一起链 `c++abi` / `unwind`（cc 文档明确说它不会替我们链）。
     let libstdcxx = if family == "linux-gnu" {
         static_libstdcxx(&ugrep)
     } else {

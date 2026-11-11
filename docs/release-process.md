@@ -20,7 +20,7 @@
    git tag v4.0.2 <main 的 commit>
    git push origin v4.0.2
    ```
-4. 标签推送会触发 `rust-npm-packages` 的 `publish` job，三个平台包（`@nibi-studio/cli-*`）自动带
+4. 标签推送会触发 `rust-npm-packages` 的 `publish` job，各平台包（`@nibi-studio/cli-*`）自动带
    provenance 发到 npm。标签必须等于 `package.json` 的版本，否则 job 直接失败（防止 `v4.0.2` 的标签发出
    `4.0.1` 的包）。
 5. 桌面安装包/服务端发布沿用各自流程，同样以这次 `main` 的 commit 为准。
@@ -28,10 +28,12 @@
 ## npm 包
 
 - 包名：`@nibi-studio/cli-<platform>`，平台见 `scripts/rust-cli/npm/package.mjs` 的 `TARGETS`
-  （`linux-x64-gnu`、`linux-arm64-gnu`、`darwin-arm64`；Intel Mac 不发布）。
+  （`linux-x64-gnu`、`linux-arm64-gnu`、`darwin-arm64`、`android-arm64`；Intel Mac 不发布）。
+  `android-arm64` 只供 NIBI-GO 直接消费 tarball，不经过内核的 SSH 远端 `Platform`。
 - 内容：`bin/nibi-rs` + `build.json` + `package.json`。内核按
   `@nibi-studio/cli-<Platform::package_id()>@<自身版本>` 取包，404 退 `latest`，再用
-  `exec-wire::handshake::PROTOCOL` 核对协议。
+  `exec-wire::handshake::PROTOCOL` 核对协议。这条是 SSH 远端部署的路径；android 不走这里
+  （NIBI-GO 自己取 tarball）。
 - 发布方式：**npm trusted publishing（OIDC）**，不需要任何 token/secret；发布身份由 npm 上每个包的
   Trusted Publisher 设置（仓库 `Ebonyhtx/nibi-client` + workflow `rust-npm-packages.yml`）绑定。
 - 手动补发：Actions → `rust-npm-packages` → Run workflow → 勾 `publish`（`version` 可覆盖版本，仅用于
@@ -53,7 +55,8 @@
 7. **`0.0.0-stage` 占位版本**：npm 在带 2FA 的发布流程里会写这条内部记录，删它要 OTP，不影响安装与 `latest`，别当故障。
 8. **改了包名前缀要同步四处**：`package.rs` 的 `PACKAGE_PREFIX`、`package.mjs` 的 `name`、
    测试夹具（`@nibi-studio/cli-*` 字符串）、本文档。
-9. **Intel Mac 不发**：与 `Platform::published()` 一致；`scripts/rust-cli/npm/package.mjs` 的 `TARGETS` 是唯一清单。
+9. **Intel Mac 不发**：`scripts/rust-cli/npm/package.mjs` 的 `TARGETS` 是 npm 平台包的唯一清单；
+   `Platform::published()` 只管 SSH 远端（linux/darwin），android 只出现在 TARGETS 与 CI matrix 里。
 
 ## 为什么不是"从 dev 发"
 

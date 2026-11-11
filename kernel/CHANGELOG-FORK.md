@@ -1324,3 +1324,28 @@ Node 的宿主目录端口（`packages/bootstrap/src/app/model-catalog-port.ts:8
 - `cargo test --workspace --no-fail-fast` 全绿（TUI 的 `esc_before_the_turn_is_drawn` 偶发本轮
   通过；该偶发与内核改动无关，见 §10）。
 - `cargo clippy` 对改动的 crate（tools/session/runtime/node-store）无新增告警。
+
+## 12. 2026-11-11 Android 平台包（NIBI-GO Phase C）
+
+- **范围**：只加 `aarch64-linux-android` 的构建/发布，不改现有三个平台的行为。NIBI-GO 直接消费
+  `@nibi-studio/cli-android-arm64` 的 tarball；内核的 `ssh-connect::Platform` 仍是 SSH 远端表，
+  **不含 android**（Android 上 `uname` 仍是 Linux/aarch64，不能靠它选包）。
+- **workflow**：`.github/workflows/rust-npm-packages.yml` 的 pack/publish 两个 matrix 各加
+  `android-arm64`；pack job 在 `kernel/` 下 `rustup target add aarch64-linux-android`，用 runner
+  自带的 NDK（`ANDROID_NDK_HOME`）设 `CC/CXX/AR/RANLIB/CARGO_TARGET_..._LINKER`（API 26）。
+- **打包脚本**：`scripts/rust-cli/npm/package.mjs` 的 `TARGETS` 加 `aarch64-linux-android`
+  （`os: android`、`cpu: arm64`、ELF）；`package.test.mjs` 加名称/平台字段/tarball 名断言。
+- **vendor**：`kernel/vendor/ugrep` 与 `bfs` 的 `build.rs` 各加 `("android", _) => "android"`；
+  新增 `config/android.h`（ugrep 沿用 linux-gnu 的 feature 集；bfs 按 bionic 收窄：没有 mntent/
+  GNU strerror_r/program_invocation_short_name，关闭 statx 与几个新接口）。ugrep 的 C++ 仍用 cc
+  默认的 `c++_shared`，平台包要求 APK 侧提供 `libc++_shared.so`（Phase C 放进 jniLibs）。
+- **验证**：`node --test scripts/rust-cli/npm/package.test.mjs` 5 条全绿（含 android 包名与 tarball
+  名）。CI 已跑通（`rust-npm-packages` run `42908781731`，四个平台全绿）；artifact
+  `nibi-studio-cli-android-arm64-4.0.0.tgz`（22.8 MB）里的 `package/bin/nibi-rs` 是 64 位小端
+  aarch64 ELF（`e_machine=0xB7`），`build.json` 的 target 为 `aarch64-linux-android`。
+  首轮 android 失败在 `DEP_Z_INCLUDE`：libz-sys 对 Android 直接链 NDK 的 libz、不发 include；
+  `3cd5b808` 在 ugrep 的 build.rs 里对 Android 跳过这一项。
+- **运行期依赖**：`nibi-rs` 动态链 `libc++_shared.so`（cc 的 Android 默认 STL），Phase C 打包时
+  必须把它一并放进 jniLibs；`libz.so` / `libdl.so` / `libm.so` 是设备自带。
+- **CI 旁注**：同分支的 `rust-gates` 红在 RUSTSEC-2026-0459（`libsqlite3-sys 0.35.0` 的 bundled
+  SQLite < 3.54.0），与本次 android 改动无关；`Cargo.lock` 未动，修法是 `rusqlite 0.41`。
