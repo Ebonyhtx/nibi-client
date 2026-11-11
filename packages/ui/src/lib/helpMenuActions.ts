@@ -1,6 +1,7 @@
 import type { IPlatformService } from "@nibi/shared";
 import type { IntlInstance } from "@/i18n/IntlProvider.js";
 import type { FeedbackSubmitDraft } from "@/feedback/feedbackStore.js";
+import { runCopyDeviceIdAction } from "@/lib/copyDeviceIdAction.js";
 import { runExportLogsAction } from "@/lib/exportLogsAction.js";
 import { NIBI_PRODUCT_DOCS_URL } from "@/lib/productDocs.js";
 
@@ -8,6 +9,7 @@ export interface HelpMenuActionHandlers {
   openIssueReport: () => Promise<void>;
   openProductDocs: () => void;
   exportLogs: () => void;
+  copyDeviceId: () => Promise<void>;
 }
 
 export function createHelpMenuActionHandlers({
@@ -15,7 +17,10 @@ export function createHelpMenuActionHandlers({
   intl,
   openSubmit,
 }: {
-  platform: Pick<IPlatformService, "captureWindowScreenshot" | "exportLogs" | "openExternal">;
+  platform: Pick<
+    IPlatformService,
+    "captureWindowScreenshot" | "exportLogs" | "openExternal" | "getDeviceId"
+  >;
   intl: IntlInstance;
   openSubmit: (draft?: FeedbackSubmitDraft) => void;
 }): HelpMenuActionHandlers {
@@ -35,5 +40,6 @@ export function createHelpMenuActionHandlers({
     exportLogs: () => {
       void runExportLogsAction(platform, intl);
     },
+    copyDeviceId: () => runCopyDeviceIdAction(platform, intl),
   };
 }

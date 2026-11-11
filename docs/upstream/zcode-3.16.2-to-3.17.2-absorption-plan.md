@@ -648,9 +648,10 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 - 本轮完成：C2、C13；B1 追加 inline 插件分类（提交见 §14.2 同批）。
 - C3：产物侧已有「用系统默认 App 打开 / 选择编辑器 / 在工作区显示 / 复制路径」，本轮补「另存为…」；
   Git 变更已有「在文件管理器显示」；普通聊天文件附件仍没有同一套菜单。
-- C4：标记未读、任务栏 overlay / Dock 角标已有；**托盘图标仍贴未读数字徽章**
-  （`desktopTray.ts::applyDesktopTrayUnreadBadge`），上游 3.17.2 已移除托盘红点（G1），这一处未对齐。
-- C15：设备号只在 Source 设备面板展示；「帮助菜单复制设备号」未做。
+- C4：标记未读、任务栏 overlay / Dock 角标已有；已按上游 3.17.2 移除托盘红点/数字徽章（G1）——
+  `desktopTray.ts::applyDesktopTrayUnreadBadge` 与托盘图标合成/缓存已删除，托盘始终使用原图。
+- C15：帮助菜单已补「复制设备号」；复用既有 `platform.getDeviceId()` 读取路径与 toast 成功提示，
+  Source 设备面板原复制入口保留。
 - C5：现有 MCP 设置页是列表 + 表单；上游 3.17.2 的「草稿版 MCP 配置界面」未作为独立模块落地，暂不重复造。
 - C8 暂缓：Rust DWF 侧没有 `providerStop.resetAt` 这类额度停止状态（只有通知投影），只做 Node 轨等于只服务回退内核；等 Rust DWF 补齐停止原因后再两侧一起做。
 - C11（文档查看器按会话隔离/共用进程）、C12（预览卡片整卡点击）、C17（插件后台保留时长上限）未做/未定位。

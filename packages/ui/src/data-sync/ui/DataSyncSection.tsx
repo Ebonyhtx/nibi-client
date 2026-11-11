@@ -18,16 +18,20 @@ import {
 } from "@/store/sourceSettingsServiceStore.js";
 import type { DataSyncCategoryController } from "@/data-sync/app/useDataSyncCategory.js";
 import { useDataSyncCategory } from "@/data-sync/app/useDataSyncCategory.js";
+import { useDataSyncPushAll } from "@/data-sync/app/useDataSyncPushAll.js";
 import type {
   DataSyncCategoryId,
   DataSyncDevice,
   DataSyncPagePhase,
+  DataSyncPushAllSummary,
 } from "@/data-sync/contract.js";
 import {
   DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE,
   DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE,
   DATA_SYNC_CATEGORIES,
 } from "@/data-sync/contract.js";
+import { categoryLabel } from "@/data-sync/ui/DataSyncLabels.js";
+import { OverviewPanel } from "@/data-sync/ui/DataSyncOverview.js";
 import {
   DataSyncRowItem,
   blockedReasonLabel,
@@ -36,19 +40,6 @@ import {
 
 type Intl = DataSyncIntl;
 type DataSyncTabId = DataSyncCategoryId | "overview";
-
-const CATEGORY_LABEL_IDS: Record<DataSyncCategoryId, string> = {
-  skills: "settings.dataSync.category.skills",
-  mcp: "settings.dataSync.category.mcp",
-  commands: "settings.dataSync.category.commands",
-  hooks: "settings.dataSync.category.hooks",
-  subagents: "settings.dataSync.category.subagents",
-  plugins: "settings.dataSync.category.plugins",
-};
-
-function categoryLabel(intl: Intl, category: DataSyncCategoryId): string {
-  return intl.formatMessage({ id: CATEGORY_LABEL_IDS[category] });
-}
 
 /** 门禁错误优先用稳定 code 选文案；其它错误仍显示原始 message，保持既有排障信息。 */
 function categoryErrorTitle(intl: Intl, state: DataSyncCategoryController): string {
@@ -197,95 +188,7 @@ function categoryBadge(intl: Intl, controller: DataSyncCategoryController) {
   };
 }
 
-function OverviewRow({
-  controller,
-  onSelect,
-}: {
-  controller: DataSyncCategoryController;
-  onSelect(id: DataSyncCategoryId): void;
-}) {
-  const { intl } = useZCodeIntl();
-  const ready = controller.phase === "ready";
-  const status = ready
-    ? controller.importBlockedReason
-      ? intl.formatMessage({ id: "settings.dataSync.category.blockedBadge" })
-      : controller.changedCount > 0
-        ? intl.formatMessage(
-            { id: "settings.dataSync.overview.changed" },
-            { count: controller.changedCount },
-          )
-        : intl.formatMessage({ id: "settings.dataSync.overview.inSync" })
-    : controller.phase === "error"
-      ? intl.formatMessage({ id: "settings.dataSync.overview.error" })
-      : intl.formatMessage({ id: "settings.dataSync.overview.loading" });
-  const statusTone =
-    ready && !controller.importBlockedReason && controller.changedCount > 0
-      ? "bg-warning-surface text-warning-surface-foreground"
-      : ready && !controller.importBlockedReason
-        ? "bg-success-surface text-success-surface-foreground"
-        : "bg-surface text-foreground-subtle";
-  return (
-    <button
-      type="button"
-      data-testid={`settings-data-sync-overview-row-${controller.category}`}
-      onClick={() => onSelect(controller.category)}
-      className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 px-4 py-3 text-left first:border-t-0 hover:bg-surface/60"
-    >
-      <span className="min-w-40 flex-1 truncate text-ui-base font-medium text-foreground">
-        {categoryLabel(intl, controller.category)}
-      </span>
-      {ready ? (
-        <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-ui-sm text-foreground-subtle">
-          <span>
-            {intl.formatMessage(
-              { id: "settings.dataSync.overview.local" },
-              { count: controller.sourceCount },
-            )}
-          </span>
-          <span>
-            {intl.formatMessage(
-              { id: "settings.dataSync.overview.remote" },
-              { count: controller.targetCount },
-            )}
-          </span>
-        </span>
-      ) : null}
-      <span
-        className={`inline-flex items-center rounded-md px-2 py-0.5 text-ui-xs font-medium ${statusTone}`}
-      >
-        {status}
-      </span>
-    </button>
-  );
-}
-
-function OverviewPanel({
-  categories,
-  onSelectCategory,
-}: {
-  categories: readonly DataSyncCategoryController[];
-  onSelectCategory(id: DataSyncCategoryId): void;
-}) {
-  const { intl } = useZCodeIntl();
-  return (
-    <div className="space-y-3">
-      <p className="text-ui-sm text-foreground-subtle">
-        {intl.formatMessage({ id: "settings.dataSync.overview.hint" })}
-      </p>
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        {categories.map((controller) => (
-          <OverviewRow
-            key={controller.category}
-            controller={controller}
-            onSelect={onSelectCategory}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
+function CategoryPanel({ state, busy }: { state: DataSyncCategoryController; busy: boolean }) {
   const { intl } = useZCodeIntl();
   if (state.phase === "loading") {
     return (
@@ -311,7 +214,9 @@ function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
           <div className="text-ui-base font-medium text-foreground">
             {categoryErrorTitle(intl, state)}
           </div>
-          <div className="text-ui-base text-foreground-subtle">{categoryErrorText(intl, state)}</div>
+          <div className="text-ui-base text-foreground-subtle">
+            {categoryErrorText(intl, state)}
+          </div>
         </div>
         <Button type="button" variant="outline" size="lg" onClick={state.reload}>
           {intl.formatMessage({ id: "settings.dataSync.actions.retry" })}
@@ -352,12 +257,18 @@ function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
             type="button"
             variant="ghost"
             size="sm"
-            disabled={Boolean(state.importBlockedReason)}
+            disabled={busy || Boolean(state.importBlockedReason)}
             onClick={state.selectAll}
           >
             {intl.formatMessage({ id: "settings.dataSync.actions.selectAll" })}
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={state.clearSelection}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={state.clearSelection}
+          >
             {intl.formatMessage({ id: "settings.dataSync.actions.clearSelection" })}
           </Button>
         </div>
@@ -377,7 +288,7 @@ function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
               key={row.key}
               row={row}
               selected={state.selectedKeys.has(row.key)}
-              disabled={state.pushing}
+              disabled={state.pushing || busy}
               outcome={state.summary?.outcomes[row.key]}
               onToggle={state.toggleItem}
             />
@@ -449,7 +360,7 @@ function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
         <Button
           type="button"
           size="lg"
-          disabled={!state.canPush}
+          disabled={busy || !state.canPush}
           onClick={() => void state.push()}
           data-testid="settings-data-sync-push"
         >
@@ -477,11 +388,19 @@ export interface DataSyncSectionViewProps {
   onRefresh(): void;
   attachmentError?: string;
   onRetryAttachment(): void;
+  /** 概览跨分类勾选总数与「推送全部」状态。 */
+  selectedTotal: number;
+  canPushAll: boolean;
+  pushAllRunning: boolean;
+  pushAllSummary?: DataSyncPushAllSummary;
+  onSelectAllCategories(): void;
+  onClearCategorySelection(): void;
+  onPushAll(): void;
 }
 
 /**
  * 纯展示层：设备选择、分类标签栏、概览、三态列表、勾选、推送与逐项结果。
- * 状态由各分类的 `useDataSyncCategory` 拥有；概览只读统计，不提供跨类全选或推送全部。
+ * 状态由各分类的 `useDataSyncCategory` 拥有；概览负责跨类全选与「推送全部」的入口和汇总。
  */
 export function DataSyncSectionView({
   devices,
@@ -494,13 +413,22 @@ export function DataSyncSectionView({
   onRefresh,
   attachmentError,
   onRetryAttachment,
+  selectedTotal,
+  canPushAll,
+  pushAllRunning,
+  pushAllSummary,
+  onSelectAllCategories,
+  onClearCategorySelection,
+  onPushAll,
 }: DataSyncSectionViewProps) {
   const { intl } = useZCodeIntl();
   const activeCategory =
     activeTab === "overview"
       ? undefined
       : categories.find((category) => category.category === activeTab);
-  const reloadDisabled = pagePhase !== "ready" || categories.some((category) => category.pushing);
+  // 推送全部期间禁止刷新 / 换设备：分类 reload 会换代 generation，使排队中的推送结果被丢弃。
+  const reloadDisabled =
+    pagePhase !== "ready" || pushAllRunning || categories.some((category) => category.pushing);
   return (
     <div className="space-y-6" data-testid="settings-data-sync">
       <p className="text-ui-base text-foreground-subtle">
@@ -511,7 +439,7 @@ export function DataSyncSectionView({
         <span className="text-ui-base font-medium text-foreground">
           {intl.formatMessage({ id: "settings.dataSync.device.label" })}
         </span>
-        <Select value={selectedDeviceId} onValueChange={onSelectDevice}>
+        <Select value={selectedDeviceId} onValueChange={onSelectDevice} disabled={pushAllRunning}>
           <SelectTrigger
             size="lg"
             className="w-64 min-w-0 justify-between"
@@ -599,9 +527,19 @@ export function DataSyncSectionView({
           <CategoryTabs categories={categories} activeTab={activeTab} onSelect={onSelectCategory} />
           <div id="settings-data-sync-panel" role="tabpanel">
             {activeCategory ? (
-              <CategoryPanel state={activeCategory} />
+              <CategoryPanel state={activeCategory} busy={pushAllRunning} />
             ) : (
-              <OverviewPanel categories={categories} onSelectCategory={onSelectCategory} />
+              <OverviewPanel
+                categories={categories}
+                onSelectCategory={onSelectCategory}
+                selectedTotal={selectedTotal}
+                canPushAll={canPushAll}
+                pushAllRunning={pushAllRunning}
+                pushAllSummary={pushAllSummary}
+                onSelectAll={onSelectAllCategories}
+                onClearSelection={onClearCategorySelection}
+                onPushAll={onPushAll}
+              />
             )}
           </div>
         </div>
@@ -672,14 +610,6 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
   categoriesRef.current = categories;
   const previousTabRef = useRef<DataSyncTabId>(activeTab);
 
-  // 切换分类时清空旧分类的勾选：分类页只展示当前分类的结果，不回带上一类的选择。
-  useEffect(() => {
-    const previous = previousTabRef.current;
-    previousTabRef.current = activeTab;
-    if (previous === activeTab || previous === "overview") return;
-    categoriesRef.current.find((category) => category.category === previous)?.clearSelection();
-  }, [activeTab]);
-
   const pagePhase: DataSyncPagePhase = !selectedDevice
     ? "offline"
     : attachmentError
@@ -687,6 +617,30 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
       : !sourceServices || !targetServices
         ? "connecting"
         : "ready";
+
+  // 「推送全部」只负责排序、限并发和汇总；勾选 / 推送仍由各分类 hook 持有。
+  const pushAll = useDataSyncPushAll(categories, { enabled: pagePhase === "ready" });
+  const { reset: resetPushAll } = pushAll;
+  const selectedTotal = categories.reduce((total, category) => total + category.selectedCount, 0);
+  const canPushAll =
+    pagePhase === "ready" &&
+    !pushAll.running &&
+    !categories.some((category) => category.pushing) &&
+    selectedTotal > 0;
+
+  // 切换分类时清空旧分类的勾选：分类页只展示当前分类的结果，不回带上一类的选择。
+  // 但「进入分类 → 回到概览」必须保留勾选，否则概览刚做的跨分类全选会被查看动作清掉。
+  useEffect(() => {
+    const previous = previousTabRef.current;
+    previousTabRef.current = activeTab;
+    if (previous === activeTab || previous === "overview" || activeTab === "overview") return;
+    categoriesRef.current.find((category) => category.category === previous)?.clearSelection();
+  }, [activeTab]);
+
+  // 设备换代后旧设备的汇总没有意义；正在推进的写入无法取消，但结果不再回填。
+  useEffect(() => {
+    resetPushAll();
+  }, [resetPushAll, selectedDeviceId]);
 
   const reload = useCallback(() => {
     const targets =
@@ -706,6 +660,17 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
   const selectCategory = useCallback((id: DataSyncTabId) => {
     setActiveTab(id);
   }, []);
+  const selectAllCategories = useCallback(() => {
+    if (pushAll.running) return;
+    for (const category of categoriesRef.current) category.selectAll();
+  }, [pushAll.running]);
+  const clearCategorySelection = useCallback(() => {
+    if (pushAll.running) return;
+    for (const category of categoriesRef.current) category.clearSelection();
+  }, [pushAll.running]);
+  const pushAllCategories = useCallback(() => {
+    void pushAll.run();
+  }, [pushAll.run]);
 
   if (devices.length === 0) {
     return (
@@ -727,6 +692,13 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
       onRefresh={reload}
       {...(attachmentError ? { attachmentError } : {})}
       onRetryAttachment={retryAttachment}
+      selectedTotal={selectedTotal}
+      canPushAll={canPushAll}
+      pushAllRunning={pushAll.running}
+      {...(pushAll.summary ? { pushAllSummary: pushAll.summary } : {})}
+      onSelectAllCategories={selectAllCategories}
+      onClearCategorySelection={clearCategorySelection}
+      onPushAll={pushAllCategories}
     />
   );
 }

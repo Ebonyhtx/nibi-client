@@ -10,6 +10,7 @@ vi.mock("electron", () => ({
   },
   BrowserWindow: {
     fromId: vi.fn(),
+    getAllWindows: vi.fn(() => []),
   },
   Menu: {
     buildFromTemplate: vi.fn(() => ({ setMenu: vi.fn() })),
@@ -18,7 +19,14 @@ vi.mock("electron", () => ({
     readonly port1 = { id: "port-1" };
     readonly port2 = { id: "port-2" };
   },
+  nativeImage: {
+    createEmpty: vi.fn(() => ({ addRepresentation: vi.fn() })),
+  },
 }));
+
+// 根因：托盘未读徽章已随上游 3.17.2 移除。这里把托盘模块替换成空对象；
+// 若 desktopWindowLifecycle 再导入/调用托盘徽章，本文件会在导入或同步未读时直接失败。
+vi.mock("../src/main/desktopTray.js", () => ({}));
 
 vi.mock("../src/main/desktopWindowChrome.js", () => ({
   createBrowserWindow: vi.fn(),
@@ -28,11 +36,13 @@ vi.mock("../src/main/armsBrowserPerfLoadNudge.js", () => ({
   scheduleArmsBrowserPerfLoadNudge: vi.fn(),
 }));
 
+import { app } from "electron";
 import { handleDarwinWindowCloseRequest } from "../src/main/desktopDarwinCloseBehavior.js";
 import { createBrowserWindow } from "../src/main/desktopWindowChrome.js";
 import {
   createWindow,
   handleDesktopWindowCloseRequest,
+  syncApplicationUnreadBadge,
 } from "../src/main/desktopWindowLifecycle.js";
 
 describe("desktopWindowLifecycle createWindow", () => {
@@ -456,6 +466,23 @@ describe("desktopWindowLifecycle createWindow", () => {
       "local-47",
       expect.objectContaining({ type: "init-local" }),
     );
+  });
+});
+
+describe("desktopWindowLifecycle unread badge sync", () => {
+  it("只同步平台角标，不再调用托盘（托盘徽章已移除）", () => {
+    const setBadgeCount = vi.mocked(app.setBadgeCount);
+    setBadgeCount.mockClear();
+
+    expect(() => syncApplicationUnreadBadge(new Map([[1, 3]]))).not.toThrow();
+
+    // Windows 走 BrowserWindow overlay（本用例没有窗口，可视作无调用）；
+    // macOS/Linux 仍保留应用级角标，这是与托盘徽章无关的另一条链路。
+    if (process.platform === "linux" || process.platform === "darwin") {
+      expect(setBadgeCount).toHaveBeenCalledWith(3);
+    } else {
+      expect(setBadgeCount).not.toHaveBeenCalled();
+    }
   });
 });
 

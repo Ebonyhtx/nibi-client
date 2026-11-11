@@ -112,6 +112,36 @@ export interface DataSyncPushFailure {
   error?: string;
 }
 
+/**
+ * 单分类一次推送的结果快照。
+ *
+ * 由 `useDataSyncCategory` 在推送结束时直接返回，而不是让概览去读 React state：
+ * 「推送全部」并行推进多个分类时，state 更新是异步的，读 state 会拿到上一帧。
+ * 分类级失败（能力门禁 / 写权限预检 / 导出导入抛错）时 `failed` 等于本次尝试的条目数，
+ * `failures` 只保留已经拿到逐项结果的失败项。
+ */
+export interface DataSyncCategoryPushResult {
+  category: DataSyncCategoryId;
+  /** 本次实际尝试推送的条目数（筛选后的可勾选行）。 */
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  failures: DataSyncPushFailure[];
+  /** 分类级失败原因；逐项失败时为空。 */
+  error?: string;
+  /** 分类级失败的稳定错误码（能力门禁），UI 据此选 i18n 文案。 */
+  errorCode?: string;
+}
+
+/** 概览「推送全部」的汇总；`results` 按分类固定顺序保留每个分类的结果。 */
+export interface DataSyncPushAllSummary {
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  results: DataSyncCategoryPushResult[];
+}
+
 export type DataSyncPagePhase = "loading" | "ready" | "connecting" | "offline" | "error";
 
 /** 页面唯一需要的两端服务：本机 base services 与设备的 source-settings attachment。 */

@@ -15,11 +15,20 @@ vi.mock("electron", () => ({
     },
   },
   Tray: class {
+    setImage() {}
     setToolTip() {}
     setContextMenu() {}
     on() {}
   },
 }));
+
+describe("desktop tray unread badge removal", () => {
+  it("不再导出托盘未读徽章入口（上游 3.17.2 已移除红点/数字）", async () => {
+    const mod = await import("@desktop/main/desktopTray.js");
+
+    expect("applyDesktopTrayUnreadBadge" in mod).toBe(false);
+  });
+});
 
 describe("desktop tray log export", () => {
   beforeEach(() => {

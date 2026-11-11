@@ -8,6 +8,7 @@ import {
   ActivityIcon,
   BookOpenIcon,
   CircleHelpIcon,
+  CopyIcon,
   DownloadIcon,
   LightbulbIcon,
   InfoIcon,
@@ -147,6 +148,11 @@ export function WorkspaceHelpMenuButton({
                 )}
               </DropdownMenuItem>
             ) : null}
+            {/* 设备号原来只在 Source 设备面板展示；复用 platform.getDeviceId() 的既有读取路径。 */}
+            <DropdownMenuItem onSelect={helpMenuActions.copyDeviceId}>
+              <CopyIcon className="size-4" />
+              {intl.formatMessage({ id: "titleBar.menu.help.copyDeviceId" })}
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={handleShowAbout}>
               <InfoIcon className="size-4" />
               {intl.formatMessage({ id: "titleBar.menu.help.about" })}

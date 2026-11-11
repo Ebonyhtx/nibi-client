@@ -1,8 +1,10 @@
 export type {
   DataSyncCategoryCounts,
   DataSyncCategoryId,
+  DataSyncCategoryPushResult,
   DataSyncDevice,
   DataSyncPagePhase,
+  DataSyncPushAllSummary,
   DataSyncPushFailure,
   DataSyncPushOutcome,
   DataSyncPushStatus,
@@ -40,8 +42,18 @@ export {
   type DataSyncCategoryState,
 } from "@/data-sync/app/useDataSyncCategory.js";
 export {
+  useDataSyncPushAll,
+  type DataSyncPushAllController,
+} from "@/data-sync/app/useDataSyncPushAll.js";
+export {
   useDataSyncSkills,
   type DataSyncSkillsController,
   type DataSyncSkillsState,
 } from "@/data-sync/app/useDataSyncSkills.js";
+export {
+  DATA_SYNC_PUSH_ALL_CONCURRENCY,
+  hasPushAllCategoryFailure,
+  runDataSyncCategoryPushQueue,
+  summarizePushAllResults,
+} from "@/data-sync/domain/pushQueue.js";
 export { DataSyncSection, DataSyncSectionView } from "@/data-sync/ui/DataSyncSection.js";

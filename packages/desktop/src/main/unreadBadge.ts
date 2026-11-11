@@ -90,12 +90,12 @@ export type BadgePixelOptions = {
   size?: number;
   glyphScale?: number;
   padding?: number;
-  /** 纯色圆点模式（托盘用）：16px 显示尺寸下数字不可读，只画圆不画数字。 */
+  /** 纯色圆点模式：小尺寸下数字不可读，只画圆不画数字。 */
   dot?: boolean;
   /**
-   * 圆点锚点。center 为画布中心（托盘合成用）；bottom-right 把圆心锚到画布
-   * 右下角（任务栏 overlay 用）——overlay 整图铺在图标右下区域，点画在画布
-   * 中心会悬在图标中部，只有锚住右下角才呈现"图标角标"的观感。
+   * 圆点锚点。center 为画布中心；bottom-right 把圆心锚到画布右下角——
+   * 整图铺在图标右下区域时，点画在中心会悬在图标中部，只有锚住右下角
+   * 才呈现"图标角标"的观感。
    */
   anchor?: "center" | "bottom-right";
 };
@@ -178,52 +178,6 @@ export function renderTaskbarBadgePixels(
   return pixels;
 }
 
-// 预乘 alpha 混合：out = src + dst × (1 - srcA)，base 原地修改。越界区域安全裁剪。
-export function blendBadgeIntoBitmap(options: {
-  base: Uint8Array;
-  size: number;
-  badge: Uint8Array;
-  badgeSize: number;
-  originX: number;
-  originY: number;
-}): void {
-  for (let by = 0; by < options.badgeSize; by += 1) {
-    const y = options.originY + by;
-    if (y < 0 || y >= options.size) {
-      continue;
-    }
-
-    for (let bx = 0; bx < options.badgeSize; bx += 1) {
-      const x = options.originX + bx;
-      if (x < 0 || x >= options.size) {
-        continue;
-      }
-
-      const srcOffset = (by * options.badgeSize + bx) * 4;
-      const srcAlpha = options.badge[srcOffset + 3]!;
-      if (srcAlpha === 0) {
-        continue;
-      }
-
-      const dstOffset = (y * options.size + x) * 4;
-      if (srcAlpha === 255) {
-        options.base[dstOffset] = options.badge[srcOffset]!;
-        options.base[dstOffset + 1] = options.badge[srcOffset + 1]!;
-        options.base[dstOffset + 2] = options.badge[srcOffset + 2]!;
-        options.base[dstOffset + 3] = 255;
-        continue;
-      }
-
-      const keepRatio = (255 - srcAlpha) / 255;
-      for (let channel = 0; channel < 4; channel += 1) {
-        const src = options.badge[srcOffset + channel]!;
-        const dst = options.base[dstOffset + channel]!;
-        options.base[dstOffset + channel] = Math.round(src + dst * keepRatio);
-      }
-    }
-  }
-}
-
 export interface AntialiasedDotOptions {
   size: number;
   centerX: number;
@@ -232,10 +186,8 @@ export interface AntialiasedDotOptions {
   supersample?: number;
 }
 
-/** 4× 超采样的纯红预乘 BGRA 圆点；任务栏与托盘复用，几何参数各自独立。 */
-export function renderAntialiasedStatusDotPixels(
-  options: AntialiasedDotOptions,
-): Uint8Array {
+/** 4× 超采样的纯红预乘 BGRA 圆点，供 Windows 任务栏 overlay 使用。 */
+export function renderAntialiasedStatusDotPixels(options: AntialiasedDotOptions): Uint8Array {
   const supersample = options.supersample ?? 4;
   const pixels = new Uint8Array(options.size * options.size * 4);
   const samplesPerPixel = supersample * supersample;

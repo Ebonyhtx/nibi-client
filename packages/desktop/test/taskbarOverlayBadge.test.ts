@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   applyTaskbarOverlayToWindows,
-  blendBadgeIntoBitmap,
   createWindowsTaskbarOverlayApplier,
   renderTaskbarBadgePixels,
   renderTaskbarStatusDotPixels,
@@ -95,7 +94,12 @@ describe("windows taskbar overlay badge", () => {
     });
 
     it("红点模式只画纯色圆，不渲染数字（托盘 16px 下数字不可读）", () => {
-      const pixels = renderTaskbarBadgePixels("9+", { size: 14, glyphScale: 1, padding: 0, dot: true });
+      const pixels = renderTaskbarBadgePixels("9+", {
+        size: 14,
+        glyphScale: 1,
+        padding: 0,
+        dot: true,
+      });
       const at = (x: number, y: number): number[] => {
         const offset = (y * 14 + x) * 4;
         return [pixels[offset]!, pixels[offset + 1]!, pixels[offset + 2]!, pixels[offset + 3]!];
@@ -258,91 +262,6 @@ describe("windows taskbar overlay badge", () => {
       applier(null);
 
       expect(win.overlays).toEqual([{ image: null, description: "" }]);
-    });
-  });
-
-  describe("blendBadgeIntoBitmap", () => {
-    const SIZE = 4;
-
-    function fillBase(): Uint8Array {
-      // 4×4 不透明蓝底（预乘 BGRA：B=200, G=40, R=10, A=255）
-      const base = new Uint8Array(SIZE * SIZE * 4);
-      for (let offset = 0; offset < base.length; offset += 4) {
-        base[offset] = 200;
-        base[offset + 1] = 40;
-        base[offset + 2] = 10;
-        base[offset + 3] = 255;
-      }
-      return base;
-    }
-
-    function solidBadge(value: { b: number; g: number; r: number; a: number }): Uint8Array {
-      const badge = new Uint8Array(2 * 2 * 4);
-      for (let offset = 0; offset < badge.length; offset += 4) {
-        badge[offset] = value.b;
-        badge[offset + 1] = value.g;
-        badge[offset + 2] = value.r;
-        badge[offset + 3] = value.a;
-      }
-      return badge;
-    }
-
-    function pixel(buffer: Uint8Array, x: number, y: number): number[] {
-      const offset = (y * SIZE + x) * 4;
-      return [buffer[offset]!, buffer[offset + 1]!, buffer[offset + 2]!, buffer[offset + 3]!];
-    }
-
-    it("不透明徽章完全覆盖目标区域，其余像素不受影响", () => {
-      const base = fillBase();
-      blendBadgeIntoBitmap({
-        base,
-        size: SIZE,
-        badge: solidBadge({ b: 1, g: 2, r: 3, a: 255 }),
-        badgeSize: 2,
-        originX: 2,
-        originY: 2,
-      });
-
-      expect(pixel(base, 2, 2)).toEqual([1, 2, 3, 255]);
-      expect(pixel(base, 3, 3)).toEqual([1, 2, 3, 255]);
-      expect(pixel(base, 0, 0)).toEqual([200, 40, 10, 255]);
-      expect(pixel(base, 1, 1)).toEqual([200, 40, 10, 255]);
-    });
-
-    it("半透明徽章按预乘 alpha 混合：out = src + dst × (1 - srcA)", () => {
-      const base = fillBase();
-      // srcA = 128 → keep ≈ 0.498；out.b = 100 + 200 × 0.498039 ≈ 200（四舍五入）
-      blendBadgeIntoBitmap({
-        base,
-        size: SIZE,
-        badge: solidBadge({ b: 100, g: 0, r: 0, a: 128 }),
-        badgeSize: 2,
-        originX: 0,
-        originY: 0,
-      });
-
-      const [b, g, r, a] = pixel(base, 0, 0);
-      expect(a).toBe(255);
-      expect(b).toBe(Math.round(100 + 200 * ((255 - 128) / 255)));
-      expect(g).toBe(Math.round(0 + 40 * ((255 - 128) / 255)));
-      expect(r).toBe(Math.round(0 + 10 * ((255 - 128) / 255)));
-    });
-
-    it("徽章透明像素（a=0）不改动底图，越界区域安全裁剪", () => {
-      const base = fillBase();
-      const badge = new Uint8Array(2 * 2 * 4); // 全透明
-      badge[3] = 0;
-      blendBadgeIntoBitmap({
-        base,
-        size: SIZE,
-        badge,
-        badgeSize: 2,
-        originX: 3,
-        originY: 3, // 2×2 徽章只有 (3,3) 落在画布内，(4,3)(3,4)(4,4) 越界
-      });
-
-      expect(pixel(base, 0, 0)).toEqual([200, 40, 10, 255]);
-      expect(pixel(base, 3, 3)).toEqual([200, 40, 10, 255]);
     });
   });
 });

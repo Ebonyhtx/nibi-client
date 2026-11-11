@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DesktopCommandIds } from "@nibi/shared";
 import { TID_WORKSPACE_HELP_MENU_RESOURCE_MANAGER } from "@nibi/shared/test-ids";
 
@@ -32,6 +32,7 @@ const captured = vi.hoisted(() => ({
     labelValues: undefined,
   },
   executeDesktopCommand: vi.fn(async () => undefined),
+  getDeviceId: vi.fn(() => "device-current"),
 }));
 
 vi.mock("@/components/ui/dropdown-menu.js", () => ({
@@ -94,23 +95,27 @@ vi.mock("@/hooks/usePlatform.js", () => ({
     captureWindowScreenshot: vi.fn(async () => null),
     executeDesktopCommand: captured.executeDesktopCommand,
     exportLogs: captured.exportLogs,
+    getDeviceId: captured.getDeviceId,
     openCommunity: vi.fn(async () => undefined),
     openExternal: captured.openExternal,
   }),
 }));
 
 describe("WorkspaceHelpMenuButton", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   async function render(isDesktop: boolean | undefined) {
     captured.menuItems = [];
     captured.executeDesktopCommand.mockClear();
     captured.exportLogs.mockClear();
     captured.toast.mockClear();
     captured.dismissToast.mockClear();
+    captured.getDeviceId.mockClear();
     const { WorkspaceHelpMenuButton } = await import("@/WorkspaceHelpMenuButton.js");
     return renderToStaticMarkup(createElement(WorkspaceHelpMenuButton, { isDesktop }));
   }
-
-
 
   it("桌面端渲染资源管理器项，点击走 OpenResourceManager 命令", async () => {
     // 原因：Windows/Linux 没有原生菜单栏，自绘箭头菜单也已下线，问号菜单是资源管理器唯一入口。
@@ -202,6 +207,30 @@ describe("WorkspaceHelpMenuButton", () => {
     }
   });
 
+  it("桌面帮助菜单复制当前设备号并给出成功提示", async () => {
+    const writeText = vi.fn(async () => undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+
+    await render(true);
+    const item = captured.menuItems.find(
+      (entry) => entry.label === "titleBar.menu.help.copyDeviceId",
+    );
+    expect(item).toBeDefined();
+    await item!.onSelect?.();
+
+    // 设备号必须来自既有权威读取路径 platform.getDeviceId()，而不是菜单自造值。
+    expect(captured.getDeviceId).toHaveBeenCalledExactlyOnceWith();
+    expect(writeText).toHaveBeenCalledExactlyOnceWith("device-current");
+    expect(captured.toast).toHaveBeenCalledWith("workspaceHeader.help.copyDeviceIdSucceeded");
+  });
+
+  it("Web 和手机远控不显示复制设备号入口", async () => {
+    for (const isDesktop of [undefined, false]) {
+      expect(await render(isDesktop)).not.toContain("titleBar.menu.help.copyDeviceId");
+      expect(captured.getDeviceId).not.toHaveBeenCalled();
+    }
+  });
+
   it("桌面两组一条分隔线，导出日志位于桌面组首项，Web 仅帮助组", async () => {
     for (const desktop of [true, false]) {
       const html = await render(desktop);
@@ -215,6 +244,7 @@ describe("WorkspaceHelpMenuButton", () => {
               "titleBar.menu.help.exportLogs",
               "titleBar.menu.help.resourceManager",
               "titleBar.menu.help.checkForUpdates",
+              "titleBar.menu.help.copyDeviceId",
               "titleBar.menu.help.about",
             ]
           : []),

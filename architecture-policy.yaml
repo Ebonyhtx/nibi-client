@@ -1268,3 +1268,12 @@ exceptions:
       子代理重启续跑需要与 Rust 内核逐字节同形的 entry 读写（`nibi-kernel/subagent_*`）。
       该文件与 runner.ts 同属 core/subagent 运行时，拆到别处会把 entry 物理形状从执行侧剥离；
       apps/zcode-cli 是 managed:false 的遗留大区，接管整包不在本次范围内，按路径单独登记。
+
+  - id: help-menu-copy-device-id-action
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/lib/copyDeviceIdAction.ts
+    reason: >-
+      帮助菜单「复制设备号」的动作实现，与 helpMenuActions.ts 同属 ui/lib 既有菜单动作层；
+      设备号只经 platform.getDeviceId() 读取，不新开通道。packages/ui 仍是 managed:false
+      的遗留大区，接管整包不在本次范围内，按路径单独登记。

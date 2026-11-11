@@ -9,6 +9,7 @@ import { SKILL_DATA_SYNC_MAX_ITEM_BYTES, type DataSyncBlockedReason } from "@nib
 import type {
   DataSyncCategoryCounts,
   DataSyncCategoryId,
+  DataSyncCategoryPushResult,
   DataSyncPagePhase,
   DataSyncPushFailure,
   DataSyncPushOutcome,
@@ -84,6 +85,12 @@ export interface DataSyncCategoryController extends DataSyncCategoryState {
   clearSelection(): void;
   reload(): void;
   push(): Promise<void>;
+  /**
+   * 推送指定 key（缺省为当前勾选）并返回本次结果快照。
+   * 概览「推送全部」用它按分类汇总；分类页仍用 `push`，行为不变。
+   * 不满足推送条件（未就绪 / 正在推送 / 无选中项）时返回 `undefined`。
+   */
+  pushSelected(keys?: readonly string[]): Promise<DataSyncCategoryPushResult | undefined>;
   retryFailed(): Promise<void>;
 }
 
@@ -306,16 +313,22 @@ export function useDataSyncCategory(params: {
     setReloadVersion((version) => version + 1);
   }, []);
 
-  const push = useCallback(
-    async (keysOverride?: readonly string[]): Promise<void> => {
+  const pushSelected = useCallback(
+    async (keysOverride?: readonly string[]): Promise<DataSyncCategoryPushResult | undefined> => {
       const current = stateRef.current;
-      if (current.phase !== "ready" || current.pushing || !online || !source || !target) return;
+      if (current.phase !== "ready" || current.pushing || !online || !source || !target) {
+        return undefined;
+      }
       const keys = new Set(keysOverride ?? current.selectedKeys);
       const rows = current.rows.filter((row) => keys.has(row.key) && row.selectable);
-      if (rows.length === 0) return;
+      if (rows.length === 0) return undefined;
       const generation = generationRef.current;
       const stale = () => generationRef.current !== generation;
       const outcomes: Record<string, DataSyncPushOutcome> = {};
+      const succeededCount = () =>
+        Object.values(outcomes).filter(
+          (outcome) => outcome.status === "created" || outcome.status === "updated",
+        ).length;
       const markBatchFailed = (batch: readonly DataSyncRow[], error: unknown) => {
         const message = errorMessage(error);
         for (const row of batch) {
@@ -332,14 +345,24 @@ export function useDataSyncCategory(params: {
       }));
       try {
         const access = await target.checkSyncWriteAccess();
-        if (stale()) return;
+        if (stale()) return undefined;
         if (!access.ok) {
+          const message = access.error ?? access.path;
           setState((previous) => ({
             ...previous,
             pushing: false,
-            errorMessage: access.error ?? access.path,
+            errorMessage: message,
           }));
-          return;
+          // 写权限是分类级失败：本次选中项一个都没写入，概览按整类失败汇总。
+          return {
+            category,
+            attempted: rows.length,
+            succeeded: 0,
+            failed: rows.length,
+            skipped: current.remoteOnlyCount,
+            failures: [],
+            error: message,
+          };
         }
         const batches = chunkSkillRows(rows, SKILL_DATA_SYNC_MAX_ITEM_BYTES, current.rows);
         for (const batch of batches) {
@@ -348,39 +371,43 @@ export function useDataSyncCategory(params: {
           try {
             payload = await source.exportSyncItems({ keys: batchKeys });
           } catch (error) {
-            if (stale()) return;
+            if (stale()) return undefined;
             // 版本门禁失败不是单项失败：继续其它批只会造成半同步，直接中止整次推送。
             if (isDataSyncRemoteAgentCapabilityError(error)) throw error;
             markBatchFailed(batch, error);
             continue;
           }
-          if (stale()) return;
+          if (stale()) return undefined;
           try {
             const result = await target.importSyncItems({
               payload,
               items: resolveSkillImportItems(batch),
             });
-            if (stale()) return;
+            if (stale()) return undefined;
             for (const item of result.results) {
               outcomes[item.key] = importResultToOutcome(item);
             }
           } catch (error) {
-            if (stale()) return;
+            if (stale()) return undefined;
             if (isDataSyncRemoteAgentCapabilityError(error)) throw error;
             markBatchFailed(batch, error);
           }
         }
-        if (stale()) return;
+        if (stale()) return undefined;
+        const failures = findPushFailures(current.rows, outcomes);
+        // 远端独有项也给出逐项「跳过」结果；它们从不进入 import items。
+        const summaryOutcomes = { ...outcomes };
+        for (const row of current.rows) {
+          if (row.status === "remoteOnly" && !summaryOutcomes[row.key]) {
+            summaryOutcomes[row.key] = { key: row.key, status: "skipped" };
+          }
+        }
+        const summary = summarizePushOutcomes({
+          outcomes: summaryOutcomes,
+          remoteOnlyCount: current.remoteOnlyCount,
+        });
         setState((previous) => {
           const nextRows = mergePushOutcomesIntoRows(previous.rows, outcomes);
-          const failures = findPushFailures(previous.rows, outcomes);
-          // 远端独有项也给出逐项「跳过」结果；它们从不进入 import items。
-          const summaryOutcomes = { ...outcomes };
-          for (const row of previous.rows) {
-            if (row.status === "remoteOnly" && !summaryOutcomes[row.key]) {
-              summaryOutcomes[row.key] = { key: row.key, status: "skipped" };
-            }
-          }
           return {
             ...previous,
             rows: nextRows,
@@ -388,29 +415,60 @@ export function useDataSyncCategory(params: {
             changedCount: nextRows.filter((row) => row.selectable).length,
             pushing: false,
             failures,
-            summary: summarizePushOutcomes({
-              outcomes: summaryOutcomes,
-              remoteOnlyCount: previous.remoteOnlyCount,
-            }),
+            summary,
           };
         });
+        return {
+          category,
+          attempted: rows.length,
+          succeeded: summary.succeeded,
+          failed: summary.failed,
+          skipped: summary.skipped,
+          failures,
+        };
       } catch (error) {
-        if (stale()) return;
+        if (stale()) return undefined;
         const code = errorCode(error);
-        setState((previous) => ({
-          ...previous,
-          pushing: false,
-          errorMessage: errorMessage(error),
+        const message = errorMessage(error);
+        const failures = findPushFailures(current.rows, outcomes);
+        const succeeded = succeededCount();
+        setState((previous) => {
+          // 已成功的前序批次沿用既有 merge 语义标为已同步；未执行 / 失败项保留勾选，
+          // 门禁中止后用户手动重试时不会重推已成功项。
+          const nextRows = mergePushOutcomesIntoRows(previous.rows, outcomes);
+          const remainingKeys = nextRows
+            .filter((row) => keys.has(row.key) && row.selectable)
+            .map((row) => row.key);
+          return {
+            ...previous,
+            rows: nextRows,
+            selectedKeys: new Set(remainingKeys),
+            changedCount: nextRows.filter((row) => row.selectable).length,
+            pushing: false,
+            failures,
+            errorMessage: message,
+            ...(code ? { errorCode: code } : {}),
+          };
+        });
+        // 门禁错误会让整类直接失败：剩余选中项计入失败并带上原因，不做自动重试。
+        return {
+          category,
+          attempted: rows.length,
+          succeeded,
+          failed: rows.length - succeeded,
+          skipped: current.remoteOnlyCount,
+          failures,
+          error: message,
           ...(code ? { errorCode: code } : {}),
-        }));
+        };
       }
     },
-    [online, source, target],
+    [category, online, source, target],
   );
 
   const retryFailed = useCallback(async () => {
-    await push(stateRef.current.failures.map((failure) => failure.key));
-  }, [push]);
+    await pushSelected(stateRef.current.failures.map((failure) => failure.key));
+  }, [pushSelected]);
 
   const selectedCount = state.rows.filter(
     (row) => row.selectable && state.selectedKeys.has(row.key),
@@ -424,7 +482,10 @@ export function useDataSyncCategory(params: {
     selectAll,
     clearSelection,
     reload,
-    push: () => push(),
+    push: async () => {
+      await pushSelected();
+    },
+    pushSelected,
     retryFailed,
   };
 }
