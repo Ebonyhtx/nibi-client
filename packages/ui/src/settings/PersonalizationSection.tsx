@@ -7,17 +7,17 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { RotateCw, Save, X } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import {
   SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES,
   type SettingsSyncUserAgentsFile,
 } from "@nibi/services";
 import { Button } from "@/components/ui/button.js";
 import { toast } from "@/components/ui/toast.js";
+import { cn } from "@/components/lib/utils.js";
 import { useBaseWorkspaceServices } from "@/hooks/useWorkspaceServices.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
-import { SettingsFormActions } from "@/settings/SettingsFormActions.js";
 import { SettingsFormTextarea } from "@/settings/SettingsFormTextarea.js";
 import { SettingsGroupCard } from "@/settings/SettingsPageParts.js";
 
@@ -130,7 +130,7 @@ export function PersonalizationSection() {
         {intl.formatMessage({ id: "settings.personalization.description" })}
       </p>
       <SettingsGroupCard>
-        <div className="space-y-3 px-4 py-3">
+        <div className="space-y-2 px-4 py-4">
           {loading ? (
             <p className="text-ui-base text-foreground-subtle">
               {intl.formatMessage({ id: "settings.personalization.loading" })}
@@ -147,12 +147,7 @@ export function PersonalizationSection() {
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <label htmlFor={editorId} className="text-ui-base font-medium text-foreground">
-                  {intl.formatMessage({ id: "settings.personalization.editorLabel" })}
-                </label>
-                <span className="text-ui-sm text-foreground-subtle tabular-nums">{sizeLabel}</span>
-              </div>
+              {/* 上游只在卡片里放大文本域；文件路径这类实现细节不再展示。 */}
               <SettingsFormTextarea
                 id={editorId}
                 value={draft}
@@ -160,11 +155,24 @@ export function PersonalizationSection() {
                 onKeyDown={handleKeyDown}
                 disabled={saving}
                 spellCheck={false}
-                className="min-h-72 w-full font-mono"
+                className="min-h-80 w-full font-mono"
+                aria-label={intl.formatMessage({ id: "settings.personalization.editorLabel" })}
                 aria-describedby={descriptionId}
                 placeholder={intl.formatMessage({ id: "settings.personalization.placeholder" })}
                 data-testid="settings-personalization-editor"
               />
+              {/* 计数贴在文本域右下角；超限时用危险色，保持与文本域同一视觉组。 */}
+              <div className="flex justify-end">
+                <span
+                  className={cn(
+                    "text-ui-sm tabular-nums",
+                    overLimit ? "text-destructive" : "text-foreground-subtle",
+                  )}
+                  data-testid="settings-personalization-size"
+                >
+                  {sizeLabel}
+                </span>
+              </div>
               {overLimit ? (
                 <p role="alert" className="text-ui-base text-destructive">
                   {intl.formatMessage({ id: "settings.personalization.overLimit" })}
@@ -175,26 +183,7 @@ export function PersonalizationSection() {
                   {error}
                 </p>
               ) : null}
-              {loaded?.path ? (
-                <p className="break-all text-ui-sm text-foreground-subtle">
-                  {intl.formatMessage(
-                    { id: "settings.personalization.path" },
-                    { path: loaded.path },
-                  )}
-                </p>
-              ) : null}
-              <SettingsFormActions>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={saving || !dirty}
-                  onClick={handleCancel}
-                  data-testid="settings-personalization-cancel"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                  {intl.formatMessage({ id: "common.cancel" })}
-                </Button>
+              <div className="flex items-center justify-end gap-2 pt-1">
                 <Button
                   type="button"
                   size="sm"
@@ -202,10 +191,19 @@ export function PersonalizationSection() {
                   onClick={() => void handleSave()}
                   data-testid="settings-personalization-save"
                 >
-                  <Save className="size-4" aria-hidden="true" />
                   {intl.formatMessage({ id: "common.save" })}
                 </Button>
-              </SettingsFormActions>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={saving || !dirty}
+                  onClick={handleCancel}
+                  data-testid="settings-personalization-cancel"
+                >
+                  {intl.formatMessage({ id: "common.cancel" })}
+                </Button>
+              </div>
             </>
           )}
         </div>

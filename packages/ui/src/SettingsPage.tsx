@@ -3,7 +3,7 @@ import { getWorkspaceSourceServerId } from "@/conversation-workspace-target/sour
 import { RemoteConnectionNavigationDot } from "@/remote-connection/RemoteConnectionNavigationDot.js";
 import { resolveRemoteConnectionNavigationPresentation } from "@/lib/remoteConnectionPresentation.js";
 /* oxlint-disable eslint(max-lines) */
-import { ArrowLeft, Rocket, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRightLeft, Info, type LucideIcon } from "lucide-react";
 import { useStore } from "zustand";
 import {
   marketingNavigation,
@@ -34,6 +34,19 @@ import {
   testId,
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.js";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip.js";
 import { toast } from "@/components/ui/toast.js";
 import { DesktopWindowFrame } from "@/DesktopWindowFrame.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -248,6 +261,8 @@ export function SettingsPage({
   const [dataSyncCategoryTarget, setDataSyncCategoryTarget] = useState(
     consumePendingSettingsDataSyncCategory,
   );
+  // 数据同步页头「迁移数据」：复用已有的 Claude 会话迁移能力，不另造第二套迁移流程。
+  const [dataSyncMigrationOpen, setDataSyncMigrationOpen] = useState(false);
   const [pluginTab, setPluginTab] = useState(() => consumePendingSettingsPluginTab());
   // Linux 关闭驻留托盘能力查询（spec：docs/desktop/linux-close-to-tray.md）：打开设置页时
   // 经 platform IPC 触发 main 侧探测（带 stale 缓存），用户装完 AppIndicator 扩展重开
@@ -1315,28 +1330,6 @@ export function SettingsPage({
                     );
                   })}
                 </div>
-
-                <SettingsSidebarButton
-                  icon={Rocket}
-                  label={intl.formatMessage({ id: "settings.onboarding" })}
-                  className="mt-4 border border-dashed border-border hover:border-border-hover"
-                  onClick={() => {
-                    runUserAction({
-                      input: {
-                        featureId: "settings.navigation",
-                        action: "open_onboarding",
-                        trigger: "button",
-                      },
-                      operation: requestOnboardingDialog,
-                      completed: { resultSource: "local_commit" },
-                      failureStage: "dialog_open",
-                    });
-                  }}
-                >
-                  <span className="text-ui-base text-foreground">
-                    {intl.formatMessage({ id: "settings.onboarding" })}
-                  </span>
-                </SettingsSidebarButton>
               </nav>
 
               <div className="max-lg:hidden">
@@ -1454,9 +1447,52 @@ export function SettingsPage({
                                 </span>
                               ) : null}
                             </div>
+                            {activeSection === "dataSync" && isDesktop ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="lg"
+                                onClick={() => setDataSyncMigrationOpen(true)}
+                                data-testid="settings-data-sync-migrate"
+                              >
+                                <ArrowRightLeft className="size-4" aria-hidden="true" />
+                                {intl.formatMessage({
+                                  id: "settings.dataSync.migrationAction",
+                                })}
+                              </Button>
+                            ) : null}
                           </div>
                           {activeSection === "general" ? (
                             <GeneralSectionHeader localePreference={localePreference} />
+                          ) : null}
+                          {activeSection === "dataSync" ? (
+                            <div className="mt-2 flex items-center gap-1.5 text-ui-base text-foreground-subtle">
+                              <span>
+                                {intl.formatMessage({
+                                  id: "settings.dataSync.headerDescription",
+                                })}
+                              </span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex size-5 items-center justify-center rounded-md text-foreground-subtle transition-colors hover:bg-surface-hover hover:text-foreground"
+                                      aria-label={intl.formatMessage({
+                                        id: "settings.dataSync.helpLabel",
+                                      })}
+                                    >
+                                      <Info className="size-3.5" aria-hidden="true" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" align="start" className="max-w-sm">
+                                    {intl.formatMessage({
+                                      id: "settings.dataSync.category.description",
+                                    })}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                           ) : null}
                         </div>
                         <div className="space-y-8">
@@ -1925,6 +1961,27 @@ export function SettingsPage({
             </div>
           </section>
         </div>
+        {/* 迁移弹窗复用设置页既有的 Claude 会话迁移，不在这里伪造上游的 Skills/MCP/命令/AGENTS.md 迁移步骤。 */}
+        <Dialog open={dataSyncMigrationOpen} onOpenChange={setDataSyncMigrationOpen}>
+          <DialogContent
+            className="max-h-[85vh] w-full overflow-y-auto sm:max-w-3xl"
+            data-testid="settings-data-sync-migration-dialog"
+          >
+            <DialogHeader className="gap-2">
+              <DialogTitle className="text-ui-lg font-semibold text-foreground">
+                {intl.formatMessage({ id: "settings.dataSync.migrationTitle" })}
+              </DialogTitle>
+              <DialogDescription className="text-ui-base leading-6 text-foreground-subtle">
+                {intl.formatMessage({ id: "settings.dataSync.migrationDescription" })}
+              </DialogDescription>
+            </DialogHeader>
+            <MigrationSection
+              workspacePath={activeWorkspacePath ?? captionWorkspacePath ?? null}
+              workspaceIdentity={activeWorkspaceIdentity}
+              isDesktop={isDesktop}
+            />
+          </DialogContent>
+        </Dialog>
       </DesktopWindowFrame>
     </>
   );

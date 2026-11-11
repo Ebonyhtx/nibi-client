@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, RefreshCw, UploadCloud } from "lucide-react";
+import { AlertTriangle, Inbox, RefreshCw, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import {
   Select,
@@ -431,10 +431,6 @@ export function DataSyncSectionView({
     pagePhase !== "ready" || pushAllRunning || categories.some((category) => category.pushing);
   return (
     <div className="space-y-6" data-testid="settings-data-sync">
-      <p className="text-ui-base text-foreground-subtle">
-        {intl.formatMessage({ id: "settings.dataSync.category.description" })}
-      </p>
-
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-ui-base font-medium text-foreground">
           {intl.formatMessage({ id: "settings.dataSync.device.label" })}
@@ -686,11 +682,7 @@ export function DataSyncSection({
   }, [pushAll.run]);
 
   if (devices.length === 0) {
-    return (
-      <div className="rounded-lg border border-border bg-surface px-4 py-6 text-ui-base text-foreground-subtle">
-        <DataSyncEmptyState onConnectDevice={onConnectDevice} />
-      </div>
-    );
+    return <DataSyncEmptyState onConnectDevice={onConnectDevice} />;
   }
 
   return (
@@ -716,13 +708,30 @@ export function DataSyncSection({
   );
 }
 
+/**
+ * 空态按上游做成居中的虚线卡片：图标 + 标题 + 说明 + 主按钮。
+ * 不再套灰色大底板，避免整页只剩一块深色区域。
+ */
 function DataSyncEmptyState({ onConnectDevice }: { onConnectDevice?: () => void }) {
   const { intl } = useZCodeIntl();
   return (
-    <div className="space-y-3">
-      <p>{intl.formatMessage({ id: "settings.dataSync.phase.noDevices" })}</p>
+    <div
+      className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border px-6 py-12 text-center"
+      data-testid="settings-data-sync-empty"
+    >
+      <span className="flex size-10 items-center justify-center rounded-full bg-surface text-foreground-subtle">
+        <Inbox className="size-5" aria-hidden="true" />
+      </span>
+      <div className="space-y-1">
+        <p className="text-ui-base font-medium text-foreground">
+          {intl.formatMessage({ id: "settings.dataSync.phase.noDevicesTitle" })}
+        </p>
+        <p className="max-w-md text-ui-base leading-6 text-foreground-subtle">
+          {intl.formatMessage({ id: "settings.dataSync.phase.noDevices" })}
+        </p>
+      </div>
       {onConnectDevice ? (
-        <Button type="button" size="sm" onClick={onConnectDevice}>
+        <Button type="button" size="lg" onClick={onConnectDevice}>
           {intl.formatMessage({ id: "settings.dataSync.phase.connectDevice" })}
         </Button>
       ) : null}

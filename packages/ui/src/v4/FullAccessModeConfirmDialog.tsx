@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { FolderIcon, GlobeIcon, TerminalIcon, type LucideIcon } from "lucide-react";
+import { Folder, Globe2, Terminal, TriangleAlert, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { Checkbox } from "@/components/ui/checkbox.js";
 import {
@@ -20,17 +20,17 @@ const CAPABILITIES: readonly {
   descriptionId: string;
 }[] = [
   {
-    icon: FolderIcon,
+    icon: Folder,
     titleId: "chat.fullAccessConfirm.files.title",
     descriptionId: "chat.fullAccessConfirm.files.description",
   },
   {
-    icon: TerminalIcon,
+    icon: Terminal,
     titleId: "chat.fullAccessConfirm.terminal.title",
     descriptionId: "chat.fullAccessConfirm.terminal.description",
   },
   {
-    icon: GlobeIcon,
+    icon: Globe2,
     titleId: "chat.fullAccessConfirm.network.title",
     descriptionId: "chat.fullAccessConfirm.network.description",
   },
@@ -64,7 +64,7 @@ export function FullAccessModeConfirmDialog({
       <DialogContent
         showCloseButton={false}
         data-testid="full-access-mode-confirm-dialog"
-        className="gap-4 rounded-2xl border-none bg-popover p-5 shadow-2xl ring-border sm:max-w-md"
+        className="gap-4 rounded-2xl border border-border bg-popover p-5 shadow-xl sm:max-w-md"
         onOpenAutoFocus={(event) => {
           // 根因：确认按钮在勾选前禁用，若焦点落到禁用的主按钮，键盘用户会以为弹窗不可操作。
           // 把初始焦点放在风险勾选项上，读屏先读出承诺文本，Tab 后才到达可执行按钮。
@@ -73,20 +73,23 @@ export function FullAccessModeConfirmDialog({
         }}
       >
         <DialogHeader className="gap-2">
-          <DialogTitle className="pr-2 text-ui-lg font-semibold text-foreground">
-            {intl.formatMessage({ id: "chat.fullAccessConfirm.title" })}
+          <DialogTitle className="flex items-center gap-2 pr-2 text-ui-lg font-semibold text-foreground">
+            {/* 图标尺寸与标题字号匹配；警示色使用语义 token，不加背景块，避免上游截图里的大面积橙色。 */}
+            <TriangleAlert aria-hidden="true" className="size-4 shrink-0 text-warning" />
+            <span className="min-w-0">
+              {intl.formatMessage({ id: "chat.fullAccessConfirm.title" })}
+            </span>
           </DialogTitle>
           <DialogDescription className="text-ui-base leading-6 text-foreground-subtle">
             {intl.formatMessage({ id: "chat.fullAccessConfirm.description" })}
           </DialogDescription>
         </DialogHeader>
 
-        <ul className="grid gap-3">
+        {/* 三项能力收进一个细边框容器，行间用分隔线，替代旧版逐条平铺、没有分组容器的排布。 */}
+        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
           {CAPABILITIES.map(({ icon: Icon, titleId, descriptionId }) => (
-            <li key={titleId} className="flex min-w-0 items-start gap-3">
-              <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-surface-muted text-foreground-subtle">
-                <Icon aria-hidden="true" className="size-4" />
-              </span>
+            <li key={titleId} className="flex min-w-0 items-start gap-3 px-3.5 py-3">
+              <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-foreground-subtle" />
               <span className="min-w-0">
                 <span className="block text-ui-base font-medium text-foreground">
                   {intl.formatMessage({ id: titleId })}
@@ -99,7 +102,8 @@ export function FullAccessModeConfirmDialog({
           ))}
         </ul>
 
-        <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-ui-base leading-5 text-foreground">
+        {/* 警示不再用橙色底块；与描述同色阶，靠正文阅读而不是高饱和色块吸引注意。 */}
+        <p className="text-ui-base leading-6 text-foreground-subtle">
           {intl.formatMessage({ id: "chat.fullAccessConfirm.warning" })}
         </p>
 

@@ -510,6 +510,8 @@ describe("DataSyncSection categories", () => {
       }),
     );
 
+    expect(screen.getByTestId("settings-data-sync-empty")).toBeTruthy();
+    expect(screen.getByText("settings.dataSync.phase.noDevicesTitle")).toBeTruthy();
     expect(screen.getByText("settings.dataSync.phase.noDevices")).toBeTruthy();
     fireEvent.click(screen.getByText("settings.dataSync.phase.connectDevice"));
     expect(onConnectDevice).toHaveBeenCalledTimes(1);

@@ -2686,6 +2686,12 @@ const enUS: Record<string, string> = {
   "settings.dataSync.title": "Data sync",
   "settings.dataSync.description":
     "Sync your local user-level skills to a remote device. Only creates or updates; remote-only content is kept.",
+  "settings.dataSync.headerDescription": "Sync local configuration to remote devices",
+  "settings.dataSync.helpLabel": "About data sync",
+  "settings.dataSync.migrationAction": "Migrate data",
+  "settings.dataSync.migrationTitle": "Migrate data",
+  "settings.dataSync.migrationDescription":
+    "Migration currently covers local Claude Code session history only: selected sessions are imported into their matching NIBI task lists. It does not modify or delete existing sessions, and does not migrate skills, MCP servers, commands, or AGENTS.md, or write to remote devices.",
   "settings.dataSync.device.label": "Device",
   "settings.dataSync.device.placeholder": "Select a device",
   "settings.dataSync.phase.loading": "Reading skills on both sides…",
@@ -2702,8 +2708,9 @@ const enUS: Record<string, string> = {
     "Remote sync support could not be verified",
   "settings.dataSync.error.remoteAgentCapabilityUnverified":
     "Could not verify whether the remote device supports data sync. Reads and writes were stopped to avoid partial sync; check the device connection and try again.",
+  "settings.dataSync.phase.noDevicesTitle": "No connected devices",
   "settings.dataSync.phase.noDevices":
-    "No connected devices yet. Connect a device to sync skills, MCP servers, and plugins from this computer.",
+    "After connecting an SSH, WSL, or Docker device, you can push local configuration to that device's ~/.nibi directory.",
   "settings.dataSync.phase.connectDevice": "Connect device",
   "settings.dataSync.actions.refresh": "Refresh",
   "settings.dataSync.actions.retry": "Retry",
@@ -3353,7 +3360,7 @@ const enUS: Record<string, string> = {
     "Use enhanced Find and Grep in new sessions and sessions restored after an app restart. Active sessions keep their current setting; Find remains unchanged on Windows.",
   "settings.personalization.title": "Personalization",
   "settings.personalization.description":
-    "Edit the user-level AGENTS.md. Saving applies to every Agent session on this computer. Remote devices have their own user-level file and must be configured on each device.",
+    "Add custom instructions to personalize Agent replies. They apply to later Agent sessions on this computer; remote devices need separate configuration.",
   "settings.personalization.loading": "Reading AGENTS.md…",
   "settings.personalization.loadFailed": "Could not read the user-level AGENTS.md. Try again.",
   "settings.personalization.editorLabel": "User-level AGENTS.md",
@@ -3362,7 +3369,6 @@ const enUS: Record<string, string> = {
   "settings.personalization.size": "{used} KB / {limit} KB",
   "settings.personalization.overLimit":
     "The 100 KB limit is exceeded. Shorten the content before saving.",
-  "settings.personalization.path": "File location: {path}",
   "settings.personalization.saved":
     "AGENTS.md saved. It will apply to new sessions on this computer.",
   "settings.personalization.saveFailed":
@@ -3597,6 +3603,12 @@ const enUS: Record<string, string> = {
   "settings.projects.searchPlaceholder": "Search projects, paths, or devices",
   "settings.projects.searchLabel": "Search projects",
   "settings.projects.clearSearch": "Clear search",
+  "settings.projects.deviceFilter.label": "Filter by device",
+  "settings.projects.deviceFilter.all": "All devices",
+  "settings.projects.sort.label": "Sort by",
+  "settings.projects.sort.lastActivity": "Last activity",
+  "settings.projects.sort.sessions": "Sessions",
+  "settings.projects.sort.name": "Name",
   "settings.projects.column.name": "Project",
   "settings.projects.column.device": "Device",
   "settings.projects.column.sessions": "Sessions",
@@ -3616,7 +3628,10 @@ const enUS: Record<string, string> = {
   "settings.projects.removedTitle": "Removed projects",
   "settings.projects.removedDescription":
     "These projects were removed from the sidebar. Their sessions and files on disk are still kept.",
-  "settings.projects.removedBadge": "Removed",
+  "settings.projects.removedAgo": "Removed {time}",
+  "settings.projects.restore": "Restore",
+  "settings.projects.restoreSuccess": "Restored “{name}”",
+  "settings.projects.restoreFailed": "Could not restore “{name}”. Try again.",
   "settings.usageTitle": "Usage stats",
   "settings.usageDescription":
     "Review rough activity and model usage aggregated from local sessions.",

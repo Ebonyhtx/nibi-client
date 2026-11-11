@@ -7,8 +7,18 @@ import type {
 import {
   buildProjectSettingsRows,
   filterAndSortProjectSettingsRows,
+  formatProjectRemovedAgo,
   resolveProjectDeviceLabel,
 } from "@/settings/ProjectsSection.js";
+
+const testIntl = {
+  formatMessage: ({ id }: { id: string }, values?: Record<string, string>) =>
+    values
+      ? `${id}:${Object.entries(values)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(",")}`
+      : id,
+};
 
 function makeProject(overrides: Partial<VirtualProject> = {}): VirtualProject {
   return {
@@ -148,5 +158,45 @@ describe("filterAndSortProjectSettingsRows", () => {
     expect(filterAndSortProjectSettingsRows(rows, "/srv/beta")[0]?.project.name).toBe("Beta");
     expect(filterAndSortProjectSettingsRows(rows, "build-box")).toHaveLength(1);
     expect(filterAndSortProjectSettingsRows(rows, "missing")).toHaveLength(0);
+  });
+
+  it("按设备标签筛选，all 表示不过滤", () => {
+    expect(
+      filterAndSortProjectSettingsRows(rows, "", { deviceLabel: "Beta 所在设备" }),
+    ).toHaveLength(0);
+    expect(
+      filterAndSortProjectSettingsRows(rows, "", { deviceLabel: "remote:docker:build-box" }).map(
+        (row) => row.project.name,
+      ),
+    ).toEqual(["Beta"]);
+    expect(
+      filterAndSortProjectSettingsRows(rows, "", { deviceLabel: "all" }).map(
+        (row) => row.project.name,
+      ),
+    ).toEqual(["Beta", "Alpha"]);
+  });
+
+  it("支持按名称与最近活动排序", () => {
+    expect(
+      filterAndSortProjectSettingsRows(rows, "", { sort: "name" }).map((row) => row.project.name),
+    ).toEqual(["Alpha", "Beta"]);
+    expect(
+      filterAndSortProjectSettingsRows(rows, "", { sort: "lastActivity" }).map(
+        (row) => row.project.name,
+      ),
+    ).toEqual(["Beta", "Alpha"]);
+  });
+});
+
+describe("formatProjectRemovedAgo", () => {
+  it("用相对时间拼出「N 前移除」，未知时间不编造具体时长", () => {
+    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    expect(formatProjectRemovedAgo(threeDaysAgo, Date.now(), testIntl)).toContain(
+      "settings.projects.removedAgo:time=",
+    );
+    expect(formatProjectRemovedAgo(threeDaysAgo, Date.now(), testIntl)).toContain(
+      "automations.time.days",
+    );
+    expect(formatProjectRemovedAgo(undefined, Date.now(), testIntl)).toBe("—");
   });
 });
