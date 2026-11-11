@@ -56,7 +56,7 @@ const ALL_DEFAULT_PLUGIN_MARKETPLACES: readonly DefaultPluginMarketplace[] = [
     // NIBI 官方唯一市场：本地 seed 分片与远端清单分片在 Agent storage 内合并。
     // 远端 manifest 的 name 必须与该 canonical id 一致；清单与配套 .sig 由 NIBI 服务端发布。
     id: NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID,
-    source: "https://api.nibistudio.top/plugins/marketplace.json",
+    source: "https://api.nibistudio.cn/plugins/marketplace.json",
     name: NIBI_OFFICIAL_PLUGIN_MARKETPLACE_ID,
     description: "NIBI 官方插件市场：内置与社区插件。",
     pluginCount: 0,

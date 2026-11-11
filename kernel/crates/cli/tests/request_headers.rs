@@ -104,7 +104,7 @@ fn a_real_request_carries_the_node_headers() {
         for (name, value) in [
             // 本测试的 vars 里有 `NIBI_ENV=test`：Node 的来源是测试端点
             // （`resolveRuntimeZCodeEndpointOrigin`）。
-            ("http-referer", "https://api-test.nibistudio.top"),
+            ("http-referer", "https://api-test.nibistudio.cn"),
             ("user-agent", format!("NIBI/{version}").as_str()),
             ("x-nibi-app-version", version.as_str()),
             ("x-title", "NIBI@cli"),
@@ -147,7 +147,7 @@ fn the_app_version_variable_comes_first() {
     assert_eq!(get(headers, "x-nibi-app-version"), Some("9.9.9"));
     assert_eq!(get(headers, "x-client-language"), Some("en-US"));
     assert_eq!(get(headers, "x-client-timezone"), Some("UTC"));
-    assert_eq!(get(headers, "http-referer"), Some("https://api.nibistudio.top"));
+    assert_eq!(get(headers, "http-referer"), Some("https://api.nibistudio.cn"));
     assert_eq!(get(headers, "x-release-channel"), Some("production"));
     let requests = run(&[("NIBI_APP_VERSION", "")]);
     assert_eq!(get(&requests[0], "user-agent"), Some("NIBI/unknown"));

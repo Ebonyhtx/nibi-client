@@ -49,7 +49,7 @@ export function resolveArchitectureDownloadUrl(
   webOrigin = DEFAULT_NIBI_WEB_ORIGIN,
 ): string {
   // 下载页在官网而不是 API：NIBI 把 api.* 与站点拆成了两个域名，
-  // 沿用 endpointOrigin 会把用户送到 api.nibistudio.top/cn（404）。
+  // 沿用 endpointOrigin 会把用户送到 api.nibistudio.cn/cn（404）。
   const origin = webOrigin.replace(/\/+$/, "");
   return locale === "zh-CN" ? `${origin}/cn` : `${origin}/en`;
 }

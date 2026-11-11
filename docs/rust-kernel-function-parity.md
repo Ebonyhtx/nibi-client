@@ -343,7 +343,7 @@ redirectPath)[0..24]>:authorization_credentials`）；
   （失败只记警告）。退出清掉 NIBI 的五个键 + `active_provider`（只在这个值是 `nibi` 时）。
 - `kernel/crates/cli/src/nibi_session.rs` 是共享凭据的读改写（目录锁 + 原子写 + v1 惰性迁移；损坏文件不覆盖）。
 - 端点：`NIBI_AUTH_ORIGIN` 覆盖账号中心，API 根沿用 `NIBI_ENDPOINT_ORIGIN` 规则（默认
-  `https://api.nibistudio.top/api/v1`）。
+  `https://api.nibistudio.cn/api/v1`）。
 - 测试：`nibi-platform` 11 条（端点/表单、轮询、slow_down、过期、取消、刷新、资料）、`cli` 8 条单测 +
   4 条真实进程（登录写 v2 凭据与 license、JSON 形状、退出、用法错误）。
 - Rust TUI 的 `/login`（`kernel/crates/cli/src/tui_account.rs`）走同一条 `device_login`：界面显示设备码与地址、

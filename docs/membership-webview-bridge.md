@@ -12,13 +12,13 @@
   -> oauthService.createNibiCheckoutUrl()
        POST {NIBI_API_BASE_URL}/api/v1/auth/handoff   (Bearer = NIBI access token)
        -> { code, expiresAt }
-  -> https://nibistudio.top/membership/?embedded=app&handoff=<code>
+  -> https://nibistudio.cn/membership/?embedded=app&handoff=<code>
   -> 官网用一次性 code 换 2 小时站点会话（HttpOnly Cookie），并把 code 从地址栏抹掉
 ```
 
 - 未登录 NIBI 账号时，客户端不打开网页登录，而是提示回客户端登录。
 - `handoff` 是单次使用；刷新必须重新换码，不能 reload 旧 URL。
-- 官网地址由 `NIBI_MEMBERSHIP_SITE_URL` 下发（默认 `https://nibistudio.top/membership/`）。
+- 官网地址由 `NIBI_MEMBERSHIP_SITE_URL` 下发（默认 `https://nibistudio.cn/membership/`）。
 - 本地开发站点是 Astro dev：`http://localhost:4321/membership/`（兼容旧的 3000）。
 
 ## 2. 页面 → App：购买完成
@@ -32,7 +32,7 @@ window.nibiBridge?.notifyPurchaseComplete?.({ provider: "nibi" });
 ```
 
 - 只有**我们自己的官网** `/membership` 及其子路径才会注入 `window.nibiBridge`；同一域名下的 `/portal`、`/admin` 等页面不继承 App 通信能力。
-- 上游 `zcode.z.ai`、`api.nibistudio.top` 都**不在**信任列表里。
+- 上游 `zcode.z.ai`、`api.nibistudio.cn` 都**不在**信任列表里。
 - 桥只暴露这一个业务函数，不暴露 `ipcRenderer` / Node 原语；payload 的 `provider` 必须是 `"nibi"`，否则丢弃。
 - 官网在普通浏览器打开时没有桥，调用静默降级，不影响页面自己的成功态。
 
@@ -56,7 +56,7 @@ IPC：`nibi:membership-purchase-complete`（`NibiMembershipWebviewChannels.Purch
 
 | | NIBI 会员购买页 |
 | --- | --- |
-| 地址 | `https://nibistudio.top/membership/` |
+| 地址 | `https://nibistudio.cn/membership/` |
 | 登录态 | 一次性 `handoff` code → 站点 session |
 | 桥 | `window.nibiBridge`（只暴露购买完成） |
 | 可达性 | 客户端会员入口 |

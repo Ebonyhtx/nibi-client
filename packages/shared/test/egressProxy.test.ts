@@ -29,29 +29,29 @@ describe("出口代理解析", () => {
   });
 
   it("noProxy：精确主机、子域、带端口、通配", () => {
-    const target = new URL("https://api.nibistudio.top/x");
-    expect(matchesNoProxyRule(target, "api.nibistudio.top")).toBe(true);
-    expect(matchesNoProxyRule(target, ".nibistudio.top")).toBe(true);
-    expect(matchesNoProxyRule(target, "nibistudio.top")).toBe(true);
+    const target = new URL("https://api.nibistudio.cn/x");
+    expect(matchesNoProxyRule(target, "api.nibistudio.cn")).toBe(true);
+    expect(matchesNoProxyRule(target, ".nibistudio.cn")).toBe(true);
+    expect(matchesNoProxyRule(target, "nibistudio.cn")).toBe(true);
     expect(matchesNoProxyRule(target, "other.com")).toBe(false);
     expect(matchesNoProxyRule(target, "*")).toBe(true);
     expect(matchesNoProxyRule(target, "")).toBe(false);
     // 带端口时端口必须一致
-    expect(matchesNoProxyRule(target, "api.nibistudio.top:8443")).toBe(false);
+    expect(matchesNoProxyRule(target, "api.nibistudio.cn:8443")).toBe(false);
     expect(
-      matchesNoProxyRule(new URL("https://api.nibistudio.top:8443/x"), "api.nibistudio.top:8443"),
+      matchesNoProxyRule(new URL("https://api.nibistudio.cn:8443/x"), "api.nibistudio.cn:8443"),
     ).toBe(true);
   });
 
   it("resolve：未配置 → 直连；配置且未命中 noProxy → 代理；命中 → 直连", () => {
-    expect(resolveEgressProxyForUrl("https://api.nibistudio.top/x", null)).toBeNull();
+    expect(resolveEgressProxyForUrl("https://api.nibistudio.cn/x", null)).toBeNull();
     expect(
-      resolveEgressProxyForUrl("https://api.nibistudio.top/x", { httpProxy: "http://127.0.0.1:7897" }),
+      resolveEgressProxyForUrl("https://api.nibistudio.cn/x", { httpProxy: "http://127.0.0.1:7897" }),
     ).toBe("http://127.0.0.1:7897/");
     expect(
-      resolveEgressProxyForUrl("https://api.nibistudio.top/x", {
+      resolveEgressProxyForUrl("https://api.nibistudio.cn/x", {
         httpProxy: "http://127.0.0.1:7897",
-        httpProxyNoProxy: "api.nibistudio.top",
+        httpProxyNoProxy: "api.nibistudio.cn",
       }),
     ).toBeNull();
     // 目标 URL 非法时按直连处理（不能因为解析失败把请求塞给代理）
@@ -71,7 +71,7 @@ describe("出口代理解析", () => {
       expect(isImplicitDirectUrl(url)).toBe(true);
       expect(resolveEgressProxyForUrl(url, settings)).toBeNull();
     }
-    expect(isImplicitDirectUrl("https://api.nibistudio.top/x")).toBe(false);
+    expect(isImplicitDirectUrl("https://api.nibistudio.cn/x")).toBe(false);
   });
 
   it("隐式 noProxy 合并用户规则且去重", () => {

@@ -107,7 +107,7 @@ interface Copy {
 
 // 官网首页的 #download 区就是下载入口（数据来自发布库存），单独的 /download 路径不存在。
 // NIBI 4.0 起指向自家站点；上游 zcode.z.ai 已不再提供我们的安装包。
-const NIBI_DOWNLOAD_URL = "https://nibistudio.top/#download";
+const NIBI_DOWNLOAD_URL = "https://nibistudio.cn/#download";
 
 const COPY: Record<ConversationShareLandingLocale, Copy> = {
   "zh-CN": {

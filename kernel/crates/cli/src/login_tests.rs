@@ -72,8 +72,8 @@ fn the_service_origins_follow_the_nibi_environment_rules() {
         }
     };
     let (auth, api) = origins(&read(vec![])).unwrap();
-    assert_eq!(auth, "https://auth.nibistudio.top");
-    assert_eq!(api, "https://api.nibistudio.top/api/v1");
+    assert_eq!(auth, "https://auth.nibistudio.cn");
+    assert_eq!(api, "https://api.nibistudio.cn/api/v1");
     let (auth, api) = origins(&read(vec![
         ("NIBI_AUTH_ORIGIN", "https://auth.test/"),
         ("NIBI_BASE_URL", "https://api.test/"),

@@ -177,7 +177,7 @@ async function loginAs(account: LiveAccount): Promise<void> {
     },
     { timeout: 30_000, timeoutMsg: "点击登录后没有打开授权页" },
   );
-  expect(authorizeUrl).toContain("https://auth.nibistudio.top/oauth/v2/authorize");
+  expect(authorizeUrl).toContain("https://auth.nibistudio.cn/oauth/v2/authorize");
 
   // 服务端无头登录（密码只在服务器的 0600 文件里）。URL 里的 & 必须原样带给远端 shell。
   // 连接参数走环境变量：E2E worker 的 HOME 是隔离目录，读不到 ~/.ssh/config；仓库里也不放地址/私钥路径。

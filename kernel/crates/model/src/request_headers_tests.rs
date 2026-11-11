@@ -13,7 +13,7 @@ use crate::openai_chat::OpenAiChat;
 fn facts() -> SourceFacts {
     SourceFacts {
         version: "0.1.52".to_owned(),
-        endpoint_origin: "https://api.nibistudio.top".to_owned(),
+        endpoint_origin: "https://api.nibistudio.cn".to_owned(),
         release_channel: "production".to_owned(),
         locale: Some("zh-CN".to_owned()),
         time_zone: Some("Asia/Shanghai".to_owned()),
@@ -28,7 +28,7 @@ fn facts() -> SourceFacts {
 fn source_headers_follow_node() {
     let headers = source_headers(&facts());
     let expected = [
-        ("http-referer", "https://api.nibistudio.top"),
+        ("http-referer", "https://api.nibistudio.cn"),
         ("user-agent", "NIBI/0.1.52"),
         ("x-nibi-app-version", "0.1.52"),
         ("x-title", "NIBI@cli"),

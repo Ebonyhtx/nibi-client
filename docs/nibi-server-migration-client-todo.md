@@ -18,7 +18,7 @@
 - [ ] 构建期 `CDN_DOMAIN` + `OSS_PATH_PREFIX`（`packages/desktop/tsup.config.ts`、CI/发布脚本）改指向新 CDN；**不再保留任何旧域名**。
 - [ ] `packages/desktop/src/main/remoteCdn.ts`：远端 Source Server release 根（只认构建期注入/`NIBI_REMOTE_ASSET_CDN_BASE_URL`）。
 - [ ] `packages/desktop/src/host/sourceServerReleaseResolver.ts`：release descriptor / archive 的下载、校验（SHA/size）、`local-download-upload` 与 `remote-download` 两种模式在新 CDN 上可用。
-- [ ] `packages/shared/src/nibiContentMirror.ts` 与 `packages/shared/src/node/nibiContentSignature.ts`：主内容/镜像 host 白名单（现为 `api.nibistudio.top`、`dl.nibistudio.top`）与 `.sig` 校验域名。
+- [ ] `packages/shared/src/nibiContentMirror.ts` 与 `packages/shared/src/node/nibiContentSignature.ts`：主内容/镜像 host 白名单（现为 `api.nibistudio.cn`、`dl.nibistudio.cn`）与 `.sig` 校验域名。
 - [ ] `packages/shared/src/plugin-marketplaces.ts`：官方插件市场清单 URL。
 - [ ] `packages/desktop/src/main/manifestUpdateProvider.ts`：Electron 更新 manifest 路径 `/api/v1/releases/electron/manifest` 及下载源。
 - [ ] `scripts/cdn-preload.sh`、`scripts/build-desktop-agent-cli.mjs` 等发布脚本里的 CDN/OSS 变量与多账号映射。

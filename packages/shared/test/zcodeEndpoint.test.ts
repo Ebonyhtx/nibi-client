@@ -118,7 +118,7 @@ describe("zcodeEndpoint", () => {
       resolveWebRemoteControlRelayWsUrl({
         endpointOrigin: TEST_NIBI_ENDPOINT_ORIGIN,
       }),
-    ).toBe("wss://api-test.nibistudio.top/api/v1/remote/ws2");
+    ).toBe("wss://api-test.nibistudio.cn/api/v1/remote/ws2");
     expect(
       resolveWebRemoteControlRelayWsUrl({
         endpointOrigin: DEFAULT_NIBI_ENDPOINT_ORIGIN,
@@ -172,7 +172,7 @@ describe("zcodeEndpoint", () => {
 
   it("builds product endpoint URLs from the selected environment", () => {
     expect(buildRuntimeZCodeApiUrl({ NIBI_ENV: "test" }, "/api/v1/oauth/token")).toBe(
-      "https://api-test.nibistudio.top/api/v1/oauth/token",
+      "https://api-test.nibistudio.cn/api/v1/oauth/token",
     );
     expect(buildRuntimeZaiOAuthUrl({ NIBI_ENV: "test" }, "/api/oauth/authorize")).toBe(
       "https://chat.z.ai/api/oauth/authorize",
@@ -266,25 +266,25 @@ describe("zcodeEndpoint", () => {
 describe("NIBI membership webview trust", () => {
   it("trusts only our own website origin (and local dev)", () => {
     expect(isTrustedNibiWebviewOrigin(DEFAULT_NIBI_WEB_ORIGIN)).toBe(true);
-    expect(isTrustedNibiWebviewOrigin("https://www.nibistudio.top")).toBe(true);
+    expect(isTrustedNibiWebviewOrigin("https://www.nibistudio.cn")).toBe(true);
     expect(isTrustedNibiWebviewOrigin("http://localhost:4321")).toBe(true);
     expect(isTrustedNibiWebviewOrigin("http://localhost:3000")).toBe(true);
     // 上游 Coding Plan 页不再是我们的购买页，不能继承会员桥。
     expect(isTrustedNibiWebviewOrigin("https://zcode.z.ai")).toBe(false);
-    expect(isTrustedNibiWebviewOrigin("https://api.nibistudio.top")).toBe(false);
+    expect(isTrustedNibiWebviewOrigin("https://api.nibistudio.cn")).toBe(false);
     expect(isTrustedNibiWebviewOrigin("https://evil.example")).toBe(false);
   });
 
   it("injects the bridge only into /membership pages", () => {
     expect(
       isTrustedNibiMembershipWebviewUrl(
-        "https://nibistudio.top/membership/?embedded=app&handoff=one-time",
+        "https://nibistudio.cn/membership/?embedded=app&handoff=one-time",
       ),
     ).toBe(true);
-    expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.top/membership/")).toBe(true);
+    expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.cn/membership/")).toBe(true);
     // 同一域名下的其它页面不能拿到 App 通信能力。
-    expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.top/portal/")).toBe(false);
-    expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.top/")).toBe(false);
+    expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.cn/portal/")).toBe(false);
+    expect(isTrustedNibiMembershipWebviewUrl("https://nibistudio.cn/")).toBe(false);
     expect(
       isTrustedNibiMembershipWebviewUrl("https://evil.example/membership/?embedded=app"),
     ).toBe(false);

@@ -900,9 +900,9 @@ describe("createFeedbackService", () => {
     vi.stubEnv("NIBI_BASE_URL", "");
     vi.stubEnv("NIBI_ENDPOINT_ORIGIN", "");
     const fetchMock = vi.fn(async (url: string | URL | Request) => {
-      // NIBI_ENV=test 的默认域是 NIBI 自有的测试端点（api-test.nibistudio.top），
+      // NIBI_ENV=test 的默认域是 NIBI 自有的测试端点（api-test.nibistudio.cn），
       // 不是上游 zcode.z.ai——端点隔离是硬约束，这条断言就是它的看门人。
-      expect(String(url)).toBe("https://api-test.nibistudio.top/api/v1/feedback/ticket");
+      expect(String(url)).toBe("https://api-test.nibistudio.cn/api/v1/feedback/ticket");
       return new Response(JSON.stringify({ code: 0, msg: "ok", data: { items: [] } }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -929,7 +929,7 @@ describe("createFeedbackService", () => {
     vi.stubEnv("NIBI_BASE_URL", "");
     vi.stubEnv("NIBI_ENDPOINT_ORIGIN", "");
     const fetchMock = vi.fn(async (url: string | URL | Request) => {
-      expect(String(url)).toBe("https://api.nibistudio.top/api/v1/feedback/ticket");
+      expect(String(url)).toBe("https://api.nibistudio.cn/api/v1/feedback/ticket");
       return new Response(JSON.stringify({ code: 0, msg: "ok", data: { items: [] } }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

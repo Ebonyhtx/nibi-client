@@ -181,7 +181,7 @@ describe("WindowsCaptionMenuButton", () => {
       }),
     );
     expect(capturedWindowsCaptionMenu.openFeatureRequest).toHaveBeenCalledTimes(1);
-    expect(capturedWindowsCaptionMenu.openExternal).toHaveBeenCalledWith("https://nibistudio.top/docs");
+    expect(capturedWindowsCaptionMenu.openExternal).toHaveBeenCalledWith("https://nibistudio.cn/docs");
     expect(capturedWindowsCaptionMenu.exportLogs).toHaveBeenCalledTimes(1);
   });
 

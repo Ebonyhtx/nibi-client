@@ -21,7 +21,7 @@ export const ZAI_OAUTH_PROVIDER_CONFIG: Omit<OAuthProviderRuntimeConfig, "appSec
   // ZAI 当前 OAuth 授权入口使用 /api/oauth 前缀，继续走 /auth/oauth 会打开旧入口。
   authorizeUrl: "https://chat.z.ai/api/oauth/authorize",
   // 占位值，**不是**可用端点：`createZaiProviderRuntimeConfig` 总会用 `buildZCodeApiUrlFromEnv`
-  // 覆盖它（默认 `api.nibistudio.top`）。这里刻意不写上游 `zcode.z.ai`——静态常量被直接使用时
+  // 覆盖它（默认 `api.nibistudio.cn`）。这里刻意不写上游 `zcode.z.ai`——静态常量被直接使用时
   // 不能把凭据发到别的产品。
   tokenUrl: "",
   userinfoUrl: "https://chat.z.ai/api/oauth/userinfo",

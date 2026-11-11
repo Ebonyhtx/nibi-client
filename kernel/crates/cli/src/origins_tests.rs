@@ -18,7 +18,7 @@ fn origins(pairs: &[(&str, &str)]) -> Result<AccountOrigins, String> {
 fn production_defaults() {
     let origins = origins(&[]).unwrap();
     // Node `DEFAULT_NIBI_ENDPOINT_ORIGIN`：NIBI 自己的服务，不是上游。
-    assert_eq!(origins.zcode_api, "https://api.nibistudio.top/api/v1");
+    assert_eq!(origins.zcode_api, "https://api.nibistudio.cn/api/v1");
     assert_eq!(origins.zai_api, "https://api.z.ai");
     assert_eq!(origins.bigmodel_api, "https://bigmodel.cn");
     assert_eq!(origins.client_version, "0.1.0");
@@ -28,7 +28,7 @@ fn production_defaults() {
 fn environment_overrides_follow_node() {
     let test = origins(&[("NIBI_ENV", "TEST")]).unwrap();
     // Node `TEST_NIBI_ENDPOINT_ORIGIN`（NIBI 自有测试保留位，测试后端未部署）。
-    assert_eq!(test.zcode_api, "https://api-test.nibistudio.top/api/v1");
+    assert_eq!(test.zcode_api, "https://api-test.nibistudio.cn/api/v1");
     assert_eq!(test.bigmodel_api, "https://bigmodel.cn");
     // Z.ai 业务地址按 App 的 resolveZaiBusinessBaseUrl（工作线 F47）。
     assert_eq!(test.zai_api, "https://api.z.ai");
@@ -68,7 +68,7 @@ fn environment_overrides_follow_node() {
         ("BIGMODEL_TEST_API_BASE_URL", "https://dev.example.com"),
     ])
     .unwrap();
-    assert_eq!(scoped.zcode_api, "https://api-test.nibistudio.top/api/v1");
+    assert_eq!(scoped.zcode_api, "https://api-test.nibistudio.cn/api/v1");
     assert_eq!(scoped.bigmodel_api, "https://dev.example.com");
     assert!(origins(&[("NIBI_BASE_URL", "ftp://example.com")]).is_err());
 }
@@ -95,7 +95,7 @@ fn the_endpoint_variables_follow_node_precedence() {
     .unwrap();
     assert_eq!(
         production_ignored.zcode_api,
-        "https://api-test.nibistudio.top/api/v1"
+        "https://api-test.nibistudio.cn/api/v1"
     );
     assert!(origins(&[("NIBI_BASE_URL", "ftp://example.com")]).is_err());
 }

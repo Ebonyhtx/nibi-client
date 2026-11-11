@@ -7234,7 +7234,7 @@ const zhCN: Record<string, string> = {
     "会员状态同步失败，付费插件暂时不可用。请重试；多次失败请重启客户端。",
   "nibi.membership.dialog.bannedTitle": "账号已被暂停使用",
   "nibi.membership.dialog.bannedHint":
-    "该账号暂时无法登录或使用会员权益。如认为处理有误，请使用注册邮箱发送邮件至 contact@nibistudio.top，主题写「账号申诉 - 用户名」，并提供账号与相关说明。我们会在收到完整材料后 7 个工作日内答复。",
+    "该账号暂时无法登录或使用会员权益。如认为处理有误，请使用注册邮箱发送邮件至 contact@nibistudio.cn，主题写「账号申诉 - 用户名」，并提供账号与相关说明。我们会在收到完整材料后 7 个工作日内答复。",
   "nibi.login.desktopOnly": "登录 NIBI 需要桌面客户端；网页端暂不支持。",
   "login.dismiss.later": "稍后再说",
   "workspaceSidebar.addProject": "添加项目",

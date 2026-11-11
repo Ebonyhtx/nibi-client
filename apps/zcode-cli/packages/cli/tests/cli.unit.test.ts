@@ -723,10 +723,10 @@ test("honors the configured locale for startup and NIBI sign-in", async () => {
           expiresAt: Date.now() + 300_000,
           intervalMs: 5_000,
           userCode: "ABCD-EFGH",
-          verificationUri: "https://auth.nibistudio.top/device",
+          verificationUri: "https://auth.nibistudio.cn/device",
         });
         return {
-          apiBaseUrl: "https://api.nibistudio.top/api/v1",
+          apiBaseUrl: "https://api.nibistudio.cn/api/v1",
           credentialsPath: "/home/test/.nibi/v2/credentials.json",
           licenseExpiresAt: null,
           membership: { status: "none" },
@@ -995,12 +995,12 @@ test("nibi login runs the NIBI device flow and prints the sign-in code", async (
         expiresAt: Date.now() + 300_000,
         intervalMs: 5_000,
         userCode: "ABCD-EFGH",
-        verificationUri: "https://auth.nibistudio.top/device",
-        verificationUriComplete: "https://auth.nibistudio.top/device?user_code=ABCD-EFGH",
+        verificationUri: "https://auth.nibistudio.cn/device",
+        verificationUriComplete: "https://auth.nibistudio.cn/device?user_code=ABCD-EFGH",
       });
       return {
-        apiBaseUrl: "https://api.nibistudio.top/api/v1",
-        authOrigin: "https://auth.nibistudio.top",
+        apiBaseUrl: "https://api.nibistudio.cn/api/v1",
+        authOrigin: "https://auth.nibistudio.cn",
         credentialsPath: "/home/test/.nibi/v2/credentials.json",
         licenseExpiresAt: "2026-11-20T00:00:00.000Z",
         membership: { status: "active", plan: "pro", expiresAt: "2026-11-20T00:00:00.000Z" },
@@ -1095,11 +1095,11 @@ test("command center handles NIBI login and logout locally", async () => {
         expiresAt: Date.now() + 300_000,
         intervalMs: 5_000,
         userCode: "ABCD-EFGH",
-        verificationUri: "https://auth.nibistudio.top/device",
-        verificationUriComplete: "https://auth.nibistudio.top/device?user_code=ABCD-EFGH",
+        verificationUri: "https://auth.nibistudio.cn/device",
+        verificationUriComplete: "https://auth.nibistudio.cn/device?user_code=ABCD-EFGH",
       });
       return {
-        apiBaseUrl: "https://api.nibistudio.top/api/v1",
+        apiBaseUrl: "https://api.nibistudio.cn/api/v1",
         credentialsPath: "/home/test/.nibi/v2/credentials.json",
         licenseExpiresAt: "2026-11-20T00:00:00.000Z",
         membership: { status: "active", plan: "pro", expiresAt: "2026-11-20T00:00:00.000Z" },
@@ -1147,10 +1147,10 @@ test("command center localizes NIBI sign-in copy", async () => {
         expiresAt: Date.now() + 300_000,
         intervalMs: 5_000,
         userCode: "ABCD-EFGH",
-        verificationUri: "https://auth.nibistudio.top/device",
+        verificationUri: "https://auth.nibistudio.cn/device",
       });
       return {
-        apiBaseUrl: "https://api.nibistudio.top/api/v1",
+        apiBaseUrl: "https://api.nibistudio.cn/api/v1",
         credentialsPath: "/home/test/.nibi/v2/credentials.json",
         licenseExpiresAt: null,
         membership: { status: "none" },

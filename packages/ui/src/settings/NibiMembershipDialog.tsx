@@ -20,7 +20,7 @@ import {
 } from "@nibi/shared";
 
 /** 会员页站点（未带 handoff 时的兜底地址；实际由 host 换码后给出）。 */
-export const NIBI_MEMBERSHIP_URL = "https://nibistudio.top/membership/?embedded=app";
+export const NIBI_MEMBERSHIP_URL = "https://nibistudio.cn/membership/?embedded=app";
 
 /**
  * 收银台失败文案收敛：原始错误（含 HTTP 状态码、服务端术语）只进日志；
@@ -39,7 +39,7 @@ function resolveCheckoutErrorCopy(
 }
 
 /** 与封禁提示文案中的邮箱保持一致，用于高亮和单击选中。 */
-const NIBI_SUPPORT_EMAIL = "contact@nibistudio.top";
+const NIBI_SUPPORT_EMAIL = "contact@nibistudio.cn";
 
 type Phase = "checking" | "login" | "loading" | "ready" | "error" | "banned";
 
@@ -214,7 +214,7 @@ function MembershipDialogContent({ onClose }: { onClose: () => void }) {
       return;
     }
     const script =
-      "fetch('https://api.nibistudio.top/api/v1/auth/session/logout',{method:'POST',credentials:'include',headers:{'X-Nibi-Session':'1'}}).then(()=>true).catch(()=>false)";
+      "fetch('https://api.nibistudio.cn/api/v1/auth/session/logout',{method:'POST',credentials:'include',headers:{'X-Nibi-Session':'1'}}).then(()=>true).catch(()=>false)";
     const done = Promise.resolve()
       .then(() => webview.executeJavaScript(script, true))
       .catch(() => undefined);

@@ -277,11 +277,11 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
 
     expect(shell.openExternal).toHaveBeenNthCalledWith(
       1,
-      "https://api.nibistudio.top/cn/changelog",
+      "https://api.nibistudio.cn/cn/changelog",
     );
     expect(shell.openExternal).toHaveBeenNthCalledWith(
       2,
-      "https://api.nibistudio.top/en/changelog",
+      "https://api.nibistudio.cn/en/changelog",
     );
   });
 
@@ -324,7 +324,7 @@ describe("desktopCommandHandlers resolveFeedbackUrl", () => {
       command: DesktopCommandIds.SetZCodeEndpointTest,
     });
     expect(commandOptions.settingService.update).toHaveBeenLastCalledWith({
-      zcodeEndpointOrigin: "https://api-test.nibistudio.top",
+      zcodeEndpointOrigin: "https://api-test.nibistudio.cn",
     });
 
     await executeDesktopCommand({

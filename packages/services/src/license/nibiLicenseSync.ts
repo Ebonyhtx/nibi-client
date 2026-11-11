@@ -44,7 +44,7 @@ export async function loadNibiAccountIdentity(
 export interface NibiLicenseSyncOptions {
   credentialService: Pick<ICredentialService, "load" | "save" | "delete">;
   apiClient: ApiClient;
-  /** 返回站点 origin（如 https://api.nibistudio.top）；内部拼 `/api/v1`。 */
+  /** 返回站点 origin（如 https://api.nibistudio.cn）；内部拼 `/api/v1`。 */
   resolveEndpointOrigin: () => Promise<string> | string;
   now?: () => number;
   /** 验签公钥覆盖（测试与轮换用）。 */

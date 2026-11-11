@@ -12,7 +12,7 @@ Please report security issues **privately**:
 
 - Use GitHub's private vulnerability reporting on this repository
   (Security → Report a vulnerability), or
-- Email `contact@nibistudio.top` with the subject `[SECURITY] NIBI client`.
+- Email `contact@nibistudio.cn` with the subject `[SECURITY] NIBI client`.
 
 Do **not** open a public issue, discussion, or pull request that describes an
 unfixed vulnerability.
@@ -74,4 +74,4 @@ We will not pursue legal action for good-faith security research that:
 - does not access data that is not yours
 
 If you are unsure whether an action is allowed, ask first at
-`contact@nibistudio.top`.
+`contact@nibistudio.cn`.

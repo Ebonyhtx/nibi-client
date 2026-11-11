@@ -156,7 +156,7 @@ describe("ZCode plugins", () => {
           await readFile(join(marketplaceRoot, "marketplace.json"), "utf8"),
         ) as { plugins: Array<{ icon?: string }> };
         expect(saved.plugins[0]?.icon).toBe(
-          "https://api.nibistudio.top/plugins/icons/figma/icon.png",
+          "https://api.nibistudio.cn/plugins/icons/figma/icon.png",
         );
       });
     } finally {
@@ -619,7 +619,7 @@ describe("ZCode plugins", () => {
             pluginCount: 13,
             source: {
               source: "url",
-              url: "https://api.nibistudio.top/plugins/marketplace.json",
+              url: "https://api.nibistudio.cn/plugins/marketplace.json",
             },
           }),
         ]),
@@ -2395,7 +2395,7 @@ describe("ZCode plugins", () => {
         pluginCount: 13,
         source: {
           source: "url",
-          url: "https://api.nibistudio.top/plugins/marketplace.json",
+          url: "https://api.nibistudio.cn/plugins/marketplace.json",
         },
       });
       expect(overview.diagnostics).toEqual(

@@ -71,16 +71,16 @@ describe("NIBI 内容签名（清单/配置 .sig sidecar）", () => {
   });
 
   it("只有我们的内容主机且 https 才强制验签", () => {
-    expect(isNibiSignedContentUrl("https://api.nibistudio.top/plugins/marketplace.json")).toBe(
+    expect(isNibiSignedContentUrl("https://api.nibistudio.cn/plugins/marketplace.json")).toBe(
       true,
     );
-    expect(isNibiSignedContentUrl("https://dl.nibistudio.top/plugins/marketplace.json")).toBe(true);
+    expect(isNibiSignedContentUrl("https://dl.nibistudio.cn/plugins/marketplace.json")).toBe(true);
     setNibiMirrorOrigin("https://mirror.example.test:8443");
     expect(isNibiSignedContentUrl("https://mirror.example.test:8443/plugins/marketplace.json")).toBe(
       true,
     );
     // 明文降级不认：签名文件本身走同一通道，http 下无法防中间人。
-    expect(isNibiSignedContentUrl("http://api.nibistudio.top/plugins/marketplace.json")).toBe(
+    expect(isNibiSignedContentUrl("http://api.nibistudio.cn/plugins/marketplace.json")).toBe(
       false,
     );
     // 用户自加市场不受影响（不强制签名）。

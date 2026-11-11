@@ -33,7 +33,7 @@ type Tokens = Record<"admin" | "user", TokenEntry>;
 
 const TOKENS_FILE = process.env.CLOUD_E2E_TOKENS_FILE ?? "";
 const PHASE = process.env.CLOUD_E2E_PHASE ?? "";
-const API = (process.env.CLOUD_E2E_API ?? "https://api.nibistudio.top").replace(/\/+$/u, "");
+const API = (process.env.CLOUD_E2E_API ?? "https://api.nibistudio.cn").replace(/\/+$/u, "");
 const PROXY = process.env.CLOUD_E2E_PROXY ?? "http://127.0.0.1:7897";
 const maybe = TOKENS_FILE && PHASE ? describe : describe.skip;
 

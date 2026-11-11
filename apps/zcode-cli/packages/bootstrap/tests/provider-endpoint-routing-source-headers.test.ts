@@ -67,7 +67,7 @@ describe("createProviderEndpointRoutingSourceHeaders", () => {
     });
 
     expect(headers).toMatchObject({
-      "HTTP-Referer": "https://api.nibistudio.top",
+      "HTTP-Referer": "https://api.nibistudio.cn",
       "User-Agent": "NIBI/2.0.0",
       "X-Release-Channel": "production",
       "X-Title": "NIBI@cli",

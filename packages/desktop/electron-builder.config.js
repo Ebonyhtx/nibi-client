@@ -577,10 +577,10 @@ export default {
     // 用 IANA 保留的 .example.com 而不是编造真实域名：fpm 只校验字段存在与格式，
     // 而占位域名永远不会被解析到，不会误指向别人的站点。域名定下来后替换。
     // 见 docs/debranding/pending-service-bindings.md。
-    homepage: "https://nibistudio.top",
+    homepage: "https://nibistudio.cn",
     author: {
       name: "NIBI",
-      email: "contact@nibistudio.top",
+      email: "contact@nibistudio.cn",
     },
   },
   // macOS 签名阶段会对 Electron Framework 下每个语言包逐个 codesign。
@@ -924,7 +924,7 @@ export default {
     // 与 /usr/share/icons/hicolor/*/apps/zcode.png 保持一致。
     executableName: desktopProductIdentity.linuxExecutableName,
     category: "Development",
-    maintainer: "NIBI <contact@nibistudio.top>",
+    maintainer: "NIBI <contact@nibistudio.cn>",
   },
   deb: {
     // 生产版与 Preview 必须是两个 dpkg package；只改可执行名仍会让安装器把另一版本当成升级替换。

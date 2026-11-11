@@ -70,7 +70,7 @@ function createService(options?: {
     allowDevReturnToRedirect: options?.allowDevReturnToRedirect ?? false,
   };
   const nibiConfig = createNibiWebOAuthConfig({
-    VITE_NIBI_BASE_URL: options?.currentOrigin ?? "https://api.nibistudio.top",
+    VITE_NIBI_BASE_URL: options?.currentOrigin ?? "https://api.nibistudio.cn",
   });
   // 每次调用模拟一个新的页面实例：同一标签页刷新，或同一浏览器的另一个标签页。
   // 每个实例都有独立的 sessionStorage，只共享同源 localStorage；登录不能依赖标签页内的存储。
@@ -578,20 +578,20 @@ describe("WebAuthService BigModel provider", () => {
   });
   it("NIBI 登录：干净的 redirect_uri、S256 challenge 与项目 audience", async () => {
     const h = createService({
-      currentOrigin: "https://api.nibistudio.top",
+      currentOrigin: "https://api.nibistudio.cn",
       currentHref:
-        "https://api.nibistudio.top/remote/v4?app_version=4.0.0&sid=s-1&mid=m-1&name=Mac",
+        "https://api.nibistudio.cn/remote/v4?app_version=4.0.0&sid=s-1&mid=m-1&name=Mac",
     });
     await h.service.startLogin({ provider: "nibi" });
 
     const authorizeUrl = new URL(h.assigned[0]!);
     expect(authorizeUrl.origin + authorizeUrl.pathname).toBe(
-      "https://auth.nibistudio.top/oauth/v2/authorize",
+      "https://auth.nibistudio.cn/oauth/v2/authorize",
     );
     expect(authorizeUrl.searchParams.get("client_id")).toBe("396486558825381892");
     // Zitadel 对 redirect_uri 做完全一致匹配：二维码参数不能拼在回调地址上。
     expect(authorizeUrl.searchParams.get("redirect_uri")).toBe(
-      "https://api.nibistudio.top/remote/v4",
+      "https://api.nibistudio.cn/remote/v4",
     );
     expect(authorizeUrl.searchParams.get("code_challenge_method")).toBe("S256");
     expect(authorizeUrl.searchParams.get("code_challenge")).toMatch(/^[A-Za-z0-9_-]{43}$/u);
@@ -601,7 +601,7 @@ describe("WebAuthService BigModel provider", () => {
     expect(parseOAuthState(authorizeUrl.searchParams.get("state")!)).toEqual({
       nonce: "nonce-1",
       app_return_to:
-        "https://api.nibistudio.top/remote/v4?app_version=4.0.0&sid=s-1&mid=m-1&name=Mac",
+        "https://api.nibistudio.cn/remote/v4?app_version=4.0.0&sid=s-1&mid=m-1&name=Mac",
     });
 
     const pending = JSON.parse(h.localStorage.getItem(PENDING_LOGINS_KEY)!)[0] as {
@@ -610,7 +610,7 @@ describe("WebAuthService BigModel provider", () => {
       codeVerifier: string;
     };
     expect(pending.provider).toBe("nibi");
-    expect(pending.redirectUri).toBe("https://api.nibistudio.top/remote/v4");
+    expect(pending.redirectUri).toBe("https://api.nibistudio.cn/remote/v4");
     expect(pending.codeVerifier).toMatch(/^[A-Za-z0-9._~-]{43,128}$/u);
     expect(await createNibiCodeChallenge(pending.codeVerifier)).toBe(
       authorizeUrl.searchParams.get("code_challenge"),
@@ -619,8 +619,8 @@ describe("WebAuthService BigModel provider", () => {
 
   it("切换账号的 NIBI 登录带 prompt=login，普通登录不带", async () => {
     const h = createService({
-      currentOrigin: "https://api.nibistudio.top",
-      currentHref: "https://api.nibistudio.top/remote/v4?sid=s-1",
+      currentOrigin: "https://api.nibistudio.cn",
+      currentHref: "https://api.nibistudio.cn/remote/v4?sid=s-1",
     });
     await h.service.startLogin({ provider: "nibi", forceLogin: true });
     expect(new URL(h.assigned[0]!).searchParams.get("prompt")).toBe("login");
@@ -631,8 +631,8 @@ describe("WebAuthService BigModel provider", () => {
 
   it("NIBI 回调：回传 verifier 并写入 nibi 凭据段", async () => {
     const h = createService({
-      currentOrigin: "https://api.nibistudio.top",
-      currentHref: "https://api.nibistudio.top/remote/v4?sid=s-1",
+      currentOrigin: "https://api.nibistudio.cn",
+      currentHref: "https://api.nibistudio.cn/remote/v4?sid=s-1",
     });
     await h.service.startLogin({ provider: "nibi" });
     const authorizeUrl = new URL(h.assigned[0]!);
@@ -654,12 +654,12 @@ describe("WebAuthService BigModel provider", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await h.openPage().handleCallback(
-      `https://api.nibistudio.top/remote/v4?code=code-1&state=${encodeURIComponent(state)}`,
+      `https://api.nibistudio.cn/remote/v4?code=code-1&state=${encodeURIComponent(state)}`,
     );
 
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       code: "code-1",
-      redirect_uri: "https://api.nibistudio.top/remote/v4",
+      redirect_uri: "https://api.nibistudio.cn/remote/v4",
       code_verifier: pending.codeVerifier,
     });
     expect(result?.userInfo).toEqual({ id: "u-1", username: "ada", displayName: "Ada" });
@@ -673,13 +673,13 @@ describe("WebAuthService BigModel provider", () => {
 
   it("NIBI 缺少 PKCE verifier 时拒绝完成登录且不请求令牌", async () => {
     const h = createService({
-      currentOrigin: "https://api.nibistudio.top",
-      currentHref: "https://api.nibistudio.top/remote/v4?sid=s-1",
+      currentOrigin: "https://api.nibistudio.cn",
+      currentHref: "https://api.nibistudio.cn/remote/v4?sid=s-1",
     });
     seedPendingLogin(h.localStorage, {
       nonce: "nonce-1",
       provider: "nibi",
-      redirectUri: "https://api.nibistudio.top/remote/v4",
+      redirectUri: "https://api.nibistudio.cn/remote/v4",
     });
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -687,7 +687,7 @@ describe("WebAuthService BigModel provider", () => {
 
     await expect(
       h.service.handleCallback(
-        `https://api.nibistudio.top/remote/v4?code=code-1&state=${state}`,
+        `https://api.nibistudio.cn/remote/v4?code=code-1&state=${state}`,
       ),
     ).rejects.toThrow(/PKCE/);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -704,8 +704,8 @@ describe("NIBI token refresh", () => {
   const runtime = {
     assign: vi.fn(),
     createNonce: () => "nonce",
-    getCurrentHref: () => "https://api.nibistudio.top/remote/v4",
-    getCurrentOrigin: () => "https://api.nibistudio.top",
+    getCurrentHref: () => "https://api.nibistudio.cn/remote/v4",
+    getCurrentOrigin: () => "https://api.nibistudio.cn",
     replace: vi.fn(),
   };
 
@@ -730,7 +730,7 @@ describe("NIBI token refresh", () => {
     }));
     const service = new WebAuthService({
       config: createProductionWebZaiOAuthConfig(),
-      nibiConfig: createNibiWebOAuthConfig({ VITE_NIBI_BASE_URL: "https://api.nibistudio.top" }),
+      nibiConfig: createNibiWebOAuthConfig({ VITE_NIBI_BASE_URL: "https://api.nibistudio.cn" }),
       nibiProvider: { refreshToken } as unknown as NibiWebOAuthProvider,
       repo,
       runtime,

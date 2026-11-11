@@ -41,12 +41,12 @@ describe("NIBI device login client", () => {
         expires_in: 300,
         interval: 5,
         user_code: "ABCD-EFGH",
-        verification_uri: "https://auth.nibistudio.top/device",
-        verification_uri_complete: "https://auth.nibistudio.top/device?user_code=ABCD-EFGH",
+        verification_uri: "https://auth.nibistudio.cn/device",
+        verification_uri_complete: "https://auth.nibistudio.cn/device?user_code=ABCD-EFGH",
       }),
     ]);
     const client = createNibiDeviceLoginClient({
-      authOrigin: "https://auth.nibistudio.top",
+      authOrigin: "https://auth.nibistudio.cn",
       httpClient: http,
       now: () => 1_000,
     });
@@ -54,7 +54,7 @@ describe("NIBI device login client", () => {
     const authorization = await client.start();
 
     expect(http.requests[0]?.url).toBe(
-      "https://auth.nibistudio.top/oauth/v2/device_authorization",
+      "https://auth.nibistudio.cn/oauth/v2/device_authorization",
     );
     expect(http.requests[0]?.method).toBe("POST");
     const body = new URLSearchParams(http.bodies[0]);
@@ -66,8 +66,8 @@ describe("NIBI device login client", () => {
       expiresAt: 301_000,
       intervalMs: 5_000,
       userCode: "ABCD-EFGH",
-      verificationUri: "https://auth.nibistudio.top/device",
-      verificationUriComplete: "https://auth.nibistudio.top/device?user_code=ABCD-EFGH",
+      verificationUri: "https://auth.nibistudio.cn/device",
+      verificationUriComplete: "https://auth.nibistudio.cn/device?user_code=ABCD-EFGH",
     });
   });
 
@@ -82,7 +82,7 @@ describe("NIBI device login client", () => {
       }),
     ]);
     const client = createNibiDeviceLoginClient({
-      authOrigin: "https://auth.nibistudio.top",
+      authOrigin: "https://auth.nibistudio.cn",
       httpClient: http,
       now: () => 5_000,
     });
@@ -102,7 +102,7 @@ describe("NIBI device login client", () => {
   it("reports slow_down, expiry and denial without throwing", async () => {
     const client = (responses: HttpClientResponse[]) =>
       createNibiDeviceLoginClient({
-        authOrigin: "https://auth.nibistudio.top",
+        authOrigin: "https://auth.nibistudio.cn",
         httpClient: new FakeHttpClient(responses),
       });
 
@@ -119,7 +119,7 @@ describe("NIBI device login client", () => {
 
   it("surfaces unexpected OAuth errors with their description", async () => {
     const client = createNibiDeviceLoginClient({
-      authOrigin: "https://auth.nibistudio.top",
+      authOrigin: "https://auth.nibistudio.cn",
       httpClient: new FakeHttpClient([
         jsonResponse({ error: "invalid_grant", error_description: "Client not allowed" }, 400),
       ]),
@@ -134,7 +134,7 @@ describe("NIBI device login client", () => {
 
   it("reads the user profile from userinfo and rejects a missing sub", async () => {
     const client = createNibiDeviceLoginClient({
-      authOrigin: "https://auth.nibistudio.top",
+      authOrigin: "https://auth.nibistudio.cn",
       httpClient: new FakeHttpClient([
         jsonResponse({
           email: "alice@example.com",

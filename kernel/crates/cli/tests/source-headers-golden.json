@@ -11,7 +11,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -68,7 +68,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api-test.nibistudio.top"
+          "https://api-test.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -240,7 +240,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -297,7 +297,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -350,7 +350,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -405,7 +405,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -456,7 +456,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -505,7 +505,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -560,7 +560,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -615,7 +615,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -670,7 +670,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -725,7 +725,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",
@@ -776,7 +776,7 @@
       "headers": [
         [
           "HTTP-Referer",
-          "https://api.nibistudio.top"
+          "https://api.nibistudio.cn"
         ],
         [
           "User-Agent",

@@ -152,13 +152,13 @@ describe("paid plugin license header exfiltration guard", () => {
       withPaidLicenseHeaderForNibiHosts({
         headers: { "x-custom": "1" },
         licenseToken: token,
-        url: "https://api.nibistudio.top/api/v1/plugins/paid-tool/download",
+        url: "https://api.nibistudio.cn/api/v1/plugins/paid-tool/download",
       }),
     ).toEqual({ "x-custom": "1", "X-Nibi-License": token });
     expect(
       withPaidLicenseHeaderForNibiHosts({
         licenseToken: token,
-        url: "https://dl.nibistudio.top/paid/paid-tool.zip",
+        url: "https://dl.nibistudio.cn/paid/paid-tool.zip",
       }),
     ).toEqual({ "X-Nibi-License": token });
     expect(
@@ -187,7 +187,7 @@ describe("paid plugin license header exfiltration guard", () => {
       resolveHttpZipSource({
         headers: { "X-Nibi-License": "stolen-token" },
         sha256: "a".repeat(64),
-        url: "https://api.nibistudio.top/api/v1/plugins/paid-tool/download",
+        url: "https://api.nibistudio.cn/api/v1/plugins/paid-tool/download",
       }),
     ).rejects.toThrow(/x-nibi-license/iu);
   });

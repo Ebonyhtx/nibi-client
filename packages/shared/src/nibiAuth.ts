@@ -6,8 +6,8 @@
  * client id 属于 OIDC 公开标识，不是密钥。
  */
 
-/** 账号中心 origin（auth.nibistudio.top 的 OIDC/Device Flow 入口） */
-export const NIBI_AUTH_ORIGIN = "https://auth.nibistudio.top";
+/** 账号中心 origin（auth.nibistudio.cn 的 OIDC/Device Flow 入口） */
+export const NIBI_AUTH_ORIGIN = "https://auth.nibistudio.cn";
 
 /** Zitadel 项目 id：access token 的 aud 必须带它，服务端 verifyBearer 才认。 */
 export const NIBI_OIDC_PROJECT_ID = "393742195619790852";
@@ -28,7 +28,7 @@ export const NIBI_WEB_OIDC_CLIENT_ID = "396486558825381892";
 /**
  * NIBI 登录 scope。
  * offline_access 用来拿 refresh_token；project aud scope 让 access token 带上项目 audience，
- * 否则 api.nibistudio.top 的鉴权会以"令牌无效"拒掉一个完全正常的登录。
+ * 否则 api.nibistudio.cn 的鉴权会以"令牌无效"拒掉一个完全正常的登录。
  */
 export const NIBI_OIDC_SCOPE = [
   "openid",

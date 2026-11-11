@@ -264,7 +264,7 @@ describe("ConversationShareLandingPage", () => {
       );
       expect(html).toContain(hint);
       expect(html).toContain(home);
-      expect(html).toContain('href="https://nibistudio.top/#download"');
+      expect(html).toContain('href="https://nibistudio.cn/#download"');
       expect(html).not.toContain('target="_blank"');
     },
   );

@@ -78,7 +78,7 @@ function createHarness(input: {
     },
     now: () => NOW,
     publicKeys: input.publicKeys,
-    resolveEndpointOrigin: () => "https://api.nibistudio.top",
+    resolveEndpointOrigin: () => "https://api.nibistudio.cn",
   });
   return { request, store, sync };
 }
@@ -111,7 +111,7 @@ describe("startup license sync (revocation freshness)", () => {
     const decision = await sync.syncOnStartup();
     expect(request).toHaveBeenCalledTimes(1);
     const [url, init] = request.mock.calls[0] as unknown as [string, { method: string }];
-    expect(url).toBe("https://api.nibistudio.top/api/v1/licenses/check");
+    expect(url).toBe("https://api.nibistudio.cn/api/v1/licenses/check");
     expect(init.method).toBe("POST");
     expect(decision.status).toBe("active");
     expect(decision.allowed).toBe(true);
@@ -177,7 +177,7 @@ function createGatedHarness(input: {
     },
     now: () => NOW,
     publicKeys: input.publicKeys,
-    resolveEndpointOrigin: () => "https://api.nibistudio.top",
+    resolveEndpointOrigin: () => "https://api.nibistudio.cn",
   });
   return { request, store, sync, releaseFirst: () => releaseFirst?.() };
 }

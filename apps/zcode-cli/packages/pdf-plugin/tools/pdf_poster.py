@@ -15,7 +15,7 @@ LibreOffice 的 HTML 导入实测连 `flex/grid` 与细边框都不认（我们�
     "size": "A0", "orientation": "portrait", "safeMarginMm": 18, "bleedMm": 0,
     "palette": "nibi", "fonts": {"body": "微软雅黑", "title": "微软雅黑"},
     "title": "题目", "authors": ["张三", "李四"], "affiliation": "NIBI 数据组",
-    "footer": "联系方式：contact@nibistudio.top   ·   2026-07"
+    "footer": "联系方式：contact@nibistudio.cn   ·   2026-07"
   },
   "columns": [
     [ {"kind": "panel", "title": "研究背景", "paras": ["…"], "bullets": ["…"]},

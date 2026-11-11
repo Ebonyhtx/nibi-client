@@ -49,8 +49,8 @@ describe("detectArchitectureMismatch", () => {
 
 describe("resolveArchitectureDownloadUrl", () => {
   it("按语言分流到官网下载页", () => {
-    expect(resolveArchitectureDownloadUrl("zh-CN")).toBe("https://nibistudio.top/cn");
-    expect(resolveArchitectureDownloadUrl("en-US")).toBe("https://nibistudio.top/en");
+    expect(resolveArchitectureDownloadUrl("zh-CN")).toBe("https://nibistudio.cn/cn");
+    expect(resolveArchitectureDownloadUrl("en-US")).toBe("https://nibistudio.cn/en");
   });
 });
 

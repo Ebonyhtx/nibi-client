@@ -54,10 +54,10 @@ vi.mock("@nibi/shared", () => ({
   },
   NIBI_COMMIT: "commit-test",
   NIBI_VERSION: "0.0.0-test",
-  DEFAULT_NIBI_ENDPOINT_ORIGIN: "https://api.nibistudio.top",
-  TEST_NIBI_ENDPOINT_ORIGIN: "https://api.nibistudio.top",
+  DEFAULT_NIBI_ENDPOINT_ORIGIN: "https://api.nibistudio.cn",
+  TEST_NIBI_ENDPOINT_ORIGIN: "https://api.nibistudio.cn",
   resolveRuntimeZCodeEndpointOrigin: (env: Record<string, string | undefined>) =>
-    env.NIBI_BASE_URL ?? env.NIBI_TEST_BASE_URL ?? "https://api.nibistudio.top",
+    env.NIBI_BASE_URL ?? env.NIBI_TEST_BASE_URL ?? "https://api.nibistudio.cn",
   resolveZaiOAuthOrigin: (env: Record<string, string | undefined>) =>
     env.ZAI_OAUTH_ORIGIN ?? env.ZAI_TEST_OAUTH_ORIGIN ?? "https://chat.z.ai",
   resolveZaiBusinessBaseUrl: (env: Record<string, string | undefined>) =>
@@ -757,7 +757,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
     const env = loadHostProcessEnvFromLocalFiles();
 
     // .env.development 的测试档链接常量已切到自家 API。
-    expect(env.NIBI_BASE_URL).toBe("https://api.nibistudio.top");
+    expect(env.NIBI_BASE_URL).toBe("https://api.nibistudio.cn");
     expect(env.ZAI_OAUTH_ORIGIN).toBe("https://chat.z.ai");
     expect(env.ZAI_BUSINESS_BASE_URL).toBe("https://api.z.ai");
     expect(env.ZAI_OAUTH_CLIENT_ID).toBe("client_P8X5CMWmlaRO9gyO-KSqtg");
@@ -793,7 +793,7 @@ describe("desktopRuntimeEnv buildHostProcessEnv", () => {
 
     expect(env.NIBI_ENV).toBe("test");
     // .env.development 的测试档链接常量已切到自家 API。
-    expect(env.NIBI_BASE_URL).toBe("https://api.nibistudio.top");
+    expect(env.NIBI_BASE_URL).toBe("https://api.nibistudio.cn");
     expect(env.ZAI_OAUTH_ORIGIN).toBe("https://chat.z.ai");
     expect(env.ZAI_BUSINESS_BASE_URL).toBe("https://api.z.ai");
     expect(env.ZAI_OAUTH_CLIENT_ID).toBe("client_P8X5CMWmlaRO9gyO-KSqtg");

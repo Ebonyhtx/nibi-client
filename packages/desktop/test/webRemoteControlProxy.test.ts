@@ -13,29 +13,29 @@ describe("relay proxy resolution", () => {
     expect(normalizeRelayProxyUrl("  ")).toBeNull();
     expect(normalizeRelayProxyUrl("socks5://127.0.0.1:1080")).toBeNull();
     expect(normalizeRelayProxyUrl("not a url")).toBeNull();
-    expect(resolveRelayProxyForUrl("https://api.nibistudio.top", {})).toBeNull();
+    expect(resolveRelayProxyForUrl("https://api.nibistudio.cn", {})).toBeNull();
   });
 
   it("returns the configured proxy for relay URLs", () => {
     expect(
-      resolveRelayProxyForUrl("https://api.nibistudio.top/api/v1/remote/device", {
+      resolveRelayProxyForUrl("https://api.nibistudio.cn/api/v1/remote/device", {
         httpProxy: "http://127.0.0.1:7897",
       }),
     ).toBe("http://127.0.0.1:7897/");
   });
 
   it("honours noProxy: wildcard, exact host, subdomain and port", () => {
-    const target = new URL("https://api.nibistudio.top/api/v1/remote/device");
+    const target = new URL("https://api.nibistudio.cn/api/v1/remote/device");
     expect(matchesNoProxyRule(target, "*")).toBe(true);
-    expect(matchesNoProxyRule(target, "api.nibistudio.top")).toBe(true);
-    expect(matchesNoProxyRule(target, ".nibistudio.top")).toBe(true);
-    expect(matchesNoProxyRule(target, "nibistudio.top")).toBe(true);
-    expect(matchesNoProxyRule(target, "api.nibistudio.top:8443")).toBe(false);
+    expect(matchesNoProxyRule(target, "api.nibistudio.cn")).toBe(true);
+    expect(matchesNoProxyRule(target, ".nibistudio.cn")).toBe(true);
+    expect(matchesNoProxyRule(target, "nibistudio.cn")).toBe(true);
+    expect(matchesNoProxyRule(target, "api.nibistudio.cn:8443")).toBe(false);
     expect(matchesNoProxyRule(target, "other.example")).toBe(false);
     expect(
       resolveRelayProxyForUrl(target, {
         httpProxy: "http://127.0.0.1:7897",
-        httpProxyNoProxy: "nibistudio.top",
+        httpProxyNoProxy: "nibistudio.cn",
       }),
     ).toBeNull();
   });

@@ -186,7 +186,7 @@ export async function resolveHttpZipSource(
 
 /**
  * 会员凭证只发给 NIBI 自有内容源：镜像与第三方源一律不带 X-Nibi-License。
- * 白名单与内容镜像的 primary hosts 同一份配置（api/dl.nibistudio.top）。
+ * 白名单与内容镜像的 primary hosts 同一份配置（api/dl.nibistudio.cn）。
  */
 export function withPaidLicenseHeaderForNibiHosts(input: {
   headers?: Record<string, string>;

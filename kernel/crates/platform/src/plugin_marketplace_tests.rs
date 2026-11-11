@@ -32,7 +32,7 @@ async fn bundled_and_snapshot_entries_are_merged_with_the_snapshot_winning() {
             {"name": "visualize", "icon": "https://cdn.example/visualize-v2.png"},
             {"name": "pdf", "icon": "https://cdn.example/pdf.png",
              "description_i18n": {"zh-CN": "PDF 处理"},
-             "author": {"name": "NIBI", "url": "https://nibistudio.top"},
+             "author": {"name": "NIBI", "url": "https://nibistudio.cn"},
              "requiresPaidPlan": true, "publisherType": "official"},
             {"name": "pdf", "icon": "https://cdn.example/pdf-new.png"}
         ]}"#,
@@ -62,7 +62,7 @@ async fn bundled_and_snapshot_entries_are_merged_with_the_snapshot_winning() {
     assert_eq!(pdf.listing.author.as_deref(), Some("NIBI"));
     assert_eq!(
         pdf.listing.author_url.as_deref(),
-        Some("https://nibistudio.top")
+        Some("https://nibistudio.cn")
     );
     assert!(pdf.listing.requires_paid_plan);
     assert_eq!(pdf.listing.publisher_type.as_deref(), Some("official"));

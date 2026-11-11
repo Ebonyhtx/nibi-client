@@ -1273,7 +1273,7 @@ ubuntu runner 显式装 `zsh`，shell 选法测试要 `/bin/zsh`）。实测 **6
   启动器链接名要 `nibi`（脚本 `command -v nibi`）。
 - `host_tests`：Node 的 `osVersion` 用 `process.platform`（小写 `linux …`），实现正确、测试按
   `os.type()` 断言。
-- `request_headers`：`NIBI_ENV=test` 的 `http-referer` 是 `https://api-test.nibistudio.top`。
+- `request_headers`：`NIBI_ENV=test` 的 `http-referer` 是 `https://api-test.nibistudio.cn`。
 - `node-store` 的 databaseId：分隔符归一只有 Windows 做，按平台分支断言。
 - `executor-host` 的 MCP `Closed.exited`：本机 `true`、loopback `false`（对端自己做遥测）。
 - `compacted-request-*` 夹具：`15000000 tokens left` → `1000000`，`ZCode's own earlier attribution`

@@ -59,10 +59,10 @@ export interface OfficialPluginDefinition {
   version: string;
 }
 
-const NIBI_AUTHOR = { name: "NIBI", url: "https://nibistudio.top" } as const;
+const NIBI_AUTHOR = { name: "NIBI", url: "https://nibistudio.cn" } as const;
 // 图标源指向自有内容主机（备案前 api 走 EdgeOne）。上游 CDN 的图标曾直接外链，
 // 实测发现这会让商店/内置清单在用户端回连 z.ai（品牌暴露 + 网络依赖），全部改指向我们自己的图标仓。
-const NIBI_PLUGIN_ICONS_BASE_URL = "https://api.nibistudio.top/plugins/icons";
+const NIBI_PLUGIN_ICONS_BASE_URL = "https://api.nibistudio.cn/plugins/icons";
 
 export const OFFICIAL_NODE_REPL_HOST_REQUIRED_SEED_PATHS = ["dist/mcp/server.js"] as const;
 

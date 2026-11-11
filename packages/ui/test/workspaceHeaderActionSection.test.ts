@@ -303,7 +303,7 @@ describe("WorkspaceHeaderActionSection", () => {
     );
     expect(capturedHeaderHelp.openFeatureRequest).toHaveBeenCalledTimes(1);
     expect(capturedHeaderHelp.openCommunity).toHaveBeenCalledTimes(1);
-    expect(capturedHeaderHelp.openExternal).toHaveBeenCalledWith("https://nibistudio.top/docs");
+    expect(capturedHeaderHelp.openExternal).toHaveBeenCalledWith("https://nibistudio.cn/docs");
     expect(capturedHeaderHelp.exportLogs).not.toHaveBeenCalled();
   });
 

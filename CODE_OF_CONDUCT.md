@@ -31,7 +31,7 @@ and any project space where you represent the project.
 
 ## Enforcement
 
-Report concerns to `contact@nibistudio.top` with the subject `[CONDUCT]`.
+Report concerns to `contact@nibistudio.cn` with the subject `[CONDUCT]`.
 Maintainers will review reports confidentially and may remove content, warn,
 temporarily restrict, or permanently ban participation.
 

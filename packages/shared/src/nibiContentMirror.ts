@@ -14,7 +14,7 @@
 /** Empty in the open-source build. A deployment may replace this constant. */
 export const NIBI_MIRROR_ORIGIN = "";
 
-const NIBI_PRIMARY_CONTENT_HOSTS = new Set(["api.nibistudio.top", "dl.nibistudio.top"]);
+const NIBI_PRIMARY_CONTENT_HOSTS = new Set(["api.nibistudio.cn", "dl.nibistudio.cn"]);
 
 let mirrorOrigin = NIBI_MIRROR_ORIGIN;
 

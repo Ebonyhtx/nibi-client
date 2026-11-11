@@ -15,8 +15,8 @@ export { NIBI_AUTH_ORIGIN, NIBI_OIDC_PROJECT_ID, NIBI_OIDC_SCOPE };
 export const NIBI_OIDC_CLIENT_ID = NIBI_DESKTOP_OIDC_CLIENT_ID;
 
 /** 业务 API 与会员页（客户端内嵌收银台用；环境变量可覆盖，便于本地联调）。 */
-export const NIBI_API_BASE_URL = "https://api.nibistudio.top";
-export const NIBI_MEMBERSHIP_SITE_URL = "https://nibistudio.top/membership/";
+export const NIBI_API_BASE_URL = "https://api.nibistudio.cn";
+export const NIBI_MEMBERSHIP_SITE_URL = "https://nibistudio.cn/membership/";
 
 export const NIBI_OAUTH_PROVIDER_CONFIG: Omit<OAuthProviderRuntimeConfig, "appSecret"> = {
   id: NIBI_PROVIDER_ID,

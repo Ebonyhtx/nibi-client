@@ -11,7 +11,7 @@ export const BIGMODEL_PROVIDER_ID = "bigmodel" as const;
 /** 内置 ZAI provider id */
 export const ZAI_PROVIDER_ID = "zai" as const;
 
-/** 内置 NIBI 账号 provider id（auth.nibistudio.top 的 OIDC 登录） */
+/** 内置 NIBI 账号 provider id（auth.nibistudio.cn 的 OIDC 登录） */
 export const NIBI_PROVIDER_ID = "nibi" as const;
 
 /** 凭据解密失败错误前缀 */

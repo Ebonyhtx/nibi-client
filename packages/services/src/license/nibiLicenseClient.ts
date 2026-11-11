@@ -33,7 +33,7 @@ export interface LicenseHttpResponse {
 export interface NibiLicenseClientOptions {
   credentials: LicenseCredentialStore;
   deviceId: string;
-  /** API 基址，例如 https://api.nibistudio.top/api/v1 */
+  /** API 基址，例如 https://api.nibistudio.cn/api/v1 */
   apiBaseUrl: string;
   request: (
     init: { method: "GET" | "POST"; url: string; headers?: Record<string, string>; body?: unknown },

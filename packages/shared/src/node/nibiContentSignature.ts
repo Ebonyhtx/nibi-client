@@ -22,7 +22,7 @@ export const NIBI_CONTENT_SIGNING_PUBLIC_KEY_SPKI_BASE64 =
   "MCowBQYDK2VwAyEAfjUkJYlbWMyNQOR1E7m+/a0USdAUZYp7GHFoSsQlQ7k=";
 
 /** NIBI content hosts that must be signed (https only). */
-const SIGNED_HOSTS = new Set(["api.nibistudio.top", "dl.nibistudio.top"]);
+const SIGNED_HOSTS = new Set(["api.nibistudio.cn", "dl.nibistudio.cn"]);
 
 let cachedPublicKey: ReturnType<typeof createPublicKey> | undefined;
 

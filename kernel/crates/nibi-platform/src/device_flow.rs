@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
-pub const AUTH_ORIGIN: &str = "https://auth.nibistudio.top";
+pub const AUTH_ORIGIN: &str = "https://auth.nibistudio.cn";
 /// OIDC native app：CLI/TUI（client id 是公开标识，不是密钥）。
 pub const TUI_CLIENT_ID: &str = "393742196290879492";
 pub const OIDC_PROJECT_ID: &str = "393742195619790852";

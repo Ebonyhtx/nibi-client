@@ -11,7 +11,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-0",
     category: "development",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/github.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/github.png",
     label: {
       cn: "帮我看看这个仓库最近的改动，有哪些值得关注",
       en: "Review recent changes in this repository and highlight what matters.",
@@ -31,7 +31,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-1",
     category: "development",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/gitlab.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/gitlab.png",
     label: {
       cn: "帮我检查当前分支的改动，找出提交 MR 前需要修复的问题",
       en: "Review this branch and find issues to fix before submitting a merge request.",
@@ -51,7 +51,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-2",
     category: "development",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/mimosa.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/mimosa.png",
     label: {
       cn: "帮我扫描这个项目的安全隐患，优先修复高风险问题",
       en: "Scan this project for security issues and prioritize high-risk fixes.",
@@ -71,7 +71,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-3",
     category: "development",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/cloudbase-skills.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/cloudbase-skills.png",
     label: {
       cn: "帮我做一个带登录和数据存储的待办小程序",
       en: "Build a to-do mini program with sign-in and data storage.",
@@ -91,7 +91,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-4",
     category: "development",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/video2code.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/video2code.png",
     label: {
       cn: "把我提供的网页录屏还原成一个可交互的页面",
       en: "Recreate my website recording as an interactive page.",
@@ -111,7 +111,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-5",
     category: "development",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/browser-use.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/browser-use.png",
     label: {
       cn: "帮我检查本地网页，找出布局和交互上的问题",
       en: "Check my local website for layout and interaction issues.",
@@ -131,7 +131,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-6",
     category: "office",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/lark-cli.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/lark-cli.png",
     label: {
       cn: "帮我整理昨天的飞书工作记录，列出今天需要跟进的事项",
       en: "Review yesterday’s Lark work records and list today’s follow-ups.",
@@ -151,7 +151,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-7",
     category: "office",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/tencent-meeting-cli.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/tencent-meeting-cli.png",
     label: {
       cn: "帮我整理最近一次会议的参会情况，生成一份简报",
       en: "Summarize attendance at my most recent Tencent Meeting.",
@@ -171,7 +171,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-8",
     category: "office",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/wecom-cli.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/wecom-cli.png",
     label: {
       cn: "帮我查看今天的日程和待办，安排一下工作顺序",
       en: "Review today’s WeCom calendar and to-dos and organize my work.",
@@ -191,7 +191,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-9",
     category: "office",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/document-skills.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/document-skills.png",
     label: {
       cn: "把我的笔记整理成一份排版清晰的 Word 文档",
       en: "Turn my notes into a clearly formatted Word document.",
@@ -211,7 +211,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-10",
     category: "office",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/document-skills.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/document-skills.png",
     label: {
       cn: "分析这份 Excel，找出关键趋势并生成图表",
       en: "Analyze this Excel file, identify key trends and create charts.",
@@ -231,7 +231,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-15",
     category: "utility",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/skill-creator.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/skill-creator.png",
     label: {
       cn: "把我经常重复的工作流程做成一个可复用的技能",
       en: "Turn my recurring workflow into a reusable skill.",
@@ -251,7 +251,7 @@ export const officeSuggestedPrompts: RecommendedPrompt[] = [
   {
     id: "official-16",
     category: "utility",
-    iconUrl: "https://api.nibistudio.top/plugins/icons/zcode-guide.png",
+    iconUrl: "https://api.nibistudio.cn/plugins/icons/zcode-guide.png",
     label: {
       cn: "帮我检查当前的 NIBI 配置，看看有哪些可以调整",
       en: "Review my NIBI configuration and suggest useful adjustments.",

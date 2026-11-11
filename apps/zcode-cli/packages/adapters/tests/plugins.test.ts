@@ -69,7 +69,7 @@ describe("NodePluginAdapter", () => {
       { name: "svg", icon: "svg/icon.svg", mimeType: "image/svg+xml" },
     ]);
     expect(icons.get("figma")).toBe(
-      "https://api.nibistudio.top/plugins/icons/figma/icon.png",
+      "https://api.nibistudio.cn/plugins/icons/figma/icon.png",
     );
     expect(icons.has("unsafe")).toBe(false);
     expect(icons.has("svg")).toBe(false);
@@ -90,7 +90,7 @@ describe("NodePluginAdapter", () => {
     expect(enriched.plugins).toEqual([
       {
         name: "figma",
-        icon: "https://api.nibistudio.top/plugins/icons/figma/icon.png",
+        icon: "https://api.nibistudio.cn/plugins/icons/figma/icon.png",
         source: "./figma",
       },
       { name: "existing", icon: "https://example.com/existing.png", source: "./existing" },
@@ -260,7 +260,7 @@ describe("NodePluginAdapter", () => {
         plugins: [
           {
             name: "figma",
-            icon: "https://api.nibistudio.top/plugins/icons/figma/icon.png",
+            icon: "https://api.nibistudio.cn/plugins/icons/figma/icon.png",
           },
         ],
       });
@@ -332,7 +332,7 @@ describe("NodePluginAdapter", () => {
         plugins: [
           {
             name: "figma",
-            icon: "https://api.nibistudio.top/plugins/icons/figma/icon.png",
+            icon: "https://api.nibistudio.cn/plugins/icons/figma/icon.png",
           },
         ],
       });
@@ -379,7 +379,7 @@ describe("NodePluginAdapter", () => {
         plugins: [
           {
             name: "figma",
-            icon: "https://api.nibistudio.top/plugins/icons/figma/icon.png",
+            icon: "https://api.nibistudio.cn/plugins/icons/figma/icon.png",
           },
         ],
       });

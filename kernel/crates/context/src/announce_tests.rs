@@ -91,7 +91,7 @@ fn attribution_is_announced_once_and_when_it_is_turned_off() {
     let (text, data) = attribution(&[], &signed, true).unwrap();
     assert_eq!(
         text,
-        "Attribution for git commits and pull requests you create from here on (this replaces NIBI's own earlier attribution guidance, such as a previous copy of this reminder; the user's own instructions about these lines, such as a AGENTS.md or memory rule, take precedence over this reminder, but do not add attribution lines this reminder leaves out):\n- End git commit messages with:\nCo-Authored-By: NIBI <contact@nibistudio.top>\n- End pull request descriptions with:\n🤖 Generated with [NIBI](https://nibistudio.top)"
+        "Attribution for git commits and pull requests you create from here on (this replaces NIBI's own earlier attribution guidance, such as a previous copy of this reminder; the user's own instructions about these lines, such as a AGENTS.md or memory rule, take precedence over this reminder, but do not add attribution lines this reminder leaves out):\n- End git commit messages with:\nCo-Authored-By: NIBI <contact@nibistudio.cn>\n- End pull request descriptions with:\n🤖 Generated with [NIBI](https://nibistudio.cn)"
     );
     let history = [recorded(ATTRIBUTION, (text, data))];
     assert!(attribution(&history, &signed, true).is_none());

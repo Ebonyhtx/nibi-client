@@ -41,7 +41,7 @@ fn endpoint(base_url: String, headers: &[(&str, &str)]) -> ModelEndpoint {
 fn facts() -> SourceFacts {
     SourceFacts {
         version: "0.1.52".to_owned(),
-        endpoint_origin: "https://api.nibistudio.top".to_owned(),
+        endpoint_origin: "https://api.nibistudio.cn".to_owned(),
         release_channel: "production".to_owned(),
         locale: Some("en-US".to_owned()),
         time_zone: Some("Asia/Shanghai".to_owned()),
@@ -124,7 +124,7 @@ async fn provider_headers_go_between_the_source_and_the_request_headers() {
     assert!(events.iter().all(Result::is_ok), "{events:?}");
     let captured = &server.requests()[0];
     for (name, value) in [
-        ("http-referer", "https://api.nibistudio.top"),
+        ("http-referer", "https://api.nibistudio.cn"),
         ("user-agent", "NIBI/0.1.52"),
         ("x-nibi-app-version", "0.1.52"),
         ("x-title", "Probe"),

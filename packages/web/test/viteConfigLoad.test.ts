@@ -80,7 +80,7 @@ describe("web Vite config", () => {
     expect(result?.config.define).toMatchObject({
       "import.meta.env.VITE_ZAI_OAUTH_CLIENT_ID": JSON.stringify("client_P8X5CMWmlaRO9gyO-KSqtg"),
       // NIBI 4.0 的生产链接常量指向自家 API（上游域名已不再使用）。
-      "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify("https://api.nibistudio.top"),
+      "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify("https://api.nibistudio.cn"),
     });
   });
 
@@ -128,7 +128,7 @@ describe("web Vite config", () => {
       expect(result?.config.define).toMatchObject({
         "import.meta.env.VITE_ZAI_OAUTH_CLIENT_ID": JSON.stringify("client_P8X5CMWmlaRO9gyO-KSqtg"),
         // 测试档链接常量同样指向自家 API。
-        "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify("https://api.nibistudio.top"),
+        "import.meta.env.VITE_NIBI_BASE_URL": JSON.stringify("https://api.nibistudio.cn"),
         "import.meta.env.VITE_ZAI_OAUTH_ORIGIN": JSON.stringify("https://chat.z.ai"),
       });
     },

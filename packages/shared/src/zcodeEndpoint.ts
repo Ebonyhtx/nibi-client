@@ -2,7 +2,7 @@ import type { ZCodeEnv } from "./env.js";
 
 // NIBI fork：默认端点指向我们自己的服务（配置两跳 / 更新清单等都在该 origin 下）。
 // 上游原值 https://zcode.z.ai；env（NIBI_BASE_URL / NIBI_ENDPOINT_ORIGIN）仍可覆盖，便于本地调试。
-export const DEFAULT_NIBI_ENDPOINT_ORIGIN = "https://api.nibistudio.top";
+export const DEFAULT_NIBI_ENDPOINT_ORIGIN = "https://api.nibistudio.cn";
 // 上游的默认端点。**保留它是为了识别"编译期注入的旧常量"**：构建期配置
 // （scripts/build-time-config.mjs 的 private defaults / vitest 的 define）里可能仍写着上游域名，
 // 而 rewriteZCodeEndpointUrl 只改写"认得的来源"——不认这个就会出现"要改写的 URL 命中不了"
@@ -12,10 +12,10 @@ export const UPSTREAM_NIBI_ENDPOINT_ORIGIN = "https://zcode.z.ai";
 // 分家前这里是上游 https://zcode.z.ai；任何默认回退到上游都违反端点隔离
 // （test 档构建会把登录换证/许可证检查发给上游）。未部署时 DNS 失败即 fail-closed，
 // 测试/E2E 必须显式注入 NIBI_BASE_URL 或本地 mock。
-export const TEST_NIBI_ENDPOINT_ORIGIN = "https://api-test.nibistudio.top";
+export const TEST_NIBI_ENDPOINT_ORIGIN = "https://api-test.nibistudio.cn";
 // NIBI 会员购买页（我们自己的官网）。客户端内嵌的是这一页，不是上游 Coding Plan 页。
-export const DEFAULT_NIBI_WEB_ORIGIN = "https://nibistudio.top";
-export const NIBI_WEB_ORIGIN_ALIASES: readonly string[] = ["https://www.nibistudio.top"];
+export const DEFAULT_NIBI_WEB_ORIGIN = "https://nibistudio.cn";
+export const NIBI_WEB_ORIGIN_ALIASES: readonly string[] = ["https://www.nibistudio.cn"];
 // 本地开发：Astro dev 默认 4321；保留 3000 兼容旧的本地站点服务。
 export const NIBI_MEMBERSHIP_LOCAL_WEBVIEW_ORIGINS: readonly string[] = [
   "http://localhost:4321",
@@ -29,7 +29,7 @@ export const DEFAULT_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
 export const TEST_ZAI_BUSINESS_BASE_URL = "https://api.z.ai";
 export const DEFAULT_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
 export const TEST_ZAI_OAUTH_CLIENT_ID = "client_P8X5CMWmlaRO9gyO-KSqtg";
-export const DEFAULT_WEB_REMOTE_CONTROL_RELAY_WS_URL = "wss://api.nibistudio.top/api/v1/remote/ws2";
+export const DEFAULT_WEB_REMOTE_CONTROL_RELAY_WS_URL = "wss://api.nibistudio.cn/api/v1/remote/ws2";
 export const WEB_REMOTE_CONTROL_V4_MIN_APP_VERSION = "3.4.0";
 
 export interface BuildZCodeEndpointUrlsOptions {
@@ -414,7 +414,7 @@ export function rewriteZCodeEndpointUrl(input: string | URL, endpointOrigin: str
     return input;
   }
   // 认这两个 origin 作为"可改写的来源"：
-  //   ① 我们自己的（DEFAULT_NIBI_ENDPOINT_ORIGIN，fork 后 = api.nibistudio.top）
+  //   ① 我们自己的（DEFAULT_NIBI_ENDPOINT_ORIGIN，fork 后 = api.nibistudio.cn）
   //   ② 上游的（UPSTREAM_NIBI_ENDPOINT_ORIGIN = zcode.z.ai）
   // ② 是**兜底重写**，不是允许配置上游：构建期 `scripts/build-time-config.mjs` 已硬拒绝
   // 上游端点，正常构建不会出现它；保留这一支只处理历史常量/遗留 bundle 里可能带出的上游

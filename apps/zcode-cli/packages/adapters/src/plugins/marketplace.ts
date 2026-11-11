@@ -74,7 +74,7 @@ const PLUGIN_ICON_SOURCES_FILE = "icon-sources.json";
 // 图标与来源表都走自有内容主机（分家标准 §2）。这张表只服务「上游 claude 市场」的图标
 // provenance，取不到会回落到本地缓存（见 loadClaudePluginIconSources 的 catch），不影响主流程；
 // 但指向上游 CDN 等于每次刷新都把用户网络行为外发一次。
-const PLUGIN_ICON_ASSETS_BASE_URL = "https://api.nibistudio.top/plugins/icons/";
+const PLUGIN_ICON_ASSETS_BASE_URL = "https://api.nibistudio.cn/plugins/icons/";
 const PLUGIN_ICON_SOURCES_URL = `${PLUGIN_ICON_ASSETS_BASE_URL}${PLUGIN_ICON_SOURCES_FILE}`;
 const MARKETPLACE_JSON_MAX_BYTES = 10 * 1024 * 1024;
 const MARKETPLACE_JSON_MAX_REDIRECTS = 5;
