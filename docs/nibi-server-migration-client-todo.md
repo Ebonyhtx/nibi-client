@@ -1,6 +1,15 @@
 # NIBI 服务端架构迁移后，客户端要跟着改的事
 
-状态：**待做**（2026-11-10 记录）。等 `nibistudio.cn` 备案通过、服务端/CDN/中转架构调整完成后，按本清单逐项更新客户端，再统一打包验收。
+状态：**服务端已完成，客户端待发版**（2026-11-12 更新）。
+
+- **服务端已收口**：德国退役抹盘，`nibistudio.top` / EdgeOne / Cloudflare 全退；`nibistudio.cn` 承载完整业务；
+  内容走 OSS（`dl.` 分发 + 付费件预签名）。现状见 `.artifacts/server-bootstrap/RUNBOOK-aliyun-access.md` §0。
+- **客户端已做**：全仓 `.top` → `.cn`（`0e053b77`，82 文件 / 229 处），覆盖 §1 全部端点常量、
+  `nibiContentMirror` 主内容 host 白名单、`plugin-marketplaces` 清单 URL、Rust 内核 `origins.rs`；
+  `pnpm typecheck` 与单测全绿。
+- **仍未做**（发版前必须过）：① Rust 内核是**编译期常量，不重建不生效**；
+  ② §2 的构建期 CDN/OSS 变量与发布脚本要逐项核对（涉及路径与多账号映射，不是纯域名替换）；
+  ③ 已发布的 npm 包 / 桌面安装包仍是旧构建；④ 插件 zip 内 `env_setup` 仍指向 `.top`。
 
 原则：客户端只认 NIBI 自有端点或空；任何上游域名都不回落（分家标准 `docs/deployment/client-endpoint-and-distribution-standard.md` §5）。
 
