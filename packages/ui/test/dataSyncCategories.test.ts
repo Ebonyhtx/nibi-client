@@ -3,6 +3,7 @@
 // 因此这里沿用同目录设置页测试的 `.ts + createElement` 写法，保证用例真正进入 CI。
 import { createElement } from "react";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -14,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { IServiceAccessor } from "@nibi/services";
 import type { DataSyncListItem, DataSyncListResult } from "@nibi/shared";
 import {
+  DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE,
   DataSyncSection,
   compareSkillRows,
   resolveDataSyncCategoryService,
@@ -215,6 +217,101 @@ describe("useDataSyncCategory", () => {
     expect(result.current.rows).toEqual([]);
     expect(skills.listSyncItems).not.toHaveBeenCalled();
   });
+
+  it("maps an outdated remote target to a stable error without reading or writing", async () => {
+    const source = createAccessor();
+    const targetService = createService({
+      hashes: async () => {
+        throw new Error("Method not found: getSyncContentHashes");
+      },
+    });
+    const target = createAccessor({ skillSyncService: targetService });
+    const { result } = renderHook(() =>
+      useDataSyncCategory({
+        category: "skills",
+        sourceServices: source,
+        targetServices: target,
+        online: true,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.phase).toBe("error"));
+    expect(result.current.errorCode).toBe(DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE);
+    expect(targetService.getSyncContentHashes).toHaveBeenCalledTimes(1);
+    expect(targetService.listSyncItems).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current.push();
+    });
+    expect(targetService.exportSyncItems).not.toHaveBeenCalled();
+    expect(targetService.importSyncItems).not.toHaveBeenCalled();
+
+    // 重新加载不会再次探测：同一连接的能力结论已缓存。
+    await act(async () => {
+      result.current.reload();
+    });
+    await waitFor(() => expect(result.current.phase).toBe("error"));
+    expect(targetService.getSyncContentHashes).toHaveBeenCalledTimes(1);
+  });
+
+  it("probes a supported remote target only once across reloads", async () => {
+    const source = createAccessor();
+    const targetService = createService();
+    const target = createAccessor({ skillSyncService: targetService });
+    const { result } = renderHook(() =>
+      useDataSyncCategory({
+        category: "skills",
+        sourceServices: source,
+        targetServices: target,
+        online: true,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    expect(targetService.getSyncContentHashes).toHaveBeenCalledTimes(1);
+    expect(targetService.getSyncContentHashes).toHaveBeenCalledWith({ keys: [] });
+
+    await act(async () => {
+      result.current.reload();
+    });
+    await waitFor(() => expect(targetService.listSyncItems).toHaveBeenCalledTimes(2));
+    expect(targetService.getSyncContentHashes).toHaveBeenCalledTimes(1);
+  });
+
+  it("aborts the remaining batches when import reports a missing method", async () => {
+    const sourceService = createService({
+      list: async () =>
+        listResult([
+          item({ key: "a", signature: { fileCount: 1, totalBytes: 15 * 1024 * 1024 } }),
+          item({ key: "b", signature: { fileCount: 1, totalBytes: 15 * 1024 * 1024 } }),
+        ]),
+    });
+    const targetService = createService({ list: async () => listResult([]) });
+    targetService.importSyncItems.mockImplementation(async () => {
+      throw new Error("Method not found: importSyncItems");
+    });
+    const source = createAccessor({ skillSyncService: sourceService });
+    const target = createAccessor({ skillSyncService: targetService });
+    const { result } = renderHook(() =>
+      useDataSyncCategory({
+        category: "skills",
+        sourceServices: source,
+        targetServices: target,
+        online: true,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.phase).toBe("ready"));
+    expect(result.current.selectedCount).toBe(2);
+
+    await act(async () => {
+      await result.current.push();
+    });
+    // 第一批 import 就证明方法缺失：第二整批不再导出，避免半同步。
+    expect(sourceService.exportSyncItems).toHaveBeenCalledTimes(1);
+    expect(result.current.errorCode).toBe(DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE);
+    expect(result.current.pushing).toBe(false);
+  });
 });
 
 describe("DataSyncSection categories", () => {
@@ -254,6 +351,23 @@ describe("DataSyncSection categories", () => {
     expect(
       screen.getByText("settings.dataSync.category.selection.count(count=1)"),
     ).toBeTruthy();
+  });
+
+  it("renders the outdated remote guidance in the category panel", async () => {
+    const skillsTarget = createService({
+      hashes: async () => {
+        throw new Error("Method not found: getSyncContentHashes");
+      },
+    });
+    mountSection(
+      createAccessor(),
+      createAccessor({ skillSyncService: skillsTarget }),
+    );
+
+    fireEvent.click(await screen.findByTestId("settings-data-sync-category-tab-skills"));
+    expect(await screen.findByText("settings.dataSync.error.remoteAgentOutdatedTitle")).toBeTruthy();
+    expect(screen.getByText("settings.dataSync.error.remoteAgentOutdated")).toBeTruthy();
+    expect(skillsTarget.importSyncItems).not.toHaveBeenCalled();
   });
 
   it("blocks the whole MCP category when the target uses the compatibility config", async () => {

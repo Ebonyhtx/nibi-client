@@ -1266,4 +1266,79 @@ describe("mcpStore", () => {
       reasonCode: "workspace_mcp_trust_unavailable",
     });
   });
+
+  it("远端目录服务绑定时决定与重读都走远端 IMcpSyncService", async () => {
+    vi.stubGlobal("window", {});
+    const review = {
+      declarationDigest: "e".repeat(64),
+      configuredEnabled: true,
+      transport: "stdio" as const,
+      sourcePaths: ["/remote/workspace/.nibi/config.json"],
+      display: '{"command":"node"}',
+      trusted: false,
+    };
+    const remoteDecide = vi.fn(async () => ({ accepted: true } as const));
+    const remoteLoad = vi.fn(async () => ({
+      servers: [
+        {
+          source: "zcodeagentmcp" as const,
+          scope: "workspace" as const,
+          name: "probe",
+          config: { type: "stdio" as const, command: "node" },
+          enabled: true,
+          projectPath: "/remote/workspace",
+        },
+      ],
+      trust: { probe: { ...review, trusted: true } },
+    }));
+    const platformDecide = vi.fn(async () => ({ accepted: true } as const));
+    setMcpStorePlatform({
+      loadMcpFromUserDirectory: vi.fn(async () => ({ servers: [] })),
+      saveMcpToUserDirectory: vi.fn(async () => ({ success: true })),
+      decideWorkspaceMcpTrust: platformDecide,
+    });
+    const directoryService = {
+      loadMcpFromUserDirectory: remoteLoad,
+      saveMcpToUserDirectory: vi.fn(async () => {}),
+      decideWorkspaceMcpTrust: remoteDecide,
+    };
+    useMcpStore.setState({
+      currentProjectPath: "/remote/workspace",
+      currentWorkspaceIdentity: "ssh://dev/remote/workspace",
+      currentDirectoryService: directoryService,
+      isConfigLoaded: true,
+      enabledStates: {},
+      workspaceTrust: { probe: review },
+      workspaceTrustKnown: true,
+      servers: [
+        {
+          id: "zcodeagentmcp-workspace-probe",
+          name: "probe",
+          config: { type: "stdio", command: "node" },
+          enabled: true,
+          source: "zcodeagentmcp",
+          scope: "workspace",
+          projectPath: "/remote/workspace",
+        },
+      ],
+    });
+
+    await expect(
+      useMcpStore.getState().decideWorkspaceTrust("probe", true),
+    ).resolves.toEqual({ accepted: true });
+    expect(remoteDecide).toHaveBeenCalledWith({
+      workspacePath: "/remote/workspace",
+      workspaceIdentity: "ssh://dev/remote/workspace",
+      serverName: "probe",
+      declarationDigest: review.declarationDigest,
+      trusted: true,
+    });
+    // 绝不能回退到本机 Desktop 桥：那会把远端声明写进本机信任库。
+    expect(platformDecide).not.toHaveBeenCalled();
+    expect(remoteLoad).toHaveBeenCalledWith({
+      workspacePath: "/remote/workspace",
+      workspaceIdentity: "ssh://dev/remote/workspace",
+    });
+    expect(useMcpStore.getState().workspaceTrust.probe?.trusted).toBe(true);
+  });
 });

@@ -2689,6 +2689,13 @@ const enUS: Record<string, string> = {
     "Reconnect the device to read and push skills. No stale snapshot is shown while offline, and nothing is written.",
   "settings.dataSync.phase.errorTitle": "Failed to read skills",
   "settings.dataSync.phase.errorDescription": "Please try again.",
+  "settings.dataSync.error.remoteAgentOutdatedTitle": "Remote device needs an update",
+  "settings.dataSync.error.remoteAgentOutdated":
+    "The NIBI Agent on the remote device is too old and does not support data sync. Update the remote device and try again; nothing is written until then.",
+  "settings.dataSync.error.remoteAgentCapabilityUnverifiedTitle":
+    "Remote sync support could not be verified",
+  "settings.dataSync.error.remoteAgentCapabilityUnverified":
+    "Could not verify whether the remote device supports data sync. Reads and writes were stopped to avoid partial sync; check the device connection and try again.",
   "settings.dataSync.phase.noDevices": "No remote device to sync. Connect a remote device first.",
   "settings.dataSync.actions.refresh": "Refresh",
   "settings.dataSync.actions.retry": "Retry",
@@ -3053,6 +3060,11 @@ const enUS: Record<string, string> = {
     "{count} workspace hook(s) pending review; disabled for this session",
   "chat.workspaceHookPending.review": "Review",
   "chat.workspaceHookPending.dismiss": "Dismiss",
+  // A5: project MCP servers skipped by workspace trust must be visible in the session
+  "chat.workspaceMcpTrustPending.message":
+    "{count} project MCP server(s) in this workspace are awaiting review and will not be loaded in this session",
+  "chat.workspaceMcpTrustPending.review": "Review",
+  "chat.workspaceMcpTrustPending.dismiss": "Dismiss",
 
   // Task list
   "taskList.title": "Task list",

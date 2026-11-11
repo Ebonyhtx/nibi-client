@@ -2508,6 +2508,12 @@ const zhCN: Record<string, string> = {
     "重新连接设备后才能读取和推送技能。离线时不显示旧数据，也不会写入远端。",
   "settings.dataSync.phase.errorTitle": "读取技能失败",
   "settings.dataSync.phase.errorDescription": "请稍后重试。",
+  "settings.dataSync.error.remoteAgentOutdatedTitle": "远端设备需要升级",
+  "settings.dataSync.error.remoteAgentOutdated":
+    "远端设备上的 NIBI Agent 版本过低，缺少数据同步所需的能力。请升级远端设备后重试；升级前不会写入任何数据。",
+  "settings.dataSync.error.remoteAgentCapabilityUnverifiedTitle": "无法确认远端同步能力",
+  "settings.dataSync.error.remoteAgentCapabilityUnverified":
+    "无法确认远端设备是否支持数据同步。为避免半同步，已停止读写；请检查设备连接后重试。",
   "settings.dataSync.phase.noDevices": "没有可同步的远端设备。请先连接远端设备。",
   "settings.dataSync.actions.refresh": "刷新",
   "settings.dataSync.actions.retry": "重试",
@@ -2850,6 +2856,11 @@ const zhCN: Record<string, string> = {
   "chat.workspaceHookPending.message": "{count} 个工作区 Hook 待审核，本会话暂未启用",
   "chat.workspaceHookPending.review": "去审核",
   "chat.workspaceHookPending.dismiss": "忽略",
+  // A5：项目 MCP 因工作区未信任被跳过时，会话内也要能看到原因与审批入口
+  "chat.workspaceMcpTrustPending.message":
+    "当前工作区有 {count} 个项目 MCP 服务器待审核，本会话不会启用",
+  "chat.workspaceMcpTrustPending.review": "去审核",
+  "chat.workspaceMcpTrustPending.dismiss": "忽略",
 
   // 任务列表
   "taskList.cronTaskLabel": "定时任务",

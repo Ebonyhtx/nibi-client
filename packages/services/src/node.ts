@@ -284,6 +284,47 @@ export { createSkillsService } from "./skills/skillsService.js";
 export { createSkillSyncService } from "./skill-sync/skillSyncService.js";
 export { createSkillDataSyncMethods } from "./data-sync/node.js";
 export { createMcpSyncService } from "./mcp-sync/mcpSyncService.js";
+// 工作区 MCP 信任：Desktop Host 与远端 Server/CLI 共用同一份实现，保证信任库、摘要算法
+// 与内核读取口径一致（见 docs/specs/workspace-mcp-trust.md）。
+export {
+  WORKSPACE_MCP_TRUST_STORE_FILE,
+  WORKSPACE_MCP_TRUST_STORE_SCHEMA_VERSION,
+  WorkspaceMcpTrustStoreCorruptError,
+  canonicalizeMcpDeclaration,
+  computeWorkspaceMcpDeclarationDigest,
+  createWorkspaceMcpTrustHost,
+  createWorkspaceMcpTrustRegistry,
+  decideWorkspaceMcpTrust,
+  filterTrustedProjectMcpRecords,
+  inspectWorkspaceMcpTrust,
+  isWorkspaceRegisteredForMcpInspection,
+  normalizeWorkspacePathForTrust,
+  parseWorkspaceMcpTrustStoreContent,
+  parseWorkspaceMcpTrustStoreObject,
+  readWorkspaceMcpTrustStore,
+  resolveUserHomeDir,
+  resolveWorkspaceMcpTrustStorePath,
+  stableStringify,
+  writeWorkspaceMcpTrustDecision,
+} from "./mcp-trust/index.js";
+export type {
+  WorkspaceMcpRegistration,
+  WorkspaceMcpTrustDecideInput,
+  WorkspaceMcpTrustFilterInput,
+  WorkspaceMcpTrustHost,
+  WorkspaceMcpTrustInspectInput,
+  WorkspaceMcpTrustInspectResult,
+  WorkspaceMcpTrustLoadResult,
+  WorkspaceMcpTrustReasonCode,
+  WorkspaceMcpTrustRegistry,
+  WorkspaceMcpTrustReviewView,
+  WorkspaceMcpTrustStoreLoad,
+} from "./mcp-trust/contract.js";
+export type {
+  WorkspaceMcpTrustRecord,
+  WorkspaceMcpTrustStoreFile,
+  WorkspaceMcpTrustStoreParseResult,
+} from "./mcp-trust/storeFile.js";
 export { createPluginSyncService } from "./plugin-sync/pluginSyncService.js";
 export { createPluginsService } from "./plugins/pluginsService.js";
 export { createPluginManagementService } from "./plugins/pluginManagementService.js";

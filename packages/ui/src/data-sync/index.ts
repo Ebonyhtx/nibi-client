@@ -15,6 +15,10 @@ export type {
 } from "@/data-sync/contract.js";
 export { DATA_SYNC_CATEGORIES } from "@/data-sync/contract.js";
 export {
+  DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE,
+  DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE,
+} from "@/data-sync/contract.js";
+export {
   compareCategoryRows,
   compareSkillRows,
   countRemoteOnlyItems,

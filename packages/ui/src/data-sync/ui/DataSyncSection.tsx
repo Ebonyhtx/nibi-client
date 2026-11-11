@@ -23,7 +23,11 @@ import type {
   DataSyncDevice,
   DataSyncPagePhase,
 } from "@/data-sync/contract.js";
-import { DATA_SYNC_CATEGORIES } from "@/data-sync/contract.js";
+import {
+  DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE,
+  DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE,
+  DATA_SYNC_CATEGORIES,
+} from "@/data-sync/contract.js";
 import {
   DataSyncRowItem,
   blockedReasonLabel,
@@ -44,6 +48,31 @@ const CATEGORY_LABEL_IDS: Record<DataSyncCategoryId, string> = {
 
 function categoryLabel(intl: Intl, category: DataSyncCategoryId): string {
   return intl.formatMessage({ id: CATEGORY_LABEL_IDS[category] });
+}
+
+/** 门禁错误优先用稳定 code 选文案；其它错误仍显示原始 message，保持既有排障信息。 */
+function categoryErrorTitle(intl: Intl, state: DataSyncCategoryController): string {
+  if (state.errorCode === DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE) {
+    return intl.formatMessage({ id: "settings.dataSync.error.remoteAgentOutdatedTitle" });
+  }
+  if (state.errorCode === DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE) {
+    return intl.formatMessage({
+      id: "settings.dataSync.error.remoteAgentCapabilityUnverifiedTitle",
+    });
+  }
+  return intl.formatMessage({ id: "settings.dataSync.category.errorTitle" });
+}
+
+function categoryErrorText(intl: Intl, state: DataSyncCategoryController): string {
+  if (state.errorCode === DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE) {
+    return intl.formatMessage({ id: "settings.dataSync.error.remoteAgentOutdated" });
+  }
+  if (state.errorCode === DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE) {
+    return intl.formatMessage({ id: "settings.dataSync.error.remoteAgentCapabilityUnverified" });
+  }
+  return (
+    state.errorMessage ?? intl.formatMessage({ id: "settings.dataSync.phase.errorDescription" })
+  );
 }
 
 function CategoryTab({
@@ -280,12 +309,9 @@ function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
       >
         <div className="space-y-1">
           <div className="text-ui-base font-medium text-foreground">
-            {intl.formatMessage({ id: "settings.dataSync.category.errorTitle" })}
+            {categoryErrorTitle(intl, state)}
           </div>
-          <div className="text-ui-base text-foreground-subtle">
-            {state.errorMessage ??
-              intl.formatMessage({ id: "settings.dataSync.phase.errorDescription" })}
-          </div>
+          <div className="text-ui-base text-foreground-subtle">{categoryErrorText(intl, state)}</div>
         </div>
         <Button type="button" variant="outline" size="lg" onClick={state.reload}>
           {intl.formatMessage({ id: "settings.dataSync.actions.retry" })}
@@ -405,7 +431,7 @@ function CategoryPanel({ state }: { state: DataSyncCategoryController }) {
           <div className="text-ui-base text-foreground-subtle">
             {intl.formatMessage(
               { id: "settings.dataSync.push.failed" },
-              { error: state.errorMessage },
+              { error: categoryErrorText(intl, state) },
             )}
           </div>
         </div>

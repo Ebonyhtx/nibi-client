@@ -4,6 +4,7 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, posix, win32 } from "node:path";
 import type {
+  DecideWorkspaceMcpTrustRequest,
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
   McpScope,
@@ -17,9 +18,14 @@ import type {
   SaveCliMcpToUserDirectoryRequest,
   SettingsDirectoryLocation,
   SettingsDirectorySource,
+  WorkspaceMcpTrustDecision,
 } from "@nibi/shared";
 import type { IMcpSyncService } from "./mcpSync.js";
 import { createMcpDataSyncMethods } from "#src/data-sync/mcpDataSync.js";
+import {
+  decideWorkspaceMcpTrust,
+  inspectWorkspaceMcpTrust,
+} from "../mcp-trust/index.js";
 import { checkRemoteSyncDirectoryWriteAccess } from "../remote-sync/remoteSyncWriteAccess.js";
 import {
   readJsonObjectFileForUpdate,
@@ -91,6 +97,9 @@ export function createMcpSyncService(
     ...createMcpDataSyncMethods(),
     async loadMcpFromUserDirectory(request) {
       return loadMcpFromUserDirectory(request);
+    },
+    async decideWorkspaceMcpTrust(request: DecideWorkspaceMcpTrustRequest) {
+      return decideWorkspaceMcpTrustForEnvironment(request);
     },
     async listWorkspaceMcpServerStatuses(params) {
       if (!dependencies.listMcpServerStatuses) {
@@ -261,7 +270,65 @@ async function loadMcpFromUserDirectory(
       request?.workspacePath,
     )),
   );
-  return { servers };
+  if (!request?.workspacePath) {
+    return { servers };
+  }
+  // 根因：远端工作区（SSH/WSL/Docker/Server remote）的项目 MCP 由远端内核按
+  // `<远端存储根>/security/workspace-mcp-trust-v1.json` 拒绝；此前 IMcpSyncService 只回传
+  // servers，远端 UI 看不到 review，也无法在远端建立授权。这里与 desktop Host 使用同一份
+  // 信任实现，在既有 loadMcpFromUserDirectory 方法内附带 review（不新增 RPC 通道）。
+  try {
+    const inspected = await inspectWorkspaceMcpTrust({
+      records: servers,
+      workspacePath: request.workspacePath,
+      ...(request.workspaceIdentity
+        ? { workspaceIdentity: request.workspaceIdentity }
+        : {}),
+    });
+    return {
+      servers,
+      trust: inspected.reviews,
+      unreviewable: inspected.unreviewable,
+    };
+  } catch (error) {
+    console.warn("[mcp-sync] workspace MCP trust inspection failed:", formatErrorMessage(error));
+    // 审核状态读不出来时不能退化成“未知即可通过”：UI 展示不可审核，内核仍按默认拒绝。
+    return { servers, trustReasonCode: "workspace_mcp_trust_unavailable" };
+  }
+}
+
+/**
+ * 在**当前 Environment** 的用户域信任库里写入一条决定；只接受与当前声明摘要精确匹配的条目。
+ * 远端 UI 通过 IMcpSyncService 调到这里，保证信任记录与远端内核读取的位置一致。
+ */
+async function decideWorkspaceMcpTrustForEnvironment(
+  request: DecideWorkspaceMcpTrustRequest,
+): Promise<WorkspaceMcpTrustDecision> {
+  const workspacePath = request.workspacePath?.trim();
+  if (!workspacePath || !request.serverName?.trim() || !request.declarationDigest?.trim()) {
+    return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
+  }
+  try {
+    const loaded = await loadMcpFromUserDirectory({
+      workspacePath,
+      ...(request.workspaceIdentity?.trim()
+        ? { workspaceIdentity: request.workspaceIdentity.trim() }
+        : {}),
+    });
+    return await decideWorkspaceMcpTrust({
+      records: loaded.servers,
+      workspacePath,
+      ...(request.workspaceIdentity?.trim()
+        ? { workspaceIdentity: request.workspaceIdentity.trim() }
+        : {}),
+      serverName: request.serverName,
+      declarationDigest: request.declarationDigest,
+      trusted: request.trusted,
+    });
+  } catch (error) {
+    console.warn("[mcp-sync] workspace MCP trust decision failed:", formatErrorMessage(error));
+    return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
+  }
 }
 
 async function saveMcpToUserDirectory(

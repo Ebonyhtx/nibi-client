@@ -18,5 +18,6 @@
   `desktopMainIpcPlatform` 用本窗口 `windowWorkspaceMap` 判定是否允许读取项目配置。
 - Rust 端使用同一 canonical digest 与 strict store schema；任何一端的格式改动都必须同步另一端与
   `docs/specs/workspace-mcp-trust.md`。
-- UI 评审弹窗与会话内待审核提示尚未接线；当前由设置页/Agent 装载侧的 `filterTrustedProjectMcpRecords`
-  提供数据与准入能力。
+- UI 评审弹窗与会话内待审核提示已接线：设置页行内提供信任/撤销，会话内提示条展示被跳过
+  的项目 MCP 并跳转 MCP 设置；数据与准入能力仍来自 `filterTrustedProjectMcpRecords`。
+- 实现与远端共用的部分已下沉到 `@nibi/services/node` 的 `services-mcp-trust` 模块。

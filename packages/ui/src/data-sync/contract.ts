@@ -7,6 +7,12 @@ import type {
   DataSyncItemSignature,
 } from "@nibi/shared";
 
+// UI 层不能直接依赖 Service 实现；门禁错误码经本模块 contract 转发，页面只认这里。
+export {
+  DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE,
+  DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE,
+} from "@nibi/services";
+
 /** 设置页数据同步支持的用户级分类；顺序即标签栏与概览的展示顺序。 */
 export type DataSyncCategoryId = "skills" | "mcp" | "commands" | "hooks" | "subagents" | "plugins";
 

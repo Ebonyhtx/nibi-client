@@ -20,6 +20,7 @@ import type {
 import { convertToZCodeAgentMcpServer } from "@nibi/shared";
 import { logger } from "@/logger.js";
 import {
+  decideWorkspaceMcpTrustThroughDirectoryService,
   decideWorkspaceMcpTrustThroughPlatform,
   fetchNativeMcpServers,
   persistCliMcpToUserDirectory,
@@ -702,13 +703,19 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
         return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
       }
       const workspaceIdentity = state.currentWorkspaceIdentity?.trim() || undefined;
-      const decision = await decideWorkspaceMcpTrustThroughPlatform(mcpPlatformService, {
+      const request = {
         workspacePath,
         ...(workspaceIdentity ? { workspaceIdentity } : {}),
         serverName,
         declarationDigest: review.declarationDigest,
         trusted,
-      });
+      };
+      // 远端工作区的信任记录在远端用户域；只有本地 workspace 才走 Desktop Host 的
+      // window-registration 桥。拿错一侧会写出内核看不见的记录。
+      const directoryService = resolveTargetDirectoryService();
+      const decision = directoryService
+        ? await decideWorkspaceMcpTrustThroughDirectoryService(directoryService, request)
+        : await decideWorkspaceMcpTrustThroughPlatform(mcpPlatformService, request);
       if (!decision.accepted) {
         // Host 拒绝（声明已变化、未登记、离线、存储不可用）：保持 review 原样并只读展示原因。
         set({ workspaceTrustReasonCode: decision.reasonCode });
@@ -723,7 +730,9 @@ export const useMcpStore = create<McpStoreState>((set, get) => {
             workspacePath,
             ...(workspaceIdentity ? { workspaceIdentity } : {}),
           },
-          null,
+          // 远端必须用同一绑定服务重读；此前固定传 null 会读本机平台（远端路径在本机不存在），
+          // 导致审批成功后 UI 仍显示未信任或把本机结果当成远端 review。
+          directoryService,
         );
         const latest = get();
         if (

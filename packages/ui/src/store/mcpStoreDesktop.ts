@@ -1,4 +1,5 @@
 import type {
+  DecideWorkspaceMcpTrustRequest,
   IPlatformService,
   LoadCliMcpFromUserDirectoryRequest,
   LoadCliMcpFromUserDirectoryResult,
@@ -43,13 +44,7 @@ export type WorkspaceMcpTrustLoadResult = Omit<
   unreviewable?: string[];
 };
 
-export interface WorkspaceMcpTrustDecisionRequest {
-  workspacePath: string;
-  workspaceIdentity?: string;
-  serverName: string;
-  declarationDigest: string;
-  trusted: boolean;
-}
+export type WorkspaceMcpTrustDecisionRequest = DecideWorkspaceMcpTrustRequest;
 
 /** Desktop Host 暴露的可选桥；Web/旧 Host 缺失时 UI 按 trust_unavailable 处理。 */
 export interface WorkspaceMcpTrustPlatformBridge {
@@ -66,7 +61,7 @@ export type McpPlatformService = Pick<
 
 export type McpDirectoryService = Pick<
   IMcpSyncService,
-  "loadMcpFromUserDirectory" | "saveMcpToUserDirectory"
+  "loadMcpFromUserDirectory" | "saveMcpToUserDirectory" | "decideWorkspaceMcpTrust"
 >;
 
 export async function persistCliMcpToUserDirectory(
@@ -136,6 +131,32 @@ export async function decideWorkspaceMcpTrustThroughPlatform(
     return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
   } catch (error) {
     logger.warn("[mcpStore] workspace MCP trust decision failed", String(error));
+    return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
+  }
+}
+
+/**
+ * 通过当前绑定的 IMcpSyncService 提交决定（远端工作区）。
+ *
+ * 远端信任记录必须落在远端用户域：远端内核只读那台机器的
+ * `security/workspace-mcp-trust-v1.json`。旧远端 Host 没有该方法时按 trust_unavailable
+ * 处理，不能回退到本机 platform 桥（那会把远端声明写进本机信任库）。
+ */
+export async function decideWorkspaceMcpTrustThroughDirectoryService(
+  directoryService: McpDirectoryService | null,
+  request: WorkspaceMcpTrustDecisionRequest,
+): Promise<WorkspaceMcpTrustDecision> {
+  if (!directoryService?.decideWorkspaceMcpTrust) {
+    return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
+  }
+  try {
+    const decision = await directoryService.decideWorkspaceMcpTrust(request);
+    if (isWorkspaceMcpTrustDecision(decision)) {
+      return decision;
+    }
+    return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
+  } catch (error) {
+    logger.warn("[mcpStore] remote workspace MCP trust decision failed", String(error));
     return { accepted: false, reasonCode: "workspace_mcp_trust_unavailable" };
   }
 }

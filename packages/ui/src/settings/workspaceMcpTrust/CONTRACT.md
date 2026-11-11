@@ -4,4 +4,7 @@
 `trusted / pending / changed / unavailable` 四态，按钮通过 store 调 Host 的 decide 桥。
 
 - 入口：`index.ts`；`contract.ts` 暴露展示类型与 `resolveWorkspaceMcpTrustPresentation`。
-- 不变量：不从原始配置重建展示文本（用 Host 的 `display`）；不本地判断信任；不可审核时按钮禁用。
+- `pendingBanner.tsx`：会话内提示条。本地 workspace 走 Desktop Host 桥；远端 workspace 走当前
+  绑定的 `IMcpSyncService.decideWorkspaceMcpTrust`，绝不回退到本机信任库。
+- 不变量：不从原始配置重建展示文本（用 Host 的 `display`）；不本地判断信任；不可审核时按钮禁用；
+  旧 Host 无 trust 元数据时不误报，也不把未知当作已信任。

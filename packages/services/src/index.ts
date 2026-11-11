@@ -284,6 +284,17 @@ export type {
   IDataSyncCategoryService,
   ISkillDataSyncMethods,
 } from "./data-sync/contract.js";
+// 旧远端 Agent 缺少数据同步方法时的统一能力门禁（浏览器安全）。
+export {
+  DATA_SYNC_REMOTE_AGENT_CAPABILITY_UNVERIFIED_ERROR_CODE,
+  DATA_SYNC_REMOTE_AGENT_OUTDATED_ERROR_CODE,
+  DataSyncRemoteAgentCapabilityUnverifiedError,
+  DataSyncRemoteAgentOutdatedError,
+  createDataSyncCapabilityGatedService,
+  isDataSyncMethodMissingError,
+  isDataSyncRemoteAgentCapabilityError,
+  isDataSyncRemoteAgentOutdatedError,
+} from "./data-sync/capabilityGate.js";
 export { IMcpSyncService } from "./mcp-sync/mcpSync.js";
 export { IPluginSyncService } from "./plugin-sync/pluginSync.js";
 export {

@@ -105,23 +105,43 @@ export interface WorkspaceMcpTrustReview {
   sourcePaths: string[];
   display: string;
   trusted: boolean;
+  /**
+   * Host 读取信任记录得到的结论：同一工作区/服务器存在旧摘要但当前摘要未命中。
+   * UI 只展示，不自行比较 digest。
+   */
+  declarationChanged?: boolean;
 }
+
+export type WorkspaceMcpTrustReasonCode =
+  | "workspace_mcp_declaration_changed"
+  | "workspace_mcp_trust_unavailable"
+  | "workspace_mcp_workspace_not_registered"
+  | "workspace_mcp_workspace_offline";
 
 export type WorkspaceMcpTrustDecision =
   | { accepted: true }
   | {
       accepted: false;
-      reasonCode:
-        | "workspace_mcp_declaration_changed"
-        | "workspace_mcp_trust_unavailable"
-        | "workspace_mcp_workspace_not_registered"
-        | "workspace_mcp_workspace_offline";
+      reasonCode: WorkspaceMcpTrustReasonCode;
     };
+
+/** 对当前工作区的一条项目 MCP 声明提交信任/撤销；由 Host 重读声明并核对精确摘要。 */
+export interface DecideWorkspaceMcpTrustRequest {
+  workspacePath: string;
+  workspaceIdentity?: string;
+  serverName: string;
+  declarationDigest: string;
+  trusted: boolean;
+}
 
 export interface LoadCliMcpFromUserDirectoryResult {
   servers: NativeMcpServerRecord[];
   /** 项目级（workspace scope）MCP 的审核状态；用户级/插件级不在其中。 */
   trust?: Record<string, WorkspaceMcpTrustReview>;
+  /** Host 无法审核时的原因（未登记/离线/信任存储不可用）。 */
+  trustReasonCode?: WorkspaceMcpTrustReasonCode;
+  /** 无法归一化、Host 按未信任处理的项目 server 名。 */
+  unreviewable?: string[];
 }
 
 export interface McpConfig {

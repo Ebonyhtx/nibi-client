@@ -1,5 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { IDataSyncCategoryService, IServiceAccessor } from "@nibi/services";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createDataSyncCapabilityGatedService,
+  isDataSyncRemoteAgentCapabilityError,
+  type IDataSyncCategoryService,
+  type IServiceAccessor,
+} from "@nibi/services";
 import { SKILL_DATA_SYNC_MAX_ITEM_BYTES, type DataSyncBlockedReason } from "@nibi/shared";
 import type {
   DataSyncCategoryCounts,
@@ -66,6 +71,8 @@ export interface DataSyncCategoryState extends DataSyncCategoryCounts {
   summary?: DataSyncPushSummary;
   failures: DataSyncPushFailure[];
   errorMessage?: string;
+  /** 稳定错误码（例如 `remote-agent-outdated`）；UI 据此选择 i18n 文案。 */
+  errorCode?: string;
   canPush: boolean;
 }
 
@@ -94,6 +101,7 @@ interface InternalState {
   summary?: DataSyncPushSummary;
   failures: DataSyncPushFailure[];
   errorMessage?: string;
+  errorCode?: string;
 }
 
 function emptyState(category: DataSyncCategoryId): InternalState {
@@ -115,6 +123,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** 跨 RPC 后只剩 code 是稳定事实；文案会随版本变化，不能用来识别版本能力缺失。 */
+function errorCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("code" in error)) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" ? code : undefined;
+}
+
 /**
  * 数据同步分类页的状态 owner（技能、MCP、命令、钩子、子智能体、inline 插件共用）。
  *
@@ -124,6 +139,8 @@ function errorMessage(error: unknown): string {
  * - 版本相同 → 已同步；否则按版本 / contentHash / 签名 + 按需哈希判断差异。
  * - 远端独有以不可勾选行展示，不进入 import items，永不删除。
  * - 目标端整类不能导入（importBlockedReason）时所有行不可选，并在页面上显示原因。
+ * - 目标端首次调用前只读探测数据同步能力：旧版本映射为 `remote-agent-outdated`，
+ *   探测失败则 fail-closed，任何 list / export / import 都不会继续。
  * - 推送失败按项保留，`retryFailed` 只重试失败项；本批导出/导入失败不影响其他批。
  * - 父子技能同批（`chunkSkillRows` 的 parentKey 分组），技能专属逻辑保留。
  */
@@ -136,7 +153,14 @@ export function useDataSyncCategory(params: {
 }): DataSyncCategoryController {
   const { category, online, attachmentError } = params;
   const source = resolveDataSyncCategoryService(params.sourceServices, category);
-  const target = resolveDataSyncCategoryService(params.targetServices, category);
+  const targetService = resolveDataSyncCategoryService(params.targetServices, category);
+  // 根因：旧远端没有数据同步方法时只会在首次调用抛 `Method not found`，分类页无法区分
+  // 「对端太旧」与网络问题。写入端统一套能力门禁：首次调用前只读探测一次并缓存，
+  // 无法确认能力时直接失败，后续 export/import 不会发生（fail-closed）。
+  const target = useMemo(
+    () => (targetService ? createDataSyncCapabilityGatedService(targetService) : undefined),
+    [targetService],
+  );
   const [state, setState] = useState<InternalState>(() => emptyState(category));
   const [reloadVersion, setReloadVersion] = useState(0);
   const generationRef = useRef(0);
@@ -186,6 +210,7 @@ export function useDataSyncCategory(params: {
       summary: undefined,
       failures: [],
       errorMessage: undefined,
+      errorCode: undefined,
     }));
 
     void (async () => {
@@ -240,10 +265,12 @@ export function useDataSyncCategory(params: {
         });
       } catch (error) {
         if (stale()) return;
+        const code = errorCode(error);
         setState({
           ...emptyState(category),
           phase: "error",
           errorMessage: errorMessage(error),
+          ...(code ? { errorCode: code } : {}),
         });
       }
     })();
@@ -301,6 +328,7 @@ export function useDataSyncCategory(params: {
         failures: [],
         summary: undefined,
         errorMessage: undefined,
+        errorCode: undefined,
       }));
       try {
         const access = await target.checkSyncWriteAccess();
@@ -321,6 +349,8 @@ export function useDataSyncCategory(params: {
             payload = await source.exportSyncItems({ keys: batchKeys });
           } catch (error) {
             if (stale()) return;
+            // 版本门禁失败不是单项失败：继续其它批只会造成半同步，直接中止整次推送。
+            if (isDataSyncRemoteAgentCapabilityError(error)) throw error;
             markBatchFailed(batch, error);
             continue;
           }
@@ -336,6 +366,7 @@ export function useDataSyncCategory(params: {
             }
           } catch (error) {
             if (stale()) return;
+            if (isDataSyncRemoteAgentCapabilityError(error)) throw error;
             markBatchFailed(batch, error);
           }
         }
@@ -365,10 +396,12 @@ export function useDataSyncCategory(params: {
         });
       } catch (error) {
         if (stale()) return;
+        const code = errorCode(error);
         setState((previous) => ({
           ...previous,
           pushing: false,
           errorMessage: errorMessage(error),
+          ...(code ? { errorCode: code } : {}),
         }));
       }
     },

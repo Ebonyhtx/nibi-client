@@ -1,9 +1,9 @@
 /**
  * mcp-workspace-trust 对外契约：工作区 MCP 信任的存储、审核与准入。
  *
- * Host（desktop main）是信任记录的唯一写入者；Rust 内核只读同一份用户域记录
- * （`<storage root>/security/workspace-mcp-trust-v1.json`）。调用方只需要这些类型：
- * 存储位置解析、声明审核、信任决定与装载过滤，其余（摘要算法、原子写、脱敏）是实现细节。
+ * 每个 Environment 的 Host 是信任记录的唯一写入者；Rust 内核只读同一份用户域记录
+ * （`<storage root>/security/workspace-mcp-trust-v1.json`）。实现与远端共用
+ * `@nibi/services/node` 的 services-mcp-trust；本模块保留 desktop main 的既有类型入口。
  */
 
 import type {

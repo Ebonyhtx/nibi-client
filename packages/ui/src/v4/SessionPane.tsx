@@ -140,6 +140,7 @@ import { ConversationQueuePanel } from "@/v4/ConversationQueuePanel.js";
 import { projectPendingGuideQueue } from "@/v4/pendingGuideProjection.js";
 import { PendingCommandRecoveryBanner } from "@/v4/PendingCommandRecoveryBanner.js";
 import { WorkspaceHookPendingBanner } from "@/v4/WorkspaceHookPendingBanner.js";
+import { WorkspaceMcpTrustPendingBanner } from "@/settings/workspaceMcpTrust/pendingBanner.js";
 import { ConversationStatusPanel } from "@/v4/ConversationStatusPanel.js";
 import { SessionSubscriptionErrorPanel } from "@/v4/SessionSubscriptionErrorPanel.js";
 import { ConversationTimeline } from "@/v4/ConversationTimeline.js";
@@ -4786,6 +4787,10 @@ export function SessionPane({
           admission={snapshot.workspaceHookAdmission}
         />
       ) : null}
+      <WorkspaceMcpTrustPendingBanner
+        workspacePath={workspacePath}
+        workspaceIdentity={workspaceIdentity}
+      />
       {sessionId && snapshot ? (
         <ConversationQueuePanel
           key="conversation-queue"

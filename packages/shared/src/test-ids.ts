@@ -579,6 +579,12 @@ export const TID_V4_WORKSPACE_HOOK_PENDING_BANNER = "v4-workspace-hook-pending-b
 export const TID_V4_WORKSPACE_HOOK_PENDING_REVIEW = "v4-workspace-hook-pending-review";
 /** v4 工作区 Hook 待审核提示条「忽略」按钮 */
 export const TID_V4_WORKSPACE_HOOK_PENDING_DISMISS = "v4-workspace-hook-pending-dismiss";
+/** v4 工作区项目 MCP 待信任提示条容器 */
+export const TID_V4_WORKSPACE_MCP_TRUST_PENDING_BANNER = "v4-workspace-mcp-trust-pending-banner";
+/** v4 工作区项目 MCP 待信任提示条「去审核」按钮 */
+export const TID_V4_WORKSPACE_MCP_TRUST_PENDING_REVIEW = "v4-workspace-mcp-trust-pending-review";
+/** v4 工作区项目 MCP 待信任提示条「忽略」按钮 */
+export const TID_V4_WORKSPACE_MCP_TRUST_PENDING_DISMISS = "v4-workspace-mcp-trust-pending-dismiss";
 /** v4 composer 容器 */
 export const TID_V4_COMPOSER = "v4-composer";
 /** v4 composer 文本输入 */

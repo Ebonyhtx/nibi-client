@@ -594,3 +594,120 @@ describe("mcp sync config write hardening", () => {
     expect(Object.keys(saved.mcp?.servers ?? {}).sort()).toEqual(["deepwiki", "existing"]);
   });
 });
+
+describe("mcp sync workspace trust", () => {
+  it("workspace load 回传 trust review，decide 写入该 Environment 的信任库", async () => {
+    const home = makeHome();
+    const workspace = join(home, "workspace");
+    const originalStorage = process.env.NIBI_STORAGE_DIR;
+    process.env.HOME = home;
+    delete process.env.NIBI_STORAGE_DIR;
+    try {
+      await mkdir(join(workspace, ".nibi"), { recursive: true });
+      await writeFile(
+        join(workspace, ".nibi", "config.json"),
+        JSON.stringify({
+          mcp: { servers: { probe: { type: "stdio", command: "node", args: ["probe.mjs"] } } },
+        }),
+      );
+      const service = createMcpSyncService();
+      const identity = "/remote/workspaces/project";
+
+      const loaded = await service.loadMcpFromUserDirectory({
+        workspacePath: workspace,
+        workspaceIdentity: identity,
+      });
+      const review = loaded.trust?.probe;
+      expect(review).toMatchObject({
+        trusted: false,
+        configuredEnabled: true,
+        transport: "stdio",
+      });
+      expect(review?.declarationDigest).toMatch(/^[a-f0-9]{64}$/u);
+      expect(loaded.unreviewable ?? []).toEqual([]);
+
+      // 远端 UI 只有拿到该方法才会展示审批按钮；旧远端 Host 保持“未知”兼容语义。
+      await expect(
+        service.decideWorkspaceMcpTrust!({
+          workspacePath: workspace,
+          workspaceIdentity: identity,
+          serverName: "probe",
+          declarationDigest: review!.declarationDigest,
+          trusted: true,
+        }),
+      ).resolves.toEqual({ accepted: true });
+
+      const reloaded = await service.loadMcpFromUserDirectory({
+        workspacePath: workspace,
+        workspaceIdentity: identity,
+      });
+      expect(reloaded.trust?.probe?.trusted).toBe(true);
+      await expect(
+        readFile(join(home, ".nibi", "security", "workspace-mcp-trust-v1.json"), "utf-8"),
+      ).resolves.toContain(review!.declarationDigest);
+    } finally {
+      if (originalStorage === undefined) delete process.env.NIBI_STORAGE_DIR;
+      else process.env.NIBI_STORAGE_DIR = originalStorage;
+    }
+  });
+
+  it("workspace 声明变化后旧授权失效，旧 digest 决定被拒绝", async () => {
+    const home = makeHome();
+    const workspace = join(home, "workspace");
+    const originalStorage = process.env.NIBI_STORAGE_DIR;
+    process.env.HOME = home;
+    delete process.env.NIBI_STORAGE_DIR;
+    try {
+      const configPath = join(workspace, ".nibi", "config.json");
+      const identity = "/remote/workspaces/project";
+      await mkdir(join(workspace, ".nibi"), { recursive: true });
+      await writeFile(
+        configPath,
+        JSON.stringify({ mcp: { servers: { probe: { type: "stdio", command: "node" } } } }),
+      );
+      const service = createMcpSyncService();
+      const first = await service.loadMcpFromUserDirectory({
+        workspacePath: workspace,
+        workspaceIdentity: identity,
+      });
+      const oldDigest = first.trust!.probe!.declarationDigest;
+      await service.decideWorkspaceMcpTrust!({
+        workspacePath: workspace,
+        workspaceIdentity: identity,
+        serverName: "probe",
+        declarationDigest: oldDigest,
+        trusted: true,
+      });
+
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          mcp: { servers: { probe: { type: "stdio", command: "node", args: ["v2.mjs"] } } },
+        }),
+      );
+      const changed = await service.loadMcpFromUserDirectory({
+        workspacePath: workspace,
+        workspaceIdentity: identity,
+      });
+      expect(changed.trust?.probe).toMatchObject({
+        trusted: false,
+        declarationChanged: true,
+      });
+      await expect(
+        service.decideWorkspaceMcpTrust!({
+          workspacePath: workspace,
+          workspaceIdentity: identity,
+          serverName: "probe",
+          declarationDigest: oldDigest,
+          trusted: true,
+        }),
+      ).resolves.toEqual({
+        accepted: false,
+        reasonCode: "workspace_mcp_declaration_changed",
+      });
+    } finally {
+      if (originalStorage === undefined) delete process.env.NIBI_STORAGE_DIR;
+      else process.env.NIBI_STORAGE_DIR = originalStorage;
+    }
+  });
+});

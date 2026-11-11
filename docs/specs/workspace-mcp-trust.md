@@ -6,11 +6,11 @@
 
 | 字段       | 值                                                               |
 | ---------- | ---------------------------------------------------------------- |
-| 状态       | 已实施（Host 存储/准入 + Rust 只读准入；设置页评审弹窗未接线）    |
+| 状态       | 已实施（Host 存储/准入 + Rust 只读准入；设置页行内审核、会话内提示、远端 trust 回传/决定已接线） |
 | 日期       | 2026-11-11                                                       |
-| 适用范围   | Desktop Host（`packages/desktop/src/main/mcpUserDirectory`）、services、Rust CLI/ext |
+| 适用范围   | Desktop Host（`packages/desktop/src/main/mcpUserDirectory`）、services（`mcp-trust`）、Rust CLI/ext |
 | 安全基线   | 默认拒绝、显式授权、声明变化按条失效、损坏/离线 fail-closed       |
-| 唯一 owner | Desktop Host（`mcpWorkspaceTrust/index.ts`）；内核不写该文件       |
+| 唯一 owner | 每个 Environment 的 Host（`mcp-trust`）；内核不写该文件           |
 
 ## 1. 目标与不变量
 
@@ -116,6 +116,21 @@ URL userinfo/query/hash，只显示 header 名字与 OAuth 类型。命令参数
 - 会话级/`--mcp-config`/插件服务器是 `Dynamic`/`Plugin`/`User` 作用域，不经过本闸门；
   Host 在把项目服务器下发给会话前已按同一记录过滤。
 
+### 4.3 远端工作区
+
+- `IMcpSyncService.loadMcpFromUserDirectory` 在既有方法内回传 `trust` / `unreviewable`；
+  远端 Host 使用同一份 `mcp-trust` 实现，信任库与声明都在该 Environment 的文件系统上。
+- `IMcpSyncService.decideWorkspaceMcpTrust`（可选方法）接受远端 UI 的信任/撤销；旧远端 Host
+  没有该方法时 UI 按 `workspace_mcp_trust_unavailable` 处理，不回退到本机 Host 的信任库。
+- 会话内提示条（`WorkspaceMcpTrustPendingBanner`）从已绑定的 MCP store 读取 Host review，
+  展示被跳过的项目 MCP 数量并提供「去审核」入口；旧 Host 无 trust 元数据时不误报。
+
+### 4.4 会话内提示
+
+项目 MCP 未信任时 Host/UI 过滤 + Rust 跳过，二者都不连接；会话底部常驻提示条把这一静默
+跳过变成用户可见原因，并跳转设置页 MCP 分区。提示条只显示计数，不展示原始配置（脱敏摘要
+仍在设置页行内）。
+
 ## 5. 失效与生命周期
 
 - 信任只覆盖声明，不覆盖脚本/二进制/依赖包/远端服务的供应链。
@@ -135,6 +150,10 @@ URL userinfo/query/hash，只显示 header 名字与 OAuth 类型。命令参数
 
 ## 7. 未完成项
 
-- 设置页「信任/撤销」评审弹窗与会话内待审核提示（上游 WMT-01/WMT-02）未接线；当前 Host
-  已提供 review/decision 服务与测试，UI 交互留待后续。没有弹窗时用户无法建立新记录，项目
-  MCP 会按默认拒绝处理（CLI/TUI 与设置状态），需要在后续 UI 中补齐审核入口。
+- 旧远端 Host（未包含 `services-mcp-trust` / `decideWorkspaceMcpTrust`）仍无法展示或建立远端
+  授权；UI 只能按 `workspaceTrustKnown=false` 保持兼容，需要随远端 CLI 一起升级。
+- 会话内提示是 UI 侧从已加载的 MCP store 投影的计数，不是会话协议字段；当远端旧 Host 不返回
+  trust 或设置页尚未加载该工作区时不会出现。若要覆盖“会话已建立但从未打开设置页”的场景，
+  需要内核在 snapshot/事件里暴露被跳过的项目 MCP（属于协议改动，未在本轮实施）。
+- 远端 A6（工作区是否已登记/在线）依赖远端 Host 自身的装配；当前 `createMcpSyncService` 只做
+  声明与信任库审核，未额外读取窗口登记表。
