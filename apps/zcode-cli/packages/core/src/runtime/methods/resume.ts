@@ -225,6 +225,25 @@ export async function resumeFromStore(
   await restoreDynamicWorkflowActivationOnResume.call(this, messages);
 
   await restorePermissionGrantMarker(this, traceContext);
+  // 子代理重启恢复（docs/subagent-restart-resume.md）：历史与执行状态都恢复完之后再后台重建
+  // registry、补发丢失通知、续跑崩溃时仍在运行的子代理。不阻塞会话打开，失败只记日志。
+  void this.subagentPort
+    ?.restoreSession?.({
+      sessionId: this.sessionId,
+      workingDirectory: this.workingDirectory,
+      workspaceRoot: this.workspaceRoot,
+      trace: traceContext,
+    })
+    ?.catch((error: unknown) => {
+      this.logger?.warn("Subagent restore failed after session resume", {
+        ...traceContextToLogContext(traceContext),
+        errorMessage: error instanceof Error ? error.message : String(error),
+        event: "subagent.restore.failed",
+        module: "core.runtime",
+        sessionId: this.sessionId,
+        status: "failed",
+      });
+    });
 
   this.mainTurnCacheHitAggregate = mainTurnCacheHitAggregateFromMessages({
     activeMessages,

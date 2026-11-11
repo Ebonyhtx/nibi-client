@@ -65,6 +65,17 @@ export interface SubagentSendMessageRequest {
 
 export type SubagentSendMessageOptions = SubagentRunOptions;
 
+/**
+ * 父会话冷恢复后重建子代理（docs/subagent-restart-resume.md）：补发丢失的终态通知、
+ * 续跑崩溃时仍在运行的子代理。实现必须自行吞掉异常，不能阻塞会话打开。
+ */
+export interface SubagentRestoreSessionParams {
+  sessionId: SessionId;
+  workingDirectory: string;
+  workspaceRoot: string;
+  trace: TraceContext;
+}
+
 export type SubagentSendMessageDelivery = "queued" | "steered" | "resumed_background";
 
 export interface SubagentSendMessageResult {
@@ -125,4 +136,9 @@ export interface SubagentPort {
     request: SubagentSendMessageRequest,
     options?: SubagentSendMessageOptions,
   ): Promise<SubagentSendMessageResult>;
+  /**
+   * 父会话冷恢复后调用（可选，旧实现不需要实现）：终止态子代理回到 registry 并补发通知，
+   * 崩溃时仍在跑的子代理用同一个 child session 续跑。异常只记日志，不影响会话打开。
+   */
+  restoreSession?(params: SubagentRestoreSessionParams): Promise<void>;
 }

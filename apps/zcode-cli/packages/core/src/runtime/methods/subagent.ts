@@ -73,6 +73,8 @@ export function createDefaultSubagentPort(
     inactivityTimeoutMs: this.config.subagents?.inactivityTimeoutMs,
     autoBackgroundMs: this.config.subagents?.autoBackgroundMs,
     outputRootDir: this.config.subagents?.outputRootDir,
+    // 重启恢复：spawn/run/result 事实写在同一个 session store 里，冷恢复按父会话扫描。
+    sessionStore: this.sessionStore,
     getAgentDefinitions: this.getAgentDefinitions,
     builtInModelSelectionOverrides: this.config.subagents?.builtInModelSelectionOverrides,
     runtimeTaskRegistry: this.runtimeTaskRegistry,

@@ -80,8 +80,12 @@ struct SpawnData {
     workspace: WorkspaceRef,
     #[serde(default)]
     machine: Option<String>,
-    selection: ModelSelection,
-    execution: ExecutionState,
+    /// Node 回退内核在“继承父模型/未声明权限模式”时可能不写这两项。缺了仍要恢复可见，
+    /// 但不能自动续跑（没有可靠的模型与权限事实）。
+    #[serde(default)]
+    selection: Option<ModelSelection>,
+    #[serde(default)]
+    execution: Option<ExecutionState>,
     #[serde(default)]
     background: bool,
     #[serde(default)]
@@ -427,8 +431,15 @@ fn build_live(
         definition: Arc::new(definition),
         workspace: spawn.workspace.clone(),
         machine: spawn.machine.clone(),
-        selection: spawn.selection.clone(),
-        execution: spawn.execution,
+        selection: spawn.selection.clone().unwrap_or(ModelSelection {
+            provider: String::new(),
+            model: String::new(),
+            reasoning: None,
+            connection: None,
+        }),
+        execution: spawn
+            .execution
+            .unwrap_or_else(|| ExecutionState::from(nibi_kernel_api::permission::PermissionMode::Default)),
         background: spawn.background,
         // 已知边界：恢复后的子代理暂不挂 `Asks`（docs/subagent-restart-resume.md「已知边界」）。
         asks: None,
@@ -458,6 +469,13 @@ fn ending_of(value: &str) -> Ending {
 
 /// 没有结果时不能自动续跑的两种情形（fork 前缀不落库、续跑次数到上限）。可以续跑时为 None。
 fn blocked_report(spawn: &SpawnData, attempts: u32) -> Option<Report> {
+    if spawn.selection.is_none() || spawn.execution.is_none() {
+        return Some(Report {
+            text: "This subagent was created by another kernel without model or permission facts, so it cannot be resumed automatically. Review its session and resume it manually."
+                .to_owned(),
+            ..Report::default()
+        });
+    }
     if spawn.fork || spawn.agent_type == crate::fork::FORK {
         return Some(Report {
             text: "This fork subagent was interrupted by a client restart. Its inherited prefix is not persisted, so it cannot be resumed automatically; review its session and handle it manually."

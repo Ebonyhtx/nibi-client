@@ -313,6 +313,8 @@ export interface ListSessionsInput {
   workspaceID?: WorkspaceId | null;
   directory?: string;
   path?: string;
+  /** 仅返回 parent_id = 该会话的子会话（子代理冷恢复按父会话扫描 child）。 */
+  parentID?: SessionId;
   roots?: boolean;
   taskTypes?: SessionTaskType[];
   limit?: number;

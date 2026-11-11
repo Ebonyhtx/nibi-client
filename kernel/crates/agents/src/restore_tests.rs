@@ -328,6 +328,49 @@ async fn a_stored_result_is_restored_and_the_lost_notification_is_sent_once() {
     );
 }
 
+/// 另一个内核（Node 回退）在“继承父模型/未声明权限”时不写 selection/execution：
+/// 仍要恢复可见并补一条失败原因，不能整条静默消失，也不能拿空模型去续跑。
+#[tokio::test]
+async fn a_spawn_without_selection_is_visible_but_not_resumed() {
+    let harness = harness(None);
+    seed_root(&harness.store, ROOT).await;
+    seed_child(&harness.store, CHILD, ROOT).await;
+    let mut spawn = spawn_json(AGENT, CHILD, ROOT, ROOT, false);
+    let object = spawn.as_object_mut().unwrap();
+    object.remove("selection");
+    object.remove("execution");
+    commit(
+        &harness.store,
+        CHILD,
+        vec![
+            spawn_entry(AGENT, spawn),
+            Fact::MessageAppended {
+                message: user("Do it."),
+            },
+        ],
+    )
+    .await;
+
+    let (agents, seen) = harness.reboot();
+    agents.restore_session(&SessionId::new(ROOT)).await;
+
+    assert!(quiet(&seen), "a spawn without model facts must not resume");
+    let live = agents
+        .core
+        .live
+        .get(&AgentId::new(AGENT))
+        .expect("the subagent stays visible");
+    assert!(matches!(live.state, AgentState::Finished(Ending::Failed)));
+    let result = wait_entry(&harness.store, CHILD, RESULT_ENTRY, AGENT).await;
+    assert_eq!(result["ending"], "failed");
+    assert!(
+        result["text"]
+            .as_str()
+            .unwrap()
+            .contains("without model or permission facts")
+    );
+}
+
 /// 上一轮已完成、之后又被 SendMessage/续跑拉起，崩溃在新一轮里：旧的 `subagent_result` 还在，
 /// 但 `subagent_run` 比它新，必须按“跑到一半”恢复，不能当成已完成跳过。
 #[tokio::test]

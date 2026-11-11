@@ -1,6 +1,6 @@
 # 子代理重启续跑
 
-> 状态：Rust 已完成（2026-11-11），Node 内核待对齐
+> 状态：Rust 与 Node 内核均已落地（2026-11-11）
 > 范围：Rust 内核（默认）先行，Node 内核（`NIBI_KERNEL=node` 回退）随后对齐
 > 关联：[子代理会话只读侧栏](subagent-session-side-tabs.md)、[子代理超时策略](subagent-timeout-policy.md)、[会话生命周期](../../kernel/crates/session/src/resume.rs)
 
@@ -126,16 +126,18 @@ then finish the remaining work and report the result.
    - DWF actor 不误恢复；
    - `ApiError` 终态为 failed。
 
-### Node（对齐）
+### Node（已完成）
 
-Node 已有 `resumeTerminalAgentInBackground`（同进程续跑）与子代理只读查询。对齐项：
-
-1. 子代理启动时写一份 durable task row（或等价 entry）：agentId、childSessionId、parent、类型、后台、toolUseId、selection。
-2. 冷恢复时按 parent 扫子会话，重建 registry 条目；对无 outcome 的项补中断结果 + 续跑消息，走 `resumeTerminalAgentInBackground`。
-3. 终态通知落库；冷恢复补发未消费通知。
-4. Host 的 `hasBackgroundWork` 不再对已死的后台子代理硬编码为 false，改为按 durable row 判断。
-
-Node 是回退内核，Rust 通过验收后再做，避免两条轨同时改。
+- 新增 `apps/zcode-cli/packages/core/src/subagent/restart-entries.ts`：与 Rust 同物理形状的
+  `nibi-kernel/<kind>` / `<session>:nibi-kernel/<kind>:<agentId>` entry 读写、CONTINUE 文案、attempt 上限。
+- `runner.ts`：子会话持久化后写 `subagent_spawn` + `subagent_run`；所有终态（完成/失败/取消/后台失败）
+  写 `subagent_result`；`restoreSession` 按 `parentID + task_type=subagent_child` 扫描，注册 registry
+  快照、补发丢失通知、写 attempt、用 `runExploreAgent({ resumeFromStore: true })` 在同一 child session
+  续跑；同时最多 2 个。
+- `runtime/methods/resume.ts`：父会话冷恢复后调用 `subagentPort.restoreSession`（不阻塞打开）。
+- `SubagentPort` 增加可选 `restoreSession`；`ListSessionsInput` 增加 `parentID` 过滤。
+- 跨内核：type/id 与 Rust 逐字节一致；Node 读 Rust 写的条目完整兼容。Node 在“继承父模型/未声明权限”
+  时可能省略 `selection/execution`，Rust 侧改为“恢复可见但标记失败原因、不自动续跑”，不会整条静默消失。
 
 ## 验收
 
@@ -152,7 +154,19 @@ Node 是回退内核，Rust 通过验收后再做，避免两条轨同时改。
 - `kernel/crates/agents/src/restore.rs`：`restore_session` / `restore_loaded_session`；重建 `LiveAgent`、补 `INTERRUPTED_CALL`、写续跑尝试、后台续跑、补发丢失通知；不能续跑的分支（fork、次数上限、定义缺失、续跑失败）落失败结果并通知。
 - `kernel/crates/runtime/src/kernel.rs`：冷加载顶层会话后调用 `restore_loaded_session`，不重复全量读历史。
 - `kernel/crates/kernel-api/src/orchestration.rs`：`QueryError::Api { message }`，避免把 API 错误伪装成 `InvalidRequest`。
-- 测试：`nibi-kernel-agents` 99 条（含 10 条恢复用例，含“旧结果被新一轮取代”）；`nibi-kernel-runtime` 新增集成用例（重启后恢复完成子代理 + 补发通知）；全 workspace 117 个 suite 通过（TUI esc 时序用例在并行负载下偶发，单跑通过，既有问题）。
+- 测试：`nibi-kernel-agents` 100 条（含 11 条恢复用例，含“旧结果被新一轮取代”“另一个内核缺 selection”）；`nibi-kernel-runtime` 新增集成用例（重启后恢复完成子代理 + 补发通知）；全 workspace 117 个 suite 通过（TUI esc 时序用例在并行负载下偶发，单跑通过，既有问题）。
+
+### Node 实施记录
+
+- `apps/zcode-cli/packages/core/src/subagent/restart-entries.ts`：与 Rust 同物理形状的 entry 读写；
+  `runner.ts` 在子会话持久化后写 spawn/run、所有终态写 result，`restoreSession` 扫描直接子会话
+  并复用 `runExploreAgent({ resumeFromStore: true })` 续跑；`runtime/methods/resume.ts` 冷恢复后触发；
+  `SubagentPort.restoreSession` 可选、`ListSessionsInput.parentID` 过滤。
+- 测试：新增 12 条（持久化、重启恢复、补发、续跑、旧结果被取代、killed/上限/fork/DWF 跳过）；
+  core 定向回归 85 条、adapters session-store 46 条通过。
+- 已知环境问题（与本次改动无关）：CLI 全量套件里 `mcp-runtime`（plan 模式 MCP）、`plugins`（A8
+  node 回退命令投影）、`bundled-plugins-resilience`（Windows 文件锁时序）、`mcp-node-fallback`
+  （Windows 并发 rename）在 Windows 并行/单跑下仍有既有失败或抖动，另行处理。
 
 ## 已知边界
 
@@ -162,5 +176,7 @@ Node 是回退内核，Rust 通过验收后再做，避免两条轨同时改。
 - 结果通知是 at-least-once：正常投递不写 `subagent_result_delivered`，重启后可能再收到一次同一子代理的完成通知；恢复路径写过标记后不再重复。
 - 恢复只在顶层会话冷打开时触发；一直不打开的会话在下次打开时补做。
 - 停放的子代理被 `TaskStop` 时可能沿用上一次运行的 `completed` 结果，重启后不会重跑，但状态/通知显示为上次完成而不是“用户停止”。
-- 恢复条目的 `startedAt` 按恢复时刻重建，已完成条目的耗时显示为 0。
-- Node 内核的对齐在第二阶段；在此之前 `NIBI_KERNEL=node` 不具备续跑能力。
+- 恢复条目的 `startedAt`：Rust 按恢复时刻重建（已完成条目耗时显示 0）；Node 用旧 run 的开始时刻。
+- Node 侧崩溃瞬间的未结工具结果由既有 `session-history-hydrator` 在模型上下文里补成中断结果，不额外写回 transcript；模型看到的效果与 Rust 一致。
+- Node 子运行时禁止嵌套子代理，恢复只扫直接子会话（Rust 扫全部后代）。
+- Node 的 `selection/execution` 在继承父模型或 profile 未声明权限时可能缺失；Rust 已容错为“可见、不可自动续跑”。

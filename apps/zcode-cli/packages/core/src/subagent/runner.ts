@@ -26,9 +26,12 @@ import {
   type ModelUsage,
   type SessionEvent,
   type SessionId,
+  type SessionInfo,
+  type SessionStorePort,
   type SubagentLaunchOptions,
   type SubagentLaunchRequest,
   type SubagentPort,
+  type SubagentRestoreSessionParams,
   type SubagentRunOptions,
   type SubagentRunRequest,
   type SubagentSendMessageOptions,
@@ -51,6 +54,27 @@ import {
 } from "./profile.js";
 import { EXPLORE_AGENT_ALLOWED_TOOLS } from "./explore-tools.js";
 import { formatLocalAgentTaskNotification } from "./completion-notification.js";
+import {
+  SUBAGENT_RESTART_CONTINUE_PROMPT,
+  SUBAGENT_RESTART_FORK_BLOCKED_TEXT,
+  SUBAGENT_RESTART_MAX_ATTEMPTS,
+  SUBAGENT_RESULT_DELIVERED_ENTRY,
+  SUBAGENT_RESULT_ENTRY,
+  SUBAGENT_RESUME_ATTEMPT_ENTRY,
+  SUBAGENT_RUN_ENTRY,
+  SUBAGENT_SPAWN_ENTRY,
+  latestSubagentRestartEntry,
+  readSubagentRestartEntries,
+  saveSubagentRestartEntry,
+  subagentRestartAttemptLimitText,
+  subagentRestartDefinitionMissingText,
+  subagentRestartResumeFailedText,
+  type SubagentResultEnding,
+  type SubagentResultEntryData,
+  type SubagentResumeAttemptEntryData,
+  type SubagentRunEntryData,
+  type SubagentSpawnEntryData,
+} from "./restart-entries.js";
 import { filterSubagentChildToolNames } from "./tool-policy.js";
 import {
   ErrorPayloadRole,
@@ -123,6 +147,8 @@ export interface ExploreSubagentPortOptions {
     Record<"general-purpose" | "Explore", import("@nibi/shared").ModelSelection>
   >;
   runtimeTaskRegistry?: RuntimeTaskRegistry;
+  /** 持久化恢复事实（spawn/run/result）与冷恢复扫描；缺省时只保留进程内行为。 */
+  sessionStore?: SessionStorePort;
   createAgentId?: () => string;
   getAllowedTools?: (profile: AgentProfile) => readonly string[];
   inactivityTimeoutMs?: number;
@@ -134,6 +160,9 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
   const registry = options.runtimeTaskRegistry ?? new InMemoryRuntimeTaskRegistry();
   const abortControllers = new Map<string, AbortController>();
   const borrowedForegroundAgentIds = new Set<string>();
+  const restoringAgentIds = new Set<string>();
+  // 自动续跑同时最多 2 个（进程内）：重启瞬间不把所有子代理一起拉起，超出的排队。
+  const resumeSlots = createResumeSlotLimiter(2);
   const initialProfiles = normalizeAgentProfiles(options.profiles ?? [], {
     builtInModelSelectionOverrides: options.builtInModelSelectionOverrides,
   });
@@ -218,6 +247,9 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         timeoutMs: options.inactivityTimeoutMs ?? DEFAULT_MODEL_STREAM_IDLE_TIMEOUT_MS,
       });
       const readyGate = createSubagentSessionReadyGate();
+      // 子会话在 runExploreAgent 内先持久化（child runtime 的 ensureSessionPersisted…）；
+      // 恢复事实必须等 session 行存在后再写（session_entry 对 session 有外键）。
+      let childSessionPersisted = false;
       // child persistence/resume 可能在 onSessionReady 前永久挂起；watchdog 和
       // abort guard 必须覆盖完整 setup，而不能把 Ready 当成取消能力的安装边界。
       activityWatchdog.start();
@@ -236,6 +268,15 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         },
         {
           onSessionReady: async () => {
+            childSessionPersisted = true;
+            await persistSubagentRunStart(
+              options,
+              request,
+              lifecycle,
+              false,
+              lifecycle.runTraceContext,
+              runOptions,
+            );
             await emitSubagentEvent(
               options,
               SessionEventType.SubagentSpawned,
@@ -322,6 +363,15 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         if (winner.kind === "backgrounded") {
           taskAbort.detachParent();
           activityWatchdog.stop();
+          // 前台转后台：spawn entry 的 background 以最新运行形态为准。
+          void persistSubagentRunStart(
+            options,
+            request,
+            lifecycle,
+            true,
+            lifecycle.runTraceContext,
+            runOptions,
+          );
           void completionPromise
             .then((completed) =>
               finalizeBackgroundCompletion(options, request, lifecycle, registry, completed),
@@ -341,6 +391,21 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         borrowedForegroundAgentIds.delete(lifecycle.agentId);
 
         await writeCompletedAgentArtifacts(lifecycle, request, completed.output);
+        // 终态落库：重启后据此判定“已完成，不重跑”，通知丢了也能补发。
+        // 已被 TaskStop 标成 killed 时不覆盖：停止路径已经写过一次 killed 结果。
+        if (!isSubagentAlreadyTerminal(registry, lifecycle.agentId)) {
+          await persistSubagentResultEntry(options, {
+            agentId: lifecycle.agentId,
+            childSessionId: lifecycle.childSessionId,
+            durationMs: completed.output.totalDurationMs,
+            ending: "completed",
+            text: completed.output.content.map((block) => block.text).join("\n\n"),
+            tokens: completed.output.totalTokens,
+            toolUses: completed.output.totalToolUseCount,
+            toolUseId: request.parentToolCallId,
+            traceContext: lifecycle.runTraceContext,
+          });
+        }
         registry.update(lifecycle.agentId, (task) => ({
           ...withoutRuntimeMessageState(task),
           status: "completed",
@@ -389,6 +454,18 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         borrowedForegroundAgentIds.delete(lifecycle.agentId);
         const totalDurationMs = Date.now() - lifecycle.startedAt;
         const errorMessage = error instanceof Error ? error.message : String(error);
+        if (childSessionPersisted && !isSubagentAlreadyTerminal(registry, lifecycle.agentId)) {
+          // 前台取消（父回合中止 / 用户 Stop）写 killed：重启后不复活用户主动停掉的子代理。
+          await persistSubagentResultEntry(options, {
+            agentId: lifecycle.agentId,
+            childSessionId: lifecycle.childSessionId,
+            durationMs: totalDurationMs,
+            ending: isSubagentCancellation(error, taskAbort.signal) ? "killed" : "failed",
+            text: errorMessage,
+            toolUseId: request.parentToolCallId,
+            traceContext: lifecycle.runTraceContext,
+          });
+        }
         await writeFailedAgentArtifacts(lifecycle, request, errorMessage);
         registry.update(lifecycle.agentId, (task) => ({
           ...withoutRuntimeMessageState(task),
@@ -483,6 +560,14 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         },
         {
           onSessionReady: async () => {
+            await persistSubagentRunStart(
+              options,
+              request,
+              lifecycle,
+              true,
+              lifecycle.runTraceContext,
+              startOptions,
+            );
             await emitSubagentEvent(
               options,
               SessionEventType.SubagentSpawned,
@@ -581,6 +666,20 @@ export function createExploreSubagentPort(options: ExploreSubagentPortOptions): 
         abortControllers,
         request,
         sendOptions,
+      );
+    },
+
+    async restoreSession(params: SubagentRestoreSessionParams): Promise<void> {
+      await restoreSubagentSession(
+        {
+          abortControllers,
+          getProfiles,
+          options,
+          registry,
+          restoringAgentIds,
+          resumeSlots,
+        },
+        params,
       );
     },
   };
@@ -1032,6 +1131,15 @@ async function resumeTerminalAgentInBackground(
     {
       resumeFromStore: true,
       onSessionReady: async () => {
+        // 续跑是一次新的运行：覆盖 subagent_run，崩溃在续跑中时旧 result 不能当成已完成。
+        await persistSubagentRunStart(
+          options,
+          resumeRequest,
+          lifecycle,
+          true,
+          lifecycle.runTraceContext,
+          sendOptions,
+        );
         await emitSubagentEvent(
           options,
           SessionEventType.SubagentSpawned,
@@ -1512,6 +1620,18 @@ async function finalizeBackgroundCompletion(
   const current = registry.get(lifecycle.agentId);
   if (current && isTerminalRuntimeTask(current)) return;
 
+  // 后台完成：result 落库后，重启不再续跑，通知丢失时也能补发。
+  await persistSubagentResultEntry(options, {
+    agentId: lifecycle.agentId,
+    childSessionId: lifecycle.childSessionId,
+    durationMs: completed.output.totalDurationMs,
+    ending: "completed",
+    text: completed.output.content.map((block) => block.text).join("\n\n"),
+    tokens: completed.output.totalTokens,
+    toolUses: completed.output.totalToolUseCount,
+    toolUseId: request.parentToolCallId,
+    traceContext: lifecycle.runTraceContext,
+  });
   await writeCompletedAgentArtifacts(lifecycle, request, completed.output);
   const notification = formatLocalAgentTaskNotification({
     agentId: completed.output.agentId,
@@ -1597,6 +1717,15 @@ async function finalizeBackgroundFailure(
   const errorMessage = error instanceof Error ? selectExecutionErrorMessage(error) : String(error);
   const completedAt = new Date();
   const totalDurationMs = Date.now() - lifecycle.startedAt;
+  await persistSubagentResultEntry(options, {
+    agentId: lifecycle.agentId,
+    childSessionId: lifecycle.childSessionId,
+    durationMs: totalDurationMs,
+    ending: "failed",
+    text: errorMessage,
+    toolUseId: request.parentToolCallId,
+    traceContext: lifecycle.runTraceContext,
+  });
   await writeFailedAgentArtifacts(lifecycle, request, errorMessage);
   const notification = formatLocalAgentTaskNotification({
     agentId: lifecycle.agentId,
@@ -1700,6 +1829,28 @@ async function finalizeBackgroundStopped(
   stopped: StoppedBackgroundAgentTask,
   onCommitted?: () => void,
 ): Promise<RuntimeTaskSnapshot | undefined> {
+  const stoppedResult: SubagentResultEntryData = {
+    durationMs: stopped.totalDurationMs,
+    ending: "killed",
+    finishedAtMs: stopped.task.completedAt?.getTime() ?? Date.now(),
+    text: BACKGROUND_AGENT_STOPPED_STATE.message,
+    tokens: 0,
+    toolUses: 0,
+    ...(stopped.task.parentToolCallId === undefined
+      ? {}
+      : { toolUseId: String(stopped.task.parentToolCallId) }),
+  };
+  // 用户主动停止也写终态：重启后不复活（docs/subagent-restart-resume.md）。
+  if (stopped.task.childSessionId) {
+    await saveSubagentRestartEntry(
+      options.sessionStore,
+      stopped.task.childSessionId,
+      SUBAGENT_RESULT_ENTRY,
+      stopped.task.agentId,
+      stoppedResult,
+      { logger: options.logger, traceContext: stopped.traceContext },
+    );
+  }
   const notification = formatLocalAgentTaskNotification({
     agentId: stopped.task.agentId,
     agentType: stopped.task.agentType,
@@ -2154,6 +2305,903 @@ function resolveAllowedTools(
     baseTools.push("Skill");
   }
   return filterSubagentChildToolNames(baseTools, profile.disallowedTools);
+}
+
+// ============================================================
+// Restart persistence + cold restore (docs/subagent-restart-resume.md)
+// ============================================================
+
+interface ResumeSlotLimiter {
+  acquire(): Promise<() => void>;
+}
+
+/** 同时最多 `limit` 个自动续跑；名额释放时直接转交给队首，`active` 不回落。 */
+function createResumeSlotLimiter(limit: number): ResumeSlotLimiter {
+  let active = 0;
+  const waiting: Array<() => void> = [];
+  const release = (): void => {
+    const next = waiting.shift();
+    if (next) {
+      next();
+      return;
+    }
+    active = Math.max(0, active - 1);
+  };
+  return {
+    acquire(): Promise<() => void> {
+      if (active < limit) {
+        active++;
+        return Promise.resolve(release);
+      }
+      return new Promise<() => void>((resolve) => {
+        waiting.push(() => resolve(release));
+      });
+    },
+  };
+}
+
+interface SubagentRestoreDependencies {
+  abortControllers: Map<string, AbortController>;
+  getProfiles: () => readonly AgentProfile[];
+  options: ExploreSubagentPortOptions;
+  registry: RuntimeTaskRegistry;
+  restoringAgentIds: Set<string>;
+  resumeSlots: ResumeSlotLimiter;
+}
+
+/** 父会话冷加载后恢复它的子代理；只处理顶层会话，异常只记日志。 */
+async function restoreSubagentSession(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+): Promise<void> {
+  const store = deps.options.sessionStore;
+  // 最小 fake / 旧注入实现可能没有子会话扫描能力：恢复整体跳过，不影响会话打开。
+  if (!store?.sessionEntries || typeof store.listSessions !== "function") return;
+  const { sessionId, trace } = params;
+
+  let parent: SessionInfo | null;
+  try {
+    parent = await store.getSession(sessionId);
+  } catch (error) {
+    deps.options.logger?.debug("Subagent restore could not read the parent session", {
+      ...traceContextToLogContext(trace),
+      errorMessage: error instanceof Error ? error.message : String(error),
+      event: "subagent.restore.parent_read_failed",
+      module: "core.subagent",
+      sessionId,
+      status: "failed",
+    });
+    return;
+  }
+  // 子会话自己冷恢复时不再向下扫描：恢复只从顶层会话进入（DWF actor 也随之隔离）。
+  if (!parent || parent.parentID !== undefined) return;
+
+  let children: SessionInfo[];
+  try {
+    children = await store.listSessions({
+      parentID: sessionId,
+      taskTypes: ["subagent_child"],
+    });
+  } catch (error) {
+    deps.options.logger?.debug("Subagent restore could not list child sessions", {
+      ...traceContextToLogContext(trace),
+      errorMessage: error instanceof Error ? error.message : String(error),
+      event: "subagent.restore.list_failed",
+      module: "core.subagent",
+      sessionId,
+      status: "failed",
+    });
+    return;
+  }
+
+  for (const child of children) {
+    if (child.parentID !== sessionId || child.taskType !== "subagent_child") continue;
+    try {
+      await restoreSubagentChild(deps, params, child);
+    } catch (error) {
+      deps.options.logger?.warn("This subagent child session could not be restored", {
+        ...traceContextToLogContext(trace),
+        childSessionId: child.id,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        event: "subagent.restore.child_failed",
+        module: "core.subagent",
+        sessionId,
+        status: "failed",
+      });
+    }
+  }
+}
+
+async function restoreSubagentChild(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  child: SessionInfo,
+): Promise<void> {
+  const store = deps.options.sessionStore;
+  const spawns = await readSubagentRestartEntries<SubagentSpawnEntryData>(
+    store,
+    child.id,
+    SUBAGENT_SPAWN_ENTRY,
+  );
+  // 没有 subagent_spawn 的子会话不是本功能派生的子代理（DWF actor 等）。
+  for (const entry of spawns) {
+    const spawn = entry.data;
+    const agentId =
+      typeof spawn?.agentId === "string" && spawn.agentId ? spawn.agentId : entry.agentId;
+    if (!spawn || typeof spawn !== "object" || typeof spawn.agentType !== "string") {
+      deps.options.logger?.warn("A subagent spawn entry could not be read", {
+        ...traceContextToLogContext(params.trace),
+        agentId,
+        childSessionId: child.id,
+        event: "subagent.restore.spawn_invalid",
+        module: "core.subagent",
+        sessionId: child.id,
+      });
+      continue;
+    }
+    // 同进程去重：已经在 registry 里的子代理不重复恢复（等价 Rust 的 live.get）。
+    if (deps.registry.get(agentId) || deps.restoringAgentIds.has(agentId)) continue;
+    if (!spawn.childSessionId) {
+      spawn.childSessionId = child.id;
+    }
+    if (!spawn.agentId) {
+      spawn.agentId = agentId;
+    }
+    deps.restoringAgentIds.add(agentId);
+    try {
+      await restoreSubagentAgent(deps, params, spawn, child.id);
+    } catch (error) {
+      deps.options.logger?.warn("This subagent could not be restored", {
+        ...traceContextToLogContext(params.trace),
+        agentId,
+        childSessionId: spawn.childSessionId,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        event: "subagent.restore.agent_failed",
+        module: "core.subagent",
+        sessionId: spawn.childSessionId,
+        status: "failed",
+      });
+    } finally {
+      deps.restoringAgentIds.delete(agentId);
+    }
+  }
+}
+
+async function restoreSubagentAgent(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  entrySessionId: SessionId,
+): Promise<void> {
+  const store = deps.options.sessionStore;
+  // 与 Rust 同口径：结果/运行/尝试都从 spawn entry 所在的子会话读；spawn.childSessionId 只用于
+  // 重建条目与续跑（两者正常一致，不一致时仍以落库的扫描会话为准）。
+  const results = await readSubagentRestartEntries<SubagentResultEntryData>(
+    store,
+    entrySessionId,
+    SUBAGENT_RESULT_ENTRY,
+  );
+  const result = latestSubagentRestartEntry(results, spawn.agentId);
+  const resultData =
+    result?.data && typeof result.data === "object"
+      ? (result.data as SubagentResultEntryData)
+      : undefined;
+  const runs = await readSubagentRestartEntries<SubagentRunEntryData>(
+    store,
+    entrySessionId,
+    SUBAGENT_RUN_ENTRY,
+  );
+  const runStartedAtMs = normalizeTimestamp(
+    latestSubagentRestartEntry(runs, spawn.agentId)?.data?.startedAtMs,
+  );
+  const finishedAtMs = normalizeTimestamp(resultData?.finishedAtMs);
+  // 上一轮已完成、之后又被 SendMessage/续跑拉起：subagent_run 比 result 新，说明崩溃发生在
+  // 新一轮里，旧结果不能当作“已完成”跳过恢复（Rust restore::latest_result 同一口径）。
+  if (resultData && runStartedAtMs <= finishedAtMs) {
+    await restoreTerminalSubagent(deps, params, spawn, resultData, runStartedAtMs);
+    return;
+  }
+
+  const attempts = await readSubagentAttempts(store, entrySessionId, spawn.agentId);
+  if (spawn.fork || spawn.agentType === "fork") {
+    await failRestoredSubagent(deps, params, spawn, SUBAGENT_RESTART_FORK_BLOCKED_TEXT);
+    return;
+  }
+  if (attempts >= SUBAGENT_RESTART_MAX_ATTEMPTS) {
+    await failRestoredSubagent(deps, params, spawn, subagentRestartAttemptLimitText());
+    return;
+  }
+  const profile = deps.getProfiles().find((candidate) => candidate.name === spawn.agentType);
+  if (!profile) {
+    await failRestoredSubagent(
+      deps,
+      params,
+      spawn,
+      subagentRestartDefinitionMissingText(spawn.agentType),
+    );
+    return;
+  }
+  await resumeRestoredSubagent(deps, params, spawn, profile, attempts);
+}
+
+/** 有终态：注册可见的 registry 条目；通知丢了补发，绝不重跑（killed 也一样）。 */
+async function restoreTerminalSubagent(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  result: SubagentResultEntryData,
+  runStartedAtMs: number,
+): Promise<void> {
+  const outcome: RestoredSubagentOutcome = {
+    durationMs: normalizeCount(result?.durationMs),
+    ending: normalizeSubagentEnding(result?.ending, deps.options.logger, spawn.agentId),
+    finishedAtMs: normalizeTimestamp(result?.finishedAtMs) || Date.now(),
+    startedAtMs: runStartedAtMs,
+    text: typeof result?.text === "string" ? result.text : "",
+    tokens: normalizeCount(result?.tokens),
+    toolUses: normalizeCount(result?.toolUses),
+    toolUseId: normalizeOptionalString(result?.toolUseId) ?? spawn.toolUseId,
+    notified: false,
+  };
+  outcome.startedAtMs = outcome.startedAtMs || outcome.finishedAtMs;
+  const snapshot = createRestoredSubagentSnapshot(deps.options, params, spawn, outcome);
+  deps.registry.register(snapshot);
+  await deliverRestoredSubagentResult(
+    deps,
+    params,
+    spawn,
+    outcome,
+    snapshot.traceContext ?? restoredTraceContext(params, spawn.childSessionId as SessionId),
+  );
+}
+
+/** 不能自动续跑（fork / 次数上限 / 定义缺失 / 启动失败）：落失败终态并通知，避免反复尝试。 */
+async function failRestoredSubagent(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  reason: string,
+): Promise<void> {
+  const now = Date.now();
+  const finish: RestoredSubagentOutcome = {
+    durationMs: 0,
+    ending: "failed",
+    finishedAtMs: now,
+    startedAtMs: now,
+    text: reason,
+    tokens: 0,
+    toolUses: 0,
+    toolUseId: spawn.toolUseId,
+    notified: false,
+  };
+  await persistSubagentResultEntry(deps.options, {
+    agentId: spawn.agentId,
+    childSessionId: spawn.childSessionId as SessionId,
+    durationMs: 0,
+    ending: "failed",
+    text: reason,
+    toolUseId: spawn.toolUseId,
+    traceContext: restoredTraceContext(params, spawn.childSessionId as SessionId),
+  });
+  const snapshot = createRestoredSubagentSnapshot(deps.options, params, spawn, finish);
+  deps.registry.register(snapshot);
+  await deliverRestoredSubagentResult(
+    deps,
+    params,
+    spawn,
+    finish,
+    snapshot.traceContext ?? restoredTraceContext(params, spawn.childSessionId as SessionId),
+  );
+}
+
+async function resumeRestoredSubagent(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  profile: AgentProfile,
+  attempts: number,
+): Promise<void> {
+  const store = deps.options.sessionStore;
+  const traceContext = restoredTraceContext(params, spawn.childSessionId as SessionId);
+  const now = Date.now();
+  // 先记尝试（跨重启累计），再启动续跑；续跑里再崩溃时上限仍然生效。
+  await saveSubagentRestartEntry(
+    store,
+    spawn.childSessionId as SessionId,
+    SUBAGENT_RESUME_ATTEMPT_ENTRY,
+    spawn.agentId,
+    {
+      count: attempts + 1,
+      lastAtMs: now,
+      reason: "process_restart",
+    } satisfies SubagentResumeAttemptEntryData,
+    { logger: deps.options.logger, nowMs: now, traceContext },
+  );
+
+  const request: SubagentRunRequest = {
+    sessionId: params.sessionId,
+    ...(params.trace.turnId === undefined ? {} : { turnId: params.trace.turnId }),
+    parentToolCallId: spawn.toolUseId ?? spawn.agentId,
+    agentType: spawn.agentType,
+    description: spawn.description || spawn.agentType,
+    prompt: SUBAGENT_RESTART_CONTINUE_PROMPT,
+    workingDirectory: params.workingDirectory,
+    workspaceRoot: params.workspaceRoot,
+    trace: params.trace,
+  };
+  const lifecycle = createSubagentLifecycleFromSpawn(deps.options, request, profile, spawn);
+  deps.registry.register(
+    createRuntimeTaskSnapshot({
+      isBackgrounded: true,
+      lifecycle,
+      request,
+      startedAt: new Date(lifecycle.startedAt),
+      status: "running",
+    }),
+  );
+  // 名额在后台取：restoreSession 本身不阻塞会话打开；超出的续跑排队。
+  void runRestoredResume(deps, params, lifecycle, request);
+}
+
+async function runRestoredResume(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  lifecycle: SubagentLifecycle,
+  request: SubagentRunRequest,
+): Promise<void> {
+  const release = await deps.resumeSlots.acquire();
+  const taskAbort = createSubagentTaskAbortController(deps.abortControllers, lifecycle.agentId);
+  let startFailure: { error: unknown } | undefined;
+  try {
+    await runBackgroundAgent(
+      deps.options,
+      request,
+      lifecycle,
+      deps.registry,
+      { signal: taskAbort.signal },
+      {
+        resumeFromStore: true,
+        onSessionReady: async () => {
+          // 新一轮运行：run 覆盖后，崩溃在续跑中时旧 result 不再算“已完成”。
+          await persistSubagentRunStart(
+            deps.options,
+            request,
+            lifecycle,
+            true,
+            restoredTraceContext(params, lifecycle.childSessionId),
+          );
+          await emitSubagentEvent(
+            deps.options,
+            SessionEventType.SubagentSpawned,
+            request,
+            lifecycle.runTraceContext,
+            {
+              agentId: lifecycle.agentId,
+              agentType: request.agentType,
+              background: true,
+              childSessionId: lifecycle.childSessionId,
+              description: request.description,
+              outputFile: lifecycle.outputFile,
+              parentToolCallId: request.parentToolCallId,
+              prompt: request.prompt,
+              resumed: true,
+              status: "running",
+            },
+          );
+        },
+        onSessionStartFailed: (error) => {
+          startFailure = { error };
+        },
+      },
+      taskAbort.dispose,
+    );
+    if (startFailure !== undefined) {
+      // 续跑没有真正启动：按 Rust 的固定说法把原因写进失败终态与通知。
+      const message =
+        startFailure.error instanceof Error
+          ? startFailure.error.message
+          : String(startFailure.error);
+      await finalizeBackgroundFailure(
+        deps.options,
+        request,
+        lifecycle,
+        deps.registry,
+        new Error(subagentRestartResumeFailedText(message)),
+      );
+    }
+  } catch (error) {
+    deps.options.logger?.warn("The interrupted subagent could not be resumed", {
+      ...traceContextToLogContext(lifecycle.runTraceContext),
+      agentId: lifecycle.agentId,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      event: "subagent.restore.resume_failed",
+      module: "core.subagent",
+      status: "failed",
+    });
+    await finalizeBackgroundFailure(deps.options, request, lifecycle, deps.registry, error).catch(
+      () => undefined,
+    );
+  } finally {
+    taskAbort.dispose();
+    release();
+  }
+}
+
+interface RestoredSubagentOutcome {
+  durationMs: number;
+  ending: SubagentResultEnding;
+  finishedAtMs: number;
+  startedAtMs: number;
+  text: string;
+  tokens: number;
+  toolUses: number;
+  toolUseId?: string;
+  notified: boolean;
+}
+
+function createRestoredSubagentSnapshot(
+  options: ExploreSubagentPortOptions,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  outcome: RestoredSubagentOutcome,
+): RuntimeTaskSnapshot {
+  const agentType = spawn.agentType || "general-purpose";
+  const description = spawn.description?.trim() || agentType;
+  const childSessionId = spawn.childSessionId as SessionId;
+  const output = createRestoredCompletedOutput(spawn.agentId, agentType, description, outcome);
+  return {
+    agentId: spawn.agentId,
+    agentType,
+    childSessionId,
+    completedAt: new Date(outcome.finishedAtMs),
+    description,
+    ...(outcome.ending === "completed" ? {} : { error: outcome.text }),
+    isBackgrounded: spawn.background === true,
+    ...(output === undefined ? {} : { output }),
+    outputFile: subagentOutputFilePath(options, params.sessionId, spawn.agentId),
+    parentSessionId: params.sessionId,
+    parentToolCallId: outcome.toolUseId ?? spawn.agentId,
+    startedAt: new Date(outcome.startedAtMs || outcome.finishedAtMs),
+    status: outcome.ending,
+    taskId: spawn.agentId,
+    taskType: "local_agent",
+    traceContext: restoredTraceContext(params, childSessionId),
+    ...(params.trace.turnId === undefined ? {} : { turnId: params.trace.turnId }),
+    type: "local_agent",
+    usage: {
+      durationMs: outcome.durationMs,
+      toolUseCount: outcome.toolUses,
+      totalTokens: outcome.tokens,
+    },
+    notified: outcome.notified,
+  };
+}
+
+function createRestoredCompletedOutput(
+  agentId: string,
+  agentType: string,
+  description: string,
+  outcome: RestoredSubagentOutcome,
+): AgentCompletedOutput | undefined {
+  if (outcome.ending !== "completed") return undefined;
+  return {
+    agentId,
+    agentType,
+    content: [{ type: "text", text: outcome.text }],
+    description,
+    prompt: "",
+    status: "completed",
+    totalDurationMs: outcome.durationMs,
+    totalToolUseCount: outcome.toolUses,
+    ...(outcome.tokens > 0 ? { totalTokens: outcome.tokens } : {}),
+  };
+}
+
+async function deliverRestoredSubagentResult(
+  deps: SubagentRestoreDependencies,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  outcome: RestoredSubagentOutcome,
+  traceContext: TraceContext,
+): Promise<void> {
+  const delivered = await hasSubagentResultBeenDelivered(
+    deps.options.sessionStore,
+    params.sessionId,
+    spawn.agentId,
+  );
+  if (delivered) {
+    // 已投递过：只补 registry 可见性，不重复刷通知。
+    deps.registry.update(spawn.agentId, (task) =>
+      task.notified ? task : { ...task, notified: true },
+    );
+    return;
+  }
+  const notification = formatRestoredSubagentNotification(deps.options, params, spawn, outcome);
+  const enqueued = enqueueBackgroundNotification(
+    deps.options,
+    deps.registry,
+    spawn.agentId,
+    notification,
+    traceContext,
+  );
+  if (!enqueued) return;
+  await saveSubagentRestartEntry(
+    deps.options.sessionStore,
+    params.sessionId,
+    SUBAGENT_RESULT_DELIVERED_ENTRY,
+    spawn.agentId,
+    { deliveredAtMs: Date.now() },
+    { logger: deps.options.logger, traceContext },
+  );
+}
+
+async function hasSubagentResultBeenDelivered(
+  store: SessionStorePort | undefined,
+  parentSessionId: SessionId,
+  agentId: string,
+): Promise<boolean> {
+  try {
+    const entries = await readSubagentRestartEntries(
+      store,
+      parentSessionId,
+      SUBAGENT_RESULT_DELIVERED_ENTRY,
+    );
+    return entries.some((entry) => entry.agentId === agentId);
+  } catch {
+    // 读不到标记时按“已投递”处理：宁可不补，也不每次重启都刷一遍通知（Rust 同一策略）。
+    return true;
+  }
+}
+
+function formatRestoredSubagentNotification(
+  options: ExploreSubagentPortOptions,
+  params: SubagentRestoreSessionParams,
+  spawn: SubagentSpawnEntryData,
+  outcome: RestoredSubagentOutcome,
+): string {
+  const agentType = spawn.agentType || "general-purpose";
+  const status =
+    outcome.ending === "completed"
+      ? "completed"
+      : outcome.ending === "failed"
+        ? "failed"
+        : "stopped";
+  return formatLocalAgentTaskNotification({
+    agentId: spawn.agentId,
+    agentType,
+    description: spawn.description?.trim() || agentType,
+    outputFile: subagentOutputFilePath(options, params.sessionId, spawn.agentId),
+    parentToolCallId: String(outcome.toolUseId ?? spawn.toolUseId ?? spawn.agentId),
+    ...(status === "completed" ? { result: outcome.text } : {}),
+    ...(status === "failed" ? { error: outcome.text } : {}),
+    status,
+    totalDurationMs: outcome.durationMs,
+    ...(outcome.tokens > 0 ? { totalTokens: outcome.tokens } : {}),
+    ...(outcome.toolUses > 0 ? { totalToolUseCount: outcome.toolUses } : {}),
+  });
+}
+
+function restoredTraceContext(
+  params: SubagentRestoreSessionParams,
+  sessionId: SessionId,
+): TraceContext {
+  return {
+    ...params.trace,
+    sessionId,
+    spanId: params.trace.spanId ?? `span_subagent_restore_${sessionId}`,
+  };
+}
+
+function subagentOutputFilePath(
+  options: ExploreSubagentPortOptions,
+  parentSessionId: SessionId,
+  agentId: string,
+): string {
+  return join(
+    options.outputRootDir ?? join(tmpdir(), "zcode-agents"),
+    String(parentSessionId),
+    agentId,
+    "output.txt",
+  );
+}
+
+function createSubagentLifecycleFromSpawn(
+  options: ExploreSubagentPortOptions,
+  request: SubagentRunRequest,
+  profile: AgentProfile,
+  spawn: SubagentSpawnEntryData,
+): SubagentLifecycle {
+  const agentId = spawn.agentId;
+  const childSessionId = spawn.childSessionId as SessionId;
+  const startedAt = Date.now();
+  const agentOutputDir = join(
+    options.outputRootDir ?? join(tmpdir(), "zcode-agents"),
+    String(request.sessionId),
+    agentId,
+  );
+  const metadataFile = join(agentOutputDir, "metadata.json");
+  const outputFile = join(agentOutputDir, "output.txt");
+  const taskOutputFile = join(agentOutputDir, "task.output");
+  const runTraceContext = createChildTraceContext(request.trace, {
+    sessionId: request.sessionId,
+    turnId: request.turnId,
+    attributes: {
+      agentId,
+      agentType: request.agentType,
+      parentToolCallId: request.parentToolCallId,
+      resumed: true,
+    },
+  });
+  const childTraceContext = createChildTraceContext(runTraceContext, {
+    sessionId: childSessionId,
+    turnId: request.turnId,
+    attributes: {
+      agentId,
+      agentType: request.agentType,
+      parentSessionId: request.sessionId,
+      parentToolCallId: request.parentToolCallId,
+      resumed: true,
+    },
+  });
+  return {
+    agentId,
+    childSessionId,
+    metadataFile,
+    outputFile,
+    taskOutputFile,
+    profile,
+    startedAt,
+    runTraceContext,
+    childTraceContext,
+  };
+}
+
+/** 每次运行开始时写/覆盖 `subagent_spawn` 与 `subagent_run`；失败只记日志。 */
+async function persistSubagentRunStart(
+  options: ExploreSubagentPortOptions,
+  request: SubagentRunRequest,
+  lifecycle: SubagentLifecycle,
+  background: boolean,
+  traceContext: TraceContext = lifecycle.runTraceContext,
+  runOptions?: SubagentRunOptions,
+): Promise<void> {
+  const store = options.sessionStore;
+  if (!store?.saveSessionEntry) return;
+
+  let previous: SubagentSpawnEntryData | undefined;
+  try {
+    previous = latestSubagentRestartEntry(
+      await readSubagentRestartEntries<SubagentSpawnEntryData>(
+        store,
+        lifecycle.childSessionId,
+        SUBAGENT_SPAWN_ENTRY,
+      ),
+      lifecycle.agentId,
+    )?.data;
+  } catch {
+    // 读不到旧 spawn 时按本次运行时间写一份新的；恢复仍以最新写入为准。
+  }
+  const createdAtMs =
+    typeof previous?.createdAtMs === "number" ? previous.createdAtMs : lifecycle.startedAt;
+  const now = Date.now();
+  const next = createSubagentSpawnEntryData(
+    request,
+    lifecycle,
+    background,
+    createdAtMs,
+    resolveSpawnSelection(lifecycle.profile, runOptions, previous?.selection),
+  );
+  await saveSubagentRestartEntry(
+    store,
+    lifecycle.childSessionId,
+    SUBAGENT_SPAWN_ENTRY,
+    lifecycle.agentId,
+    mergeSubagentSpawnEntry(previous, next),
+    { createdAtMs, logger: options.logger, nowMs: now, traceContext },
+  );
+  await saveSubagentRestartEntry(
+    store,
+    lifecycle.childSessionId,
+    SUBAGENT_RUN_ENTRY,
+    lifecycle.agentId,
+    { startedAtMs: now } satisfies SubagentRunEntryData,
+    { createdAtMs: now, logger: options.logger, nowMs: now, traceContext },
+  );
+}
+
+/**
+ * 以最新一次运行覆盖身份字段，但保留旧 entry 里本端不拥有的派生事实
+ * （Rust 写的 workspace.environment/root、selection、execution）；跨内核切换时不丢信息。
+ */
+function mergeSubagentSpawnEntry(
+  previous: SubagentSpawnEntryData | undefined,
+  next: SubagentSpawnEntryData,
+): SubagentSpawnEntryData {
+  if (!previous || typeof previous !== "object") return next;
+  const previousWorkspace =
+    previous.workspace && typeof previous.workspace === "object" ? previous.workspace : {};
+  return {
+    ...previous,
+    ...next,
+    createdAtMs: previous.createdAtMs ?? next.createdAtMs,
+    workspace: { ...previousWorkspace, ...next.workspace },
+  } as SubagentSpawnEntryData;
+}
+
+/** 运行时已知的 child 选择：profile 声明 > Core Server override > 父运行继承的 Model。 */
+function resolveSpawnSelection(
+  profile: AgentProfile,
+  runOptions: SubagentRunOptions | undefined,
+  previous: unknown,
+): unknown {
+  const selection =
+    profile.modelSelection ??
+    runOptions?.modelOverride?.selection ??
+    (runOptions?.model ? selectionFromRunModel(runOptions.model) : undefined) ??
+    previous;
+  return toRestartSelection(selection);
+}
+
+function selectionFromRunModel(
+  model: NonNullable<SubagentRunOptions["model"]>,
+): Record<string, unknown> {
+  const reasoningLevel = model.options.reasoningLevel;
+  return {
+    modelId: model.modelId,
+    providerId: model.providerId,
+    ...(reasoningLevel === undefined ? {} : { options: { reasoningLevel } }),
+  };
+}
+
+/**
+ * Node 选择是 camelCase；额外写 Rust `ModelSelection` 的 provider/model/reasoning 别名，
+ * 让 Rust 内核也能解析 Node 写的 spawn（Node 读侧忽略这些别名）。
+ */
+function toRestartSelection(value: unknown): unknown {
+  if (!value || typeof value !== "object") return undefined;
+  const selection = value as Record<string, unknown>;
+  const providerId = typeof selection.providerId === "string" ? selection.providerId : undefined;
+  const modelId = typeof selection.modelId === "string" ? selection.modelId : undefined;
+  const options =
+    selection.options && typeof selection.options === "object"
+      ? (selection.options as Record<string, unknown>)
+      : undefined;
+  const provider =
+    providerId ?? (typeof selection.provider === "string" ? selection.provider : undefined);
+  const model = modelId ?? (typeof selection.model === "string" ? selection.model : undefined);
+  if (!provider || !model) return selection;
+  const reasoning =
+    typeof options?.reasoningLevel === "string" ? options.reasoningLevel : undefined;
+  return {
+    ...selection,
+    model,
+    provider,
+    ...(reasoning === undefined ? {} : { reasoning }),
+  };
+}
+
+function createSubagentSpawnEntryData(
+  request: SubagentRunRequest,
+  lifecycle: SubagentLifecycle,
+  background: boolean,
+  createdAtMs: number,
+  selection: unknown,
+): SubagentSpawnEntryData {
+  const { profile } = lifecycle;
+  return {
+    agentId: lifecycle.agentId,
+    childSessionId: lifecycle.childSessionId,
+    parentSession: request.sessionId,
+    // Node 子运行时禁止再派生子代理（child config `subagents.enabled=false`），父会话即根会话。
+    rootSession: request.sessionId,
+    depth: 1,
+    toolUseId: String(request.parentToolCallId),
+    description: request.description,
+    agentType: request.agentType,
+    workspace: {
+      workingDirectory: request.workingDirectory,
+      workspaceRoot: request.workspaceRoot,
+      // Rust `WorkspaceRef` 的别名：Node CLI 只跑本机工作区，Rust 恢复终态/续跑时用得到。
+      environment: "local",
+      root: request.workspaceRoot,
+    },
+    ...(selection === undefined ? {} : { selection }),
+    ...(profile.permissionMode === undefined
+      ? {}
+      : { execution: { mode: profile.permissionMode, plan: profile.permissionMode === "plan" } }),
+    background,
+    fork: false,
+    createdAtMs,
+  };
+}
+
+/** 终态写 `subagent_result`；完成、失败、取消都写，重启后据此判断是否还要续跑。 */
+async function persistSubagentResultEntry(
+  options: ExploreSubagentPortOptions,
+  input: {
+    agentId: string;
+    childSessionId: SessionId | undefined;
+    durationMs: number;
+    ending: SubagentResultEnding;
+    text: string;
+    tokens?: number;
+    toolUses?: number;
+    toolUseId?: string | number;
+    traceContext?: TraceContext;
+  },
+): Promise<void> {
+  if (!input.childSessionId) return;
+  const data: SubagentResultEntryData = {
+    durationMs: input.durationMs,
+    ending: input.ending,
+    finishedAtMs: Date.now(),
+    text: input.text,
+    tokens: input.tokens ?? 0,
+    toolUses: input.toolUses ?? 0,
+    ...(input.toolUseId === undefined ? {} : { toolUseId: String(input.toolUseId) }),
+  };
+  await saveSubagentRestartEntry(
+    options.sessionStore,
+    input.childSessionId,
+    SUBAGENT_RESULT_ENTRY,
+    input.agentId,
+    data,
+    { logger: options.logger, traceContext: input.traceContext },
+  );
+}
+
+async function readSubagentAttempts(
+  store: SessionStorePort | undefined,
+  childSessionId: SessionId,
+  agentId: string,
+): Promise<number> {
+  const entries = await readSubagentRestartEntries<SubagentResumeAttemptEntryData>(
+    store,
+    childSessionId,
+    SUBAGENT_RESUME_ATTEMPT_ENTRY,
+  );
+  return normalizeCount(latestSubagentRestartEntry(entries, agentId)?.data?.count);
+}
+
+function normalizeSubagentEnding(
+  value: unknown,
+  logger: Logger | undefined,
+  agentId: string,
+): SubagentResultEnding {
+  if (value === "completed" || value === "failed" || value === "killed") {
+    return value;
+  }
+  logger?.warn("An unknown subagent ending is treated as failed", {
+    agentId,
+    ending: typeof value === "string" ? value : undefined,
+    event: "subagent.restore.unknown_ending",
+    module: "core.subagent",
+  });
+  return "failed";
+}
+
+/** 前台取消（父回合中止 / 用户 Stop）：拒绝原因可能是 CoreError 或 signal 已 abort。 */
+function isSubagentCancellation(error: unknown, signal: AbortSignal): boolean {
+  if (signal.aborted) return true;
+  return isCoreError(error) && error.type === CoreErrorType.ToolCancelled;
+}
+
+/** 已经被 TaskStop 收口的任务（killed）不再用前台完成/失败结果覆盖。 */
+function isSubagentAlreadyTerminal(registry: RuntimeTaskRegistry, agentId: string): boolean {
+  const task = registry.get(agentId);
+  return task !== undefined && isTerminalRuntimeTask(task);
+}
+
+function normalizeTimestamp(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
+}
+
+function normalizeCount(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 async function writeTextFile(path: string, content: string): Promise<void> {

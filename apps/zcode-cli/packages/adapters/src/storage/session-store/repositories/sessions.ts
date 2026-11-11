@@ -179,6 +179,12 @@ export async function listSessions(
     }
   }
 
+  // 子代理冷恢复按父会话扫描 child session（docs/subagent-restart-resume.md）。
+  if (input.parentID) {
+    clauses.push("parent_id = ?");
+    values.push(input.parentID);
+  }
+
   if (input.roots) {
     clauses.push("parent_id is null");
   }
