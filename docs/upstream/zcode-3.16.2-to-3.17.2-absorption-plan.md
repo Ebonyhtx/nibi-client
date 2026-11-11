@@ -127,7 +127,7 @@
 | --- | --- | --- | --- | --- |
 | B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | Host/UI 大工程；先单类试点；**P1** |
 | B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | Host/UI；数据同步前置；**P1** |
-| B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | Host/UI + Rust 内核实现两个方法；**P1** |
+| B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
 | B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | Host + `nibi-server`；**P1** |
 | B5 | 远端设备紧凑可搜索列表、在线状态、停止/重启菜单 | [源码] `settings/SourceServerDeviceRow.tsx`、`sourceServerDeviceList.ts` | 已实施 | Host/UI；**P1** |
 | B6 | Provider provisioning lane 状态 + 失败重试 | [源码] `services/src/provider-provisioning-status/` | 已实施 | Host（依赖数据同步）；**P2** |
@@ -365,14 +365,14 @@
   - Rust 生命周期状态机与 `ensureReady` 已实现并有测试；
   - MCP 信任记录生效，未信任项目 MCP 不装载；设置页可信任/撤销。
 
-### Phase 2：数据同步 + 项目删除 + 远端运维（第 6–9 周）
+### Phase 2：数据同步 + 项目删除 + 远端运维（第 6–9 周）**[进行中]**
 
 - Host/UI：B2 设备 Scope → B1 数据同步单类试点（技能）→ 扩 MCP/命令/钩子/插件/子代理。
-- Host/UI + Rust：B3 项目彻底删除（UI + `sessionData/measure|purge`）。
+- Host/UI + Rust：B3 项目彻底删除（UI + `sessionData/measure|purge`）→ **[x] `3bee959e` + `04824ccd`**。
 - Host/server：B4 远端服务停止/重启；B5 设备列表。
 - 出口：
   - 单类同步的对比/推送/离线/迟到结果语义全过；
-  - 项目删除保留运行中/被引用会话，幂等；
+  - 项目删除保留运行中/被引用会话，幂等（Host/UI 已完成，真机冒烟待做）；
   - 远端 crash-loop 可在设备卡自救。
 
 ### Phase 3：小功能 + 测试债（第 10–12 周）
