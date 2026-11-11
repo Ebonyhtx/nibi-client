@@ -396,6 +396,11 @@ export function groupItemsByCategory(
       id: item.id,
       category: item.listing?.category,
       displayName: resolveItemDisplayName(item, locale),
+      // 已安装优先在分类组内部生效：不新增「已安装条」（该条 2026-10-11 已下线），
+      // 已安装条目仍只在自己的分类里出现一次，避免与主列表重复或产生空条。
+      installed: item.installed,
+      // 运行时 info 比安装记录更权威；两者都没有时保持 undefined，与停用同档。
+      enabled: item.info?.enabled ?? item.installedMeta?.enabled,
     }),
     locale,
     order,

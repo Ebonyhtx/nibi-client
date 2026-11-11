@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { sortPluginStoreEntries } from "@nibi/shared";
 import { groupItemsByCategory, type StorePluginItem } from "../src/settings/pluginStoreListing.js";
 
 function item(name: string, category?: string): StorePluginItem {
@@ -116,5 +117,126 @@ describe("公开分类排序", () => {
     });
     expect(groups[0]?.items.map((entry) => entry.name)).toEqual(["a", "z"]);
     expect(groups.flatMap((group) => group.items)).toHaveLength(items.length);
+  });
+});
+
+/** 构造带安装态/启用态的商店条目；不传 installed 即未安装。 */
+function storeEntry(
+  name: string,
+  options: { category?: string; installed?: boolean; enabled?: boolean } = {},
+): StorePluginItem {
+  const marketplace = "official";
+  const id = `${name}@${marketplace}`;
+  return {
+    id,
+    name,
+    marketplace,
+    installed: options.installed ?? false,
+    restorable: false,
+    orphaned: false,
+    listing: { category: options.category },
+    ...(options.installed
+      ? {
+          installedMeta: {
+            id,
+            name,
+            marketplace,
+            enabled: options.enabled ?? true,
+            scope: "user" as const,
+          },
+        }
+      : {}),
+  };
+}
+
+const names = (group: { items: StorePluginItem[] } | undefined) =>
+  group?.items.map((entry) => entry.name) ?? [];
+
+describe("已安装优先（分类内稳定键）", () => {
+  it("已安装排在未安装前，分类分组与组间顺序不变", () => {
+    const groups = groupItemsByCategory(
+      [
+        storeEntry("a", { category: "productivity" }),
+        storeEntry("c", { category: "productivity", installed: true }),
+        storeEntry("b", { category: "developer-tools" }),
+        storeEntry("d", { category: "developer-tools", installed: true }),
+      ],
+      "en-US",
+    );
+    expect(groups.map((group) => group.category)).toEqual(["productivity", "developer-tools"]);
+    expect(names(groups[0])).toEqual(["c", "a"]);
+    expect(names(groups[1])).toEqual(["d", "b"]);
+    // 安装态只改变顺序：每个条目仍只出现一次，没有被 strip 复制或移除。
+    expect(groups.flatMap((group) => group.items)).toHaveLength(4);
+  });
+
+  it("只有后置分类装了插件时也不会把该分类整体提前", () => {
+    const groups = groupItemsByCategory(
+      [
+        storeEntry("a", { category: "productivity" }),
+        storeEntry("b", { category: "developer-tools" }),
+        storeEntry("c", { category: "developer-tools", installed: true }),
+      ],
+      "en-US",
+    );
+    expect(groups.map((group) => group.category)).toEqual(["productivity", "developer-tools"]);
+    expect(names(groups[0])).toEqual(["a"]);
+    expect(names(groups[1])).toEqual(["c", "b"]);
+  });
+
+  it("已安装组内保留既有配置顺序，未安装组的相对顺序也不变", () => {
+    const groups = groupItemsByCategory(
+      ["c", "a", "d", "b"].map((name) =>
+        storeEntry(name, { installed: name === "a" || name === "b" }),
+      ),
+      "en-US",
+      { pluginOrder: { productivity: ["c@official", "a@official", "d@official", "b@official"] } },
+    );
+    // 原顺序 c→a→d→b；安装态只做稳定分组：已安装 a→b，未安装 c→d。
+    expect(names(groups[0])).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("已安装且已启用优先于已安装但停用，未安装不会越过两者", () => {
+    const groups = groupItemsByCategory(
+      [
+        storeEntry("a"),
+        storeEntry("z", { installed: true, enabled: false }),
+        storeEntry("y", { installed: true, enabled: true }),
+      ],
+      "en-US",
+    );
+    expect(names(groups[0])).toEqual(["y", "z", "a"]);
+  });
+
+  it("已安装优先于文档插件默认顺序（文档插件未安装时不再置顶）", () => {
+    const groups = groupItemsByCategory(
+      [storeEntry("pdf", { installed: false }), storeEntry("zeta", { installed: true })],
+      "en-US",
+    );
+    expect(names(groups[0])).toEqual(["zeta", "pdf"]);
+  });
+
+  it("全部未安装时顺序与空已安装列表一致，且不产生空分组/空条", () => {
+    const entries = [
+      storeEntry("b", { category: "utilities" }),
+      storeEntry("a", { category: "utilities" }),
+    ];
+    const groups = groupItemsByCategory(entries, "en-US");
+    expect(groups.map((group) => group.category)).toEqual(["utilities"]);
+    expect(names(groups[0])).toEqual(["a", "b"]);
+    expect(groups.every((group) => group.items.length > 0)).toBe(true);
+    expect(groups.flatMap((group) => group.items)).toHaveLength(entries.length);
+  });
+
+  it("Picker/市场预览不传安装态时保持原有排序", () => {
+    const entries = [
+      { id: "z@official", category: "productivity", displayName: "Z" },
+      { id: "a@official", category: "productivity", displayName: "A" },
+    ];
+    expect(
+      sortPluginStoreEntries(entries, (entry) => entry, "en-US", {
+        pluginOrder: { productivity: ["z@official", "a@official"] },
+      }).map((entry) => entry.id),
+    ).toEqual(["z@official", "a@official"]);
   });
 });

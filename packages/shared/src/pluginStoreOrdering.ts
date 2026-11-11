@@ -33,9 +33,24 @@ interface PluginStoreSortEntry {
   id: string;
   category?: string;
   displayName: string;
+  /**
+   * 安装态只影响类内先后，不参与分类排序。
+   * 可选：Picker/市场预览不传该字段时全部视为未安装，排序行为保持不变。
+   */
+  installed?: boolean;
+  /** 已安装条目内已启用的排在前；undefined（运行时信息缺失）与停用同档。 */
+  enabled?: boolean;
 }
 
-/** 纯展示排序：配置优先，剩余分类按产品默认顺序，类内文档插件优先，再按本地化名称稳定兜底。 */
+/**
+ * 纯展示排序：分类按配置/产品默认顺序，类内已安装优先（其中已启用优先），
+ * 再按配置插件顺序、文档插件优先级和本地化名称稳定兜底。
+ *
+ * 已安装优先放在分类键之后：分类分组和组间顺序不能被安装态改写，
+ * 否则「只有某分类装了插件」会把该分类整体提到最前。
+ * 商店的已安装图标条已下线（见 docs/plugin-marketplace-ui-ux.md），
+ * 因此安装态必须原地排序而不能另起一条，避免同一插件渲染两次。
+ */
 export function sortPluginStoreEntries<T>(
   items: readonly T[],
   project: (item: T) => PluginStoreSortEntry,
@@ -60,12 +75,28 @@ export function sortPluginStoreEntries<T>(
       (left, right) =>
         compareRanks(categoryRanks, left.category, right.category) ||
         compareCategories(left.category, right.category) ||
+        compareInstalledPriority(left, right) ||
         compareRanks(pluginRanks.get(left.category), left.id, right.id) ||
         compareDocumentPluginPriority(left.id, right.id) ||
         left.displayName.localeCompare(right.displayName, locale) ||
         left.index - right.index,
     )
     .map(({ item }) => item);
+}
+
+/** 0 = 已安装且已启用，1 = 已安装（停用/启用态未知），2 = 未安装。 */
+function installedRank(
+  entry: Pick<PluginStoreSortEntry, "installed" | "enabled">,
+): number {
+  if (entry.installed !== true) return 2;
+  return entry.enabled === true ? 0 : 1;
+}
+
+function compareInstalledPriority(
+  left: Pick<PluginStoreSortEntry, "installed" | "enabled">,
+  right: Pick<PluginStoreSortEntry, "installed" | "enabled">,
+): number {
+  return installedRank(left) - installedRank(right);
 }
 
 function ranks(order: readonly string[] = []): Map<string, number> {
