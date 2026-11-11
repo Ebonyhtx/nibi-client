@@ -65,6 +65,7 @@ vi.mock("@/lib/appTelemetry.js", () => ({
 
 interface OAuthProbeState {
   activeProvider: OAuthProviderId | null;
+  authorizeUrl: string | null;
   loadingProviders: boolean;
   providers: OAuthProviderMeta[];
 }
@@ -140,6 +141,7 @@ function OAuthProbe({ onState }: { onState: (state: OAuthProbeState) => void }) 
   const oauth = useOAuth();
   onState({
     activeProvider: oauth.activeProvider,
+    authorizeUrl: oauth.authorizeUrl,
     loadingProviders: oauth.loadingProviders,
     providers: oauth.providers,
   });
@@ -195,6 +197,7 @@ describe("useOAuth", () => {
 
     expect(observed.at(-1)).toEqual({
       activeProvider: null,
+      authorizeUrl: null,
       loadingProviders: false,
       providers: [provider],
     });
@@ -232,6 +235,7 @@ describe("useOAuth", () => {
 
     expect(observed.at(-1)).toEqual({
       activeProvider: null,
+      authorizeUrl: null,
       loadingProviders: false,
       providers: [],
     });
@@ -280,6 +284,82 @@ describe("useOAuth", () => {
       expect.objectContaining({ eventExtraDetail: { login_url: "chat.z.ai" } }),
       "useOAuth",
     );
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("exposes the current authorize url and clears it when the waiting flow is cancelled", async () => {
+    const root: Root = createRoot(installMinimalDom());
+    let oauth: ReturnType<typeof useOAuth> | undefined;
+    function OAuthActionProbe() {
+      oauth = useOAuth();
+      return createElement("span");
+    }
+    const authorizeUrl =
+      "https://chat.z.ai/api/oauth/authorize?state=copy-state&client_id=nibi-client";
+    mocks.oauthService.getProviders.mockResolvedValue([]);
+    mocks.oauthService.getActiveProvider.mockResolvedValue(null);
+    mocks.oauthService.startOAuthWithPolling.mockResolvedValue({
+      authorizeUrl,
+      provider: "zai",
+      state: "copy-state",
+    });
+
+    await act(async () => {
+      root.render(createElement(OAuthActionProbe));
+    });
+    await act(async () => {
+      await oauth?.startLogin("zai");
+    });
+
+    // 等待态手动复制必须拿到完整授权地址，自动打开浏览器的行为保持不变。
+    expect(oauth?.authorizeUrl).toBe(authorizeUrl);
+    expect(mocks.platform.openExternal).toHaveBeenCalledWith(authorizeUrl);
+
+    await act(async () => {
+      await oauth?.cancel("zai");
+    });
+
+    // 取消后不能留下上一次登录的链接。
+    expect(oauth?.authorizeUrl).toBeNull();
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("clears the authorize url once login succeeds", async () => {
+    const root: Root = createRoot(installMinimalDom());
+    let oauth: ReturnType<typeof useOAuth> | undefined;
+    function OAuthActionProbe() {
+      oauth = useOAuth();
+      return createElement("span");
+    }
+    const authorizeUrl = "https://chat.z.ai/api/oauth/authorize?state=success-state";
+    mocks.oauthService.getProviders.mockResolvedValue([]);
+    mocks.oauthService.getActiveProvider.mockResolvedValue(null);
+    mocks.oauthService.startOAuthWithPolling.mockResolvedValue({
+      authorizeUrl,
+      provider: "zai",
+      state: "success-state",
+    });
+
+    await act(async () => {
+      root.render(createElement(OAuthActionProbe));
+    });
+    await act(async () => {
+      await oauth?.startLogin("zai");
+    });
+    expect(oauth?.authorizeUrl).toBe(authorizeUrl);
+
+    await act(async () => {
+      await oauth?.setOAuthSuccess();
+    });
+
+    // 登录成功后等待态关闭，授权链接不能在后续界面里残留。
+    expect(oauth?.authorizeUrl).toBeNull();
 
     act(() => {
       root.unmount();

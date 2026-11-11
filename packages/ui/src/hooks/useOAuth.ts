@@ -51,6 +51,9 @@ export function useOAuth() {
   const { intl } = useZCodeIntl();
   const [status, setStatus] = useState<OAuthStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  // 本次登录的授权地址：浏览器无法自动打开（无默认浏览器、被安全软件拦截）时，
+  // 等待态需要提供手动复制入口，否则用户只能改走 API key 登录。只在 waiting 期间持有。
+  const [authorizeUrl, setAuthorizeUrl] = useState<string | null>(null);
   const [providers, setProviders] = useState<OAuthProviderMeta[]>([]);
   const [activeProvider, setActiveProvider] = useState<OAuthProviderId | null>(null);
   const [loadingProviders, setLoadingProviders] = useState(true);
@@ -100,10 +103,12 @@ export function useOAuth() {
         waitingRef.current = true;
         setStatus("waiting");
         setError(null);
+        // 重试/切换渠道时先清掉旧链接，避免等待态短暂展示上一次登录的 authorize URL。
+        setAuthorizeUrl(null);
         setPendingProvider(provider);
 
         const {
-          authorizeUrl,
+          authorizeUrl: startedAuthorizeUrl,
           state,
           provider: startedProvider,
         } = await oauthService.startOAuthWithPolling(provider);
@@ -112,11 +117,12 @@ export function useOAuth() {
           return;
         }
 
+        setAuthorizeUrl(startedAuthorizeUrl);
         platform.registerOAuthState({ state, provider: startedProvider });
         setOAuthPollingActive(
           startedProvider === ZAI_PROVIDER_ID || startedProvider === BIGMODEL_PROVIDER_ID,
         );
-        platform.openExternal(authorizeUrl);
+        platform.openExternal(startedAuthorizeUrl);
         void reportAppTelemetryEvent(
           platform,
           {
@@ -125,7 +131,7 @@ export function useOAuth() {
             eventType: "ck",
             eventExtraDetail: {
               // 授权 URL 含 state/凭据参数；埋点只取 hostname，浏览器仍使用上面的完整地址。
-              login_url: resolveSafeTelemetryHostname(authorizeUrl),
+              login_url: resolveSafeTelemetryHostname(startedAuthorizeUrl),
             },
           },
           "useOAuth",
@@ -143,6 +149,7 @@ export function useOAuth() {
         logger.error("[useOAuth] 启动 OAuth 失败:", err);
         waitingRef.current = false;
         setOAuthPollingActive(false);
+        setAuthorizeUrl(null);
         setStatus("error");
         // OAuth 启动失败也属于登录失败，不把服务端或平台错误原文展示给用户。
         // 原文通过 i18n 渲染，避免登录页出现 provider/token 等具体失败原因。
@@ -159,6 +166,7 @@ export function useOAuth() {
       waitingRef.current = false;
       await oauthService.cancelPending(provider);
       setOAuthPollingActive(false);
+      setAuthorizeUrl(null);
       setStatus("idle");
       setError(null);
       setPendingProvider(null);
@@ -168,6 +176,7 @@ export function useOAuth() {
 
   const reset = useCallback(() => {
     waitingRef.current = false;
+    setAuthorizeUrl(null);
     setStatus("idle");
     setError(null);
     setPendingProvider(null);
@@ -176,6 +185,7 @@ export function useOAuth() {
   /** 由 Root/App 层的回调监听器调用，更新 UI 状态 */
   const setOAuthError = useCallback((message: string) => {
     waitingRef.current = false;
+    setAuthorizeUrl(null);
     setStatus("error");
     setError(message);
     setPendingProvider(null);
@@ -189,6 +199,7 @@ export function useOAuth() {
         // 只接管仍在等待回调的实例；idle/error 状态不被广播覆盖。
         if (!waitingRef.current) return;
         waitingRef.current = false;
+        setAuthorizeUrl(null);
         setStatus("error");
         setError(message ?? intl.formatMessage({ id: "login.oauth.loginFailure" }));
         setPendingProvider(null);
@@ -198,6 +209,7 @@ export function useOAuth() {
   );
 
   const setOAuthSuccess = useCallback(async () => {
+    setAuthorizeUrl(null);
     setStatus("idle");
     setError(null);
     setPendingProvider(null);
@@ -210,6 +222,7 @@ export function useOAuth() {
     reset,
     status,
     error,
+    authorizeUrl,
     providers,
     activeProvider,
     loadingProviders,

@@ -10,12 +10,14 @@ import { type OAuthProviderMeta, BIGMODEL_PROVIDER_ID, NIBI_PROVIDER_ID, ZAI_PRO
 import {
   TID_LOGIN_USE_API_KEY_BUTTON,
   TID_OAUTH_CANCEL,
+  TID_OAUTH_COPY_LINK,
   TID_OAUTH_ERROR,
   TID_OAUTH_LOGIN_BUTTON,
   testId,
 } from "@nibi/shared/test-ids";
 import { Alert, AlertDescription } from "./components/ui/alert.js";
 import { Button } from "./components/ui/button.js";
+import { toast } from "./components/ui/toast.js";
 import { NibiAboutLogo } from "@/components/ui/NibiAboutLogo.js";
 import { useOAuth } from "./hooks/useOAuth.js";
 import { useZCodeIntl } from "./i18n/IntlProvider.js";
@@ -100,6 +102,7 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
     reset,
     status,
     error,
+    authorizeUrl,
     providers,
     loadingProviders,
     pendingProvider,
@@ -271,6 +274,25 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
     setLoginMode("providers");
   }, []);
 
+  const copyAuthorizeUrl = useCallback(async () => {
+    if (!authorizeUrl) {
+      return;
+    }
+    // 浏览器没能自动打开授权页时，用户只能手动复制完整链接到浏览器完成登录。
+    // 复用全局 toast 反馈结果，不为此新增内联提示组件。
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      toast(intl.formatMessage({ id: "login.oauth.copyLinkFailed" }));
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(authorizeUrl);
+      toast(intl.formatMessage({ id: "login.oauth.copyLinkSucceeded" }));
+    } catch {
+      toast(intl.formatMessage({ id: "login.oauth.copyLinkFailed" }));
+    }
+  }, [authorizeUrl, intl]);
+
   useEffect(() => {
     if (active) {
       wasActiveRef.current = true;
@@ -406,6 +428,18 @@ export function LoginPanel({ active, onComplete, onOpenModelSettings }: LoginPan
                 { provider: pendingProviderName ?? "OAuth" },
               )}
             </div>
+            {/* 只在本次登录已经拿到授权链接后展示；未拿到 URL 或取消/成功清理后按钮随之消失。 */}
+            {authorizeUrl ? (
+              <Button
+                variant="outline"
+                className="h-10 w-full text-ui-base"
+                size="lg"
+                data-testid={TID_OAUTH_COPY_LINK}
+                onClick={() => void copyAuthorizeUrl()}
+              >
+                {intl.formatMessage({ id: "login.oauth.copyLink" })}
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               className="h-10 w-full text-ui-base"

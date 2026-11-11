@@ -29,6 +29,8 @@ export const TID_LOGIN_API_KEY_ERROR = "login-api-key-error";
 export const TID_OAUTH_LOGIN_BUTTON = "oauth-login-button";
 /** OAuth 弹窗取消按钮 */
 export const TID_OAUTH_CANCEL = "oauth-cancel";
+/** OAuth 等待态复制登录链接按钮 */
+export const TID_OAUTH_COPY_LINK = "oauth-copy-link";
 /** OAuth 错误提示文本 */
 export const TID_OAUTH_ERROR = "oauth-error";
 
