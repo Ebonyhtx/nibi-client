@@ -44,6 +44,20 @@ describe("comparePluginUpdate", () => {
     ).toBe("none");
   });
 
+  // 发布方只 bump 了目录版本、包内 plugin.json 还是旧版本（lark-cli 2026-11-12 实测）：
+  // 已安装字节与目录最新字节相同就说明没有可更新的内容，不能永远提示更新。
+  it("reports none when installed bytes equal latest bytes even if versions differ", () => {
+    const sha = "540cf1eac176b396b89ddbe338e6c90f009770065414f00562ba3d151ab0c02f";
+    expect(
+      comparePluginUpdate({
+        installedVersion: "0.1.2",
+        installedSha: sha,
+        latestVersion: "0.1.3",
+        latestSha: sha,
+      }),
+    ).toBe("none");
+  });
+
   // Sha axis: the common Claude-official case — manifest entry pins a commit sha, no version.
   it("uses the sha axis when the manifest entry pins a sha and has no version", () => {
     expect(

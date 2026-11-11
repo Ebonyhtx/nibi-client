@@ -56,6 +56,10 @@ export function comparePluginUpdate(input: {
   latestSha: string | undefined;
 }): PluginUpdateStatus {
   const { installedVersion, installedSha, latestVersion, latestSha } = input;
+  // 字节相同 = 没有可更新的内容。这条必须放在版本轴之前：发布方 bump 了目录版本却忘了
+  // 改包内 plugin.json 时（2026-11-12 lark-cli 等 6 个包实测），版本轴会永远报「有更新」，
+  // 用户点多少次都只是在重装同一份字节。指纹相同就说明装的就是目录最新包。
+  if (latestSha && installedSha && latestSha === installedSha) return "none";
   if (latestVersion) {
     const byVersion = comparePluginVersions({ installed: installedVersion, latest: latestVersion });
     if (byVersion !== "none") return byVersion;
