@@ -7321,6 +7321,19 @@ const zhCN: Record<string, string> = {
     "「变更前确认」模式下每项电脑操作都需逐次批准；切换到「完全访问」可让任务连续执行。",
   "chat.cua.fullAccessHint.enable": "切换到完全访问",
   "chat.cua.fullAccessHint.dismiss": "不再提示",
+  "chat.fullAccessConfirm.title": "要启用完全访问吗？",
+  "chat.fullAccessConfirm.description": "启用后，任务可以直接执行以下操作，无需逐次请求你确认。",
+  "chat.fullAccessConfirm.files.title": "文件和文件夹",
+  "chat.fullAccessConfirm.files.description": "读取、创建、修改和删除可访问的文件。",
+  "chat.fullAccessConfirm.terminal.title": "终端命令",
+  "chat.fullAccessConfirm.terminal.description": "运行命令、安装软件或修改系统配置。",
+  "chat.fullAccessConfirm.network.title": "网络和应用",
+  "chat.fullAccessConfirm.network.description": "访问网络、发送数据，以及调用已连接的应用。",
+  "chat.fullAccessConfirm.warning":
+    "这些操作可能造成数据丢失或泄露。请仅在信任任务内容时启用。你可以随时切回其他权限模式。",
+  "chat.fullAccessConfirm.acknowledge": "我已了解风险，并对自己的数据安全负责。",
+  "chat.fullAccessConfirm.cancel": "取消",
+  "chat.fullAccessConfirm.confirm": "确认启用",
 };
 
 export default zhCN;

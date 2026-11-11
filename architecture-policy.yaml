@@ -1310,3 +1310,12 @@ exceptions:
       ProjectDataCleanupDialog，后者只读写用户级 AGENTS.md（已下沉到 settings-sync 服务）。
       两者都放在 settings 同目录、不新增 RPC 或跨层依赖；packages/ui 仍是 managed:false
       的遗留大区，按路径单独登记。
+
+  - id: full-access-mode-confirm-dialog
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/v4/FullAccessModeConfirmDialog.tsx
+    reason: >-
+      切到完全访问模式前的二次确认弹窗：复用现有 Dialog/Checkbox/Button，只在
+      SessionPane 的模式切换入口做 UI 拦截，不改权限判定与持久化。packages/ui 仍是
+      managed:false 的遗留大区，按路径单独登记。

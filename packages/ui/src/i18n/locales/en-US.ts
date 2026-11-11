@@ -7697,6 +7697,24 @@ const enUS: Record<string, string> = {
     'Every Computer Use action requires approval in "Confirm before changes" mode; switch to "Full access" to let tasks run continuously.',
   "chat.cua.fullAccessHint.enable": "Switch to full access",
   "chat.cua.fullAccessHint.dismiss": "Don't show again",
+  "chat.fullAccessConfirm.title": "Enable full access?",
+  "chat.fullAccessConfirm.description":
+    "Once enabled, tasks can do the following without asking for your approval each time.",
+  "chat.fullAccessConfirm.files.title": "Files and folders",
+  "chat.fullAccessConfirm.files.description":
+    "Read, create, modify, and delete files that are accessible.",
+  "chat.fullAccessConfirm.terminal.title": "Terminal commands",
+  "chat.fullAccessConfirm.terminal.description":
+    "Run commands, install software, or change system configuration.",
+  "chat.fullAccessConfirm.network.title": "Network and apps",
+  "chat.fullAccessConfirm.network.description":
+    "Access the network, send data, and use connected apps.",
+  "chat.fullAccessConfirm.warning":
+    "These actions may cause data loss or leaks. Enable this only when you trust the task content. You can switch back to another permission mode at any time.",
+  "chat.fullAccessConfirm.acknowledge":
+    "I understand the risks and take responsibility for my data security.",
+  "chat.fullAccessConfirm.cancel": "Cancel",
+  "chat.fullAccessConfirm.confirm": "Enable full access",
 };
 
 export default enUS;

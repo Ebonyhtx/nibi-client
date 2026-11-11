@@ -110,6 +110,7 @@ import {
   type ComposerSubmissionConfig,
 } from "@/v4/composer/composerSubmissionConfig.js";
 import { useDraftSessionPrewarm } from "@/v4/composer/useDraftSessionPrewarm.js";
+import { useFullAccessModeConfirmation } from "@/v4/FullAccessModeConfirmDialog.js";
 import { projectSessionConfigToTaskConfigOptions } from "@/v4/composer/sessionConfigTaskCache.js";
 import { useDraftRuntimeRebuildGate } from "@/v4/composer/useDraftRuntimeRebuildGate.js";
 import { useDraftModelReadinessGate } from "@/v4/composer/useDraftModelReadinessGate.js";
@@ -1365,6 +1366,17 @@ export function SessionPane({
     sessionConfig: runtimeReady && snapshot?.sessionId === sessionId ? snapshot.config : null,
     agentStartupAllowed: draftAgentStartupAllowed,
     modelSelectionService,
+  });
+  // 根因：完全访问会绕过逐次确认直接读写文件/执行命令/联网外发，菜单误点即可造成不可逆
+  // 损失。所有 Composer 模式入口统一在这里拦截，普通模式与离开完全访问仍一步到位。
+  const {
+    requestModeSwitch: requestModeSwitchWithConfirmation,
+    confirmDialog: fullAccessModeConfirmDialog,
+  } = useFullAccessModeConfirmation({
+    // 读 ref 而不是本次渲染的 draftConfig：确认发生在点击时，必须拿最新模式做同值判断，
+    // 也避免外部把 draftConfig 置空时让弹窗接线崩溃。
+    currentMode: draftConfigRef.current.mode,
+    onApplyModeSwitch: handleDraftSwitchMode,
   });
   const modelSelectionView =
     modelSelectionRead.state.status === "ready" ? modelSelectionRead.state.view : null;
@@ -3806,11 +3818,12 @@ export function SessionPane({
   );
 
   // 模式与模型一样属于下一次 Submission；选择时只更新 Composer。
+  // 高权限目标先经确认弹窗，确认后才写入原定切换（取消保持原值，弹窗期间不改草稿）。
   const handleSwitchMode = useCallback(
     (mode: string) => {
-      handleDraftSwitchMode(mode);
+      requestModeSwitchWithConfirmation(mode);
     },
-    [handleDraftSwitchMode],
+    [requestModeSwitchWithConfirmation],
   );
 
   // context usage 面板的压缩入口（命令文本 = "/compact"，复用 slash 解析路径）。
@@ -5171,6 +5184,7 @@ export function SessionPane({
             </SessionPluginReferenceIconBoundary>
           )}
         </div>
+        {fullAccessModeConfirmDialog}
       </div>
     </PluginUiSessionProvider>
   );
