@@ -81,6 +81,8 @@ export function ImageEditorSurface({
   const [draft, setDraft] = useState<Annotation | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [textDraft, setTextDraft] = useState<Annotation | null>(null);
+  const textDraftInputRef = useRef<HTMLInputElement>(null);
+  const textDraftOpen = textDraft !== null;
   const [sending, setSending] = useState(false);
   const [dragging, setDragging] = useState(false);
   const gestureRef = useRef<Gesture | null>(null);
@@ -89,6 +91,13 @@ export function ImageEditorSurface({
   const pinchRef = useRef<{ distance: number; transform: Transform } | null>(null);
   const sendPendingRef = useRef(false);
   const aliveRef = useRef(true);
+
+  // 文字草稿打开时显式聚焦输入框：不用 autoFocus（会抢焦点并触发 no-autofocus），
+  // 依赖只取「是否打开」，避免每次输入都重跑。
+  useEffect(() => {
+    if (!textDraftOpen) return;
+    textDraftInputRef.current?.focus();
+  }, [textDraftOpen]);
 
   // 输入字节只用于生成一次预览对象 URL；不在编辑器里改写原图。
   useEffect(() => {
@@ -512,17 +521,18 @@ export function ImageEditorSurface({
         undo={undo}
       />
       {textDraft ? (
-        <div
-          className="absolute left-1/2 top-20 z-30 flex max-w-full -translate-x-1/2 gap-1 rounded-xl border border-popover-border bg-popover p-2"
-          onKeyDown={(event) => event.stopPropagation()}
-        >
+        // 草稿浮层本身不挂事件：键盘冒泡在 Input 的 onKeyDown 里拦，避免把容器
+        // 变成「静态元素可交互」（a11y），也避免 autoFocus 抢焦点（改为显式 focus）。
+        <div className="absolute left-1/2 top-20 z-30 flex max-w-full -translate-x-1/2 gap-1 rounded-xl border border-popover-border bg-popover p-2">
           <Input
-            autoFocus
+            ref={textDraftInputRef}
             aria-label={intl.formatMessage({ id: "imageEditor.textValue" })}
             className="w-48 text-mobile-input-safe sm:text-ui-base"
             disabled={sending}
             onChange={(event) => setTextDraft({ ...textDraft, text: event.target.value })}
             onKeyDown={(event) => {
+              // 画布用全局快捷键；输入框里的按键不能继续冒泡成工具切换。
+              event.stopPropagation();
               if (event.key === "Enter" && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 commitTextDraft();

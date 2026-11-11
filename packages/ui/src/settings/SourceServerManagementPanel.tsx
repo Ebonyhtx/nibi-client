@@ -2043,10 +2043,22 @@ function SourceServerDeviceRow({
     >
       <div
         data-source-server-row
+        // 整行可点（含状态/箭头留白），但内层展开按钮仍是语义控件；整行补
+        // role/tabIndex/键盘处理，避免「静态元素可交互」且键盘用户能展开。
+        role="button"
+        tabIndex={0}
         className={cn(
           "relative flex min-h-12 cursor-pointer items-center gap-2.5 py-2 pl-4 pr-2 hover:bg-hover",
           highlighted && "bg-selected hover:bg-selected",
         )}
+        onKeyDown={(event) => {
+          // 只处理行自身：内层按钮的 Enter/Space 已经会合成 click 冒泡到行上，
+          // 再处理一次会双重切换。
+          if (event.target !== event.currentTarget) return;
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          onToggle();
+        }}
         onClick={(event) => {
           // Portal 菜单的 React 事件会沿组件树冒泡到这里，但 DOM 上不在行内，必须排除。
           const target = event.target as HTMLElement;
