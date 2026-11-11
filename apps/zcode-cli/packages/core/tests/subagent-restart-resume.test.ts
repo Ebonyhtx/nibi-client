@@ -3,17 +3,25 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  createMessageId,
+  createModelId,
+  createModelProviderId,
+  createPartId,
   createProjectId,
   createSessionId,
   createTraceId,
   type SessionId,
   type SubagentPort,
   type SubagentRestoreSessionParams,
+  type ToolPart,
   type TraceContext,
 } from "@nibi/contracts";
 import { createSqliteSessionStore } from "../../adapters/src/storage/session-store/sqlite-session-store.js";
 import { createTestAgentRuntime } from "./test-agent-runtime.js";
 import { createTestSessionEventStore } from "./test-event-store.js";
+import { MessageHistoryImpl } from "../src/agent/message-history.js";
+import { hydrateMessageHistoryFromSession } from "../src/agent/session-history-hydrator.js";
+import { buildProviderRequestMessages } from "../src/runtime/helpers/provider-request-messages.js";
 import { InMemoryRuntimeTaskRegistry } from "../src/runtime-task/registry.js";
 import {
   createExploreSubagentPort,
@@ -24,6 +32,7 @@ import {
 import {
   SUBAGENT_RESTART_CONTINUE_PROMPT,
   SUBAGENT_RESTART_FORK_BLOCKED_TEXT,
+  SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT,
   SUBAGENT_RESULT_DELIVERED_ENTRY,
   SUBAGENT_RESULT_ENTRY,
   SUBAGENT_RESUME_ATTEMPT_ENTRY,
@@ -208,6 +217,112 @@ async function restore(portHarness: PortHarness, harness: RestartHarness): Promi
     workingDirectory: harness.dir,
     workspaceRoot: harness.dir,
   });
+}
+
+const testModelID = createModelId("gpt-test");
+const testProviderID = createModelProviderId("openai");
+
+/** 子会话的真实 transcript 形状：tool 结果不是 user 消息，而是 assistant 里 tool part 的 state。 */
+async function saveChildTranscriptWithToolParts(
+  harness: RestartHarness,
+  childSessionId: SessionId,
+  parts: ReadonlyArray<Omit<ToolPart, "messageID" | "sessionID">>,
+): Promise<void> {
+  const userMessageId = createMessageId(`user-${childSessionId}`);
+  const assistantMessageId = createMessageId(`assistant-${childSessionId}`);
+  await harness.store.saveMessage({
+    agent: "nibi-agent",
+    id: userMessageId,
+    role: "user",
+    sessionID: childSessionId,
+    time: { created: 1 },
+  });
+  await harness.store.saveMessage({
+    agent: "nibi-agent",
+    cost: 0,
+    id: assistantMessageId,
+    mode: "build",
+    modelId: testModelID,
+    parentID: userMessageId,
+    path: { cwd: harness.dir, root: harness.dir },
+    providerId: testProviderID,
+    role: "assistant",
+    sessionID: childSessionId,
+    time: { created: 2 },
+    tokens: { cache: { read: 0, write: 0 }, input: 10, output: 5, reasoning: 0, total: 15 },
+  });
+  for (const part of parts) {
+    await harness.store.savePart({
+      ...part,
+      messageID: assistantMessageId,
+      sessionID: childSessionId,
+    });
+  }
+}
+
+async function readChildToolParts(
+  harness: RestartHarness,
+  childSessionId: SessionId,
+): Promise<ToolPart[]> {
+  const messages = await harness.store.messages({ sessionID: childSessionId });
+  return messages
+    .flatMap((message) => message.parts)
+    .filter((part): part is ToolPart => part.type === "tool");
+}
+
+/** 冷恢复后模型看到的 tool 结果（hydrator 的输出），用来证明持久化结果与 hydrator 不叠加。 */
+async function hydratedProviderToolMessages(
+  harness: RestartHarness,
+  childSessionId: SessionId,
+): Promise<Array<Record<string, unknown>>> {
+  const history = new MessageHistoryImpl();
+  history.init("system prompt");
+  const messages = await harness.store.messages({ sessionID: childSessionId });
+  const hydration = await hydrateMessageHistoryFromSession({ history, messages });
+  expect(hydration.interruptedToolCount).toBe(0);
+  return buildProviderRequestMessages({ entries: history.toRuntimeEntries() })
+    .messages.filter((message) => message.role === "tool")
+    .map((message) => message as unknown as Record<string, unknown>);
+}
+
+function unresolvedToolPart(
+  callID: string,
+  declarationIndex: number,
+): Omit<ToolPart, "messageID" | "sessionID"> {
+  return {
+    callID,
+    declarationIndex,
+    id: createPartId(`part-${callID}`),
+    state: {
+      input: { file_path: "README.md" },
+      metadata: { title: "Read README.md" },
+      status: "running",
+      time: { start: 3 },
+    },
+    tool: "Read",
+    type: "tool",
+  };
+}
+
+function settledToolPart(
+  callID: string,
+  declarationIndex: number,
+): Omit<ToolPart, "messageID" | "sessionID"> {
+  return {
+    callID,
+    declarationIndex,
+    id: createPartId(`part-${callID}`),
+    state: {
+      input: { command: "ls" },
+      metadata: { schemaVersion: 1 },
+      output: "done",
+      status: "completed",
+      time: { end: 4, start: 3 },
+      title: "Bash",
+    },
+    tool: "Bash",
+    type: "tool",
+  };
 }
 
 describe("subagent restart persistence", () => {
@@ -686,5 +801,149 @@ describe("subagent restart persistence", () => {
     await restore(second, harness);
     await vi.waitFor(() => expect(second.registry.get(agentId)?.status).toBe("failed"));
     expect(second.notifications[0]?.text ?? "").toContain("<error>child failed</error>");
+  });
+
+  it("persists exactly one interrupted result for an unsettled child tool call before resuming", async () => {
+    const harness = await createHarness("interrupted");
+    const childSessionId = createSessionId("restart-child-interrupted");
+    const agentId = "agent_restart_interrupted";
+    await createChildSession(harness, childSessionId);
+    await saveRestartEntry(
+      harness,
+      childSessionId,
+      SUBAGENT_SPAWN_ENTRY,
+      agentId,
+      createSpawnData(harness, agentId, childSessionId),
+      1_000,
+    );
+    await saveRestartEntry(
+      harness,
+      childSessionId,
+      SUBAGENT_RUN_ENTRY,
+      agentId,
+      { startedAtMs: 1_100 },
+      1_100,
+    );
+    // 崩溃瞬间：一个调用还在执行，另一个已经落了结果。
+    await saveChildTranscriptWithToolParts(harness, childSessionId, [
+      unresolvedToolPart("tool-child-pending", 0),
+      settledToolPart("tool-child-done", 1),
+    ]);
+    const before = await readChildToolParts(harness, childSessionId);
+    expect(before).toHaveLength(2);
+
+    const second = createPortHarness({ harness, response: "resumed work" });
+    await restore(second, harness);
+    await vi.waitFor(() => expect(second.runExploreAgent).toHaveBeenCalledTimes(1));
+
+    // 没有新增消息/part：同一个调用只是从 running 变成中断结果，transcript 里仍然只有一条记录。
+    const after = await readChildToolParts(harness, childSessionId);
+    expect(after).toHaveLength(before.length);
+    const interrupted = after.filter((part) => part.callID === "tool-child-pending");
+    expect(interrupted).toHaveLength(1);
+    expect(interrupted[0]).toMatchObject({
+      declarationIndex: 0,
+      id: before.find((part) => part.callID === "tool-child-pending")?.id,
+      tool: "Read",
+      state: {
+        error: SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT,
+        input: { file_path: "README.md" },
+        metadata: { modelContent: SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT, title: "Read README.md" },
+        status: "error",
+      },
+    });
+
+    // 已有结果的调用原样不动（状态、输出、时间都不改）。
+    expect(after.find((part) => part.callID === "tool-child-done")).toEqual(
+      before.find((part) => part.callID === "tool-child-done"),
+    );
+
+    // hydrator 与持久化结果共存：未结调用只有一条结果（Rust 文案 + is_error），不再叠加 Node 的临时中断结果。
+    const toolMessages = await hydratedProviderToolMessages(harness, childSessionId);
+    expect(toolMessages.filter((message) => message.toolCallId === "tool-child-pending")).toEqual([
+      {
+        content: SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT,
+        isError: true,
+        role: "tool",
+        toolCallId: "tool-child-pending",
+        toolName: "Read",
+      },
+    ]);
+    expect(toolMessages.filter((message) => message.toolCallId === "tool-child-done")).toEqual([
+      {
+        content: "done",
+        isError: false,
+        role: "tool",
+        toolCallId: "tool-child-done",
+        toolName: "Bash",
+      },
+    ]);
+
+    await vi.waitFor(() => expect(second.registry.get(agentId)?.status).toBe("completed"));
+  });
+
+  it("does not append a second interrupted result when the child session is restored again", async () => {
+    const harness = await createHarness("interrupted-idempotent");
+    const childSessionId = createSessionId("restart-child-interrupted-idempotent");
+    const agentId = "agent_restart_interrupted_idempotent";
+    await createChildSession(harness, childSessionId);
+    await saveRestartEntry(
+      harness,
+      childSessionId,
+      SUBAGENT_SPAWN_ENTRY,
+      agentId,
+      createSpawnData(harness, agentId, childSessionId),
+      1_000,
+    );
+    await saveRestartEntry(
+      harness,
+      childSessionId,
+      SUBAGENT_RUN_ENTRY,
+      agentId,
+      { startedAtMs: 1_100 },
+      1_100,
+    );
+    await saveChildTranscriptWithToolParts(harness, childSessionId, [
+      unresolvedToolPart("tool-child-pending", 0),
+      settledToolPart("tool-child-done", 1),
+    ]);
+
+    const first = createPortHarness({ harness, response: "first resume" });
+    await restore(first, harness);
+    await vi.waitFor(() => expect(first.runExploreAgent).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(first.registry.get(agentId)?.status).toBe("completed"));
+    const afterFirst = await readChildToolParts(harness, childSessionId);
+
+    // 模拟续跑又崩在工具执行中：新的 subagent_run 晚于上一次 result，第二次恢复仍走续跑分支，
+    // 因而会再次执行"补中断结果"，这里验证它不会重复追加。
+    const crashedAt = Date.now() + 60_000;
+    await saveRestartEntry(
+      harness,
+      childSessionId,
+      SUBAGENT_RUN_ENTRY,
+      agentId,
+      { startedAtMs: crashedAt },
+      crashedAt,
+    );
+
+    const second = createPortHarness({ harness, response: "second resume" });
+    await restore(second, harness);
+    await vi.waitFor(() => expect(second.runExploreAgent).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(second.registry.get(agentId)?.status).toBe("completed"));
+
+    const afterSecond = await readChildToolParts(harness, childSessionId);
+    expect(afterSecond).toEqual(afterFirst);
+    expect(afterSecond.filter((part) => part.callID === "tool-child-pending")).toHaveLength(1);
+    expect(
+      afterSecond.filter(
+        (part) =>
+          part.state.status === "error" &&
+          part.state.error === SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT,
+      ),
+    ).toHaveLength(1);
+    const toolMessages = await hydratedProviderToolMessages(harness, childSessionId);
+    expect(
+      toolMessages.filter((message) => message.toolCallId === "tool-child-pending"),
+    ).toHaveLength(1);
   });
 });

@@ -14,11 +14,14 @@ import {
   createTraceId,
   traceContextToLogContext,
   type Logger,
+  type MessageWithParts,
   type SessionEntryInfo,
   type SessionId,
   type SessionStorePort,
+  type ToolPart,
   type TraceContext,
 } from "@nibi/contracts";
+import { selectToolPartsForHistory } from "../agent/tool-part-order.js";
 
 /** 子会话里的身份与派生参数（重启后只有它能说明“这个子会话是谁”）。 */
 export const SUBAGENT_SPAWN_ENTRY = "subagent_spawn";
@@ -119,6 +122,13 @@ export function subagentRestartDefinitionMissingText(agentType: string): string 
 export function subagentRestartResumeFailedText(message: string): string {
   return `This subagent was interrupted by a client restart and could not be resumed: ${message}`;
 }
+
+/**
+ * 未结工具调用的中断结果（与 Rust `nibi_kernel_api::message::INTERRUPTED_CALL` 逐字一致）。
+ * 两个内核写进 transcript 的同一段文字：换内核、只读历史/导出看到的中断说明必须相同。
+ */
+export const SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT =
+  "[Tool call interrupted: the session ended before this call's result was recorded, so its outcome is unknown. Check whether it took effect before relying on it or running it again.]";
 
 /** Rust `Fact::Entry` 在 Node `session_entry` 里的物理 type。 */
 export function subagentRestartEntryType(kind: string): string {
@@ -226,4 +236,100 @@ export async function saveSubagentRestartEntry(
 
 function fallbackTrace(sessionId: SessionId): TraceContext {
   return { sessionId, spanId: `span_${sessionId}`, traceId: createTraceId() };
+}
+
+export interface SettleInterruptedSubagentToolCallsOptions {
+  logger?: Logger;
+  traceContext?: TraceContext;
+  /** 测试与恢复路径可以显式给定时间；普通恢复使用当前时间。 */
+  nowMs?: number;
+}
+
+/**
+ * 续跑前把子会话里没有结果的 `tool_use` 补成中断结果并落库。
+ *
+ * 根因：Node 的 tool 结果不是单独的 user 消息，而是同一个 tool part 的 `state`
+ * （`settleToolResults` 就是这样落库的）。以前未结调用只由 `session-history-hydrator`
+ * 在模型上下文里临时补一条 `INTERRUPTED_TOOL_RESULT`，transcript 本身没有结果：换内核打开、
+ * 或用只读历史/导出看会话时，中断这件事不存在；Rust 内核则会把 `INTERRUPTED_CALL` 的
+ * `is_error` 结果提交进子会话。这里按同一个落库形状补写（error state + `metadata.modelContent`），
+ * 文字与 `is_error` 语义都与 Rust 一致，两个内核读到的 transcript 才相同。
+ *
+ * 与 hydrator 共存：part 一旦是 completed/error，hydrator 只走结果分支（读 `metadata.modelContent`），
+ * 不会再补第二条中断结果；Rust node-store 冷读同一状态也只得到一条 `is_error` 结果。
+ * 因此不新增 entry、不改任何 schema。
+ *
+ * 只补一次：只处理按历史口径选中的、仍是 pending/running 的 part（与 hydrator 选择同一份
+ * `selectToolPartsForHistory`，同一调用只取最后一条记录）；已有结果的调用原样不动，落库后
+ * 重复恢复不再命中。存储失败只记日志并返回已写条数，退回 hydrator 的临时中断结果，不影响续跑。
+ */
+export async function settleInterruptedSubagentToolCalls(
+  store: SessionStorePort | undefined,
+  sessionId: SessionId,
+  options: SettleInterruptedSubagentToolCallsOptions = {},
+): Promise<number> {
+  // 最小 fake / 旧注入实现可能没有读写消息的能力：跳过落库，交给 hydrator。
+  if (!store || typeof store.messages !== "function" || typeof store.savePart !== "function") {
+    return 0;
+  }
+  let messages: MessageWithParts[];
+  try {
+    messages = await store.messages({ sessionID: sessionId });
+  } catch (error) {
+    warnInterruptedPersistFailed(options, sessionId, undefined, error);
+    return 0;
+  }
+
+  const now = options.nowMs ?? Date.now();
+  let settled = 0;
+  for (const message of messages) {
+    if (message.info.role !== "assistant") continue;
+    // 与 hydrate 同一份选择：同一声明的旧 part 迟到更新不影响"这个调用是否已有结果"。
+    for (const part of selectToolPartsForHistory(message.parts.filter(isToolPart))) {
+      if (part.state.status === "completed" || part.state.status === "error") continue;
+      const start = part.state.status === "running" ? part.state.time.start : now;
+      const interrupted: ToolPart = {
+        ...part,
+        state: {
+          error: SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT,
+          input: part.state.input,
+          metadata: {
+            ...(part.state.status === "running" ? part.state.metadata : undefined),
+            // 模型可见文本：hydrator 与 Rust node-store 冷读都优先读 metadata.modelContent。
+            modelContent: SUBAGENT_RESTART_INTERRUPTED_CALL_TEXT,
+          },
+          status: "error",
+          time: { end: Math.max(now, start), start },
+        },
+      };
+      try {
+        await store.savePart(interrupted);
+        settled++;
+      } catch (error) {
+        warnInterruptedPersistFailed(options, sessionId, part.callID, error);
+      }
+    }
+  }
+  return settled;
+}
+
+function isToolPart(part: MessageWithParts["parts"][number]): part is ToolPart {
+  return part.type === "tool";
+}
+
+function warnInterruptedPersistFailed(
+  options: SettleInterruptedSubagentToolCallsOptions,
+  sessionId: SessionId,
+  toolCallId: string | undefined,
+  error: unknown,
+): void {
+  options.logger?.warn("An interrupted subagent tool result could not be stored", {
+    ...traceContextToLogContext(options.traceContext ?? fallbackTrace(sessionId)),
+    ...(toolCallId === undefined ? {} : { toolCallId }),
+    errorMessage: error instanceof Error ? error.message : String(error),
+    event: "subagent.restore.interrupted_result.persist_failed",
+    module: "core.subagent",
+    sessionId,
+    status: "failed",
+  });
 }

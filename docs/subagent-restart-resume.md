@@ -175,11 +175,11 @@ then finish the remaining work and report the result.
 
 - 崩溃瞬间正在执行的工具可能被重做一次（结果未提交，无法判定）；文档与续跑提示都明确要求模型先核对现场。
 - fork 子代理只恢复可见，不自动续跑。
-- 恢复后的子代理暂不挂 `Asks`（无法在续跑中向用户提问）；后续从会话 actor 注入。
+- 恢复后的子代理能向用户提问：Rust 的 `restore_loaded_session` 从会话 actor 取 session interactions 注入 `LiveAgent.asks`（`background_prompts` 关闭时仍不注入，与 `-p`/stream-json 一致）；Node 子代理本就没有 `Asks` 概念，不存在该差异。
 - 结果通知是 at-least-once：正常投递不写 `subagent_result_delivered`，重启后可能再收到一次同一子代理的完成通知；恢复路径写过标记后不再重复。
 - 恢复只在顶层会话冷打开时触发；一直不打开的会话在下次打开时补做。
 - 停放的子代理被 `TaskStop` 时可能沿用上一次运行的 `completed` 结果，重启后不会重跑，但状态/通知显示为上次完成而不是“用户停止”。
 - 恢复条目的 `startedAt`：Rust 按恢复时刻重建（已完成条目耗时显示 0）；Node 用旧 run 的开始时刻。
-- Node 侧崩溃瞬间的未结工具结果由既有 `session-history-hydrator` 在模型上下文里补成中断结果，不额外写回 transcript；模型看到的效果与 Rust 一致。
+- 两个内核都会把崩溃瞬间未结的工具结果**落库**成中断结果（同一段文案、`is_error` 语义）：Rust 在 `restore.rs` 补 `INTERRUPTED_CALL`，Node 在恢复时把 pending/running 的 tool part 改成 error 状态。`session-history-hydrator` 只兜没有落库的旧会话，不会产生第二条结果。
 - Node 子运行时禁止嵌套子代理，恢复只扫直接子会话（Rust 扫全部后代）。
 - Node 的 `selection/execution` 在继承父模型或 profile 未声明权限时可能缺失；Rust 已容错为“可见、不可自动续跑”。

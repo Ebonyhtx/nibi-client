@@ -66,6 +66,7 @@ import {
   latestSubagentRestartEntry,
   readSubagentRestartEntries,
   saveSubagentRestartEntry,
+  settleInterruptedSubagentToolCalls,
   subagentRestartAttemptLimitText,
   subagentRestartDefinitionMissingText,
   subagentRestartResumeFailedText,
@@ -2617,6 +2618,26 @@ async function resumeRestoredSubagent(
     } satisfies SubagentResumeAttemptEntryData,
     { logger: deps.options.logger, nowMs: now, traceContext },
   );
+
+  // 崩溃瞬间未结的工具结果必须在子会话 hydration 之前写回 transcript（等价 Rust `restore` 里
+  // `interrupted_results` 的提交）：hydrator 读到已结状态后只放这一条，不会再加第二条。顺序与
+  // Rust 一致：先记尝试，再补中断结果，最后续跑；写失败只记日志，退回 hydrator 的临时中断结果。
+  const interruptedCount = await settleInterruptedSubagentToolCalls(
+    store,
+    spawn.childSessionId as SessionId,
+    { logger: deps.options.logger, nowMs: now, traceContext },
+  );
+  if (interruptedCount > 0) {
+    deps.options.logger?.debug("Interrupted subagent tool calls were settled for resume", {
+      ...traceContextToLogContext(traceContext),
+      agentId: spawn.agentId,
+      childSessionId: spawn.childSessionId,
+      event: "subagent.restore.interrupted_results_settled",
+      interruptedToolCount: interruptedCount,
+      module: "core.subagent",
+      status: "completed",
+    });
+  }
 
   const request: SubagentRunRequest = {
     sessionId: params.sessionId,

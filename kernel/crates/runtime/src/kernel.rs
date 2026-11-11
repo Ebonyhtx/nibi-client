@@ -723,7 +723,12 @@ impl Kernel for LocalKernel {
         let handle = self.start(state, Opened::Loaded);
         // 重启后的子代理恢复（docs/subagent-restart-resume.md）：重建 `Live`、补中断结果、
         // 自动续跑与补发丢失的完成通知。只处理顶层会话；失败只记日志，不影响会话打开。
-        self.actors.restore_loaded_session(session, is_child).await;
+        // 注入点在这里而不是恢复内部：actor 已经在上一行启动，续跑中的提问/审批经它的会话级入口
+        // （`SessionAsks`，弱引用请求通道、actor 退出后转进程级入口）走，与正常后台子代理同一条通道。
+        // 恢复自身只写存储并在后台任务里跑，不等待 actor，因此不会阻塞会话打开。
+        self.actors
+            .restore_loaded_session(session, is_child, Some(handle.session_interactions()))
+            .await;
         Ok(handle)
     }
 

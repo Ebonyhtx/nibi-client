@@ -1,16 +1,22 @@
 //! 重启后的子代理恢复（docs/subagent-restart-resume.md）：entry 写入、结果补发、续跑、上限与跳过。
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use futures_util::StreamExt;
 use futures_util::stream::BoxStream;
 use nibi_kernel_api::agents::{AgentNotice, AgentSignal};
-use nibi_kernel_api::ids::{AgentId, MessageId, OwnerEpoch, SessionId, ToolUseId, TraceId};
+use nibi_kernel_api::ids::{
+    AgentId, InteractionId, MessageId, OwnerEpoch, SessionId, ToolUseId, TraceId,
+};
 use nibi_kernel_api::message::{
     AssistantMessage, ContentBlock, INTERRUPTED_CALL, Message, StopReason, ToolResultContent,
     UserMessage, UserOrigin,
 };
-use nibi_kernel_api::orchestration::QueryStop;
+use nibi_kernel_api::orchestration::{
+    InteractionAnswer, InteractionRequest, Interactions, OrchestrationError, PermissionAnswer,
+    QueryStop,
+};
 use nibi_kernel_api::permission::PermissionMode;
 use nibi_kernel_api::store::{Fact, FactBatch, SessionKind, SessionMeta, SessionStore};
 use nibi_kernel_api::testing::MemoryStore;
@@ -704,6 +710,136 @@ async fn a_session_without_a_spawn_entry_is_left_alone() {
             .0
             .is_empty()
     );
+}
+
+/// 记下收到的询问、回答“允许”：会话 actor 的会话级询问入口（`Asks`）的替身。
+#[derive(Default)]
+struct Recorder {
+    asked: Mutex<Vec<InteractionRequest>>,
+}
+
+#[async_trait]
+impl Interactions for Recorder {
+    async fn ask(
+        &self,
+        _session: &SessionId,
+        request: InteractionRequest,
+    ) -> Result<InteractionAnswer, OrchestrationError> {
+        self.asked.lock().unwrap().push(request);
+        Ok(InteractionAnswer {
+            interaction: InteractionId::new("i1"),
+            answer: serde_json::to_value(PermissionAnswer::Allow {
+                remember: Vec::new(),
+            })
+            .unwrap(),
+        })
+    }
+}
+
+fn permission() -> InteractionRequest {
+    InteractionRequest::Permission {
+        machine: None,
+        tool_use: ToolUseId::new("toolu_ask"),
+        tool: "Bash".to_owned(),
+        input: json!({ "command": "touch a" }),
+        message: "ask".to_owned(),
+        suggestions: Vec::new(),
+        asked_by: None,
+    }
+}
+
+/// 恢复（续跑）出来的子代理挂在会话 actor 的同一个询问入口上：续跑期间的提问/审批与正常后台子代理
+/// 走同一条通道，而不是一个没人能回答的新入口。
+#[tokio::test]
+async fn a_resumed_subagent_asks_through_the_session_entry() {
+    let harness = harness(None);
+    seed_root(&harness.store, ROOT).await;
+    seed_child(&harness.store, CHILD, ROOT).await;
+    commit(
+        &harness.store,
+        CHILD,
+        vec![
+            spawn_entry(AGENT, spawn_json(AGENT, CHILD, ROOT, ROOT, false)),
+            Fact::MessageAppended {
+                message: user("Do it."),
+            },
+        ],
+    )
+    .await;
+
+    let recorder = Arc::new(Recorder::default());
+    let entry: Arc<dyn Interactions> = recorder.clone();
+    harness
+        .agents
+        .restore_loaded_session(&SessionId::new(ROOT), false, Some(entry.clone()))
+        .await;
+
+    let live = harness
+        .agents
+        .core
+        .live
+        .get(&AgentId::new(AGENT))
+        .expect("the interrupted subagent is restored");
+    let asks = live
+        .asks
+        .expect("a resumed subagent keeps the session's ask entry");
+    assert!(
+        Arc::ptr_eq(&asks.0, &entry),
+        "the restored subagent must reuse the session's entry, not a new one"
+    );
+    // 续跑中的询问经它到达会话（这里用可控的替身代替 actor）。
+    asks.0
+        .ask(&SessionId::new(CHILD), permission())
+        .await
+        .unwrap();
+    let asked = recorder.asked.lock().unwrap();
+    assert_eq!(asked.len(), 1);
+    assert!(matches!(
+        &asked[0],
+        InteractionRequest::Permission { tool, .. } if tool == "Bash"
+    ));
+}
+
+/// 非交互模式（`-p`、stream-json）与正常后台子代理一致：调用方给了入口也不注入，续跑不询问。
+#[tokio::test]
+async fn a_resumed_subagent_does_not_ask_without_background_prompts() {
+    let gates = Gates::default();
+    let harness = held(&gates, false);
+    seed_root(&harness.store, ROOT).await;
+    seed_child(&harness.store, CHILD, ROOT).await;
+    commit(
+        &harness.store,
+        CHILD,
+        vec![
+            spawn_entry(AGENT, spawn_json(AGENT, CHILD, ROOT, ROOT, false)),
+            Fact::MessageAppended {
+                message: user("Do it."),
+            },
+        ],
+    )
+    .await;
+
+    let recorder: Arc<dyn Interactions> = Arc::new(Recorder::default());
+    harness
+        .agents
+        .restore_loaded_session(&SessionId::new(ROOT), false, Some(recorder))
+        .await;
+
+    let live = harness
+        .agents
+        .core
+        .live
+        .get(&AgentId::new(AGENT))
+        .expect("the interrupted subagent is restored");
+    assert!(
+        live.asks.is_none(),
+        "without background prompts a resumed subagent must not ask"
+    );
+
+    // 放行，让续跑正常收尾（测试结束不留后台任务）。
+    gates.release(CHILD);
+    harness.started(1).await;
+    wait_entry(&harness.store, CHILD, RESULT_ENTRY, AGENT).await;
 }
 
 /// 末尾未结的调用补结果；更早的未结调用（最后一条人类输入之前）不补。

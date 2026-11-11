@@ -1,7 +1,8 @@
 //! 重启后的子代理恢复（docs/subagent-restart-resume.md）：重建 `Live`、补中断结果、续跑与补发通知。
 //!
-//! 入口 [`crate::Agents::restore_session`] 由 runtime 在冷加载顶层会话后调用一次。只处理顶层会话：
-//! 子会话与 DWF actor 会话不进入；没有 `subagent_spawn` entry 的子会话（DWF actor 等）跳过。
+//! 入口 [`crate::Agents::restore_loaded_session`] 由 runtime 在冷加载顶层会话、会话 actor 启动之后调用一次，
+//! 并带上 actor 的会话级询问入口（[`crate::child::Asks`]）：续跑中的提问/审批因此与正常后台子代理同一条通道。
+//! 只处理顶层会话：子会话与 DWF actor 会话不进入；没有 `subagent_spawn` entry 的子会话（DWF actor 等）跳过。
 //!
 //! 恢复的三种去向：
 //! - 有 `subagent_result`：只重建条目的终态；父会话没有 `subagent_result_delivered` 时补发通知，绝不重跑
@@ -22,11 +23,13 @@ use nibi_kernel_api::message::{
     ContentBlock, INTERRUPTED_CALL, Message, ToolResultContent, UserMessage, UserOrigin,
 };
 use nibi_kernel_api::model::ModelSelection;
+use nibi_kernel_api::orchestration::Interactions;
 use nibi_kernel_api::permission::ExecutionState;
 use nibi_kernel_api::store::{Fact, StoreError};
 use serde::Deserialize;
 
 use crate::Core;
+use crate::child::Asks;
 use crate::definitions::{AgentDefinition, AgentSource};
 use crate::live::{AgentState, LiveAgent, Shown};
 use crate::report::{self, Ending, Report};
@@ -123,7 +126,8 @@ struct ResultData {
 impl crate::Agents {
     /// 冷加载顶层会话后调用：恢复它的子代理（只读列表、状态、续跑与补发通知）。
     ///
-    /// 只处理 `parent` 为 None 的会话；内部异常只记日志。
+    /// 只处理 `parent` 为 None 的会话；内部异常只记日志。没有会话 actor 的入口时不注入询问入口
+    /// （恢复出的子代理与 `-p` 一样不询问），runtime 走 [`Self::restore_loaded_session`] 并传入它。
     pub async fn restore_session(&self, session: &SessionId) {
         let is_child = match self.core.ports.store.load(session).await {
             Ok(loaded) => loaded.meta.parent.is_some(),
@@ -132,19 +136,31 @@ impl crate::Agents {
                 return;
             }
         };
-        self.restore_loaded_session(session, is_child).await;
+        self.restore_loaded_session(session, is_child, None).await;
     }
 
     /// 冷加载路径调用：会话已经读过，`is_child` 来自 `LoadedSession.meta.parent`，避免再全量读一次历史。
-    pub async fn restore_loaded_session(&self, session: &SessionId, is_child: bool) {
+    ///
+    /// `asks` 是会话 actor 的会话级询问入口（`Session::session_interactions`）：恢复出的后台子代理
+    /// （含自动续跑的）经它提问与审批，与正常后台子代理的 `context.interactions.lasting(...)` 是同一条通道。
+    /// runtime 在 actor 启动之后、打开返回之前调用这里，所以入口一定已经就绪；恢复本身不等待 actor。
+    pub async fn restore_loaded_session(
+        &self,
+        session: &SessionId,
+        is_child: bool,
+        asks: Option<Arc<dyn Interactions>>,
+    ) {
         if is_child {
             return;
         }
-        restore(&self.core, session).await;
+        restore(&self.core, session, asks).await;
     }
 }
 
-async fn restore(core: &Arc<Core>, root: &SessionId) {
+async fn restore(core: &Arc<Core>, root: &SessionId, asks: Option<Arc<dyn Interactions>>) {
+    // 只有交互界面里的后台子代理能询问（`agent_tool` 的同一个条件，agents.md §4.1.1）：`-p` 与
+    // stream-json 保持“没有人能回答”。入口在 `restore_agent` 里给每个重建的条目一份（`Asks` 可复制）。
+    let asks = core.background_prompts.then_some(asks).flatten().map(Asks);
     // 子会话（以及 DWF actor 会话）不从这里进入：调用方已经按 `meta.parent` 过滤。
     let trees = match core
         .ports
@@ -165,7 +181,7 @@ async fn restore(core: &Arc<Core>, root: &SessionId) {
         if child == root {
             continue;
         }
-        if let Err(error) = restore_child(core, root, child).await {
+        if let Err(error) = restore_child(core, root, child, asks.clone()).await {
             tracing::warn!(session = %child, %error, "this subagent could not be restored");
         }
     }
@@ -175,6 +191,7 @@ async fn restore_child(
     core: &Arc<Core>,
     root: &SessionId,
     child: &SessionId,
+    asks: Option<Asks>,
 ) -> Result<(), StoreError> {
     let spawns = core.ports.store.entries(child, SPAWN_ENTRY).await?;
     // 没有 `subagent_spawn` 的会话不是本功能派生的子代理（DWF actor 等）。
@@ -186,7 +203,8 @@ async fn restore_child(
                 continue;
             }
         };
-        if let Err(error) = restore_agent(core, root, child, &entry_id, &spawn).await {
+        if let Err(error) = restore_agent(core, root, child, &entry_id, &spawn, asks.clone()).await
+        {
             tracing::warn!(agent = %entry_id, %error, "this subagent could not be restored");
         }
     }
@@ -199,6 +217,7 @@ async fn restore_agent(
     child: &SessionId,
     entry_id: &str,
     spawn: &SpawnData,
+    asks: Option<Asks>,
 ) -> Result<(), StoreError> {
     let agent_id = AgentId::new(
         spawn
@@ -247,6 +266,7 @@ async fn restore_agent(
             definition.unwrap_or_else(|| placeholder(spawn)),
             AgentState::Finished(ending),
             Some(finished_at),
+            asks,
         );
         core.live.insert(live.clone());
         // 通知里的 `<tool-use-id>` 用产生这条结果的那次运行（续跑产生的通知不属于哪次工具调用）。
@@ -265,6 +285,7 @@ async fn restore_agent(
             definition.unwrap_or_else(|| placeholder(spawn)),
             AgentState::Finished(Ending::Failed),
             None,
+            asks,
         );
         tracing::warn!(
             agent = %live.agent,
@@ -292,6 +313,7 @@ async fn restore_agent(
             placeholder(spawn),
             AgentState::Finished(Ending::Failed),
             None,
+            asks,
         );
         fail_and_deliver(core, live, report.text).await;
         return Ok(());
@@ -333,6 +355,7 @@ async fn restore_agent(
             mailbox: Vec::new(),
         },
         None,
+        asks,
     );
     let origin = UserOrigin::Meta {
         source: "process-restart".to_owned(),
@@ -418,6 +441,7 @@ fn build_live(
     definition: AgentDefinition,
     state: AgentState,
     ended_ms: Option<u64>,
+    asks: Option<Asks>,
 ) -> LiveAgent {
     LiveAgent {
         agent,
@@ -441,8 +465,9 @@ fn build_live(
             .execution
             .unwrap_or_else(|| ExecutionState::from(nibi_kernel_api::permission::PermissionMode::Default)),
         background: spawn.background,
-        // 已知边界：恢复后的子代理暂不挂 `Asks`（docs/subagent-restart-resume.md「已知边界」）。
-        asks: None,
+        // 与会话 actor 的入口是同一个（runtime 冷加载时经 `restore_loaded_session` 注入）：续跑期间的
+        // 提问/审批与正常后台子代理走同一条通道（agents.md §4.1.1；以前这里是 None）。
+        asks,
         state,
         shown: Shown {
             ended_ms,

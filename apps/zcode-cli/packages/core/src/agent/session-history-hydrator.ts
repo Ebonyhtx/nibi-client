@@ -229,6 +229,9 @@ export async function hydrateMessageHistoryFromSession(input: {
       }
 
       interruptedToolCount++;
+      // 只有"从未落过结果"的调用才走这里。子代理恢复续跑前会把崩溃瞬间的未结调用先落成 error 结果
+      // （subagent/restart-entries.ts 的 settleInterruptedSubagentToolCalls），那些 part 走上面的
+      // error 分支，只放一条结果；这里是旧会话 / 未落库会话的降级路径，两者不会叠加成两条。
       input.history.addToolResult(
         part.callID,
         toolName,
