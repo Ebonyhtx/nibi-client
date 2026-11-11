@@ -16,9 +16,12 @@ import {
   IProjectService,
   shouldRescanTaskAutoArchive,
 } from "#src/project/index.js";
+import { createProjectDataPort } from "#src/project/data/project-data-port.js";
+import { isZCodeAgentSessionDataUnsupportedError } from "#src/zcode-agent/zcodeAgentErrors.js";
 export { createLegacySingleRootProjectService } from "#src/project/index.js";
 export { createRemoteProjectService } from "#src/remote-projects/index.js";
 import { getZCodeDataRootDir as projectDataRoot } from "#src/paths.js";
+import { getAppConfigDir, getWorkspaceHash } from "./paths.js";
 import { createTaskGroupService, ITaskGroupService, groupTaskKey } from "#src/task-groups/index.js";
 import { IGenUiService } from "./gen-ui/contract.js";
 import { createGenUiService } from "./gen-ui/node.js";
@@ -125,6 +128,7 @@ export {
   getFeedbackAttachmentDir,
   getFeedbackLogArchiveDir,
   getGitCheckpointIndexRootDir,
+  getWorkspaceHash,
   copyDataDirectory,
   validateDataBaseDirTarget,
   NIBI_WINDOWS_APP_INSTALL_DIR_ENV,
@@ -2107,6 +2111,37 @@ export function createLocalServices(options: {
     database: () => taskIndexRepo.getOrganizationDatabase(),
     afterChange: publishProjectChange,
   });
+  // 项目数据清理的 Agent 适配器：agent service 在本函数稍后创建，端口先拿一个 late-bound 引用。
+  // 旧内核的 -32601 在边界映射为 project.data-unsupported，UI 据此隐藏清理入口。
+  let projectDataAgent: ReturnType<typeof createZCodeAgentService> | undefined;
+  const projectDataPort = createProjectDataPort({
+    agent: {
+      supported: () => projectDataAgent?.supportsSessionData() ?? Promise.resolve(undefined),
+      measure: async (params) => {
+        if (!projectDataAgent) throw new Error("project.data-unavailable");
+        try {
+          return await projectDataAgent.measureSessionData(params);
+        } catch (error) {
+          if (isZCodeAgentSessionDataUnsupportedError(error))
+            throw new Error("project.data-unsupported");
+          throw error;
+        }
+      },
+      purge: async (params) => {
+        if (!projectDataAgent) throw new Error("project.data-unavailable");
+        try {
+          return await projectDataAgent.purgeSessionData(params);
+        } catch (error) {
+          if (isZCodeAgentSessionDataUnsupportedError(error))
+            throw new Error("project.data-unsupported");
+          throw error;
+        }
+      },
+    },
+    // 与 GitCheckpointStore 的默认目录约定一致（写者仍是 Host 的 checkpoint store）。
+    checkpointDirectory: (workspacePath) =>
+      join(getAppConfigDir(), "checkpoints", getWorkspaceHash(workspacePath)),
+  });
   const projectService = createProjectService({
     directories: {
       home: async () => (await systemService.info()).homedir,
@@ -2117,6 +2152,10 @@ export function createLocalServices(options: {
     repository: () => taskIndexRepo.getProjectRepository(),
     workspaceDirectory: join(projectDataRoot(), "workspace"),
     afterChange: publishProjectChange,
+    data: {
+      port: projectDataPort,
+      repository: () => taskIndexRepo.getProjectRepository(),
+    },
   });
   const taskGroupService = createTaskGroupService({
     database: () => taskIndexRepo.getOrganizationDatabase(),
@@ -2381,6 +2420,7 @@ export function createLocalServices(options: {
           },
         }),
   });
+  projectDataAgent = zcodeAgentService;
   providerConnectivityAgentService = zcodeAgentService;
   // Helper health probe 短暂超时不应在 Computer Use turn 中途回收 Agent。resolver 会把 restart
   // 推迟到下一个 request/turn 边界；若 broker 确实已失效，当前 turn 会自然失败并由下一次请求恢复。

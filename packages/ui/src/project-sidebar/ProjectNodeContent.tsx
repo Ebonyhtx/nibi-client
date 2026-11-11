@@ -4,6 +4,7 @@ import { remoteHostLabel } from "@/project-sidebar/RemoteHostSection.js";
 import { memo } from "react";
 import type { useSortable } from "@dnd-kit/sortable";
 import {
+  Database,
   Ellipsis,
   FolderMinus,
   ListTree,
@@ -63,6 +64,8 @@ export type ProjectNodeProps = {
   onViewFiles?(rootPath: string): void;
   onEdit(): void;
   onDelete(): void;
+  /** 仅旧内核明确不支持时由上层省略；入口不显示假选项。 */
+  onCleanupData?(): void;
   onPin(): void;
   onMove(task: { workspacePath: string; workspaceIdentity?: string; taskId: string }): void;
   onSelect: ProjectSidebarProps["onSelectTask"];
@@ -86,6 +89,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
   onViewFiles,
   onEdit,
   onDelete,
+  onCleanupData,
   onPin,
   onSelect,
   refresh,
@@ -149,6 +153,16 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
             icon: project.pinned ? PinOff : Pin,
             run: onPin,
           },
+          ...(onCleanupData
+            ? [
+                {
+                  id: "cleanup-data",
+                  label: msg("cleanupData"),
+                  icon: Database,
+                  run: onCleanupData,
+                },
+              ]
+            : []),
           { id: "delete", label: msg("delete"), icon: Trash2, run: onDelete, destructive: true },
         ]
       : []),

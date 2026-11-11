@@ -12,6 +12,7 @@ import { buildRemoteHostWorkspaceIdentity } from "@/project-sidebar/contract.js"
 import { ProjectNode } from "@/project-sidebar/ProjectNode.js";
 import type { ProjectNodeProps } from "@/project-sidebar/ProjectNodeContent.js";
 import { projectSourceServerId } from "@/project-sidebar/view.js";
+import { projectDataCleanupAvailable } from "@/project-sidebar/project-data-cleanup.js";
 import { useTabStoreApi } from "@/store/TabStoreProvider.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
@@ -49,6 +50,10 @@ type Props = Pick<
     onEdit(value: { project: VirtualProject }): void;
     onViewFiles(project: VirtualProject, rootPath: string): Promise<void>;
     remoteActions(project: VirtualProject): ProjectRowAction[];
+    /** 本机项目删除与数据清理共用同一对话框；远端项目仍走原有即时删除。 */
+    onOpenProjectData?(project: VirtualProject, mode: "delete" | "cleanup"): void;
+    /** 旧内核明确不支持时 false；未知/支持都显示入口。 */
+    dataCleanupSupported?: boolean | "unknown";
   };
 
 // Bug 根因：任务活动每秒更新目录，父组件随之重建所有项目的菜单与回调，穿透内容层 memo。
@@ -67,6 +72,8 @@ export const ProjectSidebarNode = memo(
     onEdit,
     onViewFiles,
     remoteActions,
+    onOpenProjectData,
+    dataCleanupSupported,
     ...display
   }: Props) {
     const { intl } = useZCodeIntl();
@@ -75,6 +82,10 @@ export const ProjectSidebarNode = memo(
     const msg = (id: string) => intl.formatMessage({ id: `project.${id}` });
     const sourceServerId = projectSourceServerId(project);
     const { refresh, availability } = display;
+    const localProject = project.hostId === "local" && project.legacySingleRoot !== true;
+    const cleanupAvailable =
+      projectDataCleanupAvailable({ project, supported: dataCleanupSupported }) &&
+      availability?.online !== false;
     return (
       <ProjectNode
         {...display}
@@ -135,11 +146,21 @@ export const ProjectSidebarNode = memo(
         }
         onEdit={() => onEdit({ project })}
         onViewFiles={(rootPath) => runProjectAction(() => onViewFiles(project, rootPath))}
-        onDelete={() =>
+        onDelete={() => {
+          // 本机项目删除提供数据清理选项；远端项目没有本机数据面，保持原有即时软删除。
+          if (localProject && onOpenProjectData) {
+            onOpenProjectData(project, "delete");
+            return;
+          }
           runProjectAction(async () => {
             await service!.deleteProject(project.id, project.hostId);
             await refresh();
-          })
+          });
+        }}
+        onCleanupData={
+          cleanupAvailable && onOpenProjectData
+            ? () => onOpenProjectData(project, "cleanup")
+            : undefined
         }
         onPin={() =>
           runProjectAction(async () => {

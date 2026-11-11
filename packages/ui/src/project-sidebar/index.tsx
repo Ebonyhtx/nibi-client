@@ -47,6 +47,8 @@ import { RemoteProjectPicker } from "@/project-sidebar/RemoteProjectPicker.js";
 import { ProjectSections } from "@/project-sidebar/ProjectSections.js";
 import { ProjectSidebarListHeader } from "@/project-sidebar/ProjectSidebarListHeader.js";
 import { ProjectSidebarNavigation } from "@/project-sidebar/ProjectSidebarNavigation.js";
+import { ProjectDataCleanupDialog } from "@/project-sidebar/ProjectDataCleanupDialog.js";
+import { useProjectDataCleanupSupport } from "@/project-sidebar/useProjectDataCleanupSupport.js";
 import { HomeOnlyWorkspaceRows } from "@/project-sidebar/HomeOnlyWorkspaceRows.js";
 import { WorkspaceSidebarFooter } from "@/WorkspaceSidebarFooter.js";
 import { SidebarBottomActivity } from "@/sidebar-activity/SidebarBottomActivity.js";
@@ -90,6 +92,36 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
   const [groupedSticky, setGroupedSticky] = useState<HTMLDivElement | null>(null);
   const [editor, setEditor] = useState<{ project: VirtualProject | null } | null>(null);
   const [creating, setCreating] = useState(false);
+  const [projectDialog, setProjectDialog] = useState<{
+    project: VirtualProject;
+    mode: "delete" | "cleanup";
+  } | null>(null);
+  const { supported: dataCleanupSupported, markUnsupported: markDataCleanupUnsupported } =
+    useProjectDataCleanupSupport(service);
+  const workspaceKey = props.workspaceIdentity?.trim() || props.workspacePath;
+  // 清理入口需要把运行中的会话置灰；只读当前 workspace 的运行态（其他 workspace 由任务状态兜底）。
+  const runningTaskIds = useZCodeSessionStore((state) => {
+    const runtime = state.workspaces[workspaceKey]?.taskRuntimeByTaskId;
+    if (!runtime) return "";
+    return Object.entries(runtime)
+      .filter(
+        ([, value]) =>
+          value.status === "streaming" ||
+          value.status === "creating" ||
+          value.status === "restoring",
+      )
+      .map(([taskId]) => taskId)
+      .sort()
+      .join("\n");
+  });
+  const runningSessionIds = useMemo(
+    () => new Set(runningTaskIds ? runningTaskIds.split("\n") : []),
+    [runningTaskIds],
+  );
+  const openProjectData = useCallback(
+    (project: VirtualProject, mode: "delete" | "cleanup") => setProjectDialog({ project, mode }),
+    [],
+  );
   // 当前任务只影响远端“创建项目”的默认设备；分组继承在点击时读，
   // 避免本地会话/草稿切换让全部项目的菜单与 Tooltip 重渲染。
   const hasActiveRemoteTask = useZCodeSessionStore((state) =>
@@ -194,6 +226,8 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
       onEdit={setEditor}
       onViewFiles={openFiles}
       remoteActions={remoteSync.actions}
+      onOpenProjectData={openProjectData}
+      dataCleanupSupported={dataCleanupSupported}
     />
   );
   const openSettings = useCallback(() => {
@@ -380,6 +414,24 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
               onClose={() => setEditor(null)}
               onSaved={refresh}
               onDeleted={refresh}
+            />
+          ) : null}
+          {projectDialog && service ? (
+            <ProjectDataCleanupDialog
+              key={`${workspaceKey}:${projectDialog.project.id}:${projectDialog.mode}`}
+              project={projectDialog.project}
+              mode={projectDialog.mode}
+              service={service}
+              // 归档/置顶会话也属于项目数据，标题与运行态都要参与清理清单。
+              tasks={tree.tasks.filter(
+                (task) =>
+                  task.projectId === projectDialog.project.id &&
+                  task.hostId === projectDialog.project.hostId,
+              )}
+              runningSessionIds={runningSessionIds}
+              onClose={() => setProjectDialog(null)}
+              onChanged={refresh}
+              onUnsupported={markDataCleanupUnsupported}
             />
           ) : null}
           {remoteSync.dialog}

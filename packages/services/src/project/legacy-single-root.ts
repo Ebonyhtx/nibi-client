@@ -161,6 +161,12 @@ export function createLegacySingleRootProjectService(
     deleteProject: readOnly,
     moveTask: readOnly,
     reorderProjects: readOnly,
+    // 旧 Server 是只读投影，既没有 CLI 数据面也没有删除权限；UI 因此隐藏清理入口。
+    async readProjectDataSupport() {
+      return { supported: false };
+    },
+    measureProjectData: readOnly,
+    purgeProjectData: readOnly,
   };
   return service;
 }

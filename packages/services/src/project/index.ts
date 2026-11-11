@@ -3,9 +3,21 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { mkdir, stat } from "node:fs/promises";
 import { isAbsolute, join, normalize } from "node:path";
-import type { ProjectRepositoryContract } from "#src/project-storage/contract.js";
+import type {
+  ProjectDataRepositoryContract,
+  ProjectRepositoryContract,
+} from "#src/project-storage/contract.js";
 import type { IProjectService, ProjectDirectories, VirtualProject } from "#src/project/contract.js";
+import { createProjectDataCommands } from "#src/project/data/project-data.js";
+import type { ProjectDataPort } from "#src/project/data/contract.js";
 export { IProjectService } from "#src/project/contract.js";
+export type {
+  ProjectDataMeasureDetail,
+  ProjectDataPort,
+  ProjectDataPurgeDetail,
+  ProjectDataSession,
+  ProjectDataSupport,
+} from "#src/project/data/contract.js";
 export { createLegacySingleRootProjectService } from "#src/project/legacy-single-root.js";
 export {
   createTaskAutoArchiveScheduler,
@@ -80,6 +92,12 @@ export function createProjectService(options: {
   /** 只解析现有连接；连接缺失拒绝，不创建替代 Host。 */
   resolveHost?: (hostId: string) => Promise<IProjectService>;
   afterChange?: () => Promise<void>;
+  /** 项目数据清理的副作用端口；缺省时清理入口报告不可用。 */
+  data?: {
+    port: ProjectDataPort;
+    /** 与组织态同一 Host 库的行操作。 */
+    repository(): Promise<ProjectDataRepositoryContract>;
+  };
 }): IProjectService {
   const route = async (hostId?: string) => {
     if (!hostId || hostId === (options.ownerHostId ?? "local")) return null;
@@ -91,6 +109,12 @@ export function createProjectService(options: {
     await options.afterChange?.();
   };
   const service: IProjectService = {
+    ...createProjectDataCommands({
+      repository: options.repository,
+      ...(options.ownerHostId ? { ownerHostId: options.ownerHostId } : {}),
+      ...(options.data ? { data: options.data } : {}),
+      changed,
+    }),
     async readDirectory(params = {}) {
       const input = z
         .object({
@@ -326,6 +350,9 @@ export function bindRemoteProjectIdentities(
         workspaceIdentity: await resolveIdentity(directories.workspacePath),
       };
     },
+    readProjectDataSupport: (hostId) => service.readProjectDataSupport(hostId),
+    measureProjectData: (id, hostId) => service.measureProjectData(id, hostId),
+    purgeProjectData: (input, hostId) => service.purgeProjectData(input, hostId),
   };
 }
 

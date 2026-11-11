@@ -1,5 +1,10 @@
 import type { PluginUiToolResultNotification } from "@nibi/shared/mcp-apps";
 import type {
+  V4SessionDataMeasureResult,
+  V4SessionDataParams,
+  V4SessionDataPurgeResult,
+} from "@nibi/shared/nibi-protocol-v4";
+import type {
   BackgroundBashOutputResult,
   SessionDebugSnapshot,
   ZCodeSessionContentProfile,
@@ -257,6 +262,14 @@ export interface ZCodeAgentListSessionSubagentsParams extends ZCodeAgentSessionT
 export interface ZCodeAgentAppUsageParams {
   range: AppUsageRange;
   timeZone?: string;
+}
+
+/** 项目彻底删除的数据测量；空数组是合法的能力探测请求（只读、不创建会话）。 */
+export interface ZCodeAgentSessionDataParams extends V4SessionDataParams {}
+
+/** purge 的 workspace 决定由哪个 Agent 进程执行：该 cwd 已有进程时交给它，否则交给管理面进程。 */
+export interface ZCodeAgentSessionDataPurgeParams extends V4SessionDataParams {
+  workspace: ZCodeAgentWorkspaceTarget;
 }
 
 export interface ZCodeAgentTaskTokenUsageParams extends ZCodeAgentSessionTarget {}
@@ -656,6 +669,21 @@ export interface IZCodeAgentService {
   ): Promise<ZCodeSessionSubagentsResult>;
   getAppUsageStats(params: ZCodeAgentAppUsageParams): Promise<AppUsageSnapshot>;
   getTaskTokenUsage(params: ZCodeAgentTaskTokenUsageParams): Promise<ZCodeTaskTokenUsageResult>;
+  /**
+   * 测量项目会话与目录记忆的可清理体积。只读；旧内核返回 -32601 时抛
+   * `ZCodeAgentSessionDataUnsupportedError`（稳定 code），Host 据此隐藏清理入口。
+   */
+  measureSessionData(params: ZCodeAgentSessionDataParams): Promise<V4SessionDataMeasureResult>;
+  /**
+   * 彻底删除会话数据：运行中/被引用的会话保留，失败项可重试，已不存在的会话按 0 字节成功（幂等）。
+   * 只允许本地 workspace；远程数据必须在它自己的设备上删除。
+   */
+  purgeSessionData(params: ZCodeAgentSessionDataPurgeParams): Promise<V4SessionDataPurgeResult>;
+  /**
+   * 探测旧内核是否实现了 `sessionData` 方法：true/false 为确定结果，
+   * undefined 表示当前没有可询问的本地运行时（不为此启动空闲 Agent）。
+   */
+  supportsSessionData(): Promise<boolean | undefined>;
   readSession(params: ZCodeAgentReadSessionParams): Promise<ZCodeSessionStateSnapshot>;
   readSessionMessages(
     params: ZCodeAgentReadSessionMessagesParams,

@@ -1,4 +1,9 @@
 import type {
+  ProjectDataMeasureDetail,
+  ProjectDataPurgeDetail,
+  ProjectDataSupport,
+} from "#src/project/data/contract.js";
+import type {
   ProjectDirectories,
   ProjectTaskRef,
   ProjectTree,
@@ -56,5 +61,24 @@ export interface IProjectService {
   }): Promise<ProjectDirectories>;
   /** 缺 task = []，缺 project / DB 错误必须拒绝。软删项目仍可恢复历史任务。 */
   resolveSessionDirectories(task: ProjectTaskRef, hostId?: string): Promise<ProjectDirectories>;
+  /**
+   * 本机项目数据清理能力。旧内核没有 sessionData 方法时 supported=false，UI 隐藏入口；
+   * "unknown" = 当前没有已运行的本地 Agent 可询问（不为此启动空闲进程）。
+   */
+  readProjectDataSupport(hostId?: string): Promise<ProjectDataSupport>;
+  /** 只读测量项目会话与目录记忆；目录已按共享使用情况排除。 */
+  measureProjectData(id: string, hostId?: string): Promise<ProjectDataMeasureDetail>;
+  /**
+   * 清理选中的会话与目录（缺省 = 项目全部候选）。运行中/被引用的会话保留并返回原因；
+   * 失败项仍在结果里，可重试；已不存在的会话按 0 字节成功（幂等）。项目容器不删除。
+   */
+  purgeProjectData(
+    input: {
+      projectId: string;
+      sessionIds?: string[];
+      directories?: string[];
+    },
+    hostId?: string,
+  ): Promise<ProjectDataPurgeDetail>;
 }
 export const IProjectService = createServiceDescriptor<IProjectService>(ServiceChannels.Project);

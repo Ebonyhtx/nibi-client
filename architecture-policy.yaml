@@ -1139,6 +1139,12 @@ exceptions:
       - packages/web/src/auth/nibiWebOAuth.ts
       - packages/web/src/auth/oauthUserInfo.ts
     reason: 手机远控 Web 页的 NIBI 登录（授权码 + PKCE）：nibiWebOAuth 只做授权 URL/PKCE/令牌交换，oauthUserInfo 是中性的用户资料归一化（从上游 provider 抽出，供两个 provider 共用）；packages/web/src/auth 整体仍是上游未受管区域，接管整包不在本次范围内。
+  - id: nibi-project-data-cleanup
+    rule: unmanaged-new-file
+    paths:
+      - packages/shared/src/nibi-protocol-v4/session-data.ts
+      - packages/services/src/zcode-agent/sessionDataRequest.ts
+    reason: 项目彻底删除的 v4 sessionData 契约与请求边界；契约沿用 shared 协议目录（与上游 session-data/contract.ts 同形），请求边界沿用 services 的 zcode-agent 目录，只做 schema 校验与 -32601 → unsupported 映射，不新增模块边界或跨层依赖。
   - id: plugin-ui-bridge-cloud-project-method
     rule: max-public-methods
     paths: [ packages/services/src/plugin-ui-bridge/contract.ts ]

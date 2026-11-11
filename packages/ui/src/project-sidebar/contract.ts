@@ -57,6 +57,9 @@ export type {
   RemoteProjectDirectory,
   RemoteProjectEntry,
   RemoteProjectHost,
+  ProjectDataMeasureDetail,
+  ProjectDataPurgeDetail,
+  ProjectDataSupport,
 } from "@nibi/services";
 export interface ProjectAvailability {
   entryId?: string;

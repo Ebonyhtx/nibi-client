@@ -371,6 +371,10 @@ export const V4_METHODS = {
   // 故收敛为 v4 query 而非 host 直连；旧词 usage/stats、session/usage 就此消费清零。
   usageStats: "v4/usage/stats",
   conversationUsage: "v4/conversation/usage",
+  // 项目数据彻底删除（schema 在 session-data.ts）：measure 只读；purge 幂等，已不存在的会话按 0 字节成功。
+  // 新方法偏斜安全：旧 CLI 返回 method-not-found，Host 据此不显示「清理数据」入口。
+  sessionDataMeasure: "v4/storage/sessionData/measure",
+  sessionDataPurge: "v4/storage/sessionData/purge",
   // 附件事务：禁止 full-data RPC。每个 chunk 的 decoded bytes <=512KiB，
   // renderer->host Channel 与 host->CLI NDJSON 都必须逐 request 证明 <=1MiB。
   attachmentBegin: "v4/attachment/begin",

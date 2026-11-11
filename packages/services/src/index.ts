@@ -155,8 +155,11 @@ export {
 } from "./zcode-agent/zcodeAgent.js";
 export {
   isZCodeAgentMcpStatusModeUnsupportedError,
+  isZCodeAgentSessionDataUnsupportedError,
   NIBI_AGENT_MCP_STATUS_MODE_UNSUPPORTED_ERROR_CODE,
+  NIBI_AGENT_SESSION_DATA_UNSUPPORTED_ERROR_CODE,
   ZCodeAgentMcpStatusModeUnsupportedError,
+  ZCodeAgentSessionDataUnsupportedError,
 } from "./zcode-agent/zcodeAgentErrors.js";
 export {
   createZCodeAgentConnectionScope,
@@ -184,6 +187,8 @@ export type {
   ZCodeAgentSavedWorkflowTarget,
   ZCodeAgentSendPromptParams,
   ZCodeAgentServiceEvent,
+  ZCodeAgentSessionDataParams,
+  ZCodeAgentSessionDataPurgeParams,
   ZCodeAgentSessionSubscribeParams,
   ZCodeAgentSessionTarget,
   ZCodeAgentSetModeParams,
@@ -341,6 +346,13 @@ export type {
   SaveProjectInput,
   ProjectDirectories,
 } from "#src/project/contract.js";
+export type {
+  ProjectDataMeasureDetail,
+  ProjectDataPort,
+  ProjectDataPurgeDetail,
+  ProjectDataSession,
+  ProjectDataSupport,
+} from "#src/project/data/contract.js";
 
 export { IRemoteProjectService } from "#src/remote-projects/contract.js";
 export type {

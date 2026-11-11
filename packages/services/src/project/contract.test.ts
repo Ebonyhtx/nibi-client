@@ -213,6 +213,15 @@ it("routes every foreign project operation to its existing owner and never falls
       workspacePath: "/remote",
       additionalDirectories: ["/extra"],
     })),
+    readProjectDataSupport: vi.fn(async () => ({ supported: false as const })),
+    measureProjectData: vi.fn(async () => ({ sessions: [], directories: [] })),
+    purgeProjectData: vi.fn(async () => ({
+      deleted: [],
+      kept: [],
+      failed: [],
+      memory: [],
+      checkpoints: [],
+    })),
   } satisfies IProjectService;
   const resolveHost = vi.fn(async (hostId: string) => {
     if (hostId === "offline") throw new Error("project.host-offline");
@@ -235,7 +244,10 @@ it("routes every foreign project operation to its existing owner and never falls
     workspacePath: "/remote",
   });
   await service.resolveSessionDirectories({ workspacePath: "/remote", taskId: "s" }, "source");
-  for (const method of Object.values(remote)) expect(method).toHaveBeenCalledTimes(1);
+  // 数据清理只在本机执行，不属于会路由到 owner 的项目操作。
+  for (const [name, method] of Object.entries(remote))
+    if (!["readProjectDataSupport", "measureProjectData", "purgeProjectData"].includes(name))
+      expect(method).toHaveBeenCalledTimes(1);
   expect(repository).not.toHaveBeenCalled();
   await expect(service.readTree({ hostId: "offline" })).rejects.toThrow("project.host-offline");
   expect(repository).not.toHaveBeenCalled();

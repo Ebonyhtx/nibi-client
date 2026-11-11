@@ -275,6 +275,8 @@ import type {
   ZCodeAgentConversationUnsubscribeParams,
   ZCodeAgentConnectionFlowParams,
   ZCodeAgentSessionsIndexSubscribeParams,
+  ZCodeAgentSessionDataParams,
+  ZCodeAgentSessionDataPurgeParams,
   ZCodeAgentWorkspaceConfigSubscribeParams,
 } from "./zcodeAgent.js";
 import {
@@ -348,7 +350,14 @@ import { createBackgroundSessionEventCoalescer } from "#src/zcode-agent/zcodeSes
 import { AutomationService } from "#src/session/automationService.js";
 import { AutomationRepo } from "#src/session/automationRepo.js";
 import { TaskIndexRepo } from "#src/session/taskIndexRepo.js";
-import { ZCodeAgentMcpStatusModeUnsupportedError } from "#src/zcode-agent/zcodeAgentErrors.js";
+import {
+  isZCodeAgentSessionDataUnsupportedError,
+  ZCodeAgentMcpStatusModeUnsupportedError,
+} from "#src/zcode-agent/zcodeAgentErrors.js";
+import {
+  requestSessionDataMeasure,
+  requestSessionDataPurge,
+} from "#src/zcode-agent/sessionDataRequest.js";
 import { ZCodeAgentProcessManager } from "./zcodeAgentProcessManager.js";
 import type { ZCodeAgentProcessManagerOptions } from "./zcodeAgentProcessManager.js";
 import {
@@ -3715,6 +3724,43 @@ export function createZCodeAgentService(
         { sessionId: params.sessionId },
         v4ConversationUsageResultSchema,
       );
+    },
+
+    async measureSessionData(params: ZCodeAgentSessionDataParams) {
+      // 只读测量：和全局工作流同一载体选择（本机已活跃 runtime，否则管理面进程）。
+      // 会话库是全局的，不需要逐个项目拉起 Agent。
+      const { client } = await resolveGlobalSavedWorkflowCarrier();
+      return requestSessionDataMeasure(client, {
+        sessionIds: params.sessionIds,
+        directories: params.directories,
+      });
+    },
+
+    async purgeSessionData({ workspace, ...params }: ZCodeAgentSessionDataPurgeParams) {
+      if (!isLocalActiveWorkspaceClient(workspace)) throw new Error("project.data-local-only");
+      // 会话可能已加载在该 cwd 的 Agent 进程里：必须由那个进程删除，它才能判断运行中并释放会话；
+      // 绝不为删除拉起该项目的 Agent（文件夹可能已不存在），没有进程时交给管理面进程。
+      const client = await getReadOnlyClient(workspace, "existing-only").catch(() =>
+        getPluginManagementClient(),
+      );
+      return requestSessionDataPurge(client, params);
+    },
+
+    async supportsSessionData() {
+      // 不启动空闲 Agent：只在已有本机 runtime 上发一次空的只读测量。
+      // 旧内核返回 -32601，映射成确定的不支持；没有可用运行时则维持未知，由首次打开清理入口时判定。
+      for (const active of activeClientsByWorkspaceKey.values()) {
+        if (!isLocalActiveWorkspaceClient(active.workspace)) continue;
+        if (!isReusableActiveClientEntry(active.workspace, active)) continue;
+        try {
+          await requestSessionDataMeasure(active.client, { sessionIds: [], directories: [] });
+          return true;
+        } catch (error) {
+          if (isZCodeAgentSessionDataUnsupportedError(error)) return false;
+          throw error;
+        }
+      }
+      return undefined;
     },
 
     async readSession(params: ZCodeAgentReadSessionParams) {

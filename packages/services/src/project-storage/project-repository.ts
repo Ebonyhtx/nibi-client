@@ -18,6 +18,7 @@ import type {
   SaveProjectInput,
   VirtualProject,
 } from "#src/project-storage/contract.js";
+import type { ProjectDataRepositoryContract } from "#src/project-storage/data-contract.js";
 import { ensureHost, OWNERSHIP_DECIDED } from "#src/project-storage/legacy-tasks.js";
 import {
   assertRemoteProjectRoots,
@@ -151,7 +152,7 @@ function readTasks(db: DatabaseSync): ProjectTask[] {
     });
 }
 
-export class ProjectRepository implements ProjectRepositoryContract {
+export class ProjectRepository implements ProjectRepositoryContract, ProjectDataRepositoryContract {
   constructor(
     private readonly db: DatabaseSync,
     private readonly ownerHostId?: string,
@@ -322,6 +323,43 @@ export class ProjectRepository implements ProjectRepositoryContract {
         "UPDATE projects SET deleted=1,deleted_at=?,updated_at=? WHERE project_id=? AND deleted=0 AND host_id=?",
       )
       .run(Date.now(), Date.now(), id, this.ownerHostId ?? "local");
+  }
+
+  readProjectTaskRefs(projectId: string): ProjectTaskRef[] {
+    return this.db
+      .prepare(
+        "SELECT task_id,workspace_path,workspace_identity,workspace_key FROM tasks WHERE project_id=? AND host_id=? ORDER BY task_id",
+      )
+      .all(projectId, this.ownerHostId ?? "local")
+      .map((row) => ({
+        taskId: String(row.task_id),
+        workspacePath: String(row.workspace_path),
+        ...(typeof row.workspace_identity === "string" &&
+        row.workspace_identity !== row.workspace_key
+          ? { workspaceIdentity: String(row.workspace_identity) }
+          : {}),
+      }));
+  }
+
+  readTaskScopes(): Array<{ projectId: string | null; cwd: string }> {
+    return this.db
+      .prepare("SELECT project_id,workspace_path FROM tasks WHERE host_id=?")
+      .all(this.ownerHostId ?? "local")
+      .map((row) => ({
+        projectId: row.project_id == null ? null : String(row.project_id),
+        cwd: String(row.workspace_path),
+      }));
+  }
+
+  purgeTasks(tasks: readonly ProjectTaskRef[]): void {
+    if (!tasks.length) return;
+    transaction(this.db, () => {
+      const statement = this.db.prepare(
+        "DELETE FROM tasks WHERE host_id=? AND workspace_path=? AND task_id=?",
+      );
+      for (const task of tasks)
+        statement.run(this.ownerHostId ?? "local", task.workspacePath, task.taskId);
+    });
   }
 
   moveTask(input: { task: ProjectTaskRef; projectId: string; addMissingRoot?: boolean }): void {

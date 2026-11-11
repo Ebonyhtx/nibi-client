@@ -1,6 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { AppSettings } from "@nibi/shared";
 import type { MigrationResult } from "@nibi/shared/sqlite-migrations";
+import type { ProjectDataRepositoryContract } from "./data-contract.js";
+
+export type { ProjectDataRepositoryContract } from "./data-contract.js";
 
 export interface ProjectMigrationContext {
   /** 可信持库 Server 身份；不受客户端请求或旧 canonical route 影响。 */
@@ -18,7 +21,10 @@ export interface ProjectMigrationContext {
 export interface ProjectStorageContract {
   /** 加法升级后同事务交接旧版本新增行/删除/标题意图；每次启动调用，不重算已处理的 NULL。 */
   migrate(db: DatabaseSync, context: ProjectMigrationContext): Promise<MigrationResult>;
-  repository(db: DatabaseSync, hostId?: string): ProjectRepositoryContract;
+  repository(
+    db: DatabaseSync,
+    hostId?: string,
+  ): ProjectRepositoryContract & ProjectDataRepositoryContract;
   admitTaskIdentity(db: DatabaseSync, task: ProjectTaskRef, hostId?: string): void;
 }
 
