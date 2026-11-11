@@ -36,19 +36,24 @@ pre-push 直接使用当前 `PATH` 中的 pnpm / Node，不强制依赖 mise。�
 
 `pnpm test:unit:affected` 使用 Vitest 官方 changed/related 和 Vite 模块依赖分析。薄入口只负责 Git 基线、Push 工作区检查、全量选择的确认/拒绝和结果说明；不维护自建依赖图、基线消费者图、来源过滤或 Node 测试选择。
 
-| 入口                                         | 官方选择范围                                                                          |
-| -------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `pnpm test:unit:affected`                    | `changed: true`，包含已暂存、未暂存、未跟踪文件                                       |
-| `pnpm test:unit:affected --base <commit>`    | `changed: <SHA>`，包含任务起点之后的提交及当前未提交改动                              |
-| `pnpm test:unit:affected --scope push`       | 显式基线优先；默认用 hook remote SHA，首次推送用 HEAD 与 origin/staging 的 merge-base |
-| `pnpm test:unit:affected --files <files...>` | 官方 related，供 lint-staged 等显式文件入口使用                                       |
-| 上述入口加 `--dry-run` / `--dry-run --json`  | 预览官方选中的测试文件；JSON 只包含测试清单                                           |
+| 入口                                         | 官方选择范围                                                                              |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `pnpm test:unit:affected`                    | `changed: true`，包含已暂存、未暂存、未跟踪文件                                           |
+| `pnpm test:unit:changed`                     | 同 `changed: true`，默认只比较 HEAD 与未提交改动；本地日常入口（等价 `--scope worktree`） |
+| `pnpm test:unit:affected --base <commit>`    | `changed: <SHA>`，包含任务起点之后的提交及当前未提交改动                                  |
+| `pnpm test:unit:affected --scope push`       | 显式基线优先；默认用 hook remote SHA，首次推送用 HEAD 与 origin/staging 的 merge-base     |
+| `pnpm test:unit:affected --files <files...>` | 官方 related，供 lint-staged 等显式文件入口使用                                           |
+| 上述入口加 `--package <name[,name...]>`      | 在官方选中结果里收窄到指定包，仅本地迭代；不能与 `--scope push` 混用                      |
+| 上述入口加 `--dry-run` / `--dry-run --json`  | 预览官方选中的测试文件；JSON 只包含测试清单                                               |
+
+各命令的实测耗时和日常/提交前/发版前的用法见
+[test-command-guide.md](test-command-guide.md)。
 
 任务开始记录一次 HEAD SHA；任务结束使用该起点。开始前已有未提交改动全部纳入；不保存或扣除初始 patch。官方 changed 使用 Git 的三点比较和当前未提交文件，合并带入的改动正常参与选择，不做来源过滤或额外净差异运算。
 
 Push 要求已暂存、未暂存、未跟踪改动均为空（忽略 Git 已忽略的文件）。不干净时非零退出，不自动 stash 或创建 checkout，保证执行内容就是推送版本。hook 非删除 ref 必须指向当前 HEAD；多个 ref 通过各自基线调用官方选择，再合并精确测试规格。删除 ref 无需测试。手动 push 模式没有 hook 输入时使用 upstream；没有有效 upstream 时使用 origin/staging 的 merge-base。不存在可用基线、需要使用的 remote SHA 无效、目标不是 HEAD 均非零退出。显式基线优先于 hook remote SHA；未提供显式基线时，新分支基线只使用 origin/staging，不猜测其他分支。
 
-所有模式的基线优先级均为 `--base` → `ZCODE_AFFECTED_TEST_BASE` → `ZCODE_PRE_PUSH_BASE` → 场景默认基线。`ZCODE_AFFECTED_TEST_BASE=<ref> git push` 使用指定分支、tag 或 commit 的已解析 SHA 交给 Vitest changed；不把 staging 等分支名写死。即使指定基线，Push 仍须工作区干净且非删除目标是 HEAD。显式基线无效时报错，不回退到 remote SHA。
+所有模式的基线优先级均为 `--base` → `NIBI_AFFECTED_TEST_BASE` → `NIBI_PRE_PUSH_BASE` → 场景默认基线。`NIBI_AFFECTED_TEST_BASE=<ref> git push` 使用指定分支、tag 或 commit 的已解析 SHA 交给 Vitest changed；不把 staging 等分支名写死。即使指定基线，Push 仍须工作区干净且非删除目标是 HEAD。显式基线无效时报错，不回退到 remote SHA。
 
 默认工作区没有显式基线时不读取 upstream。--files / --files-manifest 使用官方 related，不与 --base 或 push 混用。
 
@@ -65,9 +70,11 @@ Push 要求已暂存、未暂存、未跟踪改动均为空（忽略 Git 已忽�
 
 - 粒度为测试文件；选中文件后执行文件内全部 case。根配置包含的项目构成整个根 UT 套件，排除 desktop E2E，不含 CLI 独立测试；scripts 下的 Node 原生测试另用 node --test，不自动关联。
 - 使用公开 getRelevantTestSpecifications 选择；globTestSpecifications 提供完整清单。预览只转换模块，不 collect/import 测试；执行使用同一 Vitest 实例和同一份精确规格，避免 CLI 文件名子串匹配扩大范围。
+- 改动清单由官方 VCS provider（`vitest.vcs.findChangedFiles`）提供，入口只补正斜杠变体：Windows 上 `spec.moduleId` 用正斜杠、`related` 依赖 `path.join` 的反斜杠，只给一份会让「改测试文件本身」选中 0 个（实测）。该处理只统一分隔符，不放宽选择规则。
+- `--package` 在官方选中之后收窄执行集合，供本地迭代；它不改变全量判定，且不能与 `--scope push` 混用。
 - 官方 forceRerunTriggers 保留默认配置，补充配置文件模式 `**/{vitest,vite}.config.*`（当前默认 glob 尾部 `/**` 未匹配部分配置文件），再加入公共 vitest.setup.ts。原因：官方模块依赖分析不会额外纳入 setupFiles；公共 setup 改动必须作为全量影响：入口按「影响面裁剪失效」拒绝，需先跑全量再显式 ACK。
 - 全量指选中完整套件（按 project/pool/path 识别规格），不是任意数量阈值。大量真实关联测试若未覆盖完整套件，照常运行。选中整个非空套件按「影响面裁剪失效」处理：脚本不会替你跑全量，也不假装跑过，默认 exit 1；先跑 `pnpm test:unit`，确认通过后再带 `NIBI_AFFECTED_UT_ACK=full`（或 `1`/`true`）重跑本入口放行。dry-run / JSON 同样不改变这条判定。
-- 无选中测试说明后 exit 0；这不代表所有改动已验证。官方依赖识别的限制照常适用，不增加字面量文件读取、类型依赖、删除文件基线等自建补偿。
+- 无选中测试说明后 exit 0；这不代表所有改动已验证（入口会额外打印「判据空转」警告）。官方依赖识别的限制照常适用，不增加字面量文件读取、类型依赖、删除文件基线等自建补偿。
 - 选择精度靠准确的模块图，不靠选择规则：官方选择是文件级传递闭包，经由 barrel 的 `export *` 会把一个模块的改动传给所有导入 barrel 的测试。高扇入的纯常量模块因此只走子路径，不进根 barrel。`packages/shared/src/test-ids.ts` 的常量只从 `@nibi/shared/test-ids` 导入，根入口不再 re-export，从根入口导入这些常量会被 typecheck 拒绝；工作流一族 `test-ids-workflow.ts` 仍由根入口导出，不在本规则内。原因：根入口由 100 多条 `export *` 汇总，改 test-ids 曾选中 1379/2638 个测试，其中直接引用 test-ids 的约 50 个。
 - 测试失败或「全量选择未确认」exit 1；Git、参数、基线、Vitest 错误以及脏工作区 exit 2；带 `NIBI_AFFECTED_UT_ACK=full` 的放行 exit 0，但这一轮 UT 并不是本脚本执行的。绝不自动回退全量、追加全量重试或静默吞掉选择器异常。pnpm test / pnpm test:unit 保持显式全量入口。
 - 输出选中数量与基线；跳过全量时说明官方选中整个套件，列出官方 related 改动文件。dry-run 列精确规格，JSON 包含 runner/project/pool/path，不伪造逐文件关联原因。

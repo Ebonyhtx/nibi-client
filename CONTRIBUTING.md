@@ -30,9 +30,14 @@ Useful commands:
 pnpm lint
 pnpm typecheck
 pnpm test:architecture
-pnpm test:unit
+pnpm test:unit:changed   # local changes only; fastest everyday loop
+pnpm test:unit           # full unit suite before a release
 pnpm check:public-repo
 ```
+
+See [docs/testing/test-command-guide.md](docs/testing/test-command-guide.md) for
+which command to use while iterating, before pushing, and before a release, plus
+measured timings.
 
 Run the checks relevant to your change before opening a pull request. If a check
 cannot run in your environment, say so in the pull request instead of reporting

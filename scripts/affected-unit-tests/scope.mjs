@@ -62,6 +62,10 @@ export async function resolveScope(root, options = {}, env = process.env) {
   const explicit = options.base ?? env.NIBI_AFFECTED_TEST_BASE ?? env.NIBI_PRE_PUSH_BASE;
   if (options.files && (options.scope === "push" || explicit))
     throw new Error("--files 不能与 push 或 --base 混用");
+  if (options.packages?.length && options.scope === "push")
+    throw new Error(
+      "--package 只用于本地迭代，不能与 push 混用：Push 必须跑官方选中的全部受影响测试",
+    );
   if (options.files)
     return { files: [...new Set(options.files.map((file) => resolve(root, file)))], bases: [true] };
   if (options.scope !== "push") return { bases: [explicit ? await commit(root, explicit) : true] };
