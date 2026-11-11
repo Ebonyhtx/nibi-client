@@ -552,6 +552,7 @@ export function DataSyncSectionView({
 export function DataSyncSection({
   devices,
   initialCategory,
+  onConnectDevice,
 }: {
   devices: readonly DataSyncDevice[];
   /**
@@ -559,6 +560,8 @@ export function DataSyncSection({
    * 页面挂载时直接落在对应分类，避免用户再手动切一次。
    */
   initialCategory?: DataSyncCategoryId;
+  /** 空态「连接设备」：由设置页提供现有远程连接/设备设置入口，本模块不自己发连接请求。 */
+  onConnectDevice?: () => void;
 }) {
   const request = useOptionalPlatform()?.requestSourceSettingsAttachment;
   const sourceServices = useBaseWorkspaceServices();
@@ -685,7 +688,7 @@ export function DataSyncSection({
   if (devices.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-surface px-4 py-6 text-ui-base text-foreground-subtle">
-        <DataSyncEmptyState />
+        <DataSyncEmptyState onConnectDevice={onConnectDevice} />
       </div>
     );
   }
@@ -713,7 +716,16 @@ export function DataSyncSection({
   );
 }
 
-function DataSyncEmptyState() {
+function DataSyncEmptyState({ onConnectDevice }: { onConnectDevice?: () => void }) {
   const { intl } = useZCodeIntl();
-  return <>{intl.formatMessage({ id: "settings.dataSync.phase.noDevices" })}</>;
+  return (
+    <div className="space-y-3">
+      <p>{intl.formatMessage({ id: "settings.dataSync.phase.noDevices" })}</p>
+      {onConnectDevice ? (
+        <Button type="button" size="sm" onClick={onConnectDevice}>
+          {intl.formatMessage({ id: "settings.dataSync.phase.connectDevice" })}
+        </Button>
+      ) : null}
+    </div>
+  );
 }

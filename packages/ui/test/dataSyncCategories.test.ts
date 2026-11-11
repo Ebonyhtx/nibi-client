@@ -499,4 +499,19 @@ describe("DataSyncSection categories", () => {
       screen.getByText("settings.dataSync.category.selection.count(count=1)"),
     ).toBeTruthy();
   });
+
+  it("没有设备时显示空态，并提供连接设备入口", () => {
+    hoisted.baseServices = createAccessor();
+    const onConnectDevice = vi.fn();
+    render(
+      createElement(DataSyncSection, {
+        devices: [],
+        onConnectDevice,
+      }),
+    );
+
+    expect(screen.getByText("settings.dataSync.phase.noDevices")).toBeTruthy();
+    fireEvent.click(screen.getByText("settings.dataSync.phase.connectDevice"));
+    expect(onConnectDevice).toHaveBeenCalledTimes(1);
+  });
 });

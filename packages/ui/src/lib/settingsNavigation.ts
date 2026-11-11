@@ -9,6 +9,8 @@ export type SettingsSectionId =
   | "modelProvider"
   | "remoteDevices"
   | "dataSync"
+  | "personalization"
+  | "projects"
   | "memory"
   | "plugin"
   | "mcp"
@@ -88,6 +90,8 @@ function isSettingsSectionId(value: string): value is SettingsSectionId {
     value === "modelProvider" ||
     value === "remoteDevices" ||
     value === "dataSync" ||
+    value === "personalization" ||
+    value === "projects" ||
     value === "memory" ||
     value === "plugin" ||
     value === "mcp" ||

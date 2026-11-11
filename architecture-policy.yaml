@@ -1299,3 +1299,14 @@ exceptions:
       MCP 表单的草稿判定与草稿校验是纯函数，被 McpServerForm 与 McpSettingsSection
       共用；放在 settings 同目录避免组件间互相 import 出环。packages/ui 仍是
       managed:false 的遗留大区，按路径单独登记。
+
+  - id: settings-projects-and-personalization
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/settings/ProjectsSection.tsx
+      - packages/ui/src/settings/PersonalizationSection.tsx
+    reason: >-
+      设置页补齐上游 3.17.2 的「项目」与「个性化」分区：前者复用既有 project tree 与
+      ProjectDataCleanupDialog，后者只读写用户级 AGENTS.md（已下沉到 settings-sync 服务）。
+      两者都放在 settings 同目录、不新增 RPC 或跨层依赖；packages/ui 仍是 managed:false
+      的遗留大区，按路径单独登记。

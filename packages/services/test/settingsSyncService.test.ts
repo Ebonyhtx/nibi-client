@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES } from "../src/settings-sync/settingsSync.js";
 import type { ISettingService } from "../src/setting/setting.js";
 
 const originalHome = process.env.HOME;
@@ -1769,5 +1770,57 @@ describe("settingsSyncService config write hardening", () => {
     expect(saved.command).toEqual({ "/commands/review.md": { enable: false } });
     expect(saved.plugins.dirs).toEqual([join(home, ".nibi", "plugins", "review-plugin")]);
     expect(saved.mcp.servers.browser).toEqual({ command: "npx", args: ["-y", "browser-mcp"] });
+  });
+});
+
+describe("settingsSyncService 用户级 AGENTS.md", () => {
+  it("文件不存在时返回空草稿与固定路径", async () => {
+    const home = makeTempHome();
+    process.env.HOME = home;
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+
+    await expect(service.readUserAgentsFile()).resolves.toEqual({
+      path: join(home, ".nibi", "AGENTS.md"),
+      content: "",
+      exists: false,
+    });
+  });
+
+  it("写入后按 UTF-8 读回，并自动创建 .nibi 目录", async () => {
+    const home = makeTempHome();
+    process.env.HOME = home;
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+    const content = "# 用户指令\n\n始终使用中文回答。\n";
+
+    await expect(service.writeUserAgentsFile({ content })).resolves.toEqual({
+      path: join(home, ".nibi", "AGENTS.md"),
+      bytes: Buffer.byteLength(content, "utf8"),
+    });
+    await expect(service.readUserAgentsFile()).resolves.toEqual({
+      path: join(home, ".nibi", "AGENTS.md"),
+      content,
+      exists: true,
+    });
+    expect(readFileSync(join(home, ".nibi", "AGENTS.md"), "utf-8")).toBe(content);
+  });
+
+  it("超过 100 KB 时拒绝写入且保留原内容", async () => {
+    const home = makeTempHome();
+    process.env.HOME = home;
+    const { createSettingsSyncService } =
+      await import("../src/settings-sync/settingsSyncService.js");
+    const service = createSettingsSyncService({ settingService: createSettingService() });
+    await service.writeUserAgentsFile({ content: "original" });
+
+    await expect(
+      service.writeUserAgentsFile({
+        content: "a".repeat(SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES + 1),
+      }),
+    ).rejects.toThrow("settings-sync.user-agents-file-too-large");
+    expect(readFileSync(join(home, ".nibi", "AGENTS.md"), "utf-8")).toBe("original");
   });
 });

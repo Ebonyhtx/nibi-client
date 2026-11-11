@@ -30,8 +30,13 @@ import { CommandFileParser } from "../commands/commandFileParser.js";
 import type { ISettingService } from "../setting/setting.js";
 import { createServiceLogger } from "../logger/serviceLogger.js";
 import { walkSkillMarkdownPaths } from "../skills/skillDiscoveryWalk.js";
-import type { ISettingsSyncService } from "./settingsSync.js";
-import { updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
+import type {
+  ISettingsSyncService,
+  SettingsSyncUserAgentsFile,
+  SettingsSyncUserAgentsFileWriteResult,
+} from "./settingsSync.js";
+import { SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES } from "./settingsSync.js";
+import { atomicWriteText, updateJsonObjectFile } from "#src/fs/atomicFileUtils.js";
 import { resolveZCodeStorageRoot } from "#src/subagents/subagentStorage.js";
 
 const log = createServiceLogger("settings-sync");
@@ -2256,6 +2261,35 @@ async function copyClaudeAgentsFileToZcodeAgentsFile(params: {
   };
 }
 
+async function readUserAgentsFile(): Promise<SettingsSyncUserAgentsFile> {
+  const targetPath = getUserZcodeAgentsFilePath();
+  try {
+    const content = await readFile(targetPath, "utf-8");
+    return { path: targetPath, content, exists: true };
+  } catch (error) {
+    // 只有不存在是首次进入个性化页的正常状态；权限/I/O 错误必须冒泡，
+    // 避免页面把不可读误显示成空文件后保存覆盖。
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return { path: targetPath, content: "", exists: false };
+    }
+    throw error;
+  }
+}
+
+async function writeUserAgentsFile(params: {
+  content: string;
+}): Promise<SettingsSyncUserAgentsFileWriteResult> {
+  const targetPath = getUserZcodeAgentsFilePath();
+  const bytes = Buffer.byteLength(params.content, "utf8");
+  // 上限按 UTF-8 字节而非字符数：中文用户写满 10 万字会远超 100 KB。
+  if (bytes > SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES) {
+    throw new Error("settings-sync.user-agents-file-too-large");
+  }
+  // 固定路径 + 同目录临时文件 rename：多个窗口同时保存也不会留下半份内容。
+  await atomicWriteText(targetPath, params.content);
+  return { path: targetPath, bytes };
+}
+
 export function createSettingsSyncService(
   dependencies: SettingsSyncServiceDependencies,
 ): ISettingsSyncService {
@@ -2284,6 +2318,21 @@ export function createSettingsSyncService(
         status: result.status,
         overwritten: result.overwritten,
         skippedReason: result.skippedReason,
+      });
+      return result;
+    },
+
+    async readUserAgentsFile(): Promise<SettingsSyncUserAgentsFile> {
+      return readUserAgentsFile();
+    },
+
+    async writeUserAgentsFile(request: {
+      content: string;
+    }): Promise<SettingsSyncUserAgentsFileWriteResult> {
+      const result = await writeUserAgentsFile({ content: request.content });
+      log.info("[settings-sync] user AGENTS.md saved", {
+        targetPath: result.path,
+        bytes: result.bytes,
       });
       return result;
     },

@@ -323,7 +323,12 @@ export { ISubagentsService } from "./subagents/subagents.js";
 // Commands service — ICommandsService is both a type (interface) and value (descriptor)
 export { ICommandsService } from "./commands/commands.js";
 
-export { ISettingsSyncService } from "./settings-sync/settingsSync.js";
+export {
+  ISettingsSyncService,
+  SETTINGS_SYNC_USER_AGENTS_FILE_MAX_BYTES,
+  type SettingsSyncUserAgentsFile,
+  type SettingsSyncUserAgentsFileWriteResult,
+} from "./settings-sync/settingsSync.js";
 
 export { IFeedbackService } from "./feedback/feedback.js";
 export type { FeedbackUploadProgress } from "./feedback/feedback.js";

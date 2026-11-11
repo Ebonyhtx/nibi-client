@@ -67,6 +67,8 @@ import { AutomationsSection } from "@/settings/AutomationsSection.js";
 import { PluginsSection } from "@/settings/PluginsSection.js";
 import { HooksSection } from "@/settings/HooksSection.js";
 import { WorkspaceFileSearchSection } from "@/settings/WorkspaceFileSearchSection.js";
+import { PersonalizationSection } from "@/settings/PersonalizationSection.js";
+import { ProjectsSection } from "@/settings/ProjectsSection.js";
 import { MemorySettingsSection } from "@/settings/MemorySettingsSection.js";
 import { BrowserSettingsSection } from "@/settings/BrowserSettingsSection.js";
 import { ComputerUseSection } from "@/settings/ComputerUseSection.js";
@@ -413,9 +415,17 @@ export function SettingsPage({
     () => resolveRemoteConnectionNavigationPresentation(sourceManagementSnapshot),
     [sourceManagementSnapshot],
   );
-  // 数据同步入口只在桌面端、且至少有一台在线 Source 设备提供远端「用户」时出现。
+  // 数据同步导航在桌面端常显：没有设备时页面自己给空态与「连接设备」入口，
+  // 不能因为设备列表为空就把功能藏掉（用户会不知道如何开始配对）。
   const dataSyncDevices = useDataSyncDevices();
-  const showDataSyncEntry = Boolean(isDesktop) && dataSyncDevices.devices.length > 0;
+  const handleConnectDataSyncDevice = useCallback(() => {
+    // 优先复用既有远程连接向导；没有 Root 注入时退回远程设备设置页（同样能新建连接）。
+    if (onOpenRemoteWorkspace) {
+      onOpenRemoteWorkspace({ completion: "device-management" });
+      return;
+    }
+    setActiveSettingsSection("remoteDevices");
+  }, [onOpenRemoteWorkspace, setActiveSettingsSection]);
   const memoryWorkspaceDisplayNames = useMemo(() => {
     const names = new Set<string>();
     // Memory Scope 的项目顺序以 settings.json recentProjects 为准；打开中的
@@ -1255,11 +1265,7 @@ export function SettingsPage({
                           {groupLabel}
                         </div>
                         {group.sections
-                          .filter(
-                            ({ id }) =>
-                              isSettingsSectionAvailable(id, Boolean(isDesktop)) &&
-                              (id !== "dataSync" || showDataSyncEntry),
-                          )
+                          .filter(({ id }) => isSettingsSectionAvailable(id, Boolean(isDesktop)))
                           .map(({ id, icon: Icon, titleId }) => {
                             const isActive = activeSection === id;
                             const label = intl.formatMessage({ id: titleId });
@@ -1707,6 +1713,7 @@ export function SettingsPage({
                                 key={`dataSync:${settingsSectionNavigationVersion}`}
                                 devices={dataSyncDevices.devices}
                                 initialCategory={dataSyncCategoryTarget}
+                                onConnectDevice={handleConnectDataSyncDevice}
                               />
                             ) : null
                           ) : activeSection === "appearance" ? (
@@ -1764,6 +1771,11 @@ export function SettingsPage({
                                   setPendingModelProviderTarget(undefined)
                                 }
                               />
+                            </ServiceProvider>
+                          ) : activeSection === "personalization" ? (
+                            <ServiceProvider services={localHostServices}>
+                              {/* 用户级 AGENTS.md 属于本机 Host；远端设备的同名文件在设备侧单独配置。 */}
+                              <PersonalizationSection />
                             </ServiceProvider>
                           ) : activeSection === "memory" ? (
                             <ServiceProvider services={localHostServices}>
@@ -1843,6 +1855,8 @@ export function SettingsPage({
                             </div>
                           ) : activeSection === "usage" ? (
                             <UsageStatsSection />
+                          ) : activeSection === "projects" ? (
+                            <ProjectsSection isDesktop={Boolean(isDesktop)} />
                           ) : activeSection === "subagents" ? (
                             <SubagentsSection
                               onManageModels={handleOpenModelProviderSettings}

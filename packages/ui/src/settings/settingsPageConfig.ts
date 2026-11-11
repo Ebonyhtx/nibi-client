@@ -21,6 +21,8 @@ import {
   HardDrive,
   Keyboard,
   FileSearch,
+  FileText,
+  FolderKanban,
 } from "lucide-react";
 import { isSettingsSectionEnabled, type SettingsSectionId } from "@/lib/settingsNavigation.js";
 import type { Theme } from "@/useTheme.js";
@@ -75,6 +77,15 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     icon: Package,
     titleId: "settings.modelProviderTitle",
     groupId: "basics",
+  },
+  // 个性化紧跟基础设置之后：用户级 AGENTS.md 是 Agent 行为的全局输入，
+  // 放在 Agent 能力组最前，和记忆 / 子代理等能力配置形成同一叙事。
+  {
+    id: "personalization",
+    icon: FileText,
+    titleId: "settings.personalization.title",
+    contentTitleId: "settings.personalization.title",
+    groupId: "agentCapabilities",
   },
   {
     id: "memory",
@@ -172,6 +183,15 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     id: "usage",
     icon: BarChart3,
     titleId: "settings.usageTitle",
+    groupId: "dataAndStats",
+  },
+  // 项目是用户数据组织的主体；放在使用统计之后、归档之前，
+  // 与侧栏「项目 → 会话 → 归档」的心智顺序一致。
+  {
+    id: "projects",
+    icon: FolderKanban,
+    titleId: "settings.projects.title",
+    contentTitleId: "settings.projects.title",
     groupId: "dataAndStats",
   },
   {
