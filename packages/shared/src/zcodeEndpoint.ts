@@ -436,3 +436,32 @@ export function rewriteZCodeEndpointUrl(input: string | URL, endpointOrigin: str
   target.hash = parsed.hash;
   return target.toString();
 }
+
+/**
+ * 分家迁移前的旧 NIBI 主机名 → 现主机名。
+ *
+ * 持久化状态（插件市场源、插件下载地址等）里可能残留旧域名的绝对 URL。旧域名已停止
+ * 解析，继续使用会在 TLS 阶段直接断开（表现为 "Client network socket disconnected
+ * before secure TLS connection was established"）。只在 hostname 精确匹配时替换，
+ * 其它 URL（含本地路径、第三方域名）原样返回。
+ */
+const LEGACY_NIBI_HOSTNAMES: Readonly<Record<string, string>> = {
+  "api.nibistudio.top": "api.nibistudio.cn",
+  "auth.nibistudio.top": "auth.nibistudio.cn",
+  "dl.nibistudio.top": "dl.nibistudio.cn",
+  "www.nibistudio.top": "www.nibistudio.cn",
+  "nibistudio.top": "nibistudio.cn",
+};
+
+export function migrateLegacyNibiUrl(input: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(input);
+  } catch {
+    return input;
+  }
+  const replacement = LEGACY_NIBI_HOSTNAMES[parsed.hostname.toLowerCase()];
+  if (replacement === undefined) return input;
+  parsed.hostname = replacement;
+  return parsed.toString();
+}

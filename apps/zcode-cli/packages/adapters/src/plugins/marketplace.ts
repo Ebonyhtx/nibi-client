@@ -12,6 +12,7 @@ import {
   DEFAULT_PLUGIN_MARKETPLACES,
   hiddenDefaultPluginMarketplaces,
   isNibiPrimaryContentUrl,
+  migrateLegacyNibiUrl,
   NIBI_PLUGIN_MANIFEST_DIR,
   ZCODE_PLUGIN_MANIFEST_DIR,
   sanitizeZCodeRuntimeEnv,
@@ -376,6 +377,22 @@ export async function parseMarketplaceSourceInput(input: string): Promise<Market
 }
 
 export function loadKnownMarketplacesSync(storageRoot: string): KnownMarketplaceRecord[] {
+  return readKnownMarketplacesFileSync(storageRoot).map(migrateKnownMarketplaceRecord);
+}
+
+/**
+ * 旧域名的市场源会一直留在持久化状态里（`ensureDefault` 只补缺失 id、不纠正已有源），
+ * 而旧域名已停止解析，刷新会在 TLS 阶段断开。这里按 hostname 精确迁移，用户自建的
+ * 其它源（不同域名）保持原样。
+ */
+function migrateKnownMarketplaceRecord(record: KnownMarketplaceRecord): KnownMarketplaceRecord {
+  const source = record.source;
+  if (source.source !== "url" || typeof source.url !== "string") return record;
+  const url = migrateLegacyNibiUrl(source.url);
+  return url === source.url ? record : { ...record, source: { ...source, url } };
+}
+
+function readKnownMarketplacesFileSync(storageRoot: string): KnownMarketplaceRecord[] {
   const parsed = readJsonFileSync(join(storageRoot, KNOWN_MARKETPLACES_FILE));
   if (!isRecord(parsed)) return [];
   const value = parsed.marketplaces;
@@ -399,7 +416,11 @@ function sameMarketplaceSource(left: MarketplaceSource, right: MarketplaceSource
 }
 
 export function ensureDefaultPluginMarketplaces(storageRoot: string): KnownMarketplaceRecord[] {
-  const known = loadKnownMarketplacesSync(storageRoot);
+  const rawKnown = readKnownMarketplacesFileSync(storageRoot);
+  const known = rawKnown.map(migrateKnownMarketplaceRecord);
+  // 旧域名迁移也要落盘：否则每次启动都只在内存里纠正，刷新时的 lastRefreshFailure
+  // 等字段仍会写回旧源。
+  const migrated = JSON.stringify(rawKnown) !== JSON.stringify(known);
   // 隐藏的默认市场（NIBI fork，2026-10-17 用户决定 3）：只摘"来源与我们那条默认定义一致"的记录，
   // 手工添加的同名源保留（判据比来源形状，不比 id）。
   const hidden = hiddenDefaultPluginMarketplaces();
@@ -428,7 +449,7 @@ export function ensureDefaultPluginMarketplaces(storageRoot: string): KnownMarke
       pluginCount: marketplace.pluginCount,
     }),
   );
-  if (missing.length === 0 && visible.length === known.length) return known;
+  if (missing.length === 0 && visible.length === known.length && !migrated) return known;
   const next = [...visible, ...missing];
   writeKnownMarketplacesSync(storageRoot, next);
   return next;
@@ -2287,19 +2308,32 @@ function defaultMarketplaceSourceFromString(source: string): MarketplaceSource {
 function normalizeInstalledPluginsState(value: unknown): InstalledPluginsState {
   if (!isRecord(value)) return { version: 1, plugins: [] };
   const rawPlugins = value.plugins;
-  if (isRecord(rawPlugins)) {
-    return {
-      version: 1,
-      plugins: Object.entries(rawPlugins).flatMap(([pluginId, entry]) =>
+  const plugins = isRecord(rawPlugins)
+    ? Object.entries(rawPlugins).flatMap(([pluginId, entry]) =>
         normalizeInstalledPluginRecordFromMap(pluginId, entry),
-      ),
-    };
+      )
+    : (Array.isArray(rawPlugins) ? rawPlugins : []).filter(isInstalledPluginRecord);
+  return { version: 1, plugins: plugins.map(migrateInstalledPluginRecord) };
+}
+
+/**
+ * 安装记录里的 `source` 保存的是安装当时的绝对下载地址；域名迁移后旧地址仍会留在
+ * 状态里，重装/更新会继续打旧域名。这里按 hostname 精确迁移，本地路径与第三方源不动。
+ */
+function migrateInstalledPluginRecord(record: InstalledPluginRecord): InstalledPluginRecord {
+  if (record.source === undefined) return record;
+  return { ...record, source: migrateUrlStrings(record.source) };
+}
+
+function migrateUrlStrings(value: unknown): unknown {
+  if (typeof value === "string") return migrateLegacyNibiUrl(value);
+  if (Array.isArray(value)) return value.map(migrateUrlStrings);
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, migrateUrlStrings(item)]),
+    );
   }
-  const plugins = Array.isArray(rawPlugins) ? rawPlugins : [];
-  return {
-    version: 1,
-    plugins: plugins.filter(isInstalledPluginRecord),
-  };
+  return value;
 }
 
 function normalizeInstalledPluginRecordFromMap(
