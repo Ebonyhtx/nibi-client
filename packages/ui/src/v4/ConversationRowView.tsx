@@ -85,6 +85,7 @@ import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { WorkflowToolSummary } from "@/v4/WorkflowToolSummary.js";
+import { AttachmentFileActionsMenu } from "@/v4/AttachmentFileActionsMenu.js";
 import {
   readWorkflowName,
   readWorkflowRetuneCall,
@@ -110,6 +111,7 @@ import {
   FileDisplayInline,
   resolveFileDisplayDescriptor,
 } from "@/lib/fileDisplay.js";
+import { isAbsoluteFilePath } from "@/lib/path.js";
 import {
   projectAssistantCodeComments,
   type AssistantCodeCommentCard,
@@ -307,6 +309,7 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
   sessionId,
   readAttachment,
   readAttachmentRange,
+  localPathActionsEnabled = true,
 }: {
   attachments: readonly AttachmentRef[] | undefined;
   /** 编辑态删除附件后仍保留其在持久 FilePart 列表中的原序号。 */
@@ -319,6 +322,8 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
   sessionId?: string;
   readAttachment?: NonNullable<ConversationRowRenderContext["readAttachment"]>;
   readAttachmentRange?: NonNullable<ConversationRowRenderContext["readAttachmentRange"]>;
+  /** 远端工作区的附件路径属于远端主机，不能交给本机文件管理器。 */
+  localPathActionsEnabled?: boolean;
 }) {
   const { intl } = useZCodeIntl();
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -760,6 +765,31 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
       (isImage && !isUnavailable && previewItemIndex >= 0) ||
       (isVideo && Boolean(sessionId && readAttachment)) ||
       (isPdf && Boolean(sessionId && (readAttachment || readAttachmentRange)));
+    // 本地零拷贝附件把绝对路径直接放在 ref 里（见 CLI attachment-refs 的两种 ref 形态）；
+    // 上传后的内容引用与远端工作区路径都不是本机路径，路径类动作必须缺席。
+    const localPath =
+      localPathActionsEnabled &&
+      attachment.sourceKind === undefined &&
+      isAbsoluteFilePath(attachment.ref)
+        ? attachment.ref
+        : undefined;
+    const readAttachmentBytes =
+      sessionId && readAttachment
+        ? async () => {
+            const result = await readAttachment({
+              sessionId,
+              ref: attachment.ref,
+              mediaType: attachment.mime,
+              ...(entityId
+                ? {
+                    target: { rowId, entityId },
+                    attachmentIndex: attachmentIndices?.[index] ?? index,
+                  }
+                : {}),
+            });
+            return "bytes" in result ? result.bytes : null;
+          }
+        : undefined;
     return (
       <Attachment
         key={`${attachment.ref}-${index}`}
@@ -860,6 +890,13 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
             }}
           />
         )}
+        {!isThumbnail ? (
+          <AttachmentFileActionsMenu
+            fileName={attachment.fileName}
+            localPath={localPath}
+            readBytes={readAttachmentBytes}
+          />
+        ) : null}
         {onRemove && isEditingAttachment ? (
           <AttachmentRemove
             placement="corner"
@@ -1174,6 +1211,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
                     sessionId={context.sessionId ?? undefined}
                     readAttachment={context.readAttachment}
                     readAttachmentRange={context.readAttachmentRange}
+                    localPathActionsEnabled={context.workspaceRemoteSessionId === undefined}
                   />
                 ) : null}
                 {editContextCount > 0 ? (
@@ -1340,6 +1378,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
                 sessionId={context.sessionId ?? undefined}
                 readAttachment={context.readAttachment}
                 readAttachmentRange={context.readAttachmentRange}
+                localPathActionsEnabled={context.workspaceRemoteSessionId === undefined}
               />
             </div>
           ) : null}
@@ -1360,6 +1399,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
                   sessionId={context.sessionId ?? undefined}
                   readAttachment={context.readAttachment}
                   readAttachmentRange={context.readAttachmentRange}
+                  localPathActionsEnabled={context.workspaceRemoteSessionId === undefined}
                 />
               ) : null}
               <CodeCommentAttachmentChip comments={codeCommentContexts} contentAlign="end" />

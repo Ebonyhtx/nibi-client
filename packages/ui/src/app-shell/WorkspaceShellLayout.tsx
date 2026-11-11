@@ -1131,15 +1131,6 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
       )?.remoteTarget,
     [workspaceAbsPath, workspaceIdentity, workspaceTabs],
   );
-  const workspaceLocalPathForRemoteMcpSync = useMemo(
-    () =>
-      workspaceTabs.find(
-        (tab) =>
-          tab.workspacePath === workspaceAbsPath &&
-          (!workspaceIdentity || tab.workspaceIdentity === workspaceIdentity),
-      )?.localWorkspacePath,
-    [workspaceAbsPath, workspaceIdentity, workspaceTabs],
-  );
   const webRemoteNavigationPanelStyle = useMemo<CSSProperties | undefined>(
     () =>
       isWebRemoteControlShell
@@ -2050,7 +2041,6 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                 remoteSessionId={workspaceRemoteSessionId}
                 workspaceIdentity={workspaceIdentity}
                 remoteTarget={workspaceRemoteTarget}
-                localWorkspacePath={workspaceLocalPathForRemoteMcpSync}
                 projectName={projectName}
                 activeTaskTitle={activeTaskTitle}
                 activeTaskChangeSummary={activeTaskChangeSummary}
@@ -2455,8 +2445,7 @@ const WorkspaceShellLayoutContent = memo(function WorkspaceShellLayoutComponent(
                             remoteSessionId={workspaceRemoteSessionId}
                             workspaceIdentity={workspaceIdentity}
                             remoteTarget={workspaceRemoteTarget}
-                            localWorkspacePath={workspaceLocalPathForRemoteMcpSync}
-                            projectName={projectName}
+                                        projectName={projectName}
                             activeTaskTitle={activeTaskTitle}
                             activeTaskChangeSummary={activeTaskChangeSummary}
                             hasUpdateReady={hasUpdateStatusButton}

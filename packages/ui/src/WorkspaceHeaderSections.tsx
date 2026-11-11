@@ -13,7 +13,6 @@ import { WorkspaceLastActivity } from "@/WorkspaceHeaderSections/WorkspaceLastAc
 import {
   parseRemoteWorkspaceIdentity,
   remoteHostIdFromWorkspaceIdentity,
-  type RemoteTarget,
   type ZCodeTaskMeta,
 } from "@nibi/shared";
 import {
@@ -56,15 +55,8 @@ import type {
 import { applyTaskQueryCacheMutation } from "@/store/taskQueryCacheStore.js";
 import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
 import { TaskRenameDialog } from "@/TaskRenameDialog.js";
-import {
-  RemoteSyncDialogs,
-  RemoteSyncMenuItems,
-  shouldShowRemoteSyncActions,
-} from "@/settings/RemoteSyncActions.js";
-import { invalidateDeferredDraftSessionForSkillChange } from "@/lib/zcodeDraftSkillInvalidation.js";
-import { refreshSharedSkillStoreForWorkspace } from "@/lib/skillStoreRefresh.js";
-import { refreshWorkspacePluginCapabilitiesAfterRemoteSync } from "@/lib/remotePluginSyncRefresh.js";
-import { useMcpStore } from "@/store/mcpStore.js";
+import { DataSyncEntryMenuItems } from "@/settings/DataSyncEntry.js";
+import { shouldShowDataSyncEntry } from "@/lib/dataSyncEntry.js";
 import { useSourceServerDisplayNames } from "@/hooks/useSourceServerDisplayNames.js";
 import { useRemoteDevicePresentationInput } from "@/hooks/useSourceServerStatuses.js";
 
@@ -74,15 +66,6 @@ export {
   type WorkspaceHeaderActionSectionProps,
 } from "@/WorkspaceHeaderSections/WorkspaceHeaderActionSection.js";
 
-export function shouldShowRemoteSkillSyncAction(params: {
-  remoteSessionId?: string | null;
-  remoteTarget?: RemoteTarget | null;
-  clientMode?: "desktop-continuous" | "web-remote-replayable";
-  hasLocalSourceService?: boolean;
-}): boolean {
-  return shouldShowRemoteSyncActions(params);
-}
-
 export function WorkspaceHeaderTitleSection({
   variant,
   readOnlyReason,
@@ -90,7 +73,6 @@ export function WorkspaceHeaderTitleSection({
   remoteSessionId,
   workspaceIdentity,
   remoteTarget,
-  localWorkspacePath,
   projectName,
   activeTaskTitle,
   activeTaskChangeSummary: _activeTaskChangeSummary,
@@ -137,9 +119,6 @@ export function WorkspaceHeaderTitleSection({
   const [workspaceContextOpen, setWorkspaceContextOpen] = useState(false);
   const [renamingTaskId, setRenamingTaskId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
-  const [remoteSkillSyncOpen, setRemoteSkillSyncOpen] = useState(false);
-  const [remoteMcpSyncOpen, setRemoteMcpSyncOpen] = useState(false);
-  const [remotePluginSyncOpen, setRemotePluginSyncOpen] = useState(false);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const headerWorkspaceTabs = useMemo(
     () => [
@@ -249,7 +228,7 @@ export function WorkspaceHeaderTitleSection({
   const isRemoteWorkspace = Boolean(
     remoteWorkspaceHostLabel || workspaceIdentity?.trim() || remoteSessionId,
   );
-  const showRemoteSkillSyncAction = shouldShowRemoteSkillSyncAction({
+  const showDataSyncEntry = shouldShowDataSyncEntry({
     remoteSessionId,
     remoteTarget,
     clientMode: isWebRemoteControl ? "web-remote-replayable" : "desktop-continuous",
@@ -578,16 +557,9 @@ export function WorkspaceHeaderTitleSection({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
-              {showRemoteSkillSyncAction && remoteTarget ? (
+              {showDataSyncEntry && remoteTarget ? (
                 <>
-                  <RemoteSyncMenuItems
-                    canSyncSkills
-                    canSyncMcp
-                    canSyncPlugins
-                    onOpenSkillSync={() => setRemoteSkillSyncOpen(true)}
-                    onOpenMcpSync={() => setRemoteMcpSyncOpen(true)}
-                    onOpenPluginSync={() => setRemotePluginSyncOpen(true)}
-                  />
+                  <DataSyncEntryMenuItems />
                   <DropdownMenuSeparator />
                 </>
               ) : null}
@@ -730,64 +702,6 @@ export function WorkspaceHeaderTitleSection({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        <RemoteSyncDialogs
-          canSyncSkills={showRemoteSkillSyncAction}
-          canSyncMcp={showRemoteSkillSyncAction}
-          canSyncPlugins={showRemoteSkillSyncAction}
-          skillOpen={remoteSkillSyncOpen}
-          mcpOpen={remoteMcpSyncOpen}
-          pluginOpen={remotePluginSyncOpen}
-          onSkillOpenChange={setRemoteSkillSyncOpen}
-          onMcpOpenChange={setRemoteMcpSyncOpen}
-          onPluginOpenChange={setRemotePluginSyncOpen}
-          localSkillSyncService={baseServices.skillSyncService}
-          remoteSkillSyncService={services.skillSyncService}
-          localMcpSyncService={baseServices.mcpSyncService}
-          remoteMcpSyncService={services.mcpSyncService}
-          localPluginSyncService={baseServices.pluginSyncService}
-          remotePluginSyncService={services.pluginSyncService}
-          localZCodeAgentService={baseServices.zcodeAgentService}
-          remoteZCodeAgentService={services.zcodeAgentService}
-          remoteTarget={remoteTarget}
-          skillWorkspacePath={workspaceAbsPath}
-          mcpWorkspacePath={workspaceAbsPath}
-          pluginWorkspacePath={workspaceAbsPath}
-          pluginLocalWorkspacePath={localWorkspacePath}
-          mcpLocalWorkspacePath={localWorkspacePath}
-          workspaceIdentity={workspaceIdentity}
-          onSkillsSynced={async () => {
-            await invalidateDeferredDraftSessionForSkillChange({
-              workspacePath: workspaceAbsPath,
-              workspaceIdentity,
-              reason: "header-remote-skill-sync",
-            });
-            await refreshSharedSkillStoreForWorkspace({
-              workspacePath: workspaceAbsPath,
-              workspaceIdentity,
-              skillsService: services.skillsService,
-            });
-          }}
-          onMcpSynced={async () => {
-            await useMcpStore
-              .getState()
-              .ensureLoadedForWorkspace(
-                workspaceAbsPath,
-                services.mcpSyncService,
-                workspaceIdentity,
-              );
-          }}
-          onPluginsSynced={async () => {
-            await refreshWorkspacePluginCapabilitiesAfterRemoteSync({
-              commandsService: services.commandsService,
-              mcpSyncService: services.mcpSyncService,
-              reason: "header-remote-plugin-sync",
-              skillsService: services.skillsService,
-              workspaceIdentity,
-              workspacePath: workspaceAbsPath,
-              zcodeAgentService: services.zcodeAgentService,
-            });
-          }}
-        />
         {!isDraftNewTask && workspaceActionLoading ? (
           <ControlHintTooltip
             title={workspaceActionLoadingTitle}

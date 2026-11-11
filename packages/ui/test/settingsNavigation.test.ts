@@ -414,3 +414,39 @@ it("设备定位与失败详情保持独立意图，已挂载事件消费清除�
   navigation.setPendingSettingsSectionIntent("general");
   expect(navigation.consumePendingSettingsSourceServerDetails()).toBe(false);
 });
+
+it("数据同步分类意图只在 dataSync 分区保留，并在首次挂载或事件消费后清理", async () => {
+  const events = new EventTarget();
+  const storage = new Map<string, string>();
+  vi.stubGlobal("window", {
+    addEventListener: events.addEventListener.bind(events),
+    removeEventListener: events.removeEventListener.bind(events),
+    dispatchEvent: events.dispatchEvent.bind(events),
+    sessionStorage: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    },
+  });
+  const navigation = await loadSettingsNavigation("test");
+
+  navigation.setPendingSettingsSectionIntent("dataSync", { dataSyncCategory: "plugins" });
+  expect(navigation.consumePendingSettingsDataSyncCategory()).toBe("plugins");
+  expect(navigation.consumePendingSettingsDataSyncCategory()).toBeUndefined();
+
+  const listener = vi.fn();
+  const dispose = navigation.addPendingSettingsSectionListener(listener);
+  navigation.setPendingSettingsSectionIntent("dataSync", { dataSyncCategory: "skills" });
+  expect(listener).toHaveBeenLastCalledWith(
+    "dataSync",
+    expect.objectContaining({ section: "dataSync", dataSyncCategory: "skills" }),
+  );
+  expect(storage.has("nibi-settings-data-sync-category-intent")).toBe(false);
+
+  // 离开数据同步分区时旧分类不能残留到下一次进入。
+  navigation.setPendingSettingsSectionIntent("dataSync", { dataSyncCategory: "mcp" });
+  navigation.setPendingSettingsSectionIntent("general");
+  expect(navigation.consumePendingSettingsDataSyncCategory()).toBeUndefined();
+  dispose();
+});
+

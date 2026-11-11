@@ -1277,3 +1277,16 @@ exceptions:
       帮助菜单「复制设备号」的动作实现，与 helpMenuActions.ts 同属 ui/lib 既有菜单动作层；
       设备号只经 platform.getDeviceId() 读取，不新开通道。packages/ui 仍是 managed:false
       的遗留大区，接管整包不在本次范围内，按路径单独登记。
+
+  - id: data-sync-single-entry-and-attachment-actions
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/hooks/useOpenDataSyncSettings.ts
+      - packages/ui/src/lib/dataSyncEntry.ts
+      - packages/ui/src/lib/remoteTargetLabel.ts
+      - packages/ui/src/settings/DataSyncEntry.tsx
+      - packages/ui/src/v4/AttachmentFileActionsMenu.tsx
+    reason: >-
+      同步入口收敛到数据同步页后的导航胶水（设置分区意图、分类预选、旧入口统一按钮），
+      以及聊天附件的文件操作菜单。两者都只复用既有平台能力与既有菜单/导航模型，
+      不新增服务通道或跨层依赖；packages/ui 仍是 managed:false 的遗留大区，按路径登记。

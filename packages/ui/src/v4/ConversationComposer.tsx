@@ -161,6 +161,7 @@ import {
   consumeV4ComposerDraftWorkspaceTransferRequest,
 } from "@/v4/composer/composerDraftWorkspaceTransfer.js";
 import { useComposerAttachments } from "@/v4/composer/useComposerAttachments.js";
+import { AttachmentFileActionsMenu } from "@/v4/AttachmentFileActionsMenu.js";
 import type { ConversationDropTargetController } from "@/v4/composer/conversationDropTarget.js";
 import { CodeCommentAttachmentChip } from "@/v4/composer/CodeCommentAttachmentChip.js";
 import { removeCodeCommentPreview } from "@/v4/composer/codeCommentPreviewSync.js";
@@ -2012,6 +2013,12 @@ function ConversationComposerImpl({
               const showUploadStatus =
                 !attachment.localZeroCopy &&
                 (attachment.uploadStatus !== "ready" || attachment.showComplete);
+              // 另存为只复用 composer 已有的 File 内容；仅路径选入的附件没有 renderer 字节，
+              // 保留打开/定位/复制路径即可，不让「另存为」在点击时才失败。
+              const attachmentFile = attachment.file;
+              const readAttachmentBytes = attachmentFile
+                ? async () => new Uint8Array(await attachmentFile.arrayBuffer())
+                : undefined;
               return (
                 <Attachment
                   key={attachment.id}
@@ -2179,6 +2186,13 @@ function ConversationComposerImpl({
                         </span>
                       </div>
                     )
+                  ) : null}
+                  {!isMediaAttachment ? (
+                    <AttachmentFileActionsMenu
+                      fileName={attachment.filename}
+                      localPath={attachment.localPath}
+                      readBytes={readAttachmentBytes}
+                    />
                   ) : null}
                   {showUploadStatus && !isMediaAttachment ? (
                     <span

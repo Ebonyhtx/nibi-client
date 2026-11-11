@@ -26,12 +26,6 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
   }),
 }));
 
-vi.mock("@/settings/RemoteSyncActions.js", () => ({
-  RemoteSyncDialogs: () => null,
-  RemoteSyncDropdownButton: () => null,
-  shouldShowRemoteSyncActions: () => false,
-}));
-
 import { RemoteConnectionDirectoryStep } from "@/RemoteConnectionDialogContent.js";
 
 beforeEach(() => {

@@ -549,7 +549,17 @@ export function DataSyncSectionView({
 }
 
 /** 设置页内容：设备选择 + 该设备 source-settings attachment + 六个用户级分类的同步状态。 */
-export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[] }) {
+export function DataSyncSection({
+  devices,
+  initialCategory,
+}: {
+  devices: readonly DataSyncDevice[];
+  /**
+   * 受控初始分类：设置页入口（技能 / MCP / 插件市场重装）通过导航意图传入，
+   * 页面挂载时直接落在对应分类，避免用户再手动切一次。
+   */
+  initialCategory?: DataSyncCategoryId;
+}) {
   const request = useOptionalPlatform()?.requestSourceSettingsAttachment;
   const sourceServices = useBaseWorkspaceServices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(
@@ -557,7 +567,7 @@ export function DataSyncSection({ devices }: { devices: readonly DataSyncDevice[
   );
   const [attachmentError, setAttachmentError] = useState<string>();
   const [attachmentAttempt, setAttachmentAttempt] = useState(0);
-  const [activeTab, setActiveTab] = useState<DataSyncTabId>("overview");
+  const [activeTab, setActiveTab] = useState<DataSyncTabId>(initialCategory ?? "overview");
   const selectedDevice = devices.find((device) => device.sourceServerId === selectedDeviceId);
   const targetServices = useSourceSettingsServices(selectedDevice?.sourceServerId);
 

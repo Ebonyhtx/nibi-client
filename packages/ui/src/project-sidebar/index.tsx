@@ -435,7 +435,6 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
               onUnsupported={markDataCleanupUnsupported}
             />
           ) : null}
-          {remoteSync.dialog}
         </aside>
       </SidebarTooltipProvider>
     </ProjectTaskListContext.Provider>

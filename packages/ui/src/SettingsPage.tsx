@@ -46,6 +46,7 @@ import {
   clearPendingSettingsPluginOrigin,
   clearPendingSettingsPluginScopeKey,
   consumeInitialSettingsSection,
+  consumePendingSettingsDataSyncCategory,
   consumePendingSettingsSourceServerId,
   consumePendingSettingsSourceServerDetails,
   consumePendingSettingsPluginOrigin,
@@ -240,6 +241,10 @@ export function SettingsPage({
   );
   const [targetSourceServerDetails, setTargetSourceServerDetails] = useState(
     consumePendingSettingsSourceServerDetails,
+  );
+  // 旧同步弹窗删除后，技能 / MCP / 插件入口统一带分类意图打开数据同步分区。
+  const [dataSyncCategoryTarget, setDataSyncCategoryTarget] = useState(
+    consumePendingSettingsDataSyncCategory,
   );
   const [pluginTab, setPluginTab] = useState(() => consumePendingSettingsPluginTab());
   // Linux 关闭驻留托盘能力查询（spec：docs/desktop/linux-close-to-tray.md）：打开设置页时
@@ -477,6 +482,8 @@ export function SettingsPage({
         setTargetSourceServerDetails(
           section === "remoteDevices" && detail?.sourceServerDetails === true,
         );
+        // 数据同步分类只属于 dataSync 分区；离开该分区后清空，避免下次进入沿用旧预选。
+        setDataSyncCategoryTarget(section === "dataSync" ? detail?.dataSyncCategory : undefined);
         if (resolveSettingsSection(section) === "plugin" && detail?.pluginTab) {
           setPluginTab(detail.pluginTab);
           setPluginNavigationOrigin(detail.pluginOrigin);
@@ -1276,6 +1283,7 @@ export function SettingsPage({
                                     operation: () => {
                                       setPluginNavigationOrigin(undefined);
                                       setTargetSourceServerId(undefined);
+                                      setDataSyncCategoryTarget(undefined);
                                       setSettingsSectionNavigationVersion((version) => version + 1);
                                       setActiveSettingsSection(id);
                                     },
@@ -1695,7 +1703,11 @@ export function SettingsPage({
                             )
                           ) : activeSection === "dataSync" ? (
                             isDesktop ? (
-                              <DataSyncSection devices={dataSyncDevices.devices} />
+                              <DataSyncSection
+                                key={`dataSync:${settingsSectionNavigationVersion}`}
+                                devices={dataSyncDevices.devices}
+                                initialCategory={dataSyncCategoryTarget}
+                              />
                             ) : null
                           ) : activeSection === "appearance" ? (
                             <AppearanceSectionContent

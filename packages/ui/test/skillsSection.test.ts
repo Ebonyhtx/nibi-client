@@ -16,6 +16,7 @@ const mockSkillsServiceList = vi.fn(async () => ({
   diagnostics: [],
 }));
 const mockSkillsServiceSetEnabled = vi.fn(async () => {});
+const openDataSyncMock = vi.fn();
 let useStateCallCount = 0;
 let mockSkillsState: unknown = [];
 let mockCapabilityState: unknown = null;
@@ -84,6 +85,9 @@ vi.mock("lucide-react", () => ({
   UploadCloud: (props: Record<string, unknown>) => createElement("svg", props),
   UserRound: (props: Record<string, unknown>) => createElement("svg", props),
   WandSparkles: (props: Record<string, unknown>) => createElement("svg", props),
+  WandIcon: (props: Record<string, unknown>) => createElement("svg", props),
+  CableIcon: (props: Record<string, unknown>) => createElement("svg", props),
+  BlocksIcon: (props: Record<string, unknown>) => createElement("svg", props),
 }));
 
 vi.mock("@/components/ui/button.js", () => ({
@@ -95,6 +99,10 @@ vi.mock("@/components/ui/button.js", () => ({
 
 vi.mock("@/ControlHintTooltip.js", () => ({
   ControlHintTooltip: ({ children }: { children: unknown }) => children,
+}));
+
+vi.mock("@/hooks/useOpenDataSyncSettings.js", () => ({
+  useOpenDataSyncSettings: () => openDataSyncMock,
 }));
 
 vi.mock("@/components/ui/input.js", () => ({
@@ -426,6 +434,7 @@ describe("SkillsSection", () => {
     setPendingComposerPrefillMock.mockClear();
     invalidateDraftRuntimeMock.mockClear();
     openInFileManagerMock.mockClear();
+    openDataSyncMock.mockClear();
     mockSkillsServiceList.mockClear();
     mockSkillsServiceList.mockResolvedValue({
       skills: [],
@@ -479,7 +488,10 @@ describe("SkillsSection", () => {
     const html = await renderSkillsSection();
 
     expect(html).toContain("dev.example.com");
-    expect(findButton("Sync Skill")).toBeTruthy();
+    const syncButton = findButton("Sync Skill");
+    expect(syncButton).toBeTruthy();
+    (syncButton!.onClick as () => void)();
+    expect(openDataSyncMock).toHaveBeenCalledWith("skills");
   });
 
   it("connected WSL workspace shows remote skill sync entry", async () => {

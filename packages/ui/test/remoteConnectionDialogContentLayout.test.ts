@@ -3,8 +3,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-const capturedRemoteSyncDialogProps = vi.hoisted(() => [] as Array<Record<string, unknown>>);
-
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useZCodeIntl: () => ({
     intl: {
@@ -21,20 +19,9 @@ vi.mock("@/RemoteConnectionFields.js", () => ({
   RemoteConnectionFields: () => createElement("div", { "data-testid": "remote-connection-fields" }),
 }));
 
-vi.mock("@/settings/RemoteSyncActions.js", () => ({
-  RemoteSyncDialogs: (props: Record<string, unknown>) => {
-    capturedRemoteSyncDialogProps.push(props);
-    return createElement("div", { "data-testid": "remote-sync-dialogs" });
-  },
-  RemoteSyncDropdownButton: () =>
-    createElement("button", { type: "button" }, "settings.remoteSync.open"),
-  shouldShowRemoteSyncActions: ({
-    remoteSessionId,
-    remoteTarget,
-  }: {
-    remoteSessionId?: string | null;
-    remoteTarget?: { kind: string } | null;
-  }) => Boolean(remoteSessionId?.trim() && ["ssh", "wsl"].includes(remoteTarget?.kind ?? "")),
+vi.mock("@/settings/DataSyncEntry.js", () => ({
+  DataSyncEntryDropdownButton: () =>
+    createElement("button", { type: "button", "data-testid": "data-sync-entry" }, "data-sync"),
 }));
 
 import {
@@ -172,10 +159,8 @@ describe("RemoteConnectionDialogContent layout", () => {
     expect(html).toContain("animate-spin");
   });
 
-  it("passes the local workspace path to MCP sync from the directory step", () => {
-    capturedRemoteSyncDialogProps.length = 0;
-
-    renderToStaticMarkup(
+  it("shows the unified data sync entry only after a remote target is connected", () => {
+    const connected = renderToStaticMarkup(
       createElement(RemoteConnectionDirectoryStep, {
         services: {} as never,
         remoteTarget: {
@@ -184,15 +169,21 @@ describe("RemoteConnectionDialogContent layout", () => {
           port: 2223,
           username: "root",
         },
-        localWorkspacePath: "/Users/alice/project",
-        localMcpSyncService: {} as never,
-        remoteMcpSyncService: {} as never,
+        onSelect: vi.fn(),
+        onBack: vi.fn(),
+        onCancel: vi.fn(),
+      }),
+    );
+    const disconnected = renderToStaticMarkup(
+      createElement(RemoteConnectionDirectoryStep, {
+        services: {} as never,
         onSelect: vi.fn(),
         onBack: vi.fn(),
         onCancel: vi.fn(),
       }),
     );
 
-    expect(capturedRemoteSyncDialogProps[0]?.mcpLocalWorkspacePath).toBe("/Users/alice/project");
+    expect(connected).toContain('data-testid="data-sync-entry"');
+    expect(disconnected).not.toContain('data-testid="data-sync-entry"');
   });
 });

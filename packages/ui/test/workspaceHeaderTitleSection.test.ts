@@ -41,8 +41,7 @@ vi.mock("lucide-react", async (importOriginal) => {
   const createIcon = (name: string) => (props: Record<string, unknown>) =>
     createElement("svg", { "data-icon": name, ...props });
 
-  // 共享组件（RemoteSyncActions 等）的图标随迭代增减，枚举 mock 会反复缺导出；
-  // 保留既有命名映射，其余图标名用 Proxy 兜底为占位 svg。
+  // 共享组件的图标随迭代增减，枚举 mock 会反复缺导出；保留既有命名映射，其余图标名用 Proxy 兜底为占位 svg。
   const icons: Record<string, unknown> = {
     ...actual,
     Cloud: createIcon("cloud"),
@@ -121,19 +120,6 @@ vi.mock("@/GitBranchSwitcher.js", () => ({
 
 vi.mock("@/TaskActionMenuContent.js", () => ({
   TaskActionMenuContent: () => createElement("div", { "data-testid": "task-action-menu" }),
-}));
-
-vi.mock("@/settings/RemoteSkillSyncDialog.js", () => ({
-  RemoteSkillSyncDialog: () => createElement("div", { "data-testid": "remote-skill-sync-dialog" }),
-}));
-
-vi.mock("@/settings/RemoteMcpSyncDialog.js", () => ({
-  RemoteMcpSyncDialog: () => createElement("div", { "data-testid": "remote-mcp-sync-dialog" }),
-}));
-
-vi.mock("@/settings/RemotePluginSyncDialog.js", () => ({
-  RemotePluginSyncDialog: () =>
-    createElement("div", { "data-testid": "remote-plugin-sync-dialog" }),
 }));
 
 vi.mock("@/hooks/useConfirmDialog.js", () => ({
@@ -349,7 +335,7 @@ describe("WorkspaceHeaderTitleSection", () => {
     },
   );
 
-  it("shows Skills and MCP sync actions for connected SSH workspace header menu", async () => {
+  it("routes the header sync menu to the unified data sync categories", async () => {
     const { WorkspaceHeaderTitleSection } = await import("@/WorkspaceHeaderSections.js");
 
     const html = renderToStaticMarkup(
@@ -386,9 +372,13 @@ describe("WorkspaceHeaderTitleSection", () => {
       }),
     );
 
-    // 同步菜单已按原型 L1197-1203 收敛为 remote.sync* key 与分化图标（wand/cable）。
+    // 同步菜单已收敛到数据同步页：头部只保留分类入口，不再挂载旧同步弹窗。
     expect(html).toContain("remote.syncSkills");
     expect(html).toContain("remote.syncMcp");
+    expect(html).toContain("remote.syncPlugins");
+    expect(html).not.toContain("remote-skill-sync-dialog");
+    expect(html).not.toContain("remote-mcp-sync-dialog");
+    expect(html).not.toContain("remote-plugin-sync-dialog");
   });
 });
 

@@ -27,6 +27,17 @@ export type SettingsSectionId =
 export type SettingsUsageTabTarget = "app";
 export type SettingsPluginTabTarget = "plugins" | "mcps" | "skills" | "commands";
 export type SettingsPluginNavigationOrigin = "plugin-store";
+/**
+ * 数据同步页的预选分类。旧同步弹窗已删除，所有同步入口都必须落到同一页并只负责
+ * 指定分类；取值与 data-sync/contract 保持一致（lib 不反向依赖 data-sync 模块）。
+ */
+export type SettingsDataSyncCategoryTarget =
+  | "skills"
+  | "mcp"
+  | "commands"
+  | "hooks"
+  | "subagents"
+  | "plugins";
 
 const SETTINGS_SECTION_INTENT_KEY = "nibi-settings-section-intent",
   SETTINGS_USAGE_TAB_INTENT_KEY = "nibi-settings-usage-tab-intent",
@@ -36,6 +47,7 @@ const SETTINGS_SECTION_INTENT_KEY = "nibi-settings-section-intent",
 const SETTINGS_SOURCE_SERVER_ID_INTENT_KEY = "nibi-settings-source-server-id-intent";
 const SETTINGS_SOURCE_SERVER_DETAILS_INTENT_KEY = "nibi-settings-source-server-details-intent";
 const SETTINGS_MODEL_PROVIDER_ID_INTENT_KEY = "nibi-settings-model-provider-id-intent";
+const SETTINGS_DATA_SYNC_CATEGORY_INTENT_KEY = "nibi-settings-data-sync-category-intent";
 const SETTINGS_SECTION_INTENT_EVENT = "nibi:settings-section-intent",
   SETTINGS_LAST_SECTION_STORAGE_KEY = "nibi-settings-last-section";
 const HIDDEN_SETTINGS_SECTIONS = new Set<SettingsSectionId>([
@@ -60,6 +72,7 @@ export interface SettingsSectionIntentEventDetail {
   modelProviderId?: string;
   sourceServerId?: string;
   sourceServerDetails?: boolean;
+  dataSyncCategory?: SettingsDataSyncCategoryTarget;
 }
 
 export interface SettingsModelProviderTarget {
@@ -227,6 +240,7 @@ export function setPendingSettingsSectionIntent(
     sourceServerId?: string;
     sourceServerDetails?: boolean;
     usageTab?: SettingsUsageTabTarget;
+    dataSyncCategory?: SettingsDataSyncCategoryTarget;
   } = {},
 ): void {
   if (typeof window === "undefined") {
@@ -235,6 +249,14 @@ export function setPendingSettingsSectionIntent(
 
   try {
     window.sessionStorage.setItem(SETTINGS_SECTION_INTENT_KEY, section);
+    if (section === "dataSync" && options.dataSyncCategory) {
+      window.sessionStorage.setItem(
+        SETTINGS_DATA_SYNC_CATEGORY_INTENT_KEY,
+        options.dataSyncCategory,
+      );
+    } else {
+      window.sessionStorage.removeItem(SETTINGS_DATA_SYNC_CATEGORY_INTENT_KEY);
+    }
     if (options.pluginTab) {
       window.sessionStorage.setItem(SETTINGS_PLUGIN_TAB_INTENT_KEY, options.pluginTab);
     } else {
@@ -291,6 +313,9 @@ export function setPendingSettingsSectionIntent(
         pluginScopeKey: options.pluginScopeKey?.trim() || undefined,
         usageTab: options.usageTab,
         modelProviderId: options.modelProviderId,
+        ...(section === "dataSync" && options.dataSyncCategory
+          ? { dataSyncCategory: options.dataSyncCategory }
+          : {}),
         ...(section === "remoteDevices" && options.sourceServerId?.trim()
           ? {
               sourceServerId: options.sourceServerId.trim(),
@@ -313,6 +338,7 @@ function clearPendingSettingsSectionIntent(): void {
     window.sessionStorage.removeItem(SETTINGS_SOURCE_SERVER_DETAILS_INTENT_KEY);
     window.sessionStorage.removeItem(SETTINGS_USAGE_TAB_INTENT_KEY);
     window.sessionStorage.removeItem(SETTINGS_MODEL_PROVIDER_ID_INTENT_KEY);
+    window.sessionStorage.removeItem(SETTINGS_DATA_SYNC_CATEGORY_INTENT_KEY);
     window.sessionStorage.removeItem(SETTINGS_PLUGIN_TAB_INTENT_KEY);
     window.sessionStorage.removeItem(SETTINGS_PLUGIN_ORIGIN_INTENT_KEY);
     window.sessionStorage.removeItem(SETTINGS_PLUGIN_SCOPE_KEY_INTENT_KEY);
@@ -406,8 +432,38 @@ export function clearPendingSettingsPluginOrigin(): void {
   }
 }
 
-export function consumePendingSettingsUsageTab(): SettingsUsageTabTarget | undefined {
+/** 设置页挂载时消费数据同步预选分类；已挂载页面由导航事件直接携带同一字段。 */
+export function consumePendingSettingsDataSyncCategory():
+  | SettingsDataSyncCategoryTarget
+  | undefined {
   if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(SETTINGS_DATA_SYNC_CATEGORY_INTENT_KEY);
+    window.sessionStorage.removeItem(SETTINGS_DATA_SYNC_CATEGORY_INTENT_KEY);
+    return isSettingsDataSyncCategory(raw) ? raw : undefined;
+  } catch {
+    // 忽略浏览器存储异常，不影响主流程。
+    return undefined;
+  }
+}
+
+function isSettingsDataSyncCategory(
+  value: string | null,
+): value is SettingsDataSyncCategoryTarget {
+  return (
+    value === "skills" ||
+    value === "mcp" ||
+    value === "commands" ||
+    value === "hooks" ||
+    value === "subagents" ||
+    value === "plugins"
+  );
+}
+
+export function consumePendingSettingsUsageTab(): SettingsUsageTabTarget | undefined {  if (typeof window === "undefined") {
     return undefined;
   }
 

@@ -8,10 +8,8 @@ import {
   Import,
   Plus,
   Trash2,
-  UploadCloud,
   WandSparkles,
 } from "lucide-react";
-import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { Button } from "@/components/ui/button.js";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.js";
 import { Switch } from "@/components/ui/switch.js";
@@ -53,8 +51,9 @@ import {
 } from "@/settings/pluginStoreListing.js";
 import { groupSkillsByPlugin } from "@/settings/pluginManagedResourceGroups.js";
 import { SkillsImportDialog } from "@/settings/ExternalAgentImportDialog.js";
-import { formatRemoteSkillSyncTarget } from "@/settings/RemoteSkillSyncDialog.js";
-import { RemoteSyncDialogs, shouldShowRemoteSyncActions } from "@/settings/RemoteSyncActions.js";
+import { DataSyncEntryButton } from "@/settings/DataSyncEntry.js";
+import { shouldShowDataSyncEntry } from "@/lib/dataSyncEntry.js";
+import { formatRemoteTargetLabel } from "@/lib/remoteTargetLabel.js";
 import { refreshSharedSkillStoreForWorkspace } from "@/lib/skillStoreRefresh.js";
 import { buildSourceSettingsProjectionKey } from "@/settings/settingsSourceWorkspace.js";
 import { usePluginManagementStore } from "@/store/pluginManagementStore.js";
@@ -203,9 +202,8 @@ export function SkillsSection({
     { unscopedServices, forceUnscoped: Boolean(cacheAuthorityKey || unscopedServices) },
   );
   // PluginsSection 已把 Scope target 传入，但 Skills 仍从当前 ServiceProvider
-  // 取服务，导致跨远程 host 误路由。技能读写和远端同步都改用同一 target 解析结果。
-  const { pluginManagementService, skillSyncService, skillsService } =
-    targetServiceResolution.services;
+  // 取服务，导致跨远程 host 误路由。技能读写改用同一 target 解析结果。
+  const { pluginManagementService, skillsService } = targetServiceResolution.services;
   const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [capability, setCapability] = useState<SkillsCapability | null>(null);
   const [loadedSkillTargetKey, setLoadedSkillTargetKey] = useState("");
@@ -219,7 +217,6 @@ export function SkillsSection({
   const [diagnostics, setDiagnostics] = useState<SkillDiagnostic[]>([]);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [remoteSkillSyncOpen, setRemoteSkillSyncOpen] = useState(false);
   const latestRequestIdRef = useRef(0);
   const activeSkillTargetKey = buildSourceSettingsProjectionKey(
     activeWorkspacePath,
@@ -249,9 +246,9 @@ export function SkillsSection({
   ]);
 
   const workspaceLabel = getWorkspaceBasename(activeWorkspacePath);
-  const connectedRemoteSyncTarget =
+  const connectedRemoteTarget =
     targetServiceResolution.rpcReady &&
-    shouldShowRemoteSyncActions({
+    shouldShowDataSyncEntry({
       remoteSessionId,
       remoteTarget,
       clientMode: isWebRemoteControl ? "web-remote-replayable" : "desktop-continuous",
@@ -260,8 +257,8 @@ export function SkillsSection({
     activeWorkspacePath
       ? remoteTarget
       : null;
-  const remoteSkillSyncTargetLabel = connectedRemoteSyncTarget
-    ? formatRemoteSkillSyncTarget(connectedRemoteSyncTarget, activeWorkspacePath ?? "")
+  const remoteTargetLabel = connectedRemoteTarget
+    ? formatRemoteTargetLabel(connectedRemoteTarget, activeWorkspacePath ?? "")
     : "";
 
   const renderScopeLabel = useCallback(
@@ -359,7 +356,6 @@ export function SkillsSection({
       setLoading(false);
       setError(null);
       setImportDialogOpen(false);
-      setRemoteSkillSyncOpen(false);
       return;
     }
     // 首屏或切换 Scope target 时必须显示阻塞 loading；手动刷新仍走后台刷新，
@@ -676,20 +672,8 @@ export function SkillsSection({
       newActionId="settings.skills.create.open"
     />
   );
-  const remoteSyncAction = connectedRemoteSyncTarget ? (
-    <ControlHintTooltip title={intl.formatMessage({ id: "settings.skills.remoteSync.open" })}>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-lg"
-        aria-label={intl.formatMessage({
-          id: "settings.skills.remoteSync.open",
-        })}
-        onClick={() => setRemoteSkillSyncOpen(true)}
-      >
-        <UploadCloud className="size-3.5" aria-hidden="true" />
-      </Button>
-    </ControlHintTooltip>
+  const remoteSyncAction = connectedRemoteTarget ? (
+    <DataSyncEntryButton category="skills" labelId="settings.skills.remoteSync.open" />
   ) : null;
 
   return (
@@ -717,11 +701,11 @@ export function SkillsSection({
       ) : null}
       {remoteSyncAction ? <div className="flex justify-end">{remoteSyncAction}</div> : null}
 
-      {connectedRemoteSyncTarget ? (
+      {connectedRemoteTarget ? (
         <div className="rounded-lg border border-border bg-card px-3 py-2 text-ui-base text-foreground-subtle">
           {intl.formatMessage(
             { id: "settings.skills.remoteContext" },
-            { target: remoteSkillSyncTargetLabel },
+            { target: remoteTargetLabel },
           )}
         </div>
       ) : null}
@@ -988,31 +972,6 @@ export function SkillsSection({
           });
           await refresh();
         }}
-      />
-      <RemoteSyncDialogs
-        canSyncSkills={Boolean(
-          targetServiceResolution.rpcReady && connectedRemoteSyncTarget && activeWorkspacePath,
-        )}
-        canSyncMcp={false}
-        skillOpen={remoteSkillSyncOpen && targetServiceResolution.rpcReady}
-        mcpOpen={false}
-        onSkillOpenChange={setRemoteSkillSyncOpen}
-        onMcpOpenChange={() => {}}
-        localSkillSyncService={baseServices.skillSyncService}
-        remoteSkillSyncService={skillSyncService}
-        remoteTarget={connectedRemoteSyncTarget}
-        skillWorkspacePath={activeWorkspacePath ?? ""}
-        mcpWorkspacePath=""
-        workspaceIdentity={activeWorkspaceIdentity}
-        onSkillsSynced={async () => {
-          await invalidateDeferredDraftSessionForSkillChange({
-            workspacePath: activeWorkspacePath,
-            workspaceIdentity: activeWorkspaceIdentity,
-            reason: "settings-remote-skill-sync",
-          });
-          await Promise.all([refresh(), refreshSharedSkillStoreForCurrentWorkspace()]);
-        }}
-        onMcpSynced={() => {}}
       />
     </div>
   );

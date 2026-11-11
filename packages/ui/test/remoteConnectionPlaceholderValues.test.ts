@@ -32,12 +32,6 @@ vi.mock("@/RemoteConnectionFields.js", () => ({
   RemoteConnectionFields: () => createElement("div", { "data-testid": "remote-connection-fields" }),
 }));
 
-vi.mock("@/settings/RemoteSyncActions.js", () => ({
-  RemoteSyncDialogs: () => createElement("div", { "data-testid": "remote-sync-dialogs" }),
-  RemoteSyncDropdownButton: () => createElement("button", { type: "button" }, "sync"),
-  shouldShowRemoteSyncActions: () => false,
-}));
-
 vi.mock("@/hooks/usePlatform.js", () => ({
   usePlatform: () => ({}),
 }));

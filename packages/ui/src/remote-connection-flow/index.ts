@@ -2139,15 +2139,6 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
       },
       services: directoryBrowserServices,
       remoteTarget: pendingRemoteTarget,
-      localSkillSyncService: baseServices.skillSyncService,
-      remoteSkillSyncService: directoryBrowserServices?.skillSyncService ?? null,
-      localMcpSyncService: baseServices.mcpSyncService,
-      remoteMcpSyncService: directoryBrowserServices?.mcpSyncService ?? null,
-      localPluginSyncService: baseServices.pluginSyncService,
-      remotePluginSyncService: directoryBrowserServices?.pluginSyncService ?? null,
-      localZCodeAgentService: baseServices.zcodeAgentService,
-      remoteZCodeAgentService: directoryBrowserServices?.zcodeAgentService ?? null,
-      localWorkspacePath: localWorkspacePath,
       selecting: selectingDirectory,
       onSelect: (path) => {
         void handleSelectDirectory(path);
@@ -2162,9 +2153,6 @@ export function useRemoteConnectionFlow(options: RemoteConnectionFlowOptions) {
         // 只释放未绑定项目的临时 attachment；Host 的设备连接独立保留。
         if (!selectingDirectoryRef.current) closeDialog();
       },
-      onSkillsSynced: async () => undefined,
-      onMcpSynced: async () => undefined,
-      onPluginsSynced: async () => undefined,
       deviceName: recognizedDeviceName,
       profileName: activeProfileName,
       deviceVersion: recognizedServer?.lastSeenVersion,

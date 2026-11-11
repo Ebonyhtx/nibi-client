@@ -102,7 +102,11 @@ function createAccessor(
 
 let unregisterTarget: (() => void) | undefined;
 
-function mountSection(source: IServiceAccessor, target: IServiceAccessor) {
+function mountSection(
+  source: IServiceAccessor,
+  target: IServiceAccessor,
+  initialCategory?: DataSyncCategoryId,
+) {
   hoisted.baseServices = source;
   unregisterTarget = registerSourceSettingsServices({
     sourceServerId: "source-a",
@@ -113,6 +117,7 @@ function mountSection(source: IServiceAccessor, target: IServiceAccessor) {
   return render(
     createElement(DataSyncSection, {
       devices: [{ sourceServerId: "source-a", name: "dev-a" }],
+      ...(initialCategory ? { initialCategory } : {}),
     }),
   );
 }
@@ -350,6 +355,21 @@ describe("DataSyncSection categories", () => {
     expect(screen.getByTestId("settings-data-sync-row-remote-only")).toBeTruthy();
     expect(
       screen.getByText("settings.dataSync.category.selection.count(count=1)"),
+    ).toBeTruthy();
+  });
+
+  it("lands on the category preselected by the settings entry", async () => {
+    mountSection(createAccessor(), createAccessor(), "plugins");
+
+    const tab = await screen.findByTestId("settings-data-sync-category-tab-plugins");
+    expect(tab.getAttribute("aria-selected")).toBe("true");
+    expect(
+      screen.getByTestId("settings-data-sync-category-tab-overview").getAttribute("aria-selected"),
+    ).toBe("false");
+    expect(
+      await screen.findByText(
+        "settings.dataSync.category.empty(category=settings.dataSync.category.plugins)",
+      ),
     ).toBeTruthy();
   });
 

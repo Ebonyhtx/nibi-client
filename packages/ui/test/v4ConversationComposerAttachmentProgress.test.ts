@@ -1,12 +1,14 @@
 import { createElement, type ComponentType, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import type { IPlatformService } from "@nibi/shared";
 import {
   TID_V4_ATTACHMENT_UPLOAD_PROGRESS,
   TID_V4_ATTACHMENT_UPLOAD_RETRY,
   TID_V4_COMPOSER_SEND,
   testId,
 } from "@nibi/shared/test-ids";
+import { PlatformProvider } from "@/hooks/usePlatform.js";
 import { ZCodeIntlProvider } from "@/i18n/IntlProvider.js";
 import { ConversationComposer } from "@/v4/ConversationComposer.js";
 
@@ -127,23 +129,27 @@ const AnyConversationComposer = ConversationComposer as unknown as ComponentType
   Record<string, unknown>
 >;
 
-function renderComposer(overrides: Record<string, unknown> = {}) {
+function renderComposer(
+  overrides: Record<string, unknown> = {},
+  platform?: IPlatformService,
+) {
+  const composer = createElement(AnyConversationComposer, {
+    draftMode: true,
+    onSelectModel: vi.fn(),
+    onSelectThought: vi.fn(),
+    onSendText: vi.fn(async () => {}),
+    onStop: vi.fn(),
+    onSwitchMode: vi.fn(),
+    sessionId: null,
+    snapshot: null,
+    workspacePath: "/workspace",
+    ...overrides,
+  });
   return renderToStaticMarkup(
     createElement(
       ZCodeIntlProvider,
       { initialLocale: "zh-CN" },
-      createElement(AnyConversationComposer, {
-        draftMode: true,
-        onSelectModel: vi.fn(),
-        onSelectThought: vi.fn(),
-        onSendText: vi.fn(async () => {}),
-        onStop: vi.fn(),
-        onSwitchMode: vi.fn(),
-        sessionId: null,
-        snapshot: null,
-        workspacePath: "/workspace",
-        ...overrides,
-      }),
+      platform ? createElement(PlatformProvider, { platform }, composer) : composer,
     ),
   );
 }
@@ -278,6 +284,55 @@ describe("ConversationComposer attachment upload progress", () => {
     expect(html).toContain("group-hover:opacity-100");
     expect(html).toContain("focus-visible:opacity-100");
     expect(html).toContain("[@media(hover:none)]:opacity-100");
+  });
+
+  it("文件附件渲染文件操作菜单，媒体缩略图不渲染", () => {
+    attachmentState.attachments = [
+      {
+        adopted: false,
+        autoRetryCount: 0,
+        filename: "report.pdf",
+        id: "file-actions-1",
+        localPath: "C:\\work\\docs\\report.pdf",
+        localZeroCopy: false,
+        referenceOwnership: "composer",
+        mimeType: "application/pdf",
+        operationId: "operation-file-actions-1",
+        showComplete: false,
+        sizeBytes: 100,
+        staged: false,
+        uploadProgress: 100,
+        uploadStatus: "ready",
+      },
+      {
+        adopted: false,
+        autoRetryCount: 0,
+        filename: "avatar.png",
+        id: "file-actions-image",
+        localZeroCopy: false,
+        referenceOwnership: "composer",
+        mimeType: "image/png",
+        objectUrl: "blob:file-actions-image",
+        operationId: "operation-file-actions-image",
+        showComplete: false,
+        sizeBytes: 100,
+        staged: false,
+        uploadProgress: 100,
+        uploadStatus: "ready",
+      },
+    ];
+
+    const platform = {
+      canOpenLocalFiles: true,
+      openExternalFile: async () => ({ success: true }),
+      openInFileManager: async () => ({ success: true }),
+      saveFile: async () => ({ success: true }),
+    } as unknown as IPlatformService;
+    const html = renderComposer({}, platform);
+
+    // 只有文件卡片有文件操作入口；图片缩略图继续走预览，不重复出现菜单。
+    expect(html.match(/data-testid="chat-attachment-file-actions-trigger"/gu)).toHaveLength(1);
+    expect(html).toContain('aria-label="文件操作"');
   });
 
   it("视频附件显示上传进度环与原始预览地址", () => {
