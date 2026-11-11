@@ -25,19 +25,25 @@ it("compiles real UAC calls when the plugin directory follows the custom include
       throw error;
     }
   }
-  const { NSIS_PATH, NSIS_RESOURCES_PATH, NsisTargetOptions } = require(
-    resolve(builderDir, "out/targets/nsis/nsisUtil.js"),
-  );
-  NsisTargetOptions.resolve({});
-  const [nsisDir, resourcesDir] = await Promise.all([NSIS_PATH(), NSIS_RESOURCES_PATH()]);
-  const compiler = join(
-    nsisDir,
-    process.platform === "win32"
-      ? "Bin/makensis.exe"
-      : process.platform === "darwin"
-        ? "mac/makensis"
-        : "linux/makensis",
-  );
+  // 26.15 起上游用 out/toolsets/windows 的 getMakeNsisPath / getNsisPluginsPath
+  // 替换了 nsisUtil 的 NSIS_PATH / NSIS_RESOURCES_PATH / NsisTargetOptions，
+  // 26.17.0 起旧导出已被删除。只消费这两个公开 helper，不再依赖内部 target 选项。
+  const { getMakeNsisPath, getNsisPluginsPath } = require(
+    resolve(builderDir, "out/toolsets/windows.js"),
+  ) as {
+    getMakeNsisPath: (
+      nsis?: string,
+      customBinary?: unknown,
+    ) => Promise<{ path: string; env?: Record<string, string> }>;
+    getNsisPluginsPath: (nsis?: string, customResources?: unknown) => Promise<string>;
+  };
+  const makensis = await getMakeNsisPath(undefined, undefined);
+  // legacy bundle 才显式带 NSISDIR；fallback 按 legacy 布局
+  // （<bundle>/{Bin,linux,mac}/makensis[.exe]）反推。
+  const nsisDir = makensis.env?.NSISDIR ?? dirname(dirname(makensis.path));
+  // 新版返回 plugins 根目录（旧版返回 resources 根，需再拼一层 "plugins"）。
+  const pluginsDir = await getNsisPluginsPath(undefined, undefined);
+  const compiler = makensis.path;
   const temp = await mkdtemp(join(tmpdir(), "zcode-nsis-compile-"));
   try {
     for (const uninstaller of [false, true]) {
@@ -50,7 +56,7 @@ it("compiles real UAC calls when the plugin directory follows the custom include
         ...(uninstaller ? ["-WX", "-DBUILD_UNINSTALLER"] : []),
         `-DNSIS_INCLUDE_DIR=${join(nsisDir, "Include")}`,
         `-DELECTRON_BUILDER_NSIS_INCLUDE_DIR=${join(builderDir, "templates/nsis/include")}`,
-        `-DNSIS_PLUGIN_DIR=${join(resourcesDir, "plugins/x86-unicode")}`,
+        `-DNSIS_PLUGIN_DIR=${join(pluginsDir, "x86-unicode")}`,
         `-DNIBI_INSTALLER_NSH=${join(desktopDir, "build/installer.nsh")}`,
         `-DFIXTURE_EXE=${import.meta.filename}`,
         `-DOUTPUT_FILE=${output}`,
