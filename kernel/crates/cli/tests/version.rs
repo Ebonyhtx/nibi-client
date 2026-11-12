@@ -50,17 +50,22 @@ fn every_version_flag_prints_the_build_version() {
 #[test]
 fn the_build_version_follows_the_profile() {
     let version = env!("NIBI_BUILD_VERSION");
-    let parts: Vec<&str> = version.split('.').collect();
-    assert_eq!(parts.len(), 3, "{version}");
-    // major、minor 总是来自 Cargo.toml。
-    assert_eq!(parts[0], env!("CARGO_PKG_VERSION_MAJOR"));
-    assert_eq!(parts[1], env!("CARGO_PKG_VERSION_MINOR"));
     if cfg!(debug_assertions) {
         // debug 编译：Cargo.toml 的版本原样不变，不看计数文件，也不看发版变量（version.md §1）。
         assert_eq!(version, env!("CARGO_PKG_VERSION"));
         return;
     }
-    // release 编译：第三位来自仓库里的计数文件（version.md §2）。
+    if let Some(published) = option_env!("NIBI_RELEASE_VERSION") {
+        // 正式发版：版本就是产品版本（CI 从根 package.json 注入），与 Cargo.toml 的 major.minor
+        // 和计数文件都无关；计数文件只读、没有加 1。
+        assert_eq!(version, published);
+        return;
+    }
+    // 本地 release：`Cargo.toml` 的 major.minor + 仓库里计数文件的号（version.md §2）。
+    let parts: Vec<&str> = version.split('.').collect();
+    assert_eq!(parts.len(), 3, "{version}");
+    assert_eq!(parts[0], env!("CARGO_PKG_VERSION_MAJOR"));
+    assert_eq!(parts[1], env!("CARGO_PKG_VERSION_MINOR"));
     let count: u64 = parts[2].parse().unwrap();
     let counter = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../build-number");
     let committed: u64 = std::fs::read_to_string(counter)
@@ -68,12 +73,6 @@ fn the_build_version_follows_the_profile() {
         .trim()
         .parse()
         .unwrap();
-    if let Some(published) = option_env!("NIBI_RELEASE_VERSION") {
-        // 正式发版：等于变量，文件只读、没有加 1。
-        assert_eq!(version, published);
-        assert_eq!(count, committed, "{version}");
-    } else {
-        // 本地 release：编译时加过 1；之后别的 release 编译可能又加过。
-        assert!((1..=committed).contains(&count), "{version} / {committed}");
-    }
+    // 编译时加过 1；之后别的 release 编译可能又加过。
+    assert!((1..=committed).contains(&count), "{version} / {committed}");
 }

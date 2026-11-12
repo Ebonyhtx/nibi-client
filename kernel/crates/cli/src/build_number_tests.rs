@@ -114,33 +114,44 @@ fn a_missing_or_broken_counter_fails_and_is_left_alone() {
 }
 
 #[test]
-fn a_publication_build_checks_the_version_and_does_not_write() {
+fn a_publication_build_uses_the_injected_version_and_does_not_write() {
     let workspace = Workspace::new(Some("52\n"));
-    let shown = workspace.counter.display().to_string();
     assert_eq!(
-        directives(&workspace.inputs("release", Some("0.1.52"))),
+        directives(&workspace.inputs("release", Some("4.0.2"))),
         Ok(vec![
             "rerun-if-changed=build.rs".to_owned(),
-            format!("rerun-if-changed={shown}"),
             format!("rerun-if-env-changed={RELEASE_ENV}"),
-            version_directive("0.1.52"),
+            version_directive("4.0.2"),
         ])
     );
+    // 计数文件只读不写：本地 release 的号段与产品版本互不影响。
     assert_eq!(workspace.counter_text(), "52\n");
     assert!(!workspace.leftovers());
-    // 逐字比较：别的号、空串、带空白或前缀的都不等，编译失败，也不写文件。
-    for value in [
-        "0.1.51", "0.1.53", "", " 0.1.52", "0.1.52\n", "v0.1.52", "0.2.52",
-    ] {
+    // 发版版本要能被 npm 注册表接受：数字开头，只含字母数字与 `.`、`+`、`-`，没有空段。
+    for value in ["", " 4.0.2", "4.0.2\n", "v4.0.2", "4..0", "-4.0.2"] {
         let error = directives(&workspace.inputs("release", Some(value))).unwrap_err();
         assert!(error.contains(RELEASE_ENV), "{value:?}: {error}");
-        assert!(error.contains("0.1.52"), "{value:?}: {error}");
         assert_eq!(workspace.counter_text(), "52\n");
     }
-    // 发版时文件缺失：同样失败。
+    // 发版不再依赖计数文件：文件缺失也能编，也不会被创建。
     let missing = Workspace::new(None);
-    let error = directives(&missing.inputs("release", Some("0.1.52"))).unwrap_err();
-    assert!(error.contains("missing"), "{error}");
+    assert_eq!(
+        directives(&missing.inputs("release", Some("4.0.2")))
+            .unwrap()
+            .last(),
+        Some(&version_directive("4.0.2"))
+    );
+    assert!(!missing.counter.exists());
+}
+
+#[test]
+fn a_plain_version_matches_what_the_registry_accepts() {
+    for value in ["4.0.2", "0.1.69", "4.0.0-beta.1", "4.0.2+build.7"] {
+        assert!(plain_version(value), "{value}");
+    }
+    for value in ["", "v4.0.2", "4..0", "4.0.2\n", " 4.0.2", "4.0.2/"] {
+        assert!(!plain_version(value), "{value}");
+    }
 }
 
 #[test]

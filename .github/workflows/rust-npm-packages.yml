@@ -113,20 +113,42 @@ jobs:
             echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$CC"
           } >> "$GITHUB_ENV"
 
-      - name: Build kernel binary
-        working-directory: kernel
-        run: cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs --target ${{ matrix.target }}
-
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1
         with:
           node-version: "24.22.1"
 
+      # 版本只有一处：`inputs.version` 或根 package.json。它同时喂给内核（NIBI_RELEASE_VERSION，
+      # 编译期写进 `nibi --version`）与 npm 包（package.json / build.json），三处必须逐字相同：
+      # 内核按自身版本向注册表精确取执行器，版本不同源时精确请求恒 404、每次远端部署都要多退 latest。
+      - name: Resolve release version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          [ -n "$VERSION" ] || VERSION="$(node -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "NIBI_RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      # 交叉编译的 target 与 runner 同架构，只有 android 不能在本机执行（产物要等 Phase C 上真机）。
+      - name: Build kernel binary
+        working-directory: kernel
+        run: cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs --target ${{ matrix.target }}
+
+      - name: Assert the binary reports the release version
+        if: matrix.target != 'aarch64-linux-android'
+        run: |
+          set -euo pipefail
+          REPORTED="$(kernel/target/${{ matrix.target }}/release/nibi-rs --version | awk '{print $2}')"
+          if [ "$REPORTED" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::the kernel reports $REPORTED but the package is ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
       - name: Pack npm platform package
         id: pack
         run: |
-          VERSION="${{ inputs.version }}"
-          [ -n "$VERSION" ] || VERSION="$(node -p "require('./package.json').version")"
+          VERSION="${{ steps.version.outputs.version }}"
           echo "packing version $VERSION"
           node scripts/rust-cli/npm/package.mjs \
             --binary "kernel/target/${{ matrix.target }}/release/nibi-rs" \

@@ -11,7 +11,8 @@
 // （打包要优化档），debug 兜底；`NIBI_RUST_KERNEL_BIN` 显式指文件时无视位次。
 
 import process from "node:process";
-import { copyFileSync, existsSync, mkdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -35,6 +36,34 @@ if (source === undefined) {
       "skipping — the packaged app falls back to the node kernel at runtime",
   );
   process.exit(0);
+}
+
+// 内核自身版本必须等于产品版本：远端执行器的 npm 平台包按内核版本精确取包
+// （`ssh_executor.rs` 的 `Wanted { version: super::VERSION }`）。版本不同源的二进制打进安装包后，
+// 每次远端部署都会精确请求 404 再静默退 latest。本地 release 编译默认是 `0.1.<build-number>`，
+// 要报告产品版本必须带 `NIBI_RELEASE_VERSION=<根 package.json 版本>` 重编（CI 两条打包链都这么做）。
+const appVersion = JSON.parse(readFileSync(join(workspaceRoot, "package.json"), "utf8")).version;
+let reported;
+try {
+  reported = /^nibi (\S+)/u.exec(
+    execFileSync(source, ["--version"], { encoding: "utf8", timeout: 15_000 }),
+  )?.[1];
+} catch (error) {
+  reported = undefined;
+  console.warn(`[prepare-rust-kernel] cannot run ${source} --version: ${error.message}`);
+}
+if (reported !== appVersion) {
+  const message =
+    `[prepare-rust-kernel] the kernel reports ${reported ?? "nothing"} but the app is ${appVersion}; ` +
+    `rebuild it with NIBI_RELEASE_VERSION=${appVersion} ` +
+    "(cargo build --locked --release -p nibi-kernel-cli --bin nibi-rs)";
+  if (process.env.NIBI_ENV === "production") {
+    console.error(`${message} — refusing to package a mismatched kernel`);
+    process.exit(1);
+  }
+  console.warn(`${message} — the packaged app would download the wrong executor version`);
+} else {
+  console.log(`[prepare-rust-kernel] ${source} reports ${reported}`);
 }
 
 mkdirSync(stagingDir, { recursive: true });

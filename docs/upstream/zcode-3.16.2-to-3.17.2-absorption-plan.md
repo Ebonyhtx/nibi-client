@@ -34,7 +34,7 @@
 
 ### 2.1 3.16.2 的远程（SSH）回归（我们中招）
 
-上游 `docs/issues/remote-performance-3-16/01-remote-session-lag-analysis.md` 逐条分析了 3.16.2 相对 3.15.3 的卡顿：
+上游内部的 remote-performance-3-16 分析文档逐条分析了 3.16.2 相对 3.15.3 的卡顿：
 
 - **发送前多等两次串行 SSH 往返**：`SessionPane` 在创建 envelope 之前 `await projectService.resolveSessionDirectories(...)`，内部先查远端 repo，再 `resolveWorkspace` 登记身份（返回的 `workspaceIdentity` 随后被丢弃）。实测 p50 ≈89ms（88–97ms），3.15.3 没有这一步。
 - **侧栏全量读取远端树**：`readProjectSidebarTree` 读本地 + **所有**远端主机（含离线）；远端 readTree 返回后对 N 个路径各发一次 `resolveWorkspace`，每次都在远端同步打开 2 个 SQLite、跑迁移检查、写一次 alias。
@@ -117,7 +117,7 @@
 | A4 | 本地 HTML 预览签名目录：`file://` → `zcode-html://`，每次资源请求验签 + 真实路径检查 | [源码] `desktop/src/main/browser-local-preview/`、`docs/browser-use/local-html-preview.md` | 已实施 | **[x] `9d3d66b9`**：Host 移植为 `nibi-html`，只在内置浏览器分区安装并封住原始 `file` 读面；**P0** |
 | A5 | 工作区 MCP 信任：项目 MCP 声明按 digest 记录信任/评审 | [源码] `bootstrap/src/workspace-mcp-trust/` | 已实施 | **Phase 1 [x] Host `mcpWorkspaceTrust/index.ts` + Rust `ext/src/mcp/trust.rs`**：用户域 `security/workspace-mcp-trust-v1.json`（Host 唯一 writer，`updateJsonObjectFile` 原子写），构建期无第二份存储；Host 与内核同一 canonical digest；未信任/声明变化/损坏/离线默认拒绝；UI `getEnabledMcpServersForZCode` 过滤未信任项目 MCP；内核 `McpManager::start/reconcile` 跳过并以 `mcp.project_trust.rejected` 诊断。**2026-11-12 收尾**：信任实现下沉 `services/src/mcp-trust`，`IMcpSyncService` 回传远端 trust/unreviewable 并支持远端审批；设置页评审入口与会话内未信任提示条接线；**P0/P1** |
 | A6 | MCP 设置检测仅限已注册工作区 | [源码] `workspace-mcp-trust` 与 MCP 设置测试 | 已实施 | **Phase 1 [x] Host**：`LoadMcpFromUserDirectory` 只读本窗口 `windowWorkspaceMap` 登记过的工作区，未登记只返回用户级 MCP；trust registry 的未注册/离线路径 fail-closed；**P0** |
-| A7 | 用户级 `config.json` 写入加固：损坏时报错不覆盖、写前重读、只改自己字段、临时文件+rename | [源码] `docs/issues/data-sync/01-harden-user-config-writers.md`、`services/src/fs/atomicFileUtils.ts` | 已实施 | **[x] `a7e6633a`**：`updateJsonObjectFile` 落地到命令/钩子/技能/MCP 目录/迁移导入/插件目录六处写入；Rust 的配置写入是原子临时文件，无同类宽松读取；**P0** |
+| A7 | 用户级 `config.json` 写入加固：损坏时报错不覆盖、写前重读、只改自己字段、临时文件+rename | [源码] 上游 data-sync 加固文档、`services/src/fs/atomicFileUtils.ts` | 已实施 | **[x] `a7e6633a`**：`updateJsonObjectFile` 落地到命令/钩子/技能/MCP 目录/迁移导入/插件目录六处写入；Rust 的配置写入是原子临时文件，无同类宽松读取；**P0** |
 | A8 | MCP stdio 无 Node 回退：Electron Node + 内置 npm/npx | [源码] `adapters/src/mcp/node-fallback.ts`、`bootstrap/src/app/mcp-node-fallback.ts` | 已实施 | **Phase 1**：需要随包 npm staging（构建链）与真机验证，不在 Phase 0 出口内；见 §11；**P1** |
 | A9 | **多会话并发写数据异常**：`commitForkBundle` 在 `DatabaseSync` 事务里 `await`，其他会话的写入会被 fork 回滚误删；改为事务内同步写 + 新增 `commitMessageBundle`（`begin immediate`） | [源码] `adapters/src/storage/session-store/sqlite-session-store.ts` | 已实施 | **[x] `89a03069`**：事务内全部同步写，新增 `commitMessageBundle` 并用于 compact 整组提交；Rust node-store 本来就是同步事务；**P0** |
 | A10 | fork 的 `compactLeadingMessageIds` 元数据非数组时不再抛错（字符串被逐字符校验、数字 TypeError） | [源码] 同上 | 已实施 | **[x] `89a03069`**：非数组按空忽略，与读取方一致；**P0（小）** |
@@ -129,7 +129,7 @@
 | B1 | 统一数据同步页：命令/钩子/技能/MCP/inline 插件/marketplace 插件/子代理/用户配置；哈希三态、分批、父子技能同批、不删远端独有、离线 fail-closed | [源码] `ui/src/data-sync/`、`services/src/data-sync/`、`docs/remote/data-sync.md` | 已实施 | **[x] 六类已接入并收敛入口**：技能 `1c17b5e4`；MCP / 命令 / 钩子 / 子智能体 / inline 插件在 Phase 3（见 §14）；marketplace 重装并入 plugins 分类；跨分类全选与「推送全部」已做；旧三类同步弹窗及其入口已删除（2026-11-12）；**P1** |
 | B2 | 设置页 Scope 按设备分组（本机/远端用户/项目），离线不列出、fail-closed | [源码] `ui/src/settings-scope/` | 已实施 | **[x] `0f8b730f`**：settings-scope managed 模块 + 插件/MCP/子智能体/钩子/命令/技能页统一接线；远端「用户」走 attachment，离线 fail-closed；数据同步前置；**P1** |
 | B3 | 项目彻底删除：`v4/storage/sessionData/measure / purge`，运行中/被引用保留、幂等 | [源码] `shared/src/zcode-protocol-v4/session-data/`、`ProjectManagement.tsx` | 已实施 | **[x] Rust `3bee959e` / Host+UI `04824ccd`**：内核两方法、Host 按 cwd 分组与 checkpoint 清理、项目菜单“清理数据”与删除项目可选清理；旧内核隐藏；**P1** |
-| B4 | 远端服务停止/重启（daemon 生命周期） | [源码] `docs/issues/remote-daemon-lifecycle/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
+| B4 | 远端服务停止/重启（daemon 生命周期） | [源码] 上游 daemon 生命周期文档、`packages/server/src/remote/` | 已实施 | **[x] `7229bd42`**：`stop --wait`、整树 `restart`（crash-loop 可恢复）、Host 生命周期 flight、确认前列运行任务、版本门禁；**P1** |
 | B5 | 远端设备紧凑可搜索列表、在线状态、停止/重启菜单 | [源码] `settings/SourceServerDeviceRow.tsx`、`sourceServerDeviceList.ts` | 已实施 | **[x] `7229bd42`**：紧凑可折叠 + 搜索 + 在线优先/最近使用冻结排序 + 停止/重启菜单；**P1** |
 | B6 | Provider provisioning lane 状态 + 失败重试 | [源码] `services/src/provider-provisioning-status/` | 已实施 | Host（依赖数据同步）；**P2** |
 | B7 | 远端「仅常驻」行读取（手机项目列表预加载最新一页） | [源码] `services/src/zcode-agent/resident-rows-range/` | 已实施 | Host + Rust 能力声明；**P2** |
@@ -500,7 +500,7 @@ git diff 3c5b227 a9fe401 -- config/provider/zcode-builtin.json
 
 ## 11. Phase 0 执行记录（2026-11-11）
 
-上游源码参考：`D:/NIBI/.ref-zcode`，checkout `a9fe401`（v3.17.2）。所有改动只提交、未推送。
+上游源码参考：上游仓库 checkout `a9fe401`（v3.17.2）。所有改动只提交、未推送。
 
 ### 11.1 提交
 

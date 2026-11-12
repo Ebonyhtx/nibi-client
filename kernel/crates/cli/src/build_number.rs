@@ -37,7 +37,11 @@ pub struct Inputs<'a> {
 ///
 /// - debug：不读不写计数文件，也不看发版变量；release 编译改了文件之后 debug 不重跑、入口 crate 不重编。
 /// - 本地 release：读、加 1、原子写回；哨兵让每次 release 编译都重跑。
-/// - 正式发版：变量必须逐字等于 `<major>.<minor>.<文件值>`，只读；文件或变量变了才重跑。
+/// - 正式发版：逐字用变量（产品版本，由 CI 从根 `package.json` 注入）；不读计数文件，文件或变量变了才重跑。
+///
+/// 发版版本必须等于产品版本，不能是 `Cargo.toml` 的 major.minor：执行器的 npm 平台包按内核自身版本向注册表
+/// 精确取包（`remote-exec.md` §26、§27），而平台包发布的是产品版本；两边不同源时精确请求恒 404，每次远端部署
+/// 都要多退一次 `latest`。
 pub fn directives(inputs: &Inputs) -> Result<Vec<String>, String> {
     if inputs.profile != "release" {
         return Ok(vec![
@@ -54,19 +58,26 @@ pub fn directives(inputs: &Inputs) -> Result<Vec<String>, String> {
             version_directive(&version),
         ]);
     };
-    let expected = release_version(inputs.major, inputs.minor, read_count(&counter)?);
-    if published != expected {
+    if !plain_version(published) {
         return Err(format!(
-            "{RELEASE_ENV} {published:?} does not match {expected} (Cargo.toml major.minor and {})",
-            counter.display()
+            "{RELEASE_ENV} {published:?} is not a plain version (digits, letters, '.', '+', '-'; no '..')"
         ));
     }
     Ok(vec![
         "rerun-if-changed=build.rs".to_owned(),
-        format!("rerun-if-changed={}", counter.display()),
         format!("rerun-if-env-changed={RELEASE_ENV}"),
-        version_directive(&expected),
+        version_directive(published),
     ])
+}
+
+/// 注册表接受的版本字符集（与 `scripts/rust-cli/npm/package.mjs` 的 `isValidVersion` 同口径）：
+/// 数字开头，只含字母数字与 `.`、`+`、`-`，且没有空段（`..`）。
+pub fn plain_version(version: &str) -> bool {
+    version.starts_with(|character: char| character.is_ascii_digit())
+        && !version.contains("..")
+        && version.chars().all(|character| {
+            character.is_ascii_alphanumeric() || matches!(character, '.' | '+' | '-')
+        })
 }
 
 fn version_directive(version: &str) -> String {

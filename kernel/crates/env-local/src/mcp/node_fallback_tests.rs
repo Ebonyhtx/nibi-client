@@ -348,7 +348,7 @@ fn environment_names_are_case_insensitive() {
         ("PATH".to_owned(), r"C:\upper".to_owned()),
         (
             "nibi_node_fallback_exec_path".to_owned(),
-            r"C:\NIBI\nibi.exe".to_owned(),
+            r"C:\tools\nibi.exe".to_owned(),
         ),
     ]);
     let resolved = resolve("node", &[], &env, &[&user_node]).unwrap();

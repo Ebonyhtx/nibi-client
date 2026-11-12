@@ -13,7 +13,8 @@
 
 ## 发布一个版本
 
-1. 把根 `package.json` 的版本改成新版本（比如 `4.0.2`），提交到 `dev`，等 `dev` 的门禁绿。
+1. 把根 `package.json` 的版本改成新版本（比如 `4.0.2`），同步 `package-lock.json` 的根 `version` 与
+   `packages[""].version`（`desktopProductIdentity` 门禁要求三者一致），提交到 `dev`，等 `dev` 的门禁绿。
 2. 快进 `main`：`git branch -f main dev && git push origin main`。
 3. 在 `main` 的该 commit 上打标签并推送：
    ```bash
@@ -34,11 +35,40 @@
   `@nibi-studio/cli-<Platform::package_id()>@<自身版本>` 取包，404 退 `latest`，再用
   `exec-wire::handshake::PROTOCOL` 核对协议。这条是 SSH 远端部署的路径；android 不走这里
   （NIBI-GO 自己取 tarball）。
+- **版本同源**：平台包的 `version`、包内 `build.json.version`、二进制 `nibi-rs --version`
+  必须逐字相同，且等于当次发版的产品版本（根 `package.json`）。CI 的 `rust-npm-packages`
+  pack job 会把同一份版本同时写进 `NIBI_RELEASE_VERSION`（编译期）与打包参数，并在非 Android
+  的 target 上跑 `nibi-rs --version` 断言。
+- 本地 `cargo build --release`（不设 `NIBI_RELEASE_VERSION`）报告的仍是 `0.1.<build-number>`，
+  专供本地开发、让执行器缓存与产品版本互不覆盖；**打进安装包的内核必须是产品版本**——
+  `prepare-rust-kernel` 在 `NIBI_ENV=production` 下发现不一致会直接 fail 打包。
 - 发布方式：**npm trusted publishing（OIDC）**，不需要任何 token/secret；发布身份由 npm 上每个包的
   Trusted Publisher 设置（仓库 `Ebonyhtx/nibi-client` + workflow `rust-npm-packages.yml`）绑定。
 - 手动补发：Actions → `rust-npm-packages` → Run workflow → 勾 `publish`（`version` 可覆盖版本，仅用于
   验证配置这类场景）。同一个版本已存在时 job 会跳过而不是失败。
 - 已发布版本不可覆盖：要修就发新版本，旧版本只能 `npm deprecate`。
+- **`4.0.1` 不可用**：`linux-x64-gnu` / `linux-arm64-gnu` / `darwin-arm64` 是 2026-11 手工验证
+  时发的，包内二进制仍报告 `0.1.x`（当时还没有 `NIBI_RELEASE_VERSION` 注入），与包版本不一致；
+  `android-arm64` 从未发布。第一个版本同源的发布从 `4.0.2` 起。
+
+## Source Server 远端产物
+
+远端工作区的 `nibi-server-<target>.tar.gz`（`linux-x64` / `linux-arm64` / `darwin-x64` /
+`darwin-arm64`）与 `source-server-release.json` 由同一条 staging 链产出，**不是 Rust 构建**：
+
+1. 触发 `source-server-release` workflow（`workflow_dispatch`，ubuntu-latest）。它跑
+   `NIBI_ENV=production pnpm prepare:remote-assets`，把四个包与 descriptor 放进
+   `packages/desktop/mock-cdn/releases/<版本>/`，校验版本、sha256、size 与执行位后上传 artifact。
+   - 不要在 Windows 本机跑：staging 里 `spawn("pnpm")` 在 Windows 会 ENOENT，Windows 的 tar
+     也保不住 POSIX 执行位（远端解压后直接跑 `bin/zcode`）。
+   - 不要用 `prepare:remote-assets:linux` 发正式版：descriptor 只会登记两个 Linux target。
+2. 下载 artifact，把 5 个文件放到服务器 `/srv/nibi-site/content/releases/electron/<版本>/`。
+3. 服务器上 `python3 tools/publish-content.py --only releases --dry-run`，确认只新增这 5 个对象后
+   去掉 `--dry-run`；**不要加 `--prune`**。发布后的公网地址是
+   `https://dl.nibistudio.cn/releases/electron/<版本>/…`。
+
+descriptor 的 `version` 必须等于产品版本（根 `package.json`）：客户端
+`sourceServerReleaseResolver` 不匹配会直接拒绝，`content-publish.py verify` 的 URL 前缀也按同一版本。
 
 ## npm 铁律（踩过的坑，别再踩）
 
