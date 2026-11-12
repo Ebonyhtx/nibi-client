@@ -46,6 +46,10 @@ affected 使用 Vitest 官方选择，只运行选中的根 UT；选中整个套
 - PR 描述须说明背景、设计意图与修改前后行为；包含 bugfix 时逐项说明触发场景、根因证据、修复机制及回归验证，并尽量关联已有工单链接。未确认的根因或引入提交如实标注，不根据模块或时间接近推断归因。
 - 涉及状态、时序、远端或异步同步的方案，用图展示所有者及事件顺序。
 - 必须执行 `pnpm typecheck` 和 `pnpm lint`，报告真实结果，不将已有失败写成通过。
+- **不要在 DEV 客户端运行时重建 `packages/desktop/out`**（`pnpm build:no-runtime-assets`、`bundle:desktop`，
+  或为 pre-push 产物门禁做的打包构建）。DEV 主进程直接跑 `out/host/**` 并按需懒加载 chunk，产物被整份
+  重写后旧进程会报 `Cannot find module ...out/host/chunk-*.js`；打包版是 asar 一致快照，不受影响。
+  确实需要重建时：先关 DEV 客户端再构建，或构建后立刻重启 DEV。
 - 使用异步文件和网络 IO；跨包导入使用公开入口，遵守现有路径别名。
 - 禁止 UI 直接调用 Repo、Service 引用 Runtime 具体实现、跨域导入实现细节及循环依赖。
 
