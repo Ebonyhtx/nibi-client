@@ -626,3 +626,20 @@ Node 用同进程的活 run 注册表判断「在飞但不属于本会话」的 
 - 测试：`workflow_authoring_tests` 的 `possibly_interrupted_follows_the_live_run_registry`（四条：
   无注册表、在活集合里、不在活集合里、本会话自己的 run）；`workflow_run_detail_tests` 的
   `possibly_interrupted_is_an_annotation_after_the_owner_line`（默认不出现 + 位置）。
+
+## 15. 2026-11-12：草稿会话的附件上传（Rust 曾拒绝，Node 接受）
+
+真机报的 bug：新任务页 `Ctrl+V` 粘贴截图，附件进度永远停在 0%，发送按钮被门禁挡住。
+
+- **根因是内核语义差异，不是前端**：v4 `createSession` 两边都按 deferred/draft 建，draft 不写
+  会话行。Node 的 attachment commit 只查内存 `sessions`（draft 已登记），Rust 的
+  `runtime/src/attachment.rs` 用 `self.ports.store.load(session)` 判存在 → `StoreError::NotFound`
+  → RPC `-32004 Session unavailable`。UI 收到失败后重试一次、随即把进度归零置 failed，用户看到的
+  就是「一直 0% 且图片发不出去」。
+- **修法**：改调 `runtime::residency::session_exists`（该函数注释本来就写着「草稿没有存储行」）。
+  真正不存在的会话仍返回 `NotFound`，RPC 错误码不变。
+- **测试**：`attachment_tests::draft_sessions_accept_attachment_uploads` 钉住「草稿无会话行也能
+  commit」；UI 侧两条回归（截图无本地路径可上传到 ready；新任务页 session 未就绪时
+  `waitingSession` 不丢附件）。
+- **教训**：只对拍 RPC 方法名与参数不够，**会话状态语义**（draft 算不算存在）也要逐条对；
+  这类差异只会在默认 Rust 内核上表现，Node 回退路径永远是绿的。
