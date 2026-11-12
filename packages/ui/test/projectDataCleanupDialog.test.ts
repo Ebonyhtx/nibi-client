@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   IProjectService,
@@ -119,6 +119,116 @@ describe("项目数据清理对话框", () => {
 
     fireEvent.click(screen.getByTestId("project-data-cleanup-done"));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("会话区支持全选/清空，33 条一键选中，部分勾选显示半选", async () => {
+    const sessions = Array.from({ length: 33 }, (_, index) => ({
+      sessionId: `s${index}`,
+      bytes: 0,
+    }));
+    renderDialog({
+      service: service({
+        measureProjectData: vi.fn(async () => ({ sessions, directories: [] })),
+      }),
+      tasks: [],
+      runningSessionIds: new Set(),
+    });
+
+    const selectAll = await screen.findByTestId("project-data-cleanup-sessions-select-all");
+    const count = screen.getByTestId("project-data-cleanup-sessions-selected-count");
+    const rowCheckboxes = screen
+      .getAllByTestId(/^project-data-cleanup-session-s\d+$/)
+      .map((row) => within(row).getByRole("checkbox"));
+    expect(rowCheckboxes).toHaveLength(33);
+    expect(selectAll.getAttribute("aria-checked")).toBe("false");
+    expect(count.textContent).toBe("已选 0 / 共 33");
+
+    fireEvent.click(selectAll);
+    expect(selectAll.getAttribute("aria-checked")).toBe("true");
+    expect(count.textContent).toBe("已选 33 / 共 33");
+    expect(rowCheckboxes.every((box) => box.getAttribute("aria-checked") === "true")).toBe(true);
+
+    fireEvent.click(selectAll);
+    expect(selectAll.getAttribute("aria-checked")).toBe("false");
+    expect(count.textContent).toBe("已选 0 / 共 33");
+    expect(rowCheckboxes.every((box) => box.getAttribute("aria-checked") === "false")).toBe(true);
+
+    fireEvent.click(rowCheckboxes[0]!);
+    expect(selectAll.getAttribute("aria-checked")).toBe("mixed");
+    expect(count.textContent).toBe("已选 1 / 共 33");
+  });
+
+  it("全选只勾选可选会话，运行中会话保持禁用；空会话可一键选中", async () => {
+    renderDialog({
+      service: service({
+        measureProjectData: vi.fn(async () => ({
+          sessions: [
+            { sessionId: "kept", bytes: 10 },
+            { sessionId: "empty-a", bytes: 0 },
+            { sessionId: "empty-b", bytes: 0 },
+            { sessionId: "running", bytes: 5 },
+          ],
+          directories: [],
+        })),
+      }),
+      tasks: [],
+      runningSessionIds: new Set(["running"]),
+    });
+
+    const count = await screen.findByTestId("project-data-cleanup-sessions-selected-count");
+    expect(count.textContent).toBe("已选 1 / 共 4");
+    const quick = screen.getByTestId("project-data-cleanup-select-empty-sessions");
+    expect(quick.textContent).toBe("选择空会话");
+    fireEvent.click(quick);
+    expect(count.textContent).toBe("已选 3 / 共 4");
+    expect(
+      screen.getByRole("checkbox", { name: "empty-a" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen.getByRole("checkbox", { name: "empty-b" }).getAttribute("aria-checked"),
+    ).toBe("true");
+
+    const selectAll = screen.getByTestId("project-data-cleanup-sessions-select-all");
+    expect(selectAll.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(selectAll);
+    expect(count.textContent).toBe("已选 0 / 共 4");
+    fireEvent.click(selectAll);
+    expect(count.textContent).toBe("已选 3 / 共 4");
+    const running = screen.getByRole("checkbox", { name: "running" });
+    expect(running.getAttribute("aria-checked")).toBe("false");
+    expect((running as HTMLButtonElement).disabled).toBe(true);
+    expect(selectAll.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("文件夹记忆区支持全选/半选，无空会话时不显示快捷入口", async () => {
+    renderDialog({
+      service: service({
+        measureProjectData: vi.fn(async () => ({
+          sessions: [],
+          directories: [
+            { path: "/a", memoryBytes: 1, checkpointBytes: 0 },
+            { path: "/b", memoryBytes: 0, checkpointBytes: 2 },
+            { path: "/c", memoryBytes: 0, checkpointBytes: 0 },
+          ],
+        })),
+      }),
+      tasks: [],
+      runningSessionIds: new Set(),
+    });
+
+    const selectAll = await screen.findByTestId("project-data-cleanup-directories-select-all");
+    const count = screen.getByTestId("project-data-cleanup-directories-selected-count");
+    expect(count.textContent).toBe("已选 2 / 共 3");
+    expect(selectAll.getAttribute("aria-checked")).toBe("mixed");
+
+    fireEvent.click(selectAll);
+    expect(selectAll.getAttribute("aria-checked")).toBe("true");
+    expect(count.textContent).toBe("已选 3 / 共 3");
+
+    fireEvent.click(selectAll);
+    expect(selectAll.getAttribute("aria-checked")).toBe("false");
+    expect(count.textContent).toBe("已选 0 / 共 3");
+    expect(screen.queryByTestId("project-data-cleanup-select-empty-sessions")).toBeNull();
   });
 
   it("删除项目默认不清理数据；勾选后才显示清单并 purge", async () => {

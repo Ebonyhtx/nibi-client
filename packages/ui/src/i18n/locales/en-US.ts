@@ -202,6 +202,10 @@ const enUS: Record<string, string> = {
   "project.cleanupDirectories": "Folder memory and checkpoints ({count})",
   "project.cleanupNoSessions": "No sessions to clean up",
   "project.cleanupNoDirectories": "No folder data to clean up",
+  "project.cleanupSelectAllSessions": "Select all sessions",
+  "project.cleanupSelectAllDirectories": "Select all folder data",
+  "project.cleanupSelectionCount": "Selected {selected} of {total}",
+  "project.cleanupSelectEmptySessions": "Select empty sessions",
   "project.cleanupRunning": "Running",
   "project.cleanupEmpty": "Nothing to clean up",
   "project.cleanupDeleteDataOption": "Also delete project data",
@@ -4855,6 +4859,9 @@ const enUS: Record<string, string> = {
   "settings.plugins.store.paidPlanBadge": "Coding Plan",
   "settings.plugins.store.requiresPaidPlan": "This plugin works better with a Coding Plan",
   "settings.plugins.store.tryNow": "Try now",
+  "settings.plugins.store.tryNow.hint.enable":
+    "This plugin is disabled. Trying it will enable it first.",
+  "settings.plugins.store.tryNow.hint.membership": "Activate membership to try this plugin.",
   "settings.plugins.store.sourceMissing":
     "Marketplace source is missing. This plugin remains usable, but updates are unavailable.",
   "settings.plugins.store.menu.label": "More actions",

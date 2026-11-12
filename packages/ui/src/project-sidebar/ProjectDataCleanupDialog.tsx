@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LoaderCircle } from "lucide-react";
+import { Button } from "@/components/ui/button.js";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -153,6 +154,66 @@ export function ProjectDataCleanupDialog({
     );
   };
 
+  // 全选只作用于可选中的行：运行中会话由内核保留，不能因全选被带上。
+  const setAllSessionsSelected = (next: boolean | "indeterminate") => {
+    const selected = next === true;
+    setRows((current) =>
+      current
+        ? {
+            ...current,
+            sessions: current.sessions.map((row) => (row.running ? row : { ...row, selected })),
+          }
+        : current,
+    );
+  };
+  const setAllDirectoriesSelected = (next: boolean | "indeterminate") => {
+    const selected = next === true;
+    setRows((current) =>
+      current
+        ? {
+            ...current,
+            directories: current.directories.map((row) => ({ ...row, selected })),
+          }
+        : current,
+    );
+  };
+  const selectEmptySessions = () => {
+    setRows((current) =>
+      current
+        ? {
+            ...current,
+            sessions: current.sessions.map((row) =>
+              !row.running && row.bytes === 0 ? { ...row, selected: true } : row,
+            ),
+          }
+        : current,
+    );
+  };
+
+  const sessionRows = rows?.sessions ?? [];
+  const selectableSessions = sessionRows.filter((row) => !row.running);
+  const selectedSessionCount = selectableSessions.filter((row) => row.selected).length;
+  const sessionsSelectAllState: boolean | "indeterminate" =
+    selectableSessions.length > 0 && selectedSessionCount === selectableSessions.length
+      ? true
+      : selectedSessionCount > 0
+        ? "indeterminate"
+        : false;
+
+  const directoryRows = rows?.directories ?? [];
+  const selectedDirectoryCount = directoryRows.filter((row) => row.selected).length;
+  const directoriesSelectAllState: boolean | "indeterminate" =
+    directoryRows.length > 0 && selectedDirectoryCount === directoryRows.length
+      ? true
+      : selectedDirectoryCount > 0
+        ? "indeterminate"
+        : false;
+
+  // 空会话默认未勾选（没有字节可释放），是「33 条要点 33 次」的主要来源。
+  const emptySessions = sessionRows.filter((row) => !row.running && row.bytes === 0);
+  const hasEmptySessions = emptySessions.length > 0;
+  const hasUnselectedEmptySessions = emptySessions.some((row) => !row.selected);
+
   const selection = rows
     ? projectDataCleanupSelection(rows)
     : { sessionIds: [], directories: [], totalBytes: 0 };
@@ -302,9 +363,40 @@ export function ProjectDataCleanupDialog({
             {showDataList ? (
               <div className="max-h-[50vh] space-y-3 overflow-y-auto pr-1">
                 <section data-testid="project-data-cleanup-sessions">
-                  <h3 className="mb-1 text-ui-sm font-medium text-foreground-subtle">
-                    {msg("cleanupSessions", { count: rows.sessions.length })}
-                  </h3>
+                  <div className="mb-1 flex min-h-6 flex-wrap items-center gap-2">
+                    <Checkbox
+                      data-testid="project-data-cleanup-sessions-select-all"
+                      aria-label={msg("cleanupSelectAllSessions")}
+                      checked={sessionsSelectAllState}
+                      disabled={phase !== "select" || selectableSessions.length === 0}
+                      onCheckedChange={setAllSessionsSelected}
+                    />
+                    <h3 className="text-ui-sm font-medium text-foreground-subtle">
+                      {msg("cleanupSessions", { count: rows.sessions.length })}
+                    </h3>
+                    <span
+                      data-testid="project-data-cleanup-sessions-selected-count"
+                      className="text-ui-sm tabular-nums text-foreground-subtle"
+                    >
+                      {msg("cleanupSelectionCount", {
+                        selected: selectedSessionCount,
+                        total: sessionRows.length,
+                      })}
+                    </span>
+                    {hasEmptySessions ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        className="ml-auto text-foreground-subtle"
+                        data-testid="project-data-cleanup-select-empty-sessions"
+                        disabled={phase !== "select" || !hasUnselectedEmptySessions}
+                        onClick={selectEmptySessions}
+                      >
+                        {msg("cleanupSelectEmptySessions")}
+                      </Button>
+                    ) : null}
+                  </div>
                   {rows.sessions.length === 0 ? (
                     <p className="text-ui-sm text-foreground-subtle">{msg("cleanupNoSessions")}</p>
                   ) : (
@@ -337,9 +429,27 @@ export function ProjectDataCleanupDialog({
                 </section>
 
                 <section data-testid="project-data-cleanup-directories">
-                  <h3 className="mb-1 text-ui-sm font-medium text-foreground-subtle">
-                    {msg("cleanupDirectories", { count: rows.directories.length })}
-                  </h3>
+                  <div className="mb-1 flex min-h-6 flex-wrap items-center gap-2">
+                    <Checkbox
+                      data-testid="project-data-cleanup-directories-select-all"
+                      aria-label={msg("cleanupSelectAllDirectories")}
+                      checked={directoriesSelectAllState}
+                      disabled={phase !== "select" || directoryRows.length === 0}
+                      onCheckedChange={setAllDirectoriesSelected}
+                    />
+                    <h3 className="text-ui-sm font-medium text-foreground-subtle">
+                      {msg("cleanupDirectories", { count: rows.directories.length })}
+                    </h3>
+                    <span
+                      data-testid="project-data-cleanup-directories-selected-count"
+                      className="text-ui-sm tabular-nums text-foreground-subtle"
+                    >
+                      {msg("cleanupSelectionCount", {
+                        selected: selectedDirectoryCount,
+                        total: directoryRows.length,
+                      })}
+                    </span>
+                  </div>
                   {rows.directories.length === 0 ? (
                     <p className="text-ui-sm text-foreground-subtle">
                       {msg("cleanupNoDirectories")}
