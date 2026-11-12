@@ -1,7 +1,21 @@
 import { useCallback, useMemo, useState } from "react";
-import { ChevronRight, Database, Folder, RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import {
+  ChevronRight,
+  Database,
+  Ellipsis,
+  Folder,
+  RotateCcw,
+  RotateCw,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button.js";
 import { Checkbox } from "@/components/ui/checkbox.js";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.js";
 import {
   Select,
   SelectContent,
@@ -16,18 +30,14 @@ import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { logger } from "@/logger.js";
 import { projectDataCleanupAvailable } from "@/project-sidebar/project-data-cleanup.js";
 import { useProjectDataCleanupSupport } from "@/project-sidebar/useProjectDataCleanupSupport.js";
+import { ProjectDataCleanupDialog } from "@/project-sidebar/ProjectDataCleanupDialog.js";
 import {
   ProjectDirectoryProvider,
   useProjectDirectory,
 } from "@/project-sidebar/ProjectDirectoryProvider.js";
-import { ProjectDataCleanupDialog } from "@/project-sidebar/ProjectDataCleanupDialog.js";
 import { projectKey, projectSourceServerId } from "@/project-sidebar/view.js";
 import { remoteHostLabel } from "@/project-sidebar/RemoteHostSection.js";
-import {
-  formatDateTime,
-  formatRelativeToNow,
-  type IntlLike,
-} from "@/settings/automationFormat.js";
+import { formatDateTime, formatRelativeToNow, type IntlLike } from "@/settings/automationFormat.js";
 import { SettingsGroupCard } from "@/settings/SettingsPageParts.js";
 import { SettingsSearchInput } from "@/settings/SettingsSearchInput.js";
 import { useZCodeSessionStore } from "@/store/zcodeSessionStore.js";
@@ -203,9 +213,9 @@ export function formatProjectRemovedAgo(
   );
 }
 
-/** 表头与数据行共用的列模板：勾选、项目（含路径）、设备、会话、最近活动。 */
+/** 表头与数据行共用的列模板：勾选、项目（含路径）、设备、会话、最近活动、行操作。 */
 const PROJECT_ROW_GRID =
-  "grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-4 lg:grid-cols-[auto_minmax(0,1fr)_9rem_4rem_11rem]";
+  "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 lg:grid-cols-[auto_minmax(0,1fr)_9rem_4rem_11rem_2rem]";
 
 function ProjectRowCheckbox({
   checked,
@@ -227,7 +237,7 @@ function ProjectRowCheckbox({
 }
 
 /**
- * 设置 → 项目：列表、搜索、多选移除与逐项数据清理。
+ * 设置 → 项目：列表、搜索、多选移除与已移除项目恢复。
  * 与侧栏共用 ProjectDirectoryProvider 的目录快照，不额外发 RPC；
  * 移除只做项目容器的软删除，不触碰磁盘文件或会话。
  */
@@ -291,7 +301,8 @@ function ProjectsSectionContent() {
     ],
   );
   const visibleRows = useMemo(
-    () => filterAndSortProjectSettingsRows(rows, query, { deviceLabel: deviceFilter, sort: sortBy }),
+    () =>
+      filterAndSortProjectSettingsRows(rows, query, { deviceLabel: deviceFilter, sort: sortBy }),
     [deviceFilter, query, rows, sortBy],
   );
   // 设备筛选只投影当前仍在侧栏的项目，设备顺序按名称稳定排列。
@@ -351,54 +362,71 @@ function ProjectsSectionContent() {
     [availability, remoteService, service],
   );
 
-  const removeSelected = useCallback(async () => {
-    if (busy || selectedRows.length === 0) return;
-    const count = selectedRows.length;
-    if (
-      !(await confirm({
-        intent: "settings-projects-remove",
-        title: intl.formatMessage({ id: "settings.projects.removeConfirmTitle" }, { count }),
-        description: intl.formatMessage({ id: "settings.projects.removeConfirmDescription" }),
-        confirmLabel: intl.formatMessage({ id: "settings.projects.removeConfirmAction" }),
-        confirmVariant: "destructive",
-      }))
-    ) {
-      return;
-    }
-    setBusy(true);
-    setActionError(null);
-    let succeeded = 0;
-    const failedKeys = new Set<string>();
-    try {
-      for (const row of selectedRows) {
-        try {
-          await removeProject(row.project);
-          succeeded += 1;
-        } catch (cause) {
-          failedKeys.add(row.key);
-          logger.warn("[projects-settings] 移除项目失败", {
-            projectId: row.project.id,
-            hostId: row.project.hostId,
-            error: cause instanceof Error ? cause.message : String(cause),
-          });
-        }
+  /**
+   * 批量清空与行菜单共用同一条移除路径；行菜单只作用于当前项目。
+   * 失败项保持勾选，用户修好连接后可以直接重试，不必重新搜索选择。
+   */
+  const confirmAndRemoveRows = useCallback(
+    async (targets: readonly ProjectSettingsRow[], mode: "selection" | "single") => {
+      if (busy || targets.length === 0) return;
+      const count = targets.length;
+      if (
+        !(await confirm({
+          intent: "settings-projects-remove",
+          title:
+            mode === "single"
+              ? intl.formatMessage({ id: "settings.projects.removeSingleConfirmTitle" })
+              : intl.formatMessage({ id: "settings.projects.removeConfirmTitle" }, { count }),
+          description: intl.formatMessage({ id: "settings.projects.removeConfirmDescription" }),
+          confirmLabel: intl.formatMessage({ id: "settings.projects.removeConfirmAction" }),
+          confirmVariant: "destructive",
+        }))
+      ) {
+        return;
       }
-      await refresh();
-      // 失败项保持勾选，用户修好连接后可以直接重试，不必重新搜索选择。
-      setSelected(failedKeys);
-    } finally {
-      setBusy(false);
-    }
-    const failed = failedKeys.size;
-    if (succeeded > 0) {
-      toast(intl.formatMessage({ id: "settings.projects.removeSuccess" }, { count: succeeded }));
-    }
-    if (failed > 0) {
-      setActionError(
-        intl.formatMessage({ id: "settings.projects.removeFailed" }, { count: failed }),
-      );
-    }
-  }, [busy, confirm, intl, refresh, removeProject, selectedRows]);
+      setBusy(true);
+      setActionError(null);
+      let succeeded = 0;
+      const failedKeys = new Set<string>();
+      try {
+        for (const row of targets) {
+          try {
+            await removeProject(row.project);
+            succeeded += 1;
+          } catch (cause) {
+            failedKeys.add(row.key);
+            logger.warn("[projects-settings] 移除项目失败", {
+              projectId: row.project.id,
+              hostId: row.project.hostId,
+              error: cause instanceof Error ? cause.message : String(cause),
+            });
+          }
+        }
+        await refresh();
+        setSelected((current) => {
+          // 批量移除沿用“只保留失败项”的选择；单行移除不打断其他已选项。
+          if (mode === "selection") return failedKeys;
+          const next = new Set(current);
+          for (const row of targets) {
+            if (!failedKeys.has(row.key)) next.delete(row.key);
+          }
+          return next;
+        });
+      } finally {
+        setBusy(false);
+      }
+      const failed = failedKeys.size;
+      if (succeeded > 0) {
+        toast(intl.formatMessage({ id: "settings.projects.removeSuccess" }, { count: succeeded }));
+      }
+      if (failed > 0) {
+        setActionError(
+          intl.formatMessage({ id: "settings.projects.removeFailed" }, { count: failed }),
+        );
+      }
+    },
+    [busy, confirm, intl, refresh, removeProject],
+  );
 
   /**
    * 恢复走与 ProjectEditor 相同的服务路径：saveProject({ restoreProjectId, roots })。
@@ -444,248 +472,270 @@ function ProjectsSectionContent() {
     );
   }, [cleanupTarget, tree.tasks]);
 
+  const hasSelection = selectedRows.length > 0;
+  const selectionSummary = intl.formatMessage(
+    { id: "settings.projects.selectionSummary" },
+    { selected: selectedRows.length, total: rows.length },
+  );
+
   return (
-    <section className="min-w-0 space-y-4" data-testid="settings-projects">
-      <p className="text-ui-base leading-6 text-foreground-subtle">
-        {intl.formatMessage({ id: "settings.projects.description" })}
-      </p>
-      {/* 搜索、设备筛选与排序同一行：上游把三者视作列表的工具栏，不做三段式分组。 */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
-        <SettingsSearchInput
-          containerClassName="min-w-0 flex-1"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onClear={() => setQuery("")}
-          clearLabel={intl.formatMessage({ id: "settings.projects.clearSearch" })}
-          placeholder={intl.formatMessage({ id: "settings.projects.searchPlaceholder" })}
-          aria-label={intl.formatMessage({ id: "settings.projects.searchLabel" })}
-          data-testid="settings-projects-search"
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={deviceFilter} onValueChange={setDeviceFilter}>
-            <SelectTrigger
-              size="lg"
-              className="h-9 w-full justify-between rounded-xl md:w-40"
-              aria-label={intl.formatMessage({ id: "settings.projects.deviceFilter.label" })}
-              data-testid="settings-projects-device-filter"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="start">
-              <SelectItem value="all">
-                {intl.formatMessage({ id: "settings.projects.deviceFilter.all" })}
-              </SelectItem>
-              {deviceOptions.map((label) => (
-                <SelectItem key={label} value={label}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={sortBy}
-            onValueChange={(value) => setSortBy(value as ProjectSettingsSort)}
-          >
-            <SelectTrigger
-              size="lg"
-              className="h-9 w-full justify-between rounded-xl md:w-36"
-              aria-label={intl.formatMessage({ id: "settings.projects.sort.label" })}
-              data-testid="settings-projects-sort"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent align="start">
-              <SelectItem value="lastActivity">
-                {intl.formatMessage({ id: "settings.projects.sort.lastActivity" })}
-              </SelectItem>
-              <SelectItem value="sessions">
-                {intl.formatMessage({ id: "settings.projects.sort.sessions" })}
-              </SelectItem>
-              <SelectItem value="name">
-                {intl.formatMessage({ id: "settings.projects.sort.name" })}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={busy || selectedRows.length === 0}
-            onClick={() => void removeSelected()}
-            data-testid="settings-projects-remove"
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-            {intl.formatMessage(
-              { id: "settings.projects.removeSelected" },
-              { count: selectedRows.length },
-            )}
-          </Button>
-        </div>
-      </div>
-      {actionError ? (
-        <p role="alert" className="text-ui-base text-destructive">
-          {actionError}
+    <section className="min-w-0" data-testid="settings-projects">
+      <div className={cn("space-y-4", hasSelection && "pb-20")}>
+        <p className="text-ui-base leading-6 text-foreground-subtle">
+          {intl.formatMessage({ id: "settings.projects.description" })}
         </p>
-      ) : null}
-      {error ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p role="alert" className="text-ui-base text-destructive">
-            {intl.formatMessage({ id: "settings.projects.loadFailed" })}
-          </p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
-            <RotateCw className="size-4" aria-hidden="true" />
-            {intl.formatMessage({ id: "common.retry" })}
-          </Button>
-        </div>
-      ) : null}
-      <SettingsGroupCard>
-        {loading && rows.length === 0 ? (
-          <p className="px-4 py-6 text-ui-base text-foreground-subtle">
-            {intl.formatMessage({ id: "common.loading" })}
-          </p>
-        ) : rows.length === 0 ? (
-          <p className="px-4 py-6 text-ui-base text-foreground-subtle">
-            {intl.formatMessage({ id: "settings.projects.empty" })}
-          </p>
-        ) : (
-          <>
-            {/* 表头与行共用同一套 grid 列宽，窄窗口只保留勾选与项目两列。 */}
-            <div
-              className={cn(
-                PROJECT_ROW_GRID,
-                "border-b border-border py-2 text-ui-sm font-medium text-foreground-subtle",
-              )}
+        {/* 搜索、设备筛选与排序同一行：上游把三者视作列表的工具栏，不做三段式分组。 */}
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          <SettingsSearchInput
+            containerClassName="min-w-0 flex-1"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onClear={() => setQuery("")}
+            clearLabel={intl.formatMessage({ id: "settings.projects.clearSearch" })}
+            placeholder={intl.formatMessage({ id: "settings.projects.searchPlaceholder" })}
+            aria-label={intl.formatMessage({ id: "settings.projects.searchLabel" })}
+            data-testid="settings-projects-search"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+              <SelectTrigger
+                size="lg"
+                className="h-9 w-full justify-between rounded-xl md:w-40"
+                aria-label={intl.formatMessage({ id: "settings.projects.deviceFilter.label" })}
+                data-testid="settings-projects-device-filter"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectItem value="all">
+                  {intl.formatMessage({ id: "settings.projects.deviceFilter.all" })}
+                </SelectItem>
+                {deviceOptions.map((label) => (
+                  <SelectItem key={label} value={label}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as ProjectSettingsSort)}
             >
-              <Checkbox
-                checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
-                aria-label={intl.formatMessage({ id: "settings.projects.selectAll" })}
-                onCheckedChange={toggleAllVisible}
-                data-testid="settings-projects-select-all"
-              />
-              <span className="min-w-0">
-                {intl.formatMessage({ id: "settings.projects.column.name" })}
-              </span>
-              <span className="hidden lg:block">
-                {intl.formatMessage({ id: "settings.projects.column.device" })}
-              </span>
-              <span className="hidden lg:block">
-                {intl.formatMessage({ id: "settings.projects.column.sessions" })}
-              </span>
-              <span className="hidden lg:block">
-                {intl.formatMessage({ id: "settings.projects.column.lastActivity" })}
-              </span>
-            </div>
-            {visibleRows.length === 0 ? (
-              <p className="px-4 py-6 text-ui-base text-foreground-subtle">
-                {intl.formatMessage({ id: "settings.projects.noResults" })}
-              </p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {visibleRows.map((row) => {
-                  const primaryPath =
-                    row.project.roots.find((root) => root.isPrimary)?.rootPath ??
-                    row.project.roots[0]?.rootPath ??
-                    "";
-                  return (
-                    <li
-                      key={row.key}
-                      className={cn(
-                        PROJECT_ROW_GRID,
-                        "py-2.5 transition-colors hover:bg-surface-hover",
-                      )}
-                      data-testid="settings-projects-row"
-                    >
-                      <ProjectRowCheckbox
-                        checked={selected.has(row.key)}
-                        label={intl.formatMessage(
-                          { id: "settings.projects.selectProject" },
-                          { name: row.project.name },
-                        )}
-                        onChange={() => toggleRow(row.key)}
-                      />
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <Folder
-                          className="size-4 shrink-0 text-foreground-subtle"
-                          aria-hidden="true"
-                        />
-                        <div className="min-w-0">
-                          <div className="truncate text-ui-base font-medium text-foreground">
-                            {row.project.name}
-                          </div>
-                          {primaryPath ? (
-                            <div className="truncate text-ui-sm text-foreground-subtle">
-                              {primaryPath}
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="hidden truncate text-ui-sm text-foreground-subtle lg:block">
-                        {row.deviceLabel}
-                      </div>
-                      <div className="hidden text-ui-sm tabular-nums text-foreground-subtle lg:block">
-                        {row.sessionCount === undefined ? "—" : row.sessionCount}
-                      </div>
-                      <div className="col-start-2 flex min-w-0 items-center justify-between gap-1 lg:col-start-auto">
-                        <span className="truncate text-ui-sm tabular-nums text-foreground-subtle">
-                          {row.lastActivityAt ? formatDateTime(row.lastActivityAt) : "—"}
-                        </span>
-                        {row.cleanupAvailable && service ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-sm"
-                            aria-label={intl.formatMessage({ id: "project.cleanupData" })}
-                            title={intl.formatMessage({ id: "project.cleanupData" })}
-                            onClick={() => setCleanupTarget(row.project)}
-                            data-testid="settings-projects-cleanup"
-                          >
-                            <Database className="size-4" aria-hidden="true" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </>
-        )}
-      </SettingsGroupCard>
-      {removedRows.length > 0 ? (
-        <div className="space-y-2">
-          <button
-            type="button"
-            aria-expanded={removedOpen}
-            aria-controls="settings-projects-removed-list"
-            onClick={() => setRemovedOpen((open) => !open)}
-            className="flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-surface-hover"
-            data-testid="settings-projects-removed-toggle"
-          >
-            <ChevronRight
-              className={cn(
-                "size-3.5 shrink-0 text-foreground-subtle transition-transform",
-                removedOpen && "rotate-90",
-              )}
-              aria-hidden="true"
-            />
-            <span className="text-ui-base font-medium text-foreground">
-              {intl.formatMessage({ id: "settings.projects.removedTitle" })}
-            </span>
-            <span className="rounded-md bg-surface px-1.5 py-0.5 text-ui-sm tabular-nums text-foreground-subtle">
-              {removedRows.length}
-            </span>
-          </button>
-          {removedOpen ? (
+              <SelectTrigger
+                size="lg"
+                className="h-9 w-full justify-between rounded-xl md:w-36"
+                aria-label={intl.formatMessage({ id: "settings.projects.sort.label" })}
+                data-testid="settings-projects-sort"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start">
+                <SelectItem value="lastActivity">
+                  {intl.formatMessage({ id: "settings.projects.sort.lastActivity" })}
+                </SelectItem>
+                <SelectItem value="sessions">
+                  {intl.formatMessage({ id: "settings.projects.sort.sessions" })}
+                </SelectItem>
+                <SelectItem value="name">
+                  {intl.formatMessage({ id: "settings.projects.sort.name" })}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {actionError ? (
+          <p role="alert" className="text-ui-base text-destructive">
+            {actionError}
+          </p>
+        ) : null}
+        {error ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p role="alert" className="text-ui-base text-destructive">
+              {intl.formatMessage({ id: "settings.projects.loadFailed" })}
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => void refresh()}>
+              <RotateCw className="size-4" aria-hidden="true" />
+              {intl.formatMessage({ id: "common.retry" })}
+            </Button>
+          </div>
+        ) : null}
+        <SettingsGroupCard>
+          {loading && rows.length === 0 ? (
+            <p className="px-4 py-6 text-ui-base text-foreground-subtle">
+              {intl.formatMessage({ id: "common.loading" })}
+            </p>
+          ) : rows.length === 0 ? (
+            <p className="px-4 py-6 text-ui-base text-foreground-subtle">
+              {intl.formatMessage({ id: "settings.projects.empty" })}
+            </p>
+          ) : (
             <>
-              <p className="px-1 text-ui-sm text-foreground-subtle">
-                {intl.formatMessage({ id: "settings.projects.removedDescription" })}
-              </p>
-              <SettingsGroupCard>
-                <ul id="settings-projects-removed-list" className="divide-y divide-border">
+              {/* 表头与行共用同一套 grid 列宽，窄窗口只保留勾选、项目与行菜单三列。 */}
+              <div
+                className={cn(
+                  PROJECT_ROW_GRID,
+                  "border-b border-border bg-surface py-2 text-ui-sm font-medium text-foreground-subtle",
+                )}
+              >
+                <Checkbox
+                  checked={
+                    allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false
+                  }
+                  aria-label={intl.formatMessage({ id: "settings.projects.selectAll" })}
+                  onCheckedChange={toggleAllVisible}
+                  data-testid="settings-projects-select-all"
+                />
+                <span className="min-w-0">
+                  {intl.formatMessage({ id: "settings.projects.column.name" })}
+                </span>
+                <span className="hidden lg:block">
+                  {intl.formatMessage({ id: "settings.projects.column.device" })}
+                </span>
+                <span className="hidden lg:block">
+                  {intl.formatMessage({ id: "settings.projects.column.sessions" })}
+                </span>
+                <span className="hidden lg:block">
+                  {intl.formatMessage({ id: "settings.projects.column.lastActivity" })}
+                </span>
+                <span className="hidden lg:block" aria-hidden="true" />
+              </div>
+              {visibleRows.length === 0 ? (
+                <p className="px-4 py-6 text-ui-base text-foreground-subtle">
+                  {intl.formatMessage({ id: "settings.projects.noResults" })}
+                </p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {visibleRows.map((row) => {
+                    const primaryPath =
+                      row.project.roots.find((root) => root.isPrimary)?.rootPath ??
+                      row.project.roots[0]?.rootPath ??
+                      "";
+                    return (
+                      <li
+                        key={row.key}
+                        className={cn(
+                          PROJECT_ROW_GRID,
+                          "group/project-row py-2.5 transition-colors hover:bg-surface-hover",
+                        )}
+                        data-testid="settings-projects-row"
+                      >
+                        <ProjectRowCheckbox
+                          checked={selected.has(row.key)}
+                          label={intl.formatMessage(
+                            { id: "settings.projects.selectProject" },
+                            { name: row.project.name },
+                          )}
+                          onChange={() => toggleRow(row.key)}
+                        />
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <Folder
+                            className="size-4 shrink-0 text-foreground-subtle"
+                            aria-hidden="true"
+                          />
+                          <div className="min-w-0">
+                            <div className="truncate text-ui-base font-medium text-foreground">
+                              {row.project.name}
+                            </div>
+                            {primaryPath ? (
+                              <div className="truncate text-ui-sm text-foreground-subtle">
+                                {primaryPath}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className="hidden truncate text-ui-sm text-foreground-subtle lg:block">
+                          {row.deviceLabel}
+                        </div>
+                        <div className="hidden text-ui-sm tabular-nums text-foreground-subtle lg:block">
+                          {row.sessionCount === undefined ? "—" : row.sessionCount}
+                        </div>
+                        <div className="col-start-2 flex min-w-0 items-center gap-1 text-ui-sm tabular-nums text-foreground-subtle lg:col-start-auto">
+                          <span className="truncate">
+                            {row.lastActivityAt ? formatDateTime(row.lastActivityAt) : "—"}
+                          </span>
+                        </div>
+                        <div className="col-start-3 row-start-1 flex items-center justify-end lg:col-start-auto lg:row-start-auto">
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={intl.formatMessage({
+                                  id: "settings.projects.rowActions",
+                                })}
+                                className="text-foreground-subtle opacity-0 transition-opacity hover:text-foreground group-hover/project-row:opacity-100 group-focus-within/project-row:opacity-100 data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
+                                data-testid="settings-projects-row-menu"
+                              >
+                                <Ellipsis className="size-3.5" aria-hidden="true" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                variant="destructive"
+                                onSelect={() => void confirmAndRemoveRows([row], "single")}
+                                data-testid="settings-projects-remove-row"
+                              >
+                                <Trash2 className="size-4" aria-hidden="true" />
+                                {intl.formatMessage({ id: "settings.projects.removeProject" })}
+                              </DropdownMenuItem>
+                              {row.cleanupAvailable && service ? (
+                                <DropdownMenuItem
+                                  onSelect={() => setCleanupTarget(row.project)}
+                                  data-testid="settings-projects-cleanup"
+                                >
+                                  <Database className="size-4" aria-hidden="true" />
+                                  {intl.formatMessage({ id: "project.cleanupData" })}
+                                </DropdownMenuItem>
+                              ) : null}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+        </SettingsGroupCard>
+        {removedRows.length > 0 ? (
+          <div
+            className="overflow-hidden rounded-xl border border-border bg-card"
+            data-testid="settings-projects-removed"
+          >
+            <button
+              type="button"
+              aria-expanded={removedOpen}
+              aria-controls="settings-projects-removed-list"
+              onClick={() => setRemovedOpen((open) => !open)}
+              className="flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-surface-hover"
+              data-testid="settings-projects-removed-toggle"
+            >
+              <ChevronRight
+                className={cn(
+                  "size-3.5 shrink-0 text-foreground-subtle transition-transform",
+                  removedOpen && "rotate-90",
+                )}
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1 text-ui-base font-medium text-foreground">
+                {intl.formatMessage({ id: "settings.projects.removedTitle" })}
+              </span>
+              <span className="rounded-md bg-surface px-1.5 py-0.5 text-ui-sm tabular-nums text-foreground-subtle">
+                {removedRows.length}
+              </span>
+            </button>
+            {removedOpen ? (
+              <div id="settings-projects-removed-list" className="border-t border-border">
+                <p className="border-b border-border px-4 py-2 text-ui-sm text-foreground-subtle">
+                  {intl.formatMessage({ id: "settings.projects.removedDescription" })}
+                </p>
+                <ul className="divide-y divide-border">
                   {removedRows.map((project) => (
                     <li
                       key={projectKey(project)}
-                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
+                      className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 transition-colors hover:bg-surface-hover"
                       data-testid="settings-projects-removed-row"
                     >
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -727,9 +777,44 @@ function ProjectsSectionContent() {
                     </li>
                   ))}
                 </ul>
-              </SettingsGroupCard>
-            </>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      {hasSelection ? (
+        <div
+          className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur"
+          role="region"
+          aria-label={selectionSummary}
+          data-testid="settings-projects-selection-bar"
+        >
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="text-ui-sm text-foreground-subtle">{selectionSummary}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelected(new Set())}
+              data-testid="settings-projects-selection-clear"
+            >
+              {intl.formatMessage({ id: "settings.projects.clearSelection" })}
+            </Button>
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            disabled={busy}
+            onClick={() => void confirmAndRemoveRows(selectedRows, "selection")}
+            data-testid="settings-projects-remove-selected"
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            {intl.formatMessage(
+              { id: "settings.projects.removeSelected" },
+              { count: selectedRows.length },
+            )}
+          </Button>
         </div>
       ) : null}
       {cleanupTarget && service ? (

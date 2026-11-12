@@ -415,6 +415,7 @@ function CollapsibleCardGroup({
                 key={item.id}
                 item={item}
                 className="size-5 rounded-md"
+                fallbackName={resolveItemDisplayName(item, locale)}
                 iconClassName="size-2.5"
               />
             ))}

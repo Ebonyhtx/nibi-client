@@ -35,13 +35,6 @@ import {
 } from "@nibi/shared/test-ids";
 import { Button } from "@/components/ui/button.js";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog.js";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -87,6 +80,7 @@ import { BrowserSettingsSection } from "@/settings/BrowserSettingsSection.js";
 import { ComputerUseSection } from "@/settings/ComputerUseSection.js";
 import { ShortcutSettingsSection } from "@/settings/ShortcutSettingsSection.js";
 import { MigrationSection } from "@/settings/MigrationSection.js";
+import { MigrationWizardDialog } from "@/settings/migration-wizard/MigrationWizardDialog.js";
 import { SETTINGS_FRAME_CONTENT_CLASSNAME } from "@/settings/SettingsPageParts.js";
 import { DataSyncSection, useDataSyncDevices } from "@/data-sync/index.js";
 import {
@@ -1961,27 +1955,14 @@ export function SettingsPage({
             </div>
           </section>
         </div>
-        {/* 迁移弹窗复用设置页既有的 Claude 会话迁移，不在这里伪造上游的 Skills/MCP/命令/AGENTS.md 迁移步骤。 */}
-        <Dialog open={dataSyncMigrationOpen} onOpenChange={setDataSyncMigrationOpen}>
-          <DialogContent
-            className="max-h-[85vh] w-full overflow-y-auto sm:max-w-3xl"
-            data-testid="settings-data-sync-migration-dialog"
-          >
-            <DialogHeader className="gap-2">
-              <DialogTitle className="text-ui-lg font-semibold text-foreground">
-                {intl.formatMessage({ id: "settings.dataSync.migrationTitle" })}
-              </DialogTitle>
-              <DialogDescription className="text-ui-base leading-6 text-foreground-subtle">
-                {intl.formatMessage({ id: "settings.dataSync.migrationDescription" })}
-              </DialogDescription>
-            </DialogHeader>
-            <MigrationSection
-              workspacePath={activeWorkspacePath ?? captionWorkspacePath ?? null}
-              workspaceIdentity={activeWorkspaceIdentity}
-              isDesktop={isDesktop}
-            />
-          </DialogContent>
-        </Dialog>
+        {/* 迁移弹窗：六步向导复用首启的会话/外部导入/AGENTS.md 能力，并按步骤接真实扫描与导入。 */}
+        <MigrationWizardDialog
+          open={dataSyncMigrationOpen}
+          onOpenChange={setDataSyncMigrationOpen}
+          workspacePath={activeWorkspacePath ?? captionWorkspacePath ?? null}
+          workspaceIdentity={activeWorkspaceIdentity}
+          isDesktop={isDesktop}
+        />
       </DesktopWindowFrame>
     </>
   );

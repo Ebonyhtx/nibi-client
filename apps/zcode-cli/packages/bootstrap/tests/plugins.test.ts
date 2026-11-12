@@ -165,6 +165,64 @@ describe("ZCode plugins", () => {
     }
   });
 
+  it("resolves relative listing icons against the marketplace manifest URL", async () => {
+    const root = await mkdtemp(join(tmpdir(), "zcode-bootstrap-relative-icons-"));
+    const pluginStorageRoot = join(root, "plugins");
+    try {
+      await writeKnownMarketplaces(pluginStorageRoot, [
+        {
+          id: "remote-market",
+          source: {
+            source: "url",
+            url: "https://plugins.example.com/catalog/marketplace.json",
+          },
+          name: "remote-market",
+          addedAt: "2026-01-01T00:00:00.000Z",
+          pluginCount: 3,
+        },
+      ]);
+      await writeTestFile(
+        join(pluginStorageRoot, "marketplaces", "remote-market", "marketplace.json"),
+        JSON.stringify({
+          name: "remote-market",
+          plugins: [
+            {
+              name: "relative-icon",
+              icon: "icons/relative.png",
+              source: { source: "github", repo: "acme/relative" },
+            },
+            {
+              name: "rooted-icon",
+              icon: "/assets/rooted.png",
+              source: { source: "github", repo: "acme/rooted" },
+            },
+            {
+              name: "absolute-icon",
+              icon: "https://cdn.example.com/absolute.png",
+              source: { source: "github", repo: "acme/absolute" },
+            },
+          ],
+        }),
+      );
+
+      const overview = getZCodePluginsOverview({
+        pluginStorageRoot,
+        skipUserConfig: true,
+        workingDirectory: root,
+      });
+      const iconByName = new Map(
+        overview.availablePlugins.map((plugin) => [plugin.name, plugin.listing?.icon]),
+      );
+      expect(iconByName.get("relative-icon")).toBe(
+        "https://plugins.example.com/catalog/icons/relative.png",
+      );
+      expect(iconByName.get("rooted-icon")).toBe("https://plugins.example.com/assets/rooted.png");
+      expect(iconByName.get("absolute-icon")).toBe("https://cdn.example.com/absolute.png");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
   it("keeps every bundled plugin package, manifest, and seed version aligned", async () => {
     const packagesRoot = fileURLToPath(new URL("../../", import.meta.url));
 

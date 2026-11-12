@@ -362,7 +362,7 @@ export function PluginStoreCard({
         }
       }}
     >
-      <PluginStoreAvatar item={item} className="size-10" />
+      <PluginStoreAvatar item={item} className="size-10" fallbackName={displayName} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 truncate text-ui-base font-semibold text-foreground">

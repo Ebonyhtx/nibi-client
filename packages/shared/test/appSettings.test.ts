@@ -69,6 +69,22 @@ describe("app settings", () => {
     ).toBe(false);
   });
 
+  it("round-trips the project row device name visibility preference", () => {
+    // 缺失时按 false（显示设备名）解释；显式 true 必须通过完整与 patch schema。
+    expect(appSettingsSchema.parse({}).remoteProjectRowDeviceNameHidden).toBeUndefined();
+    expect(
+      appSettingsSchema.parse({ remoteProjectRowDeviceNameHidden: true })
+        .remoteProjectRowDeviceNameHidden,
+    ).toBe(true);
+    expect(
+      appSettingsPatchSchema.parse({ remoteProjectRowDeviceNameHidden: true })
+        .remoteProjectRowDeviceNameHidden,
+    ).toBe(true);
+    expect(
+      appSettingsPatchSchema.safeParse({ remoteProjectRowDeviceNameHidden: "yes" }).success,
+    ).toBe(false);
+  });
+
   it("drops the removed global asset install mode preference", () => {
     const staleFullSettings = appSettingsSchema.parse({
       remoteDefaultAssetInstallMode: "remote-download",

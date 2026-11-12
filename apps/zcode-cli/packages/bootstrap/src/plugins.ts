@@ -351,7 +351,10 @@ export function getZCodePluginsOverview(
         manifest?.featured,
         countVisibleMarketplacePlugins(record.id, manifest?.plugins),
       ),
-      entries: manifest?.plugins ?? [],
+      // 相对 icon 在投影时按清单 URL 补全；缓存/协议层仍保留目录原始字段。
+      entries: (manifest?.plugins ?? []).map((entry) =>
+        resolveEntryListingIcon(entry, record.source),
+      ),
     });
   }
 
@@ -1294,6 +1297,33 @@ function toAvailablePluginData(
     ...(entry.paid ? { paid: true } : {}),
     ...(entry.listing ? { listing: entry.listing } : {}),
   };
+}
+
+const HAS_URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/u;
+
+/**
+ * 目录条目的 icon 允许写相对路径（`icons/x.png`）或根路径（`/icons/x.png`），
+ * 按清单自身 URL 解析成绝对地址后 UI 的 <img> 才能加载。
+ *
+ * 只对 url 源生效：git/github/file 源没有稳定的可访问 base，猜一个 raw 地址反而会
+ * 把错误 URL 暴露给渲染进程；这类条目保留原值，由 UI 的确定性字母头像兜底。
+ */
+function resolveEntryListingIcon(
+  entry: PluginMarketplaceEntry,
+  source: MarketplaceSource,
+): PluginMarketplaceEntry {
+  const icon = entry.listing?.icon?.trim();
+  if (!icon || !entry.listing || HAS_URL_SCHEME.test(icon)) return entry;
+  const manifestUrl = source.source === "url" ? source.url : undefined;
+  if (!manifestUrl) return entry;
+  try {
+    const resolved = new URL(icon, manifestUrl).toString();
+    return resolved === entry.listing.icon
+      ? entry
+      : { ...entry, listing: { ...entry.listing, icon: resolved } };
+  } catch {
+    return entry;
+  }
 }
 
 function toInstalledPluginData(

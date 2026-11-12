@@ -1,3 +1,4 @@
+import { migrateLegacyNibiUrl } from "@nibi/shared";
 import documentsIconUrl from "@/assets/plugin-icons/documents.png";
 import pdfIconUrl from "@/assets/plugin-icons/pdf.png";
 import pluginCreatorIconUrl from "@/assets/plugin-icons/plugin-creator.png";
@@ -24,7 +25,11 @@ export function resolvePluginIconSource(
     const bundledIcon = OFFICIAL_PLUGIN_ICON_BY_ID[pluginId];
     if (bundledIcon) return bundledIcon;
   }
-  return isTrustedImageUrl(icon) ? icon : undefined;
+  if (typeof icon !== "string") return undefined;
+  // 旧快照可能仍指向已停止解析的 api.nibistudio.top（连图标一起被打包进缓存），
+  // 读取时按 hostname 精确迁到 .cn；其它域名原样保留，交给 isTrustedImageUrl 判断。
+  const normalized = migrateLegacyNibiUrl(icon.trim());
+  return isTrustedImageUrl(normalized) ? normalized : undefined;
 }
 
 /** Session 投影已完成身份匹配；仅放行固定打包资源，不放宽任意本地 URL。 */

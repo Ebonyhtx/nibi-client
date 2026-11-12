@@ -39,15 +39,7 @@ describe("settingsPageConfig", () => {
     ).toEqual([
       {
         id: "basics",
-        sections: [
-          "general",
-          "appearance",
-          "modelProvider",
-          "browser",
-          "remoteDevices",
-          "dataSync",
-          "shortcuts",
-        ],
+        sections: ["general", "appearance", "modelProvider", "browser", "remoteDevices", "shortcuts"],
       },
       {
         id: "agentCapabilities",
@@ -62,7 +54,7 @@ describe("settingsPageConfig", () => {
           "hooks",
         ],
       },
-      { id: "dataAndStats", sections: ["usage", "projects", "archives"] },
+      { id: "dataAndStats", sections: ["dataSync", "usage", "projects", "archives"] },
     ]);
     expect(settingsSections.map((section) => section.id)).toEqual([
       "general",
@@ -115,7 +107,6 @@ describe("settingsPageConfig", () => {
       "modelProvider",
       "browser",
       "remoteDevices",
-      "dataSync",
       "computerUse",
       "shortcuts",
     ]);

@@ -1,5 +1,6 @@
 /* eslint-disable max-lines -- onboarding 弹窗集中编排欢迎页、会话迁移、外部导入和最终执行状态，拆开会增加跨步骤状态传递复杂度 */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWorkspaceSessionSelection } from "@/components/wizard/useWorkspaceSessionSelection.js";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog.js";
 import { useClaudeSessionMigration } from "@/hooks/useClaudeSessionMigration.js";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog.js";
@@ -66,8 +67,8 @@ export function OnboardingDialog(props: {
   const clearOnboardingDialogRequest = useZCodeStore((state) => state.clearOnboardingDialogRequest);
   const [view, setView] = useState<OnboardingView>("welcome");
   const [wizardStep, setWizardStep] = useState<OnboardingWizardStep>("session");
-  const [selectedWorkspacePaths, setSelectedWorkspacePaths] = useState<string[]>([]);
-  const initializedWorkspaceSelectionRef = useRef(false);
+  const workspaceSelection = useWorkspaceSessionSelection(sessionMigration.candidates);
+  const selectedWorkspacePaths = workspaceSelection.selectedWorkspacePaths;
   const autoScannedSessionStepRef = useRef(false);
 
   // 引导阶段没有 Scope 选择，target 恒为当前上下文 workspace，直接注入其 service。
@@ -158,13 +159,16 @@ export function OnboardingDialog(props: {
     if (!settingsSync.state.open) {
       setView("welcome");
       setWizardStep("session");
-      setSelectedWorkspacePaths([]);
+      workspaceSelection.resetWorkspaceSelection();
       resetFinishExecution();
-      initializedWorkspaceSelectionRef.current = false;
       autoScannedSessionStepRef.current = false;
       return;
     }
-  }, [settingsSync.state.open, resetFinishExecution]);
+  }, [
+    settingsSync.state.open,
+    resetFinishExecution,
+    workspaceSelection.resetWorkspaceSelection,
+  ]);
 
   useEffect(() => {
     if (!onboardingDialogRequested) {
@@ -216,26 +220,6 @@ export function OnboardingDialog(props: {
     wizardStep,
   ]);
 
-  useEffect(() => {
-    setSelectedWorkspacePaths((previous) => {
-      const nextWorkspacePaths = [
-        ...new Set(sessionMigration.candidates.map((candidate) => candidate.workspacePath)),
-      ];
-
-      if (nextWorkspacePaths.length === 0) {
-        initializedWorkspaceSelectionRef.current = false;
-        return [];
-      }
-
-      if (!initializedWorkspaceSelectionRef.current) {
-        initializedWorkspaceSelectionRef.current = true;
-        return nextWorkspacePaths;
-      }
-
-      return previous.filter((workspacePath) => nextWorkspacePaths.includes(workspacePath));
-    });
-  }, [sessionMigration.candidates]);
-
   const selectedWorkspaceCount = selectedWorkspacePaths.length;
   // 暂时隐藏数据迁移向导里的代理设置步骤，同时不把默认选中的代理设置暗中计入迁移任务。
   const settingsTaskCount = 0;
@@ -278,22 +262,6 @@ export function OnboardingDialog(props: {
       : wizardStep === "agents-file"
         ? ""
         : intl.formatMessage({ id: `onboarding.stepDescription.${stepMessageKey}` });
-
-  const toggleWorkspaceSelection = (workspacePath: string) => {
-    setSelectedWorkspacePaths((previous) =>
-      previous.includes(workspacePath)
-        ? previous.filter((current) => current !== workspacePath)
-        : [...previous, workspacePath],
-    );
-  };
-
-  const clearWorkspaceSelection = () => {
-    setSelectedWorkspacePaths([]);
-  };
-
-  const selectAllWorkspaces = () => {
-    setSelectedWorkspacePaths(workspaceCandidates.map((workspace) => workspace.workspacePath));
-  };
 
   const goToPreviousWizardStep = useCallback(() => {
     const currentIndex = ONBOARDING_STEP_ORDER.indexOf(wizardStep);
@@ -398,9 +366,15 @@ export function OnboardingDialog(props: {
             migration={sessionMigration}
             workspaceCandidates={workspaceCandidates}
             selectedWorkspacePaths={selectedWorkspacePaths}
-            onToggleWorkspace={toggleWorkspaceSelection}
-            onSelectAll={selectAllWorkspaces}
-            onClearSelection={clearWorkspaceSelection}
+            labels={{
+              emptyId: "onboarding.sessions.empty",
+              countId: "onboarding.sessions.count",
+              unlimitedId: "onboarding.sessions.unlimited",
+              chooseWorkspaceId: "onboarding.sessions.chooseWorkspace",
+            }}
+            onToggleWorkspace={workspaceSelection.toggleWorkspace}
+            onSelectAll={workspaceSelection.selectAllWorkspaces}
+            onClearSelection={workspaceSelection.clearWorkspaceSelection}
           />
         );
       case "skills-import":

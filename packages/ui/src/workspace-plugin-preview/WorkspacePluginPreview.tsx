@@ -144,6 +144,7 @@ export function WorkspacePluginPreview({
                 key={entry.pluginId}
                 pluginId={entry.pluginId}
                 src={entry.icon}
+                fallbackName={entry.name}
                 className="relative size-5 shrink-0 rounded-lg bg-card ring-1 ring-inset ring-border/30"
                 iconClassName="size-4"
               />
@@ -217,6 +218,7 @@ export function WorkspacePluginPreview({
                       <PluginIcon
                         pluginId={entry.pluginId}
                         src={entry.icon}
+                        fallbackName={entry.name}
                         className="size-5 rounded-lg bg-card ring-1 ring-inset ring-border/30"
                         iconClassName="size-4"
                       />

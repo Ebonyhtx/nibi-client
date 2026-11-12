@@ -259,6 +259,9 @@ vi.mock("@/settings/BrowserSettingsSection.js", () => ({
 vi.mock("@/settings/MigrationSection.js", () => ({
   MigrationSection: () => null,
 }));
+vi.mock("@/settings/migration-wizard/MigrationWizardDialog.js", () => ({
+  MigrationWizardDialog: () => null,
+}));
 vi.mock("../src/settingsCodePreview.js", () => ({
   AppearanceSectionContent: () => null,
 }));

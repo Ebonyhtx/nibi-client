@@ -115,6 +115,26 @@ describe("marketplace store listing", () => {
     expect(parseEntryStoreListing({ name: "x", author: "Acme" })).toEqual({ author: "Acme" });
   });
 
+  it("migrates legacy NIBI domains in cached icon and hero URLs", () => {
+    expect(
+      parseEntryStoreListing({
+        name: "legacy",
+        icon: "https://api.nibistudio.top/plugins/icons/legacy.png",
+        heroImage: "https://dl.nibistudio.top/hero/legacy.png",
+      }),
+    ).toEqual({
+      icon: "https://api.nibistudio.cn/plugins/icons/legacy.png",
+      heroImage: "https://dl.nibistudio.cn/hero/legacy.png",
+    });
+    // 第三方域名（即便是相似前缀）不能被改写。
+    expect(
+      parseEntryStoreListing({
+        name: "third-party",
+        icon: "https://api.nibistudio.top.evil.example/icon.png",
+      }),
+    ).toEqual({ icon: "https://api.nibistudio.top.evil.example/icon.png" });
+  });
+
   it("preserves publisher classification independently of usage category", () => {
     expect(parseEntryStoreListing({ publisherType: "community", category: "productivity" }))
       .toEqual({ publisherType: "community", category: "productivity" });

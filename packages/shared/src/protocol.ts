@@ -402,6 +402,8 @@ export interface AppSettings {
   sourceServerWorkspaceHistory?: import("./source-server/contracts.js").SourceServerWorkspaceHistoryEntry[];
   /** 桌面端启动时是否执行 Source Server 静默重连；缺失按 true 兼容旧设置。 */
   remoteStartupAutoReconnectEnabled?: boolean;
+  /** 任务列表项目行是否隐藏远程设备名；缺失按 false（显示），悬停详情仍展示设备名。 */
+  remoteProjectRowDeviceNameHidden?: boolean;
   sourceServerDirectoryMigrationVersion?: 1;
   /** 旧客户端只接受 2；保留回滚兼容，新介绍不使用该字段判断已读。 */
   remoteBoundaryOnboardingVersion?: 2;

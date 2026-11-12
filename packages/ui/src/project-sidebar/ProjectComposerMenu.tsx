@@ -98,6 +98,7 @@ export function ProjectComposerMenu({
     availability,
     directory,
     deviceNames,
+    hideProjectRowDeviceName,
     error,
     service,
     remoteService,
@@ -455,7 +456,7 @@ export function ProjectComposerMenu({
                       {/* 不同字号按框居中会让设备名基线上浮；文字单独对齐基线，外层图标仍居中。 */}
                       <span className="flex min-w-0 flex-1 items-baseline gap-2">
                         <span className="min-w-0 flex-1 truncate">{project.name}</span>
-                        {deviceName ? (
+                        {deviceName && !hideProjectRowDeviceName ? (
                           <span
                             data-testid="composer-project-device"
                             className="max-w-36 truncate text-ui-sm text-remote-foreground-muted"

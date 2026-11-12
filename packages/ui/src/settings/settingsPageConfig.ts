@@ -150,12 +150,13 @@ const BASE_SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
     contentTitleId: "settings.remoteDevicesTitle",
     groupId: "basics",
   },
+  // 数据同步归在「数据与统计」组首位，与上游一致：它管的是用户数据面，不是本机基础行为。
   {
     id: "dataSync",
     icon: RefreshCw,
     titleId: "settings.dataSync.title",
     contentTitleId: "settings.dataSync.title",
-    groupId: "basics",
+    groupId: "dataAndStats",
   },
   // 电脑控制紧跟「浏览器」：两者都是给 Agent 用的本机操控入口，
   // 放在基础设置里让用户在同一处理解「控制浏览器 / 控制整台电脑」的关系。

@@ -78,6 +78,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
     preferences,
     groups,
     deviceNames,
+    hideProjectRowDeviceName,
   } = useProjectDirectory();
   const { tree, pin } = useProjectPinIntent(authoritativeTree);
   const remoteSync = useProjectRemoteSync(props, directory);
@@ -204,6 +205,7 @@ export const ProjectSidebar = memo(function ProjectSidebar(props: ProjectSidebar
       key={projectKey(project)}
       project={project}
       deviceLabel={deviceNames.get(projectSourceServerId(project) ?? "")}
+      hideDeviceName={hideProjectRowDeviceName}
       remoteHost={directory.hosts.find((host) => host.id === project.hostId)}
       diagnostics={diagnostics.get(project.hostId)}
       expanded={preferences.isExpanded(project)}

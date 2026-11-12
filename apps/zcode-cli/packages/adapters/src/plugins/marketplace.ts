@@ -2536,7 +2536,12 @@ export function parseEntryStoreListing(
     "heroImage",
   ] as const) {
     const value = readString(key);
-    if (value) listing[key] = value;
+    if (value) {
+      // 旧快照会把已停止解析的旧 NIBI 域名一起缓存下来（icon/hero 是纯展示字段），
+      // 解析时按 hostname 精确迁移，避免存量用户始终看到破图；第三方域名原样保留。
+      listing[key] =
+        key === "icon" || key === "heroImage" ? migrateLegacyNibiUrl(value) : value;
+    }
   }
   const author = normalizeAuthorValue(entry.author);
   if (author?.name) listing.author = author.name;

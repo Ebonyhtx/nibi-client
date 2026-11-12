@@ -1,10 +1,24 @@
 // @vitest-environment jsdom
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { ProjectNode } from "@/project-sidebar/ProjectNode.js";
 import type { ProjectNodeProps } from "@/project-sidebar/ProjectNodeContent.js";
 import { TooltipProvider } from "@/components/ui/tooltip.js";
+
+const hover = vi.hoisted(() => ({ deviceNames: [] as Array<string | undefined> }));
+vi.mock("@/project-sidebar/RemoteIdentityHoverCard.js", () => ({
+  RemoteIdentityHoverCard: ({
+    deviceName,
+    children,
+  }: {
+    deviceName?: string;
+    children: ReactNode;
+  }) => {
+    hover.deviceNames.push(deviceName);
+    return createElement("div", { "data-hover-device": deviceName ?? "" }, children);
+  },
+}));
 
 vi.mock("@/i18n/IntlProvider.js", () => ({
   useZCodeIntl: () => ({ intl: { formatMessage: ({ id }: { id: string }) => id } }),
@@ -187,4 +201,16 @@ it("普通离线仍显示离线", () => {
     { wrapper: TooltipProvider },
   );
   expect(screen.getByTestId("project-status-label").textContent).toBe("project.offline");
+});
+
+it("hideDeviceName 隐藏项目行设备名，但悬停详情仍收到完整设备名", () => {
+  const props = { ...fixture(), deviceLabel: "Alpha" };
+  hover.deviceNames.length = 0;
+  const view = render(createElement(ProjectNode, props), { wrapper: TooltipProvider });
+  expect(screen.getByTestId("project-device").textContent).toBe("Alpha");
+  expect(hover.deviceNames.at(-1)).toBe("Alpha");
+
+  view.rerender(createElement(ProjectNode, { ...props, hideDeviceName: true }));
+  expect(screen.queryByTestId("project-device")).toBeNull();
+  expect(hover.deviceNames.at(-1)).toBe("Alpha");
 });

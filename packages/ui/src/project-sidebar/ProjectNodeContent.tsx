@@ -54,6 +54,8 @@ export type ProjectNodeProps = {
   project: VirtualProject;
   remoteHost?: RemoteProjectHost;
   deviceLabel?: string;
+  /** 设置偏好：隐藏项目行文字中的设备名；悬停详情仍展示完整设备名。 */
+  hideDeviceName?: boolean;
   diagnostics?: { error?: string };
   expanded: boolean;
   onExpandedChange(value: boolean): void;
@@ -82,6 +84,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
   project,
   remoteHost,
   deviceLabel,
+  hideDeviceName = false,
   diagnostics,
   tasks,
   hasUnread = false,
@@ -272,7 +275,7 @@ export const ProjectNodeContent = memo(function ProjectNodeContent({
                       <span className="truncate text-ui-base text-foreground-subtle">
                         {project.name}
                       </span>
-                      {remoteHost ? (
+                      {remoteHost && !hideDeviceName ? (
                         <span
                           data-testid="project-device"
                           className="max-w-24 truncate text-ui-sm text-remote-foreground-muted"

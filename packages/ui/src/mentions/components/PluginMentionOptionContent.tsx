@@ -7,6 +7,7 @@ export function PluginMentionOptionContent({ item }: { item: MentionItem }) {
       <PluginIcon
         pluginId={item.data?.pluginId ?? item.value}
         src={item.data?.icon}
+        fallbackName={item.displayLabel ?? item.label}
         className="size-5 rounded-md"
         iconClassName="size-3"
       />

@@ -50,4 +50,34 @@ describe("PluginStoreAvatar", () => {
     expect(html).toContain('src="https://cdn.example.com/example.png"');
     expect(html).not.toContain("lucide-blocks");
   });
+
+  it("rewrites legacy NIBI icon hosts that were cached before the domain migration", () => {
+    const html = renderToStaticMarkup(
+      createElement(PluginStoreAvatar, {
+        item: {
+          name: "legacy-plugin",
+          listing: { icon: "https://api.nibistudio.top/plugins/icons/legacy.png" },
+        },
+        className: "size-10",
+      }),
+    );
+
+    expect(html).toContain('src="https://api.nibistudio.cn/plugins/icons/legacy.png"');
+    expect(html).not.toContain("api.nibistudio.top");
+  });
+
+  it("renders a deterministic initial avatar instead of an empty container", () => {
+    const html = renderToStaticMarkup(
+      createElement(PluginStoreAvatar, {
+        item: { id: "example-plugin@nibi-official", name: "example-plugin" },
+        className: "size-10",
+      }),
+    );
+
+    // 首字母 + 暖色底；既不是空 div，也不是默认的 Blocks 图标。
+    expect(html).toContain(">E<");
+    expect(html).not.toContain("lucide-blocks");
+    expect(html).toMatch(/background-color:#[0-9A-F]{6}/i);
+    expect(html).not.toContain("<img");
+  });
 });

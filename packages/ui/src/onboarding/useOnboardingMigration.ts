@@ -3,13 +3,34 @@ import type { SettingsSyncSelection } from "@nibi/shared";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { getPathLeaf } from "@/lib/path.js";
 import type { useClaudeSessionMigration } from "@/hooks/useClaudeSessionMigration.js";
-import type { useSettingsSync } from "@/hooks/useSettingsSync.js";
 import {
   createInitialFinishExecutionState,
   type FinishExecutionState,
 } from "@/onboarding/OnboardingFlowParts.js";
 import type { OnboardingView, OnboardingWizardStep } from "@/onboarding/OnboardingDialogParts.js";
 import type { OnboardingAgentsFileMigrationState } from "@/onboarding/useOnboardingAgentsFileMigration.js";
+
+/**
+ * 首启与设置页迁移向导共用“进入会话步骤时自动扫描一次”的判定。
+ * 设置页的步骤名与首启不同，所以把“当前是否在会话步骤”作为独立条件传入。
+ */
+export function shouldAutoScanSessions(params: {
+  isSessionStep: boolean;
+  supported: boolean;
+  isScanning: boolean;
+  candidateCount: number;
+  scanError: string | null;
+  hasAutoScannedInCurrentEntry: boolean;
+}): boolean {
+  return (
+    params.isSessionStep &&
+    params.supported &&
+    !params.isScanning &&
+    params.candidateCount === 0 &&
+    !params.scanError &&
+    !params.hasAutoScannedInCurrentEntry
+  );
+}
 
 export function shouldAutoScanOnboardingSessions(params: {
   view: OnboardingView;
@@ -20,15 +41,28 @@ export function shouldAutoScanOnboardingSessions(params: {
   scanError: string | null;
   hasAutoScannedInCurrentEntry: boolean;
 }): boolean {
-  return (
-    params.view === "wizard" &&
-    params.wizardStep === "session" &&
-    params.supported &&
-    !params.isScanning &&
-    params.candidateCount === 0 &&
-    !params.scanError &&
-    !params.hasAutoScannedInCurrentEntry
-  );
+  return shouldAutoScanSessions({
+    isSessionStep: params.view === "wizard" && params.wizardStep === "session",
+    supported: params.supported,
+    isScanning: params.isScanning,
+    candidateCount: params.candidateCount,
+    scanError: params.scanError,
+    hasAutoScannedInCurrentEntry: params.hasAutoScannedInCurrentEntry,
+  });
+}
+
+/**
+ * 统一执行器需要的设置导入能力。
+ * 首启传 useSettingsSync()；设置页迁移向导传一个只调用 settingsSyncService.importSelected 的适配器。
+ */
+export interface UnifiedMigrationSettingsImport {
+  selectedCount: number;
+  actions: {
+    startImportWithAdditionalSelections: (
+      additionalSelections?: SettingsSyncSelection[],
+      options?: { includeCurrentSelections?: boolean },
+    ) => Promise<void>;
+  };
 }
 
 function groupWorkspaceCandidates(
@@ -58,8 +92,8 @@ export function useOnboardingMigration(
   additionalSettingsSelections: SettingsSyncSelection[],
   sessionMigration: ReturnType<typeof useClaudeSessionMigration>,
   agentsFileMigration: OnboardingAgentsFileMigrationState,
-  settingsSync: ReturnType<typeof useSettingsSync>,
-  options: { includeSettingsSelections?: boolean } = {},
+  settingsSync: UnifiedMigrationSettingsImport,
+  options: { includeSettingsSelections?: boolean; autoStart?: boolean } = {},
 ) {
   const { intl } = useZCodeIntl();
   const [finishExecution, setFinishExecution] = useState<FinishExecutionState>(
@@ -94,6 +128,7 @@ export function useOnboardingMigration(
       agentsFileFailedCount: 0,
       currentTaskLabel: null,
       error: null,
+      failureDetails: [],
     });
 
     try {
@@ -122,6 +157,14 @@ export function useOnboardingMigration(
           sessionImportedCount: current.sessionImportedCount + result.imported.length,
           sessionSkippedCount: current.sessionSkippedCount + result.skipped.length,
           sessionFailedCount: current.sessionFailedCount + result.failed.length,
+          failureDetails: [
+            ...current.failureDetails,
+            ...result.failed.map((failed) => ({
+              category: "session" as const,
+              label: failed.sessionId,
+              reason: failed.reason,
+            })),
+          ],
         }));
       }
 
@@ -144,10 +187,19 @@ export function useOnboardingMigration(
               current.agentsFileSkippedCount + (result.status === "skipped" ? 1 : 0),
           }));
         } catch (copyError) {
+          const reason = copyError instanceof Error ? copyError.message : String(copyError);
           setFinishExecution((current) => ({
             ...current,
             agentsFileCompletedCount: current.agentsFileCompletedCount + 1,
             agentsFileFailedCount: current.agentsFileFailedCount + 1,
+            failureDetails: [
+              ...current.failureDetails,
+              {
+                category: "agentsFile",
+                label: agentsFileMigration.status?.sourcePath ?? "AGENTS.md",
+                reason,
+              },
+            ],
           }));
           throw copyError;
         }
@@ -196,17 +248,20 @@ export function useOnboardingMigration(
     options.includeSettingsSelections,
   ]);
 
+  // 首启进入 migration 步骤即自动执行；设置页迁移向导要等用户点“开始迁移”，所以传 autoStart: false。
+  const autoStart = options.autoStart ?? (view === "wizard" && wizardStep === "migration");
+
   useEffect(() => {
-    if (view !== "wizard" || wizardStep !== "migration" || finishExecution.started) {
+    if (!autoStart || finishExecution.started) {
       return;
     }
 
     void startUnifiedMigration();
-  }, [finishExecution.started, startUnifiedMigration, view, wizardStep]);
+  }, [autoStart, finishExecution.started, startUnifiedMigration]);
 
   const resetFinishExecution = useCallback(() => {
     setFinishExecution(createInitialFinishExecutionState());
   }, []);
 
-  return { finishExecution, resetFinishExecution };
+  return { finishExecution, resetFinishExecution, startUnifiedMigration };
 }

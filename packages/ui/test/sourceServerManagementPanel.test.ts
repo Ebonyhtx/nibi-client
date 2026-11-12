@@ -631,7 +631,7 @@ describe("SourceServerManagementPanel", () => {
       }),
     );
 
-    expect(await screen.findByText("settings.source.connectionPreferences")).toBeTruthy();
+    expect(await screen.findByText("settings.source.preferences")).toBeTruthy();
 
     const toggle = screen.getByRole("switch", {
       name: "settings.source.startupAutoReconnect",
@@ -687,7 +687,9 @@ describe("SourceServerManagementPanel", () => {
         onUpdateSettings: save,
       }),
     );
-    const toggle = screen.getByRole("switch");
+    const toggle = screen.getByRole("switch", {
+      name: "settings.source.startupAutoReconnect",
+    });
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(toggle.hasAttribute("disabled")).toBe(true);
@@ -695,6 +697,37 @@ describe("SourceServerManagementPanel", () => {
     expect(save).toHaveBeenCalledOnce();
     await act(async () => reject(new Error("disk full")));
     expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("alert").textContent).toContain("settings.source.operationFailed");
+  });
+
+  it("隐藏项目行设备名开关写入设置，失败时回滚", async () => {
+    let reject!: (cause: Error) => void;
+    const save = vi.fn(
+      () =>
+        new Promise<void>((_resolve, fail) => {
+          reject = fail;
+        }),
+    );
+    render(
+      createElement(SourceServerManagementPanel, {
+        management: {
+          getSnapshot: async () => identityPendingSnapshot("installed", "preferred"),
+          onDidChangeState: new Emitter().event,
+        } as never,
+        settings: { remoteProjectRowDeviceNameHidden: false },
+        onUpdateSettings: save,
+      }),
+    );
+    const toggle = screen.getByRole("switch", {
+      name: "settings.source.hideProjectRowDeviceName",
+    });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(toggle.hasAttribute("disabled")).toBe(true);
+    expect(save).toHaveBeenCalledWith({ remoteProjectRowDeviceNameHidden: true });
+    await act(async () => reject(new Error("disk full")));
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
     expect(screen.getByRole("alert").textContent).toContain("settings.source.operationFailed");
   });
 
@@ -1356,7 +1389,7 @@ describe("SourceServerManagementPanel", () => {
     expect(screen.getByText("linux-arm64-dev")).toBeTruthy();
     expect(container.querySelector('[data-remote-connection-status="offline"]')).toBeTruthy();
     expect(screen.getByText("dev@localhost:2223")).toBeTruthy();
-    const preferences = screen.getByText("settings.source.connectionPreferences");
+    const preferences = screen.getByText("settings.source.preferences");
     expect(
       unfinished!.compareDocumentPosition(preferences) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();

@@ -23,11 +23,9 @@ const h = vi.hoisted(() => {
     service,
     directory,
     toast: vi.fn(),
+    confirm: vi.fn(async () => true),
     intl: {
-      formatMessage: (
-        { id }: { id: string },
-        values?: Record<string, string | number>,
-      ): string =>
+      formatMessage: ({ id }: { id: string }, values?: Record<string, string | number>): string =>
         values
           ? `${id}:${Object.entries(values)
               .map(([key, value]) => `${key}=${value}`)
@@ -47,10 +45,9 @@ vi.mock("@/project-sidebar/useProjectDataCleanupSupport.js", () => ({
 vi.mock("@/project-sidebar/ProjectDataCleanupDialog.js", () => ({
   ProjectDataCleanupDialog: () => null,
 }));
-vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => vi.fn() }));
+vi.mock("@/hooks/useConfirmDialog.js", () => ({ useConfirmDialog: () => h.confirm }));
 vi.mock("@/store/zcodeSessionStore.js", () => ({
-  useZCodeSessionStore: (selector: (state: unknown) => unknown) =>
-    selector({ workspaces: {} }),
+  useZCodeSessionStore: (selector: (state: unknown) => unknown) => selector({ workspaces: {} }),
 }));
 vi.mock("@/components/ui/toast.js", () => ({ toast: h.toast }));
 vi.mock("@/i18n/IntlProvider.js", () => ({ useZCodeIntl: () => ({ intl: h.intl }) }));
@@ -105,7 +102,11 @@ describe("ProjectsSection restore", () => {
     render(createElement(ProjectsSection));
 
     expect(screen.getByText("Alpha")).toBeTruthy();
-    expect(screen.getByText("settings.projects.removedAgo:time=automations.time.ago:amount=automations.time.days:value=3")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "settings.projects.removedAgo:time=automations.time.ago:amount=automations.time.days:value=3",
+      ),
+    ).toBeTruthy();
 
     fireEvent.click(screen.getByText("settings.projects.restore"));
 
@@ -132,5 +133,33 @@ describe("ProjectsSection restore", () => {
       ),
     );
     expect(h.directory.refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("ProjectsSection selection and row actions", () => {
+  it("勾选项目后才显示底部悬浮条，清除后隐藏", () => {
+    render(createElement(ProjectsSection));
+
+    expect(screen.queryByTestId("settings-projects-selection-bar")).toBeNull();
+    fireEvent.click(screen.getByTestId("settings-projects-row-checkbox"));
+
+    const bar = screen.getByTestId("settings-projects-selection-bar");
+    expect(bar.textContent).toContain("settings.projects.selectionSummary:selected=1,total=1");
+    expect(screen.queryByTestId("settings-projects-remove")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("settings-projects-selection-clear"));
+    expect(screen.queryByTestId("settings-projects-selection-bar")).toBeNull();
+  });
+
+  it("行菜单只提供移除项，确认后移除该项目", async () => {
+    render(createElement(ProjectsSection));
+
+    fireEvent.keyDown(screen.getByTestId("settings-projects-row-menu"), { key: "ArrowDown" });
+    const removeItem = await screen.findByTestId("settings-projects-remove-row");
+    fireEvent.click(removeItem);
+
+    await waitFor(() => expect(h.service.deleteProject).toHaveBeenCalledWith("project-1", "local"));
+    expect(h.confirm).toHaveBeenCalledOnce();
+    expect(h.directory.refresh).toHaveBeenCalled();
   });
 });

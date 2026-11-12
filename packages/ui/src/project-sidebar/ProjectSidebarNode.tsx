@@ -32,6 +32,7 @@ type Props = Pick<
   | "project"
   | "remoteHost"
   | "deviceLabel"
+  | "hideDeviceName"
   | "diagnostics"
   | "expanded"
   | "hasUnread"

@@ -1319,3 +1319,31 @@ exceptions:
       切到完全访问模式前的二次确认弹窗：复用现有 Dialog/Checkbox/Button，只在
       SessionPane 的模式切换入口做 UI 拦截，不改权限判定与持久化。packages/ui 仍是
       managed:false 的遗留大区，按路径单独登记。
+
+  - id: settings-data-sync-migration-wizard
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/settings/migration-wizard/MigrationWizardDialog.tsx
+      - packages/ui/src/settings/migration-wizard/MigrationWizardSteps.tsx
+      - packages/ui/src/settings/migration-wizard/migrationWizardState.ts
+      - packages/ui/src/settings/migration-wizard/useMigrationWizard.ts
+      - packages/ui/src/settings/migration-wizard/useMigrationWizardSettingsImport.ts
+      - packages/ui/src/components/wizard/WizardChrome.tsx
+      - packages/ui/src/components/wizard/MigrationSessionsStep.tsx
+      - packages/ui/src/components/wizard/AgentsFileMigrationStep.tsx
+      - packages/ui/src/components/wizard/useWorkspaceSessionSelection.ts
+    reason: >-
+      设置 → 数据同步 →「迁移数据」从单张筛选卡改造成六步迁移向导：会话按 workspace 分组，
+      Skills/MCP/命令按需进入步骤后扫描，AGENTS.md 走复制/覆盖，末步复用首启的
+      useOnboardingMigration 执行顺序。共享的步骤导航、会话步骤、AGENTS.md 步骤与勾选逻辑
+      抽到 components/wizard，首启与设置页共用同一套实现；packages/ui 仍是 managed:false
+      的遗留大区，按路径单独登记。
+
+  - id: plugin-store-deterministic-avatar
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/lib/pluginAvatar.ts
+    reason: >-
+      插件商店与已安装列表的图标兜底：按插件 id/名称做稳定哈希取暖色调色板并提供首字母
+      回退，替掉「加载失败只剩空容器」的观感。纯展示层工具，不涉协议与持久化；
+      packages/ui 仍是 managed:false 的遗留大区，按路径单独登记。

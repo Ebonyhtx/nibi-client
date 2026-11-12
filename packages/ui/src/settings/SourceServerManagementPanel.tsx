@@ -246,7 +246,9 @@ export function SourceServerManagementPanel({
   /** 有已打开 workspace tab 的设备 id 集合；「新任务」仅对这些设备渲染。 */
   settings?: Pick<
     AppSettings,
-    "remoteStartupAutoReconnectEnabled" | "remoteConversationWorkspaceBySourceServerId"
+    | "remoteStartupAutoReconnectEnabled"
+    | "remoteProjectRowDeviceNameHidden"
+    | "remoteConversationWorkspaceBySourceServerId"
   > | null;
   onUpdateSettings?: (patch: Partial<AppSettings>) => Promise<unknown> | void;
 }) {
@@ -261,6 +263,12 @@ export function SourceServerManagementPanel({
   useEffect(() => {
     setStartupAutoReconnect(settings?.remoteStartupAutoReconnectEnabled ?? true);
   }, [settings?.remoteStartupAutoReconnectEnabled]);
+  const [hideProjectRowDeviceName, setHideProjectRowDeviceName] = useState(
+    settings?.remoteProjectRowDeviceNameHidden ?? false,
+  );
+  useEffect(() => {
+    setHideProjectRowDeviceName(settings?.remoteProjectRowDeviceNameHidden ?? false);
+  }, [settings?.remoteProjectRowDeviceNameHidden]);
   const [editingConnection, setEditingConnection] = useState<{
     profile: ConnectionProfile;
     server?: SourceServerRecord;
@@ -1885,10 +1893,44 @@ export function SourceServerManagementPanel({
         <section className="border-t border-border pt-4">
           <h3 className="text-ui-base font-medium text-foreground">
             {intl.formatMessage({
-              id: "settings.source.connectionPreferences",
+              id: "settings.source.preferences",
             })}
           </h3>
           <div className="mt-3 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-ui-sm text-foreground">
+                  {intl.formatMessage({
+                    id: "settings.source.hideProjectRowDeviceName",
+                  })}
+                </p>
+                <p className="text-ui-xs text-remote-foreground-muted">
+                  {intl.formatMessage({
+                    id: "settings.source.hideProjectRowDeviceNameDescription",
+                  })}
+                </p>
+              </div>
+              <Switch
+                checked={hideProjectRowDeviceName}
+                disabled={busyOperations.has("hide-project-row-device-name") || !onUpdateSettings}
+                aria-busy={busyOperations.has("hide-project-row-device-name")}
+                onCheckedChange={(checked) => {
+                  const previous = hideProjectRowDeviceName;
+                  setHideProjectRowDeviceName(checked);
+                  void run("hide-project-row-device-name", async () => {
+                    try {
+                      await onUpdateSettings?.({ remoteProjectRowDeviceNameHidden: checked });
+                    } catch (cause) {
+                      setHideProjectRowDeviceName(previous);
+                      throw cause;
+                    }
+                  });
+                }}
+                aria-label={intl.formatMessage({
+                  id: "settings.source.hideProjectRowDeviceName",
+                })}
+              />
+            </div>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-ui-sm text-foreground">
