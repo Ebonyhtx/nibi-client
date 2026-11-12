@@ -35,7 +35,7 @@ Todo103 候选回归：MP-UI-06 的 Hover/键盘焦点颜色比较须等待被�
 | Change layer          | Presentation + provider connection validation                                                  |
 | Operating mode        | implementation-handoff                                                                         |
 | User-visible surfaces | Desktop sidebar profile menu; desktop/web model-provider settings                              |
-| Existing specs        | `docs/desktop/sidebar-zoom-menu.md`, `docs/model-provider-family-merge.md`                     |
+| Existing specs        | `docs/desktop/sidebar-zoom-menu.md`, `docs/model-provider-presets.md`                     |
 | Out of scope          | Model request traffic, mobile replay recovery, remote workspace runtime, provider billing APIs |
 
 ## Impact Brief
@@ -57,7 +57,7 @@ Todo103 候选回归：MP-UI-06 的 Hover/键盘焦点颜色比较须等待被�
 | must-inspect   | Coding Plan visibility -> provider connection resolver | The regression was caused by treating `models.length` as a connection requirement | `providerFamilyConnectionVisibility.ts`         |
 | should-inspect | Add-provider footer -> add-provider draft validation   | Guidance and disabled action must agree                                           | `AddProviderCard.tsx`                           |
 | conditional    | Profile menu -> desktop zoom commands                  | Zoom appears only in Electron desktop mode                                        | `WorkspaceSidebarFooter.tsx`                    |
-| invariant-only | Provider settings -> chat model picker                 | Zero models means no selectable chat model, without changing plan identity        | `docs/model-provider-family-merge.md`           |
+| invariant-only | Provider settings -> chat model picker                 | Zero models means no selectable chat model, without changing plan identity        | `docs/model-provider-presets.md`           |
 
 ### Codegraph Evidence
 

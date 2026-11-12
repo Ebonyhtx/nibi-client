@@ -258,14 +258,14 @@
 - 证据：
   - [`docs/architecture/r3-source-server-remote-architecture.md`](./r3-source-server-remote-architecture.md)；
   - [`../archive/remote-r3/r3-source-server-release-test-plan.md`](../archive/remote-r3/r3-source-server-release-test-plan.md)；
-  - [`docs/model-provider-opencode-config.md`](../model-provider-opencode-config.md)；
+  - （历史文档 `model-provider-opencode-config.md` 已随 Provider Refactor 删除）；
   - `packages/services/src/model-provider/modelProviderService.ts`（已随 Provider 重构 M2 删除）。
 - 关闭条件：明确兼容期真实策略；统一架构规格、存储文档和 Secret scan；若继续双写，明确普通 Provider 与 Start Plan 的不同安全边界。
 
 #### 决策记录 2026-09-13
 
 - 依据：Provider 重构合并（路线 A，Q3）接受明文 Personal Config；`modelProviderService`、`zcode.apiKeyCredentialKey` 加密镜像与 provider-sync 只读校验路径已全部删除，代码中不再有 `apiKeyCredentialKey` 引用。主规格 §8 已改为「设置页绑定本地 + Provisioning 单向下发」，不再要求 Provider store 无明文；原要求该门禁的发布测试方案已归档。
-- 结论：「规格与实现冲突」的两端都已不存在，按 `不修复` 关闭。`docs/model-provider-opencode-config.md` 中描述该镜像的小节同日删除。
+- 结论：「规格与实现冲突」的两端都已不存在，按 `不修复` 关闭。该镜像对应的历史文档已同日删除。
 
 ### R3-ISSUE-013：首次 Directory 迁移失败可能遗留孤儿凭据
 

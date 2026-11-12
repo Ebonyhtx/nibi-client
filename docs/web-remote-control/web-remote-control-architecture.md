@@ -46,7 +46,7 @@
 
 | 内容                               | 文档                                                                 |
 | ---------------------------------- | -------------------------------------------------------------------- |
-| 手机首页、聊天、新建任务与页面状态 | [手机任务首页](./mobile-task-home-design.md)                         |
+| 手机首页、聊天、新建任务与页面状态 | [远程项目导航](../remote/project-first-remote-navigation-spec.md)                         |
 | 手机任务时间线与排序               | [移动端任务时间线](../ui/web-remote-control-mobile-task-timeline.md) |
 | 宽屏任务列表、搜索与归档           | [宽屏任务列表](./wide-screen-task-list.md)                           |
 | 手机主题与浏览器表面               | [主题控制](./mobile-theme-control.md)                                |

@@ -6,7 +6,7 @@
 | --------------------- | -------------------------------------------------------------------------------------------------------- |
 | Change                | 让现有 7 个 Hooks 事件形成可配置、可执行、可观测、可回归的完整生命周期                                   |
 | User-visible surfaces | Settings > Hooks；conversation runtime；plugin hook 只读来源                                             |
-| Existing docs         | `docs/hooks-runtime-contract.md`、`docs/hooks-implementation-analysis.md`、`docs/plugin-hooks-compat.md` |
+| Existing docs         | `docs/hooks-runtime-contract.md`、`docs/archive/hooks/hooks-implementation-analysis.md`、`docs/plugin-hooks-compat.md` |
 | Existing owners       | Agent HookRunner/configured runner；HooksService；HooksSection；plugin protocol                          |
 | Out of scope          | 新事件；prompt/agent/http；`if`、`once`、`asyncRewake`；legacy 隐式执行                                  |
 

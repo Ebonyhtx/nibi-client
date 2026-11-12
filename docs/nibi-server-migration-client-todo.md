@@ -11,7 +11,7 @@
   ② §2 的构建期 CDN/OSS 变量与发布脚本要逐项核对（涉及路径与多账号映射，不是纯域名替换）；
   ③ 已发布的 npm 包 / 桌面安装包仍是旧构建；④ 插件 zip 内 `env_setup` 仍指向 `.top`。
 
-原则：客户端只认 NIBI 自有端点或空；任何上游域名都不回落（分家标准 `docs/deployment/client-endpoint-and-distribution-standard.md` §5）。
+原则：客户端只认 NIBI 自有端点或空；任何上游域名都不回落（分家标准见 `docs/adr/` 与 `AGENTS.md` 的遥测/端点约束；运维口径见 `NIBI-Site/deploy/RUNBOOK.md` §0）。
 
 ## 1. API、账号与会员
 

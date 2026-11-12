@@ -143,4 +143,4 @@ Web/手机真实 ZIP 资源托管未接入，Desktop 投放客户端已接 Marke
 
 生产阶段另验收：可信 HTTPS/CDN 发布认证、签名、账号隔离、投放频控、灰度/回滚与 Web 资源托管。SHA-256 仅证明字节一致，不证明发布者可信。
 
-完整阶段计划与验收记录见 [cloud-content-dialog-plan.md](./cloud-content-dialog-plan.md)。
+完整阶段计划与验收记录见 [cloud-content-dialog-plan.md](./archive/plans/cloud-content-dialog-plan.md)。

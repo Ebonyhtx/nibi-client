@@ -7,7 +7,7 @@
 - [根 README](../README.md)：环境、启动、构建与仓库结构
 - [贡献指南](../CONTRIBUTING.md)：提交、验证与公开仓规则
 - [架构治理](architecture/architecture-governance.md)：模块边界、依赖方向与门禁
-- [架构总览](architecture/architecture.md)
+- [架构总览](architecture/zcode-code-architecture-overview.md)
 - [通信协议分层](architecture/communication-protocol-layers.md)
 - [消息流](architecture/message-flow.md)
 - [RPC](architecture/rpc.md)
@@ -17,7 +17,7 @@
 - [开发运行](desktop/dev-runtime.md)
 - [可配置数据目录](desktop/configurable-data-directory.md)
 - [Deep link](desktop/dev-deep-link.md)
-- [自动更新](desktop/auto-update-baseline.md)
+- [自动更新](desktop/auto-update-service-manifest.md)
 - [Windows 安装器](desktop/windows-installer-overhaul-spec.md)
 - [Computer Use producer 检测](desktop/computer-use-producer-detection.md)
 

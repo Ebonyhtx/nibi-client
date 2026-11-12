@@ -803,7 +803,7 @@ constraints:
     decision: legacy-only
     effect: Old client-config model facts, magic_name, fallback, and tombstone paths are not current Registry inputs; cover only migration compatibility where explicitly requested.
     evidence:
-      - docs/model-provider-client-config-remote-model-facts.md
+      - docs/archive/provider-refactor/model-provider-client-config-remote-model-facts.md
       - apps/zcode-cli/packages/bootstrap/src/app/legacy-cli-model-config.ts
 
 highRiskCrossProducts:

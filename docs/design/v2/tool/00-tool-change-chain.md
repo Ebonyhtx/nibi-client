@@ -84,7 +84,7 @@ desktop continuous 与 web remote replayable 的交付边界不变。
 新建的 part，再在序号完整时恢复 calls/results 声明顺序。缺少序号时保留所选记录原序。
 原始 parts、UI 和文件读取状态恢复不做调用合并或声明排序。
 模型流回调、工具调度及落盘时机保持不变。
-详细契约见 [工具历史顺序修复方案](./tool-history-order-repair-proposal.md)。
+详细契约见 [工具历史顺序修复方案](../../archive/plans/tool-history-order-repair-proposal.md)。
 
 ```text
 声明 Bash(0) -> Read(1) -> 原有落盘 Read(1), Bash(0)

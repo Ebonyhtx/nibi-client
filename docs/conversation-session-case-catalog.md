@@ -3837,7 +3837,7 @@ VP12 H1 Bots（pending）：创建两个共享 cwd、均未打开 tab 的项目 
 
 VP12 实测：`desktop-e2e-20260910234135216-p700-9ed05502a4283931` 八例通过；Bot 项目授权 JSON 验证通过，pending 未晋升。真实远端 Bot runtime 的外部发送验收未执行。
 
-MRO01（accepted / pending，2026-10-13）：手机已有本地任务时点击另一个远程项目任务 → 等待 bridge 时留在列表；结构化失败展示 message、不展示 `[object Object]` 或旧本地聊天；重试成功后以完整远程身份打开目标任务；同 workspace 再打开不新建 bridge。spec：`docs/web-remote-control/mobile-task-home-design.md`；候选：`packages/web/test/e2e/manual-review/pending/remote-task-open.mjs`。真实 Web 入口、受控桌面 RPC/relay，深浅主题与中英文；服务集成回归覆盖真实存储与身份适配器、错误身份/目录拒绝。未计入 formal / Docker 或真实 SSH、真机覆盖。
+MRO01（accepted / pending，2026-10-13）：手机已有本地任务时点击另一个远程项目任务 → 等待 bridge 时留在列表；结构化失败展示 message、不展示 `[object Object]` 或旧本地聊天；重试成功后以完整远程身份打开目标任务；同 workspace 再打开不新建 bridge。spec：`docs/remote/project-first-remote-navigation-spec.md`；候选：`packages/web/test/e2e/manual-review/pending/remote-task-open.mjs`。真实 Web 入口、受控桌面 RPC/relay，深浅主题与中英文；服务集成回归覆盖真实存储与身份适配器、错误身份/目录拒绝。未计入 formal / Docker 或真实 SSH、真机覆盖。
 
 MRO02（accepted / pending，2026-10-13）：宽屏与窄屏 Web 从本机切入远端任务及刷新后，仍显示窗口本机项目、置顶与已添加远端入口，未添加远端项目不出现；窗口项目修改同步，工作区原 project/broadcast 查询保持 Source 语义。错误能力声明必须失败，旧 bridge 回包与事件不得污染新目录。候选 `packages/web/test/e2e/manual-review/pending/remote-project-directory.mjs`；shared/schema、Host RPC、Client 能力和 UI owner 定向测试补充非 UI 证据。真实远端闭环由 `packages/desktop/test/e2e/conversation-session/manual-review/pending/conversation-session-web-remote-project-directory.test.ts` 使用隔离 Electron、loopback relay 与独立 SSH 容器验证：建本机/置顶/保留远端及未保留项目，经真实 bridge 导航和 reload 后检查 UI 集合、Host 目录及源服务身份。不以受控桥接替代；本项不修改 Root 重挂载、账号归属和未读规则。 Header 补充回归（2026-10-14）：远控打开任务后连接状态和设备名正确；宽窄屏、深浅主题、中英文共 8 组受控 bridge 浏览器回归通过，宽屏另验刷新后 Header，窄屏刷新后验目录；未重跑真实 SSH。 Header 断言分别等待连接状态和设备名就绪；bridge 登记早于目录读取完成时，不以占位名称判失败，名称未达到预期仍须超时失败。
 

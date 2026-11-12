@@ -2,7 +2,7 @@
 
 ## 背景
 
-在 `docs/hooks-implementation-analysis.md` 之后，需要继续验证 Claude Code marketplace
+在 `docs/archive/hooks/hooks-implementation-analysis.md` 之后，需要继续验证 Claude Code marketplace
 中同时包含 **skills、commands、MCP servers** 的插件，确认 ZCode 当前插件发现、安装、
 runtime projection 与下游 skill/command/MCP adapter 是否能完整兼容。
 

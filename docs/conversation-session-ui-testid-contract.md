@@ -8,7 +8,7 @@
 
 - `packages/shared/src/test-ids.ts`
 - `docs/testing/testid-audit.md`
-- `docs/architecture/architecture.md`
+- `docs/architecture/zcode-code-architecture-overview.md`
 
 现有规则继续有效：
 
