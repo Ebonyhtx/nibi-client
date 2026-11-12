@@ -32,11 +32,19 @@ export interface MigrationSessionsStepLabels {
  * 会话步骤：按 workspace 分组展示候选会话，支持整组勾选。
  * 首启与设置页迁移向导共用；步骤文案由调用方传入独立 message id。
  */
+/** 不传 labels 时用首启的文案；设置页迁移向导传自己的一套 id。 */
+const DEFAULT_SESSIONS_STEP_LABELS: MigrationSessionsStepLabels = {
+  emptyId: "onboarding.sessions.empty",
+  countId: "onboarding.sessions.count",
+  unlimitedId: "onboarding.sessions.unlimited",
+  chooseWorkspaceId: "onboarding.sessions.chooseWorkspace",
+};
+
 export function MigrationSessionsStep(props: {
   migration: ReturnType<typeof useClaudeSessionMigration>;
   workspaceCandidates: MigrationWorkspaceCandidate[];
   selectedWorkspacePaths: string[];
-  labels: MigrationSessionsStepLabels;
+  labels?: MigrationSessionsStepLabels;
   onToggleWorkspace: (workspacePath: string) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
@@ -46,6 +54,7 @@ export function MigrationSessionsStep(props: {
   showRowIcon?: boolean;
 }) {
   const { intl } = useZCodeIntl();
+  const labels = props.labels ?? DEFAULT_SESSIONS_STEP_LABELS;
   const selectedCount = props.selectedWorkspacePaths.length;
   const totalCount = props.workspaceCandidates.length;
   const allSelected = totalCount > 0 && selectedCount === totalCount;
@@ -88,8 +97,8 @@ export function MigrationSessionsStep(props: {
             {["30", "50", "100", UNLIMITED_SCAN_LIMIT_INPUT].map((value) => (
               <SelectItem key={value} value={value}>
                 {value === UNLIMITED_SCAN_LIMIT_INPUT
-                  ? intl.formatMessage({ id: props.labels.unlimitedId })
-                  : intl.formatMessage({ id: props.labels.countId }, { count: value })}
+                  ? intl.formatMessage({ id: labels.unlimitedId })
+                  : intl.formatMessage({ id: labels.countId }, { count: value })}
               </SelectItem>
             ))}
           </SelectContent>
@@ -130,7 +139,7 @@ export function MigrationSessionsStep(props: {
             <FolderIcon className="size-4 shrink-0 text-foreground-subtle" />
             <div className="flex min-w-0 items-center gap-2">
               <div className="text-ui-base font-medium text-foreground">
-                {intl.formatMessage({ id: props.labels.chooseWorkspaceId })}
+                {intl.formatMessage({ id: labels.chooseWorkspaceId })}
               </div>
             </div>
           </div>
@@ -148,7 +157,7 @@ export function MigrationSessionsStep(props: {
         </div>
         {props.workspaceCandidates.length === 0 ? (
           <div className="flex h-full items-center justify-center px-4 text-center text-ui-base text-foreground-subtle">
-            {intl.formatMessage({ id: props.labels.emptyId })}
+            {intl.formatMessage({ id: labels.emptyId })}
           </div>
         ) : (
           <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2">
@@ -179,7 +188,7 @@ export function MigrationSessionsStep(props: {
                       </div>
                       <Badge variant="outline">
                         {intl.formatMessage(
-                          { id: props.labels.countId },
+                          { id: labels.countId },
                           { count: String(workspace.sessionCount) },
                         )}
                       </Badge>
