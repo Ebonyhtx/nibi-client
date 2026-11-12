@@ -2,6 +2,69 @@
 
 use super::*;
 
+/// 回归：桌面 composer 用草稿（deferred persistence）会话做粘贴图片的上传载体，而草稿在首条
+/// 输入前没有会话行。`store_attachment_content` 若用 `store.load` 判会话存在，新任务页的截图
+/// 会在 commit 阶段报 `Session unavailable`（Node 内核同场景写入 artifact 目录即可），
+/// UI 永远拿不到 ready 的 `AttachmentRef`，附件停在 0% 且发送被门禁拦住。
+#[tokio::test]
+async fn draft_sessions_accept_attachment_uploads() {
+    use nibi_kernel_api::env::EnvPath;
+    use nibi_kernel_api::ids::EnvironmentId;
+    use nibi_kernel_api::testing::{
+        environments, selection, FixedClock, MemoryArtifacts, MemoryStore, ScriptedModel,
+        SequentialIds, UnusedEnvironment,
+    };
+
+    let store = Arc::new(MemoryStore::default());
+    let kernel = LocalKernel::new(
+        Ports {
+            model: Arc::new(ScriptedModel::new(Vec::new())),
+            environments: environments(Arc::new(UnusedEnvironment)),
+            store: store.clone(),
+            artifacts: Arc::new(MemoryArtifacts::default()),
+            clock: Arc::new(FixedClock(1_000)),
+            ids: Arc::new(SequentialIds::default()),
+        },
+        Defaults {
+            selection: selection(),
+            mode: PermissionMode::Default,
+            max_turns: None,
+            search_tools: false,
+            task_tools: None,
+            limits: Default::default(),
+        },
+    );
+    let workspace = WorkspaceRef {
+        environment: EnvironmentId::new("local"),
+        root: EnvPath::new("/work"),
+    };
+    let id = kernel
+        .create_session_deferred(
+            CreateSession {
+                id: None,
+                workspace,
+                selection: selection(),
+                mode: PermissionMode::Default,
+                plan: false,
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    // 前提：草稿没有会话行——这正是旧实现误判「会话不存在」的原因。
+    assert!(matches!(
+        store.load(&id).await,
+        Err(StoreError::NotFound { .. })
+    ));
+
+    let stored = kernel
+        .store_attachment_content(&id, "image/png", vec![0x89, b'P', b'N', b'G'])
+        .await
+        .expect("draft session must accept attachment uploads");
+    assert!(stored.uri.starts_with(&format!("nibi-artifact://{}", id.as_str())));
+    assert_eq!(stored.bytes, 4);
+}
+
 #[test]
 fn data_urls_decode_to_bytes_and_media_type() {
     // 1x1 PNG 的字节。

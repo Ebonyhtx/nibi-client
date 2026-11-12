@@ -49,11 +49,16 @@ impl LocalKernel {
             });
         }
         // 会话必须存在：artifact 目录按会话分，写进一个不存在的会话等于制造孤儿文件。
-        self.ports
-            .store
-            .load(session)
-            .await
-            .map_err(store_error)?;
+        // 但「存在」不能只看存储行：草稿（deferred persistence）会话在首条输入前没有会话行，
+        // 而桌面 composer 的粘贴图片正是以预热的 draft session 为上传载体（Node 的
+        // writePromptAttachment 也只按 sessionId 写 artifact 目录）。这里必须用能识别
+        // 本进程草稿的 session_exists，否则新任务页粘贴的图片会在 commit 阶段报
+        // Session unavailable（Node 内核同场景成功），UI 永远拿不到 ready 的 AttachmentRef。
+        if !self.session_exists(session).await? {
+            return Err(KernelError::NotFound {
+                session: session.clone(),
+            });
+        }
         let size = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
         use base64::Engine;
         let content = format!(

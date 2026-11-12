@@ -14,6 +14,7 @@ import {
   useComposerAttachments,
   type ComposerAttachmentsApi,
 } from "@/v4/composer/useComposerAttachments.js";
+import type { AttachmentPutFn } from "@/v4/composer/attachmentUpload.js";
 
 const mocks = vi.hoisted(() => ({
   platform: {
@@ -24,6 +25,12 @@ const mocks = vi.hoisted(() => ({
   },
   service: null as IPromptAttachmentTransferService | null,
   toast: vi.fn(),
+  /** 粘贴截图的 V4 内联上传通道（begin/chunk/commit 的高层 put）。 */
+  put: vi.fn(
+    async (params: { sessionId: string; fileName: string; mime: string; dataBase64: string }) => ({
+      ref: `nibi-artifact://${params.sessionId}/pasted-${params.fileName}`,
+    }),
+  ),
 }));
 
 vi.mock("@/components/ui/toast.js", () => ({ toast: mocks.toast }));
@@ -149,6 +156,8 @@ function installMinimalDom() {
 
 interface ProbeOptions {
   attachmentSessionId: string | null;
+  /** 覆盖 put；粘贴图片（无本地路径）走这条内联上传通道。 */
+  attachmentPut?: AttachmentPutFn;
   localDesktop?: boolean;
   onRuntimeRestart?: (listener: () => void) => () => void;
   onRuntimeLifecycle?: (listener: (state: "available" | "unavailable") => void) => () => void;
@@ -166,7 +175,7 @@ function Probe(options: ProbeOptions) {
       ? undefined
       : (options.remoteSessionId ?? "remote-session-1");
   latestApi = useComposerAttachments({
-    attachmentPut: vi.fn(),
+    attachmentPut: options.attachmentPut ?? vi.fn(),
     attachmentSessionId: options.attachmentSessionId,
     onRuntimeRestart: options.onRuntimeRestart,
     onRuntimeLifecycle: options.onRuntimeLifecycle,
@@ -206,11 +215,49 @@ function resultFor(operationId: string) {
   };
 }
 
+/**
+ * node 测试环境没有 FileReader（生产 renderer 有）。粘贴图片的序列化必须经 data URL 读取
+ * File 字节，这里装一个最小 shim，让用例覆盖真实链路而不是替换被测函数。
+ */
+function installFileReaderShim() {
+  if (typeof globalThis.FileReader !== "undefined") return;
+  globalThis.FileReader = class {
+    result: string | null = null;
+    error: unknown = null;
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    readAsDataURL(file: File) {
+      void file.arrayBuffer().then((buffer) => {
+        this.result = `data:${file.type};base64,${Buffer.from(buffer).toString("base64")}`;
+        this.onload?.();
+      });
+    }
+  } as unknown as typeof FileReader;
+}
+
+/** 与真实 Ctrl+V 同形的 paste 事件：只有 clipboardData.files，没有本地路径。 */
+function pasteImageFile(file: File) {
+  const preventDefault = vi.fn();
+  act(() =>
+    latestApi?.handlePaste({
+      clipboardData: {
+        files: [file],
+        getData: () => "",
+        types: ["Files"],
+      } as unknown as DataTransfer,
+      preventDefault,
+      stopPropagation: vi.fn(),
+    }),
+  );
+  return preventDefault;
+}
+
 beforeEach(() => {
   latestApi = null;
   mocks.platform.createTempTextAttachment.mockReset();
   mocks.platform.getPathForFile.mockReset();
   mocks.platform.selectFiles.mockReset();
+  mocks.put.mockClear();
   mocks.toast.mockClear();
   useComposerAttachmentUploadStore.setState({ scopes: {} });
 });
@@ -1121,5 +1168,83 @@ describe("useComposerAttachments eager upload", () => {
     expect(latestApi?.attachments[0]?.runtimeRebuildRetryCount).toBe(1);
     expect(restart).toBeNull();
     act(() => root.unmount());
+  });
+});
+
+describe("粘贴截图的上传链路", () => {
+  // 回归：粘贴的截图没有本地路径，只能走 V4 内联 put。旧实现里这条通道要么没被单测覆盖，
+  // 要么在草稿态（sessionId 未就绪）停在 waitingSession/0% 无人唤醒——图片进不去也发不出去。
+  it("截图经 attachmentPut 上传完成后 ready，进度 100% 且能进入发送", async () => {
+    installFileReaderShim();
+    mocks.service = createTransferService().service;
+    const { root } = renderProbe({
+      attachmentPut: mocks.put,
+      attachmentSessionId: "session-1",
+      localDesktop: true,
+      scopeId: "paste-image-ready",
+    });
+    const screenshot = new File(["png-bytes"], "screenshot.png", { type: "image/png" });
+
+    const preventDefault = pasteImageFile(screenshot);
+    expect(preventDefault).toHaveBeenCalledOnce();
+
+    await vi.waitFor(() => expect(latestApi?.attachments[0]?.uploadStatus).toBe("ready"));
+    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(mocks.put.mock.calls[0]?.[0]).toMatchObject({
+      sessionId: "session-1",
+      fileName: "screenshot.png",
+      mime: "image/png",
+      // 内容必须真的是截图字节，而不是空占位。
+      dataBase64: Buffer.from("png-bytes", "utf8").toString("base64"),
+    });
+    expect(latestApi?.attachments[0]).toMatchObject({
+      // 本地桌面也保留 File（无路径），走内联上传而不是零拷贝。
+      localZeroCopy: false,
+      uploadProgress: 100,
+      uploadStatus: "ready",
+      attachmentRef: {
+        ref: "nibi-artifact://session-1/pasted-screenshot.png",
+      },
+    });
+    await expect(latestApi?.prepareForSend()).resolves.toEqual([
+      expect.objectContaining({ ref: "nibi-artifact://session-1/pasted-screenshot.png" }),
+    ]);
+    act(() => root.unmount());
+  });
+
+  it("新任务页 session 未就绪时先等待，预热 id 到达后自动上传并解除发送门禁", async () => {
+    installFileReaderShim();
+    mocks.service = createTransferService().service;
+    const probe = renderProbe({
+      attachmentPut: mocks.put,
+      attachmentSessionId: null,
+      localDesktop: true,
+      scopeId: "paste-image-draft",
+    });
+
+    pasteImageFile(new File(["png-bytes"], "screenshot.png", { type: "image/png" }));
+    // 没有 session 不能伪造上传：保持 0% 等待，且附件不丢。
+    expect(latestApi?.attachments[0]).toMatchObject({
+      filename: "screenshot.png",
+      uploadProgress: 0,
+      uploadStatus: "waitingSession",
+    });
+    expect(latestApi?.hasUnreadyAttachments).toBe(true);
+    await expect(latestApi?.prepareForSend()).resolves.toBeNull();
+    expect(mocks.put).not.toHaveBeenCalled();
+
+    // 草稿预热会话到达（真实链路是 prewarm ACK）→ effect 唤醒排队上传。
+    probe.rerender({
+      attachmentPut: mocks.put,
+      attachmentSessionId: "draft-prewarm-1",
+      localDesktop: true,
+      scopeId: "paste-image-draft",
+    });
+    await vi.waitFor(() => expect(latestApi?.attachments[0]?.uploadStatus).toBe("ready"));
+    expect(mocks.put).toHaveBeenCalledTimes(1);
+    expect(mocks.put.mock.calls[0]?.[0]).toMatchObject({ sessionId: "draft-prewarm-1" });
+    expect(latestApi?.attachments[0]?.uploadProgress).toBe(100);
+    await expect(latestApi?.prepareForSend()).resolves.toHaveLength(1);
+    act(() => probe.root.unmount());
   });
 });
