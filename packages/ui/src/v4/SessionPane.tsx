@@ -1467,6 +1467,12 @@ export function SessionPane({
         promoteComposerDraft(createdSessionId);
         onSessionCreated?.(createdSessionId);
       };
+      // Bug 根因（2026-11-12 真机 P1）：首发 accepted 后曾 await commitCreatedTask，等新会话
+      // 出现在项目目录里才导航。目录是异步投影（tasks-index 的 listable 过滤、读取合并、事件
+      // 丢失都会让新行晚到甚至等不到），于是会话已创建、首轮已跑完，UI 仍停在草稿页，发送键
+      // 永远停在「加载中」。首发完成的权威事实是 sendText ACK，不是侧栏投影：先同步导航，
+      // 目录发布与分组归位继续在真实行到达后执行，但不再阻塞导航与 composer 收尾。
+      commit();
       const organize =
         taskGroupId !== undefined
           ? async () => {
@@ -1506,15 +1512,20 @@ export function SessionPane({
             }
           : undefined;
       if (commitCreatedTask) {
-        await commitCreatedTask(
+        // 目录/详情只在行到达后发布；导航已在上方完成。组织动作仍等真实行，避免把分组
+        // placement 写到尚不存在的任务上。
+        // 不 await：目录确认失败或行迟迟不出现都不能反向卡住已 accepted 的首发。
+        void commitCreatedTask(
           { taskId: createdSessionId, workspacePath, workspaceIdentity },
-          commit,
+          () => undefined,
           draftNavigation.controller.signal,
           organize,
-        );
+        ).catch((error) => {
+          // 读取失败已在目录层记录并暴露 sidebar error；首发已成功，这里只留诊断线索。
+          logger.warn("[v4-pane] 首发目录确认失败，不影响已 accepted 的会话", error);
+        });
       } else {
         void organize?.();
-        commit();
       }
     },
     [

@@ -833,6 +833,40 @@ describe("ConversationComposer prompt history", () => {
       root.unmount();
     });
   });
+
+  // 真机 P1：草稿首发后按钮一直停在「加载中」。submit 的 pending 只在 onSendText settle 后
+  // 清掉；晋升到会话（同一 composer 实例复用）不是重置条件，也不允许另起一次提交。
+  it("草稿首发晋升到会话后，提交完成会清掉发送中状态", async () => {
+    let resolveSend: (() => void) | undefined;
+    const onSendText = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSend = resolve;
+        }),
+    );
+    const { rerenderSession, root } = renderComposer(onSendText);
+    const submit = chatPromptEditorProps.at(-1)?.onSubmit;
+
+    await act(async () => {
+      (submit as (value: string) => boolean)("首条消息");
+      await flushAsyncWork();
+    });
+    // 提交中：真实 ChatPromptEditor 收到 submitting=true（发送键 Spinner + 禁用）。
+    expect(chatPromptEditorProps.at(-1)?.submitting).toBe(true);
+
+    rerenderSession("session-1");
+    expect(chatPromptEditorProps.at(-1)?.submitting).toBe(true);
+
+    await act(async () => {
+      resolveSend?.();
+      await flushAsyncWork();
+    });
+    expect(chatPromptEditorProps.at(-1)?.submitting).toBe(false);
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
 });
 
 // ── R3A-B-07：ACK 丢失 + 断连期间 composer 卸载重挂后的结算 ──

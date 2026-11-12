@@ -135,6 +135,13 @@ const directoryMock = vi.hoisted(() => ({
   current: null as null | {
     factTree: { projects: unknown[]; tasks: unknown[] };
     groups: { refresh: () => void };
+    /** 真实实现只有目录出现新行才调用 commit；测试可模拟该行一直不出现。 */
+    commitCreatedTask?: (
+      target: { taskId: string; workspacePath: string },
+      commit: () => void,
+      signal?: AbortSignal,
+      organize?: () => Promise<void>,
+    ) => Promise<void>;
   },
 }));
 
@@ -1357,5 +1364,35 @@ describe("SessionPane composer continuity", () => {
     renderPane(root, "session-2");
     expect(scrollFocus.statusPanelProps?.agentSectionOpen).toBe(false);
     expect(scrollFocus.composerProps?.onOpenRunningBackgroundWorks).toBeUndefined();
+  });
+
+  // 真机 P1（2026-11-12）：草稿首发 accepted 后 UI 一直停在新建任务页、发送键停在「加载中」，
+  // 而后端会话已建好并跑完。根因是首发导航 await 了项目目录里的新行：tasks-index 的 listable
+  // 过滤、读取合并或事件丢失都会让该行晚到甚至等不到。发送完成只认 ACK，目录行不能挡住导航。
+  it("草稿首发不等目录出现新行，提交完成即切到会话", async () => {
+    prewarmHookInputs.binding = {
+      sessionId: "prewarmed",
+      beginPromotion: () => true,
+      promote: vi.fn(),
+    };
+    // 真实 commitCreatedTask 只在目录出现目标行时回调；这里让它永远不回调。
+    const neverListed = vi.fn(
+      () => new Promise<void>(() => {}),
+    );
+    directoryMock.current = {
+      factTree: { projects: [], tasks: [] },
+      groups: { refresh: vi.fn() },
+      commitCreatedTask: neverListed,
+    };
+    const onSessionCreated = vi.fn();
+    const root = createRoot(installMinimalDom());
+    mountedRoots.push(root);
+    renderPane(root, null, { onSessionCreated });
+    await act(async () => {
+      await expect(scrollFocus.composerProps?.onSendText("首条消息")).resolves.toBe("sent");
+    });
+    // 导航在目录确认之前完成；目录工作仍登记给真实行到达后的发布会话。
+    expect(onSessionCreated).toHaveBeenCalledWith("prewarmed");
+    expect(neverListed).toHaveBeenCalledOnce();
   });
 });

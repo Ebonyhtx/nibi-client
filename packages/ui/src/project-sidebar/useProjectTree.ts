@@ -187,12 +187,19 @@ export function useProjectTree(isDesktop = false) {
       // 吸收读取期间到达的请求。不用定时防抖，避免给侧栏加固定延迟。
       await Promise.resolve();
       // 事实变化只标记下一次读取，不能反复废弃当前结果，否则连续变化会饿死列表。
-      while (reads.dirty && generation === serial.current) {
+      // 换代（卸载 / 服务替换）后不得再发起读取；首轮前就被换代时直接跳过。
+      while (generation === serial.current) {
         reads.dirty = false;
         await readOnce();
+        if (!reads.dirty) break;
       }
     })().finally(() => {
-      if (reads.flight === flight) reads.flight = null;
+      if (reads.flight !== flight) return;
+      reads.flight = null;
+      // Bug 根因：读取收尾与 flight 清空之间存在一个微任务窗口。此时到达的 refresh
+      // 只置 dirty 并复用即将结束的 flight，收尾后却无人再读，目录会停在上一次结果上
+      // 直到下一个无关事件（首发新行因此可能「等不到」，只能整页重载）。这里接力。
+      if (reads.dirty && generation === serial.current) void refresh();
     });
     reads.flight = flight;
     return flight;
