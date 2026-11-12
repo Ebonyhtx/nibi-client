@@ -63,6 +63,8 @@ import {
   buildPluginStoreTryMention,
   buildPluginStoreTryPrompt,
 } from "@/settings/pluginStoreTryPrompt.js";
+import { runPluginTryPromptFlow } from "@/settings/pluginTryPromptFlow.js";
+import { logger } from "@/logger.js";
 
 interface PluginStorePageProps {
   isDesktop?: boolean;
@@ -504,23 +506,65 @@ export function PluginStorePage({
 
   const handleUsePrompt = useCallback(
     (item: StorePluginItem, prompt: string) => {
-      // 未安装时点提示词先引导安装，不新建会话。
-      if (!item.installed) {
-        void handleInstall(item);
-        return;
-      }
-      if (!workspacePath || !onCreateTask) {
-        return;
-      }
-      // 原入口绕过 Root 的标准新建任务编排，只写 session store，
-      // Settings 遮罩不会退出，composer remount 还可能覆盖预填。现在统一委托 Root，
-      // 同时复用 @ Picker 的 canonical Plugin 链接，不新增第二套引用语义。
-      onCreateTask({
-        initialPrompt: buildPluginStoreTryPrompt({ item, locale, prompt }),
-        initialPromptMention: buildPluginStoreTryMention({ item, locale }),
+      // 商店试用统一走门禁编排：未安装→引导安装；付费无权限→会员引导；
+      // 未启用→先启用再试用。只有全部满足才预填草稿，绝不让未启用插件的消息进入会话。
+      void runPluginTryPromptFlow(item, {
+        canUsePaidPlugins: membership.canUsePaidPlugins,
+        install: () => handleInstall(item),
+        requireMembership: () => requireMembership(item),
+        enable: async () => {
+          const enabled = await setEnabled(
+            item.id,
+            true,
+            operationService,
+            resolvePluginEnableScope(item),
+          );
+          if (enabled) return true;
+          const state = usePluginManagementStore.getState();
+          // 启用被会员门禁拒绝（缓存尚未刷新）时回到开通页，不能只弹一条 toast。
+          if (state.error && /会员|membership/i.test(state.error)) {
+            setMembershipOpen(true);
+            return false;
+          }
+          toast(
+            resolvePluginErrorMessage(intl, state.error, state.errorCode) ??
+              intl.formatMessage(
+                { id: "settings.plugins.toggle.failed" },
+                { plugin: resolveItemDisplayName(item, locale) },
+              ),
+            { variant: "warning" },
+          );
+          return false;
+        },
+        start: () => {
+          // 原入口绕过 Root 的标准新建任务编排，只写 session store，
+          // Settings 遮罩不会退出，composer remount 还可能覆盖预填。现在统一委托 Root，
+          // 同时复用 @ Picker 的 canonical Plugin 链接，不新增第二套引用语义。
+          onCreateTask?.({
+            initialPrompt: buildPluginStoreTryPrompt({ item, locale, prompt }),
+            initialPromptMention: buildPluginStoreTryMention({ item, locale }),
+          });
+        },
+        canStart: () => Boolean(workspacePath && onCreateTask),
+      }).catch((error: unknown) => {
+        // 门禁流程自身异常不能变成未处理的 rejection；用户侧结果就是「没有启动草稿」。
+        logger.warn("[plugins] try prompt flow failed", {
+          pluginId: item.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
       });
     },
-    [handleInstall, locale, onCreateTask, workspacePath],
+    [
+      handleInstall,
+      intl,
+      locale,
+      membership.canUsePaidPlugins,
+      onCreateTask,
+      operationService,
+      requireMembership,
+      setEnabled,
+      workspacePath,
+    ],
   );
 
   const actions: PluginStoreActions = useMemo(
@@ -774,6 +818,7 @@ export function PluginStorePage({
             )
           }
           onUsePrompt={handleUsePrompt}
+          canUsePaidPlugins={membership.canUsePaidPlugins}
           advanced={
             detailItem.info ? (
               <div className="space-y-4">

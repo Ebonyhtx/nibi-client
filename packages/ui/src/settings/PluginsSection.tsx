@@ -56,6 +56,8 @@ import {
   buildPluginStoreTryMention,
   buildPluginStoreTryPrompt,
 } from "@/settings/pluginStoreTryPrompt.js";
+import { runPluginTryPromptFlow } from "@/settings/pluginTryPromptFlow.js";
+import { logger } from "@/logger.js";
 import { usePluginUninstall } from "@/settings/usePluginUninstall.js";
 import { NibiMembershipDialog } from "@/settings/NibiMembershipDialog.js";
 import { useNibiMembership } from "@/settings/useNibiMembership.js";
@@ -726,19 +728,35 @@ function PluginList({
           actions={actions}
           onRetryDescribe={() => {}}
           onUsePrompt={(item, prompt) => {
-            if (!onCreateTask) return;
-            onCreateTask({
-              initialPrompt: buildPluginStoreTryPrompt({
-                item,
-                locale,
-                prompt,
-              }),
-              initialPromptMention: buildPluginStoreTryMention({
-                item,
-                locale,
-              }),
+            // 与商店页同一套门禁：未启用先启用（付费件先过会员），绝不把未启用插件的消息发进会话。
+            void runPluginTryPromptFlow(item, {
+              canUsePaidPlugins: membership.canUsePaidPlugins,
+              install: () => onOpenPluginStore(),
+              requireMembership: () => requireMembership(item.id),
+              enable: () => handleSetEnabled(item.id, true),
+              start: () => {
+                onCreateTask?.({
+                  initialPrompt: buildPluginStoreTryPrompt({
+                    item,
+                    locale,
+                    prompt,
+                  }),
+                  initialPromptMention: buildPluginStoreTryMention({
+                    item,
+                    locale,
+                  }),
+                });
+              },
+              canStart: () => Boolean(onCreateTask),
+            }).catch((error: unknown) => {
+              // 门禁流程自身异常不能变成未处理的 rejection；用户侧结果就是「没有启动草稿」。
+              logger.warn("[plugins] try prompt flow failed", {
+                pluginId: item.id,
+                error: error instanceof Error ? error.message : String(error),
+              });
             });
           }}
+          canUsePaidPlugins={membership.canUsePaidPlugins}
           advanced={
             selectedPlugin.packageStatus === "missing" ? undefined : (
               <PluginStoreAdvancedSection>

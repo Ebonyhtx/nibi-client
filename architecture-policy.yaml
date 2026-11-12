@@ -1347,3 +1347,14 @@ exceptions:
       插件商店与已安装列表的图标兜底：按插件 id/名称做稳定哈希取暖色调色板并提供首字母
       回退，替掉「加载失败只剩空容器」的观感。纯展示层工具，不涉协议与持久化；
       packages/ui 仍是 managed:false 的遗留大区，按路径单独登记。
+
+  - id: plugin-try-prompt-gate
+    rule: unmanaged-new-file
+    paths:
+      - packages/services/src/plugins/pluginPromptMentionGate.ts
+      - packages/ui/src/settings/pluginTryPromptFlow.ts
+    reason: >-
+      未启用的插件不能再通过「立即试用」把带 plugin:// 引用的消息发进会话：UI 侧把
+      试用意图统一编排成「先启用/先开通会员再预填草稿」，发送侧对消息里的 canonical
+      plugin:// 引用再按 workspace catalog 复核一次（未安装/未启用直接拒绝，不依赖 UI）。
+      两处都是为这一条门禁新增的窄模块，按路径单独登记。

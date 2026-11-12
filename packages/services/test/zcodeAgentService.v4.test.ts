@@ -291,7 +291,8 @@ process.stdin.on("data", (chunk) => {
       else reply();
     }
     if (msg.method === "v4/command" && msg.id !== undefined) {
-      const status = "accepted";
+      // 供 Host 侧占位行回收测试使用：commandId 以 reject- 开头的命令确定性拒绝。
+      const status = String(msg.params.commandId).startsWith("reject-") ? "rejected" : "accepted";
       const acceptedInput = {
         delivery: "startNow",
         inputId: msg.params.commandId,
@@ -370,6 +371,9 @@ describe("zcodeAgentService v4 conversation channel", () => {
       resolveSessionDirectories?: NonNullable<
         Parameters<typeof createZCodeAgentService>[0]
       >["resolveSessionDirectories"];
+      discardPreparedSession?: NonNullable<
+        Parameters<typeof createZCodeAgentService>[0]
+      >["discardPreparedSession"];
       storedSessions?: (workspacePath: string) => ZCodeSessionInfo[];
       channelReplyExecutor?: NonNullable<
         Parameters<typeof createZCodeAgentService>[0]
@@ -394,6 +398,7 @@ describe("zcodeAgentService v4 conversation channel", () => {
     const service = createZCodeAgentService({
       commandResolver,
       prepareSessionCreation: options.prepareSessionCreation,
+      discardPreparedSession: options.discardPreparedSession,
       resolveSessionDirectories: options.resolveSessionDirectories,
       repoSnapshotCaptureIntentScheduler: options.repoSnapshotCaptureIntentScheduler,
       repoSnapshotSidecar: options.repoSnapshotSidecar,
@@ -1135,6 +1140,68 @@ describe("zcodeAgentService v4 conversation channel", () => {
       });
       expect(prepareSessionCreation).toHaveBeenCalledWith(
         expect.objectContaining({ projectId: null, sessionId: expect.any(String) }),
+      );
+    } finally {
+      await service.disposeAllAndWait();
+    }
+  });
+
+  it("discards a prepared index row when createSession is rejected", async () => {
+    const discardPreparedSession = vi.fn(async () => true);
+    const prepareSessionCreation = vi.fn(async () => [] as string[]);
+    const { service, workspacePath } = setupService({
+      prepareSessionCreation,
+      discardPreparedSession,
+    });
+    try {
+      const ack = await service.sendConversationCommandV4({
+        workspacePath,
+        projectId: null,
+        envelope: {
+          commandId: "reject-create",
+          clientId: "test",
+          sessionId: null,
+          type: "createSession",
+          payload: { workspaceId: workspacePath },
+          issuedAt: 1,
+        },
+      });
+      expect(ack.status).toBe("rejected");
+      const target = prepareSessionCreation.mock.calls[0]?.[0] as
+        | { sessionId: string }
+        | undefined;
+      await vi.waitFor(() =>
+        expect(discardPreparedSession).toHaveBeenCalledWith({
+          workspacePath,
+          taskId: target?.sessionId,
+        }),
+      );
+    } finally {
+      await service.disposeAllAndWait();
+    }
+  });
+
+  it("discards a prepared index row after deleteSession is accepted", async () => {
+    const discardPreparedSession = vi.fn(async () => true);
+    const { service, workspacePath } = setupService({ discardPreparedSession });
+    try {
+      const ack = await service.sendConversationCommandV4({
+        workspacePath,
+        envelope: {
+          commandId: "delete-draft",
+          clientId: "test",
+          sessionId: "session_draft",
+          type: "deleteSession",
+          payload: {},
+          issuedAt: 1,
+        },
+      });
+      expect(ack.status).toBe("accepted");
+      await vi.waitFor(() =>
+        expect(discardPreparedSession).toHaveBeenCalledWith({
+          workspacePath,
+          taskId: "session_draft",
+        }),
       );
     } finally {
       await service.disposeAllAndWait();

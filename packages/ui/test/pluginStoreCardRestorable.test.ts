@@ -19,6 +19,13 @@ vi.mock("@/components/ui/button.js", () => ({
   },
 }));
 
+// 与 pluginStorePaidPlanBadge.test.ts 同款：ControlHintTooltip 依赖 Root 的 TooltipProvider，
+// SSR 单测里桩成透传 span（未启用插件的「立即试用」会带启用提示）。
+vi.mock("@/ControlHintTooltip.js", () => ({
+  ControlHintTooltip: ({ children, title }: { children?: ReactNode; title: string }) =>
+    createElement("span", { "data-tooltip-title": title }, children),
+}));
+
 function restorableItem(overrides: Partial<StorePluginItem> = {}): StorePluginItem {
   const summary: ZCodeAvailablePluginSummary = {
     id: "skill-creator@nibi-official",

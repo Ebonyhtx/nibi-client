@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   Loader2,
+  Lock,
   MessagesSquare,
   RefreshCw,
   Server,
@@ -19,6 +20,7 @@ import {
 import type { ZCodePluginComponentKind, ZCodePluginsDescribeResult } from "@nibi/shared";
 import { Button } from "@/components/ui/button.js";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog.js";
+import { ControlHintTooltip } from "@/ControlHintTooltip.js";
 import { resolvePluginUiSurfaceTitle } from "@/plugin-ui/index.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
@@ -98,6 +100,7 @@ export function PluginStoreDetailView({
   describeEntry,
   onRetryDescribe,
   onUsePrompt,
+  canUsePaidPlugins = true,
   advanced,
 }: {
   item: StorePluginItem;
@@ -106,6 +109,8 @@ export function PluginStoreDetailView({
   onRetryDescribe: () => void;
   /** 试用：标准新建任务并预填 canonical Plugin 引用 + 示例提示词（不自动发送）；未安装时先引导安装。 */
   onUsePrompt: (item: StorePluginItem, prompt: string) => void;
+  /** 当前账号是否有付费插件权限；仅用于试用按钮的阻断提示，真正门禁在 onUsePrompt 编排与发送入口。 */
+  canUsePaidPlugins?: boolean;
   /** 高级折叠区（rootPath/Hook 明细/配置项），仅已安装且有运行时信息时由父级注入。 */
   advanced?: ReactNode;
 }) {
@@ -166,17 +171,11 @@ export function PluginStoreDetailView({
                 {isUiPluginItem(item) && actions.onOpenUi ? (
                   <PluginStoreOpenUiButton item={item} actions={actions} />
                 ) : (
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="lg"
-                    data-testid="plugin-store-try-now"
-                    data-plugin-id={item.id}
-                    onClick={() => onUsePrompt(item, "")}
-                  >
-                    <MessagesSquare className="size-3.5" aria-hidden="true" />
-                    {intl.formatMessage({ id: "settings.plugins.store.tryNow" })}
-                  </Button>
+                  <TryNowButton
+                    item={item}
+                    canUsePaidPlugins={canUsePaidPlugins}
+                    onUsePrompt={onUsePrompt}
+                  />
                 )}
               </>
             ) : (
@@ -276,6 +275,56 @@ export function PluginStoreDetailView({
       {advanced}
     </div>
   );
+}
+
+/**
+ * 详情页「立即试用」。按钮本身保持可点：未启用/无会员时点击会走与「启用」相同的引导
+ * （先启用，或先开通会员），但绝不会在这种情况下启动草稿。提示文案只解释点击后发生什么，
+ * 真正的门禁在 onUsePrompt 编排层与发送入口（host/service）。
+ */
+function TryNowButton({
+  item,
+  canUsePaidPlugins,
+  onUsePrompt,
+}: {
+  item: StorePluginItem;
+  canUsePaidPlugins: boolean;
+  onUsePrompt: (item: StorePluginItem, prompt: string) => void;
+}) {
+  const { intl } = useZCodeIntl();
+  const label = intl.formatMessage({ id: "settings.plugins.store.tryNow" });
+  const blockedReason: "membership" | "enable" | null =
+    item.paid && !canUsePaidPlugins ? "membership" : item.info?.enabled === true ? null : "enable";
+  const hint =
+    blockedReason === "membership"
+      ? intl.formatMessage({ id: "settings.plugins.store.tryNow.hint.membership" })
+      : blockedReason === "enable"
+        ? intl.formatMessage({ id: "settings.plugins.store.tryNow.hint.enable" })
+        : undefined;
+  const button = (
+    <Button
+      type="button"
+      // 锁定时降级成次要样式并换成锁图标：既不会让人以为"现在就能发出去"，也不是死按钮——
+      // 点击走与「启用」相同的引导（先启用 / 先开通会员）。
+      variant={blockedReason ? "outline" : "default"}
+      size="lg"
+      className={blockedReason ? "text-foreground-subtle" : undefined}
+      data-testid="plugin-store-try-now"
+      data-plugin-id={item.id}
+      {...(blockedReason ? { "data-try-prompt-blocked": blockedReason } : {})}
+      aria-label={hint ? `${label}: ${hint}` : label}
+      aria-disabled={blockedReason ? true : undefined}
+      onClick={() => onUsePrompt(item, "")}
+    >
+      {blockedReason ? (
+        <Lock className="size-3.5" aria-hidden="true" />
+      ) : (
+        <MessagesSquare className="size-3.5" aria-hidden="true" />
+      )}
+      {label}
+    </Button>
+  );
+  return hint ? <ControlHintTooltip title={hint}>{button}</ControlHintTooltip> : button;
 }
 
 function HeroSection({

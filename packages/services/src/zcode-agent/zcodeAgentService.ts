@@ -17,6 +17,7 @@ import {
   type ChannelReplyResult,
 } from "@nibi/shared";
 import { requestPluginReferenceCatalog } from "#src/zcode-agent/pluginReferenceCatalogRequest.js";
+import { assertPluginPromptMentionsUsable } from "#src/plugins/pluginPromptMentionGate.js";
 import {
   localTtftFactsSchema,
   sessionDebugSnapshotSchema,
@@ -521,6 +522,37 @@ function buildWorkspaceRef(params: ZCodeAgentWorkspaceTarget): ZCodeWorkspaceRef
   };
 }
 
+/**
+ * 发送侧兜底：消息里带 canonical Plugin mention（`[@X](plugin://id)`）时，按 workspace 当前
+ * catalog 复核插件是否仍可用。UI 已经把「未启用 / 无会员」的试用入口挡住，这里是绕过 UI
+ * （旧界面、快捷键、远控命令）时的最后一道门；不满足就直接抛错，绝不把引用发进会话。
+ *
+ * 用 workspace catalog（不带 sessionId）而不是 session-owned 快照：新草稿在发送当下才创建
+ * Session，session 目录此时还不存在；workspace 口径也正是 @ Picker 与本次 Session 创建时
+ * 冻结的同一份事实。只读方法不可用（旧 Host/远端进程）时放行并记日志——观测面缺失不能
+ * 反过来阻断正常发送；真正的运行时门禁仍由 Agent 发现层执行。
+ */
+async function guardPluginPromptMentionsUsable(
+  client: Pick<NibiProtocolClient, "request">,
+  target: ZCodeAgentWorkspaceTarget,
+  content: string,
+): Promise<void> {
+  await assertPluginPromptMentionsUsable({
+    content,
+    requestCatalog: () =>
+      requestPluginReferenceCatalog(client, {
+        workspace: buildWorkspaceRef(target),
+      }),
+    onCatalogError: (error) => {
+      logger.warn(undefined, "插件引用发送门禁读取 catalog 失败，按放行处理", {
+        workspaceKey: resolveWorkspaceKey(target),
+        workspacePath: target.workspacePath,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    },
+  });
+}
+
 // 已保存工作流的 target 是否带 workspace：项目档、以及
 // GUI 项目组里明说 `scope:"global"` 的动作都带 workspacePath；只给 `{ scope: "global" }` 的
 // 全局组动作不带，交给 services 自选载体。
@@ -987,6 +1019,17 @@ interface CreateZCodeAgentServiceOptions extends Omit<
       additionalDirectories?: string[];
     },
   ) => Promise<string[]>;
+  /**
+   * 删除 createSession 预留、但从未落过 CLI facts 的索引行。
+   *
+   * 只在 createSession 被明确拒绝或 deleteSession 已确认回收时调用；实现必须是
+   * “仅无 CLI 事实才删除”，不能借清理路径删真实会话。
+   */
+  discardPreparedSession?: (target: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+  }) => Promise<boolean>;
   resolveSessionDirectories?: (target: ZCodeAgentSessionTarget) => Promise<string[]>;
   resolveSessionRuntimePreferences?: (
     scope: ZCodeSessionRuntimePreferencesScope,
@@ -4871,6 +4914,8 @@ export function createZCodeAgentService(
     async sendPrompt(params: ZCodeAgentSendPromptParams) {
       const startedAt = Date.now();
       const client = await getClient(params);
+      // 插件引用门禁先于任何报文：未启用/不可用的插件引用在这里直接拒发。
+      await guardPluginPromptMentionsUsable(client, params, params.content);
       await ensureAccountProviderConfigSynced({
         client,
         reason: "session_send",
@@ -5719,6 +5764,14 @@ export function createZCodeAgentService(
         params.clientMode ??
         "desktop-continuous";
       let envelope = await buildConversationCommandEnvelope(params);
+      if (envelope.type === "sendText") {
+        // 发送侧兜底：Plugin mention 只能引用当前可用（已启用且有权限）的插件。
+        // UI 已挡住商店试用入口，这里覆盖旧界面/快捷键/远控命令等绕过路径。
+        const text = (envelope.payload as { text?: unknown }).text;
+        if (typeof text === "string") {
+          await guardPluginPromptMentionsUsable(client, params, text);
+        }
+      }
       if (requiresProviderRegistryRefresh(envelope.type)) {
         await ensureAccountProviderConfigSynced({
           client,
@@ -5763,7 +5816,42 @@ export function createZCodeAgentService(
           };
         }
       }
+      const discardPreparedSession = (taskId: string) => {
+        const discard = options?.discardPreparedSession;
+        if (!discard) return;
+        void discard({
+          workspacePath: params.workspacePath,
+          ...(params.workspaceIdentity ? { workspaceIdentity: params.workspaceIdentity } : {}),
+          taskId,
+        }).catch((error: unknown) => {
+          logger.warn(undefined, "清理 createSession 占位行失败", {
+            taskId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      };
       const ack: CommandAck = await client.request(V4_METHODS.command, envelope, commandAckSchema);
+      // createSession 被明确拒绝时不可能产生 CLI 会话，预留行必须立刻回收；transport
+      // 异常不在此列（命令可能已被处理，等 reconcile 证据）。deleteSession 确认回收后，
+      // draft prewarm 的占位行也失去存在理由。
+      if (envelope.type === "createSession") {
+        const preparedSessionId =
+          typeof envelope.payload === "object" && envelope.payload !== null
+            ? (envelope.payload as { sessionId?: unknown }).sessionId
+            : undefined;
+        if (
+          typeof preparedSessionId === "string" &&
+          (ack.status === "rejected" || ack.status === "stale" || ack.status === "failed")
+        ) {
+          discardPreparedSession(preparedSessionId);
+        }
+      } else if (
+        envelope.type === "deleteSession" &&
+        envelope.sessionId &&
+        (ack.status === "accepted" || ack.status === "noop" || ack.status === "duplicate")
+      ) {
+        discardPreparedSession(envelope.sessionId);
+      }
       // Prompt command 在 committed TurnStarted 或 committed WorkspaceHookReviewRequested
       // 任一 authority 到达后即返回；人工审核不能占用 Host RPC，因此继续使用统一默认
       // timeout/watchdog。放宽到审核领域 deadline 只会掩盖串行协议队列死锁。
