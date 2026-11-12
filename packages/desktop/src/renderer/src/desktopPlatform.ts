@@ -69,6 +69,10 @@ export function createDesktopPlatform(options: {
     canOpenCommunity: (locale) => window.nibi.canOpenCommunity(locale),
     openInFileManager: (path) => window.nibi.openInFileManager(path),
     openExternalFile: (path) => window.nibi.openExternalFile(path),
+    // 旧 preload 升级窗口没有该桥；缺席时 UI 对本地 HTML fail closed。
+    resolveBrowserLocalPreviewUrl: window.nibi.resolveBrowserLocalPreviewUrl
+      ? (url) => window.nibi.resolveBrowserLocalPreviewUrl!(url)
+      : undefined,
     openCuaPermissionOnboarding: window.nibi.openCuaPermissionOnboarding
       ? (permissionOptions) =>
           window.nibi.openCuaPermissionOnboarding?.(permissionOptions) ??

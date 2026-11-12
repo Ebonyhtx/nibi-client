@@ -2,7 +2,7 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { realpath as fsRealpath, stat as fsStat } from "node:fs/promises";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { BROWSER_LOCAL_PREVIEW_SCHEME } from "@nibi/shared";
+import { BROWSER_LOCAL_PREVIEW_SCHEME, type BrowserLocalPreviewResolveResult } from "@nibi/shared";
 import type {
   BrowserLocalPreview,
   BrowserLocalPreviewDependencies,
@@ -152,6 +152,23 @@ function getActivePreview(): BrowserLocalPreview {
  */
 export function resolveBrowserLocalPreviewNavigation(input: string): Promise<string> {
   return getActivePreview().resolveNavigation(input);
+}
+
+/**
+ * Renderer IPC 入口：把信号/路径错误折成结构化结果，让 UI 能在浏览器面板里显示原因。
+ * 仍复用同一份进程内签名实例；失败时绝不返回原始 file:。
+ */
+export async function resolveBrowserLocalPreviewUrl(
+  input: string,
+): Promise<BrowserLocalPreviewResolveResult> {
+  try {
+    return { success: true, url: await resolveBrowserLocalPreviewNavigation(input) };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /**

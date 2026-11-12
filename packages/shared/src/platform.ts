@@ -511,6 +511,16 @@ export interface EmbeddedBrowserOpenUrlRequest {
   sourceTabId?: string;
 }
 
+/**
+ * 内置浏览器本地 HTML 预览的签名结果。
+ *
+ * `file:` 只是输入：主进程把 HTML 所在目录用进程内密钥签名后返回 `nibi-html://` URL。
+ * 失败时返回原因，调用方必须 fail closed，不能回退加载原始 `file:`。
+ */
+export type BrowserLocalPreviewResolveResult =
+  | { success: true; url: string }
+  | { success: false; error: string };
+
 export interface EmbeddedBrowserPermissionDeviceOption {
   deviceId: string;
   name?: string;
@@ -965,6 +975,13 @@ export interface IPlatformService {
 
   /** 注册内置浏览器 webview 请求打开新页面的回调，返回 disposer */
   onOpenBrowserUrl?(handler: (request: EmbeddedBrowserOpenUrlRequest) => void): () => void;
+
+  /**
+   * 把本地 HTML 的 `file:` 输入换成主进程签名的 `nibi-html://` 预览 URL。
+   * 仅 Desktop 实现；Web/手机远控缺席时调用方必须 fail closed，不得加载原始 `file:`。
+   */
+  resolveBrowserLocalPreviewUrl?(url: string): Promise<BrowserLocalPreviewResolveResult>;
+
   /** 注册内置浏览器网页权限弹窗请求（main → renderer），返回 disposer */
   onEmbeddedBrowserPermissionPrompt?(
     handler: (event: EmbeddedBrowserPermissionPromptEvent) => void,

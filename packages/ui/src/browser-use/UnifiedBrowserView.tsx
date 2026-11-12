@@ -21,12 +21,15 @@ import { useDesktopZoomFactor } from "@/browser-use/useDesktopZoomFactor.js";
 import { useResponsiveBrowserViewportControl } from "@/browser-use/useResponsiveBrowserViewportControl.js";
 import type { HumanBrowserViewportPreferenceChangeSource } from "@/browser-use/useResponsiveBrowserViewportControl.js";
 import {
+  BROWSER_LOCAL_PREVIEW_UNAVAILABLE_REASON,
   DEFAULT_BROWSER_URL,
   INITIAL_BROWSER_STATE,
   displayBrowserUrl,
   isDefaultBrowserOpenableUrl,
+  isLocalFileBrowserUrl,
   isRecoverableBrowserGuestExitReason,
   normalizeBrowserUrl,
+  resolveEmbeddedBrowserNavigationUrl,
   safeWebviewCall,
   type BrowserState,
 } from "@/embeddedBrowserHelpers.js";
@@ -223,6 +226,8 @@ export function UnifiedBrowserView({
   // dom-ready 前排队的导航 URL；webview 就绪后统一 loadURL（<webview> 的 src 只在首挂生效）。
   const pendingUrlRef = useRef<string | null>(null);
   const lastRequestedUrlRef = useRef<string | null>(null);
+  // 本地 HTML 签名是异步 IPC；迟到的解析结果不能覆盖后发起的导航。
+  const navigationSequenceRef = useRef(0);
   // 已消费的 initialUrl / navigationRequest，避免重复导航。
   const lastAppliedInitialUrlRef = useRef<string | null>(null);
   const lastHandledNavigationRequestIdRef = useRef<string | null>(null);
@@ -739,6 +744,8 @@ export function UnifiedBrowserView({
       trigger: "address-navigation" | "external-navigation" | "manual-retry",
     ): Promise<boolean> => {
       guestRecoveryInProgressRef.current = true;
+      // 换代 guest 会按 recoveryUrl 重新导航；此前在途的异步签名结果必须作废。
+      navigationSequenceRef.current += 1;
       void cancelWebElementPicking();
 
       const detached = await detachBrowserGuestBeforeReplacement();
@@ -790,20 +797,59 @@ export function UnifiedBrowserView({
         return;
       }
 
+      // file: 只作为输入：内置浏览器分区封住了原始 file 读面，直接 loadURL 只会 ERR_FAILED。
+      // 本地 HTML 必须先换成主进程签名的 nibi-html URL；解析失败时显示原因并停止导航，
+      // 绝不回退加载原始 file。
+      const navigationSequence = ++navigationSequenceRef.current;
+      let targetUrl = nextUrl;
+      if (isLocalFileBrowserUrl(nextUrl)) {
+        try {
+          targetUrl = await resolveEmbeddedBrowserNavigationUrl(
+            nextUrl,
+            platform.resolveBrowserLocalPreviewUrl,
+          );
+        } catch (error) {
+          // 旧文件的解析错误不能覆盖已经后发起的导航。
+          if (navigationSequence !== navigationSequenceRef.current) return;
+          const reason = error instanceof Error ? error.message : String(error);
+          const message =
+            reason === BROWSER_LOCAL_PREVIEW_UNAVAILABLE_REASON
+              ? intl.formatMessage({ id: "browser.localPreviewUnsupported" })
+              : intl.formatMessage({ id: "browser.localPreviewFailed" }, { message: reason });
+          logger.warn("[browser-use] 本地 HTML 预览签名失败，已阻止 file:// 直连", {
+            browserKey,
+            url: nextUrl,
+            error: reason,
+          });
+          lastRestorableUrlRef.current = nextUrl;
+          setAddressValue(displayBrowserUrl(nextUrl));
+          setHasNavigated(true);
+          setBrowserState((prev) => ({
+            ...prev,
+            currentUrl: nextUrl,
+            errorMessage: message,
+            loadErrorCode: null,
+            isLoading: false,
+          }));
+          return;
+        }
+        if (navigationSequence !== navigationSequenceRef.current) return;
+      }
+
       // 外部请求若只能排队给尚未就绪的 guest，必须等 dom-ready 真正接管 loadURL 后再回执；
       // 地址栏/恢复导航没有上游消费确认，不需要等待该生命周期信号。
       const navigationTakenOver =
         source === "request" && (!webview || !browserState.isReady)
-          ? waitForGuestNavigationTakeover(nextUrl)
+          ? waitForGuestNavigationTakeover(targetUrl)
           : null;
 
       // launch-failed 后 isReady=false，只把地址栏 URL 写进 pendingUrl 不够：
       // 失效 guest 永远不会再触发 dom-ready，失败态与排队导航都会永久卡住。
       if (browserState.guestFailure && (source === "toolbar" || source === "request")) {
-        lastRestorableUrlRef.current = nextUrl;
+        lastRestorableUrlRef.current = targetUrl;
         onUrlChange?.(nextUrl);
         const rebuilt = await rebuildBrowserGuest(
-          nextUrl,
+          targetUrl,
           source === "request" ? "external-navigation" : "address-navigation",
         );
         if (!rebuilt) completePendingGuestNavigation();
@@ -813,8 +859,8 @@ export function UnifiedBrowserView({
 
       // 去重：外部 request 与 restore 可能同拍给出同一 URL，连续 loadURL 会触发 ERR_ABORTED(-3)。
       if (
-        nextUrl === lastRequestedUrlRef.current &&
-        (pendingUrlRef.current === nextUrl || browserState.isLoading)
+        targetUrl === lastRequestedUrlRef.current &&
+        (pendingUrlRef.current === targetUrl || browserState.isLoading)
       ) {
         setAddressValue(displayBrowserUrl(nextUrl));
         setHasNavigated(true);
@@ -824,19 +870,19 @@ export function UnifiedBrowserView({
 
       setAddressValue(displayBrowserUrl(nextUrl));
       setHasNavigated(true);
-      lastRestorableUrlRef.current = nextUrl;
+      lastRestorableUrlRef.current = targetUrl;
       onUrlChange?.(nextUrl);
       setBrowserState((prev) => ({ ...prev, errorMessage: null, loadErrorCode: null }));
-      lastRequestedUrlRef.current = nextUrl;
+      lastRequestedUrlRef.current = targetUrl;
 
       if (!webview || !browserState.isReady) {
-        pendingUrlRef.current = nextUrl;
+        pendingUrlRef.current = targetUrl;
         if (navigationTakenOver) await navigationTakenOver;
         return;
       }
 
       try {
-        await webview.loadURL(nextUrl);
+        await webview.loadURL(targetUrl);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (message.includes("ERR_ABORTED")) return;
@@ -848,12 +894,14 @@ export function UnifiedBrowserView({
       }
     },
     [
+      browserKey,
       browserState.guestFailure,
       browserState.isLoading,
       browserState.isReady,
       completePendingGuestNavigation,
       intl,
       onUrlChange,
+      platform,
       rebuildBrowserGuest,
       waitForGuestNavigationTakeover,
       webview,

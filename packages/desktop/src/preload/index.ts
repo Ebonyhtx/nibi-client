@@ -51,6 +51,7 @@ import type {
   BrowserViewRestoredTabShell,
   BrowserViewRestoreTabsRequest,
   BrowserViewportSize,
+  BrowserLocalPreviewResolveResult,
   DesktopZoomState,
   DesktopWindowChromeState,
   DesktopCommandId,
@@ -701,6 +702,9 @@ contextBridge.exposeInMainWorld("nibi", {
   openInFileManager: (path: string) => ipcRenderer.invoke(PlatformChannels.OpenInFileManager, path),
   /** 使用系统默认应用打开本地文件 */
   openExternalFile: (path: string) => ipcRenderer.invoke(PlatformChannels.OpenExternalFile, path),
+  /** 把内置浏览器里的本地 HTML file: 输入换成主进程签名的 nibi-html 预览 URL */
+  resolveBrowserLocalPreviewUrl: (url: string): Promise<BrowserLocalPreviewResolveResult> =>
+    ipcRenderer.invoke(PlatformChannels.ResolveBrowserLocalPreviewUrl, url),
   /** 打开 NIBI Computer Use 完整权限引导 */
   openCuaPermissionOnboarding: (options?: OpenCuaPermissionOnboardingOptions) =>
     ipcRenderer.invoke(PlatformChannels.OpenCuaPermissionOnboarding, options),

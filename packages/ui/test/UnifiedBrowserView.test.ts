@@ -60,6 +60,7 @@ const h = vi.hoisted(() => {
   >();
   const zoomListeners = new Set<(state: { zoomLevel: number }) => void>();
   const openExternal = vi.fn();
+  const resolveLocalPreview = vi.fn();
   const updateSettings = vi.fn().mockResolvedValue(undefined);
   const settingsState = {
     loading: false,
@@ -79,6 +80,7 @@ const h = vi.hoisted(() => {
     browserViewUpdateViewport: updateViewport,
     getDesktopZoomLevel: vi.fn().mockResolvedValue({ zoomLevel: 0 }),
     openExternal,
+    resolveBrowserLocalPreviewUrl: resolveLocalPreview,
     onDesktopZoomLevelChanged: (listener: (state: { zoomLevel: number }) => void) => {
       zoomListeners.add(listener);
       listener({ zoomLevel: 0 });
@@ -97,6 +99,7 @@ const h = vi.hoisted(() => {
     openExternal,
     platform,
     reportResidency,
+    resolveLocalPreview,
     screenshotSurfaceReady,
     settingsState,
     updateSettings,
@@ -127,7 +130,9 @@ vi.mock("@/i18n/IntlProvider.js", () => ({
           ? `range ${values?.min}-${values?.max}`
           : id === "browser.guestFailed.detail"
             ? `${id} ${values?.reason} (${values?.exitCode})`
-            : id,
+            : id === "browser.localPreviewFailed"
+              ? `${id} ${values?.message}`
+              : id,
     },
   }),
 }));
@@ -238,6 +243,22 @@ function renderHumanView(browserKey = "human-tab-1", agentOpened = false) {
   return render(createHumanViewElement(browserKey, agentOpened));
 }
 
+/** 产物卡片「打开」走的是 initialUrl = file:；这里复现该落点。 */
+function renderViewWithInitialUrl(initialUrl: string) {
+  return render(
+    createElement(
+      TooltipProvider,
+      null,
+      createElement(UnifiedBrowserView, {
+        browserKey: "browser:local-html-preview",
+        isVisible: true,
+        sessionId: "task-a",
+        initialUrl,
+      }),
+    ),
+  );
+}
+
 /** jsdom 下 <webview> 是普通 HTMLElement，没有 Electron guest 方法；这里补桩。 */
 function stubWebview(el: HTMLElement, over: Record<string, unknown> = {}) {
   Object.assign(el, {
@@ -338,6 +359,11 @@ beforeEach(() => {
   h.detachGuest.mockResolvedValue(true);
   h.openExternal.mockClear();
   h.reportResidency.mockClear();
+  h.resolveLocalPreview.mockReset();
+  h.resolveLocalPreview.mockResolvedValue({
+    success: true,
+    url: `nibi-html://${"a".repeat(64)}/${encodeURIComponent("file:///workspace/")}/index.html`,
+  });
   h.screenshotSurfaceReady.mockClear();
   h.settingsState.loading = false;
   h.settingsState.settings = null;
@@ -402,6 +428,57 @@ describe("UnifiedBrowserView (<webview>)", () => {
     const webview = stubWebview(screen.getByTestId(TID_BROWSER_WEBVIEW));
     fireDomReady(webview);
     expect(webview.loadURL).toHaveBeenCalledWith("https://example.com");
+  });
+
+  it("本地 HTML 产物打开时加载签名 nibi-html URL，而不是 file:", async () => {
+    const signed = `nibi-html://${"a".repeat(64)}/${encodeURIComponent("file:///workspace/")}/index.html`;
+    h.resolveLocalPreview.mockResolvedValueOnce({ success: true, url: signed });
+
+    renderViewWithInitialUrl("file:///workspace/index.html");
+    await act(async () => {});
+
+    const webview = stubWebview(screen.getByTestId(TID_BROWSER_WEBVIEW), {
+      getURL: vi.fn(() => signed),
+    });
+    fireDomReady(webview);
+
+    expect(h.resolveLocalPreview).toHaveBeenCalledWith("file:///workspace/index.html");
+    expect(webview.loadURL).toHaveBeenCalledWith(signed);
+    expect(new URL(signed).hostname).toMatch(/^[a-f0-9]{64}$/);
+    expect(webview.loadURL).not.toHaveBeenCalledWith("file:///workspace/index.html");
+    expect((screen.getByTestId(TID_BROWSER_ADDRESS_INPUT) as HTMLInputElement).value).toBe(
+      "file:///workspace/index.html",
+    );
+  });
+
+  it("普通 web 导航不经过本地预览签名", async () => {
+    renderViewWithInitialUrl("https://example.com/page");
+    await act(async () => {});
+
+    const webview = stubWebview(screen.getByTestId(TID_BROWSER_WEBVIEW));
+    fireDomReady(webview);
+
+    expect(h.resolveLocalPreview).not.toHaveBeenCalled();
+    expect(webview.loadURL).toHaveBeenCalledWith("https://example.com/page");
+  });
+
+  it("本地 HTML 签名失败时显示原因且绝不加载 file:", async () => {
+    h.resolveLocalPreview.mockResolvedValueOnce({
+      success: false,
+      error: "HTML is outside the preview directory",
+    });
+
+    renderViewWithInitialUrl("file:///workspace/outside.html");
+    await act(async () => {});
+
+    expect(screen.getByTestId(TID_BROWSER_LOAD_ERROR)).toBeTruthy();
+    expect(
+      screen.getByText("browser.localPreviewFailed HTML is outside the preview directory"),
+    ).toBeTruthy();
+
+    const webview = stubWebview(screen.getByTestId(TID_BROWSER_WEBVIEW));
+    fireDomReady(webview);
+    expect(webview.loadURL).not.toHaveBeenCalled();
   });
 
   it("在 guest attach 前声明 popup 权限", () => {

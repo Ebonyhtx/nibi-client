@@ -351,6 +351,11 @@ export const PlatformChannels = {
   OpenInFileManager: "nibi:open-in-file-manager",
   /** Renderer → Main：使用系统默认应用打开本地文件 */
   OpenExternalFile: "nibi:open-external-file",
+  /**
+   * Renderer → Main：把内置浏览器里的本地 HTML `file:` 输入换成主进程签名的
+   * `nibi-html://` 预览 URL；解析失败返回原因，由 UI 显示而不回退 `file:`。
+   */
+  ResolveBrowserLocalPreviewUrl: "nibi:resolve-browser-local-preview-url",
   /** Renderer → Main：打开 ZCode Computer Use 权限引导 */
   OpenCuaPermissionOnboarding: "nibi:open-cua-permission-onboarding",
   /** Renderer → Main：取消当前 renderer 发起的一次权限引导 participant */

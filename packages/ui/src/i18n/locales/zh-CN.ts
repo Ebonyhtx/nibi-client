@@ -1415,6 +1415,8 @@ const zhCN: Record<string, string> = {
   "browser.guestFailed.retry": "重试浏览器",
   "browser.invalidUrl": "仅支持 http、https、file、about、data 地址",
   "browser.loadFailed": "页面加载失败：{message}",
+  "browser.localPreviewFailed": "本地 HTML 预览失败：{message}",
+  "browser.localPreviewUnsupported": "当前环境不支持安全本地预览",
   "browser.loadError.title": "无法打开该页面",
   "browser.loadError.certTitle": "该站点的 HTTPS 证书不受信任",
   "browser.loadError.certHint":

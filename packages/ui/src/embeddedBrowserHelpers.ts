@@ -1,4 +1,4 @@
-import { BROWSER_LOCAL_PREVIEW_SCHEME } from "@nibi/shared";
+import { BROWSER_LOCAL_PREVIEW_SCHEME, type BrowserLocalPreviewResolveResult } from "@nibi/shared";
 
 export const DEFAULT_BROWSER_URL = "about:blank";
 
@@ -137,6 +137,69 @@ export function isAllowedBrowserUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** 共享编辑器/浏览器输入里只有 file: 需要主进程签名，其它协议原样加载。 */
+export function isLocalFileBrowserUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === "file:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 仅用于地址栏展示：把 `nibi-html://<sig>/<root>/<file>` 还原成签名前的 `file:` 输入。
+ *
+ * 不做授权判定——签名仍只由主进程生成并在每次请求时校验；解析不了就返回 null，
+ * 地址栏继续显示原始 URL。
+ */
+export function browserLocalPreviewSourceUrl(url: string): string | null {
+  try {
+    const preview = new URL(url);
+    if (preview.protocol !== `${BROWSER_LOCAL_PREVIEW_SCHEME}:`) return null;
+    const [, encodedRoot, ...encodedSegments] = preview.pathname.split("/");
+    if (!encodedRoot || encodedSegments.length === 0) return null;
+    const root = new URL(decodeURIComponent(encodedRoot));
+    if (root.protocol !== "file:") return null;
+    // pathname 各段仍是原始百分号编码；保留编码再交给 URL 解析，文件名里的 #/? 才不会被当成
+    // fragment/query。
+    const source = new URL(encodedSegments.join("/"), root);
+    source.search = preview.search;
+    source.hash = preview.hash;
+    return source.href;
+  } catch {
+    return null;
+  }
+}
+
+/** 主进程桥缺席时的失败原因；UI 据此显示「当前环境不支持安全本地预览」。 */
+export const BROWSER_LOCAL_PREVIEW_UNAVAILABLE_REASON = "local-preview-unavailable";
+
+/**
+ * 把本地 HTML 的 file: 输入换成签名的 nibi-html URL。
+ *
+ * 这是人类导航路径与主进程 `handleNavigate` 共用的同一条不变量：`file:` 只作为输入，
+ * 交给 webview 的 loadURL 必须是 `nibi-html:`。解析能力缺席或解析失败直接抛错，
+ * 调用方必须显示原因并停止导航，不能回退加载原始 `file:`。
+ */
+export async function resolveEmbeddedBrowserNavigationUrl(
+  input: string,
+  resolveLocalPreview?: (url: string) => Promise<BrowserLocalPreviewResolveResult>,
+): Promise<string> {
+  if (!isLocalFileBrowserUrl(input)) {
+    return input;
+  }
+
+  if (!resolveLocalPreview) {
+    throw new Error(BROWSER_LOCAL_PREVIEW_UNAVAILABLE_REASON);
+  }
+
+  const result = await resolveLocalPreview(input);
+  if (!result.success) {
+    throw new Error(result.error || "local-preview-failed");
+  }
+  return result.url;
 }
 
 /** 系统默认浏览器入口接受 Web URL 和 file URL，不能复用内置浏览器更宽的本地/内联协议白名单。 */
@@ -344,5 +407,6 @@ export function normalizeBrowserUrl(input: string): string | null {
 }
 
 export function displayBrowserUrl(url: string): string {
-  return url === DEFAULT_BROWSER_URL ? "" : url;
+  if (url === DEFAULT_BROWSER_URL) return "";
+  return browserLocalPreviewSourceUrl(url) ?? url;
 }

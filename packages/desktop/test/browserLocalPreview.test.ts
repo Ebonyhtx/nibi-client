@@ -8,6 +8,7 @@ import {
   createBrowserLocalPreview,
   installBrowserLocalPreview,
   resolveBrowserLocalPreviewNavigation,
+  resolveBrowserLocalPreviewUrl,
   type BrowserLocalPreviewFileFetcher,
 } from "../src/main/browserLocalPreview/index.js";
 import {
@@ -69,6 +70,26 @@ describe("browserLocalPreview privileged scheme", () => {
 });
 
 describe("resolveNavigation", () => {
+  it("returns a signed nibi-html URL envelope for the renderer IPC", async () => {
+    const fixture = await makeFixture();
+    const result = await resolveBrowserLocalPreviewUrl(fixture.url);
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    const url = new URL(result.url);
+    expect(url.protocol).toBe("nibi-html:");
+    expect(url.hostname).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("returns the failure reason instead of a file URL when resolution rejects", async () => {
+    const fixture = await makeFixture("notes.txt", "not html");
+    const result = await resolveBrowserLocalPreviewUrl(fixture.url);
+
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error).toContain("Only local HTML can be previewed");
+  });
+
   it("converts a local HTML file into a signed directory URL and keeps search/hash", async () => {
     const fixture = await makeFixture();
     const preview = createBrowserLocalPreview();

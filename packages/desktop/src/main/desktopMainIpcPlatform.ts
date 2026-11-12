@@ -28,6 +28,7 @@ import { getApplicationIcon } from "./applicationIcons.js";
 import { exportLogs } from "./exportLogs.js";
 import { resolveCommunityUrl } from "./desktopCommandHandlers.js";
 import { openInEditor } from "./openInEditor.js";
+import { resolveBrowserLocalPreviewUrl } from "./browserLocalPreview/index.js";
 import {
   openResourceManager,
   getResourceUsageSnapshot,
@@ -386,6 +387,25 @@ export function registerPlatformIpcHandlers(options: {
 
   ipcMain.handle(PlatformChannels.OpenInFileManager, async (_event, rawPath: string) =>
     openPathInFileManager(rawPath, options.logger),
+  );
+
+  // 内置浏览器的人类导航同样必须走签名目录协议：renderer 只拿得到结果或失败原因，
+  // 拿不到也构造不出签名密钥，因此不会出现“解析失败就退回 file:”的分支。
+  ipcMain.handle(
+    PlatformChannels.ResolveBrowserLocalPreviewUrl,
+    async (_event, rawUrl: unknown) => {
+      if (typeof rawUrl !== "string" || rawUrl.trim().length === 0) {
+        return { success: false as const, error: "invalid-browser-local-preview-url" };
+      }
+      const result = await resolveBrowserLocalPreviewUrl(rawUrl);
+      if (!result.success) {
+        options.logger.warn("[browser-local-preview] resolve failed", {
+          url: rawUrl,
+          error: result.error,
+        });
+      }
+      return result;
+    },
   );
 
   registerCuaPermissionIpcHandlers({

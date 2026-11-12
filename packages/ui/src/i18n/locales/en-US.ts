@@ -1542,6 +1542,8 @@ const enUS: Record<string, string> = {
   "browser.guestFailed.retry": "Retry browser",
   "browser.invalidUrl": "Only http, https, file, about, and data URLs are supported",
   "browser.loadFailed": "Failed to load page: {message}",
+  "browser.localPreviewFailed": "Local HTML preview failed: {message}",
+  "browser.localPreviewUnsupported": "Secure local preview is unavailable in this environment",
   "browser.loadError.title": "This page could not be opened",
   "browser.loadError.certTitle": "This site's HTTPS certificate is not trusted",
   "browser.loadError.certHint":

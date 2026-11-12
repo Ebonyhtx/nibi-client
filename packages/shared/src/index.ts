@@ -225,6 +225,7 @@ export type {
   ApplicationIconRequest,
   BrowserGuestAttachRejectReason,
   BrowserGuestAttachResult,
+  BrowserLocalPreviewResolveResult,
   EmbeddedBrowserDataClearResult,
   EmbeddedBrowserOpenUrlRequest,
   EmbeddedBrowserPermissionDeviceOption,

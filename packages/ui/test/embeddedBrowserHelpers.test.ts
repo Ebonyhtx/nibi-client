@@ -1,11 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  BROWSER_LOCAL_PREVIEW_UNAVAILABLE_REASON,
+  browserLocalPreviewSourceUrl,
+  displayBrowserUrl,
   isAllowedBrowserUrl,
   isCertificateBrowserLoadErrorCode,
   isDefaultBrowserOpenableUrl,
+  isLocalFileBrowserUrl,
   isRecoverableBrowserGuestExitReason,
   isLocalDevelopmentBrowserUrl,
   normalizeBrowserUrl,
+  resolveEmbeddedBrowserNavigationUrl,
   resolveMessageLinkOpenTarget,
 } from "@/embeddedBrowserHelpers.js";
 
@@ -21,6 +26,53 @@ describe("embeddedBrowserHelpers", () => {
     const signed = `nibi-html://${"a".repeat(64)}/${encodeURIComponent("file:///workspace/")}/index.html`;
     expect(isAllowedBrowserUrl(signed)).toBe(true);
     expect(normalizeBrowserUrl(signed)).toBe(signed);
+    // 地址栏仍展示签名前的来源，避免用户看到一大串私有协议。
+    expect(displayBrowserUrl(signed)).toBe("file:///workspace/index.html");
+  });
+
+  it("resolves local HTML to a signed nibi-html URL and leaves web URLs alone", async () => {
+    const resolver = vi.fn(async () => ({
+      success: true as const,
+      url: `nibi-html://${"a".repeat(64)}/${encodeURIComponent("file:///workspace/")}/index.html`,
+    }));
+
+    const resolved = await resolveEmbeddedBrowserNavigationUrl(
+      "file:///workspace/index.html",
+      resolver,
+    );
+    expect(resolved.startsWith("nibi-html://")).toBe(true);
+    expect(new URL(resolved).hostname).toMatch(/^[a-f0-9]{64}$/);
+    expect(resolver).toHaveBeenCalledWith("file:///workspace/index.html");
+
+    resolver.mockClear();
+    await expect(
+      resolveEmbeddedBrowserNavigationUrl("https://example.com/page", resolver),
+    ).resolves.toBe("https://example.com/page");
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with the protocol reason instead of falling back to file:", async () => {
+    await expect(
+      resolveEmbeddedBrowserNavigationUrl("file:///workspace/index.html", async () => ({
+        success: false as const,
+        error: "HTML is outside the preview directory",
+      })),
+    ).rejects.toThrow("HTML is outside the preview directory");
+
+    await expect(
+      resolveEmbeddedBrowserNavigationUrl("file:///workspace/index.html", undefined),
+    ).rejects.toThrow(BROWSER_LOCAL_PREVIEW_UNAVAILABLE_REASON);
+  });
+
+  it("only reverse-maps well-formed nibi-html URLs for display", () => {
+    expect(isLocalFileBrowserUrl("file:///workspace/index.html")).toBe(true);
+    expect(isLocalFileBrowserUrl("https://example.com")).toBe(false);
+    expect(
+      browserLocalPreviewSourceUrl(
+        `nibi-html://${"a".repeat(64)}/${encodeURIComponent("file:///workspace/")}/index.html?x=1#top`,
+      ),
+    ).toBe("file:///workspace/index.html?x=1#top");
+    expect(browserLocalPreviewSourceUrl("https://example.com/page")).toBeNull();
   });
 
   it("keeps explicit HTTP and HTTPS URLs unchanged", () => {
