@@ -28,6 +28,7 @@ export { clampImagePreviewOffset as clampMarkdownImagePreviewOffset } from "@/co
 export type MarkdownImageProps = ComponentProps<"img"> & {
   node?: unknown;
   workspacePath?: string;
+  workspaceIdentity?: string;
   workspaceHomePath?: string;
   sessionId?: string;
   readAttachment?: (params: {
@@ -148,6 +149,7 @@ export function MarkdownImage({
   readAttachment,
   sessionId,
   src,
+  workspaceIdentity,
   workspacePath,
   workspaceHomePath,
   ...props
@@ -155,6 +157,11 @@ export function MarkdownImage({
   const { intl } = useZCodeIntl();
   const services = useOptionalServices();
   const resolvedSrc = typeof src === "string" ? src : "";
+  const workspaceKey = workspaceIdentity?.trim() || workspacePath;
+  const composerScope = useMemo(
+    () => (sessionId && workspaceKey ? { sessionId, workspaceKey } : undefined),
+    [sessionId, workspaceKey],
+  );
   const artifactRef = useMemo(() => decodeMarkdownArtifactImageSource(resolvedSrc), [resolvedSrc]);
   const localImageLink = useMemo(() => {
     const fileLink = resolveMarkdownFileLink(workspacePath, resolvedSrc, {
@@ -381,6 +388,7 @@ export function MarkdownImage({
         />
       </button>
       <ImagePreviewDialog
+        composerScope={composerScope}
         initialIndex={previewIndex}
         items={previewItems}
         onOpenChange={handlePreviewOpenChange}

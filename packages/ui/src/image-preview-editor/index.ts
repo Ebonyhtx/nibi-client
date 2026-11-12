@@ -20,3 +20,4 @@ export type {
 } from "./contract.js";
 export { decodeImageDataUrl, isAnnotatableImageSource } from "./dataUrl.js";
 export * from "./geometry.js";
+export { canSaveEditedImage, type EditedImageSaveState } from "./saveState.js";

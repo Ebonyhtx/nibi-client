@@ -71,4 +71,15 @@ export interface ImageEditorSurfaceProps {
   onClose: () => void;
   /** 已加入输入框；由外层决定是否关闭。 */
   onAppended: (output: ImageEditorOutput) => void;
+  /**
+   * 保存按钮文案。独立标注对话框保持 `imageEditor.send`；
+   * 会话图片预览内嵌时换成 `imagePreview.saveToConversation`。
+   */
+  saveLabelId?: string;
+  /** 保存按钮位置；预览内嵌用左下角，独立对话框保持左上角。 */
+  savePlacement?: "top-left" | "bottom-left";
+  /** 保存按钮 test id；供预览内嵌入口的自动化用例定位。 */
+  saveTestId?: string;
+  /** 空态提示文案；预览内嵌时换成“编辑后可保存到对话”。 */
+  emptyHintId?: string;
 }

@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
+  canSaveEditedImage,
   canUseImageEditor,
   captureImageComposerTarget,
   clampOffset,
@@ -327,6 +328,13 @@ describe("image editor composer target", () => {
 });
 
 describe("image editor entry capability", () => {
+  it("only enables save-to-conversation after the image is ready and edited", () => {
+    expect(canSaveEditedImage({ imageReady: true, hasEdits: true, saving: false })).toBe(true);
+    expect(canSaveEditedImage({ imageReady: true, hasEdits: false, saving: false })).toBe(false);
+    expect(canSaveEditedImage({ imageReady: false, hasEdits: true, saving: false })).toBe(false);
+    expect(canSaveEditedImage({ imageReady: true, hasEdits: true, saving: true })).toBe(false);
+  });
+
   it("requires both a desktop host and canvas export support", () => {
     expect(canUseImageEditor({ desktopHost: true, canvas: true })).toBe(true);
     expect(canUseImageEditor({ desktopHost: false, canvas: true })).toBe(false);

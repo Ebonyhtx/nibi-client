@@ -1946,18 +1946,28 @@ function ConversationComposerImpl({
   }, [composerAttachments]);
   const composerMediaPreviewItems = useMemo(
     () =>
-      composerAttachments.flatMap((attachment) =>
-        attachment.objectUrl && isMediaChatComposerAttachment(attachment)
-          ? [
-              {
-                alt: attachment.filename,
-                filename: attachment.filename,
-                mediaType: attachment.mimeType,
-                src: attachment.objectUrl,
-              },
-            ]
-          : [],
-      ),
+      composerAttachments.flatMap((attachment) => {
+        if (!attachment.objectUrl || !isMediaChatComposerAttachment(attachment)) return [];
+        const file = attachment.file;
+        const isVideo = attachment.mimeType.startsWith("video/");
+        return [
+          {
+            alt: attachment.filename,
+            filename: attachment.filename,
+            mediaType: attachment.mimeType,
+            src: attachment.objectUrl,
+            // Composer 图片附件持有原始 File；预览内编辑直接复用这些字节，
+            // 不再从 object URL 回读或复制一份常驻附件。
+            loadEditSource:
+              file && !isVideo
+                ? async () => ({
+                    bytes: new Uint8Array(await file.arrayBuffer()),
+                    mediaType: attachment.mimeType,
+                  })
+                : undefined,
+          },
+        ];
+      }),
     [composerAttachments],
   );
   const topContentNode = useMemo(() => {
@@ -2713,6 +2723,11 @@ function ConversationComposerImpl({
         ) : null}
       </div>
       <ImagePreviewDialog
+        composerScope={{
+          sessionId: sessionId ?? null,
+          workspaceKey,
+          draftScopeKey: rootDraftScopeKey,
+        }}
         initialIndex={attachmentPreviewIndex}
         items={composerMediaPreviewItems}
         onOpenChange={setAttachmentPreviewOpen}

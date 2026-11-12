@@ -69,7 +69,10 @@ import {
   AttachmentRemove,
   Attachments,
 } from "@/components/ai-elements/attachments.js";
-import { ImagePreviewDialog } from "@/components/ai-elements/image-preview-dialog.js";
+import {
+  ImagePreviewDialog,
+  type ImagePreviewEditSource,
+} from "@/components/ai-elements/image-preview-dialog.js";
 import {
   ChatMediaAttachmentPreviewDialog,
   type ChatMediaAttachmentPreviewTarget,
@@ -301,6 +304,7 @@ export interface ConversationRowViewProps {
 const UserInputAttachmentList = memo(function UserInputAttachmentList({
   attachments,
   attachmentIndices,
+  composerWorkspaceKey,
   entityId,
   attachmentKind = "all",
   directItems = false,
@@ -314,6 +318,8 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
   attachments: readonly AttachmentRef[] | undefined;
   /** 编辑态删除附件后仍保留其在持久 FilePart 列表中的原序号。 */
   attachmentIndices?: readonly number[];
+  /** 预览编辑保存时的 workspace 作用域；与 Composer 注册的 workspaceKey 保持一致。 */
+  composerWorkspaceKey?: string;
   entityId?: string;
   attachmentKind?: "all" | "media" | "file";
   directItems?: boolean;
@@ -325,6 +331,13 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
   /** 远端工作区的附件路径属于远端主机，不能交给本机文件管理器。 */
   localPathActionsEnabled?: boolean;
 }) {
+  const composerScope = useMemo(
+    () =>
+      sessionId && composerWorkspaceKey
+        ? { sessionId, workspaceKey: composerWorkspaceKey }
+        : undefined,
+    [composerWorkspaceKey, sessionId],
+  );
   const { intl } = useZCodeIntl();
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -727,6 +740,17 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
       src: isVideo && videoPreviewRef === ref ? videoPreview?.url : thumbnailUrls.get(ref),
       loading: isVideo && videoPreviewRef === ref && videoPreviewLoading,
       error: isVideo && videoPreviewRef === ref && videoPreviewError,
+      // 已发送图片的预览只有 object URL；编辑入口点击时再按 attachmentRef 读取原始字节，
+      // 避免为所有可见行常驻整张位图。
+      loadEditSource:
+        !isVideo && sessionId && readAttachment
+          ? async (): Promise<ImagePreviewEditSource | null> => {
+              const result = await readAttachment({ sessionId, ref });
+              return "bytes" in result && result.bytes.byteLength > 0
+                ? { bytes: result.bytes, mediaType: result.mediaType }
+                : null;
+            }
+          : undefined,
     };
   });
   const selectPreviewItem = (galleryIndex: number) => {
@@ -936,6 +960,7 @@ const UserInputAttachmentList = memo(function UserInputAttachmentList({
         error={textError}
       />
       <ImagePreviewDialog
+        composerScope={composerScope}
         initialIndex={previewIndex}
         items={previewItems}
         onActiveIndexChange={selectPreviewItem}
@@ -1205,6 +1230,9 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
                   <UserInputAttachmentList
                     attachments={editAttachments}
                     attachmentIndices={editAttachmentIndices}
+                    composerWorkspaceKey={
+                      context.workspaceIdentity?.trim() || context.workspacePath
+                    }
                     entityId={row.entityId}
                     rowId={row.rowId}
                     onRemove={handleRemoveEditAttachment}
@@ -1371,6 +1399,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
             >
               <UserInputAttachmentList
                 attachments={row.attachments}
+                composerWorkspaceKey={context.workspaceIdentity?.trim() || context.workspacePath}
                 entityId={row.entityId}
                 attachmentKind="media"
                 directItems
@@ -1392,6 +1421,7 @@ const SingleUserInputRowView = memo(function SingleUserInputRowView({
               {hasFileAttachments ? (
                 <UserInputAttachmentList
                   attachments={row.attachments}
+                  composerWorkspaceKey={context.workspaceIdentity?.trim() || context.workspacePath}
                   entityId={row.entityId}
                   attachmentKind="file"
                   directItems

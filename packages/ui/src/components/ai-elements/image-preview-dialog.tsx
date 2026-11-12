@@ -5,24 +5,42 @@ import {
   ArrowRightIcon,
   DownloadIcon,
   MinusIcon,
+  PencilIcon,
   PlusIcon,
   XIcon,
 } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { IPlatformService } from "@nibi/shared";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/components/lib/utils.js";
 import { Button } from "@/components/ui/button.js";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog.js";
 import { toast } from "@/components/ui/toast.js";
 import { useOptionalPlatform } from "@/hooks/usePlatform.js";
 import { useZCodeIntl } from "@/i18n/IntlProvider.js";
+import {
+  canUseImageEditor,
+  decodeImageDataUrl,
+  detectImageEditorCanvas,
+  ImageEditorSurface,
+  isAnnotatableImageSource,
+  type ImageEditorComposerScope,
+  type ImageEditorInput,
+} from "@/image-preview-editor/index.js";
 import { logger } from "@/logger.js";
+
+/** 预览条目可直接携带的位图原始字节；没有时由 src 或 loadEditSource 惰性读取。 */
+export interface ImagePreviewEditSource {
+  bytes: Uint8Array;
+  mediaType: string;
+}
 
 export interface ImagePreviewDialogItem {
   alt: string;
   error?: boolean;
   filename?: string;
+  /** 惰性读取原始位图（消息附件只有预览 URL 时使用）。 */
+  loadEditSource?: () => Promise<ImagePreviewEditSource | null>;
   loading?: boolean;
   mediaType?: string;
   src?: string;
@@ -169,6 +187,29 @@ function startBrowserNativeDownload(source: string) {
   link.remove();
 }
 
+/**
+ * 解析当前预览项的编辑源。
+ * 顺序：调用方惰性读取 → base64 data URL → 预览 URL 回读。
+ * 回读统一经过 `readBoundedImageBlob`，让远程大图在编辑前就命中与下载相同的上限。
+ */
+async function readPreviewImageEditSource(
+  item: ImagePreviewDialogItem,
+): Promise<ImagePreviewEditSource | null> {
+  if (item.loadEditSource) return item.loadEditSource();
+  const source = item.src;
+  if (!source) return null;
+  if (isAnnotatableImageSource(source)) return decodeImageDataUrl(source);
+  const blob = await readBoundedImageBlob(source);
+  const declaredType = item.mediaType?.toLowerCase().split(";")[0] ?? "";
+  const blobType = blob.type.toLowerCase().split(";")[0] ?? "";
+  const mediaType = blobType.startsWith("image/")
+    ? blobType
+    : declaredType.startsWith("image/")
+      ? declaredType
+      : "image/png";
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), mediaType };
+}
+
 export async function downloadImagePreview(
   item: ImagePreviewDialogItem,
   saveFile?: IPlatformService["saveFile"],
@@ -216,6 +257,7 @@ export async function downloadImagePreview(
 }
 
 export function ImagePreviewDialog({
+  composerScope,
   dialogTestId,
   imageTestId,
   initialIndex,
@@ -224,6 +266,7 @@ export function ImagePreviewDialog({
   onOpenChange,
   open,
 }: {
+  composerScope?: ImageEditorComposerScope;
   dialogTestId?: string;
   imageTestId?: string;
   initialIndex: number;
@@ -239,6 +282,9 @@ export function ImagePreviewDialog({
   const [previewOffset, setPreviewOffset] = useState(defaultPreviewOffset);
   const [isDownloading, setIsDownloading] = useState(false);
   const [videoState, setVideoState] = useState<"loading" | "ready" | "unsupported">("loading");
+  const [editorInput, setEditorInput] = useState<ImageEditorInput | null>(null);
+  const [preparingEdit, setPreparingEdit] = useState(false);
+  const editRequestRef = useRef(0);
   const previewViewportRef = useRef<HTMLDivElement>(null);
   const previewImageRef = useRef<HTMLImageElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
@@ -250,7 +296,27 @@ export function ImagePreviewDialog({
   const pinchStartRef = useRef<{ distance: number; scale: number } | null>(null);
   const activeItem = items[activeIndex];
   const activeItemIsVideo = activeItem?.mediaType?.startsWith("video/") === true;
+  const editing = editorInput !== null;
   const hasMultiple = items.length > 1;
+  const activeSource = activeItem?.src ?? "";
+  const hasEditLoader = Boolean(activeItem?.loadEditSource);
+  const canEditActiveImage = useMemo(() => {
+    if (activeItemIsVideo || activeItem?.loading || activeItem?.error) return false;
+    if (!activeSource && !hasEditLoader) return false;
+    // 与预览面板一致：只在桌面/Host 且具备 canvas 导出能力时提供编辑入口。
+    const desktopHost = platform?.canOpenLocalFiles === true;
+    return canUseImageEditor({
+      desktopHost,
+      canvas: desktopHost ? detectImageEditorCanvas() : false,
+    });
+  }, [
+    activeItem?.error,
+    activeItem?.loading,
+    activeItemIsVideo,
+    activeSource,
+    hasEditLoader,
+    platform,
+  ]);
 
   const resetPreviewTransform = () => {
     const viewport = previewViewportRef.current;
@@ -269,7 +335,7 @@ export function ImagePreviewDialog({
   };
 
   const navigate = (direction: -1 | 1) => {
-    if (items.length <= 1) return;
+    if (editing || items.length <= 1) return;
     const next = (activeIndex + direction + items.length) % items.length;
     setActiveIndex(next);
     onActiveIndexChange?.(next);
@@ -281,6 +347,13 @@ export function ImagePreviewDialog({
     setActiveIndex(Math.min(Math.max(initialIndex, 0), Math.max(items.length - 1, 0)));
     resetPreviewTransform();
   }, [initialIndex, items.length, open]);
+
+  useEffect(() => {
+    // 切换图片或关闭预览时丢弃编辑态；在途的编辑源读取也会因 request id 过期而作废。
+    editRequestRef.current += 1;
+    setEditorInput(null);
+    setPreparingEdit(false);
+  }, [activeIndex, open]);
 
   useEffect(() => {
     setVideoState("loading");
@@ -297,12 +370,13 @@ export function ImagePreviewDialog({
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (editing || preparingEdit) return;
       if (event.key === "ArrowLeft") navigate(-1);
       else if (event.key === "ArrowRight") navigate(1);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeIndex, items.length, open]);
+  }, [activeIndex, editing, items.length, open, preparingEdit]);
 
   const clampPreviewOffset = (offset: PreviewOffset, scale: number) => {
     const image = previewImageRef.current;
@@ -415,6 +489,48 @@ export function ImagePreviewDialog({
     }
   };
 
+  const startEditing = async () => {
+    const item = activeItem;
+    const image = previewImageRef.current;
+    if (!item || activeItemIsVideo || preparingEdit) return;
+    if (!image || image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+      toast(intl.formatMessage({ id: "imageEditor.loadFailed" }));
+      return;
+    }
+    const requestId = ++editRequestRef.current;
+    setPreparingEdit(true);
+    try {
+      const source = await readPreviewImageEditSource(item);
+      if (editRequestRef.current !== requestId) return;
+      if (!source || source.bytes.byteLength === 0) {
+        throw new Error("Image preview has no editable bytes");
+      }
+      setEditorInput({
+        bytes: source.bytes,
+        mediaType: source.mediaType,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        filename: item.filename?.trim() || item.alt,
+      });
+    } catch (error) {
+      if (editRequestRef.current !== requestId) return;
+      logger.warn("[ImagePreviewDialog] 图片编辑源读取失败", {
+        src: item.src ? sanitizeImageSourceForLog(item.src) : "missing",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      toast(intl.formatMessage({ id: "imageEditor.loadFailed" }));
+    } finally {
+      if (editRequestRef.current === requestId) setPreparingEdit(false);
+    }
+  };
+
+  const handleSavedToConversation = () => {
+    setEditorInput(null);
+    toast(intl.formatMessage({ id: "imagePreview.saved" }));
+    // 保存后关闭预览，让用户回到输入框看到待发送附件。
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -422,13 +538,17 @@ export function ImagePreviewDialog({
         // Radix modal 会禁用 body 指针事件；预览层需显式恢复命中并退出 Electron 拖拽区。
         className="pointer-events-auto h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none place-items-center gap-0 overflow-hidden border-0 bg-transparent p-10 shadow-none [app-region:no-drag] sm:h-[calc(100dvh-2rem)] sm:w-[calc(100vw-2rem)] platform-linux-desktop:h-[calc(100dvh-4rem)]"
         data-testid={dialogTestId}
+        onEscapeKeyDown={(event) => {
+          // 编辑态下 Escape 只退出编辑（由 ImageEditorSurface 处理），不能顺带关闭整个预览。
+          if (editing) event.preventDefault();
+        }}
         showCloseButton={false}
       >
         <DialogTitle className="sr-only">
           {activeItem?.alt || intl.formatMessage({ id: "chat.attachments.preview.title" })}
         </DialogTitle>
         <div className="pointer-events-auto absolute right-4 top-4 z-20 flex items-center gap-2 [app-region:no-drag] platform-mac-desktop:top-12 platform-linux-desktop:right-6 platform-linux-desktop:top-4 platform-windows-desktop:right-6 platform-windows-desktop:top-[calc(env(titlebar-area-height,48px)_+_0.5rem)]">
-          {!activeItemIsVideo ? (
+          {!activeItemIsVideo && !editing ? (
             <Button
               type="button"
               aria-label={intl.formatMessage({ id: "markdownImage.download" })}
@@ -439,6 +559,20 @@ export function ImagePreviewDialog({
               variant="ghost"
             >
               <DownloadIcon />
+            </Button>
+          ) : null}
+          {!editing && canEditActiveImage ? (
+            <Button
+              type="button"
+              aria-label={intl.formatMessage({ id: "imagePreview.edit" })}
+              title={intl.formatMessage({ id: "imagePreview.edit" })}
+              className="rounded-full border border-border bg-background text-foreground shadow-md hover:bg-background/80"
+              disabled={preparingEdit}
+              onClick={() => void startEditing()}
+              size="icon-md"
+              variant="ghost"
+            >
+              <PencilIcon />
             </Button>
           ) : null}
           <DialogClose asChild>
@@ -453,7 +587,7 @@ export function ImagePreviewDialog({
             </Button>
           </DialogClose>
         </div>
-        {hasMultiple ? (
+        {hasMultiple && !editing ? (
           <>
             <Button
               type="button"
@@ -477,7 +611,18 @@ export function ImagePreviewDialog({
             </Button>
           </>
         ) : null}
-        {activeItem ? (
+        {editorInput ? (
+          <ImageEditorSurface
+            composerScope={composerScope}
+            emptyHintId="imagePreview.editHint"
+            input={editorInput}
+            onAppended={handleSavedToConversation}
+            onClose={() => setEditorInput(null)}
+            saveLabelId="imagePreview.saveToConversation"
+            savePlacement="bottom-left"
+            saveTestId="image-preview-save-to-conversation"
+          />
+        ) : activeItem ? (
           activeItemIsVideo ? (
             <div className="flex size-full min-h-0 min-w-0 items-center justify-center overflow-hidden">
               {activeItem.src ? (
@@ -554,7 +699,7 @@ export function ImagePreviewDialog({
             </div>
           ) : null
         ) : null}
-        {!activeItemIsVideo ? (
+        {!activeItemIsVideo && !editing ? (
           <div className="pointer-events-auto absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-popover-border bg-popover/95 p-1 shadow-md [app-region:no-drag]">
             <Button
               type="button"

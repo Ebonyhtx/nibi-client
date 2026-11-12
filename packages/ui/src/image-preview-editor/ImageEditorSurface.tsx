@@ -24,6 +24,7 @@ import {
   type Transform,
 } from "./geometry.js";
 import { ImageEditorToolbar } from "./ImageEditorToolbar.js";
+import { canSaveEditedImage } from "./saveState.js";
 
 type Gesture = {
   /** 选择/平移用屏幕坐标，绘制用归一化坐标；由 annotation 是否存在区分。 */
@@ -60,8 +61,12 @@ function normalizedStrokeWidth(rect: DOMRect): number {
 export function ImageEditorSurface({
   input,
   composerScope,
+  emptyHintId = "imageEditor.empty",
   onClose,
   onAppended,
+  saveLabelId = "imageEditor.send",
+  savePlacement = "top-left",
+  saveTestId,
 }: ImageEditorSurfaceProps) {
   const { intl } = useZCodeIntl();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -164,6 +169,11 @@ export function ImageEditorSurface({
   }
   if (textDraft?.text?.trim()) displayed.push(textDraft);
   const hasContent = displayed.length > 0;
+  const saveEnabled = canSaveEditedImage({
+    hasEdits: hasContent,
+    imageReady: imageState === "ready",
+    saving: sending,
+  });
 
   const setCurrentDraft = (value: Annotation | null) => {
     draftRef.current = value;
@@ -416,13 +426,7 @@ export function ImageEditorSurface({
   };
 
   const send = async () => {
-    if (
-      sendPendingRef.current ||
-      !hasContent ||
-      imageState !== "ready" ||
-      !imageRef.current ||
-      !overlayRef.current
-    ) {
+    if (sendPendingRef.current || !saveEnabled || !imageRef.current || !overlayRef.current) {
       return;
     }
     const target = captureImageComposerTarget(composerScope ? { scope: composerScope } : undefined);
@@ -551,16 +555,23 @@ export function ImageEditorSurface({
       ) : null}
       {!hasContent && imageState === "ready" ? (
         <div className="pointer-events-none absolute bottom-24 left-1/2 z-10 -translate-x-1/2 rounded-full border border-popover-border bg-popover/95 px-3 py-1 text-ui-base text-foreground-subtle shadow-md sm:bottom-16">
-          {intl.formatMessage({ id: "imageEditor.empty" })}
+          {intl.formatMessage({ id: emptyHintId })}
         </div>
       ) : null}
-      <div className="absolute left-4 top-4 z-20">
+      <div
+        className={
+          savePlacement === "bottom-left"
+            ? "absolute bottom-4 left-4 z-20"
+            : "absolute left-4 top-4 z-20"
+        }
+      >
         <Button
           data-image-editor-send=""
-          disabled={sending || !hasContent || imageState !== "ready"}
+          data-testid={saveTestId}
+          disabled={!saveEnabled}
           onClick={() => void send()}
         >
-          {intl.formatMessage({ id: sending ? "imageEditor.sending" : "imageEditor.send" })}
+          {intl.formatMessage({ id: sending ? "imageEditor.sending" : saveLabelId })}
         </Button>
       </div>
       <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-popover-border bg-popover p-1 shadow-md">
