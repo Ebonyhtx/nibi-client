@@ -65,34 +65,44 @@ interface SuggestedPromptCardProps extends ComponentPropsWithoutRef<"button"> {
   label: string;
   description?: string;
   waterfallDelayMs: number;
+  /** 新建任务页的一行四卡形态：单行截断、无描述行；办公模式主动推荐保持 false。 */
+  compact?: boolean;
 }
 
 /**
  * 两套推荐卡（新建任务草稿、办公模式主动推荐）共用的唯一外观。
  * 不另建设计系统：沿用设置页任务卡的圆角、描边与 hover，保证同一窗口内卡片语言一致。
+ *
+ * compact 只改变排版（固定 36px 高、单行 truncate、无描述行），颜色与描边仍走同一套
+ * border-card-border / background / hover token，避免推荐卡出现第二套视觉语言。
  */
 const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardProps>(
   function SuggestedPromptCard(
-    { item, label, description, waterfallDelayMs, className, ...buttonProps },
+    { item, label, description, waterfallDelayMs, compact = false, className, ...buttonProps },
     ref,
   ) {
     const descriptionId = useId();
+    const showDescription = Boolean(description) && !compact;
     return (
       <button
         ref={ref}
         type="button"
         data-draft-suggested-prompt={item.id}
         aria-label={label}
-        aria-describedby={description ? descriptionId : undefined}
+        aria-describedby={showDescription ? descriptionId : undefined}
         title={label}
         className={cn(
           // 根因：旧草稿卡是固定 h-8 的横排 chip，办公推荐是竖排列表，两套圆角/图标/间距各不相同。
-          // 这里统一成同一种卡片；高度由 line-clamp 内容决定，不再依赖固定槽位或滚动容器。
-          "zcode-draft-prompt-waterfall group/prompt flex min-h-14 w-full min-w-0 items-start gap-2.5",
-          "rounded-xl border border-card-border bg-background p-3 text-left text-foreground",
+          // 这里统一成同一种卡片；默认高度由 line-clamp 内容决定，不再依赖固定槽位或滚动容器。
+          "zcode-draft-prompt-waterfall group/prompt flex w-full min-w-0 text-left text-foreground",
+          "border border-card-border bg-background",
           "transition-colors hover:border-border-hover hover:bg-hover active:bg-surface-hover",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-border-focused",
           "disabled:pointer-events-none disabled:opacity-50",
+          compact
+            ? // 四卡等宽等高：h-9 固定 36px，单行 truncate 不会把卡片撑高，也不会落单换行。
+              "h-9 items-center gap-1.5 rounded-lg px-2 py-0"
+            : "min-h-14 items-start gap-2.5 rounded-xl p-3",
           className,
         )}
         {...buttonProps}
@@ -104,20 +114,30 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
       >
         <span
           data-draft-suggested-prompt-icon="true"
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground-subtle transition-colors group-hover/prompt:text-foreground motion-reduce:transition-none"
+          className={cn(
+            "flex shrink-0 items-center justify-center text-foreground-subtle transition-colors group-hover/prompt:text-foreground motion-reduce:transition-none",
+            // 紧凑卡不再给图标加 28px 底色块，保持“16px 图标 + 四字”的上游节奏。
+            compact ? "size-4" : "size-7 rounded-lg bg-surface",
+          )}
         >
           <SuggestedPromptIcon item={item} />
         </span>
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className={cn("min-w-0 flex-1", !compact && "flex flex-col gap-0.5")}>
           <span
             data-draft-suggested-prompt-text="true"
-            className="line-clamp-2 break-words text-ui-base font-medium leading-5 text-foreground"
+            className={cn(
+              "font-medium text-foreground",
+              compact
+                ? "block truncate text-ui-sm leading-5"
+                : "line-clamp-2 break-words text-ui-base leading-5",
+            )}
           >
             {label}
           </span>
-          {description ? (
+          {showDescription ? (
             <span
               id={descriptionId}
+              data-draft-suggested-prompt-description="true"
               className="line-clamp-2 break-words text-ui-sm leading-4.5 text-foreground-subtle"
             >
               {description}
@@ -128,6 +148,12 @@ const SuggestedPromptCard = forwardRef<HTMLButtonElement, SuggestedPromptCardPro
     );
   },
 );
+
+/** 新建任务页的紧凑四卡；默认形态供办公模式主动推荐继续展示描述。 */
+export type ConversationDraftSuggestedPromptsVariant = "default" | "compact";
+
+/** 紧凑形态只展示服务端顺序的前四条，避免第五张卡落单换行。 */
+export const CONVERSATION_DRAFT_SUGGESTED_PROMPTS_COMPACT_LIMIT = 4;
 
 interface ConversationDraftSuggestedPromptsProps {
   className?: string;
@@ -140,6 +166,8 @@ interface ConversationDraftSuggestedPromptsProps {
   onClose?: () => void;
   refreshDisabled?: boolean;
   pluginActionPopover?: DraftSuggestedPluginActionPopoverState | null;
+  /** 默认形态保持原有多列宽卡与描述行；compact 用于新建任务页的一行四卡。 */
+  variant?: ConversationDraftSuggestedPromptsVariant;
 }
 
 function DraftSuggestedPluginActionPopoverContent({
@@ -265,18 +293,26 @@ export function ConversationDraftSuggestedPrompts({
   onClose,
   refreshDisabled = false,
   pluginActionPopover,
+  variant = "default",
 }: ConversationDraftSuggestedPromptsProps) {
   const { locale, intl } = useZCodeIntl();
   const [confirmClose, setConfirmClose] = useState(false);
+  const isCompact = variant === "compact";
+  // 服务端已按推荐优先级排好序；紧凑形态只取前四条，剩余条目不再渲染也不占位。
+  const visibleItems = isCompact
+    ? items.slice(0, CONVERSATION_DRAFT_SUGGESTED_PROMPTS_COMPACT_LIMIT)
+    : items;
 
-  if (items.length === 0) return null;
+  if (visibleItems.length === 0) return null;
 
   const hasHeader = Boolean(onRefresh || onClose);
 
   return (
     <div
       data-v4-draft-suggested-prompts="true"
-      // 命名容器驱动列数：同一组件在宽会话页排 3 列，在窄侧栏/远控宽度自动落到 1 列。
+      data-v4-draft-suggested-prompts-variant={variant}
+      // 命名容器驱动列数：默认形态在宽会话页排 3 列，紧凑形态在宽容器排 4 列；
+      // 窄侧栏/远控宽度分别落到 2 列或单列，避免横向滚动。
       className={cn("w-full min-w-0 @container/suggestions", className)}
     >
       {hasHeader ? (
@@ -334,9 +370,15 @@ export function ConversationDraftSuggestedPrompts({
           又可能把内容顶高，二者都会出现滚动条。改为自适应 grid 后高度随内容增长，页面不再有内嵌滚动。 */}
       <ul
         data-v4-draft-suggested-prompts-group="true"
-        className="m-0 grid w-full list-none grid-cols-1 gap-2 p-0 @min-[480px]/suggestions:grid-cols-2 @min-[840px]/suggestions:grid-cols-3"
+        className={cn(
+          "m-0 grid w-full list-none gap-2 p-0",
+          // 紧凑形态固定 2/4 列：宽度够时四张等宽卡同一行，窄容器退成 2×2，永不出现第五张。
+          isCompact
+            ? "grid-cols-2 @min-[520px]/suggestions:grid-cols-4"
+            : "grid-cols-1 @min-[480px]/suggestions:grid-cols-2 @min-[840px]/suggestions:grid-cols-3",
+        )}
       >
-        {items.map((item, index) => {
+        {visibleItems.map((item, index) => {
           const label = resolveDraftSuggestedPromptText(item.label, locale);
           const description = item.description
             ? resolveDraftSuggestedPromptText(item.description, locale)
@@ -357,6 +399,7 @@ export function ConversationDraftSuggestedPrompts({
                     label={label}
                     description={description || undefined}
                     waterfallDelayMs={index * 65}
+                    compact={isCompact}
                     disabled={!onSelect || disabled}
                     onClick={onSelect ? () => onSelect(item) : undefined}
                   />

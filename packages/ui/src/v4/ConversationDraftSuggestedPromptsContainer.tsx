@@ -739,6 +739,8 @@ export function ConversationDraftSuggestedPromptsContainer({
     <div data-v4-draft-suggested-prompts-slot="true" className={cn("w-full min-w-0", className)}>
       <ConversationDraftSuggestedPrompts
         // 旧场景推荐保留同一槽位；主动推荐列表必须由内容撑高，否则多行会溢出并覆盖下方内容。
+        // 新建任务页走紧凑一行四卡；办公模式主动推荐仍用默认宽卡，保留描述与换一批/关闭头部。
+        variant={proactive ? "default" : "compact"}
         items={items}
         onSelect={handleSelect}
         onRefresh={proactive ? () => advanceRecommendedPromptPane(recommendationPaneId) : undefined}

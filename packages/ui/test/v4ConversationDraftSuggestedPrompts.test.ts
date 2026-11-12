@@ -253,6 +253,72 @@ describe("ConversationDraftSuggestedPrompts", () => {
     expect(screen.getByText("补充说明")).not.toBeNull();
   });
 
+  it("caps compact draft suggestions at four single-line cards in a four-column container", () => {
+    const fiveItems: DraftSuggestedPromptItem[] = Array.from({ length: 5 }, (_, index) => ({
+      id: `compact-${index}`,
+      iconName: "file-text",
+      label: { cn: `任务${index}`, en: `Task ${index}` },
+      description: { cn: `描述${index}`, en: `Description ${index}` },
+      prompt: { cn: `提示${index}`, en: `Prompt ${index}` },
+    }));
+    const view = render(
+      createElement(ConversationDraftSuggestedPrompts, {
+        items: fiveItems,
+        variant: "compact",
+      }),
+    );
+
+    // 服务端顺序取前四条，第五条既不渲染也不留下空槽。
+    const rows = screen.getAllByRole("button");
+    expect(rows).toHaveLength(4);
+    expect(rows.map((row) => row.getAttribute("data-draft-suggested-prompt"))).toEqual([
+      "compact-0",
+      "compact-1",
+      "compact-2",
+      "compact-3",
+    ]);
+    expect(view.container.textContent).not.toContain("任务4");
+
+    const group = view.container.querySelector<HTMLElement>(
+      '[data-v4-draft-suggested-prompts-group="true"]',
+    );
+    expect(group?.className).toContain("grid-cols-2");
+    expect(group?.className).toContain("@min-[520px]/suggestions:grid-cols-4");
+    expect(group?.className).not.toContain("grid-cols-3");
+
+    const cardText = view.container.querySelector<HTMLElement>(
+      "[data-draft-suggested-prompt-text]",
+    );
+    expect(cardText?.className).toContain("truncate");
+    expect(cardText?.className).not.toContain("line-clamp-2");
+    expect(rows[0]?.className).toContain("h-9");
+    // 紧凑形态不渲染描述行，标签也不会把第二行内容带进卡片。
+    expect(view.container.querySelector("[data-draft-suggested-prompt-description]")).toBeNull();
+    expect(view.container.textContent).not.toContain("描述0");
+  });
+
+  it("keeps the default wide-card variant for office proactive suggestions", () => {
+    const fiveItems: DraftSuggestedPromptItem[] = Array.from({ length: 5 }, (_, index) => ({
+      id: `default-${index}`,
+      label: { cn: `任务${index}`, en: `Task ${index}` },
+      description: { cn: `描述${index}`, en: `Description ${index}` },
+      prompt: { cn: `提示${index}`, en: `Prompt ${index}` },
+    }));
+    const view = render(
+      createElement(ConversationDraftSuggestedPrompts, { items: fiveItems, variant: "default" }),
+    );
+
+    expect(screen.getAllByRole("button")).toHaveLength(5);
+    expect(
+      view.container.querySelectorAll("[data-draft-suggested-prompt-description]"),
+    ).toHaveLength(5);
+    const group = view.container.querySelector<HTMLElement>(
+      '[data-v4-draft-suggested-prompts-group="true"]',
+    );
+    expect(group?.className).toContain("@min-[840px]/suggestions:grid-cols-3");
+    expect(group?.className).not.toContain("grid-cols-4");
+  });
+
   it("renders nothing when the recommendation list is empty", () => {
     const view = render(createElement(ConversationDraftSuggestedPrompts, { items: [] }));
 
