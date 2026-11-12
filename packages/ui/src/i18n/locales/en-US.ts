@@ -5005,6 +5005,7 @@ const enUS: Record<string, string> = {
   "settings.plugins.marketplace.componentsError":
     "Couldn't load the component list. Showing available info only.",
   "settings.plugins.marketplace.componentsRetry": "Retry",
+  "settings.plugins.store.componentsAfterInstall": "Components are listed after the plugin is installed.",
   "settings.plugins.marketplace.componentsEmpty":
     "This plugin doesn't declare components, or they couldn't be read.",
   "settings.plugins.config.title": "Configuration",

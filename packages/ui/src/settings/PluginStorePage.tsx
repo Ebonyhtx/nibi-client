@@ -321,9 +321,10 @@ export function PluginStorePage({
       )
     : [];
 
-  // 详情页数据补齐：无运行时信息的条目（未安装候选）按需 describe，拿组件清单 + manifest 回退字段。
+  // 详情页数据补齐：已安装但还没有运行时信息的条目按需 describe，拿组件清单 + manifest 回退字段。
+  // 未安装的候选不调 describe：本地没有插件根目录，只会稳定失败，把详情页变成"组件清单加载失败"。
   useEffect(() => {
-    if (view !== "detail" || !detailItem || detailItem.info) return;
+    if (view !== "detail" || !detailItem || !detailItem.installed || detailItem.info) return;
     void describePlugin(
       detailItem.id,
       detailItem.name,

@@ -132,8 +132,13 @@ export function PluginStoreDetailView({
   const orderedGroups = SECTION_ORDER.map((kind) =>
     componentGroups.find((group) => group.kind === kind),
   ).filter((group): group is PluginComponentDisplayGroup => group !== undefined);
-  const componentsLoading = !item.info && (describeEntry?.status ?? "loading") === "loading";
-  const componentsFailed = !item.info && describeEntry?.status === "error";
+  // 只有装过的插件才谈得上"组件清单"：未安装时 plugins/describe 本来就拿不到东西，
+  // 把它当失败弹警告会让人以为插件坏了。未安装一律走中性提示（安装后可查看）。
+  const canDescribeComponents = item.installed || item.info !== undefined;
+  const componentsLoading =
+    canDescribeComponents && !item.info && (describeEntry?.status ?? "loading") === "loading";
+  const componentsFailed =
+    canDescribeComponents && !item.info && describeEntry?.status === "error";
 
   return (
     <div className="space-y-8" data-testid="plugin-store-detail" data-plugin-id={item.id}>
@@ -241,8 +246,15 @@ export function PluginStoreDetailView({
             {intl.formatMessage({ id: "settings.plugins.marketplace.componentsRetry" })}
           </Button>
         </div>
-      ) : (
+      ) : canDescribeComponents ? (
         orderedGroups.map((group) => <ComponentSection key={group.kind} group={group} />)
+      ) : (
+        <p
+          className="text-ui-base text-foreground-subtle"
+          data-testid="plugin-store-components-after-install"
+        >
+          {intl.formatMessage({ id: "settings.plugins.store.componentsAfterInstall" })}
+        </p>
       )}
 
       {/* 信息区：listing 优先，manifest（运行时/describe）回退；无值整行省略（ADR-0001）。 */}
