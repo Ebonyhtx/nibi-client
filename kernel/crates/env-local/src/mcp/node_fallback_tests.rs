@@ -166,7 +166,7 @@ fn a_missing_npm_uses_the_bundled_npm_cli() {
     assert_eq!(
         resolved.args,
         vec![
-            join(npm_root, r"bin\npm-cli.js"),
+            join(&join(npm_root, "bin"), "npm-cli.js"),
             "install".to_owned(),
             "--no-audit".to_owned(),
         ]
@@ -199,7 +199,7 @@ fn a_missing_npx_uses_the_bundled_npx_cli() {
     assert_eq!(
         resolved.args,
         vec![
-            join(npm_root, r"bin\npx-cli.js"),
+            join(&join(npm_root, "bin"), "npx-cli.js"),
             "-y".to_owned(),
             "pkg@1".to_owned(),
         ]
