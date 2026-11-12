@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import {
   ensureDefaultPluginMarketplaces,
   loadInstalledPluginsSync,
   loadKnownMarketplacesSync,
+  loadMarketplaceManifestSync,
 } from "../src/plugins/marketplace.js";
 
 const LEGACY_MARKET_URL = "https://api.nibistudio.top/plugins/marketplace.json";
@@ -109,5 +110,39 @@ describe("插件市场旧域名迁移", () => {
       source: "url",
       url: "https://api.nibistudio.cn/plugins/github-0.1.3.zip",
     });
+  });
+
+  it("读市场快照时整份迁移旧域名并回写磁盘", async () => {
+    root = await mkdtemp(join(tmpdir(), "nibi-marketplace-snapshot-migration-"));
+    const marketplaceDir = join(root, "marketplaces", "nibi-official");
+    await mkdir(marketplaceDir, { recursive: true });
+    const manifestPath = join(marketplaceDir, "marketplace.json");
+    await writeFile(
+      manifestPath,
+      JSON.stringify({
+        name: "nibi-official",
+        version: 1,
+        plugins: [
+          {
+            name: "legacy",
+            version: "0.1.0",
+            source: { source: "url", url: LEGACY_MARKET_URL },
+            icon: "https://api.nibistudio.top/plugins/icons/legacy.png",
+            homepage: "https://nibistudio.top/plugins/legacy",
+            author: { name: "NIBI", url: "https://nibistudio.top" },
+          },
+        ],
+      }),
+    );
+
+    const manifest = loadMarketplaceManifestSync(root, "nibi-official");
+    const legacy = manifest?.plugins.find((entry) => entry.name === "legacy");
+    expect(legacy?.listing?.icon).toBe("https://api.nibistudio.cn/plugins/icons/legacy.png");
+    expect(legacy?.listing?.homepage).toBe("https://nibistudio.cn/plugins/legacy");
+    expect(legacy?.listing?.authorUrl).toBe("https://nibistudio.cn/");
+
+    const persisted = await readFile(manifestPath, "utf8");
+    expect(persisted).not.toContain("nibistudio.top");
+    expect(persisted).toContain("https://api.nibistudio.cn/plugins/icons/legacy.png");
   });
 });

@@ -135,6 +135,24 @@ describe("marketplace store listing", () => {
     ).toEqual({ icon: "https://api.nibistudio.top.evil.example/icon.png" });
   });
 
+  it("migrates legacy NIBI domains in homepage / policy / author links", () => {
+    expect(
+      parseEntryStoreListing({
+        name: "legacy-links",
+        homepage: "https://nibistudio.top/plugins/legacy",
+        privacyPolicy: "https://www.nibistudio.top/privacy",
+        termsOfService: "https://nibistudio.top/terms",
+        author: { name: "NIBI", url: "https://nibistudio.top" },
+      }),
+    ).toEqual({
+      homepage: "https://nibistudio.cn/plugins/legacy",
+      privacyPolicy: "https://www.nibistudio.cn/privacy",
+      termsOfService: "https://nibistudio.cn/terms",
+      author: "NIBI",
+      authorUrl: "https://nibistudio.cn/",
+    });
+  });
+
   it("preserves publisher classification independently of usage category", () => {
     expect(parseEntryStoreListing({ publisherType: "community", category: "productivity" }))
       .toEqual({ publisherType: "community", category: "productivity" });

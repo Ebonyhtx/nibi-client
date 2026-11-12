@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -863,8 +871,14 @@ export function loadMarketplaceManifestSync(
   // 崩溃残留先恢复；若 writer 仍活跃，则在权威 known state 落盘前读 backup，
   // 落盘后读新 target，避免 overview 看见跨代 manifest/summary。
   const readableDirectory = recoverAtomicTargetSync(dirname(manifestPath));
-  const parsed = readJsonFileSync(join(readableDirectory, basename(manifestPath)));
-  return parseMarketplaceManifest(parsed);
+  const readablePath = join(readableDirectory, basename(manifestPath));
+  const parsed = readJsonFileSync(readablePath);
+  // 存量快照会把旧 NIBI 域名连同图标、主页、下载地址一起缓存下来。显示层已按 hostname
+  // 迁移，但磁盘上的快照仍留着 .top，排查时看起来像「没改干净」。读取时整份迁移并回写，
+  // 之后磁盘上不再有旧域名；写失败只影响下次再试，不影响本次读取。
+  const migrated = migrateMarketplaceSnapshotHosts(parsed);
+  if (migrated.changed) writeJsonFileSync(readablePath, migrated.value);
+  return parseMarketplaceManifest(migrated.value);
 }
 
 export function loadInstalledPluginsSync(storageRoot: string): InstalledPluginsState {
@@ -2537,15 +2551,15 @@ export function parseEntryStoreListing(
   ] as const) {
     const value = readString(key);
     if (value) {
-      // 旧快照会把已停止解析的旧 NIBI 域名一起缓存下来（icon/hero 是纯展示字段），
-      // 解析时按 hostname 精确迁移，避免存量用户始终看到破图；第三方域名原样保留。
-      listing[key] =
-        key === "icon" || key === "heroImage" ? migrateLegacyNibiUrl(value) : value;
+      // 旧快照会把已停止解析的旧 NIBI 域名一起缓存下来（icon/hero/homepage 等纯展示
+      // 字段），解析时按 hostname 精确迁移，避免存量用户始终看到破图或旧链接；
+      // 第三方域名与本地路径原样保留。
+      listing[key] = migrateLegacyNibiUrl(value);
     }
   }
   const author = normalizeAuthorValue(entry.author);
   if (author?.name) listing.author = author.name;
-  if (author?.url) listing.authorUrl = author.url;
+  if (author?.url) listing.authorUrl = migrateLegacyNibiUrl(author.url);
   const examplePrompts = Array.isArray(entry.examplePrompts)
     ? entry.examplePrompts.filter(
         (item): item is string => typeof item === "string" && item.trim().length > 0,
@@ -3083,6 +3097,31 @@ function readJsonFileSync(path: string): unknown {
     return JSON.parse(readFileSync(readablePath, "utf8")) as unknown;
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * 整份快照的旧域名迁移（不只是 icon/heroImage）。
+ * 返回 changed 让调用方决定是否回写，未命中旧域名时保持文件字节不变。
+ */
+function migrateMarketplaceSnapshotHosts(value: unknown): { value: unknown; changed: boolean } {
+  if (value === undefined) return { value, changed: false };
+  const migrated = migrateUrlStrings(value);
+  return { value: migrated, changed: JSON.stringify(migrated) !== JSON.stringify(value) };
+}
+
+function writeJsonFileSync(path: string, value: unknown): void {
+  const temporary = `${path}.migrate.tmp`;
+  try {
+    writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    renameSync(temporary, path);
+  } catch {
+    // 只读盘/被占用时放弃回写：本次仍用迁移后的内存结果，下次读取再试。
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      // 清理失败无副作用。
+    }
   }
 }
 
