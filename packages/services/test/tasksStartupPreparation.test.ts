@@ -217,3 +217,38 @@ it("startup receives old settings before marking the project migration complete"
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+it("prunes unmaterialized placeholders during startup preparation when the session db is known", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "zcode-startup-prune-"));
+  const path = join(dir, "tasks.sqlite");
+  const agentSessionDbPath = join(dir, "sessions.sqlite");
+  try {
+    await prepareTasksIndexStorage(path, () => {});
+    const seed = new DatabaseSync(path);
+    try {
+      seed
+        .prepare(
+          "INSERT INTO tasks(workspace_key,workspace_path,task_id,created_at,updated_at,host_id,root_path) VALUES('/draft','/draft','session_ghost',0,0,'local','/draft')",
+        )
+        .run();
+    } finally {
+      seed.close();
+    }
+    const sessionDb = new DatabaseSync(agentSessionDbPath);
+    sessionDb.exec("CREATE TABLE session(id TEXT PRIMARY KEY)");
+    sessionDb.close();
+
+    await prepareTasksIndexStorage(path, () => {}, undefined, { agentSessionDbPath });
+
+    const db = new DatabaseSync(path);
+    try {
+      expect(
+        db.prepare("SELECT count(*) AS count FROM tasks WHERE task_id='session_ghost'").get(),
+      ).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

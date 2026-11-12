@@ -23,7 +23,7 @@ export interface TaskFactStore {
   markCliOrphan(target: TaskFactTarget): Promise<void>;
   listReconciliationRows(
     target: TaskWorkspace,
-  ): Promise<Array<{ meta: ZCodeTaskMeta; handoffPending: number }>>;
+  ): Promise<Array<{ meta: ZCodeTaskMeta; handoffPending: number; unmaterialized?: boolean }>>;
   getTaskMeta(target: TaskFactTarget): Promise<ZCodeTaskMeta | null>;
 }
 export interface TaskFactSource {

@@ -112,6 +112,39 @@ function resolveDirectories(
   };
 }
 
+function readTaskMetaJson(raw: unknown): Record<string, unknown> | null {
+  // 旧版行可能没有 meta_json 列（NULL/空串）；这属于展示字段缺省，不丢历史任务。
+  if (typeof raw !== "string" || raw.trim() === "") return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
+    // `'{}'` 是 tasks 表的列默认值，也是 createSession 占位行留下的空事实：
+    // 没有任何会话字段，不能作为可展示会话。带字段的旧版部分 meta 仍按 legacy
+    // 处理（字段缺省由行/展示层补齐），避免把历史会话一起隐藏。
+    return Object.keys(parsed).length > 0 ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    // 损坏的 meta_json 不是可展示的会话事实；跳过该行，避免整棵项目树读取失败。
+    return null;
+  }
+}
+
+/**
+ * 本地 createSession 是否需要在 CLI 事实到达前写占位行。
+ *
+ * 只有两种创建需要提前固定归属：显式项目（多根项目无法仅凭 workspacePath 反推）和
+ * 显式 additionalDirectories（执行目录必须冻结）。无项目、无额外目录的 createSession
+ * 都是草稿预热/全局新任务，CLI facts 首次写入时 admitTaskIdentity 会补 host/project，
+ * 不需要先写一行 meta_json='{}' 的索引行。
+ *
+ * 远端 Host 不能据此跳过 reserveCreatedTask：它还承担 remote-project-required 校验。
+ */
+export function shouldReserveCreatedTask(input: {
+  projectId: string | null;
+  additionalDirectories?: string[];
+}): boolean {
+  return input.projectId !== null || input.additionalDirectories !== undefined;
+}
+
 function readTasks(db: DatabaseSync): ProjectTask[] {
   // 迁移后的旧后端行也有 CLI 时间；沿用列表的 provider 边界，避免展示 Controller 无法操作的会话。
   return db
@@ -119,12 +152,13 @@ function readTasks(db: DatabaseSync): ProjectTask[] {
       "SELECT * FROM tasks WHERE provider=? AND deleted=0 AND coalesce(cli_deleted,0)=0 AND cli_created_at IS NOT NULL ORDER BY cli_updated_at DESC,task_id",
     )
     .all(NIBI_AGENT_PROVIDER)
-    .map((row) => {
-      const meta = typeof row.meta_json === "string" ? JSON.parse(row.meta_json) : {};
-      return {
+    .flatMap((row) => {
+      const meta = readTaskMetaJson(row.meta_json);
+      if (!meta) return [];
+      return [{
         ...meta,
         taskId: String(row.task_id),
-        traceId: meta.traceId ?? generateTraceId(String(row.task_id)),
+        traceId: (meta.traceId as string | undefined) ?? generateTraceId(String(row.task_id)),
         workspacePath: String(row.root_path),
         workspaceIdentity:
           row.workspace_identity === row.workspace_key
@@ -142,13 +176,13 @@ function readTasks(db: DatabaseSync): ProjectTask[] {
             : row.cli_last_outcome
               ? "completed"
               : undefined,
-        mode: meta.mode ?? "default",
+        mode: (meta.mode as ProjectTask["mode"] | undefined) ?? "default",
         pinned: row.pinned === 1,
         archived: row.archived === 1,
         unreadAt: row.unread_at == null ? undefined : Number(row.unread_at),
         projectId: row.project_id == null ? null : String(row.project_id),
         hostId: String(row.host_id),
-      };
+      } as ProjectTask];
     });
 }
 
@@ -326,19 +360,27 @@ export class ProjectRepository implements ProjectRepositoryContract, ProjectData
   }
 
   readProjectTaskRefs(projectId: string): ProjectTaskRef[] {
+    // 项目数据清理只面向 CLI 已知会话。createSession 预留行（cli_created_at IS NULL）
+    // 还没有任何正文/记忆/检查点，若列出来就会变成 0 B 幽灵会话；meta_json 非法
+    // （含列默认值 '{}'）的行同样不是可展示会话。
     return this.db
       .prepare(
-        "SELECT task_id,workspace_path,workspace_identity,workspace_key FROM tasks WHERE project_id=? AND host_id=? ORDER BY task_id",
+        "SELECT task_id,workspace_path,workspace_identity,workspace_key,meta_json FROM tasks WHERE project_id=? AND host_id=? AND cli_created_at IS NOT NULL ORDER BY task_id",
       )
       .all(projectId, this.ownerHostId ?? "local")
-      .map((row) => ({
-        taskId: String(row.task_id),
-        workspacePath: String(row.workspace_path),
-        ...(typeof row.workspace_identity === "string" &&
-        row.workspace_identity !== row.workspace_key
-          ? { workspaceIdentity: String(row.workspace_identity) }
-          : {}),
-      }));
+      .flatMap((row) => {
+        if (readTaskMetaJson(row.meta_json) === null) return [];
+        return [
+          {
+            taskId: String(row.task_id),
+            workspacePath: String(row.workspace_path),
+            ...(typeof row.workspace_identity === "string" &&
+            row.workspace_identity !== row.workspace_key
+              ? { workspaceIdentity: String(row.workspace_identity) }
+              : {}),
+          },
+        ];
+      });
   }
 
   readTaskScopes(): Array<{ projectId: string | null; cwd: string }> {

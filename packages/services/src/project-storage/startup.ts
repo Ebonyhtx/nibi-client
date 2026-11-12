@@ -34,6 +34,13 @@ export async function prepareTasksIndexStorage(
     AppSettings,
     "lastWorkspaceSession" | "recentProjects" | "sourceServers" | "connectionProfiles"
   >,
+  options?: {
+    /**
+     * CLI 会话库路径（`session` 表）。只有调用方能在本机确定它时才传；缺省时启动
+     * 自愈只清理 CLI 对账已确认 orphan 的占位行。传 null/undefined 不会读用户库。
+     */
+    agentSessionDbPath?: string | null;
+  },
 ): Promise<void> {
   // 回调拿到的是当时事实，不共享后续执行会继续递增的内部对象。
   const report = (phase: TasksStoragePhase, migration?: DatabaseMigrationFacts) =>
@@ -100,7 +107,15 @@ export async function prepareTasksIndexStorage(
   }
   markTasksStorageMigrated(path);
   const repos = [
-    new TaskIndexRepo(settings, undefined, path, LOCK_WAIT_MS),
+    // 启动入口才开启占位行自愈：tasks-index 是全局共享库，惰性副仓库/测试实例不得清理。
+    new TaskIndexRepo(
+      settings,
+      undefined,
+      path,
+      LOCK_WAIT_MS,
+      true,
+      options?.agentSessionDbPath ?? null,
+    ),
     new AutomationRepo(path, LOCK_WAIT_MS),
   ];
   let preparationFailure: unknown;

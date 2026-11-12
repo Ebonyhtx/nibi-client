@@ -17,6 +17,7 @@ import {
   shouldRescanTaskAutoArchive,
 } from "#src/project/index.js";
 import { createProjectDataPort } from "#src/project/data/project-data-port.js";
+import { shouldReserveCreatedTask } from "#src/project-storage/project-repository.js";
 import { isZCodeAgentSessionDataUnsupportedError } from "#src/zcode-agent/zcodeAgentErrors.js";
 export { createLegacySingleRootProjectService } from "#src/project/index.js";
 export { createRemoteProjectService } from "#src/remote-projects/index.js";
@@ -2234,12 +2235,32 @@ export function createLocalServices(options: {
   });
   const zcodeAgentService = createZCodeAgentService({
     prepareProjectExecution,
-    prepareSessionCreation: async (target) =>
-      (await taskIndexRepo.getProjectRepository()).reserveCreatedTask({
+    prepareSessionCreation: async (target) => {
+      // 无项目、无显式额外目录的 createSession 是草稿预热/全局新任务。CLI facts 首次
+      // 落库时 admitTaskIdentity 会补 host/project；提前写索引行只会留下
+      // meta_json='{}'、created_at=0 的 0 B 幽灵会话（draft prewarm 每次建会话一行）。
+      // 远端 Host 例外：reserveCreatedTask 还承担 remote-project-required 校验，
+      // 不能因为跳过写行而放过无项目归属的远端会话。
+      const remoteOwner =
+        options?.projectStorageHostId !== undefined &&
+        options.projectStorageHostId !== "local";
+      if (!remoteOwner && !shouldReserveCreatedTask(target)) return [];
+      return (
+        await taskIndexRepo.getProjectRepository()
+      ).reserveCreatedTask({
         task: { ...target, taskId: target.sessionId },
         projectId: target.projectId,
         additionalDirectories: target.additionalDirectories,
-      }).additionalDirectories,
+      }).additionalDirectories;
+    },
+    // createSession 被拒 / draft session 被 deleteSession 回收后，占位行没有任何
+    // CLI 会话可对应；只有真正落过 CLI facts 的行会被 removeUnmaterializedTask 拒绝删除。
+    discardPreparedSession: async (target) =>
+      taskIndexRepo.removeUnmaterializedTask({
+        workspacePath: target.workspacePath,
+        workspaceIdentity: target.workspaceIdentity,
+        taskId: target.taskId,
+      }),
     resolveSessionDirectories: async (target) =>
       (await projectService.resolveSessionDirectories({ ...target, taskId: target.sessionId }))
         .additionalDirectories,
@@ -3035,7 +3056,16 @@ export async function migrateApplicationStorage(
   hostId?: string,
 ): Promise<{ backupSkipped: boolean }> {
   const automations = new AutomationRepo();
-  const tasks = new TaskIndexRepo(settings, hostId);
+  // 应用启动屏障也要清历史 draft 占位行；CLI 会话库路径无法确定时只按 orphan 证据清理。
+  const agentSessionDbPath = await resolveAgentSessionDbPath().catch(() => null);
+  const tasks = new TaskIndexRepo(
+    settings,
+    hostId,
+    undefined,
+    undefined,
+    true,
+    agentSessionDbPath,
+  );
   try {
     await automations.ensureReady();
     await tasks.ensureReady();

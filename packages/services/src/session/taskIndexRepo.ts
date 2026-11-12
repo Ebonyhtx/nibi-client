@@ -4,7 +4,7 @@ import {
   isTasksStoragePrepared,
 } from "#src/session/tasksDatabase/prepared.js";
 /* eslint-disable max-lines -- task 索引仓库集中维护 sqlite schema、查询和状态写入，迁移稳定后再按读写职责拆分。 */
-import { mkdir } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import {
@@ -120,6 +120,46 @@ function resolveTaskIndexRowWorkspaceIdentity(row: TaskIndexRow): string | undef
   return undefined;
 }
 
+/**
+ * Host 为 createSession 预留归属时写入的占位行：只有 workspace/task 主键，没有任何 CLI 事实。
+ *
+ * `cli_created_at` 只由 syncer 的 CLI 事实写入；`created_at<=0` 是 reserveCreatedTask 的固定占位值。
+ * 这类行不是用户会话：列表/清理计数必须跳过，只有在 CLI 明确确认会话不存在（reconcile
+ * orphan）或磁盘会话库可确定且无该 ID 后才能自愈删除。
+ */
+function isUnmaterializedTaskRow(
+  row: Pick<TaskIndexRow, "created_at" | "cli_created_at">,
+): boolean {
+  return row.cli_created_at == null && row.created_at <= 0;
+}
+
+/**
+ * 列表/项目计数只接受真实会话：CLI 事实必须存在，且 meta_json 不能是空事实。
+ *
+ * - 旧版 NULL/空串 meta 按展示字段缺省处理（历史 CLI 行可能从未写 meta）；
+ * - `'{}'` 是列默认值/占位行遗留的空事实，没有任何会话字段，不能进入列表；
+ * - 解析失败或非对象是损坏数据，跳过；
+ * - 带字段的部分旧 meta 仍算 legacy（字段缺省由行/展示层补齐），避免隐藏历史会话。
+ *
+ * 占位行（created_at<=0 且没有 cli_created_at）始终不可列举；它们仍参与 CLI 对账
+ * 与启动自愈。
+ */
+function isListableTaskRow(
+  row: Pick<TaskIndexRow, "created_at" | "cli_created_at" | "meta_json">,
+): boolean {
+  if (isUnmaterializedTaskRow(row)) return false;
+  if (row.cli_created_at == null || row.cli_created_at <= 0) return false;
+  if (typeof row.meta_json !== "string" || row.meta_json.trim() === "") return true;
+  try {
+    const parsed: unknown = JSON.parse(row.meta_json);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? Object.keys(parsed).length > 0
+      : false;
+  } catch {
+    return false;
+  }
+}
+
 function rowToMeta(row: TaskIndexRow): ZCodeTaskMeta {
   const meta = readPresentation(row);
   return {
@@ -135,6 +175,9 @@ function rowToMeta(row: TaskIndexRow): ZCodeTaskMeta {
 
 function readPresentation(row: TaskIndexRow): ZCodeTaskMeta {
   const workspaceIdentity = resolveTaskIndexRowWorkspaceIdentity(row);
+  // 预留占位行的 meta_json 是列默认值 '{}'，不是损坏数据；对账会周期性读取它们，
+  // 不能每轮都按非法 meta 打 warn（历史日志曾因此成片刷屏）。
+  const unmaterialized = isUnmaterializedTaskRow(row);
   try {
     const parsed = zcodeTaskMetaSchema.safeParse(JSON.parse(row.meta_json));
     if (parsed.success) {
@@ -154,13 +197,17 @@ function readPresentation(row: TaskIndexRow): ZCodeTaskMeta {
         titleOverridden: row.title_overridden === 1,
       };
     }
-    logger.warn(
-      undefined,
-      `读取 task index meta_json 非法 taskId=${row.task_id}`,
-      parsed.error.flatten(),
-    );
+    if (!unmaterialized) {
+      logger.warn(
+        undefined,
+        `读取 task index meta_json 非法 taskId=${row.task_id}`,
+        parsed.error.flatten(),
+      );
+    }
   } catch (error) {
-    logger.warn(undefined, `读取 task index meta_json 失败 taskId=${row.task_id}`, error);
+    if (!unmaterialized) {
+      logger.warn(undefined, `读取 task index meta_json 失败 taskId=${row.task_id}`, error);
+    }
   }
 
   return {
@@ -325,6 +372,15 @@ export class TaskIndexRepo {
     private readonly storageHostId?: string,
     private readonly startupDbPath?: string,
     private readonly startupBusyTimeoutMs = 5000,
+    /**
+     * 只有真正的应用启动入口才开启占位行自愈；测试/惰性副仓库不得清理共享 tasks-index。
+     */
+    private readonly pruneUnmaterializedOnStartup = false,
+    /**
+     * CLI 会话库（`session` 表）路径。仅用于启动自愈的磁盘缺席证据：路径不可确定时为
+     * undefined，此时只清理已被 CLI 对账确认 orphan 的占位行。测试可传临时库。
+     */
+    private readonly agentSessionDbPath?: string | null,
   ) {}
 
   /** Host 装配层共用迁移后的组织库；UI 只能通过 project/remote-projects 服务访问。 */
@@ -400,6 +456,131 @@ export class TaskIndexRepo {
     // acp_session_id。直接运行时映射会让 read/send/subscribe 到处变成双 ID 兜底；
     // 初始化时把索引行迁到真实 session id，后续统一走新协议正常路径。
     this.migrateLegacyAcpTaskIds();
+    if (this.pruneUnmaterializedOnStartup) await this.pruneUnmaterializedOrphanRows();
+  }
+
+  /**
+   * 启动自愈：删除已被证明没有对应 CLI 会话的创建占位行。
+   *
+   * 写入方是 reserveCreatedTask（createSession 先占项目归属）。draft prewarm 的会话只在
+   * CLI 内存中存在（v4 createSession 初始 persistence=deferred），正常回收会发
+   * deleteSession；进程崩溃/旧版本会让占位行永远留着。
+   *
+   * 两条删除证据：
+   * 1. handoff_pending orphan bit 只由 task-facts 在 CLI reconcile 明确返回 exists=false 时写入；
+   * 2. 可确定的 CLI 会话库已能打开，但该 taskId 在 `session` 表不存在——旧版本遗留的
+   *    draft 占位行没有 orphan 标记，也不会再触发对账，只能靠磁盘事实清理。
+   *
+   * 无法确定会话库（相对路径/project 覆盖/打不开）时只按 orphan 证据清理，宁可少删。
+   * 有 cli_created_at 的行哪怕 orphan 也保留（tombstone 是用户数据）。
+   */
+  private async pruneUnmaterializedOrphanRows(): Promise<number> {
+    const db = this.getDatabase();
+    const rows = db
+      .prepare(
+        `SELECT workspace_key, task_id, created_at, cli_created_at, handoff_pending
+        FROM tasks
+        WHERE cli_created_at IS NULL
+          AND created_at <= 0
+          AND (handoff_pending & 3) = 0`,
+      )
+      .all() as Array<{
+      workspace_key: string;
+      task_id: string;
+      created_at: number;
+      cli_created_at: number | null;
+      handoff_pending: number;
+    }>;
+    if (rows.length === 0) return 0;
+    // cron / 运行历史仍引用的会话 ID 不能因为索引行缺失就清掉投影；保留行，交给引用方处理。
+    const referenced = this.readReferencedAutomationSessionIds();
+    const persisted = await this.readPersistedAgentSessionIds(rows.map((row) => row.task_id));
+    const victims = rows.filter((row) => {
+      if (!isUnmaterializedTaskRow(row) || referenced.has(row.task_id)) return false;
+      const orphanConfirmed = (row.handoff_pending & 4) !== 0;
+      // persisted=null 表示无法取得磁盘证据；此时只信 CLI orphan 结论。
+      return orphanConfirmed || (persisted !== null && !persisted.has(row.task_id));
+    });
+    if (victims.length === 0) return 0;
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const statement = db.prepare("DELETE FROM tasks WHERE workspace_key=? AND task_id=?");
+      for (const row of victims) statement.run(row.workspace_key, row.task_id);
+      db.exec("COMMIT");
+    } catch (error) {
+      if (db.isTransaction) db.exec("ROLLBACK");
+      throw error;
+    }
+    const orphanConfirmed = victims.filter((row) => (row.handoff_pending & 4) !== 0).length;
+    logger.info(undefined, `清理无 CLI 会话的空任务占位行 数量=${victims.length}`, {
+      orphanConfirmed,
+      diskAbsent: persisted === null ? null : victims.length - orphanConfirmed,
+    });
+    return victims.length;
+  }
+
+  /**
+   * 读取 CLI 会话库里真实存在的 session id。
+   *
+   * 返回 null = 无法确定（未提供路径、库文件不存在/不可读、没有 session 表），调用方
+   * 不得据此删除任何行。只读打开并设置 busy_timeout，WAL 中未 checkpoint 的行也可见。
+   * 任何异常都降级为 null，启动自愈不能阻断应用启动。
+   */
+  private async readPersistedAgentSessionIds(ids: string[]): Promise<Set<string> | null> {
+    const path = this.agentSessionDbPath?.trim();
+    if (!path) return null;
+    try {
+      const file = await stat(path);
+      if (!file.isFile()) return null;
+      const sessionDb = new DatabaseSync(path, { readOnly: true });
+      try {
+        sessionDb.exec("PRAGMA busy_timeout = 2000");
+        const hasTable = sessionDb
+          .prepare(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='session') AS has",
+          )
+          .get() as { has?: number } | undefined;
+        if (!hasTable?.has) return null;
+        const statement = sessionDb.prepare("SELECT 1 FROM session WHERE id = ?");
+        const persisted = new Set<string>();
+        for (const id of ids) {
+          if (statement.get(id)) persisted.add(id);
+        }
+        return persisted;
+      } finally {
+        sessionDb.close();
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      // ENOENT：CLI 还没有会话库 = 没有任何持久化会话，但默认路径也可能被自定义配置
+      // 覆盖；保守起见仍视为“无法确定”，只走 orphan 证据。
+      if (code !== "ENOENT") {
+        logger.warn(undefined, "读取 CLI 会话库失败，跳过磁盘占位行自愈", error);
+      }
+      return null;
+    }
+  }
+
+  private readReferencedAutomationSessionIds(): Set<string> {
+    const db = this.getDatabase();
+    const referenced = new Set<string>();
+    if (this.hasColumn("automations", "target_task_id")) {
+      for (const row of db
+        .prepare(
+          "SELECT target_task_id AS session_id FROM automations WHERE target_task_id IS NOT NULL",
+        )
+        .all() as Array<{ session_id: string }>) {
+        referenced.add(row.session_id);
+      }
+    }
+    if (this.hasColumn("automation_runs", "session_id")) {
+      for (const row of db
+        .prepare("SELECT session_id FROM automation_runs WHERE session_id IS NOT NULL")
+        .all() as Array<{ session_id: string }>) {
+        referenced.add(row.session_id);
+      }
+    }
+    return referenced;
   }
 
   private hasColumn(table: string, column: string): boolean {
@@ -849,12 +1030,20 @@ export class TaskIndexRepo {
   async listReconciliationRows(target: {
     workspacePath: string;
     workspaceIdentity?: string;
-  }): Promise<Array<{ meta: ZCodeTaskMeta; handoffPending: number }>> {
+  }): Promise<
+    Array<{ meta: ZCodeTaskMeta; handoffPending: number; unmaterialized?: boolean }>
+  > {
     await this.ensureReady();
     const rows = this.getDatabase()
       .prepare("SELECT * FROM tasks WHERE workspace_key=?")
       .all(workspaceKey(target)) as unknown as TaskIndexRow[];
-    return rows.map((row) => ({ meta: rowToMeta(row), handoffPending: row.handoff_pending ?? 0 }));
+    return rows.map((row) => ({
+      meta: rowToMeta(row),
+      handoffPending: row.handoff_pending ?? 0,
+      // 占位行仍要参与第一次对账（拿到 CLI 缺席证据后才能自愈删除），
+      // 但调用方不能把它当成用户会话广播或计数。
+      unmaterialized: isUnmaterializedTaskRow(row),
+    }));
   }
 
   /** CLI 确认 child 后移除旧版本误建的派生行，不修改会话正文或 CLI deleted。 */
@@ -884,6 +1073,49 @@ export class TaskIndexRepo {
         )
         .run(workspaceKey(target), target.taskId);
     });
+  }
+
+  /**
+   * 删除尚未落任何 CLI 事实的创建占位行。
+   *
+   * 只允许在两条证据路径调用：CLI 已确认 deleteSession 成功（draft prewarm 回收），
+   * 或 task-facts 对账返回 exists=false 且该行此前已被标记 orphan。已有 cli_created_at
+   * 的用户会话一律返回 false，不能借清理路径删真实数据。
+   */
+  async removeUnmaterializedTask(target: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+  }): Promise<boolean> {
+    await this.ensureReady();
+    return this.enqueueWrite(target, () => {
+      const db = this.getDatabase();
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        const row = this.getTaskRow(target);
+        if (!row || !isUnmaterializedTaskRow(row)) {
+          db.exec("COMMIT");
+          return false;
+        }
+        const result = db
+          .prepare("DELETE FROM tasks WHERE workspace_key=? AND task_id=?")
+          .run(workspaceKey(target), target.taskId);
+        db.exec("COMMIT");
+        return Number(result.changes) > 0;
+      } catch (error) {
+        if (db.isTransaction) db.exec("ROLLBACK");
+        throw error;
+      }
+    });
+  }
+
+  /** task-facts 对账端口：已有 CLI 缺席证据的占位行，条件满足时删除。 */
+  async removeUnmaterializedOrphan(target: {
+    workspacePath: string;
+    workspaceIdentity?: string;
+    taskId: string;
+  }): Promise<boolean> {
+    return this.removeUnmaterializedTask(target);
   }
 
   /** 仅 syncer 消费 CLI 明确删除，不以列表缺席推断删除。 */
@@ -1205,7 +1437,7 @@ export class TaskIndexRepo {
         pinned: typeof params.pinned === "boolean" ? (params.pinned ? 1 : 0) : null,
         archived: typeof params.archived === "boolean" ? (params.archived ? 1 : 0) : null,
       }) as unknown as TaskIndexRow[];
-    return rows.map(rowToMeta);
+    return rows.filter(isListableTaskRow).map(rowToMeta);
   }
 
   /**
@@ -1281,23 +1513,16 @@ export class TaskIndexRepo {
       args.push(normalizedSearchLike, normalizedSearchLike);
     }
     const whereClause = where.join(" AND ");
-    const totalRow = this.getDatabase()
-      .prepare(`SELECT COUNT(1) AS total FROM tasks WHERE ${whereClause}`)
-      .get(...args) as { total: number } | undefined;
-    const total = totalRow?.total ?? 0;
 
     const limit = normalizeLimit(params.limit);
-    const listArgs: Array<string | number> = [...args];
-    if (limit !== null) {
-      listArgs.push(limit);
-    }
     const orderBy =
       params.sortBy === "created"
         ? "cli_created_at DESC, cli_updated_at DESC, task_id DESC"
         : "cli_updated_at DESC, cli_created_at DESC, task_id DESC";
-    const rows = this.getDatabase()
-      .prepare(
-        `SELECT
+    const rows = (
+      this.getDatabase()
+        .prepare(
+          `SELECT
           workspace_key,
           workspace_path,
           workspace_identity,
@@ -1321,9 +1546,14 @@ export class TaskIndexRepo {
           meta_json, cli_title, cli_title_source, cli_created_at, cli_updated_at, cli_last_outcome, cli_deleted, handoff_pending
         FROM tasks
         WHERE ${whereClause}
-        ORDER BY ${orderBy}${limit === null ? "" : " LIMIT ?"}`,
-      )
-      .all(...listArgs) as unknown as TaskIndexRow[];
+        ORDER BY ${orderBy}`,
+        )
+        .all(...args) as unknown as TaskIndexRow[]
+    ).filter(isListableTaskRow);
+    // 非法 meta / 占位行必须在分页前剔除：否则 total 与 items 会包含幽灵会话，
+    // 而 SQL LIMIT 又会让“跳过”表现为该页凭空变短。
+    const total = rows.length;
+    const pageRows = limit === null ? rows : rows.slice(0, limit);
     const workspacePurposeByKey = new Map(
       params.workspaceScopes.flatMap((scope) =>
         scope.workspacePurpose ? [[workspaceKey(scope), scope.workspacePurpose] as const] : [],
@@ -1331,13 +1561,13 @@ export class TaskIndexRepo {
     );
 
     return {
-      items: rows.map((row) => {
+      items: pageRows.map((row) => {
         const item = rowToTaskListItem(row, search ?? null);
         const workspacePurpose = workspacePurposeByKey.get(row.workspace_key);
         return workspacePurpose ? { ...item, workspacePurpose } : item;
       }),
       total,
-      hasMore: total > rows.length,
+      hasMore: total > pageRows.length,
     };
   }
 
@@ -1348,7 +1578,9 @@ export class TaskIndexRepo {
   }): Promise<ZCodeTaskMeta | null> {
     await this.ensureReady();
     const row = this.getTaskRow(params);
-    if (!row || row.deleted === 1) {
+    // 显式按 ID 查询也不能把占位行/损坏 meta 当成会话返回；调用方据此决定
+    // 是否广播、建目录或显示 0 B 会话。
+    if (!row || row.deleted === 1 || !isListableTaskRow(row)) {
       return null;
     }
     return rowToMeta(row);
