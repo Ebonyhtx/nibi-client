@@ -153,6 +153,7 @@ it("并发 Source/Core 初始化只记账一次，默认业务表与远端扩展
         { id: "0004_project_execution_scopes" },
         { id: "0005_source_server_workspace_schema" },
         { id: "0006_task_group_admissions" },
+        { id: "0007_nibi_agent_provider" },
       ]);
       expect(db.prepare("PRAGMA integrity_check").get()?.integrity_check).toBe("ok");
     } finally {
@@ -289,8 +290,9 @@ it("Source 首次创建 session identity 表时登记 schema_migration，已有 
     await repo.resolveCanonicalWorkspaceKey({ workspacePath: "/repo", legacyRouteHint: canonical });
     expect(sessionDb.prepare("SELECT id FROM schema_migration").all()).toEqual([
       { id: "0024_session_database_identity" },
+      { id: "0025_session_database_identity_rename" },
     ]);
-    expect(sessionDb.prepare("SELECT identity FROM zcode_database_identity").get()).toEqual({
+    expect(sessionDb.prepare("SELECT identity FROM nibi_database_identity").get()).toEqual({
       identity: "legacy-generation",
     });
   } finally {
@@ -317,7 +319,7 @@ it.each(["base", "controller-remote", "source-server"] as const)(
         migration,
         onProgress: (phase) => phases.push(phase),
       });
-      const expectedCount = scope === "base" ? 5 : 1;
+      const expectedCount = scope === "base" ? 6 : 1;
       expect(db.isTransaction).toBe(false);
       expect(migration).toEqual({
         kind: "initialize",

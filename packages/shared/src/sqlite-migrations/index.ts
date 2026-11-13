@@ -21,6 +21,7 @@ export {
   ensureSqliteSchemaMigrationTable,
   SqliteSchemaMigrationChecksumError,
   SESSION_DATABASE_IDENTITY_MIGRATION,
+  SESSION_DATABASE_IDENTITY_RENAME_MIGRATION,
   runSessionDatabaseIdentityMigration,
 } from "./legacy.js";
 export type { SqliteSchemaMigration } from "./legacy.js";

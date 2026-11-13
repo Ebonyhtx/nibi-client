@@ -2,7 +2,7 @@
 use super::*;
 
 /// Node 记录在账本里的校验和（用户现有库同值，由 Node `SQLITE_MIGRATIONS` 计算核对）。
-const EXPECTED: [(&str, &str); 24] = [
+const EXPECTED: [(&str, &str); 25] = [
     (
         "0001_base_session_store",
         "60e2d6a38ab36f31417c4f92c02690c96c7dcaaa0b6abe1741117d62a55c6462",
@@ -98,6 +98,10 @@ const EXPECTED: [(&str, &str); 24] = [
     (
         "0024_session_database_identity",
         "3eb41922313d66d492544ac05e0b314d55cdccbfc49f118768c0b4b0121e18b3",
+    ),
+    (
+        "0025_session_database_identity_rename",
+        "bc8d3d5299c797b61e80e133860c09ee52b3f900a07232e41395b1c0b8f1ea37",
     ),
 ];
 

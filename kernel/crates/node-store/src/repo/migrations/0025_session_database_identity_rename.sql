@@ -1,0 +1,1 @@
+ALTER TABLE zcode_database_identity RENAME TO nibi_database_identity;

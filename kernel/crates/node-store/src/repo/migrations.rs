@@ -33,7 +33,7 @@ macro_rules! migration {
 }
 
 /// Node `SQLITE_MIGRATIONS`，按执行顺序。
-pub const MIGRATIONS: [Migration; 24] = [
+pub const MIGRATIONS: [Migration; 25] = [
     migration!("0001_base_session_store", "0.2.0"),
     migration!("0002_local_setting", "0.2.0"),
     migration!("0003_backfill_permission_local_setting", "0.2.0"),
@@ -62,6 +62,7 @@ pub const MIGRATIONS: [Migration; 24] = [
         ["0020_session_soft_delete_outcome"]
     ),
     migration!("0024_session_database_identity", "0.16.9"),
+    migration!("0025_session_database_identity_rename", "4.0.3"),
 ];
 
 /// Node `migrationChecksum`：`sha256(sql.trim())` 的十六进制。

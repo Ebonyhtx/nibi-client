@@ -973,9 +973,9 @@ describe("Source Server workspace canonical alias", () => {
 
     for (const path of [sessionDbPath, join(backupRoot, migrationId, "db.sqlite")]) {
       const db = new DatabaseSync(path);
-      db.exec("DROP TABLE zcode_database_identity");
+      db.exec("DROP TABLE nibi_database_identity");
       // 旧 v2 制品尚无正式 identity migration，fixture 同时还原结构与账本。
-      db.exec("DELETE FROM schema_migration WHERE id = '0024_session_database_identity'");
+      db.exec("DELETE FROM schema_migration WHERE id IN ('0024_session_database_identity', '0025_session_database_identity_rename')");
       db.close();
     }
     const legacyTaskDb = new DatabaseSync(taskDbPath);
@@ -1090,7 +1090,7 @@ describe("Source Server workspace canonical alias", () => {
     expect(
       untouched
         .prepare(
-          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'zcode_database_identity'",
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'nibi_database_identity'",
         )
         .get(),
     ).toBeUndefined();

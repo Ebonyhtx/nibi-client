@@ -1,6 +1,11 @@
 import { DatabaseSync } from "node:sqlite";
 
 const identifier = (name) => `"${name.replaceAll('"', '""')}"`;
+// 去品牌表重命名必须登记；两边列/约束按同一张表核对，不能借 rename 删列。
+const TABLE_RENAMES = new Map([
+  ["zcode_database_identity", "nibi_database_identity"],
+  ["nibi_database_identity", "zcode_database_identity"],
+]);
 // 字符串中的 CHECK/括号不是约束，字面量大小写也不能随 SQL 关键字一起归一化。
 function sqlTokens(sql) {
   return (
@@ -66,15 +71,29 @@ export function assertAdditiveSchema(beforeSql, afterSql) {
       .all();
     for (const { name } of oldTables) {
       const oldColumns = before.prepare(`PRAGMA table_info(${identifier(name)})`).all();
-      const newColumns = after.prepare(`PRAGMA table_info(${identifier(name)})`).all();
+      const renamed = TABLE_RENAMES.get(name);
+      const afterName = renamed && !after.prepare(`PRAGMA table_info(${identifier(renamed)})`).all().length
+        ? undefined
+        : renamed ?? name;
+      const newColumns = after.prepare(`PRAGMA table_info(${identifier(afterName ?? name)})`).all();
       if (!newColumns.length) throw new Error(`Removed table: ${name}`);
-      if (JSON.stringify(checks(before, name)) !== JSON.stringify(checks(after, name)))
-        throw new Error(`Changed CHECK constraints: ${name}`);
-      if (
-        JSON.stringify(automaticUniqueKeys(before, name)) !==
-        JSON.stringify(automaticUniqueKeys(after, name))
-      )
-        throw new Error(`Changed UNIQUE constraints: ${name}`);
+      if (afterName && afterName !== name) {
+        if (JSON.stringify(checks(before, name)) !== JSON.stringify(checks(after, afterName)))
+          throw new Error(`Changed CHECK constraints: ${name} -> ${afterName}`);
+        if (
+          JSON.stringify(automaticUniqueKeys(before, name)) !==
+          JSON.stringify(automaticUniqueKeys(after, afterName))
+        )
+          throw new Error(`Changed UNIQUE constraints: ${name} -> ${afterName}`);
+      } else {
+        if (JSON.stringify(checks(before, name)) !== JSON.stringify(checks(after, name)))
+          throw new Error(`Changed CHECK constraints: ${name}`);
+        if (
+          JSON.stringify(automaticUniqueKeys(before, name)) !==
+          JSON.stringify(automaticUniqueKeys(after, name))
+        )
+          throw new Error(`Changed UNIQUE constraints: ${name}`);
+      }
       for (const column of oldColumns) {
         const next = newColumns.find((value) => value.name === column.name);
         if (!next) throw new Error(`Removed column: ${name}.${column.name}`);
@@ -93,7 +112,7 @@ export function assertAdditiveSchema(beforeSql, afterSql) {
         }
       }
       const oldFks = before.prepare(`PRAGMA foreign_key_list(${identifier(name)})`).all();
-      const newFks = after.prepare(`PRAGMA foreign_key_list(${identifier(name)})`).all();
+      const newFks = after.prepare(`PRAGMA foreign_key_list(${identifier(afterName ?? name)})`).all();
       for (const key of oldFks) {
         if (
           !newFks.some((value) =>

@@ -70,22 +70,35 @@ export const SESSION_DATABASE_IDENTITY_MIGRATION: SqliteSchemaMigration = {
   `,
 };
 
+// 0024 已发布且冻结；表名去品牌单独用 0025 接管，SQL 保持最小原子重命名。
+export const SESSION_DATABASE_IDENTITY_RENAME_MIGRATION: SqliteSchemaMigration = {
+  id: "0025_session_database_identity_rename",
+  appVersion: "4.0.3",
+  sql: `ALTER TABLE zcode_database_identity RENAME TO nibi_database_identity;`,
+};
+
 /** Source 可能先于 Agent 启动；只接管独立附加表，不代跑 Agent 的历史业务转换。 */
 export function runSessionDatabaseIdentityMigration(db: DatabaseSync): void {
   // 修复原因：已有 alias 的解析也执行此入口，重复抢写锁会被 Agent 写入阻塞。
   // 只读校验已登记项；未登记时由下面事务内的应用原语重新检查并原子记账。
+  const identityMigrations = [
+    SESSION_DATABASE_IDENTITY_MIGRATION,
+    SESSION_DATABASE_IDENTITY_RENAME_MIGRATION,
+  ] as const;
   if (
     db
       .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migration'")
       .get() &&
-    isMigrationApplied(db, SESSION_DATABASE_IDENTITY_MIGRATION)
+    identityMigrations.every((migration) => isMigrationApplied(db, migration))
   ) {
     return;
   }
   db.exec("BEGIN IMMEDIATE");
   try {
     ensureSqliteSchemaMigrationTable(db);
-    applySqliteSchemaMigration(db, SESSION_DATABASE_IDENTITY_MIGRATION);
+    for (const migration of identityMigrations) {
+      applySqliteSchemaMigration(db, migration);
+    }
     db.exec("COMMIT");
   } catch (error) {
     if (db.isTransaction) db.exec("ROLLBACK");

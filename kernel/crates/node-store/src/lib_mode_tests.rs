@@ -332,5 +332,5 @@ async fn the_database_is_created_with_its_directory_on_first_use() {
     assert!(!t.store.paths().database().as_path().exists());
     t.store.create(meta("sess_1", "/w", "")).await.unwrap();
     let ledger = t.rows("select count(*) from schema_migration");
-    assert_eq!(ledger[0][0], Value::from(24));
+    assert_eq!(ledger[0][0], Value::from(25));
 }

@@ -1,7 +1,10 @@
 import type { SqliteMigration } from "@nibi/shared/sqlite-migrations";
 export type { SqliteMigration } from "@nibi/shared/sqlite-migrations";
 import { PROVIDER_MODEL_SELECTION_MIGRATION_SQL } from "./migrations/0020-provider-model-selection.js";
-import { SESSION_DATABASE_IDENTITY_MIGRATION } from "@nibi/shared/sqlite-migrations";
+import {
+  SESSION_DATABASE_IDENTITY_MIGRATION,
+  SESSION_DATABASE_IDENTITY_RENAME_MIGRATION,
+} from "@nibi/shared/sqlite-migrations";
 
 import { OFFICIAL_GLM_SELECTION_MIGRATION_SQL } from "./migrations/0021-official-glm-selection.js";
 import { BACKFILLED_SESSION_REASONING_MIGRATION_SQL } from "./migrations/0022-backfilled-session-reasoning.js";
@@ -984,4 +987,8 @@ export const SQLITE_MIGRATIONS: readonly SqliteMigration[] = [
     `,
   },
   { ...SESSION_DATABASE_IDENTITY_MIGRATION, touchedTables: ["zcode_database_identity"] },
+  {
+    ...SESSION_DATABASE_IDENTITY_RENAME_MIGRATION,
+    touchedTables: ["zcode_database_identity", "nibi_database_identity"],
+  },
 ];

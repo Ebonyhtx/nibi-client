@@ -920,9 +920,9 @@ export class SourceServerWorkspaceAliasRepo {
   }
 
   private readSessionDatabaseGeneration(db: Database): string | null {
-    if (!hasTable(db, "zcode_database_identity")) return null;
+    if (!hasTable(db, "nibi_database_identity")) return null;
     const row = db
-      .prepare("SELECT identity FROM zcode_database_identity WHERE scope = 'session' LIMIT 1")
+      .prepare("SELECT identity FROM nibi_database_identity WHERE scope = 'session' LIMIT 1")
       .get() as { identity: string } | undefined;
     return row?.identity?.trim() || null;
   }
@@ -1006,7 +1006,7 @@ export class SourceServerWorkspaceAliasRepo {
     runSessionDatabaseIdentityMigration(db);
     const existing = this.readSessionDatabaseGeneration(db);
     if (existing) return existing;
-    db.prepare("INSERT INTO zcode_database_identity (scope, identity) VALUES ('session', ?)").run(
+    db.prepare("INSERT INTO nibi_database_identity (scope, identity) VALUES ('session', ?)").run(
       identity,
     );
     return identity;

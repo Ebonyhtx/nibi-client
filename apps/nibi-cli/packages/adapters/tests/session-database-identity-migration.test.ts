@@ -24,8 +24,8 @@ it.each(["source-first", "agent-first"])(
           .prepare("SELECT * FROM schema_migration WHERE id='0024_session_database_identity'")
           .get(),
       ).toEqual(initial);
-      expect(db.prepare("SELECT * FROM zcode_database_identity").all()).toEqual([]);
-      expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()?.n).toBe(24);
+      expect(db.prepare("SELECT * FROM nibi_database_identity").all()).toEqual([]);
+      expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()?.n).toBe(25);
     } finally {
       db.close();
     }
@@ -43,7 +43,7 @@ it("Source 记账失败回滚新表，Agent 与 Source 都拒绝已有 checksum 
       "injected identity ledger failure",
     );
     expect(
-      db.prepare("SELECT 1 FROM sqlite_master WHERE name='zcode_database_identity'").get(),
+      db.prepare("SELECT 1 FROM sqlite_master WHERE name='nibi_database_identity'").get(),
     ).toBeUndefined();
     expect(db.prepare("SELECT * FROM schema_migration").all()).toEqual([]);
     db.exec("DROP TRIGGER reject_identity");
@@ -54,6 +54,7 @@ it("Source 记账失败回滚新表，Agent 与 Source 都拒绝已有 checksum 
     // Agent 更早的迁移也在同一事务内回滚，损坏记录不会被覆盖。
     expect(db.prepare("SELECT id, checksum FROM schema_migration").all()).toEqual([
       { id: "0024_session_database_identity", checksum: "broken" },
+      { id: "0025_session_database_identity_rename", checksum: "broken" },
     ]);
   } finally {
     db.close();
@@ -74,7 +75,7 @@ it("Agent 正式迁移接管已有 Source identity，不覆盖代际且重复打
     const ledger = db.prepare("SELECT * FROM schema_migration ORDER BY id").all();
     await runSqliteSessionMigrations(db, ":memory:");
     expect(db.prepare("SELECT * FROM schema_migration ORDER BY id").all()).toEqual(ledger);
-    expect(db.prepare("SELECT identity FROM zcode_database_identity").get()).toEqual({
+    expect(db.prepare("SELECT identity FROM nibi_database_identity").get()).toEqual({
       identity: "existing-generation",
     });
   } finally {
@@ -107,7 +108,7 @@ it("Agent/Source 共用应用原语，identity SQL 成功但记账失败时保�
     });
     expect(db.isTransaction).toBe(false);
     expect(
-      db.prepare("SELECT 1 FROM sqlite_master WHERE name='zcode_database_identity'").get(),
+      db.prepare("SELECT 1 FROM sqlite_master WHERE name='nibi_database_identity'").get(),
     ).toBeUndefined();
     expect(
       db.prepare("SELECT 1 FROM sqlite_master WHERE name='schema_migration'").get(),

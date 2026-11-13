@@ -25,8 +25,8 @@ fn a_new_database_gets_every_node_migration_once() {
         facts,
         Facts {
             kind: "initialize",
-            executed: 24,
-            committed: 24,
+            executed: 25,
+            committed: 25,
             last_applied: None,
             baseline_read: true,
         }
@@ -62,7 +62,7 @@ fn a_new_database_gets_every_node_migration_once() {
             kind: "none",
             executed: 0,
             committed: 0,
-            last_applied: Some("0024_session_database_identity".to_owned()),
+            last_applied: Some("0025_session_database_identity_rename".to_owned()),
             baseline_read: true,
         }
     );
@@ -77,7 +77,7 @@ fn foreign_migrations_tables_and_columns_are_ignored() {
         let conn = Connection::open(&path).unwrap();
         // 官方构建的 0017_todo_state_revision、旧 Rust 的 0023_session_database_identity 与未来的迁移。
         conn.execute_batch(
-            "insert into schema_migration values ('0025_future_feature','x','3.12.0',1);
+            "insert into schema_migration values ('0026_future_feature','x','3.12.0',1);
              insert into schema_migration values ('0017_todo_state_revision','y','0.15.2',1);
              insert into schema_migration values ('0023_session_database_identity','z','0.16.9',1);
              create table todo_state(session_id text primary key, todo_revision integer not null, time_updated integer not null);",
@@ -129,7 +129,7 @@ fn a_gap_in_a_database_with_data_waits_for_node() {
     let count: i64 = conn
         .query_row("select count(*) from schema_migration", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(count, 23);
+    assert_eq!(count, 24);
 }
 
 #[test]
@@ -230,7 +230,7 @@ fn an_older_writer_that_migrates_while_we_wait_still_needs_a_backup() {
 }
 
 /// `--prepare-storage` 的进度序列（Node `runSqliteSessionMigrationsAsync` 的 onProgress 同一顺序）：
-/// 全新库 checking → checking(事实) → migrating×24 → committing → ready；已就绪的库只有 checking、
+/// 全新库 checking → checking(事实) → migrating×25 → committing → ready；已就绪的库只有 checking、
 /// checking(事实)、ready；损坏的库报 failed 且带分类码。帧字段由调用方组装，这里看 Progress 序列。
 #[test]
 fn progress_reports_the_node_sequence() {
@@ -303,7 +303,7 @@ fn progress_reports_the_node_sequence() {
             "none".to_owned(),
             0,
             0,
-            Some("0024_session_database_identity".to_owned())
+            Some("0025_session_database_identity_rename".to_owned())
         )
     );
 
