@@ -93,3 +93,81 @@ export function indicatorHtml(locale: Locale): string {
 export function indicatorDataUrl(locale: Locale): string {
   return `data:text/html;base64,${Buffer.from(indicatorHtml(locale), "utf8").toString("base64")}`;
 }
+
+/**
+ * 自有 agent 光标浮层：一个透明小窗口，只画箭头 + 落点涟漪。
+ *
+ * 为什么不复用驱动 overlay：0.47.23 的 overlay 在 Win10 需要 UI event loop，
+ * `get_agent_cursor_state.enabled` 恒为 false（真机实测），且它的光标属于引擎内部
+ * session，无法保证跨内核可见。这里用 Electron 的独立透明窗口，纯 CSS 绘制，
+ * 不移动真实鼠标、不抢焦点；坐标为 null 时完全不出现。
+ */
+export const CURSOR_OVERLAY_SIZE = 56;
+
+export function cursorOverlayHtml(): string {
+  return `<!doctype html>
+<html lang="zh-CN" data-state="hidden" data-pulse="0">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+    body { pointer-events: none; }
+    .cursor-stage {
+      position: relative; width: 100%; height: 100%;
+      opacity: 0; transition: opacity 160ms ease;
+    }
+    html[data-state="active"] .cursor-stage { opacity: 1; }
+    html[data-state="leaving"] .cursor-stage { opacity: 0; }
+    .ripple {
+      position: absolute; left: 50%; top: 50%; width: 10px; height: 10px;
+      margin: -5px 0 0 -5px; border-radius: 50%;
+      border: 2px solid rgba(59, 130, 246, 0.9);
+      opacity: 0; transform: scale(0.6);
+    }
+    html[data-pulse="1"] .ripple { animation: ripple 820ms ease-out; }
+    html[data-pulse="1"] .ripple-delayed { animation-delay: 140ms; }
+    @keyframes ripple {
+      0% { opacity: 0.9; transform: scale(0.6); }
+      70% { opacity: 0; transform: scale(3.2); }
+      100% { opacity: 0; transform: scale(3.2); }
+    }
+    .arrow {
+      position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
+      /* viewBox 尖端在 (4,2)：26/24 * (4,2) = (4.33, 2.17)，反向平移把尖端钉在落点。 */
+      transform: translate(-4.33px, -2.17px);
+      filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.45));
+    }
+    .arrow path { fill: #ffffff; stroke: #1f2937; stroke-width: 1.4; stroke-linejoin: round; }
+    .dot {
+      position: absolute; left: 50%; top: 50%; width: 6px; height: 6px;
+      margin: -3px 0 0 -3px; border-radius: 50%;
+      background: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 4px rgba(15, 23, 42, 0.35);
+    }
+    @media (prefers-color-scheme: dark) {
+      .arrow path { fill: #f8fafc; stroke: #0f172a; }
+      .dot { background: #60a5fa; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cursor-stage { transition: opacity 1ms linear; }
+      html[data-pulse="1"] .ripple { animation: none; opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cursor-stage" role="presentation" aria-hidden="true">
+    <span class="ripple"></span>
+    <span class="ripple ripple-delayed"></span>
+    <svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2 L4 20 L9.2 15.2 L12.8 22 L16 20.4 L12.4 13.8 L19 13.2 Z"></path></svg>
+    <span class="dot"></span>
+  </div>
+</body>
+</html>`;
+}
+
+export function cursorOverlayDataUrl(): string {
+  return `data:text/html;base64,${Buffer.from(cursorOverlayHtml(), "utf8").toString("base64")}`;
+}

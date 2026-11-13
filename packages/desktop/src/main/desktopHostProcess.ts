@@ -7,6 +7,7 @@ import {
   type HostAgentProcessExitedResponse,
   type HostAgentProcessReadyResponse,
   type HostAgentProcessSpawnedResponse,
+  type HostCuaActivityResponse,
   type HostCuaOperationStateResponse,
   type HostMcpTelemetryResponse,
   type HostSessionCreateTelemetryResponse,
@@ -192,6 +193,11 @@ export function spawnHostProcess(
     onCuaOperationStateChanged?: (
       source: ElectronUtilityProcess,
       event: HostCuaOperationStateResponse,
+    ) => void;
+    /** host → main：Helper 的真实输入活动；只驱动横幅/光标浮层，不参与业务判定。 */
+    onCuaActivityChanged?: (
+      source: ElectronUtilityProcess,
+      event: HostCuaActivityResponse,
     ) => void;
     onCuaOperationStateSourceExited?: (source: ElectronUtilityProcess) => void;
     /** host → main：定时任务派发结果，转交给 cron scheduler 结算调度状态机。 */
@@ -426,6 +432,12 @@ export function spawnHostProcess(
     if (result.data.type === HostResponseTypes.CuaOperationState) {
       // Main 只投影 Host 已经判定的 turn 状态，不在这里重复解析 session/tool 业务事件。
       dependencies.onCuaOperationStateChanged?.(child, result.data);
+      return;
+    }
+
+    if (result.data.type === HostResponseTypes.CuaActivity) {
+      // 活动是纯展示旁路：Main 不解析业务语义，也不回执；Indicator 内部 fail-open。
+      dependencies.onCuaActivityChanged?.(child, result.data);
       return;
     }
 

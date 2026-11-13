@@ -692,6 +692,8 @@ export const HostResponseTypes = {
   WorkspaceRunningTaskCountChanged: "workspace-running-task-count-changed",
   /** host → main：Windows desktop-local CUA turn 的操作提示状态 */
   CuaOperationState: "cua-operation-state",
+  /** host → main：Windows CUA Helper 的真实输入活动（横幅 / 光标浮层，纯展示） */
+  CuaActivity: "cua-activity",
   /** host → main：workspace generation 已可安全 attach */
   RemoteWorkspaceAcquired: "remote-workspace-acquired",
   /** 广播消息 */

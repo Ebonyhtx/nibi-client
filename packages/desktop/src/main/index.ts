@@ -1915,6 +1915,8 @@ function createWindowInstance(startupBootstrap: StartupWindowBootstrap = {}) {
           hostRunningTaskCountMap,
           onCuaOperationStateChanged: (source, event) =>
             windowsCuaOperationIndicator.handleState(source, event),
+          onCuaActivityChanged: (source, event) =>
+            windowsCuaOperationIndicator.handleActivity(source, event),
           onCuaOperationStateSourceExited: (source) =>
             windowsCuaOperationIndicator.clearSource(source),
           onAgentProcessExited: (event) => reportAgentProcessExitToArms(event, logger),

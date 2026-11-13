@@ -94,6 +94,7 @@ export type {
 
 export { WindowsCuaHelperHost } from "./windowsCuaDevHelperHost.js";
 export type {
+  CuaActivityReporter,
   ManagedCuaProductHelperHost,
   WindowsCuaChild,
   WindowsCuaChildProcessAdapter,

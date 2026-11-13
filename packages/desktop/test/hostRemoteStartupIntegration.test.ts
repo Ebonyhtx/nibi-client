@@ -244,6 +244,7 @@ describe("Window Host 的 Source 重连与数据库启动整合", () => {
         dispatchManualAutomationRun() {},
         browserControlMainBridge: {},
         cuaOperationStateReporter: {},
+        cuaActivityReporter: {},
         pluginSandboxRegistrationBridge: { register() {} },
         INibiTaskService: {},
         ISettingService: {},

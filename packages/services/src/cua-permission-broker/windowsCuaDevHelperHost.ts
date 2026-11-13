@@ -18,6 +18,7 @@ import {
   defaultHealthProbe,
   defaultSocketPathFactory,
   isExactHealthPid,
+  parseCuaActivityMessage,
   parseReadyMessage,
   type Generation,
   type WindowsCuaChild,
@@ -26,6 +27,7 @@ import {
 } from "#src/cua-permission-broker/windowsCuaHelperHostSupport.js";
 
 export type {
+  CuaActivityReporter,
   WindowsCuaChild,
   WindowsCuaChildProcessAdapter,
   WindowsCuaHelperHostOptions,
@@ -421,6 +423,20 @@ export class WindowsCuaHelperHost implements ManagedCuaProductHelperHost {
         // stop 后、旧进程退出前仍可能收到 ready；先检查代际，避免把已清除的 tuple 重新写回。
         if (generation.stopped || stopEpoch !== this.externalStopEpoch || this.current?.id !== id)
           return;
+        // 活动消息是增量协议：先于 ready 解析并吞掉；未知/畸形消息不能把 generation 打坏。
+        const activity = parseCuaActivityMessage(message);
+        if (activity) {
+          try {
+            this.options.onCuaActivity?.(activity);
+          } catch (error) {
+            // 展示旁路的失败不能反噬 CUA 动作或 Helper 生命周期。
+            this.logger.warn(undefined, "Windows CUA activity callback failed", {
+              generation: id,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          return;
+        }
         const ready = parseReadyMessage(message);
         if (ready === "ignore") return;
         if (!ready)

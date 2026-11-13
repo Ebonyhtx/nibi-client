@@ -1293,6 +1293,34 @@ export const hostCuaOperationStateResponseSchema = z
 
 export type HostCuaOperationStateResponse = z.infer<typeof hostCuaOperationStateResponseSchema>;
 
+/**
+ * CUA Helper 的输入活动事实（Helper → Host → main），只用于桌面可视化。
+ *
+ * `active:false` 由 Helper 在空闲 1.5s / 释放租约 / 急停时发出；`x/y` 是可选的屏幕坐标
+ * （Helper 已按最近一次观察把截图像素换算过来）。它不是动作成功证明：回执里的
+ * action_sent / dispatch_status 才是。
+ */
+export const cuaActivityEventSchema = z
+  .object({
+    active: z.boolean(),
+    sessionId: z.string().min(1).nullable(),
+    action: z.string().min(1),
+    x: z.number().finite().optional(),
+    y: z.number().finite().optional(),
+    at: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type CuaActivityEvent = z.infer<typeof cuaActivityEventSchema>;
+
+export const hostCuaActivityResponseSchema = cuaActivityEventSchema
+  .extend({
+    type: z.literal("cua-activity"),
+  })
+  .strict();
+
+export type HostCuaActivityResponse = z.infer<typeof hostCuaActivityResponseSchema>;
+
 export const hostBroadcastClaimRequestResponseSchema = z.object({
   type: z.literal("broadcast-claim-request"),
   requestId: nonEmptyStringSchema,
@@ -1549,6 +1577,7 @@ export const hostResponseMessageSchema = z.discriminatedUnion("type", [
   hostAgentRunningTaskCountChangedResponseSchema,
   hostWorkspaceRunningTaskCountChangedResponseSchema,
   hostCuaOperationStateResponseSchema,
+  hostCuaActivityResponseSchema,
   hostBroadcastEnvelopeSchema,
   hostBroadcastClaimRequestResponseSchema,
   hostBroadcastClaimCommitResponseSchema,

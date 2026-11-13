@@ -48,6 +48,7 @@ import {
 import {
   buildLocalMediaPreviewUrl,
   isProviderProvisioningAccountCredentialKey,
+  type CuaActivityEvent,
   type DynamicWorkflowMode,
   type ProviderProvisioningTrigger,
 } from "@nibi/shared";
@@ -593,6 +594,7 @@ import {
 } from "#src/cua-permission-broker/windowsCuaDevRuntime.js";
 import { createCanonicalCuaHelperInstaller } from "./cua-permission-broker/cuaHelperInstaller.js";
 import { WindowsCuaHelperHost } from "#src/cua-permission-broker/windowsCuaDevHelperHost.js";
+import type { CuaActivityReporter } from "#src/cua-permission-broker/windowsCuaHelperHostSupport.js";
 import {
   getStableCuaPipeName,
   resolveStableCuaWinRecipe,
@@ -883,6 +885,8 @@ type CreateDefaultCuaProductHelperOptions = {
   arch?: NodeJS.Architecture;
   electronVersion?: string;
   resolveWindowsRuntime?: () => Promise<WindowsCuaRuntime>;
+  /** Windows Helper 的输入活动投影（纯展示）；不注入时 Helper 事件直接丢弃。 */
+  onCuaActivity?: (event: CuaActivityEvent) => void;
   createMacHost?: () => CuaHelperHost;
   createWindowsHost?: (runtime: WindowsCuaRuntime) => ManagedCuaProductHelperHost;
 };
@@ -1082,6 +1086,7 @@ export function createDefaultCuaProductHelper(
             runtime,
             logger,
             mintSocketPath: () => getStableCuaPipeName(),
+            ...(options.onCuaActivity ? { onCuaActivity: options.onCuaActivity } : {}),
           })),
       logger,
     });
@@ -1294,6 +1299,11 @@ export function createLocalServices(options: {
   };
   /** Windows desktop-local Host 的 CUA turn 状态投影；其它 authority 会在装配层拒绝。 */
   cuaOperationStateReporter?: CuaOperationStateReporter;
+  /**
+   * Windows Helper 的真实输入活动投影（横幅 / 光标浮层）。与 turn 状态相互独立：
+   * Rust 内核下没有 CUA turn 事件时，仍能靠它显示"正在操作"。
+   */
+  cuaActivityReporter?: CuaActivityReporter;
 }): ServiceCollection {
   const isDesktopAttachedRemote = options?.serviceAuthorityMode === "desktop-attached-remote";
   // 桌面本地 Host 的唯一内核是 Rust；远端 Source Server / server-cli（含 SSH/WSL 远端 Host）
@@ -1723,6 +1733,8 @@ export function createLocalServices(options: {
   // 先用前向引用连接 agent service 的 CUA turn tracker，避免在活跃 CUA 请求中途重启 Helper；
   // service 创建完成后再赋值。Helper recovery 始终不能回收 Agent。
   let hasActiveTurnRef: (() => boolean) | undefined;
+  // 闭包里捕获局部 const：避免 TS 对可选参数在回调里失去窄化。
+  const cuaActivityReporter = options?.cuaActivityReporter;
   const isCuaEnabledForContext = (context?: CuaProductMcpServerResolverContext): boolean =>
     // 保留 main 原有 gate 行为（避免回归）：dev/internal 特性开启时（NIBI_CUA_DEV_MODE=1 或
     // NIBI_CUA_PRODUCT_HELPER=1）即视为启用，不依赖 config.json 显式 enable——main 的 bootstrap
@@ -1743,6 +1755,18 @@ export function createLocalServices(options: {
     const helper = createDefaultCuaProductHelper({
       // 转发活跃-turn 查询（前向引用，nibiAgentService 建好后赋值）。
       hasActiveTurn: () => hasActiveTurnRef?.() ?? false,
+      // 活动投影只转发已校验事件；reporter 缺失或抛错都不影响 Helper / CUA 动作。
+      ...(cuaActivityReporter
+        ? {
+            onCuaActivity: (event: CuaActivityEvent) => {
+              try {
+                cuaActivityReporter.onActivity(event);
+              } catch {
+                // 展示旁路 fail-open。
+              }
+            },
+          }
+        : {}),
     });
     if (!helper) return undefined;
 

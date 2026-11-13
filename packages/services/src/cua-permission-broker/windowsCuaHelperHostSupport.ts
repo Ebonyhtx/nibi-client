@@ -8,6 +8,7 @@ import {
 // Contract constants are single-sourced from the producer package: locally re-declared literals here had drifted risk — a rename in the
 // producer would silently orphan these. Kept as aliases for existing callers.
 import { HELPER_ADDON_ENV, WINDOWS_DEV_CONTROL_PROTOCOL } from "@nibi/cua/broker/server";
+import type { CuaActivityEvent } from "@nibi/shared";
 
 import type { ServiceLogger } from "#src/logger/serviceLogger.js";
 import type { WindowsCuaRuntime } from "#src/cua-permission-broker/windowsCuaDevRuntime.js";
@@ -37,8 +38,18 @@ export interface WindowsCuaHelperHostOptions {
   startupTimeoutMs?: number;
   shutdownTimeoutMs?: number;
   logger?: ServiceLogger;
+  /**
+   * Helper 下发的真实输入活动（纯展示旁路）。Host 只转发已校验的事件；
+   * 回调抛错会被吞掉，绝不影响 Helper 生命周期或 CUA 动作。
+   */
+  onCuaActivity?: (event: CuaActivityEvent) => void;
   /** Ready Helper 意外退出后通知生命周期 owner，仅触发 Helper recovery。 */
   onUnexpectedExit?: (info: { generation: number; pid: number | undefined }) => void;
+}
+
+/** 桌面 Host 把 Helper 活动转成 main 通道的注入点（只做转发，不解析交易语义）。 */
+export interface CuaActivityReporter {
+  onActivity(event: CuaActivityEvent): void;
 }
 
 export interface Generation {
@@ -188,6 +199,38 @@ export type WindowsDevHelperControlMessage =
   | { protocol: typeof CONTROL_PROTOCOL; type: "transport_ready"; socketPath: string; pid: number }
   | { protocol: typeof CONTROL_PROTOCOL; type: "ready"; socketPath: string; pid: number }
   | { protocol: typeof CONTROL_PROTOCOL; type: "error"; message: string };
+
+/**
+ * Parse an additive `cua_activity` message from the Helper.
+ *
+ * Cosmetic-only contract: malformed activity is ignored (null) rather than failing the
+ * generation, and unknown protocol/type is likewise ignored by {@link parseReadyMessage}.
+ * `x`/`y` are only accepted as a complete pair; a single coordinate is useless to the
+ * overlay and is intentionally dropped instead of guessed.
+ */
+export function parseCuaActivityMessage(message: unknown): CuaActivityEvent | null {
+  if (!message || typeof message !== "object") return null;
+  const value = message as Record<string, unknown>;
+  if (value.protocol !== CONTROL_PROTOCOL || value.type !== "cua_activity") return null;
+  if (typeof value.active !== "boolean") return null;
+  if (typeof value.action !== "string" || value.action.length === 0) return null;
+  if (typeof value.at !== "number" || !Number.isFinite(value.at)) return null;
+  const sessionId =
+    value.sessionId === null || value.sessionId === undefined
+      ? null
+      : typeof value.sessionId === "string" && value.sessionId.length > 0
+        ? value.sessionId
+        : null;
+  const x = typeof value.x === "number" && Number.isFinite(value.x) ? value.x : undefined;
+  const y = typeof value.y === "number" && Number.isFinite(value.y) ? value.y : undefined;
+  return {
+    active: value.active,
+    sessionId,
+    action: value.action,
+    ...(x !== undefined && y !== undefined ? { x, y } : {}),
+    at: value.at,
+  };
+}
 
 /**
  * Parse a `zcode-cua-windows-dev/v1` control message from the helper child.

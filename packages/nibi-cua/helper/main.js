@@ -22,6 +22,7 @@ import { handleRequestLine, resolveStableBrokerSocketPath, serializeResponse } f
 import { createHelperSemantics } from "./semantics.js";
 import { assertEngineOk, buildReceipt, observeWindow } from "./observation.js";
 import { createInputAction } from "./input-action.js";
+import { createCuaActivity } from "./activity.js";
 import { activateIfEmpty } from "./transparent-activation.js";
 import { launchApp } from "./launch-app.js";
 import { rememberLaunchAttempt, withinLaunchCooldown } from "./activation-memory.js";
@@ -77,7 +78,9 @@ export function createHelperBackend(engine, options = {}) {
   };
 
   // 输入类动作的统一包装（kill switch → 租约 → 引擎 → 回执；含 possibly_sent 语义）见 input-action.js。
-  const inputAction = createInputAction({ semantics, engine, resolvePid });
+  // activity 是纯展示旁路（桌面提示条 / 光标浮层）：见 activity.js，失败绝不影响动作。
+  const activity = options.activity;
+  const inputAction = createInputAction({ semantics, engine, resolvePid, activity });
 
   return {
     helper_health: async () => ({
@@ -129,7 +132,16 @@ export function createHelperBackend(engine, options = {}) {
       if (pid === undefined) {
         throw Object.assign(new Error(`窗口 ${windowId} 找不到对应 pid`), { code: "ELEMENT_UNAVAILABLE" });
       }
-      const observeOnce = () => observeWindow(engine, pid, windowId, input);
+      // 每次重新观察都刷新坐标映射（透明激活可能换窗口）；activity 只读映射，不参与观察语义。
+      const observeOnce = async () => {
+        const observed = await observeWindow(engine, pid, windowId, input);
+        try {
+          activity?.rememberObservation?.(windowId, observed);
+        } catch {
+          // cosmetic only
+        }
+        return observed;
+      };
       let raw = await observeOnce();
       let receipt = buildReceipt(raw, semantics);
       // 透明激活（职责与判据见 helper/transparent-activation.js）：默认**不激活**——
@@ -168,6 +180,8 @@ export function createHelperBackend(engine, options = {}) {
     }),
     /** 会话结束释放租约（不是模型工具）：只有持有者能放。 */
     release_input_lease: async (params) => {
+      // 租约释放 = 宿主的"操作结束"信号：立即收起提示，不等 1.5s 空闲。
+      activity?.inactive?.("released");
       const input = params && typeof params === "object" ? params : {};
       // 宿主侧的 turn 结束收口：force=true 时不校验持有者（宿主的 turn 生命周期是权威信号）。
       if (input.force === true) {
@@ -179,6 +193,8 @@ export function createHelperBackend(engine, options = {}) {
       return { released: true, previous_owner: holder };
     },
     stop_computer_control: async () => {
+      // 急停是显示层的硬边界：立刻收起"正在操作"提示与光标。
+      activity?.inactive?.("stopped");
       semantics.latchKillSwitch();
       return { stopped: true, action_sent: true, dispatch_status: "sent" };
     },
@@ -423,8 +439,11 @@ export async function startHelper({ socketPath, argv = [], env = process.env } =
   // 等引擎；helper_health 立刻可答。
   const enginePromise = createCuaDriverEngine({ env });
   let engineState = "loading";
+  // 活动上报是纯展示旁路：send 走 child IPC；任何异常都在 reporter 内部吞掉。
+  const activity = createCuaActivity({ send });
   const backend = createHelperBackend(createDeferredEngine(enginePromise), {
     engineStatus: () => engineState,
+    activity,
   });
 
   const server = net.createServer((socket) => {
@@ -469,6 +488,9 @@ export async function startHelper({ socketPath, argv = [], env = process.env } =
   send({ type: "ready", socketPath: boundPath, pid: process.pid });
 
   const shutdown = async () => {
+    // 先收提示再关进程：宿主失联时也能避免浮层残留到 5s 兜底。
+    activity.inactive("shutdown");
+    activity.dispose();
     try {
       await engine.close?.();
     } catch {

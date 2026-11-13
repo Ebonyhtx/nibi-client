@@ -61,14 +61,22 @@ export function sessionOf(params) {
  * @param {object} deps.engine      引擎
  * @param {(params: object) => Promise<number|undefined>} deps.resolvePid
  * @param {(result: unknown, action: string) => unknown} [deps.assertOk] 默认 assertEngineOk
+ * @param {object} [deps.activity] 活动上报器（`{active(method, params)}`）；纯展示旁路
  */
-export function createInputAction({ semantics, engine, resolvePid, assertOk = assertEngineOk }) {
+export function createInputAction({
+  semantics,
+  engine,
+  resolvePid,
+  assertOk = assertEngineOk,
+  activity,
+}) {
   return (method, run) =>
     async (params) => {
       semantics.assertKillSwitchAllows(method);
       // 先校验交付模式再拿租约：非法值不能留下一个"已占用"的输入权。
       const deliveryMode = resolveDeliveryMode(method, params);
       semantics.acquireInputLease(method, sessionOf(params));
+      let activityStarted = false;
       try {
         const resolved = {
           ...(params ?? {}),
@@ -77,6 +85,14 @@ export function createInputAction({ semantics, engine, resolvePid, assertOk = as
         if (typeof resolved.pid !== "number") {
           const pid = await resolvePid(resolved);
           if (typeof pid === "number") resolved.pid = pid;
+        }
+        // 只在实际下发前上报活动：kill switch / 租约 / pid 解析失败都不该点亮"正在操作"。
+        // 上报器自身 fail-open；这里再包一层，确保展示旁路永远不会截断动作。
+        try {
+          activity?.active?.(method, resolved);
+          activityStarted = true;
+        } catch {
+          // cosmetic only
         }
         const result = assertOk(await run(resolved, engine), method);
         return {
@@ -96,6 +112,15 @@ export function createInputAction({ semantics, engine, resolvePid, assertOk = as
           };
         }
         throw error;
+      } finally {
+        // 工具调用结束（无论成功/失败）才开始 1.5s 空闲计时；上报器自身 fail-open。
+        if (activityStarted) {
+          try {
+            activity?.settled?.();
+          } catch {
+            // cosmetic only
+          }
+        }
       }
     };
 }

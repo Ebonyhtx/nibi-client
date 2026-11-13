@@ -868,7 +868,17 @@ const cuaOperationStateReporter = {
   },
 } satisfies NonNullable<Parameters<typeof createLocalServices>[0]>["cuaOperationStateReporter"];
 
-
+const cuaActivityReporter = {
+  onActivity(event) {
+    if (!parentPort) {
+      return;
+    }
+    parentPort.postMessage({
+      type: HostResponseTypes.CuaActivity,
+      ...event,
+    });
+  },
+} satisfies NonNullable<Parameters<typeof createLocalServices>[0]>["cuaActivityReporter"];
 
 let untrackedPromptRpcCount = 0;
 function reportHostRunningTaskCount(): void {
@@ -3568,6 +3578,8 @@ parentPort.on("message", async (e: Electron.MessageEvent) => {
               // CUA 顶部提示属于物理 Windows 桌面投影；非 Windows 和远端 authority 都不得上报。
               cuaOperationStateReporter:
                 process.platform === "win32" ? cuaOperationStateReporter : undefined,
+              // Helper 的真实输入活动（横幅 / 光标浮层）；同样只投影到本机 Windows 桌面。
+              cuaActivityReporter: process.platform === "win32" ? cuaActivityReporter : undefined,
             });
             activeServices = initializedServices;
             activeHostApiNetworkTransport = hostApiNetworkTransport;
