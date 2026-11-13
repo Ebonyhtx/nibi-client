@@ -49,6 +49,16 @@ describe("nibi-file-citation parser", () => {
     ]);
   });
 
+  it("兼容历史 zcode-file-citation 指令，新输出仍只发 nibi", () => {
+    const content = '旧 ::zcode-file-citation{path="docs/历史报告.pdf" purpose="source"} 正文';
+    expect(extractNibiFileCitations(content)).toMatchObject([
+      { path: "docs/历史报告.pdf", purpose: "source", start: 2 },
+    ]);
+    expect(projectNibiFileCitations('尾部 ::zcode-file-citation{path="docs/report.pdf"', {
+      streaming: true,
+    }).visibleText).toBe("尾部 ");
+  });
+
   it("支持 citation 参数使用中文智能单双引号", () => {
     const content = [
       '::nibi-file-citation{path=“docs/年度 报告.docx” purpose=‘output’ artifact_kind="document"}',

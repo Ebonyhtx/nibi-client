@@ -56,7 +56,12 @@ const PREVIEW_EXTENSION_TO_KIND: Readonly<Record<string, NibiFileCitationPreview
   ".weba": "audio",
 };
 const NIBI_FILE_CITATION_DIRECTIVE_NAME = "nibi-file-citation";
-const NIBI_FILE_CITATION_SINGLE_COLON_PREFIX_LENGTH = ":zcode".length;
+// 历史消息里仍可能有旧指令名；只做读取兼容，新输出只写 nibi-file-citation。
+const LEGACY_FILE_CITATION_DIRECTIVE_NAME = "zcode-file-citation";
+const NIBI_FILE_CITATION_SINGLE_COLON_PREFIX_LENGTH = Math.max(
+  ":nibi".length,
+  ":zcode".length,
+);
 const NIBI_FILE_CITATION_SYNTAX = {
   allowSingleColon: true,
   allowSmartQuotes: true,
@@ -64,11 +69,19 @@ const NIBI_FILE_CITATION_SYNTAX = {
 } as const;
 
 export function extractNibiFileCitationDirectives(content: string): NibiFileCitationDirective[] {
-  return extractAssistantDirectives(
-    content,
-    NIBI_FILE_CITATION_DIRECTIVE_NAME,
-    NIBI_FILE_CITATION_SYNTAX,
-  ).map((directive) => ({
+  const directives = [
+    ...extractAssistantDirectives(
+      content,
+      NIBI_FILE_CITATION_DIRECTIVE_NAME,
+      NIBI_FILE_CITATION_SYNTAX,
+    ),
+    ...extractAssistantDirectives(
+      content,
+      LEGACY_FILE_CITATION_DIRECTIVE_NAME,
+      NIBI_FILE_CITATION_SYNTAX,
+    ),
+  ].sort((left, right) => left.start - right.start);
+  return directives.map((directive) => ({
     start: directive.start,
     end: directive.end,
     raw: directive.raw,
@@ -107,21 +120,27 @@ export function projectNibiFileCitations(
   if (!options.streaming || !content) return { visibleText: content };
 
   const protectedRanges = findMarkdownCodeRanges(content);
-  const unclosedStart = findUnclosedAssistantDirectiveStart(
-    content,
-    NIBI_FILE_CITATION_DIRECTIVE_NAME,
-    protectedRanges,
-    NIBI_FILE_CITATION_SYNTAX,
-  );
+  const unclosedStart = [NIBI_FILE_CITATION_DIRECTIVE_NAME, LEGACY_FILE_CITATION_DIRECTIVE_NAME]
+    .map((name) =>
+      findUnclosedAssistantDirectiveStart(
+        content,
+        name,
+        protectedRanges,
+        NIBI_FILE_CITATION_SYNTAX,
+      ),
+    )
+    .filter((start): start is number => start !== null)
+    .sort((left, right) => left - right)[0] ?? null;
   if (unclosedStart === null) {
+    const names = [NIBI_FILE_CITATION_DIRECTIVE_NAME, LEGACY_FILE_CITATION_DIRECTIVE_NAME];
     const prefixStart = findAssistantDirectivePrefixStart(
       content,
-      ["code-comment", NIBI_FILE_CITATION_DIRECTIVE_NAME],
+      ["code-comment", ...names],
       protectedRanges,
       {
         minimumSingleColonPrefixLength: NIBI_FILE_CITATION_SINGLE_COLON_PREFIX_LENGTH,
-        singleColonDirectiveNames: [NIBI_FILE_CITATION_DIRECTIVE_NAME],
-        tripleColonDirectiveNames: [NIBI_FILE_CITATION_DIRECTIVE_NAME],
+        singleColonDirectiveNames: names,
+        tripleColonDirectiveNames: names,
       },
     );
     return prefixStart === null
