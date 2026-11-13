@@ -617,15 +617,9 @@ How the pack reaches each runtime:
   in the deployment hash and checks the required files before reusing a remote installation.
   Both paths reject a missing or incomplete pack before publishing or uploading. They do
   not depend on an old plugin cache or on the server's working directory.
-- SEA binaries embed `skills/**` under the `nibi-bundled-skills/` asset prefix
-  (`cli/scripts/sea-bundled-skill-assets.mjs`) with a manifest whose hash covers every file.
-  On start the CLI extracts the pack once into `~/.nibi/cli/bundled-skills/<hash>/`; the
-  directory name is the content identity, so restarts are idempotent and concurrent starts
-  have exactly one winner. A hash mismatch refuses the pack and falls back to the newest
-  complete extraction.
 
-Every file under `skills/dynamic-workflows/` is a required asset: a stage, a SEA build or an
-extraction that loses one refuses the whole pack and logs `Bundled skill pack unavailable`
+Every file under `skills/dynamic-workflows/` is a required asset: a stage or an extraction that
+loses one refuses the whole pack and logs `Bundled skill pack unavailable`
 (or `seed degraded`) instead of shipping a skill with a missing reference file.
 
 ### The command

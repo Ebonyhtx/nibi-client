@@ -1,6 +1,15 @@
-# Nibi CLI
+# Nibi Node agent runtime (internal)
 
-Nibi's Agent CLI provides an interactive terminal and non-interactive task execution. It is part of this pnpm workspace; build it from the repository root with the Node and pnpm versions in [mise.toml](../../mise.toml).
+This directory is the **internal** TypeScript Node agent runtime (`nibi.cjs`). It is not a
+published CLI: the user-facing terminal CLI/TUI is the Rust kernel under `kernel/`, published
+as the `@nibi-studio/cli` npm META package plus `@nibi-studio/cli-<platform>` platform packages.
+
+The Node runtime is still built and shipped for:
+
+- DWF / dynamic workflow sidecar execution (`__nibi-dwf-engine`);
+- the plugin host (`__nibi-plugin-host`);
+- the remote Source Server (`app-server --stdio`);
+- desktop development and tests that need the Node agent bundle.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -8,9 +17,14 @@ pnpm --filter @nibi/cli... build
 node apps/nibi-cli/packages/cli/dist/nibi.cjs doctor --json
 ```
 
-The default artifact is a Node.js bundle with adjacent runtime resources. SEA packaging is optional. The Agent CLI differs from the root distribution launcher, which also supports Web startup.
+`pnpm --filter @nibi/cli build:desktop-agent` is the production build used by desktop staging,
+the plugin host and the remote Source Server. The old Node CLI/TUI distribution (SEA binaries,
+`build:nibi`, standalone release-it flow and the public `nibi` bin) is retired; do not add new
+user-facing commands or packaging here. Use the Rust CLI for anything terminal users run.
 
-See the [CLI usage guide (中文)](docs/usage/README.md) for setup, model configuration, permissions, sessions, MCP, skills, hooks, plugins, and reproducible batch tasks. The guide distinguishes current source behavior from older binaries and documents its verification limits.
+The [CLI usage guide (中文)](docs/usage/README.md) and [design specifications](docs/design/v2/)
+describe the legacy Node runtime behavior. They remain useful for the internal app-server,
+plugin host and DWF paths, but are no longer the contract for the public `nibi` command.
 
 Useful entry points:
 
@@ -19,7 +33,7 @@ Useful entry points:
 - [Plugin development](docs/usage/10-plugins.md)
 - [Hooks and workspace trust](docs/usage/09-hooks.md)
 - [Batch tasks and trajectory capture](docs/usage/13-automation.md)
-- [Design specifications](docs/design/v2/)
 - [Contributor instructions](AGENTS.md)
 
-Run `pnpm --filter @nibi/cli dev` for source development. CLI code validation follows the contributor instructions; CLI tests are separate from the root unit-test suite.
+Run `pnpm --filter @nibi/cli dev` for source development. CLI code validation follows the
+contributor instructions; CLI tests are separate from the root unit-test suite.

@@ -4017,7 +4017,7 @@ test("rejects removed hello command", async () => {
   assert.equal(ctx.stdout.output(), "");
 });
 
-test("zcode plugins list prints installed plugins", async () => {
+test("nibi plugins list prints installed plugins", async () => {
   const ctx = createContext(["plugins", "list", "--verbose"]);
   const logger = {} as NonNullable<RunDependencies["logger"]>;
   const exitCode = await run(ctx, {
@@ -4510,7 +4510,7 @@ test("failed plugin host still exits when initialization leaves stdin active", a
   }
 });
 
-test("zcode plugins enable persists the selected plugin", async () => {
+test("nibi plugins enable persists the selected plugin", async () => {
   const ctx = createContext(["plugins", "enable", "ios-dev"]);
   const exitCode = await run(ctx, {
     cwd: () => "/workspace/project",
@@ -6491,7 +6491,7 @@ test("headless prompt reports exact Workspace Hook pretrust diagnostics without 
   assert.equal(ctx.stdout.output(), "ok\n");
   assert.match(ctx.stderr.output(), /Workspace Hooks skipped: workspace_hooks_pending_trust/);
   assert.match(ctx.stderr.output(), new RegExp("a{64}"));
-  assert.match(ctx.stderr.output(), /zcode hooks trust review/);
+  assert.match(ctx.stderr.output(), /nibi hooks trust review/);
 });
 
 test("headless rollout-off diagnostics preserve the runtime feature-disabled reason", async () => {

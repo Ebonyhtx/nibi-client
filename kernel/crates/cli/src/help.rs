@@ -114,6 +114,14 @@ pub(crate) const OPTIONS: &[HelpItem] = &[
 /// 本工程照 Codex 不先检查，说明用 Codex 的（工作线 F48，update.md §9）。
 pub(crate) const COMMANDS: &[HelpItem] = &[
     item(
+        "commands",
+        "List custom commands or the built-in slash commands (list|inspect <name>|builtin)",
+    ),
+    item(
+        "doctor",
+        "Check the installation, storage, provider and network health",
+    ),
+    item(
         "hooks",
         "Trust project hooks (nibi hooks trust --help for options)",
     ),
@@ -125,6 +133,10 @@ pub(crate) const COMMANDS: &[HelpItem] = &[
     item(
         "provider",
         "List or configure model providers (provider_config.json): list|show|path|add|key|remove|use",
+    ),
+    item(
+        "skills",
+        "List or inspect available skills (list|inspect <name>)",
     ),
     item("update|upgrade", "Update NIBI to the latest version"),
 ];

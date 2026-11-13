@@ -185,8 +185,7 @@ export const buildCli = async ({
     // playwright-core 依赖运行时 package assets 与 require.resolve，相比内联 bundle 必须保持外置。
     // managed headless adapter 只在显式 --browser-use=headless 时延迟加载，不影响 app-server/普通 CLI。
     // koffi 会按当前平台动态 require 原生 `.node` 文件；内联会让 esbuild 遍历所有
-    // 平台产物并直接报 "No loader is configured for .node"。运行时仍从依赖包加载，
-    // SEA 资源由 build-sea 的 native asset 收集阶段单独处理。
+    // 平台产物并直接报 "No loader is configured for .node"。运行时仍从依赖包加载。
     external: resolveBuildExternal(),
     format: "cjs",
     // 桌面 app 集成只内置 nibi.cjs，旧 desktop-agent 构建复用 CLI 调试产物，
@@ -213,7 +212,7 @@ export const buildCli = async ({
   }
 
   await chmod(outfile, executableFileMode);
-  // nibi.cjs 内联了第三方代码；dist 旁的伴随声明供发行 CLI 与统一分发包（build-nibi）复制。
+  // nibi.cjs 内联了第三方代码；dist 旁的伴随声明供桌面 Agent 与远端 Source Server 打包复制。
   await stageThirdPartyNotices(resolve(cliDirectory, "dist"), resolve(rootDirectory, "../.."));
 };
 

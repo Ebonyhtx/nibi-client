@@ -8,8 +8,8 @@ use super::i18n::Lang;
 
 pub struct Command {
     pub name: &'static str,
-    en: &'static str,
-    zh: &'static str,
+    pub en: &'static str,
+    pub zh: &'static str,
     /// 本工作线已实现；为假时执行只提示“未实现”。
     pub implemented: bool,
 }

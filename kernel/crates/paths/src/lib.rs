@@ -238,6 +238,11 @@ impl StoragePaths {
         &self.artifacts
     }
 
+    /// 存储根（`storage.dir`；缺省是用户根 `~/.nibi`）。`nibi doctor` 报 data root、检查可写性用。
+    pub fn root(&self) -> &StoragePath {
+        &self.root
+    }
+
     /// Node 的 CLI 存储根：`<storage.dir>/cli`（`basename` 已经是 `cli` 时不再加一层）。
     /// 项目记忆目录从它拼（`cli/memories/projects/...`），与设置页扫的是同一棵树。
     pub fn cli_root(&self) -> StoragePath {

@@ -1,8 +1,7 @@
 /**
  * Node dist 产物的完整性校验（FIX-9 第 3 项）。
  *
- * 与 `apps/nibi-cli/packages/cli/scripts/sea-node-download.mjs` 同一做法：从 dist 源读
- * `SHASUMS256.txt`，按文件名找哈希，下载后比对。取不到清单或清单里没有这一项都失败——
+ * 从 dist 源读 `SHASUMS256.txt`，按文件名找哈希，下载后比对。取不到清单或清单里没有这一项都失败——
  * 没有哈希就不下载（fail-closed）。
  *
  * 单独成模块而不是留在 stageCli.ts：后者末尾是顶层 `await main()`，import 即执行，

@@ -33,6 +33,12 @@ pub use invoked::INVOKED_SKILLS_SOURCE;
 pub use tool::{SKILL_MESSAGE_SOURCE, SkillTool};
 pub use user::SkillCommands;
 
+/// SKILL.md 的 frontmatter 原文（两条 `---` 之间的内容，不含 BOM 与分隔线）；没有 frontmatter 时
+/// 为 None。`nibi skills inspect` 要展示原文，与解析用同一套切分（不复制一份规则）。
+pub fn frontmatter_text(raw: &str) -> Option<String> {
+    frontmatter::parts(raw).map(|(yaml, _)| yaml.to_owned())
+}
+
 /// `!` 命令的执行者：注册表里的 Bash 工具、判决链与 ID（ext.md §2.5）。
 pub(crate) fn runner(
     bash: Arc<dyn nibi_kernel_api::tool::Tool>,

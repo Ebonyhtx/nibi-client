@@ -63,6 +63,13 @@ pub(crate) fn parse(args: &[String]) -> Option<Result<TrustCommand, String>> {
         return None;
     }
     let fail = |message: String| Err(format!("{message}\n{USAGE}"));
+    // `nibi hooks --help`：与子命令的帮助一样写 stdout、退出码 0（spec §2）。
+    if args
+        .get(1)
+        .is_some_and(|arg| arg == "-h" || arg == "--help")
+    {
+        return Some(Ok(TrustCommand::Help));
+    }
     if args.get(1).map(String::as_str) != Some("trust") {
         let name = args.get(1).map_or("", String::as_str);
         return Some(fail(format!("Unknown hooks command: {name}")));

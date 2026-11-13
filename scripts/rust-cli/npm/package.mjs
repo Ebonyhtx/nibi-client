@@ -71,7 +71,7 @@ export function isValidVersion(version) {
  * （`Error verifying sigstore provenance bundle: … "repository.url" is ""`）。
  * 与 `.github/workflows/rust-npm-packages.yml` 的 `Ebonyhtx/nibi-client` 一致。
  */
-const REPOSITORY_URL = "git+https://github.com/Ebonyhtx/nibi-client.git";
+export const REPOSITORY_URL = "git+https://github.com/Ebonyhtx/nibi-client.git";
 
 export function buildPackageManifest({ target, version }) {
   const platform = packageIdForTarget(target);

@@ -140,7 +140,8 @@ pub struct CustomCommands {
 }
 
 impl CustomCommands {
-    pub(crate) fn new(info: Arc<dyn EnvInfo>, files: Arc<dyn Files>) -> Self {
+    /// 构造发现器；`info` 给环境事实（cwd、home、平台），`files` 读命令目录。
+    pub fn new(info: Arc<dyn EnvInfo>, files: Arc<dyn Files>) -> Self {
         Self {
             info,
             files,
@@ -163,7 +164,7 @@ impl CustomCommands {
     }
 
     /// `command` 配置里停用的 `.md` 路径。
-    pub(crate) fn set_disabled_paths(&self, paths: Vec<String>) {
+    pub fn set_disabled_paths(&self, paths: Vec<String>) {
         *self
             .disabled
             .write()
@@ -281,6 +282,22 @@ impl CustomCommands {
             .await
             .into_iter()
             .find(|command| command.name == name)
+    }
+
+    /// 非交互 `nibi commands list` 的只读清单：与 `/` 目录同口径，去掉会被内置斜杠命令
+    /// 接管的保留名（Node `listNibiCustomCommands` 的可见集合）。
+    pub async fn list(&self, workspace: &WorkspaceRef) -> Vec<CustomCommand> {
+        self.discover(workspace, None)
+            .await
+            .into_iter()
+            .filter(|command| !is_reserved(&command.name))
+            .collect()
+    }
+
+    /// 非交互 `nibi commands inspect <name>`：按名字找，保留名同样不列出。
+    pub async fn inspect(&self, workspace: &WorkspaceRef, name: &str) -> Option<CustomCommand> {
+        let command = self.find(workspace, None, name).await?;
+        (!is_reserved(&command.name)).then_some(command)
     }
 
     async fn roots(

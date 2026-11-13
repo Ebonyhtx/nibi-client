@@ -1,5 +1,10 @@
 # ZCode CLI 使用指南
 
+> **退役说明（2026-11）**：Node `@nibi/cli` 已退役，不再发布 `nibi` bin，也不再构建 Node
+> CLI/TUI（SEA、`build:nibi`、独立 release 流程均已移除）。终端用户请安装 Rust 内核的
+> `npm install -g @nibi-studio/cli`。本文保留为内部 `nibi.cjs` 运行时（DWF、插件宿主、
+> 远端 Source Server）的历史行为参考；其中以 `nibi` 直接调用 CLI/TUI 的示例不再适用于公开发行版。
+
 本指南面向从开源仓库构建 CLI 的使用者，重点介绍非交互调用、扩展配置和任务评测。无参数启动的 TUI 也可用于交互操作。本文随源码维护；不要仅凭 `0.16.x` 版本号判断两个构建的能力相同。
 
 ## 从哪里开始

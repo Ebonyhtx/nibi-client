@@ -127,6 +127,12 @@ pub async fn append(path: &Path, bytes: &[u8]) -> io::Result<()> {
     tokio::io::AsyncWriteExt::flush(&mut file).await
 }
 
+/// 路径是否存在（跟随符号链接）。给只需要回答“有没有”的调用方（`nibi doctor` 的会话库探测）；
+/// 不读文件内容。
+pub async fn exists(path: &Path) -> bool {
+    tokio::fs::metadata(path).await.is_ok()
+}
+
 /// 用 `bytes` 原子地替换 `path`，见模块文档。
 pub async fn atomic_write(path: &Path, bytes: &[u8], options: WriteOptions) -> io::Result<()> {
     let name = path.file_name().ok_or_else(|| {

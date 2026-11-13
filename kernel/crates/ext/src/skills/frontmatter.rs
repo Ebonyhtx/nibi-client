@@ -21,15 +21,21 @@ impl Value {
     }
 }
 
-/// `---` 包住的 frontmatter 与之后的正文；没有 frontmatter 时为 None。
-pub(crate) fn split(raw: &str) -> Option<(BTreeMap<String, Value>, String)> {
+/// `---` 包住的 frontmatter（两个分隔线之间的原文，不带 BOM 与分隔线）与之后的正文；
+/// 没有 frontmatter 时为 None。
+pub(crate) fn parts(raw: &str) -> Option<(&str, &str)> {
     let text = raw.strip_prefix('\u{feff}').unwrap_or(raw);
     let rest = text.strip_prefix("---")?;
     let rest = rest.trim_start_matches([' ', '\t']);
     let rest = rest
         .strip_prefix("\r\n")
         .or_else(|| rest.strip_prefix('\n'))?;
-    let (yaml, body) = closing(rest)?;
+    closing(rest)
+}
+
+/// `---` 包住的 frontmatter 与之后的正文；没有 frontmatter 时为 None。
+pub(crate) fn split(raw: &str) -> Option<(BTreeMap<String, Value>, String)> {
+    let (yaml, body) = parts(raw)?;
     Some((parse(yaml), body.to_owned()))
 }
 

@@ -70,6 +70,8 @@ pub use repo::open::{
     Facts as OpenFacts, MIGRATION_LOCK_WAIT, Progress as OpenProgress, Report as OpenReport,
     StartupError, open, open_with_progress, session_database_id,
 };
+// `nibi doctor` 的只读存储检查（不执行迁移）。
+pub use repo::inspect::{SchemaFacts, inspect_schema};
 // DWF journal 的事件读面（run 详情的 `pendingQuestions` / logTail 数据源；写入走
 // `SessionStore::append_workflow_event`）。
 pub use repo::dwf::{
