@@ -53,6 +53,7 @@ import {
   closeTrackedTestApps,
   createRegistryBackedTestApp as createNibiApp,
   createTestProviderRegistry,
+  writeSuppressedBuiltinPluginsProjectConfig,
 } from "./helpers/registry-backed-test-app.js";
 
 // Windows 的 shell 方言由平台决定（git-bash / PowerShell），不读 SHELL 与 PATH 里的
@@ -1855,6 +1856,10 @@ describe("session persistence", () => {
     const liveEventTypes: string[] = [];
 
     try {
+      // 测试基座隔离：design 插件默认启用并注册 SessionStart hook，hook_run_* 事件会
+      // 混入本用例对 submitPrompt live event 的精确断言。插件解析只读 configResult，
+      // 因此用项目配置抑制，而不是 runtimeConfig.plugins。
+      await writeSuppressedBuiltinPluginsProjectConfig(tempRoot);
       const app = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
         skipUserConfig: true,
@@ -2319,6 +2324,11 @@ describe("session persistence", () => {
     let capturedMessages: Array<{ role: string; content: string }> = [];
 
     try {
+      // 测试基座隔离：design 插件默认启用并注册 SessionStart hook，它注入的 user 消息
+      // 会让 resume 的 provider-visible 消息序列多一项。项目配置按 workingDirectory
+      // 发现，第二个 app 换了 cwd，所以两处都要写。
+      await writeSuppressedBuiltinPluginsProjectConfig(tempRoot);
+      await writeSuppressedBuiltinPluginsProjectConfig(join(tempRoot, "different-cwd"));
       const firstApp = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
         skipUserConfig: true,
@@ -2421,6 +2431,10 @@ describe("session persistence", () => {
     let capturedMessages: Array<{ role: string; content: string }> = [];
 
     try {
+      // 测试基座隔离：design 插件的 SessionStart hook 会注入 user 消息，并在 hydrate 时
+      // 产生额外的 hook_run_* live 事件；两处 workingDirectory 各写一份抑制配置。
+      await writeSuppressedBuiltinPluginsProjectConfig(tempRoot);
+      await writeSuppressedBuiltinPluginsProjectConfig(join(tempRoot, "different-cwd"));
       const firstApp = await createNibiApp({
         // 持久化测试不读取操作者配置，避免真实插件和 MCP 混入会话生命周期。
         skipUserConfig: true,

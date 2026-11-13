@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   createModel as createExecutableModel,
   type AiSdkModelAdapter,
@@ -19,6 +21,38 @@ const DEFAULT_TEST_MODEL = {
   providerId: "zai",
   modelId: "glm-4.6",
 } as const;
+
+/**
+ * 测试基座默认不隔离官方内置插件。`design` 默认启用且注册了 SessionStart hook，
+ * 它的命令、hook_run_* 事件与注入消息会混进 workspace Hook / 持久化断言。
+ *
+ * 插件解析读取的是 configResult.plugins（runtimeConfig.plugins 不参与），因此隔离手段
+ * 只能是在 user/project 配置文件里写 suppressedBuiltins，再把该配置传给 createNibiApp。
+ * 这里只影响测试，不改变产品默认值。
+ */
+export const TEST_SUPPRESSED_BUILTIN_PLUGINS = ["design@nibi-official"] as const;
+
+/** 写 user/project config 时合并这份片段即可抑制测试中的 design 插件。 */
+export function testSuppressedBuiltinPluginsConfig(): {
+  plugins: { suppressedBuiltins: string[] };
+} {
+  return { plugins: { suppressedBuiltins: [...TEST_SUPPRESSED_BUILTIN_PLUGINS] } };
+}
+
+/**
+ * 在指定目录写入一份只声明插件抑制的项目配置（`.nibi/config.json`）。
+ * 适用于 workingDirectory 是临时目录、且测试没有现成配置文件的场景。
+ */
+export async function writeSuppressedBuiltinPluginsProjectConfig(
+  directory: string,
+): Promise<void> {
+  const configDir = join(directory, ".nibi");
+  await mkdir(configDir, { recursive: true });
+  await writeFile(
+    join(configDir, "config.json"),
+    JSON.stringify(testSuppressedBuiltinPluginsConfig()),
+  );
+}
 
 export interface RegistryBackedTestModelExecution {
   providerId: string;

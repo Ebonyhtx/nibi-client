@@ -243,11 +243,19 @@ it("rolls back compact summary when its rebuilt announcement cannot be saved", a
   await f.runtime.executeTurn("more context");
   const before = f.internal.messageHistory.toRuntimeEntries();
   const rowsBefore = await f.store.messages({ sessionID: f.sessionId });
-  const savePart = f.store.savePart.bind(f.store);
-  const spy = vi.spyOn(f.store, "savePart").mockImplementation(async (part) => {
-    if (part.type === "text" && part.text.includes(ANNOUNCEMENT))
+  // 测试桩修复：sqlite store 的 persistCompactSummary 现在整组走 commitMessageBundle
+  // 原子事务，不再逐条调用 savePart。只在 savePart 上注入失败会让 compact 正常完成，
+  // 测不到回滚。这里在真正承载 rebuilt announcement 的 bundle 入口注入失败。
+  const commitMessageBundle = f.store.commitMessageBundle.bind(f.store);
+  const spy = vi.spyOn(f.store, "commitMessageBundle").mockImplementation(async (bundle) => {
+    if (
+      bundle.messages.some((message) =>
+        message.parts.some((part) => part.type === "text" && part.text.includes(ANNOUNCEMENT)),
+      )
+    ) {
       throw new Error("announcement write failed");
-    return savePart(part);
+    }
+    return commitMessageBundle(bundle);
   });
   await expect(
     f.internal.compactActiveConversation(undefined, createRootTraceContext(), [], {}),

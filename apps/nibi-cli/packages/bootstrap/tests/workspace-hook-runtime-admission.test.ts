@@ -10,7 +10,10 @@ import {
 } from "@nibi/adapters/storage";
 import { createWorkspaceHookTrustRecords } from "@nibi/core";
 import { SessionEventType, type ExecutionPort } from "@nibi/contracts";
-import { createRegistryBackedTestApp as createNibiApp } from "./helpers/registry-backed-test-app.js";
+import {
+  createRegistryBackedTestApp as createNibiApp,
+  testSuppressedBuiltinPluginsConfig,
+} from "./helpers/registry-backed-test-app.js";
 
 const roots: string[] = [];
 
@@ -28,7 +31,14 @@ describe("createNibiApp workspace Hook admission", () => {
     await mkdir(join(workspace, ".git"), { recursive: true });
     await mkdir(join(workspace, ".nibi"), { recursive: true });
     await mkdir(join(root, "home"), { recursive: true });
-    await writeFile(userConfigPath, JSON.stringify({ storage: { dir: storageRoot } }));
+    // 测试基座隔离：抑制默认启用的 design 插件，避免它的 SessionStart hook 命令混入断言。
+    await writeFile(
+      userConfigPath,
+      JSON.stringify({
+        storage: { dir: storageRoot },
+        ...testSuppressedBuiltinPluginsConfig(),
+      }),
+    );
     await writeFile(
       join(workspace, ".nibi", "config.json"),
       JSON.stringify({
@@ -144,7 +154,14 @@ describe("createNibiApp workspace Hook admission", () => {
     await mkdir(join(workspace, ".git"), { recursive: true });
     await mkdir(join(workspace, ".nibi"), { recursive: true });
     await mkdir(join(root, "home"), { recursive: true });
-    await writeFile(userConfigPath, JSON.stringify({ storage: { dir: storageRoot } }));
+    // 测试基座隔离：抑制默认启用的 design 插件，避免它的 SessionStart hook 命令混入断言。
+    await writeFile(
+      userConfigPath,
+      JSON.stringify({
+        storage: { dir: storageRoot },
+        ...testSuppressedBuiltinPluginsConfig(),
+      }),
+    );
     await writeFile(
       join(workspace, ".nibi", "config.json"),
       JSON.stringify({
@@ -226,7 +243,14 @@ describe("createNibiApp workspace Hook admission", () => {
     await mkdir(join(workspace, ".git"), { recursive: true });
     await mkdir(join(workspace, ".nibi"), { recursive: true });
     await mkdir(join(root, "home"), { recursive: true });
-    await writeFile(userConfigPath, JSON.stringify({ storage: { dir: storageRoot } }));
+    // 测试基座隔离：抑制默认启用的 design 插件，避免它的 SessionStart hook 命令混入断言。
+    await writeFile(
+      userConfigPath,
+      JSON.stringify({
+        storage: { dir: storageRoot },
+        ...testSuppressedBuiltinPluginsConfig(),
+      }),
+    );
     await writeFile(
       join(workspace, ".nibi", "config.json"),
       JSON.stringify({
@@ -351,7 +375,14 @@ describe("createNibiApp workspace Hook admission", () => {
     await mkdir(join(workspace, ".git"), { recursive: true });
     await mkdir(join(workspace, ".nibi"), { recursive: true });
     await mkdir(join(root, "home"), { recursive: true });
-    await writeFile(userConfigPath, JSON.stringify({ storage: { dir: storageRoot } }));
+    // 测试基座隔离：抑制默认启用的 design 插件，避免它的 SessionStart hook 命令混入断言。
+    await writeFile(
+      userConfigPath,
+      JSON.stringify({
+        storage: { dir: storageRoot },
+        ...testSuppressedBuiltinPluginsConfig(),
+      }),
+    );
     await writeFile(
       join(workspace, ".nibi", "config.json"),
       JSON.stringify({
@@ -436,7 +467,14 @@ describe("createNibiApp workspace Hook admission", () => {
     await mkdir(join(workspace, ".git"), { recursive: true });
     await mkdir(join(workspace, ".nibi"), { recursive: true });
     await mkdir(join(root, "home"), { recursive: true });
-    await writeFile(userConfigPath, JSON.stringify({ storage: { dir: storageRoot } }));
+    // 测试基座隔离：抑制默认启用的 design 插件，避免它的 SessionStart hook 命令混入断言。
+    await writeFile(
+      userConfigPath,
+      JSON.stringify({
+        storage: { dir: storageRoot },
+        ...testSuppressedBuiltinPluginsConfig(),
+      }),
+    );
     await writeFile(
       join(workspace, ".nibi", "config.json"),
       JSON.stringify({
