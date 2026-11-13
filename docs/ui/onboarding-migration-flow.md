@@ -28,7 +28,7 @@ The current visible step order is:
 
 - Desktop onboarding / settings migration scan reads native Claude Code history from `{HOME}/.claude/projects/**/*.jsonl` (also tries `os.homedir()` and `NIBI_DATA_BASE_DIR` as HOME candidates).
 - Implementation: `packages/services/src/session/claude-native/claudeNativeSessionImportRepo.ts`, wired through `IZCodeTaskService.scanImportableClaudeSessions`.
-- Imported tasks are indexed with `provider: "claude"` and `migrationSource: "claudeCode"`. ZCode Agent task lists filter to `glm` by default but also include rows with `migration_source = claudeCode`, so migrated history appears in the sidebar without mixing in stale non-migrated Claude index rows.
+- Imported tasks are indexed with `provider: "claude"` and `migrationSource: "claudeCode"`. NIBI Agent task lists filter to `nibi-agent` by default but also include rows with `migration_source = claudeCode`, so migrated history appears in the sidebar without mixing in stale non-migrated Claude index rows.
 
 ## Claude → ZCode Session Import
 
