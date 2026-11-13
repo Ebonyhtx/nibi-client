@@ -1358,3 +1358,74 @@ exceptions:
       试用意图统一编排成「先启用/先开通会员再预填草稿」，发送侧对消息里的 canonical
       plugin:// 引用再按 workspace catalog 复核一次（未安装/未启用直接拒绝，不依赖 UI）。
       两处都是为这一条门禁新增的窄模块，按路径单独登记。
+
+  - id: node-repl-call-ledger-and-no-progress-guard
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/node-repl-host/src/call-ledger/contract.example.ts
+      - apps/nibi-cli/packages/node-repl-host/src/call-ledger/contract.ts
+      - apps/nibi-cli/packages/node-repl-host/src/call-ledger/ledger.ts
+      - apps/nibi-cli/packages/node-repl-host/src/call-ledger/module.ts
+      - apps/nibi-cli/packages/node-repl-host/src/call-ledger/browser-broker-proxy.ts
+      - apps/nibi-cli/packages/node-repl-host/src/no-progress-guard.ts
+    reason: >-
+      2026-11-13 插件升级引入的调用账本（按调用签发 CUA token、结果事实只认账本）与
+      no-progress guard。node-repl-host 仍是 managed:false 的官方插件宿主，接管整包不在
+      本次范围；文件按路径准入，后续模块化时删除本条。
+
+  - id: tui-app-locale
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/tui/src/app-locale.ts
+    reason: >-
+      TUI 启动参数与界面语言共用的窄工具，随 NIBI 品牌化新增；apps/nibi-cli 仍是
+      managed:false 的遗留大区，按路径准入。
+
+  - id: server-builtin-provider-config
+    rule: unmanaged-new-file
+    paths:
+      - packages/server/src/bundledNibiBuiltinProviderConfig.ts
+    reason: >-
+      Source Server 随包内置 provider 配置的读取入口，随服务端 NIBI 化新增；
+      packages/server 仍是 managed:false 的遗留大区，按路径准入。
+
+  - id: services-nibi-runtime-settings
+    rule: unmanaged-new-file
+    paths:
+      - packages/services/src/nibi-agent/nibiStdioTapDevConfig.ts
+      - packages/services/src/nibi-session/nibiSession.ts
+    reason: >-
+      Nibi Agent stdio tap 开发配置与 nibi-session 服务实现，随 Node lane 收口新增；
+      packages/services 仍是 managed:false 的遗留大区，按路径准入。
+
+  - id: services-session-task-list-types
+    rule: unmanaged-new-file
+    paths:
+      - packages/services/src/session/nibiTaskListTypes.ts
+    reason: >-
+      任务列表展示类型从会话模块拆出的窄类型文件，行为不变；session 仍是 managed:false
+      的遗留模块，按路径准入。
+
+  - id: ui-nibi-providers
+    rule: unmanaged-new-file
+    paths:
+      - packages/ui/src/lib/nibiProviders.ts
+    reason: >-
+      UI 侧 NIBI provider 展示元数据的窄工具，随 provider 配置跟随上游的收口新增；
+      packages/ui 仍是 managed:false 的遗留大区，按路径准入。
+
+  - id: design-plugin-skeleton-assets
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/design-plugin/skills/design/design-resources/**
+    reason: >-
+      design 插件随上游带入的静态骨架资源（HTML 幻灯片模板的 deck-stage.js 与 schema.ts），
+      属于插件运行时资产而非产品源码；插件目录仍在 nibi-cli 的 legacy 大区，按路径前缀准入。
+
+  - id: cli-help-command
+    rule: unmanaged-new-file
+    paths:
+      - apps/nibi-cli/packages/cli/src/help.ts
+    reason: >-
+      CLI 的 help 子命令入口，随终端命令面收口新增；apps/nibi-cli 仍是 managed:false 的
+      遗留大区，按路径准入。
