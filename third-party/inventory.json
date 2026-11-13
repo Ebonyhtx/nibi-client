@@ -30,7 +30,7 @@
     "apps/nibi-cli/packages/telemetry/package.json": "b82736f8409ec164781d62c5462778dd5a6adf8039446356bb742978c9cae22d",
     "apps/nibi-cli/packages/tui/package.json": "db1552c0872db9eeff7815114876ad96e6f4b1fbfb0f2ec5710cee7c4824df05",
     "apps/nibi-cli/tools/prompt-trajectory/package.json": "62b7a7ab96bbb4895b9dd77fdb54349c4a17e69a90f57670b6b23407d226f2a4",
-    "package.json": "71396be69ff287dfe8f6da34208fe56facd90da54523344b5fdc54e0efe15885",
+    "package.json": "a779a68bf2bf5f9199301f9dec6685c784cd33726e7a3faacb012b2f92a02bf9",
     "packages/client/package.json": "4925007e8e930042252eb7288885e2432882928b096b0788b5cab4cd23c3baee",
     "packages/desktop/package.json": "b642c602c1533560e242e14542a3f6149665820cfbe0ee723bcd5fd0ac3cf89b",
     "packages/desktop/src/renderer/public/material-icons/3d.svg": "9527b849f0fba57ca7640e2717b3a19cb5f5e046712cbbd8b75d73af338c68fb",
