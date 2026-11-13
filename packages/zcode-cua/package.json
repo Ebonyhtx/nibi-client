@@ -5,7 +5,7 @@
   "description": "Computer Use public contract and fail-closed placeholder: broker protocol, frame/display/access metadata, and socket naming. The native Helper and runtime are not part of the open-source distribution.",
   "license": "Apache-2.0",
   "type": "module",
-  "zcodeCuaPlaceholder": true,
+  "nibiCuaPlaceholder": true,
   "exports": {
     ".": {
       "types": "./index.d.ts",

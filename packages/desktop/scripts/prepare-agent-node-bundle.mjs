@@ -259,9 +259,9 @@ const officialPluginPackages = [
   {
     // CUA 插件只携带 SDK/skill/docs；node_repl MCP runtime 归 @nibi/node-repl-host。
     packageName: "@nibi/cua-plugin",
-    relativePath: "apps/nibi-cli/packages/zcode-cua-plugin",
+    relativePath: "apps/nibi-cli/packages/computer-use-plugin",
     requiresRuntime: false,
-    stagedPath: "packages/zcode-cua-plugin",
+    stagedPath: "packages/computer-use-plugin",
   },
   // superpowers 已从内置插件下线，改走 UI 推荐区按需安装；这里不再 stage 它的资源。
 ];
@@ -463,7 +463,7 @@ function stageSharpForNodeReplPlugin() {
   const pluginStagedDirs = [
     [NODE_REPL_HOST_PACKAGE_NAME, resolve(glmDir, "packages", "node-repl-host")],
     [BROWSER_USE_PLUGIN_PACKAGE_NAME, resolve(glmDir, "packages", "browser-use-plugin")],
-    [CUA_PLUGIN_PACKAGE_NAME, resolve(glmDir, "packages", "zcode-cua-plugin")],
+    [CUA_PLUGIN_PACKAGE_NAME, resolve(glmDir, "packages", "computer-use-plugin")],
   ];
   for (const [packageName, pluginStagedDir] of pluginStagedDirs) {
     if (!hasPluginManifest(pluginStagedDir)) {
@@ -482,9 +482,9 @@ function stageSharpForNodeReplPlugin() {
 }
 
 function stageKoffiForCuaPlugin() {
-  const cuaPluginStagedDir = resolve(glmDir, "packages", "zcode-cua-plugin");
+  const cuaPluginStagedDir = resolve(glmDir, "packages", "computer-use-plugin");
   if (!hasPluginManifest(cuaPluginStagedDir)) {
-    console.log("[prepare:agent-bundle] zcode-cua-plugin not staged, skip koffi staging");
+    console.log("[prepare:agent-bundle] computer-use-plugin not staged, skip koffi staging");
     return;
   }
   stageKoffiIntoBundledAgents({

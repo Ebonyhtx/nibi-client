@@ -481,11 +481,11 @@ function assertPackagedCuaSharp(context) {
       }),
     ],
     [
-      "packages/zcode-cua-plugin",
+      "packages/computer-use-plugin",
       verifyStagedSharp({
         resourcesDir: resolvePackagedResourcesDir(context),
         targetPlatform,
-        pluginRelativePath: "packages/zcode-cua-plugin",
+        pluginRelativePath: "packages/computer-use-plugin",
       }),
     ],
   ].flatMap(([pluginPath, pluginProblems]) =>

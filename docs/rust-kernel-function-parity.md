@@ -47,7 +47,7 @@
 - 模型看到的是 **`mcp__node_repl__js`**（`node-repl-host` 包），不是一组 `Browser*` 原生工具。
   `browser-use` / `computer-use` 两个官方插件只贡献 **skill 与文档**，manifest 里没有 `mcpServers`
   （`apps/nibi-cli/packages/browser-use-plugin/.nibi-plugin/plugin.json`、
-  `.../zcode-cua-plugin/.nibi-plugin/plugin.json`）。
+  `.../computer-use-plugin/.nibi-plugin/plugin.json`）。
 - 调用链：JS SDK `agent.browsers.*` → `node-repl-host/src/browser-bridge.ts` → 本地 socket
   （`NIBI_NODE_REPL_BROWSER_BROKER_SOCKET` + token）→ agent 侧
   `bootstrap/src/app/node-repl-browser-broker.ts` 的 broker →
@@ -198,7 +198,7 @@ Rust 按同一语义实现（`kernel/crates/protocol-nibi/src/projection/auto_re
   经 `node-repl-host/src/cua-bridge.ts` → node_repl 进程内的 broker socket →
   `@nibi/cua` runtime → 本地 NDJSON → CUA Helper → `@trycua/cua-driver`。
 - Host 不在动作链上：它只负责控制面（稳定 socket/recipe 注入、Helper 生命周期、权限 UI）。
-- 公开仓的 `packages/zcode-cua` 是**占位实现**（`zcodeCuaPlaceholder: true`，调用返回
+- 公开仓的 `packages/zcode-cua` 是**占位实现**（`nibiCuaPlaceholder: true`，调用返回
   `Computer Use is not available in this build.`）；真 Helper/runtime/engine 只在 NIBI 私有仓。
   上游 `zai-org/ZCode` 与 `MBearo/ZCode-rs` 当前树里的 `packages/zcode-cua` 也是同一个占位包，
   **CUA 实现至今没有公开**。

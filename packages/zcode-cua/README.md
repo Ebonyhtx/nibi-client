@@ -15,7 +15,7 @@ entry point reports `Computer Use is not available in this build.` and never
 starts a Helper process. Official NIBI builds replace this package with the
 full implementation.
 
-The placeholder is detected through `zcodeCuaPlaceholder: true` in
+The placeholder is detected through `nibiCuaPlaceholder: true` in
 `package.json`; desktop development and packaging steps use that flag to skip
 Helper assets. See
 [`docs/desktop/computer-use-producer-detection.md`](../../docs/desktop/computer-use-producer-detection.md).

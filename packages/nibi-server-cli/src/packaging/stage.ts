@@ -79,7 +79,7 @@ async function copyDirectoryIfPresent(
     .filter((name) => name !== "superpowers-plugin")
     .sort();
   // Bug 原因：只按 "-plugin" 后缀识别官方插件，会把 checkout 残留的僵尸目录也算进去。CI 用
-  // GIT_CLEAN_FLAGS "-e node_modules/" 跨 job 保留 node_modules，别的分支（例如把 zcode-cua-plugin
+  // GIT_CLEAN_FLAGS "-e node_modules/" 跨 job 保留 node_modules，别的分支（例如把 computer-use-plugin
   // 改名为 computer-use-plugin 的分支）install 过的插件目录切回来后只剩 node_modules；tracked 文件
   // 全没了，但目录还在。官方插件的 package.json 都是 tracked 文件，以它是否存在判定"该目录属于
   // 当前 checkout"；通过判定的插件仍走下方 fail-closed 校验，不放松对残缺插件的拒绝。

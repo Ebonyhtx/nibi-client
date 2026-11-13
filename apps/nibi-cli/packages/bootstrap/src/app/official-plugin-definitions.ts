@@ -506,10 +506,10 @@ export const OFFICIAL_PLUGIN_DEFINITIONS: readonly OfficialPluginDefinition[] = 
       icon: `${NIBI_PLUGIN_ICONS_BASE_URL}/computer-use.png`,
     },
     rootCandidates: [
-      "packages/zcode-cua-plugin",
-      "../zcode-cua-plugin",
-      "../../zcode-cua-plugin",
-      "../../../zcode-cua-plugin",
+      "packages/computer-use-plugin",
+      "../computer-use-plugin",
+      "../../computer-use-plugin",
+      "../../../computer-use-plugin",
     ],
     requiredSeedPaths: OFFICIAL_CUA_REQUIRED_SEED_PATHS,
     // Bug 根因：迁移 node_repl 时把旧 MCP launcher 与 SDK 仍需的 Sharp runtime 一并裁掉了。

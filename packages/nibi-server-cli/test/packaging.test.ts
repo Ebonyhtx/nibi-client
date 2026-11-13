@@ -739,7 +739,7 @@ describe("stageRelease", () => {
 
   it("ignores orphaned *-plugin directories left behind by a previous checkout", async () => {
     // Bug 原因：CI 用 GIT_CLEAN_FLAGS "-e node_modules/" 跨 job 保留 node_modules，其它分支
-    // （例如曾把 zcode-cua-plugin 改名为 computer-use-plugin 的分支）install 过的插件目录切回本
+    // （例如曾把 computer-use-plugin 改名为 computer-use-plugin 的分支）install 过的插件目录切回本
     // 分支后只剩 node_modules，tracked 文件全被 checkout 删掉。旧规则仅按 "-plugin" 后缀识别官方
     // 插件，会把这种僵尸目录当插件 stage，随后 fail-closed 校验读不到 plugin.json 而整段失败。
     const fixture = await makeStageFixture();

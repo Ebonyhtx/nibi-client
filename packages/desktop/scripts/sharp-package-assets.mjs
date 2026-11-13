@@ -10,7 +10,7 @@
 // server fails at top-level ESM resolution and product CUA never comes up.
 //
 // What we do: copy `sharp` + the per-triplet prebuild packages into each official
-// plugin's `node_modules/` (including `zcode-cua-plugin`, which is CUA's native
+// plugin's `node_modules/` (including `computer-use-plugin`, which is CUA's native
 // dependency root and is independent from Browser Use).
 // macOS/Linux split the native `.node` and libvips into `@img/sharp-*` +
 // `@img/sharp-libvips-*`; Windows keeps both the `.node` and libvips DLLs in

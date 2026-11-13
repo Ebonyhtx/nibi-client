@@ -10,7 +10,7 @@
     "apps/nibi-cli/packages/android-emulator-plugin/package.json": "f09f6e99c0e39a2ddfccb02a9b062a3cdb3c2c87784419b14be38f7ef1b4b4ec",
     "apps/nibi-cli/packages/bootstrap/package.json": "7d25a43531210753c6d8a5972ea65369de060f91b63fa2c7b07135dcd0c89cc0",
     "apps/nibi-cli/packages/browser-use-plugin/package.json": "f37747250de8e94723cb9c2d32326addf8635f1d5083776e28b49a0588200a78",
-    "apps/nibi-cli/packages/cli/package.json": "d9ab44628519a3ff01f38a0220aa45e1d3ff412c7f402475c3f1bb2eef611796",
+    "apps/nibi-cli/packages/cli/package.json": "f65aefaf259bcd0718e895e80626beaa880338139c4b0d4195c97225bd838437",
     "apps/nibi-cli/packages/contracts/package.json": "88457db4021268aec228e710e70038990e4c600078126b270e694d00709e50a3",
     "apps/nibi-cli/packages/core/package.json": "f993a5960274c3b42e9c4d0e76d71c42f5cef0a8418252628c703d088d09f77c",
     "apps/nibi-cli/packages/core/src/tool/handlers/generated/bash-command-registry.ts": "60fa5acd9f5c357f4e51b1d1e944ee39da92680e4bc5e98dd708f1457fcf612b",
@@ -29,7 +29,6 @@
     "apps/nibi-cli/packages/swift-bridge/package.json": "621866ce5e7561f4292690a83f8ad78c762e528a8c165ecae1cc4f77fd410170",
     "apps/nibi-cli/packages/telemetry/package.json": "b82736f8409ec164781d62c5462778dd5a6adf8039446356bb742978c9cae22d",
     "apps/nibi-cli/packages/tui/package.json": "db1552c0872db9eeff7815114876ad96e6f4b1fbfb0f2ec5710cee7c4824df05",
-    "apps/nibi-cli/packages/zcode-cua-plugin/package.json": "fbe95e3e90f9b105435d6ea97387f514de9ec2475282d37547a5ee2de3d8b317",
     "apps/nibi-cli/tools/prompt-trajectory/package.json": "62b7a7ab96bbb4895b9dd77fdb54349c4a17e69a90f57670b6b23407d226f2a4",
     "package.json": "71396be69ff287dfe8f6da34208fe56facd90da54523344b5fdc54e0efe15885",
     "packages/client/package.json": "4925007e8e930042252eb7288885e2432882928b096b0788b5cab4cd23c3baee",
@@ -2479,7 +2478,7 @@
     "patches/@radix-ui__react-collapsible@1.1.12.patch": "4b7b3781f603e111bb33aef9c4b1694ac9bacd3dff47692606de9876d4631164",
     "patches/vitest@4.1.7.patch": "11fdb66aa985e1d77e68752deeb7c1130ae33c9a4e2968f23aae8adaf8bc9ba0",
     "patches/wdio-electron-service@9.2.1.patch": "52481dae5e76772fcb8c2a9ff42feb3d0e1478e28815a4b975c81b9287e3385f",
-    "pnpm-lock.yaml": "570708ff16ad5b1a5d3ed92d5d8bf078a0fe4a9feb300c7b1168c18cd253c841",
+    "pnpm-lock.yaml": "c15270e3fcf0802e6e81443bd9e79875b79ab7ac1983382462cde9a838027b41",
     "pnpm-workspace.yaml": "1abb183c3f87faa9d89f37b3338d80300e88d78eb47f56fdc330938849a8ff18",
     "scripts/license-texts/Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
     "scripts/native-search-tools-config.mjs": "ff8e6b07e36db4a2f69c33777fe6f6d85bd5626ac478977ade736b6fb565e7a8",
@@ -2683,7 +2682,8 @@
     "third-party/upstream/f18c12b8e7daf98d572518b7db133b2dc66a713921dac4825410dd656e0c1a1a.txt": "f18c12b8e7daf98d572518b7db133b2dc66a713921dac4825410dd656e0c1a1a",
     "third-party/upstream/f29b60ea39a2132e3baa98927c2d473b349a54143da44a0c6762b243e6459452.txt": "f29b60ea39a2132e3baa98927c2d473b349a54143da44a0c6762b243e6459452",
     "third-party/upstream/f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af.txt": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
-    "third-party/upstream/fc7d762e0ebf8720d0a03cf00058aaa3a198347e9651be2f50a25e3b3ec13985.txt": "fc7d762e0ebf8720d0a03cf00058aaa3a198347e9651be2f50a25e3b3ec13985"
+    "third-party/upstream/fc7d762e0ebf8720d0a03cf00058aaa3a198347e9651be2f50a25e3b3ec13985.txt": "fc7d762e0ebf8720d0a03cf00058aaa3a198347e9651be2f50a25e3b3ec13985",
+    "apps/nibi-cli/packages/computer-use-plugin/package.json": "fbe95e3e90f9b105435d6ea97387f514de9ec2475282d37547a5ee2de3d8b317"
   },
   "packages": [
     {

@@ -279,12 +279,12 @@ function checkCuaBoundary(violations) {
     return;
   }
   const manifest = JSON.parse(readFileSync(join(ROOT, manifestPath), "utf8"));
-  if (manifest.zcodeCuaPlaceholder !== true) {
+  if (manifest.nibiCuaPlaceholder !== true) {
     violations.push({
       file: manifestPath,
       line: 0,
-      rule: "CUA package must declare zcodeCuaPlaceholder: true",
-      text: "zcodeCuaPlaceholder",
+      rule: "CUA package must declare nibiCuaPlaceholder: true",
+      text: "nibiCuaPlaceholder",
     });
   }
   for (const directory of ["helper", "runtime", "engine", "vendor"]) {

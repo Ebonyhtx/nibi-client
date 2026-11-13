@@ -444,6 +444,19 @@ importers:
         specifier: 1.59.1
         version: 1.59.1
 
+  apps/nibi-cli/packages/computer-use-plugin:
+    dependencies:
+      '@nibi/cua':
+        specifier: workspace:*
+        version: link:../../../../packages/zcode-cua
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.12.2
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
   apps/nibi-cli/packages/contracts:
     dependencies:
       '@nibi/shared':
@@ -844,19 +857,6 @@ importers:
         version: 4.21.0
 
   apps/nibi-cli/packages/visualize-plugin: {}
-
-  apps/nibi-cli/packages/zcode-cua-plugin:
-    dependencies:
-      '@nibi/cua':
-        specifier: workspace:*
-        version: link:../../../../packages/zcode-cua
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.12.2
-      typescript:
-        specifier: ^5.9.0
-        version: 5.9.3
 
   apps/nibi-cli/tools/prompt-trajectory:
     devDependencies:

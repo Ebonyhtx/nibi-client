@@ -5,7 +5,7 @@ export const REMOTE_AGENT_OFFICIAL_PLUGIN_DIR_NAME = "packages";
 export const REMOTE_AGENT_OFFICIAL_PLUGIN_PACKAGE_NAMES = [
   "android-emulator-plugin",
   "browser-use-plugin",
-  "zcode-cua-plugin",
+  "computer-use-plugin",
   "documents-plugin",
   "pdf-plugin",
   "presentations-plugin",
@@ -116,9 +116,9 @@ export const REMOTE_AGENT_OFFICIAL_PLUGIN_REQUIRED_RELATIVE_PATHS = [
   "spreadsheets-plugin/dist/server.mjs",
   "spreadsheets-plugin/dist/ui/assets.json",
   "spreadsheets-plugin/dist/ui/panel.html",
-  "zcode-cua-plugin/docs/computer-use.md",
-  "zcode-cua-plugin/scripts/computer-use-client.mjs",
-  "zcode-cua-plugin/skills/computer-use/SKILL.md",
+  "computer-use-plugin/docs/computer-use.md",
+  "computer-use-plugin/scripts/computer-use-client.mjs",
+  "computer-use-plugin/skills/computer-use/SKILL.md",
 ] as const;
 
 export function buildRemoteAgentOfficialPluginDir(remoteProviderDir: string): string {

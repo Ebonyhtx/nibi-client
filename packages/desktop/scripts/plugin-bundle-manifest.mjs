@@ -7,7 +7,7 @@
  *
  * 字段语义：
  *   packageName        npm 包名。注意**插件对外名以包内 .nibi-plugin/plugin.json 为准**，
- *                      两者可以不同（例：zcode-cua-plugin 的插件名是 computer-use）；
+ *                      两者可以不同（例：computer-use-plugin 的插件名是 computer-use）；
  *                      构建门禁按清单名推导，两者必须区分。
  *   relativePath       仓库内路径
  *   requiresRuntime    是否有需要构建的运行时（true 时会跑 runtimeBuildScript）
@@ -96,9 +96,9 @@ const officialPluginPackages = [
   {
     // CUA 插件只携带 SDK/skill/docs；node_repl MCP runtime 归 @nibi/node-repl-host。
     packageName: "@nibi/cua-plugin",
-    relativePath: "apps/nibi-cli/packages/zcode-cua-plugin",
+    relativePath: "apps/nibi-cli/packages/computer-use-plugin",
     requiresRuntime: false,
-    stagedPath: "packages/zcode-cua-plugin",
+    stagedPath: "packages/computer-use-plugin",
   },
   {
     // 文档四件套（内置，对齐上游）：纯内容 + Python 工具层，没有随包原生 runtime。

@@ -328,12 +328,12 @@ describe("node_repl MCP server", () => {
     ]) {
       expect(
         existsSync(resolve(import.meta.dirname, relative)),
-        `${relative} must not exist: the canonical copy lives in zcode-cua-plugin`,
+        `${relative} must not exist: the canonical copy lives in computer-use-plugin`,
       ).toBe(false);
     }
     expect(
       existsSync(
-        resolve(import.meta.dirname, "../../zcode-cua-plugin/scripts/computer-use-client.mjs"),
+        resolve(import.meta.dirname, "../../computer-use-plugin/scripts/computer-use-client.mjs"),
       ),
     ).toBe(true);
   });
